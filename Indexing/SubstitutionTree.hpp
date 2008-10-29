@@ -9,6 +9,12 @@
 #define __SubstitutionTree__
 
 #include "../Lib/Stack.hpp"
+#include "../Lib/Comparison.hpp"
+#include "../Lib/BinaryHeap.hpp"
+#include "../Lib/Int.hpp"
+
+#include "../Lib/Map.hpp"
+#include "../Lib/List.hpp"
 
 namespace Kernel {
   class TermList;
@@ -21,6 +27,7 @@ using namespace Kernel;
 
 namespace Indexing {
 
+
 /**
  * Class of substitution trees. In fact, contains an array of substitution
  * trees.
@@ -32,18 +39,60 @@ private:
 public:
   SubstitutionTree(int nodes);
   ~SubstitutionTree();
+  
+  void insert(Literal* lit, Clause* cls)
+  {
+    insert(lit->header(), lit->args(), cls);
+  }
+  void remove(Literal* lit, Clause* cls)
+  {
+    remove(lit->header(), lit->args(), cls);
+  }
+
+  void insert(TermList* term, Clause* cls)
+  {
+    ASS(!term->isEmpty());
+    if(term->isVar()) {
+      ASS(!term->isSpecialVar());
+      BindingHeap bh;
+      insert(_nodes+_numberOfTopLevelNodes-1, bh, cls);
+    } else {
+      insert(term->term()->functor(), term->term()->args(), cls);
+    }
+  }
+  void remove(TermList* term, Clause* cls)
+  {
+    ASS(!term->isEmpty());
+    if(term->isVar()) {
+      ASS(!term->isSpecialVar());
+      BindingHeap bh;
+      remove(_nodes+_numberOfTopLevelNodes-1, bh, cls);
+    } else {
+      remove(term->term()->functor(), term->term()->args(), cls);
+    }
+  }
+  
   void insert(int number,TermList* args,Clause* cls);
   void remove(int number,TermList* args,Clause* cls);
 
+#ifdef VDEBUG
+  string toString() const;
+  bool isEmpty() const;
+#endif
+  
 private:
   class Node {
   public:
+#ifdef VDEBUG
     /** Number of variable at this node, -1 for leaves */
     int var;
     /** True if a leaf node */
     bool isLeaf() const { return var == -1; }
     /** Build a node with a given variable number in it */
     Node(int v) : var(v) {}
+#else
+    Node(int v) {}
+#endif    
   };
 
   class IntermediateNode
@@ -92,13 +141,22 @@ private:
     Binding(int v,TermList* t) : var(v), term(t) {}
     /** Create uninitialised binding */
     Binding() {}
+    class Comparator
+    {
+    public:
+      static Comparison compare(Binding& b1, Binding& b2)
+      {
+	return Int::compare(b2.var, b1.var);
+      }
+    };
   }; // class SubstitutionTree::Binding
 
+  typedef BinaryHeap<Binding,Binding::Comparator> BindingHeap;
   typedef Stack<Binding> BindingStack;
   typedef Stack<const TermList*> TermStack;
 
-  void insert(Node** node,BindingStack& binding,Clause* clause);
-  void remove(Node* node,BindingStack& binding,Clause* clause);
+  void insert(Node** node,BindingHeap& binding,Clause* clause);
+  void remove(Node** node,BindingHeap& binding,Clause* clause);
   static bool sameTop(const TermList* ss,const TermList* tt);
 
   /** Number of top-level nodes */
@@ -107,6 +165,9 @@ private:
   int _nextVar;
   /** Array of nodes */
   Node** _nodes;
+  
+  /** Constants are stored here  */
+  Map<int,List<Clause*>*,Hash> _constants;
 }; // class SubstiutionTree
 
 } // namespace Indexing
