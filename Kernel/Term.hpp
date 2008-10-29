@@ -66,7 +66,7 @@ public:
   const TermList* next() const
   { return this-1; }
   /** the term contains a variable as its head */
-  bool isVar() const { return _content && 0x0001 == 1; }
+  bool isVar() const { return (_content & 0x0001) == 1; }
   /** the term contains an ordinary variable as its head */
   bool isOrdinaryVar() const { return tag() == ORD_VAR; }
   /** the term contains a special variable as its head */

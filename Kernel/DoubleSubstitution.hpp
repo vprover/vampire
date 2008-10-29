@@ -13,8 +13,7 @@
 using namespace std;
 #endif
 
-#include "../Lib/Array.hpp"
-#include "../Lib/DArray.hpp"
+#include "../Lib/DHMap.hpp"
 #include "Term.hpp"
 
 using namespace Lib;
@@ -49,47 +48,75 @@ private:
   /** structure storing the current binding */
   struct Binding
   {
-    /** Timestamp when this variable was instantiated */
-    unsigned timestamp;
     /** index of term to which it is bound */
     int index;
     /** term reference */
     TermList termref;
   };
-  /** A substitution is a flexible-sized array of bindings.
-   */
-  class Subst
-    : public Array<Binding>
+  /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
+  struct VarSpec
   {
-  public:
-    Subst() { reset(); }
-    virtual ~Subst();
-    virtual void fillInterval(size_t start, size_t end);
-    /** Reset all timestamps to 0 */
-    void reset() { fillInterval(0,_capacity); }
-  }; // class Subst
+    /** Create a new VarSpec struct */
+    VarSpec() {}
+    /** Create a new VarSpec struct */
+    VarSpec(unsigned var, int index) : var(var), index(index) {}
 
-  /** Array of Subst */
-  class SubstBank
-    : public DArray<Subst>
-  {
-  public:
-    /** Initialise and set the number of substitutions to 2 */
-    SubstBank() : DArray<Subst>(2) {}
-    void reset();
-    ~SubstBank();
+    inline
+    bool operator==(const VarSpec& o) 
+    {
+      return var==o.var && index==o.index;
+    }
+    inline
+    bool operator!=(const VarSpec& o) 
+    {
+      return !(*this==o);
+    }
+    /** number of variable */
+    unsigned var;
+    /** index of variable bank */
+    int index;
+    
+    /** class containing first hash function for DHMap object storing variable banks */
+    class Hash1
+    {
+    public:
+      static unsigned hash(VarSpec& o, int capacity);
+    };
+    /** class containing second hash function for DHMap object storing variable banks */
+    class Hash2
+    {
+    public:
+      static unsigned hash(VarSpec& o);
+    };
   };
 
-  /** Get the binding for the variable @b var and index @b vindex */
-  inline Binding& get(unsigned var,int vindex)
+  /**
+   * Bind @b v with the index @b vindex to the content of @b b
+   * @pre (v,vindex) must previously be unbound
+   */
+  void bind(unsigned v,int vindex,const Binding& b)
   {
-    return _bank[vindex][var];
+    CALL("DoubleSubstitution::bind/3");
+    bool inserted=_bank.insert(VarSpec(v,vindex), b);
+    ASS(inserted);
   }
 
-  /** current timestamp */
-  unsigned _timestamp;
-  /** Array storing all substitutions */
-  SubstBank _bank;
+  /** 
+   * If variable @b var at index @b vindex is bound, return true and
+   * assign the binging to result. Otherwise return false. 
+   */
+  inline bool getBinding(unsigned var,int vindex, Binding& result)
+  {
+    CALL("DoubleSubstitution::getBinding");
+    return _bank.find(VarSpec(var,vindex), result);
+  }
+
+  /** type used to store variable banks */
+  typedef DHMap<VarSpec,Binding,VarSpec::Hash1,VarSpec::Hash2> BankStorage;
+  
+  /** DHMap storing all substitutions */
+  BankStorage _bank;
+  
   /** next variable number when the substitution is applied */
   unsigned _nextVar;
 
@@ -99,6 +126,19 @@ private:
 
 
 }
+
+namespace Lib 
+{
+/**
+ * Traits structure specialisation. (See DHMap.hpp) 
+ */
+template<>
+struct HashTraits<Kernel::DoubleSubstitution::VarSpec::Hash1>
+{
+  enum {SINGLE_PARAM_HASH=0};
+};
+};
+
 
 #endif // __DoubleSubstitution__
 

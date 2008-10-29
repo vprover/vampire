@@ -11,46 +11,12 @@
 #  include "../Lib/Int.hpp"
 #endif
 
+#include "../Lib/DArray.hpp"
+
 #include "Term.hpp"
 #include "DoubleSubstitution.hpp"
 
 using namespace Kernel;
-
-/**
- * Redefined to do nothing so that on the expansion of double substitutions
- * binding arrays would not get deleted.
- * @since 06/01/2008 Torrevieja
- */
-DoubleSubstitution::Subst::~Subst()
-{
-}
-
-/**
- * When a new array is allocated, the timestamps should be set to 0.
- * @since 06/01/2008 Torrevieja
- */
-void DoubleSubstitution::Subst::fillInterval(size_t start, size_t end)
-{
-  CALL("DoubleSubstitution::Subst::fillInterval");
-
-  for (size_t i = start;i < end;i++) {
-    _array[i].timestamp = 0;
-  }
-} // DoubleSubstitution::Subst::fillInterval
-
-/**
- * Redefined to do nothing so that on the expansion of double substitutions
- * binding arrays would not get deleted.
- * @since 06/01/2008 Torrevieja
- */
-DoubleSubstitution::SubstBank::~SubstBank()
-{
-  CALL("DoubleSubstitution::SubstBank::~SubstBank");
-
-  for (int i = _size-1;i >= 0;i --) {
-//     delete [] _array[i].content();
-  }
-} // DoubleSubstitution::SubstBank::~SubstBank
 
 /**
  * Increase the timestamp. If the wraparound occurs, then reset all
@@ -60,22 +26,8 @@ void DoubleSubstitution::reset()
 {
   CALL("DoubleSubstitution::reset");
 
-  _nextVar = 0;
-  _timestamp += 2;
-  if (_timestamp == 0 || _timestamp == UINT_MAX) {
-    _bank.reset();
-    _timestamp = 2;
-  }
+  _bank.reset();
 } // DoubleSubstitution::reset
-
-void DoubleSubstitution::SubstBank::reset()
-{
-  CALL("DoubleSubstitution::SubstBank::reset");
-
-  for (int i = _size-1;i >= 0;i --) {
-    _array[i].reset();
-  }
-} // DoubleSubstitution::SubstBank::reset
 
 /**
  * Bind @b v with the index @b vindex to term @b t with the index @b tindex
@@ -84,14 +36,14 @@ void DoubleSubstitution::SubstBank::reset()
  */
 void DoubleSubstitution::bind(unsigned v,int vindex,TermList t,int tindex)
 {
-  CALL("DoubleSubstitution::bind");
-  Binding& binding = get(v,vindex);
+  CALL("DoubleSubstitution::bind/4");
+  Binding binding;
 
-  ASS(binding.timestamp < _timestamp);
-
-  binding.timestamp = _timestamp;
   binding.index = tindex;
   binding.termref = t;
+
+  bind(v,vindex,binding);
+
 } // DoubleSubstitution::bind
 
 /**
@@ -103,10 +55,9 @@ void DoubleSubstitution::unbind(unsigned v,int vindex)
 {
   CALL("DoubleSubstitution::unbind");
 
-  Binding& binding = get(v,vindex);
-
-  ASS(binding.timestamp == _timestamp);
-  binding.timestamp = 0;
+  bool found=_bank.remove(VarSpec(v, vindex));
+  
+  ASS(found);
 } // DoubleSubstitution::unbind
 
 #if VDEBUG
@@ -118,24 +69,27 @@ string DoubleSubstitution::toString() const
 {
   CALL("DoubleSubstitution::toString");
 
+  //TODO: Test this method
+
   string result("[");
   bool first = true;
-  for (unsigned i = 0;i < _bank.size(); i++) {
-    const Subst& s = _bank[i];
-    for (unsigned j = 0;j < s.size();j++) {
-      const Binding& b = s[j];
-      if (b.timestamp == _timestamp) {
-	if (first) {
-	  first = false;
-	}
-	else {
-	  result += ',';
-	}
-	result += (string)"X" + Int::toString(j) + '/' + Int::toString(i) +
-         	  "->" + b.termref.toString() + '/' +
-	          Int::toString(b.index);
-      }
+  BankStorage::Iterator bit(_bank);
+  while(bit.hasNext()) {
+    VarSpec spec=bit.nextKey();
+    Binding binding;
+    bool found=_bank.find(spec, binding);
+    ASS(found);
+    
+    if (first) {
+      first = false;
     }
+    else {
+      result += ',';
+    }
+    result += (string)"X" + Int::toString(spec.var) + '/' + Int::toString(spec.index) +
+    	"->" + binding.termref.toString() + '/' +
+    	Int::toString(binding.index);
+    
   }
 
   result += ']';
@@ -153,13 +107,6 @@ bool DoubleSubstitution::unify(Literal* lit1,int index1,
   CALL("DoubleSubstitution::unify");
   ASS(index1 >= 0);
   ASS(index2 >= 0);
-
-  if (index1 >= index2) {
-    _bank.ensure(index1);
-  }
-  else {
-    _bank.ensure(index2);
-  }
 
   if (lit1->functor() != lit2->functor() ||
       lit1->polarity() != lit2->polarity()) {
@@ -196,7 +143,6 @@ bool DoubleSubstitution::complementary(Literal* lit1,int index1,
   if (lit1->arity() == 0) {
     return true;
   }
-  _bank.ensure(index1 >= index2 ? index1 : index2);
 
   if (unify(lit1->args(),index1,lit2->args(),index2)) {
     return true;
@@ -217,8 +163,9 @@ void DoubleSubstitution::deref(TermList from,int indexFrom,
   CALL("DoubleSubstitution::deref");
 
   while (from.isVar()) {
-    Binding& b = get(from.var(),indexFrom);
-    if (b.timestamp != _timestamp) { // not bound
+    Binding b;
+    bool found = getBinding(from.var(),indexFrom, b);
+    if (!found) { // not bound
       break;
     }
     indexFrom = b.index;
@@ -419,11 +366,55 @@ unsigned DoubleSubstitution::getVar(unsigned var,int index)
 {
   CALL("DoubleSubstitution::getVar");
 
-  Binding& bind = get(var,index);
-  ASS(bind.timestamp != _timestamp); // unbound
-  if (bind.timestamp != _timestamp + 1) {
-    bind.timestamp = _timestamp+1;
-    bind.termref.makeVar(_nextVar++);
+  //TODO: I'm not sure what exactly is this method supposed to do...
+  
+  Binding b;
+  bool found=getBinding(var,index,b);
+  if(found) {
+    ASS(b.termref.isVar());
+  } else {
+    //Old behavior was preventing the variable from being bound by setting
+    //special timestamp, here we bind it to an unbound variable.
+    //Does it change anything?
+    b.index=index;
+    b.termref.makeVar(_nextVar++);
+    bind(var, index, b);
   }
-  return bind.termref.var();
+  return b.termref.var();
+
+//Original code was:
+//  Binding& bind = get(var,index);
+//  ASS(bind.timestamp != _timestamp); // unbound
+//  if (bind.timestamp != _timestamp + 1) {
+//    bind.timestamp = _timestamp+1;
+//    bind.termref.makeVar(_nextVar++);
+//  }
+//  return bind.termref.var();
 } // DoubleSubstitution::getVar
+
+
+/**
+ * First hash function for DHMap.
+ */
+unsigned DoubleSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
+{
+  return o.var + o.index*capacity>>1 + o.index>>1*capacity>>3; 
+/*//This might work better
+  
+  int res=(o.var%(capacity<<1) - capacity);
+  if(res<0)
+    //this turns x into -x-1
+    res = ~res;
+  if(o.index)
+    return static_cast<unsigned>(-res+capacity-o.index);
+  else
+    return static_cast<unsigned>(res);*/
+}
+
+/**
+ * Second hash function for DHMap. It just uses the hashFNV function from Lib::Hash
+ */
+unsigned DoubleSubstitution::VarSpec::Hash2::hash(VarSpec& o)
+{
+  return Lib::Hash::hashFNV(reinterpret_cast<const unsigned char*>(&o), sizeof(VarSpec));
+}

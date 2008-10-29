@@ -11,6 +11,9 @@
 #include "../Lib/Int.hpp"
 #include "Output.hpp"
 
+#include "../Lib/Environment.hpp"
+#include "../Kernel/Signature.hpp"
+
 using namespace std;
 using namespace Kernel;
 using namespace Test;
@@ -22,10 +25,12 @@ using namespace Test;
 string Output::toString(const Term* t)
 {
   CALL("Output::toString(const Term*)");
+  ASS(!t->isLiteral());
+  string name(env.signature->functionName(t->functor()));
   if (t->arity() == 0) {
-    return string("c") + Int::toString(t->functor());
+    return name;
   }
-  return string("f") + Int::toString(t->functor()) +
+  return name +
          "(" + toString(t->args()) + ")";
 } // Output::toString(const Term* t)
 
@@ -40,7 +45,7 @@ string Output::toString(const TermList* ts)
   string r("");
   for (;;)  {
     if (ts->isVar()) {
-      r += "X";
+      r += ts->isSpecialVar()? "S" : "X";
       r += Int::toString(ts->var()); 
     }
     else {
@@ -62,12 +67,12 @@ string Output::toString(const Literal* l)
 {
   CALL("Output::toString(const Literal*)");
 
-  string tt(l->isPositive() ? "p(" : "n(" );
-  tt += l->isEquality() ? "e" : "p" + Int::toString(l->functor());
+  string tt(l->isPositive() ? "" : "~" );
+  tt += l->isEquality() ? "e" : env.signature->predicateName(l->functor());
   if (l->arity() != 0) {
     tt += "(" + toString(l->args()) + ")";
   }
-  return tt + ')';
+  return tt;
 } // Output::toString(const Literal* l)
 
 /**

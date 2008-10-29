@@ -1,0 +1,504 @@
+/**
+ * @file DHMap.hpp
+ * Defines class DHMap<Key,Val,Hash1,Hash2> of maps, implemented as
+ * double hashed hashtables. 
+ */
+
+#ifndef __DHMap__
+#define __DHMap__
+
+#include <cstdlib>
+
+#include "../Debug/Assertion.hpp"
+#include "Allocator.hpp"
+#include "Exception.hpp"
+#include "Hash.hpp"
+
+namespace Lib {
+
+/** 
+ * Traits class for hash classes, which should be specialized 
+ * for classes whose hash functions have second parameter for
+ * hashtable capacity. 
+ */
+template<typename Hash>
+struct HashTraits
+{
+  enum {SINGLE_PARAM_HASH=1};
+};
+
+/** 
+ * Auxiliary class for computing of hash values which depends on
+ * specializations of HashTraits class.
+ */
+template<int I, class Hash, typename Key>
+class HashCompClass {
+};
+
+/** 
+ * Auxiliary class for computing of hash values which depends on
+ * specializations of HashTraits class.
+ */
+template<class Hash, typename Key>
+struct HashCompClass<1,Hash,Key> {
+  static inline unsigned compute(Key& key, int capacity)
+  {
+    return Hash::hash(key);
+  }
+};
+
+/** 
+ * Auxiliary class for computing of hash values which depends on
+ * specializations of HashTraits class.
+ */
+template<class Hash, typename Key>
+struct HashCompClass<0,Hash,Key> {
+  static inline unsigned compute(Key& key, int capacity)
+  {
+    return Hash::hash(key, capacity);
+  }
+};
+
+/** Computes hash value of given key for hashtable with specified capacity */
+template<class Hash, typename Key>
+inline
+unsigned computeHash(Key& key, int capacity)
+{
+  return HashCompClass<HashTraits<Hash>::SINGLE_PARAM_HASH,Hash,Key>::compute(key, capacity);
+};
+
+extern const unsigned DHMapTableCapacities[];
+
+/**
+ * Class DHMap implements generic maps with keys of a class Key
+ * and values of a class Value. If you implement a map with
+ * a new class Key, Hash1 and Hash2 are classes containing a function
+ * hash() mapping keys to unsigned integer values.
+ *
+ * @param Key a pointer or integral value (e.g., integer or long): 
+ *        anything that can be hashed to an unsigned integer
+ *        and compared using ==
+ * @param Val values, can be anything
+ * @param Hash1 class containig the hash function for keys which
+ *	  determines position of entry in hashtable when no collision
+ *	  occurs. This function can also take second int parameter,
+ * 	  which will contain current capacity of the hashtable. In
+ * 	  this case, HashTraits struct has to be specialized for this
+ * 	  class, so that enum member SINGLE_PARAM_HASH is equal to 0.
+ * @param Hash2 class containig the hash function for keys which
+ *	  will be used when collision occurs. Otherwise it will not be
+ *	  enumerated.
+ */
+template <typename Key, typename Val, class Hash1=Hash, class Hash2=Hash>
+class DHMap
+{
+public:
+  /** Create a new DHMap */
+  DHMap()
+  : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
+  _nextExpansionOccupancy(0), _entries(0), _afterLast(0)
+  {
+    ensureExpanded();
+  }
+
+  /** Deallocate the DHMap */
+  ~DHMap()
+  {
+    if(_entries) {
+      Entry * ep=_entries;
+      while(ep!=_afterLast) {
+	(ep++)->~Entry();
+      }
+      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
+    }
+  }
+
+  /** Empty the DHMap */
+  void reset()
+  {
+    CALL("DHMap::reset");
+    unsigned oldTS=_timestamp;
+    _timestamp++;
+    _size=0;
+    _deleted=0;
+
+    if(oldTS>(_timestamp&0x3FFFFFFF)) {
+      //We store timestamp only in 30 bits in entries,
+      //and they've just overflowed.
+      _timestamp=1;
+      Entry* pe=_afterLast;
+      while(pe--!=_entries) {
+	pe->_info.timestamp=0;
+      }
+    }
+  }
+
+  /** 
+   *  Find value by the key. The result is true if a pair 
+   *  with this key is in the map. If such a pair is found 
+   *  then its value is returned in found.
+   */
+  inline
+  bool find(Key key, Val& val) const
+  {
+    CALL("DHMap::find/2");
+    const Entry* e=findEntry(key);
+    if(!e) {
+      return false;
+    }
+    val=e->_val;
+    return true;
+  }
+
+  /** 
+   *  Find value by the key. The result is true if a pair 
+   *  with this key is in the map.
+   */
+  inline
+  bool find(Key key) const
+  {
+    CALL("DHMap::find/1");
+    Val v;
+    return find(key,v);
+  }
+
+  /**
+   *  Return value associated with given key. A pair with
+   *  this key has to be present.
+   */
+  inline
+  Val get(Key key)
+  {
+    Val v;
+    bool res=find(key,v);
+    ASS(res);
+    return v;
+  }
+
+  /** 
+   * If there is no value stored under @b key in the map, 
+   * insert pair (key,value) and return true. Otherwise, 
+   * return false.
+   */
+  bool insert(Key key, const Val& val)
+  {
+    CALL("DHMap::insert");
+    ensureExpanded();
+    Entry* e=findEntryToInsert(key);
+    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    if(!exists) {
+      if(e->_info.timestamp!=_timestamp) {
+	e->_info.timestamp=_timestamp;
+	//no collision has occured on this entry while this _timestamp is set
+	e->_info.collision=0;
+      } else {
+	ASS(e->_info.deleted);
+	_deleted--;
+      }
+      e->_info.deleted=0;
+      e->_key=key;
+      e->_val=val;
+      _size++;
+    }
+    return !exists;
+  }
+  
+  /**
+   * If there is a value stored under the @b key, remove
+   * it and return true. Otherwise, return false.
+   */
+  bool remove(Key key)
+  {
+    CALL("DHMap::remove");
+    Entry* e=findEntry(key);
+    if(!e) {
+      return false;
+    }
+    e->_info.deleted=1;
+    _size--;
+    _deleted++;
+    return true;
+  }
+  
+
+  /** Return mumber of entries stored in this DHMap */
+  inline 
+  int size() const
+  {
+    ASS(_size>=0);
+    return _size;
+  }
+
+  /** Return true iff there are any entries stored in this DHMap */
+  inline 
+  bool isEmpty() const
+  {
+    ASS(_size>=0);
+    return _size==0;
+  }
+
+  /** Return one arbitrary key, that is present in the map */
+  Key getOneKey()
+  {
+    Iterator it(*this);
+    ASS(it.hasNext());
+    return it.nextKey();
+  }
+
+private:
+  struct Entry
+  {
+    /** Create a new Entry */
+    Entry() : _infoData(0) {}
+    union {
+      struct {
+	unsigned deleted : 1;
+	/** 1 if first collision occured on this entry during some insertion */
+	unsigned collision : 1;
+	unsigned timestamp : 30;
+      } _info;
+      int _infoData;
+    };
+    Key _key;
+    Val _val;
+  };
+
+  /** Copy constructor is private and without a body, because we don't want any. */
+  DHMap(const DHMap& obj);
+  /** operator= is private and without a body, because we don't want any. */
+  DHMap& operator=(const DHMap& obj);
+  
+
+  /** Check whether an expansion is needed and if so, expand */
+  inline
+  void ensureExpanded()
+  {
+    if(_size+_deleted>=_nextExpansionOccupancy) {
+      expand();
+    }
+  }
+
+  /** Expand DHMap to about double of its current size */
+  void expand()
+  {
+    CALL("DHMap::expand");
+    
+    if(_capacityIndex>=MaxCapacityIndex) {
+      throw Exception("Lib::DHMap::expand: MaxCapacityIndex reached.");
+    }
+
+    Entry* oldEntries=_entries;
+    Entry* oldAfterLast=_afterLast;
+    unsigned oldTimestamp=_timestamp;
+    int oldCapacity=_capacity;
+    
+    _timestamp=1;
+    _size=0;
+    _deleted=0;
+    _capacityIndex++;
+    _capacity = DHMapTableCapacities[_capacityIndex];
+    _nextExpansionOccupancy = (int)(_capacity*FillUpCoeficient);
+
+    void* mem = ALLOC_KNOWN(_capacity*sizeof(Entry),"DHMap::Entry");
+    _entries = new(mem) Entry [_capacity];
+    _afterLast = _entries + _capacity;
+
+    Entry* ep=oldEntries;
+    while(ep!=oldAfterLast) {
+      if(ep->_info.timestamp==oldTimestamp) {
+	insert(ep->_key, ep->_val);
+      }
+      (ep++)->~Entry();
+    }
+    if(oldCapacity) {
+      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
+    }
+  }
+
+  /** Return pointer to an Entry object which contains specified key,
+   * or 0, if there is no such */
+  inline
+  Entry* findEntry(Key key)
+  {
+    return const_cast<Entry*>(static_cast<const DHMap*>(this)->findEntry(key)); 
+  }
+  
+  /** Return pointer to an Entry object which contains specified key,
+   * or 0, if there is no such */
+  const Entry* findEntry(Key key) const
+  {
+    CALL("DHMap::findEntry");
+    ASS(_capacity>size()+_deleted);
+
+    unsigned h1=computeHash<Hash1>(key, _capacity);
+    int pos=h1%_capacity;
+    Entry* res=&_entries[pos];
+    if(res->_info.timestamp != _timestamp ) {
+      return 0;
+    }
+    if(res->_key==key) {
+      return res->_info.deleted ? 0 : res;
+    }
+
+    //We have a collision...
+    
+    if(!res->_info.collision) {
+      //There were no collisions on this position during inserting,
+      //so the key we're searching for isn't here anyway
+      return 0;
+    }
+    
+    unsigned h2=Hash2::hash(key)%_capacity;
+    if(h2==0) {
+      h2=1;
+    }
+    do {
+      pos=(pos+h2)%_capacity;
+      res=&_entries[pos];
+    } while (res->_info.timestamp == _timestamp && res->_key!=key);
+    
+    if(res->_info.timestamp != _timestamp ) {
+      return 0;
+    }
+    
+    ASS(res->_key==key);
+    return res->_info.deleted ? 0 : res;
+  }
+
+  /** Return pointer to an Entry object which contains, or could contain
+   * specified key */
+  Entry* findEntryToInsert(Key key)
+  {
+    CALL("DHMap::findEntryToInsert");
+    ASS(_capacity>size()+_deleted);
+
+    unsigned h1=computeHash<Hash1>(key, _capacity);
+    int pos=h1%_capacity;
+    Entry* res=&_entries[pos];
+    if(res->_info.timestamp != _timestamp || res->_key==key) {
+      return res;
+    }
+
+    //We have a collision...
+    
+    //mark the entry where the collision occured
+    res->_info.collision=1;
+    
+    unsigned h2=Hash2::hash(key)%_capacity;
+    if(h2==0) {
+      h2=1;
+    }
+    do {
+      pos=(pos+h2)%_capacity;
+      res=&_entries[pos];
+    } while (res->_info.timestamp == _timestamp && res->_key!=key);
+    return res;
+  }
+
+  static const int MaxCapacityIndex=29;
+  static const double FillUpCoeficient=0.7;
+
+  /** Entries with _timestamp different from this are considered empty */
+  unsigned _timestamp;
+  /** Number of entries stored in this DHMap */
+  int _size;
+  /** Number of entries marked as deleted */
+  int _deleted;
+  /** Index of current _capacity in the TableCapacities array */
+  int _capacityIndex;
+  /** Size of the _entries array */
+  int _capacity;
+  /** When _size+_deleted reaches this, expansion will occur */
+  int _nextExpansionOccupancy;
+
+  /** Array containing hashtable storing content of this map */
+  Entry* _entries;
+  /** Pointer to element after the last element of _entries array */
+  Entry* _afterLast;
+
+public:
+
+  /**
+   * Class to allow iteration over keys and values stored in the map.
+   */
+  class Iterator {
+  public:
+    /** Create a new iterator */
+    inline Iterator(const DHMap& map)
+    : _next(map._entries), _last(map._afterLast),
+    _timestamp(map._timestamp)
+    {
+    }
+
+    /**
+     * True if there exists next element 
+     */
+    bool hasNext()
+    {
+      CALL("DHMap::Iterator::hasNext");
+      while (_next != _last) {
+	if (_next->_info.timestamp==_timestamp && !_next->_info.deleted) {
+	  return true;
+	}
+	_next++;
+      }
+      return false;
+    }
+
+    /**
+     * Return the next value
+     * @warning hasNext() must have been called before
+     */
+    inline
+    Val next()
+    {
+      return nextEntry()->_val;
+    }
+
+    /**
+     * Return the key of next entry
+     * @warning hasNext() must have been called before
+     */
+    inline
+    Key nextKey()
+    {
+      return nextEntry()->_key;
+    }
+
+  private:
+    /** Create a new iterator */
+    inline Iterator(Entry* entries, Entry* afterLast, unsigned timestamp)
+    : _next(entries), _last(afterLast), _timestamp(timestamp)
+    {
+    }
+
+    /**
+     * Return the next entry
+     * @warning hasNext() must have been called before
+     */
+    Entry* nextEntry()
+    {
+      CALL("DHMap::Iterator::nextEntry");
+      ASS(_next != _last);
+      ASS(_next->_info.timestamp==_timestamp && !_next->_info.deleted);
+      return _next++;
+    }
+
+    /** iterator will look for the next occupied cell starting with this one */
+    Entry* _next;
+    /** iterator will stop looking for the next cell after reaching this one */
+    Entry* _last;
+    /** only cells with _timestamp equal to this are considered occupied */
+    unsigned _timestamp;
+
+    friend class DHMap;
+
+  }; // class DHMap::Iterator
+
+
+}; // class DHMap
+
+}
+
+#endif // __DHSet__
+
