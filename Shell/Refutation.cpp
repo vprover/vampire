@@ -1,0 +1,55 @@
+/**
+ * @file Refutation.cpp
+ * Implements the class for printing refutations
+ * @since 04/01/2008 Torrevieja
+ */
+
+#include "../Debug/Tracer.hpp"
+
+#include "../Lib/Hash.hpp"
+#include "../Lib/Set.hpp"
+#include "../Lib/Stack.hpp"
+
+#include "../Kernel/Clause.hpp"
+#include "../Kernel/Inference.hpp"
+
+#include "Refutation.hpp"
+
+using namespace Lib;
+using namespace Kernel;
+using namespace Shell;
+
+Refutation::Refutation(Unit* unit,bool detailed)
+  : _goal(unit),
+    _detailed(detailed)
+{
+}
+
+void Refutation::output(ostream& str)
+{
+  CALL("Refutation::output");
+
+  Stack<Unit*> units(128);
+  Set<Unit*,Refutation> done;
+
+  units.push(_goal);
+  while (! units.isEmpty()) {
+    Unit* unit = units.pop();
+    if (done.contains(unit)) {
+      continue;
+    }
+    done.insert(unit);
+    str << unit->toString() << "\n";
+    Inference* inf = unit->inference();
+    Inference::Iterator it = inf->iterator();
+    while (inf->hasNext(it)) {
+      units.push(inf->next(it));
+    }
+  }
+} // Refutation::Output
+
+/** hash function, required for hashing units */
+unsigned Refutation::hash (Unit* unit)
+{
+  return Hash::hash(reinterpret_cast<void*>(unit));
+}

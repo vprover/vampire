@@ -1,0 +1,44 @@
+/**
+ * @file Refutation.hpp
+ * Defines the class for printing refutations
+ * @since 04/01/2008 Torrevieja
+ */
+
+#ifndef __Refutation__
+#define __Refutation__
+
+#include <ostream>
+
+namespace Kernel {
+  class Unit;
+}
+
+using namespace std;
+using namespace Kernel;
+
+namespace Shell {
+
+/**
+ * Class implementing refutations
+ * @since 04/01/2008 Torrevieja
+ */
+class Refutation
+{
+public:
+  Refutation(Unit* unit,bool detailed);
+  void output(ostream&);
+
+  /** equality function, required for hashing units */
+  inline static bool equals(const Unit* u1,const Unit* u2)
+  { return (void*)u1 == (void*)u2; }
+  static unsigned hash(Unit*);
+private:
+  /** The last unit of the refutation  */
+  Unit* _goal;
+  /** True if the output should also include include formula inferences */
+  bool _detailed;
+}; // class Refutation
+
+}
+
+#endif

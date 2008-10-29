@@ -1,0 +1,85 @@
+/**
+ * @file TPTPParser.hpp
+ * Defines class TPTPParser for parsing TPTP files.
+ *
+ * @since 17/07/2004 Helsinki airport
+ */
+
+#ifndef __TPTPParser__
+#define __TPTPParser__
+
+#include "../Lib/Exception.hpp"
+#include "../Lib/List.hpp"
+
+#include "../Kernel/Unit.hpp"
+
+#include "Parser.hpp"
+
+namespace Kernel {
+  class Clause;
+  class Formula;
+  class Term;
+  class Literal;
+};
+
+using namespace std;
+using namespace Kernel;
+
+namespace Shell {
+
+class TPTPLexer;
+
+/**
+ * Class TPTPParser, implements a TPTP Parser.
+ *
+ * @since 17/07/2004 Helsinki airport
+ */
+class TPTPParser
+  : public Parser 
+{
+public:
+  explicit TPTPParser(TPTPLexer& lexer);
+  UnitList* units();
+
+private:
+  class UnitStack;
+  class LiteralStack;
+  class TermStack;
+  class TermArray;
+
+  Formula* formula();
+  void units(UnitStack&);
+  Unit* unit();
+  Clause* clause(int inputType);
+  Clause* formulaClause(int inputType);
+  Formula* xorFormula();
+  Formula* iffFormula();
+  Formula* impFormula();
+  Formula* orFormula();
+  Formula* andFormula();
+  Formula* simpleFormula();
+  List<int>* varList();
+  Literal* atom(bool polarity);
+  void args(TermStack& ts);
+  Term* term(int& varNumber);
+  string name();
+  Literal* literal();
+  Literal* formulaLiteral();
+  void literals(LiteralStack&);
+  void formulaLiterals(LiteralStack&);
+  void include(UnitStack&);
+  Term* makeTerm(const string& functor,TermStack& args);
+  Literal* makeAtom(const string& functor,TermStack& args,bool polarity);
+  static void fillArgs (Term* t,TermStack& ts);
+  Clause* createClause(LiteralStack&,int inputType);
+  static Formula* makeJunction(int connective,Formula* lhs,Formula* rhs);
+
+  /** Set to true if the constant true was read during reading the
+   * last clause */
+  bool _trueRead;
+}; // class TPTPParser
+
+}
+
+#endif
+

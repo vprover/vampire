@@ -1,0 +1,905 @@
+/**
+ * @file Allocator.cpp
+ * Defines allocation procedures for all preprocessor classes.
+ *
+ * @since 02/12/2003, Manchester, replaces the file Memory.hpp
+ * @since 10/01/2008 Manchester, reimplemented
+ */
+
+#if VDEBUG
+#  include <sstream>
+#  include <cstring>
+#endif
+
+/** If the following is set to true the Vampire will use the
+ *  C++ new and delete for (de)allocating all data structures.
+ */
+// #define USE_SYSTEM_ALLOCATION 0
+
+/** set this to 1 to print all allocations/deallocations to stdout */
+#define TRACE_ALLOCATIONS 0
+
+/** Size of a page prefix (part of the page used for bookkeeping the
+ * page itself) */
+#define PAGE_PREFIX_SIZE (sizeof(Page)-sizeof(void*))
+
+/** Number of bytes used for bookkeeping by the compiler when
+ *  it allocates a page */
+#define PAGE_SHIFT 8
+
+// To watch an address define the following values:
+//   WATCH_FIRST     - the first watch point
+//   WATCH_LAST      - the last watch point
+//   WATCH_ADDRESS   - address to watch, 0 if no watch
+// If WATCH_ADDRESS is non-null then any changes made to WATCH_ADDRESS will
+// be output, provided they occur at control points between WATCH_FIRST
+// and WATCH_LAST
+#define WATCH_FIRST 0
+#define WATCH_LAST UINT_MAX
+// #define WATCH_ADDRESS 0x38001a0
+#define WATCH_ADDRESS 0
+
+#if WATCH_ADDRESS
+/** becomes true when a page containing the watch point has been allocated */
+bool watchPage = false; 
+/** last value stored in the watched address */
+unsigned watchAddressLastValue = 0;
+#endif
+
+#include "../Debug/Assertion.hpp"
+#include "../Debug/Tracer.hpp"
+
+#include "../Shell/Statistics.hpp"
+
+#include "Exception.hpp"
+#include "Environment.hpp"
+#include "Allocator.hpp"
+
+#if CHECK_LEAKS
+#include "MemoryLeak.hpp"
+#endif
+
+using namespace Lib;
+
+int Allocator::_initialised = 0;
+int Allocator::_total = 0;
+size_t Allocator::_memoryLimit;
+size_t Allocator::_tolerated;
+Allocator* Allocator::current;
+Allocator::Page* Allocator::_pages[MAX_PAGES];
+size_t Allocator::_usedMemory = 0;
+Allocator* Allocator::_all[MAX_ALLOCATORS];
+
+#if VDEBUG
+unsigned Allocator::Descriptor::globalTimestamp;
+size_t Allocator::Descriptor::noOfEntries;
+size_t Allocator::Descriptor::maxEntries;
+size_t Allocator::Descriptor::capacity;
+Allocator::Descriptor* Allocator::Descriptor::map;
+Allocator::Descriptor::Descriptor* Allocator::Descriptor::afterLast;
+#endif
+
+/**
+ * Create a new allocator.
+ * @since 10/01/2008 Manchester
+ */
+Allocator::Allocator()
+{
+  CALL("Allocator::Allocator");
+
+#if ! USE_SYSTEM_ALLOCATION
+  for (int i = REQUIRES_PAGE/4-1;i >= 0;i--) {
+    _freeList[i] = 0;
+  }
+  _reserveBytesAvailable = 0;
+  _nextAvailableReserve = 0;
+  _myPages = 0;
+#endif
+} // Allocator::Allocator
+
+/**
+ * Initialise all static structures and create a default allocator.
+ * @since 10/01/2008 Manchester
+ */
+void Allocator::initialise()
+{
+  CALL("Allocator::initialise")
+
+#if VDEBUG
+  Descriptor::map = 0;
+  Descriptor::afterLast = 0;
+#endif
+
+  _memoryLimit = 300000000u;
+  _tolerated = 330000000u;
+
+#if ! USE_SYSTEM_ALLOCATION
+  current = newAllocator();
+
+  for (int i = MAX_PAGES-1;i >= 0;i--) {
+    _pages[i] = 0;
+  }
+#endif
+} // Allocator::initialise
+
+#if VDEBUG
+/**
+ * Write information about a memory address to cout.
+ * @since 30/03/2008 flight Murcia-Manchester
+ */
+void Allocator::addressStatus(void* address)
+{
+  CALL("Allocator::addressStatus");
+
+  Descriptor* pg = 0; // page descriptor
+  cout << "Status of address " << address << '\n';
+
+  char* a = static_cast<char*>(address);
+  for (int i = Descriptor::capacity-1;i >= 0;i--) {
+    Descriptor& d = Descriptor::map[i];
+    char* addr = static_cast<char*>(d.address);
+    if (addr < a) {
+      continue;
+    }
+    unsigned diff = a - addr;
+    if (diff >= d.size) {
+      continue;
+    }
+    if (d.page) {
+      pg = &d;
+      continue;
+    }
+    // found
+    cout << "Descriptor: " << d.toString() << '\n'
+	 << "Offset: " << diff << '\n'
+	 << "End of status\n";
+    return;
+  }
+  if (pg) {
+    cout << "Not found but belongs to allocated page: " << pg->toString() << '\n';
+  }
+  else {
+    cout << "Does not belong to an allocated page\n";
+  }
+  cout << "End of status\n";
+} // Allocator::addressStatus
+#endif
+
+/**
+ * Cleanup: do whatever needed after the last use of class Allocator.
+ * @since 10/01/2008 Manchester
+ */
+void Allocator::cleanup()
+{
+  CALL("Allocator::cleanup");
+
+#if CHECK_LEAKS
+  if (MemoryLeak::report()) {
+    // delete all allocators
+    for (int i = _total-1;i >= 0;i--) {
+      delete _all[i];
+    }
+
+    int leaks = 0;
+    for (int i = Descriptor::capacity-1;i >= 0;i--) {
+      Descriptor& d = Descriptor::map[i];
+      if (d.allocated) {
+	if (! leaks) {
+	  cout << "Memory leaks found!\n";
+	}
+	cout << ++leaks << ": " << d.cls << " (" << d.address << "), timestamp: "
+	     << d.timestamp << "\n";
+      }
+    }
+    if (leaks) {
+      cout << "End of memory leak report\n";
+    }
+  }
+#endif
+} // Allocator::initialise
+
+
+/**
+ * Deallocate an object whose size is known. It works as follows:
+ * if the object size is less then REQUIRES_PAGE, it is put in the
+ * corresponding free list. Otherwise, it is deallocated as a large
+ * object.
+ * @since 10/01/2008 Manchester
+ */
+#if VDEBUG
+void Allocator::deallocateKnown(void* obj,size_t size,const char* className)
+#else
+void Allocator::deallocateKnown(void* obj,size_t size)
+#endif
+{
+  CALL("Allocator::deallocateKnown");
+
+#if VDEBUG
+  Descriptor* desc = Descriptor::find(obj);
+  desc->timestamp = ++Descriptor::globalTimestamp;
+#if TRACE_ALLOCATIONS
+  cout << desc->toString() << ": DK\n" << flush;
+#endif
+  ASS(desc->address == obj);
+  ASS(! strcmp(desc->cls,className));
+  ASS(desc->size == size);
+  ASS(desc->allocated);
+  ASS(desc->known);
+  ASS(! desc->page);
+#endif
+
+#if USE_SYSTEM_ALLOCATION
+#if VDEBUG
+  desc->allocated = 0;
+#endif
+  delete obj;
+  return;
+#else   // ! USE_SYSTEM_ALLOCATION
+  if (size >= REQUIRES_PAGE) {
+    char* mem = reinterpret_cast<char*>(obj)-PAGE_PREFIX_SIZE;
+    deallocatePages(reinterpret_cast<Page*>(mem));
+  }
+  else {
+    int index = (size-1)/sizeof(Known);
+    Known* mem = reinterpret_cast<Known*>(obj);
+    mem->next = _freeList[index];
+    _freeList[index] = mem;
+  }
+
+#if VDEBUG
+  desc->allocated = 0;
+#endif
+
+#if WATCH_ADDRESS
+  unsigned addr = (unsigned)obj;
+  unsigned cp = Debug::Tracer::passedControlPoints();
+  if (addr <= WATCH_ADDRESS &&
+      WATCH_ADDRESS < addr+size &&
+      cp >= WATCH_FIRST &&
+      cp <= WATCH_LAST) {
+    unsigned currentValue = *((unsigned*)WATCH_ADDRESS);
+    cout << "Watch! Known-size piece deallocated!\n"
+	 << "  Timestamp: " << cp << '\n'
+	 << "  Piece addresses: " << (void*)addr << '-'
+	 << (void*)(addr+size-1) << '\n';
+    if (currentValue != watchAddressLastValue) {
+      watchAddressLastValue = currentValue;
+      cout << "  Value: " << (void*)watchAddressLastValue << '\n';
+    }
+    cout << "  " << desc->toString() << '\n'
+	 << "Watch! end\n";
+  }
+#endif
+#endif
+} // Allocator::deallocateKnown
+
+/**
+ * Deallocate an object whose size is unknown. It works similar to
+ * deallocateKnow except that an unknown contains an extra word
+ * storing the size of the object.
+ * @since 13/01/2008 Manchester
+ */
+#if VDEBUG
+void Allocator::deallocateUnknown(void* obj,const char* className)
+#else
+void Allocator::deallocateUnknown(void* obj)
+#endif
+{
+  CALL("Allocator::deallocateUnknown");
+
+#if VDEBUG
+  Descriptor* desc = Descriptor::find(obj);
+  desc->timestamp = ++Descriptor::globalTimestamp;
+#if TRACE_ALLOCATIONS
+  cout << desc->toString() << ": DU\n" << flush;
+#endif
+  ASS(desc->address == obj);
+  ASS(! strcmp(desc->cls,className));
+  ASS(desc->allocated);
+  ASS(! desc->known);
+  ASS(! desc->page);
+  desc->allocated = 0;
+#endif
+
+#if USE_SYSTEM_ALLOCATION
+  delete obj;
+  return;
+#endif
+
+  char* mem = reinterpret_cast<char*>(obj) - sizeof(Known);
+  Unknown* unknown = reinterpret_cast<Unknown*>(mem);
+  size_t size = unknown->size;
+  ASS(desc->size == size);
+
+  if (size >= REQUIRES_PAGE) {
+    mem = reinterpret_cast<char*>(obj)-PAGE_PREFIX_SIZE;
+    deallocatePages(reinterpret_cast<Page*>(mem));
+  }
+  else {
+    Known* known = reinterpret_cast<Known*>(mem);
+    int index = (size-1)/sizeof(Known);
+    known->next = _freeList[index];
+    _freeList[index] = known;
+  }
+
+#if WATCH_ADDRESS
+  unsigned addr = (unsigned)(void*)mem;
+  unsigned cp = Debug::Tracer::passedControlPoints();
+  if (addr <= WATCH_ADDRESS &&
+      WATCH_ADDRESS < addr+size &&
+      cp >= WATCH_FIRST &&
+      cp <= WATCH_LAST) {
+    unsigned currentValue = *((unsigned*)WATCH_ADDRESS);
+    cout << "Watch! Unknown-size piece deallocated!\n"
+	 << "  Timestamp: " << cp << '\n'
+	 << "  Piece addresses: " << (void*)addr << '-'
+	 << (void*)(addr+size-1) << '\n';
+    if (currentValue != watchAddressLastValue) {
+      watchAddressLastValue = currentValue;
+      cout << "  Value: " << (void*)watchAddressLastValue << '\n';
+    }
+    cout << "  " << desc->toString() << '\n'
+	 << "Watch! end\n";
+  }
+#endif
+} // Allocator::deallocateUnknown
+
+/**
+ * Create a new allocator.
+ * @since 10/01/2008 Manchester
+ */
+Allocator* Allocator::newAllocator()
+{
+  CALL("Allocator::newAllocator");
+#if VDEBUG && USE_SYSTEM_ALLOCATION
+  ASSERTION_VIOLATION;
+#else
+  Allocator* result = new Allocator();
+
+  if (_total >= MAX_ALLOCATORS) {
+    throw Exception("The maximal number of allocators exceeded.");
+  }
+  _all[_total++] = result;
+  return result;
+#endif
+} // Allocator::newAllocator
+
+/**
+ * Allocate a page able to store a structure of size @b size 
+ * @since 12/01/2008 Manchester
+ */
+Allocator::Page* Allocator::allocatePages(size_t size)
+{
+  CALL("Allocator::allocatePages");
+  ASS(size >= 0);
+
+#if VDEBUG && USE_SYSTEM_ALLOCATION
+  ASSERTION_VIOLATION;
+#else
+  size += PAGE_PREFIX_SIZE;
+
+  Page* result;
+  size_t index = (size-1)/PAGE_SIZE;
+  size_t realSize = PAGE_SIZE*(index+1);
+
+  // check if there is a page in the skip list available
+  if (_pages[index]) {
+    result = _pages[index];
+    _pages[index] = result->next;
+  }
+  else {
+    size_t newSize = _usedMemory+realSize;
+    if (newSize > _tolerated) {
+      env.statistics->terminationReason = Shell::Statistics::MEMORY_LIMIT;
+      throw Lib::Exception("The memory limit exceeded");
+    }
+    _usedMemory = newSize;
+
+    char* mem = new char[realSize];
+    result = reinterpret_cast<Page*>(mem);
+  }
+  result->size = realSize;
+
+#if VDEBUG
+  Descriptor* desc = Descriptor::find(result);
+  ASS(! desc->allocated);
+
+  desc->address = result;
+  desc->cls = "Allocator::Page";
+  desc->timestamp = ++Descriptor::globalTimestamp;
+  desc->size = realSize;
+  desc->allocated = 1;
+  desc->known = 0;
+  desc->page = 1;
+
+#if TRACE_ALLOCATIONS
+  cout << desc->toString() << ": AP\n" << flush;
+#endif // TRACE_ALLOCATIONS
+#endif // VDEBUG
+
+  result->next = _myPages;
+  result->previous = 0;
+  if (_myPages) {
+    _myPages->previous = result;
+  }
+  _myPages = result;
+
+#if WATCH_ADDRESS
+  unsigned addr = (unsigned)(void*)result;
+  unsigned cp = Debug::Tracer::passedControlPoints();
+  if (addr <= WATCH_ADDRESS &&
+      WATCH_ADDRESS < addr+realSize) {
+    watchPage = true;
+    Debug::Tracer::canWatch = true;
+    if (cp >= WATCH_FIRST &&
+	cp <= WATCH_LAST) {
+      watchAddressLastValue = *((unsigned*)WATCH_ADDRESS);
+      cout << "Watch! Page allocated!\n"
+	   << "  Timestamp: " << cp << '\n'
+	   << "  Page addresses: " << (void*)addr << '-'
+	   << (void*)(addr+realSize-1) << '\n'
+	   << "  Value: " << (void*)watchAddressLastValue << '\n'
+	   << "Watch! end\n";
+    }
+  }
+#endif
+
+  return result;
+#endif // USE_SYSTEM_ALLOCATION
+} // Allocator::allocatePages
+
+/**
+ * Deallocate a (multi)page, that is, add it to the free list of
+ * pages.
+ * @since 11/01/2008 Manchester
+ */
+void Allocator::deallocatePages(Page* page)
+{
+  ASS(page);
+
+#if VDEBUG && USE_SYSTEM_ALLOCATION
+  ASSERTION_VIOLATION;
+#else
+  CALL("Allocator::deallocatePages");
+
+#if VDEBUG
+  Descriptor* desc = Descriptor::find(page);
+  desc->timestamp = ++Descriptor::globalTimestamp;
+#if TRACE_ALLOCATIONS
+  cout << desc->toString() << ": DP\n" << flush;
+#endif
+  ASS(desc->address == page);
+  ASS(! strcmp(desc->cls,"Allocator::Page"));
+  ASS(desc->size == page->size);
+  ASS(desc->allocated);
+  ASS(! desc->known);
+  ASS(desc->page);
+  desc->allocated = 0;
+#endif
+
+  size_t size = page->size;
+  int index = (size-1)/PAGE_SIZE;
+
+  Page* next = page->next;
+  if (next) {
+    next->previous = page->previous;
+  }
+  if (page->previous) {
+    page->previous->next = next;
+  }
+
+  if (page == _myPages) {
+    _myPages = next;
+  }
+
+  page->next = _pages[index];
+  _pages[index] = page;
+
+#if WATCH_ADDRESS
+  unsigned addr = (unsigned)(void*)page;
+  unsigned cp = Debug::Tracer::passedControlPoints();
+  if (addr <= WATCH_ADDRESS &&
+      WATCH_ADDRESS < addr+size &&
+      cp >= WATCH_FIRST &&
+      cp <= WATCH_LAST) {
+    unsigned currentValue = *((unsigned*)WATCH_ADDRESS);
+    cout << "Watch! Page deallocated!\n"
+	 << "  Timestamp: " << cp << '\n'
+	 << "  Page addresses: " << (void*)addr << '-'
+	 << (void*)(addr+size-1) << '\n';
+    if (currentValue != watchAddressLastValue) {
+      watchAddressLastValue = currentValue;
+      cout << "  Value: " << (void*)watchAddressLastValue << '\n';
+    }
+    cout << "Watch! end\n";
+  }
+#endif
+
+#endif // ! USE_SYSTEM_ALLOCATION
+} // Allocator::deallocatePages(Page*)
+
+
+/**
+ * Allocate object of size @b size. If @b size is REQUIRES_PAGE
+ * or more it is allocated as a large object using allocateLarge.
+ * @since 12/01/2008 Manchester
+ */
+#if VDEBUG
+void* Allocator::allocateKnown(size_t size,const char* className)
+#else
+void* Allocator::allocateKnown(size_t size)
+#endif
+{
+  CALL("Allocator::allocateKnown");
+  ASS(size > 0);
+
+  char* result = allocatePiece(size);
+
+#if VDEBUG
+  Descriptor* desc = Descriptor::find(result);
+  ASS(! desc->allocated);
+
+  desc->address = result;
+  desc->cls = className;
+  desc->timestamp = ++Descriptor::globalTimestamp;
+  desc->size = size;
+  desc->allocated = 1;
+  desc->known = 1;
+  desc->page = 0;
+#if TRACE_ALLOCATIONS
+  cout << desc->toString() << ": AK\n" << flush;
+#endif
+#endif
+
+#if WATCH_ADDRESS
+  unsigned addr = (unsigned)(void*)result;
+  unsigned cp = Debug::Tracer::passedControlPoints();
+  if (addr <= WATCH_ADDRESS &&
+      WATCH_ADDRESS < addr+size &&
+      cp >= WATCH_FIRST &&
+      cp <= WATCH_LAST) {
+    unsigned currentValue = *((unsigned*)WATCH_ADDRESS);
+    cout << "Watch! Known-size piece allocated!\n"
+	 << "  Timestamp: " << cp << '\n'
+	 << "  Piece addresses: " << (void*)addr << '-'
+	 << (void*)(addr+size-1) << '\n';
+    if (currentValue != watchAddressLastValue) {
+      watchAddressLastValue = currentValue;
+      cout << "  Value: " << (void*)watchAddressLastValue << '\n';
+    }
+    cout << "  " << desc->toString() << '\n'
+	 << "Watch! end\n";
+  }
+#endif
+  return result;
+} // Allocator::allocateKnown
+
+
+/**
+ * Allocate a piece of memory of a given size.
+ * @since 15/01/2008 Manchester
+ */
+char* Allocator::allocatePiece(size_t size)
+{
+  CALL("Allocator::allocatePiece");
+
+  char* result;
+#if USE_SYSTEM_ALLOCATION
+  result = new char[size];
+#else // USE_SYSTEM_ALLOCATION
+  if (size >= REQUIRES_PAGE) {
+    Page* page = allocatePages(size);
+    result = reinterpret_cast<char*>(page) + PAGE_PREFIX_SIZE;
+  }
+  else { // try to find it in the free list
+    int index = (size-1)/sizeof(Known);
+    // Align on the pointer basis
+    size = (index+1) * sizeof(Known);
+    Known* mem = _freeList[index];
+    if (mem) {
+      _freeList[index] = mem->next;
+      result = reinterpret_cast<char*>(mem);
+    } // There is no available piece in the free list
+    else if (_reserveBytesAvailable >= size) { // reserve has enough memory 
+    use_reserve:
+      result = _nextAvailableReserve;
+      _nextAvailableReserve += size;
+      _reserveBytesAvailable -= size;
+    }
+    else {
+      // No bytes in the reserve, new reserve page must be allocated
+      // First, save any remaining memory in the free list
+      if (_reserveBytesAvailable) {
+	index = (_reserveBytesAvailable-1)/sizeof(Known);
+	Known* save = reinterpret_cast<Known*>(_nextAvailableReserve);
+#if VDEBUG
+	Descriptor* desc = Descriptor::find(save);
+	ASS(! desc->allocated);
+	desc->size = _reserveBytesAvailable;
+	desc->timestamp = ++Descriptor::globalTimestamp;
+#if TRACE_ALLOCATIONS
+	cout << desc->toString() << ": RR\n" << flush;
+#endif
+#endif
+	save->next = _freeList[index];
+	_freeList[index] = save;
+      }
+      Page* page = allocatePages(0);
+      _reserveBytesAvailable = PAGE_SIZE-PAGE_PREFIX_SIZE;
+      _nextAvailableReserve = reinterpret_cast<char*>(&page->content);
+      goto use_reserve;
+    }
+  }
+#endif // USE_SYSTEM_ALLOCATION
+  return result;
+} // Allocator::allocatePiece
+
+
+/**
+ * Works similar to allocateKnown but saves the size of the
+ * object in an extra word. More precisely, it saves the size
+ * of the memory needed to store the object, that is, the size
+ * of the object plus the size of a word.
+ * @since 13/01/2008 Manchester
+ */
+#if VDEBUG
+void* Allocator::allocateUnknown(size_t size,const char* className)
+#else
+void* Allocator::allocateUnknown(size_t size)
+#endif
+{
+  CALL("Allocator::allocateUnknown");
+
+  size += sizeof(Known);
+  char* result = allocatePiece(size);
+  Unknown* unknown = reinterpret_cast<Unknown*>(result);
+  unknown->size = size;
+  result += sizeof(Known);
+
+#if VDEBUG
+  Descriptor* desc = Descriptor::find(result);
+  ASS(! desc->allocated);
+
+  desc->address = result;
+  desc->cls = className;
+  desc->timestamp = ++Descriptor::globalTimestamp;
+  desc->size = size;
+  desc->allocated = 1;
+  desc->known = 0;
+  desc->page = 0;
+
+#if TRACE_ALLOCATIONS
+  cout << desc->toString() << ": AU\n" << flush;
+#endif
+#endif
+
+#if WATCH_ADDRESS
+  unsigned addr = (unsigned)(void*)(result-sizeof(Known));
+  unsigned cp = Debug::Tracer::passedControlPoints();
+  if (addr <= WATCH_ADDRESS &&
+      WATCH_ADDRESS < addr+size &&
+      cp >= WATCH_FIRST &&
+      cp <= WATCH_LAST) {
+    unsigned currentValue = *((unsigned*)WATCH_ADDRESS);
+    cout << "Watch! Unknown-size piece allocated!\n"
+	 << "  Timestamp: " << cp << '\n'
+	 << "  Piece addresses: " << (void*)addr << '-'
+	 << (void*)(addr+size-1) << '\n';
+    if (currentValue != watchAddressLastValue) {
+      watchAddressLastValue = currentValue;
+      cout << "  Value: " << (void*)watchAddressLastValue << '\n';
+    }
+    cout << "  " << desc->toString() << '\n'
+	 << "Watch! end\n";
+  }
+#endif
+  return result;
+} // Allocator::allocateUnknown
+
+
+#if VDEBUG
+/**
+ * Find a descriptor in the map, and if it is not there, add it.
+ * @since 14/12/2005 Bellevue
+ */
+Allocator::Descriptor* Allocator::Descriptor::find (void* addr)
+{
+  CALL("Allocator::Descriptor::find");
+  
+  if (noOfEntries >= maxEntries) { // too many entries
+    // expand the hash table first
+//     capacity = capacity ? 2*capacity : 8188;
+    capacity = capacity ? 2*capacity : 2000000;
+
+#if TRACE_ALLOCATIONS
+    cout << "Allocator map expansion to capacity " << capacity << "\n" << flush;
+#endif
+
+    Descriptor* oldMap = map;
+    map = new Descriptor [capacity];
+    Descriptor* oldAfterLast = afterLast;
+    afterLast = map + capacity;
+    maxEntries = (int)(capacity * 0.7);
+    noOfEntries = 0;
+
+    for (Descriptor* current = oldMap;current != oldAfterLast;current++) {
+      if (! current->address) {
+	continue;
+      }
+      // now current is occupied
+      Descriptor* d = find(current->address);
+      *d = *current;
+    }
+    delete [] oldMap;
+  }
+  Descriptor* desc = map + (hash(addr) % capacity);
+  while (desc->address) {
+    if (desc->address == addr) {
+      return desc;
+    }
+
+    desc++;
+    // check if the entry is a valid one
+    if (desc == afterLast) {
+      desc = map;
+    }
+  }
+
+  desc->address = addr;
+  noOfEntries++;
+
+  return desc;
+} // Allocator::Descriptor::find
+
+
+/**
+ * Should return all pages to the global manager :) not yet though
+ * @since 18/03/2008 Torrevieja
+ */
+Allocator::~Allocator ()
+{
+  CALL("Allocator::~Allocator");
+
+#if VDEBUG
+  while (_myPages) {
+    deallocatePages(_myPages);
+  }
+#endif
+} // Allocator::~allocator
+
+
+/**
+ * A string description of the descriptor.
+ * @since 17/12/2005 Vancouver
+ */ 
+std::string Allocator::Descriptor::toString() const
+{
+  CALL("Allocator::Descriptor::toString");
+
+  // the order is selected so that the output lines can be sorted by
+  // (address,timestamp)
+  ostringstream out;
+  out << (unsigned)this
+      << " [address:" << address
+      << ",timestamp:" << timestamp 
+      << ",class:" << cls 
+      << ",size:" << size
+      << ",allocated:" << (allocated ? "yes" : "no")
+      << ",known:" << (known ? "yes" : "no")
+      << ",page:" << (page ? "yes" : "no") << ']';
+  return out.str();
+} // Allocator::Descriptor::toString
+
+
+/**
+ * Initialise a descriptor.
+ * @since 17/12/2005 Vancouver
+ */ 
+Allocator::Descriptor::Descriptor ()
+  : address(0),
+    cls("???"),
+    timestamp(0),
+    size(0),
+    allocated(0),
+    known(0),
+    page(0)
+{
+//   CALL("Allocator::Descriptor::Descriptor");
+} // Allocator::Descriptor::Descriptor
+
+/**
+ * The FNV-hashing.
+ * @since 31/03/2006 Bellevue
+ */
+unsigned Allocator::Descriptor::hash (void* addr)
+{
+  CALL("Allocator::Descriptor::hash");
+
+  char* val = reinterpret_cast<char*>(&addr);
+  unsigned hash = 2166136261u;
+  for (int i = sizeof(void*)-1;i >= 0;i--) {
+    hash = (hash ^ val[i]) * 16777619u;
+  }
+  return hash;
+} // Allocator::Descriptor::hash(const char* str)
+
+#endif
+
+#if VTEST
+
+#include "Random.hpp"
+using namespace Lib;
+
+struct Mem 
+{
+  void* address; // 0 if deallocated
+  int size;      // 0 is deallocated
+  bool known;
+  const char* className;
+  Mem() : address(0) {}
+};
+
+/**
+ * Allocate many objects of known small sizes and
+ * then deallocate them all.
+ * @since 17/03/2008 Torrevieja
+ */
+void testAllocator()
+{
+  CALL("testAllocator");
+//   Random::setSeed(1);
+  cout << "Testing the Allocator class...\n";
+
+  Allocator* a = Allocator::current;
+
+  int tries = 1000000000;  // number of tries  
+  int pieces = 1000;  // max number of allocated pieces
+  int maxsize = 1000000;    // maximal memory size
+  const char* classes[10] = {"a","b","c","d","e","f","g","h","i","j"};
+  int frequency = 1000; // frequency of outputting a dot to cout
+  int out = frequency;   // output when 0
+
+   Mem* mems = new Mem[pieces]; // memory pieces
+  int total = 0;
+  for (int i = 0; i < tries;i++) {
+    out--;
+    if (! out) {
+      out = frequency;
+      cout << '.' << flush;
+//       cout << total << '\n' << flush;
+    }
+    int rand = Random::getInteger(pieces);
+
+    Mem& m = mems[rand];
+    if (m.address) { // allocated
+      if (m.known) {
+	a->deallocateKnown(m.address,m.size,m.className);
+      }
+      else {
+	a->deallocateUnknown(m.address,m.className);
+      }
+      m.address = 0;
+    }
+    else { // not allocated
+      int size = Random::getInteger(maxsize)+1;
+      m.size = size;
+      total += size;
+      const char* className = classes[Random::getInteger(10)];
+      m.className = className;
+      if (Random::getBit()) {
+	m.known = false;
+	m.address = a->allocateUnknown(size,className);
+      }
+      else {
+	m.known = true;
+	m.address = a->allocateKnown(size,className);
+      }
+    }
+  }
+
+  cout << "\nTest completed!\n";
+} // testAllocator
+
+#endif // VTEST
+
+
