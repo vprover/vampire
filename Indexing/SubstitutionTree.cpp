@@ -90,70 +90,72 @@ void SubstitutionTree::insert(int nodeNumber,TermList* args,Clause* cls)
  * Auxiliary function for substitution tree insertion.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-void SubstitutionTree::insert(Node** node,BindingHeap& bh,Clause* clause)
+void SubstitutionTree::insert(Node** pnode,BindingHeap& bh,Clause* clause)
 {
   CALL("SubstitutionTree::insert/3");
-
- start:
-  if (*node == 0) {
-    while (!bh.isEmpty()) {
-      Binding bind = bh.pop();
-      IntermediateNode* inode = new IntermediateNode(bind.var,bind.term,0,0);
-      *node = inode;
-      node = &(inode->below);
-    }
-    *node=new Leaf(clause, 0);
-    return;
-  }
-
-  // *node != 0, extract the next binding to be inserted from the binding map
-  if (bh.isEmpty()) {
-    Leaf* leaf = static_cast<Leaf*>(*node);
-#ifdef VDEBUG
-    ASS(leaf->isLeaf());
-#endif
-    *node = new Leaf(clause,leaf); 
-    return;
-  }
-
-  // *node != 0 and the binding map is not empty
-  IntermediateNode* inode = static_cast<IntermediateNode*>(*node);
-#ifdef VDEBUG
-  ASS(! inode->isLeaf());
-#endif
-
-  Binding bind = bh.top();
-
-#ifdef VDEBUG
-  ASS(bind.var == inode->var);
-#endif
   
-  TermList* tt = bind.term;
-  TermList* ss = &inode->term;
-
-  if (ss->sameContent(tt)) {
-    bh.pop();
-    node = reinterpret_cast<Node**>(&inode->below);
-    goto start;
+  if(*pnode == 0) {
+    if(bh.isEmpty()) {
+      *pnode=new UListLeaf();
+    } else {
+      *pnode=new UListIntermediateNode();
+    }
+  }
+  if(bh.isEmpty()) {
+    ASS((*pnode)->isLeaf());
+    static_cast<Leaf*>(*pnode)->insert(clause);
+    return;
   }
 
-  if (! sameTop(ss,tt)) {
-    node = reinterpret_cast<Node**>(&inode->alt);
+  start:
+  Binding bind=bh.pop(); 
+  TermList* term=bind.term;
+  
+  ASS(! (*pnode)->isLeaf());
+  IntermediateNode* inode = static_cast<IntermediateNode*>(*pnode);
+
+  pnode=inode->childByTop(term,true);
+  
+  if (*pnode == 0) {
+    while (!bh.isEmpty()) {
+      IntermediateNode* inode = new UListIntermediateNode(term);
+      *pnode = inode;
+      
+      bind = bh.pop();
+      term=bind.term;
+      pnode = inode->childByTop(term,true);
+    }
+    Leaf* lnode=new UListLeaf(term);
+    *pnode=lnode;
+    lnode->insert(clause);
+    return;
+  }
+
+  
+  TermList* tt = term;
+  TermList* ss = &(*pnode)->term;
+
+  ASS(sameTop(ss, tt));
+
+  if (tt->sameContent(ss)) {
+    if (bh.isEmpty()) {
+      ASS((*pnode)->isLeaf());
+      Leaf* leaf = static_cast<Leaf*>(*pnode);
+      leaf->insert(clause);
+      return;
+    }
     goto start;
   }
 
   // ss is the term in inode, tt is the term to be inserted
   // ss and tt have the same top symbols but are not equal
   // create the common subterm of ss,tt and an alternative node
-  bh.pop();
   Stack<TermList*> subterms(64);
   for (;;) {
     if (!ss->sameContent(tt) && sameTop(ss,tt)) {
       // ss and tt have the same tops and are different, so must be non-variables
-#ifdef VDEBUG
       ASS(! ss->isVar());
       ASS(! tt->isVar());
-#endif
 
       Term* s = ss->term();
       Term* t = tt->term();
@@ -179,9 +181,7 @@ void SubstitutionTree::insert(Node** node,BindingHeap& bh,Clause* clause)
 	int x;
 	if(!ss->isSpecialVar()) { 
 	  x = _nextVar++;
-	  IntermediateNode* newNode = new IntermediateNode(x,ss,0,inode->below);
-	  inode->below = newNode;
-	  ss->makeSpecialVar(x);
+	  Node::split(pnode, ss,x);
 	} else {
 	  x=ss->var();
 	}
@@ -200,11 +200,6 @@ void SubstitutionTree::insert(Node** node,BindingHeap& bh,Clause* clause)
       }
     }
   }
-  ASS(inode->below);
-#ifdef VDEBUG
-  ASS(!inode->below->isLeaf());
-#endif
-  node = &inode->below;
   
   goto start;
 } // // SubstitutionTree::insert
@@ -260,46 +255,33 @@ void SubstitutionTree::remove(Node** pnode,BindingHeap& bh,Clause* clause)
 {
   CALL("SubstitutionTree::remove-2");
   
-  Node* node=*pnode;
-
-  ASS(node);
-
-  Stack<Node*> history(1000);
+  ASS(*pnode);
+  
+  Stack<Node**> history(1000);
 
   while (! bh.isEmpty()) {
+    history.push(pnode);
 
-#ifdef VDEBUG
-    ASS (! node->isLeaf());
-#endif
+    ASS (! (*pnode)->isLeaf());
+    IntermediateNode* inode=static_cast<IntermediateNode*>(*pnode);
 
     Binding bind = bh.pop();
     TermList* t = bind.term;
     
-  node_check:
-    IntermediateNode* inode = static_cast<IntermediateNode*>(node);
-#ifdef VDEBUG
-    ASS(inode->var == bind.var);
-#endif
-    TermList s = inode->term;
-    if (s.content() == t->content()) {
-      history.push(node);
-      node = inode->below;
+    pnode=inode->childByTop(t,false);
+    ASS(pnode);
+    
+    TermList* s = &(*pnode)->term;
+    ASS(sameTop(s,t));
+
+    if (s->content() == t->content()) {
       continue;
     }
-    if (! sameTop(&s,t)) {
-      //we dont have to remember what was before, as nothing below this node
-      //will be deleted
-      history.reset();
-      history.push(node);
-      node = inode->alt;
-      goto node_check;
-    }
-    ASS(! s.isVar());
-    const TermList* ss = s.term()->args();
-    if (ss->isEmpty()) {
-      ASS(t->term()->args()->isEmpty());
-      continue;
-    }
+    
+    ASS(! s->isVar());
+    const TermList* ss = s->term()->args();
+    ASS(!ss->isEmpty());
+
     // computing the disagreement set of the two terms
     TermStack subterms(120);
 
@@ -333,71 +315,28 @@ void SubstitutionTree::remove(Node** pnode,BindingHeap& bh,Clause* clause)
 	subterms.push(tt->term()->args());
       }
     }
-    history.push(node);
-    node = inode->below;
-    
-  }
-#ifdef VDEBUG
-  ASS (node->isLeaf());
-#endif
-
-  //younger brothers are closer to the parent
-  //(only if they're leafs. for intermediate nodes, younger are further)
-  Leaf* closestYoungerBrother = 0;
-  Leaf* lnode = static_cast<Leaf*>(node);
-  while (lnode && lnode->clause!=clause) {
-    closestYoungerBrother = lnode;
-    lnode = lnode->next;
-  }
-  if (!lnode) { //clause is not here
-    return;
   }
 
-  //Now let's remove the leaf and all unnecessary intermediate nodes 
+  ASS ((*pnode)->isLeaf());
+
   
-  if (closestYoungerBrother) {
-    closestYoungerBrother->next = lnode->next;
-    delete lnode;
-    return;
-  }
-  if(history.isEmpty()) {
-    //this "tree" contains only leaves and node is the first of them
-    ASS(*pnode==node);
-    *pnode=lnode->next;
-    delete lnode;
-    return;
-  }
-  IntermediateNode* previous = static_cast<IntermediateNode*>(history.pop());
-  if (lnode->next) {
-    previous->below = lnode->next;
-    delete lnode;
-    return;
-  }
-  //removed clause was the only child
-  delete lnode;
-  while (! history.isEmpty()) {
-    IntermediateNode* inode = previous;
-    previous = static_cast<IntermediateNode*>(history.pop());
-    if (inode==previous->alt) {
-      previous->alt = inode->alt;
-      delete inode;
+  Leaf* lnode = static_cast<Leaf*>(*pnode);
+  lnode->remove(clause);
+  
+  while( (*pnode)->isEmpty() ) {
+    TermList term=(*pnode)->term;
+    if(history.isEmpty()) {
+      delete *pnode;
+      *pnode=0;
       return;
+    } else {
+      Node* node=*pnode;
+      IntermediateNode* parent=static_cast<IntermediateNode*>(*history.top());
+      parent->remove(&term);
+      delete node;
+      pnode=history.pop();
     }
-    ASS(inode==previous->below);
-    if (inode->alt) {
-      previous->below = inode->alt;
-      delete inode;
-      return;
-    }
-    delete inode;
   }
-  
-  ASS(history.isEmpty());
-  //before we delete the node that the pointer from _nodes array points to,
-  //we have to redirect the pointer to the next node
-  *pnode=previous->alt;
-  delete previous;
-  
 } // SubstitutionTree::remove
 
 
@@ -424,9 +363,15 @@ string SingleTermListToString(const TermList* ts)
   return Test::Output::toString(term);
 }
 
-/**
- * Return the string representation of the tree
- */
+string getIndentStr(int n)
+{
+  string res;
+  for(int indCnt=0;indCnt<n;indCnt++) {
+	res+="  ";
+  }
+  return res;
+}
+
 string SubstitutionTree::toString() const
 {
   CALL("SubstitutionTree::toString");
@@ -439,6 +384,7 @@ string SubstitutionTree::toString() const
     
     Stack<int> indentStack(10);
     Stack<Node*> stack(10);
+    
     stack.push(_nodes[tli]);
     indentStack.push(1);
     
@@ -449,34 +395,90 @@ string SubstitutionTree::toString() const
       if(!node) {
 	continue;
       }
-      
-      for(int indCnt=0;indCnt<indent*2;indCnt++) {
-	res+=" ";
+      if(node->term.content()) {
+	res+=getIndentStr(indent)+SingleTermListToString(&node->term)+"\n";
       }
 
       if(node->isLeaf()) {
 	Leaf* lnode = static_cast<Leaf*>(node);
-	stack.push(lnode->next);
-	indentStack.push(indent);
-	res+="L: ";
-	res+=Test::Output::toString(lnode->clause);
+	ClauseIterator cli(lnode->allCaluses());
+	
+	while(cli.hasNext()) {
+	  res+=getIndentStr(indent) + "Cl: " + Test::Output::toString(cli.next()) + "\n";
+	}
       } else {
 	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
-	stack.push(inode->alt);
-	indentStack.push(indent);
-	stack.push(inode->below);
-	indentStack.push(indent+1);
-	res+="I: S";
-	res+=Int::toString(inode->var);
-	res+=" --> ";
-	res+=SingleTermListToString(&inode->term);
+	NodeIterator noi(inode->allChildren());
+	while(noi.hasNext()) {
+	  stack.push(*noi.next());
+	  indentStack.push(indent+1);
+	}
       }
-      res+="\n";
     }
   }
   return res;
-} // DoubleSubstitution::toString()
-
+}
 
 #endif
 
+void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
+{
+  Node* node=*pnode;
+  
+  IntermediateNode* newNode = new UListIntermediateNode(&node->term);
+  node->term=*where;
+  *pnode=newNode;
+  
+  where->makeSpecialVar(var);
+  
+  Node** nodePosition=newNode->childByTop(&node->term, true);
+  ASS(!*nodePosition);
+  *nodePosition=node;
+}
+  
+void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
+{
+  while(children.hasNext()) {
+	Node* ext=*children.next();
+	Node** own=childByTop(&ext->term, true);
+	ASS(! *own);
+	*own=ext;
+  }
+}
+
+void SubstitutionTree::Leaf::loadClauses(ClauseIterator clauses)
+{
+  while(clauses.hasNext()) {
+	Clause* cls=clauses.next();
+	insert(cls);
+  }
+}
+
+SubstitutionTree::Node** SubstitutionTree::UListIntermediateNode::
+	childByTop(TermList* t, bool canCreate)
+{
+  NodeList** nl=&_nodes;
+  while(*nl && !sameTop(t, &(*nl)->head()->term)) {
+	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
+  }
+  if(!*nl && canCreate) {
+  	*nl=new NodeList(0,0);
+  }
+  if(*nl) {
+	return (*nl)->headPtr(); 
+  } else {
+	return 0;
+  }
+}
+
+void SubstitutionTree::UListIntermediateNode::remove(TermList* t)
+{
+  NodeList** nl=&_nodes;
+  while(!sameTop(t, &(*nl)->head()->term)) {
+	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
+	ASS(*nl);
+  }
+  NodeList* removedPiece=*nl;
+  *nl=static_cast<NodeList*>((*nl)->tail());
+  delete removedPiece;
+}

@@ -83,54 +83,249 @@ public:
 private:
   class Node {
   public:
-#ifdef VDEBUG
-    /** Number of variable at this node, -1 for leaves */
-    int var;
+    Node() {}
+    Node(TermList* ts) : term(*ts) {}
+    virtual ~Node() {}
     /** True if a leaf node */
-    bool isLeaf() const { return var == -1; }
-    /** Build a node with a given variable number in it */
-    Node(int v) : var(v) {}
-#else
-    Node(int v) {}
-#endif    
+    virtual bool isLeaf() const = 0;
+    virtual bool isEmpty() const = 0;
+    
+    static void split(Node** pnode, TermList* where, int var);
+
+    /** term at this node */
+    TermList term;
+  };
+
+  
+  template<typename T>
+    class Iterator;
+  
+  template<typename T>
+  class IteratorCore {
+  public:
+    IteratorCore() : _refCnt(0) {}
+    virtual ~IteratorCore() { ASS(_refCnt==0); }
+    virtual bool hasNext() = 0;
+    virtual T next() = 0;
+  private:
+    mutable int _refCnt;
+    
+    friend class SubstitutionTree::Iterator<T>;
+  };
+  
+  template<typename T>
+  class Iterator {
+  public:
+    Iterator() : _core(0) {}
+    Iterator(IteratorCore<T>* core) : _core(core) { _core->_refCnt++;}
+    Iterator(const Iterator& obj) : _core(obj._core) { _core->_refCnt++;}
+    ~Iterator() 
+    { 
+      if(_core) {
+	_core->_refCnt--; 
+	if(!_core->_refCnt) {
+	  delete _core;
+	}
+      }
+    }
+    Iterator& operator=(const Iterator& obj) 
+    {
+      IteratorCore<T>* oldCore=_core;
+      _core=obj._core;
+      if(_core) {
+	_core->_refCnt++;
+      }
+      if(oldCore) {
+	oldCore->_refCnt--;
+	if(!oldCore->_refCnt) {
+	  delete oldCore;
+	}
+      }
+    }
+    bool hasNext() { return _core->hasNext(); }
+    T next() { return _core->next(); }
+  private:
+    IteratorCore<T>* _core;
+  };
+  
+  typedef Iterator<Node**> NodeIterator;
+  typedef Iterator<Clause*> ClauseIterator;
+  
+  template<typename T, class Inner>
+  class ProxyIterator 
+  	: public IteratorCore<T>
+  {
+    Inner inn;
+  public:
+    ProxyIterator(Inner inn) :inn(inn) {}
+    virtual bool hasNext() { return inn.hasNext(); };
+    virtual T next() { return inn.next(); }; 
   };
 
   class IntermediateNode
-    : public Node
+    	: public Node
   {
   public:
-    /** term at this node */
-    TermList term;
-    /** alternative node */
-    IntermediateNode* alt;
-    /** node below */
-    Node* below;
+    /** Build a new intermediate node which will serve as the root*/
+    IntermediateNode()
+    {}
+    
     /** Build a new intermediate node */
-    IntermediateNode(int var,TermList* ts,
-		     IntermediateNode* alternative,Node* bel)
-      : Node(var),
-	term(*ts),
-	alt(alternative),
-	below(bel)
+    IntermediateNode(TermList* ts)
+    	: Node(ts)
     {}
-  }; // class SubstitutionTree::Node
 
+    virtual bool isLeaf() const { return false; };
+    
+    virtual NodeIterator allChildren() = 0;
+    virtual NodeIterator variableChildren() = 0;
+    /**
+     * Returns pointer to pointer to child node with top symbol
+     * of @b t. This pointer to node can be changed.
+     * 
+     * If canCreate is true and such child node does
+     * not exist, pointer to null pointer is returned, and it's
+     * assumed, that pointer to newly created node with given
+     * top symbol will be put there.
+     * 
+     * If canCreate is false, null pointer is returned.
+     */
+    virtual Node** childByTop(TermList* t, bool canCreate) = 0;
+    /**
+     * Removes child which points to node with top symbol of @b t.
+     * This node has to still exist in time of the call to remove method.
+     */
+    virtual void remove(TermList* t) = 0;
+
+    void loadChildren(NodeIterator children);
+    
+  }; // class SubstitutionTree::IntermediateNode
+    
   class Leaf
-    : public Node
+    	: public Node
   {
   public:
-    /** The clause at this node */
-    Clause* clause;
-    /** next leaf */
-    Leaf* next;
-    /** Build a new leaf */
-    Leaf(Clause* cls, Leaf* nxt)
-      : Node(-1),
-	clause(cls),
-	next(nxt)
+    /** Build a new leaf which will serve as the root */
+    Leaf()
     {}
+    /** Build a new leaf */
+    Leaf(TermList* ts)
+      : Node(ts)
+    {}
+
+    virtual bool isLeaf() const { return true; };
+    virtual ClauseIterator allCaluses() = 0;
+    virtual void insert(Clause* cls) = 0;
+    virtual void remove(Clause* cls) = 0;
+    void loadClauses(ClauseIterator children);
+  };
+    
+    	
+  template<typename T>
+  class AccList
+  	: public List<T>
+  {
+  public:
+    AccList(T head, AccList* tail): List<T>(head,tail) {}
+    T* headPtr() { return &this->_head; }
+    class PtrIterator 
+    	: public SubstitutionTree::IteratorCore<T*>
+    {
+    public:
+      PtrIterator(AccList* lst) : _l(lst) {}
+      virtual bool hasNext() { return _l; }
+      virtual T* next() 
+      {
+	T* res=_l->headPtr(); 
+	_l=static_cast<AccList*>(_l->tail()); 
+	return res;
+      }
+    protected:
+      AccList* _l;
+    };
+  };
+    	
+  class UListIntermediateNode
+  	: public IntermediateNode
+  {
+  public:
+    UListIntermediateNode() : _nodes(0) {}
+    UListIntermediateNode(TermList* ts) : IntermediateNode(ts), _nodes(0) {}
+    ~UListIntermediateNode()
+    {
+      if(_nodes) {
+	_nodes->destroy();
+      }
+    }
+
+    virtual bool isEmpty() const
+    {
+      return !_nodes;
+    }
+    virtual NodeIterator allChildren() 
+    {
+      return new NodeList::PtrIterator(_nodes);
+    }
+    virtual NodeIterator variableChildren()
+    {
+      return new VarIterator(_nodes);
+    }
+    virtual Node** childByTop(TermList* t, bool canCreate);
+    virtual void remove(TermList* t);
+    
+  private:
+    typedef AccList<Node*> NodeList;
+    NodeList* _nodes;
+    class VarIterator 
+    	: public SubstitutionTree::AccList<Node*>::PtrIterator
+    {
+    public:
+      VarIterator(NodeList* lst) : PtrIterator(lst) {}
+      virtual bool hasNext() 
+      {
+	while(_l && !_l->head()->term.isVar()) {
+	  _l=static_cast<NodeList*>(_l->tail());
+	}
+	return _l;
+      }
+    };
   };
 
+  class UListLeaf
+    	: public Leaf
+  {
+  public:
+    UListLeaf() : _clauses(0) {}
+    UListLeaf(TermList* ts) : Leaf(ts), _clauses(0) {}
+    ~UListLeaf()
+    {
+      if(_clauses) {
+	_clauses->destroy();
+      }
+    }
+
+    bool isEmpty() const
+    {
+      return !_clauses;
+    }
+    virtual ClauseIterator allCaluses()
+    {
+      return new ProxyIterator<Clause*,ClauseList::Iterator>(
+	      ClauseList::Iterator(_clauses));
+    }
+    virtual void insert(Clause* cls) 
+    {
+      _clauses=new ClauseList(cls, _clauses);
+    }
+    virtual void remove(Clause* cls)
+    {
+      _clauses=_clauses->remove(cls);
+    }
+  private:
+    typedef List<Clause*> ClauseList;
+    ClauseList* _clauses;
+  };
+  
   class Binding {
   public:
     /** Number of the variable at this node */
