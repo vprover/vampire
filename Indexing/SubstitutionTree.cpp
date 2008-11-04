@@ -96,13 +96,14 @@ void SubstitutionTree::insert(Node** pnode,BindingHeap& bh,Clause* clause)
   
   if(*pnode == 0) {
     if(bh.isEmpty()) {
-      *pnode=new UListLeaf();
+      *pnode=createLeaf();
     } else {
-      *pnode=new UListIntermediateNode();
+      *pnode=createIntermediateNode();
     }
   }
   if(bh.isEmpty()) {
     ASS((*pnode)->isLeaf());
+    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
     static_cast<Leaf*>(*pnode)->insert(clause);
     return;
   }
@@ -114,20 +115,26 @@ void SubstitutionTree::insert(Node** pnode,BindingHeap& bh,Clause* clause)
   ASS(! (*pnode)->isLeaf());
   IntermediateNode* inode = static_cast<IntermediateNode*>(*pnode);
 
+  //Into pparent we store the node, we might be inserting into.
+  //So in the case we do insert, we might check whether this node 
+  //needs expansion.
+  Node** pparent=pnode;
   pnode=inode->childByTop(term,true);
   
   if (*pnode == 0) {
     while (!bh.isEmpty()) {
-      IntermediateNode* inode = new UListIntermediateNode(term);
+      IntermediateNode* inode = createIntermediateNode(term);
       *pnode = inode;
       
       bind = bh.pop();
       term=bind.term;
       pnode = inode->childByTop(term,true);
     }
-    Leaf* lnode=new UListLeaf(term);
+    Leaf* lnode=createLeaf(term);
     *pnode=lnode;
     lnode->insert(clause);
+    
+    ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pparent));
     return;
   }
 
@@ -140,6 +147,7 @@ void SubstitutionTree::insert(Node** pnode,BindingHeap& bh,Clause* clause)
   if (tt->sameContent(ss)) {
     if (bh.isEmpty()) {
       ASS((*pnode)->isLeaf());
+      ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
       Leaf* leaf = static_cast<Leaf*>(*pnode);
       leaf->insert(clause);
       return;
@@ -322,6 +330,7 @@ void SubstitutionTree::remove(Node** pnode,BindingHeap& bh,Clause* clause)
   
   Leaf* lnode = static_cast<Leaf*>(*pnode);
   lnode->remove(clause);
+  ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
   
   while( (*pnode)->isEmpty() ) {
     TermList term=(*pnode)->term;
@@ -335,6 +344,7 @@ void SubstitutionTree::remove(Node** pnode,BindingHeap& bh,Clause* clause)
       parent->remove(&term);
       delete node;
       pnode=history.pop();
+      ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pnode));
     }
   }
 } // SubstitutionTree::remove
@@ -423,9 +433,11 @@ string SubstitutionTree::toString() const
 
 void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 {
+  CALL("SubstitutionTree::Node::split");
+
   Node* node=*pnode;
   
-  IntermediateNode* newNode = new UListIntermediateNode(&node->term);
+  IntermediateNode* newNode = createIntermediateNode(&node->term);
   node->term=*where;
   *pnode=newNode;
   
@@ -435,9 +447,10 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
   ASS(!*nodePosition);
   *nodePosition=node;
 }
-  
+
 void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 {
+  CALL("SubstitutionTree::IntermediateNode::loadChildren");
   while(children.hasNext()) {
 	Node* ext=*children.next();
 	Node** own=childByTop(&ext->term, true);
@@ -448,6 +461,7 @@ void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 
 void SubstitutionTree::Leaf::loadClauses(ClauseIterator clauses)
 {
+  CALL("SubstitutionTree::Leaf::loadClauses");
   while(clauses.hasNext()) {
 	Clause* cls=clauses.next();
 	insert(cls);
@@ -457,12 +471,15 @@ void SubstitutionTree::Leaf::loadClauses(ClauseIterator clauses)
 SubstitutionTree::Node** SubstitutionTree::UListIntermediateNode::
 	childByTop(TermList* t, bool canCreate)
 {
+  CALL("SubstitutionTree::UListIntermediateNode::childByTop");
+  
   NodeList** nl=&_nodes;
   while(*nl && !sameTop(t, &(*nl)->head()->term)) {
 	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
   }
   if(!*nl && canCreate) {
   	*nl=new NodeList(0,0);
+  	_size++;
   }
   if(*nl) {
 	return (*nl)->headPtr(); 
@@ -473,6 +490,8 @@ SubstitutionTree::Node** SubstitutionTree::UListIntermediateNode::
 
 void SubstitutionTree::UListIntermediateNode::remove(TermList* t)
 {
+  CALL("SubstitutionTree::UListIntermediateNode::remove");
+  
   NodeList** nl=&_nodes;
   while(!sameTop(t, &(*nl)->head()->term)) {
 	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
@@ -481,4 +500,29 @@ void SubstitutionTree::UListIntermediateNode::remove(TermList* t)
   NodeList* removedPiece=*nl;
   *nl=static_cast<NodeList*>((*nl)->tail());
   delete removedPiece;
+  _size--;
+}
+
+void SubstitutionTree::ensureLeafEfficiency(Leaf** leaf)
+{
+  CALL("SubstitutionTree::ensureLeafEfficiency");
+
+  if( (*leaf)->algorithm()==UNSORTED_LIST && (*leaf)->size()>5 ) {
+    Leaf* newLeaf=new SListLeaf(**leaf);
+    Leaf* oldLeaf=*leaf;
+    *leaf=newLeaf;
+    delete oldLeaf;
+  }
+}
+
+void SubstitutionTree::ensureIntermediateNodeEfficiency(IntermediateNode** inode)
+{
+  CALL("SubstitutionTree::ensureIntermediateNodeEfficiency");
+
+  if( (*inode)->algorithm()==UNSORTED_LIST && (*inode)->size()>3 ) {
+    IntermediateNode* newInode=new SListIntermediateNode(**inode);
+    IntermediateNode* oldInode=*inode;
+    *inode=newInode;
+    delete oldInode;
+  }
 }

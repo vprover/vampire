@@ -8,6 +8,7 @@
 #ifndef __SubstitutionTree__
 #define __SubstitutionTree__
 
+#include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/BinaryHeap.hpp"
@@ -15,6 +16,7 @@
 
 #include "../Lib/Map.hpp"
 #include "../Lib/List.hpp"
+#include "../Lib/SkipList.hpp"
 
 namespace Kernel {
   class TermList;
@@ -81,14 +83,27 @@ public:
 #endif
   
 private:
+  
+  enum NodeAlgorithm 
+  {
+    UNSORTED_LIST=1,
+    SKIP_LIST=2
+  };
+
   class Node {
   public:
     Node() {}
-    Node(TermList* ts) : term(*ts) {}
+    Node(const TermList* ts) : term(*ts) {}
     virtual ~Node() {}
     /** True if a leaf node */
     virtual bool isLeaf() const = 0;
     virtual bool isEmpty() const = 0;
+    /** 
+     * Return number of elements held in the node. If this operation
+     * isn't supported by the datastructure, return -1. 
+     */
+    virtual int size() const { return -1; }
+    virtual NodeAlgorithm algorithm() const = 0;
     
     static void split(Node** pnode, TermList* where, int var);
 
@@ -96,72 +111,18 @@ private:
     TermList term;
   };
 
-  
-  template<typename T>
-    class Iterator;
-  
-  template<typename T>
-  class IteratorCore {
-  public:
-    IteratorCore() : _refCnt(0) {}
-    virtual ~IteratorCore() { ASS(_refCnt==0); }
-    virtual bool hasNext() = 0;
-    virtual T next() = 0;
-  private:
-    mutable int _refCnt;
-    
-    friend class SubstitutionTree::Iterator<T>;
-  };
-  
-  template<typename T>
-  class Iterator {
-  public:
-    Iterator() : _core(0) {}
-    Iterator(IteratorCore<T>* core) : _core(core) { _core->_refCnt++;}
-    Iterator(const Iterator& obj) : _core(obj._core) { _core->_refCnt++;}
-    ~Iterator() 
-    { 
-      if(_core) {
-	_core->_refCnt--; 
-	if(!_core->_refCnt) {
-	  delete _core;
-	}
-      }
-    }
-    Iterator& operator=(const Iterator& obj) 
-    {
-      IteratorCore<T>* oldCore=_core;
-      _core=obj._core;
-      if(_core) {
-	_core->_refCnt++;
-      }
-      if(oldCore) {
-	oldCore->_refCnt--;
-	if(!oldCore->_refCnt) {
-	  delete oldCore;
-	}
-      }
-    }
-    bool hasNext() { return _core->hasNext(); }
-    T next() { return _core->next(); }
-  private:
-    IteratorCore<T>* _core;
-  };
-  
-  typedef Iterator<Node**> NodeIterator;
-  typedef Iterator<Clause*> ClauseIterator;
-  
-  template<typename T, class Inner>
-  class ProxyIterator 
-  	: public IteratorCore<T>
+  class IsPtrToVarNodePredicate
   {
-    Inner inn;
   public:
-    ProxyIterator(Inner inn) :inn(inn) {}
-    virtual bool hasNext() { return inn.hasNext(); };
-    virtual T next() { return inn.next(); }; 
+    static bool eval(Node** n)
+    {
+	return (*n)->term.isVar();
+    }
   };
 
+  typedef VirtualIterator<Node**> NodeIterator;
+  typedef VirtualIterator<Clause*> ClauseIterator;
+  
   class IntermediateNode
     	: public Node
   {
@@ -171,11 +132,11 @@ private:
     {}
     
     /** Build a new intermediate node */
-    IntermediateNode(TermList* ts)
+    IntermediateNode(const TermList* ts)
     	: Node(ts)
     {}
 
-    virtual bool isLeaf() const { return false; };
+    bool isLeaf() const { return false; };
     
     virtual NodeIterator allChildren() = 0;
     virtual NodeIterator variableChildren() = 0;
@@ -209,11 +170,11 @@ private:
     Leaf()
     {}
     /** Build a new leaf */
-    Leaf(TermList* ts)
+    Leaf(const TermList* ts)
       : Node(ts)
     {}
 
-    virtual bool isLeaf() const { return true; };
+    bool isLeaf() const { return true; };
     virtual ClauseIterator allCaluses() = 0;
     virtual void insert(Clause* cls) = 0;
     virtual void remove(Clause* cls) = 0;
@@ -223,18 +184,18 @@ private:
     	
   template<typename T>
   class AccList
-  	: public List<T>
+  : public List<T>
   {
   public:
     AccList(T head, AccList* tail): List<T>(head,tail) {}
     T* headPtr() { return &this->_head; }
     class PtrIterator 
-    	: public SubstitutionTree::IteratorCore<T*>
+    	: public IteratorCore<T*>
     {
     public:
       PtrIterator(AccList* lst) : _l(lst) {}
-      virtual bool hasNext() { return _l; }
-      virtual T* next() 
+      bool hasNext() { return _l; }
+      T* next() 
       {
 	T* res=_l->headPtr(); 
 	_l=static_cast<AccList*>(_l->tail()); 
@@ -246,11 +207,11 @@ private:
   };
     	
   class UListIntermediateNode
-  	: public IntermediateNode
+  : public IntermediateNode
   {
   public:
-    UListIntermediateNode() : _nodes(0) {}
-    UListIntermediateNode(TermList* ts) : IntermediateNode(ts), _nodes(0) {}
+    UListIntermediateNode() : _nodes(0), _size(0) {}
+    UListIntermediateNode(const TermList* ts) : IntermediateNode(ts), _nodes(0), _size(0) {}
     ~UListIntermediateNode()
     {
       if(_nodes) {
@@ -258,45 +219,34 @@ private:
       }
     }
 
-    virtual bool isEmpty() const
+    NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
+    bool isEmpty() const { return !_nodes; }
+    int size() const { return _size; }
+    NodeIterator allChildren() 
     {
-      return !_nodes;
+      return NodeIterator(new NodeList::PtrIterator(_nodes));
     }
-    virtual NodeIterator allChildren() 
+    NodeIterator variableChildren()
     {
-      return new NodeList::PtrIterator(_nodes);
+      return NodeIterator(
+	      new FilteredIterator<Node**,NodeList::PtrIterator,IsPtrToVarNodePredicate>(
+		      NodeList::PtrIterator(_nodes)));
     }
-    virtual NodeIterator variableChildren()
-    {
-      return new VarIterator(_nodes);
-    }
-    virtual Node** childByTop(TermList* t, bool canCreate);
-    virtual void remove(TermList* t);
+    Node** childByTop(TermList* t, bool canCreate);
+    void remove(TermList* t);
     
   private:
     typedef AccList<Node*> NodeList;
     NodeList* _nodes;
-    class VarIterator 
-    	: public SubstitutionTree::AccList<Node*>::PtrIterator
-    {
-    public:
-      VarIterator(NodeList* lst) : PtrIterator(lst) {}
-      virtual bool hasNext() 
-      {
-	while(_l && !_l->head()->term.isVar()) {
-	  _l=static_cast<NodeList*>(_l->tail());
-	}
-	return _l;
-      }
-    };
+    int _size;
   };
 
   class UListLeaf
-    	: public Leaf
+  : public Leaf
   {
   public:
-    UListLeaf() : _clauses(0) {}
-    UListLeaf(TermList* ts) : Leaf(ts), _clauses(0) {}
+    UListLeaf() : _clauses(0), _size(0) {}
+    UListLeaf(const TermList* ts) : Leaf(ts), _clauses(0), _size(0) {}
     ~UListLeaf()
     {
       if(_clauses) {
@@ -304,27 +254,141 @@ private:
       }
     }
 
-    bool isEmpty() const
+    NodeAlgorithm algorithm() const
     {
-      return !_clauses;
+      return UNSORTED_LIST;
     }
-    virtual ClauseIterator allCaluses()
+    bool isEmpty() const { return !_clauses; }
+    int size() const { return _size; }
+    ClauseIterator allCaluses()
     {
-      return new ProxyIterator<Clause*,ClauseList::Iterator>(
-	      ClauseList::Iterator(_clauses));
+      return ClauseIterator(new ProxyIterator<Clause*,ClauseList::Iterator>(
+	      ClauseList::Iterator(_clauses)));
     }
-    virtual void insert(Clause* cls) 
+    void insert(Clause* cls) 
     {
       _clauses=new ClauseList(cls, _clauses);
+      _size++;
     }
-    virtual void remove(Clause* cls)
+    void remove(Clause* cls)
     {
       _clauses=_clauses->remove(cls);
+      _size--;
     }
   private:
     typedef List<Clause*> ClauseList;
     ClauseList* _clauses;
+    int _size;
   };
+
+  
+  class SListIntermediateNode
+  : public IntermediateNode
+  {
+  public:
+    SListIntermediateNode() {}
+    SListIntermediateNode(const TermList* ts) : IntermediateNode(ts) {}
+    explicit SListIntermediateNode(IntermediateNode& orig) : IntermediateNode(&orig.term) 
+    { 
+      loadChildren(orig.allChildren()); 
+    }
+
+    NodeAlgorithm algorithm() const { return SKIP_LIST; }
+    bool isEmpty() const { return _nodes.isEmpty(); }
+    NodeIterator allChildren() 
+    {
+      return NodeIterator(new ProxyIterator<Node**,NodeSkipList::PtrIterator> (
+	      NodeSkipList::PtrIterator(_nodes)));
+    }
+    NodeIterator variableChildren()
+    {
+      return NodeIterator(
+	      new WhileLimitedIterator<Node**,NodeSkipList::PtrIterator,IsPtrToVarNodePredicate> (
+	      NodeSkipList::PtrIterator(_nodes)));
+    }
+    Node** childByTop(TermList* t, bool canCreate)
+    {
+      Node** res;
+      bool found=_nodes.getPosition(t,res,canCreate);
+      if(!found) {
+	if(canCreate) {
+	  *res=0;
+	} else {
+	  res=0;
+	}
+      }
+      return res;
+    }
+    void remove(TermList* t)
+    {
+      _nodes.remove(t);
+    }
+    
+  private:
+    class NodePtrComparator
+    {
+    public:
+      static Comparison compare(TermList* ts1,TermList* ts2)
+      {
+	if(ts1->isVar()) {
+	  if(ts2->isVar()) {
+	    return Int::compare(ts1->var(), ts2->var());
+	  }
+	  return LESS;
+	}
+	if(ts2->isVar()) {
+	  return GREATER;
+	}
+	return Int::compare(ts1->term()->functor(), ts2->term()->functor());
+      }
+      static Comparison compare(Node* n1, Node* n2)
+      {
+	return compare(&n1->term, &n2->term);
+      }
+      static Comparison compare(TermList* ts1, Node* n2)
+      {
+	return compare(ts1, &n2->term);
+      }
+    };
+    typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
+    NodeSkipList _nodes;
+  };
+  
+  
+  class SListLeaf
+  : public Leaf
+  {
+  public:
+    SListLeaf() {}
+    SListLeaf(const TermList* ts) : Leaf(ts) {}
+    explicit SListLeaf(Leaf& orig) : Leaf(&orig.term) 
+    { 
+      loadClauses(orig.allCaluses()); 
+    }
+
+    NodeAlgorithm algorithm() const { return SKIP_LIST; }
+    bool isEmpty() const { return _clauses.isEmpty(); }
+    ClauseIterator allCaluses()
+    {
+      return ClauseIterator(new ProxyIterator<Clause*,ClauseSkipList::Iterator>(
+	      ClauseSkipList::Iterator(_clauses)));
+    }
+    void insert(Clause* cls) { _clauses.insert(cls); }
+    void remove(Clause* cls) { _clauses.remove(cls); }
+  private:
+    class ClausePtrComparator
+    {
+    public:
+      static Comparison compare(Clause* cls1, Clause* cls2)
+      {
+	return cls1 < cls2 ? LESS : cls1 == cls2 ? EQUAL : GREATER;
+      }
+    };
+    typedef SkipList<Clause*,ClausePtrComparator> ClauseSkipList;
+    ClauseSkipList _clauses;
+  };
+
+  
   
   class Binding {
   public:
@@ -350,6 +414,26 @@ private:
   typedef Stack<Binding> BindingStack;
   typedef Stack<const TermList*> TermStack;
 
+  static Leaf* createLeaf()
+  {
+    return new UListLeaf();
+  }
+  static Leaf* createLeaf(TermList* ts)
+  {
+    return new UListLeaf(ts);
+  }
+  static void ensureLeafEfficiency(Leaf** l);
+  
+  static IntermediateNode* createIntermediateNode()
+  {
+    return new UListIntermediateNode();
+  }
+  static IntermediateNode* createIntermediateNode(TermList* ts)
+  {
+    return new UListIntermediateNode(ts);
+  }
+  static void ensureIntermediateNodeEfficiency(IntermediateNode** inode);
+  
   void insert(Node** node,BindingHeap& binding,Clause* clause);
   void remove(Node** node,BindingHeap& binding,Clause* clause);
   static bool sameTop(const TermList* ss,const TermList* tt);

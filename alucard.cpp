@@ -1,0 +1,169 @@
+/**
+ * @file alucard.cpp. Lightweight testing version of Dracula.
+ */
+
+#include <fstream>
+#include <csignal>
+
+#include "Debug/Tracer.hpp"
+
+#include "Lib/Random.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Timer.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/Environment.hpp"
+
+#include "Lib/Vector.hpp"
+
+#include "Kernel/Signature.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
+
+#include "Indexing/TermSharing.hpp"
+#include "Indexing/SubstitutionTree.hpp"
+
+#include "Shell/Options.hpp"
+#include "Shell/CommandLine.hpp"
+#include "Shell/TPTPLexer.hpp"
+#include "Shell/TPTP.hpp"
+#include "Shell/TPTPParser.hpp"
+#include "Shell/Property.hpp"
+#include "Shell/Preprocess.hpp"
+#include "Shell/Statistics.hpp"
+#include "Shell/Refutation.hpp"
+#include "Shell/TheoryFinder.hpp"
+
+#include "Resolution/ProofAttempt.hpp"
+
+#include "Rule/CASC.hpp"
+#include "Rule/Prolog.hpp"
+#include "Rule/Index.hpp"
+#include "Rule/ProofAttempt.hpp"
+
+#if CHECK_LEAKS
+#include "Lib/MemoryLeak.hpp"
+#endif
+
+using namespace Shell;
+using namespace Resolution;
+
+void doProving()
+{
+  CALL("ruleMode()");
+
+  env.signature = new Kernel::Signature;
+  ifstream input(env.options->inputFile().c_str());
+  TPTPLexer lexer(input);
+  TPTPParser parser(lexer);
+  UnitList* units = parser.units();
+
+  Property property;
+  property.scan(units);
+
+  Preprocess prepro(property,*env.options);
+  prepro.preprocess(units);
+
+  Resolution::ProofAttempt pa;
+  UnitList::Iterator it(units);
+  while (it.hasNext()) {
+    Unit* u = it.next();
+    ASS(u->isClause());
+    pa.initialClause(static_cast<Clause*>(u));
+  }
+  pa.saturate();
+
+  switch (env.statistics->terminationReason) {
+  case Statistics::REFUTATION:
+    env.out << "Refutation found. Thanks to Tanya!\n";
+    if (env.options->proof() != Options::PROOF_OFF) {
+      Shell::Refutation refutation(env.statistics->refutation,
+	  env.options->proof() == Options::PROOF_ON);
+      refutation.output(env.out);
+    }
+    return;
+  case Statistics::TIME_LIMIT:
+    env.out << "Time limit reached!\n";
+    return;
+  default:
+    env.out << "Refutation not found!\n";
+    return;
+  }
+
+
+
+#if CHECK_LEAKS
+  delete env.signature;
+  env.signature = 0;
+  MemoryLeak leak;
+  leak.release(units);
+#endif
+} // ruleMode
+
+/**
+ * Print an explanation about exception to cout either as a text or
+ * as XML, depending on the environment.
+ * @since 10/08/2005 Redmond
+ */
+void explainException (Exception& exception)
+{
+  exception.cry(cout);
+} // explainException
+
+
+/**
+ * The main function.
+ * @since 03/12/2003 many changes related to logging 
+ *        and exception handling.
+ * @since 10/09/2004, Manchester changed to use knowledge bases
+ */
+int main(int argc, char* argv [])
+{
+  CALL ("main");
+
+  // create random seed for the random number generation
+  Lib::Random::resetSeed();
+
+  try {
+    // read the command line and interpret it
+    Options options;
+    Shell::CommandLine cl(argc,argv);
+    cl.interpret(options);
+    Allocator::setMemoryLimit(options.memoryLimit()*1000000);
+
+    Timer timer;
+    timer.start();
+    env.timer = &timer;
+    Indexing::TermSharing sharing;
+    env.sharing = &sharing;
+    env.options = &options;
+    Shell::Statistics statistics;
+    env.statistics = &statistics;
+
+    doProving();
+    
+  }
+#if VDEBUG
+  catch (Debug::AssertionViolationException& exception) {
+#if CHECK_LEAKS
+    MemoryLeak::cancelReport();
+#endif
+  }
+#endif
+  catch (Exception& exception) {
+#if CHECK_LEAKS
+    MemoryLeak::cancelReport();
+#endif
+    explainException(exception);
+  }
+  catch (std::bad_alloc& _) {
+#if CHECK_LEAKS
+    MemoryLeak::cancelReport();
+#endif
+    cout << "Insufficient system memory" << '\n';
+  }
+  //   delete env.allocator;
+  return EXIT_SUCCESS;
+} // main
+

@@ -127,6 +127,8 @@ void vampireMode()
     }
   }
   cout << "Inserting finished!\n";
+  
+  cout << stree.toString() << endl;
 
   UnitList::Iterator dit(units);
   cout << "Deleting...\n";

@@ -12,8 +12,9 @@
 #	
 
 #XFLAGS = -O1 -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+#XFLAGS = -g -DVDEBUG=0 -DCHECK_LEAKS=0 # debug mode without VDEBUG macro 
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
 XFLAGS = -O6 -DVDEBUG=0 # no debugging
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -fno-default-inline -g # Valgrind
 
@@ -136,6 +137,7 @@ SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
 TEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_SubstitutionTree.o
 DHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMap.o
 BHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_BinaryHeap.o
+SLTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_SkipList.o
 ALUCARD_OBJ = $(VAMP_BASIC) Global.o alucard.o
 
 ################################################################
@@ -172,6 +174,9 @@ dhtest: $(DHTEST_OBJ)
 
 bhtest: $(BHTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(BHTEST_OBJ) -o test_BinaryHeap
+
+sltest: $(SLTEST_OBJ)
+	$(CXX) $(CXXFLAGS) $(SLTEST_OBJ) -o test_SkipList
 
 alucard:  $(ALUCARD_OBJ)
 	$(CXX) $(CXXFLAGS) $(ALUCARD_OBJ) -o alucard
@@ -453,7 +458,9 @@ Indexing/SubstitutionTree.o: Lib/Stack.hpp Lib/DHMap.hpp Lib/Exception.hpp
 Indexing/SubstitutionTree.o: Lib/Hash.hpp Kernel/Signature.hpp Lib/Map.hpp
 Indexing/SubstitutionTree.o: Lib/Environment.hpp Lib/Int.hpp
 Indexing/SubstitutionTree.o: Lib/Comparison.hpp Test/Output.hpp
-Indexing/SubstitutionTree.o: Indexing/SubstitutionTree.hpp Lib/BinaryHeap.hpp
+Indexing/SubstitutionTree.o: Indexing/SubstitutionTree.hpp
+Indexing/SubstitutionTree.o: Lib/VirtualIterator.hpp Lib/BinaryHeap.hpp
+Indexing/SubstitutionTree.o: Lib/SkipList.hpp Lib/Random.hpp
 Indexing/TermSharing.o: Kernel/Term.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Indexing/TermSharing.o: Lib/XML.hpp Lib/Comparison.hpp Lib/Stack.hpp
 Indexing/TermSharing.o: Lib/Allocator.hpp Indexing/TermSharing.hpp
@@ -564,7 +571,8 @@ alucard.o: Kernel/Clause.hpp Kernel/Unit.hpp Lib/List.hpp Kernel/Formula.hpp
 alucard.o: Lib/XML.hpp Kernel/Connective.hpp Kernel/FormulaUnit.hpp
 alucard.o: Indexing/TermSharing.hpp Lib/Set.hpp Kernel/Term.hpp
 alucard.o: Lib/Comparison.hpp Indexing/SubstitutionTree.hpp
-alucard.o: Lib/BinaryHeap.hpp Lib/Int.hpp Shell/Options.hpp
+alucard.o: Lib/VirtualIterator.hpp Lib/BinaryHeap.hpp Lib/Int.hpp
+alucard.o: Lib/SkipList.hpp Lib/Random.hpp Shell/Options.hpp
 alucard.o: Shell/CommandLine.hpp Shell/TPTPLexer.hpp Shell/Lexer.hpp
 alucard.o: Lib/Array.hpp Lib/Exception.hpp Shell/Token.hpp Shell/TPTP.hpp
 alucard.o: Shell/TPTPParser.hpp Kernel/Unit.hpp Shell/Parser.hpp
@@ -581,18 +589,24 @@ test_BinaryHeap.o: Debug/Tracer.hpp Lib/Exception.hpp Lib/Comparison.hpp
 test_BinaryHeap.o: Lib/Int.hpp
 test_DHMap.o: Lib/DHMap.hpp Debug/Assertion.hpp Lib/Allocator.hpp
 test_DHMap.o: Debug/Tracer.hpp Lib/Exception.hpp Lib/Hash.hpp
-test_SubstitutionTree.o: Debug/Tracer.hpp Lib/Random.hpp Lib/Set.hpp
-test_SubstitutionTree.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Int.hpp
-test_SubstitutionTree.o: Lib/Comparison.hpp Lib/Timer.hpp Debug/Assertion.hpp
-test_SubstitutionTree.o: Lib/Exception.hpp Lib/Environment.hpp Lib/Vector.hpp
-test_SubstitutionTree.o: Kernel/Signature.hpp Lib/Allocator.hpp Lib/Stack.hpp
-test_SubstitutionTree.o: Lib/Map.hpp Lib/Hash.hpp Lib/Exception.hpp
-test_SubstitutionTree.o: Kernel/Clause.hpp Kernel/Unit.hpp Lib/List.hpp
-test_SubstitutionTree.o: Kernel/Formula.hpp Lib/XML.hpp Kernel/Connective.hpp
+test_SkipList.o: Lib/SkipList.hpp Debug/Assertion.hpp Debug/Tracer.hpp
+test_SkipList.o: Lib/Allocator.hpp Lib/Comparison.hpp Lib/Random.hpp
+test_SkipList.o: Lib/BinaryHeap.hpp Lib/Exception.hpp Lib/Int.hpp
+test_SubstitutionTree.o: Debug/Tracer.hpp Lib/Array.hpp Debug/Assertion.hpp
+test_SubstitutionTree.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Random.hpp
+test_SubstitutionTree.o: Lib/Set.hpp Lib/Allocator.hpp Lib/Int.hpp
+test_SubstitutionTree.o: Lib/Comparison.hpp Lib/Timer.hpp Lib/Exception.hpp
+test_SubstitutionTree.o: Lib/Environment.hpp Lib/Vector.hpp
+test_SubstitutionTree.o: Kernel/Signature.hpp Lib/Stack.hpp Lib/Map.hpp
+test_SubstitutionTree.o: Lib/Hash.hpp Lib/Exception.hpp Kernel/Clause.hpp
+test_SubstitutionTree.o: Kernel/Unit.hpp Lib/List.hpp Kernel/Formula.hpp
+test_SubstitutionTree.o: Lib/XML.hpp Kernel/Connective.hpp
 test_SubstitutionTree.o: Kernel/FormulaUnit.hpp Indexing/TermSharing.hpp
 test_SubstitutionTree.o: Lib/Set.hpp Kernel/Term.hpp Lib/Comparison.hpp
-test_SubstitutionTree.o: Indexing/SubstitutionTree.hpp Lib/BinaryHeap.hpp
-test_SubstitutionTree.o: Lib/Int.hpp Shell/Options.hpp Shell/CommandLine.hpp
+test_SubstitutionTree.o: Indexing/SubstitutionTree.hpp
+test_SubstitutionTree.o: Lib/VirtualIterator.hpp Lib/BinaryHeap.hpp
+test_SubstitutionTree.o: Lib/Int.hpp Lib/SkipList.hpp Lib/Random.hpp
+test_SubstitutionTree.o: Shell/Options.hpp Shell/CommandLine.hpp
 test_SubstitutionTree.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp Lib/Array.hpp
 test_SubstitutionTree.o: Lib/Exception.hpp Shell/Token.hpp Shell/TPTP.hpp
 test_SubstitutionTree.o: Shell/TPTPParser.hpp Kernel/Unit.hpp
@@ -614,7 +628,8 @@ vampire.o: Kernel/Clause.hpp Kernel/Unit.hpp Lib/List.hpp Kernel/Formula.hpp
 vampire.o: Lib/XML.hpp Kernel/Connective.hpp Kernel/FormulaUnit.hpp
 vampire.o: Indexing/TermSharing.hpp Lib/Set.hpp Kernel/Term.hpp
 vampire.o: Lib/Comparison.hpp Indexing/SubstitutionTree.hpp
-vampire.o: Lib/BinaryHeap.hpp Lib/Int.hpp Shell/Options.hpp
+vampire.o: Lib/VirtualIterator.hpp Lib/BinaryHeap.hpp Lib/Int.hpp
+vampire.o: Lib/SkipList.hpp Lib/Random.hpp Shell/Options.hpp
 vampire.o: Shell/CommandLine.hpp Shell/TPTPLexer.hpp Shell/Lexer.hpp
 vampire.o: Lib/Array.hpp Lib/Exception.hpp Shell/Token.hpp Shell/TPTP.hpp
 vampire.o: Shell/TPTPParser.hpp Kernel/Unit.hpp Shell/Parser.hpp
