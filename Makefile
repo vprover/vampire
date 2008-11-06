@@ -13,7 +13,7 @@
 
 #XFLAGS = -O1 -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = -g -DVDEBUG=0 -DCHECK_LEAKS=0 # debug mode without VDEBUG macro 
-#XFLAGS = -pg -g -DVDEBUG=0 # profiling
+#XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
 XFLAGS = -O6 -DVDEBUG=0 # no debugging
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -fno-default-inline -g # Valgrind
@@ -136,6 +136,7 @@ VAMPIRE_OBJ = $(VAMP_BASIC) Global.o vampire.o
 SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
 TEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_SubstitutionTree.o
 DHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMap.o
+DHMSTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMultiset.o
 BHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_BinaryHeap.o
 SLTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_SkipList.o
 ALUCARD_OBJ = $(VAMP_BASIC) Global.o alucard.o
@@ -171,6 +172,9 @@ test: $(TEST_OBJ)
 
 dhtest: $(DHTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(DHTEST_OBJ) -o test_DHMap
+
+dhmstest: $(DHMSTEST_OBJ)
+	$(CXX) $(CXXFLAGS) $(DHMSTEST_OBJ) -o test_DHMultiset
 
 bhtest: $(BHTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(BHTEST_OBJ) -o test_BinaryHeap
@@ -589,6 +593,8 @@ test_BinaryHeap.o: Debug/Tracer.hpp Lib/Exception.hpp Lib/Comparison.hpp
 test_BinaryHeap.o: Lib/Int.hpp
 test_DHMap.o: Lib/DHMap.hpp Debug/Assertion.hpp Lib/Allocator.hpp
 test_DHMap.o: Debug/Tracer.hpp Lib/Exception.hpp Lib/Hash.hpp
+test_DHMultiset.o: Lib/DHMultiset.hpp Debug/Assertion.hpp Lib/Allocator.hpp
+test_DHMultiset.o: Debug/Tracer.hpp Lib/Exception.hpp Lib/Hash.hpp
 test_SkipList.o: Lib/SkipList.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 test_SkipList.o: Lib/Allocator.hpp Lib/Comparison.hpp Lib/Random.hpp
 test_SkipList.o: Lib/BinaryHeap.hpp Lib/Exception.hpp Lib/Int.hpp

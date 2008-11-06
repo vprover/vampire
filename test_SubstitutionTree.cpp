@@ -225,7 +225,7 @@ void doTest()
     ttree.remove(subterms[index].first, subterms[index].second);
   }
   tmr.stop();
-  cout<<(stCnt/2)<<" random subterms removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
+  cout<<(stCnt/2)<<" random subterms removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;  
   
   cout<<endl;
   

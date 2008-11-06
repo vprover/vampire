@@ -16,6 +16,11 @@
 #include "Comparison.hpp"
 #include "Random.hpp"
 
+#ifdef VDEBUG
+#include <string>
+#include "../Lib/DHMap.hpp"
+#endif
+
 #define SKIP_LIST_MAX_HEIGHT 32
 
 namespace Lib
@@ -195,7 +200,62 @@ public:
     }
   } // SkipList::insertPosition
   
+  /**
+   * Return number of elements in the SkipList.
+   * 
+   * The method works in linear time with the 
+   * size of skip list, so should be used for
+   * debugging purposes only.
+   */
+  int size() const
+  {
+    int res=0;
+    Iterator it(*this);
+    while(it.hasNext()) {
+      it.next();
+      res++;
+    }
+    return res;
+  }
   
+#ifdef VDEBUG
+  static std::string getHeightStr(int n)
+  {
+    std::string res;
+    for(int indCnt=0;indCnt<n;indCnt++) {
+  	res+="*";
+    }
+    return res;
+  }
+
+  std::string toString()
+  {
+    DHMap<Node*,int> heights;
+    for(int h=_top-1;h>=0;h--) {
+      Node* n=_left->nodes[h];
+      while(n) {
+	if(!heights.find(n)) {
+	  heights.insert(n,h);
+	}
+	n=n->nodes[h];
+      }
+    }
+    std::string res;
+    
+    Node* n=_left->nodes[0];
+    while(n) {
+      int h;
+      bool found=heights.find(n,h);
+      ASS(found);
+      n=n->nodes[0];
+      res+=getHeightStr(h+1)+"\n";
+    }
+    
+    return res; 
+  }
+
+
+#endif
   
   /**
    * True if the list is empty.

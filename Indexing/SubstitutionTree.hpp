@@ -17,6 +17,7 @@
 #include "../Lib/Map.hpp"
 #include "../Lib/List.hpp"
 #include "../Lib/SkipList.hpp"
+#include "../Lib/DHMultiset.hpp"
 
 namespace Kernel {
   class TermList;
@@ -78,6 +79,7 @@ public:
   void remove(int number,TermList* args,Clause* cls);
 
 #ifdef VDEBUG
+  string getLargestSkipListDescription() const;
   string toString() const;
   bool isEmpty() const;
 #endif
@@ -87,7 +89,8 @@ private:
   enum NodeAlgorithm 
   {
     UNSORTED_LIST=1,
-    SKIP_LIST=2
+    SKIP_LIST=2,
+    SET=3
   };
 
   class Node {
@@ -386,8 +389,43 @@ private:
     };
     typedef SkipList<Clause*,ClausePtrComparator> ClauseSkipList;
     ClauseSkipList _clauses;
+    
+    friend class SubstitutionTree;
   };
 
+  class SetLeaf
+  : public Leaf
+  {
+  public:
+    SetLeaf() {}
+    SetLeaf(const TermList* ts) : Leaf(ts) {}
+    explicit SetLeaf(Leaf& orig) : Leaf(&orig.term) 
+    { 
+      loadClauses(orig.allCaluses()); 
+    }
+
+    NodeAlgorithm algorithm() const { return SET; }
+    bool isEmpty() const { return _clauses.isEmpty(); }
+    ClauseIterator allCaluses()
+    {
+      return ClauseIterator(new ProxyIterator<Clause*,ClauseMultiset::Iterator>(
+	      ClauseMultiset::Iterator(_clauses)));
+    }
+    void insert(Clause* cls) { _clauses.insert(cls); }
+    void remove(Clause* cls) { _clauses.remove(cls); }
+  private:
+    class PtrHash
+    {
+    public:
+      static unsigned hash(void* p)
+      {
+	return reinterpret_cast<unsigned>(p)>>2;
+      }
+    };
+    typedef DHMultiset<Clause*,PtrHash> ClauseMultiset;
+    ClauseMultiset _clauses;
+    
+  };
   
   
   class Binding {

@@ -305,7 +305,7 @@ private:
 
     Entry* ep=oldEntries;
     while(ep!=oldAfterLast) {
-      if(ep->_info.timestamp==oldTimestamp) {
+      if(ep->_info.timestamp==oldTimestamp && !ep->_info.deleted) {
 	insert(ep->_key, ep->_val);
       }
       (ep++)->~Entry();
