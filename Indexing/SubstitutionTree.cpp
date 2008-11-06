@@ -429,47 +429,6 @@ string SubstitutionTree::toString() const
   return res;
 }
 
-string SubstitutionTree::getLargestSkipListDescription() const
-{
-  CALL("SubstitutionTree::toString");
-
-  string res;
-  
-  SListLeaf::ClauseSkipList* bsl=0;
-  int bslSize=0;
-  
-  for(int tli=0;tli<_numberOfTopLevelNodes;tli++) {
-    Stack<Node*> stack(10);
-    stack.push(_nodes[tli]);
-    while(stack.isNonEmpty()) {
-      Node* node=stack.pop();
-
-      if(!node) {
-	continue;
-      }
-
-      if(node->isLeaf()) {
-	Leaf* lnode = static_cast<Leaf*>(node);
-	if(lnode->algorithm()==SKIP_LIST) {
-	  SListLeaf* slnode = static_cast<SListLeaf*>(node);
-	  int sz=slnode->_clauses.size();
-	  if(sz>bslSize) {
-	    bslSize=sz;
-	    bsl=&slnode->_clauses;
-	  }
-	}
-      } else {
-	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
-	NodeIterator noi(inode->allChildren());
-	while(noi.hasNext()) {
-	  stack.push(*noi.next());
-	}
-      }
-    }
-  }
-  return bsl->toString();
-}
-
 #endif
 
 SubstitutionTree::Node::~Node()

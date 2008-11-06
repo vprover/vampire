@@ -153,10 +153,12 @@ void doTest()
     }
   }
   int stCnt=index;
-  
+
+  SubstitutionTree tree(2*env.signature->predicates());
+  SubstitutionTree ttree(env.signature->functions()+1);
+
   Timer tmr;
   tmr.start();
-  SubstitutionTree tree(2*env.signature->predicates());
   
   for(index=0;index<litCnt;index++) {
     tree.insert(literals[index].first, literals[index].second);
@@ -191,7 +193,6 @@ void doTest()
   cout<<(litCnt/2)<<" random literals removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
 
 
-  SubstitutionTree ttree(env.signature->functions()+1);
   
   tmr.reset();
   tmr.start();

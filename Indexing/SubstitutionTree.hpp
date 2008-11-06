@@ -79,7 +79,6 @@ public:
   void remove(int number,TermList* args,Clause* cls);
 
 #ifdef VDEBUG
-  string getLargestSkipListDescription() const;
   string toString() const;
   bool isEmpty() const;
 #endif

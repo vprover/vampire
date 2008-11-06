@@ -3,13 +3,15 @@
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Timer.hpp"
+#include "Lib/Random.hpp"
 
 using namespace std;
 using namespace Lib;
 
 #define LOG(x) cout<<x<<endl
 
-const int cnt=20;
+const int cnt=105000;
 
 void print(SkipList<int, Int>& sl)
 {
@@ -20,49 +22,43 @@ void print(SkipList<int, Int>& sl)
   cout<<endl;
 }
 
+typedef int StoredType;
+
+StoredType arr[cnt];
+
 void test()
 {
-  SkipList<int, Int> sl1;
-  SkipList<int, Int> sl2;
-  DHMultiset<int> bh;
-  int arr[cnt];
+  SkipList<StoredType, Int> sl1;
+  DHMultiset<StoredType> ms;
 
-  
   for(int i=0;i<cnt;i++)
   {
-    int num=rand()%cnt;
-    //cout<<"Inserting "<<num<<endl;
-    bh.insert(num);
+    int num=(rand()%cnt)/100;
+    ms.insert(num);
     sl1.insert(num);
-    //sl2.insert(num);
-    int* pos=0;
-    bool res=sl2.getPosition(num,pos,true);
-    if(res) {
-      pos=sl2.insertPosition(num);
-    }
-    *pos=num;
     arr[i]=num;
   }
   
-  
-  SkipList<int, Int>::Iterator slit(sl2);
-  while(!bh.isEmpty()) {
-    int bhn=bh.pop();
-    int sln=sl1.pop();
-    ASS(slit.hasNext());
-    int sl2n=slit.next();
-    ASS(bhn==sln);
-    ASS(bhn==sl2n);
+  Timer tmr;
+  tmr.start();
+  for(int i=0;i<cnt/2;i++)
+  {
+    ms.remove(arr[i]);
   }
-  ASS(sl1.isEmpty());
-  ASS(!slit.hasNext());
-  
-  for(int i=0;i<cnt;i++) {
-    sl2.remove(arr[i]);
+  tmr.stop();
+  LOG("DHMultiset took "<<tmr.elapsedMilliseconds()<<" ms.");
+
+  tmr.reset();
+  tmr.start();
+  for(int i=0;i<cnt/2;i++)
+  {
+    sl1.remove(arr[i]);
   }
-  ASS(sl2.isEmpty());
+  tmr.stop();
+  LOG("SkipList took "<<tmr.elapsedMilliseconds()<<" ms.");
+
+  return;
   
-  LOG("done");
 }
 
 int main()

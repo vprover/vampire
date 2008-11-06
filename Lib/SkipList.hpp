@@ -16,11 +16,6 @@
 #include "Comparison.hpp"
 #include "Random.hpp"
 
-#ifdef VDEBUG
-#include <string>
-#include "../Lib/DHMap.hpp"
-#endif
-
 #define SKIP_LIST_MAX_HEIGHT 32
 
 namespace Lib
@@ -219,45 +214,6 @@ public:
     return res;
   }
   
-#ifdef VDEBUG
-  static std::string getHeightStr(int n)
-  {
-    std::string res;
-    for(int indCnt=0;indCnt<n;indCnt++) {
-  	res+="*";
-    }
-    return res;
-  }
-
-  std::string toString()
-  {
-    DHMap<Node*,int> heights;
-    for(int h=_top-1;h>=0;h--) {
-      Node* n=_left->nodes[h];
-      while(n) {
-	if(!heights.find(n)) {
-	  heights.insert(n,h);
-	}
-	n=n->nodes[h];
-      }
-    }
-    std::string res;
-    
-    Node* n=_left->nodes[0];
-    while(n) {
-      int h;
-      bool found=heights.find(n,h);
-      ASS(found);
-      n=n->nodes[0];
-      res+=getHeightStr(h+1)+"\n";
-    }
-    
-    return res; 
-  }
-
-
-#endif
-  
   /**
    * True if the list is empty.
    * @since 04/05/2006 Bellevue
@@ -348,6 +304,21 @@ public:
 	case EQUAL:
 	  found = next;
 	  foundHeight = h;
+	  if(h>0 && found->nodes[0] && found->nodes[h]!=found->nodes[0] && 
+		  ValueComparator::compare(key,found->nodes[0]->value)==EQUAL) {
+	    //The next element exists, contains the same value,
+	    //and its height is lower that the height of this one.
+	    //We'll rather delete that one, tha the one we've found,
+	    //because otherwise there'd be only low elements after a few 
+	    //deletions, which would degrade the skip list to linked list.
+	    h=0;
+	    while(found->nodes[0]==found->nodes[h+1]) {
+	      h++;
+	    }
+	    left = found;
+	    found = found->nodes[0];
+	    foundHeight = h;
+	  }
 	  for(;;) {
 	    left->nodes[h] = found->nodes[h];
 	    if(h==0) {
