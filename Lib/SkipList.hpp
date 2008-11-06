@@ -45,6 +45,7 @@ public:
    * Insert an element in the skip list.
    * @since 04/05/2006 Bellevue
    */
+  inline
   void insert(Value val)
   {
     CALL("SkipList::insert");
@@ -370,6 +371,7 @@ public:
     }
   } // SkipList::remove
 
+  inline
   bool find(Value value)
   {
     Value* val;
