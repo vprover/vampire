@@ -91,6 +91,9 @@ public:
   /** make the term into a special variable with a given number */
   void makeSpecialVar(unsigned vnumber)
   { _content = vnumber * 4 + SPEC_VAR; }
+  /** make the term empty (so that isEmpty() returns true) */
+  void makeEmpty()
+  { _content = FUN; }
   /** make the term into a reference */
   void setTerm(Term* t)
   { _term = t; }

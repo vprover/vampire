@@ -7,6 +7,9 @@
 #ifndef __TIMER__
 #define __TIMER__
 
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #include <ctime>
 #include "../Debug/Assertion.hpp"
 
@@ -39,7 +42,7 @@ class Timer
   {
     ASS(_running);
 
-    _elapsed += clock() - _start;
+    _elapsed += miliseconds() - _start;
     _running = false;
   }
 
@@ -49,41 +52,57 @@ class Timer
     ASS(! _running);
 
     _running = true;
-    _start = clock();
+    _start = miliseconds();
   } // start
 
   /** elapsed time in seconds */
   int elapsedSeconds()
   {
-    return elapsed() / CLOCKS_PER_SEC;
+    return elapsed()/1000;
   }
 
   /** elapsed time in deciseconds */
   int elapsedDeciseconds()
   {
-    long long time = elapsed();
-    return (int)((time * 10) / CLOCKS_PER_SEC);
+    return elapsed()/100;
   }
 
   /** elapsed time in milliseconds */
   int elapsedMilliseconds()
   {
-    long long time = elapsed();
-    return (int)((time * 1000) / CLOCKS_PER_SEC);
+    return elapsed();
   }
 
 private:
   /** true if the timer is running */
   bool _running;
   /** last start time */
-  clock_t _start;
+  int _start;
   /** total elapsed time */
-  clock_t _elapsed;
+  int _elapsed;
+  
+  /** number of miliseconds (of CPU time) passed since some moment */
+  inline
+  int miliseconds()
+  {
+    struct timeval tim;        
+    struct rusage ru;        
+    getrusage(RUSAGE_SELF, &ru);        
+    tim=ru.ru_utime;        
+    int t=tim.tv_sec*1000 + tim.tv_usec / 1000;        
+    tim=ru.ru_stime;        
+    t+=tim.tv_sec*1000 + tim.tv_usec / 1000;        
+    return t;
+//    return (int)( ((long long)clock())*1000/CLOCKS_PER_SEC );
+  }
+  
+  
 
   /** elapsed time in ticks */
-  inline clock_t elapsed()
+  inline 
+  int elapsed()
   {
-    return _running ? clock() - _start + _elapsed : _elapsed;
+    return _running ? miliseconds() - _start + _elapsed : _elapsed;
   }
 }; // class Timer
 

@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Lib/SkipList.hpp"
 #include "Lib/BinaryHeap.hpp"
+#include "Lib/DHMultiset.hpp"
 #include "Lib/Int.hpp"
 
 using namespace std;
@@ -23,9 +24,10 @@ void test()
 {
   SkipList<int, Int> sl1;
   SkipList<int, Int> sl2;
-  BinaryHeap<int, Int> bh;
+  DHMultiset<int> bh;
   int arr[cnt];
 
+  
   for(int i=0;i<cnt;i++)
   {
     int num=rand()%cnt;

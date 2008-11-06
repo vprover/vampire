@@ -95,9 +95,9 @@ private:
 
   class Node {
   public:
-    Node() {}
+    Node() { term.makeEmpty(); }
     Node(const TermList* ts) : term(*ts) {}
-    virtual ~Node() {}
+    virtual ~Node();
     /** True if a leaf node */
     virtual bool isLeaf() const = 0;
     virtual bool isEmpty() const = 0;
@@ -291,13 +291,14 @@ private:
   public:
     SListIntermediateNode() {}
     SListIntermediateNode(const TermList* ts) : IntermediateNode(ts) {}
-    explicit SListIntermediateNode(IntermediateNode& orig) : IntermediateNode(&orig.term) 
-    { 
-      loadChildren(orig.allChildren()); 
-    }
+    
+    static SListIntermediateNode* assimilate(IntermediateNode* orig); 
 
     NodeAlgorithm algorithm() const { return SKIP_LIST; }
     bool isEmpty() const { return _nodes.isEmpty(); }
+#ifdef VDEBUG
+    int size() const { return _nodes.size(); }
+#endif
     NodeIterator allChildren() 
     {
       return NodeIterator(new ProxyIterator<Node**,NodeSkipList::PtrIterator> (
@@ -364,13 +365,14 @@ private:
   public:
     SListLeaf() {}
     SListLeaf(const TermList* ts) : Leaf(ts) {}
-    explicit SListLeaf(Leaf& orig) : Leaf(&orig.term) 
-    { 
-      loadClauses(orig.allCaluses()); 
-    }
+    
+    static SListLeaf* assimilate(Leaf* orig); 
 
     NodeAlgorithm algorithm() const { return SKIP_LIST; }
     bool isEmpty() const { return _clauses.isEmpty(); }
+#ifdef VDEBUG
+    int size() const { return _clauses.size(); }
+#endif
     ClauseIterator allCaluses()
     {
       return ClauseIterator(new ProxyIterator<Clause*,ClauseSkipList::Iterator>(
@@ -399,10 +401,8 @@ private:
   public:
     SetLeaf() {}
     SetLeaf(const TermList* ts) : Leaf(ts) {}
-    explicit SetLeaf(Leaf& orig) : Leaf(&orig.term) 
-    { 
-      loadClauses(orig.allCaluses()); 
-    }
+    
+    static SetLeaf* assimilate(Leaf* orig); 
 
     NodeAlgorithm algorithm() const { return SET; }
     bool isEmpty() const { return _clauses.isEmpty(); }

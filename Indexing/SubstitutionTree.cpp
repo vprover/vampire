@@ -470,8 +470,34 @@ string SubstitutionTree::getLargestSkipListDescription() const
   return bsl->toString();
 }
 
-
 #endif
+
+SubstitutionTree::Node::~Node()
+{
+  if(term.tag()!=REF || term.term()->shared()) {
+    return;
+  }
+  TermList* ts=&term;
+  Stack<TermList*> stack(4);
+  Stack<Term*> deletingStack(8);
+  for(;;) {
+    if(ts->tag()==REF && !ts->term()->shared()) {
+      stack.push(ts->term()->args());
+      deletingStack.push(ts->term());
+    }
+    if(stack.isEmpty()) {
+      break;
+    }
+    ts=stack.pop();
+    if(!ts->next()->isEmpty()) {
+      stack.push(ts->next());
+    }
+  }
+  while(!deletingStack.isEmpty()) {
+    deletingStack.pop()->destroy();
+  }
+}
+
 
 void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 {
@@ -545,16 +571,54 @@ void SubstitutionTree::UListIntermediateNode::remove(TermList* t)
   _size--;
 }
 
+/**
+ * Take an IntermediateNode, destroy it, and return 
+ * SListIntermediateNode with the same content.
+ */
+SubstitutionTree::SListIntermediateNode* SubstitutionTree::SListIntermediateNode
+	::assimilate(IntermediateNode* orig) 
+{
+  SListIntermediateNode* res=new SListIntermediateNode(&orig->term);
+  res->loadChildren(orig->allChildren()); 
+  orig->term.makeEmpty();
+  delete orig;
+  return res;
+}
+
+/**
+ * Take a Leaf, destroy it, and return SListLeaf 
+ * with the same content.
+ */
+SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig) 
+{
+  SListLeaf* res=new SListLeaf(&orig->term);
+  res->loadClauses(orig->allCaluses()); 
+  orig->term.makeEmpty();
+  delete orig;
+  return res;
+}
+
+/**
+ * Take a Leaf, destroy it, and return SetLeaf 
+ * with the same content.
+ */
+SubstitutionTree::SetLeaf* SubstitutionTree::SetLeaf::assimilate(Leaf* orig) 
+{
+  SetLeaf* res=new SetLeaf(&orig->term);
+  res->loadClauses(orig->allCaluses()); 
+  orig->term.makeEmpty();
+  delete orig;
+  return res;
+}
+
+
 void SubstitutionTree::ensureLeafEfficiency(Leaf** leaf)
 {
   CALL("SubstitutionTree::ensureLeafEfficiency");
 
   if( (*leaf)->algorithm()==UNSORTED_LIST && (*leaf)->size()>5 ) {
-    //Leaf* newLeaf=new SListLeaf(**leaf);
-    Leaf* newLeaf=new SetLeaf(**leaf);
-    Leaf* oldLeaf=*leaf;
-    *leaf=newLeaf;
-    delete oldLeaf;
+    //*leaf=SListLeaf::assimilate(*leaf);
+    *leaf=SetLeaf::assimilate(*leaf);
   }
 }
 
@@ -563,9 +627,6 @@ void SubstitutionTree::ensureIntermediateNodeEfficiency(IntermediateNode** inode
   CALL("SubstitutionTree::ensureIntermediateNodeEfficiency");
 
   if( (*inode)->algorithm()==UNSORTED_LIST && (*inode)->size()>3 ) {
-    IntermediateNode* newInode=new SListIntermediateNode(**inode);
-    IntermediateNode* oldInode=*inode;
-    *inode=newInode;
-    delete oldInode;
+    *inode=SListIntermediateNode::assimilate(*inode);
   }
 }
