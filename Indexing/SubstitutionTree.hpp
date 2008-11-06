@@ -95,7 +95,9 @@ private:
 
   class Node {
   public:
+    inline
     Node() { term.makeEmpty(); }
+    inline
     Node(const TermList* ts) : term(*ts) {}
     virtual ~Node();
     /** True if a leaf node */
@@ -131,14 +133,17 @@ private:
   {
   public:
     /** Build a new intermediate node which will serve as the root*/
+    inline
     IntermediateNode()
     {}
     
     /** Build a new intermediate node */
+    inline
     IntermediateNode(const TermList* ts)
     	: Node(ts)
     {}
 
+    inline
     bool isLeaf() const { return false; };
     
     virtual NodeIterator allChildren() = 0;
@@ -170,13 +175,16 @@ private:
   {
   public:
     /** Build a new leaf which will serve as the root */
+    inline
     Leaf()
     {}
     /** Build a new leaf */
+    inline
     Leaf(const TermList* ts)
       : Node(ts)
     {}
 
+    inline
     bool isLeaf() const { return true; };
     virtual ClauseIterator allCaluses() = 0;
     virtual void insert(Clause* cls) = 0;
@@ -190,14 +198,19 @@ private:
   : public List<T>
   {
   public:
+    inline
     AccList(T head, AccList* tail): List<T>(head,tail) {}
+    inline
     T* headPtr() { return &this->_head; }
     class PtrIterator 
     	: public IteratorCore<T*>
     {
     public:
+      inline
       PtrIterator(AccList* lst) : _l(lst) {}
+      inline
       bool hasNext() { return _l; }
+      inline
       T* next() 
       {
 	T* res=_l->headPtr(); 
@@ -213,8 +226,11 @@ private:
   : public IntermediateNode
   {
   public:
+    inline
     UListIntermediateNode() : _nodes(0), _size(0) {}
+    inline
     UListIntermediateNode(const TermList* ts) : IntermediateNode(ts), _nodes(0), _size(0) {}
+    inline
     ~UListIntermediateNode()
     {
       if(_nodes) {
@@ -222,13 +238,18 @@ private:
       }
     }
 
+    inline
     NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
+    inline
     bool isEmpty() const { return !_nodes; }
+    inline
     int size() const { return _size; }
+    inline
     NodeIterator allChildren() 
     {
       return NodeIterator(new NodeList::PtrIterator(_nodes));
     }
+    inline
     NodeIterator variableChildren()
     {
       return NodeIterator(
@@ -248,8 +269,11 @@ private:
   : public Leaf
   {
   public:
+    inline
     UListLeaf() : _clauses(0), _size(0) {}
+    inline
     UListLeaf(const TermList* ts) : Leaf(ts), _clauses(0), _size(0) {}
+    inline
     ~UListLeaf()
     {
       if(_clauses) {
@@ -257,22 +281,25 @@ private:
       }
     }
 
-    NodeAlgorithm algorithm() const
-    {
-      return UNSORTED_LIST;
-    }
+    inline
+    NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
+    inline
     bool isEmpty() const { return !_clauses; }
+    inline
     int size() const { return _size; }
+    inline
     ClauseIterator allCaluses()
     {
       return ClauseIterator(new ProxyIterator<Clause*,ClauseList::Iterator>(
 	      ClauseList::Iterator(_clauses)));
     }
+    inline
     void insert(Clause* cls) 
     {
       _clauses=new ClauseList(cls, _clauses);
       _size++;
     }
+    inline
     void remove(Clause* cls)
     {
       _clauses=_clauses->remove(cls);
@@ -294,16 +321,20 @@ private:
     
     static SListIntermediateNode* assimilate(IntermediateNode* orig); 
 
+    inline
     NodeAlgorithm algorithm() const { return SKIP_LIST; }
+    inline
     bool isEmpty() const { return _nodes.isEmpty(); }
 #ifdef VDEBUG
     int size() const { return _nodes.size(); }
 #endif
+    inline
     NodeIterator allChildren() 
     {
       return NodeIterator(new ProxyIterator<Node**,NodeSkipList::PtrIterator> (
 	      NodeSkipList::PtrIterator(_nodes)));
     }
+    inline
     NodeIterator variableChildren()
     {
       return NodeIterator(
@@ -323,6 +354,7 @@ private:
       }
       return res;
     }
+    inline
     void remove(TermList* t)
     {
       _nodes.remove(t);
@@ -345,10 +377,12 @@ private:
 	}
 	return Int::compare(ts1->term()->functor(), ts2->term()->functor());
       }
+      inline
       static Comparison compare(Node* n1, Node* n2)
       {
 	return compare(&n1->term, &n2->term);
       }
+      inline
       static Comparison compare(TermList* ts1, Node* n2)
       {
 	return compare(ts1, &n2->term);
@@ -368,11 +402,15 @@ private:
     
     static SListLeaf* assimilate(Leaf* orig); 
 
+    inline
     NodeAlgorithm algorithm() const { return SKIP_LIST; }
+    inline
     bool isEmpty() const { return _clauses.isEmpty(); }
 #ifdef VDEBUG
+    inline
     int size() const { return _clauses.size(); }
 #endif
+    inline
     ClauseIterator allCaluses()
     {
       return ClauseIterator(new ProxyIterator<Clause*,ClauseSkipList::Iterator>(
@@ -384,6 +422,7 @@ private:
     class ClausePtrComparator
     {
     public:
+      inline
       static Comparison compare(Clause* cls1, Clause* cls2)
       {
 	return cls1 < cls2 ? LESS : cls1 == cls2 ? EQUAL : GREATER;
@@ -404,19 +443,25 @@ private:
     
     static SetLeaf* assimilate(Leaf* orig); 
 
+    inline
     NodeAlgorithm algorithm() const { return SET; }
+    inline
     bool isEmpty() const { return _clauses.isEmpty(); }
+    inline
     ClauseIterator allCaluses()
     {
       return ClauseIterator(new ProxyIterator<Clause*,ClauseMultiset::Iterator>(
 	      ClauseMultiset::Iterator(_clauses)));
     }
+    inline
     void insert(Clause* cls) { _clauses.insert(cls); }
+    inline
     void remove(Clause* cls) { _clauses.remove(cls); }
   private:
     class PtrHash
     {
     public:
+      inline
       static unsigned hash(void* p)
       {
 	return reinterpret_cast<unsigned>(p)>>2;
@@ -441,6 +486,7 @@ private:
     class Comparator
     {
     public:
+      inline
       static Comparison compare(Binding& b1, Binding& b2)
       {
 	return Int::compare(b2.var, b1.var);
@@ -452,20 +498,24 @@ private:
   typedef Stack<Binding> BindingStack;
   typedef Stack<const TermList*> TermStack;
 
+  inline
   static Leaf* createLeaf()
   {
     return new UListLeaf();
   }
+  inline
   static Leaf* createLeaf(TermList* ts)
   {
     return new UListLeaf(ts);
   }
   static void ensureLeafEfficiency(Leaf** l);
   
+  inline
   static IntermediateNode* createIntermediateNode()
   {
     return new UListIntermediateNode();
   }
+  inline
   static IntermediateNode* createIntermediateNode(TermList* ts)
   {
     return new UListIntermediateNode(ts);
