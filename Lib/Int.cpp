@@ -78,6 +78,19 @@ string Int::toString(unsigned i)
   return result;
 } // Int::toString
 
+/**
+ * Return the string representation of an unsigned integer.
+ * @since 10/02/2004 Manchester
+ */
+string Int::toString(size_t i)
+{
+  char tmp [256];
+  sprintf(tmp,"%zd",i);
+  string result(tmp);
+
+  return result;
+} // Int::toString
+
 
 /**
  * Convert a string to a long value.

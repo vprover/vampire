@@ -33,6 +33,7 @@ class Int
  public:
   static string toString(int i);
   static string toString(unsigned i);
+  static string toString(size_t i);
   static string toString(long l);
   /** Return the string representation of a float */
   static string toString(float f) { return toString((double)f); }

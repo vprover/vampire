@@ -15,6 +15,7 @@
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
+#include "../Lib/Portability.hpp"
 #include "../Lib/XML.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Stack.hpp"
@@ -83,7 +84,7 @@ public:
   bool sameContent(const TermList* t) const
   { return _content == t->_content ; }
   /** return the content, useful for e.g., term argument comparison */
-  unsigned content() const { return _content; }
+  size_t content() const { return _content; }
   string toString() const;
   /** make the term into an ordinary variable with a given number */
   void makeVar(unsigned vnumber)
@@ -104,7 +105,7 @@ private:
     /** reference to another term */
     Term* _term;
     /** raw content, can be anything */
-    unsigned _content;
+    size_t _content;
     /** Used by Term, storing some information about the term using bits */
     struct {
       /** tag, always FUN */
@@ -121,7 +122,11 @@ private:
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable) */
       unsigned order : 3;
       /** reserved for whatever */
+#ifdef ARCH_X64
+      size_t reserved : 55;
+#else
       unsigned reserved : 23;
+#endif
     } _info;
   };
   friend class Indexing::TermSharing;

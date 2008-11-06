@@ -463,7 +463,7 @@ private:
       inline
       static unsigned hash(void* p)
       {
-	return reinterpret_cast<unsigned>(p)>>2;
+	return (unsigned)(reinterpret_cast<size_t>(p)>>2);
       }
     };
     typedef DHMultiset<Clause*,PtrHash> ClauseMultiset;

@@ -779,7 +779,7 @@ std::string Allocator::Descriptor::toString() const
   // the order is selected so that the output lines can be sorted by
   // (address,timestamp)
   ostringstream out;
-  out << (unsigned)this
+  out << (size_t)this
       << " [address:" << address
       << ",timestamp:" << timestamp 
       << ",class:" << cls 
