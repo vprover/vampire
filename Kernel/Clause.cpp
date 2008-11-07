@@ -23,8 +23,14 @@ namespace Kernel {
 void* Clause::operator new(size_t sz,unsigned lits)
 {
   CALL("Clause::operator new");
+  
+  //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
+  //this way, because _length-1 wouldn't behave well for 
+  //_length==0 on x64 platform.
+  size_t size=sz+lits*sizeof(Literal*);
+  size-=sizeof(Literal*);
 
-  return ALLOC_KNOWN(sz + (lits-1)*sizeof(Literal*),"Clause");
+  return ALLOC_KNOWN(size,"Clause");
 }
 
 /**
@@ -36,7 +42,14 @@ void Clause::destroy()
 {
   CALL("Clause::destroy");
   _inference->destroy();
-  DEALLOC_KNOWN(this,sizeof(Clause) + (_length-1)*sizeof(Literal*),"Clause");
+
+  //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
+  //this way, because _length-1 wouldn't behave well for 
+  //_length==0 on x64 platform.
+  size_t size=sizeof(Clause)+_length*sizeof(Literal*);
+  size-=sizeof(Literal*);
+  
+  DEALLOC_KNOWN(this, size,"Clause");
 } // Clause::destroy
 
 /**
