@@ -59,6 +59,26 @@ class UserErrorException
   void cry (ostream&);
 }; // UserErrorException
 
+/**
+ * Class InvalidOperationException. A InvalidOperationException is thrown 
+ * when a user error occurred, for example, a file name is
+ * specified incorrectly; an invalid option to Vampire
+ * was given, or there is a syntax error in the input file.
+ */
+class InvalidOperationException
+  : public Exception
+{
+ public:                                
+   InvalidOperationException (const char* msg)
+    : Exception(msg)
+  {}
+   InvalidOperationException (const string& msg)
+    : Exception(msg)
+  {}
+  ~InvalidOperationException () {}
+  void cry (ostream&);
+}; // InvalidOperationException
+
 
 }
 
@@ -66,6 +86,8 @@ class UserErrorException
   throw Lib::Exception(__FILE__,__LINE__)
 #define USER_ERROR(msg) \
   throw Lib::UserErrorException(msg)
+#define INVALID_OPERATION(msg) \
+  throw Lib::InvalidOperationException(msg)
 
 #endif // __Exception__
 

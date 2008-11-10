@@ -25,6 +25,14 @@ void UserErrorException::cry (ostream& str)
   str << "User error: " << _message << "\n";
 } // UserErrorException::cry
 
+/**
+ * Write a description of the exception to a stream.
+ */
+void InvalidOperationException::cry (ostream& str)
+{
+  str << "Invalid operation: " << _message << "\n";
+} // UserErrorException::cry
+
 
 
 

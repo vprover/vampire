@@ -173,7 +173,7 @@ void SubstitutionTree::insert(Node** pnode,BindingHeap& bh,Clause* clause)
 
       if (s->shared()) {
 	// create a shallow copy of s
-	s = Term::createNonShared(s,s->args());
+	s = Term::cloneNonShared(s);
 	ss->setTerm(s);
       }
 

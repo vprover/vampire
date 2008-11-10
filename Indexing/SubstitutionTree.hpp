@@ -30,6 +30,7 @@ using namespace Kernel;
 
 namespace Indexing {
 
+typedef VirtualIterator<Clause*> ClauseIterator;
 
 /**
  * Class of substitution trees. In fact, contains an array of substitution
@@ -125,7 +126,6 @@ private:
   };
 
   typedef VirtualIterator<Node**> NodeIterator;
-  typedef VirtualIterator<Clause*> ClauseIterator;
   
   class IntermediateNode
     	: public Node

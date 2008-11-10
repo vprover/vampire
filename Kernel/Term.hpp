@@ -146,6 +146,7 @@ public:
   void orderArguments();
   static Term* create(Term* t,TermList* args);
   static Term* createNonShared(Term* t,TermList* args);
+  static Term* cloneNonShared(Term* t);
   /** Function or predicate symbol of a term */
   const unsigned functor() const
   {

@@ -526,9 +526,8 @@ Term* Term::create(Term* t,TermList* args)
 } // Term::create(const Term* t,Term* args)
 
 /** Create a new complex term, copy from @b t its function symbol and
- *  from the array @b args its arguments. The @b args array is of Term::args()
- *  style, ie. the order of its elements is reversed, and args points to the 
- *  last element of the array. 
+ *  from the array @b args its arguments. Do not insert it into the sharing
+ *  structure.
  * @since 07/01/2008 Torrevieja
  */
 Term* Term::createNonShared(Term* t,TermList* args)
@@ -538,10 +537,26 @@ Term* Term::createNonShared(Term* t,TermList* args)
   Term* s = new(arity) Term(*t);
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
-    *ss-- = args[-i];
+    *ss-- = args[i];
   }
   return s;
 } // Term::createNonShared(const Term* t,Term* args)
+
+/** Create clone of complex term @b t. Do not insert it into the sharing
+ *  structure.
+ */
+Term* Term::cloneNonShared(Term* t)
+{
+  CALL("Term::cloneNonShared");
+  int arity = t->arity();
+  TermList* args = t->args();
+  Term* s = new(arity) Term(*t);
+  TermList* ss = s->args();
+  for (int i = 0;i < arity;i++) {
+    *ss-- = args[-i];
+  }
+  return s;
+} // Term::cloneNonShared(const Term* t,Term* args)
 
 /** Create a new literal, copy from @b l its predicate symbol and
  *  from the array @b args its arguments. Insert it into the sharing
