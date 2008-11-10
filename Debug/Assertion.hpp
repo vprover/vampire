@@ -62,6 +62,7 @@ private:
 #define ASSERT(Cond)
 #define ALWAYS(Cond) Cond
 #define NEVER(Cond) Cond
+#define ASSERTION_VIOLATION
 
 #endif // VDEBUG
 #endif // __Assertion__

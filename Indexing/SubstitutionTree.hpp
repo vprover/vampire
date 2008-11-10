@@ -19,6 +19,8 @@
 #include "../Lib/SkipList.hpp"
 #include "../Lib/DHMultiset.hpp"
 
+#include "Index.hpp"
+
 namespace Kernel {
   class TermList;
   class Clause;
@@ -30,7 +32,6 @@ using namespace Kernel;
 
 namespace Indexing {
 
-typedef VirtualIterator<Clause*> ClauseIterator;
 
 /**
  * Class of substitution trees. In fact, contains an array of substitution
@@ -45,36 +46,12 @@ public:
   ~SubstitutionTree();
   
   void insert(Literal* lit, Clause* cls)
-  {
-    insert(lit->header(), lit->args(), cls);
-  }
+  { insert(lit->header(), lit->args(), cls); }
   void remove(Literal* lit, Clause* cls)
-  {
-    remove(lit->header(), lit->args(), cls);
-  }
+  { remove(lit->header(), lit->args(), cls); }
 
-  void insert(TermList* term, Clause* cls)
-  {
-    ASS(!term->isEmpty());
-    if(term->isVar()) {
-      ASS(!term->isSpecialVar());
-      BindingHeap bh;
-      insert(_nodes+_numberOfTopLevelNodes-1, bh, cls);
-    } else {
-      insert(term->term()->functor(), term->term()->args(), cls);
-    }
-  }
-  void remove(TermList* term, Clause* cls)
-  {
-    ASS(!term->isEmpty());
-    if(term->isVar()) {
-      ASS(!term->isSpecialVar());
-      BindingHeap bh;
-      remove(_nodes+_numberOfTopLevelNodes-1, bh, cls);
-    } else {
-      remove(term->term()->functor(), term->term()->args(), cls);
-    }
-  }
+  void insert(TermList* term, Clause* cls);
+  void remove(TermList* term, Clause* cls);
   
   void insert(int number,TermList* args,Clause* cls);
   void remove(int number,TermList* args,Clause* cls);

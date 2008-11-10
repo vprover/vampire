@@ -7,6 +7,7 @@
 
 #ifndef __Clause__
 
+#include "../Lib/Forwards.hpp"
 #include "../Lib/Allocator.hpp"
 
 #include "Unit.hpp"
@@ -106,6 +107,9 @@ protected:
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause
+
+
+typedef VirtualIterator<Clause*> ClauseIterator;
 
 
 }

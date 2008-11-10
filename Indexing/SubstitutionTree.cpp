@@ -56,6 +56,32 @@ SubstitutionTree::~SubstitutionTree()
 		"SubstitutionTree::Node");
 } // SubstitutionTree::~SubstitutionTree
 
+
+void SubstitutionTree::insert(TermList* term, Clause* cls)
+{
+  ASS(!term->isEmpty());
+  if(term->isVar()) {
+    ASS(!term->isSpecialVar());
+    BindingHeap bh;
+    insert(_nodes+_numberOfTopLevelNodes-1, bh, cls);
+  } else {
+    insert(term->term()->functor(), term->term()->args(), cls);
+  }
+}
+
+void SubstitutionTree::remove(TermList* term, Clause* cls)
+{
+  ASS(!term->isEmpty());
+  if(term->isVar()) {
+    ASS(!term->isSpecialVar());
+    BindingHeap bh;
+    remove(_nodes+_numberOfTopLevelNodes-1, bh, cls);
+  } else {
+    remove(term->term()->functor(), term->term()->args(), cls);
+  }
+}
+
+
 /**
  * Insert term arguments to the tree.
  * @param nodeNumber the number of the node in the tree

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<XMI xmlns:UML="http://schema.omg.org/spec/UML/1.3" verified="false" timestamp="2008-11-10T14:51:02" xmi.version="1.2" >
+<XMI xmlns:UML="http://schema.omg.org/spec/UML/1.3" verified="false" timestamp="2008-11-10T16:46:02" xmi.version="1.2" >
  <XMI.header>
   <XMI.documentation>
    <XMI.exporter>umbrello uml modeller http://uml.sf.net</XMI.exporter>
@@ -58,6 +58,7 @@
         <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="VkJcQVebRTkI" isRoot="false" isAbstract="false" name="ForwardSimplificationEngine*" elementReference="MJa0BWdQp0yi" />
         <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="Ow6JS4mSQ2MI" isRoot="false" isAbstract="false" name="BackwardSimplificationEngine*" elementReference="rCMyP71TogKI" />
         <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="1aJKmWpWnRuI" isRoot="false" isAbstract="false" name="GeneratingInferenceEngine*" elementReference="3ihtUupmyl71" />
+        <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="9iXgbXHxngtL" isRoot="false" isAbstract="false" name="List&lt;unsigned>" elementReference="F6Pcr5HwR5SE" />
        </UML:Namespace.ownedElement>
       </UML:Package>
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="22" isRoot="false" isAbstract="true" name="SaturationAlgorithm" >
@@ -133,8 +134,8 @@
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="50" isRoot="false" isAbstract="false" name="ClauseIterator" />
       <UML:Association isSpecification="false" visibility="public" namespace="1" xmi.id="53" name="" >
        <UML:Association.connection>
-        <UML:AssociationEnd isSpecification="false" visibility="public" changeability="changeable" isNavigable="false" xmi.id="xHFKFVP2epbV" aggregation="none" type="50" name="" />
-        <UML:AssociationEnd isSpecification="false" visibility="public" changeability="changeable" isNavigable="true" xmi.id="GJHvFXf5XZCu" aggregation="none" type="26" name="" />
+        <UML:AssociationEnd isSpecification="false" visibility="public" changeability="changeable" isNavigable="false" xmi.id="oxeZf4RpjVHv" aggregation="none" type="50" name="" />
+        <UML:AssociationEnd isSpecification="false" visibility="public" changeability="changeable" isNavigable="true" xmi.id="di0qE1c4I59B" aggregation="none" type="26" name="" />
        </UML:Association.connection>
       </UML:Association>
       <UML:Dependency isSpecification="false" visibility="public" namespace="1" xmi.id="72" client="50" name="" supplier="26" />
@@ -328,8 +329,7 @@
        <UML:Classifier.feature>
         <UML:Attribute isSpecification="false" visibility="public" xmi.id="7lMYVx0c6p6B" type="E7eJyuZ3dtb7" name="literal" />
         <UML:Attribute isSpecification="false" visibility="public" xmi.id="qbjwQn6hMOoe" type="yIhvpcbZINYw" name="clause" />
-        <UML:Attribute isSpecification="false" visibility="private" xmi.id="qpO4hWxzM5CW" type="flBQuGO9twen" name="querySubst" />
-        <UML:Attribute isSpecification="false" visibility="private" xmi.id="2Pm5cI9b0GFa" type="flBQuGO9twen" name="resultSubst" />
+        <UML:Attribute isSpecification="false" visibility="public" xmi.id="2Pm5cI9b0GFa" type="ZJGCIDCyRzi0" name="subst" />
        </UML:Classifier.feature>
       </UML:Class>
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="IYK9KsDvL0pr" isRoot="false" isAbstract="false" name="Literal" />
@@ -600,13 +600,17 @@
       </UML:Class>
       <UML:Generalization isSpecification="false" child="coIJWCxAiuns" visibility="public" namespace="1" xmi.id="FpSxhDoTEB4y" parent="7ArT5TUBrlZ5" discriminator="" name="" />
       <UML:Generalization isSpecification="false" child="nexqzfAhGzlV" visibility="public" namespace="1" xmi.id="rVoIXG3CHWu1" parent="l2KqhQK7eMvh" discriminator="" name="" />
-      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="oEZVsYPmoLqB" isRoot="false" isAbstract="false" name="Substitution" />
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="flBQuGO9twen" isRoot="false" isAbstract="false" name="SingleSubstitution" >
        <UML:Classifier.feature>
         <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="N4EDdfsOrHG5" isRoot="false" isAbstract="false" isQuery="false" name="bind" >
          <UML:BehavioralFeature.parameter>
           <UML:Parameter isSpecification="false" visibility="private" xmi.id="VbTDbTadflGL" value="" type="NzZzk8JyKZBU" name="var" />
           <UML:Parameter isSpecification="false" visibility="private" xmi.id="tX351YgTjFuJ" value="" type="AtsDWGC6FvEW" name="t" />
+         </UML:BehavioralFeature.parameter>
+        </UML:Operation>
+        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="izvPW9NPGOZq" isRoot="false" isAbstract="false" isQuery="false" name="unbind" >
+         <UML:BehavioralFeature.parameter>
+          <UML:Parameter isSpecification="false" visibility="private" xmi.id="UYt0YGkMe6VN" value="" type="NzZzk8JyKZBU" name="var" />
          </UML:BehavioralFeature.parameter>
         </UML:Operation>
         <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="ta57thk3YaE4" isRoot="false" isAbstract="false" isQuery="false" name="apply" >
@@ -629,7 +633,7 @@
         </UML:Operation>
        </UML:Classifier.feature>
       </UML:Class>
-      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="ZJGCIDCyRzi0" isRoot="false" isAbstract="false" name="MultiSubstitution" >
+      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="ZJGCIDCyRzi0" isRoot="false" isAbstract="false" name="DoubleSubstitution" >
        <UML:Classifier.feature>
         <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="N6OhEVrOFqzK" isRoot="false" isAbstract="false" isQuery="false" name="bind" >
          <UML:BehavioralFeature.parameter>
@@ -659,12 +663,6 @@
           <UML:Parameter isSpecification="false" visibility="private" xmi.id="ejUVlREP3HET" value="" type="10" name="vindex" />
          </UML:BehavioralFeature.parameter>
         </UML:Operation>
-        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="BYAvmTtZ7ra5" isRoot="false" isAbstract="false" isQuery="false" name="incorporate" >
-         <UML:BehavioralFeature.parameter>
-          <UML:Parameter isSpecification="false" visibility="private" xmi.id="DvugoUlf2rIk" value="" type="zDCz7hGrd50A" name="subst" />
-          <UML:Parameter isSpecification="false" visibility="private" xmi.id="hmq55DA2QM1V" value="" type="10" name="vindex" />
-         </UML:BehavioralFeature.parameter>
-        </UML:Operation>
         <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="4FMfKLnVGiB3" isRoot="false" isAbstract="false" isQuery="false" name="incorporate" >
          <UML:BehavioralFeature.parameter>
           <UML:Parameter isSpecification="false" visibility="private" xmi.id="zgnO1ot34EiM" value="" type="CxgEmyyTimYl" name="ms" />
@@ -673,10 +671,31 @@
         </UML:Operation>
         <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="TWCCJixINjeO" isRoot="false" isAbstract="false" isQuery="false" name="unify" >
          <UML:BehavioralFeature.parameter>
+          <UML:Parameter kind="return" xmi.id="" type="13" />
           <UML:Parameter isSpecification="false" visibility="private" xmi.id="XYRZk7uHbk2n" value="" type="AtsDWGC6FvEW" name="t1" />
           <UML:Parameter isSpecification="false" visibility="private" xmi.id="lrBiMjQpGazZ" value="" type="10" name="vindex1" />
           <UML:Parameter isSpecification="false" visibility="private" xmi.id="JxpegU2B0Rji" value="" type="AtsDWGC6FvEW" name="t2" />
           <UML:Parameter isSpecification="false" visibility="private" xmi.id="YbxALzx4q7mC" value="" type="10" name="vindex2" />
+         </UML:BehavioralFeature.parameter>
+        </UML:Operation>
+        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="oGbXMam78Y7d" isRoot="false" isAbstract="false" isQuery="false" name="unify" >
+         <UML:BehavioralFeature.parameter>
+          <UML:Parameter kind="return" xmi.id="3qXGkPyMGrjJ" type="13" />
+          <UML:Parameter isSpecification="false" visibility="private" xmi.id="7nz2Ui1ElEsb" value="" type="E7eJyuZ3dtb7" name="l1" />
+          <UML:Parameter isSpecification="false" visibility="private" xmi.id="uRRjAi4xweSH" value="" type="10" name="vindex1" />
+          <UML:Parameter isSpecification="false" visibility="private" xmi.id="EEMKkTxsEwsi" value="" type="E7eJyuZ3dtb7" name="l2" />
+          <UML:Parameter isSpecification="false" visibility="private" xmi.id="5jHzNiGbuavf" value="" type="10" name="vindex2" />
+         </UML:BehavioralFeature.parameter>
+        </UML:Operation>
+        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="RKR300zARZ5L" isRoot="false" isAbstract="false" isQuery="false" name="backtrackableJoin" >
+         <UML:BehavioralFeature.parameter>
+          <UML:Parameter kind="return" xmi.id="0C7SEncHwYGm" type="455zplSG3tI4" />
+          <UML:Parameter isSpecification="false" visibility="private" xmi.id="gPAjGQl7hvOW" value="" type="ZJGCIDCyRzi0" name="s" />
+         </UML:BehavioralFeature.parameter>
+        </UML:Operation>
+        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="loDRjZvsWv2d" isRoot="false" isAbstract="false" isQuery="false" name="backtrack" >
+         <UML:BehavioralFeature.parameter>
+          <UML:Parameter isSpecification="false" visibility="private" xmi.id="LGRyXLUn7z7m" value="" type="455zplSG3tI4" name="d" />
          </UML:BehavioralFeature.parameter>
         </UML:Operation>
        </UML:Classifier.feature>
@@ -686,10 +705,16 @@
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="zDCz7hGrd50A" isRoot="false" isAbstract="false" name="SingleSubstitution*" />
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="CxgEmyyTimYl" isRoot="false" isAbstract="false" name="MultiSubstitution*" />
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="4KxITeBJLoq7" isRoot="false" isAbstract="false" name="SLQueryResultIterator" />
+      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="455zplSG3tI4" isRoot="false" isAbstract="false" name="SubstitutionBacktrackData" >
+       <UML:Classifier.feature>
+        <UML:Attribute isSpecification="false" visibility="private" xmi.id="SJ7HeAPOyanf" type="9iXgbXHxngtL" name="vars" />
+       </UML:Classifier.feature>
+      </UML:Class>
+      <UML:Dependency isSpecification="false" visibility="public" namespace="1" xmi.id="0N65MEsmXz49" client="455zplSG3tI4" name="" supplier="NzZzk8JyKZBU" />
      </UML:Namespace.ownedElement>
      <XMI.extension xmi.extender="umbrello" >
       <diagrams>
-       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1210" snapy="10" showatts="1" xmi.id="9" documentation="" type="1" showops="1" showpackage="0" name="cd_SaturationAlgorithm" localid="900000" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="874" >
+       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1182" snapy="10" showatts="1" xmi.id="9" documentation="" type="1" showops="1" showpackage="0" name="cd_SaturationAlgorithm" localid="900000" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="874" >
         <widgets>
          <classwidget usesdiagramfillcolor="0" width="418" showattsigs="601" x="10" fillcolor="#ffffc0" y="16" drawascircle="0" showopsigs="601" linewidth="none" height="306" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="22" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Bitstream Charter,10,-1,5,75,1,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="337" showattsigs="601" x="539" fillcolor="#ffffc0" y="27" drawascircle="0" showopsigs="601" linewidth="none" height="161" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="fukDBL9c11SE" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans Serif,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
@@ -782,7 +807,7 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
          </assocwidget>
         </associations>
        </diagram>
-       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1210" snapy="10" showatts="1" xmi.id="ejc5zyOaFta8" documentation="" type="1" showops="1" showpackage="0" name="cd_Inference" localid="" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="874" >
+       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1121" snapy="10" showatts="1" xmi.id="ejc5zyOaFta8" documentation="" type="1" showops="1" showpackage="0" name="cd_Inference" localid="" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="874" >
         <widgets>
          <classwidget usesdiagramfillcolor="0" width="378" showattsigs="601" x="307" fillcolor="#ffffc0" y="17" drawascircle="0" showopsigs="601" linewidth="none" height="93" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="3sxQy0X72q0T" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,1,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="1" width="149" showattsigs="601" x="323" fillcolor="none" y="137" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="GJPYurEg8Dn3" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
@@ -855,10 +880,10 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
          </assocwidget>
         </associations>
        </diagram>
-       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1210" snapy="10" showatts="1" xmi.id="WTryTQJI4uXw" documentation="" type="1" showops="1" showpackage="0" name="cd_Index" localid="" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="874" >
+       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1088" snapy="10" showatts="1" xmi.id="WTryTQJI4uXw" documentation="" type="1" showops="1" showpackage="0" name="cd_Index" localid="" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="874" >
         <widgets>
          <enumwidget usesdiagramfillcolor="0" width="169" x="299" fillcolor="#ffffc0" y="318" linewidth="none" height="85" usefillcolor="1" isinstance="0" xmi.id="dA8MGetYJaCa" showpackage="0" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
-         <classwidget usesdiagramfillcolor="0" width="195" showattsigs="601" x="149" fillcolor="#ffffc0" y="79" showopsigs="601" linewidth="none" height="99" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="dVnwWGIp5sGH" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Bitstream Charter,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
+         <classwidget usesdiagramfillcolor="0" width="164" showattsigs="601" x="158" fillcolor="#ffffc0" y="75" showopsigs="601" linewidth="none" height="81" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="dVnwWGIp5sGH" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Bitstream Charter,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="210" showattsigs="601" x="299" fillcolor="#ffffc0" y="416" showopsigs="601" linewidth="none" height="76" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="crHlYxr4vsaS" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <notewidget usesdiagramfillcolor="0" width="262" x="537" fillcolor="#ffff00" y="301" linewidth="none" height="81" usefillcolor="1" isinstance="0" xmi.id="nVyeyL7Q2Obm" text="If Index of given type is not created, it's constructed by Index::createByType, otherwise pointer to the existing one is returned." usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
          <classwidget usesdiagramfillcolor="0" width="123" showattsigs="601" x="759" fillcolor="#ffffc0" y="622" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="65qIqDy22iM5" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
@@ -866,11 +891,11 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
          <classwidget usesdiagramfillcolor="0" width="449" showattsigs="601" x="278" fillcolor="#ffffc0" y="512" drawascircle="0" showopsigs="601" linewidth="none" height="278" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="7ArT5TUBrlZ5" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="77" showattsigs="601" x="762" fillcolor="#ffffc0" y="671" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="coIJWCxAiuns" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <notewidget usesdiagramfillcolor="0" width="216" x="38" fillcolor="#ffff00" y="513" linewidth="none" height="117" usefillcolor="1" isinstance="0" xmi.id="a1rKKZe0dlYj" showstereotype="1" text="Methods getXY for multiliteral indexing etc. can be simply added. In each Index those methods, that aren't supported by it, can just throw some InvalidOperation exception." usesdiagramusefillcolor="1" font="DejaVu Sans,9,-1,0,50,0,0,0,0,0" linecolor="none" />
-         <classwidget usesdiagramfillcolor="0" width="219" showattsigs="601" x="465" fillcolor="#ffffc0" y="46" showopsigs="601" linewidth="none" height="93" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="flBQuGO9twen" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,0,0,0,0,0" linecolor="#ff0000" />
-         <classwidget usesdiagramfillcolor="0" width="383" showattsigs="601" x="732" fillcolor="#ffffc0" y="116" showopsigs="601" linewidth="none" height="144" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="ZJGCIDCyRzi0" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,0,0,0,0,0" linecolor="#ff0000" />
+         <classwidget usesdiagramfillcolor="0" width="430" showattsigs="601" x="532" fillcolor="#ffffc0" y="84" showopsigs="601" linewidth="none" height="178" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="ZJGCIDCyRzi0" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,0,0,0,0,0" linecolor="#ff0000" />
          <notewidget usesdiagramfillcolor="0" width="121" x="133" fillcolor="#ffff00" y="12" linewidth="none" height="50" usefillcolor="1" isinstance="0" xmi.id="vikt9Rbi2YqL" text="SL stands for SingleLiteral" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
          <notewidget usesdiagramfillcolor="0" width="257" x="558" fillcolor="#ffff00" y="415" linewidth="none" height="81" usefillcolor="1" isinstance="0" xmi.id="CVr9mhD3zEsC" text="request method increases reference counter for appropriate index, while release decreases it, so when Index is no longer used, it can be destroyed." usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
-         <notewidget usesdiagramfillcolor="1" width="190" x="64" fillcolor="none" y="212" linewidth="none" height="105" usefillcolor="1" isinstance="0" xmi.id="wbUdVIbIDQRn" text="The literal attribute can be null, in case that the Index doesn't store the information, which literal of the clause was indexed." usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
+         <notewidget usesdiagramfillcolor="1" width="179" x="13" fillcolor="none" y="203" linewidth="none" height="81" usefillcolor="1" isinstance="0" xmi.id="wbUdVIbIDQRn" text="In the subst substitution, query variables have vindex==0, for result variables vindex==1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
+         <classwidget usesdiagramfillcolor="1" width="190" showattsigs="601" x="821" fillcolor="none" y="32" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="455zplSG3tI4" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,75,0,0,0,0,0" linecolor="none" />
         </widgets>
         <messages/>
         <associations>
@@ -907,7 +932,7 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
          <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="2" indexb="1" linewidth="none" widgetbid="dVnwWGIp5sGH" widgetaid="vikt9Rbi2YqL" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
           <linepath>
            <startpoint startx="193" starty="62" />
-           <endpoint endx="246" endy="79" />
+           <endpoint endx="240" endy="75" />
           </linepath>
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="2" indexb="1" linewidth="none" widgetbid="crHlYxr4vsaS" widgetaid="CVr9mhD3zEsC" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
@@ -918,8 +943,8 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="2" indexb="1" linewidth="none" widgetbid="dVnwWGIp5sGH" widgetaid="wbUdVIbIDQRn" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
           <linepath>
-           <startpoint startx="159" starty="212" />
-           <endpoint endx="246" endy="178" />
+           <startpoint startx="102" starty="203" />
+           <endpoint endx="240" endy="156" />
           </linepath>
          </assocwidget>
         </associations>
@@ -943,7 +968,7 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
   </UML:Model>
  </XMI.content>
  <XMI.extensions xmi.extender="umbrello" >
-  <docsettings viewid="9" documentation="" uniqueid="1aJKmWpWnRuI" />
+  <docsettings viewid="WTryTQJI4uXw" documentation="" uniqueid="3qXGkPyMGrjJ" />
   <listview>
    <listitem open="1" type="800" label="Views" >
     <listitem open="1" type="801" id="1" >
@@ -1044,15 +1069,6 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
      <listitem open="1" type="813" id="F6Pcr5HwR5SE" />
      <listitem open="1" type="813" id="IYK9KsDvL0pr" />
      <listitem open="1" type="813" id="Pt3TUw4bkeJf" />
-     <listitem open="1" type="813" id="ZJGCIDCyRzi0" >
-      <listitem open="0" type="815" id="N6OhEVrOFqzK" />
-      <listitem open="0" type="815" id="n2Eo3u8pbSM3" />
-      <listitem open="0" type="815" id="WZ5uLxJzuVBw" />
-      <listitem open="0" type="815" id="jYRd3dYKUmWa" />
-      <listitem open="0" type="815" id="BYAvmTtZ7ra5" />
-      <listitem open="0" type="815" id="4FMfKLnVGiB3" />
-      <listitem open="0" type="815" id="TWCCJixINjeO" />
-     </listitem>
      <listitem open="1" type="813" id="CxgEmyyTimYl" />
      <listitem open="1" type="813" id="wiFSw1D1pIAI" />
      <listitem open="1" type="813" id="PPcw3dD5i10o" >
@@ -1069,7 +1085,6 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
      <listitem open="1" type="813" id="dVnwWGIp5sGH" >
       <listitem open="0" type="814" id="7lMYVx0c6p6B" />
       <listitem open="0" type="814" id="qbjwQn6hMOoe" />
-      <listitem open="0" type="814" id="qpO4hWxzM5CW" />
       <listitem open="0" type="814" id="2Pm5cI9b0GFa" />
      </listitem>
      <listitem open="1" type="813" id="4KxITeBJLoq7" />
@@ -1099,12 +1114,26 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
      <listitem open="1" type="813" id="GJPYurEg8Dn3" />
      <listitem open="1" type="813" id="flBQuGO9twen" >
       <listitem open="0" type="815" id="N4EDdfsOrHG5" />
+      <listitem open="0" type="815" id="izvPW9NPGOZq" />
       <listitem open="0" type="815" id="ta57thk3YaE4" />
       <listitem open="0" type="815" id="VdI6Ma6AkLzS" />
       <listitem open="0" type="815" id="JCUaQwatXsxu" />
      </listitem>
      <listitem open="1" type="813" id="zDCz7hGrd50A" />
-     <listitem open="1" type="813" id="oEZVsYPmoLqB" />
+     <listitem open="1" type="813" id="ZJGCIDCyRzi0" >
+      <listitem open="0" type="815" id="N6OhEVrOFqzK" />
+      <listitem open="0" type="815" id="n2Eo3u8pbSM3" />
+      <listitem open="0" type="815" id="WZ5uLxJzuVBw" />
+      <listitem open="0" type="815" id="jYRd3dYKUmWa" />
+      <listitem open="0" type="815" id="4FMfKLnVGiB3" />
+      <listitem open="0" type="815" id="TWCCJixINjeO" />
+      <listitem open="0" type="815" id="oGbXMam78Y7d" />
+      <listitem open="0" type="815" id="RKR300zARZ5L" />
+      <listitem open="0" type="815" id="loDRjZvsWv2d" />
+     </listitem>
+     <listitem open="1" type="813" id="455zplSG3tI4" >
+      <listitem open="0" type="814" id="SJ7HeAPOyanf" />
+     </listitem>
      <listitem open="1" type="813" id="65qIqDy22iM5" />
      <listitem open="1" type="813" id="AtsDWGC6FvEW" />
      <listitem open="1" type="813" id="kimzee133ex4" >
@@ -1134,6 +1163,7 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
       <listitem open="1" type="829" id="4Do0UdZzfr89" />
       <listitem open="1" type="829" id="bbz0dDEjgPED" />
       <listitem open="1" type="829" id="O4jnapjUPKZ7" />
+      <listitem open="1" type="829" id="9iXgbXHxngtL" />
       <listitem open="1" type="829" id="E7eJyuZ3dtb7" />
       <listitem open="1" type="829" id="5MYlNJP28PbH" />
       <listitem open="0" type="829" id="viATk2xgXJqj" />
