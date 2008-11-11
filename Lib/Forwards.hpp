@@ -3,8 +3,8 @@
  * Forward declarations of (some) classes in Lib namespace
  */
 
-#ifndef __Forwards__
-#define __Forwards__
+#ifndef __Lib_Forwards__
+#define __Lib_Forwards__
 
 namespace Lib 
 {
@@ -12,7 +12,13 @@ namespace Lib
 template<typename T>
 class VirtualIterator;
 
+template<class C>
+class Stack;
+
+template <typename T, class Comparator>
+class BinaryHeap;
+
 }
 
 
-#endif /* __Forwards__ */
+#endif /* __Lib_Forwards__ */

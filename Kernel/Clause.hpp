@@ -10,13 +10,13 @@
 #include "../Lib/Forwards.hpp"
 #include "../Lib/Allocator.hpp"
 
+#include "Forwards.hpp"
 #include "Unit.hpp"
 
 using namespace Lib;
 
 namespace Kernel {
 
-class Literal;
 
 /**
  * Class to represent clauses.
@@ -107,10 +107,6 @@ protected:
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause
-
-
-typedef VirtualIterator<Clause*> ClauseIterator;
-
 
 }
 #endif 

@@ -7,7 +7,7 @@
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Term.hpp"
-#include "../Lib/DHMap.hpp"
+#include "../Lib/BinaryHeap.hpp"
 
 #ifdef VDEBUG
 #include <iostream>
@@ -23,6 +23,30 @@ string SingleTermListToString(const TermList* ts);
 #include "SubstitutionTree.hpp"
 
 using namespace Indexing;
+
+
+class SubstitutionTree::Binding {
+public:
+  /** Number of the variable at this node */
+  int var;
+  /** term at this node */
+  TermList* term;
+  /** Create new binding */
+  Binding(int v,TermList* t) : var(v), term(t) {}
+  /** Create uninitialised binding */
+  Binding() {}
+}; // class SubstitutionTree::Binding
+
+class SubstitutionTree::BindingComparator
+{
+public:
+  inline
+  static Comparison compare(Binding& b1, Binding& b2)
+  {
+	return Int::compare(b2.var, b1.var);
+  }
+}; // class SubstitutionTree::BindingComparator
+
 
 /**
  * Initialise the substitution tree.
@@ -60,24 +84,26 @@ SubstitutionTree::~SubstitutionTree()
 void SubstitutionTree::insert(TermList* term, Clause* cls)
 {
   ASS(!term->isEmpty());
+  unsigned int rootIndex=getRootNodeIndex(term);
   if(term->isVar()) {
     ASS(!term->isSpecialVar());
     BindingHeap bh;
-    insert(_nodes+_numberOfTopLevelNodes-1, bh, cls);
+    insert(_nodes+rootIndex, bh, cls);
   } else {
-    insert(term->term()->functor(), term->term()->args(), cls);
+    insert(rootIndex, term->term()->args(), cls);
   }
 }
 
 void SubstitutionTree::remove(TermList* term, Clause* cls)
 {
   ASS(!term->isEmpty());
+  unsigned int rootIndex=getRootNodeIndex(term);
   if(term->isVar()) {
     ASS(!term->isSpecialVar());
     BindingHeap bh;
-    remove(_nodes+_numberOfTopLevelNodes-1, bh, cls);
+    remove(_nodes+rootIndex, bh, cls);
   } else {
-    remove(term->term()->functor(), term->term()->args(), cls);
+    remove(rootIndex, term->term()->args(), cls);
   }
 }
 
@@ -89,7 +115,7 @@ void SubstitutionTree::remove(TermList* term, Clause* cls)
  * @param cls the clause to be stored at the leaf.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-void SubstitutionTree::insert(int nodeNumber,TermList* args,Clause* cls)
+void SubstitutionTree::insert(unsigned int nodeNumber,TermList* args,Clause* cls)
 {
   CALL("SubstitutionTree::insert");
   ASS(nodeNumber < _numberOfTopLevelNodes);
@@ -259,7 +285,7 @@ bool SubstitutionTree::sameTop(const TermList* ss,const TermList* tt)
  * Remove a clause from the substitution tree.
  * @since 16/08/2008 flight San Francisco-Seattle
  */
-void SubstitutionTree::remove(int nodeNumber,TermList* args,Clause* cls)
+void SubstitutionTree::remove(unsigned int nodeNumber,TermList* args,Clause* cls)
 {
   CALL("SubstitutionTree::remove-1");
   ASS(nodeNumber < _numberOfTopLevelNodes);
@@ -521,97 +547,3 @@ void SubstitutionTree::Leaf::loadClauses(ClauseIterator clauses)
   }
 }
 
-SubstitutionTree::Node** SubstitutionTree::UListIntermediateNode::
-	childByTop(TermList* t, bool canCreate)
-{
-  CALL("SubstitutionTree::UListIntermediateNode::childByTop");
-  
-  NodeList** nl=&_nodes;
-  while(*nl && !sameTop(t, &(*nl)->head()->term)) {
-	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
-  }
-  if(!*nl && canCreate) {
-  	*nl=new NodeList(0,0);
-  	_size++;
-  }
-  if(*nl) {
-	return (*nl)->headPtr(); 
-  } else {
-	return 0;
-  }
-}
-
-void SubstitutionTree::UListIntermediateNode::remove(TermList* t)
-{
-  CALL("SubstitutionTree::UListIntermediateNode::remove");
-  
-  NodeList** nl=&_nodes;
-  while(!sameTop(t, &(*nl)->head()->term)) {
-	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
-	ASS(*nl);
-  }
-  NodeList* removedPiece=*nl;
-  *nl=static_cast<NodeList*>((*nl)->tail());
-  delete removedPiece;
-  _size--;
-}
-
-/**
- * Take an IntermediateNode, destroy it, and return 
- * SListIntermediateNode with the same content.
- */
-SubstitutionTree::SListIntermediateNode* SubstitutionTree::SListIntermediateNode
-	::assimilate(IntermediateNode* orig) 
-{
-  SListIntermediateNode* res=new SListIntermediateNode(&orig->term);
-  res->loadChildren(orig->allChildren()); 
-  orig->term.makeEmpty();
-  delete orig;
-  return res;
-}
-
-/**
- * Take a Leaf, destroy it, and return SListLeaf 
- * with the same content.
- */
-SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig) 
-{
-  SListLeaf* res=new SListLeaf(&orig->term);
-  res->loadClauses(orig->allCaluses()); 
-  orig->term.makeEmpty();
-  delete orig;
-  return res;
-}
-
-/**
- * Take a Leaf, destroy it, and return SetLeaf 
- * with the same content.
- */
-SubstitutionTree::SetLeaf* SubstitutionTree::SetLeaf::assimilate(Leaf* orig) 
-{
-  SetLeaf* res=new SetLeaf(&orig->term);
-  res->loadClauses(orig->allCaluses()); 
-  orig->term.makeEmpty();
-  delete orig;
-  return res;
-}
-
-
-void SubstitutionTree::ensureLeafEfficiency(Leaf** leaf)
-{
-  CALL("SubstitutionTree::ensureLeafEfficiency");
-
-  if( (*leaf)->algorithm()==UNSORTED_LIST && (*leaf)->size()>5 ) {
-    //*leaf=SListLeaf::assimilate(*leaf);
-    *leaf=SetLeaf::assimilate(*leaf);
-  }
-}
-
-void SubstitutionTree::ensureIntermediateNodeEfficiency(IntermediateNode** inode)
-{
-  CALL("SubstitutionTree::ensureIntermediateNodeEfficiency");
-
-  if( (*inode)->algorithm()==UNSORTED_LIST && (*inode)->size()>3 ) {
-    *inode=SListIntermediateNode::assimilate(*inode);
-  }
-}

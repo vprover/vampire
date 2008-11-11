@@ -3,14 +3,27 @@
  * Defines abstract Index class and some other auxiliary classes.  
  */
 
-#ifndef __Index__
-#define __Index__
+#ifndef __Indexing_Index__
+#define __Indexing_Index__
 
+#include "../Kernel/Forwards.hpp"
 #include "../Kernel/DoubleSubstitution.hpp"
-#include "../Lib/Forward.hpp"
+#include "../Lib/Forwards.hpp"
+
+namespace Indexing
+{
+
+using namespace Kernel;
+using namespace Lib;
 
 struct SLQueryResult
 {
+  SLQueryResult(Literal* l, Clause* c, DoubleSubstitution s)
+  :literal(l), clause(c), substitution(s) {}
+
+  SLQueryResult(Clause* c, DoubleSubstitution s)
+  :literal(0), clause(c), substitution(s) {}
+  
   Literal* literal;
   Clause* clause;
   DoubleSubstitution substitution;
@@ -27,4 +40,5 @@ class Index
   
 };
 
-#endif /*__Index__*/
+};
+#endif /*__Indexing_Index__*/

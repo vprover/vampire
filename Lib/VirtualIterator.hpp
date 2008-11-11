@@ -33,12 +33,31 @@ private:
 };
 
 /**
+ * Implementation object for VirtualIterator, that represents
+ * an empty iterator.
+ */
+template<typename T>
+class EmptyIterator 
+: public IteratorCore<T>
+{
+public:
+  EmptyIterator() {}
+  bool hasNext() { return false; };
+  T next() { ASSERTION_VIOLATION; };
+};
+
+/**
  * Template class of virtual iterators, i.e. iterators that
  * can polymorphically use different implementations.
  */
 template<typename T>
 class VirtualIterator {
 public:
+  static VirtualIterator getEmpty()
+  {
+    static VirtualIterator inst(new EmptyIterator<T>());
+    return inst;
+  }
   inline
   VirtualIterator() : _core(0) {}
   inline
@@ -84,19 +103,6 @@ private:
   IteratorCore<T>* _core;
 };
 
-/**
- * Implementation object for VirtualIterator, that represents
- * an empty iterator.
- */
-template<typename T>
-class EmptyIterator 
-: public IteratorCore<T>
-{
-public:
-  EmptyIterator() {}
-  bool hasNext() { return false; };
-  T next() { ASSERTION_VIOLATION; };
-};
 
 /**
  * Implementation object for VirtualIterator, that represents

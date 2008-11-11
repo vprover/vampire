@@ -39,6 +39,10 @@ public:
   bool unify(Literal* lit1,int index1,Literal* lit2,int index2);
   bool complementary(Literal* lit1,int index1,Literal* lit2,int index2);
   unsigned getVar(unsigned var,int index);
+  
+  class BacktrackData;
+  BacktrackData backtrackableJoin(DoubleSubstitution subst);
+  void backtrack(BacktrackData);
 #if VDEBUG
   string toString() const;
 #endif
