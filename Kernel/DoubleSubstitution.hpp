@@ -14,6 +14,7 @@ using namespace std;
 #endif
 
 #include "../Lib/DHMap.hpp"
+#include "Forwards.hpp"
 #include "Term.hpp"
 
 using namespace Lib;
@@ -37,12 +38,15 @@ public:
   Literal* apply(Literal* lit,int index);
   void apply(TermList* ts,int index,TermList& to);
   bool unify(Literal* lit1,int index1,Literal* lit2,int index2);
+  bool unifyTerms(TermList* ts1,int index1,TermList* ts2,int index2);
   bool complementary(Literal* lit1,int index1,Literal* lit2,int index2);
   unsigned getVar(unsigned var,int index);
   
-  class BacktrackData;
-  BacktrackData backtrackableJoin(DoubleSubstitution subst);
-  void backtrack(BacktrackData);
+  class BacktrackDataObj;
+  typedef BacktrackDataObj* BacktrackData;
+  BacktrackData backtrackableJoin(const DoubleSubstitution& subst);
+  void backtrack(BacktrackData& bd);
+  
 #if VDEBUG
   string toString() const;
 #endif

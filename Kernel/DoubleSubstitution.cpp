@@ -124,6 +124,21 @@ bool DoubleSubstitution::unify(Literal* lit1,int index1,
   return false;
 } // DoubleSubstitution::unify
 
+/**
+ * Unify ts1/index1 with ts2/index2 and return the result.
+ * @since 05/01/2008 Torrevieja
+ */
+bool DoubleSubstitution::unifyTerms(TermList* ts1,int index1,
+	TermList* ts2,int index2)
+{
+  TermList aux[4];
+  aux[0].makeEmpty();
+  aux[1]=*ts1;
+  aux[2].makeEmpty();
+  aux[3]=*ts2;
+  return unify(&aux[1],index1,&aux[3],index2);
+}
+
 
 /**
  * Unify lit1/index1 with lit2/index2 and return the result.

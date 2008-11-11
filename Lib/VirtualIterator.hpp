@@ -74,7 +74,6 @@ public:
 	}
     }
   }
-  /** True if there exists next element */
   VirtualIterator& operator=(const VirtualIterator& obj) 
   {
     CALL("VirtualIterator::operator=");
@@ -91,6 +90,8 @@ public:
 	}
     }
   }
+
+  /** True if there exists next element */
   inline
   bool hasNext() { return _core->hasNext(); }
   /**

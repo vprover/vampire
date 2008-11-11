@@ -9,6 +9,7 @@
 #include "../Kernel/Forwards.hpp"
 #include "../Kernel/DoubleSubstitution.hpp"
 #include "../Lib/Forwards.hpp"
+#include "../Lib/SmartPtr.hpp"
 
 namespace Indexing
 {
@@ -18,16 +19,17 @@ using namespace Lib;
 
 struct SLQueryResult
 {
-  SLQueryResult(Literal* l, Clause* c, DoubleSubstitution s)
+  SLQueryResult(Literal* l, Clause* c, DoubleSubstitution* s)
   :literal(l), clause(c), substitution(s) {}
 
-  SLQueryResult(Clause* c, DoubleSubstitution s)
+  SLQueryResult(Clause* c, DoubleSubstitution* s)
   :literal(0), clause(c), substitution(s) {}
   
   Literal* literal;
   Clause* clause;
-  DoubleSubstitution substitution;
+  DoubleSubstitution* substitution;
 };
+
 
 typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
 

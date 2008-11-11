@@ -25,27 +25,6 @@ string SingleTermListToString(const TermList* ts);
 using namespace Indexing;
 
 
-class SubstitutionTree::Binding {
-public:
-  /** Number of the variable at this node */
-  int var;
-  /** term at this node */
-  TermList* term;
-  /** Create new binding */
-  Binding(int v,TermList* t) : var(v), term(t) {}
-  /** Create uninitialised binding */
-  Binding() {}
-}; // class SubstitutionTree::Binding
-
-class SubstitutionTree::BindingComparator
-{
-public:
-  inline
-  static Comparison compare(Binding& b1, Binding& b2)
-  {
-	return Int::compare(b2.var, b1.var);
-  }
-}; // class SubstitutionTree::BindingComparator
 
 
 /**
@@ -87,7 +66,7 @@ void SubstitutionTree::insert(TermList* term, Clause* cls)
   unsigned int rootIndex=getRootNodeIndex(term);
   if(term->isVar()) {
     ASS(!term->isSpecialVar());
-    BindingHeap bh;
+    BindingQueue bh;
     insert(_nodes+rootIndex, bh, cls);
   } else {
     insert(rootIndex, term->term()->args(), cls);
@@ -100,7 +79,7 @@ void SubstitutionTree::remove(TermList* term, Clause* cls)
   unsigned int rootIndex=getRootNodeIndex(term);
   if(term->isVar()) {
     ASS(!term->isSpecialVar());
-    BindingHeap bh;
+    BindingQueue bh;
     remove(_nodes+rootIndex, bh, cls);
   } else {
     remove(rootIndex, term->term()->args(), cls);
@@ -115,14 +94,14 @@ void SubstitutionTree::remove(TermList* term, Clause* cls)
  * @param cls the clause to be stored at the leaf.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-void SubstitutionTree::insert(unsigned int nodeNumber,TermList* args,Clause* cls)
+void SubstitutionTree::insert(int nodeNumber,TermList* args,Clause* cls)
 {
   CALL("SubstitutionTree::insert");
   ASS(nodeNumber < _numberOfTopLevelNodes);
   ASS(nodeNumber >= 0);
 
   Binding bind;
-  BindingHeap bh;
+  BindingQueue bh;
 
   int nextVar = 0;
   while (! args->isEmpty()) {
@@ -142,7 +121,7 @@ void SubstitutionTree::insert(unsigned int nodeNumber,TermList* args,Clause* cls
  * Auxiliary function for substitution tree insertion.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-void SubstitutionTree::insert(Node** pnode,BindingHeap& bh,Clause* clause)
+void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,Clause* clause)
 {
   CALL("SubstitutionTree::insert/3");
   
@@ -285,14 +264,14 @@ bool SubstitutionTree::sameTop(const TermList* ss,const TermList* tt)
  * Remove a clause from the substitution tree.
  * @since 16/08/2008 flight San Francisco-Seattle
  */
-void SubstitutionTree::remove(unsigned int nodeNumber,TermList* args,Clause* cls)
+void SubstitutionTree::remove(int nodeNumber,TermList* args,Clause* cls)
 {
   CALL("SubstitutionTree::remove-1");
   ASS(nodeNumber < _numberOfTopLevelNodes);
   ASS(nodeNumber >= 0);
 
   Binding bind;
-  BindingHeap bh;
+  BindingQueue bh;
 
   int nextVar = 0;
   while (! args->isEmpty()) {
@@ -311,7 +290,7 @@ void SubstitutionTree::remove(unsigned int nodeNumber,TermList* args,Clause* cls
  * Remove a clause from the substitution tree.
  * @since 16/08/2008 flight San Francisco-Seattle
  */
-void SubstitutionTree::remove(Node** pnode,BindingHeap& bh,Clause* clause)
+void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,Clause* clause)
 {
   CALL("SubstitutionTree::remove-2");
   

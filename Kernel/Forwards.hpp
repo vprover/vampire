@@ -21,6 +21,11 @@ class Clause;
 
 typedef VirtualIterator<Clause*> ClauseIterator;
 
+class DoubleSubstitution;
+typedef SmartPtr<DoubleSubstitution> DoubleSubstitutionSP;
+typedef SmartPtr<const DoubleSubstitution> DoubleSubstitutionCSP;
+
+
 };
 
 

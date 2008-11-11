@@ -11,8 +11,13 @@
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/Stack.hpp"
+#include "../Lib/List.hpp"
+#include "../Lib/SkipList.hpp"
+#include "../Lib/BinaryHeap.hpp"
 
 #include "../Kernel/Forwards.hpp"
+#include "../Kernel/DoubleSubstitution.hpp"
 #include "Index.hpp"
 
 
@@ -43,9 +48,6 @@ public:
   void insert(TermList* term, Clause* cls);
   void remove(TermList* term, Clause* cls);
   
-  void insert(int number,TermList* args,Clause* cls);
-  void remove(int number,TermList* args,Clause* cls);
-
 #ifdef VDEBUG
   string toString() const;
   bool isEmpty() const;
@@ -53,15 +55,18 @@ public:
   
 private:
   
-  unsigned int getRootNodeIndex(Term* t)
+  inline 
+  int getRootNodeIndex(Literal* t)
+  { return (int)t->header(); }
+
+  inline 
+  int getRootNodeIndex(TermList* t)
   {
-    if(t->isLiteral()) {
-      return static_cast<Literal*>(t)->header();
-    } else if(t->isVar()) {
+    if(t->isVar()) {
       ASS(!t->isSpecialVar());
       return _numberOfTopLevelNodes-1;
     } else {
-      return t->term()->functor();
+      return (int)t->term()->functor();
     }
   }
   
@@ -176,14 +181,40 @@ private:
   static IntermediateNode* createIntermediateNode(TermList* ts);
   static void ensureIntermediateNodeEfficiency(IntermediateNode** inode);
 
-  class Binding;
-  class BindingComparator;
-  typedef BinaryHeap<Binding,BindingComparator> BindingHeap;
+  class Binding {
+  public:
+    /** Number of the variable at this node */
+    int var;
+    /** term at this node */
+    TermList* term;
+    /** Create new binding */
+    Binding(int v,TermList* t) : var(v), term(t) {}
+    /** Create uninitialised binding */
+    Binding() {}
+
+    struct Comparator
+    {
+      inline
+      static Comparison compare(Binding& b1, Binding& b2)
+      {
+    	return Int::compare(b2.var, b1.var);
+      }
+    };
+  }; // class SubstitutionTree::Binding
+
+  
+  //Using BinaryHeap leads to about 30% faster insertion,
+  //but it doesn't support backtracking, which is needed 
+  //for iteration
+  //typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
+  typedef SkipList<Binding,Binding::Comparator> BindingQueue;
   typedef Stack<Binding> BindingStack;
   typedef Stack<const TermList*> TermStack;
 
-  void insert(Node** node,BindingHeap& binding,Clause* clause);
-  void remove(Node** node,BindingHeap& binding,Clause* clause);
+  void insert(int number,TermList* args,Clause* cls);
+  void remove(int number,TermList* args,Clause* cls);
+  void insert(Node** node,BindingQueue& binding,Clause* clause);
+  void remove(Node** node,BindingQueue& binding,Clause* clause);
   static bool sameTop(const TermList* ss,const TermList* tt);
 
   /** Number of top-level nodes */
@@ -207,29 +238,75 @@ public:
     SLQueryResult next()
     {
       if(leafClauses.hasNext()) {
-	return SLQueryResult(leafClauses.next(), subst);
+	return SLQueryResult(leafClauses.next(), &subst);
       }
       
     }
   private:
+    typedef List<Binding> BindingList; 
+    struct BacktrackData {
+      BacktrackData() {}
+      BacktrackData(DoubleSubstitution::BacktrackData dsbd, List<Binding>* bindings)
+      : dsbd(dsbd), bindings(bindings) {}
+      DoubleSubstitution::BacktrackData dsbd;
+      BindingList* bindings;
+    };
     ClauseIterator leafClauses;
     DoubleSubstitution subst;
-    Stack<NodeIterator> iterators;
-    Stack<DoubleSubstitution::BacktrackData> btrData;
+    BindingQueue bQueue;
+    Stack<NodeIterator> nodeIterators;
+    Stack<BacktrackData> btrData;
   protected:
-    ResultIterator(SubstitutionTree* t, Term* query): leafClauses(ClauseIterator::getEmpty()) 
+    ResultIterator() : leafClauses(ClauseIterator::getEmpty()),
+    	subst(), nodeIterators(4), btrData(4)
     {
-      Node* root=t->_nodes[getRootNodeIndex(query)];
     }
-    void enter(Node* n)
+    void init(SubstitutionTree* t, Literal* query)
     {
+      Node* root=t->_nodes[t->getRootNodeIndex(query)];
+    }
+    void init(SubstitutionTree* t, TermList* query)
+    {
+      Node* root=t->_nodes[t->getRootNodeIndex(query)];
+    }
+    bool enter(Node* n)
+    {
+      Binding bind=bQueue.pop();
+      TermList qt;
+      subst.apply(bind.term, 0, qt);
       
+      TermList nt;
+      subst.apply(&n->term, 1, nt);
+      
+      DoubleSubstitution assResult;
+      BindingList* bindings(0);
+      associate(qt, nt, bindings, assResult);
+      
+      DoubleSubstitution::BacktrackData dsbd = subst.backtrackableJoin(assResult);
+      BindingList::Iterator blit(bindings);
+      while(blit.hasNext()) {
+	bQueue.insert(blit.next());
+      }
+
+      btrData.push(BacktrackData(dsbd, bindings));
+      
+      if(n->isLeaf()) {
+	leafClauses=static_cast<Leaf*>(n)->allCaluses();
+      } else {
+	NodeIterator nit=getNodeIterator(static_cast<IntermediateNode*>(n));
+	nodeIterators.push(nit);
+      }
     }
     void leave(Node* n)
     {
       
     }
-    DoubleSubstitution associate(TermList* qt, TermList* tt)
+    NodeIterator getNodeIterator(IntermediateNode* n)
+    {
+      
+    }
+    virtual void associate(TermList qt, TermList nt, BindingList*& bindings, 
+	    DoubleSubstitution& substitution)
     {
       
     }

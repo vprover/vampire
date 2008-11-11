@@ -12,6 +12,9 @@ namespace Lib
 template<typename T>
 class VirtualIterator;
 
+template<typename T>
+class SmartPtr;
+
 template<class C>
 class Stack;
 
