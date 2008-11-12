@@ -14,6 +14,7 @@
 #include "../Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
+#include "BacktrackData.hpp"
 
 namespace Lib {
 
@@ -310,6 +311,22 @@ protected:
     _end = _stack + newCapacity;
     _capacity = newCapacity;
   } // Stack::expand
+  
+  class PushBacktrackObject: public BacktrackObject
+  {
+    Stack* st;
+  public:
+    PushBacktrackObject(Stack* st) : st(st) {}
+    void backtrack() { st->pop(); }
+  };
+public:
+  
+  void backtrackablePush(C v, BacktrackData& bd)
+  {
+    push(v);
+    bd.addBacktrackObject(new PushBacktrackObject(this));
+  }
+  
 };
 
 } // namespace Lib

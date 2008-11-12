@@ -13,6 +13,7 @@
 using namespace std;
 #endif
 
+#include "../Lib/Forwards.hpp"
 #include "../Lib/DHMap.hpp"
 #include "Forwards.hpp"
 #include "Term.hpp"
@@ -44,8 +45,7 @@ public:
   
   class BacktrackDataObj;
   typedef BacktrackDataObj* BacktrackData;
-  BacktrackData backtrackableJoin(const DoubleSubstitution& subst);
-  void backtrack(BacktrackData& bd);
+  void backtrackableJoin(const DoubleSubstitution& subst, BacktrackData& bd);
   
 #if VDEBUG
   string toString() const;

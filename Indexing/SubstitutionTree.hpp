@@ -15,6 +15,7 @@
 #include "../Lib/List.hpp"
 #include "../Lib/SkipList.hpp"
 #include "../Lib/BinaryHeap.hpp"
+#include "../Lib/BacktrackData.hpp"
 
 #include "../Kernel/Forwards.hpp"
 #include "../Kernel/DoubleSubstitution.hpp"
@@ -40,11 +41,8 @@ public:
   SubstitutionTree(int nodes);
   ~SubstitutionTree();
   
-  void insert(Literal* lit, Clause* cls)
-  { insert(getRootNodeIndex(lit), lit->args(), cls); }
-  void remove(Literal* lit, Clause* cls)
-  { remove(getRootNodeIndex(lit), lit->args(), cls); }
-
+  void insert(Literal* lit, Clause* cls);
+  void remove(Literal* lit, Clause* cls);
   void insert(TermList* term, Clause* cls);
   void remove(TermList* term, Clause* cls);
   
@@ -211,6 +209,15 @@ private:
   typedef Stack<Binding> BindingStack;
   typedef Stack<const TermList*> TermStack;
 
+  void getBindings(Term* t, BindingQueue& bq);
+  void getBindings(TermList* ts, BindingQueue& bq)
+  {
+    if(ts->tag() == REF) {
+      getBindings(ts->term(), bq);
+    }
+  }
+  
+  
   void insert(int number,TermList* args,Clause* cls);
   void remove(int number,TermList* args,Clause* cls);
   void insert(Node** node,BindingQueue& binding,Clause* clause);
@@ -231,84 +238,54 @@ public:
   public:
     bool hasNext()
     {
-      if(leafClauses.hasNext()) {
-	return true;
-      }
+      while(!leafClauses.hasNext() || findNextLeaf()) {}
+      return leafClauses.hasNext();
     }
     SLQueryResult next()
     {
-      if(leafClauses.hasNext()) {
-	return SLQueryResult(leafClauses.next(), &subst);
-      }
-      
+      while(!leafClauses.hasNext() || findNextLeaf()) {}
+      ASS(leafClauses.hasNext());
+      return SLQueryResult(leafClauses.next(), &subst);
     }
   private:
-    typedef List<Binding> BindingList; 
-    struct BacktrackData {
-      BacktrackData() {}
-      BacktrackData(DoubleSubstitution::BacktrackData dsbd, List<Binding>* bindings)
-      : dsbd(dsbd), bindings(bindings) {}
-      DoubleSubstitution::BacktrackData dsbd;
-      BindingList* bindings;
-    };
+    bool inLeaf;
     ClauseIterator leafClauses;
     DoubleSubstitution subst;
     BindingQueue bQueue;
     Stack<NodeIterator> nodeIterators;
-    Stack<BacktrackData> btrData;
+    Stack<BacktrackData> btStack;
   protected:
-    ResultIterator() : leafClauses(ClauseIterator::getEmpty()),
-    	subst(), nodeIterators(4), btrData(4)
+    ResultIterator() : inLeaf(false), leafClauses(ClauseIterator::getEmpty()),
+    	subst(), nodeIterators(4), btStack(4) 
     {
     }
     void init(SubstitutionTree* t, Literal* query)
     {
       Node* root=t->_nodes[t->getRootNodeIndex(query)];
+      t->getBindings(query, bQueue);
+
+      BacktrackData bd;
+      enter(root, bd);
+      bd.drop();
     }
     void init(SubstitutionTree* t, TermList* query)
     {
       Node* root=t->_nodes[t->getRootNodeIndex(query)];
-    }
-    bool enter(Node* n)
-    {
-      Binding bind=bQueue.pop();
-      TermList qt;
-      subst.apply(bind.term, 0, qt);
-      
-      TermList nt;
-      subst.apply(&n->term, 1, nt);
-      
-      DoubleSubstitution assResult;
-      BindingList* bindings(0);
-      associate(qt, nt, bindings, assResult);
-      
-      DoubleSubstitution::BacktrackData dsbd = subst.backtrackableJoin(assResult);
-      BindingList::Iterator blit(bindings);
-      while(blit.hasNext()) {
-	bQueue.insert(blit.next());
-      }
+      t->getBindings(query, bQueue);
 
-      btrData.push(BacktrackData(dsbd, bindings));
-      
-      if(n->isLeaf()) {
-	leafClauses=static_cast<Leaf*>(n)->allCaluses();
-      } else {
-	NodeIterator nit=getNodeIterator(static_cast<IntermediateNode*>(n));
-	nodeIterators.push(nit);
-      }
+      BacktrackData bd;
+      enter(root, bd);
+      bd.drop();
     }
-    void leave(Node* n)
+    bool findNextLeaf();
+    bool enter(Node* n, BacktrackData& bd);
+    bool associate(TermList qt, TermList nt, BacktrackData& bd);
+    virtual NodeIterator getNodeIterator(IntermediateNode* n) = 0;
+    virtual bool handleMismatch(TermList qt, TermList nt, BacktrackData& bd) = 0;
+    virtual ClauseIterator getIteratorSuffix()
     {
-      
-    }
-    NodeIterator getNodeIterator(IntermediateNode* n)
-    {
-      
-    }
-    virtual void associate(TermList qt, TermList nt, BindingList*& bindings, 
-	    DoubleSubstitution& substitution)
-    {
-      
+      //TODO make it used
+      return ClauseIterator::getEmpty();
     }
   };
 

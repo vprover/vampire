@@ -287,6 +287,7 @@ class List
         return first;
       }
       current = next;
+      //TODO: has this line any effect?
       next = next->tail();
     }
   } // List::concat

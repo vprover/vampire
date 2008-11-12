@@ -15,6 +15,7 @@
 #include "Allocator.hpp"
 #include "Comparison.hpp"
 #include "Random.hpp"
+#include "BacktrackData.hpp"
 
 #define SKIP_LIST_MAX_HEIGHT 32
 
@@ -234,6 +235,14 @@ public:
     return _left->nodes[0] != 0;
   } // SkipList::isNonEmpty
 
+  /** Returns the first element without removing it. */
+  inline
+  Value top()
+  {
+    ASS(isNonEmpty());
+    return _left->nodes[0]->value;
+  }
+  
   /**
    * Pop the first element.
    * @since 04/05/2006 Bellevue
@@ -399,8 +408,50 @@ private:
     CALL("SkipList::deallocate");
     DEALLOC_KNOWN(node,sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
   }
+
+  
+  class SingleValBacktrackObject: public BacktrackObject
+  {
+  public:
+    enum Action {
+      REMOVE, INSERT 
+    };
+    SingleValBacktrackObject(SkipList* sl, Action a, Value v): sl(sl), a(a), v(v) {}
+    void backtrack()
+    {
+      switch(a) {
+      case REMOVE:
+	sl->insert(v);
+	break;
+      case INSERT:
+	sl->remove(v);
+	break;
+      default:
+	ASSERTION_VIOLATION;
+      }
+    }
+  private:
+    SkipList* sl;
+    Action a;
+    Value v;
+  };
+public:
+  Value backtrackablePop(BacktrackData& bd)
+  {
+    Value v=pop();
+    bd.addBacktrackObject(
+	    new SingleValBacktrackObject(this, SingleValBacktrackObject::REMOVE, v));
+    return v;
+  }
+  void backtrackableInsert(Value v, BacktrackData& bd)
+  {
+    insert(v);
+    bd.addBacktrackObject(
+	    new SingleValBacktrackObject(this, SingleValBacktrackObject::INSERT, v));
+  }
   
 public:
+  
   /** iterator over the skip list elements */
   class Iterator {
    public:

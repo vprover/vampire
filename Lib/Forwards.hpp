@@ -21,6 +21,8 @@ class Stack;
 template <typename T, class Comparator>
 class BinaryHeap;
 
+class BacktrackData;
+
 }
 
 
