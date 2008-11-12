@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<XMI xmlns:UML="http://schema.omg.org/spec/UML/1.3" verified="false" timestamp="2008-11-10T16:46:02" xmi.version="1.2" >
+<XMI xmlns:UML="http://schema.omg.org/spec/UML/1.3" verified="false" timestamp="2008-11-12T16:46:24" xmi.version="1.2" >
  <XMI.header>
   <XMI.documentation>
    <XMI.exporter>umbrello uml modeller http://uml.sf.net</XMI.exporter>
@@ -53,12 +53,13 @@
           <UML:Generalization xmi.idref="6dYU6IP6Cht4" />
          </UML:GeneralizableElement.generalization>
         </UML:DataType>
-        <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="VN0h5sCk5vXN" isRoot="false" isAbstract="false" name="Substitution*" elementReference="oEZVsYPmoLqB" />
+        <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="VN0h5sCk5vXN" isRoot="false" isAbstract="false" name="Substitution*" elementReference="vrIELO8YELYo" />
         <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="PXDQPFe2nKyn" isRoot="false" isAbstract="false" name="Limits*" />
         <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="VkJcQVebRTkI" isRoot="false" isAbstract="false" name="ForwardSimplificationEngine*" elementReference="MJa0BWdQp0yi" />
         <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="Ow6JS4mSQ2MI" isRoot="false" isAbstract="false" name="BackwardSimplificationEngine*" elementReference="rCMyP71TogKI" />
         <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="1aJKmWpWnRuI" isRoot="false" isAbstract="false" name="GeneratingInferenceEngine*" elementReference="3ihtUupmyl71" />
         <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="9iXgbXHxngtL" isRoot="false" isAbstract="false" name="List&lt;unsigned>" elementReference="F6Pcr5HwR5SE" />
+        <UML:DataType stereotype="datatype" isSpecification="false" isLeaf="false" visibility="public" namespace="8" xmi.id="jyGrNtBveMwD" isRoot="false" isAbstract="false" name="List&lt;BacktrackObject*>" elementReference="F6Pcr5HwR5SE" />
        </UML:Namespace.ownedElement>
       </UML:Package>
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="22" isRoot="false" isAbstract="true" name="SaturationAlgorithm" >
@@ -134,8 +135,8 @@
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="50" isRoot="false" isAbstract="false" name="ClauseIterator" />
       <UML:Association isSpecification="false" visibility="public" namespace="1" xmi.id="53" name="" >
        <UML:Association.connection>
-        <UML:AssociationEnd isSpecification="false" visibility="public" changeability="changeable" isNavigable="false" xmi.id="oxeZf4RpjVHv" aggregation="none" type="50" name="" />
-        <UML:AssociationEnd isSpecification="false" visibility="public" changeability="changeable" isNavigable="true" xmi.id="di0qE1c4I59B" aggregation="none" type="26" name="" />
+        <UML:AssociationEnd isSpecification="false" visibility="public" changeability="changeable" isNavigable="false" xmi.id="8Zranc9Wjx5E" aggregation="none" type="50" name="" />
+        <UML:AssociationEnd isSpecification="false" visibility="public" changeability="changeable" isNavigable="true" xmi.id="rHme9CvRfELO" aggregation="none" type="26" name="" />
        </UML:Association.connection>
       </UML:Association>
       <UML:Dependency isSpecification="false" visibility="public" namespace="1" xmi.id="72" client="50" name="" supplier="26" />
@@ -410,19 +411,14 @@
         <UML:Attribute isSpecification="false" visibility="private" xmi.id="hxSFfJ9fYNxs" type="SlTbDuKfiOat" name="active" />
        </UML:Classifier.feature>
       </UML:Class>
-      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="l2KqhQK7eMvh" isRoot="false" isAbstract="false" name="RandomAccessClauseContainer" >
+      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="l2KqhQK7eMvh" isRoot="false" isAbstract="true" name="RandomAccessClauseContainer" >
        <UML:GeneralizableElement.generalization>
         <UML:Generalization xmi.idref="IZgDZy6RDp6E" />
        </UML:GeneralizableElement.generalization>
        <UML:Classifier.feature>
-        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="Xmjbyrysnm2r" isRoot="false" isAbstract="true" isQuery="true" name="contains" >
-         <UML:BehavioralFeature.parameter>
-          <UML:Parameter kind="return" xmi.id="96Yeg3qeq7G1" type="13" />
-          <UML:Parameter isSpecification="false" visibility="private" xmi.id="hGCAvVFfVaVC" value="" type="yIhvpcbZINYw" name="c" />
-         </UML:BehavioralFeature.parameter>
-        </UML:Operation>
         <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="0pHeBAJhx2Iv" isRoot="false" isAbstract="true" isQuery="false" name="remove" >
          <UML:BehavioralFeature.parameter>
+          <UML:Parameter kind="return" xmi.id="" type="13" />
           <UML:Parameter isSpecification="false" visibility="private" xmi.id="tGlf3lUizgqv" value="" type="yIhvpcbZINYw" name="c" />
          </UML:BehavioralFeature.parameter>
         </UML:Operation>
@@ -469,7 +465,7 @@
         </UML:Operation>
        </UML:Classifier.feature>
       </UML:Class>
-      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="GJPYurEg8Dn3" isRoot="false" isAbstract="false" name="SimplifyingInference" >
+      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="GJPYurEg8Dn3" isRoot="false" isAbstract="false" name="SimplifyingInferenceEngine" >
        <UML:GeneralizableElement.generalization>
         <UML:Generalization xmi.idref="wIWXoNKL7lDH" />
        </UML:GeneralizableElement.generalization>
@@ -490,6 +486,7 @@
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="MJa0BWdQp0yi" isRoot="false" isAbstract="false" name="ForwardSimplificationEngine" >
        <UML:GeneralizableElement.generalization>
         <UML:Generalization xmi.idref="t3k0ovFbqM4h" />
+        <UML:Generalization xmi.idref="g3s55QlGmvYC" />
        </UML:GeneralizableElement.generalization>
        <UML:Classifier.feature>
         <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="Cidxj8HTLDeW" isRoot="false" isAbstract="true" isQuery="false" name="perform" >
@@ -504,6 +501,7 @@
       <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="rCMyP71TogKI" isRoot="false" isAbstract="true" name="BackwardSimplificationEngine" >
        <UML:GeneralizableElement.generalization>
         <UML:Generalization xmi.idref="7jhUrF0DbYtp" />
+        <UML:Generalization xmi.idref="VZ4Q7FGGJvji" />
        </UML:GeneralizableElement.generalization>
        <UML:Classifier.feature>
         <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="zB0OoatRbEjw" isRoot="false" isAbstract="true" isQuery="false" name="perform" >
@@ -711,28 +709,56 @@
        </UML:Classifier.feature>
       </UML:Class>
       <UML:Dependency isSpecification="false" visibility="public" namespace="1" xmi.id="0N65MEsmXz49" client="455zplSG3tI4" name="" supplier="NzZzk8JyKZBU" />
+      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="R5D2dpWpIO3N" isRoot="false" isAbstract="false" name="BacktrackData" >
+       <UML:Classifier.feature>
+        <UML:Attribute isSpecification="false" visibility="private" xmi.id="KCXrekk48qQ4" type="jyGrNtBveMwD" name="bol" />
+        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="zf6K2Ll8GMJe" isRoot="false" isAbstract="false" isQuery="false" name="backtrack" />
+        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="vzQaEmSg51Nq" isRoot="false" isAbstract="false" isQuery="false" name="drop" />
+        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="dGbqxtsvYwFZ" isRoot="false" isAbstract="false" isQuery="false" name="addBacktrackObject" >
+         <UML:BehavioralFeature.parameter>
+          <UML:Parameter isSpecification="false" visibility="private" xmi.id="KFpOEDCrTofQ" value="" type="H0hWL0AExYoB" name="bo" />
+         </UML:BehavioralFeature.parameter>
+        </UML:Operation>
+        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="hXLDUZmjZSFu" isRoot="false" isAbstract="false" isQuery="false" name="commitTo" >
+         <UML:BehavioralFeature.parameter>
+          <UML:Parameter isSpecification="false" visibility="private" xmi.id="anB3ZqRGNlRp" value="" type="SN6OwvZE8PcM" name="bd" />
+         </UML:BehavioralFeature.parameter>
+        </UML:Operation>
+       </UML:Classifier.feature>
+      </UML:Class>
+      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="PHS6vbAPYgmh" isRoot="false" isAbstract="true" name="BacktrackObject" >
+       <UML:Classifier.feature>
+        <UML:Operation isSpecification="false" isLeaf="false" visibility="public" xmi.id="SJYjlcunFhJ2" isRoot="false" isAbstract="true" isQuery="false" name="backtrack" />
+       </UML:Classifier.feature>
+      </UML:Class>
+      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="H0hWL0AExYoB" isRoot="false" isAbstract="false" name="BacktrackObject*" />
+      <UML:Class isSpecification="false" isLeaf="false" visibility="public" namespace="1" xmi.id="SN6OwvZE8PcM" isRoot="false" isAbstract="false" name="BacktrackData&amp;" />
+      <UML:Dependency isSpecification="false" visibility="public" namespace="1" xmi.id="CNRY6sNO2sGg" client="R5D2dpWpIO3N" name="" supplier="PHS6vbAPYgmh" />
+      <UML:Generalization isSpecification="false" child="MJa0BWdQp0yi" visibility="public" namespace="1" xmi.id="g3s55QlGmvYC" parent="3sxQy0X72q0T" discriminator="" name="" />
+      <UML:Generalization isSpecification="false" child="rCMyP71TogKI" visibility="public" namespace="1" xmi.id="VZ4Q7FGGJvji" parent="3sxQy0X72q0T" discriminator="" name="" />
      </UML:Namespace.ownedElement>
      <XMI.extension xmi.extender="umbrello" >
       <diagrams>
-       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1182" snapy="10" showatts="1" xmi.id="9" documentation="" type="1" showops="1" showpackage="0" name="cd_SaturationAlgorithm" localid="900000" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="874" >
+       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1198" snapy="10" showatts="1" xmi.id="9" documentation="" type="1" showops="1" showpackage="0" name="cd_SaturationAlgorithm" localid="900000" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="856" >
         <widgets>
-         <classwidget usesdiagramfillcolor="0" width="418" showattsigs="601" x="10" fillcolor="#ffffc0" y="16" drawascircle="0" showopsigs="601" linewidth="none" height="306" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="22" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Bitstream Charter,10,-1,5,75,1,0,0,0,0" linecolor="#ff0000" />
+         <classwidget usesdiagramfillcolor="0" width="418" showattsigs="601" x="10" fillcolor="#ffffc0" y="16" drawascircle="0" showopsigs="601" linewidth="none" height="306" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="22" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Bitstream Charter,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="337" showattsigs="601" x="539" fillcolor="#ffffc0" y="27" drawascircle="0" showopsigs="601" linewidth="none" height="161" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="fukDBL9c11SE" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans Serif,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="152" showattsigs="601" x="301" fillcolor="#ffffc0" y="656" drawascircle="0" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="XWYpbx3h67Cu" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
-         <classwidget usesdiagramfillcolor="0" width="160" showattsigs="601" x="634" fillcolor="#ffffc0" y="331" drawascircle="0" showopsigs="601" linewidth="none" height="93" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="PPcw3dD5i10o" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans Serif,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
+         <classwidget usesdiagramfillcolor="0" width="160" showattsigs="601" x="619" fillcolor="#ffffc0" y="310" drawascircle="0" showopsigs="601" linewidth="none" height="93" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="PPcw3dD5i10o" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans Serif,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="1" width="106" showattsigs="601" x="862" fillcolor="none" y="347" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="Z2eYac42yZug" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
          <classwidget usesdiagramfillcolor="0" width="152" showattsigs="601" x="511" fillcolor="#ffffc0" y="220" showopsigs="601" linewidth="none" height="59" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="kimzee133ex4" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="116" showattsigs="601" x="34" fillcolor="#ffffc0" y="361" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="wiFSw1D1pIAI" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="133" showattsigs="601" x="534" fillcolor="#ffffc0" y="465" showopsigs="601" linewidth="none" height="59" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="S6H2g56mReVm" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
-         <classwidget usesdiagramfillcolor="0" width="286" showattsigs="601" x="17" fillcolor="#ffffc0" y="492" showopsigs="601" linewidth="none" height="76" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="1UQ9IjUwKVLK" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,0,0,0,0,0" linecolor="#ff0000" />
+         <classwidget usesdiagramfillcolor="0" width="286" showattsigs="601" x="17" fillcolor="#ffffc0" y="492" showopsigs="601" linewidth="none" height="76" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="1UQ9IjUwKVLK" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="106" showattsigs="601" x="304" fillcolor="#ffffc0" y="589" drawascircle="0" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="vpvEIEWLpH2v" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="172" showattsigs="601" x="984" fillcolor="#ffffc0" y="379" showopsigs="601" linewidth="none" height="59" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="nexqzfAhGzlV" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans Serif,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
-         <classwidget usesdiagramfillcolor="0" width="224" showattsigs="601" x="859" fillcolor="#ffffc0" y="226" showopsigs="601" linewidth="none" height="59" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="l2KqhQK7eMvh" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
+         <classwidget usesdiagramfillcolor="0" width="228" showattsigs="601" x="859" fillcolor="#ffffc0" y="226" drawascircle="0" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="l2KqhQK7eMvh" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,1,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="258" showattsigs="601" x="29" fillcolor="#ffffc0" y="587" showopsigs="601" linewidth="none" height="59" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="aOuK1WNlAPYd" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans Serif,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <enumwidget usesdiagramfillcolor="0" width="141" x="27" fillcolor="#ffffc0" y="663" linewidth="none" height="119" usefillcolor="1" isinstance="0" xmi.id="8UK53Rloz2Aw" showpackage="0" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
-         <notewidget usesdiagramfillcolor="0" width="191" x="494" fillcolor="#ffff00" y="552" linewidth="none" height="124" usefillcolor="1" isinstance="0" xmi.id="RMiPazOIE4YL" showstereotype="1" text="select() method is called by getSelected() and pop() method to determine, which clause is selected. Before next call to select(), this clause is guaranteed to be deleted.
+         <notewidget usesdiagramfillcolor="0" width="266" x="547" fillcolor="#ffff00" y="572" linewidth="none" height="203" usefillcolor="1" isinstance="0" xmi.id="RMiPazOIE4YL" showstereotype="1" text="select() method is called by getSelected() and pop() method to determine, which clause is selected. Before next call to select(), this clause is guaranteed to be deleted.
 We do it this way, so we could know which clause will be selected, before it's removed from the passive queue, so we could prevent triggering Removed and Added events in JoinedClauseContainer during selection of a clause and putting it to ActiveClauses." usesdiagramusefillcolor="1" font="DejaVu Sans,9,-1,0,50,0,0,0,0,0" linecolor="none" />
-         <notewidget usesdiagramfillcolor="0" width="360" x="818" fillcolor="#ffff00" y="487" linewidth="none" height="78" usefillcolor="1" isinstance="0" xmi.id="jJH0QgCN3kzj" showstereotype="1" text="We will return this class as result of the SaturationAlgorithm::getSimplificationiClauseContainer() in Otter-like algorithms, because they use both passive and active clauses for simplification." usesdiagramusefillcolor="1" font="DejaVu Sans,9,-1,0,50,0,0,0,0,0" linecolor="none" />
+         <notewidget usesdiagramfillcolor="0" width="376" x="818" fillcolor="#ffff00" y="487" linewidth="none" height="107" usefillcolor="1" isinstance="0" xmi.id="jJH0QgCN3kzj" showstereotype="1" text="We will return this class as result of the SaturationAlgorithm::getSimplificationiClauseContainer() in Otter-like algorithms, because they use both passive and active clauses for simplification.
+This container doesn't contain anything, it only aggregates Added and Removed events from its subcontainers." usesdiagramusefillcolor="1" font="DejaVu Sans,9,-1,0,50,0,0,0,0,0" linecolor="none" />
          <notewidget usesdiagramfillcolor="0" width="274" x="182" fillcolor="#ffff00" y="350" linewidth="none" height="124" usefillcolor="1" isinstance="0" xmi.id="R4C6JwKGA4cB" showstereotype="1" text="SafePoint event will be triggered sufficiently often, when no operation, that should be atomic, is being performed. (Like before selecting new clause)
 This is the time, when for example unnecessary indexes can be dropped, if memory limit is reached." usesdiagramusefillcolor="1" font="DejaVu Sans,9,-1,0,50,0,0,0,0,0" linecolor="none" />
          <notewidget usesdiagramfillcolor="0" width="215" x="923" fillcolor="#ffff00" y="62" linewidth="none" height="116" usefillcolor="1" isinstance="0" xmi.id="GAguqypvr9cD" text="Consumers of the Added event are allowed to store pointer to a Clause only until they return from handler of the Removed event triggered for the same Clause." usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
@@ -754,42 +780,42 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
          <assocwidget totalcounta="2" indexa="1" totalcountb="3" indexb="1" linewidth="none" widgetbid="PPcw3dD5i10o" widgetaid="S6H2g56mReVm" xmi.id="xup3HOLiAoJL" type="500" linecolor="none" >
           <linepath>
            <startpoint startx="600" starty="465" />
-           <endpoint endx="687" endy="424" />
+           <endpoint endx="672" endy="403" />
           </linepath>
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" totalcountb="3" indexb="2" linewidth="none" widgetbid="fukDBL9c11SE" widgetaid="l2KqhQK7eMvh" xmi.id="IZgDZy6RDp6E" type="500" linecolor="none" >
           <linepath>
-           <startpoint startx="971" starty="226" />
+           <startpoint startx="973" starty="226" />
            <endpoint endx="763" endy="188" />
           </linepath>
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" totalcountb="4" indexb="2" linewidth="none" widgetbid="l2KqhQK7eMvh" widgetaid="Z2eYac42yZug" xmi.id="USwfH0tpZoNm" type="500" linecolor="none" >
           <linepath>
            <startpoint startx="915" starty="347" />
-           <endpoint endx="971" endy="285" />
+           <endpoint endx="973" endy="268" />
           </linepath>
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" totalcountb="4" indexb="1" linewidth="none" widgetbid="l2KqhQK7eMvh" widgetaid="PPcw3dD5i10o" xmi.id="jyvGmJ0L57lr" type="500" linecolor="none" >
           <linepath>
-           <startpoint startx="794" starty="377" />
-           <endpoint endx="915" endy="285" />
+           <startpoint startx="779" starty="356" />
+           <endpoint endx="916" endy="268" />
           </linepath>
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" totalcountb="4" indexb="3" linewidth="none" widgetbid="l2KqhQK7eMvh" widgetaid="nexqzfAhGzlV" xmi.id="rVoIXG3CHWu1" type="500" linecolor="none" >
           <linepath>
            <startpoint startx="1070" starty="379" />
-           <endpoint endx="1027" endy="285" />
+           <endpoint endx="1030" endy="268" />
           </linepath>
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="3" indexb="2" linewidth="none" widgetbid="PPcw3dD5i10o" widgetaid="RMiPazOIE4YL" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
           <linepath>
-           <startpoint startx="589" starty="552" />
-           <endpoint endx="740" endy="424" />
+           <startpoint startx="680" starty="572" />
+           <endpoint endx="725" endy="403" />
           </linepath>
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="2" indexb="1" linewidth="none" widgetbid="nexqzfAhGzlV" widgetaid="jJH0QgCN3kzj" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
           <linepath>
-           <startpoint startx="998" starty="487" />
+           <startpoint startx="1006" starty="487" />
            <endpoint endx="1070" endy="438" />
           </linepath>
          </assocwidget>
@@ -807,13 +833,12 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
          </assocwidget>
         </associations>
        </diagram>
-       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1121" snapy="10" showatts="1" xmi.id="ejc5zyOaFta8" documentation="" type="1" showops="1" showpackage="0" name="cd_Inference" localid="" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="874" >
+       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1121" snapy="10" showatts="1" xmi.id="ejc5zyOaFta8" documentation="" type="1" showops="1" showpackage="0" name="cd_Inference" localid="" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="856" >
         <widgets>
          <classwidget usesdiagramfillcolor="0" width="378" showattsigs="601" x="307" fillcolor="#ffffc0" y="17" drawascircle="0" showopsigs="601" linewidth="none" height="93" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="3sxQy0X72q0T" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,1,0,0,0,0" linecolor="#ff0000" />
-         <classwidget usesdiagramfillcolor="1" width="149" showattsigs="601" x="323" fillcolor="none" y="137" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="GJPYurEg8Dn3" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
-         <classwidget usesdiagramfillcolor="0" width="333" showattsigs="601" x="784" fillcolor="#ffffc0" y="142" drawascircle="0" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="3ihtUupmyl71" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,1,0,0,0,0" linecolor="#ff0000" />
+         <classwidget usesdiagramfillcolor="0" width="333" showattsigs="601" x="784" fillcolor="#ffffc0" y="142" drawascircle="0" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="3ihtUupmyl71" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="449" showattsigs="601" x="20" fillcolor="#ffffc0" y="330" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="MJa0BWdQp0yi" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,1,0,0,0,0" linecolor="#ff0000" />
-         <classwidget usesdiagramfillcolor="0" width="556" showattsigs="601" x="493" fillcolor="#ffffc0" y="341" drawascircle="0" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="rCMyP71TogKI" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,1,0,0,0,0" linecolor="#ff0000" />
+         <classwidget usesdiagramfillcolor="0" width="556" showattsigs="601" x="493" fillcolor="#ffffc0" y="341" drawascircle="0" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="rCMyP71TogKI" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,1,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="1" width="155" showattsigs="601" x="12" fillcolor="none" y="443" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="lkx21u4Ed0lX" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
          <classwidget usesdiagramfillcolor="1" width="165" showattsigs="601" x="780" fillcolor="none" y="417" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="h90UKBR9uCY9" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
          <classwidget usesdiagramfillcolor="1" width="123" showattsigs="601" x="826" fillcolor="none" y="232" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="Z1rvkm2TUzTW" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
@@ -828,24 +853,6 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
           <linepath>
            <startpoint startx="950" starty="142" />
            <endpoint endx="685" endy="79" />
-          </linepath>
-         </assocwidget>
-         <assocwidget totalcounta="2" indexa="1" totalcountb="3" indexb="2" linewidth="none" widgetbid="GJPYurEg8Dn3" widgetaid="rCMyP71TogKI" xmi.id="7jhUrF0DbYtp" type="500" linecolor="none" >
-          <linepath>
-           <startpoint startx="771" starty="341" />
-           <endpoint endx="422" endy="170" />
-          </linepath>
-         </assocwidget>
-         <assocwidget totalcounta="2" indexa="1" totalcountb="2" indexb="1" linewidth="none" widgetbid="3sxQy0X72q0T" widgetaid="GJPYurEg8Dn3" xmi.id="wIWXoNKL7lDH" type="500" linecolor="none" >
-          <linepath>
-           <startpoint startx="397" starty="137" />
-           <endpoint endx="496" endy="110" />
-          </linepath>
-         </assocwidget>
-         <assocwidget totalcounta="2" indexa="1" totalcountb="3" indexb="1" linewidth="none" widgetbid="GJPYurEg8Dn3" widgetaid="MJa0BWdQp0yi" xmi.id="t3k0ovFbqM4h" type="500" linecolor="none" >
-          <linepath>
-           <startpoint startx="244" starty="330" />
-           <endpoint endx="372" endy="170" />
           </linepath>
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" totalcountb="2" indexb="1" linewidth="none" widgetbid="MJa0BWdQp0yi" widgetaid="lkx21u4Ed0lX" xmi.id="tXiWYT1Fc1hv" type="500" linecolor="none" >
@@ -878,24 +885,43 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
            <endpoint endx="235" endy="78" />
           </linepath>
          </assocwidget>
+         <assocwidget totalcounta="2" indexa="1" totalcountb="3" indexb="1" linewidth="none" widgetbid="3sxQy0X72q0T" widgetaid="MJa0BWdQp0yi" xmi.id="g3s55QlGmvYC" type="500" linecolor="none" >
+          <linepath>
+           <startpoint startx="244" starty="330" />
+           <endpoint endx="433" endy="110" />
+          </linepath>
+         </assocwidget>
+         <assocwidget totalcounta="2" indexa="1" totalcountb="3" indexb="2" linewidth="none" widgetbid="3sxQy0X72q0T" widgetaid="rCMyP71TogKI" xmi.id="VZ4Q7FGGJvji" type="500" linecolor="none" >
+          <linepath>
+           <startpoint startx="771" starty="341" />
+           <endpoint endx="559" endy="110" />
+          </linepath>
+         </assocwidget>
         </associations>
        </diagram>
-       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1088" snapy="10" showatts="1" xmi.id="WTryTQJI4uXw" documentation="" type="1" showops="1" showpackage="0" name="cd_Index" localid="" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="874" >
+       <diagram snapgrid="0" showattsig="1" fillcolor="#ffffc0" linewidth="0" zoom="81" showgrid="0" showopsig="1" usefillcolor="1" snapx="10" canvaswidth="1089" snapy="10" showatts="1" xmi.id="WTryTQJI4uXw" documentation="" type="1" showops="1" showpackage="0" name="cd_Index" localid="" showstereotype="0" showscope="1" snapcsgrid="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" canvasheight="874" >
         <widgets>
          <enumwidget usesdiagramfillcolor="0" width="169" x="299" fillcolor="#ffffc0" y="318" linewidth="none" height="85" usefillcolor="1" isinstance="0" xmi.id="dA8MGetYJaCa" showpackage="0" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
-         <classwidget usesdiagramfillcolor="0" width="164" showattsigs="601" x="158" fillcolor="#ffffc0" y="75" showopsigs="601" linewidth="none" height="81" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="dVnwWGIp5sGH" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Bitstream Charter,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
+         <classwidget usesdiagramfillcolor="0" width="164" showattsigs="601" x="26" fillcolor="#ffffc0" y="78" showopsigs="601" linewidth="none" height="81" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="dVnwWGIp5sGH" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Bitstream Charter,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="210" showattsigs="601" x="299" fillcolor="#ffffc0" y="416" showopsigs="601" linewidth="none" height="76" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="crHlYxr4vsaS" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
-         <notewidget usesdiagramfillcolor="0" width="262" x="537" fillcolor="#ffff00" y="301" linewidth="none" height="81" usefillcolor="1" isinstance="0" xmi.id="nVyeyL7Q2Obm" text="If Index of given type is not created, it's constructed by Index::createByType, otherwise pointer to the existing one is returned." usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
+         <notewidget usesdiagramfillcolor="0" width="262" x="537" fillcolor="#ffff00" y="301" linewidth="none" height="81" usefillcolor="1" isinstance="0" xmi.id="nVyeyL7Q2Obm" text="If Index of given type is not created when requested, it's constructed by Index::createByType. Otherwise pointer to the existing one is returned." usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
          <classwidget usesdiagramfillcolor="0" width="123" showattsigs="601" x="759" fillcolor="#ffffc0" y="622" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="65qIqDy22iM5" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <notewidget usesdiagramfillcolor="0" width="243" x="25" fillcolor="#ffff00" y="656" linewidth="none" height="126" usefillcolor="1" isinstance="0" xmi.id="8uD7Pflvjg0t" showstereotype="1" text="isBeingIterated method indicates, whether any iterator of this index exists, which would mean that all add and remove operationis should be postponed. (They're queued in clausesToBeAdded/Removed queues.)" usesdiagramusefillcolor="1" font="DejaVu Sans,9,-1,0,50,0,0,0,0,0" linecolor="none" />
          <classwidget usesdiagramfillcolor="0" width="449" showattsigs="601" x="278" fillcolor="#ffffc0" y="512" drawascircle="0" showopsigs="601" linewidth="none" height="278" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="7ArT5TUBrlZ5" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <classwidget usesdiagramfillcolor="0" width="77" showattsigs="601" x="762" fillcolor="#ffffc0" y="671" showopsigs="601" linewidth="none" height="33" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="coIJWCxAiuns" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="#ff0000" />
          <notewidget usesdiagramfillcolor="0" width="216" x="38" fillcolor="#ffff00" y="513" linewidth="none" height="117" usefillcolor="1" isinstance="0" xmi.id="a1rKKZe0dlYj" showstereotype="1" text="Methods getXY for multiliteral indexing etc. can be simply added. In each Index those methods, that aren't supported by it, can just throw some InvalidOperation exception." usesdiagramusefillcolor="1" font="DejaVu Sans,9,-1,0,50,0,0,0,0,0" linecolor="none" />
-         <classwidget usesdiagramfillcolor="0" width="430" showattsigs="601" x="532" fillcolor="#ffffc0" y="84" showopsigs="601" linewidth="none" height="178" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="ZJGCIDCyRzi0" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,0,0,0,0,0" linecolor="#ff0000" />
-         <notewidget usesdiagramfillcolor="0" width="121" x="133" fillcolor="#ffff00" y="12" linewidth="none" height="50" usefillcolor="1" isinstance="0" xmi.id="vikt9Rbi2YqL" text="SL stands for SingleLiteral" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
-         <notewidget usesdiagramfillcolor="0" width="257" x="558" fillcolor="#ffff00" y="415" linewidth="none" height="81" usefillcolor="1" isinstance="0" xmi.id="CVr9mhD3zEsC" text="request method increases reference counter for appropriate index, while release decreases it, so when Index is no longer used, it can be destroyed." usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
-         <notewidget usesdiagramfillcolor="1" width="179" x="13" fillcolor="none" y="203" linewidth="none" height="81" usefillcolor="1" isinstance="0" xmi.id="wbUdVIbIDQRn" text="In the subst substitution, query variables have vindex==0, for result variables vindex==1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
-         <classwidget usesdiagramfillcolor="1" width="190" showattsigs="601" x="821" fillcolor="none" y="32" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="455zplSG3tI4" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,75,0,0,0,0,0" linecolor="none" />
+         <notewidget usesdiagramfillcolor="0" width="121" x="33" fillcolor="#ffff00" y="12" linewidth="none" height="50" usefillcolor="1" isinstance="0" xmi.id="vikt9Rbi2YqL" text="SL stands for SingleLiteral" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
+         <notewidget usesdiagramfillcolor="0" width="257" x="561" fillcolor="#ffff00" y="410" linewidth="none" height="81" usefillcolor="1" isinstance="0" xmi.id="CVr9mhD3zEsC" text="request method increases reference counter for appropriate index, while release decreases it, so when Index is no longer used, it can be destroyed." usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
+         <notewidget usesdiagramfillcolor="0" width="179" x="13" fillcolor="#ffff00" y="203" linewidth="none" height="81" usefillcolor="1" isinstance="0" xmi.id="wbUdVIbIDQRn" text="In the subst substitution, query variables have vindex==0, for result variables vindex==1" usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
+         <classwidget usesdiagramfillcolor="0" width="283" showattsigs="601" x="519" fillcolor="#ffffc0" y="8" showopsigs="601" linewidth="none" height="102" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="R5D2dpWpIO3N" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,0,0,0,0,0" linecolor="#ff0000" />
+         <classwidget usesdiagramfillcolor="0" width="128" showattsigs="601" x="842" fillcolor="#ffffc0" y="16" drawascircle="0" showopsigs="601" linewidth="none" height="42" usefillcolor="1" showpubliconly="0" showattributes="1" isinstance="0" xmi.id="PHS6vbAPYgmh" showoperations="1" showpackage="0" showscope="1" usesdiagramusefillcolor="0" font="Sans,10,-1,5,75,1,0,0,0,0" linecolor="#ff0000" />
+         <notewidget usesdiagramfillcolor="0" width="313" x="716" fillcolor="#ffff00" y="135" linewidth="none" height="151" usefillcolor="1" isinstance="0" xmi.id="Y1ee226xbSTW" text="For each atomic operation, that supports backtracking, there is an implementation of this object, that undos effects of that operation.
+
+Backtrackable operation has signature like
+backtrackableInsert(Value,BacktrackData&amp; bd),
+and BacktrackObjects, that together unroll the operation, are added to the bd object." usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
+         <notewidget usesdiagramfillcolor="0" width="247" x="266" fillcolor="#ffff00" y="111" linewidth="none" height="183" usefillcolor="1" isinstance="0" xmi.id="hDcKLG4KGAM8" text="commitTo(bd) operation moves all BacktrackObjects from this to bd. This is useful for operations, that might fail in the middle, such as backtrackable unification -- we use temporary BacktrackData, and if something fails, we unroll the changes. Otherwise we can commit it to the BacktrackData object, we've been given as a parameter." usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
+         <notewidget usesdiagramfillcolor="0" width="200" x="212" fillcolor="#ffff00" y="8" linewidth="none" height="83" usefillcolor="1" isinstance="0" xmi.id="ZbsbgpA8HgnS" text="If index doesn't contain the information, which literal in a clause was indexed, literal member can be 0." usesdiagramusefillcolor="1" font="Sans,10,-1,5,50,0,0,0,0,0" linecolor="none" />
         </widgets>
         <messages/>
         <associations>
@@ -931,20 +957,38 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="2" indexb="1" linewidth="none" widgetbid="dVnwWGIp5sGH" widgetaid="vikt9Rbi2YqL" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
           <linepath>
-           <startpoint startx="193" starty="62" />
-           <endpoint endx="240" endy="75" />
+           <startpoint startx="93" starty="62" />
+           <endpoint endx="108" endy="78" />
           </linepath>
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="2" indexb="1" linewidth="none" widgetbid="crHlYxr4vsaS" widgetaid="CVr9mhD3zEsC" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
           <linepath>
-           <startpoint startx="558" starty="455" />
+           <startpoint startx="561" starty="450" />
            <endpoint endx="509" endy="454" />
           </linepath>
          </assocwidget>
          <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="2" indexb="1" linewidth="none" widgetbid="dVnwWGIp5sGH" widgetaid="wbUdVIbIDQRn" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
           <linepath>
            <startpoint startx="102" starty="203" />
-           <endpoint endx="240" endy="156" />
+           <endpoint endx="108" endy="159" />
+          </linepath>
+         </assocwidget>
+         <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="2" indexb="1" linewidth="none" widgetbid="PHS6vbAPYgmh" widgetaid="Y1ee226xbSTW" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
+          <linepath>
+           <startpoint startx="872" starty="135" />
+           <endpoint endx="906" endy="58" />
+          </linepath>
+         </assocwidget>
+         <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="2" indexb="1" linewidth="none" widgetbid="R5D2dpWpIO3N" widgetaid="hDcKLG4KGAM8" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
+          <linepath>
+           <startpoint startx="513" starty="202" />
+           <endpoint endx="660" endy="110" />
+          </linepath>
+         </assocwidget>
+         <assocwidget totalcounta="2" indexa="1" visibilityB="200" totalcountb="2" indexb="1" linewidth="none" widgetbid="dVnwWGIp5sGH" widgetaid="ZbsbgpA8HgnS" roleBdoc="" documentation="" roleAdoc="" type="513" changeabilityA="900" changeabilityB="900" linecolor="none" visibilityA="200" >
+          <linepath>
+           <startpoint startx="212" starty="49" />
+           <endpoint endx="190" endy="118" />
           </linepath>
          </assocwidget>
         </associations>
@@ -968,7 +1012,7 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
   </UML:Model>
  </XMI.content>
  <XMI.extensions xmi.extender="umbrello" >
-  <docsettings viewid="WTryTQJI4uXw" documentation="" uniqueid="3qXGkPyMGrjJ" />
+  <docsettings viewid="WTryTQJI4uXw" documentation="" uniqueid="Gd67NPPsyUH3" />
   <listview>
    <listitem open="1" type="800" label="Views" >
     <listitem open="1" type="801" id="1" >
@@ -980,6 +1024,18 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
       <listitem open="0" type="814" id="duFg1yXEdALH" />
       <listitem open="0" type="814" id="OLL5Pjjrym9u" />
      </listitem>
+     <listitem open="1" type="813" id="R5D2dpWpIO3N" >
+      <listitem open="0" type="814" id="KCXrekk48qQ4" />
+      <listitem open="0" type="815" id="zf6K2Ll8GMJe" />
+      <listitem open="0" type="815" id="vzQaEmSg51Nq" />
+      <listitem open="0" type="815" id="dGbqxtsvYwFZ" />
+      <listitem open="0" type="815" id="hXLDUZmjZSFu" />
+     </listitem>
+     <listitem open="1" type="813" id="SN6OwvZE8PcM" />
+     <listitem open="1" type="813" id="PHS6vbAPYgmh" >
+      <listitem open="0" type="815" id="SJYjlcunFhJ2" />
+     </listitem>
+     <listitem open="1" type="813" id="H0hWL0AExYoB" />
      <listitem open="0" type="813" id="b3RSjyMc9uCt" >
       <listitem open="0" type="814" id="uiyyjSvRGomj" />
      </listitem>
@@ -1007,6 +1063,17 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
      <listitem open="1" type="813" id="50" />
      <listitem open="1" type="813" id="LlDwDDmgTDfS" />
      <listitem open="1" type="813" id="d3FZHLskQrLJ" />
+     <listitem open="1" type="813" id="ZJGCIDCyRzi0" >
+      <listitem open="0" type="815" id="N6OhEVrOFqzK" />
+      <listitem open="0" type="815" id="n2Eo3u8pbSM3" />
+      <listitem open="0" type="815" id="WZ5uLxJzuVBw" />
+      <listitem open="0" type="815" id="jYRd3dYKUmWa" />
+      <listitem open="0" type="815" id="4FMfKLnVGiB3" />
+      <listitem open="0" type="815" id="TWCCJixINjeO" />
+      <listitem open="0" type="815" id="oGbXMam78Y7d" />
+      <listitem open="0" type="815" id="RKR300zARZ5L" />
+      <listitem open="0" type="815" id="loDRjZvsWv2d" />
+     </listitem>
      <listitem open="0" type="813" id="vpvEIEWLpH2v" >
       <listitem open="0" type="815" id="U4gDBR7r19yD" />
      </listitem>
@@ -1079,7 +1146,6 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
      </listitem>
      <listitem open="1" type="813" id="coIJWCxAiuns" />
      <listitem open="1" type="813" id="l2KqhQK7eMvh" >
-      <listitem open="0" type="815" id="Xmjbyrysnm2r" />
       <listitem open="0" type="815" id="0pHeBAJhx2Iv" />
      </listitem>
      <listitem open="1" type="813" id="dVnwWGIp5sGH" >
@@ -1120,17 +1186,6 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
       <listitem open="0" type="815" id="JCUaQwatXsxu" />
      </listitem>
      <listitem open="1" type="813" id="zDCz7hGrd50A" />
-     <listitem open="1" type="813" id="ZJGCIDCyRzi0" >
-      <listitem open="0" type="815" id="N6OhEVrOFqzK" />
-      <listitem open="0" type="815" id="n2Eo3u8pbSM3" />
-      <listitem open="0" type="815" id="WZ5uLxJzuVBw" />
-      <listitem open="0" type="815" id="jYRd3dYKUmWa" />
-      <listitem open="0" type="815" id="4FMfKLnVGiB3" />
-      <listitem open="0" type="815" id="TWCCJixINjeO" />
-      <listitem open="0" type="815" id="oGbXMam78Y7d" />
-      <listitem open="0" type="815" id="RKR300zARZ5L" />
-      <listitem open="0" type="815" id="loDRjZvsWv2d" />
-     </listitem>
      <listitem open="1" type="813" id="455zplSG3tI4" >
       <listitem open="0" type="814" id="SJ7HeAPOyanf" />
      </listitem>
@@ -1159,6 +1214,7 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
       <listitem open="1" type="829" id="U2gR1QKmJbTi" />
       <listitem open="1" type="829" id="1TAwMRb1zWT4" />
       <listitem open="1" type="829" id="PXDQPFe2nKyn" />
+      <listitem open="1" type="829" id="jyGrNtBveMwD" />
       <listitem open="1" type="829" id="a4HW8nvosL9o" />
       <listitem open="1" type="829" id="4Do0UdZzfr89" />
       <listitem open="1" type="829" id="bbz0dDEjgPED" />
@@ -1167,7 +1223,6 @@ This is the time, when for example unnecessary indexes can be dropped, if memory
       <listitem open="1" type="829" id="E7eJyuZ3dtb7" />
       <listitem open="1" type="829" id="5MYlNJP28PbH" />
       <listitem open="0" type="829" id="viATk2xgXJqj" />
-      <listitem open="1" type="829" id="VN0h5sCk5vXN" />
       <listitem open="1" type="829" id="Uq6uB5WQacp5" />
       <listitem open="1" type="829" id="13" />
       <listitem open="1" type="829" id="12" />
