@@ -136,6 +136,7 @@ VAMP_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VS_OBJ) $(VRES_OBJ) $(VRU
 VAMPIRE_OBJ = $(VAMP_BASIC) Global.o vampire.o
 SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
 TEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_SubstitutionTree.o
+RTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_retrieval.o
 DHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMap.o
 DHMSTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMultiset.o
 BHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_BinaryHeap.o
@@ -169,6 +170,8 @@ sat: $(SAT_OBJ)
 test: $(TEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(TEST_OBJ) -o test
 
+rtest: $(RTEST_OBJ)
+	$(CXX) $(CXXFLAGS) $(RTEST_OBJ) -o rtest
 
 
 dhtest: $(DHTEST_OBJ)
@@ -734,6 +737,35 @@ test_SubstitutionTree.o: Resolution/Passive.hpp Resolution/Unprocessed.hpp
 test_SubstitutionTree.o: Rule/CASC.hpp Rule/Prolog.hpp Rule/Index.hpp
 test_SubstitutionTree.o: Rule/Rule.hpp Rule/Index.hpp Rule/ProofAttempt.hpp
 test_SubstitutionTree.o: Test/Output.hpp
+test_retrieval.o: Debug/Tracer.hpp Lib/Array.hpp Debug/Assertion.hpp
+test_retrieval.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Random.hpp
+test_retrieval.o: Lib/Set.hpp Lib/Allocator.hpp Lib/Int.hpp
+test_retrieval.o: Lib/Comparison.hpp Lib/Timer.hpp Lib/Exception.hpp
+test_retrieval.o: Lib/Environment.hpp Lib/Vector.hpp Kernel/Signature.hpp
+test_retrieval.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/List.hpp
+test_retrieval.o: Lib/Map.hpp Lib/Hash.hpp Lib/Exception.hpp
+test_retrieval.o: Kernel/Clause.hpp Lib/Forwards.hpp Kernel/Forwards.hpp
+test_retrieval.o: Kernel/Unit.hpp Lib/List.hpp Kernel/Formula.hpp Lib/XML.hpp
+test_retrieval.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
+test_retrieval.o: Indexing/TermSharing.hpp Lib/Set.hpp Kernel/Term.hpp
+test_retrieval.o: Lib/Portability.hpp Lib/Comparison.hpp
+test_retrieval.o: Indexing/SubstitutionTree.hpp Lib/VirtualIterator.hpp
+test_retrieval.o: Lib/Int.hpp Lib/SkipList.hpp Lib/Random.hpp
+test_retrieval.o: Lib/BinaryHeap.hpp Lib/BacktrackData.hpp
+test_retrieval.o: Kernel/Forwards.hpp Kernel/DoubleSubstitution.hpp
+test_retrieval.o: Lib/DHMap.hpp Kernel/Term.hpp Indexing/Index.hpp
+test_retrieval.o: Lib/SmartPtr.hpp Shell/Options.hpp Shell/CommandLine.hpp
+test_retrieval.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp Lib/Array.hpp
+test_retrieval.o: Lib/Exception.hpp Shell/Token.hpp Shell/TPTP.hpp
+test_retrieval.o: Shell/TPTPParser.hpp Kernel/Unit.hpp Shell/Parser.hpp
+test_retrieval.o: Lib/IntNameTable.hpp Lib/Array.hpp Lib/Map.hpp
+test_retrieval.o: Shell/Property.hpp Shell/Preprocess.hpp
+test_retrieval.o: Shell/Statistics.hpp Shell/Refutation.hpp
+test_retrieval.o: Shell/TheoryFinder.hpp Resolution/ProofAttempt.hpp
+test_retrieval.o: Resolution/Active.hpp Kernel/ClauseQueue.hpp
+test_retrieval.o: Resolution/Passive.hpp Resolution/Unprocessed.hpp
+test_retrieval.o: Rule/CASC.hpp Rule/Prolog.hpp Rule/Index.hpp Rule/Rule.hpp
+test_retrieval.o: Rule/Index.hpp Rule/ProofAttempt.hpp Test/Output.hpp
 vampire.o: Debug/Tracer.hpp Lib/Random.hpp Lib/Set.hpp Lib/Allocator.hpp
 vampire.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp Lib/Timer.hpp
 vampire.o: Debug/Assertion.hpp Lib/Exception.hpp Lib/Environment.hpp

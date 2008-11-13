@@ -21,6 +21,8 @@
 #include "../Kernel/DoubleSubstitution.hpp"
 #include "Index.hpp"
 
+#include <iostream>
+#include "../Test/Output.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -36,7 +38,6 @@ namespace Indexing {
  */
 class SubstitutionTree
 {
-private:
 public:
   SubstitutionTree(int nodes);
   ~SubstitutionTree();
@@ -45,6 +46,13 @@ public:
   void remove(Literal* lit, Clause* cls);
   void insert(TermList* term, Clause* cls);
   void remove(TermList* term, Clause* cls);
+  
+  SLQueryResultIterator getUnifications(Literal* lit)
+  {
+    UnificationsIterator* core=new UnificationsIterator();
+    core->init(this, lit);
+    return SLQueryResultIterator(core);
+  }
   
 #ifdef VDEBUG
   string toString() const;
@@ -60,13 +68,24 @@ private:
   inline 
   int getRootNodeIndex(TermList* t)
   {
+    ASS(!t->isSpecialVar());
     if(t->isVar()) {
-      ASS(!t->isSpecialVar());
       return _numberOfTopLevelNodes-1;
     } else {
       return (int)t->term()->functor();
     }
   }
+  
+  struct LeafData {
+    LeafData(Clause* cls, void* d) : clause(cls), data(d) {}
+    inline
+    bool operator==(const LeafData& o)
+    { return clause==o.clause && data==o.data; }
+
+    Clause* clause;
+    void* data;
+  };
+  typedef VirtualIterator<LeafData> LDIterator;
   
   enum NodeAlgorithm 
   {
@@ -159,10 +178,10 @@ private:
 
     inline
     bool isLeaf() const { return true; };
-    virtual ClauseIterator allCaluses() = 0;
-    virtual void insert(Clause* cls) = 0;
-    virtual void remove(Clause* cls) = 0;
-    void loadClauses(ClauseIterator children);
+    virtual LDIterator allChildren() = 0;
+    virtual void insert(LeafData ld) = 0;
+    virtual void remove(LeafData ld) = 0;
+    void loadChildren(LDIterator children);
   };
    
   //These classes and methods are defined in SubstitutionTree_Nodes.cpp
@@ -218,10 +237,8 @@ private:
   }
   
   
-  void insert(int number,TermList* args,Clause* cls);
-  void remove(int number,TermList* args,Clause* cls);
-  void insert(Node** node,BindingQueue& binding,Clause* clause);
-  void remove(Node** node,BindingQueue& binding,Clause* clause);
+  void insert(Node** node,BindingQueue& binding,LeafData ld);
+  void remove(Node** node,BindingQueue& binding,LeafData ld);
   static bool sameTop(const TermList* ss,const TermList* tt);
 
   /** Number of top-level nodes */
@@ -231,36 +248,18 @@ private:
   /** Array of nodes */
   Node** _nodes;
   
-public:
   class ResultIterator
   : public IteratorCore<SLQueryResult>
   {
   public:
-    bool hasNext()
-    {
-      while(!leafClauses.hasNext() || findNextLeaf()) {}
-      return leafClauses.hasNext();
-    }
-    SLQueryResult next()
-    {
-      while(!leafClauses.hasNext() || findNextLeaf()) {}
-      ASS(leafClauses.hasNext());
-      return SLQueryResult(leafClauses.next(), &subst);
-    }
-  private:
-    bool inLeaf;
-    ClauseIterator leafClauses;
-    DoubleSubstitution subst;
-    BindingQueue bQueue;
-    Stack<NodeIterator> nodeIterators;
-    Stack<BacktrackData> btStack;
-  protected:
-    ResultIterator() : inLeaf(false), leafClauses(ClauseIterator::getEmpty()),
-    	subst(), nodeIterators(4), btStack(4) 
+    ResultIterator() : subst(), inLeaf(false), ldIterator(LDIterator::getEmpty()),
+    	nodeIterators(4), btStack(4) 
     {
     }
+    
     void init(SubstitutionTree* t, Literal* query)
     {
+      CALL("SubstitutionTree::ResultIterator::init");
       Node* root=t->_nodes[t->getRootNodeIndex(query)];
       t->getBindings(query, bQueue);
 
@@ -268,8 +267,10 @@ public:
       enter(root, bd);
       bd.drop();
     }
+    
     void init(SubstitutionTree* t, TermList* query)
     {
+      CALL("SubstitutionTree::ResultIterator::init");
       Node* root=t->_nodes[t->getRootNodeIndex(query)];
       t->getBindings(query, bQueue);
 
@@ -277,17 +278,78 @@ public:
       enter(root, bd);
       bd.drop();
     }
+    
+    bool hasNext()
+    {
+      CALL("SubstitutionTree::ResultIterator::hasNext");
+      
+      while(!ldIterator.hasNext() && findNextLeaf()) {}
+      return ldIterator.hasNext();
+    }
+    
+    SLQueryResult next()
+    {
+      CALL("SubstitutionTree::ResultIterator::next");
+      
+      while(!ldIterator.hasNext() && findNextLeaf()) {}
+      ASS(ldIterator.hasNext());
+      
+      LeafData ld=ldIterator.next();
+      return SLQueryResult(static_cast<Literal*>(ld.data), ld.clause, &subst);
+    }
+  protected:
     bool findNextLeaf();
     bool enter(Node* n, BacktrackData& bd);
     bool associate(TermList qt, TermList nt, BacktrackData& bd);
-    virtual NodeIterator getNodeIterator(IntermediateNode* n) = 0;
+    virtual NodeIterator getNodeIterator(IntermediateNode* n, TermList qt) = 0;
     virtual bool handleMismatch(TermList qt, TermList nt, BacktrackData& bd) = 0;
-    virtual ClauseIterator getIteratorSuffix()
+    virtual LDIterator getIteratorSuffix()
     {
       //TODO make it used
-      return ClauseIterator::getEmpty();
+      return LDIterator::getEmpty();
+    }
+    
+  protected:
+    DoubleSubstitution subst;
+  private:
+    bool inLeaf;
+    LDIterator ldIterator;
+    BindingQueue bQueue;
+    Stack<NodeIterator> nodeIterators;
+    Stack<BacktrackData> btStack;
+  };
+  
+  class UnificationsIterator 
+  : public ResultIterator
+  {
+    NodeIterator getNodeIterator(IntermediateNode* n, TermList qt)
+    {
+      CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
+      if(qt.isVar()) {
+	return n->variableChildren();
+      } else {
+	Node** match=n->childByTop(&qt, false);
+	if(match) {
+	  return NodeIterator(
+		  new CatIterator<Node**>(
+			  NodeIterator(new SingletonIterator<Node**>(match)),
+			  n->variableChildren()
+			  ));
+	} else {
+	  return n->variableChildren();
+	}
+      }
+    }
+    inline
+    bool handleMismatch(TermList qt, TermList nt, BacktrackData& bd)
+    {
+      CALL("SubstitutionTree::UnificationsIterator::handleMismatch");
+      cout<<"mismatch of "<<Test::Output::singleTermListToString(&qt)
+      	<<" and "<<Test::Output::singleTermListToString(&nt)<<endl; 
+      return subst.backtrackableUnifyTerms(qt,0,nt,1,bd);
     }
   };
+
 
 }; // class SubstiutionTree
 

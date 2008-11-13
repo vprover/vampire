@@ -99,44 +99,44 @@ class SubstitutionTree::UListLeaf
 {
 public:
   inline
-  UListLeaf() : _clauses(0), _size(0) {}
+  UListLeaf() : _children(0), _size(0) {}
   inline
-  UListLeaf(const TermList* ts) : Leaf(ts), _clauses(0), _size(0) {}
+  UListLeaf(const TermList* ts) : Leaf(ts), _children(0), _size(0) {}
   inline
   ~UListLeaf()
   {
-    if(_clauses) {
-      _clauses->destroy();
+    if(_children) {
+      _children->destroy();
     }
   }
 
   inline
   NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
   inline
-  bool isEmpty() const { return !_clauses; }
+  bool isEmpty() const { return !_children; }
   inline
   int size() const { return _size; }
   inline
-  ClauseIterator allCaluses()
+  LDIterator allChildren()
   {
-    return ClauseIterator(new ProxyIterator<Clause*,ClauseList::Iterator>(
-	    ClauseList::Iterator(_clauses)));
+    return LDIterator(new ProxyIterator<LeafData,LDList::Iterator>(
+	    LDList::Iterator(_children)));
   }
   inline
-  void insert(Clause* cls) 
+  void insert(LeafData ld) 
   {
-    _clauses=new ClauseList(cls, _clauses);
+    _children=new LDList(ld, _children);
     _size++;
   }
   inline
-  void remove(Clause* cls)
+  void remove(LeafData ld)
   {
-    _clauses=_clauses->remove(cls);
+    _children=_children->remove(ld);
     _size--;
   }
 private:
-  typedef List<Clause*> ClauseList;
-  ClauseList* _clauses;
+  typedef List<LeafData> LDList;
+  LDList* _children;
   int _size;
 };
 
@@ -172,6 +172,8 @@ public:
   }
   Node** childByTop(TermList* t, bool canCreate)
   {
+    CALL("SubstitutionTree::SListIntermediateNode::childByTop");
+    
     Node** res;
     bool found=_nodes.getPosition(t,res,canCreate);
     if(!found) {
@@ -195,6 +197,8 @@ private:
   public:
     static Comparison compare(TermList* ts1,TermList* ts2)
     {
+      CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
+      
       if(ts1->isVar()) {
 	if(ts2->isVar()) {
 	  return Int::compare(ts1->var(), ts2->var());
@@ -234,71 +238,35 @@ public:
   inline
   NodeAlgorithm algorithm() const { return SKIP_LIST; }
   inline
-  bool isEmpty() const { return _clauses.isEmpty(); }
+  bool isEmpty() const { return _children.isEmpty(); }
 #ifdef VDEBUG
   inline
-  int size() const { return _clauses.size(); }
+  int size() const { return _children.size(); }
 #endif
   inline
-  ClauseIterator allCaluses()
+  LDIterator allChildren()
   {
-    return ClauseIterator(new ProxyIterator<Clause*,ClauseSkipList::Iterator>(
-	    ClauseSkipList::Iterator(_clauses)));
+    return LDIterator(new ProxyIterator<LeafData,LDSkipList::Iterator>(
+	    LDSkipList::Iterator(_children)));
   }
-  void insert(Clause* cls) { _clauses.insert(cls); }
-  void remove(Clause* cls) { _clauses.remove(cls); }
+  void insert(LeafData ld) { _children.insert(ld); }
+  void remove(LeafData ld) { _children.remove(ld); }
 private:
-  class ClausePtrComparator
+  class LDComparator
   {
   public:
     inline
-    static Comparison compare(Clause* cls1, Clause* cls2)
+    static Comparison compare(const LeafData& ld1, const LeafData& ld2)
     {
-      return cls1 < cls2 ? LESS : cls1 == cls2 ? EQUAL : GREATER;
+      return (ld1.clause<ld2.clause)? LESS :
+      	(ld1.clause>ld2.clause)? GREATER :
+      	(ld1.data<ld2.data)? LESS : (ld1.data==ld2.data) ? EQUAL : GREATER;
     }
   };
-  typedef SkipList<Clause*,ClausePtrComparator> ClauseSkipList;
-  ClauseSkipList _clauses;
+  typedef SkipList<LeafData,LDComparator> LDSkipList;
+  LDSkipList _children;
 
   friend class SubstitutionTree;
-};
-
-class SubstitutionTree::SetLeaf
-: public SubstitutionTree::Leaf
-{
-public:
-  SetLeaf() {}
-  SetLeaf(const TermList* ts) : Leaf(ts) {}
-
-  static SetLeaf* assimilate(Leaf* orig); 
-
-  inline
-  NodeAlgorithm algorithm() const { return SET; }
-  inline
-  bool isEmpty() const { return _clauses.isEmpty(); }
-  inline
-  ClauseIterator allCaluses()
-  {
-    return ClauseIterator(new ProxyIterator<Clause*,ClauseMultiset::Iterator>(
-	    ClauseMultiset::Iterator(_clauses)));
-  }
-  inline
-  void insert(Clause* cls) { _clauses.insert(cls); }
-  inline
-  void remove(Clause* cls) { _clauses.remove(cls); }
-private:
-  class PtrHash
-  {
-  public:
-    inline
-    static unsigned hash(void* p)
-    {
-      return (unsigned)(reinterpret_cast<size_t>(p)>>2);
-    }
-  };
-  typedef DHMultiset<Clause*,PtrHash> ClauseMultiset;
-  ClauseMultiset _clauses;
-
 };
 
 
@@ -364,6 +332,8 @@ void SubstitutionTree::UListIntermediateNode::remove(TermList* t)
 SubstitutionTree::SListIntermediateNode* SubstitutionTree::SListIntermediateNode
 	::assimilate(IntermediateNode* orig) 
 {
+  CALL("SubstitutionTree::SListIntermediateNode::assimilate");
+
   SListIntermediateNode* res=new SListIntermediateNode(&orig->term);
   res->loadChildren(orig->allChildren()); 
   orig->term.makeEmpty();
@@ -377,34 +347,21 @@ SubstitutionTree::SListIntermediateNode* SubstitutionTree::SListIntermediateNode
  */
 SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig) 
 {
+  CALL("SubstitutionTree::SListLeaf::assimilate");
+
   SListLeaf* res=new SListLeaf(&orig->term);
-  res->loadClauses(orig->allCaluses()); 
+  res->loadChildren(orig->allChildren()); 
   orig->term.makeEmpty();
   delete orig;
   return res;
 }
-
-/**
- * Take a Leaf, destroy it, and return SetLeaf 
- * with the same content.
- */
-SubstitutionTree::SetLeaf* SubstitutionTree::SetLeaf::assimilate(Leaf* orig) 
-{
-  SetLeaf* res=new SetLeaf(&orig->term);
-  res->loadClauses(orig->allCaluses()); 
-  orig->term.makeEmpty();
-  delete orig;
-  return res;
-}
-
 
 void SubstitutionTree::ensureLeafEfficiency(Leaf** leaf)
 {
   CALL("SubstitutionTree::ensureLeafEfficiency");
 
   if( (*leaf)->algorithm()==UNSORTED_LIST && (*leaf)->size()>5 ) {
-    //*leaf=SListLeaf::assimilate(*leaf);
-    *leaf=SetLeaf::assimilate(*leaf);
+    *leaf=SListLeaf::assimilate(*leaf);
   }
 }
 

@@ -59,6 +59,7 @@ public:
       checked_delete(oldObj);
       delete oldCnt;
     }
+    return *this;
   }
   
   inline

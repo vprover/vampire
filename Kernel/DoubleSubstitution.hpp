@@ -42,10 +42,9 @@ public:
   bool unifyTerms(TermList* ts1,int index1,TermList* ts2,int index2);
   bool complementary(Literal* lit1,int index1,Literal* lit2,int index2);
   unsigned getVar(unsigned var,int index);
-  
-  class BacktrackDataObj;
-  typedef BacktrackDataObj* BacktrackData;
-  void backtrackableJoin(const DoubleSubstitution& subst, BacktrackData& bd);
+
+  void backtrackableBind(unsigned v,int vindex,TermList ts,int tindex,BacktrackData& bd);
+  bool backtrackableUnifyTerms(TermList ts1,int index1,TermList ts2,int index2,BacktrackData& bd);
   
 #if VDEBUG
   string toString() const;
@@ -98,17 +97,6 @@ private:
     };
   };
 
-  /**
-   * Bind @b v with the index @b vindex to the content of @b b
-   * @pre (v,vindex) must previously be unbound
-   */
-  void bind(unsigned v,int vindex,const Binding& b)
-  {
-    CALL("DoubleSubstitution::bind/3");
-    bool inserted=_bank.insert(VarSpec(v,vindex), b);
-    ASS(inserted);
-  }
-
   /** 
    * If variable @b var at index @b vindex is bound, return true and
    * assign the binging to result. Otherwise return false. 
@@ -130,6 +118,18 @@ private:
 
   bool unify(TermList* ts1,int index1,TermList* ts2,int index2);
   bool occurs(unsigned v1,int index1,TermList* t2,int index2);
+
+  class BindBacktrackObject: public BacktrackObject {
+  public:
+    BindBacktrackObject(DoubleSubstitution* ds, unsigned v,int vindex)
+    : ds(ds), varSpec(v,vindex) {}
+    void backtrack() { ds->unbind(varSpec.var, varSpec.index); }
+  private:
+    DoubleSubstitution* ds;
+    VarSpec varSpec;
+  };
+  
+  bool backtrackableUnify(TermList* ts1,int index1,TermList* ts2,int index2, BacktrackData& bd);
 }; // class DoubleSubstitution
 
 

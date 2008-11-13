@@ -89,6 +89,7 @@ public:
 	  delete oldCore;
 	}
     }
+    return *this;
   }
 
   /** True if there exists next element */
@@ -115,7 +116,7 @@ class SingletonIterator
 {
 public:
   explicit SingletonIterator(T el) : _finished(false), _el(el) {}
-  bool hasNext() { return _finished; };
+  bool hasNext() { return !_finished; };
   T next() { ASS(!_finished); _finished=true; return _el; };
 private:
   bool _finished;

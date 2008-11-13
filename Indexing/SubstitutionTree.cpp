@@ -81,13 +81,13 @@ void SubstitutionTree::insert(Literal* lit, Clause* cls)
 { 
   BindingQueue bq;
   getBindings(lit, bq);
-  insert(_nodes+getRootNodeIndex(lit), bq, cls);
+  insert(_nodes+getRootNodeIndex(lit), bq, LeafData(cls, lit));
 }
 void SubstitutionTree::remove(Literal* lit, Clause* cls)
 {
   BindingQueue bq;
   getBindings(lit, bq);
-  remove(_nodes+getRootNodeIndex(lit), bq, cls);
+  remove(_nodes+getRootNodeIndex(lit), bq, LeafData(cls, lit));
 }
 
 void SubstitutionTree::insert(TermList* term, Clause* cls)
@@ -98,7 +98,7 @@ void SubstitutionTree::insert(TermList* term, Clause* cls)
   BindingQueue bq;
   getBindings(term, bq);
   
-  insert(_nodes+getRootNodeIndex(term), bq, cls);
+  insert(_nodes+getRootNodeIndex(term), bq, LeafData(cls, reinterpret_cast<void*&>(*term)));
 }
 
 void SubstitutionTree::remove(TermList* term, Clause* cls)
@@ -109,14 +109,14 @@ void SubstitutionTree::remove(TermList* term, Clause* cls)
   BindingQueue bq;
   getBindings(term, bq);
   
-  remove(_nodes+getRootNodeIndex(term), bq, cls);
+  remove(_nodes+getRootNodeIndex(term), bq, LeafData(cls, reinterpret_cast<void*&>(*term)));
 }
 
 /**
  * Auxiliary function for substitution tree insertion.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,Clause* clause)
+void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
 {
   CALL("SubstitutionTree::insert/3");
   
@@ -130,7 +130,7 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,Clause* clause)
   if(bh.isEmpty()) {
     ASS((*pnode)->isLeaf());
     ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
-    static_cast<Leaf*>(*pnode)->insert(clause);
+    static_cast<Leaf*>(*pnode)->insert(ld);
     return;
   }
 
@@ -158,7 +158,7 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,Clause* clause)
     }
     Leaf* lnode=createLeaf(term);
     *pnode=lnode;
-    lnode->insert(clause);
+    lnode->insert(ld);
     
     ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pparent));
     return;
@@ -175,7 +175,7 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,Clause* clause)
       ASS((*pnode)->isLeaf());
       ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
       Leaf* leaf = static_cast<Leaf*>(*pnode);
-      leaf->insert(clause);
+      leaf->insert(ld);
       return;
     }
     goto start;
@@ -259,7 +259,7 @@ bool SubstitutionTree::sameTop(const TermList* ss,const TermList* tt)
  * Remove a clause from the substitution tree.
  * @since 16/08/2008 flight San Francisco-Seattle
  */
-void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,Clause* clause)
+void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
 {
   CALL("SubstitutionTree::remove-2");
   
@@ -329,7 +329,7 @@ void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,Clause* clause)
 
   
   Leaf* lnode = static_cast<Leaf*>(*pnode);
-  lnode->remove(clause);
+  lnode->remove(ld);
   ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
   
   while( (*pnode)->isEmpty() ) {
@@ -351,27 +351,6 @@ void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,Clause* clause)
 
 
 #if VDEBUG
-
-/**
- * Get string representation of just the header of given term.
- * 
- * This us useful when there's something wrong with the term and
- * Test::Output::toString causes segmentation faults.
- */
-string SingleTermListToString(const TermList* ts)
-{
-  if(ts->isOrdinaryVar()) {
-    return string("X")+Int::toString(ts->var());
-  } else if(ts->isSpecialVar()) {
-    return string("S")+Int::toString(ts->var());
-  } else if(ts->isEmpty()) {
-    return "EMPTY";
-  }
-  
-  //term is REF
-  const Term* term=ts->term();
-  return Test::Output::toString(term);
-}
 
 string getIndentStr(int n)
 {
@@ -406,15 +385,15 @@ string SubstitutionTree::toString() const
 	continue;
       }
       if(node->term.content()) {
-	res+=getIndentStr(indent)+SingleTermListToString(&node->term)+"\n";
+	res+=getIndentStr(indent)+Test::Output::singleTermListToString(&node->term)+"\n";
       }
 
       if(node->isLeaf()) {
 	Leaf* lnode = static_cast<Leaf*>(node);
-	ClauseIterator cli(lnode->allCaluses());
+	LDIterator ldi(lnode->allChildren());
 	
-	while(cli.hasNext()) {
-	  res+=getIndentStr(indent) + "Cl: " + Test::Output::toString(cli.next()) + "\n";
+	while(ldi.hasNext()) {
+	  res+=getIndentStr(indent) + "Cl: " + Test::Output::toString(ldi.next().clause) + "\n";
 	}
       } else {
 	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
@@ -433,6 +412,8 @@ string SubstitutionTree::toString() const
 
 SubstitutionTree::Node::~Node()
 {
+  CALL("SubstitutionTree::Node::~Node");
+
   if(term.tag()!=REF || term.term()->shared()) {
     return;
   }
@@ -478,88 +459,97 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 {
   CALL("SubstitutionTree::IntermediateNode::loadChildren");
+
   while(children.hasNext()) {
-	Node* ext=*children.next();
-	Node** own=childByTop(&ext->term, true);
-	ASS(! *own);
-	*own=ext;
+    Node* ext=*children.next();
+    Node** own=childByTop(&ext->term, true);
+    ASS(! *own);
+    *own=ext;
   }
 }
 
-void SubstitutionTree::Leaf::loadClauses(ClauseIterator clauses)
+void SubstitutionTree::Leaf::loadChildren(LDIterator children)
 {
   CALL("SubstitutionTree::Leaf::loadClauses");
-  while(clauses.hasNext()) {
-	Clause* cls=clauses.next();
-	insert(cls);
+
+  while(children.hasNext()) {
+    LeafData ld=children.next();
+    insert(ld);
   }
 }
 
 
 bool SubstitutionTree::ResultIterator::findNextLeaf()
 {
+  CALL("SubstitutionTree::ResultIterator::findNextLeaf");
+
   if(inLeaf) {
-	//Leave the current leaf
-	btStack.pop().backtrack();
-	inLeaf=false;
+    //Leave the current leaf
+    btStack.pop().backtrack();
+    inLeaf=false;
   }
-  
-  //now btStack and nodeIterator stacks should contain
-  //the same number of elements
-  
+
+  ASS(btStack.length()+1==nodeIterators.length());
+
   do {
-	while(!nodeIterators.isEmpty() && !nodeIterators.top().hasNext()) {
-	  //backtrack undos everything that enter(...) method has done,
-	  //so it also pops one item out of the nodeIterators stack
-	  btStack.pop().backtrack();
-	}
-	if(nodeIterators.isEmpty()) {
-	  return false;
-	}
-	Node* n=*nodeIterators.top().next();
-	BacktrackData bd;
-	bool success=enter(n,bd);
-	if(!success) {
-	  bd.backtrack();
-	  continue;
-	} else {
-	  btStack.push(bd);
-	}
+    while(!nodeIterators.top().hasNext() && !btStack.isEmpty()) {
+      //backtrack undos everything that enter(...) method has done,
+      //so it also pops one item out of the nodeIterators stack
+      btStack.pop().backtrack();
+    }
+    if(!nodeIterators.top().hasNext()) {
+      return false;
+    }
+    Node* n=*nodeIterators.top().next();
+    BacktrackData bd;
+    bool success=enter(n,bd);
+    if(!success) {
+      bd.backtrack();
+      continue;
+    } else {
+      btStack.push(bd);
+    }
   } while(!inLeaf);
   return true;
 }
 
 bool SubstitutionTree::ResultIterator::enter(Node* n, BacktrackData& bd)
 {
+  CALL("SubstitutionTree::ResultIterator::enter");
+
   if(!n->term.isEmpty()) {
-	//n is proper node, not a root
-	Binding bind=bQueue.top();
-	TermList qt;
-	subst.apply(bind.term, 0, qt);
+    //n is proper node, not a root
+    Binding bind=bQueue.top();
+    TermList qt;
+    subst.apply(bind.term, 0, qt);
 
-	TermList nt;
-	subst.apply(&n->term, 1, nt);
+    TermList nt;
+    subst.apply(&n->term, 1, nt);
 
-	bool success=associate(qt, nt, bd);
+    bool success=associate(qt, nt, bd);
 
-	if(!success) {
-	  return false;
-	}
+    if(!success) {
+      return false;
+    }
 
-	bQueue.backtrackablePop(bd);
+    bQueue.backtrackablePop(bd);
   }
   if(n->isLeaf()) {
-	leafClauses=static_cast<Leaf*>(n)->allCaluses();
-	inLeaf=true;
+    ldIterator=static_cast<Leaf*>(n)->allChildren();
+    inLeaf=true;
   } else {
-	NodeIterator nit=getNodeIterator(static_cast<IntermediateNode*>(n));
-	nodeIterators.backtrackablePush(nit, bd);
+    ASS(!bQueue.isEmpty());
+    TermList qt=*bQueue.top().term;
+    NodeIterator nit=getNodeIterator(static_cast<IntermediateNode*>(n), qt);
+    nodeIterators.backtrackablePush(nit, bd);
   }
   return true;
 }
 
 bool SubstitutionTree::ResultIterator::associate(TermList qt, TermList nt, BacktrackData& bd)
 {
+  CALL("SubstitutionTree::ResultIterator::associate");
+
   BacktrackData localBd;
   TermList* ss=&nt;
   TermList* tt=&qt;
@@ -595,8 +585,8 @@ bool SubstitutionTree::ResultIterator::associate(TermList qt, TermList nt, Backt
         } else {
           bool handled=handleMismatch(*tt, *ss, localBd);
           if(!handled) {
-    	mismatch=true;
-    	break;
+            mismatch=true;
+            break;
           }
         }
       }
@@ -613,8 +603,8 @@ bool SubstitutionTree::ResultIterator::associate(TermList qt, TermList nt, Backt
     }
   }
   if(mismatch) {
-	localBd.backtrack();
-	return false;
+    localBd.backtrack();
+    return false;
   }
   localBd.commitTo(bd);
   return true;

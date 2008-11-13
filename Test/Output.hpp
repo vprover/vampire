@@ -34,6 +34,16 @@ public:
   static string toString(const Literal* l);
   static string toString(const TermList* ts);
   static string toString(const Clause* c);
+
+  /** Convert only the first item of a term list to string */
+  static string singleTermListToString(const TermList* ts)
+  {
+    TermList aux[2];
+    aux[0].makeEmpty();
+    aux[1]=*ts;
+    return Test::Output::toString(&aux[1]);
+  }
+  
 };
 
 }

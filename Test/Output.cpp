@@ -95,3 +95,4 @@ string Output::toString(const Clause* c)
   return r + "])";
 } // Output::toString(const Clause*)
 
+

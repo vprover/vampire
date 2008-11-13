@@ -27,7 +27,7 @@ struct SLQueryResult
   
   Literal* literal;
   Clause* clause;
-  DoubleSubstitution* substitution;
+  const DoubleSubstitution* substitution;
 };
 
 

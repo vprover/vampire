@@ -42,7 +42,9 @@ void DoubleSubstitution::bind(unsigned v,int vindex,TermList t,int tindex)
   binding.index = tindex;
   binding.termref = t;
 
-  bind(v,vindex,binding);
+  VarSpec vs(v,vindex);
+  bool inserted=_bank.insert(vs, binding);
+  ASS(inserted);
 
 } // DoubleSubstitution::bind
 
@@ -351,8 +353,7 @@ void DoubleSubstitution::apply(TermList* arg,int index,TermList& to)
 
   deref(*arg,index,ts,ind);
   if (ts.isVar()) {
-    // unbound variable
-    to.makeVar(getVar(ts.var(),ind));
+    to=ts;
     return;
   }
 
@@ -371,41 +372,119 @@ void DoubleSubstitution::apply(TermList* arg,int index,TermList& to)
   to.setTerm(Term::create(t,tt.array()));
 } // DoubleSubstitution::apply
 
+
 /**
- * When collecting the term resulting from the application of the
- * substitution, return the variable number in the new term
- * corresponding to (@b var,@b index).
- * @since 31/03/2008 flight Manchester-Budapest
+ * Bind @b v with the index @b vindex to term @b t with the index @b tindex
+ * @pre (v,vindex) must previously be unbound
+ * @since 04/01/2008 flight Manchester-Murcia
  */
-unsigned DoubleSubstitution::getVar(unsigned var,int index)
+void DoubleSubstitution::backtrackableBind(unsigned v,int vindex,
+	TermList t,int tindex,BacktrackData& bd)
 {
-  CALL("DoubleSubstitution::getVar");
+  CALL("DoubleSubstitution::bind/4");
+  Binding binding;
 
-  //TODO: I'm not sure what exactly is this method supposed to do...
+  binding.index = tindex;
+  binding.termref = t;
   
-  Binding b;
-  bool found=getBinding(var,index,b);
-  if(found) {
-    ASS(b.termref.isVar());
-  } else {
-    //Old behavior was preventing the variable from being bound by setting
-    //special timestamp, here we bind it to an unbound variable.
-    //Does it change anything?
-    b.index=index;
-    b.termref.makeVar(_nextVar++);
-    bind(var, index, b);
-  }
-  return b.termref.var();
+  bind(v,vindex,t,tindex);
+  
+  bd.addBacktrackObject(new BindBacktrackObject(this,v,vindex));
 
-//Original code was:
-//  Binding& bind = get(var,index);
-//  ASS(bind.timestamp != _timestamp); // unbound
-//  if (bind.timestamp != _timestamp + 1) {
-//    bind.timestamp = _timestamp+1;
-//    bind.termref.makeVar(_nextVar++);
-//  }
-//  return bind.termref.var();
-} // DoubleSubstitution::getVar
+} // DoubleSubstitution::bind
+
+/**
+ * Unify ts1/index1 with ts2/index2 and return the result.
+ * @since 05/01/2008 Torrevieja
+ */
+bool DoubleSubstitution::backtrackableUnifyTerms(TermList ts1,int index1,
+	TermList ts2,int index2,BacktrackData& bd)
+{
+  TermList aux[4];
+  aux[0].makeEmpty();
+  aux[1]=ts1;
+  aux[2].makeEmpty();
+  aux[3]=ts2;
+  return backtrackableUnify(&aux[1],index1,&aux[3],index2,bd);
+}
+
+/**
+ * Unify non-empty lists ts1/index1 and ts2/index2 and return the result.
+ */
+bool DoubleSubstitution::backtrackableUnify(TermList* ts1,int index1,
+	TermList* ts2,int index2,BacktrackData& bd)
+{
+  CALL("DoubleSubstitution::unify(TermList...)");
+
+  ASS(! ts1->isEmpty());
+  ASS(! ts2->isEmpty());
+
+  static Stack<TermList*> terms(32);
+  static Stack<int> indexes(32);
+  terms.reset();
+  indexes.reset();
+
+  for (;;) {
+    // dereference ts1 and ts2
+    TermList ss1;
+    int i1;
+    deref(*ts1,index1,ss1,i1);
+    TermList ss2;
+    int i2;
+    deref(*ts2,index2,ss2,i2);
+
+    if (ss1.isVar()) {
+      if (ss2.isVar()) {
+	// ss2 is a non-bound variable and b2 a binding for it
+	if (i1 != i2 || ss1.var() != ss2.var()) {
+	  backtrackableBind(ss1.var(),i1,ss2,i2,bd);
+	}
+      }
+      else { // ss2 is non-var
+	Term* s2 = ss2.term();
+	if (! s2->ground() && 
+	    occurs(ss1.var(),i1,s2->args(),i2)) {
+	  return false;
+	}
+	backtrackableBind(ss1.var(),i1,ss2,i2,bd);
+      }
+    }
+    else if (ss2.isVar()) { // ss1 is non-variable
+      Term* s1 = ss1.term();
+      if (! s1->ground() &&
+	  occurs(ss2.var(),i2,s1->args(),i1)) {
+	return false;
+      }
+      backtrackableBind(ss2.var(),i2,ss1,i1,bd);
+    }
+    else { // both non-variables
+      Term* s1 = ss1.term();
+      Term* s2 = ss2.term();
+      if (s1->functor() != s2->functor()) {
+	return false;
+      }
+      if (s1->arity() != 0) {
+	terms.push(s1->args());
+	terms.push(s2->args());
+	indexes.push(i1);
+	indexes.push(i2);
+      }
+    }
+    ts1 = ts1->next();
+    if (! ts1->isEmpty()) {
+      ASS(! ts2->isEmpty());
+      ts2 = ts2->next();
+      continue;
+    }
+    if (terms.isEmpty()) {
+      return true;
+    }
+    ts1 = terms.pop();
+    ts2 = terms.pop();
+    index1 = indexes.pop();
+    index2 = indexes.pop();
+  }
+} // DoubleSubstitution::unify
 
 
 /**
