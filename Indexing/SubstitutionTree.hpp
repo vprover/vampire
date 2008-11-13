@@ -326,7 +326,7 @@ private:
     {
       CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
       if(qt.isVar()) {
-	return n->variableChildren();
+	return n->allChildren();
       } else {
 	Node** match=n->childByTop(&qt, false);
 	if(match) {
