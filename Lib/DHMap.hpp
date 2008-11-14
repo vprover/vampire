@@ -202,6 +202,35 @@ public:
     }
     return !exists;
   }
+
+  /** 
+   * Store @b value under @key. Return true if nothing was
+   * previously stored under @key. Otherwise, 
+   * return false.
+   */
+  bool set(Key key, const Val& val)
+  {
+    CALL("DHMap::insert");
+    ensureExpanded();
+    Entry* e=findEntryToInsert(key);
+    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    if(!exists) {
+      if(e->_info.timestamp!=_timestamp) {
+	e->_info.timestamp=_timestamp;
+	//no collision has occured on this entry while this _timestamp is set
+	e->_info.collision=0;
+      } else {
+	ASS(e->_info.deleted);
+	_deleted--;
+      }
+      e->_info.deleted=0;
+      e->_key=key;
+      _size++;
+    }
+    e->_val=val;
+    return !exists;
+  }
+  
   
   /**
    * If there is a value stored under the @b key, remove

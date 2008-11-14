@@ -23,6 +23,7 @@ public:
   ~TermSharing();
   Term* insert(Term*);
   Literal* insert(Literal*);
+  Term* insertRecurrently(Term*);
   /** The hash function of this term */
   inline static unsigned hash(const Literal* l)
   { return l->hash(); }

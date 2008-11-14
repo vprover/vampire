@@ -37,14 +37,18 @@ void DoubleSubstitution::reset()
 void DoubleSubstitution::bind(unsigned v,int vindex,TermList t,int tindex)
 {
   CALL("DoubleSubstitution::bind/4");
+  ASS( vindex!=UNBOUND_INDEX);
+
+  VarSpec vs(v,vindex);
   Binding binding;
+
+  //check that the variable is unbound
+  ASS( !_bank.find(vs,binding) || binding.index==UNBOUND_INDEX);
 
   binding.index = tindex;
   binding.termref = t;
 
-  VarSpec vs(v,vindex);
-  bool inserted=_bank.insert(vs, binding);
-  ASS(inserted);
+  _bank.set(vs, binding);
 
 } // DoubleSubstitution::bind
 
@@ -61,6 +65,24 @@ void DoubleSubstitution::unbind(unsigned v,int vindex)
   
   ASS(found);
 } // DoubleSubstitution::unbind
+
+/** 
+ * If variable @b var at index @b vindex is bound, return true and
+ * assign the binging to result. Otherwise assign unique number 
+ * of the variable together with UNBOUND_INDEX to result and return false. 
+ */
+bool DoubleSubstitution::getBinding(unsigned var,int vindex, Binding& result)
+{
+  CALL("DoubleSubstitution::getBinding");
+  bool found=_bank.find(VarSpec(var,vindex), result);
+  if(!found) {
+    result.index=UNBOUND_INDEX;
+    result.termref.makeVar(_nextVar++);
+    _bank.insert(VarSpec(var, vindex), result);
+  }
+  return result.index!=UNBOUND_INDEX;
+}
+
 
 #if VDEBUG
 /**
@@ -342,7 +364,6 @@ Literal* DoubleSubstitution::apply(Literal* lit,int index)
 /**
  * Apply the substitution to the argument of a term @b arg/@ index and save
  * the result (shared term) in the term argument @b to.
- * @since 07/01/2007 Torrevieja
  */
 void DoubleSubstitution::apply(TermList* arg,int index,TermList& to)
 {
@@ -353,12 +374,15 @@ void DoubleSubstitution::apply(TermList* arg,int index,TermList& to)
 
   deref(*arg,index,ts,ind);
   if (ts.isVar()) {
-    to=ts;
+    Binding unboundBinding;
+    bool res=getBinding(ts.var(), ind, unboundBinding);
+    ASS(!res && unboundBinding.index==UNBOUND_INDEX);
+    to=unboundBinding.termref;
     return;
   }
 
   Term* t = ts.term();
-  if (t->ground()) {
+  if (t->shared() && t->ground()) {
     to.setTerm(t);
     return;
   }
@@ -381,11 +405,7 @@ void DoubleSubstitution::apply(TermList* arg,int index,TermList& to)
 void DoubleSubstitution::backtrackableBind(unsigned v,int vindex,
 	TermList t,int tindex,BacktrackData& bd)
 {
-  CALL("DoubleSubstitution::bind/4");
-  Binding binding;
-
-  binding.index = tindex;
-  binding.termref = t;
+  CALL("DoubleSubstitution::backtrackableBind");
   
   bind(v,vindex,t,tindex);
   

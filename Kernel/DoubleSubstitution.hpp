@@ -38,6 +38,7 @@ public:
   void unbind(unsigned var,int index);
   Literal* apply(Literal* lit,int index);
   void apply(TermList* ts,int index,TermList& to);
+  void apply(TermList& to, int index);
   bool unify(Literal* lit1,int index1,Literal* lit2,int index2);
   bool unifyTerms(TermList* ts1,int index1,TermList* ts2,int index2);
   bool complementary(Literal* lit1,int index1,Literal* lit2,int index2);
@@ -50,8 +51,8 @@ public:
   string toString() const;
 #endif
 private:
-  void deref(TermList from,int indexFrom,TermList& to,int& indexTo); 
-
+  static const int UNBOUND_INDEX=0x3FFFFFFF;
+  
   /** structure storing the current binding */
   struct Binding
   {
@@ -97,15 +98,8 @@ private:
     };
   };
 
-  /** 
-   * If variable @b var at index @b vindex is bound, return true and
-   * assign the binging to result. Otherwise return false. 
-   */
-  inline bool getBinding(unsigned var,int vindex, Binding& result)
-  {
-    CALL("DoubleSubstitution::getBinding");
-    return _bank.find(VarSpec(var,vindex), result);
-  }
+  void deref(TermList from,int indexFrom,TermList& to,int& indexTo); 
+  bool getBinding(unsigned var,int vindex, Binding& result);
 
   /** type used to store variable banks */
   typedef DHMap<VarSpec,Binding,VarSpec::Hash1,VarSpec::Hash2> BankStorage;

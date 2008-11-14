@@ -146,6 +146,42 @@ Literal* TermSharing::insert(Literal* t)
 } // TermSharing::insert
 
 /**
+ * Insert a new term and all its unshared subterms 
+ * in the index, and return the result.
+ */
+Term* TermSharing::insertRecurrently(Term* t)
+{
+  CALL("TermSharing::insert");
+
+  TermList tRef;
+  tRef.setTerm(t);
+  
+  TermList* ts=&tRef;
+  static Stack<TermList*> stack(4);
+  static Stack<TermList*> insertingStack(8);
+  for(;;) {
+    if(ts->isTerm() && !ts->term()->shared()) {
+      stack.push(ts->term()->args());
+      insertingStack.push(ts);
+    }
+    if(stack.isEmpty()) {
+      break;
+    }
+    ts=stack.pop();
+    if(!ts->next()->isEmpty()) {
+      stack.push(ts->next());
+    }
+  }
+  while(!insertingStack.isEmpty()) {
+    ts=insertingStack.pop();
+    ts->setTerm(insert(ts->term()));
+  }
+  return tRef.term();
+}
+
+
+
+/**
  * True if the the top-levels of @b s and @b t are equal.
  * Used for inserting terms in a hash table.
  * @pre s and t must be non-variable terms

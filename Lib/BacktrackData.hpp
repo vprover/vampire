@@ -58,6 +58,35 @@ private:
   List<BacktrackObject*>* _bol;
 };
 
+class Backtrackable
+{
+public:
+  void bdRecord(BacktrackData& bd)
+  {
+    _bdStack=new List<BacktrackData*>(&bd, _bdStack);
+  }
+  void bdDoNotRecort()
+  {
+    _bdStack=new List<BacktrackData*>(0, _bdStack);
+  }
+  void bdDone()
+  {
+    List<BacktrackData*>::pop(_bdStack);
+  }
+protected:
+  bool bdIsRecording()
+  {
+    return _bdStack && _bdStack.head();
+  }
+  BacktrackData& bdGet()
+  {
+    ASS(_bdStack && _bdStack.head());
+    return *_bdStack.head();
+  }
+private:
+  List<BacktrackData*>* _bdStack;
+};
+
 };
 
 #endif // __BacktrackData__

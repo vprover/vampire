@@ -303,6 +303,17 @@ private:
     bool associate(TermList qt, TermList nt, BacktrackData& bd);
     virtual NodeIterator getNodeIterator(IntermediateNode* n, TermList qt) = 0;
     virtual bool handleMismatch(TermList qt, TermList nt, BacktrackData& bd) = 0;
+    /**
+     * Provided, that @b qt is an unbounded variable and @b nt 
+     * references to some non-shared Term (i.e. Term containing
+     * special variables), return either false and do nothing
+     * (which will lead to failure of the associating process), 
+     * or make qt a non-variable and return true.
+     */
+    virtual bool handleNotSharedTermAndVar(TermList& qt, TermList nt, BacktrackData& bd)
+    {
+      return false;
+    }
     virtual LDIterator getIteratorSuffix()
     {
       //TODO make it used

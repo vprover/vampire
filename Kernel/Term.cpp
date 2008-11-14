@@ -48,100 +48,39 @@ void Term::destroy ()
   DEALLOC_KNOWN(this,sizeof(Term)+_arity*sizeof(TermList),"Term");
 } // Term::destroy
 
-// /**
-//  * Comparison of terms in an arbitrary but fixed order.
-//  * @since 30/04/2006 flight Copenhagen-Seattle
-//  */
-// Comparison Term::compare (const Term* t) const
-// {
-//   CALL("Term::compare");
-//   if (isVar()) {
-//     if (! t->isVar()) {
-//       return LESS;
-//     }
-//     // both variables
-//     return Int::compare(var(),t->var());
-//   }
+/**
+ * If the term is not shared, destroy it and all its nonshared subterms.
+ */
+void Term::destroyNonShared()
+{
+  CALL("Term::destroyNonShared");
 
-//   // this is not a variable
-//   if (t->isVar()) {
-//     return GREATER;
-//   }
+  if(shared()) {
+    return;
+  }
+  TermList selfRef;
+  selfRef.setTerm(this);
+  TermList* ts=&selfRef;
+  static Stack<TermList*> stack(4);
+  static Stack<Term*> deletingStack(8);
+  for(;;) {
+    if(ts->tag()==REF && !ts->term()->shared()) {
+      stack.push(ts->term()->args());
+      deletingStack.push(ts->term());
+    }
+    if(stack.isEmpty()) {
+      break;
+    }
+    ts=stack.pop();
+    if(!ts->next()->isEmpty()) {
+      stack.push(ts->next());
+    }
+  }
+  while(!deletingStack.isEmpty()) {
+    deletingStack.pop()->destroy();
+  }
+}
 
-//   // both are complex terms
-//   const Symbol* s1 = functor();
-//   const Symbol* s2 = t->functor();
-//   switch (s1->compare(s2)) {
-//   case LESS:
-//     return LESS;
-//   case EQUAL:
-//     break;
-//   case GREATER:
-//     return GREATER;
-//   }
-
-//   // compare all arguments
-//   const Term* = t1->args();
-//   t2 = t2->args();
-//   while (t1->isNonEmpty()) {
-//     ASS(t2->isNonEmpty());
-//     switch (t1->compare(t2)) {
-//     case LESS:
-//       return LESS;
-//     case EQUAL:
-//       break;
-//     case GREATER:
-//       return GREATER;
-//     }
-//     t1 = t1->next();
-//     t2 = t2->next();
-//   }
-//   return EQUAL;
-// } // Term::compare
-
-// /**
-//  * Return the result of equality comparison of two non-variable terms.
-//  * @since 16/05/2007
-//  */
-// bool Term::equals (const Term* t) const
-// {
-//   CALL("Term::equals");
-
-//   Stack<const Term*> stack(64);
-//   const Term* s = this;
-//   for (;;) {
-//     if (s->functor() != t->functor()) {
-//       return false;
-//     }
-//     const Term* ss = s->args();
-//     const Term* ts = t->args();
-//     while (ss->isNonEmpty()) {
-//       if (ss->isVar()) {
-// 	if (! ts->isVar()) {
-// 	  return false;
-// 	}
-// 	if (ss->var() != ts->var()) {
-// 	  return false;
-// 	}
-// 	continue;
-//       }
-//       // ss is not a variable
-//       if (ts->isVar()) {
-// 	return false;
-//       }
-//       // both non-variable
-//       stack.push(ss->deref());
-//       stack.push(ts->deref());
-//       ss = ss->next();
-//       ts = ts->next();
-//     }
-//     if (stack.isEmpty()) {
-//       return true;
-//     }
-//     t = stack.pop();
-//     s = stack.pop();
-//   }
-// } // Term::equals
 
 
 /**
@@ -532,7 +471,7 @@ Term* Term::create(Term* t,TermList* args)
  */
 Term* Term::createNonShared(Term* t,TermList* args)
 {
-  CALL("Term::createNonShared");
+  CALL("Term::createNonShared/2");
   int arity = t->arity();
   Term* s = new(arity) Term(*t);
   TermList* ss = s->args();
@@ -541,6 +480,21 @@ Term* Term::createNonShared(Term* t,TermList* args)
   }
   return s;
 } // Term::createNonShared(const Term* t,Term* args)
+
+/** Create a new complex term, copy from @b t its function symbol and arity.
+ *  Initialize its arguments by a dummy special variable.
+ */
+Term* Term::createNonShared(Term* t)
+{
+  CALL("Term::createNonShared/1");
+  int arity = t->arity();
+  Term* s = new(arity) Term(*t);
+  TermList* ss = s->args();
+  for (int i = 0;i < arity;i++) {
+    (*ss--).makeSpecialVar(0);
+  }
+  return s;
+} // Term::createNonShared(const Term* t)
 
 /** Create clone of complex term @b t. Do not insert it into the sharing
  *  structure.

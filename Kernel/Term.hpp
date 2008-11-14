@@ -75,6 +75,9 @@ public:
   /** return the variable number */
   unsigned var() const
   { ASS(isVar()); return _content / 4; }
+  /** the term contains reference to Term class */
+  bool isTerm() const
+  { return tag() == REF; }
   const Term* term() const
   { return _term; }
   Term* term()
@@ -185,6 +188,7 @@ public:
     _arity = arity;
   }
   void destroy();
+  void destroyNonShared();
   Term* apply(Substitution& subst);
 
   /** True if the term is ground. Only applicable to shared terms */

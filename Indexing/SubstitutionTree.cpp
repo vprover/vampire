@@ -414,27 +414,8 @@ SubstitutionTree::Node::~Node()
 {
   CALL("SubstitutionTree::Node::~Node");
 
-  if(term.tag()!=REF || term.term()->shared()) {
-    return;
-  }
-  TermList* ts=&term;
-  Stack<TermList*> stack(4);
-  Stack<Term*> deletingStack(8);
-  for(;;) {
-    if(ts->tag()==REF && !ts->term()->shared()) {
-      stack.push(ts->term()->args());
-      deletingStack.push(ts->term());
-    }
-    if(stack.isEmpty()) {
-      break;
-    }
-    ts=stack.pop();
-    if(!ts->next()->isEmpty()) {
-      stack.push(ts->next());
-    }
-  }
-  while(!deletingStack.isEmpty()) {
-    deletingStack.pop()->destroy();
+  if(term.isTerm()) {
+    term.term()->destroyNonShared();
   }
 }
 
@@ -521,7 +502,6 @@ bool SubstitutionTree::ResultIterator::enter(Node* n, BacktrackData& bd)
     //n is proper node, not a root
     Binding bind=bQueue.top();
     TermList qt;
-    subst.apply(bind.term, 0, qt);
 
     TermList nt;
     subst.apply(&n->term, 1, nt);
@@ -558,6 +538,7 @@ bool SubstitutionTree::ResultIterator::associate(TermList qt, TermList nt, Backt
   
   Stack<TermList*> subterms(64);
   for (;;) {
+    
     if (!ss->sameContent(tt) && sameTop(ss,tt)) {
       // ss and tt have the same tops and are different, so must be non-variables
       ASS(! ss->isVar());
@@ -577,6 +558,16 @@ bool SubstitutionTree::ResultIterator::associate(TermList qt, TermList nt, Backt
       subterms.push(ss->next());
       subterms.push(tt->next());
     } else {
+      if ( ss->isTerm() && !ss->term()->shared() && tt->isVar()) {
+	if(handleNotSharedTermAndVar(*tt, *ss, localBd)) {
+	  //the content of tt and ss have changed, so we have to reexamine them
+	  continue;
+	} else {
+          mismatch=true;
+          break;
+	}
+      }
+      
       if (! sameTop(ss,tt)) {
         int x;
         if(ss->isSpecialVar()) { 
