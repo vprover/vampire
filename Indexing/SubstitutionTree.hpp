@@ -19,6 +19,8 @@
 
 #include "../Kernel/Forwards.hpp"
 #include "../Kernel/DoubleSubstitution.hpp"
+#include "../Kernel/MMSubstitution.hpp"
+
 #include "Index.hpp"
 
 #include <iostream>
@@ -219,12 +221,20 @@ private:
     };
   }; // class SubstitutionTree::Binding
 
+  struct SpecVarComparator
+  {
+    inline
+    static Comparison compare(unsigned v1, unsigned v2)
+    {
+  	return Int::compare(v2, v1);
+    }
+  };
   
-  //Using BinaryHeap leads to about 30% faster insertion,
-  //but it doesn't support backtracking, which is needed 
-  //for iteration
-  //typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
-  typedef SkipList<Binding,Binding::Comparator> BindingQueue;
+  //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
+  //that when SkipList is used.
+  typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
+  //typedef SkipList<Binding,Binding::Comparator> BindingQueue;
+  typedef SkipList<unsigned,SpecVarComparator> SpecVarQueue;
   typedef Stack<Binding> BindingStack;
   typedef Stack<const TermList*> TermStack;
 
@@ -239,7 +249,6 @@ private:
   
   void insert(Node** node,BindingQueue& binding,LeafData ld);
   void remove(Node** node,BindingQueue& binding,LeafData ld);
-  static bool sameTop(const TermList* ss,const TermList* tt);
 
   /** Number of top-level nodes */
   int _numberOfTopLevelNodes;
@@ -248,11 +257,11 @@ private:
   /** Array of nodes */
   Node** _nodes;
   
-  class ResultIterator
+  class UnificationsIterator
   : public IteratorCore<SLQueryResult>
   {
   public:
-    ResultIterator() : subst(), inLeaf(false), ldIterator(LDIterator::getEmpty()),
+    UnificationsIterator() : subst(), inLeaf(false), ldIterator(LDIterator::getEmpty()),
     	nodeIterators(4), btStack(4) 
     {
     }
@@ -261,7 +270,9 @@ private:
     {
       CALL("SubstitutionTree::ResultIterator::init");
       Node* root=t->_nodes[t->getRootNodeIndex(query)];
-      t->getBindings(query, bQueue);
+      
+      createInitialBindings(query);
+      cout<<subst.toString();
 
       BacktrackData bd;
       enter(root, bd);
@@ -272,11 +283,13 @@ private:
     {
       CALL("SubstitutionTree::ResultIterator::init");
       Node* root=t->_nodes[t->getRootNodeIndex(query)];
-      t->getBindings(query, bQueue);
+      
+      if(query->isTerm()) {
+	createInitialBindings(query->term());
+      }
 
       BacktrackData bd;
       enter(root, bd);
-      bd.drop();
     }
     
     bool hasNext()
@@ -298,44 +311,26 @@ private:
       return SLQueryResult(static_cast<Literal*>(ld.data), ld.clause, &subst);
     }
   protected:
+    void createInitialBindings(Term* t)
+    {
+      TermList* args=t->args();
+      int nextVar = 0;
+      while (! args->isEmpty()) {
+        unsigned var = nextVar++;
+	subst.bindSpecialVar(var,*args,0);
+        svQueue.insert(var);
+        args = args->next();
+      }
+    }
     bool findNextLeaf();
     bool enter(Node* n, BacktrackData& bd);
     bool associate(TermList qt, TermList nt, BacktrackData& bd);
-    virtual NodeIterator getNodeIterator(IntermediateNode* n, TermList qt) = 0;
-    virtual bool handleMismatch(TermList qt, TermList nt, BacktrackData& bd) = 0;
-    /**
-     * Provided, that @b qt is an unbounded variable and @b nt 
-     * references to some non-shared Term (i.e. Term containing
-     * special variables), return either false and do nothing
-     * (which will lead to failure of the associating process), 
-     * or make qt a non-variable and return true.
-     */
-    virtual bool handleNotSharedTermAndVar(TermList& qt, TermList nt, BacktrackData& bd)
-    {
-      return false;
-    }
-    virtual LDIterator getIteratorSuffix()
-    {
-      //TODO make it used
-      return LDIterator::getEmpty();
-    }
-    
-  protected:
-    DoubleSubstitution subst;
-  private:
-    bool inLeaf;
-    LDIterator ldIterator;
-    BindingQueue bQueue;
-    Stack<NodeIterator> nodeIterators;
-    Stack<BacktrackData> btStack;
-  };
-  
-  class UnificationsIterator 
-  : public ResultIterator
-  {
-    NodeIterator getNodeIterator(IntermediateNode* n, TermList qt)
+    NodeIterator getNodeIterator(IntermediateNode* n)
     {
       CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
+      
+      unsigned specVar=svQueue.top();
+      TermList qt=subst.getSpecialVarTop(specVar);
       if(qt.isVar()) {
 	return n->allChildren();
       } else {
@@ -351,15 +346,42 @@ private:
 	}
       }
     }
-    inline
-    bool handleMismatch(TermList qt, TermList nt, BacktrackData& bd)
+    void extractSpecialVariables(TermList t, BacktrackData& bd)
     {
-      CALL("SubstitutionTree::UnificationsIterator::handleMismatch");
-      cout<<"mismatch of "<<Test::Output::singleTermListToString(&qt)
-      	<<" and "<<Test::Output::singleTermListToString(&nt)<<endl; 
-      return subst.backtrackableUnifyTerms(qt,0,nt,1,bd);
+      TermList* ts=&t;
+      static Stack<TermList*> stack(4);
+      for(;;) {
+        if(ts->tag()==REF && !ts->term()->shared()) {
+          stack.push(ts->term()->args());
+        }
+        if(ts->isSpecialVar()) {
+          svQueue.backtrackableInsert(ts->var(), bd);
+        }
+        if(stack.isEmpty()) {
+          break;
+        }
+        ts=stack.pop();
+        if(!ts->next()->isEmpty()) {
+          stack.push(ts->next());
+        }
+      }
     }
+    virtual LDIterator getIteratorSuffix()
+    {
+      //TODO make it used
+      return LDIterator::getEmpty();
+    }
+    
+  protected:
+    MMSubstitution subst;
+  private:
+    bool inLeaf;
+    LDIterator ldIterator;
+    SpecVarQueue svQueue;
+    Stack<NodeIterator> nodeIterators;
+    Stack<BacktrackData> btStack;
   };
+  
 
 
 }; // class SubstiutionTree

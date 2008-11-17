@@ -102,6 +102,7 @@ public:
   void setTerm(Term* t)
   { _term = t; }
   static void argsToString(Stack<const TermList*>&,string& str);
+  static bool sameTop(const TermList* ss,const TermList* tt);
 
 private:
   union {
@@ -149,6 +150,7 @@ public:
   void orderArguments();
   static Term* create(Term* t,TermList* args);
   static Term* createNonShared(Term* t,TermList* args);
+  static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);
   /** Function or predicate symbol of a term */
   const unsigned functor() const

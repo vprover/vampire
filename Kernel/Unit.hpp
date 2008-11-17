@@ -48,6 +48,9 @@ public:
     CONJECTURE = 3
   }; 
 
+  /** Should never be used, declared just to get rid of compiler warning */
+  virtual ~Unit() { ASSERTION_VIOLATION; }
+  
   virtual void destroy() = 0;
   virtual string toString() const = 0;
 

@@ -46,8 +46,8 @@ public:
       _store(NONE)
   {}
 
-  // declared but not defined
-  ~Clause();
+  /** Should never be used, declared just to get rid of compiler warning */
+  virtual ~Clause() { ASSERTION_VIOLATION; }
 
   void* operator new(size_t,unsigned length);
 

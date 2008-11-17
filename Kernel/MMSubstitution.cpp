@@ -5,64 +5,90 @@
 
 #include "../Lib/Hash.hpp"
 #include "../Lib/Environment.hpp"
+#include "../Lib/Random.hpp"
 
-#include "Kernel.hpp"
+#include "../Indexing/TermSharing.hpp"
+
+#include "Term.hpp"
+#include "MMSubstitution.hpp"
+
+#ifdef VDEBUG
+
+#include "../Test/Output.hpp"
+#include "../Lib/Int.hpp"
+#include <string>
+
+using namespace std;
+
+#endif
+
+
+using namespace Lib;
+using namespace Kernel;
 
 bool MMSubstitution::isUnbound(VarSpec v)
 {
   CALL("MMSubstitution::isUnbound");
-  do {
-    TermSpec bind;
-    bool found=_bank.find(v,b);
-    if(!found || bind.index==UNBOUND_INDEX) {
+  for(;;) {
+    TermSpec binding;
+    bool found=_bank.find(v,binding);
+    if(!found || binding.index==UNBOUND_INDEX) {
       return true;
-    } else if(bind.term.isTerm()) {
+    } else if(binding.term.isTerm()) {
       return false;
     }
-    v=VarSpec(bind.term.var(), bind.index);
+    v=getVarSpec(binding);
   }
 }
 
-TermSpec MMSubstitution::deref(VarSpec v)
+MMSubstitution::TermSpec MMSubstitution::deref(VarSpec v)
 {
   CALL("MMSubstitution::deref");
-  do {
+  for(;;) {
     TermSpec binding;
-    bool found=_bank.find(v,b);
+    bool found=_bank.find(v,binding);
     if(!found) {
-      TermList unboundRef;
-      unboundRef.makeVar(_nextUnboundAvailable++);
-      bind(v, unboundRef);
-      return TermSpec(unboundRef, UNBOUND_INDEX);
+      binding.index=UNBOUND_INDEX;
+      binding.term.makeVar(_nextUnboundAvailable++);
+      bind(v, binding);
+      return binding;
     } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
       return binding;
     }
-    v=VarSpec(binding.term.var(), binding.index);
+    v=getVarSpec(binding);
   }
 }
 
 void MMSubstitution::bind(const VarSpec& v, const TermSpec& b)
 {
+  CALL("MMSubstitution::bind");
+  cout<<"Binding: "<<Int::toString(v.var)<<"/"<<Int::toString(v.index)<<" to "
+  	<<Test::Output::singleTermListToString(&b.term)<<"/"<<Int::toString(b.index)<<endl;
+  ASS(v.var<1000);
+  if(bdIsRecording()) {
+    bdAdd(new BindingBacktrackObject(this, v));
+  }
   _bank.set(v,b);
 }
 
 void MMSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
+  CALL("MMSubstitution::bindVar");
   TermList tl;
   tl.makeVar(to.var);
-  _bank.set(v,TermSpec(tl,to.index));
+  bind(var,TermSpec(tl,to.index));
 }
 
-VarSpec MMSubstitution::root(VarSpec v)
+MMSubstitution::VarSpec MMSubstitution::root(VarSpec v)
 {
   CALL("MMSubstitution::root");
-  do {
-    TermSpec bind;
-    bool found=_bank.find(v,b);
-    if(!found || bind.index==UNBOUND_INDEX || bind.term.isTerm()) {
+  for(;;) {
+    TermSpec binding;
+    bool found=_bank.find(v,binding);
+    if(!found || binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
       return v;
     }
-    v=VarSpec(bind.term.var(), bind.index);
+    v=getVarSpec(binding);
   }
 }
 
@@ -78,17 +104,42 @@ void MMSubstitution::add(VarSpec v, TermSpec b)
   }
 }
 
-void MMSubstitution::makeEqual(VarSpec v1, VarSpec v2)
+bool MMSubstitution::makeEqual(VarSpec v1, VarSpec v2)
 {
   CALL("MMSubstitution::makeEqual");
-  //TODO finish
+  
+  VarSpec r1=root(v1);
+  VarSpec r2=root(v2);
+  TermSpec targetVal;
+  if(isUnbound(r1)) {
+    targetVal=deref(r2);
+  } else if(isUnbound(r2)) {
+    targetVal=deref(r1);
+  } else {
+    targetVal=associate(deref(r1), deref(r2));
+    if(targetVal.term.isEmpty()) {
+      //we were unable to unify root terms of v1 and v2
+      return false;
+    }
+  }
+  if(Random::getBit()) {
+    bindVar(r1,r2);
+    bind(r2,targetVal);
+  } else {
+    bindVar(r2,r1);
+    bind(r1,targetVal);
+  }
+  return true;
 }
 
-TermSpec MMSubstitution::associate(TermSpec t1, TermSpec t2)
+MMSubstitution::TermSpec MMSubstitution::associate(TermSpec t1, TermSpec t2)
 {
   CALL("MMSubstitution::associate");
 
   TermList commonTerm;
+  BacktrackData localBD;
+  
+  bdRecord(localBD);
 
   TermList* ss=&t1.term;
   TermList* tt=&t2.term;
@@ -98,7 +149,7 @@ TermSpec MMSubstitution::associate(TermSpec t1, TermSpec t2)
   
   Stack<TermList*> subterms(64);
   for (;;) {
-    if (!ss->sameContent(tt) && sameTop(ss,tt)) {
+    if (!ss->sameContent(tt) && TermList::sameTop(ss,tt)) {
       // ss and tt have the same tops and are different, so must be non-variables
       ASS(! ss->isVar());
       ASS(! tt->isVar());
@@ -119,15 +170,24 @@ TermSpec MMSubstitution::associate(TermSpec t1, TermSpec t2)
         subterms.push(ct->next());
       }
     } else {
-      if (! sameTop(ss,tt)) {
-	//TODO: this part needs to be finished
-        int x;
-        if(ss->isOrdinaryVar()) {
+      if (! TermList::sameTop(ss,tt)) {
+        if(ss->isVar()) {
+          VarSpec sVar=getVarSpec(*ss,t1.index);
+          VarSpec ctVar=getAuxVar(sVar);
+          ct->makeVar(ctVar.index);
           if(tt->isTerm()) {
-            ct->makeVar(getAuxVar(TermSpec(*ss,t1.index)));
-            add(VarSpec(ss->var(), t1.index), TermSpec(*tt, t2.index));
+            add(ctVar, TermSpec(*tt, t2.index));
+          } else {
+            makeEqual(sVar,getVarSpec(*tt,t2.index));
           }
+        } else if(tt->isVar()) {
+          ASS(ss->isTerm())
+          VarSpec tVar=getVarSpec(*tt,t2.index);
+          VarSpec ctVar=getAuxVar(tVar);
+          ct->makeVar(ctVar.index);
+          add(tVar, TermSpec(*ss, t1.index));
         } else {
+          //tops are different and neither of them is variable, so we can't unify them
           mismatch=true;
           break;
         }
@@ -148,17 +208,125 @@ TermSpec MMSubstitution::associate(TermSpec t1, TermSpec t2)
       }
     }
   }
+  
+  bdDone();
+  
   if(mismatch) {
     if(commonTerm.isTerm()) {
       commonTerm.term()->destroyNonShared();
     }
     commonTerm.makeEmpty();
+    
+    localBD.backtrack();
   } else {
     Term* commonShared=env.sharing->insertRecurrently(commonTerm.term());
     commonTerm.setTerm(commonShared);
+    
+    if(bdIsRecording()) {
+      bdCommit(localBD);
+    }
+    localBD.drop();
   }
   return TermSpec(commonTerm, AUX_INDEX);
 }
+
+TermList MMSubstitution::apply(TermList trm, int index)
+{
+  CALL("MMSubstitution::apply");
+
+  
+  Stack<TermList*> toDo(8);
+  Stack<int> toDoIndex(8);
+  Stack<Term*> terms(8);
+  Stack<TermList> args(8);
+
+  
+  toDo.push(&trm);
+  toDoIndex.push(index);
+//  cout<<"---"<<endl;
+//  cout<<"Pushed start: "<<Test::Output::singleTermListToString(&trm)<<endl;
+  
+  
+  while(!toDo.isEmpty()) {
+    TermList* tt=toDo.pop();
+    index=toDoIndex.pop();
+    if(tt->isEmpty()) {
+      Term* orig=terms.pop();
+      //here we assume, that stack is an array with 
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList* argLst=&args.top() - (orig->arity()-1);
+      args.truncate(args.length() - orig->arity());
+      TermList constructed;
+      constructed.setTerm(Term::create(orig,argLst));
+      args.push(constructed);
+      continue;
+    } else {
+      //if tt==&trm, we're dealing with the top
+      //term, for which the next() is undefined
+      if(tt!=&trm) {
+	toDo.push(tt->next());
+	toDoIndex.push(index);
+//	if(tt->next()->isEmpty()) {
+//	  cout<<"Pushed next: empty"<<endl;
+//	} else {
+//	  cout<<"Pushed next: "<<Test::Output::singleTermListToString(tt->next())<<endl;
+//	}
+      }
+    }
+    
+    TermSpec ts(*tt,index);
+//    cout<<Test::Output::singleTermListToString(tt)<<"/"<<index<<endl;
+
+    if(ts.term.isVar()) {
+      ts=deref(getVarSpec(ts));
+      if(ts.term.isVar()) {
+	ASS(ts.index==UNBOUND_INDEX);
+	args.push(ts.term);
+	continue;
+      }
+    }
+    Term* t=ts.term.term();
+//    cout<<"Term retrieved: "<<Test::Output::toString(t)<<"/"<<ts.index<<endl;
+    if(t->shared() && t->ground()) {
+      args.push(ts.term);
+      continue;
+    }
+    terms.push(t);
+    toDo.push(t->args());
+//    cout<<"Pushed arg: "<<Test::Output::singleTermListToString(t->args())<<endl;
+    toDoIndex.push(ts.index);
+  }
+  ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
+  return args.pop();
+}
+
+
+#ifdef VDEBUG
+
+string MMSubstitution::toString()
+{
+  CALL("MMSubstitution::toString");
+  string res;
+  BankType::Iterator bit(_bank);
+  while(bit.hasNext()) {
+    VarSpec v(bit.nextKey());
+    TermList tl;
+    if(v.index==SPECIAL_INDEX) {
+      res+="S"+Int::toString(v.var)+" -> ";
+      tl.makeSpecialVar(v.var);
+    } else {
+      res+="X"+Int::toString(v.var)+"/"+Int::toString(v.index)+ " -> ";
+      tl.makeVar(v.var);
+    }
+    tl=apply(tl, v.index);
+    res+=Test::Output::singleTermListToString(&tl)+"\n";
+  }
+  return res;
+}
+
+#endif
+
 
 /**
  * First hash function for DHMap.

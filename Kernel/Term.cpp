@@ -81,6 +81,22 @@ void Term::destroyNonShared()
   }
 }
 
+/**
+ * Return true if @b ss and @b tt have the same top symbols, that is,
+ * either both are the same variable or both are complex terms with the
+ * same function symbol. 
+ * @since 16/08/2008 flight Sydney-San Francisco
+ */
+bool TermList::sameTop(const TermList* ss,const TermList* tt)
+{
+  if (ss->isVar()) {
+    return ss->sameContent(tt);
+  }
+  if (tt->isVar()) {
+    return false;
+  }
+  return ss->term()->functor() == tt->term()->functor();
+}
 
 
 /**

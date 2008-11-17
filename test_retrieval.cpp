@@ -2,12 +2,6 @@
  * @file test_SubstitutionTree.cpp.
  */
 
-/* Commend line:
-cd ~voronkov/TPTP-v3.5.0/
-ls Problems/AGT/* | xargs -n 1 ~/src/Dracula/test --time_limit 20 > ~/src/Dracula/st_times.txt
-
-*/
-
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -147,21 +141,21 @@ void doTest()
   }
   tmr.stop();
   cout<<litCnt<<" literals inserted in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
-  
-/*  cout<<"Retrieving literals unifiable with "<<Test::Output::toString(nonIndexedLit)<<":"<<endl;
+  cout<<tree.toString()<<endl;
+  cout<<"Retrieving literals unifiable with "<<Test::Output::toString(nonIndexedLit)<<":"<<endl;
   SLQueryResultIterator rit1=tree.getUnifications(nonIndexedLit);
   while(rit1.hasNext()) {
     SLQueryResult res=rit1.next();
     cout<<Test::Output::toString(res.literal)<<" in "<<Test::Output::toString(res.clause)<<endl;
   }
-*/  
-  cout<<"Retrieving literals unifiable with "<<Test::Output::toString(indexedLit)<<":"<<endl;
+  
+/*  cout<<"Retrieving literals unifiable with "<<Test::Output::toString(indexedLit)<<":"<<endl;
   SLQueryResultIterator rit2=tree.getUnifications(indexedLit);
   while(rit2.hasNext()) {
     SLQueryResult res=rit2.next();
     cout<<Test::Output::toString(res.literal)<<" in "<<Test::Output::toString(res.clause)<<endl;
   }
-
+*/
   tmr.reset();
   tmr.start();
   for(index=0;index<litCnt;index++) {

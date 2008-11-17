@@ -51,6 +51,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/FormulaUnit.o\
         Kernel/FormulaVarIterator.o\
         Kernel/Inference.o\
+        Kernel/MMSubstitution.o\
         Kernel/Signature.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
@@ -460,6 +461,14 @@ Kernel/KBO.o: Lib/Stack.hpp Lib/Allocator.hpp Lib/BacktrackData.hpp
 Kernel/KBO.o: Lib/List.hpp Kernel/KBO.hpp Kernel/Ordering.hpp
 Kernel/KBO.o: Kernel/Signature.hpp Lib/Allocator.hpp Lib/Map.hpp Lib/Hash.hpp
 Kernel/KBO.o: Lib/Exception.hpp
+Kernel/MMSubstitution.o: Lib/Hash.hpp Lib/Environment.hpp Lib/Random.hpp
+Kernel/MMSubstitution.o: Indexing/TermSharing.hpp Lib/Set.hpp
+Kernel/MMSubstitution.o: Lib/Allocator.hpp Debug/Tracer.hpp Kernel/Term.hpp
+Kernel/MMSubstitution.o: Debug/Assertion.hpp Lib/Portability.hpp Lib/XML.hpp
+Kernel/MMSubstitution.o: Lib/Comparison.hpp Lib/Stack.hpp
+Kernel/MMSubstitution.o: Lib/BacktrackData.hpp Lib/List.hpp Kernel/Term.hpp
+Kernel/MMSubstitution.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
+Kernel/MMSubstitution.o: Lib/Exception.hpp Lib/Hash.hpp Lib/BacktrackData.hpp
 Kernel/Signature.o: Lib/Int.hpp Lib/Comparison.hpp Kernel/Signature.hpp
 Kernel/Signature.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Stack.hpp
 Kernel/Signature.o: Debug/Assertion.hpp Lib/Allocator.hpp
@@ -498,12 +507,12 @@ Kernel/Unit.o: Kernel/Inference.hpp Kernel/Unit.hpp Lib/Allocator.hpp
 Kernel/Unit.o: Kernel/Unit.hpp Lib/List.hpp Debug/Assertion.hpp
 Kernel/Unit.o: Lib/Allocator.hpp
 Indexing/Index.o: Indexing/Index.hpp Kernel/Forwards.hpp Lib/Forwards.hpp
-Indexing/Index.o: Kernel/DoubleSubstitution.hpp Lib/DHMap.hpp
-Indexing/Index.o: Debug/Assertion.hpp Lib/Allocator.hpp Debug/Tracer.hpp
-Indexing/Index.o: Lib/Exception.hpp Lib/Hash.hpp Kernel/Forwards.hpp
-Indexing/Index.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
-Indexing/Index.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/BacktrackData.hpp
-Indexing/Index.o: Lib/List.hpp Lib/SmartPtr.hpp
+Indexing/Index.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp Debug/Assertion.hpp
+Indexing/Index.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Exception.hpp
+Indexing/Index.o: Lib/Hash.hpp Lib/BacktrackData.hpp Kernel/Term.hpp
+Indexing/Index.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
+Indexing/Index.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/List.hpp
+Indexing/Index.o: Lib/SmartPtr.hpp
 Indexing/SubstitutionTree.o: Kernel/Clause.hpp Lib/Forwards.hpp
 Indexing/SubstitutionTree.o: Lib/Allocator.hpp Debug/Tracer.hpp
 Indexing/SubstitutionTree.o: Kernel/Forwards.hpp Kernel/Unit.hpp Lib/List.hpp
@@ -520,8 +529,8 @@ Indexing/SubstitutionTree.o: Lib/VirtualIterator.hpp Lib/SkipList.hpp
 Indexing/SubstitutionTree.o: Lib/Random.hpp Lib/BacktrackData.hpp
 Indexing/SubstitutionTree.o: Kernel/Forwards.hpp
 Indexing/SubstitutionTree.o: Kernel/DoubleSubstitution.hpp Lib/DHMap.hpp
-Indexing/SubstitutionTree.o: Kernel/Term.hpp Indexing/Index.hpp
-Indexing/SubstitutionTree.o: Lib/SmartPtr.hpp
+Indexing/SubstitutionTree.o: Kernel/Term.hpp Kernel/MMSubstitution.hpp
+Indexing/SubstitutionTree.o: Indexing/Index.hpp Lib/SmartPtr.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/VirtualIterator.hpp
 Indexing/SubstitutionTree_Nodes.o: Debug/Assertion.hpp Debug/Tracer.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/List.hpp Lib/Allocator.hpp
@@ -530,14 +539,15 @@ Indexing/SubstitutionTree_Nodes.o: Lib/Random.hpp Lib/BacktrackData.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/List.hpp Lib/DHMultiset.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/Exception.hpp Lib/Hash.hpp
 Indexing/SubstitutionTree_Nodes.o: Indexing/Index.hpp Kernel/Forwards.hpp
-Indexing/SubstitutionTree_Nodes.o: Lib/Forwards.hpp
-Indexing/SubstitutionTree_Nodes.o: Kernel/DoubleSubstitution.hpp
-Indexing/SubstitutionTree_Nodes.o: Lib/DHMap.hpp Kernel/Forwards.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/Forwards.hpp Kernel/MMSubstitution.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/DHMap.hpp Lib/BacktrackData.hpp
 Indexing/SubstitutionTree_Nodes.o: Kernel/Term.hpp Lib/Portability.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/XML.hpp Lib/Comparison.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/Stack.hpp Lib/SmartPtr.hpp
 Indexing/SubstitutionTree_Nodes.o: Indexing/SubstitutionTree.hpp Lib/Int.hpp
-Indexing/SubstitutionTree_Nodes.o: Lib/BinaryHeap.hpp Lib/BacktrackData.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/BinaryHeap.hpp
+Indexing/SubstitutionTree_Nodes.o: Kernel/DoubleSubstitution.hpp
+Indexing/SubstitutionTree_Nodes.o: Kernel/Forwards.hpp Test/Output.hpp
 Indexing/TermSharing.o: Kernel/Term.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Indexing/TermSharing.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
 Indexing/TermSharing.o: Lib/Stack.hpp Lib/Allocator.hpp Lib/BacktrackData.hpp
@@ -630,8 +640,8 @@ Rule/Index.o: Kernel/Forwards.hpp Kernel/Unit.hpp Lib/List.hpp
 Rule/Index.o: Kernel/Signature.hpp Lib/Map.hpp Lib/Hash.hpp Lib/Exception.hpp
 Rule/Index.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
 Rule/Index.o: Lib/Comparison.hpp Indexing/Index.hpp Kernel/Forwards.hpp
-Rule/Index.o: Kernel/DoubleSubstitution.hpp Lib/DHMap.hpp Kernel/Term.hpp
-Rule/Index.o: Lib/SmartPtr.hpp
+Rule/Index.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp Lib/BacktrackData.hpp
+Rule/Index.o: Kernel/Term.hpp Lib/SmartPtr.hpp
 Rule/Profile.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp Lib/Sort.hpp
 Rule/Profile.o: Debug/Assertion.hpp Lib/Allocator.hpp Lib/Environment.hpp
 Rule/Profile.o: Kernel/Clause.hpp Lib/Forwards.hpp Lib/Allocator.hpp
@@ -681,9 +691,10 @@ alucard.o: Indexing/SubstitutionTree.hpp Lib/VirtualIterator.hpp Lib/Int.hpp
 alucard.o: Lib/SkipList.hpp Lib/Random.hpp Lib/BinaryHeap.hpp
 alucard.o: Lib/BacktrackData.hpp Kernel/Forwards.hpp
 alucard.o: Kernel/DoubleSubstitution.hpp Lib/DHMap.hpp Kernel/Term.hpp
-alucard.o: Indexing/Index.hpp Lib/SmartPtr.hpp Shell/Options.hpp
-alucard.o: Shell/CommandLine.hpp Shell/TPTPLexer.hpp Shell/Lexer.hpp
-alucard.o: Lib/Array.hpp Lib/Exception.hpp Shell/Token.hpp Shell/TPTP.hpp
+alucard.o: Kernel/MMSubstitution.hpp Indexing/Index.hpp Lib/SmartPtr.hpp
+alucard.o: Test/Output.hpp Shell/Options.hpp Shell/CommandLine.hpp
+alucard.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp Lib/Array.hpp
+alucard.o: Lib/Exception.hpp Shell/Token.hpp Shell/TPTP.hpp
 alucard.o: Shell/TPTPParser.hpp Kernel/Unit.hpp Shell/Parser.hpp
 alucard.o: Lib/IntNameTable.hpp Lib/Array.hpp Lib/Map.hpp Shell/Property.hpp
 alucard.o: Shell/Preprocess.hpp Shell/Statistics.hpp Shell/Refutation.hpp
@@ -723,7 +734,8 @@ test_SubstitutionTree.o: Lib/VirtualIterator.hpp Lib/Int.hpp Lib/SkipList.hpp
 test_SubstitutionTree.o: Lib/Random.hpp Lib/BinaryHeap.hpp
 test_SubstitutionTree.o: Lib/BacktrackData.hpp Kernel/Forwards.hpp
 test_SubstitutionTree.o: Kernel/DoubleSubstitution.hpp Lib/DHMap.hpp
-test_SubstitutionTree.o: Kernel/Term.hpp Indexing/Index.hpp Lib/SmartPtr.hpp
+test_SubstitutionTree.o: Kernel/Term.hpp Kernel/MMSubstitution.hpp
+test_SubstitutionTree.o: Indexing/Index.hpp Lib/SmartPtr.hpp Test/Output.hpp
 test_SubstitutionTree.o: Shell/Options.hpp Shell/CommandLine.hpp
 test_SubstitutionTree.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp Lib/Array.hpp
 test_SubstitutionTree.o: Lib/Exception.hpp Shell/Token.hpp Shell/TPTP.hpp
@@ -753,19 +765,20 @@ test_retrieval.o: Indexing/SubstitutionTree.hpp Lib/VirtualIterator.hpp
 test_retrieval.o: Lib/Int.hpp Lib/SkipList.hpp Lib/Random.hpp
 test_retrieval.o: Lib/BinaryHeap.hpp Lib/BacktrackData.hpp
 test_retrieval.o: Kernel/Forwards.hpp Kernel/DoubleSubstitution.hpp
-test_retrieval.o: Lib/DHMap.hpp Kernel/Term.hpp Indexing/Index.hpp
-test_retrieval.o: Lib/SmartPtr.hpp Shell/Options.hpp Shell/CommandLine.hpp
-test_retrieval.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp Lib/Array.hpp
-test_retrieval.o: Lib/Exception.hpp Shell/Token.hpp Shell/TPTP.hpp
-test_retrieval.o: Shell/TPTPParser.hpp Kernel/Unit.hpp Shell/Parser.hpp
-test_retrieval.o: Lib/IntNameTable.hpp Lib/Array.hpp Lib/Map.hpp
-test_retrieval.o: Shell/Property.hpp Shell/Preprocess.hpp
-test_retrieval.o: Shell/Statistics.hpp Shell/Refutation.hpp
-test_retrieval.o: Shell/TheoryFinder.hpp Resolution/ProofAttempt.hpp
-test_retrieval.o: Resolution/Active.hpp Kernel/ClauseQueue.hpp
-test_retrieval.o: Resolution/Passive.hpp Resolution/Unprocessed.hpp
-test_retrieval.o: Rule/CASC.hpp Rule/Prolog.hpp Rule/Index.hpp Rule/Rule.hpp
-test_retrieval.o: Rule/Index.hpp Rule/ProofAttempt.hpp Test/Output.hpp
+test_retrieval.o: Lib/DHMap.hpp Kernel/Term.hpp Kernel/MMSubstitution.hpp
+test_retrieval.o: Indexing/Index.hpp Lib/SmartPtr.hpp Test/Output.hpp
+test_retrieval.o: Shell/Options.hpp Shell/CommandLine.hpp Shell/TPTPLexer.hpp
+test_retrieval.o: Shell/Lexer.hpp Lib/Array.hpp Lib/Exception.hpp
+test_retrieval.o: Shell/Token.hpp Shell/TPTP.hpp Shell/TPTPParser.hpp
+test_retrieval.o: Kernel/Unit.hpp Shell/Parser.hpp Lib/IntNameTable.hpp
+test_retrieval.o: Lib/Array.hpp Lib/Map.hpp Shell/Property.hpp
+test_retrieval.o: Shell/Preprocess.hpp Shell/Statistics.hpp
+test_retrieval.o: Shell/Refutation.hpp Shell/TheoryFinder.hpp
+test_retrieval.o: Resolution/ProofAttempt.hpp Resolution/Active.hpp
+test_retrieval.o: Kernel/ClauseQueue.hpp Resolution/Passive.hpp
+test_retrieval.o: Resolution/Unprocessed.hpp Rule/CASC.hpp Rule/Prolog.hpp
+test_retrieval.o: Rule/Index.hpp Rule/Rule.hpp Rule/Index.hpp
+test_retrieval.o: Rule/ProofAttempt.hpp Test/Output.hpp
 vampire.o: Debug/Tracer.hpp Lib/Random.hpp Lib/Set.hpp Lib/Allocator.hpp
 vampire.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp Lib/Timer.hpp
 vampire.o: Debug/Assertion.hpp Lib/Exception.hpp Lib/Environment.hpp
@@ -780,9 +793,10 @@ vampire.o: Indexing/SubstitutionTree.hpp Lib/VirtualIterator.hpp Lib/Int.hpp
 vampire.o: Lib/SkipList.hpp Lib/Random.hpp Lib/BinaryHeap.hpp
 vampire.o: Lib/BacktrackData.hpp Kernel/Forwards.hpp
 vampire.o: Kernel/DoubleSubstitution.hpp Lib/DHMap.hpp Kernel/Term.hpp
-vampire.o: Indexing/Index.hpp Lib/SmartPtr.hpp Shell/Options.hpp
-vampire.o: Shell/CommandLine.hpp Shell/TPTPLexer.hpp Shell/Lexer.hpp
-vampire.o: Lib/Array.hpp Lib/Exception.hpp Shell/Token.hpp Shell/TPTP.hpp
+vampire.o: Kernel/MMSubstitution.hpp Indexing/Index.hpp Lib/SmartPtr.hpp
+vampire.o: Test/Output.hpp Shell/Options.hpp Shell/CommandLine.hpp
+vampire.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp Lib/Array.hpp
+vampire.o: Lib/Exception.hpp Shell/Token.hpp Shell/TPTP.hpp
 vampire.o: Shell/TPTPParser.hpp Kernel/Unit.hpp Shell/Parser.hpp
 vampire.o: Lib/IntNameTable.hpp Lib/Array.hpp Lib/Map.hpp Shell/Property.hpp
 vampire.o: Shell/Preprocess.hpp Shell/Statistics.hpp Shell/Refutation.hpp

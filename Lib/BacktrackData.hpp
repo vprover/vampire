@@ -61,11 +61,12 @@ private:
 class Backtrackable
 {
 public:
+  Backtrackable() : _bdStack(0) {}
   void bdRecord(BacktrackData& bd)
   {
     _bdStack=new List<BacktrackData*>(&bd, _bdStack);
   }
-  void bdDoNotRecort()
+  void bdDoNotRecord()
   {
     _bdStack=new List<BacktrackData*>(0, _bdStack);
   }
@@ -76,12 +77,20 @@ public:
 protected:
   bool bdIsRecording()
   {
-    return _bdStack && _bdStack.head();
+    return _bdStack && _bdStack->head();
+  }
+  void bdAdd(BacktrackObject* bo)
+  {
+    bdGet().addBacktrackObject(bo);
+  }
+  void bdCommit(BacktrackData& bd)
+  {
+    bd.commitTo(bdGet());
   }
   BacktrackData& bdGet()
   {
-    ASS(_bdStack && _bdStack.head());
-    return *_bdStack.head();
+    ASS(_bdStack && _bdStack->head());
+    return *_bdStack->head();
   }
 private:
   List<BacktrackData*>* _bdStack;

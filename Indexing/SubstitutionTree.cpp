@@ -168,7 +168,7 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
   TermList* tt = term;
   TermList* ss = &(*pnode)->term;
 
-  ASS(sameTop(ss, tt));
+  ASS(TermList::sameTop(ss, tt));
 
   if (tt->sameContent(ss)) {
     if (bh.isEmpty()) {
@@ -186,7 +186,7 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
   // create the common subterm of ss,tt and an alternative node
   Stack<TermList*> subterms(64);
   for (;;) {
-    if (!ss->sameContent(tt) && sameTop(ss,tt)) {
+    if (!ss->sameContent(tt) && TermList::sameTop(ss,tt)) {
       // ss and tt have the same tops and are different, so must be non-variables
       ASS(! ss->isVar());
       ASS(! tt->isVar());
@@ -211,7 +211,7 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
       subterms.push(ss->next());
       subterms.push(tt->next());
     } else {
-      if (! sameTop(ss,tt)) {
+      if (! TermList::sameTop(ss,tt)) {
 	int x;
 	if(!ss->isSpecialVar()) { 
 	  x = _nextVar++;
@@ -238,23 +238,6 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
   goto start;
 } // // SubstitutionTree::insert
 
-/**
- * Return true if @b ss and @b tt have the same top symbols, that is,
- * either both are the same variable or both are complex terms with the
- * same function symbol. 
- * @since 16/08/2008 flight Sydney-San Francisco
- */
-bool SubstitutionTree::sameTop(const TermList* ss,const TermList* tt)
-{
-  if (ss->isVar()) {
-    return ss->sameContent(tt);
-  }
-  if (tt->isVar()) {
-    return false;
-  }
-  return ss->term()->functor() == tt->term()->functor();
-}
-
 /*
  * Remove a clause from the substitution tree.
  * @since 16/08/2008 flight San Francisco-Seattle
@@ -280,7 +263,7 @@ void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
     ASS(pnode);
     
     TermList* s = &(*pnode)->term;
-    ASS(sameTop(s,t));
+    ASS(TermList::sameTop(s,t));
 
     if (s->content() == t->content()) {
       continue;
@@ -384,7 +367,7 @@ string SubstitutionTree::toString() const
       if(!node) {
 	continue;
       }
-      if(node->term.content()) {
+      if(!node->term.isEmpty()) {
 	res+=getIndentStr(indent)+Test::Output::singleTermListToString(&node->term)+"\n";
       }
 
@@ -393,7 +376,7 @@ string SubstitutionTree::toString() const
 	LDIterator ldi(lnode->allChildren());
 	
 	while(ldi.hasNext()) {
-	  res+=getIndentStr(indent) + "Cl: " + Test::Output::toString(ldi.next().clause) + "\n";
+	  res+=getIndentStr(indent) + "Lit: " + Test::Output::toString((Literal*)ldi.next().data) + "\n";
 	}
       } else {
 	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
@@ -460,9 +443,9 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
 }
 
 
-bool SubstitutionTree::ResultIterator::findNextLeaf()
+bool SubstitutionTree::UnificationsIterator::findNextLeaf()
 {
-  CALL("SubstitutionTree::ResultIterator::findNextLeaf");
+  CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
 
   if(inLeaf) {
     //Leave the current leaf
@@ -494,109 +477,41 @@ bool SubstitutionTree::ResultIterator::findNextLeaf()
   return true;
 }
 
-bool SubstitutionTree::ResultIterator::enter(Node* n, BacktrackData& bd)
+bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 {
-  CALL("SubstitutionTree::ResultIterator::enter");
+  CALL("SubstitutionTree::UnificationsIterator::enter");
 
   if(!n->term.isEmpty()) {
     //n is proper node, not a root
-    Binding bind=bQueue.top();
+    
+    unsigned specVar=svQueue.top();
     TermList qt;
+    qt.makeSpecialVar(specVar);
 
-    TermList nt;
-    subst.apply(&n->term, 1, nt);
+    subst.bdRecord(bd);
 
-    bool success=associate(qt, nt, bd);
-
+    bool success=subst.unify(qt,0,n->term,1);
+    
+    subst.bdDone();
+    
+    cout<<subst.toString();
+    cout<<success<<endl;
+    
+    extractSpecialVariables(n->term, bd);
+    
     if(!success) {
       return false;
     }
 
-    bQueue.backtrackablePop(bd);
+    svQueue.backtrackablePop(bd);
   }
   if(n->isLeaf()) {
     ldIterator=static_cast<Leaf*>(n)->allChildren();
     inLeaf=true;
   } else {
-    ASS(!bQueue.isEmpty());
-    TermList qt=*bQueue.top().term;
-    NodeIterator nit=getNodeIterator(static_cast<IntermediateNode*>(n), qt);
+    ASS(!svQueue.isEmpty());
+    NodeIterator nit=getNodeIterator(static_cast<IntermediateNode*>(n));
     nodeIterators.backtrackablePush(nit, bd);
   }
-  return true;
-}
-
-bool SubstitutionTree::ResultIterator::associate(TermList qt, TermList nt, BacktrackData& bd)
-{
-  CALL("SubstitutionTree::ResultIterator::associate");
-
-  BacktrackData localBd;
-  TermList* ss=&nt;
-  TermList* tt=&qt;
-
-  bool mismatch=false;
-  
-  Stack<TermList*> subterms(64);
-  for (;;) {
-    
-    if (!ss->sameContent(tt) && sameTop(ss,tt)) {
-      // ss and tt have the same tops and are different, so must be non-variables
-      ASS(! ss->isVar());
-      ASS(! tt->isVar());
-
-      Term* s = ss->term();
-      Term* t = tt->term();
-
-      ASS(s->arity() > 0);
-      ASS(s->functor() == t->functor());
-
-      ss = s->args();
-      tt = t->args();
-      if (ss->next()->isEmpty()) {
-        continue;
-      }
-      subterms.push(ss->next());
-      subterms.push(tt->next());
-    } else {
-      if ( ss->isTerm() && !ss->term()->shared() && tt->isVar()) {
-	if(handleNotSharedTermAndVar(*tt, *ss, localBd)) {
-	  //the content of tt and ss have changed, so we have to reexamine them
-	  continue;
-	} else {
-          mismatch=true;
-          break;
-	}
-      }
-      
-      if (! sameTop(ss,tt)) {
-        int x;
-        if(ss->isSpecialVar()) { 
-          Binding bind(x,tt);
-          bQueue.backtrackableInsert(bind, localBd);
-        } else {
-          bool handled=handleMismatch(*tt, *ss, localBd);
-          if(!handled) {
-            mismatch=true;
-            break;
-          }
-        }
-      }
-
-      if (subterms.isEmpty()) {
-        break;
-      }
-      tt = subterms.pop();
-      ss = subterms.pop();
-      if (! ss->next()->isEmpty()) {
-        subterms.push(ss->next());
-        subterms.push(tt->next());
-      }
-    }
-  }
-  if(mismatch) {
-    localBd.backtrack();
-    return false;
-  }
-  localBd.commitTo(bd);
   return true;
 }

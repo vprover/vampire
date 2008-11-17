@@ -296,7 +296,7 @@ SubstitutionTree::Node** SubstitutionTree::UListIntermediateNode::
   CALL("SubstitutionTree::UListIntermediateNode::childByTop");
   
   NodeList** nl=&_nodes;
-  while(*nl && !sameTop(t, &(*nl)->head()->term)) {
+  while(*nl && !TermList::sameTop(t, &(*nl)->head()->term)) {
 	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
   }
   if(!*nl && canCreate) {
@@ -315,7 +315,7 @@ void SubstitutionTree::UListIntermediateNode::remove(TermList* t)
   CALL("SubstitutionTree::UListIntermediateNode::remove");
   
   NodeList** nl=&_nodes;
-  while(!sameTop(t, &(*nl)->head()->term)) {
+  while(!TermList::sameTop(t, &(*nl)->head()->term)) {
 	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
 	ASS(*nl);
   }
