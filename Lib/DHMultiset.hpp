@@ -14,10 +14,11 @@
 #include "Allocator.hpp"
 #include "Exception.hpp"
 #include "Hash.hpp"
+#include "DHMap.hpp"
 
 namespace Lib {
 
-extern const unsigned DHMapTableCapacities[];
+//extern const unsigned DHMapTableCapacities[];
 
 /**
  * Class DHMultiset implements generic multisets with values of a class Val.
@@ -59,7 +60,7 @@ public:
   }
 
   /** 
-   *  Return true iff given value is stored in the set.
+   * Return true iff given value is stored in the set.
    */
   inline
   bool find(Val val) const
@@ -84,7 +85,7 @@ public:
   void insert(Val val, int multiplicity)
   {
     CALL("DHMultiset::insert");
-    ASS(multiplicity<MaxMultiplicity);
+    ASS(multiplicity>0 && ((unsigned)multiplicity)<MaxMultiplicity);
     
     ensureExpanded();
     Entry* e=findEntryToInsert(val);
@@ -240,7 +241,7 @@ private:
     CALL("DHMultiset::findEntry");
     ASS(_capacity>_size+_deleted);
 
-    unsigned h1=Hash1::hash(val);
+    unsigned h1=computeHash<Hash1>(val, _capacity);
     int pos=h1%_capacity;
     Entry* res=&_entries[pos];
     if(res->isEmpty()) {
@@ -282,7 +283,7 @@ private:
     CALL("DHMultiset::findEntryToInsert");
     ASS(_capacity>_size+_deleted);
 
-    unsigned h1=Hash1::hash(val);
+    unsigned h1=computeHash<Hash1>(val, _capacity);
     int pos=h1%_capacity;
     Entry* res=&_entries[pos];
     if( (res->_info.multiplicity==0 && res->_info.collision==0) || res->_val==val) {

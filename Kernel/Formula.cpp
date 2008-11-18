@@ -473,6 +473,7 @@ unsigned Formula::weight() const
       break;
     }
   }
+  return result;
 } // Formula::weight
 
 /*

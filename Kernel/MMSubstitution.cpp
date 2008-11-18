@@ -6,6 +6,7 @@
 #include "../Lib/Hash.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Random.hpp"
+#include "../Lib/DHMultiset.hpp"
 
 #include "../Indexing/TermSharing.hpp"
 
@@ -13,18 +14,39 @@
 #include "MMSubstitution.hpp"
 
 #ifdef VDEBUG
-
 #include "../Test/Output.hpp"
 #include "../Lib/Int.hpp"
 #include <string>
-
-using namespace std;
-
 #endif
 
 
 using namespace Lib;
 using namespace Kernel;
+
+bool MMSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
+{
+  CALL("MMSubstitution::unify");
+  BacktrackData localBD;
+  
+  bdRecord(localBD);
+  TermSpec ct=associate(TermSpec(t1,index1), TermSpec(t2,index2));
+  bool failed=ct.term.isEmpty();
+  if(!failed) {
+    failed=occurCheckFails();
+  }
+  bdDone();
+
+  if(failed) {
+    localBD.backtrack();
+  } else {
+    if(bdIsRecording()) {
+      bdCommit(localBD);
+    }
+    localBD.drop();
+  }
+  
+  return !failed;
+}
 
 bool MMSubstitution::isUnbound(VarSpec v)
 {
@@ -62,9 +84,6 @@ MMSubstitution::TermSpec MMSubstitution::deref(VarSpec v)
 void MMSubstitution::bind(const VarSpec& v, const TermSpec& b)
 {
   CALL("MMSubstitution::bind");
-  cout<<"Binding: "<<Int::toString(v.var)<<"/"<<Int::toString(v.index)<<" to "
-  	<<Test::Output::singleTermListToString(&b.term)<<"/"<<Int::toString(b.index)<<endl;
-  ASS(v.var<1000);
   if(bdIsRecording()) {
     bdAdd(new BindingBacktrackObject(this, v));
   }
@@ -135,11 +154,8 @@ bool MMSubstitution::makeEqual(VarSpec v1, VarSpec v2)
 MMSubstitution::TermSpec MMSubstitution::associate(TermSpec t1, TermSpec t2)
 {
   CALL("MMSubstitution::associate");
-
-  TermList commonTerm;
-  BacktrackData localBD;
   
-  bdRecord(localBD);
+  TermList commonTerm;
 
   TermList* ss=&t1.term;
   TermList* tt=&t2.term;
@@ -174,7 +190,7 @@ MMSubstitution::TermSpec MMSubstitution::associate(TermSpec t1, TermSpec t2)
         if(ss->isVar()) {
           VarSpec sVar=getVarSpec(*ss,t1.index);
           VarSpec ctVar=getAuxVar(sVar);
-          ct->makeVar(ctVar.index);
+          ct->makeVar(ctVar.var);
           if(tt->isTerm()) {
             add(ctVar, TermSpec(*tt, t2.index));
           } else {
@@ -209,23 +225,16 @@ MMSubstitution::TermSpec MMSubstitution::associate(TermSpec t1, TermSpec t2)
     }
   }
   
-  bdDone();
+  
   
   if(mismatch) {
     if(commonTerm.isTerm()) {
       commonTerm.term()->destroyNonShared();
     }
     commonTerm.makeEmpty();
-    
-    localBD.backtrack();
   } else {
     Term* commonShared=env.sharing->insertRecurrently(commonTerm.term());
     commonTerm.setTerm(commonShared);
-    
-    if(bdIsRecording()) {
-      bdCommit(localBD);
-    }
-    localBD.drop();
   }
   return TermSpec(commonTerm, AUX_INDEX);
 }
@@ -234,18 +243,13 @@ TermList MMSubstitution::apply(TermList trm, int index)
 {
   CALL("MMSubstitution::apply");
 
-  
-  Stack<TermList*> toDo(8);
-  Stack<int> toDoIndex(8);
-  Stack<Term*> terms(8);
-  Stack<TermList> args(8);
-
+  static Stack<TermList*> toDo(8);
+  static Stack<int> toDoIndex(8);
+  static Stack<Term*> terms(8);
+  static Stack<TermList> args(8);
   
   toDo.push(&trm);
   toDoIndex.push(index);
-//  cout<<"---"<<endl;
-//  cout<<"Pushed start: "<<Test::Output::singleTermListToString(&trm)<<endl;
-  
   
   while(!toDo.isEmpty()) {
     TermList* tt=toDo.pop();
@@ -267,16 +271,10 @@ TermList MMSubstitution::apply(TermList trm, int index)
       if(tt!=&trm) {
 	toDo.push(tt->next());
 	toDoIndex.push(index);
-//	if(tt->next()->isEmpty()) {
-//	  cout<<"Pushed next: empty"<<endl;
-//	} else {
-//	  cout<<"Pushed next: "<<Test::Output::singleTermListToString(tt->next())<<endl;
-//	}
       }
     }
     
     TermSpec ts(*tt,index);
-//    cout<<Test::Output::singleTermListToString(tt)<<"/"<<index<<endl;
 
     if(ts.term.isVar()) {
       ts=deref(getVarSpec(ts));
@@ -287,23 +285,69 @@ TermList MMSubstitution::apply(TermList trm, int index)
       }
     }
     Term* t=ts.term.term();
-//    cout<<"Term retrieved: "<<Test::Output::toString(t)<<"/"<<ts.index<<endl;
     if(t->shared() && t->ground()) {
       args.push(ts.term);
       continue;
     }
     terms.push(t);
     toDo.push(t->args());
-//    cout<<"Pushed arg: "<<Test::Output::singleTermListToString(t->args())<<endl;
     toDoIndex.push(ts.index);
   }
   ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
   return args.pop();
 }
 
+bool MMSubstitution::occurCheckFails()
+{
+  CALL("MMSubstitution::occurCheckFails");
+  
+  Stack<VarSpec> maybeUnref(8);
+  Stack<VarSpec> unref(8);
+  DHMultiset<VarSpec,VarSpec::Hash1,VarSpec::Hash2> refCounter;
+  
+  BankType::Iterator bit(_bank);
+  while(bit.hasNext()) {
+    VarSpec vs=bit.nextKey();
+    TermSpec ts=_bank.get(vs);
+    if(!ts.term.isTerm()) {
+      continue;
+    }
+    if(!refCounter.find(vs)) {
+      maybeUnref.push(vs);
+    }
+    Term::VariableIterator vit(ts.term.term());
+    while(vit.hasNext()) {
+      VarSpec r=root(VarSpec(vit.next().var(),ts.index));
+      refCounter.insert(r);
+    }
+  }
+  while(!maybeUnref.isEmpty()) {
+    VarSpec vs=maybeUnref.pop();
+    if(!refCounter.find(vs)) {
+      unref.push(vs);
+    }
+  }
+  while(!unref.isEmpty()) {
+    VarSpec v=unref.pop();
+    TermSpec ts=_bank.get(v);
+    ASS(ts.term.isTerm());
+    Term::VariableIterator vit(ts.term.term());
+    while(vit.hasNext()) {
+      VarSpec r=root(VarSpec(vit.next().var(),ts.index));
+      refCounter.remove(r);
+      if(!refCounter.find(r)) {
+	TermSpec rts;
+	if(_bank.find(r, rts) && rts.term.isTerm()) {
+	  unref.push(r);
+	}
+      }
+    }
+  }
+  return refCounter.size()!=0;
+}
+
 
 #ifdef VDEBUG
-
 string MMSubstitution::toString()
 {
   CALL("MMSubstitution::toString");
@@ -320,11 +364,10 @@ string MMSubstitution::toString()
       tl.makeVar(v.var);
     }
     tl=apply(tl, v.index);
-    res+=Test::Output::singleTermListToString(&tl)+"\n";
+    res+=Test::Output::singleTermListToString(tl)+"\n";
   }
   return res;
 }
-
 #endif
 
 

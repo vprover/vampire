@@ -255,6 +255,30 @@ public:
   string headerToString() const;
 #endif
   
+  class VariableIterator {
+  public:
+    VariableIterator(Term* term) : _stack(4), _used(false)  
+    {
+      if(!term->shared() || !term->ground()) {
+	_stack.push(term->args());
+      }
+    }
+    
+    bool hasNext();
+    /** Return the next variable
+     * @warning hasNext() must have been called before */
+    TermList next()
+    {
+      ASS(!_used && _stack.top()->isVar());
+      _used=true;
+      return *_stack.pop();
+    }
+  private:
+    TermList _root;
+    Stack<TermList*> _stack;
+    bool _used;
+  };
+  
 protected:
   /** The number of this symbol in a signature */
   unsigned _functor;

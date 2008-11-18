@@ -97,7 +97,7 @@ Term* TermSharing::insert(Term* t)
 } // TermSharing::insert
 
 /**
- * Insert a new term in the index and return the result.
+ * Insert a new literal in the index and return the result.
  * @since 28/12/2007 Manchester
  */
 Literal* TermSharing::insert(Literal* t)

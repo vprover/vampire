@@ -368,7 +368,7 @@ string SubstitutionTree::toString() const
 	continue;
       }
       if(!node->term.isEmpty()) {
-	res+=getIndentStr(indent)+Test::Output::singleTermListToString(&node->term)+"\n";
+	res+=getIndentStr(indent)+Test::Output::singleTermListToString(node->term)+"\n";
       }
 
       if(node->isLeaf()) {
@@ -489,21 +489,14 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
     qt.makeSpecialVar(specVar);
 
     subst.bdRecord(bd);
-
     bool success=subst.unify(qt,0,n->term,1);
-    
     subst.bdDone();
-    
-    cout<<subst.toString();
-    cout<<success<<endl;
-    
-    extractSpecialVariables(n->term, bd);
     
     if(!success) {
       return false;
     }
-
     svQueue.backtrackablePop(bd);
+    extractSpecialVariables(n->term, bd);
   }
   if(n->isLeaf()) {
     ldIterator=static_cast<Leaf*>(n)->allChildren();

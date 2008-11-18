@@ -8,6 +8,11 @@
 
 #include "List.hpp"
 
+#ifdef VDEBUG
+#include <string>
+#include "Int.hpp"
+#endif
+
 
 namespace Lib
 {
@@ -17,6 +22,10 @@ class BacktrackObject
 public:
   virtual ~BacktrackObject() {}
   virtual void backtrack() = 0;
+  
+#ifdef VDEBUG
+  virtual std::string toString() { return "(backtrack object)"; }
+#endif
 };
 
 class BacktrackData
@@ -50,9 +59,25 @@ public:
    */
   void commitTo(BacktrackData& bd)
   {
-    _bol=List<BacktrackObject*>::concat(bd._bol, _bol);
-    bd._bol=0;
+    bd._bol=List<BacktrackObject*>::concat(_bol,bd._bol);
+    _bol=0;
   }
+  
+#ifdef VDEBUG
+  std::string toString()
+  {
+    std::string res;
+    List<BacktrackObject*>* boit=_bol;
+    int cnt=0;
+    while(boit) {
+      res+=boit->head()->toString()+"\n";
+      cnt++;
+      boit=boit->tail();
+    }
+    res+="object cnt: "+Int::toString(cnt)+"\n";
+    return res;
+  }
+#endif
   
 private:
   List<BacktrackObject*>* _bol;

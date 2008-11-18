@@ -141,7 +141,9 @@ void doTest()
   }
   tmr.stop();
   cout<<litCnt<<" literals inserted in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
-  cout<<tree.toString()<<endl;
+  
+  //cout<<tree.toString()<<endl;
+  
   cout<<"Retrieving literals unifiable with "<<Test::Output::toString(nonIndexedLit)<<":"<<endl;
   SLQueryResultIterator rit1=tree.getUnifications(nonIndexedLit);
   while(rit1.hasNext()) {
@@ -149,13 +151,13 @@ void doTest()
     cout<<Test::Output::toString(res.literal)<<" in "<<Test::Output::toString(res.clause)<<endl;
   }
   
-/*  cout<<"Retrieving literals unifiable with "<<Test::Output::toString(indexedLit)<<":"<<endl;
+  cout<<"Retrieving literals unifiable with "<<Test::Output::toString(indexedLit)<<":"<<endl;
   SLQueryResultIterator rit2=tree.getUnifications(indexedLit);
   while(rit2.hasNext()) {
     SLQueryResult res=rit2.next();
     cout<<Test::Output::toString(res.literal)<<" in "<<Test::Output::toString(res.clause)<<endl;
   }
-*/
+
   tmr.reset();
   tmr.start();
   for(index=0;index<litCnt;index++) {

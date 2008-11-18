@@ -272,24 +272,10 @@ private:
       Node* root=t->_nodes[t->getRootNodeIndex(query)];
       
       createInitialBindings(query);
-      cout<<subst.toString();
 
       BacktrackData bd;
       enter(root, bd);
       bd.drop();
-    }
-    
-    void init(SubstitutionTree* t, TermList* query)
-    {
-      CALL("SubstitutionTree::ResultIterator::init");
-      Node* root=t->_nodes[t->getRootNodeIndex(query)];
-      
-      if(query->isTerm()) {
-	createInitialBindings(query->term());
-      }
-
-      BacktrackData bd;
-      enter(root, bd);
     }
     
     bool hasNext()
@@ -365,11 +351,6 @@ private:
           stack.push(ts->next());
         }
       }
-    }
-    virtual LDIterator getIteratorSuffix()
-    {
-      //TODO make it used
-      return LDIterator::getEmpty();
     }
     
   protected:

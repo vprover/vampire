@@ -528,6 +528,41 @@ Term* Term::cloneNonShared(Term* t)
   return s;
 } // Term::cloneNonShared(const Term* t,Term* args)
 
+/**
+ * True if there exists next variable 
+ */
+bool Term::VariableIterator::hasNext()
+{
+  if(_stack.isEmpty()) {
+    return false;
+  }
+  if(!_used && _stack.top()->isVar()) {
+    return true;
+  }
+  while(!_stack.isEmpty()) {
+    TermList* t=_stack.pop();
+    if(_used && t->isVar()) {
+      _used=false;
+      t=t->next();
+    }
+    if(t->isEmpty()) {
+	continue;
+    }
+    if(t->isVar()) {
+      ASS(!_used);
+      _stack.push(t);
+      return true;
+    }
+    _stack.push(t->next());
+    ASS(t->isTerm());
+    Term* trm=t->term();
+    if(!trm->shared() || !trm->ground()) {
+      _stack.push(trm->args());
+    }
+  }
+  
+}
+
 /** Create a new literal, copy from @b l its predicate symbol and
  *  from the array @b args its arguments. Insert it into the sharing
  *  structure.

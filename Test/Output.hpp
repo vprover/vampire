@@ -36,11 +36,11 @@ public:
   static string toString(const Clause* c);
 
   /** Convert only the first item of a term list to string */
-  static string singleTermListToString(const TermList* ts)
+  static string singleTermListToString(TermList ts)
   {
     TermList aux[2];
     aux[0].makeEmpty();
-    aux[1]=*ts;
+    aux[1]=ts;
     return Test::Output::toString(&aux[1]);
   }
   

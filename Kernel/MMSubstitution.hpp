@@ -28,11 +28,7 @@ class MMSubstitution
 public:
   MMSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
   
-  bool unify(TermList t1,int index1, TermList t2, int index2)
-  {
-    TermSpec ct=associate(TermSpec(t1,index1), TermSpec(t2,index2));
-    return !ct.term.isEmpty();
-  }
+  bool unify(TermList t1,int index1, TermList t2, int index2);
   bool isUnbound(unsigned var, int index)
   {
     return isUnbound(VarSpec(var,index));
@@ -41,6 +37,13 @@ public:
   {
     return isUnbound(VarSpec(var,SPECIAL_INDEX));
   }
+  /**
+   * Bind special variable to a specified term
+   * 
+   * Calls to this method must happen before calls to any 
+   * other methods. Also no special variables can occur in
+   * binding term, as no occur-check is performed.
+   */
   void bindSpecialVar(unsigned var, TermList t, int index)
   {
     VarSpec vs(var, SPECIAL_INDEX);
@@ -86,6 +89,13 @@ private:
     { return var==o.var && index==o.index; }
     bool operator!=(const VarSpec& o) 
     { return !(*this==o); }
+    
+    #ifdef VDEBUG
+    std::string toString()
+    {
+      return Int::toString(var)+"/"+Int::toString(index);
+    }
+    #endif
 
     /** number of variable */
     unsigned var;
@@ -115,6 +125,8 @@ private:
   void add(VarSpec v, TermSpec b);
   TermSpec associate(TermSpec t1, TermSpec t2);
   bool makeEqual(VarSpec v1, VarSpec v2);
+  
+  bool occurCheckFails();
 
   VarSpec getAuxVar(VarSpec target)
   {
@@ -164,6 +176,12 @@ private:
 	_subst->_bank.set(_var,_term);
       }
     }
+#ifdef VDEBUG
+    std::string toString()
+    {
+      return "(MM backtrack object for "+ _var.toString() +")";
+    }
+#endif
   private:
     MMSubstitution* _subst;
     VarSpec _var;
