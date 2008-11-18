@@ -15,6 +15,12 @@ class VirtualIterator;
 template<typename T>
 class SmartPtr;
 
+template<typename T>
+class SingleParamEventHandler;
+
+template<typename T>
+class SingleParamEvent;
+
 template<class C>
 class Stack;
 
