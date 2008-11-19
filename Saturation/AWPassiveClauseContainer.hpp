@@ -8,11 +8,12 @@
 #define __AWPassiveClauseContainer__
 
 #include "../Kernel/ClauseQueue.hpp"
-#include "../Kernel/ClauseQueue.hpp"
+#include "ClauseContainer.hpp"
 
-using namespace Kernel;
 
 namespace Saturation {
+
+using namespace Kernel;
 
 class AgeQueue
   : public ClauseQueue
@@ -56,7 +57,7 @@ public:
     _ageRatio = age;
     _weightRatio = weight;
   }
-  Clause* select();
+  Clause* popSelected();
   /** True if there are no passive clauses */
   bool isEmpty() const
   { return _ageRatio ? _ageQueue.isEmpty() : _weightQueue.isEmpty(); }
@@ -74,6 +75,6 @@ private:
   int _balance;
 }; // class AWPassiveClauseContainer
 
-}
+};
 
 #endif /* __AWPassiveClauseContainer__ */

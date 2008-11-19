@@ -39,6 +39,7 @@ namespace Indexing {
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 class SubstitutionTree
+:public Index
 {
 public:
   SubstitutionTree(int nodes);

@@ -8,15 +8,22 @@
 
 #include "../Kernel/Forwards.hpp"
 #include "../Kernel/MMSubstitution.hpp"
+#include "../Lib/Event.hpp"
 #include "../Lib/Forwards.hpp"
-#include "../Lib/SmartPtr.hpp"
+#include "../Lib/Exception.hpp"
+#include "../Lib/VirtualIterator.hpp"
+#include "../Saturation/ClauseContainer.hpp"
 
 namespace Indexing
 {
 
 using namespace Kernel;
 using namespace Lib;
+using namespace Saturation;
 
+/**
+ * Class of objects which contain results of single literal queries.
+ */
 struct SLQueryResult
 {
   SLQueryResult(Literal* l, Clause* c, MMSubstitution* s)
@@ -33,13 +40,31 @@ struct SLQueryResult
 
 typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
 
-enum IndexType {
-  BINARY_RESOLUTION_SUBSTITUTION_TREE
-};
-
 class Index
 {
+public:
+  virtual ~Index();
+  virtual SLQueryResultIterator getUnifications(Literal* lit)
+  {
+    INVALID_OPERATION("Operation not supported by this index.");
+  }
+  void attachContainer(ClauseContainer* cc);
+  void detachContainer(ClauseContainer* cc);
   
+protected:
+  Index(): _attachedContainers(0) {}
+
+  virtual void onAddedToContainer(Clause* c);
+  virtual void onRemovedFromContainer(Clause* c);
+  
+  virtual void insert(Literal* lit, Clause* cls) = 0;
+  virtual void remove(Literal* lit, Clause* cls) = 0;
+
+  //TODO: postponing index modifications during iteration (methods isBeingIterated() etc...)
+  
+private:
+  typedef List<ClauseContainer*> ContainerList;
+  ContainerList* _attachedContainers;
 };
 
 };

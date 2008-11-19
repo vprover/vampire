@@ -92,18 +92,18 @@ bool AgeQueue::lessThan(const Clause* c1,const Clause* c2)
  * Add @b c clause in the queue.
  * @since 31/12/2007 Manchester
  */
-void AWPassiveClauseContainer::add(Clause& c)
+void AWPassiveClauseContainer::add(Clause* c)
 {
   CALL("AWPassiveClauseContainer::add");
   ASS(_ageRatio > 0 || _weightRatio > 0);
 
   if (_ageRatio) {
-    _ageQueue.insert(&c);
+    _ageQueue.insert(c);
   }
   if (_weightRatio) {
-    _weightQueue.insert(&c);
+    _weightQueue.insert(c);
   }
-  c.setStore(Clause::PASSIVE);
+  c->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
   addedEvent.fire(c);
 } // AWPassiveClauseContainer::add

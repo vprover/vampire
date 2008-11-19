@@ -8,18 +8,30 @@
 #define __ClauseContainer__
 
 #include "../Lib/Event.hpp"
+#include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Kernel/Forwards.hpp"
 
 namespace Saturation
 {
 
+using namespace Lib;
+using namespace Kernel;
+
 class ClauseContainer
 {
 public:
+  virtual ~ClauseContainer() 
+  {
+    //when destroying the container, all subscribrions 
+    //to its events must be already canceled
+    ASS(addedEvent.isEmpty());
+    ASS(removedEvent.isEmpty());
+  }
   ClauseEvent addedEvent;
   ClauseEvent removedEvent;
   virtual void add(Clause* c) = 0;
+  virtual void addClauses(ClauseIterator cit);
 };
 
 class RandomAccessClauseContainer
@@ -32,18 +44,19 @@ class UnprocessedClauseContainer
 : public ClauseContainer
 {
 public:
+  UnprocessedClauseContainer() : _data(64) {}
   void add(Clause* c)
   {
     _data.push(c);
     addedEvent.fire(c);
   }
-  void pop()
+  Clause* pop()
   {
     Clause* res=_data.pop();
     removedEvent.fire(res);
     return res;
   }
-  void isEmpty()
+  bool isEmpty()
   {
     return _data.isEmpty();
   }
@@ -54,13 +67,20 @@ private:
 class PassiveClauseContainer
 : public RandomAccessClauseContainer
 {
-  Clause* popSelected() = 0;
+  virtual Clause* popSelected() = 0;
 };
 
 class ActiveClauseContainer
 : public RandomAccessClauseContainer
 {
-  
+  void add(Clause* c)
+  {
+    addedEvent.fire(c);
+  }
+  void remove(Clause* c)
+  {
+    removedEvent.fire(c);
+  }
 };
 
 

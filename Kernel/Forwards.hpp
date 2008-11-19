@@ -20,7 +20,6 @@ class Literal;
 class Clause;
 
 typedef VirtualIterator<Clause*> ClauseIterator;
-typedef SingleParamEventHandler<Clause*> ClauseEventHandler;
 typedef SingleParamEvent<Clause*> ClauseEvent;
 
 class DoubleSubstitution;
