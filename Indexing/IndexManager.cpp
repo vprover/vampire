@@ -17,6 +17,8 @@ using namespace Indexing;
 
 Index* IndexManager::request(IndexType t)
 {
+  CALL("IndexManager::request");
+
   Entry e;
   if(_store.find(t,e)) {
     e.refCnt++;
@@ -30,6 +32,8 @@ Index* IndexManager::request(IndexType t)
 
 void IndexManager::release(IndexType t)
 {
+  CALL("IndexManager::release");
+
   Entry e;
   bool found=_store.find(t,e);
   ASS(found);
@@ -50,6 +54,8 @@ bool IndexManager::contains(IndexType t)
 
 Index* IndexManager::create(IndexType t)
 {
+  CALL("IndexManager::create");
+
   Index* res;
   switch(t) {
   case GENERATING_SUBST_TREE:

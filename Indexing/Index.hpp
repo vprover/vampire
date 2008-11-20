@@ -6,10 +6,10 @@
 #ifndef __Indexing_Index__
 #define __Indexing_Index__
 
-#include "../Kernel/Forwards.hpp"
+#include "../Forwards.hpp"
+
 #include "../Kernel/MMSubstitution.hpp"
 #include "../Lib/Event.hpp"
-#include "../Lib/Forwards.hpp"
 #include "../Lib/Exception.hpp"
 #include "../Lib/VirtualIterator.hpp"
 #include "../Saturation/ClauseContainer.hpp"
@@ -44,7 +44,7 @@ class Index
 {
 public:
   virtual ~Index();
-  virtual SLQueryResultIterator getUnifications(Literal* lit)
+  virtual SLQueryResultIterator getComplementaryUnifications(Literal* lit)
   {
     INVALID_OPERATION("Operation not supported by this index.");
   }

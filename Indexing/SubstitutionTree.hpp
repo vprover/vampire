@@ -8,6 +8,8 @@
 #ifndef __SubstitutionTree__
 #define __SubstitutionTree__
 
+#include "../Forwards.hpp"
+
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Int.hpp"
@@ -17,7 +19,6 @@
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/BacktrackData.hpp"
 
-#include "../Kernel/Forwards.hpp"
 #include "../Kernel/DoubleSubstitution.hpp"
 #include "../Kernel/MMSubstitution.hpp"
 
@@ -50,7 +51,7 @@ public:
   void insert(TermList* term, Clause* cls);
   void remove(TermList* term, Clause* cls);
   
-  SLQueryResultIterator getUnifications(Literal* lit)
+  SLQueryResultIterator getComplementaryUnifications(Literal* lit)
   {
     UnificationsIterator* core=new UnificationsIterator();
     core->init(this, lit);
@@ -65,8 +66,14 @@ public:
 private:
   
   inline 
-  int getRootNodeIndex(Literal* t)
-  { return (int)t->header(); }
+  int getRootNodeIndex(Literal* t, bool complementary=false)
+  {
+    if(complementary) {
+      return (int)t->complementaryHeader();
+    } else {
+      return (int)t->header();
+    }
+  }
 
   inline 
   int getRootNodeIndex(TermList* t)
@@ -267,10 +274,10 @@ private:
     {
     }
     
-    void init(SubstitutionTree* t, Literal* query)
+    void init(SubstitutionTree* t, Literal* query, bool complementary)
     {
       CALL("SubstitutionTree::ResultIterator::init");
-      Node* root=t->_nodes[t->getRootNodeIndex(query)];
+      Node* root=t->_nodes[t->getRootNodeIndex(query, complementary)];
       
       createInitialBindings(query);
 

@@ -7,10 +7,9 @@
 
 #ifndef __Clause__
 
-#include "../Lib/Forwards.hpp"
+#include "../Forwards.hpp"
 #include "../Lib/Allocator.hpp"
 
-#include "Forwards.hpp"
 #include "Unit.hpp"
 
 using namespace Lib;

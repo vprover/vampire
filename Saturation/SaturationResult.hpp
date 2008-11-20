@@ -20,6 +20,12 @@ struct SaturationResult
     TIME_LIMIT,
     MEMORY_LIMIT
   };
+  
+  SaturationResult(TerminationReason reason)
+  : terminationReason(reason) {}
+  SaturationResult(TerminationReason reason, Clause* ref)
+  : terminationReason(reason), refutation(ref) {}
+  
   TerminationReason terminationReason;
   Clause* refutation;
 };

@@ -7,7 +7,7 @@
 #ifndef __IndexManager__
 #define __IndexManager__
 
-#include "../Saturation/Forwards.hpp"
+#include "../Forwards.hpp"
 #include "../Lib/DHMap.hpp"
 #include "Index.hpp"
 

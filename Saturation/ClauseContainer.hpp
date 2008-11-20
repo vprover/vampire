@@ -7,10 +7,11 @@
 #ifndef __ClauseContainer__
 #define __ClauseContainer__
 
+#include "../Forwards.hpp"
+
 #include "../Lib/Event.hpp"
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Stack.hpp"
-#include "../Kernel/Forwards.hpp"
 
 namespace Saturation
 {
@@ -31,13 +32,15 @@ public:
   ClauseEvent addedEvent;
   ClauseEvent removedEvent;
   virtual void add(Clause* c) = 0;
-  virtual void addClauses(ClauseIterator cit);
+  void addClauses(ClauseIterator cit);
 };
 
 class RandomAccessClauseContainer
 : public ClauseContainer
 {
+public:
   virtual void remove(Clause* c) = 0;
+  void removeClauses(ClauseIterator cit);
 };
 
 class UnprocessedClauseContainer
@@ -45,21 +48,10 @@ class UnprocessedClauseContainer
 {
 public:
   UnprocessedClauseContainer() : _data(64) {}
-  void add(Clause* c)
-  {
-    _data.push(c);
-    addedEvent.fire(c);
-  }
-  Clause* pop()
-  {
-    Clause* res=_data.pop();
-    removedEvent.fire(res);
-    return res;
-  }
+  void add(Clause* c);
+  Clause* pop();
   bool isEmpty()
-  {
-    return _data.isEmpty();
-  }
+  { return _data.isEmpty(); }
 private:
   Stack<Clause*> _data;
 };
@@ -67,20 +59,17 @@ private:
 class PassiveClauseContainer
 : public RandomAccessClauseContainer
 {
+public:
+  virtual bool isEmpty() = 0;
   virtual Clause* popSelected() = 0;
 };
 
 class ActiveClauseContainer
 : public RandomAccessClauseContainer
 {
-  void add(Clause* c)
-  {
-    addedEvent.fire(c);
-  }
-  void remove(Clause* c)
-  {
-    removedEvent.fire(c);
-  }
+public:
+  void add(Clause* c);
+  void remove(Clause* c);
 };
 
 

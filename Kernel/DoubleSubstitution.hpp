@@ -13,9 +13,8 @@
 using namespace std;
 #endif
 
-#include "../Lib/Forwards.hpp"
+#include "../Forwards.hpp"
 #include "../Lib/DHMap.hpp"
-#include "Forwards.hpp"
 #include "Term.hpp"
 
 using namespace Lib;
