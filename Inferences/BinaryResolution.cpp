@@ -7,6 +7,7 @@
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Unit.hpp"
+#include "../Kernel/Inference.hpp"
 
 #include "../Indexing/Index.hpp"
 #include "../Indexing/IndexManager.hpp"
@@ -18,10 +19,11 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-using namespace Inference;
+using namespace Inferences;
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
+  InferenceEngine::attach(salg);
   _index=_salg->getIndexManager()->request(GENERATING_SUBST_TREE);
 }
 
@@ -32,7 +34,7 @@ BinaryResolution::~BinaryResolution()
 }
 
 class BinaryResolutionResultIterator
-: IteratorCore<Clause*>
+: public IteratorCore<Clause*>
 {
 public:
   BinaryResolutionResultIterator(Index* index, Clause* cl)
@@ -50,6 +52,8 @@ public:
   }
   Clause* next()
   {
+    CALL("BinaryResolutionResultIterator::next");
+
     SLQueryResult qr = getNextUnification();
     
     int clength = _cl->length();
@@ -58,23 +62,28 @@ public:
     
     Inference* inf = new Inference2(Inference::RESOLUTION, _cl, qr.clause);
     Unit::InputType inpType = (Unit::InputType) 
-    	Int::max(_cl->inputType(),
-	    qr.clause->inputType())
+    	Int::max(_cl->inputType(), qr.clause->inputType());
     
-    Clause* res = new(newLength)
-    	Clause(newLength,
-	    ,
-		    inf);
+    Clause* res = new(newLength) Clause(newLength, inpType, inf);
+    
     int next = 0;
-    for (int f = newLength-1;f >= 0;f--) {
-      if (lits[f]) {
-	(*res)[next++] = lits[f];
+    for(int i=0;i<clength;i++) {
+      Literal* curr=(*_cl)[i];
+      if(curr!=_lit) {
+	//query term variables are in variable bank 0
+	(*res)[next++] = qr.substitution->apply(curr, 0);
       }
     }
-    res->setAge(Int::max(_clause.age(),d->age())+1);
-    _pa.unprocessed().insert(res);
+    for(int i=0;i<dlength;i++) {
+      Literal* curr=(*qr.clause)[i];
+      if(curr!=qr.literal) {
+	//query term variables are in variable bank 1
+	(*res)[next++] = qr.substitution->apply(curr, 1);
+      }
+    }
+    res->setAge(Int::max(_cl->age(),qr.clause->age())+1);
     
-    
+    return res;
   }
 private:
   SLQueryResult getNextUnification()
@@ -88,18 +97,13 @@ private:
   Index* _index;
   Clause* _cl;
   Literal* _lit;
-  int _nextLit;
+  unsigned _nextLit;
   SLQueryResultIterator _uit;
 };
 
-ClauseIterator BinaryResolution::generateClauses(Clause* cl1)
+ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
   CALL("BinaryResolution::generateClauses");
 
-  int selCnt=cl1->selected();
-  ASS(selCnt>0);
-  for(int li=0;li<selCnt;li++) {
-    Literal* lit1=(*cl1)[li];
-    SLQueryResultIterator unifs=_index->getComplementaryUnifications(lit1);
-  }
+  return ClauseIterator(new BinaryResolutionResultIterator(_index, premise));
 }

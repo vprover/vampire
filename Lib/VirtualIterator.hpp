@@ -139,6 +139,34 @@ private:
   Inner _inn;
 };
 
+template<typename T, class Inner>
+VirtualIterator<T> getProxyIterator(Inner it)
+{
+  return VirtualIterator<T>(new ProxyIterator<T,Inner>(it));
+}
+
+/**
+ * Implementation object for VirtualIterator, that can proxy any
+ * non-virtual iterator, that supports hasNext() and next() methods.
+ */
+template<typename To, class Inner>
+class StaticCastIterator 
+: public IteratorCore<To>
+{
+public:
+  explicit StaticCastIterator(Inner inn) :_inn(inn) {}
+  bool hasNext() { return _inn.hasNext(); };
+  To next() { return static_cast<To>(_inn.next()); };
+private:
+  Inner _inn;
+};
+
+template<typename To, class Inner>
+VirtualIterator<To> getStaticCastIterator(Inner it)
+{
+  return VirtualIterator<To>(new StaticCastIterator<To,Inner>(it));
+}
+
 
 /**
  * Implementation object for VirtualIterator, that can proxy any

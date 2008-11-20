@@ -11,10 +11,9 @@
 
 #include "../Lib/Event.hpp"
 #include "../Indexing/IndexManager.hpp"
-#include "../Inference/InferenceEngine.hpp"
+#include "../Inferences/InferenceEngine.hpp"
 
 #include "Limits.hpp"
-#include "ClauseContainer.hpp"
 #include "SaturationResult.hpp"
 
 namespace Saturation
@@ -23,15 +22,19 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
-using namespace Inference;
+using namespace Inferences;
 
 class SaturationAlgorithm
 {
 public:
-  SaturationAlgorithm(PassiveClauseContainer* passiveContainer,
-	  GeneratingInferenceEngine* generator, ForwardSimplificationEngine* fwSimplifier,
-	  BackwardSimplificationEngine* bwSimplifier, LiteralSelector* selector);
+  SaturationAlgorithm();
   virtual ~SaturationAlgorithm();
+  
+  void setLiteralSelector(LiteralSelector* selector);
+  void setPassiveClauseContainer(PassiveClauseContainer* passiveContainer);
+  void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
+  void setForwardSimplificationEngine(ForwardSimplificationEngine* fwSimplifier);
+  void setBackwardSimplificationEngine(BackwardSimplificationEngine* bwSimplifier);
   
   PlainEvent safePointEvent;
   
@@ -67,6 +70,10 @@ class DiscountSA
 {
 public:
   SaturationResult saturate();
+  
+  ClauseContainer* getSimplificationClauseContainer();
+  ClauseContainer* getGenerationClauseContainer();
+  
 protected:
   bool processInactive(Clause* c);
   void activate(Clause* c);

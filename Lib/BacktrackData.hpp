@@ -24,7 +24,7 @@ public:
   virtual void backtrack() = 0;
   
 #ifdef VDEBUG
-  virtual std::string toString() { return "(backtrack object)"; }
+  virtual std::string toString() const { return "(backtrack object)"; }
 #endif
 };
 

@@ -30,7 +30,7 @@ class EagerLiteralSelector
 : public LiteralSelector
 {
 public:
-  void select(Clause* c) = 0;
+  void select(Clause* c);
 };
 
 

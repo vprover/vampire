@@ -4,6 +4,7 @@
  */
 
 #include "../Lib/Hash.hpp"
+#include "../Lib/DArray.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Random.hpp"
 #include "../Lib/DHMultiset.hpp"
@@ -48,7 +49,7 @@ bool MMSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
   return !failed;
 }
 
-bool MMSubstitution::isUnbound(VarSpec v)
+bool MMSubstitution::isUnbound(VarSpec v) const
 {
   CALL("MMSubstitution::isUnbound");
   for(;;) {
@@ -63,7 +64,7 @@ bool MMSubstitution::isUnbound(VarSpec v)
   }
 }
 
-MMSubstitution::TermSpec MMSubstitution::deref(VarSpec v)
+MMSubstitution::TermSpec MMSubstitution::deref(VarSpec v) const
 {
   CALL("MMSubstitution::deref");
   for(;;) {
@@ -72,7 +73,7 @@ MMSubstitution::TermSpec MMSubstitution::deref(VarSpec v)
     if(!found) {
       binding.index=UNBOUND_INDEX;
       binding.term.makeVar(_nextUnboundAvailable++);
-      bind(v, binding);
+      _bank.set(v,binding);
       return binding;
     } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
       return binding;
@@ -98,7 +99,7 @@ void MMSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
   bind(var,TermSpec(tl,to.index));
 }
 
-MMSubstitution::VarSpec MMSubstitution::root(VarSpec v)
+MMSubstitution::VarSpec MMSubstitution::root(VarSpec v) const
 {
   CALL("MMSubstitution::root");
   for(;;) {
@@ -239,9 +240,27 @@ MMSubstitution::TermSpec MMSubstitution::associate(TermSpec t1, TermSpec t2)
   return TermSpec(commonTerm, AUX_INDEX);
 }
 
-TermList MMSubstitution::apply(TermList trm, int index)
+Literal* MMSubstitution::apply(Literal* lit, int index) const
 {
-  CALL("MMSubstitution::apply");
+  CALL("MMSubstitution::apply(Literal...)");
+  static DArray<TermList> ts(32);
+
+  if (lit->ground()) {
+    return lit;
+  }
+
+  int arity = lit->arity();
+  ts.ensure(arity);
+  int i = 0;
+  for (TermList* args = lit->args(); ! args->isEmpty(); args = args->next()) {
+    ts[i++]=apply(*args,index);
+  }
+  return Literal::create(lit,ts.array());
+}
+
+TermList MMSubstitution::apply(TermList trm, int index) const
+{
+  CALL("MMSubstitution::apply(TermList...)");
 
   static Stack<TermList*> toDo(8);
   static Stack<int> toDoIndex(8);
@@ -297,7 +316,7 @@ TermList MMSubstitution::apply(TermList trm, int index)
   return args.pop();
 }
 
-bool MMSubstitution::occurCheckFails()
+bool MMSubstitution::occurCheckFails() const
 {
   CALL("MMSubstitution::occurCheckFails");
   
@@ -348,7 +367,7 @@ bool MMSubstitution::occurCheckFails()
 
 
 #ifdef VDEBUG
-string MMSubstitution::toString()
+string MMSubstitution::toString() const
 {
   CALL("MMSubstitution::toString");
   string res;

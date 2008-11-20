@@ -11,7 +11,7 @@
 
 #include "InferenceEngine.hpp"
 
-namespace Inference
+namespace Inferences
 {
 
 using namespace Kernel;

@@ -7,35 +7,70 @@
 #include "../Lib/VirtualIterator.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/LiteralSelector.hpp"
+#include "../Shell/Statistics.hpp"
 
 #include "SaturationAlgorithm.hpp"
 
 using namespace Lib;
 using namespace Kernel;
+using namespace Shell;
 using namespace Saturation;
 
 
-SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passive,
-	GeneratingInferenceEngine* generator, ForwardSimplificationEngine* fwSimplifier,
-	BackwardSimplificationEngine* bwSimplifier, LiteralSelector* selector)
-: _imgr(this), _passive(passive), _generator(generator), _fwSimplifier(fwSimplifier),
-_bwSimplifier(bwSimplifier), _selector(selector)
+SaturationAlgorithm::SaturationAlgorithm()
+: _imgr(this), _passive(0), _generator(0), _fwSimplifier(0),
+_bwSimplifier(0), _selector(0)
 {
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
-  
-  _generator->attach(this);
-  _fwSimplifier->attach(this);
-  _bwSimplifier->attach(this);
 }
-
 
 SaturationAlgorithm::~SaturationAlgorithm()
 {
   delete _unprocessed;
-  delete _passive;
   delete _active;
 }
+
+void SaturationAlgorithm::setLiteralSelector(LiteralSelector* selector)
+{
+  ASS(!_selector);
+  _selector=selector;
+}
+void SaturationAlgorithm::setPassiveClauseContainer(PassiveClauseContainer* passiveContainer)
+{
+  ASS(!_passive);
+  _passive=passiveContainer;
+}
+void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngine* generator)
+{
+  ASS(!_generator);
+  _generator=generator;
+  _generator->attach(this);
+}
+void SaturationAlgorithm::setForwardSimplificationEngine(ForwardSimplificationEngine* fwSimplifier)
+{
+  ASS(!_fwSimplifier);
+  _fwSimplifier=fwSimplifier;
+  _fwSimplifier->attach(this);
+}
+void SaturationAlgorithm::setBackwardSimplificationEngine(BackwardSimplificationEngine* bwSimplifier)
+{
+  ASS(!_bwSimplifier);
+  _bwSimplifier=bwSimplifier;
+  _bwSimplifier->attach(this);
+}
+
+
+ClauseContainer* DiscountSA::getSimplificationClauseContainer()
+{ 
+  return _active;
+}
+
+ClauseContainer* DiscountSA::getGenerationClauseContainer()
+{
+  return _active;
+}
+
 
 bool DiscountSA::processInactive(Clause* c)
 {
@@ -71,7 +106,7 @@ SaturationResult DiscountSA::saturate()
       Clause* c = _unprocessed->pop();
       
       if (c->isEmpty()) {
-    	return SaturationResult(SaturationResult::REFUTATION, c);
+    	return SaturationResult(Statistics::REFUTATION, c);
       }
       if(!processInactive(c)) {
 	continue;
@@ -81,10 +116,10 @@ SaturationResult DiscountSA::saturate()
     }
     
     if (env.timeLimitReached()) {
-      return SaturationResult(SaturationResult::TIME_LIMIT);
+      return SaturationResult(Statistics::TIME_LIMIT);
     }
     if (_passive->isEmpty()) {
-      return SaturationResult(SaturationResult::SATISFIABLE);
+      return SaturationResult(Statistics::SATISFIABLE);
     }
     
     Clause* c = _passive->popSelected();
@@ -94,7 +129,7 @@ SaturationResult DiscountSA::saturate()
     activate(c);
 
     if (env.timeLimitReached()) {
-      return SaturationResult(SaturationResult::TIME_LIMIT);
+      return SaturationResult(Statistics::TIME_LIMIT);
     }
   }
 }

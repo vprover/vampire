@@ -29,6 +29,7 @@ class TermList;
 class Term;
 class Literal;
 
+class Unit;
 class Clause;
 typedef VirtualIterator<Clause*> ClauseIterator;
 typedef SingleParamEvent<Clause*> ClauseEvent;
@@ -49,6 +50,10 @@ class IndexManager;
 namespace Saturation 
 {
 class SaturationAlgorithm;
+class ClauseContainer;
+class UnprocessedClauseContainer;
+class PassiveClauseContainer;
+class ActiveClauseContainer;
 }
 
 #endif /* __Forwards__ */

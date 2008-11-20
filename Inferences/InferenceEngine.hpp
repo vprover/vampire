@@ -11,7 +11,7 @@
 
 #include "../Lib/VirtualIterator.hpp"
 
-namespace Inference
+namespace Inferences
 {
 
 using namespace Lib;

@@ -5,6 +5,8 @@
 #include <fstream>
 #include <csignal>
 
+#include "Forwards.hpp"
+
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Random.hpp"
@@ -15,14 +17,15 @@
 #include "Lib/Environment.hpp"
 
 #include "Lib/Vector.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/LiteralSelector.hpp"
 
 #include "Indexing/TermSharing.hpp"
-#include "Indexing/SubstitutionTree.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/CommandLine.hpp"
@@ -35,19 +38,42 @@
 #include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
 
-#include "Resolution/ProofAttempt.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/AWPassiveClauseContainer.hpp"
 
-#include "Rule/CASC.hpp"
-#include "Rule/Prolog.hpp"
-#include "Rule/Index.hpp"
-#include "Rule/ProofAttempt.hpp"
+#include "Inferences/InferenceEngine.hpp"
+#include "Inferences/BinaryResolution.hpp"
+
 
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
 #endif
 
+using namespace Lib;
+using namespace Kernel;
 using namespace Shell;
-using namespace Resolution;
+using namespace Saturation;
+using namespace Inferences;
+
+SaturationResult brSaturate(ClauseIterator units)
+{
+  AWPassiveClauseContainer passiveContainer;
+  passiveContainer.setAgeWeightRatio(1,1);
+  
+  BinaryResolution generator;
+  DummyForwardSimplificationEngine fwSimplifier;
+  DummyBackwardSimplificationEngine bwSimplifier;
+  EagerLiteralSelector selector;
+  
+  DiscountSA salg;
+  salg.setLiteralSelector(&selector);
+  salg.setPassiveClauseContainer(&passiveContainer);
+  salg.setGeneratingInferenceEngine(&generator);
+  salg.setForwardSimplificationEngine(&fwSimplifier);
+  salg.setBackwardSimplificationEngine(&bwSimplifier);
+  
+  return salg.saturate();
+}
 
 void doProving()
 {
@@ -65,14 +91,11 @@ void doProving()
   Preprocess prepro(property,*env.options);
   prepro.preprocess(units);
 
-  Resolution::ProofAttempt pa;
-  UnitList::Iterator it(units);
-  while (it.hasNext()) {
-    Unit* u = it.next();
-    ASS(u->isClause());
-    pa.initialClause(static_cast<Clause*>(u));
-  }
-  pa.saturate();
+  ClauseIterator clauses=getStaticCastIterator<Clause*>(UnitList::Iterator(units));
+  
+  SaturationResult res=brSaturate(clauses);
+  res.updateStatistics();
+  
 
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
@@ -90,8 +113,6 @@ void doProving()
     env.out << "Refutation not found!\n";
     return;
   }
-
-
 
 #if CHECK_LEAKS
   delete env.signature;

@@ -54,7 +54,7 @@ public:
   SLQueryResultIterator getComplementaryUnifications(Literal* lit)
   {
     UnificationsIterator* core=new UnificationsIterator();
-    core->init(this, lit);
+    core->init(this, lit, true);
     return SLQueryResultIterator(core);
   }
   

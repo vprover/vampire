@@ -50,7 +50,7 @@ public:
   UnprocessedClauseContainer() : _data(64) {}
   void add(Clause* c);
   Clause* pop();
-  bool isEmpty()
+  bool isEmpty() const
   { return _data.isEmpty(); }
 private:
   Stack<Clause*> _data;
@@ -60,7 +60,7 @@ class PassiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
-  virtual bool isEmpty() = 0;
+  virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
 };
 
