@@ -16,6 +16,11 @@
 #include "Limits.hpp"
 #include "SaturationResult.hpp"
 
+#ifdef VDEBUG
+#include<iostream>
+#include "../Test/Output.hpp"
+#endif
+
 namespace Saturation
 {
 
@@ -27,11 +32,9 @@ using namespace Inferences;
 class SaturationAlgorithm
 {
 public:
-  SaturationAlgorithm();
+  SaturationAlgorithm(PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
   virtual ~SaturationAlgorithm();
   
-  void setLiteralSelector(LiteralSelector* selector);
-  void setPassiveClauseContainer(PassiveClauseContainer* passiveContainer);
   void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
   void setForwardSimplificationEngine(ForwardSimplificationEngine* fwSimplifier);
   void setBackwardSimplificationEngine(BackwardSimplificationEngine* bwSimplifier);
@@ -48,6 +51,37 @@ public:
   
   Limits* getLimits() { return &_limits; }
   IndexManager* getIndexManager() { return &_imgr; }
+  
+#ifdef VDEBUG
+  void enableContainerPrintouts()
+  {
+    _active->addedEvent.subscribe(this,&SaturationAlgorithm::onActiveAdded);
+    _passive->addedEvent.subscribe(this,&SaturationAlgorithm::onPassiveAdded);
+    _passive->removedEvent.subscribe(this,&SaturationAlgorithm::onPassiveRemoved);
+    _unprocessed->addedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedAdded);
+    _unprocessed->removedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedRemoved);
+  }
+  void onActiveAdded(Clause* c)
+  {
+    cout<<"Active added: "<<Test::Output::toString(c)<<endl;
+  }
+  void onPassiveAdded(Clause* c)
+  {
+    cout<<"Passive added: "<<Test::Output::toString(c)<<endl;
+  }
+  void onPassiveRemoved(Clause* c)
+  {
+    cout<<"Passive removed: "<<Test::Output::toString(c)<<endl;
+  }
+  void onUnprocessedAdded(Clause* c)
+  {
+    cout<<"Unprocessed added: "<<Test::Output::toString(c)<<endl;
+  }
+  void onUnprocessedRemoved(Clause* c)
+  {
+    cout<<"Unprocessed removed: "<<Test::Output::toString(c)<<endl;
+  }
+#endif
   
 private:
   Limits _limits;
@@ -69,6 +103,8 @@ class DiscountSA
 : public SaturationAlgorithm
 {
 public:
+  DiscountSA(PassiveClauseContainer* passiveContainer, LiteralSelector* selector)
+    : SaturationAlgorithm(passiveContainer,selector) {}
   SaturationResult saturate();
   
   ClauseContainer* getSimplificationClauseContainer();

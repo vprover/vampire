@@ -27,10 +27,11 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   _index=_salg->getIndexManager()->request(GENERATING_SUBST_TREE);
 }
 
-BinaryResolution::~BinaryResolution()
+void BinaryResolution::detach()
 {
   _index=0;
   _salg->getIndexManager()->release(GENERATING_SUBST_TREE);
+  InferenceEngine::detach();
 }
 
 class BinaryResolutionResultIterator
@@ -39,22 +40,21 @@ class BinaryResolutionResultIterator
 public:
   BinaryResolutionResultIterator(Index* index, Clause* cl)
   : _index(index), _cl(cl), _nextLit(0),
-  _uit(SLQueryResultIterator::getEmpty())
+  _uit(SLQueryResultIterator::getEmpty()), _nextUnificationReady(false)
   {
     
   }
   bool hasNext()
   {
-    if(_uit.hasNext()) {
-      return true;
-    }
-    return _nextLit < _cl->selected();
+    return _nextUnificationReady || getNextUnificationReady();
   }
   Clause* next()
   {
     CALL("BinaryResolutionResultIterator::next");
 
-    SLQueryResult qr = getNextUnification();
+    ASS(_nextUnificationReady);
+    SLQueryResult& qr = _nextUnification;
+    _nextUnificationReady=false;
     
     int clength = _cl->length();
     int dlength = qr.clause->length();
@@ -86,19 +86,29 @@ public:
     return res;
   }
 private:
-  SLQueryResult getNextUnification()
+  bool getNextUnificationReady()
   {
+    ASS(!_nextUnificationReady);
     while(!_uit.hasNext()) {
+      if(_nextLit == _cl->selected()) {
+	return false;
+      }
       _lit=(*_cl)[_nextLit++];
       _uit=_index->getComplementaryUnifications(_lit);
     }
-    return _uit.next();
+    _nextUnification=_uit.next();
+    _nextUnificationReady=true;
+    return true;
   }
   Index* _index;
   Clause* _cl;
   Literal* _lit;
+  /** Index of the next literal, we'll be trying to unify, 
+   * after we consume all results in @b _uit */
   unsigned _nextLit;
   SLQueryResultIterator _uit;
+  SLQueryResult _nextUnification;
+  bool _nextUnificationReady;
 };
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)

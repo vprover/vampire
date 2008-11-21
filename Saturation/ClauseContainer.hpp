@@ -22,13 +22,7 @@ using namespace Kernel;
 class ClauseContainer
 {
 public:
-  virtual ~ClauseContainer() 
-  {
-    //when destroying the container, all subscribrions 
-    //to its events must be already canceled
-    ASS(addedEvent.isEmpty());
-    ASS(removedEvent.isEmpty());
-  }
+  virtual ~ClauseContainer() {}
   ClauseEvent addedEvent;
   ClauseEvent removedEvent;
   virtual void add(Clause* c) = 0;

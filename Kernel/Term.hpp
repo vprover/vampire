@@ -271,7 +271,7 @@ public:
     {
       ASS(!_used && _stack.top()->isVar());
       _used=true;
-      return *_stack.pop();
+      return *_stack.top();
     }
   private:
     TermList _root;

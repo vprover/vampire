@@ -447,6 +447,15 @@ bool SubstitutionTree::UnificationsIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
 
+  if(nodeIterators.isEmpty()) {
+    //There are no node iterators in the stack, so there's nowhere
+    //to look for the next leaf.
+    //This shouldn't hapen during the regular retrieval process, but it 
+    //can happen when there are no literals inserted for a predicate,
+    //or when predicates with zero arity are encountered.
+    return false;
+  }
+  
   if(inLeaf) {
     //Leave the current leaf
     btStack.pop().backtrack();

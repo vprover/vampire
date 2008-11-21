@@ -533,6 +533,7 @@ Term* Term::cloneNonShared(Term* t)
  */
 bool Term::VariableIterator::hasNext()
 {
+  CALL("Term::VariableIterator::hasNext");
   if(_stack.isEmpty()) {
     return false;
   }
@@ -560,7 +561,7 @@ bool Term::VariableIterator::hasNext()
       _stack.push(trm->args());
     }
   }
-  
+  return false;
 }
 
 /** Create a new literal, copy from @b l its predicate symbol and

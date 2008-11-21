@@ -277,7 +277,12 @@ private:
     void init(SubstitutionTree* t, Literal* query, bool complementary)
     {
       CALL("SubstitutionTree::ResultIterator::init");
-      Node* root=t->_nodes[t->getRootNodeIndex(query, complementary)];
+      int rootIndex=t->getRootNodeIndex(query, complementary);
+      Node* root=t->_nodes[rootIndex];
+      
+      if(!root) {
+	return;
+      }
       
       createInitialBindings(query);
 

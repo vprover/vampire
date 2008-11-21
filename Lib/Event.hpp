@@ -8,11 +8,16 @@
 #define __Event__
 
 #include "List.hpp"
+#include "SmartPtr.hpp"
 
 namespace Lib
 {
 
-//template<class Handler>
+class SubscriptionObject;
+
+
+typedef SmartPtr<SubscriptionObject> SubscriptionData;
+
 class BaseEvent
 {
 public:
@@ -22,42 +27,44 @@ public:
     return !_handlers;
   }
 protected:
-  BaseEvent() : _handlers(0) {}
-  
   struct HandlerStruct {
     virtual ~HandlerStruct() {}
-    bool operator==(const HandlerStruct& s) { return pObj==s.pObj && pMethod==s.pMethod; }
-    void* pObj;
-    /**
-     * @warning Method pointer is converted with reinterpred_cast<void*>
-     * and stored here. It's not legal by standard, but it works.  
-     */
-    void* pMethod;
+    SubscriptionObject* sObj;
   };
+
+  BaseEvent() : _handlers(0) {}
+  ~BaseEvent()
+  {
+    while(_handlers) {
+      unsubscribe(_handlers->head());
+    }
+  }
+  
   typedef List<HandlerStruct*> HandlerList;
   
-  void subscribe(HandlerStruct* h)
-  {
-    _handlers=new HandlerList(h, _handlers);
-  }
-  void unsubscribe(HandlerStruct* h)
-  {
-    HandlerList** hit=&_handlers;
-    while(*hit) {
-      if(*(*hit)->head()==*h) {
-	delete (*hit)->head();
-	HandlerList* lstObj=*hit;
-	*hit=lstObj->tail();
-	delete lstObj;
-	break;
-      }
-      hit=&(*hit)->tailReference();
-    }
-    delete h;
-  }
+  SubscriptionData subscribe(HandlerStruct* h);
+  void unsubscribe(HandlerStruct* h);
 
   HandlerList* _handlers;
+  
+  friend class SubscriptionObject;
 };
+
+class SubscriptionObject
+{
+public:
+  SubscriptionObject(BaseEvent* evt, BaseEvent::HandlerStruct* hs)
+  : event(evt), hs(hs) {}
+  ~SubscriptionObject();
+  void unsubscribe();
+  bool belongsTo(BaseEvent& evt);
+private:
+  BaseEvent* event;
+  BaseEvent::HandlerStruct* hs;
+  
+  friend class BaseEvent;
+};
+
 
 class PlainEvent
 : public BaseEvent
@@ -72,14 +79,9 @@ public:
     }
   }
   template<class Cls>
-  void subscribe(Cls* obj, void (Cls::*method)())
+  SubscriptionData subscribe(Cls* obj, void (Cls::*method)())
   {
-    BaseEvent::subscribe(getHandlerStruct(obj,method));
-  }
-  template<class Cls>
-  void unsubscribe(Cls* obj, void (Cls::*method)())
-  {
-    BaseEvent::unsubscribe(getHandlerStruct(obj,method));
+    return BaseEvent::subscribe(getHandlerStruct(obj,method));
   }
 protected:
   struct SpecificHandlerStruct
@@ -91,9 +93,11 @@ protected:
   struct MethodSpecificHandlerStruct
   : public SpecificHandlerStruct 
   {
+    Cls* pObj;
+    void(Cls::*pMethod)();
     void fire()
     {
-      (static_cast<Cls*>(pObj)->*static_cast<void(Cls::*)()>(pMethod))();
+      (pObj->*pMethod)();
     }
   };
   
@@ -121,14 +125,9 @@ public:
     }
   }
   template<class Cls>
-  void subscribe(Cls* obj, void (Cls::*method)(T))
+  SubscriptionData subscribe(Cls* obj, void (Cls::*method)(T))
   {
-    BaseEvent::subscribe(getHandlerStruct(obj,method));
-  }
-  template<class Cls>
-  void unsubscribe(Cls* obj, void (Cls::*method)(T))
-  {
-    BaseEvent::unsubscribe(getHandlerStruct(obj,method));
+    return BaseEvent::subscribe(getHandlerStruct(obj,method));
   }
 protected:
   struct SpecificHandlerStruct
@@ -141,11 +140,12 @@ protected:
   struct MethodSpecificHandlerStruct 
   : public SpecificHandlerStruct
   {
+    Cls* pObj;
+    void(Cls::*pMethod)(T);
+    
     void fire(T t)
     {
-      Cls* obj = static_cast<Cls*>(SpecificHandlerStruct::pObj);
-      void(Cls::*method)(T) = reinterpret_cast<void(Cls::*&)(T)>(SpecificHandlerStruct::pMethod); 
-      (obj->*method)(t);
+      (pObj->*pMethod)(t);
     }
   };
   
@@ -154,7 +154,7 @@ protected:
   {
     MethodSpecificHandlerStruct<Cls>* res=new MethodSpecificHandlerStruct<Cls>();
     res->pObj=obj;
-    res->pMethod=reinterpret_cast<void*&>(method);
+    res->pMethod=method;
     return res;
   }
 };

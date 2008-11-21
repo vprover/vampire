@@ -26,6 +26,7 @@ using namespace Saturation;
  */
 struct SLQueryResult
 {
+  SLQueryResult() {}
   SLQueryResult(Literal* l, Clause* c, MMSubstitution* s)
   :literal(l), clause(c), substitution(s) {}
 
@@ -52,7 +53,7 @@ public:
   void detachContainer(ClauseContainer* cc);
   
 protected:
-  Index(): _attachedContainers(0) {}
+  Index(): _attachedContainers(0), _subscriptionData(0) {}
 
   virtual void onAddedToContainer(Clause* c);
   virtual void onRemovedFromContainer(Clause* c);
@@ -64,7 +65,9 @@ protected:
   
 private:
   typedef List<ClauseContainer*> ContainerList;
+  typedef List<SubscriptionData> SDataList;
   ContainerList* _attachedContainers;
+  SDataList* _subscriptionData;
 };
 
 };

@@ -22,8 +22,8 @@ class BinaryResolution
 : public GeneratingInferenceEngine
 {
 public:
-  ~BinaryResolution();
   void attach(SaturationAlgorithm* salg);
+  void detach();
   
   ClauseIterator generateClauses(Clause* premise);
   

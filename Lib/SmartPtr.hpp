@@ -29,14 +29,24 @@ template<typename T>
 class SmartPtr {
 public:
   inline
+  explicit SmartPtr() : _obj(0), _refCnt(0) {}
+  inline
   explicit SmartPtr(T* obj) : _obj(obj), _refCnt(new int(1)) {}
   inline
-  SmartPtr(const SmartPtr& ptr) : _obj(ptr._obj), _refCnt(ptr._refCnt) { (*_refCnt)++; }
+  SmartPtr(const SmartPtr& ptr) : _obj(ptr._obj), _refCnt(ptr._refCnt)
+  {
+    if(_obj) {
+      (*_refCnt)++;
+    }
+  }
   inline
   ~SmartPtr() 
-  { 
+  {
+    if(!_obj) {
+      return;
+    }
     (*_refCnt)--;
-    ASS(*_refCnt>0);
+    ASS(*_refCnt>=0);
     if(! *_refCnt) {
       checked_delete(_obj);
       delete _refCnt;
@@ -51,28 +61,30 @@ public:
     _obj=ptr._obj;
     _refCnt=ptr._refCnt;
     
-    (*_refCnt)++;
-    (*oldCnt)--;
+    if(_obj) {
+      (*_refCnt)++;
+    }
     
-    ASS(*oldCnt>0);
-    if(! *oldCnt) {
-      checked_delete(oldObj);
-      delete oldCnt;
+    if(oldObj) {
+      (*oldCnt)--;
+      ASS(*oldCnt>=0);
+      if(! *oldCnt) {
+	checked_delete(oldObj);
+	delete oldCnt;
+      }
     }
     return *this;
   }
+  
+  inline
+  bool isEmpty() { return _obj; }
   
   inline
   T* operator->() { return _obj; }
   inline
   T& operator*() { return *_obj; }
   
-//  inline
-//  SmartPtr<const T> getConst() const
-//  { return SmartPtr<const T>(_obj,_refCnt); }
 private:
-//  inline
-//  SmartPtr(T* obj, int* refCnt) : _obj(obj), _refCnt(refCnt) {}
   T* _obj;
   int* _refCnt;
 };

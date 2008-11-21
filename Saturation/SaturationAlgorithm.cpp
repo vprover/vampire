@@ -17,30 +17,38 @@ using namespace Shell;
 using namespace Saturation;
 
 
-SaturationAlgorithm::SaturationAlgorithm()
-: _imgr(this), _passive(0), _generator(0), _fwSimplifier(0),
-_bwSimplifier(0), _selector(0)
+SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContainer,
+	LiteralSelector* selector)
+: _imgr(this), _passive(passiveContainer), _generator(0), _fwSimplifier(0),
+_bwSimplifier(0), _selector(selector)
 {
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
+  
+#ifdef VDEBUG
+  //enableContainerPrintouts();
+#endif  
 }
 
 SaturationAlgorithm::~SaturationAlgorithm()
 {
+  if(_generator) {
+    _generator->detach();
+    _generator=0;
+  }
+  if(_fwSimplifier) {
+    _fwSimplifier->detach();
+    _fwSimplifier=0;
+  }
+  if(_bwSimplifier) {
+    _bwSimplifier->detach();
+    _bwSimplifier=0;
+  }
+  
   delete _unprocessed;
   delete _active;
 }
 
-void SaturationAlgorithm::setLiteralSelector(LiteralSelector* selector)
-{
-  ASS(!_selector);
-  _selector=selector;
-}
-void SaturationAlgorithm::setPassiveClauseContainer(PassiveClauseContainer* passiveContainer)
-{
-  ASS(!_passive);
-  _passive=passiveContainer;
-}
 void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngine* generator)
 {
   ASS(!_generator);

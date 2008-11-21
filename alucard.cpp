@@ -55,7 +55,7 @@ using namespace Shell;
 using namespace Saturation;
 using namespace Inferences;
 
-SaturationResult brSaturate(ClauseIterator units)
+SaturationResult brSaturate(ClauseIterator clauses)
 {
   AWPassiveClauseContainer passiveContainer;
   passiveContainer.setAgeWeightRatio(1,1);
@@ -65,19 +65,19 @@ SaturationResult brSaturate(ClauseIterator units)
   DummyBackwardSimplificationEngine bwSimplifier;
   EagerLiteralSelector selector;
   
-  DiscountSA salg;
-  salg.setLiteralSelector(&selector);
-  salg.setPassiveClauseContainer(&passiveContainer);
+  DiscountSA salg(&passiveContainer, &selector);
   salg.setGeneratingInferenceEngine(&generator);
   salg.setForwardSimplificationEngine(&fwSimplifier);
   salg.setBackwardSimplificationEngine(&bwSimplifier);
+  
+  salg.addClauses(clauses);
   
   return salg.saturate();
 }
 
 void doProving()
 {
-  CALL("ruleMode()");
+  CALL("doProving()");
 
   env.signature = new Kernel::Signature;
   ifstream input(env.options->inputFile().c_str());

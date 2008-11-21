@@ -6,6 +6,11 @@
 #ifndef __Forwards__
 #define __Forwards__
 
+//TODO: Remove for non-debugging builds.
+#ifndef VDEBUG
+#define VDEBUG
+#endif
+
 namespace Lib 
 {
 template<typename T>

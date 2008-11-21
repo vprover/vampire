@@ -22,11 +22,20 @@ class InferenceEngine
 {
 public:
   InferenceEngine() : _salg(0) {}
-  virtual ~InferenceEngine() {}
+  virtual ~InferenceEngine() 
+  {
+    //the object has to be detached before destruction
+    ASS(!_salg);
+  }
   virtual void attach(SaturationAlgorithm* salg)
   {
     ASS(!_salg);
     _salg=salg;
+  }
+  virtual void detach()
+  {
+    ASS(_salg);
+    _salg=0;
   }
 protected:
   SaturationAlgorithm* _salg;
