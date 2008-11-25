@@ -78,9 +78,9 @@ string Int::toString(unsigned i)
   return result;
 } // Int::toString
 
+#ifdef ARCH_X64
 /**
  * Return the string representation of an unsigned integer.
- * @since 10/02/2004 Manchester
  */
 string Int::toString(size_t i)
 {
@@ -90,7 +90,7 @@ string Int::toString(size_t i)
 
   return result;
 } // Int::toString
-
+#endif
 
 /**
  * Convert a string to a long value.

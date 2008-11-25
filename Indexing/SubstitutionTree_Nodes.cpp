@@ -59,11 +59,19 @@ public:
   UListIntermediateNode() : _nodes(0), _size(0) {}
   inline
   UListIntermediateNode(const TermList* ts) : IntermediateNode(ts), _nodes(0), _size(0) {}
-  inline
   ~UListIntermediateNode()
   {
     if(_nodes) {
+      _nodes->destroyWithDeletion();
+    }
+  }
+
+  void makeEmpty()
+  {
+    IntermediateNode::makeEmpty();
+    if(_nodes) {
       _nodes->destroy();
+      _nodes=0;
     }
   }
 
@@ -102,7 +110,6 @@ public:
   UListLeaf() : _children(0), _size(0) {}
   inline
   UListLeaf(const TermList* ts) : Leaf(ts), _children(0), _size(0) {}
-  inline
   ~UListLeaf()
   {
     if(_children) {
@@ -147,6 +154,21 @@ class SubstitutionTree::SListIntermediateNode
 public:
   SListIntermediateNode() {}
   SListIntermediateNode(const TermList* ts) : IntermediateNode(ts) {}
+  ~SListIntermediateNode()
+  {
+    NodeSkipList::Iterator nit(_nodes);
+    while(nit.hasNext()) {
+      delete nit.next();
+    }
+  }
+  
+  void makeEmpty()
+  {
+    IntermediateNode::makeEmpty();
+    while(!_nodes.isEmpty()) {
+      _nodes.pop();
+    }
+  }
 
   static SListIntermediateNode* assimilate(IntermediateNode* orig); 
 
@@ -336,7 +358,7 @@ SubstitutionTree::SListIntermediateNode* SubstitutionTree::SListIntermediateNode
 
   SListIntermediateNode* res=new SListIntermediateNode(&orig->term);
   res->loadChildren(orig->allChildren()); 
-  orig->term.makeEmpty();
+  orig->makeEmpty();
   delete orig;
   return res;
 }
@@ -351,7 +373,7 @@ SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig)
 
   SListLeaf* res=new SListLeaf(&orig->term);
   res->loadChildren(orig->allChildren()); 
-  orig->term.makeEmpty();
+  orig->makeEmpty();
   delete orig;
   return res;
 }

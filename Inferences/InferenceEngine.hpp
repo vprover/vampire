@@ -10,6 +10,7 @@
 #include "../Forwards.hpp"
 
 #include "../Lib/VirtualIterator.hpp"
+#include "../Lib/List.hpp"
 
 namespace Inferences
 {
@@ -52,6 +53,14 @@ class ForwardSimplificationEngine
 : public InferenceEngine
 {
 public:
+  /**
+   * Perform forward simplification on @b cl
+   * 
+   * If a simplification is appliable on @b cl, @b keep will be
+   * set to false and @b toAdd iterator will contain results of 
+   * the simplification. Otherwise, @b keep will be set to true,
+   * and @b toAdd will contain an empty iterator.
+   */
   virtual void perform(Clause* cl, bool& keep, ClauseIterator& toAdd) = 0;
 };
 
@@ -62,7 +71,8 @@ public:
   virtual void perform(Clause* premise, ClauseIterator& toRemove, ClauseIterator& toAdd) = 0;
 };
 
-class DummyGeneratingInferenceEngine
+
+class DummyGIE
 : public GeneratingInferenceEngine
 {
 public:
@@ -72,7 +82,7 @@ public:
   }
 };
 
-class DummyForwardSimplificationEngine
+class DummyFSE
 : public ForwardSimplificationEngine
 {
 public:
@@ -83,7 +93,7 @@ public:
   }
 };
 
-class DummyBackwardSimplificationEngine
+class DummyBSE
 : public BackwardSimplificationEngine
 {
 public:
@@ -93,6 +103,35 @@ public:
     toAdd=ClauseIterator::getEmpty();
   }
 };
+
+
+class CompositeFSE
+: public ForwardSimplificationEngine
+{
+public:
+  CompositeFSE() : _inners(0) {}
+  ~CompositeFSE();
+  void addFront(ForwardSimplificationEngine* fse);
+  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
+  void attach(SaturationAlgorithm* salg);
+  void detach();
+private:
+  typedef List<ForwardSimplificationEngine*> FSList;
+  FSList* _inners;
+};
+
+class DuplicateLiteralRemovalFSE
+: public ForwardSimplificationEngine
+{
+  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
+};
+
+class TrivialInequalitiesRemovalFSE
+: public ForwardSimplificationEngine
+{
+  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
+};
+
 
 };
 

@@ -103,6 +103,7 @@ public:
   { _term = t; }
   static void argsToString(Stack<const TermList*>&,string& str);
   static bool sameTop(const TermList* ss,const TermList* tt);
+  static bool sameTopFunctor(const TermList* ss,const TermList* tt);
 
 private:
   union {

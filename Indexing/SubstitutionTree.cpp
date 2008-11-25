@@ -54,6 +54,12 @@ SubstitutionTree::~SubstitutionTree()
 {
   CALL("SubstitutionTree::~SubstitutionTree");
 
+  for (int i = _numberOfTopLevelNodes-1; i>=0; i--) {
+    if(_nodes[i]!=0) {
+      delete _nodes[i];
+    }
+  }
+  
   DEALLOC_KNOWN(_nodes,
 		_numberOfTopLevelNodes*sizeof(Node*),
 		"SubstitutionTree::Node");
@@ -440,6 +446,24 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
     LeafData ld=children.next();
     insert(ld);
   }
+}
+
+void SubstitutionTree::UnificationsIterator::init(SubstitutionTree* t,
+	Literal* query, bool complementary)
+{
+  CALL("SubstitutionTree::UnificationsIterator::init");
+  int rootIndex=t->getRootNodeIndex(query, complementary);
+  Node* root=t->_nodes[rootIndex];
+  
+  if(!root) {
+	return;
+  }
+  
+  createInitialBindings(query);
+
+  BacktrackData bd;
+  enter(root, bd);
+  bd.drop();
 }
 
 

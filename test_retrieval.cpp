@@ -122,7 +122,7 @@ void doTest()
     Unit* unit=uit.next();
     ASS(unit->isClause());
     Clause* cls=static_cast<Clause*>(unit);
-    for(int i=0;i<cls->length();i++) {
+    for(unsigned i=0;i<cls->length();i++) {
       literals[index++]=LCPair((*cls)[i], cls);
     }
   }
@@ -142,17 +142,17 @@ void doTest()
   tmr.stop();
   cout<<litCnt<<" literals inserted in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
   
-  //cout<<tree.toString()<<endl;
+  cout<<tree.toString()<<endl;
   
-  cout<<"Retrieving literals unifiable with "<<Test::Output::toString(nonIndexedLit)<<":"<<endl;
-  SLQueryResultIterator rit1=tree.getUnifications(nonIndexedLit);
+  cout<<"Retrieving literals complementary unifiable with "<<Test::Output::toString(nonIndexedLit)<<":"<<endl;
+  SLQueryResultIterator rit1=tree.getComplementaryUnifications(nonIndexedLit);
   while(rit1.hasNext()) {
     SLQueryResult res=rit1.next();
     cout<<Test::Output::toString(res.literal)<<" in "<<Test::Output::toString(res.clause)<<endl;
   }
   
-  cout<<"Retrieving literals unifiable with "<<Test::Output::toString(indexedLit)<<":"<<endl;
-  SLQueryResultIterator rit2=tree.getUnifications(indexedLit);
+  cout<<"Retrieving literals complementary unifiable with "<<Test::Output::toString(indexedLit)<<":"<<endl;
+  SLQueryResultIterator rit2=tree.getComplementaryUnifications(indexedLit);
   while(rit2.hasNext()) {
     SLQueryResult res=rit2.next();
     cout<<Test::Output::toString(res.literal)<<" in "<<Test::Output::toString(res.clause)<<endl;

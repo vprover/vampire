@@ -121,6 +121,14 @@ private:
     virtual int size() const { return -1; }
     virtual NodeAlgorithm algorithm() const = 0;
     
+    /**
+     * Remove all referenced structures without destroying them.
+     * 
+     * This is used when the implementation of a node is being changed.
+     * The current node will be deleted, but we don't want to destroy
+     * structures, that are taken over by the new node implementation.
+     */
+    virtual void makeEmpty() { term.makeEmpty(); }
     static void split(Node** pnode, TermList* where, int var);
 
     /** term at this node */
@@ -151,7 +159,7 @@ private:
     virtual NodeIterator allChildren() = 0;
     virtual NodeIterator variableChildren() = 0;
     /**
-     * Returns pointer to pointer to child node with top symbol
+     * Return pointer to pointer to child node with top symbol
      * of @b t. This pointer to node can be changed.
      * 
      * If canCreate is true and such child node does
@@ -163,11 +171,11 @@ private:
      */
     virtual Node** childByTop(TermList* t, bool canCreate) = 0;
     /**
-     * Removes child which points to node with top symbol of @b t.
+     * Remove child which points to node with top symbol of @b t.
      * This node has to still exist in time of the call to remove method.
      */
     virtual void remove(TermList* t) = 0;
-
+    
     void loadChildren(NodeIterator children);
     
   }; // class SubstitutionTree::IntermediateNode
@@ -274,22 +282,7 @@ private:
     {
     }
     
-    void init(SubstitutionTree* t, Literal* query, bool complementary)
-    {
-      CALL("SubstitutionTree::ResultIterator::init");
-      int rootIndex=t->getRootNodeIndex(query, complementary);
-      Node* root=t->_nodes[rootIndex];
-      
-      if(!root) {
-	return;
-      }
-      
-      createInitialBindings(query);
-
-      BacktrackData bd;
-      enter(root, bd);
-      bd.drop();
-    }
+    void init(SubstitutionTree* t, Literal* query, bool complementary);
     
     bool hasNext()
     {

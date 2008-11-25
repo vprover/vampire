@@ -98,6 +98,17 @@ bool TermList::sameTop(const TermList* ss,const TermList* tt)
   return ss->term()->functor() == tt->term()->functor();
 }
 
+/**
+ * Return true if @b ss and @b tt are both complex terms with the
+ * same function symbol. 
+ */
+bool TermList::sameTopFunctor(const TermList* ss,const TermList* tt)
+{
+  if (ss->isVar() || tt->isVar()) {
+    return false;
+  }
+  return ss->term()->functor() == tt->term()->functor();
+}
 
 /**
  * Return the string representation of variable var.

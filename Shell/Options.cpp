@@ -1230,7 +1230,7 @@ void Options::readFromTestId (string testId)
   }
 
   // after last '_' we have time limit
-  unsigned index = testId.find_last_of('_');
+  size_t index = testId.find_last_of('_');
   if (index == string::npos) { // not found
     goto error;
   }
@@ -1265,7 +1265,7 @@ void Options::readFromTestId (string testId)
   testId = testId.substr(index+1);
   // repeatedly look for param=value
   while (testId != "") {
-    unsigned index1 = testId.find('=');
+    size_t index1 = testId.find('=');
     if (index1 == string::npos) {
       goto error;
     }

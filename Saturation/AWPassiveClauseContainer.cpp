@@ -88,6 +88,15 @@ bool AgeQueue::lessThan(const Clause* c1,const Clause* c2)
 } // WeightQueue::lessThan
 
 
+AWPassiveClauseContainer::~AWPassiveClauseContainer()
+{
+  ClauseQueue::Iterator cit(_ageQueue);
+  while(cit.hasNext()) {
+    Clause* cl=cit.next();
+    cl->destroy();
+  }
+}
+
 /**
  * Add @b c clause in the queue.
  * @since 31/12/2007 Manchester

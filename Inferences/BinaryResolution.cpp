@@ -23,7 +23,7 @@ using namespace Inferences;
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
-  InferenceEngine::attach(salg);
+  GeneratingInferenceEngine::attach(salg);
   _index=_salg->getIndexManager()->request(GENERATING_SUBST_TREE);
 }
 
@@ -31,7 +31,7 @@ void BinaryResolution::detach()
 {
   _index=0;
   _salg->getIndexManager()->release(GENERATING_SUBST_TREE);
-  InferenceEngine::detach();
+  GeneratingInferenceEngine::detach();
 }
 
 class BinaryResolutionResultIterator

@@ -41,6 +41,7 @@ class UnprocessedClauseContainer
 : public ClauseContainer
 {
 public:
+  ~UnprocessedClauseContainer();
   UnprocessedClauseContainer() : _data(64) {}
   void add(Clause* c);
   Clause* pop();

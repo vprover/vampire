@@ -18,35 +18,18 @@
 #include "../Test/Output.hpp"
 #include "../Lib/Int.hpp"
 #include <string>
+#include <iostream>
 #endif
 
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
 bool MMSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
-  CALL("MMSubstitution::unify");
-  BacktrackData localBD;
-  
-  bdRecord(localBD);
-  TermSpec ct=associate(TermSpec(t1,index1), TermSpec(t2,index2));
-  bool failed=ct.term.isEmpty();
-  if(!failed) {
-    failed=occurCheckFails();
-  }
-  bdDone();
-
-  if(failed) {
-    localBD.backtrack();
-  } else {
-    if(bdIsRecording()) {
-      bdCommit(localBD);
-    }
-    localBD.drop();
-  }
-  
-  return !failed;
+  CALL("MMSubstitution::unify/4");
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2));
 }
 
 bool MMSubstitution::isUnbound(VarSpec v) const
@@ -59,6 +42,30 @@ bool MMSubstitution::isUnbound(VarSpec v) const
       return true;
     } else if(binding.term.isTerm()) {
       return false;
+    }
+    v=getVarSpec(binding);
+  }
+}
+
+/**
+ * If @b t is a non-variable, return @t. Else, if @b t is a variable bound to 
+ * a non-variable term, return the term. Otherwise, return the root variable 
+ * to which @b t belongs.
+ */
+MMSubstitution::TermSpec MMSubstitution::derefBound(TermSpec t) const
+{
+  CALL("MMSubstitution::derefBound");
+  if(t.term.isTerm()) {
+    return t;
+  }
+  VarSpec v=getVarSpec(t);
+  for(;;) {
+    TermSpec binding;
+    bool found=_bank.find(v,binding);
+    if(!found || binding.index==UNBOUND_INDEX) {
+      return TermSpec(v);
+    } else if(binding.term.isTerm()) {
+      return binding;
     }
     v=getVarSpec(binding);
   }
@@ -85,6 +92,7 @@ MMSubstitution::TermSpec MMSubstitution::deref(VarSpec v) const
 void MMSubstitution::bind(const VarSpec& v, const TermSpec& b)
 {
   CALL("MMSubstitution::bind");
+  
   if(bdIsRecording()) {
     bdAdd(new BindingBacktrackObject(this, v));
   }
@@ -112,133 +120,239 @@ MMSubstitution::VarSpec MMSubstitution::root(VarSpec v) const
   }
 }
 
-void MMSubstitution::add(VarSpec v, TermSpec b)
-{
-  CALL("MMSubstitution::add");
-  v=root(v);
-  if(isUnbound(v)) {
-    bind(v,b);
-  } else {
-    TermSpec common=associate(deref(v), b);
-    bind(v,common);
-  }
-}
-
-bool MMSubstitution::makeEqual(VarSpec v1, VarSpec v2)
+void MMSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
 {
   CALL("MMSubstitution::makeEqual");
   
-  VarSpec r1=root(v1);
-  VarSpec r2=root(v2);
-  TermSpec targetVal;
-  if(isUnbound(r1)) {
-    targetVal=deref(r2);
-  } else if(isUnbound(r2)) {
-    targetVal=deref(r1);
-  } else {
-    targetVal=associate(deref(r1), deref(r2));
-    if(targetVal.term.isEmpty()) {
-      //we were unable to unify root terms of v1 and v2
-      return false;
-    }
-  }
+  v1=root(v1);
+  v2=root(v2);
+  
   if(Random::getBit()) {
-    bindVar(r1,r2);
-    bind(r2,targetVal);
+    bindVar(v1,v2);
+    bind(v2,target);
   } else {
-    bindVar(r2,r1);
-    bind(r1,targetVal);
+    bindVar(v2,v1);
+    bind(v1,target);
+  }
+}
+
+//void MMSubstitution::makeEqual(VarSpec v1, VarSpec v2)
+//{
+//  CALL("MMSubstitution::makeEqual");
+//  
+//  v1=root(v1);
+//  v2=root(v2);
+//  
+//  if(isUnbound(v1)) {
+//    makeEqual(v1,v2,deref(v2));
+//  } else {
+//    ASS(isUnbound(v2));
+//    makeEqual(v1,v2,deref(v1));
+//  }
+//}
+
+void MMSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
+{
+  CALL("MMSubstitution::makeEqual");
+  
+  v=root(v);
+  
+  ASS(isUnbound(v));
+  
+  if(ts.isVar()) {
+    VarSpec v2=getVarSpec(ts);
+    makeEqual(v, v2, deref(v2));
+  } else {
+    bind(v,ts);
+  }
+}
+
+
+void MMSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
+{
+  TermSpec aux=ts1;
+  ts1=ts2;
+  ts2=aux;
+}
+
+
+bool MMSubstitution::handleDifferentTops(TermSpec t1, TermSpec t2, 
+	Stack<TTPair>& toDo, TermList* ct)
+{
+  if(t1.isVar()) {
+    VarSpec v1=getVarSpec(t1);
+    if(ct) {
+      VarSpec ctVar=getAuxVar(v1);
+      ct->makeVar(ctVar.var);
+    }
+    if(isUnbound(v1)) {
+      unifyUnbound(v1,t2);
+    } else if(t2.isVar() && isUnbound(getVarSpec(t2))) {
+      unifyUnbound(getVarSpec(t2),t1);
+    } else {
+      toDo.push(TTPair(t1,t2));
+    }
+  } else if(t2.isVar()) {
+    VarSpec v2=getVarSpec(t2);
+    if(ct) {
+      VarSpec ctVar=getAuxVar(v2);
+      ct->makeVar(ctVar.index);
+    }
+    if(isUnbound(v2)) {
+      unifyUnbound(v2,t1);
+    } else {
+      toDo.push(TTPair(t2,t1));
+    }
+  } else {
+    //tops are different and neither of them is variable, so we can't unify them
+    ASS(t1.term.isTerm() && t2.term.isTerm() && 
+	    t1.term.term()->functor()!=t2.term.term()->functor());
+    return false;
   }
   return true;
 }
 
-MMSubstitution::TermSpec MMSubstitution::associate(TermSpec t1, TermSpec t2)
+bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
 {
-  CALL("MMSubstitution::associate");
-  
-  TermList commonTerm;
+  CALL("MMSubstitution::unify/2");
 
-  TermList* ss=&t1.term;
-  TermList* tt=&t2.term;
-  TermList* ct=&commonTerm;
+  if(t1.sameContent(t2)) {
+    return true;
+  }
 
   bool mismatch=false;
-  
+  BacktrackData localBD;
+  bdRecord(localBD);
+
+  Stack<TTPair> toDo(64);
   Stack<TermList*> subterms(64);
-  for (;;) {
-    if (!ss->sameContent(tt) && TermList::sameTop(ss,tt)) {
-      // ss and tt have the same tops and are different, so must be non-variables
-      ASS(! ss->isVar());
-      ASS(! tt->isVar());
+  
+  if(TermList::sameTopFunctor(&t1.term,&t2.term)) {
+    toDo.push(TTPair(t1,t2));
+  } else {
+    if(!handleDifferentTops(t1,t2,toDo,0)) {
+      return false;
+    }
+  }
+  
+  
+  while(!toDo.isEmpty()) {
+    TTPair task=toDo.pop();
+    t1=task.first;
+    t2=task.second;
+    ASS(!t2.isVar() || t1.isVar());
+    
+    TermSpec dt1=derefBound(t1);
+    TermSpec dt2=derefBound(t2);
+    ASS(!dt1.isVar() && !dt2.isVar());
+    
+    TermList* ss=&dt1.term;
+    TermList* tt=&dt2.term;
+    TermList* ct;
 
-      Term* s = ss->term();
-      Term* t = tt->term();
-      ct->setTerm(Term::createNonShared(t));
-
-      ASS(s->arity() > 0);
-      ASS(s->functor() == t->functor());
-
-      ss = s->args();
-      tt = t->args();
-      ct = ct->term()->args();
-      if (! ss->next()->isEmpty()) {
-        subterms.push(ss->next());
-        subterms.push(tt->next());
-        subterms.push(ct->next());
-      }
+    TermSpec commonTS;
+    bool buildingCommon=t1.isVar();
+    if(buildingCommon) {
+      commonTS.index=AUX_INDEX;
+      ct=&commonTS.term;
     } else {
-      if (! TermList::sameTop(ss,tt)) {
-        if(ss->isVar()) {
-          VarSpec sVar=getVarSpec(*ss,t1.index);
-          VarSpec ctVar=getAuxVar(sVar);
-          ct->makeVar(ctVar.var);
-          if(tt->isTerm()) {
-            add(ctVar, TermSpec(*tt, t2.index));
-          } else {
-            makeEqual(sVar,getVarSpec(*tt,t2.index));
+      ct=0;
+    }
+    
+     
+    Stack<TermList*> subterms(64);
+    for (;;) {
+      TermSpec tsss(*ss,t1.index);
+      TermSpec tstt(*tt,t2.index);
+      
+      if (!tsss.sameContent(tstt) && TermList::sameTopFunctor(ss,tt)) {
+        ASS(ss->isTerm() && tt->isTerm());
+
+        Term* s = ss->term();
+        Term* t = tt->term();
+        ASS(s->arity() > 0);
+        ASS(s->functor() == t->functor());
+
+        if(ct) {
+          ct->setTerm(Term::createNonShared(t));
+        }
+   
+        ss = s->args();
+        tt = t->args();
+        ct = ct ? ct->term()->args() : 0;
+        if (! ss->next()->isEmpty()) {
+          subterms.push(ss->next());
+          subterms.push(tt->next());
+          subterms.push(ct ? ct->next() : 0);
+        }
+      } else {
+        if (! TermList::sameTopFunctor(ss,tt)) {
+          if(!handleDifferentTops(tsss,tstt,toDo,ct)) {
+            mismatch=true;
+            break;
           }
-        } else if(tt->isVar()) {
-          ASS(ss->isTerm())
-          VarSpec tVar=getVarSpec(*tt,t2.index);
-          VarSpec ctVar=getAuxVar(tVar);
-          ct->makeVar(ctVar.index);
-          add(tVar, TermSpec(*ss, t1.index));
-        } else {
-          //tops are different and neither of them is variable, so we can't unify them
-          mismatch=true;
+        } else { //ss->sameContent(tt)
+          if(ct) {
+            *ct=*ss;
+          }
+        }
+   
+        if (subterms.isEmpty()) {
           break;
         }
-      } else { //ss->sameContent(tt)
-	*ct=*ss;
+        ct = subterms.pop();
+        tt = subterms.pop();
+        ss = subterms.pop();
+        if (! ss->next()->isEmpty()) {
+          subterms.push(ss->next());
+          subterms.push(tt->next());
+          subterms.push(ct ? ct->next() : 0);
+        }
       }
+    }
+    
+    if(mismatch) {
+      if(buildingCommon && commonTS.term.isTerm()) {
+	commonTS.term.term()->destroyNonShared();
+      }
+      break;
+    }
 
-      if (subterms.isEmpty()) {
-        break;
-      }
-      ct = subterms.pop();
-      tt = subterms.pop();
-      ss = subterms.pop();
-      if (! ss->next()->isEmpty()) {
-        subterms.push(ss->next());
-        subterms.push(tt->next());
-        subterms.push(ct->next());
+    if(t1.isVar()) {
+      ASS(buildingCommon);
+      ASS(!commonTS.isVar());
+      VarSpec v1=root(getVarSpec(t1));
+
+      Term* shared=env.sharing->insertRecurrently(commonTS.term.term());
+      commonTS.term.setTerm(shared);
+
+      if(t2.isVar()) {
+	VarSpec v2=root(getVarSpec(t2));
+	makeEqual(v1, v2, commonTS);
+      } else {
+	bind(v1, commonTS);
       }
     }
   }
-  
-  
+
+  if(!mismatch) {
+    mismatch=occurCheckFails();
+  }
+
+  bdDone();
   
   if(mismatch) {
-    if(commonTerm.isTerm()) {
-      commonTerm.term()->destroyNonShared();
-    }
-    commonTerm.makeEmpty();
+    localBD.backtrack();
   } else {
-    Term* commonShared=env.sharing->insertRecurrently(commonTerm.term());
-    commonTerm.setTerm(commonShared);
+    if(bdIsRecording()) {
+      bdCommit(localBD);
+    }
+    localBD.drop();
   }
-  return TermSpec(commonTerm, AUX_INDEX);
+  
+  return !mismatch;
 }
+
 
 Literal* MMSubstitution::apply(Literal* lit, int index) const
 {

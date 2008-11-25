@@ -61,8 +61,13 @@ SaturationResult brSaturate(ClauseIterator clauses)
   passiveContainer.setAgeWeightRatio(1,1);
   
   BinaryResolution generator;
-  DummyForwardSimplificationEngine fwSimplifier;
-  DummyBackwardSimplificationEngine bwSimplifier;
+  CompositeFSE fwSimplifier;
+  DuplicateLiteralRemovalFSE dlrFSE;
+  TrivialInequalitiesRemovalFSE tirFSE;
+  fwSimplifier.addFront(&tirFSE);
+  fwSimplifier.addFront(&dlrFSE);
+  
+  DummyBSE bwSimplifier;
   EagerLiteralSelector selector;
   
   DiscountSA salg(&passiveContainer, &selector);
@@ -105,14 +110,19 @@ void doProving()
 	  env.options->proof() == Options::PROOF_ON);
       refutation.output(env.out);
     }
-    return;
+    break;
   case Statistics::TIME_LIMIT:
     env.out << "Time limit reached!\n";
-    return;
+    break;
   default:
     env.out << "Refutation not found!\n";
-    return;
+    break;
   }
+  env.out << "Active clauses: "<<env.statistics->activeClauses<<endl;
+  env.out << "Passive clauses: "<<env.statistics->passiveClauses<<endl;
+  env.out << "Generated clauses: "<<env.statistics->generatedClauses<<endl;
+  env.out << "Duplicate literals: "<<env.statistics->duplicateLiterals<<endl;
+  env.out << "Trivial inequalities: "<<env.statistics->trivialInequalities<<endl;
 
 #if CHECK_LEAKS
   delete env.signature;

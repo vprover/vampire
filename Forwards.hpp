@@ -13,6 +13,7 @@
 
 namespace Lib 
 {
+
 template<typename T>
 class VirtualIterator;
 template<typename T>
@@ -21,6 +22,8 @@ template<typename T>
 class SingleParamEvent;
 template<class C>
 class Stack;
+template<typename T>
+class List;
 template <typename T, class Comparator>
 class BinaryHeap;
 class BacktrackData;

@@ -123,6 +123,12 @@ private:
   T _el;
 };
 
+template<typename T>
+VirtualIterator<T> getSingletonIterator(T el)
+{
+  return VirtualIterator<T>(new SingletonIterator<T>(el));
+}
+
 /**
  * Implementation object for VirtualIterator, that can proxy any
  * non-virtual iterator, that supports hasNext() and next() methods.

@@ -13,6 +13,7 @@
 #include <string>
 
 #include "Comparison.hpp"
+#include "Portability.hpp"
 
 using namespace std;
 
@@ -33,7 +34,9 @@ class Int
  public:
   static string toString(int i);
   static string toString(unsigned i);
+#ifdef ARCH_X64
   static string toString(size_t i);
+#endif
   static string toString(long l);
   /** Return the string representation of a float */
   static string toString(float f) { return toString((double)f); }

@@ -7,6 +7,8 @@
 #ifndef __MMSubstitution__
 #define __MMSubstitution__
 
+#include <utility>
+
 #include "../Lib/DHMap.hpp"
 #include "../Lib/BacktrackData.hpp"
 #include "Term.hpp"
@@ -20,6 +22,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 
 class MMSubstitution
@@ -66,18 +69,6 @@ private:
   static const int SPECIAL_INDEX=-2;
   static const int UNBOUND_INDEX=-1;
   
-  struct TermSpec
-  {
-    /** Create a new VarSpec struct */
-    TermSpec() {}
-    /** Create a new VarSpec struct */
-    TermSpec(TermList term, int index) : term(term), index(index) {}
-
-    /** term reference */
-    TermList term;
-    /** index of term to which it is bound */
-    int index;
-  };
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec
   {
@@ -116,16 +107,60 @@ private:
       static unsigned hash(VarSpec& o);
     };
   };
+  struct TermSpec
+  {
+    /** Create a new VarSpec struct */
+    TermSpec() {}
+    /** Create a new VarSpec struct */
+    TermSpec(TermList term, int index) : term(term), index(index) {}
+    /** Create a new VarSpec struct */
+    explicit TermSpec(const VarSpec& vs) : index(vs.index) 
+    {
+      if(index==SPECIAL_INDEX) {
+	term.makeSpecialVar(vs.var);
+      } else {
+	term.makeVar(vs.var);
+      }
+    }
+    /**
+     * If it's sure, that @b ts has the same content as this TermSpec,
+     * return true. If they don't (or it cannot be easily checked), return 
+     * false.
+     */
+    bool sameContent(const TermSpec& ts)
+    {
+      bool termSameContent=term.sameContent(&ts.term);
+      if(!termSameContent) {
+	return false;
+      }
+      return index==ts.index || term.isSpecialVar() ||
+      	(term.isTerm() && term.term()->shared() && term.term()->ground()); 
+    }
+    
+    bool isVar()
+    {
+      return term.isVar();
+    }
+
+    /** term reference */
+    TermList term;
+    /** index of term to which it is bound */
+    int index;
+  };
+  typedef pair<TermSpec,TermSpec> TTPair;
 
   bool isUnbound(VarSpec v) const;
   TermSpec deref(VarSpec v) const;
+  TermSpec derefBound(TermSpec v) const;
   
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
-  void add(VarSpec v, TermSpec b);
-  TermSpec associate(TermSpec t1, TermSpec t2);
-  bool makeEqual(VarSpec v1, VarSpec v2);
+  bool unify(TermSpec t1, TermSpec t2);
+  bool handleDifferentTops(TermSpec t1, TermSpec t2, 
+  	Stack<TTPair>& toDo, TermList* ct);
+  void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
+  void unifyUnbound(VarSpec v, TermSpec ts);
   
   bool occurCheckFails() const;
 
@@ -150,6 +185,7 @@ private:
       return VarSpec(tl.var(), index);
     }
   }
+  static void swap(TermSpec& ts1, TermSpec& ts2);
   
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType; 
   

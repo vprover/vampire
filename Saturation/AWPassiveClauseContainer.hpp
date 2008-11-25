@@ -37,6 +37,7 @@ class AWPassiveClauseContainer:
 public PassiveClauseContainer
 {
 public:
+  ~AWPassiveClauseContainer();
   void add(Clause* c);
   void remove(Clause* c)
   {
