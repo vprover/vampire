@@ -1,6 +1,6 @@
 /**
  * @file Assertion.hpp
- * Defines several functions that 
+ * Defines several functions that
  * could be used to make assertions.
  */
 
@@ -29,9 +29,9 @@ private:
  * Class AssertionViolationException. It is thrown when any assertion
  * is violated.
  */
-class AssertionViolationException 
+class AssertionViolationException
 {
-public:                                
+public:
   AssertionViolationException (const char* file, int line);
   ~AssertionViolationException () {}
   void cry (std::ostream&);
@@ -53,6 +53,8 @@ private:
 #define ALWAYS(Cond) ASS(Cond)
 #define NEVER(Cond) ASS(!(Cond))
 
+#define ASSERT_VALID(obj) (obj).assertValid()
+
 #define ASSERTION_VIOLATION \
   Debug::Assertion::violated(__FILE__,__LINE__,"true");		\
   throw Debug::AssertionViolationException(__FILE__,__LINE__);
@@ -63,6 +65,8 @@ private:
 #define ALWAYS(Cond) Cond
 #define NEVER(Cond) Cond
 #define ASSERTION_VIOLATION
+
+#define ASSERT_VALID(obj)
 
 #endif // VDEBUG
 #endif // __Assertion__

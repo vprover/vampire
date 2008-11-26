@@ -146,7 +146,7 @@ Literal* TermSharing::insert(Literal* t)
 } // TermSharing::insert
 
 /**
- * Insert a new term and all its unshared subterms 
+ * Insert a new term and all its unshared subterms
  * in the index, and return the result.
  */
 Term* TermSharing::insertRecurrently(Term* t)
@@ -155,7 +155,7 @@ Term* TermSharing::insertRecurrently(Term* t)
 
   TermList tRef;
   tRef.setTerm(t);
-  
+
   TermList* ts=&tRef;
   static Stack<TermList*> stack(4);
   static Stack<TermList*> insertingStack(8);

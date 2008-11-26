@@ -255,16 +255,16 @@ public:
 #if VDEBUG
   string headerToString() const;
 #endif
-  
+
   class VariableIterator {
   public:
-    VariableIterator(Term* term) : _stack(4), _used(false)  
+    VariableIterator(const Term* term) : _stack(4), _used(false)
     {
       if(!term->shared() || !term->ground()) {
 	_stack.push(term->args());
       }
     }
-    
+
     bool hasNext();
     /** Return the next variable
      * @warning hasNext() must have been called before */
@@ -276,10 +276,10 @@ public:
     }
   private:
     TermList _root;
-    Stack<TermList*> _stack;
+    Stack<const TermList*> _stack;
     bool _used;
   };
-  
+
 protected:
   /** The number of this symbol in a signature */
   unsigned _functor;
@@ -370,7 +370,7 @@ public:
    * @since 16/05/2007 Manchester
    */
   Literal(unsigned functor,unsigned arity,bool polarity,bool commutative)
-  { 
+  {
     _functor = functor;
     _arity = arity;
     _args[0]._info.polarity = polarity;
@@ -380,26 +380,26 @@ public:
 
   unsigned hash() const;
   /** true if positive */
-  bool isPositive() const 
+  bool isPositive() const
   {
     return _args[0]._info.polarity;
   } // isPositive
 
   /** true if negative */
-  bool isNegative() const 
+  bool isNegative() const
   {
     return ! _args[0]._info.polarity;
   } // isNegative
 
   /** return polarity, 1 if positive and 0 if negative */
-  int polarity() const 
+  int polarity() const
   {
     return _args[0]._info.polarity;
   } // polarity
 
   /** Return a new equality literal */
   static inline Literal* equality (bool polarity)
-  { 
+  {
      CALL("Literal::equality");
      return new(2) Literal(0,2,polarity,true);
   }
@@ -413,4 +413,4 @@ public:
 }; // class Literal
 
 }
-#endif 
+#endif

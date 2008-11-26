@@ -10,6 +10,7 @@
 #include <cstdlib>
 
 #include "Allocator.hpp"
+#include "Hash.hpp"
 
 namespace Lib {
 
@@ -17,7 +18,7 @@ namespace Lib {
  * Defines class Set<Val> of arbitrary sets, implemented in the same way
  * as Map. Values are compared using Hash::equals.
  */
-template <typename Val,class Hash>
+template <typename Val,class Hash=Lib::Hash>
 class Set
 {
 protected:
@@ -64,7 +65,7 @@ public:
     }
   } // Set::~Set
 
-  /** 
+  /**
    * True if the set contains @b val.
    * @since 29/09/2002 Manchester
    */
@@ -86,10 +87,10 @@ public:
     }
     return false;
   } // Set::contains
- 
+
   /**
    * If a value equal to @b val is not contained in the set, insert @b val
-   * in the set. 
+   * in the set.
    * Return the value equal to @b val from the set.
    * @since 29/09/2002 Manchester
    * @since 09/12/2006 Manchester, reimplemented
@@ -97,7 +98,7 @@ public:
   inline Val insert(const Val val)
   {
     CALL("Set::insert");
-    
+
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
@@ -120,7 +121,7 @@ public:
   Val insert(const Val val,unsigned code)
   {
     CALL("Set::insert/2");
-    
+
     Entry* entry;
     for (entry = firstEntryForCode(code);
 	 entry->occupied();
@@ -152,7 +153,7 @@ public:
   int _noOfEntries;
   /** the array of entries */
   Entry* _entries;
-  /** the entry after the last one, required since the 
+  /** the entry after the last one, required since the
    *  array of entries is logically a ring */
   Entry* _afterLast; // entry after the last one
   /** the maximal number of entries for this capacity */
@@ -241,7 +242,7 @@ public:
     } // Set::Iterator
 
     /**
-     * True if there exists next element 
+     * True if there exists next element
      * @since 13/08/2005 Novotel, Moscow
      */
     bool hasNext()

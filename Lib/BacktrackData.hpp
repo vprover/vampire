@@ -22,7 +22,7 @@ class BacktrackObject
 public:
   virtual ~BacktrackObject() {}
   virtual void backtrack() = 0;
-  
+
 #ifdef VDEBUG
   virtual std::string toString() const { return "(backtrack object)"; }
 #endif
@@ -37,7 +37,7 @@ public:
     while(_bol) {
       _bol->head()->backtrack();
       delete _bol->head();
-      
+
       List<BacktrackObject*>* par;
       par=_bol;
       _bol=par->tail();
@@ -55,14 +55,19 @@ public:
   }
   /**
    * Move all BacktrackObjects from @b this to @b bd. After the
-   * operation, @b this is empty.   
+   * operation, @b this is empty.
    */
   void commitTo(BacktrackData& bd)
   {
     bd._bol=List<BacktrackObject*>::concat(_bol,bd._bol);
     _bol=0;
   }
-  
+
+  bool isEmpty() const
+  {
+    return _bol==0;
+  }
+
 #ifdef VDEBUG
   std::string toString()
   {
@@ -78,7 +83,7 @@ public:
     return res;
   }
 #endif
-  
+
 private:
   List<BacktrackObject*>* _bol;
 };

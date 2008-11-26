@@ -1,7 +1,7 @@
 /**
  * @file VirtualIterator.hpp
  * Defines VirtualIterator which allows iterators over various
- * structures to be stored in the same object. 
+ * structures to be stored in the same object.
  */
 
 #ifndef __VirtualIterator__
@@ -10,13 +10,15 @@
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
+#include "Exception.hpp"
+
 namespace Lib {
 
 template<typename T>
   class VirtualIterator;
 
 /**
- * Base class of objects that provide implementation of 
+ * Base class of objects that provide implementation of
  * VirtualIterator objects.
  */
 template<typename T>
@@ -28,7 +30,7 @@ public:
   virtual T next() = 0;
 private:
   mutable int _refCnt;
-  
+
   friend class VirtualIterator<T>;
 };
 
@@ -37,13 +39,13 @@ private:
  * an empty iterator.
  */
 template<typename T>
-class EmptyIterator 
+class EmptyIterator
 : public IteratorCore<T>
 {
 public:
   EmptyIterator() {}
   bool hasNext() { return false; };
-  T next() { ASSERTION_VIOLATION; };
+  T next() { INVALID_OPERATION("next() called on EmptyIterator object"); };
 };
 
 /**
@@ -65,19 +67,19 @@ public:
   inline
   VirtualIterator(const VirtualIterator& obj) : _core(obj._core) { _core->_refCnt++;}
   inline
-  ~VirtualIterator() 
-  { 
+  ~VirtualIterator()
+  {
     if(_core) {
-	_core->_refCnt--; 
+	_core->_refCnt--;
 	if(!_core->_refCnt) {
 	  delete _core;
 	}
     }
   }
-  VirtualIterator& operator=(const VirtualIterator& obj) 
+  VirtualIterator& operator=(const VirtualIterator& obj)
   {
     CALL("VirtualIterator::operator=");
-    
+
     IteratorCore<T>* oldCore=_core;
     _core=obj._core;
     if(_core) {
@@ -111,7 +113,7 @@ private:
  * an iterator that yields only one object.
  */
 template<typename T>
-class SingletonIterator 
+class SingletonIterator
 : public IteratorCore<T>
 {
 public:
@@ -134,7 +136,7 @@ VirtualIterator<T> getSingletonIterator(T el)
  * non-virtual iterator, that supports hasNext() and next() methods.
  */
 template<typename T, class Inner>
-class ProxyIterator 
+class ProxyIterator
 : public IteratorCore<T>
 {
 public:
@@ -156,7 +158,7 @@ VirtualIterator<T> getProxyIterator(Inner it)
  * non-virtual iterator, that supports hasNext() and next() methods.
  */
 template<typename To, class Inner>
-class StaticCastIterator 
+class StaticCastIterator
 : public IteratorCore<To>
 {
 public:
@@ -176,12 +178,12 @@ VirtualIterator<To> getStaticCastIterator(Inner it)
 
 /**
  * Implementation object for VirtualIterator, that can proxy any
- * non-virtual iterator, that supports hasNext() and next() methods, 
- * and yields only those elements, for which Predicate::eval() 
+ * non-virtual iterator, that supports hasNext() and next() methods,
+ * and yields only those elements, for which Predicate::eval()
  * returns true.
  */
 template<typename T, class Inner, class Predicate>
-class FilteredIterator 
+class FilteredIterator
 : public IteratorCore<T>
 {
 public:
@@ -198,14 +200,13 @@ public:
 	return true;
       }
     }
-    return false; 
+    return false;
   };
-  T next() 
+  T next()
   {
     if(!_nextStored) {
-      bool res=hasNext();
-      ASS(res);
-      ASS(_nextStored)
+      ALWAYS(hasNext());
+      ASS(_nextStored);
     }
     _nextStored=false;
     return _next;
@@ -218,12 +219,12 @@ private:
 
 /**
  * Implementation object for VirtualIterator, that can proxy any
- * non-virtual iterator, that supports hasNext() and next() methods, 
+ * non-virtual iterator, that supports hasNext() and next() methods,
  * and yields its elements only until Predicate::eval() returns false
  * for a value.
  */
 template<typename T, class Inner, class Predicate>
-class WhileLimitedIterator 
+class WhileLimitedIterator
 : public IteratorCore<T>
 {
 public:
@@ -239,12 +240,11 @@ public:
     }
     return Predicate::eval(_next);
   };
-  T next() 
+  T next()
   {
     if(!_nextStored) {
-      bool res=hasNext();
-      ASS(res);
-      ASS(_nextStored)
+      ALWAYS(hasNext());
+      ASS(_nextStored);
     }
     _nextStored=false;
     return _next;
@@ -261,13 +261,13 @@ private:
  * two other virtual iterators.
  */
 template<typename T>
-class CatIterator 
+class CatIterator
 : public IteratorCore<T>
 {
 public:
-  CatIterator(VirtualIterator<T> it1, VirtualIterator<T> it2) 
+  CatIterator(VirtualIterator<T> it1, VirtualIterator<T> it2)
   	:_first(true), _it1(it1), _it2(it2) {}
-  bool hasNext() 
+  bool hasNext()
   {
     if(_first) {
       if(_it1.hasNext()) {
@@ -284,8 +284,8 @@ public:
   T next()
   {
     if(_first) {
-      //_it1 contains the next value, as hasNext must have 
-      //been called before. (It would have updated the 
+      //_it1 contains the next value, as hasNext must have
+      //been called before. (It would have updated the
       //_first value otherwise.)
       return _it1.next();
     }

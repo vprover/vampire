@@ -9,6 +9,7 @@
 
 #include <utility>
 
+#include "../Forwards.hpp"
 #include "../Lib/DHMap.hpp"
 #include "../Lib/BacktrackData.hpp"
 #include "Term.hpp"
@@ -30,8 +31,9 @@ class MMSubstitution
 {
 public:
   MMSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
-  
+
   bool unify(TermList t1,int index1, TermList t2, int index2);
+  void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
   bool isUnbound(unsigned var, int index) const
   {
     return isUnbound(VarSpec(var,index));
@@ -42,8 +44,8 @@ public:
   }
   /**
    * Bind special variable to a specified term
-   * 
-   * Calls to this method must happen before calls to any 
+   *
+   * Calls to this method must happen before calls to any
    * other methods. Also no special variables can occur in
    * binding term, as no occur-check is performed.
    */
@@ -59,16 +61,16 @@ public:
   }
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
-  
+
 #ifdef VDEBUG
-  std::string toString() const;
+  std::string toString(bool deref=false) const;
 #endif
-  
+
 private:
   static const int AUX_INDEX=-3;
   static const int SPECIAL_INDEX=-2;
   static const int UNBOUND_INDEX=-1;
-  
+
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec
   {
@@ -81,7 +83,7 @@ private:
     { return var==o.var && index==o.index; }
     bool operator!=(const VarSpec& o) const
     { return !(*this==o); }
-    
+
     #ifdef VDEBUG
     std::string toString() const
     {
@@ -93,7 +95,7 @@ private:
     unsigned var;
     /** index of variable bank */
     int index;
-    
+
     /** class containing first hash function for DHMap object storing variable banks */
     class Hash1
     {
@@ -114,7 +116,7 @@ private:
     /** Create a new VarSpec struct */
     TermSpec(TermList term, int index) : term(term), index(index) {}
     /** Create a new VarSpec struct */
-    explicit TermSpec(const VarSpec& vs) : index(vs.index) 
+    explicit TermSpec(const VarSpec& vs) : index(vs.index)
     {
       if(index==SPECIAL_INDEX) {
 	term.makeSpecialVar(vs.var);
@@ -124,7 +126,7 @@ private:
     }
     /**
      * If it's sure, that @b ts has the same content as this TermSpec,
-     * return true. If they don't (or it cannot be easily checked), return 
+     * return true. If they don't (or it cannot be easily checked), return
      * false.
      */
     bool sameContent(const TermSpec& ts)
@@ -134,9 +136,9 @@ private:
 	return false;
       }
       return index==ts.index || term.isSpecialVar() ||
-      	(term.isTerm() && term.term()->shared() && term.term()->ground()); 
+      	(term.isTerm() && term.term()->shared() && term.term()->ground());
     }
-    
+
     bool isVar()
     {
       return term.isVar();
@@ -152,16 +154,15 @@ private:
   bool isUnbound(VarSpec v) const;
   TermSpec deref(VarSpec v) const;
   TermSpec derefBound(TermSpec v) const;
-  
+
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool unify(TermSpec t1, TermSpec t2);
-  bool handleDifferentTops(TermSpec t1, TermSpec t2, 
-  	Stack<TTPair>& toDo, TermList* ct);
+  bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
   void unifyUnbound(VarSpec v, TermSpec ts);
-  
+
   bool occurCheckFails() const;
 
   VarSpec getAuxVar(VarSpec target)
@@ -169,7 +170,7 @@ private:
     CALL("MMSubstitution::getAuxVar");
     VarSpec res(_nextAuxAvailable++,AUX_INDEX);
     bindVar(res, target);
-    return res; 
+    return res;
   }
   static VarSpec getVarSpec(TermSpec ts)
   {
@@ -186,20 +187,20 @@ private:
     }
   }
   static void swap(TermSpec& ts1, TermSpec& ts2);
-  
-  typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType; 
-  
+
+  typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
+
   mutable BankType _bank;
-  
+
   mutable unsigned _nextUnboundAvailable;
   mutable unsigned _nextAuxAvailable;
-  
+
   class BindingBacktrackObject
   : public BacktrackObject
   {
   public:
     BindingBacktrackObject(MMSubstitution* subst, VarSpec v)
-    :_subst(subst), _var(v) 
+    :_subst(subst), _var(v)
     {
       if(! _subst->_bank.find(_var,_term)) {
 	_term.term.makeEmpty();
@@ -229,10 +230,10 @@ private:
 };
 
 
-namespace Lib 
+namespace Lib
 {
 /**
- * Traits structure specialisation. (See DHMap.hpp) 
+ * Traits structure specialisation. (See DHMap.hpp)
  */
 template<>
 struct HashTraits<Kernel::MMSubstitution::VarSpec::Hash1>

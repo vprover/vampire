@@ -11,7 +11,7 @@
 #define VDEBUG
 #endif
 
-namespace Lib 
+namespace Lib
 {
 
 template<typename T>
@@ -43,8 +43,7 @@ typedef VirtualIterator<Clause*> ClauseIterator;
 typedef SingleParamEvent<Clause*> ClauseEvent;
 
 class DoubleSubstitution;
-typedef SmartPtr<DoubleSubstitution> DoubleSubstitutionSP;
-typedef SmartPtr<const DoubleSubstitution> DoubleSubstitutionCSP;
+class Renaming;
 
 class LiteralSelector;
 };
@@ -55,7 +54,7 @@ class Index;
 class IndexManager;
 };
 
-namespace Saturation 
+namespace Saturation
 {
 class SaturationAlgorithm;
 class ClauseContainer;

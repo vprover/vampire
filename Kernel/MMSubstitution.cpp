@@ -9,6 +9,7 @@
 #include "../Lib/Random.hpp"
 #include "../Lib/DHMultiset.hpp"
 
+#include "../Kernel/Renaming.hpp"
 #include "../Indexing/TermSharing.hpp"
 
 #include "Term.hpp"
@@ -32,6 +33,35 @@ bool MMSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
   return unify(TermSpec(t1,index1), TermSpec(t2,index2));
 }
 
+void MMSubstitution::denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex)
+{
+  CALL("MMSubstitution::denormalize");
+  ASSERT_VALID(normalizer);
+
+  static Stack<unsigned> normalVars(8);
+
+  Renaming denormalizer;
+  Renaming::inverse(normalizer, denormalizer);
+
+  BankType::Iterator bit(_bank);
+  while(bit.hasNext()) {
+    VarSpec vs=bit.nextKey();
+    if(vs.index==normalIndex) {
+      normalVars.push(vs.var);
+    }
+  }
+
+  //cout<<"-------"<<endl<<"preNorm:"<<endl<<toString(false);
+
+  while(!normalVars.isEmpty()) {
+    VarSpec normal(normalVars.pop(), normalIndex);
+    VarSpec denormalized(denormalizer.apply(normal.var), denormalizedIndex);
+    ASS(!_bank.find(denormalized));
+    bindVar(denormalized,normal);
+  }
+  //cout<<"postNorm:"<<endl<<toString(false);
+}
+
 bool MMSubstitution::isUnbound(VarSpec v) const
 {
   CALL("MMSubstitution::isUnbound");
@@ -48,8 +78,8 @@ bool MMSubstitution::isUnbound(VarSpec v) const
 }
 
 /**
- * If @b t is a non-variable, return @t. Else, if @b t is a variable bound to 
- * a non-variable term, return the term. Otherwise, return the root variable 
+ * If @b t is a non-variable, return @t. Else, if @b t is a variable bound to
+ * a non-variable term, return the term. Otherwise, return the root variable
  * to which @b t belongs.
  */
 MMSubstitution::TermSpec MMSubstitution::derefBound(TermSpec t) const
@@ -80,7 +110,7 @@ MMSubstitution::TermSpec MMSubstitution::deref(VarSpec v) const
     if(!found) {
       binding.index=UNBOUND_INDEX;
       binding.term.makeVar(_nextUnboundAvailable++);
-      _bank.set(v,binding);
+      const_cast<MMSubstitution&>(*this).bind(v,binding);
       return binding;
     } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
       return binding;
@@ -92,7 +122,7 @@ MMSubstitution::TermSpec MMSubstitution::deref(VarSpec v) const
 void MMSubstitution::bind(const VarSpec& v, const TermSpec& b)
 {
   CALL("MMSubstitution::bind");
-  
+
   if(bdIsRecording()) {
     bdAdd(new BindingBacktrackObject(this, v));
   }
@@ -123,10 +153,10 @@ MMSubstitution::VarSpec MMSubstitution::root(VarSpec v) const
 void MMSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
 {
   CALL("MMSubstitution::makeEqual");
-  
+
   v1=root(v1);
   v2=root(v2);
-  
+
   if(Random::getBit()) {
     bindVar(v1,v2);
     bind(v2,target);
@@ -136,29 +166,14 @@ void MMSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
   }
 }
 
-//void MMSubstitution::makeEqual(VarSpec v1, VarSpec v2)
-//{
-//  CALL("MMSubstitution::makeEqual");
-//  
-//  v1=root(v1);
-//  v2=root(v2);
-//  
-//  if(isUnbound(v1)) {
-//    makeEqual(v1,v2,deref(v2));
-//  } else {
-//    ASS(isUnbound(v2));
-//    makeEqual(v1,v2,deref(v1));
-//  }
-//}
-
 void MMSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
 {
   CALL("MMSubstitution::makeEqual");
-  
+
   v=root(v);
-  
+
   ASS(isUnbound(v));
-  
+
   if(ts.isVar()) {
     VarSpec v2=getVarSpec(ts);
     makeEqual(v, v2, deref(v2));
@@ -176,7 +191,7 @@ void MMSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
 }
 
 
-bool MMSubstitution::handleDifferentTops(TermSpec t1, TermSpec t2, 
+bool MMSubstitution::handleDifferentTops(TermSpec t1, TermSpec t2,
 	Stack<TTPair>& toDo, TermList* ct)
 {
   if(t1.isVar()) {
@@ -205,7 +220,7 @@ bool MMSubstitution::handleDifferentTops(TermSpec t1, TermSpec t2,
     }
   } else {
     //tops are different and neither of them is variable, so we can't unify them
-    ASS(t1.term.isTerm() && t2.term.isTerm() && 
+    ASS(t1.term.isTerm() && t2.term.isTerm() &&
 	    t1.term.term()->functor()!=t2.term.term()->functor());
     return false;
   }
@@ -224,9 +239,15 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
   BacktrackData localBD;
   bdRecord(localBD);
 
-  Stack<TTPair> toDo(64);
-  Stack<TermList*> subterms(64);
-  
+  //toDo stack contains pairs of terms to be unified.
+  //Terms in those pairs can be either complex pairs
+  //or bound variables. If pair consists of one complex
+  //term and one bound variable, the bound variable has
+  //to be first.
+  static Stack<TTPair> toDo(64);
+  static Stack<TermList*> subterms(64);
+  ASS(toDo.isEmpty() && subterms.isEmpty());
+
   if(TermList::sameTopFunctor(&t1.term,&t2.term)) {
     toDo.push(TTPair(t1,t2));
   } else {
@@ -234,18 +255,18 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
       return false;
     }
   }
-  
-  
+
+
   while(!toDo.isEmpty()) {
     TTPair task=toDo.pop();
     t1=task.first;
     t2=task.second;
     ASS(!t2.isVar() || t1.isVar());
-    
+
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
     ASS(!dt1.isVar() && !dt2.isVar());
-    
+
     TermList* ss=&dt1.term;
     TermList* tt=&dt2.term;
     TermList* ct;
@@ -258,13 +279,13 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
     } else {
       ct=0;
     }
-    
-     
+
+
     Stack<TermList*> subterms(64);
     for (;;) {
       TermSpec tsss(*ss,t1.index);
       TermSpec tstt(*tt,t2.index);
-      
+
       if (!tsss.sameContent(tstt) && TermList::sameTopFunctor(ss,tt)) {
         ASS(ss->isTerm() && tt->isTerm());
 
@@ -276,7 +297,7 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
         if(ct) {
           ct->setTerm(Term::createNonShared(t));
         }
-   
+
         ss = s->args();
         tt = t->args();
         ct = ct ? ct->term()->args() : 0;
@@ -296,7 +317,7 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
             *ct=*ss;
           }
         }
-   
+
         if (subterms.isEmpty()) {
           break;
         }
@@ -310,7 +331,7 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
         }
       }
     }
-    
+
     if(mismatch) {
       if(buildingCommon && commonTS.term.isTerm()) {
 	commonTS.term.term()->destroyNonShared();
@@ -337,10 +358,13 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
 
   if(!mismatch) {
     mismatch=occurCheckFails();
+  } else {
+    subterms.reset();
+    toDo.reset();
   }
 
   bdDone();
-  
+
   if(mismatch) {
     localBD.backtrack();
   } else {
@@ -349,14 +373,13 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
     }
     localBD.drop();
   }
-  
+
   return !mismatch;
 }
 
-
 Literal* MMSubstitution::apply(Literal* lit, int index) const
 {
-  CALL("MMSubstitution::apply(Literal...)");
+  CALL("MMSubstitution::apply(Literal*...)");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -380,16 +403,16 @@ TermList MMSubstitution::apply(TermList trm, int index) const
   static Stack<int> toDoIndex(8);
   static Stack<Term*> terms(8);
   static Stack<TermList> args(8);
-  
+
   toDo.push(&trm);
   toDoIndex.push(index);
-  
+
   while(!toDo.isEmpty()) {
     TermList* tt=toDo.pop();
     index=toDoIndex.pop();
     if(tt->isEmpty()) {
       Term* orig=terms.pop();
-      //here we assume, that stack is an array with 
+      //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
       //&top()-2, etc...
       TermList* argLst=&args.top() - (orig->arity()-1);
@@ -406,7 +429,7 @@ TermList MMSubstitution::apply(TermList trm, int index) const
 	toDoIndex.push(index);
       }
     }
-    
+
     TermSpec ts(*tt,index);
 
     if(ts.term.isVar()) {
@@ -433,15 +456,16 @@ TermList MMSubstitution::apply(TermList trm, int index) const
 bool MMSubstitution::occurCheckFails() const
 {
   CALL("MMSubstitution::occurCheckFails");
-  
+
   Stack<VarSpec> maybeUnref(8);
   Stack<VarSpec> unref(8);
   DHMultiset<VarSpec,VarSpec::Hash1,VarSpec::Hash2> refCounter;
-  
+
   BankType::Iterator bit(_bank);
   while(bit.hasNext()) {
-    VarSpec vs=bit.nextKey();
-    TermSpec ts=_bank.get(vs);
+    VarSpec vs;
+    TermSpec ts;
+    bit.next(vs,ts);
     if(!ts.term.isTerm()) {
       continue;
     }
@@ -481,13 +505,15 @@ bool MMSubstitution::occurCheckFails() const
 
 
 #ifdef VDEBUG
-string MMSubstitution::toString() const
+string MMSubstitution::toString(bool deref) const
 {
   CALL("MMSubstitution::toString");
   string res;
   BankType::Iterator bit(_bank);
   while(bit.hasNext()) {
-    VarSpec v(bit.nextKey());
+    VarSpec v;
+    TermSpec binding;
+    bit.next(v,binding);
     TermList tl;
     if(v.index==SPECIAL_INDEX) {
       res+="S"+Int::toString(v.var)+" -> ";
@@ -496,8 +522,13 @@ string MMSubstitution::toString() const
       res+="X"+Int::toString(v.var)+"/"+Int::toString(v.index)+ " -> ";
       tl.makeVar(v.var);
     }
-    tl=apply(tl, v.index);
-    res+=Test::Output::singleTermListToString(tl)+"\n";
+    if(deref) {
+      tl=apply(tl, v.index);
+      res+=Test::Output::singleTermListToString(tl)+"\n";
+    } else {
+      res+=Test::Output::singleTermListToString(binding.term)+"/"+Int::toString(binding.index)+"\n";
+    }
+
   }
   return res;
 }
@@ -509,9 +540,9 @@ string MMSubstitution::toString() const
  */
 unsigned MMSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 {
-  return o.var + o.index*capacity>>1 + o.index>>1*capacity>>3; 
+  return o.var + o.index*capacity>>1 + o.index>>1*capacity>>3;
 /*//This might work better
-  
+
   int res=(o.var%(capacity<<1) - capacity);
   if(res<0)
     //this turns x into -x-1

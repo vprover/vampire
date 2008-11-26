@@ -45,27 +45,27 @@ class SubstitutionTree
 public:
   SubstitutionTree(int nodes);
   ~SubstitutionTree();
-  
+
   void insert(Literal* lit, Clause* cls);
   void remove(Literal* lit, Clause* cls);
   void insert(TermList* term, Clause* cls);
   void remove(TermList* term, Clause* cls);
-  
+
   SLQueryResultIterator getComplementaryUnifications(Literal* lit)
   {
     UnificationsIterator* core=new UnificationsIterator();
     core->init(this, lit, true);
     return SLQueryResultIterator(core);
   }
-  
+
 #ifdef VDEBUG
   string toString() const;
   bool isEmpty() const;
 #endif
-  
+
 private:
-  
-  inline 
+
+  inline
   int getRootNodeIndex(Literal* t, bool complementary=false)
   {
     if(complementary) {
@@ -75,7 +75,7 @@ private:
     }
   }
 
-  inline 
+  inline
   int getRootNodeIndex(TermList* t)
   {
     ASS(!t->isSpecialVar());
@@ -85,7 +85,7 @@ private:
       return (int)t->term()->functor();
     }
   }
-  
+
   struct LeafData {
     LeafData(Clause* cls, void* d) : clause(cls), data(d) {}
     inline
@@ -96,8 +96,8 @@ private:
     void* data;
   };
   typedef VirtualIterator<LeafData> LDIterator;
-  
-  enum NodeAlgorithm 
+
+  enum NodeAlgorithm
   {
     UNSORTED_LIST=1,
     SKIP_LIST=2,
@@ -114,16 +114,16 @@ private:
     /** True if a leaf node */
     virtual bool isLeaf() const = 0;
     virtual bool isEmpty() const = 0;
-    /** 
+    /**
      * Return number of elements held in the node. If this operation
-     * isn't supported by the datastructure, return -1. 
+     * isn't supported by the datastructure, return -1.
      */
     virtual int size() const { return -1; }
     virtual NodeAlgorithm algorithm() const = 0;
-    
+
     /**
      * Remove all referenced structures without destroying them.
-     * 
+     *
      * This is used when the implementation of a node is being changed.
      * The current node will be deleted, but we don't want to destroy
      * structures, that are taken over by the new node implementation.
@@ -137,7 +137,7 @@ private:
 
 
   typedef VirtualIterator<Node**> NodeIterator;
-  
+
   class IntermediateNode
     	: public Node
   {
@@ -146,7 +146,7 @@ private:
     inline
     IntermediateNode()
     {}
-    
+
     /** Build a new intermediate node */
     inline
     IntermediateNode(const TermList* ts)
@@ -155,18 +155,18 @@ private:
 
     inline
     bool isLeaf() const { return false; };
-    
+
     virtual NodeIterator allChildren() = 0;
     virtual NodeIterator variableChildren() = 0;
     /**
      * Return pointer to pointer to child node with top symbol
      * of @b t. This pointer to node can be changed.
-     * 
+     *
      * If canCreate is true and such child node does
      * not exist, pointer to null pointer is returned, and it's
      * assumed, that pointer to newly created node with given
      * top symbol will be put there.
-     * 
+     *
      * If canCreate is false, null pointer is returned.
      */
     virtual Node** childByTop(TermList* t, bool canCreate) = 0;
@@ -175,11 +175,11 @@ private:
      * This node has to still exist in time of the call to remove method.
      */
     virtual void remove(TermList* t) = 0;
-    
+
     void loadChildren(NodeIterator children);
-    
+
   }; // class SubstitutionTree::IntermediateNode
-    
+
   class Leaf
   : public Node
   {
@@ -201,7 +201,7 @@ private:
     virtual void remove(LeafData ld) = 0;
     void loadChildren(LDIterator children);
   };
-   
+
   //These classes and methods are defined in SubstitutionTree_Nodes.cpp
   class IsPtrToVarNodePredicate;
   class UListIntermediateNode;
@@ -245,7 +245,7 @@ private:
   	return Int::compare(v2, v1);
     }
   };
-  
+
   //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
   //that when SkipList is used.
   typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
@@ -261,8 +261,8 @@ private:
       getBindings(ts->term(), bq);
     }
   }
-  
-  
+
+
   void insert(Node** node,BindingQueue& binding,LeafData ld);
   void remove(Node** node,BindingQueue& binding,LeafData ld);
 
@@ -272,103 +272,35 @@ private:
   int _nextVar;
   /** Array of nodes */
   Node** _nodes;
-  
+
   class UnificationsIterator
   : public IteratorCore<SLQueryResult>
   {
   public:
     UnificationsIterator() : subst(), inLeaf(false), ldIterator(LDIterator::getEmpty()),
-    	nodeIterators(4), btStack(4) 
-    {
-    }
-    
+    	nodeIterators(4), bdStack(4), clientBDRecording(false) {}
     void init(SubstitutionTree* t, Literal* query, bool complementary);
-    
-    bool hasNext()
-    {
-      CALL("SubstitutionTree::ResultIterator::hasNext");
-      
-      while(!ldIterator.hasNext() && findNextLeaf()) {}
-      return ldIterator.hasNext();
-    }
-    
-    SLQueryResult next()
-    {
-      CALL("SubstitutionTree::ResultIterator::next");
-      
-      while(!ldIterator.hasNext() && findNextLeaf()) {}
-      ASS(ldIterator.hasNext());
-      
-      LeafData ld=ldIterator.next();
-      return SLQueryResult(static_cast<Literal*>(ld.data), ld.clause, &subst);
-    }
+
+    bool hasNext();
+    SLQueryResult next();
   protected:
-    void createInitialBindings(Term* t)
-    {
-      TermList* args=t->args();
-      int nextVar = 0;
-      while (! args->isEmpty()) {
-        unsigned var = nextVar++;
-	subst.bindSpecialVar(var,*args,0);
-        svQueue.insert(var);
-        args = args->next();
-      }
-    }
+    void createInitialBindings(Term* t);
     bool findNextLeaf();
     bool enter(Node* n, BacktrackData& bd);
-    bool associate(TermList qt, TermList nt, BacktrackData& bd);
-    NodeIterator getNodeIterator(IntermediateNode* n)
-    {
-      CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
-      
-      unsigned specVar=svQueue.top();
-      TermList qt=subst.getSpecialVarTop(specVar);
-      if(qt.isVar()) {
-	return n->allChildren();
-      } else {
-	Node** match=n->childByTop(&qt, false);
-	if(match) {
-	  return NodeIterator(
-		  new CatIterator<Node**>(
-			  NodeIterator(new SingletonIterator<Node**>(match)),
-			  n->variableChildren()
-			  ));
-	} else {
-	  return n->variableChildren();
-	}
-      }
-    }
-    void extractSpecialVariables(TermList t, BacktrackData& bd)
-    {
-      TermList* ts=&t;
-      static Stack<TermList*> stack(4);
-      for(;;) {
-        if(ts->tag()==REF && !ts->term()->shared()) {
-          stack.push(ts->term()->args());
-        }
-        if(ts->isSpecialVar()) {
-          svQueue.backtrackableInsert(ts->var(), bd);
-        }
-        if(stack.isEmpty()) {
-          break;
-        }
-        ts=stack.pop();
-        if(!ts->next()->isEmpty()) {
-          stack.push(ts->next());
-        }
-      }
-    }
-    
-  protected:
+    NodeIterator getNodeIterator(IntermediateNode* n);
+    void extractSpecialVariables(TermList t, BacktrackData& bd);
+
     MMSubstitution subst;
   private:
     bool inLeaf;
     LDIterator ldIterator;
     SpecVarQueue svQueue;
     Stack<NodeIterator> nodeIterators;
-    Stack<BacktrackData> btStack;
+    Stack<BacktrackData> bdStack;
+    bool clientBDRecording;
+    BacktrackData clientBacktrackData;
   };
-  
+
 
 
 }; // class SubstiutionTree

@@ -84,7 +84,7 @@ void Term::destroyNonShared()
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
  * either both are the same variable or both are complex terms with the
- * same function symbol. 
+ * same function symbol.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 bool TermList::sameTop(const TermList* ss,const TermList* tt)
@@ -100,7 +100,7 @@ bool TermList::sameTop(const TermList* ss,const TermList* tt)
 
 /**
  * Return true if @b ss and @b tt are both complex terms with the
- * same function symbol. 
+ * same function symbol.
  */
 bool TermList::sameTopFunctor(const TermList* ss,const TermList* tt)
 {
@@ -443,7 +443,7 @@ Literal* Literal::apply(Substitution& subst)
  * Return the hash function of the top-level of a complex term.
  * @pre The term must be non-variable
  * @since 28/12/2007 Manchester
- */ 
+ */
 unsigned Term::hash() const
 {
   CALL("Term::hash");
@@ -459,7 +459,7 @@ unsigned Term::hash() const
 /**
  * Return the hash function of the top-level of a literal.
  * @since 30/03/2008 Flight Murcia-Manchester
- */ 
+ */
 unsigned Literal::hash() const
 {
   CALL("Literal::hash");
@@ -540,7 +540,7 @@ Term* Term::cloneNonShared(Term* t)
 } // Term::cloneNonShared(const Term* t,Term* args)
 
 /**
- * True if there exists next variable 
+ * True if there exists next variable
  */
 bool Term::VariableIterator::hasNext()
 {
@@ -552,7 +552,7 @@ bool Term::VariableIterator::hasNext()
     return true;
   }
   while(!_stack.isEmpty()) {
-    TermList* t=_stack.pop();
+    const TermList* t=_stack.pop();
     if(_used && t->isVar()) {
       _used=false;
       t=t->next();
@@ -567,7 +567,7 @@ bool Term::VariableIterator::hasNext()
     }
     _stack.push(t->next());
     ASS(t->isTerm());
-    Term* trm=t->term();
+    const Term* trm=t->term();
     if(!trm->shared() || !trm->ground()) {
       _stack.push(trm->args());
     }

@@ -1,7 +1,7 @@
 /**
  * @file DHMap.hpp
  * Defines class DHMap<Key,Val,Hash1,Hash2> of maps, implemented as
- * double hashed hashtables. 
+ * double hashed hashtables.
  */
 
 #ifndef __DHMap__
@@ -16,10 +16,10 @@
 
 namespace Lib {
 
-/** 
- * Traits class for hash classes, which should be specialized 
+/**
+ * Traits class for hash classes, which should be specialized
  * for classes whose hash functions have second parameter for
- * hashtable capacity. 
+ * hashtable capacity.
  */
 template<typename Hash>
 struct HashTraits
@@ -27,7 +27,7 @@ struct HashTraits
   enum {SINGLE_PARAM_HASH=1};
 };
 
-/** 
+/**
  * Auxiliary class for computing of hash values which depends on
  * specializations of HashTraits class.
  */
@@ -35,7 +35,7 @@ template<int I, class Hash, typename Key>
 class HashCompClass {
 };
 
-/** 
+/**
  * Auxiliary class for computing of hash values which depends on
  * specializations of HashTraits class.
  */
@@ -47,7 +47,7 @@ struct HashCompClass<1,Hash,Key> {
   }
 };
 
-/** 
+/**
  * Auxiliary class for computing of hash values which depends on
  * specializations of HashTraits class.
  */
@@ -75,7 +75,7 @@ extern const unsigned DHMapTableCapacities[];
  * a new class Key, Hash1 and Hash2 are classes containing a function
  * hash() mapping keys to unsigned integer values.
  *
- * @param Key a pointer or integral value (e.g., integer or long): 
+ * @param Key a pointer or integral value (e.g., integer or long):
  *        anything that can be hashed to an unsigned integer
  *        and compared using ==
  * @param Val values, can be anything
@@ -133,9 +133,9 @@ public:
     }
   }
 
-  /** 
-   *  Find value by the key. The result is true if a pair 
-   *  with this key is in the map. If such a pair is found 
+  /**
+   *  Find value by the key. The result is true if a pair
+   *  with this key is in the map. If such a pair is found
    *  then its value is returned in found.
    */
   inline
@@ -150,8 +150,8 @@ public:
     return true;
   }
 
-  /** 
-   *  Find value by the key. The result is true if a pair 
+  /**
+   *  Find value by the key. The result is true if a pair
    *  with this key is in the map.
    */
   inline
@@ -175,9 +175,9 @@ public:
     return v;
   }
 
-  /** 
-   * If there is no value stored under @b key in the map, 
-   * insert pair (key,value) and return true. Otherwise, 
+  /**
+   * If there is no value stored under @b key in the map,
+   * insert pair (key,value) and return true. Otherwise,
    * return false.
    */
   bool insert(Key key, const Val& val)
@@ -203,9 +203,9 @@ public:
     return !exists;
   }
 
-  /** 
+  /**
    * Store @b value under @key. Return true if nothing was
-   * previously stored under @key. Otherwise, 
+   * previously stored under @key. Otherwise,
    * return false.
    */
   bool set(Key key, const Val& val)
@@ -230,8 +230,8 @@ public:
     e->_val=val;
     return !exists;
   }
-  
-  
+
+
   /**
    * If there is a value stored under the @b key, remove
    * it and return true. Otherwise, return false.
@@ -248,10 +248,10 @@ public:
     _deleted++;
     return true;
   }
-  
+
 
   /** Return mumber of entries stored in this DHMap */
-  inline 
+  inline
   int size() const
   {
     ASS(_size>=0);
@@ -259,7 +259,7 @@ public:
   }
 
   /** Return true iff there are any entries stored in this DHMap */
-  inline 
+  inline
   bool isEmpty() const
   {
     ASS(_size>=0);
@@ -296,7 +296,7 @@ private:
   DHMap(const DHMap& obj);
   /** operator= is private and without a body, because we don't want any. */
   DHMap& operator=(const DHMap& obj);
-  
+
 
   /** Check whether an expansion is needed and if so, expand */
   inline
@@ -311,7 +311,7 @@ private:
   void expand()
   {
     CALL("DHMap::expand");
-    
+
     if(_capacityIndex>=MaxCapacityIndex) {
       throw Exception("Lib::DHMap::expand: MaxCapacityIndex reached.");
     }
@@ -320,7 +320,7 @@ private:
     Entry* oldAfterLast=_afterLast;
     unsigned oldTimestamp=_timestamp;
     int oldCapacity=_capacity;
-    
+
     _timestamp=1;
     _size=0;
     _deleted=0;
@@ -349,9 +349,9 @@ private:
   inline
   Entry* findEntry(Key key)
   {
-    return const_cast<Entry*>(static_cast<const DHMap*>(this)->findEntry(key)); 
+    return const_cast<Entry*>(static_cast<const DHMap*>(this)->findEntry(key));
   }
-  
+
   /** Return pointer to an Entry object which contains specified key,
    * or 0, if there is no such */
   const Entry* findEntry(Key key) const
@@ -370,13 +370,13 @@ private:
     }
 
     //We have a collision...
-    
+
     if(!res->_info.collision) {
       //There were no collisions on this position during inserting,
       //so the key we're searching for isn't here anyway
       return 0;
     }
-    
+
     unsigned h2=Hash2::hash(key)%_capacity;
     if(h2==0) {
       h2=1;
@@ -385,11 +385,11 @@ private:
       pos=(pos+h2)%_capacity;
       res=&_entries[pos];
     } while (res->_info.timestamp == _timestamp && res->_key!=key);
-    
+
     if(res->_info.timestamp != _timestamp ) {
       return 0;
     }
-    
+
     ASS(res->_key==key);
     return res->_info.deleted ? 0 : res;
   }
@@ -409,10 +409,10 @@ private:
     }
 
     //We have a collision...
-    
+
     //mark the entry where the collision occured
     res->_info.collision=1;
-    
+
     unsigned h2=Hash2::hash(key)%_capacity;
     if(h2==0) {
       h2=1;
@@ -460,7 +460,7 @@ public:
     }
 
     /**
-     * True if there exists next element 
+     * True if there exists next element
      */
     bool hasNext()
     {
@@ -472,6 +472,18 @@ public:
 	_next++;
       }
       return false;
+    }
+
+    /**
+     * Assign key and value of the next entry to respective parameters
+     * @warning hasNext() must have been called before
+     */
+    inline
+    void next(Key& key, Val& val)
+    {
+      Entry* e=nextEntry();
+      key=e->_key;
+      val=e->_val;
     }
 
     /**

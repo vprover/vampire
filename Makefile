@@ -55,6 +55,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/LiteralSelector.o\
         Kernel/MMSubstitution.o\
+        Kernel/Renaming.o\
         Kernel/Signature.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
