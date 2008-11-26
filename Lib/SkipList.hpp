@@ -56,22 +56,22 @@ public:
    * If the value is not present, return false, and if @b canCreate
    * is true, create a Node where a value with given key could be
    * stored, and assign pointer to value in that Node into @b pvalue.
-   * 
+   *
    * Type Key has to be supported by ValueComparator. I.e. it must
-   * contain method Comparison compare(Key,Value).  
+   * contain method Comparison compare(Key,Value).
    */
   template<typename Key>
   bool getPosition(Key key, Value*& pvalue, bool canCreate)
   {
     CALL("SkipList::getPosition");
-    
+
     if(_top==0) {
       if(canCreate) {
 	pvalue=insertPosition(key);
       }
       return false;
     }
-    
+
     unsigned h=_top-1;
 
    // left is a node with a value smaller than that of newNode and having
@@ -91,7 +91,7 @@ public:
 	continue;
       }
       // next != 0
-      switch (ValueComparator::compare(key,next->value)) 
+      switch (ValueComparator::compare(key,next->value))
 	{
 	case LESS:
 	  // the node should be inserted on the left
@@ -103,15 +103,15 @@ public:
 	  }
 	  h--;
 	  break;
-	
+
 	case EQUAL:
 	  pvalue=&next->value;
 	  return true;
-	  
+
 	case GREATER:
 	  left = next;
 	  break;
-	
+
 #if VDEBUG
 	default:
 	  ASSERTION_VIOLATION;
@@ -123,9 +123,9 @@ public:
   /**
    * Create Node where a value with given key could be
    * stored, and assign pointer to value in that Node into @b pvalue.
-   * 
+   *
    * Type Key has to be supported by ValueComparator. I.e. it must
-   * contain method Comparison compare(Key,Value). 
+   * contain method Comparison compare(Key,Value).
    */
   template<typename Key>
   Value* insertPosition(Key key)
@@ -148,10 +148,10 @@ public:
       }
     }
     Node* newNode = allocate(nodeHeight);
-    
+
     unsigned h = _top - 1;
-    
-    
+
+
     // left is a node with a value smaller than that of newNode and having
     // a large enough height.
     // this node is on the left of the inserted one
@@ -170,7 +170,7 @@ public:
 	continue;
       }
       // next != 0
-      switch (ValueComparator::compare(key,next->value)) 
+      switch (ValueComparator::compare(key,next->value))
 	{
 	case LESS:
 	  // the node should be inserted on the left
@@ -183,12 +183,12 @@ public:
 	  }
 	  h--;
 	  break;
-	
+
 	case EQUAL: //we insert equal elements next to each other
 	case GREATER:
 	  left = next;
 	  break;
-	
+
 #if VDEBUG
 	default:
 	  ASSERTION_VIOLATION;
@@ -196,11 +196,11 @@ public:
 	}
     }
   } // SkipList::insertPosition
-  
+
   /**
    * Return number of elements in the SkipList.
-   * 
-   * The method works in linear time with the 
+   *
+   * The method works in linear time with the
    * size of skip list, so should be used for
    * debugging purposes only.
    */
@@ -214,7 +214,7 @@ public:
     }
     return res;
   }
-  
+
   /**
    * True if the list is empty.
    * @since 04/05/2006 Bellevue
@@ -242,7 +242,7 @@ public:
     ASS(isNonEmpty());
     return _left->nodes[0]->value;
   }
-  
+
   /**
    * Pop the first element.
    * @since 04/05/2006 Bellevue
@@ -271,9 +271,9 @@ public:
 
   /**
    * Remove value matching the key from the list.
-   * 
+   *
    * Type Key has to be supported by ValueComparator. I.e. it must
-   * contain method Comparison compare(Key,Value). 
+   * contain method Comparison compare(Key,Value).
    * @since 04/05/2006 Bellevue
    */
   template<typename Key>
@@ -288,7 +288,7 @@ public:
 #else
     unsigned foundHeight; // its height
 #endif
-  
+
     Node* left = _left;
     unsigned h = _top-1;
     for (;;) {
@@ -299,13 +299,13 @@ public:
 	continue;
       }
       // next != 0
-      switch (ValueComparator::compare(key,next->value)) 
+      switch (ValueComparator::compare(key,next->value))
 	{
 	case LESS:
 	  ASS(h != 0);
 	  h--;
 	  break;
-	
+
 	case GREATER:
 	  left = next;
 	  break;
@@ -313,12 +313,12 @@ public:
 	case EQUAL:
 	  found = next;
 	  foundHeight = h;
-	  if(h>0 && found->nodes[0] && found->nodes[h]!=found->nodes[0] && 
+	  if(h>0 && found->nodes[0] && found->nodes[h]!=found->nodes[0] &&
 		  ValueComparator::compare(key,found->nodes[0]->value)==EQUAL) {
 	    //The next element exists, contains the same value,
 	    //and its height is lower that the height of this one.
 	    //We'll rather delete that one, tha the one we've found,
-	    //because otherwise there'd be only low elements after a few 
+	    //because otherwise there'd be only low elements after a few
 	    //deletions, which would degrade the skip list to linked list.
 	    h=0;
 	    while(found->nodes[0]==found->nodes[h+1]) {
@@ -339,10 +339,10 @@ public:
 	      ASS(ValueComparator::compare(key,left->value)!=LESS);
 	    }
 	  }
-	  
+
 	  deallocate(found,foundHeight);
 	  return;
-	
+
 #if VDEBUG
 	default:
 	  ASSERTION_VIOLATION;
@@ -351,11 +351,22 @@ public:
     }
   } // SkipList::remove
 
+  template<typename Key>
   inline
-  bool find(Value value)
+  bool find(Key key)
   {
-    Value* val;
-    return getPosition(value,val,false);
+    Value* pval;
+    return getPosition(key,pval,false);
+  }
+
+  template<typename Key>
+  inline
+  bool find(Key key, Value& val)
+  {
+    Value* pval;
+    bool res=getPosition(key,pval,false);
+    val=*pval;
+    return res;
   }
   /**
    * Create a skip list and initialise its left-most node to a node of the
@@ -395,9 +406,9 @@ private:
   static Node* allocate(unsigned h)
   {
     CALL("SkipList::allocate");
-    
+
     void* memory = ALLOC_KNOWN(sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
-    
+
     return reinterpret_cast<Node*>(memory);
   }
 
@@ -409,12 +420,12 @@ private:
     DEALLOC_KNOWN(node,sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
   }
 
-  
+
   class SingleValBacktrackObject: public BacktrackObject
   {
   public:
     enum Action {
-      REMOVE, INSERT 
+      REMOVE, INSERT
     };
     SingleValBacktrackObject(SkipList* sl, Action a, Value v): sl(sl), a(a), v(v) {}
     void backtrack()
@@ -449,30 +460,30 @@ public:
     bd.addBacktrackObject(
 	    new SingleValBacktrackObject(this, SingleValBacktrackObject::INSERT, v));
   }
-  
+
 public:
-  
+
   /** iterator over the skip list elements */
   class Iterator {
    public:
-    
-    inline explicit 
+
+    inline explicit
     Iterator(const SkipList& l)
       : _cur (l._left)
     {}
-    
+
     /** return the next element */
-    inline Value next() 
-    { 
+    inline Value next()
+    {
       ASS(_cur->nodes[0]);
       _cur=_cur->nodes[0];
       return _cur->value;
     }
-    
+
     /** True if there is a next element. */
-    inline bool hasNext() const 
-    { 
-      return _cur->nodes[0]; 
+    inline bool hasNext() const
+    {
+      return _cur->nodes[0];
     }
 
    private:
@@ -486,32 +497,32 @@ public:
    */
   class PtrIterator {
    public:
-    
-    inline explicit 
+
+    inline explicit
     PtrIterator(const SkipList& l)
       : _cur (l._left)
     {}
-    
+
     /** return the next element */
-    inline Value* next() 
-    { 
+    inline Value* next()
+    {
       ASS(_cur->nodes[0]);
       _cur=_cur->nodes[0];
       return &_cur->value;
     }
-    
+
     /** True if there is a next element. */
-    inline bool hasNext() const 
-    { 
-      return _cur->nodes[0]; 
+    inline bool hasNext() const
+    {
+      return _cur->nodes[0];
     }
 
    private:
     /** the node we're now pointing to */
     Node* _cur;
   };
-  
-  
+
+
 }; // class SkipList
 
 

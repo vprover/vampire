@@ -23,12 +23,16 @@ using namespace Inferences;
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
+  CALL("BinaryResolution::attach");
+
   GeneratingInferenceEngine::attach(salg);
   _index=_salg->getIndexManager()->request(GENERATING_SUBST_TREE);
 }
 
 void BinaryResolution::detach()
 {
+  CALL("BinaryResolution::detach");
+
   _index=0;
   _salg->getIndexManager()->release(GENERATING_SUBST_TREE);
   GeneratingInferenceEngine::detach();
@@ -42,7 +46,7 @@ public:
   : _index(index), _cl(cl), _nextLit(0),
   _uit(SLQueryResultIterator::getEmpty()), _nextUnificationReady(false)
   {
-    
+
   }
   bool hasNext()
   {
@@ -55,17 +59,17 @@ public:
     ASS(_nextUnificationReady);
     SLQueryResult& qr = _nextUnification;
     _nextUnificationReady=false;
-    
+
     int clength = _cl->length();
     int dlength = qr.clause->length();
     int newLength = clength+dlength-2;
-    
+
     Inference* inf = new Inference2(Inference::RESOLUTION, _cl, qr.clause);
-    Unit::InputType inpType = (Unit::InputType) 
+    Unit::InputType inpType = (Unit::InputType)
     	Int::max(_cl->inputType(), qr.clause->inputType());
-    
+
     Clause* res = new(newLength) Clause(newLength, inpType, inf);
-    
+
     int next = 0;
     for(int i=0;i<clength;i++) {
       Literal* curr=(*_cl)[i];
@@ -82,7 +86,7 @@ public:
       }
     }
     res->setAge(Int::max(_cl->age(),qr.clause->age())+1);
-    
+
     return res;
   }
 private:
@@ -103,7 +107,7 @@ private:
   Index* _index;
   Clause* _cl;
   Literal* _lit;
-  /** Index of the next literal, we'll be trying to unify, 
+  /** Index of the next literal, we'll be trying to unify,
    * after we consume all results in @b _uit */
   unsigned _nextLit;
   SLQueryResultIterator _uit;

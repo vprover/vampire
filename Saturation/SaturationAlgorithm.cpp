@@ -24,10 +24,10 @@ _bwSimplifier(0), _selector(selector)
 {
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
-  
+
 #ifdef VDEBUG
   //enableContainerPrintouts();
-#endif  
+#endif
 }
 
 SaturationAlgorithm::~SaturationAlgorithm()
@@ -44,7 +44,7 @@ SaturationAlgorithm::~SaturationAlgorithm()
     _bwSimplifier->detach();
     _bwSimplifier=0;
   }
-  
+
   delete _unprocessed;
   delete _active;
 }
@@ -70,7 +70,7 @@ void SaturationAlgorithm::setBackwardSimplificationEngine(BackwardSimplification
 
 
 ClauseContainer* DiscountSA::getSimplificationClauseContainer()
-{ 
+{
   return _active;
 }
 
@@ -96,13 +96,13 @@ void DiscountSA::activate(Clause* c)
   _bwSimplifier->perform(c,toRemove, toAdd);
   _active->removeClauses(toRemove);
   _unprocessed->addClauses(toAdd);
-  
+
   _selector->select(c);
-  
+
   toAdd=_generator->generateClauses(c);
   _unprocessed->addClauses(toAdd);
-  
-  _active->add(c);  
+
+  _active->add(c);
 }
 
 SaturationResult DiscountSA::saturate()
@@ -112,26 +112,28 @@ SaturationResult DiscountSA::saturate()
   for (;;) {
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
-      
+
       if (c->isEmpty()) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
       if(!processInactive(c)) {
+	c->destroy();
 	continue;
       }
-      
+
       _passive->add(c);
     }
-    
+
     if (env.timeLimitReached()) {
       return SaturationResult(Statistics::TIME_LIMIT);
     }
     if (_passive->isEmpty()) {
       return SaturationResult(Statistics::SATISFIABLE);
     }
-    
+
     Clause* c = _passive->popSelected();
     if(!processInactive(c)) {
+	c->destroy();
 	continue;
     }
     activate(c);

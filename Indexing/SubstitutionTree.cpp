@@ -468,7 +468,10 @@ void SubstitutionTree::UnificationsIterator::init(SubstitutionTree* t,
 	return;
   }
 
-  createInitialBindings(query);
+  Renaming::normalizeVariables(query, queryNormalizer);
+  Literal* queryNorm=queryNormalizer.apply(query);
+
+  createInitialBindings(queryNorm);
 
   BacktrackData bd;
   enter(root, bd);
@@ -481,7 +484,7 @@ void SubstitutionTree::UnificationsIterator::createInitialBindings(Term* t)
   int nextVar = 0;
   while (! args->isEmpty()) {
     unsigned var = nextVar++;
-	subst.bindSpecialVar(var,*args,0);
+	subst.bindSpecialVar(var,*args,NORM_QUERY_BANK);
     svQueue.insert(var);
     args = args->next();
   }
@@ -518,8 +521,8 @@ SLQueryResult SubstitutionTree::UnificationsIterator::next()
   subst.bdRecord(clientBacktrackData);
   clientBDRecording=true;
 
-  subst.denormalize(normalizer,2,1);
-
+  subst.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
+  subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
 
   return SLQueryResult(lit, ld.clause, &subst);
 }
@@ -586,7 +589,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
     qt.makeSpecialVar(specVar);
 
     subst.bdRecord(bd);
-    bool success=subst.unify(qt,0,n->term,2);
+    bool success=associate(qt,n->term);
     subst.bdDone();
 
     if(!success) {
@@ -604,6 +607,11 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
     nodeIterators.backtrackablePush(nit, bd);
   }
   return true;
+}
+
+bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node)
+{
+  return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 }
 
 SubstitutionTree::NodeIterator
@@ -648,5 +656,33 @@ void SubstitutionTree::UnificationsIterator::extractSpecialVariables(
     if(!ts->next()->isEmpty()) {
       stack.push(ts->next());
     }
+  }
+}
+
+bool SubstitutionTree::GeneralizationsIterator::associate(TermList query, TermList node)
+{
+  return subst.match(node, NORM_RESULT_BANK, query, NORM_QUERY_BANK);
+}
+
+SubstitutionTree::NodeIterator
+  SubstitutionTree::GeneralizationsIterator::getNodeIterator(IntermediateNode* n)
+{
+  CALL("SubstitutionTree::GeneralizationsIterator::getNodeIterator");
+
+  unsigned specVar=svQueue.top();
+  TermList qt=subst.getSpecialVarTop(specVar);
+  if(qt.isVar()) {
+	return n->variableChildren();
+  } else {
+	Node** match=n->childByTop(&qt, false);
+	if(match) {
+	  return NodeIterator(
+		  new CatIterator<Node**>(
+			  NodeIterator(new SingletonIterator<Node**>(match)),
+			  n->variableChildren()
+			  ));
+	} else {
+	  return n->variableChildren();
+	}
   }
 }

@@ -43,6 +43,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BinaryResolution.hpp"
+#include "Inferences/SLQueryForwardSubsumption.hpp"
 
 
 #if CHECK_LEAKS
@@ -59,24 +60,26 @@ SaturationResult brSaturate(ClauseIterator clauses)
 {
   AWPassiveClauseContainer passiveContainer;
   passiveContainer.setAgeWeightRatio(1,1);
-  
+
   BinaryResolution generator;
   CompositeFSE fwSimplifier;
   DuplicateLiteralRemovalFSE dlrFSE;
   TrivialInequalitiesRemovalFSE tirFSE;
+  SLQueryForwardSubsumption fsFSE;
+  fwSimplifier.addFront(&fsFSE);
   fwSimplifier.addFront(&tirFSE);
   fwSimplifier.addFront(&dlrFSE);
-  
+
   DummyBSE bwSimplifier;
   EagerLiteralSelector selector;
-  
+
   DiscountSA salg(&passiveContainer, &selector);
   salg.setGeneratingInferenceEngine(&generator);
   salg.setForwardSimplificationEngine(&fwSimplifier);
   salg.setBackwardSimplificationEngine(&bwSimplifier);
-  
+
   salg.addClauses(clauses);
-  
+
   return salg.saturate();
 }
 
@@ -97,32 +100,42 @@ void doProving()
   prepro.preprocess(units);
 
   ClauseIterator clauses=getStaticCastIterator<Clause*>(UnitList::Iterator(units));
-  
-  SaturationResult res=brSaturate(clauses);
-  res.updateStatistics();
-  
 
-  switch (env.statistics->terminationReason) {
-  case Statistics::REFUTATION:
-    env.out << "Refutation found. Thanks to Tanya!\n";
-    if (env.options->proof() != Options::PROOF_OFF) {
-      Shell::Refutation refutation(env.statistics->refutation,
-	  env.options->proof() == Options::PROOF_ON);
-      refutation.output(env.out);
+  try {
+
+    SaturationResult res=brSaturate(clauses);
+    res.updateStatistics();
+
+    throw 1;
+  } catch (...) {
+    switch (env.statistics->terminationReason) {
+    case Statistics::REFUTATION:
+      env.out << "Refutation found. Thanks to Tanya!\n";
+      if (env.options->proof() != Options::PROOF_OFF) {
+	Shell::Refutation refutation(env.statistics->refutation,
+		env.options->proof() == Options::PROOF_ON);
+	refutation.output(env.out);
+      }
+      break;
+    case Statistics::TIME_LIMIT:
+      env.out << "Time limit reached!\n";
+      break;
+    case Statistics::MEMORY_LIMIT:
+      env.out << "Memory limit exceeded!\n";
+      break;
+    default:
+      env.out << "Refutation not found!\n";
+      break;
     }
-    break;
-  case Statistics::TIME_LIMIT:
-    env.out << "Time limit reached!\n";
-    break;
-  default:
-    env.out << "Refutation not found!\n";
-    break;
+    env.out << "Active clauses: "<<env.statistics->activeClauses<<endl;
+    env.out << "Passive clauses: "<<env.statistics->passiveClauses<<endl;
+    env.out << "Generated clauses: "<<env.statistics->generatedClauses<<endl;
+    env.out << "Duplicate literals: "<<env.statistics->duplicateLiterals<<endl;
+    env.out << "Trivial inequalities: "<<env.statistics->trivialInequalities<<endl;
+    try{
+      throw;
+    } catch (int) {}
   }
-  env.out << "Active clauses: "<<env.statistics->activeClauses<<endl;
-  env.out << "Passive clauses: "<<env.statistics->passiveClauses<<endl;
-  env.out << "Generated clauses: "<<env.statistics->generatedClauses<<endl;
-  env.out << "Duplicate literals: "<<env.statistics->duplicateLiterals<<endl;
-  env.out << "Trivial inequalities: "<<env.statistics->trivialInequalities<<endl;
 
 #if CHECK_LEAKS
   delete env.signature;
@@ -145,7 +158,7 @@ void explainException (Exception& exception)
 
 /**
  * The main function.
- * @since 03/12/2003 many changes related to logging 
+ * @since 03/12/2003 many changes related to logging
  *        and exception handling.
  * @since 10/09/2004, Manchester changed to use knowledge bases
  */
@@ -173,7 +186,7 @@ int main(int argc, char* argv [])
     env.statistics = &statistics;
 
     doProving();
-    
+
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {

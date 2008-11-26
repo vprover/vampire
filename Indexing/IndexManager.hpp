@@ -17,8 +17,10 @@ namespace Indexing
 using namespace Lib;
 using namespace Saturation;
 
+//TODO: make generating and symplifying subst. trees different, when needed
 enum IndexType {
-  GENERATING_SUBST_TREE
+  GENERATING_SUBST_TREE = 1,
+  SIMPLIFYING_SUBST_TREE = 1
 };
 
 class IndexManager
@@ -35,7 +37,7 @@ private:
   };
   SaturationAlgorithm* _alg;
   DHMap<IndexType,Entry> _store;
-  
+
   Index* create(IndexType t);
 };
 

@@ -111,6 +111,46 @@ bool TermList::sameTopFunctor(const TermList* ss,const TermList* tt)
 }
 
 /**
+ * Return true if @b ss and @b tt are both complex terms with the
+ * same function symbol.
+ */
+bool TermList::equals(TermList t1, TermList t2)
+{
+  static Stack<TermList*> stack(8);
+  ASS(stack.isEmpty());
+
+  TermList* ss=&t1;
+  TermList* tt=&t2;
+
+  for(;;) {
+    if(ss->isTerm() && tt->isTerm() && (!ss->term()->shared() || !tt->term()->shared())) {
+      Term* s=ss->term();
+      Term* t=tt->term();
+      if(s->functor()!=t->functor()) {
+	stack.reset();
+	return false;
+      }
+      stack.push(s->args());
+      stack.push(t->args());
+    } else if(ss->content()!=tt->content()) {
+      stack.reset();
+      return false;
+    }
+
+    if(stack.isEmpty()) {
+      break;
+    }
+    tt=stack.pop();
+    ss=stack.pop();
+    if(!tt->next()->isEmpty()) {
+      stack.push(ss->next());
+      stack.push(tt->next());
+    }
+  }
+  return true;
+}
+
+/**
  * Return the string representation of variable var.
  * @since 16/05/2007
  */
@@ -224,76 +264,6 @@ string Literal::toString () const
   return s;
 } // Literal::toString
 
-// /**
-//  * Convert the variable to an XML element.
-//  */
-// XMLElement Term::variableToXML (unsigned var)
-// {
-//   CALL("Term::variableToXML");
-
-//   XMLElement v("variable",true);
-//   v.addAttribute("number",var);
-//   return v;
-// } // Term::variableToXML
-
-// /**
-//  * Convert the term to an XML element.
-//  * @since 29/11/2003 Manchester
-//  */
-// XMLElement Term::toXML() const
-// {
-//   CALL("Term::toXML");
-
-//   if (isVar()) {
-//     return variableToXML(var());
-//   }
-//   if (isRef()) {
-//     return deref()->toXML();
-//   }
-
-//   const string& fun = functionName();
-//   if (args()->isEmpty()) {
-//     XMLElement t("constant",true);
-//     t.addAttribute("name",fun);
-//     return t;
-//   }
-
-//   // non-constant term
-//   XMLElement t("term");
-//   t.addAttribute("functor",fun);
-//   for (const Term* ts = args(); ts->isNonEmpty(); ts = ts->next()) {
-//     t.addChild(ts->toXML());
-//   }
-//   return t;
-// } // Term::toXML()
-
-
-// /**
-//  * Convert the literal to an XML element.
-//  * @since 29/11/2003 Manchester
-//  */
-// XMLElement Literal::toXML() const
-// {
-//   CALL("Literal::toXML");
-
-//   const string& pred = predicateName();
-//   if (args()->isEmpty()) {
-//     XMLElement t("literal",true);
-//     t.addAttribute("predicate",pred);
-//     t.addAttribute("sign",isPositive() ? "+" : "-");
-//     return t;
-//   }
-
-//   // non-constant term
-//   XMLElement t("literal");
-//   t.addAttribute("predicate",pred);
-//   t.addAttribute("sign",isPositive() ? "+" : "-");
-//   for (const Term* ts = args(); ts->isNonEmpty(); ts = ts->next()) {
-//     t.addChild(ts->toXML());
-//   }
-//   return t;
-// } // Term::toXML()
-
 
 /**
  * Return the print name of the function symbol of this term.
@@ -317,23 +287,6 @@ const string& Literal::predicateName() const
   return env.signature->predicateName(_functor);
 } // Literal::predicateName
 
-
-/**
- * Return the result of equality comparison of two arguments
- * to terms.
- * @since 10/06/2007 Manchester
- */
-// bool Term::equalArg (const Term* t) const
-// {
-//   CALL("Term::equalArg");
-//   if (isVar()) {
-//     return t->isVar() && var() == t->var();
-//   }
-//   if (t->isVar()) {
-//     return false;
-//   }
-//   return deref()->equals(t->deref());
-// } // Term::equalArg
 
 /**
  * Apply @b subst to the term and return the result.

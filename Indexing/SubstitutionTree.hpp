@@ -21,6 +21,7 @@
 
 #include "../Kernel/DoubleSubstitution.hpp"
 #include "../Kernel/MMSubstitution.hpp"
+#include "../Kernel/Renaming.hpp"
 
 #include "Index.hpp"
 
@@ -55,6 +56,13 @@ public:
   {
     UnificationsIterator* core=new UnificationsIterator();
     core->init(this, lit, true);
+    return SLQueryResultIterator(core);
+  }
+
+  SLQueryResultIterator getGeneralizations(Literal* lit)
+  {
+    GeneralizationsIterator* core=new GeneralizationsIterator();
+    core->init(this, lit, false);
     return SLQueryResultIterator(core);
   }
 
@@ -284,23 +292,38 @@ private:
     bool hasNext();
     SLQueryResult next();
   protected:
+    virtual bool associate(TermList query, TermList node);
+    virtual NodeIterator getNodeIterator(IntermediateNode* n);
+
     void createInitialBindings(Term* t);
     bool findNextLeaf();
     bool enter(Node* n, BacktrackData& bd);
-    NodeIterator getNodeIterator(IntermediateNode* n);
     void extractSpecialVariables(TermList t, BacktrackData& bd);
 
+    static const int QUERY_BANK=0;
+    static const int RESULT_BANK=1;
+    static const int NORM_QUERY_BANK=2;
+    static const int NORM_RESULT_BANK=3;
+
     MMSubstitution subst;
+    SpecVarQueue svQueue;
   private:
     bool inLeaf;
     LDIterator ldIterator;
-    SpecVarQueue svQueue;
     Stack<NodeIterator> nodeIterators;
     Stack<BacktrackData> bdStack;
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
+    Renaming queryNormalizer;
   };
 
+  class GeneralizationsIterator
+  : public UnificationsIterator
+  {
+  protected:
+    virtual bool associate(TermList query, TermList node);
+    virtual NodeIterator getNodeIterator(IntermediateNode* n);
+  };
 
 
 }; // class SubstiutionTree

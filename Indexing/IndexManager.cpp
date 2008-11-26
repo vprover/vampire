@@ -35,9 +35,8 @@ void IndexManager::release(IndexType t)
   CALL("IndexManager::release");
 
   Entry e;
-  bool found=_store.find(t,e);
-  ASS(found);
-  
+  ALWAYS(_store.find(t,e));
+
   e.refCnt--;
   if(e.refCnt==0) {
     delete e.index;

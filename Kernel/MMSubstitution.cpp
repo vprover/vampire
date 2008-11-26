@@ -33,6 +33,25 @@ bool MMSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
   return unify(TermSpec(t1,index1), TermSpec(t2,index2));
 }
 
+bool MMSubstitution::match(TermList base,int baseIndex,
+	TermList instance, int instanceIndex)
+{
+  CALL("MMSubstitution::match(TermList...)");
+  return match(TermSpec(base,baseIndex), TermSpec(instance,instanceIndex));
+}
+bool MMSubstitution::match(Literal* base,int baseIndex,
+	Literal* instance, int instanceIndex)
+{
+  CALL("MMSubstitution::match(Literal*...)");
+  TermList baseTL;
+  TermList instanceTL;
+  //here we treat Literals as Terms, which is not very
+  //clean, but Term is a base class of Literal after all
+  baseTL.setTerm(base);
+  instanceTL.setTerm(instance);
+  return match(TermSpec(baseTL,baseIndex), TermSpec(instanceTL,instanceIndex));
+}
+
 void MMSubstitution::denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex)
 {
   CALL("MMSubstitution::denormalize");
@@ -376,6 +395,107 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
 
   return !mismatch;
 }
+
+bool MMSubstitution::match(TermSpec base, TermSpec instance)
+{
+  CALL("MMSubstitution::match(TermSpec...)");
+
+  if(base.sameContent(instance)) {
+    return true;
+  }
+
+  bool mismatch=false;
+  BacktrackData localBD;
+  bdRecord(localBD);
+
+  static Stack<TermList*> subterms(64);
+  ASS(subterms.isEmpty());
+
+  TermList* bt=&base.term;
+  TermList* it=&instance.term;
+
+  TermSpec binding1;
+  TermSpec binding2;
+
+  for (;;) {
+    TermSpec bts(*bt,base.index);
+    TermSpec its(*it,instance.index);
+
+    if (!bts.sameContent(its) && TermList::sameTopFunctor(&bts.term,&its.term)) {
+      Term* s = bts.term.term();
+      Term* t = its.term.term();
+      ASS(s->arity() > 0);
+
+      bt = s->args();
+      it = t->args();
+    } else {
+      if (! TermList::sameTopFunctor(&bts.term,&its.term)) {
+	if(bts.term.isSpecialVar()) {
+	  VarSpec bvs=getVarSpec(bts);
+	  if(_bank.find(bvs, binding1)) {
+	    ASS(binding1.index==base.index);
+	    bt=&binding1.term;
+	    continue;
+	  } else {
+	    bind(bvs,its);
+	  }
+	} else if(its.term.isSpecialVar()) {
+	  VarSpec ivs=getVarSpec(its);
+	  if(_bank.find(ivs, binding2)) {
+	    ASS(binding2.index==instance.index);
+	    it=&binding2.term;
+	    continue;
+	  } else {
+	    bind(ivs,bts);
+	  }
+	} else if(bts.term.isOrdinaryVar()) {
+	  VarSpec bvs=getVarSpec(bts);
+	  if(_bank.find(bvs, binding1)) {
+	    ASS(binding1.index==instance.index);
+	    if(!TermList::equals(binding1.term, its.term))
+	    {
+	      mismatch=true;
+	      break;
+	    }
+	  } else {
+	    bind(bvs,its);
+	  }
+	} else {
+	  mismatch=true;
+	  break;
+	}
+      }
+
+      if (subterms.isEmpty()) {
+	break;
+      }
+      bt = subterms.pop();
+      it = subterms.pop();
+    }
+    if (bt->next()->isEmpty()) {
+      subterms.push(it->next());
+      subterms.push(bt->next());
+    }
+  }
+
+  ASS(!occurCheckFails());
+  bdDone();
+
+  subterms.reset();
+
+
+  if(mismatch) {
+    localBD.backtrack();
+  } else {
+    if(bdIsRecording()) {
+      bdCommit(localBD);
+    }
+    localBD.drop();
+  }
+
+  return !mismatch;
+}
+
 
 Literal* MMSubstitution::apply(Literal* lit, int index) const
 {

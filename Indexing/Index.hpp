@@ -1,6 +1,6 @@
 /**
  * @file VirtualIterator.hpp
- * Defines abstract Index class and some other auxiliary classes.  
+ * Defines abstract Index class and some other auxiliary classes.
  */
 
 #ifndef __Indexing_Index__
@@ -32,7 +32,7 @@ struct SLQueryResult
 
   SLQueryResult(Clause* c, MMSubstitution* s)
   :literal(0), clause(c), substitution(s) {}
-  
+
   Literal* literal;
   Clause* clause;
   const MMSubstitution* substitution;
@@ -49,20 +49,24 @@ public:
   {
     INVALID_OPERATION("Operation not supported by this index.");
   }
+  virtual SLQueryResultIterator getGeneralizations(Literal* lit)
+  {
+    INVALID_OPERATION("Operation not supported by this index.");
+  }
   void attachContainer(ClauseContainer* cc);
   void detachContainer(ClauseContainer* cc);
-  
+
 protected:
   Index(): _attachedContainers(0), _subscriptionData(0) {}
 
   virtual void onAddedToContainer(Clause* c);
   virtual void onRemovedFromContainer(Clause* c);
-  
+
   virtual void insert(Literal* lit, Clause* cls) = 0;
   virtual void remove(Literal* lit, Clause* cls) = 0;
 
   //TODO: postponing index modifications during iteration (methods isBeingIterated() etc...)
-  
+
 private:
   typedef List<ClauseContainer*> ContainerList;
   typedef List<SubscriptionData> SDataList;

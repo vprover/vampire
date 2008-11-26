@@ -33,6 +33,8 @@ public:
   MMSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
 
   bool unify(TermList t1,int index1, TermList t2, int index2);
+  bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
+  bool match(Literal* base,int baseIndex, Literal* instance, int instanceIndex);
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
   bool isUnbound(unsigned var, int index) const
   {
@@ -158,6 +160,7 @@ private:
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
+  bool match(TermSpec base, TermSpec instance);
   bool unify(TermSpec t1, TermSpec t2);
   bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
