@@ -61,6 +61,14 @@ Index* IndexManager::create(IndexType t)
     res=new SubstitutionTree(2*env.signature->predicates());
     res->attachContainer(_alg->getGenerationClauseContainer());
     break;
+  case SIMPLIFYING_SUBST_TREE:
+    res=new SimplifyingSubstitutionTree(2*env.signature->predicates());
+    res->attachContainer(_alg->getSimplificationClauseContainer());
+    break;
+  case SIMPLIFYING_ATOMIC_CLAUSE_SUBST_TREE:
+    res=new AtomicClauseSubstitutionTree(2*env.signature->predicates());
+    res->attachContainer(_alg->getSimplificationClauseContainer());
+    break;
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

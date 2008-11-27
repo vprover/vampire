@@ -1,7 +1,7 @@
 /**
  * @file DHMap.hpp
  * Defines class DHMap<Key,Val,Hash1,Hash2> of maps, implemented as
- * double hashed hashtables. 
+ * double hashed hashtables.
  */
 
 #ifndef __DHSet__
@@ -22,10 +22,10 @@ namespace Lib {
 
 /**
  * Class DHMultiset implements generic multisets with values of a class Val.
- * Hash1 and Hash2 are classes containing a function hash() mapping 
+ * Hash1 and Hash2 are classes containing a function hash() mapping
  * values to unsigned integer values.
  *
- * @param Val values, a pointer or integral value (e.g., integer or long): 
+ * @param Val values, a pointer or integral value (e.g., integer or long):
  *        anything that can be hashed to an unsigned integer
  *        and compared using ==
  * @param Hash1 class containig the hash function for values which
@@ -59,7 +59,7 @@ public:
     }
   }
 
-  /** 
+  /**
    * Return true iff given value is stored in the set.
    */
   inline
@@ -70,8 +70,19 @@ public:
     return e;
   }
 
-  /** 
-   * Insert given value into the multiset. 
+  /**
+   * Return multiplicity of given value in the set.
+   */
+  inline
+  unsigned multiplicity(Val val) const
+  {
+    CALL("DHMultiset::find/1");
+    const Entry* e=findEntry(val);
+    return e ? 0 : e->_info.multiplicity;
+  }
+
+  /**
+   * Insert given value into the multiset.
    */
   inline
   void insert(Val val)
@@ -79,14 +90,14 @@ public:
     insert(val,1);
   }
 
-  /** 
-   * Insert given value into the multiset @b multiplicity times. 
+  /**
+   * Insert given value into the multiset @b multiplicity times.
    */
   void insert(Val val, int multiplicity)
   {
     CALL("DHMultiset::insert");
     ASS(multiplicity>0 && ((unsigned)multiplicity)<MaxMultiplicity);
-    
+
     ensureExpanded();
     Entry* e=findEntryToInsert(val);
     bool exists = e->_info.multiplicity;
@@ -105,7 +116,7 @@ public:
       _size++;
     }
   }
-  
+
   /**
    * If given value is stored in the set, remove
    * it and return true. Otherwise, return false.
@@ -128,10 +139,10 @@ public:
     }
     return true;
   }
-  
+
 
   /** Return number of values stored in this set */
-  inline 
+  inline
   int size() const
   {
     ASS(_size>=0);
@@ -139,7 +150,7 @@ public:
   }
 
   /** Return true iff there are any values stored in this set */
-  inline 
+  inline
   bool isEmpty() const
   {
     ASS(_size>=0);
@@ -180,7 +191,7 @@ private:
   DHMultiset(const DHMultiset& obj);
   /** operator= is private and without a body, because we don't want any. */
   DHMultiset& operator=(const DHMultiset& obj);
-  
+
 
   /** Check whether an expansion is needed and if so, expand */
   inline
@@ -195,7 +206,7 @@ private:
   void expand()
   {
     CALL("DHMultiset::expand");
-    
+
     if(_capacityIndex>=MaxCapacityIndex) {
       throw Exception("Lib::DHMultiset::expand: MaxCapacityIndex reached.");
     }
@@ -203,7 +214,7 @@ private:
     Entry* oldEntries=_entries;
     Entry* oldAfterLast=_afterLast;
     int oldCapacity=_capacity;
-    
+
     _size=0;
     _deleted=0;
     _capacityIndex++;
@@ -231,9 +242,9 @@ private:
   inline
   Entry* findEntry(Val val)
   {
-    return const_cast<Entry*>(static_cast<const DHMultiset*>(this)->findEntry(val)); 
+    return const_cast<Entry*>(static_cast<const DHMultiset*>(this)->findEntry(val));
   }
-  
+
   /** Return pointer to an Entry object which contains specified value,
    * or 0, if there is no such */
   const Entry* findEntry(Val val) const
@@ -252,13 +263,13 @@ private:
     }
 
     //We have a collision...
-    
+
     if(!res->_info.collision) {
       //There were no collisions on this position during inserting,
       //so the value, we're searching for isn't here anyway
       return 0;
     }
-    
+
     unsigned h2=Hash2::hash(val)%_capacity;
     if(h2==0) {
       h2=1;
@@ -267,11 +278,11 @@ private:
       pos=(pos+h2)%_capacity;
       res=&_entries[pos];
     } while (!res->isEmpty() && res->_val!=val);
-    
+
     if(res->isEmpty()) {
       return 0;
     }
-    
+
     ASS(res->_val==val);
     return res->_info.deleted ? 0 : res;
   }
@@ -291,7 +302,7 @@ private:
     }
 
     //We have a collision...
-    
+
     bool collisionBefore=res->_info.collision;
 
     //mark the entry where the collision occured
@@ -313,7 +324,7 @@ private:
       } while (!res->isEmpty() && res->_val!=val );
       if(res->isEmpty()) {
 	//the value isn't present in the multiset,
-	//so well store it in position with will 
+	//so well store it in position with will
 	//lead to least collisions
 	res=available;
       }
@@ -324,7 +335,7 @@ private:
         res=&_entries[pos];
       } while (res->_info.multiplicity!=0);
     }
-    
+
     return res;
   }
 
@@ -334,11 +345,11 @@ private:
 
   /** Number of entries stored in this DHMultiset */
   int _size;
-  /** 
+  /**
    * Number of multiplicities
-   *  
-   * First value in an entry is not a multiplicity, 
-   * so _size+_multiplicities is the number of values 
+   *
+   * First value in an entry is not a multiplicity,
+   * so _size+_multiplicities is the number of values
    * stored by client.
    */
   int _multiplicities;
@@ -358,6 +369,20 @@ private:
 
 public:
 
+#if VDEBUG
+  void assertValid()
+  {
+    int sz=size();
+    int cnt=0;
+    Iterator it(*this);
+    while(it.hasNext()) {
+      cnt++;
+      it.next();
+    }
+    ASS(sz==cnt);
+  }
+#endif
+
   /**
    * Class to allow iteration over values stored in the set.
    */
@@ -370,7 +395,7 @@ public:
     }
 
     /**
-     * True if there exists next element 
+     * True if there exists next element
      */
     bool hasNext()
     {
@@ -410,7 +435,7 @@ public:
     Entry* _last;
     /**
      * Index of the returned value in current entry.
-     * (the values in one entry are all the same, but we have to 
+     * (the values in one entry are all the same, but we have to
      * yield them multiple times, as we're in a multiset)
      */
     unsigned _nextIndex;

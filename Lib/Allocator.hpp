@@ -53,6 +53,7 @@ public:
   void* allocateUnknown(size_t size,const char* className);
   void deallocateUnknown(void* obj,const char* className);
   static void addressStatus(void* address);
+  static void reportUsageByClasses();
 #else
   void* allocateKnown(size_t size);
   void deallocateKnown(void* obj,size_t size);
@@ -94,7 +95,7 @@ private:
    */
   static Allocator* _all[MAX_ALLOCATORS];
   /** Total number of allocators currently available */
-  static int _total; 
+  static int _total;
   /** > 0 if the global page manager has been initialised */
   static int _initialised;
 
@@ -176,9 +177,9 @@ private:
    *  <li>to store a single object of size greater than or equal to
    *      REQUIRES_PAGE</li>
    * </ol>
-   * Available pages are stored by the global manager. 
+   * Available pages are stored by the global manager.
    * @warning @b size should go just before @b content since Vampire
-   *             must be able to know the size of both Page and Unknown 
+   *             must be able to know the size of both Page and Unknown
    *             before knowing the type (that is, Page or Unknown)
    * @since 10/01/2007 Manchester
    */

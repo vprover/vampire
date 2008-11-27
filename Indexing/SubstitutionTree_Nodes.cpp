@@ -31,7 +31,7 @@ public:
   AccList(T head, AccList* tail): List<T>(head,tail) {}
   inline
   T* headPtr() { return &this->_head; }
-  class PtrIterator 
+  class PtrIterator
   : public IteratorCore<T*>
   {
   public:
@@ -40,10 +40,10 @@ public:
     inline
     bool hasNext() { return _l; }
     inline
-    T* next() 
+    T* next()
     {
-      T* res=_l->headPtr(); 
-      _l=static_cast<AccList*>(_l->tail()); 
+      T* res=_l->headPtr();
+      _l=static_cast<AccList*>(_l->tail());
       return res;
     }
   protected:
@@ -82,7 +82,7 @@ public:
   inline
   int size() const { return _size; }
   inline
-  NodeIterator allChildren() 
+  NodeIterator allChildren()
   {
     return NodeIterator(new NodeList::PtrIterator(_nodes));
   }
@@ -130,7 +130,7 @@ public:
 	    LDList::Iterator(_children)));
   }
   inline
-  void insert(LeafData ld) 
+  void insert(LeafData ld)
   {
     _children=new LDList(ld, _children);
     _size++;
@@ -161,7 +161,7 @@ public:
       delete nit.next();
     }
   }
-  
+
   void makeEmpty()
   {
     IntermediateNode::makeEmpty();
@@ -170,17 +170,17 @@ public:
     }
   }
 
-  static SListIntermediateNode* assimilate(IntermediateNode* orig); 
+  static SListIntermediateNode* assimilate(IntermediateNode* orig);
 
   inline
   NodeAlgorithm algorithm() const { return SKIP_LIST; }
   inline
   bool isEmpty() const { return _nodes.isEmpty(); }
-#ifdef VDEBUG
+#if VDEBUG
   int size() const { return _nodes.size(); }
 #endif
   inline
-  NodeIterator allChildren() 
+  NodeIterator allChildren()
   {
     return NodeIterator(new ProxyIterator<Node**,NodeSkipList::PtrIterator> (
 	    NodeSkipList::PtrIterator(_nodes)));
@@ -195,7 +195,7 @@ public:
   Node** childByTop(TermList* t, bool canCreate)
   {
     CALL("SubstitutionTree::SListIntermediateNode::childByTop");
-    
+
     Node** res;
     bool found=_nodes.getPosition(t,res,canCreate);
     if(!found) {
@@ -220,7 +220,7 @@ private:
     static Comparison compare(TermList* ts1,TermList* ts2)
     {
       CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
-      
+
       if(ts1->isVar()) {
 	if(ts2->isVar()) {
 	  return Int::compare(ts1->var(), ts2->var());
@@ -255,13 +255,13 @@ public:
   SListLeaf() {}
   SListLeaf(const TermList* ts) : Leaf(ts) {}
 
-  static SListLeaf* assimilate(Leaf* orig); 
+  static SListLeaf* assimilate(Leaf* orig);
 
   inline
   NodeAlgorithm algorithm() const { return SKIP_LIST; }
   inline
   bool isEmpty() const { return _children.isEmpty(); }
-#ifdef VDEBUG
+#if VDEBUG
   inline
   int size() const { return _children.size(); }
 #endif
@@ -294,7 +294,7 @@ private:
 
 SubstitutionTree::Leaf* SubstitutionTree::createLeaf()
 {
-  return new UListLeaf(); 
+  return new UListLeaf();
 }
 
 SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList* ts)
@@ -316,7 +316,7 @@ SubstitutionTree::Node** SubstitutionTree::UListIntermediateNode::
 	childByTop(TermList* t, bool canCreate)
 {
   CALL("SubstitutionTree::UListIntermediateNode::childByTop");
-  
+
   NodeList** nl=&_nodes;
   while(*nl && !TermList::sameTop(t, &(*nl)->head()->term)) {
 	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
@@ -326,7 +326,7 @@ SubstitutionTree::Node** SubstitutionTree::UListIntermediateNode::
   	_size++;
   }
   if(*nl) {
-	return (*nl)->headPtr(); 
+	return (*nl)->headPtr();
   } else {
 	return 0;
   }
@@ -335,7 +335,7 @@ SubstitutionTree::Node** SubstitutionTree::UListIntermediateNode::
 void SubstitutionTree::UListIntermediateNode::remove(TermList* t)
 {
   CALL("SubstitutionTree::UListIntermediateNode::remove");
-  
+
   NodeList** nl=&_nodes;
   while(!TermList::sameTop(t, &(*nl)->head()->term)) {
 	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
@@ -348,31 +348,31 @@ void SubstitutionTree::UListIntermediateNode::remove(TermList* t)
 }
 
 /**
- * Take an IntermediateNode, destroy it, and return 
+ * Take an IntermediateNode, destroy it, and return
  * SListIntermediateNode with the same content.
  */
 SubstitutionTree::SListIntermediateNode* SubstitutionTree::SListIntermediateNode
-	::assimilate(IntermediateNode* orig) 
+	::assimilate(IntermediateNode* orig)
 {
   CALL("SubstitutionTree::SListIntermediateNode::assimilate");
 
   SListIntermediateNode* res=new SListIntermediateNode(&orig->term);
-  res->loadChildren(orig->allChildren()); 
+  res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;
   return res;
 }
 
 /**
- * Take a Leaf, destroy it, and return SListLeaf 
+ * Take a Leaf, destroy it, and return SListLeaf
  * with the same content.
  */
-SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig) 
+SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig)
 {
   CALL("SubstitutionTree::SListLeaf::assimilate");
 
   SListLeaf* res=new SListLeaf(&orig->term);
-  res->loadChildren(orig->allChildren()); 
+  res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;
   return res;

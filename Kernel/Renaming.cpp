@@ -7,7 +7,7 @@
 #include "../Indexing/TermSharing.hpp"
 #include "Renaming.hpp"
 
-#ifdef VDEBUG
+#if VDEBUG
 #include "../Lib/Set.hpp"
 #endif
 
@@ -121,7 +121,7 @@ void Renaming::inverse(const Renaming& orig, Renaming& target)
   }
 }
 
-#ifdef VDEBUG
+#if VDEBUG
 
 void Renaming::assertValid() const
 {

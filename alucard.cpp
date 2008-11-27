@@ -9,6 +9,7 @@
 
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Allocator.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Int.hpp"
@@ -43,6 +44,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BinaryResolution.hpp"
+#include "Inferences/AtomicClauseForwardSubsumption.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
 
 
@@ -65,15 +67,19 @@ SaturationResult brSaturate(ClauseIterator clauses)
   CompositeFSE fwSimplifier;
   DuplicateLiteralRemovalFSE dlrFSE;
   TrivialInequalitiesRemovalFSE tirFSE;
-  SLQueryForwardSubsumption fsFSE;
-  fwSimplifier.addFront(&fsFSE);
+  AtomicClauseForwardSubsumption fsFSE;
+  SLQueryForwardSubsumption slfsFSE;
+//  fwSimplifier.addFront(&fsFSE);
+  fwSimplifier.addFront(&slfsFSE);
   fwSimplifier.addFront(&tirFSE);
   fwSimplifier.addFront(&dlrFSE);
 
   DummyBSE bwSimplifier;
-  EagerLiteralSelector selector;
+  EagerLiteralSelector eselector;
+  LightestNegativeLiteralSelection lselector;
+  HeaviestNegativeLiteralSelection hselector;
 
-  DiscountSA salg(&passiveContainer, &selector);
+  DiscountSA salg(&passiveContainer, &hselector);
   salg.setGeneratingInferenceEngine(&generator);
   salg.setForwardSimplificationEngine(&fwSimplifier);
   salg.setBackwardSimplificationEngine(&bwSimplifier);
@@ -122,6 +128,9 @@ void doProving()
       break;
     case Statistics::MEMORY_LIMIT:
       env.out << "Memory limit exceeded!\n";
+#if VDEBUG
+      Allocator::reportUsageByClasses();
+#endif
       break;
     default:
       env.out << "Refutation not found!\n";
@@ -132,6 +141,7 @@ void doProving()
     env.out << "Generated clauses: "<<env.statistics->generatedClauses<<endl;
     env.out << "Duplicate literals: "<<env.statistics->duplicateLiterals<<endl;
     env.out << "Trivial inequalities: "<<env.statistics->trivialInequalities<<endl;
+    env.out << "Forward subsumptions: "<<env.statistics->forwardSubsumed<<endl;
     try{
       throw;
     } catch (int) {}

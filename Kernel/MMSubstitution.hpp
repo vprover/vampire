@@ -14,7 +14,7 @@
 #include "../Lib/BacktrackData.hpp"
 #include "Term.hpp"
 
-#ifdef VDEBUG
+#if VDEBUG
 
 #include <string>
 
@@ -64,7 +64,7 @@ public:
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
 
-#ifdef VDEBUG
+#if VDEBUG
   std::string toString(bool deref=false) const;
 #endif
 
@@ -86,12 +86,9 @@ private:
     bool operator!=(const VarSpec& o) const
     { return !(*this==o); }
 
-    #ifdef VDEBUG
-    std::string toString() const
-    {
-      return Int::toString(var)+"/"+Int::toString(index);
-    }
-    #endif
+#if VDEBUG
+    std::string toString() const;
+#endif
 
     /** number of variable */
     unsigned var;
@@ -145,6 +142,9 @@ private:
     {
       return term.isVar();
     }
+#if VDEBUG
+    string toString() const;
+#endif
 
     /** term reference */
     TermList term;
@@ -217,7 +217,7 @@ private:
 	_subst->_bank.set(_var,_term);
       }
     }
-#ifdef VDEBUG
+#if VDEBUG
     std::string toString() const
     {
       return "(MM backtrack object for "+ _var.toString() +")";

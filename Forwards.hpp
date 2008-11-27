@@ -7,9 +7,9 @@
 #define __Forwards__
 
 //TODO: Remove for non-debugging builds.
-#ifndef VDEBUG
-#define VDEBUG
-#endif
+//#ifndef VDEBUG
+//#define VDEBUG
+//#endif
 
 namespace Lib
 {

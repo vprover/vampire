@@ -237,7 +237,7 @@ public:
 
   /** Returns the first element without removing it. */
   inline
-  Value top()
+  const Value& top()
   {
     ASS(isNonEmpty());
     return _left->nodes[0]->value;

@@ -40,7 +40,7 @@ public:
   static void normalizeVariables(const Term* t, Renaming& res);
   static void inverse(const Renaming& orig, Renaming& target);
 
-#ifdef VDEBUG
+#if VDEBUG
   void assertValid() const;
 #endif
 private:

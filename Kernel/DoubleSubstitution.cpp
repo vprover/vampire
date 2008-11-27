@@ -61,15 +61,13 @@ void DoubleSubstitution::unbind(unsigned v,int vindex)
 {
   CALL("DoubleSubstitution::unbind");
 
-  bool found=_bank.remove(VarSpec(v, vindex));
-  
-  ASS(found);
+  ALWAYS(_bank.remove(VarSpec(v, vindex)));
 } // DoubleSubstitution::unbind
 
-/** 
+/**
  * If variable @b var at index @b vindex is bound, return true and
- * assign the binging to result. Otherwise assign unique number 
- * of the variable together with UNBOUND_INDEX to result and return false. 
+ * assign the binging to result. Otherwise assign unique number
+ * of the variable together with UNBOUND_INDEX to result and return false.
  */
 bool DoubleSubstitution::getBinding(unsigned var,int vindex, Binding& result)
 {
@@ -103,7 +101,7 @@ string DoubleSubstitution::toString() const
     Binding binding;
     bool found=_bank.find(spec, binding);
     ASS(found);
-    
+
     if (first) {
       first = false;
     }
@@ -113,7 +111,7 @@ string DoubleSubstitution::toString() const
     result += (string)"X" + Int::toString(spec.var) + '/' + Int::toString(spec.index) +
     	"->" + binding.termref.toString() + '/' +
     	Int::toString(binding.index);
-    
+
   }
 
   result += ']';
@@ -249,7 +247,7 @@ bool DoubleSubstitution::unify(TermList* ts1,int index1,
       }
       else { // ss2 is non-var
 	Term* s2 = ss2.term();
-	if (! s2->ground() && 
+	if (! s2->ground() &&
 	    occurs(ss1.var(),i1,s2->args(),i2)) {
 	  return false;
 	}
@@ -375,8 +373,8 @@ void DoubleSubstitution::apply(TermList* arg,int index,TermList& to)
   deref(*arg,index,ts,ind);
   if (ts.isVar()) {
     Binding unboundBinding;
-    bool res=getBinding(ts.var(), ind, unboundBinding);
-    ASS(!res && unboundBinding.index==UNBOUND_INDEX);
+    NEVER(getBinding(ts.var(), ind, unboundBinding));
+    ASS(unboundBinding.index==UNBOUND_INDEX);
     to=unboundBinding.termref;
     return;
   }
@@ -406,9 +404,9 @@ void DoubleSubstitution::backtrackableBind(unsigned v,int vindex,
 	TermList t,int tindex,BacktrackData& bd)
 {
   CALL("DoubleSubstitution::backtrackableBind");
-  
+
   bind(v,vindex,t,tindex);
-  
+
   bd.addBacktrackObject(new BindBacktrackObject(this,v,vindex));
 
 } // DoubleSubstitution::bind
@@ -462,7 +460,7 @@ bool DoubleSubstitution::backtrackableUnify(TermList* ts1,int index1,
       }
       else { // ss2 is non-var
 	Term* s2 = ss2.term();
-	if (! s2->ground() && 
+	if (! s2->ground() &&
 	    occurs(ss1.var(),i1,s2->args(),i2)) {
 	  return false;
 	}
@@ -512,9 +510,9 @@ bool DoubleSubstitution::backtrackableUnify(TermList* ts1,int index1,
  */
 unsigned DoubleSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 {
-  return o.var + o.index*capacity>>1 + o.index>>1*capacity>>3; 
+  return o.var + o.index*capacity>>1 + o.index>>1*capacity>>3;
 /*//This might work better
-  
+
   int res=(o.var%(capacity<<1) - capacity);
   if(res<0)
     //this turns x into -x-1

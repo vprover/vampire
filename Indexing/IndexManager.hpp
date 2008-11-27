@@ -17,10 +17,10 @@ namespace Indexing
 using namespace Lib;
 using namespace Saturation;
 
-//TODO: make generating and symplifying subst. trees different, when needed
 enum IndexType {
   GENERATING_SUBST_TREE = 1,
-  SIMPLIFYING_SUBST_TREE = 1
+  SIMPLIFYING_SUBST_TREE = 2,
+  SIMPLIFYING_ATOMIC_CLAUSE_SUBST_TREE = 3
 };
 
 class IndexManager

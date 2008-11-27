@@ -5,12 +5,11 @@
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 
-#include "../Kernel/Clause.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Lib/BinaryHeap.hpp"
 
-#ifdef VDEBUG
+#if VDEBUG
 #include <iostream>
 #include "../Kernel/Signature.hpp"
 #include "../Lib/Environment.hpp"

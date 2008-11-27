@@ -22,11 +22,16 @@
 #include "../Kernel/DoubleSubstitution.hpp"
 #include "../Kernel/MMSubstitution.hpp"
 #include "../Kernel/Renaming.hpp"
+#include "../Kernel/Clause.hpp"
 
 #include "Index.hpp"
 
+#if VDEBUG
+
 #include <iostream>
 #include "../Test/Output.hpp"
+
+#endif
 
 using namespace std;
 using namespace Lib;
@@ -66,7 +71,7 @@ public:
     return SLQueryResultIterator(core);
   }
 
-#ifdef VDEBUG
+#if VDEBUG
   string toString() const;
   bool isEmpty() const;
 #endif
@@ -327,6 +332,56 @@ private:
 
 
 }; // class SubstiutionTree
+
+class AtomicClauseSubstitutionTree
+: public SubstitutionTree
+{
+public:
+  AtomicClauseSubstitutionTree(int nodes) : SubstitutionTree(nodes) {};
+protected:
+  void onAddedToContainer(Clause* c)
+  {
+    unsigned clen=c->length();
+    if(clen==1) {
+      for(unsigned i=0; i<clen; i++) {
+	insert((*c)[i], c);
+      }
+    }
+  }
+
+  void onRemovedFromContainer(Clause* c)
+  {
+    unsigned clen=c->length();
+    if(clen==1) {
+      for(unsigned i=0; i<clen; i++) {
+	remove((*c)[i], c);
+      }
+    }
+  }
+};
+
+class SimplifyingSubstitutionTree
+: public SubstitutionTree
+{
+public:
+  SimplifyingSubstitutionTree(int nodes) : SubstitutionTree(nodes) {};
+protected:
+  void onAddedToContainer(Clause* c)
+  {
+    unsigned clen=c->length();
+    for(unsigned i=0; i<clen; i++) {
+      insert((*c)[i], c);
+    }
+  }
+
+  void onRemovedFromContainer(Clause* c)
+  {
+    unsigned clen=c->length();
+    for(unsigned i=0; i<clen; i++) {
+      remove((*c)[i], c);
+    }
+  }
+};
 
 } // namespace Indexing
 

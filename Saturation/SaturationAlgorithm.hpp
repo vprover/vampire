@@ -16,7 +16,7 @@
 #include "Limits.hpp"
 #include "SaturationResult.hpp"
 
-#ifdef VDEBUG
+#if VDEBUG
 #include<iostream>
 #include "../Test/Output.hpp"
 #endif
@@ -34,32 +34,32 @@ class SaturationAlgorithm
 public:
   SaturationAlgorithm(PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
   virtual ~SaturationAlgorithm();
-  
+
   void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
   void setForwardSimplificationEngine(ForwardSimplificationEngine* fwSimplifier);
   void setBackwardSimplificationEngine(BackwardSimplificationEngine* bwSimplifier);
-  
+
   PlainEvent safePointEvent;
-  
+
   virtual SaturationResult saturate() = 0;
 
   void addClauses(ClauseIterator cit)
   { _unprocessed->addClauses(cit); }
-  
+
   virtual ClauseContainer* getSimplificationClauseContainer() = 0;
   virtual ClauseContainer* getGenerationClauseContainer() = 0;
-  
+
   Limits* getLimits() { return &_limits; }
   IndexManager* getIndexManager() { return &_imgr; }
-  
-#ifdef VDEBUG
+
+#if VDEBUG
   void enableContainerPrintouts()
   {
     _active->addedEvent.subscribe(this,&SaturationAlgorithm::onActiveAdded);
-    _passive->addedEvent.subscribe(this,&SaturationAlgorithm::onPassiveAdded);
-    _passive->removedEvent.subscribe(this,&SaturationAlgorithm::onPassiveRemoved);
-    _unprocessed->addedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedAdded);
-    _unprocessed->removedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedRemoved);
+//    _passive->addedEvent.subscribe(this,&SaturationAlgorithm::onPassiveAdded);
+//    _passive->removedEvent.subscribe(this,&SaturationAlgorithm::onPassiveRemoved);
+//    _unprocessed->addedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedAdded);
+//    _unprocessed->removedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedRemoved);
   }
   void onActiveAdded(Clause* c)
   {
@@ -82,15 +82,15 @@ public:
     cout<<"Unprocessed removed: "<<Test::Output::toString(c)<<endl;
   }
 #endif
-  
+
 private:
   Limits _limits;
   IndexManager _imgr;
-protected:  
+protected:
   UnprocessedClauseContainer* _unprocessed;
   PassiveClauseContainer* _passive;
   ActiveClauseContainer* _active;
-  
+
   GeneratingInferenceEngine* _generator;
   ForwardSimplificationEngine* _fwSimplifier;
   BackwardSimplificationEngine* _bwSimplifier;
@@ -106,16 +106,16 @@ public:
   DiscountSA(PassiveClauseContainer* passiveContainer, LiteralSelector* selector)
     : SaturationAlgorithm(passiveContainer,selector) {}
   SaturationResult saturate();
-  
+
   ClauseContainer* getSimplificationClauseContainer();
   ClauseContainer* getGenerationClauseContainer();
-  
+
 protected:
   bool processInactive(Clause* c);
   void activate(Clause* c);
 };
 
-  
+
 };
 
 #endif /*__SaturationAlgorithm__*/

@@ -23,10 +23,34 @@ public:
 };
 
 /**
- * Class EagerLiteralSelection implements literal 
+ * Class EagerLiteralSelection implements literal
  * selector that selects all literals
  */
 class EagerLiteralSelector
+: public LiteralSelector
+{
+public:
+  void select(Clause* c);
+};
+
+/**
+ * Class LightestNegativeLiteralSelection implements literal
+ * selector that selects lightest negatove literal, or all
+ * literals, if there's no negative one.
+ */
+class LightestNegativeLiteralSelection
+: public LiteralSelector
+{
+public:
+  void select(Clause* c);
+};
+
+/**
+ * Class HeaviestNegativeLiteralSelection implements literal
+ * selector that selects lightest negatove literal, or all
+ * literals, if there's no negative one.
+ */
+class HeaviestNegativeLiteralSelection
 : public LiteralSelector
 {
 public:

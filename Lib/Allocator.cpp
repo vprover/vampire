@@ -7,8 +7,11 @@
  */
 
 #if VDEBUG
-#  include <sstream>
-#  include <cstring>
+
+#include <sstream>
+#include <cstring>
+#include "../Lib/DHMap.hpp"
+
 #endif
 
 /** If the following is set to true the Vampire will use the
@@ -41,7 +44,7 @@
 
 #if WATCH_ADDRESS
 /** becomes true when a page containing the watch point has been allocated */
-bool watchPage = false; 
+bool watchPage = false;
 /** last value stored in the watched address */
 unsigned watchAddressLastValue = 0;
 #endif
@@ -163,6 +166,39 @@ void Allocator::addressStatus(void* address)
   }
   cout << "End of status\n";
 } // Allocator::addressStatus
+
+void Allocator::reportUsageByClasses()
+{
+  Lib::DHMap<const char*, size_t> summary;
+  Lib::DHMap<const char*, size_t> cntSummary;
+  for (int i = Descriptor::capacity-1;i >= 0;i--) {
+    Descriptor& d = Descriptor::map[i];
+    if (!d.address || !d.size) {
+      continue;
+    }
+    size_t occupied;
+    if(summary.find(d.cls, occupied)) {
+      summary.set(d.cls, occupied+d.size);
+      size_t cnt;
+      ALWAYS(cntSummary.find(d.cls, cnt));
+      cntSummary.set(d.cls, cnt+1);
+    } else {
+      summary.set(d.cls, d.size);
+      cntSummary.set(d.cls, 1);
+    }
+  }
+
+  Lib::DHMap<const char*, size_t>::Iterator sit(summary);
+  cout<<"class\tcount\tsize"<<endl;
+  while(sit.hasNext()) {
+    const char* cls;
+    size_t occupied, cnt;
+    sit.next(cls,occupied);
+    ALWAYS(cntSummary.find(cls,cnt));
+    cout<<cls<<":\t"<<cnt<<"\t"<<occupied<<endl;
+  }
+}
+
 #endif
 
 /**
@@ -365,7 +401,7 @@ Allocator* Allocator::newAllocator()
 } // Allocator::newAllocator
 
 /**
- * Allocate a page able to store a structure of size @b size 
+ * Allocate a page able to store a structure of size @b size
  * @since 12/01/2008 Manchester
  */
 Allocator::Page* Allocator::allocatePages(size_t size)
@@ -600,7 +636,7 @@ char* Allocator::allocatePiece(size_t size)
       _freeList[index] = mem->next;
       result = reinterpret_cast<char*>(mem);
     } // There is no available piece in the free list
-    else if (_reserveBytesAvailable >= size) { // reserve has enough memory 
+    else if (_reserveBytesAvailable >= size) { // reserve has enough memory
     use_reserve:
       result = _nextAvailableReserve;
       _nextAvailableReserve += size;
@@ -705,7 +741,7 @@ void* Allocator::allocateUnknown(size_t size)
 Allocator::Descriptor* Allocator::Descriptor::find (void* addr)
 {
   CALL("Allocator::Descriptor::find");
-  
+
   if (noOfEntries >= maxEntries) { // too many entries
     // expand the hash table first
 //     capacity = capacity ? 2*capacity : 8188;
@@ -771,7 +807,7 @@ Allocator::~Allocator ()
 /**
  * A string description of the descriptor.
  * @since 17/12/2005 Vancouver
- */ 
+ */
 std::string Allocator::Descriptor::toString() const
 {
   CALL("Allocator::Descriptor::toString");
@@ -781,8 +817,8 @@ std::string Allocator::Descriptor::toString() const
   ostringstream out;
   out << (size_t)this
       << " [address:" << address
-      << ",timestamp:" << timestamp 
-      << ",class:" << cls 
+      << ",timestamp:" << timestamp
+      << ",class:" << cls
       << ",size:" << size
       << ",allocated:" << (allocated ? "yes" : "no")
       << ",known:" << (known ? "yes" : "no")
@@ -794,7 +830,7 @@ std::string Allocator::Descriptor::toString() const
 /**
  * Initialise a descriptor.
  * @since 17/12/2005 Vancouver
- */ 
+ */
 Allocator::Descriptor::Descriptor ()
   : address(0),
     cls("???"),
@@ -830,7 +866,7 @@ unsigned Allocator::Descriptor::hash (void* addr)
 #include "Random.hpp"
 using namespace Lib;
 
-struct Mem 
+struct Mem
 {
   void* address; // 0 if deallocated
   int size;      // 0 is deallocated
@@ -852,7 +888,7 @@ void testAllocator()
 
   Allocator* a = Allocator::current;
 
-  int tries = 1000000000;  // number of tries  
+  int tries = 1000000000;  // number of tries
   int pieces = 1000;  // max number of allocated pieces
   int maxsize = 1000000;    // maximal memory size
   const char* classes[10] = {"a","b","c","d","e","f","g","h","i","j"};

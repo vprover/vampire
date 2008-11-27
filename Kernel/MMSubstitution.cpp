@@ -15,7 +15,7 @@
 #include "Term.hpp"
 #include "MMSubstitution.hpp"
 
-#ifdef VDEBUG
+#if VDEBUG
 #include "../Test/Output.hpp"
 #include "../Lib/Int.hpp"
 #include <string>
@@ -151,9 +151,7 @@ void MMSubstitution::bind(const VarSpec& v, const TermSpec& b)
 void MMSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
   CALL("MMSubstitution::bindVar");
-  TermList tl;
-  tl.makeVar(to.var);
-  bind(var,TermSpec(tl,to.index));
+  bind(var,TermSpec(to));
 }
 
 MMSubstitution::VarSpec MMSubstitution::root(VarSpec v) const
@@ -472,7 +470,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
       bt = subterms.pop();
       it = subterms.pop();
     }
-    if (bt->next()->isEmpty()) {
+    if (!bt->next()->isEmpty()) {
       subterms.push(it->next());
       subterms.push(bt->next());
     }
@@ -604,6 +602,7 @@ bool MMSubstitution::occurCheckFails() const
       unref.push(vs);
     }
   }
+  ASSERT_VALID(refCounter);
   while(!unref.isEmpty()) {
     VarSpec v=unref.pop();
     TermSpec ts=_bank.get(v);
@@ -620,11 +619,22 @@ bool MMSubstitution::occurCheckFails() const
       }
     }
   }
+
+  //ASSERT_VALID(refCounter);
+
+  if(refCounter.size()) {
+    cout<<"Occur-check failed, there are cyclic variables:"<<endl;
+    DHMultiset<VarSpec,VarSpec::Hash1,VarSpec::Hash2>::Iterator rit(refCounter);
+    while(rit.hasNext()) {
+      cout<<rit.next().toString()<<endl;
+    }
+  }
+
   return refCounter.size()!=0;
 }
 
 
-#ifdef VDEBUG
+#if VDEBUG
 string MMSubstitution::toString(bool deref) const
 {
   CALL("MMSubstitution::toString");
@@ -652,6 +662,21 @@ string MMSubstitution::toString(bool deref) const
   }
   return res;
 }
+
+std::string MMSubstitution::VarSpec::toString() const
+{
+  if(index==SPECIAL_INDEX) {
+    return "S"+Int::toString(var);
+  } else {
+    return "X"+Int::toString(var)+"/"+Int::toString(index);
+  }
+}
+
+string MMSubstitution::TermSpec::toString() const
+{
+  return Test::Output::singleTermListToString(term)+"/"+Int::toString(index);
+}
+
 #endif
 
 

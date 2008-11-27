@@ -134,9 +134,10 @@ public:
   }
 
   /**
-   *  Find value by the key. The result is true if a pair
-   *  with this key is in the map. If such a pair is found
-   *  then its value is returned in found.
+   *  Find value by the @b key. The result is true if a pair
+   *  with this key is in the map. If such a pair is found,
+   *  then its value is returned in @b val. Otherwise, the
+   *  value of @b val remains unchanged.
    */
   inline
   bool find(Key key, Val& val) const
@@ -170,8 +171,7 @@ public:
   Val get(Key key)
   {
     Val v;
-    bool res=find(key,v);
-    ASS(res);
+    ALWAYS(find(key,v));
     return v;
   }
 
@@ -204,13 +204,43 @@ public:
   }
 
   /**
+   * Assign pointer to value stored under @b key into @b pval.
+   * If nothing was previously stored under @key, initialize
+   * the value with @b initial, and return true. Otherwise,
+   * return false.
+   */
+  bool setPosition(Key key, Val*& pval, const Val& initial)
+  {
+    CALL("DHMap::setPosition");
+    ensureExpanded();
+    Entry* e=findEntryToInsert(key);
+    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    if(!exists) {
+      if(e->_info.timestamp!=_timestamp) {
+	e->_info.timestamp=_timestamp;
+	//no collision has occured on this entry while this _timestamp is set
+	e->_info.collision=0;
+      } else {
+	ASS(e->_info.deleted);
+	_deleted--;
+      }
+      e->_info.deleted=0;
+      e->_key=key;
+      e->_val=initial;
+      _size++;
+    }
+    pval=&e->_val;
+    return !exists;
+  }
+
+  /**
    * Store @b value under @key. Return true if nothing was
    * previously stored under @key. Otherwise,
    * return false.
    */
   bool set(Key key, const Val& val)
   {
-    CALL("DHMap::insert");
+    CALL("DHMap::set");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;

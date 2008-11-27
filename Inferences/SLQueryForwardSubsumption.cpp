@@ -3,15 +3,26 @@
  * Implements class SLQueryForwardSubsumption.
  */
 
+#include "../Lib/Environment.hpp"
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/SkipList.hpp"
 #include "../Lib/DArray.hpp"
+#include "../Lib/List.hpp"
+#include "../Lib/DHMap.hpp"
+#include "../Lib/DHMultiset.hpp"
 #include "../Lib/Comparison.hpp"
+
+#include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/MMSubstitution.hpp"
+
 #include "../Indexing/Index.hpp"
 #include "../Indexing/IndexManager.hpp"
+
 #include "../Saturation/SaturationAlgorithm.hpp"
+
+#include "../Shell/Statistics.hpp"
+
 #include "SLQueryForwardSubsumption.hpp"
 
 using namespace Lib;
@@ -37,9 +48,11 @@ void SLQueryForwardSubsumption::detach()
 
 struct MatchInfo {
   MatchInfo() {}
-  MatchInfo(Clause* cl, Literal* lit) : clause(cl), literal(lit) {}
+  MatchInfo(Clause* cl, Literal* cLit, Literal* qLit)
+  : clause(cl), clauseLiteral(cLit), queryLiteral(qLit) {}
   Clause* clause;
-  Literal* literal;
+  Literal* clauseLiteral;
+  Literal* queryLiteral;
 
   static Comparison compare(const MatchInfo& m1, const MatchInfo& m2)
   {
@@ -48,9 +61,14 @@ struct MatchInfo {
     if(c1id!=c2id) {
       return c1id>c2id ? GREATER : LESS;
     }
-    size_t l1id=reinterpret_cast<size_t>(m1.literal);
-    size_t l2id=reinterpret_cast<size_t>(m2.literal);
-    return l1id>l2id ? GREATER : (l1id==l2id ? EQUAL : LESS);
+    size_t cl1id=reinterpret_cast<size_t>(m1.clauseLiteral);
+    size_t cl2id=reinterpret_cast<size_t>(m2.clauseLiteral);
+    if(cl1id!=cl2id) {
+      return cl1id>cl2id ? GREATER : LESS;
+    }
+    size_t ql1id=reinterpret_cast<size_t>(m1.queryLiteral);
+    size_t ql2id=reinterpret_cast<size_t>(m2.queryLiteral);
+    return ql1id>ql2id ? GREATER : (ql1id==ql2id ? EQUAL : LESS);
   }
   static Comparison compare(Clause* c, const MatchInfo& m2)
   {
@@ -61,6 +79,8 @@ struct MatchInfo {
 };
 
 typedef SkipList<MatchInfo,MatchInfo> MISkipList;
+typedef List<Literal*> LiteralList;
+typedef DHMap<Literal*, List<Literal*>* > MatchMap;
 
 void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 {
@@ -68,59 +88,103 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
   toAdd=ClauseIterator::getEmpty();
 
   unsigned clen=cl->length();
-
   if(clen==0) {
     keep=true;
     return;
   }
 
-  bool failed=false;
-  DArray<Literal*> lits(clen);
-  DArray< MISkipList* > gens(clen);
+  MISkipList gens;
+  DHMultiset<Clause*> genCounter;
 
   for(unsigned li=0;li<clen;li++) {
-    lits[li]=(*cl)[li];
-    gens[li]=new MISkipList();
-  }
-
-  for(unsigned li=0;li<clen;li++) {
-    SLQueryResultIterator rit=_index->getGeneralizations(lits[li]);
+    SLQueryResultIterator rit=_index->getGeneralizations( (*cl)[li] );
     while(rit.hasNext()) {
       SLQueryResult res=rit.next();
-      if(li==0 || gens[li-1]->find(res.clause)) {
-	gens[li]->insert(MatchInfo(res.clause, res.literal));
+      unsigned rlen=res.clause->length();
+      if(rlen==1) {
+	env.statistics->forwardSubsumed++;
+	keep=false;
+	return;
+      } else if(rlen>clen) {
+	continue;
       }
-    }
-    if(gens[li]->isEmpty()) {
-      failed=true;
-      break;
+      genCounter.insert(res.clause);
+      gens.insert(MatchInfo(res.clause, res.literal, (*cl)[li] ));
     }
   }
 
-  if(!failed) {
-    MISkipList* lastMatches=gens[clen-1];
-    MISkipList::Iterator mit(*lastMatches);
-    while(mit.hasNext()) {
-      MatchInfo minfo=mit.next();
-      MMSubstitution matcher;
-      ALWAYS(matcher.match(minfo.literal,0, lits[clen-1],1));
+  if(gens.isEmpty()) {
+    keep=true;
+    return;
+  }
 
-      //here we ignore the fact, that more literals from the
-      //same clause can match one literal of cl
-      for(unsigned li=clen-2;li>=0;li--) {
-	MatchInfo minfo2;
-	ALWAYS(gens[li]->find(minfo.clause, minfo2));
-	if(!matcher.match(minfo.literal,0, lits[clen-1],1)) {
-	  failed=true;
-	  goto end;
+  bool finished=false;
+
+  static DArray<List<Literal*>*> matches(16);
+
+  MatchInfo mi=gens.pop();
+  do {
+    Clause* mcl=mi.clause;
+    unsigned mlen=mi.clause->length();
+    if(mlen>genCounter.multiplicity(mi.clause)) {
+      do {
+	if(gens.isEmpty()) {
+	  finished=true;
+	  break;
+	}
+	mi=gens.pop();
+      } while(mi.clause==mcl);
+      continue;
+    }
+    MatchMap matchMap;
+
+    do {
+      LiteralList** alts; //pointer to list of possibly matching literals of cl
+      matchMap.setPosition(mi.clauseLiteral, alts, 0);
+      LiteralList::push(mi.queryLiteral, *alts);
+
+      if(gens.isEmpty()) {
+	finished=true;
+      } else {
+	mi=gens.pop();
+      }
+    } while(mi.clause==mcl && !finished);
+
+    matches.ensure(mlen);
+    bool mclMatchFailed=false;
+    for(unsigned li=0;li<mlen;li++) {
+      LiteralList* alts;
+      if(matchMap.find( (*mcl)[li], alts) ) {
+	ASS(alts);
+	matches[li]=alts;
+      } else {
+	mclMatchFailed=true;
+	break;
+      }
+    }
+
+    if(!mclMatchFailed) {
+      MMSubstitution matcher;
+      for(unsigned li=0;li<mlen;li++) {
+	if(!matcher.match( (*mcl)[li],0, matches[li]->head(),1 )) {
+	  mclMatchFailed=true;
+	  break;
 	}
       }
     }
-  }
 
-end:
-  for(unsigned li=0;li<clen;li++) {
-    delete gens[li];
-  }
-  keep=failed;
+    MatchMap::Iterator mmit(matchMap);
+    while(mmit.hasNext()) {
+      mmit.next()->destroy();
+    }
+
+    if(!mclMatchFailed) {
+      env.statistics->forwardSubsumed++;
+      keep=false;
+      return;
+    }
+
+  } while(!finished);
+
+  keep=true;
 }

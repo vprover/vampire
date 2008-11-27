@@ -25,7 +25,7 @@ _bwSimplifier(0), _selector(selector)
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
 
-#ifdef VDEBUG
+#if VDEBUG
   //enableContainerPrintouts();
 #endif
 }

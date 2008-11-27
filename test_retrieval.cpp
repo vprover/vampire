@@ -8,8 +8,8 @@
 
 #include <fstream>
 #include <csignal>
-#include <utility> 
-#include <algorithm> 
+#include <utility>
+#include <algorithm>
 
 #include "Debug/Tracer.hpp"
 
@@ -61,15 +61,15 @@ using namespace Lib;
 using namespace Resolution;
 using namespace Indexing;
 
-unsigned getCpuTime()        
+unsigned getCpuTime()
 {
-  struct timeval tim;        
-  struct rusage ru;        
-  getrusage(RUSAGE_SELF, &ru);        
-  tim=ru.ru_utime;        
-  unsigned t=tim.tv_sec*1000 + tim.tv_usec / 1000;        
-  tim=ru.ru_stime;        
-  t+=tim.tv_sec*1000 + tim.tv_usec / 1000;        
+  struct timeval tim;
+  struct rusage ru;
+  getrusage(RUSAGE_SELF, &ru);
+  tim=ru.ru_utime;
+  unsigned t=tim.tv_sec*1000 + tim.tv_usec / 1000;
+  tim=ru.ru_stime;
+  t+=tim.tv_sec*1000 + tim.tv_usec / 1000;
   return t;
 }
 
@@ -106,7 +106,7 @@ void doTest()
   prepro.preprocess(units);
 
   cout<<"Unit count: "<<units->length()<<endl;
-  
+
 
   Array<LCPair> literals;
 
@@ -117,7 +117,7 @@ void doTest()
   Clause* cls1=static_cast<Clause*>(uit.next());
   ASS(cls1->length()>=1);
   Literal* nonIndexedLit=(*cls1)[0];
-  
+
   while(uit.hasNext()) {
     Unit* unit=uit.next();
     ASS(unit->isClause());
@@ -135,24 +135,24 @@ void doTest()
 
   Timer tmr;
   tmr.start();
-  
+
   for(index=0;index<litCnt;index++) {
     tree.insert(literals[index].first, literals[index].second);
   }
   tmr.stop();
   cout<<litCnt<<" literals inserted in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
-  
+
   cout<<tree.toString()<<endl;
-  
+
   cout<<"Retrieving literals complementary unifiable with "<<Test::Output::toString(nonIndexedLit)<<":"<<endl;
   SLQueryResultIterator rit1=tree.getComplementaryUnifications(nonIndexedLit);
   while(rit1.hasNext()) {
     SLQueryResult res=rit1.next();
     cout<<Test::Output::toString(res.literal)<<" in "<<Test::Output::toString(res.clause)<<endl;
   }
-  
-  cout<<"Retrieving literals complementary unifiable with "<<Test::Output::toString(indexedLit)<<":"<<endl;
-  SLQueryResultIterator rit2=tree.getComplementaryUnifications(indexedLit);
+
+  cout<<"Retrieving generalizations of "<<Test::Output::toString(nonIndexedLit)<<":"<<endl;
+  SLQueryResultIterator rit2=tree.getGeneralizations(nonIndexedLit);
   while(rit2.hasNext()) {
     SLQueryResult res=rit2.next();
     cout<<Test::Output::toString(res.literal)<<" in "<<Test::Output::toString(res.clause)<<endl;
@@ -165,9 +165,9 @@ void doTest()
   }
   tmr.stop();
   cout<<litCnt<<" literals removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
-  
+
   cout<<endl;
-  
+
 #if CHECK_LEAKS
   delete env.signature;
   env.signature = 0;
@@ -189,7 +189,7 @@ void explainException (Exception& exception)
 
 /**
  * The main function.
- * @since 03/12/2003 many changes related to logging 
+ * @since 03/12/2003 many changes related to logging
  *        and exception handling.
  * @since 10/09/2004, Manchester changed to use knowledge bases
  */
@@ -218,7 +218,7 @@ int main(int argc, char* argv [])
     env.signature = new Kernel::Signature;
 
     doTest();
-    
+
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {

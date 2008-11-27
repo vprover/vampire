@@ -8,7 +8,7 @@
 
 #include "List.hpp"
 
-#ifdef VDEBUG
+#if VDEBUG
 #include <string>
 #include "Int.hpp"
 #endif
@@ -23,7 +23,7 @@ public:
   virtual ~BacktrackObject() {}
   virtual void backtrack() = 0;
 
-#ifdef VDEBUG
+#if VDEBUG
   virtual std::string toString() const { return "(backtrack object)"; }
 #endif
 };
@@ -68,7 +68,7 @@ public:
     return _bol==0;
   }
 
-#ifdef VDEBUG
+#if VDEBUG
   std::string toString()
   {
     std::string res;

@@ -127,14 +127,21 @@ private:
       /** Ordering comparison result for commutative term arguments, one of
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable) */
       unsigned order : 3;
+      /** number of the symbol in the signature */
+      unsigned functor : 15;
+      /** arity of the functor */
+      unsigned arity : 8;
       /** reserved for whatever */
 #ifdef ARCH_X64
-      size_t reserved : 55;
+      size_t reserved : 32;
 #else
-      unsigned reserved : 23;
+//      unsigned reserved : 15;
 #endif
     } _info;
   };
+  static const unsigned MAX_ARITY=255;
+  static const unsigned MAX_FUNCTOR=32767;
+
   friend class Indexing::TermSharing;
   friend class Term;
   friend class Literal;
@@ -157,7 +164,7 @@ public:
   /** Function or predicate symbol of a term */
   const unsigned functor() const
   {
-    return _functor;
+    return _args[0]._info.functor;
   }
 
 //   void show() const { _functor.show(); }
@@ -168,28 +175,31 @@ public:
   static string variableToString(unsigned var);
   /** return the arguments */
   const TermList* args() const
-  { return _args + _arity; }
+  { return _args + _args[0]._info.arity; }
   /** return the nth argument (counting from 0) */
   const TermList* nthArgument(int n) const
   {
     ASS(n >= 0);
-    ASS((unsigned)n < _arity);
+    ASS((unsigned)n < _args[0]._info.arity);
 
-    return _args + (_arity - n);
+    return _args + (_args[0]._info.arity - n);
   }
   /** return the arguments */
   TermList* args()
-  { return _args + _arity; }
+  { return _args + _args[0]._info.arity; }
   unsigned hash() const;
   /** return the arity */
   unsigned arity() const
-  { return _arity; }
+  { return _args[0]._info.arity; }
   static void* operator new(size_t,unsigned arity);
   /** make the term into a symbol term */
   void makeSymbol(unsigned number,unsigned arity)
   {
-    _functor = number;
-    _arity = arity;
+    ASS(arity<TermList::MAX_ARITY); //arity is stored in less than 32 bits
+    ASS(number<TermList::MAX_FUNCTOR); //functor is stored in less than 32 bits
+
+    _args[0]._info.functor = number;
+    _args[0]._info.arity = arity;
   }
   void destroy();
   void destroyNonShared();
@@ -282,10 +292,6 @@ public:
   };
 
 protected:
-  /** The number of this symbol in a signature */
-  unsigned _functor;
-  /** Arity of the symbol */
-  unsigned _arity;
   /** Weight of the symbol */
   unsigned _weight;
   /** number of occurrences of variables */
@@ -329,13 +335,13 @@ public:
    * the number of the predicate symbol.
    */
   unsigned header() const
-  { return 2*_functor + polarity(); }
+  { return 2*_args[0]._info.functor + polarity(); }
   /**
    * Header of the complementary literal, 2*p+1 is negative and 2*p
    * if positive where p is the number of the predicate symbol.
    */
   unsigned complementaryHeader() const
-  { return 2*_functor + 1 - polarity(); }
+  { return 2*_args[0]._info.functor + 1 - polarity(); }
 
   /**
    * Convert header to the correponding predicate symbol number.
@@ -372,8 +378,11 @@ public:
    */
   Literal(unsigned functor,unsigned arity,bool polarity,bool commutative)
   {
-    _functor = functor;
-    _arity = arity;
+    ASS(arity<TermList::MAX_ARITY); //arity is stored in less than 32 bits
+    ASS(functor<TermList::MAX_FUNCTOR); //functor is stored in less than 32 bits
+
+    _args[0]._info.functor = functor;
+    _args[0]._info.arity = arity;
     _args[0]._info.polarity = polarity;
     _args[0]._info.commutative = commutative;
     _args[0]._info.literal = 1u;

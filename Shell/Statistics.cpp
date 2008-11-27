@@ -22,6 +22,7 @@ Statistics::Statistics()
     trivialInequalities(0),
     simpleTautologies(0),
     equationalTautologies(0),
+    forwardSubsumed(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),

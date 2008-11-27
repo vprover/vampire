@@ -45,7 +45,7 @@ void Term::destroy ()
   CALL("Term::destroy");
   ASS(CHECK_LEAKS || ! shared());
 
-  DEALLOC_KNOWN(this,sizeof(Term)+_arity*sizeof(TermList),"Term");
+  DEALLOC_KNOWN(this,sizeof(Term)+_args[0]._info.arity*sizeof(TermList),"Term");
 } // Term::destroy
 
 /**
@@ -172,7 +172,7 @@ string Term::toString () const
   Stack<const TermList*> stack(64);
 
   string s = functionName();
-  if (_arity) {
+  if (arity()) {
     s += '(';
     stack.push(args());
     TermList::argsToString(stack,s);
@@ -256,7 +256,7 @@ string Literal::toString () const
   Stack<const TermList*> stack(64);
   string s = polarity() ? "" : "~";
   s += predicateName();
-  if (_arity) {
+  if (arity()) {
     s += '(';
     stack.push(args());
     TermList::argsToString(stack,s);
@@ -273,7 +273,7 @@ const string& Term::functionName() const
 {
   CALL("Term::functionName");
 
-  return env.signature->functionName(_functor);
+  return env.signature->functionName(functor());
 } // Term::functionName
 
 /**
@@ -284,7 +284,7 @@ const string& Literal::predicateName() const
 {
   CALL("Literal::predicateName");
 
-  return env.signature->predicateName(_functor);
+  return env.signature->predicateName(functor());
 } // Literal::predicateName
 
 
@@ -401,12 +401,12 @@ unsigned Term::hash() const
 {
   CALL("Term::hash");
 
-  unsigned hash = Hash::hash(_functor);
-  if (_arity == 0) {
+  unsigned hash = Hash::hash(_args[0]._info.functor);
+  if (_args[0]._info.arity == 0) {
     return hash;
   }
   return Hash::hashFNV(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
+	  _args[0]._info.arity*sizeof(TermList),hash);
 } // Term::hash
 
 /**
@@ -417,12 +417,12 @@ unsigned Literal::hash() const
 {
   CALL("Literal::hash");
 
-  unsigned hash = Hash::hash(isPositive() ? (2*_functor) : (2*_functor+1));
-  if (_arity == 0) {
+  unsigned hash = Hash::hash(isPositive() ? (2*_args[0]._info.functor) : (2*_args[0]._info.functor+1));
+  if (_args[0]._info.arity == 0) {
     return hash;
   }
   return Hash::hashFNV(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
+	  _args[0]._info.arity*sizeof(TermList),hash);
 } // Term::hash
 
 
@@ -550,9 +550,7 @@ Literal* Literal::create(Literal* l,TermList* args)
 
 /** create a new term and copy from t the relevant part of t's content */
 Term::Term(const Term& t)
-  : _functor(t._functor),
-    _arity(t._arity),
-    _weight(0),
+  : _weight(0),
     _vars(0)
 {
   CALL("Term::Term/1");
@@ -570,13 +568,13 @@ Literal::Literal(const Literal& l)
 
 /** dummy term constructor */
 Term::Term()
-  :_functor(0),
-   _arity(0),
-   _weight(0),
+  :_weight(0),
    _vars(0)
 {
   CALL("Term::Term/0");
 
+  _args[0]._info.functor = 0;
+  _args[0]._info.arity = 0;
   _args[0]._info.polarity = 0;
   _args[0]._info.commutative = 0;
   _args[0]._info.shared = 0;
@@ -590,7 +588,7 @@ Term::Term()
 string Term::headerToString() const
 {
   string s("functor: ");
-  s += Int::toString(_functor) + ", arity: " + Int::toString(_arity)
+  s += Int::toString(functor()) + ", arity: " + Int::toString(arity())
     + ", weight: " + Int::toString(_weight)
     + ", vars: " + Int::toString(_vars)
     + ", polarity: " + Int::toString(_args[0]._info.polarity)

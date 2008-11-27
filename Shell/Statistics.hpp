@@ -46,6 +46,8 @@ public:
   unsigned simpleTautologies;
   /** number of equational tautologies s=s */
   unsigned equationalTautologies;
+  /** number of forward subsumed clauses */
+  unsigned forwardSubsumed;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
