@@ -54,6 +54,7 @@ void Term::destroy ()
 void Term::destroyNonShared()
 {
   CALL("Term::destroyNonShared");
+  ASSERT_VALID(*this);
 
   if(shared()) {
     return;

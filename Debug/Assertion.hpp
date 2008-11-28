@@ -90,7 +90,7 @@ private:
 #define ALWAYS(Cond) Cond
 #define NEVER(Cond) Cond
 
-#define ASS_NEQ(VAL1,VAL2)
+#define ASS_EQ(VAL1,VAL2)
 #define ASS_NEQ(VAL1,VAL2)
 
 

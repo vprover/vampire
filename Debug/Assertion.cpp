@@ -36,7 +36,7 @@ void Assertion::violated (const char* file,int line,const char* cond)
  */
 void Assertion::reportAssertValidException (const char* file,int line,const char* obj)
 {
-  cout << "An exception was thrown by the ASSERT_VALID on object " << obj
+  cout << "An exception was thrown by ASSERT_VALID on object " << obj
        << " in file " << file << ", line " << line << ".\n";
 } // Assertion::violated
 

@@ -32,7 +32,7 @@ UnprocessedClauseContainer::~UnprocessedClauseContainer()
 {
   while(!_data.isEmpty()) {
     Clause* cl=_data.pop();
-    cl->destroy();
+    cl->setStore(Clause::NONE);
   }
 }
 

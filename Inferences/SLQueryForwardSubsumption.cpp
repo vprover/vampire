@@ -5,6 +5,7 @@
 
 #include "../Lib/Environment.hpp"
 #include "../Lib/VirtualIterator.hpp"
+#include "../Lib/BinaryHeap.hpp"
 #include "../Lib/SkipList.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/List.hpp"
@@ -78,6 +79,18 @@ struct MatchInfo {
   }
 };
 
+struct PtrHash {
+  static unsigned hash(void* ptr) {
+    return static_cast<unsigned>(reinterpret_cast<size_t&>(ptr)>>4);
+  }
+};
+struct PtrHash2 {
+  static unsigned hash(void* ptr) {
+    return static_cast<unsigned>(reinterpret_cast<size_t&>(ptr)>>3);
+  }
+};
+
+//typedef BinaryHeap<MatchInfo,MatchInfo> MISkipList;
 typedef SkipList<MatchInfo,MatchInfo> MISkipList;
 typedef List<Literal*> LiteralList;
 typedef DHMap<Literal*, List<Literal*>* > MatchMap;
@@ -94,10 +107,11 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
   }
 
   MISkipList gens;
-  DHMultiset<Clause*> genCounter;
+  DHMultiset<Clause*,PtrHash,PtrHash2> genCounter;
+//  DHMultiset<Clause*,PtrHash> genCounter;
 
   for(unsigned li=0;li<clen;li++) {
-    SLQueryResultIterator rit=_index->getGeneralizations( (*cl)[li] );
+    SLQueryResultIterator rit=_index->getGeneralizations( (*cl)[li], false);
     while(rit.hasNext()) {
       SLQueryResult res=rit.next();
       unsigned rlen=res.clause->length();

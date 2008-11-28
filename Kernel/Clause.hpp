@@ -42,7 +42,8 @@ public:
     : Unit(Unit::CLAUSE,inf,it),
       _length(length),
       _weight(0),
-      _store(NONE)
+      _store(NONE),
+      _inferenceRefCnt(0)
   {}
 
   /** Should never be used, declared just to get rid of compiler warning */
@@ -74,7 +75,7 @@ public:
   /** Return the clause store */
   Store store() const { return _store; }
   /** Set the store to @b s */
-  void setStore(Store s) { _store = s; }
+  void setStore(Store s) { _store = s; destroyIfUnnecessary(); }
 
   /** Return the age */
   int age() const { return _age; }
@@ -92,6 +93,14 @@ public:
   /** Return the weight */
   int weight() const { return _weight; }
   void computeWeight();
+
+  /** If storage is set to NONE and there are no references to this class, destroy it. */
+  void destroyIfUnnecessary()
+  { if(_store==NONE && _inferenceRefCnt==0) { destroy(); } }
+
+  void incRefCnt() { _inferenceRefCnt++; }
+  void decRefCnt() { _inferenceRefCnt--; destroyIfUnnecessary(); }
+
 protected:
   /** number of literals */
   unsigned _length;
@@ -103,9 +112,11 @@ protected:
   unsigned _weight;
   /** storage class */
   Store _store;
+  /** number of references to this clause by inference rules */
+  unsigned _inferenceRefCnt;
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause
 
 }
-#endif 
+#endif

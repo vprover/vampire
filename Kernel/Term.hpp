@@ -23,6 +23,9 @@
 using namespace std;
 using namespace Lib;
 
+#define TERM_MAX_ARITY 255
+#define TERM_MAX_FUNCTOR 32767
+
 namespace Indexing {
   class TermSharing;
 }
@@ -139,13 +142,12 @@ private:
 #endif
     } _info;
   };
-  static const unsigned MAX_ARITY=255;
-  static const unsigned MAX_FUNCTOR=32767;
 
   friend class Indexing::TermSharing;
   friend class Term;
   friend class Literal;
 }; // class TermList
+
 
 /**
  * Class to represent terms and lists of terms.
@@ -195,8 +197,8 @@ public:
   /** make the term into a symbol term */
   void makeSymbol(unsigned number,unsigned arity)
   {
-    ASS(arity<TermList::MAX_ARITY); //arity is stored in less than 32 bits
-    ASS(number<TermList::MAX_FUNCTOR); //functor is stored in less than 32 bits
+    ASS(arity<TERM_MAX_ARITY); //arity is stored in less than 32 bits
+    ASS(number<TERM_MAX_FUNCTOR); //functor is stored in less than 32 bits
 
     _args[0]._info.functor = number;
     _args[0]._info.arity = arity;
@@ -265,6 +267,7 @@ public:
 
 #if VDEBUG
   string headerToString() const;
+  void assertValid() const { ASS_EQ(_args[0]._info.tag, FUN); }
 #endif
 
   class VariableIterator {
@@ -378,8 +381,8 @@ public:
    */
   Literal(unsigned functor,unsigned arity,bool polarity,bool commutative)
   {
-    ASS(arity<TermList::MAX_ARITY); //arity is stored in less than 32 bits
-    ASS(functor<TermList::MAX_FUNCTOR); //functor is stored in less than 32 bits
+    ASS(arity<TERM_MAX_ARITY); //arity is stored in less than 32 bits
+    ASS(functor<TERM_MAX_FUNCTOR); //functor is stored in less than 32 bits
 
     _args[0]._info.functor = functor;
     _args[0]._info.arity = arity;

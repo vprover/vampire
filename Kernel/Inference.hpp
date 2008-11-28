@@ -79,19 +79,19 @@ public:
 //     /** Replace formula (Q x1 ... xk ... x_n)A by
 //      * (Q x1 ... xk-1 xk+1 ... x_n)A, where xk does not occur in A */
 //     DUMMY_QUANTIFIER_REMOVAL = 22u,
-//     /** Transformation (A x1 ... xn)(F1 & ... & Fm) -> 
+//     /** Transformation (A x1 ... xn)(F1 & ... & Fm) ->
 //      * (A x1 ... xn)F1 & ... & (A x1 ... xn)Fm) */
 //     FORALL_AND = 23u,
-//     /** Transformation (E x1 ... xn)(F1 \/ ... \/ Fm) -> 
+//     /** Transformation (E x1 ... xn)(F1 \/ ... \/ Fm) ->
 //      * (E x1 ... xn)F1 \/ ... \/ (E x1 ... xn)Fm) */
 //     EXISTS_OR = 24u,
 //     /** (Q x)(Q y)F -> (Q y)(Q x)F */
 //     QUANTIFIER_SWAP = 25,
-//     /** Transformation (A x1 x2)(F1 \/ F2) -> 
+//     /** Transformation (A x1 x2)(F1 \/ F2) ->
 //      * (A x1)F1 \/ ... \/ (A x2)F2), where x2 does not occur in F1.
 //      * Can be applied to many variables and disjunctions of arbitrary length */
 //     FORALL_OR = 26u,
-//     /** Transformation (E x1 x2)(F1 & F2) -> 
+//     /** Transformation (E x1 x2)(F1 & F2) ->
 //      * (E x1)F1 & ... & (E x2)F2), where x2 does not occur in F1.
 //      * Can be applied to many variables and disjunctions of arbitrary length */
 //     EXISTS_AND = 27u,
@@ -99,7 +99,7 @@ public:
 //     PERMUT = 28u,
 //     /** obtained by reordering equalities */
 //     REORDER_EQ = 29u,
-//     /** obtained by rewriting a positive equivalence 
+//     /** obtained by rewriting a positive equivalence
 //      * f <=> ginto an implication f => g or g => f
 //      */
 //     HALF_EQUIV = 30u,
@@ -129,7 +129,7 @@ public:
 //     ROW_VARIABLE_EXPANSION = 42u,
     /** introduction of new name p, p <=> C */
     PREDICATE_DEFINITION = 43u,
-    /** reduce a formula containing false or true, for example 
+    /** reduce a formula containing false or true, for example
      *  false & A ---> false */
     REDUCE_FALSE_TRUE = 44u,
     /** remove from clause one or more inequalities <i>s != s</i> */
@@ -183,7 +183,7 @@ public:
   Inference1(Rule rule,Unit* premise)
     : Inference(rule),
       _premise1(premise)
-  {}
+  { _premise1->incRefCnt(); }
 
   virtual void destroy();
   virtual Iterator iterator();
@@ -206,10 +206,7 @@ class InferenceMany
   : public Inference
 {
 public:
-  InferenceMany(Rule rule,UnitList* premises)
-    : Inference(rule),
-      _premises(premises)
-  {}
+  InferenceMany(Rule rule,UnitList* premises);
 
   virtual void destroy();
   virtual Iterator iterator();
@@ -236,7 +233,10 @@ public:
     : Inference(rule),
       _premise1(premise1),
       _premise2(premise2)
-  {}
+  {
+    _premise1->incRefCnt();
+    _premise2->incRefCnt();
+  }
 
   virtual void destroy();
   virtual Iterator iterator();
@@ -255,4 +255,4 @@ protected:
 
 
 }
-#endif 
+#endif

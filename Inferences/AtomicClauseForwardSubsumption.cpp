@@ -80,7 +80,7 @@ void AtomicClauseForwardSubsumption::perform(Clause* cl, bool& keep, ClauseItera
   bool success=false;
 
   for(unsigned li=0;li<clen;li++) {
-    SLQueryResultIterator rit=_index->getGeneralizations((*cl)[li]);
+    SLQueryResultIterator rit=_index->getGeneralizations((*cl)[li], false);
     if(rit.hasNext()) {
       SLQueryResult res=rit.next();
       ASS(res.clause->length()==1);

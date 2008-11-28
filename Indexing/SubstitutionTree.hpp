@@ -59,15 +59,14 @@ public:
 
   SLQueryResultIterator getComplementaryUnifications(Literal* lit)
   {
-    UnificationsIterator* core=new UnificationsIterator();
-    core->init(this, lit, true);
+    UnificationsIterator* core=new UnificationsIterator(this, lit, true, true);
     return SLQueryResultIterator(core);
   }
 
-  SLQueryResultIterator getGeneralizations(Literal* lit)
+  SLQueryResultIterator getGeneralizations(Literal* lit, bool retrieveSubstitution)
   {
-    GeneralizationsIterator* core=new GeneralizationsIterator();
-    core->init(this, lit, false);
+    GeneralizationsIterator* core=new GeneralizationsIterator(this, lit, false,
+	    retrieveSubstitution);
     return SLQueryResultIterator(core);
   }
 
@@ -290,9 +289,8 @@ private:
   : public IteratorCore<SLQueryResult>
   {
   public:
-    UnificationsIterator() : subst(), inLeaf(false), ldIterator(LDIterator::getEmpty()),
-    	nodeIterators(4), bdStack(4), clientBDRecording(false) {}
-    void init(SubstitutionTree* t, Literal* query, bool complementary);
+    UnificationsIterator(SubstitutionTree* t, Literal* query, bool complementary,
+	    bool retrieveSubstitution);
 
     bool hasNext();
     SLQueryResult next();
@@ -313,6 +311,7 @@ private:
     MMSubstitution subst;
     SpecVarQueue svQueue;
   private:
+    bool retrieveSubstitution;
     bool inLeaf;
     LDIterator ldIterator;
     Stack<NodeIterator> nodeIterators;
@@ -325,6 +324,10 @@ private:
   class GeneralizationsIterator
   : public UnificationsIterator
   {
+  public:
+    GeneralizationsIterator(SubstitutionTree* t, Literal* query, bool complementary,
+    	    bool retrieveSubstitution)
+    : UnificationsIterator(t, query, complementary, retrieveSubstitution) {};
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);

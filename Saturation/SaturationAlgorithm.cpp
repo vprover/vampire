@@ -117,7 +117,7 @@ SaturationResult DiscountSA::saturate()
     	return SaturationResult(Statistics::REFUTATION, c);
       }
       if(!processInactive(c)) {
-	c->destroy();
+	c->setStore(Clause::NONE);
 	continue;
       }
 
@@ -133,7 +133,7 @@ SaturationResult DiscountSA::saturate()
 
     Clause* c = _passive->popSelected();
     if(!processInactive(c)) {
-	c->destroy();
+	c->setStore(Clause::NONE);
 	continue;
     }
     activate(c);

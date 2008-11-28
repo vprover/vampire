@@ -456,8 +456,10 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
   }
 }
 
-void SubstitutionTree::UnificationsIterator::init(SubstitutionTree* t,
-	Literal* query, bool complementary)
+SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* t,
+	Literal* query, bool complementary, bool retrieveSubstitution)
+: subst(), retrieveSubstitution(retrieveSubstitution), inLeaf(false),
+ldIterator(LDIterator::getEmpty()), nodeIterators(4), bdStack(4), clientBDRecording(false)
 {
   CALL("SubstitutionTree::UnificationsIterator::init");
   int rootIndex=t->getRootNodeIndex(query, complementary);
@@ -511,19 +513,23 @@ SLQueryResult SubstitutionTree::UnificationsIterator::next()
   }
 
   LeafData ld=ldIterator.next();
-
   Literal* lit=static_cast<Literal*>(ld.data);
-  Renaming normalizer;
-  Renaming::normalizeVariables(lit,normalizer);
 
-  ASS(clientBacktrackData.isEmpty());
-  subst.bdRecord(clientBacktrackData);
-  clientBDRecording=true;
+  if(retrieveSubstitution) {
+    Renaming normalizer;
+    Renaming::normalizeVariables(lit,normalizer);
 
-  subst.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
-  subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
+    ASS(clientBacktrackData.isEmpty());
+    subst.bdRecord(clientBacktrackData);
+    clientBDRecording=true;
 
-  return SLQueryResult(lit, ld.clause, &subst);
+    subst.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
+    subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
+
+    return SLQueryResult(lit, ld.clause, &subst);
+  } else {
+    return SLQueryResult(lit, ld.clause, 0);
+  }
 }
 
 

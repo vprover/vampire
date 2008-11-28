@@ -93,7 +93,7 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
   ClauseQueue::Iterator cit(_ageQueue);
   while(cit.hasNext()) {
     Clause* cl=cit.next();
-    cl->destroy();
+    cl->setStore(Clause::NONE);
   }
 }
 

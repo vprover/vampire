@@ -46,11 +46,11 @@ public:
     LEMMA = 2,
     /** derives from the goal */
     CONJECTURE = 3
-  }; 
+  };
 
   /** Should never be used, declared just to get rid of compiler warning */
   virtual ~Unit() { ASSERTION_VIOLATION; }
-  
+
   virtual void destroy() = 0;
   virtual string toString() const = 0;
 
@@ -74,6 +74,21 @@ public:
   /** the input unit number this clause is generated from, -1 if none */
   int adam() const {return _adam;}
 
+  /**
+   * Increase the number of references to the unit.
+   *
+   * Only clauses are reference-counted, so the base implementation
+   * does nothing.
+   */
+  virtual void incRefCnt() {}
+  /**
+   * Decrease the number of references to the unit.
+   *
+   * Only clauses are reference-counted, so the base implementation
+   * does nothing.
+   */
+  virtual void decRefCnt() {}
+
 protected:
   /** Number of this unit, used for printing and statistics */
   unsigned _number;
@@ -95,4 +110,4 @@ protected:
 typedef List<Unit*> UnitList;
 
 }
-#endif 
+#endif

@@ -228,7 +228,7 @@ bool MMSubstitution::handleDifferentTops(TermSpec t1, TermSpec t2,
     VarSpec v2=getVarSpec(t2);
     if(ct) {
       VarSpec ctVar=getAuxVar(v2);
-      ct->makeVar(ctVar.index);
+      ct->makeVar(ctVar.var);
     }
     if(isUnbound(v2)) {
       unifyUnbound(v2,t1);
@@ -291,6 +291,11 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
     TermSpec commonTS;
     bool buildingCommon=t1.isVar();
     if(buildingCommon) {
+      //we must ensure, that commonTS.term.tag()!=REF, because if
+      //method handleDifferentTops(...,ct) returns false when
+      //ct==&commonTS, value of commonTS.term is undefined, when we
+      //get to releasing of created common term.
+      commonTS.term.makeEmpty();
       commonTS.index=AUX_INDEX;
       ct=&commonTS.term;
     } else {
@@ -312,6 +317,7 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
         ASS(s->functor() == t->functor());
 
         if(ct) {
+          ASSERT_VALID(*t);
           ct->setTerm(Term::createNonShared(t));
         }
 
@@ -675,17 +681,17 @@ string MMSubstitution::TermSpec::toString() const
  */
 unsigned MMSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 {
-  return o.var + o.index*capacity>>1 + o.index>>1*capacity>>3;
-/*//This might work better
+  //return o.var + o.index*capacity>>1 + o.index>>1*capacity>>3;
+//This might work better
 
   int res=(o.var%(capacity<<1) - capacity);
   if(res<0)
     //this turns x into -x-1
     res = ~res;
-  if(o.index)
+  if(o.index&1)
     return static_cast<unsigned>(-res+capacity-o.index);
   else
-    return static_cast<unsigned>(res);*/
+    return static_cast<unsigned>(res);
 }
 
 /**

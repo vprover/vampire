@@ -3,6 +3,7 @@
  * Implements class BinaryResolution.
  */
 
+#include "../Lib/Int.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
 #include "../Kernel/Clause.hpp"

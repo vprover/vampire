@@ -28,6 +28,7 @@ void Inference::destroy()
 void Inference1::destroy()
 {
   CALL ("Inference1::destroy");
+  _premise1->decRefCnt();
   delete this;
 }
 
@@ -38,7 +39,21 @@ void Inference1::destroy()
 void Inference2::destroy()
 {
   CALL ("Inference2::destroy");
+  _premise1->decRefCnt();
+  _premise2->decRefCnt();
   delete this;
+}
+
+
+InferenceMany::InferenceMany(Rule rule,UnitList* premises)
+  : Inference(rule),
+    _premises(premises)
+{
+  UnitList* it=_premises;
+  while(it) {
+    it->head()->incRefCnt();
+    it=it->tail();
+  }
 }
 
 /**
@@ -48,9 +63,14 @@ void Inference2::destroy()
 void InferenceMany::destroy()
 {
   CALL ("InferenceMany::destroy");
+  UnitList* it=_premises;
+  while(it) {
+    it->head()->decRefCnt();
+    it=it->tail();
+  }
   _premises->destroy();
   delete this;
-} 
+}
 
 /**
  * Return an iterator for an inference with many premises.
