@@ -31,6 +31,16 @@ void Assertion::violated (const char* file,int line,const char* cond)
 } // Assertion::violated
 
 /**
+ * Called when an exception is thrown as part of the ASSERT_VALID call.
+ * Simply print the location and argument of the ASSERT_VALID statement.
+ */
+void Assertion::reportAssertValidException (const char* file,int line,const char* obj)
+{
+  cout << "An exception was thrown by the ASSERT_VALID on object " << obj
+       << " in file " << file << ", line " << line << ".\n";
+} // Assertion::violated
+
+/**
  * Create a new AssertionViolationException.
  */
 AssertionViolationException::AssertionViolationException (const char* file,

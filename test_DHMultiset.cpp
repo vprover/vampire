@@ -22,7 +22,8 @@ public:
   }
 };
 
-typedef DHMultiset<int, ConstHash, IdHash> MySet; 
+//typedef DHMultiset<int, ConstHash, IdHash> MySet;
+typedef DHMultiset<int> MySet;
 
 void test()
 {
@@ -33,16 +34,26 @@ void test()
   LOG("testing "<<cnt<<" items..");
   for(int i=0;i<cnt;i++) {
     m1.insert(i);
+    if(i%1000==0) {
+      ASSERT_VALID(m1);
+    }
   }
   LOG("Filled size:"<<m1.size());
   for(int i=0;i<cnt;i++) {
     ASS(m1.find(i));
   }
   ASS(!m1.find(cnt));
+  ASSERT_VALID(m1);
   LOG("deleting every odd and adding every even once more..");
   for(int i=1;i<cnt;i+=2) {
     m1.remove(i);
+    if(i%1000<5) {
+      ASSERT_VALID(m1);
+    }
     m1.insert(i-1);
+    if(i%1000<5) {
+      ASSERT_VALID(m1);
+    }
   }
   LOG("Current size:"<<m1.size());
   LOG("checking and removing..");
@@ -52,11 +63,17 @@ void test()
   for(int i=0;i<cnt;i+=2) {
     m1.remove(i);
     ASS(m1.find(i));
+    if(i%1000<5) {
+      ASSERT_VALID(m1);
+    }
     m1.remove(i);
     ASS(!m1.find(i));
+    if(i%1000<5) {
+      ASSERT_VALID(m1);
+    }
   }
   LOG("Current size:"<<m1.size());
-  
+
   LOG("done");
 }
 

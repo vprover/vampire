@@ -78,7 +78,7 @@ public:
   {
     CALL("DHMultiset::find/1");
     const Entry* e=findEntry(val);
-    return e ? 0 : e->_info.multiplicity;
+    return e ? e->_info.multiplicity : 0;
   }
 
   /**
@@ -106,6 +106,7 @@ public:
       e->_info.multiplicity+=multiplicity;
       _multiplicities+=multiplicity;
     } else {
+      ASS_EQ(e->_info.multiplicity, 0);
       e->_info.multiplicity=multiplicity;
       _multiplicities+=multiplicity-1;
       if(e->_info.deleted) {
@@ -216,6 +217,7 @@ private:
     int oldCapacity=_capacity;
 
     _size=0;
+    _multiplicities=0;
     _deleted=0;
     _capacityIndex++;
     _capacity = DHMapTableCapacities[_capacityIndex];
@@ -232,6 +234,7 @@ private:
       }
       (ep++)->~Entry();
     }
+
     if(oldCapacity) {
       DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMultiset::Entry");
     }
@@ -379,7 +382,7 @@ public:
       cnt++;
       it.next();
     }
-    ASS(sz==cnt);
+    ASS_EQ(sz,cnt);
   }
 #endif
 
@@ -404,12 +407,12 @@ public:
 	return true;
       _nextIndex=0;
       while (_next != _last) {
+	_next++;
 	//we don't have to check for _info.deleted, as long as we
 	//set the multiplicity of deleted entries to zero
 	if (_next->_info.multiplicity) {
 	  return true;
 	}
-	_next++;
       }
       return false;
     }

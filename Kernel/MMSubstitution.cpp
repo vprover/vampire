@@ -596,13 +596,13 @@ bool MMSubstitution::occurCheckFails() const
       refCounter.insert(r);
     }
   }
+
   while(!maybeUnref.isEmpty()) {
     VarSpec vs=maybeUnref.pop();
     if(!refCounter.find(vs)) {
       unref.push(vs);
     }
   }
-  ASSERT_VALID(refCounter);
   while(!unref.isEmpty()) {
     VarSpec v=unref.pop();
     TermSpec ts=_bank.get(v);
@@ -617,16 +617,6 @@ bool MMSubstitution::occurCheckFails() const
 	  unref.push(r);
 	}
       }
-    }
-  }
-
-  //ASSERT_VALID(refCounter);
-
-  if(refCounter.size()) {
-    cout<<"Occur-check failed, there are cyclic variables:"<<endl;
-    DHMultiset<VarSpec,VarSpec::Hash1,VarSpec::Hash2>::Iterator rit(refCounter);
-    while(rit.hasNext()) {
-      cout<<rit.next().toString()<<endl;
     }
   }
 

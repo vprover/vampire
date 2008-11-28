@@ -67,9 +67,9 @@ SaturationResult brSaturate(ClauseIterator clauses)
   CompositeFSE fwSimplifier;
   DuplicateLiteralRemovalFSE dlrFSE;
   TrivialInequalitiesRemovalFSE tirFSE;
-  AtomicClauseForwardSubsumption fsFSE;
+  AtomicClauseForwardSubsumption acfsFSE;
   SLQueryForwardSubsumption slfsFSE;
-//  fwSimplifier.addFront(&fsFSE);
+//  fwSimplifier.addFront(&acfsFSE);
   fwSimplifier.addFront(&slfsFSE);
   fwSimplifier.addFront(&tirFSE);
   fwSimplifier.addFront(&dlrFSE);
