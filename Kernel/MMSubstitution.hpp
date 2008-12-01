@@ -33,6 +33,7 @@ public:
   MMSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
 
   bool unify(TermList t1,int index1, TermList t2, int index2);
+  bool unify(Literal* l1,int index1, Literal* l2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
   bool match(Literal* base,int baseIndex, Literal* instance, int instanceIndex);
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
@@ -43,6 +44,12 @@ public:
   bool isSpecialUnbound(unsigned var, int index) const
   {
     return isUnbound(VarSpec(var,SPECIAL_INDEX));
+  }
+  void reset()
+  {
+    _bank.reset();
+    _nextAuxAvailable=0;
+    _nextUnboundAvailable=0;
   }
   /**
    * Bind special variable to a specified term

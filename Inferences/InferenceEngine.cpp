@@ -61,6 +61,47 @@ void CompositeFSE::detach()
 }
 
 
+struct GeneratingFunctor
+{
+  GeneratingFunctor(Clause* cl) : cl(cl) {}
+  ClauseIterator operator() (GeneratingInferenceEngine* gie)
+  { return gie->generateClauses(cl); }
+  Clause* cl;
+};
+CompositeGIE::~CompositeGIE()
+{
+  _inners->destroy();
+}
+void CompositeGIE::addFront(GeneratingInferenceEngine* fse)
+{
+  GIList::push(fse,_inners);
+}
+ClauseIterator CompositeGIE::generateClauses(Clause* premise)
+{
+  VirtualIterator<ClauseIterator> iterators =
+    getMappingIterator<ClauseIterator>(GIList::Iterator(_inners), GeneratingFunctor(premise));
+  return getFlattenedIterator(iterators);
+}
+void CompositeGIE::attach(SaturationAlgorithm* salg)
+{
+  GeneratingInferenceEngine::attach(salg);
+  GIList* eit=_inners;
+  while(eit) {
+    eit->head()->attach(salg);
+    eit=eit->tail();
+  }
+}
+void CompositeGIE::detach()
+{
+  GIList* eit=_inners;
+  while(eit) {
+    eit->head()->detach();
+    eit=eit->tail();
+  }
+  GeneratingInferenceEngine::detach();
+}
+
+
 void DuplicateLiteralRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd)
 {
   CALL("DuplicateLiteralRemovalFSE::perform");

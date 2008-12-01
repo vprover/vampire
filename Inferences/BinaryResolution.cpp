@@ -6,6 +6,9 @@
 #include "../Lib/Int.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
+#include "../Lib/Environment.hpp"
+#include "../Shell/Statistics.hpp"
+
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Unit.hpp"
 #include "../Kernel/Inference.hpp"
@@ -86,7 +89,9 @@ public:
 	(*res)[next++] = qr.substitution->apply(curr, 1);
       }
     }
+
     res->setAge(Int::max(_cl->age(),qr.clause->age())+1);
+    env.statistics->resolution++;
 
     return res;
   }

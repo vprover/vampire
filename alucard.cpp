@@ -44,6 +44,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BinaryResolution.hpp"
+#include "Inferences/Factoring.hpp"
 #include "Inferences/AtomicClauseForwardSubsumption.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
 #include "Inferences/TautologyDeletionFSE.hpp"
@@ -64,15 +65,18 @@ SaturationResult brSaturate(ClauseIterator clauses)
   AWPassiveClauseContainer passiveContainer;
   passiveContainer.setAgeWeightRatio(1,1);
 
-  BinaryResolution generator;
+  CompositeGIE generator;
+  BinaryResolution brGIE;
+  Factoring fGIE;
+  generator.addFront(&fGIE);
+  generator.addFront(&brGIE);
+
   CompositeFSE fwSimplifier;
   TautologyDeletionFSE tdFSE;
   DuplicateLiteralRemovalFSE dlrFSE;
   TrivialInequalitiesRemovalFSE tirFSE;
-  AtomicClauseForwardSubsumption acfsFSE;
   SLQueryForwardSubsumption slfsFSE;
   fwSimplifier.addFront(&slfsFSE);
-  fwSimplifier.addFront(&acfsFSE);
   fwSimplifier.addFront(&tirFSE);
   fwSimplifier.addFront(&tdFSE);
   fwSimplifier.addFront(&dlrFSE);
@@ -141,14 +145,21 @@ void doProving()
       env.out << "Refutation not found!\n";
       break;
     }
+    env.out << "------------------------------\n";
     env.out << "Active clauses: "<<env.statistics->activeClauses<<endl;
     env.out << "Passive clauses: "<<env.statistics->passiveClauses<<endl;
-    env.out << "Generated clauses: "<<env.statistics->generatedClauses<<endl;
+    env.out << "Generated clauses: "<<env.statistics->generatedClauses<<endl<<endl;
+
     env.out << "Duplicate literals: "<<env.statistics->duplicateLiterals<<endl;
     env.out << "Trivial inequalities: "<<env.statistics->trivialInequalities<<endl;
     env.out << "Simple tautologies: "<<env.statistics->simpleTautologies<<endl;
     env.out << "Equational tautologies: "<<env.statistics->equationalTautologies<<endl;
-    env.out << "Forward subsumptions: "<<env.statistics->forwardSubsumed<<endl;
+    env.out << "Forward subsumptions: "<<env.statistics->forwardSubsumed<<endl<<endl;
+
+    env.out << "Binary resolution: "<<env.statistics->resolution<<endl;
+    env.out << "Factoring: "<<env.statistics->factoring<<endl;
+    env.out << "------------------------------\n";
+
     try{
       throw;
     } catch (int) {}

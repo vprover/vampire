@@ -35,6 +35,10 @@ public:
   /** number of initial clauses */
   unsigned initialClauses;
 
+  //Generating inferences
+  unsigned factoring;
+  unsigned resolution;
+
   // Simplifying inferences
   /** number of duplicate literals deleted */
   unsigned duplicateLiterals;

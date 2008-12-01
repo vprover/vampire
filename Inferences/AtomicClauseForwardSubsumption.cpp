@@ -5,7 +5,6 @@
 
 #include "../Lib/Comparison.hpp"
 #include "../Lib/DArray.hpp"
-#include "../Lib/Environment.hpp"
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/SkipList.hpp"
 #include "../Kernel/Clause.hpp"
@@ -13,7 +12,10 @@
 #include "../Indexing/Index.hpp"
 #include "../Indexing/IndexManager.hpp"
 #include "../Saturation/SaturationAlgorithm.hpp"
+
+#include "../Lib/Environment.hpp"
 #include "../Shell/Statistics.hpp"
+
 
 #include "AtomicClauseForwardSubsumption.hpp"
 

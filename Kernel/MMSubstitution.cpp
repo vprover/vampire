@@ -32,6 +32,20 @@ bool MMSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
   CALL("MMSubstitution::unify/4");
   return unify(TermSpec(t1,index1), TermSpec(t2,index2));
 }
+bool MMSubstitution::unify(Literal* l1,int index1, Literal* l2, int index2)
+{
+  CALL("MMSubstitution::unify(Literal*...)");
+  if(l1->header()!=l2->header()) {
+    return false;
+  }
+  TermList l1TL;
+  TermList l2TL;
+  //here we treat Literals as Terms, which is not very
+  //clean, but Term is a base class of Literal after all
+  l1TL.setTerm(l1);
+  l2TL.setTerm(l2);
+  return unify(TermSpec(l1TL,index1), TermSpec(l2TL,index2));
+}
 
 bool MMSubstitution::match(TermList base,int baseIndex,
 	TermList instance, int instanceIndex)
@@ -43,6 +57,9 @@ bool MMSubstitution::match(Literal* base,int baseIndex,
 	Literal* instance, int instanceIndex)
 {
   CALL("MMSubstitution::match(Literal*...)");
+  if(base->header()!=instance->header()) {
+    return false;
+  }
   TermList baseTL;
   TermList instanceTL;
   //here we treat Literals as Terms, which is not very

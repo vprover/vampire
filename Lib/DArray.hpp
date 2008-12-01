@@ -12,6 +12,8 @@
 #include "../Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
+#include "Comparison.hpp"
+#include "Random.hpp"
 
 namespace Lib {
 
@@ -91,6 +93,115 @@ public:
       *(--ptr)=value;
     }
   }
+
+  /**
+   * Ensure that the array's size is at least @b count and
+   * initialize first @b count elements with halues from @b src.
+   *
+   * @b src has to support C operator[](size_t).
+   */
+  /**  */
+  template<typename Arr>
+  void initFromArray(size_t count, Arr& src) {
+    ensure(count);
+    C* ptr=_array+count;
+    while(count) {
+      *(--ptr)=src[--count];
+    }
+  }
+
+  /**
+   * Sort first @b count items using @b Comparator::compare
+   * as comparator.
+   */
+  template<typename Comparator>
+  void sort(size_t count)
+  {
+    //modified sorting code, that was originally in Resolution::Tautology::sort
+
+    // array behaves as a stack of calls to quicksort
+    static DArray<size_t> ft(32);
+
+    size_t from = 0;
+    size_t to=count-1;
+    ft.ensure(to);
+
+    size_t p = 0; // pointer to the next element in ft
+    for (;;) {
+      ASS(from<count && to<count); //checking for underflows
+      // invariant: from < to
+      size_t m = from + Random::getInteger(to-from+1);
+      C mid = (*this)[m];
+      size_t l = from;
+      size_t r = to;
+      while (l < m) {
+        switch (Comparator::compare((*this)[l],mid))
+  	{
+  	case EQUAL:
+  	case LESS:
+  	  l++;
+  	  break;
+  	case GREATER:
+  	  if (m == r) {
+  	    (*this)[m] = (*this)[l];
+  	    (*this)[l] = (*this)[m-1];
+  	    (*this)[m-1] = mid;
+  	    m--;
+  	    r--;
+  	  }
+  	  else {
+  	    ASS(m < r);
+  	    C aux = (*this)[l];
+  	    (*this)[l] = (*this)[r];
+  	    (*this)[r] = aux;
+  	    r--;
+  	  }
+  	  break;
+  	}
+      }
+      // l == m
+      // now literals in lits[from ... m-1] are smaller than lits[m]
+      // and literals in lits[r+1 ... to] are greater than lits[m]
+      while (m < r) {
+        switch (Comparator::compare(mid,(*this)[m+1]))
+  	{
+  	case LESS:
+  	  {
+  	    C aux = (*this)[r];
+  	    (*this)[r] = (*this)[m+1];
+  	    (*this)[m+1] = aux;
+  	    r--;
+  	  }
+  	  break;
+  	case EQUAL:
+  	case GREATER:
+  	  (*this)[m] = (*this)[m+1];
+  	  (*this)[m+1] = mid;
+  	  m++;
+  	}
+      }
+      // now literals in lits[from ... m-1] are smaller than lits[m]
+      // and all literals in lits[m+1 ... to] are greater than lits[m]
+      if (m+1 < to) {
+        ft[p++] = m+1;
+        ft[p++] = to;
+      }
+
+      to = m-1;
+      if (m!=0 && from < to) {
+        continue;
+      }
+      if (p != 0) {
+        p -= 2;
+        ASS(p >= 0);
+        from = ft[p];
+        to = ft[p+1];
+        continue;
+      }
+      return;
+    }
+  }
+
 protected:
   /** current array's size */
   size_t _size;

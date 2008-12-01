@@ -268,6 +268,8 @@ string Inference::name() const
     return "true and false elimination";
   case TRIVIAL_INEQUALITY_REMOVAL:
     return "trivial inequality removal";
+  case FACTORING:
+    return "factoring";
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

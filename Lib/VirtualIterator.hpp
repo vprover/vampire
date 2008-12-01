@@ -154,8 +154,8 @@ VirtualIterator<T> getProxyIterator(Inner it)
 }
 
 /**
- * Implementation object for VirtualIterator, that can proxy any
- * non-virtual iterator, that supports hasNext() and next() methods.
+ * Implementation object for VirtualIterator, that can casts objects
+ * of its inner iterator to target type with static_cast.
  */
 template<typename To, class Inner>
 class StaticCastIterator
@@ -297,6 +297,73 @@ private:
   VirtualIterator<T> _it2;
 };
 
+
+/**
+ * Implementation object for VirtualIterator, that yields elements
+ * of its inner iterator transformed by specified functor.
+ */
+template<typename DestType, typename Inner, typename Functor>
+class MappingIterator
+: public IteratorCore<DestType>
+{
+public:
+  explicit MappingIterator(Inner inner, Functor func)
+  : _inner(inner), _func(func) {}
+  bool hasNext() { return _inner.hasNext(); };
+  DestType next() { return _func(_inner.next()); };
+private:
+  Inner _inner;
+  Functor _func;
+};
+
+template<typename DestType, typename Inner, typename Functor>
+VirtualIterator<DestType> getMappingIterator(Inner it, Functor f)
+{
+  return VirtualIterator<DestType>(new MappingIterator<DestType, Inner, Functor>(it, f));
+}
+
+
+/**
+ * Implementation object for VirtualIterator, that flattens
+ * VirtualIterator<VirtualIterator<T>> into VirtualIterator<T>.
+ */
+template<typename T>
+class FlatteningIterator
+: public IteratorCore<T>
+{
+public:
+  typedef VirtualIterator<T> InnerIterator;
+  typedef VirtualIterator<InnerIterator> MasterIterator;
+
+  explicit FlatteningIterator(MasterIterator master)
+  : _master(master), _current(InnerIterator::getEmpty()) {}
+  bool hasNext()
+  {
+    for(;;) {
+      if(_current.hasNext()) {
+	return true;
+      }
+      if(!_master.hasNext()) {
+	return false;
+      }
+      _current=_master.next();
+    }
+  }
+  T next()
+  {
+    ASS(_current.hasNext());
+    return _current.next();
+  }
+private:
+  MasterIterator _master;
+  InnerIterator _current;
+};
+
+template<typename T>
+VirtualIterator<T> getFlattenedIterator(VirtualIterator<VirtualIterator<T> > it)
+{
+  return VirtualIterator<T>(new FlatteningIterator<T>(it));
+}
 
 }
 

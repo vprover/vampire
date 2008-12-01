@@ -120,6 +120,21 @@ private:
   FSList* _inners;
 };
 
+class CompositeGIE
+: public GeneratingInferenceEngine
+{
+public:
+  CompositeGIE() : _inners(0) {}
+  ~CompositeGIE();
+  void addFront(GeneratingInferenceEngine* fse);
+  ClauseIterator generateClauses(Clause* premise);
+  void attach(SaturationAlgorithm* salg);
+  void detach();
+private:
+  typedef List<GeneratingInferenceEngine*> GIList;
+  GIList* _inners;
+};
+
 class DuplicateLiteralRemovalFSE
 : public ForwardSimplificationEngine
 {

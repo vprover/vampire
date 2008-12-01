@@ -18,6 +18,8 @@ Statistics::Statistics()
     inputFormulas(0),
     formulaNames(0),
     initialClauses(0),
+    factoring(0),
+    resolution(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     simpleTautologies(0),

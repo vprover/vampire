@@ -3,6 +3,7 @@
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Random.hpp"
 
@@ -29,6 +30,8 @@ StoredType arr[cnt];
 void test()
 {
   SkipList<StoredType, Int> sl1;
+  SkipList<StoredType, Int> sl2;
+  DArray<StoredType> darr(cnt);
   DHMultiset<StoredType> ms;
 
   for(int i=0;i<cnt;i++)
@@ -36,9 +39,12 @@ void test()
     int num=(rand()%cnt)/100;
     ms.insert(num);
     sl1.insert(num);
+
+    sl2.insert(num);
+    darr[i]=num;
     arr[i]=num;
   }
-  
+
   Timer tmr;
   tmr.start();
   for(int i=0;i<cnt/2;i++)
@@ -57,8 +63,14 @@ void test()
   tmr.stop();
   LOG("SkipList took "<<tmr.elapsedMilliseconds()<<" ms.");
 
+  darr.sort<Int>(cnt);
+  for(int i=0;i<cnt;i++)
+  {
+    ASS_EQ(sl2.pop(),darr[i]);
+  }
+
   return;
-  
+
 }
 
 int main()
