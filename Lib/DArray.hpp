@@ -82,6 +82,15 @@ public:
   /** Return the size (the capacity) of the array */
   size_t size() const { return _size; }
 
+  /** Ensure that the array's size is at least @b count and
+   * initialize first @b count elements of the array to @b value. */
+  void init(size_t count, const C& value) {
+    ensure(count);
+    C* ptr=_array+count;
+    while(ptr!=_array) {
+      *(--ptr)=value;
+    }
+  }
 protected:
   /** current array's size */
   size_t _size;

@@ -244,3 +244,4 @@ void TrivialInequalitiesRemovalFSE::perform(Clause* c, bool& keep, ClauseIterato
   toAdd=getSingletonIterator(d);
   return;
 }
+

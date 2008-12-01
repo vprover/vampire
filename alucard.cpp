@@ -46,6 +46,7 @@
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/AtomicClauseForwardSubsumption.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
+#include "Inferences/TautologyDeletionFSE.hpp"
 
 
 #if CHECK_LEAKS
@@ -65,13 +66,15 @@ SaturationResult brSaturate(ClauseIterator clauses)
 
   BinaryResolution generator;
   CompositeFSE fwSimplifier;
+  TautologyDeletionFSE tdFSE;
   DuplicateLiteralRemovalFSE dlrFSE;
   TrivialInequalitiesRemovalFSE tirFSE;
   AtomicClauseForwardSubsumption acfsFSE;
   SLQueryForwardSubsumption slfsFSE;
-//  fwSimplifier.addFront(&acfsFSE);
   fwSimplifier.addFront(&slfsFSE);
+  fwSimplifier.addFront(&acfsFSE);
   fwSimplifier.addFront(&tirFSE);
+  fwSimplifier.addFront(&tdFSE);
   fwSimplifier.addFront(&dlrFSE);
 
   DummyBSE bwSimplifier;
@@ -92,6 +95,8 @@ SaturationResult brSaturate(ClauseIterator clauses)
 void doProving()
 {
   CALL("doProving()");
+
+  cout<<"Proving "<<env.options->inputFile()<<endl;
 
   env.signature = new Kernel::Signature;
   ifstream input(env.options->inputFile().c_str());
@@ -141,6 +146,8 @@ void doProving()
     env.out << "Generated clauses: "<<env.statistics->generatedClauses<<endl;
     env.out << "Duplicate literals: "<<env.statistics->duplicateLiterals<<endl;
     env.out << "Trivial inequalities: "<<env.statistics->trivialInequalities<<endl;
+    env.out << "Simple tautologies: "<<env.statistics->simpleTautologies<<endl;
+    env.out << "Equational tautologies: "<<env.statistics->equationalTautologies<<endl;
     env.out << "Forward subsumptions: "<<env.statistics->forwardSubsumed<<endl;
     try{
       throw;

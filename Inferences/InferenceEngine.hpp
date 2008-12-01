@@ -23,7 +23,7 @@ class InferenceEngine
 {
 public:
   InferenceEngine() : _salg(0) {}
-  virtual ~InferenceEngine() 
+  virtual ~InferenceEngine()
   {
     //the object has to be detached before destruction
     ASS(!_salg);
@@ -55,9 +55,9 @@ class ForwardSimplificationEngine
 public:
   /**
    * Perform forward simplification on @b cl
-   * 
+   *
    * If a simplification is appliable on @b cl, @b keep will be
-   * set to false and @b toAdd iterator will contain results of 
+   * set to false and @b toAdd iterator will contain results of
    * the simplification. Otherwise, @b keep will be set to true,
    * and @b toAdd will contain an empty iterator.
    */
@@ -123,15 +123,16 @@ private:
 class DuplicateLiteralRemovalFSE
 : public ForwardSimplificationEngine
 {
+public:
   void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
 };
 
 class TrivialInequalitiesRemovalFSE
 : public ForwardSimplificationEngine
 {
+public:
   void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
 };
-
 
 };
 

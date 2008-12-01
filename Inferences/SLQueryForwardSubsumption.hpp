@@ -25,6 +25,9 @@ public:
   void detach();
   void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
 private:
+  bool canBeMatched(unsigned baseLen, DArray<Literal*>& baseLits,
+	  DArray<List<Literal*>*>& matches);
+
   Index* _index;
 };
 

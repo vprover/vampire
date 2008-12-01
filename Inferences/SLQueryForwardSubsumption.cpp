@@ -5,6 +5,7 @@
 
 #include "../Lib/Environment.hpp"
 #include "../Lib/VirtualIterator.hpp"
+#include "../Lib/BacktrackData.hpp"
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/SkipList.hpp"
 #include "../Lib/DArray.hpp"
@@ -108,7 +109,6 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
 
   MISkipList gens;
   DHMultiset<Clause*,PtrHash,PtrHash2> genCounter;
-//  DHMultiset<Clause*,PtrHash> genCounter;
 
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_index->getGeneralizations( (*cl)[li], false);
@@ -134,7 +134,8 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
 
   bool finished=false;
 
-  static DArray<List<Literal*>*> matches(16);
+  static DArray<List<Literal*>*> matches(32);
+  static DArray<Literal*> baseLits(32);
 
   MatchInfo mi=gens.pop();
   do {
@@ -165,12 +166,14 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
     } while(mi.clause==mcl && !finished);
 
     matches.ensure(mlen);
+    baseLits.ensure(mlen);
     bool mclMatchFailed=false;
     for(unsigned li=0;li<mlen;li++) {
       LiteralList* alts;
       if(matchMap.find( (*mcl)[li], alts) ) {
 	ASS(alts);
 	matches[li]=alts;
+	baseLits[li]=(*mcl)[li];
       } else {
 	mclMatchFailed=true;
 	break;
@@ -178,12 +181,8 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
     }
 
     if(!mclMatchFailed) {
-      MMSubstitution matcher;
-      for(unsigned li=0;li<mlen;li++) {
-	if(!matcher.match( (*mcl)[li],0, matches[li]->head(),1 )) {
-	  mclMatchFailed=true;
-	  break;
-	}
+      if(!canBeMatched(mlen,baseLits,matches)) {
+	mclMatchFailed=true;
       }
     }
 
@@ -201,4 +200,55 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
   } while(!finished);
 
   keep=true;
+}
+
+bool SLQueryForwardSubsumption::canBeMatched(unsigned baseLen, DArray<Literal*>& baseLits,
+	DArray<List<Literal*>*>& matches)
+{
+  bool success=false;
+  Stack<BacktrackData> bdStack(32);
+  DArray<List<Literal*>*> alts(32); //alternatives
+  MMSubstitution matcher;
+
+  alts.init(baseLen, 0);
+  unsigned depth=0;
+  for(;;) {
+    if(alts[depth]==0) {
+      alts[depth]=matches[depth];
+    } else {
+      alts[depth]=alts[depth]->tail();
+      if(!alts[depth]) {
+	if(depth) {
+	  depth--;
+	  bdStack.pop().backtrack();
+	  ASS(bdStack.length()==depth);
+	  continue;
+	} else {
+	  break;
+	}
+      }
+    }
+    ASS(alts[depth]);
+    BacktrackData bData;
+    matcher.bdRecord(bData);
+    bool matched=matcher.match(baseLits[depth],0,alts[depth]->head(),1);
+    matcher.bdDone();
+    if(matched) {
+      depth++;
+      if(depth==baseLen) {
+	bData.drop();
+	success=true;
+	break;
+      }
+      bdStack.push(bData);
+    } else {
+      bData.backtrack();
+    }
+
+  }
+
+  while(!bdStack.isEmpty()) {
+    bdStack.pop().drop();
+  }
+  return success;
 }

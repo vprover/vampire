@@ -73,7 +73,8 @@ VI_OBJ = Indexing/Index.o\
 VINF_OBJ=Inferences/AtomicClauseForwardSubsumption.o\
          Inferences/BinaryResolution.o\
          Inferences/InferenceEngine.o\
-         Inferences/SLQueryForwardSubsumption.o
+         Inferences/SLQueryForwardSubsumption.o\
+         Inferences/TautologyDeletionFSE.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
