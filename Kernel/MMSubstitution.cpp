@@ -3,9 +3,11 @@
  * Implements Martelli and Montanari unification.
  */
 
+#include "../Lib/Environment.hpp"
+
 #include "../Lib/Hash.hpp"
 #include "../Lib/DArray.hpp"
-#include "../Lib/Environment.hpp"
+#include "../Lib/List.hpp"
 #include "../Lib/Random.hpp"
 #include "../Lib/DHMultiset.hpp"
 
@@ -454,7 +456,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
 	if(bts.term.isSpecialVar()) {
 	  VarSpec bvs=getVarSpec(bts);
 	  if(_bank.find(bvs, binding1)) {
-	    ASS(binding1.index==base.index);
+	    ASS_EQ(binding1.index, base.index);
 	    bt=&binding1.term;
 	    continue;
 	  } else {
@@ -463,7 +465,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
 	} else if(its.term.isSpecialVar()) {
 	  VarSpec ivs=getVarSpec(its);
 	  if(_bank.find(ivs, binding2)) {
-	    ASS(binding2.index==instance.index);
+	    ASS_EQ(binding2.index, instance.index);
 	    it=&binding2.term;
 	    continue;
 	  } else {
@@ -472,7 +474,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
 	} else if(bts.term.isOrdinaryVar()) {
 	  VarSpec bvs=getVarSpec(bts);
 	  if(_bank.find(bvs, binding1)) {
-	    ASS(binding1.index==instance.index);
+	    ASS_EQ(binding1.index, instance.index);
 	    if(!TermList::equals(binding1.term, its.term))
 	    {
 	      mismatch=true;
@@ -691,6 +693,66 @@ string MMSubstitution::TermSpec::toString() const
 }
 
 #endif
+
+/**
+ * Return true iif from each of first @b baseLen lists in @b matches can
+ * be selected one literal, such that they altogether match onto respective
+ * literals in @b baseLits array.
+ */
+bool MMSubstitution::canBeMatched(unsigned baseLen, DArray<Literal*>& baseLits,
+	DArray<List<Literal*>*>& matches)
+{
+  CALL("MMSubstitution::canBeMatched");
+
+  bool success=false;
+  static Stack<BacktrackData> bdStack(32);
+  static DArray<List<Literal*>*> alts(32); //alternatives
+  MMSubstitution matcher;
+
+  ASS(bdStack.isEmpty());
+  alts.init(baseLen, 0);
+
+  unsigned depth=0;
+  for(;;) {
+    if(alts[depth]==0) {
+      alts[depth]=matches[depth];
+    } else {
+      alts[depth]=alts[depth]->tail();
+      if(!alts[depth]) {
+	if(depth) {
+	  depth--;
+	  bdStack.pop().backtrack();
+	  ASS(bdStack.length()==depth);
+	  continue;
+	} else {
+	  break;
+	}
+      }
+    }
+    ASS(alts[depth]);
+    BacktrackData bData;
+    matcher.bdRecord(bData);
+    bool matched=matcher.match(baseLits[depth],0,alts[depth]->head(),1);
+    matcher.bdDone();
+    if(matched) {
+      depth++;
+      if(depth==baseLen) {
+	bData.drop();
+	success=true;
+	break;
+      }
+      bdStack.push(bData);
+    } else {
+      bData.backtrack();
+    }
+
+  }
+
+  while(!bdStack.isEmpty()) {
+    bdStack.pop().drop();
+  }
+  return success;
+}
 
 
 /**

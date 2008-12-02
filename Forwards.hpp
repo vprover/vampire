@@ -13,21 +13,14 @@
 
 namespace Lib
 {
+template<typename T> class VirtualIterator;
+template<typename T> class SmartPtr;
+template<typename T> class SingleParamEvent;
+template<class C> class DArray;
+template<class C> class Stack;
+template<typename T> class List;
+template <typename T, class Comparator> class BinaryHeap;
 
-template<typename T>
-class VirtualIterator;
-template<typename T>
-class SmartPtr;
-template<typename T>
-class SingleParamEvent;
-template<class C>
-class DArray;
-template<class C>
-class Stack;
-template<typename T>
-class List;
-template <typename T, class Comparator>
-class BinaryHeap;
 class BacktrackData;
 };
 
@@ -43,6 +36,7 @@ class Unit;
 class Clause;
 typedef VirtualIterator<Clause*> ClauseIterator;
 typedef SingleParamEvent<Clause*> ClauseEvent;
+typedef List<Clause*> ClauseList;
 
 class DoubleSubstitution;
 class Renaming;

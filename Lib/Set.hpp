@@ -139,7 +139,7 @@ public:
   } // Set::insert
 
   /** Return the number of elements */
-  inline int numberOfElements()
+  inline int numberOfElements() const
   {
     return _noOfEntries;
   }
@@ -234,6 +234,9 @@ public:
    */
   class Iterator {
   public:
+    /** Create a new empty iterator */
+    inline Iterator() : _next(0), _last(0) {}
+
     /** Create a new iterator */
     explicit inline Iterator(const Set& set)
       : _next(set._entries),

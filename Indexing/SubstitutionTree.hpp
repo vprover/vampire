@@ -70,6 +70,13 @@ public:
     return SLQueryResultIterator(core);
   }
 
+  SLQueryResultIterator getInstances(Literal* lit, bool retrieveSubstitution)
+  {
+    InstancesIterator* core=new InstancesIterator(this, lit, false,
+	    retrieveSubstitution);
+    return SLQueryResultIterator(core);
+  }
+
 #if VDEBUG
   string toString() const;
   bool isEmpty() const;
@@ -326,6 +333,18 @@ private:
   {
   public:
     GeneralizationsIterator(SubstitutionTree* t, Literal* query, bool complementary,
+    	    bool retrieveSubstitution)
+    : UnificationsIterator(t, query, complementary, retrieveSubstitution) {};
+  protected:
+    virtual bool associate(TermList query, TermList node);
+    virtual NodeIterator getNodeIterator(IntermediateNode* n);
+  };
+
+  class InstancesIterator
+  : public UnificationsIterator
+  {
+  public:
+    InstancesIterator(SubstitutionTree* t, Literal* query, bool complementary,
     	    bool retrieveSubstitution)
     : UnificationsIterator(t, query, complementary, retrieveSubstitution) {};
   protected:

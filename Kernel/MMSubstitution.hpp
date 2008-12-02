@@ -66,10 +66,14 @@ public:
   }
   TermList getSpecialVarTop(unsigned var) const
   {
-    return deref(VarSpec(var, SPECIAL_INDEX)).term;
+    return derefBound(TermSpec(VarSpec(var, SPECIAL_INDEX))).term;
   }
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
+
+  static bool canBeMatched(unsigned baseLen, DArray<Literal*>& baseLits,
+	  DArray<List<Literal*>*>& matches);
+
 
 #if VDEBUG
   std::string toString(bool deref=false) const;

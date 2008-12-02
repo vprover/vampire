@@ -7,10 +7,15 @@
 #include "../Lib/Random.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/List.hpp"
+#include "../Lib/Metaiterators.hpp"
+
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
+
 #include "../Shell/Statistics.hpp"
+#include "../Lib/Environment.hpp"
+
 #include "InferenceEngine.hpp"
 
 using namespace Lib;

@@ -368,6 +368,16 @@ public:
     val=*pval;
     return res;
   }
+
+
+  inline
+  void makeEmpty()
+  {
+    while (isNonEmpty()) {
+      pop();
+    }
+  }
+
   /**
    * Create a skip list and initialise its left-most node to a node of the
    * maximal possible height.
@@ -390,9 +400,7 @@ public:
   {
     CALL("SkipList::~SkipList");
 
-    while (isNonEmpty()) {
-      pop();
-    }
+    makeEmpty();
     deallocate(_left,SKIP_LIST_MAX_HEIGHT);
   }
 private:

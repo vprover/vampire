@@ -7,6 +7,7 @@
 #include "../Lib/List.hpp"
 #include "../Lib/SkipList.hpp"
 #include "../Lib/DHMultiset.hpp"
+#include "../Lib/Metaiterators.hpp"
 
 #include "Index.hpp"
 #include "SubstitutionTree.hpp"

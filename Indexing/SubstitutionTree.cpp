@@ -8,6 +8,7 @@
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Lib/BinaryHeap.hpp"
+#include "../Lib/Metaiterators.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -681,13 +682,35 @@ SubstitutionTree::NodeIterator
   } else {
 	Node** match=n->childByTop(&qt, false);
 	if(match) {
-	  return NodeIterator(
-		  new CatIterator<Node**>(
-			  NodeIterator(new SingletonIterator<Node**>(match)),
-			  n->variableChildren()
-			  ));
+	  return getConcatenatedIterator(getSingletonIterator(match),
+		  n->variableChildren());
 	} else {
 	  return n->variableChildren();
+	}
+  }
+}
+
+
+bool SubstitutionTree::InstancesIterator::associate(TermList query, TermList node)
+{
+  return subst.match(query, NORM_QUERY_BANK, node, NORM_RESULT_BANK);
+}
+
+SubstitutionTree::NodeIterator
+  SubstitutionTree::InstancesIterator::getNodeIterator(IntermediateNode* n)
+{
+  CALL("SubstitutionTree::GeneralizationsIterator::getNodeIterator");
+
+  unsigned specVar=svQueue.top();
+  TermList qt=subst.getSpecialVarTop(specVar);
+  if(qt.isVar()) {
+	return n->allChildren();
+  } else {
+	Node** match=n->childByTop(&qt, false);
+	if(match) {
+	  return getSingletonIterator(match);
+	} else {
+	  return NodeIterator::getEmpty();
 	}
   }
 }

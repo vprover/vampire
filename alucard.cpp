@@ -19,6 +19,7 @@
 
 #include "Lib/Vector.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -47,6 +48,7 @@
 #include "Inferences/Factoring.hpp"
 #include "Inferences/AtomicClauseForwardSubsumption.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
+#include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/TautologyDeletionFSE.hpp"
 
 
@@ -81,7 +83,9 @@ SaturationResult brSaturate(ClauseIterator clauses)
   fwSimplifier.addFront(&tdFSE);
   fwSimplifier.addFront(&dlrFSE);
 
-  DummyBSE bwSimplifier;
+  SLQueryBackwardSubsumption slbsBSE;
+  //DummyBSE slbsBSE;
+
   EagerLiteralSelector eselector;
   LightestNegativeLiteralSelection lselector;
   HeaviestNegativeLiteralSelection hselector;
@@ -89,7 +93,7 @@ SaturationResult brSaturate(ClauseIterator clauses)
   DiscountSA salg(&passiveContainer, &hselector);
   salg.setGeneratingInferenceEngine(&generator);
   salg.setForwardSimplificationEngine(&fwSimplifier);
-  salg.setBackwardSimplificationEngine(&bwSimplifier);
+  salg.setBackwardSimplificationEngine(&slbsBSE);
 
   salg.addClauses(clauses);
 
@@ -148,13 +152,16 @@ void doProving()
     env.out << "------------------------------\n";
     env.out << "Active clauses: "<<env.statistics->activeClauses<<endl;
     env.out << "Passive clauses: "<<env.statistics->passiveClauses<<endl;
-    env.out << "Generated clauses: "<<env.statistics->generatedClauses<<endl<<endl;
+    env.out << "Generated clauses: "<<env.statistics->generatedClauses<<endl;
+    env.out << endl;
 
     env.out << "Duplicate literals: "<<env.statistics->duplicateLiterals<<endl;
     env.out << "Trivial inequalities: "<<env.statistics->trivialInequalities<<endl;
     env.out << "Simple tautologies: "<<env.statistics->simpleTautologies<<endl;
     env.out << "Equational tautologies: "<<env.statistics->equationalTautologies<<endl;
-    env.out << "Forward subsumptions: "<<env.statistics->forwardSubsumed<<endl<<endl;
+    env.out << "Forward subsumptions: "<<env.statistics->forwardSubsumed<<endl;
+    env.out << "Backward subsumptions: "<<env.statistics->backwardSubsumed<<endl;
+    env.out << endl;
 
     env.out << "Binary resolution: "<<env.statistics->resolution<<endl;
     env.out << "Factoring: "<<env.statistics->factoring<<endl;

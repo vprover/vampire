@@ -3,10 +3,8 @@
  * Implements class SLQueryForwardSubsumption.
  */
 
-#include "../Lib/Environment.hpp"
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/BacktrackData.hpp"
-#include "../Lib/BinaryHeap.hpp"
 #include "../Lib/SkipList.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/List.hpp"
@@ -23,6 +21,7 @@
 
 #include "../Saturation/SaturationAlgorithm.hpp"
 
+#include "../Lib/Environment.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "SLQueryForwardSubsumption.hpp"
@@ -91,7 +90,6 @@ struct PtrHash2 {
   }
 };
 
-//typedef BinaryHeap<MatchInfo,MatchInfo> MISkipList;
 typedef SkipList<MatchInfo,MatchInfo> MISkipList;
 typedef List<Literal*> LiteralList;
 typedef DHMap<Literal*, List<Literal*>* > MatchMap;
@@ -181,7 +179,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
     }
 
     if(!mclMatchFailed) {
-      if(!canBeMatched(mlen,baseLits,matches)) {
+      if(!MMSubstitution::canBeMatched(mlen,baseLits,matches)) {
 	mclMatchFailed=true;
       }
     }
@@ -202,53 +200,3 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
   keep=true;
 }
 
-bool SLQueryForwardSubsumption::canBeMatched(unsigned baseLen, DArray<Literal*>& baseLits,
-	DArray<List<Literal*>*>& matches)
-{
-  bool success=false;
-  Stack<BacktrackData> bdStack(32);
-  DArray<List<Literal*>*> alts(32); //alternatives
-  MMSubstitution matcher;
-
-  alts.init(baseLen, 0);
-  unsigned depth=0;
-  for(;;) {
-    if(alts[depth]==0) {
-      alts[depth]=matches[depth];
-    } else {
-      alts[depth]=alts[depth]->tail();
-      if(!alts[depth]) {
-	if(depth) {
-	  depth--;
-	  bdStack.pop().backtrack();
-	  ASS(bdStack.length()==depth);
-	  continue;
-	} else {
-	  break;
-	}
-      }
-    }
-    ASS(alts[depth]);
-    BacktrackData bData;
-    matcher.bdRecord(bData);
-    bool matched=matcher.match(baseLits[depth],0,alts[depth]->head(),1);
-    matcher.bdDone();
-    if(matched) {
-      depth++;
-      if(depth==baseLen) {
-	bData.drop();
-	success=true;
-	break;
-      }
-      bdStack.push(bData);
-    } else {
-      bData.backtrack();
-    }
-
-  }
-
-  while(!bdStack.isEmpty()) {
-    bdStack.pop().drop();
-  }
-  return success;
-}

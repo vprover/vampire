@@ -53,6 +53,10 @@ public:
   {
     INVALID_OPERATION("Operation not supported by this index.");
   }
+  virtual SLQueryResultIterator getInstances(Literal* lit, bool retrieveSubstitution)
+  {
+    INVALID_OPERATION("Operation not supported by this index.");
+  }
   void attachContainer(ClauseContainer* cc);
   void detachContainer(ClauseContainer* cc);
 
