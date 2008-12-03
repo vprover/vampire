@@ -600,9 +600,11 @@ bool MMSubstitution::occurCheckFails() const
 {
   CALL("MMSubstitution::occurCheckFails");
 
-  Stack<VarSpec> maybeUnref(8);
-  Stack<VarSpec> unref(8);
+  static Stack<VarSpec> maybeUnref(8);
+  static Stack<VarSpec> unref(8);
   DHMultiset<VarSpec,VarSpec::Hash1,VarSpec::Hash2> refCounter;
+
+  ASS(maybeUnref.isEmpty() && unref.isEmpty());
 
   BankType::Iterator bit(_bank);
   while(bit.hasNext()) {
@@ -617,7 +619,7 @@ bool MMSubstitution::occurCheckFails() const
     }
     Term::VariableIterator vit(ts.term.term());
     while(vit.hasNext()) {
-      VarSpec r=root(VarSpec(vit.next().var(),ts.index));
+      VarSpec r=root(getVarSpec(vit.next(),ts.index));
       refCounter.insert(r);
     }
   }
@@ -634,7 +636,7 @@ bool MMSubstitution::occurCheckFails() const
     ASS(ts.term.isTerm());
     Term::VariableIterator vit(ts.term.term());
     while(vit.hasNext()) {
-      VarSpec r=root(VarSpec(vit.next().var(),ts.index));
+      VarSpec r=root(getVarSpec(vit.next(),ts.index));
       refCounter.remove(r);
       if(!refCounter.find(r)) {
 	TermSpec rts;

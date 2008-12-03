@@ -34,11 +34,11 @@ public:
 };
 
 /**
- * Class LightestNegativeLiteralSelection implements literal
- * selector that selects lightest negatove literal, or all
+ * Class LightestNegativeLiteralSelector implements literal
+ * selector that selects lightest negative literal, or all
  * literals, if there's no negative one.
  */
-class LightestNegativeLiteralSelection
+class LightestNegativeLiteralSelector
 : public LiteralSelector
 {
 public:
@@ -46,11 +46,11 @@ public:
 };
 
 /**
- * Class HeaviestNegativeLiteralSelection implements literal
- * selector that selects lightest negatove literal, or all
+ * Class HeaviestNegativeLiteralSelector implements literal
+ * selector that selects heaviest negative literal, or all
  * literals, if there's no negative one.
  */
-class HeaviestNegativeLiteralSelection
+class HeaviestNegativeLiteralSelector
 : public LiteralSelector
 {
 public:

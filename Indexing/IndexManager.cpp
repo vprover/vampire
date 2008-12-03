@@ -34,8 +34,7 @@ void IndexManager::release(IndexType t)
 {
   CALL("IndexManager::release");
 
-  Entry e;
-  ALWAYS(_store.find(t,e));
+  Entry e=_store.get(t);
 
   e.refCnt--;
   if(e.refCnt==0) {

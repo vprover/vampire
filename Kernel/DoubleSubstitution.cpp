@@ -91,8 +91,6 @@ string DoubleSubstitution::toString() const
 {
   CALL("DoubleSubstitution::toString");
 
-  //TODO: Test this method
-
   string result("[");
   bool first = true;
   BankStorage::Iterator bit(_bank);

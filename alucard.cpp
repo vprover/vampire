@@ -47,6 +47,7 @@
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/AtomicClauseForwardSubsumption.hpp"
+#include "Inferences/RefutationSeekerFSE.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/TautologyDeletionFSE.hpp"
@@ -78,6 +79,8 @@ SaturationResult brSaturate(ClauseIterator clauses)
   DuplicateLiteralRemovalFSE dlrFSE;
   TrivialInequalitiesRemovalFSE tirFSE;
   SLQueryForwardSubsumption slfsFSE;
+  RefutationSeekerFSE rsFSE;
+  fwSimplifier.addFront(&rsFSE);
   fwSimplifier.addFront(&slfsFSE);
   fwSimplifier.addFront(&tirFSE);
   fwSimplifier.addFront(&tdFSE);
@@ -87,8 +90,8 @@ SaturationResult brSaturate(ClauseIterator clauses)
   //DummyBSE slbsBSE;
 
   EagerLiteralSelector eselector;
-  LightestNegativeLiteralSelection lselector;
-  HeaviestNegativeLiteralSelection hselector;
+  LightestNegativeLiteralSelector lselector;
+  HeaviestNegativeLiteralSelector hselector;
 
   DiscountSA salg(&passiveContainer, &hselector);
   salg.setGeneratingInferenceEngine(&generator);

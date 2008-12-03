@@ -1,4 +1,4 @@
-/** 
+/**
  * @file List.hpp
  * Implements class List<C> for lists.
  * @since 05/05/1999 Manchester
@@ -64,7 +64,7 @@ class List
   inline List () {}
 
   /** creates an empty list */
-  inline static List* empty ()  
+  inline static List* empty ()
   { return 0; }
 
   /** true if the list is empty */
@@ -136,6 +136,8 @@ class List
   /** Destroy the list */
   void destroy ()
   {
+    CALL("List::destroy");
+
     if (isEmpty ()) {
       return;
     }
@@ -159,6 +161,8 @@ class List
    */
   void destroyWithDeletion()
   {
+    CALL("List::destroyWithDeletion");
+
     if (isEmpty ()) {
       return;
     }
@@ -201,7 +205,7 @@ class List
   }  // List::copy
 
   /** appends snd to a copy of this list */
-  List* append (List* snd) 
+  List* append (List* snd)
   {
     if (isEmpty()) {
       return snd;
@@ -257,6 +261,7 @@ class List
   /** pop the first element and return it */
   inline static C pop(List* &lst)
   {
+    CALL("List::pop");
     ASS(lst != 0);
 
     List* tail = lst->tail();
@@ -287,8 +292,6 @@ class List
         return first;
       }
       current = next;
-      //TODO: has this line any effect?
-      next = next->tail();
     }
   } // List::concat
 
@@ -372,10 +375,10 @@ class List
       }
     }
   } // List::remove
-  
+
   /** Return the nth element, counting from 0 */
-  C nth(int n) const 
-  {     
+  C nth(int n) const
+  {
     // nth element, counting from 0
     ASS(n >= 0);
 
@@ -393,7 +396,7 @@ class List
 
   /** delete the nth element and return it */
   static C deleteNth(List*& lst, int n)
-  {     
+  {
     // nth element, counting from 0
     ASS (n >= 0);
 
@@ -461,7 +464,7 @@ class List
       ASS(nth);
       nth = nth->_tail;
     }
-    
+
     ASS(nth);
     rest = nth->_tail;
     nth->_tail = empty();
@@ -471,30 +474,30 @@ class List
   /** iterator over the list elements */
   class Iterator {
    public:
-    
-    inline explicit 
+
+    inline explicit
     Iterator(List* l)
       : _lst (l)
     {}
-    inline explicit 
+    inline explicit
     Iterator(const List* l)
       : _lst (const_cast<List*>(l))
     {}
-    
+
     /** return the next element */
-    inline C next() 
-    { 
+    inline C next()
+    {
       ASS(_lst->isNonEmpty());
 
-      C result = _lst->head(); 
+      C result = _lst->head();
       _lst = _lst->tail();
       return result;
     }
-    
+
     /** True if there is a next element. */
-    inline bool hasNext() const 
-    { 
-      return _lst->isNonEmpty(); 
+    inline bool hasNext() const
+    {
+      return _lst->isNonEmpty();
     }
 
     inline void reset(List* l) { _lst = l; }
@@ -507,14 +510,14 @@ class List
   /** Iterator that allows one to delete the current element */
   class DelIterator {
    public:
-    
+
     inline DelIterator (List*& l)
       :
       _lst(l),
       _prev(0),
       _cur(0)
     {}
-    
+
     /** Reset the iterator to a new list */
     inline void reset(List*& l)
     {
@@ -522,10 +525,10 @@ class List
       _prev = 0;
       _cur = 0;
     } // reset
-    
+
     /** return the next element */
     inline C next()
-    { 
+    {
       if (_cur) { // there was an element previously returned by next()
 	_prev = _cur;
 	_cur = _cur->tail();
@@ -536,23 +539,23 @@ class List
       }
       return _cur->head();
     }
-    
+
     /** True if there is a next element */
-    inline bool hasNext() 
-    { 
+    inline bool hasNext()
+    {
       if (_cur) { // there was an element previously returned by next()
 	return _cur->tail() != 0;
       }
-      return _lst->isNonEmpty(); 
+      return _lst->isNonEmpty();
     }
 
     /** Delete the current element */
-    void del() 
+    void del()
     {
       // we can only delete the element returned by next
-      ASS( _cur ); 
+      ASS( _cur );
       // check that two delete requests in row did not occur
-      ASS(_cur != _prev); 
+      ASS(_cur != _prev);
 
       if (_cur == _lst) { // the first element must be deleted
 	_lst = _lst->tail();
@@ -561,7 +564,7 @@ class List
 	return;
       }
 
-      // not the first element 
+      // not the first element
       _prev->setTail(_cur->tail());
       delete _cur;
       _cur = _prev;
@@ -583,7 +586,7 @@ class List
      *   by a previous call to next() so _cur != null
      * @since 27/12/2007 Manchester
      */
-    void insert (List* lst) 
+    void insert (List* lst)
     {
       if (! lst) {
 	return;
@@ -613,7 +616,7 @@ class List
      *   by a previous call to next() so _cur != null
      * @since 27/12/2007 Manchester
      */
-    void insert (C elem) 
+    void insert (C elem)
     {
       List* lst = new List(elem,_cur);
       if (_prev) {
@@ -646,7 +649,7 @@ class List
    * Class that allows to create a list initially by pushing elements
    * at the end of it.
    * @since 06/04/2006 Bellevue
-   */ 
+   */
   class FIFO {
   public:
     /** constructor */

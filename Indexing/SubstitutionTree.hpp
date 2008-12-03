@@ -106,6 +106,7 @@ private:
   }
 
   struct LeafData {
+    LeafData() {}
     LeafData(Clause* cls, void* d) : clause(cls), data(d) {}
     inline
     bool operator==(const LeafData& o)

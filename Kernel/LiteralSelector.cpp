@@ -19,9 +19,9 @@ void EagerLiteralSelector::select(Clause* c)
   c->setSelected(c->length());
 }
 
-void LightestNegativeLiteralSelection::select(Clause* c)
+void LightestNegativeLiteralSelector::select(Clause* c)
 {
-  CALL("LightestNegativeLiteralSelection::select");
+  CALL("LightestNegativeLiteralSelector::select");
 
   unsigned seli;
   //we assume, that weight of a literal is always greater than zero
@@ -41,13 +41,11 @@ void LightestNegativeLiteralSelection::select(Clause* c)
   } else {
     c->setSelected(clen);
   }
-
-  c->setSelected(c->length());
 }
 
-void HeaviestNegativeLiteralSelection::select(Clause* c)
+void HeaviestNegativeLiteralSelector::select(Clause* c)
 {
-  CALL("LightestNegativeLiteralSelection::select");
+  CALL("HeaviestNegativeLiteralSelector::select");
 
   unsigned seli;
   //we assume, that weight of a literal is always greater than zero
@@ -67,7 +65,5 @@ void HeaviestNegativeLiteralSelection::select(Clause* c)
   } else {
     c->setSelected(clen);
   }
-
-  c->setSelected(c->length());
 }
 

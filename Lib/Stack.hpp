@@ -95,7 +95,7 @@ public:
   inline
   void setTop(C elem)
   {
-    CALL("Stack::setTop");    
+    CALL("Stack::setTop");
     ASS(_cursor > _stack);
     ASS(_cursor <= _end);
 
@@ -311,7 +311,7 @@ protected:
     _end = _stack + newCapacity;
     _capacity = newCapacity;
   } // Stack::expand
-  
+
   class PushBacktrackObject: public BacktrackObject
   {
     Stack* st;
@@ -320,13 +320,13 @@ protected:
     void backtrack() { st->pop(); }
   };
 public:
-  
+
   void backtrackablePush(C v, BacktrackData& bd)
   {
     push(v);
     bd.addBacktrackObject(new PushBacktrackObject(this));
   }
-  
+
 };
 
 } // namespace Lib

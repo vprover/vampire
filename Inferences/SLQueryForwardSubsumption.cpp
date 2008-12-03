@@ -47,52 +47,41 @@ void SLQueryForwardSubsumption::detach()
   ForwardSimplificationEngine::detach();
 }
 
+
 struct MatchInfo {
   MatchInfo() {}
-  MatchInfo(Clause* cl, Literal* cLit, Literal* qLit)
-  : clause(cl), clauseLiteral(cLit), queryLiteral(qLit) {}
-  Clause* clause;
+  MatchInfo(Literal* cLit, Literal* qLit)
+  : clauseLiteral(cLit), queryLiteral(qLit) {}
   Literal* clauseLiteral;
   Literal* queryLiteral;
 
-  static Comparison compare(const MatchInfo& m1, const MatchInfo& m2)
-  {
-    size_t c1id=reinterpret_cast<size_t>(m1.clause);
-    size_t c2id=reinterpret_cast<size_t>(m2.clause);
-    if(c1id!=c2id) {
-      return c1id>c2id ? GREATER : LESS;
-    }
-    size_t cl1id=reinterpret_cast<size_t>(m1.clauseLiteral);
-    size_t cl2id=reinterpret_cast<size_t>(m2.clauseLiteral);
-    if(cl1id!=cl2id) {
-      return cl1id>cl2id ? GREATER : LESS;
-    }
-    size_t ql1id=reinterpret_cast<size_t>(m1.queryLiteral);
-    size_t ql2id=reinterpret_cast<size_t>(m2.queryLiteral);
-    return ql1id>ql2id ? GREATER : (ql1id==ql2id ? EQUAL : LESS);
-  }
-  static Comparison compare(Clause* c, const MatchInfo& m2)
-  {
-    size_t c1id=reinterpret_cast<size_t>(c);
-    size_t c2id=reinterpret_cast<size_t>(m2.clause);
-    return c1id>c2id ? GREATER : (c1id==c2id ? EQUAL : LESS);
-  }
 };
+
+typedef List<MatchInfo> MIList;
+
+struct ClauseMatches {
+  ClauseMatches() : matches(0), matchCount(0) {}
+
+  MIList* matches;
+  unsigned matchCount;
+};
+
 
 struct PtrHash {
   static unsigned hash(void* ptr) {
-    return static_cast<unsigned>(reinterpret_cast<size_t&>(ptr)>>4);
+    return static_cast<unsigned>(reinterpret_cast<size_t>(ptr)>>4);
   }
 };
 struct PtrHash2 {
   static unsigned hash(void* ptr) {
-    return static_cast<unsigned>(reinterpret_cast<size_t&>(ptr)>>3);
+    return static_cast<unsigned>(reinterpret_cast<size_t>(ptr)>>3);
   }
 };
 
-typedef SkipList<MatchInfo,MatchInfo> MISkipList;
+//typedef SkipList<ClauseMatches,ClauseMatches> CMSkipList;
+typedef DHMap<Clause*,ClauseMatches, PtrHash, PtrHash2> CMMap;
 typedef List<Literal*> LiteralList;
-typedef DHMap<Literal*, List<Literal*>* > MatchMap;
+typedef DHMap<Literal*, List<Literal*>*, PtrHash > MatchMap;
 
 void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 {
@@ -105,8 +94,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
     return;
   }
 
-  MISkipList gens;
-  DHMultiset<Clause*,PtrHash,PtrHash2> genCounter;
+  CMMap* gens=0;
 
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_index->getGeneralizations( (*cl)[li], false);
@@ -114,89 +102,94 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
       SLQueryResult res=rit.next();
       unsigned rlen=res.clause->length();
       if(rlen==1) {
-	env.statistics->forwardSubsumed++;
 	keep=false;
-	return;
+	goto fin;
       } else if(rlen>clen) {
 	continue;
       }
-      genCounter.insert(res.clause);
-      gens.insert(MatchInfo(res.clause, res.literal, (*cl)[li] ));
+
+      if(!gens) {
+	gens=new CMMap();
+      }
+
+      ClauseMatches* cms;
+      if(gens->getValuePtr(res.clause, cms)) {
+	ASS(cms->matches==0);
+      }
+      MIList::push(MatchInfo(res.literal, (*cl)[li]), cms->matches);
+      cms->matchCount++;
     }
   }
 
-  if(gens.isEmpty()) {
-    keep=true;
-    return;
-  }
+  if(gens)
+  {
+    static DArray<List<Literal*>*> matches(32);
+    static DArray<Literal*> baseLits(32);
+    static MatchMap matchMap;
 
-  bool finished=false;
+    CMMap::Iterator git(*gens);
+    while(git.hasNext()) {
+      Clause* mcl;
+      ClauseMatches clmatches;
+      git.next(mcl, clmatches);
 
-  static DArray<List<Literal*>*> matches(32);
-  static DArray<Literal*> baseLits(32);
+      unsigned mlen=mcl->length();
+      if(mlen>clmatches.matchCount) {
+	continue;
+      }
 
-  MatchInfo mi=gens.pop();
-  do {
-    Clause* mcl=mi.clause;
-    unsigned mlen=mi.clause->length();
-    if(mlen>genCounter.multiplicity(mi.clause)) {
-      do {
-	if(gens.isEmpty()) {
-	  finished=true;
-	  break;
+      matchMap.reset();
+      MIList::Iterator miit(clmatches.matches);
+      while(miit.hasNext()) {
+	MatchInfo minfo=miit.next();
+	LiteralList** alts; //pointer to list of possibly matching literals of cl
+	matchMap.getValuePtr(minfo.clauseLiteral, alts, 0);
+	LiteralList::push(minfo.queryLiteral, *alts);
+      };
+
+      matches.ensure(mlen);
+      baseLits.ensure(mlen);
+      bool mclMatchFailed=false;
+      for(unsigned li=0;li<mlen;li++) {
+	LiteralList* alts;
+	if(matchMap.find( (*mcl)[li], alts) ) {
+	  ASS(alts);
+	  matches[li]=alts;
+	  baseLits[li]=(*mcl)[li];
+	} else {
+	  matches[li]=0;
+	  mclMatchFailed=true;
 	}
-	mi=gens.pop();
-      } while(mi.clause==mcl);
-      continue;
-    }
-    MatchMap matchMap;
-
-    do {
-      LiteralList** alts; //pointer to list of possibly matching literals of cl
-      matchMap.setPosition(mi.clauseLiteral, alts, 0);
-      LiteralList::push(mi.queryLiteral, *alts);
-
-      if(gens.isEmpty()) {
-	finished=true;
-      } else {
-	mi=gens.pop();
       }
-    } while(mi.clause==mcl && !finished);
 
-    matches.ensure(mlen);
-    baseLits.ensure(mlen);
-    bool mclMatchFailed=false;
-    for(unsigned li=0;li<mlen;li++) {
-      LiteralList* alts;
-      if(matchMap.find( (*mcl)[li], alts) ) {
-	ASS(alts);
-	matches[li]=alts;
-	baseLits[li]=(*mcl)[li];
-      } else {
-	mclMatchFailed=true;
-	break;
+      if(!mclMatchFailed) {
+	if(!MMSubstitution::canBeMatched(mlen,baseLits,matches)) {
+	  mclMatchFailed=true;
+	}
       }
-    }
 
-    if(!mclMatchFailed) {
-      if(!MMSubstitution::canBeMatched(mlen,baseLits,matches)) {
-	mclMatchFailed=true;
+      for(unsigned li=0;li<mlen;li++) {
+	matches[li]->destroy();
       }
+
+      if(!mclMatchFailed) {
+	keep=false;
+	goto fin;
+      }
+
     }
-
-    MatchMap::Iterator mmit(matchMap);
-    while(mmit.hasNext()) {
-      mmit.next()->destroy();
+    keep=true;
+  }
+fin:
+  if(!keep) {
+    env.statistics->forwardSubsumed++;
+  }
+  if(gens) {
+    CMMap::Iterator git(*gens);
+    while(git.hasNext()) {
+      git.next().matches->destroy();
     }
-
-    if(!mclMatchFailed) {
-      env.statistics->forwardSubsumed++;
-      keep=false;
-      return;
-    }
-
-  } while(!finished);
-
-  keep=true;
+    delete gens;
+  }
 }
 

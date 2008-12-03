@@ -148,6 +148,8 @@ public:
       }
     }
     Node* newNode = allocate(nodeHeight);
+    new(&newNode->value) Value();
+
 
     unsigned h = _top - 1;
 
