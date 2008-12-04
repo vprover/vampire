@@ -50,7 +50,6 @@ TermSharing::~TermSharing()
 Term* TermSharing::insert(Term* t)
 {
   CALL("TermSharing::insert(Term*)");
-  ASSERT_VALID(*t);
   ASS(! t->isLiteral());
 
   // normalise commutative terms
@@ -103,7 +102,6 @@ Term* TermSharing::insert(Term* t)
 Literal* TermSharing::insert(Literal* t)
 {
   CALL("TermSharing::insert(Literal*)");
-  ASSERT_VALID(*t);
   ASS(t->isLiteral());
 
   if (t->commutative()) {

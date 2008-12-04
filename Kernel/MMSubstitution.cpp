@@ -11,10 +11,12 @@
 #include "../Lib/Random.hpp"
 #include "../Lib/DHMultiset.hpp"
 
-#include "../Kernel/Renaming.hpp"
+#include "Term.hpp"
+#include "Clause.hpp"
+#include "Renaming.hpp"
+
 #include "../Indexing/TermSharing.hpp"
 
-#include "Term.hpp"
 #include "MMSubstitution.hpp"
 
 #if VDEBUG
@@ -336,7 +338,6 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
         ASS(s->functor() == t->functor());
 
         if(ct) {
-          ASSERT_VALID(*t);
           ct->setTerm(Term::createNonShared(t));
         }
 
@@ -697,30 +698,49 @@ string MMSubstitution::TermSpec::toString() const
 #endif
 
 /**
- * Return true iif from each of first @b baseLen lists in @b matches can
+ * Return true iif from each of first @b base->length() lists in @b alts can
  * be selected one literal, such that they altogether match onto respective
- * literals in @b baseLits array.
+ * literals in @b base clause. If a single literal is presented in
+ * multiple lists in @b alts, it still can be matched at most once.
  */
-bool MMSubstitution::canBeMatched(unsigned baseLen, DArray<Literal*>& baseLits,
-	DArray<List<Literal*>*>& matches)
+bool MMSubstitution::canBeMatched(Clause* base, DArray<List<Literal*>*>& alts)
 {
   CALL("MMSubstitution::canBeMatched");
 
+  unsigned baseLen=base->length();
   bool success=false;
   static Stack<BacktrackData> bdStack(32);
-  static DArray<List<Literal*>*> alts(32); //alternatives
+  static DArray<List<Literal*>*> rem(32); //remaining alternatives
   MMSubstitution matcher;
 
   ASS(bdStack.isEmpty());
-  alts.init(baseLen, 0);
+  rem.init(baseLen, 0);
 
   unsigned depth=0;
   for(;;) {
-    if(alts[depth]==0) {
-      alts[depth]=matches[depth];
+    if(rem[depth]==0) {
+      rem[depth]=alts[depth];
     } else {
-      alts[depth]=alts[depth]->tail();
-      if(!alts[depth]) {
+      rem[depth]=rem[depth]->tail();
+    }
+    //check whether one instance literal isn't matched multiple times
+    bool repetitive;
+    do {
+      if(!rem[depth]) {
+	break;
+      }
+      repetitive=false;
+      for(unsigned li=0;li<depth;li++) {
+	if(rem[depth]->head()==rem[li]->head()) {
+	  repetitive=true;
+	  break;
+	}
+      }
+      if(repetitive) {
+	rem[depth]=rem[depth]->tail();
+      }
+    } while(repetitive);
+    if(!rem[depth]) {
 	if(depth) {
 	  depth--;
 	  bdStack.pop().backtrack();
@@ -729,12 +749,10 @@ bool MMSubstitution::canBeMatched(unsigned baseLen, DArray<Literal*>& baseLits,
 	} else {
 	  break;
 	}
-      }
     }
-    ASS(alts[depth]);
     BacktrackData bData;
     matcher.bdRecord(bData);
-    bool matched=matcher.match(baseLits[depth],0,alts[depth]->head(),1);
+    bool matched=matcher.match((*base)[depth],0,rem[depth]->head(),1);
     matcher.bdDone();
     if(matched) {
       depth++;
@@ -754,6 +772,88 @@ bool MMSubstitution::canBeMatched(unsigned baseLen, DArray<Literal*>& baseLits,
     bdStack.pop().drop();
   }
   return success;
+}
+
+/**
+ * Return list of pointers to Literal arrays, such that each of returned
+ * arrays consists of literals selected from respective list in @b alts,
+ * and those literals altogether match onto respective
+ * literals in @b base clause. If a single literal is presented in
+ * multiple lists in @b alts, it still can be matched at most once (i.e. in
+ * each returned array, every Literal occurs at most once).
+ */
+List<DArray<Literal*>* >* MMSubstitution::getMatches(Clause* base, DArray<List<Literal*>*>& alts)
+{
+  CALL("MMSubstitution::canBeMatched");
+
+  unsigned baseLen=base->length();
+  static Stack<BacktrackData> bdStack(32);
+  static DArray<List<Literal*>*> rem(32); //remaining alternatives
+  MMSubstitution matcher;
+  List<DArray<Literal*>* >* result=0;
+
+  ASS(bdStack.isEmpty());
+  rem.init(baseLen, 0);
+
+  unsigned depth=0;
+  for(;;) {
+    if(rem[depth]==0) {
+      rem[depth]=alts[depth];
+    } else {
+      rem[depth]=rem[depth]->tail();
+    }
+    //check whether one instance literal isn't matched multiple times
+    bool repetitive;
+    do {
+      if(!rem[depth]) {
+	break;
+      }
+      repetitive=false;
+      for(unsigned li=0;li<depth;li++) {
+	if(rem[depth]->head()==rem[li]->head()) {
+	  repetitive=true;
+	  break;
+	}
+      }
+      if(repetitive) {
+	rem[depth]=rem[depth]->tail();
+      }
+    } while(repetitive);
+    if(!rem[depth]) {
+	if(depth) {
+	  depth--;
+	  bdStack.pop().backtrack();
+	  ASS(bdStack.length()==depth);
+	  continue;
+	} else {
+	  break;
+	}
+    }
+    BacktrackData bData;
+    matcher.bdRecord(bData);
+    bool matched=matcher.match((*base)[depth],0,rem[depth]->head(),1);
+    matcher.bdDone();
+    if(matched && depth<baseLen-1) {
+	depth++;
+	bdStack.push(bData);
+    } else {
+      if(matched) {
+	// depth == baseLen-1
+	DArray<Literal*>* match=new DArray<Literal*>(baseLen);
+	for(unsigned li=0;li<baseLen;li++) {
+	  (*match)[li]=rem[li]->head();
+	}
+	List<DArray<Literal*>* >::push(match, result);
+      }
+      bData.backtrack();
+    }
+
+  }
+
+  while(!bdStack.isEmpty()) {
+    bdStack.pop().drop();
+  }
+  return result;
 }
 
 

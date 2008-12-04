@@ -1,7 +1,8 @@
 /**
- * @file SLQueryForwardSubsumption.cpp
- * Implements class SLQueryForwardSubsumption.
+ * @file ForwardSubsumptionResolution.cpp
+ * Implements class ForwardSubsumptionResolution.
  */
+
 
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/BacktrackData.hpp"
@@ -24,7 +25,7 @@
 #include "../Lib/Environment.hpp"
 #include "../Shell/Statistics.hpp"
 
-#include "SLQueryForwardSubsumption.hpp"
+#include "ForwardSubsumptionResolution.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -32,14 +33,14 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace Inferences;
 
-void SLQueryForwardSubsumption::attach(SaturationAlgorithm* salg)
+void ForwardSubsumptionResolution::attach(SaturationAlgorithm* salg)
 {
   CALL("SLQueryForwardSubsumption::attach");
   ForwardSimplificationEngine::attach(salg);
   _index=_salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE);
 }
 
-void SLQueryForwardSubsumption::detach()
+void ForwardSubsumptionResolution::detach()
 {
   CALL("SLQueryForwardSubsumption::detach");
   _index=0;
@@ -82,14 +83,77 @@ struct PtrHash2 {
 typedef DHMap<Clause*,ClauseMatches, PtrHash, PtrHash2> CMMap;
 typedef DHMap<Literal*, List<Literal*>*, PtrHash > MatchMap;
 
-void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
+bool fillAlternativesArray(Clause* baseClause, MIList* matches,
+	DArray<List<Literal*>*> alts)
+{
+  static MatchMap matchMap;
+  matchMap.reset();
+  MIList::Iterator miit(matches);
+  while(miit.hasNext()) {
+    MatchInfo minfo=miit.next();
+    LiteralList** litAlts; //pointer to list of possibly matching literals of cl
+    matchMap.getValuePtr(minfo.clauseLiteral, litAlts, 0);
+    LiteralList::push(minfo.queryLiteral, *litAlts);
+  };
+
+  unsigned mlen=baseClause->length();
+  alts.ensure(mlen);
+  bool everyBaseLitHasAMatch=true;
+  for(unsigned li=0;li<mlen;li++) {
+    LiteralList* litAlts;
+    if(matchMap.find( (*baseClause)[li], litAlts) ) {
+      ASS(litAlts);
+      alts[li]=litAlts;
+    } else {
+      alts[li]=0;
+      everyBaseLitHasAMatch=false;
+    }
+  }
+  return everyBaseLitHasAMatch;
+}
+
+bool isSubsumed(Clause* cl, CMMap* gens)
+{
+  static DArray<List<Literal*>*> alts(32);
+
+  CMMap::Iterator git(*gens);
+  while(git.hasNext()) {
+    Clause* mcl;
+    ClauseMatches clmatches;
+    git.next(mcl, clmatches);
+
+    unsigned mlen=mcl->length();
+    if(mlen>clmatches.matchCount) {
+      continue;
+    }
+
+    bool mclMatchFailed=fillAlternativesArray(cl, clmatches.matches, alts);
+
+    if(!mclMatchFailed) {
+      if(!MMSubstitution::canBeMatched(cl,alts)) {
+	mclMatchFailed=true;
+      }
+    }
+
+    for(unsigned li=0;li<mlen;li++) {
+      alts[li]->destroy();
+    }
+
+    if(!mclMatchFailed) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void ForwardSubsumptionResolution::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 {
   CALL("SLQueryForwardSubsumption::perform");
   toAdd=ClauseIterator::getEmpty();
+  keep=true;
 
   unsigned clen=cl->length();
   if(clen==0) {
-    keep=true;
     return;
   }
 
@@ -110,21 +174,37 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
       if(!gens) {
 	gens=new CMMap();
       }
-
       ClauseMatches* cms;
-      if(gens->getValuePtr(res.clause, cms)) {
-	ASS(cms->matches==0);
-      }
+      gens->getValuePtr(res.clause, cms);
       MIList::push(MatchInfo(res.literal, (*cl)[li]), cms->matches);
       cms->matchCount++;
     }
   }
 
-  if(gens)
+  if(gens && isSubsumed(cl, gens))
   {
-    static DArray<List<Literal*>*> matches(32);
-    static MatchMap matchMap;
+    keep=false;
+    goto fin;
+  }
 
+  for(unsigned li=0;li<clen;li++) {
+    SLQueryResultIterator rit=_index->getComplementaryGeneralizations( (*cl)[li], false);
+    while(rit.hasNext()) {
+      SLQueryResult res=rit.next();
+
+      if(!gens) {
+	gens=new CMMap();
+      }
+      ClauseMatches* cms;
+      gens->getValuePtr(res.clause, cms);
+      MIList::push(MatchInfo(res.literal, (*cl)[li]), cms->matches);
+      cms->matchCount++;
+    }
+  }
+
+  if(gens) {
+    List<DArray<Literal*>* >* matches=0;
+    static DArray<List<Literal*>*> alts(32);
     CMMap::Iterator git(*gens);
     while(git.hasNext()) {
       Clause* mcl;
@@ -136,46 +216,26 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
 	continue;
       }
 
-      matchMap.reset();
-      MIList::Iterator miit(clmatches.matches);
-      while(miit.hasNext()) {
-	MatchInfo minfo=miit.next();
-	LiteralList** alts; //pointer to list of possibly matching literals of cl
-	matchMap.getValuePtr(minfo.clauseLiteral, alts, 0);
-	LiteralList::push(minfo.queryLiteral, *alts);
-      };
-
-      matches.ensure(mlen);
-      bool mclMatchFailed=false;
-      for(unsigned li=0;li<mlen;li++) {
-	LiteralList* alts;
-	if(matchMap.find( (*mcl)[li], alts) ) {
-	  ASS(alts);
-	  matches[li]=alts;
-	} else {
-	  matches[li]=0;
-	  mclMatchFailed=true;
-	}
-      }
+      bool mclMatchFailed=fillAlternativesArray(cl, clmatches.matches, alts);
 
       if(!mclMatchFailed) {
-	if(!MMSubstitution::canBeMatched(mcl,matches)) {
-	  mclMatchFailed=true;
-	}
+	matches=List<DArray<Literal*>*>::concat(
+		MMSubstitution::getMatches(mcl, alts), matches);
       }
 
       for(unsigned li=0;li<mlen;li++) {
-	matches[li]->destroy();
+	alts[li]->destroy();
       }
-
-      if(!mclMatchFailed) {
-	keep=false;
-	goto fin;
-      }
-
     }
-    keep=true;
+    if(matches) {
+      //TODO:finish
+      while(matches) {
+	matches->destroyWithDeletion();
+      }
+    }
+
   }
+
 fin:
   if(!keep) {
     env.statistics->forwardSubsumed++;

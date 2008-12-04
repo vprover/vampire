@@ -26,6 +26,7 @@ using namespace Lib;
 class TermList;
 class Term;
 class Literal;
+typedef List<Literal*> LiteralList;
 
 class Unit;
 class Clause;

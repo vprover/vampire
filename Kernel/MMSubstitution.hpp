@@ -71,9 +71,9 @@ public:
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
 
-  static bool canBeMatched(unsigned baseLen, DArray<Literal*>& baseLits,
-	  DArray<List<Literal*>*>& matches);
-
+  static bool canBeMatched(Clause* base, DArray<List<Literal*>*>& matches);
+  static List<DArray<Literal*>* >* getMatches(Clause* base,
+	  DArray<List<Literal*>*>& alts);
 
 #if VDEBUG
   std::string toString(bool deref=false) const;

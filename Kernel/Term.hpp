@@ -23,9 +23,6 @@
 using namespace std;
 using namespace Lib;
 
-#define TERM_MAX_ARITY 255
-#define TERM_MAX_FUNCTOR 32767
-
 namespace Indexing {
   class TermSharing;
 }
@@ -130,24 +127,18 @@ private:
       /** Ordering comparison result for commutative term arguments, one of
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable) */
       unsigned order : 3;
-      /** number of the symbol in the signature */
-      unsigned functor : 15;
-      /** arity of the functor */
-      unsigned arity : 8;
       /** reserved for whatever */
 #ifdef ARCH_X64
-      size_t reserved : 32;
+      size_t reserved : 55;
 #else
-//      unsigned reserved : 15;
+      unsigned reserved : 23;
 #endif
     } _info;
   };
-
   friend class Indexing::TermSharing;
   friend class Term;
   friend class Literal;
 }; // class TermList
-
 
 /**
  * Class to represent terms and lists of terms.
@@ -166,42 +157,36 @@ public:
   /** Function or predicate symbol of a term */
   const unsigned functor() const
   {
-    return _args[0]._info.functor;
+    return _functor;
   }
 
-//   void show() const { _functor.show(); }
-
-//   XMLElement toXML() const;
   static XMLElement variableToXML(unsigned var);
   string toString() const;
   static string variableToString(unsigned var);
   /** return the arguments */
   const TermList* args() const
-  { return _args + _args[0]._info.arity; }
+  { return _args + _arity; }
   /** return the nth argument (counting from 0) */
   const TermList* nthArgument(int n) const
   {
     ASS(n >= 0);
-    ASS((unsigned)n < _args[0]._info.arity);
+    ASS((unsigned)n < _arity);
 
-    return _args + (_args[0]._info.arity - n);
+    return _args + (_arity - n);
   }
   /** return the arguments */
   TermList* args()
-  { return _args + _args[0]._info.arity; }
+  { return _args + _arity; }
   unsigned hash() const;
   /** return the arity */
   unsigned arity() const
-  { return _args[0]._info.arity; }
+  { return _arity; }
   static void* operator new(size_t,unsigned arity);
   /** make the term into a symbol term */
   void makeSymbol(unsigned number,unsigned arity)
   {
-    ASS(arity<TERM_MAX_ARITY); //arity is stored in less than 32 bits
-    ASS(number<TERM_MAX_FUNCTOR); //functor is stored in less than 32 bits
-
-    _args[0]._info.functor = number;
-    _args[0]._info.arity = arity;
+    _functor = number;
+    _arity = arity;
   }
   void destroy();
   void destroyNonShared();
@@ -267,7 +252,6 @@ public:
 
 #if VDEBUG
   string headerToString() const;
-  void assertValid() const { ASS_EQ(_args[0]._info.tag, FUN); }
 #endif
 
   class VariableIterator {
@@ -295,6 +279,10 @@ public:
   };
 
 protected:
+  /** The number of this symbol in a signature */
+  unsigned _functor;
+  /** Arity of the symbol */
+  unsigned _arity;
   /** Weight of the symbol */
   unsigned _weight;
   /** number of occurrences of variables */
@@ -338,13 +326,13 @@ public:
    * the number of the predicate symbol.
    */
   unsigned header() const
-  { return 2*_args[0]._info.functor + polarity(); }
+  { return 2*_functor + polarity(); }
   /**
    * Header of the complementary literal, 2*p+1 is negative and 2*p
    * if positive where p is the number of the predicate symbol.
    */
   unsigned complementaryHeader() const
-  { return 2*_args[0]._info.functor + 1 - polarity(); }
+  { return 2*_functor + 1 - polarity(); }
 
   /**
    * Convert header to the correponding predicate symbol number.
@@ -381,11 +369,8 @@ public:
    */
   Literal(unsigned functor,unsigned arity,bool polarity,bool commutative)
   {
-    ASS(arity<TERM_MAX_ARITY); //arity is stored in less than 32 bits
-    ASS(functor<TERM_MAX_FUNCTOR); //functor is stored in less than 32 bits
-
-    _args[0]._info.functor = functor;
-    _args[0]._info.arity = arity;
+    _functor = functor;
+    _arity = arity;
     _args[0]._info.polarity = polarity;
     _args[0]._info.commutative = commutative;
     _args[0]._info.literal = 1u;

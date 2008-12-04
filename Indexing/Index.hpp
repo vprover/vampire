@@ -49,6 +49,10 @@ public:
   {
     INVALID_OPERATION("Operation not supported by this index.");
   }
+  virtual SLQueryResultIterator getComplementaryGeneralizations(Literal* lit, bool retrieveSubstitution)
+  {
+    INVALID_OPERATION("Operation not supported by this index.");
+  }
   virtual SLQueryResultIterator getGeneralizations(Literal* lit, bool retrieveSubstitution)
   {
     INVALID_OPERATION("Operation not supported by this index.");

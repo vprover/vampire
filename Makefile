@@ -15,8 +15,8 @@
 #XFLAGS = -g -DVDEBUG=0 -DCHECK_LEAKS=0 # debug mode without VDEBUG macro 
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-XFLAGS = -O6 -DVDEBUG=0 # no debugging
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+#XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -fprofile-arcs -pg -O6 -DVDEBUG=0 # coverage & profiling optimized
 #XFLAGS = -DVDEBUG=0 # no debugging, no optimization
@@ -78,6 +78,7 @@ VI_OBJ = Indexing/Index.o\
 VINF_OBJ=Inferences/AtomicClauseForwardSubsumption.o\
          Inferences/BinaryResolution.o\
          Inferences/Factoring.o\
+         Inferences/ForwardSubsumptionResolution.o\
          Inferences/InferenceEngine.o\
          Inferences/RefutationSeekerFSE.o\
          Inferences/SLQueryBackwardSubsumption.o\
@@ -213,7 +214,7 @@ sltest: $(SLTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(SLTEST_OBJ) -o test_SkipList
 
 alucard:  $(ALUCARD_OBJ)
-	$(CXX) $(CXXFLAGS) $(ALUCARD_OBJ) -o alucard
+	$(CXX) $(CXXFLAGS) $(ALUCARD_OBJ) -o alucard2
 
 clean:
 	cd Debug ; rm -f *.o *~ *.bak ; cd ..

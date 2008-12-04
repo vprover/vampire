@@ -55,6 +55,7 @@ void OrderingLiteralSelector::selectPositive(Clause* c)
   while(*ptr1) {
     LList** ptr2=&(*ptr1)->tailReference();
     while(*ptr2) {
+      Ordering::Result res=_ord->compare((*ptr1)->head(), (*ptr2)->head());
       //TODO: finish
       ptr2=&(*ptr2)->tailReference();
     }

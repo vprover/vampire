@@ -123,12 +123,10 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     }
   }
 
-  static DArray<Literal*> baseLits(32);
   static DArray<LList*> matchedLits(32);
 
   ClauseList* subsumed=0;
 
-  baseLits.initFromArray(clen, *cl);
   matchedLits.init(clen, 0);
   while(matches[clen-1].isNonEmpty()) {
     Clause* mcl=matches[clen-1].top().clause;
@@ -142,7 +140,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
       }
     }
 
-    if(MMSubstitution::canBeMatched(clen,baseLits,matchedLits)) {
+    if(MMSubstitution::canBeMatched(cl,matchedLits)) {
       ClauseList::push(mcl, subsumed);
       env.statistics->backwardSubsumed++;
     }

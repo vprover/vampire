@@ -70,6 +70,13 @@ public:
     return SLQueryResultIterator(core);
   }
 
+  SLQueryResultIterator getComplementaryGeneralizations(Literal* lit, bool retrieveSubstitution)
+  {
+    GeneralizationsIterator* core=new GeneralizationsIterator(this, lit, true,
+	    retrieveSubstitution);
+    return SLQueryResultIterator(core);
+  }
+
   SLQueryResultIterator getInstances(Literal* lit, bool retrieveSubstitution)
   {
     InstancesIterator* core=new InstancesIterator(this, lit, false,

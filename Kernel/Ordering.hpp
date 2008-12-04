@@ -28,6 +28,7 @@ public:
     EQUAL,
     INCOMPARABLE
   };
+  virtual ~Ordering() {}
   /** Return the result of comparing @b l1 and @b l2 */
   virtual Result compare(const Literal* l1,const Literal* l2) = 0;
   /** Return the result of comparing terms (not term lists!)
@@ -36,4 +37,4 @@ public:
 }; // class Ordering
 
 }
-#endif 
+#endif
