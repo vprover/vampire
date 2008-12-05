@@ -359,6 +359,45 @@ string getIndentStr(int n)
   return res;
 }
 
+string SubstitutionTree::nodeToString(Node* topNode)
+{
+  string res;
+  Stack<int> indentStack(10);
+  Stack<Node*> stack(10);
+
+  stack.push(topNode);
+  indentStack.push(1);
+
+  while(stack.isNonEmpty()) {
+    Node* node=stack.pop();
+    int indent=indentStack.pop();
+
+    if(!node) {
+	continue;
+    }
+    if(!node->term.isEmpty()) {
+	res+=getIndentStr(indent)+Test::Output::singleTermListToString(node->term)+"\n";
+    }
+
+    if(node->isLeaf()) {
+	Leaf* lnode = static_cast<Leaf*>(node);
+	LDIterator ldi(lnode->allChildren());
+
+	while(ldi.hasNext()) {
+	  res+=getIndentStr(indent) + "Lit: " + Test::Output::toString((Literal*)ldi.next().data) + "\n";
+	}
+    } else {
+	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
+	NodeIterator noi(inode->allChildren());
+	while(noi.hasNext()) {
+	  stack.push(*noi.next());
+	  indentStack.push(indent+1);
+	}
+    }
+  }
+  return res;
+}
+
 string SubstitutionTree::toString() const
 {
   CALL("SubstitutionTree::toString");
@@ -372,36 +411,7 @@ string SubstitutionTree::toString() const
     Stack<int> indentStack(10);
     Stack<Node*> stack(10);
 
-    stack.push(_nodes[tli]);
-    indentStack.push(1);
-
-    while(stack.isNonEmpty()) {
-      Node* node=stack.pop();
-      int indent=indentStack.pop();
-
-      if(!node) {
-	continue;
-      }
-      if(!node->term.isEmpty()) {
-	res+=getIndentStr(indent)+Test::Output::singleTermListToString(node->term)+"\n";
-      }
-
-      if(node->isLeaf()) {
-	Leaf* lnode = static_cast<Leaf*>(node);
-	LDIterator ldi(lnode->allChildren());
-
-	while(ldi.hasNext()) {
-	  res+=getIndentStr(indent) + "Lit: " + Test::Output::toString((Literal*)ldi.next().data) + "\n";
-	}
-      } else {
-	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
-	NodeIterator noi(inode->allChildren());
-	while(noi.hasNext()) {
-	  stack.push(*noi.next());
-	  indentStack.push(indent+1);
-	}
-      }
-    }
+    res+=nodeToString(_nodes[tli]);
   }
   return res;
 }
@@ -457,10 +467,12 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
   }
 }
 
+
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* t,
 	Literal* query, bool complementary, bool retrieveSubstitution)
 : subst(), retrieveSubstitution(retrieveSubstitution), inLeaf(false),
-ldIterator(LDIterator::getEmpty()), nodeIterators(4), bdStack(4), clientBDRecording(false)
+ldIterator(LDIterator::getEmpty()), nodeIterators(4), bdStack(4), clientBDRecording(false),
+tree(t)
 {
   CALL("SubstitutionTree::UnificationsIterator::init");
   int rootIndex=t->getRootNodeIndex(query, complementary);
@@ -482,6 +494,7 @@ ldIterator(LDIterator::getEmpty()), nodeIterators(4), bdStack(4), clientBDRecord
 
 void SubstitutionTree::UnificationsIterator::createInitialBindings(Term* t)
 {
+  CALL("SubstitutionTree::UnificationsIterator::createInitialBindings");
   TermList* args=t->args();
   int nextVar = 0;
   while (! args->isEmpty()) {
@@ -649,7 +662,9 @@ void SubstitutionTree::UnificationsIterator::extractSpecialVariables(
   TermList* ts=&t;
   static Stack<TermList*> stack(4);
   for(;;) {
-    if(ts->tag()==REF && !ts->term()->shared()) {
+    //TODO: When shared subterms were skipped, we missed some
+    //special variables. This shouldn't happen!
+    if(ts->tag()==REF && ts->term()->arity()>0) {
       stack.push(ts->term()->args());
     }
     if(ts->isSpecialVar()) {

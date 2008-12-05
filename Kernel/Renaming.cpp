@@ -8,6 +8,7 @@
 #include "Renaming.hpp"
 
 #if VDEBUG
+#include "../Lib/Int.hpp"
 #include "../Lib/Set.hpp"
 #endif
 
@@ -132,6 +133,18 @@ void Renaming::assertValid() const
     ASS(!range.contains(to));
     range.insert(to);
   }
+}
+
+std::string Renaming::toString() const
+{
+  std::string res;
+  VariableMap::Iterator mit(_data);
+  while(mit.hasNext()) {
+    unsigned from, to;
+    mit.next(from, to);
+    res+=Int::toString(from)+" -> "+Int::toString(to)+"\n";
+  }
+  return res;
 }
 
 #endif

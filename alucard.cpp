@@ -46,6 +46,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/Factoring.hpp"
+#include "Inferences/ForwardSubsumptionResolution.hpp"
 #include "Inferences/AtomicClauseForwardSubsumption.hpp"
 #include "Inferences/RefutationSeekerFSE.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
@@ -79,8 +80,10 @@ SaturationResult brSaturate(ClauseIterator clauses)
   DuplicateLiteralRemovalFSE dlrFSE;
   TrivialInequalitiesRemovalFSE tirFSE;
   SLQueryForwardSubsumption slfsFSE;
+  ForwardSubsumptionResolution fsrFSE;
   RefutationSeekerFSE rsFSE;
   fwSimplifier.addFront(&rsFSE);
+  //fwSimplifier.addFront(&fsrFSE);
   fwSimplifier.addFront(&slfsFSE);
   fwSimplifier.addFront(&tirFSE);
   fwSimplifier.addFront(&tdFSE);

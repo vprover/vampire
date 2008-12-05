@@ -534,14 +534,28 @@ Kernel/MMSubstitution.o: Debug/Assertion.hpp Debug/Tracer.hpp
 Kernel/MMSubstitution.o: Lib/Allocator.hpp Debug/Tracer.hpp
 Kernel/MMSubstitution.o: Lib/Comparison.hpp Lib/Random.hpp Lib/List.hpp
 Kernel/MMSubstitution.o: Lib/Random.hpp Lib/DHMultiset.hpp Lib/Exception.hpp
-Kernel/MMSubstitution.o: Lib/Hash.hpp Lib/DHMap.hpp Kernel/Renaming.hpp
-Kernel/MMSubstitution.o: Lib/DHMap.hpp Kernel/Term.hpp Lib/Portability.hpp
-Kernel/MMSubstitution.o: Lib/XML.hpp Lib/Comparison.hpp Lib/Stack.hpp
-Kernel/MMSubstitution.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/Int.hpp
-Kernel/MMSubstitution.o: Lib/Portability.hpp Indexing/TermSharing.hpp
-Kernel/MMSubstitution.o: Lib/Set.hpp Kernel/Term.hpp
-Kernel/MMSubstitution.o: Kernel/MMSubstitution.hpp Forwards.hpp
-Kernel/MMSubstitution.o: Lib/BacktrackData.hpp Test/Output.hpp Lib/Int.hpp
+Kernel/MMSubstitution.o: Lib/Hash.hpp Lib/DHMap.hpp Kernel/Term.hpp
+Kernel/MMSubstitution.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
+Kernel/MMSubstitution.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/List.hpp
+Kernel/MMSubstitution.o: Lib/Int.hpp Lib/Portability.hpp Kernel/Clause.hpp
+Kernel/MMSubstitution.o: Forwards.hpp Lib/Allocator.hpp Kernel/Unit.hpp
+Kernel/MMSubstitution.o: Kernel/Renaming.hpp Lib/DHMap.hpp
+Kernel/MMSubstitution.o: Indexing/TermSharing.hpp Lib/Set.hpp Kernel/Term.hpp
+Kernel/MMSubstitution.o: Kernel/MMSubstitution.hpp Lib/BacktrackData.hpp
+Kernel/MMSubstitution.o: Test/Output.hpp Lib/Int.hpp
+Kernel/OrderingLiteralSelector.o: Lib/List.hpp Debug/Assertion.hpp
+Kernel/OrderingLiteralSelector.o: Debug/Tracer.hpp Lib/Allocator.hpp
+Kernel/OrderingLiteralSelector.o: Debug/Tracer.hpp Kernel/Term.hpp
+Kernel/OrderingLiteralSelector.o: Lib/Portability.hpp Lib/XML.hpp
+Kernel/OrderingLiteralSelector.o: Lib/Comparison.hpp Lib/Stack.hpp
+Kernel/OrderingLiteralSelector.o: Lib/BacktrackData.hpp Lib/List.hpp
+Kernel/OrderingLiteralSelector.o: Lib/Int.hpp Lib/Comparison.hpp
+Kernel/OrderingLiteralSelector.o: Lib/Portability.hpp Kernel/Clause.hpp
+Kernel/OrderingLiteralSelector.o: Forwards.hpp Lib/Allocator.hpp
+Kernel/OrderingLiteralSelector.o: Kernel/Unit.hpp
+Kernel/OrderingLiteralSelector.o: Kernel/OrderingLiteralSelector.hpp
+Kernel/OrderingLiteralSelector.o: Kernel/Ordering.hpp
+Kernel/OrderingLiteralSelector.o: Kernel/LiteralSelector.hpp
 Kernel/Renaming.o: Lib/DArray.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Kernel/Renaming.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Comparison.hpp
 Kernel/Renaming.o: Lib/Random.hpp Indexing/TermSharing.hpp Lib/Set.hpp
@@ -834,6 +848,7 @@ alucard.o: Saturation/ClauseContainer.hpp Inferences/InferenceEngine.hpp
 alucard.o: Inferences/BinaryResolution.hpp Inferences/InferenceEngine.hpp
 alucard.o: Inferences/Factoring.hpp
 alucard.o: Inferences/AtomicClauseForwardSubsumption.hpp
+alucard.o: Inferences/RefutationSeekerFSE.hpp
 alucard.o: Inferences/SLQueryForwardSubsumption.hpp
 alucard.o: Inferences/SLQueryBackwardSubsumption.hpp
 alucard.o: Inferences/TautologyDeletionFSE.hpp

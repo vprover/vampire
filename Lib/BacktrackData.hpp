@@ -68,6 +68,13 @@ public:
     return _bol==0;
   }
 
+  template<typename T>
+  void backtrackableSet(T* ptr, T val)
+  {
+    addBacktrackObject(new SetValueBacktrackObject<T>(ptr,*ptr));
+    *ptr=val;
+  }
+
 #if VDEBUG
   std::string toString()
   {
@@ -86,6 +93,22 @@ public:
 
 private:
   List<BacktrackObject*>* _bol;
+
+  template<typename T>
+  class SetValueBacktrackObject
+  : public BacktrackObject
+  {
+  public:
+    SetValueBacktrackObject(T* addr, T previousVal)
+    : addr(addr), previousVal(previousVal) {}
+    void backtrack()
+    {
+      *addr=previousVal;
+    }
+  private:
+    T* addr;
+    T previousVal;
+  };
 };
 
 class Backtrackable

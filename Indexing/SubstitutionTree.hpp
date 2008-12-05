@@ -59,12 +59,14 @@ public:
 
   SLQueryResultIterator getComplementaryUnifications(Literal* lit)
   {
+    CALL("SubstitutionTree::getComplementaryUnifications");
     UnificationsIterator* core=new UnificationsIterator(this, lit, true, true);
     return SLQueryResultIterator(core);
   }
 
   SLQueryResultIterator getGeneralizations(Literal* lit, bool retrieveSubstitution)
   {
+    CALL("SubstitutionTree::getGeneralizations");
     GeneralizationsIterator* core=new GeneralizationsIterator(this, lit, false,
 	    retrieveSubstitution);
     return SLQueryResultIterator(core);
@@ -72,6 +74,7 @@ public:
 
   SLQueryResultIterator getComplementaryGeneralizations(Literal* lit, bool retrieveSubstitution)
   {
+    CALL("SubstitutionTree::getComplementaryGeneralizations");
     GeneralizationsIterator* core=new GeneralizationsIterator(this, lit, true,
 	    retrieveSubstitution);
     return SLQueryResultIterator(core);
@@ -79,15 +82,11 @@ public:
 
   SLQueryResultIterator getInstances(Literal* lit, bool retrieveSubstitution)
   {
+    CALL("SubstitutionTree::getInstances");
     InstancesIterator* core=new InstancesIterator(this, lit, false,
 	    retrieveSubstitution);
     return SLQueryResultIterator(core);
   }
-
-#if VDEBUG
-  string toString() const;
-  bool isEmpty() const;
-#endif
 
 private:
 
@@ -334,6 +333,7 @@ private:
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
+    SubstitutionTree* tree;
   };
 
   class GeneralizationsIterator
@@ -360,6 +360,12 @@ private:
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
   };
 
+#if VDEBUG
+public:
+  static string nodeToString(Node* topNode);
+  string toString() const;
+  bool isEmpty() const;
+#endif
 
 }; // class SubstiutionTree
 

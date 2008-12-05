@@ -134,8 +134,10 @@ public:
     REDUCE_FALSE_TRUE = 44u,
     /** remove from clause one or more inequalities <i>s != s</i> */
     TRIVIAL_INEQUALITY_REMOVAL = 45u,
-    /** resolution inference */
-    FACTORING = 46u
+    /** factoring inference */
+    FACTORING = 46u,
+    /** subsumption resolution simplification rule */
+    SUBSUMPTION_RESOLUTION = 47u
   }; // class Inference::Rule
 
   explicit Inference(Rule r)

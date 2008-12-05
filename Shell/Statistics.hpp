@@ -56,6 +56,8 @@ public:
   unsigned forwardSubsumed;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed;
+  /** number of forward subsumption resolutions */
+  unsigned forwardSubsumptionResolution;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

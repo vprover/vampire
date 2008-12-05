@@ -16,6 +16,7 @@
 
 #if VDEBUG
 
+#include <iostream>
 #include <string>
 
 #endif
@@ -35,7 +36,8 @@ public:
   bool unify(TermList t1,int index1, TermList t2, int index2);
   bool unify(Literal* l1,int index1, Literal* l2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
-  bool match(Literal* base,int baseIndex, Literal* instance, int instanceIndex);
+  bool match(Literal* base,int baseIndex, Literal* instance, int instanceIndex,
+	  bool complementary);
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
   bool isUnbound(unsigned var, int index) const
   {
@@ -71,7 +73,8 @@ public:
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
 
-  static bool canBeMatched(Clause* base, DArray<List<Literal*>*>& matches);
+  static bool canBeMatched(Clause* base, DArray<List<Literal*>*>& matches,
+	  bool allowComplementary=false);
   static List<DArray<Literal*>* >* getMatches(Clause* base,
 	  DArray<List<Literal*>*>& alts);
 

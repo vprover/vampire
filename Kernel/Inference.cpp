@@ -270,6 +270,8 @@ string Inference::name() const
     return "trivial inequality removal";
   case FACTORING:
     return "factoring";
+  case SUBSUMPTION_RESOLUTION:
+    return "subsumption resolution";
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

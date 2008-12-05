@@ -7,6 +7,10 @@
 #ifndef __Renaming__
 #define __Renaming__
 
+#if VDEBUG
+#include<string>
+#endif
+
 #include "../Lib/DHMap.hpp"
 
 #include "Term.hpp"
@@ -42,6 +46,7 @@ public:
 
 #if VDEBUG
   void assertValid() const;
+  string toString() const;
 #endif
 private:
   typedef DHMap<unsigned, unsigned> VariableMap;
