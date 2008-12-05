@@ -214,7 +214,7 @@ sltest: $(SLTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(SLTEST_OBJ) -o test_SkipList
 
 alucard:  $(ALUCARD_OBJ)
-	$(CXX) $(CXXFLAGS) $(ALUCARD_OBJ) -o alucard2
+	$(CXX) $(CXXFLAGS) $(ALUCARD_OBJ) -o alucard
 
 clean:
 	cd Debug ; rm -f *.o *~ *.bak ; cd ..
