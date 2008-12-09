@@ -9,6 +9,8 @@
 #include "../Kernel/Renaming.hpp"
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/Environment.hpp"
+#include "TermSharing.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -248,6 +250,11 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
 	subterms.push(tt->next());
       }
     }
+  }
+
+  if((*pnode)->term.isTerm() && !(*pnode)->term.term()->shared()) {
+    Term* sharedTerm=env.sharing->insertRecurrently((*pnode)->term.term());
+    (*pnode)->term.setTerm(sharedTerm);
   }
 
   goto start;

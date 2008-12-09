@@ -7,13 +7,11 @@
 
 #ifndef __KBO__
 
+#include "../Forwards.hpp"
 #include "Ordering.hpp"
 
 namespace Kernel {
 
-class Literal;
-class Signature;
-class TermList;
 
 /**
  * Class for instances of the Knuth-Bendix orderings
@@ -51,4 +49,4 @@ private:
 }; // class KBO
 
 }
-#endif 
+#endif

@@ -25,12 +25,20 @@ class Assertion
 public:
   static void violated(const char* file,int line,const char* condition);
 
+  static void checkType(const char* file,int line,const void* ptr,
+	  const char* assumed, const char* ptrStr);
+
   template<typename T,typename U>
   static void violatedEquality(const char* file,int line,const char* val1Str,
 	  const char* val2Str, const T& val1, const U& val2);
   template<typename T,typename U>
   static void violatedNonequality(const char* file,int line,const char* val1Str,
 	  const char* val2Str, const T& val1, const U& val2);
+
+  static void violatedStrEquality(const char* file,int line,const char* val1Str,
+  	  const char* val2Str, const char* val1, const char* val2);
+
+
   static void reportAssertValidException(const char* file,int line,const char* obj);
 private:
   static bool _violated;
@@ -76,6 +84,16 @@ private:
     throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
   }
 
+#define ASS_STR_EQ(VAL1,VAL2)                                               \
+  if (strcmp((VAL1),(VAL2)) ) {                                               \
+    Debug::Assertion::violatedStrEquality(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2); \
+    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+  }
+
+#define ASS_ALLOC_TYPE(PTR,TYPE)						\
+  Debug::Assertion::checkType(__FILE__,__LINE__,(PTR),(TYPE), #PTR)
+
+
 
 #define ASSERT_VALID(obj) try { (obj).assertValid(); } catch(...) \
   { Debug::Assertion::reportAssertValidException(__FILE__,__LINE__,#obj); throw; }
@@ -92,6 +110,8 @@ private:
 
 #define ASS_EQ(VAL1,VAL2)
 #define ASS_NEQ(VAL1,VAL2)
+#define ASS_STR_EQ(VAL1,VAL2)
+#define ASS_ALLOC_TYPE(PTR,TYPE)
 
 
 #define ASSERTION_VIOLATION

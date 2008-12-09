@@ -25,6 +25,10 @@ namespace Lib {
 template<typename C>
 class DArray
 {
+private:
+  //private and undefined operator= and copy constructor to avoid implicitly generated ones
+  DArray(const DArray&);
+  DArray& operator=(const DArray&);
 public:
   /**
    * Create an array having the given @b size

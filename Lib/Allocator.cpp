@@ -130,17 +130,17 @@ void Allocator::initialise()
  * Write information about a memory address to cout.
  * @since 30/03/2008 flight Murcia-Manchester
  */
-void Allocator::addressStatus(void* address)
+void Allocator::addressStatus(const void* address)
 {
   CALL("Allocator::addressStatus");
 
   Descriptor* pg = 0; // page descriptor
   cout << "Status of address " << address << '\n';
 
-  char* a = static_cast<char*>(address);
+  const char* a = static_cast<const char*>(address);
   for (int i = Descriptor::capacity-1;i >= 0;i--) {
     Descriptor& d = Descriptor::map[i];
-    char* addr = static_cast<char*>(d.address);
+    const char* addr = static_cast<const char*>(d.address);
     if (addr < a) {
       continue;
     }
@@ -256,9 +256,9 @@ void Allocator::deallocateKnown(void* obj,size_t size)
 #if TRACE_ALLOCATIONS
   cout << desc->toString() << ": DK\n" << flush;
 #endif
-  ASS(desc->address == obj);
-  ASS(! strcmp(desc->cls,className));
-  ASS(desc->size == size);
+  ASS_EQ(desc->address, obj);
+  ASS_STR_EQ(desc->cls,className);
+  ASS_EQ(desc->size, size);
   ASS(desc->allocated);
   ASS(desc->known);
   ASS(! desc->page);
@@ -329,8 +329,8 @@ void Allocator::deallocateUnknown(void* obj)
 #if TRACE_ALLOCATIONS
   cout << desc->toString() << ": DU\n" << flush;
 #endif
-  ASS(desc->address == obj);
-  ASS(! strcmp(desc->cls,className));
+  ASS_EQ(desc->address, obj);
+  ASS_STR_EQ(desc->cls,className);
   ASS(desc->allocated);
   ASS(! desc->known);
   ASS(! desc->page);
@@ -345,7 +345,7 @@ void Allocator::deallocateUnknown(void* obj)
   char* mem = reinterpret_cast<char*>(obj) - sizeof(Known);
   Unknown* unknown = reinterpret_cast<Unknown*>(mem);
   size_t size = unknown->size;
-  ASS(desc->size == size);
+  ASS_EQ(desc->size, size);
 
   if (size >= REQUIRES_PAGE) {
     mem = reinterpret_cast<char*>(obj)-PAGE_PREFIX_SIZE;
@@ -738,7 +738,7 @@ void* Allocator::allocateUnknown(size_t size)
  * Find a descriptor in the map, and if it is not there, add it.
  * @since 14/12/2005 Bellevue
  */
-Allocator::Descriptor* Allocator::Descriptor::find (void* addr)
+Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
 {
   CALL("Allocator::Descriptor::find");
 
@@ -847,7 +847,7 @@ Allocator::Descriptor::Descriptor ()
  * The FNV-hashing.
  * @since 31/03/2006 Bellevue
  */
-unsigned Allocator::Descriptor::hash (void* addr)
+unsigned Allocator::Descriptor::hash (const void* addr)
 {
   CALL("Allocator::Descriptor::hash");
 

@@ -52,7 +52,7 @@ public:
   void deallocateKnown(void* obj,size_t size,const char* className);
   void* allocateUnknown(size_t size,const char* className);
   void deallocateUnknown(void* obj,const char* className);
-  static void addressStatus(void* address);
+  static void addressStatus(const void* address);
   static void reportUsageByClasses();
 #else
   void* allocateKnown(size_t size);
@@ -130,11 +130,12 @@ private:
   }; // class Unknown
 
 #if VDEBUG
+public:
   /** Descriptor stores information about allocated pieces of memory */
   struct Descriptor
   {
     /** address of a piece of memory */
-    void* address;
+    const void* address;
     /** class to which it belongs */
     const char* cls;
     /** time when it allocated/deallocated */
@@ -151,8 +152,8 @@ private:
 
     std::string toString() const;
 
-    static unsigned hash (void* addr);
-    static Descriptor* find(void* addr);
+    static unsigned hash (const void* addr);
+    static Descriptor* find(const void* addr);
     /** map from addresses to memory descriptors */
     static Descriptor* map;
     /** timestamp for (de)allocations */
@@ -168,6 +169,7 @@ private:
   };
 #endif
 
+private:
   /**
    * A piece of memory whose size is multiple of PAGE_SIZE. Each page
    * is used in one of the following ways:

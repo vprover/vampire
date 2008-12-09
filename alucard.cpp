@@ -83,8 +83,8 @@ SaturationResult brSaturate(ClauseIterator clauses)
   ForwardSubsumptionResolution fsrFSE;
   RefutationSeekerFSE rsFSE;
   fwSimplifier.addFront(&rsFSE);
-  //fwSimplifier.addFront(&fsrFSE);
-  fwSimplifier.addFront(&slfsFSE);
+  fwSimplifier.addFront(&fsrFSE);
+  //fwSimplifier.addFront(&slfsFSE);
   fwSimplifier.addFront(&tirFSE);
   fwSimplifier.addFront(&tdFSE);
   fwSimplifier.addFront(&dlrFSE);
@@ -167,6 +167,7 @@ void doProving()
     env.out << "Equational tautologies: "<<env.statistics->equationalTautologies<<endl;
     env.out << "Forward subsumptions: "<<env.statistics->forwardSubsumed<<endl;
     env.out << "Backward subsumptions: "<<env.statistics->backwardSubsumed<<endl;
+    env.out << "Fw subsumption resolutions: "<<env.statistics->forwardSubsumptionResolution<<endl;
     env.out << endl;
 
     env.out << "Binary resolution: "<<env.statistics->resolution<<endl;

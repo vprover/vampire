@@ -23,6 +23,8 @@ namespace Kernel
 {
 using namespace Lib;
 
+class Signature;
+
 class TermList;
 class Term;
 class Literal;

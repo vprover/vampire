@@ -601,6 +601,21 @@ string Term::headerToString() const
     + ", tag: " + Int::toString(_args[0]._info.tag);
   return s;
 }
+
+void Term::assertValid() const
+{
+  ASS_ALLOC_TYPE(this, "Term");
+  ASS_EQ(_args[0]._info.tag, FUN);
+}
+
+void TermList::assertValid() const
+{
+  if(this->isTerm()) {
+    ASS_ALLOC_TYPE(_term, "Term");
+    ASS_EQ(_term->_args[0]._info.tag, FUN);
+  }
+}
+
 #endif
 
 /**

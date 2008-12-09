@@ -33,6 +33,11 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+const int MMSubstitution::AUX_INDEX=-3;
+const int MMSubstitution::SPECIAL_INDEX=-2;
+const int MMSubstitution::UNBOUND_INDEX=-1;
+
+
 bool MMSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
   CALL("MMSubstitution::unify/4");
@@ -168,6 +173,9 @@ MMSubstitution::TermSpec MMSubstitution::deref(VarSpec v) const
 void MMSubstitution::bind(const VarSpec& v, const TermSpec& b)
 {
   CALL("MMSubstitution::bind");
+  ASSERT_VALID(b.term);
+  ASS(!b.term.isTerm() || b.term.term()->shared());
+  ASS_NEQ(v.index, MMSubstitution::UNBOUND_INDEX);
 
   if(bdIsRecording()) {
     bdAdd(new BindingBacktrackObject(this, v));
@@ -178,6 +186,8 @@ void MMSubstitution::bind(const VarSpec& v, const TermSpec& b)
 void MMSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
   CALL("MMSubstitution::bindVar");
+  ASS_NEQ(var,to);
+
   bind(var,TermSpec(to));
 }
 
@@ -200,7 +210,10 @@ void MMSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
 
   v1=root(v1);
   v2=root(v2);
-
+  if(v1==v2) {
+    bind(v2,target);
+    return;
+  }
   if(Random::getBit()) {
     bindVar(v1,v2);
     bind(v2,target);
@@ -212,15 +225,17 @@ void MMSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
 
 void MMSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
 {
-  CALL("MMSubstitution::makeEqual");
+  CALL("MMSubstitution::unifyUnbound");
 
   v=root(v);
 
   ASS(isUnbound(v));
 
   if(ts.isVar()) {
-    VarSpec v2=getVarSpec(ts);
-    makeEqual(v, v2, deref(v2));
+    VarSpec v2=root(getVarSpec(ts));
+    if(v!=v2) {
+    	makeEqual(v, v2, deref(v2));
+    }
   } else {
     bind(v,ts);
   }
@@ -233,6 +248,64 @@ void MMSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
   ts1=ts2;
   ts2=aux;
 }
+
+TermList MMSubstitution::getAuxTerm(TermSpec ts)
+{
+  CALL("MMSubstitution::getAuxTerm");
+
+  int index=ts.index;
+  if(index==AUX_INDEX) {
+    return ts.term;
+  }
+
+  static Stack<TermList*> toDo(8);
+  static Stack<Term*> terms(8);
+  static Stack<TermList> args(8);
+
+  toDo.push(&ts.term);
+
+  while(!toDo.isEmpty()) {
+    TermList* tt=toDo.pop();
+    if(tt->isEmpty()) {
+      Term* orig=terms.pop();
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList* argLst=&args.top() - (orig->arity()-1);
+      args.truncate(args.length() - orig->arity());
+      TermList constructed;
+      constructed.setTerm(Term::create(orig,argLst));
+      args.push(constructed);
+      continue;
+    } else {
+      //if tt==&trm, we're dealing with the top
+      //term, for which the next() is undefined
+      if(tt!=&ts.term) {
+	toDo.push(tt->next());
+      }
+    }
+
+    if(tt->isOrdinaryVar()) {
+      TermList aux;
+      aux.makeVar(getAuxVar(VarSpec(tt->var(),index)).var);
+      args.push(aux);
+      continue;
+    } else if(tt->isSpecialVar()) {
+      args.push(*tt);
+      continue;
+    }
+    Term* t=tt->term();
+    if(t->shared() && t->ground()) {
+      args.push(*tt);
+      continue;
+    }
+    terms.push(t);
+    toDo.push(t->args());
+  }
+  ASS(toDo.isEmpty() && terms.isEmpty() && args.length()==1);
+  return args.pop();
+}
+
 
 
 bool MMSubstitution::handleDifferentTops(TermSpec t1, TermSpec t2,
@@ -276,7 +349,7 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
 {
   CALL("MMSubstitution::unify/2");
 
-  if(t1.sameContent(t2)) {
+  if(t1.sameTermContent(t2)) {
     return true;
   }
 
@@ -335,7 +408,7 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
       TermSpec tsss(*ss,dt1.index);
       TermSpec tstt(*tt,dt2.index);
 
-      if (!tsss.sameContent(tstt) && TermList::sameTopFunctor(ss,tt)) {
+      if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(ss,tt)) {
         ASS(ss->isTerm() && tt->isTerm());
 
         Term* s = ss->term();
@@ -361,9 +434,9 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
             mismatch=true;
             break;
           }
-        } else { //ss->sameContent(tt)
+        } else { //tsss->sameContent(tstt)
           if(ct) {
-            *ct=*ss;
+            *ct=getAuxTerm(tsss);
           }
         }
 
@@ -429,8 +502,10 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
 bool MMSubstitution::match(TermSpec base, TermSpec instance)
 {
   CALL("MMSubstitution::match(TermSpec...)");
+  ASS(!base.term.isTerm() || base.term.term()->shared());
+  ASS(!instance.term.isTerm() || instance.term.term()->shared());
 
-  if(base.sameContent(instance)) {
+  if(base.sameTermContent(instance)) {
     return true;
   }
 
@@ -451,7 +526,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
     TermSpec bts(*bt,base.index);
     TermSpec its(*it,instance.index);
 
-    if (!bts.sameContent(its) && TermList::sameTopFunctor(&bts.term,&its.term)) {
+    if (!bts.sameTermContent(its) && TermList::sameTopFunctor(&bts.term,&its.term)) {
       Term* s = bts.term.term();
       Term* t = its.term.term();
       ASS(s->arity() > 0);
@@ -552,7 +627,13 @@ TermList MMSubstitution::apply(TermList trm, int index) const
   static Stack<TermList*> toDo(8);
   static Stack<int> toDoIndex(8);
   static Stack<Term*> terms(8);
+  static Stack<VarSpec> termRefVars(8);
   static Stack<TermList> args(8);
+  static DHMap<VarSpec, TermList, VarSpec::Hash1, VarSpec::Hash2> known;
+
+  //is inserted into termRefVars, if respective
+  //term in terms isn't referenced by any variable
+  const VarSpec nilVS(-1,0);
 
   toDo.push(&trm);
   toDoIndex.push(index);
@@ -570,6 +651,11 @@ TermList MMSubstitution::apply(TermList trm, int index) const
       TermList constructed;
       constructed.setTerm(Term::create(orig,argLst));
       args.push(constructed);
+
+      VarSpec ref=termRefVars.pop();
+      if(ref!=nilVS) {
+	ALWAYS(known.insert(ref,constructed));
+      }
       continue;
     } else {
       //if tt==&trm, we're dealing with the top
@@ -582,13 +668,24 @@ TermList MMSubstitution::apply(TermList trm, int index) const
 
     TermSpec ts(*tt,index);
 
+    VarSpec vs;
     if(ts.term.isVar()) {
-      ts=deref(getVarSpec(ts));
+      vs=root(getVarSpec(ts));
+
+      TermList found;
+      if(known.find(vs, found)) {
+	args.push(found);
+	continue;
+      }
+
+      ts=deref(vs);
       if(ts.term.isVar()) {
 	ASS(ts.index==UNBOUND_INDEX);
 	args.push(ts.term);
 	continue;
       }
+    } else {
+      vs=nilVS;
     }
     Term* t=ts.term.term();
     if(t->shared() && t->ground()) {
@@ -596,10 +693,13 @@ TermList MMSubstitution::apply(TermList trm, int index) const
       continue;
     }
     terms.push(t);
+    termRefVars.push(vs);
+
     toDo.push(t->args());
     toDoIndex.push(ts.index);
   }
   ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
+  known.reset();
   return args.pop();
 }
 
@@ -618,6 +718,7 @@ bool MMSubstitution::occurCheckFails() const
     VarSpec vs;
     TermSpec ts;
     bit.next(vs,ts);
+    ASSERT_VALID(ts.term);
     if(!ts.term.isTerm()) {
       continue;
     }
@@ -699,6 +800,11 @@ std::string MMSubstitution::VarSpec::toString() const
 string MMSubstitution::TermSpec::toString() const
 {
   return Test::Output::singleTermListToString(term)+"/"+Int::toString(index);
+}
+
+ostream& Kernel::operator<< (ostream& out, MMSubstitution::VarSpec vs )
+{
+  return out<<vs.toString();
 }
 
 #endif
@@ -791,7 +897,7 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<List<Literal*>*>& alts,
  */
 unsigned MMSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 {
-  //return o.var + o.index*capacity>>1 + o.index>>1*capacity>>3;
+  return o.var + o.index*capacity>>1 + o.index>>1*capacity>>3;
 //This might work better
 
   int res=(o.var%(capacity<<1) - capacity);

@@ -3,11 +3,15 @@
  * Implements assertions.
  */
 
+
 #include "Assertion.hpp"
 #include "Tracer.hpp"
 
 #if VDEBUG
 
+#include "../Lib/Allocator.hpp"
+
+using namespace Lib;
 using namespace Debug;
 
 bool Assertion::_violated = false;
@@ -28,6 +32,52 @@ void Assertion::violated (const char* file,int line,const char* cond)
        << "----- stack dump -----\n";
   Tracer::printStack(cout);
   cout << "----- end of stack dump -----\n";
+} // Assertion::violated
+
+
+void Assertion::violatedStrEquality(const char* file,int line,const char* val1Str,
+	  const char* val2Str, const char* val1, const char* val2)
+{
+  if (_violated) {
+    return;
+  }
+
+  _violated = true;
+  std::cout << "Condition for string equality "<<val1Str<<" == "<<val2Str
+       << " in file " << file << ", line " << line
+       << " was violated, as:\n" << val1Str<<" == \""<<val1 <<"\"\n"
+       << val2Str<<" == \""<<val2 << "\"\n"
+       << "----- stack dump -----\n";
+  Tracer::printStack(cout);
+  std::cout << "----- end of stack dump -----\n";
+}
+
+
+void Assertion::checkType(const char* file,int line,const void* ptr, const char* assumed,
+	const char* ptrStr)
+{
+  if (_violated) {
+    return;
+  }
+
+  Allocator::Descriptor* desc = Allocator::Descriptor::find(ptr);
+
+  if(!desc) {
+    cout << "Type condition in file " << file << ", line " << line
+         << " violated:\n" << ptrStr << " was not allocated by Lib::Allocator.\n";
+  } else if( strcmp(assumed, desc->cls) ) {
+    cout << "Type condition in file " << file << ", line " << line
+         << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
+         << "\" instead of \"" << assumed <<"\".\n";
+  } else {
+    return;
+  }
+
+  _violated = true;
+  cout << "----- stack dump -----\n";
+  Tracer::printStack(cout);
+  cout << "----- end of stack dump -----\n";
+  throw Debug::AssertionViolationException(file,line);
 } // Assertion::violated
 
 /**

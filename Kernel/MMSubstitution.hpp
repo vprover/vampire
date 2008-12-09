@@ -82,10 +82,6 @@ public:
   std::string toString(bool deref=false) const;
 #endif
 
-private:
-  static const int AUX_INDEX=-3;
-  static const int SPECIAL_INDEX=-2;
-  static const int UNBOUND_INDEX=-1;
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec
@@ -140,16 +136,27 @@ private:
     /**
      * If it's sure, that @b ts has the same content as this TermSpec,
      * return true. If they don't (or it cannot be easily checked), return
-     * false.
+     * false. Only term content is taken into account, i.e. when two 
+     * literals are pointer do by ts.term, their polarity is ignored.
      */
-    bool sameContent(const TermSpec& ts)
+    bool sameTermContent(const TermSpec& ts)
     {
       bool termSameContent=term.sameContent(&ts.term);
+      if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
+	ts.term.isTerm() && ts.term.term()->isLiteral()) {
+	const Literal* l1=static_cast<const Literal*>(term.term());
+	const Literal* l2=static_cast<const Literal*>(ts.term.term());
+	if(l1->functor()==l2->functor() && l1->arity()==0) {
+	  return true;
+	}
+      }
       if(!termSameContent) {
 	return false;
       }
       return index==ts.index || term.isSpecialVar() ||
-      	(term.isTerm() && term.term()->shared() && term.term()->ground());
+      	(term.isTerm() && (
+	  (term.term()->shared() && term.term()->ground()) ||
+	  term.term()->arity()==0 ));
     }
 
     bool isVar()
@@ -167,6 +174,11 @@ private:
   };
   typedef pair<TermSpec,TermSpec> TTPair;
 
+private:
+  static const int AUX_INDEX;
+  static const int SPECIAL_INDEX;
+  static const int UNBOUND_INDEX;
+
   bool isUnbound(VarSpec v) const;
   TermSpec deref(VarSpec v) const;
   TermSpec derefBound(TermSpec v) const;
@@ -182,24 +194,29 @@ private:
 
   bool occurCheckFails() const;
 
+  TermList getAuxTerm(TermSpec ts);
   VarSpec getAuxVar(VarSpec target)
   {
     CALL("MMSubstitution::getAuxVar");
+    if(target.index==AUX_INDEX) {
+      return target;
+    }
     VarSpec res(_nextAuxAvailable++,AUX_INDEX);
     bindVar(res, target);
     return res;
   }
-  static VarSpec getVarSpec(TermSpec ts)
+  VarSpec getVarSpec(TermSpec ts) const
   {
     return getVarSpec(ts.term, ts.index);
   }
-  static VarSpec getVarSpec(TermList tl, int index)
+  VarSpec getVarSpec(TermList tl, int index) const
   {
     CALL("MMSubstitution::getVarSpec");
     ASS(tl.isVar());
     if(tl.isSpecialVar()) {
       return VarSpec(tl.var(), SPECIAL_INDEX);
     } else {
+      ASS(index!=AUX_INDEX || tl.var()<_nextAuxAvailable);
       return VarSpec(tl.var(), index);
     }
   }
@@ -242,7 +259,14 @@ private:
     VarSpec _var;
     TermSpec _term;
   };
+
 };
+
+#if VDEBUG
+
+ostream& operator<< (ostream& out, MMSubstitution::VarSpec vs );
+
+#endif
 
 };
 

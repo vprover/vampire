@@ -86,8 +86,9 @@ typedef DHMap<Clause*,ClauseMatches, PtrHash, PtrHash2> CMMap;
 typedef DHMap<Literal*, List<Literal*>*, PtrHash > MatchMap;
 
 bool fillAlternativesArray(Clause* baseClause, MIList* matches,
-	DArray<List<Literal*>*> alts)
+	DArray<List<Literal*>*>& alts)
 {
+  CALL("fillAlternativesArray");
   static MatchMap matchMap;
   matchMap.reset();
   MIList::Iterator miit(matches);
@@ -116,6 +117,7 @@ bool fillAlternativesArray(Clause* baseClause, MIList* matches,
 
 bool isSubsumed(Clause* cl, CMMap* gens)
 {
+  CALL("isSubsumed");
   static DArray<List<Literal*>*> alts(32);
 
   CMMap::Iterator git(*gens);
@@ -148,12 +150,13 @@ bool isSubsumed(Clause* cl, CMMap* gens)
   return false;
 }
 
-Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit)
+Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause)
 {
+  CALL("generateSubsumptionResolutionClause");
   int clength = cl->length();
   int newLength = clength-1;
 
-  Inference* inf = new Inference1(Inference::SUBSUMPTION_RESOLUTION, cl);
+  Inference* inf = new Inference2(Inference::SUBSUMPTION_RESOLUTION, cl, baseClause);
   Unit::InputType inpType = cl->inputType();
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
@@ -180,7 +183,7 @@ Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit)
 
 void ForwardSubsumptionResolution::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 {
-  CALL("SLQueryForwardSubsumption::perform");
+  CALL("ForwardSubsumptionResolution::perform");
   toAdd=ClauseIterator::getEmpty();
   keep=true;
 
@@ -254,7 +257,7 @@ void ForwardSubsumptionResolution::perform(Clause* cl, bool& keep, ClauseIterato
         alts[mli]->destroy();
       }
       if(!mclMatchFailed) {
-	toAdd=getSingletonIterator(generateSubsumptionResolutionClause(cl,(*cl)[li]));
+	toAdd=getSingletonIterator(generateSubsumptionResolutionClause(cl,(*cl)[li],mcl));
 	keep=false;
 	env.statistics->forwardSubsumed++;
 	goto fin;

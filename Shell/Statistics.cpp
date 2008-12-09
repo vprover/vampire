@@ -25,6 +25,8 @@ Statistics::Statistics()
     simpleTautologies(0),
     equationalTautologies(0),
     forwardSubsumed(0),
+    backwardSubsumed(0),
+    forwardSubsumptionResolution(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),

@@ -15,6 +15,7 @@
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
+#include "../Lib/Allocator.hpp"
 #include "../Lib/Portability.hpp"
 #include "../Lib/XML.hpp"
 #include "../Lib/Comparison.hpp"
@@ -105,6 +106,10 @@ public:
   static bool sameTop(const TermList* ss,const TermList* tt);
   static bool sameTopFunctor(const TermList* ss,const TermList* tt);
   static bool equals(TermList t1, TermList t2);
+
+#if VDEBUG
+  void assertValid() const;
+#endif
 
 private:
   union {
@@ -252,6 +257,7 @@ public:
 
 #if VDEBUG
   string headerToString() const;
+  void assertValid() const;
 #endif
 
   class VariableIterator {
@@ -304,6 +310,7 @@ protected:
 
 //   Comparison compare(const Term* t) const;
 //   void argsWeight(unsigned& total) const;
+  friend class TermList;
   friend class Indexing::TermSharing;
 }; // class Term
 
