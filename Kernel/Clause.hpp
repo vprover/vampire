@@ -101,6 +101,9 @@ public:
   void incRefCnt() { _inferenceRefCnt++; }
   void decRefCnt() { _inferenceRefCnt--; destroyIfUnnecessary(); }
 
+#if VDEBUG
+  bool contains(Literal* lit);
+#endif
 protected:
   /** number of literals */
   unsigned _length;

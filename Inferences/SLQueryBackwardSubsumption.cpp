@@ -83,7 +83,6 @@ struct LitSpec {
 };
 
 typedef SkipList<LitSpec,LitSpec> LSList;
-typedef List<Literal*> LList;
 
 void SLQueryBackwardSubsumption::perform(Clause* cl,
 	ClauseIterator& toRemove, ClauseIterator& toAdd)
@@ -123,7 +122,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     }
   }
 
-  static DArray<LList*> matchedLits(32);
+  static DArray<LiteralList*> matchedLits(32);
 
   ClauseList* subsumed=0;
 
@@ -136,7 +135,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
       }
       ASS(LitSpec::compare(mcl, matches[li].top())==EQUAL);
       while(matches[li].isNonEmpty() && matches[li].top().clause==mcl) {
-	LList::push(matches[li].pop().literal, matchedLits[li]);
+	LiteralList::push(matches[li].pop().literal, matchedLits[li]);
       }
     }
 

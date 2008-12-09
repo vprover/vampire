@@ -73,10 +73,8 @@ public:
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
 
-  static bool canBeMatched(Clause* base, DArray<List<Literal*>*>& matches,
+  static bool canBeMatched(Clause* base, DArray<LiteralList*>& matches,
 	  bool allowComplementary=false);
-  static List<DArray<Literal*>* >* getMatches(Clause* base,
-	  DArray<List<Literal*>*>& alts);
 
 #if VDEBUG
   std::string toString(bool deref=false) const;
@@ -136,7 +134,7 @@ public:
     /**
      * If it's sure, that @b ts has the same content as this TermSpec,
      * return true. If they don't (or it cannot be easily checked), return
-     * false. Only term content is taken into account, i.e. when two 
+     * false. Only term content is taken into account, i.e. when two
      * literals are pointer do by ts.term, their polarity is ignored.
      */
     bool sameTermContent(const TermSpec& ts)

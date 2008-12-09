@@ -56,6 +56,7 @@ SubstitutionTree::SubstitutionTree(int nodes)
 SubstitutionTree::~SubstitutionTree()
 {
   CALL("SubstitutionTree::~SubstitutionTree");
+  ASS_ALLOC_TYPE(_nodes, "SubstitutionTree::Node");
 
   for (int i = _numberOfTopLevelNodes-1; i>=0; i--) {
     if(_nodes[i]!=0) {

@@ -815,7 +815,7 @@ ostream& Kernel::operator<< (ostream& out, MMSubstitution::VarSpec vs )
  * literals in @b base clause. If a single literal is presented in
  * multiple lists in @b alts, it still can be matched at most once.
  */
-bool MMSubstitution::canBeMatched(Clause* base, DArray<List<Literal*>*>& alts,
+bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
 	bool allowComplementary)
 {
   CALL("MMSubstitution::canBeMatched");
@@ -823,7 +823,7 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<List<Literal*>*>& alts,
   unsigned baseLen=base->length();
   bool success=false;
   static Stack<BacktrackData> bdStack(32);
-  static DArray<List<Literal*>*> rem(32); //remaining alternatives
+  static DArray<LiteralList*> rem(32); //remaining alternatives
   MMSubstitution matcher;
 
   ASS(bdStack.isEmpty());

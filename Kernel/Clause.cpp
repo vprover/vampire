@@ -94,4 +94,18 @@ void Clause::computeWeight()
   }
 } // Clause::computeWeight
 
+#if VDEBUG
+
+bool Clause::contains(Literal* lit)
+{
+  for (int i = _length-1; i >= 0; i--) {
+    if(_literals[i]==lit) {
+      return true;
+    }
+  }
+  return false;
+}
+
+#endif
+
 }

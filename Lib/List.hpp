@@ -643,6 +643,7 @@ class List
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME("List");
+//  CLASS_NAME(typeid(List).name());
   USE_ALLOCATOR(List);
 
   /**

@@ -122,8 +122,8 @@ void MemoryLeak::release(UnitList* units)
 
     if (! u->isClause()) {
       release(static_cast<FormulaUnit*>(u)->formula());
+      u->destroy();
     }
-    u->destroy();
   }
 } // MemoryLeak::release
 

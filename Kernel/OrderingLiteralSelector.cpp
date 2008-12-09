@@ -39,21 +39,19 @@ void OrderingLiteralSelector::select(Clause* c)
 
 }
 
-typedef List<Literal*> LList;
-
 void OrderingLiteralSelector::selectPositive(Clause* c)
 {
   unsigned clen=c->length();
-  LList* sel=0;
+  LiteralList* sel=0;
   unsigned selCnt=clen;
 
   for(unsigned li=0;li<clen;li++) {
-    LList::push((*c)[li],sel);
+    LiteralList::push((*c)[li],sel);
   }
 
-  LList** ptr1=&sel;
+  LiteralList** ptr1=&sel;
   while(*ptr1) {
-    LList** ptr2=&(*ptr1)->tailReference();
+    LiteralList** ptr2=&(*ptr1)->tailReference();
     while(*ptr2) {
       Ordering::Result res=_ord->compare((*ptr1)->head(), (*ptr2)->head());
       //TODO: finish

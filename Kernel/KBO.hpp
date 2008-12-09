@@ -32,7 +32,11 @@ private:
   /** Weight of predicate and function symbols not occurring in the
    * signature */
   int _defaultSymbolWeight;
-  int functionPrecedence(unsigned fun);
+
+  int functionSymbolWeight(unsigned fun) { return _defaultSymbolWeight; }
+  int predicateHeaderWeight(unsigned pred) { return _defaultSymbolWeight; }
+
+  int functionPrecedence(unsigned fun) { return fun; }
   int predicatePrecedence(unsigned pred);
   int predicateLevel(unsigned pred);
 

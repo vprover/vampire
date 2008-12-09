@@ -80,7 +80,7 @@ struct PtrHash2 {
 
 //typedef SkipList<ClauseMatches,ClauseMatches> CMSkipList;
 typedef DHMap<Clause*,ClauseMatches, PtrHash, PtrHash2> CMMap;
-typedef DHMap<Literal*, List<Literal*>*, PtrHash > MatchMap;
+typedef DHMap<Literal*, LiteralList*, PtrHash > MatchMap;
 
 void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 {
@@ -122,7 +122,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
 
   if(gens)
   {
-    static DArray<List<Literal*>*> matches(32);
+    static DArray<LiteralList*> matches(32);
     static MatchMap matchMap;
 
     CMMap::Iterator git(*gens);

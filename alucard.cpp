@@ -146,10 +146,10 @@ void doProving()
       env.out << "Time limit reached!\n";
       break;
     case Statistics::MEMORY_LIMIT:
-      env.out << "Memory limit exceeded!\n";
 #if VDEBUG
       Allocator::reportUsageByClasses();
 #endif
+      env.out << "Memory limit exceeded!\n";
       break;
     default:
       env.out << "Refutation not found!\n";

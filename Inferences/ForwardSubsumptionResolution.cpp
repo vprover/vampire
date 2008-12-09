@@ -83,10 +83,10 @@ struct PtrHash2 {
 
 //typedef SkipList<ClauseMatches,ClauseMatches> CMSkipList;
 typedef DHMap<Clause*,ClauseMatches, PtrHash, PtrHash2> CMMap;
-typedef DHMap<Literal*, List<Literal*>*, PtrHash > MatchMap;
+typedef DHMap<Literal*, LiteralList*, PtrHash > MatchMap;
 
 bool fillAlternativesArray(Clause* baseClause, MIList* matches,
-	DArray<List<Literal*>*>& alts)
+	DArray<LiteralList*>& alts)
 {
   CALL("fillAlternativesArray");
   static MatchMap matchMap;
@@ -94,7 +94,7 @@ bool fillAlternativesArray(Clause* baseClause, MIList* matches,
   MIList::Iterator miit(matches);
   while(miit.hasNext()) {
     MatchInfo minfo=miit.next();
-    LiteralList** litAlts; //pointer to list of possibly matching literals of cl
+    LiteralList** litAlts; //pointer to list of possibly matching literals
     matchMap.getValuePtr(minfo.clauseLiteral, litAlts, 0);
     LiteralList::push(minfo.queryLiteral, *litAlts);
   };
@@ -118,7 +118,7 @@ bool fillAlternativesArray(Clause* baseClause, MIList* matches,
 bool isSubsumed(Clause* cl, CMMap* gens)
 {
   CALL("isSubsumed");
-  static DArray<List<Literal*>*> alts(32);
+  static DArray<LiteralList*> alts(32);
 
   CMMap::Iterator git(*gens);
   while(git.hasNext()) {
@@ -131,10 +131,12 @@ bool isSubsumed(Clause* cl, CMMap* gens)
       continue;
     }
 
-    bool mclMatchFailed=!fillAlternativesArray(cl, clmatches.matches, alts);
+    MIList::Iterator miit(clmatches.matches);
+
+    bool mclMatchFailed=!fillAlternativesArray(mcl, clmatches.matches, alts);
 
     if(!mclMatchFailed) {
-      if(!MMSubstitution::canBeMatched(cl,alts,false)) {
+      if(!MMSubstitution::canBeMatched(mcl,alts,false)) {
 	mclMatchFailed=true;
       }
     }
@@ -224,7 +226,7 @@ void ForwardSubsumptionResolution::perform(Clause* cl, bool& keep, ClauseIterato
     goto fin;
   }
 
-  static DArray<List<Literal*>*> alts(32);
+  static DArray<LiteralList*> alts(32);
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_index->getComplementaryGeneralizations( (*cl)[li], false);
     while(rit.hasNext()) {
@@ -254,8 +256,9 @@ void ForwardSubsumptionResolution::perform(Clause* cl, bool& keep, ClauseIterato
       }
       MIList::pop(cms.matches);
       for(unsigned mli=0;mli<mlen;mli++) {
-        alts[mli]->destroy();
+	alts[mli]->destroy();
       }
+
       if(!mclMatchFailed) {
 	toAdd=getSingletonIterator(generateSubsumptionResolutionClause(cl,(*cl)[li],mcl));
 	keep=false;

@@ -51,6 +51,7 @@ class IndexManager;
 namespace Saturation
 {
 class SaturationAlgorithm;
+
 class ClauseContainer;
 class UnprocessedClauseContainer;
 class PassiveClauseContainer;
