@@ -41,7 +41,6 @@ private:
   int predicatePrecedence(unsigned pred);
   int predicateLevel(unsigned pred);
 
-  bool existsConstantLighterThanAVariable() { return false; }
   bool allConstantsHeavierThanVariables() { return false; }
   bool existsZeroWeightUnaryFunction() { return false; }
 

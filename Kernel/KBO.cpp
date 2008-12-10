@@ -102,6 +102,9 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
 	  return GREATER;
 	}
       } else {
+	if(tl1.isVar()) {
+	  tl1.isVar();
+	}
 	ASS(!tl1.isVar());
 	ASS(!tl2.isVar());
       }
@@ -127,11 +130,9 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
       ASS(!tl1.isVar());
       if(!_kbo.allConstantsHeavierThanVariables()) {
 	if(tl2.isVar()) {
-	  if(_kbo.existsConstantLighterThanAVariable()) {
-	    return INCOMPARABLE;
-	  } else {
-	    return LESS_EQ;
-	  }
+	  //under some circumstances, we could return LESS_EQ, but it would
+	  //complicate other things
+	  return INCOMPARABLE;
 	}
       } else {
 	//If tl2 was a variable, tl1'd have to be ground, but
@@ -161,11 +162,9 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
       ASS(!tl2.isVar());
       if(!_kbo.allConstantsHeavierThanVariables()) {
 	if(tl1.isVar()) {
-	  if(_kbo.existsConstantLighterThanAVariable()) {
-	    return INCOMPARABLE;
-	  } else {
-	    return GREATER_EQ;
-	  }
+	  //under some circumstances, we could return GREATER_EQ, but it would
+	  //complicate other things
+	  return INCOMPARABLE;
 	}
       } else {
 	//If tl1 was a variable, tl2'd have to be ground, but
@@ -199,15 +198,15 @@ void KBO::State::recordVariable(unsigned var, int coef)
   (*pnum)+=coef;
   if(coef==1) {
     if(*pnum==0) {
-      posNum--;
-    } else if(*pnum==-1) {
-      negNum++;
-    }
-  } else {
-    if(*pnum==0) {
       negNum--;
     } else if(*pnum==1) {
       posNum++;
+    }
+  } else {
+    if(*pnum==0) {
+      posNum--;
+    } else if(*pnum==-1) {
+      negNum++;
     }
   }
 }
@@ -286,6 +285,7 @@ void KBO::State::traverse(Literal* l1, Literal* l2)
 	  _lexResult=innerResult(*ss, *tt);
 	  ASS(_lexResult!=EQUAL);
 	} else if(_lexResult==GREATER_EQ) {
+	  ASSERTION_VIOLATION;
 	  Result newRes=innerResult(*ss, *tt);
 	  switch(newRes) {
 	  case GREATER:
@@ -304,6 +304,7 @@ void KBO::State::traverse(Literal* l1, Literal* l2)
 	  case GREATER_EQ: ;
 	  }
 	} else if(_lexResult==LESS_EQ) {
+	  ASSERTION_VIOLATION;
 	  Result newRes=innerResult(*ss, *tt);
 	  switch(newRes) {
 	  case LESS:
