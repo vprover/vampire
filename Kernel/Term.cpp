@@ -19,6 +19,13 @@
 
 #include "../Indexing/TermSharing.hpp"
 
+#if VDEBUG
+
+#include <ostream>
+#include "../Test/Output.hpp"
+
+#endif
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -614,6 +621,11 @@ void TermList::assertValid() const
     ASS_ALLOC_TYPE(_term, "Term");
     ASS_EQ(_term->_args[0]._info.tag, FUN);
   }
+}
+
+std::ostream& Kernel::operator<< (ostream& out, TermList tl )
+{
+  return out<<Test::Output::singleTermListToString(tl);
 }
 
 #endif

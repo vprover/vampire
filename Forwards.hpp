@@ -38,6 +38,7 @@ typedef List<Clause*> ClauseList;
 
 class DoubleSubstitution;
 class Renaming;
+class Substitution;
 
 class LiteralSelector;
 };
@@ -46,6 +47,7 @@ namespace Indexing
 {
 class Index;
 class IndexManager;
+class TermSharing;
 };
 
 namespace Saturation

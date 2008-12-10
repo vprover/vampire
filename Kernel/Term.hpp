@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <string>
 
+#include "../Forwards.hpp"
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
@@ -21,17 +22,16 @@
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Stack.hpp"
 
-using namespace std;
-using namespace Lib;
+#if VDEBUG
 
-namespace Indexing {
-  class TermSharing;
-}
+#include <iosfwd>
+
+#endif
 
 namespace Kernel {
 
-class Substitution;
-class Term;
+using namespace std;
+using namespace Lib;
 
 /** Tag denoting the kind of this term
  * @since 19/02/2008 Manchester, moved outside of the Term class
@@ -416,6 +416,13 @@ public:
   string toString() const;
   const string& predicateName() const;
 }; // class Literal
+
+
+#if VDEBUG
+
+std::ostream& operator<< (ostream& out, TermList tl );
+
+#endif
 
 }
 #endif

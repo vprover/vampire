@@ -35,6 +35,11 @@ public:
   static void violatedNonequality(const char* file,int line,const char* val1Str,
 	  const char* val2Str, const T& val1, const U& val2);
 
+  template<typename T>
+  static void violatedMethod(const char* file,int line,const T& obj,
+	  const char* objStr, const char* methodStr, const char* prefix);
+
+
   static void violatedStrEquality(const char* file,int line,const char* val1Str,
   	  const char* val2Str, const char* val1, const char* val2);
 
@@ -93,7 +98,10 @@ private:
 #define ASS_ALLOC_TYPE(PTR,TYPE)						\
   Debug::Assertion::checkType(__FILE__,__LINE__,(PTR),(TYPE), #PTR)
 
-
+#define ASS_METHOD(OBJ,METHOD)							\
+  if(! ((OBJ).METHOD) ) {							\
+    Debug::Assertion::violatedMethod(__FILE__,__LINE__,(OBJ), #OBJ, #METHOD,"");\
+  }
 
 #define ASSERT_VALID(obj) try { (obj).assertValid(); } catch(...) \
   { Debug::Assertion::reportAssertValidException(__FILE__,__LINE__,#obj); throw; }
@@ -112,6 +120,7 @@ private:
 #define ASS_NEQ(VAL1,VAL2)
 #define ASS_STR_EQ(VAL1,VAL2)
 #define ASS_ALLOC_TYPE(PTR,TYPE)
+#define ASS_METHOD(OBJ,METHOD)
 
 
 #define ASSERTION_VIOLATION
@@ -153,6 +162,23 @@ void Debug::Assertion::violatedNonequality(const char* file,int line,const char*
   Tracer::printStack(cout);
   std::cout << "----- end of stack dump -----\n";
 } // Assertion::violatedEquality
+
+template<typename T>
+void Debug::Assertion::violatedMethod(const char* file,int line,const T& obj,
+	  const char* objStr, const char* methodStr, const char* prefix)
+{
+  if (_violated) {
+    return;
+  }
+
+  _violated = true;
+  std::cout << "Condition "<<prefix<<"("<<objStr<<")."<<methodStr<<" in file "
+       << file << ", line " << line << " was violated for:\n"
+       << objStr << " == " << obj << "\n"
+       << "----- stack dump -----\n";
+  Tracer::printStack(cout);
+  std::cout << "----- end of stack dump -----\n";
+} // Assertion::violatedMethod
 
 #endif
 

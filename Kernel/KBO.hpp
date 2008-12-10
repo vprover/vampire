@@ -23,8 +23,9 @@ class KBO
 public:
   KBO(const Signature&);
   ~KBO();
-  Result compare(const Literal* l1,const Literal* l2);
-  Result compare(const TermList* t1,const TermList* t2);
+  Result compare(Literal* l1, Literal* l2);
+  Result compare(TermList* t1, TermList* t2);
+  static KBO* createReversedAgePreferenceConstantLevels();
 private:
   class State;
   /** Weight of variables */
@@ -36,9 +37,13 @@ private:
   int functionSymbolWeight(unsigned fun) { return _defaultSymbolWeight; }
   int predicateHeaderWeight(unsigned pred) { return _defaultSymbolWeight; }
 
-  int functionPrecedence(unsigned fun) { return fun; }
+  int functionPrecedence(unsigned fun);
   int predicatePrecedence(unsigned pred);
   int predicateLevel(unsigned pred);
+
+  bool existsConstantLighterThanAVariable() { return false; }
+  bool allConstantsHeavierThanVariables() { return false; }
+  bool existsZeroWeightUnaryFunction() { return false; }
 
   /** number of predicates in the signature at the time the order was created */
   unsigned _predicates;

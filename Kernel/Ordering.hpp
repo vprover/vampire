@@ -6,11 +6,11 @@
  */
 
 #ifndef __Ordering__
+#define __Ordering__
+
+#include "../Forwards.hpp"
 
 namespace Kernel {
-
-class Literal;
-class TermList;
 
 /**
  * An abstract class for simplification orderings
@@ -30,11 +30,12 @@ public:
   };
   virtual ~Ordering() {}
   /** Return the result of comparing @b l1 and @b l2 */
-  virtual Result compare(const Literal* l1,const Literal* l2) = 0;
+  virtual Result compare(Literal* l1,Literal* l2) = 0;
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
-  virtual Result compare(const TermList* t1,const TermList* t2) = 0;
+  virtual Result compare(TermList* t1,TermList* t2) = 0;
 }; // class Ordering
 
 }
+
 #endif

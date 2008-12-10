@@ -1,7 +1,7 @@
 /**
  * Class Exception.hpp. Defines Vampire exceptions.
  *
- * @since 03/12/2003, Manchester 
+ * @since 03/12/2003, Manchester
  */
 
 #ifndef __Exception__
@@ -18,7 +18,7 @@ namespace Lib {
  * Abstract class Exception. It is the base class for
  * several concrete classes.
  */
-class Exception 
+class Exception
 {
  public:
   /** Create an exception with a given error message */
@@ -40,15 +40,15 @@ class Exception
 
 
 /**
- * Class UserErrorException. A UserErrorException is thrown 
+ * Class UserErrorException. A UserErrorException is thrown
  * when a user error occurred, for example, a file name is
  * specified incorrectly; an invalid option to Vampire
  * was given, or there is a syntax error in the input file.
  */
-class UserErrorException 
+class UserErrorException
   : public Exception
 {
- public:                                
+ public:
   UserErrorException (const char* msg)
     : Exception(msg)
   {}
@@ -60,15 +60,12 @@ class UserErrorException
 }; // UserErrorException
 
 /**
- * Class InvalidOperationException. A InvalidOperationException is thrown 
- * when a user error occurred, for example, a file name is
- * specified incorrectly; an invalid option to Vampire
- * was given, or there is a syntax error in the input file.
+ * Class InvalidOperationException.
  */
 class InvalidOperationException
   : public Exception
 {
- public:                                
+ public:
    InvalidOperationException (const char* msg)
     : Exception(msg)
   {}

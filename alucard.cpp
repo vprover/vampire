@@ -25,7 +25,9 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/KBO.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/OrderingLiteralSelector.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -79,31 +81,37 @@ SaturationResult brSaturate(ClauseIterator clauses)
   TautologyDeletionFSE tdFSE;
   DuplicateLiteralRemovalFSE dlrFSE;
   TrivialInequalitiesRemovalFSE tirFSE;
-  SLQueryForwardSubsumption slfsFSE;
+//  SLQueryForwardSubsumption slfsFSE;
   ForwardSubsumptionResolution fsrFSE;
   RefutationSeekerFSE rsFSE;
   fwSimplifier.addFront(&rsFSE);
   fwSimplifier.addFront(&fsrFSE);
-  //fwSimplifier.addFront(&slfsFSE);
+//  fwSimplifier.addFront(&slfsFSE);
   fwSimplifier.addFront(&tirFSE);
   fwSimplifier.addFront(&tdFSE);
   fwSimplifier.addFront(&dlrFSE);
 
   SLQueryBackwardSubsumption slbsBSE;
-  //DummyBSE slbsBSE;
 
-  EagerLiteralSelector eselector;
-  LightestNegativeLiteralSelector lselector;
-  HeaviestNegativeLiteralSelector hselector;
 
-  DiscountSA salg(&passiveContainer, &hselector);
+  Ordering* ordering=KBO::createReversedAgePreferenceConstantLevels();
+
+  OrderingLiteralSelector oSelector(ordering);
+  HeaviestNegativeLiteralSelector hSelector;
+
+
+  DiscountSA salg(&passiveContainer, &oSelector);
   salg.setGeneratingInferenceEngine(&generator);
   salg.setForwardSimplificationEngine(&fwSimplifier);
   salg.setBackwardSimplificationEngine(&slbsBSE);
 
   salg.addClauses(clauses);
 
-  return salg.saturate();
+  SaturationResult res(salg.saturate());
+
+  delete ordering;
+
+  return res;
 }
 
 void doProving()
