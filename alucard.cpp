@@ -68,6 +68,8 @@ using namespace Inferences;
 
 SaturationResult brSaturate(ClauseIterator clauses)
 {
+
+
   AWPassiveClauseContainer passiveContainer;
   passiveContainer.setAgeWeightRatio(1,1);
 
@@ -96,22 +98,22 @@ SaturationResult brSaturate(ClauseIterator clauses)
 
   Ordering* ordering=KBO::createReversedAgePreferenceConstantLevels();
 
-  OrderingLiteralSelector oSelector(ordering);
-  HeaviestNegativeLiteralSelector hSelector;
-
-
-  DiscountSA salg(&passiveContainer, &oSelector);
-  salg.setGeneratingInferenceEngine(&generator);
-  salg.setForwardSimplificationEngine(&fwSimplifier);
-  salg.setBackwardSimplificationEngine(&slbsBSE);
-
-  salg.addClauses(clauses);
-
-  SaturationResult res(salg.saturate());
+//  OrderingLiteralSelector oSelector(ordering);
+//  HeaviestNegativeLiteralSelector hSelector;
+//
+//
+//  DiscountSA salg(&passiveContainer, &oSelector);
+//  salg.setGeneratingInferenceEngine(&generator);
+//  salg.setForwardSimplificationEngine(&fwSimplifier);
+//  salg.setBackwardSimplificationEngine(&slbsBSE);
+//
+//  salg.addClauses(clauses);
+//
+//  SaturationResult res(salg.saturate());
 
   delete ordering;
 
-  return res;
+//  return res;
 }
 
 void doProving()

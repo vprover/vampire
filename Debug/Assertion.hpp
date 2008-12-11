@@ -25,6 +25,11 @@ class Assertion
 public:
   static void violated(const char* file,int line,const char* condition);
 
+  template<typename T>
+  static void violated(const char* file,int line,const char* condition,
+	  const T& rep, const char* repStr);
+
+
   static void checkType(const char* file,int line,const void* ptr,
 	  const char* assumed, const char* ptrStr);
 
@@ -74,6 +79,14 @@ private:
     Debug::Assertion::violated(__FILE__,__LINE__,#Cond);		\
     throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
   }
+
+#define ASS_REP(Cond, ReportedVal)                                      \
+  if (! (Cond)) {                                               \
+    Debug::Assertion::violated(__FILE__,__LINE__,#Cond,ReportedVal,#ReportedVal); \
+    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+  }
+
+
 #define ALWAYS(Cond) ASS(Cond)
 #define NEVER(Cond) ASS(!(Cond))
 
@@ -130,6 +143,23 @@ private:
 #endif // VDEBUG
 
 #if VDEBUG
+
+template<typename T>
+void Debug::Assertion::violated (const char* file,int line,const char* cond,
+	const T& rep, const char* repStr)
+{
+  if (_violated) {
+    return;
+  }
+
+  _violated = true;
+  cout << "Condition in file " << file << ", line " << line
+       << " violated:\n" << cond << "\n"
+       << "Value of " << repStr << " is: " << rep
+       << "\n----- stack dump -----\n";
+  Tracer::printStack(cout);
+  cout << "----- end of stack dump -----\n";
+} // Assertion::violated
 
 template<typename T,typename U>
 void Debug::Assertion::violatedEquality(const char* file,int line,const char* val1Str,

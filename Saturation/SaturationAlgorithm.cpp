@@ -110,6 +110,7 @@ SaturationResult DiscountSA::saturate()
   CALL("DiscountSA::saturate");
 
   for (;;) {
+    int counter=0;
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
 
@@ -120,8 +121,15 @@ SaturationResult DiscountSA::saturate()
 	c->setStore(Clause::NONE);
 	continue;
       }
-
       _passive->add(c);
+
+      if(++counter==50) {
+	counter=0;
+	if (env.timeLimitReached()) {
+	  return SaturationResult(Statistics::TIME_LIMIT);
+	}
+      }
+
     }
 
     if (env.timeLimitReached()) {

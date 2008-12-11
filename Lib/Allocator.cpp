@@ -505,7 +505,7 @@ void Allocator::deallocatePages(Page* page)
   cout << desc->toString() << ": DP\n" << flush;
 #endif
   ASS(desc->address == page);
-  ASS(! strcmp(desc->cls,"Allocator::Page"));
+  ASS_STR_EQ(desc->cls,"Allocator::Page");
   ASS(desc->size == page->size);
   ASS(desc->allocated);
   ASS(! desc->known);
@@ -573,7 +573,7 @@ void* Allocator::allocateKnown(size_t size)
 
 #if VDEBUG
   Descriptor* desc = Descriptor::find(result);
-  ASS(! desc->allocated);
+  ASS_REP(! desc->allocated, size);
 
   desc->address = result;
   desc->cls = className;
@@ -685,6 +685,7 @@ void* Allocator::allocateUnknown(size_t size)
 #endif
 {
   CALL("Allocator::allocateUnknown");
+  ASS(size>0);
 
   size += sizeof(Known);
   char* result = allocatePiece(size);

@@ -344,14 +344,25 @@ KBO::KBO(const Signature& sig)
     _predicates(sig.predicates()),
     _functions(sig.functions())
 {
-  CALL("KBO::KBOW");
+  CALL("KBO::KBO");
+  ASS(_predicates);
 
   _predicateLevels = (int*)ALLOC_UNKNOWN(sizeof(int)*_predicates,
-					 "KBO::levels");
+	  "KBO::levels");
   _predicatePrecedences = (int*)ALLOC_UNKNOWN(sizeof(int)*_predicates,
-					      "KBO::predPrecedences");
-  _functionPrecedences = (int*)ALLOC_UNKNOWN(sizeof(int)*_functions,
-					     "KBO::funPrecedences");
+	  "KBO::predPrecedences");
+  if(_functions) {
+    _functionPrecedences = (int*)ALLOC_UNKNOWN(sizeof(int)*_functions,
+	    "KBO::funPrecedences");
+  }
+//  _predicateLevels = (int*)ALLOC_KNOWN(sizeof(int)*_predicates,
+//	  "KBO::levels");
+//  _predicatePrecedences = (int*)ALLOC_KNOWN(sizeof(int)*_predicates,
+//	  "KBO::predPrecedences");
+//  if(_functions) {
+//    _functionPrecedences = (int*)ALLOC_KNOWN(sizeof(int)*_functions,
+//	    "KBO::funPrecedences");
+//  }
 } // KBO::KBO
 
 KBO::~KBO()
@@ -360,7 +371,14 @@ KBO::~KBO()
 
   DEALLOC_UNKNOWN(_predicateLevels,"KBO::levels");
   DEALLOC_UNKNOWN(_predicatePrecedences,"KBO::predPrecedences");
-  DEALLOC_UNKNOWN(_functionPrecedences,"KBO::funPrecedences");
+  if(_functions) {
+    DEALLOC_UNKNOWN(_functionPrecedences,"KBO::funPrecedences");
+  }
+//  DEALLOC_KNOWN(_predicateLevels,sizeof(int)*_predicates,"KBO::levels");
+//  DEALLOC_KNOWN(_predicatePrecedences,sizeof(int)*_predicates,"KBO::predPrecedences");
+//  if(_functions) {
+//    DEALLOC_KNOWN(_functionPrecedences,sizeof(int)*_functions,"KBO::funPrecedences");
+//  }
 } // KBO::~KBO
 
 /**
