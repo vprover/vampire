@@ -288,44 +288,8 @@ void KBO::State::traverse(Literal* l1, Literal* l2)
 	if(_lexResult==EQUAL) {
 	  _lexResult=innerResult(*ss, *tt);
 	  ASS(_lexResult!=EQUAL);
-	} else if(_lexResult==GREATER_EQ) {
-	  ASSERTION_VIOLATION;
-	  Result newRes=innerResult(*ss, *tt);
-	  switch(newRes) {
-	  case GREATER:
-	    _lexResult=GREATER;
-	    break;
-	  case LESS:
-	  case LESS_EQ:
-	  case INCOMPARABLE:
-	    _lexResult=INCOMPARABLE;
-	    break;
-#if VDEBUG
-	  case EQUAL:
-	    ASSERTION_VIOLATION;
-	    break;
-#endif
-	  case GREATER_EQ: ;
-	  }
-	} else if(_lexResult==LESS_EQ) {
-	  ASSERTION_VIOLATION;
-	  Result newRes=innerResult(*ss, *tt);
-	  switch(newRes) {
-	  case LESS:
-	    _lexResult=LESS;
-	    break;
-	  case GREATER:
-	  case GREATER_EQ:
-	  case INCOMPARABLE:
-	    _lexResult=INCOMPARABLE;
-	    break;
-#if VDEBUG
-	  case EQUAL:
-	    ASSERTION_VIOLATION;
-	    break;
-#endif
-	  case LESS_EQ: ;
-	  }
+	  ASS(_lexResult!=GREATER_EQ);
+	  ASS(_lexResult!=LESS_EQ);
 	}
       }
     }
