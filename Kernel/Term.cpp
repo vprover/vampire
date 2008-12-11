@@ -627,6 +627,14 @@ std::ostream& Kernel::operator<< (ostream& out, TermList tl )
 {
   return out<<Test::Output::singleTermListToString(tl);
 }
+std::ostream& Kernel::operator<< (ostream& out, const Term& t )
+{
+  return out<<Test::Output::toString(&t);
+}
+std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
+{
+  return out<<Test::Output::toString(&l);
+}
 
 #endif
 

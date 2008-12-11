@@ -360,6 +360,33 @@ VirtualIterator<T> getUniquePersistentIterator(VirtualIterator<T> it)
 }
 
 
+/**
+ * Implementation object for VirtualIterator, that can proxy any
+ * non-virtual iterator, that supports hasNext() and next() methods.
+ */
+template<typename T>
+class RangeIterator
+: public IteratorCore<T>
+{
+public:
+  RangeIterator(T from, T to)
+  : _next(from), _from(from), _to(to) {}
+  bool hasNext() { return _next<_to; };
+  T next() { return _next++; };
+  bool knowsSize() const { return true; }
+  size_t size() const { return (_to>_from) ? (_to-_from) : 0; }
+private:
+  T _next;
+  T _from;
+  T _to;
+};
+
+template<typename T>
+VirtualIterator<T> getRangeIterator(T from, T to)
+{
+  return VirtualIterator<T>(new RangeIterator<T>(from, to));
+}
+
 };
 
 #endif /* __Metaiterators__ */

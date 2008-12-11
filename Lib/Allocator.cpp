@@ -348,7 +348,7 @@ void Allocator::deallocateUnknown(void* obj)
   ASS_EQ(desc->size, size);
 
   if (size >= REQUIRES_PAGE) {
-    mem = reinterpret_cast<char*>(obj)-PAGE_PREFIX_SIZE;
+    mem = mem-PAGE_PREFIX_SIZE;
     deallocatePages(reinterpret_cast<Page*>(mem));
   }
   else {

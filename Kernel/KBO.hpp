@@ -26,6 +26,8 @@ public:
   Result compare(Literal* l1, Literal* l2);
   Result compare(TermList* t1, TermList* t2);
   static KBO* createReversedAgePreferenceConstantLevels();
+  static KBO* createArityPreferenceConstantLevels();
+  static KBO* createArityPreferenceAndLevels();
 private:
   class State;
   /** Weight of variables */

@@ -204,20 +204,20 @@ test: $(TEST_OBJ)
 rtest: $(RTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(RTEST_OBJ) -o rtest
 
-alloctest: $(ALLOCTEST_OBJ)
+test_alloc: $(ALLOCTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(ALLOCTEST_OBJ) -o test_alloc
 
 
-dhtest: $(DHTEST_OBJ)
+test_DHMap: $(DHTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(DHTEST_OBJ) -o test_DHMap
 
-dhmstest: $(DHMSTEST_OBJ)
+test_DHMultiset: $(DHMSTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(DHMSTEST_OBJ) -o test_DHMultiset
 
-bhtest: $(BHTEST_OBJ)
+test_BinaryHeap: $(BHTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(BHTEST_OBJ) -o test_BinaryHeap
 
-sltest: $(SLTEST_OBJ)
+test_SkipList: $(SLTEST_OBJ)
 	$(CXX) $(CXXFLAGS) $(SLTEST_OBJ) -o test_SkipList
 
 alucard:  $(ALUCARD_OBJ)

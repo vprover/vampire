@@ -421,6 +421,8 @@ public:
 #if VDEBUG
 
 std::ostream& operator<< (ostream& out, TermList tl );
+std::ostream& operator<< (ostream& out, const Term& tl );
+std::ostream& operator<< (ostream& out, const Literal& tl );
 
 #endif
 

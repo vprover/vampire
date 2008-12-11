@@ -8,7 +8,11 @@
 #include "../Debug/Tracer.hpp"
 
 #include "../Lib/Environment.hpp"
+#include "../Lib/Comparison.hpp"
+#include "../Lib/DArray.hpp"
 #include "../Lib/DHMap.hpp"
+#include "../Lib/Int.hpp"
+#include "../Lib/Metaiterators.hpp"
 
 #include "Term.hpp"
 #include "KBO.hpp"
@@ -347,38 +351,25 @@ KBO::KBO(const Signature& sig)
   CALL("KBO::KBO");
   ASS(_predicates);
 
-  _predicateLevels = (int*)ALLOC_UNKNOWN(sizeof(int)*_predicates,
+  _predicateLevels = (int*)ALLOC_KNOWN(sizeof(int)*_predicates,
 	  "KBO::levels");
-  _predicatePrecedences = (int*)ALLOC_UNKNOWN(sizeof(int)*_predicates,
+  _predicatePrecedences = (int*)ALLOC_KNOWN(sizeof(int)*_predicates,
 	  "KBO::predPrecedences");
   if(_functions) {
-    _functionPrecedences = (int*)ALLOC_UNKNOWN(sizeof(int)*_functions,
+    _functionPrecedences = (int*)ALLOC_KNOWN(sizeof(int)*_functions,
 	    "KBO::funPrecedences");
   }
-//  _predicateLevels = (int*)ALLOC_KNOWN(sizeof(int)*_predicates,
-//	  "KBO::levels");
-//  _predicatePrecedences = (int*)ALLOC_KNOWN(sizeof(int)*_predicates,
-//	  "KBO::predPrecedences");
-//  if(_functions) {
-//    _functionPrecedences = (int*)ALLOC_KNOWN(sizeof(int)*_functions,
-//	    "KBO::funPrecedences");
-//  }
 } // KBO::KBO
 
 KBO::~KBO()
 {
   CALL("KBO::~KBO");
 
-  DEALLOC_UNKNOWN(_predicateLevels,"KBO::levels");
-  DEALLOC_UNKNOWN(_predicatePrecedences,"KBO::predPrecedences");
+  DEALLOC_KNOWN(_predicateLevels,sizeof(int)*_predicates,"KBO::levels");
+  DEALLOC_KNOWN(_predicatePrecedences,sizeof(int)*_predicates,"KBO::predPrecedences");
   if(_functions) {
-    DEALLOC_UNKNOWN(_functionPrecedences,"KBO::funPrecedences");
+    DEALLOC_KNOWN(_functionPrecedences,sizeof(int)*_functions,"KBO::funPrecedences");
   }
-//  DEALLOC_KNOWN(_predicateLevels,sizeof(int)*_predicates,"KBO::levels");
-//  DEALLOC_KNOWN(_predicatePrecedences,sizeof(int)*_predicates,"KBO::predPrecedences");
-//  if(_functions) {
-//    DEALLOC_KNOWN(_functionPrecedences,sizeof(int)*_functions,"KBO::funPrecedences");
-//  }
 } // KBO::~KBO
 
 /**
@@ -487,6 +478,79 @@ KBO* KBO::createReversedAgePreferenceConstantLevels()
     res->_predicatePrecedences[i]=i;
     res->_predicateLevels[i]=1;
   }
+  //equality is on the lowest level
+  res->_predicateLevels[0]=0;
+  return res;
+}
+
+struct FnArityComparator
+{
+  static Comparison compare(unsigned u1, unsigned u2)
+  {
+    return Int::compare(env.signature->functionArity(u1),
+	    env.signature->functionArity(u2));
+  }
+};
+struct PredArityComparator
+{
+  static Comparison compare(unsigned u1, unsigned u2)
+  {
+    return Int::compare(env.signature->predicateArity(u1),
+	    env.signature->predicateArity(u2));
+  }
+};
+
+KBO* KBO::createArityPreferenceConstantLevels()
+{
+  KBO* res=new KBO(*env.signature);
+
+  unsigned preds=res->_predicates;
+  unsigned funcs=res->_functions;
+
+  DArray<unsigned> aux(funcs);
+
+  aux.initFromIterator(getRangeIterator(0u, funcs));
+  aux.sort<FnArityComparator>(funcs);
+  for(unsigned i=0;i<funcs;i++) {
+    res->_functionPrecedences[aux[i]]=i;
+  }
+
+  aux.initFromIterator(getRangeIterator(0u, preds));
+  aux.sort<PredArityComparator>(preds);
+  for(unsigned i=0;i<preds;i++) {
+    res->_predicatePrecedences[aux[i]]=i;
+  }
+
+  for(unsigned i=0;i<res->_predicates;i++) {
+    res->_predicateLevels[i]=1;
+  }
+  //equality is on the lowest level
+  res->_predicateLevels[0]=0;
+  return res;
+}
+
+KBO* KBO::createArityPreferenceAndLevels()
+{
+  KBO* res=new KBO(*env.signature);
+
+  unsigned preds=res->_predicates;
+  unsigned funcs=res->_functions;
+
+  DArray<unsigned> aux(funcs);
+
+  aux.initFromIterator(getRangeIterator(0u, funcs));
+  aux.sort<FnArityComparator>(funcs);
+  for(unsigned i=0;i<funcs;i++) {
+    res->_functionPrecedences[aux[i]]=i;
+  }
+
+  aux.initFromIterator(getRangeIterator(0u, preds));
+  aux.sort<PredArityComparator>(preds);
+  for(unsigned i=0;i<preds;i++) {
+    res->_predicatePrecedences[aux[i]]=i;
+    res->_predicateLevels[aux[i]]=i+1;
+  }
+
   //equality is on the lowest level
   res->_predicateLevels[0]=0;
   return res;

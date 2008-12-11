@@ -14,6 +14,7 @@
 #include "Allocator.hpp"
 #include "Comparison.hpp"
 #include "Random.hpp"
+#include "VirtualIterator.hpp"
 
 namespace Lib {
 
@@ -117,6 +118,32 @@ public:
       *(--ptr)=src[--count];
     }
   }
+
+  /**
+   * Ensure that the array's size is at least @b count and
+   * initialize first @b count elements with halues from @b src.
+   *
+   * @b src has to support C operator[](size_t).
+   */
+  /**  */
+  void initFromIterator(VirtualIterator<C> it) {
+    CALL("DArray::initFromIterator");
+
+    if(it.knowsSize()) {
+      ensure(it.size());
+      C* ptr=_array;
+      while(it.hasNext()) {
+	*(ptr++)=it.next();
+      }
+    } else {
+      int cnt=0;
+      while(it.hasNext()) {
+	ensure(++cnt);
+	(*this)[cnt-1]=it.next();
+      }
+    }
+  }
+
 
   /**
    * Sort first @b count items using @b Comparator::compare
