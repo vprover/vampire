@@ -36,7 +36,7 @@ public:
   }
   virtual ~ClauseQueue();
   void insert(Clause*);
-  void remove(Clause*);
+  bool remove(Clause*);
   void removeAll();
   Clause* pop();
   /** True if the queue is empty */

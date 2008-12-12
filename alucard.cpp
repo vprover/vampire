@@ -42,8 +42,10 @@
 #include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
 
-#include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/AWPassiveClauseContainer.hpp"
+#include "Saturation/Discount.hpp"
+#include "Saturation/Otter.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BinaryResolution.hpp"
@@ -101,7 +103,8 @@ SaturationResult brSaturate(ClauseIterator clauses)
   HeaviestNegativeLiteralSelector hSelector;
 
 
-  DiscountSA salg(&passiveContainer, &oSelector);
+//  Discount salg(&passiveContainer, &oSelector);
+  Otter salg(&passiveContainer, &oSelector);
   salg.setGeneratingInferenceEngine(&generator);
   salg.setForwardSimplificationEngine(&fwSimplifier);
   salg.setBackwardSimplificationEngine(&slbsBSE);

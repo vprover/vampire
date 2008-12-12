@@ -45,6 +45,16 @@ public:
     _weightQueue.remove(c);
     removedEvent.fire(c);
   }
+
+  bool tryRemove(Clause* c)
+  {
+    if(_ageQueue.remove(c)) {
+      ALWAYS(_weightQueue.remove(c));
+      removedEvent.fire(c);
+      return true;
+    }
+    return false;
+  }
   /**
    * Set age-weight ratio
    * @since 08/01/2008 flight Murcia-Manchester

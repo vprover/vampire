@@ -79,7 +79,7 @@ void ClauseQueue::insert(Clause* c)
  * Remove the clause c from the queue.
  * @since 30/12/2007 Manchester
  */
-void ClauseQueue::remove(Clause* c)
+bool ClauseQueue::remove(Clause* c)
 {
   CALL("ClauseQueue::remove");
 
@@ -108,11 +108,13 @@ void ClauseQueue::remove(Clause* c)
       while (_height > 0 && ! _left.nodes[_height]) {
 	_height--;
       }
-      return;
+      return true;
     }
 
     if (next == 0 || lessThan(c,next->clause)) {
-      ASS(h != 0);
+      if(h==0) {
+	return false;
+      }
       h--;
     }
     else {

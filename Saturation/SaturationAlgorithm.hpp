@@ -99,23 +99,6 @@ protected:
 };
 
 
-class DiscountSA
-: public SaturationAlgorithm
-{
-public:
-  DiscountSA(PassiveClauseContainer* passiveContainer, LiteralSelector* selector)
-    : SaturationAlgorithm(passiveContainer,selector) {}
-  SaturationResult saturate();
-
-  ClauseContainer* getSimplificationClauseContainer();
-  ClauseContainer* getGenerationClauseContainer();
-
-protected:
-  bool processInactive(Clause* c);
-  void activate(Clause* c);
-};
-
-
 };
 
 #endif /*__SaturationAlgorithm__*/
