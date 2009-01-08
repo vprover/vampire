@@ -19,9 +19,7 @@ namespace Lib
 {
 
 /**
- * Class implementing timers. In 1 second of the user CPU time
- * one can do about 4M calls to clock() on my Samsung laptop
- * and about 3M calls on vampire.
+ * Class implementing timers.
  * @since 12/04/2006 Bellevue
  */
 class Timer
@@ -80,26 +78,26 @@ private:
   int _start;
   /** total elapsed time */
   int _elapsed;
-  
+
   /** number of miliseconds (of CPU time) passed since some moment */
   inline
   int miliseconds()
   {
-    struct timeval tim;        
-    struct rusage ru;        
-    getrusage(RUSAGE_SELF, &ru);        
-    tim=ru.ru_utime;        
-    int t=tim.tv_sec*1000 + tim.tv_usec / 1000;        
-    tim=ru.ru_stime;        
-    t+=tim.tv_sec*1000 + tim.tv_usec / 1000;        
+    struct timeval tim;
+    struct rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+    tim=ru.ru_utime;
+    int t=tim.tv_sec*1000 + tim.tv_usec / 1000;
+    tim=ru.ru_stime;
+    t+=tim.tv_sec*1000 + tim.tv_usec / 1000;
     return t;
 //    return (int)( ((long long)clock())*1000/CLOCKS_PER_SEC );
   }
-  
-  
+
+
 
   /** elapsed time in ticks */
-  inline 
+  inline
   int elapsed()
   {
     return _running ? miliseconds() - _start + _elapsed : _elapsed;

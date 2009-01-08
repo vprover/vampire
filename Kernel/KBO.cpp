@@ -434,6 +434,7 @@ Ordering::Result KBO::compare(TermList* t1, TermList* t2)
 
 KBO* KBO::createReversedAgePreferenceConstantLevels()
 {
+  CALL("KBO::createReversedAgePreferenceConstantLevels");
   KBO* res=new KBO(*env.signature);
   for(unsigned i=0;i<res->_functions;i++) {
     res->_functionPrecedences[i]=i;
@@ -466,17 +467,20 @@ struct PredArityComparator
 
 KBO* KBO::createArityPreferenceConstantLevels()
 {
+  CALL("KBO::createArityPreferenceConstantLevels");
+
   KBO* res=new KBO(*env.signature);
 
   unsigned preds=res->_predicates;
   unsigned funcs=res->_functions;
 
-  DArray<unsigned> aux(funcs);
-
-  aux.initFromIterator(getRangeIterator(0u, funcs));
-  aux.sort<FnArityComparator>(funcs);
-  for(unsigned i=0;i<funcs;i++) {
-    res->_functionPrecedences[aux[i]]=i;
+  static DArray<unsigned> aux(32);
+  if(funcs) {
+    aux.initFromIterator(getRangeIterator(0u, funcs));
+    aux.sort<FnArityComparator>(funcs);
+    for(unsigned i=0;i<funcs;i++) {
+      res->_functionPrecedences[aux[i]]=i;
+    }
   }
 
   aux.initFromIterator(getRangeIterator(0u, preds));
