@@ -29,7 +29,7 @@ CompositeFSE::~CompositeFSE()
 {
   _inners->destroy();
 }
-void CompositeFSE::addFront(ForwardSimplificationEngine* fse)
+void CompositeFSE::addFront(ForwardSimplificationEngineSP fse)
 {
   FSList::push(fse,_inners);
 }
@@ -77,7 +77,7 @@ CompositeGIE::~CompositeGIE()
 {
   _inners->destroy();
 }
-void CompositeGIE::addFront(GeneratingInferenceEngine* fse)
+void CompositeGIE::addFront(GeneratingInferenceEngineSP fse)
 {
   GIList::push(fse,_inners);
 }

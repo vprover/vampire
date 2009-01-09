@@ -41,6 +41,7 @@ class Renaming;
 class Substitution;
 
 class LiteralSelector;
+typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;
 };
 
 namespace Indexing
@@ -53,11 +54,29 @@ class TermSharing;
 namespace Saturation
 {
 class SaturationAlgorithm;
+typedef Lib::SmartPtr<SaturationAlgorithm> SaturationAlgorithmSP;
 
 class ClauseContainer;
 class UnprocessedClauseContainer;
+
 class PassiveClauseContainer;
+typedef Lib::SmartPtr<PassiveClauseContainer> PassiveClauseContainerSP;
+
 class ActiveClauseContainer;
+}
+
+namespace Inferences
+{
+class InferenceEngine;
+
+class GeneratingInferenceEngine;
+typedef Lib::SmartPtr<GeneratingInferenceEngine> GeneratingInferenceEngineSP;
+
+class ForwardSimplificationEngine;
+typedef Lib::SmartPtr<ForwardSimplificationEngine> ForwardSimplificationEngineSP;
+
+class BackwardSimplificationEngine;
+typedef Lib::SmartPtr<BackwardSimplificationEngine> BackwardSimplificationEngineSP;
 }
 
 #endif /* __Forwards__ */

@@ -31,7 +31,7 @@ void OrderingLiteralSelector::select(Clause* c)
   }
 
   for(unsigned i=0;i<clen;i++) {
-    if((*c)[i]->isNegative() && (!selWeight || (*c)[i]->weight()<selWeight)) {
+    if((*c)[i]->isNegative() && ((*c)[i]->weight()>selWeight)) {
       seli=i;
       selWeight=(*c)[i]->weight();
     }

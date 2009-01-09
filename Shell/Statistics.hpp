@@ -23,6 +23,8 @@ class Statistics
 public:
   Statistics();
 
+  void print();
+
   // Input
   /** number of input clauses */
   unsigned inputClauses;

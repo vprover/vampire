@@ -43,9 +43,9 @@
 #include "Shell/TheoryFinder.hpp"
 
 #include "Saturation/AWPassiveClauseContainer.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/Discount.hpp"
 #include "Saturation/Otter.hpp"
-#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BinaryResolution.hpp"
@@ -70,8 +70,9 @@ using namespace Inferences;
 
 SaturationResult brSaturate(ClauseIterator clauses)
 {
-  AWPassiveClauseContainer passiveContainer;
-  passiveContainer.setAgeWeightRatio(1,1);
+  PassiveClauseContainerSP passiveContainer=
+    PassiveClauseContainerSP(new AWPassiveClauseContainer());
+  passiveContainer.pcast<AWPassiveClauseContainer>()->setAgeWeightRatio(1,1);
 
   CompositeGIE generator;
   BinaryResolution brGIE;
@@ -99,12 +100,13 @@ SaturationResult brSaturate(ClauseIterator clauses)
   //Ordering* ordering=KBO::createReversedAgePreferenceConstantLevels();
   Ordering* ordering=KBO::createArityPreferenceConstantLevels();
 
-  OrderingLiteralSelector oSelector(ordering);
+  LiteralSelectorSP oSelector =
+    LiteralSelectorSP(new OrderingLiteralSelector(ordering));
   HeaviestNegativeLiteralSelector hSelector;
 
 
-//  Discount salg(&passiveContainer, &oSelector);
-  Otter salg(&passiveContainer, &oSelector);
+  Discount salg(passiveContainer, oSelector);
+//  Otter salg(&passiveContainer, &oSelector);
   salg.setGeneratingInferenceEngine(&generator);
   salg.setForwardSimplificationEngine(&fwSimplifier);
   salg.setBackwardSimplificationEngine(&slbsBSE);
@@ -167,24 +169,7 @@ void doProving()
       env.out << "Refutation not found!\n";
       break;
     }
-    env.out << "------------------------------\n";
-    env.out << "Active clauses: "<<env.statistics->activeClauses<<endl;
-    env.out << "Passive clauses: "<<env.statistics->passiveClauses<<endl;
-    env.out << "Generated clauses: "<<env.statistics->generatedClauses<<endl;
-    env.out << endl;
-
-    env.out << "Duplicate literals: "<<env.statistics->duplicateLiterals<<endl;
-    env.out << "Trivial inequalities: "<<env.statistics->trivialInequalities<<endl;
-    env.out << "Simple tautologies: "<<env.statistics->simpleTautologies<<endl;
-    env.out << "Equational tautologies: "<<env.statistics->equationalTautologies<<endl;
-    env.out << "Forward subsumptions: "<<env.statistics->forwardSubsumed<<endl;
-    env.out << "Backward subsumptions: "<<env.statistics->backwardSubsumed<<endl;
-    env.out << "Fw subsumption resolutions: "<<env.statistics->forwardSubsumptionResolution<<endl;
-    env.out << endl;
-
-    env.out << "Binary resolution: "<<env.statistics->resolution<<endl;
-    env.out << "Factoring: "<<env.statistics->factoring<<endl;
-    env.out << "------------------------------\n";
+    env.statistics->print();
 
     try{
       throw;

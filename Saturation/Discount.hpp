@@ -19,7 +19,7 @@ class Discount
 : public SaturationAlgorithm
 {
 public:
-  Discount(PassiveClauseContainer* passiveContainer, LiteralSelector* selector)
+  Discount(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
     : SaturationAlgorithm(passiveContainer,selector) {}
   SaturationResult saturate();
 

@@ -111,12 +111,12 @@ class CompositeFSE
 public:
   CompositeFSE() : _inners(0) {}
   ~CompositeFSE();
-  void addFront(ForwardSimplificationEngine* fse);
+  void addFront(ForwardSimplificationEngineSP fse);
   void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
   void attach(SaturationAlgorithm* salg);
   void detach();
 private:
-  typedef List<ForwardSimplificationEngine*> FSList;
+  typedef List<ForwardSimplificationEngineSP> FSList;
   FSList* _inners;
 };
 
@@ -126,12 +126,12 @@ class CompositeGIE
 public:
   CompositeGIE() : _inners(0) {}
   ~CompositeGIE();
-  void addFront(GeneratingInferenceEngine* fse);
+  void addFront(GeneratingInferenceEngineSP fse);
   ClauseIterator generateClauses(Clause* premise);
   void attach(SaturationAlgorithm* salg);
   void detach();
 private:
-  typedef List<GeneratingInferenceEngine*> GIList;
+  typedef List<GeneratingInferenceEngineSP> GIList;
   GIList* _inners;
 };
 

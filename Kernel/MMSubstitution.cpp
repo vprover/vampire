@@ -809,6 +809,12 @@ ostream& Kernel::operator<< (ostream& out, MMSubstitution::VarSpec vs )
 
 #endif
 
+#include <iostream>
+#include "../Lib/Timer.hpp"
+#include "../Test/Output.hpp"
+#include "../Lib/DHMap.hpp"
+using namespace std;
+
 /**
  * Return true iif from each of first @b base->length() lists in @b alts can
  * be selected one literal, such that they altogether match onto respective
@@ -821,6 +827,24 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
   CALL("MMSubstitution::canBeMatched");
 
   unsigned baseLen=base->length();
+
+/*  static unsigned maxComplexity=0;
+  unsigned cc=1;
+  bool exceeded=false;
+  for(unsigned i=0;i<baseLen;i++) {
+    unsigned len=alts[i]->length();
+    if(cc*len<cc) {
+      exceeded=true;
+      cc=len;
+    } else {
+      cc*=len;
+    }
+  }
+  Timer tmr;
+  if(exceeded) {
+    tmr.start();
+  }*/
+
   bool success=false;
   static Stack<BacktrackData> bdStack(32);
   static DArray<LiteralList*> rem(32); //remaining alternatives
@@ -889,6 +913,30 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
   while(!bdStack.isEmpty()) {
     bdStack.pop().drop();
   }
+
+/*  if(exceeded) {
+    tmr.stop();
+    if(tmr.elapsedMilliseconds()>10000) {
+      int nextIndex=0;
+      DHMap<Literal*,int> indexes;
+      cout<<"\nBase: "<<Test::Output::toString(base)<<"\n\n";
+      for(unsigned i=0;i<baseLen;i++) {
+	cout<<Test::Output::toString((*base)[i])<<"\n---has instances---\n";
+	LiteralList* it=alts[i];
+	while(it) {
+	  Literal* ilit=it->head();
+	  if(indexes.insert(ilit, nextIndex)) {
+	    nextIndex++;
+	  }
+	  cout<<indexes.get(ilit)<<": "<<Test::Output::toString(ilit)<<"\n";
+	  it=it->tail();
+	}
+	cout<<endl;
+      }
+      cout<<"DONE in "<<tmr.elapsedMilliseconds()<<" ms\n-----------------------------------\n";
+    }
+  }*/
+
   return success;
 }
 

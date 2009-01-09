@@ -17,8 +17,8 @@ using namespace Shell;
 using namespace Saturation;
 
 
-SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContainer,
-	LiteralSelector* selector)
+SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
+	LiteralSelectorSP selector)
 : _imgr(this), _passive(passiveContainer), _generator(0), _fwSimplifier(0),
 _bwSimplifier(0), _selector(selector)
 {

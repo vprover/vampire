@@ -55,7 +55,6 @@ class UserErrorException
   UserErrorException (const string& msg)
     : Exception(msg)
   {}
-  ~UserErrorException () {}
   void cry (ostream&);
 }; // UserErrorException
 
@@ -72,8 +71,19 @@ class InvalidOperationException
    InvalidOperationException (const string& msg)
     : Exception(msg)
   {}
-  ~InvalidOperationException () {}
   void cry (ostream&);
+}; // InvalidOperationException
+
+/**
+ * Class NotImplementedException.
+ */
+class NotImplementedException
+  : public Exception
+{
+ public:
+   NotImplementedException ()
+    : Exception("Not implemented.")
+  {}
 }; // InvalidOperationException
 
 
@@ -85,6 +95,8 @@ class InvalidOperationException
   throw Lib::UserErrorException(msg)
 #define INVALID_OPERATION(msg) \
   throw Lib::InvalidOperationException(msg)
+#define NOT_IMPLEMENTED \
+  throw Lib::InvalidOperationException()
 
 #endif // __Exception__
 

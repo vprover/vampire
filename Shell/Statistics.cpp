@@ -5,8 +5,13 @@
  * @since 02/01/2008 Manchester
  */
 
+#include <iostream>
+
+#include "../Lib/Environment.hpp"
 #include "Statistics.hpp"
 
+using namespace std;
+using namespace Lib;
 using namespace Shell;
 
 /**
@@ -35,3 +40,25 @@ Statistics::Statistics()
 {
 } // Statistics::Statistics
 
+
+void Statistics::print()
+{
+  env.out << "------------------------------\n";
+  env.out << "Active clauses: "<<activeClauses<<endl;
+  env.out << "Passive clauses: "<<passiveClauses<<endl;
+  env.out << "Generated clauses: "<<generatedClauses<<endl;
+  env.out << endl;
+
+  env.out << "Duplicate literals: "<<duplicateLiterals<<endl;
+  env.out << "Trivial inequalities: "<<trivialInequalities<<endl;
+  env.out << "Simple tautologies: "<<simpleTautologies<<endl;
+  env.out << "Equational tautologies: "<<equationalTautologies<<endl;
+  env.out << "Forward subsumptions: "<<forwardSubsumed<<endl;
+  env.out << "Backward subsumptions: "<<backwardSubsumed<<endl;
+  env.out << "Fw subsumption resolutions: "<<forwardSubsumptionResolution<<endl;
+  env.out << endl;
+
+  env.out << "Binary resolution: "<<resolution<<endl;
+  env.out << "Factoring: "<<factoring<<endl;
+  env.out << "------------------------------\n";
+}

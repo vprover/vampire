@@ -15,8 +15,9 @@ namespace Kernel {
 
 /**
  * Class OrderingLiteralSelector implements literal
- * selector that selects lightest negative literal, or all
- * literals, if there's no negative one.
+ * selector that selects heaviest negative literal, or all
+ * maximal literals in specified ordering, if there's no
+ * negative one.
  */
 class OrderingLiteralSelector
 : public LiteralSelector

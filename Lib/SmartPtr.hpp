@@ -14,7 +14,7 @@ namespace Lib
 /**
  * Deletion of incomplete class types causes memory leaks. Using this
  * causes compile error when deleting incomplete classes.
- * 
+ *
  * (see http://www.boost.org/doc/libs/1_36_0/libs/utility/checked_delete.html )
  */
 template<class T> inline void checked_delete(T * x)
@@ -29,7 +29,7 @@ template<typename T>
 class SmartPtr {
 public:
   inline
-  explicit SmartPtr() : _obj(0), _refCnt(0) {}
+  SmartPtr() : _obj(0), _refCnt(0) {}
   inline
   explicit SmartPtr(T* obj) : _obj(obj), _refCnt(new int(1)) {}
   inline
@@ -40,7 +40,7 @@ public:
     }
   }
   inline
-  ~SmartPtr() 
+  ~SmartPtr()
   {
     if(!_obj) {
       return;
@@ -52,19 +52,19 @@ public:
       delete _refCnt;
     }
   }
-  SmartPtr& operator=(const SmartPtr& ptr) 
+  SmartPtr& operator=(const SmartPtr& ptr)
   {
     CALL("SmartPtr::operator=");
-    
+
     T* oldObj=_obj;
     int* oldCnt=_obj;
     _obj=ptr._obj;
     _refCnt=ptr._refCnt;
-    
+
     if(_obj) {
       (*_refCnt)++;
     }
-    
+
     if(oldObj) {
       (*oldCnt)--;
       ASS(*oldCnt>=0);
@@ -75,15 +75,22 @@ public:
     }
     return *this;
   }
-  
+
   inline
   bool isEmpty() { return _obj; }
-  
+
   inline
   T* operator->() { return _obj; }
   inline
   T& operator*() { return *_obj; }
-  
+
+  inline
+  T* ptr() { return _obj; }
+
+  template<class Target>
+  inline
+  Target* pcast() { return static_cast<Target*>(_obj); }
+
 private:
   T* _obj;
   int* _refCnt;

@@ -32,7 +32,7 @@ using namespace Inferences;
 class SaturationAlgorithm
 {
 public:
-  SaturationAlgorithm(PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
+  SaturationAlgorithm(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector);
   virtual ~SaturationAlgorithm();
 
   void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
@@ -51,6 +51,8 @@ public:
 
   Limits* getLimits() { return &_limits; }
   IndexManager* getIndexManager() { return &_imgr; }
+
+  static SaturationAlgorithmSP createFromOptions();
 
 #if VDEBUG
   void enableContainerPrintouts()
@@ -88,14 +90,14 @@ private:
   IndexManager _imgr;
 protected:
   UnprocessedClauseContainer* _unprocessed;
-  PassiveClauseContainer* _passive;
+  PassiveClauseContainerSP _passive;
   ActiveClauseContainer* _active;
 
   GeneratingInferenceEngine* _generator;
   ForwardSimplificationEngine* _fwSimplifier;
   BackwardSimplificationEngine* _bwSimplifier;
 
-  LiteralSelector* _selector;
+  LiteralSelectorSP _selector;
 };
 
 
