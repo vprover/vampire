@@ -14,8 +14,8 @@ ls Problems/AGT/* | xargs -n 1 ~/src/Dracula/test --time_limit 20 > ~/src/Dracul
 
 #include <fstream>
 #include <csignal>
-#include <utility> 
-#include <algorithm> 
+#include <utility>
+#include <algorithm>
 
 #include "Debug/Tracer.hpp"
 
@@ -48,8 +48,6 @@ ls Problems/AGT/* | xargs -n 1 ~/src/Dracula/test --time_limit 20 > ~/src/Dracul
 #include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
 
-#include "Resolution/ProofAttempt.hpp"
-
 #include "Rule/CASC.hpp"
 #include "Rule/Prolog.hpp"
 #include "Rule/Index.hpp"
@@ -67,15 +65,15 @@ using namespace Lib;
 using namespace Resolution;
 using namespace Indexing;
 
-unsigned getCpuTime()        
+unsigned getCpuTime()
 {
-  struct timeval tim;        
-  struct rusage ru;        
-  getrusage(RUSAGE_SELF, &ru);        
-  tim=ru.ru_utime;        
-  unsigned t=tim.tv_sec*1000 + tim.tv_usec / 1000;        
-  tim=ru.ru_stime;        
-  t+=tim.tv_sec*1000 + tim.tv_usec / 1000;        
+  struct timeval tim;
+  struct rusage ru;
+  getrusage(RUSAGE_SELF, &ru);
+  tim=ru.ru_utime;
+  unsigned t=tim.tv_sec*1000 + tim.tv_usec / 1000;
+  tim=ru.ru_stime;
+  t+=tim.tv_sec*1000 + tim.tv_usec / 1000;
   return t;
 }
 
@@ -135,7 +133,7 @@ void doTest()
     ASS(unit->isClause());
     Clause* cls=static_cast<Clause*>(unit);
     for(int i=0;i<cls->length();i++) {
-      
+
       Stack<TermList*> tstack(10);
       tstack.push((*cls)[i]->args());
       while (!tstack.isEmpty()) {
@@ -159,7 +157,7 @@ void doTest()
 
   Timer tmr;
   tmr.start();
-  
+
   for(index=0;index<litCnt;index++) {
     tree.insert(literals[index].first, literals[index].second);
   }
@@ -173,7 +171,7 @@ void doTest()
   }
   tmr.stop();
   cout<<litCnt<<" literals removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
-  
+
   tmr.reset();
   tmr.start();
   for(index=0;index<litCnt;index++) {
@@ -181,7 +179,7 @@ void doTest()
   }
   tmr.stop();
   cout<<litCnt<<" literals inserted again in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
-  
+
   randomize(literals, litCnt);
 
   tmr.reset();
@@ -193,7 +191,7 @@ void doTest()
   cout<<(litCnt/2)<<" random literals removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
 
 
-  
+
   tmr.reset();
   tmr.start();
   for(index=0;index<stCnt;index++) {
@@ -219,17 +217,17 @@ void doTest()
   cout<<stCnt<<" subterms inserted again in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
 
   randomize(subterms, stCnt);
-  
+
   tmr.reset();
   tmr.start();
   for(index=0;index<stCnt/2;index++) {
     ttree.remove(subterms[index].first, subterms[index].second);
   }
   tmr.stop();
-  cout<<(stCnt/2)<<" random subterms removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;  
-  
+  cout<<(stCnt/2)<<" random subterms removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
+
   cout<<endl;
-  
+
 #if CHECK_LEAKS
   delete env.signature;
   env.signature = 0;
@@ -251,7 +249,7 @@ void explainException (Exception& exception)
 
 /**
  * The main function.
- * @since 03/12/2003 many changes related to logging 
+ * @since 03/12/2003 many changes related to logging
  *        and exception handling.
  * @since 10/09/2004, Manchester changed to use knowledge bases
  */
@@ -280,7 +278,7 @@ int main(int argc, char* argv [])
     env.signature = new Kernel::Signature;
 
     doTest();
-    
+
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {

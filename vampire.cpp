@@ -16,6 +16,7 @@
 
 #include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -35,20 +36,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/Refutation.hpp"
 
-#include "Saturation/AWPassiveClauseContainer.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Saturation/Discount.hpp"
-#include "Saturation/Otter.hpp"
-
-#include "Inferences/InferenceEngine.hpp"
-#include "Inferences/BinaryResolution.hpp"
-#include "Inferences/Factoring.hpp"
-#include "Inferences/ForwardSubsumptionResolution.hpp"
-#include "Inferences/AtomicClauseForwardSubsumption.hpp"
-#include "Inferences/RefutationSeekerFSE.hpp"
-#include "Inferences/SLQueryForwardSubsumption.hpp"
-#include "Inferences/SLQueryBackwardSubsumption.hpp"
-#include "Inferences/TautologyDeletionFSE.hpp"
 
 
 #if CHECK_LEAKS
@@ -62,12 +50,9 @@ using namespace Shell;
 using namespace Saturation;
 using namespace Inferences;
 
-/**
- * Run the Vampire mode: read a problem and try to prove it.
- */
-void vampireMode()
+void doProving()
 {
-  CALL("vampireMode()");
+  CALL("doProving()");
 
   env.signature = new Kernel::Signature;
   string inputFile = env.options->inputFile();
@@ -76,29 +61,25 @@ void vampireMode()
   TPTPParser parser(lexer);
   UnitList* units = parser.units();
 
+  Property property;
+  property.scan(units);
+
   Preprocess prepro(property,*env.options);
   prepro.preprocess(units);
 
-  PassiveClauseContainer* passiveContainer;
-  LiteralSelector* literalSelector;
+  ClauseIterator clauses=getStaticCastIterator<Clause*>(UnitList::Iterator(units));
 
-  SaturationAlgorithm* saturationAlgorithm;
-  switch(env.options->saturationAlgorithm()) {
-  case Shell::Options::OTTER:
-    saturationAlgorithm=new Otter(passiveContainer, literalSelector);
-  }
+  SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
+  salg->addClauses(clauses);
 
-#if CHECK_LEAKS
-  delete env.signature;
-  env.signature = 0;
-  MemoryLeak leak;
-  leak.release(units);
-#endif
-} // vampireMode
+  SaturationResult sres(salg->saturate());
+  sres.updateStatistics();
+}
 
-
-void outputResults()
+void outputResult()
 {
+  CALL("outputResult()");
+
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
     env.out << "Refutation found. Thanks to Tanya!\n";
@@ -125,7 +106,40 @@ void outputResults()
 }
 
 
-typedef Lib::Vector<int> Vect;
+void vampireMode()
+{
+  CALL("vampireMode()");
+  env.out<<env.options->testId()<<" on "<<env.options->inputFile()<<endl;
+  doProving();
+  outputResult();
+} // vampireMode
+
+void spiderMode()
+{
+  CALL("spiderMode()");
+  doProving();
+  switch (env.statistics->terminationReason) {
+  case Statistics::REFUTATION:
+    env.out << "+";
+    break;
+  case Statistics::TIME_LIMIT:
+  case Statistics::MEMORY_LIMIT:
+    env.out << "?";
+    break;
+  default:
+    env.out << "-";
+    break;
+  }
+  env.out<<env.options->testId()<<" "
+    <<System::extractFileNameFromPath(env.options->inputFile())<<endl;
+} // spiderMode
+
+
+void explainException (Exception& exception)
+{
+  exception.cry(cout);
+} // explainException
+
 
 /**
  * The main function.
@@ -161,21 +175,21 @@ int main(int argc, char* argv [])
       {
       case Options::MODE_VAMPIRE:
 	vampireMode();
-  	return EXIT_SUCCESS;
-      case Options::MODE_PROFILE:
-	profileMode();
-  	return EXIT_SUCCESS;
-      case Options::MODE_OUTPUT:
-	outputMode();
-  	return EXIT_SUCCESS;
-      case Options::MODE_RULE:
-	ruleMode();
-  	return EXIT_SUCCESS;
+	break;
+      case Options::MODE_SPIDER:
+	spiderMode();
+	break;
 #if VDEBUG
       default:
   	ASSERTION_VIOLATION;
 #endif
       }
+#if CHECK_LEAKS
+    delete env.signature;
+    env.signature = 0;
+    MemoryLeak leak;
+    leak.release(units);
+#endif
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {

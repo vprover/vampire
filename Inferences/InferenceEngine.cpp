@@ -69,7 +69,7 @@ void CompositeFSE::detach()
 struct GeneratingFunctor
 {
   GeneratingFunctor(Clause* cl) : cl(cl) {}
-  ClauseIterator operator() (GeneratingInferenceEngine* gie)
+  ClauseIterator operator() (GeneratingInferenceEngineSP gie)
   { return gie->generateClauses(cl); }
   Clause* cl;
 };

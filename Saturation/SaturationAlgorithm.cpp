@@ -34,34 +34,31 @@ SaturationAlgorithm::~SaturationAlgorithm()
 {
   if(_generator) {
     _generator->detach();
-    _generator=0;
   }
   if(_fwSimplifier) {
     _fwSimplifier->detach();
-    _fwSimplifier=0;
   }
   if(_bwSimplifier) {
     _bwSimplifier->detach();
-    _bwSimplifier=0;
   }
 
   delete _unprocessed;
   delete _active;
 }
 
-void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngine* generator)
+void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator)
 {
   ASS(!_generator);
   _generator=generator;
   _generator->attach(this);
 }
-void SaturationAlgorithm::setForwardSimplificationEngine(ForwardSimplificationEngine* fwSimplifier)
+void SaturationAlgorithm::setForwardSimplificationEngine(ForwardSimplificationEngineSP fwSimplifier)
 {
   ASS(!_fwSimplifier);
   _fwSimplifier=fwSimplifier;
   _fwSimplifier->attach(this);
 }
-void SaturationAlgorithm::setBackwardSimplificationEngine(BackwardSimplificationEngine* bwSimplifier)
+void SaturationAlgorithm::setBackwardSimplificationEngine(BackwardSimplificationEngineSP bwSimplifier)
 {
   ASS(!_bwSimplifier);
   _bwSimplifier=bwSimplifier;

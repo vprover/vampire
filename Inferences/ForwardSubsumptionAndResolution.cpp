@@ -1,6 +1,6 @@
 /**
- * @file ForwardSubsumptionResolution.cpp
- * Implements class ForwardSubsumptionResolution.
+ * @file ForwardSubsumptionAndResolution.cpp
+ * Implements class ForwardSubsumptionAndResolution.
  */
 
 
@@ -27,7 +27,7 @@
 #include "../Lib/Environment.hpp"
 #include "../Shell/Statistics.hpp"
 
-#include "ForwardSubsumptionResolution.hpp"
+#include "ForwardSubsumptionAndResolution.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -35,14 +35,14 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace Inferences;
 
-void ForwardSubsumptionResolution::attach(SaturationAlgorithm* salg)
+void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
 {
   CALL("SLQueryForwardSubsumption::attach");
   ForwardSimplificationEngine::attach(salg);
   _index=_salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE);
 }
 
-void ForwardSubsumptionResolution::detach()
+void ForwardSubsumptionAndResolution::detach()
 {
   CALL("SLQueryForwardSubsumption::detach");
   _index=0;
@@ -183,7 +183,7 @@ Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* ba
   return res;
 }
 
-void ForwardSubsumptionResolution::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
+void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 {
   CALL("ForwardSubsumptionResolution::perform");
   toAdd=ClauseIterator::getEmpty();

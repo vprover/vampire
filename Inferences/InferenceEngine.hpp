@@ -8,6 +8,7 @@
 #define __InferenceEngine__
 
 #include "../Forwards.hpp"
+#include "../Lib/SmartPtr.hpp"
 
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/List.hpp"

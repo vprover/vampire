@@ -32,7 +32,7 @@ void System::gethostname(char* hostname,int maxlength)
   ::gethostname(hostname,maxlength);
 }
 
-std::string signalToString (int sigNum)
+string signalToString (int sigNum)
 {
   switch (sigNum)
     {
@@ -142,5 +142,13 @@ void System::setSignalHandlers()
 #endif
 }
 
-
+string System::extractFileNameFromPath(string str)
+{
+  size_t index=str.find_last_of("\\/")+1;
+  if(index==string::npos) {
+    return str;
+  }
+  return string(str, index);
 }
+
+};

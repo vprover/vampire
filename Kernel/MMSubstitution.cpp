@@ -10,6 +10,9 @@
 #include "../Lib/List.hpp"
 #include "../Lib/Random.hpp"
 #include "../Lib/DHMultiset.hpp"
+#include "../Lib/DHMap.hpp"
+#include "../Lib/SkipList.hpp"
+#include "../Lib/Int.hpp"
 
 #include "Term.hpp"
 #include "Clause.hpp"
@@ -812,7 +815,6 @@ ostream& Kernel::operator<< (ostream& out, MMSubstitution::VarSpec vs )
 #include <iostream>
 #include "../Lib/Timer.hpp"
 #include "../Test/Output.hpp"
-#include "../Lib/DHMap.hpp"
 using namespace std;
 
 /**
@@ -828,22 +830,42 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
 
   unsigned baseLen=base->length();
 
-/*  static unsigned maxComplexity=0;
-  unsigned cc=1;
-  bool exceeded=false;
+  //first we order base literals by number of their
+  //alternatives (smaller come first)
+  SkipList<int,Int> lengths;
+  DHMap<int, List<unsigned>* > len2lits;
   for(unsigned i=0;i<baseLen;i++) {
     unsigned len=alts[i]->length();
-    if(cc*len<cc) {
-      exceeded=true;
-      cc=len;
-    } else {
-      cc*=len;
+    List<unsigned>** plst;
+    if(len2lits.getValuePtr(len, plst, 0)) {
+      lengths.insert(len);
+    }
+    List<unsigned>::push(i,*plst);
+  }
+
+  static DArray<Literal*> baseOrd(32);
+  static DArray<LiteralList*> altsOrd(32);
+  baseOrd.ensure(baseLen);
+  altsOrd.ensure(baseLen);
+
+  unsigned nextli=0;
+  SkipList<int,Int>::Iterator lit(lengths);
+  while(lit.hasNext()) {
+    unsigned len=lit.next();
+    List<unsigned>** plst;
+    NEVER(len2lits.getValuePtr(len, plst, 0));
+    ASS(*plst);
+    while(*plst) {
+      unsigned basei=List<unsigned>::pop(*plst);
+      baseOrd[nextli]=(*base)[basei];
+      altsOrd[nextli++]=alts[basei];
     }
   }
+  ASS(nextli==baseLen);
+
+
   Timer tmr;
-  if(exceeded) {
-    tmr.start();
-  }*/
+  tmr.start();
 
   bool success=false;
   static Stack<BacktrackData> bdStack(32);
@@ -856,7 +878,7 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
   unsigned depth=0;
   for(;;) {
     if(rem[depth]==0) {
-      rem[depth]=alts[depth];
+      rem[depth]=altsOrd[depth];
     } else {
       rem[depth]=rem[depth]->tail();
     }
@@ -890,10 +912,10 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
     BacktrackData bData;
     matcher.bdRecord(bData);
     bool matched;
-    if( allowComplementary && (*base)[depth]->polarity()!=rem[depth]->head()->polarity() ) {
-      matched=matcher.match((*base)[depth],0,rem[depth]->head(),1, true);
+    if( allowComplementary && baseOrd[depth]->polarity()!=rem[depth]->head()->polarity() ) {
+      matched=matcher.match(baseOrd[depth],0,rem[depth]->head(),1, true);
     } else {
-      matched=matcher.match((*base)[depth],0,rem[depth]->head(),1, false);
+      matched=matcher.match(baseOrd[depth],0,rem[depth]->head(),1, false);
     }
     matcher.bdDone();
     if(matched) {
@@ -914,28 +936,26 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
     bdStack.pop().drop();
   }
 
-/*  if(exceeded) {
-    tmr.stop();
-    if(tmr.elapsedMilliseconds()>10000) {
-      int nextIndex=0;
-      DHMap<Literal*,int> indexes;
-      cout<<"\nBase: "<<Test::Output::toString(base)<<"\n\n";
-      for(unsigned i=0;i<baseLen;i++) {
-	cout<<Test::Output::toString((*base)[i])<<"\n---has instances---\n";
-	LiteralList* it=alts[i];
-	while(it) {
-	  Literal* ilit=it->head();
-	  if(indexes.insert(ilit, nextIndex)) {
-	    nextIndex++;
-	  }
-	  cout<<indexes.get(ilit)<<": "<<Test::Output::toString(ilit)<<"\n";
-	  it=it->tail();
+  tmr.stop();
+  if(tmr.elapsedMilliseconds()>1000) {
+    int nextIndex=0;
+    DHMap<Literal*,int> indexes;
+    cout<<"\nBase: "<<Test::Output::toString(base)<<"\n\n";
+    for(unsigned i=0;i<baseLen;i++) {
+      cout<<Test::Output::toString(baseOrd[i])<<"\n---has instances---\n";
+      LiteralList* it=altsOrd[i];
+      while(it) {
+	Literal* ilit=it->head();
+	if(indexes.insert(ilit, nextIndex)) {
+	  nextIndex++;
 	}
-	cout<<endl;
+	cout<<indexes.get(ilit)<<": "<<Test::Output::toString(ilit)<<"\n";
+	it=it->tail();
       }
-      cout<<"DONE in "<<tmr.elapsedMilliseconds()<<" ms\n-----------------------------------\n";
+      cout<<endl;
     }
-  }*/
+    cout<<"DONE in "<<tmr.elapsedMilliseconds()<<" ms\n-----------------------------------\n";
+  }
 
   return success;
 }

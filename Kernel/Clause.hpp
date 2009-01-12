@@ -6,6 +6,7 @@
  */
 
 #ifndef __Clause__
+#define __Clause__
 
 #include "../Forwards.hpp"
 #include "../Lib/Allocator.hpp"

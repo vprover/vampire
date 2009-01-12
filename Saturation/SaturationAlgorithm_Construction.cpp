@@ -4,6 +4,23 @@
  */
 
 #include "../Lib/Exception.hpp"
+
+#include "../Kernel/KBO.hpp"
+#include "../Kernel/OrderingLiteralSelector.hpp"
+
+#include "../Shell/Options.hpp"
+
+#include "../Inferences/InferenceEngine.hpp"
+#include "../Inferences/BinaryResolution.hpp"
+#include "../Inferences/Factoring.hpp"
+#include "../Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "../Inferences/RefutationSeekerFSE.hpp"
+#include "../Inferences/SLQueryForwardSubsumption.hpp"
+#include "../Inferences/SLQueryBackwardSubsumption.hpp"
+#include "../Inferences/TautologyDeletionFSE.hpp"
+
+
+#include "AWPassiveClauseContainer.hpp"
 #include "SaturationAlgorithm.hpp"
 
 #include "Discount.hpp"
@@ -15,6 +32,7 @@ using namespace Shell;
 using namespace Saturation;
 using namespace Inferences;
 
+namespace Construction {
 
 GeneratingInferenceEngineSP createGIE()
 {
@@ -36,7 +54,7 @@ ForwardSimplificationEngineSP createFSE()
     if(!env.options->forwardSubsumption()) {
       USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
     }
-    res->addFront(ForwardSimplificationEngineSP(new ForwardSubsumptionResolution()));
+    res->addFront(ForwardSimplificationEngineSP(new ForwardSubsumptionAndResolution()));
   } else if(env.options->forwardSubsumption()) {
     res->addFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
   }
@@ -58,59 +76,58 @@ BackwardSimplificationEngineSP createBSE()
   }
 }
 
-LiteralSelectorSP createLiteralSelector()
+OrderingSP createOrdering()
 {
-  //TODO: finish
-  switch(env.options->selection()) {
-  case Shell::Options::OTTER:
-    res=new Otter(passiveContainer, literalSelector);
+  Ordering* res;
+  switch(env.options->symbolPrecedence()) {
+  case Shell::Options::BY_ARITY:
+    res=KBO::createArityPreferenceConstantLevels();
     break;
-  case Shell::Options::DISCOUNT:
-    res=new Discount(passiveContainer, literalSelector);
+  case Shell::Options::BY_OCCURRENCE:
+    res=KBO::createReversedAgePreferenceConstantLevels();
     break;
   default:
     NOT_IMPLEMENTED;
   }
+  return OrderingSP(res);
 }
+
+LiteralSelectorSP createLiteralSelector()
+{
+  LiteralSelector* res;
+  switch(env.options->literalComparisonMode()) {
+  case Shell::Options::LCM_STANDARD:
+    res=new OrderingLiteralSelector(createOrdering());
+    break;
+  default:
+    NOT_IMPLEMENTED;
+  }
+  return LiteralSelectorSP(res);
+}
+
+PassiveClauseContainerSP createPassiveContainer()
+{
+  AWPassiveClauseContainer* res=new AWPassiveClauseContainer();
+  res->setAgeWeightRatio(env.options->ageRatio(),env.options->weightRatio());
+  return PassiveClauseContainerSP(res);
+}
+
+};
+
+using namespace Construction;
 
 SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
 {
-  PassiveClauseContainerSP passiveContainer=
-    PassiveClauseContainerSP(new AWPassiveClauseContainer());
-  passiveContainer.pcast<AWPassiveClauseContainer>()->setAgeWeightRatio(1,1);
-
-  CompositeGIE generator;
-  BinaryResolution brGIE;
-  Factoring fGIE;
-  generator.addFront(&fGIE);
-  generator.addFront(&brGIE);
-
-  CompositeFSE fwSimplifier;
-  fwSimplifier.addFront(&rsFSE);
-  fwSimplifier.addFront(&fsrFSE);
-//  fwSimplifier.addFront(&slfsFSE);
-  fwSimplifier.addFront(&tirFSE);
-  fwSimplifier.addFront(&tdFSE);
-  fwSimplifier.addFront(&dlrFSE);
-
-  SLQueryBackwardSubsumption slbsBSE;
-
-
-  //Ordering* ordering=KBO::createReversedAgePreferenceConstantLevels();
-  Ordering* ordering=KBO::createArityPreferenceConstantLevels();
-
-  LiteralSelectorSP literalSelector=createLiteralSelector();
-//    LiteralSelectorSP(new OrderingLiteralSelector(ordering));
-//  HeaviestNegativeLiteralSelector hSelector;
-
+  PassiveClauseContainerSP passive=createPassiveContainer();
+  LiteralSelectorSP selector=createLiteralSelector();
 
   SaturationAlgorithm* res;
   switch(env.options->saturationAlgorithm()) {
   case Shell::Options::OTTER:
-    res=new Otter(passiveContainer, literalSelector);
+    res=new Otter(passive, selector);
     break;
   case Shell::Options::DISCOUNT:
-    res=new Discount(passiveContainer, literalSelector);
+    res=new Discount(passive, selector);
     break;
   default:
     NOT_IMPLEMENTED;

@@ -81,9 +81,13 @@ class NotImplementedException
   : public Exception
 {
  public:
-   NotImplementedException ()
-    : Exception("Not implemented.")
+   NotImplementedException (const char* file,int line)
+    : Exception(""), file(file), line(line)
   {}
+   void cry (ostream&);
+ private:
+   const char* file;
+   int line;
 }; // InvalidOperationException
 
 
@@ -96,7 +100,7 @@ class NotImplementedException
 #define INVALID_OPERATION(msg) \
   throw Lib::InvalidOperationException(msg)
 #define NOT_IMPLEMENTED \
-  throw Lib::InvalidOperationException()
+  throw Lib::NotImplementedException(__FILE__, __LINE__)
 
 #endif // __Exception__
 

@@ -17,7 +17,7 @@ namespace Shell {
  * Class that represents Vampire's options.
  * 11/11/2004 Shrigley Hall, completely reimplemented
  */
-class Options 
+class Options
 {
 public:
   enum Tag {
@@ -116,10 +116,11 @@ public:
     MODE_OUTPUT = 1,
     MODE_PROFILE = 2,
     MODE_RULE = 3,
-    MODE_VAMPIRE = 4
+    MODE_SPIDER = 4,
+    MODE_VAMPIRE = 5
   };
 
-  /** Various options for the output of statistics in Vampire */ 
+  /** Various options for the output of statistics in Vampire */
   enum Statistics {
     /** changed by the option "--statistics brief" */
     STATISTICS_BRIEF = 0,

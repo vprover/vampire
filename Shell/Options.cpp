@@ -39,7 +39,7 @@ public:
   static const char* _satAlgValues[];
   static const char* _equalityProxyValues[];
   static const char* _modeValues[];
-  static const char* _splittingValues[]; 
+  static const char* _splittingValues[];
   static const char* _symbolPrecedenceValues[];
   static const char* _tcValues[];
   static const char* _proofValues[];
@@ -55,7 +55,7 @@ public:
   static NameArray satAlgValues;
   static NameArray equalityProxyValues;
   static NameArray modeValues;
-  static NameArray splittingValues; 
+  static NameArray splittingValues;
   static NameArray symbolPrecedenceValues;
   static NameArray tcValues;
   static NameArray proofValues;
@@ -228,7 +228,7 @@ const char* Options::Constants::_equalityProxyValues[] = {
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
 						  sizeof(_equalityProxyValues)/sizeof(char*));
 
-const char* Options::Constants::_splittingValues[] = { 
+const char* Options::Constants::_splittingValues[] = {
   "input_only",
   "off",
   "on"};
@@ -254,19 +254,20 @@ const char* Options::Constants::_modeValues[] = {
   "output",
   "profile",
   "rule",
+  "spider",
   "vampire"};
 NameArray Options::Constants::modeValues(_modeValues,
 					 sizeof(_modeValues)/sizeof(char*));
 
 /** Possible values for --proof */
-const char* Options::Constants::_proofValues[] = { 
+const char* Options::Constants::_proofValues[] = {
   "off",
   "on",
   "succinct"};
 NameArray Options::Constants::proofValues(_proofValues,
 					  sizeof(_proofValues)/sizeof(char*));
 
-/** 
+/**
  * Initialize options to the default values.
  *
  * @since 10/07/2003 Manchester, _normalize added
@@ -319,7 +320,7 @@ Options::Options ()
   _randomSeed(Random::seed()),
   _rowVariableMaxLength(2),
 
-  _saturationAlgorithm(LRS),
+  _saturationAlgorithm(DISCOUNT),
   _selection(10),
   _showActive(false),
   _showNew(false),
@@ -413,7 +414,7 @@ void Options::set (const char* name,const char* value, int index)
     return;
 
   case FORWARD_DEMODULATION:
-    _forwardDemodulation = 
+    _forwardDemodulation =
       (Demodulation)Constants::demodulationValues.find(value);
     if (_forwardDemodulation == -1) {
       break;
@@ -426,7 +427,7 @@ void Options::set (const char* name,const char* value, int index)
     _forwardSubsumptionResolution = onOffToBool(value,name);
     return;
   case FUNCTION_DEFINITION_ELIMINATION:
-    _functionDefinitionElimination = 
+    _functionDefinitionElimination =
       (FunctionDefinitionElimination)Constants::fdeValues.find(value);
     if (_functionDefinitionElimination == -1) {
       break;
@@ -447,7 +448,7 @@ void Options::set (const char* name,const char* value, int index)
     _latexOutput = value;
     return;
   case LITERAL_COMPARISON_MODE:
-    _literalComparisonMode = 
+    _literalComparisonMode =
       (LiteralComparisonMode)Constants::lcmValues.find(value);
     if (_literalComparisonMode == -1) {
       break;
@@ -457,7 +458,7 @@ void Options::set (const char* name,const char* value, int index)
     _logFile = value;
     return;
   case LRS_FIRST_TIME_CHECK:
-    if (Int::stringToInt(value,intValue) && 
+    if (Int::stringToInt(value,intValue) &&
 	setLrsFirstTimeCheck(intValue)) {
       return;
     }
@@ -599,7 +600,7 @@ void Options::set (const char* name,const char* value, int index)
     _superpositionFromVariables = onOffToBool(value,name);
     return;
   case SYMBOL_PRECEDENCE:
-    _symbolPrecedence = 
+    _symbolPrecedence =
       (SymbolPrecedence)Constants::symbolPrecedenceValues.find(value);
     if (_symbolPrecedence == -1) {
       break;
@@ -608,6 +609,7 @@ void Options::set (const char* name,const char* value, int index)
 
   case TEST_ID:
     _testId = value;
+    readFromTestId(value);
     return;
 
   case TIME_LIMIT:
@@ -741,7 +743,7 @@ bool Options::setNongoalWeightCoefficient (float newVal)
   return true;
 } // Options::setNongoalWeightCoefficient
 
-	
+
 /**
  * Set naming to a new value.
  * @since 13/07/2005 Haifa
@@ -757,7 +759,7 @@ bool Options::setNaming (int newVal)
   return true;
 } // Options::setNaming
 
-	
+
 /**
  * Set LRS first time check.
  * @since 15/11/2004 Manchester.
@@ -790,7 +792,7 @@ string Options::includeFileName (const string& relativeName)
   }
 
   // truncatedRelativeName is relative.
-  // Use the conventions of Vampire: 
+  // Use the conventions of Vampire:
   // (a) first search the value of "include"
   string dir = include ();
   if (dir == "") { // include undefined
@@ -805,7 +807,7 @@ string Options::includeFileName (const string& relativeName)
   }
   // now dir is the directory to search
   return dir + "/" + relativeName;
-} // Options::includeFileName 
+} // Options::includeFileName
 
 
 /**
@@ -843,7 +845,7 @@ void Options::output (ostream& str) const
  * str.
  *
  * @since 15/11/2004 Manchester
- */ 
+ */
 void Options::outputValue (ostream& str,int optionTag) const
 {
   CALL("Options::setLrsFirstTimeCheck");
@@ -1036,7 +1038,7 @@ void Options::outputValue (ostream& str,int optionTag) const
  * @since 07/07/2003 Manchester, bug fixed (when the problem name contained
  *        more than one ".", the name was calculated wrongly
  * @since 06/12/2003 Manchester, changed to use and return string
- */ 
+ */
 string Options::problemName () const
 {
   CALL("Options::problemName");
@@ -1053,13 +1055,13 @@ string Options::problemName () const
   int length = inputFileName.length() - 1;
   const char* name = inputFileName.c_str();
 
-  int b = length - 1; 
+  int b = length - 1;
   while (b >= 0 && name[b] != '/') {
     b--;
   }
   b++;
 
-  int e = length-1; 
+  int e = length-1;
   while (e >= b && name[e] != '.') {
     e--;
   }

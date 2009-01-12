@@ -5,14 +5,17 @@
  * else (handling signals etc...)
  */
 
+#include <string>
 
 namespace Lib {
+
+using namespace std;
 
 class System {
 public:
   static void gethostname(char* hostname,int maxlength);
   static void setSignalHandlers();
-
+  static string extractFileNameFromPath(string str);
 };
 
 }

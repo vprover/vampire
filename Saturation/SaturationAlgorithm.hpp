@@ -35,9 +35,9 @@ public:
   SaturationAlgorithm(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector);
   virtual ~SaturationAlgorithm();
 
-  void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
-  void setForwardSimplificationEngine(ForwardSimplificationEngine* fwSimplifier);
-  void setBackwardSimplificationEngine(BackwardSimplificationEngine* bwSimplifier);
+  void setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator);
+  void setForwardSimplificationEngine(ForwardSimplificationEngineSP fwSimplifier);
+  void setBackwardSimplificationEngine(BackwardSimplificationEngineSP bwSimplifier);
 
   PlainEvent safePointEvent;
 
@@ -93,9 +93,9 @@ protected:
   PassiveClauseContainerSP _passive;
   ActiveClauseContainer* _active;
 
-  GeneratingInferenceEngine* _generator;
-  ForwardSimplificationEngine* _fwSimplifier;
-  BackwardSimplificationEngine* _bwSimplifier;
+  GeneratingInferenceEngineSP _generator;
+  ForwardSimplificationEngineSP _fwSimplifier;
+  BackwardSimplificationEngineSP _bwSimplifier;
 
   LiteralSelectorSP _selector;
 };

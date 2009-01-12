@@ -8,6 +8,9 @@
 #ifndef __SmartPtr__
 #define __SmartPtr__
 
+#include "../Debug/Assertion.hpp"
+#include "../Debug/Tracer.hpp"
+
 namespace Lib
 {
 
@@ -57,7 +60,7 @@ public:
     CALL("SmartPtr::operator=");
 
     T* oldObj=_obj;
-    int* oldCnt=_obj;
+    int* oldCnt=_refCnt;
     _obj=ptr._obj;
     _refCnt=ptr._refCnt;
 
@@ -77,7 +80,7 @@ public:
   }
 
   inline
-  bool isEmpty() { return _obj; }
+  operator bool() { return _obj; }
 
   inline
   T* operator->() { return _obj; }

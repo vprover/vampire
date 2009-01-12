@@ -1,11 +1,11 @@
 /**
- * @file ForwardSubsumptionResolution.hpp
- * Defines class ForwardSubsumptionResolution.
+ * @file ForwardSubsumptionAndResolution.hpp
+ * Defines class ForwardSubsumptionAndResolution.
  */
 
 
-#ifndef __ForwardSubsumptionResolution__
-#define __ForwardSubsumptionResolution__
+#ifndef __ForwardSubsumptionAndResolution__
+#define __ForwardSubsumptionAndResolution__
 
 
 #include "../Forwards.hpp"
@@ -17,7 +17,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class ForwardSubsumptionResolution
+class ForwardSubsumptionAndResolution
 : public ForwardSimplificationEngine
 {
 public:
@@ -31,4 +31,4 @@ private:
 
 };
 
-#endif /* __ForwardSubsumptionResolution__ */
+#endif /* __ForwardSubsumptionAndResolution__ */

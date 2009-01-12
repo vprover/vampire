@@ -1,7 +1,7 @@
 /**
  * Class Exception.cpp. Implements Vampire exceptions.
  *
- * @since 03/12/2003, Manchester 
+ * @since 03/12/2003, Manchester
  */
 
 #include "Exception.hpp"
@@ -31,6 +31,14 @@ void UserErrorException::cry (ostream& str)
 void InvalidOperationException::cry (ostream& str)
 {
   str << "Invalid operation: " << _message << "\n";
+} // UserErrorException::cry
+
+/**
+ * Write a description of the exception to a stream.
+ */
+void NotImplementedException::cry (ostream& str)
+{
+  str << "Not implemented at " << file << ":" << line << "\n";
 } // UserErrorException::cry
 
 

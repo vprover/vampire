@@ -7,6 +7,8 @@
 #ifndef __OrderingLiteralSelector__
 #define __OrderingLiteralSelector__
 
+#include "../Forwards.hpp"
+#include "../Lib/SmartPtr.hpp"
 #include "Ordering.hpp"
 
 #include "LiteralSelector.hpp"
@@ -23,12 +25,12 @@ class OrderingLiteralSelector
 : public LiteralSelector
 {
 public:
-  OrderingLiteralSelector(Ordering* ord) : _ord(ord) {}
+  OrderingLiteralSelector(OrderingSP ord) : _ord(ord) {}
   void select(Clause* c);
 private:
   void selectPositive(Clause* c);
 
-  Ordering* _ord;
+  OrderingSP _ord;
 };
 
 };
