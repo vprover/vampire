@@ -70,52 +70,11 @@ using namespace Inferences;
 
 SaturationResult brSaturate(ClauseIterator clauses)
 {
-  PassiveClauseContainerSP passiveContainer=
-    PassiveClauseContainerSP(new AWPassiveClauseContainer());
-  passiveContainer.pcast<AWPassiveClauseContainer>()->setAgeWeightRatio(1,1);
-
-  CompositeGIE generator;
-  BinaryResolution brGIE;
-  Factoring fGIE;
-  generator.addFront(&fGIE);
-  generator.addFront(&brGIE);
-
-  CompositeFSE fwSimplifier;
-  TautologyDeletionFSE tdFSE;
-  DuplicateLiteralRemovalFSE dlrFSE;
-  TrivialInequalitiesRemovalFSE tirFSE;
-//  SLQueryForwardSubsumption slfsFSE;
-  ForwardSubsumptionAndResolution fsrFSE;
-  RefutationSeekerFSE rsFSE;
-  fwSimplifier.addFront(&rsFSE);
-  fwSimplifier.addFront(&fsrFSE);
-//  fwSimplifier.addFront(&slfsFSE);
-  fwSimplifier.addFront(&tirFSE);
-  fwSimplifier.addFront(&tdFSE);
-  fwSimplifier.addFront(&dlrFSE);
-
-  SLQueryBackwardSubsumption slbsBSE;
-
-
-  //Ordering* ordering=KBO::createReversedAgePreferenceConstantLevels();
-  Ordering* ordering=KBO::createArityPreferenceConstantLevels();
-
-  LiteralSelectorSP oSelector =
-    LiteralSelectorSP(new OrderingLiteralSelector(ordering));
-  HeaviestNegativeLiteralSelector hSelector;
-
-
-  Discount salg(passiveContainer, oSelector);
-//  Otter salg(&passiveContainer, &oSelector);
-  salg.setGeneratingInferenceEngine(&generator);
-  salg.setForwardSimplificationEngine(&fwSimplifier);
-  salg.setBackwardSimplificationEngine(&slbsBSE);
+  SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
 
   salg.addClauses(clauses);
 
   SaturationResult res(salg.saturate());
-
-  delete ordering;
 
   return res;
 }

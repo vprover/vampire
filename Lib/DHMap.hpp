@@ -8,11 +8,13 @@
 #define __DHMap__
 
 #include <cstdlib>
+#include <utility>
 
 #include "../Debug/Assertion.hpp"
 #include "Allocator.hpp"
 #include "Exception.hpp"
 #include "Hash.hpp"
+#include "VirtualIterator.hpp"
 
 namespace Lib {
 
@@ -105,6 +107,7 @@ public:
   ~DHMap()
   {
     if(_entries) {
+      ASS_EQ(_afterLast-_entries,_capacity);
       Entry * ep=_entries;
       while(ep!=_afterLast) {
 	(ep++)->~Entry();
@@ -503,26 +506,20 @@ private:
   /** Pointer to element after the last element of _entries array */
   Entry* _afterLast;
 
-public:
-
-  /**
-   * Class to allow iteration over keys and values stored in the map.
-   */
-  class Iterator {
+private:
+  class IteratorBase {
   public:
-    /** Create a new iterator */
-    inline Iterator(const DHMap& map)
+    /** Create a new IteratorBase */
+    inline IteratorBase(const DHMap& map)
     : _next(map._entries), _last(map._afterLast),
-    _timestamp(map._timestamp)
-    {
-    }
+    _timestamp(map._timestamp) {}
 
     /**
      * True if there exists next element
      */
     bool hasNext()
     {
-      CALL("DHMap::Iterator::hasNext");
+      CALL("DHMap::DomainIteratorCore::hasNext");
       while (_next != _last) {
 	if (_next->_info.timestamp==_timestamp && !_next->_info.deleted) {
 	  return true;
@@ -533,13 +530,99 @@ public:
     }
 
     /**
+     * Return the next entry
+     * @warning hasNext() must have been called before
+     */
+    inline
+    Entry* next()
+    {
+      CALL("DHMap::DomainIteratorCore::next");
+      ASS(_next != _last);
+      ASS(_next->_info.timestamp==_timestamp && !_next->_info.deleted);
+      return _next++;
+    }
+
+  private:
+    /** iterator will look for the next occupied cell starting with this one */
+    Entry* _next;
+    /** iterator will stop looking for the next cell after reaching this one */
+    Entry* _last;
+    /** only cells with _timestamp equal to this are considered occupied */
+    unsigned _timestamp;
+  }; // class DHMap::IteratorBase
+
+  class DomainIteratorCore
+  : public IteratorCore<Key> {
+  public:
+    /** Create a new iterator */
+    inline DomainIteratorCore(const DHMap& map) : _base(map) {}
+    /** True if there exists next element */
+    inline bool hasNext() { return _base.hasNext(); }
+
+    /**
+     * Return the next key
+     * @warning hasNext() must have been called before
+     */
+    inline Key next() { return _base.next()->_key; }
+  private:
+    IteratorBase _base;
+  }; // class DHMap::DomainIteratorCore
+public:
+  VirtualIterator<Key> domain() const
+  {
+    return VirtualIterator<Key>(new DomainIteratorCore(*this));
+  }
+
+  typedef std::pair<Key,Val> Item;
+
+private:
+  class ItemIteratorCore
+  : public IteratorCore<Item> {
+  public:
+    /** Create a new iterator */
+    inline ItemIteratorCore(const DHMap& map) : _base(map) {}
+    /** True if there exists next element */
+    inline bool hasNext() { return _base.hasNext(); }
+
+    /**
+     * Return the next key
+     * @warning hasNext() must have been called before
+     */
+    inline Item next()
+    {
+      Entry* e=_base.next();
+      return Item(e->_key, e->_val);
+    }
+  private:
+    IteratorBase _base;
+  }; // class DHMap::DomainIteratorCore
+public:
+
+  VirtualIterator<Item> items() const
+  {
+    return VirtualIterator<Item>(new ItemIteratorCore(*this));
+  }
+
+
+  /**
+   * Class to allow iteration over keys and values stored in the map.
+   */
+  class Iterator {
+  public:
+    /** Create a new iterator */
+    inline Iterator(const DHMap& map) : _base(map) {}
+
+    /** True if there exists next element */
+    bool hasNext() { return _base.hasNext(); }
+
+    /**
      * Assign key and value of the next entry to respective parameters
      * @warning hasNext() must have been called before
      */
     inline
     void next(Key& key, Val& val)
     {
-      Entry* e=nextEntry();
+      Entry* e=_base.next();
       key=e->_key;
       val=e->_val;
     }
@@ -548,50 +631,16 @@ public:
      * Return the next value
      * @warning hasNext() must have been called before
      */
-    inline
-    Val next()
-    {
-      return nextEntry()->_val;
-    }
+    inline Val next() { return _base.next()->_val; }
 
     /**
      * Return the key of next entry
      * @warning hasNext() must have been called before
      */
-    inline
-    Key nextKey()
-    {
-      return nextEntry()->_key;
-    }
+    inline Key nextKey() { return _base.next()->_key; }
 
   private:
-    /** Create a new iterator */
-    inline Iterator(Entry* entries, Entry* afterLast, unsigned timestamp)
-    : _next(entries), _last(afterLast), _timestamp(timestamp)
-    {
-    }
-
-    /**
-     * Return the next entry
-     * @warning hasNext() must have been called before
-     */
-    Entry* nextEntry()
-    {
-      CALL("DHMap::Iterator::nextEntry");
-      ASS(_next != _last);
-      ASS(_next->_info.timestamp==_timestamp && !_next->_info.deleted);
-      return _next++;
-    }
-
-    /** iterator will look for the next occupied cell starting with this one */
-    Entry* _next;
-    /** iterator will stop looking for the next cell after reaching this one */
-    Entry* _last;
-    /** only cells with _timestamp equal to this are considered occupied */
-    unsigned _timestamp;
-
-    friend class DHMap;
-
+    IteratorBase _base;
   }; // class DHMap::Iterator
 
 

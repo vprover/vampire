@@ -12,9 +12,15 @@
 #include "Clause.hpp"
 #include "Term.hpp"
 
-using namespace Lib;
+#if VDEBUG
 
-namespace Kernel {
+#include <ostream>
+#include "../Test/Output.hpp"
+
+#endif
+
+using namespace Lib;
+using namespace Kernel;
 
 /**
  * Allocate a clause having lits literals.
@@ -106,6 +112,10 @@ bool Clause::contains(Literal* lit)
   return false;
 }
 
-#endif
-
+std::ostream& Kernel::operator<< (ostream& out, const Clause& cl )
+{
+  return out<<Test::Output::toString(&cl);
 }
+
+
+#endif

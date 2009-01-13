@@ -60,6 +60,20 @@ bool MMSubstitution::unify(Literal* l1,int index1, Literal* l2, int index2)
   l2TL.setTerm(l2);
   return unify(TermSpec(l1TL,index1), TermSpec(l2TL,index2));
 }
+bool MMSubstitution::unifyComplementary(Literal* l1,int index1, Literal* l2, int index2)
+{
+  CALL("MMSubstitution::unifyComplementary(Literal*...)");
+  if(l1->complementaryHeader()!=l2->header()) {
+    return false;
+  }
+  TermList l1TL;
+  TermList l2TL;
+  //here we treat Literals as Terms, which is not very
+  //clean, but Term is a base class of Literal after all
+  l1TL.setTerm(l1);
+  l2TL.setTerm(l2);
+  return unify(TermSpec(l1TL,index1), TermSpec(l2TL,index2));
+}
 
 bool MMSubstitution::match(TermList base,int baseIndex,
 	TermList instance, int instanceIndex)
@@ -94,23 +108,11 @@ void MMSubstitution::denormalize(const Renaming& normalizer, int normalIndex, in
   CALL("MMSubstitution::denormalize");
   ASSERT_VALID(normalizer);
 
-  static Stack<unsigned> normalVars(8);
-
-  Renaming denormalizer;
-  Renaming::inverse(normalizer, denormalizer);
-  ASSERT_VALID(denormalizer);
-
-  BankType::Iterator bit(_bank);
-  while(bit.hasNext()) {
-    VarSpec vs=bit.nextKey();
-    if(vs.index==normalIndex) {
-      normalVars.push(vs.var);
-    }
-  }
-
-  while(!normalVars.isEmpty()) {
-    VarSpec normal(normalVars.pop(), normalIndex);
-    VarSpec denormalized(denormalizer.apply(normal.var), denormalizedIndex);
+  VirtualIterator<Renaming::Item> nit=normalizer.items();
+  while(nit.hasNext()) {
+    Renaming::Item itm=nit.next();
+    VarSpec normal(itm.second, normalIndex);
+    VarSpec denormalized(itm.first, denormalizedIndex);
     ASS(!_bank.find(denormalized));
     bindVar(denormalized,normal);
   }

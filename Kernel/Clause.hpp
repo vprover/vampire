@@ -13,10 +13,16 @@
 
 #include "Unit.hpp"
 
-using namespace Lib;
+
+#if VDEBUG
+
+#include <iosfwd>
+
+#endif
 
 namespace Kernel {
 
+using namespace Lib;
 
 /**
  * Class to represent clauses.
@@ -121,6 +127,13 @@ protected:
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause
+
+#if VDEBUG
+
+std::ostream& operator<< (ostream& out, const Clause& cl );
+
+#endif
+
 
 }
 #endif

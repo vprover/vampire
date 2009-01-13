@@ -12,6 +12,8 @@
 #endif
 
 #include "../Lib/DHMap.hpp"
+#include "../Lib/VirtualIterator.hpp"
+#include "../Lib/Metaiterators.hpp"
 
 #include "Term.hpp"
 
@@ -24,13 +26,15 @@ public:
   Renaming() :
     _nextVar(0) {
   }
-  unsigned getOrBind(unsigned v) {
+  unsigned getOrBind(unsigned v)
+  {
     if (_data.insert(v, _nextVar)) {
       return _nextVar++;
     }
     return _data.get(v);
   }
-  unsigned apply(unsigned v) const {
+  unsigned apply(unsigned v) const
+  {
     unsigned res;
     if (_data.find(v, res)) {
       return res;
@@ -52,10 +56,13 @@ private:
   typedef DHMap<unsigned, unsigned> VariableMap;
   VariableMap _data;
   int _nextVar;
+public:
+  typedef VariableMap::Item Item;
+  VirtualIterator<Item> items() const { return _data.items(); }
+
 };
 
-}
-;
+};
 
 #endif /*__Renaming__*/
 

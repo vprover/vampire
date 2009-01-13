@@ -35,6 +35,7 @@ public:
 
   bool unify(TermList t1,int index1, TermList t2, int index2);
   bool unify(Literal* l1,int index1, Literal* l2, int index2);
+  bool unifyComplementary(Literal* l1,int index1, Literal* l2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
   bool match(Literal* base,int baseIndex, Literal* instance, int instanceIndex,
 	  bool complementary);
@@ -224,8 +225,10 @@ private:
 
   mutable BankType _bank;
 
+  DHMap<int, int> _denormIndexes;
+
   mutable unsigned _nextUnboundAvailable;
-  mutable unsigned _nextAuxAvailable;
+  unsigned _nextAuxAvailable;
 
   class BindingBacktrackObject
   : public BacktrackObject
