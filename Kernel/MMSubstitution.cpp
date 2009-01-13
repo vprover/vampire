@@ -824,7 +824,7 @@ using namespace std;
  * multiple lists in @b alts, it still can be matched at most once.
  */
 bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
-	bool allowComplementary)
+	bool allowComplementary, bool multisetMatching)
 {
   CALL("MMSubstitution::canBeMatched");
 
@@ -864,8 +864,8 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
   ASS(nextli==baseLen);
 
 
-  Timer tmr;
-  tmr.start();
+/*  Timer tmr;
+  tmr.start();*/
 
   bool success=false;
   static Stack<BacktrackData> bdStack(32);
@@ -882,23 +882,26 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
     } else {
       rem[depth]=rem[depth]->tail();
     }
-    //check whether one instance literal isn't matched multiple times
-    bool repetitive;
-    do {
-      if(!rem[depth]) {
-	break;
-      }
-      repetitive=false;
-      for(unsigned li=0;li<depth;li++) {
-	if(rem[depth]->head()==rem[li]->head()) {
-	  repetitive=true;
+    if(multisetMatching) {
+      //check whether one instance literal isn't matched multiple times
+      bool repetitive;
+      do {
+	if(!rem[depth]) {
 	  break;
 	}
-      }
-      if(repetitive) {
-	rem[depth]=rem[depth]->tail();
-      }
-    } while(repetitive);
+	repetitive=false;
+	for(unsigned li=0;li<depth;li++) {
+	  if(rem[depth]->head()==rem[li]->head()) {
+	    repetitive=true;
+	    break;
+	  }
+	}
+	if(repetitive) {
+	  //literal is matched multiple times, let's try the next one
+	  rem[depth]=rem[depth]->tail();
+	}
+      } while(repetitive);
+    }
     if(!rem[depth]) {
 	if(depth) {
 	  depth--;
@@ -936,7 +939,7 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
     bdStack.pop().drop();
   }
 
-  tmr.stop();
+/*  tmr.stop();
   if(tmr.elapsedMilliseconds()>1000) {
     int nextIndex=0;
     DHMap<Literal*,int> indexes;
@@ -955,7 +958,7 @@ bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
       cout<<endl;
     }
     cout<<"DONE in "<<tmr.elapsedMilliseconds()<<" ms\n-----------------------------------\n";
-  }
+  }*/
 
   return success;
 }

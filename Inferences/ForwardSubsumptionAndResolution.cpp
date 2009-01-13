@@ -250,7 +250,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	//fails (or otherwise the clause would have been forward subsumed). So if
 	//this call to canBeMatched succeeds, the complementary literal must have
 	//been used.
-	if(!MMSubstitution::canBeMatched(mcl,alts,true)) {
+	if(!MMSubstitution::canBeMatched(mcl,alts,true,false)) {
 	  mclMatchFailed=true;
 	}
       }

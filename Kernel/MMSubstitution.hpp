@@ -74,7 +74,7 @@ public:
   Literal* apply(Literal* lit, int index) const;
 
   static bool canBeMatched(Clause* base, DArray<LiteralList*>& matches,
-	  bool allowComplementary=false);
+	  bool allowComplementary=false, bool multisetMatching=true);
 
 #if VDEBUG
   std::string toString(bool deref=false) const;

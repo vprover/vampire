@@ -38,6 +38,20 @@ struct SLQueryResult
   const MMSubstitution* substitution;
 };
 
+/**
+ * Class of objects which contain results of term queries.
+ */
+struct TermQueryResult
+{
+  TermQueryResult() {}
+  TermQueryResult(TermList t, Literal* l, Clause* c, MMSubstitution* s)
+  :term(t), literal(l), clause(c), substitution(s) {}
+
+  TermList term;
+  Literal* literal;
+  Clause* clause;
+  const MMSubstitution* substitution;
+};
 
 typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
 
