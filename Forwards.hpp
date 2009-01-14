@@ -39,6 +39,7 @@ typedef List<Clause*> ClauseList;
 class DoubleSubstitution;
 class Renaming;
 class Substitution;
+class MMSubstitution;
 
 class LiteralSelector;
 typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;

@@ -118,20 +118,22 @@ void spiderMode()
 {
   CALL("spiderMode()");
   doProving();
+
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
-    env.out << "+";
+    env.out << "+ ";
     break;
   case Statistics::TIME_LIMIT:
   case Statistics::MEMORY_LIMIT:
-    env.out << "?";
+    env.out << "? ";
     break;
   default:
-    env.out << "-";
+    env.out << "- ";
     break;
   }
-  env.out<<env.options->testId()<<" "
-    <<System::extractFileNameFromPath(env.options->inputFile())<<endl;
+  env.out << env.options->problemName() << " ";
+  env.out << env.timer->elapsedDeciseconds() << " ";
+  env.out << env.options->testId() << "\n";
 } // spiderMode
 
 

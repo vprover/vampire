@@ -609,7 +609,6 @@ void Options::set (const char* name,const char* value, int index)
 
   case TEST_ID:
     _testId = value;
-    readFromTestId(value);
     return;
 
   case TIME_LIMIT:

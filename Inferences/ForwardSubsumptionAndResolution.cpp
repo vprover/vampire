@@ -18,6 +18,7 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/MMSubstitution.hpp"
+#include "../Kernel/MLMatcher.hpp"
 
 #include "../Indexing/Index.hpp"
 #include "../Indexing/IndexManager.hpp"
@@ -85,8 +86,14 @@ struct PtrHash2 {
 typedef DHMap<Clause*,ClauseMatches, PtrHash, PtrHash2> CMMap;
 typedef DHMap<Literal*, LiteralList*, PtrHash > MatchMap;
 
+/**
+ * Group instance literals from @b matches by base literal,
+ * they belong to, and store in @b alts. If an instance
+ * literal is equal to @b forbidden, skip it. Return true
+ * iff all base literals have at least one match.
+ */
 bool fillAlternativesArray(Clause* baseClause, MIList* matches,
-	DArray<LiteralList*>& alts)
+	DArray<LiteralList*>& alts, Literal* forbidden=0)
 {
   CALL("fillAlternativesArray");
   static MatchMap matchMap;
@@ -94,6 +101,9 @@ bool fillAlternativesArray(Clause* baseClause, MIList* matches,
   MIList::Iterator miit(matches);
   while(miit.hasNext()) {
     MatchInfo minfo=miit.next();
+    if(minfo.queryLiteral==forbidden) {
+      continue;
+    }
     LiteralList** litAlts; //pointer to list of possibly matching literals
     matchMap.getValuePtr(minfo.clauseLiteral, litAlts, 0);
     LiteralList::push(minfo.queryLiteral, *litAlts);
@@ -120,6 +130,7 @@ bool isSubsumed(Clause* cl, CMMap* gens)
   CALL("isSubsumed");
   static DArray<LiteralList*> alts(32);
 
+  unsigned clen=cl->length();
   CMMap::Iterator git(*gens);
   while(git.hasNext()) {
     Clause* mcl;
@@ -127,7 +138,7 @@ bool isSubsumed(Clause* cl, CMMap* gens)
     git.next(mcl, clmatches);
 
     unsigned mlen=mcl->length();
-    if(mlen>clmatches.matchCount) {
+    if(mlen>clen || mlen>clmatches.matchCount) {
       continue;
     }
 
@@ -136,7 +147,7 @@ bool isSubsumed(Clause* cl, CMMap* gens)
     bool mclMatchFailed=!fillAlternativesArray(mcl, clmatches.matches, alts);
 
     if(!mclMatchFailed) {
-      if(!MMSubstitution::canBeMatched(mcl,alts,false)) {
+      if(!MLMatcher::canBeMatched(mcl,alts)) {
 	mclMatchFailed=true;
       }
     }
@@ -205,8 +216,6 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	keep=false;
 	env.statistics->forwardSubsumed++;
 	goto fin;
-      } else if(rlen>clen) {
-	continue;
       }
 
       if(!gens) {
@@ -228,7 +237,8 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 
   static DArray<LiteralList*> alts(32);
   for(unsigned li=0;li<clen;li++) {
-    SLQueryResultIterator rit=_index->getComplementaryGeneralizations( (*cl)[li], false);
+    Literal* resLit=(*cl)[li];	//resolved literal
+    SLQueryResultIterator rit=_index->getComplementaryGeneralizations( resLit, false);
     while(rit.hasNext()) {
       SLQueryResult res=rit.next();
       Clause* mcl=res.clause;
@@ -242,25 +252,15 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	continue;
       }
 
-      MIList::push(MatchInfo(res.literal, (*cl)[li]), cms.matches);
-      bool mclMatchFailed=!fillAlternativesArray(mcl, cms.matches, alts);
+      fillAlternativesArray(mcl, cms.matches, alts, resLit);
+      bool success=MLMatcher::checkForSubsumptionResolution(mcl,alts,resLit);
 
-      if(!mclMatchFailed) {
-	//We know that, without the complementary literal, the call to canBeMatched
-	//fails (or otherwise the clause would have been forward subsumed). So if
-	//this call to canBeMatched succeeds, the complementary literal must have
-	//been used.
-	if(!MMSubstitution::canBeMatched(mcl,alts,true,false)) {
-	  mclMatchFailed=true;
-	}
-      }
-      MIList::pop(cms.matches);
       for(unsigned mli=0;mli<mlen;mli++) {
 	alts[mli]->destroy();
       }
 
-      if(!mclMatchFailed) {
-	toAdd=getSingletonIterator(generateSubsumptionResolutionClause(cl,(*cl)[li],mcl));
+      if(success) {
+	toAdd=getSingletonIterator(generateSubsumptionResolutionClause(cl,resLit,mcl));
 	keep=false;
 	env.statistics->forwardSubsumed++;
 	goto fin;

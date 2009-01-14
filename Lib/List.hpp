@@ -34,6 +34,12 @@
 
 #include "Allocator.hpp"
 
+#if VDEBUG
+
+#include <ostream>
+
+#endif
+
 namespace Lib {
 
 /**
@@ -688,7 +694,43 @@ protected:  // structure
   List* _tail;
 };  // class List
 
+#if VDEBUG
 
+template<typename T>
+std::ostream& operator<< (ostream& out, const List<T>& lstr )
+{
+  const List<T>* lst=&lstr;
+  out<<'[';
+
+  while(lst) {
+    out<<lst->head();
+    lst=lst->tail();
+    if(lst) {
+      out<<",\n";
+    }
+  }
+
+  return out<<']';
+}
+
+template<typename T>
+std::ostream& operator<< (ostream& out, const List<T*>& lstr )
+{
+  const List<T*>* lst=&lstr;
+  out<<'[';
+
+  while(lst) {
+    out<<(*lst->head());
+    lst=lst->tail();
+    if(lst) {
+      out<<",\n";
+    }
+  }
+
+  return out<<']';
+}
+
+#endif
 
 }
 

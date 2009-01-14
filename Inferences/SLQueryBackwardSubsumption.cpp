@@ -18,6 +18,7 @@
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/MMSubstitution.hpp"
+#include "../Kernel/MLMatcher.hpp"
 
 #include "../Indexing/Index.hpp"
 #include "../Indexing/IndexManager.hpp"
@@ -139,7 +140,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
       }
     }
 
-    if(MMSubstitution::canBeMatched(cl,matchedLits)) {
+    if(MLMatcher::canBeMatched(cl,matchedLits)) {
       ClauseList::push(mcl, subsumed);
       env.statistics->backwardSubsumed++;
     }

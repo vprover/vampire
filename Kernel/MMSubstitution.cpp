@@ -103,6 +103,15 @@ bool MMSubstitution::match(Literal* base,int baseIndex,
   return match(TermSpec(baseTL,baseIndex), TermSpec(instanceTL,instanceIndex));
 }
 
+/**
+ * Bind variables from @b denormalizedIndex to variables in @b normalIndex
+ * in a way, that applying the substitution to a term in @b denormalizedIndex
+ * would give the same result as first renaming variables and then applying
+ * the substitution in @b normalIndex.
+ *
+ * @warning All variables, that occured in some term that was matched or unified
+ * in @b normalIndex, must be also present in the @b normalizer.
+ */
 void MMSubstitution::denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex)
 {
   CALL("MMSubstitution::denormalize");
@@ -813,157 +822,6 @@ ostream& Kernel::operator<< (ostream& out, MMSubstitution::VarSpec vs )
 }
 
 #endif
-
-#include <iostream>
-#include "../Lib/Timer.hpp"
-#include "../Test/Output.hpp"
-using namespace std;
-
-/**
- * Return true iif from each of first @b base->length() lists in @b alts can
- * be selected one literal, such that they altogether match onto respective
- * literals in @b base clause. If a single literal is presented in
- * multiple lists in @b alts, it still can be matched at most once.
- */
-bool MMSubstitution::canBeMatched(Clause* base, DArray<LiteralList*>& alts,
-	bool allowComplementary, bool multisetMatching)
-{
-  CALL("MMSubstitution::canBeMatched");
-
-  unsigned baseLen=base->length();
-
-  //first we order base literals by number of their
-  //alternatives (smaller come first)
-  SkipList<int,Int> lengths;
-  DHMap<int, List<unsigned>* > len2lits;
-  for(unsigned i=0;i<baseLen;i++) {
-    unsigned len=alts[i]->length();
-    List<unsigned>** plst;
-    if(len2lits.getValuePtr(len, plst, 0)) {
-      lengths.insert(len);
-    }
-    List<unsigned>::push(i,*plst);
-  }
-
-  static DArray<Literal*> baseOrd(32);
-  static DArray<LiteralList*> altsOrd(32);
-  baseOrd.ensure(baseLen);
-  altsOrd.ensure(baseLen);
-
-  unsigned nextli=0;
-  SkipList<int,Int>::Iterator lit(lengths);
-  while(lit.hasNext()) {
-    unsigned len=lit.next();
-    List<unsigned>** plst;
-    NEVER(len2lits.getValuePtr(len, plst, 0));
-    ASS(*plst);
-    while(*plst) {
-      unsigned basei=List<unsigned>::pop(*plst);
-      baseOrd[nextli]=(*base)[basei];
-      altsOrd[nextli++]=alts[basei];
-    }
-  }
-  ASS(nextli==baseLen);
-
-
-/*  Timer tmr;
-  tmr.start();*/
-
-  bool success=false;
-  static Stack<BacktrackData> bdStack(32);
-  static DArray<LiteralList*> rem(32); //remaining alternatives
-  MMSubstitution matcher;
-
-  ASS(bdStack.isEmpty());
-  rem.init(baseLen, 0);
-
-  unsigned depth=0;
-  for(;;) {
-    if(rem[depth]==0) {
-      rem[depth]=altsOrd[depth];
-    } else {
-      rem[depth]=rem[depth]->tail();
-    }
-    if(multisetMatching) {
-      //check whether one instance literal isn't matched multiple times
-      bool repetitive;
-      do {
-	if(!rem[depth]) {
-	  break;
-	}
-	repetitive=false;
-	for(unsigned li=0;li<depth;li++) {
-	  if(rem[depth]->head()==rem[li]->head()) {
-	    repetitive=true;
-	    break;
-	  }
-	}
-	if(repetitive) {
-	  //literal is matched multiple times, let's try the next one
-	  rem[depth]=rem[depth]->tail();
-	}
-      } while(repetitive);
-    }
-    if(!rem[depth]) {
-	if(depth) {
-	  depth--;
-	  bdStack.pop().backtrack();
-	  ASS(bdStack.length()==depth);
-	  continue;
-	} else {
-	  break;
-	}
-    }
-    BacktrackData bData;
-    matcher.bdRecord(bData);
-    bool matched;
-    if( allowComplementary && baseOrd[depth]->polarity()!=rem[depth]->head()->polarity() ) {
-      matched=matcher.match(baseOrd[depth],0,rem[depth]->head(),1, true);
-    } else {
-      matched=matcher.match(baseOrd[depth],0,rem[depth]->head(),1, false);
-    }
-    matcher.bdDone();
-    if(matched) {
-      depth++;
-      if(depth==baseLen) {
-	bData.drop();
-	success=true;
-	break;
-      }
-      bdStack.push(bData);
-    } else {
-      bData.backtrack();
-    }
-
-  }
-
-  while(!bdStack.isEmpty()) {
-    bdStack.pop().drop();
-  }
-
-/*  tmr.stop();
-  if(tmr.elapsedMilliseconds()>1000) {
-    int nextIndex=0;
-    DHMap<Literal*,int> indexes;
-    cout<<"\nBase: "<<Test::Output::toString(base)<<"\n\n";
-    for(unsigned i=0;i<baseLen;i++) {
-      cout<<Test::Output::toString(baseOrd[i])<<"\n---has instances---\n";
-      LiteralList* it=altsOrd[i];
-      while(it) {
-	Literal* ilit=it->head();
-	if(indexes.insert(ilit, nextIndex)) {
-	  nextIndex++;
-	}
-	cout<<indexes.get(ilit)<<": "<<Test::Output::toString(ilit)<<"\n";
-	it=it->tail();
-      }
-      cout<<endl;
-    }
-    cout<<"DONE in "<<tmr.elapsedMilliseconds()<<" ms\n-----------------------------------\n";
-  }*/
-
-  return success;
-}
 
 /**
  * First hash function for DHMap.

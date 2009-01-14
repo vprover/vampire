@@ -15,6 +15,7 @@
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/MMSubstitution.hpp"
+#include "../Kernel/MLMatcher.hpp"
 
 #include "../Indexing/Index.hpp"
 #include "../Indexing/IndexManager.hpp"
@@ -159,7 +160,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
       }
 
       if(!mclMatchFailed) {
-	if(!MMSubstitution::canBeMatched(mcl,matches)) {
+	if(!MLMatcher::canBeMatched(mcl,matches)) {
 	  mclMatchFailed=true;
 	}
       }
