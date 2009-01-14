@@ -6,6 +6,7 @@
 #include "../Lib/BacktrackData.hpp"
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/DArray.hpp"
+#include "../Lib/Int.hpp"
 #include "../Lib/Stack.hpp"
 
 #include "Clause.hpp"
