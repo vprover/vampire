@@ -75,7 +75,7 @@ bool MLMatcher::checkForSubsumptionResolution(Clause* base,
   static DArray<LiteralList*> rem(32); //remaining alternatives
 
   ASS(bdStack.isEmpty());
-  rem.init(baseLen, 0);
+  rem.init(nrLen, 0);
 
   bool success=getMatch(baseNROrd, nrLen, altsNROrd, matcher, rem, bdStack, false);
 
@@ -196,14 +196,28 @@ bool MLMatcher::getMatch(DArray<Literal*>& base, unsigned baseLen,
 {
   CALL("MLMatcher::getMatch");
 
+  if(baseLen==0) {
+    return true;
+  }
+
   unsigned depth=bdStack.length();
-  ASS(depth==0 || depth==baseLen);
+
+  //This method is supposed to be able to retrieve successive
+  //matches, but it was not needed yet.
+//  ASS(depth==0 || depth==baseLen);
+//  if(depth==baseLen) {
+//    depth--;
+//    bdStack.pop().backtrack();
+//  }
+  ASS_EQ(depth,0);
   for(;;) {
     if(rem[depth]==0) {
       rem[depth]=alts[depth];
+      ASS(depth<baseLen);
     } else {
       rem[depth]=rem[depth]->tail();
     }
+
     if(multisetMatching) {
       //check whether one instance literal isn't matched multiple times
       bool repetitive;

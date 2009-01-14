@@ -85,6 +85,7 @@ bool MMSubstitution::match(Literal* base,int baseIndex,
 	Literal* instance, int instanceIndex, bool complementary)
 {
   CALL("MMSubstitution::match(Literal*...)");
+
   if(complementary) {
     if(base->header()!=instance->header()^1) {
       return false;
