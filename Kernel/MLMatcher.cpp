@@ -36,6 +36,8 @@ bool MLMatcher::checkForSubsumptionResolution(Clause* base,
   MMSubstitution matcher;
   static DArray<Literal*> baseNR(32);	//non-resolved base literals
   static DArray<LiteralList*> altsNR(32);
+  baseNR.ensure(baseLen);
+  altsNR.ensure(baseLen);
   unsigned nrLen=baseLen;
 
   //First we try to match the resolvedInst literal on base
@@ -69,6 +71,8 @@ bool MLMatcher::checkForSubsumptionResolution(Clause* base,
 
   static DArray<Literal*> baseNROrd(32);
   static DArray<LiteralList*> altsNROrd(32);
+  baseNROrd.ensure(nrLen);
+  altsNROrd.ensure(nrLen);
   orderLiterals(baseNR, nrLen, altsNR, baseNROrd, altsNROrd);
 
   static Stack<BacktrackData> bdStack(32);
