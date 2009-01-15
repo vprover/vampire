@@ -4,8 +4,11 @@
  *
  */
 
-#include "Index.hpp"
 #include "../Kernel/Clause.hpp"
+
+#include "LiteralIndexingStructure.hpp"
+
+#include "Index.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -21,11 +24,9 @@ Index::~Index()
 
 void Index::attachContainer(ClauseContainer* cc)
 {
-  //void(Index::*addM)(Clause*) = ;
-  //void(Index::*addM)(Clause*) = &this->onAddedToContainer;
   SubscriptionData addedSD = cc->addedEvent.subscribe(this,&Index::onAddedToContainer);
   SubscriptionData removedSD = cc->removedEvent.subscribe(this,&Index::onRemovedFromContainer);
-  
+
   ASS(!_attachedContainers->member(cc));
   ContainerList::push(cc,_attachedContainers);
   SDataList::push(addedSD, _subscriptionData);
@@ -45,18 +46,72 @@ void Index::detachContainer(ClauseContainer* cc)
   _attachedContainers=_attachedContainers->remove(cc);
 }
 
-void Index::onAddedToContainer(Clause* c)
+LiteralIndex::~LiteralIndex()
+{
+  delete _is;
+}
+
+SLQueryResultIterator LiteralIndex::getUnifications(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions)
+{
+  return _is->getUnifications(lit, complementary, retrieveSubstitutions);
+}
+
+SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions)
+{
+  return _is->getGeneralizations(lit, complementary, retrieveSubstitutions);
+}
+
+SLQueryResultIterator LiteralIndex::getInstances(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions)
+{
+  return _is->getInstances(lit, complementary, retrieveSubstitutions);
+}
+
+
+void GeneratingLiteralIndex::onAddedToContainer(Clause* c)
 {
   int selCnt=c->selected();
   for(int i=0; i<selCnt; i++) {
-    insert((*c)[i], c);
+    _is->insert((*c)[i], c);
   }
 }
 
-void Index::onRemovedFromContainer(Clause* c)
+void GeneratingLiteralIndex::onRemovedFromContainer(Clause* c)
 {
   int selCnt=c->selected();
   for(int i=0; i<selCnt; i++) {
-    remove((*c)[i], c);
+    _is->remove((*c)[i], c);
+  }
+}
+
+void SimplifyingLiteralIndex::onAddedToContainer(Clause* c)
+{
+  unsigned clen=c->length();
+  for(unsigned i=0; i<clen; i++) {
+    _is->insert((*c)[i], c);
+  }
+}
+
+void SimplifyingLiteralIndex::onRemovedFromContainer(Clause* c)
+{
+  unsigned clen=c->length();
+  for(unsigned i=0; i<clen; i++) {
+    _is->remove((*c)[i], c);
+  }
+}
+
+void AtomicClauseSimplifyingLiteralIndex::onAddedToContainer(Clause* c)
+{
+  if(c->length()==1) {
+    _is->insert((*c)[0], c);
+  }
+}
+
+void AtomicClauseSimplifyingLiteralIndex::onRemovedFromContainer(Clause* c)
+{
+  if(c->length()==1) {
+    _is->remove((*c)[0], c);
   }
 }

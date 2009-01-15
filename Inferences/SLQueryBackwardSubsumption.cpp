@@ -40,7 +40,8 @@ void SLQueryBackwardSubsumption::attach(SaturationAlgorithm* salg)
 {
   CALL("SLQueryBackwardSubsumption::attach");
   BackwardSimplificationEngine::attach(salg);
-  _index=_salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE);
+  _index=static_cast<SimplifyingLiteralIndex*>(
+	  _salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE) );
 }
 
 void SLQueryBackwardSubsumption::detach()
@@ -93,7 +94,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
   unsigned clen=cl->length();
   if(clen==1) {
-    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false);
+    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false, false);
     toRemove=getUniquePersistentIterator(
 	    getMappingIterator<Clause*>(rit,extractResultClause) );
     ASS(toRemove.knowsSize());
@@ -105,7 +106,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   matches.ensure(clen);
 
   for(unsigned li=0;li<clen;li++) {
-    SLQueryResultIterator rit=_index->getInstances( (*cl)[li], false);
+    SLQueryResultIterator rit=_index->getInstances( (*cl)[li], false, false);
     while(rit.hasNext()) {
       SLQueryResult res=rit.next();
       unsigned rlen=res.clause->length();

@@ -76,12 +76,13 @@ VK_OBJ= Kernel/Clause.o\
 
 VI_OBJ = Indexing/Index.o\
          Indexing/IndexManager.o\
+         Indexing/LiteralSubstitutionTree.o\
          Indexing/TermSharing.o\
+         Indexing/TermSubstitutionTree.o\
          Indexing/SubstitutionTree.o\
          Indexing/SubstitutionTree_Nodes.o
 
-VINF_OBJ=Inferences/AtomicClauseForwardSubsumption.o\
-         Inferences/BinaryResolution.o\
+VINF_OBJ=Inferences/BinaryResolution.o\
          Inferences/Factoring.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/InferenceEngine.o\

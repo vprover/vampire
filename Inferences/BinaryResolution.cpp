@@ -30,7 +30,8 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   CALL("BinaryResolution::attach");
 
   GeneratingInferenceEngine::attach(salg);
-  _index=_salg->getIndexManager()->request(GENERATING_SUBST_TREE);
+  _index=static_cast<GeneratingLiteralIndex*> (
+	  _salg->getIndexManager()->request(GENERATING_SUBST_TREE) );
 }
 
 void BinaryResolution::detach()
@@ -46,7 +47,7 @@ class BinaryResolutionResultIterator
 : public IteratorCore<Clause*>
 {
 public:
-  BinaryResolutionResultIterator(Index* index, Clause* cl)
+  BinaryResolutionResultIterator(GeneratingLiteralIndex* index, Clause* cl)
   : _index(index), _cl(cl), _nextLit(0),
   _uit(SLQueryResultIterator::getEmpty()), _nextUnificationReady(false)
   {
@@ -104,13 +105,13 @@ private:
 	return false;
       }
       _lit=(*_cl)[_nextLit++];
-      _uit=_index->getComplementaryUnifications(_lit);
+      _uit=_index->getUnifications(_lit, true);
     }
     _nextUnification=_uit.next();
     _nextUnificationReady=true;
     return true;
   }
-  Index* _index;
+  GeneratingLiteralIndex* _index;
   Clause* _cl;
   Literal* _lit;
   /** Index of the next literal, we'll be trying to unify,

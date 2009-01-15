@@ -111,6 +111,13 @@ public:
   void assertValid() const;
 #endif
 
+  bool operator==(const TermList& t) const
+{ return _term==t._term; }
+  bool operator<(const TermList& t) const
+  { return _term<t._term; }
+  bool operator>(const TermList& t) const
+  { return _term>t._term; }
+
 private:
   union {
     /** reference to another term */

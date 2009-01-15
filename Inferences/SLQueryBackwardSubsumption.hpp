@@ -18,7 +18,7 @@ public:
 
   void perform(Clause* premise, ClauseIterator& toRemove, ClauseIterator& toAdd);
 private:
-  Index* _index;
+  SimplifyingLiteralIndex* _index;
 };
 
 };

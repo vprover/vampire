@@ -8,6 +8,8 @@
 #ifndef __SubstitutionTree__
 #define __SubstitutionTree__
 
+#include <utility>
+
 #include "../Forwards.hpp"
 
 #include "../Lib/VirtualIterator.hpp"
@@ -46,82 +48,42 @@ namespace Indexing {
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 class SubstitutionTree
-:public Index
 {
 public:
   SubstitutionTree(int nodes);
   ~SubstitutionTree();
 
-  void insert(Literal* lit, Clause* cls);
-  void remove(Literal* lit, Clause* cls);
-  void insert(TermList* term, Clause* cls);
-  void remove(TermList* term, Clause* cls);
-
-  SLQueryResultIterator getComplementaryUnifications(Literal* lit)
-  {
-    CALL("SubstitutionTree::getComplementaryUnifications");
-    UnificationsIterator* core=new UnificationsIterator(this, lit, true, true);
-    return SLQueryResultIterator(core);
-  }
-
-  SLQueryResultIterator getGeneralizations(Literal* lit, bool retrieveSubstitution)
-  {
-    CALL("SubstitutionTree::getGeneralizations");
-    GeneralizationsIterator* core=new GeneralizationsIterator(this, lit, false,
-	    retrieveSubstitution);
-    return SLQueryResultIterator(core);
-  }
-
-  SLQueryResultIterator getComplementaryGeneralizations(Literal* lit, bool retrieveSubstitution)
-  {
-    CALL("SubstitutionTree::getComplementaryGeneralizations");
-    GeneralizationsIterator* core=new GeneralizationsIterator(this, lit, true,
-	    retrieveSubstitution);
-    return SLQueryResultIterator(core);
-  }
-
-  SLQueryResultIterator getInstances(Literal* lit, bool retrieveSubstitution)
-  {
-    CALL("SubstitutionTree::getInstances");
-    InstancesIterator* core=new InstancesIterator(this, lit, false,
-	    retrieveSubstitution);
-    return SLQueryResultIterator(core);
-  }
-
-private:
-
-  inline
-  int getRootNodeIndex(Literal* t, bool complementary=false)
-  {
-    if(complementary) {
-      return (int)t->complementaryHeader();
-    } else {
-      return (int)t->header();
-    }
-  }
-
-  inline
-  int getRootNodeIndex(TermList* t)
-  {
-    ASS(!t->isSpecialVar());
-    if(t->isVar()) {
-      return _numberOfTopLevelNodes-1;
-    } else {
-      return (int)t->term()->functor();
-    }
-  }
+protected:
 
   struct LeafData {
     LeafData() {}
-    LeafData(Clause* cls, void* d) : clause(cls), data(d) {}
+    LeafData(Clause* cls, Literal* literal, TermList term)
+    : clause(cls), literal(literal), term(term) {}
+    LeafData(Clause* cls, Literal* literal)
+    : clause(cls), literal(literal) { term.makeEmpty(); }
     inline
     bool operator==(const LeafData& o)
-    { return clause==o.clause && data==o.data; }
+    { return clause==o.clause && literal==o.literal && term==o.term; }
 
     Clause* clause;
-    void* data;
+    Literal* literal;
+    TermList term;
   };
-  typedef VirtualIterator<LeafData> LDIterator;
+  typedef VirtualIterator<LeafData&> LDIterator;
+  class LDComparator
+  {
+  public:
+    inline
+    static Comparison compare(const LeafData& ld1, const LeafData& ld2)
+    {
+      return (ld1.clause<ld2.clause)? LESS :
+      	(ld1.clause>ld2.clause)? GREATER :
+      	(ld1.literal<ld2.literal)? LESS :
+	(ld1.literal>ld2.literal)? GREATER :
+    	(ld1.term<ld2.term)? LESS :
+	(ld1.term>ld2.term)? GREATER : EQUAL;
+    }
+  };
 
   enum NodeAlgorithm
   {
@@ -277,17 +239,8 @@ private:
   typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
   //typedef SkipList<Binding,Binding::Comparator> BindingQueue;
   typedef SkipList<unsigned,SpecVarComparator> SpecVarQueue;
-  typedef Stack<Binding> BindingStack;
-  typedef Stack<const TermList*> TermStack;
 
   void getBindings(Term* t, BindingQueue& bq);
-  void getBindings(TermList* ts, BindingQueue& bq)
-  {
-    if(ts->tag() == REF) {
-      getBindings(ts->term(), bq);
-    }
-  }
-
 
   void insert(Node** node,BindingQueue& binding,LeafData ld);
   void remove(Node** node,BindingQueue& binding,LeafData ld);
@@ -299,15 +252,16 @@ private:
   /** Array of nodes */
   Node** _nodes;
 
+  typedef pair<LeafData*, MMSubstitution*> QueryResult;
+
   class UnificationsIterator
-  : public IteratorCore<SLQueryResult>
+  : public IteratorCore<QueryResult>
   {
   public:
-    UnificationsIterator(SubstitutionTree* t, Literal* query, bool complementary,
-	    bool retrieveSubstitution);
+    UnificationsIterator(Node* root, Term* query, bool retrieveSubstitution);
 
     bool hasNext();
-    SLQueryResult next();
+    QueryResult next();
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
@@ -325,6 +279,7 @@ private:
     MMSubstitution subst;
     SpecVarQueue svQueue;
   private:
+    bool literalRetrieval;
     bool retrieveSubstitution;
     bool inLeaf;
     LDIterator ldIterator;
@@ -333,16 +288,15 @@ private:
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
-    SubstitutionTree* tree;
   };
+
 
   class GeneralizationsIterator
   : public UnificationsIterator
   {
   public:
-    GeneralizationsIterator(SubstitutionTree* t, Literal* query, bool complementary,
-    	    bool retrieveSubstitution)
-    : UnificationsIterator(t, query, complementary, retrieveSubstitution) {};
+    GeneralizationsIterator(Node* root, Term* query, bool retrieveSubstitution)
+    : UnificationsIterator(root, query, retrieveSubstitution) {};
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
@@ -352,9 +306,8 @@ private:
   : public UnificationsIterator
   {
   public:
-    InstancesIterator(SubstitutionTree* t, Literal* query, bool complementary,
-    	    bool retrieveSubstitution)
-    : UnificationsIterator(t, query, complementary, retrieveSubstitution) {};
+    InstancesIterator(Node* root, Term* query, bool retrieveSubstitution)
+    : UnificationsIterator(root, query, retrieveSubstitution) {};
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
@@ -368,56 +321,6 @@ public:
 #endif
 
 }; // class SubstiutionTree
-
-class AtomicClauseSubstitutionTree
-: public SubstitutionTree
-{
-public:
-  AtomicClauseSubstitutionTree(int nodes) : SubstitutionTree(nodes) {};
-protected:
-  void onAddedToContainer(Clause* c)
-  {
-    unsigned clen=c->length();
-    if(clen==1) {
-      for(unsigned i=0; i<clen; i++) {
-	insert((*c)[i], c);
-      }
-    }
-  }
-
-  void onRemovedFromContainer(Clause* c)
-  {
-    unsigned clen=c->length();
-    if(clen==1) {
-      for(unsigned i=0; i<clen; i++) {
-	remove((*c)[i], c);
-      }
-    }
-  }
-};
-
-class SimplifyingSubstitutionTree
-: public SubstitutionTree
-{
-public:
-  SimplifyingSubstitutionTree(int nodes) : SubstitutionTree(nodes) {};
-protected:
-  void onAddedToContainer(Clause* c)
-  {
-    unsigned clen=c->length();
-    for(unsigned i=0; i<clen; i++) {
-      insert((*c)[i], c);
-    }
-  }
-
-  void onRemovedFromContainer(Clause* c)
-  {
-    unsigned clen=c->length();
-    for(unsigned i=0; i<clen; i++) {
-      remove((*c)[i], c);
-    }
-  }
-};
 
 } // namespace Indexing
 

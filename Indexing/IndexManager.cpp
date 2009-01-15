@@ -4,12 +4,10 @@
  */
 
 #include "../Lib/Exception.hpp"
-#include "../Lib/Environment.hpp"
 
-#include "../Kernel/Signature.hpp"
 #include "../Saturation/SaturationAlgorithm.hpp"
 
-#include "SubstitutionTree.hpp"
+#include "LiteralSubstitutionTree.hpp"
 #include "IndexManager.hpp"
 
 using namespace Lib;
@@ -55,17 +53,21 @@ Index* IndexManager::create(IndexType t)
   CALL("IndexManager::create");
 
   Index* res;
+  LiteralIndexingStructure* is;
   switch(t) {
   case GENERATING_SUBST_TREE:
-    res=new SubstitutionTree(2*env.signature->predicates());
+    is=new LiteralSubstitutionTree();
+    res=new GeneratingLiteralIndex(is);
     res->attachContainer(_alg->getGenerationClauseContainer());
     break;
   case SIMPLIFYING_SUBST_TREE:
-    res=new SimplifyingSubstitutionTree(2*env.signature->predicates());
+    is=new LiteralSubstitutionTree();
+    res=new SimplifyingLiteralIndex(is);
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
   case SIMPLIFYING_ATOMIC_CLAUSE_SUBST_TREE:
-    res=new AtomicClauseSubstitutionTree(2*env.signature->predicates());
+    is=new LiteralSubstitutionTree();
+    res=new AtomicClauseSimplifyingLiteralIndex(is);
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
   default:

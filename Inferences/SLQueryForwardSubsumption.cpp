@@ -37,7 +37,8 @@ void SLQueryForwardSubsumption::attach(SaturationAlgorithm* salg)
 {
   CALL("SLQueryForwardSubsumption::attach");
   ForwardSimplificationEngine::attach(salg);
-  _index=_salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE);
+  _index=static_cast<SimplifyingLiteralIndex*>(
+	  _salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE) );
 }
 
 void SLQueryForwardSubsumption::detach()
@@ -97,7 +98,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
   CMMap* gens=0;
 
   for(unsigned li=0;li<clen;li++) {
-    SLQueryResultIterator rit=_index->getGeneralizations( (*cl)[li], false);
+    SLQueryResultIterator rit=_index->getGeneralizations( (*cl)[li], false, false);
     while(rit.hasNext()) {
       SLQueryResult res=rit.next();
       unsigned rlen=res.clause->length();

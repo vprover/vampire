@@ -96,6 +96,18 @@ public:
     return *this;
   }
 
+  inline
+  void drop()
+  {
+    if(_core) {
+	_core->_refCnt--;
+	if(!_core->_refCnt) {
+	  delete _core;
+	}
+    }
+    _core=0;
+  }
+
   /** True if there exists next element */
   inline
   bool hasNext() { return _core->hasNext(); }

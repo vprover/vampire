@@ -34,6 +34,21 @@ Literal* Renaming::apply(Literal* lit) const
   return Literal::create(lit,ts.array());
 }
 
+Term* Renaming::apply(Term* trm) const
+{
+  CALL("Renaming::apply(Term*...)");
+
+  if(trm->isLiteral()) {
+    return apply(static_cast<Literal*>(trm));
+  }
+
+  TermList tl;
+  tl.setTerm(trm);
+  TermList res=apply(tl);
+  ASS(res.isTerm());
+  return res.term();
+}
+
 TermList Renaming::apply(TermList trm) const
 {
   CALL("Renaming::apply(TermList...)");

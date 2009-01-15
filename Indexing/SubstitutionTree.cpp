@@ -87,49 +87,6 @@ void SubstitutionTree::getBindings(Term* t, BindingQueue& bq)
   }
 }
 
-void SubstitutionTree::insert(Literal* lit, Clause* cls)
-{
-  Renaming normalizer;
-  Renaming::normalizeVariables(lit,normalizer);
-  Literal* normLit=normalizer.apply(lit);
-
-  BindingQueue bq;
-  getBindings(normLit, bq);
-  insert(_nodes+getRootNodeIndex(lit), bq, LeafData(cls, lit));
-}
-void SubstitutionTree::remove(Literal* lit, Clause* cls)
-{
-  Renaming normalizer;
-  Renaming::normalizeVariables(lit,normalizer);
-  Literal* normLit=normalizer.apply(lit);
-
-  BindingQueue bq;
-  getBindings(normLit, bq);
-  remove(_nodes+getRootNodeIndex(lit), bq, LeafData(cls, lit));
-}
-
-void SubstitutionTree::insert(TermList* term, Clause* cls)
-{
-  ASS(!term->isEmpty());
-  ASS(!term->isSpecialVar());
-
-  BindingQueue bq;
-  getBindings(term, bq);
-
-  insert(_nodes+getRootNodeIndex(term), bq, LeafData(cls, reinterpret_cast<void*&>(*term)));
-}
-
-void SubstitutionTree::remove(TermList* term, Clause* cls)
-{
-  ASS(!term->isEmpty());
-  ASS(!term->isSpecialVar());
-
-  BindingQueue bq;
-  getBindings(term, bq);
-
-  remove(_nodes+getRootNodeIndex(term), bq, LeafData(cls, reinterpret_cast<void*&>(*term)));
-}
-
 /**
  * Auxiliary function for substitution tree insertion.
  * @since 16/08/2008 flight Sydney-San Francisco
@@ -293,16 +250,16 @@ void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
     }
 
     ASS(! s->isVar());
-    const TermList* ss = s->term()->args();
+    TermList* ss = s->term()->args();
     ASS(!ss->isEmpty());
 
     // computing the disagreement set of the two terms
-    TermStack subterms(120);
+    Stack<TermList*> subterms(120);
 
     subterms.push(ss);
     subterms.push(t->term()->args());
     while (! subterms.isEmpty()) {
-      const TermList* tt = subterms.pop();
+      TermList* tt = subterms.pop();
       ss = subterms.pop();
       if (tt->next()->isEmpty()) {
 	ASS(ss->next()->isEmpty());
@@ -392,7 +349,7 @@ string SubstitutionTree::nodeToString(Node* topNode)
 	LDIterator ldi(lnode->allChildren());
 
 	while(ldi.hasNext()) {
-	  res+=getIndentStr(indent) + "Lit: " + Test::Output::toString((Literal*)ldi.next().data) + "\n";
+	  res+=getIndentStr(indent) + "Lit: " + Test::Output::toString(ldi.next().literal) + "\n";
 	}
     } else {
 	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
@@ -476,22 +433,21 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
 }
 
 
-SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* t,
-	Literal* query, bool complementary, bool retrieveSubstitution)
-: subst(), retrieveSubstitution(retrieveSubstitution), inLeaf(false),
-ldIterator(LDIterator::getEmpty()), nodeIterators(4), bdStack(4), clientBDRecording(false),
-tree(t)
+SubstitutionTree::UnificationsIterator::UnificationsIterator(Node* root,
+	Term* query, bool retrieveSubstitution)
+: literalRetrieval(query->isLiteral()),
+  retrieveSubstitution(retrieveSubstitution), inLeaf(false),
+ldIterator(LDIterator::getEmpty()), nodeIterators(4), bdStack(4),
+clientBDRecording(false)
 {
-  CALL("SubstitutionTree::UnificationsIterator::init");
-  int rootIndex=t->getRootNodeIndex(query, complementary);
-  Node* root=t->_nodes[rootIndex];
+  CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
   if(!root) {
-	return;
+    return;
   }
 
   Renaming::normalizeVariables(query, queryNormalizer);
-  Literal* queryNorm=queryNormalizer.apply(query);
+  Term* queryNorm=queryNormalizer.apply(query);
 
   createInitialBindings(queryNorm);
 
@@ -521,7 +477,7 @@ bool SubstitutionTree::UnificationsIterator::hasNext()
   return ldIterator.hasNext();
 }
 
-SLQueryResult SubstitutionTree::UnificationsIterator::next()
+SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 {
   CALL("SubstitutionTree::UnificationsIterator::next");
 
@@ -534,12 +490,16 @@ SLQueryResult SubstitutionTree::UnificationsIterator::next()
     clientBacktrackData.backtrack();
   }
 
-  LeafData ld=ldIterator.next();
-  Literal* lit=static_cast<Literal*>(ld.data);
+  LeafData& ld=ldIterator.next();
 
   if(retrieveSubstitution) {
     Renaming normalizer;
-    Renaming::normalizeVariables(lit,normalizer);
+    if(literalRetrieval) {
+      Renaming::normalizeVariables(ld.literal, normalizer);
+    } else {
+      ASS(ld.term.isTerm());
+      Renaming::normalizeVariables(ld.term.term(), normalizer);
+    }
 
     ASS(clientBacktrackData.isEmpty());
     subst.bdRecord(clientBacktrackData);
@@ -548,9 +508,9 @@ SLQueryResult SubstitutionTree::UnificationsIterator::next()
     subst.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
     subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
 
-    return SLQueryResult(lit, ld.clause, &subst);
+    return QueryResult(&ld, &subst);
   } else {
-    return SLQueryResult(lit, ld.clause, 0);
+    return QueryResult(&ld, 0);
   }
 }
 
@@ -670,8 +630,6 @@ void SubstitutionTree::UnificationsIterator::extractSpecialVariables(
   TermList* ts=&t;
   static Stack<TermList*> stack(4);
   for(;;) {
-    //TODO: When shared subterms were skipped, we missed some
-    //special variables. This shouldn't happen!
     if(ts->tag()==REF && ts->term()->arity()>0) {
       stack.push(ts->term()->args());
     }

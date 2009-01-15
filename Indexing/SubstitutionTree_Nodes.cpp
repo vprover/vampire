@@ -127,8 +127,8 @@ public:
   inline
   LDIterator allChildren()
   {
-    return LDIterator(new ProxyIterator<LeafData,LDList::Iterator>(
-	    LDList::Iterator(_children)));
+    return LDIterator(new ProxyIterator<LeafData&,LDList::RefIterator>(
+	    LDList::RefIterator(_children)));
   }
   inline
   void insert(LeafData ld)
@@ -269,23 +269,12 @@ public:
   inline
   LDIterator allChildren()
   {
-    return LDIterator(new ProxyIterator<LeafData,LDSkipList::Iterator>(
-	    LDSkipList::Iterator(_children)));
+    return LDIterator(new ProxyIterator<LeafData&,LDSkipList::RefIterator>(
+	    LDSkipList::RefIterator(_children)));
   }
   void insert(LeafData ld) { _children.insert(ld); }
   void remove(LeafData ld) { _children.remove(ld); }
 private:
-  class LDComparator
-  {
-  public:
-    inline
-    static Comparison compare(const LeafData& ld1, const LeafData& ld2)
-    {
-      return (ld1.clause<ld2.clause)? LESS :
-      	(ld1.clause>ld2.clause)? GREATER :
-      	(ld1.data<ld2.data)? LESS : (ld1.data==ld2.data) ? EQUAL : GREATER;
-    }
-  };
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _children;
 

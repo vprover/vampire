@@ -479,8 +479,7 @@ public:
 
     inline explicit
     Iterator(const SkipList& l)
-      : _cur (l._left)
-    {}
+      : _cur (l._left) {}
 
     /** return the next element */
     inline Value next()
@@ -492,9 +491,31 @@ public:
 
     /** True if there is a next element. */
     inline bool hasNext() const
+    { return _cur->nodes[0]; }
+
+   private:
+    /** the node we're now pointing to */
+    Node* _cur;
+  };
+
+  /** iterator over references to the skip list elements */
+  class RefIterator {
+   public:
+    inline explicit
+    RefIterator(const SkipList& l)
+      : _cur (l._left) {}
+
+    /** return the next element */
+    inline Value& next()
     {
-      return _cur->nodes[0];
+      ASS(_cur->nodes[0]);
+      _cur=_cur->nodes[0];
+      return _cur->value;
     }
+
+    /** True if there is a next element. */
+    inline bool hasNext() const
+    { return _cur->nodes[0]; }
 
    private:
     /** the node we're now pointing to */

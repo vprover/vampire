@@ -42,6 +42,7 @@ public:
     return v;
   }
   Literal* apply(Literal* l) const;
+  Term* apply(Term* l) const;
   TermList apply(TermList l) const;
   bool identity() const;
 

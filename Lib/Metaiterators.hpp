@@ -164,6 +164,9 @@ private:
 /**
  * Implementation object for VirtualIterator, that concatenates
  * two other virtual iterators.
+ *
+ * After the first iterator is empty, pointer to its core is dropped,
+ * so that its resources can be released.
  */
 template<typename T>
 class CatIterator
@@ -179,6 +182,7 @@ public:
 	return true;
       }
       _first=false;
+      _it1.drop();
     }
     return  _it2.hasNext();
   };
@@ -236,8 +240,38 @@ VirtualIterator<DestType> getMappingIterator(Inner it, Functor f)
 
 
 /**
+ * Implementation object for VirtualIterator, that yields elements
+ * created by Constructor with parameter from its inner iterator.
+ */
+template<typename Constructor, typename Inner>
+class ConstructingIterator
+: public IteratorCore<Constructor*>
+{
+public:
+  explicit ConstructingIterator(Inner inner)
+  : _inner(inner) {}
+  bool hasNext() { return _inner.hasNext(); };
+  Constructor* next() { return new Constructor(_inner.next()); };
+private:
+  Inner _inner;
+};
+
+template<typename Constructor, typename Inner>
+VirtualIterator<Constructor*> getConstructingIterator(Inner it)
+{
+  return VirtualIterator<Constructor*>(new ConstructingIterator<Constructor, Inner>(it));
+}
+
+
+/**
  * Implementation object for VirtualIterator, that flattens
  * VirtualIterator<VirtualIterator<T>> into VirtualIterator<T>.
+ *
+ * When the inner iterator is empty, pointer to its core is
+ * dropped even before the hasNext() method of the outer iterator
+ * is called. This could be important in the case, that inner
+ * iterators use some resource of the outer iterator, that has to
+ * be released by its destructor before calling the outer iterator.
  */
 template<typename T>
 class FlatteningIterator
@@ -255,6 +289,7 @@ public:
       if(_current.hasNext()) {
 	return true;
       }
+      _current.drop();
       if(!_master.hasNext()) {
 	return false;
       }
@@ -275,6 +310,23 @@ template<typename T>
 VirtualIterator<T> getFlattenedIterator(VirtualIterator<VirtualIterator<T> > it)
 {
   return VirtualIterator<T>(new FlatteningIterator<T>(it));
+}
+
+template<typename T>
+class VIEncapsulator
+{
+  VirtualIterator<T> operator() (IteratorCore<T>* obj)
+  {
+    return VirtualIterator<T>(obj);
+  }
+};
+
+template<typename T>
+VirtualIterator<T> getFlattenedIterator(VirtualIterator<IteratorCore<T>* > it)
+{
+  VirtualIterator<VirtualIterator<T> > eIt=
+    getMappingIterator<VirtualIterator<T> >(it, VIEncapsulator<T>());
+  return getFlattenedIterator(eIt);
 }
 
 

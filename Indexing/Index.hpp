@@ -54,38 +54,20 @@ struct TermQueryResult
 };
 
 typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
+typedef VirtualIterator<TermQueryResult> TermQueryResultIterator;
 
 class Index
 {
 public:
   virtual ~Index();
-  virtual SLQueryResultIterator getComplementaryUnifications(Literal* lit)
-  {
-    INVALID_OPERATION("Operation not supported by this index.");
-  }
-  virtual SLQueryResultIterator getComplementaryGeneralizations(Literal* lit, bool retrieveSubstitution)
-  {
-    INVALID_OPERATION("Operation not supported by this index.");
-  }
-  virtual SLQueryResultIterator getGeneralizations(Literal* lit, bool retrieveSubstitution)
-  {
-    INVALID_OPERATION("Operation not supported by this index.");
-  }
-  virtual SLQueryResultIterator getInstances(Literal* lit, bool retrieveSubstitution)
-  {
-    INVALID_OPERATION("Operation not supported by this index.");
-  }
+
   void attachContainer(ClauseContainer* cc);
   void detachContainer(ClauseContainer* cc);
-
 protected:
   Index(): _attachedContainers(0), _subscriptionData(0) {}
 
-  virtual void onAddedToContainer(Clause* c);
-  virtual void onRemovedFromContainer(Clause* c);
-
-  virtual void insert(Literal* lit, Clause* cls) = 0;
-  virtual void remove(Literal* lit, Clause* cls) = 0;
+  virtual void onAddedToContainer(Clause* c) {}
+  virtual void onRemovedFromContainer(Clause* c) {}
 
   //TODO: postponing index modifications during iteration (methods isBeingIterated() etc...)
 
@@ -95,6 +77,62 @@ private:
   ContainerList* _attachedContainers;
   SDataList* _subscriptionData;
 };
+
+class LiteralIndex
+: public Index
+{
+public:
+  virtual ~LiteralIndex();
+
+  SLQueryResultIterator getUnifications(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions = true);
+
+  SLQueryResultIterator getGeneralizations(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions = true);
+
+  SLQueryResultIterator getInstances(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions = true);
+
+protected:
+  LiteralIndex(LiteralIndexingStructure* is) : _is(is) {}
+
+  LiteralIndexingStructure* _is;
+};
+
+class GeneratingLiteralIndex
+: public LiteralIndex
+{
+public:
+  GeneratingLiteralIndex(LiteralIndexingStructure* is)
+  : LiteralIndex(is) {};
+protected:
+  void onAddedToContainer(Clause* c);
+  void onRemovedFromContainer(Clause* c);
+};
+
+class SimplifyingLiteralIndex
+: public LiteralIndex
+{
+public:
+  SimplifyingLiteralIndex(LiteralIndexingStructure* is)
+  : LiteralIndex(is) {};
+protected:
+  void onAddedToContainer(Clause* c);
+  void onRemovedFromContainer(Clause* c);
+};
+
+class AtomicClauseSimplifyingLiteralIndex
+: public LiteralIndex
+{
+public:
+  AtomicClauseSimplifyingLiteralIndex(LiteralIndexingStructure* is)
+  : LiteralIndex(is) {};
+protected:
+  void onAddedToContainer(Clause* c);
+  void onRemovedFromContainer(Clause* c);
+};
+
+
 
 };
 #endif /*__Indexing_Index__*/

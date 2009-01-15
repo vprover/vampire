@@ -52,7 +52,15 @@ namespace Indexing
 {
 class Index;
 class IndexManager;
+class LiteralIndex;
+class LiteralIndexingStructure;
+class TermIndex;
+class TermIndexingStructure;
 class TermSharing;
+
+class GeneratingLiteralIndex;
+class SimplifyingLiteralIndex;
+class AtomicClauseSimplifyingLiteralIndex;
 };
 
 namespace Saturation

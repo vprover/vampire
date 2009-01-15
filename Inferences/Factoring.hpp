@@ -22,9 +22,6 @@ class Factoring
 {
 public:
   ClauseIterator generateClauses(Clause* premise);
-
-private:
-  Index* _index;
 };
 
 

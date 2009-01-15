@@ -24,11 +24,11 @@ class BinaryResolution
 public:
   void attach(SaturationAlgorithm* salg);
   void detach();
-  
+
   ClauseIterator generateClauses(Clause* premise);
-  
+
 private:
-  Index* _index;
+  GeneratingLiteralIndex* _index;
 };
 
 };

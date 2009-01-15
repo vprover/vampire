@@ -513,6 +513,40 @@ class List
     List* _lst;
   };
 
+  /** iterator over references to list elements */
+  class RefIterator {
+   public:
+
+    inline explicit
+    RefIterator(List* l)
+      : _lst (l)
+    {}
+    inline explicit
+    RefIterator(const List* l)
+      : _lst (const_cast<List*>(l))
+    {}
+
+    /** return the next element */
+    inline C& next()
+    {
+      ASS(_lst->isNonEmpty());
+
+      C& result = _lst->_head;
+      _lst = _lst->tail();
+      return result;
+    }
+
+    /** True if there is a next element. */
+    inline bool hasNext() const
+    { return _lst->isNonEmpty(); }
+
+    inline void reset(List* l) { _lst = l; }
+
+   private:
+    /** the rest of the list */
+    List* _lst;
+  };
+
   /** Iterator that allows one to delete the current element */
   class DelIterator {
    public:
