@@ -423,11 +423,11 @@ int KBO::functionPrecedence (unsigned fun)
   return fun > _functions ? (int)fun : _functionPrecedences[fun];
 } // KBO::functionPrecedences
 
-Ordering::Result KBO::compare(TermList* t1, TermList* t2)
+Ordering::Result KBO::compare(TermList t1, TermList t2)
 {
   CALL("KBO::compare(TermList*)");
 
-  ASSERTION_VIOLATION;
+  NOT_IMPLEMENTED;
 
   return INCOMPARABLE;
 }

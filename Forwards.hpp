@@ -45,7 +45,6 @@ class LiteralSelector;
 typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;
 
 class Ordering;
-typedef Lib::SmartPtr<Ordering> OrderingSP;
 };
 
 namespace Indexing

@@ -33,7 +33,9 @@ public:
   virtual Result compare(Literal* l1,Literal* l2) = 0;
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
-  virtual Result compare(TermList* t1,TermList* t2) = 0;
+  virtual Result compare(TermList t1,TermList t2) = 0;
+
+  static Ordering* instance();
 }; // class Ordering
 
 }

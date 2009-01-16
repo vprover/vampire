@@ -7,7 +7,10 @@
 
 #include "../Saturation/SaturationAlgorithm.hpp"
 
+#include "LiteralIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"
+#include "TermIndex.hpp"
+#include "TermSubstitutionTree.hpp"
 #include "IndexManager.hpp"
 
 using namespace Lib;

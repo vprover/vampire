@@ -64,6 +64,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/LiteralSelector.o\
         Kernel/MLMatcher.o\
         Kernel/MMSubstitution.o\
+        Kernel/Ordering.o\
         Kernel/OrderingLiteralSelector.o\
         Kernel/Renaming.o\
         Kernel/Signature.o\
@@ -76,7 +77,9 @@ VK_OBJ= Kernel/Clause.o\
 
 VI_OBJ = Indexing/Index.o\
          Indexing/IndexManager.o\
+         Indexing/LiteralIndex.o\
          Indexing/LiteralSubstitutionTree.o\
+         Indexing/TermIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o\
          Indexing/SubstitutionTree.o\

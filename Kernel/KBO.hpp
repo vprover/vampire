@@ -24,7 +24,7 @@ public:
   KBO(const Signature&);
   ~KBO();
   Result compare(Literal* l1, Literal* l2);
-  Result compare(TermList* t1, TermList* t2);
+  Result compare(TermList t1, TermList t2);
   static KBO* createReversedAgePreferenceConstantLevels();
   static KBO* createArityPreferenceConstantLevels();
   static KBO* createArityPreferenceAndLevels();

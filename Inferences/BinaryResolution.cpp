@@ -14,6 +14,7 @@
 #include "../Kernel/Inference.hpp"
 
 #include "../Indexing/Index.hpp"
+#include "../Indexing/LiteralIndex.hpp"
 #include "../Indexing/IndexManager.hpp"
 #include "../Saturation/SaturationAlgorithm.hpp"
 

@@ -76,28 +76,12 @@ BackwardSimplificationEngineSP createBSE()
   }
 }
 
-OrderingSP createOrdering()
-{
-  Ordering* res;
-  switch(env.options->symbolPrecedence()) {
-  case Shell::Options::BY_ARITY:
-    res=KBO::createArityPreferenceConstantLevels();
-    break;
-  case Shell::Options::BY_OCCURRENCE:
-    res=KBO::createReversedAgePreferenceConstantLevels();
-    break;
-  default:
-    NOT_IMPLEMENTED;
-  }
-  return OrderingSP(res);
-}
-
 LiteralSelectorSP createLiteralSelector()
 {
   LiteralSelector* res;
   switch(env.options->literalComparisonMode()) {
   case Shell::Options::LCM_STANDARD:
-    res=new OrderingLiteralSelector(createOrdering());
+    res=new OrderingLiteralSelector();
     break;
   default:
     NOT_IMPLEMENTED;

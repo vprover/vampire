@@ -96,16 +96,29 @@ public:
     return *this;
   }
 
+  /**
+   * Remove reference to the iterator core.
+   * Return true iff the number of references to
+   * the iterator core dropped to zero and it was
+   * deleted as a result of it.
+   *
+   * The returned value can be useful for asserting
+   * that the iterator core (and all resources it
+   * used) was indeed released.
+   */
   inline
-  void drop()
+  bool drop()
   {
     if(_core) {
 	_core->_refCnt--;
 	if(!_core->_refCnt) {
 	  delete _core;
+	  _core=0;
+	  return true;
 	}
     }
     _core=0;
+    return false;
   }
 
   /** True if there exists next element */

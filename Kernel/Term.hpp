@@ -112,11 +112,11 @@ public:
 #endif
 
   bool operator==(const TermList& t) const
-{ return _term==t._term; }
+{ return _content==t._content; }
   bool operator<(const TermList& t) const
-  { return _term<t._term; }
+  { return _content<t._content; }
   bool operator>(const TermList& t) const
-  { return _term>t._term; }
+  { return _content>t._content; }
 
 private:
   union {
@@ -269,7 +269,7 @@ public:
 
   class VariableIterator {
   public:
-    VariableIterator(const Term* term) : _stack(4), _used(false)
+    VariableIterator(const Term* term) : _stack(8), _used(false)
     {
       if(!term->shared() || !term->ground()) {
 	_stack.push(term->args());
@@ -286,7 +286,42 @@ public:
       return *_stack.top();
     }
   private:
-    TermList _root;
+    Stack<const TermList*> _stack;
+    bool _used;
+  };
+
+  /**
+   * Iterator that yields non-variable proper subterms
+   * of specified @b term.
+   */
+  class NonVariableIterator {
+  public:
+    NonVariableIterator(const Term* term) : _stack(8), _used(false)
+    {
+      pushNextNonVar(term->args());
+    }
+
+    bool hasNext();
+    /** Return the next variable
+     * @warning hasNext() must have been called before */
+    TermList next()
+    {
+      ASS(!_used && !_stack.top()->isVar());
+      _used=true;
+      return *_stack.top();
+    }
+  private:
+    inline
+    void pushNextNonVar(const TermList* t)
+    {
+      while(t->isVar()) {
+        t=t->next();
+      }
+      if(!t->isEmpty()) {
+	ASS(t->isTerm());
+	_stack.push(t);
+      }
+    }
     Stack<const TermList*> _stack;
     bool _used;
   };

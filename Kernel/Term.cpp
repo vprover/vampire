@@ -534,6 +534,27 @@ bool Term::VariableIterator::hasNext()
   return false;
 }
 
+/**
+ * True if there exists next non-variable subterm
+ */
+bool Term::NonVariableIterator::hasNext()
+{
+  CALL("Term::NonVariableIterator::hasNext");
+
+  if(_stack.isEmpty()) {
+    return false;
+  }
+  ASS(_stack.top()->isTerm());
+  if(!_used) {
+    return true;
+  }
+  _used=false;
+  const TermList* t=_stack.pop();
+  pushNextNonVar(t->next());
+  pushNextNonVar(t->term()->args());
+  return !_stack.isEmpty();
+}
+
 /** Create a new literal, copy from @b l its predicate symbol and
  *  from the array @b args its arguments. Insert it into the sharing
  *  structure.

@@ -25,12 +25,12 @@ class OrderingLiteralSelector
 : public LiteralSelector
 {
 public:
-  OrderingLiteralSelector(OrderingSP ord) : _ord(ord) {}
+  OrderingLiteralSelector() : _ord(Ordering::instance()) {}
   void select(Clause* c);
 private:
   void selectPositive(Clause* c);
 
-  OrderingSP _ord;
+  Ordering* _ord;
 };
 
 };

@@ -8,6 +8,13 @@
 #include "../Kernel/Term.hpp"
 #include "TermSharing.hpp"
 
+
+//Normalizing commutative literals lead to problems
+//namely in substitution trees, but possibly also
+//in other places, as the rest of Vampire is not
+//ready to handle commutativity yet.
+#define NORMALIZE_COMMUTATIVE 0
+
 using namespace Kernel;
 using namespace Indexing;
 
@@ -52,6 +59,7 @@ Term* TermSharing::insert(Term* t)
   CALL("TermSharing::insert(Term*)");
   ASS(! t->isLiteral());
 
+#if NORMALIZE_COMMUTATIVE
   // normalise commutative terms
   if (t->commutative()) {
     ASS(t->arity() == 2);
@@ -64,6 +72,7 @@ Term* TermSharing::insert(Term* t)
       ts2->_content = c;
     }
   }
+#endif
 
   _termInsertions++;
   Term* s = _terms.insert(t);
@@ -104,6 +113,7 @@ Literal* TermSharing::insert(Literal* t)
   CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
 
+#if NORMALIZE_COMMUTATIVE
   if (t->commutative()) {
     ASS(t->arity() == 2);
 
@@ -115,6 +125,7 @@ Literal* TermSharing::insert(Literal* t)
       ts2->_content = c;
     }
   }
+#endif
 
   _literalInsertions++;
   Literal* s = _literals.insert(t);
