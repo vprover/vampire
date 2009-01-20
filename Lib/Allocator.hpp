@@ -236,6 +236,11 @@ static Allocator::Initialiser _____;
 
 #if VDEBUG
 
+#define USE_ALLOCATOR_UNK                                            \
+  void* operator new (size_t sz)                                       \
+  { return Lib::Allocator::current->allocateUnknown(sz,className()); } \
+  void operator delete (void* obj)                                  \
+  { if (obj) Lib::Allocator::current->deallocateUnknown(obj,className()); }
 #define USE_ALLOCATOR(C)                                            \
   void* operator new (size_t)                                       \
   { return Lib::Allocator::current->allocateKnown(sizeof(C),className()); } \
@@ -259,6 +264,11 @@ static Allocator::Initialiser _____;
   (Lib::Allocator::current->allocateKnown(size))
 #define DEALLOC_KNOWN(obj,size,className)		        \
   (Lib::Allocator::current->deallocateKnown(obj,size))
+#define USE_ALLOCATOR_UNK                                            \
+  void* operator new (size_t sz)                                       \
+  { return Lib::Allocator::current->allocateUnknown(sz); } \
+  void operator delete (void* obj)                                  \
+  { if (obj) Lib::Allocator::current->deallocateUnknown(obj); }
 #define USE_ALLOCATOR(C)                                        \
   void* operator new (size_t)                                   \
     { return Lib::Allocator::current->allocateKnown(sizeof(C)); }\

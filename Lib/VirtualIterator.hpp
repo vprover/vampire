@@ -10,6 +10,7 @@
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
+#include "Allocator.hpp"
 #include "Exception.hpp"
 
 namespace Lib {
@@ -30,6 +31,9 @@ public:
   virtual T next() = 0;
   virtual bool knowsSize() const { return false; }
   virtual size_t size() const { INVALID_OPERATION("This iterator cannot retrieve its size."); }
+
+  CLASS_NAME("IteratorCore");
+  USE_ALLOCATOR_UNK;
 private:
   mutable int _refCnt;
 

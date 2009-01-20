@@ -97,6 +97,8 @@ public:
   Node** childByTop(TermList* t, bool canCreate);
   void remove(TermList* t);
 
+  CLASS_NAME("SubstitutionTree::UListIntermediateNode");
+  USE_ALLOCATOR(UListIntermediateNode);
 private:
   typedef AccList<Node*> NodeList;
   NodeList* _nodes;
@@ -142,6 +144,9 @@ public:
     _children=_children->remove(ld);
     _size--;
   }
+
+  CLASS_NAME("SubstitutionTree::UListLeaf");
+  USE_ALLOCATOR(UListLeaf);
 private:
   typedef List<LeafData> LDList;
   LDList* _children;
@@ -214,6 +219,8 @@ public:
     _nodes.remove(t);
   }
 
+  CLASS_NAME("SubstitutionTree::SListIntermediateNode");
+  USE_ALLOCATOR(SListIntermediateNode);
 private:
   class NodePtrComparator
   {
@@ -274,6 +281,9 @@ public:
   }
   void insert(LeafData ld) { _children.insert(ld); }
   void remove(LeafData ld) { _children.remove(ld); }
+
+  CLASS_NAME("SubstitutionTree::SListLeaf");
+  USE_ALLOCATOR(SListLeaf);
 private:
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _children;
