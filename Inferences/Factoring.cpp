@@ -44,7 +44,7 @@ public:
   {
     ASS(_selCnt>1);
     _lits.initFromArray(_selCnt, *_cl);
-    _lits.sort<LiteralHeaderComparator>(_selCnt);
+    _lits.sort<LiteralHeaderComparator>();
   }
   bool hasNext()
   {
