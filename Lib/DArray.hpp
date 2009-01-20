@@ -297,7 +297,7 @@ public:
   public:
     Iterator(DArray& arr) : _next(arr._array),
     _afterLast(arr._array+arr._size) {}
-    bool hasNext() { _next!=_afterLast; }
+    bool hasNext() { return _next!=_afterLast; }
     C next() { return _next++; }
   private:
     C* _next;
