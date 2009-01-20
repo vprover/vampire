@@ -33,6 +33,7 @@
 #include "../Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
+#include "VirtualIterator.hpp"
 
 #if VDEBUG
 
@@ -727,6 +728,14 @@ protected:  // structure
   /** tail of the list */
   List* _tail;
 };  // class List
+
+
+template<typename T>
+VirtualIterator<T> getContentIterator(List<T>* lst)
+{
+  return getProxyIterator<T>(List<T>::Iterator(lst));
+}
+
 
 #if VDEBUG
 

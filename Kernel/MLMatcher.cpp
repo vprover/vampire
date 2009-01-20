@@ -4,6 +4,7 @@
  */
 
 #include "../Lib/BacktrackData.hpp"
+#include "../Lib/BacktrackIterators.hpp"
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/Int.hpp"
@@ -13,6 +14,7 @@
 #include "Term.hpp"
 #include "MLMatcher.hpp"
 #include "MMSubstitution.hpp"
+
 
 using namespace Kernel;
 
@@ -26,6 +28,15 @@ using namespace Kernel;
 using namespace std;
 
 #endif
+
+class MatchBtrFn
+{
+public:
+  static SubstIterator succ(MMSubstitution* state, Literal* ll)
+  {
+
+  }
+};
 
 bool MLMatcher::checkForSubsumptionResolution(Clause* base,
 	DArray<LiteralList*>& alts, Literal* resolvedInst)

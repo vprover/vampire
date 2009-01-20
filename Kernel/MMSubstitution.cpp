@@ -87,7 +87,7 @@ bool MMSubstitution::match(Literal* base,int baseIndex,
   CALL("MMSubstitution::match(Literal*...)");
 
   if(complementary) {
-    if(base->header()!=instance->header()^1) {
+    if(base->complementaryHeader()!=instance->header()) {
       return false;
     }
   } else {
@@ -189,8 +189,10 @@ void MMSubstitution::bind(const VarSpec& v, const TermSpec& b)
 {
   CALL("MMSubstitution::bind");
   ASSERT_VALID(b.term);
-  ASS(!b.term.isTerm() || b.term.term()->shared());
-  ASS_NEQ(v.index, MMSubstitution::UNBOUND_INDEX);
+  //Aux terms don't contain special variables, ergo
+  //should be shared.
+  ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
+  ASS_NEQ(v.index, UNBOUND_INDEX);
 
   if(bdIsRecording()) {
     bdAdd(new BindingBacktrackObject(this, v));
@@ -273,9 +275,9 @@ TermList MMSubstitution::getAuxTerm(TermSpec ts)
     return ts.term;
   }
 
-  static Stack<TermList*> toDo(8);
-  static Stack<Term*> terms(8);
-  static Stack<TermList> args(8);
+  static Stack<TermList*> toDo(32);
+  static Stack<Term*> terms(32);
+  static Stack<TermList> args(32);
 
   toDo.push(&ts.term);
 
@@ -300,13 +302,10 @@ TermList MMSubstitution::getAuxTerm(TermSpec ts)
       }
     }
 
-    if(tt->isOrdinaryVar()) {
+    if(tt->isVar()) {
       TermList aux;
-      aux.makeVar(getAuxVar(VarSpec(tt->var(),index)).var);
+      aux.makeVar(getAuxVar(getVarSpec(*tt, index)).var);
       args.push(aux);
-      continue;
-    } else if(tt->isSpecialVar()) {
-      args.push(*tt);
       continue;
     }
     Term* t=tt->term();
@@ -514,11 +513,18 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
   return !mismatch;
 }
 
+/**
+ * Matches @b instance term onto the @b base term.
+ * Ordinary variables behave, as one would expect
+ * during matching, but special variables aren't
+ * being assigned only in the @b base term, but in
+ * the instance ass well. (Special variables appear
+ * only in internal terms of substitution trees and
+ * this behavior allows easy instance retrieval.)
+ */
 bool MMSubstitution::match(TermSpec base, TermSpec instance)
 {
   CALL("MMSubstitution::match(TermSpec...)");
-  ASS(!base.term.isTerm() || base.term.term()->shared());
-  ASS(!instance.term.isTerm() || instance.term.term()->shared());
 
   if(base.sameTermContent(instance)) {
     return true;
@@ -773,6 +779,198 @@ bool MMSubstitution::occurCheckFails() const
   return refCounter.size()!=0;
 }
 
+/**
+ * Return iterator on matching substitutions of @b l1 and @b l2.
+ *
+ * For guides on use of the iterator, see the documentation of
+ * MMSubstitution::AssocIterator.
+ */
+SubstIterator MMSubstitution::matches(MMSubstitution* subst,
+	Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
+{
+  return getAssocIterator<MatchingFn>(subst, l1, l1Index,
+	  l2, l2Index, complementary);
+}
+
+/**
+ * Return iterator on unifying substitutions of @b l1 and @b l2.
+ *
+ * For guides on use of the iterator, see the documentation of
+ * MMSubstitution::AssocIterator.
+ */
+SubstIterator MMSubstitution::unifiers(MMSubstitution* subst,
+	Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
+{
+  return getAssocIterator<UnificationFn>(subst, l1, l1Index,
+	  l2, l2Index, complementary);
+}
+
+template<class Fn>
+SubstIterator MMSubstitution::getAssocIterator(MMSubstitution* subst,
+	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
+{
+  if( (!complementary && l1->header()!=l2->header()) ||
+	    (complementary && l1->header()!=l2->complementaryHeader()) ) {
+    return SubstIterator::getEmpty();
+  }
+  return SubstIterator(
+	    new AssocIterator<Fn>(subst, l1, l1Index, l2, l2Index, complementary));
+}
+
+/**
+ * Iterator on associating[1] substitutions of two literals.
+ *
+ * Using this iterator requires special care, as the
+ * substitution being returned is always the same object.
+ * The rules for safe use are:
+ * 1) After the iterator is created and before it's
+ * destroyed, the original substitution is invalid.
+ * 2) Substitution retrieved by call to the method next()
+ * is valid only until the hasNext() method is called again
+ * (or until the iterator is destroyed).
+ * 3)before each call to next(), hasNext() has to be called.
+ *
+ * There rules are quite natural, and the 3rd one is
+ * required by many other iterators as well.
+ *
+ * Template parameter class Fn has to contain following
+ * methods:
+ * bool associate(MMSubstitution*, Literal* l1, int l1Index,
+ * 	Literal* l2, int l2Index, bool complementary)
+ * bool associate(MMSubstitution*, TermList t1, int t1Index,
+ * 	TermList t2, int t2Index)
+ * There is supposed to be one Fn class for unification and
+ * one for matching.
+ *
+ * [1] associate means either match or unify
+ */
+template<class Fn>
+class MMSubstitution::AssocIterator
+:public IteratorCore<MMSubstitution*>
+{
+public:
+  AssocIterator(MMSubstitution* subst, Literal* l1, int l1Index,
+	  Literal* l2, int l2Index, bool complementary)
+  : _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2),
+  _l2i(l2Index), _complementary(complementary),
+  _matchIndex(0), _empty(false), _used(true)
+  {
+    ASS(complementary || _l1->header()==_l2->header());
+    ASS(!complementary || _l1->header()==_l2->complementaryHeader());
+    _subst->bdRecord(_bdata);
+  }
+  ~AssocIterator()
+  {
+    _subst->bdDone();
+    _bdata.backtrack();
+  }
+  bool hasNext();
+  MMSubstitution* next()
+  {
+    _used=true;
+    return _subst;
+  }
+private:
+  MMSubstitution* _subst;
+  Literal* _l1;
+  int _l1i;
+  Literal* _l2;
+  int _l2i;
+  bool _complementary;
+  BacktrackData _bdata;
+
+  unsigned _matchIndex;
+  bool _empty;
+  /**
+   * true if the current substitution have already been
+   * retrieved by the next() method, or if there isn't
+   * any (hasNext() hasn't been called yet)
+   */
+  bool _used;
+};
+class MMSubstitution::MatchingFn {
+public:
+  static bool associate(MMSubstitution* subst, Literal* l1, int l1Index,
+	  Literal* l2, int l2Index, bool complementary)
+  { return subst->match(l1,l1Index,l2,l2Index,complementary); }
+
+  static bool associate(MMSubstitution* subst, TermList t1, int t1Index,
+	  TermList t2, int t2Index)
+  { return subst->match(t1,t1Index,t2,t2Index); }
+};
+class MMSubstitution::UnificationFn {
+public:
+  static bool associate(MMSubstitution* subst, Literal* l1, int l1Index,
+	  Literal* l2, int l2Index, bool complementary)
+  {
+    if(complementary) {
+      return subst->unifyComplementary(l1,l1Index,l2,l2Index);
+    } else {
+      return subst->unify(l1,l1Index,l2,l2Index);
+    }
+  }
+
+  static bool associate(MMSubstitution* subst, TermList t1, int t1Index,
+	  TermList t2, int t2Index)
+  { return subst->unify(t1,t1Index,t2,t2Index); }
+};
+
+
+template<class Fn>
+bool MMSubstitution::AssocIterator<Fn>::hasNext()
+{
+  if(_empty) {
+    return false;
+  }
+  if(!_used) {
+    return true;
+  }
+  _used=false;
+
+  if(_matchIndex>0) {
+    //undo the previous match
+    _subst->bdDone();
+    _bdata.backtrack();
+    _subst->bdRecord(_bdata);
+  }
+
+  if(!_l1->commutative()) {
+    if(_matchIndex==0) {
+      if(!Fn::associate(_subst, _l1, _l1i, _l2, _l2i, _complementary)) {
+	_empty=true;
+      }
+    } else {
+      _empty=true;
+    }
+  } else {
+    ASS(_l1->arity()==2);
+    switch(_matchIndex) {
+    case 0:
+      if(Fn::associate(_subst, _l1, _l1i, _l2, _l2i, _complementary)) {
+	break;
+      }
+      //no break here intentionally
+    case 1:
+    {
+      TermList t11=*_l1->nthArgument(0);
+      TermList t12=*_l1->nthArgument(1);
+      TermList t21=*_l2->nthArgument(0);
+      TermList t22=*_l2->nthArgument(1);
+      if(Fn::associate(_subst, t11, _l1i, t22, _l2i) &&
+	      Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
+	break;
+      }
+    }
+      //no break here intentionally
+    default:
+      _empty=true;
+    }
+  }
+  _matchIndex++;
+  return !_empty;
+}
+
+
 
 #if VDEBUG
 string MMSubstitution::toString(bool deref) const
@@ -820,6 +1018,11 @@ string MMSubstitution::TermSpec::toString() const
 ostream& Kernel::operator<< (ostream& out, MMSubstitution::VarSpec vs )
 {
   return out<<vs.toString();
+}
+
+ostream& Kernel::operator<< (ostream& out, MMSubstitution::TermSpec ts )
+{
+  return out<<ts.toString();
 }
 
 #endif

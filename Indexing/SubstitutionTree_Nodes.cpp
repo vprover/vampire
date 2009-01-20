@@ -129,8 +129,7 @@ public:
   inline
   LDIterator allChildren()
   {
-    return LDIterator(new ProxyIterator<LeafData&,LDList::RefIterator>(
-	    LDList::RefIterator(_children)));
+    return getProxyIterator<LeafData&>(LDList::RefIterator(_children));
   }
   inline
   void insert(LeafData ld)
@@ -188,8 +187,7 @@ public:
   inline
   NodeIterator allChildren()
   {
-    return NodeIterator(new ProxyIterator<Node**,NodeSkipList::PtrIterator> (
-	    NodeSkipList::PtrIterator(_nodes)));
+    return getProxyIterator<Node**>(NodeSkipList::PtrIterator(_nodes));
   }
   inline
   NodeIterator variableChildren()
@@ -276,8 +274,7 @@ public:
   inline
   LDIterator allChildren()
   {
-    return LDIterator(new ProxyIterator<LeafData&,LDSkipList::RefIterator>(
-	    LDSkipList::RefIterator(_children)));
+    return getProxyIterator<LeafData&>(LDSkipList::RefIterator(_children));
   }
   void insert(LeafData ld) { _children.insert(ld); }
   void remove(LeafData ld) { _children.remove(ld); }

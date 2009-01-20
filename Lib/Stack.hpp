@@ -50,6 +50,13 @@ public:
   inline ~Stack()
   {
     CALL("Stack::~Stack");
+
+    //The while cycle is completely eliminated by compiler
+    //in "-O6 -DVDEBUG=0" mode, so destructor is constant time.
+    C* p=_cursor;
+    while(p!=_stack) {
+      (--p)->~C();
+    }
     DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");
   }
 
@@ -135,7 +142,7 @@ public:
       expand();
     }
     ASS(_cursor < _end);
-    *_cursor = elem;
+    new(_cursor) C(elem);
     _cursor++;
   } // Stack::push()
 
@@ -151,19 +158,11 @@ public:
     ASS(_cursor > _stack);
     _cursor--;
 
-    return *_cursor;
-  } // Stack::pop()
+    C res=*_cursor;
+    _cursor->~C();
 
-//   /**
-//    * Return the beginning of the stack, can be used together with end()
-//    * for iterating over the elements of the stack.
-//    * @since 11/03/2006 Bellevue
-//    */
-//   inline
-//   C* begin() const
-//   {
-//     return _stack;
-//   }
+    return res;
+  } // Stack::pop()
 
   /**
    * Return the element past the end of the stack, can be used together
@@ -179,7 +178,13 @@ public:
   /** Empties the stack. */
   inline
   void reset()
-  { _cursor = _stack; }
+  {
+    C* p=_cursor;
+    while(p!=_stack) {
+      (--p)->~C();
+    }
+    _cursor = _stack;
+  }
 
   /** Sets the length of the stack to @b len
    *  @since 27/12/2007 Manchester */
@@ -187,7 +192,10 @@ public:
   void truncate(size_t len)
   {
     ASS(len <= length());
-
+    C* p=_stack+len;
+    while(p!=_cursor) {
+      (p++)->~C();
+    }
     _cursor = _stack+len;
   } // truncate
 
@@ -299,9 +307,10 @@ protected:
 
     // allocate new stack and copy old stack's content to the new place
     void* mem = ALLOC_KNOWN(newCapacity*sizeof(C),"Stack<>");
-    C* newStack = new(mem) C[newCapacity];
+    C* newStack = static_cast<C*>(mem);
     for (int i = _capacity-1;i >= 0;i--) {
-      newStack[i] = _stack[i];
+      new(newStack+i) C(_stack[i]);
+      _stack[i].~C();
     }
     // deallocate the old stack
     DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");

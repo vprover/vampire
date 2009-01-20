@@ -82,6 +82,7 @@ Term* TermSharing::insert(Term* t)
     unsigned vars = 0;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
+	ASS(tt->isOrdinaryVar());
 	vars++;
 	weight += 1;
       }
@@ -135,10 +136,12 @@ Literal* TermSharing::insert(Literal* t)
     unsigned vars = 0;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
+	ASS(tt->isOrdinaryVar());
 	vars++;
 	weight += 1;
       }
       else {
+	ASS(tt->term()->shared());
 	Term* r = tt->term();
 	vars += r->vars();
 	weight += r->weight();

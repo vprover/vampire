@@ -40,6 +40,7 @@ class DoubleSubstitution;
 class Renaming;
 class Substitution;
 class MMSubstitution;
+typedef VirtualIterator<MMSubstitution*> SubstIterator;
 
 class LiteralSelector;
 typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;

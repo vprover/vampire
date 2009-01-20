@@ -33,6 +33,10 @@ class MMSubstitution
 public:
   MMSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
 
+  SubstIterator matches(MMSubstitution* subst,
+	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
+  SubstIterator unifiers(MMSubstitution* subst,
+	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
   bool unify(TermList t1,int index1, TermList t2, int index2);
   bool unify(Literal* l1,int index1, Literal* l2, int index2);
   bool unifyComplementary(Literal* l1,int index1, Literal* l2, int index2);
@@ -258,13 +262,25 @@ private:
     TermSpec _term;
   };
 
+  template<class Fn>
+  SubstIterator getAssocIterator(MMSubstitution* subst,
+	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
+
+  template<class Fn>
+  class AssocIterator;
+
+  class MatchingFn;
+  class UnificationFn;
+
 };
 
 #if VDEBUG
 
 ostream& operator<< (ostream& out, MMSubstitution::VarSpec vs );
+ostream& operator<< (ostream& out, MMSubstitution::TermSpec vs );
 
 #endif
+
 
 };
 

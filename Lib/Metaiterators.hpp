@@ -25,6 +25,8 @@ public:
   explicit SingletonIterator(T el) : _finished(false), _el(el) {}
   bool hasNext() { return !_finished; };
   T next() { ASS(!_finished); _finished=true; return _el; };
+  bool knowsSize() const { return true; }
+  size_t size() const { return 1; }
 private:
   bool _finished;
   T _el;
@@ -34,28 +36,6 @@ template<typename T>
 VirtualIterator<T> getSingletonIterator(T el)
 {
   return VirtualIterator<T>(new SingletonIterator<T>(el));
-}
-
-/**
- * Implementation object for VirtualIterator, that can proxy any
- * non-virtual iterator, that supports hasNext() and next() methods.
- */
-template<typename T, class Inner>
-class ProxyIterator
-: public IteratorCore<T>
-{
-public:
-  explicit ProxyIterator(Inner inn) :_inn(inn) {}
-  bool hasNext() { return _inn.hasNext(); };
-  T next() { return _inn.next(); };
-private:
-  Inner _inn;
-};
-
-template<typename T, class Inner>
-VirtualIterator<T> getProxyIterator(Inner it)
-{
-  return VirtualIterator<T>(new ProxyIterator<T,Inner>(it));
 }
 
 /**
@@ -200,6 +180,8 @@ public:
     }
     return  _it2.next();
   };
+  bool knowsSize() const { return _it1.knowsSize() && _it2.knowsSize(); }
+  size_t size() const { return _it1.size()+_it2.size(); }
 private:
   bool _first;
   VirtualIterator<T> _it1;
@@ -438,6 +420,7 @@ VirtualIterator<T> getRangeIterator(T from, T to)
 {
   return VirtualIterator<T>(new RangeIterator<T>(from, to));
 }
+
 
 };
 

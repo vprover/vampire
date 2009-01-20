@@ -37,17 +37,21 @@ public:
    */
   inline
   DArray (size_t size)
-    : _size(size)
+    : _size(size), _capacity(size)
   {
     ASS(size > 0);
-    void* mem = ALLOC_KNOWN(sizeof(C)*size,"DArray<>");
-    _array = new(mem) C[size];
+    void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
+    _array = new(mem) C[_capacity];
   }
 
   /** Delete array */
   inline ~DArray()
   {
-    DEALLOC_KNOWN(_array,sizeof(C)*_size,"DArray<>");
+    C* p=_array+_capacity;
+    while(p!=_array) {
+      (--p)->~C();
+    }
+    DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
   }
 
   /** Return a reference to the n-th element of the array */
@@ -68,25 +72,66 @@ public:
   inline C* array () { return _array; }
 
   /**
-   * Ensure that the array's size is at least @b s. If the size
-   * is smaller the array will expand.
+   * Set array's size to @b s and that its capacity is at least @b s.
+   * If the capacity is smaller, the array will expand.
+   *
    * @warning upon extension no copying of elements will be done
    *   so the operation is safe only before processing the array.
    * @since 02/01/2008 Manchester
    */
   inline void ensure(size_t s)
   {
-    if (_size >= s) {
+    _size = s;
+    if (_capacity >= _size) {
       return;
     }
 
-    DEALLOC_KNOWN(_array,sizeof(C)*_size,"DArray<>");
-    _size = s;
-    void* mem = ALLOC_KNOWN(sizeof(C)*s,"DArray<>");
-    _array = new(mem) C[s];
+    C* p=_array+_capacity;
+    while(p!=_array) {
+      (--p)->~C();
+    }
+    DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
+    _capacity = _size;
+    void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
+    _array = new(mem) C[_capacity];
   } // ensure
 
-  /** Return the size (the capacity) of the array */
+  /**
+   * Set array's size to @b s and that its capacity is at least @b s.
+   * If the capacity is smaller, the array will expand, and all old
+   * elements will be copied to the new array.
+   *
+   */
+  void expand(size_t s)
+  {
+    if (_capacity >= s) {
+      _size = s;
+      return;
+    }
+
+    size_t oldCapacity=_capacity;
+    C* oldArr = _array;
+
+    _capacity = max(_size, _capacity*2);
+    void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
+    _array = static_cast<C*>(mem);
+
+    C* optr=oldArr;
+    C* nptr=_array;
+    C* firstEmpty=_array+_size;
+    C* afterLast=_array+_capacity;
+    while(nptr!=firstEmpty) {
+      new(nptr++) C( *optr );
+      (optr++)->~C();
+    }
+    while(nptr!=afterLast) {
+      new(nptr++) C();
+    }
+
+    DEALLOC_KNOWN(oldArr,sizeof(C)*oldCapacity,"DArray<>");
+  } // ensure
+
+  /** Return the ensured size of the array */
   size_t size() const { return _size; }
 
   /** Ensure that the array's size is at least @b count and
@@ -136,9 +181,10 @@ public:
 	*(ptr++)=it.next();
       }
     } else {
+      ensure(0);
       int cnt=0;
       while(it.hasNext()) {
-	ensure(++cnt);
+	expand(++cnt);
 	(*this)[cnt-1]=it.next();
       }
     }
@@ -150,7 +196,7 @@ public:
    * as comparator.
    */
   template<typename Comparator>
-  void sort(size_t count)
+  void sort()
   {
     //modified sorting code, that was originally in Resolution::Tautology::sort
 
@@ -158,12 +204,12 @@ public:
     static DArray<size_t> ft(32);
 
     size_t from = 0;
-    size_t to=count-1;
+    size_t to=size()-1;
     ft.ensure(to);
 
     size_t p = 0; // pointer to the next element in ft
     for (;;) {
-      ASS(from<count && to<count); //checking for underflows
+      ASS(from<size() && to<size()); //checking for underflows
       // invariant: from < to
       size_t m = from + Random::getInteger(to-from+1);
       C mid = (*this)[m];
@@ -240,9 +286,30 @@ public:
 protected:
   /** current array's size */
   size_t _size;
+  /** capacity of currently allocated piece of memory */
+  size_t _capacity;
   /** array's content */
   C* _array;
+
+public:
+  class Iterator
+  {
+  public:
+    Iterator(DArray& arr) : _next(arr._array),
+    _afterLast(arr._array+arr._size) {}
+    bool hasNext() { _next!=_afterLast; }
+    C next() { return _next++; }
+  private:
+    C* _next;
+    C* _afterLast;
+  };
 }; // class DArray
+
+template<typename T>
+VirtualIterator<T> getContentIterator(DArray<T>& arr)
+{
+  return getProxyIterator<T>(DArray<T>::Iterator(arr));
+}
 
 } // namespace Lib
 

@@ -135,11 +135,58 @@ public:
   inline
   T next() { return _core->next(); }
 
-  bool knowsSize() { return _core->knowsSize(); }
-  size_t size() { ASS(knowsSize()); return _core->size(); }
+  bool knowsSize() const { return _core->knowsSize(); }
+  size_t size() const { ASS(knowsSize()); return _core->size(); }
 private:
   IteratorCore<T>* _core;
 };
+
+
+/**
+ * Implementation object for VirtualIterator, that can proxy any
+ * non-virtual iterator, that supports hasNext() and next() methods.
+ */
+template<typename T, class Inner>
+class ProxyIterator
+: public IteratorCore<T>
+{
+public:
+  explicit ProxyIterator(Inner inn) :_inn(inn) {}
+  bool hasNext() { return _inn.hasNext(); };
+  T next() { return _inn.next(); };
+private:
+  Inner _inn;
+};
+
+template<typename T, class Inner>
+VirtualIterator<T> getProxyIterator(Inner it)
+{
+  return VirtualIterator<T>(new ProxyIterator<T,Inner>(it));
+}
+
+
+/**
+ * Return iterator on C, yielding objects type T.
+ *
+ * The getContentIterator method makes it possible to
+ * iterate on arbitrary containers. Usual implementation
+ * of this functionality is some Iterable<T> interface,
+ * that would be implemented by those containers. This
+ * would however lead to the use of virtual methods,
+ * which we'd like to avoid, especially in trivial
+ * containers, such as List.
+ *
+ * Overloads of this method, that allow for iteration on
+ * different containers are usually defined together
+ * with those containers (so we avoid including all their
+ * header files here).
+ */
+template<typename T, class C>
+VirtualIterator<T> getContentIterator(C& c)
+{
+  return getProxyIterator<T>(C::Iterator(c));
+}
+
 
 }
 

@@ -210,11 +210,6 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
     }
   }
 
-  if((*pnode)->term.isTerm() && !(*pnode)->term.term()->shared()) {
-    Term* sharedTerm=env.sharing->insertRecurrently((*pnode)->term.term());
-    (*pnode)->term.setTerm(sharedTerm);
-  }
-
   goto start;
 } // // SubstitutionTree::insert
 
@@ -598,6 +593,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 
 bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node)
 {
+  CALL("SubstitutionTree::UnificationsIterator::associate");
   return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 }
 
@@ -627,6 +623,8 @@ SubstitutionTree::NodeIterator
 void SubstitutionTree::UnificationsIterator::extractSpecialVariables(
 	TermList t, BacktrackData& bd)
 {
+  CALL("SubstitutionTree::UnificationsIterator::extractSpecialVariables");
+
   TermList* ts=&t;
   static Stack<TermList*> stack(4);
   for(;;) {
@@ -648,6 +646,7 @@ void SubstitutionTree::UnificationsIterator::extractSpecialVariables(
 
 bool SubstitutionTree::GeneralizationsIterator::associate(TermList query, TermList node)
 {
+  CALL("SubstitutionTree::GeneralizationsIterator::associate");
   return subst.match(node, NORM_RESULT_BANK, query, NORM_QUERY_BANK);
 }
 
@@ -674,6 +673,7 @@ SubstitutionTree::NodeIterator
 
 bool SubstitutionTree::InstancesIterator::associate(TermList query, TermList node)
 {
+  CALL("SubstitutionTree::InstancesIterator::associate");
   return subst.match(query, NORM_QUERY_BANK, node, NORM_RESULT_BANK);
 }
 
