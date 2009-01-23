@@ -8,6 +8,7 @@
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/Metaarrays.hpp"
 #include "../Lib/Stack.hpp"
 
 #include "Clause.hpp"
@@ -15,26 +16,56 @@
 #include "MLMatcher.hpp"
 #include "MMSubstitution.hpp"
 
-
-using namespace Kernel;
-
-#define TRACE_LONG_MATCHING 0
-
-#if TRACE_LONG_MATCHING
-
+#if VDEBUG
 #include <iostream>
-#include "../Lib/Timer.hpp"
 #include "../Test/Output.hpp"
 using namespace std;
-
 #endif
 
-class MatchBtrFn
-{
-public:
-  static SubstIterator succ(MMSubstitution* state, Literal* ll)
-  {
+#define TRACE_LONG_MATCHING 0
+#if TRACE_LONG_MATCHING
+#include "../Lib/Timer.hpp"
+#endif
 
+namespace Kernel
+{
+
+using namespace Lib;
+
+struct MatchBtrFn
+{
+  DECL_RETURN_TYPE(SubstIterator);
+  OWN_RETURN_TYPE operator()(MMSubstitution* state, pair<Literal*,Literal*> lp)
+  { return state->matches(lp.first, 1, lp.second, 2, false); }
+};
+
+typedef pair<Stack<Literal*>*, MMSubstitution*> ResMatchState;
+
+struct ResMatchBtrFn
+{
+  struct OnStackPushingContext
+  {
+    OnStackPushingContext(Literal* val) : _val(val) {}
+    void enter(ResMatchState& s)
+    { s.first->push(_val); }
+    void leave(ResMatchState& s)
+    {
+      ASS_EQ(s.first->top(),_val);
+      s.first->pop();
+    }
+  private:
+    Literal* _val;
+  };
+  DECL_RETURN_TYPE(VirtualIterator<ResMatchState>);
+  OWN_RETURN_TYPE operator()(ResMatchState state, pair<Literal*,Literal*> lp)
+  {
+    SubstIterator matchIter=state.second->matches(lp.first, 1, lp.second, 2, true);
+    OnStackPushingContext skippingCtx(lp.first);
+    return getConcatenatedIterator(
+	    pushPairIntoRightIterator(
+		    pair<Stack<Literal*>*,SubstIterator>(state.first, matchIter)),
+	    getContextualIterator(SingletonIterator<ResMatchState>(state), skippingCtx)
+	    );
   }
 };
 
@@ -44,60 +75,64 @@ bool MLMatcher::checkForSubsumptionResolution(Clause* base,
   CALL("MLMatcher::checkForSubsumptionResolution");
 
   unsigned baseLen=base->length();
-  MMSubstitution matcher;
-  static DArray<Literal*> baseNR(32);	//non-resolved base literals
-  static DArray<LiteralList*> altsNR(32);
-  baseNR.ensure(baseLen);
-  altsNR.ensure(baseLen);
-  unsigned nrLen=baseLen;
+  MMSubstitution matcher0;
 
-  //First we try to match the resolvedInst literal on base
-  //literals. We should probably do some backtracking here,
-  //but it won't probably help in too many cases, and it
-  //could slow things down.
-  unsigned nri=0;
-  for(unsigned bi=0;bi<baseLen;bi++) {
-    if( matcher.match((*base)[bi],0,resolvedInst,1,true) ) {
-      nrLen--;
-    } else if(alts[bi]==0) {
-      //No instance literal matches the base literal at index
-      //bi, so there is no subsumption.
-      return false;
-    } else {
-      baseNR[nri]=(*base)[bi];
-      altsNR[nri]=alts[bi];
-      nri++;
+  Stack<Literal*> nonResolved0(baseLen);
+
+  VirtualIterator<ResMatchState> rmit=getBacktrackingIterator(
+	  ResMatchState(&nonResolved0,&matcher0),
+	  pushPairIntoLeftArray(wrapReferencedArray(*base),
+		  resolvedInst),
+	  ResMatchBtrFn());
+  ASS(rmit.hasNext());
+  while(rmit.hasNext()) {
+    ResMatchState rms=rmit.next();
+    Stack<Literal*>* nonResolved=rms.first;
+    MMSubstitution* matcher=rms.second;
+    unsigned nrLen=nonResolved->length();
+
+    if(nrLen==baseLen) {
+      continue;
     }
+
+    static DArray<Literal*> baseNR(32);	//non-resolved base literals
+    static DArray<LiteralList*> altsNR(32);
+    baseNR.ensure(nrLen);
+    altsNR.ensure(nrLen);
+
+    Stack<Literal*>::Iterator nrit(*nonResolved);//non-resolved iterator
+    unsigned bi=baseLen-1;
+    unsigned nri=nrLen-1;
+    while(nrit.hasNext()) {
+      Literal* nrl=nrit.next();
+      while((*base)[bi]!=nrl) {
+	bi--;
+	ASS(bi<baseLen); //actually checking bi>=0, but bi is unsigned...
+      }
+      baseNR[nri]=nrl;
+      altsNR[nri--]=alts[bi--];
+    }
+    ASS(nri==(unsigned)-1);
+
+    static DArray<Literal*> baseNROrd(32);
+    static DArray<LiteralList*> altsNROrd(32);
+    baseNROrd.ensure(nrLen);
+    altsNROrd.ensure(nrLen);
+    orderLiterals(baseNR, nrLen, altsNR, baseNROrd, altsNROrd);
+
+    SubstIterator sbit=getBacktrackingIterator(matcher,
+  	  getMappingArray(
+  		  pushPairIntoArrays(wrapReferencedArray(baseNROrd),
+  			  wrapReferencedArray(altsNROrd)),
+  		  PushPairIntoRightIterableFn<Literal*,LiteralList*>()),
+  	  getBacktrackFnForIterableChoicePoint<MMSubstitution*>(MatchBtrFn()));
+
+    if(sbit.hasNext())
+      return true;
   }
-  ASS_EQ(nrLen, nri);
+  return false;
 
-  if(nrLen==baseLen) {
-    //This method is supposed to be called only after index
-    //finds matchable complementary literals, so the case that
-    //the instance literal won't match with any base literal
-    //should not occur.
-    ASSERTION_VIOLATION;
-    return false;
-  }
 
-  static DArray<Literal*> baseNROrd(32);
-  static DArray<LiteralList*> altsNROrd(32);
-  baseNROrd.ensure(nrLen);
-  altsNROrd.ensure(nrLen);
-  orderLiterals(baseNR, nrLen, altsNR, baseNROrd, altsNROrd);
-
-  static Stack<BacktrackData> bdStack(32);
-  static DArray<LiteralList*> rem(32); //remaining alternatives
-
-  ASS(bdStack.isEmpty());
-  rem.init(nrLen, 0);
-
-  bool success=getMatch(baseNROrd, nrLen, altsNROrd, matcher, rem, bdStack, false);
-
-  while(!bdStack.isEmpty()) {
-    bdStack.pop().drop();
-  }
-  return success;
 }
 
 /**
@@ -121,18 +156,16 @@ bool MLMatcher::canBeMatched(Clause* base, DArray<LiteralList*>& alts)
   tmr.start();
 #endif
 
-  static Stack<BacktrackData> bdStack(32);
-  static DArray<LiteralList*> rem(32); //remaining alternatives
   MMSubstitution matcher;
 
-  ASS(bdStack.isEmpty());
-  rem.init(baseLen, 0);
+  SubstIterator sbit=getBacktrackingIterator(&matcher,
+	  getMappingArray(
+		  pushPairIntoArrays(wrapReferencedArray(baseOrd),
+			  wrapReferencedArray(altsOrd)),
+		  PushPairIntoRightIterableFn<Literal*,LiteralList*>()),
+	  getBacktrackFnForIterableChoicePoint<MMSubstitution*>(MatchBtrFn()));
 
-  bool success=getMatch(baseOrd, baseLen, altsOrd, matcher, rem, bdStack, true);
-
-  while(!bdStack.isEmpty()) {
-    bdStack.pop().drop();
-  }
+  bool success=sbit.hasNext();
 
 #if TRACE_LONG_MATCHING
   tmr.stop();
@@ -202,80 +235,4 @@ void MLMatcher::orderLiterals(T& base, unsigned baseLen, DArray<LiteralList*>& a
   len2lits.reset();
 }
 
-bool MLMatcher::getMatch(DArray<Literal*>& base, unsigned baseLen,
-	DArray<LiteralList*>& alts,
-	MMSubstitution& matcher,
-	DArray<LiteralList*>& rem,
-	Stack<BacktrackData>& bdStack,
-	bool multisetMatching)
-{
-  CALL("MLMatcher::getMatch");
-
-  if(baseLen==0) {
-    return true;
-  }
-
-  unsigned depth=bdStack.length();
-
-  //This method is supposed to be able to retrieve successive
-  //matches, but it was not needed yet.
-//  ASS(depth==0 || depth==baseLen);
-//  if(depth==baseLen) {
-//    depth--;
-//    bdStack.pop().backtrack();
-//  }
-  ASS_EQ(depth,0);
-  for(;;) {
-    if(rem[depth]==0) {
-      rem[depth]=alts[depth];
-      ASS(depth<baseLen);
-    } else {
-      rem[depth]=rem[depth]->tail();
-    }
-
-    if(multisetMatching) {
-      //check whether one instance literal isn't matched multiple times
-      bool repetitive;
-      do {
-	if(!rem[depth]) {
-	  break;
-	}
-	repetitive=false;
-	for(unsigned li=0;li<depth;li++) {
-	  if(rem[depth]->head()==rem[li]->head()) {
-	    repetitive=true;
-	    break;
-	  }
-	}
-	if(repetitive) {
-	  //literal is matched multiple times, let's try the next one
-	  rem[depth]=rem[depth]->tail();
-	}
-      } while(repetitive);
-    }
-    if(!rem[depth]) {
-	if(depth) {
-	  depth--;
-	  bdStack.pop().backtrack();
-	  ASS(bdStack.length()==depth);
-	  continue;
-	} else {
-	  return false;
-	}
-    }
-    BacktrackData bData;
-    matcher.bdRecord(bData);
-    bool matched=matcher.match(base[depth],0,rem[depth]->head(),1, false);
-    matcher.bdDone();
-    if(matched) {
-      depth++;
-      bdStack.push(bData);
-      if(depth==baseLen) {
-	return true;
-      }
-    } else {
-      bData.backtrack();
-    }
-
-  }
 }

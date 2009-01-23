@@ -399,6 +399,11 @@ public:
   {
     return header % 2;
   }
+  static bool headersMatch(Literal* l1, Literal* l2, bool complementary)
+  {
+    return l1->_functor==l2->_functor &&
+      (complementary?1:0)==(l1->polarity()^l2->polarity());
+  }
   /** Negate, should not be used with shared terms */
   void negate()
   {

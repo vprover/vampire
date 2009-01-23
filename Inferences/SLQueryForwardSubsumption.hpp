@@ -17,6 +17,9 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+/**
+ * @deprecated Use ForwardSubsumptionAndResolution instead.
+ */
 class SLQueryForwardSubsumption
 : public ForwardSimplificationEngine
 {

@@ -26,9 +26,11 @@
 #define TRACE_FINDER 0
 #define SHOW_FOUND 0
 
+namespace Shell
+{
+
 using namespace Lib;
 using namespace Kernel;
-using namespace Shell;
 
 /**
  * Build a new theory finder.
@@ -71,7 +73,7 @@ int TheoryFinder::search()
 
 /**
  * Match against all known axioms.
- * 
+ *
  * @since 09/06/2004 Manchester
  * @since 27/07/2008 Linz Airport, changed to new datastructures
  */
@@ -89,7 +91,7 @@ bool TheoryFinder::matchAll(const Unit* unit)
 
 /**
  * Match clause against all known axioms.
- * 
+ *
  * @since 09/06/2004 Manchester
  * @since 27/07/2008 Linz Airport, changed to new datastructures
  */
@@ -118,7 +120,7 @@ bool TheoryFinder::matchAll(const Clause* clause)
 
 /**
  * Match formula against all known axioms.
- * 
+ *
  * @since 09/06/2004 Manchester
  * @since 27/07/2008 Linz Airport, changed to new datastructures
  */
@@ -199,7 +201,7 @@ bool TheoryFinder::matchCode(const void* obj,
       _property->addProp((Property::Prop)prop);
     }
     return true;
-    
+
   case NEWVAR: {
     ASS(objectPos > 0);
     obj = objects[--objectPos];
@@ -255,7 +257,7 @@ bool TheoryFinder::matchCode(const void* obj,
     goto match;
   }
 
-  case OLDFUN: 
+  case OLDFUN:
   case OLDFUN1: {
     ASS(objectPos > 0);
     obj = objects[--objectPos];
@@ -350,7 +352,7 @@ bool TheoryFinder::matchCode(const void* obj,
       choice -= 1u << literals[i];
     }
     int c = 0;
-    // find the next available literal whose polarity matches 
+    // find the next available literal whose polarity matches
     while (c < clength) {
       // remove from the choice literals already used
       if (choice & (1 << c)) {
@@ -510,7 +512,7 @@ bool TheoryFinder::matchCode(const void* obj,
       choice -= 1u << literals[i];
     }
     int c = literals[l]+1;
-    // find the next available literal whose polarity matches 
+    // find the next available literal whose polarity matches
     while (c < clength) {
       // remove from the choice literals already used
       if (choice & (1 << c)) {
@@ -550,7 +552,7 @@ bool TheoryFinder::matchCode(const void* obj,
 
 /**
  * Match atom against commutativity x+y=y+x.
- * 
+ *
  * @since 10/06/2004 Manchester
  */
 bool TheoryFinder::matchC(const Literal* lit)
@@ -560,7 +562,7 @@ bool TheoryFinder::matchC(const Literal* lit)
 #if TRACE_FINDER
   cout << lit->toString() << "\n";
 #endif
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
   {EQL, //                                   // =
     NEWFUN1,0,2,NEWVAR,0,NEWVAR,1,  // +(x0,x1)
     OLDFUN1,0,OLDVAR,1,OLDVAR,0,
@@ -578,13 +580,13 @@ bool TheoryFinder::matchC(const Literal* lit)
 
 /**
  * Match atom against associativity (x+y)+z=x+(y+z).
- * 
+ *
  * @since 16/06/2005 Manchester
  */
 bool TheoryFinder::matchA(const Literal* lit)
 {
   CALL("TheoryFinder::matchA");
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
   {EQL, //                                   // =
     NEWFUN1,0,2,OLDFUN,0,
     NEWVAR,0,NEWVAR,1,NEWVAR,2,  // +(+(x0,x1),x2)
@@ -602,9 +604,9 @@ bool TheoryFinder::matchA(const Literal* lit)
 } // TheoryFinder::matchA(const Literal* lit)
 
 /**
- * Match clause against part of extensionality axiom 
+ * Match clause against part of extensionality axiom
  * member(f(X,Y),X) \/ member(f(X,Y),Y) \/ X=Y
- * 
+ *
  * @since 25/06/2004 Dresden
  */
 bool TheoryFinder::matchExtensionality (const Clause* c)
@@ -634,7 +636,7 @@ bool TheoryFinder::matchExtensionality (const Clause* c)
 /**
  * Match clause against the condensed detachment axiom
  * ~theorem(X) \/ ~theorem(imply(X,Y)) \/ theorem(Y).
- * 
+ *
  * @since 21/06/2005 Manchester
  */
 bool TheoryFinder::matchCondensedDetachment1(const Clause* c)
@@ -662,7 +664,7 @@ bool TheoryFinder::matchCondensedDetachment1(const Clause* c)
 /**
  * Match clause against the condensed detachment axiom
  * ~theorem(X) \/ ~theorem(or(not(X),Y)) \/ theorem(Y).
- * 
+ *
  * @since 21/06/2005 Manchester
  */
 bool TheoryFinder::matchCondensedDetachment2(const Clause* c)
@@ -691,7 +693,7 @@ bool TheoryFinder::matchCondensedDetachment2(const Clause* c)
  * Match clause against the axiom
  * equalish(add(multiply(X,Z),multiply(Y,Z)),multiply(add(X,Y),Z)) \/
  * ~defined(X) \/ ~defined(Y) \/ ~defined(Z).
- * 
+ *
  * @since 21/06/2005 Manchester
  */
 bool TheoryFinder::matchFLD1(const Clause* c)
@@ -725,7 +727,7 @@ bool TheoryFinder::matchFLD1(const Clause* c)
  * product(multiplicative_inverse(X),X,multiplicative_identity) \/
  * sum(additive_identity,X,additive_identity) \/
  * ~defined(X).
- * 
+ *
  * @since 21/06/2005 Manchester
  */
 bool TheoryFinder::matchFLD2(const Clause* c)
@@ -753,7 +755,7 @@ bool TheoryFinder::matchFLD2(const Clause* c)
 /**
  * Match clause against part of the subset axiom
  * member(f(X,Y),X) \/ subset(X,Y), where f is disregarded.
- * 
+ *
  * @since 24/06/2004 Dresden
  * @since 19/06/2005 Manchester, simplified using matchCode(...)
  */
@@ -781,7 +783,7 @@ bool TheoryFinder::matchSubset (const Clause* c)
 /**
  * Match formula against part the subset axiom
  * subset(x,y) &lt;=&gt; (Az)(member(z,x) =&gt; member(z,y)).
- * 
+ *
  * @since 25/06/2004 Dresden
  * @since 19/06/2005 Manchester, simplified using matchCode(...)
  */
@@ -809,7 +811,7 @@ bool TheoryFinder::matchSubset (const Formula* f)
  * Match formula against the extensionality axiom
  * (Az)(member(z,x) &lt;=&gt; member(z,y)) =&gt; x=y,
  * or the same but with &lt;=&gt; instead of =&gt;.
- * 
+ *
  * @since 25/06/2004 Dresden
  * @since 19/06/2005 Manchester, simplified using matchCode(...)
  */
@@ -843,17 +845,17 @@ bool TheoryFinder::matchExtensionality (const Formula* f)
 
 /**
  * Match atom against the left inverse axiom i(x)*x=1
- * 
+ *
  * @since 16/06/2005 Manchester
  */
 bool TheoryFinder::matchLeftInverse(const Literal* lit)
 {
   CALL("TheoryFinder::matchLeftInverse");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL, //                                                // =
     NEWFUN1,0,2,NEWFUN,1,1,NEWVAR,0,OLDVAR,0, // *(i(x0),x0)
-    NEWFUN1,2,0,                              // 1    
+    NEWFUN1,2,0,                              // 1
     END};
 
   if (matchCode(lit,code,0)) {
@@ -867,14 +869,14 @@ bool TheoryFinder::matchLeftInverse(const Literal* lit)
 
 /**
  * Match atom against the right inverse axiom x*i(x)=1
- * 
+ *
  * @since 16/06/2005 Manchester
  */
 bool TheoryFinder::matchRightInverse(const Literal* lit)
 {
   CALL("TheoryFinder::matchRightInverse");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL, //                                                // =
     NEWFUN1,0,2,NEWVAR,0,NEWFUN,1,1,OLDVAR,0,// *(x0,i(x0))
     NEWFUN1,2,0,                                           // 1
@@ -891,14 +893,14 @@ bool TheoryFinder::matchRightInverse(const Literal* lit)
 
 /**
  * Match atom against the left identity axiom 1*x=x
- * 
+ *
  * @since 16/06/2005 Manchester
  */
 bool TheoryFinder::matchLeftIdentity(const Literal* lit)
 {
   CALL("TheoryFinder::matchLeftIdentity");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL, //                           // =
     NEWFUN1,0,2,NEWFUN,1,0,NEWVAR,0,  // *(1,x)
     OLDVAR1,0,                        // x
@@ -915,14 +917,14 @@ bool TheoryFinder::matchLeftIdentity(const Literal* lit)
 
 /**
  * Match atom against the idempotence axiom x*x=x
- * 
+ *
  * @since 16/06/2005 Manchester
  */
 bool TheoryFinder::matchIdempotence(const Literal* lit)
 {
   CALL("TheoryFinder::matchIdempotence");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
     {EQL,NEWFUN1,0,2,NEWVAR,0,OLDVAR,0,
      OLDVAR1,0,END}; // =(*(x0,x0),x0)
 
@@ -937,14 +939,14 @@ bool TheoryFinder::matchIdempotence(const Literal* lit)
 
 /**
  * Match atom against the right identity axiom x*1=x
- * 
+ *
  * @since 16/06/2005 Manchester
  */
 bool TheoryFinder::matchRightIdentity(const Literal* lit)
 {
   CALL("TheoryFinder::matchRightIdentity");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL, //                          // =
     NEWFUN1,0,2,NEWVAR,0,NEWFUN,1,0, // *(x,1)
     OLDVAR1,0,END};                  // x
@@ -959,16 +961,16 @@ bool TheoryFinder::matchRightIdentity(const Literal* lit)
 } // TheoryFinder::matchRightIdentity(const Literal* lit)
 
 /**
- * Match atom against the associator axiom 
+ * Match atom against the associator axiom
  * A(x,y,z) = A(x,y,z) = +(*(*(x,y),z),-(*(x,*(y,z)))).
- * 
+ *
  * @since 17/06/2005 Manchester
  */
 bool TheoryFinder::matchAssociator(const Literal* lit)
 {
   CALL("TheoryFinder::matchAssociator");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL, //                                                    // =
     NEWFUN1,0,3,NEWVAR,0,NEWVAR,1,NEWVAR,2,                     // A(x0,x1,x2)
     NEWFUN1,1,2,NEWFUN,2,2,OLDFUN,2,OLDVAR,0,OLDVAR,1,OLDVAR,2, // +(*(*(x0,x1),x2),
@@ -986,14 +988,14 @@ bool TheoryFinder::matchAssociator(const Literal* lit)
 
 /**
  * Match atom against the commutator axiom C(x,y) = +(*(y,x),-(*(x,y))).
- * 
+ *
  * @since 17/06/2005 Manchester
  */
 bool TheoryFinder::matchCommutator(const Literal* lit)
 {
   CALL("TheoryFinder::matchCommutator");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL,                                      // =
     NEWFUN1,0,3,NEWVAR,0,NEWVAR,1,            // C(x0,x1)
     NEWFUN1,1,2,NEWFUN,2,2,OLDVAR,1,OLDVAR,0, // +(*(x1,x0),
@@ -1011,14 +1013,14 @@ bool TheoryFinder::matchCommutator(const Literal* lit)
 
 /**
  * Match atom against the left distributivity axiom.
- * 
+ *
  * @since 17/06/2005 Manchester
  */
 bool TheoryFinder::matchLeftDistributivity(const Literal* lit)
 {
   CALL("TheoryFinder::matchLeftDistributivity");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL, //                                                // =
     NEWFUN1,0,2,NEWFUN,1,2,NEWVAR,0,
     NEWVAR,1,NEWVAR,2,                                // *(+(x0,x1),x2)
@@ -1036,14 +1038,14 @@ bool TheoryFinder::matchLeftDistributivity(const Literal* lit)
 
 /**
  * Match atom against the right distributivity axiom.
- * 
+ *
  * @since 17/06/2005 Manchester
  */
 bool TheoryFinder::matchRightDistributivity (const Literal* lit)
 {
   CALL("TheoryFinder::matchRightDistributivity");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL, //                                // =
     NEWFUN1,0,2,NEWVAR,0,NEWFUN,1,2,
     NEWVAR,1,NEWVAR,2,                     // *(x0,+(x1,x2))
@@ -1061,29 +1063,29 @@ bool TheoryFinder::matchRightDistributivity (const Literal* lit)
 
 /**
  * Match atom against any of the four versions of the Robbins Algebra axiom.
- * 
+ *
  * @since 17/06/2005 Manchester
  */
 bool TheoryFinder::matchRobbins(const Literal* lit)
 {
   CALL("TheoryFinder::matchRobbins");
 
-  static const unsigned char code1[] = 
+  static const unsigned char code1[] =
    {EQL, //                                                     // =
      NEWFUN1,0,1,NEWFUN,1,2,OLDFUN,0,OLDFUN,1,NEWVAR,0,NEWVAR,1,//  n(+(n(+(x0,x1)),
       OLDFUN,0,OLDFUN,1,OLDVAR,0,OLDFUN,0,OLDVAR,1,             //  n(+(x0,n(x1)))))
     OLDVAR1,0,END};                                             //  x0
-  static const unsigned char code2[] = 
+  static const unsigned char code2[] =
    {EQL, //                                                     // =
      NEWFUN1,0,1,NEWFUN,1,2,OLDFUN,0,OLDFUN,1,NEWVAR,0,NEWVAR,1,//  n(+(n(+(x0,x1)),
       OLDFUN,0,OLDFUN,1,OLDFUN,0,OLDVAR,0,OLDVAR,1,             //  n(+(n(x0),x1))))
     OLDVAR1,1,END};                                             //  x1
-  static const unsigned char code3[] = 
+  static const unsigned char code3[] =
    {EQL, //                                                             // =
      NEWFUN1,0,1,NEWFUN,1,2,OLDFUN,0,OLDFUN,1,NEWVAR,0,OLDFUN,0,NEWVAR,1,//  n(+(n(+(x0,n(x1))),
       OLDFUN,0,OLDFUN,1,OLDVAR,0,OLDVAR,1,                              //  n(+(x0,x1))))
     OLDVAR1,0,END};                                                     //  x0
-  static const unsigned char code4[] = 
+  static const unsigned char code4[] =
    {EQL, //                                                             // =
      NEWFUN,0,1,NEWFUN,1,2,OLDFUN,0,OLDFUN,1,OLDFUN,0,NEWVAR,0,NEWVAR,1,//  n(+(n(+(n(x0),x1)),
       OLDFUN,0,OLDFUN,1,OLDVAR,0,OLDVAR,1,                              //  n(+(x0,x1))))
@@ -1105,18 +1107,18 @@ bool TheoryFinder::matchRobbins(const Literal* lit)
  * Match atom against any of the two versions of the alternative
  * associativity axiom: *(*(x,x),y) = *(x,*(x,y)) or
  * *(*(x,y),y) = *(x,*(y,y)).
- * 
+ *
  * @since 17/06/2005 Manchester
  */
 bool TheoryFinder::matchAlternative(const Literal* lit)
 {
   CALL("TheoryFinder::matchAlternative");
 
-  static const unsigned char code1[] = 
+  static const unsigned char code1[] =
    {EQL, //                                          // =
      NEWFUN1,0,2,OLDFUN,0,NEWVAR,0,OLDVAR,0,NEWVAR,1, // *(*(x0,x0),x1)
     OLDFUN1,0,OLDVAR,0,OLDFUN,0,OLDVAR,0,OLDVAR,1,END};  // *(x0,*(x0,x1))
-  static const unsigned char code2[] = 
+  static const unsigned char code2[] =
    {EQL, //                                          // =
      NEWFUN1,0,2,OLDFUN,0,NEWVAR,0,NEWVAR,1,OLDVAR,1, // *(*(x0,x1),x1)
     OLDFUN1,0,OLDVAR,0,OLDFUN,0,OLDVAR,1,OLDVAR,1,END};  // *(x0,*(x1,x1))
@@ -1133,17 +1135,17 @@ bool TheoryFinder::matchAlternative(const Literal* lit)
 
 /**
  * Match atom against the right absorption axiom *(x,+(x,y)) = x.
- * 
+ *
  * @since 17/06/2005 Manchester
  */
 bool TheoryFinder::matchAbsorption(const Literal* lit)
 {
   CALL("TheoryFinder::matchAbsorption");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL,                                              // =
     NEWFUN1,0,2,NEWVAR,0,NEWFUN,1,2,OLDVAR,0,NEWVAR,1, // *(x0,+(x0,x1))
-    OLDVAR1,0,END};       
+    OLDVAR1,0,END};
                                  // x0
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
@@ -1157,14 +1159,14 @@ bool TheoryFinder::matchAbsorption(const Literal* lit)
 /**
  * Match atom against the S-combinator axiom
  * _(_(_(S,x),y),z) = _(_(x,z),_(y,z)).
- * 
+ *
  * @since 18/06/2005 Manchester
  */
 bool TheoryFinder::matchCombinatorS(const Literal* lit)
 {
   CALL("TheoryFinder::matchCombinatorS");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL,                                     // =
     NEWFUN1,0,2,OLDFUN,0,OLDFUN,0,NEWFUN,1,0,
      NEWVAR,0,NEWVAR,1,NEWVAR,2,             // _(_(_(S,x0),x1),x2)
@@ -1183,14 +1185,14 @@ bool TheoryFinder::matchCombinatorS(const Literal* lit)
 /**
  * Match atom against the B-combinator axiom
  * ._(_(_(B,x),y),z) = _(x,_(y,z)).
- * 
+ *
  * @since 18/06/2005 Manchester
  */
 bool TheoryFinder::matchCombinatorB(const Literal* lit)
 {
   CALL("TheoryFinder::matchCombinatorB");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL,                                           // =
     NEWFUN1,0,2,OLDFUN,0,OLDFUN,0,NEWFUN,1,0,
      NEWVAR,0,NEWVAR,1,NEWVAR,2,                   // _(_(_(B,x0),x1),x2)
@@ -1208,14 +1210,14 @@ bool TheoryFinder::matchCombinatorB(const Literal* lit)
 /**
  * Match atom against the T-combinator axiom
  * _(_(T,x),y) = _(y,x).
- * 
+ *
  * @since 18/06/2005 Manchester
  */
 bool TheoryFinder::matchCombinatorT(const Literal* lit)
 {
   CALL("TheoryFinder::matchCombinatorT");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL,                                              // =
     NEWFUN1,0,2,OLDFUN,0,NEWFUN,1,0,NEWVAR,0,NEWVAR,1, // _(_(T,x0),x1)
     OLDFUN1,0,OLDVAR,1,OLDVAR,0,END};                      // _(x1,x0)
@@ -1232,14 +1234,14 @@ bool TheoryFinder::matchCombinatorT(const Literal* lit)
 /**
  * Match atom against the O-combinator axiom
  * _(_(O,x),y) = _(y,_(x,y)).
- * 
+ *
  * @since 18/06/2005 Manchester
  */
 bool TheoryFinder::matchCombinatorO(const Literal* lit)
 {
   CALL("TheoryFinder::matchCombinatorO");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL,                                              // =
     NEWFUN1,0,2,OLDFUN,0,NEWFUN,1,0,NEWVAR,0,NEWVAR,1, // _(_(O,x0),x1)
     OLDFUN1,0,OLDVAR,1,OLDFUN,0,OLDVAR,0,OLDVAR,1,END};    // _(x1,_(x0,x1))
@@ -1256,14 +1258,14 @@ bool TheoryFinder::matchCombinatorO(const Literal* lit)
 /**
  * Match atom against the Q-combinator axiom
  * _(_(_(Q,x),y),z) = _(y,_(x,z)).
- * 
+ *
  * @since 18/06/2005 Manchester
  */
 bool TheoryFinder::matchCombinatorQ(const Literal* lit)
 {
   CALL("TheoryFinder::matchCombinatorQ");
 
-  static const unsigned char code[] = 
+  static const unsigned char code[] =
    {EQL,                                           // =
     NEWFUN1,0,2,OLDFUN,0,OLDFUN,0,NEWFUN,1,0,
      NEWVAR,0,NEWVAR,1,NEWVAR,2,                   // _(_(_(Q,x0),x1),x2)
@@ -1280,7 +1282,7 @@ bool TheoryFinder::matchCombinatorQ(const Literal* lit)
 
 /**
  * Match atom against all known unit axioms.
- * 
+ *
  * @since 17/06/2005 Manchester
  */
 bool TheoryFinder::matchAll (const Literal* lit)
@@ -1304,7 +1306,7 @@ bool TheoryFinder::matchAll (const Literal* lit)
          matchCommutator(lit) ||
          matchAlternative(lit) ||
          matchAbsorption(lit) ||
-         matchRobbins(lit) || 
+         matchRobbins(lit) ||
          matchCombinatorS(lit) ||
          matchCombinatorB(lit) ||
          matchCombinatorT(lit) ||
@@ -1348,4 +1350,4 @@ bool TheoryFinder::matchAll (const Literal* lit)
 // #endif
 // } // TheoryFinder::analyse
 
-
+}

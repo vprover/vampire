@@ -49,13 +49,13 @@ public:
 
 
   /** Return mumber of items stored in this BinaryHeap */
-  inline 
+  inline
   int size() const
   {
     ASS(_size>=0);
     return _size;
   }
-  
+
   /** Return true, iff there are no items in the heap */
   inline
   bool isEmpty() const
@@ -63,7 +63,7 @@ public:
     ASS(_size>=0);
     return _size==0;
   }
-  
+
   /** Insert an item to the heap */
   inline
   void insert(T obj)
@@ -74,7 +74,7 @@ public:
     _data1[_size]=obj;
     bubbleUp(_size);
   }
-  
+
   /** Return a const reference to the smallest item in the heap */
   inline
   const T& top()
@@ -92,24 +92,24 @@ public:
     T res=_data[0];
     _size--;
     if(_size) {
-      ::swap(_data[0],_data[_size]);
+      std::swap(_data[0],_data[_size]);
       bubbleDown(1);
     }
-    
+
     //this will cause the content of removed item to be destroyed
-    //and an empty item to be put at its position 
-    T emptyT;
-    ::swap(_data[_size], emptyT);
-    
+    //and an empty item to be put at its position
+    _data[_size].~T();
+    new(&_data[_size]) T();
+
     return res;
   }
-  
+
 private:
   /** Copy constructor is private and without a body, because we don't want any. */
   BinaryHeap(const BinaryHeap& obj);
   /** operator= is private and without a body, because we don't want any. */
   BinaryHeap& operator=(const BinaryHeap& obj);
-  
+
   /** Check whether the heap property holds between the element at @index and its ancestors */
   void bubbleUp(int index)
   {
@@ -118,7 +118,7 @@ private:
     int nextIndex=index>>1;
     while(nextIndex) {
       if(Comparator::compare(_data1[index], _data1[nextIndex])==LESS) {
-	::swap(_data1[index], _data1[nextIndex]);
+	std::swap(_data1[index], _data1[nextIndex]);
       } else {
 	return;
       }
@@ -136,13 +136,13 @@ private:
     while(nextIndex<=_size) {
       if(nextIndex!=_size && Comparator::compare(_data1[index], _data1[nextIndex|1])==GREATER) {
 	if(Comparator::compare(_data1[nextIndex|1], _data1[nextIndex])==GREATER) {
-	  ::swap(_data1[index], _data1[nextIndex]);
+	  std::swap(_data1[index], _data1[nextIndex]);
 	} else {
-	  ::swap(_data1[index], _data1[nextIndex|1]);
+	  std::swap(_data1[index], _data1[nextIndex|1]);
 	  nextIndex|=1;
 	}
       } else if(Comparator::compare(_data1[index], _data1[nextIndex])==GREATER) {
-	::swap(_data1[index], _data1[nextIndex]);
+	std::swap(_data1[index], _data1[nextIndex]);
       }
       index=nextIndex;
       nextIndex=index<<1;
@@ -157,27 +157,27 @@ private:
     if(_capacity==_size)
       expand();
   }
-  
+
   /**
    * Expand BinaryHeap to double of its current size.
-   * 
-   * Should be called only when _capacity==_size.  
+   *
+   * Should be called only when _capacity==_size.
    */
   void expand()
   {
     CALL("BinaryHeap::expand");
-    
+
     ASS(_capacity==_size);
 
     int oldCapacity=_capacity;
     T* oldData=_data;
-    
+
     _capacity= _capacity ? _capacity*2 : 4;
-    
+
     void* mem = ALLOC_KNOWN(_capacity*sizeof(T),"BinaryHeap::T");
     _data = new(mem) T [_capacity];
     _data1 = _data-1;
-    
+
     if(_size) {
       T* otp = oldData+_size;
       T* ntp = _data+_size;
@@ -200,7 +200,7 @@ private:
 
   /** Array containing the heap tree */
   T* _data;
-  
+
   /**
    * Pointer to the T before the start of the _data
    * (we can use it for one-based access to _data)

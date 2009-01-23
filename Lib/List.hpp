@@ -30,6 +30,8 @@
 #  define __list__
 
 
+#include "../Forwards.hpp"
+
 #include "../Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
@@ -49,7 +51,8 @@ namespace Lib {
 template <class C>
 class List
 {
- public:
+public:
+  DECL_ELEMENT_TYPE(C);
 
   /** builds a single-element list */
   explicit inline List (C head)
@@ -733,8 +736,15 @@ protected:  // structure
 template<typename T>
 VirtualIterator<T> getContentIterator(List<T>* lst)
 {
-  return getProxyIterator<T>(List<T>::Iterator(lst));
+  return getProxyIterator<T>(typename List<T>::Iterator(lst));
 }
+
+/** see Reflection.hpp */
+template<typename T>
+struct ElementTypeInfo<List<T>* >
+{
+  typedef T Type;
+};
 
 
 #if VDEBUG

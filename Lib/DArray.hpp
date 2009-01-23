@@ -9,11 +9,13 @@
 #ifndef __DArray__
 #define __DArray__
 
+#include "../Forwards.hpp"
 #include "../Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
 #include "Comparison.hpp"
 #include "Random.hpp"
+#include "Reflection.hpp"
 #include "VirtualIterator.hpp"
 
 namespace Lib {
@@ -31,6 +33,7 @@ private:
   DArray(const DArray&);
   DArray& operator=(const DArray&);
 public:
+  DECL_ELEMENT_TYPE(C);
   /**
    * Create an array having the given @b size
    * @since 30/12/2007 Manchester

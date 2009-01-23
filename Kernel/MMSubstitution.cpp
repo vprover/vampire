@@ -31,10 +31,11 @@
 using namespace Debug;
 #endif
 
+namespace Kernel
+{
 
 using namespace std;
 using namespace Lib;
-using namespace Kernel;
 
 const int MMSubstitution::AUX_INDEX=-3;
 const int MMSubstitution::SPECIAL_INDEX=-2;
@@ -86,14 +87,8 @@ bool MMSubstitution::match(Literal* base,int baseIndex,
 {
   CALL("MMSubstitution::match(Literal*...)");
 
-  if(complementary) {
-    if(base->complementaryHeader()!=instance->header()) {
-      return false;
-    }
-  } else {
-    if(base->header()!=instance->header()) {
-      return false;
-    }
+  if(!Literal::headersMatch(base,instance,complementary)) {
+    return false;
   }
   TermList baseTL;
   TermList instanceTL;
@@ -785,11 +780,11 @@ bool MMSubstitution::occurCheckFails() const
  * For guides on use of the iterator, see the documentation of
  * MMSubstitution::AssocIterator.
  */
-SubstIterator MMSubstitution::matches(MMSubstitution* subst,
-	Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
+SubstIterator MMSubstitution::matches(Literal* base, int baseIndex,
+	Literal* instance, int instanceIndex, bool complementary)
 {
-  return getAssocIterator<MatchingFn>(subst, l1, l1Index,
-	  l2, l2Index, complementary);
+  return getAssocIterator<MatchingFn>(this, base, baseIndex,
+	  instance, instanceIndex, complementary);
 }
 
 /**
@@ -798,10 +793,10 @@ SubstIterator MMSubstitution::matches(MMSubstitution* subst,
  * For guides on use of the iterator, see the documentation of
  * MMSubstitution::AssocIterator.
  */
-SubstIterator MMSubstitution::unifiers(MMSubstitution* subst,
-	Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
+SubstIterator MMSubstitution::unifiers(Literal* l1, int l1Index,
+	Literal* l2, int l2Index, bool complementary)
 {
-  return getAssocIterator<UnificationFn>(subst, l1, l1Index,
+  return getAssocIterator<UnificationFn>(this, l1, l1Index,
 	  l2, l2Index, complementary);
 }
 
@@ -809,8 +804,9 @@ template<class Fn>
 SubstIterator MMSubstitution::getAssocIterator(MMSubstitution* subst,
 	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
 {
-  if( (!complementary && l1->header()!=l2->header()) ||
-	    (complementary && l1->header()!=l2->complementaryHeader()) ) {
+  CALL("MMSubstitution::getAssocIterator");
+
+  if( !Literal::headersMatch(l1,l2,complementary) ) {
     return SubstIterator::getEmpty();
   }
   return SubstIterator(
@@ -823,12 +819,12 @@ SubstIterator MMSubstitution::getAssocIterator(MMSubstitution* subst,
  * Using this iterator requires special care, as the
  * substitution being returned is always the same object.
  * The rules for safe use are:
- * 1) After the iterator is created and before it's
+ * - After the iterator is created and before it's
  * destroyed, the original substitution is invalid.
- * 2) Substitution retrieved by call to the method next()
+ * - Substitution retrieved by call to the method next()
  * is valid only until the hasNext() method is called again
  * (or until the iterator is destroyed).
- * 3)before each call to next(), hasNext() has to be called.
+ * - Before each call to next(), hasNext() has to be called.
  *
  * There rules are quite natural, and the 3rd one is
  * required by many other iterators as well.
@@ -855,8 +851,7 @@ public:
   _l2i(l2Index), _complementary(complementary),
   _matchIndex(0), _empty(false), _used(true)
   {
-    ASS(complementary || _l1->header()==_l2->header());
-    ASS(!complementary || _l1->header()==_l2->complementaryHeader());
+    ASS(Literal::headersMatch(_l1,_l2,_complementary));
     _subst->bdRecord(_bdata);
   }
   ~AssocIterator()
@@ -888,8 +883,7 @@ private:
    */
   bool _used;
 };
-class MMSubstitution::MatchingFn {
-public:
+struct MMSubstitution::MatchingFn {
   static bool associate(MMSubstitution* subst, Literal* l1, int l1Index,
 	  Literal* l2, int l2Index, bool complementary)
   { return subst->match(l1,l1Index,l2,l2Index,complementary); }
@@ -898,8 +892,7 @@ public:
 	  TermList t2, int t2Index)
   { return subst->match(t1,t1Index,t2,t2Index); }
 };
-class MMSubstitution::UnificationFn {
-public:
+struct MMSubstitution::UnificationFn {
   static bool associate(MMSubstitution* subst, Literal* l1, int l1Index,
 	  Literal* l2, int l2Index, bool complementary)
   {
@@ -1015,12 +1008,12 @@ string MMSubstitution::TermSpec::toString() const
   return Test::Output::singleTermListToString(term)+"/"+Int::toString(index);
 }
 
-ostream& Kernel::operator<< (ostream& out, MMSubstitution::VarSpec vs )
+ostream& operator<< (ostream& out, MMSubstitution::VarSpec vs )
 {
   return out<<vs.toString();
 }
 
-ostream& Kernel::operator<< (ostream& out, MMSubstitution::TermSpec ts )
+ostream& operator<< (ostream& out, MMSubstitution::TermSpec ts )
 {
   return out<<ts.toString();
 }
@@ -1051,4 +1044,6 @@ unsigned MMSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 unsigned MMSubstitution::VarSpec::Hash2::hash(VarSpec& o)
 {
   return Lib::Hash::hashFNV(reinterpret_cast<const unsigned char*>(&o), sizeof(VarSpec));
+}
+
 }

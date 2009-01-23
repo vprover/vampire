@@ -14,6 +14,9 @@
 
 namespace Lib {
 
+///@addtogroup Iterators
+///@{
+
 /**
  * Iterator on states, which goes over all possible
  * combinations of choices (which are enumerated by Fn).
@@ -22,19 +25,19 @@ namespace Lib {
  * that correspont to choice points. Let ChoicePoint
  * denote type of a single choice point.
  *
- * Fn is a class with static method succ enumerating all
- * possible successive states at given choice point:
+ * Fn is a functor which enumerates all possible successive
+ * states at given choice point:
  *
- * static VirtualIterator<State> succ(State curr, ChoicePoint cp)
+ * VirtualIterator<State> (*function)(State curr, ChoicePoint cp)
  */
 template<typename State, typename ChoiceArr, class Fn>
 class BacktrackingIterator
 : public IteratorCore<State>
 {
 public:
-  BacktrackingIterator(State initState, ChoiceArr& choices, size_t chLen)
+  BacktrackingIterator(State initState, ChoiceArr choices, size_t chLen, Fn functor)
   : _fin(false), _used(true), _choices(choices), _chLen(chLen),
-  _chits(32), _states(32)
+  _chits(32), _states(32), _functor(functor)
   {
     ASS(_chLen>0);
     _states.push(initState);
@@ -51,7 +54,7 @@ public:
       ASS_EQ(depth(), _chLen);
       _states.pop();
     } else {
-      _chits.push(Fn::succ(_states.top(), _choices[depth()]));
+      _chits.push(_functor(_states.top(), _choices[depth()]));
     }
     for(;;) {
       while( _chits.isNonEmpty() && !_chits.top().hasNext() ) {
@@ -67,7 +70,7 @@ public:
       if(depth()==_chLen) {
 	break;
       }
-      _chits.push(Fn::succ(_states.top(), _choices[depth()]));
+      _chits.push(_functor(_states.top(), _choices[depth()]));
     }
     _used=false;
     return true;
@@ -85,45 +88,65 @@ private:
   bool _fin;
   bool _used;
   State _initState;
-  ChoiceArr& _choices;
+  ChoiceArr _choices;
   size_t _chLen;
   Stack<VirtualIterator<State> > _chits; //choice iterators
   Stack<State> _states;
+  Fn _functor;
 };
 
-
-template<class Fn, typename State, typename ChoiceArr>
+template<typename State, typename ChoiceArr, class Fn>
 VirtualIterator<State> getBacktrackingIterator(State initState,
-	ChoiceArr& choices, size_t chLen)
+	ChoiceArr choices, Fn functor)
 {
+  size_t chLen=choices.size();
   if(chLen==0) {
     return getSingletonIterator(initState);
   }
-  return VirtualIterator<State>(new BacktrackingIterator<Fn,State,ChoiceArr>
-	  (initState, choices, chLen));
+  return VirtualIterator<State>(new BacktrackingIterator<State,ChoiceArr,Fn>
+	  (initState, choices, chLen, functor));
 }
 
-template<class Fn, typename State, typename ChoicePoint>
-class FnForIterable
+template<typename State, class Fn>
+class BtrFnForIterable
 {
-  class FnFunctor
+  class FnMapper
   {
   public:
-    FnFunctor(State s) : _state(s) {}
+    DECL_RETURN_TYPE(VirtualIterator<State>);
+    FnMapper(State s, Fn functor) : _state(s), _functor(functor) {}
 
-    VirtualIterator<State> operator() (ChoicePoint cp)
-    { return Fn::succ(_state, cp); }
+    template<typename ChoicePoint>
+    OWN_RETURN_TYPE operator() (ChoicePoint cp)
+    { return _functor(_state, cp); }
   private:
     State _state;
+    Fn _functor;
   };
+
 public:
+  BtrFnForIterable(Fn functor) : _functor(functor) {}
+
   template<class ChPntIterable>
-  static VirtualIterator<State> succ(State curr, ChPntIterable cpitb) //cpitb=Choice Point ITeraBle
+  VirtualIterator<State> operator() (State curr, ChPntIterable cPItb) //cPItb=Choice Point ITeraBle
   {
-    VirtualIterator<ChoicePoint> cpit=getContentIterator(cpitb);
-    return getFlattenedIterator( getMappingIterator<State>(cpit, FnFunctor(curr)) );
+    return getFlattenedIterator(
+	    getMappingIterator(
+		    getContentIterator(cPItb),
+		    FnMapper(curr, _functor)) );
   }
+private:
+  Fn _functor;
 };
+
+template<typename State, class Fn>
+BtrFnForIterable<State, Fn> getBacktrackFnForIterableChoicePoint(Fn functor)
+{
+  return BtrFnForIterable<State,Fn>(functor);
+}
+
+
+///@}
 
 };
 

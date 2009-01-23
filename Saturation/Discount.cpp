@@ -30,6 +30,8 @@ ClauseContainer* Discount::getGenerationClauseContainer()
 
 bool Discount::processInactive(Clause* c)
 {
+  CALL("Discount::processInactive");
+
   bool keep;
   ClauseIterator toAdd;
   _fwSimplifier->perform(c,keep,toAdd);
@@ -39,6 +41,8 @@ bool Discount::processInactive(Clause* c)
 
 void Discount::activate(Clause* c)
 {
+  CALL("Discount::activate");
+
   ClauseIterator toAdd;
   ClauseIterator toRemove;
   _bwSimplifier->perform(c,toRemove, toAdd);
@@ -55,7 +59,7 @@ void Discount::activate(Clause* c)
 
 SaturationResult Discount::saturate()
 {
-  CALL("DiscountSA::saturate");
+  CALL("Discount::saturate");
 
   for (;;) {
     int counter=0;

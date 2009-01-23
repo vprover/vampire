@@ -32,6 +32,7 @@ class Clause
   : public Unit
 {
 public:
+  DECL_ELEMENT_TYPE(Literal*);
   /** Storage kind */
   enum Store {
     /** passive clause */
@@ -67,6 +68,8 @@ public:
 
   /** Return the length (number of literals) */
   unsigned length() const { return _length; }
+  /** Alternative name for length to conform with other containers */
+  unsigned size() const { return _length; }
 
   /** Return a pointer to the array of literals. Note that the
    * caller of this function may directly manipulate literals, for
@@ -129,11 +132,15 @@ protected:
 }; // class Clause
 
 #if VDEBUG
-
 std::ostream& operator<< (ostream& out, const Clause& cl );
-
 #endif
 
-
 }
+
+namespace Lib
+{
+using namespace Kernel;
+VirtualIterator<Literal*> getContentIterator(Clause& cl);
+}
+
 #endif

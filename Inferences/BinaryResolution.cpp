@@ -3,10 +3,11 @@
  * Implements class BinaryResolution.
  */
 
+#include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/Metaiterators.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
-#include "../Lib/Environment.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "../Kernel/Clause.hpp"
@@ -20,11 +21,13 @@
 
 #include "BinaryResolution.hpp"
 
+namespace Inferences
+{
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-using namespace Inferences;
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
@@ -44,27 +47,29 @@ void BinaryResolution::detach()
   GeneratingInferenceEngine::detach();
 }
 
-class BinaryResolutionResultIterator
-: public IteratorCore<Clause*>
+
+struct ResolutionUnificationsFn
 {
-public:
-  BinaryResolutionResultIterator(GeneratingLiteralIndex* index, Clause* cl)
-  : _index(index), _cl(cl), _nextLit(0),
-  _uit(SLQueryResultIterator::getEmpty()), _nextUnificationReady(false)
+  ResolutionUnificationsFn(GeneratingLiteralIndex* index)
+  : _index(index) {}
+  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, SLQueryResult> >);
+  OWN_RETURN_TYPE operator()(Literal* lit)
   {
-
+    return pushPairIntoRightIterator(lit, _index->getUnifications(lit, true));
   }
-  bool hasNext()
-  {
-    return _nextUnificationReady || getNextUnificationReady();
-  }
-  Clause* next()
-  {
-    CALL("BinaryResolutionResultIterator::next");
+private:
+  GeneratingLiteralIndex* _index;
+};
 
-    ASS(_nextUnificationReady);
-    SLQueryResult& qr = _nextUnification;
-    _nextUnificationReady=false;
+struct ResolutionResultFn
+{
+  ResolutionResultFn(Clause* cl)
+  : _cl(cl) {}
+  DECL_RETURN_TYPE(Clause*);
+  OWN_RETURN_TYPE operator()(pair<Literal*, SLQueryResult> arg)
+  {
+    SLQueryResult& qr = arg.second;
+    Literal* resLit = arg.first;
 
     int clength = _cl->length();
     int dlength = qr.clause->length();
@@ -79,7 +84,7 @@ public:
     int next = 0;
     for(int i=0;i<clength;i++) {
       Literal* curr=(*_cl)[i];
-      if(curr!=_lit) {
+      if(curr!=resLit) {
 	//query term variables are in variable bank 0
 	(*res)[next++] = qr.substitution->apply(curr, 0);
       }
@@ -98,34 +103,20 @@ public:
     return res;
   }
 private:
-  bool getNextUnificationReady()
-  {
-    ASS(!_nextUnificationReady);
-    while(!_uit.hasNext()) {
-      if(_nextLit == _cl->selected()) {
-	return false;
-      }
-      _lit=(*_cl)[_nextLit++];
-      _uit=_index->getUnifications(_lit, true);
-    }
-    _nextUnification=_uit.next();
-    _nextUnificationReady=true;
-    return true;
-  }
-  GeneratingLiteralIndex* _index;
   Clause* _cl;
-  Literal* _lit;
-  /** Index of the next literal, we'll be trying to unify,
-   * after we consume all results in @b _uit */
-  unsigned _nextLit;
-  SLQueryResultIterator _uit;
-  SLQueryResult _nextUnification;
-  bool _nextUnificationReady;
 };
+
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
   CALL("BinaryResolution::generateClauses");
 
-  return ClauseIterator(new BinaryResolutionResultIterator(_index, premise));
+  return getMappingIterator(
+	  getFlattenedIterator(
+		  getMappingIterator(
+			  getContentIterator(*premise),
+			  ResolutionUnificationsFn(_index))),
+	  ResolutionResultFn(premise));
+}
+
 }

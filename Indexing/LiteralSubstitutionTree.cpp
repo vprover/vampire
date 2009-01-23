@@ -10,7 +10,8 @@
 
 #include "LiteralSubstitutionTree.hpp"
 
-using namespace Indexing;
+namespace Indexing
+{
 
 LiteralSubstitutionTree::LiteralSubstitutionTree()
 : SubstitutionTree(2*env.signature->predicates())
@@ -68,10 +69,10 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 }
 
 
-class LiteralSubstitutionTree::SLQueryResultFunctor
+struct LiteralSubstitutionTree::SLQueryResultFunctor
 {
-public:
-  SLQueryResult operator() (const QueryResult& qr) {
+  DECL_RETURN_TYPE(SLQueryResult);
+  OWN_RETURN_TYPE operator() (const QueryResult& qr) {
     return SLQueryResult(qr.first->literal, qr.first->clause, qr.second);
   }
 };
@@ -85,7 +86,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
   Node* root=_nodes[getRootNodeIndex(lit, complementary)];
   VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
 	    new Iterator(root, lit, retrieveSubstitutions) );
-  return getMappingIterator<SLQueryResult>(qrit, SLQueryResultFunctor());
+  return getMappingIterator(qrit, SLQueryResultFunctor());
 }
 
 unsigned LiteralSubstitutionTree::getRootNodeIndex(Literal* t, bool complementary)
@@ -97,3 +98,4 @@ unsigned LiteralSubstitutionTree::getRootNodeIndex(Literal* t, bool complementar
   }
 }
 
+}

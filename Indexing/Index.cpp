@@ -6,9 +6,12 @@
 
 #include "Index.hpp"
 
+
+namespace Indexing
+{
+
 using namespace Lib;
 using namespace Kernel;
-using namespace Indexing;
 using namespace Saturation;
 
 Index::~Index()
@@ -42,3 +45,4 @@ void Index::detachContainer(ClauseContainer* cc)
   _attachedContainers=_attachedContainers->remove(cc);
 }
 
+}

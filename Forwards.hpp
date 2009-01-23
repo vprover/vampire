@@ -41,6 +41,7 @@ class Renaming;
 class Substitution;
 class MMSubstitution;
 typedef VirtualIterator<MMSubstitution*> SubstIterator;
+typedef Lib::SmartPtr<MMSubstitution> MMSubstitutionSP;
 
 class LiteralSelector;
 typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;

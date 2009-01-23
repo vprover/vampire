@@ -26,12 +26,6 @@ private:
   template<class T>
   static void orderLiterals(T& base, unsigned baseLen, DArray<LiteralList*>& alts,
 	  DArray<Literal*>& baseOrd, DArray<LiteralList*>& altsOrd);
-  static bool getMatch(DArray<Literal*>& base, unsigned baseLen,
-  	DArray<LiteralList*>& alts,
-  	MMSubstitution& matcher,
-  	DArray<LiteralList*>& rem,
-  	Stack<BacktrackData>& bdStack,
-  	bool multisetMatching);
 };
 
 

@@ -26,10 +26,12 @@
 #include "Discount.hpp"
 #include "Otter.hpp"
 
+namespace Saturation
+{
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
-using namespace Saturation;
 using namespace Inferences;
 
 namespace Construction {
@@ -122,4 +124,6 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
   res->setBackwardSimplificationEngine(createBSE());
 
   return SaturationAlgorithmSP(res);
+}
+
 }

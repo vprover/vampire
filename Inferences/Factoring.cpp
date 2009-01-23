@@ -3,9 +3,11 @@
  * Implements class Factoring.
  */
 
+#include <utility>
 
 #include "../Lib/Int.hpp"
 #include "../Lib/VirtualIterator.hpp"
+#include "../Lib/Metaiterators.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/DArray.hpp"
 
@@ -23,53 +25,75 @@
 
 #include "Factoring.hpp"
 
+namespace Inferences
+{
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-using namespace Inferences;
 
 
 /**
- * Iterator over all factors of a clause yielded by unification of
- * two of its literals.
+ * This functor, given pair of unsigned integers,
+ * returns iterator of pairs of unification of literals at
+ * positions corresponding to these integers and one
+ * of these literals. (Literal stays the same and unifiers vary.)
  */
-class FactoringResultIterator
-: public IteratorCore<Clause*>
+class FactoringUnificationsFn
 {
 public:
-  FactoringResultIterator(Clause* cl)
-  : _cl(cl), _selCnt(_cl->selected()),
-  _lit1(0), _lit2(0), _nextUnificationReady(false), _lits(_cl->selected())
+  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*,MMSubstitution*> >);
+  FactoringUnificationsFn(Clause* cl)
+  : _cl(cl)
   {
-    ASS(_selCnt>1);
-    _lits.initFromArray(_selCnt, *_cl);
-    _lits.sort<LiteralHeaderComparator>();
+    _subst=MMSubstitutionSP(new MMSubstitution());
   }
-  bool hasNext()
+  OWN_RETURN_TYPE operator() (pair<unsigned,unsigned> nums)
   {
-    return _nextUnificationReady || getNextUnificationReady();
+    CALL("FactoringUnificationsFn::operator()");
+
+    //we assume there are no duplicate literals
+    ASS((*_cl)[nums.first]!=(*_cl)[nums.second]);
+    ASS_EQ(_subst->size(),0);
+
+    SubstIterator unifs=_subst->unifiers((*_cl)[nums.first],0,(*_cl)[nums.second],0, false);
+    if(!unifs.hasNext()) {
+      return OWN_RETURN_TYPE::getEmpty();
+    }
+    return pushPairIntoRightIterator((*_cl)[nums.second], unifs);
   }
-  Clause* next()
+private:
+  Clause* _cl;
+  MMSubstitutionSP _subst;
+};
+
+/**
+ * This functor given a pair of a literal and a substitution,
+ * removes the literal from the clause specified in constructor,
+ * applies the substitution, and returns resulting clause.
+ * (Also it records this to statistics as factoring.)
+ */
+class FactoringResultsFn
+{
+public:
+  DECL_RETURN_TYPE(Clause*);
+  FactoringResultsFn(Clause* cl)
+  : _cl(cl), _cLen(cl->length()) {}
+  OWN_RETURN_TYPE operator() (pair<Literal*,MMSubstitution*> arg)
   {
-    CALL("FactoringResultIterator::next");
+    CALL("FactoringResultsFn::operator()");
 
-    ASS(_nextUnificationReady);
-    _nextUnificationReady=false;
-
-    unsigned clength = _cl->length();
-    unsigned newLength = clength-1;
-
+    unsigned newLength = _cLen-1;
     Inference* inf = new Inference1(Inference::FACTORING, _cl);
-
     Clause* res = new(newLength) Clause(newLength, _cl->inputType(), inf);
 
     unsigned next = 0;
-    Literal* skipped=_lits[_lit2];
-    for(unsigned i=0;i<clength;i++) {
+    Literal* skipped=arg.first;
+    for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=skipped) {
-	(*res)[next++] = _subst.apply(curr, 0);
+	(*res)[next++] = arg.second->apply(curr, 0);
       }
     }
     ASS_EQ(next,newLength);
@@ -80,56 +104,24 @@ public:
     return res;
   }
 private:
-  struct LiteralHeaderComparator
-  {
-    static Comparison compare(Literal* l1, Literal* l2)
-    { return Int::compare(l1->header(), l2->header()); }
-  };
-
-  bool getNextUnificationReady()
-  {
-    CALL("FactoringResultIterator::getNextUnificationReady");
-    ASS(_selCnt>1);
-    ASS(!_nextUnificationReady);
-
-    _subst.reset();
-
-    for(;;) {
-      _lit2++;
-      ASS(_lit2<=_selCnt);
-      if(_lit2==_selCnt) {
-	_lit1++;
-	_lit2=_lit1+1;
-	if(_lit2>=_selCnt) {
-	  return false;
-	}
-      }
-      if( _lits[_lit1]->header()==_lits[_lit2]->header() ) {
-	if( _subst.unify(_lits[_lit1],0, _lits[_lit2],0) ) {
-	  _nextUnificationReady=true;
-	  return true;
-	}
-      } else {
-	_lit2 = ++_lit1;
-      }
-    }
-  }
   Clause* _cl;
-  MMSubstitution _subst;
-  unsigned _selCnt;
-  unsigned _lit1;
-  unsigned _lit2;
-  bool _nextUnificationReady;
-  DArray<Literal*> _lits;
+  ///length of the premise clause
+  unsigned _cLen;
 };
 
 ClauseIterator Factoring::generateClauses(Clause* premise)
 {
   CALL("Factoring::generateClauses");
+
   ASS(premise->selected()>0);
   if(premise->selected()==1) {
     return ClauseIterator::getEmpty();
   }
+  return getMappingIterator(
+	  getFlattenedIterator(
+		  getMappingIterator(getCombinationIterator(0u,premise->selected()),
+			  FactoringUnificationsFn(premise))),
+	  FactoringResultsFn(premise));
+}
 
-  return ClauseIterator(new FactoringResultIterator(premise));
 }

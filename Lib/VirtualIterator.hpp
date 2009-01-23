@@ -7,13 +7,19 @@
 #ifndef __VirtualIterator__
 #define __VirtualIterator__
 
+#include "../Forwards.hpp"
+
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "Exception.hpp"
+#include "Reflection.hpp"
 
 namespace Lib {
+
+///@addtogroup Iterators
+///@{
 
 template<typename T>
   class VirtualIterator;
@@ -25,6 +31,7 @@ template<typename T>
 template<typename T>
 class IteratorCore {
 public:
+  DECL_ELEMENT_TYPE(T);
   IteratorCore() : _refCnt(0) {}
   virtual ~IteratorCore() { ASS(_refCnt==0); }
   virtual bool hasNext() = 0;
@@ -52,6 +59,8 @@ public:
   EmptyIterator() {}
   bool hasNext() { return false; };
   T next() { INVALID_OPERATION("next() called on EmptyIterator object"); };
+  bool knowsSize() const { return true; }
+  size_t size() const { return 0; }
 };
 
 /**
@@ -61,6 +70,7 @@ public:
 template<typename T>
 class VirtualIterator {
 public:
+  DECL_ELEMENT_TYPE(T);
   static VirtualIterator getEmpty()
   {
     static VirtualIterator inst(new EmptyIterator<T>());
@@ -141,6 +151,11 @@ private:
   IteratorCore<T>* _core;
 };
 
+template<typename T>
+VirtualIterator<ELEMENT_TYPE(T)> vi(T* core)
+{
+  return VirtualIterator<ELEMENT_TYPE(T)>(core);
+}
 
 /**
  * Implementation object for VirtualIterator, that can proxy any
@@ -187,6 +202,41 @@ VirtualIterator<T> getContentIterator(C& c)
   return getProxyIterator<T>(C::Iterator(c));
 }
 
+
+template<class Arr>
+class ArrayishObjectIterator
+: public IteratorCore<ELEMENT_TYPE(Arr)>
+{
+public:
+  ArrayishObjectIterator(Arr& arr) : _arr(arr),
+  _index(0), _size(_arr.size()) {}
+  ArrayishObjectIterator(Arr& arr, size_t size) : _arr(arr),
+  _index(0), _size(size) {}
+  bool hasNext() { return _index<_size; }
+  ELEMENT_TYPE(Arr) next() { ASS(_index<_size); return _arr[_index++]; }
+  bool knowsSize() { return true;}
+  bool size() { return _size;}
+private:
+  Arr& _arr;
+  size_t _index;
+  size_t _size;
+};
+
+template<typename T>
+class PointerIterator
+: public IteratorCore<T>
+{
+public:
+  PointerIterator(T* first, T* afterLast) :
+    _curr(first), _afterLast(afterLast) {}
+  bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
+  T next() { ASS(hasNext()); return *(_curr++); }
+private:
+  T* _curr;
+  T* _afterLast;
+};
+
+///@}
 
 }
 

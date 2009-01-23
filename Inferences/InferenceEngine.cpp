@@ -68,8 +68,10 @@ void CompositeFSE::detach()
 
 struct GeneratingFunctor
 {
+  DECL_RETURN_TYPE(ClauseIterator);
+
   GeneratingFunctor(Clause* cl) : cl(cl) {}
-  ClauseIterator operator() (GeneratingInferenceEngineSP gie)
+  OWN_RETURN_TYPE operator() (GeneratingInferenceEngineSP gie)
   { return gie->generateClauses(cl); }
   Clause* cl;
 };
@@ -84,7 +86,7 @@ void CompositeGIE::addFront(GeneratingInferenceEngineSP fse)
 ClauseIterator CompositeGIE::generateClauses(Clause* premise)
 {
   VirtualIterator<ClauseIterator> iterators =
-    getMappingIterator<ClauseIterator>(GIList::Iterator(_inners), GeneratingFunctor(premise));
+    getMappingIterator(GIList::Iterator(_inners), GeneratingFunctor(premise));
   return getFlattenedIterator(iterators);
 }
 void CompositeGIE::attach(SaturationAlgorithm* salg)

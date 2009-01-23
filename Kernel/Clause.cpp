@@ -100,6 +100,7 @@ void Clause::computeWeight()
   }
 } // Clause::computeWeight
 
+
 #if VDEBUG
 
 bool Clause::contains(Literal* lit)
@@ -117,5 +118,16 @@ std::ostream& Kernel::operator<< (ostream& out, const Clause& cl )
   return out<<Test::Output::toString(&cl);
 }
 
-
 #endif
+
+
+namespace Lib
+{
+using namespace Kernel;
+
+VirtualIterator<Literal*> getContentIterator(Clause& cl)
+{
+  return vi( new ArrayishObjectIterator<Clause>(cl) );
+}
+
+}

@@ -12,7 +12,8 @@
 #include "Index.hpp"
 #include "SubstitutionTree.hpp"
 
-using namespace Indexing;
+namespace Indexing
+{
 
 class SubstitutionTree::IsPtrToVarNodePredicate
 {
@@ -391,4 +392,6 @@ void SubstitutionTree::ensureIntermediateNodeEfficiency(IntermediateNode** inode
   if( (*inode)->algorithm()==UNSORTED_LIST && (*inode)->size()>3 ) {
     *inode=SListIntermediateNode::assimilate(*inode);
   }
+}
+
 }

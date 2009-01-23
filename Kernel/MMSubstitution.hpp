@@ -33,10 +33,9 @@ class MMSubstitution
 public:
   MMSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
 
-  SubstIterator matches(MMSubstitution* subst,
-	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
-  SubstIterator unifiers(MMSubstitution* subst,
-	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
+  SubstIterator matches(Literal* base, int baseIndex,
+	  Literal* instance, int instanceIndex, bool complementary);
+  SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
   bool unify(TermList t1,int index1, TermList t2, int index2);
   bool unify(Literal* l1,int index1, Literal* l2, int index2);
   bool unifyComplementary(Literal* l1,int index1, Literal* l2, int index2);
@@ -80,6 +79,13 @@ public:
 
 #if VDEBUG
   std::string toString(bool deref=false) const;
+  /**
+   * Return number of bindings stored in the substitution.
+   *
+   * - 0 means a fresh substitution.
+   * - Without backtracking, this number doesn't decrease.
+   */
+  size_t size() const {return _bank.size(); }
 #endif
 
 
@@ -105,16 +111,14 @@ public:
     /** index of variable bank */
     int index;
 
-    /** class containing first hash function for DHMap object storing variable banks */
-    class Hash1
+    /** struct containing first hash function for DHMap object storing variable banks */
+    struct Hash1
     {
-    public:
-      static unsigned hash(VarSpec& o, int capacity);
+     static unsigned hash(VarSpec& o, int capacity);
     };
-    /** class containing second hash function for DHMap object storing variable banks */
-    class Hash2
+    /** struct containing second hash function for DHMap object storing variable banks */
+    struct Hash2
     {
-    public:
       static unsigned hash(VarSpec& o);
     };
   };
@@ -175,6 +179,11 @@ public:
   typedef pair<TermSpec,TermSpec> TTPair;
 
 private:
+  /** Copy constructor is private and without a body, because we don't want any. */
+  MMSubstitution(const MMSubstitution& obj);
+  /** operator= is private and without a body, because we don't want any. */
+  MMSubstitution& operator=(const MMSubstitution& obj);
+
   static const int AUX_INDEX;
   static const int SPECIAL_INDEX;
   static const int UNBOUND_INDEX;
@@ -269,8 +278,8 @@ private:
   template<class Fn>
   class AssocIterator;
 
-  class MatchingFn;
-  class UnificationFn;
+  struct MatchingFn;
+  struct UnificationFn;
 
 };
 

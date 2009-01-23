@@ -10,7 +10,8 @@
 
 #include "TermSubstitutionTree.hpp"
 
-using namespace Indexing;
+namespace Indexing
+{
 
 TermSubstitutionTree::TermSubstitutionTree()
 : SubstitutionTree(env.signature->functions())
@@ -92,10 +93,10 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
 }
 
 
-class TermSubstitutionTree::TermQueryResultFunctor
+struct TermSubstitutionTree::TermQueryResultFunctor
 {
-public:
-  TermQueryResult operator() (QueryResult qr) {
+  DECL_RETURN_TYPE(TermQueryResult);
+  OWN_RETURN_TYPE operator() (const QueryResult& qr) {
     return TermQueryResult(qr.first->term, qr.first->literal,
 	    qr.first->clause, qr.second);
   }
@@ -109,6 +110,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
   Node* root=_nodes[getRootNodeIndex(trm)];
   VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
 	    new Iterator(root, trm, retrieveSubstitutions) );
-  return getMappingIterator<TermQueryResult>(qrit, TermQueryResultFunctor());
+  return getMappingIterator(qrit, TermQueryResultFunctor());
 }
 
+}

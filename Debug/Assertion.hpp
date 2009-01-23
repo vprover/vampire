@@ -40,6 +40,10 @@ public:
   static void violatedNonequality(const char* file,int line,const char* val1Str,
 	  const char* val2Str, const T& val1, const U& val2);
 
+  template<typename T,typename U>
+  static void violatedComparison(const char* file,int line,const char* val1Str,
+	  const char* val2Str, const T& val1, const U& val2, bool strict, bool greater);
+
   template<typename T>
   static void violatedMethod(const char* file,int line,const T& obj,
 	  const char* objStr, const char* methodStr, const char* prefix);
@@ -108,6 +112,30 @@ private:
     throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
   }
 
+
+#define ASS_G(VAL1,VAL2)                                               \
+  if (! ((VAL1)>(VAL2)) ) {                                               \
+    Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,true,true); \
+    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+  }
+#define ASS_L(VAL1,VAL2)                                               \
+  if (! ((VAL1)<(VAL2)) ) {                                               \
+    Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,true,false); \
+    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+  }
+#define ASS_GE(VAL1,VAL2)                                               \
+  if (! ((VAL1)>=(VAL2)) ) {                                               \
+    Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,false,true); \
+    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+  }
+#define ASS_LE(VAL1,VAL2)                                               \
+  if (! ((VAL1)<=(VAL2)) ) {                                               \
+    Debug::Assertion::violatedComparison(__FILE__,__LINE__,#VAL1,#VAL2,VAL1,VAL2,false,false); \
+    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+  }
+
+
+
 #define ASS_ALLOC_TYPE(PTR,TYPE)						\
   Debug::Assertion::checkType(__FILE__,__LINE__,(PTR),(TYPE), #PTR)
 
@@ -132,6 +160,13 @@ private:
 #define ASS_EQ(VAL1,VAL2)
 #define ASS_NEQ(VAL1,VAL2)
 #define ASS_STR_EQ(VAL1,VAL2)
+
+#define ASS_G(VAL1,VAL2)
+#define ASS_L(VAL1,VAL2)
+#define ASS_GE(VAL1,VAL2)
+#define ASS_LE(VAL1,VAL2)
+
+
 #define ASS_ALLOC_TYPE(PTR,TYPE)
 #define ASS_METHOD(OBJ,METHOD)
 
@@ -177,6 +212,7 @@ void Debug::Assertion::violatedEquality(const char* file,int line,const char* va
   std::cout << "----- end of stack dump -----\n";
 } // Assertion::violatedEquality
 
+
 template<typename T,typename U>
 void Debug::Assertion::violatedNonequality(const char* file,int line,const char* val1Str,
 	  const char* val2Str, const T& val1, const U& val2)
@@ -191,7 +227,40 @@ void Debug::Assertion::violatedNonequality(const char* file,int line,const char*
        << "----- stack dump -----\n";
   Tracer::printStack(cout);
   std::cout << "----- end of stack dump -----\n";
-} // Assertion::violatedEquality
+} // Assertion::violatedNonequality
+
+
+template<typename T,typename U>
+void Debug::Assertion::violatedComparison(const char* file,int line,const char* val1Str,
+	  const char* val2Str, const T& val1, const U& val2, bool strict, bool greater)
+{
+  if (_violated) {
+    return;
+  }
+
+  _violated = true;
+  std::cout << "Condition "<<val1Str;
+  if(strict) {
+    if(greater) {
+      std::cout<<" > ";
+    } else {
+      std::cout<<" < ";
+    }
+  } else {
+    if(greater) {
+      std::cout<<" >= ";
+    } else {
+      std::cout<<" <= ";
+    }
+  }
+
+
+  std::cout<<val2Str<<" in file " << file << ", line " << line
+       << " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
+       << "----- stack dump -----\n";
+  Tracer::printStack(cout);
+  std::cout << "----- end of stack dump -----\n";
+} // Assertion::violatedComparison
 
 template<typename T>
 void Debug::Assertion::violatedMethod(const char* file,int line,const T& obj,

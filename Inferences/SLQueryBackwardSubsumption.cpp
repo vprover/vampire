@@ -53,10 +53,14 @@ void SLQueryBackwardSubsumption::detach()
   BackwardSimplificationEngine::detach();
 }
 
-Clause* extractResultClause(const SLQueryResult& res)
+struct ResultClauseExtractor
 {
-  return res.clause;
-}
+  DECL_RETURN_TYPE(Clause*);
+  OWN_RETURN_TYPE operator()(const SLQueryResult& res)
+  {
+    return res.clause;
+  }
+};
 
 
 struct LitSpec {
@@ -97,7 +101,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   if(clen==1) {
     SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false, false);
     toRemove=getUniquePersistentIterator(
-	    getMappingIterator<Clause*>(rit,extractResultClause) );
+	    getMappingIterator(rit,ResultClauseExtractor()) );
     ASS(toRemove.knowsSize());
     env.statistics->backwardSubsumed+=toRemove.size();
     return;
