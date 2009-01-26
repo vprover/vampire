@@ -13,7 +13,7 @@
 //namely in substitution trees, but possibly also
 //in other places, as the rest of Vampire is not
 //ready to handle commutativity yet.
-#define NORMALIZE_COMMUTATIVE 0
+#define NORMALIZE_COMMUTATIVE 1
 
 using namespace Kernel;
 using namespace Indexing;
