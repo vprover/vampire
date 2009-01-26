@@ -18,7 +18,10 @@
 
 namespace Lib {
 
-//extern const unsigned DHMapTableCapacities[];
+#define DHMULTISET_MAX_CAPACITY_INDEX DHMAP_MAX_CAPACITY_INDEX
+#define DHMULTISET_MAX_MULTIPLICITY 0x3FFFFFFFu
+#define DHMULTISET_FILL_UP_COEFFICIENT 0.7f
+
 
 /**
  * Class DHMultiset implements generic multisets with values of a class Val.
@@ -96,13 +99,13 @@ public:
   void insert(Val val, int multiplicity)
   {
     CALL("DHMultiset::insert");
-    ASS(multiplicity>0 && ((unsigned)multiplicity)<MaxMultiplicity);
+    ASS(multiplicity>0 && ((unsigned)multiplicity)<DHMULTISET_MAX_MULTIPLICITY);
 
     ensureExpanded();
     Entry* e=findEntryToInsert(val);
     bool exists = e->_info.multiplicity;
     if(exists) {
-      ASS(e->_info.multiplicity+multiplicity<MaxMultiplicity);
+      ASS(e->_info.multiplicity+multiplicity<DHMULTISET_MAX_MULTIPLICITY);
       e->_info.multiplicity+=multiplicity;
       _multiplicities+=multiplicity;
     } else {
@@ -208,7 +211,7 @@ private:
   {
     CALL("DHMultiset::expand");
 
-    if(_capacityIndex>=MaxCapacityIndex) {
+    if(_capacityIndex>=DHMULTISET_MAX_CAPACITY_INDEX) {
       throw Exception("Lib::DHMultiset::expand: MaxCapacityIndex reached.");
     }
 
@@ -221,7 +224,7 @@ private:
     _deleted=0;
     _capacityIndex++;
     _capacity = DHMapTableCapacities[_capacityIndex];
-    _nextExpansionOccupancy = (int)(_capacity*FillUpCoeficient);
+    _nextExpansionOccupancy = (int)(_capacity*DHMULTISET_FILL_UP_COEFFICIENT);
 
     void* mem = ALLOC_KNOWN(_capacity*sizeof(Entry),"DHMultiset::Entry");
     _entries = new(mem) Entry [_capacity];
@@ -342,9 +345,6 @@ private:
     return res;
   }
 
-  static const int MaxCapacityIndex=29;
-  static const unsigned MaxMultiplicity=0x3FFFFFFF;
-  static const double FillUpCoeficient=0.7;
 
   /** Number of entries stored in this DHMultiset */
   int _size;

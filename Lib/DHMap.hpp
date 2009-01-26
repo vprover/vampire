@@ -18,6 +18,10 @@
 
 namespace Lib {
 
+#define DHMAP_MAX_CAPACITY_INDEX 29
+#define DHMAP_FILL_UP_COEFFICIENT 0.7f
+
+
 /**
  * Traits class for hash classes, which should be specialized
  * for classes whose hash functions have second parameter for
@@ -373,7 +377,7 @@ private:
   {
     CALL("DHMap::expand");
 
-    if(_capacityIndex>=MaxCapacityIndex) {
+    if(_capacityIndex>=DHMAP_MAX_CAPACITY_INDEX) {
       throw Exception("Lib::DHMap::expand: MaxCapacityIndex reached.");
     }
 
@@ -387,7 +391,7 @@ private:
     _deleted=0;
     _capacityIndex++;
     _capacity = DHMapTableCapacities[_capacityIndex];
-    _nextExpansionOccupancy = (int)(_capacity*FillUpCoeficient);
+    _nextExpansionOccupancy = (int)(_capacity*DHMAP_FILL_UP_COEFFICIENT);
 
     void* mem = ALLOC_KNOWN(_capacity*sizeof(Entry),"DHMap::Entry");
     _entries = new(mem) Entry [_capacity];
@@ -484,9 +488,6 @@ private:
     } while (res->_info.timestamp == _timestamp && res->_key!=key);
     return res;
   }
-
-  static const int MaxCapacityIndex=29;
-  static const double FillUpCoeficient=0.7;
 
   /** Entries with _timestamp different from this are considered empty */
   unsigned _timestamp;

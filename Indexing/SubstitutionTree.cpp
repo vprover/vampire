@@ -429,7 +429,7 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
 
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(Node* root,
-	Term* query, bool retrieveSubstitution)
+	Term* query, bool retrieveSubstitution, bool reversed)
 : literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(4), bdStack(4),
@@ -444,7 +444,11 @@ clientBDRecording(false)
   Renaming::normalizeVariables(query, queryNormalizer);
   Term* queryNorm=queryNormalizer.apply(query);
 
-  createInitialBindings(queryNorm);
+  if(reversed) {
+    createReversedInitialBindings(queryNorm);
+  } else {
+    createInitialBindings(queryNorm);
+  }
 
   BacktrackData bd;
   enter(root, bd);
@@ -458,10 +462,23 @@ void SubstitutionTree::UnificationsIterator::createInitialBindings(Term* t)
   int nextVar = 0;
   while (! args->isEmpty()) {
     unsigned var = nextVar++;
-	subst.bindSpecialVar(var,*args,NORM_QUERY_BANK);
+    subst.bindSpecialVar(var,*args,NORM_QUERY_BANK);
     svQueue.insert(var);
     args = args->next();
   }
+}
+
+void SubstitutionTree::UnificationsIterator::createReversedInitialBindings(Term* t)
+{
+  CALL("SubstitutionTree::UnificationsIterator::createReversedInitialBindings");
+  ASS(t->isLiteral());
+  ASS(t->commutative());
+  ASS_EQ(t->arity(),2);
+
+  subst.bindSpecialVar(1,*t->nthArgument(0),NORM_QUERY_BANK);
+  svQueue.insert(1);
+  subst.bindSpecialVar(0,*t->nthArgument(1),NORM_QUERY_BANK);
+  svQueue.insert(0);
 }
 
 bool SubstitutionTree::UnificationsIterator::hasNext()

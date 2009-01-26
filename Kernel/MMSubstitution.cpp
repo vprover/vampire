@@ -953,6 +953,11 @@ bool MMSubstitution::AssocIterator<Fn>::hasNext()
 	      Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
 	break;
       }
+      //If the first Fn::associate succeeds and the second one fails,
+      //the associating substitution will remain in _subst, but it
+      //doesn't matter, as no other substitution will be retrieved
+      //from this iterator, and on destruction, the substitution
+      //will be undone.
     }
       //no break here intentionally
     default:

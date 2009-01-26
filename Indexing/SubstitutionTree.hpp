@@ -258,7 +258,7 @@ protected:
   : public IteratorCore<QueryResult>
   {
   public:
-    UnificationsIterator(Node* root, Term* query, bool retrieveSubstitution);
+    UnificationsIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
 
     bool hasNext();
     QueryResult next();
@@ -267,6 +267,11 @@ protected:
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
 
     void createInitialBindings(Term* t);
+    /**
+     * For a binary comutative literal, creates initial bindings,
+     * where the order of special variables is reversed.
+     */
+    void createReversedInitialBindings(Term* t);
     bool findNextLeaf();
     bool enter(Node* n, BacktrackData& bd);
     void extractSpecialVariables(TermList t, BacktrackData& bd);
@@ -295,8 +300,8 @@ protected:
   : public UnificationsIterator
   {
   public:
-    GeneralizationsIterator(Node* root, Term* query, bool retrieveSubstitution)
-    : UnificationsIterator(root, query, retrieveSubstitution) {};
+    GeneralizationsIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false)
+    : UnificationsIterator(root, query, retrieveSubstitution, reversed) {};
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
@@ -306,8 +311,8 @@ protected:
   : public UnificationsIterator
   {
   public:
-    InstancesIterator(Node* root, Term* query, bool retrieveSubstitution)
-    : UnificationsIterator(root, query, retrieveSubstitution) {};
+    InstancesIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false)
+    : UnificationsIterator(root, query, retrieveSubstitution, reversed) {};
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
