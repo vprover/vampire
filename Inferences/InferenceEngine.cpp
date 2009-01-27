@@ -85,9 +85,8 @@ void CompositeGIE::addFront(GeneratingInferenceEngineSP fse)
 }
 ClauseIterator CompositeGIE::generateClauses(Clause* premise)
 {
-  VirtualIterator<ClauseIterator> iterators =
-    getMappingIterator(GIList::Iterator(_inners), GeneratingFunctor(premise));
-  return getFlattenedIterator(iterators);
+  return pvi( getFlattenedIterator(
+	  getMappingIterator(GIList::Iterator(_inners), GeneratingFunctor(premise))) );
 }
 void CompositeGIE::attach(SaturationAlgorithm* salg)
 {
@@ -237,7 +236,7 @@ void DuplicateLiteralRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& 
     d->computeWeight();
 
     keep=false;
-    toAdd=getSingletonIterator(d);
+    toAdd=pvi( getSingletonIterator(d) );
     return;
   }
 }
@@ -289,7 +288,7 @@ void TrivialInequalitiesRemovalFSE::perform(Clause* c, bool& keep, ClauseIterato
   d->computeWeight();
 
   keep=false;
-  toAdd=getSingletonIterator(d);
+  toAdd=pvi( getSingletonIterator(d) );
   return;
 }
 

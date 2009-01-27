@@ -809,9 +809,43 @@ SubstIterator MMSubstitution::getAssocIterator(MMSubstitution* subst,
   if( !Literal::headersMatch(l1,l2,complementary) ) {
     return SubstIterator::getEmpty();
   }
-  return SubstIterator(
+  if( !l1->commutative() ) {
+    return pvi( getContextualIterator(getSingletonIterator(subst),
+	    AssocContext<Fn>(l1, l1Index, l2, l2Index, complementary)) );
+  } else {
+    return vi(
 	    new AssocIterator<Fn>(subst, l1, l1Index, l2, l2Index, complementary));
+  }
 }
+
+template<class Fn>
+struct MMSubstitution::AssocContext
+{
+  AssocContext(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
+  : _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index), _complementary(complementary) {}
+  bool enter(MMSubstitution* subst)
+  {
+    subst->bdRecord(_bdata);
+    bool res=Fn::associate(subst, _l1, _l1i, _l2, _l2i, _complementary);
+    if(!res) {
+      subst->bdDone();
+      ASS(_bdata.isEmpty());
+    }
+    return res;
+  }
+  void leave(MMSubstitution* subst)
+  {
+    subst->bdDone();
+    _bdata.backtrack();
+  }
+private:
+  Literal* _l1;
+  int _l1i;
+  Literal* _l2;
+  int _l2i;
+  bool _complementary;
+  BacktrackData _bdata;
+};
 
 /**
  * Iterator on associating[1] substitutions of two literals.
@@ -820,11 +854,13 @@ SubstIterator MMSubstitution::getAssocIterator(MMSubstitution* subst,
  * substitution being returned is always the same object.
  * The rules for safe use are:
  * - After the iterator is created and before it's
- * destroyed, the original substitution is invalid.
+ * destroyed, or hasNext() gives result false, the original
+ * substitution is invalid.
  * - Substitution retrieved by call to the method next()
  * is valid only until the hasNext() method is called again
  * (or until the iterator is destroyed).
- * - Before each call to next(), hasNext() has to be called.
+ * - Before each call to next(), hasNext() has to be called at
+ * least once.
  *
  * There rules are quite natural, and the 3rd one is
  * required by many other iterators as well.
@@ -949,21 +985,22 @@ bool MMSubstitution::AssocIterator<Fn>::hasNext()
       TermList t12=*_l1->nthArgument(1);
       TermList t21=*_l2->nthArgument(0);
       TermList t22=*_l2->nthArgument(1);
-      if(Fn::associate(_subst, t11, _l1i, t22, _l2i) &&
-	      Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
-	break;
+      if(Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
+	if(Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
+	  break;
+	}
+	//undo the first successful association
+	_subst->bdDone();
+	_bdata.backtrack();
+	_subst->bdRecord(_bdata);
       }
-      //If the first Fn::associate succeeds and the second one fails,
-      //the associating substitution will remain in _subst, but it
-      //doesn't matter, as no other substitution will be retrieved
-      //from this iterator, and on destruction, the substitution
-      //will be undone.
     }
       //no break here intentionally
     default:
       _empty=true;
     }
   }
+  ASS(!_empty || _bdata.isEmpty());
   _matchIndex++;
   return !_empty;
 }

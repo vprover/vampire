@@ -24,7 +24,7 @@ public:
 
 private:
   template<class T>
-  static void orderLiterals(T& base, unsigned baseLen, DArray<LiteralList*>& alts,
+  static void orderLiterals(T& base, DArray<LiteralList*>& alts,
 	  DArray<Literal*>& baseOrd, DArray<LiteralList*>& altsOrd);
 };
 

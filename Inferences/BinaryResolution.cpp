@@ -6,6 +6,7 @@
 #include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/PairUtils.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
 #include "../Shell/Statistics.hpp"
@@ -55,7 +56,7 @@ struct ResolutionUnificationsFn
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, SLQueryResult> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
-    return pushPairIntoRightIterator(lit, _index->getUnifications(lit, true));
+    return pvi( pushPairIntoRightIterator(lit, _index->getUnifications(lit, true)) );
   }
 private:
   GeneratingLiteralIndex* _index;
@@ -111,12 +112,12 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
   CALL("BinaryResolution::generateClauses");
 
-  return getMappingIterator(
+  return pvi( getMappingIterator(
 	  getFlattenedIterator(
 		  getMappingIterator(
 			  getContentIterator(*premise),
 			  ResolutionUnificationsFn(_index))),
-	  ResolutionResultFn(premise));
+	  ResolutionResultFn(premise)) );
 }
 
 }

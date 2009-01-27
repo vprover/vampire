@@ -476,6 +476,7 @@ public:
   /** iterator over the skip list elements */
   class Iterator {
    public:
+     DECL_ELEMENT_TYPE(Value);
 
     inline explicit
     Iterator(const SkipList& l)
@@ -500,7 +501,8 @@ public:
 
   /** iterator over references to the skip list elements */
   class RefIterator {
-   public:
+  public:
+    DECL_ELEMENT_TYPE(Value&);
     inline explicit
     RefIterator(const SkipList& l)
       : _cur (l._left) {}
@@ -517,7 +519,7 @@ public:
     inline bool hasNext() const
     { return _cur->nodes[0]; }
 
-   private:
+  private:
     /** the node we're now pointing to */
     Node* _cur;
   };
@@ -527,7 +529,8 @@ public:
    * which yields pointers to elements.
    */
   class PtrIterator {
-   public:
+  public:
+    DECL_ELEMENT_TYPE(Value*);
 
     inline explicit
     PtrIterator(const SkipList& l)

@@ -51,7 +51,7 @@ public:
   }
   void addBacktrackObject(BacktrackObject* bo)
   {
-    _bol=new List<BacktrackObject*>(bo, _bol);
+    List<BacktrackObject*>::push(bo, _bol);
   }
   /**
    * Move all BacktrackObjects from @b this to @b bd. After the
@@ -91,8 +91,8 @@ public:
   }
 #endif
 
-private:
   List<BacktrackObject*>* _bol;
+private:
 
   template<typename T>
   class SetValueBacktrackObject
@@ -115,6 +115,9 @@ class Backtrackable
 {
 public:
   Backtrackable() : _bdStack(0) {}
+#if VDEBUG
+  ~Backtrackable() { ASS_EQ(_bdStack,0); }
+#endif
   void bdRecord(BacktrackData& bd)
   {
     _bdStack=new List<BacktrackData*>(&bd, _bdStack);
@@ -138,11 +141,11 @@ protected:
   }
   void bdCommit(BacktrackData& bd)
   {
+    ASS_NEQ(&bd,&bdGet());
     bd.commitTo(bdGet());
   }
   BacktrackData& bdGet()
   {
-    ASS(_bdStack && _bdStack->head());
     return *_bdStack->head();
   }
 private:

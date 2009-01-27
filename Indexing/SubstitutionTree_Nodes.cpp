@@ -24,35 +24,6 @@ public:
   }
 };
 
-template<typename T>
-class AccList
-: public List<T>
-{
-public:
-  inline
-  AccList(T head, AccList* tail): List<T>(head,tail) {}
-  inline
-  T* headPtr() { return &this->_head; }
-  class PtrIterator
-  : public IteratorCore<T*>
-  {
-  public:
-    inline
-    PtrIterator(AccList* lst) : _l(lst) {}
-    inline
-    bool hasNext() { return _l; }
-    inline
-    T* next()
-    {
-      T* res=_l->headPtr();
-      _l=static_cast<AccList*>(_l->tail());
-      return res;
-    }
-  protected:
-    AccList* _l;
-  };
-};
-
 class SubstitutionTree::UListIntermediateNode
 : public SubstitutionTree::IntermediateNode
 {
@@ -86,14 +57,12 @@ public:
   inline
   NodeIterator allChildren()
   {
-    return NodeIterator(new NodeList::PtrIterator(_nodes));
+    return pvi( NodeList::PtrIterator(_nodes));
   }
   inline
   NodeIterator variableChildren()
   {
-    return NodeIterator(
-	    new FilteredIterator<Node**,NodeList::PtrIterator,IsPtrToVarNodePredicate>(
-		    NodeList::PtrIterator(_nodes)));
+    return pvi( getFilteredIterator<IsPtrToVarNodePredicate>(NodeList::PtrIterator(_nodes)) );
   }
   Node** childByTop(TermList* t, bool canCreate);
   void remove(TermList* t);
@@ -101,7 +70,7 @@ public:
   CLASS_NAME("SubstitutionTree::UListIntermediateNode");
   USE_ALLOCATOR(UListIntermediateNode);
 private:
-  typedef AccList<Node*> NodeList;
+  typedef List<Node*> NodeList;
   NodeList* _nodes;
   int _size;
 };
@@ -130,12 +99,12 @@ public:
   inline
   LDIterator allChildren()
   {
-    return getProxyIterator<LeafData&>(LDList::RefIterator(_children));
+    return pvi( LDList::RefIterator(_children) );
   }
   inline
   void insert(LeafData ld)
   {
-    _children=new LDList(ld, _children);
+    LDList::push(ld, _children);
     _size++;
   }
   inline
@@ -188,14 +157,13 @@ public:
   inline
   NodeIterator allChildren()
   {
-    return getProxyIterator<Node**>(NodeSkipList::PtrIterator(_nodes));
+    return pvi( NodeSkipList::PtrIterator(_nodes) );
   }
   inline
   NodeIterator variableChildren()
   {
-    return NodeIterator(
-	    new WhileLimitedIterator<Node**,NodeSkipList::PtrIterator,IsPtrToVarNodePredicate> (
-		    NodeSkipList::PtrIterator(_nodes)));
+    return pvi( getWhileLimitedIterator<IsPtrToVarNodePredicate>(
+		    NodeSkipList::PtrIterator(_nodes)) );
   }
   Node** childByTop(TermList* t, bool canCreate)
   {
@@ -275,7 +243,7 @@ public:
   inline
   LDIterator allChildren()
   {
-    return getProxyIterator<LeafData&>(LDSkipList::RefIterator(_children));
+    return pvi( LDSkipList::RefIterator(_children) );
   }
   void insert(LeafData ld) { _children.insert(ld); }
   void remove(LeafData ld) { _children.remove(ld); }

@@ -10,6 +10,7 @@
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/DArray.hpp"
+#include "../Lib/PairUtils.hpp"
 
 #include "../Lib/Environment.hpp"
 #include "../Shell/Statistics.hpp"
@@ -61,7 +62,7 @@ public:
     if(!unifs.hasNext()) {
       return OWN_RETURN_TYPE::getEmpty();
     }
-    return pushPairIntoRightIterator((*_cl)[nums.second], unifs);
+    return pvi( pushPairIntoRightIterator((*_cl)[nums.second], unifs) );
   }
 private:
   Clause* _cl;
@@ -117,11 +118,11 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
   if(premise->selected()==1) {
     return ClauseIterator::getEmpty();
   }
-  return getMappingIterator(
+  return pvi( getMappingIterator(
 	  getFlattenedIterator(
 		  getMappingIterator(getCombinationIterator(0u,premise->selected()),
 			  FactoringUnificationsFn(premise))),
-	  FactoringResultsFn(premise));
+	  FactoringResultsFn(premise)) );
 }
 
 }

@@ -626,11 +626,9 @@ SubstitutionTree::NodeIterator
   } else {
 	Node** match=n->childByTop(&qt, false);
 	if(match) {
-	  return NodeIterator(
-		  new CatIterator<Node**>(
-			  NodeIterator(new SingletonIterator<Node**>(match)),
-			  n->variableChildren()
-			  ));
+	  return pvi( getConcatenatedIterator(
+			  getSingletonIterator(match),
+			  n->variableChildren()) );
 	} else {
 	  return n->variableChildren();
 	}
@@ -679,8 +677,8 @@ SubstitutionTree::NodeIterator
   } else {
 	Node** match=n->childByTop(&qt, false);
 	if(match) {
-	  return getConcatenatedIterator(getSingletonIterator(match),
-		  n->variableChildren());
+	  return pvi( getConcatenatedIterator(getSingletonIterator(match),
+		  n->variableChildren()) );
 	} else {
 	  return n->variableChildren();
 	}
@@ -706,7 +704,7 @@ SubstitutionTree::NodeIterator
   } else {
 	Node** match=n->childByTop(&qt, false);
 	if(match) {
-	  return getSingletonIterator(match);
+	  return pvi( getSingletonIterator(match) );
 	} else {
 	  return NodeIterator::getEmpty();
 	}

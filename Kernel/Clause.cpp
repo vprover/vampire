@@ -119,15 +119,3 @@ std::ostream& Kernel::operator<< (ostream& out, const Clause& cl )
 }
 
 #endif
-
-
-namespace Lib
-{
-using namespace Kernel;
-
-VirtualIterator<Literal*> getContentIterator(Clause& cl)
-{
-  return vi( new ArrayishObjectIterator<Clause>(cl) );
-}
-
-}

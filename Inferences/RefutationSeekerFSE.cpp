@@ -68,7 +68,7 @@ void RefutationSeekerFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
     refutation->setAge(Int::max(cl->age(),res.clause->age())+1);
     env.statistics->resolution++;
 
-    toAdd=getSingletonIterator(refutation);
+    toAdd=pvi( getSingletonIterator(refutation) );
     keep=false;
   }
 }

@@ -16,6 +16,9 @@ template<class C> class Stack;
 template<typename T> class List;
 template <typename T, class Comparator> class BinaryHeap;
 
+template<typename T> class ArrayishObjectIterator;
+
+
 class BacktrackData;
 };
 
@@ -42,6 +45,9 @@ class Substitution;
 class MMSubstitution;
 typedef VirtualIterator<MMSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<MMSubstitution> MMSubstitutionSP;
+
+class Matcher;
+typedef VirtualIterator<Matcher*> MatchIterator;
 
 class LiteralSelector;
 typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;
@@ -91,5 +97,20 @@ typedef Lib::SmartPtr<ForwardSimplificationEngine> ForwardSimplificationEngineSP
 class BackwardSimplificationEngine;
 typedef Lib::SmartPtr<BackwardSimplificationEngine> BackwardSimplificationEngineSP;
 }
+
+/**
+ * Deletion of incomplete class types causes memory leaks. Using this
+ * causes compile error when deleting incomplete classes.
+ *
+ * (see http://www.boost.org/doc/libs/1_36_0/libs/utility/checked_delete.html )
+ */
+template<class T> inline void checked_delete(T * x)
+{
+    // intentionally complex - simplification causes regressions
+    typedef char type_must_be_complete[ sizeof(T)? 1: -1 ];
+    (void) sizeof(type_must_be_complete);
+    delete x;
+}
+
 
 #endif /* __Forwards__ */

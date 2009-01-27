@@ -10,6 +10,7 @@
 
 #include "../Forwards.hpp"
 #include "../Lib/Allocator.hpp"
+#include "../Lib/Reflection.hpp"
 
 #include "Unit.hpp"
 
@@ -33,6 +34,8 @@ class Clause
 {
 public:
   DECL_ELEMENT_TYPE(Literal*);
+  DECL_ITERATOR_TYPE(ArrayishObjectIterator<Clause>);
+
   /** Storage kind */
   enum Store {
     /** passive clause */
@@ -135,12 +138,6 @@ protected:
 std::ostream& operator<< (ostream& out, const Clause& cl );
 #endif
 
-}
-
-namespace Lib
-{
-using namespace Kernel;
-VirtualIterator<Literal*> getContentIterator(Clause& cl);
 }
 
 #endif

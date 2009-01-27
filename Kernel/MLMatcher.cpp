@@ -7,12 +7,15 @@
 #include "../Lib/BacktrackIterators.hpp"
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/DArray.hpp"
+#include "../Lib/DHMap.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Metaarrays.hpp"
+#include "../Lib/PairUtils.hpp"
 #include "../Lib/Stack.hpp"
 
 #include "Clause.hpp"
 #include "Term.hpp"
+#include "Matcher.hpp"
 #include "MLMatcher.hpp"
 #include "MMSubstitution.hpp"
 
@@ -34,20 +37,20 @@ using namespace Lib;
 
 struct MatchBtrFn
 {
-  DECL_RETURN_TYPE(SubstIterator);
-  OWN_RETURN_TYPE operator()(MMSubstitution* state, pair<Literal*,Literal*> lp)
-  { return state->matches(lp.first, 1, lp.second, 2, false); }
+  DECL_RETURN_TYPE(MatchIterator);
+  OWN_RETURN_TYPE operator()(Matcher* state, pair<Literal*,Literal*> lp)
+  { return state->matches(lp.first, lp.second, false); }
 };
 
-typedef pair<Stack<Literal*>*, MMSubstitution*> ResMatchState;
+typedef pair<Stack<Literal*>*, Matcher*> ResMatchState;
 
 struct ResMatchBtrFn
 {
   struct OnStackPushingContext
   {
     OnStackPushingContext(Literal* val) : _val(val) {}
-    void enter(ResMatchState& s)
-    { s.first->push(_val); }
+    bool enter(ResMatchState& s)
+    { s.first->push(_val); return true; }
     void leave(ResMatchState& s)
     {
       ASS_EQ(s.first->top(),_val);
@@ -59,15 +62,16 @@ struct ResMatchBtrFn
   DECL_RETURN_TYPE(VirtualIterator<ResMatchState>);
   OWN_RETURN_TYPE operator()(ResMatchState state, pair<Literal*,Literal*> lp)
   {
-    SubstIterator matchIter=state.second->matches(lp.first, 1, lp.second, 2, true);
+    MatchIterator matchIter=state.second->matches(lp.first, lp.second, true);
     OnStackPushingContext skippingCtx(lp.first);
-    return getConcatenatedIterator(
+    return pvi( getConcatenatedIterator(
 	    pushPairIntoRightIterator(
-		    pair<Stack<Literal*>*,SubstIterator>(state.first, matchIter)),
+		    pair<Stack<Literal*>*,MatchIterator>(state.first, matchIter)),
 	    getContextualIterator(SingletonIterator<ResMatchState>(state), skippingCtx)
-	    );
+	    ) );
   }
 };
+
 
 bool MLMatcher::checkForSubsumptionResolution(Clause* base,
 	DArray<LiteralList*>& alts, Literal* resolvedInst)
@@ -75,21 +79,49 @@ bool MLMatcher::checkForSubsumptionResolution(Clause* base,
   CALL("MLMatcher::checkForSubsumptionResolution");
 
   unsigned baseLen=base->length();
-  MMSubstitution matcher0;
+  Matcher matcher0;
+
+  static DArray<Literal*> baseResolvable(32);
+  static DArray<LiteralList*> altsResolvable(32);
+  static DArray<Literal*> baseNotResolved(32);
+  static DArray<LiteralList*> altsNotResolved(32);
+  baseResolvable.ensure(baseLen);
+  altsResolvable.ensure(baseLen);
+  baseNotResolved.ensure(baseLen);
+  altsNotResolved.ensure(baseLen);
+
+  unsigned possiblyResolvable=0;
+  unsigned notResolvable=0;
+  unsigned riComplHdr=resolvedInst->complementaryHeader();
+  for(unsigned i=0;i<baseLen;i++) {
+    Literal* blit=(*base)[i];
+    if(blit->header()==riComplHdr && MatchingUtils::match(blit, resolvedInst, true) ) {
+      baseResolvable[possiblyResolvable]=blit;
+      altsResolvable[possiblyResolvable++]=alts[i];
+    } else {
+      baseNotResolved[notResolvable]=blit;
+      altsNotResolved[notResolvable++]=alts[i];
+    }
+  }
+  ASS_EQ(possiblyResolvable+notResolvable,baseLen);
+  ASS_G(possiblyResolvable,0);
+
+  ALWAYS(baseResolvable.ensure(possiblyResolvable));
+  ALWAYS(altsResolvable.ensure(possiblyResolvable));
 
   Stack<Literal*> nonResolved0(baseLen);
 
   VirtualIterator<ResMatchState> rmit=getBacktrackingIterator(
 	  ResMatchState(&nonResolved0,&matcher0),
-	  pushPairIntoLeftArray(wrapReferencedArray(*base),
+	  pushPairIntoLeftArray(wrapReferencedArray(baseResolvable),
 		  resolvedInst),
 	  ResMatchBtrFn());
   ASS(rmit.hasNext());
   while(rmit.hasNext()) {
     ResMatchState rms=rmit.next();
     Stack<Literal*>* nonResolved=rms.first;
-    MMSubstitution* matcher=rms.second;
-    unsigned nrLen=nonResolved->length();
+    Matcher* matcher=rms.second;
+    unsigned nrLen=nonResolved->length()+notResolvable;
 
     if(nrLen==baseLen) {
       continue;
@@ -97,35 +129,35 @@ bool MLMatcher::checkForSubsumptionResolution(Clause* base,
 
     static DArray<Literal*> baseNR(32);	//non-resolved base literals
     static DArray<LiteralList*> altsNR(32);
-    baseNR.ensure(nrLen);
-    altsNR.ensure(nrLen);
+    ALWAYS(baseNotResolved.ensure(nrLen));
+    ALWAYS(altsNotResolved.ensure(nrLen));
 
     Stack<Literal*>::Iterator nrit(*nonResolved);//non-resolved iterator
-    unsigned bi=baseLen-1;
+    unsigned bi=possiblyResolvable-1;
     unsigned nri=nrLen-1;
     while(nrit.hasNext()) {
       Literal* nrl=nrit.next();
-      while((*base)[bi]!=nrl) {
+      while(baseResolvable[bi]!=nrl) {
 	bi--;
 	ASS(bi<baseLen); //actually checking bi>=0, but bi is unsigned...
       }
-      baseNR[nri]=nrl;
-      altsNR[nri--]=alts[bi--];
+      baseNotResolved[nri]=nrl;
+      altsNotResolved[nri--]=altsResolvable[bi--];
     }
-    ASS(nri==(unsigned)-1);
+    ASS_EQ(nri,(unsigned)(notResolvable-1));
 
     static DArray<Literal*> baseNROrd(32);
     static DArray<LiteralList*> altsNROrd(32);
     baseNROrd.ensure(nrLen);
     altsNROrd.ensure(nrLen);
-    orderLiterals(baseNR, nrLen, altsNR, baseNROrd, altsNROrd);
+    orderLiterals(baseNotResolved, altsNotResolved, baseNROrd, altsNROrd);
 
-    SubstIterator sbit=getBacktrackingIterator(matcher,
+    MatchIterator sbit=getIteratorBacktrackingOnIterable(matcher,
   	  getMappingArray(
   		  pushPairIntoArrays(wrapReferencedArray(baseNROrd),
   			  wrapReferencedArray(altsNROrd)),
   		  PushPairIntoRightIterableFn<Literal*,LiteralList*>()),
-  	  getBacktrackFnForIterableChoicePoint<MMSubstitution*>(MatchBtrFn()));
+  	  MatchBtrFn());
 
     if(sbit.hasNext())
       return true;
@@ -145,25 +177,23 @@ bool MLMatcher::canBeMatched(Clause* base, DArray<LiteralList*>& alts)
 {
   CALL("MLMatcher::canBeMatched");
 
-  unsigned baseLen=base->length();
-
   DArray<Literal*> baseOrd(32);
   DArray<LiteralList*> altsOrd(32);
-  orderLiterals(*base, baseLen, alts, baseOrd, altsOrd);
+  orderLiterals(*base, alts, baseOrd, altsOrd);
 
 #if TRACE_LONG_MATCHING
   Timer tmr;
   tmr.start();
 #endif
 
-  MMSubstitution matcher;
+  Matcher matcher;
 
-  SubstIterator sbit=getBacktrackingIterator(&matcher,
+  MatchIterator sbit=getIteratorBacktrackingOnIterable(&matcher,
 	  getMappingArray(
 		  pushPairIntoArrays(wrapReferencedArray(baseOrd),
 			  wrapReferencedArray(altsOrd)),
 		  PushPairIntoRightIterableFn<Literal*,LiteralList*>()),
-	  getBacktrackFnForIterableChoicePoint<MMSubstitution*>(MatchBtrFn()));
+	  MatchBtrFn());
 
   bool success=sbit.hasNext();
 
@@ -195,11 +225,12 @@ bool MLMatcher::canBeMatched(Clause* base, DArray<LiteralList*>& alts)
 
 
 template<class T>
-void MLMatcher::orderLiterals(T& base, unsigned baseLen, DArray<LiteralList*>& alts,
+void MLMatcher::orderLiterals(T& base, DArray<LiteralList*>& alts,
 	  DArray<Literal*>& baseOrd, DArray<LiteralList*>& altsOrd)
 {
   CALL("MLMatcher::orderLiterals");
 
+  unsigned baseLen=base.size();
   //first we order base literals by number of their
   //alternatives (smaller come first)
   static BinaryHeap<int,Int> lengths;

@@ -55,6 +55,16 @@ public:
   static unsigned hashFNV(const unsigned char*,size_t length,unsigned begin);
 };
 
+
+template<typename T>
+class IdentityHash
+{
+public:
+ static unsigned hash(T val)
+ { return static_cast<unsigned>(val); }
+};
+
+
 }
 
 #endif

@@ -22,14 +22,71 @@ namespace Lib {
 
 
 /**
+ * Return iterator on C, yielding objects type T.
+ *
+ * The getContentIterator method makes it possible to
+ * iterate on arbitrary containers. Usual implementation
+ * of this functionality is some Iterable<T> interface,
+ * that would be implemented by those containers. This
+ * would however lead to the use of virtual methods,
+ * which we'd like to avoid, especially in trivial
+ * containers, such as List.
+ *
+ * Overloads of this method, that allow for iteration on
+ * different containers are usually defined together
+ * with those containers (so we avoid including all their
+ * header files here).
+ */
+template<class C>
+ITERATOR_TYPE(C) getContentIterator(C& c)
+{
+  return ITERATOR_TYPE(C)(c);
+}
+
+
+template<class Arr>
+class ArrayishObjectIterator
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Arr));
+  ArrayishObjectIterator(Arr& arr) : _arr(arr),
+  _index(0), _size(_arr.size()) {}
+  ArrayishObjectIterator(Arr& arr, size_t size) : _arr(arr),
+  _index(0), _size(size) {}
+  bool hasNext() { return _index<_size; }
+  ELEMENT_TYPE(Arr) next() { ASS(_index<_size); return _arr[_index++]; }
+  bool knowsSize() { return true;}
+  bool size() { return _size;}
+private:
+  Arr& _arr;
+  size_t _index;
+  size_t _size;
+};
+
+template<typename T>
+class PointerIterator
+{
+public:
+  DECL_ELEMENT_TYPE(T);
+  PointerIterator(T* first, T* afterLast) :
+    _curr(first), _afterLast(afterLast) {}
+  bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
+  T next() { ASS(hasNext()); return *(_curr++); }
+private:
+  T* _curr;
+  T* _afterLast;
+};
+
+
+/**
  * Implementation object for VirtualIterator, that represents
  * an iterator that yields only one object.
  */
 template<typename T>
 class SingletonIterator
-: public IteratorCore<T>
 {
 public:
+  DECL_ELEMENT_TYPE(T);
   explicit SingletonIterator(T el) : _finished(false), _el(el) {}
   bool hasNext() { return !_finished; };
   T next() { ASS(!_finished); _finished=true; return _el; };
@@ -41,9 +98,9 @@ private:
 };
 
 template<typename T>
-VirtualIterator<T> getSingletonIterator(T el)
+SingletonIterator<T> getSingletonIterator(T el)
 {
-  return vi( new SingletonIterator<T>(el) );
+  return SingletonIterator<T>(el);
 }
 
 /**
@@ -52,9 +109,9 @@ VirtualIterator<T> getSingletonIterator(T el)
  */
 template<typename To, class Inner>
 class StaticCastIterator
-: public IteratorCore<To>
 {
 public:
+  DECL_ELEMENT_TYPE(To);
   explicit StaticCastIterator(Inner inn) :_inn(inn) {}
   bool hasNext() { return _inn.hasNext(); };
   To next() { return static_cast<To>(_inn.next()); };
@@ -63,9 +120,9 @@ private:
 };
 
 template<typename To, class Inner>
-VirtualIterator<To> getStaticCastIterator(Inner it)
+StaticCastIterator<To,Inner> getStaticCastIterator(Inner it)
 {
-  return vi( new StaticCastIterator<To,Inner>(it) );
+  return StaticCastIterator<To,Inner>(it);
 }
 
 
@@ -75,11 +132,12 @@ VirtualIterator<To> getStaticCastIterator(Inner it)
  * and yields only those elements, for which Predicate::eval()
  * returns true.
  */
-template<typename T, class Inner, class Predicate>
+template<class Predicate, class Inner>
 class FilteredIterator
-: public IteratorCore<T>
 {
 public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+
   explicit FilteredIterator(Inner inn) :_inn(inn), _nextStored(false) {}
   bool hasNext()
   {
@@ -95,7 +153,7 @@ public:
     }
     return false;
   };
-  T next()
+  OWN_ELEMENT_TYPE next()
   {
     if(!_nextStored) {
       ALWAYS(hasNext());
@@ -106,9 +164,16 @@ public:
   };
 private:
   Inner _inn;
-  T _next;
+  OWN_ELEMENT_TYPE _next;
   bool _nextStored;
 };
+
+template<class Predicate, class Inner>
+FilteredIterator<Predicate,Inner> getFilteredIterator(Inner inn)
+{
+  return FilteredIterator<Predicate,Inner>(inn);
+}
+
 
 /**
  * Implementation object for VirtualIterator, that can proxy any
@@ -116,11 +181,11 @@ private:
  * and yields its elements only until Predicate::eval() returns false
  * for a value.
  */
-template<typename T, class Inner, class Predicate>
+template<class Predicate, class Inner>
 class WhileLimitedIterator
-: public IteratorCore<T>
 {
 public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
   explicit WhileLimitedIterator(Inner inn) :_inn(inn), _nextStored(false) {}
   bool hasNext()
   {
@@ -133,7 +198,7 @@ public:
     }
     return Predicate::eval(_next);
   };
-  T next()
+  OWN_ELEMENT_TYPE next()
   {
     if(!_nextStored) {
       ALWAYS(hasNext());
@@ -144,9 +209,15 @@ public:
   };
 private:
   Inner _inn;
-  T _next;
+  OWN_ELEMENT_TYPE _next;
   bool _nextStored;
 };
+
+template<class Predicate, class Inner>
+WhileLimitedIterator<Predicate,Inner> getWhileLimitedIterator(Inner inn)
+{
+  return WhileLimitedIterator<Predicate,Inner>(inn);
+}
 
 
 /**
@@ -156,12 +227,13 @@ private:
  * After the first iterator is empty, pointer to its core is dropped,
  * so that its resources can be released.
  */
-template<typename T>
+template<class It1,class It2>
 class CatIterator
-: public IteratorCore<T>
 {
 public:
-  CatIterator(VirtualIterator<T> it1, VirtualIterator<T> it2)
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(It1));
+
+  CatIterator(It1 it1, It2 it2)
   	:_first(true), _it1(it1), _it2(it2) {}
   bool hasNext()
   {
@@ -170,7 +242,6 @@ public:
 	return true;
       }
       _first=false;
-      _it1.drop();
     }
     return  _it2.hasNext();
   };
@@ -178,7 +249,7 @@ public:
    * Return the next value
    * @warning hasNext() must have been called before
    */
-  T next()
+  OWN_ELEMENT_TYPE next()
   {
     if(_first) {
       //_it1 contains the next value, as hasNext must have
@@ -192,14 +263,14 @@ public:
   size_t size() const { return _it1.size()+_it2.size(); }
 private:
   bool _first;
-  VirtualIterator<T> _it1;
-  VirtualIterator<T> _it2;
+  It1 _it1;
+  It2 _it2;
 };
 
-template<typename T>
-VirtualIterator<T> getConcatenatedIterator(VirtualIterator<T> it1, VirtualIterator<T> it2)
+template<class It1,class It2>
+CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
 {
-  return vi( new CatIterator<T>(it1, it2) );
+  return CatIterator<It1,It2>(it1, it2);
 }
 
 
@@ -210,9 +281,9 @@ VirtualIterator<T> getConcatenatedIterator(VirtualIterator<T> it1, VirtualIterat
  */
 template<typename Inner, typename Functor>
 class MappingIterator
-: public IteratorCore<RETURN_TYPE(Functor)>
 {
 public:
+  DECL_ELEMENT_TYPE(RETURN_TYPE(Functor));
   explicit MappingIterator(Inner inner, Functor func)
   : _inner(inner), _func(func) {}
   bool hasNext() { return _inner.hasNext(); };
@@ -223,9 +294,9 @@ private:
 };
 
 template<typename Inner, typename Functor>
-VirtualIterator<RETURN_TYPE(Functor)> getMappingIterator(Inner it, Functor f)
+MappingIterator<Inner,Functor> getMappingIterator(Inner it, Functor f)
 {
-  return vi( new MappingIterator<Inner, Functor>(it, f) );
+  return MappingIterator<Inner,Functor>(it, f);
 }
 
 
@@ -235,9 +306,9 @@ VirtualIterator<RETURN_TYPE(Functor)> getMappingIterator(Inner it, Functor f)
  */
 template<typename Constructor, typename Inner>
 class ConstructingIterator
-: public IteratorCore<Constructor*>
 {
 public:
+  DECL_ELEMENT_TYPE(Constructor*);
   explicit ConstructingIterator(Inner inner)
   : _inner(inner) {}
   bool hasNext() { return _inner.hasNext(); };
@@ -247,9 +318,9 @@ private:
 };
 
 template<typename Constructor, typename Inner>
-VirtualIterator<Constructor*> getConstructingIterator(Inner it)
+ConstructingIterator<Constructor,Inner> getConstructingIterator(Inner it)
 {
-  return vi( new ConstructingIterator<Constructor, Inner>(it) );
+  return ConstructingIterator<Constructor,Inner>(it);
 }
 
 
@@ -263,16 +334,61 @@ VirtualIterator<Constructor*> getConstructingIterator(Inner it)
  * iterators use some resource of the outer iterator, that has to
  * be released by its destructor before calling the outer iterator.
  */
-template<typename T>
+template<typename Master>
 class FlatteningIterator
-: public IteratorCore<T>
 {
 public:
-  typedef VirtualIterator<T> InnerIterator;
-  typedef VirtualIterator<InnerIterator> MasterIterator;
+  typedef ELEMENT_TYPE(Master) Inner;
+  typedef ELEMENT_TYPE(Inner) T;
+  DECL_ELEMENT_TYPE(T);
 
-  explicit FlatteningIterator(MasterIterator master)
-  : _master(master), _current(InnerIterator::getEmpty()) {}
+  explicit FlatteningIterator(Master master)
+  : _master(master)
+  {
+    if(_master.hasNext()) {
+      _current=_master.next();
+      _empty=false;
+    } else {
+      _empty=true;
+    }
+  }
+  bool hasNext()
+  {
+    CALL("FlatteningIterator::hasNext");
+    if(_empty) {
+      return false;
+    }
+    for(;;) {
+      if(_current.hasNext()) {
+	return true;
+      }
+      if(!_master.hasNext()) {
+	return false;
+      }
+      _current=_master.next();
+    }
+  }
+  T next()
+  {
+    ASS(_current.hasNext());
+    return _current.next();
+  }
+private:
+  bool _empty;
+  Master _master;
+  Inner _current;
+};
+
+template<typename T>
+class FlatteningIterator<VirtualIterator<VirtualIterator<T> > >
+{
+public:
+  typedef VirtualIterator<T> Inner;
+  typedef VirtualIterator<Inner> Master;
+  DECL_ELEMENT_TYPE(T);
+
+  explicit FlatteningIterator(Master master)
+  : _master(master), _current(Inner::getEmpty()) {}
   bool hasNext()
   {
     CALL("FlatteningIterator::hasNext");
@@ -293,34 +409,15 @@ public:
     return _current.next();
   }
 private:
-  MasterIterator _master;
-  InnerIterator _current;
+  Master _master;
+  Inner _current;
 };
 
 template<typename T>
-VirtualIterator<T> getFlattenedIterator(VirtualIterator<VirtualIterator<T> > it)
+FlatteningIterator<T> getFlattenedIterator(T it)
 {
-  return vi( new FlatteningIterator<T>(it) );
+  return FlatteningIterator<T>(it);
 }
-
-template<typename T>
-struct VIEncapsulator
-{
-  DECL_RETURN_TYPE(VirtualIterator<T>);
-  OWN_RETURN_TYPE operator() (IteratorCore<T>* obj)
-  {
-    return VirtualIterator<T>(obj);
-  }
-};
-
-template<typename T>
-VirtualIterator<T> getFlattenedIterator(VirtualIterator<IteratorCore<T>* > it)
-{
-  VirtualIterator<VirtualIterator<T> > eIt=
-    getMappingIterator(it, VIEncapsulator<T>());
-  return getFlattenedIterator(eIt);
-}
-
 
 template<typename T, class Inner>
 class PersistentIterator
@@ -365,11 +462,13 @@ VirtualIterator<T> getPersistentIterator(Inner it)
 }
 
 
-template<typename T, class Inner>
+template<class Inner>
 class UniquePersistentIterator
-: public IteratorCore<T>
+: public IteratorCore<ELEMENT_TYPE(Inner)>
 {
 public:
+  typedef ELEMENT_TYPE(Inner) T;
+
   explicit UniquePersistentIterator(Inner inn)
   {
     while(inn.hasNext()) {
@@ -395,30 +494,18 @@ private:
  *
  * @b it object is used only during initialization.
  */
-template<typename T, class Inner>
-VirtualIterator<T> getUniquePersistentIterator(Inner it)
+template<class Inner>
+VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIterator(Inner it)
 {
-  return vi( new UniquePersistentIterator<T,Inner>(it) );
-}
-
-/**
- * Return iterator, that yields unique values yielded by @b it.
- * Those values are yielded in arbitrary order.
- *
- * @b it object is used only during initialization.
- */
-template<typename T>
-VirtualIterator<T> getUniquePersistentIterator(VirtualIterator<T> it)
-{
-  return vi( new UniquePersistentIterator<T,VirtualIterator<T> >(it) );
+  return vi( new UniquePersistentIterator<Inner>(it) );
 }
 
 
 template<typename T>
 class RangeIterator
-: public IteratorCore<T>
 {
 public:
+  DECL_ELEMENT_TYPE(T);
   RangeIterator(T from, T to)
   : _next(from), _from(from), _to(to) {}
   bool hasNext() { return _next<_to; };
@@ -437,16 +524,16 @@ private:
  * object @b to. The @b to object is not yielded.
  */
 template<typename T>
-VirtualIterator<T> getRangeIterator(T from, T to)
+RangeIterator<T> getRangeIterator(T from, T to)
 {
-  return vi( new RangeIterator<T>(from, to) );
+  return RangeIterator<T>(from, to);
 }
 
 template<typename T>
 class CombinationIterator
-: public IteratorCore<pair<T,T> >
 {
 public:
+  DECL_ELEMENT_TYPE(pair<T,T>);
   CombinationIterator(T from, T to)
   : _first(from), _second(from), _afterLast(to)
   {
@@ -487,107 +574,35 @@ private:
  * that for a singleton set, nothing is returned.
  */
 template<typename T>
-VirtualIterator<pair<T,T> > getCombinationIterator(T from, T to)
+CombinationIterator<T> getCombinationIterator(T from, T to)
 {
-  return vi( new CombinationIterator<T>(from, to) );
+  return CombinationIterator<T>(from, to);
 }
 
-
-template<typename C, typename D>
-class PairRightPushingIterator
-: public IteratorCore<pair<C,D> >
-{
-public:
-  PairRightPushingIterator(C c, VirtualIterator<D> dit)
-  : _c(c), _dit(dit) {}
-
-  bool hasNext() { return _dit.hasNext(); }
-  pair<C,D> next() { return pair<C,D>(_c, _dit.next()); }
-private:
-  C _c;
-  VirtualIterator<D> _dit;
-};
-
-/**
- * Given pair of an object A and an iterator I, return
- * an iterator J, that yields pairs (A,C), where C are
- * objects returned by iterator I. This virtually pushes
- * the pair structure into the iterator I.
- */
-template<typename C, typename D>
-VirtualIterator<pair<C,D> > pushPairIntoRightIterator(pair<C, VirtualIterator<D> > obj)
-{
-  return vi( new PairRightPushingIterator<C,D>(obj.first, obj.second) );
-}
-
-template<typename C, typename D>
-VirtualIterator<pair<C,D> > pushPairIntoRightIterator(C c, VirtualIterator<D> dit)
-{
-  return vi( new PairRightPushingIterator<C,D>(c, dit) );
-}
-
-template<typename C, typename D>
-class RightPushedPair
-{
-public:
-  RightPushedPair(pair<C,D> p) : _p(p) {}
-  pair<C,D> get() { return _p; }
-private:
-  pair<C,D> _p;
-};
-
-/**
- * Given pair of an object A and an iterable object B, return
- * an iterable object, that contains pairs (A,C), where C are
- * objects from B. So this virtually pushes the pair structure
- * into the iterable object B.
- */
-template<typename C, typename D>
-RightPushedPair<C,D> pushPairIntoRightIterable(pair<C, D> obj)
-{
-  return RightPushedPair<C,D>(obj);
-}
-
-template<typename C, typename D>
-struct PushPairIntoRightIterableFn
-{
-  DECL_RETURN_TYPE(RightPushedPair<C,D>);
-  OWN_RETURN_TYPE operator()(pair<C, D> obj)
-  {
-    return pushPairIntoRightIterable(obj);
-  }
-};
-
-/** See VirtualIterator.hpp */
-template<typename C, typename D>
-VirtualIterator<pair<C,ELEMENT_TYPE(D)> > getContentIterator(RightPushedPair<C,D> obj)
-{
-  return pushPairIntoRightIterator(
-	  pair<C,VirtualIterator<ELEMENT_TYPE(D)> >(
-		  obj.get().first,
-		  getContentIterator(obj.get().second) ) );
-}
 
 /**
  * Wraps a context around specified iterator.
  *
  * Context is an object of type @b Ctx with methods
- * void enter(T)
+ * bool enter(T)
  * void leave(T)
  * where @b T is the return type of inner iterator.
- * Method enter is called before an element of inner
- * iterator is yielded (with this element as a parameter),
- * and leave is called when this element becomes no longer
+ * Method @b enter is called before an element of inner
+ * iterator is yielded (with this element as a parameter).
+ * If @b enter returns false, the element is skipped (@b leave is
+ * not called for it).
+ * @b leave is called when an element becomes no longer
  * needed (after the hasNext method is called next time,
  * or when the iterator is being destroyed).
  */
 template<class Inner, class Ctx>
 class ContextualIterator
-: public IteratorCore<ELEMENT_TYPE(Inner)>
 {
 public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+
   ContextualIterator(Inner iit, Ctx context)
-  : _inContext(false), _iit(iit), _context(context) {}
+  : _inContext(false), _used(true), _iit(iit), _context(context) {}
 
   ~ContextualIterator()
   {
@@ -595,15 +610,25 @@ public:
   }
   bool hasNext()
   {
+    if(!_used) {
+      return true;
+    }
     assureContextLeft();
-    return _iit.hasNext();
+    do {
+      if(!_iit.hasNext()) {
+	return false;
+      }
+      _current=_iit.next();
+    } while (!_context.enter(_current));
+    _inContext=true;
+
+    _used=false;
+    return true;
   }
   ELEMENT_TYPE(Inner) next()
   {
-    ASS(!_inContext);
-    _current=_iit.next();
-    _context.enter(_current);
-    _inContext=true;
+    ASS(!_used);
+    _used=true;
     return _current;
   }
 private:
@@ -616,15 +641,16 @@ private:
   }
 
   bool _inContext;
+  bool _used;
   ELEMENT_TYPE(Inner) _current;
   Inner _iit;
   Ctx _context;
 };
 
 template<class Inner, class Ctx>
-VirtualIterator<ELEMENT_TYPE(Inner)> getContextualIterator(Inner it, Ctx context)
+ContextualIterator<Inner,Ctx> getContextualIterator(Inner it, Ctx context)
 {
-  return vi( new ContextualIterator<Inner,Ctx>(it, context) );
+  return ContextualIterator<Inner,Ctx>(it, context);
 }
 
 

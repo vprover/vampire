@@ -476,14 +476,14 @@ KBO* KBO::createArityPreferenceConstantLevels()
 
   static DArray<unsigned> aux(32);
   if(funcs) {
-    aux.initFromIterator(getRangeIterator(0u, funcs));
+    aux.initFromIterator(getRangeIterator(0u, funcs), funcs);
     aux.sort<FnArityComparator>();
     for(unsigned i=0;i<funcs;i++) {
       res->_functionPrecedences[aux[i]]=i;
     }
   }
 
-  aux.initFromIterator(getRangeIterator(0u, preds));
+  aux.initFromIterator(getRangeIterator(0u, preds), preds);
   aux.sort<PredArityComparator>();
   for(unsigned i=0;i<preds;i++) {
     res->_predicatePrecedences[aux[i]]=i;
@@ -506,13 +506,13 @@ KBO* KBO::createArityPreferenceAndLevels()
 
   DArray<unsigned> aux(funcs);
 
-  aux.initFromIterator(getRangeIterator(0u, funcs));
+  aux.initFromIterator(getRangeIterator(0u, funcs), funcs);
   aux.sort<FnArityComparator>();
   for(unsigned i=0;i<funcs;i++) {
     res->_functionPrecedences[aux[i]]=i;
   }
 
-  aux.initFromIterator(getRangeIterator(0u, preds));
+  aux.initFromIterator(getRangeIterator(0u, preds), preds);
   aux.sort<PredArityComparator>();
   for(unsigned i=0;i<preds;i++) {
     res->_predicatePrecedences[aux[i]]=i;

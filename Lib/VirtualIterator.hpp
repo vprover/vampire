@@ -30,6 +30,10 @@ template<typename T>
  */
 template<typename T>
 class IteratorCore {
+private:
+  //private and undefined operator= and copy constructor to avoid implicitly generated ones
+  IteratorCore(const IteratorCore&);
+  IteratorCore& operator=(const IteratorCore&);
 public:
   DECL_ELEMENT_TYPE(T);
   IteratorCore() : _refCnt(0) {}
@@ -81,7 +85,12 @@ public:
   inline
   explicit VirtualIterator(IteratorCore<T>* core) : _core(core) { _core->_refCnt++;}
   inline
-  VirtualIterator(const VirtualIterator& obj) : _core(obj._core) { _core->_refCnt++;}
+  VirtualIterator(const VirtualIterator& obj) : _core(obj._core)
+  {
+    if(_core) {
+      _core->_refCnt++;
+    }
+  }
   inline
   ~VirtualIterator()
   {
@@ -152,9 +161,9 @@ private:
 };
 
 template<typename T>
-VirtualIterator<ELEMENT_TYPE(T)> vi(T* core)
+VirtualIterator<T> vi(IteratorCore<T>* core)
 {
-  return VirtualIterator<ELEMENT_TYPE(T)>(core);
+  return VirtualIterator<T>(core);
 }
 
 /**
@@ -179,62 +188,14 @@ VirtualIterator<T> getProxyIterator(Inner it)
   return VirtualIterator<T>(new ProxyIterator<T,Inner>(it));
 }
 
-
-/**
- * Return iterator on C, yielding objects type T.
- *
- * The getContentIterator method makes it possible to
- * iterate on arbitrary containers. Usual implementation
- * of this functionality is some Iterable<T> interface,
- * that would be implemented by those containers. This
- * would however lead to the use of virtual methods,
- * which we'd like to avoid, especially in trivial
- * containers, such as List.
- *
- * Overloads of this method, that allow for iteration on
- * different containers are usually defined together
- * with those containers (so we avoid including all their
- * header files here).
- */
-template<typename T, class C>
-VirtualIterator<T> getContentIterator(C& c)
+template<class Inner>
+VirtualIterator<ELEMENT_TYPE(Inner)> pvi(Inner it)
 {
-  return getProxyIterator<T>(C::Iterator(c));
+  return VirtualIterator<ELEMENT_TYPE(Inner)>(new ProxyIterator<ELEMENT_TYPE(Inner),Inner>(it));
 }
 
 
-template<class Arr>
-class ArrayishObjectIterator
-: public IteratorCore<ELEMENT_TYPE(Arr)>
-{
-public:
-  ArrayishObjectIterator(Arr& arr) : _arr(arr),
-  _index(0), _size(_arr.size()) {}
-  ArrayishObjectIterator(Arr& arr, size_t size) : _arr(arr),
-  _index(0), _size(size) {}
-  bool hasNext() { return _index<_size; }
-  ELEMENT_TYPE(Arr) next() { ASS(_index<_size); return _arr[_index++]; }
-  bool knowsSize() { return true;}
-  bool size() { return _size;}
-private:
-  Arr& _arr;
-  size_t _index;
-  size_t _size;
-};
 
-template<typename T>
-class PointerIterator
-: public IteratorCore<T>
-{
-public:
-  PointerIterator(T* first, T* afterLast) :
-    _curr(first), _afterLast(afterLast) {}
-  bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
-  T next() { ASS(hasNext()); return *(_curr++); }
-private:
-  T* _curr;
-  T* _afterLast;
-};
 
 ///@}
 

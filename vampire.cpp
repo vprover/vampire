@@ -67,13 +67,20 @@ void doProving()
   Preprocess prepro(property,*env.options);
   prepro.preprocess(units);
 
-  ClauseIterator clauses=getStaticCastIterator<Clause*>(UnitList::Iterator(units));
+  ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
 
   SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
   salg->addClauses(clauses);
 
   SaturationResult sres(salg->saturate());
   sres.updateStatistics();
+
+#if CHECK_LEAKS
+    delete env.signature;
+    env.signature = 0;
+    MemoryLeak leak;
+    leak.release(units);
+#endif
 }
 
 void outputResult()
@@ -186,12 +193,6 @@ int main(int argc, char* argv [])
   	ASSERTION_VIOLATION;
 #endif
       }
-#if CHECK_LEAKS
-    delete env.signature;
-    env.signature = 0;
-    MemoryLeak leak;
-    leak.release(units);
-#endif
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {

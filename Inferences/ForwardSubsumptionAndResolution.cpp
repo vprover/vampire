@@ -262,9 +262,8 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       }
 
       if(success) {
-	toAdd=getSingletonIterator(generateSubsumptionResolutionClause(cl,resLit,mcl));
+	toAdd=pvi( getSingletonIterator(generateSubsumptionResolutionClause(cl,resLit,mcl)) );
 	keep=false;
-	env.statistics->forwardSubsumed++;
 	goto fin;
       }
     }

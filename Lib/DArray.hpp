@@ -76,17 +76,18 @@ public:
 
   /**
    * Set array's size to @b s and that its capacity is at least @b s.
-   * If the capacity is smaller, the array will expand.
+   * Return true iff array was not extended.
+   * If the capacity is smaller, the array will be extended.
    *
    * @warning upon extension no copying of elements will be done
    *   so the operation is safe only before processing the array.
    * @since 02/01/2008 Manchester
    */
-  inline void ensure(size_t s)
+  inline bool ensure(size_t s)
   {
     _size = s;
     if (_capacity >= _size) {
-      return;
+      return true;
     }
 
     C* p=_array+_capacity;
@@ -97,6 +98,7 @@ public:
     _capacity = _size;
     void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
     _array = new(mem) C[_capacity];
+    return false;
   } // ensure
 
   /**
@@ -168,27 +170,25 @@ public:
   }
 
   /**
-   * Ensure that the array's size is at least @b count and
-   * initialize first @b count elements with halues from @b src.
-   *
-   * @b src has to support C operator[](size_t).
+   * Initialize array by elements of the iterator. Size of the array
+   * will be equal to number of elements of the iterator.
    */
-  /**  */
-  void initFromIterator(VirtualIterator<C> it) {
+  template<class It>
+  void initFromIterator(It it, size_t count=0) {
     CALL("DArray::initFromIterator");
 
-    if(it.knowsSize()) {
-      ensure(it.size());
+    if(count) {
+      ensure(count);
       C* ptr=_array;
       while(it.hasNext()) {
 	*(ptr++)=it.next();
       }
     } else {
       ensure(0);
-      int cnt=0;
+      count=0;
       while(it.hasNext()) {
-	expand(++cnt);
-	(*this)[cnt-1]=it.next();
+	expand(++count);
+	(*this)[count-1]=it.next();
       }
     }
   }

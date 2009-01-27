@@ -265,6 +265,8 @@ private:
       return "(MM backtrack object for "+ _var.toString() +")";
     }
 #endif
+    CLASS_NAME("MMSubstitution::BindingBacktrackObject");
+    USE_ALLOCATOR(BindingBacktrackObject);
   private:
     MMSubstitution* _subst;
     VarSpec _var;
@@ -275,6 +277,8 @@ private:
   SubstIterator getAssocIterator(MMSubstitution* subst,
 	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
+  template<class Fn>
+  struct AssocContext;
   template<class Fn>
   class AssocIterator;
 

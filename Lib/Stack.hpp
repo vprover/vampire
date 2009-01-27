@@ -39,7 +39,7 @@ public:
     ASS(initialCapacity > 0);
 
     void* mem = ALLOC_KNOWN(initialCapacity*sizeof(C),"Stack<>");
-    _stack = new(mem) C[_capacity];
+    _stack = static_cast<C*>(mem);
     _cursor = _stack;
     _end = _stack+_capacity;
   }

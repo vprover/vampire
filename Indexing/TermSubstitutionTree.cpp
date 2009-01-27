@@ -110,7 +110,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
   Node* root=_nodes[getRootNodeIndex(trm)];
   VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
 	    new Iterator(root, trm, retrieveSubstitutions) );
-  return getMappingIterator(qrit, TermQueryResultFunctor());
+  return pvi( getMappingIterator(qrit, TermQueryResultFunctor()) );
 }
 
 }

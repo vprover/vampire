@@ -112,7 +112,9 @@ public:
 #endif
 
   bool operator==(const TermList& t) const
-{ return _content==t._content; }
+  { return _content==t._content; }
+  bool operator!=(const TermList& t) const
+  { return _content!=t._content; }
   bool operator<(const TermList& t) const
   { return _content<t._content; }
   bool operator>(const TermList& t) const
@@ -269,6 +271,7 @@ public:
 
   class VariableIterator {
   public:
+    DECL_ELEMENT_TYPE(TermList);
     VariableIterator(const Term* term) : _stack(8), _used(false)
     {
       if(!term->shared() || !term->ground()) {
@@ -296,6 +299,7 @@ public:
    */
   class NonVariableIterator {
   public:
+    DECL_ELEMENT_TYPE(TermList);
     NonVariableIterator(const Term* term) : _stack(8), _used(false)
     {
       pushNextNonVar(term->args());

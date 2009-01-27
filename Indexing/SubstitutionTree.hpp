@@ -257,6 +257,10 @@ protected:
   class UnificationsIterator
   : public IteratorCore<QueryResult>
   {
+  private:
+    //private and undefined operator= and copy constructor to avoid implicitly generated ones
+    UnificationsIterator(const UnificationsIterator&);
+    UnificationsIterator& operator=(const UnificationsIterator&);
   public:
     UnificationsIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
 

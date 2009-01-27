@@ -120,6 +120,13 @@ public:
     return _head;
   } // List::head
 
+  inline C* headPtr ()
+  {
+    ASS (this != 0);
+    return &(this->_head);
+  }
+
+
   /** return the second element of the list */
   inline C second () const
   {
@@ -483,7 +490,8 @@ public:
 
   /** iterator over the list elements */
   class Iterator {
-   public:
+  public:
+    DECL_ELEMENT_TYPE(C);
 
     inline explicit
     Iterator(List* l)
@@ -520,6 +528,7 @@ public:
   /** iterator over references to list elements */
   class RefIterator {
    public:
+     DECL_ELEMENT_TYPE(C&);
 
     inline explicit
     RefIterator(List* l)
@@ -550,6 +559,26 @@ public:
     /** the rest of the list */
     List* _lst;
   };
+
+  class PtrIterator
+  {
+  public:
+    DECL_ELEMENT_TYPE(C*);
+    inline
+    PtrIterator(List* lst) : _l(lst) {}
+    inline bool hasNext()
+    { return _l->isNonEmpty(); }
+
+    inline C* next()
+    {
+      C* res=_l->headPtr();
+      _l=_l->tail();
+      return res;
+    }
+  protected:
+    List* _l;
+  };
+
 
   /** Iterator that allows one to delete the current element */
   class DelIterator {
@@ -686,8 +715,8 @@ public:
   };
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("List");
-//  CLASS_NAME(typeid(List).name());
+//  CLASS_NAME("List");
+  CLASS_NAME(typeid(List).name());
   USE_ALLOCATOR(List);
 
   /**
@@ -734,9 +763,9 @@ protected:  // structure
 
 
 template<typename T>
-VirtualIterator<T> getContentIterator(List<T>* lst)
+typename List<T>::Iterator getContentIterator(List<T>* lst)
 {
-  return getProxyIterator<T>(typename List<T>::Iterator(lst));
+  return typename List<T>::Iterator(lst);
 }
 
 /** see Reflection.hpp */
@@ -744,6 +773,13 @@ template<typename T>
 struct ElementTypeInfo<List<T>* >
 {
   typedef T Type;
+};
+
+/** see Reflection.hpp */
+template<typename T>
+struct IteratorTypeInfo<List<T>* >
+{
+  typedef typename List<T>::Iterator Type;
 };
 
 

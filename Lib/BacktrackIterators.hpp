@@ -62,6 +62,7 @@ public:
 	_states.pop();
       }
       if(_chits.isNonEmpty()) {
+	ASS(_chits.top().hasNext());
 	_states.push(_chits.top().next());
       } else {
 	_fin=true;
@@ -90,7 +91,7 @@ private:
   State _initState;
   ChoiceArr _choices;
   size_t _chLen;
-  Stack<VirtualIterator<State> > _chits; //choice iterators
+  Stack<RETURN_TYPE(Fn) > _chits; //choice iterators
   Stack<State> _states;
   Fn _functor;
 };
@@ -101,13 +102,13 @@ VirtualIterator<State> getBacktrackingIterator(State initState,
 {
   size_t chLen=choices.size();
   if(chLen==0) {
-    return getSingletonIterator(initState);
+    return pvi( getSingletonIterator(initState) );
   }
   return VirtualIterator<State>(new BacktrackingIterator<State,ChoiceArr,Fn>
 	  (initState, choices, chLen, functor));
 }
 
-template<typename State, class Fn>
+template<typename State, class Fn, class ChPntIterable>
 class BtrFnForIterable
 {
   class FnMapper
@@ -125,10 +126,11 @@ class BtrFnForIterable
   };
 
 public:
+  DECL_RETURN_TYPE(FlatteningIterator<MappingIterator<ITERATOR_TYPE(ChPntIterable),FnMapper> >);
   BtrFnForIterable(Fn functor) : _functor(functor) {}
 
-  template<class ChPntIterable>
-  VirtualIterator<State> operator() (State curr, ChPntIterable cPItb) //cPItb=Choice Point ITeraBle
+  OWN_RETURN_TYPE
+  operator() (State curr, ChPntIterable cPItb) //cPItb=Choice Point ITeraBle
   {
     return getFlattenedIterator(
 	    getMappingIterator(
@@ -139,12 +141,22 @@ private:
   Fn _functor;
 };
 
-template<typename State, class Fn>
-BtrFnForIterable<State, Fn> getBacktrackFnForIterableChoicePoint(Fn functor)
+template<typename State, typename ChoiceArr, class IFn>
+VirtualIterator<State> getIteratorBacktrackingOnIterable(State initState,
+	ChoiceArr choices, IFn innerFunctor)
 {
-  return BtrFnForIterable<State,Fn>(functor);
-}
+  size_t chLen=choices.size();
+  if(chLen==0) {
+    return pvi( getSingletonIterator(initState) );
+  }
 
+  typedef BtrFnForIterable<State,IFn,ELEMENT_TYPE(ChoiceArr)> Fn;
+
+  return vi( new BacktrackingIterator<State,ChoiceArr,Fn>
+	  (initState, choices, chLen,
+		  Fn(innerFunctor)
+	  ) );
+}
 
 ///@}
 

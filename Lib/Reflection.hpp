@@ -21,12 +21,22 @@
 #define RETURN_TYPE(Cl) typename Cl::_ReturnType
 #define OWN_RETURN_TYPE _ReturnType
 
+#define DECL_ITERATOR_TYPE(...) typedef __VA_ARGS__ _IteratorType
+#define ITERATOR_TYPE(Cl) typename IteratorTypeInfo<Cl>::Type
+#define OWN_ITERATOR_TYPE _IteratorType
+
 namespace Lib {
 
 template<typename T>
 struct ElementTypeInfo
 {
   typedef typename T::_ElementType Type;
+};
+
+template<typename T>
+struct IteratorTypeInfo
+{
+  typedef typename T::_IteratorType Type;
 };
 
 };
