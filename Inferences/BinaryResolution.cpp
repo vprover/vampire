@@ -115,7 +115,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   return pvi( getMappingIterator(
 	  getFlattenedIterator(
 		  getMappingIterator(
-			  getContentIterator(*premise),
+			  premise->getSelectedLiteralIterator(),
 			  ResolutionUnificationsFn(_index))),
 	  ResolutionResultFn(premise)) );
 }

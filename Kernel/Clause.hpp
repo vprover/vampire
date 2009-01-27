@@ -10,6 +10,7 @@
 
 #include "../Forwards.hpp"
 #include "../Lib/Allocator.hpp"
+#include "../Lib/Metaiterators.hpp"
 #include "../Lib/Reflection.hpp"
 
 #include "Unit.hpp"
@@ -113,6 +114,9 @@ public:
 
   void incRefCnt() { _inferenceRefCnt++; }
   void decRefCnt() { _inferenceRefCnt--; destroyIfUnnecessary(); }
+
+  ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
+  { return ArrayishObjectIterator<Clause>(*this,selected()); }
 
 #if VDEBUG
   bool contains(Literal* lit);
