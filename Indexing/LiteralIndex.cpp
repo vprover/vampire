@@ -36,48 +36,38 @@ SLQueryResultIterator LiteralIndex::getInstances(Literal* lit,
 }
 
 
-void GeneratingLiteralIndex::onAddedToContainer(Clause* c)
+void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   int selCnt=c->selected();
   for(int i=0; i<selCnt; i++) {
-    _is->insert((*c)[i], c);
+    if(adding) {
+      _is->insert((*c)[i], c);
+    } else {
+      _is->remove((*c)[i], c);
+    }
   }
 }
 
-void GeneratingLiteralIndex::onRemovedFromContainer(Clause* c)
-{
-  int selCnt=c->selected();
-  for(int i=0; i<selCnt; i++) {
-    _is->remove((*c)[i], c);
-  }
-}
-
-void SimplifyingLiteralIndex::onAddedToContainer(Clause* c)
+void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   unsigned clen=c->length();
   for(unsigned i=0; i<clen; i++) {
-    _is->insert((*c)[i], c);
+    if(adding) {
+      _is->insert((*c)[i], c);
+    } else {
+      _is->remove((*c)[i], c);
+    }
   }
 }
 
-void SimplifyingLiteralIndex::onRemovedFromContainer(Clause* c)
-{
-  unsigned clen=c->length();
-  for(unsigned i=0; i<clen; i++) {
-    _is->remove((*c)[i], c);
-  }
-}
-
-void AtomicClauseSimplifyingLiteralIndex::onAddedToContainer(Clause* c)
+void AtomicClauseSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   if(c->length()==1) {
-    _is->insert((*c)[0], c);
+    if(adding) {
+      _is->insert((*c)[0], c);
+    } else {
+      _is->remove((*c)[0], c);
+    }
   }
 }
 
-void AtomicClauseSimplifyingLiteralIndex::onRemovedFromContainer(Clause* c)
-{
-  if(c->length()==1) {
-    _is->remove((*c)[0], c);
-  }
-}

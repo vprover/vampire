@@ -17,6 +17,7 @@
 #include "../Inferences/RefutationSeekerFSE.hpp"
 #include "../Inferences/SLQueryForwardSubsumption.hpp"
 #include "../Inferences/SLQueryBackwardSubsumption.hpp"
+#include "../Inferences/Superposition.hpp"
 #include "../Inferences/TautologyDeletionFSE.hpp"
 
 
@@ -40,6 +41,7 @@ GeneratingInferenceEngineSP createGIE()
 {
   CompositeGIE* res=new CompositeGIE();
 
+  res->addFront(GeneratingInferenceEngineSP(new Superposition()));
   res->addFront(GeneratingInferenceEngineSP(new Factoring()));
   res->addFront(GeneratingInferenceEngineSP(new BinaryResolution()));
 

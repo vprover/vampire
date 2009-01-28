@@ -25,6 +25,8 @@ Statistics::Statistics()
     initialClauses(0),
     factoring(0),
     resolution(0),
+    forwardSuperposition(0),
+    backwardSuperposition(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     simpleTautologies(0),
@@ -60,5 +62,7 @@ void Statistics::print()
 
   env.out << "Binary resolution: "<<resolution<<endl;
   env.out << "Factoring: "<<factoring<<endl;
+  env.out << "Forward superposition: "<<forwardSuperposition<<endl;
+  env.out << "Backward superposition: "<<backwardSuperposition<<endl;
   env.out << "------------------------------\n";
 }

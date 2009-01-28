@@ -39,8 +39,7 @@ public:
   GeneratingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
-  void onAddedToContainer(Clause* c);
-  void onRemovedFromContainer(Clause* c);
+  void handleClause(Clause* c, bool adding);
 };
 
 class SimplifyingLiteralIndex
@@ -50,8 +49,7 @@ public:
   SimplifyingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
-  void onAddedToContainer(Clause* c);
-  void onRemovedFromContainer(Clause* c);
+  void handleClause(Clause* c, bool adding);
 };
 
 class AtomicClauseSimplifyingLiteralIndex
@@ -61,8 +59,7 @@ public:
   AtomicClauseSimplifyingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
-  void onAddedToContainer(Clause* c);
-  void onRemovedFromContainer(Clause* c);
+  void handleClause(Clause* c, bool adding);
 };
 
 

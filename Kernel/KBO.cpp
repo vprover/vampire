@@ -37,12 +37,21 @@ public:
       _lexResult(EQUAL),
       _kbo(kbo)
   {}
-  void traverse(Literal* l1, Literal* l2);
+  void traverse(Term* t1, Term* t2);
   void traverse(TermList tl,int coefficient);
-  Result result(Literal* l1, Literal* l2);
+  Result result(Term* t1, Term* t2);
 private:
   void recordVariable(unsigned var, int coef);
-  Result innerResult(TermList tl1, TermList tl2);
+  Result innerResult(TermList t1, TermList t2);
+  Result applyVariableCondition(Result res)
+  {
+    if(posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+      res=INCOMPARABLE;
+    } else if(negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+      res=INCOMPARABLE;
+    }
+    return res;
+  }
 
   int weightDiff;
   DHMap<unsigned, int, IdHash> varDiffs;
@@ -57,14 +66,27 @@ private:
   /** The variable counters */
 }; // class KBO::State
 
-Ordering::Result KBO::State::result(Literal* l1, Literal* l2)
+/**
+ * Return result of comparison between @b l1 and @b l2 under
+ * an assumption, that @b traverse method have been called
+ * for both literals. (Either traverse(Term*,Term*) or
+ * traverse(Term*,int) for both terms/literals in case their
+ * top functors are different.)
+ */
+Ordering::Result KBO::State::result(Term* t1, Term* t2)
 {
   Result res;
   if(weightDiff) {
     res=weightDiff>0 ? GREATER : LESS;
-  } else if(l1->functor()!=l2->functor()) {
-    int prec1=_kbo.predicatePrecedence(l1->functor());
-    int prec2=_kbo.predicatePrecedence(l2->functor());
+  } else if(t1->functor()!=t2->functor()) {
+    int prec1, prec2;
+    if(t1->isLiteral()) {
+      prec1=_kbo.predicatePrecedence(t1->functor());
+      prec2=_kbo.predicatePrecedence(t2->functor());
+    } else {
+      prec1=_kbo.functionPrecedence(t1->functor());
+      prec2=_kbo.functionPrecedence(t2->functor());
+    }
     if(prec1>prec2) {
       res=GREATER;
     } else {
@@ -74,12 +96,7 @@ Ordering::Result KBO::State::result(Literal* l1, Literal* l2)
   } else {
     res=_lexResult;
   }
-  if(posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
-    res=INCOMPARABLE;
-  } else if(negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
-    res=INCOMPARABLE;
-  }
-  return res;
+  return applyVariableCondition(res);
 }
 
 Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
@@ -258,16 +275,13 @@ void KBO::State::traverse(TermList tl,int coef)
   }
 }
 
-void KBO::State::traverse(Literal* l1, Literal* l2)
+void KBO::State::traverse(Term* t1, Term* t2)
 {
   CALL("KBO::State::traverse");
-  ASS(l1->functor()==l2->functor());
+  ASS(t1->functor()==t2->functor());
 
-  weightDiff+=_kbo.predicateHeaderWeight(l1->header());
-  weightDiff-=_kbo.predicateHeaderWeight(l2->header());
-
-  TermList* ss=l1->args();
-  TermList* tt=l2->args();
+  TermList* ss=t1->args();
+  TermList* tt=t2->args();
   static Stack<TermList*> stack(4);
   for(;;) {
     if(!ss->next()->isEmpty()) {
@@ -384,6 +398,46 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
   return state.result(l1,l2);
 } // KBO::compare()
 
+Ordering::Result KBO::compare(TermList tl1, TermList tl2)
+{
+  CALL("KBO::compare(TermList)");
+
+  if(tl1==tl2) {
+    return EQUAL;
+  }
+  if(tl1.isOrdinaryVar()) {
+    if(existsZeroWeightUnaryFunction()) {
+      NOT_IMPLEMENTED;
+    } else {
+      return tl2.containsVariable(tl1) ? LESS : INCOMPARABLE;
+    }
+  }
+  if(tl2.isOrdinaryVar()) {
+    if(existsZeroWeightUnaryFunction()) {
+      NOT_IMPLEMENTED;
+    } else {
+      return tl1.containsVariable(tl2) ? GREATER : INCOMPARABLE;
+    }
+  }
+
+  ASS(tl1.isTerm());
+  ASS(tl2.isTerm());
+
+  Term* t1=tl1.term();
+  Term* t2=tl2.term();
+
+  State state(*this);
+  if(t1->functor()==t2->functor()) {
+    state.traverse(t1,t2);
+  } else {
+    state.traverse(tl1,1);
+    state.traverse(tl2,-1);
+  }
+  return state.result(t1,t2);
+}
+
+
+
 /**
  * Return the predicate level. If @b pred is less than or equal to
  * @b _predicates, then the value is taken from the array _predicateLevels,
@@ -423,14 +477,6 @@ int KBO::functionPrecedence (unsigned fun)
   return fun > _functions ? (int)fun : _functionPrecedences[fun];
 } // KBO::functionPrecedences
 
-Ordering::Result KBO::compare(TermList t1, TermList t2)
-{
-  CALL("KBO::compare(TermList*)");
-
-  NOT_IMPLEMENTED;
-
-  return INCOMPARABLE;
-}
 
 KBO* KBO::createReversedAgePreferenceConstantLevels()
 {

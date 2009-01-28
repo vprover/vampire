@@ -49,9 +49,9 @@ void BinaryResolution::detach()
 }
 
 
-struct ResolutionUnificationsFn
+struct BinaryResolution::UnificationsFn
 {
-  ResolutionUnificationsFn(GeneratingLiteralIndex* index)
+  UnificationsFn(GeneratingLiteralIndex* index)
   : _index(index) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, SLQueryResult> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
@@ -62,13 +62,15 @@ private:
   GeneratingLiteralIndex* _index;
 };
 
-struct ResolutionResultFn
+struct BinaryResolution::ResultFn
 {
-  ResolutionResultFn(Clause* cl)
+  ResultFn(Clause* cl)
   : _cl(cl) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<Literal*, SLQueryResult> arg)
   {
+    CALL("BinaryResolution::ResultFn::operator()");
+
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
@@ -86,15 +88,13 @@ struct ResolutionResultFn
     for(int i=0;i<clength;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=resLit) {
-	//query term variables are in variable bank 0
-	(*res)[next++] = qr.substitution->apply(curr, 0);
+	(*res)[next++] = qr.substitution->apply(curr, QRS_QUERY_BANK);
       }
     }
     for(int i=0;i<dlength;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
-	//query term variables are in variable bank 1
-	(*res)[next++] = qr.substitution->apply(curr, 1);
+	(*res)[next++] = qr.substitution->apply(curr, QRS_RESULT_BANK);
       }
     }
 
@@ -116,8 +116,8 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 	  getFlattenedIterator(
 		  getMappingIterator(
 			  premise->getSelectedLiteralIterator(),
-			  ResolutionUnificationsFn(_index))),
-	  ResolutionResultFn(premise)) );
+			  UnificationsFn(_index))),
+	  ResultFn(premise)) );
 }
 
 }

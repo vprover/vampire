@@ -53,6 +53,9 @@ enum TermTag {
  */
 class TermList {
 public:
+  TermList() {}
+  explicit TermList(Term* t) : _term(t) {}
+
   /** the tag */
   TermTag tag() const { return (TermTag)(_content & 0x0003); }
   /** the term list is empty */
@@ -106,6 +109,7 @@ public:
   static bool sameTop(const TermList* ss,const TermList* tt);
   static bool sameTopFunctor(const TermList* ss,const TermList* tt);
   static bool equals(TermList t1, TermList t2);
+  bool containsVariable(TermList v) const;
 
 #if VDEBUG
   void assertValid() const;
@@ -139,7 +143,8 @@ private:
       /** true if literal */
       unsigned literal : 1;
       /** Ordering comparison result for commutative term arguments, one of
-       * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable) */
+       * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
+       * @see Term::ArgumentOrder */
       unsigned order : 3;
       /** reserved for whatever */
 #ifdef ARCH_X64
@@ -221,7 +226,7 @@ public:
    * True if the term's function/predicate symbol is commutative/symmetric.
    * @pre the term must be complex
    */
-  bool commutative()
+  bool commutative() const
   {
     return _args[0]._info.commutative;
   } // commutative
@@ -269,7 +274,11 @@ public:
   void assertValid() const;
 #endif
 
-  class VariableIterator {
+
+
+  class VariableIterator
+  : public IteratorCore<TermList>
+  {
   public:
     DECL_ELEMENT_TYPE(TermList);
     VariableIterator(const Term* term) : _stack(8), _used(false)
@@ -297,9 +306,10 @@ public:
    * Iterator that yields non-variable proper subterms
    * of specified @b term.
    */
-  class NonVariableIterator {
+  class NonVariableIterator
+  : public IteratorCore<TermList>
+  {
   public:
-    DECL_ELEMENT_TYPE(TermList);
     NonVariableIterator(const Term* term) : _stack(8), _used(false)
     {
       pushNextNonVar(term->args());
@@ -330,7 +340,32 @@ public:
     bool _used;
   };
 
+  enum ArgumentOrder {
+    UNKNOWN=0,
+    LESS=1,
+    EQUAL=2,
+    GREATER=3,
+    INCOMPARABLE=4
+  };
+
+  /** Return argument order as stored in term.
+   * (Can also return UNKNOWN if it wasn't determined yet.) */
+  ArgumentOrder askArgumentOrder() const
+  {
+    return static_cast<ArgumentOrder>(_args[0]._info.order);
+  }
+  ArgumentOrder getArgumentOrder()
+  {
+    if(static_cast<ArgumentOrder>(_args[0]._info.order)==UNKNOWN) {
+      _args[0]._info.order=computeArgumentOrder();
+    }
+    return static_cast<ArgumentOrder>(_args[0]._info.order);
+  }
+
 protected:
+  ArgumentOrder computeArgumentOrder() const;
+
+
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */

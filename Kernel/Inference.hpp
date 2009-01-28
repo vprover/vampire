@@ -137,7 +137,9 @@ public:
     /** factoring inference */
     FACTORING = 46u,
     /** subsumption resolution simplification rule */
-    SUBSUMPTION_RESOLUTION = 47u
+    SUBSUMPTION_RESOLUTION = 47u,
+    /** superposition inference */
+    SUPERPOSITION = 48u
   }; // class Inference::Rule
 
   explicit Inference(Rule r)

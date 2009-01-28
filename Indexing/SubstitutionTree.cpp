@@ -455,6 +455,18 @@ clientBDRecording(false)
   bd.drop();
 }
 
+SubstitutionTree::UnificationsIterator::~UnificationsIterator()
+{
+  if(clientBDRecording) {
+    subst.bdDone();
+    clientBDRecording=false;
+    clientBacktrackData.backtrack();
+  }
+  while(bdStack.isNonEmpty()) {
+    bdStack.pop().backtrack();
+  }
+}
+
 void SubstitutionTree::UnificationsIterator::createInitialBindings(Term* t)
 {
   CALL("SubstitutionTree::UnificationsIterator::createInitialBindings");
@@ -485,6 +497,12 @@ bool SubstitutionTree::UnificationsIterator::hasNext()
 {
   CALL("SubstitutionTree::UnificationsIterator::hasNext");
 
+  if(clientBDRecording) {
+    subst.bdDone();
+    clientBDRecording=false;
+    clientBacktrackData.backtrack();
+  }
+
   while(!ldIterator.hasNext() && findNextLeaf()) {}
   return ldIterator.hasNext();
 }
@@ -496,11 +514,7 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
   while(!ldIterator.hasNext() && findNextLeaf()) {}
   ASS(ldIterator.hasNext());
 
-  if(clientBDRecording) {
-    subst.bdDone();
-    clientBDRecording=false;
-    clientBacktrackData.backtrack();
-  }
+  ASS(!clientBDRecording);
 
   LeafData& ld=ldIterator.next();
 
@@ -537,15 +551,12 @@ bool SubstitutionTree::UnificationsIterator::findNextLeaf()
     //This shouldn't hapen during the regular retrieval process, but it
     //can happen when there are no literals inserted for a predicate,
     //or when predicates with zero arity are encountered.
+    ASS(bdStack.isEmpty());
     return false;
   }
 
   if(inLeaf) {
-    if(clientBDRecording) {
-      subst.bdDone();
-      clientBDRecording=false;
-      clientBacktrackData.backtrack();
-    }
+    ASS(!clientBDRecording);
     //Leave the current leaf
     bdStack.pop().backtrack();
     inLeaf=false;

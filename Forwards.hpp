@@ -29,6 +29,7 @@ using namespace Lib;
 class Signature;
 
 class TermList;
+typedef VirtualIterator<TermList> TermIterator;
 class Term;
 class Literal;
 typedef List<Literal*> LiteralList;

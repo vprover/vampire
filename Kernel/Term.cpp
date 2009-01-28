@@ -15,6 +15,8 @@
 
 #include "Signature.hpp"
 #include "Substitution.hpp"
+#include "Ordering.hpp"
+
 #include "Term.hpp"
 
 #include "../Indexing/TermSharing.hpp"
@@ -111,7 +113,7 @@ bool TermList::sameTop(const TermList* ss,const TermList* tt)
  */
 bool TermList::sameTopFunctor(const TermList* ss,const TermList* tt)
 {
-  if (ss->isVar() || tt->isVar()) {
+  if (!ss->isTerm() || !tt->isTerm()) {
     return false;
   }
   return ss->term()->functor() == tt->term()->functor();
@@ -154,6 +156,24 @@ bool TermList::equals(TermList t1, TermList t2)
     }
   }
   return true;
+}
+
+bool TermList::containsVariable(TermList v) const
+{
+  ASS(v.isVar());
+  if(v==*this) {
+    return true;
+  }
+  if(!isTerm()) {
+    return false;
+  }
+  Term::VariableIterator vit(term());
+  while(vit.hasNext()) {
+    if(vit.next()==v) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -554,6 +574,31 @@ bool Term::NonVariableIterator::hasNext()
   pushNextNonVar(t->term()->args());
   return !_stack.isEmpty();
 }
+
+/** Return commutative term/literal argument order. */
+Term::ArgumentOrder Term::computeArgumentOrder() const
+{
+  ASS(commutative());
+  ASS_EQ(arity(),2);
+
+  Ordering* ord=Ordering::instance();
+  switch(ord->compare(*nthArgument(0), *nthArgument(1)))
+  {
+  case Ordering::GREATER:
+    return GREATER;
+  case Ordering::LESS:
+    return LESS;
+  case Ordering::EQUAL:
+    return EQUAL;
+  case Ordering::INCOMPARABLE:
+    return INCOMPARABLE;
+  case Ordering::GREATER_EQ:
+  case Ordering::LESS_EQ:
+  default:
+    NOT_IMPLEMENTED;
+  }
+}
+
 
 /** Create a new literal, copy from @b l its predicate symbol and
  *  from the array @b args its arguments. Insert it into the sharing

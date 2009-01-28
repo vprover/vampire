@@ -37,20 +37,17 @@ public:
   SuperpositionSubtermIndex(TermIndexingStructure* is)
   : TermIndex(is) {};
 protected:
-  void onAddedToContainer(Clause* c);
-  void onRemovedFromContainer(Clause* c);
+  void handleClause(Clause* c, bool adding);
 };
 
 class SuperpositionLHSIndex
 : public TermIndex
 {
 public:
-  SuperpositionLHSIndex(TermIndexingStructure* is);
+  SuperpositionLHSIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
 protected:
-  void onAddedToContainer(Clause* c);
-  void onRemovedFromContainer(Clause* c);
-private:
-  Ordering* _ord;
+  void handleClause(Clause* c, bool adding);
 };
 
 };

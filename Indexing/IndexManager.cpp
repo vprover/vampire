@@ -57,6 +57,7 @@ Index* IndexManager::create(IndexType t)
 
   Index* res;
   LiteralIndexingStructure* is;
+  TermIndexingStructure* tis;
   switch(t) {
   case GENERATING_SUBST_TREE:
     is=new LiteralSubstitutionTree();
@@ -73,6 +74,18 @@ Index* IndexManager::create(IndexType t)
     res=new AtomicClauseSimplifyingLiteralIndex(is);
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
+
+  case SUPERPOSITION_SUBTERM_SUBST_TREE:
+    tis=new TermSubstitutionTree();
+    res=new SuperpositionSubtermIndex(tis);
+    res->attachContainer(_alg->getGenerationClauseContainer());
+    break;
+  case SUPERPOSITION_LHS_SUBST_TREE:
+    tis=new TermSubstitutionTree();
+    res=new SuperpositionLHSIndex(tis);
+    res->attachContainer(_alg->getGenerationClauseContainer());
+    break;
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

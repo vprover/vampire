@@ -263,6 +263,7 @@ protected:
     UnificationsIterator& operator=(const UnificationsIterator&);
   public:
     UnificationsIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
+    ~UnificationsIterator();
 
     bool hasNext();
     QueryResult next();
@@ -280,8 +281,9 @@ protected:
     bool enter(Node* n, BacktrackData& bd);
     void extractSpecialVariables(TermList t, BacktrackData& bd);
 
-    static const int QUERY_BANK=0;
-    static const int RESULT_BANK=1;
+
+    static const int QUERY_BANK=QRS_QUERY_BANK;
+    static const int RESULT_BANK=QRS_RESULT_BANK;
     static const int NORM_QUERY_BANK=2;
     static const int NORM_RESULT_BANK=3;
 

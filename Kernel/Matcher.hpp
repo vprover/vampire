@@ -50,7 +50,7 @@ public:
     CALL("MatchingUtils::matchTerms");
 
     if(base.isTerm()) {
-      if(!instance.isTerm()) {
+      if(!instance.isTerm() || base.term()->functor()!=instance.term()->functor()) {
 	return false;
       }
       return matchArgs(base.term(), instance.term(), binder);
@@ -312,8 +312,6 @@ private:
   MapBinder _binder;
 };
 
-
-
 /**
  * Matches two terms, using @b binder to store and check bindings
  * of base variables. @b binder must be a functor with parameters
@@ -327,6 +325,7 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
   CALL("MatchingUtils::matchArgs");
   ASS(base->shared());
   ASS(instance->shared());
+  ASS_EQ(base->functor(),instance->functor());
   if(base==instance && base->ground()) {
     return true;
   }
@@ -345,7 +344,7 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
 
     if(bt->isTerm()) {
       if(*bt==*it && bt->term()->ground()) {
-      } else if (TermList::sameTopFunctor(bt,it)) {
+      } else if (it->isTerm() && bt->term()->functor()==it->term()->functor()) {
 	Term* s = bt->term();
 	Term* t = it->term();
 	if(s->arity() > 0) {

@@ -17,7 +17,6 @@
 #include "Term.hpp"
 #include "Matcher.hpp"
 #include "MLMatcher.hpp"
-#include "MMSubstitution.hpp"
 
 #if VDEBUG
 #include <iostream>

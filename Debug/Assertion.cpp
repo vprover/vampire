@@ -69,6 +69,10 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
     cout << "Type condition in file " << file << ", line " << line
          << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
          << "\" instead of \"" << assumed <<"\".\n";
+  } else if( !desc->allocated ) {
+    cout << "Type condition in file " << file << ", line " << line
+         << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
+         << "\", but no longer is.\n";
   } else {
     return;
   }

@@ -272,6 +272,8 @@ string Inference::name() const
     return "factoring";
   case SUBSUMPTION_RESOLUTION:
     return "subsumption resolution";
+  case SUPERPOSITION:
+    return "superposition";
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

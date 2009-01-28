@@ -24,7 +24,7 @@ public:
   KBO(const Signature&);
   ~KBO();
   Result compare(Literal* l1, Literal* l2);
-  Result compare(TermList t1, TermList t2);
+  Result compare(TermList tl1, TermList tl2);
   static KBO* createReversedAgePreferenceConstantLevels();
   static KBO* createArityPreferenceConstantLevels();
   static KBO* createArityPreferenceAndLevels();
@@ -32,12 +32,11 @@ private:
   class State;
   /** Weight of variables */
   int _variableWeight;
-  /** Weight of predicate and function symbols not occurring in the
+  /** Weight of function symbols not occurring in the
    * signature */
   int _defaultSymbolWeight;
 
   int functionSymbolWeight(unsigned fun) { return _defaultSymbolWeight; }
-  int predicateHeaderWeight(unsigned pred) { return _defaultSymbolWeight; }
 
   int functionPrecedence(unsigned fun);
   int predicatePrecedence(unsigned pred);

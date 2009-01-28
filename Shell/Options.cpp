@@ -847,7 +847,7 @@ void Options::output (ostream& str) const
  */
 void Options::outputValue (ostream& str,int optionTag) const
 {
-  CALL("Options::setLrsFirstTimeCheck");
+  CALL("Options::outputValue");
 
   switch (optionTag) {
   case AGE_WEIGHT_RATIO:

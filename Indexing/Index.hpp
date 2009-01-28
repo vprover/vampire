@@ -14,6 +14,13 @@
 #include "../Lib/VirtualIterator.hpp"
 #include "../Saturation/ClauseContainer.hpp"
 
+/** Bank of the query term in substitution returned in SLQueryResult
+ * and TermQueryResult objects.*/
+#define QRS_QUERY_BANK 0
+/** Bank of the retrieved term in substitution returned in SLQueryResult
+ * and TermQueryResult objects.*/
+#define QRS_RESULT_BANK 1
+
 namespace Indexing
 {
 
@@ -66,8 +73,12 @@ public:
 protected:
   Index(): _attachedContainers(0), _subscriptionData(0) {}
 
-  virtual void onAddedToContainer(Clause* c) {}
-  virtual void onRemovedFromContainer(Clause* c) {}
+  void onAddedToContainer(Clause* c)
+  { handleClause(c, true); }
+  void onRemovedFromContainer(Clause* c)
+  { handleClause(c, false); }
+
+  virtual void handleClause(Clause* c, bool adding) {}
 
   //TODO: postponing index modifications during iteration (methods isBeingIterated() etc...)
 

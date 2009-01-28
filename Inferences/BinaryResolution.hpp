@@ -28,6 +28,9 @@ public:
   ClauseIterator generateClauses(Clause* premise);
 
 private:
+  struct UnificationsFn;
+  struct ResultFn;
+
   GeneratingLiteralIndex* _index;
 };
 
