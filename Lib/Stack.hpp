@@ -57,7 +57,6 @@ public:
     while(p!=_stack) {
       (--p)->~C();
     }
-    ASS_ALLOC_TYPE(_stack,"Stack<>");
     DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");
   }
 

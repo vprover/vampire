@@ -37,6 +37,10 @@ private:
   struct RewriteableSubtermsFn;
   struct ApplicableRewritesFn;
 
+  struct LHSsFn;
+  struct RewritableResultsFn;
+
+
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;

@@ -3,13 +3,6 @@
  * Implements class Superposition.
  */
 
-#include "Superposition.hpp"
-
-/**
- * @file BinaryResolution.cpp
- * Implements class BinaryResolution.
- */
-
 #include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Metaiterators.hpp"
@@ -24,12 +17,11 @@
 #include "../Kernel/Inference.hpp"
 
 #include "../Indexing/Index.hpp"
-#include "../Indexing/LiteralIndex.hpp"
 #include "../Indexing/IndexManager.hpp"
 #include "../Indexing/TermSharing.hpp"
 #include "../Saturation/SaturationAlgorithm.hpp"
 
-#include "BinaryResolution.hpp"
+#include "Superposition.hpp"
 
 namespace Inferences
 {
@@ -62,6 +54,27 @@ void Superposition::detach()
 }
 
 
+struct Superposition::LHSsFn
+{
+  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
+  OWN_RETURN_TYPE operator()(Literal* lit)
+  {
+    return pvi( pushPairIntoRightIterator(lit, Superposition::getLHSIterator(lit)) );
+  }
+};
+
+struct Superposition::RewritableResultsFn
+{
+  RewritableResultsFn(SuperpositionSubtermIndex* index) : _index(index) {}
+  DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
+  OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
+  {
+    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+  }
+private:
+  SuperpositionSubtermIndex* _index;
+};
+
 struct Superposition::RewriteableSubtermsFn
 {
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
@@ -73,8 +86,7 @@ struct Superposition::RewriteableSubtermsFn
 
 struct Superposition::ApplicableRewritesFn
 {
-  ApplicableRewritesFn(SuperpositionLHSIndex* index)
-  : _index(index) {}
+  ApplicableRewritesFn(SuperpositionLHSIndex* index) : _index(index) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
   OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
   {
@@ -294,8 +306,8 @@ TermIterator Superposition::getLHSIterator(Literal* lit)
     case Term::LESS:
       ASS(t1.isTerm());
       return pvi( getSingletonIterator(t1) );
-    case Term::EQUAL:
 #if VDEBUG
+    case Term::EQUAL:
       break;
     default:
       ASSERTION_VIOLATION;

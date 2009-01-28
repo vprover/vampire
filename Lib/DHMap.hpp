@@ -116,7 +116,6 @@ public:
       while(ep!=_afterLast) {
 	(ep++)->~Entry();
       }
-      ASS_ALLOC_TYPE(_entries, "DHMap::Entry");
       DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
     }
   }
