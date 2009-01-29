@@ -42,7 +42,7 @@ struct SLQueryResult
 
   Literal* literal;
   Clause* clause;
-  const MMSubstitution* substitution;
+  MMSubstitution* substitution;
 };
 
 /**
@@ -57,7 +57,7 @@ struct TermQueryResult
   TermList term;
   Literal* literal;
   Clause* clause;
-  const MMSubstitution* substitution;
+  MMSubstitution* substitution;
 };
 
 typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;

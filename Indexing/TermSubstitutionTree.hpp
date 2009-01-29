@@ -37,10 +37,22 @@ public:
 	  bool retrieveSubstitutions);
 
 private:
-  class TermQueryResultFunctor;
+  class TermQueryResultFn;
 
   template<class Iterator>
   TermQueryResultIterator getResultIterator(Term* term,
+	  bool retrieveSubstitutions);
+
+  struct LDToTermQueryResultFn;
+  struct LDToTermQueryResultWithSubstFn;
+  struct LeafToLDIteratorFn;
+  struct UnifyingContext;
+
+  template<class LDIt>
+  TermQueryResultIterator ldIteratorToTQRIterator(LDIt ldIt,
+	  TermList queryTerm, bool retrieveSubstitutions);
+
+  TermQueryResultIterator getAllUnifyingIterator(TermList var,
 	  bool retrieveSubstitutions);
 
   inline
@@ -49,7 +61,9 @@ private:
     return t->functor();
   }
 
-  SkipList<LeafData, LDComparator> _vars;
+
+  typedef SkipList<LeafData,LDComparator> LDSkipList;
+  LDSkipList _vars;
 };
 
 };

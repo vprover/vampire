@@ -252,6 +252,26 @@ protected:
   /** Array of nodes */
   Node** _nodes;
 
+  class LeafIterator
+  : public IteratorCore<Leaf*>
+  {
+  public:
+    LeafIterator(SubstitutionTree* st)
+    : _nextRootPtr(st->_nodes), _afterLastRootPtr(st->_nodes+st->_numberOfTopLevelNodes),
+    _nodeIterators(8) {}
+    bool hasNext();
+    Leaf* next()
+    {
+      ASS(_curr->isLeaf());
+      return static_cast<Leaf*>(_curr);
+    }
+  private:
+    Node** _nextRootPtr;
+    Node** _afterLastRootPtr;
+    Node* _curr;
+    Stack<NodeIterator> _nodeIterators;
+  };
+
   typedef pair<LeafData*, MMSubstitution*> QueryResult;
 
   class UnificationsIterator

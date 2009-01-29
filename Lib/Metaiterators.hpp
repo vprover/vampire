@@ -468,13 +468,14 @@ class UniquePersistentIterator
 {
 public:
   typedef ELEMENT_TYPE(Inner) T;
+  typedef Set<T> ItemSet;
 
-  explicit UniquePersistentIterator(Inner inn)
+  explicit UniquePersistentIterator(Inner& inn)
   {
     while(inn.hasNext()) {
       _items.insert(inn.next());
     }
-    _iit=typename Set<T>::Iterator(_items);
+    _iit=typename ItemSet::Iterator(_items);
   }
   bool hasNext() { return _iit.hasNext(); };
   T next()
@@ -484,8 +485,8 @@ public:
   bool knowsSize() const { return true; }
   size_t size() const { return _items.numberOfElements(); }
 private:
-  Set<T> _items;
-  typename Set<T>::Iterator _iit;
+  ItemSet _items;
+  typename ItemSet::Iterator _iit;
 };
 
 /**
@@ -498,6 +499,11 @@ template<class Inner>
 VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIterator(Inner it)
 {
   return vi( new UniquePersistentIterator<Inner>(it) );
+}
+template<class Inner>
+VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIteratorFromPtr(Inner* it)
+{
+  return vi( new UniquePersistentIterator<Inner>(*it) );
 }
 
 

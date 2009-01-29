@@ -116,6 +116,8 @@ struct Superposition::ForwardResultFn
     TermList tgtTermS = qr.substitution->apply(getRHS(qr.literal, qr.term), QRS_RESULT_BANK);
     Literal* tgtLitS = replace(rwLitS,rwTermS,tgtTermS);
 
+    //TODO: check for ordering constraints
+
     int clength = _cl->length();
     int dlength = qr.clause->length();
     int newLength = clength+dlength-1;
@@ -179,6 +181,8 @@ struct Superposition::BackwardResultFn
     TermList tgtTerm=getRHS(eqLit, arg.first.second);
     TermList tgtTermS = qr.substitution->apply(tgtTerm, QRS_QUERY_BANK);
     Literal* tgtLitS = replace(rwLitS,rwTermS,tgtTermS);
+
+    //TODO: check for ordering constraints
 
     int clength = _cl->length();
     int dlength = qr.clause->length();
@@ -340,7 +344,10 @@ TermIterator Superposition::getRewritableSubtermIterator(Literal* lit)
     switch(lit->getArgumentOrder())
     {
     case Term::INCOMPARABLE:
-      return vi( new Term::NonVariableIterator(lit));
+    {
+      Term::NonVariableIterator nvi(lit);
+      return getUniquePersistentIteratorFromPtr(&nvi);
+    }
     case Term::EQUAL:
     case Term::GREATER:
       sel=*lit->nthArgument(0);
@@ -356,10 +363,12 @@ TermIterator Superposition::getRewritableSubtermIterator(Literal* lit)
     if(!sel.isTerm()) {
       return TermIterator::getEmpty();
     }
-    return pvi( getConcatenatedIterator(getSingletonIterator(sel),
+    return getUniquePersistentIterator(
+	    getConcatenatedIterator(getSingletonIterator(sel),
 	    vi( new Term::NonVariableIterator(sel.term()) )) );
   } else {
-    return vi( new Term::NonVariableIterator(lit));
+    Term::NonVariableIterator nvi(lit);
+    return getUniquePersistentIteratorFromPtr(&nvi);
   }
 }
 

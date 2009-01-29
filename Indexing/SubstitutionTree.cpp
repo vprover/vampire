@@ -432,12 +432,35 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
   }
 }
 
+bool SubstitutionTree::LeafIterator::hasNext()
+{
+  for(;;) {
+	while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
+	  _nodeIterators.pop();
+	}
+	if(_nodeIterators.isEmpty()) {
+	  do {
+	    if(_nextRootPtr==_afterLastRootPtr) {
+	      return false;
+	    }
+	    _curr=*(_nextRootPtr++);
+	  } while(_curr==0);
+	} else {
+	  _curr=*_nodeIterators.top().next();
+	}
+	if(_curr->isLeaf()) {
+	  return true;
+	} else {
+	  _nodeIterators.push(static_cast<IntermediateNode*>(_curr)->allChildren());
+	}
+  }
+}
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed)
 : literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
-ldIterator(LDIterator::getEmpty()), nodeIterators(4), bdStack(4),
+ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
 clientBDRecording(false)
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
