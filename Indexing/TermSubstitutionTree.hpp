@@ -24,6 +24,8 @@ public:
 
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);
+  void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
+
 
   TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions);

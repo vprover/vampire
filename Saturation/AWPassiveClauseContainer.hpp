@@ -19,14 +19,14 @@ class AgeQueue
   : public ClauseQueue
 {
 protected:
-  virtual bool lessThan(const Clause*,const Clause*);
+  virtual bool lessThan(Clause*,Clause*);
 };
 
 class WeightQueue
   : public ClauseQueue
 {
 protected:
-  virtual bool lessThan(const Clause*,const Clause*);
+  virtual bool lessThan(Clause*,Clause*);
 };
 
 /**

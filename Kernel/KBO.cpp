@@ -96,7 +96,9 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
   } else {
     res=_lexResult;
   }
-  return applyVariableCondition(res);
+  res=applyVariableCondition(res);
+  ASS( !t1->ground() || !t2->ground() || res!=INCOMPARABLE);
+  return res;
 }
 
 Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)

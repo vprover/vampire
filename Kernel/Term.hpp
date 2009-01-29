@@ -365,7 +365,6 @@ public:
 protected:
   ArgumentOrder computeArgumentOrder() const;
 
-
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */

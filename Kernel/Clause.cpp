@@ -96,6 +96,7 @@ void Clause::computeWeight()
 
   _weight = 0;
   for (int i = _length-1; i >= 0; i--) {
+    ASS(_literals[i]->shared());
     _weight += _literals[i]->weight();
   }
 } // Clause::computeWeight
@@ -115,7 +116,7 @@ bool Clause::contains(Literal* lit)
 
 std::ostream& Kernel::operator<< (ostream& out, const Clause& cl )
 {
-  return out<<Test::Output::toString(&cl);
+  return out<<cl.toString();
 }
 
 #endif

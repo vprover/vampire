@@ -15,6 +15,7 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Unit.hpp"
 #include "../Kernel/Inference.hpp"
+#include "../Kernel/Ordering.hpp"
 
 #include "../Indexing/Index.hpp"
 #include "../Indexing/IndexManager.hpp"
@@ -22,6 +23,8 @@
 #include "../Saturation/SaturationAlgorithm.hpp"
 
 #include "Superposition.hpp"
+
+#include <iostream>
 
 namespace Inferences
 {
@@ -110,7 +113,7 @@ struct Superposition::ForwardResultFn
     TermList rwTerm=arg.first.second;
     Literal* rwLitS = qr.substitution->apply(rwLit, QRS_QUERY_BANK);
     TermList rwTermS = qr.substitution->apply(rwTerm, QRS_QUERY_BANK);
-    TermList tgtTermS = qr.substitution->apply(qr.term, QRS_RESULT_BANK);
+    TermList tgtTermS = qr.substitution->apply(getRHS(qr.literal, qr.term), QRS_RESULT_BANK);
     Literal* tgtLitS = replace(rwLitS,rwTermS,tgtTermS);
 
     int clength = _cl->length();
@@ -144,6 +147,18 @@ struct Superposition::ForwardResultFn
     return res;
   }
 private:
+  TermList getRHS(Literal* eq, TermList lhs)
+  {
+    ASS(eq->isEquality());
+    ASS(eq->isPositive());
+    if(*eq->nthArgument(0)==lhs) {
+      return *eq->nthArgument(1);
+    } else {
+      ASS(*eq->nthArgument(1)==lhs);
+      return *eq->nthArgument(0);
+    }
+  }
+
   Clause* _cl;
 };
 

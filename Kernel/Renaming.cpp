@@ -42,9 +42,7 @@ Term* Renaming::apply(Term* trm) const
     return apply(static_cast<Literal*>(trm));
   }
 
-  TermList tl;
-  tl.setTerm(trm);
-  TermList res=apply(tl);
+  TermList res=apply(TermList(trm));
   ASS(res.isTerm());
   return res.term();
 }

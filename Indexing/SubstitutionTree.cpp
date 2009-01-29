@@ -39,8 +39,11 @@ SubstitutionTree::SubstitutionTree(int nodes)
     _nextVar(0)
 {
   CALL("SubstitutionTree::SubstitutionTree");
-  ASS(nodes > 0);
 
+  if(nodes == 0) {
+    _nodes=0;
+    return;
+  }
   _nodes = new(ALLOC_KNOWN(nodes*sizeof(Node*),"SubstitutionTree::Node"))
                 Node*[nodes];
   for (int i = nodes-1;i >= 0;i--) {
@@ -56,17 +59,19 @@ SubstitutionTree::SubstitutionTree(int nodes)
 SubstitutionTree::~SubstitutionTree()
 {
   CALL("SubstitutionTree::~SubstitutionTree");
-  ASS_ALLOC_TYPE(_nodes, "SubstitutionTree::Node");
+  if(_nodes) {
+    ASS_ALLOC_TYPE(_nodes, "SubstitutionTree::Node");
 
-  for (int i = _numberOfTopLevelNodes-1; i>=0; i--) {
-    if(_nodes[i]!=0) {
-      delete _nodes[i];
+    for (int i = _numberOfTopLevelNodes-1; i>=0; i--) {
+      if(_nodes[i]!=0) {
+	delete _nodes[i];
+      }
     }
-  }
 
-  DEALLOC_KNOWN(_nodes,
-		_numberOfTopLevelNodes*sizeof(Node*),
-		"SubstitutionTree::Node");
+    DEALLOC_KNOWN(_nodes,
+	    _numberOfTopLevelNodes*sizeof(Node*),
+	    "SubstitutionTree::Node");
+  }
 } // SubstitutionTree::~SubstitutionTree
 
 

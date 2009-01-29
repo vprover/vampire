@@ -9,6 +9,7 @@
 
 #include "../Forwards.hpp"
 
+#include "../Kernel/Clause.hpp"
 #include "../Lib/Event.hpp"
 #include "../Indexing/IndexManager.hpp"
 #include "../Inferences/InferenceEngine.hpp"
@@ -18,7 +19,6 @@
 
 #if VDEBUG
 #include<iostream>
-#include "../Test/Output.hpp"
 #endif
 
 namespace Saturation
@@ -65,23 +65,23 @@ public:
   }
   void onActiveAdded(Clause* c)
   {
-    cout<<"Active added: "<<Test::Output::toString(c)<<endl;
+    cout<<"Active added: "<<(*c)<<endl;
   }
   void onPassiveAdded(Clause* c)
   {
-    cout<<"Passive added: "<<Test::Output::toString(c)<<endl;
+    cout<<"Passive added: "<<(*c)<<endl;
   }
   void onPassiveRemoved(Clause* c)
   {
-    cout<<"Passive removed: "<<Test::Output::toString(c)<<endl;
+    cout<<"Passive removed: "<<(*c)<<endl;
   }
   void onUnprocessedAdded(Clause* c)
   {
-    cout<<"Unprocessed added: "<<Test::Output::toString(c)<<endl;
+    cout<<"Unprocessed added: "<<(*c)<<endl;
   }
   void onUnprocessedRemoved(Clause* c)
   {
-    cout<<"Unprocessed removed: "<<Test::Output::toString(c)<<endl;
+    cout<<"Unprocessed removed: "<<(*c)<<endl;
   }
 #endif
 

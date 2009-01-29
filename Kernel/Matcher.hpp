@@ -329,6 +329,10 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
   if(base==instance && base->ground()) {
     return true;
   }
+  if(base->isLiteral() && base->arity()==0) {
+    return true;
+  }
+  ASS_G(base->arity(),0);
 
   TermList* bt=base->args();
   TermList* it=instance->args();

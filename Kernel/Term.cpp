@@ -578,6 +578,7 @@ bool Term::NonVariableIterator::hasNext()
 /** Return commutative term/literal argument order. */
 Term::ArgumentOrder Term::computeArgumentOrder() const
 {
+  ASS(shared());
   ASS(commutative());
   ASS_EQ(arity(),2);
 
@@ -631,6 +632,7 @@ Term::Term(const Term& t)
 
   _args[0] = t._args[0];
   _args[0]._info.shared = 0u;
+  _args[0]._info.order = 0u;
 } // Term::Term
 
 /** create a new literal and copy from l its content */

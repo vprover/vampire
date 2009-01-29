@@ -26,7 +26,7 @@ using namespace Saturation;
  * </ol>
  * @since 30/12/2007 Manchester
  */
-bool WeightQueue::lessThan(const Clause* c1,const Clause* c2)
+bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("WeightQueue::lessThan");
 
@@ -62,7 +62,7 @@ bool WeightQueue::lessThan(const Clause* c1,const Clause* c2)
  * </ol>
  * @since 30/12/2007 Manchester
  */
-bool AgeQueue::lessThan(const Clause* c1,const Clause* c2)
+bool AgeQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("AgeQueue::lessThan");
 

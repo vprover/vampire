@@ -26,7 +26,7 @@ _bwSimplifier(0), _selector(selector)
   _active=new ActiveClauseContainer();
 
 #if VDEBUG
-//  enableContainerPrintouts();
+  enableContainerPrintouts();
 #endif
 }
 

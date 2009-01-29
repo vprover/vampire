@@ -49,7 +49,7 @@ public:
   friend class Iterator;
 protected:
   /** comparison of clauses */
-  virtual bool lessThan(const Clause*,const Clause*) = 0;
+  virtual bool lessThan(Clause*,Clause*) = 0;
   /** Nodes in the skip list */
   class Node {
   public:

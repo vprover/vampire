@@ -21,40 +21,46 @@ TermSubstitutionTree::TermSubstitutionTree()
 void TermSubstitutionTree::insert(TermList t, Literal* lit, Clause* cls)
 {
   CALL("TermSubstitutionTree::insert");
-
-  LeafData ld(cls, lit, t);
-  if(t.isOrdinaryVar()) {
-    NOT_IMPLEMENTED;
-    _vars.insert(ld);
-  } else {
-    ASS(t.isTerm());
-    Term* term=t.term();
-
-    BindingQueue bq;
-    getBindings(term, bq);
-
-    SubstitutionTree::insert(_nodes+getRootNodeIndex(term), bq, ld);
-  }
+  handleTerm(t,lit,cls, true);
 }
 
 void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
 {
   CALL("TermSubstitutionTree::remove");
+  handleTerm(t,lit,cls, false);
+}
+
+void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, bool insert)
+{
+  CALL("TermSubstitutionTree::handleTerm");
 
   LeafData ld(cls, lit, t);
   if(t.isOrdinaryVar()) {
     NOT_IMPLEMENTED;
-    _vars.remove(ld);
+    if(insert) {
+      _vars.insert(ld);
+    } else {
+      _vars.remove(ld);
+    }
   } else {
     ASS(t.isTerm());
     Term* term=t.term();
 
-    BindingQueue bq;
-    getBindings(term, bq);
+    Renaming normalizer;
+    Renaming::normalizeVariables(term,normalizer);
+    Term* normTerm=normalizer.apply(term);
 
-    SubstitutionTree::remove(_nodes+getRootNodeIndex(term), bq, ld);
+    BindingQueue bq;
+    getBindings(normTerm, bq);
+
+    if(insert) {
+      SubstitutionTree::insert(_nodes+getRootNodeIndex(normTerm), bq, ld);
+    } else {
+      SubstitutionTree::remove(_nodes+getRootNodeIndex(normTerm), bq, ld);
+    }
   }
 }
+
 
 TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
 	  bool retrieveSubstitutions)

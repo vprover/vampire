@@ -105,7 +105,13 @@ public:
     _selected = s; }
 
   /** Return the weight */
-  int weight() const { return _weight; }
+  int weight()
+  {
+    if(!_weight) {
+      computeWeight();
+    }
+    return _weight;
+  }
   void computeWeight();
 
   /** If storage is set to NONE and there are no references to this class, destroy it. */

@@ -21,19 +21,18 @@ LiteralSubstitutionTree::LiteralSubstitutionTree()
 void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)
 {
   CALL("LiteralSubstitutionTree::insert");
-
-  Renaming normalizer;
-  Renaming::normalizeVariables(lit,normalizer);
-  Literal* normLit=normalizer.apply(lit);
-
-  BindingQueue bq;
-  getBindings(normLit, bq);
-  SubstitutionTree::insert(_nodes+getRootNodeIndex(lit), bq, LeafData(cls, lit));
+  handleLiteral(lit,cls,true);
 }
 
 void LiteralSubstitutionTree::remove(Literal* lit, Clause* cls)
 {
   CALL("LiteralSubstitutionTree::remove");
+  handleLiteral(lit,cls,false);
+}
+
+void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool insert)
+{
+  CALL("LiteralSubstitutionTree::handleLiteral");
 
   Renaming normalizer;
   Renaming::normalizeVariables(lit,normalizer);
@@ -41,9 +40,12 @@ void LiteralSubstitutionTree::remove(Literal* lit, Clause* cls)
 
   BindingQueue bq;
   getBindings(normLit, bq);
-  SubstitutionTree::remove(_nodes+getRootNodeIndex(lit), bq, LeafData(cls, lit));
+  if(insert) {
+    SubstitutionTree::insert(_nodes+getRootNodeIndex(normLit), bq, LeafData(cls, lit));
+  } else {
+    SubstitutionTree::remove(_nodes+getRootNodeIndex(normLit), bq, LeafData(cls, lit));
+  }
 }
-
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {

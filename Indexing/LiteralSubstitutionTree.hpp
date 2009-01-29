@@ -20,6 +20,7 @@ public:
 
   void insert(Literal* lit, Clause* cls);
   void remove(Literal* lit, Clause* cls);
+  void handleLiteral(Literal* lit, Clause* cls, bool insert);
 
   SLQueryResultIterator getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
