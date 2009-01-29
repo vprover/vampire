@@ -39,8 +39,9 @@ private:
 
   struct LHSsFn;
   struct RewritableResultsFn;
+  struct BackwardResultFn;
 
-
+  static TermList getRHS(Literal* eq, TermList lhs);
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;

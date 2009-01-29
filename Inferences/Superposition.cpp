@@ -163,17 +163,89 @@ private:
 };
 
 
+struct Superposition::BackwardResultFn
+{
+  BackwardResultFn(Clause* cl) : _cl(cl) {}
+  DECL_RETURN_TYPE(Clause*);
+  OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  {
+    CALL("Superposition::ForwardResultFn::operator()");
+
+    TermQueryResult& qr = arg.second;
+    Literal* rwLitS = qr.substitution->apply(qr.literal, QRS_RESULT_BANK);
+    TermList rwTermS = qr.substitution->apply(qr.term, QRS_RESULT_BANK);
+
+    Literal* eqLit=arg.first.first;
+    TermList tgtTerm=getRHS(eqLit, arg.first.second);
+    TermList tgtTermS = qr.substitution->apply(tgtTerm, QRS_QUERY_BANK);
+    Literal* tgtLitS = replace(rwLitS,rwTermS,tgtTermS);
+
+    int clength = _cl->length();
+    int dlength = qr.clause->length();
+    int newLength = clength+dlength-1;
+
+    Inference* inf = new Inference2(Inference::SUPERPOSITION, qr.clause, _cl);
+    Unit::InputType inpType = (Unit::InputType)
+    	Int::max(_cl->inputType(), qr.clause->inputType());
+
+    Clause* res = new(newLength) Clause(newLength, inpType, inf);
+
+    (*res)[0] = tgtLitS;
+    int next = 1;
+    for(int i=0;i<clength;i++) {
+      Literal* curr=(*_cl)[i];
+      if(curr!=eqLit) {
+	(*res)[next++] = qr.substitution->apply(curr, QRS_QUERY_BANK);
+      }
+    }
+    for(int i=0;i<dlength;i++) {
+      Literal* curr=(*qr.clause)[i];
+      if(curr!=qr.literal) {
+	(*res)[next++] = qr.substitution->apply(curr, QRS_RESULT_BANK);
+      }
+    }
+
+    res->setAge(Int::max(_cl->age(),qr.clause->age())+1);
+    env.statistics->backwardSuperposition++;
+
+    return res;
+  }
+private:
+  Clause* _cl;
+};
+
+
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   CALL("Superposition::generateClauses");
 
-  return pvi( getMappingIterator(
-	  getFlattenedIterator(getMappingIterator(
+  return pvi( getConcatenatedIterator(
+	  getMappingIterator(
 		  getFlattenedIterator(getMappingIterator(
-			  premise->getSelectedLiteralIterator(),
-			  RewriteableSubtermsFn())),
-		  ApplicableRewritesFn(_lhsIndex))),
-	  ForwardResultFn(premise)) );
+			  getFlattenedIterator(getMappingIterator(
+				  premise->getSelectedLiteralIterator(),
+				  RewriteableSubtermsFn())),
+			  ApplicableRewritesFn(_lhsIndex))),
+		  ForwardResultFn(premise)),
+	  getMappingIterator(
+		  getFlattenedIterator(getMappingIterator(
+			  getFlattenedIterator(getMappingIterator(
+				  premise->getSelectedLiteralIterator(),
+				  LHSsFn())),
+			  RewritableResultsFn(_subtermIndex))),
+		  BackwardResultFn(premise))) );
+}
+
+TermList Superposition::getRHS(Literal* eq, TermList lhs)
+{
+  ASS(eq->isEquality());
+  ASS(eq->isPositive());
+  if(*eq->nthArgument(0)==lhs) {
+    return *eq->nthArgument(1);
+  } else {
+    ASS(*eq->nthArgument(1)==lhs);
+    return *eq->nthArgument(0);
+  }
 }
 
 Literal* Superposition::replace(Literal* lit, TermList tSrc, TermList tDest)
