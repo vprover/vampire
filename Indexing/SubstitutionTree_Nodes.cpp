@@ -15,10 +15,10 @@
 namespace Indexing
 {
 
-class SubstitutionTree::IsPtrToVarNodePredicate
+struct SubstitutionTree::IsPtrToVarNodeFn
 {
-public:
-  static bool eval(Node** n)
+  DECL_RETURN_TYPE(bool);
+  bool operator()(Node** n)
   {
     return (*n)->term.isVar();
   }
@@ -62,7 +62,8 @@ public:
   inline
   NodeIterator variableChildren()
   {
-    return pvi( getFilteredIterator<IsPtrToVarNodePredicate>(NodeList::PtrIterator(_nodes)) );
+    return pvi( getFilteredIterator(NodeList::PtrIterator(_nodes),
+	    IsPtrToVarNodeFn()) );
   }
   Node** childByTop(TermList* t, bool canCreate);
   void remove(TermList* t);
@@ -162,8 +163,9 @@ public:
   inline
   NodeIterator variableChildren()
   {
-    return pvi( getWhileLimitedIterator<IsPtrToVarNodePredicate>(
-		    NodeSkipList::PtrIterator(_nodes)) );
+    return pvi( getWhileLimitedIterator(
+		    NodeSkipList::PtrIterator(_nodes),
+		    IsPtrToVarNodeFn()) );
   }
   Node** childByTop(TermList* t, bool canCreate)
   {

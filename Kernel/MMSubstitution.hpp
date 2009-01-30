@@ -37,11 +37,7 @@ public:
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
   bool unify(TermList t1,int index1, TermList t2, int index2);
-  bool unify(Literal* l1,int index1, Literal* l2, int index2);
-  bool unifyComplementary(Literal* l1,int index1, Literal* l2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
-  bool match(Literal* base,int baseIndex, Literal* instance, int instanceIndex,
-	  bool complementary);
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
   bool isUnbound(unsigned var, int index) const
   {
@@ -183,6 +179,9 @@ private:
   MMSubstitution(const MMSubstitution& obj);
   /** operator= is private and without a body, because we don't want any. */
   MMSubstitution& operator=(const MMSubstitution& obj);
+
+  bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
+  bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   static const int AUX_INDEX;
   static const int SPECIAL_INDEX;

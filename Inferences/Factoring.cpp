@@ -9,7 +9,6 @@
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/Comparison.hpp"
-#include "../Lib/DArray.hpp"
 #include "../Lib/PairUtils.hpp"
 
 #include "../Lib/Environment.hpp"
@@ -19,10 +18,6 @@
 #include "../Kernel/Unit.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/MMSubstitution.hpp"
-
-#include "../Indexing/Index.hpp"
-#include "../Indexing/IndexManager.hpp"
-#include "../Saturation/SaturationAlgorithm.hpp"
 
 #include "Factoring.hpp"
 
@@ -41,18 +36,18 @@ using namespace Saturation;
  * positions corresponding to these integers and one
  * of these literals. (Literal stays the same and unifiers vary.)
  */
-class FactoringUnificationsFn
+class Factoring::UnificationsFn
 {
 public:
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*,MMSubstitution*> >);
-  FactoringUnificationsFn(Clause* cl)
+  UnificationsFn(Clause* cl)
   : _cl(cl)
   {
     _subst=MMSubstitutionSP(new MMSubstitution());
   }
   OWN_RETURN_TYPE operator() (pair<unsigned,unsigned> nums)
   {
-    CALL("FactoringUnificationsFn::operator()");
+    CALL("Factoring::UnificationsFn::operator()");
 
     //we assume there are no duplicate literals
     ASS((*_cl)[nums.first]!=(*_cl)[nums.second]);
@@ -75,15 +70,15 @@ private:
  * applies the substitution, and returns resulting clause.
  * (Also it records this to statistics as factoring.)
  */
-class FactoringResultsFn
+class Factoring::ResultsFn
 {
 public:
   DECL_RETURN_TYPE(Clause*);
-  FactoringResultsFn(Clause* cl)
+  ResultsFn(Clause* cl)
   : _cl(cl), _cLen(cl->length()) {}
   OWN_RETURN_TYPE operator() (pair<Literal*,MMSubstitution*> arg)
   {
-    CALL("FactoringResultsFn::operator()");
+    CALL("Factoring::ResultsFn::operator()");
 
     unsigned newLength = _cLen-1;
     Inference* inf = new Inference1(Inference::FACTORING, _cl);
@@ -119,10 +114,10 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
     return ClauseIterator::getEmpty();
   }
   return pvi( getMappingIterator(
-	  getFlattenedIterator(
-		  getMappingIterator(getCombinationIterator(0u,premise->selected()),
-			  FactoringUnificationsFn(premise))),
-	  FactoringResultsFn(premise)) );
+	  getMapAndFlattenIterator(
+		  getCombinationIterator(0u,premise->selected()),
+		  UnificationsFn(premise)),
+	  ResultsFn(premise)) );
 }
 
 }

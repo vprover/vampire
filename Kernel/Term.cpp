@@ -638,6 +638,17 @@ Literal* Literal::create(Literal* l,TermList* args)
   return env.sharing->insert(m);
 } // Literal::create
 
+/** Return a new equality literal, with polarity @b polarity and
+ * arguments @b arg1 and @b arg2. Insert it into the sharing structure. */
+Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2)
+{
+   CALL("Literal::equality/3");
+   Literal* lit=new(2) Literal(0,2,polarity,true);
+   *lit->nthArgument(0)=arg1;
+   *lit->nthArgument(1)=arg2;
+   return env.sharing->insert(lit);
+}
+
 
 /** create a new term and copy from t the relevant part of t's content */
 Term::Term(const Term& t)

@@ -460,6 +460,7 @@ public:
   void setPolarity(bool positive)
   { _args[0]._info.polarity = positive ? 1 : 0; }
   static Literal* create(Literal* l,TermList* args);
+  static Literal* createEquality (bool polarity, TermList arg1, TermList arg2);
 
   static Literal* flattenOnArgument(const Literal*,int argumentNumber);
 
@@ -498,7 +499,7 @@ public:
   /** Return a new equality literal */
   static inline Literal* equality (bool polarity)
   {
-     CALL("Literal::equality");
+     CALL("Literal::equality/1");
      return new(2) Literal(0,2,polarity,true);
   }
 

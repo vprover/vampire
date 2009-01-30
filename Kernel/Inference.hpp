@@ -139,7 +139,9 @@ public:
     /** subsumption resolution simplification rule */
     SUBSUMPTION_RESOLUTION = 47u,
     /** superposition inference */
-    SUPERPOSITION = 48u
+    SUPERPOSITION = 48u,
+    /** equality factoring inference */
+    EQUALITY_FACTORING = 49u
   }; // class Inference::Rule
 
   explicit Inference(Rule r)

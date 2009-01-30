@@ -114,7 +114,7 @@ private:
     }
     ~CommutativeMatchIterator()
     {
-      if(_state!=FINISHED) {
+      if(_state!=FINISHED && _state!=FIRST) {
 	backtrack();
       }
       ASS(_bdata.isEmpty());
@@ -132,7 +132,6 @@ private:
       _used=false;
 
       if(_state!=FIRST) {
-        //undo the previous match
 	backtrack();
       }
       _matcher->bdRecord(_bdata);

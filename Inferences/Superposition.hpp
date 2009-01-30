@@ -27,10 +27,6 @@ public:
 
   ClauseIterator generateClauses(Clause* premise);
 
-  static TermIterator getRewritableSubtermIterator(Literal* lit);
-  static TermIterator getLHSIterator(Literal* lit);
-
-  static Literal* replace(Literal* lit, TermList what, TermList by);
 
 private:
   static Clause* performSuperposition(
@@ -45,8 +41,6 @@ private:
   struct LHSsFn;
   struct RewritableResultsFn;
   struct BackwardResultFn;
-
-  static TermList getRHS(Literal* eq, TermList lhs);
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;

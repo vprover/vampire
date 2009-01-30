@@ -55,14 +55,6 @@ public:
   static SaturationAlgorithmSP createFromOptions();
 
 #if VDEBUG
-  void enableContainerPrintouts()
-  {
-//    _active->addedEvent.subscribe(this,&SaturationAlgorithm::onActiveAdded);
-//    _passive->addedEvent.subscribe(this,&SaturationAlgorithm::onPassiveAdded);
-//    _passive->removedEvent.subscribe(this,&SaturationAlgorithm::onPassiveRemoved);
-//    _unprocessed->addedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedAdded);
-//    _unprocessed->removedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedRemoved);
-  }
   void onActiveAdded(Clause* c)
   {
     cout<<"Active added: "<<(*c)<<endl;

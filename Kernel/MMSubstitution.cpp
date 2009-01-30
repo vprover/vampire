@@ -41,39 +41,28 @@ const int MMSubstitution::AUX_INDEX=-3;
 const int MMSubstitution::SPECIAL_INDEX=-2;
 const int MMSubstitution::UNBOUND_INDEX=-1;
 
-
+/**
+ * Unify @b t1 and @b t2, and return true iff it was successful.
+ */
 bool MMSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
   CALL("MMSubstitution::unify/4");
   return unify(TermSpec(t1,index1), TermSpec(t2,index2));
 }
-bool MMSubstitution::unify(Literal* l1,int index1, Literal* l2, int index2)
+
+/**
+ * Unify arguments of @b t1 and @b t2, and return true iff it was successful.
+ *
+ * @b t1 and @b t2 can be either terms or literals.
+ */
+bool MMSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
 {
-  CALL("MMSubstitution::unify(Literal*...)");
-  if(l1->header()!=l2->header()) {
-    return false;
-  }
-  TermList l1TL;
-  TermList l2TL;
-  //here we treat Literals as Terms, which is not very
-  //clean, but Term is a base class of Literal after all
-  l1TL.setTerm(l1);
-  l2TL.setTerm(l2);
-  return unify(TermSpec(l1TL,index1), TermSpec(l2TL,index2));
-}
-bool MMSubstitution::unifyComplementary(Literal* l1,int index1, Literal* l2, int index2)
-{
-  CALL("MMSubstitution::unifyComplementary(Literal*...)");
-  if(l1->complementaryHeader()!=l2->header()) {
-    return false;
-  }
-  TermList l1TL;
-  TermList l2TL;
-  //here we treat Literals as Terms, which is not very
-  //clean, but Term is a base class of Literal after all
-  l1TL.setTerm(l1);
-  l2TL.setTerm(l2);
-  return unify(TermSpec(l1TL,index1), TermSpec(l2TL,index2));
+  CALL("MMSubstitution::unifyArgs");
+  ASS_EQ(t1->functor(),t2->functor());
+
+  TermList t1TL(t1);
+  TermList t2TL(t2);
+  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2));
 }
 
 bool MMSubstitution::match(TermList base,int baseIndex,
@@ -82,20 +71,19 @@ bool MMSubstitution::match(TermList base,int baseIndex,
   CALL("MMSubstitution::match(TermList...)");
   return match(TermSpec(base,baseIndex), TermSpec(instance,instanceIndex));
 }
-bool MMSubstitution::match(Literal* base,int baseIndex,
-	Literal* instance, int instanceIndex, bool complementary)
+/**
+ * Match arguments of @b t1 and @b t2, and return true iff it was successful.
+ *
+ * @b t1 and @b t2 can be either terms or literals.
+ */
+bool MMSubstitution::matchArgs(Term* base,int baseIndex,
+	Term* instance, int instanceIndex)
 {
   CALL("MMSubstitution::match(Literal*...)");
+  ASS_EQ(base->functor(),instance->functor());
 
-  if(!Literal::headersMatch(base,instance,complementary)) {
-    return false;
-  }
-  TermList baseTL;
-  TermList instanceTL;
-  //here we treat Literals as Terms, which is not very
-  //clean, but Term is a base class of Literal after all
-  baseTL.setTerm(base);
-  instanceTL.setTerm(instance);
+  TermList baseTL(base);
+  TermList instanceTL(instance);
   return match(TermSpec(baseTL,baseIndex), TermSpec(instanceTL,instanceIndex));
 }
 
@@ -379,7 +367,8 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
     toDo.push(TTPair(t1,t2));
   } else {
     if(!handleDifferentTops(t1,t2,toDo,0)) {
-      return false;
+      mismatch=true;
+      ASS(toDo.isEmpty());
     }
   }
 
@@ -811,22 +800,22 @@ SubstIterator MMSubstitution::getAssocIterator(MMSubstitution* subst,
   }
   if( !l1->commutative() ) {
     return pvi( getContextualIterator(getSingletonIterator(subst),
-	    AssocContext<Fn>(l1, l1Index, l2, l2Index, complementary)) );
+	    AssocContext<Fn>(l1, l1Index, l2, l2Index)) );
   } else {
     return vi(
-	    new AssocIterator<Fn>(subst, l1, l1Index, l2, l2Index, complementary));
+	    new AssocIterator<Fn>(subst, l1, l1Index, l2, l2Index));
   }
 }
 
 template<class Fn>
 struct MMSubstitution::AssocContext
 {
-  AssocContext(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
-  : _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index), _complementary(complementary) {}
+  AssocContext(Literal* l1, int l1Index, Literal* l2, int l2Index)
+  : _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index) {}
   bool enter(MMSubstitution* subst)
   {
     subst->bdRecord(_bdata);
-    bool res=Fn::associate(subst, _l1, _l1i, _l2, _l2i, _complementary);
+    bool res=Fn::associate(subst, _l1, _l1i, _l2, _l2i);
     if(!res) {
       subst->bdDone();
       ASS(_bdata.isEmpty());
@@ -882,36 +871,107 @@ class MMSubstitution::AssocIterator
 {
 public:
   AssocIterator(MMSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index, bool complementary)
+	  Literal* l2, int l2Index)
   : _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2),
-  _l2i(l2Index), _complementary(complementary),
-  _matchIndex(0), _empty(false), _used(true)
+  _l2i(l2Index), _state(FIRST), _used(true)
   {
-    ASS(Literal::headersMatch(_l1,_l2,_complementary));
-    _subst->bdRecord(_bdata);
+    ASS_EQ(_l1->functor(),_l2->functor());
+    ASS(_l1->commutative());
+    ASS_EQ(_l1->arity(),2);
   }
   ~AssocIterator()
   {
-    _subst->bdDone();
-    _bdata.backtrack();
+    CALL("MMSubstitution::AssocIterator::~AssocIterator");
+
+    if(_state!=FINISHED && _state!=FIRST) {
+	backtrack();
+    }
+    ASS(_bdata.isEmpty());
   }
-  bool hasNext();
+  bool hasNext()
+  {
+    CALL("MMSubstitution::AssocIterator::hasNext");
+
+    if(_state==FINISHED) {
+      return false;
+    }
+    if(!_used) {
+      return true;
+    }
+    _used=false;
+
+    if(_state!=FIRST) {
+      backtrack();
+    }
+    _subst->bdRecord(_bdata);
+
+    switch(_state) {
+    case NEXT_STRAIGHT:
+      if(Fn::associate(_subst, _l1, _l1i, _l2, _l2i)) {
+	_state=NEXT_REVERSED;
+	break;
+      }
+      //no break here intentionally
+    case NEXT_REVERSED:
+    {
+      TermList t11=*_l1->nthArgument(0);
+      TermList t12=*_l1->nthArgument(1);
+      TermList t21=*_l2->nthArgument(0);
+      TermList t22=*_l2->nthArgument(1);
+      if(Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
+	if(Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
+	  _state=NEXT_CLEANUP;
+	  break;
+	}
+	//the first successful association will be undone
+	//in case NEXT_CLEANUP
+      }
+    }
+    //no break here intentionally
+    case NEXT_CLEANUP:
+      //undo the previous match
+      backtrack();
+      _state=FINISHED;
+#if VDEBUG
+      break;
+    default:
+      ASSERTION_VIOLATION;
+#endif
+    }
+    ASS(_state!=FINISHED || _bdata.isEmpty());
+    return _state!=FINISHED;
+  }
+
   MMSubstitution* next()
   {
     _used=true;
     return _subst;
   }
 private:
+  void backtrack()
+  {
+    CALL("MMSubstitution::AssocIterator::backtrack");
+
+    ASS_EQ(&_bdata,&_subst->bdGet());
+    _subst->bdDone();
+    _bdata.backtrack();
+  }
+  enum State {
+    FIRST=0,
+    NEXT_STRAIGHT=0,
+    NEXT_REVERSED=1,
+    NEXT_CLEANUP=2,
+    FINISHED=3
+  };
+
   MMSubstitution* _subst;
   Literal* _l1;
   int _l1i;
   Literal* _l2;
   int _l2i;
-  bool _complementary;
   BacktrackData _bdata;
 
-  unsigned _matchIndex;
-  bool _empty;
+  State _state;
   /**
    * true if the current substitution have already been
    * retrieved by the next() method, or if there isn't
@@ -921,8 +981,8 @@ private:
 };
 struct MMSubstitution::MatchingFn {
   static bool associate(MMSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index, bool complementary)
-  { return subst->match(l1,l1Index,l2,l2Index,complementary); }
+	  Literal* l2, int l2Index)
+  { return subst->matchArgs(l1,l1Index,l2,l2Index); }
 
   static bool associate(MMSubstitution* subst, TermList t1, int t1Index,
 	  TermList t2, int t2Index)
@@ -930,81 +990,13 @@ struct MMSubstitution::MatchingFn {
 };
 struct MMSubstitution::UnificationFn {
   static bool associate(MMSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index, bool complementary)
-  {
-    if(complementary) {
-      return subst->unifyComplementary(l1,l1Index,l2,l2Index);
-    } else {
-      return subst->unify(l1,l1Index,l2,l2Index);
-    }
-  }
+	  Literal* l2, int l2Index)
+  { return subst->unifyArgs(l1,l1Index,l2,l2Index); }
 
   static bool associate(MMSubstitution* subst, TermList t1, int t1Index,
 	  TermList t2, int t2Index)
   { return subst->unify(t1,t1Index,t2,t2Index); }
 };
-
-
-template<class Fn>
-bool MMSubstitution::AssocIterator<Fn>::hasNext()
-{
-  if(_empty) {
-    return false;
-  }
-  if(!_used) {
-    return true;
-  }
-  _used=false;
-
-  if(_matchIndex>0) {
-    //undo the previous match
-    _subst->bdDone();
-    _bdata.backtrack();
-    _subst->bdRecord(_bdata);
-  }
-
-  if(!_l1->commutative()) {
-    if(_matchIndex==0) {
-      if(!Fn::associate(_subst, _l1, _l1i, _l2, _l2i, _complementary)) {
-	_empty=true;
-      }
-    } else {
-      _empty=true;
-    }
-  } else {
-    ASS(_l1->arity()==2);
-    switch(_matchIndex) {
-    case 0:
-      if(Fn::associate(_subst, _l1, _l1i, _l2, _l2i, _complementary)) {
-	break;
-      }
-      //no break here intentionally
-    case 1:
-    {
-      TermList t11=*_l1->nthArgument(0);
-      TermList t12=*_l1->nthArgument(1);
-      TermList t21=*_l2->nthArgument(0);
-      TermList t22=*_l2->nthArgument(1);
-      if(Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
-	if(Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
-	  break;
-	}
-	//undo the first successful association
-	_subst->bdDone();
-	_bdata.backtrack();
-	_subst->bdRecord(_bdata);
-      }
-    }
-      //no break here intentionally
-    default:
-      _empty=true;
-    }
-  }
-  ASS(!_empty || _bdata.isEmpty());
-  _matchIndex++;
-  return !_empty;
-}
-
 
 
 #if VDEBUG

@@ -125,28 +125,29 @@ StaticCastIterator<To,Inner> getStaticCastIterator(Inner it)
   return StaticCastIterator<To,Inner>(it);
 }
 
-struct NonzeroPredicate
+struct NonzeroFn
 {
+  DECL_RETURN_TYPE(bool);
   template<typename T>
-  static bool eval(T obj)
+  bool operator()(T obj)
   {
     return obj!=0;
   }
 };
 
 /**
- * Implementation object for VirtualIterator, that can proxy any
- * non-virtual iterator, that supports hasNext() and next() methods,
- * and yields only those elements, for which Predicate::eval()
+ * A meta-iterator that yields only those elements of
+ * underlying iterator, for which @b func(element)
  * returns true.
  */
-template<class Predicate, class Inner>
+template<class Inner, class Functor>
 class FilteredIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
 
-  explicit FilteredIterator(Inner inn) :_inn(inn), _nextStored(false) {}
+  FilteredIterator(Inner inn, Functor func)
+  : _func(func), _inn(inn), _nextStored(false) {}
   bool hasNext()
   {
     if(_nextStored) {
@@ -154,7 +155,7 @@ public:
     }
     while(_inn.hasNext()) {
       _next=_inn.next();
-      if(Predicate::eval(_next)) {
+      if(_func(_next)) {
 	_nextStored=true;
 	return true;
       }
@@ -171,30 +172,34 @@ public:
     return _next;
   };
 private:
+  Functor _func;
   Inner _inn;
   OWN_ELEMENT_TYPE _next;
   bool _nextStored;
 };
 
-template<class Predicate, class Inner>
-FilteredIterator<Predicate,Inner> getFilteredIterator(Inner inn)
+/**
+ * Return meta-iterator that yields only those elements of
+ * iterator @b inn, for which @b func(element) returns true.
+ */
+template<class Inner, class Functor>
+FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
 {
-  return FilteredIterator<Predicate,Inner>(inn);
+  return FilteredIterator<Inner,Functor>(inn, func);
 }
 
 
 /**
- * Implementation object for VirtualIterator, that can proxy any
- * non-virtual iterator, that supports hasNext() and next() methods,
- * and yields its elements only until Predicate::eval() returns false
- * for a value.
+ * A meta-iterator that yields elements of underlying iterator
+ * only until @b func(element) returns false for some element.
  */
-template<class Predicate, class Inner>
+template<class Inner, class Functor>
 class WhileLimitedIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
-  explicit WhileLimitedIterator(Inner inn) :_inn(inn), _nextStored(false) {}
+  WhileLimitedIterator(Inner inn, Functor func)
+  : _func(func), _inn(inn), _nextStored(false) {}
   bool hasNext()
   {
     if(!_nextStored) {
@@ -204,7 +209,7 @@ public:
       _next=_inn.next();
       _nextStored=true;
     }
-    return Predicate::eval(_next);
+    return _func(_next);
   };
   OWN_ELEMENT_TYPE next()
   {
@@ -216,15 +221,20 @@ public:
     return _next;
   };
 private:
+  Functor _func;
   Inner _inn;
   OWN_ELEMENT_TYPE _next;
   bool _nextStored;
 };
 
-template<class Predicate, class Inner>
-WhileLimitedIterator<Predicate,Inner> getWhileLimitedIterator(Inner inn)
+/**
+ * Return meta-iterator that yields elements of iterator @b inn
+ * only until @b func(element) returns false for some element.
+ */
+template<class Inner, class Functor>
+WhileLimitedIterator<Inner,Functor> getWhileLimitedIterator(Inner inn, Functor func)
 {
-  return WhileLimitedIterator<Predicate,Inner>(inn);
+  return WhileLimitedIterator<Inner,Functor>(inn, func);
 }
 
 
@@ -293,12 +303,12 @@ class MappingIterator
 public:
   DECL_ELEMENT_TYPE(RETURN_TYPE(Functor));
   explicit MappingIterator(Inner inner, Functor func)
-  : _inner(inner), _func(func) {}
+  : _func(func), _inner(inner) {}
   bool hasNext() { return _inner.hasNext(); };
   RETURN_TYPE(Functor) next() { return _func(_inner.next()); };
 private:
-  Inner _inner;
   Functor _func;
+  Inner _inner;
 };
 
 template<typename Inner, typename Functor>
@@ -426,6 +436,14 @@ FlatteningIterator<T> getFlattenedIterator(T it)
 {
   return FlatteningIterator<T>(it);
 }
+template<typename Inner, typename Functor>
+FlatteningIterator<MappingIterator<Inner,Functor> > getMapAndFlattenIterator(Inner it, Functor f)
+{
+  return FlatteningIterator<MappingIterator<Inner,Functor> >(
+	  MappingIterator<Inner,Functor>(it, f) );
+}
+
+
 
 template<typename T, class Inner>
 class PersistentIterator
@@ -616,7 +634,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
 
   ContextualIterator(Inner iit, Ctx context)
-  : _inContext(false), _used(true), _iit(iit), _context(context) {}
+  : _inContext(false), _used(true), _context(context), _iit(iit) {}
 
   ~ContextualIterator()
   {
@@ -656,9 +674,9 @@ private:
 
   bool _inContext;
   bool _used;
-  ELEMENT_TYPE(Inner) _current;
-  Inner _iit;
   Ctx _context;
+  Inner _iit;
+  ELEMENT_TYPE(Inner) _current;
 };
 
 template<class Inner, class Ctx>

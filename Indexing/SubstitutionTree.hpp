@@ -191,7 +191,7 @@ protected:
   };
 
   //These classes and methods are defined in SubstitutionTree_Nodes.cpp
-  class IsPtrToVarNodePredicate;
+  class IsPtrToVarNodeFn;
   class UListIntermediateNode;
   class UListLeaf;
   class SListIntermediateNode;
