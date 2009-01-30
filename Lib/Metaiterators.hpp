@@ -125,6 +125,14 @@ StaticCastIterator<To,Inner> getStaticCastIterator(Inner it)
   return StaticCastIterator<To,Inner>(it);
 }
 
+struct NonzeroPredicate
+{
+  template<typename T>
+  static bool eval(T obj)
+  {
+    return obj!=0;
+  }
+};
 
 /**
  * Implementation object for VirtualIterator, that can proxy any

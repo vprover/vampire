@@ -109,7 +109,7 @@ public:
   static bool sameTop(const TermList* ss,const TermList* tt);
   static bool sameTopFunctor(const TermList* ss,const TermList* tt);
   static bool equals(TermList t1, TermList t2);
-  bool containsVariable(TermList v) const;
+  bool containsSubterm(TermList v);
 
 #if VDEBUG
   void assertValid() const;

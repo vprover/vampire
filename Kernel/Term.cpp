@@ -158,22 +158,40 @@ bool TermList::equals(TermList t1, TermList t2)
   return true;
 }
 
-bool TermList::containsVariable(TermList v) const
+bool TermList::containsSubterm(TermList trm)
 {
-  ASS(v.isVar());
-  if(v==*this) {
+  CALL("Term::containsSubterm");
+  ASS(!trm.isTerm() || trm.term()->shared());
+
+  if(trm==*this) {
     return true;
   }
-  if(!isTerm()) {
+  if(!isTerm() || term()->arity()==0) {
     return false;
   }
-  Term::VariableIterator vit(term());
-  while(vit.hasNext()) {
-    if(vit.next()==v) {
+  ASS(term()->shared());
+  ASSERT_VALID(*term());
+
+  TermList* ts=term()->args();
+  static Stack<TermList*> stack(4);
+  for(;;) {
+    if(*ts==trm) {
       return true;
     }
+    if(!ts->next()->isEmpty()) {
+      stack.push(ts->next());
+    }
+    if(ts->isTerm()) {
+      ASSERT_VALID(*ts->term());
+      if(ts->term()->arity()) {
+	stack.push(ts->term()->args());
+      }
+    }
+    if(stack.isEmpty()) {
+      return false;
+    }
+    ts=stack.pop();
   }
-  return false;
 }
 
 /**

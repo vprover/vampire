@@ -33,6 +33,11 @@ public:
   static Literal* replace(Literal* lit, TermList what, TermList by);
 
 private:
+  static Clause* performSuperposition(
+	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm, int rwIndex,
+	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS, int eqIndex,
+	  MMSubstitution* subst);
+
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;
   struct ApplicableRewritesFn;

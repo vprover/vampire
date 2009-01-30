@@ -281,6 +281,7 @@ void KBO::State::traverse(Term* t1, Term* t2)
 {
   CALL("KBO::State::traverse");
   ASS(t1->functor()==t2->functor());
+  ASS(t1->arity());
 
   TermList* ss=t1->args();
   TermList* tt=t2->args();
@@ -296,6 +297,7 @@ void KBO::State::traverse(Term* t1, Term* t2)
       if(TermList::sameTopFunctor(ss,tt)) {
 	ASS(ss->isTerm());
 	ASS(tt->isTerm());
+	ASS(ss->term()->arity());
 	stack.push(ss->term()->args());
 	stack.push(tt->term()->args());
       } else {
@@ -411,14 +413,14 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2)
     if(existsZeroWeightUnaryFunction()) {
       NOT_IMPLEMENTED;
     } else {
-      return tl2.containsVariable(tl1) ? LESS : INCOMPARABLE;
+      return tl2.containsSubterm(tl1) ? LESS : INCOMPARABLE;
     }
   }
   if(tl2.isOrdinaryVar()) {
     if(existsZeroWeightUnaryFunction()) {
       NOT_IMPLEMENTED;
     } else {
-      return tl1.containsVariable(tl2) ? GREATER : INCOMPARABLE;
+      return tl1.containsSubterm(tl2) ? GREATER : INCOMPARABLE;
     }
   }
 
