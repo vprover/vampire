@@ -139,8 +139,10 @@ VT_OBJ = Test/Output.o
 
 VAMP_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 ALUC_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VCOMPIT_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
 VAMPIRE_OBJ = $(VAMP_BASIC) Global.o vampire.o
+VCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o vcompit.o
 SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
 TEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_SubstitutionTree.o
 RTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_retrieval.o
@@ -155,17 +157,12 @@ ALUCARD_OBJ = $(ALUC_BASIC) Global.o alucard.o
 
 all:#default make disabled
 
-dracula: $(VAMPIRE_OBJ)
-	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o dracula
-	strip dracula
-
 vampire: $(VAMPIRE_OBJ)
 	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
 #	strip vampire
 
-vamp: $(VAMPIRE_OBJ)
-	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vamp
-	strip vamp
+vcompit: $(VCOMPIT_OBJ)
+	$(CXX) $(CXXFLAGS) $(VCOMPIT_OBJ) -o vcompit
 
 # Vampipre for valgrind
 vv: $(VAMPIRE_OBJ)

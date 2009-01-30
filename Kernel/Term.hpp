@@ -193,6 +193,14 @@ public:
 
     return _args + (_arity - n);
   }
+  /** return the nth argument (counting from 0) */
+  TermList* nthArgument(int n)
+  {
+    ASS(n >= 0);
+    ASS((unsigned)n < _arity);
+
+    return _args + (_arity - n);
+  }
   /** return the arguments */
   TermList* args()
   { return _args + _arity; }

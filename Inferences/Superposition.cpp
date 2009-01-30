@@ -385,26 +385,15 @@ TermIterator Superposition::getLHSIterator(Literal* lit)
     switch(lit->getArgumentOrder())
     {
     case Term::INCOMPARABLE:
-      if(t0.isVar()) {
-	if(t1.isVar()) {
-	  break;
-	}
-	return pvi( getSingletonIterator(t1) );
-      }
-      if(t1.isVar()) {
-	return pvi( getSingletonIterator(t0) );
-      }
       return pvi( getConcatenatedIterator(getSingletonIterator(t0),
 	      getSingletonIterator(t1)) );
     case Term::GREATER:
-      ASS(t0.isTerm());
       return pvi( getSingletonIterator(t0) );
     case Term::LESS:
-      ASS(t1.isTerm());
       return pvi( getSingletonIterator(t1) );
 #if VDEBUG
     case Term::EQUAL:
-      break;
+      //there should be no equality literals of equal terms
     default:
       ASSERTION_VIOLATION;
 #endif

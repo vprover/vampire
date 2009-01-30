@@ -19,6 +19,7 @@
 #include "Kernel/Term.hpp"
 
 #include "Indexing/TermSharing.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/CommandLine.hpp"
@@ -29,6 +30,7 @@
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
+using namespace Indexing;
 
 #define INPUTSIZE      524288    // 500Kb read from disk each time
 #define MAXTERMSIZE    2000      // maximum number of chars of each term
@@ -38,7 +40,7 @@ typedef char *stringterm;
 #define IsVar(x)  ( (x>=48 && x<=57) || (x>=65 && x<=90) )
 #define IsSym(x)  ( (x>=97 && x<=255) )
 
-void ApplicationOp(char op, TermT t);
+void ApplicationOp(char op, TermList t);
 TermList MakeTerm(char* str);
 
 
@@ -57,7 +59,7 @@ SymbolTableEntry symbolTable[256];
 
 
 char buf[INPUTSIZE];
-Term* terms[INPUTSIZE/2];     // terms
+TermList terms[INPUTSIZE/2];     // terms
 char oper[INPUTSIZE/2];        // operations
 
 int insertions=0;
@@ -81,7 +83,8 @@ void readSymbolTable(FILE* in)
       fscanf(in,"/%d\n",&arity);
       symbolTable[(int)c].arity=arity;
       symbolTable[(int)c].used=true;
-      symbolTable[(int)c].num=env.signature->addFunction(c,arity);
+      char convArr[2]={c,0};
+      symbolTable[(int)c].num=env.signature->addFunction(convArr,arity);
       c=getc(in);
     }
   c=getc(in); // read newline after $
@@ -111,6 +114,7 @@ int main( int argc, char *argv[] )
   Timer timer;
   timer.start();
   env.timer = &timer;
+  env.signature = new Kernel::Signature;
   Indexing::TermSharing sharing;
   env.sharing = &sharing;
   env.options = &options;
@@ -129,7 +133,7 @@ int main( int argc, char *argv[] )
     {
       /* ====== read new terms from disk ======== */
       int i=0;
-      c=getc(in);
+      char c=getc(in);
       while (1)
       {
 	if (c==EOF) {
@@ -164,6 +168,7 @@ int main( int argc, char *argv[] )
 
       /* ====== perform operations ============== */
       operations = operations + numops;
+      printf("%d operations loaded.\n",numops);
 
       compitTimer.start();
       for (j=0;j<numops;j++) {
@@ -181,25 +186,29 @@ int main( int argc, char *argv[] )
 }
 
 /* The actual queries are performed (send to Waldmeister). */
-void ApplicationOp(char op, TermT t)
+void ApplicationOp(char op, TermList t)
 {
+  static TermSubstitutionTree* index=0;
+  if(!index) {
+    index=new TermSubstitutionTree();
+  }
   int found;
   switch (op)
     {
     case '+':
       insertions++;
-      w_insert(t);
+      index->insert(t,0,0);
       break;
     case '-':
-      w_remove(t);
+      index->remove(t,0,0);
       deletions++;
       break;
     case '!':
-      found = w_match(t);
+      found = index->getGeneralizations(t,false).hasNext();
       if (!found) { printf("match not found!\n"); exit(1); }
       break;
     case '?':
-      found = w_match(t);
+      found = index->getGeneralizations(t,false).hasNext();
       if (found)  { printf("wrong match found! (w/ %d).\n",found); exit(1); }
       break;
     }
@@ -216,8 +225,9 @@ TermList MakeTerm(char* str)
   ASS(chars.isEmpty());
   ASS(terms.isEmpty());
   ASS(args.isEmpty());
-  while(str) {
-    chars.push(*(str++));
+  char* ptr=str;
+  while(*ptr) {
+    chars.push(*(ptr++));
   }
 
   while(!chars.isEmpty()) {
@@ -228,26 +238,31 @@ TermList MakeTerm(char* str)
       args.push(aux);
     } else {
       ASS(IsSym(ch));
-      ASS(symbolTable[ch].used);
+      ASS(symbolTable[(int)ch].used);
 
-      unsigned functor=symbolTable[ch].num;
-      unsigned arity=symbolTable[ch].arity;
+      unsigned functor=symbolTable[(int)ch].num;
+      unsigned arity=symbolTable[(int)ch].arity;
       ASS(arity<=args.length());
 
       Term* trm=new(arity) Term();
       trm->makeSymbol(functor, arity);
 
-      TermList* arg=trm->args();
-      while(arg->isNonEmpty()) {
-	*arg=args.pop();
-	arg=arg->next();
+      for(int i=arity-1;i>=0;i--) {
+	*trm->nthArgument(i)=args.pop();
       }
+//      TermList* arg=trm->args();
+//      while(arg->isNonEmpty()) {
+//	*arg=args.pop();
+//	arg=arg->next();
+//      }
 
       TermList aux;
       aux.setTerm(env.sharing->insert(trm));
       args.push(aux);
     }
   }
-  ASS(chars.isEmpty() && terms.isEmpty() && args.length()==1);
+  ASS(chars.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(args.length(),1);
   return args.pop();
 }
