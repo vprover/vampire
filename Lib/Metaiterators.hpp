@@ -53,10 +53,10 @@ public:
   _index(0), _size(_arr.size()) {}
   ArrayishObjectIterator(Arr& arr, size_t size) : _arr(arr),
   _index(0), _size(size) {}
-  bool hasNext() { return _index<_size; }
-  ELEMENT_TYPE(Arr) next() { ASS(_index<_size); return _arr[_index++]; }
-  bool knowsSize() { return true;}
-  bool size() { return _size;}
+  inline bool hasNext() { return _index<_size; }
+  inline ELEMENT_TYPE(Arr) next() { ASS(_index<_size); return _arr[_index++]; }
+  inline bool knowsSize() { return true;}
+  inline bool size() { return _size;}
 private:
   Arr& _arr;
   size_t _index;
@@ -68,10 +68,10 @@ class PointerIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
-  PointerIterator(T* first, T* afterLast) :
+  inline PointerIterator(T* first, T* afterLast) :
     _curr(first), _afterLast(afterLast) {}
-  bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
-  T next() { ASS(hasNext()); return *(_curr++); }
+  inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
+  inline T next() { ASS(hasNext()); return *(_curr++); }
 private:
   T* _curr;
   T* _afterLast;
@@ -88,16 +88,17 @@ class SingletonIterator
 public:
   DECL_ELEMENT_TYPE(T);
   explicit SingletonIterator(T el) : _finished(false), _el(el) {}
-  bool hasNext() { return !_finished; };
-  T next() { ASS(!_finished); _finished=true; return _el; };
-  bool knowsSize() const { return true; }
-  size_t size() const { return 1; }
+  inline bool hasNext() { return !_finished; };
+  inline T next() { ASS(!_finished); _finished=true; return _el; };
+  inline bool knowsSize() const { return true; }
+  inline size_t size() const { return 1; }
 private:
   bool _finished;
   T _el;
 };
 
 template<typename T>
+inline
 SingletonIterator<T> getSingletonIterator(T el)
 {
   return SingletonIterator<T>(el);
@@ -113,13 +114,14 @@ class StaticCastIterator
 public:
   DECL_ELEMENT_TYPE(To);
   explicit StaticCastIterator(Inner inn) :_inn(inn) {}
-  bool hasNext() { return _inn.hasNext(); };
-  To next() { return static_cast<To>(_inn.next()); };
+  inline bool hasNext() { return _inn.hasNext(); };
+  inline To next() { return static_cast<To>(_inn.next()); };
 private:
   Inner _inn;
 };
 
 template<typename To, class Inner>
+inline
 StaticCastIterator<To,Inner> getStaticCastIterator(Inner it)
 {
   return StaticCastIterator<To,Inner>(it);
@@ -183,6 +185,7 @@ private:
  * iterator @b inn, for which @b func(element) returns true.
  */
 template<class Inner, class Functor>
+inline
 FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
 {
   return FilteredIterator<Inner,Functor>(inn, func);
@@ -232,6 +235,7 @@ private:
  * only until @b func(element) returns false for some element.
  */
 template<class Inner, class Functor>
+inline
 WhileLimitedIterator<Inner,Functor> getWhileLimitedIterator(Inner inn, Functor func)
 {
   return WhileLimitedIterator<Inner,Functor>(inn, func);
@@ -286,6 +290,7 @@ private:
 };
 
 template<class It1,class It2>
+inline
 CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
 {
   return CatIterator<It1,It2>(it1, it2);
@@ -304,8 +309,8 @@ public:
   DECL_ELEMENT_TYPE(RETURN_TYPE(Functor));
   explicit MappingIterator(Inner inner, Functor func)
   : _func(func), _inner(inner) {}
-  bool hasNext() { return _inner.hasNext(); };
-  RETURN_TYPE(Functor) next() { return _func(_inner.next()); };
+  inline bool hasNext() { return _inner.hasNext(); };
+  inline RETURN_TYPE(Functor) next() { return _func(_inner.next()); };
 private:
   Functor _func;
   Inner _inner;
@@ -329,13 +334,14 @@ public:
   DECL_ELEMENT_TYPE(Constructor*);
   explicit ConstructingIterator(Inner inner)
   : _inner(inner) {}
-  bool hasNext() { return _inner.hasNext(); };
-  Constructor* next() { return new Constructor(_inner.next()); };
+  inline bool hasNext() { return _inner.hasNext(); };
+  inline Constructor* next() { return new Constructor(_inner.next()); };
 private:
   Inner _inner;
 };
 
 template<typename Constructor, typename Inner>
+inline
 ConstructingIterator<Constructor,Inner> getConstructingIterator(Inner it)
 {
   return ConstructingIterator<Constructor,Inner>(it);
@@ -386,6 +392,7 @@ public:
       _current=_master.next();
     }
   }
+  inline
   T next()
   {
     ASS(_current.hasNext());
@@ -421,6 +428,7 @@ public:
       _current=_master.next();
     }
   }
+  inline
   T next()
   {
     ASS(_current.hasNext());
@@ -432,11 +440,13 @@ private:
 };
 
 template<typename T>
+inline
 FlatteningIterator<T> getFlattenedIterator(T it)
 {
   return FlatteningIterator<T>(it);
 }
 template<typename Inner, typename Functor>
+inline
 FlatteningIterator<MappingIterator<Inner,Functor> > getMapAndFlattenIterator(Inner it, Functor f)
 {
   return FlatteningIterator<MappingIterator<Inner,Functor> >(
@@ -465,7 +475,8 @@ public:
       _items->destroy();
     }
   }
-  bool hasNext() { return _items; };
+  inline bool hasNext() { return _items; };
+  inline
   T next()
   {
     return List<T>::pop(_items);
@@ -482,6 +493,7 @@ private:
  * freed and the returned iterator will remain valid.)
  */
 template<typename T, class Inner>
+inline
 VirtualIterator<T> getPersistentIterator(Inner it)
 {
   return vi( new PersistentIterator<T,Inner>(it) );
@@ -503,13 +515,14 @@ public:
     }
     _iit=typename ItemSet::Iterator(_items);
   }
-  bool hasNext() { return _iit.hasNext(); };
+  inline bool hasNext() { return _iit.hasNext(); };
+  inline
   T next()
   {
     return _iit.next();
   };
-  bool knowsSize() const { return true; }
-  size_t size() const { return _items.numberOfElements(); }
+  inline bool knowsSize() const { return true; }
+  inline size_t size() const { return _items.numberOfElements(); }
 private:
   ItemSet _items;
   typename ItemSet::Iterator _iit;
@@ -522,11 +535,13 @@ private:
  * @b it object is used only during initialization.
  */
 template<class Inner>
+inline
 VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIterator(Inner it)
 {
   return vi( new UniquePersistentIterator<Inner>(it) );
 }
 template<class Inner>
+inline
 VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIteratorFromPtr(Inner* it)
 {
   return vi( new UniquePersistentIterator<Inner>(*it) );
@@ -538,12 +553,13 @@ class RangeIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
+  inline
   RangeIterator(T from, T to)
   : _next(from), _from(from), _to(to) {}
-  bool hasNext() { return _next<_to; };
-  T next() { return _next++; };
-  bool knowsSize() const { return true; }
-  size_t size() const { return (_to>_from) ? (_to-_from) : 0; }
+  inline bool hasNext() { return _next<_to; };
+  inline T next() { return _next++; };
+  inline bool knowsSize() const { return true; }
+  inline size_t size() const { return (_to>_from) ? (_to-_from) : 0; }
 private:
   T _next;
   T _from;
@@ -574,7 +590,7 @@ public:
       moveToNext();
     }
   }
-  bool hasNext()
+  inline bool hasNext()
   { ASS_LE(_first,_afterLast); return _second!=_afterLast; }
   pair<T,T> next()
   {
@@ -606,6 +622,7 @@ private:
  * that for a singleton set, nothing is returned.
  */
 template<typename T>
+inline
 CombinationIterator<T> getCombinationIterator(T from, T to)
 {
   return CombinationIterator<T>(from, to);
@@ -657,6 +674,7 @@ public:
     _used=false;
     return true;
   }
+  inline
   ELEMENT_TYPE(Inner) next()
   {
     ASS(!_used);
@@ -680,6 +698,7 @@ private:
 };
 
 template<class Inner, class Ctx>
+inline
 ContextualIterator<Inner,Ctx> getContextualIterator(Inner it, Ctx context)
 {
   return ContextualIterator<Inner,Ctx>(it, context);

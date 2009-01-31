@@ -105,7 +105,7 @@ public:
     Entry* e=findEntryToInsert(val);
     bool exists = e->_info.multiplicity;
     if(exists) {
-      ASS(e->_info.multiplicity+multiplicity<DHMULTISET_MAX_MULTIPLICITY);
+      ASS(e->_info.multiplicity+(unsigned)multiplicity<DHMULTISET_MAX_MULTIPLICITY);
       e->_info.multiplicity+=multiplicity;
       _multiplicities+=multiplicity;
     } else {

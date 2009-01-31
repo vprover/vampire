@@ -55,55 +55,63 @@ class TermList {
 public:
   TermList() {}
   explicit TermList(Term* t) : _term(t) {}
+  TermList(unsigned var, bool special)
+  {
+    if(special) {
+      makeSpecialVar(var);
+    } else {
+      makeVar(var);
+    }
+  }
 
   /** the tag */
-  TermTag tag() const { return (TermTag)(_content & 0x0003); }
+  inline TermTag tag() const { return (TermTag)(_content & 0x0003); }
   /** the term list is empty */
-  bool isEmpty() const
+  inline bool isEmpty() const
   { return tag() == FUN; }
   /** the term list is non-empty */
-  bool isNonEmpty() const
+  inline bool isNonEmpty() const
   { return tag() != FUN; }
   /** next term in this list */
-  TermList* next()
+  inline TermList* next()
   { return this-1; }
   /** next term in this list */
-  const TermList* next() const
+  inline const TermList* next() const
   { return this-1; }
   /** the term contains a variable as its head */
-  bool isVar() const { return (_content & 0x0001) == 1; }
+  inline bool isVar() const { return (_content & 0x0001) == 1; }
   /** the term contains an ordinary variable as its head */
-  bool isOrdinaryVar() const { return tag() == ORD_VAR; }
+  inline bool isOrdinaryVar() const { return tag() == ORD_VAR; }
   /** the term contains a special variable as its head */
-  bool isSpecialVar() const { return tag() == SPEC_VAR; }
+  inline bool isSpecialVar() const { return tag() == SPEC_VAR; }
   /** return the variable number */
-  unsigned var() const
+  inline unsigned var() const
   { ASS(isVar()); return _content / 4; }
   /** the term contains reference to Term class */
-  bool isTerm() const
+  inline bool isTerm() const
   { return tag() == REF; }
-  const Term* term() const
+  inline const Term* term() const
   { return _term; }
-  Term* term()
+  inline Term* term()
   { return _term; }
   /** True of the terms have the same content. Useful for comparing
    * arguments of shared terms. */
-  bool sameContent(const TermList* t) const
+  inline bool sameContent(const TermList* t) const
   { return _content == t->_content ; }
   /** return the content, useful for e.g., term argument comparison */
-  size_t content() const { return _content; }
+  inline size_t content() const { return _content; }
   string toString() const;
   /** make the term into an ordinary variable with a given number */
-  void makeVar(unsigned vnumber)
+  inline void makeVar(unsigned vnumber)
   { _content = vnumber * 4 + ORD_VAR; }
   /** make the term into a special variable with a given number */
-  void makeSpecialVar(unsigned vnumber)
+  inline void makeSpecialVar(unsigned vnumber)
   { _content = vnumber * 4 + SPEC_VAR; }
   /** make the term empty (so that isEmpty() returns true) */
-  void makeEmpty()
+  inline void makeEmpty()
   { _content = FUN; }
   /** make the term into a reference */
-  void setTerm(Term* t)
+  inline void setTerm(Term* t)
   { _term = t; }
   static void argsToString(Stack<const TermList*>&,string& str);
   static bool sameTop(const TermList* ss,const TermList* tt);
@@ -115,13 +123,13 @@ public:
   void assertValid() const;
 #endif
 
-  bool operator==(const TermList& t) const
+  inline bool operator==(const TermList& t) const
   { return _content==t._content; }
-  bool operator!=(const TermList& t) const
+  inline bool operator!=(const TermList& t) const
   { return _content!=t._content; }
-  bool operator<(const TermList& t) const
+  inline bool operator<(const TermList& t) const
   { return _content<t._content; }
-  bool operator>(const TermList& t) const
+  inline bool operator>(const TermList& t) const
   { return _content>t._content; }
 
 private:

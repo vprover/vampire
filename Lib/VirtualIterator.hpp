@@ -161,6 +161,7 @@ private:
 };
 
 template<typename T>
+inline
 VirtualIterator<T> vi(IteratorCore<T>* core)
 {
   return VirtualIterator<T>(core);
@@ -183,12 +184,14 @@ private:
 };
 
 template<typename T, class Inner>
+inline
 VirtualIterator<T> getProxyIterator(Inner it)
 {
   return VirtualIterator<T>(new ProxyIterator<T,Inner>(it));
 }
 
 template<class Inner>
+inline
 VirtualIterator<ELEMENT_TYPE(Inner)> pvi(Inner it)
 {
   return VirtualIterator<ELEMENT_TYPE(Inner)>(new ProxyIterator<ELEMENT_TYPE(Inner),Inner>(it));

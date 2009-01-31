@@ -17,41 +17,59 @@
 namespace Lib
 {
 
+class BacktrackData;
+
 class BacktrackObject
 {
 public:
-  virtual ~BacktrackObject() {}
+#if VDEBUG
+  BacktrackObject() : _next(0) {}
+#endif
+  virtual ~BacktrackObject()  {}
+
   virtual void backtrack() = 0;
 
 #if VDEBUG
   virtual std::string toString() const { return "(backtrack object)"; }
 #endif
+private:
+  BacktrackObject* _next;
+
+  friend class BacktrackData;
 };
 
 class BacktrackData
 {
 public:
-  BacktrackData() : _bol(0) {}
+  BacktrackData() : _boList(0) {}
   void backtrack()
   {
-    while(_bol) {
-      _bol->head()->backtrack();
-      delete _bol->head();
-
-      List<BacktrackObject*>* par;
-      par=_bol;
-      _bol=par->tail();
-      delete par;
+    BacktrackObject* curr=_boList;
+    BacktrackObject* next;
+    while(curr) {
+      curr->backtrack();
+      next=curr->_next;
+      delete curr;
+      curr=next;
     }
+    _boList=0;
   }
   void drop()
   {
-    _bol->destroyWithDeletion();
-    _bol=0;
+    BacktrackObject* curr=_boList;
+    BacktrackObject* next;
+    while(curr) {
+      next=curr->_next;
+      delete curr;
+      curr=next;
+    }
+    _boList=0;
   }
   void addBacktrackObject(BacktrackObject* bo)
   {
-    List<BacktrackObject*>::push(bo, _bol);
+    ASS_EQ(bo->_next,0);
+    bo->_next=_boList;
+    _boList=bo;
   }
   /**
    * Move all BacktrackObjects from @b this to @b bd. After the
@@ -59,13 +77,21 @@ public:
    */
   void commitTo(BacktrackData& bd)
   {
-    bd._bol=List<BacktrackObject*>::concat(_bol,bd._bol);
-    _bol=0;
+    if(!_boList) {
+      return;
+    }
+    BacktrackObject* lastOwn=_boList;
+    while(lastOwn->_next) {
+      lastOwn=lastOwn->_next;
+    }
+    lastOwn->_next=bd._boList;
+    bd._boList=_boList;
+    _boList=0;
   }
 
   bool isEmpty() const
   {
-    return _bol==0;
+    return _boList==0;
   }
 
   template<typename T>
@@ -79,19 +105,18 @@ public:
   std::string toString()
   {
     std::string res;
-    List<BacktrackObject*>* boit=_bol;
-    int cnt=0;
-    while(boit) {
-      res+=boit->head()->toString()+"\n";
+    unsigned cnt=0;
+    BacktrackObject* bobj=_boList;
+    while(bobj) {
+      res+=bobj->toString()+"\n";
       cnt++;
-      boit=boit->tail();
+      bobj=bobj->_next;
     }
     res+="object cnt: "+Int::toString(cnt)+"\n";
     return res;
   }
 #endif
-
-  List<BacktrackObject*>* _bol;
+  BacktrackObject* _boList;
 private:
 
   template<typename T>

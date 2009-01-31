@@ -66,10 +66,7 @@ public:
     ASS(!_bank.find(vs));
     bind(vs, TermSpec(t,index));
   }
-  TermList getSpecialVarTop(unsigned var) const
-  {
-    return derefBound(TermSpec(VarSpec(var, SPECIAL_INDEX))).term;
-  }
+  TermList getSpecialVarTop(unsigned specialVar) const;
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
 
@@ -213,6 +210,7 @@ private:
     bindVar(res, target);
     return res;
   }
+  inline
   VarSpec getVarSpec(TermSpec ts) const
   {
     return getVarSpec(ts.term, ts.index);

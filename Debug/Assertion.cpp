@@ -3,6 +3,7 @@
  * Implements assertions.
  */
 
+#include <string.h>
 
 #include "Assertion.hpp"
 #include "Tracer.hpp"

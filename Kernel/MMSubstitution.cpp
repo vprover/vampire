@@ -127,6 +127,27 @@ bool MMSubstitution::isUnbound(VarSpec v) const
 }
 
 /**
+ * If special variable @b specialVar is bound to a proper term,
+ * return a term, thjat has the same top functor. Otherwise
+ * return an arbitrary variable.
+ */
+TermList MMSubstitution::getSpecialVarTop(unsigned specialVar) const
+{
+  VarSpec v(specialVar, SPECIAL_INDEX);
+  for(;;) {
+    TermSpec binding;
+    bool found=_bank.find(v,binding);
+    if(!found || binding.index==UNBOUND_INDEX) {
+      static TermList auxVarTerm(1,false);
+      return auxVarTerm;
+    } else if(binding.term.isTerm()) {
+      return binding.term;
+    }
+    v=getVarSpec(binding);
+  }
+}
+
+/**
  * If @b t is a non-variable, return @t. Else, if @b t is a variable bound to
  * a non-variable term, return the term. Otherwise, return the root variable
  * to which @b t belongs.
@@ -541,7 +562,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
     } else {
       if (! TermList::sameTopFunctor(&bts.term,&its.term)) {
 	if(bts.term.isSpecialVar()) {
-	  VarSpec bvs=getVarSpec(bts);
+	  VarSpec bvs(bts.term.var(), SPECIAL_INDEX);
 	  if(_bank.find(bvs, binding1)) {
 	    ASS_EQ(binding1.index, base.index);
 	    bt=&binding1.term;
@@ -550,7 +571,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
 	    bind(bvs,its);
 	  }
 	} else if(its.term.isSpecialVar()) {
-	  VarSpec ivs=getVarSpec(its);
+	  VarSpec ivs(its.term.var(), SPECIAL_INDEX);
 	  if(_bank.find(ivs, binding2)) {
 	    ASS_EQ(binding2.index, instance.index);
 	    it=&binding2.term;
@@ -559,7 +580,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
 	    bind(ivs,bts);
 	  }
 	} else if(bts.term.isOrdinaryVar()) {
-	  VarSpec bvs=getVarSpec(bts);
+	  VarSpec bvs(bts.term.var(), bts.index);
 	  if(_bank.find(bvs, binding1)) {
 	    ASS_EQ(binding1.index, instance.index);
 	    if(!TermList::equals(binding1.term, its.term))
@@ -1059,7 +1080,8 @@ ostream& operator<< (ostream& out, MMSubstitution::TermSpec ts )
  */
 unsigned MMSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 {
-  return o.var + o.index*capacity>>1 + o.index>>1*capacity>>3;
+//  return o.var + o.index*(capacity>>1) + (o.index>>1)*(capacity>>3);
+//  return o.var^(o.var/capacity) + o.index*(capacity>>1) + (o.index>>2)*(capacity>>3);
 //This might work better
 
   int res=(o.var%(capacity<<1) - capacity);
@@ -1078,6 +1100,7 @@ unsigned MMSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 unsigned MMSubstitution::VarSpec::Hash2::hash(VarSpec& o)
 {
   return Lib::Hash::hashFNV(reinterpret_cast<const unsigned char*>(&o), sizeof(VarSpec));
+//  return o.var+o.index;
 }
 
 }

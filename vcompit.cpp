@@ -106,10 +106,7 @@ int main( int argc, char *argv[] )
   }
 
   Lib::Random::resetSeed();
-  Options options;
-  //Shell::CommandLine cl(argc,argv);
-  //cl.interpret(options);
-  Allocator::setMemoryLimit(options.memoryLimit()*1000000);
+  Allocator::setMemoryLimit(800000000); //memory limit set to 800m
 
   Timer timer;
   timer.start();
@@ -117,9 +114,6 @@ int main( int argc, char *argv[] )
   env.signature = new Kernel::Signature;
   Indexing::TermSharing sharing;
   env.sharing = &sharing;
-  env.options = &options;
-  Shell::Statistics statistics;
-  env.statistics = &statistics;
 
 
   readSymbolTable(in);

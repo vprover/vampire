@@ -14,6 +14,7 @@
 #XFLAGS = -O1 -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = -g -DVDEBUG=0 -DCHECK_LEAKS=0 # debug mode without VDEBUG macro 
+#XFLAGS = -g -O6 -DVDEBUG=0 # no debugging, but debugging info present
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
@@ -141,7 +142,7 @@ VT_OBJ = Test/Output.o
 
 VAMP_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 ALUC_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
-VCOMPIT_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VCOMPIT_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VT_OBJ)  
 
 VAMPIRE_OBJ = $(VAMP_BASIC) Global.o vampire.o
 VCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o vcompit.o
@@ -926,38 +927,28 @@ Inferences/BinaryResolution.o: Lib/SmartPtr.hpp Saturation/Limits.hpp
 Inferences/BinaryResolution.o: Saturation/SaturationResult.hpp
 Inferences/BinaryResolution.o: Inferences/BinaryResolution.hpp
 Inferences/BinaryResolution.o: Inferences/InferenceEngine.hpp
-Inferences/EqualityFactoring.o: Lib/Int.hpp Lib/Comparison.hpp
-Inferences/EqualityFactoring.o: Lib/Portability.hpp Lib/VirtualIterator.hpp
-Inferences/EqualityFactoring.o: Forwards.hpp Debug/Assertion.hpp
-Inferences/EqualityFactoring.o: Debug/Tracer.hpp Debug/Tracer.hpp
-Inferences/EqualityFactoring.o: Lib/Allocator.hpp Lib/Exception.hpp
-Inferences/EqualityFactoring.o: Lib/Reflection.hpp Lib/Metaiterators.hpp
-Inferences/EqualityFactoring.o: Lib/List.hpp Lib/VirtualIterator.hpp
-Inferences/EqualityFactoring.o: Lib/Set.hpp Lib/Hash.hpp Lib/Comparison.hpp
-Inferences/EqualityFactoring.o: Lib/PairUtils.hpp Lib/Metaiterators.hpp
-Inferences/EqualityFactoring.o: Lib/Metaarrays.hpp Lib/Environment.hpp
-Inferences/EqualityFactoring.o: Shell/Statistics.hpp Kernel/Clause.hpp
-Inferences/EqualityFactoring.o: Lib/Allocator.hpp Lib/Reflection.hpp
-Inferences/EqualityFactoring.o: Kernel/Unit.hpp Kernel/Unit.hpp Lib/List.hpp
+Inferences/EqualityFactoring.o: Lib/VirtualIterator.hpp Forwards.hpp
+Inferences/EqualityFactoring.o: Debug/Assertion.hpp Debug/Tracer.hpp
+Inferences/EqualityFactoring.o: Debug/Tracer.hpp Lib/Allocator.hpp
+Inferences/EqualityFactoring.o: Lib/Exception.hpp Lib/Reflection.hpp
+Inferences/EqualityFactoring.o: Lib/Metaiterators.hpp Lib/List.hpp
+Inferences/EqualityFactoring.o: Lib/VirtualIterator.hpp Lib/Set.hpp
+Inferences/EqualityFactoring.o: Lib/Hash.hpp Lib/PairUtils.hpp
+Inferences/EqualityFactoring.o: Lib/Metaiterators.hpp Lib/Metaarrays.hpp
+Inferences/EqualityFactoring.o: Lib/Environment.hpp Shell/Statistics.hpp
+Inferences/EqualityFactoring.o: Kernel/Clause.hpp Lib/Allocator.hpp
+Inferences/EqualityFactoring.o: Lib/Reflection.hpp Kernel/Unit.hpp
+Inferences/EqualityFactoring.o: Kernel/Unit.hpp Lib/List.hpp
 Inferences/EqualityFactoring.o: Kernel/Inference.hpp
 Inferences/EqualityFactoring.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
 Inferences/EqualityFactoring.o: Lib/BacktrackData.hpp Lib/Int.hpp
+Inferences/EqualityFactoring.o: Lib/Comparison.hpp Lib/Portability.hpp
 Inferences/EqualityFactoring.o: Kernel/Term.hpp Lib/Portability.hpp
-Inferences/EqualityFactoring.o: Lib/XML.hpp Lib/Stack.hpp
+Inferences/EqualityFactoring.o: Lib/XML.hpp Lib/Comparison.hpp Lib/Stack.hpp
 Inferences/EqualityFactoring.o: Lib/BacktrackData.hpp Kernel/EqHelper.hpp
-Inferences/EqualityFactoring.o: Kernel/Ordering.hpp Indexing/Index.hpp
-Inferences/EqualityFactoring.o: Lib/Event.hpp Lib/SmartPtr.hpp
-Inferences/EqualityFactoring.o: Lib/Exception.hpp
-Inferences/EqualityFactoring.o: Saturation/ClauseContainer.hpp
-Inferences/EqualityFactoring.o: Indexing/IndexManager.hpp Indexing/Index.hpp
-Inferences/EqualityFactoring.o: Saturation/SaturationAlgorithm.hpp
-Inferences/EqualityFactoring.o: Inferences/InferenceEngine.hpp
-Inferences/EqualityFactoring.o: Lib/SmartPtr.hpp Saturation/Limits.hpp
-Inferences/EqualityFactoring.o: Saturation/SaturationResult.hpp
-Inferences/EqualityFactoring.o: Inferences/Superposition.hpp
-Inferences/EqualityFactoring.o: Indexing/TermIndex.hpp
-Inferences/EqualityFactoring.o: Inferences/InferenceEngine.hpp
+Inferences/EqualityFactoring.o: Kernel/Ordering.hpp
 Inferences/EqualityFactoring.o: Inferences/EqualityFactoring.hpp
+Inferences/EqualityFactoring.o: Inferences/InferenceEngine.hpp
 Inferences/Factoring.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
 Inferences/Factoring.o: Lib/VirtualIterator.hpp Forwards.hpp
 Inferences/Factoring.o: Debug/Assertion.hpp Debug/Tracer.hpp Debug/Tracer.hpp
@@ -973,14 +964,7 @@ Inferences/Factoring.o: Lib/List.hpp Kernel/Inference.hpp
 Inferences/Factoring.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
 Inferences/Factoring.o: Lib/BacktrackData.hpp Lib/Int.hpp Kernel/Term.hpp
 Inferences/Factoring.o: Lib/Portability.hpp Lib/XML.hpp Lib/Stack.hpp
-Inferences/Factoring.o: Lib/BacktrackData.hpp Indexing/Index.hpp
-Inferences/Factoring.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
-Inferences/Factoring.o: Saturation/ClauseContainer.hpp
-Inferences/Factoring.o: Indexing/IndexManager.hpp Indexing/Index.hpp
-Inferences/Factoring.o: Saturation/SaturationAlgorithm.hpp
-Inferences/Factoring.o: Inferences/InferenceEngine.hpp Lib/SmartPtr.hpp
-Inferences/Factoring.o: Saturation/Limits.hpp Saturation/SaturationResult.hpp
-Inferences/Factoring.o: Inferences/Factoring.hpp
+Inferences/Factoring.o: Lib/BacktrackData.hpp Inferences/Factoring.hpp
 Inferences/Factoring.o: Inferences/InferenceEngine.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Lib/VirtualIterator.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Forwards.hpp
