@@ -78,8 +78,8 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
       return getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions);
     } else {
       return pvi( getConcatenatedIterator(
-	      getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions),
-	      ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions)) );
+	  ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
+	  getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions)) );
     }
   }
 }
@@ -96,8 +96,8 @@ TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t,
       return getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions);
     } else {
       return pvi( getConcatenatedIterator(
-	      getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions),
-	      ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions)) );
+	  ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
+	  getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
     }
   }
 }
