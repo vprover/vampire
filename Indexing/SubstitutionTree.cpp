@@ -622,9 +622,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   if(!n->term.isEmpty()) {
     //n is proper node, not a root
 
-    unsigned specVar=svQueue.top();
-    TermList qt;
-    qt.makeSpecialVar(specVar);
+    TermList qt(svQueue.top(), true);
 
     subst.bdRecord(bd);
     bool success=associate(qt,n->term);
@@ -746,6 +744,172 @@ SubstitutionTree::NodeIterator
 	  return pvi( getSingletonIterator(match) );
 	} else {
 	  return NodeIterator::getEmpty();
+	}
+  }
+}
+
+
+
+
+SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node* root,
+	Term* query, bool retrieveSubstitution, bool reversed)
+: literalRetrieval(query->isLiteral()),
+  inLeaf(false), ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8)
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
+  ASS(!retrieveSubstitution);
+
+  if(!root) {
+    return;
+  }
+
+  Renaming queryNormalizer;
+  Renaming::normalizeVariables(query, queryNormalizer);
+  Term* queryNorm=queryNormalizer.apply(query);
+
+  if(reversed) {
+    createReversedInitialBindings(queryNorm);
+  } else {
+    createInitialBindings(queryNorm);
+  }
+
+  BacktrackData bd;
+  enter(root, bd);
+  bd.drop();
+}
+
+SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
+{
+  while(bdStack.isNonEmpty()) {
+    bdStack.pop().backtrack();
+  }
+}
+
+void SubstitutionTree::FastGeneralizationsIterator::createInitialBindings(Term* t)
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::createInitialBindings");
+  TermList* args=t->args();
+  int nextVar = 0;
+  while (! args->isEmpty()) {
+    unsigned var = nextVar++;
+    subst.bindSpecialVar(var,*args);
+    args = args->next();
+  }
+}
+
+void SubstitutionTree::FastGeneralizationsIterator::createReversedInitialBindings(Term* t)
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::createReversedInitialBindings");
+  ASS(t->isLiteral());
+  ASS(t->commutative());
+  ASS_EQ(t->arity(),2);
+
+  subst.bindSpecialVar(1,*t->nthArgument(0));
+  subst.bindSpecialVar(0,*t->nthArgument(1));
+}
+
+bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::hasNext");
+
+  while(!ldIterator.hasNext() && findNextLeaf()) {}
+  return ldIterator.hasNext();
+}
+
+SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::next()
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::next");
+
+  while(!ldIterator.hasNext() && findNextLeaf()) {}
+  ASS(ldIterator.hasNext());
+  LeafData& ld=ldIterator.next();
+  return QueryResult(&ld, 0);
+}
+
+
+bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::findNextLeaf");
+
+  if(nodeIterators.isEmpty()) {
+    //There are no node iterators in the stack, so there's nowhere
+    //to look for the next leaf.
+    //This shouldn't hapen during the regular retrieval process, but it
+    //can happen when there are no literals inserted for a predicate,
+    //or when predicates with zero arity are encountered.
+    ASS(bdStack.isEmpty());
+    return false;
+  }
+
+  if(inLeaf) {
+    //Leave the current leaf
+    bdStack.pop().backtrack();
+    inLeaf=false;
+  }
+
+  ASS(bdStack.length()+1==nodeIterators.length());
+
+  do {
+    while(!nodeIterators.top().hasNext() && !bdStack.isEmpty()) {
+      //backtrack undos everything that enter(...) method has done,
+      //so it also pops one item out of the nodeIterators stack
+      bdStack.pop().backtrack();
+    }
+    if(!nodeIterators.top().hasNext()) {
+      return false;
+    }
+    Node* n=*nodeIterators.top().next();
+    BacktrackData bd;
+    bool success=enter(n,bd);
+    if(!success) {
+      bd.backtrack();
+      continue;
+    } else {
+      bdStack.push(bd);
+    }
+  } while(!inLeaf);
+  return true;
+}
+
+bool SubstitutionTree::FastGeneralizationsIterator::enter(Node* n, BacktrackData& bd)
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::enter");
+
+  if(!n->term.isEmpty()) {
+    //n is proper node, not a root
+
+    bool success=subst.matchNext(n->term, bd);
+
+    if(!success) {
+      return false;
+    }
+  }
+  if(n->isLeaf()) {
+    ldIterator=static_cast<Leaf*>(n)->allChildren();
+    inLeaf=true;
+  } else {
+    NodeIterator nit=getNodeIterator(static_cast<IntermediateNode*>(n));
+    nodeIterators.backtrackablePush(nit, bd);
+  }
+  return true;
+}
+
+SubstitutionTree::NodeIterator
+  SubstitutionTree::FastGeneralizationsIterator::getNodeIterator(IntermediateNode* n)
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::getNodeIterator");
+
+  TermList qt=subst.getNextSpecVarBinding();
+  if(qt.isVar()) {
+	return n->allChildren();
+  } else {
+	Node** match=n->childByTop(&qt, false);
+	if(match) {
+	  return pvi( getConcatenatedIterator(
+			  getSingletonIterator(match),
+			  n->variableChildren()) );
+	} else {
+	  return n->variableChildren();
 	}
   }
 }

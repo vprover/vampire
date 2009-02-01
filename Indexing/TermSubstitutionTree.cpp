@@ -92,12 +92,22 @@ TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t,
     return ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions);
   } else {
     ASS(t.isTerm());
-    if(_vars.isEmpty()) {
-      return getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions);
+    if(retrieveSubstitutions) {
+      if(_vars.isEmpty()) {
+	return getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions);
+      } else {
+	return pvi( getConcatenatedIterator(
+	    ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
+	    getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
+      }
     } else {
-      return pvi( getConcatenatedIterator(
-	  ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
-	  getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
+      if(_vars.isEmpty()) {
+	return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
+      } else {
+	return pvi( getConcatenatedIterator(
+	    ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
+	    getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
+      }
     }
   }
 }

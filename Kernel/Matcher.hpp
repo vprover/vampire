@@ -12,6 +12,7 @@
 #include "../Lib/BacktrackData.hpp"
 #include "../Lib/DHMap.hpp"
 #include "../Lib/Hash.hpp"
+#include "../Lib/Stack.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
 namespace Kernel {
@@ -72,6 +73,8 @@ private:
       TermList* aux;
       return _map.getValuePtr(var,aux,term) || *aux==term;
     }
+    void specVar(unsigned var, TermList term)
+    { ASSERTION_VIOLATION; }
     void reset() { _map.reset(); }
   private:
     BindingMap _map;
@@ -79,9 +82,135 @@ private:
 
 };
 
+/**
+ * Class that supports matching operations required by
+ * retrieval of generalizations in substitution trees.
+ */
+class STGenMatcher
+{
+public:
+  void bindSpecialVar(unsigned var, TermList term)
+  {
+    ALWAYS(_specVars.insert(var,term));
+    _specVarQueue.insert(var);
+  }
+  TermList getNextSpecVarBinding()
+  {
+    return _specVars.get(_specVarQueue.top());
+  }
+  bool matchNext(TermList nodeTerm, BacktrackData& bd)
+  {
+    CALL("STGenMatcher::matchNext");
+
+    unsigned specVar=_specVarQueue.backtrackablePop(bd);
+    TermList queryTerm=_specVars.get(specVar);
+
+    VarStack* boundVars=0;
+    static VarStack newSpecVars(8);
+    newSpecVars.reset();
+
+    Binder binder(this,boundVars, &newSpecVars);
+
+    bool success=MatchingUtils::matchTerms(nodeTerm, queryTerm, binder);
+    if(!success) {
+      undo(boundVars);
+      delete boundVars;
+    } else {
+      while(newSpecVars.isNonEmpty()) {
+        _specVarQueue.backtrackableInsert(newSpecVars.pop(), bd);
+      }
+      if(boundVars) {
+	bd.addBacktrackObject(new MatchBacktrackObject(this, boundVars));
+      }
+    }
+    return success;
+  }
+
+private:
+  typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > SpecVarMap;
+  typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > BindingMap;
+  typedef Stack<unsigned> VarStack;
+
+  struct Binder
+  {
+    Binder(STGenMatcher* parent, VarStack*& boundVars, VarStack* newSpecVars)
+    : _parent(parent), _boundVars(boundVars), _newSpecVars(newSpecVars) {}
+    bool operator()(unsigned var, TermList term)
+    {
+      TermList* aux;
+      if(_parent->_bindings.getValuePtr(var,aux,term)) {
+	if(!_boundVars) {
+	  _boundVars=new VarStack(2);
+	}
+	_boundVars->push(var);
+	return true;
+      } else {
+	return *aux==term;
+      }
+    }
+    void specVar(unsigned var, TermList term)
+    {
+      ALWAYS(_parent->_specVars.set(var,term));
+      _newSpecVars->push(var);
+    }
+  private:
+    STGenMatcher* _parent;
+    VarStack*& _boundVars;
+    VarStack* _newSpecVars;
+  };
+
+  void undo(VarStack* boundVars)
+  {
+    if(boundVars) {
+      while(boundVars->isNonEmpty()) {
+	ALWAYS(_bindings.remove(boundVars->pop()));
+      }
+    }
+  }
+
+  class MatchBacktrackObject
+  : public BacktrackObject
+  {
+  public:
+    MatchBacktrackObject(STGenMatcher* parent, VarStack* boundVars)
+    :_parent(parent), _boundVars(boundVars) {}
+    ~MatchBacktrackObject()
+    {
+      if(_boundVars) {
+	delete _boundVars;
+      }
+    }
+    void backtrack()
+    {
+      _parent->undo(_boundVars);
+      delete _boundVars;
+      _boundVars=0;
+    }
+    CLASS_NAME("STMatcher::MatchBacktrackObject");
+    USE_ALLOCATOR(MatchBacktrackObject);
+  private:
+    STGenMatcher* _parent;
+    VarStack* _boundVars;
+  };
+
+  struct SpecVarComparator
+  {
+    inline
+    static Comparison compare(unsigned v1, unsigned v2)
+    { return Int::compare(v2, v1); }
+    inline
+    static unsigned max()
+    { return 0u; }
+  };
+  typedef BinaryHeap<unsigned,SpecVarComparator> SpecVarQueue;
+
+  SpecVarQueue _specVarQueue;
+  SpecVarMap _specVars;
+  BindingMap _bindings;
+};
 
 class Matcher
-: Backtrackable
+: public Backtrackable
 {
 public:
   Matcher() : _binder(*this) {}
@@ -287,6 +416,8 @@ private:
 	return *aux==term;
       }
     }
+    void specVar(unsigned var, TermList term)
+    { ASSERTION_VIOLATION; }
   private:
     BindingMap _map;
     Matcher& _parent;
@@ -322,10 +453,8 @@ template<class Binder>
 bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
 {
   CALL("MatchingUtils::matchArgs");
-  ASS(base->shared());
-  ASS(instance->shared());
   ASS_EQ(base->functor(),instance->functor());
-  if(base==instance && base->ground()) {
+  if(base==instance && base->shared() && base->ground()) {
     return true;
   }
   if(base->isLiteral() && base->arity()==0) {
@@ -344,9 +473,12 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
       subterms.push(it->next());
       subterms.push(bt->next());
     }
-
-    if(bt->isTerm()) {
-      if(*bt==*it && bt->term()->ground()) {
+    if(bt->isSpecialVar()) {
+      binder.specVar(bt->var(), *it);
+    } else if(it->isSpecialVar()) {
+      binder.specVar(it->var(), *bt);
+    } else if(bt->isTerm()) {
+      if(*bt==*it && bt->term()->shared() && bt->term()->ground()) {
       } else if (it->isTerm() && bt->term()->functor()==it->term()->functor()) {
 	Term* s = bt->term();
 	Term* t = it->term();

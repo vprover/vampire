@@ -23,6 +23,7 @@
 
 #include "../Kernel/DoubleSubstitution.hpp"
 #include "../Kernel/MMSubstitution.hpp"
+#include "../Kernel/Matcher.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Kernel/Clause.hpp"
 
@@ -276,13 +277,40 @@ protected:
 
   typedef pair<LeafData*, MMSubstitution*> QueryResult;
 
+  class FastGeneralizationsIterator
+  : public IteratorCore<QueryResult>
+  {
+  public:
+    FastGeneralizationsIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
+    ~FastGeneralizationsIterator();
+
+    bool hasNext();
+    QueryResult next();
+  protected:
+    virtual NodeIterator getNodeIterator(IntermediateNode* n);
+
+    void createInitialBindings(Term* t);
+    /**
+     * For a binary comutative literal, creates initial bindings,
+     * where the order of special variables is reversed.
+     */
+    void createReversedInitialBindings(Term* t);
+    bool findNextLeaf();
+    bool enter(Node* n, BacktrackData& bd);
+
+    STGenMatcher subst;
+  private:
+    bool literalRetrieval;
+    bool inLeaf;
+    LDIterator ldIterator;
+    Stack<NodeIterator> nodeIterators;
+    Stack<BacktrackData> bdStack;
+  };
+
+
   class UnificationsIterator
   : public IteratorCore<QueryResult>
   {
-  private:
-    //private and undefined operator= and copy constructor to avoid implicitly generated ones
-    UnificationsIterator(const UnificationsIterator&);
-    UnificationsIterator& operator=(const UnificationsIterator&);
   public:
     UnificationsIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
     ~UnificationsIterator();
