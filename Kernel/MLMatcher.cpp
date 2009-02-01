@@ -65,7 +65,7 @@ struct ResMatchBtrFn
     OnStackPushingContext skippingCtx(lp.first);
     return pvi( getConcatenatedIterator(
 	    pushPairIntoRightIterator(
-		    pair<Stack<Literal*>*,MatchIterator>(state.first, matchIter)),
+		    make_pair(state.first, matchIter)),
 	    getContextualIterator(SingletonIterator<ResMatchState>(state), skippingCtx)
 	    ) );
   }

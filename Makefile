@@ -1068,8 +1068,9 @@ Inferences/SLQueryBackwardSubsumption.o: Lib/BacktrackData.hpp Lib/List.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/VirtualIterator.hpp Lib/Int.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/Comparison.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/Portability.hpp
-Inferences/SLQueryBackwardSubsumption.o: Lib/BinaryHeap.hpp Lib/SkipList.hpp
-Inferences/SLQueryBackwardSubsumption.o: Lib/Random.hpp Lib/BacktrackData.hpp
+Inferences/SLQueryBackwardSubsumption.o: Lib/BinaryHeap.hpp
+Inferences/SLQueryBackwardSubsumption.o: Lib/BacktrackData.hpp
+Inferences/SLQueryBackwardSubsumption.o: Lib/SkipList.hpp Lib/Random.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/DArray.hpp Lib/List.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/DHMap.hpp Lib/Hash.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/DHMultiset.hpp Lib/DHMap.hpp
@@ -1449,7 +1450,9 @@ alucard.o: Inferences/TautologyDeletionFSE.hpp Lib/MemoryLeak.hpp
 sat.o: Lib/Random.hpp
 test_BinaryHeap.o: Lib/BinaryHeap.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 test_BinaryHeap.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Exception.hpp
-test_BinaryHeap.o: Lib/Comparison.hpp Lib/Int.hpp Lib/Portability.hpp
+test_BinaryHeap.o: Lib/Comparison.hpp Lib/BacktrackData.hpp Lib/List.hpp
+test_BinaryHeap.o: Forwards.hpp Lib/VirtualIterator.hpp Lib/Reflection.hpp
+test_BinaryHeap.o: Lib/Int.hpp Lib/Portability.hpp Lib/Int.hpp
 test_DHMap.o: Lib/DHMap.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 test_DHMap.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Exception.hpp
 test_DHMap.o: Lib/Hash.hpp Lib/VirtualIterator.hpp Forwards.hpp

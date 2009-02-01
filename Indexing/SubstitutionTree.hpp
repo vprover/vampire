@@ -229,16 +229,18 @@ protected:
   {
     inline
     static Comparison compare(unsigned v1, unsigned v2)
-    {
-  	return Int::compare(v2, v1);
-    }
+    { return Int::compare(v2, v1); }
+    inline
+    static unsigned max()
+    { return 0u; }
   };
 
   //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
   //that when SkipList is used.
   typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
   //typedef SkipList<Binding,Binding::Comparator> BindingQueue;
-  typedef SkipList<unsigned,SpecVarComparator> SpecVarQueue;
+//  typedef SkipList<unsigned,SpecVarComparator> SpecVarQueue;
+  typedef BinaryHeap<unsigned,SpecVarComparator> SpecVarQueue;
 
   void getBindings(Term* t, BindingQueue& bq);
 
