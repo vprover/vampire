@@ -125,6 +125,15 @@ void Renaming::normalizeVariables(const Term* t, Renaming& res)
   }
 }
 
+void Renaming::normalizeVariables(TermList t, Renaming& res)
+{
+  if(t.isOrdinaryVar()) {
+    res.getOrBind(t.var());
+  } else if(t.isTerm()) {
+    normalizeVariables(t.term(),res);
+  }
+}
+
 void Renaming::inverse(const Renaming& orig, Renaming& target)
 {
   VariableMap::Iterator mit(orig._data);

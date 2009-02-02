@@ -44,8 +44,8 @@ TermQueryResultIterator TermIndex::getInstances(TermList t,
 
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  int selCnt=c->selected();
-  for(int i=0; i<selCnt; i++) {
+  unsigned selCnt=c->selected();
+  for(unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
     TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit);
     while(rsti.hasNext()) {
@@ -61,8 +61,8 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
-  int selCnt=c->selected();
-  for(int i=0; i<selCnt; i++) {
+  unsigned selCnt=c->selected();
+  for(unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
     TermIterator lhsi=EqHelper::getLHSIterator(lit);
     while(lhsi.hasNext()) {
@@ -71,6 +71,39 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
       } else {
 	_is->remove(lhsi.next(), lit, c);
       }
+    }
+  }
+}
+
+void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
+{
+  unsigned cLen=c->length();
+  for(int i=0; i<cLen; i++) {
+    Literal* lit=(*c)[i];
+    Term::NonVariableIterator nvi(lit);
+    while(nvi.hasNext()) {
+      if(adding) {
+	_is->insert(nvi.next(), lit, c);
+      } else {
+	_is->remove(nvi.next(), lit, c);
+      }
+    }
+  }
+}
+
+
+void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
+{
+  if(c->length()!=1) {
+    return;
+  }
+  Literal* lit=(*c)[0];
+  TermIterator lhsi=EqHelper::getLHSIterator(lit);
+  while(lhsi.hasNext()) {
+    if(adding) {
+      _is->insert(lhsi.next(), lit, c);
+    } else {
+      _is->remove(lhsi.next(), lit, c);
     }
   }
 }

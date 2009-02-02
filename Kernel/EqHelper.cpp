@@ -100,6 +100,10 @@ Literal* EqHelper::replace(Literal* lit, TermList tSrc, TermList tDest)
   return Literal::create(lit,argLst);
 }
 
+/**
+ * Return iterator on subterms of a literal, that can be rewritten by
+ * superposition.
+ */
 TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit)
 {
   CALL("EqHelper::getRewritableSubtermIterator");

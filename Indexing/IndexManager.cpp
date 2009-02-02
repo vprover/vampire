@@ -86,6 +86,17 @@ Index* IndexManager::create(IndexType t)
     res->attachContainer(_alg->getGenerationClauseContainer());
     break;
 
+  case DEMODULATION_SUBTERM_SUBST_TREE:
+    tis=new TermSubstitutionTree();
+    res=new DemodulationSubtermIndex(tis);
+    res->attachContainer(_alg->getSimplificationClauseContainer());
+    break;
+  case DEMODULATION_LHS_SUBST_TREE:
+    tis=new TermSubstitutionTree();
+    res=new DemodulationLHSIndex(tis);
+    res->attachContainer(_alg->getSimplificationClauseContainer());
+    break;
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

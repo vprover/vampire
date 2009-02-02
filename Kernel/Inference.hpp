@@ -143,7 +143,9 @@ public:
     /** equality factoring inference */
     EQUALITY_FACTORING = 49u,
     /** equality resolution inference */
-    EQUALITY_RESOLUTION = 50u
+    EQUALITY_RESOLUTION = 50u,
+    /** forward demodulation inference */
+    FORWARD_DEMODULATION = 51u
   }; // class Inference::Rule
 
   explicit Inference(Rule r)

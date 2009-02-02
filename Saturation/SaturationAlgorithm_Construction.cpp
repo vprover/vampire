@@ -15,6 +15,7 @@
 #include "../Inferences/EqualityFactoring.hpp"
 #include "../Inferences/EqualityResolution.hpp"
 #include "../Inferences/Factoring.hpp"
+#include "../Inferences/ForwardDemodulation.hpp"
 #include "../Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "../Inferences/RefutationSeekerFSE.hpp"
 #include "../Inferences/SLQueryForwardSubsumption.hpp"
@@ -57,6 +58,7 @@ ForwardSimplificationEngineSP createFSE()
   CompositeFSE* res=new CompositeFSE();
 
   res->addFront(ForwardSimplificationEngineSP(new RefutationSeekerFSE()));
+  res->addFront(ForwardSimplificationEngineSP(new ForwardDemodulation()));
 
   if(env.options->forwardSubsumptionResolution()) {
     if(!env.options->forwardSubsumption()) {

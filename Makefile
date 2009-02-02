@@ -18,8 +18,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-XFLAGS = -O6 -DVDEBUG=0 # no debugging
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+#XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
 #XFLAGS = -fprofile-arcs -pg -O6 -DVDEBUG=0 # coverage & profiling optimized
@@ -87,10 +87,12 @@ VI_OBJ = Indexing/Index.o\
          Indexing/SubstitutionTree.o\
          Indexing/SubstitutionTree_Nodes.o
 
-VINF_OBJ=Inferences/BinaryResolution.o\
+VINF_OBJ=Inferences/BackwardDemodulation.o\
+         Inferences/BinaryResolution.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
          Inferences/Factoring.o\
+         Inferences/ForwardDemodulation.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/InferenceEngine.o\
          Inferences/RefutationSeekerFSE.o\

@@ -56,6 +56,10 @@ public:
   unsigned duplicateLiterals;
   /** number of literals s |= s deleted */
   unsigned trivialInequalities;
+  /** number of forward subsumption resolutions */
+  unsigned forwardSubsumptionResolution;
+  /** number of forward demodulation */
+  unsigned forwardDemodulations;
 
   // Deletion inferences
   /** number of tautologies A \/ ~A */
@@ -66,8 +70,6 @@ public:
   unsigned forwardSubsumed;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed;
-  /** number of forward subsumption resolutions */
-  unsigned forwardSubsumptionResolution;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

@@ -278,6 +278,8 @@ string Inference::name() const
     return "equality factoring";
   case EQUALITY_RESOLUTION:
     return "equality resolution";
+  case FORWARD_DEMODULATION:
+    return "forward demodulation";
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

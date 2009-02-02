@@ -50,5 +50,25 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class DemodulationSubtermIndex
+: public TermIndex
+{
+public:
+  DemodulationSubtermIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+class DemodulationLHSIndex
+: public TermIndex
+{
+public:
+  DemodulationLHSIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 };
 #endif /* __TermIndex__ */

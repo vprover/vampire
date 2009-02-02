@@ -47,6 +47,7 @@ public:
   bool identity() const;
 
   static void normalizeVariables(const Term* t, Renaming& res);
+  static void normalizeVariables(TermList t, Renaming& res);
   static void inverse(const Renaming& orig, Renaming& target);
 
 #if VDEBUG

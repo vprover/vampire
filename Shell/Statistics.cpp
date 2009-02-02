@@ -31,11 +31,12 @@ Statistics::Statistics()
     equalityResolution(0),
     duplicateLiterals(0),
     trivialInequalities(0),
+    forwardSubsumptionResolution(0),
+    forwardDemodulations(0),
     simpleTautologies(0),
     equationalTautologies(0),
     forwardSubsumed(0),
     backwardSubsumed(0),
-    forwardSubsumptionResolution(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -55,11 +56,12 @@ void Statistics::print()
 
   env.out << "Duplicate literals: "<<duplicateLiterals<<endl;
   env.out << "Trivial inequalities: "<<trivialInequalities<<endl;
+  env.out << "Fw subsumption resolutions: "<<forwardSubsumptionResolution<<endl;
+  env.out << "Fw demodulations: "<<forwardDemodulations<<endl;
   env.out << "Simple tautologies: "<<simpleTautologies<<endl;
   env.out << "Equational tautologies: "<<equationalTautologies<<endl;
   env.out << "Forward subsumptions: "<<forwardSubsumed<<endl;
   env.out << "Backward subsumptions: "<<backwardSubsumed<<endl;
-  env.out << "Fw subsumption resolutions: "<<forwardSubsumptionResolution<<endl;
   env.out << endl;
 
   env.out << "Binary resolution: "<<resolution<<endl;
