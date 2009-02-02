@@ -276,6 +276,8 @@ string Inference::name() const
     return "superposition";
   case EQUALITY_FACTORING:
     return "equality factoring";
+  case EQUALITY_RESOLUTION:
+    return "equality resolution";
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

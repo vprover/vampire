@@ -18,8 +18,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
 #XFLAGS = -fprofile-arcs -pg -O6 -DVDEBUG=0 # coverage & profiling optimized
@@ -89,6 +89,7 @@ VI_OBJ = Indexing/Index.o\
 
 VINF_OBJ=Inferences/BinaryResolution.o\
          Inferences/EqualityFactoring.o\
+         Inferences/EqualityResolution.o\
          Inferences/Factoring.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/InferenceEngine.o\
@@ -954,6 +955,28 @@ Inferences/EqualityFactoring.o: Lib/BacktrackData.hpp Kernel/EqHelper.hpp
 Inferences/EqualityFactoring.o: Kernel/Ordering.hpp
 Inferences/EqualityFactoring.o: Inferences/EqualityFactoring.hpp
 Inferences/EqualityFactoring.o: Inferences/InferenceEngine.hpp
+Inferences/EqualityResolution.o: Lib/VirtualIterator.hpp Forwards.hpp
+Inferences/EqualityResolution.o: Debug/Assertion.hpp Debug/Tracer.hpp
+Inferences/EqualityResolution.o: Debug/Tracer.hpp Lib/Allocator.hpp
+Inferences/EqualityResolution.o: Lib/Exception.hpp Lib/Reflection.hpp
+Inferences/EqualityResolution.o: Lib/Metaiterators.hpp Lib/List.hpp
+Inferences/EqualityResolution.o: Lib/VirtualIterator.hpp Lib/Set.hpp
+Inferences/EqualityResolution.o: Lib/Hash.hpp Lib/PairUtils.hpp
+Inferences/EqualityResolution.o: Lib/Metaiterators.hpp Lib/Metaarrays.hpp
+Inferences/EqualityResolution.o: Lib/Environment.hpp Shell/Statistics.hpp
+Inferences/EqualityResolution.o: Kernel/Clause.hpp Lib/Allocator.hpp
+Inferences/EqualityResolution.o: Lib/Reflection.hpp Kernel/Unit.hpp
+Inferences/EqualityResolution.o: Kernel/Unit.hpp Lib/List.hpp
+Inferences/EqualityResolution.o: Kernel/Inference.hpp
+Inferences/EqualityResolution.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
+Inferences/EqualityResolution.o: Lib/BacktrackData.hpp Lib/Int.hpp
+Inferences/EqualityResolution.o: Lib/Comparison.hpp Lib/Portability.hpp
+Inferences/EqualityResolution.o: Kernel/Term.hpp Lib/Portability.hpp
+Inferences/EqualityResolution.o: Lib/XML.hpp Lib/Comparison.hpp Lib/Stack.hpp
+Inferences/EqualityResolution.o: Lib/BacktrackData.hpp Kernel/EqHelper.hpp
+Inferences/EqualityResolution.o: Kernel/Ordering.hpp
+Inferences/EqualityResolution.o: Inferences/EqualityResolution.hpp
+Inferences/EqualityResolution.o: Inferences/InferenceEngine.hpp
 Inferences/Factoring.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
 Inferences/Factoring.o: Lib/VirtualIterator.hpp Forwards.hpp
 Inferences/Factoring.o: Debug/Assertion.hpp Debug/Tracer.hpp Debug/Tracer.hpp

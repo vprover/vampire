@@ -28,6 +28,7 @@ Statistics::Statistics()
     forwardSuperposition(0),
     backwardSuperposition(0),
     equalityFactoring(0),
+    equalityResolution(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     simpleTautologies(0),
@@ -66,5 +67,6 @@ void Statistics::print()
   env.out << "Forward superposition: "<<forwardSuperposition<<endl;
   env.out << "Backward superposition: "<<backwardSuperposition<<endl;
   env.out << "Equality factoring: "<<equalityFactoring<<endl;
+  env.out << "Equality resolution: "<<equalityResolution<<endl;
   env.out << "------------------------------\n";
 }

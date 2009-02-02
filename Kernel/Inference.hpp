@@ -141,7 +141,9 @@ public:
     /** superposition inference */
     SUPERPOSITION = 48u,
     /** equality factoring inference */
-    EQUALITY_FACTORING = 49u
+    EQUALITY_FACTORING = 49u,
+    /** equality resolution inference */
+    EQUALITY_RESOLUTION = 50u
   }; // class Inference::Rule
 
   explicit Inference(Rule r)

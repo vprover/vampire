@@ -38,7 +38,7 @@ struct EqualityFactoring::IsPositiveEqualityFn
 {
   DECL_RETURN_TYPE(bool);
   bool operator()(Literal* l)
-  { return l->isEquality() && l->polarity(); }
+  { return l->isEquality() && l->isPositive(); }
 };
 struct EqualityFactoring::IsDifferentPositiveEqualityFn
 {

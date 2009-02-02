@@ -13,6 +13,7 @@
 #include "../Inferences/InferenceEngine.hpp"
 #include "../Inferences/BinaryResolution.hpp"
 #include "../Inferences/EqualityFactoring.hpp"
+#include "../Inferences/EqualityResolution.hpp"
 #include "../Inferences/Factoring.hpp"
 #include "../Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "../Inferences/RefutationSeekerFSE.hpp"
@@ -43,6 +44,7 @@ GeneratingInferenceEngineSP createGIE()
   CompositeGIE* res=new CompositeGIE();
 
   res->addFront(GeneratingInferenceEngineSP(new EqualityFactoring()));
+  res->addFront(GeneratingInferenceEngineSP(new EqualityResolution()));
   res->addFront(GeneratingInferenceEngineSP(new Superposition()));
   res->addFront(GeneratingInferenceEngineSP(new Factoring()));
   res->addFront(GeneratingInferenceEngineSP(new BinaryResolution()));
