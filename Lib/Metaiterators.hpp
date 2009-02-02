@@ -455,11 +455,12 @@ FlatteningIterator<MappingIterator<Inner,Functor> > getMapAndFlattenIterator(Inn
 
 
 
-template<typename T, class Inner>
+template<class Inner>
 class PersistentIterator
-: public IteratorCore<T>
+: public IteratorCore<ELEMENT_TYPE(Inner)>
 {
 public:
+  typedef ELEMENT_TYPE(Inner) T;
   explicit PersistentIterator(Inner inn)
   : _items(0)
   {
@@ -492,11 +493,11 @@ private:
  * initialization. (So it's underlying object can be
  * freed and the returned iterator will remain valid.)
  */
-template<typename T, class Inner>
+template<class Inner>
 inline
-VirtualIterator<T> getPersistentIterator(Inner it)
+VirtualIterator<ELEMENT_TYPE(Inner)> getPersistentIterator(Inner it)
 {
-  return vi( new PersistentIterator<T,Inner>(it) );
+  return vi( new PersistentIterator<Inner>(it) );
 }
 
 
@@ -538,12 +539,18 @@ template<class Inner>
 inline
 VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIterator(Inner it)
 {
+  if(!it.hasNext()) {
+    return VirtualIterator<ELEMENT_TYPE(Inner)>::getEmpty();
+  }
   return vi( new UniquePersistentIterator<Inner>(it) );
 }
 template<class Inner>
 inline
 VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIteratorFromPtr(Inner* it)
 {
+  if(!it->hasNext()) {
+    return VirtualIterator<ELEMENT_TYPE(Inner)>::getEmpty();
+  }
   return vi( new UniquePersistentIterator<Inner>(*it) );
 }
 

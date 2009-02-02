@@ -121,6 +121,21 @@ private:
   FSList* _inners;
 };
 
+class CompositeBSE
+: public BackwardSimplificationEngine
+{
+public:
+  CompositeBSE() : _inners(0) {}
+  ~CompositeBSE();
+  void addFront(BackwardSimplificationEngineSP fse);
+  void perform(Clause* cl, ClauseIterator& toRemove, ClauseIterator& toAdd);
+  void attach(SaturationAlgorithm* salg);
+  void detach();
+private:
+  typedef List<BackwardSimplificationEngineSP> BSList;
+  BSList* _inners;
+};
+
 class CompositeGIE
 : public GeneratingInferenceEngine
 {

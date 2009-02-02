@@ -280,6 +280,8 @@ string Inference::name() const
     return "equality resolution";
   case FORWARD_DEMODULATION:
     return "forward demodulation";
+  case BACKWARD_DEMODULATION:
+    return "backward demodulation";
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

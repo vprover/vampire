@@ -52,16 +52,16 @@ void ForwardDemodulation::detach()
 void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 {
   CALL("ForwardDemodulation::perform");
-  
+
   static Ordering* ordering=0;
   if(!ordering) {
     ordering=Ordering::instance();
   }
 
   //Perhaps it might be a good idea to try to
-  //replace subterms in some special order, like 
+  //replace subterms in some special order, like
   //the heaviest first...
-  
+
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
@@ -72,25 +72,27 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
       while(git.hasNext()) {
 	TermQueryResult qr=git.next();
 	ASS_EQ(qr.clause->length(),1);
-	
-	TermList lhsS=qr.substitution->apply(qr.term,QRS_RESULT_BANK);
+
 	TermList rhs=EqHelper::getRHS(qr.literal,qr.term);
 
 	//When we apply substitution to the rhs, we get a term, that is
 	//a variant of the term we'd like to get, as new variables are
 	//produced in the substitution application.
+	//This will be fixed once something better than MMSubstitution will
+	//be used to retrieve substitutions from indexes.
+	TermList lhsSBadVars=qr.substitution->apply(qr.term,QRS_RESULT_BANK);
 	TermList rhsSBadVars=qr.substitution->apply(rhs,QRS_RESULT_BANK);
 	Renaming rNorm, qNorm, qDenorm;
-	Renaming::normalizeVariables(lhsS, rNorm);
+	Renaming::normalizeVariables(lhsSBadVars, rNorm);
 	Renaming::normalizeVariables(trm, qNorm);
 	Renaming::inverse(qNorm, qDenorm);
-	ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsS)));
+	ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
 	TermList rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-	
+
 	if(ordering->compare(trm,rhsS)!=Ordering::GREATER) {
 	  continue;
 	}
-	
+
 	Inference* inf = new Inference2(Inference::FORWARD_DEMODULATION, cl, qr.clause);
 	Unit::InputType inpType = (Unit::InputType)
 		Int::max(cl->inputType(), qr.clause->inputType());

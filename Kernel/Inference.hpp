@@ -145,7 +145,9 @@ public:
     /** equality resolution inference */
     EQUALITY_RESOLUTION = 50u,
     /** forward demodulation inference */
-    FORWARD_DEMODULATION = 51u
+    FORWARD_DEMODULATION = 51u,
+    /** backward demodulation inference */
+    BACKWARD_DEMODULATION = 52u
   }; // class Inference::Rule
 
   explicit Inference(Rule r)

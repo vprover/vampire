@@ -11,6 +11,7 @@
 #include "../Shell/Options.hpp"
 
 #include "../Inferences/InferenceEngine.hpp"
+#include "../Inferences/BackwardDemodulation.hpp"
 #include "../Inferences/BinaryResolution.hpp"
 #include "../Inferences/EqualityFactoring.hpp"
 #include "../Inferences/EqualityResolution.hpp"
@@ -58,7 +59,21 @@ ForwardSimplificationEngineSP createFSE()
   CompositeFSE* res=new CompositeFSE();
 
   res->addFront(ForwardSimplificationEngineSP(new RefutationSeekerFSE()));
-  res->addFront(ForwardSimplificationEngineSP(new ForwardDemodulation()));
+
+  switch(env.options->forwardDemodulation()) {
+  case Options::DEMODULATION_ALL:
+    res->addFront(ForwardSimplificationEngineSP(new ForwardDemodulation()));
+    break;
+  case Options::DEMODULATION_PREORDERED:
+    NOT_IMPLEMENTED;
+    break;
+  case Options::DEMODULATION_OFF:
+#if VDEBUG
+    break;
+  default:
+    ASSERTION_VIOLATION;
+#endif
+  }
 
   if(env.options->forwardSubsumptionResolution()) {
     if(!env.options->forwardSubsumption()) {
@@ -79,11 +94,28 @@ ForwardSimplificationEngineSP createFSE()
 
 BackwardSimplificationEngineSP createBSE()
 {
-  if(env.options->backwardSubsumption()) {
-    return BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption());
-  } else {
-    return BackwardSimplificationEngineSP(new DummyBSE());
+  CompositeBSE* res=new CompositeBSE();
+
+  switch(env.options->backwardDemodulation()) {
+  case Options::DEMODULATION_ALL:
+    res->addFront(BackwardSimplificationEngineSP(new BackwardDemodulation()));
+    break;
+  case Options::DEMODULATION_PREORDERED:
+    NOT_IMPLEMENTED;
+    break;
+  case Options::DEMODULATION_OFF:
+#if VDEBUG
+    break;
+  default:
+    ASSERTION_VIOLATION;
+#endif
   }
+
+  if(env.options->backwardSubsumption()) {
+    res->addFront(BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption()));
+  }
+
+  return BackwardSimplificationEngineSP(res);
 }
 
 LiteralSelectorSP createLiteralSelector()

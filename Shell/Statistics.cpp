@@ -33,6 +33,7 @@ Statistics::Statistics()
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
     forwardDemodulations(0),
+    backwardDemodulations(0),
     simpleTautologies(0),
     equationalTautologies(0),
     forwardSubsumed(0),
@@ -58,6 +59,8 @@ void Statistics::print()
   env.out << "Trivial inequalities: "<<trivialInequalities<<endl;
   env.out << "Fw subsumption resolutions: "<<forwardSubsumptionResolution<<endl;
   env.out << "Fw demodulations: "<<forwardDemodulations<<endl;
+  env.out << "Bw demodulations: "<<backwardDemodulations<<endl;
+  env.out << endl;
   env.out << "Simple tautologies: "<<simpleTautologies<<endl;
   env.out << "Equational tautologies: "<<equationalTautologies<<endl;
   env.out << "Forward subsumptions: "<<forwardSubsumed<<endl;

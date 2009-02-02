@@ -162,7 +162,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   }
 
   if(subsumed) {
-    toRemove=getPersistentIterator<Clause*>(ClauseList::Iterator(subsumed));
+    toRemove=getPersistentIterator(ClauseList::Iterator(subsumed));
     subsumed->destroy();
   } else {
     toRemove=ClauseIterator::getEmpty();

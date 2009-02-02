@@ -7,7 +7,15 @@
 #ifndef __BackwardDemodulation__
 #define __BackwardDemodulation__
 
+#include "../Forwards.hpp"
+#include "../Indexing/TermIndex.hpp"
+
+#include "InferenceEngine.hpp"
+
 namespace Inferences {
+
+using namespace Indexing;
+using namespace Kernel;
 
 class BackwardDemodulation
 : public BackwardSimplificationEngine
@@ -18,6 +26,10 @@ public:
 
   void perform(Clause* premise, ClauseIterator& toRemove, ClauseIterator& toAdd);
 private:
+  struct FirstInPairIsNonzeroFn;
+  struct RewritableClausesFn;
+  struct ResultFn;
+
   DemodulationSubtermIndex* _index;
 };
 

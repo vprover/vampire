@@ -78,7 +78,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
   unsigned cLen=c->length();
-  for(int i=0; i<cLen; i++) {
+  for(unsigned i=0; i<cLen; i++) {
     Literal* lit=(*c)[i];
     Term::NonVariableIterator nvi(lit);
     while(nvi.hasNext()) {
