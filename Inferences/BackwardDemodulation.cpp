@@ -4,14 +4,12 @@
  */
 
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/BacktrackData.hpp"
-#include "../Lib/BinaryHeap.hpp"
-#include "../Lib/SkipList.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/List.hpp"
 #include "../Lib/DHMultiset.hpp"
+#include "../Lib/Environment.hpp"
+#include "../Lib/Int.hpp"
+#include "../Lib/List.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/VirtualIterator.hpp"
 
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
@@ -27,7 +25,6 @@
 
 #include "../Saturation/SaturationAlgorithm.hpp"
 
-#include "../Lib/Environment.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "BackwardDemodulation.hpp"
@@ -107,20 +104,25 @@ struct BackwardDemodulation::ResultFn
     TermList rhs=EqHelper::getRHS(_eqLit, lhs);
 
     TermList lhsS=qr.term;
+    TermList rhsS;
 
-    //When we apply substitution to the rhs, we get a term, that is
-    //a variant of the term we'd like to get, as new variables are
-    //produced in the substitution application.
-    //This will be fixed once something better than MMSubstitution will
-    //be used to retrieve substitutions from indexes.
-    TermList lhsSBadVars=qr.substitution->apply(lhs,QRS_QUERY_BANK);
-    TermList rhsSBadVars=qr.substitution->apply(rhs,QRS_QUERY_BANK);
-    Renaming rNorm, qNorm, qDenorm;
-    Renaming::normalizeVariables(lhsSBadVars, rNorm);
-    Renaming::normalizeVariables(lhsS, qNorm);
-    Renaming::inverse(qNorm, qDenorm);
-    ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-    TermList rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+    if(!qr.substitution->isIdentityOnResult()) {
+      //When we apply substitution to the rhs, we get a term, that is
+      //a variant of the term we'd like to get, as new variables are
+      //produced in the substitution application.
+      //This will be fixed once something better than MMSubstitution will
+      //be used to retrieve substitutions from indexes.
+      TermList lhsSBadVars=qr.substitution->applyToQuery(lhs);
+      TermList rhsSBadVars=qr.substitution->applyToQuery(rhs);
+      Renaming rNorm, qNorm, qDenorm;
+      Renaming::normalizeVariables(lhsSBadVars, rNorm);
+      Renaming::normalizeVariables(lhsS, qNorm);
+      Renaming::inverse(qNorm, qDenorm);
+      ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
+      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+    } else {
+      rhsS=qr.substitution->applyToQuery(rhs);
+    }
 
     static Ordering* ordering=0;
     if(!ordering) {

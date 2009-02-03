@@ -275,7 +275,7 @@ protected:
     Stack<NodeIterator> _nodeIterators;
   };
 
-  typedef pair<LeafData*, MMSubstitution*> QueryResult;
+  typedef pair<LeafData*, ResultSubstitutionSP> QueryResult;
 
   class FastGeneralizationsIterator
   : public IteratorCore<QueryResult>
@@ -332,8 +332,8 @@ protected:
     void extractSpecialVariables(TermList t, BacktrackData& bd);
 
 
-    static const int QUERY_BANK=QRS_QUERY_BANK;
-    static const int RESULT_BANK=QRS_RESULT_BANK;
+    static const int QUERY_BANK=0;
+    static const int RESULT_BANK=1;
     static const int NORM_QUERY_BANK=2;
     static const int NORM_RESULT_BANK=3;
 

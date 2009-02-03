@@ -67,8 +67,8 @@ ForwardSimplificationEngineSP createFSE()
   case Options::DEMODULATION_PREORDERED:
     NOT_IMPLEMENTED;
     break;
-  case Options::DEMODULATION_OFF:
 #if VDEBUG
+  case Options::DEMODULATION_OFF:
     break;
   default:
     ASSERTION_VIOLATION;
@@ -103,8 +103,8 @@ BackwardSimplificationEngineSP createBSE()
   case Options::DEMODULATION_PREORDERED:
     NOT_IMPLEMENTED;
     break;
-  case Options::DEMODULATION_OFF:
 #if VDEBUG
+  case Options::DEMODULATION_OFF:
     break;
   default:
     ASSERTION_VIOLATION;

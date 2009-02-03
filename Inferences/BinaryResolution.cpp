@@ -88,13 +88,13 @@ struct BinaryResolution::ResultFn
     for(int i=0;i<clength;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=resLit) {
-	(*res)[next++] = qr.substitution->apply(curr, QRS_QUERY_BANK);
+	(*res)[next++] = qr.substitution->applyToQuery(curr);
       }
     }
     for(int i=0;i<dlength;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
-	(*res)[next++] = qr.substitution->apply(curr, QRS_RESULT_BANK);
+	(*res)[next++] = qr.substitution->applyToResult(curr);
       }
     }
 

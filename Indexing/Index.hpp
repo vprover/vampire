@@ -13,13 +13,7 @@
 #include "../Lib/Exception.hpp"
 #include "../Lib/VirtualIterator.hpp"
 #include "../Saturation/ClauseContainer.hpp"
-
-/** Bank of the query term in substitution returned in SLQueryResult
- * and TermQueryResult objects.*/
-#define QRS_QUERY_BANK 0
-/** Bank of the retrieved term in substitution returned in SLQueryResult
- * and TermQueryResult objects.*/
-#define QRS_RESULT_BANK 1
+#include "ResultSubstitution.hpp"
 
 namespace Indexing
 {
@@ -34,15 +28,15 @@ using namespace Saturation;
 struct SLQueryResult
 {
   SLQueryResult() {}
-  SLQueryResult(Literal* l, Clause* c, MMSubstitution* s)
+  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s)
   :literal(l), clause(c), substitution(s) {}
+  SLQueryResult(Literal* l, Clause* c)
+  :literal(l), clause(c) {}
 
-  SLQueryResult(Clause* c, MMSubstitution* s)
-  :literal(0), clause(c), substitution(s) {}
 
   Literal* literal;
   Clause* clause;
-  MMSubstitution* substitution;
+  ResultSubstitutionSP substitution;
 };
 
 /**
@@ -51,13 +45,15 @@ struct SLQueryResult
 struct TermQueryResult
 {
   TermQueryResult() {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, MMSubstitution* s)
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
   :term(t), literal(l), clause(c), substitution(s) {}
+  TermQueryResult(TermList t, Literal* l, Clause* c)
+  :term(t), literal(l), clause(c) {}
 
   TermList term;
   Literal* literal;
   Clause* clause;
-  MMSubstitution* substitution;
+  ResultSubstitutionSP substitution;
 };
 
 typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;

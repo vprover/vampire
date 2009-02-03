@@ -66,6 +66,9 @@ class TermIndex;
 class TermIndexingStructure;
 class TermSharing;
 
+class ResultSubstitution;
+typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
+
 class GeneratingLiteralIndex;
 class SimplifyingLiteralIndex;
 class AtomicClauseSimplifyingLiteralIndex;

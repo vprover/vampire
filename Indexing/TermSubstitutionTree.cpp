@@ -148,9 +148,13 @@ struct TermSubstitutionTree::LDToTermQueryResultFn
 {
   DECL_RETURN_TYPE(TermQueryResult);
   OWN_RETURN_TYPE operator() (const LeafData& ld) {
-    return TermQueryResult(ld.term, ld.literal, ld.clause, 0);
+    return TermQueryResult(ld.term, ld.literal, ld.clause);
   }
 };
+
+#define QRS_QUERY_BANK 0
+#define QRS_RESULT_BANK 1
+
 struct TermSubstitutionTree::LDToTermQueryResultWithSubstFn
 {
   LDToTermQueryResultWithSubstFn()
@@ -159,7 +163,9 @@ struct TermSubstitutionTree::LDToTermQueryResultWithSubstFn
   }
   DECL_RETURN_TYPE(TermQueryResult);
   OWN_RETURN_TYPE operator() (const LeafData& ld) {
-    return TermQueryResult(ld.term, ld.literal, ld.clause, _subst.ptr());
+    return TermQueryResult(ld.term, ld.literal, ld.clause,
+	    ResultSubstitution::fromMMSubstitution(_subst.ptr(),
+		    QRS_QUERY_BANK,QRS_RESULT_BANK));
   }
 private:
   MMSubstitutionSP _subst;
@@ -180,12 +186,16 @@ struct TermSubstitutionTree::UnifyingContext
   bool enter(TermQueryResult qr)
   {
     ASS(qr.substitution);
-    ALWAYS(qr.substitution->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK));
+    MMSubstitution* subst=qr.substitution->tryGetMMSubstitution();
+    ASS(subst);
+    ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK));
     return true;
   }
   void leave(TermQueryResult qr)
   {
-    qr.substitution->reset();
+    MMSubstitution* subst=qr.substitution->tryGetMMSubstitution();
+    ASS(subst);
+    subst->reset();
   }
 private:
   TermList _queryTerm;

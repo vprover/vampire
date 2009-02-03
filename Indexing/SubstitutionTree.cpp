@@ -562,9 +562,10 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     subst.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
     subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
 
-    return QueryResult(&ld, &subst);
+    return QueryResult(&ld, ResultSubstitution::fromMMSubstitution(
+	    &subst, QUERY_BANK, RESULT_BANK));
   } else {
-    return QueryResult(&ld, 0);
+    return QueryResult(&ld, ResultSubstitutionSP());
   }
 }
 
@@ -823,7 +824,7 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
   while(!ldIterator.hasNext() && findNextLeaf()) {}
   ASS(ldIterator.hasNext());
   LeafData& ld=ldIterator.next();
-  return QueryResult(&ld, 0);
+  return QueryResult(&ld, ResultSubstitutionSP());
 }
 
 

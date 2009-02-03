@@ -5,6 +5,7 @@
 
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/Int.hpp"
 
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
@@ -75,19 +76,24 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 
 	TermList rhs=EqHelper::getRHS(qr.literal,qr.term);
 
-	//When we apply substitution to the rhs, we get a term, that is
-	//a variant of the term we'd like to get, as new variables are
-	//produced in the substitution application.
-	//This will be fixed once something better than MMSubstitution will
-	//be used to retrieve substitutions from indexes.
-	TermList lhsSBadVars=qr.substitution->apply(qr.term,QRS_RESULT_BANK);
-	TermList rhsSBadVars=qr.substitution->apply(rhs,QRS_RESULT_BANK);
-	Renaming rNorm, qNorm, qDenorm;
-	Renaming::normalizeVariables(lhsSBadVars, rNorm);
-	Renaming::normalizeVariables(trm, qNorm);
-	Renaming::inverse(qNorm, qDenorm);
-	ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-	TermList rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+	TermList rhsS;
+	if(!qr.substitution->isIdentityOnQuery()) {
+	  //When we apply substitution to the rhs, we get a term, that is
+	  //a variant of the term we'd like to get, as new variables are
+	  //produced in the substitution application.
+	  //This will be fixed once something better than MMSubstitution will
+	  //be used to retrieve substitutions from indexes.
+	  TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
+	  TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
+	  Renaming rNorm, qNorm, qDenorm;
+	  Renaming::normalizeVariables(lhsSBadVars, rNorm);
+	  Renaming::normalizeVariables(trm, qNorm);
+	  Renaming::inverse(qNorm, qDenorm);
+	  ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
+	  rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+	} else {
+	  rhsS=qr.substitution->applyToResult(rhs);
+	}
 
 	if(ordering->compare(trm,rhsS)!=Ordering::GREATER) {
 	  continue;

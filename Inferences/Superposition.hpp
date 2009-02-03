@@ -30,9 +30,9 @@ public:
 
 private:
   static Clause* performSuperposition(
-	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm, int rwIndex,
-	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS, int eqIndex,
-	  MMSubstitution* subst);
+	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
+	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
+	  ResultSubstitutionSP subst, bool eqIsResult);
 
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;

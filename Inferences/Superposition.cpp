@@ -105,8 +105,8 @@ struct Superposition::ForwardResultFn
     CALL("Superposition::ForwardResultFn::operator()");
 
     TermQueryResult& qr = arg.second;
-    return performSuperposition(_cl, arg.first.first, arg.first.second, QRS_QUERY_BANK,
-	    qr.clause, qr.literal, qr.term, QRS_RESULT_BANK, qr.substitution);
+    return performSuperposition(_cl, arg.first.first, arg.first.second,
+	    qr.clause, qr.literal, qr.term, qr.substitution, true);
   }
 private:
   Clause* _cl;
@@ -122,8 +122,8 @@ struct Superposition::BackwardResultFn
     CALL("Superposition::ForwardResultFn::operator()");
 
     TermQueryResult& qr = arg.second;
-    return performSuperposition(qr.clause, qr.literal, qr.term, QRS_RESULT_BANK,
-	    _cl, arg.first.first, arg.first.second, QRS_QUERY_BANK, qr.substitution);
+    return performSuperposition(qr.clause, qr.literal, qr.term,
+	    _cl, arg.first.first, arg.first.second, qr.substitution, false);
   }
 private:
   Clause* _cl;
@@ -158,9 +158,9 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
  * otherwise return 0.
  */
 Clause* Superposition::performSuperposition(
-	Clause* rwClause, Literal* rwLit, TermList rwTerm, int rwIndex,
-	Clause* eqClause, Literal* eqLit, TermList eqLHS, int eqIndex,
-	MMSubstitution* subst)
+	Clause* rwClause, Literal* rwLit, TermList rwTerm,
+	Clause* eqClause, Literal* eqLit, TermList eqLHS,
+	ResultSubstitutionSP subst, bool eqIsResult)
 {
   CALL("Superposition::performSuperposition");
 
@@ -169,11 +169,11 @@ Clause* Superposition::performSuperposition(
     ordering=Ordering::instance();
   }
 
-  Literal* rwLitS = subst->apply(rwLit, rwIndex);
-  TermList rwTermS = subst->apply(rwTerm, rwIndex);
-  TermList eqLHSS = subst->apply(eqLHS, eqIndex);
+  Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
+  TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
+  TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
   TermList tgtTerm = EqHelper::getRHS(eqLit, eqLHS);
-  TermList tgtTermS = subst->apply(tgtTerm, eqIndex);
+  TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
   //check that we're not rewriting smaller subterm with larger
   if(ordering->compare(tgtTermS,eqLHSS)==Ordering::GREATER) {
@@ -210,18 +210,18 @@ Clause* Superposition::performSuperposition(
   for(int i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
-	(*res)[next++] = subst->apply(curr, rwIndex);
+	(*res)[next++] = subst->apply(curr, !eqIsResult);
     }
   }
   for(int i=0;i<eqLength;i++) {
     Literal* curr=(*eqClause)[i];
     if(curr!=eqLit) {
-	(*res)[next++] = subst->apply(curr, eqIndex);
+	(*res)[next++] = subst->apply(curr, eqIsResult);
     }
   }
 
   res->setAge(Int::max(rwClause->age(),eqClause->age())+1);
-  if(rwIndex==QRS_QUERY_BANK) {
+  if(eqIsResult) {
     env.statistics->forwardSuperposition++;
   } else {
     env.statistics->backwardSuperposition++;
