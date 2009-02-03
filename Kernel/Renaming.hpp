@@ -26,6 +26,13 @@ public:
   Renaming() :
     _nextVar(0) {
   }
+
+  void reset()
+  {
+    _data.reset();
+    _nextVar=0;
+  }
+
   unsigned getOrBind(unsigned v)
   {
     if (_data.insert(v, _nextVar)) {
@@ -33,31 +40,38 @@ public:
     }
     return _data.get(v);
   }
-  unsigned apply(unsigned v) const
-  {
-    unsigned res;
-    if (_data.find(v, res)) {
-      return res;
-    }
-    return v;
-  }
-  Literal* apply(Literal* l) const;
-  Term* apply(Term* l) const;
-  TermList apply(TermList l) const;
+  unsigned get(unsigned v) const
+  { return _data.get(v); }
+  bool contains(unsigned v)
+  { return _data.find(v); }
+
+  Literal* apply(Literal* l);
+  Term* apply(Term* l);
+  TermList apply(TermList l);
   bool identity() const;
 
-  static void normalizeVariables(const Term* t, Renaming& res);
-  static void normalizeVariables(TermList t, Renaming& res);
-  static void inverse(const Renaming& orig, Renaming& target);
+  void normalizeVariables(const Term* t);
+  void normalizeVariables(TermList t);
+  void makeInverse(const Renaming& orig);
 
 #if VDEBUG
   void assertValid() const;
   string toString() const;
 #endif
 private:
+  class Applicator
+  {
+  public:
+    Applicator(Renaming* parent) : _parent(parent) {}
+    TermList apply(unsigned var)
+    { return TermList(_parent->getOrBind(var), false); }
+  private:
+    Renaming* _parent;
+  };
+
   typedef DHMap<unsigned, unsigned> VariableMap;
   VariableMap _data;
-  int _nextVar;
+  unsigned _nextVar;
 public:
   typedef VariableMap::Item Item;
   VirtualIterator<Item> items() const { return _data.items(); }

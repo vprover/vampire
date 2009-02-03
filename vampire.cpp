@@ -206,6 +206,8 @@ int main(int argc, char* argv [])
     MemoryLeak::cancelReport();
 #endif
     explainException(exception);
+    env.statistics->print();
+
   }
   catch (std::bad_alloc& _) {
 #if CHECK_LEAKS

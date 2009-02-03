@@ -205,6 +205,8 @@ protected:
   static IntermediateNode* createIntermediateNode(TermList* ts);
   static void ensureIntermediateNodeEfficiency(IntermediateNode** inode);
 
+
+
   class Binding {
   public:
     /** Number of the variable at this node */
@@ -277,6 +279,41 @@ protected:
 
   typedef pair<LeafData*, ResultSubstitutionSP> QueryResult;
 
+  /**
+   * Class that supports matching operations required by
+   * retrieval of generalizations in substitution trees.
+   */
+  class GenMatcher
+  {
+  public:
+    void bindSpecialVar(unsigned var, TermList term)
+    {
+      ALWAYS(_specVars.insert(var,term));
+      _specVarQueue.insert(var);
+    }
+    TermList getNextSpecVarBinding()
+    { return _specVars.get(_specVarQueue.top()); }
+    bool matchNext(TermList nodeTerm, BacktrackData& bd);
+
+    ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer,
+	    Renaming* queryDenormalizer);
+  private:
+    typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > SpecVarMap;
+    typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > BindingMap;
+    typedef Stack<unsigned> VarStack;
+
+    void undo(VarStack* boundVars);
+
+    struct Binder;
+    struct Applicator;
+    class Substitution;
+    struct MatchBacktrackObject;
+
+    SpecVarQueue _specVarQueue;
+    SpecVarMap _specVars;
+    BindingMap _bindings;
+  };
+
   class FastGeneralizationsIterator
   : public IteratorCore<QueryResult>
   {
@@ -298,13 +335,16 @@ protected:
     bool findNextLeaf();
     bool enter(Node* n, BacktrackData& bd);
 
-    STGenMatcher subst;
   private:
-    bool literalRetrieval;
-    bool inLeaf;
-    LDIterator ldIterator;
-    Stack<NodeIterator> nodeIterators;
-    Stack<BacktrackData> bdStack;
+    GenMatcher _subst;
+    bool _literalRetrieval;
+    bool _retrieveSubstitution;
+    bool _inLeaf;
+    LDIterator _ldIterator;
+    Stack<NodeIterator> _nodeIterators;
+    Stack<BacktrackData> _bdStack;
+    Renaming _resultNormalizer;
+    Renaming _queryDenormalizer;
   };
 
 

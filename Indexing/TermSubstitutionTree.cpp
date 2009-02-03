@@ -50,7 +50,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     Term* term=t.term();
 
     Renaming normalizer;
-    Renaming::normalizeVariables(term,normalizer);
+    normalizer.normalizeVariables(term);
     Term* normTerm=normalizer.apply(term);
 
     BindingQueue bq;
@@ -92,22 +92,12 @@ TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t,
     return ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions);
   } else {
     ASS(t.isTerm());
-    if(retrieveSubstitutions) {
-      if(_vars.isEmpty()) {
-	return getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions);
-      } else {
-	return pvi( getConcatenatedIterator(
-	    ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
-	    getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
-      }
+    if(_vars.isEmpty()) {
+      return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
     } else {
-      if(_vars.isEmpty()) {
-	return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
-      } else {
-	return pvi( getConcatenatedIterator(
-	    ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
-	    getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
-      }
+      return pvi( getConcatenatedIterator(
+	      ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
+	      getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
     }
   }
 }

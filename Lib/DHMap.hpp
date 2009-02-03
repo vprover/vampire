@@ -159,15 +159,13 @@ public:
   }
 
   /**
-   *  Find value by the key. The result is true if a pair
-   *  with this key is in the map.
+   *  Return true iff a pair with @b key as a key is in the map.
    */
   inline
   bool find(Key key) const
   {
     CALL("DHMap::find/1");
-    Val v;
-    return find(key,v);
+    return findEntry(key);
   }
 
   /**
@@ -175,7 +173,7 @@ public:
    *  this key has to be present.
    */
   inline
-  Val get(Key key)
+  Val get(Key key) const
   {
     Val v;
     ALWAYS(find(key,v));

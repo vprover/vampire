@@ -77,7 +77,7 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 	TermList rhs=EqHelper::getRHS(qr.literal,qr.term);
 
 	TermList rhsS;
-	if(!qr.substitution->isIdentityOnQuery()) {
+	if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
 	  //When we apply substitution to the rhs, we get a term, that is
 	  //a variant of the term we'd like to get, as new variables are
 	  //produced in the substitution application.
@@ -86,13 +86,13 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 	  TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
 	  TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
 	  Renaming rNorm, qNorm, qDenorm;
-	  Renaming::normalizeVariables(lhsSBadVars, rNorm);
-	  Renaming::normalizeVariables(trm, qNorm);
-	  Renaming::inverse(qNorm, qDenorm);
+	  rNorm.normalizeVariables(lhsSBadVars);
+	  qNorm.normalizeVariables(trm);
+	  qDenorm.makeInverse(qNorm);
 	  ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
 	  rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
 	} else {
-	  rhsS=qr.substitution->applyToResult(rhs);
+	  rhsS=qr.substitution->applyToBoundResult(rhs);
 	}
 
 	if(ordering->compare(trm,rhsS)!=Ordering::GREATER) {
@@ -120,6 +120,7 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 	env.statistics->forwardDemodulations++;
 	keep=false;
 	toAdd=pvi( getSingletonIterator(res) );
+	return;
       }
     }
   }

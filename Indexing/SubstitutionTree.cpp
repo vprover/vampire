@@ -7,6 +7,7 @@
 
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Renaming.hpp"
+#include "../Kernel/SubstHelper.hpp"
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/Environment.hpp"
@@ -74,7 +75,11 @@ SubstitutionTree::~SubstitutionTree()
   }
 } // SubstitutionTree::~SubstitutionTree
 
-
+/**
+ * Store initial bindings of term @b t into @b bq.
+ *
+ * This method is used for insertions and deletions.
+ */
 void SubstitutionTree::getBindings(Term* t, BindingQueue& bq)
 {
   Binding bind;
@@ -93,8 +98,11 @@ void SubstitutionTree::getBindings(Term* t, BindingQueue& bq)
 }
 
 /**
- * Auxiliary function for substitution tree insertion.
- * @since 16/08/2008 flight Sydney-San Francisco
+ * Insert an entry to the substitution tree.
+ *
+ * @b pnode is pointer to root of tree corresponding to
+ * top symbol of the term/literal being inserted, and
+ * @b bh contains its arguments.
  */
 void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
 {
@@ -219,8 +227,14 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
 } // // SubstitutionTree::insert
 
 /*
- * Remove a clause from the substitution tree.
- * @since 16/08/2008 flight San Francisco-Seattle
+ * Remove an entry from the substitution tree.
+ *
+ * @b pnode is pointer to root of tree corresponding to
+ * top symbol of the term/literal being removed, and
+ * @b bh contains its arguments.
+ *
+ * If the removal results in a chain of nodes containing
+ * no terms/literals, all those nodes are removed as well.
  */
 void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
 {
@@ -469,7 +483,7 @@ clientBDRecording(false)
     return;
   }
 
-  Renaming::normalizeVariables(query, queryNormalizer);
+  queryNormalizer.normalizeVariables(query);
   Term* queryNorm=queryNormalizer.apply(query);
 
   if(reversed) {
@@ -549,10 +563,9 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
   if(retrieveSubstitution) {
     Renaming normalizer;
     if(literalRetrieval) {
-      Renaming::normalizeVariables(ld.literal, normalizer);
+      normalizer.normalizeVariables(ld.literal);
     } else {
-      ASS(ld.term.isTerm());
-      Renaming::normalizeVariables(ld.term.term(), normalizer);
+      normalizer.normalizeVariables(ld.term);
     }
 
     ASS(clientBacktrackData.isEmpty());
@@ -752,21 +765,175 @@ SubstitutionTree::NodeIterator
 
 
 
+struct SubstitutionTree::GenMatcher::Binder
+{
+  Binder(GenMatcher* parent, VarStack*& boundVars, VarStack* newSpecVars)
+  : _parent(parent), _boundVars(boundVars), _newSpecVars(newSpecVars) {}
+  bool operator()(unsigned var, TermList term)
+  {
+    TermList* aux;
+    if(_parent->_bindings.getValuePtr(var,aux,term)) {
+      if(!_boundVars) {
+	_boundVars=new VarStack(2);
+      }
+      _boundVars->push(var);
+      return true;
+    } else {
+      return *aux==term;
+    }
+  }
+  void specVar(unsigned var, TermList term)
+  {
+    ALWAYS(_parent->_specVars.set(var,term));
+    _newSpecVars->push(var);
+  }
+private:
+  GenMatcher* _parent;
+  VarStack*& _boundVars;
+  VarStack* _newSpecVars;
+};
+
+struct SubstitutionTree::GenMatcher::Applicator
+{
+  Applicator(GenMatcher* parent, Renaming* resultNormalizer,
+	  Renaming* queryDenormalizer)
+  : _parent(parent), _resultNormalizer(resultNormalizer),
+  _queryDenormalizer(queryDenormalizer) {}
+  TermList apply(unsigned var)
+  {
+    TermList* cacheEntry;
+    if(_cache.getValuePtr(var,cacheEntry)) {
+      ASS(_resultNormalizer->contains(var));
+      unsigned nvar=_resultNormalizer->get(var);
+      ASS(_parent->_bindings.find(nvar));
+      TermList norm=_parent->_bindings.get(nvar);
+      *cacheEntry=_queryDenormalizer->apply(norm);
+    }
+    return *cacheEntry;
+  }
+private:
+  GenMatcher* _parent;
+  Renaming* _resultNormalizer;
+  Renaming* _queryDenormalizer;
+  BindingMap _cache;
+};
+
+class SubstitutionTree::GenMatcher::Substitution
+: public ResultSubstitution
+{
+public:
+  Substitution(GenMatcher* parent, Renaming* resultNormalizer,
+	  Renaming* queryDenormalizer)
+  : _parent(parent), _resultNormalizer(resultNormalizer),
+  _queryDenormalizer(queryDenormalizer), _applicator(0)
+  {}
+  TermList applyToBoundResult(TermList t)
+  { return SubstHelper::apply(t, *getApplicator()); }
+
+  bool isIdentityOnQueryWhenResultBound() {return true;}
+private:
+  Applicator* getApplicator()
+  {
+    if(!_applicator) {
+      _applicator=new Applicator(_parent, _resultNormalizer, _queryDenormalizer);
+    }
+    return _applicator;
+  }
+
+  GenMatcher* _parent;
+  Renaming* _resultNormalizer;
+  Renaming* _queryDenormalizer;
+  Applicator* _applicator;
+};
+
+class SubstitutionTree::GenMatcher::MatchBacktrackObject
+: public BacktrackObject
+{
+public:
+  MatchBacktrackObject(GenMatcher* parent, VarStack* boundVars)
+  :_parent(parent), _boundVars(boundVars) {}
+  ~MatchBacktrackObject()
+  {
+    if(_boundVars) {
+      delete _boundVars;
+    }
+  }
+  void backtrack()
+  {
+    _parent->undo(_boundVars);
+    delete _boundVars;
+    _boundVars=0;
+  }
+  CLASS_NAME("SubstitutionTree::GenMatcher::MatchBacktrackObject");
+  USE_ALLOCATOR(MatchBacktrackObject);
+private:
+  GenMatcher* _parent;
+  VarStack* _boundVars;
+};
+
+bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, BacktrackData& bd)
+{
+  CALL("SubstitutionTree::GenMatcher::matchNext");
+
+  unsigned specVar=_specVarQueue.backtrackablePop(bd);
+  TermList queryTerm=_specVars.get(specVar);
+
+  VarStack* boundVars=0;
+  static VarStack newSpecVars(8);
+  newSpecVars.reset();
+
+  Binder binder(this,boundVars, &newSpecVars);
+
+  bool success=MatchingUtils::matchTerms(nodeTerm, queryTerm, binder);
+  if(!success) {
+    undo(boundVars);
+    delete boundVars;
+  } else {
+    while(newSpecVars.isNonEmpty()) {
+      _specVarQueue.backtrackableInsert(newSpecVars.pop(), bd);
+    }
+    if(boundVars) {
+      bd.addBacktrackObject(new MatchBacktrackObject(this, boundVars));
+    }
+  }
+  return success;
+}
+
+ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
+	Renaming* resultNormalizer, Renaming* queryDenormalizer)
+{
+  return ResultSubstitutionSP(
+	  new Substitution(this, resultNormalizer, queryDenormalizer));
+}
+
+
+void SubstitutionTree::GenMatcher::undo(VarStack* boundVars)
+{
+  if(boundVars) {
+    while(boundVars->isNonEmpty()) {
+      ALWAYS(_bindings.remove(boundVars->pop()));
+    }
+  }
+}
+
 SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed)
-: literalRetrieval(query->isLiteral()),
-  inLeaf(false), ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8)
+: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
+  _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _nodeIterators(8), _bdStack(8)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
-  ASS(!retrieveSubstitution);
 
   if(!root) {
     return;
   }
 
   Renaming queryNormalizer;
-  Renaming::normalizeVariables(query, queryNormalizer);
+  queryNormalizer.normalizeVariables(query);
   Term* queryNorm=queryNormalizer.apply(query);
+
+  if(_retrieveSubstitution) {
+    _queryDenormalizer.makeInverse(queryNormalizer);
+  }
 
   if(reversed) {
     createReversedInitialBindings(queryNorm);
@@ -781,8 +948,8 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node*
 
 SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
 {
-  while(bdStack.isNonEmpty()) {
-    bdStack.pop().backtrack();
+  while(_bdStack.isNonEmpty()) {
+    _bdStack.pop().backtrack();
   }
 }
 
@@ -793,7 +960,7 @@ void SubstitutionTree::FastGeneralizationsIterator::createInitialBindings(Term* 
   int nextVar = 0;
   while (! args->isEmpty()) {
     unsigned var = nextVar++;
-    subst.bindSpecialVar(var,*args);
+    _subst.bindSpecialVar(var,*args);
     args = args->next();
   }
 }
@@ -805,26 +972,39 @@ void SubstitutionTree::FastGeneralizationsIterator::createReversedInitialBinding
   ASS(t->commutative());
   ASS_EQ(t->arity(),2);
 
-  subst.bindSpecialVar(1,*t->nthArgument(0));
-  subst.bindSpecialVar(0,*t->nthArgument(1));
+  _subst.bindSpecialVar(1,*t->nthArgument(0));
+  _subst.bindSpecialVar(0,*t->nthArgument(1));
 }
 
 bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::hasNext");
 
-  while(!ldIterator.hasNext() && findNextLeaf()) {}
-  return ldIterator.hasNext();
+  while(!_ldIterator.hasNext() && findNextLeaf()) {}
+  return _ldIterator.hasNext();
 }
 
 SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::next()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::next");
 
-  while(!ldIterator.hasNext() && findNextLeaf()) {}
-  ASS(ldIterator.hasNext());
-  LeafData& ld=ldIterator.next();
-  return QueryResult(&ld, ResultSubstitutionSP());
+  while(!_ldIterator.hasNext() && findNextLeaf()) {}
+  ASS(_ldIterator.hasNext());
+  LeafData& ld=_ldIterator.next();
+
+  if(_retrieveSubstitution) {
+    _resultNormalizer.reset();
+    if(_literalRetrieval) {
+      _resultNormalizer.normalizeVariables(ld.literal);
+    } else {
+      _resultNormalizer.normalizeVariables(ld.term);
+    }
+
+    return QueryResult(&ld,
+	    _subst.getSubstitution(&_resultNormalizer, &_queryDenormalizer));
+  } else {
+    return QueryResult(&ld, ResultSubstitutionSP());
+  }
 }
 
 
@@ -832,43 +1012,43 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::findNextLeaf");
 
-  if(nodeIterators.isEmpty()) {
+  if(_nodeIterators.isEmpty()) {
     //There are no node iterators in the stack, so there's nowhere
     //to look for the next leaf.
     //This shouldn't hapen during the regular retrieval process, but it
     //can happen when there are no literals inserted for a predicate,
     //or when predicates with zero arity are encountered.
-    ASS(bdStack.isEmpty());
+    ASS(_bdStack.isEmpty());
     return false;
   }
 
-  if(inLeaf) {
+  if(_inLeaf) {
     //Leave the current leaf
-    bdStack.pop().backtrack();
-    inLeaf=false;
+    _bdStack.pop().backtrack();
+    _inLeaf=false;
   }
 
-  ASS(bdStack.length()+1==nodeIterators.length());
+  ASS(_bdStack.length()+1==_nodeIterators.length());
 
   do {
-    while(!nodeIterators.top().hasNext() && !bdStack.isEmpty()) {
+    while(!_nodeIterators.top().hasNext() && !_bdStack.isEmpty()) {
       //backtrack undos everything that enter(...) method has done,
       //so it also pops one item out of the nodeIterators stack
-      bdStack.pop().backtrack();
+      _bdStack.pop().backtrack();
     }
-    if(!nodeIterators.top().hasNext()) {
+    if(!_nodeIterators.top().hasNext()) {
       return false;
     }
-    Node* n=*nodeIterators.top().next();
+    Node* n=*_nodeIterators.top().next();
     BacktrackData bd;
     bool success=enter(n,bd);
     if(!success) {
       bd.backtrack();
       continue;
     } else {
-      bdStack.push(bd);
+      _bdStack.push(bd);
     }
-  } while(!inLeaf);
+  } while(!_inLeaf);
   return true;
 }
 
@@ -879,18 +1059,18 @@ bool SubstitutionTree::FastGeneralizationsIterator::enter(Node* n, BacktrackData
   if(!n->term.isEmpty()) {
     //n is proper node, not a root
 
-    bool success=subst.matchNext(n->term, bd);
+    bool success=_subst.matchNext(n->term, bd);
 
     if(!success) {
       return false;
     }
   }
   if(n->isLeaf()) {
-    ldIterator=static_cast<Leaf*>(n)->allChildren();
-    inLeaf=true;
+    _ldIterator=static_cast<Leaf*>(n)->allChildren();
+    _inLeaf=true;
   } else {
     NodeIterator nit=getNodeIterator(static_cast<IntermediateNode*>(n));
-    nodeIterators.backtrackablePush(nit, bd);
+    _nodeIterators.backtrackablePush(nit, bd);
   }
   return true;
 }
@@ -900,7 +1080,7 @@ SubstitutionTree::NodeIterator
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::getNodeIterator");
 
-  TermList qt=subst.getNextSpecVarBinding();
+  TermList qt=_subst.getNextSpecVarBinding();
   if(qt.isVar()) {
 	return n->allChildren();
   } else {

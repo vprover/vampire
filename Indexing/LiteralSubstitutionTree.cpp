@@ -35,7 +35,7 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
   CALL("LiteralSubstitutionTree::handleLiteral");
 
   Renaming normalizer;
-  Renaming::normalizeVariables(lit,normalizer);
+  normalizer.normalizeVariables(lit);
   Literal* normLit=normalizer.apply(lit);
 
   BindingQueue bq;
@@ -58,13 +58,8 @@ SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getGeneralizations");
-  if(retrieveSubstitutions) {
-    return getResultIterator<GeneralizationsIterator>(lit,
-	complementary, retrieveSubstitutions);
-  } else {
-    return getResultIterator<FastGeneralizationsIterator>(lit,
-	complementary, retrieveSubstitutions);
-  }
+  return getResultIterator<FastGeneralizationsIterator>(lit,
+	  complementary, retrieveSubstitutions);
 }
 
 SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
