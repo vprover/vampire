@@ -5,6 +5,8 @@
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 
+#include <utility>
+
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Kernel/SubstHelper.hpp"
@@ -14,8 +16,8 @@
 #include "../Lib/Recycler.hpp"
 #include "TermSharing.hpp"
 
-#if VDEBUG
 #include <iostream>
+#if VDEBUG
 #include "../Kernel/Signature.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
@@ -27,6 +29,7 @@ string SingleTermListToString(const TermList* ts);
 
 #include "SubstitutionTree.hpp"
 
+using namespace std;
 using namespace Indexing;
 
 
@@ -97,6 +100,24 @@ void SubstitutionTree::getBindings(Term* t, BindingQueue& bq)
     args = args->next();
   }
 }
+
+typedef pair<TermList*, TermList*> SplitPoint;
+struct SplitPointComparator
+{
+  inline
+  static int rate(TermList* trm)
+  {
+    return trm->isTerm() ? 1 : 0;
+  }
+  inline
+  static Comparison compare(const SplitPoint& sp1, const SplitPoint& sp2)
+  {
+    int sc1=rate(sp1.first)+rate(sp1.second);
+    int sc2=rate(sp2.first)+rate(sp2.second);
+    return Int::compare(sc1, sc2);
+  }
+};
+typedef BinaryHeap<SplitPoint,SplitPointComparator> SplitPointHeap;
 
 /**
  * Insert an entry to the substitution tree.
@@ -170,6 +191,9 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
     goto start;
   }
 
+  static SplitPointHeap splitPoints;
+  splitPoints.reset();
+
   // ss is the term in node, tt is the term to be inserted
   // ss and tt have the same top symbols but are not equal
   // create the common subterm of ss,tt and an alternative node
@@ -201,15 +225,13 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
       subterms.push(tt->next());
     } else {
       if (! TermList::sameTop(ss,tt)) {
-	int x;
 	if(!ss->isSpecialVar()) {
-	  x = _nextVar++;
-	  Node::split(pnode, ss,x);
+	  splitPoints.insert(SplitPoint(ss,tt));
 	} else {
-	  x=ss->var();
+	  unsigned x=ss->var();
+	  Binding bind(x,tt);
+	  bh.insert(bind);
 	}
-	Binding bind(x,tt);
-	bh.insert(bind);
       }
 
       if (subterms.isEmpty()) {
@@ -222,6 +244,14 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
 	subterms.push(tt->next());
       }
     }
+  }
+
+  while(!splitPoints.isEmpty()) {
+    SplitPoint sp=splitPoints.pop();
+    unsigned x = _nextVar++;
+    Node::split(pnode, sp.first, x);
+    Binding bind(x,sp.second);
+    bh.insert(bind);
   }
 
   goto start;
@@ -768,9 +798,10 @@ SubstitutionTree::NodeIterator
 
 struct SubstitutionTree::GenMatcher::Binder
 {
+  inline
   Binder(GenMatcher* parent, VarStack*& boundVars, VarStack* newSpecVars)
   : _parent(parent), _boundVars(boundVars), _newSpecVars(newSpecVars) {}
-  bool operator()(unsigned var, TermList term)
+  bool bind(unsigned var, TermList term)
   {
     TermList* aux;
     if(_parent->_bindings->getValuePtr(var,aux,term)) {
@@ -783,6 +814,7 @@ struct SubstitutionTree::GenMatcher::Binder
       return *aux==term;
     }
   }
+  inline
   void specVar(unsigned var, TermList term)
   {
     ALWAYS(_parent->_specVars->set(var,term));
@@ -796,6 +828,7 @@ private:
 
 struct SubstitutionTree::GenMatcher::Applicator
 {
+  inline
   Applicator(GenMatcher* parent, Renaming* resultNormalizer, Renaming* queryDenormalizer)
   : _parent(parent), _resultNormalizer(resultNormalizer),
   _queryDenormalizer(queryDenormalizer) {}
@@ -822,14 +855,17 @@ class SubstitutionTree::GenMatcher::Substitution
 : public ResultSubstitution
 {
 public:
+  inline
   Substitution(GenMatcher* parent, Renaming* resultNormalizer,
 	  Renaming* queryDenormalizer)
   : _parent(parent), _resultNormalizer(resultNormalizer),
   _queryDenormalizer(queryDenormalizer), _applicator(0)
   {}
+  inline
   TermList applyToBoundResult(TermList t)
   { return SubstHelper::apply(t, *getApplicator()); }
 
+  inline
   bool isIdentityOnQueryWhenResultBound() {return true;}
 private:
   Applicator* getApplicator()
@@ -850,14 +886,17 @@ class SubstitutionTree::GenMatcher::MatchBacktrackObject
 : public BacktrackObject
 {
 public:
+  inline
   MatchBacktrackObject(GenMatcher* parent, VarStack* boundVars)
   :_parent(parent), _boundVars(boundVars) {}
+  inline
   ~MatchBacktrackObject()
   {
     if(_boundVars) {
       Recycler::release(_boundVars);
     }
   }
+  inline
   void backtrack()
   {
     _parent->undo(_boundVars);
@@ -892,6 +931,12 @@ bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, BacktrackData& b
   unsigned specVar=_specVarQueue->backtrackablePop(bd);
   TermList queryTerm=_specVars->get(specVar);
 
+  if(nodeTerm.isTerm() && nodeTerm.term()->shared()) {
+    if(nodeTerm.term()->ground()) {
+      return nodeTerm==queryTerm;
+    }
+  }
+
   VarStack* boundVars=0;
   static VarStack newSpecVars(8);
   newSpecVars.reset();
@@ -920,16 +965,6 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
 {
   return ResultSubstitutionSP(
 	  new Substitution(this, resultNormalizer, queryDenormalizer));
-}
-
-
-void SubstitutionTree::GenMatcher::undo(VarStack* boundVars)
-{
-  if(boundVars) {
-    while(boundVars->isNonEmpty()) {
-      ALWAYS(_bindings->remove(boundVars->pop()));
-    }
-  }
 }
 
 SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node* root,

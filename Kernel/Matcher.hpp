@@ -57,7 +57,7 @@ public:
       return matchArgs(base.term(), instance.term(), binder);
     } else {
       ASS(base.isOrdinaryVar());
-      return binder(base.var(), instance);
+      return binder.bind(base.var(), instance);
     }
   }
 
@@ -67,7 +67,7 @@ private:
   typedef DHMap<unsigned,TermList,IdentityHash<unsigned> > BindingMap;
   struct MapBinder
   {
-    bool operator()(unsigned var, TermList term)
+    bool bind(unsigned var, TermList term)
     {
       TermList* aux;
       return _map.getValuePtr(var,aux,term) || *aux==term;
@@ -277,7 +277,7 @@ private:
   struct MapBinder
   {
     MapBinder(Matcher& parent) : _parent(parent) {}
-    bool operator()(unsigned var, TermList term)
+    bool bind(unsigned var, TermList term)
     {
       TermList* aux;
       if(_map.getValuePtr(var,aux,term)) {
@@ -327,8 +327,13 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
 {
   CALL("MatchingUtils::matchArgs");
   ASS_EQ(base->functor(),instance->functor());
-  if(base==instance && base->shared() && base->ground()) {
-    return true;
+  if(base->shared() && instance->shared()) {
+    if(base->ground()) {
+      return base==instance;
+    }
+    if(base->weight()>instance->weight()) {
+      return false;
+    }
   }
   if(base->isLiteral() && base->arity()==0) {
     return true;
@@ -351,21 +356,30 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
     } else if(it->isSpecialVar()) {
       binder.specVar(it->var(), *bt);
     } else if(bt->isTerm()) {
-      if(*bt==*it && bt->term()->shared() && bt->term()->ground()) {
-      } else if (it->isTerm() && bt->term()->functor()==it->term()->functor()) {
-	Term* s = bt->term();
-	Term* t = it->term();
-	if(s->arity() > 0) {
-	  bt = s->args();
-	  it = t->args();
-	  continue;
-	}
-      } else {
+      if(!it->isTerm()) {
 	return false;
+      }
+      Term* s = bt->term();
+      Term* t = it->term();
+      if(s->functor()!=t->functor()) {
+	return false;
+      }
+      if(bt->term()->shared() && it->term()->shared()) {
+	if(bt->term()->ground() && *bt!=*it) {
+	  return false;
+	}
+	if(s->weight() > t->weight()) {
+	  return false;
+	}
+      }
+      if(s->arity() > 0) {
+	bt = s->args();
+	it = t->args();
+	continue;
       }
     } else {
       ASS(bt->isOrdinaryVar());
-      if(!binder(bt->var(), *it)) {
+      if(!binder.bind(bt->var(), *it)) {
 	return false;
       }
     }

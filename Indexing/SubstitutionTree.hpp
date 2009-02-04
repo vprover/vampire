@@ -304,7 +304,14 @@ protected:
     typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > BindingMap;
     typedef Stack<unsigned> VarStack;
 
-    void undo(VarStack* boundVars);
+    void undo(VarStack* boundVars)
+    {
+      if(boundVars) {
+        while(boundVars->isNonEmpty()) {
+          ALWAYS(_bindings->remove(boundVars->pop()));
+        }
+      }
+    }
 
     struct Binder;
     struct Applicator;

@@ -265,14 +265,14 @@ static Allocator::Initialiser _____;
 #define DEALLOC_KNOWN(obj,size,className)		        \
   (Lib::Allocator::current->deallocateKnown(obj,size))
 #define USE_ALLOCATOR_UNK                                            \
-  void* operator new (size_t sz)                                       \
+  inline void* operator new (size_t sz)                                       \
   { return Lib::Allocator::current->allocateUnknown(sz); } \
-  void operator delete (void* obj)                                  \
+  inline void operator delete (void* obj)                                  \
   { if (obj) Lib::Allocator::current->deallocateUnknown(obj); }
 #define USE_ALLOCATOR(C)                                        \
-  void* operator new (size_t)                                   \
+  inline void* operator new (size_t)                                   \
     { return Lib::Allocator::current->allocateKnown(sizeof(C)); }\
-  void operator delete (void* obj)                               \
+  inline void operator delete (void* obj)                               \
    { if (obj) Lib::Allocator::current->deallocateKnown(obj,sizeof(C)); }
 #define ALLOC_UNKNOWN(size,className)				\
   (Lib::Allocator::current->allocateUnknown(size))
