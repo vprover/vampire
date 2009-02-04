@@ -52,6 +52,15 @@ public:
     }
   }
 
+  void reset()
+  {
+    T* ep=_data+_size;
+    while(ep!=_data1) {
+	(--ep)->~T();
+    }
+    _size=0;
+  }
+
 
   /** Return mumber of items stored in this BinaryHeap */
   inline

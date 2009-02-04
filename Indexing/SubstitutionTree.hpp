@@ -286,13 +286,15 @@ protected:
   class GenMatcher
   {
   public:
+    GenMatcher();
+    ~GenMatcher();
     void bindSpecialVar(unsigned var, TermList term)
     {
-      ALWAYS(_specVars.insert(var,term));
-      _specVarQueue.insert(var);
+      ALWAYS(_specVars->insert(var,term));
+      _specVarQueue->insert(var);
     }
     TermList getNextSpecVarBinding()
-    { return _specVars.get(_specVarQueue.top()); }
+    { return _specVars->get(_specVarQueue->top()); }
     bool matchNext(TermList nodeTerm, BacktrackData& bd);
 
     ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer,
@@ -309,9 +311,9 @@ protected:
     class Substitution;
     struct MatchBacktrackObject;
 
-    SpecVarQueue _specVarQueue;
-    SpecVarMap _specVars;
-    BindingMap _bindings;
+    SpecVarQueue* _specVarQueue;
+    SpecVarMap* _specVars;
+    BindingMap* _bindings;
   };
 
   class FastGeneralizationsIterator

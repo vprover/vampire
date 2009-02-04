@@ -11,6 +11,7 @@
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/Environment.hpp"
+#include "../Lib/Recycler.hpp"
 #include "TermSharing.hpp"
 
 #if VDEBUG
@@ -772,9 +773,9 @@ struct SubstitutionTree::GenMatcher::Binder
   bool operator()(unsigned var, TermList term)
   {
     TermList* aux;
-    if(_parent->_bindings.getValuePtr(var,aux,term)) {
+    if(_parent->_bindings->getValuePtr(var,aux,term)) {
       if(!_boundVars) {
-	_boundVars=new VarStack(2);
+	Recycler::get(_boundVars);
       }
       _boundVars->push(var);
       return true;
@@ -784,7 +785,7 @@ struct SubstitutionTree::GenMatcher::Binder
   }
   void specVar(unsigned var, TermList term)
   {
-    ALWAYS(_parent->_specVars.set(var,term));
+    ALWAYS(_parent->_specVars->set(var,term));
     _newSpecVars->push(var);
   }
 private:
@@ -805,8 +806,8 @@ struct SubstitutionTree::GenMatcher::Applicator
     if(_cache.getValuePtr(var,cacheEntry)) {
       ASS(_resultNormalizer->contains(var));
       unsigned nvar=_resultNormalizer->get(var);
-      ASS(_parent->_bindings.find(nvar));
-      TermList norm=_parent->_bindings.get(nvar);
+      ASS(_parent->_bindings->find(nvar));
+      TermList norm=_parent->_bindings->get(nvar);
       *cacheEntry=_queryDenormalizer->apply(norm);
     }
     return *cacheEntry;
@@ -871,12 +872,26 @@ private:
   VarStack* _boundVars;
 };
 
+SubstitutionTree::GenMatcher::GenMatcher()
+{
+  Recycler::get(_specVars);
+  Recycler::get(_bindings);
+  Recycler::get(_specVarQueue);
+}
+SubstitutionTree::GenMatcher::~GenMatcher()
+{
+  Recycler::release(_specVars);
+  Recycler::release(_bindings);
+  Recycler::release(_specVarQueue);
+}
+
+
 bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, BacktrackData& bd)
 {
   CALL("SubstitutionTree::GenMatcher::matchNext");
 
-  unsigned specVar=_specVarQueue.backtrackablePop(bd);
-  TermList queryTerm=_specVars.get(specVar);
+  unsigned specVar=_specVarQueue->backtrackablePop(bd);
+  TermList queryTerm=_specVars->get(specVar);
 
   VarStack* boundVars=0;
   static VarStack newSpecVars(8);
@@ -890,7 +905,7 @@ bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, BacktrackData& b
     delete boundVars;
   } else {
     while(newSpecVars.isNonEmpty()) {
-      _specVarQueue.backtrackableInsert(newSpecVars.pop(), bd);
+      _specVarQueue->backtrackableInsert(newSpecVars.pop(), bd);
     }
     if(boundVars) {
       bd.addBacktrackObject(new MatchBacktrackObject(this, boundVars));
@@ -911,7 +926,7 @@ void SubstitutionTree::GenMatcher::undo(VarStack* boundVars)
 {
   if(boundVars) {
     while(boundVars->isNonEmpty()) {
-      ALWAYS(_bindings.remove(boundVars->pop()));
+      ALWAYS(_bindings->remove(boundVars->pop()));
     }
   }
 }
