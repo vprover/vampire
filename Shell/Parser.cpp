@@ -55,8 +55,9 @@ void ParserException::cry (ostream& out)
 
 
 /**
- * Read and consume a token of type tt. 
- * @throws ParserException if the next token has a wrong type.
+ * Read and consume a token of type tt. If the buffer contains
+ * no tokens, one will be read.
+ * @throws ParserException if the next token has a wrong type
  */
 void Parser::consumeToken (TokenType tt)
 {
@@ -69,14 +70,14 @@ void Parser::consumeToken (TokenType tt)
   consumeToken();
 } // Parser::consumeToken
 
-
 /**
  * Check that the current token has type tt.
- * @throws ParserException if it has a wrong type.
+ * @throws ParserException if it has a wrong type
+ * @pre The buffer must contain at least one token
  */
 void Parser::expectToken (TokenType tt)
 {
-  CALL("Parser::expectToken");
+  CALL("Parser::expectToken/1");
 
   if (currentToken().tag != tt) {
     throw ParserException(Token::toString(tt) + " expected",
@@ -84,9 +85,41 @@ void Parser::expectToken (TokenType tt)
   }
 } // Parser::expectToken
 
+/**
+ * Check that the current token has type tt.
+ * @throws ParserException with the given error message if it has a wrong type
+ * @pre The buffer must contain at least one token
+ */
+void Parser::expectToken (TokenType tt,string errorMessage)
+{
+  CALL("Parser::expectToken/2");
+
+  if (currentToken().tag != tt) {
+    throw ParserException(errorMessage,
+			  _tokens[_tokenCursor]);
+  }
+} // Parser::expectToken
+
+/**
+ * Check that the current token's text is @b keyword
+ * @throws ParserException if it the text is different and complains
+ *         that this keyword is expected
+ * @pre The buffer must contain at least one token
+ */
+void Parser::expectKeyword (const char* keyword)
+{
+  CALL("Parser::expectKeyword");
+
+  if (currentToken().text != keyword) {
+    throw ParserException((string)"keyword '" + keyword + "' expected",
+			  _tokens[_tokenCursor]);
+  }
+} // Parser::expectKeyword
+
 
 /**
  * Move to the next token.
+ * @pre buffer must contain at least one token
  * @since 15/07/2004 Turku
  */
 void Parser::consumeToken ()
@@ -102,9 +135,10 @@ void Parser::consumeToken ()
 
 
 /**
- * Read the next token. 
+ * Append the next token returned by the lexer to the end of the buffer
  * @since 15/07/2004 Turku, implemented as a Lexer method
  * @since 24/07/2004 Torrevieja
+ * @pre buffer content must be less than its capacity
  */
 void Parser::readToken ()
 {
@@ -114,20 +148,56 @@ void Parser::readToken ()
 
   if (_noOfTokens == TOKEN_BUFFER_SIZE) {
     _lexer.readToken(_tokens[0]);
+//     cout << _tokens[0].text << "\n";
     throw ParserException("token buffer capacity exceeded",_tokens[0]);
   }
 
   int tokenIndex = (_tokenCursor + _noOfTokens) % TOKEN_BUFFER_SIZE;
   _noOfTokens++;
   _lexer.readToken(_tokens[tokenIndex]);
+//   cout << _tokens[tokenIndex].text << "\n";
+} // Parser::readToken
+
+
+/**
+ * Append the next token returned by the lexer to the end of the buffer
+ * and check that its type is @b tt. The same as the combination of
+ * readToken() and expectToken(tt)
+ * @pre buffer content must be less than its capacity
+ * @throws ParserException if the next token has a wrong type.
+ * @since 26/01/2009 Heathrow
+ */
+void Parser::readToken(TokenType tt)
+{
+  CALL("Parser::readToken/1");
+  readToken();
+  expectToken(tt);
+} // Parser::readToken
+
+/**
+ * Append the next token returned by the lexer to the end of the buffer
+ * and check that its type is @b tt.
+ * Otherwise, throw an error with the given error message.
+ * The same as the combination of
+ * readToken() and expectToken(tt,errorMessage)
+ * @pre buffer content must be less than its capacity
+ * @throws ParserException if the next token has a wrong type.
+ * @since 26/01/2009 Heathrow
+ */
+void Parser::readToken(TokenType tt,string errorMessage)
+{
+  CALL("Parser::readToken/2");
+  readToken();
+  expectToken(tt,errorMessage);
 } // Parser::readToken
 
 
 /**
  * Return the current token.
+ * @pre buffer must contain at least one token 
  * @since 03/12/2006 Haifa
  */
-Token& Parser::currentToken ()
+Token& Parser::currentToken()
 {
   CALL("Parser::currentToken");
   ASS(_noOfTokens > 0);
@@ -137,6 +207,10 @@ Token& Parser::currentToken ()
 
 /**
  * Read tokens up to the index token and return the lookahead token.
+ * If the buffer does not contain enough tokens, a sufficient number
+ * of them will be read.
+ * @pre index of the lookehead token must be less than the capacity of
+ * the buffer 
  *
  * @since 15/07/2004 Turku
  */
@@ -220,4 +294,12 @@ long long unsigned Parser::unsigned64 (const Token& token)
   throw ParserException("incorrect 64-bit unsigned",token);
 } // Parser::unsigned64
 
+/**
+ * Terminate by throwing an exception with a given error message
+ * @since 27/01/2009 Manchester
+ */
+void Parser::terminate(string errorMessage)
+{
+  throw ParserException(errorMessage,_tokens[_tokenCursor]);
+} // terminate
 

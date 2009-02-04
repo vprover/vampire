@@ -50,7 +50,7 @@ class ParserException
 class Parser 
 {
 public:
-  Parser (Lexer& lexer);
+  Parser(Lexer& lexer);
   UnitList* units();
 
 protected:
@@ -65,19 +65,25 @@ protected:
   /** name table for variable names */
   IntNameTable _vars;
 
-  void consumeToken ();
-  void consumeToken (TokenType);
-  void expectToken (TokenType);
-  void readToken ();
+  void consumeToken();
+  void consumeToken(TokenType);
+  void expectToken(TokenType);
+  void expectKeyword(const char* keyword);
+  void readToken();
+  void readToken(TokenType);
   Token& lookAhead (int lookahead);
-  Token& currentToken ();
+  Token& currentToken();
+  void consumeToken(TokenType,string errorMessage);
+  void expectToken(TokenType,string errorMessage);
+  void readToken(TokenType,string errorMessage);
+  void terminate(string errorMessage);
   /**
    * If there are no tokens in the buffer, read one.
    * Then return the current token.
    * @since 31/12/2006 Manchester
    */
   inline
-  Token& currentToken1 ()
+  Token& currentToken1()
   {
     if (_noOfTokens == 0) {
       readToken();
@@ -85,10 +91,10 @@ protected:
 
     return currentToken();
   } // currentToken1
-  int var (const Token& t);
-  static double real (const Token& t);
-  static int integer (const Token& t);
-  static long long unsigned unsigned64 (const Token& t);
+  int var(const Token& t);
+  static double real(const Token& t);
+  static int integer(const Token& t);
+  static long long unsigned unsigned64(const Token& t);
 }; // class Parser
 
 }

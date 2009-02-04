@@ -796,8 +796,7 @@ private:
 
 struct SubstitutionTree::GenMatcher::Applicator
 {
-  Applicator(GenMatcher* parent, Renaming* resultNormalizer,
-	  Renaming* queryDenormalizer)
+  Applicator(GenMatcher* parent, Renaming* resultNormalizer, Renaming* queryDenormalizer)
   : _parent(parent), _resultNormalizer(resultNormalizer),
   _queryDenormalizer(queryDenormalizer) {}
   TermList apply(unsigned var)
@@ -856,13 +855,13 @@ public:
   ~MatchBacktrackObject()
   {
     if(_boundVars) {
-      delete _boundVars;
+      Recycler::release(_boundVars);
     }
   }
   void backtrack()
   {
     _parent->undo(_boundVars);
-    delete _boundVars;
+    Recycler::release(_boundVars);
     _boundVars=0;
   }
   CLASS_NAME("SubstitutionTree::GenMatcher::MatchBacktrackObject");
@@ -902,7 +901,9 @@ bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, BacktrackData& b
   bool success=MatchingUtils::matchTerms(nodeTerm, queryTerm, binder);
   if(!success) {
     undo(boundVars);
-    delete boundVars;
+    if(boundVars) {
+      Recycler::release(boundVars);
+    }
   } else {
     while(newSpecVars.isNonEmpty()) {
       _specVarQueue->backtrackableInsert(newSpecVars.pop(), bd);

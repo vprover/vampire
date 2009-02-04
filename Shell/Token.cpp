@@ -204,6 +204,12 @@ string Token::toString (TokenType tt)
     return ">=";
   case TT_LEQ:
     return "<=";
+  case TT_ATTRIBUTE:
+    return "<attribute>";
+  case TT_ARITH:
+    return "<arith>";
+  case TT_USER:
+    return "<user value>";
     
 #if VDEBUG
   default:

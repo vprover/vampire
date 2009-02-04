@@ -203,7 +203,13 @@ enum TokenType {
   /** addUFTerm() in MathSat */
   TT_ADD_UF_TERM,
   /** addAssumption() in MathSat */
-  TT_ADD_ASSUMPTION
+  TT_ADD_ASSUMPTION,
+  /** attributes, start with ":" in SMT */
+  TT_ATTRIBUTE,
+  /** arithmetic characters in SMT */
+  TT_ARITH,
+  /** Use values in SMT */
+  TT_USER
 }; // TokenType
 
 

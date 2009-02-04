@@ -21,6 +21,7 @@ public:
   template<typename T>
   static void release(T* obj)
   {
+    ASS(obj);
     List<T*>::push(obj, getStore<T>());
     obj->reset();
   }
