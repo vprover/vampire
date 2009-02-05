@@ -137,7 +137,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
     return ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
   }
-  VirtualIterator<QueryResult> qrit=vi( new Iterator(root, trm, retrieveSubstitutions) );
+  VirtualIterator<QueryResult> qrit=vi( new Iterator(root, trm, _nextVar, retrieveSubstitutions) );
   return pvi( getMappingIterator(qrit, TermQueryResultFn()) );
 }
 

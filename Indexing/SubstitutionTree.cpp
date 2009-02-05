@@ -475,7 +475,7 @@ bool SubstitutionTree::LeafIterator::hasNext()
 }
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed)
+	Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed)
 : literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
@@ -789,7 +789,7 @@ struct SubstitutionTree::GenMatcher::Binder
   inline
   void specVar(unsigned var, TermList term)
   {
-    _parent->_specVars->set(var,term);
+    (*_parent->_specVars)[var]=term;
     _newSpecVars->push(var);
   }
 private:
@@ -854,12 +854,15 @@ private:
   Applicator* _applicator;
 };
 
-SubstitutionTree::GenMatcher::GenMatcher(Term* query)
+SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
 : _boundVars(256), _poppedSpecVars(256), _poppedSpecVarIndexes(256),
 _insertedSpecVarIndexes(256)
 {
   Recycler::get(_specVarQueue);
   Recycler::get(_specVars);
+  if(_specVars->size()<nextSpecVar) {
+    _specVars->ensure(_specVars->size()*2);
+  }
   Recycler::get(_bindings);
 
   _maxVar=query->weight()-1;
@@ -881,7 +884,7 @@ bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm)
 
   _boundVars.push(BACKTRACK_SEPARATOR);
 
-  TermList queryTerm=_specVars->get(specVar);
+  TermList queryTerm=(*_specVars)[specVar];
 
   static VarStack newSpecVars(32);
   newSpecVars.reset();
@@ -948,8 +951,8 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
 }
 
 SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed)
-: _subst(query), _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
+	Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed)
+: _subst(query,nextSpecVar), _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()),
   _root(root), _alternatives(64), _nodeTypes(64)
 {

@@ -12,6 +12,7 @@
 
 #include "List.hpp"
 #include "Stack.hpp"
+#include "DArray.hpp"
 
 namespace Lib
 {
@@ -22,8 +23,8 @@ public:
   static void release(T* obj)
   {
     ASS(obj);
-    List<T*>::push(obj, getStore<T>());
     obj->reset();
+    List<T*>::push(obj, getStore<T>());
   }
   template<typename T>
   static void get(T*& result)
@@ -45,6 +46,25 @@ public:
       result=new Stack<T>(8);
     }
   }
+
+  template<typename T>
+  static void get(DArray<T>*& result)
+  {
+    List<DArray<T>*>*& store=getStore<DArray<T> >();
+    if(store) {
+      result=List<DArray<T>*>::pop(store);
+    } else {
+      result=new DArray<T>(64);
+    }
+  }
+  template<typename T>
+  static void release(DArray<T>* obj)
+  {
+    ASS(obj);
+    List<DArray<T>*>::push(obj, getStore<DArray<T> >());
+  }
+
+
 private:
   template<typename T>
   static List<T*>*& getStore()

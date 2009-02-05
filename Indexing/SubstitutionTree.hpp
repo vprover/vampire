@@ -431,15 +431,15 @@ protected:
   class GenMatcher
   {
   public:
-    GenMatcher(Term* query);
+    GenMatcher(Term* query, unsigned nextSpecVar);
     ~GenMatcher();
     void bindSpecialVar(unsigned var, TermList term)
     {
-      ALWAYS(_specVars->insert(var,term));
+      (*_specVars)[var]=term;
       _specVarQueue->insert(var);
     }
     TermList getNextSpecVarBinding()
-    { return _specVars->get(_specVarQueue->top()); }
+    { return (*_specVars)[_specVarQueue->top()]; }
     bool matchNext(TermList nodeTerm);
     void backtrack();
 
@@ -462,7 +462,7 @@ protected:
     VarStack _insertedSpecVarIndexes;
 
     SpecVarQueue* _specVarQueue;
-    BindingMap* _specVars;
+    DArray<TermList>* _specVars;
     unsigned _maxVar;
     ArrayMap<TermList>* _bindings;
   };
@@ -471,7 +471,7 @@ protected:
   : public IteratorCore<QueryResult>
   {
   public:
-    FastGeneralizationsIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
+    FastGeneralizationsIterator(Node* root, Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed=false);
 
     bool hasNext();
     QueryResult next();
@@ -504,7 +504,7 @@ protected:
   : public IteratorCore<QueryResult>
   {
   public:
-    UnificationsIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
+    UnificationsIterator(Node* root, Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed=false);
     ~UnificationsIterator();
 
     bool hasNext();
@@ -548,8 +548,8 @@ protected:
   : public UnificationsIterator
   {
   public:
-    GeneralizationsIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false)
-    : UnificationsIterator(root, query, retrieveSubstitution, reversed) {};
+    GeneralizationsIterator(Node* root, Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed=false)
+    : UnificationsIterator(root, query, nextSpecVar, retrieveSubstitution, reversed) {};
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
@@ -559,8 +559,8 @@ protected:
   : public UnificationsIterator
   {
   public:
-    InstancesIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false)
-    : UnificationsIterator(root, query, retrieveSubstitution, reversed) {};
+    InstancesIterator(Node* root, Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed=false)
+    : UnificationsIterator(root, query, nextSpecVar, retrieveSubstitution, reversed) {};
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
