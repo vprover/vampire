@@ -32,7 +32,9 @@ public:
 	  bool complementary, bool retrieveSubstitutions);
 
 private:
-  class SLQueryResultFunctor;
+  struct SLQueryResultFunctor;
+  struct LDToSLQueryResultFn;
+  struct PropositionalLDToSLQueryResultWithSubstFn;
 
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit,

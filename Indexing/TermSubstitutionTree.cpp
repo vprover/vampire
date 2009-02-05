@@ -130,6 +130,13 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
 {
   CALL("TermSubstitutionTree::getResultIterator");
   Node* root=_nodes[getRootNodeIndex(trm)];
+  if(!root) {
+    return TermQueryResultIterator::getEmpty();
+  }
+  if(root->isLeaf()) {
+    LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
+    return ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
+  }
   VirtualIterator<QueryResult> qrit=vi( new Iterator(root, trm, retrieveSubstitutions) );
   return pvi( getMappingIterator(qrit, TermQueryResultFn()) );
 }

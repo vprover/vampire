@@ -384,7 +384,7 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
   static Stack<TermList*> subterms(64);
   ASS(toDo.isEmpty() && subterms.isEmpty());
 
-  if(TermList::sameTopFunctor(&t1.term,&t2.term)) {
+  if(TermList::sameTopFunctor(t1.term,t2.term)) {
     toDo.push(TTPair(t1,t2));
   } else {
     if(!handleDifferentTops(t1,t2,toDo,0)) {
@@ -427,7 +427,7 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
       TermSpec tsss(*ss,dt1.index);
       TermSpec tstt(*tt,dt2.index);
 
-      if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(ss,tt)) {
+      if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt)) {
         ASS(ss->isTerm() && tt->isTerm());
 
         Term* s = ss->term();
@@ -448,7 +448,7 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
           subterms.push(ct ? ct->next() : 0);
         }
       } else {
-        if (! TermList::sameTopFunctor(ss,tt)) {
+        if (! TermList::sameTopFunctor(*ss,*tt)) {
           if(!handleDifferentTops(tsss,tstt,toDo,ct)) {
             mismatch=true;
             break;
@@ -552,7 +552,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
     TermSpec bts(*bt,base.index);
     TermSpec its(*it,instance.index);
 
-    if (!bts.sameTermContent(its) && TermList::sameTopFunctor(&bts.term,&its.term)) {
+    if (!bts.sameTermContent(its) && TermList::sameTopFunctor(bts.term,its.term)) {
       Term* s = bts.term.term();
       Term* t = its.term.term();
       ASS(s->arity() > 0);
@@ -560,7 +560,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
       bt = s->args();
       it = t->args();
     } else {
-      if (! TermList::sameTopFunctor(&bts.term,&its.term)) {
+      if (! TermList::sameTopFunctor(bts.term,its.term)) {
 	if(bts.term.isSpecialVar()) {
 	  VarSpec bvs(bts.term.var(), SPECIAL_INDEX);
 	  if(_bank.find(bvs, binding1)) {

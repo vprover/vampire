@@ -106,7 +106,7 @@ int main( int argc, char *argv[] )
   }
 
   Lib::Random::resetSeed();
-  Allocator::setMemoryLimit(800000000); //memory limit set to 800m
+  Allocator::setMemoryLimit(1000000000); //memory limit set to 1g
 
   Timer timer;
   timer.start();

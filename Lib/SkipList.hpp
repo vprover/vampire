@@ -16,6 +16,7 @@
 #include "Comparison.hpp"
 #include "Random.hpp"
 #include "BacktrackData.hpp"
+#include "List.hpp"
 
 #define SKIP_LIST_MAX_HEIGHT 32
 
@@ -379,6 +380,20 @@ public:
       pop();
     }
   }
+
+  inline
+  List<Value>* toList()
+  {
+    //!!! Assuming that SkipList::Node can be reinterpreted to List object !!!
+    if(_left->nodes[0]) {
+      ASS_EQ(reinterpret_cast<List<Value>*&>(_left->nodes[0])->headPtr(), &_left->nodes[0]->value);
+      ASS_EQ((void*)&(reinterpret_cast<List<Value>*&>(_left->nodes[0])->tailReference()),
+	      (void*)&_left->nodes[0]->nodes[0]);
+    }
+
+    return reinterpret_cast<List<Value>*&>(_left->nodes[0]);
+  }
+
 
   /**
    * Create a skip list and initialise its left-most node to a node of the

@@ -72,6 +72,7 @@ protected:
     TermList term;
   };
   typedef VirtualIterator<LeafData&> LDIterator;
+
   class LDComparator
   {
   public:
@@ -99,7 +100,7 @@ protected:
     inline
     Node() { term.makeEmpty(); }
     inline
-    Node(const TermList* ts) : term(*ts) {}
+    Node(TermList ts) : term(ts) { }
     virtual ~Node();
     /** True if a leaf node */
     virtual bool isLeaf() const = 0;
@@ -127,6 +128,7 @@ protected:
 
 
   typedef VirtualIterator<Node**> NodeIterator;
+  typedef List<Node*> NodeList;
 
   class IntermediateNode
     	: public Node
@@ -139,9 +141,7 @@ protected:
 
     /** Build a new intermediate node */
     inline
-    IntermediateNode(const TermList* ts)
-    	: Node(ts)
-    {}
+    IntermediateNode(TermList ts) : Node(ts) {}
 
     inline
     bool isLeaf() const { return false; };
@@ -159,12 +159,12 @@ protected:
      *
      * If canCreate is false, null pointer is returned.
      */
-    virtual Node** childByTop(TermList* t, bool canCreate) = 0;
+    virtual Node** childByTop(TermList t, bool canCreate) = 0;
     /**
      * Remove child which points to node with top symbol of @b t.
      * This node has to still exist in time of the call to remove method.
      */
-    virtual void remove(TermList* t) = 0;
+    virtual void remove(TermList t) = 0;
 
     void loadChildren(NodeIterator children);
 
@@ -180,9 +180,7 @@ protected:
     {}
     /** Build a new leaf */
     inline
-    Leaf(const TermList* ts)
-      : Node(ts)
-    {}
+    Leaf(TermList ts) : Node(ts) {}
 
     inline
     bool isLeaf() const { return true; };
@@ -193,19 +191,165 @@ protected:
   };
 
   //These classes and methods are defined in SubstitutionTree_Nodes.cpp
-  class IsPtrToVarNodeFn;
-  class UListIntermediateNode;
   class UListLeaf;
   class SListIntermediateNode;
   class SListLeaf;
   class SetLeaf;
   static Leaf* createLeaf();
-  static Leaf* createLeaf(TermList* ts);
+  static Leaf* createLeaf(TermList ts);
   static void ensureLeafEfficiency(Leaf** l);
   static IntermediateNode* createIntermediateNode();
-  static IntermediateNode* createIntermediateNode(TermList* ts);
+  static IntermediateNode* createIntermediateNode(TermList ts);
   static void ensureIntermediateNodeEfficiency(IntermediateNode** inode);
 
+  struct IsPtrToVarNodeFn
+  {
+    DECL_RETURN_TYPE(bool);
+    bool operator()(Node** n)
+    {
+      return (*n)->term.isVar();
+    }
+  };
+
+  class UListIntermediateNode
+  : public IntermediateNode
+  {
+  public:
+    inline
+    UListIntermediateNode() : _nodes(0), _size(0) {}
+    inline
+    UListIntermediateNode(TermList ts) : IntermediateNode(ts), _nodes(0), _size(0) {}
+    ~UListIntermediateNode()
+    {
+      if(_nodes) {
+        _nodes->destroyWithDeletion();
+      }
+    }
+
+    void makeEmpty()
+    {
+      IntermediateNode::makeEmpty();
+      if(_nodes) {
+        _nodes->destroy();
+        _nodes=0;
+      }
+    }
+
+    NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
+    bool isEmpty() const { return !_nodes; }
+    int size() const { return _size; }
+    NodeIterator allChildren()
+    { return pvi( NodeList::PtrIterator(_nodes)); }
+
+    NodeIterator variableChildren()
+    {
+      return pvi( getFilteredIterator(NodeList::PtrIterator(_nodes),
+  	    IsPtrToVarNodeFn()) );
+    }
+    Node** childByTop(TermList t, bool canCreate);
+    void remove(TermList t);
+
+    CLASS_NAME("SubstitutionTree::UListIntermediateNode");
+    USE_ALLOCATOR(UListIntermediateNode);
+
+    NodeList* _nodes;
+    int _size;
+  };
+
+  class SListIntermediateNode
+  : public IntermediateNode
+  {
+  public:
+    SListIntermediateNode() {}
+    SListIntermediateNode(TermList ts) : IntermediateNode(ts) {}
+    ~SListIntermediateNode()
+    {
+      NodeSkipList::Iterator nit(_nodes);
+      while(nit.hasNext()) {
+        delete nit.next();
+      }
+    }
+
+    void makeEmpty()
+    {
+      IntermediateNode::makeEmpty();
+      while(!_nodes.isEmpty()) {
+        _nodes.pop();
+      }
+    }
+
+    static SListIntermediateNode* assimilate(IntermediateNode* orig);
+
+    inline
+    NodeAlgorithm algorithm() const { return SKIP_LIST; }
+    inline
+    bool isEmpty() const { return _nodes.isEmpty(); }
+  #if VDEBUG
+    int size() const { return _nodes.size(); }
+  #endif
+    inline
+    NodeIterator allChildren()
+    {
+      return pvi( NodeSkipList::PtrIterator(_nodes) );
+    }
+    inline
+    NodeIterator variableChildren()
+    {
+      return pvi( getWhileLimitedIterator(
+  		    NodeSkipList::PtrIterator(_nodes),
+  		    IsPtrToVarNodeFn()) );
+    }
+    Node** childByTop(TermList t, bool canCreate)
+    {
+      CALL("SubstitutionTree::SListIntermediateNode::childByTop");
+
+      Node** res;
+      bool found=_nodes.getPosition(t,res,canCreate);
+      if(!found) {
+        if(canCreate) {
+          *res=0;
+        } else {
+          res=0;
+        }
+      }
+      return res;
+    }
+    inline
+    void remove(TermList t)
+    {
+      _nodes.remove(t);
+    }
+
+    CLASS_NAME("SubstitutionTree::SListIntermediateNode");
+    USE_ALLOCATOR(SListIntermediateNode);
+
+    class NodePtrComparator
+    {
+    public:
+      static Comparison compare(TermList t1,TermList t2)
+      {
+	CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
+
+	if(t1.isVar()) {
+	  if(t2.isVar()) {
+	    return Int::compare(t1.var(), t2.var());
+	  }
+	  return LESS;
+	}
+	if(t2.isVar()) {
+	  return GREATER;
+	}
+	return Int::compare(t1.term()->functor(), t2.term()->functor());
+      }
+
+      static Comparison compare(Node* n1, Node* n2)
+      { return compare(n1->term, n2->term); }
+      static Comparison compare(TermList t1, Node* n2)
+      { return compare(t1, n2->term); }
+    };
+    typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
+    NodeSkipList _nodes;
+  };
 
 
   class Binding {
@@ -332,8 +476,6 @@ protected:
     bool hasNext();
     QueryResult next();
   protected:
-    virtual NodeIterator getNodeIterator(IntermediateNode* n);
-
     void createInitialBindings(Term* t);
     /**
      * For a binary comutative literal, creates initial bindings,
@@ -341,7 +483,6 @@ protected:
      */
     void createReversedInitialBindings(Term* t);
     bool findNextLeaf();
-    bool enter(Node* n);
 
   private:
     GenMatcher _subst;
@@ -349,7 +490,11 @@ protected:
     bool _retrieveSubstitution;
     bool _inLeaf;
     LDIterator _ldIterator;
-    Stack<NodeIterator> _nodeIterators;
+
+    Node* _root;
+    Stack<NodeList*> _alternatives;
+    Stack<NodeAlgorithm> _nodeTypes;
+
     Renaming _resultNormalizer;
     Renaming _queryDenormalizer;
   };

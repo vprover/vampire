@@ -107,8 +107,8 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
   //unless the line below is commented
   CALL("KBO::State::innerResult");
 
-  ASS(!tl1.sameContent(&tl2));
-  ASS(!TermList::sameTopFunctor(&tl1,&tl2));
+  ASS_NEQ(tl1, tl2);
+  ASS(!TermList::sameTopFunctor(tl1,tl2));
   if(posNum==0 && negNum==0) {
     //all variables occur the same number of times in tl1 and tl2
     if(weightDiff) {
@@ -294,7 +294,7 @@ void KBO::State::traverse(Term* t1, Term* t2)
     }
     //if content is the same, neighter weightDiff nor varDiffs would change
     if(!ss->sameContent(tt)) {
-      if(TermList::sameTopFunctor(ss,tt)) {
+      if(TermList::sameTopFunctor(*ss,*tt)) {
 	ASS(ss->isTerm());
 	ASS(tt->isTerm());
 	ASS(ss->term()->arity());

@@ -72,6 +72,18 @@ public:
 	  int queryBank, int resultBank);
 };
 
+
+class IdentitySubstitution
+: public ResultSubstitution
+{
+public:
+  TermList applyToQuery(TermList t) { return t; }
+  Literal* applyToQuery(Literal* l) { return l; }
+  TermList applyToResult(TermList t) { return t; }
+  Literal* applyToResult(Literal* l) { return l; }
+  bool isIdentityOnQueryWhenResultBound() {return true;}
+};
+
 };
 
 #endif /* __ResultSubstitution__ */

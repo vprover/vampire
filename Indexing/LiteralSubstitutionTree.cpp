@@ -79,14 +79,51 @@ struct LiteralSubstitutionTree::SLQueryResultFunctor
   }
 };
 
+struct LiteralSubstitutionTree::LDToSLQueryResultFn
+{
+  DECL_RETURN_TYPE(SLQueryResult);
+  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+    return SLQueryResult(ld.literal, ld.clause);
+  }
+};
+
+struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
+{
+  PropositionalLDToSLQueryResultWithSubstFn()
+  {
+    _subst=ResultSubstitutionSP (new IdentitySubstitution());
+  }
+  DECL_RETURN_TYPE(SLQueryResult);
+  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+    ASS_EQ(ld.literal->arity(),0);
+    return SLQueryResult(ld.literal, ld.clause, _subst);
+  }
+private:
+  ResultSubstitutionSP _subst;
+};
+
+
 template<class Iterator>
 SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getResultIterator");
 
+  Node* root=_nodes[getRootNodeIndex(lit, complementary)];
+
+  if(root==0) {
+    return SLQueryResultIterator::getEmpty();
+  }
+  if(root->isLeaf()) {
+    LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
+    if(retrieveSubstitutions) {
+      return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
+    } else {
+      return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
+    }
+  }
+
   if(lit->commutative()) {
-    Node* root=_nodes[getRootNodeIndex(lit, complementary)];
     VirtualIterator<QueryResult> qrit1=vi(
   	    new Iterator(root, lit, retrieveSubstitutions) );
     VirtualIterator<QueryResult> qrit2=vi(
@@ -94,7 +131,6 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
     return pvi( getMappingIterator(
 	    getConcatenatedIterator(qrit1,qrit2), SLQueryResultFunctor()) );
   } else {
-    Node* root=_nodes[getRootNodeIndex(lit, complementary)];
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
   	    new Iterator(root, lit, retrieveSubstitutions) );
     return pvi( getMappingIterator(qrit, SLQueryResultFunctor()) );
@@ -109,5 +145,7 @@ unsigned LiteralSubstitutionTree::getRootNodeIndex(Literal* t, bool complementar
     return t->header();
   }
 }
+
+
 
 }

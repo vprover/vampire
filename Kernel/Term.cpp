@@ -96,27 +96,27 @@ void Term::destroyNonShared()
  * same function symbol.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-bool TermList::sameTop(const TermList* ss,const TermList* tt)
+bool TermList::sameTop(TermList ss,TermList tt)
 {
-  if (ss->isVar()) {
-    return ss->sameContent(tt);
+  if (ss.isVar()) {
+    return ss==tt;
   }
-  if (tt->isVar()) {
+  if (tt.isVar()) {
     return false;
   }
-  return ss->term()->functor() == tt->term()->functor();
+  return ss.term()->functor() == tt.term()->functor();
 }
 
 /**
  * Return true if @b ss and @b tt are both complex terms with the
  * same function symbol.
  */
-bool TermList::sameTopFunctor(const TermList* ss,const TermList* tt)
+bool TermList::sameTopFunctor(TermList ss, TermList tt)
 {
-  if (!ss->isTerm() || !tt->isTerm()) {
+  if (!ss.isTerm() || !tt.isTerm()) {
     return false;
   }
-  return ss->term()->functor() == tt->term()->functor();
+  return ss.term()->functor() == tt.term()->functor();
 }
 
 /**

@@ -114,8 +114,8 @@ public:
   inline void setTerm(Term* t)
   { _term = t; }
   static void argsToString(Stack<const TermList*>&,string& str);
-  static bool sameTop(const TermList* ss,const TermList* tt);
-  static bool sameTopFunctor(const TermList* ss,const TermList* tt);
+  static bool sameTop(TermList ss, TermList tt);
+  static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
   bool containsSubterm(TermList v);
 
