@@ -60,14 +60,14 @@ public:
   /** Return a reference to the n-th element of the array */
   inline C& operator[] (size_t n)
   {
-    ASS(n < _size);
+    ASS_L(n,_size);
     return _array[n];
   } // operator[]
 
   /** Return a reference to the n-th element of the array */
   inline const C& operator[](size_t n) const
   {
-    ASS(n < _size);
+    ASS_L(n,_size);
     return _array[n];
   }
 

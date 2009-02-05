@@ -20,6 +20,7 @@
 #include "../Lib/SkipList.hpp"
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/BacktrackData.hpp"
+#include "../Lib/ArrayMap.hpp"
 
 #include "../Kernel/DoubleSubstitution.hpp"
 #include "../Kernel/MMSubstitution.hpp"
@@ -286,7 +287,7 @@ protected:
   class GenMatcher
   {
   public:
-    GenMatcher();
+    GenMatcher(Term* query);
     ~GenMatcher();
     void bindSpecialVar(unsigned var, TermList term)
     {
@@ -295,32 +296,31 @@ protected:
     }
     TermList getNextSpecVarBinding()
     { return _specVars->get(_specVarQueue->top()); }
-    bool matchNext(TermList nodeTerm, BacktrackData& bd);
+    bool matchNext(TermList nodeTerm);
+    void backtrack();
 
     ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer,
 	    Renaming* queryDenormalizer);
   private:
-    typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > SpecVarMap;
     typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > BindingMap;
     typedef Stack<unsigned> VarStack;
+    static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
 
-    void undo(VarStack* boundVars)
-    {
-      if(boundVars) {
-        while(boundVars->isNonEmpty()) {
-          ALWAYS(_bindings->remove(boundVars->pop()));
-        }
-      }
-    }
 
     struct Binder;
     struct Applicator;
     class Substitution;
     struct MatchBacktrackObject;
 
+    VarStack _boundVars;
+    VarStack _poppedSpecVars;
+    VarStack _poppedSpecVarIndexes;
+    VarStack _insertedSpecVarIndexes;
+
     SpecVarQueue* _specVarQueue;
-    SpecVarMap* _specVars;
-    BindingMap* _bindings;
+    BindingMap* _specVars;
+    unsigned _maxVar;
+    ArrayMap<TermList>* _bindings;
   };
 
   class FastGeneralizationsIterator
@@ -328,7 +328,6 @@ protected:
   {
   public:
     FastGeneralizationsIterator(Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
-    ~FastGeneralizationsIterator();
 
     bool hasNext();
     QueryResult next();
@@ -342,7 +341,7 @@ protected:
      */
     void createReversedInitialBindings(Term* t);
     bool findNextLeaf();
-    bool enter(Node* n, BacktrackData& bd);
+    bool enter(Node* n);
 
   private:
     GenMatcher _subst;
@@ -351,7 +350,6 @@ protected:
     bool _inLeaf;
     LDIterator _ldIterator;
     Stack<NodeIterator> _nodeIterators;
-    Stack<BacktrackData> _bdStack;
     Renaming _resultNormalizer;
     Renaming _queryDenormalizer;
   };

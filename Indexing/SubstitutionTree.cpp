@@ -799,16 +799,16 @@ SubstitutionTree::NodeIterator
 struct SubstitutionTree::GenMatcher::Binder
 {
   inline
-  Binder(GenMatcher* parent, VarStack*& boundVars, VarStack* newSpecVars)
-  : _parent(parent), _boundVars(boundVars), _newSpecVars(newSpecVars) {}
+  Binder(GenMatcher* parent, VarStack* newSpecVars)
+  : _parent(parent), _newSpecVars(newSpecVars), _maxVar(parent->_maxVar) {}
   bool bind(unsigned var, TermList term)
   {
+    if(var > _maxVar) {
+      return false;
+    }
     TermList* aux;
     if(_parent->_bindings->getValuePtr(var,aux,term)) {
-      if(!_boundVars) {
-	Recycler::get(_boundVars);
-      }
-      _boundVars->push(var);
+      _parent->_boundVars.push(var);
       return true;
     } else {
       return *aux==term;
@@ -822,8 +822,8 @@ struct SubstitutionTree::GenMatcher::Binder
   }
 private:
   GenMatcher* _parent;
-  VarStack*& _boundVars;
   VarStack* _newSpecVars;
+  unsigned _maxVar;
 };
 
 struct SubstitutionTree::GenMatcher::Applicator
@@ -882,53 +882,38 @@ private:
   Applicator* _applicator;
 };
 
-class SubstitutionTree::GenMatcher::MatchBacktrackObject
-: public BacktrackObject
+SubstitutionTree::GenMatcher::GenMatcher(Term* query)
+: _boundVars(256), _poppedSpecVars(256), _poppedSpecVarIndexes(256),
+_insertedSpecVarIndexes(256)
 {
-public:
-  inline
-  MatchBacktrackObject(GenMatcher* parent, VarStack* boundVars)
-  :_parent(parent), _boundVars(boundVars) {}
-  inline
-  ~MatchBacktrackObject()
-  {
-    if(_boundVars) {
-      Recycler::release(_boundVars);
-    }
-  }
-  inline
-  void backtrack()
-  {
-    _parent->undo(_boundVars);
-    Recycler::release(_boundVars);
-    _boundVars=0;
-  }
-  CLASS_NAME("SubstitutionTree::GenMatcher::MatchBacktrackObject");
-  USE_ALLOCATOR(MatchBacktrackObject);
-private:
-  GenMatcher* _parent;
-  VarStack* _boundVars;
-};
-
-SubstitutionTree::GenMatcher::GenMatcher()
-{
+  Recycler::get(_specVarQueue);
   Recycler::get(_specVars);
   Recycler::get(_bindings);
-  Recycler::get(_specVarQueue);
+
+  _maxVar=query->weight()-1;
+  _bindings->ensure(query->weight());
 }
 SubstitutionTree::GenMatcher::~GenMatcher()
 {
-  Recycler::release(_specVars);
   Recycler::release(_bindings);
+  Recycler::release(_specVars);
   Recycler::release(_specVarQueue);
 }
 
 
-bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, BacktrackData& bd)
+bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm)
 {
   CALL("SubstitutionTree::GenMatcher::matchNext");
 
-  unsigned specVar=_specVarQueue->backtrackablePop(bd);
+
+  unsigned popBacktrackIndex;
+  unsigned specVar=_specVarQueue->backtrackablePop(popBacktrackIndex);
+
+  _poppedSpecVars.push(specVar);
+  _poppedSpecVarIndexes.push(popBacktrackIndex);
+  _boundVars.push(BACKTRACK_SEPARATOR);
+  _insertedSpecVarIndexes.push(BACKTRACK_SEPARATOR);
+
   TermList queryTerm=_specVars->get(specVar);
 
   if(nodeTerm.isTerm() && nodeTerm.term()->shared()) {
@@ -937,28 +922,40 @@ bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, BacktrackData& b
     }
   }
 
-  VarStack* boundVars=0;
-  static VarStack newSpecVars(8);
+  static VarStack newSpecVars(32);
   newSpecVars.reset();
 
-  Binder binder(this,boundVars, &newSpecVars);
-
+  Binder binder(this,&newSpecVars);
   bool success=MatchingUtils::matchTerms(nodeTerm, queryTerm, binder);
-  if(!success) {
-    undo(boundVars);
-    if(boundVars) {
-      Recycler::release(boundVars);
-    }
-  } else {
+
+  if(success) {
     while(newSpecVars.isNonEmpty()) {
-      _specVarQueue->backtrackableInsert(newSpecVars.pop(), bd);
-    }
-    if(boundVars) {
-      bd.addBacktrackObject(new MatchBacktrackObject(this, boundVars));
+      unsigned insertBacktrackIndex=_specVarQueue->backtrackableInsert(newSpecVars.pop());
+      _insertedSpecVarIndexes.push(insertBacktrackIndex);
     }
   }
   return success;
 }
+
+void SubstitutionTree::GenMatcher::backtrack()
+{
+  for(;;) {
+    unsigned specVarIndex=_insertedSpecVarIndexes.pop();
+    if(specVarIndex==BACKTRACK_SEPARATOR) {
+      break;
+    }
+    _specVarQueue->backtrackInsert(specVarIndex);
+  }
+  _specVarQueue->backtrackPop(_poppedSpecVars.pop(),_poppedSpecVarIndexes.pop());
+  for(;;) {
+    unsigned boundVar=_boundVars.pop();
+    if(boundVar==BACKTRACK_SEPARATOR) {
+      break;
+    }
+    _bindings->remove(boundVar);
+  }
+}
+
 
 ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
 	Renaming* resultNormalizer, Renaming* queryDenormalizer)
@@ -969,8 +966,8 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
 
 SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed)
-: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
-  _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _nodeIterators(8), _bdStack(8)
+: _subst(query), _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
+  _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _nodeIterators(8)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
 
@@ -992,16 +989,7 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node*
     createInitialBindings(queryNorm);
   }
 
-  BacktrackData bd;
-  enter(root, bd);
-  bd.drop();
-}
-
-SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
-{
-  while(_bdStack.isNonEmpty()) {
-    _bdStack.pop().backtrack();
-  }
+  enter(root);
 }
 
 void SubstitutionTree::FastGeneralizationsIterator::createInitialBindings(Term* t)
@@ -1069,48 +1057,41 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
     //This shouldn't hapen during the regular retrieval process, but it
     //can happen when there are no literals inserted for a predicate,
     //or when predicates with zero arity are encountered.
-    ASS(_bdStack.isEmpty());
     return false;
   }
 
   if(_inLeaf) {
     //Leave the current leaf
-    _bdStack.pop().backtrack();
+    _subst.backtrack();
     _inLeaf=false;
   }
 
-  ASS(_bdStack.length()+1==_nodeIterators.length());
-
   do {
-    while(!_nodeIterators.top().hasNext() && !_bdStack.isEmpty()) {
-      //backtrack undos everything that enter(...) method has done,
-      //so it also pops one item out of the nodeIterators stack
-      _bdStack.pop().backtrack();
-    }
-    if(!_nodeIterators.top().hasNext()) {
-      return false;
+    while(!_nodeIterators.top().hasNext()) {
+      _nodeIterators.pop();
+      if(_nodeIterators.isEmpty()) {
+        return false;
+      }
+      _subst.backtrack();
     }
     Node* n=*_nodeIterators.top().next();
-    BacktrackData bd;
-    bool success=enter(n,bd);
+    bool success=enter(n);
     if(!success) {
-      bd.backtrack();
+      _subst.backtrack();
       continue;
-    } else {
-      _bdStack.push(bd);
     }
   } while(!_inLeaf);
   return true;
 }
 
-bool SubstitutionTree::FastGeneralizationsIterator::enter(Node* n, BacktrackData& bd)
+bool SubstitutionTree::FastGeneralizationsIterator::enter(Node* n)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::enter");
 
   if(!n->term.isEmpty()) {
     //n is proper node, not a root
 
-    bool success=_subst.matchNext(n->term, bd);
+    bool success=_subst.matchNext(n->term);
 
     if(!success) {
       return false;
@@ -1121,7 +1102,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::enter(Node* n, BacktrackData
     _inLeaf=true;
   } else {
     NodeIterator nit=getNodeIterator(static_cast<IntermediateNode*>(n));
-    _nodeIterators.backtrackablePush(nit, bd);
+    _nodeIterators.push(nit);
   }
   return true;
 }

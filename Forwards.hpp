@@ -18,6 +18,9 @@ template <typename T, class Comparator> class BinaryHeap;
 
 template<typename T> class ArrayishObjectIterator;
 
+template<typename T> class ArrayMap;
+
+
 
 class BacktrackData;
 };

@@ -64,7 +64,7 @@ public:
 
   /** Return mumber of items stored in this BinaryHeap */
   inline
-  int size() const
+  unsigned size() const
   {
     ASS(_size>=0);
     return _size;
@@ -113,33 +113,83 @@ public:
     return res;
   }
 
-  T backtrackablePop(BacktrackData& bd)
+  T backtrackablePop(unsigned& lastBubbleIndex)
   {
-    CALL("BinaryHeap::backtrackablePop");
+    CALL("BinaryHeap::backtrackablePop(unsigned&)");
     ASS(!isEmpty());
     T res=_data[0];
     _size--;
     if(_size) {
       std::swap(_data[0],_data[_size]);
-      int lastBubbleIndex=bubbleDown(1);
-      bd.addBacktrackObject(
-  	    new BHPopBacktrackObject(this, res, lastBubbleIndex));
+      lastBubbleIndex=bubbleDown(1);
     } else {
-      bd.addBacktrackObject(
-  	    new BHPopBacktrackObject(this, res, 1));
+      lastBubbleIndex=1;
     }
     _data[_size].~T();
     return res;
   }
-  void backtrackableInsert(T obj, BacktrackData& bd)
+  inline
+  T backtrackablePop(BacktrackData& bd)
   {
-    CALL("BinaryHeap::backtrackableInsert");
+    CALL("BinaryHeap::backtrackablePop(BacktrackData&)");
+    unsigned lastBubbleIndex;
+    T res=backtrackablePop(lastBubbleIndex);
+    bd.addBacktrackObject(
+	new BHPopBacktrackObject(this, res, lastBubbleIndex));
+    return res;
+  }
+
+  unsigned backtrackableInsert(T obj)
+  {
+    CALL("BinaryHeap::backtrackableInsert(T,unsigned&)");
     ensureAvaiablePosition();
     _size++;
     new(&_data1[_size]) T(obj);
-    int lastBubbleIndex=bubbleUp(_size);
+    return bubbleUp(_size);
+  }
+  inline
+  void backtrackableInsert(T obj, BacktrackData& bd)
+  {
+    CALL("BinaryHeap::backtrackableInsert(T,BacktrackData&)");
+    unsigned lastBubbleIndex=backtrackableInsert(obj);
     bd.addBacktrackObject(
 	    new BHInsertBacktrackObject(this, lastBubbleIndex));
+  }
+
+  void backtrackInsert(unsigned lastBubbleIndex)
+  {
+    //We replace the inserted element with maximal possible
+    //element, so that we know for sure, that when we do
+    //bubbleDown() on it, a maximal element will be at the
+    //last position. Also from the way how bubbleDown works
+    //we know, that the heap will be exactly the same as before
+    //inserting.
+    _data1[lastBubbleIndex]=Comparator::max();
+    bubbleDown(lastBubbleIndex);
+    ASS(_data1[_size]==Comparator::max());
+    _data1[_size].~T();
+    _size--;
+  }
+
+  void backtrackPop(T val, unsigned lastBubbleIndex)
+  {
+    //During insertion, the first item is swapped with the last,
+    //removed from the end of the array, and then the item at
+    //the first position bubbles down, until the heap condition
+    //is fulfilled. Here we reverse the process provided that
+    //_lastBubbleIndex is the current index of the formerly last
+    //element.
+    _size++;
+    new(&_data1[_size]) T(val);
+    std::swap(_data1[_size], _data1[lastBubbleIndex]);
+    //Now at the position _lastBubbleIndex is the smallest element
+    //of the heap, so we know that it will bubble up to the first
+    //position[1]. (There's only one way to do that, so the heap will
+    //be exactly the same as before the popping occured.)
+    //
+    //[1] or, to be precise, to such position, that all elements
+    //above will be equal to it.
+    bubbleUp(lastBubbleIndex);
   }
 
 
@@ -148,61 +198,35 @@ private:
   : public BacktrackObject
   {
   public:
-    BHPopBacktrackObject(BinaryHeap* bh, T v, int lastBubbleIndex)
+    BHPopBacktrackObject(BinaryHeap* bh, T v, unsigned lastBubbleIndex)
     :_bh(bh), _val(v), _lastBubbleIndex(lastBubbleIndex) {}
     void backtrack()
     {
-      //During insertion, the first item is swapped with the last,
-      //removed from the end of the array, and then the item at
-      //the first position bubbles down, until the heap condition
-      //is fulfilled. Here we reverse the process provided that
-      //_lastBubbleIndex is the current index of the formerly last
-      //element.
-      _bh->_size++;
-      new(&_bh->_data1[_bh->_size]) T(_val);
-      std::swap(_bh->_data1[_bh->_size], _bh->_data1[_lastBubbleIndex]);
-      //Now at the position _lastBubbleIndex is the smallest element
-      //of the heap, so we know that it will bubble up to the first
-      //position[1]. (There's only one way to do that, so the heap will
-      //be exactly the same as before the popping occured.)
-      //
-      //[1] or, to be precise, to such position, that all elements
-      //above will be equal to it.
-      _bh->bubbleUp(_lastBubbleIndex);
+      _bh->backtrackPop(_val,_lastBubbleIndex);
     }
     CLASS_NAME("BinaryHeap::BHPopBacktrackObject");
     USE_ALLOCATOR(BHPopBacktrackObject);
   private:
     BinaryHeap* _bh;
     T _val;
-    int _lastBubbleIndex;
+    unsigned _lastBubbleIndex;
   };
 
   class BHInsertBacktrackObject
   : public BacktrackObject
   {
   public:
-    BHInsertBacktrackObject(BinaryHeap* bh, int lastBubbleIndex)
+    BHInsertBacktrackObject(BinaryHeap* bh, unsigned lastBubbleIndex)
     :_bh(bh), _lastBubbleIndex(lastBubbleIndex) {}
     void backtrack()
     {
-      //We replace the inserted element with maximal possible
-      //element, so that we know for sure, that when we do
-      //bubbleDown() on it, a maximal element will be at the
-      //last position. Also from the way how bubbleDown works
-      //we know, that the heap will be exactly the same as before
-      //inserting.
-      _bh->_data1[_lastBubbleIndex]=Comparator::max();
-      _bh->bubbleDown(_lastBubbleIndex);
-      ASS(_bh->_data1[_bh->_size]==Comparator::max());
-      _bh->_data1[_bh->_size].~T();
-      _bh->_size--;
+      _bh->backtrackInsert(_lastBubbleIndex);
     }
     CLASS_NAME("BinaryHeap::BHInsertBacktrackObject");
     USE_ALLOCATOR(BHInsertBacktrackObject);
   private:
     BinaryHeap* _bh;
-    int _lastBubbleIndex;
+    unsigned _lastBubbleIndex;
   };
 
   /** Copy constructor is private and without a body, because we don't want any. */
@@ -212,11 +236,11 @@ private:
 
   /** Make sure the heap property is not violated by the element
    * at @b index wrt its ancestors, and return its new index. */
-  int bubbleUp(int index)
+  unsigned bubbleUp(unsigned index)
   {
     CALL("BinaryHeap::bubbleUp");
     ASS(index>0 && index<=_size);
-    int nextIndex=index>>1;
+    unsigned nextIndex=index>>1;
     while(nextIndex) {
       if(Comparator::compare(_data1[index], _data1[nextIndex])==LESS) {
 	std::swap(_data1[index], _data1[nextIndex]);
@@ -231,11 +255,11 @@ private:
 
   /** Make sure the heap property is not violated by the element
    * at @b index wrt its descendants, and return its new index. */
-  int bubbleDown(int index)
+  unsigned bubbleDown(unsigned index)
   {
     CALL("BinaryHeap::bubbleDown");
     ASS(index>0 && index<=_size);
-    int nextIndex=index<<1;
+    unsigned nextIndex=index<<1;
     while(nextIndex<=_size) {
       if(nextIndex!=_size && Comparator::compare(_data1[index], _data1[nextIndex|1])==GREATER) {
 	if(Comparator::compare(_data1[nextIndex|1], _data1[nextIndex])==GREATER) {
@@ -275,7 +299,7 @@ private:
 
     ASS(_capacity==_size);
 
-    int oldCapacity=_capacity;
+    unsigned oldCapacity=_capacity;
     T* oldData=_data;
 
     _capacity= _capacity ? _capacity*2 : 4;
@@ -300,9 +324,9 @@ private:
   }
 
   /** Number of entries stored in this BinaryHeap */
-  int _size;
+  unsigned _size;
   /** Size of the _data array */
-  int _capacity;
+  unsigned _capacity;
 
   /** Array containing the heap tree */
   T* _data;
