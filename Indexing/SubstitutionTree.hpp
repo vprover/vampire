@@ -447,11 +447,24 @@ protected:
   public:
     GenMatcher(Term* query, unsigned nextSpecVar);
     ~GenMatcher();
+    /**
+     * Bind special variable @b var to @b term. This method
+     * should be called only before any calls to @b matchNext()
+     * and @b backtrack().
+     */
     void bindSpecialVar(unsigned var, TermList term)
     {
       (*_specVars)[var]=term;
       _specVarQueue->insert(var);
     }
+    /**
+     * Return term, that is bound to special variable, that is
+     * about to be matched next during iterator's traversal
+     * through the tree.
+     *
+     * (This means the variable with highest number, that hasn't
+     * yet been used.)
+     */
     TermList getNextSpecVarBinding()
     { return (*_specVars)[_specVarQueue->top()]; }
     bool matchNext(TermList nodeTerm, bool separate=true);
@@ -479,6 +492,9 @@ protected:
     ArrayMap<TermList>* _bindings;
   };
 
+  /**
+   * Iterator, that yields generalizations of given term/literal.
+   */
   class FastGeneralizationsIterator
   : public IteratorCore<QueryResult>
   {
@@ -489,10 +505,6 @@ protected:
     QueryResult next();
   protected:
     void createInitialBindings(Term* t);
-    /**
-     * For a binary comutative literal, creates initial bindings,
-     * where the order of special variables is reversed.
-     */
     void createReversedInitialBindings(Term* t);
     bool findNextLeaf();
 

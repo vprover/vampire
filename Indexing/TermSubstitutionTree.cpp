@@ -34,6 +34,9 @@ void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
   handleTerm(t,lit,cls, false);
 }
 
+/**
+ * According to value of @b insert, insert or remove term.
+ */
 void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
@@ -84,11 +87,15 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
   }
 }
 
+/**
+ * Return iterator, that yields generalizations of the given term.
+ */
 TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getGeneralizations");
   if(t.isOrdinaryVar()) {
+    //only variables generalize other variables
     return ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions);
   } else {
     ASS(t.isTerm());
@@ -114,7 +121,10 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
   }
 }
 
-
+/**
+ * Functor, that transforms &b QueryResult struct into
+ * @b TermQueryResult.
+ */
 struct TermSubstitutionTree::TermQueryResultFn
 {
   DECL_RETURN_TYPE(TermQueryResult);

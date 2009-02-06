@@ -385,6 +385,14 @@ public:
   List<Value>* toList()
   {
     //!!! Assuming that SkipList::Node can be reinterpreted to List object !!!
+
+    //Compiler gives this warning here:
+    //
+    //warning: dereferencing type-punned pointer will break strict-aliasing rules
+    //
+    //It (hopefully) shouldn't cause any problems if no values get modified
+    //through pointer retrieved from this method and the underlying SkipList
+    //doesn't change either.
     if(_left->nodes[0]) {
       ASS_EQ(reinterpret_cast<List<Value>*&>(_left->nodes[0])->headPtr(), &_left->nodes[0]->value);
       ASS_EQ((void*)&(reinterpret_cast<List<Value>*&>(_left->nodes[0])->tailReference()),
