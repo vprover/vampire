@@ -457,8 +457,7 @@ protected:
     bool matchNext(TermList nodeTerm, bool separate=true);
     void backtrack();
 
-    ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer,
-	    Renaming* queryDenormalizer);
+    ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
   private:
     typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > BindingMap;
     typedef Stack<unsigned> VarStack;
@@ -511,7 +510,6 @@ protected:
     Stack<NodeAlgorithm> _nodeTypes;
 
     Renaming _resultNormalizer;
-    Renaming _queryDenormalizer;
   };
 
 

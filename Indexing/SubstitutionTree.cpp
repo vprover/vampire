@@ -801,9 +801,8 @@ private:
 struct SubstitutionTree::GenMatcher::Applicator
 {
   inline
-  Applicator(GenMatcher* parent, Renaming* resultNormalizer, Renaming* queryDenormalizer)
-  : _parent(parent), _resultNormalizer(resultNormalizer),
-  _queryDenormalizer(queryDenormalizer) {}
+  Applicator(GenMatcher* parent, Renaming* resultNormalizer)
+  : _parent(parent), _resultNormalizer(resultNormalizer) {}
   TermList apply(unsigned var)
   {
     TermList* cacheEntry;
@@ -811,15 +810,13 @@ struct SubstitutionTree::GenMatcher::Applicator
       ASS(_resultNormalizer->contains(var));
       unsigned nvar=_resultNormalizer->get(var);
       ASS(_parent->_bindings->find(nvar));
-      TermList norm=_parent->_bindings->get(nvar);
-      *cacheEntry=_queryDenormalizer->apply(norm);
+      *cacheEntry=_parent->_bindings->get(nvar);
     }
     return *cacheEntry;
   }
 private:
   GenMatcher* _parent;
   Renaming* _resultNormalizer;
-  Renaming* _queryDenormalizer;
   BindingMap _cache;
 };
 
@@ -828,10 +825,9 @@ class SubstitutionTree::GenMatcher::Substitution
 {
 public:
   inline
-  Substitution(GenMatcher* parent, Renaming* resultNormalizer,
-	  Renaming* queryDenormalizer)
+  Substitution(GenMatcher* parent, Renaming* resultNormalizer)
   : _parent(parent), _resultNormalizer(resultNormalizer),
-  _queryDenormalizer(queryDenormalizer), _applicator(0)
+  _applicator(0)
   {}
   inline
   TermList applyToBoundResult(TermList t)
@@ -843,14 +839,13 @@ private:
   Applicator* getApplicator()
   {
     if(!_applicator) {
-      _applicator=new Applicator(_parent, _resultNormalizer, _queryDenormalizer);
+      _applicator=new Applicator(_parent, _resultNormalizer);
     }
     return _applicator;
   }
 
   GenMatcher* _parent;
   Renaming* _resultNormalizer;
-  Renaming* _queryDenormalizer;
   Applicator* _applicator;
 };
 
@@ -981,10 +976,10 @@ void SubstitutionTree::GenMatcher::backtrack()
 
 
 ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
-	Renaming* resultNormalizer, Renaming* queryDenormalizer)
+	Renaming* resultNormalizer)
 {
   return ResultSubstitutionSP(
-	  new Substitution(this, resultNormalizer, queryDenormalizer));
+	  new Substitution(this, resultNormalizer));
 }
 
 SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node* root,
@@ -997,19 +992,12 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node*
   ASS(root);
   ASS(!root->isLeaf());
 
-  Renaming queryNormalizer;
-  queryNormalizer.normalizeVariables(query);
-  Term* queryNorm=queryNormalizer.apply(query);
-
-  if(_retrieveSubstitution) {
-    _queryDenormalizer.makeInverse(queryNormalizer);
-  }
-
   if(reversed) {
-    createReversedInitialBindings(queryNorm);
+    createReversedInitialBindings(query);
   } else {
-    createInitialBindings(queryNorm);
+    createInitialBindings(query);
   }
+  
 }
 
 void SubstitutionTree::FastGeneralizationsIterator::createInitialBindings(Term* t)
@@ -1060,7 +1048,7 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
     }
 
     return QueryResult(&ld,
-	    _subst.getSubstitution(&_resultNormalizer, &_queryDenormalizer));
+	    _subst.getSubstitution(&_resultNormalizer));
   } else {
     return QueryResult(&ld, ResultSubstitutionSP());
   }
