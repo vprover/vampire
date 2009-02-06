@@ -722,7 +722,11 @@ void TermList::assertValid() const
 
 std::ostream& Kernel::operator<< (ostream& out, TermList tl )
 {
-  return out<<Test::Output::singleTermListToString(tl);
+  if(tl.isEmpty()) {
+    return out<<"<empty TermList>";
+  } else {
+    return out<<Test::Output::singleTermListToString(tl);
+  }
 }
 std::ostream& Kernel::operator<< (ostream& out, const Term& t )
 {

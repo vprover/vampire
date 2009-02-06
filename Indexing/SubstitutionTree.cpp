@@ -855,8 +855,8 @@ private:
 };
 
 SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
-: _boundVars(256), _poppedSpecVars(256), _poppedSpecVarIndexes(256),
-_insertedSpecVarIndexes(256)
+: _boundVars(256),
+_specVarBacktrackData(512)
 {
   Recycler::get(_specVarQueue);
   Recycler::get(_specVars);
@@ -876,13 +876,15 @@ SubstitutionTree::GenMatcher::~GenMatcher()
 }
 
 
-bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm)
+bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, bool separate)
 {
   CALL("SubstitutionTree::GenMatcher::matchNext");
 
   unsigned specVar=_specVarQueue->top();
 
-  _boundVars.push(BACKTRACK_SEPARATOR);
+  if(separate) {
+    _boundVars.push(BACKTRACK_SEPARATOR);
+  }
 
   TermList queryTerm=(*_specVars)[specVar];
 
@@ -890,32 +892,59 @@ bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm)
   newSpecVars.reset();
 
   bool success;
-  if(nodeTerm.isTerm() && nodeTerm.term()->shared() && nodeTerm.term()->ground()) {
-    success = nodeTerm==queryTerm;
+  if(nodeTerm.isTerm()) {
+    Term* nt=nodeTerm.term();
+    if(nt->shared() && nt->ground()) {
+      success = nodeTerm==queryTerm;
+    } else {
+      Binder binder(this,&newSpecVars);
+      ASS(nt->arity()>0);
+
+      success = queryTerm.isTerm() && queryTerm.term()->functor()==nt->functor() &&
+	MatchingUtils::matchArgs(nt, queryTerm.term(), binder);
+    }
   } else {
-    Binder binder(this,&newSpecVars);
-    success = MatchingUtils::matchTerms(nodeTerm, queryTerm, binder);
+    ASS_METHOD(nodeTerm,isOrdinaryVar());
+
+    unsigned var=nodeTerm.var();
+    if(var > _maxVar) {
+      success = false;
+    } else {
+      TermList* aux;
+      if(_bindings->getValuePtr(var,aux,queryTerm)) {
+	_boundVars.push(var);
+	success = true;
+      } else {
+	success = *aux==queryTerm;
+      }
+    }
   }
 
   if(success) {
     unsigned popBacktrackIndex;
     _specVarQueue->backtrackablePop(popBacktrackIndex);
+    _specVarBacktrackData.push(specVar);
+    _specVarBacktrackData.push(popBacktrackIndex);
 
-    _poppedSpecVars.push(specVar);
-    _poppedSpecVarIndexes.push(popBacktrackIndex);
+    if(separate) {
+      _specVarBacktrackData.push(BACKTRACK_SEPARATOR);
+    } else {
+      _specVarBacktrackData.push(SMALL_BACKTRACK_SEPARATOR);
+    }
 
-    _insertedSpecVarIndexes.push(BACKTRACK_SEPARATOR);
     while(newSpecVars.isNonEmpty()) {
       unsigned insertBacktrackIndex=_specVarQueue->backtrackableInsert(newSpecVars.pop());
-      _insertedSpecVarIndexes.push(insertBacktrackIndex);
+      _specVarBacktrackData.push(insertBacktrackIndex);
     }
   } else {
-    for(;;) {
-      unsigned boundVar=_boundVars.pop();
-      if(boundVar==BACKTRACK_SEPARATOR) {
-        break;
+    if(separate) {
+      for(;;) {
+	unsigned boundVar=_boundVars.pop();
+	if(boundVar==BACKTRACK_SEPARATOR) {
+	  break;
+	}
+	_bindings->remove(boundVar);
       }
-      _bindings->remove(boundVar);
     }
   }
   return success;
@@ -926,13 +955,21 @@ void SubstitutionTree::GenMatcher::backtrack()
   CALL("SubstitutionTree::GenMatcher::backtrack");
 
   for(;;) {
-    unsigned specVarIndex=_insertedSpecVarIndexes.pop();
+    unsigned specVarIndex=_specVarBacktrackData.pop();
     if(specVarIndex==BACKTRACK_SEPARATOR) {
+      specVarIndex=_specVarBacktrackData.pop();
+      unsigned specVar=_specVarBacktrackData.pop();
+      _specVarQueue->backtrackPop(specVar,specVarIndex);
       break;
+    } else if(specVarIndex==SMALL_BACKTRACK_SEPARATOR) {
+      specVarIndex=_specVarBacktrackData.pop();
+      unsigned specVar=_specVarBacktrackData.pop();
+      _specVarQueue->backtrackPop(specVar,specVarIndex);
+      continue;
     }
     _specVarQueue->backtrackInsert(specVarIndex);
   }
-  _specVarQueue->backtrackPop(_poppedSpecVars.pop(),_poppedSpecVarIndexes.pop());
+
   for(;;) {
     unsigned boundVar=_boundVars.pop();
     if(boundVar==BACKTRACK_SEPARATOR) {
@@ -1046,6 +1083,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
     goto root_handling_pnt;
   }
   for(;;) {
+main_loop_start:
     while(curr==0 && _alternatives.isNonEmpty()) {
       NodeList* alts=_alternatives.pop();
       NodeAlgorithm parentType=_nodeTypes.top();
@@ -1079,6 +1117,16 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
       curr=0;
       continue;
     }
+    while(!curr->isLeaf() && curr->algorithm()==UNSORTED_LIST && curr->size()==1) {
+      ASS(static_cast<UListIntermediateNode*>(curr)->_nodes->head());
+      ASSERT_VALID(*static_cast<UListIntermediateNode*>(curr)->_nodes->head());
+      curr=static_cast<UListIntermediateNode*>(curr)->_nodes->head();
+      if(!_subst.matchNext(curr->term, false)) {
+	_subst.backtrack();
+        curr=0;
+        goto main_loop_start;
+      }
+    }
     if(curr->isLeaf()) {
       //we've found a leaf
       _ldIterator=static_cast<Leaf*>(curr)->allChildren();
@@ -1087,21 +1135,71 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
     }
 
 root_handling_pnt:
-    IntermediateNode* inode=static_cast<IntermediateNode*>(curr);
-    NodeAlgorithm currType=inode->algorithm();
-    _nodeTypes.push(currType);
+    curr=enterNode(curr);
+  }
+}
+
+SubstitutionTree::Node* SubstitutionTree::FastGeneralizationsIterator::enterNode(Node* node)
+{
+  IntermediateNode* inode=static_cast<IntermediateNode*>(node);
+  NodeAlgorithm currType=inode->algorithm();
+  _nodeTypes.push(currType);
+
+  TermList binding=_subst.getNextSpecVarBinding();
+  NodeList* nl;
+  Node* curr=0;
+  if(binding.isTerm()) {
     if(currType==UNSORTED_LIST) {
-      _alternatives.push(static_cast<UListIntermediateNode*>(inode)->_nodes);
+	nl=static_cast<UListIntermediateNode*>(inode)->_nodes;
+	unsigned bindingFunctor=binding.term()->functor();
+	while(nl && nl->head()->term.isTerm()) {
+	  if(!curr && nl->head()->term.term()->functor()==bindingFunctor) {
+	    curr=nl->head();
+	  }
+	  nl=nl->tail();
+	}
+	if(!curr && nl) {
+	  NodeList* nl2=nl->tail();
+	  while(nl2) {
+	    if(nl2->head()->term.isTerm() && nl2->head()->term.term()->functor()==bindingFunctor) {
+	      curr=nl2->head();
+	      break;
+	    }
+	    nl2=nl2->tail();
+	  }
+	}
     } else {
       ASS_EQ(currType, SKIP_LIST);
-      _alternatives.push(static_cast<SListIntermediateNode*>(inode)->_nodes.toList());
+      nl=static_cast<SListIntermediateNode*>(inode)->_nodes.toList();
+      Node** byTop=inode->childByTop(binding, false);
+      if(byTop) {
+        curr=*byTop;
+      }
+      if(nl->head()->term.isTerm()) {
+        nl=0;
+      }
     }
-
-    Node** byTop=inode->childByTop(_subst.getNextSpecVarBinding(), false);
-    if(byTop) {
-      curr=*byTop;
+  } else {
+    if(currType==UNSORTED_LIST) {
+      nl=static_cast<UListIntermediateNode*>(inode)->_nodes;
+      while(nl && nl->head()->term.isTerm()) {
+        nl=nl->tail();
+      }
     } else {
-      curr=0;
+      ASS_EQ(currType, SKIP_LIST);
+      nl=static_cast<SListIntermediateNode*>(inode)->_nodes.toList();
+      if(nl->head()->term.isTerm()) {
+        nl=0;
+      }
     }
   }
+  if(!curr && nl) {
+    curr=nl->head();
+    ASS(curr->term.isVar());
+    do {
+	nl=nl->tail();
+    } while(nl && nl->head()->term.isTerm());
+  }
+  _alternatives.push(nl);
+  return curr;
 }

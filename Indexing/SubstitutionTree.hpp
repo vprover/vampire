@@ -122,6 +122,10 @@ protected:
     virtual void makeEmpty() { term.makeEmpty(); }
     static void split(Node** pnode, TermList* where, int var);
 
+#if VDEBUG
+    virtual void assertValid() const {};
+#endif
+
     /** term at this node */
     TermList term;
   };
@@ -167,7 +171,6 @@ protected:
     virtual void remove(TermList t) = 0;
 
     void loadChildren(NodeIterator children);
-
   }; // class SubstitutionTree::IntermediateNode
 
   class Leaf
@@ -249,6 +252,13 @@ protected:
     Node** childByTop(TermList t, bool canCreate);
     void remove(TermList t);
 
+#if VDEBUG
+    virtual void assertValid() const
+    {
+      ASS_ALLOC_TYPE(this,"SubstitutionTree::UListIntermediateNode");
+    }
+#endif
+
     CLASS_NAME("SubstitutionTree::UListIntermediateNode");
     USE_ALLOCATOR(UListIntermediateNode);
 
@@ -284,9 +294,13 @@ protected:
     NodeAlgorithm algorithm() const { return SKIP_LIST; }
     inline
     bool isEmpty() const { return _nodes.isEmpty(); }
-  #if VDEBUG
+#if VDEBUG
     int size() const { return _nodes.size(); }
-  #endif
+    virtual void assertValid() const
+    {
+      ASS_ALLOC_TYPE(this,"SubstitutionTree::SListIntermediateNode");
+    }
+#endif
     inline
     NodeIterator allChildren()
     {
@@ -440,7 +454,7 @@ protected:
     }
     TermList getNextSpecVarBinding()
     { return (*_specVars)[_specVarQueue->top()]; }
-    bool matchNext(TermList nodeTerm);
+    bool matchNext(TermList nodeTerm, bool separate=true);
     void backtrack();
 
     ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer,
@@ -449,6 +463,7 @@ protected:
     typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > BindingMap;
     typedef Stack<unsigned> VarStack;
     static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
+    static const unsigned SMALL_BACKTRACK_SEPARATOR=0xFFFFFFFE;
 
 
     struct Binder;
@@ -457,9 +472,7 @@ protected:
     struct MatchBacktrackObject;
 
     VarStack _boundVars;
-    VarStack _poppedSpecVars;
-    VarStack _poppedSpecVarIndexes;
-    VarStack _insertedSpecVarIndexes;
+    VarStack _specVarBacktrackData;
 
     SpecVarQueue* _specVarQueue;
     DArray<TermList>* _specVars;
@@ -483,6 +496,8 @@ protected:
      */
     void createReversedInitialBindings(Term* t);
     bool findNextLeaf();
+
+    Node* enterNode(Node* node);
 
   private:
     GenMatcher _subst;

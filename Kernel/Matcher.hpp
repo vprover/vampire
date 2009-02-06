@@ -54,6 +54,9 @@ public:
       if(!instance.isTerm() || base.term()->functor()!=instance.term()->functor()) {
 	return false;
       }
+      if(base.term()->arity()==0) {
+	return true;
+      }
       return matchArgs(base.term(), instance.term(), binder);
     } else {
       ASS(base.isOrdinaryVar());
@@ -93,6 +96,9 @@ public:
   {
     if(!Literal::headersMatch(base, instance, complementary)) {
       return MatchIterator::getEmpty();
+    }
+    if(base->arity()==0) {
+      return pvi( getSingletonIterator(this) );
     }
     if( !base->commutative() ) {
       return pvi( getContextualIterator(getSingletonIterator(this),
@@ -331,12 +337,9 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
     if(base->ground()) {
       return base==instance;
     }
-    if(base->weight()>instance->weight()) {
+    if(base->weight() > instance->weight()) {
       return false;
     }
-  }
-  if(base->isLiteral() && base->arity()==0) {
-    return true;
   }
   ASS_G(base->arity(),0);
 
