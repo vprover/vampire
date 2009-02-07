@@ -55,7 +55,7 @@ public:
   SubstitutionTree(int nodes);
   ~SubstitutionTree();
 
-protected:
+//protected:
 
   struct LeafData {
     LeafData() {}
@@ -140,12 +140,12 @@ protected:
   public:
     /** Build a new intermediate node which will serve as the root*/
     inline
-    IntermediateNode()
+    IntermediateNode(unsigned childVar) : childVar(childVar)
     {}
 
     /** Build a new intermediate node */
     inline
-    IntermediateNode(TermList ts) : Node(ts) {}
+    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar) {}
 
     inline
     bool isLeaf() const { return false; };
@@ -171,6 +171,8 @@ protected:
     virtual void remove(TermList t) = 0;
 
     void loadChildren(NodeIterator children);
+
+    unsigned childVar;
   }; // class SubstitutionTree::IntermediateNode
 
   class Leaf
@@ -201,8 +203,8 @@ protected:
   static Leaf* createLeaf();
   static Leaf* createLeaf(TermList ts);
   static void ensureLeafEfficiency(Leaf** l);
-  static IntermediateNode* createIntermediateNode();
-  static IntermediateNode* createIntermediateNode(TermList ts);
+  static IntermediateNode* createIntermediateNode(unsigned childVar);
+  static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar);
   static void ensureIntermediateNodeEfficiency(IntermediateNode** inode);
 
   struct IsPtrToVarNodeFn
@@ -219,9 +221,9 @@ protected:
   {
   public:
     inline
-    UListIntermediateNode() : _nodes(0), _size(0) {}
+    UListIntermediateNode(unsigned childVar) : IntermediateNode(childVar), _nodes(0), _size(0) {}
     inline
-    UListIntermediateNode(TermList ts) : IntermediateNode(ts), _nodes(0), _size(0) {}
+    UListIntermediateNode(TermList ts, unsigned childVar) : IntermediateNode(ts, childVar), _nodes(0), _size(0) {}
     ~UListIntermediateNode()
     {
       if(_nodes) {
@@ -270,8 +272,8 @@ protected:
   : public IntermediateNode
   {
   public:
-    SListIntermediateNode() {}
-    SListIntermediateNode(TermList ts) : IntermediateNode(ts) {}
+    SListIntermediateNode(unsigned childVar) : IntermediateNode(childVar) {}
+    SListIntermediateNode(TermList ts, unsigned childVar) : IntermediateNode(ts, childVar) {}
     ~SListIntermediateNode()
     {
       NodeSkipList::Iterator nit(_nodes);
@@ -369,11 +371,11 @@ protected:
   class Binding {
   public:
     /** Number of the variable at this node */
-    int var;
+    unsigned var;
     /** term at this node */
-    TermList* term;
+    TermList term;
     /** Create new binding */
-    Binding(int v,TermList* t) : var(v), term(t) {}
+    Binding(int v,TermList t) : var(v), term(t) {}
     /** Create uninitialised binding */
     Binding() {}
 
@@ -455,7 +457,6 @@ protected:
     void bindSpecialVar(unsigned var, TermList term)
     {
       (*_specVars)[var]=term;
-      _specVarQueue->insert(var);
     }
     /**
      * Return term, that is bound to special variable, that is
@@ -465,9 +466,9 @@ protected:
      * (This means the variable with highest number, that hasn't
      * yet been used.)
      */
-    TermList getNextSpecVarBinding()
-    { return (*_specVars)[_specVarQueue->top()]; }
-    bool matchNext(TermList nodeTerm, bool separate=true);
+    TermList getSpecVarBinding(unsigned specVar)
+    { return (*_specVars)[specVar]; }
+    bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
     void backtrack();
 
     ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
@@ -475,7 +476,6 @@ protected:
     typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > BindingMap;
     typedef Stack<unsigned> VarStack;
     static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
-    static const unsigned SMALL_BACKTRACK_SEPARATOR=0xFFFFFFFE;
 
 
     struct Binder;
@@ -484,9 +484,7 @@ protected:
     struct MatchBacktrackObject;
 
     VarStack _boundVars;
-    VarStack _specVarBacktrackData;
 
-    SpecVarQueue* _specVarQueue;
     DArray<TermList>* _specVars;
     unsigned _maxVar;
     ArrayMap<TermList>* _bindings;
@@ -519,6 +517,7 @@ protected:
 
     Node* _root;
     Stack<NodeList*> _alternatives;
+    Stack<unsigned> _specVarNumbers;
     Stack<NodeAlgorithm> _nodeTypes;
 
     Renaming _resultNormalizer;

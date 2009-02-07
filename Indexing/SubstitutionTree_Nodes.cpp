@@ -108,14 +108,14 @@ SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts)
   return new UListLeaf(ts);
 }
 
-SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode()
+SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar)
 {
-  return new UListIntermediateNode();
+  return new UListIntermediateNode(childVar);
 }
 
-SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts)
+SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar)
 {
-  return new UListIntermediateNode(ts);
+  return new UListIntermediateNode(ts, childVar);
 }
 
 SubstitutionTree::Node** SubstitutionTree::UListIntermediateNode::
@@ -162,7 +162,7 @@ SubstitutionTree::SListIntermediateNode* SubstitutionTree::SListIntermediateNode
 {
   CALL("SubstitutionTree::SListIntermediateNode::assimilate");
 
-  SListIntermediateNode* res=new SListIntermediateNode(orig->term);
+  SListIntermediateNode* res=new SListIntermediateNode(orig->term, orig->childVar);
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;

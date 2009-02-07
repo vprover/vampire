@@ -204,6 +204,11 @@ public:
   size_t length() const
   { return _cursor - _stack; }
 
+  /** Return the number of elements in the stack */
+  inline
+  size_t size() const
+  { return _cursor - _stack; }
+
   friend class Iterator;
 
   /** Iterator iterates over the elements of a stack and can

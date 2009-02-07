@@ -95,11 +95,49 @@ void SubstitutionTree::getBindings(Term* t, BindingQueue& bq)
       _nextVar = nextVar+1;
     }
     bind.var = nextVar++;
-    bind.term = args;
+    bind.term = *args;
     bq.insert(bind);
     args = args->next();
   }
 }
+
+struct UnresolvedSplitRecord
+{
+  UnresolvedSplitRecord() {}
+  UnresolvedSplitRecord(unsigned var, TermList original, TermList own)
+  : var(var), original(original), own(own) {}
+
+  unsigned var;
+  TermList original;
+  TermList own;
+};
+
+#define USE_REORDERING 0
+
+struct BindingComparator
+{
+  static int score(TermList tl)
+  {
+    if(tl.isVar()) {
+      return -tl.var();
+    } else {
+      return -100;
+    }
+  }
+  static Comparison compare(const UnresolvedSplitRecord& r1, const UnresolvedSplitRecord& r2)
+  {
+    return Int::compare(score(r1.original)+score(r1.own),score(r2.original)+score(r2.own));
+  }
+  static Comparison compare(const SubstitutionTree::Binding& b1, const SubstitutionTree::Binding& b2)
+  {
+#if USE_REORDERING
+    return Int::compare(score(b1.term),score(b2.term));
+#else
+    return Int::compare(b2.var,b1.var);
+#endif
+  }
+};
+
 
 /**
  * Insert an entry to the substitution tree.
@@ -116,7 +154,7 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
     if(bh.isEmpty()) {
       *pnode=createLeaf();
     } else {
-      *pnode=createIntermediateNode();
+      *pnode=createIntermediateNode(bh.top().var);
     }
   }
   if(bh.isEmpty()) {
@@ -126,29 +164,79 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
     return;
   }
 
-  start:
-  Binding bind=bh.pop();
-  TermList* term=bind.term;
+  typedef DHMap<unsigned,TermList,IdentityHash<unsigned> > SVMap;
+  SVMap svBindings;
+  while(!bh.isEmpty()) {
+    Binding b=bh.pop();
+    svBindings.set(b.var, b.term);
+  }
 
-  ASS(! (*pnode)->isLeaf());
+  static BinaryHeap<UnresolvedSplitRecord, BindingComparator> unresolvedSplits;
+  unresolvedSplits.reset();
+
+start:
+  bool canPostponeSplits=false;
+  if((*pnode)->isLeaf()) {
+    canPostponeSplits=false;
+  } else {
+    IntermediateNode* inode = static_cast<IntermediateNode*>(*pnode);
+    canPostponeSplits = inode->algorithm()==UNSORTED_LIST && inode->size()==1;
+    if(canPostponeSplits) {
+      unsigned boundVar=inode->childVar;
+      if(svBindings.find(boundVar)) {
+	TermList term=svBindings.get(boundVar);
+	canPostponeSplits = inode->childByTop(term,false)!=0;
+      } else {
+	canPostponeSplits = false;
+      }
+    }
+  }
+  if(!canPostponeSplits) {
+    while(!unresolvedSplits.isEmpty()) {
+      UnresolvedSplitRecord urr=unresolvedSplits.pop();
+
+      Node* node=*pnode;
+      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
+      node->term=urr.original;
+
+      *pnode=newNode;
+
+      Node** nodePosition=newNode->childByTop(node->term, true);
+      ASS(!*nodePosition);
+      *nodePosition=node;
+    }
+  }
+
+  ASS(!(*pnode)->isLeaf());
+
   IntermediateNode* inode = static_cast<IntermediateNode*>(*pnode);
+  unsigned boundVar=inode->childVar;
+  TermList term=svBindings.get(boundVar);
+  svBindings.remove(boundVar);
 
   //Into pparent we store the node, we might be inserting into.
   //So in the case we do insert, we might check whether this node
   //needs expansion.
   Node** pparent=pnode;
-  pnode=inode->childByTop(*term,true);
+  pnode=inode->childByTop(term,true);
 
   if (*pnode == 0) {
-    while (!bh.isEmpty()) {
-      IntermediateNode* inode = createIntermediateNode(*term);
-      *pnode = inode;
-
-      bind = bh.pop();
-      term=bind.term;
-      pnode = inode->childByTop(*term,true);
+    SVMap::Iterator svit(svBindings);
+    BinaryHeap<Binding, BindingComparator> remainingBindings;
+    while (svit.hasNext()) {
+      Binding b;
+      svit.next(b.var, b.term);
+      remainingBindings.insert(b);
     }
-    Leaf* lnode=createLeaf(*term);
+    while (!remainingBindings.isEmpty()) {
+      Binding b=remainingBindings.pop();
+      IntermediateNode* inode = createIntermediateNode(term, b.var);
+      term=b.term;
+
+      *pnode = inode;
+      pnode = inode->childByTop(term,true);
+    }
+    Leaf* lnode=createLeaf(term);
     *pnode=lnode;
     lnode->insert(ld);
 
@@ -157,13 +245,13 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
   }
 
 
-  TermList* tt = term;
+  TermList* tt = &term;
   TermList* ss = &(*pnode)->term;
 
   ASS(TermList::sameTop(*ss, *tt));
 
   if (*tt==*ss) {
-    if (bh.isEmpty()) {
+    if (svBindings.isEmpty()) {
       ASS((*pnode)->isLeaf());
       ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
       Leaf* leaf = static_cast<Leaf*>(*pnode);
@@ -207,12 +295,16 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
 	unsigned x;
 	if(!ss->isSpecialVar()) {
 	  x = _nextVar++;
-	  Node::split(pnode, ss, x);
+#if USE_REORDERING
+	  unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss,*tt));
+	  ss->makeSpecialVar(x);
+#else
+	  Node::split(pnode,ss,x);
+#endif
 	} else {
 	  x=ss->var();
 	}
-	Binding bind(x,tt);
-	bh.insert(bind);
+	svBindings.set(x,*tt);
       }
 
       if (subterms.isEmpty()) {
@@ -246,24 +338,32 @@ void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
 
   ASS(*pnode);
 
-  Stack<Node**> history(1000);
+  typedef DHMap<unsigned,TermList,IdentityHash<unsigned> > SVMap;
+  SVMap svBindings;
+  while(!bh.isEmpty()) {
+    Binding b=bh.pop();
+    svBindings.set(b.var, b.term);
+  }
 
-  while (! bh.isEmpty()) {
+  static Stack<Node**> history(1000);
+  history.reset();
+
+  while (! (*pnode)->isLeaf()) {
     history.push(pnode);
 
-    ASS (! (*pnode)->isLeaf());
     IntermediateNode* inode=static_cast<IntermediateNode*>(*pnode);
 
-    Binding bind = bh.pop();
-    TermList* t = bind.term;
+    unsigned boundVar=inode->childVar;
+    TermList t = svBindings.get(boundVar);
 
-    pnode=inode->childByTop(*t,false);
+    pnode=inode->childByTop(t,false);
     ASS(pnode);
 
-    TermList* s = &(*pnode)->term;
-    ASS(TermList::sameTop(*s,*t));
 
-    if (s->content() == t->content()) {
+    TermList* s = &(*pnode)->term;
+    ASS(TermList::sameTop(*s,t));
+
+    if (s->content() == t.content()) {
       continue;
     }
 
@@ -275,7 +375,7 @@ void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
     Stack<TermList*> subterms(120);
 
     subterms.push(ss);
-    subterms.push(t->term()->args());
+    subterms.push(t.term()->args());
     while (! subterms.isEmpty()) {
       TermList* tt = subterms.pop();
       ss = subterms.pop();
@@ -291,11 +391,10 @@ void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
       }
       if (ss->isVar()) {
 	ASS(ss->isSpecialVar());
-	Binding b(ss->var(),const_cast<TermList*>(tt));
-	bh.insert(b);
+	svBindings.set(ss->var(),*tt);
 	continue;
       }
-      ASS(! t->isVar());
+      ASS(! tt->isVar());
       ASS(ss->term()->functor() == tt->term()->functor());
       ss = ss->term()->args();
       if (! ss->isEmpty()) {
@@ -417,7 +516,7 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 
   Node* node=*pnode;
 
-  IntermediateNode* newNode = createIntermediateNode(node->term);
+  IntermediateNode* newNode = createIntermediateNode(node->term, var);
   node->term=*where;
   *pnode=newNode;
 
@@ -779,8 +878,8 @@ struct SubstitutionTree::GenMatcher::Binder
    * this object.
    */
   inline
-  Binder(GenMatcher* parent, VarStack* newSpecVars)
-  : _parent(parent), _newSpecVars(newSpecVars), _maxVar(parent->_maxVar) {}
+  Binder(GenMatcher* parent)
+  : _parent(parent), _maxVar(parent->_maxVar) {}
   /**
    * Ensure variable @b var is bound to @b term. Return false iff
    * it is not possible. If a new binding was creater, push @b var
@@ -807,11 +906,9 @@ struct SubstitutionTree::GenMatcher::Binder
   void specVar(unsigned var, TermList term)
   {
     (*_parent->_specVars)[var]=term;
-    _newSpecVars->push(var);
   }
 private:
   GenMatcher* _parent;
-  VarStack* _newSpecVars;
   /**
    * Maximal number of boundable ordinary variable. If binding
    * bigger variable is attempted, it fails.
@@ -876,10 +973,8 @@ private:
  * 	special variables.
  */
 SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
-: _boundVars(256),
-_specVarBacktrackData(512)
+: _boundVars(256)
 {
-  Recycler::get(_specVarQueue);
   Recycler::get(_specVars);
   if(_specVars->size()<nextSpecVar) {
     //_specVars can get really big, but it was introduced instead of hash table
@@ -895,7 +990,6 @@ SubstitutionTree::GenMatcher::~GenMatcher()
 {
   Recycler::release(_bindings);
   Recycler::release(_specVars);
-  Recycler::release(_specVarQueue);
 }
 
 /**
@@ -906,21 +1000,15 @@ SubstitutionTree::GenMatcher::~GenMatcher()
  * 	on backtracking stack, so they will be undone both by one
  * 	call to the @b backtrack() method.
  */
-bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, bool separate)
+bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   CALL("SubstitutionTree::GenMatcher::matchNext");
-
-  unsigned specVar=_specVarQueue->top();
 
   if(separate) {
     _boundVars.push(BACKTRACK_SEPARATOR);
   }
 
   TermList queryTerm=(*_specVars)[specVar];
-
-  //stack, that stores newly bound special variables
-  static VarStack newSpecVars(32);
-  newSpecVars.reset();
 
   bool success;
   if(nodeTerm.isTerm()) {
@@ -929,7 +1017,7 @@ bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, bool separate)
       //ground terms match only iff they're equal
       success = nodeTerm==queryTerm;
     } else {
-      Binder binder(this,&newSpecVars);
+      Binder binder(this);
       ASS(nt->arity()>0);
 
       success = queryTerm.isTerm() && queryTerm.term()->functor()==nt->functor() &&
@@ -953,22 +1041,6 @@ bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, bool separate)
   }
 
   if(success) {
-    //matching succeeded, let's fill in backtrack data
-    unsigned popBacktrackIndex;
-    _specVarQueue->backtrackablePop(popBacktrackIndex);
-    _specVarBacktrackData.push(specVar);
-    _specVarBacktrackData.push(popBacktrackIndex);
-
-    if(separate) {
-      _specVarBacktrackData.push(BACKTRACK_SEPARATOR);
-    } else {
-      _specVarBacktrackData.push(SMALL_BACKTRACK_SEPARATOR);
-    }
-
-    while(newSpecVars.isNonEmpty()) {
-      unsigned insertBacktrackIndex=_specVarQueue->backtrackableInsert(newSpecVars.pop());
-      _specVarBacktrackData.push(insertBacktrackIndex);
-    }
   } else {
     //if this matching was joined to the previous one, we don't
     //have to care about unbinding as caller will do this by calling
@@ -994,22 +1066,6 @@ bool SubstitutionTree::GenMatcher::matchNext(TermList nodeTerm, bool separate)
 void SubstitutionTree::GenMatcher::backtrack()
 {
   CALL("SubstitutionTree::GenMatcher::backtrack");
-
-  for(;;) {
-    unsigned specVarIndex=_specVarBacktrackData.pop();
-    if(specVarIndex==BACKTRACK_SEPARATOR) {
-      specVarIndex=_specVarBacktrackData.pop();
-      unsigned specVar=_specVarBacktrackData.pop();
-      _specVarQueue->backtrackPop(specVar,specVarIndex);
-      break;
-    } else if(specVarIndex==SMALL_BACKTRACK_SEPARATOR) {
-      specVarIndex=_specVarBacktrackData.pop();
-      unsigned specVar=_specVarBacktrackData.pop();
-      _specVarQueue->backtrackPop(specVar,specVarIndex);
-      continue;
-    }
-    _specVarQueue->backtrackInsert(specVarIndex);
-  }
 
   for(;;) {
     unsigned boundVar=_boundVars.pop();
@@ -1040,7 +1096,7 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node*
 	Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed)
 : _subst(query,nextSpecVar), _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()),
-  _root(root), _alternatives(64), _nodeTypes(64)
+  _root(root), _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
   ASS(root);
@@ -1161,6 +1217,7 @@ main_loop_start:
       }
       //there's no alternative at this level, we have to backtrack
       _nodeTypes.pop();
+      _specVarNumbers.pop();
       if(_alternatives.isNonEmpty()) {
 	_subst.backtrack();
       }
@@ -1169,7 +1226,7 @@ main_loop_start:
       //there are no other alternatives
       return false;
     }
-    if(!_subst.matchNext(curr->term)) {
+    if(!_subst.matchNext(_specVarNumbers.top(), curr->term)) {
       //match unsuccessful, try next alternative
       curr=0;
       continue;
@@ -1178,8 +1235,9 @@ main_loop_start:
       //a node with only one child, we don't need to bother with backtracking here.
       ASS(static_cast<UListIntermediateNode*>(curr)->_nodes->head());
       ASSERT_VALID(*static_cast<UListIntermediateNode*>(curr)->_nodes->head());
+      unsigned specVar=static_cast<UListIntermediateNode*>(curr)->childVar;
       curr=static_cast<UListIntermediateNode*>(curr)->_nodes->head();
-      if(!_subst.matchNext(curr->term, false)) {
+      if(!_subst.matchNext(specVar, curr->term, false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	_subst.backtrack();
         curr=0;
@@ -1210,8 +1268,9 @@ SubstitutionTree::Node* SubstitutionTree::FastGeneralizationsIterator::enterNode
   IntermediateNode* inode=static_cast<IntermediateNode*>(node);
   NodeAlgorithm currType=inode->algorithm();
   _nodeTypes.push(currType);
+  _specVarNumbers.push(inode->childVar);
 
-  TermList binding=_subst.getNextSpecVarBinding();
+  TermList binding=_subst.getSpecVarBinding(inode->childVar);
   NodeList* nl;
   Node* curr=0;
   if(binding.isTerm()) {
