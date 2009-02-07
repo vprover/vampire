@@ -114,19 +114,30 @@ struct UnresolvedSplitRecord
 
 #define USE_REORDERING 1
 
+DHMap<unsigned,bool, IdentityHash<unsigned> > boundVars;
+
 struct BindingComparator
 {
   static int score(TermList tl)
   {
     if(tl.isVar()) {
-      return -tl.var();
+      if(boundVars.find(tl.var())) {
+	return 45;
+      } else {
+	return 40-tl.var();
+      }
+//      return 0;
     } else {
-      return -100;
+      if(tl.term()->arity()) {
+	return -tl.term()->weight();
+      } else {
+	return 50;
+      }
     }
   }
   static Comparison compare(const UnresolvedSplitRecord& r1, const UnresolvedSplitRecord& r2)
   {
-    return Int::compare(score(r1.original)+score(r1.own),score(r2.original)+score(r2.own));
+    return Int::compare(score(r1.original)+score(r1.own), score(r2.original)+score(r2.own));
   }
   static Comparison compare(const SubstitutionTree::Binding& b1, const SubstitutionTree::Binding& b2)
   {
@@ -137,7 +148,6 @@ struct BindingComparator
 #endif
   }
 };
-
 
 /**
  * Insert an entry to the substitution tree.
@@ -173,8 +183,25 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
 
   static BinaryHeap<UnresolvedSplitRecord, BindingComparator> unresolvedSplits;
   unresolvedSplits.reset();
+  boundVars.reset();
 
 start:
+
+  if(!(*pnode)->term.isEmpty()) {
+    TermList currTerm=(*pnode)->term;
+    if(currTerm.isOrdinaryVar()) {
+      boundVars.insert(currTerm.var(),true);
+    } else {
+      Term::VariableIterator vit(currTerm.term());
+      while(vit.hasNext()) {
+	TermList nextVar=vit.next();
+	if(nextVar.isOrdinaryVar()) {
+	  boundVars.insert(nextVar.var(), true);
+	}
+      }
+    }
+  }
+
   bool canPostponeSplits=false;
   if((*pnode)->isLeaf()) {
     canPostponeSplits=false;
@@ -192,12 +219,15 @@ start:
     }
   }
   if(!canPostponeSplits) {
+    bool reporting=/**/false;//*/unresolvedSplits.size()>3;
+    if(reporting) { cout<<"----\n"; }
     while(!unresolvedSplits.isEmpty()) {
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
 
       Node* node=*pnode;
       IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
       node->term=urr.original;
+      if(reporting) { cout<<(urr.original.toString())<<endl; }
 
       *pnode=newNode;
 
