@@ -112,7 +112,7 @@ struct UnresolvedSplitRecord
   TermList own;
 };
 
-#define USE_REORDERING 0
+#define USE_REORDERING 1
 
 struct BindingComparator
 {
