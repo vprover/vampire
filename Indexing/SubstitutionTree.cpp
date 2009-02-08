@@ -129,7 +129,11 @@ struct BindingComparator
 //      return 0;
     } else {
       if(tl.term()->arity()) {
-	return -tl.term()->weight();
+	if(tl.term()->shared()) {
+	  return -tl.term()->weight();
+	} else {
+	  return 50;
+	}
       } else {
 	return 50;
       }
@@ -1222,6 +1226,18 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
   }
   for(;;) {
 main_loop_start:
+    unsigned currSpecVar;
+    bool sibilingsRemain;
+    if(curr) {
+      sibilingsRemain=_alternatives.top();
+      if(sibilingsRemain) {
+	currSpecVar=_specVarNumbers.top();
+      } else {
+	currSpecVar=_specVarNumbers.pop();
+	_alternatives.pop();
+	_nodeTypes.pop();
+      }
+    }
     //let's find a node we haven't been to...
     while(curr==0 && _alternatives.isNonEmpty()) {
       NodeList* alts=_alternatives.pop();
@@ -1241,8 +1257,15 @@ main_loop_start:
       }
       if(alts) {
 	ASS(alts->head()->term.isVar());
-	_alternatives.push(alts->tail());
 	curr=alts->head();
+	sibilingsRemain=alts->tail();
+	if(sibilingsRemain) {
+	  currSpecVar=_specVarNumbers.top();
+	  _alternatives.push(alts->tail());
+	} else {
+	  _nodeTypes.pop();
+	  currSpecVar=_specVarNumbers.pop();
+	}
 	break;
       }
       //there's no alternative at this level, we have to backtrack
@@ -1256,12 +1279,15 @@ main_loop_start:
       //there are no other alternatives
       return false;
     }
-    if(!_subst.matchNext(_specVarNumbers.top(), curr->term)) {
+    if(!_subst.matchNext(currSpecVar, curr->term, sibilingsRemain)) {	//[1]
       //match unsuccessful, try next alternative
       curr=0;
+      if(!sibilingsRemain && _alternatives.isNonEmpty()) {
+	_subst.backtrack();
+      }
       continue;
     }
-    while(!curr->isLeaf() && curr->algorithm()==UNSORTED_LIST && curr->size()==1) {
+    while(!curr->isLeaf() && curr->algorithm()==UNSORTED_LIST && static_cast<UListIntermediateNode*>(curr)->_size==1) {
       //a node with only one child, we don't need to bother with backtracking here.
       ASS(static_cast<UListIntermediateNode*>(curr)->_nodes->head());
       ASSERT_VALID(*static_cast<UListIntermediateNode*>(curr)->_nodes->head());
@@ -1269,7 +1295,13 @@ main_loop_start:
       curr=static_cast<UListIntermediateNode*>(curr)->_nodes->head();
       if(!_subst.matchNext(specVar, curr->term, false)) {
 	//matching failed, let's go back to the node, that had multiple children
-	_subst.backtrack();
+	//_subst.backtrack();
+	if(sibilingsRemain || _alternatives.isNonEmpty()) {
+	  //this vacktrack can happen for two different reasons and have two different meanings:
+	  //either matching at [1] was separated from the previous one and we're backtracking it,
+	  //or it was not, which means it had no sibilings and we're backtracking from its parent.
+	  _subst.backtrack();
+	}
         curr=0;
         goto main_loop_start;
       }
