@@ -122,20 +122,19 @@ struct BindingComparator
   {
     if(tl.isVar()) {
       if(boundVars.find(tl.var())) {
-	return 45;
+	return 100;
       } else {
 	return 40-tl.var();
       }
-//      return 0;
     } else {
       if(tl.term()->arity()) {
 	if(tl.term()->shared()) {
 	  return -tl.term()->weight();
 	} else {
-	  return 50;
+	  return -150;
 	}
       } else {
-	return 50;
+	return 100;
       }
     }
   }
@@ -206,17 +205,32 @@ start:
     }
   }
 
+split_postponing_evaluation:
   bool canPostponeSplits=false;
-  if((*pnode)->isLeaf()) {
+  if((*pnode)->isLeaf() || (*pnode)->algorithm()!=UNSORTED_LIST) {
     canPostponeSplits=false;
   } else {
-    IntermediateNode* inode = static_cast<IntermediateNode*>(*pnode);
-    canPostponeSplits = inode->algorithm()==UNSORTED_LIST && inode->size()==1;
+    UListIntermediateNode* inode = static_cast<UListIntermediateNode*>(*pnode);
+    canPostponeSplits = inode->size()==1;
     if(canPostponeSplits) {
       unsigned boundVar=inode->childVar;
       if(svBindings.find(boundVar)) {
+	canPostponeSplits=true;
 	TermList term=svBindings.get(boundVar);
-	canPostponeSplits = inode->childByTop(term,false)!=0;
+	bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
+	if(!wouldDescendIntoChild) {
+	  //if we'd have to perform all postponed splitting due to
+	  //node with a single child, we rather remove that node
+	  //from the tree and deal with the binding, it represented,
+	  //later.
+	  Node* child=inode->_nodes->head();
+	  unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term, term));
+	  child->term=inode->term;
+	  *pnode=child;
+	  inode->makeEmpty();
+	  delete inode;
+	  goto split_postponing_evaluation;
+	}
       } else {
 	canPostponeSplits = false;
       }
