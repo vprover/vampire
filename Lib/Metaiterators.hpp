@@ -77,6 +77,20 @@ private:
   T* _afterLast;
 };
 
+template<typename T>
+class PointerPtrIterator
+{
+public:
+  DECL_ELEMENT_TYPE(T*);
+  inline PointerPtrIterator(T* first, T* afterLast) :
+    _curr(first), _afterLast(afterLast) {}
+  inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
+  inline T* next() { ASS(hasNext()); return _curr++; }
+private:
+  T* _curr;
+  T* _afterLast;
+};
+
 
 /**
  * Implementation object for VirtualIterator, that represents

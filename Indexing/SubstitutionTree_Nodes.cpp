@@ -110,47 +110,46 @@ SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts)
 
 SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar)
 {
-  return new UListIntermediateNode(childVar);
+  return new UArrIntermediateNode(childVar);
 }
 
 SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar)
 {
-  return new UListIntermediateNode(ts, childVar);
+  return new UArrIntermediateNode(ts, childVar);
 }
 
-SubstitutionTree::Node** SubstitutionTree::UListIntermediateNode::
+SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
 	childByTop(TermList t, bool canCreate)
 {
-  CALL("SubstitutionTree::UListIntermediateNode::childByTop");
+  CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
 
-  NodeList** nl=&_nodes;
-  while(*nl && !TermList::sameTop(t, (*nl)->head()->term)) {
-	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
+  for(int i=0;i<_size;i++) {
+    if(TermList::sameTop(t, _nodes[i]->term)) {
+      return &_nodes[i];
+    }
   }
-  if(!*nl && canCreate) {
-  	*nl=new NodeList(0,0);
-  	_size++;
+  if(canCreate) {
+    ASS_L(_size,MAX_SIZE);
+    ASS_EQ(_nodes[_size],0);
+    _nodes[++_size]=0;
+    return &_nodes[_size-1];
   }
-  if(*nl) {
-	return (*nl)->headPtr();
-  } else {
-	return 0;
-  }
+  return 0;
 }
 
-void SubstitutionTree::UListIntermediateNode::remove(TermList t)
+void SubstitutionTree::UArrIntermediateNode::remove(TermList t)
 {
-  CALL("SubstitutionTree::UListIntermediateNode::remove");
+  CALL("SubstitutionTree::UArrIntermediateNode::remove");
 
-  NodeList** nl=&_nodes;
-  while(!TermList::sameTop(t, (*nl)->head()->term)) {
-	nl=reinterpret_cast<NodeList**>(&(*nl)->tailReference());
-	ASS(*nl);
+  for(int i=0;i<_size;i++) {
+    if(TermList::sameTop(t, _nodes[i]->term)) {
+      _size--;
+      _nodes[i]=_nodes[_size];
+      _nodes[_size]=0;
+      return;
+    }
   }
-  NodeList* removedPiece=*nl;
-  *nl=static_cast<NodeList*>((*nl)->tail());
-  delete removedPiece;
-  _size--;
+  ASSERTION_VIOLATION;
 }
 
 /**

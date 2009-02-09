@@ -33,6 +33,21 @@ struct ElementTypeInfo
   typedef typename T::_ElementType Type;
 };
 
+/**
+ * ElementTypeInfo for arrays.
+ */
+template<typename T>
+struct ElementTypeInfo<T[]>
+{
+  typedef T Type;
+};
+
+template<typename T>
+struct ElementTypeInfo<T*>
+{
+  typedef T Type;
+};
+
 template<typename T>
 struct IteratorTypeInfo
 {

@@ -13,6 +13,7 @@
 #include "../Forwards.hpp"
 
 #include "../Lib/VirtualIterator.hpp"
+#include "../Lib/Metaiterators.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Stack.hpp"
@@ -216,39 +217,44 @@ public:
     }
   };
 
-  class UListIntermediateNode
+  class UArrIntermediateNode
   : public IntermediateNode
   {
   public:
     inline
-    UListIntermediateNode(unsigned childVar) : IntermediateNode(childVar), _nodes(0), _size(0) {}
-    inline
-    UListIntermediateNode(TermList ts, unsigned childVar) : IntermediateNode(ts, childVar), _nodes(0), _size(0) {}
-    ~UListIntermediateNode()
+    UArrIntermediateNode(unsigned childVar) : IntermediateNode(childVar), _size(0)
     {
-      if(_nodes) {
-        _nodes->destroyWithDeletion();
+      _nodes[0]=0;
+    }
+    inline
+    UArrIntermediateNode(TermList ts, unsigned childVar) : IntermediateNode(ts, childVar), _size(0)
+    {
+      _nodes[0]=0;
+    }
+    ~UArrIntermediateNode()
+    {
+      for(int i=0;i<_size;i++) {
+	ASS(_nodes[i]);
+	delete _nodes[i];
       }
     }
 
     void makeEmpty()
     {
       IntermediateNode::makeEmpty();
-      if(_nodes) {
-        _nodes->destroy();
-        _nodes=0;
-      }
+      _size=0;
+      _nodes[0]=0;
     }
 
     NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
-    bool isEmpty() const { return !_nodes; }
+    bool isEmpty() const { return !_size; }
     int size() const { return _size; }
     NodeIterator allChildren()
-    { return pvi( NodeList::PtrIterator(_nodes)); }
+    { return pvi( PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]) ); }
 
     NodeIterator variableChildren()
     {
-      return pvi( getFilteredIterator(NodeList::PtrIterator(_nodes),
+      return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
   	    IsPtrToVarNodeFn()) );
     }
     Node** childByTop(TermList t, bool canCreate);
@@ -257,15 +263,17 @@ public:
 #if VDEBUG
     virtual void assertValid() const
     {
-      ASS_ALLOC_TYPE(this,"SubstitutionTree::UListIntermediateNode");
+      ASS_ALLOC_TYPE(this,"SubstitutionTree::UArrIntermediateNode");
     }
 #endif
 
-    CLASS_NAME("SubstitutionTree::UListIntermediateNode");
-    USE_ALLOCATOR(UListIntermediateNode);
+    CLASS_NAME("SubstitutionTree::UArrIntermediateNode");
+    USE_ALLOCATOR(UArrIntermediateNode);
 
-    NodeList* _nodes;
+    static const int MAX_SIZE = 4;
+
     int _size;
+    Node* _nodes[MAX_SIZE+1];
   };
 
   class SListIntermediateNode
@@ -516,7 +524,7 @@ public:
     LDIterator _ldIterator;
 
     Node* _root;
-    Stack<NodeList*> _alternatives;
+    Stack<void*> _alternatives;
     Stack<unsigned> _specVarNumbers;
     Stack<NodeAlgorithm> _nodeTypes;
 

@@ -176,36 +176,20 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
   boundVars.reset();
 
 start:
-
-  if(!(*pnode)->term.isEmpty()) {
-    TermList currTerm=(*pnode)->term;
-    if(currTerm.isOrdinaryVar()) {
-      boundVars.insert(currTerm.var(),true);
-    } else {
-      Term::VariableIterator vit(currTerm.term());
-      while(vit.hasNext()) {
-	TermList nextVar=vit.next();
-	if(nextVar.isOrdinaryVar()) {
-	  boundVars.insert(nextVar.var(), true);
-	}
-      }
-    }
-  }
-
-split_postponing_evaluation:
   bool canPostponeSplits=false;
   if((*pnode)->isLeaf() || (*pnode)->algorithm()!=UNSORTED_LIST) {
     canPostponeSplits=false;
   } else {
-    UListIntermediateNode* inode = static_cast<UListIntermediateNode*>(*pnode);
+    UArrIntermediateNode* inode = static_cast<UArrIntermediateNode*>(*pnode);
     canPostponeSplits = inode->size()==1;
     if(canPostponeSplits) {
       unsigned boundVar=inode->childVar;
-      Node* child=inode->_nodes->head();
+      Node* child=inode->_nodes[0];
       bool removeProblematicNode=false;
       if(svBindings.find(boundVar)) {
 	TermList term=svBindings.get(boundVar);
 	bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
+	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
 	if(!wouldDescendIntoChild) {
 	  //if we'd have to perform all postponed splitting due to
 	  //node with a single child, we rather remove that node
@@ -227,7 +211,7 @@ split_postponing_evaluation:
 	*pnode=child;
 	inode->makeEmpty();
 	delete inode;
-	goto split_postponing_evaluation;
+	goto start;
       }
     }
   }
@@ -1238,6 +1222,7 @@ main_loop_start:
     if(curr) {
       sibilingsRemain=_alternatives.top();
       if(sibilingsRemain) {
+	ASS(_nodeTypes.top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives.top()));
 	currSpecVar=_specVarNumbers.top();
       } else {
 	currSpecVar=_specVarNumbers.pop();
@@ -1247,39 +1232,58 @@ main_loop_start:
     }
     //let's find a node we haven't been to...
     while(curr==0 && _alternatives.isNonEmpty()) {
-      NodeList* alts=_alternatives.pop();
+      void* currAlt=_alternatives.pop();
+      if(!currAlt) {
+	//there's no alternative at this level, we have to backtrack
+	_nodeTypes.pop();
+	_specVarNumbers.pop();
+	if(_alternatives.isNonEmpty()) {
+	  _subst.backtrack();
+	}
+	continue;
+      }
+
       NodeAlgorithm parentType=_nodeTypes.top();
 
-      //proper term nodes that we want to enter dno't appead on list
+      //proper term nodes that we want to enter don't appear
       //on _alternatives stack (as we always enter them first)
-      if(alts && !alts->head()->term.isVar()) {
-	if(parentType==UNSORTED_LIST) {
-	  while(alts && !alts->head()->term.isVar()) {
-	    alts=alts->tail();
+      if(parentType==UNSORTED_LIST) {
+	Node** alts=static_cast<Node**>(currAlt);
+	while(*alts && !(*alts)->term.isVar()) {
+	  alts++;
+	}
+	curr=*(alts++);
+	while(*alts && !(*alts)->term.isVar()) {
+	  alts++;
+	}
+	if(*alts) {
+	  _alternatives.push(alts);
+	  sibilingsRemain=true;
+	} else {
+	  sibilingsRemain=false;
+	}
+      } else {
+	ASS_EQ(parentType,SKIP_LIST)
+	NodeList* alts=static_cast<NodeList*>(currAlt);
+	if(alts->head()->term.isVar()) {
+	  curr=alts->head();
+	  if(alts->tail() && alts->second()->term.isVar()) {
+	    _alternatives.push(alts->tail());
+	    sibilingsRemain=true;
+	  } else {
+	    sibilingsRemain=false;
 	  }
-	} else {
-	  ASS_EQ(parentType,SKIP_LIST)
-	  alts=0;
 	}
       }
-      if(alts) {
-	ASS(alts->head()->term.isVar());
-	curr=alts->head();
-	sibilingsRemain=alts->tail();
-	if(sibilingsRemain) {
-	  currSpecVar=_specVarNumbers.top();
-	  _alternatives.push(alts->tail());
-	} else {
-	  _nodeTypes.pop();
-	  currSpecVar=_specVarNumbers.pop();
-	}
+
+      if(sibilingsRemain) {
+	currSpecVar=_specVarNumbers.top();
+      } else {
+	_nodeTypes.pop();
+	currSpecVar=_specVarNumbers.pop();
+      }
+      if(curr) {
 	break;
-      }
-      //there's no alternative at this level, we have to backtrack
-      _nodeTypes.pop();
-      _specVarNumbers.pop();
-      if(_alternatives.isNonEmpty()) {
-	_subst.backtrack();
       }
     }
     if(!curr) {
@@ -1294,12 +1298,12 @@ main_loop_start:
       }
       continue;
     }
-    while(!curr->isLeaf() && curr->algorithm()==UNSORTED_LIST && static_cast<UListIntermediateNode*>(curr)->_size==1) {
+    while(!curr->isLeaf() && curr->algorithm()==UNSORTED_LIST && static_cast<UArrIntermediateNode*>(curr)->_size==1) {
       //a node with only one child, we don't need to bother with backtracking here.
-      ASS(static_cast<UListIntermediateNode*>(curr)->_nodes->head());
-      ASSERT_VALID(*static_cast<UListIntermediateNode*>(curr)->_nodes->head());
-      unsigned specVar=static_cast<UListIntermediateNode*>(curr)->childVar;
-      curr=static_cast<UListIntermediateNode*>(curr)->_nodes->head();
+      unsigned specVar=static_cast<UArrIntermediateNode*>(curr)->childVar;
+      curr=static_cast<UArrIntermediateNode*>(curr)->_nodes[0];
+      ASS(curr);
+      ASSERT_VALID(*curr);
       if(!_subst.matchNext(specVar, curr->term, false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst.backtrack();
@@ -1340,73 +1344,69 @@ SubstitutionTree::Node* SubstitutionTree::FastGeneralizationsIterator::enterNode
   _specVarNumbers.push(inode->childVar);
 
   TermList binding=_subst.getSpecVarBinding(inode->childVar);
-  NodeList* nl;
   Node* curr=0;
-  if(binding.isTerm()) {
-    if(currType==UNSORTED_LIST) {
-	nl=static_cast<UListIntermediateNode*>(inode)->_nodes;
-	unsigned bindingFunctor=binding.term()->functor();
-	//let's first skip proper term nodes at the beginning...
-	while(nl && nl->head()->term.isTerm()) {
-	  //...and have the one that interests us, if we encounter it.
-	  if(!curr && nl->head()->term.term()->functor()==bindingFunctor) {
-	    curr=nl->head();
-	  }
-	  nl=nl->tail();
-	}
-	if(!curr && nl) {
-	  //we've encountered a variable node, but we still have to check, whether
-	  //the one proper term node, that interests us, isn't here
-	  NodeList* nl2=nl->tail();
-	  while(nl2) {
-	    if(nl2->head()->term.isTerm() && nl2->head()->term.term()->functor()==bindingFunctor) {
-	      curr=nl2->head();
-	      break;
-	    }
-	    nl2=nl2->tail();
-	  }
-	}
+
+  if(currType==UNSORTED_LIST) {
+    Node** nl=static_cast<UArrIntermediateNode*>(inode)->_nodes;
+    if(binding.isTerm()) {
+      unsigned bindingFunctor=binding.term()->functor();
+      //let's first skip proper term nodes at the beginning...
+      while(*nl && (*nl)->term.isTerm()) {
+        //...and have the one that interests us, if we encounter it.
+        if(!curr && (*nl)->term.term()->functor()==bindingFunctor) {
+          curr=*nl;
+        }
+        nl++;
+      }
+      if(!curr && *nl) {
+        //we've encountered a variable node, but we still have to check, whether
+        //the one proper term node, that interests us, isn't here
+        Node** nl2=nl+1;
+        while(*nl2) {
+          if((*nl2)->term.isTerm() && (*nl2)->term.term()->functor()==bindingFunctor) {
+            curr=*nl2;
+            break;
+          }
+          nl2++;
+        }
+      }
     } else {
-      ASS_EQ(currType, SKIP_LIST);
-      nl=static_cast<SListIntermediateNode*>(inode)->_nodes.toList();
-      Node** byTop=inode->childByTop(binding, false);
-      if(byTop) {
-        curr=*byTop;
+      //let's first skip proper term nodes at the beginning
+      while(*nl && (*nl)->term.isTerm()) {
+        nl++;
       }
-      //in SkipList nodes variables are only at the beginning
-      //(so if there aren't any, there aren't any at all)
-      if(nl->head()->term.isTerm()) {
-        nl=0;
+    }
+    if(!curr && *nl) {
+      curr=*(nl++);
+      while(*nl && (*nl)->term.isTerm()) {
+	nl++;
       }
+    }
+    if(*nl) {
+      _alternatives.push(nl);
+    } else {
+      _alternatives.push(0);
     }
   } else {
-    //we're not interested in proper terms at all
-    if(currType==UNSORTED_LIST) {
-      nl=static_cast<UListIntermediateNode*>(inode)->_nodes;
-      //let's first skip proper term nodes at the beginning...
-      while(nl && nl->head()->term.isTerm()) {
-        nl=nl->tail();
-      }
-    } else {
-      ASS_EQ(currType, SKIP_LIST);
-      nl=static_cast<SListIntermediateNode*>(inode)->_nodes.toList();
-      //in SkipList nodes variables are only at the beginning
-      //(so if there aren't any, there aren't any at all)
-      if(nl->head()->term.isTerm()) {
-        nl=0;
+    NodeList* nl;
+    ASS_EQ(currType, SKIP_LIST);
+    nl=static_cast<SListIntermediateNode*>(inode)->_nodes.toList();
+    if(binding.isTerm()) {
+      Node** byTop=inode->childByTop(binding, false);
+      if(byTop) {
+	curr=*byTop;
       }
     }
+    if(!curr && nl->head()->term.isVar()) {
+      curr=nl->head();
+      nl=nl->tail();
+    }
+    //in SkipList nodes variables are only at the beginning
+    //(so if there aren't any, there aren't any at all)
+    if(nl && nl->head()->term.isTerm()) {
+      nl=0;
+    }
+    _alternatives.push(nl);
   }
-  //we haven't found our special proper term child, so let's take any
-  //of variable ones as the first one...
-  if(!curr && nl) {
-    curr=nl->head();
-    ASS(curr->term.isVar());
-    //...and skip uninteresting proper term ones, if there are any
-    do {
-	nl=nl->tail();
-    } while(nl && nl->head()->term.isTerm());
-  }
-  _alternatives.push(nl);
   return curr;
 }
