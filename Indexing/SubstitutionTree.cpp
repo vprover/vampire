@@ -104,12 +104,11 @@ void SubstitutionTree::getBindings(Term* t, BindingQueue& bq)
 struct UnresolvedSplitRecord
 {
   UnresolvedSplitRecord() {}
-  UnresolvedSplitRecord(unsigned var, TermList original, TermList own)
-  : var(var), original(original), own(own) {}
+  UnresolvedSplitRecord(unsigned var, TermList original)
+  : var(var), original(original) {}
 
   unsigned var;
   TermList original;
-  TermList own;
 };
 
 #define USE_REORDERING 1
@@ -118,36 +117,24 @@ DHMap<unsigned,bool, IdentityHash<unsigned> > boundVars;
 
 struct BindingComparator
 {
-  static int score(TermList tl)
-  {
-    if(tl.isVar()) {
-      if(boundVars.find(tl.var())) {
-	return 100;
-      } else {
-	return 40-tl.var();
-      }
-    } else {
-      if(tl.term()->arity()) {
-	if(tl.term()->shared()) {
-	  return -tl.term()->weight();
-	} else {
-	  return -150;
-	}
-      } else {
-	return 100;
-      }
-    }
-  }
   static Comparison compare(const UnresolvedSplitRecord& r1, const UnresolvedSplitRecord& r2)
   {
-    return Int::compare(score(r1.original)+score(r1.own), score(r2.original)+score(r2.own));
+    bool r1HasSpecVars=r1.original.isTerm() && !r1.original.term()->shared();
+    bool r2HasSpecVars=r2.original.isTerm() && !r2.original.term()->shared();
+    if( r1HasSpecVars && !r2HasSpecVars ) {
+      return GREATER;
+    }
+    if( r2HasSpecVars && !r1HasSpecVars ) {
+      return LESS;
+    }
+    return Int::compare(r2.var,r1.var);
   }
   static Comparison compare(const SubstitutionTree::Binding& b1, const SubstitutionTree::Binding& b2)
   {
 #if USE_REORDERING
-    return Int::compare(score(b1.term),score(b2.term));
-#else
     return Int::compare(b2.var,b1.var);
+#else
+    return Int::compare(b1.var,b2.var);
 #endif
   }
 };
@@ -214,8 +201,9 @@ split_postponing_evaluation:
     canPostponeSplits = inode->size()==1;
     if(canPostponeSplits) {
       unsigned boundVar=inode->childVar;
+      Node* child=inode->_nodes->head();
+      bool removeProblematicNode=false;
       if(svBindings.find(boundVar)) {
-	canPostponeSplits=true;
 	TermList term=svBindings.get(boundVar);
 	bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
 	if(!wouldDescendIntoChild) {
@@ -223,29 +211,33 @@ split_postponing_evaluation:
 	  //node with a single child, we rather remove that node
 	  //from the tree and deal with the binding, it represented,
 	  //later.
-	  Node* child=inode->_nodes->head();
-	  unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term, term));
-	  child->term=inode->term;
-	  *pnode=child;
-	  inode->makeEmpty();
-	  delete inode;
-	  goto split_postponing_evaluation;
+	  removeProblematicNode=true;
 	}
+      } else if(!child->term.isTerm() || child->term.term()->shared()) {
+	//We can remove nodes binding to special variables undefined in our branch
+	//of the tree, as long as we're sure, that during split resolving we put these
+	//binding nodes below nodes that define spec. variables they bind.
+	removeProblematicNode=true;
       } else {
 	canPostponeSplits = false;
+      }
+      if(removeProblematicNode) {
+	unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
+	child->term=inode->term;
+	*pnode=child;
+	inode->makeEmpty();
+	delete inode;
+	goto split_postponing_evaluation;
       }
     }
   }
   if(!canPostponeSplits) {
-    bool reporting=/**/false;//*/unresolvedSplits.size()>3;
-    if(reporting) { cout<<"----\n"; }
     while(!unresolvedSplits.isEmpty()) {
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
 
       Node* node=*pnode;
       IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
       node->term=urr.original;
-      if(reporting) { cout<<(urr.original.toString())<<endl; }
 
       *pnode=newNode;
 
@@ -344,7 +336,7 @@ split_postponing_evaluation:
 	if(!ss->isSpecialVar()) {
 	  x = _nextVar++;
 #if USE_REORDERING
-	  unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss,*tt));
+	  unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss));
 	  ss->makeSpecialVar(x);
 #else
 	  Node::split(pnode,ss,x);
@@ -1057,6 +1049,7 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
   }
 
   TermList queryTerm=(*_specVars)[specVar];
+  ASSERT_VALID(queryTerm);
 
   bool success;
   if(nodeTerm.isTerm()) {
