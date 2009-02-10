@@ -21,6 +21,7 @@
 #include "../Lib/XML.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Stack.hpp"
+#include "../Lib/Metaiterators.hpp"
 
 #if VDEBUG
 
@@ -291,7 +292,6 @@ public:
 #endif
 
 
-
   class VariableIterator
   : public IteratorCore<TermList>
   {
@@ -317,6 +317,15 @@ public:
     Stack<const TermList*> _stack;
     bool _used;
   };
+
+  static TermIterator getVariableIterator(TermList tl)
+  {
+    if(tl.isVar()) {
+      return pvi( getSingletonIterator(tl) );
+    }
+    ASS(tl.isTerm());
+    return vi( new VariableIterator(tl.term()) );
+  }
 
   /**
    * Iterator that yields non-variable proper subterms

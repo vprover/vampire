@@ -42,6 +42,10 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+#define REORDERING 1
+#define VARIABLE_MARKING 1
+#define NEW_VARIABLE_MARK 0x20000000u
+
 namespace Indexing {
 
 
@@ -57,6 +61,35 @@ public:
   ~SubstitutionTree();
 
 //protected:
+
+  static TermList normalizeTop(TermList t)
+  {
+#if VARIABLE_MARKING
+    if(t.isOrdinaryVar()) {
+      return TermList(t.var()&~NEW_VARIABLE_MARK,false);
+    }
+#endif
+    return t;
+  }
+  static bool sameTopModuloMark(TermList t1, TermList t2)
+  {
+#if VARIABLE_MARKING
+    if(t1.isOrdinaryVar()&&t2.isOrdinaryVar()) {
+      return (t1.var()&~NEW_VARIABLE_MARK)==(t2.var()&~NEW_VARIABLE_MARK);
+    }
+#endif
+    return TermList::sameTop(t1,t2);
+  }
+  static bool sameTermsModuloMark(TermList t1, TermList t2)
+  {
+#if VARIABLE_MARKING
+    if(t1.isOrdinaryVar()&&t2.isOrdinaryVar()) {
+      return (t1.var()&~NEW_VARIABLE_MARK)==(t2.var()&~NEW_VARIABLE_MARK);
+    }
+#endif
+    return t1==t2;
+  }
+
 
   struct LeafData {
     LeafData() {}
@@ -356,7 +389,7 @@ public:
 
 	if(t1.isVar()) {
 	  if(t2.isVar()) {
-	    return Int::compare(t1.var(), t2.var());
+	    return Int::compare(t1.var()&~NEW_VARIABLE_MARK, t2.var()&~NEW_VARIABLE_MARK);
 	  }
 	  return LESS;
 	}
@@ -491,11 +524,17 @@ public:
     class Substitution;
     struct MatchBacktrackObject;
 
+#if !VARIABLE_MARKING
     VarStack _boundVars;
+#endif
 
     DArray<TermList>* _specVars;
     unsigned _maxVar;
+#if VARIABLE_MARKING
+    DArray<TermList>* _bindings;
+#else
     ArrayMap<TermList>* _bindings;
+#endif
   };
 
   /**

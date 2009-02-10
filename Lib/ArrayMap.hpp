@@ -56,6 +56,16 @@ public:
   void insert(size_t index, T obj)
   {
     CALL("ArrayMap::insert");
+
+    Entry& e=(*this)[index];
+    ASS_NEQ(e._timestamp,_timestamp);
+    e._obj=obj;
+    e._timestamp=_timestamp;
+  }
+  inline
+  void set(size_t index, T obj)
+  {
+    CALL("ArrayMap::set");
     Entry& e=(*this)[index];
     e._obj=obj;
     e._timestamp=_timestamp;
@@ -64,7 +74,7 @@ public:
   T get(size_t index)
   {
     CALL("ArrayMap::get");
-    ASS((*this)[index]._timestamp==_timestamp);
+    ASS_EQ((*this)[index]._timestamp,_timestamp);
     return (*this)[index]._obj;
   }
   inline

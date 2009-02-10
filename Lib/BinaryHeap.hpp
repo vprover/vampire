@@ -14,6 +14,7 @@
 #include "Exception.hpp"
 #include "Comparison.hpp"
 #include "BacktrackData.hpp"
+#include "Metaiterators.hpp"
 
 namespace Lib {
 
@@ -192,6 +193,16 @@ public:
     bubbleUp(lastBubbleIndex);
   }
 
+  /**
+   * Iterator on elements in the heap. It yields elements
+   * in no particular order.
+   */
+  struct Iterator
+  : public PointerIterator<T>
+  {
+    Iterator(const BinaryHeap& obj)
+    : PointerIterator<T>(obj._data, obj._data+obj._size) {}
+  };
 
 private:
   class BHPopBacktrackObject

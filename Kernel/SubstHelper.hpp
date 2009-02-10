@@ -19,10 +19,10 @@ class SubstHelper
 {
 public:
   template<class Applicator>
-  static TermList apply(TermList t, Applicator& applicator);
+  static TermList apply(TermList t, Applicator& applicator, bool noSharing=false);
 
   template<class Applicator>
-  static Term* apply(Term* t, Applicator& applicator);
+  static Term* apply(Term* t, Applicator& applicator, bool noSharing=false);
 
   /**
    * Apply a substitution to a literal. Substitution is
@@ -61,7 +61,7 @@ public:
  * TermList apply(unsigned var)
  */
 template<class Applicator>
-TermList SubstHelper::apply(TermList trm, Applicator& applicator)
+TermList SubstHelper::apply(TermList trm, Applicator& applicator, bool noSharing)
 {
   CALL("SubstHelper::apply(TermList...)");
 
@@ -69,7 +69,7 @@ TermList SubstHelper::apply(TermList trm, Applicator& applicator)
     return applicator.apply(trm.var());
   } else {
     ASS(trm.isTerm());
-    return TermList(apply(trm.term(),applicator));
+    return TermList(apply(trm.term(), applicator, noSharing));
   }
 }
 
@@ -77,13 +77,16 @@ TermList SubstHelper::apply(TermList trm, Applicator& applicator)
 /**
  * Apply a substitution to a term. Substitution is
  * specified by the applicator -- an object with method
- * TermList apply(unsigned var)
+ * TermList apply(unsigned var).
+ *
+ * If @b trm is a shared term and @b noSharing parameter
+ * is false, all newly created terms will be inserted into
+ * the sharing structure. Otherwise they will not be shared.
  */
 template<class Applicator>
-Term* SubstHelper::apply(Term* trm, Applicator& applicator)
+Term* SubstHelper::apply(Term* trm, Applicator& applicator, bool noSharing)
 {
   CALL("SubstHelper::apply(Term*...)");
-  ASS(trm->shared());
 
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);
@@ -118,7 +121,11 @@ Term* SubstHelper::apply(Term* trm, Applicator& applicator)
       TermList* argLst=&args.top() - (orig->arity()-1);
       args.truncate(args.length() - orig->arity());
 
-      args.push(TermList(Term::create(orig,argLst)));
+      if(noSharing || !orig->shared()) {
+	args.push(TermList(Term::createNonShared(orig,argLst)));
+      } else {
+	args.push(TermList(Term::create(orig,argLst)));
+      }
       modified.setTop(true);
       continue;
     } else {
@@ -134,9 +141,13 @@ Term* SubstHelper::apply(Term* trm, Applicator& applicator)
       }
       continue;
     }
+    if(tl.isSpecialVar()) {
+      args.push(tl);
+      continue;
+    }
     ASS(tl.isTerm());
     Term* t=tl.term();
-    if(t->ground()) {
+    if(t->shared() && t->ground()) {
       args.push(tl);
       continue;
     }
@@ -158,9 +169,14 @@ Term* SubstHelper::apply(Term* trm, Applicator& applicator)
   //&top()-2, etc...
   TermList* argLst=&args.top() - (trm->arity()-1);
   if(trm->isLiteral()) {
+    ASS(!noSharing);
     return Literal::create(static_cast<Literal*>(trm),argLst);
   } else {
-    return Term::create(trm,argLst);
+    if(noSharing || !trm->shared()) {
+      return Term::createNonShared(trm,argLst);
+    } else {
+      return Term::create(trm,argLst);
+    }
   }
 }
 

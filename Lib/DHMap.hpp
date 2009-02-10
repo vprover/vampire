@@ -175,9 +175,9 @@ public:
   inline
   Val get(Key key) const
   {
-    Val v;
-    ALWAYS(find(key,v));
-    return v;
+    const Entry* e=findEntry(key);
+    ASS(e);
+    return e->_val;
   }
 
   /**

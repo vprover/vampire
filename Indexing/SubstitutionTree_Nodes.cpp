@@ -118,13 +118,16 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(Ter
   return new UArrIntermediateNode(ts, childVar);
 }
 
+
+const int SubstitutionTree::UArrIntermediateNode::MAX_SIZE;
+
 SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
 	childByTop(TermList t, bool canCreate)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
 
   for(int i=0;i<_size;i++) {
-    if(TermList::sameTop(t, _nodes[i]->term)) {
+    if(sameTopModuloMark(t, _nodes[i]->term)) {
       return &_nodes[i];
     }
   }
