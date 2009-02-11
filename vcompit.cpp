@@ -17,6 +17,7 @@
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Curryfier.hpp"
 
 #include "Indexing/TermSharing.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
@@ -162,7 +163,7 @@ int main( int argc, char *argv[] )
 
       /* ====== perform operations ============== */
       operations = operations + numops;
-      printf("%d operations loaded.\n",numops);
+//      printf("%d operations loaded.\n",numops);
 
       compitTimer.start();
       for (j=0;j<numops;j++) {
@@ -244,11 +245,6 @@ TermList MakeTerm(char* str)
       for(int i=arity-1;i>=0;i--) {
 	*trm->nthArgument(i)=args.pop();
       }
-//      TermList* arg=trm->args();
-//      while(arg->isNonEmpty()) {
-//	*arg=args.pop();
-//	arg=arg->next();
-//      }
 
       TermList aux;
       aux.setTerm(env.sharing->insert(trm));
@@ -258,5 +254,7 @@ TermList MakeTerm(char* str)
   ASS(chars.isEmpty());
   ASS(terms.isEmpty());
   ASS_EQ(args.length(),1);
+
+//  return Curryfier::instance()->curryfy(args.pop());
   return args.pop();
 }

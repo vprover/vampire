@@ -1325,7 +1325,9 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
 
   Node* curr;
   if(_inLeaf) {
+#if !VARIABLE_MARKING
     _subst.backtrack();
+#endif
     _inLeaf=false;
     curr=0;
   } else {

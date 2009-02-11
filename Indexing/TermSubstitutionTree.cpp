@@ -9,6 +9,7 @@
 
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/Term.hpp"
+#include "../Kernel/Curryfier.hpp"
 
 #include "TermSubstitutionTree.hpp"
 
@@ -16,6 +17,7 @@ namespace Indexing
 {
 
 using namespace Lib;
+using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree()
 : SubstitutionTree(env.signature->functions())
@@ -139,6 +141,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getResultIterator");
+
   Node* root=_nodes[getRootNodeIndex(trm)];
   if(!root) {
     return TermQueryResultIterator::getEmpty();
