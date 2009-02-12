@@ -55,6 +55,7 @@ enum TermTag {
 class TermList {
 public:
   TermList() {}
+  explicit TermList(size_t data) : _content(data) {}
   explicit TermList(Term* t) : _term(t) {}
   TermList(unsigned var, bool special)
   {

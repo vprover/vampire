@@ -84,6 +84,7 @@ VI_OBJ = Indexing/Index.o\
          Indexing/LiteralSubstitutionTree.o\
          Indexing/ResultSubstitution.o\
          Indexing/SubstitutionTree.o\
+         Indexing/SubstitutionTree_Compiled.o\
          Indexing/SubstitutionTree_Nodes.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\

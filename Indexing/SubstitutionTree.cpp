@@ -55,6 +55,12 @@ SubstitutionTree::SubstitutionTree(int nodes)
   for (int i = nodes-1;i >= 0;i--) {
     _nodes[i] = 0;
   }
+
+  _compTrees = new(ALLOC_KNOWN(nodes*sizeof(CompiledTree*),"SubstitutionTree::CompiledTree"))
+                CompiledTree*[nodes];
+  for (int i = nodes-1;i >= 0;i--) {
+    _compTrees[i] = 0;
+  }
 } // SubstitutionTree::SubstitutionTree
 
 /**
@@ -72,11 +78,17 @@ SubstitutionTree::~SubstitutionTree()
       if(_nodes[i]!=0) {
 	delete _nodes[i];
       }
+      if(_compTrees[i]!=0) {
+	compiledTreeDestroy(_compTrees[i]);
+      }
     }
 
     DEALLOC_KNOWN(_nodes,
 	    _numberOfTopLevelNodes*sizeof(Node*),
 	    "SubstitutionTree::Node");
+    DEALLOC_KNOWN(_compTrees,
+	    _numberOfTopLevelNodes*sizeof(CompiledTree*),
+	    "SubstitutionTree::CompiledTree");
   }
 } // SubstitutionTree::~SubstitutionTree
 
@@ -257,7 +269,7 @@ start:
       if(svBindings.find(boundVar)) {
 	TermList term=svBindings.get(boundVar);
 	bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
-	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
+	ASS_EQ(wouldDescendIntoChild, sameTopModuloMark(term, child->term));
 	if(!wouldDescendIntoChild) {
 	  //if we'd have to perform all postponed splitting due to
 	  //node with a single child, we rather remove that node
@@ -706,8 +718,8 @@ bool SubstitutionTree::LeafIterator::hasNext()
   }
 }
 
-SubstitutionTree::UnificationsIterator::UnificationsIterator(Node* root,
-	Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed)
+SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
+	Node* root, Term* query, bool retrieveSubstitution, bool reversed)
 : literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
@@ -1238,9 +1250,10 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
  * @param reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
-SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Node* root,
-	Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed)
-: _subst(query,nextSpecVar), _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
+SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(
+	SubstitutionTree* parent, Node* root,
+	Term* query, bool retrieveSubstitution, bool reversed)
+: _subst(query,parent->_nextVar), _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()),
   _root(root), _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
 {

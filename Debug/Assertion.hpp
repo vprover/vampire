@@ -157,6 +157,8 @@ private:
 #define ALWAYS(Cond) Cond
 #define NEVER(Cond) Cond
 
+#define ASS_REP(Cond, ReportedVal)
+
 #define ASS_EQ(VAL1,VAL2)
 #define ASS_NEQ(VAL1,VAL2)
 #define ASS_STR_EQ(VAL1,VAL2)

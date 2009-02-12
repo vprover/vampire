@@ -452,12 +452,20 @@ public:
   void insert(Node** node,BindingQueue& binding,LeafData ld);
   void remove(Node** node,BindingQueue& binding,LeafData ld);
 
+  class CompiledTree;
+  static CompiledTree* compiledTreeCreate(SubstitutionTree *parent, IntermediateNode* root);
+  static void compiledTreeDestroy(CompiledTree* ct);
+  static void compiledTreeInitForRetrieval(CompiledTree* ct, Term* query);
+  static void compiledTreeInitSpecVar(CompiledTree* ct, unsigned var, TermList term);
+  static Leaf* compiledTreeGetNextLeaf(CompiledTree* ct);
+
   /** Number of top-level nodes */
   int _numberOfTopLevelNodes;
   /** Number of the next variable */
   int _nextVar;
   /** Array of nodes */
   Node** _nodes;
+  CompiledTree** _compTrees;
 
   class LeafIterator
   : public IteratorCore<Leaf*>
@@ -480,6 +488,56 @@ public:
   };
 
   typedef pair<LeafData*, ResultSubstitutionSP> QueryResult;
+
+
+  /**
+   * Iterator, that yields generalizations of given term/literal.
+   */
+  class CompiledGeneralizationsIterator
+  : public IteratorCore<QueryResult>
+  {
+  public:
+    CompiledGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution,
+	    bool reversed=false)
+    {
+      ASS(!query->isLiteral());
+
+      _rootIsLeaf=root->isLeaf();
+      if(_rootIsLeaf) {
+	return;
+      }
+      IntermediateNode* iroot=static_cast<IntermediateNode*>(root);
+
+      unsigned rootIndex=query->functor();
+      if(!parent->_compTrees[rootIndex]) {
+	parent->_compTrees[rootIndex]=compiledTreeCreate(parent, iroot);
+      }
+      _ct=parent->_compTrees[rootIndex];
+
+      compiledTreeInitForRetrieval(_ct, query);
+
+      TermList* args=query->args();
+      int nextVar = 0;
+      while (! args->isEmpty()) {
+        unsigned var = nextVar++;
+        compiledTreeInitSpecVar(_ct,var,*args);
+        args = args->next();
+      }
+    }
+
+    bool hasNext()
+    {
+      return _rootIsLeaf || compiledTreeGetNextLeaf(_ct);
+    }
+    QueryResult next()
+    {
+      ASSERTION_VIOLATION;
+    }
+  private:
+    bool _rootIsLeaf;
+    CompiledTree* _ct;
+  };
+
 
   /**
    * Class that supports matching operations required by
@@ -544,7 +602,7 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    FastGeneralizationsIterator(Node* root, Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed=false);
+    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
 
     bool hasNext();
     QueryResult next();
@@ -575,7 +633,7 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    UnificationsIterator(Node* root, Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed=false);
+    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
     ~UnificationsIterator();
 
     bool hasNext();
@@ -619,8 +677,8 @@ public:
   : public UnificationsIterator
   {
   public:
-    GeneralizationsIterator(Node* root, Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed=false)
-    : UnificationsIterator(root, query, nextSpecVar, retrieveSubstitution, reversed) {};
+    GeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed=false)
+    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed) {};
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
@@ -630,8 +688,8 @@ public:
   : public UnificationsIterator
   {
   public:
-    InstancesIterator(Node* root, Term* query, unsigned nextSpecVar, bool retrieveSubstitution, bool reversed=false)
-    : UnificationsIterator(root, query, nextSpecVar, retrieveSubstitution, reversed) {};
+    InstancesIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed=false)
+    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed) {};
   protected:
     virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);

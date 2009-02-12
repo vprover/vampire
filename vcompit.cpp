@@ -163,7 +163,9 @@ int main( int argc, char *argv[] )
 
       /* ====== perform operations ============== */
       operations = operations + numops;
-//      printf("%d operations loaded.\n",numops);
+#if VDEBUG
+      printf("%d operations loaded.\n",numops);
+#endif
 
       compitTimer.start();
       for (j=0;j<numops;j++) {

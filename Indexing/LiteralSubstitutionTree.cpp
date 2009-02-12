@@ -125,14 +125,14 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
 
   if(lit->commutative()) {
     VirtualIterator<QueryResult> qrit1=vi(
-  	    new Iterator(root, lit, _nextVar, retrieveSubstitutions) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions) );
     VirtualIterator<QueryResult> qrit2=vi(
-  	    new Iterator(root, lit, _nextVar, retrieveSubstitutions, true) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions, true) );
     return pvi( getMappingIterator(
 	    getConcatenatedIterator(qrit1,qrit2), SLQueryResultFunctor()) );
   } else {
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
-  	    new Iterator(root, lit, _nextVar, retrieveSubstitutions) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions) );
     return pvi( getMappingIterator(qrit, SLQueryResultFunctor()) );
   }
 }

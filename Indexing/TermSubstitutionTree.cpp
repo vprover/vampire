@@ -6,6 +6,7 @@
 #include "../Lib/Environment.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/SmartPtr.hpp"
+#include "../Lib/Random.hpp"
 
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/Term.hpp"
@@ -61,10 +62,16 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     BindingQueue bq;
     getBindings(normTerm, bq);
 
+    unsigned rootNodeIndex=getRootNodeIndex(normTerm);
+
+    if(_compTrees[rootNodeIndex]) {
+      compiledTreeDestroy(_compTrees[rootNodeIndex]);
+      _compTrees[rootNodeIndex]=0;
+    }
     if(insert) {
-      SubstitutionTree::insert(_nodes+getRootNodeIndex(normTerm), bq, ld);
+      SubstitutionTree::insert(_nodes+rootNodeIndex, bq, ld);
     } else {
-      SubstitutionTree::remove(_nodes+getRootNodeIndex(normTerm), bq, ld);
+      SubstitutionTree::remove(_nodes+rootNodeIndex, bq, ld);
     }
   }
 }
@@ -102,11 +109,17 @@ TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t,
   } else {
     ASS(t.isTerm());
     if(_vars.isEmpty()) {
-      return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
+//      return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
+      if(_compTrees[t.term()->functor()] || Random::getInteger(500)==0) {
+	return getResultIterator<CompiledGeneralizationsIterator>(t.term(), retrieveSubstitutions);
+      } else {
+	return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
+      }
     } else {
       return pvi( getConcatenatedIterator(
 	      ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
-	      getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
+//	      getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
+	      getResultIterator<CompiledGeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
     }
   }
 }
@@ -150,7 +163,7 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
     return ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
   }
-  VirtualIterator<QueryResult> qrit=vi( new Iterator(root, trm, _nextVar, retrieveSubstitutions) );
+  VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions) );
   return pvi( getMappingIterator(qrit, TermQueryResultFn()) );
 }
 
