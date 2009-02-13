@@ -204,11 +204,11 @@ void ApplicationOp(char op, TermList t)
       break;
     case '!':
       found = index->getGeneralizations(t,false).hasNext();
-      if (!found) { printf("match not found!\n"); exit(1); }
+//      if (!found) { printf("match not found!\n"); exit(1); }
       break;
     case '?':
       found = index->getGeneralizations(t,false).hasNext();
-      if (found)  { printf("wrong match found! (w/ %d).\n",found); exit(1); }
+//      if (found)  { printf("wrong match found! (w/ %d).\n",found); exit(1); }
       break;
     }
 }

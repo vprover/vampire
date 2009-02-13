@@ -110,7 +110,7 @@ TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t,
     ASS(t.isTerm());
     if(_vars.isEmpty()) {
 //      return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
-      if(_compTrees[t.term()->functor()] || Random::getInteger(1)==0) {
+      if(_compTrees[t.term()->functor()] || Random::getInteger(1)==1) {
 	return getResultIterator<CompiledGeneralizationsIterator>(t.term(), retrieveSubstitutions);
       } else {
 	return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);

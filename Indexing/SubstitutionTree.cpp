@@ -254,8 +254,10 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
   EncounterData encounteredVars;
 #endif
 
+  ASS(!(*pnode)->isLeaf());
 start:
 #if REORDERING
+  ASS(!(*pnode)->isLeaf() || !unresolvedSplits.isEmpty());
   bool canPostponeSplits=false;
   if((*pnode)->isLeaf() || (*pnode)->algorithm()!=UNSORTED_LIST) {
     canPostponeSplits=false;
@@ -295,6 +297,7 @@ start:
       }
     }
   }
+  canPostponeSplits|=unresolvedSplits.isEmpty();
   if(!canPostponeSplits) {
 
 #if VARIABLE_MARKING
@@ -374,19 +377,6 @@ start:
 
   ASS(sameTopModuloMark(*ss, *tt));
 
-  if (sameTermsModuloMark(*tt,*ss)) {
-    if (svBindings.isEmpty()) {
-      ASS((*pnode)->isLeaf());
-      ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
-      Leaf* leaf = static_cast<Leaf*>(*pnode);
-      leaf->insert(ld);
-      return;
-    }
-#if VARIABLE_MARKING
-    (*pnode)->term=markFirstlyEncounteredVariables((*pnode)->term, encounteredVars, true);
-#endif
-    goto start;
-  }
 
   // ss is the term in node, tt is the term to be inserted
   // ss and tt have the same top symbols but are not equal
@@ -461,6 +451,15 @@ start:
       }
     }
   }
+
+  if (svBindings.isEmpty()) {
+    ASS((*pnode)->isLeaf());
+    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
+    Leaf* leaf = static_cast<Leaf*>(*pnode);
+    leaf->insert(ld);
+    return;
+  }
+
 #if VARIABLE_MARKING
   (*pnode)->term=markFirstlyEncounteredVariables((*pnode)->term, encounteredVars,true);
 #endif
