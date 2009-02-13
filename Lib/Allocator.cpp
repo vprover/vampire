@@ -14,6 +14,8 @@
 
 #endif
 
+#include <malloc.h>
+
 /** If the following is set to true the Vampire will use the
  *  C++ new and delete for (de)allocating all data structures.
  */
@@ -268,7 +270,8 @@ void Allocator::deallocateKnown(void* obj,size_t size)
 #if VDEBUG
   desc->allocated = 0;
 #endif
-  delete obj;
+  free(obj);
+//  delete obj;
   return;
 #else   // ! USE_SYSTEM_ALLOCATION
   if (size >= REQUIRES_PAGE) {
@@ -338,7 +341,9 @@ void Allocator::deallocateUnknown(void* obj)
 #endif
 
 #if USE_SYSTEM_ALLOCATION
-  delete obj;
+  char* memObj = reinterpret_cast<char*>(obj) - sizeof(Known);
+  free(memObj);
+//  delete obj;
   return;
 #endif
 
@@ -621,7 +626,8 @@ char* Allocator::allocatePiece(size_t size)
 
   char* result;
 #if USE_SYSTEM_ALLOCATION
-  result = new char[size];
+//  result = new char[size];
+  result = static_cast<char*>(malloc(size));
 #else // USE_SYSTEM_ALLOCATION
   if (size >= REQUIRES_PAGE) {
     Page* page = allocatePages(size);

@@ -453,7 +453,7 @@ public:
   void remove(Node** node,BindingQueue& binding,LeafData ld);
 
   class CompiledTree;
-  static CompiledTree* compiledTreeCreate(SubstitutionTree *parent, IntermediateNode* root);
+  static CompiledTree* compiledTreeCreate(SubstitutionTree *parent, IntermediateNode* root, unsigned initBindingCount);
   static void compiledTreeDestroy(CompiledTree* ct);
   static void compiledTreeInitForRetrieval(CompiledTree* ct, Term* query);
   static void compiledTreeInitSpecVar(CompiledTree* ct, unsigned var, TermList term);
@@ -510,7 +510,7 @@ public:
 
       unsigned rootIndex=query->functor();
       if(!parent->_compTrees[rootIndex]) {
-	parent->_compTrees[rootIndex]=compiledTreeCreate(parent, iroot);
+	parent->_compTrees[rootIndex]=compiledTreeCreate(parent, iroot, query->arity());
       }
       _ct=parent->_compTrees[rootIndex];
 

@@ -13,25 +13,55 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
+template<typename T>
+struct Converter
+{
+  inline
+  Converter(T obj) : obj(obj) {}
+  inline
+  Converter(size_t num) : num(num) {}
+  inline
+  union {
+    T obj;
+    size_t num;
+  };
+};
+template<typename T>
+size_t toSizeT(T obj)
+{
+  return Converter<T>(obj).num;
+}
+template<typename T>
+T fromSizeT(size_t num)
+{
+  return Converter<T>(num).obj;
+}
+
 class SubstitutionTree::CompiledTree
 {
 public:
-  CompiledTree(SubstitutionTree *parent, IntermediateNode* root)
-  : _ovBindings(0)
+  CompiledTree(SubstitutionTree *parent, IntermediateNode* root, unsigned initBindingCount)
+  : _ovBindingsSize(0), _ovBindings(0)
   {
     CALL("SubstitutionTree::CompiledTree::CompiledTree");
 
     _svBindings=static_cast<TermList*>(
-	    ALLOC_UNKNOWN(parent->_nextVar*sizeof(size_t), "SubstitutionTree::CompiledTree::_svBindings"));
+	    ALLOC_UNKNOWN(parent->_nextVar*sizeof(TermList), "SubstitutionTree::CompiledTree::_svBindings"));
     size_t maxTreeSize=getMaxTreeSize(root);
     _code=static_cast<char*>(
 	    ALLOC_UNKNOWN(maxTreeSize, "SubstitutionTree::CompiledTree::_code"));
 #if VDEBUG
     _afterLastAllocatedCode=_code+maxTreeSize;
+    _afterLastAllocatedSVBinding=_svBindings+parent->_nextVar;
 #endif
-//    env.timer->stop();
-    compileTree(root);
-//    env.timer->start();
+
+//    OP_MATCH_TERM=toSizeT(&CompiledTree::opMatchTerm);
+//    OP_MATCH_NEW_VAR=toSizeT(&CompiledTree::opMatchNewVar);
+//    OP_MATCH_ENCOUNTERED_VAR=toSizeT(&CompiledTree::opMatchEncounteredVar);
+//    OP_LEAF=toSizeT(&CompiledTree::opLeaf);
+//    OP_FAIL=toSizeT(&CompiledTree::opFail);
+
+    compileTree(root, initBindingCount);
   }
   ~CompiledTree()
   {
@@ -56,9 +86,9 @@ public:
       }
       _ovBindingsSize=min(max(8u,_ovBindingsSize*2),query->weight());
       _ovBindings=static_cast<TermList*>(
-	      ALLOC_UNKNOWN(_ovBindingsSize*sizeof(Node*),"SubstitutionTree::CompiledTree::_ovBindings"));
+	      ALLOC_UNKNOWN(_ovBindingsSize*sizeof(TermList*),"SubstitutionTree::CompiledTree::_ovBindings"));
     }
-    _maxVar=query->weight();
+    _maxVar=query->weight()-1;
   }
 
   Leaf* getNextLeaf()
@@ -67,17 +97,12 @@ public:
     return _leaf;
   }
 
-  static const size_t OP_MATCH_TERM=1;
-  static const size_t OP_MATCH_NEW_VAR=2;
-  static const size_t OP_MATCH_ENCOUNTERED_VAR=3;
-  static const size_t OP_LEAF=4;
-  static const size_t OP_FAIL=5;
   static size_t getMaxOpSize(Node* n)
   {
     if(n->isLeaf()) {
-      return 48;
+      return 56;
     } else {
-      return 32;
+      return 40;
     }
   }
   static size_t getMaxTreeSize(IntermediateNode* root)
@@ -147,7 +172,7 @@ public:
     addr+=sizeof(void*);
   }
 
-  char* storeNode(char*& addr, Node* node, unsigned specVar)
+  char* storeNode(char*& addr, Node* node, unsigned specVarOfs, unsigned specVarCnt)
   {
     TermList nodeTerm=node->term;
     if(nodeTerm.isVar()) {
@@ -157,11 +182,12 @@ public:
       } else {
 	storeLong(addr, OP_MATCH_ENCOUNTERED_VAR);
       }
-      storePtr(addr, &_svBindings[specVar]);
+      storePtr(addr, &_svBindings[specVarOfs]);
       storeLong(addr, nodeTerm.var()&~NEW_VARIABLE_MARK);
     } else {
       storeLong(addr, OP_MATCH_TERM);
-      storePtr(addr, &_svBindings[specVar]);
+      storePtr(addr, &_svBindings[specVarCnt]);
+      storePtr(addr, &_svBindings[specVarOfs]);
       storeLong(addr, nodeTerm.content());
     }
     char* failAddrPtr=addr;
@@ -196,16 +222,24 @@ public:
     }
   }
 
-  void compileTree(IntermediateNode* root)
+  void compileTree(IntermediateNode* root, unsigned initBindingCount)
   {
     CALL("SubstitutionTree::CompiledTree::compileTree");
 
     static Stack<Node*> nexts(32);
     static Stack<NodeIterator> alts(32);
     static Stack<unsigned> specVars(32);
+    static Stack<unsigned> nextSpecVarOffsets(32);
     nexts.reset();
     alts.reset();
     specVars.reset();
+    nextSpecVarOffsets.reset();
+
+    unsigned nextSpecVarOfs=initBindingCount;
+    static DHMap<unsigned, unsigned, IdentityHash<unsigned> > specVarOffsets;
+    for(unsigned i=0;i<initBindingCount;i++) {
+      specVarOffsets.set(i,i);
+    }
 
     FailPointTargetStore failPointTargets;
     ASS(root->term.isEmpty());
@@ -214,6 +248,7 @@ public:
 
     nexts.push(0);
     specVars.push(root->childVar);
+    nextSpecVarOffsets.push(nextSpecVarOfs);
 
     alts.push(root->allChildren());
     ASS(alts.top().hasNext());
@@ -224,19 +259,32 @@ public:
 	break;
       }
       Node* curr=nexts.pop();
-      unsigned specVar=specVars.top();
+      unsigned specVarOfs=specVarOffsets.get(specVars.top());
+      nextSpecVarOfs=nextSpecVarOffsets.top();
+
       if(alts.top().hasNext()) {
 	nexts.push(*alts.top().next());
       } else {
 	alts.pop();
 	specVars.pop();
+	nextSpecVarOffsets.pop();
       }
       //fill in address of this node, where it's needed as a fail point
       fillInFailPoints(failPointTargets, curr, addr);
 
-      char* prevAddr=addr;
-      char* failPntTgt=storeNode(addr,curr,specVar);
-      ASS_REP((addr-prevAddr)==8*4 || (addr-prevAddr)==8*6, addr-prevAddr);
+      char* failPntTgt=storeNode(addr,curr,specVarOfs,nextSpecVarOfs);
+
+      if(curr->term.isTerm() && !curr->term.term()->shared()) {
+	Term::VariableIterator vit(curr->term.term());
+	while(vit.hasNext()) {
+	  TermList v=vit.next();
+	  if(v.isSpecialVar()) {
+	    specVarOffsets.set(v.var(),nextSpecVarOfs++);
+	  }
+	}
+      }
+      ASS_L(nextSpecVarOfs,50);
+
 
       //register point where fail point for this node should be stored
       List<char*>** pTgtLst;
@@ -249,6 +297,7 @@ public:
 	ASS(alts.top().hasNext());
 	nexts.push(*alts.top().next());
 	specVars.push(inode->childVar);
+	nextSpecVarOffsets.push(nextSpecVarOfs);
       }
     }
     fillInFailPoints(failPointTargets, 0, addr);
@@ -268,22 +317,26 @@ public:
     ASS_EQ(reinterpret_cast<size_t>(_addr)%8,0);
     while(!_quit) {
       ASS_EQ(reinterpret_cast<size_t>(_addr)%8,0);
+      ASS_GE(_addr,_code);
       ASS_L(_addr,_afterLastCode);
+//      typedef void (*OpHandler)(CompiledTree*);
+//      OpHandler hndl=fromSizeT<OpHandler>(readLong(_addr));
+//      (*hndl)(this);
       switch(readLong(_addr)) {
       case OP_MATCH_TERM:
-	opMatchTerm();
+	opMatchTerm(this);
 	break;
       case OP_MATCH_NEW_VAR:
-	opMatchNewVar();
+	opMatchNewVar(this);
 	break;
       case OP_MATCH_ENCOUNTERED_VAR:
-	opMatchEncounteredVar();
+	opMatchEncounteredVar(this);
 	break;
       case OP_LEAF:
-	opLeaf();
+	opLeaf(this);
 	break;
       case OP_FAIL:
-	opFail();
+	opFail(this);
 #if VDEBUG
 	break;
       default:
@@ -293,47 +346,48 @@ public:
     }
   }
 
-  void opMatchNewVar()
+  static void opMatchNewVar(CompiledTree* ct)
   {
-    TermList* qTerm=static_cast<TermList*>(readPtr(_addr));
-    unsigned var=static_cast<unsigned>(readLong(_addr));
-    if(var>_maxVar) {
-      _addr=readAddr(_addr);
+    TermList* qTerm=static_cast<TermList*>(readPtr(ct->_addr));
+    unsigned var=static_cast<unsigned>(readLong(ct->_addr));
+    if(var>ct->_maxVar) {
+      ct->_addr=readAddr(ct->_addr);
     } else {
-      _ovBindings[var]=*qTerm;
-      shiftByLong(_addr);
+      ct->_ovBindings[var]=*qTerm;
+      shiftByLong(ct->_addr);
     }
   }
 
-  void opMatchEncounteredVar()
+  static void opMatchEncounteredVar(CompiledTree* ct)
   {
-    TermList* qTerm=static_cast<TermList*>(readPtr(_addr));
-    unsigned var=static_cast<unsigned>(readLong(_addr));
-    if(var>_maxVar || _ovBindings[var]!=*qTerm) {
-      _addr=readAddr(_addr);
+    TermList* qTerm=static_cast<TermList*>(readPtr(ct->_addr));
+    unsigned var=static_cast<unsigned>(readLong(ct->_addr));
+    if(var>ct->_maxVar || ct->_ovBindings[var]!=*qTerm) {
+      ct->_addr=readAddr(ct->_addr);
     } else {
-      shiftByLong(_addr);
+      shiftByLong(ct->_addr);
     }
   }
-  void opMatchTerm()
+  static void opMatchTerm(CompiledTree* ct)
   {
-    TermList* qTerm=static_cast<TermList*>(readPtr(_addr));
-    TermList nTerm(readLong(_addr));
-    if(!MatchingUtils::matchTerms(nTerm,*qTerm,*this)) {
-      _addr=readAddr(_addr);
+    ct->_nextSpecVarPtr=static_cast<TermList*>(readPtr(ct->_addr));
+    TermList* qTerm=static_cast<TermList*>(readPtr(ct->_addr));
+    TermList nTerm(readLong(ct->_addr));
+    if(!MatchingUtils::matchTerms(nTerm,*qTerm,*ct)) {
+      ct->_addr=readAddr(ct->_addr);
     } else {
-      shiftByLong(_addr);
+      shiftByLong(ct->_addr);
     }
   }
-  void opLeaf()
+  static void opLeaf(CompiledTree* ct)
   {
-    _leaf=static_cast<Leaf*>(readPtr(_addr));
-    ASS(_leaf->isLeaf());
-    _quit=true;
+    ct->_leaf=static_cast<Leaf*>(readPtr(ct->_addr));
+    ASS(ct->_leaf->isLeaf());
+    ct->_quit=true;
   }
-  void opFail()
+  static void opFail(CompiledTree* ct)
   {
-    _quit=true;
+    ct->_quit=true;
   }
 
   /**
@@ -362,12 +416,15 @@ public:
   inline
   void specVar(unsigned var, TermList term)
   {
-    _svBindings[var]=term;
+    ASS_L(_nextSpecVarPtr, _afterLastAllocatedSVBinding);
+    *(_nextSpecVarPtr++)=term;
+//    _svBindings[var]=term;
   }
 
   char* _addr;
   Leaf* _leaf;
   bool _quit;
+  TermList* _nextSpecVarPtr;
 
   unsigned _maxVar;
   unsigned _ovBindingsSize;
@@ -376,17 +433,33 @@ public:
   SubstitutionTree* _parent;
   char* _code;
 
+//  size_t OP_MATCH_TERM;
+//  size_t OP_MATCH_NEW_VAR;
+//  size_t OP_MATCH_ENCOUNTERED_VAR;
+//  size_t OP_LEAF;
+//  size_t OP_FAIL;
+
+  static const size_t OP_MATCH_TERM=1;
+  static const size_t OP_MATCH_NEW_VAR=2;
+  static const size_t OP_MATCH_ENCOUNTERED_VAR=3;
+  static const size_t OP_LEAF=4;
+  static const size_t OP_FAIL=5;
+
 #if VDEBUG
   char* _afterLastCode;
   char* _afterLastAllocatedCode;
+  TermList* _afterLastAllocatedSVBinding;
 #endif
 };
 
 
 SubstitutionTree::CompiledTree* SubstitutionTree::compiledTreeCreate(SubstitutionTree *parent,
-	IntermediateNode* root)
+	IntermediateNode* root, unsigned initBindingCount)
 {
-  return new CompiledTree(parent, root);
+  env.timer->stop();
+  CompiledTree* res=new CompiledTree(parent, root, initBindingCount);
+  env.timer->start();
+  return res;
 }
 void SubstitutionTree::compiledTreeDestroy(CompiledTree* ct)
 {
@@ -409,3 +482,4 @@ SubstitutionTree::Leaf* SubstitutionTree::compiledTreeGetNextLeaf(CompiledTree* 
 
 
 }
+

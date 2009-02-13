@@ -110,7 +110,7 @@ int main( int argc, char *argv[] )
   Allocator::setMemoryLimit(1000000000); //memory limit set to 1g
 
   Timer timer;
-  timer.start();
+//  timer.start();
   env.timer = &timer;
   env.signature = new Kernel::Signature;
   Indexing::TermSharing sharing;
@@ -168,14 +168,16 @@ int main( int argc, char *argv[] )
 #endif
 
       compitTimer.start();
+      timer.start();
       for (j=0;j<numops;j++) {
 	/* The translated queries (terms and operations) are send to application. */
         ApplicationOp(oper[j], (terms[j]) );
       }
 
+      timer.stop();
       compitTimer.stop();
     }
-  printf("Total time:\t%d ms\nIndexing time:\t%d ms\n",
+  printf("Indexing time without compiling:\t%d ms\nIndexing time:\t%d ms\n",
 	  timer.elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
 
   printf("ops:%d, +:%d, -:%d.\n",operations,insertions,deletions);
