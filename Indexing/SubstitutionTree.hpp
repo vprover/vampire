@@ -611,7 +611,7 @@ public:
     void createReversedInitialBindings(Term* t);
     bool findNextLeaf();
 
-    Node* enterNode(Node* node);
+    bool enterNode(Node*& node);
 
   private:
     GenMatcher _subst;

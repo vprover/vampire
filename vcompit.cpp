@@ -203,12 +203,12 @@ void ApplicationOp(char op, TermList t)
       deletions++;
       break;
     case '!':
-      found = index->getGeneralizations(t,false).hasNext();
-//      if (!found) { printf("match not found!\n"); exit(1); }
+      found = index->generalizationExists(t);
+      if (!found) { printf("match not found!\n"); exit(1); }
       break;
     case '?':
-      found = index->getGeneralizations(t,false).hasNext();
-//      if (found)  { printf("wrong match found! (w/ %d).\n",found); exit(1); }
+      found = index->generalizationExists(t);
+      if (found)  { printf("wrong match found! (w/ %d).\n",found); exit(1); }
       break;
     }
 }

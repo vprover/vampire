@@ -1336,6 +1336,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
   CALL("SubstitutionTree::FastGeneralizationsIterator::findNextLeaf");
 
   Node* curr;
+  bool sibilingsRemain;
   if(_inLeaf) {
 #if !VARIABLE_MARKING
     _subst.backtrack();
@@ -1348,21 +1349,18 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
     ASS(_root);
     curr=_root;
     _root=0;
-    curr=enterNode(curr);
+    sibilingsRemain=enterNode(curr);
   }
   for(;;) {
 main_loop_start:
     unsigned currSpecVar;
-    bool sibilingsRemain;
+
     if(curr) {
-      sibilingsRemain=_alternatives.top();
       if(sibilingsRemain) {
 	ASS(_nodeTypes.top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives.top()));
 	currSpecVar=_specVarNumbers.top();
       } else {
 	currSpecVar=_specVarNumbers.pop();
-	_alternatives.pop();
-	_nodeTypes.pop();
       }
     }
     //let's find a node we haven't been to...
@@ -1466,7 +1464,7 @@ main_loop_start:
     }
 
     //let's go to the first child
-    curr=enterNode(curr);
+    sibilingsRemain=enterNode(curr);
   }
 }
 
@@ -1477,15 +1475,13 @@ main_loop_start:
  * @b _alternatives, if there isn't more than one admissible child, if there is
  * none, zero pointer should be also returned.
  */
-SubstitutionTree::Node* SubstitutionTree::FastGeneralizationsIterator::enterNode(Node* node)
+bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
 {
-  IntermediateNode* inode=static_cast<IntermediateNode*>(node);
+  IntermediateNode* inode=static_cast<IntermediateNode*>(curr);
   NodeAlgorithm currType=inode->algorithm();
-  _nodeTypes.push(currType);
-  _specVarNumbers.push(inode->childVar);
 
   TermList binding=_subst.getSpecVarBinding(inode->childVar);
-  Node* curr=0;
+  curr=0;
 
   if(currType==UNSORTED_LIST) {
     Node** nl=static_cast<UArrIntermediateNode*>(inode)->_nodes;
@@ -1523,11 +1519,20 @@ SubstitutionTree::Node* SubstitutionTree::FastGeneralizationsIterator::enterNode
 	nl++;
       }
     }
+    if(curr) {
+      _specVarNumbers.push(inode->childVar);
+    }
     if(*nl) {
       _alternatives.push(nl);
-    } else {
-      _alternatives.push(0);
+      _nodeTypes.push(currType);
+      return true;
     }
+#if !VARIABLE_MARKING
+    if(_alternatives.isNonEmpty()) {
+      _subst.backtrack();
+    }
+#endif
+    return false;
   } else {
     NodeList* nl;
     ASS_EQ(currType, SKIP_LIST);
@@ -1547,7 +1552,19 @@ SubstitutionTree::Node* SubstitutionTree::FastGeneralizationsIterator::enterNode
     if(nl && nl->head()->term.isTerm()) {
       nl=0;
     }
-    _alternatives.push(nl);
+    if(curr) {
+      _specVarNumbers.push(inode->childVar);
+    }
+    if(nl) {
+      _alternatives.push(nl);
+      _nodeTypes.push(currType);
+      return true;
+    }
+#if !VARIABLE_MARKING
+    if(_alternatives.isNonEmpty()) {
+      _subst.backtrack();
+    }
+#endif
+    return false;
   }
-  return curr;
 }

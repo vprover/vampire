@@ -96,6 +96,32 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
   }
 }
 
+
+bool TermSubstitutionTree::generalizationExists(TermList t)
+{
+  if(!_vars.isEmpty()) {
+    return true;
+  }
+  if(!t.isTerm()) {
+    return false;
+  }
+  Term* trm=t.term();
+  unsigned rootIndex=getRootNodeIndex(trm);
+  Node* root=_nodes[rootIndex];
+  if(!root) {
+    return false;
+  }
+  if(root->isLeaf()) {
+    return true;
+  }
+  return FastGeneralizationsIterator(this, root, trm, false).hasNext();
+//  if(_compTrees[t.term()->functor()] || Random::getInteger(1)==1) {
+//    return CompiledGeneralizationsIterator(this, root, trm, false).hasNext();
+//  } else {
+//    return FastGeneralizationsIterator(this, root, trm, false).hasNext();
+//  }
+}
+
 /**
  * Return iterator, that yields generalizations of the given term.
  */
@@ -110,11 +136,11 @@ TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t,
     ASS(t.isTerm());
     if(_vars.isEmpty()) {
 //      return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
-      if(_compTrees[t.term()->functor()] || Random::getInteger(1)==1) {
-	return getResultIterator<CompiledGeneralizationsIterator>(t.term(), retrieveSubstitutions);
-      } else {
+//      if(_compTrees[t.term()->functor()] || Random::getInteger(1)==1) {
+//	return getResultIterator<CompiledGeneralizationsIterator>(t.term(), retrieveSubstitutions);
+//      } else {
 	return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
-      }
+//      }
     } else {
       return pvi( getConcatenatedIterator(
 	      ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
