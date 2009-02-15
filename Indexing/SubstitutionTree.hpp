@@ -140,10 +140,11 @@ public:
     virtual bool isLeaf() const = 0;
     virtual bool isEmpty() const = 0;
     /**
-     * Return number of elements held in the node. If this operation
-     * isn't supported by the datastructure, return -1.
+     * Return number of elements held in the node.
+     *
+     * Descendant classes should override this method.
      */
-    virtual int size() const { return -1; }
+    virtual int size() const { NOT_IMPLEMENTED; }
     virtual NodeAlgorithm algorithm() const = 0;
 
     /**
@@ -337,8 +338,8 @@ public:
     NodeAlgorithm algorithm() const { return SKIP_LIST; }
     inline
     bool isEmpty() const { return _nodes.isEmpty(); }
-#if VDEBUG
     int size() const { return _nodes.size(); }
+#if VDEBUG
     virtual void assertValid() const
     {
       ASS_ALLOC_TYPE(this,"SubstitutionTree::SListIntermediateNode");

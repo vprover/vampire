@@ -5,11 +5,17 @@
 
 #include "SubstitutionTree.hpp"
 
+#include "../Lib/MapToLIFO.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Timer.hpp"
 
+#include "../Kernel/Signature.hpp"
+
+#include <iostream>
+
 namespace Indexing {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -97,13 +103,20 @@ public:
     return _leaf;
   }
 
-  static size_t getMaxOpSize(Node* n)
+  static size_t getSizeCost(Node* n)
   {
-    if(n->isLeaf()) {
-      return 56;
-    } else {
-      return 40;
+    size_t longCnt=5;
+
+    if(n->term.isTerm()) {
+      longCnt+=2;
     }
+
+    if(n->isLeaf()) {
+      longCnt+=2;
+    } else {
+      longCnt+=4;
+    }
+    return longCnt*8;
   }
   static size_t getMaxTreeSize(IntermediateNode* root)
   {
@@ -112,7 +125,7 @@ public:
     static Stack<NodeIterator> alts(32);
     alts.reset();
 
-    size_t sz=32;
+    size_t sz=40;
 
     alts.push(root->allChildren());
     for(;;) {
@@ -128,7 +141,7 @@ public:
       if(!curr->isLeaf()) {
 	alts.push(static_cast<IntermediateNode*>(curr)->allChildren());
       }
-      sz+=getMaxOpSize(curr);
+      sz+=getSizeCost(curr);
     }
 
     return sz;
@@ -146,23 +159,38 @@ public:
     shiftByLong(addr);
   }
   inline
+  static size_t getLong(char* addr)
+  {
+    return *reinterpret_cast<size_t*>(addr);
+  }
+  inline
   static size_t readLong(char*& addr)
   {
-    size_t res=*reinterpret_cast<size_t*>(addr);
+    size_t res=getLong(addr);
     shiftByLong(addr);
     return res;
+  }
+  inline
+  static void* getPtr(char* addr)
+  {
+    return *reinterpret_cast<void**>(addr);
   }
   inline
   static void* readPtr(char*& addr)
   {
-    void* res=*reinterpret_cast<void**>(addr);
+    void* res=getPtr(addr);
     shiftByLong(addr);
     return res;
   }
   inline
+  static char* getAddr(char* addr)
+  {
+    return *reinterpret_cast<char**>(addr);
+  }
+  inline
   static char* readAddr(char*& addr)
   {
-    char* res=*reinterpret_cast<char**>(addr);
+    char* res=getAddr(addr);
     shiftByLong(addr);
     return res;
   }
@@ -174,6 +202,7 @@ public:
 
   char* storeNode(char*& addr, Node* node, unsigned specVarOfs, unsigned specVarCnt)
   {
+    CALL("SubstitutionTree::CompiledTree::storeNode");
     TermList nodeTerm=node->term;
     if(nodeTerm.isVar()) {
       bool marked=nodeTerm.var()&NEW_VARIABLE_MARK;
@@ -205,29 +234,106 @@ public:
     storeLong(addr, OP_FAIL);
   }
 
-  typedef DHMap<Node*,List<char*>*, PtrIdentityHash > FailPointTargetStore;
+  typedef DHMap<unsigned, unsigned, IdentityHash<unsigned> > SV2OfsMap;
+  typedef MapToLIFO<Node*,char*,PtrIdentityHash> ForwardAddressTargetStore;
 
-  void fillInFailPoints(FailPointTargetStore& tgts, Node* node, char* point)
+  struct TermNodeComparator
+  {
+    static Comparison compare(Node* n1, Node* n2)
+    {
+      return Int::compare(n1->term.term()->functor(), n2->term.term()->functor());
+    }
+  };
+  char* storeChildSkipOp(char*& addr, IntermediateNode* inode, unsigned specVarOfs,
+      NodeList*& nodesOrdered, Node*& firstVarNode,
+      ForwardAddressTargetStore& fwAddressTargets)
+  {
+    CALL("SubstitutionTree::CompiledTree::storeChildSkipOp");
+    ASS_G(inode->size(),0);
+    BinaryHeap<Node*,TermNodeComparator> termNodes;
+    nodesOrdered=0;
+    firstVarNode=0;
+    NodeIterator chit=inode->allChildren();
+    while(chit.hasNext()) {
+      Node* n=*chit.next();
+      if(n->term.isTerm()) {
+	termNodes.insert(n);
+      } else {
+	NodeList::push(n, nodesOrdered);
+
+	//First in the sense of nodesOrdered list, so we have to update
+	//it with each variable node pushed.
+	firstVarNode=n;
+      }
+    }
+    if(termNodes.size()>0) {
+      storeLong(addr, OP_SKIP_IRRELEVANT_CHILDREN);
+      storePtr(addr, &_svBindings[specVarOfs]);
+      storeLong(addr, termNodes.size());
+      while(!termNodes.isEmpty()) {
+	Node* n=termNodes.pop();
+	NodeList::push(n, nodesOrdered);
+	storeLong(addr, n->term.term()->functor());
+
+	//register point where pointer to this node should be stored
+	fwAddressTargets.pushToKey(n, addr);
+	shiftByLong(addr);
+      }
+      if(firstVarNode) {
+	//register point where pointer to first variable node should be stored
+	fwAddressTargets.pushToKey(firstVarNode, addr);
+	shiftByLong(addr);
+	return 0;
+      } else {
+	//there are no variable nodes, so we'll let caller decide where to go
+	char* res=addr;
+	shiftByLong(addr);
+	return res;
+      }
+    }
+
+    return 0;
+  }
+
+
+  void fillInFailPoints(ForwardAddressTargetStore& tgts, Node* node, char* point)
   {
     CALL("SubstitutionTree::CompiledTree::fillInFailPoints");
 
-    List<char*>* lst;
-    if(!tgts.find(node,lst)) {
-      return;
-    }
-    tgts.remove(node);
-    while(lst) {
-      char* tgt=List<char*>::pop(lst);
+    while(!tgts.isKeyEmpty(node)) {
+      char* tgt=tgts.popFromKey(node);
       *reinterpret_cast<char**>(tgt)=point;
+    }
+  }
+
+  void enterNode(char*& addr, IntermediateNode* inode, Node* failNode,
+      Stack<Node*>& nexts, Stack<NodeList*>& alts, Stack<unsigned>& specVars,
+      SV2OfsMap& specVarOffsets, ForwardAddressTargetStore& fwAddressTargets)
+  {
+    CALL("SubstitutionTree::CompiledTree::enterNode");
+    ASS_EQ(nexts.top(),failNode);
+
+    Node* firstVarChild=0;
+    alts.push(0);
+    specVars.push(inode->childVar);
+    char* failPntTgt=storeChildSkipOp(addr,inode,specVarOffsets.get(inode->childVar),
+	alts.top(),firstVarChild,fwAddressTargets);
+    //no node should be empty
+    ASS(alts.top());
+    if(failPntTgt) {
+      fwAddressTargets.pushToKey(failNode, failPntTgt);
+    }
+
+    if(firstVarChild) {
+      nexts.push(firstVarChild);
     }
   }
 
   void compileTree(IntermediateNode* root, unsigned initBindingCount)
   {
     CALL("SubstitutionTree::CompiledTree::compileTree");
-
-    static Stack<Node*> nexts(32);
-    static Stack<NodeIterator> alts(32);
+    Stack<Node*> nexts(32);
+    static Stack<NodeList*> alts(32);
     static Stack<unsigned> specVars(32);
     static Stack<unsigned> nextSpecVarOffsets(32);
     nexts.reset();
@@ -236,43 +342,49 @@ public:
     nextSpecVarOffsets.reset();
 
     unsigned nextSpecVarOfs=initBindingCount;
-    static DHMap<unsigned, unsigned, IdentityHash<unsigned> > specVarOffsets;
+    static SV2OfsMap specVarOffsets;
     for(unsigned i=0;i<initBindingCount;i++) {
       specVarOffsets.set(i,i);
     }
 
-    FailPointTargetStore failPointTargets;
+    ForwardAddressTargetStore fwAddressTargets;
     ASS(root->term.isEmpty());
 
     char* addr=_code;
-
     nexts.push(0);
-    specVars.push(root->childVar);
+
     nextSpecVarOffsets.push(nextSpecVarOfs);
 
-    alts.push(root->allChildren());
-    ASS(alts.top().hasNext());
-    nexts.push(*alts.top().next());
+    enterNode(addr,root,0,nexts,alts,specVars,specVarOffsets,fwAddressTargets);
 
-    for(;;) {
-      if(alts.isEmpty()) {
-	break;
-      }
-      Node* curr=nexts.pop();
+    do {
+      Node* curr=NodeList::pop(alts.top());
       unsigned specVarOfs=specVarOffsets.get(specVars.top());
       nextSpecVarOfs=nextSpecVarOffsets.top();
 
-      if(alts.top().hasNext()) {
-	nexts.push(*alts.top().next());
-      } else {
+      if(nexts.top()==curr) {
+	NodeList* laterSibilings=alts.top();
+	if(laterSibilings) {
+	  nexts.setTop(laterSibilings->head());
+	} else {
+	  nexts.pop();
+	}
+      }
+      Node* failPnt=nexts.top();
+
+      while(alts.isNonEmpty() && alts.top()==0) {
 	alts.pop();
 	specVars.pop();
 	nextSpecVarOffsets.pop();
       }
+
       //fill in address of this node, where it's needed as a fail point
-      fillInFailPoints(failPointTargets, curr, addr);
+      fillInFailPoints(fwAddressTargets, curr, addr);
 
       char* failPntTgt=storeNode(addr,curr,specVarOfs,nextSpecVarOfs);
+
+      //register point where fail point for this node should be stored
+      fwAddressTargets.pushToKey(failPnt, failPntTgt);
 
       if(curr->term.isTerm() && !curr->term.term()->shared()) {
 	Term::VariableIterator vit(curr->term.term());
@@ -283,28 +395,18 @@ public:
 	  }
 	}
       }
-      ASS_L(nextSpecVarOfs,50);
-
-
-      //register point where fail point for this node should be stored
-      List<char*>** pTgtLst;
-      failPointTargets.getValuePtr(nexts.top(), pTgtLst, 0);
-      List<char*>::push(failPntTgt, *pTgtLst);
 
       if(!curr->isLeaf()) {
 	IntermediateNode* inode=static_cast<IntermediateNode*>(curr);
-	alts.push(inode->allChildren());
-	ASS(alts.top().hasNext());
-	nexts.push(*alts.top().next());
-	specVars.push(inode->childVar);
+	enterNode(addr,inode,failPnt,nexts,alts,specVars,specVarOffsets,fwAddressTargets);
 	nextSpecVarOffsets.push(nextSpecVarOfs);
       }
-    }
-    fillInFailPoints(failPointTargets, 0, addr);
+    } while(!alts.isEmpty());
+    fillInFailPoints(fwAddressTargets, 0, addr);
     storeFail(addr);
 #if VDEBUG
     ASS_EQ((addr-_code)%8,0);
-    ASS_LE(addr,_afterLastAllocatedCode);
+    ASS_LE((void*)addr,(void*)_afterLastAllocatedCode);
     _afterLastCode=addr;
 #endif
   }
@@ -316,9 +418,9 @@ public:
     _leaf=0;
     ASS_EQ(reinterpret_cast<size_t>(_addr)%8,0);
     while(!_quit) {
+      ASS_GE((void*)_addr,(void*)_code);
+      ASS_L((void*)_addr,(void*)_afterLastCode);
       ASS_EQ(reinterpret_cast<size_t>(_addr)%8,0);
-      ASS_GE(_addr,_code);
-      ASS_L(_addr,_afterLastCode);
 //      typedef void (*OpHandler)(CompiledTree*);
 //      OpHandler hndl=fromSizeT<OpHandler>(readLong(_addr));
 //      (*hndl)(this);
@@ -331,6 +433,9 @@ public:
 	break;
       case OP_MATCH_ENCOUNTERED_VAR:
 	opMatchEncounteredVar(this);
+	break;
+      case OP_SKIP_IRRELEVANT_CHILDREN:
+	opSkipIrrelevantChildren(this);
 	break;
       case OP_LEAF:
 	opLeaf(this);
@@ -351,7 +456,7 @@ public:
     TermList* qTerm=static_cast<TermList*>(readPtr(ct->_addr));
     unsigned var=static_cast<unsigned>(readLong(ct->_addr));
     if(var>ct->_maxVar) {
-      ct->_addr=readAddr(ct->_addr);
+      ct->_addr=getAddr(ct->_addr);
     } else {
       ct->_ovBindings[var]=*qTerm;
       shiftByLong(ct->_addr);
@@ -363,7 +468,7 @@ public:
     TermList* qTerm=static_cast<TermList*>(readPtr(ct->_addr));
     unsigned var=static_cast<unsigned>(readLong(ct->_addr));
     if(var>ct->_maxVar || ct->_ovBindings[var]!=*qTerm) {
-      ct->_addr=readAddr(ct->_addr);
+      ct->_addr=getAddr(ct->_addr);
     } else {
       shiftByLong(ct->_addr);
     }
@@ -374,7 +479,7 @@ public:
     TermList* qTerm=static_cast<TermList*>(readPtr(ct->_addr));
     TermList nTerm(readLong(ct->_addr));
     if(!MatchingUtils::matchTerms(nTerm,*qTerm,*ct)) {
-      ct->_addr=readAddr(ct->_addr);
+      ct->_addr=getAddr(ct->_addr);
     } else {
       shiftByLong(ct->_addr);
     }
@@ -388,6 +493,30 @@ public:
   static void opFail(CompiledTree* ct)
   {
     ct->_quit=true;
+  }
+  static void opSkipIrrelevantChildren(CompiledTree* ct)
+  {
+    TermList* queryTerm=static_cast<TermList*>(readPtr(ct->_addr));
+    size_t termChildCnt=ct->readLong(ct->_addr);
+    ASS_LE(termChildCnt, env.signature->functions());
+    if(queryTerm->isTerm()) {
+      unsigned queryFunctor=queryTerm->term()->functor();
+      int min_i=0;
+      int max_i=static_cast<int>(termChildCnt-1);
+      while(min_i<=max_i) {
+	int i=(min_i+max_i)/2;
+        size_t nodeFunctor=getLong(ct->_addr+i*16);
+        if(nodeFunctor>queryFunctor) {
+          max_i=i-1;
+        } else if(nodeFunctor<queryFunctor) {
+          min_i=i+1;
+        } else {
+          ct->_addr=getAddr(ct->_addr+i*16+8);
+          return;
+        }
+      }
+    }
+    ct->_addr=getAddr(ct->_addr+16*termChildCnt);
   }
 
   /**
@@ -442,8 +571,9 @@ public:
   static const size_t OP_MATCH_TERM=1;
   static const size_t OP_MATCH_NEW_VAR=2;
   static const size_t OP_MATCH_ENCOUNTERED_VAR=3;
-  static const size_t OP_LEAF=4;
-  static const size_t OP_FAIL=5;
+  static const size_t OP_SKIP_IRRELEVANT_CHILDREN=4;
+  static const size_t OP_LEAF=5;
+  static const size_t OP_FAIL=6;
 
 #if VDEBUG
   char* _afterLastCode;
