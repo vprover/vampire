@@ -69,7 +69,7 @@ private:
     Renaming* _parent;
   };
 
-  typedef DHMap<unsigned, unsigned> VariableMap;
+  typedef DHMap<unsigned, unsigned, IdentityHash<unsigned> > VariableMap;
   VariableMap _data;
   unsigned _nextVar;
 public:

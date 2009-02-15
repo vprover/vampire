@@ -503,6 +503,9 @@ public:
     {
       ASS(!query->isLiteral());
 
+//      cout<<parent->toString();
+//      exit(0);
+
       _rootIsLeaf=root->isLeaf();
       if(_rootIsLeaf) {
 	return;

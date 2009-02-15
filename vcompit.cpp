@@ -204,11 +204,11 @@ void ApplicationOp(char op, TermList t)
       break;
     case '!':
       found = index->generalizationExists(t);
-//      if (!found) { printf("match not found!\n"); exit(1); }
+      if (!found) { printf("match not found!\n"); exit(1); }
       break;
     case '?':
       found = index->generalizationExists(t);
-//      if (found)  { printf("wrong match found! (w/ %d).\n",found); exit(1); }
+      if (found)  { printf("wrong match found! (w/ %d).\n",found); exit(1); }
       break;
     }
 }
@@ -259,6 +259,6 @@ TermList MakeTerm(char* str)
   ASS(terms.isEmpty());
   ASS_EQ(args.length(),1);
 
-//  return Curryfier::instance()->curryfy(args.pop());
-  return args.pop();
+  return Curryfier::instance()->curryfy(args.pop());
+//  return args.pop();
 }

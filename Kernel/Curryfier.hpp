@@ -34,14 +34,28 @@ public:
     if(_termCache.find(trm)) {
       return _termCache.get(trm);
     }
+//    TermList res=getCurryFn(trm->functor());
+//    TermList *arg=trm->args();
+//    while(!arg->isEmpty()) {
+//      res=getCurryFn(res,curryfy(*arg));
+//      arg=arg->next();
+//    }
+
     TermList res=getCurryFn(trm->functor());
     TermList *arg=trm->args();
     while(!arg->isEmpty()) {
-      res=getCurryFn(res,curryfy(*arg));
+      res=getCurryFn(curryfy(*arg),res);
       arg=arg->next();
     }
 
-    _termCache.set(trm,res);
+//    unsigned arity=trm->arity();
+//    TermList res=curryfy(*trm->nthArgument(arity-1));
+//    for(int i=arity-2;i>=0;i--) {
+//      res=getCurryFn(curryfy(*trm->nthArgument(i)), res);
+//    }
+//    res=getCurryFn(getCurryFn(trm->functor()), res);
+//
+//    _termCache.set(trm,res);
     return res;
   }
 

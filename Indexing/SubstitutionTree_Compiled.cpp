@@ -8,6 +8,7 @@
 #include "../Lib/MapToLIFO.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Timer.hpp"
+#include "../Lib/DHMultiset.hpp"
 
 #include "../Kernel/Signature.hpp"
 
@@ -46,28 +47,35 @@ T fromSizeT(size_t num)
 class SubstitutionTree::CompiledTree
 {
 public:
+  typedef DHMultiset<Node*, PtrIdentityHash> NodeSet;
+
   CompiledTree(SubstitutionTree *parent, IntermediateNode* root, unsigned initBindingCount)
   : _ovBindingsSize(0), _ovBindings(0)
   {
     CALL("SubstitutionTree::CompiledTree::CompiledTree");
 
+    size_t maxCodeSize;
+    size_t maxTreeDepth;
+    NodeSet unusedVarBindingNodes;
+    getTreeStats(root,maxCodeSize, maxTreeDepth, unusedVarBindingNodes);
     _svBindings=static_cast<TermList*>(
-	    ALLOC_UNKNOWN(parent->_nextVar*sizeof(TermList), "SubstitutionTree::CompiledTree::_svBindings"));
-    size_t maxTreeSize=getMaxTreeSize(root);
+	    ALLOC_UNKNOWN(maxTreeDepth*sizeof(TermList), "SubstitutionTree::CompiledTree::_svBindings"));
     _code=static_cast<char*>(
-	    ALLOC_UNKNOWN(maxTreeSize, "SubstitutionTree::CompiledTree::_code"));
+	    ALLOC_UNKNOWN(maxCodeSize, "SubstitutionTree::CompiledTree::_code"));
 #if VDEBUG
-    _afterLastAllocatedCode=_code+maxTreeSize;
-    _afterLastAllocatedSVBinding=_svBindings+parent->_nextVar;
+    _afterLastAllocatedCode=_code+maxCodeSize;
+    _afterLastAllocatedSVBinding=_svBindings+maxTreeDepth;
 #endif
 
-//    OP_MATCH_TERM=toSizeT(&CompiledTree::opMatchTerm);
-//    OP_MATCH_NEW_VAR=toSizeT(&CompiledTree::opMatchNewVar);
-//    OP_MATCH_ENCOUNTERED_VAR=toSizeT(&CompiledTree::opMatchEncounteredVar);
-//    OP_LEAF=toSizeT(&CompiledTree::opLeaf);
-//    OP_FAIL=toSizeT(&CompiledTree::opFail);
+    OP_MATCH_TERM=toSizeT(&CompiledTree::opMatchTerm);
+    OP_MATCH_GROUND_TERM=toSizeT(&CompiledTree::opMatchGroundTerm);
+    OP_MATCH_NEW_VAR=toSizeT(&CompiledTree::opMatchNewVar);
+    OP_MATCH_ENCOUNTERED_VAR=toSizeT(&CompiledTree::opMatchEncounteredVar);
+    OP_SKIP_IRRELEVANT_CHILDREN=toSizeT(&CompiledTree::opSkipIrrelevantChildren);
+    OP_LEAF=toSizeT(&CompiledTree::opLeaf);
+    OP_FAIL=toSizeT(&CompiledTree::opFail);
 
-    compileTree(root, initBindingCount);
+    compileTree(root, initBindingCount, unusedVarBindingNodes);
   }
   ~CompiledTree()
   {
@@ -118,15 +126,20 @@ public:
     }
     return longCnt*8;
   }
-  static size_t getMaxTreeSize(IntermediateNode* root)
+  static void getTreeStats(IntermediateNode* root, size_t& codeSizeUpperBound,
+      size_t& maxDepth, NodeSet& unusedVarBindingNodes)
   {
     CALL("SubstitutionTree::CompiledTree::getMaxTreeSize");
 
     static Stack<NodeIterator> alts(32);
     alts.reset();
 
+    typedef DHMap<unsigned,Node*,IdentityHash<unsigned> > Var2NodeMap;
+    Var2NodeMap unusedBoundVars;
+
     size_t sz=40;
 
+    maxDepth=2;
     alts.push(root->allChildren());
     for(;;) {
       while(alts.isNonEmpty()&&!alts.top().hasNext()) {
@@ -136,15 +149,56 @@ public:
 	break;
       }
       Node* curr=*alts.top().next();
+      if(curr->term.isOrdinaryVar()) {
+	unsigned var=curr->term.var()&~NEW_VARIABLE_MARK;
+	if(curr->term.var()!=var) {
+	  if(unusedBoundVars.find(var)) {
+	    unusedVarBindingNodes.insert(unusedBoundVars.get(var));
+	  }
+	  unusedBoundVars.set(var, curr);
+	} else {
+	  if(unusedBoundVars.find(var)) {
+	    unusedBoundVars.remove(var);
+	  }
+	}
+      } else {
+	Term::VariableIterator vit(curr->term.term());
+	while(vit.hasNext()) {
+	  TermList vt=vit.next();
+	  if(vt.isOrdinaryVar()) {
+	    unsigned var=vt.var();
+	    if(var&NEW_VARIABLE_MARK) {
+	      var&=~NEW_VARIABLE_MARK;
+	      if(unusedBoundVars.find(var)) {
+		unusedVarBindingNodes.insert(unusedBoundVars.get(var));
+		unusedBoundVars.remove(var);
+	      }
+	    } else if(unusedBoundVars.find(var)) {
+	      unusedBoundVars.remove(var);
+	    }
+	  }
+	}
+      }
+
+
       ASS(curr);
       ASSERT_VALID(*curr);
       if(!curr->isLeaf()) {
 	alts.push(static_cast<IntermediateNode*>(curr)->allChildren());
+	if(alts.size()>maxDepth) {
+	  maxDepth=alts.size();
+	}
       }
       sz+=getSizeCost(curr);
     }
 
-    return sz;
+    Var2NodeMap::Iterator vnit(unusedBoundVars);
+    while(vnit.hasNext()) {
+      unusedVarBindingNodes.insert(vnit.next());
+    }
+
+    maxDepth++;
+    codeSizeUpperBound=sz;
   }
   inline
   static void storeLong(char*& addr, size_t num)
@@ -200,27 +254,42 @@ public:
     addr+=sizeof(void*);
   }
 
-  char* storeNode(char*& addr, Node* node, unsigned specVarOfs, unsigned specVarCnt)
+  char* storeNode(char*& addr, Node* node, unsigned specVarOfs, unsigned specVarCnt,
+      NodeSet& unusedVarBindingNodes)
   {
     CALL("SubstitutionTree::CompiledTree::storeNode");
-    TermList nodeTerm=node->term;
-    if(nodeTerm.isVar()) {
-      bool marked=nodeTerm.var()&NEW_VARIABLE_MARK;
-      if(marked) {
-	storeLong(addr, OP_MATCH_NEW_VAR);
-      } else {
-	storeLong(addr, OP_MATCH_ENCOUNTERED_VAR);
-      }
-      storePtr(addr, &_svBindings[specVarOfs]);
-      storeLong(addr, nodeTerm.var()&~NEW_VARIABLE_MARK);
+    char* failAddrPtr;
+    if(unusedVarBindingNodes.find(node)) {
+      ASS(node->term.isVar());
+      ASS(node->term.var()&NEW_VARIABLE_MARK);
+      failAddrPtr=0;
     } else {
-      storeLong(addr, OP_MATCH_TERM);
-      storePtr(addr, &_svBindings[specVarCnt]);
-      storePtr(addr, &_svBindings[specVarOfs]);
-      storeLong(addr, nodeTerm.content());
+      TermList nodeTerm=node->term;
+      if(nodeTerm.isVar()) {
+	bool marked=nodeTerm.var()&NEW_VARIABLE_MARK;
+	if(marked) {
+	  storeLong(addr, OP_MATCH_NEW_VAR);
+	} else {
+	  storeLong(addr, OP_MATCH_ENCOUNTERED_VAR);
+	}
+	storePtr(addr, &_svBindings[specVarOfs]);
+	storeLong(addr, nodeTerm.var()&~NEW_VARIABLE_MARK);
+      } else {
+	ASS(nodeTerm.isTerm());
+	if(nodeTerm.term()->shared()&&nodeTerm.term()->ground()) {
+	  storeLong(addr, OP_MATCH_GROUND_TERM);
+	  storePtr(addr, &_svBindings[specVarOfs]);
+	  storeLong(addr, nodeTerm.content());
+	} else {
+	  storeLong(addr, OP_MATCH_TERM);
+	  storePtr(addr, &_svBindings[specVarCnt]);
+	  storePtr(addr, &_svBindings[specVarOfs]);
+	  storeLong(addr, nodeTerm.content());
+	}
+      }
+      failAddrPtr=addr;
+      shiftByLong(addr);
     }
-    char* failAddrPtr=addr;
-    shiftByLong(addr);
 
     if(node->isLeaf()) {
       storeLong(addr, OP_LEAF);
@@ -269,6 +338,17 @@ public:
     if(termNodes.size()>0) {
       storeLong(addr, OP_SKIP_IRRELEVANT_CHILDREN);
       storePtr(addr, &_svBindings[specVarOfs]);
+      char* res;
+      if(firstVarNode) {
+	//register point where pointer to first variable node should be stored
+	fwAddressTargets.pushToKey(firstVarNode, addr);
+	shiftByLong(addr);
+	res=0;
+      } else {
+	//there are no variable nodes, so we'll let caller decide where to go
+	res=addr;
+	shiftByLong(addr);
+      }
       storeLong(addr, termNodes.size());
       while(!termNodes.isEmpty()) {
 	Node* n=termNodes.pop();
@@ -279,17 +359,7 @@ public:
 	fwAddressTargets.pushToKey(n, addr);
 	shiftByLong(addr);
       }
-      if(firstVarNode) {
-	//register point where pointer to first variable node should be stored
-	fwAddressTargets.pushToKey(firstVarNode, addr);
-	shiftByLong(addr);
-	return 0;
-      } else {
-	//there are no variable nodes, so we'll let caller decide where to go
-	char* res=addr;
-	shiftByLong(addr);
-	return res;
-      }
+      return res;
     }
 
     return 0;
@@ -329,7 +399,8 @@ public:
     }
   }
 
-  void compileTree(IntermediateNode* root, unsigned initBindingCount)
+  void compileTree(IntermediateNode* root, unsigned initBindingCount,
+      NodeSet& unusedVarBindingNodes)
   {
     CALL("SubstitutionTree::CompiledTree::compileTree");
     Stack<Node*> nexts(32);
@@ -381,10 +452,12 @@ public:
       //fill in address of this node, where it's needed as a fail point
       fillInFailPoints(fwAddressTargets, curr, addr);
 
-      char* failPntTgt=storeNode(addr,curr,specVarOfs,nextSpecVarOfs);
+      char* failPntTgt=storeNode(addr,curr,specVarOfs,nextSpecVarOfs,unusedVarBindingNodes);
 
-      //register point where fail point for this node should be stored
-      fwAddressTargets.pushToKey(failPnt, failPntTgt);
+      if(failPntTgt) {
+	//register point where fail point for this node should be stored
+	fwAddressTargets.pushToKey(failPnt, failPntTgt);
+      }
 
       if(curr->term.isTerm() && !curr->term.term()->shared()) {
 	Term::VariableIterator vit(curr->term.term());
@@ -421,33 +494,36 @@ public:
       ASS_GE((void*)_addr,(void*)_code);
       ASS_L((void*)_addr,(void*)_afterLastCode);
       ASS_EQ(reinterpret_cast<size_t>(_addr)%8,0);
-//      typedef void (*OpHandler)(CompiledTree*);
-//      OpHandler hndl=fromSizeT<OpHandler>(readLong(_addr));
-//      (*hndl)(this);
-      switch(readLong(_addr)) {
-      case OP_MATCH_TERM:
-	opMatchTerm(this);
-	break;
-      case OP_MATCH_NEW_VAR:
-	opMatchNewVar(this);
-	break;
-      case OP_MATCH_ENCOUNTERED_VAR:
-	opMatchEncounteredVar(this);
-	break;
-      case OP_SKIP_IRRELEVANT_CHILDREN:
-	opSkipIrrelevantChildren(this);
-	break;
-      case OP_LEAF:
-	opLeaf(this);
-	break;
-      case OP_FAIL:
-	opFail(this);
-#if VDEBUG
-	break;
-      default:
-	ASSERTION_VIOLATION;
-#endif
-      }
+      typedef void (*OpHandler)(CompiledTree*);
+      OpHandler hndl=fromSizeT<OpHandler>(readLong(_addr));
+      (*hndl)(this);
+//      switch(readLong(_addr)) {
+//      case OP_MATCH_TERM:
+//	opMatchTerm(this);
+//	break;
+//      case OP_MATCH_GROUND_TERM:
+//	opMatchGroundTerm(this);
+//	break;
+//      case OP_MATCH_NEW_VAR:
+//	opMatchNewVar(this);
+//	break;
+//      case OP_MATCH_ENCOUNTERED_VAR:
+//	opMatchEncounteredVar(this);
+//	break;
+//      case OP_SKIP_IRRELEVANT_CHILDREN:
+//	opSkipIrrelevantChildren(this);
+//	break;
+//      case OP_LEAF:
+//	opLeaf(this);
+//	break;
+//      case OP_FAIL:
+//	opFail(this);
+//#if VDEBUG
+//	break;
+//      default:
+//	ASSERTION_VIOLATION;
+//#endif
+//      }
     }
   }
 
@@ -478,7 +554,23 @@ public:
     ct->_nextSpecVarPtr=static_cast<TermList*>(readPtr(ct->_addr));
     TermList* qTerm=static_cast<TermList*>(readPtr(ct->_addr));
     TermList nTerm(readLong(ct->_addr));
-    if(!MatchingUtils::matchTerms(nTerm,*qTerm,*ct)) {
+    ASS(qTerm->isTerm());
+    ASS(nTerm.isTerm());
+    ASS_EQ(nTerm.term()->functor(),qTerm->term()->functor());
+    if(!MatchingUtils::matchArgs(nTerm.term(),qTerm->term(),*ct)) {
+      ct->_addr=getAddr(ct->_addr);
+    } else {
+      shiftByLong(ct->_addr);
+    }
+  }
+  static void opMatchGroundTerm(CompiledTree* ct)
+  {
+    TermList* qTerm=static_cast<TermList*>(readPtr(ct->_addr));
+    TermList nTerm(readLong(ct->_addr));
+    ASS(qTerm->isTerm());
+    ASS(nTerm.isTerm());
+    ASS_EQ(nTerm.term()->functor(),qTerm->term()->functor());
+    if(nTerm!=*qTerm) {
       ct->_addr=getAddr(ct->_addr);
     } else {
       shiftByLong(ct->_addr);
@@ -497,6 +589,12 @@ public:
   static void opSkipIrrelevantChildren(CompiledTree* ct)
   {
     TermList* queryTerm=static_cast<TermList*>(readPtr(ct->_addr));
+    char* failPnt=readAddr(ct->_addr);
+    if(queryTerm->isVar()) {
+      ct->_addr=failPnt;
+      return;
+    }
+
     size_t termChildCnt=ct->readLong(ct->_addr);
     ASS_LE(termChildCnt, env.signature->functions());
     if(queryTerm->isTerm()) {
@@ -516,7 +614,7 @@ public:
         }
       }
     }
-    ct->_addr=getAddr(ct->_addr+16*termChildCnt);
+    ct->_addr=failPnt;
   }
 
   /**
@@ -562,18 +660,21 @@ public:
   SubstitutionTree* _parent;
   char* _code;
 
-//  size_t OP_MATCH_TERM;
-//  size_t OP_MATCH_NEW_VAR;
-//  size_t OP_MATCH_ENCOUNTERED_VAR;
-//  size_t OP_LEAF;
-//  size_t OP_FAIL;
+  size_t OP_MATCH_TERM;
+  size_t OP_MATCH_GROUND_TERM;
+  size_t OP_MATCH_NEW_VAR;
+  size_t OP_MATCH_ENCOUNTERED_VAR;
+  size_t OP_SKIP_IRRELEVANT_CHILDREN;
+  size_t OP_LEAF;
+  size_t OP_FAIL;
 
-  static const size_t OP_MATCH_TERM=1;
-  static const size_t OP_MATCH_NEW_VAR=2;
-  static const size_t OP_MATCH_ENCOUNTERED_VAR=3;
-  static const size_t OP_SKIP_IRRELEVANT_CHILDREN=4;
-  static const size_t OP_LEAF=5;
-  static const size_t OP_FAIL=6;
+//  static const size_t OP_MATCH_TERM=1;
+//  static const size_t OP_MATCH_GROUND_TERM=2;
+//  static const size_t OP_MATCH_NEW_VAR=3;
+//  static const size_t OP_MATCH_ENCOUNTERED_VAR=4;
+//  static const size_t OP_SKIP_IRRELEVANT_CHILDREN=5;
+//  static const size_t OP_LEAF=6;
+//  static const size_t OP_FAIL=7;
 
 #if VDEBUG
   char* _afterLastCode;

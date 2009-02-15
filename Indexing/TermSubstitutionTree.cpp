@@ -114,9 +114,9 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
   if(root->isLeaf()) {
     return true;
   }
-//  return FastGeneralizationsIterator(this, root, trm, false).hasNext();
+  return FastGeneralizationsIterator(this, root, trm, false).hasNext();
 //  if(_compTrees[t.term()->functor()] || Random::getInteger(1000)==0) {
-    return CompiledGeneralizationsIterator(this, root, trm, false).hasNext();
+//    return CompiledGeneralizationsIterator(this, root, trm, false).hasNext();
 //  } else {
 //    return FastGeneralizationsIterator(this, root, trm, false).hasNext();
 //  }

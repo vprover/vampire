@@ -602,7 +602,8 @@ string SubstitutionTree::nodeToString(Node* topNode)
 	continue;
     }
     if(!node->term.isEmpty()) {
-	res+=getIndentStr(indent)+Test::Output::singleTermListToString(node->term)+"\n";
+//	res+=getIndentStr(indent)+Test::Output::singleTermListToString(node->term)+"\n";
+      cout<<getIndentStr(indent)+Test::Output::singleTermListToString(normalizeTop(node->term))+"\n";
     }
 
     if(node->isLeaf()) {
@@ -610,7 +611,8 @@ string SubstitutionTree::nodeToString(Node* topNode)
 	LDIterator ldi(lnode->allChildren());
 
 	while(ldi.hasNext()) {
-	  res+=getIndentStr(indent) + "Lit: " + Test::Output::toString(ldi.next().literal) + "\n";
+	  //res+=getIndentStr(indent) + "Lit: " + Test::Output::toString(ldi.next().literal) + "\n";
+	  res+=getIndentStr(indent) + "Lit: " + Test::Output::singleTermListToString(ldi.next().term) + "\n";
 	}
     } else {
 	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
@@ -631,8 +633,10 @@ string SubstitutionTree::toString() const
   string res;
 
   for(int tli=0;tli<_numberOfTopLevelNodes;tli++) {
-    res+=Int::toString(tli);
-    res+=":\n";
+//    res+=Int::toString(tli);
+//    res+=":\n";
+    cout<<Int::toString(tli);
+    cout<<":\n";
 
     Stack<int> indentStack(10);
     Stack<Node*> stack(10);
