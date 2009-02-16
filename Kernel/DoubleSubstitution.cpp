@@ -522,9 +522,9 @@ unsigned DoubleSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 }
 
 /**
- * Second hash function for DHMap. It just uses the hashFNV function from Lib::Hash
+ * Second hash function for DHMap. It just uses the hash function from Lib::Hash
  */
 unsigned DoubleSubstitution::VarSpec::Hash2::hash(VarSpec& o)
 {
-  return Lib::Hash::hashFNV(reinterpret_cast<const unsigned char*>(&o), sizeof(VarSpec));
+  return Lib::Hash::hash(reinterpret_cast<const unsigned char*>(&o), sizeof(VarSpec));
 }

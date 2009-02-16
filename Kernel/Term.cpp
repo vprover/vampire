@@ -449,7 +449,7 @@ unsigned Term::hash() const
   if (_arity == 0) {
     return hash;
   }
-  return Hash::hashFNV(reinterpret_cast<const unsigned char*>(_args+1),
+  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
  		       _arity*sizeof(TermList),hash);
 } // Term::hash
 
@@ -465,7 +465,7 @@ unsigned Literal::hash() const
   if (_arity == 0) {
     return hash;
   }
-  return Hash::hashFNV(reinterpret_cast<const unsigned char*>(_args+1),
+  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
  		       _arity*sizeof(TermList),hash);
 } // Term::hash
 
