@@ -43,7 +43,7 @@ using namespace Lib;
 using namespace Kernel;
 
 #define REORDERING 1
-#define VARIABLE_MARKING 1
+#define VARIABLE_MARKING 0
 #define NEW_VARIABLE_MARK 0x20000000u
 
 namespace Indexing {
@@ -447,6 +447,7 @@ public:
   //typedef SkipList<Binding,Binding::Comparator> BindingQueue;
 //  typedef SkipList<unsigned,SpecVarComparator> SpecVarQueue;
   typedef BinaryHeap<unsigned,SpecVarComparator> SpecVarQueue;
+  typedef Stack<unsigned> VarStack;
 
   void getBindings(Term* t, BindingQueue& bq);
 
@@ -577,7 +578,6 @@ public:
     ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
   private:
     typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > BindingMap;
-    typedef Stack<unsigned> VarStack;
     static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
 
 
@@ -654,7 +654,6 @@ public:
     void createReversedInitialBindings(Term* t);
     bool findNextLeaf();
     bool enter(Node* n, BacktrackData& bd);
-    void extractSpecialVariables(TermList t, BacktrackData& bd);
 
 
     static const int QUERY_BANK=0;
@@ -663,7 +662,8 @@ public:
     static const int NORM_RESULT_BANK=3;
 
     MMSubstitution subst;
-    SpecVarQueue svQueue;
+    VarStack svStack;
+
   private:
     bool literalRetrieval;
     bool retrieveSubstitution;

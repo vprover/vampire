@@ -29,6 +29,11 @@ public:
     if(!Literal::headersMatch(base,instance,complementary)) {
       return false;
     }
+
+    if(base->arity()==0) {
+      return true;
+    }
+
     static MapBinder binder;
     binder.reset();
 
@@ -51,12 +56,20 @@ public:
     CALL("MatchingUtils::matchTerms");
 
     if(base.isTerm()) {
+      Term* bt=base.term();
       if(!instance.isTerm() || base.term()->functor()!=instance.term()->functor()) {
 	return false;
       }
-      if(base.term()->arity()==0) {
-	return true;
+      Term* it=instance.term();
+      if(bt->shared() && it->shared()) {
+        if(bt->ground()) {
+          return bt==it;
+        }
+        if(bt->weight() > it->weight()) {
+          return false;
+        }
       }
+      ASS_G(base.term()->arity(),0);
       return matchArgs(base.term(), instance.term(), binder);
     } else {
       ASS(base.isOrdinaryVar());
@@ -334,9 +347,6 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
   CALL("MatchingUtils::matchArgs");
   ASS_EQ(base->functor(),instance->functor());
   if(base->shared() && instance->shared()) {
-    if(base->ground()) {
-      return base==instance;
-    }
     if(base->weight() > instance->weight()) {
       return false;
     }

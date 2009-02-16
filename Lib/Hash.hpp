@@ -8,11 +8,6 @@
 
 #include <string>
 
-/**
- * Determines, whether to use FNV or lookup3 method for hashing.
- */
-#define USE_LOOKUP3_HASH 1
-
 namespace Lib {
 
 /**
@@ -32,47 +27,13 @@ public:
   static unsigned hash(const std::string& str)
   { return hash(str.c_str()); }
 
-#if USE_LOOKUP3_HASH
-
-  template<typename T>
-  static unsigned hash(T obj);
-  static unsigned hashWords(const unsigned* data, size_t length);
-
-#else //USE_LOOKUP3_HASH
-
   template<typename T>
   static unsigned hash(T obj)
   { return hash(reinterpret_cast<const unsigned char*>(&obj),sizeof(obj)); }
 
-#endif
-
   static unsigned hash(const unsigned char*,size_t length);
   static unsigned hash(const unsigned char*,size_t length,unsigned begin);
 };
-
-#if USE_LOOKUP3_HASH
-template<size_t LengthMod4>
-struct HashByLength {
-  static unsigned hash(const unsigned char* data, size_t length)
-  {
-    return Hash::hash(data,length);
-  }
-};
-template<>
-struct HashByLength<0> {
-  static unsigned hash(const unsigned char* data, size_t length)
-  {
-    return Hash::hashWords(reinterpret_cast<const unsigned*>(data),length/4);
-  }
-};
-
-template<typename T>
-unsigned Hash::hash(T obj)
-{
-  return HashByLength<sizeof(obj)%4>::hash(reinterpret_cast<const unsigned char*>(&obj),sizeof(obj));
-}
-
-#endif
 
 template<typename T>
 class IdentityHash

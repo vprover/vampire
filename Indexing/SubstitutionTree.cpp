@@ -723,7 +723,7 @@ bool SubstitutionTree::LeafIterator::hasNext()
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
 	Node* root, Term* query, bool retrieveSubstitution, bool reversed)
-: literalRetrieval(query->isLiteral()),
+: svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
 clientBDRecording(false)
@@ -768,7 +768,6 @@ void SubstitutionTree::UnificationsIterator::createInitialBindings(Term* t)
   while (! args->isEmpty()) {
     unsigned var = nextVar++;
     subst.bindSpecialVar(var,*args,NORM_QUERY_BANK);
-    svQueue.insert(var);
     args = args->next();
   }
 }
@@ -781,9 +780,7 @@ void SubstitutionTree::UnificationsIterator::createReversedInitialBindings(Term*
   ASS_EQ(t->arity(),2);
 
   subst.bindSpecialVar(1,*t->nthArgument(0),NORM_QUERY_BANK);
-  svQueue.insert(1);
   subst.bindSpecialVar(0,*t->nthArgument(1),NORM_QUERY_BANK);
-  svQueue.insert(0);
 }
 
 bool SubstitutionTree::UnificationsIterator::hasNext()
@@ -863,6 +860,7 @@ bool SubstitutionTree::UnificationsIterator::findNextLeaf()
       //backtrack undos everything that enter(...) method has done,
       //so it also pops one item out of the nodeIterators stack
       bdStack.pop().backtrack();
+      svStack.pop();
     }
     if(!nodeIterators.top().hasNext()) {
       return false;
@@ -887,7 +885,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   if(!n->term.isEmpty()) {
     //n is proper node, not a root
 
-    TermList qt(svQueue.top(), true);
+    TermList qt(svStack.top(), true);
 
     subst.bdRecord(bd);
     bool success=associate(qt,n->term);
@@ -896,15 +894,14 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
     if(!success) {
       return false;
     }
-    svQueue.backtrackablePop(bd);
-    extractSpecialVariables(n->term, bd);
   }
   if(n->isLeaf()) {
     ldIterator=static_cast<Leaf*>(n)->allChildren();
     inLeaf=true;
   } else {
-    ASS(!svQueue.isEmpty());
-    NodeIterator nit=getNodeIterator(static_cast<IntermediateNode*>(n));
+    IntermediateNode* inode=static_cast<IntermediateNode*>(n);
+    svStack.push(inode->childVar);
+    NodeIterator nit=getNodeIterator(inode);
     nodeIterators.backtrackablePush(nit, bd);
   }
   return true;
@@ -921,7 +918,7 @@ SubstitutionTree::NodeIterator
 {
   CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
 
-  unsigned specVar=svQueue.top();
+  unsigned specVar=n->childVar;
   TermList qt=subst.getSpecialVarTop(specVar);
   if(qt.isVar()) {
 	return n->allChildren();
@@ -937,30 +934,6 @@ SubstitutionTree::NodeIterator
   }
 }
 
-void SubstitutionTree::UnificationsIterator::extractSpecialVariables(
-	TermList t, BacktrackData& bd)
-{
-  CALL("SubstitutionTree::UnificationsIterator::extractSpecialVariables");
-
-  TermList* ts=&t;
-  static Stack<TermList*> stack(4);
-  for(;;) {
-    if(ts->tag()==REF && ts->term()->arity()>0) {
-      stack.push(ts->term()->args());
-    }
-    if(ts->isSpecialVar()) {
-      svQueue.backtrackableInsert(ts->var(), bd);
-    }
-    if(stack.isEmpty()) {
-      break;
-    }
-    ts=stack.pop();
-    if(!ts->next()->isEmpty()) {
-      stack.push(ts->next());
-    }
-  }
-}
-
 bool SubstitutionTree::GeneralizationsIterator::associate(TermList query, TermList node)
 {
   CALL("SubstitutionTree::GeneralizationsIterator::associate");
@@ -972,7 +945,7 @@ SubstitutionTree::NodeIterator
 {
   CALL("SubstitutionTree::GeneralizationsIterator::getNodeIterator");
 
-  unsigned specVar=svQueue.top();
+  unsigned specVar=n->childVar;
   TermList qt=subst.getSpecialVarTop(specVar);
   if(qt.isVar()) {
 	return n->variableChildren();
@@ -999,7 +972,7 @@ SubstitutionTree::NodeIterator
 {
   CALL("SubstitutionTree::GeneralizationsIterator::getNodeIterator");
 
-  unsigned specVar=svQueue.top();
+  unsigned specVar=n->childVar;
   TermList qt=subst.getSpecialVarTop(specVar);
   if(qt.isVar()) {
 	return n->allChildren();
