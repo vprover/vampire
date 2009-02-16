@@ -192,6 +192,7 @@ void ApplicationOp(char op, TermList t)
     index=new TermSubstitutionTree();
   }
   int found;
+//  t=Curryfier::instance()->curryfy(t);
   switch (op)
     {
     case '+':
@@ -259,6 +260,6 @@ TermList MakeTerm(char* str)
   ASS(terms.isEmpty());
   ASS_EQ(args.length(),1);
 
-  return Curryfier::instance()->curryfy(args.pop());
-//  return args.pop();
+//  return Curryfier::instance()->curryfy(args.pop());
+  return args.pop();
 }
