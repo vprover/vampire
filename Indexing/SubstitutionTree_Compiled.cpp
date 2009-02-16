@@ -124,7 +124,7 @@ public:
     } else {
       longCnt+=4;
     }
-    return longCnt*8;
+    return longCnt*sizeof(void*);
   }
   static void getTreeStats(IntermediateNode* root, size_t& codeSizeUpperBound,
       size_t& maxDepth, NodeSet& unusedVarBindingNodes)
@@ -603,13 +603,13 @@ public:
       int max_i=static_cast<int>(termChildCnt-1);
       while(min_i<=max_i) {
 	int i=(min_i+max_i)/2;
-        size_t nodeFunctor=getLong(ct->_addr+i*16);
+        size_t nodeFunctor=getLong(ct->_addr+i*2*sizeof(void*));
         if(nodeFunctor>queryFunctor) {
           max_i=i-1;
         } else if(nodeFunctor<queryFunctor) {
           min_i=i+1;
         } else {
-          ct->_addr=getAddr(ct->_addr+i*16+8);
+          ct->_addr=getAddr(ct->_addr+(i*2+1)*sizeof(void*));
           return;
         }
       }
