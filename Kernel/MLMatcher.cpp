@@ -77,9 +77,6 @@ bool MLMatcher::checkForSubsumptionResolution(Clause* base,
 {
   CALL("MLMatcher::checkForSubsumptionResolution");
 
-  cout<<(*base)<<endl;
-  cout<<(*resolvedInst)<<endl;
-
   unsigned baseLen=base->length();
   Matcher matcher0;
 
