@@ -10,17 +10,12 @@
 
 #include <string>
 
-namespace Kernel {
-  class Term;
-  class TermList;
-  class Literal;
-  class Clause;
-}
+#include "../Forwards.hpp"
+
+namespace Test {
 
 using namespace std;
 using namespace Kernel;
-
-namespace Test {
 
 /**
  * Class for writing various data structures in the
@@ -43,7 +38,7 @@ public:
     aux[1]=ts;
     return Test::Output::toString(&aux[1]);
   }
-  
+
 };
 
 }

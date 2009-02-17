@@ -10,6 +10,8 @@
 
 #include <iostream>
 
+#include "../Forwards.hpp"
+
 using namespace std;
 
 namespace Kernel {

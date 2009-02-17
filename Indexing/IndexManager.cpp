@@ -76,7 +76,11 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
+#if COMPIT_GENERATOR
+    tis=new CompitUnificationRecordingTermSubstitutionTree();
+#else
     tis=new TermSubstitutionTree();
+#endif
     res=new SuperpositionSubtermIndex(tis);
     res->attachContainer(_alg->getGenerationClauseContainer());
     break;

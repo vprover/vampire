@@ -293,6 +293,10 @@ public:
 #endif
 
 
+  /**
+   * Iterator that yields variables of specified
+   * @b term in DFS left to right order.
+   */
   class VariableIterator
   : public IteratorCore<TermList>
   {
@@ -329,8 +333,42 @@ public:
   }
 
   /**
+   * Iterator that yields proper subterms
+   * of specified @b term in DFS left to right order.
+   */
+  class SubtermIterator
+  : public IteratorCore<TermList>
+  {
+  public:
+    SubtermIterator(const Term* term) : _stack(8), _used(false)
+    {
+      pushNext(term->args());
+    }
+
+    bool hasNext();
+    /** Return next subterm
+     * @warning hasNext() must have been called before */
+    TermList next()
+    {
+      ASS(!_used && !_stack.isEmpty());
+      _used=true;
+      return *_stack.top();
+    }
+  private:
+    inline
+    void pushNext(const TermList* t)
+    {
+      if(!t->isEmpty()) {
+	_stack.push(t);
+      }
+    }
+    Stack<const TermList*> _stack;
+    bool _used;
+  };
+
+  /**
    * Iterator that yields non-variable proper subterms
-   * of specified @b term.
+   * of specified @b term in DFS left to right order.
    */
   class NonVariableIterator
   : public IteratorCore<TermList>
@@ -342,7 +380,7 @@ public:
     }
 
     bool hasNext();
-    /** Return the next variable
+    /** Return next non-variable subterm.
      * @warning hasNext() must have been called before */
     TermList next()
     {

@@ -16,13 +16,28 @@
 using namespace std;
 using namespace Lib;
 
+#if COMPIT_GENERATOR
+struct nullstream:
+public std::ostream {
+  struct nullbuf: public std::streambuf {
+    int overflow(int c) { return traits_type::not_eof(c); }
+  } m_sbuf;
+  nullstream(): std::ios(&m_sbuf), std::ostream(&m_sbuf) {}
+};
+nullstream nullStream;
+#endif
+
 /**
  * @since 06/05/2007 Manchester
  */
 Environment::Environment()
   : options(0),
     signature(0),
+#if COMPIT_GENERATOR && !VDEBUG
+    out(nullStream),
+#else
     out(std::cout),
+#endif
     sharing(0),
     statistics(0),
     ordering(0)

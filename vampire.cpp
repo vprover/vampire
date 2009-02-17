@@ -2,6 +2,8 @@
  * @file vampire.cpp. Implements the top-level procedures of Vampire.
  */
 
+#include <iostream>
+#include <ostream>
 #include <fstream>
 #include <csignal>
 
@@ -146,7 +148,7 @@ void spiderMode()
 
 void explainException (Exception& exception)
 {
-  exception.cry(cout);
+  exception.cry(env.out);
 } // explainException
 
 
@@ -213,7 +215,7 @@ int main(int argc, char* argv [])
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
-    cout << "Insufficient system memory" << '\n';
+    env.out << "Insufficient system memory" << '\n';
   }
 //   delete env.allocator;
   return EXIT_SUCCESS;

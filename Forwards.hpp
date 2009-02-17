@@ -6,6 +6,8 @@
 #ifndef __Forwards__
 #define __Forwards__
 
+#define COMPIT_GENERATOR 1
+
 namespace Lib
 {
 template<typename T> class VirtualIterator;
