@@ -6,7 +6,7 @@
 #ifndef __Forwards__
 #define __Forwards__
 
-#define COMPIT_GENERATOR 1
+#include "Config.hpp"
 
 namespace Lib
 {
@@ -48,6 +48,7 @@ typedef List<Clause*> ClauseList;
 class DoubleSubstitution;
 class Renaming;
 class Substitution;
+class RobSubstitution;
 class MMSubstitution;
 typedef VirtualIterator<MMSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<MMSubstitution> MMSubstitutionSP;

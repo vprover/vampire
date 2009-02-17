@@ -70,6 +70,8 @@ public:
 
   static ResultSubstitutionSP fromMMSubstitution(MMSubstitution* s,
 	  int queryBank, int resultBank);
+  static ResultSubstitutionSP fromRobSubstitution(RobSubstitution* s,
+	  int queryBank, int resultBank);
 };
 
 

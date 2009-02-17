@@ -1,6 +1,6 @@
 /**
  * @file CompitOutput.cpp
- * Implements class CompitOutput for writing COMPIT benchmark files.
+ * Implements class CompitOutput for writing COMPIT2 benchmark files.
  */
 
 #include "../Debug/Assertion.hpp"
@@ -31,6 +31,21 @@ void CompitOutput::printSignature()
   signaturePrinted=true;
 }
 
+void CompitOutput::printSignatureForLiterals()
+{
+  CALL("CompitOutput::printSignatureForLiterals");
+  unsigned fCnt=env.signature->functions();
+  for(unsigned fn=0;fn<fCnt; fn++) {
+    cout<<getFunctorChar(fn)<<'/'<<env.signature->functionArity(fn)<<'\n';
+  }
+  unsigned pCnt=env.signature->predicates();
+  for(unsigned hdr=0;hdr<pCnt*2; hdr++) {
+    cout<<getPredSymbolChar(hdr)<<'/'<<env.signature->predicateArity(hdr/2)<<'\n';
+  }
+  cout<<"$\n";
+  signaturePrinted=true;
+}
+
 char CompitOutput::getFunctorChar(unsigned fn)
 {
   CALL("CompitOutput::getFunctorChar");
@@ -38,6 +53,16 @@ char CompitOutput::getFunctorChar(unsigned fn)
     fail();
   }
   return 97+fn;
+}
+
+char CompitOutput::getPredSymbolChar(unsigned header)
+{
+  CALL("CompitOutput::getPredSymbolChar");
+  unsigned index=env.signature->functions()+header;
+  if(index>158) {
+    fail();
+  }
+  return 97+index;
 }
 
 char CompitOutput::getVarChar(unsigned var)
@@ -53,9 +78,9 @@ char CompitOutput::getVarChar(unsigned var)
   }
 }
 
-void CompitOutput::print(CompitOperation op, const TermList t)
+void CompitOutput::print(CompitOperation op, TermList t)
 {
-  CALL("CompitOutput::print");
+  CALL("CompitOutput::print(CompitOperation,TermList)");
   if(!signaturePrinted) {
     printSignature();
   }
@@ -87,6 +112,40 @@ void CompitOutput::print(CompitOperation op, const TermList t)
 	ASS(st.isTerm());
 	cout<<getFunctorChar(st.term()->functor());
       }
+    }
+  }
+  cout<<'\n';
+}
+
+void CompitOutput::print(CompitOperation op, Literal* lit, bool complementary)
+{
+  CALL("CompitOutput::print(CompitOperation,Literal*)");
+  if(!signaturePrinted) {
+    printSignatureForLiterals();
+  }
+  switch(op) {
+  case INSERT:
+    cout<<'+';
+    break;
+  case DELETE:
+    cout<<'+';
+    break;
+  case SUCCESSFUL_QUERY:
+    cout<<'!';
+    break;
+  case UNSUCCESSFUL_QUERY:
+    cout<<'?';
+    break;
+  }
+  cout<<getPredSymbolChar(complementary?lit->complementaryHeader():lit->header());
+  Term::SubtermIterator stit(lit);
+  while(stit.hasNext()) {
+    TermList st=stit.next();
+    if(st.isOrdinaryVar()) {
+      cout<<getVarChar(st.var());
+    } else {
+      ASS(st.isTerm());
+      cout<<getFunctorChar(st.term()->functor());
     }
   }
   cout<<'\n';

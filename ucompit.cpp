@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <iostream>
 
 #include "Forwards.hpp"
 
@@ -36,13 +37,13 @@ using namespace Indexing;
 #define INPUTSIZE      524288    // 500Kb read from disk each time
 #define MAXTERMSIZE    2000      // maximum number of chars of each term
                                  // in benchmarks
-typedef char *stringterm;
+typedef unsigned char *stringterm;
 
 #define IsVar(x)  ( (x>=48 && x<=57) || (x>=65 && x<=90) )
 #define IsSym(x)  ( (x>=97 && x<=255) )
 
-void ApplicationOp(char op, TermList t);
-TermList MakeTerm(char* str);
+void ApplicationOp(unsigned char op, TermList t);
+TermList MakeTerm(unsigned char* str);
 
 
 
@@ -59,9 +60,9 @@ struct SymbolTableEntry
 SymbolTableEntry symbolTable[256];
 
 
-char buf[INPUTSIZE];
+unsigned char buf[INPUTSIZE];
 TermList terms[INPUTSIZE/2];     // terms
-char oper[INPUTSIZE/2];        // operations
+unsigned char oper[INPUTSIZE/2];        // operations
 
 int insertions=0;
 int deletions=0;
@@ -74,7 +75,7 @@ void readSymbolTable(FILE* in)
   CALL("readSymbolTable");
 
   int arity;
-  char c=getc(in);
+  int c=getc(in);
   while (c != EOF)
     {
       if (c=='$') break; // $ indicates end of symboltable
@@ -98,11 +99,11 @@ int main( int argc, char *argv[] )
   FILE *in;
 
   if (argc != 2) {
-    printf("Usage: vcompit <benchmark file>\n");
+    cout<<"Usage: vcompit <benchmark file>\n";
     return(0);
   }
   if (!(in = fopen(argv[1], "r"))) {
-    printf("\n\nUnable to open file\n\n");
+    cout<<"\n\nUnable to open file\n\n";
     return(0);
   }
 
@@ -128,7 +129,7 @@ int main( int argc, char *argv[] )
     {
       /* ====== read new terms from disk ======== */
       int i=0;
-      char c=getc(in);
+      int c=getc(in);
       while (1)
       {
 	if (c==EOF) {
@@ -168,16 +169,14 @@ int main( int argc, char *argv[] )
 #endif
 
       compitTimer.start();
-      timer.start();
       for (j=0;j<numops;j++) {
 	/* The translated queries (terms and operations) are send to application. */
         ApplicationOp(oper[j], (terms[j]) );
       }
 
-      timer.stop();
       compitTimer.stop();
     }
-  printf("Indexing time without compiling:\t%d ms\nIndexing time:\t%d ms\n",
+  printf("Total time:\t%d ms\nIndexing time:\t%d ms\n",
 	  timer.elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
 
   printf("ops:%d, +:%d, -:%d.\n",operations,insertions,deletions);
@@ -185,8 +184,10 @@ int main( int argc, char *argv[] )
 }
 
 /* The actual queries are performed (send to Waldmeister). */
-void ApplicationOp(char op, TermList t)
+void ApplicationOp(unsigned char op, TermList t)
 {
+  CALL("ApplicationOp");
+
   static TermSubstitutionTree* index=0;
   if(!index) {
     index=new TermSubstitutionTree();
@@ -204,12 +205,12 @@ void ApplicationOp(char op, TermList t)
       deletions++;
       break;
     case '!':
-      found = index->generalizationExists(t);
-      if (!found) { printf("match not found!\n"); exit(1); }
+      found = index->getUnifications(t,false).hasNext();
+      if (!found) { cout<<"match not found!\n"<<t.toString()<<"\n"; exit(1); }
       break;
     case '?':
-      found = index->generalizationExists(t);
-      if (found)  { printf("wrong match found! (w/ %d).\n",found); exit(1); }
+      found = index->getUnifications(t,false).hasNext();
+      if (found)  { cout<<"wrong match found!\n"<<t.toString()<<"\n"; exit(1); }
       break;
     }
 }
@@ -217,27 +218,29 @@ void ApplicationOp(char op, TermList t)
 /* ========== translation form stringterm to flatterm ==== */
 /* This is: From Benchmark to Waldmeister */
 
-TermList MakeTerm(char* str)
+TermList MakeTerm(unsigned char* str)
 {
-  static Stack<char> chars(MAXTERMSIZE);
-  static Stack<char> terms(64);
+  CALL("MakeTerm");
+
+  static Stack<unsigned char> chars(MAXTERMSIZE);
+  static Stack<unsigned char> terms(64);
   static Stack<TermList> args(64);
   ASS(chars.isEmpty());
   ASS(terms.isEmpty());
   ASS(args.isEmpty());
-  char* ptr=str;
+  unsigned char* ptr=str;
   while(*ptr) {
     chars.push(*(ptr++));
   }
 
   while(!chars.isEmpty()) {
-    char ch=chars.pop();
+    unsigned char ch=chars.pop();
     if(IsVar(ch)) {
       TermList aux;
       aux.makeVar(ch);
       args.push(aux);
     } else {
-      ASS(IsSym(ch));
+      ASS_REP(IsSym(ch), (int)ch);
       ASS(symbolTable[(int)ch].used);
 
       unsigned functor=symbolTable[(int)ch].num;

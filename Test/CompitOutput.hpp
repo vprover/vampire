@@ -30,11 +30,14 @@ public:
     UNSUCCESSFUL_QUERY
   };
 
-  static void print(CompitOperation op, const TermList t);
+  static void print(CompitOperation op, TermList t);
+  static void print(CompitOperation op, Literal* t, bool complementary=false);
 private:
   static bool signaturePrinted;
 
   static void printSignature();
+  static void printSignatureForLiterals();
+  static char getPredSymbolChar(unsigned header);
   static char getFunctorChar(unsigned fn);
   static char getVarChar(unsigned var);
 

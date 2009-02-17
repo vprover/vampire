@@ -60,7 +60,11 @@ Index* IndexManager::create(IndexType t)
   TermIndexingStructure* tis;
   switch(t) {
   case GENERATING_SUBST_TREE:
+#if COMPIT_GENERATOR==2
+    is=new CompitUnificationRecordingLiteralSubstitutionTree();
+#else
     is=new LiteralSubstitutionTree();
+#endif
     res=new GeneratingLiteralIndex(is);
     res->attachContainer(_alg->getGenerationClauseContainer());
     break;
@@ -76,7 +80,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-#if COMPIT_GENERATOR
+#if COMPIT_GENERATOR==1
     tis=new CompitUnificationRecordingTermSubstitutionTree();
 #else
     tis=new TermSubstitutionTree();

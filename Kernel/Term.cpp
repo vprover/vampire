@@ -577,7 +577,7 @@ bool Term::VariableIterator::hasNext()
  */
 bool Term::SubtermIterator::hasNext()
 {
-  CALL("Term::NonVariableIterator::hasNext");
+  CALL("Term::SubtermIterator::hasNext");
 
   if(_stack.isEmpty()) {
     return false;
@@ -591,6 +591,25 @@ bool Term::SubtermIterator::hasNext()
   if(t->isTerm()) {
     pushNext(t->term()->args());
   }
+  return !_stack.isEmpty();
+}
+
+/**
+ * True if there exists next subterm
+ */
+bool Term::PolishSubtermIterator::hasNext()
+{
+  CALL("Term::PolishSubtermIterator::hasNext");
+
+  if(_stack.isEmpty()) {
+    return false;
+  }
+  if(!_used) {
+    return true;
+  }
+  _used=false;
+  const TermList* t=_stack.pop();
+  pushNext(t->next());
   return !_stack.isEmpty();
 }
 
