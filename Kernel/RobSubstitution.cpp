@@ -270,97 +270,29 @@ void RobSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
   ts2=aux;
 }
 
-TermList RobSubstitution::getAuxTerm(TermSpec ts)
+
+bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 {
-  CALL("RobSubstitution::getAuxTerm");
-
-  int index=ts.index;
-  if(index==AUX_INDEX) {
-    return ts.term;
-  }
-
-  static Stack<TermList*> toDo(32);
-  static Stack<Term*> terms(32);
-  static Stack<TermList> args(32);
-
-  toDo.push(&ts.term);
-
-  while(!toDo.isEmpty()) {
-    TermList* tt=toDo.pop();
-    if(tt->isEmpty()) {
-      Term* orig=terms.pop();
-      //here we assume, that stack is an array with
-      //second topmost element as &top()-1, third at
-      //&top()-2, etc...
-      TermList* argLst=&args.top() - (orig->arity()-1);
-      args.truncate(args.length() - orig->arity());
-      TermList constructed;
-      constructed.setTerm(Term::create(orig,argLst));
-      args.push(constructed);
-      continue;
-    } else {
-      //if tt==&trm, we're dealing with the top
-      //term, for which the next() is undefined
-      if(tt!=&ts.term) {
-	toDo.push(tt->next());
+  vs=root(vs);
+  Stack<TermSpec> toDo(8);
+  for(;;){
+    TermIterator vit=Term::getVariableIterator(ts.term);
+    while(vit.hasNext()) {
+      VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
+      if(tvar==vs) {
+	return true;
+      }
+      TermSpec dtvar=derefBound(TermSpec(tvar));
+      if(!dtvar.isVar()) {
+	toDo.push(dtvar);
       }
     }
 
-    if(tt->isVar()) {
-      TermList aux;
-      aux.makeVar(getAuxVar(getVarSpec(*tt, index)).var);
-      args.push(aux);
-      continue;
+    if(toDo.isEmpty()) {
+      return false;
     }
-    Term* t=tt->term();
-    if(t->shared() && t->ground()) {
-      args.push(*tt);
-      continue;
-    }
-    terms.push(t);
-    toDo.push(t->args());
+    ts=toDo.pop();
   }
-  ASS(toDo.isEmpty() && terms.isEmpty() && args.length()==1);
-  return args.pop();
-}
-
-
-
-bool RobSubstitution::handleDifferentTops(TermSpec t1, TermSpec t2,
-	Stack<TTPair>& toDo, TermList* ct)
-{
-  CALL("RobSubstitution::handleDifferentTops");
-  if(t1.isVar()) {
-    VarSpec v1=getVarSpec(t1);
-    if(ct) {
-      VarSpec ctVar=getAuxVar(v1);
-      ct->makeVar(ctVar.var);
-    }
-    if(isUnbound(v1)) {
-      unifyUnbound(v1,t2);
-    } else if(t2.isVar() && isUnbound(getVarSpec(t2))) {
-      unifyUnbound(getVarSpec(t2),t1);
-    } else {
-      toDo.push(TTPair(t1,t2));
-    }
-  } else if(t2.isVar()) {
-    VarSpec v2=getVarSpec(t2);
-    if(ct) {
-      VarSpec ctVar=getAuxVar(v2);
-      ct->makeVar(ctVar.var);
-    }
-    if(isUnbound(v2)) {
-      unifyUnbound(v2,t1);
-    } else {
-      toDo.push(TTPair(t2,t1));
-    }
-  } else {
-    //tops are different and neither of them is variable, so we can't unify them
-    ASS(t1.term.isTerm() && t2.term.isTerm() &&
-	    t1.term.term()->functor()!=t2.term.term()->functor());
-    return false;
-  }
-  return true;
 }
 
 bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
@@ -384,122 +316,78 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   static Stack<TermList*> subterms(64);
   ASS(toDo.isEmpty() && subterms.isEmpty());
 
-  if(TermList::sameTopFunctor(t1.term,t2.term)) {
-    toDo.push(TTPair(t1,t2));
-  } else {
-    if(!handleDifferentTops(t1,t2,toDo,0)) {
-      mismatch=true;
-      ASS(toDo.isEmpty());
-    }
-  }
-
-
-  while(!toDo.isEmpty()) {
-    TTPair task=toDo.pop();
-    t1=task.first;
-    t2=task.second;
-    ASS(!t2.isVar() || t1.isVar());
-
+  for(;;) {
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
-    ASS(!dt1.isVar() && !dt2.isVar());
 
-    TermList* ss=&dt1.term;
-    TermList* tt=&dt2.term;
-    TermList* ct;
-
-    TermSpec commonTS;
-    bool buildingCommon=t1.isVar();
-    if(buildingCommon) {
-      //we must ensure, that commonTS.term.tag()!=REF, because if
-      //method handleDifferentTops(...,ct) returns false when
-      //ct==&commonTS, value of commonTS.term is undefined, when we
-      //get to releasing of created common term.
-      commonTS.term.makeEmpty();
-      commonTS.index=AUX_INDEX;
-      ct=&commonTS.term;
+    if(dt1.sameTermContent(dt2)) {
+    } else if(dt1.isVar()) {
+      VarSpec v1=getVarSpec(dt1);
+      if(occurs(v1, dt2)) {
+	mismatch=true;
+	break;
+      }
+      bind(v1,dt2);
+    } else if(dt2.isVar()) {
+      VarSpec v2=getVarSpec(dt2);
+      if(occurs(v2, dt1)) {
+	mismatch=true;
+	break;
+      }
+      bind(v2,dt1);
     } else {
-      ct=0;
-    }
+      TermList* ss=&dt1.term;
+      TermList* tt=&dt2.term;
 
-    Stack<TermList*> subterms(64);
-    for (;;) {
-      TermSpec tsss(*ss,dt1.index);
-      TermSpec tstt(*tt,dt2.index);
+      for (;;) {
+        TermSpec tsss(*ss,dt1.index);
+        TermSpec tstt(*tt,dt2.index);
 
-      if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt)) {
-        ASS(ss->isTerm() && tt->isTerm());
+        if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt)) {
+          ASS(ss->isTerm() && tt->isTerm());
 
-        Term* s = ss->term();
-        Term* t = tt->term();
-        ASS(s->arity() > 0);
-        ASS(s->functor() == t->functor());
+          Term* s = ss->term();
+          Term* t = tt->term();
+          ASS(s->arity() > 0);
+          ASS(s->functor() == t->functor());
 
-        if(ct) {
-          ct->setTerm(Term::createNonShared(t));
-        }
+          ss = s->args();
+          tt = t->args();
+          if (! ss->next()->isEmpty()) {
+            subterms.push(ss->next());
+            subterms.push(tt->next());
+          }
+        } else {
+          if (! TermList::sameTopFunctor(*ss,*tt)) {
+            if(ss->isVar()||tt->isVar()) {
+              toDo.push(TTPair(tsss,tstt));
+            } else {
+              mismatch=true;
+              break;
+            }
+          }
 
-        ss = s->args();
-        tt = t->args();
-        ct = ct ? ct->term()->args() : 0;
-        if (! ss->next()->isEmpty()) {
-          subterms.push(ss->next());
-          subterms.push(tt->next());
-          subterms.push(ct ? ct->next() : 0);
-        }
-      } else {
-        if (! TermList::sameTopFunctor(*ss,*tt)) {
-          if(!handleDifferentTops(tsss,tstt,toDo,ct)) {
-            mismatch=true;
+          if (subterms.isEmpty()) {
             break;
           }
-        } else { //tsss->sameContent(tstt)
-          if(ct) {
-            *ct=getAuxTerm(tsss);
+          tt = subterms.pop();
+          ss = subterms.pop();
+          if (! ss->next()->isEmpty()) {
+            subterms.push(ss->next());
+            subterms.push(tt->next());
           }
         }
-
-        if (subterms.isEmpty()) {
-          break;
-        }
-        ct = subterms.pop();
-        tt = subterms.pop();
-        ss = subterms.pop();
-        if (! ss->next()->isEmpty()) {
-          subterms.push(ss->next());
-          subterms.push(tt->next());
-          subterms.push(ct ? ct->next() : 0);
-        }
       }
     }
 
-    if(mismatch) {
-      if(buildingCommon && commonTS.term.isTerm()) {
-	commonTS.term.term()->destroyNonShared();
-      }
+    if(toDo.isEmpty()) {
       break;
     }
-
-    if(t1.isVar()) {
-      ASS(buildingCommon);
-      ASS(!commonTS.isVar());
-      VarSpec v1=root(getVarSpec(t1));
-
-      Term* shared=env.sharing->insertRecurrently(commonTS.term.term());
-      commonTS.term.setTerm(shared);
-
-      if(t2.isVar()) {
-	VarSpec v2=root(getVarSpec(t2));
-	makeEqual(v1, v2, commonTS);
-      } else {
-	bind(v1, commonTS);
-      }
-    }
+    t1=toDo.top().first;
+    t2=toDo.pop().second;
   }
 
-  if(!mismatch) {
-    mismatch=occurCheckFails();
-  } else {
+  if(mismatch) {
     subterms.reset();
     toDo.reset();
   }
@@ -609,7 +497,6 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
     }
   }
 
-  ASS(!occurCheckFails());
   bdDone();
 
   subterms.reset();
@@ -728,296 +615,6 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   known.reset();
   return args.pop();
 }
-
-bool RobSubstitution::occurCheckFails() const
-{
-  CALL("RobSubstitution::occurCheckFails");
-
-  static Stack<VarSpec> maybeUnref(8);
-  static Stack<VarSpec> unref(8);
-  DHMultiset<VarSpec,VarSpec::Hash1,VarSpec::Hash2> refCounter;
-
-  ASS(maybeUnref.isEmpty() && unref.isEmpty());
-
-  BankType::Iterator bit(_bank);
-  while(bit.hasNext()) {
-    VarSpec vs;
-    TermSpec ts;
-    bit.next(vs,ts);
-    ASSERT_VALID(ts.term);
-    if(!ts.term.isTerm()) {
-      continue;
-    }
-    if(!refCounter.find(vs)) {
-      maybeUnref.push(vs);
-    }
-    Term::VariableIterator vit(ts.term.term());
-    while(vit.hasNext()) {
-      VarSpec r=root(getVarSpec(vit.next(),ts.index));
-      refCounter.insert(r);
-    }
-  }
-
-  while(!maybeUnref.isEmpty()) {
-    VarSpec vs=maybeUnref.pop();
-    if(!refCounter.find(vs)) {
-      unref.push(vs);
-    }
-  }
-  while(!unref.isEmpty()) {
-    VarSpec v=unref.pop();
-    TermSpec ts=_bank.get(v);
-    ASS(ts.term.isTerm());
-    Term::VariableIterator vit(ts.term.term());
-    while(vit.hasNext()) {
-      VarSpec r=root(getVarSpec(vit.next(),ts.index));
-      refCounter.remove(r);
-      if(!refCounter.find(r)) {
-	TermSpec rts;
-	if(_bank.find(r, rts) && rts.term.isTerm()) {
-	  unref.push(r);
-	}
-      }
-    }
-  }
-
-  return refCounter.size()!=0;
-}
-
-/**
- * Return iterator on matching substitutions of @b l1 and @b l2.
- *
- * For guides on use of the iterator, see the documentation of
- * RobSubstitution::AssocIterator.
- */
-SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
-	Literal* instance, int instanceIndex, bool complementary)
-{
-  return getAssocIterator<MatchingFn>(this, base, baseIndex,
-	  instance, instanceIndex, complementary);
-}
-
-/**
- * Return iterator on unifying substitutions of @b l1 and @b l2.
- *
- * For guides on use of the iterator, see the documentation of
- * RobSubstitution::AssocIterator.
- */
-SubstIterator RobSubstitution::unifiers(Literal* l1, int l1Index,
-	Literal* l2, int l2Index, bool complementary)
-{
-  return getAssocIterator<UnificationFn>(this, l1, l1Index,
-	  l2, l2Index, complementary);
-}
-
-template<class Fn>
-SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
-	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
-{
-  CALL("RobSubstitution::getAssocIterator");
-
-  if( !Literal::headersMatch(l1,l2,complementary) ) {
-    return SubstIterator::getEmpty();
-  }
-  if( !l1->commutative() ) {
-    return pvi( getContextualIterator(getSingletonIterator(subst),
-	    AssocContext<Fn>(l1, l1Index, l2, l2Index)) );
-  } else {
-    return vi(
-	    new AssocIterator<Fn>(subst, l1, l1Index, l2, l2Index));
-  }
-}
-
-template<class Fn>
-struct RobSubstitution::AssocContext
-{
-  AssocContext(Literal* l1, int l1Index, Literal* l2, int l2Index)
-  : _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index) {}
-  bool enter(RobSubstitution* subst)
-  {
-    subst->bdRecord(_bdata);
-    bool res=Fn::associate(subst, _l1, _l1i, _l2, _l2i);
-    if(!res) {
-      subst->bdDone();
-      ASS(_bdata.isEmpty());
-    }
-    return res;
-  }
-  void leave(RobSubstitution* subst)
-  {
-    subst->bdDone();
-    _bdata.backtrack();
-  }
-private:
-  Literal* _l1;
-  int _l1i;
-  Literal* _l2;
-  int _l2i;
-  bool _complementary;
-  BacktrackData _bdata;
-};
-
-/**
- * Iterator on associating[1] substitutions of two literals.
- *
- * Using this iterator requires special care, as the
- * substitution being returned is always the same object.
- * The rules for safe use are:
- * - After the iterator is created and before it's
- * destroyed, or hasNext() gives result false, the original
- * substitution is invalid.
- * - Substitution retrieved by call to the method next()
- * is valid only until the hasNext() method is called again
- * (or until the iterator is destroyed).
- * - Before each call to next(), hasNext() has to be called at
- * least once.
- *
- * There rules are quite natural, and the 3rd one is
- * required by many other iterators as well.
- *
- * Template parameter class Fn has to contain following
- * methods:
- * bool associate(RobSubstitution*, Literal* l1, int l1Index,
- * 	Literal* l2, int l2Index, bool complementary)
- * bool associate(RobSubstitution*, TermList t1, int t1Index,
- * 	TermList t2, int t2Index)
- * There is supposed to be one Fn class for unification and
- * one for matching.
- *
- * [1] associate means either match or unify
- */
-template<class Fn>
-class RobSubstitution::AssocIterator
-:public IteratorCore<RobSubstitution*>
-{
-public:
-  AssocIterator(RobSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index)
-  : _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2),
-  _l2i(l2Index), _state(FIRST), _used(true)
-  {
-    ASS_EQ(_l1->functor(),_l2->functor());
-    ASS(_l1->commutative());
-    ASS_EQ(_l1->arity(),2);
-  }
-  ~AssocIterator()
-  {
-    CALL("RobSubstitution::AssocIterator::~AssocIterator");
-
-    if(_state!=FINISHED && _state!=FIRST) {
-	backtrack();
-    }
-    ASS(_bdata.isEmpty());
-  }
-  bool hasNext()
-  {
-    CALL("RobSubstitution::AssocIterator::hasNext");
-
-    if(_state==FINISHED) {
-      return false;
-    }
-    if(!_used) {
-      return true;
-    }
-    _used=false;
-
-    if(_state!=FIRST) {
-      backtrack();
-    }
-    _subst->bdRecord(_bdata);
-
-    switch(_state) {
-    case NEXT_STRAIGHT:
-      if(Fn::associate(_subst, _l1, _l1i, _l2, _l2i)) {
-	_state=NEXT_REVERSED;
-	break;
-      }
-      //no break here intentionally
-    case NEXT_REVERSED:
-    {
-      TermList t11=*_l1->nthArgument(0);
-      TermList t12=*_l1->nthArgument(1);
-      TermList t21=*_l2->nthArgument(0);
-      TermList t22=*_l2->nthArgument(1);
-      if(Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
-	if(Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
-	  _state=NEXT_CLEANUP;
-	  break;
-	}
-	//the first successful association will be undone
-	//in case NEXT_CLEANUP
-      }
-    }
-    //no break here intentionally
-    case NEXT_CLEANUP:
-      //undo the previous match
-      backtrack();
-      _state=FINISHED;
-#if VDEBUG
-      break;
-    default:
-      ASSERTION_VIOLATION;
-#endif
-    }
-    ASS(_state!=FINISHED || _bdata.isEmpty());
-    return _state!=FINISHED;
-  }
-
-  RobSubstitution* next()
-  {
-    _used=true;
-    return _subst;
-  }
-private:
-  void backtrack()
-  {
-    CALL("RobSubstitution::AssocIterator::backtrack");
-
-    ASS_EQ(&_bdata,&_subst->bdGet());
-    _subst->bdDone();
-    _bdata.backtrack();
-  }
-  enum State {
-    FIRST=0,
-    NEXT_STRAIGHT=0,
-    NEXT_REVERSED=1,
-    NEXT_CLEANUP=2,
-    FINISHED=3
-  };
-
-  RobSubstitution* _subst;
-  Literal* _l1;
-  int _l1i;
-  Literal* _l2;
-  int _l2i;
-  BacktrackData _bdata;
-
-  State _state;
-  /**
-   * true if the current substitution have already been
-   * retrieved by the next() method, or if there isn't
-   * any (hasNext() hasn't been called yet)
-   */
-  bool _used;
-};
-struct RobSubstitution::MatchingFn {
-  static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index)
-  { return subst->matchArgs(l1,l1Index,l2,l2Index); }
-
-  static bool associate(RobSubstitution* subst, TermList t1, int t1Index,
-	  TermList t2, int t2Index)
-  { return subst->match(t1,t1Index,t2,t2Index); }
-};
-struct RobSubstitution::UnificationFn {
-  static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index)
-  { return subst->unifyArgs(l1,l1Index,l2,l2Index); }
-
-  static bool associate(RobSubstitution* subst, TermList t1, int t1Index,
-	  TermList t2, int t2Index)
-  { return subst->unify(t1,t1Index,t2,t2Index); }
-};
 
 
 #if VDEBUG

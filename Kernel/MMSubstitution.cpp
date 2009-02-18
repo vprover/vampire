@@ -131,7 +131,7 @@ bool MMSubstitution::isUnbound(VarSpec v) const
  * return a term, thjat has the same top functor. Otherwise
  * return an arbitrary variable.
  */
-TermList MMSubstitution::getSpecialVarTop(unsigned specialVar) const
+TermList MMSubstitution::getSpecialVarTop(unsigned specialVar)
 {
   VarSpec v(specialVar, SPECIAL_INDEX);
   for(;;) {
@@ -212,15 +212,23 @@ void MMSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
   bind(var,TermSpec(to));
 }
 
-MMSubstitution::VarSpec MMSubstitution::root(VarSpec v) const
+MMSubstitution::VarSpec MMSubstitution::root(VarSpec v)
 {
   CALL("MMSubstitution::root");
+  static Stack<VarSpec> encountered(32);
   for(;;) {
     TermSpec binding;
     bool found=_bank.find(v,binding);
     if(!found || binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
+      if(encountered.isNonEmpty()) {
+	encountered.pop();
+	while(encountered.isNonEmpty()) {
+	  bind(encountered.pop(), TermSpec(v));
+	}
+      }
       return v;
     }
+//    encountered.push(v);
     v=getVarSpec(binding);
   }
 }
@@ -628,7 +636,7 @@ bool MMSubstitution::match(TermSpec base, TermSpec instance)
 }
 
 
-Literal* MMSubstitution::apply(Literal* lit, int index) const
+Literal* MMSubstitution::apply(Literal* lit, int index)
 {
   CALL("MMSubstitution::apply(Literal*...)");
   static DArray<TermList> ts(32);
@@ -646,7 +654,7 @@ Literal* MMSubstitution::apply(Literal* lit, int index) const
   return Literal::create(lit,ts.array());
 }
 
-TermList MMSubstitution::apply(TermList trm, int index) const
+TermList MMSubstitution::apply(TermList trm, int index)
 {
   CALL("MMSubstitution::apply(TermList...)");
 
@@ -729,7 +737,7 @@ TermList MMSubstitution::apply(TermList trm, int index) const
   return args.pop();
 }
 
-bool MMSubstitution::occurCheckFails() const
+bool MMSubstitution::occurCheckFails()
 {
   CALL("MMSubstitution::occurCheckFails");
 
@@ -1021,7 +1029,7 @@ struct MMSubstitution::UnificationFn {
 
 
 #if VDEBUG
-string MMSubstitution::toString(bool deref) const
+string MMSubstitution::toString(bool deref)
 {
   CALL("MMSubstitution::toString");
   string res;
@@ -1049,7 +1057,7 @@ string MMSubstitution::toString(bool deref) const
   return res;
 }
 
-std::string MMSubstitution::VarSpec::toString() const
+std::string MMSubstitution::VarSpec::toString()
 {
   if(index==SPECIAL_INDEX) {
     return "S"+Int::toString(var);
@@ -1058,7 +1066,7 @@ std::string MMSubstitution::VarSpec::toString() const
   }
 }
 
-string MMSubstitution::TermSpec::toString() const
+string MMSubstitution::TermSpec::toString()
 {
   return Test::Output::singleTermListToString(term)+"/"+Int::toString(index);
 }

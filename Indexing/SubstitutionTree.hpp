@@ -25,6 +25,7 @@
 
 #include "../Kernel/DoubleSubstitution.hpp"
 #include "../Kernel/MMSubstitution.hpp"
+#include "../Kernel/RobSubstitution.hpp"
 #include "../Kernel/Matcher.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Kernel/Clause.hpp"
@@ -45,6 +46,9 @@ using namespace Kernel;
 #define REORDERING 1
 #define VARIABLE_MARKING 0
 #define NEW_VARIABLE_MARK 0x20000000u
+
+//#define SUBST_CLASS RobSubstitution
+#define SUBST_CLASS MMSubstitution
 
 namespace Indexing {
 
@@ -661,7 +665,7 @@ public:
     static const int NORM_QUERY_BANK=2;
     static const int NORM_RESULT_BANK=3;
 
-    MMSubstitution subst;
+    SUBST_CLASS subst;
     VarStack svStack;
 
   private:

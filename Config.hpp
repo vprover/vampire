@@ -13,7 +13,7 @@
  * subterm index operations are recorded, if 2,
  * binary resolution index operations are recorder.
  */
-#define COMPIT_GENERATOR 1
+#define COMPIT_GENERATOR 2
 
 #if COMPIT_GENERATOR
 /**

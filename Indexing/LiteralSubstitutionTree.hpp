@@ -75,7 +75,7 @@ class CompitUnificationRecordingLiteralSubstitutionTree
   }
   void remove(Literal* lit, Clause* cls)
   {
-    LiteralSubstitutionTree::insert(lit,cls);
+    LiteralSubstitutionTree::remove(lit,cls);
     if(!lit->commutative()) {
       Renaming norm;
       norm.normalizeVariables(lit);

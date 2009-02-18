@@ -68,9 +68,9 @@ public:
 
   virtual MMSubstitution* tryGetMMSubstitution() { return 0; }
 
-  static ResultSubstitutionSP fromMMSubstitution(MMSubstitution* s,
+  static ResultSubstitutionSP fromSubstitution(MMSubstitution* s,
 	  int queryBank, int resultBank);
-  static ResultSubstitutionSP fromRobSubstitution(RobSubstitution* s,
+  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s,
 	  int queryBank, int resultBank);
 };
 

@@ -823,7 +823,7 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     subst.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
     subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
 
-    return QueryResult(&ld, ResultSubstitution::fromMMSubstitution(
+    return QueryResult(&ld, ResultSubstitution::fromSubstitution(
 	    &subst, QUERY_BANK, RESULT_BANK));
   } else {
     return QueryResult(&ld, ResultSubstitutionSP());

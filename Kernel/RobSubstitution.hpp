@@ -33,9 +33,6 @@ class RobSubstitution
 public:
   RobSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
 
-  SubstIterator matches(Literal* base, int baseIndex,
-	  Literal* instance, int instanceIndex, bool complementary);
-  SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
   bool unify(TermList t1,int index1, TermList t2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
@@ -196,10 +193,8 @@ private:
   bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
   void unifyUnbound(VarSpec v, TermSpec ts);
+  bool occurs(VarSpec vs, TermSpec ts);
 
-  bool occurCheckFails() const;
-
-  TermList getAuxTerm(TermSpec ts);
   VarSpec getAuxVar(VarSpec target)
   {
     CALL("RobSubstitution::getAuxVar");
@@ -269,18 +264,6 @@ private:
     VarSpec _var;
     TermSpec _term;
   };
-
-  template<class Fn>
-  SubstIterator getAssocIterator(RobSubstitution* subst,
-	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
-
-  template<class Fn>
-  struct AssocContext;
-  template<class Fn>
-  class AssocIterator;
-
-  struct MatchingFn;
-  struct UnificationFn;
 
 };
 

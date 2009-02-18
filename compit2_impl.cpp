@@ -108,6 +108,7 @@ unsigned compitQuery(TermStruct t)
   TermQueryResultIterator res=getIndex()->getUnifications(t,false);
   unsigned cnt=0;
   while(res.hasNext()) {
+//    cout<<"fnd\t"<<res.next().term<<endl;
     res.next();
     cnt++;
   }

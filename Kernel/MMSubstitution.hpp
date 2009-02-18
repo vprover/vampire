@@ -66,12 +66,12 @@ public:
     ASS(!_bank.find(vs));
     bind(vs, TermSpec(t,index));
   }
-  TermList getSpecialVarTop(unsigned specialVar) const;
-  TermList apply(TermList t, int index) const;
-  Literal* apply(Literal* lit, int index) const;
+  TermList getSpecialVarTop(unsigned specialVar);
+  TermList apply(TermList t, int index);
+  Literal* apply(Literal* lit, int index);
 
 #if VDEBUG
-  std::string toString(bool deref=false) const;
+  std::string toString(bool deref=false);
   /**
    * Return number of bindings stored in the substitution.
    *
@@ -96,7 +96,7 @@ public:
     { return !(*this==o); }
 
 #if VDEBUG
-    std::string toString() const;
+    std::string toString();
 #endif
 
     /** number of variable */
@@ -161,7 +161,7 @@ public:
       return term.isVar();
     }
 #if VDEBUG
-    string toString() const;
+    string toString();
 #endif
 
     /** term reference */
@@ -190,14 +190,14 @@ private:
 
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
-  VarSpec root(VarSpec v) const;
+  VarSpec root(VarSpec v);
   bool match(TermSpec base, TermSpec instance);
   bool unify(TermSpec t1, TermSpec t2);
   bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
   void unifyUnbound(VarSpec v, TermSpec ts);
 
-  bool occurCheckFails() const;
+  bool occurCheckFails();
 
   TermList getAuxTerm(TermSpec ts);
   VarSpec getAuxVar(VarSpec target)
@@ -257,7 +257,7 @@ private:
       }
     }
 #if VDEBUG
-    std::string toString() const
+    std::string toString()
     {
       return "(MM backtrack object for "+ _var.toString() +")";
     }

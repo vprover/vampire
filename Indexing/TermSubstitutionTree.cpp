@@ -210,7 +210,7 @@ struct TermSubstitutionTree::LDToTermQueryResultWithSubstFn
   DECL_RETURN_TYPE(TermQueryResult);
   OWN_RETURN_TYPE operator() (const LeafData& ld) {
     return TermQueryResult(ld.term, ld.literal, ld.clause,
-	    ResultSubstitution::fromMMSubstitution(_subst.ptr(),
+	    ResultSubstitution::fromSubstitution(_subst.ptr(),
 		    QRS_QUERY_BANK,QRS_RESULT_BANK));
   }
 private:
