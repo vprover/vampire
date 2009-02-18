@@ -18,20 +18,10 @@
 
 using namespace Lib;
 
-typedef unsigned char *stringterm;
-
-#define IsVar(x)  ( (x>=48 && x<=57) || (x>=65 && x<=90) )
-#define IsSym(x)  ( (x>=97 && x<=255) )
-
-void ApplicationOp(unsigned char op, TermList t);
-TermList MakeTerm(unsigned char* str);
-
 #define OP_BUFFER_CNT 50000
 
 
 /* ======= Data structures for general driver: =================== */
-
-WORD buf[INPUTSIZE];
 
 TermStruct terms[OP_BUFFER_CNT];     // terms
 WORD oper[OP_BUFFER_CNT];        // operations
@@ -44,7 +34,7 @@ int numops;
 bool readWord(FILE* f, WORD& val)
 {
   char buf[sizeof(WORD)];
-  for(int i=0;i<sizeof(WORD);i++) {
+  for(unsigned i=0;i<sizeof(WORD);i++) {
     int c=getc(f);
     if(c==EOF) {
       return false;
@@ -72,10 +62,11 @@ bool readOp(FILE* f, int bufferIndex)
   WORD w=getWord(f);
   while(w!=TERM_SEPARATOR) {
     if(w<0) {
-      res=compitTermVar(-w+1);
+      res=compitTermVar(-w-1);
     } else {
       res=compitTermFn(w);
     }
+    w=getWord(f);
   }
   terms[bufferIndex]=res;
 
@@ -110,10 +101,12 @@ int main( int argc, char *argv[] )
     return(0);
   }
 
+  Timer compitTimer;
+  Timer totalTimer;
+  totalTimer.start();
+
   readSymbolTable(in);
 
-  Timer totalTimer;
-  Timer compitTimer;
 
   /* First of all, the queries from the benchmark are prepared as input for the application. */
   /* ====== MAIN LOOP ======== */
@@ -126,7 +119,6 @@ int main( int argc, char *argv[] )
       {
 	bool res=readOp(in, numops);
 	if (!res) {
-	  buf[numops]='\0';
 	  notfinished=0;
 	  break;
 	}
@@ -140,15 +132,22 @@ int main( int argc, char *argv[] )
 
       compitTimer.start();
       for (int i=0;i<numops;i++) {
+	operations++;
 	if(oper[i]==-1) {
+//	  cout<<"+\t"<<terms[i].toString()<<endl;
 	  compitInsert(terms[i]);
+	  insertions++;
 	} else if(oper[i]==-2) {
+//	  cout<<"-\t"<<terms[i].toString()<<endl;
 	  compitDelete(terms[i]);
+	  deletions++;
 	} else {
+//	  cout<<"?"<<oper[i]<<"\t"<<terms[i].toString()<<endl;
 	  ASS_GE(oper[i],0);
 	  unsigned cnt=compitQuery(terms[i]);
-	  if(cnt!=oper[i]) {
-	    if (!found) { printf("Found %d matches while there should be %d.\n",cnt,oper[i]); exit(1); }
+	  if(cnt!=(unsigned)oper[i]) {
+	    printf("Found %d matches while there should be %d.\n",cnt,oper[i]);
+	    exit(1);
 	  }
 	}
       }
@@ -156,7 +155,7 @@ int main( int argc, char *argv[] )
       compitTimer.stop();
     }
   printf("Total time:\t%d ms\nIndexing time:\t%d ms\n",
-	  timer.elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
+	  totalTimer.elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
 
   printf("ops:%d, +:%d, -:%d.\n",operations,insertions,deletions);
   return 0;

@@ -130,8 +130,6 @@ void Compit2Output::print(Operation op, TermList t, unsigned resultCount)
     buf[pos++]=getVarRepr(t.var());
   } else {
     ASS(t.isTerm());
-    buf[pos++]=getFunctorRepr(t.term()->functor());
-
     Term::PolishSubtermIterator stit(t.term());
     while(stit.hasNext()) {
       TermList st=stit.next();
@@ -142,6 +140,7 @@ void Compit2Output::print(Operation op, TermList t, unsigned resultCount)
 	buf[pos++]=getFunctorRepr(st.term()->functor());
       }
     }
+    buf[pos++]=getFunctorRepr(t.term()->functor());
   }
   buf[pos++]=TERM_SEPARATOR;
 
@@ -173,8 +172,6 @@ void Compit2Output::print(Operation op, Literal* lit, unsigned resultCount, bool
 
   int pos=1;
 
-  buf[pos++]=getPredSymbolRepr(complementary?lit->complementaryHeader():lit->header());
-
   Term::PolishSubtermIterator stit(lit);
   while(stit.hasNext()) {
     TermList st=stit.next();
@@ -185,6 +182,8 @@ void Compit2Output::print(Operation op, Literal* lit, unsigned resultCount, bool
       buf[pos++]=getFunctorRepr(st.term()->functor());
     }
   }
+  buf[pos++]=getPredSymbolRepr(complementary?lit->complementaryHeader():lit->header());
+
   buf[pos++]=TERM_SEPARATOR;
 
   cout.write(reinterpret_cast<char*>(buf),pos*sizeof(WORD));

@@ -16,7 +16,7 @@
 typedef int32_t WORD;
 #define TERM_SEPARATOR 0x7FFFFFFF
 
-typedef TermList TermStruct;
+typedef Kernel::TermList TermStruct;
 
 /**
  * Initializes the index structure. The benchmark will use

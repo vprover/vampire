@@ -100,7 +100,7 @@ class CompitUnificationRecordingTermSubstitutionTree
   }
   void remove(TermList t, Literal* lit, Clause* cls)
   {
-    TermSubstitutionTree::insert(t,lit,cls);
+    TermSubstitutionTree::remove(t,lit,cls);
     Renaming norm;
     norm.normalizeVariables(t);
 #if COMPIT_VERSION==2

@@ -10,6 +10,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
@@ -40,9 +41,8 @@ void compitInit(unsigned symCnt, unsigned fnSymCnt)
   Timer timer;
   timer.start();
   env.timer = &timer;
-  env.signature = new Kernel::Signature;
-  Indexing::TermSharing sharing;
-  env.sharing = &sharing;
+  env.signature = new Signature;
+  env.sharing = new TermSharing;
 
   Lib::Random::resetSeed();
   Allocator::setMemoryLimit(1000000000); //memory limit set to 1g
@@ -57,12 +57,60 @@ void compitAddSymbol(unsigned functor, unsigned arity)
   ASS_EQ(num,functor);
 }
 
+Stack<TermList> assemblingStack(64);
 
-void compitTermBegin();
-TermStruct compitTermVar(unsigned var);
-TermStruct compitTermFn(unsigned functor);
+void compitTermBegin()
+{
+  ASS(assemblingStack.isEmpty() || assemblingStack.length()==1);
+  assemblingStack.reset();
+}
+TermStruct compitTermVar(unsigned var)
+{
+  assemblingStack.push(TermList(var,false));
+  return assemblingStack.top();
+}
+TermStruct compitTermFn(unsigned functor)
+{
+  unsigned arity=env.signature->functionArity(functor);
+  ASS_GE(assemblingStack.length(),arity);
 
-void compitInsert(TermStruct t);
-void compitDelete(TermStruct t);
-unsigned compitQuery(TermStruct t);
+  Term* trm=new(arity) Term();
+  trm->makeSymbol(functor, arity);
+
+  for(int i=arity-1;i>=0;i--) {
+	*trm->nthArgument(i)=assemblingStack.pop();
+  }
+
+  assemblingStack.push(TermList(env.sharing->insert(trm)));
+  return assemblingStack.top();
+}
+
+
+TermSubstitutionTree* getIndex()
+{
+  static TermSubstitutionTree* index=0;
+  if(!index) {
+    index=new TermSubstitutionTree();
+  }
+  return index;
+}
+
+void compitInsert(TermStruct t)
+{
+  getIndex()->insert(t,0,0);
+}
+void compitDelete(TermStruct t)
+{
+  getIndex()->remove(t,0,0);
+}
+unsigned compitQuery(TermStruct t)
+{
+  TermQueryResultIterator res=getIndex()->getUnifications(t,false);
+  unsigned cnt=0;
+  while(res.hasNext()) {
+    res.next();
+    cnt++;
+  }
+  return cnt;
+}
 

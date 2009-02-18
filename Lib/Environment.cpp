@@ -33,7 +33,7 @@ nullstream nullStream;
 Environment::Environment()
   : options(0),
     signature(0),
-#if COMPIT_GENERATOR && !VDEBUG
+#if COMPIT_GENERATOR// && !VDEBUG
     out(nullStream),
 #else
     out(std::cout),
