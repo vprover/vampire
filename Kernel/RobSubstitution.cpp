@@ -307,18 +307,18 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   BacktrackData localBD;
   bdRecord(localBD);
 
-  //toDo stack contains pairs of terms to be unified.
-  //Terms in those pairs can be either complex pairs
-  //or bound variables. If pair consists of one complex
-  //term and one bound variable, the bound variable has
-  //to be first.
   static Stack<TTPair> toDo(64);
   static Stack<TermList*> subterms(64);
   ASS(toDo.isEmpty() && subterms.isEmpty());
 
+//  cout<<" -------- "<<endl;
+
+
   for(;;) {
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
+
+//    cout<<dt1<<" <---> "<<dt2<<endl;
 
     if(dt1.sameTermContent(dt2)) {
     } else if(dt1.isVar()) {
