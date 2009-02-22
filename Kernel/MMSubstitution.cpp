@@ -284,12 +284,12 @@ bool MMSubstitution::occurs(VarSpec vs, TermSpec ts)
       if(tvar==vs) {
 	return true;
       }
-//      if(!encountered.contains(tvar)) {
-//	encountered.insert(tvar);
+      if(!encountered.contains(tvar)) {
+	encountered.insert(tvar);
 	TermSpec dtvar=derefBound(TermSpec(tvar));
 	if(!dtvar.isVar()) {
 	  toDo.push(dtvar);
-//	}
+	}
       }
     }
 
