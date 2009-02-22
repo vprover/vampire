@@ -13,6 +13,7 @@
 #include "../Lib/DHMap.hpp"
 #include "../Lib/SkipList.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/Set.hpp"
 
 #include "Term.hpp"
 #include "Clause.hpp"
@@ -270,6 +271,34 @@ void MMSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
   }
 }
 
+bool MMSubstitution::occurs(VarSpec vs, TermSpec ts)
+{
+  vs=root(vs);
+  Stack<TermSpec> toDo(8);
+  Set<VarSpec> encountered;
+  for(;;){
+    TermIterator vit=Term::getVariableIterator(ts.term);
+    while(vit.hasNext()) {
+      VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
+      if(tvar==vs) {
+	return true;
+      }
+      if(!encountered.contains(tvar)) {
+	encountered.insert(tvar);
+	TermSpec dtvar=derefBound(TermSpec(tvar));
+	if(!dtvar.isVar()) {
+	  toDo.push(dtvar);
+	}
+      }
+    }
+
+    if(toDo.isEmpty()) {
+      return false;
+    }
+    ts=toDo.pop();
+  }
+}
+
 
 void MMSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
 {
@@ -379,9 +408,21 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
     return true;
   }
 
+  if(t1.isVar() && isUnbound(getVarSpec(t1))) {
+    VarSpec v1=root(getVarSpec(t1));
+    if(occurs(v1,t2)) {
+      return false;
+    } else {
+      bind(v1,t2);
+      return true;
+    }
+  }
+
   bool mismatch=false;
   BacktrackData localBD;
   bdRecord(localBD);
+
+
 
   //toDo stack contains pairs of terms to be unified.
   //Terms in those pairs can be either complex pairs

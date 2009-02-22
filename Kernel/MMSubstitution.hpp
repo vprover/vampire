@@ -196,6 +196,7 @@ private:
   bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
   void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
   void unifyUnbound(VarSpec v, TermSpec ts);
+  bool occurs(VarSpec vs, TermSpec ts);
 
   bool occurCheckFails();
 
