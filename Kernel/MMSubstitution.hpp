@@ -160,6 +160,12 @@ public:
     {
       return term.isVar();
     }
+
+    bool operator==(const TermSpec& o) const
+    { return term==o.term && index==o.index; }
+    bool operator!=(const TermSpec& o) const
+    { return !(*this==o); }
+
 #if VDEBUG
     string toString();
 #endif

@@ -197,6 +197,7 @@ void MMSubstitution::bind(const VarSpec& v, const TermSpec& b)
   //Aux terms don't contain special variables, ergo
   //should be shared.
   ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
+  ASS(!b.term.isVar() || b.index!=v.index || b.term.var()!=v.var);
   ASS_NEQ(v.index, UNBOUND_INDEX);
 
   if(bdIsRecording()) {
@@ -283,12 +284,12 @@ bool MMSubstitution::occurs(VarSpec vs, TermSpec ts)
       if(tvar==vs) {
 	return true;
       }
-      if(!encountered.contains(tvar)) {
-	encountered.insert(tvar);
+//      if(!encountered.contains(tvar)) {
+//	encountered.insert(tvar);
 	TermSpec dtvar=derefBound(TermSpec(tvar));
 	if(!dtvar.isVar()) {
 	  toDo.push(dtvar);
-	}
+//	}
       }
     }
 
@@ -410,10 +411,13 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
 
   if(t1.isVar() && isUnbound(getVarSpec(t1))) {
     VarSpec v1=root(getVarSpec(t1));
-    if(occurs(v1,t2)) {
+    TermSpec dt2=derefBound(t2);
+    if(!dt2.isVar() && occurs(v1,dt2)) {
       return false;
     } else {
-      bind(v1,t2);
+      if(!dt2.isVar()||v1!=getVarSpec(dt2)) {
+	bind(v1,t2);
+      }
       return true;
     }
   }
