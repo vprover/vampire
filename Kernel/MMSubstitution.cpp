@@ -421,6 +421,18 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
       return true;
     }
   }
+  if(t2.isVar() && isUnbound(getVarSpec(t2))) {
+    VarSpec v2=root(getVarSpec(t2));
+    TermSpec dt1=derefBound(t1);
+    if(!dt1.isVar() && occurs(v2,dt1)) {
+      return false;
+    } else {
+      if(!dt1.isVar()||v2!=getVarSpec(dt1)) {
+	bind(v2,t1);
+      }
+      return true;
+    }
+  }
 
   bool mismatch=false;
   BacktrackData localBD;
