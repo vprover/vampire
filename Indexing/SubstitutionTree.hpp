@@ -47,8 +47,8 @@ using namespace Kernel;
 #define VARIABLE_MARKING 0
 #define NEW_VARIABLE_MARK 0x20000000u
 
-//#define SUBST_CLASS RobSubstitution
-#define SUBST_CLASS MMSubstitution
+#define SUBST_CLASS RobSubstitution
+//#define SUBST_CLASS MMSubstitution
 
 namespace Indexing {
 

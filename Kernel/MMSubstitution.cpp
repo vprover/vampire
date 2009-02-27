@@ -276,28 +276,47 @@ bool MMSubstitution::occurs(VarSpec vs, TermSpec ts)
 {
   vs=root(vs);
   Stack<TermSpec> toDo(8);
-  Set<VarSpec> encountered;
+  if(ts.isVar()) {
+    ts=derefBound(ts);
+    if(ts.isVar()) {
+      return false;
+    }
+  }
+  typedef DHMultiset<VarSpec, VarSpec::Hash1> EncounterStore;
+  EncounterStore* encountered=0;
+  bool res;
   for(;;){
-    TermIterator vit=Term::getVariableIterator(ts.term);
+    ASS(ts.term.isTerm());
+    Term::VariableIterator vit(ts.term.term());
     while(vit.hasNext()) {
       VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
       if(tvar==vs) {
-	return true;
+	res=true;
+	goto end;
       }
-      if(!encountered.contains(tvar)) {
-	encountered.insert(tvar);
+      if(!encountered || !encountered->find(tvar)) {
 	TermSpec dtvar=derefBound(TermSpec(tvar));
 	if(!dtvar.isVar()) {
+	  if(!encountered) {
+	    encountered=new EncounterStore();
+	  }
+	  encountered->insert(tvar);
 	  toDo.push(dtvar);
 	}
       }
     }
 
     if(toDo.isEmpty()) {
-      return false;
+      res=false;
+      goto end;
     }
     ts=toDo.pop();
   }
+end:
+  if(encountered) {
+    delete encountered;
+  }
+  return res;
 }
 
 
@@ -409,30 +428,30 @@ bool MMSubstitution::unify(TermSpec t1, TermSpec t2)
     return true;
   }
 
-  if(t1.isVar() && isUnbound(getVarSpec(t1))) {
-    VarSpec v1=root(getVarSpec(t1));
-    TermSpec dt2=derefBound(t2);
-    if(!dt2.isVar() && occurs(v1,dt2)) {
-      return false;
-    } else {
-      if(!dt2.isVar()||v1!=getVarSpec(dt2)) {
-	bind(v1,t2);
-      }
-      return true;
-    }
-  }
-  if(t2.isVar() && isUnbound(getVarSpec(t2))) {
-    VarSpec v2=root(getVarSpec(t2));
-    TermSpec dt1=derefBound(t1);
-    if(!dt1.isVar() && occurs(v2,dt1)) {
-      return false;
-    } else {
-      if(!dt1.isVar()||v2!=getVarSpec(dt1)) {
-	bind(v2,t1);
-      }
-      return true;
-    }
-  }
+//  if(t1.isVar() && isUnbound(getVarSpec(t1))) {
+//    VarSpec v1=root(getVarSpec(t1));
+//    TermSpec dt2=derefBound(t2);
+//    if(!dt2.isVar() && occurs(v1,dt2)) {
+//      return false;
+//    } else {
+//      if(!dt2.isVar()||v1!=getVarSpec(dt2)) {
+//	bind(v1,t2);
+//      }
+//      return true;
+//    }
+//  }
+//  if(t2.isVar() && isUnbound(getVarSpec(t2))) {
+//    VarSpec v2=root(getVarSpec(t2));
+//    TermSpec dt1=derefBound(t1);
+//    if(!dt1.isVar() && occurs(v2,dt1)) {
+//      return false;
+//    } else {
+//      if(!dt1.isVar()||v2!=getVarSpec(dt1)) {
+//	bind(v2,t1);
+//      }
+//      return true;
+//    }
+//  }
 
   bool mismatch=false;
   BacktrackData localBD;

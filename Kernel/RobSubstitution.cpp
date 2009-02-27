@@ -31,11 +31,17 @@
 using namespace Debug;
 #endif
 
+#define EXPONENTIAL_OCCURS_CHECK 0
+
 namespace Kernel
 {
 
 using namespace std;
 using namespace Lib;
+
+long RobSubstitution::ocFailures=0;
+long RobSubstitution::mismatchFailures=0;
+long RobSubstitution::successes=0;
 
 const int RobSubstitution::AUX_INDEX=-3;
 const int RobSubstitution::SPECIAL_INDEX=-2;
@@ -275,24 +281,58 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 {
   vs=root(vs);
   Stack<TermSpec> toDo(8);
+  if(ts.isVar()) {
+    ts=derefBound(ts);
+    if(ts.isVar()) {
+      return false;
+    }
+  }
+#if !EXPONENTIAL_OCCURS_CHECK
+  typedef DHMultiset<VarSpec, VarSpec::Hash1> EncounterStore;
+  EncounterStore* encountered=0;
+#endif
+  bool res;
   for(;;){
-    TermIterator vit=Term::getVariableIterator(ts.term);
+    ASS(ts.term.isTerm());
+    Term::VariableIterator vit(ts.term.term());
     while(vit.hasNext()) {
       VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
       if(tvar==vs) {
-	return true;
+	res=true;
+	goto end;
       }
+#if EXPONENTIAL_OCCURS_CHECK
       TermSpec dtvar=derefBound(TermSpec(tvar));
       if(!dtvar.isVar()) {
 	toDo.push(dtvar);
       }
+#else
+      if(!encountered || !encountered->find(tvar)) {
+	TermSpec dtvar=derefBound(TermSpec(tvar));
+	if(!dtvar.isVar()) {
+	  if(!encountered) {
+	    encountered=new EncounterStore();
+	  }
+	  encountered->insert(tvar);
+	  toDo.push(dtvar);
+	}
+      }
+#endif
     }
 
     if(toDo.isEmpty()) {
-      return false;
+      res=false;
+      goto end;
     }
     ts=toDo.pop();
   }
+end:
+#if !EXPONENTIAL_OCCURS_CHECK
+  if(encountered) {
+    delete encountered;
+  }
+#endif
+  return res;
 }
 
 bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
@@ -325,6 +365,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
 	mismatch=true;
+	ocFailures++;
 	break;
       }
       bind(v1,dt2);
@@ -332,6 +373,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
       VarSpec v2=getVarSpec(dt2);
       if(occurs(v2, dt1)) {
 	mismatch=true;
+	ocFailures++;
 	break;
       }
       bind(v2,dt1);
@@ -362,6 +404,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
             if(ss->isVar()||tt->isVar()) {
               toDo.push(TTPair(tsss,tstt));
             } else {
+              mismatchFailures++;
               mismatch=true;
               break;
             }
@@ -397,6 +440,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   if(mismatch) {
     localBD.backtrack();
   } else {
+    successes++;
     if(bdIsRecording()) {
       bdCommit(localBD);
     }

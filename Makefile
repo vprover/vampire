@@ -14,14 +14,14 @@
 #XFLAGS = -O1 -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = -g -DVDEBUG=0 -DCHECK_LEAKS=0 # debug mode without VDEBUG macro 
-XFLAGS = -g -O6 -DVDEBUG=0 # no debugging, but debugging info present
+#XFLAGS = -g -O6 -DVDEBUG=0 # no debugging, but debugging info present
 #XFLAGS = -pg -g -O6 -DVDEBUG=0 # profiling with max optimization
 #XFLAGS = -pg -g -O6 -DVDEBUG=0 -fno-inline # profiling with no inlining
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
 #XFLAGS = -fprofile-arcs -pg -O6 -DVDEBUG=0 # coverage & profiling optimized
@@ -664,12 +664,12 @@ Kernel/MMSubstitution.o: Lib/List.hpp Lib/Random.hpp Lib/DHMultiset.hpp
 Kernel/MMSubstitution.o: Lib/Hash.hpp Lib/DHMap.hpp Lib/DHMap.hpp
 Kernel/MMSubstitution.o: Lib/SkipList.hpp Lib/BacktrackData.hpp Lib/List.hpp
 Kernel/MMSubstitution.o: Lib/Int.hpp Lib/Portability.hpp Lib/Int.hpp
-Kernel/MMSubstitution.o: Kernel/Term.hpp Lib/Allocator.hpp
+Kernel/MMSubstitution.o: Lib/Set.hpp Kernel/Term.hpp Lib/Allocator.hpp
 Kernel/MMSubstitution.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
 Kernel/MMSubstitution.o: Lib/Stack.hpp Lib/Metaiterators.hpp Lib/Set.hpp
 Kernel/MMSubstitution.o: Kernel/Clause.hpp Lib/Reflection.hpp Kernel/Unit.hpp
 Kernel/MMSubstitution.o: Kernel/Renaming.hpp Lib/VirtualIterator.hpp
-Kernel/MMSubstitution.o: Indexing/TermSharing.hpp Lib/Set.hpp Kernel/Term.hpp
+Kernel/MMSubstitution.o: Indexing/TermSharing.hpp Kernel/Term.hpp
 Kernel/MMSubstitution.o: Kernel/MMSubstitution.hpp Lib/BacktrackData.hpp
 Kernel/MMSubstitution.o: Test/Output.hpp
 Kernel/Ordering.o: Lib/Environment.hpp Forwards.hpp Config.hpp

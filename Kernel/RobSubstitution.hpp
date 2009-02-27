@@ -31,6 +31,10 @@ class RobSubstitution
 :public Backtrackable
 {
 public:
+  static long ocFailures;
+  static long mismatchFailures;
+  static long successes;
+
   RobSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
 
   bool unify(TermList t1,int index1, TermList t2, int index2);
