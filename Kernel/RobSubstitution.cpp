@@ -31,7 +31,7 @@
 using namespace Debug;
 #endif
 
-#define EXPONENTIAL_OCCURS_CHECK 0
+#define EXPONENTIAL_UNIFY 0
 
 namespace Kernel
 {
@@ -287,7 +287,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
       return false;
     }
   }
-#if !EXPONENTIAL_OCCURS_CHECK
+#if !EXPONENTIAL_UNIFY
   typedef DHMultiset<VarSpec, VarSpec::Hash1> EncounterStore;
   EncounterStore* encountered=0;
 #endif
@@ -301,7 +301,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 	res=true;
 	goto end;
       }
-#if EXPONENTIAL_OCCURS_CHECK
+#if EXPONENTIAL_UNIFY
       TermSpec dtvar=derefBound(TermSpec(tvar));
       if(!dtvar.isVar()) {
 	toDo.push(dtvar);
@@ -327,7 +327,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
     ts=toDo.pop();
   }
 end:
-#if !EXPONENTIAL_OCCURS_CHECK
+#if !EXPONENTIAL_UNIFY
   if(encountered) {
     delete encountered;
   }
@@ -351,14 +351,14 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   static Stack<TermList*> subterms(64);
   ASS(toDo.isEmpty() && subterms.isEmpty());
 
-//  cout<<" -------- "<<endl;
-
+#if !EXPONENTIAL_UNIFY
+  typedef DHMultiset<TTPair,TTPairHash> EncStore;
+  EncStore* encountered=0;
+#endif
 
   for(;;) {
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
-
-//    cout<<dt1<<" <---> "<<dt2<<endl;
 
     if(dt1.sameTermContent(dt2)) {
     } else if(dt1.isVar()) {
@@ -402,7 +402,22 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
         } else {
           if (! TermList::sameTopFunctor(*ss,*tt)) {
             if(ss->isVar()||tt->isVar()) {
-              toDo.push(TTPair(tsss,tstt));
+              TTPair itm(tsss,tstt);
+#if EXPONENTIAL_UNIFY
+              toDo.push(itm);
+#else
+              if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
+        	  (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
+                toDo.push(itm);
+              } else
+        	if(!encountered || !encountered->find(itm)) {
+                toDo.push(itm);
+                if(!encountered) {
+                  encountered=new EncStore();
+                }
+                encountered->insert(itm);
+              }
+#endif
             } else {
               mismatchFailures++;
               mismatch=true;
@@ -446,6 +461,11 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
     }
     localBD.drop();
   }
+#if !EXPONENTIAL_UNIFY
+  if(encountered) {
+    delete encountered;
+  }
+#endif
 
   return !mismatch;
 }
@@ -722,7 +742,7 @@ ostream& operator<< (ostream& out, RobSubstitution::TermSpec ts )
 unsigned RobSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
 {
 //  return o.var + o.index*(capacity>>1) + (o.index>>1)*(capacity>>3);
-//  return o.var^(o.var/capacity) + o.index*(capacity>>1) + (o.index>>2)*(capacity>>3);
+//  return o.var^(o.var/capacity) + o.index*(capacity>>1) + (o.index>bv>2)*(capacity>>3);
 //This might work better
 
   int res=(o.var%(capacity<<1) - capacity);

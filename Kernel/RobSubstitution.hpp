@@ -161,6 +161,8 @@ public:
     {
       return term.isVar();
     }
+    bool operator==(const TermSpec& o) const
+    { return term==o.term && index==o.index; }
 #if VDEBUG
     string toString() const;
 #endif
@@ -171,6 +173,16 @@ public:
     int index;
   };
   typedef pair<TermSpec,TermSpec> TTPair;
+
+  /** struct containing first hash function of TTPair objects*/
+  struct TTPairHash
+  {
+   static unsigned hash(TTPair& o)
+   {
+     return IdentityHash<size_t>::hash(o.first.term.content())^o.first.index ^
+       ((IdentityHash<size_t>::hash(o.second.term.content())^o.second.index)<<1);
+   }
+  };
 
 private:
   /** Copy constructor is private and without a body, because we don't want any. */

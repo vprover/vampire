@@ -181,7 +181,7 @@ int main( int argc, char *argv[] )
       compitTimer.stop();
     }
   int queries=operations-insertions-deletions;
-  printf("%s,%d,%d,%d,%d,%f,%f,%f,%f,%d,%d,%d\n",argv[1],operations,insertions,deletions,
+  printf("%s,%d,%d,%d,%d,%f,%f,%f,%f,%ld,%ld,%ld\n",argv[1],operations,insertions,deletions,
 	  maxCnt,((float)totalIndexedWeight)/insertions,
 	  ((float)totalQueryWeight)/queries,
 	  ((float)totalRetrievedTerms)/queries,
@@ -191,8 +191,8 @@ int main( int argc, char *argv[] )
 	  RobSubstitution::ocFailures
 	  );
 
-//  printf("Total time:\t%d ms\nIndexing time:\t%d ms\n",
-//	  totalTimer.elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
+  printf("Total time:\t%d ms\nIndexing time:\t%d ms\n",
+	  totalTimer.elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
 //
 //  printf("ops:%d, +:%d, -:%d.\n",operations,insertions,deletions);
   return 0;
