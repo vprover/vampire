@@ -24,7 +24,6 @@
 #include "../Lib/ArrayMap.hpp"
 
 #include "../Kernel/DoubleSubstitution.hpp"
-#include "../Kernel/MMSubstitution.hpp"
 #include "../Kernel/RobSubstitution.hpp"
 #include "../Kernel/Matcher.hpp"
 #include "../Kernel/Renaming.hpp"
@@ -47,9 +46,6 @@ using namespace Kernel;
 #define VARIABLE_MARKING 0
 #define NEW_VARIABLE_MARK 0x20000000u
 
-#define SUBST_CLASS RobSubstitution
-//#define SUBST_CLASS MMSubstitution
-
 namespace Indexing {
 
 
@@ -65,35 +61,6 @@ public:
   ~SubstitutionTree();
 
 //protected:
-
-  static TermList normalizeTop(TermList t)
-  {
-#if VARIABLE_MARKING
-    if(t.isOrdinaryVar()) {
-      return TermList(t.var()&~NEW_VARIABLE_MARK,false);
-    }
-#endif
-    return t;
-  }
-  static bool sameTopModuloMark(TermList t1, TermList t2)
-  {
-#if VARIABLE_MARKING
-    if(t1.isOrdinaryVar()&&t2.isOrdinaryVar()) {
-      return (t1.var()&~NEW_VARIABLE_MARK)==(t2.var()&~NEW_VARIABLE_MARK);
-    }
-#endif
-    return TermList::sameTop(t1,t2);
-  }
-  static bool sameTermsModuloMark(TermList t1, TermList t2)
-  {
-#if VARIABLE_MARKING
-    if(t1.isOrdinaryVar()&&t2.isOrdinaryVar()) {
-      return (t1.var()&~NEW_VARIABLE_MARK)==(t2.var()&~NEW_VARIABLE_MARK);
-    }
-#endif
-    return t1==t2;
-  }
-
 
   struct LeafData {
     LeafData() {}
@@ -458,20 +425,12 @@ public:
   void insert(Node** node,BindingQueue& binding,LeafData ld);
   void remove(Node** node,BindingQueue& binding,LeafData ld);
 
-  class CompiledTree;
-  static CompiledTree* compiledTreeCreate(SubstitutionTree *parent, IntermediateNode* root, unsigned initBindingCount);
-  static void compiledTreeDestroy(CompiledTree* ct);
-  static void compiledTreeInitForRetrieval(CompiledTree* ct, Term* query);
-  static void compiledTreeInitSpecVar(CompiledTree* ct, unsigned var, TermList term);
-  static Leaf* compiledTreeGetNextLeaf(CompiledTree* ct);
-
   /** Number of top-level nodes */
   int _numberOfTopLevelNodes;
   /** Number of the next variable */
   int _nextVar;
   /** Array of nodes */
   Node** _nodes;
-  CompiledTree** _compTrees;
 
   class LeafIterator
   : public IteratorCore<Leaf*>
@@ -494,58 +453,6 @@ public:
   };
 
   typedef pair<LeafData*, ResultSubstitutionSP> QueryResult;
-
-
-  /**
-   * Iterator, that yields generalizations of given term/literal.
-   */
-  class CompiledGeneralizationsIterator
-  : public IteratorCore<QueryResult>
-  {
-  public:
-    CompiledGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution,
-	    bool reversed=false)
-    {
-      ASS(!query->isLiteral());
-
-//      cout<<parent->toString();
-//      exit(0);
-
-      _rootIsLeaf=root->isLeaf();
-      if(_rootIsLeaf) {
-	return;
-      }
-      IntermediateNode* iroot=static_cast<IntermediateNode*>(root);
-
-      unsigned rootIndex=query->functor();
-      if(!parent->_compTrees[rootIndex]) {
-	parent->_compTrees[rootIndex]=compiledTreeCreate(parent, iroot, query->arity());
-      }
-      _ct=parent->_compTrees[rootIndex];
-
-      compiledTreeInitForRetrieval(_ct, query);
-
-      TermList* args=query->args();
-      int nextVar = 0;
-      while (! args->isEmpty()) {
-        unsigned var = nextVar++;
-        compiledTreeInitSpecVar(_ct,var,*args);
-        args = args->next();
-      }
-    }
-
-    bool hasNext()
-    {
-      return _rootIsLeaf || compiledTreeGetNextLeaf(_ct);
-    }
-    QueryResult next()
-    {
-      ASSERTION_VIOLATION;
-    }
-  private:
-    bool _rootIsLeaf;
-    CompiledTree* _ct;
-  };
 
 
   /**
@@ -578,8 +485,22 @@ public:
     { return (*_specVars)[specVar]; }
     bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
     void backtrack();
+    bool tryBacktrack();
 
     ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
+
+    int getBSCnt()
+    {
+      int res=0;
+      VarStack::Iterator vsit(_boundVars);
+      while(vsit.hasNext()) {
+	if(vsit.next()==BACKTRACK_SEPARATOR) {
+	  res++;
+	}
+      }
+      return res;
+    }
+
   private:
     typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > BindingMap;
     static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
@@ -590,17 +511,11 @@ public:
     class Substitution;
     struct MatchBacktrackObject;
 
-#if !VARIABLE_MARKING
     VarStack _boundVars;
-#endif
 
     DArray<TermList>* _specVars;
     unsigned _maxVar;
-#if VARIABLE_MARKING
-    DArray<TermList>* _bindings;
-#else
     ArrayMap<TermList>* _bindings;
-#endif
   };
 
   /**
@@ -610,7 +525,8 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed=false);
+    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
+	    bool retrieveSubstitution, bool reversed=false);
 
     bool hasNext();
     QueryResult next();
@@ -665,7 +581,7 @@ public:
     static const int NORM_QUERY_BANK=2;
     static const int NORM_RESULT_BANK=3;
 
-    SUBST_CLASS subst;
+    RobSubstitution subst;
     VarStack svStack;
 
   private:

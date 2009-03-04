@@ -16,30 +16,62 @@
 typedef int32_t WORD;
 #define TERM_SEPARATOR 0x7FFFFFFF
 
+/**
+ * TermStruct should be set to be an alias of the type that
+ * represents terms.
+ */
 typedef Kernel::TermList TermStruct;
 
 /**
  * Initializes the index structure. The benchmark will use
  * @b symCnt symbols, first @b fnSymCnt can appear inside
  * a term, other can appear only at the top level.
+ *
+ * If we're dealing with a superposition benchmark, symCnt
+ * will be equal to the fnSymCnt. For a resolution benchmark,
+ * symbols X, @b symCnt>X>=@b fnSymCnt were predicate symbols
+ * in the original problem.
  */
 void compitInit(unsigned symCnt, unsigned fnSymCnt);
 
 /**
- * Specifies arity of a symbol from signature. First call
+ * Specifies arity of a signature symbol. First call
  * to this method is with @b functor equal to 0, in each
- * successive call, this value increases by one.
+ * successive call, this value increases by one, last call
+ * is with @b functor == @b symCnt-1.
  */
 void compitAddSymbol(unsigned functor, unsigned arity);
 
+/**
+ * Is called when we start assembling a new term.
+ */
 void compitTermBegin();
+/**
+ * Is called, when the next symbol in the reverse polish
+ * notation is @b var-th variable. A term representation
+ * of this variable should be returned.
+ */
 TermStruct compitTermVar(unsigned var);
+/**
+ * Is called, when the next symbol in the reverse polish
+ * notation is a function symbol. A term representation
+ * of the function should be returned.
+ */
 TermStruct compitTermFn(unsigned functor);
 
+/**
+ * Insert @b t into the indexing structure.
+ */
 void compitInsert(TermStruct t);
+/**
+ * Delete @b t from the indexing structure.
+ */
 void compitDelete(TermStruct t);
+/**
+ * Return number of terms in the indexing structure that
+ * are unifiable with @b t.
+ */
 unsigned compitQuery(TermStruct t);
-
 
 
 #endif /* __compit2__ */

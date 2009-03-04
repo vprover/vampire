@@ -13,7 +13,6 @@
 
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
-#include "../Kernel/MMSubstitution.hpp"
 #include "../Kernel/EqHelper.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Kernel/Ordering.hpp"

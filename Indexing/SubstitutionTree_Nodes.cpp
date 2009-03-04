@@ -127,7 +127,7 @@ SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
   CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
 
   for(int i=0;i<_size;i++) {
-    if(sameTopModuloMark(t, _nodes[i]->term)) {
+    if(TermList::sameTop(t, _nodes[i]->term)) {
       return &_nodes[i];
     }
   }

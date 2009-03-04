@@ -64,10 +64,6 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
     unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
-    if(_compTrees[rootNodeIndex]) {
-      compiledTreeDestroy(_compTrees[rootNodeIndex]);
-      _compTrees[rootNodeIndex]=0;
-    }
     if(insert) {
       SubstitutionTree::insert(_nodes+rootNodeIndex, bq, ld);
     } else {
@@ -114,13 +110,7 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
   if(root->isLeaf()) {
     return true;
   }
-  return GeneralizationsIterator(this, root, trm, false).hasNext();
-//  return FastGeneralizationsIterator(this, root, trm, false).hasNext();
-//  if(_compTrees[t.term()->functor()] || Random::getInteger(1000)==0) {
-//    return CompiledGeneralizationsIterator(this, root, trm, false).hasNext();
-//  } else {
-//    return FastGeneralizationsIterator(this, root, trm, false).hasNext();
-//  }
+  return FastGeneralizationsIterator(this, root, trm, false).hasNext();
 }
 
 /**
@@ -136,13 +126,11 @@ TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t,
   } else {
     ASS(t.isTerm());
     if(_vars.isEmpty()) {
-//      return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
-      return getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions);
+      return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions);
     } else {
       return pvi( getConcatenatedIterator(
 	      ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
-//	      getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
-	      getResultIterator<GeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
+	      getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions)) );
     }
   }
 }
@@ -205,7 +193,7 @@ struct TermSubstitutionTree::LDToTermQueryResultWithSubstFn
 {
   LDToTermQueryResultWithSubstFn()
   {
-    _subst=MMSubstitutionSP(new MMSubstitution());
+    _subst=RobSubstitutionSP(new RobSubstitution());
   }
   DECL_RETURN_TYPE(TermQueryResult);
   OWN_RETURN_TYPE operator() (const LeafData& ld) {
@@ -214,7 +202,7 @@ struct TermSubstitutionTree::LDToTermQueryResultWithSubstFn
 		    QRS_QUERY_BANK,QRS_RESULT_BANK));
   }
 private:
-  MMSubstitutionSP _subst;
+  RobSubstitutionSP _subst;
 };
 
 struct TermSubstitutionTree::LeafToLDIteratorFn
@@ -232,14 +220,14 @@ struct TermSubstitutionTree::UnifyingContext
   bool enter(TermQueryResult qr)
   {
     ASS(qr.substitution);
-    MMSubstitution* subst=qr.substitution->tryGetMMSubstitution();
+    RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
     ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK));
     return true;
   }
   void leave(TermQueryResult qr)
   {
-    MMSubstitution* subst=qr.substitution->tryGetMMSubstitution();
+    RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
     subst->reset();
   }

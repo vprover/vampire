@@ -6,9 +6,14 @@
 #ifndef __Compit2Output__
 #define __Compit2Output__
 
+#include "../Config.hpp"
+
+#if COMPIT_VERSION==2
 
 #include "../Forwards.hpp"
 #include "../compit2.hpp"
+#include "../Indexing/LiteralSubstitutionTree.hpp"
+#include "../Indexing/TermSubstitutionTree.hpp"
 
 namespace Test {
 
@@ -47,6 +52,97 @@ private:
   static void fail();
 };
 
+};
+
+namespace Indexing
+{
+using namespace Kernel;
+using namespace Test;
+
+class CompitUnificationRecordingLiteralSubstitutionTree
+: public LiteralSubstitutionTree
+{
+  void insert(Literal* lit, Clause* cls)
+  {
+    LiteralSubstitutionTree::insert(lit,cls);
+    if(!lit->commutative()) {
+      Renaming norm;
+      norm.normalizeVariables(lit);
+      Compit2Output::print(Compit2Output::INSERT, norm.apply(lit));
+    }
+  }
+  void remove(Literal* lit, Clause* cls)
+  {
+    LiteralSubstitutionTree::remove(lit,cls);
+    if(!lit->commutative()) {
+      Renaming norm;
+      norm.normalizeVariables(lit);
+      Compit2Output::print(Compit2Output::DELETE, norm.apply(lit));
+    }
+  }
+
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
+  {
+    SLQueryResultIterator res=LiteralSubstitutionTree::getUnifications(lit,
+	complementary, retrieveSubstitutions);
+    if(!lit->commutative()) {
+      Renaming norm;
+      norm.normalizeVariables(lit);
+      unsigned count=0;
+      while(res.hasNext()) {
+	count++;
+	res.next();
+      }
+      if(count) {
+	res=LiteralSubstitutionTree::getUnifications(lit,complementary, retrieveSubstitutions);
+      }
+      Compit2Output::print(Compit2Output::QUERY, norm.apply(lit), count, complementary);
+    }
+    return res;
+  }
+
+};
+
+
+class CompitUnificationRecordingTermSubstitutionTree
+: public TermSubstitutionTree
+{
+  void insert(TermList t, Literal* lit, Clause* cls)
+  {
+    TermSubstitutionTree::insert(t,lit,cls);
+    Renaming norm;
+    norm.normalizeVariables(t);
+    Compit2Output::print(Compit2Output::INSERT, norm.apply(t));
+  }
+  void remove(TermList t, Literal* lit, Clause* cls)
+  {
+    TermSubstitutionTree::remove(t,lit,cls);
+    Renaming norm;
+    norm.normalizeVariables(t);
+    Compit2Output::print(Compit2Output::DELETE, norm.apply(t));
+  }
+
+  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions)
+  {
+    TermQueryResultIterator res=TermSubstitutionTree::getUnifications(t,retrieveSubstitutions);
+    Renaming norm;
+    norm.normalizeVariables(t);
+    unsigned count=0;
+    while(res.hasNext()) {
+      count++;
+      res.next();
+    }
+    if(count) {
+      res=TermSubstitutionTree::getUnifications(t,retrieveSubstitutions);
+    }
+    Compit2Output::print(Compit2Output::QUERY, norm.apply(t), count);
+    return res;
+  }
+
+};
+
 }
+
+#endif
 
 #endif

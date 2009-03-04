@@ -66,10 +66,8 @@ public:
    */
   virtual bool isIdentityOnQueryWhenResultBound() {return false;}
 
-  virtual MMSubstitution* tryGetMMSubstitution() { return 0; }
+  virtual RobSubstitution* tryGetRobSubstitution() { return 0; }
 
-  static ResultSubstitutionSP fromSubstitution(MMSubstitution* s,
-	  int queryBank, int resultBank);
   static ResultSubstitutionSP fromSubstitution(RobSubstitution* s,
 	  int queryBank, int resultBank);
 };

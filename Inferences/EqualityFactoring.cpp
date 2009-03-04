@@ -15,7 +15,7 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Unit.hpp"
 #include "../Kernel/Inference.hpp"
-#include "../Kernel/MMSubstitution.hpp"
+#include "../Kernel/RobSubstitution.hpp"
 #include "../Kernel/EqHelper.hpp"
 #include "../Kernel/Ordering.hpp"
 
@@ -83,7 +83,7 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getRHS(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    static MMSubstitution subst;
+    static RobSubstitution subst;
     subst.reset();
     if(!subst.unify(sLHS,0,fLHS,0)) {
       return 0;

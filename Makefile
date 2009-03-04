@@ -69,7 +69,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/KBO.o\
         Kernel/LiteralSelector.o\
         Kernel/MLMatcher.o\
-        Kernel/MMSubstitution.o\
         Kernel/Ordering.o\
         Kernel/OrderingLiteralSelector.o\
         Kernel/Renaming.o\
@@ -88,7 +87,6 @@ VI_OBJ = Indexing/Index.o\
          Indexing/LiteralSubstitutionTree.o\
          Indexing/ResultSubstitution.o\
          Indexing/SubstitutionTree.o\
-         Indexing/SubstitutionTree_Compiled.o\
          Indexing/SubstitutionTree_Nodes.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
@@ -655,23 +653,6 @@ Kernel/MLMatcher.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
 Kernel/MLMatcher.o: Lib/Comparison.hpp Kernel/Matcher.hpp Lib/Hash.hpp
 Kernel/MLMatcher.o: Lib/VirtualIterator.hpp Kernel/MLMatcher.hpp
 Kernel/MLMatcher.o: Test/Output.hpp
-Kernel/MMSubstitution.o: Lib/Environment.hpp Forwards.hpp Config.hpp
-Kernel/MMSubstitution.o: Lib/Hash.hpp Lib/DArray.hpp Debug/Assertion.hpp
-Kernel/MMSubstitution.o: Debug/Tracer.hpp Lib/Allocator.hpp Debug/Tracer.hpp
-Kernel/MMSubstitution.o: Lib/Comparison.hpp Lib/Random.hpp Lib/Reflection.hpp
-Kernel/MMSubstitution.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-Kernel/MMSubstitution.o: Lib/List.hpp Lib/Random.hpp Lib/DHMultiset.hpp
-Kernel/MMSubstitution.o: Lib/Hash.hpp Lib/DHMap.hpp Lib/DHMap.hpp
-Kernel/MMSubstitution.o: Lib/SkipList.hpp Lib/BacktrackData.hpp Lib/List.hpp
-Kernel/MMSubstitution.o: Lib/Int.hpp Lib/Portability.hpp Lib/Int.hpp
-Kernel/MMSubstitution.o: Lib/Set.hpp Kernel/Term.hpp Lib/Allocator.hpp
-Kernel/MMSubstitution.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
-Kernel/MMSubstitution.o: Lib/Stack.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-Kernel/MMSubstitution.o: Kernel/Clause.hpp Lib/Reflection.hpp Kernel/Unit.hpp
-Kernel/MMSubstitution.o: Kernel/Renaming.hpp Lib/VirtualIterator.hpp
-Kernel/MMSubstitution.o: Indexing/TermSharing.hpp Kernel/Term.hpp
-Kernel/MMSubstitution.o: Kernel/MMSubstitution.hpp Lib/BacktrackData.hpp
-Kernel/MMSubstitution.o: Test/Output.hpp
 Kernel/Ordering.o: Lib/Environment.hpp Forwards.hpp Config.hpp
 Kernel/Ordering.o: Lib/Exception.hpp Shell/Options.hpp Lib/Allocator.hpp
 Kernel/Ordering.o: Debug/Tracer.hpp Lib/XML.hpp Kernel/Ordering.hpp
@@ -778,19 +759,17 @@ Kernel/Unit.o: Lib/List.hpp Forwards.hpp Config.hpp Debug/Assertion.hpp
 Kernel/Unit.o: Debug/Tracer.hpp Lib/Allocator.hpp Lib/VirtualIterator.hpp
 Kernel/Unit.o: Lib/Exception.hpp Lib/Reflection.hpp Lib/Allocator.hpp
 Kernel/Unit.o: Kernel/Unit.hpp
-Indexing/Index.o: Indexing/Index.hpp Forwards.hpp Config.hpp
-Indexing/Index.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp Debug/Assertion.hpp
-Indexing/Index.o: Debug/Tracer.hpp Lib/Allocator.hpp Debug/Tracer.hpp
-Indexing/Index.o: Lib/Exception.hpp Lib/Hash.hpp Lib/VirtualIterator.hpp
-Indexing/Index.o: Lib/Reflection.hpp Lib/BacktrackData.hpp Lib/List.hpp
-Indexing/Index.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
-Indexing/Index.o: Kernel/Term.hpp Lib/Allocator.hpp Lib/Portability.hpp
-Indexing/Index.o: Lib/XML.hpp Lib/Comparison.hpp Lib/Stack.hpp
-Indexing/Index.o: Lib/BacktrackData.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-Indexing/Index.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
-Indexing/Index.o: Lib/VirtualIterator.hpp Saturation/ClauseContainer.hpp
-Indexing/Index.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
-Indexing/Index.o: Kernel/Term.hpp
+Indexing/Index.o: Indexing/Index.hpp Forwards.hpp Config.hpp Lib/Event.hpp
+Indexing/Index.o: Lib/List.hpp Debug/Assertion.hpp Debug/Tracer.hpp
+Indexing/Index.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/VirtualIterator.hpp
+Indexing/Index.o: Lib/Exception.hpp Lib/Reflection.hpp Lib/SmartPtr.hpp
+Indexing/Index.o: Lib/Exception.hpp Lib/VirtualIterator.hpp
+Indexing/Index.o: Saturation/ClauseContainer.hpp Lib/Stack.hpp
+Indexing/Index.o: Lib/BacktrackData.hpp Lib/Int.hpp Lib/Comparison.hpp
+Indexing/Index.o: Lib/Portability.hpp Indexing/ResultSubstitution.hpp
+Indexing/Index.o: Lib/SmartPtr.hpp Kernel/Term.hpp Lib/Allocator.hpp
+Indexing/Index.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
+Indexing/Index.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/Hash.hpp
 Indexing/IndexManager.o: Lib/Exception.hpp Saturation/SaturationAlgorithm.hpp
 Indexing/IndexManager.o: Forwards.hpp Config.hpp Kernel/Clause.hpp
 Indexing/IndexManager.o: Lib/Allocator.hpp Debug/Tracer.hpp
@@ -801,25 +780,23 @@ Indexing/IndexManager.o: Lib/Exception.hpp Lib/Reflection.hpp Lib/Set.hpp
 Indexing/IndexManager.o: Lib/Hash.hpp Lib/Reflection.hpp Kernel/Unit.hpp
 Indexing/IndexManager.o: Lib/Event.hpp Lib/SmartPtr.hpp
 Indexing/IndexManager.o: Indexing/IndexManager.hpp Lib/DHMap.hpp
-Indexing/IndexManager.o: Indexing/Index.hpp Kernel/MMSubstitution.hpp
+Indexing/IndexManager.o: Indexing/Index.hpp Lib/VirtualIterator.hpp
+Indexing/IndexManager.o: Saturation/ClauseContainer.hpp Lib/Stack.hpp
 Indexing/IndexManager.o: Lib/BacktrackData.hpp Lib/Int.hpp Lib/Comparison.hpp
-Indexing/IndexManager.o: Lib/Portability.hpp Kernel/Term.hpp
-Indexing/IndexManager.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
-Indexing/IndexManager.o: Lib/Stack.hpp Lib/BacktrackData.hpp
-Indexing/IndexManager.o: Lib/VirtualIterator.hpp
-Indexing/IndexManager.o: Saturation/ClauseContainer.hpp
-Indexing/IndexManager.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
-Indexing/IndexManager.o: Kernel/Term.hpp Inferences/InferenceEngine.hpp
-Indexing/IndexManager.o: Lib/List.hpp Saturation/Limits.hpp
+Indexing/IndexManager.o: Lib/Portability.hpp Indexing/ResultSubstitution.hpp
+Indexing/IndexManager.o: Lib/SmartPtr.hpp Kernel/Term.hpp Lib/Portability.hpp
+Indexing/IndexManager.o: Lib/XML.hpp Lib/Comparison.hpp
+Indexing/IndexManager.o: Inferences/InferenceEngine.hpp Lib/List.hpp
+Indexing/IndexManager.o: Saturation/Limits.hpp
 Indexing/IndexManager.o: Saturation/SaturationResult.hpp Shell/Statistics.hpp
 Indexing/IndexManager.o: Lib/Environment.hpp Indexing/LiteralIndex.hpp
 Indexing/IndexManager.o: Indexing/LiteralSubstitutionTree.hpp
-Indexing/IndexManager.o: Test/Compit2Output.hpp compit2.hpp Kernel/Term.hpp
 Indexing/IndexManager.o: Indexing/LiteralIndexingStructure.hpp
 Indexing/IndexManager.o: Indexing/SubstitutionTree.hpp Lib/Int.hpp
 Indexing/IndexManager.o: Lib/SkipList.hpp Lib/Random.hpp Lib/BinaryHeap.hpp
-Indexing/IndexManager.o: Lib/Metaiterators.hpp Lib/ArrayMap.hpp
-Indexing/IndexManager.o: Lib/DArray.hpp Kernel/DoubleSubstitution.hpp
+Indexing/IndexManager.o: Lib/Metaiterators.hpp Lib/BacktrackData.hpp
+Indexing/IndexManager.o: Lib/ArrayMap.hpp Lib/DArray.hpp
+Indexing/IndexManager.o: Kernel/DoubleSubstitution.hpp Kernel/Term.hpp
 Indexing/IndexManager.o: Kernel/RobSubstitution.hpp Kernel/Matcher.hpp
 Indexing/IndexManager.o: Lib/Hash.hpp Kernel/Renaming.hpp Test/Output.hpp
 Indexing/IndexManager.o: Indexing/TermIndex.hpp
@@ -834,16 +811,14 @@ Indexing/LiteralIndex.o: Lib/Allocator.hpp Lib/VirtualIterator.hpp
 Indexing/LiteralIndex.o: Lib/Exception.hpp Lib/Reflection.hpp Lib/Set.hpp
 Indexing/LiteralIndex.o: Lib/Hash.hpp Lib/Reflection.hpp Kernel/Unit.hpp
 Indexing/LiteralIndex.o: Indexing/LiteralIndexingStructure.hpp
-Indexing/LiteralIndex.o: Indexing/Index.hpp Kernel/MMSubstitution.hpp
-Indexing/LiteralIndex.o: Lib/DHMap.hpp Lib/BacktrackData.hpp Lib/Int.hpp
-Indexing/LiteralIndex.o: Lib/Comparison.hpp Lib/Portability.hpp
-Indexing/LiteralIndex.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
-Indexing/LiteralIndex.o: Lib/Comparison.hpp Lib/Stack.hpp
-Indexing/LiteralIndex.o: Lib/BacktrackData.hpp Lib/Event.hpp Lib/SmartPtr.hpp
+Indexing/LiteralIndex.o: Indexing/Index.hpp Lib/Event.hpp Lib/SmartPtr.hpp
 Indexing/LiteralIndex.o: Lib/Exception.hpp Lib/VirtualIterator.hpp
-Indexing/LiteralIndex.o: Saturation/ClauseContainer.hpp
-Indexing/LiteralIndex.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
-Indexing/LiteralIndex.o: Kernel/Term.hpp Indexing/LiteralIndex.hpp
+Indexing/LiteralIndex.o: Saturation/ClauseContainer.hpp Lib/Stack.hpp
+Indexing/LiteralIndex.o: Lib/BacktrackData.hpp Lib/Int.hpp Lib/Comparison.hpp
+Indexing/LiteralIndex.o: Lib/Portability.hpp Indexing/ResultSubstitution.hpp
+Indexing/LiteralIndex.o: Lib/SmartPtr.hpp Kernel/Term.hpp Lib/Portability.hpp
+Indexing/LiteralIndex.o: Lib/XML.hpp Lib/Comparison.hpp
+Indexing/LiteralIndex.o: Indexing/LiteralIndex.hpp
 Indexing/LiteralSubstitutionTree.o: Lib/Environment.hpp Forwards.hpp
 Indexing/LiteralSubstitutionTree.o: Config.hpp Lib/Metaiterators.hpp
 Indexing/LiteralSubstitutionTree.o: Lib/List.hpp Debug/Assertion.hpp
@@ -858,29 +833,27 @@ Indexing/LiteralSubstitutionTree.o: Lib/Portability.hpp Lib/Map.hpp
 Indexing/LiteralSubstitutionTree.o: Kernel/Term.hpp Lib/Portability.hpp
 Indexing/LiteralSubstitutionTree.o: Lib/XML.hpp Lib/Comparison.hpp
 Indexing/LiteralSubstitutionTree.o: Indexing/LiteralSubstitutionTree.hpp
-Indexing/LiteralSubstitutionTree.o: Test/Compit2Output.hpp compit2.hpp
-Indexing/LiteralSubstitutionTree.o: Kernel/Term.hpp
 Indexing/LiteralSubstitutionTree.o: Indexing/LiteralIndexingStructure.hpp
-Indexing/LiteralSubstitutionTree.o: Indexing/Index.hpp
-Indexing/LiteralSubstitutionTree.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
-Indexing/LiteralSubstitutionTree.o: Lib/BacktrackData.hpp Kernel/Term.hpp
-Indexing/LiteralSubstitutionTree.o: Lib/Event.hpp Lib/SmartPtr.hpp
-Indexing/LiteralSubstitutionTree.o: Lib/Exception.hpp Lib/VirtualIterator.hpp
+Indexing/LiteralSubstitutionTree.o: Indexing/Index.hpp Lib/Event.hpp
+Indexing/LiteralSubstitutionTree.o: Lib/SmartPtr.hpp Lib/Exception.hpp
+Indexing/LiteralSubstitutionTree.o: Lib/VirtualIterator.hpp
 Indexing/LiteralSubstitutionTree.o: Saturation/ClauseContainer.hpp
 Indexing/LiteralSubstitutionTree.o: Indexing/ResultSubstitution.hpp
 Indexing/LiteralSubstitutionTree.o: Lib/SmartPtr.hpp
 Indexing/LiteralSubstitutionTree.o: Indexing/SubstitutionTree.hpp Lib/Int.hpp
 Indexing/LiteralSubstitutionTree.o: Lib/List.hpp Lib/SkipList.hpp
 Indexing/LiteralSubstitutionTree.o: Lib/Random.hpp Lib/BinaryHeap.hpp
-Indexing/LiteralSubstitutionTree.o: Lib/Metaiterators.hpp Lib/ArrayMap.hpp
+Indexing/LiteralSubstitutionTree.o: Lib/Metaiterators.hpp
+Indexing/LiteralSubstitutionTree.o: Lib/BacktrackData.hpp Lib/ArrayMap.hpp
 Indexing/LiteralSubstitutionTree.o: Lib/DArray.hpp
 Indexing/LiteralSubstitutionTree.o: Kernel/DoubleSubstitution.hpp
+Indexing/LiteralSubstitutionTree.o: Lib/DHMap.hpp Kernel/Term.hpp
 Indexing/LiteralSubstitutionTree.o: Kernel/RobSubstitution.hpp
 Indexing/LiteralSubstitutionTree.o: Kernel/Matcher.hpp Lib/Hash.hpp
 Indexing/LiteralSubstitutionTree.o: Kernel/Renaming.hpp Kernel/Clause.hpp
 Indexing/LiteralSubstitutionTree.o: Lib/Reflection.hpp Kernel/Unit.hpp
 Indexing/LiteralSubstitutionTree.o: Test/Output.hpp
-Indexing/ResultSubstitution.o: Kernel/MMSubstitution.hpp Forwards.hpp
+Indexing/ResultSubstitution.o: Kernel/RobSubstitution.hpp Forwards.hpp
 Indexing/ResultSubstitution.o: Config.hpp Lib/DHMap.hpp Debug/Assertion.hpp
 Indexing/ResultSubstitution.o: Debug/Tracer.hpp Lib/Allocator.hpp
 Indexing/ResultSubstitution.o: Debug/Tracer.hpp Lib/Exception.hpp
@@ -891,8 +864,7 @@ Indexing/ResultSubstitution.o: Lib/Portability.hpp Kernel/Term.hpp
 Indexing/ResultSubstitution.o: Lib/Allocator.hpp Lib/Portability.hpp
 Indexing/ResultSubstitution.o: Lib/XML.hpp Lib/Comparison.hpp Lib/Stack.hpp
 Indexing/ResultSubstitution.o: Lib/BacktrackData.hpp Lib/Metaiterators.hpp
-Indexing/ResultSubstitution.o: Lib/Set.hpp Kernel/RobSubstitution.hpp
-Indexing/ResultSubstitution.o: Indexing/ResultSubstitution.hpp
+Indexing/ResultSubstitution.o: Lib/Set.hpp Indexing/ResultSubstitution.hpp
 Indexing/ResultSubstitution.o: Lib/SmartPtr.hpp Kernel/Term.hpp
 Indexing/SubstitutionTree.o: Kernel/Term.hpp Forwards.hpp Config.hpp
 Indexing/SubstitutionTree.o: Debug/Assertion.hpp Debug/Tracer.hpp
@@ -917,7 +889,6 @@ Indexing/SubstitutionTree.o: Test/Output.hpp Indexing/SubstitutionTree.hpp
 Indexing/SubstitutionTree.o: Lib/List.hpp Lib/SkipList.hpp
 Indexing/SubstitutionTree.o: Lib/BacktrackData.hpp Lib/ArrayMap.hpp
 Indexing/SubstitutionTree.o: Kernel/DoubleSubstitution.hpp
-Indexing/SubstitutionTree.o: Kernel/MMSubstitution.hpp
 Indexing/SubstitutionTree.o: Kernel/RobSubstitution.hpp Kernel/Matcher.hpp
 Indexing/SubstitutionTree.o: Lib/Hash.hpp Kernel/Clause.hpp
 Indexing/SubstitutionTree.o: Lib/Reflection.hpp Kernel/Unit.hpp
@@ -945,8 +916,7 @@ Indexing/SubstitutionTree_Compiled.o: Lib/DArray.hpp
 Indexing/SubstitutionTree_Compiled.o: Kernel/DoubleSubstitution.hpp
 Indexing/SubstitutionTree_Compiled.o: Lib/DHMap.hpp Kernel/Term.hpp
 Indexing/SubstitutionTree_Compiled.o: Lib/Allocator.hpp Lib/Portability.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/XML.hpp Kernel/MMSubstitution.hpp
-Indexing/SubstitutionTree_Compiled.o: Kernel/RobSubstitution.hpp
+Indexing/SubstitutionTree_Compiled.o: Lib/XML.hpp Kernel/RobSubstitution.hpp
 Indexing/SubstitutionTree_Compiled.o: Kernel/Matcher.hpp Lib/Hash.hpp
 Indexing/SubstitutionTree_Compiled.o: Kernel/Renaming.hpp Kernel/Clause.hpp
 Indexing/SubstitutionTree_Compiled.o: Lib/Reflection.hpp Kernel/Unit.hpp
@@ -971,19 +941,20 @@ Indexing/SubstitutionTree_Nodes.o: Lib/Int.hpp Lib/Portability.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/DHMultiset.hpp Lib/Hash.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/DHMap.hpp Lib/Metaiterators.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/Set.hpp Indexing/Index.hpp
-Indexing/SubstitutionTree_Nodes.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
-Indexing/SubstitutionTree_Nodes.o: Lib/BacktrackData.hpp Kernel/Term.hpp
-Indexing/SubstitutionTree_Nodes.o: Lib/Allocator.hpp Lib/Portability.hpp
-Indexing/SubstitutionTree_Nodes.o: Lib/XML.hpp Lib/Comparison.hpp
-Indexing/SubstitutionTree_Nodes.o: Lib/Stack.hpp Lib/Event.hpp
-Indexing/SubstitutionTree_Nodes.o: Lib/SmartPtr.hpp Lib/Exception.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/Event.hpp Lib/SmartPtr.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/Exception.hpp
 Indexing/SubstitutionTree_Nodes.o: Saturation/ClauseContainer.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/Stack.hpp
 Indexing/SubstitutionTree_Nodes.o: Indexing/ResultSubstitution.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/SmartPtr.hpp Kernel/Term.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/Allocator.hpp Lib/Portability.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/XML.hpp Lib/Comparison.hpp
 Indexing/SubstitutionTree_Nodes.o: Indexing/SubstitutionTree.hpp Lib/Int.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
-Indexing/SubstitutionTree_Nodes.o: Lib/ArrayMap.hpp Lib/DArray.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/BacktrackData.hpp Lib/ArrayMap.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/DArray.hpp
 Indexing/SubstitutionTree_Nodes.o: Kernel/DoubleSubstitution.hpp
+Indexing/SubstitutionTree_Nodes.o: Lib/DHMap.hpp Kernel/Term.hpp
 Indexing/SubstitutionTree_Nodes.o: Kernel/RobSubstitution.hpp
 Indexing/SubstitutionTree_Nodes.o: Kernel/Matcher.hpp Lib/Hash.hpp
 Indexing/SubstitutionTree_Nodes.o: Kernel/Renaming.hpp Kernel/Clause.hpp
@@ -1003,10 +974,8 @@ Indexing/TermIndex.o: Kernel/Ordering.hpp Kernel/EqHelper.hpp
 Indexing/TermIndex.o: Lib/VirtualIterator.hpp Lib/PairUtils.hpp
 Indexing/TermIndex.o: Lib/Metaiterators.hpp Lib/Metaarrays.hpp
 Indexing/TermIndex.o: Kernel/Term.hpp Indexing/TermIndexingStructure.hpp
-Indexing/TermIndex.o: Indexing/Index.hpp Kernel/MMSubstitution.hpp
-Indexing/TermIndex.o: Lib/DHMap.hpp Lib/BacktrackData.hpp Lib/Event.hpp
-Indexing/TermIndex.o: Lib/SmartPtr.hpp Lib/Exception.hpp
-Indexing/TermIndex.o: Saturation/ClauseContainer.hpp
+Indexing/TermIndex.o: Indexing/Index.hpp Lib/Event.hpp Lib/SmartPtr.hpp
+Indexing/TermIndex.o: Lib/Exception.hpp Saturation/ClauseContainer.hpp
 Indexing/TermIndex.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
 Indexing/TermIndex.o: Indexing/TermIndex.hpp
 Indexing/TermSharing.o: Kernel/Term.hpp Forwards.hpp Config.hpp
@@ -1039,22 +1008,19 @@ Indexing/TermSubstitutionTree.o: Kernel/Term.hpp Kernel/Signature.hpp
 Indexing/TermSubstitutionTree.o: Indexing/TermSubstitutionTree.hpp
 Indexing/TermSubstitutionTree.o: Kernel/Renaming.hpp Lib/VirtualIterator.hpp
 Indexing/TermSubstitutionTree.o: Lib/SkipList.hpp Indexing/Index.hpp
-Indexing/TermSubstitutionTree.o: Kernel/MMSubstitution.hpp
-Indexing/TermSubstitutionTree.o: Lib/BacktrackData.hpp Lib/Event.hpp
-Indexing/TermSubstitutionTree.o: Lib/SmartPtr.hpp Lib/Exception.hpp
+Indexing/TermSubstitutionTree.o: Lib/Event.hpp Lib/SmartPtr.hpp
+Indexing/TermSubstitutionTree.o: Lib/Exception.hpp
 Indexing/TermSubstitutionTree.o: Saturation/ClauseContainer.hpp
 Indexing/TermSubstitutionTree.o: Indexing/ResultSubstitution.hpp
 Indexing/TermSubstitutionTree.o: Indexing/TermIndexingStructure.hpp
 Indexing/TermSubstitutionTree.o: Indexing/SubstitutionTree.hpp Lib/Int.hpp
 Indexing/TermSubstitutionTree.o: Lib/List.hpp Lib/BinaryHeap.hpp
-Indexing/TermSubstitutionTree.o: Lib/Metaiterators.hpp
+Indexing/TermSubstitutionTree.o: Lib/Metaiterators.hpp Lib/BacktrackData.hpp
 Indexing/TermSubstitutionTree.o: Kernel/DoubleSubstitution.hpp
 Indexing/TermSubstitutionTree.o: Kernel/RobSubstitution.hpp
 Indexing/TermSubstitutionTree.o: Kernel/Matcher.hpp Lib/Hash.hpp
 Indexing/TermSubstitutionTree.o: Kernel/Clause.hpp Lib/Reflection.hpp
 Indexing/TermSubstitutionTree.o: Kernel/Unit.hpp Test/Output.hpp
-Indexing/TermSubstitutionTree.o: Test/Compit2Output.hpp compit2.hpp
-Indexing/TermSubstitutionTree.o: Kernel/Term.hpp
 Inferences/BackwardDemodulation.o: Lib/DHMultiset.hpp Debug/Assertion.hpp
 Inferences/BackwardDemodulation.o: Debug/Tracer.hpp Lib/Allocator.hpp
 Inferences/BackwardDemodulation.o: Debug/Tracer.hpp Lib/Exception.hpp
@@ -1071,11 +1037,10 @@ Inferences/BackwardDemodulation.o: Lib/XML.hpp Lib/Comparison.hpp
 Inferences/BackwardDemodulation.o: Lib/Stack.hpp Lib/BacktrackData.hpp
 Inferences/BackwardDemodulation.o: Lib/Int.hpp Kernel/Clause.hpp
 Inferences/BackwardDemodulation.o: Lib/Reflection.hpp Kernel/Unit.hpp
-Inferences/BackwardDemodulation.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
-Inferences/BackwardDemodulation.o: Lib/BacktrackData.hpp Kernel/Term.hpp
 Inferences/BackwardDemodulation.o: Kernel/EqHelper.hpp Lib/PairUtils.hpp
 Inferences/BackwardDemodulation.o: Lib/Metaiterators.hpp Lib/Metaarrays.hpp
-Inferences/BackwardDemodulation.o: Kernel/Renaming.hpp Kernel/Ordering.hpp
+Inferences/BackwardDemodulation.o: Kernel/Term.hpp Kernel/Renaming.hpp
+Inferences/BackwardDemodulation.o: Lib/DHMap.hpp Kernel/Ordering.hpp
 Inferences/BackwardDemodulation.o: Kernel/Inference.hpp Kernel/Unit.hpp
 Inferences/BackwardDemodulation.o: Indexing/Index.hpp Lib/Event.hpp
 Inferences/BackwardDemodulation.o: Lib/SmartPtr.hpp Lib/Exception.hpp
@@ -1105,17 +1070,16 @@ Inferences/BinaryResolution.o: Kernel/Clause.hpp Lib/Allocator.hpp
 Inferences/BinaryResolution.o: Lib/Reflection.hpp Kernel/Unit.hpp
 Inferences/BinaryResolution.o: Kernel/Unit.hpp Lib/List.hpp
 Inferences/BinaryResolution.o: Kernel/Inference.hpp Indexing/Index.hpp
-Inferences/BinaryResolution.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
+Inferences/BinaryResolution.o: Lib/Event.hpp Lib/SmartPtr.hpp
+Inferences/BinaryResolution.o: Lib/Exception.hpp
+Inferences/BinaryResolution.o: Saturation/ClauseContainer.hpp Lib/Stack.hpp
 Inferences/BinaryResolution.o: Lib/BacktrackData.hpp Lib/Int.hpp
-Inferences/BinaryResolution.o: Kernel/Term.hpp Lib/Portability.hpp
-Inferences/BinaryResolution.o: Lib/XML.hpp Lib/Comparison.hpp Lib/Stack.hpp
-Inferences/BinaryResolution.o: Lib/BacktrackData.hpp Lib/Event.hpp
-Inferences/BinaryResolution.o: Lib/SmartPtr.hpp Lib/Exception.hpp
-Inferences/BinaryResolution.o: Saturation/ClauseContainer.hpp
 Inferences/BinaryResolution.o: Indexing/ResultSubstitution.hpp
 Inferences/BinaryResolution.o: Lib/SmartPtr.hpp Kernel/Term.hpp
-Inferences/BinaryResolution.o: Indexing/LiteralIndex.hpp Indexing/Index.hpp
-Inferences/BinaryResolution.o: Indexing/IndexManager.hpp
+Inferences/BinaryResolution.o: Lib/Portability.hpp Lib/XML.hpp
+Inferences/BinaryResolution.o: Lib/Comparison.hpp Indexing/LiteralIndex.hpp
+Inferences/BinaryResolution.o: Indexing/Index.hpp Indexing/IndexManager.hpp
+Inferences/BinaryResolution.o: Lib/DHMap.hpp
 Inferences/BinaryResolution.o: Saturation/SaturationAlgorithm.hpp
 Inferences/BinaryResolution.o: Inferences/InferenceEngine.hpp
 Inferences/BinaryResolution.o: Saturation/Limits.hpp
@@ -1135,7 +1099,7 @@ Inferences/EqualityFactoring.o: Kernel/Clause.hpp Lib/Allocator.hpp
 Inferences/EqualityFactoring.o: Lib/Reflection.hpp Kernel/Unit.hpp
 Inferences/EqualityFactoring.o: Kernel/Unit.hpp Lib/List.hpp
 Inferences/EqualityFactoring.o: Kernel/Inference.hpp
-Inferences/EqualityFactoring.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
+Inferences/EqualityFactoring.o: Kernel/RobSubstitution.hpp Lib/DHMap.hpp
 Inferences/EqualityFactoring.o: Lib/BacktrackData.hpp Lib/Int.hpp
 Inferences/EqualityFactoring.o: Lib/Comparison.hpp Lib/Portability.hpp
 Inferences/EqualityFactoring.o: Kernel/Term.hpp Lib/Portability.hpp
@@ -1157,7 +1121,7 @@ Inferences/EqualityResolution.o: Kernel/Clause.hpp Lib/Allocator.hpp
 Inferences/EqualityResolution.o: Lib/Reflection.hpp Kernel/Unit.hpp
 Inferences/EqualityResolution.o: Kernel/Unit.hpp Lib/List.hpp
 Inferences/EqualityResolution.o: Kernel/Inference.hpp
-Inferences/EqualityResolution.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
+Inferences/EqualityResolution.o: Kernel/RobSubstitution.hpp Lib/DHMap.hpp
 Inferences/EqualityResolution.o: Lib/BacktrackData.hpp Lib/Int.hpp
 Inferences/EqualityResolution.o: Lib/Comparison.hpp Lib/Portability.hpp
 Inferences/EqualityResolution.o: Kernel/Term.hpp Lib/Portability.hpp
@@ -1178,7 +1142,7 @@ Inferences/Factoring.o: Lib/Environment.hpp Shell/Statistics.hpp
 Inferences/Factoring.o: Kernel/Clause.hpp Lib/Allocator.hpp
 Inferences/Factoring.o: Lib/Reflection.hpp Kernel/Unit.hpp Kernel/Unit.hpp
 Inferences/Factoring.o: Lib/List.hpp Kernel/Inference.hpp
-Inferences/Factoring.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
+Inferences/Factoring.o: Kernel/RobSubstitution.hpp Lib/DHMap.hpp
 Inferences/Factoring.o: Lib/BacktrackData.hpp Lib/Int.hpp Kernel/Term.hpp
 Inferences/Factoring.o: Lib/Portability.hpp Lib/XML.hpp Lib/Stack.hpp
 Inferences/Factoring.o: Lib/BacktrackData.hpp Inferences/Factoring.hpp
@@ -1196,13 +1160,12 @@ Inferences/ForwardDemodulation.o: Lib/Portability.hpp Lib/XML.hpp
 Inferences/ForwardDemodulation.o: Lib/Comparison.hpp Lib/Stack.hpp
 Inferences/ForwardDemodulation.o: Lib/BacktrackData.hpp Lib/Int.hpp
 Inferences/ForwardDemodulation.o: Kernel/Clause.hpp Lib/Reflection.hpp
-Inferences/ForwardDemodulation.o: Kernel/Unit.hpp Kernel/MMSubstitution.hpp
-Inferences/ForwardDemodulation.o: Lib/DHMap.hpp Lib/BacktrackData.hpp
-Inferences/ForwardDemodulation.o: Kernel/Term.hpp Kernel/EqHelper.hpp
+Inferences/ForwardDemodulation.o: Kernel/Unit.hpp Kernel/EqHelper.hpp
 Inferences/ForwardDemodulation.o: Lib/PairUtils.hpp Lib/Metaiterators.hpp
-Inferences/ForwardDemodulation.o: Lib/Metaarrays.hpp Kernel/Ordering.hpp
-Inferences/ForwardDemodulation.o: Kernel/Inference.hpp Kernel/Unit.hpp
-Inferences/ForwardDemodulation.o: Lib/List.hpp Kernel/Renaming.hpp
+Inferences/ForwardDemodulation.o: Lib/Metaarrays.hpp Kernel/Term.hpp
+Inferences/ForwardDemodulation.o: Kernel/Ordering.hpp Kernel/Inference.hpp
+Inferences/ForwardDemodulation.o: Kernel/Unit.hpp Lib/List.hpp
+Inferences/ForwardDemodulation.o: Kernel/Renaming.hpp Lib/DHMap.hpp
 Inferences/ForwardDemodulation.o: Indexing/Index.hpp Lib/Event.hpp
 Inferences/ForwardDemodulation.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 Inferences/ForwardDemodulation.o: Saturation/ClauseContainer.hpp
@@ -1246,8 +1209,6 @@ Inferences/ForwardSubsumptionAndResolution.o: Lib/Reflection.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Kernel/Unit.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Kernel/Inference.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Kernel/Unit.hpp
-Inferences/ForwardSubsumptionAndResolution.o: Kernel/MMSubstitution.hpp
-Inferences/ForwardSubsumptionAndResolution.o: Kernel/Term.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Kernel/MLMatcher.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Indexing/Index.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Lib/Event.hpp Lib/SmartPtr.hpp
@@ -1295,19 +1256,17 @@ Inferences/RefutationSeekerFSE.o: Kernel/Unit.hpp Lib/List.hpp
 Inferences/RefutationSeekerFSE.o: Kernel/Inference.hpp Lib/Allocator.hpp
 Inferences/RefutationSeekerFSE.o: Kernel/Clause.hpp Lib/Reflection.hpp
 Inferences/RefutationSeekerFSE.o: Kernel/Unit.hpp Indexing/Index.hpp
-Inferences/RefutationSeekerFSE.o: Kernel/MMSubstitution.hpp Lib/DHMap.hpp
-Inferences/RefutationSeekerFSE.o: Lib/BacktrackData.hpp Lib/Int.hpp
-Inferences/RefutationSeekerFSE.o: Kernel/Term.hpp Lib/Portability.hpp
-Inferences/RefutationSeekerFSE.o: Lib/XML.hpp Lib/Comparison.hpp
-Inferences/RefutationSeekerFSE.o: Lib/Stack.hpp Lib/BacktrackData.hpp
 Inferences/RefutationSeekerFSE.o: Lib/Event.hpp Lib/SmartPtr.hpp
 Inferences/RefutationSeekerFSE.o: Lib/Exception.hpp
 Inferences/RefutationSeekerFSE.o: Saturation/ClauseContainer.hpp
-Inferences/RefutationSeekerFSE.o: Indexing/ResultSubstitution.hpp
+Inferences/RefutationSeekerFSE.o: Lib/Stack.hpp Lib/BacktrackData.hpp
+Inferences/RefutationSeekerFSE.o: Lib/Int.hpp Indexing/ResultSubstitution.hpp
 Inferences/RefutationSeekerFSE.o: Lib/SmartPtr.hpp Kernel/Term.hpp
+Inferences/RefutationSeekerFSE.o: Lib/Portability.hpp Lib/XML.hpp
+Inferences/RefutationSeekerFSE.o: Lib/Comparison.hpp
 Inferences/RefutationSeekerFSE.o: Indexing/LiteralIndex.hpp
 Inferences/RefutationSeekerFSE.o: Indexing/Index.hpp
-Inferences/RefutationSeekerFSE.o: Indexing/IndexManager.hpp
+Inferences/RefutationSeekerFSE.o: Indexing/IndexManager.hpp Lib/DHMap.hpp
 Inferences/RefutationSeekerFSE.o: Saturation/SaturationAlgorithm.hpp
 Inferences/RefutationSeekerFSE.o: Inferences/InferenceEngine.hpp
 Inferences/RefutationSeekerFSE.o: Saturation/Limits.hpp
@@ -1337,8 +1296,7 @@ Inferences/SLQueryBackwardSubsumption.o: Kernel/Term.hpp Lib/Allocator.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/Portability.hpp Lib/XML.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/Stack.hpp Kernel/Clause.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/Reflection.hpp Kernel/Unit.hpp
-Inferences/SLQueryBackwardSubsumption.o: Kernel/MMSubstitution.hpp
-Inferences/SLQueryBackwardSubsumption.o: Kernel/Term.hpp Kernel/MLMatcher.hpp
+Inferences/SLQueryBackwardSubsumption.o: Kernel/MLMatcher.hpp
 Inferences/SLQueryBackwardSubsumption.o: Indexing/Index.hpp Lib/Event.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 Inferences/SLQueryBackwardSubsumption.o: Saturation/ClauseContainer.hpp
@@ -1372,9 +1330,7 @@ Inferences/SLQueryForwardSubsumption.o: Lib/Allocator.hpp Lib/Portability.hpp
 Inferences/SLQueryForwardSubsumption.o: Lib/XML.hpp Lib/Stack.hpp
 Inferences/SLQueryForwardSubsumption.o: Lib/Metaiterators.hpp Lib/Set.hpp
 Inferences/SLQueryForwardSubsumption.o: Kernel/Clause.hpp Lib/Reflection.hpp
-Inferences/SLQueryForwardSubsumption.o: Kernel/Unit.hpp
-Inferences/SLQueryForwardSubsumption.o: Kernel/MMSubstitution.hpp
-Inferences/SLQueryForwardSubsumption.o: Kernel/Term.hpp Kernel/MLMatcher.hpp
+Inferences/SLQueryForwardSubsumption.o: Kernel/Unit.hpp Kernel/MLMatcher.hpp
 Inferences/SLQueryForwardSubsumption.o: Indexing/Index.hpp Lib/Event.hpp
 Inferences/SLQueryForwardSubsumption.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 Inferences/SLQueryForwardSubsumption.o: Saturation/ClauseContainer.hpp
@@ -1408,14 +1364,12 @@ Inferences/Superposition.o: Kernel/Clause.hpp Lib/Reflection.hpp
 Inferences/Superposition.o: Kernel/Unit.hpp Kernel/Unit.hpp Lib/List.hpp
 Inferences/Superposition.o: Kernel/Inference.hpp Kernel/Ordering.hpp
 Inferences/Superposition.o: Kernel/EqHelper.hpp Kernel/Term.hpp
-Inferences/Superposition.o: Indexing/Index.hpp Kernel/MMSubstitution.hpp
-Inferences/Superposition.o: Lib/DHMap.hpp Lib/BacktrackData.hpp Lib/Event.hpp
-Inferences/Superposition.o: Lib/SmartPtr.hpp Lib/Exception.hpp
-Inferences/Superposition.o: Saturation/ClauseContainer.hpp
+Inferences/Superposition.o: Indexing/Index.hpp Lib/Event.hpp Lib/SmartPtr.hpp
+Inferences/Superposition.o: Lib/Exception.hpp Saturation/ClauseContainer.hpp
 Inferences/Superposition.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
-Inferences/Superposition.o: Indexing/IndexManager.hpp Indexing/Index.hpp
-Inferences/Superposition.o: Indexing/TermSharing.hpp Lib/Set.hpp
-Inferences/Superposition.o: Saturation/SaturationAlgorithm.hpp
+Inferences/Superposition.o: Indexing/IndexManager.hpp Lib/DHMap.hpp
+Inferences/Superposition.o: Indexing/Index.hpp Indexing/TermSharing.hpp
+Inferences/Superposition.o: Lib/Set.hpp Saturation/SaturationAlgorithm.hpp
 Inferences/Superposition.o: Inferences/InferenceEngine.hpp
 Inferences/Superposition.o: Saturation/Limits.hpp
 Inferences/Superposition.o: Saturation/SaturationResult.hpp
@@ -1459,9 +1413,8 @@ Rule/Index.o: Lib/Allocator.hpp Lib/Metaiterators.hpp Lib/Set.hpp
 Rule/Index.o: Lib/Hash.hpp Lib/Reflection.hpp Kernel/Unit.hpp
 Rule/Index.o: Kernel/Signature.hpp Lib/Map.hpp Kernel/Term.hpp
 Rule/Index.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
-Rule/Index.o: Indexing/Index.hpp Kernel/MMSubstitution.hpp Lib/DHMap.hpp
-Rule/Index.o: Lib/BacktrackData.hpp Kernel/Term.hpp Lib/Event.hpp
-Rule/Index.o: Lib/SmartPtr.hpp Lib/Exception.hpp Lib/VirtualIterator.hpp
+Rule/Index.o: Indexing/Index.hpp Lib/Event.hpp Lib/SmartPtr.hpp
+Rule/Index.o: Lib/Exception.hpp Lib/VirtualIterator.hpp
 Rule/Index.o: Saturation/ClauseContainer.hpp Indexing/ResultSubstitution.hpp
 Rule/Index.o: Lib/SmartPtr.hpp
 Rule/Profile.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp
@@ -1538,16 +1491,14 @@ Saturation/Discount.o: Kernel/LiteralSelector.hpp Shell/Statistics.hpp
 Saturation/Discount.o: Saturation/Discount.hpp
 Saturation/Discount.o: Saturation/SaturationAlgorithm.hpp Lib/Event.hpp
 Saturation/Discount.o: Lib/SmartPtr.hpp Indexing/IndexManager.hpp
-Saturation/Discount.o: Lib/DHMap.hpp Indexing/Index.hpp
-Saturation/Discount.o: Kernel/MMSubstitution.hpp Lib/BacktrackData.hpp
-Saturation/Discount.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
-Saturation/Discount.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
-Saturation/Discount.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/BacktrackData.hpp
-Saturation/Discount.o: Lib/Exception.hpp Saturation/ClauseContainer.hpp
-Saturation/Discount.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
-Saturation/Discount.o: Kernel/Term.hpp Inferences/InferenceEngine.hpp
-Saturation/Discount.o: Lib/List.hpp Saturation/Limits.hpp
-Saturation/Discount.o: Saturation/SaturationResult.hpp
+Saturation/Discount.o: Lib/DHMap.hpp Indexing/Index.hpp Lib/Exception.hpp
+Saturation/Discount.o: Saturation/ClauseContainer.hpp Lib/Stack.hpp
+Saturation/Discount.o: Lib/BacktrackData.hpp Lib/Int.hpp Lib/Comparison.hpp
+Saturation/Discount.o: Lib/Portability.hpp Indexing/ResultSubstitution.hpp
+Saturation/Discount.o: Lib/SmartPtr.hpp Kernel/Term.hpp Lib/Portability.hpp
+Saturation/Discount.o: Lib/XML.hpp Lib/Comparison.hpp
+Saturation/Discount.o: Inferences/InferenceEngine.hpp Lib/List.hpp
+Saturation/Discount.o: Saturation/Limits.hpp Saturation/SaturationResult.hpp
 Saturation/Otter.o: Lib/Environment.hpp Forwards.hpp Config.hpp
 Saturation/Otter.o: Lib/VirtualIterator.hpp Debug/Assertion.hpp
 Saturation/Otter.o: Debug/Tracer.hpp Debug/Tracer.hpp Lib/Allocator.hpp
@@ -1558,16 +1509,14 @@ Saturation/Otter.o: Lib/Reflection.hpp Kernel/Unit.hpp
 Saturation/Otter.o: Kernel/LiteralSelector.hpp Shell/Statistics.hpp
 Saturation/Otter.o: Saturation/Otter.hpp Saturation/SaturationAlgorithm.hpp
 Saturation/Otter.o: Lib/Event.hpp Lib/SmartPtr.hpp Indexing/IndexManager.hpp
-Saturation/Otter.o: Lib/DHMap.hpp Indexing/Index.hpp
-Saturation/Otter.o: Kernel/MMSubstitution.hpp Lib/BacktrackData.hpp
-Saturation/Otter.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
-Saturation/Otter.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
-Saturation/Otter.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/BacktrackData.hpp
-Saturation/Otter.o: Lib/Exception.hpp Saturation/ClauseContainer.hpp
-Saturation/Otter.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
-Saturation/Otter.o: Kernel/Term.hpp Inferences/InferenceEngine.hpp
-Saturation/Otter.o: Lib/List.hpp Saturation/Limits.hpp
-Saturation/Otter.o: Saturation/SaturationResult.hpp
+Saturation/Otter.o: Lib/DHMap.hpp Indexing/Index.hpp Lib/Exception.hpp
+Saturation/Otter.o: Saturation/ClauseContainer.hpp Lib/Stack.hpp
+Saturation/Otter.o: Lib/BacktrackData.hpp Lib/Int.hpp Lib/Comparison.hpp
+Saturation/Otter.o: Lib/Portability.hpp Indexing/ResultSubstitution.hpp
+Saturation/Otter.o: Lib/SmartPtr.hpp Kernel/Term.hpp Lib/Portability.hpp
+Saturation/Otter.o: Lib/XML.hpp Lib/Comparison.hpp
+Saturation/Otter.o: Inferences/InferenceEngine.hpp Lib/List.hpp
+Saturation/Otter.o: Saturation/Limits.hpp Saturation/SaturationResult.hpp
 Saturation/SaturationAlgorithm.o: Lib/Environment.hpp Forwards.hpp Config.hpp
 Saturation/SaturationAlgorithm.o: Lib/VirtualIterator.hpp Debug/Assertion.hpp
 Saturation/SaturationAlgorithm.o: Debug/Tracer.hpp Debug/Tracer.hpp
@@ -1581,17 +1530,15 @@ Saturation/SaturationAlgorithm.o: Shell/Statistics.hpp
 Saturation/SaturationAlgorithm.o: Saturation/SaturationAlgorithm.hpp
 Saturation/SaturationAlgorithm.o: Lib/Event.hpp Lib/SmartPtr.hpp
 Saturation/SaturationAlgorithm.o: Indexing/IndexManager.hpp Lib/DHMap.hpp
-Saturation/SaturationAlgorithm.o: Indexing/Index.hpp
-Saturation/SaturationAlgorithm.o: Kernel/MMSubstitution.hpp
-Saturation/SaturationAlgorithm.o: Lib/BacktrackData.hpp Lib/Int.hpp
-Saturation/SaturationAlgorithm.o: Lib/Comparison.hpp Lib/Portability.hpp
-Saturation/SaturationAlgorithm.o: Kernel/Term.hpp Lib/Portability.hpp
-Saturation/SaturationAlgorithm.o: Lib/XML.hpp Lib/Comparison.hpp
-Saturation/SaturationAlgorithm.o: Lib/Stack.hpp Lib/BacktrackData.hpp
-Saturation/SaturationAlgorithm.o: Lib/Exception.hpp
+Saturation/SaturationAlgorithm.o: Indexing/Index.hpp Lib/Exception.hpp
 Saturation/SaturationAlgorithm.o: Saturation/ClauseContainer.hpp
+Saturation/SaturationAlgorithm.o: Lib/Stack.hpp Lib/BacktrackData.hpp
+Saturation/SaturationAlgorithm.o: Lib/Int.hpp Lib/Comparison.hpp
+Saturation/SaturationAlgorithm.o: Lib/Portability.hpp
 Saturation/SaturationAlgorithm.o: Indexing/ResultSubstitution.hpp
 Saturation/SaturationAlgorithm.o: Lib/SmartPtr.hpp Kernel/Term.hpp
+Saturation/SaturationAlgorithm.o: Lib/Portability.hpp Lib/XML.hpp
+Saturation/SaturationAlgorithm.o: Lib/Comparison.hpp
 Saturation/SaturationAlgorithm.o: Inferences/InferenceEngine.hpp Lib/List.hpp
 Saturation/SaturationAlgorithm.o: Saturation/Limits.hpp
 Saturation/SaturationAlgorithm.o: Saturation/SaturationResult.hpp
@@ -1616,23 +1563,19 @@ Saturation/SaturationAlgorithm_Construction.o: Lib/VirtualIterator.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/BackwardDemodulation.hpp
 Saturation/SaturationAlgorithm_Construction.o: Indexing/TermIndex.hpp
 Saturation/SaturationAlgorithm_Construction.o: Indexing/Index.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/MMSubstitution.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/DHMap.hpp Lib/Hash.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/BacktrackData.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/List.hpp Lib/Int.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Comparison.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Portability.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/Term.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Portability.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Comparison.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Stack.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/BacktrackData.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Metaiterators.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Set.hpp Lib/Event.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Event.hpp Lib/List.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/SmartPtr.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/ClauseContainer.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Stack.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/BacktrackData.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Int.hpp Lib/Comparison.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Portability.hpp
 Saturation/SaturationAlgorithm_Construction.o: Indexing/ResultSubstitution.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/Term.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Portability.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Comparison.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Metaiterators.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Set.hpp Lib/Hash.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/BinaryResolution.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/EqualityFactoring.hpp
@@ -1653,6 +1596,7 @@ Saturation/SaturationAlgorithm_Construction.o: Kernel/Clause.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/Reflection.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/Unit.hpp
 Saturation/SaturationAlgorithm_Construction.o: Indexing/IndexManager.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/DHMap.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/Limits.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/SaturationResult.hpp
 Saturation/SaturationAlgorithm_Construction.o: Shell/Statistics.hpp
@@ -1669,29 +1613,8 @@ Saturation/SaturationResult.o: Lib/Set.hpp Lib/Hash.hpp Lib/Reflection.hpp
 Saturation/SaturationResult.o: Kernel/Unit.hpp
 Saturation/SaturationResult.o: Saturation/SaturationResult.hpp
 Saturation/SaturationResult.o: Shell/Statistics.hpp Lib/Environment.hpp
-Test/Compit2Output.o: Debug/Assertion.hpp Debug/Tracer.hpp Kernel/Term.hpp
-Test/Compit2Output.o: Forwards.hpp Config.hpp Debug/Tracer.hpp
-Test/Compit2Output.o: Lib/Allocator.hpp Lib/Portability.hpp Lib/XML.hpp
-Test/Compit2Output.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/Allocator.hpp
-Test/Compit2Output.o: Lib/BacktrackData.hpp Lib/List.hpp
-Test/Compit2Output.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-Test/Compit2Output.o: Lib/Reflection.hpp Lib/Int.hpp Lib/Comparison.hpp
-Test/Compit2Output.o: Lib/Portability.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-Test/Compit2Output.o: Lib/Hash.hpp Kernel/Clause.hpp Lib/Reflection.hpp
-Test/Compit2Output.o: Kernel/Unit.hpp Lib/Int.hpp Lib/Environment.hpp
-Test/Compit2Output.o: Kernel/Signature.hpp Lib/Map.hpp Test/Compit2Output.hpp
-Test/Compit2Output.o: compit2.hpp Kernel/Term.hpp
-Test/CompitOutput.o: Debug/Assertion.hpp Debug/Tracer.hpp Kernel/Term.hpp
-Test/CompitOutput.o: Forwards.hpp Config.hpp Debug/Tracer.hpp
-Test/CompitOutput.o: Lib/Allocator.hpp Lib/Portability.hpp Lib/XML.hpp
-Test/CompitOutput.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/Allocator.hpp
-Test/CompitOutput.o: Lib/BacktrackData.hpp Lib/List.hpp
-Test/CompitOutput.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-Test/CompitOutput.o: Lib/Reflection.hpp Lib/Int.hpp Lib/Comparison.hpp
-Test/CompitOutput.o: Lib/Portability.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-Test/CompitOutput.o: Lib/Hash.hpp Kernel/Clause.hpp Lib/Reflection.hpp
-Test/CompitOutput.o: Kernel/Unit.hpp Lib/Int.hpp Lib/Environment.hpp
-Test/CompitOutput.o: Kernel/Signature.hpp Lib/Map.hpp Test/CompitOutput.hpp
+Test/Compit2Output.o: Test/Compit2Output.hpp Config.hpp
+Test/CompitOutput.o: Test/CompitOutput.hpp Config.hpp
 Test/Output.o: Debug/Assertion.hpp Debug/Tracer.hpp Kernel/Term.hpp
 Test/Output.o: Forwards.hpp Config.hpp Debug/Tracer.hpp Lib/Allocator.hpp
 Test/Output.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
@@ -1710,38 +1633,41 @@ Global.o: Lib/XML.hpp Kernel/Connective.hpp Kernel/Unit.hpp
 Global.o: Lib/Environment.hpp
 compit2.o: compit2.hpp Kernel/Term.hpp Forwards.hpp Config.hpp
 compit2.o: Debug/Assertion.hpp Debug/Tracer.hpp Debug/Tracer.hpp
-compit2.o: Lib/Timer.hpp Debug/Assertion.hpp
-compit2_impl.o: compit2.hpp Kernel/Term.hpp Lib/Allocator.hpp
-compit2_impl.o: Debug/Tracer.hpp Lib/Random.hpp Lib/Set.hpp Lib/Allocator.hpp
-compit2_impl.o: Lib/Hash.hpp Lib/Stack.hpp Debug/Assertion.hpp
-compit2_impl.o: Debug/Tracer.hpp Lib/BacktrackData.hpp Lib/List.hpp
-compit2_impl.o: Forwards.hpp Config.hpp Lib/VirtualIterator.hpp
+compit2.o: Lib/Allocator.hpp Lib/Portability.hpp Lib/XML.hpp
+compit2.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/Allocator.hpp
+compit2.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/VirtualIterator.hpp
+compit2.o: Lib/Exception.hpp Lib/Reflection.hpp Lib/Int.hpp
+compit2.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/Metaiterators.hpp
+compit2.o: Lib/Set.hpp Lib/Hash.hpp Lib/Timer.hpp
+compit2_impl.o: compit2.hpp Kernel/Term.hpp Forwards.hpp Config.hpp
+compit2_impl.o: Debug/Assertion.hpp Debug/Tracer.hpp Debug/Tracer.hpp
+compit2_impl.o: Lib/Allocator.hpp Lib/Portability.hpp Lib/XML.hpp
+compit2_impl.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/Allocator.hpp
+compit2_impl.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/VirtualIterator.hpp
 compit2_impl.o: Lib/Exception.hpp Lib/Reflection.hpp Lib/Int.hpp
-compit2_impl.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/Int.hpp
-compit2_impl.o: Lib/Timer.hpp Lib/Exception.hpp Lib/Environment.hpp
-compit2_impl.o: Lib/VirtualIterator.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-compit2_impl.o: Kernel/Signature.hpp Lib/Allocator.hpp Lib/Stack.hpp
-compit2_impl.o: Lib/Map.hpp Kernel/Curryfier.hpp Lib/Environment.hpp
-compit2_impl.o: Lib/DHMap.hpp Lib/DArray.hpp Lib/Random.hpp Lib/ArrayMap.hpp
-compit2_impl.o: Lib/DArray.hpp Indexing/TermSharing.hpp Lib/Set.hpp
-compit2_impl.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
-compit2_impl.o: Lib/Comparison.hpp Lib/Metaiterators.hpp Kernel/Term.hpp
-compit2_impl.o: Kernel/Signature.hpp Indexing/TermSharing.hpp
+compit2_impl.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/Metaiterators.hpp
+compit2_impl.o: Lib/Set.hpp Lib/Hash.hpp Lib/Allocator.hpp Lib/Random.hpp
+compit2_impl.o: Lib/Set.hpp Lib/Stack.hpp Lib/Int.hpp Lib/Timer.hpp
+compit2_impl.o: Lib/Exception.hpp Lib/Environment.hpp Lib/VirtualIterator.hpp
+compit2_impl.o: Lib/Metaiterators.hpp Kernel/Signature.hpp Lib/Map.hpp
+compit2_impl.o: Kernel/Curryfier.hpp Lib/Environment.hpp Lib/DHMap.hpp
+compit2_impl.o: Lib/DArray.hpp Lib/Random.hpp Lib/ArrayMap.hpp Lib/DArray.hpp
+compit2_impl.o: Indexing/TermSharing.hpp Lib/Set.hpp Kernel/Term.hpp
+compit2_impl.o: Kernel/Term.hpp Kernel/Signature.hpp Indexing/TermSharing.hpp
 compit2_impl.o: Indexing/TermSubstitutionTree.hpp Kernel/Renaming.hpp
 compit2_impl.o: Lib/VirtualIterator.hpp Lib/SkipList.hpp Indexing/Index.hpp
-compit2_impl.o: Kernel/MMSubstitution.hpp Lib/BacktrackData.hpp Lib/Event.hpp
-compit2_impl.o: Lib/SmartPtr.hpp Lib/Exception.hpp
+compit2_impl.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
 compit2_impl.o: Saturation/ClauseContainer.hpp
 compit2_impl.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
 compit2_impl.o: Indexing/TermIndexingStructure.hpp
 compit2_impl.o: Indexing/SubstitutionTree.hpp Lib/Int.hpp Lib/List.hpp
 compit2_impl.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
-compit2_impl.o: Kernel/DoubleSubstitution.hpp Kernel/RobSubstitution.hpp
-compit2_impl.o: Kernel/Matcher.hpp Lib/Hash.hpp Kernel/Clause.hpp
-compit2_impl.o: Lib/Reflection.hpp Kernel/Unit.hpp Test/Output.hpp
-compit2_impl.o: Test/Compit2Output.hpp compit2.hpp Shell/Options.hpp
-compit2_impl.o: Shell/CommandLine.hpp Shell/Property.hpp Kernel/Unit.hpp
-compit2_impl.o: Shell/Preprocess.hpp Shell/Statistics.hpp
+compit2_impl.o: Lib/BacktrackData.hpp Kernel/DoubleSubstitution.hpp
+compit2_impl.o: Kernel/RobSubstitution.hpp Kernel/Matcher.hpp Lib/Hash.hpp
+compit2_impl.o: Kernel/Clause.hpp Lib/Reflection.hpp Kernel/Unit.hpp
+compit2_impl.o: Test/Output.hpp Shell/Options.hpp Shell/CommandLine.hpp
+compit2_impl.o: Shell/Property.hpp Kernel/Unit.hpp Shell/Preprocess.hpp
+compit2_impl.o: Shell/Statistics.hpp
 sat.o: Lib/Random.hpp
 test_BinaryHeap.o: Lib/BinaryHeap.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 test_BinaryHeap.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Exception.hpp
@@ -1767,18 +1693,19 @@ test_SkipList.o: Lib/DHMultiset.hpp Lib/Hash.hpp Lib/DHMap.hpp Lib/Int.hpp
 test_SkipList.o: Lib/DArray.hpp Lib/Timer.hpp Lib/Random.hpp
 test_SubstitutionTree.o: Debug/Tracer.hpp Lib/Array.hpp Debug/Assertion.hpp
 test_SubstitutionTree.o: Debug/Tracer.hpp Lib/Allocator.hpp Debug/Tracer.hpp
-test_SubstitutionTree.o: Lib/Random.hpp Lib/Set.hpp Lib/Allocator.hpp
-test_SubstitutionTree.o: Lib/Hash.hpp Lib/Int.hpp Lib/Timer.hpp
+test_SubstitutionTree.o: Lib/Random.hpp Lib/Set.hpp Lib/Int.hpp Lib/Timer.hpp
 test_SubstitutionTree.o: Lib/Exception.hpp Lib/Environment.hpp Forwards.hpp
-test_SubstitutionTree.o: Config.hpp Lib/Vector.hpp Kernel/Signature.hpp
-test_SubstitutionTree.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/List.hpp
+test_SubstitutionTree.o: Config.hpp Lib/Vector.hpp Lib/Allocator.hpp
+test_SubstitutionTree.o: Kernel/Signature.hpp Lib/Stack.hpp
+test_SubstitutionTree.o: Lib/BacktrackData.hpp Lib/List.hpp
 test_SubstitutionTree.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
 test_SubstitutionTree.o: Lib/Reflection.hpp Lib/Int.hpp Lib/Comparison.hpp
-test_SubstitutionTree.o: Lib/Portability.hpp Lib/Map.hpp Kernel/Clause.hpp
-test_SubstitutionTree.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/Reflection.hpp
-test_SubstitutionTree.o: Kernel/Unit.hpp Kernel/Formula.hpp Lib/List.hpp
-test_SubstitutionTree.o: Lib/XML.hpp Kernel/Connective.hpp
-test_SubstitutionTree.o: Kernel/FormulaUnit.hpp Indexing/TermSharing.hpp
+test_SubstitutionTree.o: Lib/Portability.hpp Lib/Map.hpp Lib/Hash.hpp
+test_SubstitutionTree.o: Kernel/Clause.hpp Lib/Metaiterators.hpp Lib/Set.hpp
+test_SubstitutionTree.o: Lib/Reflection.hpp Kernel/Unit.hpp
+test_SubstitutionTree.o: Kernel/Formula.hpp Lib/List.hpp Lib/XML.hpp
+test_SubstitutionTree.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
+test_SubstitutionTree.o: Indexing/TermSharing.hpp
 test_SubstitutionTree.o: Indexing/SubstitutionTree.hpp
 test_SubstitutionTree.o: Lib/VirtualIterator.hpp Lib/Comparison.hpp
 test_SubstitutionTree.o: Lib/Int.hpp Lib/SkipList.hpp Lib/Random.hpp
@@ -1786,11 +1713,10 @@ test_SubstitutionTree.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
 test_SubstitutionTree.o: Lib/BacktrackData.hpp Lib/ArrayMap.hpp
 test_SubstitutionTree.o: Lib/DArray.hpp Kernel/DoubleSubstitution.hpp
 test_SubstitutionTree.o: Lib/DHMap.hpp Kernel/Term.hpp Lib/Portability.hpp
-test_SubstitutionTree.o: Kernel/MMSubstitution.hpp Kernel/RobSubstitution.hpp
-test_SubstitutionTree.o: Kernel/Matcher.hpp Lib/Hash.hpp Kernel/Renaming.hpp
-test_SubstitutionTree.o: Kernel/Clause.hpp Indexing/Index.hpp Lib/Event.hpp
-test_SubstitutionTree.o: Lib/SmartPtr.hpp Lib/Exception.hpp
-test_SubstitutionTree.o: Saturation/ClauseContainer.hpp
+test_SubstitutionTree.o: Kernel/RobSubstitution.hpp Kernel/Matcher.hpp
+test_SubstitutionTree.o: Lib/Hash.hpp Kernel/Renaming.hpp Kernel/Clause.hpp
+test_SubstitutionTree.o: Indexing/Index.hpp Lib/Event.hpp Lib/SmartPtr.hpp
+test_SubstitutionTree.o: Lib/Exception.hpp Saturation/ClauseContainer.hpp
 test_SubstitutionTree.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
 test_SubstitutionTree.o: Kernel/Term.hpp Test/Output.hpp Shell/Options.hpp
 test_SubstitutionTree.o: Shell/CommandLine.hpp Shell/TPTPLexer.hpp
@@ -1803,29 +1729,29 @@ test_SubstitutionTree.o: Shell/TheoryFinder.hpp Rule/CASC.hpp Rule/Prolog.hpp
 test_SubstitutionTree.o: Rule/Index.hpp Rule/Rule.hpp Rule/Index.hpp
 test_SubstitutionTree.o: Rule/ProofAttempt.hpp Test/Output.hpp
 test_SubstitutionTree.o: Lib/MemoryLeak.hpp
-test_alloc.o: Lib/Allocator.hpp Debug/Tracer.hpp
+test_alloc.o: Lib/Allocator.hpp
 test_retrieval.o: Debug/Tracer.hpp Lib/Array.hpp Debug/Assertion.hpp
 test_retrieval.o: Debug/Tracer.hpp Lib/Allocator.hpp Debug/Tracer.hpp
-test_retrieval.o: Lib/Random.hpp Lib/Set.hpp Lib/Allocator.hpp Lib/Hash.hpp
-test_retrieval.o: Lib/Int.hpp Lib/Timer.hpp Lib/Exception.hpp
-test_retrieval.o: Lib/Environment.hpp Forwards.hpp Config.hpp Lib/Vector.hpp
+test_retrieval.o: Lib/Random.hpp Lib/Set.hpp Lib/Int.hpp Lib/Timer.hpp
+test_retrieval.o: Lib/Exception.hpp Lib/Environment.hpp Forwards.hpp
+test_retrieval.o: Config.hpp Lib/Vector.hpp Lib/Allocator.hpp
 test_retrieval.o: Kernel/Signature.hpp Lib/Stack.hpp Lib/BacktrackData.hpp
 test_retrieval.o: Lib/List.hpp Lib/VirtualIterator.hpp Lib/Exception.hpp
 test_retrieval.o: Lib/Reflection.hpp Lib/Int.hpp Lib/Comparison.hpp
-test_retrieval.o: Lib/Portability.hpp Lib/Map.hpp Kernel/Clause.hpp
-test_retrieval.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/Reflection.hpp
-test_retrieval.o: Kernel/Unit.hpp Kernel/Formula.hpp Lib/List.hpp Lib/XML.hpp
-test_retrieval.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
-test_retrieval.o: Indexing/TermSharing.hpp Indexing/SubstitutionTree.hpp
-test_retrieval.o: Lib/VirtualIterator.hpp Lib/Comparison.hpp Lib/Int.hpp
-test_retrieval.o: Lib/SkipList.hpp Lib/Random.hpp Lib/BinaryHeap.hpp
-test_retrieval.o: Lib/Metaiterators.hpp Lib/BacktrackData.hpp
-test_retrieval.o: Lib/ArrayMap.hpp Lib/DArray.hpp
+test_retrieval.o: Lib/Portability.hpp Lib/Map.hpp Lib/Hash.hpp
+test_retrieval.o: Kernel/Clause.hpp Lib/Metaiterators.hpp Lib/Set.hpp
+test_retrieval.o: Lib/Reflection.hpp Kernel/Unit.hpp Kernel/Formula.hpp
+test_retrieval.o: Lib/List.hpp Lib/XML.hpp Kernel/Connective.hpp
+test_retrieval.o: Kernel/FormulaUnit.hpp Indexing/TermSharing.hpp
+test_retrieval.o: Indexing/SubstitutionTree.hpp Lib/VirtualIterator.hpp
+test_retrieval.o: Lib/Comparison.hpp Lib/Int.hpp Lib/SkipList.hpp
+test_retrieval.o: Lib/Random.hpp Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
+test_retrieval.o: Lib/BacktrackData.hpp Lib/ArrayMap.hpp Lib/DArray.hpp
 test_retrieval.o: Kernel/DoubleSubstitution.hpp Lib/DHMap.hpp Kernel/Term.hpp
-test_retrieval.o: Lib/Portability.hpp Kernel/MMSubstitution.hpp
-test_retrieval.o: Kernel/RobSubstitution.hpp Kernel/Matcher.hpp Lib/Hash.hpp
-test_retrieval.o: Kernel/Renaming.hpp Kernel/Clause.hpp Indexing/Index.hpp
-test_retrieval.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
+test_retrieval.o: Lib/Portability.hpp Kernel/RobSubstitution.hpp
+test_retrieval.o: Kernel/Matcher.hpp Lib/Hash.hpp Kernel/Renaming.hpp
+test_retrieval.o: Kernel/Clause.hpp Indexing/Index.hpp Lib/Event.hpp
+test_retrieval.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 test_retrieval.o: Saturation/ClauseContainer.hpp
 test_retrieval.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
 test_retrieval.o: Kernel/Term.hpp Test/Output.hpp Shell/Options.hpp
@@ -1839,51 +1765,49 @@ test_retrieval.o: Shell/TheoryFinder.hpp Rule/CASC.hpp Rule/Prolog.hpp
 test_retrieval.o: Rule/Index.hpp Rule/Rule.hpp Rule/Index.hpp
 test_retrieval.o: Rule/ProofAttempt.hpp Test/Output.hpp Lib/MemoryLeak.hpp
 ucompit.o: Forwards.hpp Config.hpp Debug/Tracer.hpp Lib/Allocator.hpp
-ucompit.o: Debug/Tracer.hpp Lib/Random.hpp Lib/Set.hpp Lib/Allocator.hpp
-ucompit.o: Lib/Hash.hpp Lib/Int.hpp Lib/Timer.hpp Debug/Assertion.hpp
-ucompit.o: Debug/Tracer.hpp Lib/Exception.hpp Lib/Environment.hpp
-ucompit.o: Forwards.hpp Lib/VirtualIterator.hpp Lib/Metaiterators.hpp
-ucompit.o: Lib/List.hpp Lib/VirtualIterator.hpp Lib/Exception.hpp
-ucompit.o: Lib/Reflection.hpp Lib/Set.hpp Kernel/Signature.hpp
-ucompit.o: Lib/Allocator.hpp Lib/Stack.hpp Lib/BacktrackData.hpp Lib/Int.hpp
-ucompit.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/Map.hpp Kernel/Term.hpp
-ucompit.o: Kernel/Curryfier.hpp Lib/Environment.hpp Lib/DHMap.hpp
-ucompit.o: Lib/DArray.hpp Lib/Random.hpp Lib/ArrayMap.hpp Lib/DArray.hpp
-ucompit.o: Indexing/TermSharing.hpp Lib/Set.hpp Kernel/Term.hpp
-ucompit.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
-ucompit.o: Lib/Metaiterators.hpp Kernel/Term.hpp Kernel/Signature.hpp
+ucompit.o: Lib/Random.hpp Lib/Set.hpp Lib/Int.hpp Lib/Timer.hpp
+ucompit.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Exception.hpp
+ucompit.o: Lib/Environment.hpp Forwards.hpp Lib/VirtualIterator.hpp
+ucompit.o: Lib/Metaiterators.hpp Kernel/Signature.hpp Lib/Allocator.hpp
+ucompit.o: Debug/Tracer.hpp Lib/Stack.hpp Lib/Allocator.hpp
+ucompit.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/VirtualIterator.hpp
+ucompit.o: Lib/Exception.hpp Lib/Reflection.hpp Lib/Int.hpp
+ucompit.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/Map.hpp Lib/Hash.hpp
+ucompit.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
+ucompit.o: Lib/Metaiterators.hpp Lib/Set.hpp Kernel/Curryfier.hpp
+ucompit.o: Lib/Environment.hpp Lib/DHMap.hpp Lib/DArray.hpp Lib/Random.hpp
+ucompit.o: Lib/ArrayMap.hpp Lib/DArray.hpp Indexing/TermSharing.hpp
+ucompit.o: Lib/Set.hpp Kernel/Term.hpp Kernel/Term.hpp Kernel/Signature.hpp
 ucompit.o: Indexing/TermSharing.hpp Indexing/TermSubstitutionTree.hpp
 ucompit.o: Kernel/Renaming.hpp Lib/VirtualIterator.hpp Lib/SkipList.hpp
-ucompit.o: Indexing/Index.hpp Kernel/MMSubstitution.hpp Lib/BacktrackData.hpp
-ucompit.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
-ucompit.o: Saturation/ClauseContainer.hpp Indexing/ResultSubstitution.hpp
-ucompit.o: Lib/SmartPtr.hpp Indexing/TermIndexingStructure.hpp
-ucompit.o: Indexing/SubstitutionTree.hpp Lib/Int.hpp Lib/List.hpp
-ucompit.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
-ucompit.o: Kernel/DoubleSubstitution.hpp Kernel/RobSubstitution.hpp
-ucompit.o: Kernel/Matcher.hpp Lib/Hash.hpp Kernel/Clause.hpp
-ucompit.o: Lib/Reflection.hpp Kernel/Unit.hpp Test/Output.hpp
-ucompit.o: Test/Compit2Output.hpp compit2.hpp Shell/Options.hpp
-ucompit.o: Shell/CommandLine.hpp Shell/Property.hpp Kernel/Unit.hpp
-ucompit.o: Shell/Preprocess.hpp Shell/Statistics.hpp
-vampire.o: Debug/Tracer.hpp Lib/Random.hpp Lib/Set.hpp Lib/Allocator.hpp
-vampire.o: Debug/Tracer.hpp Lib/Hash.hpp Lib/Int.hpp Lib/Timer.hpp
-vampire.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Exception.hpp
-vampire.o: Lib/Environment.hpp Forwards.hpp Config.hpp Lib/Vector.hpp
-vampire.o: Lib/System.hpp Lib/Metaiterators.hpp Lib/List.hpp
+ucompit.o: Indexing/Index.hpp Lib/Event.hpp Lib/SmartPtr.hpp
+ucompit.o: Lib/Exception.hpp Saturation/ClauseContainer.hpp
+ucompit.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
+ucompit.o: Indexing/TermIndexingStructure.hpp Indexing/SubstitutionTree.hpp
+ucompit.o: Lib/Int.hpp Lib/List.hpp Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
+ucompit.o: Lib/BacktrackData.hpp Kernel/DoubleSubstitution.hpp
+ucompit.o: Kernel/RobSubstitution.hpp Kernel/Matcher.hpp Lib/Hash.hpp
+ucompit.o: Kernel/Clause.hpp Lib/Reflection.hpp Kernel/Unit.hpp
+ucompit.o: Test/Output.hpp Shell/Options.hpp Shell/CommandLine.hpp
+ucompit.o: Shell/Property.hpp Kernel/Unit.hpp Shell/Preprocess.hpp
+ucompit.o: Shell/Statistics.hpp
+vampire.o: Debug/Tracer.hpp Lib/Random.hpp Lib/Set.hpp Lib/Int.hpp
+vampire.o: Lib/Timer.hpp Debug/Assertion.hpp Debug/Tracer.hpp
+vampire.o: Lib/Exception.hpp Lib/Environment.hpp Forwards.hpp Config.hpp
+vampire.o: Lib/Vector.hpp Lib/Allocator.hpp Debug/Tracer.hpp Lib/System.hpp
+vampire.o: Lib/Metaiterators.hpp Kernel/Signature.hpp Lib/Allocator.hpp
+vampire.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/List.hpp
 vampire.o: Lib/VirtualIterator.hpp Lib/Exception.hpp Lib/Reflection.hpp
-vampire.o: Lib/Set.hpp Kernel/Signature.hpp Lib/Allocator.hpp Lib/Stack.hpp
-vampire.o: Lib/BacktrackData.hpp Lib/Int.hpp Lib/Comparison.hpp
-vampire.o: Lib/Portability.hpp Lib/Map.hpp Kernel/Clause.hpp
-vampire.o: Lib/Metaiterators.hpp Lib/Reflection.hpp Kernel/Unit.hpp
-vampire.o: Kernel/Formula.hpp Lib/List.hpp Lib/XML.hpp Kernel/Connective.hpp
-vampire.o: Kernel/FormulaUnit.hpp Indexing/TermSharing.hpp
-vampire.o: Indexing/SubstitutionTree.hpp Lib/VirtualIterator.hpp
-vampire.o: Lib/Comparison.hpp Lib/Int.hpp Lib/SkipList.hpp Lib/Random.hpp
-vampire.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp Lib/BacktrackData.hpp
-vampire.o: Lib/ArrayMap.hpp Lib/DArray.hpp Kernel/DoubleSubstitution.hpp
-vampire.o: Lib/DHMap.hpp Kernel/Term.hpp Lib/Portability.hpp
-vampire.o: Kernel/MMSubstitution.hpp Kernel/RobSubstitution.hpp
+vampire.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp Lib/Map.hpp
+vampire.o: Lib/Hash.hpp Kernel/Clause.hpp Lib/Metaiterators.hpp Lib/Set.hpp
+vampire.o: Lib/Reflection.hpp Kernel/Unit.hpp Kernel/Formula.hpp Lib/List.hpp
+vampire.o: Lib/XML.hpp Kernel/Connective.hpp Kernel/FormulaUnit.hpp
+vampire.o: Indexing/TermSharing.hpp Indexing/SubstitutionTree.hpp
+vampire.o: Lib/VirtualIterator.hpp Lib/Comparison.hpp Lib/Int.hpp
+vampire.o: Lib/SkipList.hpp Lib/Random.hpp Lib/BinaryHeap.hpp
+vampire.o: Lib/Metaiterators.hpp Lib/BacktrackData.hpp Lib/ArrayMap.hpp
+vampire.o: Lib/DArray.hpp Kernel/DoubleSubstitution.hpp Lib/DHMap.hpp
+vampire.o: Kernel/Term.hpp Lib/Portability.hpp Kernel/RobSubstitution.hpp
 vampire.o: Kernel/Matcher.hpp Lib/Hash.hpp Kernel/Renaming.hpp
 vampire.o: Kernel/Clause.hpp Indexing/Index.hpp Lib/Event.hpp
 vampire.o: Lib/SmartPtr.hpp Lib/Exception.hpp Saturation/ClauseContainer.hpp
@@ -1898,30 +1822,29 @@ vampire.o: Indexing/IndexManager.hpp Inferences/InferenceEngine.hpp
 vampire.o: Saturation/Limits.hpp Saturation/SaturationResult.hpp
 vampire.o: Shell/Statistics.hpp Lib/Environment.hpp Lib/MemoryLeak.hpp
 vcompit.o: Forwards.hpp Config.hpp Debug/Tracer.hpp Lib/Allocator.hpp
-vcompit.o: Debug/Tracer.hpp Lib/Random.hpp Lib/Set.hpp Lib/Allocator.hpp
-vcompit.o: Lib/Hash.hpp Lib/Int.hpp Lib/Timer.hpp Debug/Assertion.hpp
-vcompit.o: Debug/Tracer.hpp Lib/Exception.hpp Lib/Environment.hpp
-vcompit.o: Forwards.hpp Lib/VirtualIterator.hpp Lib/Metaiterators.hpp
-vcompit.o: Lib/List.hpp Lib/VirtualIterator.hpp Lib/Exception.hpp
-vcompit.o: Lib/Reflection.hpp Lib/Set.hpp Kernel/Signature.hpp
-vcompit.o: Lib/Allocator.hpp Lib/Stack.hpp Lib/BacktrackData.hpp Lib/Int.hpp
-vcompit.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/Map.hpp Kernel/Term.hpp
-vcompit.o: Kernel/Curryfier.hpp Lib/Environment.hpp Lib/DHMap.hpp
-vcompit.o: Lib/DArray.hpp Lib/Random.hpp Lib/ArrayMap.hpp Lib/DArray.hpp
-vcompit.o: Indexing/TermSharing.hpp Lib/Set.hpp Kernel/Term.hpp
-vcompit.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
-vcompit.o: Lib/Metaiterators.hpp Kernel/Term.hpp Kernel/Signature.hpp
+vcompit.o: Lib/Random.hpp Lib/Set.hpp Lib/Int.hpp Lib/Timer.hpp
+vcompit.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Exception.hpp
+vcompit.o: Lib/Environment.hpp Forwards.hpp Lib/VirtualIterator.hpp
+vcompit.o: Lib/Metaiterators.hpp Kernel/Signature.hpp Lib/Allocator.hpp
+vcompit.o: Debug/Tracer.hpp Lib/Stack.hpp Lib/Allocator.hpp
+vcompit.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/VirtualIterator.hpp
+vcompit.o: Lib/Exception.hpp Lib/Reflection.hpp Lib/Int.hpp
+vcompit.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/Map.hpp Lib/Hash.hpp
+vcompit.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
+vcompit.o: Lib/Metaiterators.hpp Lib/Set.hpp Kernel/Curryfier.hpp
+vcompit.o: Lib/Environment.hpp Lib/DHMap.hpp Lib/DArray.hpp Lib/Random.hpp
+vcompit.o: Lib/ArrayMap.hpp Lib/DArray.hpp Indexing/TermSharing.hpp
+vcompit.o: Lib/Set.hpp Kernel/Term.hpp Kernel/Term.hpp Kernel/Signature.hpp
 vcompit.o: Indexing/TermSharing.hpp Indexing/TermSubstitutionTree.hpp
 vcompit.o: Kernel/Renaming.hpp Lib/VirtualIterator.hpp Lib/SkipList.hpp
-vcompit.o: Indexing/Index.hpp Kernel/MMSubstitution.hpp Lib/BacktrackData.hpp
-vcompit.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
-vcompit.o: Saturation/ClauseContainer.hpp Indexing/ResultSubstitution.hpp
-vcompit.o: Lib/SmartPtr.hpp Indexing/TermIndexingStructure.hpp
-vcompit.o: Indexing/SubstitutionTree.hpp Lib/Int.hpp Lib/List.hpp
-vcompit.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
-vcompit.o: Kernel/DoubleSubstitution.hpp Kernel/RobSubstitution.hpp
-vcompit.o: Kernel/Matcher.hpp Lib/Hash.hpp Kernel/Clause.hpp
-vcompit.o: Lib/Reflection.hpp Kernel/Unit.hpp Test/Output.hpp
-vcompit.o: Test/Compit2Output.hpp compit2.hpp Shell/Options.hpp
-vcompit.o: Shell/CommandLine.hpp Shell/Property.hpp Kernel/Unit.hpp
-vcompit.o: Shell/Preprocess.hpp Shell/Statistics.hpp
+vcompit.o: Indexing/Index.hpp Lib/Event.hpp Lib/SmartPtr.hpp
+vcompit.o: Lib/Exception.hpp Saturation/ClauseContainer.hpp
+vcompit.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
+vcompit.o: Indexing/TermIndexingStructure.hpp Indexing/SubstitutionTree.hpp
+vcompit.o: Lib/Int.hpp Lib/List.hpp Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
+vcompit.o: Lib/BacktrackData.hpp Kernel/DoubleSubstitution.hpp
+vcompit.o: Kernel/RobSubstitution.hpp Kernel/Matcher.hpp Lib/Hash.hpp
+vcompit.o: Kernel/Clause.hpp Lib/Reflection.hpp Kernel/Unit.hpp
+vcompit.o: Test/Output.hpp Shell/Options.hpp Shell/CommandLine.hpp
+vcompit.o: Shell/Property.hpp Kernel/Unit.hpp Shell/Preprocess.hpp
+vcompit.o: Shell/Statistics.hpp

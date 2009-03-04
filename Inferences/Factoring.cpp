@@ -17,7 +17,7 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Unit.hpp"
 #include "../Kernel/Inference.hpp"
-#include "../Kernel/MMSubstitution.hpp"
+#include "../Kernel/RobSubstitution.hpp"
 
 #include "Factoring.hpp"
 
@@ -39,11 +39,11 @@ using namespace Saturation;
 class Factoring::UnificationsFn
 {
 public:
-  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*,MMSubstitution*> >);
+  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*,RobSubstitution*> >);
   UnificationsFn(Clause* cl)
   : _cl(cl)
   {
-    _subst=MMSubstitutionSP(new MMSubstitution());
+    _subst=RobSubstitutionSP(new RobSubstitution());
   }
   OWN_RETURN_TYPE operator() (pair<unsigned,unsigned> nums)
   {
@@ -61,7 +61,7 @@ public:
   }
 private:
   Clause* _cl;
-  MMSubstitutionSP _subst;
+  RobSubstitutionSP _subst;
 };
 
 /**
@@ -76,7 +76,7 @@ public:
   DECL_RETURN_TYPE(Clause*);
   ResultsFn(Clause* cl)
   : _cl(cl), _cLen(cl->length()) {}
-  OWN_RETURN_TYPE operator() (pair<Literal*,MMSubstitution*> arg)
+  OWN_RETURN_TYPE operator() (pair<Literal*,RobSubstitution*> arg)
   {
     CALL("Factoring::ResultsFn::operator()");
 

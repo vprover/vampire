@@ -49,9 +49,8 @@ class DoubleSubstitution;
 class Renaming;
 class Substitution;
 class RobSubstitution;
-class MMSubstitution;
-typedef VirtualIterator<MMSubstitution*> SubstIterator;
-typedef Lib::SmartPtr<MMSubstitution> MMSubstitutionSP;
+typedef VirtualIterator<RobSubstitution*> SubstIterator;
+typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
 class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;

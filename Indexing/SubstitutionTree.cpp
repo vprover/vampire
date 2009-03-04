@@ -55,12 +55,6 @@ SubstitutionTree::SubstitutionTree(int nodes)
   for (int i = nodes-1;i >= 0;i--) {
     _nodes[i] = 0;
   }
-
-  _compTrees = new(ALLOC_KNOWN(nodes*sizeof(CompiledTree*),"SubstitutionTree::CompiledTree"))
-                CompiledTree*[nodes];
-  for (int i = nodes-1;i >= 0;i--) {
-    _compTrees[i] = 0;
-  }
 } // SubstitutionTree::SubstitutionTree
 
 /**
@@ -78,17 +72,11 @@ SubstitutionTree::~SubstitutionTree()
       if(_nodes[i]!=0) {
 	delete _nodes[i];
       }
-      if(_compTrees[i]!=0) {
-	compiledTreeDestroy(_compTrees[i]);
-      }
     }
 
     DEALLOC_KNOWN(_nodes,
 	    _numberOfTopLevelNodes*sizeof(Node*),
 	    "SubstitutionTree::Node");
-    DEALLOC_KNOWN(_compTrees,
-	    _numberOfTopLevelNodes*sizeof(CompiledTree*),
-	    "SubstitutionTree::CompiledTree");
   }
 } // SubstitutionTree::~SubstitutionTree
 
@@ -148,71 +136,6 @@ struct BindingComparator
   }
 };
 
-#if VARIABLE_MARKING
-
-typedef DHMultiset<unsigned,IdentityHash<unsigned> > EncounterData;
-
-struct EncounterApplicator
-{
-  inline
-  EncounterApplicator(EncounterData* data, Stack<unsigned>* changeLog)
-  : _data(data), _changeLog(changeLog) {}
-  TermList apply(unsigned var)
-  {
-    var=var&~NEW_VARIABLE_MARK;
-    if(_data->find(var)) {
-      return TermList(var,false);
-    }
-    _data->insert(var);
-    if(_changeLog) {
-      _changeLog->push(var);
-    }
-    return TermList(var|NEW_VARIABLE_MARK,false);
-  }
-private:
-  EncounterData* _data;
-  Stack<unsigned>* _changeLog;
-};
-
-TermList markFirstlyEncounteredVariables(TermList tl, EncounterData& encounters, bool updateData)
-{
-  Stack<unsigned> ownEncounters(16);
-  if(!updateData) {
-    ownEncounters.reset();
-  }
-  EncounterApplicator appl(&encounters, updateData?0:&ownEncounters);
-  TermList res=SubstHelper::apply(tl,appl, true);
-  if(!updateData) {
-    while(ownEncounters.isNonEmpty()) {
-      encounters.remove(ownEncounters.pop());
-    }
-  }
-  return res;
-}
-
-void recordAllVariableOccurences(TermList t, EncounterData& encounters)
-{
-  TermIterator vit=Term::getVariableIterator(t);
-  while(vit.hasNext()) {
-    TermList var=vit.next();
-    if(var.isOrdinaryVar()) {
-      encounters.insert(var.var()&~NEW_VARIABLE_MARK);
-    }
-  }
-}
-
-void undoAllVariableOccurenceRecords(TermList t, EncounterData& encounters)
-{
-  TermIterator vit=Term::getVariableIterator(t);
-  while(vit.hasNext()) {
-    TermList var=vit.next();
-    if(var.isOrdinaryVar()) {
-      encounters.remove(var.var()&~NEW_VARIABLE_MARK);
-    }
-  }
-}
-
-#endif
 
 /**
  * Insert an entry to the substitution tree.
@@ -250,10 +173,6 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
   static SplitRecordHeap unresolvedSplits;
   unresolvedSplits.reset();
 
-#if VARIABLE_MARKING
-  EncounterData encounteredVars;
-#endif
-
   ASS(!(*pnode)->isLeaf());
 start:
 #if REORDERING
@@ -271,7 +190,7 @@ start:
       if(svBindings.find(boundVar)) {
 	TermList term=svBindings.get(boundVar);
 	bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
-	ASS_EQ(wouldDescendIntoChild, sameTopModuloMark(term, child->term));
+	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
 	if(!wouldDescendIntoChild) {
 	  //if we'd have to perform all postponed splitting due to
 	  //node with a single child, we rather remove that node
@@ -300,20 +219,8 @@ start:
   canPostponeSplits|=unresolvedSplits.isEmpty();
   if(!canPostponeSplits) {
 
-#if VARIABLE_MARKING
-    SplitRecordHeap::Iterator usit(unresolvedSplits);
-    while(usit.hasNext()) {
-      UnresolvedSplitRecord urr=usit.next();
-      recordAllVariableOccurences(urr.original, encounteredVars);
-    }
-#endif
-
     while(!unresolvedSplits.isEmpty()) {
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
-#if VARIABLE_MARKING
-      undoAllVariableOccurenceRecords(urr.original, encounteredVars);
-      urr.original=markFirstlyEncounteredVariables(urr.original, encounteredVars, false);
-#endif
 
       Node* node=*pnode;
       IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
@@ -351,18 +258,12 @@ start:
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
-#if VARIABLE_MARKING
-      term=markFirstlyEncounteredVariables(term, encounteredVars,true);
-#endif
       IntermediateNode* inode = createIntermediateNode(term, b.var);
       term=b.term;
 
       *pnode = inode;
       pnode = inode->childByTop(term,true);
     }
-#if VARIABLE_MARKING
-    term=markFirstlyEncounteredVariables(term, encounteredVars,true);
-#endif
     Leaf* lnode=createLeaf(term);
     *pnode=lnode;
     lnode->insert(ld);
@@ -375,7 +276,7 @@ start:
   TermList* tt = &term;
   TermList* ss = &(*pnode)->term;
 
-  ASS(sameTopModuloMark(*ss, *tt));
+  ASS(TermList::sameTop(*ss, *tt));
 
 
   // ss is the term in node, tt is the term to be inserted
@@ -383,7 +284,7 @@ start:
   // create the common subterm of ss,tt and an alternative node
   Stack<TermList*> subterms(64);
   for (;;) {
-    if (!sameTermsModuloMark(*tt,*ss) && sameTopModuloMark(*ss,*tt)) {
+    if (*tt!=*ss && TermList::sameTop(*ss,*tt)) {
       // ss and tt have the same tops and are different, so must be non-variables
       ASS(! ss->isVar());
       ASS(! tt->isVar());
@@ -408,29 +309,13 @@ start:
       subterms.push(ss->next());
       subterms.push(tt->next());
     } else {
-      if (! sameTopModuloMark(*ss,*tt)) {
+      if (! TermList::sameTop(*ss,*tt)) {
 	unsigned x;
 	if(!ss->isSpecialVar()) {
 	  x = _nextVar++;
 #if REORDERING
 	  unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss));
 	  ss->makeSpecialVar(x);
-#elif VARIABLE_MARKING
-	  Node* node=*pnode;
-
-	  IntermediateNode* newNode = createIntermediateNode(node->term, x);
-	  node->term=*ss;
-	  *pnode=newNode;
-
-	  ss->makeSpecialVar(x);
-
-	  Node** nodePosition=newNode->childByTop(node->term, true);
-	  ASS(!*nodePosition);
-	  *nodePosition=node;
-
-	  recordAllVariableOccurences(newNode->term, encounteredVars);
-	  node->term=markFirstlyEncounteredVariables(node->term, encounteredVars,false);
-	  undoAllVariableOccurenceRecords(newNode->term, encounteredVars);
 #else
 	  Node::split(pnode,ss,x);
 #endif
@@ -460,9 +345,6 @@ start:
     return;
   }
 
-#if VARIABLE_MARKING
-  (*pnode)->term=markFirstlyEncounteredVariables((*pnode)->term, encounteredVars,true);
-#endif
   goto start;
 } // // SubstitutionTree::insert
 
@@ -505,9 +387,9 @@ void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
 
 
     TermList* s = &(*pnode)->term;
-    ASS(sameTopModuloMark(*s,t));
+    ASS(TermList::sameTop(*s,t));
 
-    if(sameTermsModuloMark(*s, t)) {
+    if(*s==t) {
       continue;
     }
 
@@ -530,7 +412,7 @@ void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
 	subterms.push(ss->next());
 	subterms.push(tt->next());
       }
-      if (sameTermsModuloMark(*ss,*tt)) {
+      if (*ss==*tt) {
 	continue;
       }
       if (ss->isVar()) {
@@ -602,8 +484,7 @@ string SubstitutionTree::nodeToString(Node* topNode)
 	continue;
     }
     if(!node->term.isEmpty()) {
-//	res+=getIndentStr(indent)+Test::Output::singleTermListToString(node->term)+"\n";
-      cout<<getIndentStr(indent)+Test::Output::singleTermListToString(normalizeTop(node->term))+"\n";
+      res+=getIndentStr(indent)+Test::Output::singleTermListToString(node->term)+"\n";
     }
 
     if(node->isLeaf()) {
@@ -611,8 +492,7 @@ string SubstitutionTree::nodeToString(Node* topNode)
 	LDIterator ldi(lnode->allChildren());
 
 	while(ldi.hasNext()) {
-	  //res+=getIndentStr(indent) + "Lit: " + Test::Output::toString(ldi.next().literal) + "\n";
-	  res+=getIndentStr(indent) + "Lit: " + Test::Output::singleTermListToString(ldi.next().term) + "\n";
+	  res+=getIndentStr(indent) + "Lit: " + Test::Output::toString(ldi.next().literal) + "\n";
 	}
     } else {
 	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
@@ -633,10 +513,8 @@ string SubstitutionTree::toString() const
   string res;
 
   for(int tli=0;tli<_numberOfTopLevelNodes;tli++) {
-//    res+=Int::toString(tli);
-//    res+=":\n";
-    cout<<Int::toString(tli);
-    cout<<":\n";
+    res+=Int::toString(tli);
+    res+=":\n";
 
     Stack<int> indentStack(10);
     Stack<Node*> stack(10);
@@ -1008,19 +886,6 @@ struct SubstitutionTree::GenMatcher::Binder
    */
   bool bind(unsigned var, TermList term)
   {
-#if VARIABLE_MARKING
-    bool first=var&NEW_VARIABLE_MARK;
-    var=var&~NEW_VARIABLE_MARK;
-    if(var > _maxVar) {
-      return false;
-    }
-    if( first ) {
-      (*_parent->_bindings)[var]=term;
-      return true;
-    } else {
-      return (*_parent->_bindings)[var]==term;
-    }
-#else
     if(var > _maxVar) {
       return false;
     }
@@ -1031,7 +896,6 @@ struct SubstitutionTree::GenMatcher::Binder
     } else {
       return *aux==term;
     }
-#endif
   }
   /**
    * Bind special variable @b var to @b term, and push @b var
@@ -1059,12 +923,12 @@ struct SubstitutionTree::GenMatcher::Applicator
   TermList apply(unsigned var)
   {
     TermList* cacheEntry;
-//    if(_cache.getValuePtr(var,cacheEntry)) {
-//      ASS(_resultNormalizer->contains(var));
-//      unsigned nvar=_resultNormalizer->get(var);
-//      ASS(_parent->_bindings->find(nvar));
-//      *cacheEntry=_parent->_bindings->get(nvar);
-//    }
+    if(_cache.getValuePtr(var,cacheEntry)) {
+      ASS(_resultNormalizer->contains(var));
+      unsigned nvar=_resultNormalizer->get(var);
+      ASS(_parent->_bindings->find(nvar));
+      *cacheEntry=_parent->_bindings->get(nvar);
+    }
     return *cacheEntry;
   }
 private:
@@ -1108,9 +972,7 @@ private:
  * 	special variables.
  */
 SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
-#if !VARIABLE_MARKING
 : _boundVars(256)
-#endif
 {
   Recycler::get(_specVars);
   if(_specVars->size()<nextSpecVar) {
@@ -1141,11 +1003,9 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
 {
   CALL("SubstitutionTree::GenMatcher::matchNext");
 
-#if !VARIABLE_MARKING
   if(separate) {
     _boundVars.push(BACKTRACK_SEPARATOR);
   }
-#endif
 
   TermList queryTerm=(*_specVars)[specVar];
   ASSERT_VALID(queryTerm);
@@ -1170,9 +1030,7 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
     success=binder.bind(var,queryTerm);
   }
 
-#if !VARIABLE_MARKING
-  if(success) {
-  } else {
+  if(!success) {
     //if this matching was joined to the previous one, we don't
     //have to care about unbinding as caller will do this by calling
     //backtrack for the matching we're joined to.
@@ -1187,7 +1045,6 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
       }
     }
   }
-#endif
   return success;
 }
 
@@ -1199,7 +1056,6 @@ void SubstitutionTree::GenMatcher::backtrack()
 {
   CALL("SubstitutionTree::GenMatcher::backtrack");
 
-#if !VARIABLE_MARKING
   for(;;) {
     unsigned boundVar=_boundVars.pop();
     if(boundVar==BACKTRACK_SEPARATOR) {
@@ -1207,7 +1063,27 @@ void SubstitutionTree::GenMatcher::backtrack()
     }
     _bindings->remove(boundVar);
   }
-#endif
+}
+
+/**
+ * Try to undo one call to the @b matchNext method with separate param
+ * set to @b true and all other @b matchNext calls that were joined to it.
+ * Return true iff successful. (The failure can be due to the fact there
+ * is no separated @b matchNext call to be undone. In this case every binding
+ * on the @b _boundVars stack would be undone.)
+ */
+bool SubstitutionTree::GenMatcher::tryBacktrack()
+{
+  CALL("SubstitutionTree::GenMatcher::tryBacktrack");
+
+  while(_boundVars.isNonEmpty()) {
+    unsigned boundVar=_boundVars.pop();
+    if(boundVar==BACKTRACK_SEPARATOR) {
+      return true;
+    }
+    _bindings->remove(boundVar);
+  }
+  return false;
 }
 
 
@@ -1315,9 +1191,10 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
   Node* curr;
   bool sibilingsRemain;
   if(_inLeaf) {
-#if !VARIABLE_MARKING
+    if(_alternatives.isEmpty()) {
+      return false;
+    }
     _subst.backtrack();
-#endif
     _inLeaf=false;
     curr=0;
   } else {
@@ -1347,11 +1224,9 @@ main_loop_start:
 	//there's no alternative at this level, we have to backtrack
 	_nodeTypes.pop();
 	_specVarNumbers.pop();
-#if !VARIABLE_MARKING
 	if(_alternatives.isNonEmpty()) {
 	  _subst.backtrack();
 	}
-#endif
 	continue;
       }
 
@@ -1405,11 +1280,9 @@ main_loop_start:
     if(!_subst.matchNext(currSpecVar, curr->term, sibilingsRemain)) {	//[1]
       //match unsuccessful, try next alternative
       curr=0;
-#if !VARIABLE_MARKING
       if(!sibilingsRemain && _alternatives.isNonEmpty()) {
 	_subst.backtrack();
       }
-#endif
       continue;
     }
     while(!curr->isLeaf() && curr->algorithm()==UNSORTED_LIST && static_cast<UArrIntermediateNode*>(curr)->_size==1) {
@@ -1421,14 +1294,12 @@ main_loop_start:
       if(!_subst.matchNext(specVar, curr->term, false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst.backtrack();
-#if !VARIABLE_MARKING
 	if(sibilingsRemain || _alternatives.isNonEmpty()) {
 	  //this vacktrack can happen for two different reasons and have two different meanings:
 	  //either matching at [1] was separated from the previous one and we're backtracking it,
 	  //or it was not, which means it had no sibilings and we're backtracking from its parent.
 	  _subst.backtrack();
 	}
-#endif
         curr=0;
         goto main_loop_start;
       }
@@ -1504,12 +1375,6 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
       _nodeTypes.push(currType);
       return true;
     }
-#if !VARIABLE_MARKING
-    if(_alternatives.isNonEmpty()) {
-      _subst.backtrack();
-    }
-#endif
-    return false;
   } else {
     NodeList* nl;
     ASS_EQ(currType, SKIP_LIST);
@@ -1537,11 +1402,6 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
       _nodeTypes.push(currType);
       return true;
     }
-#if !VARIABLE_MARKING
-    if(_alternatives.isNonEmpty()) {
-      _subst.backtrack();
-    }
-#endif
-    return false;
   }
+  return false;
 }

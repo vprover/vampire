@@ -14,7 +14,6 @@
 
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
-#include "../Kernel/MMSubstitution.hpp"
 #include "../Kernel/MLMatcher.hpp"
 
 #include "../Indexing/Index.hpp"

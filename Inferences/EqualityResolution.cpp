@@ -15,7 +15,7 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Unit.hpp"
 #include "../Kernel/Inference.hpp"
-#include "../Kernel/MMSubstitution.hpp"
+#include "../Kernel/RobSubstitution.hpp"
 #include "../Kernel/EqHelper.hpp"
 #include "../Kernel/Ordering.hpp"
 
@@ -52,7 +52,7 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    static MMSubstitution subst;
+    static RobSubstitution subst;
     subst.reset();
     if(!subst.unify(*lit->nthArgument(0),0,*lit->nthArgument(1),0)) {
       return 0;

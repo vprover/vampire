@@ -1,6 +1,6 @@
 /**
- * @file MMSubstitution.hpp
- * Defines class MMSubstitution.
+ * @file RobSubstitution.hpp
+ * Defines class RobSubstitution.
  *
  */
 
@@ -31,11 +31,11 @@ class RobSubstitution
 :public Backtrackable
 {
 public:
-  static long ocFailures;
-  static long mismatchFailures;
-  static long successes;
-
   RobSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
+
+  SubstIterator matches(Literal* base, int baseIndex,
+	  Literal* instance, int instanceIndex, bool complementary);
+  SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
   bool unify(TermList t1,int index1, TermList t2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
@@ -280,6 +280,18 @@ private:
     VarSpec _var;
     TermSpec _term;
   };
+
+  template<class Fn>
+  SubstIterator getAssocIterator(RobSubstitution* subst,
+	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
+
+  template<class Fn>
+  struct AssocContext;
+  template<class Fn>
+  class AssocIterator;
+
+  struct MatchingFn;
+  struct UnificationFn;
 
 };
 

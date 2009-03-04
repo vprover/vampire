@@ -3,6 +3,10 @@
  * Implements class CompitOutput for writing COMPIT2 benchmark files.
  */
 
+#include "CompitOutput.hpp"
+
+#if COMPIT_VERSION==1
+
 #include "../Debug/Assertion.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
@@ -10,7 +14,6 @@
 #include "../Lib/Environment.hpp"
 #include "../Kernel/Signature.hpp"
 
-#include "CompitOutput.hpp"
 
 namespace Test
 {
@@ -158,3 +161,5 @@ void CompitOutput::fail()
 }
 
 }
+
+#endif

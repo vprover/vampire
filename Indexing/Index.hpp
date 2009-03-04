@@ -8,7 +8,6 @@
 
 #include "../Forwards.hpp"
 
-#include "../Kernel/MMSubstitution.hpp"
 #include "../Lib/Event.hpp"
 #include "../Lib/Exception.hpp"
 #include "../Lib/VirtualIterator.hpp"
