@@ -98,7 +98,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
     return;
   }
   Literal* lit=(*c)[0];
-  TermIterator lhsi=EqHelper::getLHSIterator(lit);
+  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit);
   while(lhsi.hasNext()) {
     if(adding) {
       _is->insert(lhsi.next(), lit, c);

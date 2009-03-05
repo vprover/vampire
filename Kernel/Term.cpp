@@ -11,6 +11,7 @@
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Stack.hpp"
+#include "../Lib/Set.hpp"
 #include "../Lib/Int.hpp"
 
 #include "Signature.hpp"
@@ -192,6 +193,23 @@ bool TermList::containsSubterm(TermList trm)
     }
     ts=stack.pop();
   }
+}
+
+bool TermList::containsAllVariablesOf(TermList t)
+{
+  CALL("Term::containsAllVariablesOf");
+  Set<TermList> vars;
+  TermIterator oldVars=Term::getVariableIterator(*this);
+  while(oldVars.hasNext()) {
+    vars.insert(oldVars.next());
+  }
+  TermIterator newVars=Term::getVariableIterator(t);
+  while(newVars.hasNext()) {
+    if(!vars.contains(newVars.next())) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**

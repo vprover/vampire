@@ -177,6 +177,49 @@ TermIterator EqHelper::getLHSIterator(Literal* lit)
   }
 }
 
+TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit)
+{
+  CALL("EqHelper::getDemodulationLHSIterator");
+
+  if(lit->isEquality()) {
+    if(lit->isNegative()) {
+      return TermIterator::getEmpty();
+    }
+    TermList t0=*lit->nthArgument(0);
+    TermList t1=*lit->nthArgument(1);
+    switch(lit->getArgumentOrder())
+    {
+    case Term::INCOMPARABLE:
+      if(t0.containsAllVariablesOf(t1)) {
+	if(t1.containsAllVariablesOf(t0)) {
+	  return pvi( getConcatenatedIterator(getSingletonIterator(t0),
+	      getSingletonIterator(t1)) );
+	}
+	return pvi( getSingletonIterator(t0) );
+      }
+      if(t1.containsAllVariablesOf(t0)) {
+	return pvi( getSingletonIterator(t1) );
+      }
+      break;
+    case Term::GREATER:
+      ASS(t0.containsAllVariablesOf(t1));
+      return pvi( getSingletonIterator(t0) );
+    case Term::LESS:
+      ASS(t1.containsAllVariablesOf(t0));
+      return pvi( getSingletonIterator(t1) );
+#if VDEBUG
+    case Term::EQUAL:
+      //there should be no equality literals of equal terms
+    default:
+      ASSERTION_VIOLATION;
+#endif
+    }
+    return TermIterator::getEmpty();
+  } else {
+    return TermIterator::getEmpty();
+  }
+}
+
 TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
 {
   CALL("EqHelper::getEqualityArgumentIterator");

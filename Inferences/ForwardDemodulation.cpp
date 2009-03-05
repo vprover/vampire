@@ -75,13 +75,12 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 
 	TermList rhs=EqHelper::getRHS(qr.literal,qr.term);
 
+
 	TermList rhsS;
 	if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
 	  //When we apply substitution to the rhs, we get a term, that is
 	  //a variant of the term we'd like to get, as new variables are
 	  //produced in the substitution application.
-	  //This will be fixed once something better than MMSubstitution will
-	  //be used to retrieve substitutions from indexes.
 	  TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
 	  TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
 	  Renaming rNorm, qNorm, qDenorm;

@@ -25,6 +25,7 @@ public:
   static TermList getRHS(Literal* eq, TermList lhs);
   static TermIterator getRewritableSubtermIterator(Literal* lit);
   static TermIterator getLHSIterator(Literal* lit);
+  static TermIterator getDemodulationLHSIterator(Literal* lit);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
   static Literal* replace(Literal* lit, TermList what, TermList by);

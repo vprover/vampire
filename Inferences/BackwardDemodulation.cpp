@@ -109,8 +109,8 @@ struct BackwardDemodulation::ResultFn
       //When we apply substitution to the rhs, we get a term, that is
       //a variant of the term we'd like to get, as new variables are
       //produced in the substitution application.
-      //This will be fixed once something better than MMSubstitution will
-      //be used to retrieve substitutions from indexes.
+      //We'd rather rename variables in the rhs, than in the whole clause
+      //that we're simplifying.
       TermList lhsSBadVars=qr.substitution->applyToQuery(lhs);
       TermList rhsSBadVars=qr.substitution->applyToQuery(rhs);
       Renaming rNorm, qNorm, qDenorm;
@@ -178,7 +178,7 @@ void BackwardDemodulation::perform(Clause* cl,
     pvi( getFilteredIterator(
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
-			    EqHelper::getLHSIterator(lit),
+			    EqHelper::getDemodulationLHSIterator(lit),
 			    RewritableClausesFn(_index)),
 		    ResultFn(cl)),
 	    FirstInPairIsNonzeroFn()) );

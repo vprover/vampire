@@ -120,6 +120,7 @@ public:
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
   bool containsSubterm(TermList v);
+  bool containsAllVariablesOf(TermList t);
 
 #if VDEBUG
   void assertValid() const;
