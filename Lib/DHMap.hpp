@@ -9,6 +9,7 @@
 
 #include <cstdlib>
 #include <utility>
+#include <typeinfo>
 
 #include "../Debug/Assertion.hpp"
 #include "Allocator.hpp"
@@ -116,7 +117,8 @@ public:
       while(ep!=_afterLast) {
 	(ep++)->~Entry();
       }
-      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
+//      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
+      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),typeid(*this).name());
     }
   }
 
@@ -391,7 +393,8 @@ private:
     _capacity = DHMapTableCapacities[_capacityIndex];
     _nextExpansionOccupancy = (int)(_capacity*DHMAP_FILL_UP_COEFFICIENT);
 
-    void* mem = ALLOC_KNOWN(_capacity*sizeof(Entry),"DHMap::Entry");
+//    void* mem = ALLOC_KNOWN(_capacity*sizeof(Entry),"DHMap::Entry");
+    void* mem = ALLOC_KNOWN(_capacity*sizeof(Entry),typeid(*this).name());
     _entries = new(mem) Entry [_capacity];
     _afterLast = _entries + _capacity;
 
@@ -403,7 +406,8 @@ private:
       (ep++)->~Entry();
     }
     if(oldCapacity) {
-      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
+//      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
+      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),typeid(*this).name());
     }
   }
 

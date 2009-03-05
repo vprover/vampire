@@ -37,6 +37,12 @@ public:
   Allocator();
   ~Allocator();
 
+  /** Return the global memory limit (in bytes) */
+  static size_t getMemoryLimit()
+  {
+    CALL("Allocator::getMemoryLimit");
+    return _memoryLimit;
+  }
   /** Set the global memory limit (in bytes) */
   static void setMemoryLimit(size_t size)
   {

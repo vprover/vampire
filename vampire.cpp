@@ -55,27 +55,27 @@ using namespace Inferences;
 void doProving()
 {
   CALL("doProving()");
+  try {
+    env.signature = new Kernel::Signature;
+    string inputFile = env.options->inputFile();
+    ifstream input(inputFile.c_str());
+    TPTPLexer lexer(input);
+    TPTPParser parser(lexer);
+    UnitList* units = parser.units();
 
-  env.signature = new Kernel::Signature;
-  string inputFile = env.options->inputFile();
-  ifstream input(inputFile.c_str());
-  TPTPLexer lexer(input);
-  TPTPParser parser(lexer);
-  UnitList* units = parser.units();
+    Property property;
+    property.scan(units);
 
-  Property property;
-  property.scan(units);
+    Preprocess prepro(property,*env.options);
+    prepro.preprocess(units);
 
-  Preprocess prepro(property,*env.options);
-  prepro.preprocess(units);
+    ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
 
-  ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
+    SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
+    salg->addClauses(clauses);
 
-  SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
-  salg->addClauses(clauses);
-
-  SaturationResult sres(salg->saturate());
-  sres.updateStatistics();
+    SaturationResult sres(salg->saturate());
+    sres.updateStatistics();
 
 #if CHECK_LEAKS
     delete env.signature;
@@ -83,6 +83,13 @@ void doProving()
     MemoryLeak leak;
     leak.release(units);
 #endif
+  } catch(MemoryLimitExceededException) {
+    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env.statistics->refutation=0;
+    size_t limit=Allocator::getMemoryLimit();
+    //add extra 1 MB to allow proper termination
+    Allocator::setMemoryLimit(limit+1000000);
+  }
 }
 
 void outputResult()

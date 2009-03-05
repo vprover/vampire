@@ -941,16 +941,20 @@ class SubstitutionTree::GenMatcher::Substitution
 : public ResultSubstitution
 {
 public:
-  inline
   Substitution(GenMatcher* parent, Renaming* resultNormalizer)
   : _parent(parent), _resultNormalizer(resultNormalizer),
   _applicator(0)
   {}
-  inline
+  ~Substitution()
+  {
+    if(_applicator) {
+      delete _applicator;
+    }
+  }
+
   TermList applyToBoundResult(TermList t)
   { return SubstHelper::apply(t, *getApplicator()); }
 
-  inline
   bool isIdentityOnQueryWhenResultBound() {return true;}
 private:
   Applicator* getApplicator()

@@ -59,6 +59,19 @@ class UserErrorException
 }; // UserErrorException
 
 /**
+ * Class MemoryLimitExceededException.
+ */
+class MemoryLimitExceededException
+: public Exception
+{
+public:
+  MemoryLimitExceededException ()
+  : Exception("The memory limit exceeded")
+  {}
+}; // MemoryLimitExceededException
+
+
+/**
  * Class InvalidOperationException.
  */
 class InvalidOperationException
