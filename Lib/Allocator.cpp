@@ -10,8 +10,10 @@
 
 #include <sstream>
 #include <cstring>
-#include "../Lib/DHMap.hpp"
+#include "DHMap.hpp"
 
+#include "../Kernel/Clause.hpp"
+using namespace Kernel;
 #endif
 
 #include <malloc.h>

@@ -104,6 +104,9 @@ void CompositeBSE::perform(Clause* cl, ClauseIterator& toRemove, ClauseIterator&
 
   toRemove=getUniquePersistentIterator(ClauseList::Iterator(toRemoveLst));
   toAdd=getUniquePersistentIterator(ClauseList::Iterator(toAddLst));
+
+  toAddLst->destroy();
+  toRemoveLst->destroy();
 }
 void CompositeBSE::attach(SaturationAlgorithm* salg)
 {
@@ -279,7 +282,6 @@ void DuplicateLiteralRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& 
     // there are duplicate literals, delete them from lits
     int newLength = length - found;
     // now lits[0 ... newLength-1] contain the remaining literals
-    env.statistics->duplicateLiterals += found;
     Clause* d = new(newLength)
                    Clause(newLength,
 			  c->inputType(),
@@ -293,7 +295,7 @@ void DuplicateLiteralRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& 
     }
     ASS(next == newLength);
     d->setAge(c->age());
-    d->computeWeight();
+    env.statistics->duplicateLiterals += found;
 
     keep=false;
     toAdd=pvi( getSingletonIterator(d) );
@@ -334,7 +336,6 @@ void TrivialInequalitiesRemovalFSE::perform(Clause* c, bool& keep, ClauseIterato
     return;
   }
 
-  env.statistics->trivialInequalities += found;
   int newLength = length - found;
   Clause* d = new(newLength)
                 Clause(newLength,
@@ -345,7 +346,7 @@ void TrivialInequalitiesRemovalFSE::perform(Clause* c, bool& keep, ClauseIterato
     (*d)[i] = lits[newLength-i-1];
   }
   d->setAge(c->age());
-  d->computeWeight();
+  env.statistics->trivialInequalities += found;
 
   keep=false;
   toAdd=pvi( getSingletonIterator(d) );

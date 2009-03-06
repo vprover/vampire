@@ -52,6 +52,8 @@ using namespace Shell;
 using namespace Saturation;
 using namespace Inferences;
 
+UnitList* globUnitList=0;
+
 void doProving()
 {
   CALL("doProving()");
@@ -69,6 +71,8 @@ void doProving()
     Preprocess prepro(property,*env.options);
     prepro.preprocess(units);
 
+    globUnitList=units;
+
     ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
 
     SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
@@ -76,13 +80,6 @@ void doProving()
 
     SaturationResult sres(salg->saturate());
     sres.updateStatistics();
-
-#if CHECK_LEAKS
-    delete env.signature;
-    env.signature = 0;
-    MemoryLeak leak;
-    leak.release(units);
-#endif
   } catch(MemoryLimitExceededException) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
     env.statistics->refutation=0;
@@ -202,6 +199,14 @@ int main(int argc, char* argv [])
   	ASSERTION_VIOLATION;
 #endif
       }
+#if CHECK_LEAKS
+    if(globUnitList) {
+      MemoryLeak leak;
+      leak.release(globUnitList);
+    }
+    delete env.signature;
+    env.signature = 0;
+#endif
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {

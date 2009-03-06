@@ -53,6 +53,7 @@ public:
   Clause(unsigned length,InputType it,Inference* inf)
     : Unit(Unit::CLAUSE,inf,it),
       _length(length),
+      _age(0),
       _weight(0),
       _store(NONE),
       _inferenceRefCnt(0)
@@ -114,9 +115,7 @@ public:
   }
   void computeWeight();
 
-  /** If storage is set to NONE and there are no references to this class, destroy it. */
-  void destroyIfUnnecessary()
-  { if(_store==NONE && _inferenceRefCnt==0) { destroy(); } }
+  void destroyIfUnnecessary();
 
   void incRefCnt() { _inferenceRefCnt++; }
   void decRefCnt() { _inferenceRefCnt--; destroyIfUnnecessary(); }

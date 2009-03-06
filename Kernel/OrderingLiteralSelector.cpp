@@ -90,10 +90,5 @@ topLevelContinue: ;
 
   ASS(selCnt>0);
 
-//  cout<<"\nSelected first "<<selCnt<<" literals from:\n";
-//  for(unsigned i=0;i<clen;i++) {
-//    cout<<*(*c)[i]<<"\n";
-//  }
-
   c->setSelected(selCnt);
 }

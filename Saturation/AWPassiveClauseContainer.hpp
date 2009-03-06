@@ -7,6 +7,7 @@
 #ifndef __AWPassiveClauseContainer__
 #define __AWPassiveClauseContainer__
 
+#include "../Kernel/Clause.hpp"
 #include "../Kernel/ClauseQueue.hpp"
 #include "ClauseContainer.hpp"
 
@@ -37,20 +38,39 @@ class AWPassiveClauseContainer:
 public PassiveClauseContainer
 {
 public:
+  AWPassiveClauseContainer() : _balance(0) {};
   ~AWPassiveClauseContainer();
   void add(Clause* c);
+
+  /**
+   * Remove Clause from the Passive store. Should be called only
+   * when the Clause is no longer needed by the inference process
+   * (i.e. was backward subsumed/simplified), as it can result in
+   * deletion of the clause.
+   */
   void remove(Clause* c)
   {
     _ageQueue.remove(c);
     _weightQueue.remove(c);
     removedEvent.fire(c);
+    c->setStore(Clause::NONE);
   }
 
+  /**
+   * Remove Clause from the Passive store. Return true iff the
+   * removal was successful (the clause was present in the passive
+   * store).
+   *
+   * Should be called only when the Clause is no longer needed by
+   * the inference process (i.e. was backward subsumed/simplified),
+   * as it can result in deletion of the clause.
+   */
   bool tryRemove(Clause* c)
   {
     if(_ageQueue.remove(c)) {
       ALWAYS(_weightQueue.remove(c));
       removedEvent.fire(c);
+      c->setStore(Clause::NONE);
       return true;
     }
     return false;

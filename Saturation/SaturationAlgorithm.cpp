@@ -19,8 +19,7 @@ using namespace Saturation;
 
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
-: _imgr(this), _passive(passiveContainer), _generator(0), _fwSimplifier(0),
-_bwSimplifier(0), _selector(selector)
+: _imgr(this), _passive(passiveContainer), _selector(selector)
 {
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();

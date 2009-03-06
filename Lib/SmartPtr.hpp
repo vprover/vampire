@@ -22,7 +22,7 @@ public:
   inline
   SmartPtr() : _obj(0), _refCnt(0) {}
   inline
-  explicit SmartPtr(T* obj) : _obj(obj), _refCnt(new int(1)) {}
+  explicit SmartPtr(T* obj) : _obj(obj), _refCnt(new int(1)) {ASS(obj);}
   inline
   SmartPtr(const SmartPtr& ptr) : _obj(ptr._obj), _refCnt(ptr._refCnt)
   {

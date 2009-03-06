@@ -1,6 +1,8 @@
 #include <iostream>
 #include "Lib/Allocator.hpp"
 
+using namespace std;
+
 void testVal(unsigned num) {
   cout<<"trying "<<num<<"\n";
   int* c = (int*)ALLOC_UNKNOWN(num, "abcd");

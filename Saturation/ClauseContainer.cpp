@@ -58,7 +58,14 @@ void ActiveClauseContainer::add(Clause* c)
   addedEvent.fire(c);
 }
 
+/**
+ * Remove Clause from the Active store. Should be called only
+ * when the Clause is no longer needed by the inference process
+ * (i.e. was backward subsumed/simplified), as it can result in
+ * deletion of the clause.
+ */
 void ActiveClauseContainer::remove(Clause* c)
 {
   removedEvent.fire(c);
+  c->setStore(Clause::NONE);
 }

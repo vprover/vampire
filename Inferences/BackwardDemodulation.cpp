@@ -193,6 +193,9 @@ void BackwardDemodulation::perform(Clause* cl,
 
   toAdd=getPersistentIterator(ClauseList::Iterator(toAddLst));
   toRemove=getPersistentIterator(ClauseList::Iterator(toRemoveLst));
+
+  toAddLst->destroy();
+  toRemoveLst->destroy();
   return;
 }
 

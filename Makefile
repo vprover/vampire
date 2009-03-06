@@ -11,7 +11,6 @@
 #   CHECK_LEAKS - test for memory leaks (debugging mode only)
 #	
 
-#XFLAGS = -O1 -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = -g -DVDEBUG=0 -DCHECK_LEAKS=0 # debug mode without VDEBUG macro 
 #XFLAGS = -g -O6 -DVDEBUG=0 # no debugging, but debugging info present
@@ -20,16 +19,17 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
+#XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
 #XFLAGS = -fprofile-arcs -pg -O6 -DVDEBUG=0 # coverage & profiling optimized
 #XFLAGS = -DVDEBUG=0 # no debugging, no optimization
 #XFLAGS = -O6 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging and optimized
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -fno-default-inline -g # Valgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -g #Valgrind
-#XFLAGS = -O0 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -g #Valgrind
+#XFLAGS = -O0 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -fno-default-inline -g #Valgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -g -lefence #Elictric Fence
 
 CXX = g++
@@ -729,12 +729,12 @@ Kernel/Term.o: Forwards.hpp Config.hpp Lib/Stack.hpp Debug/Assertion.hpp
 Kernel/Term.o: Debug/Tracer.hpp Lib/Allocator.hpp Lib/BacktrackData.hpp
 Kernel/Term.o: Lib/List.hpp Lib/VirtualIterator.hpp Lib/Exception.hpp
 Kernel/Term.o: Lib/Reflection.hpp Lib/Int.hpp Lib/Comparison.hpp
-Kernel/Term.o: Lib/Portability.hpp Lib/Int.hpp Kernel/Signature.hpp
-Kernel/Term.o: Lib/Map.hpp Lib/Hash.hpp Kernel/Substitution.hpp
-Kernel/Term.o: Lib/Random.hpp Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
-Kernel/Term.o: Lib/Comparison.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-Kernel/Term.o: Kernel/Ordering.hpp Indexing/TermSharing.hpp Lib/Set.hpp
-Kernel/Term.o: Kernel/Term.hpp Test/Output.hpp
+Kernel/Term.o: Lib/Portability.hpp Lib/Set.hpp Lib/Int.hpp
+Kernel/Term.o: Kernel/Signature.hpp Lib/Map.hpp Lib/Hash.hpp
+Kernel/Term.o: Kernel/Substitution.hpp Lib/Random.hpp Kernel/Term.hpp
+Kernel/Term.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
+Kernel/Term.o: Lib/Metaiterators.hpp Lib/Set.hpp Kernel/Ordering.hpp
+Kernel/Term.o: Indexing/TermSharing.hpp Kernel/Term.hpp Test/Output.hpp
 Kernel/TermFunIterator.o: Debug/Tracer.hpp Kernel/Term.hpp Forwards.hpp
 Kernel/TermFunIterator.o: Config.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Kernel/TermFunIterator.o: Lib/Allocator.hpp Lib/Portability.hpp Lib/XML.hpp
@@ -896,39 +896,6 @@ Indexing/SubstitutionTree.o: Indexing/Index.hpp Lib/Event.hpp
 Indexing/SubstitutionTree.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 Indexing/SubstitutionTree.o: Saturation/ClauseContainer.hpp
 Indexing/SubstitutionTree.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
-Indexing/SubstitutionTree_Compiled.o: Indexing/SubstitutionTree.hpp
-Indexing/SubstitutionTree_Compiled.o: Forwards.hpp Config.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/VirtualIterator.hpp
-Indexing/SubstitutionTree_Compiled.o: Debug/Assertion.hpp Debug/Tracer.hpp
-Indexing/SubstitutionTree_Compiled.o: Debug/Tracer.hpp Lib/Allocator.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/Exception.hpp Lib/Reflection.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/Metaiterators.hpp Lib/List.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/VirtualIterator.hpp Lib/Set.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/Hash.hpp Lib/Comparison.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/Int.hpp Lib/Comparison.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/Portability.hpp Lib/Stack.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/BacktrackData.hpp Lib/Int.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/List.hpp Lib/SkipList.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/Random.hpp Lib/BinaryHeap.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/Metaiterators.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/BacktrackData.hpp Lib/ArrayMap.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/DArray.hpp
-Indexing/SubstitutionTree_Compiled.o: Kernel/DoubleSubstitution.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/DHMap.hpp Kernel/Term.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/Allocator.hpp Lib/Portability.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/XML.hpp Kernel/RobSubstitution.hpp
-Indexing/SubstitutionTree_Compiled.o: Kernel/Matcher.hpp Lib/Hash.hpp
-Indexing/SubstitutionTree_Compiled.o: Kernel/Renaming.hpp Kernel/Clause.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/Reflection.hpp Kernel/Unit.hpp
-Indexing/SubstitutionTree_Compiled.o: Indexing/Index.hpp Lib/Event.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/SmartPtr.hpp Lib/Exception.hpp
-Indexing/SubstitutionTree_Compiled.o: Saturation/ClauseContainer.hpp
-Indexing/SubstitutionTree_Compiled.o: Indexing/ResultSubstitution.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/SmartPtr.hpp Kernel/Term.hpp
-Indexing/SubstitutionTree_Compiled.o: Test/Output.hpp Lib/MapToLIFO.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/DHMap.hpp Lib/Environment.hpp
-Indexing/SubstitutionTree_Compiled.o: Lib/Timer.hpp Lib/DHMultiset.hpp
-Indexing/SubstitutionTree_Compiled.o: Kernel/Signature.hpp Lib/Map.hpp
 Indexing/SubstitutionTree_Nodes.o: Lib/VirtualIterator.hpp Forwards.hpp
 Indexing/SubstitutionTree_Nodes.o: Config.hpp Debug/Assertion.hpp
 Indexing/SubstitutionTree_Nodes.o: Debug/Tracer.hpp Debug/Tracer.hpp
@@ -1589,12 +1556,12 @@ Saturation/SaturationAlgorithm_Construction.o: Inferences/SLQueryBackwardSubsump
 Saturation/SaturationAlgorithm_Construction.o: Inferences/Superposition.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/TautologyDeletionFSE.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/AWPassiveClauseContainer.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/ClauseQueue.hpp
-Saturation/SaturationAlgorithm_Construction.o: Saturation/ClauseContainer.hpp
-Saturation/SaturationAlgorithm_Construction.o: Saturation/SaturationAlgorithm.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/Clause.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/Reflection.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/Unit.hpp
+Saturation/SaturationAlgorithm_Construction.o: Kernel/ClauseQueue.hpp
+Saturation/SaturationAlgorithm_Construction.o: Saturation/ClauseContainer.hpp
+Saturation/SaturationAlgorithm_Construction.o: Saturation/SaturationAlgorithm.hpp
 Saturation/SaturationAlgorithm_Construction.o: Indexing/IndexManager.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/DHMap.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/Limits.hpp
@@ -1729,7 +1696,10 @@ test_SubstitutionTree.o: Shell/TheoryFinder.hpp Rule/CASC.hpp Rule/Prolog.hpp
 test_SubstitutionTree.o: Rule/Index.hpp Rule/Rule.hpp Rule/Index.hpp
 test_SubstitutionTree.o: Rule/ProofAttempt.hpp Test/Output.hpp
 test_SubstitutionTree.o: Lib/MemoryLeak.hpp
-test_alloc.o: Lib/Allocator.hpp
+test_alloc.o: Lib/Allocator.hpp Lib/List.hpp Forwards.hpp Config.hpp
+test_alloc.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Allocator.hpp
+test_alloc.o: Debug/Tracer.hpp Lib/VirtualIterator.hpp Lib/Exception.hpp
+test_alloc.o: Lib/Reflection.hpp Lib/Portability.hpp
 test_retrieval.o: Debug/Tracer.hpp Lib/Array.hpp Debug/Assertion.hpp
 test_retrieval.o: Debug/Tracer.hpp Lib/Allocator.hpp Debug/Tracer.hpp
 test_retrieval.o: Lib/Random.hpp Lib/Set.hpp Lib/Int.hpp Lib/Timer.hpp

@@ -83,7 +83,6 @@ struct PtrHash2 {
   }
 };
 
-//typedef SkipList<ClauseMatches,ClauseMatches> CMSkipList;
 typedef DHMap<Clause*,ClauseMatches, PtrHash, PtrHash2> CMMap;
 typedef DHMap<Literal*, LiteralList*, PtrHash > MatchMap;
 

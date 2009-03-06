@@ -3,6 +3,9 @@
  * Implements class Ordering.
  */
 
+#include "../Forwards.hpp"
+
+#include "../Lib/SmartPtr.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Exception.hpp"
 #include "../Shell/Options.hpp"
@@ -16,19 +19,19 @@ using namespace Kernel;
 
 Ordering* Ordering::instance()
 {
-  static Ordering* inst=0;
+  static OrderingSP inst;
 
   if(!inst) {
     switch(env.options->symbolPrecedence()) {
     case Shell::Options::BY_ARITY:
-      inst=KBO::createArityPreferenceConstantLevels();
+      inst=OrderingSP(KBO::createArityPreferenceConstantLevels());
       break;
     case Shell::Options::BY_OCCURRENCE:
-      inst=KBO::createReversedAgePreferenceConstantLevels();
+      inst=OrderingSP(KBO::createReversedAgePreferenceConstantLevels());
       break;
     default:
       NOT_IMPLEMENTED;
     }
   }
-  return inst;
+  return inst.ptr();
 }

@@ -6,6 +6,13 @@
 # include <endian.h>    /* attempt to define endianness */
 #endif
 
+//some optimizing instruction
+#ifdef __GNUC__
+#define PREFETCH(x) __builtin_prefetch((x),0,1)
+#else
+#define PREFETCH(x)
+#endif
+
 /*
  * Best guess at if we're using big-endian or little-endian.  This may
  * need adjustment.

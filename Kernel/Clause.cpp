@@ -40,6 +40,19 @@ void* Clause::operator new(size_t sz,unsigned lits)
 }
 
 /**
+ * If storage is set to NONE, there are no references to this class,
+ * an it is not an input clause, destroy it.
+ *
+ * @warning This method can lead to quite a deep recursion.
+ */
+void Clause::destroyIfUnnecessary()
+{
+  if(_store==NONE && _inferenceRefCnt==0 && _inference->rule()!=Inference::INPUT) {
+    destroy();
+  }
+}
+
+/**
  * Destroy the clause by deleting the clause itself and all of its
  * literals.
  * @since 19/05/2007 Manchester
