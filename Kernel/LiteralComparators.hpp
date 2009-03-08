@@ -37,7 +37,7 @@ class Inverse
 public:
   Comparison compare(Literal* l1, Literal* l2)
   {
-    return static_cast<Comparison>(-_c.compare(l1,l2));
+    return _c.compare(l2,l1);
   }
 private:
   Comp _c;
@@ -67,11 +67,19 @@ struct MaximalSize
   }
 };
 
+struct LeastVariables
+{
+  Comparison compare(Literal* l1, Literal* l2)
+  {
+    return Int::compare(l2->vars(), l1->vars());
+  }
+};
+
 struct LeastTopLevelVariables
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
-    return static_cast<Comparison>(-Int::compare(getTLVarCnt(l1), getTLVarCnt(l2)));
+    return Int::compare(getTLVarCnt(l2), getTLVarCnt(l1));
   }
 private:
   unsigned getTLVarCnt(Literal* l)
@@ -83,6 +91,42 @@ private:
       }
     }
     return res;
+  }
+};
+
+struct LexComparator
+{
+  Comparison compare(Literal* l1, Literal* l2)
+  {
+    Term::SubtermIterator sit1(l1);
+    Term::SubtermIterator sit2(l2);
+
+    while(sit1.hasNext()) {
+      ASS(sit2.hasNext());
+      TermList st1=sit1.next();
+      TermList st2=sit2.next();
+      if(st1.isTerm()) {
+	if(st2.isTerm()) {
+	  unsigned f1=st1.term()->functor();
+	  unsigned f2=st2.term()->functor();
+	  if(f1!=f2) {
+	    return Int::compare(f1,f2);
+	  }
+	} else {
+	  return GREATER;
+	}
+      } else {
+	if(st2.isTerm()) {
+	  return LESS;
+	} else {
+	  if(st1.var()!=st2.var()) {
+	    return Int::compare(st1.var(),st2.var());
+	  }
+	}
+      }
+    }
+    ASS_EQ(l1,l2);
+    return EQUAL;
   }
 };
 

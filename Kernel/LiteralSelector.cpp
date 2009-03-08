@@ -23,7 +23,10 @@ LiteralSelector* LiteralSelector::getSelector(int num)
 {
   using namespace LiteralComparators;
 
-  typedef Composite<NoPositiveEquality, Composite<LeastTopLevelVariables, MaximalSize> > Comparator10;
+  typedef Composite<NoPositiveEquality,
+	    Composite<LeastTopLevelVariables,
+	    Composite<MaximalSize,
+	    Composite<LeastVariables, LexComparator> > > > Comparator10;
 
   switch(num) {
   case 0: return new TotalLiteralSelector();
