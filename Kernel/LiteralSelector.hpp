@@ -20,42 +20,21 @@ class LiteralSelector
 public:
   virtual ~LiteralSelector() {}
   virtual void select(Clause* c) = 0;
+
+  static LiteralSelector* getSelector(int num);
 };
 
 /**
  * Class EagerLiteralSelection implements literal
  * selector that selects all literals
  */
-class EagerLiteralSelector
+class TotalLiteralSelector
 : public LiteralSelector
 {
 public:
   void select(Clause* c);
 };
 
-/**
- * Class LightestNegativeLiteralSelector implements literal
- * selector that selects lightest negative literal, or all
- * literals, if there's no negative one.
- */
-class LightestNegativeLiteralSelector
-: public LiteralSelector
-{
-public:
-  void select(Clause* c);
-};
-
-/**
- * Class HeaviestNegativeLiteralSelector implements literal
- * selector that selects heaviest negative literal, or all
- * literals, if there's no negative one.
- */
-class HeaviestNegativeLiteralSelector
-: public LiteralSelector
-{
-public:
-  void select(Clause* c);
-};
 
 
 }

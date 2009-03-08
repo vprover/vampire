@@ -47,10 +47,10 @@ void Otter::backwardSimplify(Clause* c)
   _unprocessed->addClauses(toAdd);
   while(toRemove.hasNext()) {
     Clause* redundant=toRemove.next();
+    _simplCont.remove(redundant);
     if(!_passive->tryRemove(redundant)) {
       _active->remove(redundant);
     }
-    _simplCont.remove(redundant);
   }
 }
 

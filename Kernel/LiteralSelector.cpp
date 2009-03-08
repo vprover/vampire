@@ -3,67 +3,43 @@
  * Implements class LiteralSelection for literal selection
  */
 
-#include <algorithm>
+#include "../Lib/Exception.hpp"
 
 #include "Term.hpp"
 #include "Clause.hpp"
 
 #include "LiteralSelector.hpp"
 
-using namespace Kernel;
+#include "BestLiteralSelector.hpp"
+#include "LiteralComparators.hpp"
 
-void EagerLiteralSelector::select(Clause* c)
+
+namespace Kernel
+{
+
+LiteralSelector* LiteralSelector::getSelector(int num)
+{
+  using namespace LiteralComparators;
+
+  typedef Composite<NoPositiveEquality, Composite<LeastTopLevelVariables, MaximalSize> > Comparator10;
+
+  switch(num) {
+  case 0: return new TotalLiteralSelector();
+
+  case 10: return new CompleteBestLiteralSelector<Comparator10>();
+
+  case 1010: return new BestLiteralSelector<Comparator10>();
+
+  default:
+    USER_ERROR("Undefined selection function");
+  }
+}
+
+void TotalLiteralSelector::select(Clause* c)
 {
   CALL("EagerLiteralSelector::select");
 
   c->setSelected(c->length());
 }
 
-void LightestNegativeLiteralSelector::select(Clause* c)
-{
-  CALL("LightestNegativeLiteralSelector::select");
-
-  unsigned seli;
-  //we assume, that weight of a literal is always greater than zero
-  unsigned selWeight=0;
-  unsigned clen=c->length();
-
-  for(unsigned i=0;i<clen;i++) {
-    if((*c)[i]->isNegative() && (!selWeight || (*c)[i]->weight()<selWeight)) {
-      seli=i;
-      selWeight=(*c)[i]->weight();
-    }
-  }
-
-  if(selWeight) {
-    std::swap((*c)[0], (*c)[seli]);
-    c->setSelected(1);
-  } else {
-    c->setSelected(clen);
-  }
 }
-
-void HeaviestNegativeLiteralSelector::select(Clause* c)
-{
-  CALL("HeaviestNegativeLiteralSelector::select");
-
-  unsigned seli;
-  //we assume, that weight of a literal is always greater than zero
-  unsigned selWeight=0;
-  unsigned clen=c->length();
-
-  for(unsigned i=0;i<clen;i++) {
-    if((*c)[i]->isNegative() && (*c)[i]->weight()>selWeight) {
-      seli=i;
-      selWeight=(*c)[i]->weight();
-    }
-  }
-
-  if(selWeight) {
-    std::swap((*c)[0], (*c)[seli]);
-    c->setSelected(1);
-  } else {
-    c->setSelected(clen);
-  }
-}
-

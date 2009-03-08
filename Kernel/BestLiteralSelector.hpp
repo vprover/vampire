@@ -55,7 +55,7 @@ public:
     }
 
     unsigned besti=0;
-    Literal* best;
+    Literal* best=(*c)[0];
     for(unsigned i=1;i<clen;i++) {
       if(_comp.compare(best, (*c)[i])==LESS) {
         besti=i;
@@ -82,7 +82,7 @@ private:
  * If the best literal is negative, it is selected. If it is among
  * maximal literals, and there is no negative literal among them,
  * they all are selected. If there is a negative literal among
- * maximal literals, the best one of such is selected. Anyway, if
+ * maximal literals, we select the best negative literal. If
  * the best literal is neither negative nor maximal, we consider
  * similarly the second best etc...
  *
@@ -118,8 +118,9 @@ public:
     if(litArr[0]->isNegative()) {
       singleSelected=litArr[0];
     } else {
-      for(unsigned i=clen-1;i>=0;i--) {
-	LiteralList::push(litArr[i],maximals);
+      DArray<Literal*>::ReversedIterator rlit(litArr);
+      while(rlit.hasNext()) {
+	LiteralList::push(rlit.next(),maximals);
       }
       _ord->removeNonMaximal(maximals);
       unsigned besti=0;
@@ -140,13 +141,14 @@ public:
 	singleSelected=maximals->head();
     }
     if(!singleSelected) {
-      //If there is a negative literal among maximals,
-      //we'll select just it. Because the maximals list
-      //it ordered by literal quality, we know that we
-      //select the best negative one.
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {
 	if(mit->head()->isNegative()) {
-	  singleSelected=mit->head();
+	  for(unsigned i=1;i<clen;i++) {
+	    if(litArr[i]->isNegative()) {
+	      singleSelected=litArr[i];
+	    }
+	  }
+	  ASS(singleSelected);
 	  break;
 	}
       }
@@ -154,7 +156,7 @@ public:
     if(!singleSelected) {
       //select multiple maximal literals
       static Stack<Literal*> replaced(16);
-      Set<Literal*> maxSet(4);
+      Set<Literal*> maxSet;
       unsigned selCnt=0;
 
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {
@@ -190,7 +192,7 @@ public:
       if(besti!=0) {
 	std::swap((*c)[0],(*c)[besti]);
       }
-      c->setSelected(0);
+      c->setSelected(1);
     }
     maximals->destroy();
   }

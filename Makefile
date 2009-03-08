@@ -19,8 +19,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -611,8 +611,8 @@ Kernel/KBO.o: Lib/Set.hpp Kernel/Term.hpp Lib/Allocator.hpp
 Kernel/KBO.o: Lib/Portability.hpp Lib/XML.hpp Lib/Stack.hpp
 Kernel/KBO.o: Lib/BacktrackData.hpp Lib/Int.hpp Kernel/KBO.hpp
 Kernel/KBO.o: Kernel/Ordering.hpp Kernel/Signature.hpp Lib/Map.hpp
-Kernel/LiteralSelector.o: Kernel/Term.hpp Forwards.hpp Config.hpp
-Kernel/LiteralSelector.o: Debug/Assertion.hpp Debug/Tracer.hpp
+Kernel/LiteralSelector.o: Lib/Exception.hpp Kernel/Term.hpp Forwards.hpp
+Kernel/LiteralSelector.o: Config.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Kernel/LiteralSelector.o: Debug/Tracer.hpp Lib/Allocator.hpp
 Kernel/LiteralSelector.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
 Kernel/LiteralSelector.o: Lib/Stack.hpp Lib/Allocator.hpp
@@ -623,6 +623,9 @@ Kernel/LiteralSelector.o: Lib/Portability.hpp Lib/Metaiterators.hpp
 Kernel/LiteralSelector.o: Lib/Set.hpp Lib/Hash.hpp Kernel/Clause.hpp
 Kernel/LiteralSelector.o: Lib/Reflection.hpp Kernel/Unit.hpp Lib/List.hpp
 Kernel/LiteralSelector.o: Kernel/LiteralSelector.hpp
+Kernel/LiteralSelector.o: Kernel/BestLiteralSelector.hpp Lib/DArray.hpp
+Kernel/LiteralSelector.o: Lib/Random.hpp Lib/Set.hpp Kernel/Ordering.hpp
+Kernel/LiteralSelector.o: Kernel/LiteralComparators.hpp Lib/Int.hpp
 Kernel/MLMatcher.o: Lib/BacktrackData.hpp Lib/List.hpp Forwards.hpp
 Kernel/MLMatcher.o: Config.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Kernel/MLMatcher.o: Lib/Allocator.hpp Debug/Tracer.hpp
@@ -1490,48 +1493,40 @@ Saturation/SaturationAlgorithm.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm.o: Saturation/Limits.hpp
 Saturation/SaturationAlgorithm.o: Saturation/SaturationResult.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/Exception.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/BestLiteralSelector.hpp
-Saturation/SaturationAlgorithm_Construction.o: Forwards.hpp Config.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Comparison.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/DArray.hpp
-Saturation/SaturationAlgorithm_Construction.o: Debug/Assertion.hpp
-Saturation/SaturationAlgorithm_Construction.o: Debug/Tracer.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Allocator.hpp
-Saturation/SaturationAlgorithm_Construction.o: Debug/Tracer.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Comparison.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Random.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Reflection.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/VirtualIterator.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Exception.hpp Lib/List.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Set.hpp Lib/Stack.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/BacktrackData.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/List.hpp Lib/Int.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Portability.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/Term.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Allocator.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Portability.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/XML.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Metaiterators.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Set.hpp Lib/Hash.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/Clause.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Reflection.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/Unit.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/Ordering.hpp
+Saturation/SaturationAlgorithm_Construction.o: Kernel/KBO.hpp Forwards.hpp
+Saturation/SaturationAlgorithm_Construction.o: Config.hpp Kernel/Ordering.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/LiteralSelector.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/CompositeLiteralComparator.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/KBO.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/OrderingLiteralSelector.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/SmartPtr.hpp
+Saturation/SaturationAlgorithm_Construction.o: Debug/Assertion.hpp
+Saturation/SaturationAlgorithm_Construction.o: Debug/Tracer.hpp
+Saturation/SaturationAlgorithm_Construction.o: Debug/Tracer.hpp
+Saturation/SaturationAlgorithm_Construction.o: Kernel/LiteralSelector.hpp
 Saturation/SaturationAlgorithm_Construction.o: Shell/Options.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Allocator.hpp Lib/XML.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/VirtualIterator.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Allocator.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Exception.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Reflection.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/List.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/BackwardDemodulation.hpp
 Saturation/SaturationAlgorithm_Construction.o: Indexing/TermIndex.hpp
 Saturation/SaturationAlgorithm_Construction.o: Indexing/Index.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Event.hpp Lib/SmartPtr.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Event.hpp Lib/List.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/VirtualIterator.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/SmartPtr.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/ClauseContainer.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Stack.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/BacktrackData.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Int.hpp Lib/Comparison.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Portability.hpp
 Saturation/SaturationAlgorithm_Construction.o: Indexing/ResultSubstitution.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/Term.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Portability.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Comparison.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Metaiterators.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Set.hpp Lib/Hash.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/BinaryResolution.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/EqualityFactoring.hpp
@@ -1546,6 +1541,8 @@ Saturation/SaturationAlgorithm_Construction.o: Inferences/Superposition.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/TautologyDeletionFSE.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/AWPassiveClauseContainer.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/Clause.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Reflection.hpp
+Saturation/SaturationAlgorithm_Construction.o: Kernel/Unit.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/ClauseQueue.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/ClauseContainer.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/SaturationAlgorithm.hpp

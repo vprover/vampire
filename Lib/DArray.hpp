@@ -314,10 +314,22 @@ public:
     inline Iterator(DArray& arr) : _next(arr._array),
     _afterLast(arr._array+arr._size) {}
     inline bool hasNext() { return _next!=_afterLast; }
-    inline C next() { return _next++; }
+    inline C next() { return *(_next++); }
   private:
     C* _next;
     C* _afterLast;
+  };
+  class ReversedIterator
+  {
+  public:
+    DECL_ELEMENT_TYPE(C);
+    inline ReversedIterator(DArray& arr) : _curr(arr._array+arr._size),
+    _first(arr._array) {}
+    inline bool hasNext() { return _curr!=_first; }
+    inline C next() { return *(--_curr); }
+  private:
+    C* _curr;
+    C* _first;
   };
 }; // class DArray
 

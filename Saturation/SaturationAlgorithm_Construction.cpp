@@ -5,9 +5,8 @@
 
 #include "../Lib/Exception.hpp"
 
-#include "../Kernel/BestLiteralSelector.hpp"
-#include "../Kernel/CompositeLiteralComparator.hpp"
 #include "../Kernel/KBO.hpp"
+#include "../Kernel/LiteralSelector.hpp"
 #include "../Kernel/OrderingLiteralSelector.hpp"
 
 #include "../Shell/Options.hpp"
@@ -122,15 +121,7 @@ BackwardSimplificationEngineSP createBSE()
 
 LiteralSelectorSP createLiteralSelector()
 {
-  LiteralSelector* res;
-  switch(env.options->literalComparisonMode()) {
-  case Shell::Options::LCM_STANDARD:
-    res=new OrderingLiteralSelector();
-    break;
-  default:
-    NOT_IMPLEMENTED;
-  }
-  return LiteralSelectorSP(res);
+  return LiteralSelectorSP(LiteralSelector::getSelector(env.options->selection()));
 }
 
 PassiveClauseContainerSP createPassiveContainer()
