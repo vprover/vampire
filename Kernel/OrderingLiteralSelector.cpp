@@ -57,23 +57,7 @@ void OrderingLiteralSelector::selectPositive(Clause* c)
     LiteralList::push((*c)[li],sel);
   }
 
-  LiteralList** ptr1=&sel;
-  while(*ptr1) {
-    LiteralList** ptr2=&(*ptr1)->tailReference();
-    while(*ptr2 && *ptr1) {
-      Ordering::Result res=_ord->compare((*ptr1)->head(), (*ptr2)->head());
-      if(res==Ordering::GREATER || res==Ordering::GREATER_EQ || res==Ordering::EQUAL) {
-	LiteralList::pop(*ptr2);
-	continue;
-      } else if(res==Ordering::LESS || res==Ordering::LESS_EQ) {
-	LiteralList::pop(*ptr1);
-	goto topLevelContinue;
-      }
-      ptr2=&(*ptr2)->tailReference();
-    }
-    ptr1=&(*ptr1)->tailReference();
-topLevelContinue: ;
-  }
+  _ord->removeNonMaximal(sel);
 
   unsigned selCnt=0;
 

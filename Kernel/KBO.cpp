@@ -500,7 +500,7 @@ KBO* KBO::createReversedAgePreferenceConstantLevels()
 
 struct FnArityComparator
 {
-  static Comparison compare(unsigned u1, unsigned u2)
+  Comparison compare(unsigned u1, unsigned u2)
   {
     return Int::compare(env.signature->functionArity(u1),
 	    env.signature->functionArity(u2));
@@ -508,7 +508,7 @@ struct FnArityComparator
 };
 struct PredArityComparator
 {
-  static Comparison compare(unsigned u1, unsigned u2)
+  Comparison compare(unsigned u1, unsigned u2)
   {
     return Int::compare(env.signature->predicateArity(u1),
 	    env.signature->predicateArity(u2));
@@ -527,14 +527,14 @@ KBO* KBO::createArityPreferenceConstantLevels()
   static DArray<unsigned> aux(32);
   if(funcs) {
     aux.initFromIterator(getRangeIterator(0u, funcs), funcs);
-    aux.sort<FnArityComparator>();
+    aux.sort(FnArityComparator());
     for(unsigned i=0;i<funcs;i++) {
       res->_functionPrecedences[aux[i]]=i;
     }
   }
 
   aux.initFromIterator(getRangeIterator(0u, preds), preds);
-  aux.sort<PredArityComparator>();
+  aux.sort(PredArityComparator());
   for(unsigned i=0;i<preds;i++) {
     res->_predicatePrecedences[aux[i]]=i;
   }
@@ -557,13 +557,13 @@ KBO* KBO::createArityPreferenceAndLevels()
   DArray<unsigned> aux(funcs);
 
   aux.initFromIterator(getRangeIterator(0u, funcs), funcs);
-  aux.sort<FnArityComparator>();
+  aux.sort(FnArityComparator());
   for(unsigned i=0;i<funcs;i++) {
     res->_functionPrecedences[aux[i]]=i;
   }
 
   aux.initFromIterator(getRangeIterator(0u, preds), preds);
-  aux.sort<PredArityComparator>();
+  aux.sort(PredArityComparator());
   for(unsigned i=0;i<preds;i++) {
     res->_predicatePrecedences[aux[i]]=i;
     res->_predicateLevels[aux[i]]=i+1;

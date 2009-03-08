@@ -5,6 +5,8 @@
 
 #include "../Lib/Exception.hpp"
 
+#include "../Kernel/BestLiteralSelector.hpp"
+#include "../Kernel/CompositeLiteralComparator.hpp"
 #include "../Kernel/KBO.hpp"
 #include "../Kernel/OrderingLiteralSelector.hpp"
 

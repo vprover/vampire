@@ -137,7 +137,7 @@ public:
   } // ensure
 
   /** Return the ensured size of the array */
-  size_t size() const { return _size; }
+  inline size_t size() const { return _size; }
 
   /** Ensure that the array's size is at least @b count and
    * initialize first @b count elements of the array to @b value. */
@@ -199,7 +199,19 @@ public:
    * as comparator.
    */
   template<typename Comparator>
-  void sort()
+  inline void sort(Comparator comp)
+  {
+    sortGen<false>(comp);
+  }
+
+  template<typename Comparator>
+  inline void sortInversed(Comparator comp)
+  {
+    sortGen<true>(comp);
+  }
+
+  template<bool Inversed, typename Comparator>
+  void sortGen(Comparator comp)
   {
     //modified sorting code, that was originally in Resolution::Tautology::sort
 
@@ -219,7 +231,7 @@ public:
       size_t l = from;
       size_t r = to;
       while (l < m) {
-        switch (Comparator::compare((*this)[l],mid))
+        switch ((Inversed?-1:1)*comp.compare((*this)[l],mid))
   	{
   	case EQUAL:
   	case LESS:
@@ -247,7 +259,7 @@ public:
       // now literals in lits[from ... m-1] are smaller than lits[m]
       // and literals in lits[r+1 ... to] are greater than lits[m]
       while (m < r) {
-        switch (Comparator::compare(mid,(*this)[m+1]))
+        switch ((Inversed?-1:1)*comp.compare(mid,(*this)[m+1]))
   	{
   	case LESS:
   	  {
@@ -298,10 +310,11 @@ public:
   class Iterator
   {
   public:
-    Iterator(DArray& arr) : _next(arr._array),
+    DECL_ELEMENT_TYPE(C);
+    inline Iterator(DArray& arr) : _next(arr._array),
     _afterLast(arr._array+arr._size) {}
-    bool hasNext() { return _next!=_afterLast; }
-    C next() { return _next++; }
+    inline bool hasNext() { return _next!=_afterLast; }
+    inline C next() { return _next++; }
   private:
     C* _next;
     C* _afterLast;
@@ -311,7 +324,7 @@ public:
 template<typename T>
 VirtualIterator<T> getContentIterator(DArray<T>& arr)
 {
-  return getProxyIterator<T>(DArray<T>::Iterator(arr));
+  return vpi( DArray<T>::Iterator(arr) );
 }
 
 } // namespace Lib
