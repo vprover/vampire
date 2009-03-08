@@ -76,7 +76,7 @@ struct LeastTopLevelVariables
 private:
   unsigned getTLVarCnt(Literal* l)
   {
-    unsigned res;
+    unsigned res=0;
     for(TermList* arg=l->args(); arg->isNonEmpty(); arg=arg->next()) {
       if(arg->isVar()) {
 	res++;
