@@ -98,9 +98,15 @@ struct LexComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
+    ASS(l1->shared());
+    ASS(l2->shared());
+
+    if(l1->header()!=l2->header()) {
+      return Int::compare(l1->header(),l2->header());
+    }
+
     Term::SubtermIterator sit1(l1);
     Term::SubtermIterator sit2(l2);
-
     while(sit1.hasNext()) {
       ASS(sit2.hasNext());
       TermList st1=sit1.next();
@@ -125,7 +131,7 @@ struct LexComparator
 	}
       }
     }
-    ASS_EQ(l1,l2);
+    ASS(l1==l2);
     return EQUAL;
   }
 };

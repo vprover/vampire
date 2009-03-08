@@ -114,6 +114,7 @@ public:
     LiteralList* maximals=0;
     Literal* singleSelected=0; //If equals to 0 in the end, all maximal
 			       //literals will be selected.
+    bool allSelected=false;
 
     if(litArr[0]->isNegative()) {
       singleSelected=litArr[0];
@@ -141,6 +142,7 @@ public:
 	singleSelected=maximals->head();
     }
     if(!singleSelected) {
+      unsigned selCnt=0;
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {
 	if(mit->head()->isNegative()) {
 	  for(unsigned i=1;i<clen;i++) {
@@ -151,9 +153,15 @@ public:
 	  ASS(singleSelected);
 	  break;
 	}
+	selCnt++;
+      }
+      if(selCnt==clen) {
+	allSelected=true;
       }
     }
-    if(!singleSelected) {
+    if(allSelected) {
+      c->setSelected(clen);
+    } else if(!singleSelected) {
       //select multiple maximal literals
       static Stack<Literal*> replaced(16);
       Set<Literal*> maxSet;
@@ -171,6 +179,7 @@ public:
 	selCnt++;
       }
       ASS_G(selCnt,1);
+      ASS_LE(selCnt,clen);
 
       //put back non-selected literals, that were removed
       unsigned i=selCnt;
@@ -179,7 +188,7 @@ public:
 	  i++;
 	  ASS_L(i,clen);
 	}
-	(*c)[selCnt]=replaced.pop();
+	(*c)[i++]=replaced.pop();
       }
 
       c->setSelected(selCnt);
