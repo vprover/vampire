@@ -10,6 +10,8 @@
 
 #include "LiteralSelector.hpp"
 
+#include "OrderingLiteralSelector.hpp"
+
 #include "BestLiteralSelector.hpp"
 #include "LiteralComparators.hpp"
 
@@ -25,6 +27,7 @@ LiteralSelector* LiteralSelector::getSelector(int num)
 
   switch(num) {
   case 0: return new TotalLiteralSelector();
+  case 1: return new OrderingLiteralSelector();
 
   case 10: return new CompleteBestLiteralSelector<Comparator10>();
 
