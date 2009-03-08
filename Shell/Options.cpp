@@ -705,25 +705,27 @@ bool Options::setSelection(int sel)
 {
   CALL("Options::setSelection");
 
-  switch (sel) {
-  case -11:
-  case -16:
-  case -1012:
-  case 8:
-  case 10:
-  case 11:
-  case 13:
-  case 16:
-  case 17:
-  case 1010:
-  case 1011:
-  case 1012:
-  case 1013:
-    _selection = sel;
-    return true;
-  default:
-    return false;
-  }
+  _selection = sel;
+  return true;
+//  switch (sel) {
+//  case -11:
+//  case -16:
+//  case -1012:
+//  case 8:
+//  case 10:
+//  case 11:
+//  case 13:
+//  case 16:
+//  case 17:
+//  case 1010:
+//  case 1011:
+//  case 1012:
+//  case 1013:
+//    _selection = sel;
+//    return true;
+//  default:
+//    return false;
+//  }
 } // Options::setSelection
 
 
