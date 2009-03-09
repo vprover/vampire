@@ -638,15 +638,73 @@ private:
 };
 
 /**
- * Return iterator, that all unordered pairs from set {@b from,
- * (@b from)++, ((@b from)++)++,..., @b to}\{@b to}. This means
- * that for a singleton set, nothing is returned.
+ * Return iterator, that yields all unordered pairs from set {@b from,
+ * (@b from)+1, (@b from)+2,..., (@b to)-1}. (The addition is performed
+ * by the operator++.) For a singleton set, nothing is yielded.
  */
 template<typename T>
 inline
 CombinationIterator<T> getCombinationIterator(T from, T to)
 {
   return CombinationIterator<T>(from, to);
+}
+
+template<typename T>
+class Combination2Iterator
+{
+public:
+  DECL_ELEMENT_TYPE(pair<T,T>);
+  Combination2Iterator(T from, T to1, T to2)
+  : _first(from), _second(from), _afterLast1(to1), _afterLast2(to2)
+  {
+    ASS_LE(from,to1);
+    ASS_LE(to1,to2);
+    if(from!=to1) {
+      moveToNext();
+    }
+  }
+  inline bool hasNext()
+  { return _first!=_afterLast1 && _second!=_afterLast2; }
+  pair<T,T> next()
+  {
+    ASS(hasNext());
+    pair<T,T> res=pair<T,T>(_first,_second);
+    ASS_LE(_first,_afterLast1);
+    ASS_LE(_second,_afterLast2);
+    moveToNext();
+    return res;
+  }
+private:
+  void moveToNext()
+  {
+    _second++;
+    ASS_LE(_second,_afterLast2);
+    if(_second==_afterLast2) {
+      _first++;
+      _second=_first;
+      _second++;
+      //now, if _second==_afterLast, there's no combination left
+    }
+  }
+  T _first;
+  T _second;
+  T _afterLast1;
+  T _afterLast2;
+};
+
+/**
+ * Return iterator, that yields all unordered pairs from set {@b from,
+ * (@b from)+1, (@b from)+2,..., (@b to2)-1} where one of the pair is
+ * less than $b to1. (The addition is performed by the operator++.)
+ * For a singleton set, nothing is yielded.
+ *
+ * Parameter @b to1 must be less than or equal to @b to2.
+ */
+template<typename T>
+inline
+Combination2Iterator<T> getCombinationIterator(T from, T to1, T to2)
+{
+  return Combination2Iterator<T>(from, to1, to2);
 }
 
 

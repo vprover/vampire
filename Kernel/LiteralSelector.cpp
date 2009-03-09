@@ -10,7 +10,7 @@
 
 #include "LiteralSelector.hpp"
 
-#include "OrderingLiteralSelector.hpp"
+#include "MaximalLiteralSelector.hpp"
 
 #include "BestLiteralSelector.hpp"
 #include "LiteralComparators.hpp"
@@ -23,16 +23,34 @@ LiteralSelector* LiteralSelector::getSelector(int num)
 {
   using namespace LiteralComparators;
 
+  typedef Composite<MaximalSize,
+	    LexComparator> Comparator2;
+
   typedef Composite<NoPositiveEquality,
 	    Composite<LeastTopLevelVariables,
-	    Composite<MaximalSize,
-	    Composite<LeastVariables, LexComparator> > > > Comparator10;
+	    Composite<LeastDistinctVariables, LexComparator> > > Comparator3;
+
+  typedef Composite<NegativeEquality,
+	    Composite<NoPositiveEquality,
+	    Composite<MaximalSize, LexComparator> > > Comparator4;
+
+  typedef Composite<NoPositiveEquality,
+	    Composite<LeastTopLevelVariables,
+	    Composite<LeastVariables,
+	    Composite<MaximalSize, LexComparator> > > > Comparator10;
 
   switch(num) {
   case 0: return new TotalLiteralSelector();
-  case 1: return new OrderingLiteralSelector();
+  case 1: return new MaximalLiteralSelector();
+  case 2: return new CompleteBestLiteralSelector<Comparator2>();
+  case 3: return new CompleteBestLiteralSelector<Comparator3>();
+  case 4: return new CompleteBestLiteralSelector<Comparator4>();
 
   case 10: return new CompleteBestLiteralSelector<Comparator10>();
+
+  case 1002: return new BestLiteralSelector<Comparator2>();
+  case 1003: return new BestLiteralSelector<Comparator3>();
+  case 1004: return new BestLiteralSelector<Comparator4>();
 
   case 1010: return new BestLiteralSelector<Comparator10>();
 

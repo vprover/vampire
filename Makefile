@@ -68,9 +68,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/KBO.o\
         Kernel/LiteralSelector.o\
+        Kernel/MaximalLiteralSelector.o\
         Kernel/MLMatcher.o\
         Kernel/Ordering.o\
-        Kernel/OrderingLiteralSelector.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
         Kernel/Signature.o\
@@ -623,8 +623,9 @@ Kernel/LiteralSelector.o: Lib/Portability.hpp Lib/Metaiterators.hpp
 Kernel/LiteralSelector.o: Lib/Set.hpp Lib/Hash.hpp Kernel/Clause.hpp
 Kernel/LiteralSelector.o: Lib/Reflection.hpp Kernel/Unit.hpp Lib/List.hpp
 Kernel/LiteralSelector.o: Kernel/LiteralSelector.hpp
-Kernel/LiteralSelector.o: Kernel/BestLiteralSelector.hpp Lib/DArray.hpp
-Kernel/LiteralSelector.o: Lib/Random.hpp Lib/Set.hpp Kernel/Ordering.hpp
+Kernel/LiteralSelector.o: Kernel/MaximalLiteralSelector.hpp Lib/SmartPtr.hpp
+Kernel/LiteralSelector.o: Kernel/Ordering.hpp Kernel/BestLiteralSelector.hpp
+Kernel/LiteralSelector.o: Lib/DArray.hpp Lib/Random.hpp Lib/Set.hpp
 Kernel/LiteralSelector.o: Kernel/LiteralComparators.hpp Lib/Int.hpp
 Kernel/MLMatcher.o: Lib/BacktrackData.hpp Lib/List.hpp Forwards.hpp
 Kernel/MLMatcher.o: Config.hpp Debug/Assertion.hpp Debug/Tracer.hpp
@@ -643,27 +644,26 @@ Kernel/MLMatcher.o: Lib/List.hpp Kernel/Term.hpp Lib/Portability.hpp
 Kernel/MLMatcher.o: Lib/XML.hpp Lib/Comparison.hpp Kernel/Matcher.hpp
 Kernel/MLMatcher.o: Lib/Hash.hpp Lib/VirtualIterator.hpp Kernel/MLMatcher.hpp
 Kernel/MLMatcher.o: Test/Output.hpp
+Kernel/MaximalLiteralSelector.o: Lib/List.hpp Kernel/Term.hpp Forwards.hpp
+Kernel/MaximalLiteralSelector.o: Config.hpp Debug/Assertion.hpp
+Kernel/MaximalLiteralSelector.o: Debug/Tracer.hpp Debug/Tracer.hpp
+Kernel/MaximalLiteralSelector.o: Lib/Allocator.hpp Lib/Portability.hpp
+Kernel/MaximalLiteralSelector.o: Lib/XML.hpp Lib/Comparison.hpp Lib/Stack.hpp
+Kernel/MaximalLiteralSelector.o: Lib/Allocator.hpp Lib/BacktrackData.hpp
+Kernel/MaximalLiteralSelector.o: Lib/List.hpp Lib/VirtualIterator.hpp
+Kernel/MaximalLiteralSelector.o: Lib/Exception.hpp Lib/Reflection.hpp
+Kernel/MaximalLiteralSelector.o: Lib/Int.hpp Lib/Comparison.hpp
+Kernel/MaximalLiteralSelector.o: Lib/Portability.hpp Lib/Metaiterators.hpp
+Kernel/MaximalLiteralSelector.o: Lib/Set.hpp Lib/Hash.hpp Kernel/Clause.hpp
+Kernel/MaximalLiteralSelector.o: Lib/Reflection.hpp Kernel/Unit.hpp
+Kernel/MaximalLiteralSelector.o: Kernel/MaximalLiteralSelector.hpp
+Kernel/MaximalLiteralSelector.o: Lib/SmartPtr.hpp Kernel/Ordering.hpp
+Kernel/MaximalLiteralSelector.o: Kernel/LiteralSelector.hpp
 Kernel/Ordering.o: Forwards.hpp Config.hpp Lib/List.hpp Lib/SmartPtr.hpp
 Kernel/Ordering.o: Debug/Assertion.hpp Debug/Tracer.hpp Debug/Tracer.hpp
 Kernel/Ordering.o: Lib/Environment.hpp Lib/Exception.hpp Shell/Options.hpp
 Kernel/Ordering.o: Lib/Allocator.hpp Lib/XML.hpp Kernel/Ordering.hpp
 Kernel/Ordering.o: Kernel/KBO.hpp
-Kernel/OrderingLiteralSelector.o: Lib/List.hpp Kernel/Term.hpp Forwards.hpp
-Kernel/OrderingLiteralSelector.o: Config.hpp Debug/Assertion.hpp
-Kernel/OrderingLiteralSelector.o: Debug/Tracer.hpp Debug/Tracer.hpp
-Kernel/OrderingLiteralSelector.o: Lib/Allocator.hpp Lib/Portability.hpp
-Kernel/OrderingLiteralSelector.o: Lib/XML.hpp Lib/Comparison.hpp
-Kernel/OrderingLiteralSelector.o: Lib/Stack.hpp Lib/Allocator.hpp
-Kernel/OrderingLiteralSelector.o: Lib/BacktrackData.hpp Lib/List.hpp
-Kernel/OrderingLiteralSelector.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-Kernel/OrderingLiteralSelector.o: Lib/Reflection.hpp Lib/Int.hpp
-Kernel/OrderingLiteralSelector.o: Lib/Comparison.hpp Lib/Portability.hpp
-Kernel/OrderingLiteralSelector.o: Lib/Metaiterators.hpp Lib/Set.hpp
-Kernel/OrderingLiteralSelector.o: Lib/Hash.hpp Kernel/Clause.hpp
-Kernel/OrderingLiteralSelector.o: Lib/Reflection.hpp Kernel/Unit.hpp
-Kernel/OrderingLiteralSelector.o: Kernel/OrderingLiteralSelector.hpp
-Kernel/OrderingLiteralSelector.o: Lib/SmartPtr.hpp Kernel/Ordering.hpp
-Kernel/OrderingLiteralSelector.o: Kernel/LiteralSelector.hpp
 Kernel/Renaming.o: Lib/DArray.hpp Forwards.hpp Config.hpp Debug/Assertion.hpp
 Kernel/Renaming.o: Debug/Tracer.hpp Lib/Allocator.hpp Debug/Tracer.hpp
 Kernel/Renaming.o: Lib/Comparison.hpp Lib/Random.hpp Lib/Reflection.hpp
@@ -1496,15 +1496,13 @@ Saturation/SaturationAlgorithm_Construction.o: Lib/Exception.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/KBO.hpp Forwards.hpp
 Saturation/SaturationAlgorithm_Construction.o: Config.hpp Kernel/Ordering.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/LiteralSelector.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/OrderingLiteralSelector.hpp
+Saturation/SaturationAlgorithm_Construction.o: Shell/Options.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Allocator.hpp
+Saturation/SaturationAlgorithm_Construction.o: Debug/Tracer.hpp Lib/XML.hpp
+Saturation/SaturationAlgorithm_Construction.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/SmartPtr.hpp
 Saturation/SaturationAlgorithm_Construction.o: Debug/Assertion.hpp
 Saturation/SaturationAlgorithm_Construction.o: Debug/Tracer.hpp
-Saturation/SaturationAlgorithm_Construction.o: Debug/Tracer.hpp
-Saturation/SaturationAlgorithm_Construction.o: Kernel/LiteralSelector.hpp
-Saturation/SaturationAlgorithm_Construction.o: Shell/Options.hpp
-Saturation/SaturationAlgorithm_Construction.o: Lib/Allocator.hpp Lib/XML.hpp
-Saturation/SaturationAlgorithm_Construction.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/VirtualIterator.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/Allocator.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/Exception.hpp

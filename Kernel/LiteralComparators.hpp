@@ -59,6 +59,22 @@ struct NoPositiveEquality
   }
 };
 
+struct NegativeEquality
+{
+  Comparison compare(Literal* l1, Literal* l2)
+  {
+    bool l1NE=l1->isEquality()&&l1->isNegative();
+    bool l2NE=l2->isEquality()&&l2->isNegative();
+    if( l1NE && !l2NE ) {
+      return GREATER;
+    } else if( !l1NE && l2NE ) {
+      return LESS;
+    } else {
+      return EQUAL;
+    }
+  }
+};
+
 struct MaximalSize
 {
   Comparison compare(Literal* l1, Literal* l2)
@@ -72,6 +88,24 @@ struct LeastVariables
   Comparison compare(Literal* l1, Literal* l2)
   {
     return Int::compare(l2->vars(), l1->vars());
+  }
+};
+
+struct LeastDistinctVariables
+{
+  Comparison compare(Literal* l1, Literal* l2)
+  {
+    return Int::compare(getDistVarCnt(l2), getDistVarCnt(l1));
+  }
+private:
+  unsigned getDistVarCnt(Literal* l)
+  {
+    Set<unsigned> vars;
+    Term::VariableIterator vit(l);
+    while(vit.hasNext()) {
+      vars.insert(vit.next().var());
+    }
+    return vars.numberOfElements();
   }
 };
 

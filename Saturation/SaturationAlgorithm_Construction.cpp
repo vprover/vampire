@@ -7,7 +7,6 @@
 
 #include "../Kernel/KBO.hpp"
 #include "../Kernel/LiteralSelector.hpp"
-#include "../Kernel/OrderingLiteralSelector.hpp"
 
 #include "../Shell/Options.hpp"
 

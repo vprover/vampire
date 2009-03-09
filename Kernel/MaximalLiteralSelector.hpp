@@ -17,19 +17,17 @@ namespace Kernel {
 
 /**
  * Class OrderingLiteralSelector implements literal
- * selector that selects heaviest negative literal, or all
- * maximal literals in specified ordering, if there's no
- * negative one.
+ * selector that selects a maximal negative literal,
+ * if there is such. Otherwise it selects all maximal
+ * literals.
  */
-class OrderingLiteralSelector
+class MaximalLiteralSelector
 : public LiteralSelector
 {
 public:
-  OrderingLiteralSelector() : _ord(Ordering::instance()) {}
+  MaximalLiteralSelector() : _ord(Ordering::instance()) {}
   void select(Clause* c);
 private:
-  void selectPositive(Clause* c);
-
   Ordering* _ord;
 };
 

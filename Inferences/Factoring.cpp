@@ -105,17 +105,33 @@ private:
   unsigned _cLen;
 };
 
+/**
+ * Return ClauseIterator, that yields clauses generated from
+ * @b premise by the factoring inference rule.
+ *
+ * Nothing is generated, when the premise contains only one
+ * negative literal. Otherwise one of literals used in factoring
+ * has to be selected, the other one does not. This deviation from
+ * usual factoring rules, where both factored literals have to be
+ * selected, is for the sake of incmoplete literal selection
+ * functions, that select always just one literal. (This would lead
+ * to no factoring at all.)
+ *
+ * If a complete literal selection is used, this makes no difference,
+ * as when two literals are unifiable, one cannot be maximal and the
+ * other non-maximal in the literal ordering.
+ */
 ClauseIterator Factoring::generateClauses(Clause* premise)
 {
   CALL("Factoring::generateClauses");
 
   ASS(premise->selected()>0);
-  if(premise->selected()==1) {
+  if(premise->selected()==1 && (*premise)[0]->isNegative()) {
     return ClauseIterator::getEmpty();
   }
   return pvi( getMappingIterator(
 	  getMapAndFlattenIterator(
-		  getCombinationIterator(0u,premise->selected()),
+		  getCombinationIterator(0u,premise->selected(),premise->length()),
 		  UnificationsFn(premise)),
 	  ResultsFn(premise)) );
 }

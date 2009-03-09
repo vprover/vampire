@@ -10,45 +10,16 @@
 #include "Term.hpp"
 #include "Clause.hpp"
 
-#include "OrderingLiteralSelector.hpp"
+#include "MaximalLiteralSelector.hpp"
 
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-void OrderingLiteralSelector::select(Clause* c)
+void MaximalLiteralSelector::select(Clause* c)
 {
   CALL("OrderingLiteralSelector::select");
 
-  unsigned seli;
-  //we assume, that weight of a literal is always greater than zero
-  unsigned selWeight=0;
-  unsigned clen=c->length();
-
-  if(clen<=1) {
-    c->setSelected(clen);
-    return;
-  }
-
-  for(unsigned i=0;i<clen;i++) {
-    if((*c)[i]->isNegative() && ((*c)[i]->weight()>selWeight)) {
-//    if((*c)[i]->isNegative() && (!selWeight || (*c)[i]->weight()<selWeight)) {
-      seli=i;
-      selWeight=(*c)[i]->weight();
-    }
-  }
-
-  if(selWeight) {
-    std::swap((*c)[0], (*c)[seli]);
-    c->setSelected(1);
-  } else {
-    selectPositive(c);
-  }
-
-}
-
-void OrderingLiteralSelector::selectPositive(Clause* c)
-{
   unsigned clen=c->length();
   LiteralList* sel=0;
 
@@ -58,6 +29,22 @@ void OrderingLiteralSelector::selectPositive(Clause* c)
   }
 
   _ord->removeNonMaximal(sel);
+
+  Literal* singleSel=0;
+
+  LiteralList::Iterator sit(sel);
+  while(sit.hasNext()) {
+    Literal* sl=sit.next();
+    if(sl->isNegative()) {
+      singleSel=sl;
+      break;
+    }
+  }
+  if(singleSel) {
+    sel->destroy();
+    sel=0;
+    LiteralList::push(singleSel,sel);
+  }
 
   unsigned selCnt=0;
 
