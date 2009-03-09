@@ -187,6 +187,7 @@ bool MLMatcher::canBeMatched(Clause* base, LiteralList** alts)
 
   Matcher matcher;
 
+  //TODO: this actually is not the submultiset subsumption!
   MatchIterator sbit=getIteratorBacktrackingOnIterable(&matcher,
 	  getMappingArray(
 		  pushPairIntoArrays(wrapReferencedArray(baseOrd),

@@ -105,46 +105,7 @@ public:
 
 
 typedef DHMap<Clause*,ClauseMatches*, PtrIdentityHash> CMMap;
-typedef DHMap<Literal*, LiteralList*, PtrIdentityHash> MatchMap;
 
-/**
- * Group instance literals from @b matches by base literal,
- * they belong to, and store in @b alts. If an instance
- * literal is equal to @b forbidden, skip it. Return true
- * iff all base literals have at least one match.
- */
-bool fillAlternativesArray(Clause* baseClause, MIList* matches,
-	DArray<LiteralList*>& alts, Literal* forbidden=0)
-{
-  CALL("fillAlternativesArray");
-  static MatchMap matchMap;
-  matchMap.reset();
-  MIList::Iterator miit(matches);
-  while(miit.hasNext()) {
-    MatchInfo minfo=miit.next();
-    if(minfo.queryLiteral==forbidden) {
-      continue;
-    }
-    LiteralList** litAlts; //pointer to list of possibly matching literals
-    matchMap.getValuePtr(minfo.clauseLiteral, litAlts, 0);
-    LiteralList::push(minfo.queryLiteral, *litAlts);
-  };
-
-  unsigned mlen=baseClause->length();
-  alts.ensure(mlen);
-  bool everyBaseLitHasAMatch=true;
-  for(unsigned li=0;li<mlen;li++) {
-    LiteralList* litAlts;
-    if(matchMap.find( (*baseClause)[li], litAlts) ) {
-      ASS(litAlts);
-      alts[li]=litAlts;
-    } else {
-      alts[li]=0;
-      everyBaseLitHasAMatch=false;
-    }
-  }
-  return everyBaseLitHasAMatch;
-}
 
 bool isSubsumed(Clause* cl, CMMap* gens)
 {
@@ -258,6 +219,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	  gens->find(mcl, cms);
 	}
 	if(cms) {
+	  //TODO: wrong! must remove the resLit from matching!
 	  success=MLMatcher::checkForSubsumptionResolution(mcl,cms->_matches,resLit);
 	} else {
 	  success=false;
