@@ -73,7 +73,7 @@ struct ResMatchBtrFn
 
 
 bool MLMatcher::checkForSubsumptionResolution(Clause* base,
-	DArray<LiteralList*>& alts, Literal* resolvedInst)
+	LiteralList** alts, Literal* resolvedInst)
 {
   CALL("MLMatcher::checkForSubsumptionResolution");
 
@@ -172,7 +172,7 @@ bool MLMatcher::checkForSubsumptionResolution(Clause* base,
  * literals in @b base clause. If a single literal is presented in
  * multiple lists in @b alts, it still can be matched at most once.
  */
-bool MLMatcher::canBeMatched(Clause* base, DArray<LiteralList*>& alts)
+bool MLMatcher::canBeMatched(Clause* base, LiteralList** alts)
 {
   CALL("MLMatcher::canBeMatched");
 
@@ -222,9 +222,34 @@ bool MLMatcher::canBeMatched(Clause* base, DArray<LiteralList*>& alts)
   return success;
 }
 
+bool MLMatcher::canBeMatched(Clause* base, DArray<LiteralList*>& alts)
+{
+  CALL("MLMatcher::canBeMatched");
 
-template<class T>
-void MLMatcher::orderLiterals(T& base, DArray<LiteralList*>& alts,
+  DArray<Literal*> baseOrd(32);
+  DArray<LiteralList*> altsOrd(32);
+  orderLiterals(*base, alts, baseOrd, altsOrd);
+
+  Matcher matcher;
+
+  MatchIterator sbit=getIteratorBacktrackingOnIterable(&matcher,
+	  getMappingArray(
+		  pushPairIntoArrays(wrapReferencedArray(baseOrd),
+			  wrapReferencedArray(altsOrd)),
+		  PushPairIntoRightIterableFn<Literal*,LiteralList*>()),
+	  MatchBtrFn());
+
+  return sbit.hasNext();
+}
+
+
+/**
+ *
+ * @b alts is supposed to be an array of LiteralList* with the same number
+ * of elements as @b base.
+ */
+template<class T, class U>
+void MLMatcher::orderLiterals(T& base, U& alts,
 	  DArray<Literal*>& baseOrd, DArray<LiteralList*>& altsOrd)
 {
   CALL("MLMatcher::orderLiterals");

@@ -30,14 +30,15 @@ LiteralSelector* LiteralSelector::getSelector(int num)
 	    Composite<LeastTopLevelVariables,
 	    Composite<LeastDistinctVariables, LexComparator> > > Comparator3;
 
-  typedef Composite<NegativeEquality,
-	    Composite<NoPositiveEquality,
-	    Composite<MaximalSize, LexComparator> > > Comparator4;
-
   typedef Composite<NoPositiveEquality,
 	    Composite<LeastTopLevelVariables,
 	    Composite<LeastVariables,
-	    Composite<MaximalSize, LexComparator> > > > Comparator10;
+	    Composite<MaximalSize, LexComparator> > > > Comparator4;
+
+  typedef Composite<NegativeEquality,
+	    Composite<NoPositiveEquality,
+	    Composite<MaximalSize, LexComparator> > > Comparator10;
+
 
   switch(num) {
   case 0: return new TotalLiteralSelector();

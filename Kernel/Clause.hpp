@@ -12,6 +12,7 @@
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/Reflection.hpp"
+#include "../Lib/InverseLookup.hpp"
 
 #include "Unit.hpp"
 
@@ -56,7 +57,8 @@ public:
       _age(0),
       _weight(0),
       _store(NONE),
-      _inferenceRefCnt(0)
+      _inferenceRefCnt(0),
+      _literalPositions(0)
   {}
 
   /** Should never be used, declared just to get rid of compiler warning */
@@ -64,7 +66,15 @@ public:
 
   void* operator new(size_t,unsigned length);
 
-  /** Return the (reference to) the nth literal */
+  /**
+   * Return the (reference to) the nth literal
+   *
+   * Positions of literals in the clause are cached in the _literalPositions
+   * object. In order to keep it in sync, content of the clause can be changed
+   * only right after clause construction (before the first call to the
+   * getLiteralPosition method), or during the literal selection (as the
+   * _literalPositions object is updated in call to the setSelected method).
+   */
   Literal*& operator[] (int n)
   { return _literals[n]; }
   /** Return the (reference to) the nth literal */
@@ -101,9 +111,14 @@ public:
   unsigned selected() const { return _selected; }
   /** Mark the first s literals as selected */
   void setSelected(unsigned s)
-  { ASS(s >= 0);
+  {
+    ASS(s >= 0);
     ASS(s <= _length);
-    _selected = s; }
+    _selected = s;
+    if(_literalPositions) {
+      _literalPositions->update(_literals);
+    }
+  }
 
   /** Return the weight */
   int weight()
@@ -114,6 +129,14 @@ public:
     return _weight;
   }
   void computeWeight();
+
+  unsigned getLiteralPosition(Literal* lit)
+  {
+    if(!_literalPositions) {
+      _literalPositions=new InverseLookup<Literal>(_literals,length());
+    }
+    return static_cast<unsigned>(_literalPositions->get(lit));
+  }
 
   void destroyIfUnnecessary();
 
@@ -139,6 +162,8 @@ protected:
   Store _store;
   /** number of references to this clause by inference rules */
   unsigned _inferenceRefCnt;
+  /** A map that translates Literal* to its index in the clause */
+  InverseLookup<Literal>* _literalPositions;
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause

@@ -30,11 +30,12 @@
 
 #include "ForwardSubsumptionAndResolution.hpp"
 
+namespace Inferences
+{
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-using namespace Inferences;
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
 {
@@ -65,26 +66,46 @@ struct MatchInfo {
 typedef List<MatchInfo> MIList;
 
 struct ClauseMatches {
-  ClauseMatches() : matches(0), matchCount(0) {}
-
-  MIList* matches;
-  unsigned matchCount;
-};
-
-
-struct PtrHash {
-  static unsigned hash(void* ptr) {
-    return static_cast<unsigned>(reinterpret_cast<size_t>(ptr)>>4);
+private:
+  //private and undefined operator= and copy constructor to avoid implicitly generated ones
+  ClauseMatches(const ClauseMatches&);
+  ClauseMatches& operator=(const ClauseMatches&);
+public:
+  ClauseMatches(Clause* cl) : _cl(cl), _zeroCnt(cl->length())
+  {
+    unsigned clen=_cl->length();
+    _matches=static_cast<LiteralList**>(ALLOC_KNOWN(clen*sizeof(void*), "Inferences::ClauseMatches"));
+    for(unsigned i=0;i<clen;i++) {
+      _matches[i]=0;
+    }
   }
-};
-struct PtrHash2 {
-  static unsigned hash(void* ptr) {
-    return static_cast<unsigned>(reinterpret_cast<size_t>(ptr)>>3);
+  ~ClauseMatches()
+  {
+    unsigned clen=_cl->length();
+    for(unsigned i=0;i<clen;i++) {
+      _matches[i]->destroy();
+    }
+    DEALLOC_KNOWN(_matches, clen*sizeof(void*), "Inferences::ClauseMatches");
   }
+
+  void addMatch(Literal* baseLit, Literal* instLit)
+  {
+    unsigned bpos=_cl->getLiteralPosition(baseLit);
+    if(!_matches[bpos]) {
+      _zeroCnt--;
+    }
+    LiteralList::push(instLit,_matches[bpos]);
+  }
+  bool anyNonMatched() { return _zeroCnt; }
+
+  Clause* _cl;
+  unsigned _zeroCnt;
+  LiteralList** _matches;
 };
 
-typedef DHMap<Clause*,ClauseMatches, PtrHash, PtrHash2> CMMap;
-typedef DHMap<Literal*, LiteralList*, PtrHash > MatchMap;
+
+typedef DHMap<Clause*,ClauseMatches*, PtrIdentityHash> CMMap;
+typedef DHMap<Literal*, LiteralList*, PtrIdentityHash> MatchMap;
 
 /**
  * Group instance literals from @b matches by base literal,
@@ -128,35 +149,18 @@ bool fillAlternativesArray(Clause* baseClause, MIList* matches,
 bool isSubsumed(Clause* cl, CMMap* gens)
 {
   CALL("isSubsumed");
-  static DArray<LiteralList*> alts(32);
 
-  unsigned clen=cl->length();
   CMMap::Iterator git(*gens);
   while(git.hasNext()) {
     Clause* mcl;
-    ClauseMatches clmatches;
+    ClauseMatches* clmatches;
     git.next(mcl, clmatches);
 
-    unsigned mlen=mcl->length();
-    if(mlen>clen || mlen>clmatches.matchCount) {
+    if(clmatches->anyNonMatched()) {
       continue;
     }
 
-    MIList::Iterator miit(clmatches.matches);
-
-    bool mclMatchFailed=!fillAlternativesArray(mcl, clmatches.matches, alts);
-
-    if(!mclMatchFailed) {
-      if(!MLMatcher::canBeMatched(mcl,alts)) {
-	mclMatchFailed=true;
-      }
-    }
-
-    for(unsigned li=0;li<mlen;li++) {
-      alts[li]->destroy();
-    }
-
-    if(!mclMatchFailed) {
+    if(MLMatcher::canBeMatched(mcl,clmatches->_matches)) {
       return true;
     }
   }
@@ -221,10 +225,11 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       if(!gens) {
 	gens=new CMMap();
       }
-      ClauseMatches* cms;
-      gens->getValuePtr(res.clause, cms);
-      MIList::push(MatchInfo(res.literal, (*cl)[li]), cms->matches);
-      cms->matchCount++;
+      ClauseMatches** pcms;
+      if(gens->getValuePtr(res.clause, pcms)) {
+	*pcms=new ClauseMatches(res.clause);
+      }
+      (*pcms)->addMatch(res.literal, (*cl)[li]);
     }
   }
 
@@ -244,19 +249,19 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       Clause* mcl=res.clause;
       unsigned mlen=mcl->length();
 
-      ClauseMatches cms;
-      if(gens) {
-	gens->find(mcl, cms);
-      }
-      if(mlen > cms.matchCount+1) {
-	continue;
-      }
-
-      fillAlternativesArray(mcl, cms.matches, alts, resLit);
-      bool success=MLMatcher::checkForSubsumptionResolution(mcl,alts,resLit);
-
-      for(unsigned mli=0;mli<mlen;mli++) {
-	alts[mli]->destroy();
+      bool success;
+      if(mlen==1) {
+	success=true;
+      } else {
+	ClauseMatches* cms=0;
+	if(gens) {
+	  gens->find(mcl, cms);
+	}
+	if(cms) {
+	  success=MLMatcher::checkForSubsumptionResolution(mcl,cms->_matches,resLit);
+	} else {
+	  success=false;
+	}
       }
 
       if(success) {
@@ -272,9 +277,10 @@ fin:
   if(gens) {
     CMMap::Iterator git(*gens);
     while(git.hasNext()) {
-      git.next().matches->destroy();
+      delete git.next();
     }
     delete gens;
   }
 }
 
+}

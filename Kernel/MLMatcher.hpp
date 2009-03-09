@@ -16,15 +16,16 @@ using namespace Lib;
 
 class MLMatcher {
 public:
+  static bool canBeMatched(Clause* base, LiteralList** matches);
   static bool canBeMatched(Clause* base, DArray<LiteralList*>& matches);
 
   static bool checkForSubsumptionResolution(Clause* base,
-  	DArray<LiteralList*>& alts, Literal* resolvedInst);
+  	LiteralList** alts, Literal* resolvedInst);
 
 
 private:
-  template<class T>
-  static void orderLiterals(T& base, DArray<LiteralList*>& alts,
+  template<class T, class U>
+  static void orderLiterals(T& base, U& alts,
 	  DArray<Literal*>& baseOrd, DArray<LiteralList*>& altsOrd);
 };
 

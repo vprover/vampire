@@ -61,6 +61,9 @@ void Clause::destroy()
 {
   CALL("Clause::destroy");
   _inference->destroy();
+  if(_literalPositions) {
+    delete _literalPositions;
+  }
 
   //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
   //this way, because _length-1 wouldn't behave well for
