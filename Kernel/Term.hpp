@@ -510,6 +510,7 @@ public:
   bool isEquality() const
   { return functor() == 0; }
 
+  Literal();
   explicit Literal(const Literal& l);
 
   /**
@@ -605,6 +606,17 @@ public:
 //   XMLElement toXML() const;
   string toString() const;
   const string& predicateName() const;
+
+  unsigned distinctVars()
+  {
+    if(_distinctVars==-1) {
+      computeDistinctVars();
+    }
+    return static_cast<unsigned>(_distinctVars);
+  }
+  void computeDistinctVars();
+protected:
+  int _distinctVars;
 }; // class Literal
 
 

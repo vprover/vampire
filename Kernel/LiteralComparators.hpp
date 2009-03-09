@@ -95,17 +95,7 @@ struct LeastDistinctVariables
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
-    return Int::compare(getDistVarCnt(l2), getDistVarCnt(l1));
-  }
-private:
-  unsigned getDistVarCnt(Literal* l)
-  {
-    Set<unsigned> vars;
-    Term::VariableIterator vit(l);
-    while(vit.hasNext()) {
-      vars.insert(vit.next().var());
-    }
-    return vars.numberOfElements();
+    return Int::compare(l2->distinctVars(), l1->distinctVars());
   }
 };
 

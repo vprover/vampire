@@ -37,11 +37,12 @@ using namespace Kernel;
  * Allocate enough bytes to fit a term of a given arity.
  * @since 01/05/2006 Bellevue
  */
-void* Term::operator new(size_t,unsigned arity)
+void* Term::operator new(size_t sz,unsigned arity)
 {
   CALL("Term::new");
+  ASS(sz==sizeof(Term) || sz==sizeof(Literal));
 
-  return (Term*)ALLOC_KNOWN(sizeof(Term)+arity*sizeof(TermList),"Term");
+  return (Term*)ALLOC_KNOWN(sz+arity*sizeof(TermList),"Term");
 } // Term::operator new
 
 
@@ -725,7 +726,8 @@ Term::Term(const Term& t)
 
 /** create a new literal and copy from l its content */
 Literal::Literal(const Literal& l)
-  : Term(l)
+  : Term(l),
+    _distinctVars(-1)
 {
   CALL("Literal::Literal/1");
 }
@@ -747,6 +749,22 @@ Term::Term()
   _args[0]._info.reserved = 0;
   _args[0]._info.tag = FUN;
 } // Term::Term
+
+Literal::Literal()
+  : _distinctVars(-1)
+{
+  CALL("Literal::Literal/0");
+}
+
+void Literal::computeDistinctVars()
+{
+  Set<unsigned> vars;
+  Term::VariableIterator vit(this);
+  while(vit.hasNext()) {
+    vars.insert(vit.next().var());
+  }
+  _distinctVars=vars.numberOfElements();
+}
 
 #if VDEBUG
 string Term::headerToString() const

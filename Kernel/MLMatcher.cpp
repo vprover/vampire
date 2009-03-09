@@ -34,6 +34,11 @@ namespace Kernel
 
 using namespace Lib;
 
+bool canBeMatched(Clause* base, LiteralList** alts, bool multiset=true, Literal* forbidden=0)
+{
+
+}
+
 struct MatchBtrFn
 {
   DECL_RETURN_TYPE(MatchIterator);
