@@ -33,7 +33,7 @@ public:
   {
     size_t size=_data.size();
     for(size_t i=0;i<size;i++) {
-      ALWAYS(_data.set(arr[i],i));
+      NEVER(_data.set(arr[i],i));
     }
   }
 

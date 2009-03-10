@@ -16,6 +16,10 @@ using namespace Lib;
 
 class MLMatcher {
 public:
+  static bool canBeMatched(Clause* base, Clause* instance, LiteralList** alts,
+  	Literal* resolvedLit);
+
+
   static bool canBeMatched(Clause* base, LiteralList** matches);
   static bool canBeMatched(Clause* base, DArray<LiteralList*>& matches);
 

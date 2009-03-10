@@ -121,7 +121,8 @@ bool isSubsumed(Clause* cl, CMMap* gens)
       continue;
     }
 
-    if(MLMatcher::canBeMatched(mcl,clmatches->_matches)) {
+//    if(MLMatcher::canBeMatched(mcl,clmatches->_matches)) {
+    if(MLMatcher::canBeMatched(mcl,cl,clmatches->_matches,0)) {
       return true;
     }
   }
@@ -226,7 +227,8 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	}
 	if(cms) {
 	  //TODO: wrong! must remove the resLit from matching!
-	  success=MLMatcher::checkForSubsumptionResolution(mcl,cms->_matches,resLit);
+//	  success=MLMatcher::checkForSubsumptionResolution(mcl,cms->_matches,resLit);
+	  success=MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
 	} else {
 	  success=false;
 	}

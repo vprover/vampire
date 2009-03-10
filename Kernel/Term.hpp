@@ -514,6 +514,20 @@ public:
   explicit Literal(const Literal& l);
 
   /**
+   * Create a literal.
+   * @since 16/05/2007 Manchester
+   */
+  Literal(unsigned functor,unsigned arity,bool polarity,bool commutative)
+  {
+    _functor = functor;
+    _arity = arity;
+    _args[0]._info.polarity = polarity;
+    _args[0]._info.commutative = commutative;
+    _args[0]._info.literal = 1u;
+//    _distinctVars=-1;
+  }
+
+  /**
    * A unique header, 2*p is negative and 2*p+1 if positive where p is
    * the number of the predicate symbol.
    */
@@ -561,19 +575,6 @@ public:
 
   static Literal* flattenOnArgument(const Literal*,int argumentNumber);
 
-  /**
-   * Create a literal.
-   * @since 16/05/2007 Manchester
-   */
-  Literal(unsigned functor,unsigned arity,bool polarity,bool commutative)
-  {
-    _functor = functor;
-    _arity = arity;
-    _args[0]._info.polarity = polarity;
-    _args[0]._info.commutative = commutative;
-    _args[0]._info.literal = 1u;
-  }
-
   unsigned hash() const;
   /** true if positive */
   bool isPositive() const
@@ -607,16 +608,19 @@ public:
   string toString() const;
   const string& predicateName() const;
 
-  unsigned distinctVars()
-  {
-    if(_distinctVars==-1) {
-      computeDistinctVars();
-    }
-    return static_cast<unsigned>(_distinctVars);
-  }
-  void computeDistinctVars();
-protected:
-  int _distinctVars;
+  unsigned distinctVars();
+//  unsigned distinctVars()
+//  {
+//    ASS(shared());
+//    if(_distinctVars==-1) {
+//      computeDistinctVars();
+//    }
+//    ASS_L(static_cast<unsigned>(_distinctVars), weight());
+//    return static_cast<unsigned>(_distinctVars);
+//  }
+//  void computeDistinctVars();
+//protected:
+//  int _distinctVars;
 }; // class Literal
 
 

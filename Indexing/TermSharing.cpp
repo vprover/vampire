@@ -67,7 +67,7 @@ Term* TermSharing::insert(Term* t)
     TermList* ts1 = t->args();
     TermList* ts2 = ts1->next();
     if (ts1->_content > ts2->_content) {
-      unsigned c = ts1->_content;
+      size_t c = ts1->_content;
       ts1->_content = ts2->_content;
       ts2->_content = c;
     }
@@ -121,7 +121,7 @@ Literal* TermSharing::insert(Literal* t)
     TermList* ts1 = t->args();
     TermList* ts2 = ts1->next();
     if (ts1->_content > ts2->_content) {
-      unsigned c = ts1->_content;
+      size_t c = ts1->_content;
       ts1->_content = ts2->_content;
       ts2->_content = c;
     }
