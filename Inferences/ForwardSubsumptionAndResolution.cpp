@@ -204,6 +204,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
   static DArray<LiteralList*> alts(32);
   for(unsigned li=0;li<clen;li++) {
     Literal* resLit=(*cl)[li];	//resolved literal
+    Set<Clause*> matchedClauses;
     SLQueryResultIterator rit=_index->getGeneralizations( resLit, true, false);
     while(rit.hasNext()) {
       SLQueryResult res=rit.next();
@@ -214,6 +215,11 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       if(mlen==1) {
 	success=true;
       } else {
+	if(matchedClauses.contains(mcl)) {
+	  continue;
+	}
+	matchedClauses.insert(mcl);
+
 	ClauseMatches* cms=0;
 	if(gens) {
 	  gens->find(mcl, cms);

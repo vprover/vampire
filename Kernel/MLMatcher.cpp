@@ -8,6 +8,7 @@
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/DHMap.hpp"
+#include "../Lib/Hash.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Metaarrays.hpp"
 #include "../Lib/PairUtils.hpp"
@@ -34,9 +35,105 @@ namespace Kernel
 
 using namespace Lib;
 
-bool canBeMatched(Clause* base, LiteralList** alts, bool multiset=true, Literal* forbidden=0)
-{
+typedef DHMap<unsigned,unsigned, IdentityHash> UUMap;
 
+struct ArrayStoringBinder
+{
+  ArrayStoringBinder(TermList* arr, UUMap& v2pos)
+  : _arr(arr), _v2pos(v2pos) {}
+
+  bool bind(unsigned var, TermList term)
+  {
+    _arr[_v2pos.get(var)]=term;
+    return true;
+  }
+
+  void specVar(unsigned var, TermList term)
+  { ASSERTION_VIOLATION; }
+private:
+  TermList* _arr;
+  UUMap& _v2pos;
+};
+
+bool createLiteralBindings(Literal* baseLit, LiteralList* alts,
+    unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
+{
+  static UUMap varPos;
+  varPos.reset();
+
+  unsigned nextPos=0;
+  Term::VariableIterator bvit(baseLit);
+  while(bvit.hasNext()) {
+    unsigned var=bvit.next().var();
+    if(varPos.insert(var,nextPos)) {
+      *(boundVarData++)=var;
+      nextPos++;
+    }
+  }
+  unsigned numVars=nextPos;
+
+  LiteralList::Iterator ait(alts);
+  while(ait.hasNext()) {
+    Literal* alit=ait.next();
+    ArrayStoringBinder binder(altBindingData, varPos);
+    MatchingUtils::matchArgs(baseLit,alit,binder);
+
+    *altBindingPtrs=altBindingData;
+    altBindingPtrs++;
+    altBindingData+=numVars;
+  }
+}
+
+bool canBeMatched(Clause* base, Clause* instance, LiteralList** alts)
+{
+  unsigned baseLen=base->length();
+
+  static DArray<unsigned> varCnts(32);
+  static DArray<unsigned> altCnts(32);
+  static DArray<unsigned*> boundVarNums(32);
+  static DArray<TermList**> altPtrs(32);
+
+  static DArray<unsigned> boundVarNumData(64);
+  static DArray<TermList*> altBindingPtrs(128);
+  static DArray<TermList> altBindingsData(256);
+  altCnts.ensure(baseLen);
+  altPtrs.ensure(baseLen);
+  varCnts.ensure(baseLen);
+  boundVarNums.ensure(baseLen);
+
+  size_t baseLitVars=0;
+  size_t altCnt=0;
+  size_t altBindingsCnt=0;
+  for(unsigned i=0;i<base->length();i++) {
+    unsigned distVars=(*base)[i]->distinctVars();
+    baseLitVars+=distVars;
+    unsigned currAltCnt=0;
+    LiteralList::Iterator ait(alts[i]);
+    while(ait.hasNext()) {
+      currAltCnt++;
+      if(ait.next()->commutative()) {
+	currAltCnt++;
+      }
+    }
+    altCnt+=currAltCnt;
+    altCnts[i]=currAltCnt;
+    altBindingsCnt+=distVars*currAltCnt;
+  }
+  boundVarNumData.ensure(baseLitVars);
+  altBindingPtrs.ensure(altCnt);
+  altBindingsData.ensure(altBindingsCnt);
+
+  unsigned* boundVarNumDataPtr=boundVarNumData.array();
+  TermList** altBindingPtrPtr=altBindingPtrs.array();
+  TermList* altBindingPtr=altBindingsData.array();
+  for(unsigned i=0;i<base->length();i++) {
+    boundVarNums[i]=boundVarNumDataPtr;
+    altPtrs[i]=altBindingPtrPtr;
+    ALWAYS(createLiteralBindings((*base)[i], alts[i],boundVarNumDataPtr,
+	altBindingPtrPtr, altBindingPtr));
+    varCnts[i]=boundVarNumDataPtr-boundVarNums[i];
+    altCnts[i]=altBindingPtrPtr-altPtrs[i];
+  }
 }
 
 struct MatchBtrFn

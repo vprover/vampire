@@ -80,7 +80,7 @@ public:
   template<class Binder>
   static bool matchArgs(Term* base, Term* instance, Binder& binder);
 private:
-  typedef DHMap<unsigned,TermList,IdentityHash<unsigned> > BindingMap;
+  typedef DHMap<unsigned,TermList,IdentityHash> BindingMap;
   struct MapBinder
   {
     bool bind(unsigned var, TermList term)
@@ -292,7 +292,7 @@ private:
     return res;
   }
 
-  typedef DHMap<unsigned,TermList,IdentityHash<unsigned> > BindingMap;
+  typedef DHMap<unsigned,TermList,IdentityHash> BindingMap;
   struct MapBinder
   {
     MapBinder(Matcher& parent) : _parent(parent) {}

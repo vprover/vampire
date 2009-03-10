@@ -179,8 +179,8 @@ public:
   {
    static unsigned hash(TTPair& o)
    {
-     return IdentityHash<size_t>::hash(o.first.term.content())^o.first.index ^
-       ((IdentityHash<size_t>::hash(o.second.term.content())^o.second.index)<<1);
+     return IdentityHash::hash(o.first.term.content())^o.first.index ^
+       ((IdentityHash::hash(o.second.term.content())^o.second.index)<<1);
    }
   };
 

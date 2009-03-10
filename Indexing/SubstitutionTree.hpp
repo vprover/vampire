@@ -502,7 +502,7 @@ public:
     }
 
   private:
-    typedef DHMap<unsigned,TermList, IdentityHash<unsigned> > BindingMap;
+    typedef DHMap<unsigned,TermList, IdentityHash> BindingMap;
     static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
 
 

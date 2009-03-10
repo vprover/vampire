@@ -35,14 +35,15 @@ public:
   static unsigned hash(const unsigned char*,size_t length,unsigned begin);
 };
 
-template<typename T>
-class IdentityHash
+struct IdentityHash
 {
-public:
+  template<typename T>
   static bool equals(T o1, T o2)
   { return o1 == o2; }
- static unsigned hash(T val)
- { return static_cast<unsigned>(val); }
+
+  template<typename T>
+  static unsigned hash(T val)
+  { return static_cast<unsigned>(val); }
 };
 
 struct PtrIdentityHash {

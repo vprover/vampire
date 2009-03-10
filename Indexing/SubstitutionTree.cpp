@@ -162,7 +162,7 @@ void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
     return;
   }
 
-  typedef DHMap<unsigned,TermList,IdentityHash<unsigned> > SVMap;
+  typedef DHMap<unsigned,TermList,IdentityHash> SVMap;
   SVMap svBindings;
   while(!bh.isEmpty()) {
     Binding b=bh.pop();
@@ -364,7 +364,7 @@ void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
 
   ASS(*pnode);
 
-  typedef DHMap<unsigned,TermList,IdentityHash<unsigned> > SVMap;
+  typedef DHMap<unsigned,TermList,IdentityHash> SVMap;
   SVMap svBindings;
   while(!bh.isEmpty()) {
     Binding b=bh.pop();
