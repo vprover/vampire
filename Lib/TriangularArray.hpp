@@ -22,11 +22,22 @@ public:
   TriangularArray(size_t side)
   : _2sideMinus1(2*side-1)
   {
-    _data=static_cast<T*>(ALLOC_KNOWN(dataSize()*sizeof(void*), "Lib::TriangularArray"));
+    _capacity=dataSize();
+    _data=static_cast<T*>(ALLOC_KNOWN(_capacity*sizeof(void*), "Lib::TriangularArray"));
   }
   ~TriangularArray()
   {
-    DEALLOC_KNOWN(_data,dataSize()*sizeof(void*), "Lib::TriangularArray");
+    DEALLOC_KNOWN(_data,_capacity*sizeof(void*), "Lib::TriangularArray");
+  }
+
+  void setSide(size_t side)
+  {
+    _2sideMinus1=2*side-1;
+    if(dataSize()>_capacity) {
+      DEALLOC_KNOWN(_data,_capacity*sizeof(void*), "Lib::TriangularArray");
+      _capacity=min(_capacity*2,dataSize());
+      _data=static_cast<T*>(ALLOC_KNOWN(_capacity*sizeof(void*), "Lib::TriangularArray"));
+    }
   }
 
   inline
@@ -58,6 +69,7 @@ private:
    * access operation.
    */
   size_t _2sideMinus1;
+  size_t _capacity;
   T* _data;
 };
 

@@ -50,10 +50,47 @@ public:
     }
   }
 
+  static bool matchArgs(Term* base, Term* instance)
+  {
+    static MapBinder binder;
+    binder.reset();
+
+    return matchArgs(base, instance, binder);
+  }
+
+  static bool matchTerms(TermList base, TermList instance)
+  {
+    CALL("MatchingUtils::matchTerms/2");
+
+    if(base.isTerm()) {
+      if(!instance.isTerm()) {
+	return false;
+      }
+
+      Term* bt=base.term();
+      Term* it=instance.term();
+      if(bt->functor()!=it->functor()) {
+	return false;
+      }
+      if(bt->shared() && it->shared()) {
+        if(bt->ground()) {
+          return bt==it;
+        }
+        if(bt->weight() > it->weight()) {
+          return false;
+        }
+      }
+      ASS_G(base.term()->arity(),0);
+      return matchArgs(bt, it);
+    } else {
+      return true;
+    }
+  }
+
   template<class Binder>
   static bool matchTerms(TermList base, TermList instance, Binder& binder)
   {
-    CALL("MatchingUtils::matchTerms");
+    CALL("MatchingUtils::matchTerms/3");
 
     if(base.isTerm()) {
       Term* bt=base.term();

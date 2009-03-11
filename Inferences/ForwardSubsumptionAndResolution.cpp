@@ -226,7 +226,6 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	  gens->find(mcl, cms);
 	}
 	if(cms) {
-	  //TODO: wrong! must remove the resLit from matching!
 //	  success=MLMatcher::checkForSubsumptionResolution(mcl,cms->_matches,resLit);
 	  success=MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
 	} else {

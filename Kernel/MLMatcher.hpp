@@ -23,9 +23,6 @@ public:
   static bool canBeMatched(Clause* base, LiteralList** matches);
   static bool canBeMatched(Clause* base, DArray<LiteralList*>& matches);
 
-  static bool checkForSubsumptionResolution(Clause* base,
-  	LiteralList** alts, Literal* resolvedInst);
-
 
 private:
   template<class T, class U>
