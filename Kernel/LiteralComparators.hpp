@@ -95,7 +95,7 @@ struct LeastDistinctVariables
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
-    return Int::compare(l2->distinctVars(), l1->distinctVars());
+    return Int::compare(l2->getDistinctVars(), l1->getDistinctVars());
   }
 };
 

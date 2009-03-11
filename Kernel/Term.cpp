@@ -677,6 +677,15 @@ Term::ArgumentOrder Term::computeArgumentOrder() const
   }
 }
 
+unsigned Term::computeDistinctVars() const
+{
+  Set<unsigned> vars;
+  Term::VariableIterator vit(this);
+  while(vit.hasNext()) {
+    vars.insert(vit.next().var());
+  }
+  return vars.numberOfElements();
+}
 
 /** Create a new literal, copy from @b l its predicate symbol and
  *  from the array @b args its arguments. Insert it into the sharing
@@ -754,18 +763,6 @@ Literal::Literal()
 }
 
 #include <iostream>
-
-//void Literal::computeDistinctVars()
-unsigned Literal::distinctVars()
-{
-  Set<unsigned> vars;
-  Term::VariableIterator vit(this);
-  while(vit.hasNext()) {
-    vars.insert(vit.next().var());
-  }
-//  _distinctVars=vars.numberOfElements();
-  return vars.numberOfElements();
-}
 
 #if VDEBUG
 string Term::headerToString() const

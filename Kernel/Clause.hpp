@@ -58,7 +58,8 @@ public:
       _weight(0),
       _store(NONE),
       _inferenceRefCnt(0),
-      _literalPositions(0)
+      _literalPositions(0),
+      _auxTimestamp(0)
   {}
 
   /** Should never be used, declared just to get rid of compiler warning */
@@ -149,6 +150,63 @@ public:
 #if VDEBUG
   bool contains(Literal* lit);
 #endif
+
+  /** Set auxiliary value of this clause. */
+  void setAux(void* ptr)
+  {
+    ASS(_auxInUse);
+    _auxTimestamp=_auxCurrTimestamp;
+    _auxData=ptr;
+  }
+  /**
+   * If there is an auxiliary value stored in this clause,
+   * return true and assign it into @b ptr. Otherwise
+   * return false.
+   */
+  template<typename T>
+  bool tryGetAux(T*& ptr)
+  {
+    ASS(_auxInUse);
+    if(_auxTimestamp==_auxCurrTimestamp) {
+      ptr=static_cast<T*>(_auxData);
+      return true;
+    }
+    return false;
+  }
+  /** Return auxiliary value stored in this clause. */
+  template<typename T>
+  T* getAux()
+  {
+    ASS(_auxInUse);
+    ASS(_auxTimestamp==_auxCurrTimestamp);
+    return static_cast<T*>(_auxData);
+  }
+
+  /**
+   * Request usage of the auxiliary value in clauses.
+   * All aux. values stored in clauses before are guaranteed
+   * to be discarded.
+   */
+  static void requestAux()
+  {
+#if VDEBUG
+    ASS(!_auxInUse);
+    _auxInUse=true;
+#endif
+    _auxCurrTimestamp++;
+  }
+  /**
+   * Announce that the auxiliary value in clauses is no longer
+   * in use and can be used by someone else.
+   */
+  static void releaseAux()
+  {
+#if VDEBUG
+    ASS(_auxInUse);
+    _auxInUse=false;
+#endif
+  }
+
 protected:
   /** number of literals */
   unsigned _length;
@@ -164,6 +222,15 @@ protected:
   unsigned _inferenceRefCnt;
   /** A map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
+
+  size_t _auxTimestamp;
+  void* _auxData;
+
+  static size_t _auxCurrTimestamp;
+#if VDEBUG
+  static bool _auxInUse;
+#endif
+
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause

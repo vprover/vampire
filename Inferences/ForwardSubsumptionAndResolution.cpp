@@ -104,24 +104,22 @@ public:
 };
 
 
-typedef DHMap<Clause*,ClauseMatches*, PtrIdentityHash> CMMap;
+typedef Stack<ClauseMatches*> CMStack;
 
-
-bool isSubsumed(Clause* cl, CMMap* gens)
+bool isSubsumed(Clause* cl, CMStack& cmStore)
 {
   CALL("isSubsumed");
 
-  CMMap::Iterator git(*gens);
-  while(git.hasNext()) {
-    Clause* mcl;
+  CMStack::Iterator csit(cmStore);
+  while(csit.hasNext()) {
     ClauseMatches* clmatches;
-    git.next(mcl, clmatches);
+    clmatches=csit.next();
+    Clause* mcl=clmatches->_cl;
 
     if(clmatches->anyNonMatched()) {
       continue;
     }
 
-//    if(MLMatcher::canBeMatched(mcl,clmatches->_matches)) {
     if(MLMatcher::canBeMatched(mcl,cl,clmatches->_matches,0)) {
       return true;
     }
@@ -171,7 +169,10 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
     return;
   }
 
-  CMMap* gens=0;
+  Clause::requestAux();
+
+  static Stack<ClauseMatches*> cmStore(64);
+  ASS(cmStore.isEmpty());
 
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_index->getGeneralizations( (*cl)[li], false, false);
@@ -184,18 +185,17 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	goto fin;
       }
 
-      if(!gens) {
-	gens=new CMMap();
+      ClauseMatches* cms;
+      if(!res.clause->tryGetAux(cms)) {
+	cms=new ClauseMatches(res.clause);
+	cmStore.push(cms);
+	res.clause->setAux(cms);
       }
-      ClauseMatches** pcms;
-      if(gens->getValuePtr(res.clause, pcms)) {
-	*pcms=new ClauseMatches(res.clause);
-      }
-      (*pcms)->addMatch(res.literal, (*cl)[li]);
+      cms->addMatch(res.literal, (*cl)[li]);
     }
   }
 
-  if(gens && isSubsumed(cl, gens))
+  if(cmStore.isNonEmpty() && isSubsumed(cl, cmStore))
   {
     keep=false;
     env.statistics->forwardSubsumed++;
@@ -222,11 +222,8 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	matchedClauses.insert(mcl);
 
 	ClauseMatches* cms=0;
-	if(gens) {
-	  gens->find(mcl, cms);
-	}
+	mcl->tryGetAux(cms);
 	if(cms) {
-//	  success=MLMatcher::checkForSubsumptionResolution(mcl,cms->_matches,resLit);
 	  success=MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
 	} else {
 	  success=false;
@@ -243,12 +240,9 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 
 
 fin:
-  if(gens) {
-    CMMap::Iterator git(*gens);
-    while(git.hasNext()) {
-      delete git.next();
-    }
-    delete gens;
+  Clause::releaseAux();
+  while(cmStore.isNonEmpty()) {
+    delete cmStore.pop();
   }
 }
 

@@ -127,8 +127,10 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
       }
 
     } else {
-      ArrayStoringBinder binder(altBindingData, varPos);
-      ALWAYS(MatchingUtils::matchArgs(baseLit,alit,binder));
+      if(numVars) {
+	ArrayStoringBinder binder(altBindingData, varPos);
+	ALWAYS(MatchingUtils::matchArgs(baseLit,alit,binder));
+      }
 
       *altBindingPtrs=altBindingData;
       altBindingPtrs++;
@@ -143,8 +145,11 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
     }
   }
   if(resolvedLit && resolvedLit->complementaryHeader()==baseLit->header()) {
-    ArrayStoringBinder binder(altBindingData, varPos);
-    if(MatchingUtils::matchArgs(baseLit,resolvedLit,binder)) {
+    if(!baseLit->arity() || MatchingUtils::matchArgs(baseLit,resolvedLit)) {
+      if(numVars) {
+	ArrayStoringBinder binder(altBindingData, varPos);
+	MatchingUtils::matchArgs(baseLit,resolvedLit,binder);
+      }
       *altBindingPtrs=altBindingData;
       altBindingPtrs++;
       altBindingData+=numVars;

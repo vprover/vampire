@@ -22,6 +22,13 @@
 using namespace Lib;
 using namespace Kernel;
 
+
+size_t Clause::_auxCurrTimestamp=0;
+#if VDEBUG
+bool Clause::_auxInUse=false;
+#endif
+
+
 /**
  * Allocate a clause having lits literals.
  * @since 18/05/2007 Manchester

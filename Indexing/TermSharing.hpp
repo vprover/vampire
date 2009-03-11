@@ -37,6 +37,8 @@ public:
            equals(static_cast<const Term*>(l1),
 		  static_cast<const Term*>(l2)); }
 private:
+  bool argNormGt(TermList t1, TermList t2);
+
   /** The set storing all terms */
   Set<Term*,TermSharing> _terms;
   /** The set storing all literals */

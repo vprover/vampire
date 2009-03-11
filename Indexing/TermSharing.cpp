@@ -9,12 +9,6 @@
 #include "TermSharing.hpp"
 
 
-//Normalizing commutative literals lead to problems
-//namely in substitution trees, but possibly also
-//in other places, as the rest of Vampire is not
-//ready to handle commutativity yet.
-#define NORMALIZE_COMMUTATIVE 1
-
 using namespace Kernel;
 using namespace Indexing;
 
@@ -59,20 +53,18 @@ Term* TermSharing::insert(Term* t)
   CALL("TermSharing::insert(Term*)");
   ASS(! t->isLiteral());
 
-#if NORMALIZE_COMMUTATIVE
   // normalise commutative terms
   if (t->commutative()) {
     ASS(t->arity() == 2);
 
     TermList* ts1 = t->args();
     TermList* ts2 = ts1->next();
-    if (ts1->_content > ts2->_content) {
+    if (argNormGt(*ts1, *ts2)) {
       size_t c = ts1->_content;
       ts1->_content = ts2->_content;
       ts2->_content = c;
     }
   }
-#endif
 
   _termInsertions++;
   Term* s = _terms.insert(t);
@@ -114,19 +106,17 @@ Literal* TermSharing::insert(Literal* t)
   CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
 
-#if NORMALIZE_COMMUTATIVE
   if (t->commutative()) {
     ASS(t->arity() == 2);
 
     TermList* ts1 = t->args();
     TermList* ts2 = ts1->next();
-    if (ts1->_content > ts2->_content) {
+    if (argNormGt(*ts1, *ts2)) {
       size_t c = ts1->_content;
       ts1->_content = ts2->_content;
       ts2->_content = c;
     }
   }
-#endif
 
   _literalInsertions++;
   Literal* s = _literals.insert(t);
@@ -192,6 +182,68 @@ Term* TermSharing::insertRecurrently(Term* t)
   return tRef.term();
 }
 
+/**
+ * Return true if t1 is greater than t2 in some arbitrary
+ * total ordering.
+ *
+ * Is used just for normalization of commutative term and
+ * literal arguments.
+ */
+bool TermSharing::argNormGt(TermList t1, TermList t2)
+{
+  if(t1.tag()!=t2.tag()) {
+    return t1.tag()>t1.tag();
+  }
+  if(!t1.isTerm()) {
+    return t1.content()>t2.content();
+  }
+  Term* trm1=t1.term();
+  Term* trm2=t2.term();
+  if(trm1->functor()!=trm2->functor()) {
+    return trm1->functor()>trm2->functor();
+  }
+  if(trm1->weight()!=trm2->weight()) {
+    return trm1->weight()>trm2->weight();
+  }
+  if(trm1->vars()!=trm2->vars()) {
+    return trm1->vars()>trm2->vars();
+  }
+  //we did all we could to compare the two terms deterministicaly
+  //(and efficiently), but they're too alike, so that we have to
+  //compare their addresses to distinguish between them.
+  return t1.content()>t2.content();
+
+  //To avoid non-determinism, now we'll compare the terms lexicographicaly.
+  //This could be slow, so it's good just for debugging purposes.
+//  Term::SubtermIterator sit1(trm1);
+//  Term::SubtermIterator sit2(trm2);
+//  while(sit1.hasNext()) {
+//    ASS(sit2.hasNext());
+//    TermList st1=sit1.next();
+//    TermList st2=sit2.next();
+//    if(st1.isTerm()) {
+//	if(st2.isTerm()) {
+//	  unsigned f1=st1.term()->functor();
+//	  unsigned f2=st2.term()->functor();
+//	  if(f1!=f2) {
+//	    return f1>f2;
+//	  }
+//	} else {
+//	  return true;
+//	}
+//    } else {
+//	if(st2.isTerm()) {
+//	  return false;
+//	} else {
+//	  if(st1.var()!=st2.var()) {
+//	    return st1.var()>st2.var();
+//	  }
+//	}
+//    }
+//  }
+//  ASS(trm1==trm2);
+//  return false;
+}
 
 
 /**

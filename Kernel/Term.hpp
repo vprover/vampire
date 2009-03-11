@@ -29,6 +29,8 @@
 
 #endif
 
+#define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
+
 namespace Kernel {
 
 using namespace std;
@@ -157,11 +159,15 @@ private:
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
        * @see Term::ArgumentOrder */
       unsigned order : 3;
+      /** Number of distincs variables in the term, equal
+       * to TERM_DIST_VAR_UNKNOWN if the number has not been
+       * computed yet. */
+      unsigned distinctVars : 23;
       /** reserved for whatever */
 #ifdef ARCH_X64
-      size_t reserved : 55;
+      size_t reserved : 32;
 #else
-      unsigned reserved : 23;
+//      unsigned reserved : 0;
 #endif
     } _info;
   };
@@ -454,9 +460,10 @@ public:
 
   /** Return argument order as stored in term.
    * (Can also return UNKNOWN if it wasn't determined yet.) */
-  ArgumentOrder askArgumentOrder() const
+  bool askArgumentOrder(ArgumentOrder& res) const
   {
-    return static_cast<ArgumentOrder>(_args[0]._info.order);
+    res=static_cast<ArgumentOrder>(_args[0]._info.order);
+    return res!=UNKNOWN;
   }
   ArgumentOrder getArgumentOrder()
   {
@@ -466,8 +473,33 @@ public:
     return static_cast<ArgumentOrder>(_args[0]._info.order);
   }
 
+  /** Return argument order as stored in term.
+   * (Can also return UNKNOWN if it wasn't determined yet.) */
+  bool askDistinctVars(unsigned& res) const
+  {
+    if(_args[0]._info.distinctVars==TERM_DIST_VAR_UNKNOWN) {
+      return false;
+    }
+    res=_args[0]._info.distinctVars;
+    return true;
+  }
+  unsigned getDistinctVars()
+  {
+    if(_args[0]._info.distinctVars==TERM_DIST_VAR_UNKNOWN) {
+      unsigned res=computeDistinctVars();
+      if(res<TERM_DIST_VAR_UNKNOWN) {
+	_args[0]._info.distinctVars=res;
+      }
+      return res;
+    } else {
+      ASS_L(_args[0]._info.distinctVars,50);
+      return _args[0]._info.distinctVars;
+    }
+  }
+
 protected:
   ArgumentOrder computeArgumentOrder() const;
+  unsigned computeDistinctVars() const;
 
   /** The number of this symbol in a signature */
   unsigned _functor;
@@ -608,19 +640,6 @@ public:
   string toString() const;
   const string& predicateName() const;
 
-  unsigned distinctVars();
-//  unsigned distinctVars()
-//  {
-//    ASS(shared());
-//    if(_distinctVars==-1) {
-//      computeDistinctVars();
-//    }
-//    ASS_L(static_cast<unsigned>(_distinctVars), weight());
-//    return static_cast<unsigned>(_distinctVars);
-//  }
-//  void computeDistinctVars();
-//protected:
-//  int _distinctVars;
 }; // class Literal
 
 
