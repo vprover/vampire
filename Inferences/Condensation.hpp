@@ -1,11 +1,11 @@
 /**
- * @file ForwardDemodulation.hpp
- * Defines class ForwardDemodulation
+ * @file Condensation.hpp
+ * Defines class Condensation
  *
  */
 
-#ifndef __ForwardDemodulation__
-#define __ForwardDemodulation__
+#ifndef __Condensation__
+#define __Condensation__
 
 #include "../Forwards.hpp"
 #include "../Indexing/TermIndex.hpp"
@@ -19,17 +19,16 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class ForwardDemodulation
+/**
+ * Condensation simplification rule.
+ */
+class Condensation
 : public ForwardSimplificationEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg);
-  void detach();
   void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
-private:
-  DemodulationLHSIndex* _index;
 };
 
 };
 
-#endif /*__ForwardDemodulation__*/
+#endif /*__Condensation__*/

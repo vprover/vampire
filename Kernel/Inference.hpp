@@ -147,7 +147,9 @@ public:
     /** forward demodulation inference */
     FORWARD_DEMODULATION = 51u,
     /** backward demodulation inference */
-    BACKWARD_DEMODULATION = 52u
+    BACKWARD_DEMODULATION = 52u,
+    /** condensation inference */
+    CONDENSATION = 53u
   }; // class Inference::Rule
 
   explicit Inference(Rule r)

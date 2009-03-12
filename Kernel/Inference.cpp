@@ -282,6 +282,8 @@ string Inference::name() const
     return "forward demodulation";
   case BACKWARD_DEMODULATION:
     return "backward demodulation";
+  case CONDENSATION:
+    return "condensation";
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;
