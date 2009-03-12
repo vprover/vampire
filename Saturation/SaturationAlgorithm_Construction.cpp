@@ -13,6 +13,7 @@
 #include "../Inferences/InferenceEngine.hpp"
 #include "../Inferences/BackwardDemodulation.hpp"
 #include "../Inferences/BinaryResolution.hpp"
+#include "../Inferences/Condensation.hpp"
 #include "../Inferences/EqualityFactoring.hpp"
 #include "../Inferences/EqualityResolution.hpp"
 #include "../Inferences/Factoring.hpp"
@@ -84,6 +85,7 @@ ForwardSimplificationEngineSP createFSE()
     res->addFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
   }
 
+  res->addFront(ForwardSimplificationEngineSP(new Condensation()));
   res->addFront(ForwardSimplificationEngineSP(new TrivialInequalitiesRemovalFSE()));
   res->addFront(ForwardSimplificationEngineSP(new TautologyDeletionFSE()));
   res->addFront(ForwardSimplificationEngineSP(new DuplicateLiteralRemovalFSE()));

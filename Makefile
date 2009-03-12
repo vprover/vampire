@@ -19,8 +19,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-XFLAGS = -O6 -DVDEBUG=0 # no debugging
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+#XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -1059,6 +1059,37 @@ Inferences/BinaryResolution.o: Saturation/Limits.hpp
 Inferences/BinaryResolution.o: Saturation/SaturationResult.hpp
 Inferences/BinaryResolution.o: Inferences/BinaryResolution.hpp
 Inferences/BinaryResolution.o: Inferences/InferenceEngine.hpp
+Inferences/Condensation.o: Lib/VirtualIterator.hpp Forwards.hpp Config.hpp
+Inferences/Condensation.o: Debug/Assertion.hpp Debug/Tracer.hpp
+Inferences/Condensation.o: Debug/Tracer.hpp Lib/Allocator.hpp
+Inferences/Condensation.o: Lib/Exception.hpp Lib/Reflection.hpp
+Inferences/Condensation.o: Lib/Metaiterators.hpp Lib/List.hpp
+Inferences/Condensation.o: Lib/VirtualIterator.hpp Lib/Set.hpp Lib/Hash.hpp
+Inferences/Condensation.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
+Inferences/Condensation.o: Lib/DArray.hpp Lib/Random.hpp Kernel/Term.hpp
+Inferences/Condensation.o: Lib/Allocator.hpp Lib/Portability.hpp Lib/XML.hpp
+Inferences/Condensation.o: Lib/Comparison.hpp Lib/Stack.hpp
+Inferences/Condensation.o: Lib/BacktrackData.hpp Lib/Int.hpp
+Inferences/Condensation.o: Kernel/Clause.hpp Lib/Reflection.hpp
+Inferences/Condensation.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
+Inferences/Condensation.o: Kernel/Unit.hpp Lib/List.hpp Kernel/MLMatcher.hpp
+Inferences/Condensation.o: Kernel/Ordering.hpp Kernel/Inference.hpp
+Inferences/Condensation.o: Kernel/Unit.hpp Kernel/Renaming.hpp Lib/DHMap.hpp
+Inferences/Condensation.o: Kernel/Term.hpp Kernel/Matcher.hpp
+Inferences/Condensation.o: Lib/BacktrackData.hpp Lib/Hash.hpp
+Inferences/Condensation.o: Kernel/RobSubstitution.hpp Indexing/Index.hpp
+Inferences/Condensation.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
+Inferences/Condensation.o: Saturation/ClauseContainer.hpp
+Inferences/Condensation.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
+Inferences/Condensation.o: Indexing/TermIndex.hpp Indexing/Index.hpp
+Inferences/Condensation.o: Indexing/IndexManager.hpp
+Inferences/Condensation.o: Saturation/SaturationAlgorithm.hpp
+Inferences/Condensation.o: Inferences/InferenceEngine.hpp
+Inferences/Condensation.o: Saturation/Limits.hpp
+Inferences/Condensation.o: Saturation/SaturationResult.hpp
+Inferences/Condensation.o: Shell/Statistics.hpp Lib/Environment.hpp
+Inferences/Condensation.o: Inferences/Condensation.hpp
+Inferences/Condensation.o: Inferences/InferenceEngine.hpp
 Inferences/EqualityFactoring.o: Lib/VirtualIterator.hpp Forwards.hpp
 Inferences/EqualityFactoring.o: Config.hpp Debug/Assertion.hpp
 Inferences/EqualityFactoring.o: Debug/Tracer.hpp Debug/Tracer.hpp
@@ -1564,6 +1595,7 @@ Saturation/SaturationAlgorithm_Construction.o: Lib/Metaiterators.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/Set.hpp Lib/Hash.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/BinaryResolution.hpp
+Saturation/SaturationAlgorithm_Construction.o: Inferences/Condensation.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/EqualityFactoring.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/EqualityResolution.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/Factoring.hpp

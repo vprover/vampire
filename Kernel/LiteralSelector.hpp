@@ -8,6 +8,7 @@
 #define __LiteralSelector__
 
 #include "../Forwards.hpp"
+#include "../Lib/MultiColumnMap.hpp"
 
 namespace Kernel {
 
@@ -22,6 +23,8 @@ public:
   virtual void select(Clause* c) = 0;
 
   static LiteralSelector* getSelector(int num);
+
+  static MultiColumnMap<Literal*>* getLiteralDetailStore();
 };
 
 /**

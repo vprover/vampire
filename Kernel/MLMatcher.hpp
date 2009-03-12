@@ -16,8 +16,13 @@ using namespace Lib;
 
 class MLMatcher {
 public:
+  static bool canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts,
+  	Literal* resolvedLit, bool multiset);
   static bool canBeMatched(Clause* base, Clause* instance, LiteralList** alts,
-  	Literal* resolvedLit);
+  	Literal* resolvedLit)
+  {
+    return canBeMatched(base->literals(), base->length(), instance, alts, resolvedLit, resolvedLit==0);
+  }
 
 
   static bool canBeMatched(Clause* base, LiteralList** matches);

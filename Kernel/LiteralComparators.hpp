@@ -10,12 +10,15 @@
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Int.hpp"
 
+#include "LiteralSelector.hpp"
 #include "Term.hpp"
 
 namespace Kernel {
 namespace LiteralComparators {
 
 using namespace Lib;
+
+
 
 template<class Comp1, class Comp2>
 class Composite

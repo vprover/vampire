@@ -1,10 +1,14 @@
 #ifndef __Portability__
 #define __Portability__
 
+#include "../Debug/Assertion.hpp"
+
 #include <sys/param.h>  /* attempt to define endianness */
 #ifdef linux
 # include <endian.h>    /* attempt to define endianness */
 #endif
+
+ASS_STATIC(sizeof(char)==1);
 
 //some optimizing instruction
 #ifdef __GNUC__

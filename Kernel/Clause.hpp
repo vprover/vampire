@@ -87,9 +87,9 @@ public:
   /** Alternative name for length to conform with other containers */
   unsigned size() const { return _length; }
 
-  /** Return a pointer to the array of literals. Note that the
-   * caller of this function may directly manipulate literals, for
-   * example reorder them */
+  /** Return a pointer to the array of literals.
+   * Caller should not malipulate literals, with the exception of
+   * clause construction and literal selection. */
   Literal** literals() { return _literals; }
 
   /** True if the clause is empty */

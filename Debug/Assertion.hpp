@@ -7,6 +7,9 @@
 #ifndef __Assertion__
 #define __Assertion__
 
+/** A static assertion. @b e has to be a constant expression. */
+#define ASS_STATIC(e) extern char (*ct_assert(void)) [sizeof(char[1 - 2*!(e)])]
+
 #if VDEBUG
 
 #include <iostream>

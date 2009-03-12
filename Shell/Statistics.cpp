@@ -61,7 +61,7 @@ void Statistics::print()
   env.out << "Fw subsumption resolutions: "<<forwardSubsumptionResolution<<endl;
   env.out << "Fw demodulations: "<<forwardDemodulations<<endl;
   env.out << "Bw demodulations: "<<backwardDemodulations<<endl;
-  env.out << "condensations: "<<condensations<<endl;
+  env.out << "Condensations: "<<condensations<<endl;
   env.out << endl;
   env.out << "Simple tautologies: "<<simpleTautologies<<endl;
   env.out << "Equational tautologies: "<<equationalTautologies<<endl;

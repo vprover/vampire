@@ -54,17 +54,6 @@ void ForwardSubsumptionAndResolution::detach()
 }
 
 
-struct MatchInfo {
-  MatchInfo() {}
-  MatchInfo(Literal* cLit, Literal* qLit)
-  : clauseLiteral(cLit), queryLiteral(qLit) {}
-  Literal* clauseLiteral;
-  Literal* queryLiteral;
-
-};
-
-typedef List<MatchInfo> MIList;
-
 struct ClauseMatches {
 private:
   //private and undefined operator= and copy constructor to avoid implicitly generated ones

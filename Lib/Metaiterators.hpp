@@ -608,7 +608,11 @@ public:
   {
     ASS_LE(from,to);
     if(from!=to) {
-      moveToNext();
+      if(from+1==to) {
+	_second=_afterLast;
+      } else {
+	moveToNext();
+      }
     }
   }
   inline bool hasNext()

@@ -276,14 +276,12 @@ struct MatchingData {
 
 };
 
-MatchingData* getMatchingData(Clause* base, Clause* instance, LiteralList** alts,
+MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts,
 	Literal* resolvedLit)
 {
-  unsigned baseLen=base->length();
-
   static DArray<Literal*> baseLits(32);
   static DArray<LiteralList*> altsArr(32);
-  baseLits.initFromArray(baseLen,*base);
+  baseLits.initFromArray(baseLen,baseLits0);
   altsArr.initFromArray(baseLen,alts);
 
   static DArray<unsigned> varCnts(32);
@@ -366,10 +364,10 @@ MatchingData* getMatchingData(Clause* base, Clause* instance, LiteralList** alts
 /**
  * If @b resolvedLit is 0, multiset matching is performed.
  */
-bool MLMatcher::canBeMatched(Clause* base, Clause* instance, LiteralList** alts,
-	Literal* resolvedLit)
+bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts,
+	Literal* resolvedLit, bool multiset)
 {
-  MatchingData* md=getMatchingData(base, instance, alts, resolvedLit);
+  MatchingData* md=getMatchingData(baseLits, baseLen, instance, alts, resolvedLit);
   if(!md) {
     return false;
   }
@@ -400,7 +398,7 @@ binding_start:
 
     unsigned maxAlt=md->getRemainingInCurrent(currBLit);
     while(md->nextAlts[currBLit]<maxAlt &&
-	    ( (!resolvedLit &&
+	    ( (multiset &&
 		    matchRecord[md->getAltRecordIndex(currBLit, md->nextAlts[currBLit])]<currBLit) ||
 	    !md->bindAlt(currBLit,md->nextAlts[currBLit]) ) ) {
       md->nextAlts[currBLit]++;
