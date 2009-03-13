@@ -155,6 +155,19 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
       altBindingData+=numVars;
       new(altBindingData++) TermList((size_t)1);
     }
+    if(baseLit->isEquality() &&
+	    MatchingUtils::matchTerms(*baseLit->nthArgument(0),*resolvedLit->nthArgument(1)) &&
+	    MatchingUtils::matchTerms(*baseLit->nthArgument(1),*resolvedLit->nthArgument(0))) {
+      ArrayStoringBinder binder(altBindingData, varPos);
+      MatchingUtils::matchTerms(*baseLit->nthArgument(0),*resolvedLit->nthArgument(1),binder);
+      MatchingUtils::matchTerms(*baseLit->nthArgument(1),*resolvedLit->nthArgument(0),binder);
+
+      *altBindingPtrs=altBindingData;
+      altBindingPtrs++;
+      altBindingData+=numVars;
+      new(altBindingData++) TermList((size_t)1);
+    }
+
   }
   return true;
 }

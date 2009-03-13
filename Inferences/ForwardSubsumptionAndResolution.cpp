@@ -90,6 +90,35 @@ public:
   Clause* _cl;
   unsigned _zeroCnt;
   LiteralList** _matches;
+
+  class ZeroMatchLiteralIterator
+  {
+  public:
+    ZeroMatchLiteralIterator(ClauseMatches* cm)
+    : _lits(cm->_cl->literals()), _mlists(cm->_matches), _remaining(cm->_cl->length())
+    {
+      if(!cm->_zeroCnt) {
+	_remaining=0;
+      }
+    }
+    bool hasNext()
+    {
+      while(_remaining>0 && *_mlists) {
+	_lits++; _mlists++; _remaining--;
+      }
+      return _remaining;
+    }
+    Literal* next()
+    {
+      _remaining--;
+      _mlists++;
+      return *(_lits++);
+    }
+  private:
+    Literal** _lits;
+    LiteralList** _mlists;
+    unsigned _remaining;
+  };
 };
 
 
@@ -201,10 +230,8 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       Clause* mcl=res.clause;
       unsigned mlen=mcl->length();
 
-      bool success;
-      if(mlen==1) {
-	success=true;
-      } else {
+      bool success=true;
+      if(mlen!=1) {
 	if(matchedClauses.contains(mcl)) {
 	  continue;
 	}
@@ -213,7 +240,18 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	ClauseMatches* cms=0;
 	mcl->tryGetAux(cms);
 	if(cms) {
-	  success=MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
+	retryPnt:
+	  ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
+	  while(zmli.hasNext()) {
+	    Literal* bl=zmli.next();
+	    if(bl->complementaryHeader()!=resLit->header()) {
+	      success=false;
+	      break;
+	    }
+	  }
+	  if(success) {
+	    success=MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
+	  }
 	} else {
 	  success=false;
 	}

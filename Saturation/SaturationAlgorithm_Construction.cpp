@@ -30,6 +30,7 @@
 #include "SaturationAlgorithm.hpp"
 
 #include "Discount.hpp"
+#include "LRS.hpp"
 #include "Otter.hpp"
 
 namespace Saturation
@@ -143,11 +144,14 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
 
   SaturationAlgorithm* res;
   switch(env.options->saturationAlgorithm()) {
-  case Shell::Options::OTTER:
-    res=new Otter(passive, selector);
-    break;
   case Shell::Options::DISCOUNT:
     res=new Discount(passive, selector);
+    break;
+  case Shell::Options::LRS:
+    res=new LRS(passive, selector);
+    break;
+  case Shell::Options::OTTER:
+    res=new Otter(passive, selector);
     break;
   default:
     NOT_IMPLEMENTED;

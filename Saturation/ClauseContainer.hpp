@@ -59,6 +59,7 @@ public:
   virtual Clause* popSelected() = 0;
   /** Try to remove @b c, return true, if successful */
   virtual bool tryRemove(Clause* c) = 0;
+
 };
 
 class ActiveClauseContainer
