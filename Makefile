@@ -19,8 +19,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -1227,6 +1227,7 @@ Inferences/ForwardSubsumptionAndResolution.o: Lib/InverseLookup.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Kernel/Unit.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Kernel/Inference.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Kernel/Unit.hpp
+Inferences/ForwardSubsumptionAndResolution.o: Kernel/Matcher.hpp Lib/Hash.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Kernel/MLMatcher.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Indexing/Index.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Lib/Event.hpp Lib/SmartPtr.hpp
@@ -1306,17 +1307,18 @@ Inferences/SLQueryBackwardSubsumption.o: Lib/BinaryHeap.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/BacktrackData.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/Metaiterators.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/SkipList.hpp Lib/Random.hpp
-Inferences/SLQueryBackwardSubsumption.o: Lib/DArray.hpp Lib/List.hpp
-Inferences/SLQueryBackwardSubsumption.o: Lib/DHMap.hpp Lib/Hash.hpp
-Inferences/SLQueryBackwardSubsumption.o: Lib/DHMultiset.hpp Lib/DHMap.hpp
-Inferences/SLQueryBackwardSubsumption.o: Lib/Comparison.hpp
+Inferences/SLQueryBackwardSubsumption.o: Lib/DArray.hpp Lib/Set.hpp
+Inferences/SLQueryBackwardSubsumption.o: Lib/List.hpp Lib/DHMap.hpp
+Inferences/SLQueryBackwardSubsumption.o: Lib/Hash.hpp Lib/DHMultiset.hpp
+Inferences/SLQueryBackwardSubsumption.o: Lib/DHMap.hpp Lib/Comparison.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/Metaiterators.hpp Lib/Set.hpp
 Inferences/SLQueryBackwardSubsumption.o: Kernel/Term.hpp Lib/Allocator.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/Portability.hpp Lib/XML.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/Stack.hpp Kernel/Clause.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/Reflection.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/InverseLookup.hpp
-Inferences/SLQueryBackwardSubsumption.o: Kernel/Unit.hpp Kernel/MLMatcher.hpp
+Inferences/SLQueryBackwardSubsumption.o: Kernel/Unit.hpp Kernel/Matcher.hpp
+Inferences/SLQueryBackwardSubsumption.o: Lib/Hash.hpp Kernel/MLMatcher.hpp
 Inferences/SLQueryBackwardSubsumption.o: Indexing/Index.hpp Lib/Event.hpp
 Inferences/SLQueryBackwardSubsumption.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 Inferences/SLQueryBackwardSubsumption.o: Saturation/ClauseContainer.hpp
@@ -1502,28 +1504,30 @@ Saturation/AWPassiveClauseContainer.o: Saturation/AWPassiveClauseContainer.hpp
 Saturation/AWPassiveClauseContainer.o: Kernel/ClauseQueue.hpp
 Saturation/AWPassiveClauseContainer.o: Saturation/ClauseContainer.hpp
 Saturation/ClauseContainer.o: Lib/Environment.hpp Forwards.hpp Config.hpp
-Saturation/ClauseContainer.o: Kernel/Clause.hpp Lib/Allocator.hpp
-Saturation/ClauseContainer.o: Debug/Tracer.hpp Lib/Metaiterators.hpp
-Saturation/ClauseContainer.o: Lib/List.hpp Debug/Assertion.hpp
-Saturation/ClauseContainer.o: Debug/Tracer.hpp Lib/Allocator.hpp
-Saturation/ClauseContainer.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-Saturation/ClauseContainer.o: Lib/Reflection.hpp Lib/Set.hpp Lib/Hash.hpp
-Saturation/ClauseContainer.o: Lib/Reflection.hpp Lib/InverseLookup.hpp
-Saturation/ClauseContainer.o: Lib/DHMap.hpp Kernel/Unit.hpp Lib/List.hpp
+Saturation/ClauseContainer.o: Lib/Set.hpp Lib/Stack.hpp Debug/Assertion.hpp
+Saturation/ClauseContainer.o: Debug/Tracer.hpp Debug/Tracer.hpp
+Saturation/ClauseContainer.o: Lib/Allocator.hpp Lib/BacktrackData.hpp
+Saturation/ClauseContainer.o: Lib/List.hpp Lib/VirtualIterator.hpp
+Saturation/ClauseContainer.o: Lib/Exception.hpp Lib/Reflection.hpp
+Saturation/ClauseContainer.o: Lib/Int.hpp Lib/Comparison.hpp
+Saturation/ClauseContainer.o: Lib/Portability.hpp Kernel/Clause.hpp
+Saturation/ClauseContainer.o: Lib/Allocator.hpp Lib/Metaiterators.hpp
+Saturation/ClauseContainer.o: Lib/Set.hpp Lib/Hash.hpp Lib/Reflection.hpp
+Saturation/ClauseContainer.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
+Saturation/ClauseContainer.o: Kernel/Unit.hpp Lib/List.hpp
 Saturation/ClauseContainer.o: Shell/Statistics.hpp
-Saturation/ClauseContainer.o: Saturation/SaturationAlgorithm.hpp
-Saturation/ClauseContainer.o: Lib/Event.hpp Lib/SmartPtr.hpp
-Saturation/ClauseContainer.o: Indexing/IndexManager.hpp Lib/DHMap.hpp
-Saturation/ClauseContainer.o: Indexing/Index.hpp Lib/Exception.hpp
+Saturation/ClauseContainer.o: Indexing/LiteralIndexingStructure.hpp
+Saturation/ClauseContainer.o: Indexing/Index.hpp Lib/Event.hpp
+Saturation/ClauseContainer.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 Saturation/ClauseContainer.o: Lib/VirtualIterator.hpp
-Saturation/ClauseContainer.o: Saturation/ClauseContainer.hpp Lib/Stack.hpp
-Saturation/ClauseContainer.o: Lib/BacktrackData.hpp Lib/Int.hpp
-Saturation/ClauseContainer.o: Lib/Comparison.hpp Lib/Portability.hpp
+Saturation/ClauseContainer.o: Saturation/ClauseContainer.hpp
 Saturation/ClauseContainer.o: Saturation/Limits.hpp
 Saturation/ClauseContainer.o: Indexing/ResultSubstitution.hpp
 Saturation/ClauseContainer.o: Lib/SmartPtr.hpp Kernel/Term.hpp
 Saturation/ClauseContainer.o: Lib/Portability.hpp Lib/XML.hpp
 Saturation/ClauseContainer.o: Lib/Comparison.hpp
+Saturation/ClauseContainer.o: Saturation/SaturationAlgorithm.hpp
+Saturation/ClauseContainer.o: Indexing/IndexManager.hpp Lib/DHMap.hpp
 Saturation/ClauseContainer.o: Inferences/InferenceEngine.hpp
 Saturation/ClauseContainer.o: Saturation/SaturationResult.hpp
 Saturation/ClauseContainer.o: Saturation/ClauseContainer.hpp
