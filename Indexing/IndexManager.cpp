@@ -39,6 +39,9 @@ void IndexManager::release(IndexType t)
 
   e.refCnt--;
   if(e.refCnt==0) {
+    if(t==GENERATING_SUBST_TREE) {
+      _genLitIndex=0;
+    }
     delete e.index;
     _store.remove(t);
   } else {
@@ -65,6 +68,7 @@ Index* IndexManager::create(IndexType t)
 #else
     is=new LiteralSubstitutionTree();
 #endif
+    _genLitIndex=is;
     res=new GeneratingLiteralIndex(is);
     res->attachContainer(_alg->getGenerationClauseContainer());
     break;
@@ -73,9 +77,9 @@ Index* IndexManager::create(IndexType t)
     res=new SimplifyingLiteralIndex(is);
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
-  case SIMPLIFYING_ATOMIC_CLAUSE_SUBST_TREE:
+  case SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
-    res=new AtomicClauseSimplifyingLiteralIndex(is);
+    res=new UnitClauseSimplifyingLiteralIndex(is);
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
 
@@ -102,6 +106,12 @@ Index* IndexManager::create(IndexType t)
   case DEMODULATION_LHS_SUBST_TREE:
     tis=new TermSubstitutionTree();
     res=new DemodulationLHSIndex(tis);
+    res->attachContainer(_alg->getSimplificationClauseContainer());
+    break;
+
+  case FW_SUBSUMPTION_SUBST_TREE:
+    is=new LiteralSubstitutionTree();
+    res=new FwSubsSimplifyingLiteralIndex(is);
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
 

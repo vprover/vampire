@@ -181,6 +181,10 @@ public:
     ASS(_auxTimestamp==_auxCurrTimestamp);
     return static_cast<T*>(_auxData);
   }
+  bool hasAux()
+  {
+    return _auxTimestamp==_auxCurrTimestamp;
+  }
 
   /**
    * Request usage of the auxiliary value in clauses.

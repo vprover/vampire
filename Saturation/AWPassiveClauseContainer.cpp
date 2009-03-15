@@ -237,7 +237,11 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
       toRemove.push(cl);
     }
   }
-//  cout<<toRemove.size()<<" passive deleted\n";
+
+//  if(toRemove.isNonEmpty()) {
+//    cout<<toRemove.size()<<" passive deleted\n";
+//  }
+
   while(toRemove.isNonEmpty()) {
     remove(toRemove.pop());
   }

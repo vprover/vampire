@@ -17,6 +17,7 @@
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
+#include "../Kernel/Matcher.hpp"
 #include "../Kernel/MLMatcher.hpp"
 
 #include "../Indexing/Index.hpp"
@@ -41,15 +42,19 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
 {
   CALL("SLQueryForwardSubsumption::attach");
   ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<SimplifyingLiteralIndex*>(
-	  _salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE) );
+  _unitIndex=static_cast<UnitClauseSimplifyingLiteralIndex*>(
+	  _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE) );
+  _fwIndex=static_cast<FwSubsSimplifyingLiteralIndex*>(
+	  _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE) );
 }
 
 void ForwardSubsumptionAndResolution::detach()
 {
   CALL("SLQueryForwardSubsumption::detach");
-  _index=0;
-  _salg->getIndexManager()->release(SIMPLIFYING_SUBST_TREE);
+  _unitIndex=0;
+  _fwIndex=0;
+  _salg->getIndexManager()->release(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+  _salg->getIndexManager()->release(FW_SUBSUMPTION_SUBST_TREE);
   ForwardSimplificationEngine::detach();
 }
 
@@ -79,11 +84,31 @@ public:
 
   void addMatch(Literal* baseLit, Literal* instLit)
   {
-    unsigned bpos=_cl->getLiteralPosition(baseLit);
+    addMatch(_cl->getLiteralPosition(baseLit), instLit);
+  }
+  void addMatch(unsigned bpos, Literal* instLit)
+  {
     if(!_matches[bpos]) {
       _zeroCnt--;
     }
     LiteralList::push(instLit,_matches[bpos]);
+  }
+  void fillInMatches(Clause* inst, Literal* forbBase, Literal* forbInst)
+  {
+    unsigned blen=_cl->length();
+    unsigned ilen=inst->length();
+
+    for(unsigned ii=0;ii<ilen;ii++) {
+
+      for(unsigned bi=0;bi<blen;bi++) {
+	if((*inst)[ii]==forbInst && (*_cl)[bi]==forbBase) {
+	  continue;
+	}
+	if(MatchingUtils::match((*_cl)[bi],(*inst)[ii],false)) {
+	  addMatch(bi, (*inst)[ii]);
+	}
+      }
+    }
   }
   bool anyNonMatched() { return _zeroCnt; }
 
@@ -176,89 +201,124 @@ Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* ba
   return res;
 }
 
+bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resLit)
+{
+  Clause* mcl=cms->_cl;
+
+  ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
+  while(zmli.hasNext()) {
+    Literal* bl=zmli.next();
+    if(bl->complementaryHeader()!=resLit->header()) {
+      return false;
+    }
+  }
+
+  return MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
+}
+
 void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 {
   CALL("ForwardSubsumptionResolution::perform");
   toAdd=ClauseIterator::getEmpty();
   keep=true;
+  Clause* resolutionClause=0;
 
   unsigned clen=cl->length();
   if(clen==0) {
     return;
   }
 
+
+  for(unsigned li=0;li<clen;li++) {
+    SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
+    if(rit.hasNext()) {
+      keep=false;
+      env.statistics->forwardSubsumed++;
+      return;
+    }
+  }
+
   Clause::requestAux();
 
-  static Stack<ClauseMatches*> cmStore(64);
+  static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
 
   for(unsigned li=0;li<clen;li++) {
-    SLQueryResultIterator rit=_index->getGeneralizations( (*cl)[li], false, false);
+    SLQueryResultIterator rit=_fwIndex->getGeneralizations( (*cl)[li], false, false);
     while(rit.hasNext()) {
       SLQueryResult res=rit.next();
-      unsigned rlen=res.clause->length();
-      if(rlen==1) {
+      Clause* mcl=res.clause;
+      if(mcl->hasAux()) {
+	//we've already checked this clause
+	continue;
+      }
+      unsigned mlen=mcl->length();
+      ASS_G(mlen,1);
+
+      ClauseMatches* cms=new ClauseMatches(mcl);
+      res.clause->setAux(cms);
+      cmStore.push(cms);
+      cms->addMatch(res.literal, (*cl)[li]);
+      cms->fillInMatches(cl, res.literal, (*cl)[li]);
+
+      if(cms->anyNonMatched()) {
+        continue;
+      }
+
+      if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)) {
 	keep=false;
 	env.statistics->forwardSubsumed++;
 	goto fin;
       }
-
-      ClauseMatches* cms;
-      if(!res.clause->tryGetAux(cms)) {
-	cms=new ClauseMatches(res.clause);
-	cmStore.push(cms);
-	res.clause->setAux(cms);
-      }
-      cms->addMatch(res.literal, (*cl)[li]);
     }
   }
 
-  if(cmStore.isNonEmpty() && isSubsumed(cl, cmStore))
-  {
-    keep=false;
-    env.statistics->forwardSubsumed++;
-    goto fin;
+
+  for(unsigned li=0;li<clen;li++) {
+    Literal* resLit=(*cl)[li];
+    SLQueryResultIterator rit=_unitIndex->getGeneralizations( resLit, true, false);
+    if(rit.hasNext()) {
+      Clause* mcl=rit.next().clause;
+      resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
+      keep=false;
+      goto fin;
+    }
   }
 
-  static DArray<LiteralList*> alts(32);
+  {
+    CMStack::Iterator csit(cmStore);
+    while(csit.hasNext()) {
+      ClauseMatches* cms=csit.next();
+      for(unsigned li=0;li<clen;li++) {
+	Literal* resLit=(*cl)[li];
+	if(checkForSubsumptionResolution(cl, cms, resLit)) {
+	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
+	  goto fin;
+	}
+      }
+    }
+  }
+
   for(unsigned li=0;li<clen;li++) {
     Literal* resLit=(*cl)[li];	//resolved literal
     Set<Clause*> matchedClauses;
-    SLQueryResultIterator rit=_index->getGeneralizations( resLit, true, false);
+    SLQueryResultIterator rit=_fwIndex->getGeneralizations( resLit, true, false);
     while(rit.hasNext()) {
       SLQueryResult res=rit.next();
       Clause* mcl=res.clause;
-      unsigned mlen=mcl->length();
 
-      bool success=true;
-      if(mlen!=1) {
-	if(matchedClauses.contains(mcl)) {
-	  continue;
-	}
-	matchedClauses.insert(mcl);
-
-	ClauseMatches* cms=0;
-	mcl->tryGetAux(cms);
-	if(cms) {
-	  ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
-	  while(zmli.hasNext()) {
-	    Literal* bl=zmli.next();
-	    if(bl->complementaryHeader()!=resLit->header()) {
-	      success=false;
-	      break;
-	    }
-	  }
-	  if(success) {
-	    success=MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
-	  }
-	} else {
-	  success=false;
-	}
+      if(mcl->hasAux()) {
+	//we have already examined this clause
+	continue;
       }
 
-      if(success) {
-	toAdd=pvi( getSingletonIterator(generateSubsumptionResolutionClause(cl,resLit,mcl)) );
-	keep=false;
+      ClauseMatches* cms=new ClauseMatches(mcl);
+      res.clause->setAux(cms);
+      cmStore.push(cms);
+      cms->fillInMatches(cl, 0, 0);
+
+      if(checkForSubsumptionResolution(cl, cms, resLit)) {
+	resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
 	goto fin;
       }
     }
@@ -270,6 +330,12 @@ fin:
   while(cmStore.isNonEmpty()) {
     delete cmStore.pop();
   }
+
+  if(resolutionClause) {
+    keep=false;
+    toAdd=pvi( getSingletonIterator(resolutionClause) );
+  }
+
 }
 
 }

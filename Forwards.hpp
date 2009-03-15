@@ -77,7 +77,10 @@ typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 
 class GeneratingLiteralIndex;
 class SimplifyingLiteralIndex;
-class AtomicClauseSimplifyingLiteralIndex;
+class UnitClauseSimplifyingLiteralIndex;
+class FwSubsSimplifyingLiteralIndex;
+
+class SubstitutionTree;
 };
 
 namespace Saturation

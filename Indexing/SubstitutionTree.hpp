@@ -84,8 +84,8 @@ public:
     inline
     static Comparison compare(const LeafData& ld1, const LeafData& ld2)
     {
-      return (ld1.clause<ld2.clause)? LESS :
-      	(ld1.clause>ld2.clause)? GREATER :
+      return (ld1.clause->number()<ld2.clause->number())? LESS :
+      	(ld1.clause->number()>ld2.clause->number())? GREATER :
       	(ld1.literal<ld2.literal)? LESS :
 	(ld1.literal>ld2.literal)? GREATER :
     	(ld1.term<ld2.term)? LESS :

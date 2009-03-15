@@ -52,11 +52,21 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
-class AtomicClauseSimplifyingLiteralIndex
+class FwSubsSimplifyingLiteralIndex
 : public LiteralIndex
 {
 public:
-  AtomicClauseSimplifyingLiteralIndex(LiteralIndexingStructure* is)
+  FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure* is)
+  : LiteralIndex(is) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+class UnitClauseSimplifyingLiteralIndex
+: public LiteralIndex
+{
+public:
+  UnitClauseSimplifyingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
   void handleClause(Clause* c, bool adding);

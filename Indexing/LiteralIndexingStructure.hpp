@@ -19,6 +19,7 @@ public:
   virtual void insert(Literal* lit, Clause* cls) = 0;
   virtual void remove(Literal* lit, Clause* cls) = 0;
 
+  virtual SLQueryResultIterator getAll() = 0;
   virtual SLQueryResultIterator getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true) = 0;
   virtual SLQueryResultIterator getGeneralizations(Literal* lit,

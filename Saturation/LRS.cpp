@@ -67,11 +67,16 @@ long LRS::estimatedReachableCount()
   CALL("LRS::estimatedReachableCount");
 
   unsigned processed=max(env.statistics->activeClauses,10u);
-  unsigned timeSpent=env.timer->elapsedMilliseconds();
+  int currTime=env.timer->elapsedMilliseconds();
+  int timeSpent=currTime-_startTime;
 
-  long timeLeft=env.options->timeLimitInDeciseconds()*100 - timeSpent;
-  if(timeLeft<0) {
-    return 0;
+  if(timeSpent<100) {
+    return -1;
+  }
+
+  long timeLeft=env.options->timeLimitInDeciseconds()*100 - currTime;
+  if(timeLeft<=0) {
+    return -1;
   }
   return (processed*timeLeft)/timeSpent;
 }
@@ -128,6 +133,8 @@ SaturationResult LRS::saturate()
 {
   CALL("LRS::saturate");
 
+  _startTime=env.timer->elapsedMilliseconds();
+
   for (;;) {
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
@@ -150,7 +157,10 @@ SaturationResult LRS::saturate()
     }
 
     if(shouldUpdateLimits()) {
-      _passive->updateLimits(estimatedReachableCount());
+      long estimatedReachable=estimatedReachableCount();
+      if(estimatedReachable>=0) {
+	_passive->updateLimits(estimatedReachable);
+      }
     }
 
     if (_passive->isEmpty()) {

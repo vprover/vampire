@@ -4,17 +4,27 @@
  */
 
 #include "../Lib/Environment.hpp"
-
+#include "../Lib/Set.hpp"
+#include "../Lib/Stack.hpp"
 #include "../Kernel/Clause.hpp"
-
 #include "../Shell/Statistics.hpp"
+
+#include "../Indexing/LiteralIndexingStructure.hpp"
 
 #include "SaturationAlgorithm.hpp"
 
+#if VDEBUG
+#include <iostream>
+using namespace std;
+#endif
+
 #include "ClauseContainer.hpp"
 
+namespace Saturation
+{
+
 using namespace Kernel;
-using namespace Saturation;
+using namespace Indexing;
 
 void ClauseContainer::addClauses(ClauseIterator cit)
 {
@@ -28,6 +38,36 @@ void RandomAccessClauseContainer::removeClauses(ClauseIterator cit)
   while(cit.hasNext()) {
     remove(cit.next());
   }
+}
+
+/**
+ * Attach to the SaturationAlgorithm object.
+ *
+ * This method is being called in the SaturationAlgorithm constructor,
+ * so no virtual methods of SaturationAlgorithm should be called.
+ */
+void RandomAccessClauseContainer::attach(SaturationAlgorithm* salg)
+{
+  CALL("RandomAccessClauseContainer::attach");
+  ASS(!_salg);
+
+  _salg=salg;
+  _limitChangeSData=_salg->getLimits()->changedEvent.subscribe(
+      this, &PassiveClauseContainer::onLimitsUpdated);
+}
+/**
+ * Detach from the SaturationAlgorithm object.
+ *
+ * This method is being called in the SaturationAlgorithm destructor,
+ * so no virtual methods of SaturationAlgorithm should be called.
+ */
+void RandomAccessClauseContainer::detach()
+{
+  CALL("RandomAccessClauseContainer::detach");
+  ASS(_salg);
+
+  _limitChangeSData->unsubscribe();
+  _salg=0;
 }
 
 UnprocessedClauseContainer::~UnprocessedClauseContainer()
@@ -53,36 +93,6 @@ Clause* UnprocessedClauseContainer::pop()
   return res;
 }
 
-/**
- * Attach to the SaturationAlgorithm object.
- *
- * This method is being called in the SaturationAlgorithm constructor,
- * so no virtual methods of SaturationAlgorithm should be called.
- */
-void PassiveClauseContainer::attach(SaturationAlgorithm* salg)
-{
-  CALL("PassiveClauseContainer::attach");
-  ASS(!_salg);
-
-  _salg=salg;
-  _limitChangeSData=_salg->getLimits()->changedEvent.subscribe(
-      this, &PassiveClauseContainer::onLimitsUpdated);
-}
-/**
- * Detach from the SaturationAlgorithm object.
- *
- * This method is being called in the SaturationAlgorithm destructor,
- * so no virtual methods of SaturationAlgorithm should be called.
- */
-void PassiveClauseContainer::detach()
-{
-  CALL("PassiveClauseContainer::detach");
-  ASS(_salg);
-
-  _limitChangeSData->unsubscribe();
-  _salg=0;
-}
-
 
 void ActiveClauseContainer::add(Clause* c)
 {
@@ -104,3 +114,53 @@ void ActiveClauseContainer::remove(Clause* c)
   removedEvent.fire(c);
   c->setStore(Clause::NONE);
 }
+
+void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
+{
+  if(change==LIMITS_LOOSENED) {
+    return;
+  }
+  LiteralIndexingStructure* gis=getSaturationAlgorithm()->getIndexManager()
+      ->getGeneratingLiteralIndexingStructure();
+  if(!gis) {
+    return;
+  }
+  Limits* limits=getSaturationAlgorithm()->getLimits();
+
+  if(!limits->ageLimited() || !limits->weightLimited()) {
+    return;
+  }
+  int ageLimit=limits->ageLimit();
+  int weightLimit=limits->weightLimit();
+
+  Set<Clause*> checked;
+  static Stack<Clause*> toRemove(64);
+  SLQueryResultIterator rit=gis->getAll();
+  while(rit.hasNext()) {
+    Clause* cl=rit.next().clause;
+    if(cl->age()<ageLimit || checked.contains(cl)) {
+      continue;
+    }
+    checked.insert(cl);
+
+    unsigned selCnt=cl->selected();
+    unsigned maxSelWeight=0;
+    for(unsigned i=0;i<selCnt;i++) {
+      maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
+    }
+    if(cl->weight()-maxSelWeight>=weightLimit) {
+      toRemove.push(cl);
+    }
+  }
+
+//  if(toRemove.isNonEmpty()) {
+//    cout<<toRemove.size()<<" active deleted\n";
+//  }
+
+  while(toRemove.isNonEmpty()) {
+    remove(toRemove.pop());
+  }
+}
+
+}
+

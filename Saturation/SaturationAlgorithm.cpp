@@ -24,19 +24,14 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
 
+  _active->attach(this);
   _passive->attach(this);
 
-#if VDEBUG
-//  _active->addedEvent.subscribe(this,&SaturationAlgorithm::onActiveAdded);
-//  _passive->addedEvent.subscribe(this,&SaturationAlgorithm::onPassiveAdded);
-//  _passive->removedEvent.subscribe(this,&SaturationAlgorithm::onPassiveRemoved);
-//  _unprocessed->addedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedAdded);
-//  _unprocessed->removedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedRemoved);
-#endif
 }
 
 SaturationAlgorithm::~SaturationAlgorithm()
 {
+  _active->detach();
   _passive->detach();
 
   if(_generator) {

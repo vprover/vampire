@@ -9,6 +9,7 @@
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/SkipList.hpp"
 #include "../Lib/DArray.hpp"
+#include "../Lib/Set.hpp"
 #include "../Lib/List.hpp"
 #include "../Lib/DHMap.hpp"
 #include "../Lib/DHMultiset.hpp"
@@ -17,6 +18,7 @@
 
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
+#include "../Kernel/Matcher.hpp"
 #include "../Kernel/MLMatcher.hpp"
 
 #include "../Indexing/Index.hpp"
@@ -94,9 +96,10 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 	ClauseIterator& toRemove, ClauseIterator& toAdd)
 {
   CALL("SLQueryBackwardSubsumption::perform");
-  toAdd=ClauseIterator::getEmpty();
 
+  toAdd=ClauseIterator::getEmpty();
   unsigned clen=cl->length();
+
   if(clen==1) {
     SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false, false);
     toRemove=getUniquePersistentIterator(
@@ -106,59 +109,64 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     return;
   }
 
-  static DArray<LSList> matches(32);
-  matches.ensure(clen);
-
-  for(unsigned li=0;li<clen;li++) {
-    SLQueryResultIterator rit=_index->getInstances( (*cl)[li], false, false);
-    while(rit.hasNext()) {
-      SLQueryResult res=rit.next();
-      unsigned rlen=res.clause->length();
-      if( rlen<clen || (li>0 && !matches[li-1].find(res.clause)) ) {
-	continue;
-      }
-      matches[li].insert(LitSpec(res.clause, res.literal));
-    }
-    if(matches[li].isEmpty()) {
-      toRemove=ClauseIterator::getEmpty();
-      while(li!=0) {
-	matches[--li].makeEmpty();
-      }
-      return;
+  unsigned lmIndex=0; //least matchable literal index
+  unsigned lmVal=(*cl)[0]->weight();
+  for(int i=0;i<clen;i++) {
+    Literal* curr=(*cl)[i];
+    unsigned currVal=curr->weight();
+    if(currVal>lmVal) {
+      lmIndex=i;
+      lmVal=currVal;
     }
   }
 
   static DArray<LiteralList*> matchedLits(32);
+  matchedLits.init(clen, 0);
 
   ClauseList* subsumed=0;
 
-  matchedLits.init(clen, 0);
-  while(matches[clen-1].isNonEmpty()) {
-    Clause* mcl=matches[clen-1].top().clause;
-    for(unsigned li=0;li<clen;li++) {
-      while( LitSpec::compare(mcl, matches[li].top())==GREATER ) {
-	matches[li].pop();
+  Set<Clause*> checkedClauses;
+  SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
+  while(rit.hasNext()) {
+    SLQueryResult res=rit.next();
+    Clause* icl=res.clause;
+    unsigned ilen=icl->length();
+    if( ilen<clen ) {
+	continue;
+    }
+
+    if(checkedClauses.contains(icl)) {
+      continue;
+    }
+    checkedClauses.insert(icl);
+
+    LiteralList::push(res.literal, matchedLits[lmIndex]);
+    for(unsigned bi=0;bi<clen;bi++) {
+      for(unsigned ii=0;ii<ilen;ii++) {
+	if(bi==lmIndex && (*icl)[ii]==res.literal) {
+	  continue;
+	}
+	if(MatchingUtils::match((*cl)[bi],(*icl)[ii],false)) {
+	  LiteralList::push((*icl)[ii], matchedLits[bi]);
+	}
       }
-      ASS(LitSpec::compare(mcl, matches[li].top())==EQUAL);
-      while(matches[li].isNonEmpty() && matches[li].top().clause==mcl) {
-	LiteralList::push(matches[li].pop().literal, matchedLits[li]);
+      if(!matchedLits[bi]) {
+	goto match_fail;
       }
     }
 
-    if(MLMatcher::canBeMatched(cl,matchedLits)) {
-      ClauseList::push(mcl, subsumed);
+    if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),0)) {
+      ClauseList::push(icl, subsumed);
       env.statistics->backwardSubsumed++;
     }
 
-    for(unsigned li=0; li<clen-1; li++) {
-      matchedLits[li]->destroy();
-      matchedLits[li]=0;
+  match_fail:
+    for(unsigned bi=0; bi<clen; bi++) {
+      matchedLits[bi]->destroy();
+      matchedLits[bi]=0;
     }
   }
 
-  for(unsigned li=0; li<clen-1; li++) {
-    matches[li].makeEmpty();
-  }
 
   if(subsumed) {
     toRemove=getPersistentIterator(ClauseList::Iterator(subsumed));

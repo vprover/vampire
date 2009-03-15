@@ -46,6 +46,7 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
     SubstitutionTree::remove(_nodes+getRootNodeIndex(normLit), bq, LeafData(cls, lit));
   }
 }
+
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
@@ -87,6 +88,14 @@ struct LiteralSubstitutionTree::LDToSLQueryResultFn
   }
 };
 
+struct LiteralSubstitutionTree::LeafToLDIteratorFn
+{
+  DECL_RETURN_TYPE(LDIterator);
+  OWN_RETURN_TYPE operator() (Leaf* l) {
+    return l->allChildren();
+  }
+};
+
 struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
 {
   PropositionalLDToSLQueryResultWithSubstFn()
@@ -102,6 +111,17 @@ private:
   ResultSubstitutionSP _subst;
 };
 
+
+SLQueryResultIterator LiteralSubstitutionTree::getAll()
+{
+  CALL("LiteralSubstitutionTree::getAll");
+
+  return pvi( getMappingIterator(
+      getMapAndFlattenIterator(
+	  vi( new LeafIterator(this) ),
+	  LeafToLDIteratorFn()),
+      LDToSLQueryResultFn()) ) ;
+}
 
 template<class Iterator>
 SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,

@@ -60,7 +60,30 @@ void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void AtomicClauseSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
+void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  unsigned clen=c->length();
+  if(clen<2) {
+    return;
+  }
+  Literal* best=(*c)[0];
+  unsigned bestVal=best->weight();
+  for(int i=0;i<clen;i++) {
+    Literal* curr=(*c)[i];
+    unsigned currVal=curr->weight();
+    if(currVal>bestVal || (currVal==bestVal && curr>best) ) {
+      best=curr;
+      bestVal=currVal;
+    }
+  }
+  if(adding) {
+    _is->insert(best, c);
+  } else {
+    _is->remove(best, c);
+  }
+}
+
+void UnitClauseSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   if(c->length()==1) {
     if(adding) {

@@ -61,6 +61,9 @@ protected:
     void remove(Clause* c)
     { removedEvent.fire(c); }
   };
+
+  int _startTime;
+
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;
   FakeContainer _simplCont;

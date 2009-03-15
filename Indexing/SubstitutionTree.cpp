@@ -578,24 +578,24 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
 bool SubstitutionTree::LeafIterator::hasNext()
 {
   for(;;) {
-	while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
-	  _nodeIterators.pop();
+    while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
+      _nodeIterators.pop();
+    }
+    if(_nodeIterators.isEmpty()) {
+      do {
+	if(_nextRootPtr==_afterLastRootPtr) {
+	  return false;
 	}
-	if(_nodeIterators.isEmpty()) {
-	  do {
-	    if(_nextRootPtr==_afterLastRootPtr) {
-	      return false;
-	    }
-	    _curr=*(_nextRootPtr++);
-	  } while(_curr==0);
-	} else {
-	  _curr=*_nodeIterators.top().next();
-	}
-	if(_curr->isLeaf()) {
-	  return true;
-	} else {
-	  _nodeIterators.push(static_cast<IntermediateNode*>(_curr)->allChildren());
-	}
+	_curr=*(_nextRootPtr++);
+      } while(_curr==0);
+    } else {
+      _curr=*_nodeIterators.top().next();
+    }
+    if(_curr->isLeaf()) {
+      return true;
+    } else {
+      _nodeIterators.push(static_cast<IntermediateNode*>(_curr)->allChildren());
+    }
   }
 }
 

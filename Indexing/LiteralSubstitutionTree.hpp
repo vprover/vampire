@@ -22,6 +22,8 @@ public:
   void remove(Literal* lit, Clause* cls);
   void handleLiteral(Literal* lit, Clause* cls, bool insert);
 
+  SLQueryResultIterator getAll();
+
   SLQueryResultIterator getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
 
@@ -35,6 +37,7 @@ private:
   struct SLQueryResultFunctor;
   struct LDToSLQueryResultFn;
   struct PropositionalLDToSLQueryResultWithSubstFn;
+  struct LeafToLDIteratorFn;
 
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit,

@@ -61,6 +61,8 @@ private:
 bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, Literal* resolvedLit,
     unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
 {
+  CALL("createLiteralBindings");
+
   static UUMap varPos;
   static BinaryHeap<unsigned,Int> varNums;
   varPos.reset();
@@ -207,6 +209,8 @@ struct MatchingData {
   bool compatible(unsigned b1Index, TermList* i1Bindings,
   	unsigned b2Index, unsigned i2AltIndex) const
   {
+    CALL("MatchingData::compatible");
+
     TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
     unsigned* b1vn=boundVarNums[b1Index];
     unsigned* b2vn=boundVarNums[b2Index];
@@ -255,6 +259,8 @@ struct MatchingData {
 
   InitResult ensureInit(unsigned bIndex)
   {
+    CALL("MatchingData::ensureInit");
+
     if(!isInitialized(bIndex)) {
       boundVarNums[bIndex]=boundVarNumStorage;
       altBindings[bIndex]=altBindingPtrStorage;
@@ -292,6 +298,8 @@ struct MatchingData {
 MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts,
 	Literal* resolvedLit)
 {
+  CALL("getMatchingData");
+
   static DArray<Literal*> baseLits(32);
   static DArray<LiteralList*> altsArr(32);
   baseLits.initFromArray(baseLen,baseLits0);
@@ -380,6 +388,8 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
 bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts,
 	Literal* resolvedLit, bool multiset)
 {
+  CALL("MLMatcher::canBeMatched");
+
   MatchingData* md=getMatchingData(baseLits, baseLen, instance, alts, resolvedLit);
   if(!md) {
     return false;

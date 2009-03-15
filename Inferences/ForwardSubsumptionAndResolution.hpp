@@ -25,7 +25,8 @@ public:
   void detach();
   void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
 private:
-  SimplifyingLiteralIndex* _index;
+  UnitClauseSimplifyingLiteralIndex* _unitIndex;
+  FwSubsSimplifyingLiteralIndex* _fwIndex;
 };
 
 

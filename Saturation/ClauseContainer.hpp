@@ -49,8 +49,20 @@ class RandomAccessClauseContainer
 : public ClauseContainer
 {
 public:
+  virtual void attach(SaturationAlgorithm* salg);
+  virtual void detach();
+
   virtual void remove(Clause* c) = 0;
   void removeClauses(ClauseIterator cit);
+
+protected:
+  RandomAccessClauseContainer() :_salg(0) {}
+  SaturationAlgorithm* getSaturationAlgorithm() { return _salg; }
+
+  virtual void onLimitsUpdated(LimitsChangeType change) {}
+private:
+  SaturationAlgorithm* _salg;
+  SubscriptionData _limitChangeSData;
 };
 
 class UnprocessedClauseContainer
@@ -71,21 +83,11 @@ class PassiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
-  virtual void attach(SaturationAlgorithm* salg);
-  virtual void detach();
 
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
 
   virtual void updateLimits(long estReachableCnt) {}
-protected:
-  PassiveClauseContainer() :_salg(0) {}
-  SaturationAlgorithm* getSaturationAlgorithm() { return _salg; }
-
-  virtual void onLimitsUpdated(LimitsChangeType change) {}
-private:
-  SaturationAlgorithm* _salg;
-  SubscriptionData _limitChangeSData;
 };
 
 class ActiveClauseContainer
@@ -94,6 +96,9 @@ class ActiveClauseContainer
 public:
   void add(Clause* c);
   void remove(Clause* c);
+
+protected:
+  void onLimitsUpdated(LimitsChangeType change);
 };
 
 
