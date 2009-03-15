@@ -95,6 +95,22 @@ public:
     /** Current node */
     Node* _current;
   }; // class ClauseQueue::Iterator
+
+//  class DelIterator {
+//  public:
+//    explicit DelIterator(ClauseQueue& queue)
+//    { }
+//
+//    bool hasNext()
+//    { }
+//
+//    Clause* next()
+//    { }
+//
+//    void del()
+//    { }
+//  private:
+//  };
 }; // class ClauseQueue
 
 } // namespace Kernel

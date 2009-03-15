@@ -19,6 +19,22 @@ using namespace Shell;
 using namespace Saturation;
 
 
+LRS::LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
+  : SaturationAlgorithm(passiveContainer,selector)
+{
+  _passiveContRemovalSData=_passive->removedEvent.subscribe(
+      &_simplCont, &FakeContainer::remove);
+  _activeContRemovalSData=_active->removedEvent.subscribe(
+      &_simplCont, &FakeContainer::remove);
+
+}
+
+LRS::~LRS()
+{
+  _passiveContRemovalSData->unsubscribe();
+  _activeContRemovalSData->unsubscribe();
+}
+
 ClauseContainer* LRS::getSimplificationClauseContainer()
 {
   return &_simplCont;
@@ -29,10 +45,30 @@ ClauseContainer* LRS::getGenerationClauseContainer()
   return _active;
 }
 
-long LRS::getReachableCountEstimate()
+bool LRS::shouldUpdateLimits()
 {
-  unsigned processed=env.statistics->activeClauses;
+  CALL("LRS::shouldUpdateLimits");
+
+  unsigned currTime=env.timer->elapsedMilliseconds();
+
+  static unsigned cnt=0;
+  static unsigned lastCheck=currTime;
+  cnt++;
+  if(cnt==500 || currTime>lastCheck+500) {
+    cnt=0;
+    lastCheck=currTime;
+    return true;
+  }
+  return false;
+}
+
+long LRS::estimatedReachableCount()
+{
+  CALL("LRS::estimatedReachableCount");
+
+  unsigned processed=max(env.statistics->activeClauses,10u);
   unsigned timeSpent=env.timer->elapsedMilliseconds();
+
   long timeLeft=env.options->timeLimitInDeciseconds()*100 - timeSpent;
   if(timeLeft<0) {
     return 0;
@@ -41,14 +77,18 @@ long LRS::getReachableCountEstimate()
 }
 
 
-bool LRS::processUnprocessed(Clause* c)
+bool LRS::processUnprocessed(Clause* cl)
 {
   CALL("LRS::processUnprocessed");
+
+  if(!getLimits()->fulfillsLimits(cl)) {
+    return false;
+  }
+
   bool keep;
   ClauseIterator toAdd;
-  _fwSimplifier->perform(c,keep,toAdd);
+  _fwSimplifier->perform(cl,keep,toAdd);
   _unprocessed->addClauses(toAdd);
-
   return keep;
 }
 
@@ -60,9 +100,15 @@ void LRS::backwardSimplify(Clause* c)
   _unprocessed->addClauses(toAdd);
   while(toRemove.hasNext()) {
     Clause* redundant=toRemove.next();
-    _simplCont.remove(redundant);
-    if(!_passive->tryRemove(redundant)) {
+    switch(redundant->store()) {
+    case Clause::PASSIVE:
+      _passive->remove(redundant);
+      break;
+    case Clause::ACTIVE:
       _active->remove(redundant);
+      break;
+    default:
+      ASSERTION_VIOLATION;
     }
   }
 }
@@ -103,8 +149,12 @@ SaturationResult LRS::saturate()
       }
     }
 
+    if(shouldUpdateLimits()) {
+      _passive->updateLimits(estimatedReachableCount());
+    }
+
     if (_passive->isEmpty()) {
-      return SaturationResult(Statistics::SATISFIABLE);
+      return SaturationResult(Statistics::UNKNOWN);
     }
 
     Clause* c = _passive->popSelected();

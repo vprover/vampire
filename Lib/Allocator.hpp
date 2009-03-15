@@ -248,8 +248,8 @@ static Allocator::Initialiser _____;
   void operator delete (void* obj)                                  \
   { if (obj) Lib::Allocator::current->deallocateUnknown(obj,className()); }
 #define USE_ALLOCATOR(C)                                            \
-  void* operator new (size_t)                                       \
-  { return Lib::Allocator::current->allocateKnown(sizeof(C),className()); } \
+  void* operator new (size_t sz)                                       \
+  { ASS_EQ(sz,sizeof(C)); return Lib::Allocator::current->allocateKnown(sizeof(C),className()); } \
   void operator delete (void* obj)                                  \
   { if (obj) Lib::Allocator::current->deallocateKnown(obj,sizeof(C),className()); }
 #define CLASS_NAME(name) \

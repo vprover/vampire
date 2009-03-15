@@ -13,6 +13,8 @@
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Stack.hpp"
 
+#include "Limits.hpp"
+
 namespace Saturation
 {
 
@@ -24,7 +26,21 @@ class ClauseContainer
 public:
   virtual ~ClauseContainer() {}
   ClauseEvent addedEvent;
+  /**
+   * This event fires when a clause is removed from the
+   * container because it is no longer needed, e.g. it was
+   * backward-simplified, or the container is destroyed.
+   * It does not fire for clauses that are removed from the
+   * container because they are selected to be further
+   * processed by the saturation algorithm (e.g. activated).
+   */
   ClauseEvent removedEvent;
+  /**
+   * This event fires when a clause is removed from the
+   * container to be further processed by the saturation
+   * algorithm (e.g. activated).
+   */
+  ClauseEvent selectedEvent;
   virtual void add(Clause* c) = 0;
   void addClauses(ClauseIterator cit);
 };
@@ -55,11 +71,21 @@ class PassiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
+  virtual void attach(SaturationAlgorithm* salg);
+  virtual void detach();
+
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
-  /** Try to remove @b c, return true, if successful */
-  virtual bool tryRemove(Clause* c) = 0;
 
+  virtual void updateLimits(long estReachableCnt) {}
+protected:
+  PassiveClauseContainer() :_salg(0) {}
+  SaturationAlgorithm* getSaturationAlgorithm() { return _salg; }
+
+  virtual void onLimitsUpdated(LimitsChangeType change) {}
+private:
+  SaturationAlgorithm* _salg;
+  SubscriptionData _limitChangeSData;
 };
 
 class ActiveClauseContainer

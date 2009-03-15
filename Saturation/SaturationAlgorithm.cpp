@@ -24,6 +24,8 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
 
+  _passive->attach(this);
+
 #if VDEBUG
 //  _active->addedEvent.subscribe(this,&SaturationAlgorithm::onActiveAdded);
 //  _passive->addedEvent.subscribe(this,&SaturationAlgorithm::onPassiveAdded);
@@ -35,6 +37,8 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
 
 SaturationAlgorithm::~SaturationAlgorithm()
 {
+  _passive->detach();
+
   if(_generator) {
     _generator->detach();
   }

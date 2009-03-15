@@ -32,7 +32,7 @@ private:
   static Clause* performSuperposition(
 	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
 	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-	  ResultSubstitutionSP subst, bool eqIsResult);
+	  ResultSubstitutionSP subst, bool eqIsResult, Limits* limits);
 
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;

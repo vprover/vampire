@@ -240,7 +240,6 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	ClauseMatches* cms=0;
 	mcl->tryGetAux(cms);
 	if(cms) {
-	retryPnt:
 	  ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
 	  while(zmli.hasNext()) {
 	    Literal* bl=zmli.next();

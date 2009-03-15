@@ -9,20 +9,21 @@
 
 #include "../Forwards.hpp"
 
+#include "../Lib/Event.hpp"
+
 #include "SaturationAlgorithm.hpp"
 
 namespace Saturation {
 
 using namespace Kernel;
 
-//TODO: implement!!!
-
 class LRS
 : public SaturationAlgorithm
 {
 public:
-  LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
-    : SaturationAlgorithm(passiveContainer,selector) {}
+  LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector);
+  ~LRS();
+
   SaturationResult saturate();
 
   ClauseContainer* getSimplificationClauseContainer();
@@ -33,18 +34,35 @@ protected:
   void backwardSimplify(Clause* c);
   void activate(Clause* c);
 
-  long getReachableCountEstimate();
+  bool shouldUpdateLimits();
 
+  long estimatedReachableCount();
+
+  /**
+   * Dummy container for simplification indexes to subscribe
+   * to its events.
+   */
   struct FakeContainer
   : public ClauseContainer
   {
+    /**
+     * This method is called by @b saturate() method when a clause
+     * makes it from unprocessed to passive container.
+     */
     void add(Clause* c)
     { addedEvent.fire(c); }
 
+    /**
+     * This method is subscribed to remove events of passive
+     * and active container, so it gets called automatically
+     * when a clause is removed from one of them. (Clause
+     * selection in passive container doesn't count as removal.)
+     */
     void remove(Clause* c)
     { removedEvent.fire(c); }
   };
-
+  SubscriptionData _passiveContRemovalSData;
+  SubscriptionData _activeContRemovalSData;
   FakeContainer _simplCont;
 };
 

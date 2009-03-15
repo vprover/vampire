@@ -50,31 +50,13 @@ public:
    */
   void remove(Clause* c)
   {
+    ASS_EQ(c->store(), Clause::PASSIVE);
     _ageQueue.remove(c);
     _weightQueue.remove(c);
     removedEvent.fire(c);
     c->setStore(Clause::NONE);
   }
 
-  /**
-   * Remove Clause from the Passive store. Return true iff the
-   * removal was successful (the clause was present in the passive
-   * store).
-   *
-   * Should be called only when the Clause is no longer needed by
-   * the inference process (i.e. was backward subsumed/simplified),
-   * as it can result in deletion of the clause.
-   */
-  bool tryRemove(Clause* c)
-  {
-    if(_ageQueue.remove(c)) {
-      ALWAYS(_weightQueue.remove(c));
-      removedEvent.fire(c);
-      c->setStore(Clause::NONE);
-      return true;
-    }
-    return false;
-  }
   /**
    * Set age-weight ratio
    * @since 08/01/2008 flight Murcia-Manchester
@@ -91,7 +73,13 @@ public:
   Clause* popSelected();
   /** True if there are no passive clauses */
   bool isEmpty() const
-  { return _ageRatio ? _ageQueue.isEmpty() : _weightQueue.isEmpty(); }
+  { return _ageQueue.isEmpty() && _weightQueue.isEmpty(); }
+
+  void updateLimits(long estReachableCnt);
+
+protected:
+  void onLimitsUpdated(LimitsChangeType change);
+
 private:
   /** The age queue, empty if _ageRatio=0 */
   AgeQueue _ageQueue;

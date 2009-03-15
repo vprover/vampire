@@ -5,11 +5,15 @@
  */
 
 #include "../Lib/Environment.hpp"
-
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
-
 #include "../Shell/Statistics.hpp"
+
+#include "SaturationAlgorithm.hpp"
+
+#if VDEBUG
+#include <iostream>
+#endif
 
 #include "AWPassiveClauseContainer.hpp"
 
@@ -152,7 +156,92 @@ Clause* AWPassiveClauseContainer::popSelected()
   _balance += _weightRatio;
   Clause* c = _ageQueue.pop();
   _weightQueue.remove(c);
-  removedEvent.fire(c);
+  selectedEvent.fire(c);
   return c;
 } // AWPassiveClauseContainer::popSelected
+
+void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
+{
+  CALL("AWPassiveClauseContainer::updateLimits");
+  ASS_GE(estReachableCnt,0);
+
+  ClauseQueue::Iterator wit(_weightQueue);
+  ClauseQueue::Iterator ait(_ageQueue);
+
+  if(!wit.hasNext() && !ait.hasNext()) {
+    return;
+  }
+
+  ASS(wit.hasNext()&&ait.hasNext());
+  long remains=estReachableCnt;
+  Clause* wcl=0;
+  Clause* acl=0;
+  unsigned balance=(_ageRatio<=_weightRatio)?1:0;
+  while(remains) {
+    ASS_G(remains,0);
+    if( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
+      wcl=wit.next();
+      balance-=_ageRatio;
+      if(!acl || wcl->age() >= acl->age()) {
+	remains--;
+      }
+    } else if(ait.hasNext()){
+      acl=ait.next();
+      balance+=_weightRatio;
+      if(!wcl || acl->weight() > wcl->weight()) {
+	remains--;
+      }
+    } else {
+      break;
+    }
+  }
+
+  //when _ageRatio==0, the age limit can be set to zero, as age doesn't matter
+  int maxAge=(_ageRatio && acl!=0)?-1:0;
+  int maxWeight=(_weightRatio && wcl!=0)?-1:0;
+  if(acl!=0 && ait.hasNext()) {
+    maxAge=acl->age();
+  }
+  if(wcl!=0 && wit.hasNext()) {
+    maxWeight=wcl->weight();
+  }
+
+//  cout<<"Limits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
+
+  getSaturationAlgorithm()->getLimits()->setLimits(maxAge,maxWeight);
+}
+
+void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
+{
+  CALL("AWPassiveClauseContainer::onLimitsUpdated");
+
+  if(change==LIMITS_LOOSENED) {
+    return;
+  }
+
+  Limits* limits=getSaturationAlgorithm()->getLimits();
+  if( (!limits->ageLimited() && _ageRatio) || (!limits->weightLimited() && _weightRatio) ) {
+    return;
+  }
+
+  //Here we rely on (and maintain) the invariant, that
+  //_weightQueue and _ageQueue contain the same set
+  //of clauses, differing only in their order.
+  //(unless one of _ageRation or _weightRation is equal to 0)
+
+  static Stack<Clause*> toRemove(256);
+  ClauseQueue::Iterator wit(_weightQueue);
+  while(wit.hasNext()) {
+    Clause* cl=wit.next();
+    if(!limits->fulfillsLimits(cl)) {
+      toRemove.push(cl);
+    }
+  }
+//  cout<<toRemove.size()<<" passive deleted\n";
+  while(toRemove.isNonEmpty()) {
+    remove(toRemove.pop());
+  }
+
+}
+
 

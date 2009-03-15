@@ -64,8 +64,8 @@ private:
 
 struct BinaryResolution::ResultFn
 {
-  ResultFn(Clause* cl)
-  : _cl(cl) {}
+  ResultFn(Clause* cl, Limits* limits)
+  : _cl(cl), _limits(limits) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<Literal*, SLQueryResult> arg)
   {
@@ -74,9 +74,30 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    int clength = _cl->length();
-    int dlength = qr.clause->length();
-    int newLength = clength+dlength-2;
+    unsigned clength = _cl->length();
+    unsigned dlength = qr.clause->length();
+    int newAge=Int::max(_cl->age(),qr.clause->age())+1;
+
+    if(_limits->ageLimited() && newAge > _limits->ageLimit() && _limits->weightLimited()) {
+      int wlb=0;//weight lower bound
+      for(unsigned i=0;i<clength;i++) {
+        Literal* curr=(*_cl)[i];
+        if(curr!=resLit) {
+          wlb+=curr->weight();
+        }
+      }
+      for(unsigned i=0;i<dlength;i++) {
+        Literal* curr=(*qr.clause)[i];
+        if(curr!=qr.literal) {
+          wlb+=curr->weight();
+        }
+      }
+      if(wlb > _limits->weightLimit()) {
+        return 0;
+      }
+    }
+
+    unsigned newLength = clength+dlength-2;
 
     Inference* inf = new Inference2(Inference::RESOLUTION, _cl, qr.clause);
     Unit::InputType inpType = (Unit::InputType)
@@ -84,27 +105,28 @@ struct BinaryResolution::ResultFn
 
     Clause* res = new(newLength) Clause(newLength, inpType, inf);
 
-    int next = 0;
-    for(int i=0;i<clength;i++) {
+    unsigned next = 0;
+    for(unsigned i=0;i<clength;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=resLit) {
 	(*res)[next++] = qr.substitution->applyToQuery(curr);
       }
     }
-    for(int i=0;i<dlength;i++) {
+    for(unsigned i=0;i<dlength;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
 	(*res)[next++] = qr.substitution->applyToResult(curr);
       }
     }
 
-    res->setAge(Int::max(_cl->age(),qr.clause->age())+1);
+    res->setAge(newAge);
     env.statistics->resolution++;
 
     return res;
   }
 private:
   Clause* _cl;
+  Limits* _limits;
 };
 
 
@@ -112,12 +134,15 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
   CALL("BinaryResolution::generateClauses");
 
-  return pvi( getMappingIterator(
+  Limits* limits=_salg->getLimits();
+  return pvi( getFilteredIterator(
+      getMappingIterator(
 	  getFlattenedIterator(
 		  getMappingIterator(
 			  premise->getSelectedLiteralIterator(),
 			  UnificationsFn(_index))),
-	  ResultFn(premise)) );
+	  ResultFn(premise, limits)),
+      NonzeroFn()) );
 }
 
 }

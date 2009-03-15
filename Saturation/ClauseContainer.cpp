@@ -9,6 +9,8 @@
 
 #include "../Shell/Statistics.hpp"
 
+#include "SaturationAlgorithm.hpp"
+
 #include "ClauseContainer.hpp"
 
 using namespace Kernel;
@@ -47,9 +49,40 @@ void UnprocessedClauseContainer::add(Clause* c)
 Clause* UnprocessedClauseContainer::pop()
 {
   Clause* res=_data.pop();
-  removedEvent.fire(res);
+  selectedEvent.fire(res);
   return res;
 }
+
+/**
+ * Attach to the SaturationAlgorithm object.
+ *
+ * This method is being called in the SaturationAlgorithm constructor,
+ * so no virtual methods of SaturationAlgorithm should be called.
+ */
+void PassiveClauseContainer::attach(SaturationAlgorithm* salg)
+{
+  CALL("PassiveClauseContainer::attach");
+  ASS(!_salg);
+
+  _salg=salg;
+  _limitChangeSData=_salg->getLimits()->changedEvent.subscribe(
+      this, &PassiveClauseContainer::onLimitsUpdated);
+}
+/**
+ * Detach from the SaturationAlgorithm object.
+ *
+ * This method is being called in the SaturationAlgorithm destructor,
+ * so no virtual methods of SaturationAlgorithm should be called.
+ */
+void PassiveClauseContainer::detach()
+{
+  CALL("PassiveClauseContainer::detach");
+  ASS(_salg);
+
+  _limitChangeSData->unsubscribe();
+  _salg=0;
+}
+
 
 void ActiveClauseContainer::add(Clause* c)
 {
@@ -66,6 +99,8 @@ void ActiveClauseContainer::add(Clause* c)
  */
 void ActiveClauseContainer::remove(Clause* c)
 {
+  ASS_EQ(c->store(), Clause::ACTIVE);
+
   removedEvent.fire(c);
   c->setStore(Clause::NONE);
 }

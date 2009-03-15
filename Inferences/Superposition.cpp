@@ -98,7 +98,7 @@ private:
 
 struct Superposition::ForwardResultFn
 {
-  ForwardResultFn(Clause* cl) : _cl(cl) {}
+  ForwardResultFn(Clause* cl, Limits* limits) : _cl(cl), _limits(limits) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
@@ -106,16 +106,17 @@ struct Superposition::ForwardResultFn
 
     TermQueryResult& qr = arg.second;
     return performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.substitution, true);
+	    qr.clause, qr.literal, qr.term, qr.substitution, true, _limits);
   }
 private:
   Clause* _cl;
+  Limits* _limits;
 };
 
 
 struct Superposition::BackwardResultFn
 {
-  BackwardResultFn(Clause* cl) : _cl(cl) {}
+  BackwardResultFn(Clause* cl, Limits* limits) : _cl(cl), _limits(limits) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
@@ -123,16 +124,18 @@ struct Superposition::BackwardResultFn
 
     TermQueryResult& qr = arg.second;
     return performSuperposition(qr.clause, qr.literal, qr.term,
-	    _cl, arg.first.first, arg.first.second, qr.substitution, false);
+	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits);
   }
 private:
   Clause* _cl;
+  Limits* _limits;
 };
 
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   CALL("Superposition::generateClauses");
+  Limits* limits=_salg->getLimits();
 
   return pvi( getFilteredIterator(
 	getConcatenatedIterator(
@@ -142,14 +145,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 				  premise->getSelectedLiteralIterator(),
 				  RewriteableSubtermsFn()),
 			  ApplicableRewritesFn(_lhsIndex)),
-		  ForwardResultFn(premise)),
+		  ForwardResultFn(premise, limits)),
 	  getMappingIterator(
 		  getMapAndFlattenIterator(
 			  getMapAndFlattenIterator(
 				  premise->getSelectedLiteralIterator(),
 				  EqHelper::LHSIteratorFn()),
 			  RewritableResultsFn(_subtermIndex)),
-		  BackwardResultFn(premise))),
+		  BackwardResultFn(premise, limits))),
 	NonzeroFn()) );
 }
 
@@ -160,9 +163,32 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 Clause* Superposition::performSuperposition(
 	Clause* rwClause, Literal* rwLit, TermList rwTerm,
 	Clause* eqClause, Literal* eqLit, TermList eqLHS,
-	ResultSubstitutionSP subst, bool eqIsResult)
+	ResultSubstitutionSP subst, bool eqIsResult, Limits* limits)
 {
   CALL("Superposition::performSuperposition");
+
+  unsigned rwLength = rwClause->length();
+  unsigned eqLength = eqClause->length();
+  int newAge=Int::max(rwClause->age(),eqClause->age())+1;
+
+  if(limits->ageLimited() && newAge > limits->ageLimit() && limits->weightLimited()) {
+    int wlb=0;//weight lower bound
+    for(unsigned i=0;i<rwLength;i++) {
+      Literal* curr=(*rwClause)[i];
+      if(curr!=rwLit) {
+  	wlb+=curr->weight();
+      }
+    }
+    for(unsigned i=0;i<eqLength;i++) {
+      Literal* curr=(*eqClause)[i];
+      if(curr!=eqLit) {
+  	wlb+=curr->weight();
+      }
+    }
+    if(wlb > limits->weightLimit()) {
+      return 0;
+    }
+  }
 
   static Ordering* ordering=0;
   if(!ordering) {
@@ -195,9 +221,7 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  int rwLength = rwClause->length();
-  int eqLength = eqClause->length();
-  int newLength = rwLength+eqLength-1;
+  unsigned newLength = rwLength+eqLength-1;
 
   Inference* inf = new Inference2(Inference::SUPERPOSITION, rwClause, eqClause);
   Unit::InputType inpType = (Unit::InputType)
@@ -207,20 +231,20 @@ Clause* Superposition::performSuperposition(
 
   (*res)[0] = tgtLitS;
   int next = 1;
-  for(int i=0;i<rwLength;i++) {
+  for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
 	(*res)[next++] = subst->apply(curr, !eqIsResult);
     }
   }
-  for(int i=0;i<eqLength;i++) {
+  for(unsigned i=0;i<eqLength;i++) {
     Literal* curr=(*eqClause)[i];
     if(curr!=eqLit) {
 	(*res)[next++] = subst->apply(curr, eqIsResult);
     }
   }
 
-  res->setAge(Int::max(rwClause->age(),eqClause->age())+1);
+  res->setAge(newAge);
   if(eqIsResult) {
     env.statistics->forwardSuperposition++;
   } else {

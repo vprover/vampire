@@ -39,14 +39,14 @@ protected:
       unsubscribe(_handlers->head());
     }
   }
-  
+
   typedef List<HandlerStruct*> HandlerList;
-  
+
   SubscriptionData subscribe(HandlerStruct* h);
   void unsubscribe(HandlerStruct* h);
 
   HandlerList* _handlers;
-  
+
   friend class SubscriptionObject;
 };
 
@@ -58,10 +58,13 @@ public:
   ~SubscriptionObject();
   void unsubscribe();
   bool belongsTo(BaseEvent& evt);
+
+  CLASS_NAME("SubscriptionObject");
+  USE_ALLOCATOR(SubscriptionObject);
 private:
   BaseEvent* event;
   BaseEvent::HandlerStruct* hs;
-  
+
   friend class BaseEvent;
 };
 
@@ -85,13 +88,13 @@ public:
   }
 protected:
   struct SpecificHandlerStruct
-  : public HandlerStruct 
+  : public HandlerStruct
   {
     virtual void fire() = 0;
   };
   template<class Cls>
   struct MethodSpecificHandlerStruct
-  : public SpecificHandlerStruct 
+  : public SpecificHandlerStruct
   {
     Cls* pObj;
     void(Cls::*pMethod)();
@@ -99,8 +102,10 @@ protected:
     {
       (pObj->*pMethod)();
     }
+    CLASS_NAME("PlainEvent::MethodSpecificHandlerStruct");
+    USE_ALLOCATOR(MethodSpecificHandlerStruct);
   };
-  
+
   template<class Cls>
   HandlerStruct getHandlerStruct(Cls* obj, void (Cls::*method)())
   {
@@ -131,24 +136,27 @@ public:
   }
 protected:
   struct SpecificHandlerStruct
-  : public HandlerStruct 
+  : public HandlerStruct
   {
     virtual void fire(T t) = 0;
   };
-  
+
   template<class Cls>
-  struct MethodSpecificHandlerStruct 
+  struct MethodSpecificHandlerStruct
   : public SpecificHandlerStruct
   {
     Cls* pObj;
     void(Cls::*pMethod)(T);
-    
+
     void fire(T t)
     {
       (pObj->*pMethod)(t);
     }
+
+    CLASS_NAME("SingleParamEvent::MethodSpecificHandlerStruct");
+    USE_ALLOCATOR(MethodSpecificHandlerStruct);
   };
-  
+
   template<class Cls>
   HandlerStruct* getHandlerStruct(Cls* obj, void (Cls::*method)(T))
   {

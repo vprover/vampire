@@ -320,7 +320,7 @@ Options::Options ()
   _randomSeed(Random::seed()),
   _rowVariableMaxLength(2),
 
-  _saturationAlgorithm(DISCOUNT),
+  _saturationAlgorithm(LRS),
   _selection(10),
   _showActive(false),
   _showNew(false),

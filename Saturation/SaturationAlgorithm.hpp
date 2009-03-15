@@ -39,8 +39,6 @@ public:
   void setForwardSimplificationEngine(ForwardSimplificationEngineSP fwSimplifier);
   void setBackwardSimplificationEngine(BackwardSimplificationEngineSP bwSimplifier);
 
-  PlainEvent safePointEvent;
-
   virtual SaturationResult saturate() = 0;
 
   void addClauses(ClauseIterator cit)

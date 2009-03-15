@@ -48,8 +48,15 @@ void Otter::backwardSimplify(Clause* c)
   while(toRemove.hasNext()) {
     Clause* redundant=toRemove.next();
     _simplCont.remove(redundant);
-    if(!_passive->tryRemove(redundant)) {
+    switch(redundant->store()) {
+    case Clause::PASSIVE:
+      _passive->remove(redundant);
+      break;
+    case Clause::ACTIVE:
       _active->remove(redundant);
+      break;
+    default:
+      ASSERTION_VIOLATION;
     }
   }
 }
