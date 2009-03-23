@@ -24,6 +24,7 @@ public:
 private:
   struct Entry
   {
+    Entry(unsigned header, Literal* lit) : header(header), lit(lit) {}
     unsigned header;
     Literal* lit;
   };
@@ -36,7 +37,7 @@ public:
     Literal* next();
   private:
     Entry* _curr;
-  }
+  };
 };
 
 };
