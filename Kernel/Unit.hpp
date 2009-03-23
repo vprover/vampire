@@ -93,7 +93,7 @@ protected:
   unsigned _number;
   /** Kind  */
   unsigned _kind : 1;
-  /** iput type  */
+  /** input type  */
   unsigned _inputType : 2;
   /** inference used to obtain the unit */
   Inference* _inference;

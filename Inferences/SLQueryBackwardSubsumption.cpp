@@ -4,22 +4,18 @@
  */
 
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/BacktrackData.hpp"
-#include "../Lib/BinaryHeap.hpp"
-#include "../Lib/SkipList.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/Set.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/DHMultiset.hpp"
 #include "../Lib/Comparison.hpp"
+#include "../Lib/DArray.hpp"
+#include "../Lib/Environment.hpp"
+#include "../Lib/List.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/Set.hpp"
+#include "../Lib/VirtualIterator.hpp"
 
-#include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Matcher.hpp"
 #include "../Kernel/MLMatcher.hpp"
+#include "../Kernel/Term.hpp"
 
 #include "../Indexing/Index.hpp"
 #include "../Indexing/LiteralIndex.hpp"
@@ -27,7 +23,6 @@
 
 #include "../Saturation/SaturationAlgorithm.hpp"
 
-#include "../Lib/Environment.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "SLQueryBackwardSubsumption.hpp"
@@ -89,8 +84,6 @@ struct LitSpec {
     return c1id>c2id ? GREATER : (c1id==c2id ? EQUAL : LESS);
   }
 };
-
-typedef SkipList<LitSpec,LitSpec> LSList;
 
 void SLQueryBackwardSubsumption::perform(Clause* cl,
 	ClauseIterator& toRemove, ClauseIterator& toAdd)

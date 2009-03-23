@@ -99,6 +99,8 @@ bool LRS::processUnprocessed(Clause* cl)
 
 void LRS::backwardSimplify(Clause* c)
 {
+  CALL("LRS::backwardSimplify");
+
   ClauseIterator toAdd;
   ClauseIterator toRemove;
   _bwSimplifier->perform(c,toRemove,toAdd);

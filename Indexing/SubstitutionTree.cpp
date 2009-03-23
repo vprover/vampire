@@ -7,14 +7,17 @@
 
 #include <utility>
 
-#include "../Kernel/Term.hpp"
+#include "../Kernel/Matcher.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Kernel/SubstHelper.hpp"
+#include "../Kernel/Term.hpp"
+
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Recycler.hpp"
 #include "../Lib/DHMultiset.hpp"
+
 #include "TermSharing.hpp"
 
 #include <iostream>

@@ -15,6 +15,8 @@
 #include "../Lib/Stack.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
+#include "../Kernel/Term.hpp"
+
 namespace Kernel {
 
 using namespace Lib;

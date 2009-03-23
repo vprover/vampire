@@ -25,7 +25,6 @@
 
 #include "../Kernel/DoubleSubstitution.hpp"
 #include "../Kernel/RobSubstitution.hpp"
-#include "../Kernel/Matcher.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Kernel/Clause.hpp"
 
