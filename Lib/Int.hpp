@@ -1,5 +1,5 @@
 /**
- * Various functions on integers that should probably 
+ * Various functions on integers that should probably
  * have been included in a C++ standard library.
  * @since 06/08/1999 Uppsala
  * @since 19/02/2000 Manchester, slightly reimplemented
@@ -26,10 +26,10 @@ namespace Lib {
 
 
 /**
- * Various functions on integers that should probably 
+ * Various functions on integers that should probably
  * have been included in a C++ standard library.
  */
-class Int 
+class Int
 {
  public:
   static string toString(int i);
@@ -43,10 +43,16 @@ class Int
   static string toString(double d);
   /** Compare two integers. */
   inline static Comparison compare (int i1, int i2)
-  { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER;}
+  { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
   /** Compare two unsigned integers */
   inline static Comparison compare (unsigned i1, unsigned i2)
-  { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER;}
+  { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
+  /** Compare two size_t integers */
+  inline static Comparison compare (size_t i1, size_t i2)
+  { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
+  /** Compare two floats */
+  inline static Comparison compare (float f1, float f2)
+  { return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER; }
   static bool stringToLong(const char*,long& result);
   static bool stringToUnsignedLong(const char*,unsigned long& result);
   static bool stringToLong(const string& str,long& result);
@@ -73,7 +79,7 @@ class Int
  *  <li>-1 if i&lt;0;</li>
  *  <li>0 if i=0;</li>
  *  <li>1 if i&gt;0.</li>
- * </ol> 
+ * </ol>
  *
  * @since 22/04/2005 Manchester
  */
@@ -92,7 +98,7 @@ int Int::sign(int i)
  *  <li>-1 if l&lt;0;</li>
  *  <li>0 if l=0;</li>
  *  <li>1 if l&gt;0.</li>
- * </ol> 
+ * </ol>
  *
  * @since 22/04/2005 Manchester
  */
@@ -111,7 +117,7 @@ int Int::sign(long l)
  *  <li>-1 if d&lt;0;</li>
  *  <li>0 if d=0;</li>
  *  <li>1 if d&gt;0.</li>
- * </ol> 
+ * </ol>
  *
  * @since 22/04/2005 Manchester
  */

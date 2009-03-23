@@ -105,6 +105,14 @@ public:
     return _tail;
   } // List::tailReference
 
+  /** return a reference to the tail of the list */
+  inline List** tailPtr ()
+  {
+    ASS ( this != 0 );
+
+    return &_tail;
+  } // List::tailReference
+
   /** return the head of the list */
   inline const C head () const
   {
@@ -712,6 +720,34 @@ public:
     /** _cur is the element returned by the last next,
      * if _cur=null then no next was called */
     List* _cur;
+  };
+
+  /** iterator over the list elements */
+  class DestructiveIterator {
+  public:
+    DECL_ELEMENT_TYPE(C);
+
+    inline explicit
+    DestructiveIterator(List* l)
+      : _lst (l)
+    {}
+
+    /** return the next element */
+    inline C next()
+    {
+      ASS(_lst->isNonEmpty());
+
+      return List::pop(_lst);
+    }
+
+    /** True if there is a next element. */
+    inline bool hasNext() const
+    {
+      return _lst->isNonEmpty();
+    }
+   private:
+    /** the rest of the list */
+    List* _lst;
   };
 
   // use allocator to (de)allocate objects of this class

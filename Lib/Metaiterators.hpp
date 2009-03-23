@@ -459,6 +459,7 @@ FlatteningIterator<T> getFlattenedIterator(T it)
 {
   return FlatteningIterator<T>(it);
 }
+
 template<typename Inner, typename Functor>
 inline
 FlatteningIterator<MappingIterator<Inner,Functor> > getMapAndFlattenIterator(Inner it, Functor f)
@@ -466,7 +467,6 @@ FlatteningIterator<MappingIterator<Inner,Functor> > getMapAndFlattenIterator(Inn
   return FlatteningIterator<MappingIterator<Inner,Functor> >(
 	  MappingIterator<Inner,Functor>(it, f) );
 }
-
 
 
 template<class Inner>

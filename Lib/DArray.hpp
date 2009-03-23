@@ -33,7 +33,10 @@ private:
   DArray(const DArray&);
   DArray& operator=(const DArray&);
 public:
+  class Iterator;
+
   DECL_ELEMENT_TYPE(C);
+  DECL_ITERATOR_TYPE(Iterator);
   /**
    * Create an array having the given @b size
    * @since 30/12/2007 Manchester
@@ -117,7 +120,7 @@ public:
     size_t oldCapacity=_capacity;
     C* oldArr = _array;
 
-    _capacity = max(_size, _capacity*2);
+    _capacity = max(s, _capacity*2);
     void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
     _array = static_cast<C*>(mem);
 
@@ -132,6 +135,7 @@ public:
     while(nptr!=afterLast) {
       new(nptr++) C();
     }
+    _size = s;
 
     DEALLOC_KNOWN(oldArr,sizeof(C)*oldCapacity,"DArray<>");
   } // ensure
@@ -311,6 +315,7 @@ public:
   {
   public:
     DECL_ELEMENT_TYPE(C);
+    inline Iterator() : _next(0), _afterLast(0) {}
     inline Iterator(DArray& arr) : _next(arr._array),
     _afterLast(arr._array+arr._size) {}
     inline bool hasNext() { return _next!=_afterLast; }
@@ -336,7 +341,7 @@ public:
 template<typename T>
 VirtualIterator<T> getContentIterator(DArray<T>& arr)
 {
-  return vpi( DArray<T>::Iterator(arr) );
+  return pvi( typename DArray<T>::Iterator(arr) );
 }
 
 } // namespace Lib

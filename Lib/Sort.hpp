@@ -1,7 +1,7 @@
 /**
  * @file Sort.hpp
  *
- * @since 06/05/2002 
+ * @since 06/05/2002
  * @since 16/07/2003 flight Moscow-London, changed from a
  *   previous single-type version.
  */
@@ -14,8 +14,100 @@
 #include "../Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
+#include "DArray.hpp"
 
 namespace Lib {
+
+template <class Comparator, typename C>
+void sort(C* first, C* afterLast)
+{
+  //modified sorting code, that was originally in Resolution::Tautology::sort
+
+  C* arr=first;
+  size_t size=afterLast-first;
+
+  // array behaves as a stack of calls to quicksort
+  static DArray<size_t> ft(32);
+
+  size_t from = 0;
+  size_t to=size-1;
+  ft.ensure(to);
+
+  size_t p = 0; // pointer to the next element in ft
+  for (;;) {
+    ASS(from<size && to<size); //checking for underflows
+    // invariant: from < to
+    size_t m = from + Random::getInteger(to-from+1);
+    C mid = arr[m];
+    size_t l = from;
+    size_t r = to;
+    while (l < m) {
+      switch (Comparator::compare(arr[l],mid))
+	{
+	case EQUAL:
+	case LESS:
+	  l++;
+	  break;
+	case GREATER:
+	  if (m == r) {
+	    arr[m] = arr[l];
+	    arr[l] = arr[m-1];
+	    arr[m-1] = mid;
+	    m--;
+	    r--;
+	  }
+	  else {
+	    ASS(m < r);
+	    C aux = arr[l];
+	    arr[l] = arr[r];
+	    arr[r] = aux;
+	    r--;
+	  }
+	  break;
+	}
+    }
+    // l == m
+    // now literals in lits[from ... m-1] are smaller than lits[m]
+    // and literals in lits[r+1 ... to] are greater than lits[m]
+    while (m < r) {
+      switch (Comparator::compare(mid,arr[m+1]))
+	{
+	case LESS:
+	  {
+	    C aux = arr[r];
+	    arr[r] = arr[m+1];
+	    arr[m+1] = aux;
+	    r--;
+	  }
+	  break;
+	case EQUAL:
+	case GREATER:
+	  arr[m] = arr[m+1];
+	  arr[m+1] = mid;
+	  m++;
+	}
+    }
+    // now literals in lits[from ... m-1] are smaller than lits[m]
+    // and all literals in lits[m+1 ... to] are greater than lits[m]
+    if (m+1 < to) {
+      ft[p++] = m+1;
+      ft[p++] = to;
+    }
+
+    to = m-1;
+    if (m!=0 && from < to) {
+      continue;
+    }
+    if (p != 0) {
+      p -= 2;
+      ASS(p >= 0);
+      from = ft[p];
+      to = ft[p+1];
+      continue;
+    }
+    return;
+  }
+}
 
 /**
  * A template class to sort data. The type ToCompare is the
@@ -25,8 +117,8 @@ namespace Lib {
  *
  * <ol>
  *  <li>a comparator c and an element s of the class Sort are created;</li>
- *  <li>elements of the class ToCompare are added one by one;</li> 
- *  <li>s.sort() is called</li> 
+ *  <li>elements of the class ToCompare are added one by one;</li>
+ *  <li>s.sort() is called</li>
  *  <li>the resulting sorted collection is read.</li>
  * </ol>
  * @since 16/07/2003 flight Moscow-London, changed from a
@@ -44,7 +136,7 @@ class Sort
    * @param length the number of elements to sort
    * @param comparator object used for comparison
    */
-  Sort (int length,Comparator& comparator) 
+  Sort (int length,Comparator& comparator)
     :
     _size(length),
     _length(0),
@@ -56,8 +148,8 @@ class Sort
       _elems = new(mem) ToCompare[length];
     }
 
-  inline ~Sort () 
-  { 
+  inline ~Sort ()
+  {
     CALL("Sort::~Sort");
     DEALLOC_KNOWN(_elems,_size*sizeof(ToCompare),"Sort<>");
   }
@@ -67,20 +159,20 @@ class Sort
    */
   inline int length () const { return _length; }
 
-  /** 
+  /**
    * Return the nth element, used to retrieve sorted elements
    */
   inline ToCompare operator [] (int n) const
-    { 
+    {
       ASS(n < _length);
-      return _elems[n]; 
+      return _elems[n];
     } // Sort::operator []
 
   /**
    * Add an element to sort.
-   * 
+   *
    * @param elem the element.
-   */ 
+   */
   inline void add (ToCompare elem)
     {
       ASS(_length < _size);
@@ -92,7 +184,7 @@ class Sort
    * Sort elements.
    */
   inline void sort ()
-  { 
+  {
     CALL("Sort::sort/0");
     sort (0,_length-1);
   }
@@ -104,8 +196,8 @@ class Sort
    * @return true if elem is the member of Sort
    * @since 17/07/2003 Manchester, changed to the new two-argument Sort class
    */
-   inline bool member (const ToCompare elem) const { 
-     return member (elem,0,_length-1); 
+   inline bool member (const ToCompare elem) const {
+     return member (elem,0,_length-1);
    }
 
  protected:  // structure
@@ -118,7 +210,7 @@ class Sort
   /** object used to compare elements */
   Comparator& _comparator;
 
-  /** 
+  /**
    * Quicksort elements between, and including indexes p and r, was taken
    * from the Rivest et al. book - never use this book for practical
    * algorithms :)
@@ -127,7 +219,7 @@ class Sort
    * @since 27/06/2008 Manchester, replaced since the old one was showing
    *   quadratic behaviour
    */
-  void sort(int p,int r) 
+  void sort(int p,int r)
   {
     CALL("Sort::sort/2");
     ASS(r < _length);
@@ -180,7 +272,7 @@ class Sort
    * @since 17/07/2003 Manchester, changed to the new two-argument Sort class
    */
   bool member (const ToCompare elem, int fst, int lst) const
-  { 
+  {
     CALL("Sort::member");
 
     for (;;) {
@@ -189,7 +281,7 @@ class Sort
       }
 
       int mid = (fst + lst) / 2;
-      
+
       if (_elems[mid] == elem) {
 	return true;
       }

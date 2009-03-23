@@ -11,10 +11,26 @@
 ASS_STATIC(sizeof(char)==1);
 
 //some optimizing instruction
-#ifdef __GNUC__
-#define PREFETCH(x) __builtin_prefetch((x),0,1)
+
+#ifdef EFENCE
+# define NO_PREFETCH
+#endif
+
+#ifdef VALGRIND
+# define NO_PREFETCH
+#endif
+
+#ifdef NO_PREFETCH
+# define PREFETCH(x)
+# define PREFETCH1(x)
 #else
-#define PREFETCH(x)
+# ifdef __GNUC__
+#  define PREFETCH(x) __builtin_prefetch((x),0,2)
+#  define PREFETCH1(x) __builtin_prefetch((x),0,1)
+# else
+#  define PREFETCH(x)
+#  define PREFETCH1(x)
+# endif
 #endif
 
 /*

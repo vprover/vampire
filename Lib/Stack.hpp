@@ -28,6 +28,10 @@ template<class C>
 class Stack
 {
 public:
+  class Iterator;
+
+  DECL_ELEMENT_TYPE(C);
+  DECL_ITERATOR_TYPE(Iterator);
   /**
    * Create a stack having initialCapacity.
    */
@@ -58,6 +62,18 @@ public:
       (--p)->~C();
     }
     DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");
+  }
+
+  /**
+   * Put all elements of an iterator onto the stack.
+   */
+  template<class It>
+  void loadFromIterator(It it) {
+    CALL("Stack::loadFromIterator");
+
+    while(it.hasNext()) {
+      push(it.next());
+    }
   }
 
   /**
@@ -175,6 +191,12 @@ public:
     return _cursor;
   }
 
+  inline
+  C* begin() const
+  {
+    return _stack;
+  }
+
   /** Empties the stack. */
   inline
   void reset()
@@ -222,6 +244,7 @@ public:
    */
   class Iterator {
   public:
+    DECL_ELEMENT_TYPE(C);
     /** create an iterator for @b s */
     inline
     explicit Iterator (Stack& s)
