@@ -77,8 +77,10 @@ struct BinaryResolution::ResultFn
     unsigned clength = _cl->length();
     unsigned dlength = qr.clause->length();
     int newAge=Int::max(_cl->age(),qr.clause->age())+1;
+    bool shouldLimitWeight=_limits->ageLimited() && newAge > _limits->ageLimit()
+	&& _limits->weightLimited();
 
-    if(_limits->ageLimited() && newAge > _limits->ageLimit() && _limits->weightLimited()) {
+    if(shouldLimitWeight) {
       int wlb=0;//weight lower bound
       for(unsigned i=0;i<clength;i++) {
         Literal* curr=(*_cl)[i];
