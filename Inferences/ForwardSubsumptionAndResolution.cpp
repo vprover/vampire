@@ -18,6 +18,7 @@
 
 #include "../Indexing/Index.hpp"
 #include "../Indexing/LiteralIndex.hpp"
+#include "../Indexing/LiteralMiniIndex.hpp"
 #include "../Indexing/IndexManager.hpp"
 
 #include "../Saturation/SaturationAlgorithm.hpp"
@@ -89,20 +90,14 @@ public:
     }
     LiteralList::push(instLit,_matches[bpos]);
   }
-  void fillInMatches(Clause* inst, Literal* forbBase, Literal* forbInst)
+  void fillInMatches(LiteralMiniIndex* miniIndex, Literal* forbBase, Literal* forbInst)
   {
     unsigned blen=_cl->length();
-    unsigned ilen=inst->length();
 
-    for(unsigned ii=0;ii<ilen;ii++) {
-
-      for(unsigned bi=0;bi<blen;bi++) {
-	if((*inst)[ii]==forbInst && (*_cl)[bi]==forbBase) {
-	  continue;
-	}
-	if(MatchingUtils::match((*_cl)[bi],(*inst)[ii],false)) {
-	  addMatch(bi, (*inst)[ii]);
-	}
+    for(unsigned bi=0;bi<blen;bi++) {
+      LiteralMiniIndex::InstanceIterator instIt(*miniIndex, (*_cl)[bi], false);
+      while(instIt.hasNext()) {
+	addMatch(bi, instIt.next());
       }
     }
   }
@@ -204,7 +199,7 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
   ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
   while(zmli.hasNext()) {
     Literal* bl=zmli.next();
-    if(bl->complementaryHeader()!=resLit->header()) {
+    if( resLit->couldBeInstanceOf(bl, true) ) {
       return false;
     }
   }
@@ -234,6 +229,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
     }
   }
 
+  LiteralMiniIndex miniIndex(cl);
   Clause::requestAux();
 
   static CMStack cmStore(64);
@@ -254,8 +250,8 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       ClauseMatches* cms=new ClauseMatches(mcl);
       res.clause->setAux(cms);
       cmStore.push(cms);
-      cms->addMatch(res.literal, (*cl)[li]);
-      cms->fillInMatches(cl, res.literal, (*cl)[li]);
+//      cms->addMatch(res.literal, (*cl)[li]);
+      cms->fillInMatches(&miniIndex, res.literal, (*cl)[li]);
 
       if(cms->anyNonMatched()) {
         continue;
@@ -311,7 +307,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       ClauseMatches* cms=new ClauseMatches(mcl);
       res.clause->setAux(cms);
       cmStore.push(cms);
-      cms->fillInMatches(cl, 0, 0);
+      cms->fillInMatches(&miniIndex, 0, 0);
 
       if(checkForSubsumptionResolution(cl, cms, resLit)) {
 	resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);

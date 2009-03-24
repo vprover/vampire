@@ -38,7 +38,7 @@ class AWPassiveClauseContainer:
 public PassiveClauseContainer
 {
 public:
-  AWPassiveClauseContainer() : _balance(0) {};
+  AWPassiveClauseContainer() : _balance(0), _size(0) {};
   ~AWPassiveClauseContainer();
   void add(Clause* c);
 
@@ -53,6 +53,7 @@ public:
     ASS_EQ(c->store(), Clause::PASSIVE);
     _ageQueue.remove(c);
     _weightQueue.remove(c);
+    _size--;
     removedEvent.fire(c);
     c->setStore(Clause::NONE);
   }
@@ -77,6 +78,18 @@ public:
 
   void updateLimits(long estReachableCnt);
 
+  unsigned size() {
+#if VDEBUG
+    unsigned sz;
+    ClauseQueue::Iterator it(_ageQueue);
+    while(it.hasNext()) {
+      it.next(); sz++;
+    }
+    ASS_EQ(sz, _size);
+#endif
+    return _size;
+  }
+
 protected:
   void onLimitsUpdated(LimitsChangeType change);
 
@@ -92,6 +105,8 @@ private:
   /** current balance. If &lt;0 then selection by age, if &gt;0
    * then by weight */
   int _balance;
+
+  unsigned _size;
 }; // class AWPassiveClauseContainer
 
 };

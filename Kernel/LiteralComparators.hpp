@@ -62,6 +62,22 @@ struct NoPositiveEquality
   }
 };
 
+struct Negative
+{
+  Comparison compare(Literal* l1, Literal* l2)
+  {
+    bool l1N=l1->isNegative();
+    bool l2N=l2->isNegative();
+    if( l1N && !l2N ) {
+      return GREATER;
+    } else if( !l1N && l2N ) {
+      return LESS;
+    } else {
+      return EQUAL;
+    }
+  }
+};
+
 struct NegativeEquality
 {
   Comparison compare(Literal* l1, Literal* l2)

@@ -83,6 +83,13 @@ public:
   /** all active clauses */
   unsigned activeClauses;
 
+  /** passive clauses at the end of the saturation algorithm run */
+  unsigned finalPassiveClauses;
+  /** active clauses at the end of the saturation algorithm run */
+  unsigned finalActiveClauses;
+
+
+
   /** termination reason */
   enum TerminationReason {
     /** refutation found */

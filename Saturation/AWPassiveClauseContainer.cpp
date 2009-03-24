@@ -5,6 +5,7 @@
  */
 
 #include "../Lib/Environment.hpp"
+#include "../Lib/Timer.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Shell/Statistics.hpp"
@@ -116,6 +117,7 @@ void AWPassiveClauseContainer::add(Clause* c)
   if (_weightRatio) {
     _weightQueue.insert(c);
   }
+  _size++;
   c->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
   addedEvent.fire(c);
@@ -129,6 +131,8 @@ Clause* AWPassiveClauseContainer::popSelected()
 {
   CALL("AWPassiveClauseContainer::popSelected");
   ASS( ! isEmpty());
+
+  _size--;
 
   bool byWeight;
   if (! _ageRatio) {
@@ -206,7 +210,7 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
     maxWeight=wcl->weight();
   }
 
-//  cout<<"Limits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
+//  cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
 
   getSaturationAlgorithm()->getLimits()->setLimits(maxAge,maxWeight);
 }

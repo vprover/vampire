@@ -11,6 +11,7 @@ namespace Lib {
 
 class BitUtils
 {
+public:
   static void zeroMemory(void* ptr, size_t bytes)
   {
     size_t* sptr=static_cast<size_t*>(ptr);
@@ -40,6 +41,12 @@ class BitUtils
     } else {
       *cptr&=~(1<<(index&7));
     }
+  }
+
+  template<typename T>
+  inline static bool isSubset(T set, T subset)
+  {
+    return (set&subset)==subset;
   }
 };
 

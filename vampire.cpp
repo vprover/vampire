@@ -27,6 +27,7 @@
 
 #include "Indexing/TermSharing.hpp"
 #include "Indexing/SubstitutionTree.hpp"
+#include "Indexing/LiteralMiniIndex.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/CommandLine.hpp"
@@ -230,6 +231,9 @@ int main(int argc, char* argv [])
     env.out << "Insufficient system memory" << '\n';
   }
 //   delete env.allocator;
+
+  /*cout<<"good:\t"<<LiteralMiniIndex::goodPred<<endl;
+  cout<<"bad:\t"<<LiteralMiniIndex::badPred<<endl;*/
   return EXIT_SUCCESS;
 } // main
 

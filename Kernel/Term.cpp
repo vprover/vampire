@@ -730,6 +730,7 @@ Term::Term(const Term& t)
   _args[0] = t._args[0];
   _args[0]._info.shared = 0u;
   _args[0]._info.order = 0u;
+  _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
 } // Term::Term
 
 /** create a new literal and copy from l its content */
@@ -755,6 +756,7 @@ Term::Term()
   _args[0]._info.order = 0;
   _args[0]._info.reserved = 0;
   _args[0]._info.tag = FUN;
+  _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
 } // Term::Term
 
 Literal::Literal()

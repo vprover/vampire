@@ -104,7 +104,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
   unsigned lmIndex=0; //least matchable literal index
   unsigned lmVal=(*cl)[0]->weight();
-  for(int i=0;i<clen;i++) {
+  for(unsigned i=0;i<clen;i++) {
     Literal* curr=(*cl)[i];
     unsigned currVal=curr->weight();
     if(currVal>lmVal) {

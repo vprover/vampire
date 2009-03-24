@@ -23,6 +23,8 @@
 #include "../Lib/Stack.hpp"
 #include "../Lib/Metaiterators.hpp"
 
+#include "MatchTag.hpp"
+
 #if VDEBUG
 
 #include <iosfwd>
@@ -497,6 +499,30 @@ public:
     }
   }
 
+  void initMatchTag()
+  {
+    _matchTag.init(this);
+  }
+  MatchTag matchTag() const
+  {
+    ASS(shared());
+    return _matchTag;
+  }
+  bool couldBeInstanceOf(Term* t)
+  {
+    ASS(shared());
+    ASS(t->shared());
+    if(t->functor()!=functor()) {
+      return false;
+    }
+    if(commutative()) {
+      return matchTag().couldBeInstanceOf(t->matchTag()) ||
+	  matchTag().couldBeInstanceOfReversed(t->matchTag());
+    } else {
+      return matchTag().couldBeInstanceOf(t->matchTag());
+    }
+  }
+
 protected:
   ArgumentOrder computeArgumentOrder() const;
   unsigned computeDistinctVars() const;
@@ -509,6 +535,8 @@ protected:
   unsigned _weight;
   /** number of occurrences of variables */
   unsigned _vars;
+
+  MatchTag _matchTag;
 
   /** The list of arguments or size arity+1. The first argument stores the
    *  term weight and the mask (the last two bits are 0).
@@ -556,7 +584,6 @@ public:
     _args[0]._info.polarity = polarity;
     _args[0]._info.commutative = commutative;
     _args[0]._info.literal = 1u;
-//    _distinctVars=-1;
   }
 
   /**
@@ -635,6 +662,24 @@ public:
 
 //   /** Applied @b subst to the literal and return the result */
   Literal* apply(Substitution& subst);
+
+
+  bool couldBeInstanceOf(Literal* t, bool complementary)
+  {
+    ASS(shared());
+    ASS(t->shared());
+    if(!headersMatch(this, t, complementary)) {
+      return false;
+    }
+    if(commutative()) {
+      return matchTag().couldBeInstanceOf(t->matchTag()) ||
+	  matchTag().couldBeInstanceOfReversed(t->matchTag());
+    } else {
+      return matchTag().couldBeInstanceOf(t->matchTag());
+    }
+  }
+
+
 
 //   XMLElement toXML() const;
   string toString() const;

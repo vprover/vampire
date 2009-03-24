@@ -41,6 +41,8 @@ Statistics::Statistics()
     backwardSubsumed(0),
     generatedClauses(0),
     passiveClauses(0),
+    finalPassiveClauses(0),
+    finalActiveClauses(0),
     activeClauses(0),
     terminationReason(UNKNOWN),
     refutation(0)
@@ -54,6 +56,9 @@ void Statistics::print()
   env.out << "Active clauses: "<<activeClauses<<endl;
   env.out << "Passive clauses: "<<passiveClauses<<endl;
   env.out << "Generated clauses: "<<generatedClauses<<endl;
+  env.out << endl;
+  env.out << "Final active clauses: "<<finalActiveClauses<<endl;
+  env.out << "Final passive clauses: "<<finalPassiveClauses<<endl;
   env.out << endl;
 
   env.out << "Duplicate literals: "<<duplicateLiterals<<endl;

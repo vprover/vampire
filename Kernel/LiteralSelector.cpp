@@ -36,8 +36,8 @@ LiteralSelector* LiteralSelector::getSelector(int num)
 	    Composite<MaximalSize, LexComparator> > > > Comparator4;
 
   typedef Composite<NegativeEquality,
-	    Composite<NoPositiveEquality,
-	    Composite<MaximalSize, LexComparator> > > Comparator10;
+	    Composite<MaximalSize,
+	    Composite<Negative, LexComparator> > > Comparator10;
 
 
   switch(num) {

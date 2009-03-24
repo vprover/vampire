@@ -51,11 +51,12 @@ bool LRS::shouldUpdateLimits()
 
   unsigned currTime=env.timer->elapsedMilliseconds();
 
-  static unsigned cnt=0;
+//  static unsigned cnt=0;
   static unsigned lastCheck=currTime;
-  cnt++;
-  if(cnt==500 || currTime>lastCheck+500) {
-    cnt=0;
+//  cnt++;
+//  if(cnt==500 || currTime>lastCheck+500) {
+  if(currTime>lastCheck+500) {
+//    cnt=0;
     lastCheck=currTime;
     return true;
   }
@@ -156,12 +157,11 @@ SaturationResult LRS::saturate()
       if (env.timeLimitReached()) {
 	return SaturationResult(Statistics::TIME_LIMIT);
       }
-    }
-
-    if(shouldUpdateLimits()) {
-      long estimatedReachable=estimatedReachableCount();
-      if(estimatedReachable>=0) {
-	_passive->updateLimits(estimatedReachable);
+      if(shouldUpdateLimits()) {
+        long estimatedReachable=estimatedReachableCount();
+        if(estimatedReachable>=0) {
+  	_passive->updateLimits(estimatedReachable);
+        }
       }
     }
 

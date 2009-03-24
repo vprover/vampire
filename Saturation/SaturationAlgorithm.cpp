@@ -31,6 +31,9 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
 
 SaturationAlgorithm::~SaturationAlgorithm()
 {
+  env.statistics->finalActiveClauses=_active->size();
+  env.statistics->finalPassiveClauses=_passive->size();
+
   _active->detach();
   _passive->detach();
 

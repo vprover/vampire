@@ -77,6 +77,11 @@ public:
   /** return the standard array represented by this DArray */
   inline C* array () { return _array; }
 
+  inline C* begin() { return _array; }
+  inline C* end() { return _array+_size; }
+
+
+
   /**
    * Set array's size to @b s and that its capacity is at least @b s.
    * Return true iff array was not extended.

@@ -52,6 +52,7 @@ public:
   virtual void attach(SaturationAlgorithm* salg);
   virtual void detach();
 
+  virtual unsigned size() = 0;
   virtual void remove(Clause* c) = 0;
   void removeClauses(ClauseIterator cit);
 
@@ -94,11 +95,17 @@ class ActiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
+  ActiveClauseContainer() : _size(0) {}
+
   void add(Clause* c);
   void remove(Clause* c);
 
+  unsigned size() { return _size; }
+
 protected:
   void onLimitsUpdated(LimitsChangeType change);
+private:
+  unsigned _size;
 };
 
 

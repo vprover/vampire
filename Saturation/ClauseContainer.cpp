@@ -96,6 +96,7 @@ Clause* UnprocessedClauseContainer::pop()
 
 void ActiveClauseContainer::add(Clause* c)
 {
+  _size++;
   c->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   addedEvent.fire(c);
@@ -110,6 +111,8 @@ void ActiveClauseContainer::add(Clause* c)
 void ActiveClauseContainer::remove(Clause* c)
 {
   ASS_EQ(c->store(), Clause::ACTIVE);
+
+  _size--;
 
   removedEvent.fire(c);
   c->setStore(Clause::NONE);

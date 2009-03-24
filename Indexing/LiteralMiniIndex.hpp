@@ -8,6 +8,9 @@
 #define __LiteralMiniIndex__
 
 #include "../Forwards.hpp"
+#include "../Lib/DArray.hpp"
+#include "../Kernel/Clause.hpp"
+#include "../Kernel/Matcher.hpp"
 
 namespace Indexing {
 
@@ -19,23 +22,88 @@ class LiteralMiniIndex
 {
 public:
   LiteralMiniIndex(Clause* cl);
-  ~LiteralMiniIndex();
 
 private:
   struct Entry
   {
-    Entry(unsigned header, Literal* lit) : header(header), lit(lit) {}
-    unsigned header;
-    Literal* lit;
+    Entry() {}
+    void initTerminal() { _header=0xFFFFFFFF; _lit=0; }
+    void init(Literal* lit) { _header=lit->header(); _weight=lit->weight(); _lit=lit; }
+    unsigned _header;
+    unsigned _weight;
+    Literal* _lit;
   };
+
+  static bool literalHeaderComparator(const Entry& e1, const Entry& e2);
+
   unsigned _cnt;
-  Entry* _entries;
+  DArray<Entry> _entries;
 public:
+
+  /*static int goodPred;
+  static int badPred;*/
+
   struct InstanceIterator {
-    InstanceIterator(LiteralMiniIndex& index, Literal* base);
-    bool hasNext();
-    Literal* next();
+    InstanceIterator(LiteralMiniIndex& index, Literal* base, bool complementary)
+    : _ready(false), _hdr(complementary?base->complementaryHeader():base->header()),
+    _base(base), _compl(complementary)
+    {
+      Entry* arr=index._entries.array();
+      unsigned weight=base->weight();
+      if(arr[0]._header>=_hdr || index._cnt==1) {
+	_curr=arr;
+	return;
+      }
+      unsigned left=1;
+      unsigned right=index._cnt-1;
+      while(left<right) {
+	unsigned mid=(left+right)/2;
+	if(arr[mid]._header<_hdr || (arr[mid]._header==_hdr && arr[mid]._weight<weight)) {
+	  left=mid+1;
+	} else {
+	  right=mid;
+	}
+      }
+      ASS_EQ(left,right);
+      _curr=&arr[right];
+      ASS(_curr->_header==_hdr ||
+	      (_curr->_header<_hdr && (_curr+1)->_header>_hdr) ||
+	      (_curr->_header>_hdr && (_curr==arr || (_curr-1)->_header<_hdr || (_curr-1)->_weight<weight)) );
+    }
+    bool hasNext()
+    {
+      if(_ready) { return true; }
+      while(_curr->_header==_hdr) {
+	bool prediction=_curr->_lit->couldBeInstanceOf(_base, false);
+	if(prediction && MatchingUtils::match(_base, _curr->_lit, _compl)) {
+	  /*if(!prediction) {
+	    INVALID_OPERATION("bad prediction!");
+	  }*/
+	  _ready=true;
+	  return true;
+	}/* else {
+	  if(prediction) {
+	    badPred++;
+	  } else {
+	    goodPred++;
+	  }
+	}*/
+
+	_curr++;
+      }
+      return false;
+    }
+    Literal* next()
+    {
+      ASS(_ready);
+      _ready=false;
+      return (_curr++)->_lit;
+    }
   private:
+    bool _ready;
+    unsigned _hdr;
+    Literal* _base;
+    bool _compl;
     Entry* _curr;
   };
 };
