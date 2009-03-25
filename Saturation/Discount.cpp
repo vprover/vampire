@@ -69,13 +69,13 @@ SaturationResult Discount::saturate()
       if (c->isEmpty()) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
-      if(!processInactive(c)) {
+      if(processInactive(c)) {
+	_passive->add(c);
+      } else {
 	c->setStore(Clause::NONE);
-	continue;
       }
-      _passive->add(c);
 
-      if(++counter==50) {
+      if(++counter==100) {
 	counter=0;
 	if (env.timeLimitReached()) {
 	  return SaturationResult(Statistics::TIME_LIMIT);

@@ -80,7 +80,7 @@ public:
 
   unsigned size() {
 #if VDEBUG
-    unsigned sz;
+    unsigned sz=0;
     ClauseQueue::Iterator it(_ageQueue);
     while(it.hasNext()) {
       it.next(); sz++;

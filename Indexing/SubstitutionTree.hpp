@@ -85,6 +85,8 @@ public:
     {
       return (ld1.clause->number()<ld2.clause->number())? LESS :
       	(ld1.clause->number()>ld2.clause->number())? GREATER :
+      	(ld1.literal->weight()>ld2.literal->weight())? LESS ://minimizing the non-determinism
+      	(ld1.literal->weight()<ld2.literal->weight())? GREATER :
       	(ld1.literal<ld2.literal)? LESS :
 	(ld1.literal>ld2.literal)? GREATER :
     	(ld1.term<ld2.term)? LESS :

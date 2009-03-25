@@ -169,7 +169,7 @@ int main(int argc, char* argv [])
 
   System::setSignalHandlers();
    // create random seed for the random number generation
-  Lib::Random::resetSeed();
+  Lib::Random::setSeed(123456);
 
   try {
     // read the command line and interpret it

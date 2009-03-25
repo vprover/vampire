@@ -117,6 +117,7 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 	res->setAge(Int::max(cl->age(),qr.clause->age())+1);
 	env.statistics->forwardDemodulations++;
 	keep=false;
+
 	toAdd=pvi( getSingletonIterator(res) );
 	return;
       }

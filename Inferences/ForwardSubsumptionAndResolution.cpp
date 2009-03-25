@@ -195,11 +195,25 @@ Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* ba
 bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resLit)
 {
   Clause* mcl=cms->_cl;
+  unsigned mclen=mcl->length();
 
   ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
-  while(zmli.hasNext()) {
-    Literal* bl=zmli.next();
-    if( resLit->couldBeInstanceOf(bl, true) ) {
+  if(zmli.hasNext()) {
+    while(zmli.hasNext()) {
+      Literal* bl=zmli.next();
+      if( resLit->couldBeInstanceOf(bl, true) ) {
+	return false;
+      }
+    }
+  } else {
+    bool anyResolvable=false;
+    for(unsigned i=0;i<mclen;i++) {
+      if(resLit->couldBeInstanceOf((*mcl)[i], true)) {
+	anyResolvable=true;
+	break;
+      }
+    }
+    if(!anyResolvable) {
       return false;
     }
   }

@@ -283,12 +283,29 @@ void KBO::State::traverse(Term* t1, Term* t2)
   ASS(t1->functor()==t2->functor());
   ASS(t1->arity());
 
-  TermList* ss=t1->args();
-  TermList* tt=t2->args();
-  static Stack<TermList*> stack(4);
-  for(;;) {
-    if(!ss->next()->isEmpty()) {
-      ASS(!tt->next()->isEmpty());
+  unsigned depth=1;
+  unsigned lexValidDepth;
+
+  static Stack<TermList*> stack(32);
+  stack.push(t1->args());
+  stack.push(t2->args());
+  TermList* ss; //t1 subterms
+  TermList* tt; //t2 subterms
+  while(!stack.isEmpty()) {
+    tt=stack.pop();
+    ss=stack.pop();
+    if(ss->isEmpty()) {
+      ASS(tt->isEmpty());
+      depth--;
+      ASS_NEQ(_lexResult,EQUAL);
+      if(_lexResult!=EQUAL && depth<lexValidDepth) {
+	if(weightDiff!=0) {
+	  _lexResult=weightDiff>0 ? GREATER : LESS;
+	}
+	_lexResult=applyVariableCondition(_lexResult);
+      }
+      continue;
+    } else {
       stack.push(ss->next());
       stack.push(tt->next());
     }
@@ -300,23 +317,21 @@ void KBO::State::traverse(Term* t1, Term* t2)
 	ASS(ss->term()->arity());
 	stack.push(ss->term()->args());
 	stack.push(tt->term()->args());
+	depth++;
       } else {
 	traverse(*ss,1);
 	traverse(*tt,-1);
 	if(_lexResult==EQUAL) {
 	  _lexResult=innerResult(*ss, *tt);
+	  lexValidDepth=depth;
 	  ASS(_lexResult!=EQUAL);
 	  ASS(_lexResult!=GREATER_EQ);
 	  ASS(_lexResult!=LESS_EQ);
 	}
       }
     }
-    if(stack.isEmpty()) {
-      break;
-    }
-    tt=stack.pop();
-    ss=stack.pop();
   }
+  ASS_EQ(depth,0);
 }
 
 
@@ -502,16 +517,24 @@ struct FnArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
   {
-    return Int::compare(env.signature->functionArity(u1),
+    Comparison res=Int::compare(env.signature->functionArity(u1),
 	    env.signature->functionArity(u2));
+    if(res==EQUAL) {
+      res=Int::compare(u1,u2);
+    }
+    return res;
   }
 };
 struct PredArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
   {
-    return Int::compare(env.signature->predicateArity(u1),
+    Comparison res=Int::compare(env.signature->predicateArity(u1),
 	    env.signature->predicateArity(u2));
+    if(res==EQUAL) {
+      res=Int::compare(u1,u2);
+    }
+    return res;
   }
 };
 
