@@ -68,7 +68,7 @@ void InferenceMany::destroy()
     it->head()->decRefCnt();
     it=it->tail();
   }
-  _premises->destroy();
+
   delete this;
 }
 

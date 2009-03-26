@@ -171,7 +171,12 @@ Clause* Superposition::performSuperposition(
   unsigned eqLength = eqClause->length();
   int newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
+  bool shouldCheckWeight=false;
+  int weightLimit;
   if(limits->ageLimited() && newAge > limits->ageLimit() && limits->weightLimited()) {
+    weightLimit=limits->weightLimit();
+    shouldCheckWeight=true;
+
     int wlb=0;//weight lower bound
     for(unsigned i=0;i<rwLength;i++) {
       Literal* curr=(*rwClause)[i];
@@ -185,7 +190,7 @@ Clause* Superposition::performSuperposition(
   	wlb+=curr->weight();
       }
     }
-    if(wlb > limits->weightLimit()) {
+    if(wlb > weightLimit) {
       return 0;
     }
   }
@@ -229,19 +234,38 @@ Clause* Superposition::performSuperposition(
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
 
+  int weight=0;
   (*res)[0] = tgtLitS;
   int next = 1;
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
-	(*res)[next++] = subst->apply(curr, !eqIsResult);
+      (*res)[next++] = subst->apply(curr, !eqIsResult);
+      if(shouldCheckWeight) {
+	weight+=(*res)[next++]->weight();
+	if(weight>weightLimit) {
+	  goto weight_fail;
+	}
+      }
     }
   }
   for(unsigned i=0;i<eqLength;i++) {
     Literal* curr=(*eqClause)[i];
     if(curr!=eqLit) {
-	(*res)[next++] = subst->apply(curr, eqIsResult);
+      (*res)[next++] = subst->apply(curr, eqIsResult);
+      if(shouldCheckWeight) {
+	weight+=(*res)[next++]->weight();
+	if(weight>weightLimit) {
+	  goto weight_fail;
+	}
+      }
     }
+  }
+
+weight_fail:
+  if(shouldCheckWeight && weight>weightLimit) {
+    res->destroy();
+    return 0;
   }
 
   res->setAge(newAge);

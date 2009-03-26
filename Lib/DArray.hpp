@@ -45,19 +45,24 @@ public:
   DArray (size_t size)
     : _size(size), _capacity(size)
   {
-    ASS(size > 0);
-    void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
-    _array = new(mem) C[_capacity];
+    if(size>0) {
+      void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
+      _array = new(mem) C[_capacity];
+    } else {
+      _array=0;
+    }
   }
 
   /** Delete array */
   inline ~DArray()
   {
-    C* p=_array+_capacity;
-    while(p!=_array) {
-      (--p)->~C();
+    if(_array) {
+      C* p=_array+_capacity;
+      while(p!=_array) {
+	(--p)->~C();
+      }
+      DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
     }
-    DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
   }
 
   /** Return a reference to the n-th element of the array */
@@ -98,11 +103,13 @@ public:
       return true;
     }
 
-    C* p=_array+_capacity;
-    while(p!=_array) {
-      (--p)->~C();
+    if(_array) {
+      C* p=_array+_capacity;
+      while(p!=_array) {
+	(--p)->~C();
+      }
+      DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
     }
-    DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
     _capacity = _size;
     void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
     _array = new(mem) C[_capacity];
@@ -142,7 +149,9 @@ public:
     }
     _size = s;
 
-    DEALLOC_KNOWN(oldArr,sizeof(C)*oldCapacity,"DArray<>");
+    if(oldArr) {
+      DEALLOC_KNOWN(oldArr,sizeof(C)*oldCapacity,"DArray<>");
+    }
   } // ensure
 
   /** Return the ensured size of the array */
@@ -222,7 +231,9 @@ public:
   template<bool Inversed, typename Comparator>
   void sortGen(Comparator comp)
   {
-    //modified sorting code, that was originally in Resolution::Tautology::sort
+    if(!size()) {
+      return;
+    }
 
     // array behaves as a stack of calls to quicksort
     static DArray<size_t> ft(32);

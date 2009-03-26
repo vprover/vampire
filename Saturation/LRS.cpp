@@ -145,22 +145,21 @@ SaturationResult LRS::saturate()
       if (c->isEmpty()) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
-      if(!processUnprocessed(c)) {
+      if(processUnprocessed(c)) {
+	backwardSimplify(c);
+	_passive->add(c);
+	_simplCont.add(c);
+      } else {
 	c->setStore(Clause::NONE);
-	continue;
       }
-      backwardSimplify(c);
-
-      _passive->add(c);
-      _simplCont.add(c);
 
       if (env.timeLimitReached()) {
-	return SaturationResult(Statistics::TIME_LIMIT);
+  	return SaturationResult(Statistics::TIME_LIMIT);
       }
       if(shouldUpdateLimits()) {
         long estimatedReachable=estimatedReachableCount();
         if(estimatedReachable>=0) {
-  	_passive->updateLimits(estimatedReachable);
+          _passive->updateLimits(estimatedReachable);
         }
       }
     }

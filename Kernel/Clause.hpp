@@ -8,6 +8,8 @@
 #ifndef __Clause__
 #define __Clause__
 
+#include <iosfwd>
+
 #include "../Forwards.hpp"
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Metaiterators.hpp"
@@ -16,12 +18,6 @@
 
 #include "Unit.hpp"
 
-
-#if VDEBUG
-
-#include <iosfwd>
-
-#endif
 
 namespace Kernel {
 
@@ -96,6 +92,7 @@ public:
   bool isEmpty() const { return _length == 0; }
 
   void destroy();
+  void destroyExceptInferenceObject();
   string toString() const;
 
   /** Return the clause store */
@@ -139,6 +136,7 @@ public:
     return static_cast<unsigned>(_literalPositions->get(lit));
   }
 
+  bool shouldBeDestroyed();
   void destroyIfUnnecessary();
 
   void incRefCnt() { _inferenceRefCnt++; }
@@ -239,9 +237,7 @@ protected:
   Literal* _literals[1];
 }; // class Clause
 
-#if VDEBUG
 std::ostream& operator<< (ostream& out, const Clause& cl );
-#endif
 
 }
 

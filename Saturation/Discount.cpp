@@ -81,7 +81,6 @@ SaturationResult Discount::saturate()
 	  return SaturationResult(Statistics::TIME_LIMIT);
 	}
       }
-
     }
 
     if (env.timeLimitReached()) {

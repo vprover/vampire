@@ -11,6 +11,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <iosfwd>
 
 #include "../Forwards.hpp"
 #include "../Debug/Assertion.hpp"
@@ -25,11 +26,6 @@
 
 #include "MatchTag.hpp"
 
-#if VDEBUG
-
-#include <iosfwd>
-
-#endif
 
 #define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
 
@@ -687,14 +683,9 @@ public:
 
 }; // class Literal
 
-
-#if VDEBUG
-
 std::ostream& operator<< (ostream& out, TermList tl );
 std::ostream& operator<< (ostream& out, const Term& tl );
 std::ostream& operator<< (ostream& out, const Literal& tl );
-
-#endif
 
 }
 #endif

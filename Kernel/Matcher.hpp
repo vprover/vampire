@@ -214,11 +214,9 @@ private:
 	backtrack();
 
 	_state=FINISHED;
-#if VDEBUG
 	break;
       default:
 	ASSERTION_VIOLATION;
-#endif
       }
 
       ASS(_state!=FINISHED || _bdata.isEmpty());

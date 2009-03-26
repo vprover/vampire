@@ -83,14 +83,13 @@ SaturationResult Otter::saturate()
       if (c->isEmpty()) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
-      if(!processUnprocessed(c)) {
+      if(processUnprocessed(c)) {
+	backwardSimplify(c);
+	_passive->add(c);
+	_simplCont.add(c);
+      } else {
 	c->setStore(Clause::NONE);
-	continue;
       }
-      backwardSimplify(c);
-
-      _passive->add(c);
-      _simplCont.add(c);
 
       if (env.timeLimitReached()) {
 	return SaturationResult(Statistics::TIME_LIMIT);

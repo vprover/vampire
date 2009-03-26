@@ -177,7 +177,7 @@ void Allocator::reportUsageByClasses()
   Lib::DHMap<const char*, size_t> cntSummary;
   for (int i = Descriptor::capacity-1;i >= 0;i--) {
     Descriptor& d = Descriptor::map[i];
-    if (!d.address || !d.size) {
+    if (!d.address || !d.size || !d.allocated) {
       continue;
     }
     size_t occupied;

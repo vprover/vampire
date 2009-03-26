@@ -5,19 +5,16 @@
  * @since 18/05/2007 Manchester
  */
 
+#include <ostream>
+
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/Stack.hpp"
 
 #include "Inference.hpp"
 #include "Clause.hpp"
 #include "Term.hpp"
 
-#if VDEBUG
-
-#include <ostream>
-#include "../Test/Output.hpp"
-
-#endif
 
 using namespace Lib;
 using namespace Kernel;
@@ -46,15 +43,18 @@ void* Clause::operator new(size_t sz,unsigned lits)
   return ALLOC_KNOWN(size,"Clause");
 }
 
+bool Clause::shouldBeDestroyed()
+{
+  return _store==NONE && _inferenceRefCnt==0 && _inference->rule()!=Inference::INPUT;
+}
+
 /**
  * If storage is set to NONE, there are no references to this class,
  * an it is not an input clause, destroy it.
- *
- * @warning This method can lead to quite a deep recursion.
  */
 void Clause::destroyIfUnnecessary()
 {
-  if(_store==NONE && _inferenceRefCnt==0 && _inference->rule()!=Inference::INPUT) {
+  if(shouldBeDestroyed()) {
     destroy();
   }
 }
@@ -67,7 +67,33 @@ void Clause::destroyIfUnnecessary()
 void Clause::destroy()
 {
   CALL("Clause::destroy");
-  _inference->destroy();
+
+  static Stack<Clause*> toDestroy(32);
+  Clause* cl=this;
+  for(;;) {
+    Inference::Iterator it = cl->_inference->iterator();
+    while (cl->_inference->hasNext(it)) {
+      Unit* refU=cl->_inference->next(it);
+      if(!refU->isClause()) {
+	continue;
+      }
+      Clause* refCl=static_cast<Clause*>(refU);
+      refCl->_inferenceRefCnt--;
+      if(refCl->shouldBeDestroyed()) {
+	toDestroy.push(refCl);
+      }
+    }
+    delete cl->_inference;
+    cl->destroyExceptInferenceObject();
+    if(toDestroy.isEmpty()) {
+      break;
+    }
+    cl=toDestroy.pop();
+  }
+} // Clause::destroy
+
+void Clause::destroyExceptInferenceObject()
+{
   if(_literalPositions) {
     delete _literalPositions;
   }
@@ -79,7 +105,8 @@ void Clause::destroy()
   size-=sizeof(Literal*);
 
   DEALLOC_KNOWN(this, size,"Clause");
-} // Clause::destroy
+}
+
 
 /**
  * Convert the clause to the string representation.
@@ -137,9 +164,10 @@ bool Clause::contains(Literal* lit)
   return false;
 }
 
+#endif
+
 std::ostream& Kernel::operator<< (ostream& out, const Clause& cl )
 {
   return out<<cl.toString();
 }
 
-#endif

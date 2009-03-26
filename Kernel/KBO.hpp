@@ -8,10 +8,14 @@
 #ifndef __KBO__
 
 #include "../Forwards.hpp"
+
+#include "../Lib/DArray.hpp"
+
 #include "Ordering.hpp"
 
 namespace Kernel {
 
+using namespace Lib;
 
 /**
  * Class for instances of the Knuth-Bendix orderings
@@ -21,14 +25,14 @@ class KBO
   : public Ordering
 {
 public:
-  KBO(const Signature&);
-  ~KBO();
   Result compare(Literal* l1, Literal* l2);
   Result compare(TermList tl1, TermList tl2);
   static KBO* createReversedAgePreferenceConstantLevels();
   static KBO* createArityPreferenceConstantLevels();
   static KBO* createArityPreferenceAndLevels();
 private:
+  KBO(const Signature&);
+
   class State;
   /** Weight of variables */
   int _variableWeight;
@@ -50,12 +54,13 @@ private:
   /** number of functions in the signature at the time the order was created */
   unsigned _functions;
   /** Array of predicate levels */
-  int* _predicateLevels;
+  DArray<int> _predicateLevels;
   /** Array of predicate precedences */
-  int* _predicatePrecedences;
+  DArray<int> _predicatePrecedences;
   /** Array of function precedences */
-  int* _functionPrecedences;
-}; // class KBO
+  DArray<int> _functionPrecedences;
+
+};
 
 }
 #endif

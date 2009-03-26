@@ -6,6 +6,8 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
+#include <ostream>
+
 #include "../Debug/Tracer.hpp"
 
 #include "../Lib/Allocator.hpp"
@@ -21,13 +23,6 @@
 #include "Term.hpp"
 
 #include "../Indexing/TermSharing.hpp"
-
-#if VDEBUG
-
-#include <ostream>
-#include "../Test/Output.hpp"
-
-#endif
 
 using namespace std;
 using namespace Lib;
@@ -797,24 +792,27 @@ void TermList::assertValid() const
   }
 }
 
+#endif
+
 std::ostream& Kernel::operator<< (ostream& out, TermList tl )
 {
   if(tl.isEmpty()) {
     return out<<"<empty TermList>";
+  } else if(tl.isVar()) {
+    return out<<Term::variableToString(tl.var());
   } else {
-    return out<<Test::Output::singleTermListToString(tl);
+    return out<<tl.term()->toString();
   }
 }
 std::ostream& Kernel::operator<< (ostream& out, const Term& t )
 {
-  return out<<Test::Output::toString(&t);
+  return out<<t.toString();
 }
 std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
 {
-  return out<<Test::Output::toString(&l);
+  return out<<l.toString();
 }
 
-#endif
 
 /**
  * If the literal has the form p(R,f(S),T), where f(S) is the

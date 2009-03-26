@@ -33,7 +33,7 @@ class KBO::State
 public:
   /** Initialise the state */
   State(KBO& kbo)
-    : weightDiff(0), posNum(0), negNum(0),
+    : _weightDiff(0), _posNum(0), _negNum(0),
       _lexResult(EQUAL),
       _kbo(kbo)
   {}
@@ -45,20 +45,20 @@ private:
   Result innerResult(TermList t1, TermList t2);
   Result applyVariableCondition(Result res)
   {
-    if(posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+    if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
       res=INCOMPARABLE;
-    } else if(negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+    } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
       res=INCOMPARABLE;
     }
     return res;
   }
 
-  int weightDiff;
-  DHMap<unsigned, int, IdHash> varDiffs;
+  int _weightDiff;
+  DHMap<unsigned, int, IdHash> _varDiffs;
   /** Number of variables, that occur more times in the first literal */
-  int posNum;
+  int _posNum;
   /** Number of variables, that occur more times in the second literal */
-  int negNum;
+  int _negNum;
   /** First comparison result */
   Result _lexResult;
   /** The ordering used */
@@ -76,8 +76,8 @@ private:
 Ordering::Result KBO::State::result(Term* t1, Term* t2)
 {
   Result res;
-  if(weightDiff) {
-    res=weightDiff>0 ? GREATER : LESS;
+  if(_weightDiff) {
+    res=_weightDiff>0 ? GREATER : LESS;
   } else if(t1->functor()!=t2->functor()) {
     int prec1, prec2;
     if(t1->isLiteral()) {
@@ -87,128 +87,54 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
       prec1=_kbo.functionPrecedence(t1->functor());
       prec2=_kbo.functionPrecedence(t2->functor());
     }
-    if(prec1>prec2) {
-      res=GREATER;
-    } else {
-      ASS(prec1<prec2);//precedence ordering must be total
-      res=LESS;
-    }
+    ASS_NEQ(prec1,prec2);//precedence ordering must be total
+    res=(prec1>prec2)?GREATER:LESS;
   } else {
     res=_lexResult;
   }
   res=applyVariableCondition(res);
   ASS( !t1->ground() || !t2->ground() || res!=INCOMPARABLE);
+
+  //the result should never be EQUAL:
+  //- either t1 and t2 are truely equal. But then if they're equal, it
+  //would have been discovered by the t1==t2 check in
+  //KBO::compare methods.
+  //- or literals t1 and t2 are equal but for their polarity. But such
+  //literals should never occur in a clause that would exist long enough
+  //to get to ordering --- it should be deleted by tautology deletion.
+  ASS_NEQ(res, EQUAL);
   return res;
 }
 
 Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
 {
-  //TODO: compiler gives "control reaches end of non-void function" warning
-  //unless the line below is commented
   CALL("KBO::State::innerResult");
 
   ASS_NEQ(tl1, tl2);
   ASS(!TermList::sameTopFunctor(tl1,tl2));
-  if(posNum==0 && negNum==0) {
-    //all variables occur the same number of times in tl1 and tl2
-    if(weightDiff) {
-      return weightDiff>0 ? GREATER : LESS;
-    } else {
-      if(_kbo.existsZeroWeightUnaryFunction()) {
-	//If tl1 or tl2 is a variable, the same variable must occur
-	//also in the other term, but not in top level, as they would
-	//have same content. Weights also must be the same, so the top
-	//symbol has to be unary with zero weight.
-	if(tl1.isVar()) {
-	  return LESS;
-	} else if(tl2.isVar()) {
-	  return GREATER;
-	}
-      } else {
-	if(tl1.isVar()) {
-	  tl1.isVar();
-	}
-	ASS(!tl1.isVar());
-	ASS(!tl2.isVar());
-      }
-      int prec1=_kbo.functionPrecedence(tl1.term()->functor());
-      int prec2=_kbo.functionPrecedence(tl2.term()->functor());
-      if(prec1>prec2) {
-	return GREATER;
-      } else {
-	ASS(prec1<prec2);//precedence ordering must be total
-	return LESS;
-      }
-    }
-  } else if(posNum==0) {
-    ASS(negNum>0);
-    if(weightDiff) {
-      return weightDiff>0 ? INCOMPARABLE : LESS;
-    } else {
-      //If tl1 was a variable, the same variable'd have to
-      //occur also in tl2, but not in the top level, as they
-      //would have the same content. However their weights are
-      //the same, so there can be no other variables in tl2,
-      //which is in contradiction with negNum>0.
-      ASS(!tl1.isVar());
-      if(!_kbo.allConstantsHeavierThanVariables()) {
-	if(tl2.isVar()) {
-	  //under some circumstances, we could return LESS_EQ, but it would
-	  //complicate other things
-	  return INCOMPARABLE;
-	}
-      } else {
-	//If tl2 was a variable, tl1'd have to be ground, but
-	//as all constants are heavier than variables, their
-	//weights couldn't be equal.
-	ASS(!tl2.isVar());
-      }
-      int prec1=_kbo.functionPrecedence(tl1.term()->functor());
-      int prec2=_kbo.functionPrecedence(tl2.term()->functor());
-      if(prec1>prec2) {
-	return INCOMPARABLE;
-      } else {
-	ASS(prec1<prec2);//precedence ordering must be total
-	return LESS;
-      }
-    }
-  } else if(negNum==0) {
-    ASS(posNum>0);
-    if(weightDiff) {
-      return weightDiff>0 ? GREATER : INCOMPARABLE;
-    } else {
-      //If tl2 was a variable, the same variable'd have to
-      //occur also in tl1, but not in the top level, as they
-      //would have the same content. However their weights are
-      //the same, so there can be no other variables in tl1,
-      //which is in contradiction with posNum>0.
-      ASS(!tl2.isVar());
-      if(!_kbo.allConstantsHeavierThanVariables()) {
-	if(tl1.isVar()) {
-	  //under some circumstances, we could return GREATER_EQ, but it would
-	  //complicate other things
-	  return INCOMPARABLE;
-	}
-      } else {
-	//If tl1 was a variable, tl2'd have to be ground, but
-	//as all constants are heavier than variables, their
-	//weights couldn't be equal.
-	ASS(!tl1.isVar());
-      }
-      int prec1=_kbo.functionPrecedence(tl1.term()->functor());
-      int prec2=_kbo.functionPrecedence(tl2.term()->functor());
-      if(prec1>prec2) {
-	return GREATER;
-      } else {
-	ASS(prec1<prec2);//precedence ordering must be total
-	return INCOMPARABLE;
-      }
-    }
-  } else {
-    ASS(posNum>0);
-    ASS(negNum>0);
+
+  if(_posNum>0 && _negNum>0) {
     return INCOMPARABLE;
   }
+
+  Result res;
+  if(_weightDiff) {
+    res=_weightDiff>0 ? GREATER : LESS;
+  } else {
+    if(tl1.isVar()) {
+      ASS_EQ(_negNum,0);
+      res=LESS;
+    } else if(tl2.isVar()) {
+      ASS_EQ(_posNum,0);
+      res=GREATER;
+    } else {
+      int prec1=_kbo.functionPrecedence(tl1.term()->functor());
+      int prec2=_kbo.functionPrecedence(tl2.term()->functor());
+      ASS_NEQ(prec1,prec2);//precedence ordering must be total
+      res=(prec1>prec2)?GREATER:LESS;
+    }
+  }
+  return applyVariableCondition(res);
 }
 
 void KBO::State::recordVariable(unsigned var, int coef)
@@ -217,19 +143,19 @@ void KBO::State::recordVariable(unsigned var, int coef)
   ASS(coef==1 || coef==-1);
 
   int* pnum;
-  varDiffs.getValuePtr(var,pnum,0);
+  _varDiffs.getValuePtr(var,pnum,0);
   (*pnum)+=coef;
   if(coef==1) {
     if(*pnum==0) {
-      negNum--;
+      _negNum--;
     } else if(*pnum==1) {
-      posNum++;
+      _posNum++;
     }
   } else {
     if(*pnum==0) {
-      posNum--;
+      _posNum--;
     } else if(*pnum==-1) {
-      negNum++;
+      _negNum++;
     }
   }
 }
@@ -239,7 +165,7 @@ void KBO::State::traverse(TermList tl,int coef)
   CALL("KBO::State::traverse(TermList...)");
 
   if(tl.isOrdinaryVar()) {
-    weightDiff+=_kbo._variableWeight*coef;
+    _weightDiff+=_kbo._variableWeight*coef;
     recordVariable(tl.var(), coef);
     return;
   }
@@ -248,7 +174,7 @@ void KBO::State::traverse(TermList tl,int coef)
   Term* t=tl.term();
   ASSERT_VALID(*t);
 
-  weightDiff+=_kbo.functionSymbolWeight(t->functor())*coef;
+  _weightDiff+=_kbo.functionSymbolWeight(t->functor())*coef;
 
   if(!t->arity()) {
     return;
@@ -261,13 +187,13 @@ void KBO::State::traverse(TermList tl,int coef)
       stack.push(ts->next());
     }
     if(ts->isTerm()) {
-      weightDiff+=_kbo.functionSymbolWeight(ts->term()->functor())*coef;
+      _weightDiff+=_kbo.functionSymbolWeight(ts->term()->functor())*coef;
       if(ts->term()->arity()) {
 	stack.push(ts->term()->args());
       }
     } else {
       ASS_METHOD(*ts,isOrdinaryVar());
-      weightDiff+=_kbo._variableWeight*coef;
+      _weightDiff+=_kbo._variableWeight*coef;
       recordVariable(ts->var(), coef);
     }
     if(stack.isEmpty()) {
@@ -282,9 +208,10 @@ void KBO::State::traverse(Term* t1, Term* t2)
   CALL("KBO::State::traverse");
   ASS(t1->functor()==t2->functor());
   ASS(t1->arity());
+  ASS_EQ(_lexResult, EQUAL);
 
   unsigned depth=1;
-  unsigned lexValidDepth;
+  unsigned lexValidDepth=0;
 
   static Stack<TermList*> stack(32);
   stack.push(t1->args());
@@ -299,35 +226,36 @@ void KBO::State::traverse(Term* t1, Term* t2)
       depth--;
       ASS_NEQ(_lexResult,EQUAL);
       if(_lexResult!=EQUAL && depth<lexValidDepth) {
-	if(weightDiff!=0) {
-	  _lexResult=weightDiff>0 ? GREATER : LESS;
+	if(_weightDiff!=0) {
+	  _lexResult=_weightDiff>0 ? GREATER : LESS;
 	}
 	_lexResult=applyVariableCondition(_lexResult);
       }
       continue;
-    } else {
-      stack.push(ss->next());
-      stack.push(tt->next());
     }
-    //if content is the same, neighter weightDiff nor varDiffs would change
-    if(!ss->sameContent(tt)) {
-      if(TermList::sameTopFunctor(*ss,*tt)) {
-	ASS(ss->isTerm());
-	ASS(tt->isTerm());
-	ASS(ss->term()->arity());
-	stack.push(ss->term()->args());
-	stack.push(tt->term()->args());
-	depth++;
-      } else {
-	traverse(*ss,1);
-	traverse(*tt,-1);
-	if(_lexResult==EQUAL) {
-	  _lexResult=innerResult(*ss, *tt);
-	  lexValidDepth=depth;
-	  ASS(_lexResult!=EQUAL);
-	  ASS(_lexResult!=GREATER_EQ);
-	  ASS(_lexResult!=LESS_EQ);
-	}
+
+    stack.push(ss->next());
+    stack.push(tt->next());
+    if(ss->sameContent(tt)) {
+      //if content is the same, neighter weightDiff nor varDiffs would change
+      continue;
+    }
+    if(TermList::sameTopFunctor(*ss,*tt)) {
+      ASS(ss->isTerm());
+      ASS(tt->isTerm());
+      ASS(ss->term()->arity());
+      stack.push(ss->term()->args());
+      stack.push(tt->term()->args());
+      depth++;
+    } else {
+      traverse(*ss,1);
+      traverse(*tt,-1);
+      if(_lexResult==EQUAL) {
+	_lexResult=innerResult(*ss, *tt);
+	lexValidDepth=depth;
+	ASS(_lexResult!=EQUAL);
+	ASS(_lexResult!=GREATER_EQ);
+	ASS(_lexResult!=LESS_EQ);
       }
     }
   }
@@ -337,37 +265,23 @@ void KBO::State::traverse(Term* t1, Term* t2)
 
 
 /**
+ * Create a KBO object.
  *
+ * Function and predicate preferences and predicate levels
+ * must be initialized after calling this constructor and
+ * before any comparisons using this object are being made.
  */
 KBO::KBO(const Signature& sig)
   : _variableWeight(1),
     _defaultSymbolWeight(1),
     _predicates(sig.predicates()),
-    _functions(sig.functions())
+    _functions(sig.functions()),
+    _predicateLevels(_predicates),
+    _predicatePrecedences(_predicates),
+    _functionPrecedences(_functions)
 {
-  CALL("KBO::KBO");
-  ASS(_predicates);
-
-  _predicateLevels = (int*)ALLOC_KNOWN(sizeof(int)*_predicates,
-	  "KBO::levels");
-  _predicatePrecedences = (int*)ALLOC_KNOWN(sizeof(int)*_predicates,
-	  "KBO::predPrecedences");
-  if(_functions) {
-    _functionPrecedences = (int*)ALLOC_KNOWN(sizeof(int)*_functions,
-	    "KBO::funPrecedences");
-  }
-} // KBO::KBO
-
-KBO::~KBO()
-{
-  CALL("KBO::~KBO");
-
-  DEALLOC_KNOWN(_predicateLevels,sizeof(int)*_predicates,"KBO::levels");
-  DEALLOC_KNOWN(_predicatePrecedences,sizeof(int)*_predicates,"KBO::predPrecedences");
-  if(_functions) {
-    DEALLOC_KNOWN(_functionPrecedences,sizeof(int)*_functions,"KBO::funPrecedences");
-  }
-} // KBO::~KBO
+  ASS_G(_predicates, 0);
+}
 
 /**
  * Compare arguments of literals l1 and l2 and return the result
@@ -479,7 +393,6 @@ int KBO::predicateLevel (unsigned pred)
  */
 int KBO::predicatePrecedence (unsigned pred)
 {
-  ASS(pred<0x7FFFFFFF);
   return pred > _predicates ? (int)pred : _predicatePrecedences[pred];
 } // KBO::predicatePrecedences
 
@@ -492,7 +405,6 @@ int KBO::predicatePrecedence (unsigned pred)
  */
 int KBO::functionPrecedence (unsigned fun)
 {
-  ASS(fun<0x7FFFFFFF);
   return fun > _functions ? (int)fun : _functionPrecedences[fun];
 } // KBO::functionPrecedences
 
@@ -562,9 +474,8 @@ KBO* KBO::createArityPreferenceConstantLevels()
     res->_predicatePrecedences[aux[i]]=i;
   }
 
-  for(unsigned i=0;i<res->_predicates;i++) {
-    res->_predicateLevels[i]=1;
-  }
+  res->_predicateLevels.init(res->_predicates, 1);
+
   //equality is on the lowest level
   res->_predicateLevels[0]=0;
   return res;

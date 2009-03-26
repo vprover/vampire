@@ -21,6 +21,7 @@
 #include "../Saturation/SaturationAlgorithm.hpp"
 
 #include "../Lib/Environment.hpp"
+#include "../Lib/Timer.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "ForwardDemodulation.hpp"
@@ -117,6 +118,13 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 	res->setAge(Int::max(cl->age(),qr.clause->age())+1);
 	env.statistics->forwardDemodulations++;
 	keep=false;
+
+//	if(env.timer->elapsedSeconds()>33) {
+//	  cout<<(*res)<<endl;
+//	  cout<<trm<<endl;
+//	  cout<<rhsS<<endl;
+//	  cout<<endl;
+//	}
 
 	toAdd=pvi( getSingletonIterator(res) );
 	return;

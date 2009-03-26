@@ -157,7 +157,19 @@ public:
   {
   }
 
+  /**
+   * Destroy the Inference object and decrease reference
+   * counters in refered clauses.
+   */
   virtual void destroy();
+  /**
+   * Destroy the Inference object without decreasing reference
+   * counters in refered units.
+   *
+   * Using this can lead to memory leaks unless reference counters in
+   * refered clauses are decreased extra. (Such as in Clause::destroy()
+   * which does not use Inference::destroy() to avoid deep recursion.)
+   */
   virtual ~Inference() {}
   string name() const;
 
@@ -223,6 +235,7 @@ class InferenceMany
 {
 public:
   InferenceMany(Rule rule,UnitList* premises);
+  virtual ~InferenceMany() { _premises->destroy(); }
 
   virtual void destroy();
   virtual Iterator iterator();

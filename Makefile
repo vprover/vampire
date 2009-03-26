@@ -571,7 +571,6 @@ Kernel/Clause.o: Lib/InverseLookup.hpp Lib/DHMap.hpp Kernel/Unit.hpp
 Kernel/Clause.o: Lib/List.hpp Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
 Kernel/Clause.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/BacktrackData.hpp
 Kernel/Clause.o: Lib/Int.hpp Kernel/MatchTag.hpp Lib/BitUtils.hpp
-Kernel/Clause.o: Test/Output.hpp
 Kernel/ClauseQueue.o: Debug/Tracer.hpp Lib/Allocator.hpp Lib/Random.hpp
 Kernel/ClauseQueue.o: Lib/Environment.hpp Forwards.hpp Config.hpp
 Kernel/ClauseQueue.o: Kernel/Clause.hpp Lib/Metaiterators.hpp Lib/List.hpp
@@ -781,7 +780,7 @@ Kernel/Term.o: Kernel/Substitution.hpp Lib/Random.hpp Kernel/Term.hpp
 Kernel/Term.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
 Kernel/Term.o: Lib/Metaiterators.hpp Lib/Set.hpp Kernel/MatchTag.hpp
 Kernel/Term.o: Lib/BitUtils.hpp Kernel/Ordering.hpp Indexing/TermSharing.hpp
-Kernel/Term.o: Kernel/Term.hpp Test/Output.hpp
+Kernel/Term.o: Kernel/Term.hpp
 Kernel/TermFunIterator.o: Debug/Tracer.hpp Kernel/Term.hpp Forwards.hpp
 Kernel/TermFunIterator.o: Config.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Kernel/TermFunIterator.o: Lib/Allocator.hpp Lib/Portability.hpp Lib/XML.hpp
@@ -1266,6 +1265,7 @@ Inferences/ForwardDemodulation.o: Saturation/SaturationAlgorithm.hpp
 Inferences/ForwardDemodulation.o: Inferences/InferenceEngine.hpp
 Inferences/ForwardDemodulation.o: Saturation/SaturationResult.hpp
 Inferences/ForwardDemodulation.o: Shell/Statistics.hpp Lib/Environment.hpp
+Inferences/ForwardDemodulation.o: Lib/Timer.hpp
 Inferences/ForwardDemodulation.o: Inferences/ForwardDemodulation.hpp
 Inferences/ForwardDemodulation.o: Inferences/InferenceEngine.hpp
 Inferences/ForwardSubsumptionAndResolution.o: Lib/VirtualIterator.hpp
