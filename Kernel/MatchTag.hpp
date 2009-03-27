@@ -11,7 +11,12 @@
 
 #include "../Lib/BitUtils.hpp"
 
+#define USE_MATCH_TAG 1
+
 namespace Kernel {
+
+#if USE_MATCH_TAG
+
 
 class MatchTag
 {
@@ -20,9 +25,9 @@ public:
     _content=getContent(t);
   }
 
-  bool couldBeInstanceOf(MatchTag inst)
+  inline bool couldBeInstanceOf(MatchTag inst)
   { return BitUtils::isSubset(inst._content, _content); }
-  bool couldBeInstanceOfReversed(MatchTag inst)
+  inline bool couldBeInstanceOfReversed(MatchTag inst)
   {
     return BitUtils::isSubset(inst._lowContent, _highContent) &&
       BitUtils::isSubset(inst._highContent, _lowContent);
@@ -30,17 +35,19 @@ public:
 
 private:
 
-  static size_t getContent(Term* t);
-  static const int CONTENT_BITS=sizeof(size_t)*8;
+  static unsigned getContent(Term* t);
+  static const int CONTENT_BITS=sizeof(unsigned)*8;
 
   union {
-    size_t _content;
+    unsigned _content;
     struct {
       unsigned _lowContent : CONTENT_BITS/2;
       unsigned _highContent : CONTENT_BITS/2;
     };
   };
 };
+
+#endif
 
 };
 

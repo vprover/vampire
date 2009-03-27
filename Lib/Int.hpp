@@ -34,7 +34,7 @@ class Int
  public:
   static string toString(int i);
   static string toString(unsigned i);
-#ifdef ARCH_X64
+#if ARCH_X64
   static string toString(size_t i);
 #endif
   static string toString(long l);

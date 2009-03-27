@@ -749,7 +749,6 @@ Term::Term()
   _args[0]._info.shared = 0;
   _args[0]._info.literal = 0;
   _args[0]._info.order = 0;
-  _args[0]._info.reserved = 0;
   _args[0]._info.tag = FUN;
   _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
 } // Term::Term
@@ -773,7 +772,6 @@ string Term::headerToString() const
     + ", shared: " + Int::toString(_args[0]._info.shared)
     + ", literal: " + Int::toString(_args[0]._info.literal)
     + ", order: " + Int::toString(_args[0]._info.order)
-    + ", reserved: " + Int::toString(_args[0]._info.reserved)
     + ", tag: " + Int::toString(_args[0]._info.tag);
   return s;
 }

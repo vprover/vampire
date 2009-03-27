@@ -3,6 +3,7 @@
  * Implements class MatchTag.
  */
 
+#include "../Lib/Int.hpp"
 #include "Term.hpp"
 
 #include "MatchTag.hpp"
@@ -10,15 +11,17 @@
 namespace Kernel
 {
 
+#if USE_MATCH_TAG
+
 const int MatchTag::CONTENT_BITS;
 
-size_t MatchTag::getContent(Term* t)
+unsigned MatchTag::getContent(Term* t)
 {
   unsigned arity=t->arity();
   if(arity==0) {
     return 0;
   }
-  size_t res=0;
+  unsigned res=0;
   int bitsPerArg=CONTENT_BITS/arity;
   int largerArgs=CONTENT_BITS%arity;
   TermList* arg=t->args();
@@ -30,20 +33,48 @@ size_t MatchTag::getContent(Term* t)
     } else {
       currBits=bitsPerArg;
     }
-    size_t argContent;
-    if(arg->isVar()) {
-      argContent=~((size_t)0);
-    } else {
-      argContent=((size_t)arg->term()->functor()%31<<(CONTENT_BITS-5)) | (arg->term()->matchTag()._content>>5);
-//      argContent=((size_t)arg->term()->functor()%15<<(CONTENT_BITS-4)) | (arg->term()->matchTag()._content>>4);
-//      argContent=((size_t)arg->term()->functor()%7<<(CONTENT_BITS-3)) | (arg->term()->matchTag()._content>>3);
-//      argContent=((size_t)arg->term()->functor()%3<<(CONTENT_BITS-2)) | (arg->term()->matchTag()._content>>2);
+    if(currBits==0) {
+      break;
     }
-    res=(res<<currBits) | (argContent>> (CONTENT_BITS-currBits));
+    unsigned argContent;
+    if(arg->isVar()) {
+      argContent=~((unsigned)0);
+    } else {
+      unsigned fnBits;
+      unsigned paramBits;
+
+      if(arg->term()->arity()) {
+	fnBits=min(4,currBits);
+	paramBits=currBits-fnBits;
+      } else {
+	fnBits=currBits;
+	paramBits=0;
+      }
+      unsigned fnModulo= (fnBits==CONTENT_BITS) ? (~0u) : ((1<<fnBits)-1);
+      if(paramBits) {
+	unsigned in=arg->term()->matchTag()._content;
+//	unsigned out=0;
+//	unsigned step=CONTENT_BITS/paramBits;
+//	while(paramBits) {
+//	  out = (out<<1) | (in&1);
+//	  in>>=step;
+//	  paramBits--;
+//	}
+//
+//	argContent=out<<fnBits;
+	argContent=in;
+      } else {
+	argContent=0;
+      }
+      argContent=(argContent<<fnBits) && (arg->term()->functor()%fnModulo);
+    }
+    unsigned mask=(1<<currBits)-1;
+    res=(res<<currBits) | (argContent&mask);
     arg=arg->next();
   }
   return res;
 }
 
+#endif
 
 }

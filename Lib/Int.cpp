@@ -78,7 +78,7 @@ string Int::toString(unsigned i)
   return result;
 } // Int::toString
 
-#ifdef ARCH_X64
+#if ARCH_X64
 /**
  * Return the string representation of an unsigned integer.
  */
@@ -110,7 +110,7 @@ bool Int::stringToLong (const char* str,long& result)
   char* endptr = 0;
   result = strtol(str,&endptr,10);
 
-  if (*endptr || 
+  if (*endptr ||
       (result == 0 && errno)) { // error returned by strtol
 
     return false;
@@ -121,7 +121,7 @@ bool Int::stringToLong (const char* str,long& result)
 
 
 /**
- * Convert a string to an integer value. 
+ * Convert a string to an integer value.
  * @since 30/08/2004 Torrevieja
  */
 bool Int::stringToInt (const string& str,int& result)
@@ -133,21 +133,21 @@ bool Int::stringToInt (const string& str,int& result)
 
 
 /**
- * Convert a string to an unsigned integer value. 
+ * Convert a string to an unsigned integer value.
  * @since 15/11/2004 Manchester
  */
 bool Int::stringToUnsignedInt (const char* str,int& result)
 {
   CALL("Int::stringToUnsignedInt");
 
-  return stringToInt(str,result) && 
+  return stringToInt(str,result) &&
          result >= 0;
 } // Int::stringToUnsignedInt
 
 
 /**
- * Convert a string to an integer value. 
- * 
+ * Convert a string to an integer value.
+ *
  * @since 30/08/2004 Torrevieja
  * @since 15/11/2004 Manchester, changed to check for overflow
  */
@@ -164,8 +164,8 @@ bool Int::stringToInt (const char* str,int& result)
 
 
 /**
- * Convert a string to a double value. 
- * 
+ * Convert a string to a double value.
+ *
  * @since 15/11/2004 Manchester
  */
 bool Int::stringToDouble (const char* str,double& result)
@@ -176,7 +176,7 @@ bool Int::stringToDouble (const char* str,double& result)
   char* endptr = 0;
   result = strtod(str,&endptr);
 
-  if (*endptr || 
+  if (*endptr ||
       (result == 0.0 && errno)) { // error returned by strtol
     return false;
   }
@@ -186,8 +186,8 @@ bool Int::stringToDouble (const char* str,double& result)
 
 
 /**
- * Convert a string to a float value. 
- * 
+ * Convert a string to a float value.
+ *
  * @since 15/11/2004 Manchester
  */
 bool Int::stringToFloat (const char* str,float& result)
@@ -207,7 +207,7 @@ bool Int::stringToFloat (const char* str,float& result)
 
 /**
  * Convert a string to a 64-bit unsigned. No overflow check is made.
- * 
+ *
  * @since 30/11/2006 Haifa
  */
 bool Int::stringToUnsigned64 (const char* str,long long unsigned& result)
@@ -233,7 +233,7 @@ bool Int::stringToUnsigned64 (const char* str,long long unsigned& result)
 
 /**
  * Convert a string to a 64-bit unsigned. No overflow check is made.
- * 
+ *
  * @since 30/11/2006 Haifa
  */
 bool Int::stringToUnsigned64 (const string& str,long long unsigned& result)

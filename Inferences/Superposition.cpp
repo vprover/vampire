@@ -172,7 +172,7 @@ Clause* Superposition::performSuperposition(
   int newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
   bool shouldCheckWeight=false;
-  int weightLimit;
+  int weightLimit=0;
   if(limits->ageLimited() && newAge > limits->ageLimit() && limits->weightLimited()) {
     weightLimit=limits->weightLimit();
     shouldCheckWeight=true;
@@ -240,25 +240,27 @@ Clause* Superposition::performSuperposition(
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
-      (*res)[next++] = subst->apply(curr, !eqIsResult);
+      (*res)[next] = subst->apply(curr, !eqIsResult);
       if(shouldCheckWeight) {
-	weight+=(*res)[next++]->weight();
+	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
 	  goto weight_fail;
 	}
       }
+      next++;
     }
   }
   for(unsigned i=0;i<eqLength;i++) {
     Literal* curr=(*eqClause)[i];
     if(curr!=eqLit) {
-      (*res)[next++] = subst->apply(curr, eqIsResult);
+      (*res)[next] = subst->apply(curr, eqIsResult);
       if(shouldCheckWeight) {
-	weight+=(*res)[next++]->weight();
+	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
 	  goto weight_fail;
 	}
       }
+      next++;
     }
   }
 

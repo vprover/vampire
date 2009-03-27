@@ -48,6 +48,40 @@ public:
   {
     return (set&subset)==subset;
   }
+
+  static unsigned reverseBits(unsigned v)
+  {
+    // swap odd and even bits
+    v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);
+    // swap consecutive pairs
+    v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2);
+    // swap nibbles ...
+    v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);
+    // swap bytes
+    v = ((v >> 8) & 0x00FF00FF) | ((v & 0x00FF00FF) << 8);
+    // swap 2-byte long pairs
+    v = ( v >> 16             ) | ( v               << 16);
+    return v;
+  }
+
+  static unsigned log2(unsigned v)
+  {
+    const unsigned int b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
+    const unsigned int S[] = {1, 2, 4, 8, 16};
+    int i;
+
+    register unsigned int r = 0; // result of log2(v) will go here
+    for (i = 4; i >= 0; i--) // unroll for speed...
+    {
+      if (v & b[i])
+      {
+        v >>= S[i];
+        r |= S[i];
+      }
+    }
+    return r;
+  }
+
 };
 
 };

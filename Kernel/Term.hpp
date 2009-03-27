@@ -162,8 +162,12 @@ private:
        * computed yet. */
       unsigned distinctVars : 23;
       /** reserved for whatever */
-#ifdef ARCH_X64
-      size_t reserved : 32;
+#if ARCH_X64
+# if USE_MATCH_TAG
+      MatchTag matchTag; //32 bits
+# else
+      unsigned reserved : 32;
+# endif
 #else
 //      unsigned reserved : 0;
 #endif
@@ -173,6 +177,8 @@ private:
   friend class Term;
   friend class Literal;
 }; // class TermList
+
+ASS_STATIC(sizeof(TermList)==sizeof(size_t));
 
 /**
  * Class to represent terms and lists of terms.
@@ -497,12 +503,13 @@ public:
 
   void initMatchTag()
   {
+#if USE_MATCH_TAG
+# if ARCH_X64
+    _args[0]._info.matchTag.init(this);
+# else
     _matchTag.init(this);
-  }
-  MatchTag matchTag() const
-  {
-    ASS(shared());
-    return _matchTag;
+# endif
+#endif
   }
   bool couldBeInstanceOf(Term* t)
   {
@@ -511,17 +518,32 @@ public:
     if(t->functor()!=functor()) {
       return false;
     }
-    if(commutative()) {
-      return matchTag().couldBeInstanceOf(t->matchTag()) ||
-	  matchTag().couldBeInstanceOfReversed(t->matchTag());
-    } else {
-      return matchTag().couldBeInstanceOf(t->matchTag());
-    }
+    ASS(!commutative());
+    return couldArgsBeInstanceOf(t);
+  }
+  inline bool couldArgsBeInstanceOf(Term* t)
+  {
+#if USE_MATCH_TAG
+    return matchTag().couldBeInstanceOf(t->matchTag());
+#else
+    return true;
+#endif
   }
 
 protected:
   ArgumentOrder computeArgumentOrder() const;
   unsigned computeDistinctVars() const;
+
+#if USE_MATCH_TAG
+  inline MatchTag matchTag()
+  {
+#if ARCH_X64
+    return _args[0]._info.matchTag;
+#else
+    return _matchTag;
+#endif
+  }
+#endif
 
   /** The number of this symbol in a signature */
   unsigned _functor;
@@ -532,7 +554,9 @@ protected:
   /** number of occurrences of variables */
   unsigned _vars;
 
+#if USE_MATCH_TAG && !ARCH_X64
   MatchTag _matchTag;
+#endif
 
   /** The list of arguments or size arity+1. The first argument stores the
    *  term weight and the mask (the last two bits are 0).
@@ -551,6 +575,7 @@ protected:
 //   Comparison compare(const Term* t) const;
 //   void argsWeight(unsigned& total) const;
   friend class TermList;
+  friend class MatchTag;
   friend class Indexing::TermSharing;
 }; // class Term
 
@@ -667,12 +692,16 @@ public:
     if(!headersMatch(this, t, complementary)) {
       return false;
     }
+#if USE_MATCH_TAG
     if(commutative()) {
       return matchTag().couldBeInstanceOf(t->matchTag()) ||
 	  matchTag().couldBeInstanceOfReversed(t->matchTag());
     } else {
       return matchTag().couldBeInstanceOf(t->matchTag());
     }
+#else
+    return true;
+#endif
   }
 
 

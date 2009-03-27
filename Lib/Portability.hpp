@@ -55,12 +55,15 @@ ASS_STATIC(sizeof(char)==1);
 
 
 #ifdef _LP64
-#define ARCH_X64
+#define ARCH_X64 1
+#define ARCH_X86 0
 #elif _M_X64
 //this should handle MS C++ compiler
-#define ARCH_X64
+#define ARCH_X64 1
+#define ARCH_X86 0
 #else
-#define ARCH_X86
+#define ARCH_X64 0
+#define ARCH_X86 1
 #endif
 
 
