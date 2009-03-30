@@ -21,8 +21,18 @@ namespace Kernel {
 class MatchTag
 {
 public:
-  void init(Term* t) {
-    _content=getContent(t);
+  inline void makeEmpty() {_content=EMPTY_CONTENT; }
+
+  inline bool isEmpty() {
+    return _content==EMPTY_CONTENT;
+  }
+
+  inline void ensureInit(Term* t)
+  {
+    ASS(t->shared());
+    if(isEmpty()) {
+      init(t);
+    }
   }
 
   inline bool couldBeInstanceOf(MatchTag inst)
@@ -34,9 +44,11 @@ public:
   }
 
 private:
+  void init(Term* t);
 
   static unsigned getContent(Term* t);
-  static const int CONTENT_BITS=sizeof(unsigned)*8;
+  static const unsigned EMPTY_CONTENT=0;
+  static const unsigned CONTENT_BITS=sizeof(unsigned)*8;
 
   union {
     unsigned _content;

@@ -501,16 +501,6 @@ public:
     }
   }
 
-  void initMatchTag()
-  {
-#if USE_MATCH_TAG
-# if ARCH_X64
-    _args[0]._info.matchTag.init(this);
-# else
-    _matchTag.init(this);
-# endif
-#endif
-  }
   bool couldBeInstanceOf(Term* t)
   {
     ASS(shared());
@@ -524,6 +514,7 @@ public:
   inline bool couldArgsBeInstanceOf(Term* t)
   {
 #if USE_MATCH_TAG
+    ensureMatchTag();
     return matchTag().couldBeInstanceOf(t->matchTag());
 #else
     return true;
@@ -535,7 +526,12 @@ protected:
   unsigned computeDistinctVars() const;
 
 #if USE_MATCH_TAG
-  inline MatchTag matchTag()
+  inline void ensureMatchTag()
+  {
+    matchTag().ensureInit(this);
+  }
+
+  inline MatchTag& matchTag()
   {
 #if ARCH_X64
     return _args[0]._info.matchTag;
@@ -543,6 +539,7 @@ protected:
     return _matchTag;
 #endif
   }
+
 #endif
 
   /** The number of this symbol in a signature */
@@ -693,6 +690,7 @@ public:
       return false;
     }
 #if USE_MATCH_TAG
+    ensureMatchTag();
     if(commutative()) {
       return matchTag().couldBeInstanceOf(t->matchTag()) ||
 	  matchTag().couldBeInstanceOfReversed(t->matchTag());

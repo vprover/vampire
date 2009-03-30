@@ -726,6 +726,9 @@ Term::Term(const Term& t)
   _args[0]._info.shared = 0u;
   _args[0]._info.order = 0u;
   _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
+#if USE_MATCH_TAG
+  matchTag().makeEmpty();
+#endif
 } // Term::Term
 
 /** create a new literal and copy from l its content */

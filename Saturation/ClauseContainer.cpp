@@ -156,9 +156,9 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     }
   }
 
-//  if(toRemove.isNonEmpty()) {
-//    cout<<toRemove.size()<<" active deleted\n";
-//  }
+  if(toRemove.isNonEmpty()) {
+    cout<<toRemove.size()<<" active deleted\n";
+  }
 
   while(toRemove.isNonEmpty()) {
     remove(toRemove.pop());

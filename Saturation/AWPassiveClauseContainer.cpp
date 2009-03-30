@@ -210,7 +210,7 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
     maxWeight=wcl->weight();
   }
 
-//  cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
+  cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
 
   getSaturationAlgorithm()->getLimits()->setLimits(maxAge,maxWeight);
 }
@@ -233,18 +233,33 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   //of clauses, differing only in their order.
   //(unless one of _ageRation or _weightRation is equal to 0)
 
+  int ageLimit=limits->ageLimit();
+  int weightLimit=limits->weightLimit();
+
   static Stack<Clause*> toRemove(256);
   ClauseQueue::Iterator wit(_weightQueue);
   while(wit.hasNext()) {
     Clause* cl=wit.next();
-    if(!limits->fulfillsLimits(cl)) {
+    bool shouldStay=limits->fulfillsLimits(cl);
+    if(shouldStay && cl->age()==ageLimit) {
+      //clauses inferred from the clause will be over age limit
+      unsigned clen=cl->length();
+      unsigned maxSelWeight=0;
+      for(unsigned i=0;i<clen;i++) {
+        maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
+      }
+      if(cl->weight()-maxSelWeight>=weightLimit) {
+        shouldStay=false;
+      }
+    }
+    if(!shouldStay) {
       toRemove.push(cl);
     }
   }
 
-//  if(toRemove.isNonEmpty()) {
-//    cout<<toRemove.size()<<" passive deleted\n";
-//  }
+  if(toRemove.isNonEmpty()) {
+    cout<<toRemove.size()<<" passive deleted\n";
+  }
 
   while(toRemove.isNonEmpty()) {
     remove(toRemove.pop());

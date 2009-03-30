@@ -13,7 +13,32 @@ namespace Kernel
 
 #if USE_MATCH_TAG
 
-const int MatchTag::CONTENT_BITS;
+const unsigned MatchTag::EMPTY_CONTENT;
+const unsigned MatchTag::CONTENT_BITS;
+
+void MatchTag::init(Term* t) {
+  static Stack<TermList*> stack(32);
+  static Stack<Term*> terms(32);
+
+  terms.push(t);
+  stack.push(t->args());
+  TermList* tt;
+  while(!stack.isEmpty()) {
+    tt=stack.pop();
+    if(tt->isEmpty()) {
+      Term* t=terms.pop();
+      t->matchTag()._content=getContent(t);
+      continue;
+    }
+    stack.push(tt->next());
+    if(tt->isTerm() && tt->term()->matchTag().isEmpty()) {
+      Term* t=tt->term();
+      terms.push(t);
+      stack.push(t->args());
+    }
+  }
+  ASS(!isEmpty());
+}
 
 unsigned MatchTag::getContent(Term* t)
 {
@@ -22,11 +47,12 @@ unsigned MatchTag::getContent(Term* t)
     return 0;
   }
   unsigned res=0;
-  int bitsPerArg=CONTENT_BITS/arity;
-  int largerArgs=CONTENT_BITS%arity;
+  unsigned currOfs=0;
+  unsigned bitsPerArg=CONTENT_BITS/arity;
+  unsigned largerArgs=CONTENT_BITS%arity;
   TermList* arg=t->args();
   while(arg->isNonEmpty()) {
-    int currBits;
+    unsigned currBits;
     if(largerArgs) {
       largerArgs--;
       currBits=bitsPerArg+1;
@@ -42,17 +68,28 @@ unsigned MatchTag::getContent(Term* t)
     } else {
       unsigned fnBits;
       unsigned paramBits;
+      unsigned argArity=arg->term()->arity();
+      unsigned argFunctor=arg->term()->functor();
 
-      if(arg->term()->arity()) {
-	fnBits=min(4,currBits);
+      if(argArity) {
+	fnBits=min( BitUtils::log2(argFunctor)/2+1 ,currBits);
+//	fnBits=min( (argFunctor>64u) ? 5u : 3u ,currBits);
 	paramBits=currBits-fnBits;
       } else {
 	fnBits=currBits;
 	paramBits=0;
       }
-      unsigned fnModulo= (fnBits==CONTENT_BITS) ? (~0u) : ((1<<fnBits)-1);
       if(paramBits) {
+	ASS(!arg->term()->matchTag()->isEmpty());
 	unsigned in=arg->term()->matchTag()._content;
+	if(argArity==2) {
+	  unsigned pbHalf=paramBits/2;
+	  unsigned pbMask=(1<<(pbHalf))-1;
+	  argContent=in&pbMask && in>>(CONTENT_BITS/2-pbHalf);
+
+	} else {
+	  argContent=in;
+	}
 //	unsigned out=0;
 //	unsigned step=CONTENT_BITS/paramBits;
 //	while(paramBits) {
@@ -62,15 +99,20 @@ unsigned MatchTag::getContent(Term* t)
 //	}
 //
 //	argContent=out<<fnBits;
-	argContent=in;
       } else {
 	argContent=0;
       }
-      argContent=(argContent<<fnBits) && (arg->term()->functor()%fnModulo);
+      unsigned fnModulo= (fnBits==CONTENT_BITS) ? (~0u) : ((1<<fnBits)-1);
+      argContent=(argContent<<fnBits) && (argFunctor%fnModulo);
     }
     unsigned mask=(1<<currBits)-1;
-    res=(res<<currBits) | (argContent&mask);
+//    res=(res<<currBits) | (argContent&mask);
+    res|=(argContent&mask)<<currOfs;
+    currOfs+=currBits;
     arg=arg->next();
+  }
+  if(res==EMPTY_CONTENT) {
+    res=1;
   }
   return res;
 }

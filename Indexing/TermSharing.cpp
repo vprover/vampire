@@ -89,7 +89,6 @@ Term* TermSharing::insert(Term* t)
     t->markShared();
     t->setVars(vars);
     t->setWeight(weight);
-    t->initMatchTag();
     _totalTerms++;
   }
   else {
@@ -141,7 +140,6 @@ Literal* TermSharing::insert(Literal* t)
     t->markShared();
     t->setVars(vars);
     t->setWeight(weight);
-    t->initMatchTag();
     _totalLiterals++;
   }
   else {

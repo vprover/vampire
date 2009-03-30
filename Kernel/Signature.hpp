@@ -23,8 +23,8 @@ namespace Kernel {
 /**
  * Class representing signatures.
  */
-class Signature 
-{ 
+class Signature
+{
  public:
   /** Function or predicate symbol */
   class Symbol {
@@ -33,6 +33,10 @@ class Signature
     const string name;
     /** arity */
     unsigned arity;
+    /** symbol is interpreted */
+    unsigned interpreted : 1;
+    /** symbol should be eliminated */
+    unsigned bad : 1;
     /** standard constructor */
     Symbol(const string& nm,int ar)
       : name(nm),
@@ -89,6 +93,30 @@ class Signature
   const unsigned predicateArity(int number)
   {
     return _preds[number]->arity;
+  }
+
+  /** return true iff the function with given number is interpreted */
+  bool isInterpretedFunction(int number)
+  {
+    return _funs[number]->interpreted;
+  }
+
+  /** return true iff the predicate with given number is interpreted */
+  bool isInterpretedPredicate(int number)
+  {
+    return _preds[number]->interpreted;
+  }
+
+  /** return true iff the function with given number should be eliminated */
+  bool isBadFunction(int number)
+  {
+    return _funs[number]->bad;
+  }
+
+  /** return true iff the predicate with given number should be eliminated */
+  bool isBadPredicate(int number)
+  {
+    return _preds[number]->bad;
   }
 
   /** return the number of functions */
