@@ -38,9 +38,11 @@ class Signature
     /** symbol should be eliminated */
     unsigned bad : 1;
     /** standard constructor */
-    Symbol(const string& nm,int ar)
+    Symbol(const string& nm,int ar, bool itp=false, bool bd=false)
       : name(nm),
-	arity(ar)
+	arity(ar),
+	interpreted(itp),
+	bad(bd)
     {}
     CLASS_NAME("Signature::Symbol");
     USE_ALLOCATOR(Symbol);
