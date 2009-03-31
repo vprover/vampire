@@ -17,9 +17,7 @@
 #include "../Kernel/Matcher.hpp"
 #include "../Kernel/RobSubstitution.hpp"
 
-#include "../Indexing/Index.hpp"
-#include "../Indexing/TermIndex.hpp"
-#include "../Indexing/IndexManager.hpp"
+#include "../Indexing/LiteralMiniIndex.hpp"
 
 #include "../Saturation/SaturationAlgorithm.hpp"
 
@@ -43,13 +41,17 @@ void Condensation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
   static DArray<Literal*> newLits(32);
   static DArray<LiteralList*> alts(32);
 
+  LiteralMiniIndex cmi(cl);
+
   unsigned cLen=cl->length();
   unsigned newLen=cLen-1;
   CombinationIterator<unsigned> pairIt(0, cLen);
   while(pairIt.hasNext()) {
     pair<unsigned,unsigned> lpair=pairIt.next();
-    Literal* l1=(*cl)[lpair.first];
-    Literal* l2=(*cl)[lpair.second];
+    unsigned l1Index=lpair.first;
+    unsigned l2Index=lpair.second;
+    Literal* l1=(*cl)[l1Index];
+    Literal* l2=(*cl)[l2Index];
 
     newLits.ensure(newLen);
 
@@ -57,25 +59,36 @@ void Condensation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
     SubstIterator sit=subst0.unifiers(l1,0,l2,0,false);
     while(sit.hasNext()) {
       RobSubstitution* subst=sit.next();
-      unsigned next=0;
-      for(unsigned i=0;i<cLen;i++) {
-        Literal* curr=(*cl)[i];
-        if(curr!=l1) {
-          newLits[next++] = subst->apply(curr,0);
-        }
-      }
       alts.init(newLen,0);
       bool success=false;
 
-      for(unsigned bi=0;bi<newLen;bi++) {
-	for(unsigned ii=0;ii<cLen;ii++) {
-	  if(MatchingUtils::match(newLits[bi],(*cl)[ii],false)) {
-	    LiteralList::push((*cl)[ii], alts[bi]);
-	  }
-	}
-	if(!alts[bi]) {
-	  goto match_fin;
-	}
+      unsigned next=0;
+      {
+        Literal* lit=subst->apply(l1,0);
+        newLits[next] = lit;
+        LiteralMiniIndex::InstanceIterator iit(cmi, lit, false);
+        if(!iit.hasNext()) {
+          goto match_fin;
+        }
+        while(iit.hasNext()) {
+	    LiteralList::push(iit.next(), alts[next]);
+        }
+        next++;
+      }
+
+      for(unsigned i=0;i<cLen;i++) {
+        if(i!=l1Index && i!=l2Index) {
+          Literal* lit=subst->apply((*cl)[i],0);
+          newLits[next] = lit;
+          LiteralMiniIndex::InstanceIterator iit(cmi, lit, false);
+          if(!iit.hasNext()) {
+            goto match_fin;
+          }
+          while(iit.hasNext()) {
+	    LiteralList::push(iit.next(), alts[next]);
+          }
+          next++;
+        }
       }
 
       success=MLMatcher::canBeMatched(newLits.array(), newLen, cl,alts.array(),0,false);
