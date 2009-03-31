@@ -22,6 +22,7 @@
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/BacktrackData.hpp"
 #include "../Lib/ArrayMap.hpp"
+#include "../Lib/Array.hpp"
 
 #include "../Kernel/DoubleSubstitution.hpp"
 #include "../Kernel/RobSubstitution.hpp"
@@ -426,19 +427,17 @@ public:
   void insert(Node** node,BindingQueue& binding,LeafData ld);
   void remove(Node** node,BindingQueue& binding,LeafData ld);
 
-  /** Number of top-level nodes */
-  int _numberOfTopLevelNodes;
   /** Number of the next variable */
   int _nextVar;
   /** Array of nodes */
-  Node** _nodes;
+  ZIArray<Node*> _nodes;
 
   class LeafIterator
   : public IteratorCore<Leaf*>
   {
   public:
     LeafIterator(SubstitutionTree* st)
-    : _nextRootPtr(st->_nodes), _afterLastRootPtr(st->_nodes+st->_numberOfTopLevelNodes),
+    : _nextRootPtr(st->_nodes.begin()), _afterLastRootPtr(st->_nodes.end()),
     _nodeIterators(8) {}
     bool hasNext();
     Leaf* next()

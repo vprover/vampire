@@ -35,6 +35,7 @@ Statistics::Statistics()
     forwardDemodulations(0),
     backwardDemodulations(0),
     condensations(0),
+    evaluations(0),
     simpleTautologies(0),
     equationalTautologies(0),
     forwardSubsumed(0),
@@ -67,6 +68,7 @@ void Statistics::print()
   env.out << "Fw demodulations: "<<forwardDemodulations<<endl;
   env.out << "Bw demodulations: "<<backwardDemodulations<<endl;
   env.out << "Condensations: "<<condensations<<endl;
+  env.out << "Evaluations: "<<evaluations<<endl;
   env.out << endl;
   env.out << "Simple tautologies: "<<simpleTautologies<<endl;
   env.out << "Equational tautologies: "<<equationalTautologies<<endl;

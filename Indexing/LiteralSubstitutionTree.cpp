@@ -41,9 +41,9 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
   BindingQueue bq;
   getBindings(normLit, bq);
   if(insert) {
-    SubstitutionTree::insert(_nodes+getRootNodeIndex(normLit), bq, LeafData(cls, lit));
+    SubstitutionTree::insert(&_nodes[getRootNodeIndex(normLit)], bq, LeafData(cls, lit));
   } else {
-    SubstitutionTree::remove(_nodes+getRootNodeIndex(normLit), bq, LeafData(cls, lit));
+    SubstitutionTree::remove(&_nodes[getRootNodeIndex(normLit)], bq, LeafData(cls, lit));
   }
 }
 

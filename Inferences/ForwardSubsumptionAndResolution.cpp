@@ -168,7 +168,8 @@ Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* ba
   int newLength = clength-1;
 
   Inference* inf = new Inference2(Inference::SUBSUMPTION_RESOLUTION, cl, baseClause);
-  Unit::InputType inpType = cl->inputType();
+  Unit::InputType inpType = (Unit::InputType)
+  	max(cl->inputType(), baseClause->inputType());
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
 
@@ -186,7 +187,7 @@ Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* ba
     }
   }
 
-  res->setAge(cl->age()+1);
+  res->setAge(max(cl->age(), baseClause->age())+1);
   env.statistics->forwardSubsumptionResolution++;
 
   return res;

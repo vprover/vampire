@@ -149,7 +149,10 @@ public:
     /** backward demodulation inference */
     BACKWARD_DEMODULATION = 52u,
     /** condensation inference */
-    CONDENSATION = 53u
+    CONDENSATION = 53u,
+    /** evaluation inference */
+    EVALUATION = 54u
+
   }; // class Inference::Rule
 
   explicit Inference(Rule r)

@@ -119,18 +119,20 @@ Term* SubstHelper::apply(Term* trm, Applicator& applicator, bool noSharing)
       //second topmost element as &top()-1, third at
       //&top()-2, etc...
       TermList* argLst=&args.top() - (orig->arity()-1);
-      args.truncate(args.length() - orig->arity());
 
+      Term* newTrm;
       if(noSharing || !orig->shared()) {
-	args.push(TermList(Term::createNonShared(orig,argLst)));
+	newTrm=Term::createNonShared(orig,argLst);
       } else {
-	args.push(TermList(Term::create(orig,argLst)));
+	newTrm=Term::create(orig,argLst);
       }
+      args.truncate(args.length() - orig->arity());
+      args.push(TermList(newTrm));
+
       modified.setTop(true);
       continue;
-    } else {
-      toDo.push(tt->next());
     }
+    toDo.push(tt->next());
 
     TermList tl=*tt;
     if(tl.isOrdinaryVar()) {

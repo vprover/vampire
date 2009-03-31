@@ -65,9 +65,9 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
     if(insert) {
-      SubstitutionTree::insert(_nodes+rootNodeIndex, bq, ld);
+      SubstitutionTree::insert(&_nodes[rootNodeIndex], bq, ld);
     } else {
-      SubstitutionTree::remove(_nodes+rootNodeIndex, bq, ld);
+      SubstitutionTree::remove(&_nodes[rootNodeIndex], bq, ld);
     }
   }
 }

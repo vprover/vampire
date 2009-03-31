@@ -284,6 +284,8 @@ string Inference::name() const
     return "backward demodulation";
   case CONDENSATION:
     return "condensation";
+  case EVALUATION:
+    return "evaluation";
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;
@@ -292,53 +294,4 @@ string Inference::name() const
 } // Inference::name()
 
 
-//  switch (_rule) {
-//  case INPUT:
-//   case TRIVIAL_INEQUALITY_REMOVAL:
-//  case NEGATED_CONJECTURE:
-//  case CHOICE_AXIOM:
-//  case MONOTONE_REPLACEMENT:
-//  case FORALL_ELIMINATION:
-//  case RECTIFY:
-//  case NOT_AND:
-//  case NOT_OR:
-//  case NOT_IMP:
-//  case NOT_IFF:
-//  case NOT_XOR:
-//  case NOT_NOT:
-//  case NOT_FORALL:
-//  case NOT_EXISTS:
-//  case IMP_TO_OR:
-//  case IFF_TO_AND:
-//  case XOR_TO_AND:
-//  case CLOSURE:
-//  case FLATTEN:
-//  case REORDER_LITERALS:
-//  case ENNF:
-//  case NNF:
-//  case DUMMY_QUANTIFIER_REMOVAL:
-//  case FORALL_AND:
-//  case EXISTS_OR:
-//  case QUANTIFIER_SWAP:
-//  case FORALL_OR:
-//  case EXISTS_AND:
-//  case PERMUT:
-//  case REORDER_EQ:
-//  case HALF_EQUIV:
-//  case MINISCOPE:
-//  case CLAUSIFY:
-//  case REMOVE_DUPLICATE_LITERALS:
-//  case SHELL_TO_RESOLUTION:
-//  case RESOLUTION:
-//  case EQUALITY_PROXY_REPLACEMENT:
-//  case EQUALITY_PROXY_AXIOM1:
-//  case EQUALITY_PROXY_AXIOM2:
-//  case DEFINITION_UNFOLDING:
-//  case DEFINITION_FOLDING:
-//  case ROW_VARIABLE_EXPANSION:
-//  case PREDICATE_DEFINITION:
-//  case REDUCE_FALSE_TRUE:
-//   case SKOLEMIZE:
-//  default:
-//  }
 

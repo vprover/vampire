@@ -31,10 +31,12 @@ public:
   Array (size_t initialCapacity)
     : _capacity(initialCapacity)
   {
-    ASS(initialCapacity > 0);
-
-    void* mem = ALLOC_KNOWN(initialCapacity*sizeof(C),"Array<>");
-    _array = new(mem) C[initialCapacity];
+    if(initialCapacity) {
+      void* mem = ALLOC_KNOWN(initialCapacity*sizeof(C),"Array<>");
+      _array = new(mem) C[initialCapacity];
+    } else {
+      _array=0;
+    }
   }
 
   /**
@@ -57,12 +59,14 @@ public:
   } // fillInterval
 
   /**
-   * Delete array. 
+   * Delete array.
    * @since 02/01/2007 Manchester, fixing a long-standing memory leak
    */
   virtual ~Array()
   {
-    DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
+    if(_array) {
+      DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
+    }
   }
 
   /** Return a reference to the n-th element of the array,
@@ -119,6 +123,11 @@ public:
   /** Return the size (the capacity) of the array */
   size_t size() const { return _capacity; }
 
+  inline C* begin() { return _array; }
+
+  inline C* end() { return _array+_capacity; }
+
+
 protected:
   /** current array's capacity */
   size_t _capacity;
@@ -142,8 +151,10 @@ protected:
     // allocate new array and copy old array's content to the new place
     void* mem = ALLOC_KNOWN(sizeof(C)*newCapacity,"Array<>");
     C* newArray = new(mem) C[newCapacity];
-    for (int i = _capacity-1;i >= 0;i--) {
-      newArray[i] = _array[i];
+    if(_capacity) {
+      for (int i = _capacity-1;i >= 0;i--) {
+	newArray[i] = _array[i];
+      }
     }
     // deallocate the old array
     DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
@@ -151,6 +162,29 @@ protected:
     fillInterval(_capacity,newCapacity);
     _capacity = newCapacity;
   } // Array::expandToFit
+};
+
+/**
+ * Class of flexible-size generic arrays whose elements
+ * are being initialized to zero. (Zero-Initialized Array)
+ */
+template <typename T>
+class ZIArray
+: public Array<T>
+{
+public:
+  inline
+  ZIArray (size_t initialCapacity) : Array<T>(initialCapacity) {}
+  inline
+  ZIArray () {}
+
+
+  void fillInterval (size_t start,size_t end)
+  {
+    for(size_t i=start; i<end; i++) {
+      (*this)[i]=0;
+    }
+  }
 };
 
 } // namespace Lib

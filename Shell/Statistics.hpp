@@ -64,6 +64,8 @@ public:
   unsigned backwardDemodulations;
   /** number of condensations */
   unsigned condensations;
+  /** number of evaluations */
+  unsigned evaluations;
 
   // Deletion inferences
   /** number of tautologies A \/ ~A */

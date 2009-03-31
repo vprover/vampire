@@ -107,6 +107,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardDemodulation.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/InferenceEngine.o\
+         Inferences/InterpretedEvaluation.o\
          Inferences/RefutationSeekerFSE.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/SLQueryForwardSubsumption.o\

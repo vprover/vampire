@@ -44,20 +44,10 @@ using namespace Indexing;
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 SubstitutionTree::SubstitutionTree(int nodes)
-  : _numberOfTopLevelNodes(nodes),
-    _nextVar(0)
+  : _nextVar(0), _nodes(nodes)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
-  if(nodes == 0) {
-    _nodes=0;
-    return;
-  }
-  _nodes = new(ALLOC_KNOWN(nodes*sizeof(Node*),"SubstitutionTree::Node"))
-                Node*[nodes];
-  for (int i = nodes-1;i >= 0;i--) {
-    _nodes[i] = 0;
-  }
 } // SubstitutionTree::SubstitutionTree
 
 /**
@@ -68,18 +58,10 @@ SubstitutionTree::SubstitutionTree(int nodes)
 SubstitutionTree::~SubstitutionTree()
 {
   CALL("SubstitutionTree::~SubstitutionTree");
-  if(_nodes) {
-    ASS_ALLOC_TYPE(_nodes, "SubstitutionTree::Node");
-
-    for (int i = _numberOfTopLevelNodes-1; i>=0; i--) {
-      if(_nodes[i]!=0) {
-	delete _nodes[i];
-      }
+  for (unsigned i = 0; i<_nodes.size(); i++) {
+    if(_nodes[i]!=0) {
+      delete _nodes[i];
     }
-
-    DEALLOC_KNOWN(_nodes,
-	    _numberOfTopLevelNodes*sizeof(Node*),
-	    "SubstitutionTree::Node");
   }
 } // SubstitutionTree::~SubstitutionTree
 
@@ -515,7 +497,7 @@ string SubstitutionTree::toString() const
 
   string res;
 
-  for(int tli=0;tli<_numberOfTopLevelNodes;tli++) {
+  for(int tli=0;tli<_nodes.size();tli++) {
     res+=Int::toString(tli);
     res+=":\n";
 
