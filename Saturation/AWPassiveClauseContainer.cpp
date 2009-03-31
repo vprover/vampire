@@ -210,7 +210,7 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
     maxWeight=wcl->weight();
   }
 
-  cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
+//  cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
 
   getSaturationAlgorithm()->getLimits()->setLimits(maxAge,maxWeight);
 }
@@ -257,9 +257,9 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     }
   }
 
-  if(toRemove.isNonEmpty()) {
-    cout<<toRemove.size()<<" passive deleted\n";
-  }
+//  if(toRemove.isNonEmpty()) {
+//    cout<<toRemove.size()<<" passive deleted\n";
+//  }
 
   while(toRemove.isNonEmpty()) {
     remove(toRemove.pop());

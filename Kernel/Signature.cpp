@@ -1,11 +1,9 @@
-/**
+/**  
  * @file Signature.cpp
  * Implements class Signature consisting of predicate and function symbols
  */
 
 #include "../Lib/Int.hpp"
-#include "InterpretationManager.hpp"
-
 #include "Signature.hpp"
 
 using namespace std;
@@ -32,7 +30,7 @@ Signature::Signature ()
  * Destroy a Signature.
  * @since 07/05/2007 Manchester
  */
-Signature::~Signature ()
+Signature::~Signature () 
 {
   for (int i = _funs.length()-1;i >= 0;i--) {
     delete _funs[i];
@@ -69,11 +67,7 @@ unsigned Signature::addFunction (const string& name,
     return result;
   }
   result = _funs.length();
-  InterpretationManager* itMgr=InterpretationManager::instance();
-  bool itp=itMgr->isInterpretedFunction(name);
-  bool bad=itMgr->isBadFunction(name);
-
-  _funs.push(new Symbol(name,arity, itp, bad));
+  _funs.push(new Symbol(name,arity));
   _funNames.insert(symbolKey,result);
   added = true;
   return result;
@@ -107,12 +101,7 @@ unsigned Signature::addFunction (const string& name,
     return result;
   }
   result = _preds.length();
-
-  InterpretationManager* itMgr=InterpretationManager::instance();
-  bool itp=itMgr->isInterpretedPredicate(name);
-  bool bad=itMgr->isBadPredicate(name);
-
-  _preds.push(new Symbol(name,arity,itp,bad));
+  _preds.push(new Symbol(name,arity));
   _predNames.insert(symbolKey,result);
   added = true;
   return result;

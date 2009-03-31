@@ -70,7 +70,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/FormulaUnit.o\
         Kernel/FormulaVarIterator.o\
         Kernel/Inference.o\
-        Kernel/InterpretationManager.o\
         Kernel/KBO.o\
         Kernel/LiteralSelector.o\
         Kernel/MatchTag.o\
@@ -636,19 +635,6 @@ Kernel/FormulaVarIterator.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/Hash.hpp
 Kernel/FormulaVarIterator.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 Kernel/Inference.o: Debug/Tracer.hpp Kernel/Inference.hpp Kernel/Unit.hpp
 Kernel/Inference.o: Lib/Allocator.hpp
-Kernel/InterpretationManager.o: Kernel/InterpretationManager.hpp
-Kernel/InterpretationManager.o: Kernel/Term.hpp Forwards.hpp Config.hpp
-Kernel/InterpretationManager.o: Debug/Assertion.hpp Debug/Tracer.hpp
-Kernel/InterpretationManager.o: Debug/Tracer.hpp Lib/Allocator.hpp
-Kernel/InterpretationManager.o: Lib/Portability.hpp Lib/XML.hpp
-Kernel/InterpretationManager.o: Lib/Comparison.hpp Lib/Stack.hpp
-Kernel/InterpretationManager.o: Lib/Allocator.hpp Lib/BacktrackData.hpp
-Kernel/InterpretationManager.o: Lib/List.hpp Lib/VirtualIterator.hpp
-Kernel/InterpretationManager.o: Lib/Exception.hpp Lib/Reflection.hpp
-Kernel/InterpretationManager.o: Lib/Int.hpp Lib/Comparison.hpp
-Kernel/InterpretationManager.o: Lib/Portability.hpp Lib/Metaiterators.hpp
-Kernel/InterpretationManager.o: Lib/Set.hpp Lib/Hash.hpp Kernel/MatchTag.hpp
-Kernel/InterpretationManager.o: Lib/BitUtils.hpp
 Kernel/KBO.o: Debug/Tracer.hpp Lib/Environment.hpp Forwards.hpp Config.hpp
 Kernel/KBO.o: Lib/Comparison.hpp Lib/DArray.hpp Debug/Assertion.hpp
 Kernel/KBO.o: Debug/Tracer.hpp Lib/Allocator.hpp Lib/Comparison.hpp
@@ -765,16 +751,12 @@ Kernel/RobSubstitution.o: Indexing/TermSharing.hpp Lib/Set.hpp
 Kernel/RobSubstitution.o: Kernel/Term.hpp Kernel/RobSubstitution.hpp
 Kernel/RobSubstitution.o: Lib/BacktrackData.hpp Test/Output.hpp
 Kernel/Signature.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
-Kernel/Signature.o: Debug/Assertion.hpp Debug/Tracer.hpp
-Kernel/Signature.o: Kernel/InterpretationManager.hpp Kernel/Term.hpp
-Kernel/Signature.o: Forwards.hpp Config.hpp Debug/Tracer.hpp
-Kernel/Signature.o: Lib/Allocator.hpp Lib/Portability.hpp Lib/XML.hpp
-Kernel/Signature.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/Allocator.hpp
-Kernel/Signature.o: Lib/BacktrackData.hpp Lib/List.hpp
-Kernel/Signature.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-Kernel/Signature.o: Lib/Reflection.hpp Lib/Int.hpp Lib/Metaiterators.hpp
-Kernel/Signature.o: Lib/Set.hpp Lib/Hash.hpp Kernel/MatchTag.hpp
-Kernel/Signature.o: Lib/BitUtils.hpp Kernel/Signature.hpp Lib/Map.hpp
+Kernel/Signature.o: Debug/Assertion.hpp Debug/Tracer.hpp Kernel/Signature.hpp
+Kernel/Signature.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Stack.hpp
+Kernel/Signature.o: Lib/Allocator.hpp Lib/BacktrackData.hpp Lib/List.hpp
+Kernel/Signature.o: Forwards.hpp Config.hpp Lib/VirtualIterator.hpp
+Kernel/Signature.o: Lib/Exception.hpp Lib/Reflection.hpp Lib/Int.hpp
+Kernel/Signature.o: Lib/Map.hpp Lib/Hash.hpp
 Kernel/SubformulaIterator.o: Debug/Tracer.hpp Kernel/SubformulaIterator.hpp
 Kernel/SubformulaIterator.o: Kernel/Formula.hpp Lib/List.hpp Lib/XML.hpp
 Kernel/SubformulaIterator.o: Kernel/Connective.hpp
@@ -1358,6 +1340,17 @@ Inferences/InferenceEngine.o: Lib/DHMap.hpp Kernel/Unit.hpp
 Inferences/InferenceEngine.o: Kernel/Inference.hpp Kernel/Unit.hpp
 Inferences/InferenceEngine.o: Shell/Statistics.hpp
 Inferences/InferenceEngine.o: Inferences/InferenceEngine.hpp
+Inferences/InterpretedEvaluation.o: Kernel/Signature.hpp Lib/Allocator.hpp
+Inferences/InterpretedEvaluation.o: Debug/Tracer.hpp Lib/Stack.hpp
+Inferences/InterpretedEvaluation.o: Debug/Assertion.hpp Debug/Tracer.hpp
+Inferences/InterpretedEvaluation.o: Lib/Allocator.hpp Lib/BacktrackData.hpp
+Inferences/InterpretedEvaluation.o: Lib/List.hpp Forwards.hpp Config.hpp
+Inferences/InterpretedEvaluation.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
+Inferences/InterpretedEvaluation.o: Lib/Reflection.hpp Lib/Int.hpp
+Inferences/InterpretedEvaluation.o: Lib/Comparison.hpp Lib/Portability.hpp
+Inferences/InterpretedEvaluation.o: Lib/Map.hpp Lib/Hash.hpp
+Inferences/InterpretedEvaluation.o: Inferences/InterpretedEvaluation.hpp
+Inferences/InterpretedEvaluation.o: Inferences/InferenceEngine.hpp
 Inferences/RefutationSeekerFSE.o: Lib/VirtualIterator.hpp Forwards.hpp
 Inferences/RefutationSeekerFSE.o: Config.hpp Debug/Assertion.hpp
 Inferences/RefutationSeekerFSE.o: Debug/Tracer.hpp Debug/Tracer.hpp
