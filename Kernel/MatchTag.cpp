@@ -17,6 +17,8 @@ const unsigned MatchTag::EMPTY_CONTENT;
 const unsigned MatchTag::CONTENT_BITS;
 
 void MatchTag::init(Term* t) {
+  ASS(t->shared());
+
   static Stack<TermList*> stack(32);
   static Stack<Term*> terms(32);
 
@@ -80,7 +82,7 @@ unsigned MatchTag::getContent(Term* t)
 	paramBits=0;
       }
       if(paramBits) {
-	ASS(!arg->term()->matchTag()->isEmpty());
+	ASS(!arg->term()->matchTag().isEmpty());
 	unsigned in=arg->term()->matchTag()._content;
 	if(argArity==2) {
 	  unsigned pbHalf=paramBits/2;

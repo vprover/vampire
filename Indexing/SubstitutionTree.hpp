@@ -430,7 +430,7 @@ public:
   /** Number of the next variable */
   int _nextVar;
   /** Array of nodes */
-  ZIArray<Node*> _nodes;
+  Array<Node*,ZeroInitializer> _nodes;
 
   class LeafIterator
   : public IteratorCore<Leaf*>

@@ -11,7 +11,7 @@
 
 #include "../Lib/BitUtils.hpp"
 
-#define USE_MATCH_TAG 1
+#define USE_MATCH_TAG 0
 
 namespace Kernel {
 
@@ -29,7 +29,6 @@ public:
 
   inline void ensureInit(Term* t)
   {
-    ASS(t->shared());
     if(isEmpty()) {
       init(t);
     }

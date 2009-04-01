@@ -14,13 +14,22 @@
 
 namespace Lib {
 
+class EmptyInitializer;
+
 /**
  * Class of flexible-size generic arrays.
  * @since 11/03/2006 Bellevue
  * @since 26/12/2007 Manchester, reimplemented using a virtual function for
  *    filling new elements
+ *
+ * Initializer is a class with a static method
+ *
+ * static void fillInterval (Array* arr, size_t start, size_t end)
+ *
+ * that initializes elements arr[start],...,arr[end-1].
+ *
  */
-template<typename C>
+template<typename C, class Initializer=EmptyInitializer>
 class Array
 {
 public:
@@ -34,6 +43,7 @@ public:
     if(initialCapacity) {
       void* mem = ALLOC_KNOWN(initialCapacity*sizeof(C),"Array<>");
       _array = new(mem) C[initialCapacity];
+      Initializer::fillInterval(this, 0, _capacity);
     } else {
       _array=0;
     }
@@ -48,15 +58,9 @@ public:
   {
     void* mem = ALLOC_KNOWN(sizeof(C)*31,"Array<>");
     _array = new(mem) C[31];
+    Initializer::fillInterval(this, 0, _capacity);
   }
 
-  /**
-   * Fill the array by initial values at positions between start and end-1
-   * @since 26/12/2007 Manchester
-   */
-  virtual void fillInterval (size_t start,size_t end)
-  {
-  } // fillInterval
 
   /**
    * Delete array.
@@ -159,33 +163,32 @@ protected:
     // deallocate the old array
     DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
     _array = newArray;
-    fillInterval(_capacity,newCapacity);
+    size_t oldCapacity=_capacity;
     _capacity = newCapacity;
+    Initializer::fillInterval(this, oldCapacity, _capacity);
   } // Array::expandToFit
 };
 
-/**
- * Class of flexible-size generic arrays whose elements
- * are being initialized to zero. (Zero-Initialized Array)
- */
-template <typename T>
-class ZIArray
-: public Array<T>
+
+struct EmptyInitializer
 {
-public:
-  inline
-  ZIArray (size_t initialCapacity) : Array<T>(initialCapacity) {}
-  inline
-  ZIArray () {}
+  template<typename C>
+  static void fillInterval (Array<C,EmptyInitializer>* arr, size_t start,size_t end)
+  {
+  }
+};
 
-
-  void fillInterval (size_t start,size_t end)
+struct ZeroInitializer
+{
+  template<typename C>
+  static void fillInterval (Array<C,ZeroInitializer>* arr, size_t start,size_t end)
   {
     for(size_t i=start; i<end; i++) {
-      (*this)[i]=0;
+      (*arr)[i]=0;
     }
   }
 };
+
 
 } // namespace Lib
 

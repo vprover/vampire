@@ -63,9 +63,9 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
 {
   CALL("createLiteralBindings");
 
-  static UUMap varPos;
+  static UUMap variablePositions;
   static BinaryHeap<unsigned,Int> varNums;
-  varPos.reset();
+  variablePositions.reset();
   varNums.reset();
 
   Term::VariableIterator bvit(baseLit);
@@ -80,7 +80,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
     while(!varNums.isEmpty() && varNums.top()==var) {
       varNums.pop();
     }
-    if(varPos.insert(var,nextPos)) {
+    if(variablePositions.insert(var,nextPos)) {
       *(boundVarData++)=var;
       nextPos++;
     }
@@ -97,7 +97,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
     if(alit->isEquality()) {
       //we must try both possibilities
       if(MatchingUtils::matchArgs(baseLit,alit)) {
-	ArrayStoringBinder binder(altBindingData, varPos);
+	ArrayStoringBinder binder(altBindingData, variablePositions);
 	MatchingUtils::matchArgs(baseLit,alit,binder);
 	*altBindingPtrs=altBindingData;
 	altBindingPtrs++;
@@ -112,7 +112,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
       }
       if(MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1)) &&
 	  MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0))) {
-	ArrayStoringBinder binder(altBindingData, varPos);
+	ArrayStoringBinder binder(altBindingData, variablePositions);
 	MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
 	MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
 
@@ -130,7 +130,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
 
     } else {
       if(numVars) {
-	ArrayStoringBinder binder(altBindingData, varPos);
+	ArrayStoringBinder binder(altBindingData, variablePositions);
 	ALWAYS(MatchingUtils::matchArgs(baseLit,alit,binder));
       }
 
@@ -149,7 +149,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
   if(resolvedLit && resolvedLit->complementaryHeader()==baseLit->header()) {
     if(!baseLit->arity() || MatchingUtils::matchArgs(baseLit,resolvedLit)) {
       if(numVars) {
-	ArrayStoringBinder binder(altBindingData, varPos);
+	ArrayStoringBinder binder(altBindingData, variablePositions);
 	MatchingUtils::matchArgs(baseLit,resolvedLit,binder);
       }
       *altBindingPtrs=altBindingData;
@@ -160,7 +160,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
     if(baseLit->isEquality() &&
 	    MatchingUtils::matchTerms(*baseLit->nthArgument(0),*resolvedLit->nthArgument(1)) &&
 	    MatchingUtils::matchTerms(*baseLit->nthArgument(1),*resolvedLit->nthArgument(0))) {
-      ArrayStoringBinder binder(altBindingData, varPos);
+      ArrayStoringBinder binder(altBindingData, variablePositions);
       MatchingUtils::matchTerms(*baseLit->nthArgument(0),*resolvedLit->nthArgument(1),binder);
       MatchingUtils::matchTerms(*baseLit->nthArgument(1),*resolvedLit->nthArgument(0),binder);
 
