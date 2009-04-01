@@ -34,20 +34,32 @@ public:
     }
   }
 
-  inline bool couldBeInstanceOf(MatchTag inst)
-  { return BitUtils::isSubset(inst._content, _content); }
-  inline bool couldBeInstanceOfReversed(MatchTag inst)
+  inline bool couldBeInstanceOf(MatchTag base)
   {
-    return BitUtils::isSubset(inst._lowContent, _highContent) &&
-      BitUtils::isSubset(inst._highContent, _lowContent);
+    if(base._content==EMPTY_CONTENT_REPLACEMENT) {
+      return BitUtils::isSubset(EMPTY_CONTENT, _content);
+    }
+    return BitUtils::isSubset(base._content, _content);
   }
+  inline bool couldBeInstanceOfReversed(MatchTag base)
+  {
+    if(base._content==EMPTY_CONTENT_REPLACEMENT) {
+      return BitUtils::isSubset(EMPTY_CONTENT, _highContent) &&
+        BitUtils::isSubset(base._highContent, _lowContent);
+    }
+    return BitUtils::isSubset(base._lowContent, _highContent) &&
+      BitUtils::isSubset(base._highContent, _lowContent);
+  }
+
+
+  static const unsigned EMPTY_CONTENT=3;
+  static const unsigned EMPTY_CONTENT_REPLACEMENT=1;
+  static const unsigned CONTENT_BITS=sizeof(unsigned)*8;
 
 private:
   void init(Term* t);
 
   static unsigned getContent(Term* t);
-  static const unsigned EMPTY_CONTENT=0;
-  static const unsigned CONTENT_BITS=sizeof(unsigned)*8;
 
   union {
     unsigned _content;
@@ -57,6 +69,12 @@ private:
     };
   };
 };
+
+//EMPTY_CONTENT_REPLACEMENT is subset of EMPTY_CONTENT
+ASS_STATIC( (MatchTag::EMPTY_CONTENT&MatchTag::EMPTY_CONTENT_REPLACEMENT)==MatchTag::EMPTY_CONTENT_REPLACEMENT );
+//EMPTY_CONTENT_REPLACEMENT has zeroes only in the lower half
+ASS_STATIC( MatchTag::EMPTY_CONTENT<0x10000 );
+
 
 #endif
 

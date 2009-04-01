@@ -48,6 +48,8 @@ public:
     : _ready(false), _hdr(complementary?base->complementaryHeader():base->header()),
     _base(base), _compl(complementary)
     {
+      CALL("LiteralMiniIndex::InstanceIterator::InstanceIterator");
+
       Entry* arr=index._entries.array();
       unsigned weight=base->weight();
       if(arr[0]._header>=_hdr || index._cnt==1) {
@@ -72,22 +74,23 @@ public:
     }
     bool hasNext()
     {
+      CALL("LiteralMiniIndex::InstanceIterator::hasNext");
+
       if(_ready) { return true; }
       while(_curr->_header==_hdr) {
-	bool prediction=_curr->_lit->couldBeInstanceOf(_base, false);
+	bool prediction=_curr->_lit->couldBeInstanceOf(_base, _compl);
+#if VDEBUG
+	if(MatchingUtils::match(_base, _curr->_lit, _compl)) {
+	  ASS(prediction);
+#else
 	if(prediction && MatchingUtils::match(_base, _curr->_lit, _compl)) {
-	  /*if(!prediction) {
-	    INVALID_OPERATION("bad prediction!");
-	  }*/
+#endif
+	  if(!prediction) {
+
+	  }
 	  _ready=true;
 	  return true;
-	}/* else {
-	  if(prediction) {
-	    badPred++;
-	  } else {
-	    goodPred++;
-	  }
-	}*/
+	}
 
 	_curr++;
       }

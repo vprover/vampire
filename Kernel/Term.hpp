@@ -515,6 +515,7 @@ public:
   {
 #if USE_MATCH_TAG
     ensureMatchTag();
+    t->ensureMatchTag();
     return matchTag().couldBeInstanceOf(t->matchTag());
 #else
     return true;
@@ -691,6 +692,7 @@ public:
     }
 #if USE_MATCH_TAG
     ensureMatchTag();
+    t->ensureMatchTag();
     if(commutative()) {
       return matchTag().couldBeInstanceOf(t->matchTag()) ||
 	  matchTag().couldBeInstanceOfReversed(t->matchTag());
