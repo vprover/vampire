@@ -147,6 +147,7 @@ public:
 
 #if VDEBUG
   bool contains(Literal* lit);
+  void assertValid();
 #endif
 
   /** Set auxiliary value of this clause. */

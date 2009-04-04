@@ -122,6 +122,10 @@ struct Superposition::BackwardResultFn
   {
     CALL("Superposition::ForwardResultFn::operator()");
 
+    if(_cl==arg.second.clause) {
+      return 0;
+    }
+
     TermQueryResult& qr = arg.second;
     return performSuperposition(qr.clause, qr.literal, qr.term,
 	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits);
@@ -271,7 +275,9 @@ weight_fail:
   }
 
   res->setAge(newAge);
-  if(eqIsResult) {
+  if(rwClause==eqClause) {
+    env.statistics->selfSuperposition++;
+  } else if(eqIsResult) {
     env.statistics->forwardSuperposition++;
   } else {
     env.statistics->backwardSuperposition++;

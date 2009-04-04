@@ -38,12 +38,12 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
   normalizer.normalizeVariables(lit);
   Literal* normLit=normalizer.apply(lit);
 
-  BindingQueue bq;
-  getBindings(normLit, bq);
+  BindingMap svBindings;
+  getBindings(normLit, svBindings);
   if(insert) {
-    SubstitutionTree::insert(&_nodes[getRootNodeIndex(normLit)], bq, LeafData(cls, lit));
+    SubstitutionTree::insert(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
   } else {
-    SubstitutionTree::remove(&_nodes[getRootNodeIndex(normLit)], bq, LeafData(cls, lit));
+    SubstitutionTree::remove(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
   }
 }
 

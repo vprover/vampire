@@ -202,7 +202,7 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
   if(zmli.hasNext()) {
     while(zmli.hasNext()) {
       Literal* bl=zmli.next();
-      if( resLit->couldBeInstanceOf(bl, true) ) {
+      if( !resLit->couldBeInstanceOf(bl, true) ) {
 	return false;
       }
     }

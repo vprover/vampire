@@ -170,6 +170,7 @@ bool TermList::containsSubterm(TermList trm)
 
   TermList* ts=term()->args();
   static Stack<TermList*> stack(4);
+  stack.reset();
   for(;;) {
     if(*ts==trm) {
       return true;

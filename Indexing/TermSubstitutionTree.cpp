@@ -59,15 +59,15 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     normalizer.normalizeVariables(term);
     Term* normTerm=normalizer.apply(term);
 
-    BindingQueue bq;
-    getBindings(normTerm, bq);
+    BindingMap svBindings;
+    getBindings(normTerm, svBindings);
 
     unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
     if(insert) {
-      SubstitutionTree::insert(&_nodes[rootNodeIndex], bq, ld);
+      SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
     } else {
-      SubstitutionTree::remove(&_nodes[rootNodeIndex], bq, ld);
+      SubstitutionTree::remove(&_nodes[rootNodeIndex], svBindings, ld);
     }
   }
 }

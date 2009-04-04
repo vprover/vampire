@@ -414,6 +414,7 @@ public:
     { return 0u; }
   };
 
+  typedef DHMap<unsigned,TermList,IdentityHash> BindingMap;
   //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
   //that when SkipList is used.
   typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
@@ -422,10 +423,10 @@ public:
   typedef BinaryHeap<unsigned,SpecVarComparator> SpecVarQueue;
   typedef Stack<unsigned> VarStack;
 
-  void getBindings(Term* t, BindingQueue& bq);
+  void getBindings(Term* t, BindingMap& binding);
 
-  void insert(Node** node,BindingQueue& binding,LeafData ld);
-  void remove(Node** node,BindingQueue& binding,LeafData ld);
+  void insert(Node** node,BindingMap& binding,LeafData ld);
+  void remove(Node** node,BindingMap& binding,LeafData ld);
 
   /** Number of the next variable */
   int _nextVar;

@@ -66,10 +66,12 @@ void Otter::activate(Clause* c)
   CALL("Otter::activate");
 
   _selector->select(c);
+
+  _active->add(c);
+
   ClauseIterator toAdd=_generator->generateClauses(c);
   _unprocessed->addClauses(toAdd);
 
-  _active->add(c);
 }
 
 SaturationResult Otter::saturate()

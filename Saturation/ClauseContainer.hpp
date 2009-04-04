@@ -15,6 +15,8 @@
 
 #include "Limits.hpp"
 
+#define OUTPUT_LRS_DETAILS 0
+
 namespace Saturation
 {
 

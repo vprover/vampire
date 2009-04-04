@@ -154,6 +154,17 @@ void Clause::computeWeight()
 
 #if VDEBUG
 
+void Clause::assertValid()
+{
+  if(_literalPositions) {
+    unsigned clen=length();
+    for (unsigned i = 0; i<clen; i++) {
+      ASS_EQ(getLiteralPosition((*this)[i]),i);
+    }
+  }
+}
+
+
 bool Clause::contains(Literal* lit)
 {
   for (int i = _length-1; i >= 0; i--) {

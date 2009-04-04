@@ -683,21 +683,25 @@ public:
   Literal* apply(Substitution& subst);
 
 
-  bool couldBeInstanceOf(Literal* t, bool complementary)
+  inline bool couldBeInstanceOf(Literal* lit, bool complementary)
   {
     ASS(shared());
-    ASS(t->shared());
-    if(!headersMatch(this, t, complementary)) {
+    ASS(lit->shared());
+    if(!headersMatch(this, lit, complementary)) {
       return false;
     }
+    return couldArgsBeInstanceOf(lit);
+  }
+  bool couldArgsBeInstanceOf(Literal* lit)
+  {
 #if USE_MATCH_TAG
     ensureMatchTag();
-    t->ensureMatchTag();
+    lit->ensureMatchTag();
     if(commutative()) {
-      return matchTag().couldBeInstanceOf(t->matchTag()) ||
-	  matchTag().couldBeInstanceOfReversed(t->matchTag());
+      return matchTag().couldBeInstanceOf(lit->matchTag()) ||
+	  matchTag().couldBeInstanceOfReversed(lit->matchTag());
     } else {
-      return matchTag().couldBeInstanceOf(t->matchTag());
+      return matchTag().couldBeInstanceOf(lit->matchTag());
     }
 #else
     return true;

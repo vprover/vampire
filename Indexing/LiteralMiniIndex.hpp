@@ -78,16 +78,13 @@ public:
 
       if(_ready) { return true; }
       while(_curr->_header==_hdr) {
-	bool prediction=_curr->_lit->couldBeInstanceOf(_base, _compl);
+	bool prediction=_curr->_lit->couldArgsBeInstanceOf(_base);
 #if VDEBUG
 	if(MatchingUtils::match(_base, _curr->_lit, _compl)) {
 	  ASS(prediction);
 #else
 	if(prediction && MatchingUtils::match(_base, _curr->_lit, _compl)) {
 #endif
-	  if(!prediction) {
-
-	  }
 	  _ready=true;
 	  return true;
 	}

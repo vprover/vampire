@@ -27,6 +27,7 @@ Statistics::Statistics()
     resolution(0),
     forwardSuperposition(0),
     backwardSuperposition(0),
+    selfSuperposition(0),
     equalityFactoring(0),
     equalityResolution(0),
     duplicateLiterals(0),
@@ -80,6 +81,7 @@ void Statistics::print()
   env.out << "Factoring: "<<factoring<<endl;
   env.out << "Forward superposition: "<<forwardSuperposition<<endl;
   env.out << "Backward superposition: "<<backwardSuperposition<<endl;
+  env.out << "Self superposition: "<<selfSuperposition<<endl;
   env.out << "Equality factoring: "<<equalityFactoring<<endl;
   env.out << "Equality resolution: "<<equalityResolution<<endl;
   env.out << "------------------------------\n";

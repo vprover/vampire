@@ -140,8 +140,8 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
       if(resolvedLit) {
         new(altBindingData++) TermList((size_t)0);
       } else {
-        //add pointer to the literal at
-        //the end of the binding sequance
+        //add index of the literal in instance clause at
+        //the end of the binding sequence
         new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
       }
     }
@@ -206,10 +206,18 @@ struct MatchingData {
     return static_cast<unsigned>(altBindings[bi][alti][varCnts[bi]].content());
   }
 
+  /**
+   * Return true if binding @b b1Index -th base literal that binds variables
+   * to terms stored in @b i1Bindings is compatible to binding @b b2Index -th
+   * base literal that binds variables to terms stored in
+   * @b altBindings[b2Index][i2AltIndex] .
+   */
   bool compatible(unsigned b1Index, TermList* i1Bindings,
   	unsigned b2Index, unsigned i2AltIndex) const
   {
     CALL("MatchingData::compatible");
+
+    if(varCnts[b1Index]==0 || varCnts[b2Index]==0) { return true; }
 
     TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
     unsigned* b1vn=boundVarNums[b1Index];
@@ -273,7 +281,7 @@ struct MatchingData {
       }
       remaining->set(bIndex, 0, altCnt);
 
-      unsigned remAlts;
+      unsigned remAlts=0;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
         TermList* pbBindings=altBindings[pbi][nextAlts[pbi]-1];
         remAlts=remaining->get(bIndex, pbi);

@@ -51,10 +51,10 @@ void Discount::activate(Clause* c)
 
   _selector->select(c);
 
+  _active->add(c);
   toAdd=_generator->generateClauses(c);
   _unprocessed->addClauses(toAdd);
 
-  _active->add(c);
 }
 
 SaturationResult Discount::saturate()

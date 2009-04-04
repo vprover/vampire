@@ -169,48 +169,63 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
   CALL("AWPassiveClauseContainer::updateLimits");
   ASS_GE(estReachableCnt,0);
 
-  ClauseQueue::Iterator wit(_weightQueue);
-  ClauseQueue::Iterator ait(_ageQueue);
+  int maxAge, maxWeight;
 
-  if(!wit.hasNext() && !ait.hasNext()) {
-    return;
+  if(estReachableCnt>_size) {
+    maxAge=-1;
+    maxWeight=-1;
+    goto fin;
   }
 
-  ASS(wit.hasNext()&&ait.hasNext());
-  long remains=estReachableCnt;
-  Clause* wcl=0;
-  Clause* acl=0;
-  unsigned balance=(_ageRatio<=_weightRatio)?1:0;
-  while(remains) {
-    ASS_G(remains,0);
-    if( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
-      wcl=wit.next();
-      balance-=_ageRatio;
-      if(!acl || wcl->age() >= acl->age()) {
-	remains--;
+  {
+    ClauseQueue::Iterator wit(_weightQueue);
+    ClauseQueue::Iterator ait(_ageQueue);
+
+    if(!wit.hasNext() && !ait.hasNext()) {
+      return;
+    }
+
+    //here we expect both age and weight ratio to be nonzero
+    ASS(wit.hasNext()&&ait.hasNext());
+
+    long remains=estReachableCnt;
+    Clause* wcl=0;
+    Clause* acl=0;
+    unsigned balance=(_ageRatio<=_weightRatio)?1:0;
+    while(remains) {
+      ASS_G(remains,0);
+      if( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
+	wcl=wit.next();
+	if(!acl || wcl->age() >= acl->age()) {
+	  balance-=_ageRatio;
+	  remains--;
+	}
+      } else if(ait.hasNext()){
+	acl=ait.next();
+	if(!wcl || acl->weight() > wcl->weight()) {
+	  balance+=_weightRatio;
+	  remains--;
+	}
+      } else {
+	break;
       }
-    } else if(ait.hasNext()){
-      acl=ait.next();
-      balance+=_weightRatio;
-      if(!wcl || acl->weight() > wcl->weight()) {
-	remains--;
-      }
-    } else {
-      break;
+    }
+
+    //when _ageRatio==0, the age limit can be set to zero, as age doesn't matter
+    maxAge=(_ageRatio && acl!=0)?-1:0;
+    maxWeight=(_weightRatio && wcl!=0)?-1:0;
+    if(acl!=0 && ait.hasNext()) {
+      maxAge=acl->age();
+    }
+    if(wcl!=0 && wit.hasNext()) {
+      maxWeight=wcl->weight();
     }
   }
 
-  //when _ageRatio==0, the age limit can be set to zero, as age doesn't matter
-  int maxAge=(_ageRatio && acl!=0)?-1:0;
-  int maxWeight=(_weightRatio && wcl!=0)?-1:0;
-  if(acl!=0 && ait.hasNext()) {
-    maxAge=acl->age();
-  }
-  if(wcl!=0 && wit.hasNext()) {
-    maxWeight=wcl->weight();
-  }
-
-//  cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
+fin:
+#if OUTPUT_LRS_DETAILS
+  cout<<env.timer->elapsedDeciseconds()<<"\tLimits to "<<maxAge<<"\t"<<maxWeight<<"\t by est "<<estReachableCnt<<"\n";
+#endif
 
   getSaturationAlgorithm()->getLimits()->setLimits(maxAge,maxWeight);
 }
@@ -240,8 +255,10 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   ClauseQueue::Iterator wit(_weightQueue);
   while(wit.hasNext()) {
     Clause* cl=wit.next();
-    bool shouldStay=limits->fulfillsLimits(cl);
-    if(shouldStay && cl->age()==ageLimit) {
+//    bool shouldStay=limits->fulfillsLimits(cl);
+    bool shouldStay=true;
+//    if(shouldStay && cl->age()==ageLimit) {
+    if(cl->age()>=ageLimit) {
       //clauses inferred from the clause will be over age limit
       unsigned clen=cl->length();
       unsigned maxSelWeight=0;
@@ -257,9 +274,11 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     }
   }
 
-//  if(toRemove.isNonEmpty()) {
-//    cout<<toRemove.size()<<" passive deleted\n";
-//  }
+#if OUTPUT_LRS_DETAILS
+  if(toRemove.isNonEmpty()) {
+    cout<<toRemove.size()<<" passive deleted\n";
+  }
+#endif
 
   while(toRemove.isNonEmpty()) {
     remove(toRemove.pop());

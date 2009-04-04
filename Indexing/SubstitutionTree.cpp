@@ -70,9 +70,8 @@ SubstitutionTree::~SubstitutionTree()
  *
  * This method is used for insertions and deletions.
  */
-void SubstitutionTree::getBindings(Term* t, BindingQueue& bq)
+void SubstitutionTree::getBindings(Term* t, BindingMap& svBindings)
 {
-  Binding bind;
   TermList* args=t->args();
 
   int nextVar = 0;
@@ -80,9 +79,7 @@ void SubstitutionTree::getBindings(Term* t, BindingQueue& bq)
     if (_nextVar <= nextVar) {
       _nextVar = nextVar+1;
     }
-    bind.var = nextVar++;
-    bind.term = *args;
-    bq.insert(bind);
+    svBindings.insert(nextVar++, *args);
     args = args->next();
   }
 }
@@ -129,29 +126,22 @@ struct BindingComparator
  * top symbol of the term/literal being inserted, and
  * @b bh contains its arguments.
  */
-void SubstitutionTree::insert(Node** pnode,BindingQueue& bh,LeafData ld)
+void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
 {
   CALL("SubstitutionTree::insert/3");
 
   if(*pnode == 0) {
-    if(bh.isEmpty()) {
+    if(svBindings.isEmpty()) {
       *pnode=createLeaf();
     } else {
-      *pnode=createIntermediateNode(bh.top().var);
+      *pnode=createIntermediateNode(svBindings.getOneKey());
     }
   }
-  if(bh.isEmpty()) {
+  if(svBindings.isEmpty()) {
     ASS((*pnode)->isLeaf());
     ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
     static_cast<Leaf*>(*pnode)->insert(ld);
     return;
-  }
-
-  typedef DHMap<unsigned,TermList,IdentityHash> SVMap;
-  SVMap svBindings;
-  while(!bh.isEmpty()) {
-    Binding b=bh.pop();
-    svBindings.set(b.var, b.term);
   }
 
   typedef BinaryHeap<UnresolvedSplitRecord, BindingComparator> SplitRecordHeap;
@@ -234,7 +224,7 @@ start:
   pnode=inode->childByTop(term,true);
 
   if (*pnode == 0) {
-    SVMap::Iterator svit(svBindings);
+    BindingMap::Iterator svit(svBindings);
     BinaryHeap<Binding, BindingComparator> remainingBindings;
     while (svit.hasNext()) {
       Binding b;
@@ -343,18 +333,11 @@ start:
  * If the removal results in a chain of nodes containing
  * no terms/literals, all those nodes are removed as well.
  */
-void SubstitutionTree::remove(Node** pnode,BindingQueue& bh,LeafData ld)
+void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
 {
   CALL("SubstitutionTree::remove-2");
 
   ASS(*pnode);
-
-  typedef DHMap<unsigned,TermList,IdentityHash> SVMap;
-  SVMap svBindings;
-  while(!bh.isEmpty()) {
-    Binding b=bh.pop();
-    svBindings.set(b.var, b.term);
-  }
 
   static Stack<Node**> history(1000);
   history.reset();
@@ -477,7 +460,7 @@ string SubstitutionTree::nodeToString(Node* topNode)
 	LDIterator ldi(lnode->allChildren());
 
 	while(ldi.hasNext()) {
-	  res+=getIndentStr(indent) + "Lit: " + Test::Output::toString(ldi.next().literal) + "\n";
+	  res+=getIndentStr(indent) + "Lit: " + ldi.next().literal->toString() + "\n";
 	}
     } else {
 	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
@@ -497,7 +480,7 @@ string SubstitutionTree::toString() const
 
   string res;
 
-  for(int tli=0;tli<_nodes.size();tli++) {
+  for(unsigned tli=0;tli<_nodes.size();tli++) {
     res+=Int::toString(tli);
     res+=":\n";
 

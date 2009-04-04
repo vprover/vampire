@@ -55,7 +55,8 @@ bool LRS::shouldUpdateLimits()
   static unsigned lastCheck=currTime;
 //  cnt++;
 //  if(cnt==500 || currTime>lastCheck+500) {
-  if(currTime>lastCheck+500) {
+//  if(currTime>lastCheck+500) {
+  if(currTime>lastCheck+5) {
 //    cnt=0;
     lastCheck=currTime;
     return true;
@@ -70,8 +71,9 @@ long LRS::estimatedReachableCount()
   unsigned processed=max(env.statistics->activeClauses,10u);
   int currTime=env.timer->elapsedMilliseconds();
   int timeSpent=currTime-_startTime;
+//  int timeSpent=currTime;
 
-  if(timeSpent<100) {
+  if(timeSpent<1000) {
     return -1;
   }
 
@@ -126,10 +128,12 @@ void LRS::activate(Clause* c)
   CALL("LRS::activate");
 
   _selector->select(c);
+
+  _active->add(c);
+
   ClauseIterator toAdd=_generator->generateClauses(c);
   _unprocessed->addClauses(toAdd);
 
-  _active->add(c);
 }
 
 SaturationResult LRS::saturate()

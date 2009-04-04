@@ -22,21 +22,34 @@ public:
   TriangularArray(size_t side)
   : _2sideMinus1(2*side-1)
   {
+    ASS_G(side,0);
     _capacity=dataSize();
-    _data=static_cast<T*>(ALLOC_KNOWN(_capacity*sizeof(void*), "Lib::TriangularArray"));
+    void * mem=ALLOC_KNOWN(_capacity*sizeof(T), "Lib::TriangularArray");
+    _data=new(mem) T[_capacity];
   }
   ~TriangularArray()
   {
-    DEALLOC_KNOWN(_data,_capacity*sizeof(void*), "Lib::TriangularArray");
+    T* p=_data+_capacity;
+    while(p!=_data) {
+      (--p)->~T();
+    }
+    DEALLOC_KNOWN(_data,_capacity*sizeof(T), "Lib::TriangularArray");
   }
 
   void setSide(size_t side)
   {
+    ASS_G(side,0);
     _2sideMinus1=2*side-1;
     if(dataSize()>_capacity) {
-      DEALLOC_KNOWN(_data,_capacity*sizeof(void*), "Lib::TriangularArray");
-      _capacity=min(_capacity*2,dataSize());
-      _data=static_cast<T*>(ALLOC_KNOWN(_capacity*sizeof(void*), "Lib::TriangularArray"));
+      T* p=_data+_capacity;
+      while(p!=_data) {
+        (--p)->~T();
+      }
+      DEALLOC_KNOWN(_data,_capacity*sizeof(T), "Lib::TriangularArray");
+
+      _capacity=max(_capacity*2,dataSize());
+      void * mem=ALLOC_KNOWN(_capacity*sizeof(T), "Lib::TriangularArray");
+      _data=new(mem) T[_capacity];
     }
   }
 
@@ -50,6 +63,7 @@ public:
   {
     ASS_GE(x,y);
     ASS_L(x,(_2sideMinus1+1)/2);
+    ASS_L(x + (y*(_2sideMinus1-y))/2, _capacity);
     return _data[x + (y*(_2sideMinus1-y))/2];
   }
 
@@ -57,6 +71,7 @@ public:
   {
     ASS_GE(x,y);
     ASS_L(x,(_2sideMinus1+1)/2);
+    ASS_L(x + (y*(_2sideMinus1-y))/2, _capacity);
     _data[x + (y*(_2sideMinus1-y))/2]=val;
   }
 

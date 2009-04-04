@@ -88,24 +88,25 @@ unsigned MatchTag::getContent(Term* t)
       if(paramBits) {
 	ASS(!arg->term()->matchTag().isEmpty());
 	unsigned in=arg->term()->matchTag()._content;
-//	if(argArity==2) {
-//	  unsigned pbHalf=paramBits/2;
-//	  unsigned pbMask=(1<<(pbHalf))-1;
-//	  argContent=in&pbMask && in>>(CONTENT_BITS/2-pbHalf);
-//
-//	} else {
-//	  argContent=in;
-//	}
+	if(argArity==1) {
+	  argContent=in;
+	} else if(argArity==2) {
+	  unsigned pbHalf=paramBits/2;
+	  unsigned pbMask=(1<<(pbHalf))-1;
+	  argContent=in&pbMask && in>>(CONTENT_BITS/2-pbHalf);
 
-//	argContent=in;
-
-	unsigned out=0;
-	unsigned step=CONTENT_BITS/paramBits;
-	while(paramBits) {
-	  out = (out<<1) | (in&1);
-	  in>>=step;
-	  paramBits--;
+	} else {
+	  argContent=0;
+	  unsigned step=CONTENT_BITS/paramBits;
+	  unsigned remPb=paramBits;
+	  while(remPb) {
+	    argContent = (argContent<<1) | (in&1);
+	    in>>=step;
+	    remPb--;
+	  }
 	}
+
+
       } else {
 	argContent=0;
       }

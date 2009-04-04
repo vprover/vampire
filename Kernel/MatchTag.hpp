@@ -11,7 +11,7 @@
 
 #include "../Lib/BitUtils.hpp"
 
-#define USE_MATCH_TAG 0
+#define USE_MATCH_TAG 1
 
 namespace Kernel {
 

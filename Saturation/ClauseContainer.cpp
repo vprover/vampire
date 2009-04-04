@@ -151,14 +151,16 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     for(unsigned i=0;i<selCnt;i++) {
       maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
     }
-    if(cl->weight()-maxSelWeight>=weightLimit) {
+    if(cl->weight()-(int)maxSelWeight>=weightLimit) {
       toRemove.push(cl);
     }
   }
 
-//  if(toRemove.isNonEmpty()) {
-//    cout<<toRemove.size()<<" active deleted\n";
-//  }
+#if OUTPUT_LRS_DETAILS
+  if(toRemove.isNonEmpty()) {
+    cout<<toRemove.size()<<" active deleted\n";
+  }
+#endif
 
   while(toRemove.isNonEmpty()) {
     remove(toRemove.pop());
