@@ -88,7 +88,7 @@ ForwardSimplificationEngineSP createFSE()
   }
 
 //  res->addFront(ForwardSimplificationEngineSP(new Condensation()));
-  res->addFront(ForwardSimplificationEngineSP(new InterpretedEvaluation()));
+//  res->addFront(ForwardSimplificationEngineSP(new InterpretedEvaluation()));
   res->addFront(ForwardSimplificationEngineSP(new TrivialInequalitiesRemovalFSE()));
   res->addFront(ForwardSimplificationEngineSP(new TautologyDeletionFSE()));
   res->addFront(ForwardSimplificationEngineSP(new DuplicateLiteralRemovalFSE()));

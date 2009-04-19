@@ -52,6 +52,30 @@ public:
 
   static SaturationAlgorithmSP createFromOptions();
 
+#if VDEBUG
+  void onActiveAdded(Clause* c)
+  {
+    cout<<"Active added: "<<(*c)<<endl;
+  }
+  void onPassiveAdded(Clause* c)
+  {
+    cout<<"Passive added: "<<(*c)<<endl;
+  }
+  void onPassiveRemoved(Clause* c)
+  {
+    cout<<"Passive removed: "<<(*c)<<endl;
+  }
+  void onUnprocessedAdded(Clause* c)
+  {
+    cout<<"Unprocessed added: "<<(*c)<<endl;
+  }
+  void onUnprocessedRemoved(Clause* c)
+  {
+    cout<<"Unprocessed removed: "<<(*c)<<endl;
+  }
+#endif
+
+
 private:
   Limits _limits;
   IndexManager _imgr;

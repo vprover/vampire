@@ -119,14 +119,14 @@ public:
   }
 
   /** Return the weight */
-  int weight()
+  int weight() const
   {
     if(!_weight) {
       computeWeight();
     }
     return _weight;
   }
-  void computeWeight();
+  void computeWeight() const;
 
   unsigned getLiteralPosition(Literal* lit)
   {
@@ -218,7 +218,7 @@ protected:
   /** age */
   unsigned _age;
   /** weight */
-  unsigned _weight;
+  mutable unsigned _weight;
   /** storage class */
   Store _store;
   /** number of references to this clause by inference rules */

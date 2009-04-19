@@ -130,7 +130,7 @@ string Clause::toString() const
     }
   }
   result += string(" (") + Int::toString(_age) + ':' +
-            Int::toString(_weight) + ") " + inferenceAsString();
+            Int::toString(weight()) + ") " + inferenceAsString();
   return result;
 } // Clause::toString
 
@@ -140,7 +140,7 @@ string Clause::toString() const
  * @pre All literals are shared, so their weight is computed properly.
  * @since 02/01/2008 Manchester.
  */
-void Clause::computeWeight()
+void Clause::computeWeight() const
 {
   CALL("Clause::computeWeight");
 

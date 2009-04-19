@@ -204,8 +204,6 @@ Clause* Superposition::performSuperposition(
     ordering=Ordering::instance();
   }
 
-  Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
-  TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
   TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
   TermList tgtTerm = EqHelper::getRHS(eqLit, eqLHS);
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
@@ -214,20 +212,31 @@ Clause* Superposition::performSuperposition(
   if(ordering->compare(tgtTermS,eqLHSS)==Ordering::GREATER) {
     return 0;
   }
-  Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
-  if(tgtLitS->isEquality()) {
+
+  Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
+  TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
+
+  if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
-    TermList arg0=*tgtLitS->nthArgument(0);
-    TermList arg1=*tgtLitS->nthArgument(1);
-    if(!arg0.containsSubterm(tgtTermS)) {
-      if(ordering->compare(arg0,arg1)==Ordering::GREATER) {
+    TermList arg0=*rwLitS->nthArgument(0);
+    TermList arg1=*rwLitS->nthArgument(1);
+
+    if(!arg0.containsSubterm(rwTermS)) {
+      if(rwLitS->getArgumentOrder()==Term::GREATER) {
 	return 0;
       }
-    } else if(!arg1.containsSubterm(tgtTermS)) {
-      if(ordering->compare(arg1,arg0)==Ordering::GREATER) {
+    } else if(!arg1.containsSubterm(rwTermS)) {
+      if(rwLitS->getArgumentOrder()==Term::LESS) {
 	return 0;
       }
     }
+  }
+
+  Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
+
+  //check we don't create an equational tautology (this happens during self-superposition)
+  if(tgtLitS->isEquality() && tgtLitS->nthArgument(0)==tgtLitS->nthArgument(1)) {
+    return 0;
   }
 
   unsigned newLength = rwLength+eqLength-1;
