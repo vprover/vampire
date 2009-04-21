@@ -55,11 +55,11 @@ public:
 #if VDEBUG
   void onActiveAdded(Clause* c)
   {
-    cout<<"Active added: "<<(*c)<<endl;
+    cout<<"## Active added: "<<(*c)<<endl;
   }
   void onPassiveAdded(Clause* c)
   {
-    cout<<"Passive added: "<<(*c)<<endl;
+    cout<<"# Passive added: "<<(*c)<<endl;
   }
   void onPassiveRemoved(Clause* c)
   {
@@ -67,11 +67,15 @@ public:
   }
   void onUnprocessedAdded(Clause* c)
   {
-    cout<<"Unprocessed added: "<<(*c)<<endl;
+    cout<<"++ Unprocessed added: "<<(*c)<<endl;
   }
   void onUnprocessedRemoved(Clause* c)
   {
     cout<<"Unprocessed removed: "<<(*c)<<endl;
+  }
+  void onUnprocessedSelected(Clause* c)
+  {
+    cout<<"-- Unprocessed selected: "<<(*c)<<endl;
   }
 #endif
 

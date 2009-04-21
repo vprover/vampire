@@ -84,11 +84,7 @@ private:
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
   CALL("EqualityResolution::generateClauses");
-
   ASS(premise->selected()>0);
-  if(premise->length()==1) {
-    return ClauseIterator::getEmpty();
-  }
 
   return pvi( getFilteredIterator(
 	  getMappingIterator(
