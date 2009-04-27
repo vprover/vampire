@@ -1,16 +1,17 @@
 /**
- * @file RobSubstitution.hpp
- * Defines class RobSubstitution.
+ * @file EGSubstitution.hpp
+ * Defines class EGSubstitution.
  *
  */
 
-#ifndef __RobSubstitution__
-#define __RobSubstitution__
+#ifndef __EGSubstitution__
+#define __EGSubstitution__
 
 #include <utility>
 
 #include "../Forwards.hpp"
 #include "../Lib/DHMap.hpp"
+#include "../Lib/Stack.hpp"
 #include "../Lib/BacktrackData.hpp"
 #include "Term.hpp"
 
@@ -27,15 +28,12 @@ namespace Kernel
 using namespace std;
 using namespace Lib;
 
-class RobSubstitution
+class EGSubstitution
 :public Backtrackable
 {
 public:
-  RobSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0) {}
-
-  SubstIterator matches(Literal* base, int baseIndex,
-	  Literal* instance, int instanceIndex, bool complementary);
-  SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
+  EGSubstitution() : _nextUnboundAvailable(0),_nextAuxAvailable(0),
+    _currTimeStamp(1), _unchecked(16) {}
 
   bool unify(TermList t1,int index1, TermList t2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
@@ -159,10 +157,12 @@ public:
 
     bool isVar()
     {
-      return term.isVar();
+      return term.isVar() && index!=RESERVED_INDEX;
     }
     bool operator==(const TermSpec& o) const
     { return term==o.term && index==o.index; }
+    bool operator!=(const TermSpec& o) const
+    { return !(*this==o); }
 #if VDEBUG
     string toString() const;
 #endif
@@ -173,6 +173,7 @@ public:
     int index;
   };
   typedef pair<TermSpec,TermSpec> TTPair;
+  typedef Stack<VarSpec> VarStack;
 
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash
@@ -186,16 +187,35 @@ public:
 
 private:
   /** Copy constructor is private and without a body, because we don't want any. */
-  RobSubstitution(const RobSubstitution& obj);
+  EGSubstitution(const EGSubstitution& obj);
   /** operator= is private and without a body, because we don't want any. */
-  RobSubstitution& operator=(const RobSubstitution& obj);
+  EGSubstitution& operator=(const EGSubstitution& obj);
 
   bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
+  static const int RESERVED_INDEX;
   static const int AUX_INDEX;
   static const int SPECIAL_INDEX;
   static const int UNBOUND_INDEX;
+
+  static const TermSpec TS_DONE;
+  static const TermSpec TS_LOOP;
+  static const TermSpec TS_NIL;
+
+  bool isRoot(VarSpec v) const;
+  TermSpec parent(VarSpec v) const;
+  void setParent(VarSpec v, TermSpec t);
+  VarSpec root(VarSpec v, VarStack& path);
+  VarSpec rootWithoutCollapsing(VarSpec v) const;
+  void collapse(VarStack& path, VarSpec v);
+
+  void markChanged(VarSpec v);
+  void nextTimeStamp();
+
+  bool unify(TermSpec t1, TermSpec t2);
+  void recurUnify(VarSpec v, TermSpec y, TermSpec t, Stack<TTPair>& toDo);
+  void varUnify(VarSpec u, TermSpec t, Stack<TTPair>& toDo);
 
   bool isUnbound(VarSpec v) const;
   TermSpec deref(VarSpec v) const;
@@ -203,17 +223,14 @@ private:
 
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
-  VarSpec root(VarSpec v) const;
+
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2);
-  bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
-  void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
-  void unifyUnbound(VarSpec v, TermSpec ts);
+
   bool occurs(VarSpec vs, TermSpec ts);
 
   VarSpec getAuxVar(VarSpec target)
   {
-    CALL("RobSubstitution::getAuxVar");
+    CALL("EGSubstitution::getAuxVar");
     if(target.index==AUX_INDEX) {
       return target;
     }
@@ -221,6 +238,7 @@ private:
     bindVar(res, target);
     return res;
   }
+
   inline
   VarSpec getVarSpec(TermSpec ts) const
   {
@@ -228,7 +246,7 @@ private:
   }
   VarSpec getVarSpec(TermList tl, int index) const
   {
-    CALL("RobSubstitution::getVarSpec");
+    CALL("EGSubstitution::getVarSpec");
     ASS(tl.isVar());
     if(tl.isSpecialVar()) {
       return VarSpec(tl.var(), SPECIAL_INDEX);
@@ -240,6 +258,7 @@ private:
   static void swap(TermSpec& ts1, TermSpec& ts2);
 
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
+  typedef DHMap<VarSpec,unsigned,VarSpec::Hash1, VarSpec::Hash2> TimeStampStore;
 
   mutable BankType _bank;
 
@@ -247,12 +266,17 @@ private:
 
   mutable unsigned _nextUnboundAvailable;
   unsigned _nextAuxAvailable;
+  unsigned _currTimeStamp;
+
+  TimeStampStore _tStamps;
+  VarStack _unchecked;
+
 
   class BindingBacktrackObject
   : public BacktrackObject
   {
   public:
-    BindingBacktrackObject(RobSubstitution* subst, VarSpec v)
+    BindingBacktrackObject(EGSubstitution* subst, VarSpec v)
     :_subst(subst), _var(v)
     {
       if(! _subst->_bank.find(_var,_term)) {
@@ -270,35 +294,23 @@ private:
 #if VDEBUG
     std::string toString() const
     {
-      return "(ROB backtrack object for "+ _var.toString() +")";
+      return "(EG backtrack object for "+ _var.toString() +")";
     }
 #endif
-    CLASS_NAME("RobSubstitution::BindingBacktrackObject");
+    CLASS_NAME("EGSubstitution::BindingBacktrackObject");
     USE_ALLOCATOR(BindingBacktrackObject);
   private:
-    RobSubstitution* _subst;
+    EGSubstitution* _subst;
     VarSpec _var;
     TermSpec _term;
   };
-
-  template<class Fn>
-  SubstIterator getAssocIterator(RobSubstitution* subst,
-	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
-
-  template<class Fn>
-  struct AssocContext;
-  template<class Fn>
-  class AssocIterator;
-
-  struct MatchingFn;
-  struct UnificationFn;
 
 };
 
 #if VDEBUG
 
-ostream& operator<< (ostream& out, RobSubstitution::VarSpec vs );
-ostream& operator<< (ostream& out, RobSubstitution::TermSpec vs );
+ostream& operator<< (ostream& out, EGSubstitution::VarSpec vs );
+ostream& operator<< (ostream& out, EGSubstitution::TermSpec vs );
 
 #endif
 
@@ -312,10 +324,10 @@ namespace Lib
  * Traits structure specialisation. (See DHMap.hpp)
  */
 template<>
-struct HashTraits<Kernel::RobSubstitution::VarSpec::Hash1>
+struct HashTraits<Kernel::EGSubstitution::VarSpec::Hash1>
 {
   enum {SINGLE_PARAM_HASH=0};
 };
 };
 
-#endif /*__RobSubstitution__*/
+#endif /*__EGSubstitution__*/

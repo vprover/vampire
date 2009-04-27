@@ -90,7 +90,7 @@ public:
     }
     LiteralList::push(instLit,_matches[bpos]);
   }
-  void fillInMatches(LiteralMiniIndex* miniIndex, Literal* forbBase, Literal* forbInst)
+  void fillInMatches(LiteralMiniIndex* miniIndex)
   {
     unsigned blen=_cl->length();
 
@@ -266,7 +266,8 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       res.clause->setAux(cms);
       cmStore.push(cms);
 //      cms->addMatch(res.literal, (*cl)[li]);
-      cms->fillInMatches(&miniIndex, res.literal, (*cl)[li]);
+//      cms->fillInMatches(&miniIndex, res.literal, (*cl)[li]);
+      cms->fillInMatches(&miniIndex);
 
       if(cms->anyNonMatched()) {
         continue;
@@ -322,7 +323,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       ClauseMatches* cms=new ClauseMatches(mcl);
       res.clause->setAux(cms);
       cmStore.push(cms);
-      cms->fillInMatches(&miniIndex, 0, 0);
+      cms->fillInMatches(&miniIndex);
 
       if(checkForSubsumptionResolution(cl, cms, resLit)) {
 	resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);

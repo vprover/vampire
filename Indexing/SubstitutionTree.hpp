@@ -25,6 +25,7 @@
 #include "../Lib/Array.hpp"
 
 #include "../Kernel/DoubleSubstitution.hpp"
+#include "../Kernel/EGSubstitution.hpp"
 #include "../Kernel/RobSubstitution.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Kernel/Clause.hpp"
@@ -42,9 +43,10 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+#define SUBST_CLASS RobSubstitution
+//#define SUBST_CLASS EGSubstitution
+
 #define REORDERING 1
-#define VARIABLE_MARKING 0
-#define NEW_VARIABLE_MARK 0x20000000u
 
 namespace Indexing {
 
@@ -84,13 +86,18 @@ public:
     inline
     static Comparison compare(const LeafData& ld1, const LeafData& ld2)
     {
-      return (ld1.clause->number()<ld2.clause->number())? LESS :
-      	(ld1.clause->number()>ld2.clause->number())? GREATER :
-      	(ld1.literal->weight()>ld2.literal->weight())? LESS ://minimizing the non-determinism
-      	(ld1.literal->weight()<ld2.literal->weight())? GREATER :
-      	(ld1.literal<ld2.literal)? LESS :
-	(ld1.literal>ld2.literal)? GREATER :
-    	(ld1.term<ld2.term)? LESS :
+      if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
+	ASS_NEQ(ld1.clause->number(), ld2.clause->number());
+	return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
+      }
+      if(ld1.literal && ld2.literal && ld1.literal!=ld2.literal) {
+	return (ld1.literal->weight()>ld2.literal->weight())? LESS ://minimizing the non-determinism
+	  (ld1.literal->weight()<ld2.literal->weight())? GREATER :
+	  (ld1.literal<ld2.literal)? LESS : GREATER;
+      }
+      ASS_EQ(ld1.clause,ld2.clause);
+      ASS_EQ(ld1.literal,ld2.literal);
+      return (ld1.term<ld2.term)? LESS :
 	(ld1.term>ld2.term)? GREATER : EQUAL;
     }
   };
@@ -363,7 +370,7 @@ public:
 
 	if(t1.isVar()) {
 	  if(t2.isVar()) {
-	    return Int::compare(t1.var()&~NEW_VARIABLE_MARK, t2.var()&~NEW_VARIABLE_MARK);
+	    return Int::compare(t1.var(), t2.var());
 	  }
 	  return LESS;
 	}
@@ -582,7 +589,7 @@ public:
     static const int NORM_QUERY_BANK=2;
     static const int NORM_RESULT_BANK=3;
 
-    RobSubstitution subst;
+    SUBST_CLASS subst;
     VarStack svStack;
 
   private:

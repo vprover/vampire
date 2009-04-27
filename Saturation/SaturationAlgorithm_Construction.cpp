@@ -70,9 +70,9 @@ ForwardSimplificationEngineSP createFSE()
   case Options::DEMODULATION_PREORDERED:
     NOT_IMPLEMENTED;
     break;
-#if VDEBUG
   case Options::DEMODULATION_OFF:
     break;
+#if VDEBUG
   default:
     ASSERTION_VIOLATION;
 #endif
@@ -87,7 +87,7 @@ ForwardSimplificationEngineSP createFSE()
     res->addFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
   }
 
-//  res->addFront(ForwardSimplificationEngineSP(new Condensation()));
+  res->addFront(ForwardSimplificationEngineSP(new Condensation()));
 //  res->addFront(ForwardSimplificationEngineSP(new InterpretedEvaluation()));
   res->addFront(ForwardSimplificationEngineSP(new TrivialInequalitiesRemovalFSE()));
   res->addFront(ForwardSimplificationEngineSP(new TautologyDeletionFSE()));
@@ -108,9 +108,9 @@ BackwardSimplificationEngineSP createBSE()
   case Options::DEMODULATION_PREORDERED:
     NOT_IMPLEMENTED;
     break;
-#if VDEBUG
   case Options::DEMODULATION_OFF:
     break;
+#if VDEBUG
   default:
     ASSERTION_VIOLATION;
 #endif

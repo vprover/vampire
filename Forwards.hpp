@@ -48,9 +48,14 @@ typedef List<Clause*> ClauseList;
 class DoubleSubstitution;
 class Renaming;
 class Substitution;
+
 class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
+
+class EGSubstitution;
+typedef VirtualIterator<EGSubstitution*> RSubstIterator;
+typedef Lib::SmartPtr<EGSubstitution> EGSubstitutionSP;
 
 class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
