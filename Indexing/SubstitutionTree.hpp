@@ -43,8 +43,8 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-#define SUBST_CLASS RobSubstitution
-//#define SUBST_CLASS EGSubstitution
+//#define SUBST_CLASS RobSubstitution
+#define SUBST_CLASS EGSubstitution
 
 #define REORDERING 1
 

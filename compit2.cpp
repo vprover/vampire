@@ -115,13 +115,13 @@ int main( int argc, char *argv[] )
       }
 
       /* ====== perform operations ============== */
-      operations = operations + numops;
 #if VDEBUG
       printf("%d operations loaded.\n",numops);
 #endif
 
       compitTimer.start();
       for (int i=0;i<numops;i++) {
+	operations++;
 	if(oper[i]==-1) {
 	  compitInsert(terms[i]);
 	  insertions++;
@@ -133,6 +133,7 @@ int main( int argc, char *argv[] )
 	  unsigned cnt=compitQuery(terms[i]);
 	  if(cnt!=(unsigned)oper[i]) {
 	    printf("Found %d matches while there should be %d.\n",cnt,oper[i]);
+	    printf("%d retrievals were ok.\n",operations-insertions-deletions);
 	    exit(1);
 	  }
 	}
@@ -140,8 +141,10 @@ int main( int argc, char *argv[] )
 
       compitTimer.stop();
     }
-  printf("Total time:\t%d ms\nIndexing time:\t%d ms\n",
-	  totalTimer.elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
+  printf("%s,%d\n",
+	  argv[1], compitTimer.elapsedMilliseconds());
+//  printf("Total time:\t%d ms\nIndexing time:\t%d ms\n",
+//	  totalTimer.elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
 
 //  printf("ops:%d, +:%d, -:%d.\n",operations,insertions,deletions);
   return 0;

@@ -116,6 +116,25 @@ void EGSubstitution::denormalize(const Renaming& normalizer, int normalIndex, in
   }
 }
 
+void EGSubstitution::storeForBacktrack(VarSpec v)
+{
+  if(bdIsRecording()) {
+    BindingBacktrackObject* bo;
+    TermSpec trm;
+    if(!_bank.find(v,trm)) {
+      bo=new BindingBacktrackObject(this, v);
+    } else {
+      if(trm.index==RESERVED_INDEX) {
+	bo=0;
+      } else {
+	bo=new BindingBacktrackObject(this, v, trm);
+      }
+    }
+    if(bo) {
+      bdAdd(bo);
+    }
+  }
+}
 
 EGSubstitution::TermSpec EGSubstitution::parent(VarSpec v) const
 {
@@ -129,11 +148,14 @@ EGSubstitution::TermSpec EGSubstitution::parent(VarSpec v) const
   return binding;
 }
 
-void EGSubstitution::setParent(VarSpec v, TermSpec t)
+void EGSubstitution::setParent(VarSpec v, TermSpec t, bool canCauseLoop)
 {
   CALL("EGSubstitution::setParent");
 
-  //TODO: backtrack support
+  storeForBacktrack(v);
+  if(canCauseLoop && t.index!=RESERVED_INDEX) {
+    markChanged(v);
+  }
   _bank.set(v,t);
 }
 
@@ -143,7 +165,7 @@ bool EGSubstitution::isRoot(VarSpec v) const
 
   TermSpec p=parent(v);
   //root variable points either to a non-variable term or nowhere.
-  return p==TS_NIL || p.isVar();
+  return p==TS_NIL || !p.isVar();
 }
 
 EGSubstitution::VarSpec EGSubstitution::root(VarSpec v, VarStack& path)
@@ -162,9 +184,45 @@ EGSubstitution::VarSpec EGSubstitution::root(VarSpec v, VarStack& path)
   }
 }
 
+EGSubstitution::VarSpec EGSubstitution::getRootAndCollapse(VarSpec v)
+{
+  CALL("EGSubstitution::root");
+
+  static VarStack path(8);
+  ASS(path.isEmpty());
+  VarSpec prev;
+  bool first=true;
+
+  for(;;) {
+    TermSpec binding;
+    bool found=_bank.find(v,binding);
+    if(!found || binding.index==UNBOUND_INDEX || !binding.isVar()) {
+      break;
+    }
+    if(!first) {
+      path.push(prev);
+      setParent(prev,TS_DONE);
+    } else {
+      first=false;
+    }
+
+    prev=v;
+    v=getVarSpec(binding);
+    if(v==prev) {
+      break;
+    }
+  }
+
+  collapse(path,v,false);
+  return v;
+}
+
 EGSubstitution::VarSpec EGSubstitution::rootWithoutCollapsing(VarSpec v) const
 {
   CALL("EGSubstitution::root");
+
+  //the implementation below could loop indefinitely
+  NOT_IMPLEMENTED;
 
   for(;;) {
     TermSpec binding;
@@ -176,13 +234,13 @@ EGSubstitution::VarSpec EGSubstitution::rootWithoutCollapsing(VarSpec v) const
   }
 }
 
-void EGSubstitution::collapse(VarStack& path, VarSpec v)
+void EGSubstitution::collapse(VarStack& path, VarSpec v, bool canCauseLoop)
 {
   CALL("EGSubstitution::collapse");
 
   TermSpec tgt(v);
   while(path.isNonEmpty()) {
-    setParent(path.pop(), tgt);
+    setParent(path.pop(), tgt, canCauseLoop);
   }
 }
 
@@ -230,19 +288,15 @@ bool EGSubstitution::isUnbound(VarSpec v) const
  * return a term, thjat has the same top functor. Otherwise
  * return an arbitrary variable.
  */
-TermList EGSubstitution::getSpecialVarTop(unsigned specialVar) const
+TermList EGSubstitution::getSpecialVarTop(unsigned specialVar)
 {
-  VarSpec v(specialVar, SPECIAL_INDEX);
-  for(;;) {
-    TermSpec binding;
-    bool found=_bank.find(v,binding);
-    if(!found || binding.index==UNBOUND_INDEX) {
-      static TermList auxVarTerm(1,false);
-      return auxVarTerm;
-    } else if(binding.term.isTerm()) {
-      return binding.term;
-    }
-    v=getVarSpec(binding);
+  VarSpec u(specialVar, SPECIAL_INDEX);
+  VarSpec v=getRootAndCollapse(u);
+  TermSpec vPar=parent(v);
+  if(vPar.isVar() || vPar==TS_NIL) {
+    return TermList(0,false);
+  } else {
+    return vPar.term;
   }
 }
 
@@ -292,14 +346,13 @@ void EGSubstitution::bind(const VarSpec& v, const TermSpec& b)
 {
   CALL("EGSubstitution::bind");
   ASSERT_VALID(b.term);
+
   //Aux terms don't contain special variables, ergo
   //should be shared.
   ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
   ASS_NEQ(v.index, UNBOUND_INDEX);
 
-  if(bdIsRecording()) {
-    bdAdd(new BindingBacktrackObject(this, v));
-  }
+  storeForBacktrack(v);
   _bank.set(v,b);
 }
 
@@ -320,56 +373,85 @@ void EGSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
 }
 
 
-bool EGSubstitution::occurs(VarSpec vs, TermSpec ts)
+bool EGSubstitution::occursCheck(VarSpec var)
 {
-  NOT_IMPLEMENTED;
-  while(_unchecked.isNonEmpty()) {
+  CALL("EGSubstitution::occursCheck");
 
-  }
-/*  vs=root(vs);
-  Stack<TermSpec> toDo(8);
-  if(ts.isVar()) {
-    ts=derefBound(ts);
-    if(ts.isVar()) {
-      return false;
+  static VarStack pathStack(8);
+  ASS(pathStack.isEmpty());
+
+  static Stack<pair<VarSpec,TermSpec> > checkingStack(16);
+  ASS(checkingStack.isEmpty());
+
+  checkingStack.push(make_pair(var,TS_LOOP));
+
+  bool fail=false;
+
+  while(checkingStack.isNonEmpty()) {
+    VarSpec u=checkingStack.top().first;
+    TermSpec tgt=checkingStack.pop().second;
+    if(tgt!=TS_LOOP) {
+      ASS(isRoot(u));
+      _bank.set(u,tgt);
+//      setParent(u, tgt, false);
+      continue;
     }
-  }
-  typedef DHMultiset<VarSpec, VarSpec::Hash1> EncounterStore;
-  EncounterStore* encountered=0;
 
-  bool res;
-  for(;;){
-    ASS(ts.term.isTerm());
-    Term::VariableIterator vit(ts.term.term());
+    VarSpec v=getRootAndCollapse(u);
+    TermSpec vPar=parent(v);
+
+    if(vPar==TS_LOOP) {
+      fail=true;
+      break;
+    }
+    if(vPar.term.isVar()) {
+      ASS_NEQ(vPar,TS_DONE);
+      //vPar.term.isVar() is true also for TS_NIL.
+
+      //The equivalence class doesn't contain a non-variable term.
+      continue;
+    }
+    ASS_NEQ(vPar.index, RESERVED_INDEX);
+
+    Term* trm=vPar.term.term();
+    if(trm->shared() && trm->ground()) {
+      continue;
+    }
+
+    unsigned* pts;
+    _tStamps.getValuePtr(v,pts,0);
+    ASS_LE(*pts,_currTimeStamp);
+    if(*pts==_currTimeStamp) {
+      continue;
+    }
+    *pts=_currTimeStamp;
+
+    checkingStack.push(make_pair(v,vPar));
+    _bank.set(v,TS_LOOP);
+//    setParent(v, TS_LOOP);
+
+    ASS(vPar.term.isTerm());
+    Term::VariableIterator vit(vPar.term.term());
     while(vit.hasNext()) {
-      VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
-      if(tvar==vs) {
-	res=true;
-	goto end;
+      VarSpec innVar=getVarSpec(vit.next(), vPar.index);
+      if(parent(innVar)==TS_NIL) {
+	continue;
       }
-      if(!encountered || !encountered->find(tvar)) {
-	TermSpec dtvar=derefBound(TermSpec(tvar));
-	if(!dtvar.isVar()) {
-	  if(!encountered) {
-	    encountered=new EncounterStore();
-	  }
-	  encountered->insert(tvar);
-	  toDo.push(dtvar);
-	}
-      }
+      checkingStack.push(make_pair(innVar,TS_LOOP));
     }
+  }
 
-    if(toDo.isEmpty()) {
-      res=false;
-      goto end;
+  //undo all TS_LOOP marks we've set
+  while(checkingStack.isNonEmpty()) {
+    VarSpec u=checkingStack.top().first;
+    TermSpec tgt=checkingStack.pop().second;
+    if(tgt!=TS_LOOP) {
+      ASS(isRoot(u));
+      _bank.set(u,tgt);
     }
-    ts=toDo.pop();
   }
-end:
-  if(encountered) {
-    delete encountered;
-  }
-  return res;*/
+
+  return !fail;
 }
 
 void EGSubstitution::varUnify(VarSpec u, TermSpec t, Stack<TTPair>& toDo)
@@ -383,7 +465,7 @@ void EGSubstitution::varUnify(VarSpec u, TermSpec t, Stack<TTPair>& toDo)
     setParent(u,t);
   } else if(!t.isVar()) {
     VarSpec v=root(u, pathStack);
-    collapse(pathStack, v);
+    collapse(pathStack, v, false);
     TermSpec vPar=parent(v);
     if(vPar==TS_NIL) {
       setParent(v,t);
@@ -400,11 +482,11 @@ void EGSubstitution::varUnify(VarSpec u, TermSpec t, Stack<TTPair>& toDo)
       TermSpec vPar=parent(v);
       if(vPar==TS_NIL || vPar==TS_DONE) {
 	pathStack.push(v);
-	collapse(pathStack, v);
+	collapse(pathStack, v, false);
       } else {
 	VarSpec w=root(tVar, pathStack);
 	if(v==w) {
-	  collapse(pathStack, v);
+	  collapse(pathStack, v, false);
 	} else {
 	  TermSpec wPar=parent(w);
 	  pathStack.push(w);
@@ -424,6 +506,8 @@ void EGSubstitution::recurUnify(VarSpec v, TermSpec y, TermSpec t, Stack<TTPair>
   CALL("EGSubstitution::recurUnify");
   ASS(!y.isVar());
   ASS(!t.isVar());
+  ASS_NEQ(y.index, RESERVED_INDEX);
+  ASS_NEQ(t.index, RESERVED_INDEX);
 
   toDo.push(make_pair(TermSpec(v),y));
   toDo.push(make_pair(y,t));
@@ -433,13 +517,20 @@ void EGSubstitution::recurUnify(VarSpec v, TermSpec y, TermSpec t, Stack<TTPair>
 bool EGSubstitution::unify(TermSpec t1, TermSpec t2)
 {
   CALL("EGSubstitution::unify/2");
-//  cout<<"A\n";
+  ASS(_unchecked.isEmpty());
+
+//  cout<<"------------------------------\n";
+//  cout<<"unif of "<<t1<<" and "<<t2<<endl;
+//  cout<<"------------------------------\n";
+//  cout<<toString(false);
 
   if(t1.sameTermContent(t2)) {
     return true;
   }
 
-  bool mismatch=false;
+  nextTimeStamp();
+
+  bool fail=false;
   BacktrackData localBD;
   bdRecord(localBD);
 
@@ -471,7 +562,15 @@ bool EGSubstitution::unify(TermSpec t1, TermSpec t2)
       setParent(v,t2);
       continue;
     }
+
+    if(t1==TS_LOOP || t2==TS_LOOP) {
+      fail=true;
+      break;
+    }
+
     ASS(!t2.isVar());
+    ASS_NEQ(t1.index, RESERVED_INDEX);
+    ASS_NEQ(t2.index, RESERVED_INDEX);
 
     if(t1.sameTermContent(t2)) {
       continue;
@@ -505,7 +604,7 @@ bool EGSubstitution::unify(TermSpec t1, TermSpec t2)
 	  } else if(tt->isVar()) {
 	    varUnify(getVarSpec(tstt), tsss, toDo);
 	  } else {
-	    mismatch=true;
+	    fail=true;
 	    break;
 	  }
 	}
@@ -521,17 +620,32 @@ bool EGSubstitution::unify(TermSpec t1, TermSpec t2)
 	}
       }
     }
-
+    if(fail) {
+      break;
+    }
   }
 
-  if(mismatch) {
+  if(fail) {
     subterms.reset();
     toDo.reset();
+  } else {
+    nextTimeStamp();
+
+    while(_unchecked.isNonEmpty()) {
+      if(!occursCheck(_unchecked.pop())) {
+	fail=true;
+	break;
+      }
+    }
   }
+  _unchecked.reset();
 
   bdDone();
 
-  if(mismatch) {
+//  cout<<"------------------------------\n";
+//  cout<<toString(false);
+
+  if(fail) {
     localBD.backtrack();
   } else {
     if(bdIsRecording()) {
@@ -540,7 +654,14 @@ bool EGSubstitution::unify(TermSpec t1, TermSpec t2)
     localBD.drop();
   }
 
-  return !mismatch;
+//  cout<<"------------------------------\n";
+//  cout<<(fail?" fail\n":" OK\n");
+//  cout<<"------------------------------\n";
+//  cout<<toString(false)<<endl;
+
+  //Now there shouldn't be any variables bound to TermSpec with
+  //index==RESERVED_INDEX in _bank.
+  return !fail;
 }
 
 /**

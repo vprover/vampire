@@ -609,6 +609,7 @@ SubstitutionTree::UnificationsIterator::~UnificationsIterator()
 void SubstitutionTree::UnificationsIterator::createInitialBindings(Term* t)
 {
   CALL("SubstitutionTree::UnificationsIterator::createInitialBindings");
+
   TermList* args=t->args();
   int nextVar = 0;
   while (! args->isEmpty()) {
@@ -728,29 +729,32 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 {
   CALL("SubstitutionTree::UnificationsIterator::enter");
 
+  bool success=true;
+  bool recording=false;
   if(!n->term.isEmpty()) {
     //n is proper node, not a root
 
     TermList qt(svStack.top(), true);
 
+    recording=true;
     subst.bdRecord(bd);
-    bool success=associate(qt,n->term);
-    subst.bdDone();
-
-    if(!success) {
-      return false;
+    success=associate(qt,n->term);
+  }
+  if(success) {
+    if(n->isLeaf()) {
+      ldIterator=static_cast<Leaf*>(n)->allChildren();
+      inLeaf=true;
+    } else {
+      IntermediateNode* inode=static_cast<IntermediateNode*>(n);
+      svStack.push(inode->childVar);
+      NodeIterator nit=getNodeIterator(inode);
+      nodeIterators.backtrackablePush(nit, bd);
     }
   }
-  if(n->isLeaf()) {
-    ldIterator=static_cast<Leaf*>(n)->allChildren();
-    inLeaf=true;
-  } else {
-    IntermediateNode* inode=static_cast<IntermediateNode*>(n);
-    svStack.push(inode->childVar);
-    NodeIterator nit=getNodeIterator(inode);
-    nodeIterators.backtrackablePush(nit, bd);
+  if(recording) {
+    subst.bdDone();
   }
-  return true;
+  return success;
 }
 
 bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node)
@@ -1096,6 +1100,7 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(
 void SubstitutionTree::FastGeneralizationsIterator::createInitialBindings(Term* t)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::createInitialBindings");
+
   TermList* args=t->args();
   int nextVar = 0;
   while (! args->isEmpty()) {

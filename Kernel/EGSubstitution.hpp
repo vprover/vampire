@@ -61,11 +61,13 @@ public:
    */
   void bindSpecialVar(unsigned var, TermList t, int index)
   {
+    CALL("EGSubstitution::getAuxVar");
+
     VarSpec vs(var, SPECIAL_INDEX);
     ASS(!_bank.find(vs));
     bind(vs, TermSpec(t,index));
   }
-  TermList getSpecialVarTop(unsigned specialVar) const;
+  TermList getSpecialVarTop(unsigned specialVar);
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
 
@@ -203,12 +205,15 @@ private:
   static const TermSpec TS_LOOP;
   static const TermSpec TS_NIL;
 
+  void storeForBacktrack(VarSpec v);
+
   bool isRoot(VarSpec v) const;
   TermSpec parent(VarSpec v) const;
-  void setParent(VarSpec v, TermSpec t);
+  void setParent(VarSpec v, TermSpec t, bool canCauseLoop=true);
   VarSpec root(VarSpec v, VarStack& path);
+  VarSpec getRootAndCollapse(VarSpec v);
   VarSpec rootWithoutCollapsing(VarSpec v) const;
-  void collapse(VarStack& path, VarSpec v);
+  void collapse(VarStack& path, VarSpec v, bool canCauseLoop=true);
 
   void markChanged(VarSpec v);
   void nextTimeStamp();
@@ -226,7 +231,7 @@ private:
 
   bool match(TermSpec base, TermSpec instance);
 
-  bool occurs(VarSpec vs, TermSpec ts);
+  bool occursCheck(VarSpec var);
 
   VarSpec getAuxVar(VarSpec target)
   {
@@ -276,12 +281,14 @@ private:
   : public BacktrackObject
   {
   public:
-    BindingBacktrackObject(EGSubstitution* subst, VarSpec v)
-    :_subst(subst), _var(v)
+    BindingBacktrackObject(EGSubstitution* subst, VarSpec v, TermSpec t)
+    : _subst(subst), _var(v), _term(t)
     {
-      if(! _subst->_bank.find(_var,_term)) {
-	_term.term.makeEmpty();
-      }
+    }
+    BindingBacktrackObject(EGSubstitution* subst, VarSpec v)
+    : _subst(subst), _var(v)
+    {
+      _term.term.makeEmpty();
     }
     void backtrack()
     {
