@@ -46,13 +46,49 @@ const EGSubstitution::TermSpec EGSubstitution::TS_DONE(TermList(1,false),RESERVE
 const EGSubstitution::TermSpec EGSubstitution::TS_LOOP(TermList(2,false),RESERVED_INDEX);
 const EGSubstitution::TermSpec EGSubstitution::TS_NIL(TermList(3,false),RESERVED_INDEX);
 
+int counter=0;
+
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
 bool EGSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
   CALL("EGSubstitution::unify/4");
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2));
+
+//  counter++;
+//
+//  string preUnif=toString(false);
+//  string preRS=_rs.toString(false);
+
+  bool res=unify(TermSpec(t1,index1), TermSpec(t2,index2));
+
+
+//  if(bdIsRecording()) {
+//    _rs.bdRecord(bdGet());
+//  }
+//  bool rres=_rs.unify(t1,index1,t2,index2);
+//  if(bdIsRecording()) {
+//    _rs.bdDone();
+//  }
+//
+//
+//  if(res!=rres) {
+//    cout<<"------------------------------\n";
+//    cout<<counter<<": unif of "<<t1<<"/"<<index1<<" and "<<t2<<"/"<<index2<<endl;
+//    cout<<"Should've been "<<(rres?"OK":"fail")<<" but was "<<(res?"OK\n":"fail\n");
+//    cout<<"------------------------------\n";
+//    cout<<preUnif;
+//    cout<<"------------------------------\n";
+//    cout<<toString(false);
+//    cout<<"------------####--------------\n";
+//    cout<<preRS;
+//    cout<<"------------------------------\n";
+//    cout<<_rs.toString(false);
+//    cout<<"------------------------------\n\n";
+//  }
+//  ASS_EQ(res,rres);
+
+  return res;
 }
 
 /**
@@ -454,23 +490,24 @@ bool EGSubstitution::occursCheck(VarSpec var)
   return !fail;
 }
 
-void EGSubstitution::varUnify(VarSpec u, TermSpec t, Stack<TTPair>& toDo)
+bool EGSubstitution::varUnify(VarSpec u, TermSpec t, Stack<TTPair>& toDo)
 {
   CALL("EGSubstitution::varUnify");
 
   static VarStack pathStack(8);
   ASS(pathStack.isEmpty());
 
+  bool res=true;
+
   if(parent(u)==TS_NIL) {
     setParent(u,t);
   } else if(!t.isVar()) {
-    VarSpec v=root(u, pathStack);
-    collapse(pathStack, v, false);
+    VarSpec v=getRootAndCollapse(u);
     TermSpec vPar=parent(v);
-    if(vPar==TS_NIL) {
+    if(vPar==TS_NIL || vPar.isVar()) {
       setParent(v,t);
     } else {
-      recurUnify(v, vPar, t, toDo);
+      res=recurUnify(v, vPar, t, toDo);
     }
   } else {
     VarSpec tVar=getVarSpec(t);
@@ -482,7 +519,7 @@ void EGSubstitution::varUnify(VarSpec u, TermSpec t, Stack<TTPair>& toDo)
       TermSpec vPar=parent(v);
       if(vPar==TS_NIL || vPar==TS_DONE) {
 	pathStack.push(v);
-	collapse(pathStack, v, false);
+	collapse(pathStack, tVar);
       } else {
 	VarSpec w=root(tVar, pathStack);
 	if(v==w) {
@@ -492,37 +529,40 @@ void EGSubstitution::varUnify(VarSpec u, TermSpec t, Stack<TTPair>& toDo)
 	  pathStack.push(w);
 	  collapse(pathStack, v);
 	  if(wPar!=TS_NIL && wPar!=TS_DONE) {
-	    recurUnify(v, vPar, wPar, toDo);
+	    res=recurUnify(v, vPar, wPar, toDo);
 	  }
 	}
       }
 
     }
   }
+
+  return res;
 }
 
-void EGSubstitution::recurUnify(VarSpec v, TermSpec y, TermSpec t, Stack<TTPair>& toDo)
+bool EGSubstitution::recurUnify(VarSpec v, TermSpec y, TermSpec t, Stack<TTPair>& toDo)
 {
   CALL("EGSubstitution::recurUnify");
   ASS(!y.isVar());
   ASS(!t.isVar());
+
+  if(y==TS_LOOP || t==TS_LOOP) {
+    return false;
+  }
+
   ASS_NEQ(y.index, RESERVED_INDEX);
   ASS_NEQ(t.index, RESERVED_INDEX);
 
   toDo.push(make_pair(TermSpec(v),y));
   toDo.push(make_pair(y,t));
   toDo.push(make_pair(TermSpec(v),TS_LOOP));
+  return true;
 }
 
 bool EGSubstitution::unify(TermSpec t1, TermSpec t2)
 {
   CALL("EGSubstitution::unify/2");
   ASS(_unchecked.isEmpty());
-
-//  cout<<"------------------------------\n";
-//  cout<<"unif of "<<t1<<" and "<<t2<<endl;
-//  cout<<"------------------------------\n";
-//  cout<<toString(false);
 
   if(t1.sameTermContent(t2)) {
     return true;
@@ -543,9 +583,9 @@ bool EGSubstitution::unify(TermSpec t1, TermSpec t2)
   ASS(toDo.isEmpty());
 
   if(t1.isVar()) {
-    varUnify(getVarSpec(t1),t2,toDo);
+    ALWAYS(varUnify(getVarSpec(t1),t2,toDo));
   } else if(t2.isVar()) {
-    varUnify(getVarSpec(t2),t1,toDo);
+    ALWAYS(varUnify(getVarSpec(t2),t1,toDo));
   } else {
     toDo.push(make_pair(t1,t2));
   }
@@ -600,11 +640,13 @@ bool EGSubstitution::unify(TermSpec t1, TermSpec t2)
       } else {
 	if (! TermList::sameTopFunctor(*ss,*tt)) {
 	  if(ss->isVar()) {
-	    varUnify(getVarSpec(tsss), tstt, toDo);
+	    fail=!varUnify(getVarSpec(tsss), tstt, toDo);
 	  } else if(tt->isVar()) {
-	    varUnify(getVarSpec(tstt), tsss, toDo);
+	    fail=!varUnify(getVarSpec(tstt), tsss, toDo);
 	  } else {
 	    fail=true;
+	  }
+	  if(fail) {
 	    break;
 	  }
 	}
@@ -642,8 +684,6 @@ bool EGSubstitution::unify(TermSpec t1, TermSpec t2)
 
   bdDone();
 
-//  cout<<"------------------------------\n";
-//  cout<<toString(false);
 
   if(fail) {
     localBD.backtrack();
@@ -653,11 +693,6 @@ bool EGSubstitution::unify(TermSpec t1, TermSpec t2)
     }
     localBD.drop();
   }
-
-//  cout<<"------------------------------\n";
-//  cout<<(fail?" fail\n":" OK\n");
-//  cout<<"------------------------------\n";
-//  cout<<toString(false)<<endl;
 
   //Now there shouldn't be any variables bound to TermSpec with
   //index==RESERVED_INDEX in _bank.

@@ -19,7 +19,8 @@ using namespace Lib;
 
 TermStruct terms[OP_BUFFER_CNT];     // terms
 WORD oper[OP_BUFFER_CNT];        // operations
-
+unsigned symCnt;
+unsigned fnSymCnt;
 
 bool readWord(FILE* f, WORD& val)
 {
@@ -38,7 +39,7 @@ WORD getWord(FILE* f)
 {
   WORD res;
   if(!readWord(f,res)){
-    printf("Invalid input\n"); exit(0);
+    printf("Invalid input\n"); exit(1);
   }
   return res;
 }
@@ -56,6 +57,9 @@ bool readOp(FILE* f, int bufferIndex)
     if(w<0) {
       res=compitTermVar(-w-1);
     } else {
+      if(w>=symCnt) {
+	printf("Invalid input\n"); exit(1);
+      }
       res=compitTermFn(w);
     }
     w=getWord(f);
@@ -67,8 +71,8 @@ bool readOp(FILE* f, int bufferIndex)
 
 void readSymbolTable(FILE* in)
 {
-  unsigned symCnt=getWord(in);
-  unsigned fnSymCnt=getWord(in);
+  symCnt=getWord(in);
+  fnSymCnt=getWord(in);
   compitInit(symCnt,fnSymCnt);
 
   for(unsigned fn=0;fn<symCnt;fn++) {

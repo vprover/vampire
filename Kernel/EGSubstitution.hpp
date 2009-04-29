@@ -14,6 +14,7 @@
 #include "../Lib/Stack.hpp"
 #include "../Lib/BacktrackData.hpp"
 #include "Term.hpp"
+#include "RobSubstitution.hpp"
 
 #if VDEBUG
 
@@ -66,6 +67,8 @@ public:
     VarSpec vs(var, SPECIAL_INDEX);
     ASS(!_bank.find(vs));
     bind(vs, TermSpec(t,index));
+
+//    _rs.bindSpecialVar(var,t,index);
   }
   TermList getSpecialVarTop(unsigned specialVar);
   TermList apply(TermList t, int index) const;
@@ -219,8 +222,8 @@ private:
   void nextTimeStamp();
 
   bool unify(TermSpec t1, TermSpec t2);
-  void recurUnify(VarSpec v, TermSpec y, TermSpec t, Stack<TTPair>& toDo);
-  void varUnify(VarSpec u, TermSpec t, Stack<TTPair>& toDo);
+  bool recurUnify(VarSpec v, TermSpec y, TermSpec t, Stack<TTPair>& toDo);
+  bool varUnify(VarSpec u, TermSpec t, Stack<TTPair>& toDo);
 
   bool isUnbound(VarSpec v) const;
   TermSpec deref(VarSpec v) const;
@@ -275,6 +278,8 @@ private:
 
   TimeStampStore _tStamps;
   VarStack _unchecked;
+
+//  RobSubstitution _rs;
 
 
   class BindingBacktrackObject
