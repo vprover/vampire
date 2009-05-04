@@ -156,7 +156,6 @@ void explainException (Exception& exception)
   exception.cry(env.out);
 } // explainException
 
-
 /**
  * The main function.
   * @since 03/12/2003 many changes related to logging

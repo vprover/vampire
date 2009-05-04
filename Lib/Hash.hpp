@@ -31,6 +31,10 @@ public:
   static unsigned hash(T obj)
   { return hash(reinterpret_cast<const unsigned char*>(&obj),sizeof(obj)); }
 
+  template<typename T>
+  static unsigned hash(T obj, unsigned begin)
+  { return hash(reinterpret_cast<const unsigned char*>(&obj),sizeof(obj), begin); }
+
   static unsigned hash(const unsigned char*,size_t length);
   static unsigned hash(const unsigned char*,size_t length,unsigned begin);
 };
