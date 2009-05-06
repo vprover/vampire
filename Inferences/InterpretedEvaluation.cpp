@@ -130,6 +130,8 @@ bool InterpretedEvaluation::interpretPredicate(int predIndex, TermList* args)
 bool InterpretedEvaluation::evaluateLiteral(Literal* lit,
 	bool& constant, Literal*& res, bool& constantTrue)
 {
+  CALL("InterpretedEvaluation::evaluateLiteral");
+
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);
   static Stack<bool> modified(8);
@@ -233,8 +235,13 @@ bool InterpretedEvaluation::evaluateLiteral(Literal* lit,
   return true;
 }
 
-void InterpretedEvaluation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
+void InterpretedEvaluation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
+	ClauseIterator& premises)
 {
+  CALL("InterpretedEvaluation::perform");
+
+  premises=ClauseIterator::getEmpty();
+
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();
   bool modified=false;

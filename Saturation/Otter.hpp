@@ -19,29 +19,37 @@ class Otter
 : public SaturationAlgorithm
 {
 public:
-  Otter(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
-    : SaturationAlgorithm(passiveContainer,selector) {}
+  Otter(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector);
   SaturationResult saturate();
 
   ClauseContainer* getSimplificationClauseContainer();
   ClauseContainer* getGenerationClauseContainer();
 
 protected:
-  bool processUnprocessed(Clause* c);
-  void backwardSimplify(Clause* c);
-  void activate(Clause* c);
 
   class FakeContainer
   : public ClauseContainer
   {
   public:
+    /**
+     * This method is called by @b saturate() method when a clause
+     * makes it from unprocessed to passive container.
+     */
     void add(Clause* c)
     { addedEvent.fire(c); }
 
+    /**
+     * This method is subscribed to remove events of passive
+     * and active container, so it gets called automatically
+     * when a clause is removed from one of them. (Clause
+     * selection in passive container doesn't count as removal.)
+     */
     void remove(Clause* c)
     { removedEvent.fire(c); }
   };
 
+  SubscriptionData _passiveContRemovalSData;
+  SubscriptionData _activeContRemovalSData;
   FakeContainer _simplCont;
 };
 

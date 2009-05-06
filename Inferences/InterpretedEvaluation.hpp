@@ -19,7 +19,7 @@ class InterpretedEvaluation
 : public ForwardSimplificationEngine
 {
 public:
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
+  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
 private:
   int getInterpretedFunction(Term* t);
   int getInterpretedPredicate(Literal* lit);

@@ -84,10 +84,12 @@ struct PtrHash2 {
 typedef DHMap<Clause*,ClauseMatches, PtrHash, PtrHash2> CMMap;
 typedef DHMap<Literal*, LiteralList*, PtrHash > MatchMap;
 
-void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
+void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
+	ClauseIterator& premises)
 {
   CALL("SLQueryForwardSubsumption::perform");
   toAdd=ClauseIterator::getEmpty();
+  premises=ClauseIterator::getEmpty();
 
   unsigned clen=cl->length();
   if(clen==0) {
@@ -104,6 +106,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
       unsigned rlen=res.clause->length();
       if(rlen==1) {
 	keep=false;
+	premises=pvi( getSingletonIterator(res.clause) );
 	goto fin;
       } else if(rlen>clen) {
 	continue;
@@ -172,6 +175,7 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
 
       if(!mclMatchFailed) {
 	keep=false;
+	premises=pvi( getSingletonIterator(mcl) );
 	goto fin;
       }
 

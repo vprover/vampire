@@ -51,12 +51,12 @@ void BackwardDemodulation::detach()
   BackwardSimplificationEngine::detach();
 }
 
-struct BackwardDemodulation::FirstInPairIsNonzeroFn
+struct BackwardDemodulation::RemovedIsNonzeroFn
 {
   DECL_RETURN_TYPE(bool);
-  OWN_RETURN_TYPE operator() (pair<Clause*,Clause*> arg)
+  OWN_RETURN_TYPE operator() (BwSimplificationRecord arg)
   {
-    return arg.first!=0;
+    return arg.toRemove!=0;
   }
 };
 
@@ -83,7 +83,7 @@ struct BackwardDemodulation::ResultFn
     _eqLit=(*_cl)[0];
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
   }
-  DECL_RETURN_TYPE(pair<Clause*,Clause*>);
+  DECL_RETURN_TYPE(BwSimplificationRecord);
   /**
    * Return pair of clauses. First clause is being replaced,
    * and the second is the clause, that replaces it. If no
@@ -96,7 +96,7 @@ struct BackwardDemodulation::ResultFn
     if(_removed->find(qr.clause)) {
       //the retreived clause was already replaced during this
       //backward demodulation
-      return pair<Clause*,Clause*>(0,0);
+      return BwSimplificationRecord(0);
     }
 
     TermList lhs=arg.first;
@@ -128,7 +128,7 @@ struct BackwardDemodulation::ResultFn
       ordering=Ordering::instance();
     }
     if(ordering->compare(lhsS,rhsS)!=Ordering::GREATER) {
-      return pair<Clause*,Clause*>(0,0);
+      return BwSimplificationRecord(0);
     }
 
     Inference* inf = new Inference2(Inference::BACKWARD_DEMODULATION, _cl, qr.clause);
@@ -153,7 +153,7 @@ struct BackwardDemodulation::ResultFn
     env.statistics->backwardDemodulations++;
 
     _removed->insert(qr.clause);
-    return make_pair(qr.clause,res);
+    return BwSimplificationRecord(qr.clause,res);
   }
 private:
   Literal* _eqLit;
@@ -163,40 +163,26 @@ private:
 
 
 void BackwardDemodulation::perform(Clause* cl,
-	ClauseIterator& toRemove, ClauseIterator& toAdd)
+	BwSimplificationRecordIterator& simplifications)
 {
   CALL("BackwardDemodulation::perform");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
-    toAdd=ClauseIterator::getEmpty();
-    toRemove=ClauseIterator::getEmpty();
+    simplifications=BwSimplificationRecordIterator::getEmpty();
     return;
   }
   Literal* lit=(*cl)[0];
 
-  VirtualIterator<pair<Clause*,Clause*> > replacementIterator=
+  BwSimplificationRecordIterator replacementIterator=
     pvi( getFilteredIterator(
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit),
 			    RewritableClausesFn(_index)),
 		    ResultFn(cl)),
-	    FirstInPairIsNonzeroFn()) );
+ 	    RemovedIsNonzeroFn()) );
 
-  ClauseList* toRemoveLst=0;
-  ClauseList* toAddLst=0;
-  while(replacementIterator.hasNext()) {
-    pair<Clause*,Clause*> replacement=replacementIterator.next();
-    ClauseList::push(replacement.first, toRemoveLst);
-    ClauseList::push(replacement.second, toAddLst);
-  }
-
-  toAdd=getPersistentIterator(ClauseList::Iterator(toAddLst));
-  toRemove=getPersistentIterator(ClauseList::Iterator(toRemoveLst));
-
-  toAddLst->destroy();
-  toRemoveLst->destroy();
-  return;
+  simplifications=getPersistentIterator(replacementIterator);
 }
 
 }

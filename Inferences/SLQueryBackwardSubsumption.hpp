@@ -7,6 +7,8 @@
 #ifndef __SLQueryBackwardSubsumption__
 #define __SLQueryBackwardSubsumption__
 
+#include "InferenceEngine.hpp"
+
 namespace Inferences {
 
 class SLQueryBackwardSubsumption
@@ -16,7 +18,7 @@ public:
   void attach(SaturationAlgorithm* salg);
   void detach();
 
-  void perform(Clause* premise, ClauseIterator& toRemove, ClauseIterator& toAdd);
+  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications);
 private:
   SimplifyingLiteralIndex* _index;
 };

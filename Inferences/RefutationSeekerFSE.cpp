@@ -45,10 +45,13 @@ void RefutationSeekerFSE::detach()
   ForwardSimplificationEngine::detach();
 }
 
-void RefutationSeekerFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
+void RefutationSeekerFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
+	ClauseIterator& premises)
 {
   CALL("RefutationSeekerFSE::perform");
+
   toAdd=ClauseIterator::getEmpty();
+  premises=ClauseIterator::getEmpty();
   keep=true;
 
   if(cl->length()!=1) {
@@ -69,6 +72,7 @@ void RefutationSeekerFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
     env.statistics->resolution++;
 
     toAdd=pvi( getSingletonIterator(refutation) );
+    premises=pvi( getSingletonIterator(res.clause) );
     keep=false;
   }
 }

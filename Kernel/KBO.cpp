@@ -20,10 +20,6 @@
 
 namespace Kernel {
 
-struct IdHash {
-  static unsigned hash(unsigned i) { return i; }
-};
-
 /**
  * Class to represent the current state of the KBO comparison.
  * @since 30/04/2008 flight Brussels-Tel Aviv
@@ -54,7 +50,7 @@ private:
   }
 
   int _weightDiff;
-  DHMap<unsigned, int, IdHash> _varDiffs;
+  DHMap<unsigned, int, IdentityHash> _varDiffs;
   /** Number of variables, that occur more times in the first literal */
   int _posNum;
   /** Number of variables, that occur more times in the second literal */

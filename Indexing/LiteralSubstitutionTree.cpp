@@ -71,7 +71,6 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 	  complementary, retrieveSubstitutions);
 }
 
-
 struct LiteralSubstitutionTree::SLQueryResultFunctor
 {
   DECL_RETURN_TYPE(SLQueryResult);
@@ -87,6 +86,54 @@ struct LiteralSubstitutionTree::LDToSLQueryResultFn
     return SLQueryResult(ld.literal, ld.clause);
   }
 };
+
+#define QRS_QUERY_BANK 0
+#define QRS_RESULT_BANK 1
+
+struct LiteralSubstitutionTree::LDToSLQueryResultWithSubstFn
+{
+  LDToSLQueryResultWithSubstFn()
+  {
+    _subst=RobSubstitutionSP(new RobSubstitution());
+  }
+  DECL_RETURN_TYPE(SLQueryResult);
+  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+    return SLQueryResult(ld.literal, ld.clause,
+	    ResultSubstitution::fromSubstitution(_subst.ptr(),
+		    QRS_QUERY_BANK,QRS_RESULT_BANK));
+  }
+private:
+  RobSubstitutionSP _subst;
+};
+
+struct LiteralSubstitutionTree::UnifyingContext
+{
+  UnifyingContext(Literal* queryLit)
+  : _queryLit(queryLit) {}
+  bool enter(SLQueryResult qr)
+  {
+    ASS(qr.substitution);
+    RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
+    ASS(subst);
+
+    //This code is used only during variant retrieval, so
+    //literal commutativity doesn't need to concern us, as
+    //we normalize the query literal, so the argument order
+    //of commutative literals is always the right one.
+    ALWAYS(subst->unifyArgs(_queryLit, QRS_QUERY_BANK, qr.literal, QRS_RESULT_BANK));
+
+    return true;
+  }
+  void leave(SLQueryResult qr)
+  {
+    RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
+    ASS(subst);
+    subst->reset();
+  }
+private:
+  Literal* _queryLit;
+};
+
 
 struct LiteralSubstitutionTree::LeafToLDIteratorFn
 {
@@ -111,6 +158,45 @@ private:
   ResultSubstitutionSP _subst;
 };
 
+
+SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions)
+{
+  CALL("LiteralSubstitutionTree::getVariants");
+
+  Node* root=_nodes[getRootNodeIndex(lit, complementary)];
+
+  if(root==0) {
+    return SLQueryResultIterator::getEmpty();
+  }
+  if(root->isLeaf()) {
+    LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
+    if(retrieveSubstitutions) {
+      return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
+    } else {
+      return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
+    }
+  }
+
+  Renaming normalizer;
+  normalizer.normalizeVariables(lit);
+  Literal* normLit=normalizer.apply(lit);
+
+  BindingMap svBindings;
+  getBindings(normLit, svBindings);
+  Leaf* leaf=findLeaf(root,svBindings);
+
+  LDIterator ldit=leaf->allChildren();
+  if(retrieveSubstitutions) {
+    return pvi( getContextualIterator(
+	    getMappingIterator(
+		    ldit,
+		    LDToSLQueryResultWithSubstFn()),
+	    UnifyingContext(lit)) );
+  } else {
+    return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
+  }
+}
 
 SLQueryResultIterator LiteralSubstitutionTree::getAll()
 {

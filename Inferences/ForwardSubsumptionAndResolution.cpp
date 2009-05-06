@@ -222,10 +222,13 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
   return MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
 }
 
-void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
+void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
+	ClauseIterator& premises)
 {
   CALL("ForwardSubsumptionResolution::perform");
+
   toAdd=ClauseIterator::getEmpty();
+  premises=ClauseIterator::getEmpty();
   keep=true;
   Clause* resolutionClause=0;
 
@@ -239,6 +242,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
     SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
     if(rit.hasNext()) {
       keep=false;
+      premises=pvi( getSingletonIterator(rit.next().clause) );
       env.statistics->forwardSubsumed++;
       return;
     }
@@ -263,7 +267,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       ASS_G(mlen,1);
 
       ClauseMatches* cms=new ClauseMatches(mcl);
-      res.clause->setAux(cms);
+      mcl->setAux(cms);
       cmStore.push(cms);
 //      cms->addMatch(res.literal, (*cl)[li]);
 //      cms->fillInMatches(&miniIndex, res.literal, (*cl)[li]);
@@ -275,6 +279,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 
       if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)) {
 	keep=false;
+	premises=pvi( getSingletonIterator(mcl) );
 	env.statistics->forwardSubsumed++;
 	goto fin;
       }
@@ -288,7 +293,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
     if(rit.hasNext()) {
       Clause* mcl=rit.next().clause;
       resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
-      keep=false;
+      premises=pvi( getSingletonIterator(mcl) );
       goto fin;
     }
   }
@@ -301,6 +306,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	Literal* resLit=(*cl)[li];
 	if(checkForSubsumptionResolution(cl, cms, resLit)) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
+	  premises=pvi( getSingletonIterator(cms->_cl) );
 	  goto fin;
 	}
       }
@@ -327,6 +333,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 
       if(checkForSubsumptionResolution(cl, cms, resLit)) {
 	resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
+	premises=pvi( getSingletonIterator(cms->_cl) );
 	goto fin;
       }
     }

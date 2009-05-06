@@ -20,15 +20,12 @@ class Discount
 {
 public:
   Discount(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
-    : SaturationAlgorithm(passiveContainer,selector) {}
+    : SaturationAlgorithm(passiveContainer, selector) {}
   SaturationResult saturate();
 
   ClauseContainer* getSimplificationClauseContainer();
   ClauseContainer* getGenerationClauseContainer();
 
-protected:
-  bool processInactive(Clause* c);
-  void activate(Clause* c);
 };
 
 };

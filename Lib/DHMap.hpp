@@ -209,6 +209,33 @@ public:
   }
 
   /**
+   * If there is no value stored under @b key in the map,
+   * insert pair (key,value). Return value stored under @b key.
+   */
+  Val findOrInsert(Key key, const Val& val)
+  {
+    CALL("DHMap::insert");
+    ensureExpanded();
+    Entry* e=findEntryToInsert(key);
+    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    if(!exists) {
+      if(e->_info.timestamp!=_timestamp) {
+	e->_info.timestamp=_timestamp;
+	//no collision has occured on this entry while this _timestamp is set
+	e->_info.collision=0;
+      } else {
+	ASS(e->_info.deleted);
+	_deleted--;
+      }
+      e->_info.deleted=0;
+      e->_key=key;
+      e->_val=val;
+      _size++;
+    }
+    return e->_val;
+  }
+
+  /**
    * Assign pointer to value stored under @b key into @b pval.
    * If nothing was previously stored under @key, initialize
    * the value with @b initial, and return true. Otherwise,

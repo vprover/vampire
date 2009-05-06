@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <string>
 #include <iosfwd>
+#include <utility>
 
 #include "../Forwards.hpp"
 #include "../Debug/Assertion.hpp"
@@ -325,7 +326,8 @@ public:
      * @warning hasNext() must have been called before */
     TermList next()
     {
-      ASS(!_used && _stack.top()->isVar());
+      ASS(!_used);
+      ASS(_stack.top()->isVar());
       _used=true;
       return *_stack.top();
     }
@@ -452,6 +454,44 @@ public:
     }
     Stack<const TermList*> _stack;
     bool _used;
+  };
+
+  /**
+   * Iterator that yields proper subterms
+   * of specified @b term in DFS left to right order.
+   */
+  class DisagreementSetIterator
+  : public IteratorCore<pair<TermList, TermList> >
+  {
+  public:
+    DisagreementSetIterator(TermList t1, TermList t2) : _stack(8)
+    {
+      if(!TermList::sameTop(t1,t2)) {
+	_arg1=t1;
+	_arg2=t2;
+	_stack.push(&_arg1);
+	_stack.push(&_arg2);
+      } else if(t1.isTerm()) {
+	_stack.push(t1.term()->args());
+	_stack.push(t2.term()->args());
+      }
+    }
+
+    bool hasNext();
+
+    /** Return next subterm
+     * @warning hasNext() must have been called before */
+    pair<TermList, TermList> next()
+    {
+      ASS(!_stack.isEmpty());
+      TermList t2=*_stack.pop();
+      TermList t1=*_stack.pop();
+      return make_pair(t1,t2);
+    }
+  private:
+    Stack<TermList*> _stack;
+    TermList _arg1;
+    TermList _arg2;
   };
 
   enum ArgumentOrder {

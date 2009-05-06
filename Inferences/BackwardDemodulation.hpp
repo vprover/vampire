@@ -24,9 +24,9 @@ public:
   void attach(SaturationAlgorithm* salg);
   void detach();
 
-  void perform(Clause* premise, ClauseIterator& toRemove, ClauseIterator& toAdd);
+  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications);
 private:
-  struct FirstInPairIsNonzeroFn;
+  struct RemovedIsNonzeroFn;
   struct RewritableClausesFn;
   struct ResultFn;
 

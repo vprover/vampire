@@ -33,9 +33,14 @@ public:
   SLQueryResultIterator getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
 
+  SLQueryResultIterator getVariants(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions);
+
 private:
   struct SLQueryResultFunctor;
   struct LDToSLQueryResultFn;
+  struct LDToSLQueryResultWithSubstFn;
+  struct UnifyingContext;
   struct PropositionalLDToSLQueryResultWithSubstFn;
   struct LeafToLDIteratorFn;
 

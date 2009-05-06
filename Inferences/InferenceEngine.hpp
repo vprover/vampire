@@ -20,6 +20,14 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 
+/**
+ * InferenceEngine is a base class for classes representing possible
+ * inferences -- generating inferences and forward and backward
+ * simplifications. These inferences will take only the non-propositional
+ * part of the clause into account. The caller must take care of the
+ * propositional part, or be sure that the propositional part is not
+ * being used at all.
+ */
 class InferenceEngine
 {
 public:
@@ -61,15 +69,33 @@ public:
    * set to false and @b toAdd iterator will contain results of
    * the simplification. Otherwise, @b keep will be set to true,
    * and @b toAdd will contain an empty iterator.
+   *
+   * @b premises will contain clauses that justify the simplification
+   * performed.
    */
-  virtual void perform(Clause* cl, bool& keep, ClauseIterator& toAdd) = 0;
+  virtual void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises) = 0;
 };
+
+
+struct BwSimplificationRecord
+{
+  BwSimplificationRecord() {}
+  BwSimplificationRecord(Clause* toRemove)
+  : toRemove(toRemove), replacements(ClauseIterator::getEmpty()) {}
+  BwSimplificationRecord(Clause* toRemove, Clause* replacement);
+  BwSimplificationRecord(Clause* toRemove, ClauseIterator replacements)
+  : toRemove(toRemove), replacements(replacements) {}
+
+  Clause* toRemove;
+  ClauseIterator replacements;
+};
+typedef VirtualIterator<BwSimplificationRecord> BwSimplificationRecordIterator;
 
 class BackwardSimplificationEngine
 : public InferenceEngine
 {
 public:
-  virtual void perform(Clause* premise, ClauseIterator& toRemove, ClauseIterator& toAdd) = 0;
+  virtual void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) = 0;
 };
 
 
@@ -87,10 +113,11 @@ class DummyFSE
 : public ForwardSimplificationEngine
 {
 public:
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
+  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
   {
     keep=true;
     toAdd=ClauseIterator::getEmpty();
+    premises=ClauseIterator::getEmpty();
   }
 };
 
@@ -98,10 +125,9 @@ class DummyBSE
 : public BackwardSimplificationEngine
 {
 public:
-  void perform(Clause* premise, ClauseIterator& toRemove, ClauseIterator& toAdd)
+  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
   {
-    toRemove=ClauseIterator::getEmpty();
-    toAdd=ClauseIterator::getEmpty();
+    simplifications=BwSimplificationRecordIterator::getEmpty();
   }
 };
 
@@ -113,27 +139,12 @@ public:
   CompositeFSE() : _inners(0) {}
   ~CompositeFSE();
   void addFront(ForwardSimplificationEngineSP fse);
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
+  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
   void attach(SaturationAlgorithm* salg);
   void detach();
 private:
   typedef List<ForwardSimplificationEngineSP> FSList;
   FSList* _inners;
-};
-
-class CompositeBSE
-: public BackwardSimplificationEngine
-{
-public:
-  CompositeBSE() : _inners(0) {}
-  ~CompositeBSE();
-  void addFront(BackwardSimplificationEngineSP fse);
-  void perform(Clause* cl, ClauseIterator& toRemove, ClauseIterator& toAdd);
-  void attach(SaturationAlgorithm* salg);
-  void detach();
-private:
-  typedef List<BackwardSimplificationEngineSP> BSList;
-  BSList* _inners;
 };
 
 class CompositeGIE
@@ -155,14 +166,14 @@ class DuplicateLiteralRemovalFSE
 : public ForwardSimplificationEngine
 {
 public:
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
+  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
 };
 
 class TrivialInequalitiesRemovalFSE
 : public ForwardSimplificationEngine
 {
 public:
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
+  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
 };
 
 };

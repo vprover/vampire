@@ -10,6 +10,7 @@
 #include "../Forwards.hpp"
 
 #include "../Kernel/Clause.hpp"
+#include "../Lib/List.hpp"
 #include "../Lib/Event.hpp"
 #include "../Indexing/IndexManager.hpp"
 #include "../Inferences/InferenceEngine.hpp"
@@ -37,7 +38,8 @@ public:
 
   void setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator);
   void setForwardSimplificationEngine(ForwardSimplificationEngineSP fwSimplifier);
-  void setBackwardSimplificationEngine(BackwardSimplificationEngineSP bwSimplifier);
+
+  void addFrontBackwardSimplifier(BackwardSimplificationEngineSP bwSimplifier);
 
   virtual SaturationResult saturate() = 0;
 
@@ -51,6 +53,11 @@ public:
   IndexManager* getIndexManager() { return &_imgr; }
 
   static SaturationAlgorithmSP createFromOptions();
+
+protected:
+  bool forwardSimplify(Clause* c);
+  void backwardSimplify(Clause* c);
+  void activate(Clause* c);
 
 #if VDEBUG
   void onActiveAdded(Clause* c)
@@ -91,6 +98,9 @@ protected:
   GeneratingInferenceEngineSP _generator;
   ForwardSimplificationEngineSP _fwSimplifier;
   BackwardSimplificationEngineSP _bwSimplifier;
+
+  typedef List<BackwardSimplificationEngineSP> BwSimplList;
+  BwSimplList* _bwSimplifiers;
 
   LiteralSelectorSP _selector;
 };

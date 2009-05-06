@@ -19,7 +19,7 @@ using namespace Saturation;
 
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
-: _imgr(this), _passive(passiveContainer), _selector(selector)
+: _imgr(this), _passive(passiveContainer), _bwSimplifiers(0), _selector(selector)
 {
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
@@ -60,6 +60,65 @@ SaturationAlgorithm::~SaturationAlgorithm()
   delete _active;
 }
 
+bool SaturationAlgorithm::forwardSimplify(Clause* c)
+{
+  CALL("SaturationAlgorithm::forwardSimplify");
+
+  if(!getLimits()->fulfillsLimits(c)) {
+    return false;
+  }
+
+  bool keep;
+  ClauseIterator toAdd;
+  ClauseIterator premises;
+  _fwSimplifier->perform(c, keep, toAdd, premises);
+  _unprocessed->addClauses(toAdd);
+  return keep;
+}
+
+void SaturationAlgorithm::backwardSimplify(Clause* c)
+{
+  CALL("SaturationAlgorithm::backwardSimplify");
+
+  BwSimplList::Iterator bsit(_bwSimplifiers);
+  while(bsit.hasNext()) {
+    BackwardSimplificationEngine* bse=bsit.next().ptr();
+
+    BwSimplificationRecordIterator simplifications;
+    ClauseIterator toAdd;
+    ClauseIterator toRemove;
+    bse->perform(c,simplifications);
+    while(simplifications.hasNext()) {
+      BwSimplificationRecord srec=simplifications.next();
+
+      _unprocessed->addClauses(srec.replacements);
+
+      Clause* redundant=srec.toRemove;
+      switch(redundant->store()) {
+      case Clause::PASSIVE:
+        _passive->remove(redundant);
+        break;
+      case Clause::ACTIVE:
+        _active->remove(redundant);
+        break;
+      default:
+        ASSERTION_VIOLATION;
+      }
+    }
+  }
+}
+
+void SaturationAlgorithm::activate(Clause* c)
+{
+  CALL("SaturationAlgorithm::activate");
+
+  _selector->select(c);
+
+  _active->add(c);
+  ClauseIterator toAdd=_generator->generateClauses(c);
+  _unprocessed->addClauses(toAdd);
+}
+
 void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator)
 {
   ASS(!_generator);
@@ -72,9 +131,10 @@ void SaturationAlgorithm::setForwardSimplificationEngine(ForwardSimplificationEn
   _fwSimplifier=fwSimplifier;
   _fwSimplifier->attach(this);
 }
-void SaturationAlgorithm::setBackwardSimplificationEngine(BackwardSimplificationEngineSP bwSimplifier)
+
+void SaturationAlgorithm::addFrontBackwardSimplifier(BackwardSimplificationEngineSP bwSimplifier)
 {
   ASS(!_bwSimplifier);
-  _bwSimplifier=bwSimplifier;
-  _bwSimplifier->attach(this);
+  BwSimplList::push(bwSimplifier, _bwSimplifiers);
+  bwSimplifier->attach(this);
 }

@@ -17,6 +17,7 @@ public:
   ~IntUnionFind();
   void doUnion(int c1, int c2);
   void finish();
+  int getComponentCount() { return _components.size(); }
 private:
   int root(int c);
 

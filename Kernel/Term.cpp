@@ -648,6 +648,50 @@ bool Term::NonVariableIterator::hasNext()
   return !_stack.isEmpty();
 }
 
+/**
+ * True if there exists another disagreement between the two
+ * terms specified in the constructor.
+ */
+bool Term::DisagreementSetIterator::hasNext()
+{
+  CALL("Term::DisagreementSetIterator::hasNext");
+  ASS(_stack.size()%2==0);
+
+  if(_stack.isEmpty()) {
+	return false;
+  }
+  if(!TermList::sameTop(*_stack.top(), *_stack[_stack.size()-2])) {
+	return true;
+  }
+  TermList* ss; //t1 subterms
+  TermList* tt; //t2 subterms
+  while(!_stack.isEmpty()) {
+    ss=_stack.pop();
+    tt=_stack.pop();
+    if(!ss->next()->isEmpty()) {
+      _stack.push(ss->next());
+      _stack.push(tt->next());
+    }
+    if(ss->sameContent(tt)) {
+      //if content is the same, neighter weightDiff nor varDiffs would change
+      continue;
+    }
+    if(TermList::sameTopFunctor(*ss,*tt)) {
+      ASS(ss->isTerm());
+      ASS(tt->isTerm());
+      ASS(ss->term()->arity());
+      _stack.push(ss->term()->args());
+      _stack.push(tt->term()->args());
+    } else {
+      _stack.push(tt);
+      _stack.push(ss);
+      return true;
+    }
+  }
+  return false;
+}
+
+
 /** Return commutative term/literal argument order. */
 Term::ArgumentOrder Term::computeArgumentOrder() const
 {

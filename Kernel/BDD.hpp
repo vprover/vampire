@@ -39,8 +39,11 @@ public:
   BDD();
   ~BDD();
 
+  int getNewVar() { return _newVar++; }
+
   BDDNode* getTrue() { return &_trueNode; }
   BDDNode* getFalse() { return &_falseNode; }
+
   BDDNode* getAtomic(int varNum, bool positive);
 
   BDDNode* conjunction(BDDNode* n1, BDDNode* n2);
@@ -90,6 +93,7 @@ private:
   /** The set storing all nodes */
   NodeSet _nodes;
 
+  int _newVar;
 };
 
 };

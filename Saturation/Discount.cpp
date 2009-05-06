@@ -27,36 +27,6 @@ ClauseContainer* Discount::getGenerationClauseContainer()
   return _active;
 }
 
-
-bool Discount::processInactive(Clause* c)
-{
-  CALL("Discount::processInactive");
-
-  bool keep;
-  ClauseIterator toAdd;
-  _fwSimplifier->perform(c,keep,toAdd);
-  _unprocessed->addClauses(toAdd);
-  return keep;
-}
-
-void Discount::activate(Clause* c)
-{
-  CALL("Discount::activate");
-
-  ClauseIterator toAdd;
-  ClauseIterator toRemove;
-  _bwSimplifier->perform(c,toRemove, toAdd);
-  _active->removeClauses(toRemove);
-  _unprocessed->addClauses(toAdd);
-
-  _selector->select(c);
-
-  _active->add(c);
-  toAdd=_generator->generateClauses(c);
-  _unprocessed->addClauses(toAdd);
-
-}
-
 SaturationResult Discount::saturate()
 {
   CALL("Discount::saturate");
@@ -69,7 +39,7 @@ SaturationResult Discount::saturate()
       if (c->isEmpty()) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
-      if(processInactive(c)) {
+      if(forwardSimplify(c)) {
 	_passive->add(c);
       } else {
 	c->setStore(Clause::NONE);
@@ -91,10 +61,11 @@ SaturationResult Discount::saturate()
     }
 
     Clause* c = _passive->popSelected();
-    if(!processInactive(c)) {
+    if(!forwardSimplify(c)) {
 	c->setStore(Clause::NONE);
 	continue;
     }
+    backwardSimplify(c);
     activate(c);
 
     if (env.timeLimitReached()) {

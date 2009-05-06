@@ -26,6 +26,8 @@ public:
 	  bool complementary, bool retrieveSubstitutions = true) = 0;
   virtual SLQueryResultIterator getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true) = 0;
+  virtual SLQueryResultIterator getVariants(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions = true) = 0;
 };
 
 };

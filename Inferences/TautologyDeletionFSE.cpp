@@ -16,11 +16,12 @@ using namespace Kernel;
 using namespace Inferences;
 
 
-void TautologyDeletionFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd)
+void TautologyDeletionFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
 {
   CALL("TautologyDeletionFSE::perform");
 
   toAdd=ClauseIterator::getEmpty();
+  premises=ClauseIterator::getEmpty();
   keep=true;
 
   static DArray<Literal*> plits(32); // array of positive literals

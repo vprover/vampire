@@ -16,7 +16,7 @@ class TautologyDeletionFSE
 : public ForwardSimplificationEngine
 {
 public:
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
+  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
 private:
   int compare(Literal* l1,Literal* l2);
   void sort(Literal** lits,int to);

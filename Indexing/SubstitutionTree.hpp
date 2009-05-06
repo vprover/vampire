@@ -43,8 +43,8 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-//#define SUBST_CLASS RobSubstitution
-#define SUBST_CLASS EGSubstitution
+#define SUBST_CLASS RobSubstitution
+//#define SUBST_CLASS EGSubstitution
 
 #define REORDERING 1
 
@@ -176,7 +176,8 @@ public:
      * assumed, that pointer to newly created node with given
      * top symbol will be put there.
      *
-     * If canCreate is false, null pointer is returned.
+     * If canCreate is false, null pointer is returned in case
+     * suitable child does not exist.
      */
     virtual Node** childByTop(TermList t, bool canCreate) = 0;
     /**
@@ -431,6 +432,8 @@ public:
   typedef Stack<unsigned> VarStack;
 
   void getBindings(Term* t, BindingMap& binding);
+
+  Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
   void insert(Node** node,BindingMap& binding,LeafData ld);
   void remove(Node** node,BindingMap& binding,LeafData ld);

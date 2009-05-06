@@ -34,9 +34,11 @@ using namespace Indexing;
 using namespace Saturation;
 
 
-void Condensation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
+void Condensation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
 {
   CALL("Condensation::perform");
+
+  premises=ClauseIterator::getEmpty();
 
   static DArray<Literal*> newLits(32);
   static DArray<LiteralList*> alts(32);

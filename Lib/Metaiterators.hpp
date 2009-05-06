@@ -325,6 +325,9 @@ public:
   : _func(func), _inner(inner) {}
   inline bool hasNext() { return _inner.hasNext(); };
   inline RETURN_TYPE(Functor) next() { return _func(_inner.next()); };
+
+  inline bool knowsSize() const { return _inner.knowsSize(); }
+  inline size_t size() const { return _inner.size(); }
 private:
   Functor _func;
   Inner _inner;

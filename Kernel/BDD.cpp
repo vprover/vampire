@@ -23,6 +23,7 @@ BDD* BDD::instance()
 }
 
 BDD::BDD()
+: _newVar(0)
 {
   _trueNode._var=-1;
   _falseNode._var=-1;
@@ -49,6 +50,10 @@ BDDNode* BDD::getAtomic(int varNum, bool positive)
 {
   CALL("BDD::getAtomic");
   ASS_GE(varNum,0);
+
+  if(varNum>=_newVar) {
+    _newVar=varNum+1;
+  }
 
   if(positive) {
     return getNode(varNum, getTrue(), getFalse());
@@ -188,6 +193,7 @@ BDDNode* BDD::getNode(int varNum, BDDNode* pos, BDDNode* neg)
 {
   CALL("BDD::getNode");
   ASS_GE(varNum,0);
+  ASS_L(varNum,_newVar);
   ASS_NEQ(pos,neg);
 
   //newNode contains either 0 or pointer to a BDDNode that

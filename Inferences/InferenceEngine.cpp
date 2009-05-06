@@ -34,7 +34,7 @@ void CompositeFSE::addFront(ForwardSimplificationEngineSP fse)
   ASS_EQ(_salg,0);
   FSList::push(fse,_inners);
 }
-void CompositeFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
+void CompositeFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
 {
   keep=true;
   FSList* eit=_inners;
@@ -43,7 +43,7 @@ void CompositeFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
     return;
   }
   while(eit && keep) {
-    eit->head()->perform(cl,keep,toAdd);
+    eit->head()->perform(cl,keep,toAdd, premises);
     eit=eit->tail();
   }
 }
@@ -67,65 +67,11 @@ void CompositeFSE::detach()
 }
 
 
-CompositeBSE::~CompositeBSE()
+BwSimplificationRecord::BwSimplificationRecord(Clause* toRemove, Clause* replacement)
+: toRemove(toRemove), replacements(pvi( getSingletonIterator(replacement) ))
 {
-  _inners->destroy();
 }
-void CompositeBSE::addFront(BackwardSimplificationEngineSP fse)
-{
-  ASS_EQ(_salg,0);
-  BSList::push(fse,_inners);
-}
-void CompositeBSE::perform(Clause* cl, ClauseIterator& toRemove, ClauseIterator& toAdd)
-{
-  ClauseIterator toRemoveAux;
-  ClauseIterator toAddAux;
-  ClauseList* toRemoveLst=0;
-  ClauseList* toAddLst=0;
 
-  BSList* eit=_inners;
-  while(eit) {
-    eit->head()->perform(cl,toRemoveAux, toAddAux);
-    while(toRemoveAux.hasNext()) {
-      ClauseList::push(toRemoveAux.next(), toRemoveLst);
-    }
-    while(toAddAux.hasNext()) {
-      ClauseList::push(toAddAux.next(), toAddLst);
-    }
-    eit=eit->tail();
-  }
-
-  //It's possible, that a clause could be replaced by another
-  //in multiple inferences. It will still be removed only once,
-  //but both those replacement clauses will be added.
-  //This probably won't happen often, it shouldn't cause any
-  //problems, and fixing it wouldn't be trivial, so it's kept
-  //that way.
-
-  toRemove=getUniquePersistentIterator(ClauseList::Iterator(toRemoveLst));
-  toAdd=getUniquePersistentIterator(ClauseList::Iterator(toAddLst));
-
-  toAddLst->destroy();
-  toRemoveLst->destroy();
-}
-void CompositeBSE::attach(SaturationAlgorithm* salg)
-{
-  BackwardSimplificationEngine::attach(salg);
-  BSList* eit=_inners;
-  while(eit) {
-    eit->head()->attach(salg);
-    eit=eit->tail();
-  }
-}
-void CompositeBSE::detach()
-{
-  BSList* eit=_inners;
-  while(eit) {
-    eit->head()->detach();
-    eit=eit->tail();
-  }
-  BackwardSimplificationEngine::detach();
-}
 
 
 struct GeneratingFunctor
@@ -171,9 +117,11 @@ void CompositeGIE::detach()
 }
 
 
-void DuplicateLiteralRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd)
+void DuplicateLiteralRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
 {
   CALL("DuplicateLiteralRemovalFSE::perform");
+
+  premises=ClauseIterator::getEmpty();
 
   int length = c->length();
   if (length <= 1) {
@@ -304,9 +252,11 @@ void DuplicateLiteralRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& 
 }
 
 
-void TrivialInequalitiesRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd)
+void TrivialInequalitiesRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
 {
   CALL("TrivialInequalitiesRemovalFSE::perform");
+
+  premises=ClauseIterator::getEmpty();
 
   static DArray<Literal*> lits(32);
 

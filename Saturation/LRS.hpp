@@ -30,10 +30,6 @@ public:
   ClauseContainer* getGenerationClauseContainer();
 
 protected:
-  bool processUnprocessed(Clause* c);
-  void backwardSimplify(Clause* c);
-  void activate(Clause* c);
-
   bool shouldUpdateLimits();
 
   long estimatedReachableCount();

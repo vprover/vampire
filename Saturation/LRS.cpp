@@ -13,10 +13,13 @@
 
 #include "LRS.hpp"
 
+namespace Saturation
+{
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
-using namespace Saturation;
+
 
 
 LRS::LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
@@ -26,7 +29,6 @@ LRS::LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
       &_simplCont, &FakeContainer::remove);
   _activeContRemovalSData=_active->removedEvent.subscribe(
       &_simplCont, &FakeContainer::remove);
-
 }
 
 LRS::~LRS()
@@ -85,57 +87,6 @@ long LRS::estimatedReachableCount()
 }
 
 
-bool LRS::processUnprocessed(Clause* cl)
-{
-  CALL("LRS::processUnprocessed");
-
-  if(!getLimits()->fulfillsLimits(cl)) {
-    return false;
-  }
-
-  bool keep;
-  ClauseIterator toAdd;
-  _fwSimplifier->perform(cl,keep,toAdd);
-  _unprocessed->addClauses(toAdd);
-  return keep;
-}
-
-void LRS::backwardSimplify(Clause* c)
-{
-  CALL("LRS::backwardSimplify");
-
-  ClauseIterator toAdd;
-  ClauseIterator toRemove;
-  _bwSimplifier->perform(c,toRemove,toAdd);
-  _unprocessed->addClauses(toAdd);
-  while(toRemove.hasNext()) {
-    Clause* redundant=toRemove.next();
-    switch(redundant->store()) {
-    case Clause::PASSIVE:
-      _passive->remove(redundant);
-      break;
-    case Clause::ACTIVE:
-      _active->remove(redundant);
-      break;
-    default:
-      ASSERTION_VIOLATION;
-    }
-  }
-}
-
-void LRS::activate(Clause* c)
-{
-  CALL("LRS::activate");
-
-  _selector->select(c);
-
-  _active->add(c);
-
-  ClauseIterator toAdd=_generator->generateClauses(c);
-  _unprocessed->addClauses(toAdd);
-
-}
-
 SaturationResult LRS::saturate()
 {
   CALL("LRS::saturate");
@@ -149,7 +100,7 @@ SaturationResult LRS::saturate()
       if (c->isEmpty()) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
-      if(processUnprocessed(c)) {
+      if(forwardSimplify(c)) {
 	backwardSimplify(c);
 	_passive->add(c);
 	_simplCont.add(c);
@@ -175,4 +126,6 @@ SaturationResult LRS::saturate()
     Clause* c = _passive->popSelected();
     activate(c);
   }
+}
+
 }

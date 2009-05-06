@@ -50,7 +50,7 @@ void ForwardDemodulation::detach()
 }
 
 
-void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
+void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
 {
   CALL("ForwardDemodulation::perform");
 
@@ -127,12 +127,14 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd)
 //	}
 
 	toAdd=pvi( getSingletonIterator(res) );
+	premises=pvi( getSingletonIterator(qr.clause) );
 	return;
       }
     }
   }
   keep=true;
   toAdd=ClauseIterator::getEmpty();
+  premises=ClauseIterator::getEmpty();
 }
 
 }

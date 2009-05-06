@@ -23,6 +23,7 @@
 #include "../Inferences/RefutationSeekerFSE.hpp"
 #include "../Inferences/SLQueryForwardSubsumption.hpp"
 #include "../Inferences/SLQueryBackwardSubsumption.hpp"
+#include "../Inferences/SplittingFSE.hpp"
 #include "../Inferences/Superposition.hpp"
 #include "../Inferences/TautologyDeletionFSE.hpp"
 
@@ -87,7 +88,9 @@ ForwardSimplificationEngineSP createFSE()
     res->addFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
   }
 
-  res->addFront(ForwardSimplificationEngineSP(new Condensation()));
+//  res->addFront(ForwardSimplificationEngineSP(new SplittingFSE()));
+
+//  res->addFront(ForwardSimplificationEngineSP(new Condensation()));
 //  res->addFront(ForwardSimplificationEngineSP(new InterpretedEvaluation()));
   res->addFront(ForwardSimplificationEngineSP(new TrivialInequalitiesRemovalFSE()));
   res->addFront(ForwardSimplificationEngineSP(new TautologyDeletionFSE()));
@@ -97,13 +100,11 @@ ForwardSimplificationEngineSP createFSE()
 }
 
 
-BackwardSimplificationEngineSP createBSE()
+void addBSEs(SaturationAlgorithm* alg)
 {
-  CompositeBSE* res=new CompositeBSE();
-
   switch(env.options->backwardDemodulation()) {
   case Options::DEMODULATION_ALL:
-    res->addFront(BackwardSimplificationEngineSP(new BackwardDemodulation()));
+    alg->addFrontBackwardSimplifier(BackwardSimplificationEngineSP(new BackwardDemodulation()));
     break;
   case Options::DEMODULATION_PREORDERED:
     NOT_IMPLEMENTED;
@@ -117,10 +118,8 @@ BackwardSimplificationEngineSP createBSE()
   }
 
   if(env.options->backwardSubsumption()) {
-    res->addFront(BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption()));
+    alg->addFrontBackwardSimplifier(BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption()));
   }
-
-  return BackwardSimplificationEngineSP(res);
 }
 
 LiteralSelectorSP createLiteralSelector()
@@ -161,7 +160,7 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
 
   res->setGeneratingInferenceEngine(createGIE());
   res->setForwardSimplificationEngine(createFSE());
-  res->setBackwardSimplificationEngine(createBSE());
+  addBSEs(res);
 
   return SaturationAlgorithmSP(res);
 }

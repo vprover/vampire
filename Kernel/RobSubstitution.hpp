@@ -39,6 +39,10 @@ public:
 
   bool unify(TermList t1,int index1, TermList t2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
+
+  bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
+  bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
+
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
   bool isUnbound(unsigned var, int index) const
   {
@@ -190,8 +194,6 @@ private:
   /** operator= is private and without a body, because we don't want any. */
   RobSubstitution& operator=(const RobSubstitution& obj);
 
-  bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
-  bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   static const int AUX_INDEX;
   static const int SPECIAL_INDEX;

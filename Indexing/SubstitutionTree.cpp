@@ -423,6 +423,78 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
   }
 } // SubstitutionTree::remove
 
+/**
+ * Return a pointer to the leaf that contains term specified by @b svBindings.
+ * If no such leaf exists, return 0.
+ */
+SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBindings)
+{
+  CALL("SubstitutionTree::remove-2");
+  ASS(root);
+
+  Node* node=root;
+
+  while (! node->isLeaf()) {
+    IntermediateNode* inode=static_cast<IntermediateNode*>(node);
+
+    unsigned boundVar=inode->childVar;
+    TermList t = svBindings.get(boundVar);
+
+    Node** child=inode->childByTop(t,false);
+    if(!child) {
+      return 0;
+    }
+    node=*child;
+
+
+    TermList s = node->term;
+    ASS(TermList::sameTop(s,t));
+
+    if(s==t) {
+      continue;
+    }
+
+    ASS(! s.isVar());
+    TermList* ss = s.term()->args();
+    ASS(!ss->isEmpty());
+
+    // computing the disagreement set of the two terms
+    Stack<TermList*> subterms(120);
+
+    subterms.push(ss);
+    subterms.push(t.term()->args());
+    while (! subterms.isEmpty()) {
+      TermList* tt = subterms.pop();
+      ss = subterms.pop();
+      if (tt->next()->isEmpty()) {
+	ASS(ss->next()->isEmpty());
+      }
+      else {
+	subterms.push(ss->next());
+	subterms.push(tt->next());
+      }
+      if (*ss==*tt) {
+	continue;
+      }
+      if (ss->isVar()) {
+	ASS(ss->isSpecialVar());
+	svBindings.set(ss->var(),*tt);
+	continue;
+      }
+      ASS(! tt->isVar());
+      ASS(ss->term()->functor() == tt->term()->functor());
+      ss = ss->term()->args();
+      if (! ss->isEmpty()) {
+	ASS(! tt->term()->args()->isEmpty());
+	subterms.push(ss);
+	subterms.push(tt->term()->args());
+      }
+    }
+  }
+  ASS(node->isLeaf());
+  return static_cast<Leaf*>(node);
+}
+
 
 #if VDEBUG
 

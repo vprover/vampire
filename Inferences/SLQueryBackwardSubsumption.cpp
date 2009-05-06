@@ -27,11 +27,14 @@
 
 #include "SLQueryBackwardSubsumption.hpp"
 
+namespace Inferences
+{
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-using namespace Inferences;
+
 
 void SLQueryBackwardSubsumption::attach(SaturationAlgorithm* salg)
 {
@@ -49,12 +52,21 @@ void SLQueryBackwardSubsumption::detach()
   BackwardSimplificationEngine::detach();
 }
 
-struct ResultClauseExtractor
+struct ClauseExtractorFn
 {
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(const SLQueryResult& res)
   {
     return res.clause;
+  }
+};
+
+struct ClauseToBwSimplRecordFn
+{
+  DECL_RETURN_TYPE(BwSimplificationRecord);
+  OWN_RETURN_TYPE operator()(Clause* cl)
+  {
+    return BwSimplificationRecord(cl);
   }
 };
 
@@ -86,19 +98,21 @@ struct LitSpec {
 };
 
 void SLQueryBackwardSubsumption::perform(Clause* cl,
-	ClauseIterator& toRemove, ClauseIterator& toAdd)
+	BwSimplificationRecordIterator& simplifications)
 {
   CALL("SLQueryBackwardSubsumption::perform");
 
-  toAdd=ClauseIterator::getEmpty();
   unsigned clen=cl->length();
 
   if(clen==1) {
     SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false, false);
-    toRemove=getUniquePersistentIterator(
-	    getMappingIterator(rit,ResultClauseExtractor()) );
-    ASS(toRemove.knowsSize());
-    env.statistics->backwardSubsumed+=toRemove.size();
+    ClauseIterator subsumedClauses=getUniquePersistentIterator(
+	    getMappingIterator(rit,ClauseExtractorFn()) );
+    ASS(subsumedClauses.knowsSize());
+    unsigned subsumedCnt=subsumedClauses.size();
+    simplifications=pvi( getMappingIterator(
+	    subsumedClauses, ClauseToBwSimplRecordFn()) );
+    env.statistics->backwardSubsumed+=subsumedCnt;
     return;
   }
 
@@ -162,10 +176,13 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
 
   if(subsumed) {
-    toRemove=getPersistentIterator(ClauseList::Iterator(subsumed));
+    simplifications=getPersistentIterator(
+	    getMappingIterator(ClauseList::Iterator(subsumed), ClauseToBwSimplRecordFn()));
     subsumed->destroy();
   } else {
-    toRemove=ClauseIterator::getEmpty();
+    simplifications=BwSimplificationRecordIterator::getEmpty();
   }
   return;
+}
+
 }

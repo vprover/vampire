@@ -26,7 +26,7 @@ class Condensation
 : public ForwardSimplificationEngine
 {
 public:
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd);
+  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
 };
 
 };

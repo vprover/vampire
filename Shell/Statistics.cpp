@@ -43,9 +43,12 @@ Statistics::Statistics()
     backwardSubsumed(0),
     generatedClauses(0),
     passiveClauses(0),
+    activeClauses(0),
     finalPassiveClauses(0),
     finalActiveClauses(0),
-    activeClauses(0),
+    splittedClauses(0),
+    splittedComponents(0),
+    uniqueComponents(0),
     terminationReason(UNKNOWN),
     refutation(0)
 {
@@ -84,5 +87,10 @@ void Statistics::print()
   env.out << "Self superposition: "<<selfSuperposition<<endl;
   env.out << "Equality factoring: "<<equalityFactoring<<endl;
   env.out << "Equality resolution: "<<equalityResolution<<endl;
+  env.out << endl;
+
+  env.out << "Splitted clauses: "<<splittedClauses<<endl;
+  env.out << "Splitted components: "<<splittedComponents<<endl;
+  env.out << "Unique components: "<<uniqueComponents<<endl;
   env.out << "------------------------------\n";
 }

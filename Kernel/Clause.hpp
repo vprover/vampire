@@ -55,6 +55,7 @@ public:
       _store(NONE),
       _inferenceRefCnt(0),
       _literalPositions(0),
+      _prop(0),
       _auxTimestamp(0)
   {}
 
@@ -150,6 +151,12 @@ public:
   void assertValid();
 #endif
 
+  /** Return the propositional part of the clause */
+  BDDNode* prop() { return _prop; }
+
+  /** Set the propositional part of the clause */
+  void setProp(BDDNode* prop) { _prop=prop; }
+
   /** Set auxiliary value of this clause. */
   void setAux(void* ptr)
   {
@@ -223,8 +230,11 @@ protected:
   Store _store;
   /** number of references to this clause by inference rules */
   unsigned _inferenceRefCnt;
-  /** A map that translates Literal* to its index in the clause */
+  /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
+
+  /** propositional part of the Clause */
+  BDDNode* _prop;
 
   size_t _auxTimestamp;
   void* _auxData;

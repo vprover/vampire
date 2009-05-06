@@ -92,7 +92,9 @@ public:
   /** active clauses at the end of the saturation algorithm run */
   unsigned finalActiveClauses;
 
-
+  unsigned splittedClauses;
+  unsigned splittedComponents;
+  unsigned uniqueComponents;
 
   /** termination reason */
   enum TerminationReason {
