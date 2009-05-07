@@ -90,6 +90,7 @@ class UnitClauseSimplifyingLiteralIndex;
 class FwSubsSimplifyingLiteralIndex;
 
 class SubstitutionTree;
+class LiteralSubstitutionTree;
 };
 
 namespace Saturation

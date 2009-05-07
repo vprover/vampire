@@ -40,6 +40,10 @@ using namespace Lib;
 
 typedef DHMap<unsigned,unsigned, IdentityHash> UUMap;
 
+/**
+ * Binder that stores bindings into a specified array. To be used
+ * with MatchingUtils template methods.
+ */
 struct ArrayStoringBinder
 {
   ArrayStoringBinder(TermList* arr, UUMap& v2pos)

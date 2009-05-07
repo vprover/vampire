@@ -22,8 +22,11 @@ class LiteralMiniIndex
 {
 public:
   LiteralMiniIndex(Clause* cl);
+  LiteralMiniIndex(Literal** lits, unsigned length);
 
 private:
+  void init(Literal** lits);
+
   struct Entry
   {
     Entry() {}
@@ -38,20 +41,17 @@ private:
 
   unsigned _cnt;
   DArray<Entry> _entries;
-public:
 
-  /*static int goodPred;
-  static int badPred;*/
-
-  struct InstanceIterator {
-    InstanceIterator(LiteralMiniIndex& index, Literal* base, bool complementary)
-    : _ready(false), _hdr(complementary?base->complementaryHeader():base->header()),
-    _base(base), _compl(complementary)
+  struct BaseIterator
+  {
+    BaseIterator(LiteralMiniIndex& index, Literal* query, bool complementary)
+    : _ready(false), _hdr(complementary?query->complementaryHeader():query->header()),
+    _query(query), _compl(complementary)
     {
-      CALL("LiteralMiniIndex::InstanceIterator::InstanceIterator");
+      CALL("LiteralMiniIndex::BaseIterator::BaseIterator");
 
       Entry* arr=index._entries.array();
-      unsigned weight=base->weight();
+      unsigned weight=query->weight();
       if(arr[0]._header>=_hdr || index._cnt==1) {
 	_curr=arr;
 	return;
@@ -72,18 +72,44 @@ public:
 	      (_curr->_header<_hdr && (_curr+1)->_header>_hdr) ||
 	      (_curr->_header>_hdr && (_curr==arr || (_curr-1)->_header<_hdr || (_curr-1)->_weight<weight)) );
     }
+    Literal* next()
+    {
+      ASS(_ready);
+      _ready=false;
+      return (_curr++)->_lit;
+    }
+
+    bool _ready;
+    unsigned _hdr;
+    Literal* _query;
+    bool _compl;
+    Entry* _curr;
+  };
+
+public:
+
+  /*static int goodPred;
+  static int badPred;*/
+
+  struct InstanceIterator
+  : BaseIterator
+  {
+    InstanceIterator(LiteralMiniIndex& index, Literal* base, bool complementary)
+    : BaseIterator(index, base, complementary)
+    {}
+
     bool hasNext()
     {
       CALL("LiteralMiniIndex::InstanceIterator::hasNext");
 
       if(_ready) { return true; }
       while(_curr->_header==_hdr) {
-	bool prediction=_curr->_lit->couldArgsBeInstanceOf(_base);
+	bool prediction=_curr->_lit->couldArgsBeInstanceOf(_query);
 #if VDEBUG
-	if(MatchingUtils::match(_base, _curr->_lit, _compl)) {
+	if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
 	  ASS(prediction);
 #else
-	if(prediction && MatchingUtils::match(_base, _curr->_lit, _compl)) {
+	if(prediction && MatchingUtils::match(_query, _curr->_lit, _compl)) {
 #endif
 	  _ready=true;
 	  return true;
@@ -95,16 +121,35 @@ public:
     }
     Literal* next()
     {
-      ASS(_ready);
-      _ready=false;
-      return (_curr++)->_lit;
+      return BaseIterator::next();
     }
-  private:
-    bool _ready;
-    unsigned _hdr;
-    Literal* _base;
-    bool _compl;
-    Entry* _curr;
+  };
+
+  struct VariantIterator
+  : BaseIterator
+  {
+    VariantIterator(LiteralMiniIndex& index, Literal* query, bool complementary)
+    : BaseIterator(index, query, complementary)
+    {}
+
+    bool hasNext()
+    {
+      CALL("LiteralMiniIndex::VariantIterator::hasNext");
+
+      if(_ready) { return true; }
+      while(_curr->_header==_hdr) {
+	if(MatchingUtils::isVariant(_query, _curr->_lit)) {
+	  _ready=true;
+	  return true;
+	}
+	_curr++;
+      }
+      return false;
+    }
+    Literal* next()
+    {
+      return BaseIterator::next();
+    }
   };
 };
 

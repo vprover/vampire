@@ -68,7 +68,7 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
   }
   Literal* best=(*c)[0];
   unsigned bestVal=best->weight()-best->getDistinctVars();
-  for(unsigned i=0;i<clen;i++) {
+  for(unsigned i=1;i<clen;i++) {
     Literal* curr=(*c)[i];
     unsigned currVal=curr->weight()-curr->getDistinctVars();
     if(currVal>bestVal || (currVal==bestVal && curr>best) ) {

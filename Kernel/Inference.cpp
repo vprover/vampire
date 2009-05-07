@@ -286,6 +286,8 @@ string Inference::name() const
     return "condensation";
   case EVALUATION:
     return "evaluation";
+  case SPLITTING_COMPONENT:
+    return "splitting component introduction";
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

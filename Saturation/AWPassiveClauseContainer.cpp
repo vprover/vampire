@@ -261,9 +261,9 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     if(cl->age()>=ageLimit) {
       //clauses inferred from the clause will be over age limit
       unsigned clen=cl->length();
-      unsigned maxSelWeight=0;
+      int maxSelWeight=0;
       for(unsigned i=0;i<clen;i++) {
-        maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
+        maxSelWeight=max((int)(*cl)[i]->weight(),maxSelWeight);
       }
       if(cl->weight()-maxSelWeight>=weightLimit) {
         shouldStay=false;

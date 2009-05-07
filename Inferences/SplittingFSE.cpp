@@ -7,8 +7,9 @@
 #include "../Lib/Environment.hpp"
 #include "../Lib/IntUnionFind.hpp"
 #include "../Kernel/BDD.hpp"
-#include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
+#include "../Kernel/Inference.hpp"
+#include "../Kernel/Term.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "SplittingFSE.hpp"
@@ -86,13 +87,16 @@ void SplittingFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
 
     Clause* comp=0;
     int compName;
-    //TODO: try get old component name
-    //TODO: also alter the inference object in case we're reusing with last==true
-
+    ClauseIterator variants=_variantIndex.retrieveVariants(lits.begin(), compLen);
+    if(variants.hasNext()) {
+      comp=variants.next();
+      compName=_clauseNames.get(comp);
+      ASS(!variants.hasNext());
+    }
 
     if(comp==0) {
       env.statistics->uniqueComponents++;
-      Inference* inf=0;//clarify what the inference obj. should be
+      Inference* inf=new Inference(Inference::SPLITTING_COMPONENT);
       Unit::InputType inpType = cl->inputType();
       comp = new(compLen) Clause(compLen, inpType, inf);
       for(int i=0;i<compLen;i++) {
@@ -101,15 +105,20 @@ void SplittingFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
 
       compName=bdd->getNewVar();
       comp->setProp(bdd->getAtomic(compName, false));
+      _variantIndex.insert(cl);
       ALWAYS(_clauseNames.insert(comp, compName));
     }
 
     if(last) {
       BDDNode* newProp=cl->prop();
+      if(!newProp) {
+	newProp=bdd->getFalse();
+      }
       while(componentNames.isNonEmpty()) {
 	newProp=bdd->disjunction(newProp, bdd->getAtomic(componentNames.pop(), true));
       }
       comp->setProp( bdd->conjunction(comp->prop(), newProp) );
+      //TODO: also alter the inference object in case we're reusing a clause
     } else {
       componentNames.push(compName);
     }
@@ -118,8 +127,8 @@ void SplittingFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
   }
 
 
-  keep=false;
-  toAdd=getPersistentIterator(ClauseList::Iterator(toAddLst));
+//  keep=false;
+//  toAdd=getPersistentIterator(ClauseList::Iterator(toAddLst));
 }
 
 }

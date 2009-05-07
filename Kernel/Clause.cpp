@@ -156,6 +156,7 @@ void Clause::computeWeight() const
 
 void Clause::assertValid()
 {
+  ASS_ALLOC_TYPE(this, "Clause");
   if(_literalPositions) {
     unsigned clen=length();
     for (unsigned i = 0; i<clen; i++) {

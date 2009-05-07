@@ -469,11 +469,25 @@ public:
       if(!TermList::sameTop(t1,t2)) {
 	_arg1=t1;
 	_arg2=t2;
-	_stack.push(&_arg1);
-	_stack.push(&_arg2);
-      } else if(t1.isTerm()) {
+	return;
+      }
+      _arg1.makeEmpty();
+      if(t1.isTerm() && t1.term()->arity()>0) {
 	_stack.push(t1.term()->args());
 	_stack.push(t2.term()->args());
+      }
+    }
+    /**
+     * Create an iterator over the disagreement set of two terms/literals
+     * with the same top functor.
+     */
+    DisagreementSetIterator(Term* t1, Term* t2) : _stack(8)
+    {
+      ASS_EQ(t1->functor(), t2->functor());
+      _arg1.makeEmpty();
+      if(t1->arity()>0) {
+	_stack.push(t1->args());
+	_stack.push(t2->args());
       }
     }
 
@@ -483,10 +497,9 @@ public:
      * @warning hasNext() must have been called before */
     pair<TermList, TermList> next()
     {
-      ASS(!_stack.isEmpty());
-      TermList t2=*_stack.pop();
-      TermList t1=*_stack.pop();
-      return make_pair(t1,t2);
+      pair<TermList, TermList> res(_arg1,_arg2);
+      _arg1.makeEmpty();
+      return res;
     }
   private:
     Stack<TermList*> _stack;

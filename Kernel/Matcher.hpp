@@ -24,6 +24,50 @@ using namespace Lib;
 class MatchingUtils
 {
 public:
+  static bool isVariant(Literal* l1, Literal* l2)
+  {
+    if(!Literal::headersMatch(l1,l2,false)) {
+      return false;
+    }
+    if(l1==l2) {
+      return true;
+    }
+    static DHMap<unsigned,unsigned,IdentityHash> leftToRight;
+    static DHMap<unsigned,unsigned,IdentityHash> rightToLeft;
+    leftToRight.reset();
+    rightToLeft.reset();
+
+    Term::DisagreementSetIterator dsit(l1,l2);
+    while(dsit.hasNext()) {
+      pair<TermList,TermList> dp=dsit.next(); //disagreement pair
+      if(!dp.first.isVar() || !dp.second.isVar()) {
+	return false;
+      }
+      unsigned left=dp.first.var();
+      unsigned right=dp.second.var();
+      if(right!=leftToRight.findOrInsert(left,right)) {
+	return false;
+      }
+      if(left!=rightToLeft.findOrInsert(right,left)) {
+	return false;
+      }
+    }
+    if(leftToRight.size()!=rightToLeft.size()) {
+      return false;
+    }
+    if(!match(l1,l2,false)) {
+      cout<<(*l1)<<endl<<(*l2)<<endl;
+      Term::DisagreementSetIterator dsit2(l1,l2);
+      while(dsit2.hasNext()) {
+        pair<TermList,TermList> dp=dsit2.next(); //disagreement pair
+        cout<<dp.first<<"  vs.  "<<dp.second<<endl;
+      }
+    }
+
+    ASS(match(l1,l2,false));
+    return true;
+  }
+
   static bool match(Literal* base, Literal* instance, bool complementary)
   {
     CALL("MatchingUtils::match");

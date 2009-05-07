@@ -264,7 +264,6 @@ public:
     bool hasNext() const
 #endif
     {
-      ASS(_last != 2);
 #if VDEBUG
       _last = 2;
 #endif

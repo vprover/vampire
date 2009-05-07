@@ -185,6 +185,9 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
   BindingMap svBindings;
   getBindings(normLit, svBindings);
   Leaf* leaf=findLeaf(root,svBindings);
+  if(leaf==0) {
+    return SLQueryResultIterator::getEmpty();
+  }
 
   LDIterator ldit=leaf->allChildren();
   if(retrieveSubstitutions) {

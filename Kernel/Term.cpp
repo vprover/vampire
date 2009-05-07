@@ -660,7 +660,7 @@ bool Term::DisagreementSetIterator::hasNext()
   if(_stack.isEmpty()) {
 	return false;
   }
-  if(!TermList::sameTop(*_stack.top(), *_stack[_stack.size()-2])) {
+  if(!_arg1.isEmpty()) {
 	return true;
   }
   TermList* ss; //t1 subterms
@@ -683,8 +683,8 @@ bool Term::DisagreementSetIterator::hasNext()
       _stack.push(ss->term()->args());
       _stack.push(tt->term()->args());
     } else {
-      _stack.push(tt);
-      _stack.push(ss);
+      _arg1=*ss;
+      _arg2=*tt;
       return true;
     }
   }

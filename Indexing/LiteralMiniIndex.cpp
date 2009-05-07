@@ -26,9 +26,20 @@ bool LiteralMiniIndex::literalHeaderComparator(const Entry& e1, const Entry& e2)
 LiteralMiniIndex::LiteralMiniIndex(Clause* cl)
 : _cnt(cl->length()), _entries(cl->length()+1)
 {
+  init(cl->literals());
+}
+
+LiteralMiniIndex::LiteralMiniIndex(Literal** lits, unsigned length)
+: _cnt(length), _entries(length+1)
+{
+  init(lits);
+}
+
+void LiteralMiniIndex::init(Literal** lits)
+{
   ASS_G(_cnt, 0);
   for(unsigned i=0;i<_cnt;i++) {
-    _entries[i].init((*cl)[i]);
+    _entries[i].init(lits[i]);
   }
   _entries[_cnt].initTerminal();
   std::sort(_entries.begin(), _entries.end()-1,literalHeaderComparator);

@@ -151,7 +151,10 @@ public:
     /** condensation inference */
     CONDENSATION = 53u,
     /** evaluation inference */
-    EVALUATION = 54u
+    EVALUATION = 54u,
+    /** evaluation inference */
+    SPLITTING_COMPONENT = 55u
+
 
   }; // class Inference::Rule
 

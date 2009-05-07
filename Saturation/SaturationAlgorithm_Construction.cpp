@@ -88,7 +88,7 @@ ForwardSimplificationEngineSP createFSE()
     res->addFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
   }
 
-//  res->addFront(ForwardSimplificationEngineSP(new SplittingFSE()));
+  res->addFront(ForwardSimplificationEngineSP(new SplittingFSE()));
 
 //  res->addFront(ForwardSimplificationEngineSP(new Condensation()));
 //  res->addFront(ForwardSimplificationEngineSP(new InterpretedEvaluation()));

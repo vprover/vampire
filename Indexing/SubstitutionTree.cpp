@@ -429,7 +429,7 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
  */
 SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBindings)
 {
-  CALL("SubstitutionTree::remove-2");
+  CALL("SubstitutionTree::findLeaf");
   ASS(root);
 
   Node* node=root;
@@ -476,13 +476,13 @@ SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBin
       if (*ss==*tt) {
 	continue;
       }
-      if (ss->isVar()) {
-	ASS(ss->isSpecialVar());
+      if (ss->isSpecialVar()) {
 	svBindings.set(ss->var(),*tt);
 	continue;
       }
-      ASS(! tt->isVar());
-      ASS(ss->term()->functor() == tt->term()->functor());
+      if(ss->isVar() || tt->isVar() || ss->term()->functor()!=tt->term()->functor()) {
+	return 0;
+      }
       ss = ss->term()->args();
       if (! ss->isEmpty()) {
 	ASS(! tt->term()->args()->isEmpty());
