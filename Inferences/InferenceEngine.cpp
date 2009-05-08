@@ -18,11 +18,63 @@
 
 #include "InferenceEngine.hpp"
 
+namespace Inferences
+{
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-using namespace Inferences;
+
+
+//GeneratingRecord::GeneratingRecord(Clause* newClause, Clause* premise)
+//: newClause(newClause), premises(pvi( getSingletonIterator(premise) ))
+//{
+//}
+
+BwSimplificationRecord::BwSimplificationRecord(Clause* toRemove, Clause* replacement)
+: toRemove(toRemove), replacements(pvi( getSingletonIterator(replacement) ))
+{
+}
+
+CompositeISE::~CompositeISE()
+{
+  _inners->destroy();
+}
+void CompositeISE::addFront(ImmediateSimplificationEngineSP ise)
+{
+  ASS_EQ(_salg,0);
+  ISList::push(ise,_inners);
+}
+Clause* CompositeISE::simplify(Clause* cl)
+{
+  ISList* curr=_inners;
+  while(curr && cl) {
+    Clause* newCl=curr->head()->simplify(cl);
+    if(newCl==cl) {
+      curr=curr->tail();
+    } else {
+      return newCl;
+    }
+  }
+  return cl;
+}
+void CompositeISE::attach(SaturationAlgorithm* salg)
+{
+  ImmediateSimplificationEngine::attach(salg);
+  ISList::Iterator eit(_inners);
+  while(eit.hasNext()) {
+    eit.next()->attach(salg);
+  }
+}
+void CompositeISE::detach()
+{
+  ISList::Iterator eit(_inners);
+  while(eit.hasNext()) {
+    eit.next()->detach();
+  }
+  ImmediateSimplificationEngine::detach();
+}
 
 
 CompositeFSE::~CompositeFSE()
@@ -65,14 +117,6 @@ void CompositeFSE::detach()
   }
   ForwardSimplificationEngine::detach();
 }
-
-
-BwSimplificationRecord::BwSimplificationRecord(Clause* toRemove, Clause* replacement)
-: toRemove(toRemove), replacements(pvi( getSingletonIterator(replacement) ))
-{
-}
-
-
 
 struct GeneratingFunctor
 {
@@ -117,17 +161,13 @@ void CompositeGIE::detach()
 }
 
 
-void DuplicateLiteralRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
+Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 {
-  CALL("DuplicateLiteralRemovalFSE::perform");
-
-  premises=ClauseIterator::getEmpty();
+  CALL("DuplicateLiteralRemovalISE::simplify");
 
   int length = c->length();
   if (length <= 1) {
-    keep=true;
-    toAdd=ClauseIterator::getEmpty();
-    return;
+    return c;
   }
 
   // array behaves as a stack of calls to quicksort
@@ -223,9 +263,7 @@ void DuplicateLiteralRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& 
 
     // the stack is empty, finished
     if (found == 0) {
-      keep=true;
-      toAdd=ClauseIterator::getEmpty();
-      return;
+      return c;
     }
     // there are duplicate literals, delete them from lits
     int newLength = length - found;
@@ -245,18 +283,14 @@ void DuplicateLiteralRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& 
     d->setAge(c->age());
     env.statistics->duplicateLiterals += found;
 
-    keep=false;
-    toAdd=pvi( getSingletonIterator(d) );
-    return;
+    return d;
   }
 }
 
 
-void TrivialInequalitiesRemovalFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
+Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 {
-  CALL("TrivialInequalitiesRemovalFSE::perform");
-
-  premises=ClauseIterator::getEmpty();
+  CALL("TrivialInequalitiesRemovalISE::simplify");
 
   static DArray<Literal*> lits(32);
 
@@ -281,9 +315,7 @@ void TrivialInequalitiesRemovalFSE::perform(Clause* c, bool& keep, ClauseIterato
   }
 
   if (found == 0) {
-    keep=true;
-    toAdd=ClauseIterator::getEmpty();
-    return;
+    return c;
   }
 
   int newLength = length - found;
@@ -298,8 +330,7 @@ void TrivialInequalitiesRemovalFSE::perform(Clause* c, bool& keep, ClauseIterato
   d->setAge(c->age());
   env.statistics->trivialInequalities += found;
 
-  keep=false;
-  toAdd=pvi( getSingletonIterator(d) );
-  return;
+  return d;
 }
 
+}

@@ -77,7 +77,7 @@ void doProving()
     ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
 
     SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
-    salg->addClauses(clauses);
+    salg->addInputClauses(clauses);
 
     SaturationResult sres(salg->saturate());
     sres.updateStatistics();

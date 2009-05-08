@@ -235,12 +235,9 @@ bool InterpretedEvaluation::evaluateLiteral(Literal* lit,
   return true;
 }
 
-void InterpretedEvaluation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
-	ClauseIterator& premises)
+Clause* InterpretedEvaluation::simplify(Clause* cl)
 {
   CALL("InterpretedEvaluation::perform");
-
-  premises=ClauseIterator::getEmpty();
 
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();
@@ -259,9 +256,8 @@ void InterpretedEvaluation::perform(Clause* cl, bool& keep, ClauseIterator& toAd
     modified=true;
     if(constant) {
       if(constTrue) {
-	keep=false;
-	toAdd=ClauseIterator::getEmpty();
-	return;
+	env.statistics->evaluations++;
+	return 0;
       } else {
 	continue;
       }
@@ -269,9 +265,7 @@ void InterpretedEvaluation::perform(Clause* cl, bool& keep, ClauseIterator& toAd
     newLits[next++]=res;
   }
   if(!modified) {
-    keep=true;
-    toAdd=ClauseIterator::getEmpty();
-    return;
+    return cl;
   }
 
   int newLength = next;
@@ -286,8 +280,7 @@ void InterpretedEvaluation::perform(Clause* cl, bool& keep, ClauseIterator& toAd
   res->setAge(cl->age()+1);
   env.statistics->evaluations++;
 
-  keep=false;
-  toAdd=pvi( getSingletonIterator(res) );
+  return cl;
 }
 
 }

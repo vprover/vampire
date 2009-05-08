@@ -658,30 +658,31 @@ bool Term::DisagreementSetIterator::hasNext()
   ASS(_stack.size()%2==0);
 
   if(_stack.isEmpty()) {
-	return false;
+    return false;
   }
   if(!_arg1.isEmpty()) {
-	return true;
+    return true;
   }
   TermList* ss; //t1 subterms
   TermList* tt; //t2 subterms
   while(!_stack.isEmpty()) {
-    ss=_stack.pop();
     tt=_stack.pop();
+    ss=_stack.pop();
     if(!ss->next()->isEmpty()) {
       _stack.push(ss->next());
       _stack.push(tt->next());
     }
-    if(ss->sameContent(tt)) {
+    if(!_disjunctVariables && ss->sameContent(tt)) {
       //if content is the same, neighter weightDiff nor varDiffs would change
       continue;
     }
     if(TermList::sameTopFunctor(*ss,*tt)) {
       ASS(ss->isTerm());
       ASS(tt->isTerm());
-      ASS(ss->term()->arity());
-      _stack.push(ss->term()->args());
-      _stack.push(tt->term()->args());
+      if(ss->term()->arity()) {
+	_stack.push(ss->term()->args());
+	_stack.push(tt->term()->args());
+      }
     } else {
       _arg1=*ss;
       _arg2=*tt;

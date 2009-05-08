@@ -91,7 +91,7 @@ void SplittingFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
     if(variants.hasNext()) {
       comp=variants.next();
       compName=_clauseNames.get(comp);
-      ASS(!variants.hasNext());
+      ASS(!variants.hasNext()); //TODO: this fails e.g. on ALG214+1
     }
 
     if(comp==0) {
@@ -105,7 +105,7 @@ void SplittingFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
 
       compName=bdd->getNewVar();
       comp->setProp(bdd->getAtomic(compName, false));
-      _variantIndex.insert(cl);
+      _variantIndex.insert(comp);
       ALWAYS(_clauseNames.insert(comp, compName));
     }
 

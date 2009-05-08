@@ -54,8 +54,9 @@ bool Clause::shouldBeDestroyed()
  */
 void Clause::destroyIfUnnecessary()
 {
+  //TODO: perform unnecessary clause destruction
   if(shouldBeDestroyed()) {
-    destroy();
+//    destroy();
   }
 }
 

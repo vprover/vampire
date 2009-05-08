@@ -16,10 +16,10 @@ namespace Inferences {
 typedef int InterpretedType;
 
 class InterpretedEvaluation
-: public ForwardSimplificationEngine
+: public ImmediateSimplificationEngine
 {
 public:
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
+  Clause* simplify(Clause* cl);
 private:
   int getInterpretedFunction(Term* t);
   int getInterpretedPredicate(Literal* lit);

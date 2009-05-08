@@ -64,16 +64,19 @@ BDDNode* BDD::getAtomic(int varNum, bool positive)
 
 BDDNode* BDD::conjunction(BDDNode* n1, BDDNode* n2)
 {
+  CALL("BDD::conjunction");
   return getBinaryFnResult(n1,n2, ConjunctionFn(this));
 }
 
 BDDNode* BDD::disjunction(BDDNode* n1, BDDNode* n2)
 {
+  CALL("BDD::disjunction");
   return getBinaryFnResult(n1,n2, DisjunctionFn(this));
 }
 
 BDDNode* BDD::xOrNonY(BDDNode* x, BDDNode* y)
 {
+  CALL("BDD::xOrNonY");
   return getBinaryFnResult(x,y, XOrNonYFn(this));
 }
 
@@ -95,6 +98,8 @@ template<class BinBoolFn>
 BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 {
   CALL("BDD::getBinaryFnResult");
+  ASS(n1);
+  ASS(n2);
 
   static Stack<BDDNode*> toDo(8);
   //results stack contains zeroes and proper pointers standing for

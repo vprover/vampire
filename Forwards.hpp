@@ -114,6 +114,9 @@ class InferenceEngine;
 class GeneratingInferenceEngine;
 typedef Lib::SmartPtr<GeneratingInferenceEngine> GeneratingInferenceEngineSP;
 
+class ImmediateSimplificationEngine;
+typedef Lib::SmartPtr<ImmediateSimplificationEngine> ImmediateSimplificationEngineSP;
+
 class ForwardSimplificationEngine;
 typedef Lib::SmartPtr<ForwardSimplificationEngine> ForwardSimplificationEngineSP;
 

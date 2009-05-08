@@ -117,7 +117,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SLQueryForwardSubsumption.o\
          Inferences/SplittingFSE.o\
          Inferences/Superposition.o\
-         Inferences/TautologyDeletionFSE.o
+         Inferences/TautologyDeletionISE.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
@@ -848,12 +848,12 @@ Indexing/ClauseVariantIndex.o: Debug/Assertion.hpp Debug/Tracer.hpp
 Indexing/ClauseVariantIndex.o: Lib/Allocator.hpp Debug/Tracer.hpp
 Indexing/ClauseVariantIndex.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
 Indexing/ClauseVariantIndex.o: Lib/Reflection.hpp Lib/Set.hpp Lib/Hash.hpp
-Indexing/ClauseVariantIndex.o: Kernel/Clause.hpp Lib/Allocator.hpp
-Indexing/ClauseVariantIndex.o: Lib/Reflection.hpp Lib/InverseLookup.hpp
-Indexing/ClauseVariantIndex.o: Lib/DHMap.hpp Kernel/Unit.hpp
-Indexing/ClauseVariantIndex.o: Kernel/MLMatcher.hpp Kernel/Term.hpp
-Indexing/ClauseVariantIndex.o: Lib/Portability.hpp Lib/XML.hpp
-Indexing/ClauseVariantIndex.o: Lib/Comparison.hpp Lib/Stack.hpp
+Indexing/ClauseVariantIndex.o: Lib/SmartPtr.hpp Kernel/Clause.hpp
+Indexing/ClauseVariantIndex.o: Lib/Allocator.hpp Lib/Reflection.hpp
+Indexing/ClauseVariantIndex.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
+Indexing/ClauseVariantIndex.o: Kernel/Unit.hpp Kernel/MLMatcher.hpp
+Indexing/ClauseVariantIndex.o: Kernel/Term.hpp Lib/Portability.hpp
+Indexing/ClauseVariantIndex.o: Lib/XML.hpp Lib/Comparison.hpp Lib/Stack.hpp
 Indexing/ClauseVariantIndex.o: Lib/BacktrackData.hpp Lib/Int.hpp
 Indexing/ClauseVariantIndex.o: Lib/Comparison.hpp Lib/Portability.hpp
 Indexing/ClauseVariantIndex.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
@@ -868,10 +868,10 @@ Indexing/ClauseVariantIndex.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 Indexing/ClauseVariantIndex.o: Saturation/ClauseContainer.hpp
 Indexing/ClauseVariantIndex.o: Saturation/Limits.hpp
 Indexing/ClauseVariantIndex.o: Indexing/ResultSubstitution.hpp
-Indexing/ClauseVariantIndex.o: Lib/SmartPtr.hpp Indexing/SubstitutionTree.hpp
-Indexing/ClauseVariantIndex.o: Lib/Int.hpp Lib/SkipList.hpp
-Indexing/ClauseVariantIndex.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
-Indexing/ClauseVariantIndex.o: Lib/ArrayMap.hpp Lib/DArray.hpp Lib/Array.hpp
+Indexing/ClauseVariantIndex.o: Indexing/SubstitutionTree.hpp Lib/Int.hpp
+Indexing/ClauseVariantIndex.o: Lib/SkipList.hpp Lib/BinaryHeap.hpp
+Indexing/ClauseVariantIndex.o: Lib/Metaiterators.hpp Lib/ArrayMap.hpp
+Indexing/ClauseVariantIndex.o: Lib/DArray.hpp Lib/Array.hpp
 Indexing/ClauseVariantIndex.o: Kernel/DoubleSubstitution.hpp Kernel/Term.hpp
 Indexing/ClauseVariantIndex.o: Kernel/EGSubstitution.hpp
 Indexing/ClauseVariantIndex.o: Kernel/RobSubstitution.hpp
@@ -1595,26 +1595,26 @@ Inferences/Superposition.o: Saturation/SaturationResult.hpp
 Inferences/Superposition.o: Inferences/Superposition.hpp
 Inferences/Superposition.o: Indexing/TermIndex.hpp
 Inferences/Superposition.o: Inferences/InferenceEngine.hpp
-Inferences/TautologyDeletionFSE.o: Lib/Random.hpp Lib/Environment.hpp
-Inferences/TautologyDeletionFSE.o: Forwards.hpp Config.hpp Lib/DArray.hpp
-Inferences/TautologyDeletionFSE.o: Debug/Assertion.hpp Debug/Tracer.hpp
-Inferences/TautologyDeletionFSE.o: Lib/Allocator.hpp Debug/Tracer.hpp
-Inferences/TautologyDeletionFSE.o: Lib/Comparison.hpp Lib/Random.hpp
-Inferences/TautologyDeletionFSE.o: Lib/Reflection.hpp Lib/VirtualIterator.hpp
-Inferences/TautologyDeletionFSE.o: Lib/Exception.hpp Kernel/Term.hpp
-Inferences/TautologyDeletionFSE.o: Lib/Allocator.hpp Lib/Portability.hpp
-Inferences/TautologyDeletionFSE.o: Lib/XML.hpp Lib/Comparison.hpp
-Inferences/TautologyDeletionFSE.o: Lib/Stack.hpp Lib/BacktrackData.hpp
-Inferences/TautologyDeletionFSE.o: Lib/List.hpp Lib/Int.hpp
-Inferences/TautologyDeletionFSE.o: Lib/Portability.hpp Lib/Metaiterators.hpp
-Inferences/TautologyDeletionFSE.o: Lib/Set.hpp Lib/Hash.hpp
-Inferences/TautologyDeletionFSE.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-Inferences/TautologyDeletionFSE.o: Kernel/Clause.hpp Lib/Reflection.hpp
-Inferences/TautologyDeletionFSE.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
-Inferences/TautologyDeletionFSE.o: Kernel/Unit.hpp Lib/List.hpp
-Inferences/TautologyDeletionFSE.o: Shell/Statistics.hpp
-Inferences/TautologyDeletionFSE.o: Inferences/TautologyDeletionFSE.hpp
-Inferences/TautologyDeletionFSE.o: Inferences/InferenceEngine.hpp
+Inferences/TautologyDeletionISE.o: Lib/Random.hpp Lib/Environment.hpp
+Inferences/TautologyDeletionISE.o: Forwards.hpp Config.hpp Lib/DArray.hpp
+Inferences/TautologyDeletionISE.o: Debug/Assertion.hpp Debug/Tracer.hpp
+Inferences/TautologyDeletionISE.o: Lib/Allocator.hpp Debug/Tracer.hpp
+Inferences/TautologyDeletionISE.o: Lib/Comparison.hpp Lib/Random.hpp
+Inferences/TautologyDeletionISE.o: Lib/Reflection.hpp Lib/VirtualIterator.hpp
+Inferences/TautologyDeletionISE.o: Lib/Exception.hpp Kernel/Term.hpp
+Inferences/TautologyDeletionISE.o: Lib/Allocator.hpp Lib/Portability.hpp
+Inferences/TautologyDeletionISE.o: Lib/XML.hpp Lib/Comparison.hpp
+Inferences/TautologyDeletionISE.o: Lib/Stack.hpp Lib/BacktrackData.hpp
+Inferences/TautologyDeletionISE.o: Lib/List.hpp Lib/Int.hpp
+Inferences/TautologyDeletionISE.o: Lib/Portability.hpp Lib/Metaiterators.hpp
+Inferences/TautologyDeletionISE.o: Lib/Set.hpp Lib/Hash.hpp
+Inferences/TautologyDeletionISE.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
+Inferences/TautologyDeletionISE.o: Kernel/Clause.hpp Lib/Reflection.hpp
+Inferences/TautologyDeletionISE.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
+Inferences/TautologyDeletionISE.o: Kernel/Unit.hpp Lib/List.hpp
+Inferences/TautologyDeletionISE.o: Shell/Statistics.hpp
+Inferences/TautologyDeletionISE.o: Inferences/TautologyDeletionISE.hpp
+Inferences/TautologyDeletionISE.o: Inferences/InferenceEngine.hpp
 Rule/CASC.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp
 Rule/CASC.o: Lib/Portability.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Rule/CASC.o: Lib/Sort.hpp Lib/Allocator.hpp Lib/DArray.hpp Forwards.hpp
@@ -1800,8 +1800,9 @@ Saturation/Otter.o: Lib/Comparison.hpp Kernel/MatchTag.hpp Lib/BitUtils.hpp
 Saturation/Otter.o: Inferences/InferenceEngine.hpp
 Saturation/Otter.o: Saturation/SaturationResult.hpp
 Saturation/SaturationAlgorithm.o: Lib/Environment.hpp Forwards.hpp Config.hpp
-Saturation/SaturationAlgorithm.o: Lib/VirtualIterator.hpp Kernel/Clause.hpp
+Saturation/SaturationAlgorithm.o: Lib/VirtualIterator.hpp Kernel/BDD.hpp
 Saturation/SaturationAlgorithm.o: Lib/Allocator.hpp Debug/Tracer.hpp
+Saturation/SaturationAlgorithm.o: Lib/Hash.hpp Lib/Set.hpp Kernel/Clause.hpp
 Saturation/SaturationAlgorithm.o: Lib/Metaiterators.hpp Lib/List.hpp
 Saturation/SaturationAlgorithm.o: Debug/Assertion.hpp Debug/Tracer.hpp
 Saturation/SaturationAlgorithm.o: Lib/Allocator.hpp Lib/VirtualIterator.hpp
@@ -1809,6 +1810,7 @@ Saturation/SaturationAlgorithm.o: Lib/Exception.hpp Lib/Reflection.hpp
 Saturation/SaturationAlgorithm.o: Lib/Set.hpp Lib/Hash.hpp Lib/Reflection.hpp
 Saturation/SaturationAlgorithm.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
 Saturation/SaturationAlgorithm.o: Kernel/Unit.hpp Lib/List.hpp
+Saturation/SaturationAlgorithm.o: Kernel/Inference.hpp Kernel/Unit.hpp
 Saturation/SaturationAlgorithm.o: Kernel/LiteralSelector.hpp
 Saturation/SaturationAlgorithm.o: Lib/MultiColumnMap.hpp Lib/BitUtils.hpp
 Saturation/SaturationAlgorithm.o: Shell/Statistics.hpp
@@ -1888,7 +1890,7 @@ Saturation/SaturationAlgorithm_Construction.o: Lib/DHMap.hpp
 Saturation/SaturationAlgorithm_Construction.o: Indexing/ClauseVariantIndex.hpp
 Saturation/SaturationAlgorithm_Construction.o: Lib/Array.hpp
 Saturation/SaturationAlgorithm_Construction.o: Inferences/Superposition.hpp
-Saturation/SaturationAlgorithm_Construction.o: Inferences/TautologyDeletionFSE.hpp
+Saturation/SaturationAlgorithm_Construction.o: Inferences/TautologyDeletionISE.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/AWPassiveClauseContainer.hpp
 Saturation/SaturationAlgorithm_Construction.o: Kernel/ClauseQueue.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/ClauseContainer.hpp

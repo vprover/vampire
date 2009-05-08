@@ -37,14 +37,14 @@ public:
   virtual ~SaturationAlgorithm();
 
   void setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator);
-  void setForwardSimplificationEngine(ForwardSimplificationEngineSP fwSimplifier);
+  void setImmediateSimplificationEngine(ImmediateSimplificationEngineSP immediateSimplifier);
 
-  void addFrontBackwardSimplifier(BackwardSimplificationEngineSP bwSimplifier);
+  void addForwardSimplifierToFront(ForwardSimplificationEngineSP fwSimplifier);
+  void addBackwardSimplifierToFront(BackwardSimplificationEngineSP bwSimplifier);
 
   virtual SaturationResult saturate() = 0;
 
-  void addClauses(ClauseIterator cit)
-  { _unprocessed->addClauses(cit); }
+  void addInputClauses(ClauseIterator cit);
 
   virtual ClauseContainer* getSimplificationClauseContainer() = 0;
   virtual ClauseContainer* getGenerationClauseContainer() = 0;
@@ -55,6 +55,9 @@ public:
   static SaturationAlgorithmSP createFromOptions();
 
 protected:
+  void addUnprocessedClause(Clause* cl);
+
+  bool isRefutation(Clause* c);
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   void activate(Clause* c);
@@ -96,8 +99,10 @@ protected:
   ActiveClauseContainer* _active;
 
   GeneratingInferenceEngineSP _generator;
-  ForwardSimplificationEngineSP _fwSimplifier;
-  BackwardSimplificationEngineSP _bwSimplifier;
+  ImmediateSimplificationEngineSP _immediateSimplifier;
+
+  typedef List<ForwardSimplificationEngineSP> FwSimplList;
+  FwSimplList* _fwSimplifiers;
 
   typedef List<BackwardSimplificationEngineSP> BwSimplList;
   BwSimplList* _bwSimplifiers;

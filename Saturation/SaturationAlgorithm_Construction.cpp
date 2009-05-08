@@ -25,7 +25,7 @@
 #include "../Inferences/SLQueryBackwardSubsumption.hpp"
 #include "../Inferences/SplittingFSE.hpp"
 #include "../Inferences/Superposition.hpp"
-#include "../Inferences/TautologyDeletionFSE.hpp"
+#include "../Inferences/TautologyDeletionISE.hpp"
 
 
 #include "AWPassiveClauseContainer.hpp"
@@ -58,15 +58,25 @@ GeneratingInferenceEngineSP createGIE()
   return GeneratingInferenceEngineSP(res);
 }
 
-ForwardSimplificationEngineSP createFSE()
+ImmediateSimplificationEngineSP createImmediateSE()
 {
-  CompositeFSE* res=new CompositeFSE();
+  CompositeISE* res=new CompositeISE();
 
-  res->addFront(ForwardSimplificationEngineSP(new RefutationSeekerFSE()));
+//  res->addFront(ImmediateSimplificationEngineSP(new InterpretedEvaluation()));
+  res->addFront(ImmediateSimplificationEngineSP(new TrivialInequalitiesRemovalISE()));
+  res->addFront(ImmediateSimplificationEngineSP(new TautologyDeletionISE()));
+  res->addFront(ImmediateSimplificationEngineSP(new DuplicateLiteralRemovalISE()));
+
+  return ImmediateSimplificationEngineSP(res);
+}
+
+void addFSEs(SaturationAlgorithm* alg)
+{
+  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new RefutationSeekerFSE()));
 
   switch(env.options->forwardDemodulation()) {
   case Options::DEMODULATION_ALL:
-    res->addFront(ForwardSimplificationEngineSP(new ForwardDemodulation()));
+    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardDemodulation()));
     break;
   case Options::DEMODULATION_PREORDERED:
     NOT_IMPLEMENTED;
@@ -83,20 +93,14 @@ ForwardSimplificationEngineSP createFSE()
     if(!env.options->forwardSubsumption()) {
       USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
     }
-    res->addFront(ForwardSimplificationEngineSP(new ForwardSubsumptionAndResolution()));
+    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardSubsumptionAndResolution()));
   } else if(env.options->forwardSubsumption()) {
-    res->addFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
+    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
   }
 
-  res->addFront(ForwardSimplificationEngineSP(new SplittingFSE()));
+//  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new SplittingFSE()));
 
-//  res->addFront(ForwardSimplificationEngineSP(new Condensation()));
-//  res->addFront(ForwardSimplificationEngineSP(new InterpretedEvaluation()));
-  res->addFront(ForwardSimplificationEngineSP(new TrivialInequalitiesRemovalFSE()));
-  res->addFront(ForwardSimplificationEngineSP(new TautologyDeletionFSE()));
-  res->addFront(ForwardSimplificationEngineSP(new DuplicateLiteralRemovalFSE()));
-
-  return ForwardSimplificationEngineSP(res);
+//  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new Condensation()));
 }
 
 
@@ -104,7 +108,7 @@ void addBSEs(SaturationAlgorithm* alg)
 {
   switch(env.options->backwardDemodulation()) {
   case Options::DEMODULATION_ALL:
-    alg->addFrontBackwardSimplifier(BackwardSimplificationEngineSP(new BackwardDemodulation()));
+    alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardDemodulation()));
     break;
   case Options::DEMODULATION_PREORDERED:
     NOT_IMPLEMENTED;
@@ -118,7 +122,7 @@ void addBSEs(SaturationAlgorithm* alg)
   }
 
   if(env.options->backwardSubsumption()) {
-    alg->addFrontBackwardSimplifier(BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption()));
+    alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption()));
   }
 }
 
@@ -159,7 +163,8 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
   }
 
   res->setGeneratingInferenceEngine(createGIE());
-  res->setForwardSimplificationEngine(createFSE());
+  res->setImmediateSimplificationEngine(createImmediateSE());
+  addFSEs(res);
   addBSEs(res);
 
   return SaturationAlgorithmSP(res);

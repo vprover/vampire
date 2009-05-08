@@ -51,11 +51,48 @@ protected:
   SaturationAlgorithm* _salg;
 };
 
+
+//struct GeneratingRecord
+//{
+//  GeneratingRecord() {}
+//  GeneratingRecord(Clause* newClause)
+//  : newClause(newClause), premises(ClauseIterator::getEmpty()) {}
+//  GeneratingRecord(Clause* newClause, Clause* premise);
+//  GeneratingRecord(Clause* newClause, ClauseIterator premises)
+//  : newClause(newClause), premises(premises) {}
+//
+//  Clause* newClause;
+//  ClauseIterator premises;
+//};
+
 class GeneratingInferenceEngine
 : public InferenceEngine
 {
 public:
   virtual ClauseIterator generateClauses(Clause* premise) = 0;
+};
+
+class ImmediateSimplificationEngine
+: public InferenceEngine
+{
+public:
+  /**
+   * Perform an immediate simplification on @b cl and return
+   * the result. If the simplification is not applicable, return
+   * @b cl, if @cl should be deleted, return 0.
+   *
+   * When the simplification yields a simplified clause, repeated
+   * run of the method on resulting clause can lead to another
+   * simplification.
+   *
+   * A trivial simplification does not depend on any other clauses.
+   * The simplified clause, if any, will have just one inference
+   * premise, which will be equal to @b cl.
+   *
+   * An example of a trivial simplification is deletion of duplicate
+   * literals.
+   */
+  virtual Clause* simplify(Clause* cl) = 0;
 };
 
 class ForwardSimplificationEngine
@@ -132,6 +169,21 @@ public:
 };
 
 
+class CompositeISE
+: public ImmediateSimplificationEngine
+{
+public:
+  CompositeISE() : _inners(0) {}
+  ~CompositeISE();
+  void addFront(ImmediateSimplificationEngineSP fse);
+  Clause* simplify(Clause* cl);
+  void attach(SaturationAlgorithm* salg);
+  void detach();
+private:
+  typedef List<ImmediateSimplificationEngineSP> ISList;
+  ISList* _inners;
+};
+
 class CompositeFSE
 : public ForwardSimplificationEngine
 {
@@ -162,18 +214,18 @@ private:
   GIList* _inners;
 };
 
-class DuplicateLiteralRemovalFSE
-: public ForwardSimplificationEngine
+class DuplicateLiteralRemovalISE
+: public ImmediateSimplificationEngine
 {
 public:
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
+  Clause* simplify(Clause* cl);
 };
 
-class TrivialInequalitiesRemovalFSE
-: public ForwardSimplificationEngine
+class TrivialInequalitiesRemovalISE
+: public ImmediateSimplificationEngine
 {
 public:
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
+  Clause* simplify(Clause* cl);
 };
 
 };

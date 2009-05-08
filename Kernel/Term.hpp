@@ -464,7 +464,8 @@ public:
   : public IteratorCore<pair<TermList, TermList> >
   {
   public:
-    DisagreementSetIterator(TermList t1, TermList t2) : _stack(8)
+    DisagreementSetIterator(TermList t1, TermList t2, bool disjunctVariables=true)
+    : _stack(8), _disjunctVariables(disjunctVariables)
     {
       if(!TermList::sameTop(t1,t2)) {
 	_arg1=t1;
@@ -481,7 +482,8 @@ public:
      * Create an iterator over the disagreement set of two terms/literals
      * with the same top functor.
      */
-    DisagreementSetIterator(Term* t1, Term* t2) : _stack(8)
+    DisagreementSetIterator(Term* t1, Term* t2, bool disjunctVariables=true)
+    : _stack(8), _disjunctVariables(disjunctVariables)
     {
       ASS_EQ(t1->functor(), t2->functor());
       _arg1.makeEmpty();
@@ -503,6 +505,7 @@ public:
     }
   private:
     Stack<TermList*> _stack;
+    bool _disjunctVariables;
     TermList _arg1;
     TermList _arg2;
   };

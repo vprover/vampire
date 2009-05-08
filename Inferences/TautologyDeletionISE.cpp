@@ -9,20 +9,16 @@
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Shell/Statistics.hpp"
-#include "TautologyDeletionFSE.hpp"
+#include "TautologyDeletionISE.hpp"
 
 using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
 
 
-void TautologyDeletionFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
+Clause* TautologyDeletionISE::simplify(Clause* c)
 {
-  CALL("TautologyDeletionFSE::perform");
-
-  toAdd=ClauseIterator::getEmpty();
-  premises=ClauseIterator::getEmpty();
-  keep=true;
+  CALL("TautologyDeletionISE::simplify");
 
   static DArray<Literal*> plits(32); // array of positive literals
   static DArray<Literal*> nlits(32); // array of negative literals
@@ -44,14 +40,13 @@ void TautologyDeletionFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd,
       TermList* t2 = t1->next();
       if (t1->sameContent(t2)) { // literal t = t
 	env.statistics->equationalTautologies++;
-	keep=false;
- 	return;
+ 	return 0;
       }
     }
     plits[pos++] = l;
   }
   if (pos == 0 || neg == 0) {
-    return;
+    return c;
   }
   if (pos > 1) {
     sort(plits.array(),pos);
@@ -67,17 +62,16 @@ void TautologyDeletionFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd,
       case -1:
 	p++;
 	if (p >= pos) {
-	  return;
+	  return c;
 	}
 	break;
       case 0:
 	env.statistics->simpleTautologies++;
-	keep=false;
-	return;
+	return 0;
       case 1:
 	n++;
 	if (n >= neg) {
-	  return;
+	  return c;
 	}
 	break;
       }
@@ -92,9 +86,9 @@ void TautologyDeletionFSE::perform(Clause* c, bool& keep, ClauseIterator& toAdd,
  * </ol>
  * @since 05/01/2008 Torrevieja
  */
-int TautologyDeletionFSE::compare(Literal* l1,Literal* l2)
+int TautologyDeletionISE::compare(Literal* l1,Literal* l2)
 {
-  CALL("TautologyDeletionFSE::compare");
+  CALL("TautologyDeletionISE::compare");
 
   unsigned f1 = l1->functor();
   unsigned f2 = l2->functor();
@@ -128,9 +122,9 @@ int TautologyDeletionFSE::compare(Literal* l1,Literal* l2)
  *    never returns 0
  * @since 05/01/2008 Torrevieja
  */
-void TautologyDeletionFSE::sort(Literal** lits,int to)
+void TautologyDeletionISE::sort(Literal** lits,int to)
 {
-  CALL("TautologyDeletionFSE::sort");
+  CALL("TautologyDeletionISE::sort");
   ASS(to > 1);
 
   // array behaves as a stack of calls to quicksort
