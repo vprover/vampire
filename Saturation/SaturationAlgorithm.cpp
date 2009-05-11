@@ -218,6 +218,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   _selector->select(cl);
   _active->add(cl);
+
   ClauseIterator toAdd=_generator->generateClauses(cl);
 
   BDD* bdd=BDD::instance();

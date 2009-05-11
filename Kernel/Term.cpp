@@ -692,6 +692,45 @@ bool Term::DisagreementSetIterator::hasNext()
   return false;
 }
 
+Comparison Term::lexicographicCompare(TermList t1, TermList t2)
+{
+  DisagreementSetIterator dsit(t1,t2, false);
+  if(dsit.hasNext()) {
+	pair<TermList,TermList> dp=dsit.next(); //disagreement pair
+	if(dp.first.isTerm()) {
+	  if(dp.second.isTerm()) {
+	    ASS_NEQ(dp.first.term()->functor(), dp.second.term()->functor());
+	    return Int::compare(dp.first.term()->functor(), dp.second.term()->functor());
+	  }
+	  return Lib::GREATER;
+	} else {
+	  if(dp.second.isTerm()) {
+	    return Lib::LESS;
+	  }
+	  ASS(dp.first.isOrdinaryVar());
+	  ASS(dp.second.isOrdinaryVar());
+	  return Int::compare(dp.first.var(), dp.second.var());
+	}
+  } else {
+	return Lib::EQUAL;
+  }
+}
+Comparison Term::lexicographicCompare(Term* t1, Term* t2)
+{
+  if(t1->isLiteral()) {
+	ASS(t2->isLiteral());
+	if(static_cast<Literal*>(t1)->header()!=static_cast<Literal*>(t2)->header()) {
+	  return (static_cast<Literal*>(t1)->header() > static_cast<Literal*>(t2)->header()) ?
+		  Lib::GREATER : Lib::LESS;
+	}
+  }
+  return lexicographicCompare(TermList(t1), TermList(t2));
+  if(t1->functor()!=t2->functor()) {
+	return (t1->functor() > t2->functor()) ?
+		Lib::GREATER : Lib::LESS;
+  }
+}
+
 
 /** Return commutative term/literal argument order. */
 Term::ArgumentOrder Term::computeArgumentOrder() const

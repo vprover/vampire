@@ -60,11 +60,14 @@ void doProving()
   CALL("doProving()");
   try {
     env.signature = new Kernel::Signature;
-    string inputFile = env.options->inputFile();
-    ifstream input(inputFile.c_str());
-    TPTPLexer lexer(input);
-    TPTPParser parser(lexer);
-    UnitList* units = parser.units();
+    UnitList* units;
+    {
+      string inputFile = env.options->inputFile();
+      ifstream input(inputFile.c_str());
+      TPTPLexer lexer(input);
+      TPTPParser parser(lexer);
+      units = parser.units();
+    }
 
     Property property;
     property.scan(units);

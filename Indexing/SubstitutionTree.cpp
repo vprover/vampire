@@ -509,6 +509,8 @@ string getIndentStr(int n)
 
 string SubstitutionTree::nodeToString(Node* topNode)
 {
+  CALL("SubstitutionTree::nodeToString");
+
   string res;
   Stack<int> indentStack(10);
   Stack<Node*> stack(10);
@@ -532,7 +534,8 @@ string SubstitutionTree::nodeToString(Node* topNode)
 	LDIterator ldi(lnode->allChildren());
 
 	while(ldi.hasNext()) {
-	  res+=getIndentStr(indent) + "Lit: " + ldi.next().literal->toString() + "\n";
+	  LeafData ld=ldi.next();
+	  res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n"+ld.clause->toString()+"\n";
 	}
     } else {
 	IntermediateNode* inode = static_cast<IntermediateNode*>(node);

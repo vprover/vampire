@@ -15,6 +15,8 @@
 
 #include "ClauseVariantIndex.hpp"
 
+//string treeStr;
+
 namespace Indexing
 {
 
@@ -79,7 +81,6 @@ public:
     alts.init(_length, 0);
 
     Clause* mcl=res.clause;
-    //TODO: clauses are being deleted when still in index
     ASSERT_VALID(*mcl);
     ASS_EQ(mcl->length(),_length);
 
@@ -134,6 +135,9 @@ ClauseIterator ClauseVariantIndex::retrieveVariants(Literal** lits, unsigned len
   if(!index) {
     return ClauseIterator::getEmpty();
   }
+
+//  treeStr=index->toString();
+
   Literal* mainLit=getMainLiteral(lits, length);
   return pvi( getFilteredIterator(
 	  getMappingIterator(

@@ -90,15 +90,20 @@ public:
 	ASS_NEQ(ld1.clause->number(), ld2.clause->number());
 	return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
       }
+      Comparison res;
       if(ld1.literal && ld2.literal && ld1.literal!=ld2.literal) {
-	return (ld1.literal->weight()>ld2.literal->weight())? LESS ://minimizing the non-determinism
+	res=(ld1.literal->weight()>ld2.literal->weight())? LESS ://minimizing the non-determinism
 	  (ld1.literal->weight()<ld2.literal->weight())? GREATER :
+//	  (ld1.literal<ld2.literal)? LESS : GREATER;
 	  (ld1.literal<ld2.literal)? LESS : GREATER;
+	ASS_NEQ(res, EQUAL);
+      } else {
+	ASS_EQ(ld1.clause,ld2.clause);
+	ASS_EQ(ld1.literal,ld2.literal);
+	res=Term::lexicographicCompare(ld1.term,ld2.term);
+//	res=(ld1.term<ld2.term)? LESS : (ld1.term>ld2.term)? GREATER : EQUAL;
       }
-      ASS_EQ(ld1.clause,ld2.clause);
-      ASS_EQ(ld1.literal,ld2.literal);
-      return (ld1.term<ld2.term)? LESS :
-	(ld1.term>ld2.term)? GREATER : EQUAL;
+      return res;
     }
   };
 

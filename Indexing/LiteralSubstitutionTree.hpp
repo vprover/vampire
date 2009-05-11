@@ -36,6 +36,10 @@ public:
   SLQueryResultIterator getVariants(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
 
+#if VDEBUG
+  string toString() {return SubstitutionTree::toString();}
+#endif
+
 private:
   struct SLQueryResultFunctor;
   struct LDToSLQueryResultFn;

@@ -457,8 +457,8 @@ public:
   };
 
   /**
-   * Iterator that yields proper subterms
-   * of specified @b term in DFS left to right order.
+   * Iterator that iterator over disagreement set of two terms
+   * or literals in DFS left to right order.
    */
   class DisagreementSetIterator
   : public IteratorCore<pair<TermList, TermList> >
@@ -509,6 +509,10 @@ public:
     TermList _arg1;
     TermList _arg2;
   };
+
+  static Comparison lexicographicCompare(TermList t1, TermList t2);
+
+  static Comparison lexicographicCompare(Term* t1, Term* t2);
 
   enum ArgumentOrder {
     UNKNOWN=0,

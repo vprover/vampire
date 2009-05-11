@@ -14,11 +14,14 @@
 
 #include "SplittingFSE.hpp"
 
+extern std::string treeStr;
+
 namespace Inferences
 {
 
 using namespace Lib;
 using namespace Kernel;
+
 
 void SplittingFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
 	ClauseIterator& premises)
@@ -85,16 +88,24 @@ void SplittingFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
     }
     int compLen=lits.size();
 
-    Clause* comp=0;
+    Clause* comp;
     int compName;
     ClauseIterator variants=_variantIndex.retrieveVariants(lits.begin(), compLen);
     if(variants.hasNext()) {
       comp=variants.next();
       compName=_clauseNames.get(comp);
+//      if(variants.hasNext()) {
+//	cout<<compName<<":  "<<(*comp)<<endl;
+//	while(variants.hasNext()) {
+//	  comp=variants.next();
+//	  cout<<_clauseNames.get(comp)<<":  "<<(*comp)<<endl;
+//	}
+//	cout<<"------";
+//	cout<<treeStr;
+//	ASSERTION_VIOLATION;
+//      }
       ASS(!variants.hasNext()); //TODO: this fails e.g. on ALG214+1
-    }
-
-    if(comp==0) {
+    } else {
       env.statistics->uniqueComponents++;
       Inference* inf=new Inference(Inference::SPLITTING_COMPONENT);
       Unit::InputType inpType = cl->inputType();
