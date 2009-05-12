@@ -100,7 +100,12 @@ public:
       } else {
 	ASS_EQ(ld1.clause,ld2.clause);
 	ASS_EQ(ld1.literal,ld2.literal);
-	res=Term::lexicographicCompare(ld1.term,ld2.term);
+	if(ld1.term.isEmpty()) {
+	  ASS(ld2.term.isEmpty());
+	  res=EQUAL;
+	} else {
+	  res=Term::lexicographicCompare(ld1.term,ld2.term);
+	}
 //	res=(ld1.term<ld2.term)? LESS : (ld1.term>ld2.term)? GREATER : EQUAL;
       }
       return res;

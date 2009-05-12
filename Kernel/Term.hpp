@@ -468,6 +468,10 @@ public:
     DisagreementSetIterator(TermList t1, TermList t2, bool disjunctVariables=true)
     : _stack(8), _disjunctVariables(disjunctVariables)
     {
+      CALL("Term::DisagreementSetIterator::DisagreementSetIterator(TermList...)");
+      ASS(!t1.isEmpty());
+      ASS(!t2.isEmpty());
+
       if(!TermList::sameTop(t1,t2)) {
 	_arg1=t1;
 	_arg2=t2;
