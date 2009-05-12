@@ -87,8 +87,13 @@ void UnitClauseSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   if(c->length()==1) {
     if(adding) {
+//      cout<<"unit ins: "<<(*c)<<endl;
       _is->insert((*c)[0], c);
+//      if(c->number()==26) {
+//        cout<<_is->toString();
+//      }
     } else {
+//      cout<<"unit del: "<<(*c)<<endl;
       _is->remove((*c)[0], c);
     }
   }

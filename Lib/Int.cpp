@@ -92,6 +92,16 @@ string Int::toString(size_t i)
 } // Int::toString
 #endif
 
+string Int::toHexString(size_t i)
+{
+  char tmp [256];
+  sprintf(tmp,"0x%zx",i);
+  string result(tmp);
+
+  return result;
+} // Int::toString
+
+
 /**
  * Convert a string to a long value.
  * @since 30/08/2004 Torrevieja

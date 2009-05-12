@@ -204,6 +204,7 @@ public:
   static XMLElement variableToXML(unsigned var);
   string toString() const;
   static string variableToString(unsigned var);
+  static string variableToString(TermList var);
   /** return the arguments */
   const TermList* args() const
   { return _args + _arity; }

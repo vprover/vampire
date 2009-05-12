@@ -220,6 +220,22 @@ string Term::variableToString (unsigned var)
 } // variableToString
 
 /**
+ * Return the string representation of variable term var.
+ * @since 16/05/2007
+ */
+string Term::variableToString (TermList var)
+{
+  CALL("Term::variableToString");
+  ASS(var.isVar());
+
+  if(var.isOrdinaryVar()) {
+    return (string)"X" + Int::toString(var.var());
+  } else {
+    return (string)"S" + Int::toString(var.var());
+  }
+} // variableToString
+
+/**
  * Return the result of conversion of a term into a string.
  * @since 16/05/2007 Manchester
  */
@@ -263,7 +279,7 @@ void TermList::argsToString(Stack<const TermList*>& stack,string& s)
       stack.push(0);
     }
     if (ts->isVar()) {
-      s += Term::variableToString(ts->var());
+      s += Term::variableToString(*ts);
       continue;
     }
     const Term* t = ts->term();
@@ -285,7 +301,7 @@ string TermList::toString() const
   ASS(isNonEmpty());
 
   if (isVar()) {
-    return Term::variableToString(var());
+    return Term::variableToString(*this);
   }
   return term()->toString();
 } // TermList::toString
@@ -331,6 +347,13 @@ const string& Term::functionName() const
 {
   CALL("Term::functionName");
 
+#if VDEBUG
+  static string nonexisting("<predicate does not exists>");
+  if(_functor>=static_cast<unsigned>(env.signature->functions())) {
+    return nonexisting;
+  }
+#endif
+
   return env.signature->functionName(_functor);
 } // Term::functionName
 
@@ -341,6 +364,13 @@ const string& Term::functionName() const
 const string& Literal::predicateName() const
 {
   CALL("Literal::predicateName");
+
+#if VDEBUG
+  static string nonexisting("<predicate does not exists>");
+  if(_functor>=static_cast<unsigned>(env.signature->predicates())) {
+    return nonexisting;
+  }
+#endif
 
   return env.signature->predicateName(_functor);
 } // Literal::predicateName

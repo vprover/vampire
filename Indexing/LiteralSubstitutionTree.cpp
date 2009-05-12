@@ -60,6 +60,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
 {
   CALL("LiteralSubstitutionTree::getGeneralizations");
   return getResultIterator<FastGeneralizationsIterator>(lit,
+//  return getResultIterator<GeneralizationsIterator>(lit,
 	  complementary, retrieveSubstitutions);
 }
 

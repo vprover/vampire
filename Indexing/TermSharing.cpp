@@ -192,7 +192,7 @@ Term* TermSharing::insertRecurrently(Term* t)
 bool TermSharing::argNormGt(TermList t1, TermList t2)
 {
   if(t1.tag()!=t2.tag()) {
-    return t1.tag()>t1.tag();
+    return t1.tag()>t2.tag();
   }
   if(!t1.isTerm()) {
     return t1.content()>t2.content();

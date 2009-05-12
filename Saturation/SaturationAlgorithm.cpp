@@ -31,8 +31,10 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
 
 #if VDEBUG
 //  _active->addedEvent.subscribe(this,&SaturationAlgorithm::onActiveAdded);
+//  _active->removedEvent.subscribe(this,&SaturationAlgorithm::onActiveRemoved);
 //  _passive->addedEvent.subscribe(this,&SaturationAlgorithm::onPassiveAdded);
 //  _passive->removedEvent.subscribe(this,&SaturationAlgorithm::onPassiveRemoved);
+//  _passive->selectedEvent.subscribe(this,&SaturationAlgorithm::onPassiveSelected);
 //  _unprocessed->addedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedAdded);
 //  _unprocessed->removedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedRemoved);
 //  _unprocessed->selectedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedSelected);
@@ -65,6 +67,42 @@ SaturationAlgorithm::~SaturationAlgorithm()
   delete _unprocessed;
   delete _active;
 }
+
+#if VDEBUG
+void SaturationAlgorithm::onActiveAdded(Clause* c)
+{
+  cout<<"## Active added: "<<(*c)<<endl;
+}
+void SaturationAlgorithm::onActiveRemoved(Clause* c)
+{
+  cout<<"== Active removed: "<<(*c)<<endl;
+}
+void SaturationAlgorithm::onPassiveAdded(Clause* c)
+{
+  cout<<"# Passive added: "<<(*c)<<endl;
+}
+void SaturationAlgorithm::onPassiveRemoved(Clause* c)
+{
+  cout<<"= Passive removed: "<<(*c)<<endl;
+}
+void SaturationAlgorithm::onPassiveSelected(Clause* c)
+{
+  cout<<"~ Passive selected: "<<(*c)<<endl;
+}
+void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
+{
+  cout<<"++ Unprocessed added: "<<(*c)<<endl;
+}
+void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
+{
+  cout<<"-- Unprocessed removed: "<<(*c)<<endl;
+}
+void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
+{
+  cout<<"~~ Unprocessed selected: "<<(*c)<<endl;
+}
+#endif
+
 
 /**
  * Insert input clauses into ste unprocessed container.
@@ -160,9 +198,9 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 
     cl->setProp(bdd->conjunction(cl->prop(), premiseProp));
 
-    if(bdd->isTrue(cl->prop())) {
+//    if(bdd->isTrue(cl->prop())) {
       return false;
-    }
+//    }
   }
   return true;
 }
@@ -183,6 +221,9 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       BwSimplificationRecord srec=simplifications.next();
       Clause* redundant=srec.toRemove;
 
+//      cout<<"Bw simpl. of "<<(*redundant)<<endl;
+//      cout<<"By "<<(*cl)<<endl;
+
       BDDNode* replacementProp;
       if(srec.replacements.hasNext()) {
 	replacementProp=bdd->disjunction(cl->prop(), redundant->prop());
@@ -195,7 +236,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 
       redundant->setProp(bdd->xOrNonY(redundant->prop(), cl->prop()));
 
-      if(bdd->isTrue(redundant->prop())) {
+//      if(bdd->isTrue(redundant->prop())) {
 	switch(redundant->store()) {
 	case Clause::PASSIVE:
 	  _passive->remove(redundant);
@@ -206,7 +247,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	default:
 	  ASSERTION_VIOLATION;
 	}
-      }
+//      }
 
     }
   }
@@ -234,9 +275,9 @@ void SaturationAlgorithm::activate(Clause* cl)
       prop=bdd->disjunction(prop, premCl->prop());
     }
 
-    if(bdd->isTrue(prop)) {
-      continue;
-    }
+//    if(bdd->isTrue(prop)) {
+//      continue;
+//    }
 
     genCl->setProp(prop);
 

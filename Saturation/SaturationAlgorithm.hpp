@@ -63,33 +63,15 @@ protected:
   void activate(Clause* c);
 
 #if VDEBUG
-  void onActiveAdded(Clause* c)
-  {
-    cout<<"## Active added: "<<(*c)<<endl;
-  }
-  void onPassiveAdded(Clause* c)
-  {
-    cout<<"# Passive added: "<<(*c)<<endl;
-  }
-  void onPassiveRemoved(Clause* c)
-  {
-    cout<<"Passive removed: "<<(*c)<<endl;
-  }
-  void onUnprocessedAdded(Clause* c)
-  {
-    cout<<"++ Unprocessed added: "<<(*c)<<endl;
-  }
-  void onUnprocessedRemoved(Clause* c)
-  {
-    cout<<"Unprocessed removed: "<<(*c)<<endl;
-  }
-  void onUnprocessedSelected(Clause* c)
-  {
-    cout<<"-- Unprocessed selected: "<<(*c)<<endl;
-  }
+  void onActiveAdded(Clause* c);
+  void onActiveRemoved(Clause* c);
+  void onPassiveAdded(Clause* c);
+  void onPassiveRemoved(Clause* c);
+  void onPassiveSelected(Clause* c);
+  void onUnprocessedAdded(Clause* c);
+  void onUnprocessedRemoved(Clause* c);
+  void onUnprocessedSelected(Clause* c);
 #endif
-
-
 private:
   Limits _limits;
   IndexManager _imgr;

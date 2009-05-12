@@ -37,6 +37,8 @@ using namespace std;
 using namespace Indexing;
 
 
+bool reporting=false;
+
 
 
 /**
@@ -526,7 +528,8 @@ string SubstitutionTree::nodeToString(Node* topNode)
 	continue;
     }
     if(!node->term.isEmpty()) {
-      res+=getIndentStr(indent)+Test::Output::singleTermListToString(node->term)+"\n";
+      res+=getIndentStr(indent)+Test::Output::singleTermListToString(node->term)+"  "+
+	  Int::toHexString(reinterpret_cast<size_t>(node))+"\n";
     }
 
     if(node->isLeaf()) {
@@ -535,10 +538,11 @@ string SubstitutionTree::nodeToString(Node* topNode)
 
 	while(ldi.hasNext()) {
 	  LeafData ld=ldi.next();
-	  res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n"+ld.clause->toString()+"\n";
+	  res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n"/*+ld.clause->toString()+"\n"*/;
 	}
     } else {
 	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
+	res+=getIndentStr(indent) + " S" + Int::toString(inode->childVar)+":\n";
 	NodeIterator noi(inode->allChildren());
 	while(noi.hasNext()) {
 	  stack.push(*noi.next());
@@ -1061,6 +1065,10 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
   TermList queryTerm=(*_specVars)[specVar];
   ASSERT_VALID(queryTerm);
 
+  if(reporting) {
+    cout<<"Matching q: "<<queryTerm<<" and n: "<<nodeTerm;
+  }
+
   bool success;
   if(nodeTerm.isTerm()) {
     Term* nt=nodeTerm.term();
@@ -1096,6 +1104,10 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
       }
     }
   }
+
+  if(reporting) {
+    cout<<(success?" succ":" fail")<<endl;
+  }
   return success;
 }
 
@@ -1107,10 +1119,16 @@ void SubstitutionTree::GenMatcher::backtrack()
 {
   CALL("SubstitutionTree::GenMatcher::backtrack");
 
+  if(reporting) {
+    cout<<"BT start"<<endl;
+  }
   for(;;) {
     unsigned boundVar=_boundVars.pop();
     if(boundVar==BACKTRACK_SEPARATOR) {
       break;
+    }
+    if(reporting) {
+      cout<<"Removing binding of "<<boundVar<<endl;
     }
     _bindings->remove(boundVar);
   }
@@ -1205,6 +1223,9 @@ bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
   CALL("SubstitutionTree::FastGeneralizationsIterator::hasNext");
 
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
+  if(reporting) {
+    cout<<(_ldIterator.hasNext()?"succ":"fail")<<endl;
+  }
   return _ldIterator.hasNext();
 }
 
@@ -1347,7 +1368,7 @@ main_loop_start:
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst.backtrack();
 	if(sibilingsRemain || _alternatives.isNonEmpty()) {
-	  //this vacktrack can happen for two different reasons and have two different meanings:
+	  //this backtrack can happen for two different reasons and have two different meanings:
 	  //either matching at [1] was separated from the previous one and we're backtracking it,
 	  //or it was not, which means it had no sibilings and we're backtracking from its parent.
 	  _subst.backtrack();
@@ -1365,6 +1386,9 @@ main_loop_start:
 
     //let's go to the first child
     sibilingsRemain=enterNode(curr);
+    if(curr==0 && _alternatives.isNonEmpty()) {
+      _subst.backtrack();
+    }
   }
 }
 
@@ -1383,12 +1407,19 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
   TermList binding=_subst.getSpecVarBinding(inode->childVar);
   curr=0;
 
+  if(reporting) {
+    cout<<inode<<": "<<inode->childVar<<" <- "<<binding.toString()<<endl;
+  }
+
   if(currType==UNSORTED_LIST) {
     Node** nl=static_cast<UArrIntermediateNode*>(inode)->_nodes;
     if(binding.isTerm()) {
       unsigned bindingFunctor=binding.term()->functor();
       //let's first skip proper term nodes at the beginning...
       while(*nl && (*nl)->term.isTerm()) {
+	if(reporting) {
+	  cout<<curr<<"\t"<<(*nl)->term.toString()<<endl;
+	}
         //...and have the one that interests us, if we encounter it.
         if(!curr && (*nl)->term.term()->functor()==bindingFunctor) {
           curr=*nl;

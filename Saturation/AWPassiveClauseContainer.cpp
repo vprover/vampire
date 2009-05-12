@@ -155,6 +155,7 @@ Clause* AWPassiveClauseContainer::popSelected()
     _balance -= _ageRatio;
     Clause* c = _weightQueue.pop();
     _ageQueue.remove(c);
+    selectedEvent.fire(c);
     return c;
   }
   _balance += _weightRatio;

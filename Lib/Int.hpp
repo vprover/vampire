@@ -41,6 +41,9 @@ class Int
   /** Return the string representation of a float */
   static string toString(float f) { return toString((double)f); }
   static string toString(double d);
+
+  static string toHexString(size_t i);
+
   /** Compare two integers. */
   inline static Comparison compare (int i1, int i2)
   { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }

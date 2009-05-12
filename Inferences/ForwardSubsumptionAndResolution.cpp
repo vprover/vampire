@@ -28,6 +28,8 @@
 
 #include "ForwardSubsumptionAndResolution.hpp"
 
+extern bool reporting;
+
 namespace Inferences
 {
 using namespace Lib;
@@ -231,6 +233,10 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
   premises=ClauseIterator::getEmpty();
   keep=true;
   Clause* resolutionClause=0;
+
+//  if(cl->number()==180) {
+//    reporting=true;
+//  }
 
   unsigned clen=cl->length();
   if(clen==0) {
