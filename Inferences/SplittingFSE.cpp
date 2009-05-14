@@ -14,8 +14,6 @@
 
 #include "SplittingFSE.hpp"
 
-extern std::string treeStr;
-
 namespace Inferences
 {
 
