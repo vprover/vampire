@@ -98,7 +98,11 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
   ClauseQueue::Iterator cit(_ageQueue);
   while(cit.hasNext()) {
     Clause* cl=cit.next();
-    cl->setStore(Clause::NONE);
+    if(cl->store()==Clause::PASSIVE) {
+      cl->setStore(Clause::NONE);
+    } else {
+      ASS_EQ(cl->store(), Clause::REACTIVATED);
+    }
   }
 }
 
@@ -106,21 +110,21 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
  * Add @b c clause in the queue.
  * @since 31/12/2007 Manchester
  */
-void AWPassiveClauseContainer::add(Clause* c)
+void AWPassiveClauseContainer::add(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::add");
   ASS(_ageRatio > 0 || _weightRatio > 0);
 
   if (_ageRatio) {
-    _ageQueue.insert(c);
+    _ageQueue.insert(cl);
   }
   if (_weightRatio) {
-    _weightQueue.insert(c);
+    _weightQueue.insert(cl);
   }
   _size++;
-  c->setStore(Clause::PASSIVE);
-  env.statistics->passiveClauses++;
-  addedEvent.fire(c);
+  if(cl->store()!=Clause::REACTIVATED) {
+    addedEvent.fire(cl);
+  }
 } // AWPassiveClauseContainer::add
 
 /**
@@ -153,16 +157,16 @@ Clause* AWPassiveClauseContainer::popSelected()
 
   if (byWeight) {
     _balance -= _ageRatio;
-    Clause* c = _weightQueue.pop();
-    _ageQueue.remove(c);
-    selectedEvent.fire(c);
-    return c;
+    Clause* cl = _weightQueue.pop();
+    _ageQueue.remove(cl);
+    selectedEvent.fire(cl);
+    return cl;
   }
   _balance += _weightRatio;
-  Clause* c = _ageQueue.pop();
-  _weightQueue.remove(c);
-  selectedEvent.fire(c);
-  return c;
+  Clause* cl = _ageQueue.pop();
+  _weightQueue.remove(cl);
+  selectedEvent.fire(cl);
+  return cl;
 } // AWPassiveClauseContainer::popSelected
 
 void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
@@ -282,7 +286,9 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 #endif
 
   while(toRemove.isNonEmpty()) {
-    remove(toRemove.pop());
+    Clause* removed=toRemove.pop();
+    remove(removed);
+    removed->setStore(Clause::NONE);
   }
 
 }

@@ -17,6 +17,7 @@
 
 #include "Limits.hpp"
 #include "SaturationResult.hpp"
+#include "Splitter.hpp"
 
 #if VDEBUG
 #include<iostream>
@@ -60,6 +61,7 @@ protected:
   bool isRefutation(Clause* c);
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
+  void addToPassive(Clause* c);
   void activate(Clause* c);
 
 #if VDEBUG
@@ -90,6 +92,8 @@ protected:
   BwSimplList* _bwSimplifiers;
 
   LiteralSelectorSP _selector;
+
+  Splitter _splitter;
 };
 
 

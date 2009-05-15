@@ -189,7 +189,7 @@ Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* ba
     }
   }
 
-  res->setAge(max(cl->age(), baseClause->age())+1);
+  res->setAge(cl->age());
   env.statistics->forwardSubsumptionResolution++;
 
   return res;
@@ -233,10 +233,6 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
   premises=ClauseIterator::getEmpty();
   keep=true;
   Clause* resolutionClause=0;
-
-//  if(cl->number()==180) {
-//    reporting=true;
-//  }
 
   unsigned clen=cl->length();
   if(clen==0) {

@@ -152,9 +152,32 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     }
   } while(simplified);
 
-  //TODO: perform splitting
+/**/
+  //TODO: PUZ001-1 does not get proved
+  ClauseIterator newComponents;
+  ClauseIterator modifiedComponents;
+  _splitter.doSplitting(cl, newComponents, modifiedComponents);
+  while(newComponents.hasNext()) {
+    Clause* comp=newComponents.next();
 
+    ASS_EQ(comp->store(), Clause::NONE);
+    comp->setStore(Clause::UNPROCESSED);
+    env.statistics->generatedClauses++;
+    _unprocessed->add(comp);
+  }
+  while(modifiedComponents.hasNext()) {
+    Clause* comp=modifiedComponents.next();
+
+    if(comp->store()==Clause::ACTIVE) {
+      comp->setStore(Clause::REACTIVATED);
+      _passive->add(comp);
+    }
+  }
+/*/
+  cl->setStore(Clause::UNPROCESSED);
+  env.statistics->generatedClauses++;
   _unprocessed->add(cl);
+/**/
 }
 
 bool SaturationAlgorithm::forwardSimplify(Clause* cl)
@@ -196,11 +219,11 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
       addUnprocessedClause(addCl);
     }
 
-    cl->setProp(bdd->conjunction(cl->prop(), premiseProp));
+    cl->setProp(bdd->xOrNonY(cl->prop(), premiseProp));
 
-//    if(bdd->isTrue(cl->prop())) {
+    if(bdd->isTrue(cl->prop())) {
       return false;
-//    }
+    }
   }
   return true;
 }
@@ -220,9 +243,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
     while(simplifications.hasNext()) {
       BwSimplificationRecord srec=simplifications.next();
       Clause* redundant=srec.toRemove;
-
-//      cout<<"Bw simpl. of "<<(*redundant)<<endl;
-//      cout<<"By "<<(*cl)<<endl;
+      ASS_NEQ(redundant, cl);
 
       BDDNode* replacementProp;
       if(srec.replacements.hasNext()) {
@@ -236,7 +257,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 
       redundant->setProp(bdd->xOrNonY(redundant->prop(), cl->prop()));
 
-//      if(bdd->isTrue(redundant->prop())) {
+      if(bdd->isTrue(redundant->prop())) {
 	switch(redundant->store()) {
 	case Clause::PASSIVE:
 	  _passive->remove(redundant);
@@ -244,13 +265,29 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	case Clause::ACTIVE:
 	  _active->remove(redundant);
 	  break;
+	case Clause::REACTIVATED:
+	  _passive->remove(redundant);
+	  _active->remove(redundant);
+	  break;
 	default:
 	  ASSERTION_VIOLATION;
 	}
-//      }
+	redundant->setStore(Clause::NONE);
+      }
 
     }
   }
+}
+
+void SaturationAlgorithm::addToPassive(Clause* c)
+{
+  CALL("SaturationAlgorithm::addToPassive");
+
+  ASS_EQ(c->store(), Clause::UNPROCESSED);
+  c->setStore(Clause::PASSIVE);
+  env.statistics->passiveClauses++;
+
+  _passive->add(c);
 }
 
 void SaturationAlgorithm::activate(Clause* cl)
@@ -258,7 +295,17 @@ void SaturationAlgorithm::activate(Clause* cl)
   CALL("SaturationAlgorithm::activate");
 
   _selector->select(cl);
-  _active->add(cl);
+
+  if(cl->store()==Clause::REACTIVATED) {
+    cl->setStore(Clause::ACTIVE);
+//    cout<<"** Reanimating: "<<(*cl)<<endl;
+  } else {
+    ASS_EQ(cl->store(), Clause::PASSIVE);
+    cl->setStore(Clause::ACTIVE);
+    env.statistics->activeClauses++;
+
+    _active->add(cl);
+  }
 
   ClauseIterator toAdd=_generator->generateClauses(cl);
 
@@ -272,12 +319,14 @@ void SaturationAlgorithm::activate(Clause* cl)
       Unit* premUnit=genCl->inference()->next(iit);
       ASS(premUnit->isClause());
       Clause* premCl=static_cast<Clause*>(premUnit);
+//      cout<<"premCl: "<<(*premCl)<<endl;
       prop=bdd->disjunction(prop, premCl->prop());
+//      cout<<"res: "<<bdd->toString(prop)<<endl;
     }
 
-//    if(bdd->isTrue(prop)) {
-//      continue;
-//    }
+    if(bdd->isTrue(prop)) {
+      continue;
+    }
 
     genCl->setProp(prop);
 

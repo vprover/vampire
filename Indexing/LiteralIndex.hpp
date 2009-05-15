@@ -17,6 +17,8 @@ class LiteralIndex
 public:
   virtual ~LiteralIndex();
 
+  SLQueryResultIterator getAll();
+
   SLQueryResultIterator getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);
 

@@ -84,6 +84,10 @@ private:
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
   CALL("EqualityResolution::generateClauses");
+
+  if(premise->isEmpty()) {
+    return ClauseIterator::getEmpty();
+  }
   ASS(premise->selected()>0);
 
   return pvi( getFilteredIterator(

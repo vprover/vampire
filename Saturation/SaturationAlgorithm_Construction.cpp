@@ -23,7 +23,6 @@
 #include "../Inferences/RefutationSeekerFSE.hpp"
 #include "../Inferences/SLQueryForwardSubsumption.hpp"
 #include "../Inferences/SLQueryBackwardSubsumption.hpp"
-#include "../Inferences/SplittingFSE.hpp"
 #include "../Inferences/Superposition.hpp"
 #include "../Inferences/TautologyDeletionISE.hpp"
 
@@ -97,8 +96,6 @@ void addFSEs(SaturationAlgorithm* alg)
   } else if(env.options->forwardSubsumption()) {
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
   }
-
-//  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new SplittingFSE()));
 
 //  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new Condensation()));
 }

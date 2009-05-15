@@ -3,6 +3,7 @@
  * Implements class BDD for binary decision diagrams
  */
 
+#include "../Lib/Int.hpp"
 #include "../Lib/Stack.hpp"
 
 #include "BDD.hpp"
@@ -216,6 +217,30 @@ BDDNode* BDD::getNode(int varNum, BDDNode* pos, BDDNode* neg)
   BDDNode* res=_nodes.insert(newNode);
   if(res==newNode) {
     newNode=0;
+  }
+  return res;
+}
+
+
+string BDD::toString(BDDNode* node)
+{
+  string res="";
+  static Stack<BDDNode*> nodes(8);
+  nodes.push(node);
+  while(nodes.isNonEmpty()) {
+    BDDNode* n=nodes.pop();
+    if(n==0) {
+      res+=") ";
+    } else if(isTrue(n)) {
+      res+="$true ";
+    } else if(isFalse(n)) {
+      res+="$false ";
+    } else {
+      res+=string("( ")+Int::toString(n->_var)+" ? ";
+      nodes.push(0);
+      nodes.push(n->_neg);
+      nodes.push(n->_pos);
+    }
   }
   return res;
 }

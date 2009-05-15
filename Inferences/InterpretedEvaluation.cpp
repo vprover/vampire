@@ -277,7 +277,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     (*res)[i] = newLits[i];
   }
 
-  res->setAge(cl->age()+1);
+  res->setAge(cl->age());
   env.statistics->evaluations++;
 
   return cl;

@@ -115,7 +115,7 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
 	}
 	ASS_EQ(next,cLen);
 
-	res->setAge(Int::max(cl->age(),qr.clause->age())+1);
+	res->setAge(cl->age());
 	env.statistics->forwardDemodulations++;
 	keep=false;
 

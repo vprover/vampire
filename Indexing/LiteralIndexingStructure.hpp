@@ -30,7 +30,7 @@ public:
 	  bool complementary, bool retrieveSubstitutions = true) = 0;
 
 #if VDEBUG
-  virtual string toString() {}
+  virtual string toString() { return "<not supported>"; }
 #endif
 
 };

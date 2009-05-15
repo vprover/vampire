@@ -151,6 +151,24 @@ struct NonzeroFn
   }
 };
 
+template<typename T>
+struct NonequalFn
+{
+  NonequalFn(T forbidden) : _forbidden(forbidden) {}
+  DECL_RETURN_TYPE(bool);
+  bool operator()(T obj)
+  {
+    return obj!=_forbidden;
+  }
+  T _forbidden;
+};
+
+template<typename T>
+NonequalFn<T> getNonequalFn(T forbidden)
+{
+  return NonequalFn<T>(forbidden);
+}
+
 /**
  * A meta-iterator that yields only those elements of
  * underlying iterator, for which @b func(element)

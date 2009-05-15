@@ -43,14 +43,15 @@ SaturationResult Otter::saturate()
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
 
-      if (c->isEmpty()) {
+      if (isRefutation(c)) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
       if(forwardSimplify(c)) {
 	backwardSimplify(c);
-	_passive->add(c);
+	addToPassive(c);
 	_simplCont.add(c);
       } else {
+	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
       }
 

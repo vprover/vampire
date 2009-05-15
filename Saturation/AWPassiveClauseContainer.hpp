@@ -40,7 +40,7 @@ public PassiveClauseContainer
 public:
   AWPassiveClauseContainer() : _balance(0), _size(0) {};
   ~AWPassiveClauseContainer();
-  void add(Clause* c);
+  void add(Clause* cl);
 
   /**
    * Remove Clause from the Passive store. Should be called only
@@ -48,14 +48,15 @@ public:
    * (i.e. was backward subsumed/simplified), as it can result in
    * deletion of the clause.
    */
-  void remove(Clause* c)
+  void remove(Clause* cl)
   {
-    ASS_EQ(c->store(), Clause::PASSIVE);
-    _ageQueue.remove(c);
-    _weightQueue.remove(c);
+    ALWAYS(_ageQueue.remove(cl));
+    ALWAYS(_weightQueue.remove(cl));
     _size--;
-    removedEvent.fire(c);
-    c->setStore(Clause::NONE);
+    if(cl->store()!=Clause::REACTIVATED) {
+      ASS_EQ(cl->store(), Clause::PASSIVE);
+      removedEvent.fire(cl);
+    }
   }
 
   /**

@@ -125,7 +125,9 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
 {
   CALL("Factoring::generateClauses");
 
-  ASS(premise->selected()>0);
+  if(premise->length()<=1) {
+    return ClauseIterator::getEmpty();
+  }
   if(premise->selected()==1 && (*premise)[0]->isNegative()) {
     return ClauseIterator::getEmpty();
   }

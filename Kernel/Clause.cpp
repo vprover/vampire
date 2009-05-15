@@ -14,6 +14,7 @@
 #include "Inference.hpp"
 #include "Clause.hpp"
 #include "Term.hpp"
+#include "BDD.hpp"
 
 
 using namespace Lib;
@@ -41,6 +42,16 @@ void* Clause::operator new(size_t sz,unsigned lits)
   size-=sizeof(Literal*);
 
   return ALLOC_KNOWN(size,"Clause");
+}
+
+
+/** Set the propositional part of the clause */
+void Clause::setProp(BDDNode* prop)
+{
+  if(_prop) {
+//    cout<<"%% prop change: " << (*this) << "-->" << BDD::instance()->toString(prop)<<endl;
+  }
+  _prop=prop;
 }
 
 bool Clause::shouldBeDestroyed()
@@ -130,6 +141,9 @@ string Clause::toString() const
       }
     }
   }
+
+  result += " | " + BDD::instance()->toString(prop());
+
   result += string(" (") + Int::toString(_age) + ':' +
             Int::toString(weight()) + ") " + inferenceAsString();
   return result;

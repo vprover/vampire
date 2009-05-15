@@ -20,13 +20,6 @@ namespace Lib
 class Recycler {
 public:
   template<typename T>
-  static void release(T* obj)
-  {
-    ASS(obj);
-    obj->reset();
-    List<T*>::push(obj, getStore<T>());
-  }
-  template<typename T>
   static void get(T*& result)
   {
     List<T*>*& store=getStore<T>();
@@ -57,17 +50,45 @@ public:
       result=new DArray<T>(64);
     }
   }
+
+
   template<typename T>
-  static void release(DArray<T>* obj)
+  static void release(T* obj) throw()
   {
     ASS(obj);
-    List<DArray<T>*>::push(obj, getStore<DArray<T> >());
+
+    obj->reset();
+    putIntoStoreOrDelete<T>(obj);
+  }
+  template<typename T>
+  static void release(DArray<T>* obj) throw()
+  {
+    ASS(obj);
+
+    putIntoStoreOrDelete<DArray<T> >(obj);
   }
 
 
 private:
+
   template<typename T>
-  static List<T*>*& getStore()
+  static void putIntoStoreOrDelete(T* obj) throw()
+  {
+    List<T*>* itm=0;
+    List<T*>*& store=getStore<T>();
+    try {
+      itm=new List<T*>(obj, store);
+    } catch(MemoryLimitExceededException) {}
+
+    if(itm) {
+      store=itm;
+    } else {
+      delete obj;
+    }
+  }
+
+  template<typename T>
+  static List<T*>*& getStore() throw()
   {
     static List<T*>* store=0;
     return store;

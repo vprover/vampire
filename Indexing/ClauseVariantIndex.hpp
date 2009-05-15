@@ -10,6 +10,7 @@
 #include "../Forwards.hpp"
 
 #include "../Lib/Array.hpp"
+#include "../Lib/List.hpp"
 
 namespace Indexing {
 
@@ -19,6 +20,7 @@ using namespace Kernel;
 class ClauseVariantIndex
 {
 public:
+  ClauseVariantIndex() : _emptyClauses(0) {}
   ~ClauseVariantIndex();
 
   void insert(Clause* cl);
@@ -30,6 +32,8 @@ private:
   class SLResultToVariantClauseFn;
 
   ZIArray<LiteralSubstitutionTree*> _strees;
+
+  ClauseList* _emptyClauses;
 };
 
 };

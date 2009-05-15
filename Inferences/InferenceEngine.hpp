@@ -132,6 +132,13 @@ class BackwardSimplificationEngine
 : public InferenceEngine
 {
 public:
+  /**
+   * Perform backward simplification with @b premise.
+   *
+   * Descendant classes should pay attention to the possibility that
+   * the premise could be present in the simplification indexes at
+   * the time of call to this method.
+   */
   virtual void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) = 0;
 };
 

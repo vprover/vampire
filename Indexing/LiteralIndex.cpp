@@ -9,12 +9,19 @@
 
 #include "LiteralIndex.hpp"
 
+namespace Indexing
+{
+
 using namespace Kernel;
-using namespace Indexing;
 
 LiteralIndex::~LiteralIndex()
 {
   delete _is;
+}
+
+SLQueryResultIterator LiteralIndex::getAll()
+{
+  return _is->getAll();
 }
 
 SLQueryResultIterator LiteralIndex::getUnifications(Literal* lit,
@@ -99,3 +106,4 @@ void UnitClauseSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+}

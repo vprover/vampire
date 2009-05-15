@@ -15,8 +15,6 @@
 
 #include "ClauseVariantIndex.hpp"
 
-//string treeStr;
-
 namespace Indexing
 {
 
@@ -36,17 +34,24 @@ ClauseVariantIndex::~ClauseVariantIndex()
 void ClauseVariantIndex::insert(Clause* cl)
 {
   unsigned clen=cl->length();
+
+  if(cl->length()==0) {
+    ClauseList::push(cl, _emptyClauses);
+    return;
+  }
+
   if(!_strees[clen]) {
     _strees[clen]=new LiteralSubstitutionTree();
-//    cout<<"Created index for len "<<clen<<": "<<_strees[clen]<<endl;
   }
   Literal* mainLit=getMainLiteral(cl->literals(), clen);
   _strees[clen]->insert(mainLit, cl);
-//  cout<<"Stored "<<cl->length()<<" into "<<_strees[clen]<<endl;
 }
 
 Literal* ClauseVariantIndex::getMainLiteral(Literal** lits, unsigned length)
 {
+  CALL("ClauseVariantIndex::getMainLiteral");
+  ASS_G(length,0);
+
   Literal* best=lits[0];
   unsigned bestVal=best->weight()-best->getDistinctVars();
   for(unsigned i=1;i<length;i++) {
@@ -83,6 +88,11 @@ public:
     Clause* mcl=res.clause;
     ASSERT_VALID(*mcl);
     ASS_EQ(mcl->length(),_length);
+//    if(mcl->number()==3987) {
+//      cout<<"here we are:\n";
+//      cout<<(*_lits[0])<<endl;
+//      cout<<(*_lits[1])<<endl;
+//    }
 
     for(unsigned i=0;i<_length;i++) {
       LiteralMiniIndex::VariantIterator vit(*_queryIndex, (*mcl)[i], false);
@@ -96,6 +106,7 @@ public:
 	for(unsigned j=0;j<_length;j++) {
 	  if(qVarLit==_lits[j]) {
 	    qVarLitIndex=j;
+	    break;
 	  }
 	}
 	LiteralList::push((*mcl)[i], alts[qVarLitIndex]);
@@ -110,12 +121,13 @@ public:
     //Since we know that all mcl literals in alts array are variants
     //of their counterparts, it should be ok to use multiset matching in
     //here. (It'll be all rewritten after we have code trees, anyway.)
-    fail=MLMatcher::canBeMatched(_lits,_length,mcl,alts.array(), 0, true);
+    fail=!MLMatcher::canBeMatched(_lits,_length,mcl,alts.array(), 0, true);
 
   fin:
     for(unsigned i=0;i<_length;i++) {
       alts[i]->destroy();
     }
+
     if(fail) {
       return 0;
     } else {
@@ -131,12 +143,14 @@ private:
 
 ClauseIterator ClauseVariantIndex::retrieveVariants(Literal** lits, unsigned length)
 {
+  if(length==0) {
+    return pvi( ClauseList::Iterator(_emptyClauses) );
+  }
+
   LiteralSubstitutionTree* index=_strees[length];
   if(!index) {
     return ClauseIterator::getEmpty();
   }
-
-//  treeStr=index->toString();
 
   Literal* mainLit=getMainLiteral(lits, length);
   return pvi( getFilteredIterator(

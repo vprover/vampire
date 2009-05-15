@@ -1,24 +1,45 @@
 #include <iostream>
-#include "Lib/Allocator.hpp"
 
+#include "Debug/Assertion.hpp"
+#include "Kernel/BDD.hpp"
+
+using namespace Kernel;
 using namespace std;
 
-void testVal(unsigned num) {
-  cout<<"trying "<<num<<"\n";
-  int* c = (int*)ALLOC_UNKNOWN(num, "abcd");
-  DEALLOC_UNKNOWN(c,"abcd");
-}
+BDD bdd;
 
 int main()
 {
-  testVal(65491);
-  testVal(65492);
-  testVal(65493);
-  testVal(65494);
-  testVal(65495);
-  testVal(65496);
-  testVal(65497);
-  testVal(654970);
-  testVal(6549700);
+  int v0=bdd.getNewVar();
+  int v1=bdd.getNewVar();
+  int v2=bdd.getNewVar();
+  BDDNode* bn=bdd.getAtomic(v0, false);
+  for(int i=0;i<10;i++) {
+    int v=bdd.getNewVar();
+    bn=bdd.disjunction(bn, bdd.getAtomic(v, false));
+  }
+  cout<<bdd.toString(bn)<<endl<<endl;
+  BDDNode* bn2=bdd.getAtomic(v1, false);
+  for(int i=0;i<10;i++) {
+    int v=bdd.getNewVar();
+    bn2=bdd.disjunction(bn2, bdd.getAtomic(v, false));
+  }
+  cout<<bdd.toString(bn2)<<endl<<endl;
+
+  bn=bdd.conjunction(bn, bdd.getAtomic(v2, true));
+  cout<<bdd.toString(bn)<<endl<<endl;
+  bn=bdd.conjunction(bn, bn2);
+  cout<<bdd.toString(bn)<<endl<<endl;
+  bn=bdd.conjunction(bn, bdd.getAtomic(v2, false));
+  cout<<bdd.toString(bn)<<endl<<endl;
+
+  ASS(bdd.isFalse(bn));
+  ASS(!bdd.isTrue(bn));
+//  bn=bdd.disjunction(bn, bdd.getAtomic(v0, true));
+//  ASS(!bdd.isFalse(bn));
+//  ASS(!bdd.isTrue(bn));
+//  bn=bdd.disjunction(bn, bdd.getAtomic(v1, true));
+//  ASS(bdd.isTrue(bn));
+//  ASS(!bdd.isFalse(bn));
   return 0;
 }

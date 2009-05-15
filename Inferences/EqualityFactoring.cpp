@@ -131,10 +131,10 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 {
   CALL("EqualityFactoring::generateClauses");
 
-  ASS(premise->selected()>0);
-  if(premise->length()==1) {
+  if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }
+  ASS(premise->selected()>0);
 
   return pvi( getFilteredIterator(
 	  getMappingIterator(

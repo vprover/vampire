@@ -43,7 +43,15 @@ public:
     /** queue of unprocessed clauses */
     UNPROCESSED = 2u,
     /** anything else */
-    NONE = 3u
+    NONE = 3u,
+    /**
+     * Active clause (it is in appropriate indexes) that is put to
+     * passive queue for another activation.
+     *
+     * This is intended for clauses whose propositional part has
+     * changed.
+     */
+    REACTIVATED = 5u
   };
 
   /** New unit of a given kind */
@@ -152,10 +160,9 @@ public:
 #endif
 
   /** Return the propositional part of the clause */
-  BDDNode* prop() { return _prop; }
+  BDDNode* prop() const { return _prop; }
 
-  /** Set the propositional part of the clause */
-  void setProp(BDDNode* prop) { _prop=prop; }
+  void setProp(BDDNode* prop);
 
   /** Set auxiliary value of this clause. */
   void setAux(void* ptr)

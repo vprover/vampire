@@ -93,7 +93,7 @@ struct BackwardDemodulation::ResultFn
   {
     TermQueryResult qr=arg.second;
 
-    if(_removed->find(qr.clause)) {
+    if(_cl==qr.clause || _removed->find(qr.clause)) {
       //the retreived clause was already replaced during this
       //backward demodulation
       return BwSimplificationRecord(0);
@@ -149,7 +149,7 @@ struct BackwardDemodulation::ResultFn
     }
     ASS_EQ(next,cLen);
 
-    res->setAge(Int::max(_cl->age(),qr.clause->age())+1);
+    res->setAge(qr.clause->age());
     env.statistics->backwardDemodulations++;
 
     _removed->insert(qr.clause);

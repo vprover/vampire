@@ -37,10 +37,6 @@ using namespace std;
 using namespace Indexing;
 
 
-bool reporting=false;
-
-
-
 /**
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
@@ -538,7 +534,8 @@ string SubstitutionTree::nodeToString(Node* topNode)
 
 	while(ldi.hasNext()) {
 	  LeafData ld=ldi.next();
-	  res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n"/*+ld.clause->toString()+"\n"*/;
+	  res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n";
+	  res+=ld.clause->toString()+"\n";
 	}
     } else {
 	IntermediateNode* inode = static_cast<IntermediateNode*>(node);
@@ -1065,10 +1062,6 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
   TermList queryTerm=(*_specVars)[specVar];
   ASSERT_VALID(queryTerm);
 
-  if(reporting) {
-    cout<<"Matching q: "<<queryTerm<<" and n: "<<nodeTerm;
-  }
-
   bool success;
   if(nodeTerm.isTerm()) {
     Term* nt=nodeTerm.term();
@@ -1105,9 +1098,6 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
     }
   }
 
-  if(reporting) {
-    cout<<(success?" succ":" fail")<<endl;
-  }
   return success;
 }
 
@@ -1119,16 +1109,10 @@ void SubstitutionTree::GenMatcher::backtrack()
 {
   CALL("SubstitutionTree::GenMatcher::backtrack");
 
-  if(reporting) {
-    cout<<"BT start"<<endl;
-  }
   for(;;) {
     unsigned boundVar=_boundVars.pop();
     if(boundVar==BACKTRACK_SEPARATOR) {
       break;
-    }
-    if(reporting) {
-      cout<<"Removing binding of "<<boundVar<<endl;
     }
     _bindings->remove(boundVar);
   }
@@ -1223,9 +1207,6 @@ bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
   CALL("SubstitutionTree::FastGeneralizationsIterator::hasNext");
 
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
-  if(reporting) {
-    cout<<(_ldIterator.hasNext()?"succ":"fail")<<endl;
-  }
   return _ldIterator.hasNext();
 }
 
@@ -1271,9 +1252,11 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
     _inLeaf=false;
     curr=0;
   } else {
-    //this should happen only the first time the method is called
-    //and so we're not in any leaf yet
-    ASS(_root);
+    if(!_root) {
+      //If we aren't in a leaf and the findNextLeaf method has already been called,
+      //it means that we're out of leafs.
+      return false;
+    }
     curr=_root;
     _root=0;
     sibilingsRemain=enterNode(curr);
@@ -1407,19 +1390,12 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
   TermList binding=_subst.getSpecVarBinding(inode->childVar);
   curr=0;
 
-  if(reporting) {
-    cout<<inode<<": "<<inode->childVar<<" <- "<<binding.toString()<<endl;
-  }
-
   if(currType==UNSORTED_LIST) {
     Node** nl=static_cast<UArrIntermediateNode*>(inode)->_nodes;
     if(binding.isTerm()) {
       unsigned bindingFunctor=binding.term()->functor();
       //let's first skip proper term nodes at the beginning...
       while(*nl && (*nl)->term.isTerm()) {
-	if(reporting) {
-	  cout<<curr<<"\t"<<(*nl)->term.toString()<<endl;
-	}
         //...and have the one that interests us, if we encounter it.
         if(!curr && (*nl)->term.term()->functor()==bindingFunctor) {
           curr=*nl;

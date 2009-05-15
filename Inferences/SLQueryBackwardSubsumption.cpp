@@ -101,13 +101,30 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
   CALL("SLQueryBackwardSubsumption::perform");
+  ASSERT_VALID(*cl);
 
   unsigned clen=cl->length();
+
+  if(clen==0) {
+    SLQueryResultIterator rit=_index->getAll();
+    ClauseIterator subsumedClauses=getUniquePersistentIterator(
+	    getFilteredIterator(
+		    getMappingIterator(rit,ClauseExtractorFn()),
+		    getNonequalFn(cl)));
+    ASS(subsumedClauses.knowsSize());
+    unsigned subsumedCnt=subsumedClauses.size();
+    simplifications=pvi( getMappingIterator(
+	    subsumedClauses, ClauseToBwSimplRecordFn()) );
+    env.statistics->backwardSubsumed+=subsumedCnt;
+    return;
+  }
 
   if(clen==1) {
     SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false, false);
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
-	    getMappingIterator(rit,ClauseExtractorFn()) );
+	    getFilteredIterator(
+		    getMappingIterator(rit,ClauseExtractorFn()),
+		    getNonequalFn(cl)));
     ASS(subsumedClauses.knowsSize());
     unsigned subsumedCnt=subsumedClauses.size();
     simplifications=pvi( getMappingIterator(
@@ -138,8 +155,8 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     SLQueryResult res=rit.next();
     Clause* icl=res.clause;
     unsigned ilen=icl->length();
-    if( ilen<clen ) {
-	continue;
+    if(ilen<clen || icl==cl) {
+      continue;
     }
 
     if(checkedClauses.contains(icl)) {

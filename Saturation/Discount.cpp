@@ -36,12 +36,13 @@ SaturationResult Discount::saturate()
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
 
-      if (c->isEmpty()) {
+      if (isRefutation(c)) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
       if(forwardSimplify(c)) {
-	_passive->add(c);
+	addToPassive(c);
       } else {
+	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
       }
 
@@ -60,13 +61,16 @@ SaturationResult Discount::saturate()
       return SaturationResult(Statistics::SATISFIABLE);
     }
 
-    Clause* c = _passive->popSelected();
-    if(!forwardSimplify(c)) {
-	c->setStore(Clause::NONE);
-	continue;
+    Clause* cl = _passive->popSelected();
+    if(!forwardSimplify(cl)) {
+      if(cl->store()==Clause::REACTIVATED) {
+	_active->remove(cl);
+      }
+      cl->setStore(Clause::NONE);
+      continue;
     }
-    backwardSimplify(c);
-    activate(c);
+    backwardSimplify(cl);
+    activate(cl);
 
     if (env.timeLimitReached()) {
       return SaturationResult(Statistics::TIME_LIMIT);

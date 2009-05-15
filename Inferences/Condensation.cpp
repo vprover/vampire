@@ -108,7 +108,7 @@ void Condensation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, Clause
 	  (*res)[i] = newLits[i];
 	}
 
-	res->setAge(cl->age()+1);
+	res->setAge(cl->age());
 	env.statistics->condensations++;
 	keep=false;
 	toAdd=pvi( getSingletonIterator(res) );

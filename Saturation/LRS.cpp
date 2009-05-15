@@ -51,16 +51,18 @@ bool LRS::shouldUpdateLimits()
 {
   CALL("LRS::shouldUpdateLimits");
 
-  unsigned currTime=env.timer->elapsedMilliseconds();
+//  unsigned currTime=env.timer->elapsedMilliseconds();
 
-//  static unsigned cnt=0;
-  static unsigned lastCheck=currTime;
-//  cnt++;
+  static unsigned cnt=0;
+//  static unsigned lastCheck=currTime;
+  cnt++;
 //  if(cnt==500 || currTime>lastCheck+500) {
+  if(cnt==500) {
 //  if(currTime>lastCheck+500) {
-  if(currTime>lastCheck+5) {
-//    cnt=0;
-    lastCheck=currTime;
+//  if(currTime>lastCheck+5) {
+//  if(currTime>lastCheck+50) {
+    cnt=0;
+//    lastCheck=currTime;
     return true;
   }
   return false;
@@ -70,7 +72,7 @@ long LRS::estimatedReachableCount()
 {
   CALL("LRS::estimatedReachableCount");
 
-  unsigned processed=max(env.statistics->activeClauses,10u);
+  unsigned processed=env.statistics->activeClauses;
   int currTime=env.timer->elapsedMilliseconds();
   int timeSpent=currTime-_startTime;
 //  int timeSpent=currTime;
@@ -80,7 +82,7 @@ long LRS::estimatedReachableCount()
   }
 
   long timeLeft=env.options->timeLimitInDeciseconds()*100 - currTime;
-  if(timeLeft<=0) {
+  if(timeLeft<=0 || processed<=10) {
     return -1;
   }
   return (processed*timeLeft)/timeSpent;
@@ -97,14 +99,15 @@ SaturationResult LRS::saturate()
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
 
-      if (c->isEmpty()) {
+      if (isRefutation(c)) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
       if(forwardSimplify(c)) {
 	backwardSimplify(c);
-	_passive->add(c);
+	addToPassive(c);
 	_simplCont.add(c);
       } else {
+	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
       }
 
@@ -125,6 +128,9 @@ SaturationResult LRS::saturate()
 
     Clause* c = _passive->popSelected();
     activate(c);
+//    if(env.timer->elapsedMilliseconds()>15000) {
+//      cout<<(*c)<<endl;
+//    }
   }
 }
 

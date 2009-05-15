@@ -7,6 +7,7 @@
 #define __BDD__
 
 #include <iosfwd>
+#include <string>
 
 #include "../Forwards.hpp"
 #include "../Lib/Allocator.hpp"
@@ -15,6 +16,8 @@
 
 
 namespace Kernel {
+
+using namespace std;
 
 class BDDNode
 {
@@ -57,6 +60,8 @@ public:
 
   static bool equals(const BDDNode* n1,const BDDNode* n2);
   static unsigned hash(const BDDNode* n);
+
+  string toString(BDDNode* node);
 
 private:
   BDDNode* getNode(int varNum, BDDNode* pos, BDDNode* neg);

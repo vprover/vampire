@@ -74,6 +74,7 @@ UnprocessedClauseContainer::~UnprocessedClauseContainer()
 {
   while(!_data.isEmpty()) {
     Clause* cl=_data.pop();
+    ASS_EQ(cl->store(), Clause::UNPROCESSED);
     cl->setStore(Clause::NONE);
   }
 }
@@ -81,8 +82,6 @@ UnprocessedClauseContainer::~UnprocessedClauseContainer()
 void UnprocessedClauseContainer::add(Clause* c)
 {
   _data.push(c);
-  c->setStore(Clause::UNPROCESSED);
-  env.statistics->generatedClauses++;
   addedEvent.fire(c);
 }
 
@@ -97,8 +96,7 @@ Clause* UnprocessedClauseContainer::pop()
 void ActiveClauseContainer::add(Clause* c)
 {
   _size++;
-  c->setStore(Clause::ACTIVE);
-  env.statistics->activeClauses++;
+
   addedEvent.fire(c);
 }
 
@@ -110,12 +108,11 @@ void ActiveClauseContainer::add(Clause* c)
  */
 void ActiveClauseContainer::remove(Clause* c)
 {
-  ASS_EQ(c->store(), Clause::ACTIVE);
+  ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED);
 
   _size--;
 
   removedEvent.fire(c);
-  c->setStore(Clause::NONE);
 }
 
 void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
@@ -163,7 +160,10 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 #endif
 
   while(toRemove.isNonEmpty()) {
-    remove(toRemove.pop());
+    Clause* removed=toRemove.pop();
+    remove(removed);
+    ASS_EQ(removed->store(), Clause::ACTIVE);
+    removed->setStore(Clause::NONE);
   }
 }
 
