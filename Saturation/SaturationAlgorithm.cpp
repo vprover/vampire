@@ -152,7 +152,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     }
   } while(simplified);
 
-/**/
+/*/
   //TODO: PUZ001-1 does not get proved
   ClauseIterator newComponents;
   ClauseIterator modifiedComponents;

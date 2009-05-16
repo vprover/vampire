@@ -114,8 +114,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
 	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
 	}
       }
-      if(MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1)) &&
-	  MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0))) {
+      if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
 	ArrayStoringBinder binder(altBindingData, variablePositions);
 	MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
 	MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
@@ -161,9 +160,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
       altBindingData+=numVars;
       new(altBindingData++) TermList((size_t)1);
     }
-    if(baseLit->isEquality() &&
-	    MatchingUtils::matchTerms(*baseLit->nthArgument(0),*resolvedLit->nthArgument(1)) &&
-	    MatchingUtils::matchTerms(*baseLit->nthArgument(1),*resolvedLit->nthArgument(0))) {
+    if(baseLit->isEquality() && MatchingUtils::matchReversedArgs(baseLit, resolvedLit)) {
       ArrayStoringBinder binder(altBindingData, variablePositions);
       MatchingUtils::matchTerms(*baseLit->nthArgument(0),*resolvedLit->nthArgument(1),binder);
       MatchingUtils::matchTerms(*baseLit->nthArgument(1),*resolvedLit->nthArgument(0),binder);

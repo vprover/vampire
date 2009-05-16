@@ -96,6 +96,19 @@ public:
     }
   }
 
+  static bool matchReversedArgs(Literal* base, Literal* instance)
+  {
+    CALL("MatchingUtils::match");
+    ASS_EQ(base->arity(), 2);
+    ASS_EQ(instance->arity(), 2);
+
+    static MapBinder binder;
+    binder.reset();
+
+    return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder) &&
+      matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
+  }
+
   static bool matchArgs(Term* base, Term* instance)
   {
     static MapBinder binder;

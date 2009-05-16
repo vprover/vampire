@@ -99,7 +99,8 @@ public:
     for(unsigned bi=0;bi<blen;bi++) {
       LiteralMiniIndex::InstanceIterator instIt(*miniIndex, (*_cl)[bi], false);
       while(instIt.hasNext()) {
-	addMatch(bi, instIt.next());
+	Literal* matched=instIt.next();
+	addMatch(bi, matched);
       }
     }
   }
