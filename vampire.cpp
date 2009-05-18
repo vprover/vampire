@@ -218,13 +218,18 @@ int main(int argc, char* argv [])
 #endif
   }
 #endif
+  catch (UserErrorException& exception) {
+#if CHECK_LEAKS
+    MemoryLeak::cancelReport();
+#endif
+    explainException(exception);
+  }
   catch (Exception& exception) {
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
     explainException(exception);
     env.statistics->print();
-
   }
   catch (std::bad_alloc& _) {
 #if CHECK_LEAKS

@@ -66,6 +66,10 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   env.statistics->splittedClauses++;
   env.statistics->splittedComponents+=compCnt;
 
+//  cout<<"####Split####\n";
+//  cout<<(*cl)<<endl;
+//  cout<<"vvv Into vvv\n";
+
   ClauseList* newComponentLst=0;
   ClauseList* modifiedComponentLst=0;
   static Stack<int> componentNames(16);
@@ -152,6 +156,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       }
       componentNames.push(compName);
     }
+//    cout<<(*comp)<<endl;
 
   }
   ASS(last);

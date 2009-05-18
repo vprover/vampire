@@ -334,6 +334,7 @@ protected:
 
     // allocate new stack and copy old stack's content to the new place
     void* mem = ALLOC_KNOWN(newCapacity*sizeof(C),"Stack<>");
+
     C* newStack = static_cast<C*>(mem);
     for (int i = _capacity-1;i >= 0;i--) {
       new(newStack+i) C(_stack[i]);

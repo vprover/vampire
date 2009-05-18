@@ -98,11 +98,14 @@ public:
    */
   inline bool ensure(size_t s)
   {
-    _size = s;
-    if (_capacity >= _size) {
+    if (_capacity >= s) {
+      _size = s;
       return true;
     }
 
+    void* mem = ALLOC_KNOWN(sizeof(C)*s,"DArray<>");
+
+    _size = s;
     if(_array) {
       C* p=_array+_capacity;
       while(p!=_array) {
@@ -111,7 +114,6 @@ public:
       DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
     }
     _capacity = _size;
-    void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
     _array = new(mem) C[_capacity];
     return false;
   } // ensure

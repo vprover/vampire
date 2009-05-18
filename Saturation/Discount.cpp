@@ -36,7 +36,7 @@ SaturationResult Discount::saturate()
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
 
-      if (isRefutation(c)) {
+      if(isRefutation(c)) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
       if(forwardSimplify(c)) {
@@ -54,10 +54,10 @@ SaturationResult Discount::saturate()
       }
     }
 
-    if (env.timeLimitReached()) {
+    if(env.timeLimitReached()) {
       return SaturationResult(Statistics::TIME_LIMIT);
     }
-    if (_passive->isEmpty()) {
+    if(_passive->isEmpty()) {
       return SaturationResult(Statistics::SATISFIABLE);
     }
 
@@ -72,7 +72,7 @@ SaturationResult Discount::saturate()
     backwardSimplify(cl);
     activate(cl);
 
-    if (env.timeLimitReached()) {
+    if(env.timeLimitReached()) {
       return SaturationResult(Statistics::TIME_LIMIT);
     }
   }

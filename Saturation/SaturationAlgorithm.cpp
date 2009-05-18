@@ -152,7 +152,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     }
   } while(simplified);
 
-/*/
+/**/
   //TODO: PUZ001-1 does not get proved
   ClauseIterator newComponents;
   ClauseIterator modifiedComponents;
@@ -184,6 +184,10 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::forwardSimplify");
 
+  if(cl->store()==Clause::REACTIVATED) {
+    return true;
+  }
+
   BDD* bdd=BDD::instance();
 
   if(!getLimits()->fulfillsLimits(cl)) {
@@ -203,20 +207,21 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
       continue;
     }
 
+
     BDDNode* premiseProp=bdd->getFalse();
     while(premises.hasNext()) {
-      premiseProp=bdd->disjunction(premiseProp, premises.next()->prop());
+      Clause* premise=premises.next();
+      premiseProp=bdd->disjunction(premiseProp, premise->prop());
     }
-
 
     BDDNode* replacementProp;
     if(replacements.hasNext()) {
       replacementProp=bdd->disjunction(cl->prop(), premiseProp);
-    }
-    while(replacements.hasNext()) {
-      Clause* addCl=replacements.next();
-      addCl->setProp(replacementProp);
-      addUnprocessedClause(addCl);
+      while(replacements.hasNext()) {
+        Clause* addCl=replacements.next();
+        addCl->setProp(replacementProp);
+        addUnprocessedClause(addCl);
+      }
     }
 
     cl->setProp(bdd->xOrNonY(cl->prop(), premiseProp));
@@ -232,6 +237,10 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::backwardSimplify");
 
+  if(cl->store()==Clause::REACTIVATED) {
+    return;
+  }
+
   BDD* bdd=BDD::instance();
 
   BwSimplList::Iterator bsit(_bwSimplifiers);
@@ -245,19 +254,24 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       Clause* redundant=srec.toRemove;
       ASS_NEQ(redundant, cl);
 
-      BDDNode* replacementProp;
+//      cout<<"-----------\n";
+//      cout<<":"<<(*cl)<<endl;
+//      cout<<"#"<<(*redundant)<<endl;
+
+      BDDNode* newRedundantProp=bdd->xOrNonY(redundant->prop(), cl->prop());
+
       if(srec.replacements.hasNext()) {
-	replacementProp=bdd->disjunction(cl->prop(), redundant->prop());
-      }
-      while(srec.replacements.hasNext()) {
-	Clause* addCl=srec.replacements.next();
-	addCl->setProp(replacementProp);
-	addUnprocessedClause(addCl);
+	BDDNode* replacementProp=bdd->disjunction(cl->prop(), redundant->prop());
+	while(srec.replacements.hasNext()) {
+	  Clause* addCl=srec.replacements.next();
+	  addCl->setProp(replacementProp);
+	  addUnprocessedClause(addCl);
+	}
       }
 
-      redundant->setProp(bdd->xOrNonY(redundant->prop(), cl->prop()));
+      redundant->setProp(newRedundantProp);
 
-      if(bdd->isTrue(redundant->prop())) {
+      if(bdd->isTrue(newRedundantProp)) {
 	switch(redundant->store()) {
 	case Clause::PASSIVE:
 	  _passive->remove(redundant);
@@ -273,6 +287,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	  ASSERTION_VIOLATION;
 	}
 	redundant->setStore(Clause::NONE);
+//	cout<<"removed\n";
       }
 
     }
