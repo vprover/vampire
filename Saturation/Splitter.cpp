@@ -20,6 +20,7 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
+#define REPORT_SPLITS 0
 
 void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 	ClauseIterator& modifiedComponents)
@@ -66,23 +67,28 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   env.statistics->splittedClauses++;
   env.statistics->splittedComponents+=compCnt;
 
-//  cout<<"####Split####\n";
-//  cout<<(*cl)<<endl;
-//  cout<<"vvv Into vvv\n";
+#if REPORT_SPLITS
+  cout<<"####Split####\n";
+  cout<<(*cl)<<endl;
+  cout<<"vvv Into vvv\n";
+#endif
 
-  ClauseList* newComponentLst=0;
-  ClauseList* modifiedComponentLst=0;
-  static Stack<int> componentNames(16);
+  static Stack<Clause*> unnamedComponentStack(16);
+  static Stack<Clause*> newComponentStack(16);
+  unnamedComponentStack.reset();
+  newComponentStack.reset();
+
+  BDDNode* newMasterProp=cl->prop();
 
   static Stack<Literal*> lits(16);
 
   IntUnionFind::ComponentIterator cit(components);
-  bool last;
+  Clause* masterComp=0;
   ASS(cit.hasNext());
   while(cit.hasNext()) {
 
     IntUnionFind::ElementIterator elit=cit.next();
-    last=!cit.hasNext();
+    bool last=!cit.hasNext();
 
     lits.reset();
 
@@ -93,26 +99,29 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
     int compLen=lits.size();
 
     Clause* comp;
-    int compName=-1;
-    bool newlyCreated=false;
     ClauseIterator variants=_variantIndex.retrieveVariants(lits.begin(), compLen);
     if(variants.hasNext()) {
       comp=variants.next();
 
-      if(variants.hasNext()) {
-	cout<<compName<<":  "<<(*comp)<<endl;
-	while(variants.hasNext()) {
-	  comp=variants.next();
-	  cout<<_clauseNames.findOrInsert(comp,-1)<<":  "<<(*comp)<<endl;
-	}
-//	cout<<"------";
-//	cout<<treeStr;
-	ASSERTION_VIOLATION;
-      }
-
       ASS(!variants.hasNext());
-      if(!_clauseNames.find(comp, compName)) {
-	compName=-1;
+      int compName;
+      if(_clauseNames.find(comp, compName)) {
+	if(last && newComponentStack.isEmpty() && unnamedComponentStack.isEmpty()) {
+	  masterComp=comp;
+	} else {
+	  newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
+#if REPORT_SPLITS
+	  cout<<compName<<": "<<(*comp)<<endl;
+#endif
+	  if(bdd->isTrue(newMasterProp)) {
+	    //the propositional part of cl is true, so there is no point in adding it
+	    newComponents=ClauseIterator::getEmpty();
+	    modifiedComponents=ClauseIterator::getEmpty();
+	    return;
+	  }
+	}
+      } else {
+	unnamedComponentStack.push(comp);
       }
     } else {
       env.statistics->uniqueComponents++;
@@ -127,46 +136,67 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 
       comp->setProp(bdd->getTrue());
 
-      ClauseList::push(comp, newComponentLst);
-      newlyCreated=true;
+      newComponentStack.push(comp);
     }
-
-    if(last) {
-      BDDNode* newProp=cl->prop();
-      if(!newProp) {
-	ASSERTION_VIOLATION;
-	newProp=bdd->getFalse();
-      }
-      while(componentNames.isNonEmpty()) {
-	newProp=bdd->disjunction(newProp, bdd->getAtomic(componentNames.pop(), true));
-      }
-      BDDNode* oldProp=comp->prop();
-      comp->setProp( bdd->conjunction(oldProp, newProp) );
-      if(oldProp!=comp->prop()) {
-	ClauseList::push(comp, modifiedComponentLst);
-      }
-    } else {
-      if(compName==-1) {
-	compName=bdd->getNewVar();
-	comp->setProp(bdd->conjunction(comp->prop(), bdd->getAtomic(compName, false)));
-	ALWAYS(_clauseNames.insert(comp, compName));
-	if(!newlyCreated) {
-	  ClauseList::push(comp, modifiedComponentLst);
-	}
-      }
-      componentNames.push(compName);
-    }
-//    cout<<(*comp)<<endl;
-
   }
-  ASS(last);
+
+  newComponents=getPersistentIterator(Stack<Clause*>::Iterator(newComponentStack));
+
+  bool masterNew=false;
+  if(newComponentStack.isNonEmpty()) {
+    ASS(!masterComp);
+    masterNew=true;
+    masterComp=newComponentStack.pop();
+  } else if(unnamedComponentStack.isNonEmpty()) {
+    ASS(!masterComp);
+    masterComp=unnamedComponentStack.pop();
+  } else {
+    ASS(masterComp);
+  }
 
 
-  newComponents=getPersistentIterator(ClauseList::Iterator(newComponentLst));
-  modifiedComponents=getPersistentIterator(ClauseList::Iterator(modifiedComponentLst));
+  ClauseIterator unnamedIt=pvi( getConcatenatedIterator(
+	  Stack<Clause*>::Iterator(newComponentStack),
+	  Stack<Clause*>::Iterator(unnamedComponentStack)) );
+  while(unnamedIt.hasNext()) {
+    Clause* comp=unnamedIt.next();
+    int compName=bdd->getNewVar();
 
-  newComponentLst->destroy();
-  modifiedComponentLst->destroy();
+    if(_clauseNames.insert(comp, compName)) {
+      //The same component can appear multiple times.
+      //We detect the harmful cases here as attempts to name
+      //a component multiple times.
+      comp->setProp(bdd->conjunction(comp->prop(), bdd->getAtomic(compName, false)));
+      newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
+#if REPORT_SPLITS
+      cout<<compName<<": "<<(*comp)<<endl;
+#endif
+    }
+  }
+
+  ASS(!bdd->isTrue(newMasterProp));
+
+  BDDNode* oldProp=masterComp->prop();
+  masterComp->setProp( bdd->conjunction(oldProp, newMasterProp) );
+  ASS(!bdd->isTrue(masterComp->prop()));
+
+#if REPORT_SPLITS
+  cout<<(*masterComp)<<endl;
+#endif
+
+  if(oldProp!=masterComp->prop() && !masterNew) {
+    modifiedComponents=getPersistentIterator(getConcatenatedIterator(
+		  getSingletonIterator(masterComp),
+		  Stack<Clause*>::Iterator(unnamedComponentStack)) );
+  } else {
+    modifiedComponents=getPersistentIterator(
+		  Stack<Clause*>::Iterator(unnamedComponentStack) );
+  }
+
+#if REPORT_SPLITS
+  cout<<"^^^^^^^^^^^^\n";
+#endif
+
 }
 
 void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
@@ -180,6 +210,19 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
   ClauseIterator variants=_variantIndex.retrieveVariants(cl->literals(), cl->length());
   if(variants.hasNext()) {
     Clause* comp=variants.next();
+
+    if(variants.hasNext()) {
+	cout<<(*cl)<<endl;
+	cout<<_clauseNames.findOrInsert(comp,-1)<<":  "<<(*comp)<<endl;
+	while(variants.hasNext()) {
+	  comp=variants.next();
+	  cout<<_clauseNames.findOrInsert(comp,-1)<<":  "<<(*comp)<<endl;
+	}
+//	cout<<"------";
+//	cout<<treeStr;
+	ASSERTION_VIOLATION;
+    }
+
     ASS(!variants.hasNext());
 
     BDDNode* oldProp=comp->prop();
@@ -192,6 +235,7 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
       modifiedComponents=pvi( getSingletonIterator(comp) );
     }
   } else {
+    env.statistics->uniqueComponents++;
     _variantIndex.insert(cl);
     newComponents=pvi( getSingletonIterator(cl) );
   }

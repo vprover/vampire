@@ -45,21 +45,16 @@ void RefutationSeekerFSE::detach()
   ForwardSimplificationEngine::detach();
 }
 
-void RefutationSeekerFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
-	ClauseIterator& premises)
+void RefutationSeekerFSE::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
   CALL("RefutationSeekerFSE::perform");
-
-  toAdd=ClauseIterator::getEmpty();
-  premises=ClauseIterator::getEmpty();
-  keep=true;
 
   if(cl->length()!=1) {
     return;
   }
 
   SLQueryResultIterator rit=_index->getUnifications((*cl)[0], true, false);
-  if(rit.hasNext()) {
+  while(rit.hasNext()) {
     SLQueryResult res=rit.next();
     ASS(res.clause->length()==1);
 
@@ -68,11 +63,12 @@ void RefutationSeekerFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
     	Int::max(cl->inputType(), res.clause->inputType());
 
     Clause* refutation = new(0) Clause(0, inpType, inf);
-    refutation->setAge(Int::max(cl->age(),res.clause->age())+1);
+    refutation->setAge(cl->age());
     env.statistics->resolution++;
 
-    toAdd=pvi( getSingletonIterator(refutation) );
-    premises=pvi( getSingletonIterator(res.clause) );
-    keep=false;
+    simplPerformer->perform(res.clause, refutation);
+    if(!simplPerformer->clauseKept()) {
+      return;
+    }
   }
 }

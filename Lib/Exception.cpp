@@ -4,9 +4,16 @@
  * @since 03/12/2003, Manchester
  */
 
+#include "Int.hpp"
+
 #include "Exception.hpp"
 
-using namespace Lib;
+namespace Lib
+{
+
+Exception::Exception (const char* msg, int line)
+  : _message((string(msg)+": "+Int::toString(line)).c_str())
+{}
 
 /**
  * Write a description of the exception to a stream.
@@ -42,6 +49,4 @@ void NotImplementedException::cry (ostream& str)
 } // UserErrorException::cry
 
 
-
-
-
+}

@@ -71,7 +71,7 @@ ImmediateSimplificationEngineSP createImmediateSE()
 
 void addFSEs(SaturationAlgorithm* alg)
 {
-
+/**/
   alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new RefutationSeekerFSE()));
 
   switch(env.options->forwardDemodulation()) {
@@ -96,7 +96,7 @@ void addFSEs(SaturationAlgorithm* alg)
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardSubsumptionAndResolution()));
   } else if(env.options->forwardSubsumption()) {
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
-  }
+  }/**/
 //  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new Condensation()));
 }
 

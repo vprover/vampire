@@ -95,6 +95,14 @@ public:
   virtual Clause* simplify(Clause* cl) = 0;
 };
 
+class ForwardSimplificationPerformer
+{
+public:
+  virtual ~ForwardSimplificationPerformer() {};
+  virtual void perform(Clause* premise, Clause* replacement) = 0;
+  virtual bool clauseKept() = 0;
+};
+
 class ForwardSimplificationEngine
 : public InferenceEngine
 {
@@ -110,7 +118,7 @@ public:
    * @b premises will contain clauses that justify the simplification
    * performed.
    */
-  virtual void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises) = 0;
+  virtual void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer) = 0;
 };
 
 
@@ -191,20 +199,20 @@ private:
   ISList* _inners;
 };
 
-class CompositeFSE
-: public ForwardSimplificationEngine
-{
-public:
-  CompositeFSE() : _inners(0) {}
-  ~CompositeFSE();
-  void addFront(ForwardSimplificationEngineSP fse);
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
-  void attach(SaturationAlgorithm* salg);
-  void detach();
-private:
-  typedef List<ForwardSimplificationEngineSP> FSList;
-  FSList* _inners;
-};
+//class CompositeFSE
+//: public ForwardSimplificationEngine
+//{
+//public:
+//  CompositeFSE() : _inners(0) {}
+//  ~CompositeFSE();
+//  void addFront(ForwardSimplificationEngineSP fse);
+//  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
+//  void attach(SaturationAlgorithm* salg);
+//  void detach();
+//private:
+//  typedef List<ForwardSimplificationEngineSP> FSList;
+//  FSList* _inners;
+//};
 
 class CompositeGIE
 : public GeneratingInferenceEngine

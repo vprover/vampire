@@ -90,6 +90,9 @@ void doProving()
     size_t limit=Allocator::getMemoryLimit();
     //add extra 1 MB to allow proper termination
     Allocator::setMemoryLimit(limit+1000000);
+  } catch(TimeLimitExceededException) {
+    env.statistics->terminationReason=Statistics::TIME_LIMIT;
+    env.statistics->refutation=0;
   }
 }
 
@@ -123,13 +126,17 @@ void outputResult()
 }
 
 
+extern int gBDDTime;
+
 void vampireMode()
 {
   CALL("vampireMode()");
   env.out<<env.options->testId()<<" on "<<env.options->inputFile()<<endl;
   doProving();
   outputResult();
+  cout<<"Time spend on BDDs: "<<gBDDTime<<endl;
 } // vampireMode
+
 
 void spiderMode()
 {
@@ -150,7 +157,7 @@ void spiderMode()
   }
   env.out << env.options->problemName() << " ";
   env.out << env.timer->elapsedDeciseconds() << " ";
-  env.out << env.options->testId() << "\n";
+  env.out << env.options->testId() <<" " << gBDDTime << "\n";
 } // spiderMode
 
 

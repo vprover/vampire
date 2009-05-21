@@ -7,6 +7,7 @@
 #define __Hash__
 
 #include <string>
+#include <utility>
 
 namespace Lib {
 
@@ -55,6 +56,15 @@ struct PtrIdentityHash {
     return static_cast<unsigned>(reinterpret_cast<size_t>(ptr));
   }
 };
+
+struct PtrPairIdentityHash {
+  template<typename T>
+  static unsigned hash(std::pair<T*,T*> pp) {
+    return static_cast<unsigned>(reinterpret_cast<size_t>(pp.first)^reinterpret_cast<size_t>(pp.second)^
+	    (reinterpret_cast<size_t>(pp.first)>>3));
+  }
+};
+
 
 
 }

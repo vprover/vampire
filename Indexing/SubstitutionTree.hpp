@@ -94,19 +94,18 @@ public:
       if(ld1.literal && ld2.literal && ld1.literal!=ld2.literal) {
 	res=(ld1.literal->weight()>ld2.literal->weight())? LESS ://minimizing the non-determinism
 	  (ld1.literal->weight()<ld2.literal->weight())? GREATER :
-//	  (ld1.literal<ld2.literal)? LESS : GREATER;
 	  (ld1.literal<ld2.literal)? LESS : GREATER;
 	ASS_NEQ(res, EQUAL);
       } else {
 	ASS_EQ(ld1.clause,ld2.clause);
 	ASS_EQ(ld1.literal,ld2.literal);
-	if(ld1.term.isEmpty()) {
-	  ASS(ld2.term.isEmpty());
-	  res=EQUAL;
-	} else {
-	  res=Term::lexicographicCompare(ld1.term,ld2.term);
-	}
-//	res=(ld1.term<ld2.term)? LESS : (ld1.term>ld2.term)? GREATER : EQUAL;
+//	if(ld1.term.isEmpty()) {
+//	  ASS(ld2.term.isEmpty());
+//	  res=EQUAL;
+//	} else {
+//	  res=Term::lexicographicCompare(ld1.term,ld2.term);
+//	}
+	res=(ld1.term<ld2.term)? LESS : (ld1.term>ld2.term)? GREATER : EQUAL;
       }
       return res;
     }

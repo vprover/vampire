@@ -25,7 +25,7 @@ class ForwardDemodulation
 public:
   void attach(SaturationAlgorithm* salg);
   void detach();
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
+  void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
 private:
   DemodulationLHSIndex* _index;
 };

@@ -7,7 +7,7 @@
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/SmartPtr.hpp"
 #include "../Kernel/Clause.hpp"
-#include "../Kernel/MLMatcher.hpp"
+#include "../Kernel/MLVariant.hpp"
 #include "../Kernel/Term.hpp"
 
 #include "LiteralMiniIndex.hpp"
@@ -88,11 +88,6 @@ public:
     Clause* mcl=res.clause;
     ASSERT_VALID(*mcl);
     ASS_EQ(mcl->length(),_length);
-//    if(mcl->number()==3987) {
-//      cout<<"here we are:\n";
-//      cout<<(*_lits[0])<<endl;
-//      cout<<(*_lits[1])<<endl;
-//    }
 
     for(unsigned i=0;i<_length;i++) {
       LiteralMiniIndex::VariantIterator vit(*_queryIndex, (*mcl)[i], false);
@@ -118,10 +113,8 @@ public:
 	goto fin;
       }
     }
-    //Since we know that all mcl literals in alts array are variants
-    //of their counterparts, it should be ok to use multiset matching in
-    //here. (It'll be all rewritten after we have code trees, anyway.)
-    fail=!MLMatcher::canBeMatched(_lits,_length,mcl,alts.array(), 0, true);
+
+    fail=!MLVariant::isVariant(_lits,mcl,alts.array());
 
   fin:
     for(unsigned i=0;i<_length;i++) {

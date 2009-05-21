@@ -225,14 +225,10 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
   return MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
 }
 
-void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
-	ClauseIterator& premises)
+void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
   CALL("ForwardSubsumptionResolution::perform");
 
-  toAdd=ClauseIterator::getEmpty();
-  premises=ClauseIterator::getEmpty();
-  keep=true;
   Clause* resolutionClause=0;
 
   unsigned clen=cl->length();
@@ -243,11 +239,12 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
-    if(rit.hasNext()) {
-      keep=false;
-      premises=pvi( getSingletonIterator(rit.next().clause) );
+    while(rit.hasNext()) {
+      simplPerformer->perform(rit.next().clause, 0);
       env.statistics->forwardSubsumed++;
-      return;
+      if(!simplPerformer->clauseKept()) {
+	return;
+      }
     }
   }
 
@@ -281,14 +278,15 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
       }
 
       if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)) {
-	keep=false;
-	premises=pvi( getSingletonIterator(mcl) );
+	simplPerformer->perform(mcl, 0);
 	env.statistics->forwardSubsumed++;
-	goto fin;
+	if(!simplPerformer->clauseKept()) {
+	  goto fin;
+	}
       }
     }
   }
-
+//goto fin;
 
   for(unsigned li=0;li<clen;li++) {
     Literal* resLit=(*cl)[li];
@@ -296,8 +294,10 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
     if(rit.hasNext()) {
       Clause* mcl=rit.next().clause;
       resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
-      premises=pvi( getSingletonIterator(mcl) );
-      goto fin;
+      simplPerformer->perform(mcl, resolutionClause);
+      if(!simplPerformer->clauseKept()) {
+	goto fin;
+      }
     }
   }
 
@@ -309,8 +309,10 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 	Literal* resLit=(*cl)[li];
 	if(checkForSubsumptionResolution(cl, cms, resLit)) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-	  premises=pvi( getSingletonIterator(cms->_cl) );
-	  goto fin;
+	  simplPerformer->perform(cms->_cl, resolutionClause);
+	  if(!simplPerformer->clauseKept()) {
+	    goto fin;
+	  }
 	}
       }
     }
@@ -336,8 +338,10 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, bool& keep, ClauseIter
 
       if(checkForSubsumptionResolution(cl, cms, resLit)) {
 	resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-	premises=pvi( getSingletonIterator(cms->_cl) );
-	goto fin;
+	simplPerformer->perform(cms->_cl, resolutionClause);
+	if(!simplPerformer->clauseKept()) {
+	  goto fin;
+	}
       }
     }
   }
@@ -348,12 +352,6 @@ fin:
   while(cmStore.isNonEmpty()) {
     delete cmStore.pop();
   }
-
-  if(resolutionClause) {
-    keep=false;
-    toAdd=pvi( getSingletonIterator(resolutionClause) );
-  }
-
 }
 
 }

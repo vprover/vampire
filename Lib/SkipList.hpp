@@ -297,7 +297,7 @@ public:
     for (;;) {
       Node* next = left->nodes[h];
       if (next == 0) {
-	ASS(h != 0);
+	ASS(h != 0); //this would mean that the value is not present in the list
 	h--;
 	continue;
       }

@@ -62,9 +62,9 @@ protected:
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
+  void reanimate(Clause* c);
   void activate(Clause* c);
 
-#if VDEBUG
   void onActiveAdded(Clause* c);
   void onActiveRemoved(Clause* c);
   void onPassiveAdded(Clause* c);
@@ -73,7 +73,7 @@ protected:
   void onUnprocessedAdded(Clause* c);
   void onUnprocessedRemoved(Clause* c);
   void onUnprocessedSelected(Clause* c);
-#endif
+
 private:
   Limits _limits;
   IndexManager _imgr;

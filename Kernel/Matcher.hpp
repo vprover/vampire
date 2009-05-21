@@ -24,11 +24,60 @@ using namespace Lib;
 class MatchingUtils
 {
 public:
+
   static bool isVariant(Literal* l1, Literal* l2)
   {
     if(!Literal::headersMatch(l1,l2,false)) {
       return false;
     }
+    if(l1==l2) {
+      return true;
+    }
+    if(l1->commutative()) {
+      return haveVariantArgs(l1,l2) || haveReversedVariantArgs(l1,l2);
+    } else {
+      return haveVariantArgs(l1,l2);
+    }
+  }
+
+  static bool haveReversedVariantArgs(Term* l1, Term* l2)
+  {
+    ASS_EQ(l1->arity(), 2);
+    ASS_EQ(l2->arity(), 2);
+
+    static DHMap<unsigned,unsigned,IdentityHash> leftToRight;
+    static DHMap<unsigned,unsigned,IdentityHash> rightToLeft;
+    leftToRight.reset();
+    rightToLeft.reset();
+
+    VirtualIterator<pair<TermList, TermList> > dsit=pvi( getConcatenatedIterator(
+	    vi( new Term::DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
+	    vi( new Term::DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) )) );
+    while(dsit.hasNext()) {
+      pair<TermList,TermList> dp=dsit.next(); //disagreement pair
+      if(!dp.first.isVar() || !dp.second.isVar()) {
+	return false;
+      }
+      unsigned left=dp.first.var();
+      unsigned right=dp.second.var();
+      if(right!=leftToRight.findOrInsert(left,right)) {
+	return false;
+      }
+      if(left!=rightToLeft.findOrInsert(right,left)) {
+	return false;
+      }
+    }
+    if(leftToRight.size()!=rightToLeft.size()) {
+      return false;
+    }
+
+    return true;
+  }
+
+  static bool haveVariantArgs(Term* l1, Term* l2)
+  {
+    ASS_EQ(l1->arity(), l2->arity());
+
     if(l1==l2) {
       return true;
     }
@@ -55,16 +104,7 @@ public:
     if(leftToRight.size()!=rightToLeft.size()) {
       return false;
     }
-    if(!match(l1,l2,false)) {
-      cout<<(*l1)<<endl<<(*l2)<<endl;
-      Term::DisagreementSetIterator dsit2(l1,l2);
-      while(dsit2.hasNext()) {
-        pair<TermList,TermList> dp=dsit2.next(); //disagreement pair
-        cout<<dp.first<<"  vs.  "<<dp.second<<endl;
-      }
-    }
 
-    ASS(match(l1,l2,false));
     return true;
   }
 

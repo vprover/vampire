@@ -693,11 +693,11 @@ bool Term::DisagreementSetIterator::hasNext()
   CALL("Term::DisagreementSetIterator::hasNext");
   ASS(_stack.size()%2==0);
 
-  if(_stack.isEmpty()) {
-    return false;
-  }
   if(!_arg1.isEmpty()) {
     return true;
+  }
+  if(_stack.isEmpty()) {
+    return false;
   }
   TermList* ss; //t1 subterms
   TermList* tt; //t2 subterms

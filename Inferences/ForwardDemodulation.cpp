@@ -50,7 +50,7 @@ void ForwardDemodulation::detach()
 }
 
 
-void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
+void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
   CALL("ForwardDemodulation::perform");
 
@@ -117,24 +117,15 @@ void ForwardDemodulation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
 
 	res->setAge(cl->age());
 	env.statistics->forwardDemodulations++;
-	keep=false;
 
-//	if(env.timer->elapsedSeconds()>33) {
-//	  cout<<(*res)<<endl;
-//	  cout<<trm<<endl;
-//	  cout<<rhsS<<endl;
-//	  cout<<endl;
-//	}
+	simplPerformer->perform(qr.clause, res);
+	if(!simplPerformer->clauseKept()) {
+	  return;
+	}
 
-	toAdd=pvi( getSingletonIterator(res) );
-	premises=pvi( getSingletonIterator(qr.clause) );
-	return;
       }
     }
   }
-  keep=true;
-  toAdd=ClauseIterator::getEmpty();
-  premises=ClauseIterator::getEmpty();
 }
 
 }

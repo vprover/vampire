@@ -109,6 +109,7 @@ void ActiveClauseContainer::add(Clause* c)
 void ActiveClauseContainer::remove(Clause* c)
 {
   ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED);
+//  cout<<"Removing : "<<(*c)<<endl;
 
   _size--;
 

@@ -1,6 +1,6 @@
 /**
- * @file MLMatcher.cpp
- * Implements class MLMatcher.
+ * @file MLVariant.cpp
+ * Implements class MLVariant.
  */
 
 #include <algorithm>
@@ -20,7 +20,7 @@
 #include "Clause.hpp"
 #include "Term.hpp"
 #include "Matcher.hpp"
-#include "MLMatcher.hpp"
+#include "MLVariant.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -40,30 +40,34 @@ using namespace Lib;
 
 typedef DHMap<unsigned,unsigned, IdentityHash> UUMap;
 
+namespace MLVariant_AUX
+{
+
 /**
  * Binder that stores bindings into a specified array. To be used
  * with MatchingUtils template methods.
  */
 struct ArrayStoringBinder
 {
-  ArrayStoringBinder(TermList* arr, UUMap& v2pos)
+  ArrayStoringBinder(unsigned* arr, UUMap& v2pos)
   : _arr(arr), _v2pos(v2pos) {}
 
   bool bind(unsigned var, TermList term)
   {
-    _arr[_v2pos.get(var)]=term;
+    ASS(term.isOrdinaryVar());
+    _arr[_v2pos.get(var)]=term.var();
     return true;
   }
 
   void specVar(unsigned var, TermList term)
   { ASSERTION_VIOLATION; }
 private:
-  TermList* _arr;
+  unsigned* _arr;
   UUMap& _v2pos;
 };
 
-bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, Literal* resolvedLit,
-    unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
+bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl,
+    unsigned*& boundVarData, unsigned**& altBindingPtrs, unsigned*& altBindingData)
 {
   CALL("createLiteralBindings");
 
@@ -95,26 +99,20 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
   while(ait.hasNext()) {
     //handle multiple matches in equality!
     Literal* alit=ait.next();
-    if(alit==resolvedLit) {
-      continue;
-    }
-    if(alit->isEquality()) {
+    if(alit->commutative()) {
       //we must try both possibilities
-      if(MatchingUtils::matchArgs(baseLit,alit)) {
+      if(MatchingUtils::haveVariantArgs(baseLit,alit)) {
 	ArrayStoringBinder binder(altBindingData, variablePositions);
 	MatchingUtils::matchArgs(baseLit,alit,binder);
 	*altBindingPtrs=altBindingData;
 	altBindingPtrs++;
 	altBindingData+=numVars;
-	if(resolvedLit) {
-	  new(altBindingData++) TermList((size_t)0);
-	} else {
-	  //add pointer to the literal at
-	  //the end of the binding sequance
-	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
-	}
+
+	//add pointer to the literal at
+	//the end of the binding sequence
+	*(altBindingData++)=instCl->getLiteralPosition(alit);
       }
-      if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
+      if(MatchingUtils::haveReversedVariantArgs(baseLit, alit)) {
 	ArrayStoringBinder binder(altBindingData, variablePositions);
 	MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
 	MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
@@ -122,13 +120,10 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
 	*altBindingPtrs=altBindingData;
 	altBindingPtrs++;
 	altBindingData+=numVars;
-	if(resolvedLit) {
-	  new(altBindingData++) TermList((size_t)0);
-	} else {
-	  //add pointer to the literal at
-	  //the end of the binding sequance
-	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
-	}
+
+	//add pointer to the literal at
+	//the end of the binding sequence
+	*(altBindingData++)=instCl->getLiteralPosition(alit);
       }
 
     } else {
@@ -140,37 +135,11 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
       *altBindingPtrs=altBindingData;
       altBindingPtrs++;
       altBindingData+=numVars;
-      if(resolvedLit) {
-        new(altBindingData++) TermList((size_t)0);
-      } else {
-        //add index of the literal in instance clause at
-        //the end of the binding sequence
-        new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
-      }
-    }
-  }
-  if(resolvedLit && resolvedLit->complementaryHeader()==baseLit->header()) {
-    if(!baseLit->arity() || MatchingUtils::matchArgs(baseLit,resolvedLit)) {
-      if(numVars) {
-	ArrayStoringBinder binder(altBindingData, variablePositions);
-	MatchingUtils::matchArgs(baseLit,resolvedLit,binder);
-      }
-      *altBindingPtrs=altBindingData;
-      altBindingPtrs++;
-      altBindingData+=numVars;
-      new(altBindingData++) TermList((size_t)1);
-    }
-    if(baseLit->isEquality() && MatchingUtils::matchReversedArgs(baseLit, resolvedLit)) {
-      ArrayStoringBinder binder(altBindingData, variablePositions);
-      MatchingUtils::matchTerms(*baseLit->nthArgument(0),*resolvedLit->nthArgument(1),binder);
-      MatchingUtils::matchTerms(*baseLit->nthArgument(1),*resolvedLit->nthArgument(0),binder);
 
-      *altBindingPtrs=altBindingData;
-      altBindingPtrs++;
-      altBindingData+=numVars;
-      new(altBindingData++) TermList((size_t)1);
+      //add index of the literal in instance clause at
+      //the end of the binding sequence
+      new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
     }
-
   }
   return true;
 }
@@ -179,18 +148,17 @@ struct MatchingData {
   unsigned len;
   unsigned* varCnts;
   unsigned** boundVarNums;
-  TermList*** altBindings;
+  unsigned*** altBindings;
   TriangularArray<unsigned>* remaining;
   unsigned* nextAlts;
 
   Literal** bases;
   LiteralList** alts;
   Clause* instance;
-  Literal* resolvedLit;
 
   unsigned* boundVarNumStorage;
-  TermList** altBindingPtrStorage;
-  TermList* altBindingStorage;
+  unsigned** altBindingPtrStorage;
+  unsigned* altBindingStorage;
 
   enum InitResult {
     OK,
@@ -204,7 +172,7 @@ struct MatchingData {
   }
   unsigned getAltRecordIndex(unsigned bi, unsigned alti)
   {
-    return static_cast<unsigned>(altBindings[bi][alti][varCnts[bi]].content());
+    return altBindings[bi][alti][varCnts[bi]];
   }
 
   /**
@@ -213,35 +181,61 @@ struct MatchingData {
    * base literal that binds variables to terms stored in
    * @b altBindings[b2Index][i2AltIndex] .
    */
-  bool compatible(unsigned b1Index, TermList* i1Bindings,
+  bool compatible(unsigned b1Index, unsigned* i1Bindings,
   	unsigned b2Index, unsigned i2AltIndex) const
   {
     CALL("MatchingData::compatible");
 
     if(varCnts[b1Index]==0 || varCnts[b2Index]==0) { return true; }
 
-    TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
+    //we'll create inverse binding to check that two variables
+    //don't have the same binding
+    static UUMap inverse;
+    inverse.reset();
+
+    //check that no variable is bound to two different ones
+    unsigned* i2Bindings=altBindings[b2Index][i2AltIndex];
     unsigned* b1vn=boundVarNums[b1Index];
     unsigned* b2vn=boundVarNums[b2Index];
     unsigned* b1vnStop=boundVarNums[b1Index]+varCnts[b1Index];
     unsigned* b2vnStop=boundVarNums[b2Index]+varCnts[b2Index];
     while(true) {
-      while(b1vn!=b1vnStop && *b1vn<*b2vn) { b1vn++; i1Bindings++; }
-      if(b1vn==b1vnStop) { return true; }
-      while(b2vn!=b2vnStop && *b1vn>*b2vn) { b2vn++; i2Bindings++; }
-      if(b2vn==b2vnStop) { return true; }
+      while(b1vn!=b1vnStop && *b1vn<*b2vn) {
+	if(inverse.findOrInsert(*i1Bindings, *b1vn)!=*b1vn) { return false; }
+	b1vn++; i1Bindings++;
+      }
+      if(b1vn==b1vnStop) { break; }
+      while(b2vn!=b2vnStop && *b1vn>*b2vn) {
+	if(inverse.findOrInsert(*i2Bindings, *b2vn)!=*b2vn) { return false; }
+	b2vn++; i2Bindings++;
+      }
+      if(b2vn==b2vnStop) { break; }
       if(*b1vn==*b2vn) {
         if(*i1Bindings!=*i2Bindings) { return false; }
+	if(inverse.findOrInsert(*i1Bindings, *b1vn)!=*b1vn) { return false; }
         b1vn++; i1Bindings++;
         b2vn++; i2Bindings++;
-        if(b1vn==b1vnStop || b2vn==b2vnStop) { return true; }
+        if(b1vn==b1vnStop || b2vn==b2vnStop) { break; }
       }
     }
+    while(b1vn!=b1vnStop) {
+	if(inverse.findOrInsert(*i1Bindings, *b1vn)!=*b1vn) { return false; }
+	b1vn++; i1Bindings++;
+    }
+    while(b2vn!=b2vnStop) {
+	if(inverse.findOrInsert(*i2Bindings, *b2vn)!=*b2vn) { return false; }
+	b2vn++; i2Bindings++;
+    }
+    return true;
+
+
+
+
   }
 
   bool bindAlt(unsigned bIndex, unsigned altIndex)
   {
-    TermList* curBindings=altBindings[bIndex][altIndex];
+    unsigned* curBindings=altBindings[bIndex][altIndex];
     for(unsigned i=bIndex+1; i<len; i++) {
       if(!isInitialized(i)) {
 	break;
@@ -249,9 +243,9 @@ struct MatchingData {
       unsigned remAlts=remaining->get(i,bIndex);
       for(unsigned ai=0;ai<remAlts;ai++) {
         if(!compatible(bIndex,curBindings,i,ai)) {
-  	remAlts--;
-  	std::swap(altBindings[i][ai], altBindings[i][remAlts]);
-  	ai--;
+          remAlts--;
+          std::swap(altBindings[i][ai], altBindings[i][remAlts]);
+          ai--;
         }
       }
       if(remAlts==0) {
@@ -273,7 +267,7 @@ struct MatchingData {
     if(!isInitialized(bIndex)) {
       boundVarNums[bIndex]=boundVarNumStorage;
       altBindings[bIndex]=altBindingPtrStorage;
-      ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance, resolvedLit,
+      ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance,
 	  boundVarNumStorage, altBindingPtrStorage, altBindingStorage));
       varCnts[bIndex]=boundVarNumStorage-boundVarNums[bIndex];
       unsigned altCnt=altBindingPtrStorage-altBindings[bIndex];
@@ -284,7 +278,7 @@ struct MatchingData {
 
       unsigned remAlts=0;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
-        TermList* pbBindings=altBindings[pbi][nextAlts[pbi]-1];
+        unsigned* pbBindings=altBindings[pbi][nextAlts[pbi]-1];
         remAlts=remaining->get(bIndex, pbi);
         for(unsigned ai=0;ai<remAlts;ai++) {
           if(!compatible(pbi,pbBindings,bIndex,ai)) {
@@ -304,8 +298,7 @@ struct MatchingData {
 
 };
 
-MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts,
-	Literal* resolvedLit)
+MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts)
 {
   CALL("getMatchingData");
 
@@ -316,15 +309,15 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
 
   static DArray<unsigned> varCnts(32);
   static DArray<unsigned*> boundVarNums(32);
-  static DArray<TermList**> altPtrs(32);
+  static DArray<unsigned**> altPtrs(32);
   static TriangularArray<unsigned> remaining(32);
   static DArray<unsigned> nextAlts(32);
 
   static DArray<unsigned> boundVarNumData(64);
   //Referenced list of an alternative contains binding for each variable of
   //the base literal, and then a record identifying the alternative literal itself.
-  static DArray<TermList*> altBindingPtrs(128);
-  static DArray<TermList> altBindingsData(256);
+  static DArray<unsigned*> altBindingPtrs(128);
+  static DArray<unsigned> altBindingsData(256);
   varCnts.ensure(baseLen);
   boundVarNums.init(baseLen,0);
   altPtrs.ensure(baseLen);
@@ -381,7 +374,6 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
   res.bases=baseLits.array();
   res.alts=altsArr.array();
   res.instance=instance;
-  res.resolvedLit=resolvedLit;
 
   res.boundVarNumStorage=boundVarNumData.array();
   res.altBindingPtrStorage=altBindingPtrs.array();
@@ -390,87 +382,20 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
   return &res;
 }
 
+} // MLVariant_AUX
+
+using namespace MLVariant_AUX;
 
 /**
  *
  */
-bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts,
-	Literal* resolvedLit, bool multiset)
+bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2, LiteralList** alts)
 {
-  CALL("MLMatcher::canBeMatched");
-
-  MatchingData* md=getMatchingData(baseLits, baseLen, instance, alts, resolvedLit);
-  if(!md) {
-    return false;
-  }
-  unsigned instLen=instance->length();
-
-  static DArray<unsigned> matchRecord(32);
-  unsigned matchRecordLen=resolvedLit?2:instLen;
-  matchRecord.init(matchRecordLen,0xFFFFFFFF);
-
-
-  unsigned matchedLen=md->len;
-
-  md->nextAlts[0]=0;
-  unsigned currBLit=0;
-
-binding_start:
-  while(true) {
-    MatchingData::InitResult ires=md->ensureInit(currBLit);
-    if(ires!=MatchingData::OK) {
-      if(ires==MatchingData::MUST_BACKTRACK) {
-	currBLit--;
-	continue;
-      } else {
-	ASS_EQ(ires,MatchingData::NO_ALTERNATIVE);
-	return false;
-      }
-    }
-
-    unsigned maxAlt=md->getRemainingInCurrent(currBLit);
-    while(md->nextAlts[currBLit]<maxAlt &&
-	    ( (multiset &&
-		    matchRecord[md->getAltRecordIndex(currBLit, md->nextAlts[currBLit])]<currBLit) ||
-	    !md->bindAlt(currBLit,md->nextAlts[currBLit]) ) ) {
-      md->nextAlts[currBLit]++;
-    }
-    if(md->nextAlts[currBLit] < maxAlt) {
-      unsigned matchRecordIndex=md->getAltRecordIndex(currBLit, md->nextAlts[currBLit]);
-      for(unsigned i=0;i<matchRecordLen;i++) {
-	if(matchRecord[i]==currBLit) {
-	  matchRecord[i]=0xFFFFFFFF;
-	}
-      }
-      if(matchRecord[matchRecordIndex]>currBLit) {
-	matchRecord[matchRecordIndex]=currBLit;
-      }
-      md->nextAlts[currBLit]++;
-      currBLit++;
-      if(currBLit==matchedLen) { break; }
-      md->nextAlts[currBLit]=0;
-    } else {
-      if(currBLit==0) { return false; }
-      currBLit--;
-    }
-  }
-  if(resolvedLit && matchRecord[1]>=matchedLen) {
-    currBLit--;
-    goto binding_start;
-  }
-  return true;
-}
-
-/**
- *
- */
-bool MLMatcher::isVariant(Literal** cl1Lits, Clause* cl2, LiteralList** alts)
-{
-  CALL("MLMatcher::isVariant");
+  CALL("MLVariant::isVariant/3");
 
   unsigned clen=cl2->length();
 
-  MatchingData* md=getMatchingData(cl1Lits, clen, cl2, alts, 0);
+  MatchingData* md=getMatchingData(cl1Lits, clen, cl2, alts);
   if(!md) {
     return false;
   }
@@ -485,7 +410,7 @@ bool MLMatcher::isVariant(Literal** cl1Lits, Clause* cl2, LiteralList** alts)
   md->nextAlts[0]=0;
   unsigned currBLit=0;
 
-binding_start:
+
   while(true) {
     MatchingData::InitResult ires=md->ensureInit(currBLit);
     if(ires!=MatchingData::OK) {
@@ -530,137 +455,44 @@ binding_start:
   return true;
 }
 
-struct MatchBtrFn
+
+bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2)
 {
-  DECL_RETURN_TYPE(MatchIterator);
-  OWN_RETURN_TYPE operator()(Matcher* state, pair<Literal*,Literal*> lp)
-  { return state->matches(lp.first, lp.second, false); }
-};
+  CALL("MLVariant::isVariant/2");
 
+  bool fail=false;
+  unsigned clen=cl2->length();
+  static DArray<LiteralList*> alts(32);
+  alts.init(clen, 0);
 
-/**
- * Return true iff from each of first @b base->length() lists in @b alts can
- * be selected one literal, such that they altogether match onto respective
- * literals in @b base clause. If a single literal is presented in
- * multiple lists in @b alts, it still can be matched at most once.
- */
-bool MLMatcher::canBeMatched(Clause* base, LiteralList** alts)
-{
-  CALL("MLMatcher::canBeMatched");
-
-  DArray<Literal*> baseOrd(32);
-  DArray<LiteralList*> altsOrd(32);
-  orderLiterals(*base, alts, baseOrd, altsOrd);
-
-#if TRACE_LONG_MATCHING
-  Timer tmr;
-  tmr.start();
-#endif
-
-  Matcher matcher;
-
-  //TODO: this actually is not the submultiset subsumption!
-  MatchIterator sbit=getIteratorBacktrackingOnIterable(&matcher,
-	  getMappingArray(
-		  pushPairIntoArrays(wrapReferencedArray(baseOrd),
-			  wrapReferencedArray(altsOrd)),
-		  PushPairIntoRightIterableFn<Literal*,LiteralList*>()),
-	  MatchBtrFn());
-
-  bool success=sbit.hasNext();
-
-#if TRACE_LONG_MATCHING
-  tmr.stop();
-  if(tmr.elapsedMilliseconds()>1000) {
-    int nextIndex=0;
-    DHMap<Literal*,int> indexes;
-    cout<<"\nBase: "<<Test::Output::toString(base)<<"\n\n";
-    for(unsigned i=0;i<baseLen;i++) {
-      cout<<Test::Output::toString(baseOrd[i])<<"\n---has instances---\n";
-      LiteralList* it=altsOrd[i];
-      while(it) {
-	Literal* ilit=it->head();
-	if(indexes.insert(ilit, nextIndex)) {
-	  nextIndex++;
-	}
-	cout<<indexes.get(ilit)<<": "<<Test::Output::toString(ilit)<<"\n";
-	it=it->tail();
+  for(unsigned i2=0;i2<clen;i2++) {
+    bool cl2LitHasVariant=false;
+    for(unsigned i1=0;i1<clen;i1++) {
+      if(MatchingUtils::isVariant(cl1Lits[i1], (*cl2)[i2])) {
+	cl2LitHasVariant=true;
+	LiteralList::push((*cl2)[i2], alts[i1]);
       }
-      cout<<endl;
     }
-    cout<<"DONE in "<<tmr.elapsedMilliseconds()<<" ms\n-----------------------------------\n";
-  }
-#endif
-
-  return success;
-}
-
-bool MLMatcher::canBeMatched(Clause* base, DArray<LiteralList*>& alts)
-{
-  CALL("MLMatcher::canBeMatched");
-
-  DArray<Literal*> baseOrd(32);
-  DArray<LiteralList*> altsOrd(32);
-  orderLiterals(*base, alts, baseOrd, altsOrd);
-
-  Matcher matcher;
-
-  MatchIterator sbit=getIteratorBacktrackingOnIterable(&matcher,
-	  getMappingArray(
-		  pushPairIntoArrays(wrapReferencedArray(baseOrd),
-			  wrapReferencedArray(altsOrd)),
-		  PushPairIntoRightIterableFn<Literal*,LiteralList*>()),
-	  MatchBtrFn());
-
-  return sbit.hasNext();
-}
-
-
-/**
- *
- * @b alts is supposed to be an array of LiteralList* with the same number
- * of elements as @b base.
- */
-template<class T, class U>
-void MLMatcher::orderLiterals(T& base, U& alts,
-	  DArray<Literal*>& baseOrd, DArray<LiteralList*>& altsOrd)
-{
-  CALL("MLMatcher::orderLiterals");
-
-  unsigned baseLen=base.size();
-  //first we order base literals by number of their
-  //alternatives (smaller come first)
-  static BinaryHeap<int,Int> lengths;
-  static DHMap<int, List<unsigned>* > len2lits;
-  ASS_EQ(lengths.size(), 0);
-  ASS_EQ(len2lits.size(), 0);
-
-  for(unsigned i=0;i<baseLen;i++) {
-    unsigned len=alts[i]->length();
-    List<unsigned>** plst;
-    if(len2lits.getValuePtr(len, plst, 0)) {
-      lengths.insert(len);
-    }
-    List<unsigned>::push(i,*plst);
-  }
-
-  baseOrd.ensure(baseLen);
-  altsOrd.ensure(baseLen);
-
-  unsigned nextli=0;
-  while(lengths.size()) {
-    unsigned len=lengths.pop();
-    List<unsigned>** plst;
-    NEVER(len2lits.getValuePtr(len, plst, 0));
-    ASS(*plst);
-    while(*plst) {
-      unsigned basei=List<unsigned>::pop(*plst);
-      baseOrd[nextli]=base[basei];
-      altsOrd[nextli++]=alts[basei];
+    if(!cl2LitHasVariant) {
+      fail=true;
+      goto fin;
     }
   }
-  ASS_EQ(nextli, baseLen);
-  len2lits.reset();
+  for(unsigned i=0;i<clen;i++) {
+    if(!alts[i]) {
+      fail=true;
+      goto fin;
+    }
+  }
+
+  fail=!MLVariant::isVariant(cl1Lits,cl2,alts.array());
+
+fin:
+  for(unsigned i=0;i<clen;i++) {
+    alts[i]->destroy();
+  }
+
+  return !fail;
 }
 
 }

@@ -77,46 +77,46 @@ void CompositeISE::detach()
 }
 
 
-CompositeFSE::~CompositeFSE()
-{
-  _inners->destroy();
-}
-void CompositeFSE::addFront(ForwardSimplificationEngineSP fse)
-{
-  ASS_EQ(_salg,0);
-  FSList::push(fse,_inners);
-}
-void CompositeFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
-{
-  keep=true;
-  FSList* eit=_inners;
-  if(!eit) {
-    toAdd=ClauseIterator::getEmpty();
-    return;
-  }
-  while(eit && keep) {
-    eit->head()->perform(cl,keep,toAdd, premises);
-    eit=eit->tail();
-  }
-}
-void CompositeFSE::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  FSList* eit=_inners;
-  while(eit) {
-    eit->head()->attach(salg);
-    eit=eit->tail();
-  }
-}
-void CompositeFSE::detach()
-{
-  FSList* eit=_inners;
-  while(eit) {
-    eit->head()->detach();
-    eit=eit->tail();
-  }
-  ForwardSimplificationEngine::detach();
-}
+//CompositeFSE::~CompositeFSE()
+//{
+//  _inners->destroy();
+//}
+//void CompositeFSE::addFront(ForwardSimplificationEngineSP fse)
+//{
+//  ASS_EQ(_salg,0);
+//  FSList::push(fse,_inners);
+//}
+//void CompositeFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
+//{
+//  keep=true;
+//  FSList* eit=_inners;
+//  if(!eit) {
+//    toAdd=ClauseIterator::getEmpty();
+//    return;
+//  }
+//  while(eit && keep) {
+//    eit->head()->perform(cl,keep,toAdd, premises);
+//    eit=eit->tail();
+//  }
+//}
+//void CompositeFSE::attach(SaturationAlgorithm* salg)
+//{
+//  ForwardSimplificationEngine::attach(salg);
+//  FSList* eit=_inners;
+//  while(eit) {
+//    eit->head()->attach(salg);
+//    eit=eit->tail();
+//  }
+//}
+//void CompositeFSE::detach()
+//{
+//  FSList* eit=_inners;
+//  while(eit) {
+//    eit->head()->detach();
+//    eit=eit->tail();
+//  }
+//  ForwardSimplificationEngine::detach();
+//}
 
 struct GeneratingFunctor
 {

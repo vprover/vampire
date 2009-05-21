@@ -406,6 +406,9 @@ private:
       throw Exception("Lib::DHMap::expand: MaxCapacityIndex reached.");
     }
 
+    int newCapacity=DHMapTableCapacities[_capacityIndex+1];
+    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
+
     Entry* oldEntries=_entries;
     Entry* oldAfterLast=_afterLast;
     unsigned oldTimestamp=_timestamp;
@@ -415,10 +418,9 @@ private:
     _size=0;
     _deleted=0;
     _capacityIndex++;
-    _capacity = DHMapTableCapacities[_capacityIndex];
+    _capacity = newCapacity;
     _nextExpansionOccupancy = (int)(_capacity*DHMAP_FILL_UP_COEFFICIENT);
 
-    void* mem = ALLOC_KNOWN(_capacity*sizeof(Entry),"DHMap::Entry");
     _entries = new(mem) Entry [_capacity];
     _afterLast = _entries + _capacity;
 

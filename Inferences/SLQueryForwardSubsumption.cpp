@@ -84,16 +84,12 @@ struct PtrHash2 {
 typedef DHMap<Clause*,ClauseMatches, PtrHash, PtrHash2> CMMap;
 typedef DHMap<Literal*, LiteralList*, PtrHash > MatchMap;
 
-void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& toAdd,
-	ClauseIterator& premises)
+void SLQueryForwardSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
   CALL("SLQueryForwardSubsumption::perform");
-  toAdd=ClauseIterator::getEmpty();
-  premises=ClauseIterator::getEmpty();
 
   unsigned clen=cl->length();
   if(clen==0) {
-    keep=true;
     return;
   }
 
@@ -105,9 +101,11 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
       SLQueryResult res=rit.next();
       unsigned rlen=res.clause->length();
       if(rlen==1) {
-	keep=false;
-	premises=pvi( getSingletonIterator(res.clause) );
-	goto fin;
+	env.statistics->forwardSubsumed++;
+	simplPerformer->perform(res.clause, 0);
+	if(!simplPerformer->clauseKept()) {
+	  goto fin;
+	}
       } else if(rlen>clen) {
 	continue;
       }
@@ -174,18 +172,16 @@ void SLQueryForwardSubsumption::perform(Clause* cl, bool& keep, ClauseIterator& 
       }
 
       if(!mclMatchFailed) {
-	keep=false;
-	premises=pvi( getSingletonIterator(mcl) );
-	goto fin;
+	env.statistics->forwardSubsumed++;
+	simplPerformer->perform(mcl, 0);
+	if(!simplPerformer->clauseKept()) {
+	  goto fin;
+	}
       }
 
     }
-    keep=true;
   }
 fin:
-  if(!keep) {
-    env.statistics->forwardSubsumed++;
-  }
   if(gens) {
     CMMap::Iterator git(*gens);
     while(git.hasNext()) {

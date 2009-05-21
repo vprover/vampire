@@ -58,6 +58,7 @@ public:
   Clause(unsigned length,InputType it,Inference* inf)
     : Unit(Unit::CLAUSE,inf,it),
       _length(length),
+      _selected(0),
       _age(0),
       _weight(0),
       _store(NONE),

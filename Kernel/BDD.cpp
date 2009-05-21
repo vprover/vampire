@@ -5,8 +5,16 @@
 
 #include "../Lib/Int.hpp"
 #include "../Lib/Stack.hpp"
+#include "../Lib/DHMap.hpp"
+
+#include "../Lib/Timer.hpp"
+#include "../Lib/Environment.hpp"
+
+#include "../Lib/Exception.hpp"
 
 #include "BDD.hpp"
+
+int gBDDTime=0;
 
 namespace Kernel {
 
@@ -102,6 +110,9 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
   ASS(n1);
   ASS(n2);
 
+  int counter=0;
+  int initTime=0;
+
   static Stack<BDDNode*> toDo(8);
   //results stack contains zeroes and proper pointers standing for
   //intermediate results.
@@ -114,9 +125,25 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
   //the results stack.
   static Stack<int> vars(8);
 
+  static DHMap<pair<BDDNode*,BDDNode*>, BDDNode*, PtrPairIdentityHash > cache;
+  //if the cache was not reset, too much memory would be consumed
+  cache.reset();
+
   for(;;) {
+    counter++;
+    if(counter==500) {
+      if(initTime==0) {
+	initTime=env.timer->elapsedMilliseconds();
+      }
+    }
+//    if(counter==5000) {
+//      counter=0;
+//      if(env.timeLimitReached()) {
+//	throw new TimeLimitExceededException();
+//      }
+//    }
     BDDNode* res=fn(n1,n2);
-    if(res) {
+    if(res || cache.find(make_pair(n1, n2), res)) {
       while(results.isNonEmpty() && results.top()!=0) {
 	BDDNode* pos=results.pop();
 	BDDNode* neg=res;
@@ -128,6 +155,9 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 	}
 	ASS_EQ(results.top(),0);
 	results.pop();
+	BDDNode* arg1=results.pop();
+	BDDNode* arg2=results.pop();
+	cache.insert(make_pair(arg1, arg2), res);
       }
       results.push(res);
     } else {
@@ -138,7 +168,11 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
       toDo.push((n1->_var==splitVar) ? n1->_neg : n1);
       toDo.push((n2->_var==splitVar) ? n2->_pos : n2);
       toDo.push((n1->_var==splitVar) ? n1->_pos : n1);
+      results.push(n2);
+      results.push(n1);
       results.push(0);
+      //now push arguments at the stack, so that we know store the
+      //answer into the cache
       vars.push(splitVar);
     }
 
@@ -147,6 +181,10 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
     }
     n1=toDo.pop();
     n2=toDo.pop();
+  }
+
+  if(initTime) {
+    gBDDTime+=env.timer->elapsedMilliseconds()-initTime;
   }
 
   ASS(toDo.isEmpty());

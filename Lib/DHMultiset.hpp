@@ -215,6 +215,9 @@ private:
       throw Exception("Lib::DHMultiset::expand: MaxCapacityIndex reached.");
     }
 
+    int newCapacity=DHMapTableCapacities[_capacityIndex+1];
+    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMultiset::Entry");
+
     Entry* oldEntries=_entries;
     Entry* oldAfterLast=_afterLast;
     int oldCapacity=_capacity;
@@ -223,10 +226,9 @@ private:
     _multiplicities=0;
     _deleted=0;
     _capacityIndex++;
-    _capacity = DHMapTableCapacities[_capacityIndex];
+    _capacity = newCapacity;
     _nextExpansionOccupancy = (int)(_capacity*DHMULTISET_FILL_UP_COEFFICIENT);
 
-    void* mem = ALLOC_KNOWN(_capacity*sizeof(Entry),"DHMultiset::Entry");
     _entries = new(mem) Entry [_capacity];
     _afterLast = _entries + _capacity;
 

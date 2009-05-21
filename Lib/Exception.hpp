@@ -25,6 +25,7 @@ class Exception
   explicit Exception (const char* msg)
     : _message(msg)
   {}
+  Exception (const char* msg, int line);
   explicit Exception (const string msg)
     : _message(msg.c_str())
   {}
@@ -67,6 +68,18 @@ class MemoryLimitExceededException
 public:
   MemoryLimitExceededException ()
   : Exception("The memory limit exceeded")
+  {}
+}; // MemoryLimitExceededException
+
+/**
+ * Class TimeLimitExceededException.
+ */
+class TimeLimitExceededException
+: public Exception
+{
+public:
+  TimeLimitExceededException ()
+  : Exception("The time limit exceeded")
   {}
 }; // MemoryLimitExceededException
 

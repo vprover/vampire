@@ -34,11 +34,9 @@ using namespace Indexing;
 using namespace Saturation;
 
 
-void Condensation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
+void Condensation::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
   CALL("Condensation::perform");
-
-  premises=ClauseIterator::getEmpty();
 
   static DArray<Literal*> newLits(32);
   static DArray<LiteralList*> alts(32);
@@ -110,14 +108,13 @@ void Condensation::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, Clause
 
 	res->setAge(cl->age());
 	env.statistics->condensations++;
-	keep=false;
-	toAdd=pvi( getSingletonIterator(res) );
+
+	simplPerformer->perform(0,res);
+	ASS(!simplPerformer->clauseKept());
 	return;
       }
     }
   }
-  keep=true;
-  toAdd=ClauseIterator::getEmpty();
 }
 
 }

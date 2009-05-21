@@ -142,7 +142,16 @@ string Clause::toString() const
     }
   }
 
+#if VDEBUG
+  string bddString=BDD::instance()->toString(prop());
+  if(bddString.length()>255) {
+    result += " | " + bddString.substr(0,255) + "...";
+  } else {
+    result += " | " + bddString;
+  }
+#else
   result += " | " + BDD::instance()->toString(prop());
+#endif
 
   result += string(" (") + Int::toString(_age) + ':' +
             Int::toString(weight()) + ") " + inferenceAsString();
