@@ -125,7 +125,7 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
   //the results stack.
   static Stack<int> vars(8);
 
-  static DHMap<pair<BDDNode*,BDDNode*>, BDDNode*, PtrPairIdentityHash > cache;
+  static DHMap<pair<BDDNode*,BDDNode*>, BDDNode*, PtrPairSimpleHash > cache;
   //if the cache was not reset, too much memory would be consumed
   cache.reset();
 

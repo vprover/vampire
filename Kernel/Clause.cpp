@@ -11,6 +11,8 @@
 #include "../Lib/Int.hpp"
 #include "../Lib/Stack.hpp"
 
+#include "../Lib/DArray.hpp"
+
 #include "Inference.hpp"
 #include "Clause.hpp"
 #include "Term.hpp"
@@ -119,6 +121,13 @@ void Clause::destroyExceptInferenceObject()
   DEALLOC_KNOWN(this, size,"Clause");
 }
 
+struct StrComparator {
+  Comparison compare(string s1, string s2)
+  {
+    int res=strcmp(s1.c_str(), s2.c_str());
+    return (res==0)?EQUAL:(res>0)?GREATER:LESS;
+  }
+};
 
 /**
  * Convert the clause to the string representation.
@@ -140,6 +149,18 @@ string Clause::toString() const
 	result += _literals[i]->toString();
       }
     }
+//    static DArray<string> litStrs(8);
+//    litStrs.ensure(length());
+//    for (unsigned i = 0; i < _length;i++) {
+//      litStrs[i]=_literals[i]->toString();
+//    }
+//    litStrs.sort(StrComparator());
+//    result += litStrs[0];
+//    for (unsigned i = 1; i < _length;i++) {
+//      result += " | ";
+//      result += litStrs[i];
+//    }
+
   }
 
 #if VDEBUG

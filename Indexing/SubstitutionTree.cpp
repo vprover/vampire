@@ -46,6 +46,9 @@ SubstitutionTree::SubstitutionTree(int nodes)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
+#if VDEBUG
+  _iteratorCnt=0;
+#endif
 } // SubstitutionTree::SubstitutionTree
 
 /**
@@ -56,6 +59,8 @@ SubstitutionTree::SubstitutionTree(int nodes)
 SubstitutionTree::~SubstitutionTree()
 {
   CALL("SubstitutionTree::~SubstitutionTree");
+  ASS_EQ(_iteratorCnt,0);
+
   for (unsigned i = 0; i<_nodes.size(); i++) {
     if(_nodes[i]!=0) {
       delete _nodes[i];
@@ -75,6 +80,7 @@ void SubstitutionTree::getBindings(Term* t, BindingMap& svBindings)
   int nextVar = 0;
   while (! args->isEmpty()) {
     if (_nextVar <= nextVar) {
+      ASS_EQ(_iteratorCnt,0);
       _nextVar = nextVar+1;
     }
     svBindings.insert(nextVar++, *args);
@@ -127,6 +133,7 @@ struct BindingComparator
 void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
 {
   CALL("SubstitutionTree::insert/3");
+  ASS_EQ(_iteratorCnt,0);
 
   if(*pnode == 0) {
     if(svBindings.isEmpty()) {
@@ -334,6 +341,7 @@ start:
 void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
 {
   CALL("SubstitutionTree::remove-2");
+  ASS_EQ(_iteratorCnt,0);
 
   ASS(*pnode);
 
@@ -648,9 +656,13 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
 : svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
-clientBDRecording(false)
+clientBDRecording(false), tree(parent)
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
+
+#if VDEBUG
+  tree->_iteratorCnt++;
+#endif
 
   if(!root) {
     return;
@@ -680,6 +692,10 @@ SubstitutionTree::UnificationsIterator::~UnificationsIterator()
   while(bdStack.isNonEmpty()) {
     bdStack.pop().backtrack();
   }
+
+#if VDEBUG
+  tree->_iteratorCnt--;
+#endif
 }
 
 void SubstitutionTree::UnificationsIterator::createInitialBindings(Term* t)
@@ -1030,7 +1046,7 @@ SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
   if(_specVars->size()<nextSpecVar) {
     //_specVars can get really big, but it was introduced instead of hash table
     //during optimizations, as it raised performance by abour 5%.
-    _specVars->ensure(_specVars->size()*2);
+    _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
   }
   Recycler::get(_bindings);
 
@@ -1160,19 +1176,31 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(
 	Term* query, bool retrieveSubstitution, bool reversed)
 : _subst(query,parent->_nextVar), _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()),
-  _root(root), _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
+  _root(root), _alternatives(64), _specVarNumbers(64), _nodeTypes(64),
+  _tree(parent)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
   ASS(root);
   ASS(!root->isLeaf());
+
+#if VDEBUG
+  _tree->_iteratorCnt++;
+#endif
 
   if(reversed) {
     createReversedInitialBindings(query);
   } else {
     createInitialBindings(query);
   }
-
 }
+
+SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
+{
+#if VDEBUG
+  _tree->_iteratorCnt--;
+#endif
+}
+
 
 void SubstitutionTree::FastGeneralizationsIterator::createInitialBindings(Term* t)
 {

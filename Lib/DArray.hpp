@@ -132,10 +132,12 @@ public:
     }
 
     size_t oldCapacity=_capacity;
+    size_t newCapacity=max(s, oldCapacity*2);
+    void* mem = ALLOC_KNOWN(sizeof(C)*newCapacity,"DArray<>");
+
     C* oldArr = _array;
 
-    _capacity = max(s, _capacity*2);
-    void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
+    _capacity = newCapacity;
     _array = static_cast<C*>(mem);
 
     C* optr=oldArr;

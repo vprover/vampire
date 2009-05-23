@@ -57,9 +57,9 @@ struct PtrIdentityHash {
   }
 };
 
-struct PtrPairIdentityHash {
-  template<typename T>
-  static unsigned hash(std::pair<T*,T*> pp) {
+struct PtrPairSimpleHash {
+  template<typename T, typename U>
+  static unsigned hash(std::pair<T*,U*> pp) {
     return static_cast<unsigned>(reinterpret_cast<size_t>(pp.first)^reinterpret_cast<size_t>(pp.second)^
 	    (reinterpret_cast<size_t>(pp.first)>>3));
   }

@@ -21,9 +21,9 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Saturation;
 
-#define REPORT_CONTAINERS 0
-#define REPORT_FW_SIMPL 0
-#define REPORT_BW_SIMPL 0
+#define REPORT_CONTAINERS 1
+#define REPORT_FW_SIMPL 1
+#define REPORT_BW_SIMPL 1
 
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
@@ -245,7 +245,7 @@ public:
       if(!bdd->isTrue(replacementProp)) {
 	replacement->setProp(replacementProp);
 #if REPORT_FW_SIMPL
-	cout<<"#"<<(*addCl)<<endl;
+	cout<<"#"<<(*replacement)<<endl;
 #endif
 	ClauseList::push(replacement, _toAddLst);
       }
@@ -264,7 +264,7 @@ public:
     }
 #if REPORT_FW_SIMPL
     if(_cl) {
-      cout<<">"<<(*cl)<<endl;
+      cout<<">"<<(*_cl)<<endl;
       cout<<"-----------\n";
     }
 #endif

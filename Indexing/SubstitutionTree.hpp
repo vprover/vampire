@@ -547,6 +547,7 @@ public:
   public:
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
 	    bool retrieveSubstitution, bool reversed=false);
+    ~FastGeneralizationsIterator();
 
     bool hasNext();
     QueryResult next();
@@ -570,6 +571,7 @@ public:
     Stack<NodeAlgorithm> _nodeTypes;
 
     Renaming _resultNormalizer;
+    SubstitutionTree* _tree;
   };
 
 
@@ -614,6 +616,7 @@ public:
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
+    SubstitutionTree* tree;
   };
 
 
@@ -644,6 +647,8 @@ public:
   static string nodeToString(Node* topNode);
   string toString() const;
   bool isEmpty() const;
+
+  int _iteratorCnt;
 #endif
 
 }; // class SubstiutionTree

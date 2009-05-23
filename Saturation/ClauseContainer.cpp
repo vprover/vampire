@@ -97,6 +97,7 @@ void ActiveClauseContainer::add(Clause* c)
 {
   _size++;
 
+  ASS(c->store()==Clause::ACTIVE);
   addedEvent.fire(c);
 }
 
@@ -150,6 +151,7 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
       maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
     }
     if(cl->weight()-(int)maxSelWeight>=weightLimit) {
+      ASS(cl->store()==Clause::ACTIVE || cl->store()==Clause::REACTIVATED);
       toRemove.push(cl);
     }
   }
@@ -163,7 +165,7 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   while(toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
     remove(removed);
-    ASS_EQ(removed->store(), Clause::ACTIVE);
+    ASS(removed->store()==Clause::ACTIVE || removed->store()==Clause::REACTIVATED);
     removed->setStore(Clause::NONE);
   }
 }

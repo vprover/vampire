@@ -288,7 +288,9 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   while(toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
     remove(removed);
-    removed->setStore(Clause::NONE);
+    if(removed->store()==Clause::PASSIVE) {
+      removed->setStore(Clause::NONE);
+    }
   }
 
 }
