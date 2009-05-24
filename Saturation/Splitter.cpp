@@ -160,6 +160,12 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 	  Stack<Clause*>::Iterator(unnamedComponentStack)) );
   while(unnamedIt.hasNext()) {
     Clause* comp=unnamedIt.next();
+    if(comp==masterComp) {
+      //The same component can appear multiple times, here
+      //we catch cases when the master component is unnamed
+      //and appears more than once.
+      continue;
+    }
     int compName=bdd->getNewVar();
 
     if(_clauseNames.insert(comp, compName)) {
@@ -169,7 +175,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       comp->setProp(bdd->conjunction(comp->prop(), bdd->getAtomic(compName, false)));
       newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
 #if REPORT_SPLITS
-      cout<<compName<<": "<<(*comp)<<endl;
+      cout<<'n'<<compName<<": "<<(*comp)<<endl;
 #endif
     }
   }
@@ -226,7 +232,16 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
     ASS(!variants.hasNext());
 
     BDDNode* oldProp=comp->prop();
+#if REPORT_SPLITS
+    cout<<"----Merging----\n";
+    cout<<"Clause "<<(*cl)<<" caused\n";
+    cout<<(*comp)<<" to get prop. part\n";
+#endif
     comp->setProp( bdd->conjunction(oldProp, cl->prop()) );
+#if REPORT_SPLITS
+    cout<<bdd->toString(comp->prop())<<endl;
+    cout<<"^^^^^^^^^^^^^^^\n";
+#endif
 
     if( comp->isEmpty() && bdd->isFalse(comp->prop()) ) {
       cl->setProp(comp->prop());

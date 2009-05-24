@@ -37,7 +37,7 @@ public:
   void recordInference(Clause* cl, FullInference* inf);
 private:
   typedef pair<Clause*, BDDNode*> ClauseSpec;
-  DHMap<ClauseSpec, Inference*, PtrPairSimpleHash> _data;
+  DHMap<ClauseSpec, FullInference*, PtrPairSimpleHash> _data;
 };
 
 };

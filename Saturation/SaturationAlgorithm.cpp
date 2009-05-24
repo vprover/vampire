@@ -21,9 +21,9 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Saturation;
 
-#define REPORT_CONTAINERS 1
-#define REPORT_FW_SIMPL 1
-#define REPORT_BW_SIMPL 1
+#define REPORT_CONTAINERS 0
+#define REPORT_FW_SIMPL 0
+#define REPORT_BW_SIMPL 0
 
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
@@ -259,13 +259,14 @@ public:
     if(bdd->isTrue(_cl->prop())) {
       _cl=0;
 #if REPORT_FW_SIMPL
-      cout<<"--removed--\n";
+      cout<<"removed\n";
+      cout<<"^^^^^^^^^^^^\n";
 #endif
     }
 #if REPORT_FW_SIMPL
     if(_cl) {
       cout<<">"<<(*_cl)<<endl;
-      cout<<"-----------\n";
+      cout<<"^^^^^^^^^^^\n";
     }
 #endif
   }
@@ -353,7 +354,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       }
 
       if(srec.replacements.hasNext()) {
-	BDDNode* replacementProp=bdd->disjunction(oldRedundantProp, redundant->prop());
+	BDDNode* replacementProp=bdd->disjunction(oldRedundantProp, cl->prop());
 	if(!bdd->isTrue(replacementProp)) {
 	  while(srec.replacements.hasNext()) {
 	    Clause* addCl=srec.replacements.next();
@@ -388,7 +389,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	reanimate(redundant);
       }
 #if REPORT_BW_SIMPL
-      cout<<"-----------\n";
+      cout<<"^^^^^^^^^^^\n";
 #endif
     }
   }
