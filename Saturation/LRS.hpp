@@ -58,7 +58,6 @@ protected:
     { removedEvent.fire(c); }
   };
 
-  int _startTime;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;

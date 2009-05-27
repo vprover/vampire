@@ -4,17 +4,19 @@
  */
 
 #include "../Lib/Environment.hpp"
+#include "../Lib/Metaiterators.hpp"
+#include "../Lib/Timer.hpp"
 #include "../Lib/VirtualIterator.hpp"
 #include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/LiteralSelector.hpp"
+#include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "SaturationAlgorithm.hpp"
 
 
-#include "../Kernel/MLVariant.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -24,6 +26,8 @@ using namespace Saturation;
 #define REPORT_CONTAINERS 0
 #define REPORT_FW_SIMPL 0
 #define REPORT_BW_SIMPL 0
+#define TOTAL_SIMPLIFICATION_ONLY 1
+#define FW_DEMODULATION_FIRST 1
 
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
@@ -49,6 +53,9 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
   _unprocessed->selectedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedSelected);
 #endif
 
+  if(env.options->maxWeight()) {
+    _limits.setLimits(-1,env.options->maxWeight());
+  }
 }
 
 SaturationAlgorithm::~SaturationAlgorithm()
@@ -66,6 +73,7 @@ SaturationAlgorithm::~SaturationAlgorithm()
     _immediateSimplifier->detach();
   }
 
+  _fwDemodulator->detach();
   while(_fwSimplifiers) {
     FwSimplList::pop(_fwSimplifiers)->detach();
   }
@@ -111,6 +119,17 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 }
 
 
+void SaturationAlgorithm::handleSaturationStart()
+{
+  _startTime=env.timer->elapsedMilliseconds();
+}
+
+int SaturationAlgorithm::elapsedTime()
+{
+  return env.timer->elapsedMilliseconds()-_startTime;
+}
+
+
 /**
  * Insert input clauses into ste unprocessed container.
  */
@@ -134,6 +153,140 @@ bool SaturationAlgorithm::isRefutation(Clause* c)
   return c->isEmpty() && bdd->isFalse(c->prop());
 }
 
+
+class TotalSimplificationPerformer
+: public ForwardSimplificationPerformer
+{
+public:
+  TotalSimplificationPerformer(Clause* cl) : _cl(cl), _toAddLst(0) {}
+
+  ~TotalSimplificationPerformer() { _toAddLst->destroy(); }
+
+  void perform(Clause* premise, Clause* replacement)
+  {
+    CALL("TotalSimplificationPerformer::perform");
+    ASS(_cl);
+    ASS(willPerform(premise));
+
+    BDD* bdd=BDD::instance();
+
+    BDDNode* oldClProp=_cl->prop();
+
+#if REPORT_FW_SIMPL
+    cout<<"->>--------\n";
+    if(premise) {
+      cout<<":"<<(*premise)<<endl;
+    }
+    cout<<"="<<(*_cl)<<endl;
+#endif
+
+    BDDNode* premiseProp = premise ? premise->prop() : bdd->getFalse();
+
+    _cl->setProp(bdd->getTrue());
+    _cl=0;
+
+    if(replacement) {
+      replacement->setProp(oldClProp);
+      ClauseList::push(replacement, _toAddLst);
+    }
+
+#if REPORT_FW_SIMPL
+    if(replacement) {
+      cout<<"#"<<(*replacement)<<endl;
+    }
+    cout<<"removed\n";
+    cout<<"^^^^^^^^^^^^\n";
+#endif
+  }
+
+  bool willPerform(Clause* premise)
+  {
+    CALL("TotalSimplificationPerformer::willPerform");
+    ASS(_cl);
+
+    if(!premise) {
+      return true;
+    }
+
+    BDD* bdd=BDD::instance();
+    return bdd->isXOrNonYConstant(_cl->prop(), premise->prop(), true);
+  }
+
+  bool clauseKept()
+  { return _cl; }
+
+  ClauseIterator clausesToAdd()
+  { return pvi( ClauseList::Iterator(_toAddLst) ); }
+private:
+  Clause* _cl;
+  ClauseList* _toAddLst;
+};
+
+class PartialSimplificationPerformer
+: public ForwardSimplificationPerformer
+{
+public:
+  PartialSimplificationPerformer(Clause* cl) : _cl(cl), _toAddLst(0) {}
+
+  ~PartialSimplificationPerformer() { _toAddLst->destroy(); }
+
+  void perform(Clause* premise, Clause* replacement)
+  {
+    CALL("ForwardSimplificationPerformerImpl::perform");
+    ASS(_cl);
+
+    BDD* bdd=BDD::instance();
+
+    BDDNode* oldClProp=_cl->prop();
+
+#if REPORT_FW_SIMPL
+    cout<<"->>--------\n";
+    if(premise) {
+      cout<<":"<<(*premise)<<endl;
+    }
+    cout<<"="<<(*_cl)<<endl;
+#endif
+
+    BDDNode* premiseProp = premise ? premise->prop() : bdd->getFalse();
+
+    if(replacement) {
+      BDDNode* replacementProp=bdd->disjunction(oldClProp, premiseProp);
+      if(!bdd->isTrue(replacementProp)) {
+	replacement->setProp(replacementProp);
+	ClauseList::push(replacement, _toAddLst);
+      }
+    }
+
+    _cl->setProp(bdd->xOrNonY(oldClProp, premiseProp));
+
+    if(bdd->isTrue(_cl->prop())) {
+      _cl=0;
+    }
+#if REPORT_FW_SIMPL
+    if(replacement) {
+      cout<<"#"<<(*replacement)<<endl;
+    }
+    if(_cl) {
+      cout<<">"<<(*_cl)<<endl;
+      cout<<"^^^^^^^^^^^\n";
+    } else {
+      cout<<"removed\n";
+      cout<<"^^^^^^^^^^^^\n";
+    }
+#endif
+  }
+
+  bool clauseKept()
+  { return _cl; }
+
+  ClauseIterator clausesToAdd()
+  { return pvi( ClauseList::Iterator(_toAddLst) ); }
+private:
+  Clause* _cl;
+  ClauseList* _toAddLst;
+};
+
+
 /**
  * Perform immediate simplifications on a clause and add it
  * to unprocessed.
@@ -150,6 +303,9 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   BDD* bdd=BDD::instance();
   ASS(!bdd->isTrue(cl->prop()));
 
+  int counter=0;
+  bool overLimit=false;
+simplificationStart:
   BDDNode* prop=cl->prop();
   bool simplified;
   do {
@@ -164,41 +320,95 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     }
   } while(simplified);
 
-  ASS(!bdd->isTrue(cl->prop()));
-/**/
-  ClauseIterator newComponents;
-  ClauseIterator modifiedComponents;
-  _splitter.doSplitting(cl, newComponents, modifiedComponents);
-  while(newComponents.hasNext()) {
-    Clause* comp=newComponents.next();
-    ASS_EQ(comp->store(), Clause::NONE);
-    ASS(!bdd->isTrue(comp->prop()));
+  static DHMap<Literal*, Clause*> dem;
+  dem.reset();
 
-    if(!bdd->isTrue(comp->prop())) {
-      comp->setStore(Clause::UNPROCESSED);
-      _unprocessed->add(comp);
-    }
-  }
-  while(modifiedComponents.hasNext()) {
-    Clause* comp=modifiedComponents.next();
+#if FW_DEMODULATION_FIRST
+  if(_fwDemodulator) {
+    TotalSimplificationPerformer demPerformer(cl);
+    _fwDemodulator->perform(cl, &demPerformer);
+    if(!demPerformer.clauseKept()) {
+      ClauseIterator rit=demPerformer.clausesToAdd();
+      ASS(rit.hasNext());
+      cl=rit.next();
 
-    ASS(!bdd->isTrue(comp->prop()));
-    if(comp->store()==Clause::ACTIVE) {
-      if(!comp->isEmpty()) { //don't reanimate empty clause
-	reanimate(comp);
-      } else {
-	ASS(!isRefutation(comp));
+//      if (env.timeLimitReached()) {
+//	overLimit=true;
+//
+//	Inference::Iterator iit=cl->inference()->iterator();
+//	while(cl->inference()->hasNext(iit)) {
+//	  Unit* premUnit=cl->inference()->next(iit);
+//	  ASS(premUnit->isClause());
+//	  Clause* premCl=static_cast<Clause*>(premUnit);
+//	  if(premCl->number()!=cl->number()-1) {
+//	    cout<<"demod. by: "<<(*premCl)<<endl;
+//	  }
+//	}
+//
+//	cout<<(*cl)<<"\n\n";
+//      }
+      if(++counter==100) {
+	counter=0;
+	if (env.timeLimitReached()) {
+	  throw TimeLimitExceededException();
+	}
       }
-    } else if(comp->store()==Clause::NONE) {
-      ASS(!comp->isEmpty());
-      comp->setStore(Clause::UNPROCESSED);
-      _unprocessed->add(comp);
+
+      ASS(!rit.hasNext());
+      goto simplificationStart;
     }
   }
-/*/
-  cl->setStore(Clause::UNPROCESSED);
-  _unprocessed->add(cl);
-/**/
+  if(overLimit) {
+    throw TimeLimitExceededException();
+  }
+#endif
+
+  ASS(!bdd->isTrue(cl->prop()));
+
+  static bool performSplitting=true;
+//  static int scCounter=0;
+//  scCounter++;
+//  if(scCounter==100) {
+//    scCounter=0;
+//    if(performSplitting && elapsedTime()>((env.options->timeLimitInDeciseconds()*100)/30)) {
+//      performSplitting=false;
+//    }
+//  }
+
+  if(performSplitting) {
+    ClauseIterator newComponents;
+    ClauseIterator modifiedComponents;
+    _splitter.doSplitting(cl, newComponents, modifiedComponents);
+    while(newComponents.hasNext()) {
+      Clause* comp=newComponents.next();
+      ASS_EQ(comp->store(), Clause::NONE);
+      ASS(!bdd->isTrue(comp->prop()));
+
+      if(!bdd->isTrue(comp->prop())) {
+        comp->setStore(Clause::UNPROCESSED);
+        _unprocessed->add(comp);
+      }
+    }
+    while(modifiedComponents.hasNext()) {
+      Clause* comp=modifiedComponents.next();
+
+      ASS(!bdd->isTrue(comp->prop()));
+      if(comp->store()==Clause::ACTIVE) {
+        if(!comp->isEmpty()) { //don't reanimate empty clause
+  	reanimate(comp);
+        } else {
+  	ASS(!isRefutation(comp));
+        }
+      } else if(comp->store()==Clause::NONE) {
+        ASS(!comp->isEmpty());
+        comp->setStore(Clause::UNPROCESSED);
+        _unprocessed->add(comp);
+      }
+    }
+  } else {
+    cl->setStore(Clause::UNPROCESSED);
+    _unprocessed->add(cl);
+  }
 }
 
 void SaturationAlgorithm::reanimate(Clause* cl)
@@ -211,75 +421,6 @@ void SaturationAlgorithm::reanimate(Clause* cl)
   cl->setStore(Clause::REACTIVATED);
   _passive->add(cl);
 }
-
-class ForwardSimplificationPerformerImpl
-: public ForwardSimplificationPerformer
-{
-public:
-  ForwardSimplificationPerformerImpl(Clause* cl) : _cl(cl), _toAddLst(0) {}
-
-  ~ForwardSimplificationPerformerImpl() { _toAddLst->destroy(); }
-
-  void perform(Clause* premise, Clause* replacement)
-  {
-    CALL("ForwardSimplificationPerformerImpl::perform");
-    ASS(_cl);
-
-    BDD* bdd=BDD::instance();
-
-    BDDNode* oldClProp=_cl->prop();
-
-#if REPORT_FW_SIMPL
-    cout<<"->>--------\n";
-#endif
-
-    BDDNode* premiseProp = premise ? premise->prop() : bdd->getFalse();
-#if REPORT_FW_SIMPL
-    if(premise) {
-      cout<<":"<<(*premise)<<endl;
-    }
-#endif
-
-    if(replacement) {
-      BDDNode* replacementProp=bdd->disjunction(oldClProp, premiseProp);
-      if(!bdd->isTrue(replacementProp)) {
-	replacement->setProp(replacementProp);
-#if REPORT_FW_SIMPL
-	cout<<"#"<<(*replacement)<<endl;
-#endif
-	ClauseList::push(replacement, _toAddLst);
-      }
-    }
-
-#if REPORT_FW_SIMPL
-    cout<<"="<<(*_cl)<<endl;
-#endif
-    _cl->setProp(bdd->xOrNonY(oldClProp, premiseProp));
-
-    if(bdd->isTrue(_cl->prop())) {
-      _cl=0;
-#if REPORT_FW_SIMPL
-      cout<<"removed\n";
-      cout<<"^^^^^^^^^^^^\n";
-#endif
-    }
-#if REPORT_FW_SIMPL
-    if(_cl) {
-      cout<<">"<<(*_cl)<<endl;
-      cout<<"^^^^^^^^^^^\n";
-    }
-#endif
-  }
-
-  bool clauseKept()
-  { return _cl; }
-
-  ClauseIterator clausesToAdd()
-  { return pvi( ClauseList::Iterator(_toAddLst) ); }
-private:
-  Clause* _cl;
-  ClauseList* _toAddLst;
-};
 
 bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
@@ -295,9 +436,24 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     return false;
   }
 
-  ForwardSimplificationPerformerImpl performer(cl);
+#if TOTAL_SIMPLIFICATION_ONLY
+  TotalSimplificationPerformer performer(cl);
+#else
+  PartialSimplificationPerformer performer(cl);
+#endif
 
+#if FW_DEMODULATION_FIRST
   FwSimplList::Iterator fsit(_fwSimplifiers);
+#else
+  VirtualIterator<ForwardSimplificationEngineSP> fsit;
+  if(_fwDemodulator) {
+    fsit=pvi( getConcatenatedIterator(
+	    FwSimplList::Iterator(_fwSimplifiers),
+	    getSingletonIterator(_fwDemodulator)) );
+  } else {
+    fsit=pvi( FwSimplList::Iterator(_fwSimplifiers) );
+  }
+#endif
   while(fsit.hasNext()) {
     ForwardSimplificationEngine* fse=fsit.next().ptr();
 
@@ -318,9 +474,9 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::backwardSimplify");
 
-  if(cl->store()==Clause::REACTIVATED) {
-    return;
-  }
+//  if(cl->store()==Clause::REACTIVATED) {
+//    return;
+//  }
 
   BDD* bdd=BDD::instance();
 
@@ -346,12 +502,19 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 #endif
 
       BDDNode* oldRedundantProp=redundant->prop();
-      BDDNode* newRedundantProp=bdd->xOrNonY(oldRedundantProp, cl->prop());
+      BDDNode* newRedundantProp;
 
-//      if( newRedundantProp==oldRedundantProp && !bdd->isTrue(oldRedundantProp) ) {
+#if TOTAL_SIMPLIFICATION_ONLY
+      if( !bdd->isXOrNonYConstant(oldRedundantProp, cl->prop(), true) ) {
+	continue;
+      }
+      newRedundantProp=bdd->getTrue();
+#else
+      newRedundantProp=bdd->xOrNonY(oldRedundantProp, cl->prop());
       if( newRedundantProp==oldRedundantProp ) {
 	continue;
       }
+#endif
 
       if(srec.replacements.hasNext()) {
 	BDDNode* replacementProp=bdd->disjunction(oldRedundantProp, cl->prop());
@@ -447,7 +610,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 
     genCl->setProp(prop);
 #if REPORT_CONTAINERS
-    cout<<"G "<<(*genCl)<<endl;
+//    cout<<"G "<<(*genCl)<<endl;
 #endif
 
     if(bdd->isTrue(prop)) {
@@ -469,6 +632,12 @@ void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificati
   ASS(!_immediateSimplifier);
   _immediateSimplifier=immediateSimplifier;
   _immediateSimplifier->attach(this);
+}
+
+void SaturationAlgorithm::setFwDemodulator(ForwardSimplificationEngineSP fwDemodulator)
+{
+  _fwDemodulator=fwDemodulator;
+  fwDemodulator->attach(this);
 }
 
 void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngineSP fwSimplifier)

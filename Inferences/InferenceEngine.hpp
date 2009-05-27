@@ -100,6 +100,7 @@ class ForwardSimplificationPerformer
 public:
   virtual ~ForwardSimplificationPerformer() {};
   virtual void perform(Clause* premise, Clause* replacement) = 0;
+  virtual bool willPerform(Clause* premise) { return true; }
   virtual bool clauseKept() = 0;
 };
 

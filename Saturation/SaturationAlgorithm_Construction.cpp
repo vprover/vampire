@@ -76,7 +76,7 @@ void addFSEs(SaturationAlgorithm* alg)
 
   switch(env.options->forwardDemodulation()) {
   case Options::DEMODULATION_ALL:
-    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardDemodulation()));
+    alg->setFwDemodulator(ForwardSimplificationEngineSP(new ForwardDemodulation()));
     break;
   case Options::DEMODULATION_PREORDERED:
     NOT_IMPLEMENTED;

@@ -134,7 +134,7 @@ void vampireMode()
   env.out<<env.options->testId()<<" on "<<env.options->inputFile()<<endl;
   doProving();
   outputResult();
-  cout<<"Time spend on BDDs: "<<gBDDTime<<endl;
+  cout<<"Time spent on BDDs: "<<gBDDTime<<endl;
 } // vampireMode
 
 
@@ -185,7 +185,9 @@ int main(int argc, char* argv [])
     Options options;
     Shell::CommandLine cl(argc,argv);
     cl.interpret(options);
-    Allocator::setMemoryLimit(options.memoryLimit()*1000000);
+    Allocator::setMemoryLimit(options.memoryLimit()*1048576);
+
+    Lib::Random::setSeed(options.randomSeed());
 
     Timer timer;
     timer.start();

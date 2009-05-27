@@ -75,9 +75,11 @@ long LRS::estimatedReachableCount()
   unsigned processed=env.statistics->activeClauses;
   int currTime=env.timer->elapsedMilliseconds();
   int timeSpent=currTime-_startTime;
+  //the result is in miliseconds, as env.options->lrsFirstTimeCheck() is in percents.
+  int firstCheck=env.options->lrsFirstTimeCheck()*env.options->timeLimitInDeciseconds();
 //  int timeSpent=currTime;
 
-  if(timeSpent<1000) {
+  if(timeSpent<firstCheck ) {
     return -1;
   }
 
@@ -93,7 +95,7 @@ SaturationResult LRS::saturate()
 {
   CALL("LRS::saturate");
 
-  _startTime=env.timer->elapsedMilliseconds();
+  handleSaturationStart();
 
   for (;;) {
     while (! _unprocessed->isEmpty()) {

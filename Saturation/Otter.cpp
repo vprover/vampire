@@ -39,6 +39,8 @@ SaturationResult Otter::saturate()
 {
   CALL("Otter::saturate");
 
+  handleSaturationStart();
+
   for (;;) {
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();

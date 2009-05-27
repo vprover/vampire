@@ -58,6 +58,10 @@ void RefutationSeekerFSE::perform(Clause* cl, ForwardSimplificationPerformer* si
     SLQueryResult res=rit.next();
     ASS(res.clause->length()==1);
 
+    if(!simplPerformer->willPerform(res.clause)) {
+      continue;
+    }
+
     Inference* inf = new Inference2(Inference::RESOLUTION, cl, res.clause);
     Unit::InputType inpType = (Unit::InputType)
     	Int::max(cl->inputType(), res.clause->inputType());

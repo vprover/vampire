@@ -38,6 +38,10 @@ void Condensation::perform(Clause* cl, ForwardSimplificationPerformer* simplPerf
 {
   CALL("Condensation::perform");
 
+  if(!simplPerformer->willPerform(0)) {
+    return;
+  }
+
   static DArray<Literal*> newLits(32);
   static DArray<LiteralList*> alts(32);
 

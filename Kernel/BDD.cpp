@@ -89,6 +89,13 @@ BDDNode* BDD::xOrNonY(BDDNode* x, BDDNode* y)
   return getBinaryFnResult(x,y, XOrNonYFn(this));
 }
 
+
+bool BDD::isXOrNonYConstant(BDDNode* x, BDDNode* y, bool resValue)
+{
+  CALL("BDD::isXOrNonYConstant");
+  return hasConstantResult(x,y, resValue, XOrNonYFn(this));
+}
+
 /**
  * Return pointer to BDDNode that represents result of applying
  * the binary function specified by the BinBoolFn functor to
@@ -136,12 +143,12 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 	initTime=env.timer->elapsedMilliseconds();
       }
     }
-//    if(counter==5000) {
-//      counter=0;
-//      if(env.timeLimitReached()) {
-//	throw new TimeLimitExceededException();
-//      }
-//    }
+    if(counter==50000) {
+      counter=0;
+      if(env.timeLimitReached()) {
+	throw TimeLimitExceededException();
+      }
+    }
     BDDNode* res=fn(n1,n2);
     if(res || cache.find(make_pair(n1, n2), res)) {
       while(results.isNonEmpty() && results.top()!=0) {
@@ -190,6 +197,89 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
   ASS(toDo.isEmpty());
   ASS_EQ(results.length(),1);
   return results.pop();
+}
+
+/**
+ * Return true iff the result of applying the binary function specified
+ * by the BinBoolFn functor to @b n1 and @n2 is a constant BDD with truth
+ * value equal to @b resValue.
+ *
+ * The binary functor BinBoolFn must allow to be called as
+ *
+ * BDDNode* BinBoolFn(BDDNode* m1, BDDNode* m2)
+ *
+ * and return either result of applying the represented binary
+ * function to @b m1 and @b m2, or 0 in case the result cannot
+ * be determined by merely examining the objects pointed by
+ * @b m1 and @b m2. It mustn't return 0 if both arguments are
+ * either true or false BDD.
+ */
+template<class BinBoolFn>
+bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn fn)
+{
+  CALL("BDD::hasConstantResult");
+  ASS(n1);
+  ASS(n2);
+
+  int counter=0;
+  int initTime=0;
+
+  static Stack<BDDNode*> toDo(8);
+  toDo.reset();
+
+  static DHMap<pair<BDDNode*,BDDNode*>, bool, PtrPairSimpleHash > cache;
+  cache.reset();
+
+  for(;;) {
+    counter++;
+    if(counter==500) {
+      if(initTime==0) {
+	initTime=env.timer->elapsedMilliseconds();
+      }
+    }
+    if(counter==50000) {
+      counter=0;
+      if(env.timeLimitReached()) {
+	throw TimeLimitExceededException();
+      }
+    }
+    BDDNode* res=fn(n1,n2);
+    if(res) {
+      if( (resValue && !isTrue(res)) ||
+	      (!resValue && !isFalse(res))) {
+	if(initTime) {
+	  gBDDTime+=env.timer->elapsedMilliseconds()-initTime;
+	}
+	return false;
+      }
+    } else {
+      bool aux;
+      if(!cache.find(make_pair(n1, n2), aux))
+      {
+	//we split at variables with higher numbers first
+	int splitVar=max(n1->_var, n2->_var);
+	ASS_GE(splitVar,0);
+	toDo.push((n2->_var==splitVar) ? n2->_neg : n2);
+	toDo.push((n1->_var==splitVar) ? n1->_neg : n1);
+	toDo.push((n2->_var==splitVar) ? n2->_pos : n2);
+	toDo.push((n1->_var==splitVar) ? n1->_pos : n1);
+
+	cache.insert(make_pair(n1, n2), false);
+      }
+    }
+
+    if(toDo.isEmpty()) {
+      break;
+    }
+    n1=toDo.pop();
+    n2=toDo.pop();
+  }
+
+  if(initTime) {
+    gBDDTime+=env.timer->elapsedMilliseconds()-initTime;
+  }
+
+  return true;
 }
 
 

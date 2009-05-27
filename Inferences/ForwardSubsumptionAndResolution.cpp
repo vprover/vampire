@@ -240,10 +240,13 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
     while(rit.hasNext()) {
-      simplPerformer->perform(rit.next().clause, 0);
-      env.statistics->forwardSubsumed++;
-      if(!simplPerformer->clauseKept()) {
-	return;
+      Clause* premise=rit.next().clause;
+      if(simplPerformer->willPerform(premise)) {
+	simplPerformer->perform(premise, 0);
+	env.statistics->forwardSubsumed++;
+	if(!simplPerformer->clauseKept()) {
+	  return;
+	}
       }
     }
   }
@@ -277,7 +280,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
         continue;
       }
 
-      if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)) {
+      if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0) && simplPerformer->willPerform(mcl)) {
 	simplPerformer->perform(mcl, 0);
 	env.statistics->forwardSubsumed++;
 	if(!simplPerformer->clauseKept()) {
@@ -291,12 +294,14 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
   for(unsigned li=0;li<clen;li++) {
     Literal* resLit=(*cl)[li];
     SLQueryResultIterator rit=_unitIndex->getGeneralizations( resLit, true, false);
-    if(rit.hasNext()) {
+    while(rit.hasNext()) {
       Clause* mcl=rit.next().clause;
-      resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
-      simplPerformer->perform(mcl, resolutionClause);
-      if(!simplPerformer->clauseKept()) {
-	goto fin;
+      if(simplPerformer->willPerform(mcl)) {
+	resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
+	simplPerformer->perform(mcl, resolutionClause);
+	if(!simplPerformer->clauseKept()) {
+	  goto fin;
+	}
       }
     }
   }
@@ -307,7 +312,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
       ClauseMatches* cms=csit.next();
       for(unsigned li=0;li<clen;li++) {
 	Literal* resLit=(*cl)[li];
-	if(checkForSubsumptionResolution(cl, cms, resLit)) {
+	if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
 	  simplPerformer->perform(cms->_cl, resolutionClause);
 	  if(!simplPerformer->clauseKept()) {
@@ -336,7 +341,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
       cmStore.push(cms);
       cms->fillInMatches(&miniIndex);
 
-      if(checkForSubsumptionResolution(cl, cms, resLit)) {
+      if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
 	resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
 	simplPerformer->perform(cms->_cl, resolutionClause);
 	if(!simplPerformer->clauseKept()) {

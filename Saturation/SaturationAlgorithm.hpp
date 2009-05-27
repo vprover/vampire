@@ -40,6 +40,8 @@ public:
   void setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngineSP immediateSimplifier);
 
+
+  void setFwDemodulator(ForwardSimplificationEngineSP fwDemodulator);
   void addForwardSimplifierToFront(ForwardSimplificationEngineSP fwSimplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngineSP bwSimplifier);
 
@@ -74,10 +76,16 @@ protected:
   void onUnprocessedRemoved(Clause* c);
   void onUnprocessedSelected(Clause* c);
 
+  void handleSaturationStart();
+  int elapsedTime();
+
 private:
   Limits _limits;
   IndexManager _imgr;
 protected:
+
+  int _startTime;
+
   UnprocessedClauseContainer* _unprocessed;
   PassiveClauseContainerSP _passive;
   ActiveClauseContainer* _active;
@@ -87,6 +95,7 @@ protected:
 
   typedef List<ForwardSimplificationEngineSP> FwSimplList;
   FwSimplList* _fwSimplifiers;
+  ForwardSimplificationEngineSP _fwDemodulator;
 
   typedef List<BackwardSimplificationEngineSP> BwSimplList;
   BwSimplList* _bwSimplifiers;

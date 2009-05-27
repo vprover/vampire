@@ -98,6 +98,10 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	  continue;
 	}
 
+	if(!simplPerformer->willPerform(qr.clause)) {
+	  continue;
+	}
+
 	Inference* inf = new Inference2(Inference::FORWARD_DEMODULATION, cl, qr.clause);
 	Unit::InputType inpType = (Unit::InputType)
 		Int::max(cl->inputType(), qr.clause->inputType());

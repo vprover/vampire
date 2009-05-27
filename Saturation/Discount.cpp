@@ -31,6 +31,8 @@ SaturationResult Discount::saturate()
 {
   CALL("Discount::saturate");
 
+  handleSaturationStart();
+
   for (;;) {
     int counter=0;
     while (! _unprocessed->isEmpty()) {

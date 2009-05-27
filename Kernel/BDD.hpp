@@ -55,6 +55,8 @@ public:
   BDDNode* negation(BDDNode* n)
   { return xOrNonY(getFalse(), n); }
 
+  bool isXOrNonYConstant(BDDNode* x, BDDNode* y, bool resValue);
+
   bool isTrue(BDDNode* node) { return node==getTrue(); }
   bool isFalse(BDDNode* node) { return node==getFalse(); }
 
@@ -68,6 +70,9 @@ private:
 
   template<class BinBoolFn>
   BDDNode* getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn);
+
+  template<class BinBoolFn>
+  bool hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn fn);
 
   struct ConjunctionFn
   {
