@@ -304,8 +304,10 @@ void TermList::argsToString(Stack<const TermList*>& stack,string& s)
 string TermList::toString() const
 {
   CALL("TermList::toString");
-  ASS(isNonEmpty());
 
+  if(isEmpty()) {
+    return "<empty TermList>";
+  }
   if (isVar()) {
     return Term::variableToString(*this);
   }

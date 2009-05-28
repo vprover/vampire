@@ -3,7 +3,7 @@
  * Defines class FunctionDefinition implementing work with definitions.
  *
  * @since 28/05/2004 Manchester
- * @note There is a lot of confusion in the definition handling 
+ * @note There is a lot of confusion in the definition handling
  *       mechanism of Vampire. There is much in common between
  *       this class and class Definition and they should be reworked.
  *       In addition, Preprocess eliminates unused definitions
@@ -16,27 +16,22 @@
 #ifndef __FunctionDefinition__
 #define __FunctionDefinition__
 
-#include "../Lib/Stack.hpp"
+#include "../Forwards.hpp"
+
+#include "../Lib/DHMap.hpp"
 #include "../Lib/MultiCounter.hpp"
+#include "../Lib/Stack.hpp"
 #include "../Kernel/Unit.hpp"
 
-namespace Kernel {
-  class Term;
-  class Literal;
-  class Literal;
-  class FormulaUnit;
-  class Clause;
-}
+namespace Shell {
 
 using namespace Lib;
 using namespace Kernel;
 
-namespace Shell {
-
 /**
  * Class implementing procedures related to function
  * definitions. A function definition is of the form
- * f(x1,...,xn) = t, where 
+ * f(x1,...,xn) = t, where
  * <ol>
  *  <li>all variables of t occur in {x1,...,xn}; </li>
  *  <li>f does not occur in t.</li>
@@ -50,11 +45,15 @@ public:
   class Def;
   FunctionDefinition();
   ~FunctionDefinition();
+
+  void removeAllDefinitions(UnitList* units);
+
+
   void scan(const UnitList* units);
   /** true if any definition has been found, must only be called
    *  after scan() */
   bool definitionFound() const
-  { return _defs.isNonEmpty(); }
+  { return _defStore.isNonEmpty(); }
   static Def* isFunctionDefinition (const Unit&);
   static void deleteDef(Def* def);
 
@@ -64,11 +63,14 @@ public:
 //   static bool isFunctionDefinition (const Formula&, Term*& lhs, Term*& rhs);
 
 private:
-  static Def* isFunctionDefinition (const Clause&);
+  static Def* isFunctionDefinition (Clause*);
   static Def* isFunctionDefinition (const FormulaUnit&);
   static Def* isFunctionDefinition (const Literal*);
   static Def* defines (const Term* lhs, const Term* rhs);
   static bool occurs (unsigned function, const Term&);
+
+  TermList unfoldDefinition(Term* t);
+  TermList safeApplyDefinitions(Term* t);
 
 //   void count (const Clause& c);
 //   bool unfoldAllDefs ();
@@ -81,8 +83,11 @@ private:
 //   void apply (TermList& ls,UnitList& parents);
 //   void apply (Term& l,UnitList& parents);
 
+  typedef DHMap<int, Def*> Fn2DefMap;
+  Fn2DefMap _defs;
+
   /** Set storing all function definitions */
-  Stack<Def*> _defs;
+  Stack<Def*> _defStore;
   /** Counters for occurrences of function symbols */
   MultiCounter _counter;
   /** The number of found definitions */

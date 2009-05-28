@@ -18,7 +18,9 @@ namespace Kernel {
 class Term;
 
 /**
- * Implements an iterator over function symbols of a term
+ * Implements an iterator over function symbols of a term.
+ *
+ * Functions are yielded before their subterms.
  * @since 26/05/2007 Manchester, made from class TermVarIterator
  */
 class TermFunIterator

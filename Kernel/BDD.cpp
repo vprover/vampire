@@ -253,8 +253,7 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
 	return false;
       }
     } else {
-      bool aux;
-      if(!cache.find(make_pair(n1, n2), aux))
+      if(!cache.find(make_pair(n1, n2)))
       {
 	//we split at variables with higher numbers first
 	int splitVar=max(n1->_var, n2->_var);

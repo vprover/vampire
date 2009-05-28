@@ -54,7 +54,7 @@ void Preprocess::preprocess (UnitList*& units)
   CALL("Preprocess::preprocess");
 
   // before any preprocessing, row variables must be expanded
-//   if (RowVariable::occurredInInput && 
+//   if (RowVariable::occurredInInput &&
 //       _options.rowVariableMaxLength() >= 0) {
 //     RowVariable rv(_options.rowVariableMaxLength());
 //     UnitChain::DelIterator iterator (_problem.giveUnits());
@@ -98,7 +98,7 @@ void Preprocess::preprocess (UnitList*& units)
 //   TheoryFinder theoryFinder(_problem,0);
 //   theoryFinder.search();
 
-//   if (_property.hasFormulas() && 
+//   if (_property.hasFormulas() &&
 //       _options.unusedPredicateDefinitionRemoval()) {
 // 	Definition::removeUnusedPredicateDefinitions(_problem);
 //   }
@@ -113,7 +113,7 @@ void Preprocess::preprocess (UnitList*& units)
       }
     }
   }
-    
+
   if (_property.hasFormulas() && _options.naming()) {
     Naming naming(_options.naming());
     us.reset(units);
@@ -168,11 +168,11 @@ void Preprocess::preprocess (UnitList*& units)
     }
   }
 
-//    if (_options.functionDefinitionElimination() == Options::FDE_ALL &&
-//        _property.hasProp(PR_HAS_FUNCTION_DEFINITIONS)) {
-//     FunctionDefinition fd(_problem,Signature::sig);
-//     fd.removeAllDefinitions();
-//   }
+//  if (_options.functionDefinitionElimination() == Options::FDE_ALL &&
+//	  _property.hasProp(PR_HAS_FUNCTION_DEFINITIONS)) {
+//    FunctionDefinition fd;
+//    fd.removeAllDefinitions(units);
+//  }
 
 //   // remove tautologies, duplicate literals, and literals t != t
 //   UnitChain::DelIterator units (_problem.giveUnits());

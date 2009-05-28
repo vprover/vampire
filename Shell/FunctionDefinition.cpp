@@ -12,6 +12,7 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Formula.hpp"
 #include "../Kernel/FormulaUnit.hpp"
+#include "../Kernel/SubstHelper.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Kernel/TermVarIterator.hpp"
 #include "../Kernel/TermFunIterator.hpp"
@@ -19,43 +20,52 @@
 #include "FunctionDefinition.hpp"
 // #include "Substitution.hpp"
 
+namespace Shell {
+
 using namespace Lib;
 using namespace Kernel;
 
-namespace Shell {
-
-#define UNTOUCHED 0
-#define UNFOLDED 1
-#define BLOCKED 2
-#define REMOVED 3
-
-/** 
+/**
  * Auxiliary structure to represent information about function definitions.
  * @since 29/05/2004 Manchester
  */
 struct FunctionDefinition::Def
 {
+  enum Mark {
+    UNTOUCHED,
+    SAFE,
+    UNFOLDED,
+    BLOCKED,
+    REMOVED
+  };
   /** Unit containing a definition */
-  const Unit* unit;
+  Clause* defCl;
   /** The defined function symbol number */
   int fun;
   /** The lhs of the definition */
   const Term* lhs;
   /** The rhs of the definition */
   const Term* rhs;
-  /** 0: untouched, 1: unfolded, 2: blocked, 3: removed */
-  int mark;
+
+  Mark mark;
   /** is the definition linear? */
   bool linear;
   /** strict means that all lhs variables occur in rhs */
   bool strict;
+  /** first defined function that is used in @b rhs, or -1 if there isn't such */
+  int containedFn;
+
+  IntList* dependentFns;
+
   Def(const Term* l,const Term* r,bool lin,bool str)
     : fun(l->functor()),
       lhs(l),
       rhs(r),
       mark(UNTOUCHED),
       linear(lin),
-      strict(str)
+      strict(str),
+      containedFn(-1),
+      dependentFns(0)
   {}
 
   CLASS_NAME("FunctionDefintion::Def");
@@ -69,41 +79,205 @@ struct FunctionDefinition::Def
  * @since 29/05/2004 Manchester
  */
 FunctionDefinition::FunctionDefinition ()
-  : _defs(32),
+  : _defStore(32),
     _found(0),
     _removed(0)
 {
   CALL("FunctionDefinition::FunctionDefinition");
 } // FunctionDefinition::FunctionDefinition
 
-/**
- * Scan a list of units and memorise information about them
- * in the stack.
- * @since 26/05/2007 Manchester
- */
-void FunctionDefinition::scan (const UnitList* units)
-{
-  CALL("FunctionDefinition::scan");
 
-  UnitList::Iterator is(units);
-  while (is.hasNext()) {
-    const Unit* unit = is.next();
-    Def* def = isFunctionDefinition(*unit);
-    if (! def) {
-      continue;
+void FunctionDefinition::removeAllDefinitions(UnitList* units)
+{
+  CALL("FunctionDefinition::removeAllDefinitions");
+
+
+  UnitList::DelIterator us(units);
+  while(us.hasNext()) {
+    Clause* cl=static_cast<Clause*>(us.next());
+    ASS(cl->isClause());
+    Def* d=isFunctionDefinition(cl);
+    if(d) {
+      d->defCl=cl;
+      _defs.insert(d->fun, d);
+      us.del();
     }
-    def->unit = unit;
-    _defs.push(def);
-    string prefix = "";
-    if (def->linear) {
-      prefix += "linear ";
-    }
-    if (! def->strict) {
-      prefix += "non-strict ";
-    }
-    cout << prefix << "definition found: " << unit->toString() << "\n";
+
   }
-} // FunctionDefinition::FunctionDefinition
+
+  if(!_defs.size()) {
+    return;
+  }
+
+  Stack<int> indep(16);
+  Fn2DefMap::Iterator dit(_defs);
+  while(dit.hasNext()) {
+    Def* d=dit.next();
+
+
+
+    TermFunIterator tfit(d->rhs);
+    while(tfit.hasNext()) {
+      int rhsFn=tfit.next();
+      if(!_defs.find(rhsFn)) {
+	continue;
+      }
+      d->containedFn=rhsFn;
+      break;
+    }
+    if(d->containedFn==-1) {
+      d->mark=Def::SAFE;
+      indep.push(d->fun);
+    }
+  }
+}
+
+TermList FunctionDefinition::unfoldDefinition(Term* t)
+{
+  CALL("FunctionDefinition::unfoldDefinition");
+
+  static DHMap<unsigned, TermList> bindings;
+  bindings.reset();
+
+  Def* d=_defs.get(t->functor());
+  TermList* dargs=d->lhs->args();
+  TermList* targs=t->args();
+  while(dargs->isNonEmpty()) {
+    ASS(targs->isNonEmpty());
+    ALWAYS(bindings.insert(dargs->var(), *targs));
+    dargs=dargs->next();
+    targs=targs->next();
+  }
+
+  return SubstHelper::apply(d->rhs, SubstHelper::getMapApplicator(&bindings), false);
+}
+
+TermList FunctionDefinition::safeApplyDefinitions(Term* t)
+{
+  CALL("FunctionDefinition::safeApplyDefinitions");
+
+//  static Stack<TermList*> toDo(8);
+//  static Stack<Term*> terms(8);
+//  static Stack<bool> modified(8);
+//  static Stack<TermList> args(8);
+//  ASS(toDo.isEmpty());
+//  ASS(terms.isEmpty());
+//  modified.reset();
+//  args.reset();
+//
+//  modified.push(false);
+//  toDo.push(trm->args());
+//
+//  for(;;) {
+//    TermList* tt=toDo.pop();
+//    if(tt->isEmpty()) {
+//      if(terms.isEmpty()) {
+//	//we're done, args stack contains modified arguments
+//	//of the literal.
+//	ASS(toDo.isEmpty());
+//	break;
+//      }
+//      Term* orig=terms.pop();
+//      if(!modified.pop()) {
+//	args.truncate(args.length() - orig->arity());
+//	args.push(TermList(orig));
+//	continue;
+//      }
+//      //here we assume, that stack is an array with
+//      //second topmost element as &top()-1, third at
+//      //&top()-2, etc...
+//      TermList* argLst=&args.top() - (orig->arity()-1);
+//
+//      Term* newTrm;
+//      if(noSharing || !orig->shared()) {
+//	newTrm=Term::createNonShared(orig,argLst);
+//      } else {
+//	newTrm=Term::create(orig,argLst);
+//      }
+//      args.truncate(args.length() - orig->arity());
+//      args.push(TermList(newTrm));
+//
+//      modified.setTop(true);
+//      continue;
+//    }
+//    toDo.push(tt->next());
+//
+//    TermList tl=*tt;
+//    if(tl.isOrdinaryVar()) {
+//      TermList tDest=applicator.apply(tl.var());
+//      args.push(tDest);
+//      if(tDest!=tl) {
+//	modified.setTop(true);
+//      }
+//      continue;
+//    }
+//    if(tl.isSpecialVar()) {
+//      args.push(tl);
+//      continue;
+//    }
+//    ASS(tl.isTerm());
+//    Term* t=tl.term();
+//    if(t->shared() && t->ground()) {
+//      args.push(tl);
+//      continue;
+//    }
+//    terms.push(t);
+//    modified.push(false);
+//    toDo.push(t->args());
+//  }
+//  ASS(toDo.isEmpty());
+//  ASS(terms.isEmpty());
+//  ASS_EQ(modified.length(),1);
+//  ASS_EQ(args.length(),trm->arity());
+//
+//  if(!modified.pop()) {
+//    return trm;
+//  }
+//
+//  //here we assume, that stack is an array with
+//  //second topmost element as &top()-1, third at
+//  //&top()-2, etc...
+//  TermList* argLst=&args.top() - (trm->arity()-1);
+//  if(trm->isLiteral()) {
+//    ASS(!noSharing);
+//    return Literal::create(static_cast<Literal*>(trm),argLst);
+//  } else {
+//    if(noSharing || !trm->shared()) {
+//      return Term::createNonShared(trm,argLst);
+//    } else {
+//      return Term::create(trm,argLst);
+//    }
+//  }
+}
+
+///**
+// * Scan a list of units and memorise information about them
+// * in the stack.
+// * @since 26/05/2007 Manchester
+// */
+//void FunctionDefinition::scan (const UnitList* units)
+//{
+//  CALL("FunctionDefinition::scan");
+//
+//  UnitList::Iterator is(units);
+//  while (is.hasNext()) {
+//    const Unit* unit = is.next();
+//    Def* def = isFunctionDefinition(*unit);
+//    if (! def) {
+//      continue;
+//    }
+//    def->unit = unit;
+//    _defs.push(def);
+//    string prefix = "";
+//    if (def->linear) {
+//      prefix += "linear ";
+//    }
+//    if (! def->strict) {
+//      prefix += "non-strict ";
+//    }
+//    cout << prefix << "definition found: " << unit->toString() << "\n";
+//  }
+//} // FunctionDefinition::FunctionDefinition
 
 /**
  * Destroy by deallocating all Defs.
@@ -113,22 +287,22 @@ FunctionDefinition::~FunctionDefinition ()
 {
   CALL("FunctionDefinition::~FunctionDefinition");
 
-  while (_defs.isNonEmpty()) {
-    delete _defs.pop();
+  while (_defStore.isNonEmpty()) {
+    delete _defStore.pop();
   }
 } // FunctionDefinition::~FunctionDefinition
 
-/**
- * If the the unit if a function definition f(x1,...,xn) = t,
- * return the Def structure representing information about the definition.
- * @since 26/05/2007 Manchester
- */
+///**
+// * If the the unit if a function definition f(x1,...,xn) = t,
+// * return the Def structure representing information about the definition.
+// * @since 26/05/2007 Manchester
+// */
 FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (const Unit& unit)
 {
   CALL("FunctionDefinition::isFunctionDefinition(const Unit&)");
   if (unit.isClause()) {
-    return isFunctionDefinition(static_cast<const Clause&>(unit));
+    return isFunctionDefinition(const_cast<Clause*>(static_cast<const Clause*>(&unit)));
   }
   return isFunctionDefinition(static_cast<const FormulaUnit&>(unit));
 } // Definition::isFunctionDefinition (const Clause& c)
@@ -141,18 +315,18 @@ FunctionDefinition::isFunctionDefinition (const Unit& unit)
  * @since 26/05/2007 Manchester modified for new data structures
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (const Clause& clause)
+FunctionDefinition::isFunctionDefinition (Clause* clause)
 {
-  CALL("FunctionDefinition::isFunctionDefinition(const Clause&)");
+  CALL("FunctionDefinition::isFunctionDefinition(Clause*)");
 
-  if (clause.length() != 1) {
+  if (clause->length() != 1) {
     return 0;
   }
-  return isFunctionDefinition(clause[0]);
-} // Definition::isFunctionDefinition (const Clause& c)
+  return isFunctionDefinition((*clause)[0]);
+} // Definition::isFunctionDefinition (Clause* c)
 
 /**
- * If the literal if a function definition f(x1,...,xn) = t. 
+ * If the literal if a function definition f(x1,...,xn) = t.
  * return the Def structure representing information about the definition.
  * @since 09/05/2002 Manchester
  * @since 05/01/2004 Manchester, simplified
@@ -193,7 +367,7 @@ FunctionDefinition::isFunctionDefinition (const Literal* lit)
 
 
 /**
- * If lhs=rhs if a function definition f(x1,...,xn) = t. 
+ * If lhs=rhs if a function definition f(x1,...,xn) = t.
  * return the Def structure representing information about the definition.
   *
   * @since 09/05/2002, Manchester
@@ -291,7 +465,7 @@ bool FunctionDefinition::occurs (unsigned f, const Term& t)
 
 
 /**
- * If lhs=rhs if a function definition f(x1,...,xn) = t. 
+ * If lhs=rhs if a function definition f(x1,...,xn) = t.
  * return the Def structure representing information about the definition.
  *
  * @since 26/07/2002 Bolzano, changed
@@ -436,7 +610,7 @@ FunctionDefinition::isFunctionDefinition (const FormulaUnit& unit)
 //       // check if any function symbol in the rhs is blocked
 //       TermFunIterator funs(def.rhs);
 //       while (funs.hasNext()) {
-// 	if (_defs[funs.next().number()].mark == BLOCKED) { 
+// 	if (_defs[funs.next().number()].mark == BLOCKED) {
 // 	  // circular definitions found, this definition must be removed
 // 	  def.mark = REMOVED; // marked removed
 // 	  // return the unit back to the problem
@@ -513,7 +687,7 @@ FunctionDefinition::isFunctionDefinition (const FormulaUnit& unit)
 //       while(xs.hasNext()) {
 // 	s.bind(xs.next().var(),ts.next());
 //       }
-      
+
 //       Term r(def.rhs);
 //       s.apply(r);
 //       t = r;
@@ -593,7 +767,7 @@ FunctionDefinition::isFunctionDefinition (const FormulaUnit& unit)
 //       while(xs.hasNext()) {
 // 	s.bind(xs.next().var(),ts.next());
 //       }
-      
+
 //       Term r(def.rhs);
 //       s.apply(r);
 //       t = r;

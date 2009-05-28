@@ -22,6 +22,7 @@ template<typename T> class ArrayishObjectIterator;
 
 template<typename T> class ArrayMap;
 
+typedef List<int> IntList;
 
 
 class BacktrackData;

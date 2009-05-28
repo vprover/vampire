@@ -26,8 +26,10 @@ using namespace Saturation;
 #define REPORT_CONTAINERS 0
 #define REPORT_FW_SIMPL 0
 #define REPORT_BW_SIMPL 0
-#define TOTAL_SIMPLIFICATION_ONLY 1
-#define FW_DEMODULATION_FIRST 1
+#define TOTAL_SIMPLIFICATION_ONLY 0
+#define FW_DEMODULATION_FIRST 0
+//Splitting 0 -> none, 1 -> always, 2 -> only first 5% of time
+#define SPLITTING 0
 
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
@@ -304,7 +306,11 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   ASS(!bdd->isTrue(cl->prop()));
 
   int counter=0;
+  int demCounter=0;
   bool overLimit=false;
+//  static DHMap<Literal*, Clause*> dem;
+//  dem.reset();
+
 simplificationStart:
   BDDNode* prop=cl->prop();
   bool simplified;
@@ -320,8 +326,6 @@ simplificationStart:
     }
   } while(simplified);
 
-  static DHMap<Literal*, Clause*> dem;
-  dem.reset();
 
 #if FW_DEMODULATION_FIRST
   if(_fwDemodulator) {
@@ -333,47 +337,40 @@ simplificationStart:
       cl=rit.next();
 
 //      if (env.timeLimitReached()) {
-//	overLimit=true;
-//
-//	Inference::Iterator iit=cl->inference()->iterator();
-//	while(cl->inference()->hasNext(iit)) {
-//	  Unit* premUnit=cl->inference()->next(iit);
-//	  ASS(premUnit->isClause());
-//	  Clause* premCl=static_cast<Clause*>(premUnit);
-//	  if(premCl->number()!=cl->number()-1) {
-//	    cout<<"demod. by: "<<(*premCl)<<endl;
-//	  }
+//	Clause* orig=dem.findOrInsert( (*cl)[0], cl );
+//	if(orig!=cl) {
+//	  cout<<(*cl)<<endl;
 //	}
-//
-//	cout<<(*cl)<<"\n\n";
 //      }
-      if(++counter==100) {
-	counter=0;
-	if (env.timeLimitReached()) {
-	  throw TimeLimitExceededException();
-	}
-      }
-
+//      if(++counter==100) {
+//	counter=0;
+//	if (env.timeLimitReached()) {
+//	  throw TimeLimitExceededException();
+//	}
+//      }
       ASS(!rit.hasNext());
       goto simplificationStart;
     }
-  }
-  if(overLimit) {
-    throw TimeLimitExceededException();
   }
 #endif
 
   ASS(!bdd->isTrue(cl->prop()));
 
+#if SPLITTING==0
+  static bool performSplitting=false;
+#elif SPLITTING==1
   static bool performSplitting=true;
-//  static int scCounter=0;
-//  scCounter++;
-//  if(scCounter==100) {
-//    scCounter=0;
-//    if(performSplitting && elapsedTime()>((env.options->timeLimitInDeciseconds()*100)/30)) {
-//      performSplitting=false;
-//    }
-//  }
+#elif SPLITTING==2
+  static bool performSplitting=true;
+  static int scCounter=0;
+  scCounter++;
+  if(scCounter==100) {
+    scCounter=0;
+    if(performSplitting && elapsedTime()>(env.options->timeLimitInDeciseconds()*5)) {
+      performSplitting=false;
+    }
+  }
+#endif
 
   if(performSplitting) {
     ClauseIterator newComponents;
@@ -406,6 +403,20 @@ simplificationStart:
       }
     }
   } else {
+#if SPLITTING==2
+    static Clause* emptyClause=0;
+    if(cl->isEmpty()) {
+      if(emptyClause) {
+	emptyClause->setProp(bdd->conjunction(emptyClause->prop(), cl->prop()));
+	if(isRefutation(emptyClause)) {
+	  _unprocessed->add(emptyClause);
+	  return;
+	}
+      } else {
+	emptyClause=cl;
+      }
+    }
+#endif
     cl->setStore(Clause::UNPROCESSED);
     _unprocessed->add(cl);
   }
@@ -442,9 +453,9 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   PartialSimplificationPerformer performer(cl);
 #endif
 
-#if FW_DEMODULATION_FIRST
-  FwSimplList::Iterator fsit(_fwSimplifiers);
-#else
+//#if FW_DEMODULATION_FIRST
+//  FwSimplList::Iterator fsit(_fwSimplifiers);
+//#else
   VirtualIterator<ForwardSimplificationEngineSP> fsit;
   if(_fwDemodulator) {
     fsit=pvi( getConcatenatedIterator(
@@ -453,7 +464,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   } else {
     fsit=pvi( FwSimplList::Iterator(_fwSimplifiers) );
   }
-#endif
+//#endif
   while(fsit.hasNext()) {
     ForwardSimplificationEngine* fse=fsit.next().ptr();
 

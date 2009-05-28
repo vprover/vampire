@@ -222,6 +222,7 @@ void KBO::State::traverse(Term* t1, Term* t2)
       depth--;
       ASS_NEQ(_lexResult,EQUAL);
       if(_lexResult!=EQUAL && depth<lexValidDepth) {
+	lexValidDepth=depth;
 	if(_weightDiff!=0) {
 	  _lexResult=_weightDiff>0 ? GREATER : LESS;
 	}
