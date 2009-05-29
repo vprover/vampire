@@ -19,15 +19,15 @@ namespace Kernel {
 class SubformulaIterator
 {
 public:
-  SubformulaIterator (const Formula*);
-  SubformulaIterator (const FormulaList*);
+  SubformulaIterator (Formula*);
+  SubformulaIterator (FormulaList*);
   ~SubformulaIterator ();
 
   bool hasNext ();
-  const Formula* next ();
+  Formula* next ();
 private:
   class Element;
-  const Formula* _current;
+  Formula* _current;
   Element* _reserve;
 }; // class SubformulaIterator
 

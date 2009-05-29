@@ -101,7 +101,7 @@ void Normalisation::normalise (Unit* unit)
  * @return true if u1 is less than u2
  * @since 17/07/2003 Manchester
  * @since 03/06/2007 Manchester, changed to new data structures */
-bool Normalisation::lessThan (const Unit* u1, const Unit* u2)
+bool Normalisation::lessThan (Unit* u1, Unit* u2)
 {
   CALL("Normalisation::lessThan (const Unit*...)");
 
@@ -115,11 +115,11 @@ bool Normalisation::lessThan (const Unit* u1, const Unit* u2)
   case GREATER:
     return true;
   }
-  
+
   if (u1->isClause()) {
     if (u2->isClause()) {
-      return lessThan(static_cast<const Clause*>(u1),
-		      static_cast<const Clause*>(u2));
+      return lessThan(static_cast<Clause*>(u1),
+		      static_cast<Clause*>(u2));
     }
     return true;
   }
@@ -128,8 +128,8 @@ bool Normalisation::lessThan (const Unit* u1, const Unit* u2)
   if (u2->isClause()) {
     return false;
   }
-  return lessThan(static_cast<const FormulaUnit*>(u1)->formula(),
-		  static_cast<const FormulaUnit*>(u2)->formula());
+  return lessThan(static_cast<FormulaUnit*>(u1)->formula(),
+		  static_cast<FormulaUnit*>(u2)->formula());
 } // Normalisation::lessThan(const Unit*...)
 
 
@@ -142,7 +142,7 @@ bool Normalisation::lessThan (const Unit* u1, const Unit* u2)
  * @since 26/06/2002 Manchester
  * @since 17/07/2003 Manchester, slightly changed
  */
-bool Normalisation::lessThan (const Formula* f1, const Formula* f2)
+bool Normalisation::lessThan (Formula* f1, Formula* f2)
 {
   CALL("Normalisation::lessThan (const Formula*...)");
 
@@ -159,7 +159,7 @@ bool Normalisation::lessThan (const Formula* f1, const Formula* f2)
  * @since 26/06/2002 Manchester
  * @since 17/07/2003 Manchester, slightly changed
  */
-bool Normalisation::lessThan (const Literal* l1, const Literal* l2)
+bool Normalisation::lessThan (Literal* l1, Literal* l2)
 {
   CALL("Normalisation::lessThan (const Literal*...)");
 
@@ -174,7 +174,7 @@ bool Normalisation::lessThan (const Literal* l1, const Literal* l2)
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 11/12/2004 Manchester, true and false added
  */
-Comparison Normalisation::compare (const Formula* fm1, const Formula* fm2)
+Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
 {
   CALL("Normalisation::compare (const Formula*...)");
 
@@ -185,8 +185,8 @@ Comparison Normalisation::compare (const Formula* fm1, const Formula* fm2)
     if (! sf2.hasNext()) {
       return GREATER;
     }
-    const Formula* f1 = sf1.next();
-    const Formula* f2 = sf2.next();
+    Formula* f1 = sf1.next();
+    Formula* f2 = sf2.next();
 
     Comparison comp = compare ((int)f1->connective(),
 			       (int)f2->connective ());
@@ -205,7 +205,7 @@ Comparison Normalisation::compare (const Formula* fm1, const Formula* fm2)
 
     case FORALL:
     case EXISTS:
-      // first compare the length of the variable prefix, 
+      // first compare the length of the variable prefix,
       //  and then the immediate subformulas
       comp = compare(f1->vars()->length(),f2->vars()->length());
       if (comp != EQUAL) {
@@ -231,7 +231,7 @@ Comparison Normalisation::compare (const Formula* fm1, const Formula* fm2)
  * @since 17/07/2003 Manchester, slightly changed
  * @since 03/06/2007 Manchester, changed to new data structures
  */
-Comparison Normalisation::compare (const Literal* l1, const Literal* l2)
+Comparison Normalisation::compare (Literal* l1, Literal* l2)
 {
   CALL("Normalisation::compare (const Literal*...)");
 
@@ -300,15 +300,15 @@ Comparison Normalisation::compare (const Literal* l1, const Literal* l2)
 
 
 /**
- * Compare term lists lexicographically, using the comparison 
+ * Compare term lists lexicographically, using the comparison
  * order for terms. Terms t1 and t2 are compared using
  * the order described below. t1 is less than t2 if
  * <ol>
  *   <li> t1 is variable and t2 is not, or else</li>
  *   <li> t1 is a numeric term and t2 is not, or else</li>
- *   <li> both are numeric and the value of t1 is less 
+ *   <li> both are numeric and the value of t1 is less
  *        than the value of t2</li>
- *   <li> both t1,t2 are compound terms and 
+ *   <li> both t1,t2 are compound terms and
  *    <ol>
  *      <li> t1.functor &lt; t2.functor, or else</li>
  *      <li> t1.functor = t2.functor and
@@ -317,7 +317,7 @@ Comparison Normalisation::compare (const Literal* l1, const Literal* l2)
  * </ol>
  * @since 03/06/2007 Manchester, changed to new data structures
  */
-Comparison Normalisation::compare(const TermList* ts1, const TermList* ts2)
+Comparison Normalisation::compare(TermList* ts1, TermList* ts2)
 {
   CALL("Normalisation::compare(TermList*...)");
 
@@ -362,7 +362,7 @@ Comparison Normalisation::compare(const TermList* ts1, const TermList* ts2)
  * Compare two non-variable terms.
  * @since 09/06/2007
  */
-Comparison Normalisation::compare(const Term* t1, const Term* t2)
+Comparison Normalisation::compare(Term* t1, Term* t2)
 {
   ASS("Normalisation::compare(const Term*...)");
 

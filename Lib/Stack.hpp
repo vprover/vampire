@@ -33,6 +33,21 @@ public:
   DECL_ELEMENT_TYPE(C);
   DECL_ITERATOR_TYPE(Iterator);
   /**
+   * Create a stack with initial capacity 8.
+   */
+  inline
+  Stack ()
+    : _capacity(8)
+  {
+    CALL("Stack::Stack");
+
+    void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Stack<>");
+    _stack = static_cast<C*>(mem);
+    _cursor = _stack;
+    _end = _stack+_capacity;
+  }
+
+  /**
    * Create a stack having initialCapacity.
    */
   inline

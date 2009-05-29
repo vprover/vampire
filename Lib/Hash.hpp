@@ -65,6 +65,13 @@ struct PtrPairSimpleHash {
   }
 };
 
+struct IntPairSimpleHash {
+  template<typename T, typename U>
+  static unsigned hash(std::pair<T,U> pp) {
+    return static_cast<unsigned>(pp.first^pp.second^(pp.first<<1));
+  }
+};
+
 
 
 }

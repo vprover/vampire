@@ -35,15 +35,15 @@ class Normalisation
 public:
   Normalisation();
   UnitList* normalise(UnitList*);
-  bool lessThan(const Literal*, const Literal*);
-  bool lessThan(const Unit*, const Unit*);
+  bool lessThan(Literal*, Literal*);
+  bool lessThan(Unit*, Unit*);
 private:
   void normalise(Unit*);
-  Comparison compare(const Term*, const Term*);
-  Comparison compare(const Formula*, const Formula*);
-  Comparison compare(const Literal*, const Literal*);
-  bool lessThan(const Formula*, const Formula*);
-  Comparison compare(const TermList* ss, const TermList* ts);
+  Comparison compare(Term*, Term*);
+  Comparison compare(Formula*, Formula*);
+  Comparison compare(Literal*, Literal*);
+  bool lessThan(Formula*, Formula*);
+  Comparison compare(TermList* ss, TermList* ts);
 
   /**
    * Return the result of comparison of two integers i1 and i2
@@ -52,7 +52,7 @@ private:
   Comparison compare (int i1, int i2)
   {
     return i1 > i2
-           ? GREATER 
+           ? GREATER
            : i1 == i2
              ? EQUAL
              : LESS;
@@ -62,7 +62,7 @@ private:
    * Return the result of comparison of two booleans b1 and b2.
    * @since 30/04/2005 Manchester
    */
-  inline static 
+  inline static
   Comparison compare (bool b1, bool b2)
   {
     return b1 ? (b2 ? EQUAL : LESS) : (b2 ? GREATER : EQUAL);

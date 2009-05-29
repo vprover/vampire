@@ -38,20 +38,20 @@ namespace Shell {
 /**
  * Represents syntactic properties of problems.
  */
-class Property 
+class Property
 {
 public:
   /**
    * CASC category
    */
   enum Category {
-    NEQ,  
+    NEQ,
     HEQ,
     PEQ,
     HNE,
     NNE,
     FEQ,
-    FNE, 
+    FNE,
     EPR,
     UEQ
   };
@@ -100,7 +100,7 @@ public:
  public:
   // constructor
   explicit Property ();
-  void scan(const UnitList*);
+  void scan(UnitList*);
 
   /** Return the CASC category of the problem */
   Category category() const { return _category;}
@@ -109,17 +109,17 @@ public:
   string toString () const;
   string toSpider (const string& problemName) const;
 
-  /** Total number of clauses in the problem. */ 
+  /** Total number of clauses in the problem. */
   int clauses () const { return _goalClauses + _axiomClauses; }
-  /** Total number of formulas in the problem */ 
+  /** Total number of formulas in the problem */
   int formulas () const { return _goalFormulas + _axiomFormulas; }
-  /** Total number of unit clauses in the problem */ 
+  /** Total number of unit clauses in the problem */
   int unitClauses () const { return _unitGoals + _unitAxioms; }
-  /** Total number of Horn clauses in the problem */ 
+  /** Total number of Horn clauses in the problem */
   int hornClauses () const { return _hornGoals + _hornAxioms; }
-  /** Total number of atoms in the problem */ 
+  /** Total number of atoms in the problem */
   int atoms() const { return _atoms; }
-  /** True if has formulas */ 
+  /** True if has formulas */
   bool hasFormulas () const { return _axiomFormulas || _goalFormulas; }
 
   /** The problem has property p */
@@ -135,12 +135,12 @@ public:
   static bool hasXEqualsY (const Formula*, MultiCounter&, int polarity);
 
   // reading in properties of problems
-  void scan(const Unit*);
-  void scan(const Clause*);
-  void scan(const FormulaUnit*);
-  void scan(const Formula*);
-  void scan(const TermList* ts,bool& isGround);
-  void scan(const Literal* lit,bool& isGround);
+  void scan(Unit*);
+  void scan(Clause*);
+  void scan(FormulaUnit*);
+  void scan(Formula*);
+  void scan(TermList* ts,bool& isGround);
+  void scan(Literal* lit,bool& isGround);
 
   char axiomTypes () const;
   char goalTypes () const;

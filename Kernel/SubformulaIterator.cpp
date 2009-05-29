@@ -18,20 +18,20 @@ namespace Kernel {
  */
 class SubformulaIterator::Element {
 public:
-  Element (const FormulaList* list, Element* rest) 
+  Element (FormulaList* list, Element* rest)
     : _isList(true),
       _list(list),
       _rest(rest)
   {}
-  Element (const Formula* f, Element* rest) 
+  Element (Formula* f, Element* rest)
     : _isList(false),
       _formula(f),
       _rest(rest)
   {}
   bool _isList;
-  union{ 
-    const FormulaList* _list;
-    const Formula* _formula;
+  union{
+    FormulaList* _list;
+    Formula* _formula;
   };
   Element* _rest;
 
@@ -44,7 +44,7 @@ public:
  * Build an iterator over t.
  * @since 06/01/2004 Manchester
  */
-SubformulaIterator::SubformulaIterator (const Formula* f)
+SubformulaIterator::SubformulaIterator (Formula* f)
   : _current(f),
     _reserve(0)
 {
@@ -55,7 +55,7 @@ SubformulaIterator::SubformulaIterator (const Formula* f)
  * Build an iterator over of ts.
  * @since 06/01/2004 Manchester
  */
-SubformulaIterator::SubformulaIterator (const FormulaList* ts)
+SubformulaIterator::SubformulaIterator (FormulaList* ts)
   : _current(0),
     _reserve(new Element(ts,0))
 {
@@ -79,7 +79,7 @@ bool SubformulaIterator::hasNext ()
   // try to set _current
   while (_reserve) {
     if (_reserve->_isList) {
-      const FormulaList* first = _reserve->_list;
+      FormulaList* first = _reserve->_list;
       if (first->isEmpty()) {
 	Element* rest = _reserve->_rest;
 	delete _reserve;
@@ -110,9 +110,9 @@ bool SubformulaIterator::hasNext ()
  * @since 06/01/2004 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-const Formula* SubformulaIterator::next ()
+Formula* SubformulaIterator::next ()
 {
-  const Formula* result = _current;
+  Formula* result = _current;
 
   switch (result->connective()) {
   case LITERAL:
@@ -126,7 +126,7 @@ const Formula* SubformulaIterator::next ()
     _reserve = new Element(result->args(),_reserve);
     _current = 0;
     break;
-    
+
   case IMP:
   case IFF:
   case XOR:

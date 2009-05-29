@@ -22,7 +22,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-/** 
+/**
  * Initialize Property. Must be applied to the preprocessed problem.
  *
  * @since 29/06/2002, Manchester
@@ -46,7 +46,7 @@ Property::Property ()
     _positiveAxioms (0),
     _groundPositiveAxioms (0),
     _groundGoals (0),
-    _maxFunArity (0), 
+    _maxFunArity (0),
     _maxPredArity (0),
     _totalNumberOfVariables (0),
     _maxVariablesInClause (0),
@@ -55,11 +55,11 @@ Property::Property ()
 } // Property::Property
 
 
-/** 
+/**
  * Scan property from a problem.
  * @since 29/06/2002 Manchester
  */
-void Property::scan(const UnitList* units)
+void Property::scan(UnitList* units)
 {
   CALL("Property::scan(UnitList*)");
 
@@ -122,11 +122,11 @@ void Property::scan(const UnitList* units)
  * Scan property from a unit.
  *
  * @since 29/06/2002 Manchester
- * @since 17/07/2003 Manchester, changed to non-pointer types, 
+ * @since 17/07/2003 Manchester, changed to non-pointer types,
  *        formula scanning added
  * @since 26/05/2007 Manchester, changed to use new datastructures
  */
-void Property::scan (const Unit* unit)
+void Property::scan (Unit* unit)
 {
   CALL("Property::scan(const Unit*)");
 
@@ -155,7 +155,7 @@ void Property::scan (const Unit* unit)
  * @since 27/08/2003 Vienna, changed to count variables
  * @since 26/05/2007 Manchester, changed to use new datastructures
  */
-void Property::scan (const Clause* clause)
+void Property::scan (Clause* clause)
 {
   CALL("Property::scan (const Clause*)");
 
@@ -166,7 +166,7 @@ void Property::scan (const Clause* clause)
   _variablesInThisClause = 0;
 
   for (int i = clause->length()-1;i >= 0;i--) {
-    const Literal* literal = (*clause)[i];
+    Literal* literal = (*clause)[i];
     if (literal->isPositive()) {
       positiveLiterals ++;
     }
@@ -241,7 +241,7 @@ void Property::scan (const Clause* clause)
  * Scan a formula unit.
  * @since 27/05/2007 flight Manchester-Frankfurt
  */
-void Property::scan (const FormulaUnit* unit)
+void Property::scan (FormulaUnit* unit)
 {
   CALL("Property::scan (const FormulaUnit*)");
 
@@ -251,7 +251,7 @@ void Property::scan (const FormulaUnit* unit)
   else {
     _goalFormulas++;
   }
-  const Formula* f = unit->formula();
+  Formula* f = unit->formula();
   scan(f);
   if (! hasProp(PR_HAS_X_EQUALS_Y)) {
     MultiCounter vc;
@@ -268,17 +268,17 @@ void Property::scan (const FormulaUnit* unit)
  * @since 17/07/2003 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-void Property::scan (const Formula* formula)
+void Property::scan (Formula* formula)
 {
   CALL("void Property::scan (const Formula&)");
 
   SubformulaIterator fs(formula);
   while (fs.hasNext()) {
     _subformulas++;
-    const Formula* f = fs.next();
+    Formula* f = fs.next();
     if (f->connective() == LITERAL) {
       _atoms++;
-      const Literal* lit = f->literal();
+      Literal* lit = f->literal();
       if (lit->isEquality()) {
 	_equalityAtoms++;
       }
@@ -298,7 +298,7 @@ void Property::scan (const Formula* formula)
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
  */
-void Property::scan (const Literal* lit, bool& isGround)
+void Property::scan (Literal* lit, bool& isGround)
 {
   CALL("Property::scan (const Literal*...)");
 
@@ -319,16 +319,16 @@ void Property::scan (const Literal* lit, bool& isGround)
  * @param ts the list of terms
  * @param isGround will be set to false if the term contains a variable
  * @since 29/06/2002 Manchester
- * @since 17/07/2003 Manchester, changed to non-pointer types, 
+ * @since 17/07/2003 Manchester, changed to non-pointer types,
  *        also NUMERIC case added
  * @since 27/08/2003 Vienna, changed to count variables
  * @since 27/05/2007 flight Manchester-Frankfurt, changed to new datastructures
  */
-void Property::scan(const TermList* ts, bool& isGround)
+void Property::scan(TermList* ts, bool& isGround)
 {
   CALL("Property::scan(TermList*))");
 
-  Stack<const TermList*> stack(64);
+  Stack<TermList*> stack(64);
 
   for (;;) {
     if (ts->isEmpty()) {
@@ -344,12 +344,12 @@ void Property::scan(const TermList* ts, bool& isGround)
       _variablesInThisClause++;
     }
     else { // ts is a reference to a complex term
-      const Term* t = ts->term();
+      Term* t = ts->term();
       int arity = t->arity();
       if (arity > _maxFunArity) {
 	_maxFunArity = arity;
       }
-      const TermList* ss = t->args();
+      TermList* ss = t->args();
       if (! ss->isEmpty()) {
 	stack.push(ss);
       }
@@ -361,7 +361,7 @@ void Property::scan(const TermList* ts, bool& isGround)
 
 /**
  * Return the string representation of the CASC category.
- */ 
+ */
 string Property::categoryString() const
 {
   CALL("string Property::categoryString() const");
@@ -380,7 +380,7 @@ string Property::categoryString() const
       return "NNE";
     case FEQ:
       return "FEQ";
-    case FNE: 
+    case FNE:
       return "FNE";
     case EPR:
       return "EPR";
@@ -402,11 +402,11 @@ string Property::categoryString() const
  */
 string Property::toString () const
 {
-  string result("TPTP class: "); 
-  result += categoryString() + "\n"; 
+  string result("TPTP class: ");
+  result += categoryString() + "\n";
 
-  if (clauses() > 0) { 
-    result += "Clauses: "; 
+  if (clauses() > 0) {
+    result += "Clauses: ";
     result += Int::toString(clauses());
     result += " (";
     result += Int::toString(_unitAxioms+_unitGoals);
@@ -416,30 +416,30 @@ string Property::toString () const
     result += Int::toString(_equationalClauses);
     result += " equational)\n";
 
-    result += "Variables: "; 
+    result += "Variables: ";
     result += Int::toString(_totalNumberOfVariables);
     result += " (";
     result += Int::toString(_maxVariablesInClause);
     result += " maximum in a single clause)\n";
   }
 
-  if (formulas() > 0) { 
-    result += "Formulas: "; 
+  if (formulas() > 0) {
+    result += "Formulas: ";
     result += Int::toString(formulas());
     result += " (";
     result += Int::toString(_goalFormulas);
     result += " goal)\n";
-    result += "Subformulas: "; 
+    result += "Subformulas: ";
     result += Int::toString(_subformulas);
     result += "\n";
   }
 
-  result += "Atoms: "; 
+  result += "Atoms: ";
   result += Int::toString(_atoms);
   result += " (";
   result += Int::toString(_equalityAtoms);
   result += " equality)\n";
-    
+
   return result;
 } // Property::toString
 
@@ -462,7 +462,7 @@ bool Property::hasXEqualsY (const Clause* c)
 } // Property::hasXEqualsY (const Clause*)
 
 
-/** 
+/**
  * True is the atom has the form X=Y for X different from Y.
  * @since 22/05/2004 Manchester.
  * @since 27/05/2007 Frankfurt airport, changed to new datastructures
@@ -495,23 +495,23 @@ bool Property::isXEqualsY (const Literal* lit,bool polarity)
 
 
 /**
- * True if the subformula formula would have a literal X=Y 
- * after clausification. 
+ * True if the subformula formula would have a literal X=Y
+ * after clausification.
  *
  *
  * @warning Works correctly only with rectified formulas (closed or open)
  * @param f the formula
  * @param vc contains all universally quantified variables
- * @param polarity the polarity of this 
+ * @param polarity the polarity of this
  * @since 11/12/2004 Manchester, true and false added
  * @since 27/05/2007 flight Frankfurt-Lisbon, changed to new datastructures
- */ 
+ */
 bool Property::hasXEqualsY (const Formula* f, MultiCounter& vc, int polarity)
 {
   switch (f->connective()) {
   case LITERAL:
     return isXEqualsY(f->literal(),polarity);
-    
+
   case AND:
   case OR:
     {

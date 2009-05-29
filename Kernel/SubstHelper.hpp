@@ -59,13 +59,13 @@ public:
   {
   public:
     MapApplicator(Map* map) : _map(map) {}
-    TermList apply(unsigned var) { return _map.get(var); }
+    TermList apply(unsigned var) { return _map->get(var); }
   private:
     Map* _map;
   };
 
   template<class Map>
-  MapApplicator<Map> getMapApplicator(Map* m)
+  static MapApplicator<Map> getMapApplicator(Map* m)
   {
     return MapApplicator<Map>(m);
   }

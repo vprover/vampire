@@ -8,6 +8,7 @@
 #include "../Debug/Tracer.hpp"
 
 #include "../Lib/Allocator.hpp"
+#include "../Lib/BitUtils.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Formula.hpp"
@@ -34,8 +35,9 @@ struct FunctionDefinition::Def
   enum Mark {
     UNTOUCHED,
     SAFE,
-    UNFOLDED,
+    LOOP,
     BLOCKED,
+    UNFOLDED,
     REMOVED
   };
   /** Unit containing a definition */
@@ -43,9 +45,9 @@ struct FunctionDefinition::Def
   /** The defined function symbol number */
   int fun;
   /** The lhs of the definition */
-  const Term* lhs;
+  Term* lhs;
   /** The rhs of the definition */
-  const Term* rhs;
+  Term* rhs;
 
   Mark mark;
   /** is the definition linear? */
@@ -55,9 +57,12 @@ struct FunctionDefinition::Def
   /** first defined function that is used in @b rhs, or -1 if there isn't such */
   int containedFn;
 
-  IntList* dependentFns;
+  int examinedArg;
 
-  Def(const Term* l,const Term* r,bool lin,bool str)
+  IntList* dependentFns;
+  bool* argOccurs;
+
+  Def(Term* l, Term* r, bool lin, bool str)
     : fun(l->functor()),
       lhs(l),
       rhs(r),
@@ -66,7 +71,16 @@ struct FunctionDefinition::Def
       strict(str),
       containedFn(-1),
       dependentFns(0)
-  {}
+  {
+    argOccurs=reinterpret_cast<bool*>(ALLOC_KNOWN(lhs->arity()*sizeof(bool),
+	    "FunctionDefinition::Def::argOccurs"));
+    BitUtils::zeroMemory(argOccurs, lhs->arity()*sizeof(bool));
+  }
+
+  ~Def()
+  {
+    DEALLOC_KNOWN(argOccurs, lhs->arity()*sizeof(bool), "FunctionDefinition::Def::argOccurs");
+  }
 
   CLASS_NAME("FunctionDefintion::Def");
   USE_ALLOCATOR(Def);
@@ -79,7 +93,8 @@ struct FunctionDefinition::Def
  * @since 29/05/2004 Manchester
  */
 FunctionDefinition::FunctionDefinition ()
-  : _defStore(32),
+  :
+//    _defStore(32),
     _found(0),
     _removed(0)
 {
@@ -109,12 +124,15 @@ void FunctionDefinition::removeAllDefinitions(UnitList* units)
     return;
   }
 
+  Stack<TermList> args;
   Stack<int> indep(16);
   Fn2DefMap::Iterator dit(_defs);
   while(dit.hasNext()) {
     Def* d=dit.next();
 
-
+    if(d->mark==Def::SAFE) {
+      continue;
+    }
 
     TermFunIterator tfit(d->rhs);
     while(tfit.hasNext()) {
@@ -130,16 +148,88 @@ void FunctionDefinition::removeAllDefinitions(UnitList* units)
       indep.push(d->fun);
     }
   }
+
+
 }
 
-TermList FunctionDefinition::unfoldDefinition(Term* t)
+void FunctionDefinition::unfoldDefinitions(Def* def0)
 {
   CALL("FunctionDefinition::unfoldDefinition");
 
-  static DHMap<unsigned, TermList> bindings;
+  TermList t=TermList(def0->lhs);
+  static Stack<TermList*> stack(4);
+  static Stack<Def*> defStack(4);
+  for(;;) {
+    Definition* d;
+    if(t.isEmpty()) {
+      d=defStack.pop();
+      if(d) {
+	//leave the definition
+	d->rhs=applyDefinitions(d->rhs);
+	d->mark=Def::UNFOLDED;
+      }
+    } else if(t.isTerm()) {
+      if(!_defs.find(t.term()->functor(), d)) {
+	d=0;
+      }
+      if(ts->term()->arity()) {
+	stack.push(ts->term()->args());
+	defStack.push(0);
+      }
+      if(d) {
+	if(d->mark==Def::UNFOLDED) {
+	} else if(d->mark==Def::LOOP) {
+	  //unroll stacks until the point when the current
+	  //definition was entered
+	  do{
+	    while(!stack.pop().isEmpty()) {}
+	    d=defStack.pop();
+	  } while(d==0);
+	  d->mark=Def::BLOCKED;
+	} else {
+	  ASS_EQ(d->mark, Def::UNTOUCHED);
+
+	  //enter the definition
+	  d->mark=Def::LOOP;
+	  stack.push(d->rhs);
+	  defStack.push(d);
+	}
+      }
+    }
+    if(stack.isEmpty()) {
+      break;
+    }
+    TermList* ts=stack.pop();
+    if(!ts->isEmpty()) {
+      stack.push(ts->next());
+    }
+    t=*ts;
+  }
+  ASS(defStack.isEmpty());
+}
+
+
+bool FunctionDefinition::isDefined(Term* t)
+{
+  ASS(!t->isLiteral());
+  Def* d;
+  if(!_defs.find(t->functor()), d) {
+    return false;
+  }
+  return d->mark!=Def::BLOCKED;
+}
+
+Term* FunctionDefinition::applyDefinition(Term* t)
+{
+  CALL("FunctionDefinition::applyDefinition/1");
+
+  typedef DHMap<unsigned, TermList> BindingMap;
+  static BindingMap bindings;
   bindings.reset();
 
   Def* d=_defs.get(t->functor());
+  ASS_EQ(d->mark, Def::SAFE);
+
   TermList* dargs=d->lhs->args();
   TermList* targs=t->args();
   while(dargs->isNonEmpty()) {
@@ -149,105 +239,187 @@ TermList FunctionDefinition::unfoldDefinition(Term* t)
     targs=targs->next();
   }
 
-  return SubstHelper::apply(d->rhs, SubstHelper::getMapApplicator(&bindings), false);
+  SubstHelper::MapApplicator<BindingMap> applicator(&bindings);
+  return SubstHelper::apply(d->rhs, applicator, false);
 }
 
-TermList FunctionDefinition::safeApplyDefinitions(Term* t)
+TermList FunctionDefinition::applyDefinition(unsigned fn, TermList* argArr)
 {
-  CALL("FunctionDefinition::safeApplyDefinitions");
+  CALL("FunctionDefinition::applyDefinition/2");
 
-//  static Stack<TermList*> toDo(8);
-//  static Stack<Term*> terms(8);
-//  static Stack<bool> modified(8);
-//  static Stack<TermList> args(8);
-//  ASS(toDo.isEmpty());
-//  ASS(terms.isEmpty());
-//  modified.reset();
-//  args.reset();
-//
-//  modified.push(false);
-//  toDo.push(trm->args());
-//
-//  for(;;) {
-//    TermList* tt=toDo.pop();
-//    if(tt->isEmpty()) {
-//      if(terms.isEmpty()) {
-//	//we're done, args stack contains modified arguments
-//	//of the literal.
-//	ASS(toDo.isEmpty());
-//	break;
-//      }
-//      Term* orig=terms.pop();
-//      if(!modified.pop()) {
-//	args.truncate(args.length() - orig->arity());
-//	args.push(TermList(orig));
-//	continue;
-//      }
-//      //here we assume, that stack is an array with
-//      //second topmost element as &top()-1, third at
-//      //&top()-2, etc...
-//      TermList* argLst=&args.top() - (orig->arity()-1);
-//
-//      Term* newTrm;
-//      if(noSharing || !orig->shared()) {
-//	newTrm=Term::createNonShared(orig,argLst);
-//      } else {
-//	newTrm=Term::create(orig,argLst);
-//      }
-//      args.truncate(args.length() - orig->arity());
-//      args.push(TermList(newTrm));
-//
-//      modified.setTop(true);
-//      continue;
-//    }
-//    toDo.push(tt->next());
-//
-//    TermList tl=*tt;
-//    if(tl.isOrdinaryVar()) {
-//      TermList tDest=applicator.apply(tl.var());
-//      args.push(tDest);
-//      if(tDest!=tl) {
-//	modified.setTop(true);
-//      }
-//      continue;
-//    }
-//    if(tl.isSpecialVar()) {
-//      args.push(tl);
-//      continue;
-//    }
-//    ASS(tl.isTerm());
-//    Term* t=tl.term();
-//    if(t->shared() && t->ground()) {
-//      args.push(tl);
-//      continue;
-//    }
-//    terms.push(t);
-//    modified.push(false);
-//    toDo.push(t->args());
-//  }
-//  ASS(toDo.isEmpty());
-//  ASS(terms.isEmpty());
-//  ASS_EQ(modified.length(),1);
-//  ASS_EQ(args.length(),trm->arity());
-//
-//  if(!modified.pop()) {
-//    return trm;
-//  }
-//
-//  //here we assume, that stack is an array with
-//  //second topmost element as &top()-1, third at
-//  //&top()-2, etc...
-//  TermList* argLst=&args.top() - (trm->arity()-1);
-//  if(trm->isLiteral()) {
-//    ASS(!noSharing);
-//    return Literal::create(static_cast<Literal*>(trm),argLst);
-//  } else {
-//    if(noSharing || !trm->shared()) {
-//      return Term::createNonShared(trm,argLst);
-//    } else {
-//      return Term::create(trm,argLst);
-//    }
-//  }
+  typedef DHMap<unsigned, TermList> BindingMap;
+  static BindingMap bindings;
+  bindings.reset();
+
+  Def* d=_defs.get(fn);
+  ASS_EQ(d->mark, Def::SAFE);
+
+  TermList* dargs=d->lhs->args();
+  int i=0;
+  while(dargs->isNonEmpty()) {
+    ALWAYS(bindings.insert(dargs->var(), argArr[i++]));
+    dargs=dargs->next();
+  }
+
+  SubstHelper::MapApplicator<BindingMap> applicator(&bindings);
+  return TermList(SubstHelper::apply(d->rhs, applicator, false));
+}
+
+void FunctionDefinition::finishTask()
+{
+  UnfoldingTaskRecord task=tasks.pop();
+  switch(task.type) {
+  case UnfoldingTaskRecord::EVAL_BINDING_ARGUMENT:
+    BindingSpec spec=task.bSpec;
+    defIndexes.pop();
+    bindings.set(spec, args.top());
+    unfolded.insert(spec, true);
+    break;
+  case UnfoldingTaskRecord::UNFOLD_DEFINITION:
+    TermList unfolded=args.pop();
+    ASS(unfolded.isTerm());
+    task.def->rhs=unfolded.term();
+    task.def->mark=Def::SAFE;
+    break;
+  }
+}
+
+TermList FunctionDefinition::evalVariableContent(unsigned var)
+{
+  if(defIndexes.top()) {
+    modified.setTop(true);
+    BindingSpec spec=make_pair(defIndexes.top(), var);
+    TermList bound=bindings.get(spec);
+    if(bound.isVar() || unfolded.find(spec)) {
+      args.push(bound);
+    } else {
+      UnfoldingTaskRecord task(spec);
+      defIndexes.push(0);
+      tasks.push(task);
+      toDo.push(0);
+      terms.push(bound.term());
+      modified.push(false);
+      toDo.push(bound.term()->args());
+    }
+  } else {
+    args.push(TermList(var, false));
+  }
+}
+
+void FunctionDefinition::replaceByDefinition(Term* t)
+{
+  unsigned defIndex=nextDefIndex++;
+
+  Def* d=_defs.get(t->functor());
+  ASS_EQ(d->mark, Def::SAFE);
+
+  TermList* dargs=d->lhs->args();
+  TermList* targs=t->args();
+  while(dargs->isNonEmpty()) {
+    ASS(targs->isNonEmpty());
+    ALWAYS(bindings.insert(make_pair(defIndex, dargs->var()), *targs));
+    dargs=dargs->next();
+    targs=targs->next();
+  }
+
+  defIndexes.push(defIndex);
+  terms.push(d->rhs);
+  modified.push(false);
+  toDo.push(d->rhs->args());
+
+}
+
+
+
+Term* FunctionDefinition::applyDefinitions(Term* trm)
+{
+  CALL("FunctionDefinition::applyDefinitions");
+
+  if(!trm->isLiteral() && isDefined(trm)) {
+    return applyDefinition(trm);
+  }
+
+  bindings.reset();
+  unfolded.reset();
+
+  defIndexes.reset();
+  unfoldedDefs.reset();
+  toDo.reset();
+  terms.reset();
+  modified.reset();
+  args.reset();
+
+  defIndexes.push(0);
+  modified.push(false);
+  toDo.push(trm->args());
+
+  for(;;) {
+    TermList* tt=toDo.pop();
+    if(!tt) {
+      finishTask();
+    }
+    if(tt->isEmpty()) {
+      if(terms.isEmpty()) {
+	//we're done, args stack contains modified arguments
+	//of the argument term.
+	ASS(toDo.isEmpty());
+	break;
+      }
+      Term* orig=terms.pop();
+      if(!modified.pop()) {
+	args.truncate(args.length() - orig->arity());
+	args.push(TermList(orig));
+	continue;
+      }
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList* argLst=&args.top() - (orig->arity()-1);
+
+      Term* newTrm=Term::create(orig,argLst);
+      args.truncate(args.length() - orig->arity());
+      args.push(TermList(newTrm));
+
+      modified.setTop(true);
+      continue;
+    }
+    toDo.push(tt->next());
+
+    TermList tl=*tt;
+    if(tl.isVar()) {
+      ASS(tl.isOrdinaryVar());
+      evalVariableContent(tl.var());
+      continue;
+    }
+
+    ASS(tl.isTerm());
+    Term* t=tl.term();
+    if(isDefined(t)) {
+      replaceByDefinition(t);
+    } else {
+      terms.push(t);
+      modified.push(false);
+      toDo.push(t->args());
+    }
+  }
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(modified.length(),1);
+  ASS_EQ(args.length(),trm->arity());
+
+  if(!modified.pop()) {
+    return trm;
+  }
+
+  //here we assume, that stack is an array with
+  //second topmost element as &top()-1, third at
+  //&top()-2, etc...
+  TermList* argLst=&args.top() - (trm->arity()-1);
+  if(trm->isLiteral()) {
+    return Literal::create(static_cast<Literal*>(trm),argLst);
+  } else {
+    return Term::create(trm,argLst);
+  }
 }
 
 ///**
@@ -287,8 +459,9 @@ FunctionDefinition::~FunctionDefinition ()
 {
   CALL("FunctionDefinition::~FunctionDefinition");
 
-  while (_defStore.isNonEmpty()) {
-    delete _defStore.pop();
+  Fn2DefMap::Iterator dit(_defs);
+  while(dit.hasNext()) {
+    delete dit.next();
   }
 } // FunctionDefinition::~FunctionDefinition
 
@@ -298,13 +471,13 @@ FunctionDefinition::~FunctionDefinition ()
 // * @since 26/05/2007 Manchester
 // */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (const Unit& unit)
+FunctionDefinition::isFunctionDefinition (Unit& unit)
 {
   CALL("FunctionDefinition::isFunctionDefinition(const Unit&)");
   if (unit.isClause()) {
-    return isFunctionDefinition(const_cast<Clause*>(static_cast<const Clause*>(&unit)));
+    return isFunctionDefinition(static_cast<Clause*>(&unit));
   }
-  return isFunctionDefinition(static_cast<const FormulaUnit&>(unit));
+  return isFunctionDefinition(static_cast<FormulaUnit&>(unit));
 } // Definition::isFunctionDefinition (const Clause& c)
 
 
@@ -333,7 +506,7 @@ FunctionDefinition::isFunctionDefinition (Clause* clause)
  * @since 26/05/2007 Manchester modified for new data structures
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (const Literal* lit)
+FunctionDefinition::isFunctionDefinition (Literal* lit)
 {
   CALL("FunctionDefinition::isFunctionDefinition(const Literal*)");
 
@@ -343,16 +516,16 @@ FunctionDefinition::isFunctionDefinition (const Literal* lit)
   }
 
   // the atom is an equality
-  const TermList* args = lit->args();
+  TermList* args = lit->args();
   if (args->isVar()) {
     return 0;
   }
-  const Term* l = args->term();
+  Term* l = args->term();
   args = args->next();
   if (args->isVar()) {
     return 0;
   }
-  const Term* r = args->term();
+  Term* r = args->term();
   Def* def = defines(l,r);
   if (def) {
     return def;
@@ -380,7 +553,7 @@ FunctionDefinition::isFunctionDefinition (const Literal* lit)
   *   and check for equality added
   */
 FunctionDefinition::Def*
-FunctionDefinition::defines (const Term* lhs, const Term* rhs)
+FunctionDefinition::defines (Term* lhs, Term* rhs)
 {
   CALL("FunctionDefinition::defines");
 
@@ -405,19 +578,23 @@ FunctionDefinition::defines (const Term* lhs, const Term* rhs)
   // and each of them occurs exactly once. counter will contain variables
   // occurring in lhs
   MultiCounter counter;
+  static DHMap<unsigned, unsigned, IdentityHash> var2argIndex;
+  var2argIndex.reset();
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
     if (! ts->isVar()) {
-      return false;
+      return 0;
     }
     int w = ts->var();
     if (counter.get(w) != 0) { // more than one occurrence
-      return false;
+      return 0;
     }
     counter.inc(w);
+    var2argIndex.insert(w, vars);
     vars++;
   }
 
   bool linear = true;
+  Def* res=new Def(lhs,rhs,true,false);
   // now check that rhs contains only variables in the counter
   // Iterate over variables in rhs and check that they
   // are counted as 1 or 2.
@@ -428,20 +605,24 @@ FunctionDefinition::defines (const Term* lhs, const Term* rhs)
     int v = vs.next();
     switch (counter.get(v)) {
     case 0: // v does not occur in lhs
-      return false;
+      delete res;
+      return 0;
 
     case 1: // v occurs in lhs, it is first occurrence in rhs
       counter.inc(v);
       vars--;
+      res->argOccurs[var2argIndex.get(v)]=true;
       break;
 
     default: // v occurs in lhs, it is not its first occurrence in rhs
+      res->linear=false;
       linear = false;
       break;
     }
   }
+  res->strict=!vars;
 
-  return new Def(lhs,rhs,linear,! vars);
+  return res;
 } // FunctionDefinition::defines
 
 
@@ -450,7 +631,7 @@ FunctionDefinition::defines (const Term* lhs, const Term* rhs)
  * @since 28/09/2002 Manchester, changed to use numeric terms
  * @since 06/01/2004 Manchester, changed to use iterator
  */
-bool FunctionDefinition::occurs (unsigned f, const Term& t)
+bool FunctionDefinition::occurs (unsigned f, Term& t)
 {
   CALL ("FunctionDefinition::occurs");
 
@@ -472,11 +653,11 @@ bool FunctionDefinition::occurs (unsigned f, const Term& t)
  * @since 26/05/2007 Manchester, reimplemented using new datastructures
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (const FormulaUnit& unit)
+FunctionDefinition::isFunctionDefinition (FormulaUnit& unit)
 {
   CALL ("Definition::isFunctionDefinition(FormulaUnit&)" );
 
-  const Formula* f = unit.formula();
+  Formula* f = unit.formula();
   // skip all universal quantifiers in front of the formula
   while (f->connective() == FORALL) {
     f = f->qarg();
@@ -487,370 +668,6 @@ FunctionDefinition::isFunctionDefinition (const FormulaUnit& unit)
   }
   return isFunctionDefinition(f->literal());
 } // FunctionDefinition::isFunctionDefinition
-
-
-// /**
-//  * Remove all function definitions from the problem.
-//  * @since 29/05/2004 Manchester.
-//  */
-// int FunctionDefinition::removeAllDefinitions ()
-// {
-//   CALL("FunctionDefinition::removeAllDefinitions");
-
-//   // iterate over the problem clauses and move all definitions from it
-//   // to _definitions
-//   UnitChain::DelIterator us(_problem.giveUnits());
-//   while (us.hasNext()) {
-//     Unit u (us.next());
-//     Clause c(u.clause());
-//     Term l;
-//     Term r;
-//     if (isFunctionDefinition(c,l,r)) {
-//       int n = l.functor().number();
-//       Def& def = _defs[n];
-//       if (def.mark != REMOVED) {
-// 	// there is already a definition of this function
-// 	count(c);
-// 	continue;
-//       }
-//       _removed++;
-//       // initialise the Def
-//       def.mark = UNTOUCHED;
-//       def.unit = u;
-//       def.fun = n;
-//       def.lhs = l;
-//       def.rhs = r;
-//       us.del();
-//     }
-//     else { // not a definition, count occurrences
-//       count(c);
-//     }
-//   }
-//   if (_removed == 0) {
-//     return 0;
-//   }
-
-//   // there are some definitions, they will be removed
-//   // try to unfold all definitions
-//   while (! unfoldAllDefs()) {
-//   }
-
-//   // all definitions are unfolded, substitute them to the problem clauses
-//   UnitChain::DelIterator cs(_problem.giveUnits());
-//   while (cs.hasNext()) {
-//     Unit u(cs.next());
-//     LiteralList ls(u.clause().literals());
-//     UnitList parents;
-//     apply(ls,parents);
-//     if (ls != u.clause().literals()) { // application changed the clause
-//       Clause newClause(ls);
-//       parents.push(u);
-//       Unit newUnit(Inference::DEFINITION_UNFOLDING,newClause,parents);
-//       cs.replace(newUnit);
-//     }
-//   }
-
-//   return _removed;
-// } // FunctionDefinition::removeAllDefinitions
-
-
-// /**
-//  * Count all occurrences of function symbols in c.
-//  * @since 29/05/2004 Manchester
-//  */
-// void FunctionDefinition::count (const Clause& c)
-// {
-//   CALL("FunctionDefinition::count");
-
-//   VL::Iterator<Literal> lits(c.literals());
-//   while (lits.hasNext()) {
-//     TermFunIterator funs(lits.next());
-//     while (funs.hasNext()) {
-//       _counter.inc(funs.next().number());
-//     }
-//   }
-// } // FunctionDefinition::count
-
-// /**
-//  * The main algorithm. It takes all definitions f(X) = t such that
-//  * f(X) occurs in the problem and unfolds t by other definitions.
-//  * If cyclic definitions are found, one of them is pushed back to
-//  * the problem to break the cycle. If this happens, unfolding is
-//  * started again since some f's that previously did not occur in
-//  * the problem may occur there now.
-//  *
-//  * @since 29/05/2004 Manchester
-//  */
-// bool FunctionDefinition::unfoldAllDefs ()
-// {
-//   CALL("FunctionDefinition::unfoldAllDefs");
-
-//   bool result = true;
-//   for (int i = _counter.lastCounter(); i >= 0; i--) {
-//     Def& def = _defs[i];
-//     if(_counter.get(i) != 0) { // the definition occurs in the problem
-//       result = unfold(def) && result;
-//     }
-//   }
-//   return result;
-// } // FunctionDefinition::unfoldAllDefs
-
-// /**
-//  * Unfold one definition.
-//  *
-//  * @since 29/05/2004 Manchester
-//  */
-// bool FunctionDefinition::unfold (Def& def)
-// {
-//   CALL("FunctionDefinition::unfold (Def&...)");
-
-//   switch (def.mark) {
-//   case UNTOUCHED:
-//     {
-//       // check if any function symbol in the rhs is blocked
-//       TermFunIterator funs(def.rhs);
-//       while (funs.hasNext()) {
-// 	if (_defs[funs.next().number()].mark == BLOCKED) {
-// 	  // circular definitions found, this definition must be removed
-// 	  def.mark = REMOVED; // marked removed
-// 	  // return the unit back to the problem
-// 	  _problem.addUnit(def.unit);
-// 	  // add function symbols of the unit to the counter
-// 	  count(def.unit.clause());
-// 	  return false;
-// 	}
-//       }
-
-//       def.mark = BLOCKED;
-//       Term newRHS(def.rhs);
-//       UnitList parents; // to mark parents of the new clause
-//       bool result = unfold(newRHS,parents);
-//       if (def.rhs != newRHS) { // unfolding changed the definition
-// 	// build a new unit, a result of the unfolding
-// 	parents.push(def.unit);
-// 	Atom newEquality(def.lhs,newRHS);
-// 	Literal newLit(true,newEquality);
-// 	LiteralList newList(newLit);
-// 	Clause newClause(newList);
-// 	Unit newUnit(Inference::DEFINITION_UNFOLDING,newClause,parents);
-// 	def.unit = newUnit;
-// 	def.rhs = newRHS;
-//       }
-//       def.mark = UNFOLDED;
-//       return result;
-//     }
-
-//   case REMOVED:
-//   case UNFOLDED:
-//     return true;
-
-// #if VDEBUG
-//   default:
-//     ASSERTION_VIOLATION;
-// #endif
-//   }
-// } // FunctionDefinition::unfold
-
-
-// /**
-//  * Apply unfolding to the term t, unfolding if necessary other
-//  * definitions.
-//  *
-//  * @since 29/05/2004 Manchester
-//  */
-// bool FunctionDefinition::unfold (Term& t,UnitList& parents)
-// {
-//   CALL("FunctionDefinition::unfold (Term&...)");
-
-//   if (t.isVar()) {
-//     return true;
-//   }
-
-//   TermList newArgs(t.args());
-//   bool result = unfold(newArgs,parents);
-//   Def& def = _defs[t.functor().number()];
-//   // check if the function symbol of t is defined
-//   result = unfold(def) && result;
-
-//   switch (def.mark) {
-//   case UNFOLDED: // fully unfolded
-//     {
-//       // now newArgs has a form (t1,...,tn)
-//       // and def has the form f(x1,...,xn) = r[x1,...,xn]
-//       // we have to set t to r[t1,...,tn]
-//       // to this end we form a substitution {x1->t1,...,xn->tn}
-//       // and apply it to r
-//       Substitution s;
-//       ASS(def.lhs.args().length() == newArgs.length());
-//       VL::Iterator<Term> xs(def.lhs.args());
-//       VL::Iterator<Term> ts(newArgs);
-//       while(xs.hasNext()) {
-// 	s.bind(xs.next().var(),ts.next());
-//       }
-
-//       Term r(def.rhs);
-//       s.apply(r);
-//       t = r;
-//       if (! parents.member(def.unit)) {
-// 	parents.push(def.unit);
-//       }
-//     }
-//     return result;
-
-//   case REMOVED:
-//     if (newArgs != t.args()) { // unfolding changed arguments
-//       t = Term(t.functor(),newArgs);
-//     }
-//     return result;
-
-// #if VDEBUG
-//   default:
-//     ASSERTION_VIOLATION;
-// #endif
-//   }
-// } // FunctionDefinition::unfold (Term& t,UnitList& parents)
-
-
-// /**
-//  * Apply unfolding to the term list ts, unfolding if necessary other
-//  * definitions.
-//  *
-//  * @since 29/05/2004 Manchester
-//  */
-// bool FunctionDefinition::unfold (TermList& ts,UnitList& parents)
-// {
-//   CALL("FunctionDefinition::unfold (TermList&...)");
-
-//   if (ts.isEmpty()) {
-//     return true;
-//   }
-//   Term hd(ts.head());
-//   bool r1 = unfold(hd,parents);
-//   TermList tl(ts.tail());
-//   bool r2 = unfold(tl,parents);
-//   if (ts.head() != hd || ts.tail() != tl) {
-//     ts = TermList(hd,tl);
-//   }
-//   return r1 && r2;
-// } // FunctionDefinition::unfold (TermList& t,UnitList& parents)
-
-
-// /**
-//  * Apply unfolded definitions to the term t.
-//  *
-//  * @since 29/05/2004 Manchester
-//  */
-// void FunctionDefinition::apply (Term& t,UnitList& parents)
-// {
-//   CALL("FunctionDefinition::apply (Term&...)");
-
-//   if (t.isVar()) {
-//     return;
-//   }
-
-//   TermList newArgs(t.args());
-//   apply(newArgs,parents);
-//   Def& def = _defs[t.functor().number()];
-
-//   switch (def.mark) {
-//   case UNFOLDED: // fully unfolded
-//     {
-//       // now newArgs has a form (t1,...,tn)
-//       // and def has the form f(x1,...,xn) = r[x1,...,xn]
-//       // we have to set t to r[t1,...,tn]
-//       // to this end we form a substitution {x1->t1,...,xn->tn}
-//       // and apply it to r
-//       Substitution s;
-//       ASS(def.lhs.args().length() == newArgs.length());
-//       VL::Iterator<Term> xs(def.lhs.args());
-//       VL::Iterator<Term> ts(newArgs);
-//       while(xs.hasNext()) {
-// 	s.bind(xs.next().var(),ts.next());
-//       }
-
-//       Term r(def.rhs);
-//       s.apply(r);
-//       t = r;
-//       if (! parents.member(def.unit)) {
-// 	parents.push(def.unit);
-//       }
-//     }
-//     return;
-
-//   case REMOVED:
-//     if (newArgs != t.args()) { // unfolding changed arguments
-//       t = Term(t.functor(),newArgs);
-//     }
-//     return;
-
-// #if VDEBUG
-//   default:
-//     ASSERTION_VIOLATION;
-// #endif
-//   }
-// } // FunctionDefinition::apply (Term& t,UnitList& parents)
-
-
-// /**
-//  * Apply unfolded definitions to the term list ts.
-//  *
-//  * @since 29/05/2004 Manchester
-//  */
-// void FunctionDefinition::apply (TermList& ts,UnitList& parents)
-// {
-//   CALL("FunctionDefinition::apply (TermList&...)");
-
-//   if (ts.isEmpty()) {
-//     return;
-//   }
-//   Term hd(ts.head());
-//   apply(hd,parents);
-//   TermList tl(ts.tail());
-//   apply(tl,parents);
-//   if (ts.head() != hd || ts.tail() != tl) {
-//     ts = TermList(hd,tl);
-//   }
-// } // FunctionDefinition::apply (TermList& t,UnitList& parents)
-
-
-// /**
-//  * Apply unfolded definitions to the literal list ts.
-//  *
-//  * @since 29/05/2004 Manchester
-//  */
-// void FunctionDefinition::apply (LiteralList& ts,UnitList& parents)
-// {
-//   CALL("FunctionDefinition::apply (LiteralList&...)");
-
-//   if (ts.isEmpty()) {
-//     return;
-//   }
-//   Literal hd(ts.head());
-//   apply(hd,parents);
-//   LiteralList tl(ts.tail());
-//   apply(tl,parents);
-//   if (ts.head() != hd || ts.tail() != tl) {
-//     ts = LiteralList(hd,tl);
-//   }
-// } // FunctionDefinition::apply (LiteralList& t,UnitList& parents)
-
-
-// /**
-//  * Apply unfolded definitions to the literal l.
-//  *
-//  * @since 29/05/2004 Manchester
-//  */
-// void FunctionDefinition::apply (Literal& l,UnitList& parents)
-// {
-//   CALL("FunctionDefinition::apply (LiteralList&...)");
-
-//   Atom a(l.atom());
-//   TermList ts(a.args());
-//   apply(ts,parents);
-//   if (ts != a.args()) {
-//     l = Literal(l.sign(),Atom(a.functor(),ts));
-//   }
-// } // FunctionDefinition::apply (LiteralList& t,UnitList& parents)
 
 /**
  * Delete the definition def.
