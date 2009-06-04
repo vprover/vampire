@@ -79,6 +79,16 @@ struct BinaryResolution::ResultFn
     int newAge=Int::max(_cl->age(),qr.clause->age())+1;
     bool shouldLimitWeight=_limits->ageLimited() && newAge > _limits->ageLimit()
 	&& _limits->weightLimited();
+    unsigned weightLimit;
+    if(shouldLimitWeight) {
+      bool isNonGoal=_cl->inputType()==0 && qr.clause->inputType()==0;
+      if(isNonGoal) {
+        weightLimit=_limits->nonGoalWeightLimit();
+      } else {
+        weightLimit=_limits->weightLimit();
+      }
+    }
+
 
     if(shouldLimitWeight) {
       int wlb=0;//weight lower bound
@@ -94,7 +104,7 @@ struct BinaryResolution::ResultFn
           wlb+=curr->weight();
         }
       }
-      if(wlb > _limits->weightLimit()) {
+      if(wlb > weightLimit) {
         return 0;
       }
     }

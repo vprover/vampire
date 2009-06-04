@@ -46,7 +46,7 @@ public:
   FunctionDefinition();
   ~FunctionDefinition();
 
-  void removeAllDefinitions(UnitList* units);
+  void removeAllDefinitions(UnitList*& units);
 
 
   void scan(const UnitList* units);
@@ -71,52 +71,12 @@ private:
 
 
   bool isDefined(Term* t);
-  Term* applyDefinition(Term* t);
-  TermList applyDefinition(unsigned fn, TermList* argArr);
 
-  typedef pair<unsigned,unsigned> BindingSpec;
-  typedef DHMap<BindingSpec, TermList, IntPairSimpleHash> BindingMap;
-  typedef DHMap<BindingSpec, bool, IntPairSimpleHash> UnfoldedSet;
+  Term* applyDefinitions(Literal* t, Stack<Def*>* usedDefs);
+  Clause* applyDefinitions(Clause* cl);
 
-  struct UnfoldingTaskRecord
-  {
-    enum Type {
-      UNFOLD_DEFINITION,
-      EVAL_BINDING_ARGUMENT
-    };
-
-    UnfoldingTaskRecord(Def* def) : type(UNFOLD_DEFINITION), def(def) {}
-    UnfoldingTaskRecord(BindingSpec spec) : type(EVAL_BINDING_ARGUMENT), bSpec(spec) {}
-
-    Type type;
-//    union {
-      Def* def;
-      BindingSpec bSpec;
-//    };
-  };
-
-  BindingMap bindings;
-  UnfoldedSet unfolded;
-  unsigned nextDefIndex;
-  Stack<UnfoldingTaskRecord> tasks;
-  Stack<unsigned> defIndexes;
-  Stack<Def*> unfoldedDefs;
-  /**
-   * Terms that to be unfolded.
-   * When zero element appears on the stack, a task from @b tasks stack
-   * should be finished.
-   */
-  Stack<TermList*> toDo;
-  Stack<Term*> terms;
-  Stack<bool> modified;
-  Stack<TermList> args;
-
-  void finishTask();
-  TermList evalVariableContent(unsigned var);
-  void replaceByDefinition(Term* t);
-  Term* applyDefinitions(Term* t);
-
-  void unfoldDefinitions(Def* t);
+  void checkDefinitions(Def* t);
+  void assignArgOccursData(Def* d);
 
 //   void count (const Clause& c);
 //   bool unfoldAllDefs ();
@@ -132,8 +92,10 @@ private:
   typedef DHMap<int, Def*> Fn2DefMap;
   Fn2DefMap _defs;
 
-//  /** Set storing all function definitions */
-//  Stack<Def*> _defStore;
+  /** stack where definitions are put when they're marked as blocked */
+  Stack<Def*> _blockedDefs;
+
+  Stack<Def*> _safeDefs;
   /** Counters for occurrences of function symbols */
   MultiCounter _counter;
   /** The number of found definitions */

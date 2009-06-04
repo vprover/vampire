@@ -9,9 +9,11 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/BitUtils.hpp"
+#include "../Lib/Int.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Formula.hpp"
+#include "../Kernel/Inference.hpp"
 #include "../Kernel/FormulaUnit.hpp"
 #include "../Kernel/SubstHelper.hpp"
 #include "../Kernel/Term.hpp"
@@ -20,6 +22,10 @@
 
 #include "FunctionDefinition.hpp"
 // #include "Substitution.hpp"
+
+#if VDEBUG
+#include <iostream>
+#endif
 
 namespace Shell {
 
@@ -60,6 +66,12 @@ struct FunctionDefinition::Def
   int examinedArg;
 
   IntList* dependentFns;
+
+  /**
+   * If @b mark==SAFE or @b mark==UNFOLDED, contains @b bool array such that
+   * @b argOccurs[i] is true iff i-th argument of @b lhs occurs in @b rhs after
+   * all definition unfolding is performed.
+   */
   bool* argOccurs;
 
   Def(Term* l, Term* r, bool lin, bool str)
@@ -70,16 +82,16 @@ struct FunctionDefinition::Def
       linear(lin),
       strict(str),
       containedFn(-1),
-      dependentFns(0)
+      dependentFns(0),
+      argOccurs(0)
   {
-    argOccurs=reinterpret_cast<bool*>(ALLOC_KNOWN(lhs->arity()*sizeof(bool),
-	    "FunctionDefinition::Def::argOccurs"));
-    BitUtils::zeroMemory(argOccurs, lhs->arity()*sizeof(bool));
   }
 
   ~Def()
   {
-    DEALLOC_KNOWN(argOccurs, lhs->arity()*sizeof(bool), "FunctionDefinition::Def::argOccurs");
+    if(argOccurs) {
+      DEALLOC_KNOWN(argOccurs, lhs->arity()*sizeof(bool), "FunctionDefinition::Def::argOccurs");
+    }
   }
 
   CLASS_NAME("FunctionDefintion::Def");
@@ -102,97 +114,160 @@ FunctionDefinition::FunctionDefinition ()
 } // FunctionDefinition::FunctionDefinition
 
 
-void FunctionDefinition::removeAllDefinitions(UnitList* units)
+void FunctionDefinition::removeAllDefinitions(UnitList*& units)
 {
   CALL("FunctionDefinition::removeAllDefinitions");
 
-
-  UnitList::DelIterator us(units);
-  while(us.hasNext()) {
-    Clause* cl=static_cast<Clause*>(us.next());
+  UnitList::DelIterator scanIterator(units);
+  while(scanIterator.hasNext()) {
+    Clause* cl=static_cast<Clause*>(scanIterator.next());
     ASS(cl->isClause());
     Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
-      _defs.insert(d->fun, d);
-      us.del();
+      if(_defs.insert(d->fun, d)) {
+//	cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
+	scanIterator.del();
+      } else {
+	delete d;
+      }
     }
-
   }
 
   if(!_defs.size()) {
     return;
   }
 
-  Stack<TermList> args;
-  Stack<int> indep(16);
   Fn2DefMap::Iterator dit(_defs);
   while(dit.hasNext()) {
     Def* d=dit.next();
 
-    if(d->mark==Def::SAFE) {
+    if(d->mark==Def::SAFE || d->mark==Def::BLOCKED) {
       continue;
     }
+    ASS(d->mark==Def::UNTOUCHED);
+    checkDefinitions(d);
+  }
 
-    TermFunIterator tfit(d->rhs);
-    while(tfit.hasNext()) {
-      int rhsFn=tfit.next();
-      if(!_defs.find(rhsFn)) {
-	continue;
-      }
-      d->containedFn=rhsFn;
-      break;
+  while(_blockedDefs.isNonEmpty()) {
+    Def* d=_blockedDefs.pop();
+    ASS_EQ(d->mark, Def::BLOCKED);
+//    cout<<"Blocked: "<<(*(*d->defCl)[0])<<endl;
+
+    UnitList::push(d->defCl, units);
+    _defs.remove(d->fun);
+    delete d;
+  }
+
+  ASS_EQ(_defs.size(), _safeDefs.size());
+  //_safeDefs contains definitions in topologically ordered,
+  //so that _safeDefs[i] uses only definitions up to
+  //_safeDefs[i-1].
+  for(unsigned i=0;i<_safeDefs.size(); i++) {
+    Def* d=_safeDefs[i];
+    ASS_EQ(d->mark, Def::SAFE);
+//    cout<<"Safe: "<<(*(*d->defCl)[0]);
+
+    //we temporarily block the definition, so that we can rewrite
+    //the definition clause without rewriting the lhs
+    d->mark=Def::BLOCKED;
+    Clause* oldCl=d->defCl;
+    d->defCl=applyDefinitions(d->defCl);
+//    cout<<" unfolded into "<<(*(*d->defCl)[0])<<endl;
+
+    //update d->rhs with the right hand side of the equality
+    Literal* defEq=(*d->defCl)[0];
+    if( defEq->nthArgument(0)->term()==d->lhs ) {
+      d->rhs=defEq->nthArgument(1)->term();
+    } else {
+      ASS_EQ(defEq->nthArgument(1)->term(),d->lhs);
+      d->rhs=defEq->nthArgument(0)->term();
     }
-    if(d->containedFn==-1) {
-      d->mark=Def::SAFE;
-      indep.push(d->fun);
+
+    d->mark=Def::UNFOLDED;
+  }
+  _safeDefs.reset();
+
+  UnitList::DelIterator unfoldIterator(units);
+  while(unfoldIterator.hasNext()) {
+    Clause* cl=static_cast<Clause*>(unfoldIterator.next());
+    ASS(cl->isClause());
+    Clause* newCl=applyDefinitions(cl);
+    if(cl!=newCl) {
+//      cout<<"D- "<<(*cl)<<endl;
+//      cout<<"D+ "<<(*newCl)<<endl;
+      unfoldIterator.replace(newCl);
     }
   }
 
-
 }
 
-void FunctionDefinition::unfoldDefinitions(Def* def0)
+void FunctionDefinition::checkDefinitions(Def* def0)
 {
   CALL("FunctionDefinition::unfoldDefinition");
 
   TermList t=TermList(def0->lhs);
+
+  //Next argument of the current-level term to be processed.
+  //An empty term means we've processed all arguments of the term.
   static Stack<TermList*> stack(4);
-  static Stack<Def*> defStack(4);
+  //Definition whose rhs is the current-level term (or zero if none).
+  static Stack<Def*> defCheckingStack(4);
+  //Definition whose lhs is the current-level term (or zero if none).
+  static Stack<Def*> defArgStack(4);
+  //Current-level term.
+  static Stack<Term*> termArgStack(4);
+
+  //loop invariant: the four above stacks contain the same number of elements
   for(;;) {
-    Definition* d;
+    Def* d;
     if(t.isEmpty()) {
-      d=defStack.pop();
-      if(d) {
-	//leave the definition
-	d->rhs=applyDefinitions(d->rhs);
-	d->mark=Def::UNFOLDED;
+      d=defCheckingStack.pop();
+      defArgStack.pop();
+      termArgStack.pop();
+      ASS(!d || d->mark==Def::LOOP);
+      if(d && d->mark==Def::LOOP) {
+	//the definition is safe (i.e. doesn't contain cycle of non-blocked definitions)
+	assignArgOccursData(d);
+	_safeDefs.push(d);
+	d->mark=Def::SAFE;
       }
     } else if(t.isTerm()) {
-      if(!_defs.find(t.term()->functor(), d)) {
+      Term* trm=t.term();
+      Def* checkedDef=0;
+    toplevel_def:
+      if(!_defs.find(trm->functor(), d) || d->mark==Def::BLOCKED) {
 	d=0;
       }
-      if(ts->term()->arity()) {
-	stack.push(ts->term()->args());
-	defStack.push(0);
+      if(trm->arity() || checkedDef) {
+	stack.push(trm->args());
+	defCheckingStack.push(checkedDef);
+	defArgStack.push(d);
+	termArgStack.push(trm);
       }
       if(d) {
-	if(d->mark==Def::UNFOLDED) {
+	if(d->mark==Def::UNTOUCHED) {
+	  //enter the definition
+	  d->mark=Def::LOOP;
+	  trm=d->rhs;
+	  checkedDef=d;
+	  goto toplevel_def;
 	} else if(d->mark==Def::LOOP) {
 	  //unroll stacks until the point when the current
 	  //definition was entered
 	  do{
-	    while(!stack.pop().isEmpty()) {}
-	    d=defStack.pop();
-	  } while(d==0);
-	  d->mark=Def::BLOCKED;
-	} else {
-	  ASS_EQ(d->mark, Def::UNTOUCHED);
+	    stack.pop();
 
-	  //enter the definition
-	  d->mark=Def::LOOP;
-	  stack.push(d->rhs);
-	  defStack.push(d);
+	    defArgStack.pop();
+	    termArgStack.pop();
+	    d=defCheckingStack.pop();
+	  } while(!d);
+	  ASS_EQ(d->mark, Def::LOOP);
+	  d->mark=Def::BLOCKED;
+	  defArgStack.setTop(0);
+	  _blockedDefs.push(d);
+	} else {
+	  ASS_EQ(d->mark, Def::SAFE);
 	}
       }
     }
@@ -200,150 +275,126 @@ void FunctionDefinition::unfoldDefinitions(Def* def0)
       break;
     }
     TermList* ts=stack.pop();
-    if(!ts->isEmpty()) {
-      stack.push(ts->next());
+    if(ts->isNonEmpty()) {
+      Def* argDef=defArgStack.top();
+      if(argDef) {
+	ASS_EQ(argDef->mark,Def::SAFE);
+	Term* parentTerm=termArgStack.top();
+	while(ts->isNonEmpty() && !argDef->argOccurs[parentTerm->getArgumentIndex(ts)]) {
+	  ts=ts->next();
+	}
+	if(ts->isNonEmpty()) {
+	  stack.push(ts->next());
+	}
+      } else {
+	stack.push(ts->next());
+      }
     }
     t=*ts;
   }
-  ASS(defStack.isEmpty());
+  ASS(defCheckingStack.isEmpty());
+  ASS(defArgStack.isEmpty());
 }
 
-
-bool FunctionDefinition::isDefined(Term* t)
+/**
+ * Assign a @b bool array into @b updDef->argOccurs, so that
+ * @b updDef->argOccurs[i] is true iff i-th argument of the
+ * defined function appears also on the rhs of the definition.
+ */
+void FunctionDefinition::assignArgOccursData(Def* updDef)
 {
-  ASS(!t->isLiteral());
-  Def* d;
-  if(!_defs.find(t->functor()), d) {
-    return false;
-  }
-  return d->mark!=Def::BLOCKED;
-}
+  CALL("FunctionDefinition::assignArgOccursData");
+  ASS(!updDef->argOccurs);
 
-Term* FunctionDefinition::applyDefinition(Term* t)
-{
-  CALL("FunctionDefinition::applyDefinition/1");
-
-  typedef DHMap<unsigned, TermList> BindingMap;
-  static BindingMap bindings;
-  bindings.reset();
-
-  Def* d=_defs.get(t->functor());
-  ASS_EQ(d->mark, Def::SAFE);
-
-  TermList* dargs=d->lhs->args();
-  TermList* targs=t->args();
-  while(dargs->isNonEmpty()) {
-    ASS(targs->isNonEmpty());
-    ALWAYS(bindings.insert(dargs->var(), *targs));
-    dargs=dargs->next();
-    targs=targs->next();
+  if(!updDef->lhs->arity()) {
+    return;
   }
 
-  SubstHelper::MapApplicator<BindingMap> applicator(&bindings);
-  return SubstHelper::apply(d->rhs, applicator, false);
-}
+  updDef->argOccurs=reinterpret_cast<bool*>(ALLOC_KNOWN(updDef->lhs->arity()*sizeof(bool),
+	    "FunctionDefinition::Def::argOccurs"));
+  BitUtils::zeroMemory(updDef->argOccurs, updDef->lhs->arity()*sizeof(bool));
 
-TermList FunctionDefinition::applyDefinition(unsigned fn, TermList* argArr)
-{
-  CALL("FunctionDefinition::applyDefinition/2");
-
-  typedef DHMap<unsigned, TermList> BindingMap;
-  static BindingMap bindings;
-  bindings.reset();
-
-  Def* d=_defs.get(fn);
-  ASS_EQ(d->mark, Def::SAFE);
-
-  TermList* dargs=d->lhs->args();
-  int i=0;
-  while(dargs->isNonEmpty()) {
-    ALWAYS(bindings.insert(dargs->var(), argArr[i++]));
-    dargs=dargs->next();
+  static DHMap<unsigned, unsigned, IdentityHash> var2argIndex;
+  var2argIndex.reset();
+  int argIndex=0;
+  for (TermList* ts = updDef->lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
+    int w = ts->var();
+    var2argIndex.insert(w, argIndex);
+    argIndex++;
   }
 
-  SubstHelper::MapApplicator<BindingMap> applicator(&bindings);
-  return TermList(SubstHelper::apply(d->rhs, applicator, false));
-}
-
-void FunctionDefinition::finishTask()
-{
-  UnfoldingTaskRecord task=tasks.pop();
-  switch(task.type) {
-  case UnfoldingTaskRecord::EVAL_BINDING_ARGUMENT:
-    BindingSpec spec=task.bSpec;
-    defIndexes.pop();
-    bindings.set(spec, args.top());
-    unfolded.insert(spec, true);
-    break;
-  case UnfoldingTaskRecord::UNFOLD_DEFINITION:
-    TermList unfolded=args.pop();
-    ASS(unfolded.isTerm());
-    task.def->rhs=unfolded.term();
-    task.def->mark=Def::SAFE;
-    break;
-  }
-}
-
-TermList FunctionDefinition::evalVariableContent(unsigned var)
-{
-  if(defIndexes.top()) {
-    modified.setTop(true);
-    BindingSpec spec=make_pair(defIndexes.top(), var);
-    TermList bound=bindings.get(spec);
-    if(bound.isVar() || unfolded.find(spec)) {
-      args.push(bound);
+  TermList t=TermList(updDef->rhs);
+  static Stack<TermList*> stack(4);
+  static Stack<Def*> defArgStack(4);
+  static Stack<Term*> termArgStack(4);
+  for(;;) {
+    Def* d;
+    if(t.isEmpty()) {
+      defArgStack.pop();
+      termArgStack.pop();
+    } else if(t.isTerm()) {
+      Term* trm=t.term();
+      if(trm->arity()) {
+	if(!_defs.find(trm->functor(), d) || d->mark==Def::BLOCKED) {
+	  d=0;
+	}
+	ASS(!d || d->mark==Def::SAFE);
+	stack.push(trm->args());
+	defArgStack.push(d);
+	termArgStack.push(trm);
+      }
     } else {
-      UnfoldingTaskRecord task(spec);
-      defIndexes.push(0);
-      tasks.push(task);
-      toDo.push(0);
-      terms.push(bound.term());
-      modified.push(false);
-      toDo.push(bound.term()->args());
+      ASS(t.isOrdinaryVar());
+      updDef->argOccurs[var2argIndex.get(t.var())]=true;
     }
-  } else {
-    args.push(TermList(var, false));
+    if(stack.isEmpty()) {
+      break;
+    }
+    TermList* ts=stack.pop();
+    if(!ts->isEmpty()) {
+      Def* argDef=defArgStack.top();
+      if(argDef) {
+	Term* parentTerm=termArgStack.top();
+	while(ts->isNonEmpty() && !argDef->argOccurs[parentTerm->getArgumentIndex(ts)]) {
+	  ts=ts->next();
+	}
+	if(ts->isNonEmpty()) {
+	  stack.push(ts->next());
+	}
+      } else {
+	stack.push(ts->next());
+      }
+    }
+    t=*ts;
   }
 }
 
-void FunctionDefinition::replaceByDefinition(Term* t)
-{
-  unsigned defIndex=nextDefIndex++;
-
-  Def* d=_defs.get(t->functor());
-  ASS_EQ(d->mark, Def::SAFE);
-
-  TermList* dargs=d->lhs->args();
-  TermList* targs=t->args();
-  while(dargs->isNonEmpty()) {
-    ASS(targs->isNonEmpty());
-    ALWAYS(bindings.insert(make_pair(defIndex, dargs->var()), *targs));
-    dargs=dargs->next();
-    targs=targs->next();
-  }
-
-  defIndexes.push(defIndex);
-  terms.push(d->rhs);
-  modified.push(false);
-  toDo.push(d->rhs->args());
-
-}
 
 
+typedef pair<unsigned,unsigned> BindingSpec;
+typedef DHMap<BindingSpec, TermList, IntPairSimpleHash> BindingMap;
+typedef DHMap<BindingSpec, bool, IntPairSimpleHash> UnfoldedSet;
 
-Term* FunctionDefinition::applyDefinitions(Term* trm)
+Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
   CALL("FunctionDefinition::applyDefinitions");
 
-  if(!trm->isLiteral() && isDefined(trm)) {
-    return applyDefinition(trm);
-  }
+  BindingMap bindings;
+  UnfoldedSet unfolded;
+  unsigned nextDefIndex=1;
+  Stack<BindingSpec> bindingsBeingUnfolded;
+  Stack<unsigned> defIndexes;
+  //Terms that to be unfolded. When zero element appears on the
+  //stack, a task from @b tasks stack should be finished.
+  Stack<TermList*> toDo;
+  Stack<Term*> terms;
+  Stack<bool> modified;
+  Stack<TermList> args;
 
   bindings.reset();
   unfolded.reset();
 
   defIndexes.reset();
-  unfoldedDefs.reset();
   toDo.reset();
   terms.reset();
   modified.reset();
@@ -351,12 +402,15 @@ Term* FunctionDefinition::applyDefinitions(Term* trm)
 
   defIndexes.push(0);
   modified.push(false);
-  toDo.push(trm->args());
+  toDo.push(lit->args());
 
   for(;;) {
     TermList* tt=toDo.pop();
     if(!tt) {
-      finishTask();
+      BindingSpec spec=bindingsBeingUnfolded.pop();
+      bindings.set(spec, args.top());
+      unfolded.insert(spec, true);
+      continue;
     }
     if(tt->isEmpty()) {
       if(terms.isEmpty()) {
@@ -365,6 +419,7 @@ Term* FunctionDefinition::applyDefinitions(Term* trm)
 	ASS(toDo.isEmpty());
 	break;
       }
+      defIndexes.pop();
       Term* orig=terms.pop();
       if(!modified.pop()) {
 	args.truncate(args.length() - orig->arity());
@@ -372,7 +427,7 @@ Term* FunctionDefinition::applyDefinitions(Term* trm)
 	continue;
       }
       //here we assume, that stack is an array with
-      //second topmost element as &top()-1, third at
+      //second topmost element at &top()-1, third at
       //&top()-2, etc...
       TermList* argLst=&args.top() - (orig->arity()-1);
 
@@ -386,41 +441,122 @@ Term* FunctionDefinition::applyDefinitions(Term* trm)
     toDo.push(tt->next());
 
     TermList tl=*tt;
+    unsigned defIndex=defIndexes.top();
+    Term* t;
+
     if(tl.isVar()) {
       ASS(tl.isOrdinaryVar());
-      evalVariableContent(tl.var());
-      continue;
+
+      if(defIndexes.top()) {
+        modified.setTop(true);
+        BindingSpec spec=make_pair(defIndexes.top(), tl.var());
+        TermList bound=bindings.get(spec);
+        if(bound.isVar() || unfolded.find(spec)) {
+          args.push(bound);
+          continue;
+        } else {
+          bindingsBeingUnfolded.push(spec);
+          toDo.push(0);
+
+          defIndex=0;
+          t=bound.term();
+        }
+      } else {
+        args.push(tl);
+        continue;
+      }
+
+    } else {
+      ASS(tl.isTerm());
+      t=tl.term();
     }
 
-    ASS(tl.isTerm());
-    Term* t=tl.term();
-    if(isDefined(t)) {
-      replaceByDefinition(t);
-    } else {
-      terms.push(t);
-      modified.push(false);
-      toDo.push(t->args());
+    Def* d;
+    if( !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
+      ASS_EQ(d->mark, Def::UNFOLDED);
+      usedDefs->push(d);
+
+      defIndex=nextDefIndex++;
+
+      //bind arguments of definition lhs
+      TermList* dargs=d->lhs->args();
+      TermList* targs=t->args();
+      while(dargs->isNonEmpty()) {
+        ASS(targs->isNonEmpty());
+        ALWAYS(bindings.insert(make_pair(defIndex, dargs->var()), *targs));
+        dargs=dargs->next();
+        targs=targs->next();
+      }
+
+      //use rhs of the definition instead of the original subterm
+      t=d->rhs;
+      modified.setTop(true);
     }
+    defIndexes.push(defIndex);
+    terms.push(t);
+    modified.push(false);
+    toDo.push(t->args());
   }
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());
   ASS_EQ(modified.length(),1);
-  ASS_EQ(args.length(),trm->arity());
+  ASS_EQ(args.length(),lit->arity());
 
   if(!modified.pop()) {
-    return trm;
+    return lit;
   }
 
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-  TermList* argLst=&args.top() - (trm->arity()-1);
-  if(trm->isLiteral()) {
-    return Literal::create(static_cast<Literal*>(trm),argLst);
-  } else {
-    return Term::create(trm,argLst);
-  }
+  TermList* argLst=&args.top() - (lit->arity()-1);
+  return Literal::create(static_cast<Literal*>(lit),argLst);
 }
+
+
+Clause* FunctionDefinition::applyDefinitions(Clause* cl)
+{
+  CALL("FunctionDefinition::applyDefinitions(Clause*)")
+
+  unsigned clen=cl->length();
+
+  static Stack<Def*> usedDefs(8);
+  static Stack<Literal*> resLits(8);
+  ASS(usedDefs.isEmpty());
+  resLits.reset();
+
+  bool modified=false;
+  for(unsigned i=0;i<clen;i++) {
+    Literal* lit=(*cl)[i];
+    Literal* rlit=static_cast<Literal*>(applyDefinitions(lit, &usedDefs));
+    resLits.push(rlit);
+    modified|= rlit!=lit;
+  }
+  if(!modified) {
+    ASS(usedDefs.isEmpty());
+    return cl;
+  }
+
+  UnitList* premises=0;
+  Unit::InputType inpType = cl->inputType();
+  while(usedDefs.isNonEmpty()) {
+    Clause* defCl=usedDefs.pop()->defCl;
+    UnitList::push(defCl, premises);
+    inpType = (Unit::InputType)	Int::max(inpType, defCl->inputType());
+  }
+  UnitList::push(cl, premises);
+  Inference* inf = new InferenceMany(Inference::DEFINITION_UNFOLDING, premises);
+
+  Clause* res = new(clen) Clause(clen, cl->inputType(), inf);
+  res->setAge(cl->age());
+
+  for(unsigned i=0;i<clen;i++) {
+    (*res)[i] = resLits[i];
+  }
+
+  return res;
+}
+
 
 ///**
 // * Scan a list of units and memorise information about them
@@ -559,9 +695,9 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
 
   unsigned f = lhs->functor();
 
-  if (occurs(f,*rhs)) {
-    return 0;
-  }
+//  if (occurs(f,*rhs)) {
+//    return 0;
+//  }
   if (lhs->arity() == 0) {
     if (rhs->arity() != 0) { // c = f(...)
       return 0;
@@ -578,8 +714,6 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   // and each of them occurs exactly once. counter will contain variables
   // occurring in lhs
   MultiCounter counter;
-  static DHMap<unsigned, unsigned, IdentityHash> var2argIndex;
-  var2argIndex.reset();
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
     if (! ts->isVar()) {
       return 0;
@@ -589,12 +723,10 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
       return 0;
     }
     counter.inc(w);
-    var2argIndex.insert(w, vars);
     vars++;
   }
 
   bool linear = true;
-  Def* res=new Def(lhs,rhs,true,false);
   // now check that rhs contains only variables in the counter
   // Iterate over variables in rhs and check that they
   // are counted as 1 or 2.
@@ -605,23 +737,20 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     int v = vs.next();
     switch (counter.get(v)) {
     case 0: // v does not occur in lhs
-      delete res;
       return 0;
 
     case 1: // v occurs in lhs, it is first occurrence in rhs
       counter.inc(v);
       vars--;
-      res->argOccurs[var2argIndex.get(v)]=true;
       break;
 
     default: // v occurs in lhs, it is not its first occurrence in rhs
-      res->linear=false;
       linear = false;
       break;
     }
   }
-  res->strict=!vars;
 
+  Def* res=new Def(lhs,rhs,linear,!vars);
   return res;
 } // FunctionDefinition::defines
 

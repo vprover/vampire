@@ -40,6 +40,7 @@ public:
   bool ageLimited() { return _maxAge!=-1; }
 
   int weightLimit() { return _maxWeight; }
+  int nonGoalWeightLimit() { return _maxNonGoalWeight; }
   bool weightLimited() { return _maxWeight!=-1; }
 
   bool fulfillsLimits(Clause* cl)
@@ -47,39 +48,15 @@ public:
     if(!ageLimited() || !weightLimited()) {
       return true;
     }
-    return (cl->weight() <= weightLimit()) || (cl->age() <= ageLimit());
+    return (cl->age() <= ageLimit()) || (cl->getEffectiveWeight() <= weightLimit());
   }
 
-  void setLimits(int newMaxAge, int newMaxWeight)
-  {
-    CALL("Limits::setLimits");
-    ASS_GE(newMaxAge,-1);
-    ASS_GE(newMaxWeight,-1);
+  void setLimits(int newMaxAge, int newMaxWeight);
 
-    LimitsChangeType res=NO_LIMITS_CHANGE;
-    if(_maxAge!=newMaxAge) {
-      if(_maxAge==-1||_maxAge>newMaxAge) {
-	res=static_cast<LimitsChangeType>(res|LIMITS_TIGHTENED);
-      } else {
-	res=static_cast<LimitsChangeType>(res|LIMITS_LOOSENED);
-      }
-      _maxAge=newMaxAge;
-    }
-    if(_maxWeight!=newMaxWeight) {
-      if(_maxWeight==-1||_maxWeight>newMaxWeight) {
-	res=static_cast<LimitsChangeType>(res|LIMITS_TIGHTENED);
-      } else {
-	res=static_cast<LimitsChangeType>(res|LIMITS_LOOSENED);
-      }
-      _maxWeight=newMaxWeight;
-    }
-    if(res!=NO_LIMITS_CHANGE) {
-      changedEvent.fire(res);
-    }
-  }
 private:
   int _maxAge;
   int _maxWeight;
+  int _maxNonGoalWeight;
 };
 
 };

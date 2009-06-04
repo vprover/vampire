@@ -5,6 +5,7 @@
  */
 
 #include "../Lib/Environment.hpp"
+#include "../Lib/Int.hpp"
 #include "../Lib/Timer.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
@@ -18,8 +19,15 @@
 
 #include "AWPassiveClauseContainer.hpp"
 
+namespace Saturation
+{
+using namespace Lib;
 using namespace Kernel;
-using namespace Saturation;
+
+Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
+{
+  return Int::compare(cl1->getEffectiveWeight(), cl2->getEffectiveWeight());
+}
 
 /**
  * Comparison of clauses. The comparison uses four orders in the
@@ -35,12 +43,11 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("WeightQueue::lessThan");
 
-  if (c1->weight() < c2->weight()) {
-    return true;
+  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1,c2);
+  if(weightCmp!=EQUAL) {
+    return weightCmp==LESS;
   }
-  if (c2->weight() < c1->weight()) {
-    return false;
-  }
+
   if (c1->age() < c2->age()) {
     return true;
   }
@@ -77,12 +84,12 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
   if (c2->age() < c1->age()) {
     return false;
   }
-  if (c1->weight() < c2->weight()) {
-    return true;
+
+  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1,c2);
+  if(weightCmp!=EQUAL) {
+    return weightCmp==LESS;
   }
-  if (c2->weight() < c1->weight()) {
-    return false;
-  }
+
   if (c1->inputType() < c2->inputType()) {
     return false;
   }
@@ -207,7 +214,7 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
 	}
       } else if(ait.hasNext()){
 	acl=ait.next();
-	if(!wcl || acl->weight() > wcl->weight()) {
+	if(!wcl || acl->getEffectiveWeight() > wcl->getEffectiveWeight()) {
 	  balance+=_weightRatio;
 	  remains--;
 	}
@@ -223,7 +230,7 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
       maxAge=acl->age();
     }
     if(wcl!=0 && wit.hasNext()) {
-      maxWeight=wcl->weight();
+      maxWeight=wcl->getEffectiveWeight();
     }
   }
 
@@ -251,7 +258,7 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   //Here we rely on (and maintain) the invariant, that
   //_weightQueue and _ageQueue contain the same set
   //of clauses, differing only in their order.
-  //(unless one of _ageRation or _weightRation is equal to 0)
+  //(unless one of _ageRation or _weightRatio is equal to 0)
 
   int ageLimit=limits->ageLimit();
   int weightLimit=limits->weightLimit();
@@ -263,14 +270,21 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 //    bool shouldStay=limits->fulfillsLimits(cl);
     bool shouldStay=true;
 //    if(shouldStay && cl->age()==ageLimit) {
-    if(cl->age()>=ageLimit) {
-      //clauses inferred from the clause will be over age limit
+    if(cl->age()>ageLimit) {
+      if(cl->getEffectiveWeight()>weightLimit) {
+        shouldStay=false;
+      }
+    } else if(cl->age()==ageLimit) {
+      //clauses inferred from the clause will be over age limit...
       unsigned clen=cl->length();
       int maxSelWeight=0;
       for(unsigned i=0;i<clen;i++) {
         maxSelWeight=max((int)(*cl)[i]->weight(),maxSelWeight);
       }
+      //here we don't use the effective weight, as from a nongoal clause
+      //can be the goal one inferred.
       if(cl->weight()-maxSelWeight>=weightLimit) {
+	//and also over weight limit
         shouldStay=false;
       }
     }
@@ -281,7 +295,7 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 
 #if OUTPUT_LRS_DETAILS
   if(toRemove.isNonEmpty()) {
-    cout<<toRemove.size()<<" passive deleted\n";
+    cout<<toRemove.size()<<" passive deleted, "<< (size()-toRemove.size()) <<" remains\n";
   }
 #endif
 
@@ -295,4 +309,4 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 
 }
 
-
+}

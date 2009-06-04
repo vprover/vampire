@@ -7,6 +7,7 @@
 #ifndef __AWPassiveClauseContainer__
 #define __AWPassiveClauseContainer__
 
+#include "../Lib/Comparison.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/ClauseQueue.hpp"
 #include "ClauseContainer.hpp"
@@ -38,7 +39,7 @@ class AWPassiveClauseContainer:
 public PassiveClauseContainer
 {
 public:
-  AWPassiveClauseContainer() : _balance(0), _size(0) {};
+  AWPassiveClauseContainer() : _balance(0), _size(0) {}
   ~AWPassiveClauseContainer();
   void add(Clause* cl);
 
@@ -91,6 +92,7 @@ public:
     return _size;
   }
 
+  static Comparison compareWeight(Clause* cl1, Clause* cl2);
 protected:
   void onLimitsUpdated(LimitsChangeType change);
 

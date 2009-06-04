@@ -8,19 +8,23 @@
 #include <ostream>
 
 #include "../Lib/Allocator.hpp"
+#include "../Lib/DArray.hpp"
+#include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Stack.hpp"
 
-#include "../Lib/DArray.hpp"
+#include "../Shell/Options.hpp"
 
 #include "Inference.hpp"
 #include "Clause.hpp"
 #include "Term.hpp"
 #include "BDD.hpp"
 
+namespace Kernel
+{
 
 using namespace Lib;
-using namespace Kernel;
+using namespace Shell;
 
 
 size_t Clause::_auxCurrTimestamp=0;
@@ -163,16 +167,18 @@ string Clause::toString() const
 
   }
 
+  if(prop()) {
 #if VDEBUG
-  string bddString=BDD::instance()->toString(prop());
-  if(bddString.length()>255) {
-    result += " | " + bddString.substr(0,255) + "...";
-  } else {
-    result += " | " + bddString;
-  }
+    string bddString=BDD::instance()->toString(prop());
+    if(bddString.length()>255) {
+      result += " | " + bddString.substr(0,255) + "...";
+    } else {
+      result += " | " + bddString;
+    }
 #else
-  result += " | " + BDD::instance()->toString(prop());
+    result += " | " + BDD::instance()->toString(prop());
 #endif
+  }
 
   result += string(" (") + Int::toString(_age) + ':' +
             Int::toString(weight()) + ") " + inferenceAsString();
@@ -196,6 +202,20 @@ void Clause::computeWeight() const
   }
 } // Clause::computeWeight
 
+float Clause::getEffectiveWeight(unsigned originalWeight)
+{
+  static float nongoalWeightCoef=-1;
+  if(nongoalWeightCoef<0) {
+    nongoalWeightCoef=env.options->nongoalWeightCoefficient();
+  }
+  return originalWeight * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
+}
+
+
+float Clause::getEffectiveWeight()
+{
+  return getEffectiveWeight(weight());
+}
 
 #if VDEBUG
 
@@ -223,8 +243,9 @@ bool Clause::contains(Literal* lit)
 
 #endif
 
+}
+
 std::ostream& Kernel::operator<< (ostream& out, const Clause& cl )
 {
   return out<<cl.toString();
 }
-

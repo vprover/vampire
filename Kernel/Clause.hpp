@@ -225,6 +225,8 @@ public:
 #endif
   }
 
+  float getEffectiveWeight(unsigned originalWeight);
+  float getEffectiveWeight();
 protected:
   /** number of literals */
   unsigned _length;

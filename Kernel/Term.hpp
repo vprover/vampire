@@ -300,6 +300,16 @@ public:
   /** True if the term is, in fact, a literal */
   bool isLiteral() const { return _args[0]._info.literal; }
 
+  /** Return an index of the argument to which @b arg points */
+  unsigned getArgumentIndex(TermList* arg)
+  {
+    CALL("Term::getArgumentIndex");
+
+    unsigned res=arity()-(arg-_args);
+    ASS_L(res,arity());
+    return res;
+  }
+
 #if VDEBUG
   string headerToString() const;
   void assertValid() const;

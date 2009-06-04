@@ -12,6 +12,7 @@
 
 #include "CNF.hpp"
 #include "Flattening.hpp"
+#include "FunctionDefinition.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "NNF.hpp"
@@ -27,7 +28,6 @@
 // #include "Definition.hpp"
 // #include "Environment.hpp"
 // #include "EqualityProxy.hpp"
-// #include "FunctionDefinition.hpp"
 // #include "LiteralOrderingFinder.hpp"
 // #include "Miniscope.hpp"
 // #include "Ordering.hpp"
@@ -104,7 +104,7 @@ void Preprocess::preprocess (UnitList*& units)
 //   }
 
   if (_property.hasFormulas()) {
-    us.reset(units);
+    us.reset();
     while (us.hasNext()) {
       Unit* u = us.next();
       Unit* v = preprocess2(u);
@@ -116,7 +116,7 @@ void Preprocess::preprocess (UnitList*& units)
 
   if (_property.hasFormulas() && _options.naming()) {
     Naming naming(_options.naming());
-    us.reset(units);
+    us.reset();
     while (us.hasNext()) {
       Unit* u = us.next();
       if (u->isClause()) {
@@ -132,7 +132,7 @@ void Preprocess::preprocess (UnitList*& units)
     }
   }
 
-  us.reset(units);
+  us.reset();
   while (us.hasNext()) {
     Unit* u = us.next();
     Unit* v = preprocess3(u);
@@ -154,7 +154,7 @@ void Preprocess::preprocess (UnitList*& units)
   if (_property.hasFormulas()) {
     CNF cnf;
     Stack<Clause*> clauses(32);
-    us.reset(units);
+    us.reset();
     while (us.hasNext()) {
       Unit* u = us.next();
       if (! u->isClause()) {
@@ -168,11 +168,11 @@ void Preprocess::preprocess (UnitList*& units)
     }
   }
 
-//  if (_options.functionDefinitionElimination() == Options::FDE_ALL &&
-//	  _property.hasProp(PR_HAS_FUNCTION_DEFINITIONS)) {
-//    FunctionDefinition fd;
-//    fd.removeAllDefinitions(units);
-//  }
+  if (_options.functionDefinitionElimination() == Options::FDE_ALL &&
+	  _property.hasProp(Property::PR_HAS_FUNCTION_DEFINITIONS)) {
+    FunctionDefinition fd;
+    fd.removeAllDefinitions(units);
+  }
 
 //   // remove tautologies, duplicate literals, and literals t != t
 //   UnitChain::DelIterator units (_problem.giveUnits());

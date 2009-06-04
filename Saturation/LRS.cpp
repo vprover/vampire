@@ -83,7 +83,12 @@ long LRS::estimatedReachableCount()
     return -1;
   }
 
-  long timeLeft=env.options->timeLimitInDeciseconds()*100 - currTime;
+  long timeLeft;
+  if(env.options->simulatedTimeLimit()) {
+    timeLeft=env.options->simulatedTimeLimit()*100 - currTime;
+  } else {
+    timeLeft=env.options->timeLimitInDeciseconds()*100 - currTime;
+  }
   if(timeLeft<=0 || processed<=10) {
     return -1;
   }

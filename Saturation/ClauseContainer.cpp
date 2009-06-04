@@ -145,12 +145,19 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     }
     checked.insert(cl);
 
-    unsigned selCnt=cl->selected();
-    unsigned maxSelWeight=0;
-    for(unsigned i=0;i<selCnt;i++) {
-      maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
+    bool shouldRemove;
+    if(cl->age()>ageLimit) {
+      shouldRemove=cl->getEffectiveWeight()>weightLimit;
+    } else {
+      unsigned selCnt=cl->selected();
+      unsigned maxSelWeight=0;
+      for(unsigned i=0;i<selCnt;i++) {
+        maxSelWeight=max((*cl)[i]->weight(),maxSelWeight);
+      }
+      shouldRemove=cl->weight()-(int)maxSelWeight>=weightLimit;
     }
-    if(cl->weight()-(int)maxSelWeight>=weightLimit) {
+
+    if(shouldRemove) {
       ASS(cl->store()==Clause::ACTIVE || cl->store()==Clause::REACTIVATED);
       toRemove.push(cl);
     }

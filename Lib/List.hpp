@@ -599,10 +599,9 @@ public:
       _cur(0)
     {}
 
-    /** Reset the iterator to a new list */
-    inline void reset(List*& l)
+    /** Reset the iterator to the beginning of the list */
+    inline void reset()
     {
-      _lst = l;
       _prev = 0;
       _cur = 0;
     } // reset
@@ -665,10 +664,12 @@ public:
      * continues, the new list will not be returned by the iterator.
      * @pre At least one element should have been returned
      *   by a previous call to next() so _cur != null
+     * @pre The preceding operation must not have been del()
      * @since 27/12/2007 Manchester
      */
     void insert (List* lst)
     {
+      ASS_NEQ(_cur, _prev);
       if (! lst) {
 	return;
       }
@@ -695,10 +696,12 @@ public:
      * continues, the new element will not be returned by the iterator.
      * @pre At least one element should have been returned
      *   by a previous call to next() so _cur != null
+     * @pre The preceding operation must not have been del()
      * @since 27/12/2007 Manchester
      */
     void insert (C elem)
     {
+      ASS_NEQ(_cur, _prev);
       List* lst = new List(elem,_cur);
       if (_prev) {
 	_prev->setTail(lst);

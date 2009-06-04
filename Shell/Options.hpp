@@ -6,6 +6,8 @@
 #ifndef __Options__
 #define __Options__
 
+#include "../Debug/Assertion.hpp"
+
 #include "../Lib/Allocator.hpp"
 #include "../Lib/XML.hpp"
 

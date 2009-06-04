@@ -258,7 +258,8 @@ string Inference::name() const
 //  case EQUALITY_PROXY_REPLACEMENT:
 //  case EQUALITY_PROXY_AXIOM1:
 //  case EQUALITY_PROXY_AXIOM2:
-//  case DEFINITION_UNFOLDING:
+  case DEFINITION_UNFOLDING:
+    return "definition unfolding";
   case DEFINITION_FOLDING:
     return "definition folding";
 //  case ROW_VARIABLE_EXPANSION:

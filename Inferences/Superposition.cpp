@@ -9,6 +9,7 @@
 #include "../Lib/PairUtils.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
+#include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "../Kernel/Term.hpp"
@@ -178,7 +179,13 @@ Clause* Superposition::performSuperposition(
   bool shouldCheckWeight=false;
   int weightLimit=0;
   if(limits->ageLimited() && newAge > limits->ageLimit() && limits->weightLimited()) {
-    weightLimit=limits->weightLimit();
+    bool isNonGoal=rwClause->inputType()==0 && eqClause->inputType()==0;
+    if(isNonGoal) {
+      weightLimit=limits->nonGoalWeightLimit();
+    } else {
+      weightLimit=limits->weightLimit();
+    }
+
     shouldCheckWeight=true;
 
     int wlb=0;//weight lower bound
