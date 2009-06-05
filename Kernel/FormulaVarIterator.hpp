@@ -20,7 +20,7 @@ namespace Kernel {
 class TermList;
 
 /**
- * Implements an iterator over free variables of a 
+ * Implements an iterator over free variables of a
  * formula formula list, or atom.
  *
  * @warning works correctly only for formulas in which free variables
@@ -51,5 +51,3 @@ private:
 }
 
 #endif // __FormulaVarIterator__
-
-

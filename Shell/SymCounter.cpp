@@ -1,6 +1,6 @@
 /**
  * @file SymCounter.cpp
- * Implements class SymCounter counting occurrences of function 
+ * Implements class SymCounter counting occurrences of function
  * and predicate symbols.
  *
  * @since 01/05/2002, Manchester
@@ -95,6 +95,10 @@ void SymCounter::count (const Clause* clause,int add)
   }
 } // SymCounter::count (Clause* u,int c)
 
+void SymCounter::count(const Formula* f, int add)
+{
+  count(f, 1, add);
+}
 
 /**
  * Count symbols in a formula.

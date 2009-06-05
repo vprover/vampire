@@ -289,6 +289,10 @@ string Inference::name() const
     return "evaluation";
   case SPLITTING_COMPONENT:
     return "splitting component introduction";
+  case UNUSED_PREDICATE_DEFINITION_REMOVAL:
+    return "unused predicate definition removal";
+  case PURE_PREDICATE_REMOVAL:
+    return "pure predicate removal";
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

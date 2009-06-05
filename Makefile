@@ -13,14 +13,14 @@
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = -g -DVDEBUG=0 -DCHECK_LEAKS=0 # debug mode without VDEBUG macro 
-#XFLAGS = -g -O6 -DVDEBUG=0 # no debugging, but debugging info present
+XFLAGS = -g -O6 -DVDEBUG=0 # no debugging, but debugging info present
 #XFLAGS = -pg -g -O6 -DVDEBUG=0 # profiling with max optimization
 #XFLAGS = -pg -g -O6 -DVDEBUG=0 -fno-inline # profiling with no inlining
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -145,6 +145,7 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/Normalisation.o\
          Shell/Options.o\
          Shell/Parser.o\
+         Shell/PredicateDefinition.o\
          Shell/Preprocess.o\
          Shell/Property.o\
          Shell/Rectify.o\

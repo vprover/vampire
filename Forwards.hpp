@@ -41,6 +41,9 @@ class Literal;
 typedef List<Literal*> LiteralList;
 
 class Unit;
+class FormulaUnit;
+class Formula;
+
 class Clause;
 typedef VirtualIterator<Clause*> ClauseIterator;
 typedef SingleParamEvent<Clause*> ClauseEvent;

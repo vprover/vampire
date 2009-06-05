@@ -17,6 +17,7 @@
 #include "Normalisation.hpp"
 #include "NNF.hpp"
 #include "Options.hpp"
+#include "PredicateDefinition.hpp"
 #include "Preprocess.hpp"
 #include "Property.hpp"
 #include "Rectify.hpp"
@@ -85,12 +86,14 @@ void Preprocess::preprocess (UnitList*& units)
     units = norm.normalise(units);
   }
 
-  UnitList::DelIterator us(units);
-  while (us.hasNext()) {
-    Unit* u = us.next();
-    Unit* v = preprocess1(u);
-    if (v != u) {
-      us.replace(v);
+  {
+    UnitList::DelIterator us(units);
+    while (us.hasNext()) {
+      Unit* u = us.next();
+      Unit* v = preprocess1(u);
+      if (v != u) {
+	us.replace(v);
+      }
     }
   }
 
@@ -98,25 +101,25 @@ void Preprocess::preprocess (UnitList*& units)
 //   TheoryFinder theoryFinder(_problem,0);
 //   theoryFinder.search();
 
-//   if (_property.hasFormulas() &&
-//       _options.unusedPredicateDefinitionRemoval()) {
-// 	Definition::removeUnusedPredicateDefinitions(_problem);
-//   }
+  if (_options.unusedPredicateDefinitionRemoval()) {
+    PredicateDefinition pdRemover;
+    pdRemover.removeUnusedDefinitionsAndPurePredicates(units);
+  }
 
   if (_property.hasFormulas()) {
-    us.reset();
+    UnitList::DelIterator us(units);
     while (us.hasNext()) {
       Unit* u = us.next();
       Unit* v = preprocess2(u);
       if (v != u) {
-  	us.replace(v);
+	us.replace(v);
       }
     }
   }
 
   if (_property.hasFormulas() && _options.naming()) {
+    UnitList::DelIterator us(units);
     Naming naming(_options.naming());
-    us.reset();
     while (us.hasNext()) {
       Unit* u = us.next();
       if (u->isClause()) {
@@ -132,13 +135,15 @@ void Preprocess::preprocess (UnitList*& units)
     }
   }
 
-  us.reset();
-  while (us.hasNext()) {
-    Unit* u = us.next();
-    Unit* v = preprocess3(u);
-    if (v != u) {
-       us.replace(v);
-     }
+  {
+    UnitList::DelIterator us(units);
+    while (us.hasNext()) {
+      Unit* u = us.next();
+      Unit* v = preprocess3(u);
+      if (v != u) {
+	us.replace(v);
+      }
+    }
   }
 
 //   // find ordering on literals
@@ -152,9 +157,9 @@ void Preprocess::preprocess (UnitList*& units)
 //   }
 
   if (_property.hasFormulas()) {
+    UnitList::DelIterator us(units);
     CNF cnf;
     Stack<Clause*> clauses(32);
-    us.reset();
     while (us.hasNext()) {
       Unit* u = us.next();
       if (! u->isClause()) {

@@ -153,7 +153,12 @@ public:
     /** evaluation inference */
     EVALUATION = 54u,
     /** evaluation inference */
-    SPLITTING_COMPONENT = 55u
+    SPLITTING_COMPONENT = 55u,
+    /** unused predicate definition removal */
+    UNUSED_PREDICATE_DEFINITION_REMOVAL = 56u,
+    /** pure predicate removal */
+    PURE_PREDICATE_REMOVAL = 57u
+
 
 
   }; // class Inference::Rule
