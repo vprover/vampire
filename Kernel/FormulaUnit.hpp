@@ -6,6 +6,7 @@
  */
 
 #ifndef __FormulaUnit__
+#define __FormulaUnit__
 
 #include "../Lib/Allocator.hpp"
 
@@ -52,4 +53,4 @@ protected:
 
 
 }
-#endif 
+#endif

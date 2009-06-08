@@ -134,12 +134,13 @@ void Clause::destroyExceptInferenceObject()
 //};
 
 /**
- * Convert the clause to the string representation.
+ * Convert the clause to the string representation, assuming its
+ * propositional part is @b propPart.
  * @since 20/05/2007 Manchester
  */
-string Clause::toString() const
+string Clause::toString(BDDNode* propPart) const
 {
-  CALL("Clause::toString");
+  CALL("Clause::toString(BDDNode*)");
 
   string result = Int::toString(_number) + ". ";
   if (_length == 0) {
@@ -153,36 +154,35 @@ string Clause::toString() const
 	result += _literals[i]->toString();
       }
     }
-//    static DArray<string> litStrs(8);
-//    litStrs.ensure(length());
-//    for (unsigned i = 0; i < _length;i++) {
-//      litStrs[i]=_literals[i]->toString();
-//    }
-//    litStrs.sort(StrComparator());
-//    result += litStrs[0];
-//    for (unsigned i = 1; i < _length;i++) {
-//      result += " | ";
-//      result += litStrs[i];
-//    }
-
   }
 
-  if(prop()) {
+  if(propPart) {
 #if VDEBUG
-    string bddString=BDD::instance()->toString(prop());
+    string bddString=BDD::instance()->toString(propPart);
     if(bddString.length()>255) {
       result += " | " + bddString.substr(0,255) + "...";
     } else {
       result += " | " + bddString;
     }
 #else
-    result += " | " + BDD::instance()->toString(prop());
+    result += " | " + BDD::instance()->toString(propPart);
 #endif
   }
 
   result += string(" (") + Int::toString(_age) + ':' +
             Int::toString(weight()) + ") " + inferenceAsString();
   return result;
+}
+
+/**
+ * Convert the clause to the string representation.
+ * @since 20/05/2007 Manchester
+ */
+string Clause::toString() const
+{
+  CALL("Clause::toString()");
+
+  return toString(prop());
 } // Clause::toString
 
 

@@ -110,6 +110,9 @@ void Preprocess::preprocess (UnitList*& units)
     UnitList::DelIterator us(units);
     while (us.hasNext()) {
       Unit* u = us.next();
+      if(u->isClause()) {
+	continue;
+      }
       Unit* v = preprocess2(u);
       if (v != u) {
 	us.replace(v);

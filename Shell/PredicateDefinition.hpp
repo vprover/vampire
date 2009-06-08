@@ -26,7 +26,7 @@ public:
   PredicateDefinition();
   ~PredicateDefinition();
 
-  void removeUnusedDefinitionsAndPurePredicates(UnitList* units);
+  void removeUnusedDefinitionsAndPurePredicates(UnitList*& units);
 
 private:
   struct Def;

@@ -157,10 +157,17 @@ public:
     /** unused predicate definition removal */
     UNUSED_PREDICATE_DEFINITION_REMOVAL = 56u,
     /** pure predicate removal */
-    PURE_PREDICATE_REMOVAL = 57u
+    PURE_PREDICATE_REMOVAL = 57u,
 
 
-
+    /** splitting */
+    SPLITTING = 201u,
+    /** merge of clauses with common non-prop. parts */
+    COMMON_NONPROP_MERGE = 202u,
+    /** reducing the propositional part (due to simplification) */
+    PROP_REDUCE = 203u,
+    /** clause naming */
+    CLAUSE_NAMING = 204u
   }; // class Inference::Rule
 
   explicit Inference(Rule r)

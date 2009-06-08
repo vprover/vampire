@@ -10,6 +10,7 @@
 #include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
+#include "../Kernel/InferenceStore.hpp"
 #include "../Kernel/LiteralSelector.hpp"
 #include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
@@ -26,10 +27,10 @@ using namespace Saturation;
 #define REPORT_CONTAINERS 0
 #define REPORT_FW_SIMPL 0
 #define REPORT_BW_SIMPL 0
-#define TOTAL_SIMPLIFICATION_ONLY 0
-#define FW_DEMODULATION_FIRST 0
-//Splitting 0 -> none, 1 -> always, 2 -> only first 5% of time
-#define SPLITTING 0
+#define TOTAL_SIMPLIFICATION_ONLY 1
+#define FW_DEMODULATION_FIRST 1
+//Splitting 0 -> none, 1 -> always, 2 -> only first 5% of time, 3 -> only input clauses
+#define SPLITTING 3
 
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
@@ -132,6 +133,12 @@ int SaturationAlgorithm::elapsedTime()
 }
 
 
+#if SPLITTING==0
+bool g_performSplitting=false;
+#else
+bool g_performSplitting=true;
+#endif
+
 /**
  * Insert input clauses into ste unprocessed container.
  */
@@ -144,6 +151,9 @@ void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
     cl->setProp(bdd->getFalse());
     addUnprocessedClause(cl);
   }
+#if SPLITTING==3
+  g_performSplitting=false;
+#endif
 }
 
 bool SaturationAlgorithm::isRefutation(Clause* c)
@@ -182,15 +192,15 @@ public:
     cout<<"="<<(*_cl)<<endl;
 #endif
 
-    BDDNode* premiseProp = premise ? premise->prop() : bdd->getFalse();
-
-    _cl->setProp(bdd->getTrue());
-    _cl=0;
-
     if(replacement) {
       replacement->setProp(oldClProp);
+      InferenceStore::instance()->recordNonPropInference(replacement);
       ClauseList::push(replacement, _toAddLst);
     }
+
+    _cl->setProp(bdd->getTrue());
+    InferenceStore::instance()->recordPropReduce(_cl, oldClProp, bdd->getTrue());
+    _cl=0;
 
 #if REPORT_FW_SIMPL
     if(replacement) {
@@ -240,6 +250,9 @@ public:
     BDD* bdd=BDD::instance();
 
     BDDNode* oldClProp=_cl->prop();
+    BDDNode* premiseProp = premise ? premise->prop() : bdd->getFalse();
+    BDDNode* newClProp = bdd->xOrNonY(oldClProp, premiseProp);
+
 
 #if REPORT_FW_SIMPL
     cout<<"->>--------\n";
@@ -249,17 +262,18 @@ public:
     cout<<"="<<(*_cl)<<endl;
 #endif
 
-    BDDNode* premiseProp = premise ? premise->prop() : bdd->getFalse();
 
     if(replacement) {
       BDDNode* replacementProp=bdd->disjunction(oldClProp, premiseProp);
       if(!bdd->isTrue(replacementProp)) {
 	replacement->setProp(replacementProp);
+	InferenceStore::instance()->recordNonPropInference(replacement);
 	ClauseList::push(replacement, _toAddLst);
       }
     }
 
-    _cl->setProp(bdd->xOrNonY(oldClProp, premiseProp));
+    _cl->setProp(newClProp);
+    InferenceStore::instance()->recordPropReduce(_cl, oldClProp, newClProp);
 
     if(bdd->isTrue(_cl->prop())) {
       _cl=0;
@@ -287,7 +301,6 @@ private:
   Clause* _cl;
   ClauseList* _toAddLst;
 };
-
 
 /**
  * Perform immediate simplifications on a clause and add it
@@ -323,6 +336,7 @@ simplificationStart:
     if(simplified) {
       cl=simplCl;
       cl->setProp(prop);
+      InferenceStore::instance()->recordNonPropInference(cl);
     }
   } while(simplified);
 
@@ -356,11 +370,7 @@ simplificationStart:
 
   ASS(!bdd->isTrue(cl->prop()));
 
-#if SPLITTING==0
-  static bool performSplitting=false;
-#elif SPLITTING==1
-  static bool performSplitting=true;
-#elif SPLITTING==2
+#if SPLITTING==2
   static bool performSplitting=true;
   static int scCounter=0;
   scCounter++;
@@ -372,7 +382,7 @@ simplificationStart:
   }
 #endif
 
-  if(performSplitting) {
+  if(g_performSplitting) {
     ClauseIterator newComponents;
     ClauseIterator modifiedComponents;
     _splitter.doSplitting(cl, newComponents, modifiedComponents);
@@ -392,9 +402,9 @@ simplificationStart:
       ASS(!bdd->isTrue(comp->prop()));
       if(comp->store()==Clause::ACTIVE) {
         if(!comp->isEmpty()) { //don't reanimate empty clause
-  	reanimate(comp);
+          reanimate(comp);
         } else {
-  	ASS(!isRefutation(comp));
+          ASS(!isRefutation(comp));
         }
       } else if(comp->store()==Clause::NONE) {
         ASS(!comp->isEmpty());
@@ -403,11 +413,15 @@ simplificationStart:
       }
     }
   } else {
-#if SPLITTING==2
+#if SPLITTING>1
     static Clause* emptyClause=0;
     if(cl->isEmpty()) {
       if(emptyClause) {
-	emptyClause->setProp(bdd->conjunction(emptyClause->prop(), cl->prop()));
+	BDDNode* oldECProp=emptyClause->prop();
+	BDDNode* newECProp=bdd->conjunction(oldECProp, cl->prop());
+	emptyClause->setProp(newECProp);
+	InferenceStore::instance()->recordMerge(emptyClause, oldECProp, cl, newECProp);
+
 	if(isRefutation(emptyClause)) {
 	  _unprocessed->add(emptyClause);
 	  return;
@@ -533,12 +547,15 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	  while(srec.replacements.hasNext()) {
 	    Clause* addCl=srec.replacements.next();
 	    addCl->setProp(replacementProp);
+	    InferenceStore::instance()->recordNonPropInference(addCl);
 	    addUnprocessedClause(addCl);
 	  }
 	}
       }
 
       redundant->setProp(newRedundantProp);
+      InferenceStore::instance()->recordPropReduce(redundant, oldRedundantProp, newRedundantProp);
+
 
       if(bdd->isTrue(newRedundantProp)) {
 	switch(redundant->store()) {
@@ -627,6 +644,8 @@ void SaturationAlgorithm::activate(Clause* cl)
     if(bdd->isTrue(prop)) {
       continue;
     }
+
+    InferenceStore::instance()->recordNonPropInference(genCl);
 
     addUnprocessedClause(genCl);
   }

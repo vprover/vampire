@@ -18,25 +18,26 @@ namespace Kernel {
 
 using namespace Lib;
 
-class FullInference
-{
-  enum Type
-  {
-    MERGE=201,
-    SPLITTING=202,
-    SUBSUMPTION_SUBTRACTION=203
-
-  };
-};
-
 class InferenceStore
 {
 public:
 
+  static InferenceStore* instance();
+
   void recordNonPropInference(Clause* cl);
-  void recordInference(Clause* cl, FullInference* inf);
+  void recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp);
+  void recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newProp, Inference::Rule rule);
+  void recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp);
+  void recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
+	  unsigned premCnt, Clause** prems);
 private:
   typedef pair<Clause*, BDDNode*> ClauseSpec;
+
+  struct FullInference;
+  ClauseSpec getClauseSpec(Clause* cl);
+  ClauseSpec getClauseSpec(Clause* cl, BDDNode* prop);
+
+
   DHMap<ClauseSpec, FullInference*, PtrPairSimpleHash> _data;
 };
 

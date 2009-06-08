@@ -60,13 +60,13 @@ struct PredicateDefinition::PredData
     switch (polarity) {
     case -1:
       nocc += add;
-      return;
+      break;
     case 0:
       docc += add;
-      return;
+      break;
     case 1:
       pocc += add;
-      return;
+      break;
 #if VDEBUG
     default:
       ASSERTION_VIOLATION;
@@ -80,6 +80,7 @@ struct PredicateDefinition::PredData
 
   void check(PredicateDefinition* pdObj)
   {
+    CALL("PredicateDefinition::PredData::check");
     if(!enqueuedForDefEl && isEliminable()) {
       ASS(!enqueuedForReplacement);
       pdObj->_eliminable.push(pred);
@@ -123,7 +124,7 @@ PredicateDefinition::~PredicateDefinition()
  *
  * @pre Formulas must be rectified and flattened.
  */
-void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList* units)
+void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& units)
 {
   CALL("PredicateDefinition::removeUnusedDefinitionsAndPurePredicates");
 
@@ -136,7 +137,7 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList* uni
     _preds[pred].check(this);
   }
 
-  while(_eliminable.isNonEmpty() && _pureToReplace.isNonEmpty()) {
+  while(_eliminable.isNonEmpty() || _pureToReplace.isNonEmpty()) {
     while(_eliminable.isNonEmpty()) {
       int pred=_eliminable.pop();
       PredData& pd=_preds[pred];
@@ -146,11 +147,11 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList* uni
       } else if(pd.pocc==0) {
 	//elsewhere it occurs only negatively, so we can make
 	//an equivalence into an implication
-	makeImplFromDef(pred, true);
+	makeImplFromDef(pred, false);
       } else if(pd.nocc==0) {
 	//elsewhere it occurs only positively, so we can make
 	//an equivalence into an implication
-	makeImplFromDef(pred, false);
+	makeImplFromDef(pred, true);
       }
       if(pd.newDefUnit) {
 	count(pd.newDefUnit, 1);
@@ -172,19 +173,19 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList* uni
 	  continue;
 	}
 	Unit* v=replacePurePredicates(u);
-	if(u!=v) {
-	  if(u->isClause()) {
-	    ASS(v->isClause())
-	    if(v!=0) {
-	      count(static_cast<Clause*>(v), 1);
-	    }
-	    count(static_cast<Clause*>(u), -1);
-	  } else {
-	    count(static_cast<FormulaUnit*>(v), 1);
-	    count(static_cast<FormulaUnit*>(u), -1);
+
+	ASS_NEQ(u,v);
+	if(u->isClause()) {
+	  ASS(v->isClause())
+	  if(v!=0) {
+	    count(static_cast<Clause*>(v), 1);
 	  }
-	  ALWAYS(_unitReplacements.insert(u,v));
+	  count(static_cast<Clause*>(u), -1);
+	} else {
+	  count(static_cast<FormulaUnit*>(v), 1);
+	  count(static_cast<FormulaUnit*>(u), -1);
 	}
+	ALWAYS(_unitReplacements.insert(u,v));
       }
     }
   }
@@ -200,7 +201,11 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList* uni
     while(_unitReplacements.find(v,tgt)) {
       v=tgt;
     }
-    replaceIterator.replace(v);
+    if(!v || ( !v->isClause() && static_cast<FormulaUnit*>(v)->formula()->connective()==TRUE ) ) {
+      replaceIterator.del();
+    } else {
+      replaceIterator.replace(v);
+    }
   }
 
 }
@@ -490,8 +495,8 @@ void PredicateDefinition::makeImplFromDef(int pred, bool forward)
     lhs=f->left();
     rhs=f->right();
   } else {
-    ASS_EQ(f->left()->connective(), LITERAL);
-    ASS_EQ(f->left()->literal()->functor(), pred);
+    ASS_EQ(f->right()->connective(), LITERAL);
+    ASS_EQ(f->right()->literal()->functor(), pred);
     lhs=f->right();
     rhs=f->left();
   }
@@ -543,7 +548,7 @@ void PredicateDefinition::scan(FormulaUnit* unit)
   }
   ASS_NEQ(f->connective(), FORALL); //formula is flattened
 
-  if(f->connective() != IFF) {
+  if(f->connective() == IFF) {
     if(f->left()->connective()==LITERAL) {
       if(tryGetDef(f->left()->literal(), f->right(), unit)) {
 	return;
@@ -577,6 +582,9 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
     case LITERAL:
     {
       Literal* l=f->literal();
+      if(l->isEquality()) {
+	return;
+      }
       int pred = l->functor();
       _preds[pred].add(l->isPositive() ? polarity : -polarity, add, this);
       if(add==1) {

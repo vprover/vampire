@@ -104,6 +104,7 @@ public:
   void destroy();
   void destroyExceptInferenceObject();
   string toString() const;
+  string toString(BDDNode* propPart) const;
 
   /** Return the clause store */
   Store store() const { return _store; }

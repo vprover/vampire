@@ -9,6 +9,7 @@
 #include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
+#include "../Kernel/InferenceStore.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Shell/Statistics.hpp"
 
@@ -67,6 +68,9 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   env.statistics->splittedClauses++;
   env.statistics->splittedComponents+=compCnt;
 
+  static Stack<Clause*> masterPremises;
+  masterPremises.reset();
+
 #if REPORT_SPLITS
   cout<<"####Split####\n";
   cout<<(*cl)<<endl;
@@ -79,6 +83,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   newComponentStack.reset();
 
   BDDNode* newMasterProp=cl->prop();
+  masterPremises.push(cl);
 
   static Stack<Literal*> lits(16);
 
@@ -119,6 +124,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 	    modifiedComponents=ClauseIterator::getEmpty();
 	    return;
 	  }
+	  masterPremises.push(comp);
 	}
       } else {
 	unnamedComponentStack.push(comp);
@@ -135,6 +141,8 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       _variantIndex.insert(comp);
 
       comp->setProp(bdd->getTrue());
+      InferenceStore::instance()->recordNonPropInference(comp);
+
 
       newComponentStack.push(comp);
     }
@@ -172,8 +180,12 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       //The same component can appear multiple times.
       //We detect the harmful cases here as attempts to name
       //a component multiple times.
-      comp->setProp(bdd->conjunction(comp->prop(), bdd->getAtomic(compName, false)));
+      BDDNode* oldCompProp=comp->prop();
+      BDDNode* newCompProp=bdd->conjunction(oldCompProp, bdd->getAtomic(compName, false));
+      comp->setProp(newCompProp);
+      InferenceStore::instance()->recordPropAlter(comp, oldCompProp, newCompProp, Inference::CLAUSE_NAMING);
       newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
+      masterPremises.push(comp);
 #if REPORT_SPLITS
       cout<<'n'<<compName<<": "<<(*comp)<<endl;
 #endif
@@ -184,6 +196,9 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 
   BDDNode* oldProp=masterComp->prop();
   masterComp->setProp( bdd->conjunction(oldProp, newMasterProp) );
+  InferenceStore::instance()->recordSplitting(masterComp, oldProp, masterComp->prop(), masterPremises.size(),
+	  masterPremises.begin());
+
   ASS(!bdd->isTrue(masterComp->prop()));
 
 #if REPORT_SPLITS
@@ -231,22 +246,25 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
 
     ASS(!variants.hasNext());
 
-    BDDNode* oldProp=comp->prop();
+    BDDNode* oldCompProp=comp->prop();
+    BDDNode* oldClProp=cl->prop();
+    BDDNode* newCompProp=bdd->conjunction(oldCompProp, oldClProp);
+
 #if REPORT_SPLITS
     cout<<"----Merging----\n";
     cout<<"Clause "<<(*cl)<<" caused\n";
     cout<<(*comp)<<" to get prop. part\n";
-#endif
-    comp->setProp( bdd->conjunction(oldProp, cl->prop()) );
-#if REPORT_SPLITS
-    cout<<bdd->toString(comp->prop())<<endl;
+    cout<<bdd->toString(newCompProp)<<endl;
     cout<<"^^^^^^^^^^^^^^^\n";
 #endif
+    comp->setProp( newCompProp );
+    InferenceStore::instance()->recordMerge(comp, oldCompProp, cl, newCompProp);
 
-    if( comp->isEmpty() && bdd->isFalse(comp->prop()) ) {
-      cl->setProp(comp->prop());
+    if( comp->isEmpty() && bdd->isFalse(newCompProp) ) {
+      cl->setProp(newCompProp);
+      InferenceStore::instance()->recordMerge(cl, oldClProp, comp, newCompProp);
       newComponents=pvi( getSingletonIterator(cl) );
-    } else if(oldProp!=comp->prop()) {
+    } else if(oldCompProp!=comp->prop()) {
       modifiedComponents=pvi( getSingletonIterator(comp) );
     }
   } else {
