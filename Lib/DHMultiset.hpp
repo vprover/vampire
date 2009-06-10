@@ -88,15 +88,16 @@ public:
    * Insert given value into the multiset.
    */
   inline
-  void insert(Val val)
+  int insert(Val val)
   {
-    insert(val,1);
+    return insert(val,1);
   }
 
   /**
-   * Insert given value into the multiset @b multiplicity times.
+   * Insert given value into the multiset @b multiplicity times and
+   * return its new multiplicity in the multi-set.
    */
-  void insert(Val val, int multiplicity)
+  int insert(Val val, int multiplicity)
   {
     CALL("DHMultiset::insert");
     ASS(multiplicity>0 && ((unsigned)multiplicity)<DHMULTISET_MAX_MULTIPLICITY);
@@ -119,6 +120,7 @@ public:
       e->_val=val;
       _size++;
     }
+    return e->_info.multiplicity;
   }
 
   /**

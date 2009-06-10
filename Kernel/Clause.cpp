@@ -134,6 +134,27 @@ void Clause::destroyExceptInferenceObject()
 //};
 
 /**
+ * Convert non-propositional part of the clause to string.
+ */
+string Clause::nonPropToString() const
+{
+  CALL("Clause::nonPropToString");
+
+  if (_length == 0) {
+    return "$false";
+  } else {
+    string result;
+    result += _literals[0]->toString();
+    for (unsigned i = 1; i < _length; i++) {
+      result += " | ";
+      result += _literals[i]->toString();
+    }
+    return result;
+  }
+}
+
+
+/**
  * Convert the clause to the string representation, assuming its
  * propositional part is @b propPart.
  * @since 20/05/2007 Manchester
@@ -142,19 +163,7 @@ string Clause::toString(BDDNode* propPart) const
 {
   CALL("Clause::toString(BDDNode*)");
 
-  string result = Int::toString(_number) + ". ";
-  if (_length == 0) {
-    result += '#';
-  }
-  else {
-    result += _literals[0]->toString();
-    if (_length > 1) {
-      for (unsigned i = 1; i < _length;i++) {
-	result += " | ";
-	result += _literals[i]->toString();
-      }
-    }
-  }
+  string result = Int::toString(_number) + ". " + nonPropToString();
 
   if(propPart) {
 #if VDEBUG

@@ -372,6 +372,18 @@ string BDD::toString(BDDNode* node)
   return res;
 }
 
+string BDD::toTPTPString(BDDNode* node)
+{
+  if(isTrue(node)) {
+    return "$true";
+  } else if(isFalse(node)) {
+    return "$false";
+  } else {
+    return string("( ( bddPred")+Int::toString(node->_var)+" => "+toTPTPString(node->_pos)+
+      ") & ( ~bddPred"+Int::toString(node->_var)+" => "+toTPTPString(node->_neg)+" ) )";
+  }
+}
+
 
 bool BDD::equals(const BDDNode* n1,const BDDNode* n2)
 {

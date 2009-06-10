@@ -29,16 +29,6 @@ public:
       result=new T();
     }
   }
-  template<typename T>
-  static void get(Stack<T>*& result)
-  {
-    List<Stack<T>*>*& store=getStore<Stack<T> >();
-    if(store) {
-      result=List<Stack<T>*>::pop(store);
-    } else {
-      result=new Stack<T>(8);
-    }
-  }
 
   template<typename T>
   static void get(DArray<T>*& result)

@@ -85,9 +85,11 @@ struct PredicateDefinition::PredData
       ASS(!enqueuedForReplacement);
       pdObj->_eliminable.push(pred);
       enqueuedForDefEl=true;
+//      cout<<"DE: "<<env.signature->predicateName(pred)<<endl;
     } else if(!enqueuedForReplacement && isPure()) {
       pdObj->_pureToReplace.push(pred);
       enqueuedForReplacement=true;
+//      cout<<"PP: "<<env.signature->predicateName(pred)<<((nocc==0)?" +":" -")<<endl;
     }
   }
 
@@ -175,6 +177,8 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
 	Unit* v=replacePurePredicates(u);
 
 	ASS_NEQ(u,v);
+//	cout<<"PP from: "<<u->toString()<<endl;
+//	cout<<"PP to: "<<v->toString()<<endl;
 	if(u->isClause()) {
 	  ASS(v->isClause())
 	  if(v!=0) {
@@ -264,12 +268,11 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
   case AND:
   case OR:
   {
-    int length = 0;  // the length of the result
     bool changed = false;
-    static Stack<Formula*> gs(8);
-    static Stack<FormulaList*> mergees(8);
+    Stack<Formula*> gs(8);
+    Stack<FormulaList*> mergees(8);
     gs.reset();
-
+    mergees.reset();
     FormulaList::Iterator it(f->args());
     while (it.hasNext()) {
       Formula* h = it.next();
@@ -286,29 +289,17 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
 	if (con == OR) {
 	  return g;
 	}
-	if (con == AND) {
-	  changed = true;
-	  break;
-	}
-	gs.push(g);
-	if (h != g) {
-	  changed = true;
-	}
+	ASS_EQ(con, AND);
+	changed = true;
 	break;
-
       case FALSE:
 	if (con == AND) {
 	  return g;
 	}
-	if (con == OR) {
-	  changed = true;
-	  break;
-	}
-	gs.push(g);
-	if (h != g) {
-	  changed = true;
-	}
+	ASS_EQ(con, OR);
+	changed = true;
 	break;
+
       default:
 	gs.push(g);
 	if (h != g) {
@@ -333,7 +324,7 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
     if (! changed) {
       return f;
     }
-    switch (length) {
+    switch (gs.size()) {
     case 0:
       return new Formula(con == OR ? false : true);
     case 1:

@@ -202,11 +202,11 @@ Unit* Inference::next(Iterator&)
  * Return the rule name, such as "binary resolution".
  * @since 04/01/2008 Torrevieja
  */
-string Inference::name() const
+string Inference::ruleName(Rule rule)
 {
-  CALL("Inference::name");
+  CALL("Inference::ruleName");
 
-  switch (_rule) {
+  switch (rule) {
   case INPUT:
     return "input";
   case NEGATED_CONJECTURE:
@@ -293,6 +293,16 @@ string Inference::name() const
     return "unused predicate definition removal";
   case PURE_PREDICATE_REMOVAL:
     return "pure predicate removal";
+
+  case SPLITTING:
+    return "splitting";
+  case COMMON_NONPROP_MERGE:
+    return "merge";
+  case PROP_REDUCE:
+    return "prop reduce";
+  case CLAUSE_NAMING:
+    return "clause naming";
+
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

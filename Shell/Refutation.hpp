@@ -9,14 +9,12 @@
 
 #include <ostream>
 
-namespace Kernel {
-  class Unit;
-}
+#include "../Forwards.hpp"
+
+namespace Shell {
 
 using namespace std;
 using namespace Kernel;
-
-namespace Shell {
 
 /**
  * Class implementing refutations

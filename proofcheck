@@ -1,0 +1,25 @@
+#!/bin/bash
+
+VAMPIRE='/raid/hoder/Dracula/vrel8'
+EPROVER='/raid/hoder/eprover/PROVER/eprover'
+
+$VAMPIRE $* |awk '
+BEGIN { RS = "\n%#\n"; first=1; prev=0 }
+{
+	if( first==0 ) {
+		curr=prev
+		prev=$0
+		if(curr!=0) {
+			cmd="echo '\''" curr "'\'' |'$EPROVER' --tstp-in -s |grep  \"status Theorem\" "
+			if( !(cmd | getline) ) {
+				print "% '"$*"'"
+				print "% failed:"
+				print curr
+				print
+			}
+			close(cmd)
+		}
+	}
+	first=0
+}
+'

@@ -103,6 +103,7 @@ public:
 
   void destroy();
   void destroyExceptInferenceObject();
+  string nonPropToString() const;
   string toString() const;
   string toString(BDDNode* propPart) const;
 

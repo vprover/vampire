@@ -651,7 +651,7 @@ void MLMatcher::orderLiterals(T& base, U& alts,
   while(lengths.size()) {
     unsigned len=lengths.pop();
     List<unsigned>** plst;
-    NEVER(len2lits.getValuePtr(len, plst, 0));
+    NEVER(len2lits.getValuePtr(len, plst));
     ASS(*plst);
     while(*plst) {
       unsigned basei=List<unsigned>::pop(*plst);

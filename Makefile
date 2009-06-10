@@ -19,8 +19,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -687,10 +687,19 @@ Kernel/FormulaVarIterator.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/Hash.hpp
 Kernel/FormulaVarIterator.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 Kernel/Inference.o: Debug/Tracer.hpp Kernel/Inference.hpp Kernel/Unit.hpp
 Kernel/Inference.o: Lib/Allocator.hpp
-Kernel/InferenceStore.o: Kernel/InferenceStore.hpp Forwards.hpp Config.hpp
-Kernel/InferenceStore.o: Lib/DHMap.hpp Kernel/BDD.hpp Lib/Allocator.hpp
-Kernel/InferenceStore.o: Debug/Tracer.hpp Lib/Hash.hpp Lib/Set.hpp
-Kernel/InferenceStore.o: Lib/Allocator.hpp Lib/Hash.hpp
+Kernel/InferenceStore.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Stack.hpp
+Kernel/InferenceStore.o: Debug/Assertion.hpp Debug/Tracer.hpp
+Kernel/InferenceStore.o: Lib/Allocator.hpp Lib/BacktrackData.hpp Lib/List.hpp
+Kernel/InferenceStore.o: Forwards.hpp Config.hpp Lib/VirtualIterator.hpp
+Kernel/InferenceStore.o: Lib/Exception.hpp Lib/Reflection.hpp Lib/Int.hpp
+Kernel/InferenceStore.o: Lib/Comparison.hpp Lib/Portability.hpp
+Kernel/InferenceStore.o: Kernel/BDD.hpp Lib/Hash.hpp Lib/Set.hpp Lib/Hash.hpp
+Kernel/InferenceStore.o: Kernel/Clause.hpp Lib/Metaiterators.hpp Lib/Set.hpp
+Kernel/InferenceStore.o: Lib/Reflection.hpp Lib/InverseLookup.hpp
+Kernel/InferenceStore.o: Lib/DHMap.hpp Kernel/Unit.hpp Lib/List.hpp
+Kernel/InferenceStore.o: Kernel/Inference.hpp Kernel/Unit.hpp
+Kernel/InferenceStore.o: Kernel/InferenceStore.hpp Lib/DHMap.hpp
+Kernel/InferenceStore.o: Lib/DHMultiset.hpp
 Kernel/KBO.o: Debug/Tracer.hpp Lib/Environment.hpp Forwards.hpp Config.hpp
 Kernel/KBO.o: Lib/Comparison.hpp Lib/DArray.hpp Debug/Assertion.hpp
 Kernel/KBO.o: Debug/Tracer.hpp Lib/Allocator.hpp Lib/Comparison.hpp
@@ -1817,13 +1826,15 @@ Saturation/SaturationAlgorithm.o: Lib/Hash.hpp Lib/Set.hpp Kernel/Clause.hpp
 Saturation/SaturationAlgorithm.o: Lib/Reflection.hpp Lib/InverseLookup.hpp
 Saturation/SaturationAlgorithm.o: Lib/DHMap.hpp Kernel/Unit.hpp Lib/List.hpp
 Saturation/SaturationAlgorithm.o: Kernel/Inference.hpp Kernel/Unit.hpp
+Saturation/SaturationAlgorithm.o: Kernel/InferenceStore.hpp Lib/DHMap.hpp
+Saturation/SaturationAlgorithm.o: Lib/DHMultiset.hpp
 Saturation/SaturationAlgorithm.o: Kernel/LiteralSelector.hpp
 Saturation/SaturationAlgorithm.o: Lib/MultiColumnMap.hpp Lib/BitUtils.hpp
 Saturation/SaturationAlgorithm.o: Shell/Options.hpp Lib/XML.hpp
 Saturation/SaturationAlgorithm.o: Shell/Statistics.hpp
 Saturation/SaturationAlgorithm.o: Saturation/SaturationAlgorithm.hpp
 Saturation/SaturationAlgorithm.o: Lib/Event.hpp Lib/SmartPtr.hpp
-Saturation/SaturationAlgorithm.o: Indexing/IndexManager.hpp Lib/DHMap.hpp
+Saturation/SaturationAlgorithm.o: Indexing/IndexManager.hpp
 Saturation/SaturationAlgorithm.o: Indexing/Index.hpp Lib/Exception.hpp
 Saturation/SaturationAlgorithm.o: Saturation/ClauseContainer.hpp
 Saturation/SaturationAlgorithm.o: Lib/Stack.hpp Lib/BacktrackData.hpp
@@ -1928,8 +1939,10 @@ Saturation/Splitter.o: Lib/Allocator.hpp Lib/Hash.hpp Lib/Set.hpp
 Saturation/Splitter.o: Lib/Hash.hpp Kernel/Clause.hpp Lib/Metaiterators.hpp
 Saturation/Splitter.o: Lib/Set.hpp Lib/Reflection.hpp Lib/InverseLookup.hpp
 Saturation/Splitter.o: Lib/DHMap.hpp Kernel/Unit.hpp Lib/List.hpp
-Saturation/Splitter.o: Kernel/Inference.hpp Kernel/Unit.hpp Kernel/Term.hpp
-Saturation/Splitter.o: Shell/Statistics.hpp Saturation/Splitter.hpp
+Saturation/Splitter.o: Kernel/Inference.hpp Kernel/Unit.hpp
+Saturation/Splitter.o: Kernel/InferenceStore.hpp Lib/DHMultiset.hpp
+Saturation/Splitter.o: Kernel/Term.hpp Shell/Statistics.hpp
+Saturation/Splitter.o: Saturation/Splitter.hpp
 Saturation/Splitter.o: Indexing/ClauseVariantIndex.hpp Lib/Array.hpp
 Test/Compit2Output.o: Test/Compit2Output.hpp Config.hpp
 Test/CompitOutput.o: Test/CompitOutput.hpp Config.hpp
@@ -2128,12 +2141,13 @@ vampire.o: Lib/Hash.hpp Kernel/Clause.hpp Lib/Metaiterators.hpp Lib/Set.hpp
 vampire.o: Lib/Reflection.hpp Lib/InverseLookup.hpp Lib/DHMap.hpp
 vampire.o: Kernel/Unit.hpp Lib/List.hpp Kernel/Formula.hpp Lib/XML.hpp
 vampire.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
-vampire.o: Indexing/TermSharing.hpp Indexing/SubstitutionTree.hpp
-vampire.o: Lib/VirtualIterator.hpp Lib/Comparison.hpp Lib/Int.hpp
-vampire.o: Lib/SkipList.hpp Lib/Random.hpp Lib/BinaryHeap.hpp
-vampire.o: Lib/Metaiterators.hpp Lib/BacktrackData.hpp Lib/ArrayMap.hpp
-vampire.o: Lib/DArray.hpp Lib/Array.hpp Kernel/DoubleSubstitution.hpp
-vampire.o: Lib/DHMap.hpp Kernel/Term.hpp Lib/Portability.hpp
+vampire.o: Kernel/InferenceStore.hpp Lib/DHMap.hpp Lib/DHMultiset.hpp
+vampire.o: Kernel/BDD.hpp Lib/Hash.hpp Lib/Set.hpp Indexing/TermSharing.hpp
+vampire.o: Indexing/SubstitutionTree.hpp Lib/VirtualIterator.hpp
+vampire.o: Lib/Comparison.hpp Lib/Int.hpp Lib/SkipList.hpp Lib/Random.hpp
+vampire.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp Lib/BacktrackData.hpp
+vampire.o: Lib/ArrayMap.hpp Lib/DArray.hpp Lib/Array.hpp
+vampire.o: Kernel/DoubleSubstitution.hpp Kernel/Term.hpp Lib/Portability.hpp
 vampire.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp Kernel/EGSubstitution.hpp
 vampire.o: Kernel/RobSubstitution.hpp Kernel/RobSubstitution.hpp
 vampire.o: Kernel/Renaming.hpp Kernel/Clause.hpp Indexing/Index.hpp
@@ -2141,12 +2155,11 @@ vampire.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
 vampire.o: Saturation/ClauseContainer.hpp Saturation/Limits.hpp
 vampire.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp Kernel/Term.hpp
 vampire.o: Test/Output.hpp Indexing/LiteralMiniIndex.hpp Lib/DArray.hpp
-vampire.o: Kernel/Matcher.hpp Lib/Hash.hpp Shell/Options.hpp
-vampire.o: Shell/CommandLine.hpp Shell/TPTPLexer.hpp Shell/Lexer.hpp
-vampire.o: Shell/Token.hpp Shell/TPTP.hpp Shell/TPTPParser.hpp
-vampire.o: Kernel/Unit.hpp Shell/Parser.hpp Lib/IntNameTable.hpp
-vampire.o: Lib/Array.hpp Lib/Map.hpp Shell/Property.hpp Shell/Preprocess.hpp
-vampire.o: Shell/Statistics.hpp Shell/Refutation.hpp
+vampire.o: Kernel/Matcher.hpp Shell/Options.hpp Shell/CommandLine.hpp
+vampire.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp Shell/Token.hpp Shell/TPTP.hpp
+vampire.o: Shell/TPTPParser.hpp Kernel/Unit.hpp Shell/Parser.hpp
+vampire.o: Lib/IntNameTable.hpp Lib/Array.hpp Lib/Map.hpp Shell/Property.hpp
+vampire.o: Shell/Preprocess.hpp Shell/Statistics.hpp Shell/Refutation.hpp
 vampire.o: Saturation/SaturationAlgorithm.hpp Indexing/IndexManager.hpp
 vampire.o: Inferences/InferenceEngine.hpp Saturation/SaturationResult.hpp
 vampire.o: Shell/Statistics.hpp Lib/Environment.hpp Saturation/Splitter.hpp

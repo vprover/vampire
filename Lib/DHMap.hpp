@@ -243,7 +243,7 @@ public:
    */
   bool getValuePtr(Key key, Val*& pval, const Val& initial)
   {
-    CALL("DHMap::setPosition");
+    CALL("DHMap::getValuePtr/3");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
@@ -272,7 +272,7 @@ public:
    */
   bool getValuePtr(Key key, Val*& pval)
   {
-    CALL("DHMap::setPosition");
+    CALL("DHMap::getValuePtr/2");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;

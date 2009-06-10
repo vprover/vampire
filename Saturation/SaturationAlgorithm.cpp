@@ -24,7 +24,7 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Saturation;
 
-#define REPORT_CONTAINERS 0
+#define REPORT_CONTAINERS 1
 #define REPORT_FW_SIMPL 0
 #define REPORT_BW_SIMPL 0
 #define TOTAL_SIMPLIFICATION_ONLY 1
@@ -638,7 +638,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 
     genCl->setProp(prop);
 #if REPORT_CONTAINERS
-//    cout<<"G "<<(*genCl)<<endl;
+    cout<<"G "<<(*genCl)<<endl;
 #endif
 
     if(bdd->isTrue(prop)) {

@@ -24,6 +24,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/InferenceStore.hpp"
 
 #include "Indexing/TermSharing.hpp"
 #include "Indexing/SubstitutionTree.hpp"
@@ -104,9 +105,10 @@ void outputResult()
   case Statistics::REFUTATION:
     env.out << "Refutation found. Thanks to Tanya!\n";
     if (env.options->proof() != Options::PROOF_OFF) {
-	Shell::Refutation refutation(env.statistics->refutation,
-		env.options->proof() == Options::PROOF_ON);
-	refutation.output(env.out);
+//	Shell::Refutation refutation(env.statistics->refutation,
+//		env.options->proof() == Options::PROOF_ON);
+//	refutation.output(env.out);
+      InferenceStore::instance()->outputProof(env.out, env.statistics->refutation);
     }
     break;
   case Statistics::TIME_LIMIT:

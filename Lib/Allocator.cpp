@@ -436,7 +436,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       env.statistics->terminationReason = Shell::Statistics::MEMORY_LIMIT;
 
       //increase the limit, so that the exception can be handled properly.
-      _tolerated+=1000000;
+      _tolerated=newSize+1000000;
 
       throw Lib::MemoryLimitExceededException();
     }

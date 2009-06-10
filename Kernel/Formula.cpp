@@ -43,7 +43,7 @@ namespace Kernel {
 //   to = Formula(OR,fs);
 // } // Formula::makeFromLiteralList
 
-// /** 
+// /**
 //  * Construct a list of formulas from a non-empty list of literals
 //  * @since 10/10/2004 Manchester
 //  */
@@ -67,8 +67,8 @@ namespace Kernel {
  * @since 11/12/2004 Manchester, true and false added
  * @since 02/06/2007 Manchester, rewritten for new data types
  */
-void Formula::destroy () 
-{ 
+void Formula::destroy ()
+{
   CALL ("Formula::Data::destroy");
   ASS (this);
 
@@ -116,23 +116,23 @@ void Formula::destroy ()
 // int Formula::weight () const
 // {
 //   switch ( connective () ) {
-//     case LITERAL: 
+//     case LITERAL:
 //       return atom()->weight();
 
 //     case AND:
 //     case OR: {
 //       int sz = -1;
-      
+
 //       for ( List* fs = args(); fs->isNonEmpty (); fs = fs->tail() )
 //         sz += fs->head()->weight() + 1;
-         
+
 //       return sz;
 //     }
-        
+
 //     case IMP:
 //     case IFF:
 //     case XOR:
-//       return left()->weight() + 
+//       return left()->weight() +
 //              right()->weight () + 1;
 
 //     case NOT:
@@ -215,7 +215,8 @@ void Formula::destroy ()
 string Formula::toString (Connective c)
 {
   static string names [] =
-    { "", "&", "\\/", "=>", "<=>", "<~>", "~", "!", "?", "false", "true"};
+//    { "", "&", "\\/", "=>", "<=>", "<~>", "~", "!", "?", "false", "true"};
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "false", "true"};
 
   return names[(int)c];
 } // Formula::toString (Connective c)
@@ -241,7 +242,7 @@ string Formula::toString () const
     return literal()->toString();
 
   case AND:
-  case OR: 
+  case OR:
     {
       ASS (args()->length() >= 2);
       string result = args()->head()->toStringInScopeOf(c);
@@ -270,12 +271,23 @@ string Formula::toString () const
   case FORALL:
   case EXISTS:
     {
-      string result = "(" + con;
+//      string result = "(" + con;
+//      VarList::Iterator vs(vars());
+//      while (vs.hasNext()) {
+//	result += string(" ") + Term::variableToString(vs.next());
+//      }
+//      result += ")";
+      string result = con + " [";
       VarList::Iterator vs(vars());
+      bool first=true;
       while (vs.hasNext()) {
-	result += string(" ") + Term::variableToString(vs.next());
+	if(!first) {
+	  result+= ",";
+	}
+	result += Term::variableToString(vs.next());
+	first=false;
       }
-      result += ")";
+      result += "] : ";
       return result + qarg()->toStringInScopeOf(c);
     }
 
@@ -291,8 +303,8 @@ string Formula::toString () const
 } // Formula::toString
 
 
-/** 
- * True if the formula needs parentheses around itself 
+/**
+ * True if the formula needs parentheses around itself
  * when in scope of outer.
  *
  * @since 21/09/2002 Manchester
@@ -302,7 +314,7 @@ bool Formula::parenthesesRequired (Connective outer) const
 {
   CALL("Formula::parenthesesRequired");
 
-  switch (connective()) 
+  switch (connective())
     {
     case LITERAL:
     case NOT:
@@ -336,7 +348,7 @@ bool Formula::parenthesesRequired (Connective outer) const
 
 
 /**
- * Convert the formula in scope of another formula 
+ * Convert the formula in scope of another formula
  * to a string using the native syntax.
  * @param outer connective of the outer formula
  * @since 09/12/2003 Manchester
@@ -364,7 +376,7 @@ string Formula::toStringInScopeOf (Connective outer) const
 //     return false;
 //   }
 
-//   switch (connective()) 
+//   switch (connective())
 //     {
 //     case LITERAL:
 //       return literal()->equals(f.literal());
@@ -402,7 +414,7 @@ string Formula::toStringInScopeOf (Connective outer) const
 //       }
 //       // and then compare immediate subformulas
 //       return qarg().equals(f.qarg());
-      
+
 //     case TRUE:
 //     case FALSE:
 //       return true;

@@ -189,7 +189,9 @@ public:
    * which does not use Inference::destroy() to avoid deep recursion.)
    */
   virtual ~Inference() {}
-  string name() const;
+
+  static string ruleName(Rule rule);
+  string name() const { return ruleName(_rule); }
 
   CLASS_NAME("Inference");
   USE_ALLOCATOR(Inference);

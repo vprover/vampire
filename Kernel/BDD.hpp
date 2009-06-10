@@ -64,6 +64,7 @@ public:
   static unsigned hash(const BDDNode* n);
 
   string toString(BDDNode* node);
+  string toTPTPString(BDDNode* node);
 
 private:
   BDDNode* getNode(int varNum, BDDNode* pos, BDDNode* neg);

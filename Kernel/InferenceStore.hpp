@@ -8,11 +8,14 @@
 #define __InferenceStore__
 
 #include <utility>
+#include <ostream>
+#include <string>
 
 #include "../Forwards.hpp"
 
 #include "../Lib/DHMap.hpp"
-#include "../Kernel/BDD.hpp"
+#include "../Lib/DHMultiset.hpp"
+#include "../Kernel/Inference.hpp"
 
 namespace Kernel {
 
@@ -30,15 +33,32 @@ public:
   void recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp);
   void recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
 	  unsigned premCnt, Clause** prems);
+
+  void outputProof(ostream& out, Unit* refutation);
 private:
-  typedef pair<Clause*, BDDNode*> ClauseSpec;
+  struct ClauseSpec
+  {
+    ClauseSpec() {}
+    ClauseSpec(Clause* first, BDDNode* second) : first(first), second(second) {}
+    bool operator==(ClauseSpec& o) { return first==o.first && second==o.second; }
+    bool operator!=(ClauseSpec& o) { return !(*this==o); }
+
+    Clause* first;
+    BDDNode* second;
+  };
 
   struct FullInference;
-  ClauseSpec getClauseSpec(Clause* cl);
-  ClauseSpec getClauseSpec(Clause* cl, BDDNode* prop);
+  struct ProofPrinter;
+  struct TPTPProofCheckPrinter;
+
+  static ClauseSpec getClauseSpec(Clause* cl);
+  static ClauseSpec getClauseSpec(Clause* cl, BDDNode* prop);
+
+  int getClauseSpecId(ClauseSpec cs);
 
 
   DHMap<ClauseSpec, FullInference*, PtrPairSimpleHash> _data;
+  DHMultiset<Clause*, PtrIdentityHash> _nextClIds;
 };
 
 };
