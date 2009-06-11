@@ -302,7 +302,7 @@ Options::Options ()
   _maxInferenceDepth(0),
   _maxPassive(0),
   _maxWeight(0),
-  _memoryLimit(700),
+  _memoryLimit(1000),
   _mode(MODE_VAMPIRE),
 
   _naming(8),

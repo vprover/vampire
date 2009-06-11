@@ -24,13 +24,13 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Saturation;
 
-#define REPORT_CONTAINERS 1
+#define REPORT_CONTAINERS 0
 #define REPORT_FW_SIMPL 0
 #define REPORT_BW_SIMPL 0
 #define TOTAL_SIMPLIFICATION_ONLY 1
 #define FW_DEMODULATION_FIRST 1
 //Splitting 0 -> none, 1 -> always, 2 -> only first 5% of time, 3 -> only input clauses
-#define SPLITTING 3
+#define SPLITTING 0
 
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
@@ -347,7 +347,10 @@ simplificationStart:
     _fwDemodulator->perform(cl, &demPerformer);
     if(!demPerformer.clauseKept()) {
       ClauseIterator rit=demPerformer.clausesToAdd();
-      ASS(rit.hasNext());
+      if(!rit.hasNext()) {
+	//clause was demodulated into a tautology
+	return;
+      }
       cl=rit.next();
 
 //      if (env.timeLimitReached()) {

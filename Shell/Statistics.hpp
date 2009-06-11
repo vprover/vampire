@@ -62,8 +62,12 @@ public:
   unsigned forwardSubsumptionResolution;
   /** number of forward demodulations */
   unsigned forwardDemodulations;
+  /** number of forward demodulations into equational tautologies */
+  unsigned forwardDemodulationsToEqTaut;
   /** number of backward demodulations */
   unsigned backwardDemodulations;
+  /** number of backward demodulations into equational tautologies */
+  unsigned backwardDemodulationsToEqTaut;
   /** number of condensations */
   unsigned condensations;
   /** number of evaluations */

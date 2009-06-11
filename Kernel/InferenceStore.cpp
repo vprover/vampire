@@ -20,19 +20,26 @@ using namespace Lib;
 
 struct InferenceStore::FullInference
 {
-  FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) {}
+  FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { ASS_L(premCnt, 0xFFFF); }
 
   void* operator new(size_t,unsigned premCnt)
   {
     size_t size=sizeof(FullInference)+premCnt*sizeof(ClauseSpec);
-    size-=sizeof(ClauseSpec*);
+    size-=sizeof(ClauseSpec);
 
     return ALLOC_KNOWN(size,"InferenceStore::FullInference");
   }
 
+  size_t occupiedBytes()
+  {
+    size_t size=sizeof(FullInference)+premCnt*sizeof(ClauseSpec);
+    size-=sizeof(ClauseSpec);
+    return size;
+  }
+
   int csId;
-  unsigned premCnt;
-  Inference::Rule rule;
+  unsigned premCnt : 16;
+  Inference::Rule rule : 16;
   ClauseSpec premises[1];
 };
 

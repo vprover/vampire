@@ -8,6 +8,7 @@
 #include "../Lib/DArray.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
+#include "../Kernel/EqHelper.hpp"
 #include "../Shell/Statistics.hpp"
 #include "TautologyDeletionISE.hpp"
 
@@ -35,13 +36,10 @@ Clause* TautologyDeletionISE::simplify(Clause* c)
       continue;
     }
     // l is positive
-    if (l->isEquality()) {
-      TermList* t1 = l->args();
-      TermList* t2 = t1->next();
-      if (t1->sameContent(t2)) { // literal t = t
-	env.statistics->equationalTautologies++;
- 	return 0;
-      }
+    if (EqHelper::isEqTautology(l)) {
+      // literal t = t
+      env.statistics->equationalTautologies++;
+      return 0;
     }
     plits[pos++] = l;
   }

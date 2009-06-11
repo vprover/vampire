@@ -131,6 +131,14 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
+    Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
+    if(EqHelper::isEqTautology(resLit)) {
+      env.statistics->backwardDemodulationsToEqTaut++;
+      _removed->insert(qr.clause);
+      return BwSimplificationRecord(qr.clause);
+    }
+
+
     Inference* inf = new Inference2(Inference::BACKWARD_DEMODULATION, _cl, qr.clause);
     Unit::InputType inpType = (Unit::InputType)
 	Int::max(_cl->inputType(), qr.clause->inputType());
@@ -138,7 +146,7 @@ struct BackwardDemodulation::ResultFn
     unsigned cLen=qr.clause->length();
     Clause* res = new(cLen) Clause(cLen, inpType, inf);
 
-    (*res)[0]=EqHelper::replace(qr.literal,lhsS,rhsS);
+    (*res)[0]=resLit;
 
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {

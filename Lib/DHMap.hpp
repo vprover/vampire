@@ -116,7 +116,8 @@ public:
       while(ep!=_afterLast) {
 	(ep++)->~Entry();
       }
-      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
+//      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
+      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),typeid(Entry).name());
     }
   }
 
@@ -407,7 +408,8 @@ private:
     }
 
     int newCapacity=DHMapTableCapacities[_capacityIndex+1];
-    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
+//    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
+    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),typeid(Entry).name());
 
     Entry* oldEntries=_entries;
     Entry* oldAfterLast=_afterLast;
@@ -432,7 +434,8 @@ private:
       (ep++)->~Entry();
     }
     if(oldCapacity) {
-      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
+//      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
+      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),typeid(Entry).name());
     }
   }
 

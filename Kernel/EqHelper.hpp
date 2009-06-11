@@ -48,6 +48,11 @@ public:
     }
   };
 
+  static bool isEqTautology(Literal* lit)
+  {
+    return lit->isEquality() && lit->isPositive() && (*lit->nthArgument(0))==(*lit->nthArgument(1));
+  }
+
 };
 
 };

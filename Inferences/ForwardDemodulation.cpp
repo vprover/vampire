@@ -101,6 +101,14 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	if(!simplPerformer->willPerform(qr.clause)) {
 	  continue;
 	}
+	Literal* resLit = EqHelper::replace(lit,trm,rhsS);
+	if(EqHelper::isEqTautology(resLit)) {
+	  env.statistics->forwardDemodulationsToEqTaut++;
+	  simplPerformer->perform(qr.clause, 0);
+	  if(!simplPerformer->clauseKept()) {
+	    return;
+	  }
+	}
 
 	Inference* inf = new Inference2(Inference::FORWARD_DEMODULATION, cl, qr.clause);
 	Unit::InputType inpType = (Unit::InputType)
@@ -108,7 +116,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 
 	Clause* res = new(cLen) Clause(cLen, inpType, inf);
 
-	(*res)[0]=EqHelper::replace(lit,trm,rhsS);
+	(*res)[0]=resLit;
 
 	unsigned next=1;
 	for(unsigned i=0;i<cLen;i++) {

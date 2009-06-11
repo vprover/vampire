@@ -452,17 +452,8 @@ public:
       return *_stack.top();
     }
   private:
-    inline
-    void pushNextNonVar(const TermList* t)
-    {
-      while(t->isVar()) {
-        t=t->next();
-      }
-      if(!t->isEmpty()) {
-	ASS(t->isTerm());
-	_stack.push(t);
-      }
-    }
+    void pushNextNonVar(const TermList* t);
+
     Stack<const TermList*> _stack;
     bool _used;
   };

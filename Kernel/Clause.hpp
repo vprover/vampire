@@ -140,13 +140,7 @@ public:
   }
   void computeWeight() const;
 
-  unsigned getLiteralPosition(Literal* lit)
-  {
-    if(!_literalPositions) {
-      _literalPositions=new InverseLookup<Literal>(_literals,length());
-    }
-    return static_cast<unsigned>(_literalPositions->get(lit));
-  }
+  unsigned getLiteralPosition(Literal* lit);
 
   bool shouldBeDestroyed();
   void destroyIfUnnecessary();

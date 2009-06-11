@@ -164,7 +164,9 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 	results.pop();
 	BDDNode* arg1=results.pop();
 	BDDNode* arg2=results.pop();
-	cache.insert(make_pair(arg1, arg2), res);
+	if( !(counter%4) ) {
+	  cache.insert(make_pair(arg1, arg2), res);
+	}
       }
       results.push(res);
     } else {
@@ -263,7 +265,9 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
 	toDo.push((n2->_var==splitVar) ? n2->_pos : n2);
 	toDo.push((n1->_var==splitVar) ? n1->_pos : n1);
 
-	cache.insert(make_pair(n1, n2), false);
+	if( !(counter%4) ) {
+	  cache.insert(make_pair(n1, n2), false);
+	}
       }
     }
 

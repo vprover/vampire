@@ -28,8 +28,6 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 {
   CALL("Splitter::doSplitting");
 
-  //TODO: record inference steps
-
   BDD* bdd=BDD::instance();
 
   int clen=cl->length();
@@ -232,23 +230,15 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
   if(variants.hasNext()) {
     Clause* comp=variants.next();
 
-    if(variants.hasNext()) {
-	cout<<(*cl)<<endl;
-	cout<<_clauseNames.findOrInsert(comp,-1)<<":  "<<(*comp)<<endl;
-	while(variants.hasNext()) {
-	  comp=variants.next();
-	  cout<<_clauseNames.findOrInsert(comp,-1)<<":  "<<(*comp)<<endl;
-	}
-//	cout<<"------";
-//	cout<<treeStr;
-	ASSERTION_VIOLATION;
-    }
-
     ASS(!variants.hasNext());
 
     BDDNode* oldCompProp=comp->prop();
     BDDNode* oldClProp=cl->prop();
     BDDNode* newCompProp=bdd->conjunction(oldCompProp, oldClProp);
+
+    if(oldCompProp==comp->prop()) {
+      return;
+    }
 
 #if REPORT_SPLITS
     cout<<"----Merging----\n";
@@ -264,7 +254,7 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
       cl->setProp(newCompProp);
       InferenceStore::instance()->recordMerge(cl, oldClProp, comp, newCompProp);
       newComponents=pvi( getSingletonIterator(cl) );
-    } else if(oldCompProp!=comp->prop()) {
+    } else {
       modifiedComponents=pvi( getSingletonIterator(comp) );
     }
   } else {

@@ -686,6 +686,18 @@ bool Term::NonVariableIterator::hasNext()
   return !_stack.isEmpty();
 }
 
+void Term::NonVariableIterator::pushNextNonVar(const TermList* t)
+{
+  while(t->isVar()) {
+    t=t->next();
+  }
+  if(!t->isEmpty()) {
+    ASS(t->isTerm());
+    _stack.push(t);
+  }
+}
+
+
 /**
  * True if there exists another disagreement between the two
  * terms specified in the constructor.

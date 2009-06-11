@@ -226,6 +226,42 @@ float Clause::getEffectiveWeight()
   return getEffectiveWeight(weight());
 }
 
+
+unsigned Clause::getLiteralPosition(Literal* lit)
+{
+  switch(length()) {
+  case 1:
+    ASS_EQ(lit,(*this)[0]);
+    return 0;
+  case 2:
+    if(lit==(*this)[0]) {
+	return 0;
+    } else {
+	ASS_EQ(lit,(*this)[1]);
+	return 1;
+    }
+  case 3:
+    if(lit==(*this)[0]) {
+	return 0;
+    } else if(lit==(*this)[1]) {
+	return 1;
+    } else {
+	ASS_EQ(lit,(*this)[2]);
+	return 2;
+    }
+#if VDEBUG
+  case 0:
+    ASSERTION_VIOLATION;
+#endif
+  default:
+    if(!_literalPositions) {
+      _literalPositions=new InverseLookup<Literal>(_literals,length());
+    }
+    return static_cast<unsigned>(_literalPositions->get(lit));
+  }
+}
+
+
 #if VDEBUG
 
 void Clause::assertValid()

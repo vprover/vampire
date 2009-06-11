@@ -242,7 +242,7 @@ Clause* Superposition::performSuperposition(
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
   //check we don't create an equational tautology (this happens during self-superposition)
-  if(tgtLitS->isEquality() && tgtLitS->nthArgument(0)==tgtLitS->nthArgument(1)) {
+  if(EqHelper::isEqTautology(tgtLitS)) {
     return 0;
   }
 
@@ -261,10 +261,13 @@ Clause* Superposition::performSuperposition(
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
       (*res)[next] = subst->apply(curr, !eqIsResult);
+      if(EqHelper::isEqTautology((*res)[next])) {
+	goto construction_fail;
+      }
       if(shouldCheckWeight) {
 	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
-	  goto weight_fail;
+	  goto construction_fail;
 	}
       }
       next++;
@@ -274,18 +277,21 @@ Clause* Superposition::performSuperposition(
     Literal* curr=(*eqClause)[i];
     if(curr!=eqLit) {
       (*res)[next] = subst->apply(curr, eqIsResult);
+      if(EqHelper::isEqTautology((*res)[next])) {
+	goto construction_fail;
+      }
       if(shouldCheckWeight) {
 	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
-	  goto weight_fail;
+	  goto construction_fail;
 	}
       }
       next++;
     }
   }
 
-weight_fail:
   if(shouldCheckWeight && weight>weightLimit) {
+  construction_fail:
     res->destroy();
     return 0;
   }

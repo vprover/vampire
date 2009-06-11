@@ -34,7 +34,9 @@ Statistics::Statistics()
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
     forwardDemodulations(0),
+    forwardDemodulationsToEqTaut(0),
     backwardDemodulations(0),
+    backwardDemodulationsToEqTaut(0),
     condensations(0),
     evaluations(0),
     simpleTautologies(0),
@@ -57,40 +59,44 @@ Statistics::Statistics()
 
 void Statistics::print()
 {
+#define COND_OUT(text, num) if(num) { env.out<<(text)<<": "<<(num)<<endl; }
+
   env.out << "------------------------------\n";
-  env.out << "Active clauses: "<<activeClauses<<endl;
-  env.out << "Passive clauses: "<<passiveClauses<<endl;
-  env.out << "Generated clauses: "<<generatedClauses<<endl;
-  env.out << endl;
-  env.out << "Final active clauses: "<<finalActiveClauses<<endl;
-  env.out << "Final passive clauses: "<<finalPassiveClauses<<endl;
-  env.out << endl;
-
-  env.out << "Duplicate literals: "<<duplicateLiterals<<endl;
-  env.out << "Trivial inequalities: "<<trivialInequalities<<endl;
-  env.out << "Fw subsumption resolutions: "<<forwardSubsumptionResolution<<endl;
-  env.out << "Fw demodulations: "<<forwardDemodulations<<endl;
-  env.out << "Bw demodulations: "<<backwardDemodulations<<endl;
-  env.out << "Condensations: "<<condensations<<endl;
-  env.out << "Evaluations: "<<evaluations<<endl;
-  env.out << endl;
-  env.out << "Simple tautologies: "<<simpleTautologies<<endl;
-  env.out << "Equational tautologies: "<<equationalTautologies<<endl;
-  env.out << "Forward subsumptions: "<<forwardSubsumed<<endl;
-  env.out << "Backward subsumptions: "<<backwardSubsumed<<endl;
+  COND_OUT("Active clauses", activeClauses);
+  COND_OUT("Passive clauses", passiveClauses);
+  COND_OUT("Generated clauses", generatedClauses);
+  COND_OUT("Final active clauses", finalActiveClauses);
+  COND_OUT("Final passive clauses", finalPassiveClauses);
   env.out << endl;
 
-  env.out << "Binary resolution: "<<resolution<<endl;
-  env.out << "Factoring: "<<factoring<<endl;
-  env.out << "Forward superposition: "<<forwardSuperposition<<endl;
-  env.out << "Backward superposition: "<<backwardSuperposition<<endl;
-  env.out << "Self superposition: "<<selfSuperposition<<endl;
-  env.out << "Equality factoring: "<<equalityFactoring<<endl;
-  env.out << "Equality resolution: "<<equalityResolution<<endl;
+  COND_OUT("Duplicate literals", duplicateLiterals);
+  COND_OUT("Trivial inequalities", trivialInequalities);
+  COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
+  COND_OUT("Fw demodulations", forwardDemodulations);
+  COND_OUT("Bw demodulations", backwardDemodulations);
+  COND_OUT("Condensations", condensations);
+  COND_OUT("Evaluations", evaluations);
   env.out << endl;
 
-  env.out << "Splitted clauses: "<<splittedClauses<<endl;
-  env.out << "Splitted components: "<<splittedComponents<<endl;
-  env.out << "Unique components: "<<uniqueComponents<<endl;
+  COND_OUT("Simple tautologies", simpleTautologies);
+  COND_OUT("Equational tautologies", equationalTautologies);
+  COND_OUT("Forward subsumptions", forwardSubsumed);
+  COND_OUT("Backward subsumptions", backwardSubsumed);
+  COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
+  COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
+  env.out << endl;
+
+  COND_OUT("Binary resolution", resolution);
+  COND_OUT("Factoring", factoring);
+  COND_OUT("Forward superposition", forwardSuperposition);
+  COND_OUT("Backward superposition", backwardSuperposition);
+  COND_OUT("Self superposition", selfSuperposition);
+  COND_OUT("Equality factoring", equalityFactoring);
+  COND_OUT("Equality resolution", equalityResolution);
+  env.out << endl;
+
+  COND_OUT("Splitted clauses", splittedClauses);
+  COND_OUT("Splitted components", splittedComponents);
+  COND_OUT("Unique components", uniqueComponents);
   env.out << "------------------------------\n";
 }

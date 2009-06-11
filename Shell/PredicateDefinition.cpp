@@ -18,8 +18,9 @@
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Unit.hpp"
 
-
 #include "PredicateDefinition.hpp"
+
+#define REPORT_PRED_DEF_SIMPL 0
 
 namespace Shell
 {
@@ -85,11 +86,15 @@ struct PredicateDefinition::PredData
       ASS(!enqueuedForReplacement);
       pdObj->_eliminable.push(pred);
       enqueuedForDefEl=true;
-//      cout<<"DE: "<<env.signature->predicateName(pred)<<endl;
+#if REPORT_PRED_DEF_SIMPL
+      cout<<"DE: "<<env.signature->predicateName(pred)<<endl;
+#endif
     } else if(!enqueuedForReplacement && isPure()) {
       pdObj->_pureToReplace.push(pred);
       enqueuedForReplacement=true;
-//      cout<<"PP: "<<env.signature->predicateName(pred)<<((nocc==0)?" +":" -")<<endl;
+#if REPORT_PRED_DEF_SIMPL
+      cout<<"PP: "<<env.signature->predicateName(pred)<<((nocc==0)?" +":" -")<<endl;
+#endif
     }
   }
 
@@ -150,7 +155,8 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
 	//elsewhere it occurs only negatively, so we can make
 	//an equivalence into an implication
 	makeImplFromDef(pred, false);
-      } else if(pd.nocc==0) {
+      } else {
+	ASS_EQ(pd.nocc,0);
 	//elsewhere it occurs only positively, so we can make
 	//an equivalence into an implication
 	makeImplFromDef(pred, true);
@@ -160,6 +166,10 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
       }
       count(pd.defUnit, -1);
       ALWAYS(_unitReplacements.insert(pd.defUnit, pd.newDefUnit));
+#if REPORT_PRED_DEF_SIMPL
+      cout<<"DE from: "<<pd.defUnit->toString()<<endl;
+      cout<<"DE to: "<<(pd.newDefUnit?pd.newDefUnit->toString():"<deleted>")<<endl;
+#endif
     }
     while(_pureToReplace.isNonEmpty()) {
       int pred=_pureToReplace.pop();
@@ -177,8 +187,10 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
 	Unit* v=replacePurePredicates(u);
 
 	ASS_NEQ(u,v);
-//	cout<<"PP from: "<<u->toString()<<endl;
-//	cout<<"PP to: "<<v->toString()<<endl;
+#if REPORT_PRED_DEF_SIMPL
+	cout<<"PP from: "<<u->toString()<<endl;
+	cout<<"PP to: "<<v->toString()<<endl;
+#endif
 	if(u->isClause()) {
 	  ASS(v->isClause())
 	  if(v!=0) {
