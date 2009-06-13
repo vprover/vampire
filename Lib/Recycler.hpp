@@ -43,7 +43,7 @@ public:
 
 
   template<typename T>
-  static void release(T* obj) throw()
+  static void release(T* obj)
   {
     ASS(obj);
 
@@ -51,7 +51,7 @@ public:
     putIntoStoreOrDelete<T>(obj);
   }
   template<typename T>
-  static void release(DArray<T>* obj) throw()
+  static void release(DArray<T>* obj)
   {
     ASS(obj);
 
@@ -62,13 +62,17 @@ public:
 private:
 
   template<typename T>
-  static void putIntoStoreOrDelete(T* obj) throw()
+  static void putIntoStoreOrDelete(T* obj)
   {
     List<T*>* itm=0;
     List<T*>*& store=getStore<T>();
     try {
       itm=new List<T*>(obj, store);
-    } catch(MemoryLimitExceededException) {}
+    } catch(MemoryLimitExceededException e) {
+      if(!Exception::isThrownDuringExceptionHandling()) {
+	throw;
+      }
+    }
 
     if(itm) {
       store=itm;

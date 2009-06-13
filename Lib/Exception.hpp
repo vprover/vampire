@@ -10,9 +10,11 @@
 #include <string>
 #include <iostream>
 
-using namespace std;
+#include "LastCopyWatcher.hpp"
 
 namespace Lib {
+
+using namespace std;
 
 /**
  * Abstract class Exception. It is the base class for
@@ -20,23 +22,37 @@ namespace Lib {
  */
 class Exception
 {
- public:
+public:
   /** Create an exception with a given error message */
   explicit Exception (const char* msg)
     : _message(msg)
-  {}
+  { s_exceptionCounter++; }
   Exception (const char* msg, int line);
   explicit Exception (const string msg)
     : _message(msg.c_str())
-  {}
+  { s_exceptionCounter++; }
   virtual void cry (ostream&);
-  virtual ~Exception() {}
- protected:
+  virtual ~Exception()
+  {
+    if(_lcw.isLast()) {
+      s_exceptionCounter--;
+      ASS_GE(s_exceptionCounter,0);
+    }
+  }
+
+  static bool isThrown() { return s_exceptionCounter!=0; }
+  static bool isThrownDuringExceptionHandling() { return s_exceptionCounter>1; }
+protected:
   /** Default constructor, required for some subclasses, made protected
    * so that it cannot be called directly */
   Exception () {}
   /** The error message */
   const char* _message;
+
+  LastCopyWatcher _lcw;
+
+  static int s_exceptionCounter;
+
 }; // Exception
 
 

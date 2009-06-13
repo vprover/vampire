@@ -59,7 +59,9 @@ Statistics::Statistics()
 
 void Statistics::print()
 {
-#define COND_OUT(text, num) if(num) { env.out<<(text)<<": "<<(num)<<endl; }
+  bool separable=false;
+#define COND_OUT(text, num) if(num) { env.out<<(text)<<": "<<(num)<<endl; separable=true; }
+#define SEPARATOR if(separable) { env.out<<endl; separable=false; }
 
   env.out << "------------------------------\n";
   COND_OUT("Active clauses", activeClauses);
@@ -67,7 +69,7 @@ void Statistics::print()
   COND_OUT("Generated clauses", generatedClauses);
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
-  env.out << endl;
+  SEPARATOR;
 
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
@@ -76,7 +78,7 @@ void Statistics::print()
   COND_OUT("Bw demodulations", backwardDemodulations);
   COND_OUT("Condensations", condensations);
   COND_OUT("Evaluations", evaluations);
-  env.out << endl;
+  SEPARATOR;
 
   COND_OUT("Simple tautologies", simpleTautologies);
   COND_OUT("Equational tautologies", equationalTautologies);
@@ -84,7 +86,7 @@ void Statistics::print()
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
-  env.out << endl;
+  SEPARATOR;
 
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Factoring", factoring);
@@ -93,10 +95,13 @@ void Statistics::print()
   COND_OUT("Self superposition", selfSuperposition);
   COND_OUT("Equality factoring", equalityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
-  env.out << endl;
+  SEPARATOR;
 
   COND_OUT("Splitted clauses", splittedClauses);
   COND_OUT("Splitted components", splittedComponents);
   COND_OUT("Unique components", uniqueComponents);
   env.out << "------------------------------\n";
+
+#undef SEPARATOR
+#undef COND_OUT
 }

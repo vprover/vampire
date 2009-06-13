@@ -149,7 +149,14 @@ void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
     Clause* cl=toAdd.next();
     ASS_EQ(cl->prop(),0);
     cl->setProp(bdd->getFalse());
-    addUnprocessedClause(cl);
+
+    if(env.options->sos() && cl->inputType()==Clause::AXIOM) {
+      cl->setStore(Clause::ACTIVE);
+      env.statistics->activeClauses++;
+      _active->add(cl);
+    } else {
+      addUnprocessedClause(cl);
+    }
   }
 #if SPLITTING==3
   g_performSplitting=false;

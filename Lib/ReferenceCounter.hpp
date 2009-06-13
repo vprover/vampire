@@ -25,11 +25,16 @@ public:
     _counter=rc._counter;
     inc();
   }
+  ~ReferenceCounter()
+  {
+    dec();
+  }
   ReferenceCounter& operator=(const ReferenceCounter& rc)
   {
     dec();
     _counter=rc._counter;
     inc();
+    return *this;
   }
   bool isLast()
   {

@@ -82,13 +82,19 @@ void Term::destroyNonShared()
 	stack.push(ts->next());
       }
     }
+    while(!deletingStack.isEmpty()) {
+      deletingStack.pop()->destroy();
+    }
   } catch(MemoryLimitExceededException) {
     //The MemoryLimitExceededException here can lead to memory leaks,
     //as we miss some subterms.
     stack.reset();
-  }
-  while(!deletingStack.isEmpty()) {
-    deletingStack.pop()->destroy();
+    while(!deletingStack.isEmpty()) {
+      deletingStack.pop()->destroy();
+    }
+    if(!Exception::isThrownDuringExceptionHandling()) {
+      throw;
+    }
   }
 }
 

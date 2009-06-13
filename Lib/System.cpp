@@ -18,6 +18,9 @@
 
 #include "../Debug/Tracer.hpp"
 
+#include "../Lib/Environment.hpp"
+#include "../Shell/Options.hpp"
+
 #include "System.hpp"
 
 namespace Lib {
@@ -90,7 +93,11 @@ void handleSignal (int sigNum)
 	exit(0);
       }
       handled = true;
-      cout << "Aborted by signal " << signalDescription << "\n";
+      if(env.options) {
+	cout << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+      } else {
+	cout << "Aborted by signal " << signalDescription << "\n";
+      }
       return;
 # endif
 
@@ -112,7 +119,11 @@ void handleSignal (int sigNum)
 	  exit(0);
 	}
 	handled = true;
-	cout << "Aborted by signal " << signalDescription << "\n";
+	if(env.options) {
+	  cout << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	} else {
+	  cout << "Aborted by signal " << signalDescription << "\n";
+	}
 #if VDEBUG
 	Debug::Tracer::printStack(cout);
 #endif

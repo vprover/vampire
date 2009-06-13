@@ -11,9 +11,11 @@
 namespace Lib
 {
 
+int Exception::s_exceptionCounter=0;
+
 Exception::Exception (const char* msg, int line)
   : _message((string(msg)+": "+Int::toString(line)).c_str())
-{}
+{ s_exceptionCounter++; }
 
 /**
  * Write a description of the exception to a stream.
