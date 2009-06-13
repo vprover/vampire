@@ -7,6 +7,7 @@
 
 #include <iostream>
 
+#include "../Lib/Allocator.hpp"
 #include "../Lib/Environment.hpp"
 #include "Statistics.hpp"
 
@@ -100,6 +101,9 @@ void Statistics::print()
   COND_OUT("Splitted clauses", splittedClauses);
   COND_OUT("Splitted components", splittedComponents);
   COND_OUT("Unique components", uniqueComponents);
+  SEPARATOR;
+
+  env.out << "Memory used: " << (Allocator::getUsedMemory()/1024) << "KB" << endl;
   env.out << "------------------------------\n";
 
 #undef SEPARATOR

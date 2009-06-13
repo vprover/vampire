@@ -4,6 +4,7 @@
  */
 
 #include "../Lib/Allocator.hpp"
+#include "../Lib/Int.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
@@ -16,6 +17,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 
 struct InferenceStore::FullInference
@@ -43,6 +45,12 @@ struct InferenceStore::FullInference
   ClauseSpec premises[1];
 };
 
+InferenceStore::InferenceStore()
+: _bdd(BDD::instance())
+{
+}
+
+
 InferenceStore::ClauseSpec InferenceStore::getClauseSpec(Clause* cl)
 {
   return ClauseSpec(cl, cl->prop());
@@ -52,18 +60,23 @@ InferenceStore::ClauseSpec InferenceStore::getClauseSpec(Clause* cl, BDDNode* pr
   return ClauseSpec(cl, prop);
 }
 
-int InferenceStore::getClauseSpecId(ClauseSpec cs)
+string InferenceStore::getClauseIdStr(ClauseSpec cs)
 {
+  string res=Int::toString(cs.first->number());
   FullInference* finf;
   if(_data.find(cs,finf)) {
     if(!finf->csId) {
       finf->csId=_nextClIds.insert(cs.first);
     }
-    return finf->csId;
+    return res+"_"+Int::toString(finf->csId);
   } else {
-    //only clause without prop. part can miss their Kernel-inference.
-    ASS(BDD::instance()->isFalse(cs.second));
-    return 0;
+    //only clause constant prop. part can miss their Kernel-inference.
+    if(_bdd->isTrue(cs.second)) {
+      return res+"_T";
+    } else {
+      ASS(_bdd->isFalse(cs.second));
+      return res;
+    }
   }
 }
 
@@ -71,20 +84,18 @@ void InferenceStore::recordNonPropInference(Clause* cl)
 {
   CALL("InferenceStore::recordNonPropInference/1");
 
-  BDD* bdd=BDD::instance();
   Inference* cinf=cl->inference();
   Inference::Iterator it = cinf->iterator();
   bool nonTrivialProp=false;
   while (cinf->hasNext(it)) {
     Clause* prem=static_cast<Clause*>(cinf->next(it));
     ASS(prem->isClause());
-    if(!bdd->isFalse(prem->prop())) {
+    if(!_bdd->isFalse(prem->prop())) {
       nonTrivialProp=true;
       break;
     }
   }
 
-  //if all
   if(nonTrivialProp) {
     recordNonPropInference(cl, cl->inference());
   }
@@ -95,6 +106,7 @@ void InferenceStore::recordNonPropInference(Clause* cl)
 void InferenceStore::recordNonPropInference(Clause* cl, Inference* cinf)
 {
   CALL("InferenceStore::recordNonPropInference/2");
+  ASS(!_bdd->isTrue(cl->prop()));
 
   static Stack<Clause*> prems(8);
   prems.reset();
@@ -117,50 +129,41 @@ void InferenceStore::recordNonPropInference(Clause* cl, Inference* cinf)
 
 void InferenceStore::recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp)
 {
+  if(_bdd->isTrue(cl->prop())) {
+    return;
+  }
   recordPropAlter(cl, oldProp, newProp, Inference::PROP_REDUCE);
 }
 
 void InferenceStore::recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newProp,
 	Inference::Rule rule)
 {
-  if(BDD::instance()->isTrue(newProp)) {
-    return;
-  }
-  if(BDD::instance()->isTrue(oldProp)) {
-    FullInference* finf=new (0) FullInference(0);
-    finf->rule=rule;
-    _data.insert(getClauseSpec(cl, newProp), finf);
-  } else {
-    FullInference* finf=new (1) FullInference(1);
-    finf->premises[0]=getClauseSpec(cl, oldProp);
+  ASS(!_bdd->isTrue(newProp));
 
-    finf->rule=rule;
-    _data.insert(getClauseSpec(cl, newProp), finf);
-  }
+  FullInference* finf=new (1) FullInference(1);
+  finf->premises[0]=getClauseSpec(cl, oldProp);
+
+  finf->rule=rule;
+  _data.insert(getClauseSpec(cl, newProp), finf);
 }
 
 void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp)
 {
+  ASS(!_bdd->isTrue(resultProp));
+
   FullInference* finf=0;
-  if(BDD::instance()->isTrue(oldClProp)) {
-    //if we're merging to a subsumed clause, we just use the inference of the merged clause
-    if(!_data.find(getClauseSpec(addedCl), finf)) {
-      recordNonPropInference(cl, addedCl->inference());
-      return;
-    }
-    ASS(finf);
-  } else {
-    finf=new (2) FullInference(2);
-    finf->premises[0]=getClauseSpec(cl, oldClProp);
-    finf->premises[1]=getClauseSpec(addedCl);
-    finf->rule=Inference::COMMON_NONPROP_MERGE;
-  }
-  ALWAYS(_data.insert(getClauseSpec(cl, resultProp), finf));
+  finf=new (2) FullInference(2);
+  finf->premises[0]=getClauseSpec(cl, oldClProp);
+  finf->premises[1]=getClauseSpec(addedCl);
+  finf->rule=Inference::COMMON_NONPROP_MERGE;
+  _data.insert(getClauseSpec(cl, resultProp), finf);
 }
 
 void InferenceStore::recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
 	  unsigned premCnt, Clause** prems)
 {
+  ASS(!_bdd->isTrue(newMasterProp));
+
   FullInference* finf=new (premCnt+1) FullInference(premCnt+1);
   for(unsigned i=0;i<premCnt;i++) {
     finf->premises[i]=getClauseSpec(prems[i]);
@@ -175,11 +178,13 @@ void InferenceStore::recordSplitting(Clause* master, BDDNode* oldMasterProp, BDD
 struct InferenceStore::ProofPrinter
 {
   ProofPrinter(Unit* refutation, ostream& out, InferenceStore* is)
-  : is(is), out(out), bdd(BDD::instance())
+  : is(is), out(out), bdd(BDD::instance()), dummyTautIntroduction(0)
   {
+    dummyTautIntroduction.rule=Inference::TAUTOLOGY_INTRODUCTION;
+
     if( refutation->isClause() && static_cast<Clause*>(refutation)->prop() ) {
       Clause* refCl=static_cast<Clause*>(refutation);
-      ASS( BDD::instance()->isFalse(refCl->prop()) );
+      ASS( bdd->isFalse(refCl->prop()) );
       ClauseSpec cs=getClauseSpec(refCl);
       outKernel.push(cs);
       handledKernel.insert(cs);
@@ -194,13 +199,9 @@ struct InferenceStore::ProofPrinter
   virtual void printProofStepHead(ClauseSpec cs, FullInference* finf)
   {
     Clause* cl=cs.first;
-    int csId=is->getClauseSpecId(cs);
 
-    out << cl->number();
-    if(csId) {
-      out <<"_"<<csId;
-    }
-    out << ". " << cl->nonPropToString()
+    out << is->getClauseIdStr(cs) << ". "
+	<< cl->nonPropToString()
 	<<" | "<<bdd->toString(cs.second)
 	<<" ("<<cl->age()<<':'<<cl->weight()<<") ";
 
@@ -209,13 +210,8 @@ struct InferenceStore::ProofPrinter
 
   virtual void printProofStepPremise(ClauseSpec cs, bool first)
   {
-    Clause* cl=cs.first;
-    int csId=is->getClauseSpecId(cs);
     out << (first ? ' ' : ',');
-    out << cl->number();
-    if(csId) {
-      out << "_"<<csId;
-    }
+    out << is->getClauseIdStr(cs);
   }
 
   virtual void printProofStepHead(Unit* unit)
@@ -252,7 +248,14 @@ struct InferenceStore::ProofPrinter
     while(outKernel.isNonEmpty()) {
       ClauseSpec cs=outKernel.pop();
       FullInference* finf;
-      if(is->_data.find(cs, finf)) {
+      if(bdd->isTrue(cs.second)) {
+	//a tautology does not need any proof
+	ASS(!is->_data.find(cs));
+	if(!hideProofStep(Inference::TAUTOLOGY_INTRODUCTION)) {
+	  printProofStepHead(cs, &dummyTautIntroduction);
+	  printProofStepTail();
+	}
+      } else if(is->_data.find(cs, finf)) {
 	bool hideStep=hideProofStep(finf->rule);
 
 	if(!hideStep) {
@@ -290,7 +293,7 @@ struct InferenceStore::ProofPrinter
 	    printProofStepPremise(prem, first);
 	  }
 	  if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
-	    ClauseSpec premCS=getClauseSpec(static_cast<Clause*>(prem), BDD::instance()->getFalse());
+	    ClauseSpec premCS=getClauseSpec(static_cast<Clause*>(prem), bdd->getFalse());
 	    if(!handledKernel.contains(premCS)) {
 	      handledKernel.insert(premCS);
 	      outKernel.push(premCS);
@@ -347,6 +350,8 @@ struct InferenceStore::ProofPrinter
   InferenceStore* is;
   ostream& out;
   BDD* bdd;
+
+  FullInference dummyTautIntroduction;
 };
 
 struct InferenceStore::TPTPProofCheckPrinter
@@ -358,27 +363,19 @@ struct InferenceStore::TPTPProofCheckPrinter
   void printProofStepHead(ClauseSpec cs, FullInference* finf)
   {
     Clause* cl=cs.first;
-    int csId=is->getClauseSpecId(cs);
-    out << "fof(r"<<cl->number();
-    if(csId) {
-      out << "_"<<csId;
-    }
-    out << ",conjecture, ";
-    out << cl->nonPropToString()<<" | "<<bdd->toTPTPString(cs.second);
-    out << " ). %"<<Inference::ruleName(finf->rule)<<"\n";
+    out << "fof(r"<<is->getClauseIdStr(cs)
+    	<< ",conjecture, "
+    	<< cl->nonPropToString()<<" | "<<bdd->toTPTPString(cs.second)
+    	<< " ). %"<<Inference::ruleName(finf->rule)<<"\n";
   }
 
   void printProofStepPremise(ClauseSpec cs, bool first)
   {
     Clause* cl=cs.first;
-    int csId=is->getClauseSpecId(cs);
-    out << "fof(pr"<<cl->number();
-    if(csId) {
-      out << "_"<<csId;
-    }
-    out << ",axiom, ";
-    out << cl->nonPropToString()<<" | "<<bdd->toTPTPString(cs.second);
-    out << " ).\n";
+    out << "fof(pr"<<is->getClauseIdStr(cs)
+	<< ",axiom, "
+	<< cl->nonPropToString()<<" | "<<bdd->toTPTPString(cs.second)
+    	<< " ).\n";
   }
 
   void printProofStepHead(Unit* unit)

@@ -10,6 +10,10 @@
 #include <cstdlib>
 #include <utility>
 
+#if VDEBUG
+#include <typeinfo>
+#endif
+
 #include "../Debug/Assertion.hpp"
 #include "Allocator.hpp"
 #include "Exception.hpp"

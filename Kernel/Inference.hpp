@@ -167,7 +167,9 @@ public:
     /** reducing the propositional part (due to simplification) */
     PROP_REDUCE = 203u,
     /** clause naming */
-    CLAUSE_NAMING = 204u
+    CLAUSE_NAMING = 204u,
+    /** tautology introduction */
+    TAUTOLOGY_INTRODUCTION = 205u
   }; // class Inference::Rule
 
   explicit Inference(Rule r)

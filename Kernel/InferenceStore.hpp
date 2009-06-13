@@ -24,7 +24,6 @@ using namespace Lib;
 class InferenceStore
 {
 public:
-
   static InferenceStore* instance();
 
   void recordNonPropInference(Clause* cl);
@@ -37,6 +36,8 @@ public:
 
   void outputProof(ostream& out, Unit* refutation);
 private:
+  InferenceStore();
+
   struct ClauseSpec
   {
     ClauseSpec() {}
@@ -55,7 +56,7 @@ private:
   static ClauseSpec getClauseSpec(Clause* cl);
   static ClauseSpec getClauseSpec(Clause* cl, BDDNode* prop);
 
-  int getClauseSpecId(ClauseSpec cs);
+  std::string getClauseIdStr(ClauseSpec cs);
 
 
   /**
@@ -63,13 +64,19 @@ private:
    * in Clause object and by prop. part in BDDNode yields an
    * inference that was used to derive this clause.
    *
-   * If all remises of a clause have their propositional parts
+   * If all premises of a clause have their propositional parts
    * equal to false, and it is the inference with which the
    * Clause object was created, then the inference is not stored
    * here, and the one in clause->inference() is valid.
+   *
+   * Also clauses with propositional parts equal to true are not
+   * being inserted here, as in proofs they're derived by the
+   * "tautology introduction" rule that takes no premises.
    */
   DHMap<ClauseSpec, FullInference*, PtrPairSimpleHash> _data;
   DHMultiset<Clause*, PtrIdentityHash> _nextClIds;
+
+  BDD* _bdd;
 };
 
 };

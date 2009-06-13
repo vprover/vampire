@@ -302,6 +302,8 @@ string Inference::ruleName(Rule rule)
     return "prop reduce";
   case CLAUSE_NAMING:
     return "clause naming";
+  case TAUTOLOGY_INTRODUCTION:
+    return "tautology introduction";
 
 #if VDEBUG
   default:
