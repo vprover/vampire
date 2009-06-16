@@ -220,13 +220,19 @@ float Clause::getEffectiveWeight(unsigned originalWeight)
   return originalWeight * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
 }
 
-
+/**
+ * Return effective weight of the clause (i.e. weight multiplied
+ * by the nongoal weight coefficient, if applicable)
+ */
 float Clause::getEffectiveWeight()
 {
   return getEffectiveWeight(weight());
 }
 
 
+/**
+ * Return index of @b lit in the clause
+ */
 unsigned Clause::getLiteralPosition(Literal* lit)
 {
   switch(length()) {
@@ -258,6 +264,19 @@ unsigned Clause::getLiteralPosition(Literal* lit)
       _literalPositions=new InverseLookup<Literal>(_literals,length());
     }
     return static_cast<unsigned>(_literalPositions->get(lit));
+  }
+}
+
+
+/**
+ * This method should be called when literals of the clause are
+ * reordered (e.g. after literal selection), so that the information
+ * about literal positions can be updated.
+ */
+void Clause::notifyLiteralReorder()
+{
+  if(_literalPositions) {
+    _literalPositions->update(_literals);
   }
 }
 

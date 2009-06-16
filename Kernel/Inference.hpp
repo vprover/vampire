@@ -158,6 +158,10 @@ public:
     UNUSED_PREDICATE_DEFINITION_REMOVAL = 56u,
     /** pure predicate removal */
     PURE_PREDICATE_REMOVAL = 57u,
+    /** inequality splitting */
+    INEQUALITY_SPLITTING = 58u,
+    /** inequality splitting name introduction */
+    INEQUALITY_SPLITTING_NAME_INTRODUCTION = 59u,
 
 
     /** splitting */

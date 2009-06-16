@@ -14,11 +14,16 @@
 #include "../Lib/Int.hpp"
 #include "../Lib/Metaiterators.hpp"
 
+#include "../Shell/Options.hpp"
+
 #include "Term.hpp"
 #include "KBO.hpp"
 #include "Signature.hpp"
 
 namespace Kernel {
+
+using namespace Lib;
+using namespace Shell;
 
 /**
  * Class to represent the current state of the KBO comparison.
@@ -290,10 +295,13 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
   CALL("KBO::compare(Literal*...)");
   ASS(l1->shared());
   ASS(l2->shared());
+  ASS_EQ(l1->isNegative(), l2->isNegative());
 
   if (l1 == l2) {
     return EQUAL;
   }
+
+  Result res;
 
   unsigned p1 = l1->functor();
   unsigned p2 = l2->functor();
@@ -301,31 +309,52 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
     int lev1 = predicateLevel(p1);
     int lev2 = predicateLevel(p2);
     if (lev1 > lev2) {
-      return GREATER;
+      res=GREATER;
+      goto fin;
     }
     if (lev2 > lev1) {
+      res=LESS;
+      goto fin;
+    }
+  }
+
+  {
+    State state(*this);
+    if(p1!=p2) {
+      TermList* ts;
+      ts=l1->args();
+      while(!ts->isEmpty()) {
+	state.traverse(*ts,1);
+	ts=ts->next();
+      }
+      ts=l2->args();
+      while(!ts->isEmpty()) {
+	state.traverse(*ts,-1);
+	ts=ts->next();
+      }
+    } else {
+      state.traverse(l1,l2);
+    }
+
+    res=state.result(l1,l2);
+  }
+
+fin:
+  if(_reverseLCM && l1->isNegative()) {
+    switch(res) {
+    case GREATER:
       return LESS;
+    case GREATER_EQ:
+      return LESS_EQ;
+    case LESS:
+      return GREATER;
+    case LESS_EQ:
+      return GREATER_EQ;
+    default:
+      return res;
     }
   }
-
-  State state(*this);
-  if(p1!=p2) {
-    TermList* ts;
-    ts=l1->args();
-    while(!ts->isEmpty()) {
-      state.traverse(*ts,1);
-      ts=ts->next();
-    }
-    ts=l2->args();
-    while(!ts->isEmpty()) {
-      state.traverse(*ts,-1);
-      ts=ts->next();
-    }
-  } else {
-    state.traverse(l1,l2);
-  }
-
-  return state.result(l1,l2);
+  return res;
 } // KBO::compare()
 
 Ordering::Result KBO::compare(TermList tl1, TermList tl2)
@@ -406,22 +435,6 @@ int KBO::functionPrecedence (unsigned fun)
 } // KBO::functionPrecedences
 
 
-KBO* KBO::createReversedAgePreferenceConstantLevels()
-{
-  CALL("KBO::createReversedAgePreferenceConstantLevels");
-  KBO* res=new KBO(*env.signature);
-  for(unsigned i=0;i<res->_functions;i++) {
-    res->_functionPrecedences[i]=i;
-  }
-  for(unsigned i=0;i<res->_predicates;i++) {
-    res->_predicatePrecedences[i]=i;
-    res->_predicateLevels[i]=1;
-  }
-  //equality is on the lowest level
-  res->_predicateLevels[0]=0;
-  return res;
-}
-
 struct FnArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
@@ -447,7 +460,32 @@ struct PredArityComparator
   }
 };
 
-KBO* KBO::createArityPreferenceConstantLevels()
+struct FnRevArityComparator
+{
+  Comparison compare(unsigned u1, unsigned u2)
+  {
+    Comparison res=Int::compare(env.signature->functionArity(u2),
+	    env.signature->functionArity(u1));
+    if(res==EQUAL) {
+      res=Int::compare(u1,u2);
+    }
+    return res;
+  }
+};
+struct PredRevArityComparator
+{
+  Comparison compare(unsigned u1, unsigned u2)
+  {
+    Comparison res=Int::compare(env.signature->predicateArity(u2),
+	    env.signature->predicateArity(u1));
+    if(res==EQUAL) {
+      res=Int::compare(u1,u2);
+    }
+    return res;
+  }
+};
+
+KBO* KBO::create()
 {
   CALL("KBO::createArityPreferenceConstantLevels");
 
@@ -459,49 +497,57 @@ KBO* KBO::createArityPreferenceConstantLevels()
   static DArray<unsigned> aux(32);
   if(funcs) {
     aux.initFromIterator(getRangeIterator(0u, funcs), funcs);
-    aux.sort(FnArityComparator());
+
+    switch(env.options->symbolPrecedence()) {
+    case Shell::Options::BY_ARITY:
+      aux.sort(FnArityComparator());
+      break;
+    case Shell::Options::BY_REVERSE_ARITY:
+      aux.sort(FnRevArityComparator());
+      break;
+    case Shell::Options::BY_OCCURRENCE:
+      break;
+    }
+
     for(unsigned i=0;i<funcs;i++) {
       res->_functionPrecedences[aux[i]]=i;
     }
   }
 
   aux.initFromIterator(getRangeIterator(0u, preds), preds);
-  aux.sort(PredArityComparator());
+
+  switch(env.options->symbolPrecedence()) {
+  case Shell::Options::BY_ARITY:
+    aux.sort(PredArityComparator());
+    break;
+  case Shell::Options::BY_REVERSE_ARITY:
+    aux.sort(PredRevArityComparator());
+    break;
+  case Shell::Options::BY_OCCURRENCE:
+    break;
+  }
   for(unsigned i=0;i<preds;i++) {
     res->_predicatePrecedences[aux[i]]=i;
   }
 
-  res->_predicateLevels.init(res->_predicates, 1);
+  switch(env.options->literalComparisonMode()) {
+  case Shell::Options::LCM_STANDARD:
+    res->_predicateLevels.init(res->_predicates, 1);
+    //equality is on the lowest level
+    res->_predicateLevels[0]=0;
+    res->_reverseLCM=false;
+    break;
+  case Shell::Options::LCM_PREDICATE:
+  case Shell::Options::LCM_REVERSE:
+    for(unsigned i=1;i<preds;i++) {
+      res->_predicateLevels[i]=res->_predicatePrecedences[i]+1;
+    }
+    res->_predicateLevels[0]=0;
+    res->_reverseLCM = env.options->literalComparisonMode()==Shell::Options::LCM_REVERSE;
+    break;
 
-  //equality is on the lowest level
-  res->_predicateLevels[0]=0;
-  return res;
-}
-
-KBO* KBO::createArityPreferenceAndLevels()
-{
-  KBO* res=new KBO(*env.signature);
-
-  unsigned preds=res->_predicates;
-  unsigned funcs=res->_functions;
-
-  DArray<unsigned> aux(funcs);
-
-  aux.initFromIterator(getRangeIterator(0u, funcs), funcs);
-  aux.sort(FnArityComparator());
-  for(unsigned i=0;i<funcs;i++) {
-    res->_functionPrecedences[aux[i]]=i;
   }
 
-  aux.initFromIterator(getRangeIterator(0u, preds), preds);
-  aux.sort(PredArityComparator());
-  for(unsigned i=0;i<preds;i++) {
-    res->_predicatePrecedences[aux[i]]=i;
-    res->_predicateLevels[aux[i]]=i+1;
-  }
-
-  //equality is on the lowest level
-  res->_predicateLevels[0]=0;
   return res;
 }
 

@@ -9,14 +9,15 @@
 #define __Unit__
 
 #include <string>
-#include "../Lib/List.hpp"
 
-using namespace std;
-using namespace Lib;
+#include "../Forwards.hpp"
+
+#include "../Lib/List.hpp"
 
 namespace Kernel {
 
-class Inference;
+using namespace std;
+using namespace Lib;
 
 /**
  * Class to represent units of inference (such as clauses and formulas).
@@ -105,8 +106,6 @@ protected:
   /** Used to enumerate units */
   static unsigned _lastNumber;
 }; // class Unit
-
-typedef List<Unit*> UnitList;
 
 }
 #endif

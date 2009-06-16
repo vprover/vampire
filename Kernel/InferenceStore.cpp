@@ -292,6 +292,7 @@ struct InferenceStore::ProofPrinter
 	  if(!hideStep) {
 	    printProofStepPremise(prem, first);
 	  }
+	  first=false;
 	  if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
 	    ClauseSpec premCS=getClauseSpec(static_cast<Clause*>(prem), bdd->getFalse());
 	    if(!handledKernel.contains(premCS)) {
@@ -299,7 +300,6 @@ struct InferenceStore::ProofPrinter
 	      outKernel.push(premCS);
 	    }
 	  } else {
-	    first=false;
 	    if(!handledShell.contains(prem)) {
 	      handledShell.insert(prem);
 	      outShell.push(prem);
@@ -416,6 +416,8 @@ struct InferenceStore::TPTPProofCheckPrinter
     case Inference::NEGATED_CONJECTURE:
     case Inference::CLAUSE_NAMING:
     case Inference::SPLITTING_COMPONENT:
+    case Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
+    case Inference::INEQUALITY_SPLITTING:
       return true;
     default:
       return false;

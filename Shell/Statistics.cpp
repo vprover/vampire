@@ -24,6 +24,10 @@ Statistics::Statistics()
     inputFormulas(0),
     formulaNames(0),
     initialClauses(0),
+    splittedInequalities(0),
+    purePredicates(0),
+    unusedPredicateDefinitions(0),
+    functionDefinitions(0),
     factoring(0),
     resolution(0),
     forwardSuperposition(0),
@@ -70,6 +74,12 @@ void Statistics::print()
   COND_OUT("Generated clauses", generatedClauses);
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
+  SEPARATOR;
+
+  COND_OUT("Pure predicates", purePredicates);
+  COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
+  COND_OUT("Function definitions", functionDefinitions);
+  COND_OUT("Splitted inequalities", splittedInequalities);
   SEPARATOR;
 
   COND_OUT("Duplicate literals", duplicateLiterals);

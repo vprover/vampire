@@ -40,9 +40,12 @@ class Term;
 class Literal;
 typedef List<Literal*> LiteralList;
 
+class Inference;
+
 class Unit;
 class FormulaUnit;
 class Formula;
+typedef List<Unit*> UnitList;
 
 class Clause;
 typedef VirtualIterator<Clause*> ClauseIterator;

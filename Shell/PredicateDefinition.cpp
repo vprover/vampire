@@ -18,6 +18,8 @@
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Unit.hpp"
 
+#include "Statistics.hpp"
+
 #include "PredicateDefinition.hpp"
 
 #define REPORT_PRED_DEF_SIMPL 0
@@ -166,6 +168,8 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
       }
       count(pd.defUnit, -1);
       ALWAYS(_unitReplacements.insert(pd.defUnit, pd.newDefUnit));
+
+      env.statistics->unusedPredicateDefinitions++;
 #if REPORT_PRED_DEF_SIMPL
       cout<<"DE from: "<<pd.defUnit->toString()<<endl;
       cout<<"DE to: "<<(pd.newDefUnit?pd.newDefUnit->toString():"<deleted>")<<endl;
@@ -203,6 +207,8 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
 	}
 	ALWAYS(_unitReplacements.insert(u,v));
       }
+
+      env.statistics->purePredicates++;
     }
   }
 

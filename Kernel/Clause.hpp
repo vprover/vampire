@@ -125,9 +125,7 @@ public:
     ASS(s >= 0);
     ASS(s <= _length);
     _selected = s;
-    if(_literalPositions) {
-      _literalPositions->update(_literals);
-    }
+    notifyLiteralReorder();
   }
 
   /** Return the weight */
@@ -141,6 +139,7 @@ public:
   void computeWeight() const;
 
   unsigned getLiteralPosition(Literal* lit);
+  void notifyLiteralReorder();
 
   bool shouldBeDestroyed();
   void destroyIfUnnecessary();

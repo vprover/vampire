@@ -13,6 +13,7 @@
 #include "CNF.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
+#include "InequalitySplitting.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "NNF.hpp"
@@ -180,6 +181,11 @@ void Preprocess::preprocess (UnitList*& units)
 	  _property.hasProp(Property::PR_HAS_FUNCTION_DEFINITIONS)) {
     FunctionDefinition fd;
     fd.removeAllDefinitions(units);
+  }
+
+  if (_options.inequalitySplitting() != 0) {
+    InequalitySplitting is;
+    is.perform(units);
   }
 
 //   // remove tautologies, duplicate literals, and literals t != t

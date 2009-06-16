@@ -20,6 +20,7 @@
 
 #include "../Lib/Environment.hpp"
 #include "../Shell/Options.hpp"
+#include "../Shell/Statistics.hpp"
 
 #include "System.hpp"
 
@@ -121,6 +122,7 @@ void handleSignal (int sigNum)
 	handled = true;
 	if(env.options) {
 	  cout << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	  env.statistics->print();
 	} else {
 	  cout << "Aborted by signal " << signalDescription << "\n";
 	}

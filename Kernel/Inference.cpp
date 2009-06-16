@@ -293,6 +293,10 @@ string Inference::ruleName(Rule rule)
     return "unused predicate definition removal";
   case PURE_PREDICATE_REMOVAL:
     return "pure predicate removal";
+  case INEQUALITY_SPLITTING:
+    return "inequality splitting";
+  case INEQUALITY_SPLITTING_NAME_INTRODUCTION:
+    return "inequality splitting name introduction";
 
   case SPLITTING:
     return "splitting";

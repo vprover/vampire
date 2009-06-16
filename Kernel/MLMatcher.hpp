@@ -16,9 +16,6 @@ using namespace Lib;
 
 class MLMatcher {
 public:
-  static bool isVariant(Literal** cl1Lits, Clause* cl2, LiteralList** alts);
-
-
   static bool canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList** alts,
   	Literal* resolvedLit, bool multiset);
   static bool canBeMatched(Clause* base, Clause* instance, LiteralList** alts,
@@ -28,7 +25,6 @@ public:
   }
 
 
-  static bool canBeMatched(Clause* base, LiteralList** matches);
   static bool canBeMatched(Clause* base, DArray<LiteralList*>& matches);
 
 

@@ -12,6 +12,7 @@
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/InferenceStore.hpp"
 #include "../Kernel/LiteralSelector.hpp"
+#include "../Kernel/MLVariant.hpp"
 #include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
@@ -29,13 +30,14 @@ using namespace Saturation;
 #define REPORT_BW_SIMPL 0
 #define TOTAL_SIMPLIFICATION_ONLY 1
 #define FW_DEMODULATION_FIRST 1
-//Splitting 0 -> none, 1 -> always, 2 -> only first 5% of time, 3 -> only input clauses
-#define SPLITTING 0
 
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
 : _imgr(this), _passive(passiveContainer), _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector)
 {
+  _performSplitting= env.options->splitting()!=Options::SPLIT_OFF;
+  _someSplitting= env.options->splitting()!=Options::SPLIT_OFF;
+
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
 
@@ -133,12 +135,6 @@ int SaturationAlgorithm::elapsedTime()
 }
 
 
-#if SPLITTING==0
-bool g_performSplitting=false;
-#else
-bool g_performSplitting=true;
-#endif
-
 /**
  * Insert input clauses into ste unprocessed container.
  */
@@ -158,9 +154,10 @@ void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
       addUnprocessedClause(cl);
     }
   }
-#if SPLITTING==3
-  g_performSplitting=false;
-#endif
+
+  if(env.options->splitting()==Options::SPLIT_INPUT_ONLY) {
+    _performSplitting=false;
+  }
 }
 
 bool SaturationAlgorithm::isRefutation(Clause* c)
@@ -196,7 +193,7 @@ public:
     if(premise) {
       cout<<":"<<(*premise)<<endl;
     }
-    cout<<"="<<(*_cl)<<endl;
+    cout<<"-"<<(*_cl)<<endl;
 #endif
 
     if(replacement) {
@@ -211,7 +208,7 @@ public:
 
 #if REPORT_FW_SIMPL
     if(replacement) {
-      cout<<"#"<<(*replacement)<<endl;
+      cout<<"+"<<(*replacement)<<endl;
     }
     cout<<"removed\n";
     cout<<"^^^^^^^^^^^^\n";
@@ -266,7 +263,7 @@ public:
     if(premise) {
       cout<<":"<<(*premise)<<endl;
     }
-    cout<<"="<<(*_cl)<<endl;
+    cout<<"-"<<(*_cl)<<endl;
 #endif
 
 
@@ -287,7 +284,7 @@ public:
     }
 #if REPORT_FW_SIMPL
     if(replacement) {
-      cout<<"#"<<(*replacement)<<endl;
+      cout<<"+"<<(*replacement)<<endl;
     }
     if(_cl) {
       cout<<">"<<(*_cl)<<endl;
@@ -325,12 +322,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   BDD* bdd=BDD::instance();
   ASS(!bdd->isTrue(cl->prop()));
 
-  int counter=0;
-  int demCounter=0;
-  bool overLimit=false;
-//  static DHMap<Literal*, Clause*> dem;
-//  dem.reset();
-
 simplificationStart:
   BDDNode* prop=cl->prop();
   bool simplified;
@@ -360,18 +351,6 @@ simplificationStart:
       }
       cl=rit.next();
 
-//      if (env.timeLimitReached()) {
-//	Clause* orig=dem.findOrInsert( (*cl)[0], cl );
-//	if(orig!=cl) {
-//	  cout<<(*cl)<<endl;
-//	}
-//      }
-//      if(++counter==100) {
-//	counter=0;
-//	if (env.timeLimitReached()) {
-//	  throw TimeLimitExceededException();
-//	}
-//      }
       ASS(!rit.hasNext());
       goto simplificationStart;
     }
@@ -380,19 +359,16 @@ simplificationStart:
 
   ASS(!bdd->isTrue(cl->prop()));
 
-#if SPLITTING==2
-  static bool performSplitting=true;
-  static int scCounter=0;
-  scCounter++;
-  if(scCounter==100) {
-    scCounter=0;
-    if(performSplitting && elapsedTime()>(env.options->timeLimitInDeciseconds()*5)) {
-      performSplitting=false;
-    }
-  }
-#endif
+//  static int scCounter=0;
+//  scCounter++;
+//  if(scCounter==100) {
+//    scCounter=0;
+//    if(_performSplitting && elapsedTime()>(env.options->timeLimitInDeciseconds()*5)) {
+//      _performSplitting=false;
+//    }
+//  }
 
-  if(g_performSplitting) {
+  if(_performSplitting) {
     ClauseIterator newComponents;
     ClauseIterator modifiedComponents;
     _splitter.doSplitting(cl, newComponents, modifiedComponents);
@@ -423,9 +399,8 @@ simplificationStart:
       }
     }
   } else {
-#if SPLITTING>1
-    static Clause* emptyClause=0;
-    if(cl->isEmpty()) {
+    if(_someSplitting && cl->isEmpty()) {
+      static Clause* emptyClause=0;
       if(emptyClause) {
 	BDDNode* oldECProp=emptyClause->prop();
 	BDDNode* newECProp=bdd->conjunction(oldECProp, cl->prop());
@@ -440,7 +415,7 @@ simplificationStart:
 	emptyClause=cl;
       }
     }
-#endif
+
     cl->setStore(Clause::UNPROCESSED);
     _unprocessed->add(cl);
   }
@@ -464,8 +439,6 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   if(cl->store()==Clause::REACTIVATED) {
     return true;
   }
-
-  BDD* bdd=BDD::instance();
 
   if(!getLimits()->fulfillsLimits(cl)) {
     return false;
@@ -526,16 +499,6 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       Clause* redundant=srec.toRemove;
       ASS_NEQ(redundant, cl);
 
-#if REPORT_BW_SIMPL
-      cout<<"-<<--------\n";
-      cout<<":"<<(*cl)<<endl;
-      cout<<"="<<(*redundant)<<endl;
-
-      if(MLVariant::isVariant(cl, redundant)) {
-	cout<<"Variant!!!\n";
-      }
-#endif
-
       BDDNode* oldRedundantProp=redundant->prop();
       BDDNode* newRedundantProp;
 
@@ -551,21 +514,22 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       }
 #endif
 
-      if(srec.replacements.hasNext()) {
-	BDDNode* replacementProp=bdd->disjunction(oldRedundantProp, cl->prop());
-	if(!bdd->isTrue(replacementProp)) {
-	  while(srec.replacements.hasNext()) {
-	    Clause* addCl=srec.replacements.next();
-	    addCl->setProp(replacementProp);
-	    InferenceStore::instance()->recordNonPropInference(addCl);
-	    addUnprocessedClause(addCl);
-	  }
-	}
+#if REPORT_BW_SIMPL
+      cout<<"-<<--------\n";
+      cout<<":"<<(*cl)<<endl;
+      cout<<"-"<<(*redundant)<<endl;
+
+      if(MLVariant::isVariant(cl, redundant)) {
+	cout<<"Variant!!!\n";
       }
+#endif
+
+      //we must remove the redundant clause before adding its replacement,
+      //as otherwise the redundant one might demodulate the replacement into
+      //a tautology
 
       redundant->setProp(newRedundantProp);
       InferenceStore::instance()->recordPropReduce(redundant, oldRedundantProp, newRedundantProp);
-
 
       if(bdd->isTrue(newRedundantProp)) {
 	switch(redundant->store()) {
@@ -586,9 +550,29 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 #if REPORT_BW_SIMPL
 	cout<<"removed\n";
 #endif
-      } else if(redundant->store()==Clause::ACTIVE) {
-	reanimate(redundant);
       }
+//      else if(redundant->store()==Clause::ACTIVE) {
+//	reanimate(redundant);
+//      }
+
+      if(srec.replacements.hasNext()) {
+	BDDNode* replacementProp=bdd->disjunction(oldRedundantProp, cl->prop());
+	if(!bdd->isTrue(replacementProp)) {
+
+	  while(srec.replacements.hasNext()) {
+	    Clause* addCl=srec.replacements.next();
+	    addCl->setProp(replacementProp);
+	    InferenceStore::instance()->recordNonPropInference(addCl);
+#if REPORT_BW_SIMPL
+	    cout<<"+"<<(*addCl)<<endl;
+#endif
+	    addUnprocessedClause(addCl);
+	  }
+	}
+      }
+
+
+
 #if REPORT_BW_SIMPL
       cout<<"^^^^^^^^^^^\n";
 #endif

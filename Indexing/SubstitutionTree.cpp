@@ -863,16 +863,16 @@ SubstitutionTree::NodeIterator
   unsigned specVar=n->childVar;
   TermList qt=subst.getSpecialVarTop(specVar);
   if(qt.isVar()) {
-	return n->allChildren();
+    return n->allChildren();
   } else {
-	Node** match=n->childByTop(qt, false);
-	if(match) {
-	  return pvi( getConcatenatedIterator(
-			  getSingletonIterator(match),
-			  n->variableChildren()) );
-	} else {
-	  return n->variableChildren();
-	}
+    Node** match=n->childByTop(qt, false);
+    if(match) {
+      return pvi( getConcatenatedIterator(
+	      getSingletonIterator(match),
+	      n->variableChildren()) );
+    } else {
+      return n->variableChildren();
+    }
   }
 }
 
@@ -890,15 +890,15 @@ SubstitutionTree::NodeIterator
   unsigned specVar=n->childVar;
   TermList qt=subst.getSpecialVarTop(specVar);
   if(qt.isVar()) {
-	return n->variableChildren();
+    return n->variableChildren();
   } else {
-	Node** match=n->childByTop(qt, false);
-	if(match) {
-	  return pvi( getConcatenatedIterator(getSingletonIterator(match),
-		  n->variableChildren()) );
-	} else {
-	  return n->variableChildren();
-	}
+    Node** match=n->childByTop(qt, false);
+    if(match) {
+      return pvi( getConcatenatedIterator(getSingletonIterator(match),
+	      n->variableChildren()) );
+    } else {
+      return n->variableChildren();
+    }
   }
 }
 
@@ -917,14 +917,14 @@ SubstitutionTree::NodeIterator
   unsigned specVar=n->childVar;
   TermList qt=subst.getSpecialVarTop(specVar);
   if(qt.isVar()) {
-	return n->allChildren();
+    return n->allChildren();
   } else {
-	Node** match=n->childByTop(qt, false);
-	if(match) {
-	  return pvi( getSingletonIterator(match) );
-	} else {
-	  return NodeIterator::getEmpty();
-	}
+    Node** match=n->childByTop(qt, false);
+    if(match) {
+      return pvi( getSingletonIterator(match) );
+    } else {
+      return NodeIterator::getEmpty();
+    }
   }
 }
 

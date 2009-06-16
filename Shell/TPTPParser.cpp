@@ -35,7 +35,7 @@ namespace Shell {
  * Class that allows to create a list initially by pushing elements
  * at the end of it.
  * @since 10/05/2007 Manchester, updated from List::FIFO
- */ 
+ */
 class TPTPParser::UnitStack {
 public:
   /** constructor */
@@ -163,7 +163,7 @@ Unit* TPTPParser::unit ()
   case TT_INPUT_CLAUSE:
   case TT_CNF:
     break;
-    
+
   default:
     throw ParserException("either input_formula or input_clause expected",
 			  currentToken());
@@ -191,7 +191,7 @@ Unit* TPTPParser::unit ()
     it = Unit::LEMMA;
   }
   else {
-    throw ParserException("axiom, conjecture or hypothesis expected", 
+    throw ParserException("axiom, conjecture or hypothesis expected",
 			  currentToken1());
   }
 
@@ -216,7 +216,7 @@ Unit* TPTPParser::unit ()
       env.statistics->inputFormulas++;
     }
     break;
-    
+
   case TT_INPUT_CLAUSE:
     result = clause(it);
     break;
@@ -268,7 +268,7 @@ string TPTPParser::name ()
 
   Token& token = currentToken1();
 
-  if (token.tag != TT_NAME) {
+  if (token.tag != TT_NAME && token.tag != TT_INTEGER) {
     throw ParserException("name expected",
 			  currentToken());
   }
@@ -802,7 +802,7 @@ Literal* TPTPParser::formulaLiteral()
     consumeToken();
     return 0;
 
-  case TT_FALSE: 
+  case TT_FALSE:
     if (! sign) {
       _trueRead = true;
     }

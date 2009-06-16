@@ -111,7 +111,7 @@ void TPTPLexer::skipWhiteSpacesAndComments ()
 } // TPTPLexer::skipWhiteSpacesAndComments
 
 /**
- * Read the next token. 
+ * Read the next token.
  * @since 15/07/2004 Turku
  * @since 24/07/2004 Torrevieja, part of this method moved to Parser
  */
@@ -167,7 +167,7 @@ void TPTPLexer::readToken (Token& token)
 
 /**
  * Return the character type of _lastCharacter.
- * 
+ *
  * @since 15/07/2004 Turku
  * @since 30/09/2004 Manchester, $ added to lower-case characters.
  */
@@ -342,7 +342,7 @@ void TPTPLexer::readSingle (Token& token)
 
 /**
  * Read a name. No check is made about the current character.
- * 
+ *
  * @since 15/07/2004 Turku
  */
 void TPTPLexer::readName (Token& token)
@@ -387,7 +387,7 @@ TokenType TPTPLexer::detectNameTokenTypeOfLastToken ()
     if (! strcmp(_charBuffer.content(),"cnf")) {
       return TT_CNF;
     }
-    return TT_NAME;    
+    return TT_NAME;
 
   case 'f':
     if (! strcmp(_charBuffer.content(),"fof")) {
@@ -530,19 +530,25 @@ void TPTPLexer::readQuotedString (Token& token)
 {
   CALL("TPTPLexer::readQuotedString");
 
+  bool escape=false;
+
   while (readNextChar()) {
-    if (_lastCharacter == '\'') {
+    if (_lastCharacter == '\\' && !escape) {
+      escape=true;
+    } else if (_lastCharacter == '\'' && !escape) {
       saveTokenText(token);
       readNextChar();
       token.tag = TT_NAME;
       return;
-    }
-    else {
+    } else {
+      if(escape && _lastCharacter!='\'' && _lastCharacter!='\\') {
+	throw LexerException((string)"invalid escape sequence in quoted string ", *this);
+      }
+      escape=false;
       saveLastChar();
     }
   }
-  throw LexerException((string)"file ended while reading quoted string ",
-		       *this);
+  throw LexerException((string)"file ended while reading quoted string ", *this);
 } // TPTPLexer::readQuotedString
 
 

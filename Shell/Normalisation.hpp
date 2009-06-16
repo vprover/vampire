@@ -7,24 +7,17 @@
 #ifndef __Normalisation__
 #define __Normalisation__
 
+#include "../Forwards.hpp"
 
 #include "../Lib/Comparison.hpp"
 #include "../Kernel/Unit.hpp"
 
 #include "SymCounter.hpp"
 
-namespace Kernel {
-  class Literal;
-  class Term;
-  class TermList;
-  class Clause;
-  class FormulaUnit;
-}
+namespace Shell {
 
 using namespace Lib;
 using namespace Kernel;
-
-namespace Shell {
 
 /**
  * Class implementing normalisation-related procedures.
@@ -43,6 +36,7 @@ private:
   Comparison compare(Formula*, Formula*);
   Comparison compare(Literal*, Literal*);
   bool lessThan(Formula*, Formula*);
+  bool lessThan(Clause*, Clause*);
   Comparison compare(TermList* ss, TermList* ts);
 
   /**

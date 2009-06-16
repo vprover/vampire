@@ -40,7 +40,6 @@ public:
   /** Return the amount of used memory */
   static size_t getUsedMemory()
   {
-    CALL("Allocator::getUsedMemory");
     return _usedMemory;
   }
   /** Return the global memory limit (in bytes) */

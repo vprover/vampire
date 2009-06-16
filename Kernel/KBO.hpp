@@ -27,9 +27,7 @@ class KBO
 public:
   Result compare(Literal* l1, Literal* l2);
   Result compare(TermList tl1, TermList tl2);
-  static KBO* createReversedAgePreferenceConstantLevels();
-  static KBO* createArityPreferenceConstantLevels();
-  static KBO* createArityPreferenceAndLevels();
+  static KBO* create();
 private:
   KBO(const Signature&);
 
@@ -59,6 +57,8 @@ private:
   DArray<int> _predicatePrecedences;
   /** Array of function precedences */
   DArray<int> _functionPrecedences;
+
+  bool _reverseLCM;
 
 };
 

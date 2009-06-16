@@ -20,7 +20,7 @@ private:
   TriangularArray& operator=(const TriangularArray&);
 public:
   TriangularArray(size_t side)
-  : _2sideMinus1(2*side-1)
+  : _2sideMinus1(2*side-1), _data(0)
   {
     ASS_G(side,0);
     _capacity=dataSize();
@@ -41,14 +41,16 @@ public:
     ASS_G(side,0);
     _2sideMinus1=2*side-1;
     if(dataSize()>_capacity) {
+      size_t newCapacity=max(_capacity*2,dataSize());
+      void * mem=ALLOC_KNOWN(newCapacity*sizeof(T), "Lib::TriangularArray");
+
       T* p=_data+_capacity;
       while(p!=_data) {
         (--p)->~T();
       }
       DEALLOC_KNOWN(_data,_capacity*sizeof(T), "Lib::TriangularArray");
 
-      _capacity=max(_capacity*2,dataSize());
-      void * mem=ALLOC_KNOWN(_capacity*sizeof(T), "Lib::TriangularArray");
+      _capacity=newCapacity;
       _data=new(mem) T[_capacity];
     }
   }

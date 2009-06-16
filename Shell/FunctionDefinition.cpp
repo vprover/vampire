@@ -9,6 +9,7 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/BitUtils.hpp"
+#include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 
 #include "../Kernel/Clause.hpp"
@@ -20,8 +21,9 @@
 #include "../Kernel/TermVarIterator.hpp"
 #include "../Kernel/TermFunIterator.hpp"
 
+#include "Statistics.hpp"
+
 #include "FunctionDefinition.hpp"
-// #include "Substitution.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -185,6 +187,8 @@ void FunctionDefinition::removeAllDefinitions(UnitList*& units)
     }
 
     d->mark=Def::UNFOLDED;
+
+    env.statistics->functionDefinitions++;
   }
   _safeDefs.reset();
 
@@ -558,35 +562,6 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
 }
 
 
-///**
-// * Scan a list of units and memorise information about them
-// * in the stack.
-// * @since 26/05/2007 Manchester
-// */
-//void FunctionDefinition::scan (const UnitList* units)
-//{
-//  CALL("FunctionDefinition::scan");
-//
-//  UnitList::Iterator is(units);
-//  while (is.hasNext()) {
-//    const Unit* unit = is.next();
-//    Def* def = isFunctionDefinition(*unit);
-//    if (! def) {
-//      continue;
-//    }
-//    def->unit = unit;
-//    _defs.push(def);
-//    string prefix = "";
-//    if (def->linear) {
-//      prefix += "linear ";
-//    }
-//    if (! def->strict) {
-//      prefix += "non-strict ";
-//    }
-//    cout << prefix << "definition found: " << unit->toString() << "\n";
-//  }
-//} // FunctionDefinition::FunctionDefinition
-
 /**
  * Destroy by deallocating all Defs.
  * @since 26/05/2007 Manchester
@@ -601,11 +576,11 @@ FunctionDefinition::~FunctionDefinition ()
   }
 } // FunctionDefinition::~FunctionDefinition
 
-///**
-// * If the the unit if a function definition f(x1,...,xn) = t,
-// * return the Def structure representing information about the definition.
-// * @since 26/05/2007 Manchester
-// */
+/**
+ * If the the unit is a function definition f(x1,...,xn) = t,
+ * return the Def structure representing information about the definition.
+ * @since 26/05/2007 Manchester
+ */
 FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Unit& unit)
 {
@@ -637,9 +612,6 @@ FunctionDefinition::isFunctionDefinition (Clause* clause)
 /**
  * If the literal if a function definition f(x1,...,xn) = t.
  * return the Def structure representing information about the definition.
- * @since 09/05/2002 Manchester
- * @since 05/01/2004 Manchester, simplified
- * @since 26/05/2007 Manchester modified for new data structures
  */
 FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Literal* lit)

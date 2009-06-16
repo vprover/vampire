@@ -21,19 +21,10 @@ using namespace Kernel;
 Ordering* Ordering::instance()
 {
   static OrderingSP inst;
-
   if(!inst) {
-    switch(env.options->symbolPrecedence()) {
-    case Shell::Options::BY_ARITY:
-      inst=OrderingSP(KBO::createArityPreferenceConstantLevels());
-      break;
-    case Shell::Options::BY_OCCURRENCE:
-      inst=OrderingSP(KBO::createReversedAgePreferenceConstantLevels());
-      break;
-    default:
-      NOT_IMPLEMENTED;
-    }
+    inst=OrderingSP(KBO::create());
   }
+
   return inst.ptr();
 }
 

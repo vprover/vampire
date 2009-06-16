@@ -88,7 +88,8 @@ void Normalisation::normalise (Unit* unit)
   for (int i=0;i < length;i++) {
     clause[i] = srt[i];
   }
-  // nothing changed
+
+  clause.notifyLiteralReorder();
   return;
 } // Normalisation::normalise(Unit*)
 
@@ -131,6 +132,25 @@ bool Normalisation::lessThan (Unit* u1, Unit* u2)
   return lessThan(static_cast<FormulaUnit*>(u1)->formula(),
 		  static_cast<FormulaUnit*>(u2)->formula());
 } // Normalisation::lessThan(const Unit*...)
+
+/**
+ * Compare two clauses assuming they have been normalized
+ * beforehand.
+ */
+bool Normalisation::lessThan(Clause* cl1, Clause* cl2)
+{
+  if(cl1->length()!=cl2->length()) {
+    return cl1->length() < cl2->length();
+  }
+  unsigned clen=cl1->length();
+  for(unsigned i=0;i<clen;i++) {
+    Comparison cmp=compare( (*cl1)[i], (*cl2)[i] );
+    if(cmp!=EQUAL) {
+      return cmp==LESS;
+    }
+  }
+  return false;
+}
 
 
 /**

@@ -28,7 +28,7 @@ namespace Kernel {
 using namespace Lib;
 
 /**
- * A literal selector class template, that select the best literal
+ * A literal selector class template that selects the best literal
  * (i.e. the maximal literal in quality ordering specfied by
  * QComparator class). Using this literal selector does not
  * sustain completeness.
@@ -79,12 +79,15 @@ private:
  * QComparator class), but takes completness of the selection into
  * account.
  *
- * If the best literal is negative, it is selected. If it is among
- * maximal literals, and there is no negative literal among them,
- * they all are selected. If there is a negative literal among
- * maximal literals, we select the best negative literal. If
- * the best literal is neither negative nor maximal, we consider
- * similarly the second best etc...
+// * If the best literal is negative, it is selected. If it is among
+// * maximal literals, and there is no negative literal among them,
+// * they all are selected. If there is a negative literal among
+// * maximal literals, we select the best negative literal. If
+// * the best literal is neither negative nor maximal, we consider
+// * similarly the second best etc...
+ * If the worst of maximal positive literal is better than all negative
+ * literals, all maximal positive literals are selected. Otherwise the
+ * best negative literal is selected.
  *
  * Objects of the QComparator class must provide a method
  * Lib::Comparison compare(Literal*, Literal*)
@@ -121,13 +124,20 @@ public:
     } else {
       DArray<Literal*>::ReversedIterator rlit(litArr);
       while(rlit.hasNext()) {
-	LiteralList::push(rlit.next(),maximals);
+	Literal* lit=rlit.next();
+	if(lit->isPositive()) {
+	  LiteralList::push(lit,maximals);
+	}
       }
       _ord->removeNonMaximal(maximals);
       unsigned besti=0;
+      LiteralList* nextMax=maximals;
       while(true) {
-	if(maximals->head()==litArr[besti]) {
-	  break;
+	if(nextMax->head()==litArr[besti]) {
+	  nextMax=nextMax->tail();
+	  if(nextMax==0) {
+	    break;
+	  }
 	}
 	besti++;
 	ASS_L(besti,clen);
@@ -138,21 +148,12 @@ public:
       }
     }
     if(!singleSelected && !maximals->tail()) {
-	//there is only one maximal literal
-	singleSelected=maximals->head();
+      //there is only one maximal literal
+      singleSelected=maximals->head();
     }
     if(!singleSelected) {
       unsigned selCnt=0;
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {
-	if(mit->head()->isNegative()) {
-	  for(unsigned i=1;i<clen;i++) {
-	    if(litArr[i]->isNegative()) {
-	      singleSelected=litArr[i];
-	    }
-	  }
-	  ASS(singleSelected);
-	  break;
-	}
 	selCnt++;
       }
       if(selCnt==clen) {
@@ -193,11 +194,7 @@ public:
 
       c->setSelected(selCnt);
     } else {
-      unsigned besti=0;
-      while((*c)[besti]!=singleSelected) {
-	besti++;
-	ASS_L(besti,clen);
-      }
+      unsigned besti=c->getLiteralPosition(singleSelected);
       if(besti!=0) {
 	std::swap((*c)[0],(*c)[besti]);
       }

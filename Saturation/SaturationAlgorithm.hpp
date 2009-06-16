@@ -85,6 +85,8 @@ private:
 protected:
 
   int _startTime;
+  bool _performSplitting;
+  bool _someSplitting;
 
   UnprocessedClauseContainer* _unprocessed;
   PassiveClauseContainerSP _passive;
