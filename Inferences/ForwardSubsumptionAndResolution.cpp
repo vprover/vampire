@@ -205,14 +205,16 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
   if(zmli.hasNext()) {
     while(zmli.hasNext()) {
       Literal* bl=zmli.next();
-      if( !resLit->couldBeInstanceOf(bl, true) ) {
+//      if( !resLit->couldBeInstanceOf(bl, true) ) {
+      if( ! MatchingUtils::match(bl, resLit, true) ) {
 	return false;
       }
     }
   } else {
     bool anyResolvable=false;
     for(unsigned i=0;i<mclen;i++) {
-      if(resLit->couldBeInstanceOf((*mcl)[i], true)) {
+//      if(resLit->couldBeInstanceOf((*mcl)[i], true)) {
+      if( MatchingUtils::match((*mcl)[i], resLit, true) ) {
 	anyResolvable=true;
 	break;
       }

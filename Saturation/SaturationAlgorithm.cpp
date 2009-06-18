@@ -153,6 +153,8 @@ void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
     } else {
       addUnprocessedClause(cl);
     }
+
+    env.statistics->initialClauses++;
   }
 
   if(env.options->splitting()==Options::SPLIT_INPUT_ONLY) {
@@ -317,6 +319,10 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   CALL("SaturationAlgorithm::addUnprocessedClause");
   ASS(cl->prop());
 
+#if REPORT_CONTAINERS
+  cout<<"$$ Unprocessed adding: "<<(*cl)<<endl;
+#endif
+
   env.statistics->generatedClauses++;
 
   BDD* bdd=BDD::instance();
@@ -408,9 +414,17 @@ simplificationStart:
 	InferenceStore::instance()->recordMerge(emptyClause, oldECProp, cl, newECProp);
 
 	if(isRefutation(emptyClause)) {
+	  //Don't care about setting clause storage or anything, as
+	  //we're done as soon as the saturation algorithm pops this
+	  //clause from the unprocessed container.
 	  _unprocessed->add(emptyClause);
-	  return;
 	}
+#if REPORT_CONTAINERS
+	cout<<"%% Empty clause extended from: "<<bdd->toString(oldECProp)<<endl;
+	cout<<"%% by: "<<bdd->toString(cl->prop())<<endl;
+	cout<<"%% to: "<<bdd->toString(newECProp)<<endl;
+#endif
+	return;
       } else {
 	emptyClause=cl;
       }

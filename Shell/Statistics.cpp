@@ -74,6 +74,9 @@ void Statistics::print()
   COND_OUT("Generated clauses", generatedClauses);
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
+  COND_OUT("Input clauses", inputClauses);
+  COND_OUT("Input formulas", inputFormulas);
+  COND_OUT("Initial clauses", initialClauses);
   SEPARATOR;
 
   COND_OUT("Pure predicates", purePredicates);

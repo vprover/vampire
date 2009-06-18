@@ -236,7 +236,7 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
     BDDNode* oldClProp=cl->prop();
     BDDNode* newCompProp=bdd->conjunction(oldCompProp, oldClProp);
 
-    if(oldCompProp==comp->prop()) {
+    if(oldCompProp==newCompProp) {
       return;
     }
 

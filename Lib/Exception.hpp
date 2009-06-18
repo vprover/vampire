@@ -45,7 +45,7 @@ public:
 protected:
   /** Default constructor, required for some subclasses, made protected
    * so that it cannot be called directly */
-  Exception () {}
+  Exception () { s_exceptionCounter++; }
   /** The error message */
   const char* _message;
 

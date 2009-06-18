@@ -89,9 +89,16 @@ public:
  * @since 01/08/2004 Torrevieja
  */
 TPTPParser::TPTPParser (TPTPLexer& lexer)
-  : Parser(lexer)
+  : Parser(lexer), _namesLimited(false)
 {
 }
+
+
+TPTPParser::TPTPParser(TPTPLexer& lexer, List<string>* allowedNames)
+  : Parser(lexer), _namesLimited(true), _allowedNames(allowedNames)
+{
+}
+
 
 /**
  * Parse a unit list.
@@ -172,6 +179,9 @@ Unit* TPTPParser::unit ()
 
   consumeToken(TT_LPAR);
   string nm = name();
+
+  bool allowedUnit=!_namesLimited || _allowedNames->member(nm);
+
   consumeToken(TT_COMMA);
   string tp = name();
   Unit::InputType it;
@@ -232,6 +242,10 @@ Unit* TPTPParser::unit ()
   }
   consumeToken(TT_RPAR);
   consumeToken(TT_DOT);
+
+  if(!allowedUnit) {
+    return 0;
+  }
 
   return result;
 } // TPTPParser::unit
@@ -843,7 +857,30 @@ void TPTPParser::include (UnitStack& stack)
   }
   string fileName(env.options->includeFileName(token.text));
 
+  bool incLimited=false;
+  List<string>* incAllowedNames;
+
   consumeToken();
+  if(currentToken1().tag==TT_COMMA) {
+    incLimited=true;
+    incAllowedNames=0;
+
+    consumeToken(TT_COMMA);
+    consumeToken(TT_LBRA);
+    for(;;) {
+      string axName=currentToken1().text;
+      if(!_namesLimited || _allowedNames->member(axName)) {
+	List<string>::push(axName, incAllowedNames);
+      }
+
+      consumeToken();
+      if(currentToken1().tag==TT_RBRA) {
+	break;
+      }
+      consumeToken(TT_COMMA);
+    }
+    consumeToken(TT_RBRA);
+  }
   consumeToken(TT_RPAR);
   consumeToken(TT_DOT);
 
@@ -852,8 +889,17 @@ void TPTPParser::include (UnitStack& stack)
     USER_ERROR((string)"cannot open file " + fileName);
   }
   TPTPLexer lexer(in);
-  TPTPParser parser(lexer);
-  parser.units(stack);
+
+  if(incLimited) {
+    if(incAllowedNames) {
+      TPTPParser parser(lexer, incAllowedNames);
+      parser.units(stack);
+      incAllowedNames->destroy();
+    }
+  } else {
+    TPTPParser parser(lexer);
+    parser.units(stack);
+  }
 } // TPTPParser::include
 
 /**

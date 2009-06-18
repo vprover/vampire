@@ -8,6 +8,8 @@
 #ifndef __TPTPParser__
 #define __TPTPParser__
 
+#include "../Forwards.hpp"
+
 #include "../Lib/Exception.hpp"
 #include "../Lib/List.hpp"
 
@@ -15,17 +17,10 @@
 
 #include "Parser.hpp"
 
-namespace Kernel {
-  class Clause;
-  class Formula;
-  class Term;
-  class Literal;
-};
+namespace Shell {
 
 using namespace std;
 using namespace Kernel;
-
-namespace Shell {
 
 class TPTPLexer;
 
@@ -35,10 +30,11 @@ class TPTPLexer;
  * @since 17/07/2004 Helsinki airport
  */
 class TPTPParser
-  : public Parser 
+  : public Parser
 {
 public:
   explicit TPTPParser(TPTPLexer& lexer);
+  TPTPParser(TPTPLexer& lexer, List<string>* allowedNames);
   UnitList* units();
 
 private:
@@ -77,6 +73,9 @@ private:
   /** Set to true if the constant true was read during reading the
    * last clause */
   bool _trueRead;
+
+  bool _namesLimited;
+  List<string>* _allowedNames;
 }; // class TPTPParser
 
 }

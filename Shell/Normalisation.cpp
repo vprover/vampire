@@ -261,7 +261,8 @@ Comparison Normalisation::compare (Literal* l1, Literal* l2)
 
   Comparison comp = compare((int)l1->weight(),(int)l2->weight());
   if (comp != EQUAL) {
-    return comp;
+    return Comparison(-comp);
+//    return comp;
   }
 
   // negative literals are less than positive

@@ -131,6 +131,13 @@ class BackwardSimplificationEngine;
 typedef Lib::SmartPtr<BackwardSimplificationEngine> BackwardSimplificationEngineSP;
 }
 
+namespace Shell
+{
+class TPTPLexer;
+class TPTPParser;
+}
+
+
 /**
  * Deletion of incomplete class types causes memory leaks. Using this
  * causes compile error when deleting incomplete classes.

@@ -227,12 +227,35 @@ struct MatchingData {
   {
     CALL("MatchingData::compatible");
 
-    if(varCnts[b1Index]==0 || varCnts[b2Index]==0) { return true; }
+    unsigned b1vcnt=varCnts[b1Index];
+    unsigned b2vcnt=varCnts[b2Index];
+    unsigned* b1vn=boundVarNums[b1Index];
+    unsigned* b1vnStop=boundVarNums[b1Index]+b1vcnt;
+
+/*/ //not debugged and perhaps not very often helpful
+    if(b2vcnt==1 && b1vcnt>3) {
+      unsigned vn2=*boundVarNums[b2Index];
+      if( vn2<*b1vn ) { return true; }
+      unsigned range=b1vcnt;
+      while(range) {
+	unsigned remainder=range&1;
+	range=range>>1;
+	unsigned* nb1vn=b1vn+range+remainder;
+	if(*nb1vn>=vn2) {
+	  b1vn=nb1vn;
+	  i1Bindings+=range+remainder;
+	  if(*b1vn==vn2) {
+	    return altBindings[b2Index][i2AltIndex][0]==*i1Bindings;
+	  }
+	} else {
+	  range+=remainder;
+	}
+      }
+      return true;
+    }/**/
 
     TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
-    unsigned* b1vn=boundVarNums[b1Index];
     unsigned* b2vn=boundVarNums[b2Index];
-    unsigned* b1vnStop=boundVarNums[b1Index]+varCnts[b1Index];
     unsigned* b2vnStop=boundVarNums[b2Index]+varCnts[b2Index];
     while(true) {
       while(b1vn!=b1vnStop && *b1vn<*b2vn) { b1vn++; i1Bindings++; }
@@ -257,14 +280,14 @@ struct MatchingData {
       }
       unsigned remAlts=remaining->get(i,bIndex);
       for(unsigned ai=0;ai<remAlts;ai++) {
-        if(!compatible(bIndex,curBindings,i,ai)) {
-  	remAlts--;
-  	std::swap(altBindings[i][ai], altBindings[i][remAlts]);
-  	ai--;
-        }
+	if(!compatible(bIndex,curBindings,i,ai)) {
+	  remAlts--;
+	  std::swap(altBindings[i][ai], altBindings[i][remAlts]);
+	  ai--;
+	}
       }
       if(remAlts==0) {
-        return false;
+	return false;
       }
       remaining->set(i,bIndex+1,remAlts);
     }
@@ -285,6 +308,7 @@ struct MatchingData {
       ALWAYS(createLiteralBindings(bases[bIndex], alts[bIndex], instance, resolvedLit,
 	  boundVarNumStorage, altBindingPtrStorage, altBindingStorage));
       varCnts[bIndex]=boundVarNumStorage-boundVarNums[bIndex];
+
       unsigned altCnt=altBindingPtrStorage-altBindings[bIndex];
       if(altCnt==0) {
 	return NO_ALTERNATIVE;
@@ -343,14 +367,23 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
   s_remaining.setSide(baseLen);
   s_nextAlts.ensure(baseLen);
 
+  //number of base literals that have zero alternatives
+  //(not counting the resolved literal)
   unsigned zeroAlts=0;
+  //number of base literals that have at most one alternative
+  //(not counting the resolved literal)
   unsigned singleAlts=0;
   size_t baseLitVars=0;
   size_t altCnt=0;
   size_t altBindingsCnt=0;
+
+  unsigned mostDistVarsLit=0;
+  unsigned mostDistVarsCnt=s_baseLits[0]->getDistinctVars();
+
   for(unsigned i=0;i<baseLen;i++) {
-//    unsigned distVars=(*base)[i]->distinctVars();
-    unsigned distVars=s_baseLits[i]->vars(); //an upper estimate is enough
+    unsigned distVars=s_baseLits[i]->getDistinctVars();
+//    unsigned distVars=s_baseLits[i]->vars(); //an upper estimate is enough
+
     baseLitVars+=distVars;
     unsigned currAltCnt=0;
     LiteralList::Iterator ait(s_altsArr[i]);
@@ -365,19 +398,37 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
 
     if(currAltCnt==0) {
       if(zeroAlts!=i) {
+	if(singleAlts!=zeroAlts) {
+	  std::swap(s_baseLits[singleAlts],s_baseLits[zeroAlts]);
+	  std::swap(s_altsArr[singleAlts],s_altsArr[zeroAlts]);
+	}
 	std::swap(s_baseLits[i],s_baseLits[zeroAlts]);
 	std::swap(s_altsArr[i],s_altsArr[zeroAlts]);
+	if(mostDistVarsLit==singleAlts) {
+	  mostDistVarsLit=i;
+	}
       }
       zeroAlts++;
       singleAlts++;
-    } else if(currAltCnt==1) {
+    } else if(currAltCnt==1 && !(resolvedLit && resolvedLit->couldBeInstanceOf(s_baseLits[i], true)) ) {
       if(singleAlts!=i) {
 	std::swap(s_baseLits[i],s_baseLits[singleAlts]);
 	std::swap(s_altsArr[i],s_altsArr[singleAlts]);
+	if(mostDistVarsLit==singleAlts) {
+	  mostDistVarsLit=i;
+	}
       }
       singleAlts++;
+    } else if(i>0 && mostDistVarsCnt<distVars) {
+      mostDistVarsLit=i;
+      mostDistVarsCnt=distVars;
     }
   }
+  if(mostDistVarsLit>singleAlts) {
+    std::swap(s_baseLits[mostDistVarsLit],s_baseLits[singleAlts]);
+    std::swap(s_altsArr[mostDistVarsLit],s_altsArr[singleAlts]);
+  }
+
   s_boundVarNumData.ensure(baseLitVars);
   s_altBindingPtrs.ensure(altCnt);
   s_altBindingsData.ensure(altBindingsCnt);

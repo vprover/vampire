@@ -10,7 +10,9 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Formula.hpp"
 #include "../Kernel/FormulaUnit.hpp"
+#include "../Kernel/FormulaVarIterator.hpp"
 #include "../Kernel/Inference.hpp"
+#include "../Kernel/Term.hpp"
 
 #include "InferenceStore.hpp"
 
@@ -360,12 +362,51 @@ struct InferenceStore::TPTPProofCheckPrinter
   TPTPProofCheckPrinter(Unit* refutation, ostream& out, InferenceStore* is)
   : ProofPrinter(refutation, out, is) {}
 
+  string getQuantifiedStr(Unit* u)
+  {
+    Set<unsigned> vars;
+    string res;
+    if(u->isClause()) {
+      Clause* cl=static_cast<Clause*>(u);
+      unsigned clen=cl->length();
+      for(unsigned i=0;i<clen;i++) {
+	Term::VariableIterator vit( (*cl)[i] );
+	while(vit.hasNext()) {
+	  vars.insert(vit.next().var());
+	}
+      }
+      res=cl->nonPropToString();
+    } else {
+      Formula* formula=static_cast<FormulaUnit*>(u)->formula();
+      FormulaVarIterator fvit( formula );
+      while(fvit.hasNext()) {
+	vars.insert(fvit.next());
+      }
+      res=formula->toString();
+    }
+    if(!vars.numberOfElements()) {
+      return res;
+    }
+    Set<unsigned>::Iterator vit(vars);
+    string varStr;
+    bool first=true;
+    while(vit.hasNext()) {
+      if(!first) {
+	varStr+=",";
+      }
+      varStr+=string("X")+Int::toString(vit.next());
+      first=false;
+    }
+
+    return "( ! ["+varStr+"] : ("+res+") )";
+  }
+
   void printProofStepHead(ClauseSpec cs, FullInference* finf)
   {
     Clause* cl=cs.first;
     out << "fof(r"<<is->getClauseIdStr(cs)
     	<< ",conjecture, "
-    	<< cl->nonPropToString()<<" | "<<bdd->toTPTPString(cs.second)
+    	<< getQuantifiedStr(cl) <<" | "<<bdd->toTPTPString(cs.second)
     	<< " ). %"<<Inference::ruleName(finf->rule)<<"\n";
   }
 
@@ -374,34 +415,20 @@ struct InferenceStore::TPTPProofCheckPrinter
     Clause* cl=cs.first;
     out << "fof(pr"<<is->getClauseIdStr(cs)
 	<< ",axiom, "
-	<< cl->nonPropToString()<<" | "<<bdd->toTPTPString(cs.second)
+	<< getQuantifiedStr(cl)<<" | "<<bdd->toTPTPString(cs.second)
     	<< " ).\n";
   }
 
   void printProofStepHead(Unit* unit)
   {
-    out << "fof(r"<<unit->number()<<",conjecture, ";
-    if(unit->isClause()) {
-      Clause* cl=static_cast<Clause*>(unit);
-      out << cl->nonPropToString();
-    } else {
-      FormulaUnit* fu=static_cast<FormulaUnit*>(unit);
-      out << fu->formula()->toString();
-    }
-    out << " ). %"<<unit->inference()->name()<<"\n";
+    out << "fof(r"<<unit->number()<<",conjecture, "
+    	<< getQuantifiedStr(unit)<<" ). %"<<unit->inference()->name()<<"\n";
   }
 
   void printProofStepPremise(Unit* unit, bool first)
   {
-    out << "fof(pr"<<unit->number()<<",axiom, ";
-    if(unit->isClause()) {
-      Clause* cl=static_cast<Clause*>(unit);
-      out << cl->nonPropToString();
-    } else {
-      FormulaUnit* fu=static_cast<FormulaUnit*>(unit);
-      out << fu->formula()->toString();
-    }
-    out << " ).\n";
+    out << "fof(pr"<<unit->number()<<",axiom, "
+    	<< getQuantifiedStr(unit)<<" ).\n";
   }
 
   void printProofStepTail()
@@ -429,9 +456,9 @@ void InferenceStore::outputProof(ostream& out, Unit* refutation)
 {
   CALL("InferenceStore::outputProof");
 
-  ProofPrinter pp(refutation, out, this);
-//  TPTPProofCheckPrinter pp(refutation, out, this);
-//  out << "%#\n";
+//  ProofPrinter pp(refutation, out, this);
+  TPTPProofCheckPrinter pp(refutation, out, this);
+  out << "%#\n";
   pp.print();
 }
 
