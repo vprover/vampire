@@ -341,8 +341,8 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
 	currAltCnt++;
       }
     }
-    altCnt+=currAltCnt+1;
-    altBindingsCnt+=(distVars+1)*(currAltCnt+1);
+    altCnt+=currAltCnt+2;
+    altBindingsCnt+=(distVars+1)*(currAltCnt+2);
 
     if(currAltCnt==0) {
       if(zeroAlts!=i) {

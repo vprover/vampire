@@ -4,6 +4,7 @@
  */
 
 #include <algorithm>
+#include <utility>
 
 #include "../Lib/BacktrackData.hpp"
 #include "../Lib/BacktrackIterators.hpp"
@@ -192,6 +193,8 @@ struct MatchingData {
   TriangularArray<unsigned>* remaining;
   unsigned* nextAlts;
 
+  TriangularArray<pair<int,int>* >* intersections;
+
   Literal** bases;
   LiteralList** alts;
   Clause* instance;
@@ -200,6 +203,7 @@ struct MatchingData {
   unsigned* boundVarNumStorage;
   TermList** altBindingPtrStorage;
   TermList* altBindingStorage;
+  pair<int,int>* intersectionStorage;
 
   enum InitResult {
     OK,
@@ -223,52 +227,19 @@ struct MatchingData {
    * @b altBindings[b2Index][i2AltIndex] .
    */
   bool compatible(unsigned b1Index, TermList* i1Bindings,
-  	unsigned b2Index, unsigned i2AltIndex) const
+	unsigned b2Index, unsigned i2AltIndex, pair<int,int>* iinfo)
   {
     CALL("MatchingData::compatible");
 
-    unsigned b1vcnt=varCnts[b1Index];
-    unsigned b2vcnt=varCnts[b2Index];
-    unsigned* b1vn=boundVarNums[b1Index];
-    unsigned* b1vnStop=boundVarNums[b1Index]+b1vcnt;
-
-/*/ //not debugged and perhaps not very often helpful
-    if(b2vcnt==1 && b1vcnt>3) {
-      unsigned vn2=*boundVarNums[b2Index];
-      if( vn2<*b1vn ) { return true; }
-      unsigned range=b1vcnt;
-      while(range) {
-	unsigned remainder=range&1;
-	range=range>>1;
-	unsigned* nb1vn=b1vn+range+remainder;
-	if(*nb1vn>=vn2) {
-	  b1vn=nb1vn;
-	  i1Bindings+=range+remainder;
-	  if(*b1vn==vn2) {
-	    return altBindings[b2Index][i2AltIndex][0]==*i1Bindings;
-	  }
-	} else {
-	  range+=remainder;
-	}
-      }
-      return true;
-    }/**/
-
     TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
-    unsigned* b2vn=boundVarNums[b2Index];
-    unsigned* b2vnStop=boundVarNums[b2Index]+varCnts[b2Index];
-    while(true) {
-      while(b1vn!=b1vnStop && *b1vn<*b2vn) { b1vn++; i1Bindings++; }
-      if(b1vn==b1vnStop) { return true; }
-      while(b2vn!=b2vnStop && *b1vn>*b2vn) { b2vn++; i2Bindings++; }
-      if(b2vn==b2vnStop) { return true; }
-      if(*b1vn==*b2vn) {
-        if(*i1Bindings!=*i2Bindings) { return false; }
-        b1vn++; i1Bindings++;
-        b2vn++; i2Bindings++;
-        if(b1vn==b1vnStop || b2vn==b2vnStop) { return true; }
+
+    while(iinfo->first!=-1) {
+      if(i1Bindings[iinfo->first]!=i2Bindings[iinfo->second]) {
+	return false;
       }
+      iinfo++;
     }
+    return true;
   }
 
   bool bindAlt(unsigned bIndex, unsigned altIndex)
@@ -278,12 +249,16 @@ struct MatchingData {
       if(!isInitialized(i)) {
 	break;
       }
+      pair<int,int>* iinfo=getIntersectInfo(bIndex, i);
       unsigned remAlts=remaining->get(i,bIndex);
-      for(unsigned ai=0;ai<remAlts;ai++) {
-	if(!compatible(bIndex,curBindings,i,ai)) {
-	  remAlts--;
-	  std::swap(altBindings[i][ai], altBindings[i][remAlts]);
-	  ai--;
+
+      if(iinfo->first!=-1) {
+	for(unsigned ai=0;ai<remAlts;ai++) {
+	  if(!compatible(bIndex,curBindings,i,ai,iinfo)) {
+	    remAlts--;
+	    std::swap(altBindings[i][ai], altBindings[i][remAlts]);
+	    ai--;
+	  }
 	}
       }
       if(remAlts==0) {
@@ -292,6 +267,47 @@ struct MatchingData {
       remaining->set(i,bIndex+1,remAlts);
     }
     return true;
+  }
+
+  pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
+  {
+    ASS_L(b1, b2);
+    pair<int,int>* res=intersections->get(b2,b1);
+    if( res ) {
+      return res;
+    }
+    intersections->set(b2,b1, intersectionStorage);
+    res=intersectionStorage;
+
+    unsigned b1vcnt=varCnts[b1];
+    unsigned b2vcnt=varCnts[b2];
+    unsigned* b1vn=boundVarNums[b1];
+    unsigned* b1vnStop=boundVarNums[b1]+b1vcnt;
+    unsigned* b2vn=boundVarNums[b2];
+    unsigned* b2vnStop=boundVarNums[b2]+b2vcnt;
+
+    int b1VarIndex=0;
+    int b2VarIndex=0;
+    while(true) {
+      while(b1vn!=b1vnStop && *b1vn<*b2vn) { b1vn++; b1VarIndex++; }
+      if(b1vn==b1vnStop) { break; }
+      while(b2vn!=b2vnStop && *b1vn>*b2vn) { b2vn++; b2VarIndex++; }
+      if(b2vn==b2vnStop) { break; }
+      if(*b1vn==*b2vn) {
+	intersectionStorage->first=b1VarIndex;
+	intersectionStorage->second=b2VarIndex;
+	intersectionStorage++;
+
+        b1vn++; b1VarIndex++;
+        b2vn++; b2VarIndex++;
+        if(b1vn==b1vnStop || b2vn==b2vnStop) { break; }
+      }
+    }
+
+    intersectionStorage->first=-1;
+    intersectionStorage++;
+
+    return res;
   }
 
   bool isInitialized(unsigned bIndex) {
@@ -317,13 +333,17 @@ struct MatchingData {
 
       unsigned remAlts=0;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
-        TermList* pbBindings=altBindings[pbi][nextAlts[pbi]-1];
+	pair<int,int>* iinfo=getIntersectInfo(pbi, bIndex);
         remAlts=remaining->get(bIndex, pbi);
-        for(unsigned ai=0;ai<remAlts;ai++) {
-          if(!compatible(pbi,pbBindings,bIndex,ai)) {
-            remAlts--;
-            std::swap(altBindings[bIndex][ai], altBindings[bIndex][remAlts]);
-            ai--;
+
+        if(iinfo->first!=-1) {
+          TermList* pbBindings=altBindings[pbi][nextAlts[pbi]-1];
+          for(unsigned ai=0;ai<remAlts;ai++) {
+            if(!compatible(pbi, pbBindings, bIndex, ai, iinfo)) {
+              remAlts--;
+              std::swap(altBindings[bIndex][ai], altBindings[bIndex][remAlts]);
+              ai--;
+            }
           }
         }
         remaining->set(bIndex,pbi+1,remAlts);
@@ -345,11 +365,14 @@ static DArray<unsigned> s_varCnts(32);
 static DArray<unsigned*> s_boundVarNums(32);
 static DArray<TermList**> s_altPtrs(32);
 static TriangularArray<unsigned> s_remaining(32);
+static TriangularArray<pair<int,int>* > s_intersections(32);
 static DArray<unsigned> s_nextAlts(32);
+
 
 static DArray<unsigned> s_boundVarNumData(64);
 static DArray<TermList*> s_altBindingPtrs(128);
 static DArray<TermList> s_altBindingsData(256);
+static DArray<pair<int,int> > s_intersectionData(128);
 
 static MatchingData s_matchingData;
 
@@ -366,6 +389,9 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
   s_altPtrs.ensure(baseLen);
   s_remaining.setSide(baseLen);
   s_nextAlts.ensure(baseLen);
+
+  s_intersections.setSide(baseLen);
+  s_intersections.zeroAll();
 
   //number of base literals that have zero alternatives
   //(not counting the resolved literal)
@@ -432,6 +458,7 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
   s_boundVarNumData.ensure(baseLitVars);
   s_altBindingPtrs.ensure(altCnt);
   s_altBindingsData.ensure(altBindingsCnt);
+  s_intersectionData.ensure((baseLitVars+baseLen)*baseLen);
 
   s_matchingData.len=baseLen;
   s_matchingData.varCnts=s_varCnts.array();
@@ -439,6 +466,8 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
   s_matchingData.altBindings=s_altPtrs.array();
   s_matchingData.remaining=&s_remaining;
   s_matchingData.nextAlts=s_nextAlts.array();
+  s_matchingData.intersections=&s_intersections;
+
 
   s_matchingData.bases=s_baseLits.array();
   s_matchingData.alts=s_altsArr.array();
@@ -448,6 +477,7 @@ MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* ins
   s_matchingData.boundVarNumStorage=s_boundVarNumData.array();
   s_matchingData.altBindingPtrStorage=s_altBindingPtrs.array();
   s_matchingData.altBindingStorage=s_altBindingsData.array();
+  s_matchingData.intersectionStorage=s_intersectionData.array();
 
   return &s_matchingData;
 }

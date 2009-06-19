@@ -8,6 +8,7 @@
 #define __TriangularArray__
 
 #include "Allocator.hpp"
+#include "BitUtils.hpp"
 
 namespace Lib {
 
@@ -77,7 +78,10 @@ public:
     _data[x + (y*(_2sideMinus1-y))/2]=val;
   }
 
-
+  void zeroAll()
+  {
+    BitUtils::zeroMemory(_data, _capacity*sizeof(T));
+  }
 
 private:
   /**

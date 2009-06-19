@@ -11,6 +11,7 @@
 #include "../Kernel/Clause.hpp"
 
 #include "CNF.hpp"
+#include "EqualityProxy.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "InequalitySplitting.hpp"

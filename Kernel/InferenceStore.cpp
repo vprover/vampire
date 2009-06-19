@@ -4,6 +4,7 @@
  */
 
 #include "../Lib/Allocator.hpp"
+#include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Kernel/BDD.hpp"
@@ -14,6 +15,8 @@
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/Term.hpp"
 
+#include "../Shell/Options.hpp"
+
 #include "InferenceStore.hpp"
 
 namespace Kernel
@@ -21,6 +24,7 @@ namespace Kernel
 
 using namespace std;
 using namespace Lib;
+using namespace Shell;
 
 struct InferenceStore::FullInference
 {
@@ -456,10 +460,23 @@ void InferenceStore::outputProof(ostream& out, Unit* refutation)
 {
   CALL("InferenceStore::outputProof");
 
-//  ProofPrinter pp(refutation, out, this);
-  TPTPProofCheckPrinter pp(refutation, out, this);
-  out << "%#\n";
-  pp.print();
+  switch(env.options->proof()) {
+  case Options::PROOF_ON:
+  {
+    ProofPrinter pp(refutation, out, this);
+    pp.print();
+    return;
+  }
+  case Options::PROOF_SUCCINCT:
+  {
+    TPTPProofCheckPrinter pp(refutation, out, this);
+    out << "%#\n";
+    pp.print();
+    return;
+  }
+  case Options::PROOF_OFF:
+    return;
+  }
 }
 
 
