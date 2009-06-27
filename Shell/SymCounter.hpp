@@ -1,6 +1,6 @@
 /**
  * @file SymCounter.hpp
- * Defines class SymCounter counting occurrences of 
+ * Defines class SymCounter counting occurrences of
  * function and predicate symbols.
  *
  * @since 01/05/2002, Manchester
@@ -28,8 +28,8 @@ namespace Shell {
  * Class designed to count various kinds of occurrence of symbols
  * in a problem (unit, formula etc.)
  */
-class SymCounter 
-{ 
+class SymCounter
+{
  public:
 
   class Fun {
@@ -45,10 +45,10 @@ class SymCounter
     int _nocc;  // negative occurrences
     int _docc;  // double occurrences (under equivalence)
    public:
-    Pred () 
-      : _pocc (0), 
+    Pred ()
+      : _pocc (0),
         _nocc (0),
-        _docc (0) 
+        _docc (0)
         {}
     int pocc () const { return _pocc; }
     int nocc () const { return _nocc; }

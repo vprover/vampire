@@ -63,6 +63,9 @@ public:
   /** return the input type of the unit */
   InputType inputType() const
   { return (InputType)_inputType; }
+  /** set the input type of the unit */
+  void setInputType(InputType it)
+  { _inputType=it; }
 
   /** Return the number of this unit */
   unsigned number() const { return _number; }

@@ -70,9 +70,9 @@ void doProving()
       units = parser.units();
     }
 
-    if(units==0) {
-      cout<<"Empty units list!\n";
-    }
+//    if(units==0) {
+//      cout<<"Empty units list!\n";
+//    }
 
     Property property;
     property.scan(units);
@@ -84,9 +84,9 @@ void doProving()
 
     ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
 
-    if(!clauses.hasNext()) {
-      cout<<"No clauses after preprocessing!\n";
-    }
+//    if(!clauses.hasNext()) {
+//      cout<<"No clauses after preprocessing!\n";
+//    }
 
     SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
     salg->addInputClauses(clauses);

@@ -178,7 +178,10 @@ public:
     /** --equality_proxy=off */
     EP_OFF = 1,
     /** --equality_proxy=on */
-    EP_ON = 2
+    EP_ON = 2,
+    EP_R = 3,
+    EP_RS = 4,
+    EP_RST = 5
   };
 
 public:

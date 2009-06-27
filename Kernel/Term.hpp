@@ -562,7 +562,7 @@ public:
       }
       return res;
     } else {
-      ASS_L(_args[0]._info.distinctVars,50);
+      ASS_L(_args[0]._info.distinctVars,0x100000);
       return _args[0]._info.distinctVars;
     }
   }

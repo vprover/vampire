@@ -90,15 +90,17 @@ void InferenceStore::recordNonPropInference(Clause* cl)
 {
   CALL("InferenceStore::recordNonPropInference/1");
 
-  Inference* cinf=cl->inference();
-  Inference::Iterator it = cinf->iterator();
-  bool nonTrivialProp=false;
-  while (cinf->hasNext(it)) {
-    Clause* prem=static_cast<Clause*>(cinf->next(it));
-    ASS(prem->isClause());
-    if(!_bdd->isFalse(prem->prop())) {
-      nonTrivialProp=true;
-      break;
+  bool nonTrivialProp=!_bdd->isConstant(cl->prop());
+  if(!nonTrivialProp) {
+    Inference* cinf=cl->inference();
+    Inference::Iterator it = cinf->iterator();
+    while (cinf->hasNext(it)) {
+      Clause* prem=static_cast<Clause*>(cinf->next(it));
+      ASS(prem->isClause());
+      if(!_bdd->isFalse(prem->prop())) {
+        nonTrivialProp=true;
+        break;
+      }
     }
   }
 
@@ -157,13 +159,27 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl
 {
   ASS(!_bdd->isTrue(resultProp));
 
-  FullInference* finf=0;
-  finf=new (2) FullInference(2);
+  FullInference* finf=new (2) FullInference(2);
   finf->premises[0]=getClauseSpec(cl, oldClProp);
   finf->premises[1]=getClauseSpec(addedCl);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
   _data.insert(getClauseSpec(cl, resultProp), finf);
 }
+
+void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* addedCls, int addedClsCnt,
+	BDDNode* resultProp)
+{
+  ASS(!_bdd->isTrue(resultProp));
+
+  FullInference* finf=new (addedClsCnt+1) FullInference(addedClsCnt+1);
+  for(int i=0;i<addedClsCnt;i++) {
+    finf->premises[i]=addedCls[i];
+  }
+  finf->premises[addedClsCnt]=getClauseSpec(cl, oldClProp);
+  finf->rule=Inference::COMMON_NONPROP_MERGE;
+  _data.insert(getClauseSpec(cl, resultProp), finf);
+}
+
 
 void InferenceStore::recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
 	  unsigned premCnt, Clause** prems)

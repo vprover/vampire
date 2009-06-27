@@ -25,6 +25,7 @@
 #include "Rectify.hpp"
 #include "Skolem.hpp"
 #include "SimplifyFalseTrue.hpp"
+#include "SineUtils.hpp"
 
 // #include "../Lib/Sort.hpp"
 // #include "ClausalDefinition.hpp"
@@ -87,6 +88,8 @@ void Preprocess::preprocess (UnitList*& units)
     Normalisation norm;
     units = norm.normalise(units);
   }
+
+//  SineSelector().perform(units);
 
   {
     UnitList::DelIterator us(units);
@@ -207,24 +210,12 @@ void Preprocess::preprocess (UnitList*& units)
 //     }
 //   }
 
-//   PureLiteral pure(_problem,Signature::sig);
-//   pure.findAndRemove();
-
-//   ClausalDefinition cdef(_problem,Signature::sig);
-//   cdef.findAndReplace();
-
-//   if (_property.hasProp(PR_HAS_X_EQUALS_Y)) {
-//     switch (_options.equalityProxy()) {
-//     case Options::EP_OFF:
-//       break;
-//     case Options::EP_ON:
-//     case Options::EP_EXP1:
-//       {
-// 	EqualityProxy proxy(Signature::sig);
-// 	proxy.apply(_problem);
-//       }
-//     }
-//   }
+   if (_options.equalityProxy()!=Options::EP_OFF &&
+	   (_property.hasProp(PR_HAS_X_EQUALS_Y) ||
+	    _options.equalityProxy()!=Options::EP_ON) ) {
+     EqualityProxy proxy;
+     proxy.apply(units);
+   }
 } // Preprocess::preprocess ()
 
 

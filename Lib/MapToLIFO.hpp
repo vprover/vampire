@@ -48,6 +48,13 @@ public:
     return !found;
   }
 
+  typename ValList::Iterator keyIterator(K key)
+  {
+    ValList* lst=0;
+    _data.find(key, lst); //if the key isn't found, the lst remains unchanged
+    return typename ValList::Iterator(lst);
+  }
+
 private:
   void makeEmpty()
   {

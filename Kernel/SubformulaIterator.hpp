@@ -9,6 +9,8 @@
 #ifndef __SubformulaIterator__
 #define __SubformulaIterator__
 
+#include "../Lib/VirtualIterator.hpp"
+
 #include "Formula.hpp"
 
 namespace Kernel {
@@ -17,6 +19,7 @@ namespace Kernel {
  * Implements an iterator over variables of a formula formula list, or atom.
  */
 class SubformulaIterator
+: public IteratorCore<Formula*>
 {
 public:
   SubformulaIterator (Formula*);

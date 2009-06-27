@@ -151,7 +151,7 @@ struct LexComparator
     Term::SubtermIterator sit1(l1);
     Term::SubtermIterator sit2(l2);
     while(sit1.hasNext()) {
-      ASS(sit2.hasNext());
+      ALWAYS(sit2.hasNext());
       TermList st1=sit1.next();
       TermList st2=sit2.next();
       if(st1.isTerm()) {

@@ -80,6 +80,9 @@ protected:
   int elapsedTime();
 
 private:
+  void addInputClause(Clause* cl);
+  void addUnprocessedFinalClause(Clause* cl);
+
   Limits _limits;
   IndexManager _imgr;
 protected:

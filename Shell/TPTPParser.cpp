@@ -221,7 +221,9 @@ Unit* TPTPParser::unit ()
 	}
       }
       result = new FormulaUnit(f,
-			       new Inference(Inference::NEGATED_CONJECTURE),
+			       new Inference( (it == Unit::CONJECTURE) ?
+					       Inference::NEGATED_CONJECTURE :
+					       Inference::INPUT),
 			       it);
       env.statistics->inputFormulas++;
     }

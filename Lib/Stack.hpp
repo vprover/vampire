@@ -246,6 +246,16 @@ public:
   size_t size() const
   { return _cursor - _stack; }
 
+  /** Push all elements from @b it iterator on the stack */
+  template<class It>
+  void pushFromIterator(It it)
+  {
+    while(it.hasNext()) {
+      push(it.next());
+    }
+  }
+
+
   friend class Iterator;
 
   /** Iterator iterates over the elements of a stack and can

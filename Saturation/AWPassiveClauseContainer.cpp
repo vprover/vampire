@@ -230,7 +230,7 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
       maxAge=acl->age();
     }
     if(wcl!=0 && wit.hasNext()) {
-      maxWeight=wcl->getEffectiveWeight();
+      maxWeight=static_cast<int>(wcl->getEffectiveWeight());
     }
   }
 

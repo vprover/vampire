@@ -11,13 +11,22 @@
 
 #include "../Forwards.hpp"
 #include "../Lib/Allocator.hpp"
+#include "../Lib/Array.hpp"
 #include "../Lib/Hash.hpp"
+#include "../Lib/Int.hpp"
+#include "../Lib/List.hpp"
 #include "../Lib/Set.hpp"
+#include "../Lib/SkipList.hpp"
+#include "../Lib/Stack.hpp"
+
 
 
 namespace Kernel {
 
 using namespace std;
+using namespace Lib;
+
+class BDDConjunction;
 
 class BDDNode
 {
@@ -32,6 +41,7 @@ private:
   BDDNode* _neg;
 
   friend class BDD;
+  friend class BDDConjunction;
 };
 
 class BDD
@@ -59,6 +69,7 @@ public:
 
   bool isTrue(BDDNode* node) { return node==getTrue(); }
   bool isFalse(BDDNode* node) { return node==getFalse(); }
+  bool isConstant(BDDNode* node) { return node->_var==-1; }
 
   static bool equals(const BDDNode* n1,const BDDNode* n2);
   static unsigned hash(const BDDNode* n);
@@ -105,6 +116,28 @@ private:
   NodeSet _nodes;
 
   int _newVar;
+};
+
+class BDDConjunction
+{
+public:
+  BDDConjunction() : _bdd(BDD::instance()), _isFalse(false), _maxVar(-1), _nodes(0) {}
+  void addNode(BDDNode* n);
+  bool isFalse() { return _isFalse; }
+private:
+  bool findNextSatAssignment(BDDNode* n, bool& assignmentChanged);
+
+  void printAssignment();
+
+  typedef List<BDDNode*> NodeList;
+
+  BDD* _bdd;
+  bool _isFalse;
+  int _maxVar;
+//  Stack<BDDNode*> _nodes;
+  NodeList* _nodes;
+  SkipList<int, Int> _decisionPnts;
+  ZIArray<bool> _assignment;
 };
 
 };

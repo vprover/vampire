@@ -10,6 +10,7 @@
 #define __TermFunIterator__
 
 #include "../Lib/Stack.hpp"
+#include "../Lib/VirtualIterator.hpp"
 
 using namespace Lib;
 
@@ -24,6 +25,7 @@ class Term;
  * @since 26/05/2007 Manchester, made from class TermVarIterator
  */
 class TermFunIterator
+: public IteratorCore<unsigned>
 {
 public:
   TermFunIterator (const Term*);

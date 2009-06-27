@@ -138,6 +138,15 @@ public:
     return entry->value;
   } // Set::insert
 
+  /** Insert all elements from @b it iterator in the set */
+  template<class It>
+  void insertFromIterator(It it)
+  {
+    while(it.hasNext()) {
+      insert(it.next());
+    }
+  }
+
   /** Return the number of elements */
   inline int numberOfElements() const
   {

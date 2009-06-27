@@ -46,6 +46,7 @@ class Unit;
 class FormulaUnit;
 class Formula;
 typedef List<Unit*> UnitList;
+typedef VirtualIterator<Unit*> UnitIterator;
 
 class Clause;
 typedef VirtualIterator<Clause*> ClauseIterator;

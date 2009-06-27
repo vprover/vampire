@@ -266,6 +266,15 @@ public:
     lst = lst->cons(elem);
   } // List::push
 
+  /** push all elements from @b it iterator to the list */
+  template<class It>
+  static void pushFromIterator(It it, List* &lst)
+  {
+    while(it.hasNext()) {
+      push(it.next(), lst);
+    }
+  }
+
   /**
    * True if the list has the given length.
    * @since 10/06/2007 Manchester

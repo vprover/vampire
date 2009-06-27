@@ -9,6 +9,8 @@
 
 #include "../Forwards.hpp"
 
+#include "Options.hpp"
+
 namespace Shell {
 
 using namespace Lib;
@@ -17,7 +19,15 @@ using namespace Kernel;
 
 class EqualityProxy
 {
+public:
+  static unsigned s_proxyPredicate;
 
+  EqualityProxy();
+
+  void apply(UnitList*& units);
+private:
+  Options::EqualityProxy _opts;
+  bool _rst;
 };
 
 };

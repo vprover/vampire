@@ -365,7 +365,7 @@ public:
   Key getOneKey()
   {
     Iterator it(*this);
-    ASS(it.hasNext());
+    ALWAYS(it.hasNext());
     return it.nextKey();
   }
 

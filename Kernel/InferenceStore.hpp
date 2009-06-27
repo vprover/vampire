@@ -26,18 +26,6 @@ class InferenceStore
 public:
   static InferenceStore* instance();
 
-  void recordNonPropInference(Clause* cl);
-  void recordNonPropInference(Clause* cl, Inference* inf);
-  void recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp);
-  void recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newProp, Inference::Rule rule);
-  void recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp);
-  void recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
-	  unsigned premCnt, Clause** prems);
-
-  void outputProof(ostream& out, Unit* refutation);
-private:
-  InferenceStore();
-
   struct ClauseSpec
   {
     ClauseSpec() {}
@@ -48,13 +36,28 @@ private:
     Clause* first;
     BDDNode* second;
   };
+  static ClauseSpec getClauseSpec(Clause* cl);
+  static ClauseSpec getClauseSpec(Clause* cl, BDDNode* prop);
+
+  void recordNonPropInference(Clause* cl);
+  void recordNonPropInference(Clause* cl, Inference* inf);
+  void recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp);
+  void recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newProp, Inference::Rule rule);
+  void recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp);
+  void recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* addedCls, int addedClsCnt, BDDNode* resultProp);
+  void recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
+	  unsigned premCnt, Clause** prems);
+
+  void outputProof(ostream& out, Unit* refutation);
+
+private:
+  InferenceStore();
+
 
   struct FullInference;
   struct ProofPrinter;
   struct TPTPProofCheckPrinter;
 
-  static ClauseSpec getClauseSpec(Clause* cl);
-  static ClauseSpec getClauseSpec(Clause* cl, BDDNode* prop);
 
   std::string getClauseIdStr(ClauseSpec cs);
 

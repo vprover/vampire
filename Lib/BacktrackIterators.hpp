@@ -62,7 +62,7 @@ public:
 	_states.pop();
       }
       if(_chits.isNonEmpty()) {
-	ASS(_chits.top().hasNext());
+	ALWAYS(_chits.top().hasNext());
 	_states.push(_chits.top().next());
       } else {
 	_fin=true;

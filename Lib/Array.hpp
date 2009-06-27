@@ -174,18 +174,18 @@ class ZIArray
 {
 public:
   inline
-  ZIArray (size_t initialCapacity) : Array<T>(initialCapacity)
+  ZIArray(size_t initialCapacity) : Array<T>(initialCapacity)
   {
     fillInterval(0, Array<T>::_capacity);
   }
   inline
-  ZIArray ()
+  ZIArray()
   {
     fillInterval(0, Array<T>::_capacity);
   }
 
 
-  void fillInterval (size_t start,size_t end)
+  void fillInterval(size_t start,size_t end)
   {
     for(size_t i=start; i<end; i++) {
       Array<T>::_array[i]=0;

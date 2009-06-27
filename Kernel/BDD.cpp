@@ -404,4 +404,171 @@ unsigned BDD::hash(const BDDNode* n)
 }
 
 
+void BDDConjunction::addNode(BDDNode* n)
+{
+  CALL("BDDConjunction::addNode");
+
+  if(_isFalse) {
+    return;
+  }
+  if(_bdd->isConstant(n)) {
+    if(_bdd->isFalse(n)) {
+      _isFalse=true;
+    } else {
+      ASS(_bdd->isTrue(n));
+    }
+    return;
+  }
+
+  if(n->_var > _maxVar) {
+    _maxVar=n->_var;
+  }
+
+//  int nodeCnt=_nodes.size();
+//  int satNodes=nodeCnt;
+
+  NodeList* next=_nodes;
+  NodeList::push(n, _nodes);
+  NodeList* prev=_nodes;
+
+//  _nodes.push(n);
+//  nodeCnt++;
+
+  bool assignmentChanged;
+  if(!findNextSatAssignment(n, assignmentChanged)) {
+    _isFalse=true;
+    return;
+  }
+  if(!assignmentChanged) {
+    return;
+  }
+
+//  int counter=0;
+
+  while(next) {
+    if(findNextSatAssignment(next->head(), assignmentChanged)) {
+      if(assignmentChanged) {
+	//We put the current node (next) at the beginning of the _nodes list and
+	//continue with its second element.
+	prev->setTail(next->tail());
+	prev=next;
+	prev->setTail(_nodes);
+	next=_nodes;
+	_nodes=prev;
+
+	_decisionPnts.makeEmpty();
+      } else {
+	prev=next;
+	next=next->tail();
+      }
+    } else {
+      _isFalse=true;
+      return;
+    }
+//    counter++;
+//    if(counter==50000) {
+//      counter=0;
+//      cout<<"---- "<<_bdd->toString(n)<<"\n";
+//      printAssignment();
+//    }
+  }
+
+//  cout<<"Added "<<_bdd->toString(n)<<"\n";
+//  printAssignment();
+}
+
+void BDDConjunction::printAssignment()
+{
+  for(int i=_assignment.size()-1;i>=0;i--) {
+    cout<<_assignment[i];
+    if(i%10==0) {
+      cout<<'\t'<<i<<endl;
+    }
+//    cout<<i<<'\t'<<_assignment[i]<<endl;
+  }
+}
+
+
+bool BDDConjunction::findNextSatAssignment(BDDNode* n0, bool& assignmentChanged)
+{
+  ASS(!_bdd->isConstant(n0));
+  assignmentChanged=false;
+
+
+  static Stack<BDDNode*> decPnts;
+  decPnts.reset();
+#if VDEBUG
+  bool alreadyRestarted=false;
+#endif
+
+  BDDNode* n=n0;
+
+satSeekStart:
+  while(!_bdd->isConstant(n)) {
+    if(_assignment[n->_var]) {
+      n=n->_pos;
+    } else {
+//      if(decPnts.isNonEmpty()) {
+//	ASS_G(decPnts.top()->_var, n->_var);
+//      }
+      decPnts.push(n);
+//      cout<<"dp_push"<<n->_var<<"\n";
+      n=n->_neg;
+    }
+  }
+  if(_bdd->isTrue(n)) {
+
+    n=n0;
+    while(!_bdd->isConstant(n)) {
+      if(_assignment[n->_var]) {
+        n=n->_pos;
+      } else {
+        _decisionPnts.insert(n->_var);
+        n=n->_neg;
+      }
+    }
+    ASS(_bdd->isTrue(n));
+    return true;
+  }
+  assignmentChanged=true;
+
+  int changed;
+
+  if(decPnts.isEmpty()) {
+#if VDEBUG
+    //the BDD n0 is non-constant, so it must be satisfiable
+    ASS(!alreadyRestarted);
+    alreadyRestarted=true;
+#endif
+//    changed=n0->_var;
+//    while(++changed<=_maxVar && _assignment[changed]) {}
+//    if(changed>_maxVar) {
+//      return false;
+//    }
+//    while(++changed<=_maxVar && _assignment[changed]) {}
+    if(!_decisionPnts.findLeastGreater(n0->_var, changed)) {
+      return false;
+    }
+
+    decPnts.reset();
+//    cout<<"dp_reset\n";
+    n=n0;
+  } else {
+    BDDNode* decPnt=decPnts.pop();
+    changed=decPnt->_var;
+//    cout<<"dp_pop"<<changed<<"\n";
+
+    n=decPnt->_pos;
+  }
+  ASS(!_assignment[changed]);
+  _assignment[changed]=true;
+  for(int i=0;i<changed;i++) {
+    _assignment[i]=false;
+  }
+  goto satSeekStart;
+
+}
+
+
+
 }

@@ -218,7 +218,7 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
 //  Term::SubtermIterator sit1(trm1);
 //  Term::SubtermIterator sit2(trm2);
 //  while(sit1.hasNext()) {
-//    ASS(sit2.hasNext());
+//    ALWAYS(sit2.hasNext());
 //    TermList st1=sit1.next();
 //    TermList st2=sit2.next();
 //    if(st1.isTerm()) {

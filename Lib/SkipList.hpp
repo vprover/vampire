@@ -201,6 +201,68 @@ public:
   } // SkipList::insertPosition
 
   /**
+   * If @b key is greater than or equal to all contained values, return false.
+   * If the value with given key is not present, but some greater is,
+   * assign into @b value the least of such values.
+   * In these cases return true.
+   */
+  template<typename Key>
+  bool findLeastGreater(Key key, Value& value)
+  {
+    CALL("SkipList::findLeastGreater");
+
+    if(_top==0) {
+      return false;
+    }
+
+    unsigned h=_top-1;
+
+   // left is a node with a value smaller than that of newNode and having
+    // a large enough height.
+    // this node is on the left of the inserted one
+    Node* left = _left;
+    for (;;) {
+      Node* next = left->nodes[h];
+      if (next == 0) {
+	if (h == 0) {
+	    return false;
+	}
+	h--;
+	continue;
+      }
+      // next != 0
+      switch (ValueComparator::compare(key,next->value))
+	{
+	case LESS:
+	  // the node should be inserted on the left
+	  if (h == 0) {
+	    value=next->value;
+	    return true;
+	  }
+	  h--;
+	  break;
+
+	case EQUAL:
+	  if(next->nodes[0]) {
+	    value=next->nodes[0]->value;
+	    return true;
+	  }
+	  return false;
+
+	case GREATER:
+	  left = next;
+	  break;
+
+#if VDEBUG
+	default:
+	  ASSERTION_VIOLATION;
+#endif
+	}
+    }
+  } // SkipList::findLeastGreater
+
+
+  /**
    * Return number of elements in the SkipList.
    *
    * The method works in linear time with the

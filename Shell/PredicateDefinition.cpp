@@ -196,8 +196,8 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
 	cout<<"PP to: "<<v->toString()<<endl;
 #endif
 	if(u->isClause()) {
-	  ASS(v->isClause())
 	  if(v!=0) {
+	    ASS(v->isClause())
 	    count(static_cast<Clause*>(v), 1);
 	  }
 	  count(static_cast<Clause*>(u), -1);

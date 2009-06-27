@@ -5,6 +5,7 @@
 
 #include "../Lib/Environment.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/Stack.hpp"
 #include "../Lib/Timer.hpp"
 #include "../Lib/VirtualIterator.hpp"
 #include "../Kernel/BDD.hpp"
@@ -135,26 +136,31 @@ int SaturationAlgorithm::elapsedTime()
 }
 
 
+void SaturationAlgorithm::addInputClause(Clause* cl)
+{
+  ASS_EQ(cl->prop(),0);
+  cl->setProp(BDD::instance()->getFalse());
+
+  if(env.options->sos() && cl->inputType()==Clause::AXIOM) {
+    cl->setStore(Clause::ACTIVE);
+    env.statistics->activeClauses++;
+    _active->add(cl);
+  } else {
+    addUnprocessedClause(cl);
+  }
+
+  env.statistics->initialClauses++;
+}
+
 /**
  * Insert input clauses into ste unprocessed container.
  */
 void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
 {
-  BDD* bdd=BDD::instance();
+
   while(toAdd.hasNext()) {
     Clause* cl=toAdd.next();
-    ASS_EQ(cl->prop(),0);
-    cl->setProp(bdd->getFalse());
-
-    if(env.options->sos() && cl->inputType()==Clause::AXIOM) {
-      cl->setStore(Clause::ACTIVE);
-      env.statistics->activeClauses++;
-      _active->add(cl);
-    } else {
-      addUnprocessedClause(cl);
-    }
-
-    env.statistics->initialClauses++;
+    addInputClause(cl);
   }
 
   if(env.options->splitting()==Options::SPLIT_INPUT_ONLY) {
@@ -383,10 +389,7 @@ simplificationStart:
       ASS_EQ(comp->store(), Clause::NONE);
       ASS(!bdd->isTrue(comp->prop()));
 
-      if(!bdd->isTrue(comp->prop())) {
-        comp->setStore(Clause::UNPROCESSED);
-        _unprocessed->add(comp);
-      }
+      addUnprocessedFinalClause(comp);
     }
     while(modifiedComponents.hasNext()) {
       Clause* comp=modifiedComponents.next();
@@ -399,15 +402,41 @@ simplificationStart:
           ASS(!isRefutation(comp));
         }
       } else if(comp->store()==Clause::NONE) {
-        ASS(!comp->isEmpty());
-        comp->setStore(Clause::UNPROCESSED);
-        _unprocessed->add(comp);
+        addUnprocessedFinalClause(comp);
+      } else {
+	ASS(comp->store()==Clause::PASSIVE ||
+		comp->store()==Clause::REACTIVATED ||
+		comp->store()==Clause::UNPROCESSED);
       }
     }
   } else {
-    if(_someSplitting && cl->isEmpty()) {
-      static Clause* emptyClause=0;
-      if(emptyClause) {
+    addUnprocessedFinalClause(cl);
+  }
+}
+
+void SaturationAlgorithm::addUnprocessedFinalClause(Clause* cl)
+{
+  CALL("SaturationAlgorithm::addUnprocessedFinalClause");
+
+  BDD* bdd=BDD::instance();
+
+  if(_someSplitting && cl->isEmpty()) {
+#if 1
+    //TODO: this causes unsoundness
+    static BDDConjunction ecProp;
+    static Stack<InferenceStore::ClauseSpec> emptyClauses;
+    ecProp.addNode(cl->prop());
+    if(ecProp.isFalse()) {
+	InferenceStore::instance()->recordMerge(cl, cl->prop(), emptyClauses.begin(),
+		emptyClauses.size(), bdd->getFalse());
+	cl->setProp(bdd->getFalse());
+    } else {
+	emptyClauses.push(InferenceStore::getClauseSpec(cl));
+	return;
+    }
+#else
+    static Clause* emptyClause=0;
+    if(emptyClause) {
 	BDDNode* oldECProp=emptyClause->prop();
 	BDDNode* newECProp=bdd->conjunction(oldECProp, cl->prop());
 	emptyClause->setProp(newECProp);
@@ -425,15 +454,16 @@ simplificationStart:
 	cout<<"%% to: "<<bdd->toString(newECProp)<<endl;
 #endif
 	return;
-      } else {
+    } else {
 	emptyClause=cl;
-      }
     }
-
-    cl->setStore(Clause::UNPROCESSED);
-    _unprocessed->add(cl);
+#endif
   }
+
+  cl->setStore(Clause::UNPROCESSED);
+  _unprocessed->add(cl);
 }
+
 
 void SaturationAlgorithm::reanimate(Clause* cl)
 {
