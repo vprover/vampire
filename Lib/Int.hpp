@@ -50,9 +50,11 @@ class Int
   /** Compare two unsigned integers */
   inline static Comparison compare (unsigned i1, unsigned i2)
   { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
+#if ARCH_X64
   /** Compare two size_t integers */
   inline static Comparison compare (size_t i1, size_t i2)
   { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
+#endif
   /** Compare two floats */
   inline static Comparison compare (float f1, float f2)
   { return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER; }
