@@ -11,6 +11,7 @@
 
 #include "Allocator.hpp"
 #include "Hash.hpp"
+#include "Reflection.hpp"
 
 namespace Lib {
 
@@ -243,6 +244,8 @@ public:
    */
   class Iterator {
   public:
+    DECL_ELEMENT_TYPE(Val);
+
     /** Create a new empty iterator */
     inline Iterator() : _next(0), _last(0) {}
 

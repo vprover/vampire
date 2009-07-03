@@ -255,9 +255,12 @@ string Inference::ruleName(Rule rule)
     return "skolemisation";
   case RESOLUTION:
     return "resolution";
-//  case EQUALITY_PROXY_REPLACEMENT:
-//  case EQUALITY_PROXY_AXIOM1:
-//  case EQUALITY_PROXY_AXIOM2:
+  case EQUALITY_PROXY_REPLACEMENT:
+    return "equality proxy replacement";
+  case EQUALITY_PROXY_AXIOM1:
+    return "equality proxy axiom E(x,x)";
+  case EQUALITY_PROXY_AXIOM2:
+    return "equality proxy axiom";
   case DEFINITION_UNFOLDING:
     return "definition unfolding";
   case DEFINITION_FOLDING:

@@ -10,6 +10,8 @@
 
 #include "../Forwards.hpp"
 
+#include "../Lib/SmartPtr.hpp"
+
 namespace Kernel {
 
 /**
@@ -38,6 +40,9 @@ public:
   void removeNonMaximal(LiteralList*& lits);
 
   static Ordering* instance();
+  static bool orderingCreated();
+private:
+  static OrderingSP s_instance;
 }; // class Ordering
 
 }

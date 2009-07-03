@@ -23,76 +23,78 @@ class Options
 {
 public:
   enum Tag {
-    AGE_WEIGHT_RATIO = 0,
+    AGE_WEIGHT_RATIO,
 
-    BACKWARD_DEMODULATION = 1,
-    BACKWARD_SUBSUMPTION = 2,
+    BACKWARD_DEMODULATION,
+    BACKWARD_SUBSUMPTION,
+
+    CONDENSATION,
 
     /** Decode test id */
-    DECODE = 3,
+    DECODE,
 
-    EQUALITY_PROXY = 4,
-    EQUALITY_RESOLUTION_WITH_DELETION = 5,
+    EQUALITY_PROXY,
+    EQUALITY_RESOLUTION_WITH_DELETION,
 
-    FORWARD_DEMODULATION = 6,
-    FORWARD_SUBSUMPTION = 7,
-    FORWARD_SUBSUMPTION_RESOLUTION = 8,
-    FUNCTION_DEFINITION_ELIMINATION = 9,
+    FORWARD_DEMODULATION,
+    FORWARD_SUBSUMPTION,
+    FORWARD_SUBSUMPTION_RESOLUTION,
+    FUNCTION_DEFINITION_ELIMINATION,
 
-    INCLUDE = 10,
-    INEQUALITY_SPLITTING = 11,
+    INCLUDE,
+    INEQUALITY_SPLITTING,
 
-    LATEX_OUTPUT = 12,
-    LITERAL_COMPARISON_MODE = 13,
-    LOG_FILE = 14,
-    LRS_FIRST_TIME_CHECK = 15,
+    LATEX_OUTPUT,
+    LITERAL_COMPARISON_MODE,
+    LOG_FILE,
+    LRS_FIRST_TIME_CHECK,
 
-    MAX_ACTIVE = 16,
-    MAX_ANSWERS = 17,
-    MAX_INFERENCE_DEPTH = 18,
-    MAX_PASSIVE = 19,
-    MAX_WEIGHT = 20,
-    MEMORY_LIMIT = 21,
-    MODE = 22,
+    MAX_ACTIVE,
+    MAX_ANSWERS,
+    MAX_INFERENCE_DEPTH,
+    MAX_PASSIVE,
+    MAX_WEIGHT,
+    MEMORY_LIMIT,
+    MODE,
 
-    NAMING = 23,
-    NONGOAL_WEIGHT_COEFFICIENT = 24,
-    NORMALIZE = 25,
+    NAMING,
+    NONGOAL_WEIGHT_COEFFICIENT,
+    NORMALIZE,
 
-    ORPHAN_DELETION = 26,
-    OUTPUT_MESSAGES = 27,
+    ORPHAN_DELETION,
+    OUTPUT_MESSAGES,
 
-    PROBLEM_NAME = 28,
-    PROOF = 29,
-    PROOF_CHECKING = 30,
+    PROBLEM_NAME,
+    PROOF,
+    PROOF_CHECKING,
 
-    RANDOM_SEED = 31,
-    ROW_VARIABLE_MAX_LENGTH = 32,
+    RANDOM_SEED,
+    ROW_VARIABLE_MAX_LENGTH,
 
     /** saturation algorithm: lrs, otter, or discount */
-    SATURATION_ALGORITHM = 33,
-    SELECTION = 34,
-    SHOW_ACTIVE = 35,
-    SHOW_NEW = 36,
-    SHOW_OPTIONS = 37,
-    SHOW_PASSIVE = 38,
-    SIMULATED_TIME_LIMIT = 39,
-    SOS = 40,
-    SPLITTING = 41,
-    STATISTICS = 42,
-    SUPERPOSITION_FROM_VARIABLES = 43,
-    SYMBOL_PRECEDENCE = 44,
+    SATURATION_ALGORITHM,
+    SELECTION,
+    SHOW_ACTIVE,
+    SHOW_NEW,
+    SHOW_OPTIONS,
+    SHOW_PASSIVE,
+    SIMULATED_TIME_LIMIT,
+    SOS,
+    SPLITTING,
+    STATISTICS,
+    SUPERPOSITION_FROM_VARIABLES,
+    SYMBOL_PRECEDENCE,
 
-    TEST_ID = 45,
-    TIME_LIMIT = 46,
+    TEST_ID,
+    TIME_LIMIT,
 
-    UNUSED_PREDICATE_DEFINITION_REMOVAL = 47,
+    UNUSED_PREDICATE_DEFINITION_REMOVAL,
 
-    WEIGHT_INCREMENT = 48,
+    WEIGHT_INCREMENT,
 
-    XML_OUTPUT = 49,
+    XML_OUTPUT,
 
-    NUMBER_OF_OPTIONS = 50 // must be the last one!
+    NUMBER_OF_OPTIONS // must be the last one!
   };
 
 public:
@@ -259,6 +261,8 @@ public:
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination; }
   string xmlOutput() const { return _xmlOutput; }
 
+  bool condensation() const { return _condensation; }
+
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal) { _inputFile = newVal; }
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
@@ -285,6 +289,8 @@ private:
 
   Demodulation _backwardDemodulation;
   bool _backwardSubsumption;
+
+  bool _condensation;
 
   EqualityProxy _equalityProxy;
   bool _equalityResolutionWithDeletion;

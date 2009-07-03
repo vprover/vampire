@@ -17,15 +17,20 @@
 using namespace Lib;
 using namespace Kernel;
 
+OrderingSP Ordering::s_instance;
 
 Ordering* Ordering::instance()
 {
-  static OrderingSP inst;
-  if(!inst) {
-    inst=OrderingSP(KBO::create());
+  if(!s_instance) {
+    s_instance=OrderingSP(KBO::create());
   }
 
-  return inst.ptr();
+  return s_instance.ptr();
+}
+
+bool Ordering::orderingCreated()
+{
+  return s_instance;
 }
 
 /**

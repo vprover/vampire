@@ -97,7 +97,9 @@ void addFSEs(SaturationAlgorithm* alg)
   } else if(env.options->forwardSubsumption()) {
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
   }/**/
-//  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new Condensation()));
+  if(env.options->condensation()) {
+    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new Condensation()));
+  }
 }
 
 

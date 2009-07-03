@@ -225,7 +225,8 @@ public:
       Node* next = left->nodes[h];
       if (next == 0) {
 	if (h == 0) {
-	    return false;
+	  ASS_LE(max(),key);
+	  return false;
 	}
 	h--;
 	continue;
@@ -243,10 +244,14 @@ public:
 	  break;
 
 	case EQUAL:
-	  if(next->nodes[0]) {
-	    value=next->nodes[0]->value;
-	    return true;
+	  while(next->nodes[0]) {
+	    next=next->nodes[0];
+	    if(ValueComparator::compare(key,next->value)==LESS) {
+	      value=next->value;
+	      return true;
+	    }
 	  }
+	  ASS_LE(max(),key);
 	  return false;
 
 	case GREATER:
@@ -333,6 +338,20 @@ public:
     deallocate(node,h-1);
     return val;
   } // SkipList::pop
+
+  /** Returns the maximal (last) element without removing it. */
+  const Value& max()
+  {
+    ASS(isNonEmpty());
+    Node* node=_left;
+    for(int h=_top-1;h>=0;h--) {
+      while(node->nodes[h]) {
+	node=node->nodes[h];
+      }
+    }
+    ASS_NEQ(node, _left);
+    return node->value;
+  }
 
   /**
    * Remove value matching the key from the list.

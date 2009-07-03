@@ -23,8 +23,8 @@ namespace Kernel {
 /**
  * Class representing signatures.
  */
-class Signature 
-{ 
+class Signature
+{
  public:
   /** Function or predicate symbol */
   class Symbol {
@@ -102,9 +102,9 @@ class Signature
   CLASS_NAME("Signature");
   USE_ALLOCATOR(Signature);
 
-private:
   unsigned addPredicate(const string& name,unsigned arity,bool& added);
   unsigned addFunction(const string& name,unsigned arity,bool& added);
+private:
 
   /** Stack of function symbols */
   Stack<Symbol*> _funs;

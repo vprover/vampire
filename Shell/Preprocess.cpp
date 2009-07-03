@@ -211,7 +211,7 @@ void Preprocess::preprocess (UnitList*& units)
 //   }
 
    if (_options.equalityProxy()!=Options::EP_OFF &&
-	   (_property.hasProp(PR_HAS_X_EQUALS_Y) ||
+	   (_property.hasProp(Property::PR_HAS_X_EQUALS_Y) ||
 	    _options.equalityProxy()!=Options::EP_ON) ) {
      EqualityProxy proxy;
      proxy.apply(units);

@@ -69,6 +69,8 @@ const char* Options::Constants::_optionNames[] = {
   "backward_demodulation",
   "backward_subsumption",
 
+  "condensation",
+
   "decode",
 
   "equality_proxy",
@@ -283,6 +285,8 @@ Options::Options ()
   _backwardDemodulation(DEMODULATION_ALL),
   _backwardSubsumption(true),
 
+  _condensation(false),
+
   _equalityProxy(EP_OFF),
   _equalityResolutionWithDeletion(false),
 
@@ -399,6 +403,10 @@ void Options::set (const char* name,const char* value, int index)
     return;
   case BACKWARD_SUBSUMPTION:
     _backwardSubsumption = onOffToBool(value,name);
+    return;
+
+  case CONDENSATION:
+    _condensation = onOffToBool(value,name);
     return;
 
   case DECODE:
@@ -864,6 +872,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case BACKWARD_SUBSUMPTION:
     str << boolToOnOff(_backwardSubsumption);
+    return;
+
+  case CONDENSATION:
+    str << boolToOnOff(_condensation);
     return;
 
   case DECODE: // no output for DECODE

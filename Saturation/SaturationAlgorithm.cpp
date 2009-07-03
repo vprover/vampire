@@ -420,42 +420,43 @@ void SaturationAlgorithm::addUnprocessedFinalClause(Clause* cl)
 
   BDD* bdd=BDD::instance();
 
-  if(_someSplitting && cl->isEmpty()) {
+  if( _someSplitting && cl->isEmpty() && !bdd->isFalse(cl->prop()) ) {
 #if 1
     //TODO: this causes unsoundness
     static BDDConjunction ecProp;
     static Stack<InferenceStore::ClauseSpec> emptyClauses;
+
     ecProp.addNode(cl->prop());
     if(ecProp.isFalse()) {
-	InferenceStore::instance()->recordMerge(cl, cl->prop(), emptyClauses.begin(),
-		emptyClauses.size(), bdd->getFalse());
-	cl->setProp(bdd->getFalse());
+      InferenceStore::instance()->recordMerge(cl, cl->prop(), emptyClauses.begin(),
+	      emptyClauses.size(), bdd->getFalse());
+      cl->setProp(bdd->getFalse());
     } else {
-	emptyClauses.push(InferenceStore::getClauseSpec(cl));
-	return;
+      emptyClauses.push(InferenceStore::getClauseSpec(cl));
+      return;
     }
 #else
     static Clause* emptyClause=0;
     if(emptyClause) {
-	BDDNode* oldECProp=emptyClause->prop();
-	BDDNode* newECProp=bdd->conjunction(oldECProp, cl->prop());
-	emptyClause->setProp(newECProp);
-	InferenceStore::instance()->recordMerge(emptyClause, oldECProp, cl, newECProp);
+      BDDNode* oldECProp=emptyClause->prop();
+      BDDNode* newECProp=bdd->conjunction(oldECProp, cl->prop());
+      emptyClause->setProp(newECProp);
+      InferenceStore::instance()->recordMerge(emptyClause, oldECProp, cl, newECProp);
 
-	if(isRefutation(emptyClause)) {
-	  //Don't care about setting clause storage or anything, as
-	  //we're done as soon as the saturation algorithm pops this
-	  //clause from the unprocessed container.
-	  _unprocessed->add(emptyClause);
-	}
+      if(isRefutation(emptyClause)) {
+	//Don't care about setting clause storage or anything, as
+	//we're done as soon as the saturation algorithm pops this
+	//clause from the unprocessed container.
+	_unprocessed->add(emptyClause);
+      }
 #if REPORT_CONTAINERS
-	cout<<"%% Empty clause extended from: "<<bdd->toString(oldECProp)<<endl;
-	cout<<"%% by: "<<bdd->toString(cl->prop())<<endl;
-	cout<<"%% to: "<<bdd->toString(newECProp)<<endl;
+      cout<<"%% Empty clause extended from: "<<bdd->toString(oldECProp)<<endl;
+      cout<<"%% by: "<<bdd->toString(cl->prop())<<endl;
+      cout<<"%% to: "<<bdd->toString(newECProp)<<endl;
 #endif
-	return;
+      return;
     } else {
-	emptyClause=cl;
+      emptyClause=cl;
     }
 #endif
   }

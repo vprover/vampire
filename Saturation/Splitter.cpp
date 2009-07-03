@@ -173,7 +173,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       }
     } else {
       env.statistics->uniqueComponents++;
-      Inference* inf=new Inference(Inference::SPLITTING_COMPONENT);
+      Inference* inf=new Inference(Inference::TAUTOLOGY_INTRODUCTION);
       Unit::InputType inpType = cl->inputType();
       comp = new(compLen) Clause(compLen, inpType, inf);
       for(int i=0;i<compLen;i++) {
@@ -231,8 +231,10 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       //a component multiple times.
       BDDNode* oldCompProp=comp->prop();
       BDDNode* newCompProp=bdd->conjunction(oldCompProp, bdd->getAtomic(compName, false));
-      comp->setProp(newCompProp);
-      InferenceStore::instance()->recordPropAlter(comp, oldCompProp, newCompProp, Inference::CLAUSE_NAMING);
+      if(newCompProp!=oldCompProp) {
+	comp->setProp(newCompProp);
+	InferenceStore::instance()->recordPropAlter(comp, oldCompProp, newCompProp, Inference::CLAUSE_NAMING);
+      }
       newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
       masterPremises.push(comp);
 #if REPORT_SPLITS
@@ -366,7 +368,7 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
     getPropPredName(lit, name, premise, newPremise);
 
     Clause* newCl=new(0) Clause(0,cl->inputType(), new Inference2(Inference::SPLITTING, cl, premise));
-    newCl->setProp( BDD::instance()->getFalse() );
+    newCl->setProp( BDD::instance()->getAtomic(name, lit->isPositive()) );
     InferenceStore::instance()->recordNonPropInference(newCl);
 
     //As long as we're sure that all occurences of the propositional

@@ -25,6 +25,7 @@ namespace Kernel {
 
 using namespace std;
 using namespace Lib;
+using namespace SAT;
 
 class BDDConjunction;
 
@@ -77,6 +78,8 @@ public:
   string toString(BDDNode* node);
   string toTPTPString(BDDNode* node);
 
+  SATClauseList* toCNF(BDDNode* node);
+
 private:
   BDDNode* getNode(int varNum, BDDNode* pos, BDDNode* neg);
 
@@ -125,7 +128,11 @@ public:
   void addNode(BDDNode* n);
   bool isFalse() { return _isFalse; }
 private:
-  bool findNextSatAssignment(BDDNode* n, bool& assignmentChanged);
+  bool findNextSatAssignment(BDDNode* n, int& highestChanged);
+  void recordDecisionPnts(BDDNode* n);
+  void resetDecisionPnts(int upTo);
+
+  int findFirstBiggerOrEqualFalseDecPnt(int var);
 
   void printAssignment();
 
@@ -134,10 +141,11 @@ private:
   BDD* _bdd;
   bool _isFalse;
   int _maxVar;
-//  Stack<BDDNode*> _nodes;
   NodeList* _nodes;
   SkipList<int, Int> _decisionPnts;
   ZIArray<bool> _assignment;
+
+  Stack<SATClause*> _clauses;
 };
 
 };

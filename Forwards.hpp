@@ -132,6 +132,18 @@ class BackwardSimplificationEngine;
 typedef Lib::SmartPtr<BackwardSimplificationEngine> BackwardSimplificationEngineSP;
 }
 
+namespace SAT
+{
+using namespace Lib;
+
+class SATClause;
+class SATLiteral;
+
+typedef VirtualIterator<SATClause*> SATClauseIterator;
+typedef List<SATClause*> SATClauseList;
+
+}
+
 namespace Shell
 {
 class TPTPLexer;

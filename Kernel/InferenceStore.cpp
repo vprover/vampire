@@ -286,6 +286,7 @@ struct InferenceStore::ProofPrinter
 
 	for(unsigned i=0;i<finf->premCnt;i++) {
 	  ClauseSpec prem=finf->premises[i];
+	  ASS(prem!=cs);
 	  Clause* premCl=prem.first;
 	  if(!hideStep) {
 	    printProofStepPremise(prem, i==0);

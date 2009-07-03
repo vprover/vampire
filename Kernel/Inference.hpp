@@ -115,14 +115,14 @@ public:
 //     SHELL_TO_RESOLUTION = 35u,
     /** resolution inference */
     RESOLUTION = 36u,
-//     /** equality proxy replacement */
-//     EQUALITY_PROXY_REPLACEMENT = 37u,
-//     /** equality proxy axiom E(x,x) */
-//     EQUALITY_PROXY_AXIOM1 = 38u,
-//     /** equality proxy axiom ~E(x,y) \/ x=y */
-//     EQUALITY_PROXY_AXIOM2 = 39u,
-     /** unfolding by definitions f(x1,...,xn)=t */
-     DEFINITION_UNFOLDING = 40u,
+    /** equality proxy replacement */
+    EQUALITY_PROXY_REPLACEMENT = 37u,
+    /** equality proxy axiom E(x,x) */
+    EQUALITY_PROXY_AXIOM1 = 38u,
+    /** equality proxy axiom ~E(x,y) \/ x=y */
+    EQUALITY_PROXY_AXIOM2 = 39u,
+    /** unfolding by definitions f(x1,...,xn)=t */
+    DEFINITION_UNFOLDING = 40u,
     /** any kind of definition folding */
     DEFINITION_FOLDING = 41u,
 //     /** expansion of row variable, KIF-specific */

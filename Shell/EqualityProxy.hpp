@@ -9,6 +9,8 @@
 
 #include "../Forwards.hpp"
 
+#include "../Kernel/Term.hpp"
+
 #include "Options.hpp"
 
 namespace Shell {
@@ -26,7 +28,14 @@ public:
 
   void apply(UnitList*& units);
 private:
-  Options::EqualityProxy _opts;
+  void addAxioms(UnitList*& units);
+  Clause* apply(Clause* cl);
+  Literal* apply(Literal* lit);
+
+  Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1);
+
+
+  Options::EqualityProxy _opt;
   bool _rst;
 };
 

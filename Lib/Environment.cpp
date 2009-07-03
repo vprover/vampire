@@ -61,3 +61,10 @@ bool Environment::timeLimitReached() const
   return false;
 } // Environment::timeLimitReached
 
+/**
+ * Return remaining time in miliseconds.
+ */
+int Environment::remainingTime() const
+{
+  return options->timeLimitInDeciseconds()*100 - timer->elapsedMilliseconds();
+}

@@ -144,30 +144,39 @@ void vampireMode()
   env.out<<env.options->testId()<<" on "<<env.options->inputFile()<<endl;
   doProving();
   outputResult();
-  cout<<"Time spent on BDDs: "<<gBDDTime<<endl;
+//  cout<<"Time spent on BDDs: "<<gBDDTime<<endl;
 } // vampireMode
 
 
 void spiderMode()
 {
   CALL("spiderMode()");
-  doProving();
-
-  switch (env.statistics->terminationReason) {
-  case Statistics::REFUTATION:
-    env.out << "+ ";
-    break;
-  case Statistics::TIME_LIMIT:
-  case Statistics::MEMORY_LIMIT:
-    env.out << "? ";
-    break;
-  default:
-    env.out << "- ";
-    break;
+  bool noException=true;
+  try {
+    doProving();
+  } catch(...) {
+    noException=false;
+    env.out << "! ";
   }
-  env.out << env.options->problemName() << " ";
-  env.out << env.timer->elapsedDeciseconds() << " ";
-  env.out << env.options->testId() <<" " << gBDDTime << "\n";
+  if(noException) {
+    switch (env.statistics->terminationReason) {
+    case Statistics::REFUTATION:
+      env.out << "+ ";
+      break;
+    case Statistics::TIME_LIMIT:
+    case Statistics::MEMORY_LIMIT:
+      env.out << "? ";
+      break;
+    default:
+      env.out << "- ";
+      break;
+    }
+  }
+  env.out << " " << env.options->problemName();
+  env.out << " " << env.timer->elapsedDeciseconds();
+  env.out << " " << env.options->testId();
+//  env.out << " " << gBDDTime;
+  env.out << "\n";
 } // spiderMode
 
 

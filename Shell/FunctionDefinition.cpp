@@ -551,7 +551,7 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
   UnitList::push(cl, premises);
   Inference* inf = new InferenceMany(Inference::DEFINITION_UNFOLDING, premises);
 
-  Clause* res = new(clen) Clause(clen, cl->inputType(), inf);
+  Clause* res = new(clen) Clause(clen, inpType, inf);
   res->setAge(cl->age());
 
   for(unsigned i=0;i<clen;i++) {
