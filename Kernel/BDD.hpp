@@ -124,28 +124,15 @@ private:
 class BDDConjunction
 {
 public:
-  BDDConjunction() : _bdd(BDD::instance()), _isFalse(false), _maxVar(-1), _nodes(0) {}
+  BDDConjunction() : _bdd(BDD::instance()), _isFalse(false), _maxVar(-1), _clauses(0) {}
   void addNode(BDDNode* n);
   bool isFalse() { return _isFalse; }
 private:
-  bool findNextSatAssignment(BDDNode* n, int& highestChanged);
-  void recordDecisionPnts(BDDNode* n);
-  void resetDecisionPnts(int upTo);
-
-  int findFirstBiggerOrEqualFalseDecPnt(int var);
-
-  void printAssignment();
-
-  typedef List<BDDNode*> NodeList;
-
   BDD* _bdd;
   bool _isFalse;
   int _maxVar;
-  NodeList* _nodes;
-  SkipList<int, Int> _decisionPnts;
-  ZIArray<bool> _assignment;
 
-  Stack<SATClause*> _clauses;
+  SATClauseList* _clauses;
 };
 
 };

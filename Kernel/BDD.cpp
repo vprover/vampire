@@ -13,6 +13,7 @@
 #include "../Lib/Stack.hpp"
 #include "../Lib/Timer.hpp"
 
+#include "../SAT/ClauseSharing.hpp"
 #include "../SAT/Preprocess.hpp"
 #include "../SAT/SATClause.hpp"
 #include "../SAT/SATLiteral.hpp"
@@ -466,13 +467,24 @@ void BDDConjunction::addNode(BDDNode* n)
     _maxVar=n->_var;
   }
 
-  SATClauseList* clLst=_bdd->toCNF(n);
   unsigned varCnt=_maxVar+1;
-  SATClauseIterator cit=Preprocess::propagateUnits( varCnt,
-	  Preprocess::removeDuplicateLiterals(
-		  pvi( SATClauseList::DestructiveIterator(clLst) ) ) );
+
+  SATClauseList* newClLst=_bdd->toCNF(n);
+  SATClauseList* oldClLst=_clauses;
+  SATClauseIterator allClIt=pvi( getConcatenatedIterator(
+	  SATClauseList::DestructiveIterator(oldClLst),
+	  SATClauseList::DestructiveIterator(newClLst)) );
+  SATClauseIterator cit=Preprocess::propagateUnits(varCnt,
+	  Preprocess::removeDuplicateLiterals(allClIt));
+
+  ClauseSharing sharing;
+
+  _clauses=0;
   while(cit.hasNext()) {
-    _clauses.push(cit.next());
+    SATClause* cl=cit.next();
+    if(sharing.insert(cl)==cl) {
+      SATClauseList::push(cl,_clauses);
+    }
   }
 
   SingleWatchSAT alg(varCnt);
@@ -487,207 +499,7 @@ void BDDConjunction::addNode(BDDNode* n)
   }
 //  cout<<"add node finished "<<_isFalse<<endl;
   return;
-
-
-
-
-  static Stack<BDDNode*> itNodes;
-  itNodes.reset();
-  BDDNode* cn=n;
-  for(;;) {
-    //we rather do this than simply insert, so that the same value
-    //won't occur multiple times
-    int* pval;
-    _decisionPnts.getPosition(cn->_var, pval, true);
-    *pval=cn->_var;
-    if(!_bdd->isConstant(cn->_pos)) {
-      if(!_bdd->isConstant(cn->_neg)) {
-	itNodes.push(cn->_neg);
-      }
-      cn=cn->_pos;
-    } else if(!_bdd->isConstant(cn->_neg)) {
-      cn=cn->_neg;
-    } else if(itNodes.isNonEmpty()) {
-      cn=itNodes.pop();
-    } else {
-      break;
-    }
-  }
-
-  NodeList* next=_nodes;
-  NodeList::push(n, _nodes);
-  NodeList* prev=_nodes;
-//  NodeList* next=_nodes;
-
-//  cout<<"Adding "<<_bdd->toString(n)<<"\n";
-
-  int highestChanged;
-//  if(!findNextSatAssignment(n, assignmentChanged)) {
-//    _isFalse=true;
-//    return;
-//  }
-//  if(!assignmentChanged) {
-//    return;
-//  }
-
-//  cout<<"First asgn change "<<_bdd->toString(n)<<"\n";
-//  printAssignment();
-
-  int counter=0;
-
-  while(next) {
-    if(findNextSatAssignment(next->head(), highestChanged)) {
-      if(highestChanged>-1) {
-//	cout<<"Asgn (highest "<<highestChanged<<") change at "<<_bdd->toString(next->head())<<"\n";
-//	printAssignment();
-
-	//We put the current node (next) at the beginning of the _nodes list and
-	//continue with its second element.
-	prev->setTail(next->tail());
-	prev=next;
-	prev->setTail(_nodes);
-
-//	resetDecisionPnts(highestChanged);
-//	recordDecisionPnts(next->head());
-	next=_nodes;
-	_nodes=prev;
-
-      } else {
-//	recordDecisionPnts(next->head());
-//	prev=next;
-	next=next->tail();
-      }
-    } else {
-      _isFalse=true;
-//      cout<<"Unsat with "<<_bdd->toString(next->head())<<"\n";
-//      printAssignment();
-      return;
-    }
-
-    counter++;
-    if(counter==50000) {
-      counter=0;
-      if(env.timeLimitReached()) {
-	throw TimeLimitExceededException();
-      }
-//      cout<<"---- "<<_bdd->toString(n)<<"\n";
-//      printAssignment();
-    }
-  }
-
-//  cout<<"Added "<<_bdd->toString(n)<<"\n";
-//  printAssignment();
 }
-
-void BDDConjunction::printAssignment()
-{
-  for(int i=_assignment.size()-1;i>=0;i--) {
-    cout<<_assignment[i];
-    if(i%10==0) {
-      cout<<'\t'<<i<<endl;
-    }
-  }
-}
-
-/** insert decision points of the BDD @b n into @b _decisionPnts */
-void BDDConjunction::recordDecisionPnts(BDDNode* n)
-{
-  CALL("BDDConjunction::recordDecisionPnts");
-
-  while(!_bdd->isConstant(n)) {
-    //we rather do this than simply insert, so that the same value
-    //won't occur multiple times
-    int* pval;
-    _decisionPnts.getPosition(n->_var, pval, true);
-    *pval=n->_var;
-
-    if(_assignment[n->_var]) {
-      n=n->_pos;
-    } else {
-      n=n->_neg;
-    }
-  }
-  ASS(_bdd->isTrue(n));
-}
-
-void BDDConjunction::resetDecisionPnts(int upTo)
-{
-  CALL("BDDConjunction::resetDecisionPnts");
-
-  while(_decisionPnts.isNonEmpty() && _decisionPnts.top()<=upTo) {
-    _decisionPnts.pop();
-  }
-}
-
-/**
- * Return first bigger decision point whose assignment is
- * false. Return -1 if there is no such.
- *
- * @pre var itself must be a decision point.
- */
-int BDDConjunction::findFirstBiggerOrEqualFalseDecPnt(int var)
-{
-  CALL("BDDConjunction::findFirstBiggerFalseDecPnt");
-
-  while(_assignment[var]) {
-    int v0=var;
-    if(!_decisionPnts.findLeastGreater(v0, var)) {
-      return -1;
-    }
-  }
-  return var;
-}
-
-bool BDDConjunction::findNextSatAssignment(BDDNode* n0, int& highestChanged)
-{
-  CALL("BDDConjunction::findNextSatAssignment");
-  ASS(!_bdd->isConstant(n0));
-
-  highestChanged=-1;
-
-satSeekStart:
-
-  BDDNode* n=n0;
-
-  int lastNonConstVar;
-  //we go as low in the BDD as we can maintaining satisfiability
-  while(!_bdd->isConstant(n)) {
-    lastNonConstVar=n->_var;
-    if(_assignment[n->_var]) {
-      n=n->_pos;
-    } else {
-      n=n->_neg;
-    }
-  }
-  if(_bdd->isTrue(n)) {
-    return true;
-  }
-  int changeVar=findFirstBiggerOrEqualFalseDecPnt(lastNonConstVar);
-  highestChanged=max(highestChanged,changeVar);
-
-  if(changeVar==-1) {
-    return false;
-  }
-
-  //set n0 to the first node affected by the change
-  while(n0->_var>changeVar) {
-    if(_assignment[n0->_var]) {
-      n0=n0->_pos;
-    } else {
-      n0=n0->_neg;
-    }
-  }
-
-  ASS(!_assignment[changeVar]);
-  _assignment[changeVar]=true;
-  for(int i=0;i<changeVar;i++) {
-    _assignment[i]=false;
-  }
-
-  goto satSeekStart;
-
-}
-
 
 
 }
