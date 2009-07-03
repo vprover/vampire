@@ -47,6 +47,12 @@ ClauseContainer* LRS::getGenerationClauseContainer()
   return _active;
 }
 
+void LRS::addInputSOSClause(Clause* cl)
+{
+  SaturationAlgorithm::addInputSOSClause(cl);
+  _simplCont.add(cl);
+}
+
 bool LRS::shouldUpdateLimits()
 {
   CALL("LRS::shouldUpdateLimits");
@@ -94,7 +100,6 @@ long LRS::estimatedReachableCount()
   }
   return (processed*timeLeft)/timeSpent;
 }
-
 
 SaturationResult LRS::saturate()
 {

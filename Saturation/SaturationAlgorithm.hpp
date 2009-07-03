@@ -58,6 +58,8 @@ public:
   static SaturationAlgorithmSP createFromOptions();
 
 protected:
+  virtual void addInputSOSClause(Clause* cl);
+
   void addUnprocessedClause(Clause* cl);
 
   bool isRefutation(Clause* c);

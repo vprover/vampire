@@ -34,6 +34,9 @@ protected:
 
   long estimatedReachableCount();
 
+  void addInputSOSClause(Clause* cl);
+
+
   /**
    * Dummy container for simplification indexes to subscribe
    * to its events.

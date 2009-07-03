@@ -142,15 +142,21 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   cl->setProp(BDD::instance()->getFalse());
 
   if(env.options->sos() && cl->inputType()==Clause::AXIOM) {
-    cl->setStore(Clause::ACTIVE);
-    env.statistics->activeClauses++;
-    _active->add(cl);
+    addInputSOSClause(cl);
   } else {
     addUnprocessedClause(cl);
   }
 
   env.statistics->initialClauses++;
 }
+
+void SaturationAlgorithm::addInputSOSClause(Clause* cl)
+{
+  cl->setStore(Clause::ACTIVE);
+  env.statistics->activeClauses++;
+  _active->add(cl);
+}
+
 
 /**
  * Insert input clauses into ste unprocessed container.
