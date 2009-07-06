@@ -144,7 +144,7 @@ void vampireMode()
   env.out<<env.options->testId()<<" on "<<env.options->inputFile()<<endl;
   doProving();
   outputResult();
-//  cout<<"Time spent on BDDs: "<<gBDDTime<<endl;
+  cout<<"Time spent on BDDs: "<<gBDDTime<<endl;
 } // vampireMode
 
 

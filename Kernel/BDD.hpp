@@ -133,6 +133,7 @@ private:
   int _maxVar;
 
   SATClauseList* _clauses;
+  SATClauseList* _units;
 };
 
 };

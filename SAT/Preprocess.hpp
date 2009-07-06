@@ -16,7 +16,9 @@ namespace SAT {
 class Preprocess
 {
 public:
-  static SATClauseIterator propagateUnits(unsigned varCnt, SATClauseIterator clauses);
+  static SATClauseIterator filterPureLiterals(unsigned varCnt, SATClauseIterator clauses);
+  static void propagateUnits(SATClauseIterator clauses,
+  	SATClauseIterator& resUnits, SATClauseIterator& resNonUnits);
   static SATClauseIterator randomizeVariables(unsigned varCnt, SATClauseIterator clauses);
   static SATClauseIterator reorderVariablesByResolvability(unsigned varCnt, SATClauseIterator clauses);
   static SATClauseIterator reorderVariablesByConflicts(unsigned varCnt, SATClauseIterator clauses,

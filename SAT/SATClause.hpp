@@ -64,6 +64,7 @@ public:
 
   inline bool kept() const { return _kept; }
   inline void makeKept() { _kept=true; }
+  inline void setKept(bool kept) { _kept=kept; }
 
 //  inline unsigned conflicts() const { return _conflicts; }
 //  inline void incConflicts() { _conflicts++; }

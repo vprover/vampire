@@ -129,7 +129,8 @@ VSAT_OBJ=SAT/ClauseSharing.o\
          SAT/Preprocess.o\
          SAT/SATClause.o\
          SAT/SATLiteral.o\
-         SAT/SingleWatchSAT.o
+         SAT/SingleWatchSAT.o\
+         SAT/TWLSolver.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\

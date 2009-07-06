@@ -10,6 +10,7 @@
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/DHMap.hpp"
+#include "../Lib/DHMultiset.hpp"
 #include "../Lib/Random.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Comparison.hpp"
@@ -26,19 +27,101 @@ namespace SAT
 
 using namespace Lib;
 
-SATClauseIterator Preprocess::propagateUnits(unsigned varCnt, SATClauseIterator clauses)
+SATClauseIterator Preprocess::filterPureLiterals(unsigned varCnt, SATClauseIterator clauses)
+{
+  CALL("Preprocess::filterPureLiterals");
+
+  static Stack<unsigned> pureVars(64);
+  static DArray<int> positiveOccurences(128);
+  static DArray<int> negativeOccurences(128);
+  static DArray<SATClauseList*> occurences(128);
+  positiveOccurences.init(varCnt, 0);
+  negativeOccurences.init(varCnt, 0);
+  occurences.init(varCnt, 0);
+
+  SATClauseList* res=0;
+
+  while(clauses.hasNext()) {
+    SATClause* cl=clauses.next();
+
+    cl->setKept(true);
+    SATClauseList::push(cl, res);
+    unsigned clen=cl->length();
+    for(unsigned i=0;i<clen;i++) {
+      SATLiteral lit=(*cl)[i];
+      unsigned var=lit.var();
+      SATClauseList::push(cl,occurences[var]);
+      if(lit.isPositive()) {
+	positiveOccurences[var]++;
+      } else {
+	negativeOccurences[var]++;
+      }
+    }
+  }
+
+  for(unsigned i=0;i<varCnt;i++) {
+    if( ((positiveOccurences[i]!=0)^(negativeOccurences[i]!=0)) && occurences[i] ) {
+      pureVars.push(i);
+    }
+  }
+
+  while(pureVars.isNonEmpty()) {
+    unsigned var=pureVars.pop();
+
+    while(occurences[var]) {
+      SATClause* cl=SATClauseList::pop(occurences[var]);
+      if(!cl->kept()) {
+	continue;
+      }
+      cl->setKept(false);
+
+      unsigned clen=cl->length();
+      for(unsigned i=0;i<clen;i++) {
+	SATLiteral lit=(*cl)[i];
+	unsigned lvar=lit.var();
+	if(lit.isPositive()) {
+	  positiveOccurences[lvar]--;
+	  if( positiveOccurences[lvar]==0 && negativeOccurences[lvar]!=0 && occurences[lvar] ) {
+	    pureVars.push(lvar);
+	  }
+	} else {
+	  negativeOccurences[lvar]--;
+	  if( positiveOccurences[lvar]!=0 && negativeOccurences[lvar]==0 && occurences[lvar] ) {
+	    pureVars.push(lvar);
+	  }
+	}
+      }
+    }
+
+  }
+
+  for(unsigned i=0;i<varCnt;i++) {
+    occurences[i]->destroy();
+  }
+
+  SATClauseList::DelIterator rit(res);
+  while(rit.hasNext()) {
+    SATClause* cl=rit.next();
+    if(!cl->kept()) {
+      rit.del();
+    }
+  }
+
+  return pvi( SATClauseList::DestructiveIterator(res) );
+}
+
+
+void Preprocess::propagateUnits(SATClauseIterator clauses,
+	SATClauseIterator& resUnits, SATClauseIterator& resNonUnits)
 {
   CALL("Preprocess::propagateUnits");
 
   static DHMap<unsigned, bool, IdentityHash> unitBindings;
   static Stack<unsigned> removedLitIndexes(64);
-  static DArray<bool> positiveOccurences(128);
-  static DArray<bool> negativeOccurences(128);
-  positiveOccurences.init(varCnt, false);
-  negativeOccurences.init(varCnt, false);
 
   unitBindings.reset();
   SATClauseList* res=0;
+  SATClauseList* units=0;
 
   while(clauses.hasNext()) {
     SATClause* cl=clauses.next();
@@ -48,41 +131,17 @@ SATClauseIterator Preprocess::propagateUnits(unsigned varCnt, SATClauseIterator 
       if(unitBindings.find(unit.var(), oldPolarity)) {
 	if(oldPolarity!=unit.isPositive()) {
 	  res->destroy();
-	  return pvi( getSingletonIterator(new(0) SATClause(0, true)) );
+	  units->destroy();
+	  resUnits=SATClauseIterator::getEmpty();
+	  resNonUnits=pvi( getSingletonIterator(new(0) SATClause(0, true)) );
+	  return;
 	}
       } else {
+	SATClauseList::push(cl, units);
 	unitBindings.insert(unit.var(), unit.isPositive());
       }
     } else {
       SATClauseList::push(cl, res);
-      unsigned clen=cl->length();
-      for(unsigned i=0;i<clen;i++) {
-        SATLiteral lit=(*cl)[i];
-        if(lit.isPositive()) {
-          positiveOccurences[lit.var()]=true;
-        } else {
-          negativeOccurences[lit.var()]=true;
-        }
-      }
-    }
-  }
-  for(unsigned i=0;i<varCnt;i++) {
-    SATLiteral unit=SATLiteral::dummy();
-    if(positiveOccurences[i]&&!negativeOccurences[i]) {
-      unit.set(i, true);
-    } else if(!positiveOccurences[i]&&negativeOccurences[i]){
-      unit.set(i, false);
-    }
-    if(unit!=SATLiteral::dummy()) {
-      bool oldPolarity;
-      if(unitBindings.find(unit.var(), oldPolarity)) {
-	if(oldPolarity!=unit.isPositive()) {
-	  res->destroy();
-	  return pvi( getSingletonIterator(new(0) SATClause(0, true)) );
-	}
-      } else {
-	unitBindings.insert(unit.var(), unit.isPositive());
-      }
     }
   }
 
@@ -120,6 +179,10 @@ propagation_start:
     unsigned newLen=clen-removedLitIndexes.length();
 
     if(newLen==1) {
+      SATClause* unit=new(1) SATClause(1, true);
+      (*unit)[0]=kept;
+      SATClauseList::push(unit, units);
+
       unitBindings.insert(kept.var(), kept.isPositive());
       rit.del();
       cl->destroy();
@@ -150,7 +213,9 @@ propagation_start:
     goto propagation_start;
   }
 
-  return pvi( SATClauseList::DestructiveIterator(res) );
+  resUnits=pvi( SATClauseList::DestructiveIterator(units) );
+  resNonUnits=pvi( SATClauseList::DestructiveIterator(res) );
+  return;
 }
 
 void Preprocess::createVarProfile(unsigned var, DArray<unsigned>& profile, DArray<SATClauseList*>& clsByVar,

@@ -60,6 +60,7 @@ bool SingleWatchSAT::loadClauses(SATClauseIterator clauses)
 
   while(clauses.hasNext()) {
     SATClause* cl=clauses.next();
+//    cout<<(*cl)<<endl;
     if(cl->isEmpty()) {
       refutation=cl;
       termination=REFUTATION;

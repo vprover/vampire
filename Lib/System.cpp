@@ -106,7 +106,7 @@ void handleSignal (int sigNum)
       }
       handled = true;
       if(env.options) {
-	cerr << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
       } else {
 	cerr << "Aborted by signal " << signalDescription << "\n";
       }
@@ -133,7 +133,7 @@ void handleSignal (int sigNum)
 	printFailureHeader();
 	handled = true;
 	if(env.options) {
-	  cerr << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	  env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	  env.statistics->print();
 	} else {
 	  cerr << "Aborted by signal " << signalDescription << "\n";

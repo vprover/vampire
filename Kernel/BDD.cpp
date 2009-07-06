@@ -467,31 +467,71 @@ void BDDConjunction::addNode(BDDNode* n)
     _maxVar=n->_var;
   }
 
+
+  Timer proverTime;
+  proverTime.start();
+
   unsigned varCnt=_maxVar+1;
 
   SATClauseList* newClLst=_bdd->toCNF(n);
   SATClauseList* oldClLst=_clauses;
-  SATClauseIterator allClIt=pvi( getConcatenatedIterator(
-	  SATClauseList::DestructiveIterator(oldClLst),
+
+//  cout<<"\n\n----------------------------------\n";
+//  {
+//    SATClauseIterator cit=pvi( getConcatenatedIterator(
+//	    SATClauseList::Iterator(oldClLst),
+//	    SATClauseList::Iterator(newClLst)) );
+//    while(cit.hasNext()) {
+//      cout<<(*cit.next())<<endl;
+//    }
+//    cout<<"---Unit propagation---\n";
+//  }
+
+//  SATClauseIterator allClIt=pvi( getConcatenatedIterator(
+//	  SATClauseList::DestructiveIterator(oldClLst),
+//	  SATClauseList::DestructiveIterator(newClLst)) );
+//  SATClauseIterator cit=Preprocess::propagateUnits(varCnt,
+//	  Preprocess::removeDuplicateLiterals(allClIt));
+
+  SATClauseIterator inpClauses=pvi( getConcatenatedIterator(
+	  getConcatenatedIterator(SATClauseList::DestructiveIterator(_units),
+		  SATClauseList::DestructiveIterator(_clauses) ),
 	  SATClauseList::DestructiveIterator(newClLst)) );
-  SATClauseIterator cit=Preprocess::propagateUnits(varCnt,
-	  Preprocess::removeDuplicateLiterals(allClIt));
+
+  SATClauseIterator newUnitIt;
+  SATClauseIterator newClauseIt;
+  Preprocess::propagateUnits(inpClauses, newUnitIt, newClauseIt);
 
   ClauseSharing sharing;
 
   _clauses=0;
-  while(cit.hasNext()) {
-    SATClause* cl=cit.next();
+  while(newClauseIt.hasNext()) {
+    SATClause* cl=newClauseIt.next();
     if(sharing.insert(cl)==cl) {
+//      cout<<(*cl)<<endl;
       SATClauseList::push(cl,_clauses);
     }
   }
 
+  _units=0;
+  while(newUnitIt.hasNext()) {
+    SATClause* cl=newUnitIt.next();
+//    cout<<"U: "<<(*cl)<<endl;
+    SATClauseList::push(cl,_units);
+  }
+
+//  cout<<"---------\n";
+
   SingleWatchSAT alg(varCnt);
-  bool proceed=alg.loadClauses(pvi( getContentIterator(_clauses) ));
+  SATClauseIterator solverClauses=Preprocess::filterPureLiterals(_maxVar+1, pvi( getContentIterator(_clauses) ));
+//  SATClauseIterator solverClauses=pvi( getContentIterator(_clauses) );
+  bool proceed=alg.loadClauses(solverClauses);
   if(proceed) {
     alg.satisfy(env.remainingTime());
   }
+  proverTime.stop();
+  gBDDTime+=proverTime.elapsedMilliseconds();
+
   if(alg.termination==SingleWatchSAT::TIME_LIMIT) {
     throw TimeLimitExceededException();
   } else if(alg.termination==SingleWatchSAT::REFUTATION) {
