@@ -26,6 +26,9 @@ using namespace Kernel;
 
 Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
 {
+  if(cl1->inputType()==cl2->inputType()) {
+    return Int::compare(cl1->weight(), cl2->weight());
+  }
   return Int::compare(cl1->getEffectiveWeight(), cl2->getEffectiveWeight());
 }
 
