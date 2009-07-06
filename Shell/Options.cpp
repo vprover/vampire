@@ -139,7 +139,6 @@ NameArray Options::Constants::optionNames(_optionNames,
 
 const char* Options::Constants::_shortNames[] = {
   "awr",
-  "bas",
   "bd",
   "bs",
   "ep",
@@ -178,8 +177,8 @@ int Options::Constants::shortNameIndexes[] = {
   NONGOAL_WEIGHT_COEFFICIENT,
   PROOF,
   PROOF_CHECKING,
-  SATURATION_ALGORITHM,
   SELECTION,
+  SATURATION_ALGORITHM,
   SOS,
   SPLITTING,
   SIMULATED_TIME_LIMIT,
@@ -227,9 +226,9 @@ const char* Options::Constants::_equalityProxyValues[] = {
   "exp1",
   "off",
   "on",
-  "r",
-  "rs",
-  "rst"};
+  "R",
+  "RS",
+  "RST"};
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
 						  sizeof(_equalityProxyValues)/sizeof(char*));
 
