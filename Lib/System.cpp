@@ -19,6 +19,7 @@
 #include "../Debug/Tracer.hpp"
 
 #include "../Lib/Environment.hpp"
+#include "../Lib/Timer.hpp"
 #include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
@@ -27,6 +28,7 @@
 namespace Lib {
 
 using namespace std;
+using namespace Shell;
 
 /**
  * Reimplements the system gethostname function.
@@ -70,6 +72,15 @@ string signalToString (int sigNum)
     }
 } // signalToString
 
+void printFailureHeader()
+{
+  if(env.options->mode()==Options::MODE_SPIDER) {
+    env.out << "! " << env.options->problemName();
+    env.out << " " << env.timer->elapsedDeciseconds();
+    env.out << " " << env.options->testId() << "\n";
+  }
+}
+
 /**
  * Signal handling function. Rewritten from the kernel standalone.
  *
@@ -95,9 +106,9 @@ void handleSignal (int sigNum)
       }
       handled = true;
       if(env.options) {
-	cout << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	cerr << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
       } else {
-	cout << "Aborted by signal " << signalDescription << "\n";
+	cerr << "Aborted by signal " << signalDescription << "\n";
       }
       return;
 # endif
@@ -119,12 +130,13 @@ void handleSignal (int sigNum)
 	if (handled) {
 	  exit(0);
 	}
+	printFailureHeader();
 	handled = true;
 	if(env.options) {
-	  cout << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	  cerr << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	  env.statistics->print();
 	} else {
-	  cout << "Aborted by signal " << signalDescription << "\n";
+	  cerr << "Aborted by signal " << signalDescription << "\n";
 	}
 #if VDEBUG
 	Debug::Tracer::printStack(cout);
