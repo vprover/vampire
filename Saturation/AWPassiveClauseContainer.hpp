@@ -39,7 +39,7 @@ class AWPassiveClauseContainer:
 public PassiveClauseContainer
 {
 public:
-  AWPassiveClauseContainer() : _balance(0), _size(0) {}
+  AWPassiveClauseContainer();
   ~AWPassiveClauseContainer();
   void add(Clause* cl);
 
@@ -108,6 +108,9 @@ private:
   /** current balance. If &lt;0 then selection by age, if &gt;0
    * then by weight */
   int _balance;
+
+  static int s_nwcNumerator;
+  static int s_nwcDenominator;
 
   unsigned _size;
 }; // class AWPassiveClauseContainer

@@ -10,6 +10,7 @@
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Shell/Statistics.hpp"
+#include "../Shell/Options.hpp"
 
 #include "SaturationAlgorithm.hpp"
 
@@ -24,12 +25,27 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
+int AWPassiveClauseContainer::s_nwcNumerator=-1;
+int AWPassiveClauseContainer::s_nwcDenominator=-1;
+
+
+AWPassiveClauseContainer::AWPassiveClauseContainer()
+: _balance(0), _size(0)
+{
+  s_nwcNumerator=static_cast<int>(env.options->nongoalWeightCoefficient()*100);
+  s_nwcDenominator=100;
+}
+
 Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
 {
-  if(cl1->inputType()==cl2->inputType()) {
-    return Int::compare(cl1->weight(), cl2->weight());
+  ASS_G(s_nwcDenominator,0);
+  ASS_G(s_nwcNumerator,0);
+  if(cl1->inputType()==0 && cl2->inputType()!=0) {
+    return Int::compare(cl1->weight()*s_nwcNumerator, cl2->weight()*s_nwcDenominator);
+  } else if(cl1->inputType()!=0 && cl2->inputType()==0) {
+    return Int::compare(cl1->weight()*s_nwcDenominator, cl2->weight()*s_nwcNumerator);
   }
-  return Int::compare(cl1->getEffectiveWeight(), cl2->getEffectiveWeight());
+  return Int::compare(cl1->weight(), cl2->weight());
 }
 
 /**

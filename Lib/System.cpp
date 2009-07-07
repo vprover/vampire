@@ -108,7 +108,7 @@ void handleSignal (int sigNum)
       if(env.options) {
 	env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
       } else {
-	cerr << "Aborted by signal " << signalDescription << "\n";
+	cout << "Aborted by signal " << signalDescription << "\n";
       }
       return;
 # endif
@@ -136,7 +136,7 @@ void handleSignal (int sigNum)
 	  env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	  env.statistics->print();
 	} else {
-	  cerr << "Aborted by signal " << signalDescription << "\n";
+	  cout << "Aborted by signal " << signalDescription << "\n";
 	}
 #if VDEBUG
 	Debug::Tracer::printStack(cout);
