@@ -198,7 +198,7 @@ DHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMap.o
 DHMSTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMultiset.o
 BHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_BinaryHeap.o
 SLTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_SkipList.o
-ALLOCTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VT_OBJ) Global.o test_alloc.o
+ALLOCTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VT_OBJ) $(VSAT_OBJ) $(VS_OBJ) Global.o test_alloc.o
 ALUCARD_OBJ = $(ALUC_BASIC) Global.o alucard.o
 
 ################################################################
@@ -328,9 +328,9 @@ Lib/MultiCounter.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 Lib/NameArray.o: Lib/NameArray.hpp Debug/Tracer.hpp
 Lib/Random.o: Lib/Random.hpp
 Lib/System.o: Debug/Tracer.hpp Lib/Environment.hpp Forwards.hpp Config.hpp
-Lib/System.o: Shell/Options.hpp Debug/Assertion.hpp Debug/Tracer.hpp
-Lib/System.o: Lib/Allocator.hpp Lib/XML.hpp Shell/Statistics.hpp
-Lib/System.o: Lib/System.hpp
+Lib/System.o: Lib/Timer.hpp Debug/Assertion.hpp Debug/Tracer.hpp
+Lib/System.o: Shell/Options.hpp Lib/Allocator.hpp Lib/XML.hpp
+Lib/System.o: Shell/Statistics.hpp Lib/System.hpp
 Shell/CNF.o: Debug/Tracer.hpp Kernel/Clause.hpp Forwards.hpp Config.hpp
 Shell/CNF.o: Lib/Allocator.hpp Lib/Metaiterators.hpp Lib/List.hpp
 Shell/CNF.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Allocator.hpp
@@ -700,15 +700,19 @@ Shell/Token.o: Debug/Assertion.hpp Debug/Tracer.hpp Shell/Token.hpp
 Kernel/BDD.o: Lib/Environment.hpp Forwards.hpp Config.hpp Lib/Exception.hpp
 Kernel/BDD.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Kernel/BDD.o: Lib/DHMap.hpp Lib/Int.hpp Lib/Comparison.hpp
-Kernel/BDD.o: Lib/Portability.hpp Lib/Stack.hpp Debug/Tracer.hpp
+Kernel/BDD.o: Lib/Portability.hpp Lib/List.hpp Lib/Stack.hpp Debug/Tracer.hpp
 Kernel/BDD.o: Lib/Allocator.hpp Lib/BacktrackData.hpp Lib/List.hpp
 Kernel/BDD.o: Lib/VirtualIterator.hpp Lib/Exception.hpp Lib/Reflection.hpp
-Kernel/BDD.o: Lib/Int.hpp Lib/Timer.hpp SAT/SATClause.hpp Lib/Allocator.hpp
-Kernel/BDD.o: Lib/InverseLookup.hpp Lib/Hash.hpp Lib/DHMap.hpp Lib/List.hpp
+Kernel/BDD.o: Lib/Int.hpp Lib/Timer.hpp SAT/ClauseSharing.hpp Lib/Set.hpp
+Kernel/BDD.o: Lib/VirtualIterator.hpp SAT/SATClause.hpp Lib/Allocator.hpp
+Kernel/BDD.o: Lib/InverseLookup.hpp Lib/Hash.hpp Lib/DHMap.hpp
 Kernel/BDD.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/Reflection.hpp
-Kernel/BDD.o: Lib/VirtualIterator.hpp SAT/SATLiteral.hpp SAT/SATLiteral.hpp
-Kernel/BDD.o: Kernel/BDD.hpp Lib/Array.hpp Lib/Hash.hpp Lib/Set.hpp
-Kernel/BDD.o: Lib/SkipList.hpp Lib/Random.hpp
+Kernel/BDD.o: SAT/SATLiteral.hpp SAT/Preprocess.hpp SAT/SATClause.hpp
+Kernel/BDD.o: SAT/SATLiteral.hpp SAT/SingleWatchSAT.hpp Lib/DArray.hpp
+Kernel/BDD.o: Lib/Random.hpp Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
+Kernel/BDD.o: Lib/Comparison.hpp Lib/BucketSorter.hpp Lib/Stack.hpp
+Kernel/BDD.o: SAT/TWLSolver.hpp Lib/Array.hpp Kernel/BDD.hpp Lib/Hash.hpp
+Kernel/BDD.o: Lib/SkipList.hpp
 Kernel/Clause.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/DArray.hpp
 Kernel/Clause.o: Forwards.hpp Config.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Kernel/Clause.o: Lib/Allocator.hpp Lib/Comparison.hpp Lib/Random.hpp
@@ -1903,12 +1907,13 @@ SAT/Preprocess.o: Debug/Tracer.hpp Lib/Allocator.hpp Debug/Tracer.hpp
 SAT/Preprocess.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
 SAT/Preprocess.o: Lib/LastCopyWatcher.hpp Lib/Reflection.hpp Lib/Set.hpp
 SAT/Preprocess.o: Lib/Hash.hpp Lib/DArray.hpp Lib/Comparison.hpp
-SAT/Preprocess.o: Lib/Random.hpp Lib/DHMap.hpp Lib/Random.hpp Lib/Int.hpp
+SAT/Preprocess.o: Lib/Random.hpp Lib/DHMap.hpp Lib/DHMultiset.hpp
+SAT/Preprocess.o: Lib/DHMap.hpp Lib/Random.hpp Lib/Int.hpp
 SAT/Preprocess.o: Lib/Portability.hpp Lib/Comparison.hpp Lib/Reflection.hpp
 SAT/Preprocess.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/Int.hpp
 SAT/Preprocess.o: SAT/SATClause.hpp Lib/Allocator.hpp Lib/InverseLookup.hpp
-SAT/Preprocess.o: Lib/DHMap.hpp Lib/List.hpp SAT/SATLiteral.hpp
-SAT/Preprocess.o: Shell/Preprocess.hpp Kernel/Unit.hpp
+SAT/Preprocess.o: Lib/List.hpp SAT/SATLiteral.hpp Shell/Preprocess.hpp
+SAT/Preprocess.o: Kernel/Unit.hpp
 SAT/SATClause.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Int.hpp
 SAT/SATClause.o: Lib/Comparison.hpp Lib/Portability.hpp Debug/Assertion.hpp
 SAT/SATClause.o: Debug/Tracer.hpp SAT/SATClause.hpp Forwards.hpp Config.hpp
@@ -1936,6 +1941,17 @@ SAT/SingleWatchSAT.o: SAT/SingleWatchSAT.hpp Lib/DArray.hpp Lib/Stack.hpp
 SAT/SingleWatchSAT.o: Lib/BacktrackData.hpp Lib/Int.hpp Lib/Portability.hpp
 SAT/SingleWatchSAT.o: Lib/Int.hpp Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
 SAT/SingleWatchSAT.o: Lib/Comparison.hpp Lib/BucketSorter.hpp Lib/Stack.hpp
+SAT/TWLSolver.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Array.hpp
+SAT/TWLSolver.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Environment.hpp
+SAT/TWLSolver.o: Forwards.hpp Config.hpp SAT/SATLiteral.hpp SAT/SATClause.hpp
+SAT/TWLSolver.o: Lib/InverseLookup.hpp Lib/Hash.hpp Lib/DHMap.hpp
+SAT/TWLSolver.o: Lib/Allocator.hpp Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+SAT/TWLSolver.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp Lib/List.hpp
+SAT/TWLSolver.o: Lib/Metaiterators.hpp Lib/List.hpp Lib/Set.hpp
+SAT/TWLSolver.o: Lib/Reflection.hpp Lib/VirtualIterator.hpp SAT/TWLSolver.hpp
+SAT/TWLSolver.o: Lib/DArray.hpp Lib/Comparison.hpp Lib/Random.hpp
+SAT/TWLSolver.o: Lib/Exception.hpp Lib/Stack.hpp Lib/BacktrackData.hpp
+SAT/TWLSolver.o: Lib/Int.hpp Lib/Portability.hpp
 Saturation/AWPassiveClauseContainer.o: Lib/Environment.hpp Forwards.hpp
 Saturation/AWPassiveClauseContainer.o: Config.hpp Lib/Int.hpp
 Saturation/AWPassiveClauseContainer.o: Lib/Comparison.hpp Lib/Portability.hpp
@@ -1956,7 +1972,7 @@ Saturation/AWPassiveClauseContainer.o: Lib/BitUtils.hpp Kernel/Clause.hpp
 Saturation/AWPassiveClauseContainer.o: Lib/Reflection.hpp
 Saturation/AWPassiveClauseContainer.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
 Saturation/AWPassiveClauseContainer.o: Kernel/Unit.hpp Lib/List.hpp
-Saturation/AWPassiveClauseContainer.o: Shell/Statistics.hpp
+Saturation/AWPassiveClauseContainer.o: Shell/Statistics.hpp Shell/Options.hpp
 Saturation/AWPassiveClauseContainer.o: Saturation/SaturationAlgorithm.hpp
 Saturation/AWPassiveClauseContainer.o: Lib/Event.hpp Lib/SmartPtr.hpp
 Saturation/AWPassiveClauseContainer.o: Indexing/IndexManager.hpp
@@ -2352,14 +2368,24 @@ test_SubstitutionTree.o: Shell/TheoryFinder.hpp Rule/CASC.hpp Rule/Prolog.hpp
 test_SubstitutionTree.o: Rule/Index.hpp Rule/Rule.hpp Rule/Index.hpp
 test_SubstitutionTree.o: Rule/ProofAttempt.hpp Test/Output.hpp
 test_SubstitutionTree.o: Lib/MemoryLeak.hpp
-test_alloc.o: Debug/Assertion.hpp Debug/Tracer.hpp Kernel/BDD.hpp
-test_alloc.o: Forwards.hpp Config.hpp Lib/Allocator.hpp Debug/Tracer.hpp
-test_alloc.o: Lib/Array.hpp Debug/Assertion.hpp Lib/Hash.hpp Lib/Int.hpp
-test_alloc.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/List.hpp Lib/Set.hpp
-test_alloc.o: Lib/SkipList.hpp Lib/Allocator.hpp Lib/Random.hpp
-test_alloc.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/VirtualIterator.hpp
-test_alloc.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp Lib/Reflection.hpp
-test_alloc.o: Lib/Int.hpp Lib/Stack.hpp
+test_alloc.o: Forwards.hpp Config.hpp Debug/Assertion.hpp Debug/Tracer.hpp
+test_alloc.o: Lib/Allocator.hpp Lib/Environment.hpp Forwards.hpp
+test_alloc.o: Lib/Random.hpp Lib/Stack.hpp Lib/Timer.hpp Debug/Assertion.hpp
+test_alloc.o: Lib/VirtualIterator.hpp SAT/ClauseSharing.hpp Lib/Set.hpp
+test_alloc.o: Lib/VirtualIterator.hpp SAT/SATClause.hpp Lib/Allocator.hpp
+test_alloc.o: Debug/Tracer.hpp Lib/InverseLookup.hpp Lib/Hash.hpp
+test_alloc.o: Lib/DHMap.hpp Lib/Allocator.hpp Lib/Exception.hpp
+test_alloc.o: Lib/LastCopyWatcher.hpp Lib/VirtualIterator.hpp
+test_alloc.o: Lib/Reflection.hpp Lib/List.hpp Lib/Metaiterators.hpp
+test_alloc.o: Lib/List.hpp Lib/Set.hpp Lib/Reflection.hpp SAT/SATLiteral.hpp
+test_alloc.o: SAT/Preprocess.hpp SAT/SingleWatchSAT.hpp Lib/DArray.hpp
+test_alloc.o: Lib/Comparison.hpp Lib/Random.hpp Lib/Stack.hpp
+test_alloc.o: Lib/BacktrackData.hpp Lib/Int.hpp Lib/Portability.hpp
+test_alloc.o: Lib/Int.hpp Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
+test_alloc.o: Lib/Comparison.hpp Lib/BucketSorter.hpp Lib/Stack.hpp
+test_alloc.o: SAT/TWLSolver.hpp Lib/Array.hpp Lib/Exception.hpp
+test_alloc.o: Indexing/TermSharing.hpp Shell/CommandLine.hpp
+test_alloc.o: Shell/Options.hpp Lib/XML.hpp Shell/Statistics.hpp
 test_retrieval.o: Debug/Tracer.hpp Lib/Array.hpp Debug/Assertion.hpp
 test_retrieval.o: Debug/Tracer.hpp Lib/Allocator.hpp Debug/Tracer.hpp
 test_retrieval.o: Lib/Random.hpp Lib/Set.hpp Lib/Int.hpp Lib/Timer.hpp

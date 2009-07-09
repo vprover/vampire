@@ -166,4 +166,20 @@ template<class T> inline void checked_delete(T * x)
 }
 
 
+namespace Lib
+{
+
+template<typename C>
+struct Relocator
+{
+  static void relocate(C* oldAddr, void* newAddr)
+  {
+    new(newAddr) C( *oldAddr );
+    oldAddr->~C();
+  }
+};
+
+
+}
+
 #endif /* __Forwards__ */

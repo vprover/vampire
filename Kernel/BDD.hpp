@@ -19,6 +19,7 @@
 #include "../Lib/SkipList.hpp"
 #include "../Lib/Stack.hpp"
 
+#include "../SAT/TWLSolver.hpp"
 
 
 namespace Kernel {
@@ -134,6 +135,8 @@ private:
 
   SATClauseList* _clauses;
   SATClauseList* _units;
+
+  TWLSolver _solver;
 };
 
 };

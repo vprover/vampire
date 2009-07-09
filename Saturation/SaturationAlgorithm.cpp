@@ -386,7 +386,7 @@ simplificationStart:
 //    }
 //  }
 
-  if(_performSplitting) {
+  if(_performSplitting && !cl->isEmpty()) {
     ClauseIterator newComponents;
     ClauseIterator modifiedComponents;
     _splitter.doSplitting(cl, newComponents, modifiedComponents);
@@ -428,7 +428,6 @@ void SaturationAlgorithm::addUnprocessedFinalClause(Clause* cl)
 
   if( _someSplitting && cl->isEmpty() && !bdd->isFalse(cl->prop()) ) {
 #if 1
-    //TODO: this causes unsoundness
     static BDDConjunction ecProp;
     static Stack<InferenceStore::ClauseSpec> emptyClauses;
 

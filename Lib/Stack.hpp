@@ -10,6 +10,8 @@
 
 #include <cstdlib>
 
+#include "../Forwards.hpp"
+
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
@@ -17,6 +19,10 @@
 #include "BacktrackData.hpp"
 
 namespace Lib {
+
+template<typename C>
+struct Relocator<Stack<C> >;
+
 
 /**
  * Class of flexible-size generic stacks.
@@ -27,6 +33,10 @@ namespace Lib {
 template<class C>
 class Stack
 {
+private:
+  //private and undefined operator= and copy constructor to avoid implicitly generated ones
+  Stack(const Stack&);
+  Stack& operator=(const Stack&);
 public:
   class Iterator;
 
@@ -323,6 +333,17 @@ public:
 
       *_pointer = _stack.pop();
     }
+
+    /** Replace the last element returned by next() */
+    inline
+    void replace(C val)
+    {
+      ASS(_pointer < _stack._cursor);
+      ASS(_pointer >= _stack._stack);
+      ASS(_last == 1);
+
+      *_pointer = val;
+    }
   private:
     /** pointer to the stack element returned by next() */
     C* _pointer;
@@ -390,6 +411,29 @@ public:
   }
 
 };
+
+template<typename C>
+struct Relocator<Stack<C> >
+{
+  static void relocate(Stack<C>* oldStack, void* newAddr)
+  {
+    size_t sz=oldStack->size();
+    if(sz) {
+      Stack<C>* newStack=new(newAddr) Stack<C>( sz );
+
+      for(size_t i=0;i<sz;i++) {
+	newStack->push((*oldStack)[i]);
+      }
+
+      oldStack->~Stack<C>();
+    } else {
+      new(newAddr) Stack<C>();
+      oldStack->~Stack<C>();
+
+    }
+  }
+};
+
 
 } // namespace Lib
 

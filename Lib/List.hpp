@@ -734,7 +734,12 @@ public:
     List* _cur;
   };
 
-  /** iterator over the list elements */
+  /**
+   * iterator over the list elements
+   *
+   * @warning All elements of this iterator must be yielded
+   * or a memory leak will occur.
+   */
   class DestructiveIterator {
   public:
     DECL_ELEMENT_TYPE(C);

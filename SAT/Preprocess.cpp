@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 #include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Metaiterators.hpp"
@@ -430,5 +431,96 @@ SATClauseIterator Preprocess::removeDuplicateLiterals(SATClauseIterator clauses)
   }
   return pvi( SATClauseList::DestructiveIterator(res) );
 }
+
+SATClauseIterator Preprocess::generate(unsigned literalsPerClause,
+	unsigned varCnt, float clausesPerVariable)
+{
+  CALL("Preprocess::generate");
+
+  unsigned clen=literalsPerClause;
+  SATClauseList* res=0;
+  unsigned litContMax=varCnt*2;
+
+  unsigned remains=static_cast<unsigned>(varCnt*clausesPerVariable);
+  while(remains-->0) {
+    SATClause* cl=new(clen) SATClause(clen, true);
+
+    for(unsigned i=0;i<clen;i++) {
+      (*cl)[i].setContent(Random::getInteger(litContMax));
+    }
+
+    cl->sort();
+
+    SATClauseList::push(cl,res);
+  }
+  return pvi( SATClauseList::DestructiveIterator(res) );
+}
+
+SATClauseIterator Preprocess::parseDIMACS(const char* fname, unsigned& maxVar)
+{
+  CALL("Preprocess::parseDIMACS");
+
+  istream* inp0;
+
+  if(fname) {
+    inp0=new ifstream(fname);
+  } else {
+    inp0=&cin;
+  }
+
+  istream& inp=*inp0;
+  if(!inp.good()) {
+    cout<<"Cannot open file\n";
+    exit(0);
+  }
+
+  char buf[512];
+  char ch;
+  inp>>ch;
+  while(ch=='c') {
+    inp.getline(buf,512);
+    inp>>ch;
+  }
+  ASS_EQ(ch,'p');
+  for(int i=0;i<3;i++) {
+    inp>>ch;
+  }
+
+  SATClauseList* res=0;
+
+  unsigned remains;
+  int ivar;
+  Stack<int> vars(64);
+  inp>>maxVar;
+  inp>>remains;
+  while(remains--) {
+    inp>>ivar;
+    while(ivar!=0) {
+      if(inp.eof()) {
+	cout<<"Invalid input\n";
+	exit(0);
+      }
+      vars.push(ivar);
+      inp>>ivar;
+    }
+    unsigned clen=(unsigned)vars.size();
+    SATClause* cl=new(clen) SATClause(clen, true);
+    for(int i=(int)clen-1; i>=0;i--) {
+      ivar=vars.pop();
+      (*cl)[i].set(abs(ivar), ivar>0);
+    }
+    ASS(vars.isEmpty());
+
+    cl->sort();
+    SATClauseList::push(cl,res);
+  }
+
+  if(inp0!=&cin) {
+    delete inp0;
+  }
+
+  return pvi( SATClauseList::DestructiveIterator(res) );
+}
+
 
 };

@@ -474,6 +474,15 @@ void BDDConjunction::addNode(BDDNode* n)
   unsigned varCnt=_maxVar+1;
 
   SATClauseList* newClLst=_bdd->toCNF(n);
+#if 1
+  _solver.ensureVarCnt(varCnt);
+  _solver.addClauses(pvi( SATClauseList::DestructiveIterator(newClLst) ));
+
+  if(_solver.getStatus()==TWLSolver::UNSATISFIABLE) {
+    _isFalse=true;
+  }
+
+#else
   SATClauseList* oldClLst=_clauses;
 
 //  cout<<"\n\n----------------------------------\n";
@@ -522,21 +531,35 @@ void BDDConjunction::addNode(BDDNode* n)
 
 //  cout<<"---------\n";
 
+//  SATClauseIterator solverClauses=Preprocess::filterPureLiterals(varCnt, pvi( getContentIterator(_clauses) ));
+  SATClauseIterator solverClauses=pvi( getContentIterator(_clauses) );
+
+#if 1
+  TWLSolver alg;
+  alg.ensureVarCnt(varCnt);
+  alg.addClauses(solverClauses);
+
+  if(alg.getStatus()==TWLSolver::UNSATISFIABLE) {
+    _isFalse=true;
+  }
+#else
   SingleWatchSAT alg(varCnt);
-  SATClauseIterator solverClauses=Preprocess::filterPureLiterals(_maxVar+1, pvi( getContentIterator(_clauses) ));
-//  SATClauseIterator solverClauses=pvi( getContentIterator(_clauses) );
   bool proceed=alg.loadClauses(solverClauses);
   if(proceed) {
     alg.satisfy(env.remainingTime());
   }
-  proverTime.stop();
-  gBDDTime+=proverTime.elapsedMilliseconds();
 
   if(alg.termination==SingleWatchSAT::TIME_LIMIT) {
     throw TimeLimitExceededException();
   } else if(alg.termination==SingleWatchSAT::REFUTATION) {
     _isFalse=true;
   }
+#endif
+
+#endif
+  proverTime.stop();
+  gBDDTime+=proverTime.elapsedMilliseconds();
+
 //  cout<<"add node finished "<<_isFalse<<endl;
   return;
 }

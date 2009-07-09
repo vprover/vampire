@@ -10,6 +10,8 @@
 #include <string>
 #include <ostream>
 
+#include "../Debug/Assertion.hpp"
+
 namespace SAT {
 
 using namespace std;

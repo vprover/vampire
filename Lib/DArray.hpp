@@ -42,7 +42,7 @@ public:
    * @since 30/12/2007 Manchester
    */
   inline
-  DArray (size_t size)
+  DArray (size_t size=0)
     : _size(size), _capacity(size)
   {
     if(size>0) {
@@ -145,8 +145,7 @@ public:
     C* firstEmpty=_array+_size;
     C* afterLast=_array+_capacity;
     while(nptr!=firstEmpty) {
-      new(nptr++) C( *optr );
-      (optr++)->~C();
+      Relocator<C>::relocate(optr++, nptr++);
     }
     while(nptr!=afterLast) {
       new(nptr++) C();
