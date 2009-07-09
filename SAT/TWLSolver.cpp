@@ -46,7 +46,7 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
   }
 
   _windex.expand(newVarCnt*2);
-  _unprocessed.expand(newVarCnt);
+  _unprocessed.expand(newVarCnt+1);
 
   _varCnt=newVarCnt;
 }
