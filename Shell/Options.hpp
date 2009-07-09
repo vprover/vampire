@@ -175,15 +175,15 @@ public:
 
   /** Values for --equality_proxy */
   enum EqualityProxy {
+    EP_R = 0,
+    EP_RS = 1,
+    EP_RST = 2,
     /** experimental */
-    EP_EXP1 = 0,
+    EP_EXP1 = 3,
     /** --equality_proxy=off */
-    EP_OFF = 1,
+    EP_OFF = 4,
     /** --equality_proxy=on */
-    EP_ON = 2,
-    EP_R = 3,
-    EP_RS = 4,
-    EP_RST = 5
+    EP_ON = 5
   };
 
 public:

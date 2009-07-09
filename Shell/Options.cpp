@@ -223,12 +223,12 @@ NameArray Options::Constants::satAlgValues(_satAlgValues,
 					   sizeof(_satAlgValues)/sizeof(char*));
 
 const char* Options::Constants::_equalityProxyValues[] = {
-  "exp1",
-  "off",
-  "on",
-  "R",
-  "RS",
-  "RST"};
+    "R",
+    "RS",
+    "RST",
+    "exp1",
+    "off",
+    "on"};
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
 						  sizeof(_equalityProxyValues)/sizeof(char*));
 
