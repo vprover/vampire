@@ -10,6 +10,7 @@
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/DHMap.hpp"
+#include "../Lib/Environment.hpp"
 #include "../Lib/Hash.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Metaarrays.hpp"
@@ -410,6 +411,7 @@ bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2, LiteralList** alts)
   md->nextAlts[0]=0;
   unsigned currBLit=0;
 
+  int counter=0;
 
   while(true) {
     MatchingData::InitResult ires=md->ensureInit(currBLit);
@@ -447,11 +449,15 @@ bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2, LiteralList** alts)
       if(currBLit==0) { return false; }
       currBLit--;
     }
+
+    counter++;
+    if(counter==50000) {
+      counter=0;
+      if(env.timeLimitReached()) {
+	throw TimeLimitExceededException();
+      }
+    }
   }
-//  if(resolvedLit && matchRecord[1]>=matchedLen) {
-//    currBLit--;
-//    goto binding_start;
-//  }
   return true;
 }
 
