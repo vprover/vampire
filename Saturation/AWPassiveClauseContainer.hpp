@@ -51,11 +51,11 @@ public:
    */
   void remove(Clause* cl)
   {
+    ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED);
     ALWAYS(_ageQueue.remove(cl));
     ALWAYS(_weightQueue.remove(cl));
     _size--;
-    if(cl->store()!=Clause::REACTIVATED) {
-      ASS_EQ(cl->store(), Clause::PASSIVE);
+    if(cl->store()==Clause::PASSIVE) {
       removedEvent.fire(cl);
     }
   }

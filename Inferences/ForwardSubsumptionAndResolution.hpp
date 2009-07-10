@@ -21,12 +21,17 @@ class ForwardSubsumptionAndResolution
 : public ForwardSimplificationEngine
 {
 public:
+  ForwardSubsumptionAndResolution(bool subsumptionResolution=true)
+  : _subsumptionResolution(subsumptionResolution) {}
+
   void attach(SaturationAlgorithm* salg);
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
 private:
   UnitClauseSimplifyingLiteralIndex* _unitIndex;
   FwSubsSimplifyingLiteralIndex* _fwIndex;
+
+  bool _subsumptionResolution;
 };
 
 

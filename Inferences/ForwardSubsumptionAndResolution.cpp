@@ -291,7 +291,9 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
       }
     }
   }
-//goto fin;
+  if(!_subsumptionResolution) {
+    goto fin;
+  }
 
   for(unsigned li=0;li<clen;li++) {
     Literal* resLit=(*cl)[li];

@@ -89,13 +89,14 @@ void addFSEs(SaturationAlgorithm* alg)
 #endif
   }
 
-  if(env.options->forwardSubsumptionResolution()) {
-    if(!env.options->forwardSubsumption()) {
-      USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
-    }
-    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardSubsumptionAndResolution()));
-  } else if(env.options->forwardSubsumption()) {
-    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new SLQueryForwardSubsumption()));
+  if(env.options->forwardSubsumption()) {
+    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
+	    new ForwardSubsumptionAndResolution(
+		    env.options->forwardSubsumptionResolution()) ));
+//    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
+//	    new SLQueryForwardSubsumption() ));
+  } else if(env.options->forwardSubsumptionResolution()) {
+    USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
   }/**/
   if(env.options->condensation()) {
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new Condensation()));
