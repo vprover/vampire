@@ -26,9 +26,9 @@ LRS::LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
   : SaturationAlgorithm(passiveContainer,selector)
 {
   _passiveContRemovalSData=_passive->removedEvent.subscribe(
-      &_simplCont, &FakeContainer::remove);
+      this, &LRS::passiveRemoved);
   _activeContRemovalSData=_active->removedEvent.subscribe(
-      &_simplCont, &FakeContainer::remove);
+      this, &LRS::activeRemoved);
 }
 
 LRS::~LRS()
@@ -46,6 +46,29 @@ ClauseContainer* LRS::getGenerationClauseContainer()
 {
   return _active;
 }
+
+void LRS::activeRemoved(Clause* cl)
+{
+  CALL("LRS::activeRemoved");
+  ASS(cl->store()==Clause::ACTIVE || cl->store()==Clause::REACTIVATED)
+
+  if(cl->store()==Clause::REACTIVATED) {
+    _passive->remove(cl);
+  }
+
+  _simplCont.remove(cl);
+}
+
+void LRS::passiveRemoved(Clause* cl)
+{
+  CALL("LRS::passiveRemoved");
+  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED)
+
+  if(cl->store()==Clause::PASSIVE) {
+    _simplCont.remove(cl);
+  }
+}
+
 
 void LRS::addInputSOSClause(Clause* cl)
 {

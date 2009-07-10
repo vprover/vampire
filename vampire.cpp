@@ -128,6 +128,9 @@ void outputResult()
 #endif
     env.out << "Memory limit exceeded!\n";
     break;
+  case Statistics::UNKNOWN:
+    env.out << "Refutation not found with incomplete strategy!\n";
+    break;
   default:
     env.out << "Refutation not found!\n";
     break;
@@ -165,6 +168,7 @@ void spiderMode()
       break;
     case Statistics::TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:
+    case Statistics::UNKNOWN:
       env.out << "? ";
       break;
     default:

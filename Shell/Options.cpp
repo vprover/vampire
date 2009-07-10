@@ -1318,7 +1318,7 @@ bool Options::outputSuppressed () const
  */
 bool Options::complete () const
 {
-  CALL("Options::setLrsFirstTimeCheck");
+  CALL("Options::complete");
 
   return ! _equalityResolutionWithDeletion &&
          (_literalComparisonMode != LCM_REVERSE) &&

@@ -36,6 +36,9 @@ protected:
 
   void addInputSOSClause(Clause* cl);
 
+  void activeRemoved(Clause* cl);
+  void passiveRemoved(Clause* cl);
+
 
   /**
    * Dummy container for simplification indexes to subscribe

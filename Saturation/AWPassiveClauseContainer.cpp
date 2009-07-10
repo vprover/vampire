@@ -323,6 +323,9 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     remove(removed);
     if(removed->store()==Clause::PASSIVE) {
       removed->setStore(Clause::NONE);
+    } else {
+      ASS_EQ(removed->store(),Clause::REACTIVATED);
+      removed->setStore(Clause::ACTIVE);
     }
   }
 

@@ -7,6 +7,7 @@
 #include "../Lib/VirtualIterator.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/LiteralSelector.hpp"
+#include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "Otter.hpp"
@@ -69,7 +70,11 @@ SaturationResult Otter::saturate()
     }
 
     if (_passive->isEmpty()) {
-      return SaturationResult(Statistics::SATISFIABLE);
+      if(env.options->complete()) {
+	return SaturationResult(Statistics::SATISFIABLE);
+      } else {
+	return SaturationResult(Statistics::UNKNOWN);
+      }
     }
 
     Clause* c = _passive->popSelected();

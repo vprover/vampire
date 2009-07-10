@@ -7,6 +7,7 @@
 #include "../Lib/VirtualIterator.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/LiteralSelector.hpp"
+#include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "Discount.hpp"
@@ -60,7 +61,11 @@ SaturationResult Discount::saturate()
       return SaturationResult(Statistics::TIME_LIMIT);
     }
     if(_passive->isEmpty()) {
-      return SaturationResult(Statistics::SATISFIABLE);
+      if(env.options->complete()) {
+	return SaturationResult(Statistics::SATISFIABLE);
+      } else {
+	return SaturationResult(Statistics::UNKNOWN);
+      }
     }
 
     Clause* cl = _passive->popSelected();
