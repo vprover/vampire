@@ -22,10 +22,18 @@ void MaximalLiteralSelector::select(Clause* c)
 
   unsigned clen=c->length();
   LiteralList* sel=0;
+  bool anyNegative=false;
 
-  ASS(clen<=0x7FFFFFFF);
   for(int li=(int)clen-1; li>=0; li--) {
-    LiteralList::push((*c)[li],sel);
+    if((*c)[li]->isNegative()) {
+      anyNegative=true;
+      break;
+    }
+  }
+  for(int li=(int)clen-1; li>=0; li--) {
+    if(!anyNegative || (*c)[li]->isNegative()) {
+      LiteralList::push((*c)[li],sel);
+    }
   }
 
   _ord->removeNonMaximal(sel);
