@@ -126,9 +126,14 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
     Clause* cl=cit.next();
     if(cl->store()==Clause::PASSIVE) {
       cl->setStore(Clause::NONE);
-    } else {
-      ASS_EQ(cl->store(), Clause::REACTIVATED);
+    } else if(cl->store()==Clause::REACTIVATED) {
+      cl->setStore(Clause::ACTIVE);
     }
+#if VDEBUG
+    else {
+      ASSERTION_VIOLATION;
+    }
+#endif
   }
 }
 
@@ -213,32 +218,46 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
     ClauseQueue::Iterator ait(_ageQueue);
 
     if(!wit.hasNext() && !ait.hasNext()) {
+      //passive container is empty
       return;
     }
-
-    //here we expect both age and weight ratio to be nonzero
-    ASS(wit.hasNext()&&ait.hasNext());
 
     long remains=estReachableCnt;
     Clause* wcl=0;
     Clause* acl=0;
-    unsigned balance=(_ageRatio<=_weightRatio)?1:0;
-    while(remains) {
-      ASS_G(remains,0);
-      if( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
+    if(_ageRatio==0) {
+      ASS(wit.hasNext());
+      while( remains && wit.hasNext() ) {
 	wcl=wit.next();
-	if(!acl || wcl->age() >= acl->age()) {
-	  balance-=_ageRatio;
-	  remains--;
-	}
-      } else if(ait.hasNext()){
+	remains--;
+      }
+    } else if(_weightRatio==0) {
+      ASS(ait.hasNext());
+      while( remains && ait.hasNext() ) {
 	acl=ait.next();
-	if(!wcl || acl->getEffectiveWeight() > wcl->getEffectiveWeight()) {
-	  balance+=_weightRatio;
-	  remains--;
+	remains--;
+      }
+    } else {
+      ASS(wit.hasNext()&&ait.hasNext());
+
+      unsigned balance=(_ageRatio<=_weightRatio)?1:0;
+      while(remains) {
+	ASS_G(remains,0);
+	if( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
+	  wcl=wit.next();
+	  if(!acl || wcl->age() >= acl->age()) {
+	    balance-=_ageRatio;
+	    remains--;
+	  }
+	} else if(ait.hasNext()){
+	  acl=ait.next();
+	  if(!wcl || acl->getEffectiveWeight() > wcl->getEffectiveWeight()) {
+	    balance+=_weightRatio;
+	    remains--;
+	  }
+	} else {
+	  break;
 	}
-      } else {
-	break;
       }
     }
 
@@ -321,12 +340,6 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   while(toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
     remove(removed);
-    if(removed->store()==Clause::PASSIVE) {
-      removed->setStore(Clause::NONE);
-    } else {
-      ASS_EQ(removed->store(),Clause::REACTIVATED);
-      removed->setStore(Clause::ACTIVE);
-    }
   }
 
 }

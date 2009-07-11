@@ -110,7 +110,6 @@ void ActiveClauseContainer::add(Clause* c)
 void ActiveClauseContainer::remove(Clause* c)
 {
   ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED);
-//  cout<<"Removing : "<<(*c)<<endl;
 
   _size--;
 
@@ -171,9 +170,9 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 
   while(toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
-    remove(removed);
     ASS(removed->store()==Clause::ACTIVE || removed->store()==Clause::REACTIVATED);
-    removed->setStore(Clause::NONE);
+    remove(removed);
+    ASS(removed->store()!=Clause::ACTIVE && removed->store()!=Clause::REACTIVATED);
   }
 }
 

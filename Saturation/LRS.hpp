@@ -33,7 +33,7 @@ protected:
 
   long estimatedReachableCount();
 
-  void addInputSOSClause(Clause* cl);
+  void addInputSOSClause(Clause*& cl);
 
   void onActiveRemoved(Clause* cl);
   void onPassiveRemoved(Clause* cl);

@@ -54,9 +54,9 @@ void* Clause::operator new(size_t sz,unsigned lits)
 /** Set the propositional part of the clause */
 void Clause::setProp(BDDNode* prop)
 {
-  if(_prop) {
+//  if(_prop) {
 //    cout<<"%% prop change: " << (*this) << "-->" << BDD::instance()->toString(prop)<<endl;
-  }
+//  }
   _prop=prop;
 }
 

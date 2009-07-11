@@ -52,12 +52,17 @@ public:
   void remove(Clause* cl)
   {
     ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED);
-    ALWAYS(_ageQueue.remove(cl));
-    ALWAYS(_weightQueue.remove(cl));
-    _size--;
-    if(cl->store()==Clause::PASSIVE) {
-      removedEvent.fire(cl);
+    if(_ageRatio) {
+      ALWAYS(_ageQueue.remove(cl));
     }
+    if(_weightRatio) {
+      ALWAYS(_weightQueue.remove(cl));
+    }
+    _size--;
+
+    removedEvent.fire(cl);
+
+    ASS(cl->store()!=Clause::PASSIVE && cl->store()!=Clause::REACTIVATED);
   }
 
   /**
@@ -81,14 +86,6 @@ public:
   void updateLimits(long estReachableCnt);
 
   unsigned size() {
-#if VDEBUG
-    unsigned sz=0;
-    ClauseQueue::Iterator it(_ageQueue);
-    while(it.hasNext()) {
-      it.next(); sz++;
-    }
-    ASS_EQ(sz, _size);
-#endif
     return _size;
   }
 

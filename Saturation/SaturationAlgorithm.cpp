@@ -138,9 +138,16 @@ void SaturationAlgorithm::onActiveRemoved(Clause* cl)
   CALL("SaturationAlgorithm::onActiveRemoved");
   ASS(cl->store()==Clause::ACTIVE || cl->store()==Clause::REACTIVATED)
 
-  if(cl->store()==Clause::REACTIVATED) {
+  if(cl->store()==Clause::ACTIVE) {
+    cl->setStore(Clause::NONE);
+  } else if(cl->store()==Clause::REACTIVATED) {
     cl->setStore(Clause::PASSIVE);
   }
+#if VDEBUG
+  else {
+    ASSERTION_VIOLATION;
+  }
+#endif
 }
 
 void SaturationAlgorithm::onPassiveRemoved(Clause* cl)
@@ -148,9 +155,16 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* cl)
   CALL("SaturationAlgorithm::onPassiveRemoved");
   ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED)
 
-  if(cl->store()==Clause::REACTIVATED) {
+  if(cl->store()==Clause::PASSIVE) {
+    cl->setStore(Clause::NONE);
+  } else if(cl->store()==Clause::REACTIVATED) {
     cl->setStore(Clause::ACTIVE);
   }
+#if VDEBUG
+  else {
+    ASSERTION_VIOLATION;
+  }
+#endif
 }
 
 void SaturationAlgorithm::activeRemovedHandler(Clause* cl)
@@ -192,8 +206,22 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   env.statistics->initialClauses++;
 }
 
-void SaturationAlgorithm::addInputSOSClause(Clause* cl)
+void SaturationAlgorithm::addInputSOSClause(Clause*& cl)
 {
+  bool simplified;
+  do {
+    Clause* simplCl=_immediateSimplifier->simplify(cl);
+    if(simplCl==0) {
+      return;
+    }
+    simplified=simplCl!=cl;
+    if(simplified) {
+      simplCl->setProp(cl->prop());
+      cl=simplCl;
+      InferenceStore::instance()->recordNonPropInference(cl);
+    }
+  } while(simplified);
+
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
@@ -636,6 +664,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	  _active->remove(redundant);
 	  break;
 	default:
+	  cout<<"r: "<<(*redundant)<<endl;
 	  ASSERTION_VIOLATION;
 	}
 	redundant->setStore(Clause::NONE);

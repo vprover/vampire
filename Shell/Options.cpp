@@ -1056,7 +1056,9 @@ void Options::outputValue (ostream& str,int optionTag) const
  */
 string Options::problemName () const
 {
-  CALL("Options::problemName");
+  //Tracing removed as this function is called by assertion
+  //violation reporting and it influenced the output.
+//  CALL("Options::problemName");
 
   if (_problemName != "") {
     return _problemName;

@@ -27,7 +27,7 @@ public:
 
 protected:
 
-  void addInputSOSClause(Clause* cl);
+  void addInputSOSClause(Clause*& cl);
 
   class FakeContainer
   : public ClauseContainer

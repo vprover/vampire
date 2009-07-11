@@ -36,7 +36,7 @@ ClauseContainer* Otter::getGenerationClauseContainer()
   return _active;
 }
 
-void Otter::addInputSOSClause(Clause* cl)
+void Otter::addInputSOSClause(Clause*& cl)
 {
   SaturationAlgorithm::addInputSOSClause(cl);
   _simplCont.add(cl);
