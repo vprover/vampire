@@ -188,7 +188,7 @@ private:
 	unsigned deleted : 1;
 	unsigned multiplicity : 30;
       } _info;
-      int _infoData;
+      int32_t _infoData;
     };
     Val _val;
   };

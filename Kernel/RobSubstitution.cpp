@@ -386,14 +386,13 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
               if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
         	  (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
                 toDo.push(itm);
-              } else
-        	if(!encountered || !encountered->find(itm)) {
-                toDo.push(itm);
-                if(!encountered) {
-                  encountered=new EncStore();
-                }
-                encountered->insert(itm);
-              }
+              } else if(!encountered || !encountered->find(itm)) {
+        	  toDo.push(itm);
+        	  if(!encountered) {
+        	    encountered=new EncStore();
+        	  }
+        	  encountered->insert(itm);
+        	}
             } else {
               mismatch=true;
               break;
