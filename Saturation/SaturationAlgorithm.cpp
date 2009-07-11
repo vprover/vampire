@@ -49,23 +49,31 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
 //  _active->removedEvent.subscribe(this,&SaturationAlgorithm::onActiveRemoved);
 
 #if REPORT_CONTAINERS
-  _active->addedEvent.subscribe(this,&SaturationAlgorithm::onActiveAdded);
-  _active->removedEvent.subscribe(this,&SaturationAlgorithm::onActiveRemoved);
-  _passive->addedEvent.subscribe(this,&SaturationAlgorithm::onPassiveAdded);
-  _passive->removedEvent.subscribe(this,&SaturationAlgorithm::onPassiveRemoved);
-  _passive->selectedEvent.subscribe(this,&SaturationAlgorithm::onPassiveSelected);
-  _unprocessed->addedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedAdded);
-  _unprocessed->removedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedRemoved);
-  _unprocessed->selectedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedSelected);
+  _active->addedEvent.subscribe(this,&SaturationAlgorithm::onActiveAddedReport);
+  _active->removedEvent.subscribe(this,&SaturationAlgorithm::onActiveRemovedReport);
+  _passive->addedEvent.subscribe(this,&SaturationAlgorithm::onPassiveAddedReport);
+  _passive->removedEvent.subscribe(this,&SaturationAlgorithm::onPassiveRemovedReport);
+  _passive->selectedEvent.subscribe(this,&SaturationAlgorithm::onPassiveSelectedReport);
+  _unprocessed->addedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedAddedReport);
+  _unprocessed->removedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedRemovedReport);
+  _unprocessed->selectedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedSelectedReport);
 #endif
 
   if(env.options->maxWeight()) {
     _limits.setLimits(-1,env.options->maxWeight());
   }
+
+  _passiveContRemovalSData=_passive->removedEvent.subscribe(
+      this, &SaturationAlgorithm::passiveRemovedHandler);
+  _activeContRemovalSData=_active->removedEvent.subscribe(
+      this, &SaturationAlgorithm::activeRemovedHandler);
 }
 
 SaturationAlgorithm::~SaturationAlgorithm()
 {
+  _passiveContRemovalSData->unsubscribe();
+  _activeContRemovalSData->unsubscribe();
+
   env.statistics->finalActiveClauses=_active->size();
   env.statistics->finalPassiveClauses=_passive->size();
 
@@ -91,39 +99,73 @@ SaturationAlgorithm::~SaturationAlgorithm()
   delete _active;
 }
 
-void SaturationAlgorithm::onActiveAdded(Clause* c)
+void SaturationAlgorithm::onActiveAddedReport(Clause* c)
 {
   cout<<"## Active added: "<<(*c)<<endl;
 }
-void SaturationAlgorithm::onActiveRemoved(Clause* c)
+void SaturationAlgorithm::onActiveRemovedReport(Clause* c)
 {
   cout<<"== Active removed: "<<(*c)<<endl;
 }
-void SaturationAlgorithm::onPassiveAdded(Clause* c)
+void SaturationAlgorithm::onPassiveAddedReport(Clause* c)
 {
   cout<<"# Passive added: "<<(*c)<<endl;
 }
-void SaturationAlgorithm::onPassiveRemoved(Clause* c)
+void SaturationAlgorithm::onPassiveRemovedReport(Clause* c)
 {
   cout<<"= Passive removed: "<<(*c)<<endl;
 }
-void SaturationAlgorithm::onPassiveSelected(Clause* c)
+void SaturationAlgorithm::onPassiveSelectedReport(Clause* c)
 {
   cout<<"~ Passive selected: "<<(*c)<<endl;
 }
-void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
+void SaturationAlgorithm::onUnprocessedAddedReport(Clause* c)
 {
   cout<<"++ Unprocessed added: "<<(*c)<<endl;
 }
-void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
+void SaturationAlgorithm::onUnprocessedRemovedReport(Clause* c)
 {
   cout<<"-- Unprocessed removed: "<<(*c)<<endl;
 }
-void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
+void SaturationAlgorithm::onUnprocessedSelectedReport(Clause* c)
 {
   cout<<"~~ Unprocessed selected: "<<(*c)<<endl;
 }
 
+
+void SaturationAlgorithm::onActiveRemoved(Clause* cl)
+{
+  CALL("SaturationAlgorithm::onActiveRemoved");
+  ASS(cl->store()==Clause::ACTIVE || cl->store()==Clause::REACTIVATED)
+
+  if(cl->store()==Clause::REACTIVATED) {
+    cl->setStore(Clause::PASSIVE);
+  }
+}
+
+void SaturationAlgorithm::onPassiveRemoved(Clause* cl)
+{
+  CALL("SaturationAlgorithm::onPassiveRemoved");
+  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED)
+
+  if(cl->store()==Clause::REACTIVATED) {
+    cl->setStore(Clause::ACTIVE);
+  }
+}
+
+void SaturationAlgorithm::activeRemovedHandler(Clause* cl)
+{
+  CALL("SaturationAlgorithm::activeRemovedHandler");
+
+  onActiveRemoved(cl);
+}
+
+void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
+{
+  CALL("SaturationAlgorithm::passiveRemovedHandler");
+
+  onPassiveRemoved(cl);
+}
 
 void SaturationAlgorithm::handleSaturationStart()
 {

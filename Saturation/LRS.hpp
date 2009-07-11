@@ -22,7 +22,6 @@ class LRS
 {
 public:
   LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector);
-  ~LRS();
 
   SaturationResult saturate();
 
@@ -36,8 +35,8 @@ protected:
 
   void addInputSOSClause(Clause* cl);
 
-  void activeRemoved(Clause* cl);
-  void passiveRemoved(Clause* cl);
+  void onActiveRemoved(Clause* cl);
+  void onPassiveRemoved(Clause* cl);
 
 
   /**
@@ -65,8 +64,6 @@ protected:
   };
 
 
-  SubscriptionData _passiveContRemovalSData;
-  SubscriptionData _activeContRemovalSData;
   FakeContainer _simplCont;
 };
 

@@ -69,19 +69,26 @@ protected:
   void reanimate(Clause* c);
   void activate(Clause* c);
 
-  void onActiveAdded(Clause* c);
-  void onActiveRemoved(Clause* c);
-  void onPassiveAdded(Clause* c);
-  void onPassiveRemoved(Clause* c);
-  void onPassiveSelected(Clause* c);
-  void onUnprocessedAdded(Clause* c);
-  void onUnprocessedRemoved(Clause* c);
-  void onUnprocessedSelected(Clause* c);
+  void onActiveAddedReport(Clause* c);
+  void onActiveRemovedReport(Clause* c);
+  void onPassiveAddedReport(Clause* c);
+  void onPassiveRemovedReport(Clause* c);
+  void onPassiveSelectedReport(Clause* c);
+  void onUnprocessedAddedReport(Clause* c);
+  void onUnprocessedRemovedReport(Clause* c);
+  void onUnprocessedSelectedReport(Clause* c);
 
   void handleSaturationStart();
   int elapsedTime();
 
+
+  virtual void onActiveRemoved(Clause* cl);
+  virtual void onPassiveRemoved(Clause* cl);
+
 private:
+  void passiveRemovedHandler(Clause* cl);
+  void activeRemovedHandler(Clause* cl);
+
   void addInputClause(Clause* cl);
   void addUnprocessedFinalClause(Clause* cl);
 
@@ -110,6 +117,9 @@ protected:
   LiteralSelectorSP _selector;
 
   Splitter _splitter;
+
+  SubscriptionData _passiveContRemovalSData;
+  SubscriptionData _activeContRemovalSData;
 };
 
 

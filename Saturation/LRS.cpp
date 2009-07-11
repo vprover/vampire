@@ -25,16 +25,6 @@ using namespace Shell;
 LRS::LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
   : SaturationAlgorithm(passiveContainer,selector)
 {
-  _passiveContRemovalSData=_passive->removedEvent.subscribe(
-      this, &LRS::passiveRemoved);
-  _activeContRemovalSData=_active->removedEvent.subscribe(
-      this, &LRS::activeRemoved);
-}
-
-LRS::~LRS()
-{
-  _passiveContRemovalSData->unsubscribe();
-  _activeContRemovalSData->unsubscribe();
 }
 
 ClauseContainer* LRS::getSimplificationClauseContainer()
@@ -47,26 +37,26 @@ ClauseContainer* LRS::getGenerationClauseContainer()
   return _active;
 }
 
-void LRS::activeRemoved(Clause* cl)
+void LRS::onActiveRemoved(Clause* cl)
 {
-  CALL("LRS::activeRemoved");
-  ASS(cl->store()==Clause::ACTIVE || cl->store()==Clause::REACTIVATED)
+  CALL("LRS::onActiveRemoved");
 
-  if(cl->store()==Clause::REACTIVATED) {
-    _passive->remove(cl);
+  if(cl->store()==Clause::ACTIVE) {
+    _simplCont.remove(cl);
   }
 
-  _simplCont.remove(cl);
+  SaturationAlgorithm::onActiveRemoved(cl);
 }
 
-void LRS::passiveRemoved(Clause* cl)
+void LRS::onPassiveRemoved(Clause* cl)
 {
-  CALL("LRS::passiveRemoved");
-  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED)
+  CALL("LRS::onPassiveRemoved");
 
   if(cl->store()==Clause::PASSIVE) {
     _simplCont.remove(cl);
   }
+
+  SaturationAlgorithm::onPassiveRemoved(cl);
 }
 
 
