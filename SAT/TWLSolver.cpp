@@ -164,9 +164,14 @@ unsigned TWLSolver::getBacktrackLevel(SATClause* conflictClause)
 
   unsigned btLev=0;
   static Stack<SATClause*> confCls;
+  static DHMap<unsigned,bool,IdentityHash> checked;
   confCls.reset();
+  checked.reset();
 
   confCls.push(conflictClause);
+
+//  cout<<endl<<"conf: "<<(*conflictClause)<<endl;
+//  printAssignment();
 
   while(confCls.isNonEmpty()) {
     SATClause* ccl=confCls.pop();
@@ -180,6 +185,10 @@ unsigned TWLSolver::getBacktrackLevel(SATClause* conflictClause)
 
       ASS_NEQ(_assignment[lvar], AS_UNDEFINED);
       if(_assignmentLevels[lvar]<=btLev+1) {
+	continue;
+      }
+      if(!checked.insert(lvar, true)) {
+	//we've already visited this variable
 	continue;
       }
       SATClause* icl=_assignmentPremises[lvar];
