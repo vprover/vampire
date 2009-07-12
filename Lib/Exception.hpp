@@ -82,8 +82,11 @@ class MemoryLimitExceededException
 : public Exception
 {
 public:
-  MemoryLimitExceededException ()
-  : Exception("The memory limit exceeded")
+//  MemoryLimitExceededException ()
+//  : Exception("The memory limit exceeded")
+//  {}
+  MemoryLimitExceededException (bool badAlloc=false)
+  : Exception(badAlloc?"bad_alloc received":"The memory limit exceeded")
   {}
 }; // MemoryLimitExceededException
 

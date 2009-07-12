@@ -442,7 +442,13 @@ Allocator::Page* Allocator::allocatePages(size_t size)
     }
     _usedMemory = newSize;
 
-    char* mem = new char[realSize];
+    char* mem;
+    try {
+      mem = new char[realSize];
+    } catch(bad_alloc)
+    {
+      throw Lib::MemoryLimitExceededException(true);
+    }
     result = reinterpret_cast<Page*>(mem);
   }
   result->size = realSize;

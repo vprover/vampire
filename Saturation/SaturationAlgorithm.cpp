@@ -737,6 +737,8 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   BDD* bdd=BDD::instance();
   while(toAdd.hasNext()) {
+    env.checkTimeSometime();
+
     Clause* genCl=toAdd.next();
 
     BDDNode* prop=bdd->getFalse();

@@ -8,10 +8,12 @@
 #include "../Debug/Tracer.hpp"
 
 #include "Timer.hpp"
-#include "Environment.hpp"
+#include "Exception.hpp"
 
 #include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
+
+#include "Environment.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -60,6 +62,19 @@ bool Environment::timeLimitReached() const
   }
   return false;
 } // Environment::timeLimitReached
+
+void Environment::checkTimeSometime() const
+{
+  static int counter=0;
+  counter++;
+  if(counter==50000) {
+    counter=0;
+    if(timeLimitReached()) {
+	throw TimeLimitExceededException();
+    }
+  }
+}
+
 
 /**
  * Return remaining time in miliseconds.

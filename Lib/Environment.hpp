@@ -54,6 +54,7 @@ public:
   /** Currently used timer */
   Timer* timer;
   bool timeLimitReached() const;
+  void checkTimeSometime() const;
   int remainingTime() const;
   /** Currently used ordering */
   Kernel::Ordering* ordering;
