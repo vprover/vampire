@@ -1,0 +1,43 @@
+#!/bin/bash
+
+VAMPIRE='/raid/hoder/Dracula/vampire'
+#EPROVER='/raid/hoder/eprover/PROVER/eprover'
+OTHER_PROVER='/raid/hoder/vampire_old'
+
+$VAMPIRE --proof succinct $* |awk '
+BEGIN { RS = "\n%#\n"; first=1; prev=0; checkedCnt=0 }
+END { print "checked steps: " checkedCnt }
+{
+	if( first==0 ) {
+		curr=prev
+		prev=$0
+		if(curr!=0) {
+#			cmd="echo '\''" curr "'\'' |'$OTHER_PROVER' --tstp-in -s --cpu-limit=10 |grep  \"status Theorem\" "
+			cmd="echo '\''" curr "'\'' | sed -e \"s/\\\\\\$sk/xXsk/g\" -e \"s/\\\\\\$n/xXn/g\" -e \"s/\\\\\\$\\\\\\$e/xXeqProxy/g\" -e \"s/~!/~ !/g\" |'$OTHER_PROVER' --time_limit 10 /dev/stdin |grep  \"SZS output end Refutation\" "
+			cmd_out=(cmd | getline)
+#			print "============"
+#			print cmd
+#			print "============"
+#			print $0
+#			print "------------"
+#			print cmd_out
+#			print
+#			print
+			if( !cmd_out ) {
+				print "============"
+				print cmd
+				print "------------"
+				print "% '"$*"'"
+				print "% failed:"
+				print curr
+				print ""
+			}
+			close(cmd)
+			checkedCnt++
+		}
+	} else {
+		first=0
+		print "prover run finished"
+	}
+}
+'
