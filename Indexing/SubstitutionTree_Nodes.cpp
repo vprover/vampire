@@ -123,6 +123,7 @@ void SubstitutionTree::IntermediateNode::destroyChildren()
 {
   try {
     static Stack<Node*> toDelete;
+    toDelete.reset();
     toDelete.push(this);
     while(toDelete.isNonEmpty()) {
       Node* n=toDelete.pop();

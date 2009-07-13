@@ -5,7 +5,6 @@
  * @since 02/12/2003, Manchester, replaces the file Memory.hpp
  * @since 10/01/2008 Manchester, reimplemented
  */
-
 #if VDEBUG
 
 #include <sstream>
@@ -16,7 +15,9 @@
 using namespace Kernel;
 #endif
 
+#include <cstdlib>
 #include <malloc.h>
+
 
 /** If the following is set to true the Vampire will use the
  *  C++ new and delete for (de)allocating all data structures.
@@ -57,9 +58,11 @@ unsigned watchAddressLastValue = 0;
 #include "../Debug/Tracer.hpp"
 
 #include "../Shell/Statistics.hpp"
+#include "../Shell/Options.hpp"
 
 #include "Exception.hpp"
 #include "Environment.hpp"
+#include "Timer.hpp"
 #include "Allocator.hpp"
 
 #if CHECK_LEAKS
@@ -67,6 +70,7 @@ unsigned watchAddressLastValue = 0;
 #endif
 
 using namespace Lib;
+using namespace Shell;
 
 int Allocator::_initialised = 0;
 int Allocator::_total = 0;
@@ -434,11 +438,23 @@ Allocator::Page* Allocator::allocatePages(size_t size)
     size_t newSize = _usedMemory+realSize;
     if (newSize > _tolerated) {
       env.statistics->terminationReason = Shell::Statistics::MEMORY_LIMIT;
-
       //increase the limit, so that the exception can be handled properly.
       _tolerated=newSize+1000000;
 
+#if 1
+      //TODO: just a quick solution for CASC
+      if(env.options->mode()==Options::MODE_SPIDER) {
+        env.out << "? " << env.options->problemName();
+        env.out << " " << env.timer->elapsedDeciseconds();
+        env.out << " " << env.options->testId() << "\n";
+      } else {
+	env.out << "Memory limit exceeded!\n";
+	env.statistics->print();
+      }
+      abort();
+#else
       throw Lib::MemoryLimitExceededException();
+#endif
     }
     _usedMemory = newSize;
 
