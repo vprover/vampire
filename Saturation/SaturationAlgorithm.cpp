@@ -606,6 +606,8 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 //    return;
 //  }
 
+  static Stack<Clause*> replacementsToAdd;
+
   BDD* bdd=BDD::instance();
 
   BwSimplList::Iterator bsit(_bwSimplifiers);
@@ -644,6 +646,24 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       }
 #endif
 
+      replacementsToAdd.reset();
+
+      if(srec.replacements.hasNext()) {
+	BDDNode* replacementProp=bdd->disjunction(oldRedundantProp, cl->prop());
+	if(!bdd->isTrue(replacementProp)) {
+
+	  while(srec.replacements.hasNext()) {
+	    Clause* addCl=srec.replacements.next();
+	    addCl->setProp(replacementProp);
+	    InferenceStore::instance()->recordNonPropInference(addCl);
+#if REPORT_BW_SIMPL
+	    cout<<"+"<<(*addCl)<<endl;
+#endif
+	  }
+	}
+      }
+
+
       //we must remove the redundant clause before adding its replacement,
       //as otherwise the redundant one might demodulate the replacement into
       //a tautology
@@ -676,22 +696,9 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 //	reanimate(redundant);
 //      }
 
-      if(srec.replacements.hasNext()) {
-	BDDNode* replacementProp=bdd->disjunction(oldRedundantProp, cl->prop());
-	if(!bdd->isTrue(replacementProp)) {
-
-	  while(srec.replacements.hasNext()) {
-	    Clause* addCl=srec.replacements.next();
-	    addCl->setProp(replacementProp);
-	    InferenceStore::instance()->recordNonPropInference(addCl);
-#if REPORT_BW_SIMPL
-	    cout<<"+"<<(*addCl)<<endl;
-#endif
-	    addUnprocessedClause(addCl);
-	  }
-	}
+      while(replacementsToAdd.isNonEmpty()) {
+	addUnprocessedClause(replacementsToAdd.pop());
       }
-
 
 
 #if REPORT_BW_SIMPL
