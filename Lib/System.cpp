@@ -157,7 +157,7 @@ void System::setSignalHandlers()
   signal(SIGILL,handleSignal);
   signal(SIGFPE,handleSignal);
   signal(SIGSEGV,handleSignal);
-  signal(SIGABRT,handleSignal);
+//  signal(SIGABRT,handleSignal);
 
 #ifndef _MSC_VER
   signal(SIGQUIT,handleSignal);
