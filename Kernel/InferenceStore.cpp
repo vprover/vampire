@@ -556,6 +556,9 @@ struct InferenceStore::TPTPProofCheckPrinter
     case Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case Inference::INEQUALITY_SPLITTING:
     case Inference::SKOLEMIZE:
+    case Inference::EQUALITY_PROXY_REPLACEMENT:
+    case Inference::EQUALITY_PROXY_AXIOM1:
+    case Inference::EQUALITY_PROXY_AXIOM2:
       return true;
     default:
       return false;
