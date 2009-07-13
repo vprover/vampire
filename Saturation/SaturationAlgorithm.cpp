@@ -410,6 +410,8 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   BDD* bdd=BDD::instance();
   ASS(!bdd->isTrue(cl->prop()));
 
+  env.checkTimeSometime<64>();
+
 simplificationStart:
   BDDNode* prop=cl->prop();
   bool simplified;
@@ -438,8 +440,6 @@ simplificationStart:
 	return;
       }
       cl=rit.next();
-
-      env.checkTimeSometime<1000>();
 
       ASS(!rit.hasNext());
       goto simplificationStart;
@@ -748,8 +748,6 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   BDD* bdd=BDD::instance();
   while(toAdd.hasNext()) {
-    env.checkTimeSometime<1000>();
-
     Clause* genCl=toAdd.next();
 
     BDDNode* prop=bdd->getFalse();
