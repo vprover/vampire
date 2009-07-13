@@ -394,13 +394,7 @@ void TWLSolver::addClauses(SATClauseIterator cit)
 
       unsigned propagatedVar=chosenVar;
 
-      counter++;
-      if(counter==50000) {
-	counter=0;
-	if(env.timeLimitReached()) {
-	  throw TimeLimitExceededException();
-	}
-      }
+      env.checkTimeSometime<500>();
 
     prop_loop:
       unsigned propBtLev=propagate(propagatedVar);
