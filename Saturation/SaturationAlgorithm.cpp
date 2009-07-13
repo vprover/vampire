@@ -656,6 +656,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	    Clause* addCl=srec.replacements.next();
 	    addCl->setProp(replacementProp);
 	    InferenceStore::instance()->recordNonPropInference(addCl);
+	    replacementsToAdd.push(addCl);
 #if REPORT_BW_SIMPL
 	    cout<<"+"<<(*addCl)<<endl;
 #endif
