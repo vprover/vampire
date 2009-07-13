@@ -157,6 +157,7 @@ void System::setSignalHandlers()
   signal(SIGILL,handleSignal);
   signal(SIGFPE,handleSignal);
   signal(SIGSEGV,handleSignal);
+  //TODO: disabled to make abort() terminate the execution immediately (needed for CASC)
 //  signal(SIGABRT,handleSignal);
 
 #ifndef _MSC_VER
