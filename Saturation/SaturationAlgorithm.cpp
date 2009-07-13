@@ -697,9 +697,11 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 //	reanimate(redundant);
 //      }
 
-      while(replacementsToAdd.isNonEmpty()) {
-	addUnprocessedClause(replacementsToAdd.pop());
+      unsigned addCnt=replacementsToAdd.size();
+      for(unsigned i=0;i<addCnt;i++) {
+	addUnprocessedClause(replacementsToAdd[i]);
       }
+      replacementsToAdd.reset();
 
 
 #if REPORT_BW_SIMPL
