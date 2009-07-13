@@ -3,11 +3,12 @@
  * Different SubstitutionTree Node implementations.
  */
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/SkipList.hpp"
 #include "../Lib/DHMultiset.hpp"
+#include "../Lib/Exception.hpp"
+#include "../Lib/List.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/SkipList.hpp"
+#include "../Lib/VirtualIterator.hpp"
 
 #include "Index.hpp"
 #include "SubstitutionTree.hpp"
@@ -118,6 +119,30 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(Ter
   return new UArrIntermediateNode(ts, childVar);
 }
 
+void SubstitutionTree::IntermediateNode::destroyChildren()
+{
+  try {
+    static Stack<Node*> toDelete;
+    toDelete.push(this);
+    while(toDelete.isNonEmpty()) {
+      Node* n=toDelete.pop();
+      if(!n->isLeaf()) {
+	IntermediateNode* in=static_cast<IntermediateNode*>(n);
+	NodeIterator children=in->allChildren();
+	while(children.hasNext()) {
+	  toDelete.push(*children.next());
+	}
+	in->removeAllChildren();
+      }
+      if(n!=this) {
+	delete n;
+      }
+    }
+  } catch (MemoryLimitExceededException) {
+    //this will cause a memory leak, but after the
+    //MemoryLimitExceededException we're done anyway.
+  }
+}
 
 const int SubstitutionTree::UArrIntermediateNode::MAX_SIZE;
 

@@ -182,7 +182,7 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* add
 
 
 void InferenceStore::recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
-	  unsigned premCnt, Clause** prems)
+	  unsigned premCnt, Clause** prems, SplittingRecord* srec)
 {
   ASS(!_bdd->isTrue(newMasterProp));
 
@@ -193,9 +193,50 @@ void InferenceStore::recordSplitting(Clause* master, BDDNode* oldMasterProp, BDD
   finf->premises[premCnt]=getClauseSpec(master, oldMasterProp);
 
   finf->rule=Inference::SPLITTING;
-  _data.insert(getClauseSpec(master, newMasterProp), finf);
+  ClauseSpec mcs=getClauseSpec(master, newMasterProp);
+  _data.insert(mcs, finf);
+
+  _splittingRecords.insert(mcs, srec);
 }
 
+string getQuantifiedStr(Unit* u)
+{
+  Set<unsigned> vars;
+  string res;
+  if(u->isClause()) {
+    Clause* cl=static_cast<Clause*>(u);
+    unsigned clen=cl->length();
+    for(unsigned i=0;i<clen;i++) {
+	Term::VariableIterator vit( (*cl)[i] );
+	while(vit.hasNext()) {
+	  vars.insert(vit.next().var());
+	}
+    }
+    res=cl->nonPropToString();
+  } else {
+    Formula* formula=static_cast<FormulaUnit*>(u)->formula();
+    FormulaVarIterator fvit( formula );
+    while(fvit.hasNext()) {
+	vars.insert(fvit.next());
+    }
+    res=formula->toString();
+  }
+  if(!vars.numberOfElements()) {
+    return res;
+  }
+  Set<unsigned>::Iterator vit(vars);
+  string varStr;
+  bool first=true;
+  while(vit.hasNext()) {
+    if(!first) {
+	varStr+=",";
+    }
+    varStr+=string("X")+Int::toString(vit.next());
+    first=false;
+  }
+
+  return "( ! ["+varStr+"] : ("+res+") )";
+}
 
 struct InferenceStore::ProofPrinter
 {
@@ -260,9 +301,55 @@ struct InferenceStore::ProofPrinter
     out << "]\n";
   }
 
+  virtual void printSplitting(SplittingRecord* sr)
+  {
+    requestKernelProofStep(sr->premise);
+
+    ClauseSpec cs=sr->result;
+    Clause* cl=cs.first;
+    out << is->getClauseIdStr(cs) << ". "
+	<< cl->nonPropToString()
+	<<" | "<<bdd->toString(cs.second)
+	<<" ("<<cl->age()<<':'<<cl->weight()<<") ";
+
+    ClauseSpec prevCs=getClauseSpec(cl, sr->oldResBDD);
+    out <<"["<<Inference::ruleName(Inference::SPLITTING)<<" "
+      <<is->getClauseIdStr(sr->premise)<<","
+      <<is->getClauseIdStr(prevCs);
+
+    requestKernelProofStep(prevCs);
+
+    Stack<pair<int,Clause*> >::Iterator compIt(sr->namedComps);
+    while(compIt.hasNext()) {
+      out<<","<<compIt.next().second->number()<<"_D";
+    }
+    out <<"]\n";
+
+    Stack<pair<int,Clause*> >::Iterator compIt2(sr->namedComps);
+    while(compIt2.hasNext()) {
+      pair<int,Clause*> nrec=compIt2.next();
+      out<<nrec.second->number()<<"_D. ";
+      if(nrec.second->length()==1 && (*nrec.second)[0]->arity()==0) {
+	out<<(*nrec.second)[0]->predicateName();
+      } else {
+	out<<getQuantifiedStr(nrec.second);
+      }
+      out<<" <=> bddPred"<<nrec.first
+	  <<" ["<<Inference::ruleName(Inference::SPLITTING_COMPONENT)<<"]\n";
+    }
+  }
+
   virtual bool hideProofStep(Inference::Rule rule)
   {
     return false;
+  }
+
+  void requestKernelProofStep(ClauseSpec prem)
+  {
+    if(!handledKernel.contains(prem)) {
+      handledKernel.insert(prem);
+      outKernel.push(prem);
+    }
   }
 
   void print()
@@ -280,6 +367,11 @@ struct InferenceStore::ProofPrinter
       } else if(is->_data.find(cs, finf)) {
 	bool hideStep=hideProofStep(finf->rule);
 
+	if(finf->rule==Inference::SPLITTING) {
+	  printSplitting(is->_splittingRecords.get(cs));
+	  continue;
+	}
+
 	if(!hideStep) {
 	  printProofStepHead(cs, finf);
 	}
@@ -292,10 +384,7 @@ struct InferenceStore::ProofPrinter
 	    printProofStepPremise(prem, i==0);
 	  }
 	  ASS(premCl->prop());
-	  if(!handledKernel.contains(prem)) {
-	    handledKernel.insert(prem);
-	    outKernel.push(prem);
-	  }
+	  requestKernelProofStep(prem);
 	}
 	if(!hideStep) {
 	  printProofStepTail();
@@ -318,10 +407,7 @@ struct InferenceStore::ProofPrinter
 	  first=false;
 	  if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
 	    ClauseSpec premCS=getClauseSpec(static_cast<Clause*>(prem), bdd->getFalse());
-	    if(!handledKernel.contains(premCS)) {
-	      handledKernel.insert(premCS);
-	      outKernel.push(premCS);
-	    }
+	    requestKernelProofStep(premCS);
 	  } else {
 	    if(!handledShell.contains(prem)) {
 	      handledShell.insert(prem);
@@ -383,45 +469,6 @@ struct InferenceStore::TPTPProofCheckPrinter
   TPTPProofCheckPrinter(Unit* refutation, ostream& out, InferenceStore* is)
   : ProofPrinter(refutation, out, is) {}
 
-  string getQuantifiedStr(Unit* u)
-  {
-    Set<unsigned> vars;
-    string res;
-    if(u->isClause()) {
-      Clause* cl=static_cast<Clause*>(u);
-      unsigned clen=cl->length();
-      for(unsigned i=0;i<clen;i++) {
-	Term::VariableIterator vit( (*cl)[i] );
-	while(vit.hasNext()) {
-	  vars.insert(vit.next().var());
-	}
-      }
-      res=cl->nonPropToString();
-    } else {
-      Formula* formula=static_cast<FormulaUnit*>(u)->formula();
-      FormulaVarIterator fvit( formula );
-      while(fvit.hasNext()) {
-	vars.insert(fvit.next());
-      }
-      res=formula->toString();
-    }
-    if(!vars.numberOfElements()) {
-      return res;
-    }
-    Set<unsigned>::Iterator vit(vars);
-    string varStr;
-    bool first=true;
-    while(vit.hasNext()) {
-      if(!first) {
-	varStr+=",";
-      }
-      varStr+=string("X")+Int::toString(vit.next());
-      first=false;
-    }
-
-    return "( ! ["+varStr+"] : ("+res+") )";
-  }
-
   void printProofStepHead(ClauseSpec cs, FullInference* finf)
   {
     Clause* cl=cs.first;
@@ -457,6 +504,48 @@ struct InferenceStore::TPTPProofCheckPrinter
     out << "%#\n";
   }
 
+  virtual void printSplitting(SplittingRecord* sr)
+  {
+    requestKernelProofStep(sr->premise);
+
+    ClauseSpec cs=sr->result;
+    Clause* cl=cs.first;
+    ClauseSpec prevCs=getClauseSpec(cl, sr->oldResBDD);
+
+    requestKernelProofStep(prevCs);
+
+    out << "fof(r"<<is->getClauseIdStr(cs)
+    	<< ",conjecture, "
+    	<< getQuantifiedStr(cl) <<" | "<<bdd->toTPTPString(cs.second)
+    	<< " ). %"<<Inference::ruleName(Inference::SPLITTING)<<"\n";
+
+    out << "fof(pr"<<is->getClauseIdStr(sr->premise)
+    	<< ",axiom, "
+    	<< getQuantifiedStr(sr->premise.first) <<" | "<<bdd->toTPTPString(sr->premise.second)
+    	<< " ).\n";
+
+    out << "fof(pr"<<is->getClauseIdStr(prevCs)
+    	<< ",axiom, "
+    	<< getQuantifiedStr(prevCs.first) <<" | "<<bdd->toTPTPString(prevCs.second)
+    	<< " ).\n";
+
+    Stack<pair<int,Clause*> >::Iterator compIt(sr->namedComps);
+    while(compIt.hasNext()) {
+      pair<int,Clause*> nrec=compIt.next();
+
+      out << "fof(pr"<<nrec.second->number()<<"_D"
+      << ",axiom, ";
+      if(nrec.second->length()==1 && (*nrec.second)[0]->arity()==0) {
+	out<<(*nrec.second)[0]->predicateName();
+      } else {
+	out<<getQuantifiedStr(nrec.second);
+      }
+      out<<" <=> bddPred"<<nrec.first
+      	<< " ).\n";
+    }
+    out << "%#\n";
+  }
+
   bool hideProofStep(Inference::Rule rule)
   {
     switch(rule) {
@@ -466,6 +555,7 @@ struct InferenceStore::TPTPProofCheckPrinter
     case Inference::SPLITTING_COMPONENT:
     case Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case Inference::INEQUALITY_SPLITTING:
+    case Inference::SKOLEMIZE:
       return true;
     default:
       return false;

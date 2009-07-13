@@ -13,13 +13,17 @@
 
 #include "../Forwards.hpp"
 
+#include "../Lib/Allocator.hpp"
 #include "../Lib/DHMap.hpp"
 #include "../Lib/DHMultiset.hpp"
+#include "../Lib/Stack.hpp"
 #include "../Kernel/Inference.hpp"
 
 namespace Kernel {
 
 using namespace Lib;
+
+class SplittingRecord;
 
 class InferenceStore
 {
@@ -36,6 +40,24 @@ public:
     Clause* first;
     BDDNode* second;
   };
+
+  //An ugly hack, done just to get it working a few days before CASC deadline:)
+  class SplittingRecord
+  {
+  public:
+    SplittingRecord(Clause* cl) : namedComps(1), premise(getClauseSpec(cl)) {}
+    void setResult(Clause* cl) { result=getClauseSpec(cl); }
+
+    Stack<pair<int,Clause*> > namedComps;
+    ClauseSpec premise;
+    ClauseSpec result;
+    BDDNode* oldResBDD;
+
+
+    CLASS_NAME("InferenceStore::SplittingRecord");
+    USE_ALLOCATOR(SplittingRecord);
+  };
+
   static ClauseSpec getClauseSpec(Clause* cl);
   static ClauseSpec getClauseSpec(Clause* cl, BDDNode* prop);
 
@@ -46,7 +68,7 @@ public:
   void recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp);
   void recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* addedCls, int addedClsCnt, BDDNode* resultProp);
   void recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
-	  unsigned premCnt, Clause** prems);
+	  unsigned premCnt, Clause** prems, SplittingRecord* srec);
 
   void outputProof(ostream& out, Unit* refutation);
 
@@ -79,8 +101,11 @@ private:
   DHMap<ClauseSpec, FullInference*, PtrPairSimpleHash> _data;
   DHMultiset<Clause*, PtrIdentityHash> _nextClIds;
 
+  DHMap<ClauseSpec, SplittingRecord*, PtrPairSimpleHash> _splittingRecords;
+
   BDD* _bdd;
 };
+
 
 };
 

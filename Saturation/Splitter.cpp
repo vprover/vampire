@@ -66,6 +66,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   env.statistics->splittedClauses++;
   env.statistics->splittedComponents+=compCnt;
 
+  InferenceStore::SplittingRecord* srec=new InferenceStore::SplittingRecord(cl);
   static Stack<Clause*> masterPremises;
   masterPremises.reset();
 
@@ -112,6 +113,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       getPropPredName(lit, name, premise, newPremise);
       newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(name, lit->isPositive()));
       masterPremises.push(premise);
+      srec->namedComps.push(make_pair(name, premise));
 
       //As long as we're sure that all occurences of the propositional
       //predicate get replaced, there is no need to add the premise
@@ -167,6 +169,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 	    return;
 	  }
 	  masterPremises.push(comp);
+	  srec->namedComps.push(make_pair(compName, comp));
 	}
       } else {
 	unnamedComponentStack.push(comp);
@@ -237,6 +240,8 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       }
       newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
       masterPremises.push(comp);
+      srec->namedComps.push(make_pair(compName, comp));
+
 #if REPORT_SPLITS
       cout<<'n'<<compName<<": "<<(*comp)<<endl;
 #endif
@@ -247,8 +252,10 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 
   BDDNode* oldProp=masterComp->prop();
   masterComp->setProp( bdd->conjunction(oldProp, newMasterProp) );
+  srec->setResult(masterComp);
+  srec->oldResBDD=oldProp;
   InferenceStore::instance()->recordSplitting(masterComp, oldProp, masterComp->prop(), masterPremises.size(),
-	  masterPremises.begin());
+	  masterPremises.begin(), srec);
 
   ASS(!bdd->isTrue(masterComp->prop()));
 
@@ -369,7 +376,15 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
 
     Clause* newCl=new(0) Clause(0,cl->inputType(), new Inference2(Inference::SPLITTING, cl, premise));
     newCl->setProp( BDD::instance()->getAtomic(name, lit->isPositive()) );
-    InferenceStore::instance()->recordNonPropInference(newCl);
+
+//    InferenceStore::instance()->recordNonPropInference(newCl);
+
+    InferenceStore::SplittingRecord* srec=new InferenceStore::SplittingRecord(cl);
+    srec->namedComps.push(make_pair(name, cl));
+    srec->setResult(newCl);
+    srec->oldResBDD=BDD::instance()->getTrue();
+    InferenceStore::instance()->recordSplitting(newCl, BDD::instance()->getTrue(), newCl->prop(),
+	    1, &premise, srec);
 
     //As long as we're sure that all occurences of the propositional
     //predicate get replaced, there is no need to add the premise

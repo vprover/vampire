@@ -195,6 +195,20 @@ public:
      */
     virtual void remove(TermList t) = 0;
 
+    /**
+     * Remove all children of the node without destroying them.
+     */
+    virtual void removeAllChildren() = 0;
+
+    void destroyChildren();
+
+    void makeEmpty()
+    {
+      Node::makeEmpty();
+      removeAllChildren();
+    }
+
+
     void loadChildren(NodeIterator children);
 
     unsigned childVar;
@@ -255,17 +269,16 @@ public:
     {
       _nodes[0]=0;
     }
+
     ~UArrIntermediateNode()
     {
-      for(int i=0;i<_size;i++) {
-	ASS(_nodes[i]);
-	delete _nodes[i];
+      if(!isEmpty()) {
+	destroyChildren();
       }
     }
 
-    void makeEmpty()
+    void removeAllChildren()
     {
-      IntermediateNode::makeEmpty();
       _size=0;
       _nodes[0]=0;
     }
@@ -306,17 +319,16 @@ public:
   public:
     SListIntermediateNode(unsigned childVar) : IntermediateNode(childVar) {}
     SListIntermediateNode(TermList ts, unsigned childVar) : IntermediateNode(ts, childVar) {}
+
     ~SListIntermediateNode()
     {
-      NodeSkipList::Iterator nit(_nodes);
-      while(nit.hasNext()) {
-        delete nit.next();
+      if(!isEmpty()) {
+	destroyChildren();
       }
     }
 
-    void makeEmpty()
+    void removeAllChildren()
     {
-      IntermediateNode::makeEmpty();
       while(!_nodes.isEmpty()) {
         _nodes.pop();
       }

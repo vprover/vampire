@@ -70,7 +70,7 @@ void Environment::checkTimeSometime() const
   if(counter==50000) {
     counter=0;
     if(timeLimitReached()) {
-	throw TimeLimitExceededException();
+      throw TimeLimitExceededException();
     }
   }
 }
