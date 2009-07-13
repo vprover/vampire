@@ -439,6 +439,8 @@ simplificationStart:
       }
       cl=rit.next();
 
+      env.checkTimeSometime<1000>();
+
       ASS(!rit.hasNext());
       goto simplificationStart;
     }
@@ -685,7 +687,6 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	  _active->remove(redundant);
 	  break;
 	default:
-	  cout<<"r: "<<(*redundant)<<endl;
 	  ASSERTION_VIOLATION;
 	}
 	redundant->setStore(Clause::NONE);
@@ -747,7 +748,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   BDD* bdd=BDD::instance();
   while(toAdd.hasNext()) {
-    env.checkTimeSometime();
+    env.checkTimeSometime<1000>();
 
     Clause* genCl=toAdd.next();
 

@@ -64,7 +64,7 @@ SaturationResult Otter::saturate()
 	c->setStore(Clause::NONE);
       }
 
-      if (env.timeLimitReached()) {
+      if(env.timeLimitReached()) {
 	return SaturationResult(Statistics::TIME_LIMIT);
       }
     }
@@ -79,5 +79,9 @@ SaturationResult Otter::saturate()
 
     Clause* c = _passive->popSelected();
     activate(c);
+
+    if(env.timeLimitReached()) {
+      return SaturationResult(Statistics::TIME_LIMIT);
+    }
   }
 }

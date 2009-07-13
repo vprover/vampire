@@ -153,9 +153,10 @@ SaturationResult LRS::saturate()
 
     Clause* c = _passive->popSelected();
     activate(c);
-//    if(env.timer->elapsedMilliseconds()>15000) {
-//      cout<<(*c)<<endl;
-//    }
+
+    if(env.timeLimitReached()) {
+      return SaturationResult(Statistics::TIME_LIMIT);
+    }
   }
 }
 

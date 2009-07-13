@@ -12,6 +12,8 @@
 
 #include "../Forwards.hpp"
 
+#include "Exception.hpp"
+
 using namespace std;
 
 namespace Kernel {
@@ -54,7 +56,19 @@ public:
   /** Currently used timer */
   Timer* timer;
   bool timeLimitReached() const;
-  void checkTimeSometime() const;
+
+  template<int Period>
+  void checkTimeSometime() const
+  {
+    static int counter=0;
+    counter++;
+    if(counter==Period) {
+      counter=0;
+      if(timeLimitReached()) {
+        throw TimeLimitExceededException();
+      }
+    }
+  }
   int remainingTime() const;
   /** Currently used ordering */
   Kernel::Ordering* ordering;
