@@ -429,6 +429,23 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   size_t index = (size-1)/PAGE_SIZE;
   size_t realSize = PAGE_SIZE*(index+1);
 
+  // check if the allocatio isn't too big
+  if(index>=MAX_PAGES) {
+#if 1
+    //TODO: just a quick solution for CASC
+    if(env.options->mode()==Options::MODE_SPIDER) {
+      env.out << "? " << env.options->problemName();
+      env.out << " " << env.timer->elapsedDeciseconds();
+      env.out << " " << env.options->testId() << "\n";
+    } else {
+      env.out << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
+      env.statistics->print();
+    }
+    abort();
+#else
+    throw Lib::MemoryLimitExceededException();
+#endif
+  }
   // check if there is a page in the skip list available
   if (_pages[index]) {
     result = _pages[index];
