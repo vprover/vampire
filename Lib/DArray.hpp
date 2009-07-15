@@ -108,7 +108,7 @@ public:
 
     C* newArr=static_cast<C*>(mem);
     C* ptr=static_cast<C*>(mem)+s;
-    while(ptr!=_array) {
+    while(ptr!=newArr) {
       new(--ptr) C;
     }
 
