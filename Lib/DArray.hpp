@@ -106,7 +106,12 @@ public:
 
     void* mem = ALLOC_KNOWN(sizeof(C)*s,"DArray<>");
 
-    _size = s;
+    C* newArr=static_cast<C*>(mem);
+    C* ptr=static_cast<C*>(mem)+s;
+    while(ptr!=_array) {
+      new(--ptr) C;
+    }
+
     if(_array) {
       C* p=_array+_capacity;
       while(p!=_array) {
@@ -114,8 +119,9 @@ public:
       }
       DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
     }
-    _capacity = _size;
-    _array = new(mem) C[_capacity];
+    _size = s;
+    _capacity = s;
+    _array = newArr;
     return false;
   } // ensure
 
