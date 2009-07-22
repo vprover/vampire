@@ -667,9 +667,9 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
 
   unsigned f = lhs->functor();
 
-//  if (occurs(f,*rhs)) {
-//    return 0;
-//  }
+  if (occurs(f,*rhs)) {
+    return 0;
+  }
   if (lhs->arity() == 0) {
     if (rhs->arity() != 0) { // c = f(...)
       return 0;
