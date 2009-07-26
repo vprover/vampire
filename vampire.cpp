@@ -30,17 +30,21 @@
 #include "Indexing/SubstitutionTree.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 
-#include "Shell/Options.hpp"
 #include "Shell/CommandLine.hpp"
+#include "Shell/Grounding.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Property.hpp"
+#include "Shell/Preprocess.hpp"
+#include "Shell/Refutation.hpp"
+#include "Shell/Statistics.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTP.hpp"
 #include "Shell/TPTPParser.hpp"
-#include "Shell/Property.hpp"
-#include "Shell/Preprocess.hpp"
-#include "Shell/Statistics.hpp"
-#include "Shell/Refutation.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+
+#include "SAT/DIMACS.hpp"
+#include "SAT/SATClause.hpp"
 
 
 #if CHECK_LEAKS
@@ -51,6 +55,7 @@
 #define SAVE_SPIDER_PROPERTIES 1
 
 using namespace Shell;
+using namespace SAT;
 using namespace Saturation;
 using namespace Inferences;
 
@@ -200,16 +205,14 @@ void groundingMode()
 //      cout<<"No clauses after preprocessing!\n";
 //    }
 
-    SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
-    salg->addInputClauses(clauses);
+    ClauseList* grounded=Grounding::simplyGround(clauses);
+    SATClauseList* sgnd=SATClause::fromFOClauses(pvi( ClauseList::DestructiveIterator(grounded) ));
+    DIMACS::outputProblem(sgnd, env.out);
 
-
-    SaturationResult sres(salg->saturate());
-    sres.updateStatistics();
   } catch(MemoryLimitExceededException) {
-    cerr<<"Memory limit exceeded\n";
+    env.out<<"Memory limit exceeded\n";
   } catch(TimeLimitExceededException) {
-    cerr<<"Time limit exceeded\n";
+    env.out<<"Time limit exceeded\n";
   }
 } // groundingMode
 

@@ -856,6 +856,12 @@ Literal* Literal::create(Literal* l,bool polarity)
   Literal* m = new(arity) Literal(*l);
   m->setPolarity(polarity);
 
+  TermList* ts = m->args();
+  TermList* ss = l->args();
+  while(ss->isNonEmpty()) {
+    *ts-- = *ss--;
+  }
+
   return env.sharing->insert(m);
 } // Literal::create
 

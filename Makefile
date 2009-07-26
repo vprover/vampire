@@ -149,6 +149,7 @@ VS_OBJ = Shell/CommandLine.o\
          Shell/EqualityProxy.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
+         Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/Lexer.o\
          Shell/Naming.o\

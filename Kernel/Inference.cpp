@@ -300,6 +300,8 @@ string Inference::ruleName(Rule rule)
     return "inequality splitting";
   case INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     return "inequality splitting name introduction";
+  case GROUNDING:
+    return "grounding";
 
   case SPLITTING:
     return "splitting";

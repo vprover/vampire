@@ -76,12 +76,16 @@ void SATClause::sort()
 
 SATClauseList* SATClause::fromFOClauses(ClauseIterator clauses)
 {
+  CALL("SATClause::fromFOClauses/1");
+
   NamingContext context;
   return fromFOClauses(context, clauses);
 }
 
 SATClauseList* SATClause::fromFOClauses(NamingContext& context, ClauseIterator clauses)
 {
+  CALL("SATClause::fromFOClauses/2");
+
   SATClauseList* res=0;
 
   while(clauses.hasNext()) {
@@ -101,6 +105,8 @@ SATClauseList* SATClause::fromFOClauses(NamingContext& context, ClauseIterator c
 
 SATLiteral SATClause::litToSAT(NamingContext& context, Literal* lit)
 {
+  CALL("SATClause::litToSAT");
+
   int num;
   if(context.map.find(lit, num)) {
     return SATLiteral(abs(num), num>0?1:0);
@@ -111,7 +117,7 @@ SATLiteral SATClause::litToSAT(NamingContext& context, Literal* lit)
     return SATLiteral(num, 1);
   }
 
-  Literal* posLit=lit->create(lit, true);
+  Literal* posLit=Literal::create(lit, true);
   if(context.map.find(posLit, num)) {
     context.map.insert(lit, -num);
     return SATLiteral(num, 0);
@@ -157,7 +163,7 @@ string SATClause::toDIMACSString() const
   string result;
   for(unsigned i=0;i<_length;i++) {
     ASS_G(_literals[i].var(),0);
-    if(i<0) {
+    if(i!=0) {
       result+=" ";
     }
     if(!_literals[i].polarity()) {
