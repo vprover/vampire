@@ -57,6 +57,7 @@ public:
     MEMORY_LIMIT,
     MODE,
 
+    NAME_PREFIX,
     NAMING,
     NONGOAL_WEIGHT_COEFFICIENT,
     NORMALIZE,
@@ -116,12 +117,13 @@ public:
    * @since 06/05/2007 Manchester
    */
   enum Mode {
-    MODE_CASC = 0,
-    MODE_OUTPUT = 1,
-    MODE_PROFILE = 2,
-    MODE_RULE = 3,
-    MODE_SPIDER = 4,
-    MODE_VAMPIRE = 5
+    MODE_CASC,
+    MODE_GROUNDING,
+    MODE_OUTPUT,
+    MODE_PROFILE,
+    MODE_RULE,
+    MODE_SPIDER,
+    MODE_VAMPIRE
   };
 
   /** Various options for the output of statistics in Vampire */
@@ -262,6 +264,7 @@ public:
   string xmlOutput() const { return _xmlOutput; }
 
   bool condensation() const { return _condensation; }
+  string namePrefix() const { return _namePrefix; }
 
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal) { _inputFile = newVal; }
@@ -317,6 +320,7 @@ private:
   int _memoryLimit;
   Mode _mode;
 
+  string _namePrefix;
   int _naming;
   float _nongoalWeightCoefficient;
   bool _normalize;

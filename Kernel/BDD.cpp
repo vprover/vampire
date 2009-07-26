@@ -40,7 +40,7 @@ BDD* BDD::instance()
 }
 
 BDD::BDD()
-: _newVar(0)
+: _newVar(1)
 {
   _trueNode._var=-1;
   _falseNode._var=-1;

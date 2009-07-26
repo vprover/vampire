@@ -12,6 +12,7 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "SAT/ClauseSharing.hpp"
+#include "SAT/DIMACS.hpp"
 #include "SAT/Preprocess.hpp"
 #include "SAT/SingleWatchSAT.hpp"
 #include "SAT/TWLSolver.hpp"
@@ -30,7 +31,7 @@ using namespace std;
 void runIncrementallyOnFile(const char* fname)
 {
   unsigned maxVar;
-  SATClauseIterator cit=Preprocess::removeDuplicateLiterals( Preprocess::parseDIMACS(fname, maxVar) );
+  SATClauseIterator cit=Preprocess::removeDuplicateLiterals( DIMACS::parse(fname, maxVar) );
   unsigned varCnt=maxVar+1;
 
   Stack<SATClause*> cls;
@@ -67,7 +68,7 @@ void runIncrementallyOnFile(const char* fname)
 void runOnFile(const char* fname)
 {
   unsigned maxVar;
-  SATClauseIterator cit=Preprocess::removeDuplicateLiterals( Preprocess::parseDIMACS(fname, maxVar) );
+  SATClauseIterator cit=Preprocess::removeDuplicateLiterals( DIMACS::parse(fname, maxVar) );
   unsigned varCnt=maxVar+1;
 
   Stack<SATClause*> cls;

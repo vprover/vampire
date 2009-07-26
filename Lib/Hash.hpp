@@ -51,7 +51,8 @@ struct IdentityHash
   { return static_cast<unsigned>(val); }
 };
 
-struct PtrIdentityHash {
+struct PtrIdentityHash
+{
   static unsigned hash(void* ptr) {
     return static_cast<unsigned>(reinterpret_cast<size_t>(ptr));
   }

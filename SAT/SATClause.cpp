@@ -7,7 +7,11 @@
 #include <ostream>
 
 #include "../Lib/Allocator.hpp"
+#include "../Lib/DHMap.hpp"
 #include "../Lib/Int.hpp"
+
+#include "../Kernel/Clause.hpp"
+#include "../Kernel/Term.hpp"
 
 //#include "Inference.hpp"
 
@@ -24,7 +28,7 @@ using namespace Lib;
  */
 void* SATClause::operator new(size_t sz,unsigned lits)
 {
-  CALL("SATKernel::SATClause::operator new");
+  CALL("SATClause::operator new");
 
   //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
   //this way, because _length-1 wouldn't behave well for
@@ -44,11 +48,7 @@ void* SATClause::operator new(size_t sz,unsigned lits)
  */
 void SATClause::destroy()
 {
-  CALL("SATKernel::SATClause::destroy");
-
-#if !NO_CLAUSE_INFO
-  _inference->destroy();
-#endif
+  CALL("SATClause::destroy");
 
   //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
   //this way, because _length-1 wouldn't behave well for
@@ -74,13 +74,63 @@ void SATClause::sort()
 }
 
 
+SATClauseList* SATClause::fromFOClauses(ClauseIterator clauses)
+{
+  NamingContext context;
+  return fromFOClauses(context, clauses);
+}
+
+SATClauseList* SATClause::fromFOClauses(NamingContext& context, ClauseIterator clauses)
+{
+  SATClauseList* res=0;
+
+  while(clauses.hasNext()) {
+    Clause* cl=clauses.next();
+    unsigned clen=cl->length();
+    SATClause* rcl=new(clen) SATClause(clen);
+
+    for(unsigned i=0;i<clen;i++) {
+      ASS_REP((*cl)[i]->ground(), *(*cl)[i]);
+      (*rcl)[i]=litToSAT(context, (*cl)[i]);
+    }
+    SATClauseList::push(rcl, res);
+  }
+
+  return res;
+}
+
+SATLiteral SATClause::litToSAT(NamingContext& context, Literal* lit)
+{
+  int num;
+  if(context.map.find(lit, num)) {
+    return SATLiteral(abs(num), num>0?1:0);
+  }
+  if(lit->isPositive()) {
+    num=context.nextVar++;
+    context.map.insert(lit, num);
+    return SATLiteral(num, 1);
+  }
+
+  Literal* posLit=lit->create(lit, true);
+  if(context.map.find(posLit, num)) {
+    context.map.insert(lit, -num);
+    return SATLiteral(num, 0);
+  }
+
+  num=context.nextVar++;
+
+  context.map.insert(posLit, num);
+  context.map.insert(lit, -num);
+  return SATLiteral(num, 0);
+}
+
+
 /**
  * Convert the clause to the string representation.
- * @since 20/05/2007 Manchester
  */
 string SATClause::toString() const
 {
-  CALL("SATKernel::SATClause::toString");
+  CALL("SATClause::toString");
 
   string result;
   if (_length == 0) {
@@ -96,6 +146,28 @@ string SATClause::toString() const
   }
   return result;
 } // SATClause::toString
+
+/**
+ * Convert the clause to the DIMACS string representation.
+ */
+string SATClause::toDIMACSString() const
+{
+  CALL("SATClause::toDIMACSString");
+
+  string result;
+  for(unsigned i=0;i<_length;i++) {
+    ASS_G(_literals[i].var(),0);
+    if(i<0) {
+      result+=" ";
+    }
+    if(!_literals[i].polarity()) {
+      result+="-";
+    }
+    result += Int::toString(_literals[i].var());
+  }
+  result+=" 0";
+  return result;
+}
 
 
 };

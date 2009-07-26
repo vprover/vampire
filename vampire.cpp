@@ -56,33 +56,39 @@ using namespace Inferences;
 
 UnitList* globUnitList=0;
 
-void doProving()
+ClauseIterator getInputClauses()
 {
-  CALL("doProving()");
-  try {
-    env.signature = new Kernel::Signature;
-    UnitList* units;
-    {
-      string inputFile = env.options->inputFile();
-      ifstream input(inputFile.c_str());
-      TPTPLexer lexer(input);
-      TPTPParser parser(lexer);
-      units = parser.units();
-    }
+  env.signature = new Kernel::Signature;
+  UnitList* units;
+  {
+    string inputFile = env.options->inputFile();
+    ifstream input(inputFile.c_str());
+    TPTPLexer lexer(input);
+    TPTPParser parser(lexer);
+    units = parser.units();
+  }
 
 //    if(units==0) {
 //      cout<<"Empty units list!\n";
 //    }
 
-    Property property;
-    property.scan(units);
+  Property property;
+  property.scan(units);
 
-    Preprocess prepro(property,*env.options);
-    prepro.preprocess(units);
+  Preprocess prepro(property,*env.options);
+  prepro.preprocess(units);
 
-    globUnitList=units;
+  globUnitList=units;
 
-    ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
+  return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
+
+}
+
+void doProving()
+{
+  CALL("doProving()");
+  try {
+    ClauseIterator clauses=getInputClauses();
 
 //    if(!clauses.hasNext()) {
 //      cout<<"No clauses after preprocessing!\n";
@@ -183,6 +189,30 @@ void spiderMode()
   env.out << "\n";
 } // spiderMode
 
+void groundingMode()
+{
+  CALL("groundingMode()");
+
+  try {
+    ClauseIterator clauses=getInputClauses();
+
+//    if(!clauses.hasNext()) {
+//      cout<<"No clauses after preprocessing!\n";
+//    }
+
+    SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
+    salg->addInputClauses(clauses);
+
+
+    SaturationResult sres(salg->saturate());
+    sres.updateStatistics();
+  } catch(MemoryLimitExceededException) {
+    cerr<<"Memory limit exceeded\n";
+  } catch(TimeLimitExceededException) {
+    cerr<<"Time limit exceeded\n";
+  }
+} // groundingMode
+
 
 void explainException (Exception& exception)
 {
@@ -222,18 +252,21 @@ int main(int argc, char* argv [])
     env.statistics = &statistics;
 
     switch (options.mode())
-      {
-      case Options::MODE_VAMPIRE:
-	vampireMode();
-	break;
-      case Options::MODE_SPIDER:
-	spiderMode();
-	break;
+    {
+    case Options::MODE_GROUNDING:
+      groundingMode();
+      break;
+    case Options::MODE_SPIDER:
+      spiderMode();
+      break;
+    case Options::MODE_VAMPIRE:
+      vampireMode();
+      break;
 #if VDEBUG
-      default:
-  	ASSERTION_VIOLATION;
+    default:
+      ASSERTION_VIOLATION;
 #endif
-      }
+    }
 #if CHECK_LEAKS
     if(globUnitList) {
       MemoryLeak leak;

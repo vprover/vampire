@@ -10,6 +10,11 @@
 
 namespace Lib
 {
+class Hash;
+struct IdentityHash;
+struct PtrIdentityHash;
+
+
 template<typename T> class VirtualIterator;
 template<typename T> class SmartPtr;
 template<typename T> class SingleParamEvent;
@@ -23,6 +28,8 @@ template<typename T> class ArrayishObjectIterator;
 template<typename T> class ArrayMap;
 
 typedef List<int> IntList;
+
+template <typename Key, typename Val, class Hash1=Hash, class Hash2=Hash> class DHMap;
 
 
 class BacktrackData;

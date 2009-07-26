@@ -1,9 +1,11 @@
-/**  
+/**
  * @file Signature.cpp
  * Implements class Signature consisting of predicate and function symbols
  */
 
+#include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
+#include "../Shell/Options.hpp"
 #include "Signature.hpp"
 
 using namespace std;
@@ -30,7 +32,7 @@ Signature::Signature ()
  * Destroy a Signature.
  * @since 07/05/2007 Manchester
  */
-Signature::~Signature () 
+Signature::~Signature ()
 {
   for (int i = _funs.length()-1;i >= 0;i--) {
     delete _funs[i];
@@ -117,6 +119,7 @@ unsigned Signature::addNamePredicate (unsigned arity)
   CALL("Signature::addNamePredicate");
 
   string prefix("$n");
+  prefix+=env.options->namePrefix();
   for (;;) {
     string name = prefix + Int::toString(_lastName++);
     bool added;
@@ -136,6 +139,7 @@ unsigned Signature::addSkolemFunction (unsigned arity)
   CALL("Signature::addSkolemFunction");
 
   string prefix("$sk");
+  prefix+=env.options->namePrefix();
   for (;;) {
     string name = prefix + Int::toString(_lastSkolem++);
     bool added;

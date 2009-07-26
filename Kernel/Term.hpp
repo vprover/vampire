@@ -191,6 +191,7 @@ public:
   Term();
   explicit Term(const Term& t);
   void orderArguments();
+  static Term* create(unsigned function, unsigned arity, TermList* args);
   static Term* create(Term* t,TermList* args);
   static Term* createNonShared(Term* t,TermList* args);
   static Term* createNonShared(Term* t);
@@ -714,6 +715,7 @@ public:
   /** set polarity to true or false */
   void setPolarity(bool positive)
   { _args[0]._info.polarity = positive ? 1 : 0; }
+  static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
   static Literal* createEquality (bool polarity, TermList arg1, TermList arg2);
 

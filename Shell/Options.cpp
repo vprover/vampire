@@ -97,6 +97,7 @@ const char* Options::Constants::_optionNames[] = {
   "memory_limit",
   "mode",
 
+  "name_prefix",
   "naming",
   "nongoal_weight_coefficient",
   "normalize",
@@ -257,6 +258,7 @@ NameArray Options::Constants::tcValues(_tcValues,
 
 const char* Options::Constants::_modeValues[] = {
   "casc",
+  "grounding",
   "output",
   "profile",
   "rule",
@@ -313,6 +315,7 @@ Options::Options ()
   _memoryLimit(700),
   _mode(MODE_VAMPIRE),
 
+  _namePrefix(""),
   _naming(8),
 
   _nongoalWeightCoefficient(1.0),
@@ -519,6 +522,9 @@ void Options::set (const char* name,const char* value, int index)
     }
     return;
 
+  case NAME_PREFIX:
+    _namePrefix = value;
+    return;
   case NAMING:
     if (Int::stringToUnsignedInt(value,intValue) &&
 	setNaming(intValue)) {
@@ -944,6 +950,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << Constants::modeValues[_mode];
     return;
 
+  case NAME_PREFIX:
+    str << _namePrefix;
+    return;
   case NAMING:
     str << _naming;
     return;

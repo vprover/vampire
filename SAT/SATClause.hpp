@@ -21,12 +21,11 @@
 
 #include "SATLiteral.hpp"
 
-#define NO_CLAUSE_INFO 1
-
 namespace SAT {
 
 using namespace std;
 using namespace Lib;
+using namespace Kernel;
 
 /**
  * Class to represent clauses.
@@ -39,7 +38,7 @@ public:
   DECL_ITERATOR_TYPE(ArrayishObjectIterator<SATClause>);
 
   /** New clause */
-  SATClause(unsigned length,bool kept)
+  SATClause(unsigned length,bool kept=true)
     : _length(length), _kept(kept?1:0), _genCounter(0xFFFFFFFF)
   {}
 
@@ -90,11 +89,31 @@ public:
   void destroy();
 
   string toString() const;
+  string toDIMACSString() const;
+
+  /**
+   * A numbering of literals for conversion of ground Clause objects into
+   * SATClause objects.
+   *
+   * Positive literals are assigned positive numbers, and
+   * negative ones assigned negative numbers.
+   *
+   * For each negative literal numbered as @b -n, the map must contain
+   * also its positive counterpart numbered as @b n.
+   */
+  struct NamingContext {
+    NamingContext() : nextVar(1) {}
+
+    DHMap<Literal*, int, PtrIdentityHash> map;
+    unsigned nextVar;
+  };
+  static SATClauseList* fromFOClauses(ClauseIterator clauses);
+  static SATClauseList* fromFOClauses(NamingContext& context, ClauseIterator clauses);
 
 
 protected:
+  static SATLiteral litToSAT(NamingContext& context, Literal* lit);
 
-  string inferenceAsString() const;
 
   /** number of literals */
   unsigned _length : 31;

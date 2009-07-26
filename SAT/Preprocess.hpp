@@ -28,8 +28,6 @@ public:
   static SATClauseIterator generate(unsigned literalsPerClause,
 	  unsigned varCnt, float clausesPerVariable);
 
-  static SATClauseIterator parseDIMACS(const char* fname, unsigned& maxVar);
-
 protected:
   static void createVarProfile(unsigned var, DArray<unsigned>& profile, DArray<SATClauseList*>& clsByVar,
       Set<unsigned>& fixed);

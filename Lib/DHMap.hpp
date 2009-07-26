@@ -99,7 +99,7 @@ extern const unsigned DHMapTableCapacities[];
  *	  will be used when collision occurs. Otherwise it will not be
  *	  enumerated.
  */
-template <typename Key, typename Val, class Hash1=Hash, class Hash2=Hash>
+template <typename Key, typename Val, class Hash1, class Hash2>
 class DHMap
 {
 public:
