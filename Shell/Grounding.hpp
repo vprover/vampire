@@ -21,6 +21,8 @@ class Grounding
 public:
   static ClauseList* simplyGround(ClauseIterator clauses);
 
+  static ClauseList* addEqualityAxioms(bool otherThanReflexivity);
+
 private:
   struct GroundingApplicator;
 };

@@ -546,10 +546,8 @@ Term* Term::create(Term* t,TermList* args)
   return env.sharing->insert(s);
 }
 
-/** Create a new complex term, copy from @b t its function symbol and
- *  from the array @b args its arguments. Insert it into the sharing
+/** Create a new complex term, and insert it into the sharing
  *  structure.
- * @since 07/01/2008 Torrevieja
  */
 Term* Term::create(unsigned function, unsigned arity, TermList* args)
 {
@@ -843,6 +841,25 @@ unsigned Term::computeDistinctVars() const
   return vars.numberOfElements();
 }
 
+/** Create a new literal, and insert it into the sharing
+ *  structure.
+ */
+Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args)
+{
+  CALL("Literal::create/4");
+  ASS_G(predicate, 0); //equality is to be created by createEquality
+  ASS_EQ(env.signature->predicateArity(predicate), arity);
+
+
+  Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
+
+  TermList* ss = l->args();
+  for (int i = 0;i < arity;i++) {
+    *ss-- = args[i];
+  }
+  return env.sharing->insert(l);
+}
+
 /** Create a new literal, copy from @b l its predicate symbol and
  *  its arguments, and set its polarity to @b polarity. Insert it
  *  into the sharing structure.
@@ -850,7 +867,7 @@ unsigned Term::computeDistinctVars() const
  */
 Literal* Literal::create(Literal* l,bool polarity)
 {
-  CALL("Literal::create");
+  CALL("Literal::create(Literal*,bool)");
 
   int arity = l->arity();
   Literal* m = new(arity) Literal(*l);
@@ -872,7 +889,7 @@ Literal* Literal::create(Literal* l,bool polarity)
  */
 Literal* Literal::create(Literal* l,TermList* args)
 {
-  CALL("Literal::create");
+  CALL("Literal::create(Literal*,TermList*)");
 
   int arity = l->arity();
   Literal* m = new(arity) Literal(*l);

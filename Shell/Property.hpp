@@ -119,6 +119,10 @@ public:
   int hornClauses () const { return _hornGoals + _hornAxioms; }
   /** Total number of atoms in the problem */
   int atoms() const { return _atoms; }
+  /** Total number of equality atoms in the problem */
+  int equalityAtoms() const { return _equalityAtoms; }
+  /** Total number of positive equality atoms in the problem */
+  int positiveEqualityAtoms() const { return _positiveEqualityAtoms; }
   /** True if has formulas */
   bool hasFormulas () const { return _axiomFormulas || _goalFormulas; }
 
@@ -158,6 +162,7 @@ public:
   int _goalClauses;
   int _axiomClauses;
 
+  int _positiveEqualityAtoms;
   int _equalityAtoms;
   int _atoms;
 

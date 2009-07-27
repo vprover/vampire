@@ -302,6 +302,8 @@ string Inference::ruleName(Rule rule)
     return "inequality splitting name introduction";
   case GROUNDING:
     return "grounding";
+  case EQUALITY_AXIOM:
+    return "equality axiom";
 
   case SPLITTING:
     return "splitting";

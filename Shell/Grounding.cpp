@@ -99,6 +99,7 @@ ClauseList* Grounding::simplyGround(ClauseIterator clauses)
   while(clauses.hasNext()) {
     Clause* cl=clauses.next();
     unsigned clen=cl->length();
+    cout<<"#"<<(*cl)<<endl;
 
     ga.initForClause(cl);
     while(ga.newAssignment()) {
@@ -109,12 +110,68 @@ ClauseList* Grounding::simplyGround(ClauseIterator clauses)
 	(*rcl)[i]=SubstHelper::apply((*cl)[i], ga);
       }
 
-//      cout<<(*rcl)<<endl;
+      cout<<(*rcl)<<endl;
       ClauseList::push(rcl, res);
     }
   }
 
   return res;
 }
+
+ClauseList* Grounding::addEqualityAxioms(bool otherThanReflexivity)
+{
+  CALL("Grounding::addEqualityAxioms");
+
+  ClauseList* res=0;
+
+  Clause* axR = new(1) Clause(1, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
+  (*axR)[0]=Literal::createEquality(true, TermList(0,false),TermList(0,false));
+  ClauseList::push(axR,res);
+
+  if(otherThanReflexivity) {
+    Clause* axT = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
+    (*axT)[0]=Literal::createEquality(false,TermList(0,false),TermList(1,false));
+    (*axT)[1]=Literal::createEquality(false,TermList(0,false),TermList(2,false));
+    (*axT)[2]=Literal::createEquality(true,TermList(2,false),TermList(1,false));
+    ClauseList::push(axT,res);
+
+    DArray<TermList> args;
+    Literal* eqLit=0;
+    int preds=env.signature->predicates();
+    for(int pred=1;pred<preds;pred++) { //we skip equality predicate, as transitivity was added above
+      unsigned arity=env.signature->predicateArity(pred);
+      if(arity==0) {
+	continue;
+      }
+
+      if(!eqLit) {
+	eqLit=Literal::createEquality(false, TermList(0,false),TermList(1,false));
+      }
+
+      args.ensure(arity);
+      for(unsigned i=0;i<arity;i++) {
+	args[i]=TermList(i+2, false);
+      }
+
+      for(unsigned i=0;i<arity;i++) {
+
+	Clause* axCong = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
+	(*axCong)[0]=eqLit;
+
+	TermList iArg=args[i];
+	args[i]=TermList(0,false);
+	(*axCong)[1]=Literal::create(pred, arity, false, false, args.array());
+	args[i]=TermList(1,false);
+	(*axCong)[2]=Literal::create(pred, arity, true, false, args.array());
+	args[i]=iArg;
+
+	ClauseList::push(axCong,res);
+      }
+    }
+  }
+
+  return res;
+}
+
 
 }

@@ -16,6 +16,7 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
 
+#include "Lib/List.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -61,7 +62,7 @@ using namespace Inferences;
 
 UnitList* globUnitList=0;
 
-ClauseIterator getInputClauses()
+ClauseIterator getInputClauses(Property& property)
 {
   env.signature = new Kernel::Signature;
   UnitList* units;
@@ -77,7 +78,6 @@ ClauseIterator getInputClauses()
 //      cout<<"Empty units list!\n";
 //    }
 
-  Property property;
   property.scan(units);
 
   Preprocess prepro(property,*env.options);
@@ -93,7 +93,9 @@ void doProving()
 {
   CALL("doProving()");
   try {
-    ClauseIterator clauses=getInputClauses();
+    Property property;
+
+    ClauseIterator clauses=getInputClauses(property);
 
 //    if(!clauses.hasNext()) {
 //      cout<<"No clauses after preprocessing!\n";
@@ -199,11 +201,13 @@ void groundingMode()
   CALL("groundingMode()");
 
   try {
-    ClauseIterator clauses=getInputClauses();
+    Property property;
+    ClauseIterator clauses=getInputClauses(property);
 
-//    if(!clauses.hasNext()) {
-//      cout<<"No clauses after preprocessing!\n";
-//    }
+    if(property.equalityAtoms()) {
+      ClauseList* eqAxioms=Grounding::addEqualityAxioms(property.positiveEqualityAtoms()!=0);
+      clauses=pvi( getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms), clauses) );
+    }
 
     ClauseList* grounded=Grounding::simplyGround(clauses);
     SATClauseList* sgnd=SATClause::fromFOClauses(pvi( ClauseList::DestructiveIterator(grounded) ));

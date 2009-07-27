@@ -164,6 +164,8 @@ public:
     INEQUALITY_SPLITTING_NAME_INTRODUCTION = 59u,
     /** grounding */
     GROUNDING = 60u,
+    /** equality axiom */
+    EQUALITY_AXIOM = 61u,
 
 
 

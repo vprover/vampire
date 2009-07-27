@@ -30,6 +30,7 @@ using namespace Shell;
 Property::Property ()
   : _goalClauses (0),
     _axiomClauses (0),
+    _positiveEqualityAtoms (0),
     _equalityAtoms (0),
     _atoms (0),
     _goalFormulas (0),
@@ -162,6 +163,7 @@ void Property::scan (Clause* clause)
   int positiveLiterals = 0;
   int negativeLiterals = 0;
   int equationalLiterals = 0;
+  int positiveEquationalLiterals = 0;
   int groundLiterals = 0;
   _variablesInThisClause = 0;
 
@@ -176,6 +178,9 @@ void Property::scan (Clause* clause)
 
     if (literal->isEquality()) {
       equationalLiterals++;
+      if (literal->isPositive()) {
+	positiveEquationalLiterals++;
+      }
     }
 
     bool isGround = true;
@@ -191,6 +196,7 @@ void Property::scan (Clause* clause)
   if ( equationalLiterals > 0 ) {
     _equationalClauses ++;
     _equalityAtoms += equationalLiterals;
+    _positiveEqualityAtoms += positiveEquationalLiterals;
   }
   if ( literals == equationalLiterals ) {
     _pureEquationalClauses ++;
@@ -281,6 +287,9 @@ void Property::scan (Formula* formula)
       Literal* lit = f->literal();
       if (lit->isEquality()) {
 	_equalityAtoms++;
+	if (lit->isPositive()) {
+	  _positiveEqualityAtoms++;
+	}
       }
       bool dummy = false;
       scan(lit,dummy);

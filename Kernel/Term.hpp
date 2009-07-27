@@ -715,6 +715,8 @@ public:
   /** set polarity to true or false */
   void setPolarity(bool positive)
   { _args[0]._info.polarity = positive ? 1 : 0; }
+  static Literal* create(unsigned predicate, unsigned arity, bool polarity,
+	  bool commutative, TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
   static Literal* createEquality (bool polarity, TermList arg1, TermList arg2);
