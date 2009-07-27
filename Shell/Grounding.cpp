@@ -99,7 +99,7 @@ ClauseList* Grounding::simplyGround(ClauseIterator clauses)
   while(clauses.hasNext()) {
     Clause* cl=clauses.next();
     unsigned clen=cl->length();
-    cout<<"#"<<(*cl)<<endl;
+//    cout<<"#"<<(*cl)<<endl;
 
     ga.initForClause(cl);
     while(ga.newAssignment()) {
@@ -110,7 +110,7 @@ ClauseList* Grounding::simplyGround(ClauseIterator clauses)
 	(*rcl)[i]=SubstHelper::apply((*cl)[i], ga);
       }
 
-      cout<<(*rcl)<<endl;
+//      cout<<(*rcl)<<endl;
       ClauseList::push(rcl, res);
     }
   }
