@@ -94,7 +94,9 @@ public:
      *  ~theorem(X) \/ ~theorem(or(not(X),Y)) \/ theorem(Y) */
     PR_HAS_CONDENSED_DETACHMENT2 = 16384u,
     PR_HAS_FLD1                  = 32768u,
-    PR_HAS_FLD2                  = 65536u
+    PR_HAS_FLD2                  = 65536u,
+    /** Problem contains literal X=t with t non-containing X */
+    PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION = 131072u
   };
 
  public:

@@ -39,7 +39,7 @@ public:
   static const char* _satAlgValues[];
   static const char* _equalityProxyValues[];
   static const char* _modeValues[];
-  static const char* _splittingValues[];
+  static const char* _ruleActivityValues[];
   static const char* _symbolPrecedenceValues[];
   static const char* _tcValues[];
   static const char* _proofValues[];
@@ -55,7 +55,7 @@ public:
   static NameArray satAlgValues;
   static NameArray equalityProxyValues;
   static NameArray modeValues;
-  static NameArray splittingValues;
+  static NameArray ruleActivityValues;
   static NameArray symbolPrecedenceValues;
   static NameArray tcValues;
   static NameArray proofValues;
@@ -235,12 +235,12 @@ const char* Options::Constants::_equalityProxyValues[] = {
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
 						  sizeof(_equalityProxyValues)/sizeof(char*));
 
-const char* Options::Constants::_splittingValues[] = {
+const char* Options::Constants::_ruleActivityValues[] = {
   "input_only",
   "off",
   "on"};
-NameArray Options::Constants::splittingValues(_splittingValues,
-					      sizeof(_splittingValues)/sizeof(char*));
+NameArray Options::Constants::ruleActivityValues(_ruleActivityValues,
+					      sizeof(_ruleActivityValues)/sizeof(char*));
 
 const char* Options::Constants::_symbolPrecedenceValues[] = {
   "arity",
@@ -291,7 +291,7 @@ Options::Options ()
   _condensation(false),
 
   _equalityProxy(EP_OFF),
-  _equalityResolutionWithDeletion(false),
+  _equalityResolutionWithDeletion(RA_INPUT_ONLY),
 
   _forwardDemodulation(DEMODULATION_ALL),
   _forwardSubsumption(true),
@@ -339,7 +339,7 @@ Options::Options ()
   _showPassive(false),
   _simulatedTimeLimit(0),
   _sos(false),
-  _splitting(SPLIT_INPUT_ONLY),
+  _splitting(RA_INPUT_ONLY),
   _statistics(STATISTICS_FULL),
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
@@ -425,7 +425,10 @@ void Options::set (const char* name,const char* value, int index)
     return;
 
   case EQUALITY_RESOLUTION_WITH_DELETION:
-    _equalityResolutionWithDeletion = onOffToBool(value,name);
+    _equalityResolutionWithDeletion = (RuleActivity)Constants::ruleActivityValues.find(value);
+    if (_equalityResolutionWithDeletion == -1) {
+      break;
+    }
     return;
 
   case FORWARD_DEMODULATION:
@@ -603,7 +606,7 @@ void Options::set (const char* name,const char* value, int index)
     _sos = onOffToBool(value,name);
     return;
   case SPLITTING:
-    _splitting = (Splitting)Constants::splittingValues.find(value);
+    _splitting = (RuleActivity)Constants::ruleActivityValues.find(value);
     if (_splitting == -1) {
       break;
     }
@@ -723,27 +726,22 @@ bool Options::setSelection(int sel)
 {
   CALL("Options::setSelection");
 
-  _selection = sel;
-  return true;
-//  switch (sel) {
-//  case -11:
-//  case -16:
-//  case -1012:
-//  case 8:
-//  case 10:
-//  case 11:
-//  case 13:
-//  case 16:
-//  case 17:
-//  case 1010:
-//  case 1011:
-//  case 1012:
-//  case 1013:
-//    _selection = sel;
-//    return true;
-//  default:
-//    return false;
-//  }
+  switch (sel) {
+  case 0:
+  case 1:
+  case 2:
+  case 3:
+  case 4:
+  case 10:
+  case 1002:
+  case 1003:
+  case 1004:
+  case 1010:
+    _selection = sel;
+    return true;
+  default:
+    return false;
+  }
 } // Options::setSelection
 
 
@@ -892,7 +890,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << Constants::equalityProxyValues[_equalityProxy];
     return;
   case EQUALITY_RESOLUTION_WITH_DELETION:
-    str << boolToOnOff(_equalityResolutionWithDeletion);
+    str << Constants::ruleActivityValues[_equalityResolutionWithDeletion];
     return;
 
   case FORWARD_DEMODULATION:
@@ -1015,7 +1013,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_sos);
     return;
   case SPLITTING:
-    str << Constants::splittingValues[_splitting];
+    str << Constants::ruleActivityValues[_splitting];
     return;
   case STATISTICS:
     str << Constants::statisticsValues[_statistics];
@@ -1333,7 +1331,7 @@ bool Options::complete () const
 {
   CALL("Options::complete");
 
-  return ! _equalityResolutionWithDeletion &&
+  return (_equalityResolutionWithDeletion != RA_ON ) &&
          (_literalComparisonMode != LCM_REVERSE) &&
          _selection < 20 &&
          _selection > -20 &&

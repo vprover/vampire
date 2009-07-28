@@ -144,10 +144,10 @@ public:
    };
 
   /** Possible values for splitting */
-  enum Splitting {
-    SPLIT_INPUT_ONLY = 0,
-    SPLIT_OFF = 1,
-    SPLIT_ON = 2
+  enum RuleActivity {
+    RA_INPUT_ONLY = 0,
+    RA_OFF = 1,
+    RA_ON = 2
   };
 
   enum LiteralComparisonMode {
@@ -222,7 +222,7 @@ public:
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
   bool weightIncrement() const { return _weightIncrement; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm; }
-  Splitting splitting() const { return _splitting; }
+  RuleActivity splitting() const { return _splitting; }
   int selection() const { return _selection; }
   bool setSelection(int newValue);
   string latexOutput() const { return _latexOutput; }
@@ -255,7 +255,7 @@ public:
   int weightRatio() const { return _weightRatio; }
   bool superpositionFromVariables() const { return _superpositionFromVariables; }
   EqualityProxy equalityProxy() const { return _equalityProxy; }
-  bool equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion; }
+  RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion; }
   float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient; }
   bool setNongoalWeightCoefficient(float newVal);
   bool sos() const { return _sos; }
@@ -296,7 +296,7 @@ private:
   bool _condensation;
 
   EqualityProxy _equalityProxy;
-  bool _equalityResolutionWithDeletion;
+  RuleActivity _equalityResolutionWithDeletion;
 
   Demodulation _forwardDemodulation;
   bool _forwardSubsumption;
@@ -343,7 +343,7 @@ private:
   bool _showPassive;
   int _simulatedTimeLimit;
   bool _sos;
-  Splitting _splitting;
+  RuleActivity _splitting;
   Statistics _statistics;
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;

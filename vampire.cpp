@@ -62,8 +62,10 @@ using namespace Inferences;
 
 UnitList* globUnitList=0;
 
-ClauseIterator getInputClauses(Property& property)
+ClauseIterator getInputClauses()
 {
+  Property property;
+
   env.signature = new Kernel::Signature;
   UnitList* units;
   {
@@ -93,9 +95,8 @@ void doProving()
 {
   CALL("doProving()");
   try {
-    Property property;
 
-    ClauseIterator clauses=getInputClauses(property);
+    ClauseIterator clauses=getInputClauses();
 
 //    if(!clauses.hasNext()) {
 //      cout<<"No clauses after preprocessing!\n";

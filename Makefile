@@ -146,6 +146,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 
 VS_OBJ = Shell/CommandLine.o\
          Shell/CNF.o\
+         Shell/EqResWithDeletion.o\
          Shell/EqualityProxy.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\

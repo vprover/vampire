@@ -319,6 +319,16 @@ void Property::scan (Literal* lit, bool& isGround)
   }
 
   scan(lit->args(),isGround);
+
+  if(!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality()
+	  && lit->isNegative() && !isGround) {
+    if( ( lit->nthArgument(0)->isVar() &&
+	    !lit->nthArgument(1)->containsSubterm(*lit->nthArgument(0)) ) ||
+	( lit->nthArgument(1)->isVar() &&
+    	    !lit->nthArgument(0)->containsSubterm(*lit->nthArgument(1)) )) {
+      addProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION);
+    }
+  }
 } // Property::scan (const Atom& term, bool& isGround)
 
 

@@ -11,6 +11,7 @@
 #include "../Kernel/Clause.hpp"
 
 #include "CNF.hpp"
+#include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
@@ -209,6 +210,12 @@ void Preprocess::preprocess (UnitList*& units)
 //       break;
 //     }
 //   }
+
+   if (_options.equalityResolutionWithDeletion()!=Options::RA_OFF &&
+	   _property.hasProp(Property::PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) ) {
+     EqResWithDeletion resolver;
+     resolver.apply(units);
+   }
 
    if (_options.equalityProxy()!=Options::EP_OFF &&
 	   (_property.hasProp(Property::PR_HAS_X_EQUALS_Y) ||

@@ -63,8 +63,10 @@ using namespace Inferences;
 
 UnitList* globUnitList=0;
 
-ClauseIterator getInputClauses(Property& property)
+ClauseIterator getInputClauses(Property& preprocessedProperty)
 {
+  Property property;
+
   env.signature = new Kernel::Signature;
   UnitList* units;
   {
@@ -80,6 +82,8 @@ ClauseIterator getInputClauses(Property& property)
   Preprocess prepro(property,*env.options);
   prepro.preprocess(units);
 
+  preprocessedProperty.scan(units);
+
   globUnitList=units;
 
   return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
@@ -91,11 +95,13 @@ void groundingMode()
   CALL("groundingMode()");
 
   try {
-    Property property;
-    ClauseIterator clauses=getInputClauses(property);
+    Property newProperty;
+    ClauseIterator clauses=getInputClauses(newProperty);
 
-    if(property.equalityAtoms()) {
-      ClauseList* eqAxioms=Grounding::getEqualityAxioms(property.positiveEqualityAtoms()!=0);
+
+
+    if(newProperty.equalityAtoms()) {
+      ClauseList* eqAxioms=Grounding::getEqualityAxioms(newProperty.positiveEqualityAtoms()!=0);
       clauses=pvi( getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms), clauses) );
     }
 

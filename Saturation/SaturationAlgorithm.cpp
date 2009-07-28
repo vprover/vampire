@@ -36,8 +36,8 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
 	LiteralSelectorSP selector)
 : _imgr(this), _passive(passiveContainer), _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector)
 {
-  _performSplitting= env.options->splitting()!=Options::SPLIT_OFF;
-  _someSplitting= env.options->splitting()!=Options::SPLIT_OFF;
+  _performSplitting= env.options->splitting()!=Options::RA_OFF;
+  _someSplitting= env.options->splitting()!=Options::RA_OFF;
 
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
@@ -239,7 +239,7 @@ void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
     addInputClause(cl);
   }
 
-  if(env.options->splitting()==Options::SPLIT_INPUT_ONLY) {
+  if(env.options->splitting()==Options::RA_INPUT_ONLY) {
     _performSplitting=false;
   }
 }
