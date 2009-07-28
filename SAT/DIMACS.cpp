@@ -7,8 +7,16 @@
 #include <iostream>
 #include <fstream>
 
+#include "../Lib/BinaryHeap.hpp"
+#include "../Lib/DHMap.hpp"
+#include "../Lib/Int.hpp"
 #include "../Lib/List.hpp"
+#include "../Lib/MapToLIFO.hpp"
 #include "../Lib/Stack.hpp"
+#include "../Lib/VirtualIterator.hpp"
+
+#include "../Kernel/Clause.hpp"
+#include "../Kernel/Term.hpp"
 
 #include "DIMACS.hpp"
 
@@ -18,25 +26,72 @@ namespace SAT
 using namespace std;
 using namespace Lib;
 
-void DIMACS::outputProblem(SATClauseList* clauses, ostream& out)
+void DIMACS::outputGroundedProblem(MapToLIFO<Clause*, SATClause*>& insts,
+	  SATClause::NamingContext& nctx, ostream& out)
 {
-  unsigned cnt=0;
-  unsigned maxVar=0;
+  CALL("DIMACS::outputGroundedProblem");
 
-  {
-    SATClauseList::Iterator cit(clauses);
-    while(cit.hasNext()) {
-      cnt++;
-      SATClause* cl=cit.next();
-      unsigned clen=cl->length();
-      for(unsigned i=0;i<clen;i++) {
-	ASS_G((*cl)[i].var(),0);
-	if((*cl)[i].var()>maxVar) {
-	  maxVar=(*cl)[i].var();
-	}
+  unsigned cnt, maxVar;
+  getStats(insts.allValIterator(), cnt, maxVar);
+  out<<"p cnf "<<maxVar<<"  "<<cnt<<endl;
+
+  BinaryHeap<int, Int> vnums;
+  DHMap<int, Literal*, IdentityHash> vasgn(nctx.map);
+
+  MapToLIFO<Clause*, SATClause*>::KeyIterator cls(insts);
+  while(cls.hasNext()) {
+    Clause* cl=cls.next();
+    ASS(vnums.isEmpty());
+
+    //we put all used prop. variables into vnums...
+    SATClauseList* gcls=insts.keyVals(cl);
+    SATClauseList::Iterator git(gcls);
+    while(git.hasNext()) {
+      SATClause* gcl=git.next();
+      unsigned glen=gcl->length();
+      for(unsigned i=0;i<glen;i++) {
+	vnums.insert((*gcl)[i].var());
+      }
+    }
+    //...and print them ordered.
+    while(!vnums.isEmpty()) {
+      int vnum=vnums.popWithAllEqual();
+      out<<"% "<<vnum<<": "<<(vasgn.get(vnum)->toString())<<endl;
+    }
+
+    out<<"% Grounding "<<cl->nonPropToString()<<endl;
+    SATClauseList::Iterator git2(gcls);
+    while(git2.hasNext()) {
+      SATClause* gcl=git2.next();
+      out<<gcl->toDIMACSString()<<endl;
+    }
+  }
+  out<<"%"<<endl<<"0"<<endl;
+}
+
+void DIMACS::getStats(SATClauseIterator clauses, unsigned& clauseCnt, unsigned& maxVar)
+{
+  clauseCnt=0;
+  maxVar=0;
+  while(clauses.hasNext()) {
+    clauseCnt++;
+    SATClause* cl=clauses.next();
+    unsigned clen=cl->length();
+    for(unsigned i=0;i<clen;i++) {
+      ASS_G((*cl)[i].var(),0);
+      if((*cl)[i].var()>maxVar) {
+	maxVar=(*cl)[i].var();
       }
     }
   }
+}
+
+void DIMACS::outputProblem(SATClauseList* clauses, ostream& out)
+{
+  CALL("DIMACS::outputProblem");
+
+  unsigned cnt, maxVar;
+  getStats(pvi( SATClauseList::Iterator(clauses) ), cnt, maxVar);
   out<<"p cnf "<<maxVar<<"  "<<cnt<<endl;
 
   SATClauseList::Iterator cit(clauses);

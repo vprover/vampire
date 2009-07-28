@@ -189,10 +189,12 @@ VT_OBJ = Test/Output.o\
 
 VAMP_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 VCOMPIT_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VT_OBJ)  
+VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
 VAMPIRE_OBJ = $(VAMP_BASIC) Global.o vampire.o
 VCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o vcompit.o
 UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
+VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
 SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
 TEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_SubstitutionTree.o
 RTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_retrieval.o
@@ -210,6 +212,9 @@ all:#default make disabled
 vampire: $(VAMPIRE_OBJ)
 	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
 #	strip vampire
+
+vground: $(VGROUND_OBJ)
+	$(CXX) -static $(CXXFLAGS) $(VGROUND_OBJ) -o vground
 
 vcompit: $(VCOMPIT_OBJ)
 	$(CXX) $(CXXFLAGS) $(VCOMPIT_OBJ) -o vcompit

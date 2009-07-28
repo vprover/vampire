@@ -109,6 +109,7 @@ public:
   };
   static SATClauseList* fromFOClauses(ClauseIterator clauses);
   static SATClauseList* fromFOClauses(NamingContext& context, ClauseIterator clauses);
+  static SATClause* fromFOClause(NamingContext& context, Clause* clause);
 
 
 protected:

@@ -114,6 +114,19 @@ public:
     return res;
   }
 
+  /** Remove the smallest item in the heap together with all
+   * items equal to it, and return it */
+  inline
+  T popWithAllEqual()
+  {
+    CALL("BinaryHeap::pop");
+    T res=pop();
+    while(!isEmpty() && Comparator::compare(res, top())==EQUAL) {
+      pop();
+    }
+    return res;
+  }
+
   T backtrackablePop(unsigned& lastBubbleIndex)
   {
     CALL("BinaryHeap::backtrackablePop(unsigned&)");

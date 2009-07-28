@@ -510,6 +510,8 @@ public:
   public:
     DECL_ELEMENT_TYPE(C);
 
+    inline Iterator() : _lst (0) {}
+
     inline explicit
     Iterator(List* l)
       : _lst (l)

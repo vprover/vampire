@@ -20,6 +20,7 @@
 #include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/MapToLIFO.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -74,10 +75,6 @@ ClauseIterator getInputClauses(Property& property)
     units = parser.units();
   }
 
-//    if(units==0) {
-//      cout<<"Empty units list!\n";
-//    }
-
   property.scan(units);
 
   Preprocess prepro(property,*env.options);
@@ -89,112 +86,43 @@ ClauseIterator getInputClauses(Property& property)
 
 }
 
-void doProving()
+void groundingMode()
 {
-  CALL("doProving()");
+  CALL("groundingMode()");
+
   try {
     Property property;
-
     ClauseIterator clauses=getInputClauses(property);
 
-//    if(!clauses.hasNext()) {
-//      cout<<"No clauses after preprocessing!\n";
-//    }
+    if(property.equalityAtoms()) {
+      ClauseList* eqAxioms=Grounding::getEqualityAxioms(property.positiveEqualityAtoms()!=0);
+      clauses=pvi( getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms), clauses) );
+    }
 
-    SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
-    salg->addInputClauses(clauses);
+    MapToLIFO<Clause*, SATClause*> insts;
 
-    SaturationResult sres(salg->saturate());
-    sres.updateStatistics();
+    Grounding gnd;
+    SATClause::NamingContext nameCtx;
+
+    while(clauses.hasNext()) {
+      Clause* cl=clauses.next();
+      ClauseList* grounded=gnd.ground(cl);
+      SATClauseList* sGrounded=0;
+      while(grounded) {
+	Clause* gcl=ClauseList::pop(grounded);
+	SATClauseList::push(SATClause::fromFOClause(nameCtx, gcl), sGrounded);
+      }
+      insts.pushManyToKey(cl, sGrounded);
+    }
+    DIMACS::outputGroundedProblem(insts, nameCtx, env.out);
+
   } catch(MemoryLimitExceededException) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-    env.statistics->refutation=0;
-    size_t limit=Allocator::getMemoryLimit();
-    //add extra 1 MB to allow proper termination
-    Allocator::setMemoryLimit(limit+1000000);
+    env.out<<"Memory limit exceeded\n";
   } catch(TimeLimitExceededException) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.statistics->refutation=0;
+    env.out<<"Time limit exceeded\n";
   }
-}
+} // groundingMode
 
-void outputResult()
-{
-  CALL("outputResult()");
-
-  switch (env.statistics->terminationReason) {
-  case Statistics::REFUTATION:
-    env.out << "Refutation found. Thanks to Tanya!\n";
-    if (env.options->proof() != Options::PROOF_OFF) {
-//	Shell::Refutation refutation(env.statistics->refutation,
-//		env.options->proof() == Options::PROOF_ON);
-//	refutation.output(env.out);
-      InferenceStore::instance()->outputProof(env.out, env.statistics->refutation);
-    }
-    break;
-  case Statistics::TIME_LIMIT:
-    env.out << "Time limit reached!\n";
-    break;
-  case Statistics::MEMORY_LIMIT:
-#if VDEBUG
-    Allocator::reportUsageByClasses();
-#endif
-    env.out << "Memory limit exceeded!\n";
-    break;
-  case Statistics::UNKNOWN:
-    env.out << "Refutation not found with incomplete strategy!\n";
-    break;
-  default:
-    env.out << "Refutation not found!\n";
-    break;
-  }
-  env.statistics->print();
-}
-
-
-extern int gBDDTime;
-
-void vampireMode()
-{
-  CALL("vampireMode()");
-  env.out<<env.options->testId()<<" on "<<env.options->inputFile()<<endl;
-  doProving();
-  outputResult();
-  cout<<"Time spent on BDDs: "<<gBDDTime<<endl;
-} // vampireMode
-
-
-void spiderMode()
-{
-  CALL("spiderMode()");
-  bool noException=true;
-  try {
-    doProving();
-  } catch(...) {
-    noException=false;
-    env.out << "! ";
-  }
-  if(noException) {
-    switch (env.statistics->terminationReason) {
-    case Statistics::REFUTATION:
-      env.out << "+ ";
-      break;
-    case Statistics::TIME_LIMIT:
-    case Statistics::MEMORY_LIMIT:
-    case Statistics::UNKNOWN:
-      env.out << "? ";
-      break;
-    default:
-      env.out << "- ";
-      break;
-    }
-  }
-  env.out << " " << env.options->problemName();
-  env.out << " " << env.timer->elapsedDeciseconds();
-  env.out << " " << env.options->testId();
-//  env.out << " " << gBDDTime;
-  env.out << "\n";
-} // spiderMode
 
 void explainException (Exception& exception)
 {
@@ -233,22 +161,12 @@ int main(int argc, char* argv [])
     Shell::Statistics statistics;
     env.statistics = &statistics;
 
-    switch (options.mode())
-    {
-    case Options::MODE_GROUNDING:
-      USER_ERROR("Use the vground executable for grounding.");
-      break;
-    case Options::MODE_SPIDER:
-      spiderMode();
-      break;
-    case Options::MODE_VAMPIRE:
-      vampireMode();
-      break;
-#if VDEBUG
-    default:
-      ASSERTION_VIOLATION;
-#endif
+    if(options.mode()!=Options::MODE_GROUNDING) {
+      USER_ERROR("Invalid mode: must be \"grouding\"");
     }
+
+    groundingMode();
+
 #if CHECK_LEAKS
     if(globUnitList) {
       MemoryLeak leak;
@@ -286,8 +204,6 @@ int main(int argc, char* argv [])
   }
 //   delete env.allocator;
 
-  /*cout<<"good:\t"<<LiteralMiniIndex::goodPred<<endl;
-  cout<<"bad:\t"<<LiteralMiniIndex::badPred<<endl;*/
   return EXIT_SUCCESS;
 } // main
 

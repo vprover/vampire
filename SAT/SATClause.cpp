@@ -90,18 +90,26 @@ SATClauseList* SATClause::fromFOClauses(NamingContext& context, ClauseIterator c
 
   while(clauses.hasNext()) {
     Clause* cl=clauses.next();
-    unsigned clen=cl->length();
-    SATClause* rcl=new(clen) SATClause(clen);
-
-    for(unsigned i=0;i<clen;i++) {
-      ASS_REP((*cl)[i]->ground(), *(*cl)[i]);
-      (*rcl)[i]=litToSAT(context, (*cl)[i]);
-    }
-    SATClauseList::push(rcl, res);
+    SATClauseList::push(fromFOClause(context,cl), res);
   }
 
   return res;
 }
+
+SATClause* SATClause::fromFOClause(NamingContext& context, Clause* cl)
+{
+  CALL("SATClause::fromFOClause");
+
+  unsigned clen=cl->length();
+  SATClause* rcl=new(clen) SATClause(clen);
+
+  for(unsigned i=0;i<clen;i++) {
+    ASS_REP((*cl)[i]->ground(), *(*cl)[i]);
+    (*rcl)[i]=litToSAT(context, (*cl)[i]);
+  }
+  return rcl;
+}
+
 
 SATLiteral SATClause::litToSAT(NamingContext& context, Literal* lit)
 {

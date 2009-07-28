@@ -111,6 +111,23 @@ public:
     ensureExpanded();
   }
 
+  /** Create an inverted DHMap. The @b inverted map must be one-to-one. */
+  template<class HashX1, class HashX2>
+  DHMap(DHMap<Val, Key, HashX1, HashX2>& inverted)
+  : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
+  _nextExpansionOccupancy(0), _entries(0), _afterLast(0)
+  {
+    ensureExpanded();
+
+    typename DHMap<Val, Key, HashX1, HashX2>::Iterator iit(inverted);
+    while(iit.hasNext()) {
+      Key k;
+      Val v;
+      iit.next(v, k);
+      ALWAYS(insert(k,v));
+    }
+  }
+
   /** Deallocate the DHMap */
   ~DHMap()
   {
@@ -120,8 +137,8 @@ public:
       while(ep!=_afterLast) {
 	(ep++)->~Entry();
       }
-//      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
-      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),typeid(Entry).name());
+      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
+//      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),typeid(Entry).name());
     }
   }
 
@@ -412,8 +429,8 @@ private:
     }
 
     int newCapacity=DHMapTableCapacities[_capacityIndex+1];
-//    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
-    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),typeid(Entry).name());
+    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
+//    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),typeid(Entry).name());
 
     Entry* oldEntries=_entries;
     Entry* oldAfterLast=_afterLast;
@@ -438,8 +455,8 @@ private:
       (ep++)->~Entry();
     }
     if(oldCapacity) {
-//      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
-      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),typeid(Entry).name());
+      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
+//      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),typeid(Entry).name());
     }
   }
 
