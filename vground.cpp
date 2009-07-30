@@ -33,6 +33,7 @@
 #include "Indexing/LiteralMiniIndex.hpp"
 
 #include "Shell/CommandLine.hpp"
+#include "Shell/GeneralSplitting.hpp"
 #include "Shell/Grounding.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -63,41 +64,34 @@ using namespace Inferences;
 
 UnitList* globUnitList=0;
 
-ClauseIterator getInputClauses(Property& preprocessedProperty)
-{
-  Property property;
-
-  env.signature = new Kernel::Signature;
-  UnitList* units;
-  {
-    string inputFile = env.options->inputFile();
-    ifstream input(inputFile.c_str());
-    TPTPLexer lexer(input);
-    TPTPParser parser(lexer);
-    units = parser.units();
-  }
-
-  property.scan(units);
-
-  Preprocess prepro(property,*env.options);
-  prepro.preprocess(units);
-
-  preprocessedProperty.scan(units);
-
-  globUnitList=units;
-
-  return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
-
-}
-
 void groundingMode()
 {
   CALL("groundingMode()");
 
   try {
-    Property newProperty;
-    ClauseIterator clauses=getInputClauses(newProperty);
+    Property property;
 
+    env.signature = new Kernel::Signature;
+    UnitList* units;
+    {
+      string inputFile = env.options->inputFile();
+      ifstream input(inputFile.c_str());
+      TPTPLexer lexer(input);
+      TPTPParser parser(lexer);
+      units = parser.units();
+    }
+
+    property.scan(units);
+
+    Preprocess prepro(property,*env.options);
+    prepro.preprocess(units);
+
+    Property newProperty;
+    newProperty.scan(units);
+
+    globUnitList=units;
+
+    ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
 
 
     if(newProperty.equalityAtoms()) {

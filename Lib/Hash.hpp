@@ -53,7 +53,7 @@ struct IdentityHash
 
 struct PtrIdentityHash
 {
-  static unsigned hash(void* ptr) {
+  static unsigned hash(const void* ptr) {
     return static_cast<unsigned>(reinterpret_cast<size_t>(ptr));
   }
 };
@@ -74,6 +74,41 @@ struct IntPairSimpleHash {
 };
 
 
+template<typename T>
+struct FirstHashTypeInfo {
+  typedef Hash Type;
+};
+
+template<typename T>
+struct FirstHashTypeInfo<T*> {
+  typedef PtrIdentityHash Type;
+};
+
+template<>
+struct FirstHashTypeInfo<int> {
+  typedef IdentityHash Type;
+};
+template<>
+struct FirstHashTypeInfo<unsigned> {
+  typedef IdentityHash Type;
+};
+template<>
+struct FirstHashTypeInfo<size_t> {
+  typedef IdentityHash Type;
+};
+template<>
+struct FirstHashTypeInfo<char> {
+  typedef IdentityHash Type;
+};
+
+template<>
+struct FirstHashTypeInfo<std::pair<int,int> > {
+  typedef IntPairSimpleHash Type;
+};
+template<>
+struct FirstHashTypeInfo<std::pair<unsigned,unsigned> > {
+  typedef IntPairSimpleHash Type;
+};
 
 }
 

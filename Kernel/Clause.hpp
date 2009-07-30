@@ -73,6 +73,8 @@ public:
 
   void* operator new(size_t,unsigned length);
 
+  static Clause* fromStack(Stack<Literal*>& lits, InputType it, Inference* inf);
+
   /**
    * Return the (reference to) the nth literal
    *
@@ -159,6 +161,7 @@ public:
   BDDNode* prop() const { return _prop; }
 
   void setProp(BDDNode* prop);
+
 
   /** Set auxiliary value of this clause. */
   void setAux(void* ptr)

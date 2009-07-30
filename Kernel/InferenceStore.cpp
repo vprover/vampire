@@ -367,7 +367,7 @@ struct InferenceStore::ProofPrinter
       } else if(is->_data.find(cs, finf)) {
 	bool hideStep=hideProofStep(finf->rule);
 
-	if(finf->rule==Inference::SPLITTING) {
+	if(finf->rule==Inference::SPLITTING && is->_splittingRecords.find(cs)) {
 	  printSplitting(is->_splittingRecords.get(cs));
 	  continue;
 	}

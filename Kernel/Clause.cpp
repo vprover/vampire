@@ -50,6 +50,17 @@ void* Clause::operator new(size_t sz,unsigned lits)
   return ALLOC_KNOWN(size,"Clause");
 }
 
+Clause* Clause::fromStack(Stack<Literal*>& lits, InputType it, Inference* inf)
+{
+  unsigned clen=lits.size();
+  Clause* res = new(clen) Clause(clen, it, inf);
+
+  for(unsigned i=0;i<clen;i++) {
+    (*res)[i] = lits[i];
+  }
+
+  return res;
+}
 
 /** Set the propositional part of the clause */
 void Clause::setProp(BDDNode* prop)

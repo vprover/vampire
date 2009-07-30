@@ -104,7 +104,7 @@ public:
   struct NamingContext {
     NamingContext() : nextVar(1) {}
 
-    DHMap<Literal*, int, PtrIdentityHash> map;
+    DHMap<Literal*, int> map;
     unsigned nextVar;
   };
   static SATClauseList* fromFOClauses(ClauseIterator clauses);

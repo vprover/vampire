@@ -15,6 +15,7 @@
 #include "EqualityProxy.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
+#include "GeneralSplitting.hpp"
 #include "InequalitySplitting.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
@@ -223,6 +224,12 @@ void Preprocess::preprocess (UnitList*& units)
      EqualityProxy proxy;
      proxy.apply(units);
    }
+
+   if (_options.generalSplitting()!=Options::RA_OFF) {
+     GeneralSplitting gs;
+     gs.apply(units);
+   }
+
 } // Preprocess::preprocess ()
 
 

@@ -589,6 +589,9 @@ public:
 #endif
   }
 
+  bool containsSubterm(TermList v);
+
+
 protected:
   ArgumentOrder computeArgumentOrder() const;
   unsigned computeDistinctVars() const;

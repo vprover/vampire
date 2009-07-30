@@ -391,13 +391,77 @@ public:
 #endif
 
   /**
+   * Iterator over the multiset object. The object is iterated
+   * as a set -- each contained element is returned just once,
+   * irregarding its multiplicity.
+   */
+  class SetIterator {
+  public:
+    /** Create a new iterator */
+    inline SetIterator(const DHMultiset& set)
+    : _next(set._entries), _afterLast(set._afterLast)
+    {
+    }
+
+    /**
+     * True if there exists next element
+     */
+    bool hasNext()
+    {
+      CALL("DHMultiset::SetIterator::hasNext");
+      while (_next != _afterLast) {
+	//we don't have to check for _info.deleted, as long as we
+	//set the multiplicity of deleted entries to zero
+	if (_next->_info.multiplicity) {
+	  return true;
+	}
+	_next++;
+      }
+      return false;
+    }
+
+    /**
+     * Return the next value
+     * @warning hasNext() must have been called before
+     */
+    inline
+    Val next()
+    {
+      CALL("DHMultiset::SetIterator::next");
+      ASS_NEQ(_next, _afterLast);
+
+      return (_next++)->_val;
+    }
+
+    /**
+     * Return the next value
+     * @warning hasNext() must have been called before
+     */
+    inline
+    Val next(unsigned& multiplicity)
+    {
+      CALL("DHMultiset::SetIterator::next/1");
+      ASS_NEQ(_next, _afterLast);
+
+      multiplicity=_next->multiplicity;
+      return (_next++)->_val;
+    }
+
+  private:
+    /** iterator will look for the next occupied cell starting with this one */
+    Entry* _next;
+    /** iterator will stop looking for the next cell after reaching this one */
+    Entry* _afterLast;
+  };
+
+  /**
    * Class to allow iteration over values stored in the set.
    */
   class Iterator {
   public:
     /** Create a new iterator */
     inline Iterator(const DHMultiset& set)
-    : _next(set._entries), _last(set._afterLast), _nextIndex(0)
+    : _next(set._entries), _afterLast(set._afterLast), _nextIndex(0)
     {
     }
 
@@ -410,13 +474,14 @@ public:
       if(_next->_info.multiplicity > _nextIndex)
 	return true;
       _nextIndex=0;
-      while (_next != _last) {
-	_next++;
+      _next++;
+      while (_next != _afterLast) {
 	//we don't have to check for _info.deleted, as long as we
 	//set the multiplicity of deleted entries to zero
 	if (_next->_info.multiplicity) {
 	  return true;
 	}
+	_next++;
       }
       return false;
     }
@@ -429,7 +494,7 @@ public:
     Val next()
     {
       CALL("DHMultiset::Iterator::next");
-      ASS(_next != _last);
+      ASS(_next != _afterLast);
       ASS(_next->_info.multiplicity > _nextIndex);
       _nextIndex++;
       return _next->_val;
@@ -439,7 +504,7 @@ public:
     /** iterator will look for the next occupied cell starting with this one */
     Entry* _next;
     /** iterator will stop looking for the next cell after reaching this one */
-    Entry* _last;
+    Entry* _afterLast;
     /**
      * Index of the returned value in current entry.
      * (the values in one entry are all the same, but we have to

@@ -169,18 +169,28 @@ bool TermList::equals(TermList t1, TermList t2)
 bool TermList::containsSubterm(TermList trm)
 {
   CALL("Term::containsSubterm");
-  ASS(!trm.isTerm() || trm.term()->shared());
 
-  if(trm==*this) {
+  if(!isTerm()) {
+    return trm==*this;
+  }
+  return term()->containsSubterm(trm);
+}
+
+bool Term::containsSubterm(TermList trm)
+{
+  CALL("Term::containsSubterm");
+  ASS(!trm.isTerm() || trm.term()->shared());
+  ASS(shared());
+
+  if(trm.isTerm() && trm.term()==this) {
+    ASS(!isLiteral());
     return true;
   }
-  if(!isTerm() || term()->arity()==0) {
+  if(arity()==0) {
     return false;
   }
-  ASS(term()->shared());
-  ASSERT_VALID(*term());
 
-  TermList* ts=term()->args();
+  TermList* ts=args();
   static Stack<TermList*> stack(4);
   stack.reset();
   for(;;) {

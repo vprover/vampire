@@ -41,6 +41,8 @@ public:
     FORWARD_SUBSUMPTION_RESOLUTION,
     FUNCTION_DEFINITION_ELIMINATION,
 
+    GENERAL_SPLITTING,
+
     INCLUDE,
     INEQUALITY_SPLITTING,
 
@@ -264,6 +266,7 @@ public:
   string xmlOutput() const { return _xmlOutput; }
 
   bool condensation() const { return _condensation; }
+  RuleActivity generalSplitting() const { return _generalSplitting; }
   string namePrefix() const { return _namePrefix; }
 
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
@@ -302,6 +305,8 @@ private:
   bool _forwardSubsumption;
   bool _forwardSubsumptionResolution;
   FunctionDefinitionElimination _functionDefinitionElimination;
+
+  RuleActivity _generalSplitting;
 
   string _include;
   int _inequalitySplitting;

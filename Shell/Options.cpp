@@ -81,6 +81,8 @@ const char* Options::Constants::_optionNames[] = {
   "forward_subsumption_resolution",
   "function_definition_elimination",
 
+  "general_splitting",
+
   "include",
   "inequality_splitting",
 
@@ -298,6 +300,8 @@ Options::Options ()
   _forwardSubsumptionResolution(true),
   _functionDefinitionElimination(FDE_ALL),
 
+  _generalSplitting(RA_OFF),
+
   _include(""),
   _inequalitySplitting(3),
   _inputFile(""),
@@ -426,6 +430,9 @@ void Options::set (const char* name,const char* value, int index)
 
   case EQUALITY_RESOLUTION_WITH_DELETION:
     _equalityResolutionWithDeletion = (RuleActivity)Constants::ruleActivityValues.find(value);
+    if(_equalityResolutionWithDeletion==RA_ON) {
+      USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
+    }
     if (_equalityResolutionWithDeletion == -1) {
       break;
     }
@@ -448,6 +455,16 @@ void Options::set (const char* name,const char* value, int index)
     _functionDefinitionElimination =
       (FunctionDefinitionElimination)Constants::fdeValues.find(value);
     if (_functionDefinitionElimination == -1) {
+      break;
+    }
+    return;
+
+  case GENERAL_SPLITTING:
+    _generalSplitting = (RuleActivity)Constants::ruleActivityValues.find(value);
+    if(_generalSplitting==RA_ON) {
+      USER_ERROR("general_splitting is not implemented for value \"on\"");
+    }
+    if (_generalSplitting == -1) {
       break;
     }
     return;
@@ -904,6 +921,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case FUNCTION_DEFINITION_ELIMINATION:
     str << Constants::fdeValues[_functionDefinitionElimination];
+    return;
+
+  case GENERAL_SPLITTING:
+    str << Constants::ruleActivityValues[_generalSplitting];
     return;
 
   case INCLUDE:

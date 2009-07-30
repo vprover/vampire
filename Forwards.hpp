@@ -29,8 +29,16 @@ template<typename T> class ArrayMap;
 
 typedef List<int> IntList;
 
-template <typename Key, typename Val, class Hash1=Hash, class Hash2=Hash> class DHMap;
-template <typename K,typename V, class Hash1=Hash, class Hash2=Hash> class MapToLIFO;
+
+template<typename T> struct FirstHashTypeInfo;
+/**
+ * First hash for DHMap and DHMultiset classes.
+ */
+#define FIRST_HASH(Cl) typename FirstHashTypeInfo<Cl>::Type
+
+
+template <typename K, typename V, class Hash1=FIRST_HASH(K), class Hash2=Hash> class DHMap;
+template <typename K,typename V, class Hash1=FIRST_HASH(K), class Hash2=Hash> class MapToLIFO;
 
 
 class BacktrackData;
