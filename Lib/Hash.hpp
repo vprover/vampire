@@ -92,10 +92,12 @@ template<>
 struct FirstHashTypeInfo<unsigned> {
   typedef IdentityHash Type;
 };
+#if ARCH_X64
 template<>
 struct FirstHashTypeInfo<size_t> {
   typedef IdentityHash Type;
 };
+#endif
 template<>
 struct FirstHashTypeInfo<char> {
   typedef IdentityHash Type;

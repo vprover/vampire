@@ -11,7 +11,8 @@
 
 #include "../Lib/BitUtils.hpp"
 
-#define USE_MATCH_TAG 1
+//Tests shown it as not helping. Perhaps needs just some improvement of bit selection.
+#define USE_MATCH_TAG 0
 
 namespace Kernel {
 
