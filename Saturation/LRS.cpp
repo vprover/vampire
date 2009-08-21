@@ -119,6 +119,7 @@ SaturationResult LRS::saturate()
   CALL("LRS::saturate");
 
   handleSaturationStart();
+  bool complete=env.options->complete();
 
   for (;;) {
     while (! _unprocessed->isEmpty()) {
@@ -143,12 +144,16 @@ SaturationResult LRS::saturate()
         long estimatedReachable=estimatedReachableCount();
         if(estimatedReachable>=0) {
           _passive->updateLimits(estimatedReachable);
+          if(complete) {
+            Limits* lims=getLimits();
+            complete=!lims->weightLimited() && !lims->ageLimited();
+          }
         }
       }
     }
 
     if (_passive->isEmpty()) {
-      return SaturationResult(Statistics::UNKNOWN);
+      return SaturationResult( complete ? Statistics::SATISFIABLE : Statistics::UNKNOWN );
     }
 
     Clause* c = _passive->popSelected();
