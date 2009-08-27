@@ -194,6 +194,7 @@ Unit* Inference::next(Iterator&)
 #if VDEBUG
   ASSERTION_VIOLATION;
 #endif
+  return 0;
 } // Inference::next
 
 

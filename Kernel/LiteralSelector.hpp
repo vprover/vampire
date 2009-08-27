@@ -8,7 +8,7 @@
 #define __LiteralSelector__
 
 #include "../Forwards.hpp"
-#include "../Lib/MultiColumnMap.hpp"
+//#include "../Lib/MultiColumnMap.hpp"
 
 namespace Kernel {
 
@@ -24,7 +24,7 @@ public:
 
   static LiteralSelector* getSelector(int num);
 
-  static MultiColumnMap<Literal*>* getLiteralDetailStore();
+//  static MultiColumnMap<Literal*>* getLiteralDetailStore();
 };
 
 /**

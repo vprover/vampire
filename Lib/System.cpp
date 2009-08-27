@@ -30,14 +30,14 @@ namespace Lib {
 using namespace std;
 using namespace Shell;
 
-/**
- * Reimplements the system gethostname function.
- * @since 31/03/2005 Torrevieja
- */
-void System::gethostname(char* hostname,int maxlength)
-{
-  ::gethostname(hostname,maxlength);
-}
+///**
+// * Reimplements the system gethostname function.
+// * @since 31/03/2005 Torrevieja
+// */
+//void System::gethostname(char* hostname,int maxlength)
+//{
+//  ::gethostname(hostname,maxlength);
+//}
 
 string signalToString (int sigNum)
 {

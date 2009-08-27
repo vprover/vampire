@@ -64,6 +64,8 @@ UnitList* globUnitList=0;
 
 ClauseIterator getInputClauses()
 {
+  CALL("getInputClauses()");
+
   Property property;
 
   env.signature = new Kernel::Signature;

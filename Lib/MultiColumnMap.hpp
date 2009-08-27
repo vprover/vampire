@@ -1,6 +1,8 @@
 /**
  * @file MultiColumnMap.hpp
  * Defines class MultiColumnMap.
+ *
+ * Currently not used anywhere and does not compile in VS2008
  */
 
 

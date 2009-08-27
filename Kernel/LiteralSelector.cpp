@@ -60,11 +60,11 @@ LiteralSelector* LiteralSelector::getSelector(int num)
   }
 }
 
-MultiColumnMap<Literal*>* LiteralSelector::getLiteralDetailStore()
-{
-  static MultiColumnMap<Literal*> map;
-  return &map;
-}
+//MultiColumnMap<Literal*>* LiteralSelector::getLiteralDetailStore()
+//{
+//  static MultiColumnMap<Literal*> map;
+//  return &map;
+//}
 
 
 void TotalLiteralSelector::select(Clause* c)

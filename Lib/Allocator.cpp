@@ -19,10 +19,12 @@ using namespace Kernel;
 #include <malloc.h>
 
 
+#ifndef USE_SYSTEM_ALLOCATION
 /** If the following is set to true the Vampire will use the
  *  C++ new and delete for (de)allocating all data structures.
  */
-// #define USE_SYSTEM_ALLOCATION 0
+#define USE_SYSTEM_ALLOCATION 0
+#endif
 
 /** set this to 1 to print all allocations/deallocations to stdout */
 #define TRACE_ALLOCATIONS 0
@@ -87,7 +89,7 @@ size_t Allocator::Descriptor::noOfEntries;
 size_t Allocator::Descriptor::maxEntries;
 size_t Allocator::Descriptor::capacity;
 Allocator::Descriptor* Allocator::Descriptor::map;
-Allocator::Descriptor::Descriptor* Allocator::Descriptor::afterLast;
+Allocator::Descriptor* Allocator::Descriptor::afterLast;
 #endif
 
 /**

@@ -22,7 +22,7 @@ namespace Kernel {
 class MatchTag
 {
 public:
-  inline void makeEmpty() {_content=EMPTY_CONTENT; }
+  inline void makeEmpty() throw() {_content=EMPTY_CONTENT; }
 
   inline bool isEmpty() {
     return _content==EMPTY_CONTENT;

@@ -64,6 +64,8 @@ public:
    */
   virtual ~Array()
   {
+    CALL("Array::~Array()");
+
     if(_array) {
       DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
     }

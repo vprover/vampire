@@ -42,7 +42,7 @@ using namespace Kernel;
 class FunctionDefinition
 {
 public:
-  class Def;
+  struct Def;
   FunctionDefinition();
   ~FunctionDefinition();
 

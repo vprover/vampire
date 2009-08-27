@@ -13,7 +13,7 @@ using namespace std;
 
 class System {
 public:
-  static void gethostname(char* hostname,int maxlength);
+//  static void gethostname(char* hostname,int maxlength);
   static void setSignalHandlers();
   static string extractFileNameFromPath(string str);
 };

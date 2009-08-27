@@ -132,10 +132,10 @@ void Property::scan (Unit* unit)
   CALL("Property::scan(const Unit*)");
 
   if (unit->isClause()) {
-    scan(static_cast<const Clause*>(unit));
+    scan(static_cast<Clause*>(unit));
   }
   else {
-    scan(static_cast<const FormulaUnit*>(unit));
+    scan(static_cast<FormulaUnit*>(unit));
   }
   if (! hasProp(PR_HAS_FUNCTION_DEFINITIONS)) {
     FunctionDefinition::Def* def =

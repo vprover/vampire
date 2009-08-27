@@ -3,14 +3,39 @@
 
 #include "../Debug/Assertion.hpp"
 
-#include <sys/param.h>  /* attempt to define endianness */
-#ifdef linux
-# include <endian.h>    /* attempt to define endianness */
+//////////////////////////////////////////////////////
+// Detect compiler
+
+#ifdef _MSC_VER
+#define COMPILER_MSVC 1
+#else
+#define COMPILER_MSVC 0
 #endif
+
+//////////////////////////////////////////////////////
+// Detect architecture
+
+#ifdef _LP64
+#define ARCH_X64 1
+#define ARCH_X86 0
+#elif _M_X64
+//this should handle MS C++ compiler
+#define ARCH_X64 1
+#define ARCH_X86 0
+#else
+#define ARCH_X64 0
+#define ARCH_X86 1
+#endif
+
+
+//////////////////////////////////////////////////////
+// Check assumed data-type properties
 
 ASS_STATIC(sizeof(char)==1);
 
-//some optimizing instruction
+
+//////////////////////////////////////////////////////
+// Prefetching
 
 #ifdef EFENCE
 # define NO_PREFETCH
@@ -33,6 +58,33 @@ ASS_STATIC(sizeof(char)==1);
 # endif
 #endif
 
+
+//////////////////////////////////////////////////////
+// Fix compiler-specific problems
+
+#if COMPILER_MSVC
+
+#define int32_t __int32
+
+#endif
+
+
+//////////////////////////////////////////////////////
+// Attempt to detect endianness
+
+#if COMPILER_MSVC
+
+//is this always true??
+#define HASH_LITTLE_ENDIAN 1
+#define HASH_BIG_ENDIAN 0
+
+#else
+
+#include <sys/param.h>  
+#ifdef linux
+# include <endian.h>    
+#endif
+
 /*
  * Best guess at if we're using big-endian or little-endian.  This may
  * need adjustment.
@@ -49,22 +101,10 @@ ASS_STATIC(sizeof(char)==1);
 # define HASH_LITTLE_ENDIAN 0
 # define HASH_BIG_ENDIAN 1
 #else
-# define HASH_LITTLE_ENDIAN 0
+# define HASH_LITTLE_ENDIAN 1
 # define HASH_BIG_ENDIAN 0
 #endif
 
-
-#ifdef _LP64
-#define ARCH_X64 1
-#define ARCH_X86 0
-#elif _M_X64
-//this should handle MS C++ compiler
-#define ARCH_X64 1
-#define ARCH_X86 0
-#else
-#define ARCH_X64 0
-#define ARCH_X86 1
 #endif
-
 
 #endif /*__Portability__*/

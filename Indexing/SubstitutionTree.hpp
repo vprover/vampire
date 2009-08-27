@@ -46,6 +46,8 @@ using namespace Kernel;
 #define SUBST_CLASS RobSubstitution
 //#define SUBST_CLASS EGSubstitution
 
+#define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
+
 #define REORDERING 1
 
 namespace Indexing {
@@ -307,10 +309,8 @@ public:
     CLASS_NAME("SubstitutionTree::UArrIntermediateNode");
     USE_ALLOCATOR(UArrIntermediateNode);
 
-    static const int MAX_SIZE = 4;
-
     int _size;
-    Node* _nodes[MAX_SIZE+1];
+    Node* _nodes[UARR_INTERMEDIATE_NODE_MAX_SIZE+1];
   };
 
   class SListIntermediateNode

@@ -3,6 +3,10 @@
  * Implements class Preprocess.
  */
 
+//TODO: Rename the file!
+//It is currently not included in the MSVC project, as it has the same name as
+//Shell/Preprocess.cpp and the MSVC2008 linker is not able to handle this.
+
 #include <algorithm>
 #include <iostream>
 #include <fstream>

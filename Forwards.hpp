@@ -36,8 +36,17 @@ template<typename T> struct FirstHashTypeInfo;
  */
 #define FIRST_HASH(Cl) typename FirstHashTypeInfo<Cl>::Type
 
-
-template <typename K, typename V, class Hash1=FIRST_HASH(K), class Hash2=Hash> class DHMap;
+//There is a bug (what else can it be?) in the VS2008 compiler that
+//requires the name of the template parameter in the declaration to 
+//be the same as the name of the parameter used in definition, as 
+//long as the parameter is used in another parameter's default value.
+//
+//E.g. if the first parameter name here would be K instead of Key, we 
+//would get a compiler error, because in the Lib/DHMap.hpp file the
+//definition of the class starts with
+//template <typename Key, typename Val, class Hash1, class Hash2> class DHMap
+//                   ^^^
+template <typename Key, typename Val, class Hash1=FIRST_HASH(Key), class Hash2=Hash> class DHMap;
 template <typename K,typename V, class Hash1=FIRST_HASH(K), class Hash2=Hash> class MapToLIFO;
 
 

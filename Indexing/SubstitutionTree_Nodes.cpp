@@ -145,8 +145,6 @@ void SubstitutionTree::IntermediateNode::destroyChildren()
   }
 }
 
-const int SubstitutionTree::UArrIntermediateNode::MAX_SIZE;
-
 SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
 	childByTop(TermList t, bool canCreate)
 {
@@ -158,7 +156,7 @@ SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
     }
   }
   if(canCreate) {
-    ASS_L(_size,MAX_SIZE);
+    ASS_L(_size,UARR_INTERMEDIATE_NODE_MAX_SIZE);
     ASS_EQ(_nodes[_size],0);
     _nodes[++_size]=0;
     return &_nodes[_size-1];

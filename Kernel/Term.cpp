@@ -924,7 +924,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2)
 
 
 /** create a new term and copy from t the relevant part of t's content */
-Term::Term(const Term& t)
+Term::Term(const Term& t) throw()
   : _functor(t._functor),
     _arity(t._arity),
     _weight(0),
@@ -942,14 +942,14 @@ Term::Term(const Term& t)
 } // Term::Term
 
 /** create a new literal and copy from l its content */
-Literal::Literal(const Literal& l)
+Literal::Literal(const Literal& l) throw()
   : Term(l)
 {
   CALL("Literal::Literal/1");
 }
 
 /** dummy term constructor */
-Term::Term()
+Term::Term() throw()
   :_functor(0),
    _arity(0),
    _weight(0),

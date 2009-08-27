@@ -188,8 +188,8 @@ ASS_STATIC(sizeof(TermList)==sizeof(size_t));
 class Term
 {
 public:
-  Term();
-  explicit Term(const Term& t);
+  Term() throw();
+  explicit Term(const Term& t) throw();
   void orderArguments();
   static Term* create(unsigned function, unsigned arity, TermList* args);
   static Term* create(Term* t,TermList* args);
@@ -660,13 +660,13 @@ public:
   { return functor() == 0; }
 
   Literal();
-  explicit Literal(const Literal& l);
+  explicit Literal(const Literal& l) throw();
 
   /**
    * Create a literal.
    * @since 16/05/2007 Manchester
    */
-  Literal(unsigned functor,unsigned arity,bool polarity,bool commutative)
+  Literal(unsigned functor,unsigned arity,bool polarity,bool commutative) throw()
   {
     _functor = functor;
     _arity = arity;
