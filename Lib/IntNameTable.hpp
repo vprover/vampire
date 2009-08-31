@@ -26,13 +26,13 @@ class IntNameTable
  public:
   IntNameTable();
   int insert(const string& str);
-  /** return name number n */
-  inline string operator[] (int n) const { return _names[n]; }
+//  /** return name number n */
+//  inline string operator[] (int n) const { return _names[n]; }
 //   int numberOfSymbols();
 
  private:
   Map <string,int,Hash> _map;
-  Array<string> _names;
+//  Array<string> _names;
   int _nextNumber;
 }; // class NameTable
 

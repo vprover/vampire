@@ -19,7 +19,7 @@ namespace Lib {
  * setting each bucket to the empty list.
  */
 IntNameTable::IntNameTable ()
-  : _names(64),
+  : //_names(64),
     _nextNumber(0)
 {
 } // IntNameTable::IntNameTable
