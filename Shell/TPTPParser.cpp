@@ -137,6 +137,10 @@ void TPTPParser::units(UnitStack& stack)
       consumeToken();
       include(stack);
       break;
+    case TT_VAMPIRE:
+      consumeToken();
+      vampire();
+      break;
     default:
       {
 	Unit* u = unit();
@@ -158,7 +162,7 @@ void TPTPParser::units(UnitStack& stack)
  * @since 03/06/2007 Manchester, changed to new datastructures.
  * @since 02/04/2008 Budapest, changed to read $true and $false in clauses
  */
-Unit* TPTPParser::unit ()
+Unit* TPTPParser::unit()
 {
   CALL("TPTPParser::unit");
 
@@ -972,5 +976,32 @@ Clause* TPTPParser::createClause(LiteralStack& lits,int inputType)
   }
   return result;
 } // TPTPParser::createClause
+
+/**
+ * Read a Vampire-specific declaration
+ * @since 25/08/2009 Redmond
+ */
+void TPTPParser::vampire()
+{
+  CALL("TPTPParser::vampire");
+
+  consumeToken(TT_LPAR);
+  string nm = name();
+  if (nm == "colored_predicate") {
+  }
+  else if (nm == "colored_function") {
+  }
+  else if (nm == "color") {
+  }
+  else if (nm == "end_color") {
+  }
+  else {
+    throw ParserException("unrecognised Vampire command",
+			  currentToken());    
+  }
+  consumeToken(TT_RPAR);
+  consumeToken(TT_DOT);
+} // TPTPParser::vampire
+
 
 }

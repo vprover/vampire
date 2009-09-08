@@ -69,6 +69,7 @@ private:
   static void fillArgs (Term* t,TermStack& ts);
   Clause* createClause(LiteralStack&,int inputType);
   static Formula* makeJunction(int connective,Formula* lhs,Formula* rhs);
+  void vampire();
 
   /** Set to true if the constant true was read during reading the
    * last clause */

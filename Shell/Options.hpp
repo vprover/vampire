@@ -45,6 +45,7 @@ public:
 
     INCLUDE,
     INEQUALITY_SPLITTING,
+    INPUT_SYNTAX,
 
     LATEX_OUTPUT,
     LITERAL_COMPARISON_MODE,
@@ -112,6 +113,17 @@ public:
     FDE_ALL = 0,
     FDE_NONE = 1,
     FDE_UNUSED = 2
+  };
+
+  /**
+   * Possible values for the input syntax
+   * @since 26/08/2009 Redmond
+   */
+  enum InputSyntax {
+    /** syntax of the Simplify prover */
+    IS_SIMPLIFY = 0,
+    /** syntax of the TPTP prover */
+    IS_TPTP = 1
   };
 
   /**
@@ -206,6 +218,8 @@ public:
   bool setNaming(int newVal);
   Mode mode() const { return _mode; }
   void setMode(Mode newVal) { _mode = newVal; }
+  InputSyntax inputSyntax() { return _inputSyntax; }
+  void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
   bool normalize() const { return _normalize; }
   string include() const { return _include; }
   string includeFileName (const string& relativeName);
@@ -311,6 +325,7 @@ private:
   string _include;
   int _inequalitySplitting;
   string _inputFile;
+  InputSyntax _inputSyntax;
 
   string _latexOutput;
   LiteralComparisonMode _literalComparisonMode;

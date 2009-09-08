@@ -7,11 +7,11 @@
 #include "../Lib/Environment.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/Set.hpp"
+#include "../Lib/MultiCounter.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Formula.hpp"
 #include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/FormulaVarIterator.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/SubformulaIterator.hpp"
@@ -485,7 +485,7 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
 }
 
 
-void PredicateDefinition::makeImplFromDef(int pred, bool forward)
+void PredicateDefinition::makeImplFromDef(unsigned pred, bool forward)
 {
   PredData& pd=_preds[pred];
   Formula* f0=pd.defUnit->formula();

@@ -34,9 +34,7 @@ class Int
  public:
   static string toString(int i);
   static string toString(unsigned i);
-#if ARCH_X64
-  static string toString(size_t i);
-#endif
+  static string toString(unsigned long i);
   static string toString(long l);
   /** Return the string representation of a float */
   static string toString(float f) { return toString((double)f); }
@@ -50,11 +48,9 @@ class Int
   /** Compare two unsigned integers */
   inline static Comparison compare (unsigned i1, unsigned i2)
   { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
-#if ARCH_X64
   /** Compare two size_t integers */
-  inline static Comparison compare (size_t i1, size_t i2)
+  inline static Comparison compare (unsigned long i1, unsigned long i2)
   { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
-#endif
   /** Compare two floats */
   inline static Comparison compare (float f1, float f2)
   { return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER; }

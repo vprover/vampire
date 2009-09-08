@@ -16,7 +16,6 @@ using namespace Kernel;
 #endif
 
 #include <cstdlib>
-#include <malloc.h>
 
 
 #ifndef USE_SYSTEM_ALLOCATION
@@ -25,6 +24,11 @@ using namespace Kernel;
  */
 #define USE_SYSTEM_ALLOCATION 0
 #endif
+
+#if USE_SYSTEM_ALLOCATION
+#  include <malloc.h>
+#endif
+
 
 /** set this to 1 to print all allocations/deallocations to stdout */
 #define TRACE_ALLOCATIONS 0

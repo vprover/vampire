@@ -254,23 +254,6 @@ protected:
 #endif
   } // Map::replace
 
-
-//   /**
-//    * Replaces a value stored under the key by a new value.
-//    * @warning a value under this key must already be in the table!
-//    * @since 08/12/2003 Manchester
-//    */
-//   inline void replace (Key key, Val value)
-//   {
-//     // CALL("Map::replace");
-
-//     Entry* entry = findEntry(key);
-
-//     ASS (entry->isOccupied());
-
-//     entry->setValue(value);
-//   } // Map::replace
-
   /**
    * Delete all entries.
    * @since 07/08/2005 Redmond

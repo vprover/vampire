@@ -407,6 +407,12 @@ TokenType TPTPLexer::detectNameTokenTypeOfLastToken ()
     }
     return TT_NAME;
 
+  case 'v':
+    if (! strcmp(_charBuffer.content(),"vampire")) {
+      return TT_VAMPIRE;
+    }
+    return TT_NAME;
+
   case '$':
     if (! strcmp(_charBuffer.content(),"$false")) {
       return TT_FALSE;

@@ -41,6 +41,7 @@ public:
   Connective connective () const { return _connective; }
   const FormulaList* args() const;
   FormulaList* args();
+  FormulaList** argsPtr();
   const Formula* left() const;
   Formula* left();
   const Formula* right() const;
@@ -235,6 +236,8 @@ class JunctionFormula
   const FormulaList* getArgs() const { return _args; }
   /** Return the list of immediate subformulas */
   FormulaList* getArgs() { return _args; }
+  /** Return a pointer to the list of immediate subformulas */
+  FormulaList** getArgsPtr() { return &_args; }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME("JunctionFormula");
@@ -306,6 +309,14 @@ FormulaList* Formula::args()
 {
   ASS(_connective == AND || _connective == OR);
   return static_cast<JunctionFormula*>(this)->getArgs();
+}
+
+/** Return a pointer to the list of immediate subformulas of a junction formula */
+inline
+FormulaList** Formula::argsPtr()
+{
+  ASS(_connective == AND || _connective == OR);
+  return static_cast<JunctionFormula*>(this)->getArgsPtr();
 }
 
 /** Return the literal of an atomic formula */

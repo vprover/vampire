@@ -45,7 +45,7 @@ private:
   Clause* replacePurePredicates(Clause* u);
   Unit* replacePurePredicates(Unit* u);
 
-  void makeImplFromDef(int pred, bool forward);
+  void makeImplFromDef(unsigned pred, bool forward);
 
   int _predCnt;
   PredData* _preds;

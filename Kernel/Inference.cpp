@@ -305,6 +305,10 @@ string Inference::ruleName(Rule rule)
     return "grounding";
   case EQUALITY_AXIOM:
     return "equality axiom";
+  case THEORY:
+    return "theory axiom";
+  case BOOLEAN_TERM_ENCODING:
+    return "boolean term encoding";
 
   case SPLITTING:
     return "splitting";

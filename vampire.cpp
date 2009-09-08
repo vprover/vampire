@@ -33,10 +33,13 @@
 
 #include "Shell/CommandLine.hpp"
 #include "Shell/Grounding.hpp"
+#include "Shell/LispLexer.hpp"
+#include "Shell/LispParser.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Preprocess.hpp"
 #include "Shell/Refutation.hpp"
+#include "Shell/SimplifyProver.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTP.hpp"
@@ -64,58 +67,59 @@ UnitList* globUnitList=0;
 
 ClauseIterator getInputClauses()
 {
-  CALL("getInputClauses()");
-
   Property property;
 
   env.signature = new Kernel::Signature;
   UnitList* units;
-  {
-    string inputFile = env.options->inputFile();
-    ifstream input(inputFile.c_str());
-    TPTPLexer lexer(input);
-    TPTPParser parser(lexer);
-    units = parser.units();
+  string inputFile = env.options->inputFile();
+  ifstream input(inputFile.c_str());
+
+  switch (env.options->inputSyntax()) {
+  case Options::IS_SIMPLIFY:
+    {
+      Shell::LispLexer lexer(input);
+      Shell::LispParser parser(lexer);
+      LispParser::Expression* expr = parser.parse();
+      SimplifyProver simplify;
+      units = simplify.units(expr);
+    }
+    break;
+  case Options::IS_TPTP:
+    {
+      TPTPLexer lexer(input);
+      TPTPParser parser(lexer);
+      units = parser.units();
+    }
+    break;
   }
 
-//    if(units==0) {
-//      cout<<"Empty units list!\n";
-//    }
-
   property.scan(units);
-
   Preprocess prepro(property,*env.options);
   prepro.preprocess(units);
-
   globUnitList=units;
 
   return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
-
 }
 
 void doProving()
 {
   CALL("doProving()");
   try {
-
     ClauseIterator clauses=getInputClauses();
-
-//    if(!clauses.hasNext()) {
-//      cout<<"No clauses after preprocessing!\n";
-//    }
-
     SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
     salg->addInputClauses(clauses);
 
     SaturationResult sres(salg->saturate());
     sres.updateStatistics();
-  } catch(MemoryLimitExceededException) {
+  }
+  catch(MemoryLimitExceededException) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
     env.statistics->refutation=0;
     size_t limit=Allocator::getMemoryLimit();
     //add extra 1 MB to allow proper termination
     Allocator::setMemoryLimit(limit+1000000);
-  } catch(TimeLimitExceededException) {
+  }
+  catch(TimeLimitExceededException) {
     env.statistics->terminationReason=Statistics::TIME_LIMIT;
     env.statistics->refutation=0;
   }
@@ -173,10 +177,12 @@ void spiderMode()
   bool noException=true;
   try {
     doProving();
-  } catch(...) {
+  }
+  catch(...) {
     noException=false;
     env.out << "! ";
   }
+
   if(noException) {
     switch (env.statistics->terminationReason) {
     case Statistics::REFUTATION:
@@ -224,7 +230,6 @@ int main(int argc, char* argv [])
     Shell::CommandLine cl(argc,argv);
     cl.interpret(options);
     Allocator::setMemoryLimit(options.memoryLimit()*1048576);
-
     Lib::Random::setSeed(options.randomSeed());
 
     Timer timer;
@@ -253,7 +258,7 @@ int main(int argc, char* argv [])
 #endif
     }
 #if CHECK_LEAKS
-    if(globUnitList) {
+    if (globUnitList) {
       MemoryLeak leak;
       leak.release(globUnitList);
     }

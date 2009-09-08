@@ -442,22 +442,15 @@ string Formula::toStringInScopeOf (Connective outer) const
 
 /**
  * Return the list all free variables of the formula.
- *
  * @since 12/12/2004 Manchester
  */
 Formula::VarList* Formula::freeVariables () const
 {
-  MultiCounter vc;
   FormulaVarIterator fvi(this);
   VarList* result = VarList::empty();
   VarList::FIFO stack(result);
-
   while (fvi.hasNext()) {
-    int v = fvi.next();
-    if (! vc.get(v)) {
-      vc.inc(v);
-      stack.push(v);
-    }
+    stack.push(fvi.next());
   }
   return result;
 } // Formula::freeVariables

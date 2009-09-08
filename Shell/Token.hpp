@@ -67,6 +67,8 @@ enum TokenType {
   TT_NEQ,
   /** sequence of letters and digits beginning with a lower-case letter */
   TT_NAME,
+  /** special tag for vampire(...) in the Vampire extension of the TPTP syntax */
+  TT_VAMPIRE,
   /** sequence of letters and digits beginning with an upper-case letter */
   TT_VAR,
   /** input_formula */

@@ -78,19 +78,17 @@ string Int::toString(unsigned i)
   return result;
 } // Int::toString
 
-#if ARCH_X64
 /**
  * Return the string representation of an unsigned integer.
  */
-string Int::toString(size_t i)
+string Int::toString(unsigned long i)
 {
   char tmp [256];
-  sprintf(tmp,"%zd",i);
+  sprintf(tmp,"%lu",i);
   string result(tmp);
 
   return result;
 } // Int::toString
-#endif
 
 string Int::toHexString(size_t i)
 {

@@ -166,8 +166,11 @@ public:
     GROUNDING = 60u,
     /** equality axiom */
     EQUALITY_AXIOM = 61u,
-
-
+    /** any added theory axioms */
+    THEORY = 62u,
+    /** Introduction of formula to convert formulas used as argument positions.
+     *  Such formulas have the form F->f(x)=1 or ~F->f(x)=0 */
+    BOOLEAN_TERM_ENCODING = 63u,
 
     /** splitting */
     SPLITTING = 201u,

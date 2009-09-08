@@ -38,6 +38,7 @@ public:
   static const char* _lcmValues[];
   static const char* _satAlgValues[];
   static const char* _equalityProxyValues[];
+  static const char* _inputSyntaxValues[];
   static const char* _modeValues[];
   static const char* _ruleActivityValues[];
   static const char* _symbolPrecedenceValues[];
@@ -54,6 +55,7 @@ public:
   static NameArray lcmValues;
   static NameArray satAlgValues;
   static NameArray equalityProxyValues;
+  static NameArray inputSyntaxValues;
   static NameArray modeValues;
   static NameArray ruleActivityValues;
   static NameArray symbolPrecedenceValues;
@@ -85,6 +87,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "include",
   "inequality_splitting",
+  "input_syntax",
 
   "latex_output",
   "literal_comparison_mode",
@@ -258,6 +261,12 @@ const char* Options::Constants::_tcValues[] = {
 NameArray Options::Constants::tcValues(_tcValues,
 				       sizeof(_tcValues)/sizeof(char*));
 
+const char* Options::Constants::_inputSyntaxValues[] = {
+  "simplify",
+  "tptp"};
+NameArray Options::Constants::inputSyntaxValues(_inputSyntaxValues,
+						sizeof(_inputSyntaxValues)/sizeof(char*));
+
 const char* Options::Constants::_modeValues[] = {
   "casc",
   "grounding",
@@ -304,6 +313,7 @@ Options::Options ()
 
   _include(""),
   _inequalitySplitting(3),
+  _inputSyntax(IS_TPTP),
   _inputFile(""),
 
   _latexOutput("off"),
@@ -478,6 +488,12 @@ void Options::set (const char* name,const char* value, int index)
       return;
     }
     break;
+  case INPUT_SYNTAX:
+    _inputSyntax = (InputSyntax)Constants::inputSyntaxValues.find(value);
+    if (_inputSyntax == -1) {
+      break;
+    }
+    return;
 
   case LATEX_OUTPUT:
     _latexOutput = value;
@@ -932,6 +948,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case INEQUALITY_SPLITTING:
     str << _inequalitySplitting;
+    return;
+  case INPUT_SYNTAX:
+    str << Constants::inputSyntaxValues[_inputSyntax];
     return;
 
   case LATEX_OUTPUT:

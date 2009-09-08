@@ -69,7 +69,7 @@ class UserErrorException
   UserErrorException (const char* msg)
     : Exception(msg)
   {}
-  UserErrorException (const string& msg)
+  UserErrorException (const string msg)
     : Exception(msg)
   {}
   void cry (ostream&);
@@ -113,7 +113,7 @@ class InvalidOperationException
    InvalidOperationException (const char* msg)
     : Exception(msg)
   {}
-   InvalidOperationException (const string& msg)
+   InvalidOperationException (const string msg)
     : Exception(msg)
   {}
   void cry (ostream&);
