@@ -192,6 +192,10 @@ void SaturationAlgorithm::onNewClause(Clause* c)
 {
   CALL("SaturationAlgorithm::onNewClause");
 
+  if(env.options->showNew()) {
+    cout<<"New: "<<c->toTPTPString()<<endl;
+  }
+
   if(env.options->showNewPropositional() && c->isPropositional()) {
     VirtualIterator<string> clStrings=c->toSimpleClauseStrings();
     while(clStrings.hasNext()) {
