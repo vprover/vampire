@@ -69,7 +69,7 @@ BDD::~BDD()
 
 string BDD::getPropositionalPredicateName(int var)
 {
-  string prefix("$bdd");
+  string prefix(BDD_PREDICATE_PREFIX);
   prefix+=env.options->namePrefix();
   string name = prefix + Int::toString(var);
 
@@ -407,6 +407,18 @@ string BDD::toString(BDDNode* node)
   return res;
 }
 
+string BDD::toTPTPString(BDDNode* node, string bddPrefix)
+{
+  if(isTrue(node)) {
+    return "$true";
+  } else if(isFalse(node)) {
+    return "$false";
+  } else {
+    return string("( ( ")+bddPrefix+Int::toString(node->_var)+" => "+toTPTPString(node->_pos, bddPrefix)+
+      ") & ( ~"+bddPrefix+Int::toString(node->_var)+" => "+toTPTPString(node->_neg, bddPrefix)+" ) )";
+  }
+}
+
 string BDD::toTPTPString(BDDNode* node)
 {
   if(isTrue(node)) {
@@ -414,8 +426,8 @@ string BDD::toTPTPString(BDDNode* node)
   } else if(isFalse(node)) {
     return "$false";
   } else {
-    return string("( ( bddPred")+Int::toString(node->_var)+" => "+toTPTPString(node->_pos)+
-      ") & ( ~bddPred"+Int::toString(node->_var)+" => "+toTPTPString(node->_neg)+" ) )";
+    return string("( ( ")+getPropositionalPredicateName(node->_var)+" => "+toTPTPString(node->_pos)+
+      ") & ( ~"+getPropositionalPredicateName(node->_var)+" => "+toTPTPString(node->_neg)+" ) )";
   }
 }
 

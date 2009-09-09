@@ -95,6 +95,10 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
 #if REPORT_CONTAINERS
   cout<<"## Active added: "<<(*c)<<endl;
 #endif
+
+  if(env.options->showActive()) {
+    cout<<"Active: "<<c->toTPTPString()<<endl;
+  }
 }
 
 void SaturationAlgorithm::onActiveRemoved(Clause* c)
@@ -124,6 +128,10 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
 #if REPORT_CONTAINERS
   cout<<"# Passive added: "<<(*c)<<endl;
 #endif
+
+  if(env.options->showPassive()) {
+    cout<<"Passive: "<<c->toTPTPString()<<endl;
+  }
 }
 
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)

@@ -469,12 +469,17 @@ struct InferenceStore::TPTPProofCheckPrinter
   TPTPProofCheckPrinter(Unit* refutation, ostream& out, InferenceStore* is)
   : ProofPrinter(refutation, out, is) {}
 
+  string bddToString(BDDNode* node)
+  {
+    return bdd->toTPTPString(node, "bddPred");
+  }
+
   void printProofStepHead(ClauseSpec cs, FullInference* finf)
   {
     Clause* cl=cs.first;
     out << "fof(r"<<is->getClauseIdStr(cs)
     	<< ",conjecture, "
-    	<< getQuantifiedStr(cl) <<" | "<<bdd->toTPTPString(cs.second)
+    	<< getQuantifiedStr(cl) <<" | "<<bddToString(cs.second)
     	<< " ). %"<<Inference::ruleName(finf->rule)<<"\n";
   }
 
@@ -483,7 +488,7 @@ struct InferenceStore::TPTPProofCheckPrinter
     Clause* cl=cs.first;
     out << "fof(pr"<<is->getClauseIdStr(cs)
 	<< ",axiom, "
-	<< getQuantifiedStr(cl)<<" | "<<bdd->toTPTPString(cs.second)
+	<< getQuantifiedStr(cl)<<" | "<<bddToString(cs.second)
     	<< " ).\n";
   }
 
@@ -516,17 +521,17 @@ struct InferenceStore::TPTPProofCheckPrinter
 
     out << "fof(r"<<is->getClauseIdStr(cs)
     	<< ",conjecture, "
-    	<< getQuantifiedStr(cl) <<" | "<<bdd->toTPTPString(cs.second)
+    	<< getQuantifiedStr(cl) <<" | "<<bddToString(cs.second)
     	<< " ). %"<<Inference::ruleName(Inference::SPLITTING)<<"\n";
 
     out << "fof(pr"<<is->getClauseIdStr(sr->premise)
     	<< ",axiom, "
-    	<< getQuantifiedStr(sr->premise.first) <<" | "<<bdd->toTPTPString(sr->premise.second)
+    	<< getQuantifiedStr(sr->premise.first) <<" | "<<bddToString(sr->premise.second)
     	<< " ).\n";
 
     out << "fof(pr"<<is->getClauseIdStr(prevCs)
     	<< ",axiom, "
-    	<< getQuantifiedStr(prevCs.first) <<" | "<<bdd->toTPTPString(prevCs.second)
+    	<< getQuantifiedStr(prevCs.first) <<" | "<<bddToString(prevCs.second)
     	<< " ).\n";
 
     Stack<pair<int,Clause*> >::Iterator compIt(sr->namedComps);

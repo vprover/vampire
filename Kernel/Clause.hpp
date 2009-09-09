@@ -107,6 +107,7 @@ public:
   void destroyExceptInferenceObject();
   string nonPropToString() const;
   string toString() const;
+  string toTPTPString() const;
   string toString(BDDNode* propPart) const;
 
   /** Return the clause store */

@@ -185,9 +185,25 @@ string Clause::nonPropToString() const
 
 
 /**
+ * Convert the clause to the TPTP-compatible string representation, assuming its
+ * propositional part is @b propPart.
+ */
+string Clause::toTPTPString() const
+{
+  CALL("Clause::toTPTPString()");
+
+  string result = nonPropToString();
+
+  if(prop()) {
+    result += " | " + BDD::instance()->toTPTPString(prop());
+  }
+
+  return result;
+}
+
+/**
  * Convert the clause to the string representation, assuming its
  * propositional part is @b propPart.
- * @since 20/05/2007 Manchester
  */
 string Clause::toString(BDDNode* propPart) const
 {

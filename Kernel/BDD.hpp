@@ -22,6 +22,7 @@
 
 #include "../SAT/TWLSolver.hpp"
 
+#define BDD_PREDICATE_PREFIX "$bdd"
 
 namespace Kernel {
 
@@ -87,6 +88,7 @@ public:
   static unsigned hash(const BDDNode* n);
 
   string toString(BDDNode* node);
+  string toTPTPString(BDDNode* node, string bddPrefix);
   string toTPTPString(BDDNode* node);
 
   SATClauseList* toCNF(BDDNode* node);
