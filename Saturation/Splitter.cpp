@@ -25,6 +25,8 @@ using namespace Kernel;
 
 #define REPORT_SPLITS 0
 
+DHMap<int, unsigned, IdentityHash> Splitter::_namePropPreds;
+
 /**
  * Split clause @b cl into components. Newly introduced will be yielded
  * by the iterator assigned to @b newComponents, and other components

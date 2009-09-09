@@ -15,12 +15,15 @@
 
 #include "../SAT/SATClause.hpp"
 
+#include "../Saturation/Splitter.hpp"
+
 #include "../Shell/Options.hpp"
 
 #include "Inference.hpp"
 #include "Clause.hpp"
 #include "Term.hpp"
 #include "BDD.hpp"
+#include "Signature.hpp"
 
 namespace Kernel
 {
@@ -225,7 +228,8 @@ string Clause::toString() const
 
 /**
  * Convert the clause into sequence of strings, each containing
- * a proper clause (no BDDs).
+ * a proper clause (no BDDs). Also BDD variables corresponding to
+ * propositional predicates are output as those predicates.
  */
 VirtualIterator<string> Clause::toSimpleClauseStrings()
 {
@@ -254,7 +258,12 @@ VirtualIterator<string> Clause::toSimpleClauseStrings()
       if(!(*sc)[i].polarity()) {
 	rstr+='~';
       }
-      rstr+=bdd->getPropositionalPredicateName((*sc)[i].var());
+      unsigned bddVar=(*sc)[i].var();
+      if(Saturation::Splitter::_namePropPreds.find(bddVar)) {
+	rstr+=env.signature->predicateName(Saturation::Splitter::_namePropPreds.get(bddVar));
+      } else {
+	rstr+=bdd->getPropositionalPredicateName(bddVar);
+      }
     }
 
     List<string>::push(rstr, res);

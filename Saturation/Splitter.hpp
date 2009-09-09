@@ -37,10 +37,6 @@ private:
   /** Names assigned to propositional predicates */
   DHMap<unsigned, int, IdentityHash> _propPredNames;
 
-  /** Propositional predicates corresponding to names
-   * (not all names have corresponding prop. predicate) */
-  DHMap<int, unsigned, IdentityHash> _namePropPreds;
-
   /** Clauses to be used as premises for replacing
    * positive predicate occurence by name */
   DHMap<unsigned, Clause*, IdentityHash> _propPredPosNamePremises;
@@ -52,6 +48,10 @@ private:
   /** Index containing names clauses. Name of a clause is stored in
    * @b _clauseNames */
   ClauseVariantIndex _variantIndex;
+public:
+  /** Propositional predicates corresponding to names
+   * (not all names have corresponding prop. predicate) */
+  static DHMap<int, unsigned, IdentityHash> _namePropPreds;
 };
 
 };
