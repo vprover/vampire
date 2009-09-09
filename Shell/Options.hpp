@@ -79,7 +79,9 @@ public:
     SATURATION_ALGORITHM,
     SELECTION,
     SHOW_ACTIVE,
+    SHOW_DEFINITIONS,
     SHOW_NEW,
+    SHOW_NEW_PROPOSITIONAL,
     SHOW_OPTIONS,
     SHOW_PASSIVE,
     SIMULATED_TIME_LIMIT,
@@ -231,7 +233,9 @@ public:
   bool outputMessages() const { return _outputMessages; }
   void setOutputMessages(bool newVal) { _outputMessages = newVal; }
   bool showActive() const { return _showActive; }
+  bool showDefinitions() const { return _showDefinitions; }
   bool showNew() const { return _showNew; }
+  bool showNewPropositional() const { return _showNewPropositional; }
   bool showOptions() const { return _showOptions; }
   bool showPassive() const { return _showPassive; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval; }
@@ -358,7 +362,9 @@ private:
   SaturationAlgorithm _saturationAlgorithm;
   int _selection;
   bool _showActive;
+  bool _showDefinitions;
   bool _showNew;
+  bool _showNewPropositional;
   bool _showOptions;
   bool _showPassive;
   int _simulatedTimeLimit;

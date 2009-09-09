@@ -31,8 +31,15 @@ private:
 
   Clause* insertIntoIndex(Clause* cl, bool& newInserted, bool& modified);
 
+  /** Names assigned to clauses stored in @b _variantIndex */
   DHMap<Clause*, int, PtrIdentityHash> _clauseNames;
+
+  /** Names assigned to propositional predicates */
   DHMap<unsigned, int, IdentityHash> _propPredNames;
+
+  /** Propositional predicates corresponding to names
+   * (not all names have corresponding prop. predicate) */
+  DHMap<int, unsigned, IdentityHash> _namePropPreds;
 
   /** Clauses to be used as premises for replacing
    * positive predicate occurence by name */
@@ -41,6 +48,9 @@ private:
   /** Clauses to be used as premises for replacing
    * negative predicate occurence by name */
   DHMap<unsigned, Clause*, IdentityHash> _propPredNegNamePremises;
+
+  /** Index containing names clauses. Name of a clause is stored in
+   * @b _clauseNames */
   ClauseVariantIndex _variantIndex;
 };
 

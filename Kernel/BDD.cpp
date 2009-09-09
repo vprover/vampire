@@ -13,11 +13,15 @@
 #include "../Lib/Stack.hpp"
 #include "../Lib/Timer.hpp"
 
+#include "../Kernel/Signature.hpp"
+
 #include "../SAT/ClauseSharing.hpp"
 #include "../SAT/Preprocess.hpp"
 #include "../SAT/SATClause.hpp"
 #include "../SAT/SATLiteral.hpp"
 #include "../SAT/SingleWatchSAT.hpp"
+
+#include "../Shell/Options.hpp"
 
 #include "BDD.hpp"
 
@@ -61,6 +65,20 @@ BDD::~BDD()
     BDDNode* node=nit.next();
     delete node;
   }
+}
+
+string BDD::getPropositionalPredicateName(int var)
+{
+  string prefix("$bdd");
+  prefix+=env.options->namePrefix();
+  string name = prefix + Int::toString(var);
+
+  //We do not want the predicate to be already present!
+  //(But we also don't want to insert it into signature,
+  //as it would grow too much.)
+  ASS(!env.signature->isPredicateName(name, 0));
+
+  return name;
 }
 
 BDDNode* BDD::getAtomic(int varNum, bool positive)
@@ -411,6 +429,9 @@ unsigned BDD::hash(const BDDNode* n)
   return res;
 }
 
+/**
+ * Convert a BDD node into a sequence of propositional clauses.
+ */
 SATClauseList* BDD::toCNF(BDDNode* node)
 {
   CALL("BDD::toCNF");

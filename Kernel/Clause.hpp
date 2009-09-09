@@ -152,6 +152,8 @@ public:
   ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
   { return ArrayishObjectIterator<Clause>(*this,selected()); }
 
+  bool isPropositional();
+
 #if VDEBUG
   bool contains(Literal* lit);
   void assertValid();
@@ -161,6 +163,8 @@ public:
   BDDNode* prop() const { return _prop; }
 
   void setProp(BDDNode* prop);
+
+  VirtualIterator<string> toSimpleClauseStrings();
 
 
   /** Set auxiliary value of this clause. */

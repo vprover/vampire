@@ -55,6 +55,7 @@ public:
   ~BDD();
 
   int getNewVar() { return _newVar++; }
+  string getPropositionalPredicateName(int var);
 
   BDDNode* getTrue() { return &_trueNode; }
   BDDNode* getFalse() { return &_falseNode; }

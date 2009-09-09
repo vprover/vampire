@@ -13,6 +13,8 @@
 #include "../Lib/Int.hpp"
 #include "../Lib/Stack.hpp"
 
+#include "../SAT/SATClause.hpp"
+
 #include "../Shell/Options.hpp"
 
 #include "Inference.hpp"
@@ -136,6 +138,22 @@ void Clause::destroyExceptInferenceObject()
   DEALLOC_KNOWN(this, size,"Clause");
 }
 
+/**
+ * Return true iff clause contains no literals of non-zero arity.
+ */
+bool Clause::isPropositional()
+{
+  CALL("Clause::isPropositional");
+
+  for (unsigned i = 0; i < _length; i++) {
+    if(_literals[i]->arity()>0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
 //struct StrComparator {
 //  Comparison compare(string s1, string s2)
 //  {
@@ -205,6 +223,46 @@ string Clause::toString() const
   return toString(prop());
 } // Clause::toString
 
+/**
+ * Convert the clause into sequence of strings, each containing
+ * a proper clause (no BDDs).
+ */
+VirtualIterator<string> Clause::toSimpleClauseStrings()
+{
+  CALL("toSimpleClauseStrings");
+  BDD* bdd=BDD::instance();
+  if(bdd->isTrue(prop())) {
+    return VirtualIterator<string>::getEmpty();
+  }
+  if(bdd->isFalse(prop())) {
+    return pvi( getSingletonIterator(nonPropToString()) );
+  }
+
+  string np(length() ? (nonPropToString()+" | ") : string(""));
+
+  SATClauseList* scl=bdd->toCNF(prop());
+  List<string>* res=0;
+
+  while(scl) {
+    SATClause* sc=SATClauseList::pop(scl);
+    string rstr(np);
+
+    for(unsigned i=0;i<sc->length();i++) {
+      if(i) {
+	rstr+=" | ";
+      }
+      if(!(*sc)[i].polarity()) {
+	rstr+='~';
+      }
+      rstr+=bdd->getPropositionalPredicateName((*sc)[i].var());
+    }
+
+    List<string>::push(rstr, res);
+    sc->destroy();
+  }
+
+  return pvi( List<string>::DestructiveIterator(res) );
+}
 
 /**
  * Compute the weight of the clause.

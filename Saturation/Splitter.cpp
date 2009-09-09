@@ -10,7 +10,9 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/InferenceStore.hpp"
+#include "../Kernel/Signature.hpp"
 #include "../Kernel/Term.hpp"
+#include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "Splitter.hpp"
@@ -23,6 +25,14 @@ using namespace Kernel;
 
 #define REPORT_SPLITS 0
 
+/**
+ * Split clause @b cl into components. Newly introduced will be yielded
+ * by the iterator assigned to @b newComponents, and other components
+ * that have changed to @b modifiedComponents.
+ *
+ * A change to a component consists of a modification of its propositional
+ * part.
+ */
 void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 	ClauseIterator& modifiedComponents)
 {
@@ -242,6 +252,11 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       masterPremises.push(comp);
       srec->namedComps.push(make_pair(compName, comp));
 
+      if(env.options->showDefinitions()) {
+        env.out << "Definition: " << BDD::instance()->getPropositionalPredicateName(compName)
+  	    << " <=> (" << comp->nonPropToString() << ")" << endl;
+      }
+
 #if REPORT_SPLITS
       cout<<'n'<<compName<<": "<<(*comp)<<endl;
 #endif
@@ -289,10 +304,19 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 
 void Splitter::getPropPredName(Literal* lit, int& name, Clause*& premise, bool& newPremise)
 {
+  CALL("Splitter::insertIntoIndex");
+  ASS_EQ(lit->arity(), 0);
+
   unsigned pred=lit->functor();
   int* pname;
   if(_propPredNames.getValuePtr(pred, pname)) {
     *pname=BDD::instance()->getNewVar();
+    _namePropPreds.insert(*pname, pred);
+
+    if(env.options->showDefinitions()) {
+      env.out << "Definition: " << BDD::instance()->getPropositionalPredicateName(*pname)
+	    << " <=> " << env.signature->predicateName(pred) << endl;
+    }
   }
   name=*pname;
 

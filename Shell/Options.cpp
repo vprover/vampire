@@ -120,7 +120,9 @@ const char* Options::Constants::_optionNames[] = {
   "saturation_algorithm",
   "selection",
   "show_active",
+  "show_definitions",
   "show_new",
+  "show_new_propositional",
   "show_options",
   "show_passive",
   "simulated_time_limit",
@@ -348,7 +350,9 @@ Options::Options ()
   _saturationAlgorithm(LRS),
   _selection(10),
   _showActive(false),
+  _showDefinitions(false),
   _showNew(false),
+  _showNewPropositional(false),
   _showOptions(false),
   _showPassive(false),
   _simulatedTimeLimit(0),
@@ -623,8 +627,14 @@ void Options::set (const char* name,const char* value, int index)
   case SHOW_ACTIVE:
     _showActive = onOffToBool(value,name);
     return;
+  case SHOW_DEFINITIONS:
+    _showDefinitions = onOffToBool(value,name);
+    return;
   case SHOW_NEW:
     _showNew = onOffToBool(value,name);
+    return;
+  case SHOW_NEW_PROPOSITIONAL:
+    _showNewPropositional = onOffToBool(value,name);
     return;
   case SHOW_OPTIONS:
     _showOptions = onOffToBool(value,name);
@@ -1034,7 +1044,13 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SHOW_ACTIVE:
     str << boolToOnOff(_showActive);
     return;
+  case SHOW_DEFINITIONS:
+    str << boolToOnOff(_showDefinitions);
+    return;
   case SHOW_NEW:
+    str << boolToOnOff(_showNew);
+    return;
+  case SHOW_NEW_PROPOSITIONAL:
     str << boolToOnOff(_showNew);
     return;
   case SHOW_OPTIONS:
@@ -1376,7 +1392,8 @@ bool Options::complete () const
          _selection < 20 &&
          _selection > -20 &&
          ! _sos &&
-         _superpositionFromVariables;
+         _superpositionFromVariables &&
+         ! _maxWeight;
 } // Options::complete
 
 

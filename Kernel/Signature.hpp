@@ -91,6 +91,14 @@ class Signature
     return _preds[number]->arity;
   }
 
+  /** return true iff predicate of given @b name and @b arity exists. */
+  bool isPredicateName(string name, unsigned arity)
+  {
+    string symbolKey = key(name,arity);
+    unsigned tmp;
+    return _predNames.find(symbolKey,tmp);
+  }
+
   /** return the number of functions */
   int functions() const { return _funs.length(); }
   /** return the number of predicates */

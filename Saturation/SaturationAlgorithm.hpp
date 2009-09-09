@@ -69,21 +69,19 @@ protected:
   void reanimate(Clause* c);
   void activate(Clause* c);
 
-  void onActiveAddedReport(Clause* c);
-  void onActiveRemovedReport(Clause* c);
-  void onPassiveAddedReport(Clause* c);
-  void onPassiveRemovedReport(Clause* c);
-  void onPassiveSelectedReport(Clause* c);
-  void onUnprocessedAddedReport(Clause* c);
-  void onUnprocessedRemovedReport(Clause* c);
-  void onUnprocessedSelectedReport(Clause* c);
+  void onActiveAdded(Clause* c);
+  virtual void onActiveRemoved(Clause* c);
+  void onPassiveAdded(Clause* c);
+  virtual void onPassiveRemoved(Clause* c);
+  void onPassiveSelected(Clause* c);
+  void onUnprocessedAdded(Clause* c);
+  void onUnprocessedRemoved(Clause* c);
+  void onUnprocessedSelected(Clause* c);
+  void onNewClause(Clause* c);
 
   void handleSaturationStart();
   int elapsedTime();
 
-
-  virtual void onActiveRemoved(Clause* cl);
-  virtual void onPassiveRemoved(Clause* cl);
 
 private:
   void passiveRemovedHandler(Clause* cl);

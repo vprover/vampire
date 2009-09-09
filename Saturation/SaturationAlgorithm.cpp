@@ -8,12 +8,14 @@
 #include "../Lib/Stack.hpp"
 #include "../Lib/Timer.hpp"
 #include "../Lib/VirtualIterator.hpp"
+
 #include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/InferenceStore.hpp"
 #include "../Kernel/LiteralSelector.hpp"
 #include "../Kernel/MLVariant.hpp"
+
 #include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
@@ -45,34 +47,23 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
   _active->attach(this);
   _passive->attach(this);
 
-//  _active->addedEvent.subscribe(this,&SaturationAlgorithm::onActiveAdded);
-//  _active->removedEvent.subscribe(this,&SaturationAlgorithm::onActiveRemoved);
-
-#if REPORT_CONTAINERS
-  _active->addedEvent.subscribe(this,&SaturationAlgorithm::onActiveAddedReport);
-  _active->removedEvent.subscribe(this,&SaturationAlgorithm::onActiveRemovedReport);
-  _passive->addedEvent.subscribe(this,&SaturationAlgorithm::onPassiveAddedReport);
-  _passive->removedEvent.subscribe(this,&SaturationAlgorithm::onPassiveRemovedReport);
-  _passive->selectedEvent.subscribe(this,&SaturationAlgorithm::onPassiveSelectedReport);
-  _unprocessed->addedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedAddedReport);
-  _unprocessed->removedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedRemovedReport);
-  _unprocessed->selectedEvent.subscribe(this,&SaturationAlgorithm::onUnprocessedSelectedReport);
-#endif
+  _active->addedEvent.subscribe(this, &SaturationAlgorithm::onActiveAdded);
+  _active->removedEvent.subscribe(this, &SaturationAlgorithm::activeRemovedHandler);
+  _passive->addedEvent.subscribe(this, &SaturationAlgorithm::onPassiveAdded);
+  _passive->removedEvent.subscribe(this, &SaturationAlgorithm::passiveRemovedHandler);
+  _passive->selectedEvent.subscribe(this, &SaturationAlgorithm::onPassiveSelected);
+  _unprocessed->addedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedAdded);
+  _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
+  _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
   if(env.options->maxWeight()) {
     _limits.setLimits(-1,env.options->maxWeight());
   }
 
-  _passiveContRemovalSData=_passive->removedEvent.subscribe(
-      this, &SaturationAlgorithm::passiveRemovedHandler);
-  _activeContRemovalSData=_active->removedEvent.subscribe(
-      this, &SaturationAlgorithm::activeRemovedHandler);
 }
 
 SaturationAlgorithm::~SaturationAlgorithm()
 {
-  _passiveContRemovalSData->unsubscribe();
-  _activeContRemovalSData->unsubscribe();
 
   env.statistics->finalActiveClauses=_active->size();
   env.statistics->finalPassiveClauses=_passive->size();
@@ -99,49 +90,27 @@ SaturationAlgorithm::~SaturationAlgorithm()
   delete _active;
 }
 
-void SaturationAlgorithm::onActiveAddedReport(Clause* c)
+void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
+#if REPORT_CONTAINERS
   cout<<"## Active added: "<<(*c)<<endl;
-}
-void SaturationAlgorithm::onActiveRemovedReport(Clause* c)
-{
-  cout<<"== Active removed: "<<(*c)<<endl;
-}
-void SaturationAlgorithm::onPassiveAddedReport(Clause* c)
-{
-  cout<<"# Passive added: "<<(*c)<<endl;
-}
-void SaturationAlgorithm::onPassiveRemovedReport(Clause* c)
-{
-  cout<<"= Passive removed: "<<(*c)<<endl;
-}
-void SaturationAlgorithm::onPassiveSelectedReport(Clause* c)
-{
-  cout<<"~ Passive selected: "<<(*c)<<endl;
-}
-void SaturationAlgorithm::onUnprocessedAddedReport(Clause* c)
-{
-  cout<<"++ Unprocessed added: "<<(*c)<<endl;
-}
-void SaturationAlgorithm::onUnprocessedRemovedReport(Clause* c)
-{
-  cout<<"-- Unprocessed removed: "<<(*c)<<endl;
-}
-void SaturationAlgorithm::onUnprocessedSelectedReport(Clause* c)
-{
-  cout<<"~~ Unprocessed selected: "<<(*c)<<endl;
+#endif
 }
 
-
-void SaturationAlgorithm::onActiveRemoved(Clause* cl)
+void SaturationAlgorithm::onActiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onActiveRemoved");
-  ASS(cl->store()==Clause::ACTIVE || cl->store()==Clause::REACTIVATED)
 
-  if(cl->store()==Clause::ACTIVE) {
-    cl->setStore(Clause::NONE);
-  } else if(cl->store()==Clause::REACTIVATED) {
-    cl->setStore(Clause::PASSIVE);
+#if REPORT_CONTAINERS
+  cout<<"== Active removed: "<<(*c)<<endl;
+#endif
+
+  ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED)
+
+  if(c->store()==Clause::ACTIVE) {
+    c->setStore(Clause::NONE);
+  } else if(c->store()==Clause::REACTIVATED) {
+    c->setStore(Clause::PASSIVE);
   }
 #if VDEBUG
   else {
@@ -150,23 +119,85 @@ void SaturationAlgorithm::onActiveRemoved(Clause* cl)
 #endif
 }
 
-void SaturationAlgorithm::onPassiveRemoved(Clause* cl)
+void SaturationAlgorithm::onPassiveAdded(Clause* c)
+{
+#if REPORT_CONTAINERS
+  cout<<"# Passive added: "<<(*c)<<endl;
+#endif
+}
+
+void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
-  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED)
 
-  if(cl->store()==Clause::PASSIVE) {
-    cl->setStore(Clause::NONE);
-  } else if(cl->store()==Clause::REACTIVATED) {
-    cl->setStore(Clause::ACTIVE);
+#if REPORT_CONTAINERS
+  cout<<"= Passive removed: "<<(*c)<<endl;
+#endif
+
+  ASS(c->store()==Clause::PASSIVE || c->store()==Clause::REACTIVATED)
+
+  if(c->store()==Clause::PASSIVE) {
+    c->setStore(Clause::NONE);
+  } else if(c->store()==Clause::REACTIVATED) {
+    c->setStore(Clause::ACTIVE);
   }
 #if VDEBUG
   else {
     ASSERTION_VIOLATION;
   }
 #endif
+
 }
 
+void SaturationAlgorithm::onPassiveSelected(Clause* c)
+{
+#if REPORT_CONTAINERS
+  cout<<"~ Passive selected: "<<(*c)<<endl;
+#endif
+}
+
+void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
+{
+#if REPORT_CONTAINERS
+  cout<<"++ Unprocessed added: "<<(*c)<<endl;
+#endif
+}
+
+void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
+{
+#if REPORT_CONTAINERS
+  cout<<"-- Unprocessed removed: "<<(*c)<<endl;
+#endif
+}
+
+void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
+{
+#if REPORT_CONTAINERS
+  cout<<"~~ Unprocessed selected: "<<(*c)<<endl;
+#endif
+}
+
+/**
+ * A method that is called whenever a possibly new clause appears.
+ */
+void SaturationAlgorithm::onNewClause(Clause* c)
+{
+  CALL("SaturationAlgorithm::onNewClause");
+
+  if(env.options->showNewPropositional() && c->isPropositional()) {
+    VirtualIterator<string> clStrings=c->toSimpleClauseStrings();
+    while(clStrings.hasNext()) {
+      cout<<"New propositional: "<<clStrings.next()<<endl;
+    }
+  }
+}
+
+
+/**
+ * This method is subscribed to the remove event of the active container
+ * instead of the @b onActiveRemoved method in the constructor, as the
+ * @b onActiveRemoved method is virtual.
+ */
 void SaturationAlgorithm::activeRemovedHandler(Clause* cl)
 {
   CALL("SaturationAlgorithm::activeRemovedHandler");
@@ -174,6 +205,11 @@ void SaturationAlgorithm::activeRemovedHandler(Clause* cl)
   onActiveRemoved(cl);
 }
 
+/**
+ * This method is subscribed to the remove event of the passive container
+ * instead of the @b onPassiveRemoved method in the constructor, as the
+ * @b onPassiveRemoved method is virtual.
+ */
 void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
 {
   CALL("SaturationAlgorithm::passiveRemovedHandler");
@@ -208,6 +244,8 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
 
 void SaturationAlgorithm::addInputSOSClause(Clause*& cl)
 {
+  onNewClause(cl);
+
   bool simplified;
   do {
     Clause* simplCl=_immediateSimplifier->simplify(cl);
@@ -219,6 +257,8 @@ void SaturationAlgorithm::addInputSOSClause(Clause*& cl)
       simplCl->setProp(cl->prop());
       cl=simplCl;
       InferenceStore::instance()->recordNonPropInference(cl);
+
+      onNewClause(cl);
     }
   } while(simplified);
 
@@ -405,6 +445,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   cout<<"$$ Unprocessed adding: "<<(*cl)<<endl;
 #endif
 
+
   env.statistics->generatedClauses++;
 
   BDD* bdd=BDD::instance();
@@ -413,6 +454,9 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   env.checkTimeSometime<64>();
 
 simplificationStart:
+
+  onNewClause(cl);
+
   BDDNode* prop=cl->prop();
   bool simplified;
   do {
@@ -425,6 +469,8 @@ simplificationStart:
       cl=simplCl;
       cl->setProp(prop);
       InferenceStore::instance()->recordNonPropInference(cl);
+
+      onNewClause(cl);
     }
   } while(simplified);
 
@@ -467,6 +513,10 @@ simplificationStart:
       ASS_EQ(comp->store(), Clause::NONE);
       ASS(!bdd->isTrue(comp->prop()));
 
+      if(comp!=cl) {
+	onNewClause(comp);
+      }
+
       addUnprocessedFinalClause(comp);
     }
     while(modifiedComponents.hasNext()) {
@@ -486,6 +536,7 @@ simplificationStart:
 		comp->store()==Clause::REACTIVATED ||
 		comp->store()==Clause::UNPROCESSED);
       }
+      onNewClause(comp);
     }
   } else {
     addUnprocessedFinalClause(cl);
@@ -499,7 +550,6 @@ void SaturationAlgorithm::addUnprocessedFinalClause(Clause* cl)
   BDD* bdd=BDD::instance();
 
   if( _someSplitting && cl->isEmpty() && !bdd->isFalse(cl->prop()) ) {
-#if 1
     static BDDConjunction ecProp;
     static Stack<InferenceStore::ClauseSpec> emptyClauses;
 
@@ -512,30 +562,6 @@ void SaturationAlgorithm::addUnprocessedFinalClause(Clause* cl)
       emptyClauses.push(InferenceStore::getClauseSpec(cl));
       return;
     }
-#else
-    static Clause* emptyClause=0;
-    if(emptyClause) {
-      BDDNode* oldECProp=emptyClause->prop();
-      BDDNode* newECProp=bdd->conjunction(oldECProp, cl->prop());
-      emptyClause->setProp(newECProp);
-      InferenceStore::instance()->recordMerge(emptyClause, oldECProp, cl, newECProp);
-
-      if(isRefutation(emptyClause)) {
-	//Don't care about setting clause storage or anything, as
-	//we're done as soon as the saturation algorithm pops this
-	//clause from the unprocessed container.
-	_unprocessed->add(emptyClause);
-      }
-#if REPORT_CONTAINERS
-      cout<<"%% Empty clause extended from: "<<bdd->toString(oldECProp)<<endl;
-      cout<<"%% by: "<<bdd->toString(cl->prop())<<endl;
-      cout<<"%% to: "<<bdd->toString(newECProp)<<endl;
-#endif
-      return;
-    } else {
-      emptyClause=cl;
-    }
-#endif
   }
 
   cl->setStore(Clause::UNPROCESSED);
