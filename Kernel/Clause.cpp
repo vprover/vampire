@@ -15,8 +15,6 @@
 
 #include "../SAT/SATClause.hpp"
 
-#include "../Saturation/Splitter.hpp"
-
 #include "../Shell/Options.hpp"
 
 #include "Inference.hpp"
@@ -259,11 +257,11 @@ VirtualIterator<string> Clause::toSimpleClauseStrings()
 	rstr+='~';
       }
       unsigned bddVar=(*sc)[i].var();
-      if(Saturation::Splitter::_namePropPreds.find(bddVar)) {
-	rstr+=env.signature->predicateName(Saturation::Splitter::_namePropPreds.get(bddVar));
-      } else {
-	rstr+=bdd->getPropositionalPredicateName(bddVar);
+      string varName;
+      if(!bdd->getNiceName(bddVar, varName)) {
+	varName=bdd->getPropositionalPredicateName(bddVar);
       }
+      rstr+=varName;
     }
 
     List<string>::push(rstr, res);

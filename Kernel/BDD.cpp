@@ -81,6 +81,11 @@ string BDD::getPropositionalPredicateName(int var)
   return name;
 }
 
+bool BDD::getNiceName(int var, string& res)
+{
+  return _niceNames.find(var, res);
+}
+
 BDDNode* BDD::getAtomic(int varNum, bool positive)
 {
   CALL("BDD::getAtomic");

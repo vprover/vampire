@@ -12,6 +12,7 @@
 #include "../Forwards.hpp"
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Array.hpp"
+#include "../Lib/DHMap.hpp"
 #include "../Lib/Hash.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/List.hpp"
@@ -55,7 +56,15 @@ public:
   ~BDD();
 
   int getNewVar() { return _newVar++; }
+  int getNewVar(string niceName)
+  {
+    int res=_newVar++;
+    _niceNames.insert(res, niceName);
+    return res;
+  }
+
   string getPropositionalPredicateName(int var);
+  bool getNiceName(int var, string& res);
 
   BDDNode* getTrue() { return &_trueNode; }
   BDDNode* getFalse() { return &_falseNode; }
@@ -119,6 +128,14 @@ private:
   typedef Set<BDDNode*,BDD> NodeSet;
   /** The set storing all nodes */
   NodeSet _nodes;
+
+  /**
+   * Nice names of BDD variables
+   *
+   * Not all BDD variables must have a nice name.
+   */
+  DHMap<int, string> _niceNames;
+
 
   int _newVar;
 };

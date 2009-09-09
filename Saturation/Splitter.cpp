@@ -25,8 +25,6 @@ using namespace Kernel;
 
 #define REPORT_SPLITS 0
 
-DHMap<int, unsigned, IdentityHash> Splitter::_namePropPreds;
-
 /**
  * Split clause @b cl into components. Newly introduced will be yielded
  * by the iterator assigned to @b newComponents, and other components
@@ -312,8 +310,7 @@ void Splitter::getPropPredName(Literal* lit, int& name, Clause*& premise, bool& 
   unsigned pred=lit->functor();
   int* pname;
   if(_propPredNames.getValuePtr(pred, pname)) {
-    *pname=BDD::instance()->getNewVar();
-    _namePropPreds.insert(*pname, pred);
+    *pname=BDD::instance()->getNewVar( env.signature->predicateName(pred) );
 
     if(env.options->showDefinitions()) {
       env.out << "Definition: " << BDD::instance()->getPropositionalPredicateName(*pname)
