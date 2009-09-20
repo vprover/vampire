@@ -60,7 +60,7 @@ Clause* EqResWithDeletion::apply(Clause* cl)
   unsigned nlen=resLits.size();
   ASS_L(nlen, clen);
 
-  Inference* inf = new Inference1(Inference::EQUALITY_PROXY_REPLACEMENT, cl);
+  Inference* inf = new Inference1(Inference::EQUALITY_RESOLUTION, cl);
   Clause* res = new(nlen) Clause(nlen, cl->inputType(), inf);
   res->setAge(cl->age());
 

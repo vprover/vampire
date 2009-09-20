@@ -109,8 +109,10 @@ public:
     BIT_INT = 0,
     /** bool */
     BIT_BOOL = 1,
+    /** bool */
+    BIT_BITVEC = 2,
     /** Just the number for the first type that is not built-in */
-    OTHER = 2
+    OTHER = 3
   };
 
   SimplifyProver();
@@ -132,28 +134,38 @@ public:
   };
 
 private:
-  /** Various kinds of parsing instructions */
+  /** Various kinds of parsing instructions, numbers are defined explicitly for debugging only */
   enum Command {
     /** parse a formula */
-    PARSE_FORMULA,
+    PARSE_FORMULA = 0,
     /** parse a term */
-    PARSE_TERM,
+    PARSE_TERM = 1,
     /** build a term */
-    BUILD_TERM,
+    BUILD_TERM = 2,
     /** build a conjunction or a disjunction */
-    BUILD_JUNCTION_FORMULA,
+    BUILD_JUNCTION_FORMULA = 3,
     /** build a quantified formula */
-    BUILD_QUANTIFIED_FORMULA,
+    BUILD_QUANTIFIED_FORMULA = 4,
     /** build an implication or equivalence */
-    BUILD_BINARY_FORMULA,
+    BUILD_BINARY_FORMULA = 5,
     /** build an atom */
-    BUILD_ATOM,
+    BUILD_ATOM = 6,
     /** build a negated formula */
-    BUILD_NEGATED_FORMULA,
+    BUILD_NEGATED_FORMULA = 7,
     /** build an equality atom */
-    BUILD_EQUALITY,
+    BUILD_EQUALITY = 8,
     /** Build a DISTINCT formula */
-    BUILD_DISTINCT
+    BUILD_DISTINCT = 9,
+    /** do bindings introduced by LET */
+    DO_LET = 10,
+    /** undo bindings introduced by LET */
+    UNDO_LET = 11,
+    /** build a term defined by ITE */
+    BUILD_ITE_TERM = 12,
+    /** build formula P(x1,...,xn) <=> F from a LET definition for formulas */ 
+    BUILD_LET_FORMULA = 13,
+    /** build formula f(x1,...,xn) = t from a LET definition for terms */ 
+    BUILD_LET_TERM = 14
   };
 
   /** Context in which a formula is parsed */
@@ -192,12 +204,18 @@ private:
   Stack<void*> _built;
   /** Already parsed terms */
   Stack<TermList> _tsaved;
+  /** Stored strings */
+  Stack<string> _ssaved;
   /** special stack for storing numbers: we add axioms that all of them are different */
   Stack<TermList> _numbers;
   /** function symbol for constant 0, also used as boolean value false */
   TermList _zero;
   /** function symbol for constant 1, also used as boolean value true */
   TermList _one;
+  /** formulas introduced by LET */
+  Map<string,Lib::List<Formula*>*> _formulaLet;
+  /** formulas introduced by LET */
+  Map<string,Lib::List<TermList>*> _termLet;
 
   void parse(const Expression*);
   void parse();
@@ -218,6 +236,7 @@ private:
   void parseAtom(const Expression*,Context);
   void parseEquality(const List*,const Expression*,Context,bool polarity);
   void parseDistinct(const List*,const Expression*,Context);
+  void parseLet(const List*,const Expression*,Context);
   void parseTerm();
   SymbolInfo* builtInPredicate(const string& str,int arity);
   SymbolInfo* builtInFunction(const string& str,int arity);
@@ -229,13 +248,19 @@ private:
   void buildTerm();
   void buildAtom();
   void buildEquality();
+  void doLet();
+  void undoLet();
   void buildBinaryFormula();
   void buildJunctionFormula();
   void buildQuantifiedFormula();
   void buildNegatedFormula();
+  void buildIfThenElseTerm();
   void buildDistinct();
   void processFormula(Formula*,Context);
   void addUnit(Unit*);
+  void buildLetFormula();
+  void buildLetTerm();
+  void parseTrueFalse(bool,Context);
 }; // class SimplifyProver
 
 }

@@ -19,8 +19,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -217,7 +217,7 @@ ALUCARD_OBJ = $(ALUC_BASIC) Global.o alucard.o
 all:#default make disabled
 
 vampire: $(VAMPIRE_OBJ)
-	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
+	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
 #	strip vampire
 
 vground: $(VGROUND_OBJ)
@@ -664,10 +664,11 @@ Shell/SimplifyProver.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/Int.hpp
 Shell/SimplifyProver.o: Lib/Map.hpp Lib/Hash.hpp Kernel/FormulaUnit.hpp
 Shell/SimplifyProver.o: Kernel/Unit.hpp Kernel/FormulaVarIterator.hpp
 Shell/SimplifyProver.o: Lib/MultiCounter.hpp Lib/XML.hpp
+Shell/SimplifyProver.o: Kernel/TermVarIterator.hpp Lib/VirtualIterator.hpp
 Shell/SimplifyProver.o: Shell/SimplifyProver.hpp Lib/Set.hpp
 Shell/SimplifyProver.o: Shell/LispParser.hpp Shell/Parser.hpp
 Shell/SimplifyProver.o: Lib/IntNameTable.hpp Lib/Array.hpp Lib/Map.hpp
-Shell/SimplifyProver.o: Shell/Token.hpp
+Shell/SimplifyProver.o: Shell/Token.hpp Shell/Statistics.hpp
 Shell/SineUtils.o: Lib/DHMultiset.hpp Debug/Assertion.hpp Lib/Allocator.hpp
 Shell/SineUtils.o: Debug/Tracer.hpp Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 Shell/SineUtils.o: Lib/Hash.hpp Lib/DHMap.hpp Lib/VirtualIterator.hpp

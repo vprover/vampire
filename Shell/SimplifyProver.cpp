@@ -16,14 +16,17 @@
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/FormulaUnit.hpp"
 #include "../Kernel/FormulaVarIterator.hpp"
+#include "../Kernel/TermVarIterator.hpp"
 
 #include "SimplifyProver.hpp"
+#include "Statistics.hpp"
 
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-#define TRACE 1
+#define TRACE 0
+// #define CALL(x) (cout << x << '\n')
 
 // This are the keywords not handled yet:
 //     K_string,
@@ -43,13 +46,7 @@ using namespace Shell;
 //     K_LEMMA,
 //     K_PROOF,
 //     K_CHECK,
-//     K_LET,
-//     K_TERM,
 //     K_ORDER,
-//     K_LBLPOS,
-//     K_LBLNEG,
-//     K_LBL,
-//     K_NOPATS,
 //     K_MPAT,
 //     K_PROMOTE,
 //     K_EOS,
@@ -57,10 +54,6 @@ using namespace Shell;
 //     K_EXPLIES,
 //     K_PP,
 //     K_DUMP_CTX,
-//     K_DBG_VALID,
-//     K_DBG_INVALID,
-//     K_DBG_WAS_VALID,
-//     K_DBG_WAS_INVALID,
 //     K_ECHO,
 //     K_invalid_string,
 //     K_PROMPT_OFF,
@@ -127,12 +120,15 @@ UnitList* SimplifyProver::units(const Expression* expr)
  */
 void SimplifyProver::parse(const Expression* expr)
 {
-  CALL("SimplifyProver::topLevel");
+  CALL("SimplifyProver::parse/1");
 
   if (expr->tag == LispParser::ATOM) {
     switch (keyword(expr->str))
       {
       case K_DBG_WAS_VALID:
+      case K_DBG_WAS_INVALID:
+      case K_DBG_VALID:
+      case K_DBG_INVALID:
 	// ignore these commands
 	return;
       default:
@@ -154,13 +150,17 @@ void SimplifyProver::parse(const Expression* expr)
   case K_BG_PUSH:
     bgPush(list);
     return;
-
   case K_SETPARAMETER: // ignore these parameters
     return;
-  default:
-    error("Not implemented: " + expr->toString());
+  default: // should be the formula to prove
+    _saved.push(expr);
+    _commands.push(PARSE_FORMULA);
+    _isaved.push(1); // goal
+    _isaved.push(CN_TOP_LEVEL);
+    parse();
+    return;
   }
-} // topLevel
+} // parse/1
 
 /**
  * Return the keyword tag corresponding to the string @b str (K_NONE if not a keyword)
@@ -306,10 +306,8 @@ int SimplifyProver::bindVar(const string& varName)
 {
   CALL("SimplifyProver::bindVar");
 
-  IntList* bindings;
-  if (! _variables.find(varName,bindings)) {
-    bindings = 0;
-  }
+  IntList* bindings = 0;
+  _variables.find(varName,bindings);
   bindings = new IntList(_nextVar,bindings);
   _variables.replaceOrInsert(varName,bindings);
   return _nextVar++;
@@ -320,7 +318,7 @@ void SimplifyProver::unbindVar(const string& varName)
 {
   CALL("SimplifyProver::unbindVar");
 
-  IntList* bindings;
+  IntList* bindings = 0;
   _variables.find(varName,bindings);
   IntList* tl = bindings->tail();
   delete bindings;
@@ -329,15 +327,18 @@ void SimplifyProver::unbindVar(const string& varName)
 } // bindVar
 
 /**
- * Parse a formula declaration
- * @since 31/08/2009, Redmond
+ * Execute the next command stored in the stack of commands
+ * @since 31/08/2009 Redmond
  */
 void SimplifyProver::parse()
 {
-  CALL("SimplifyProver::formula");
+  CALL("SimplifyProver::parse");
 
   while (! _commands.isEmpty()) {
     Command cmd = _commands.pop();
+#if TRACE
+    cout << "Command: " << (int)cmd << '\n';
+#endif
     switch (cmd) {
     case PARSE_FORMULA:
       parseFormula();
@@ -369,16 +370,31 @@ void SimplifyProver::parse()
     case BUILD_DISTINCT:
       buildDistinct();
       break;
+    case BUILD_ITE_TERM:
+      buildIfThenElseTerm();
+      break;
+    case DO_LET:
+      doLet();
+      break;
+    case UNDO_LET:
+      undoLet();
+      break;
+    case BUILD_LET_FORMULA:
+      buildLetFormula();
+      break;
+    case BUILD_LET_TERM:
+      buildLetTerm();
+      break;
     default:
       error((string)"Cannot handle command "+Int::toString(cmd));
     }
   }
   return;
-} // formula()
+} // parse()
 
 /**
  * Report a formula parsing error and raise an exception.
- * @since 29/08/2009, Redmond
+ * @since 29/08/2009 Redmond
  */
 void SimplifyProver::formulaError(const Expression* expr)
 {
@@ -388,7 +404,7 @@ void SimplifyProver::formulaError(const Expression* expr)
 
 /**
  * Report a term parsing error and raise an exception.
- * @since 31/08/2009, Redmond
+ * @since 31/08/2009 Redmond
  */
 void SimplifyProver::termError(const Expression* expr)
 {
@@ -398,7 +414,7 @@ void SimplifyProver::termError(const Expression* expr)
 
 /**
  * Report and error and raise an exception.
- * @since 29/08/2009, Redmond
+ * @since 29/08/2009 Redmond
  */
 void SimplifyProver::error(const string& str)
 {
@@ -409,8 +425,8 @@ void SimplifyProver::error(const string& str)
 
 /**
  * Parse a formula from an expression
- * The resulting formula will be pushed on the stack _parsed
- * @since 29/08/2009, Redmond
+ * The resulting formula will be pushed on the stack _built
+ * @since 29/08/2009 Redmond
  */
 void SimplifyProver::parseFormula()
 {
@@ -421,6 +437,7 @@ void SimplifyProver::parseFormula()
 #if TRACE
   cout << "Formula: " << expr->toString() << '\n';
 #endif
+ retry:
   if (expr->tag == LispParser::LIST) {
     List* lst = expr->list;
     if (lst->length() == 0) formulaError(expr);
@@ -460,6 +477,15 @@ void SimplifyProver::parseFormula()
     case K_DISTINCT:
       parseDistinct(lst,expr,context);
       return;
+    case K_LET:
+      parseLet(lst->tail(),expr,context);
+      return;
+    case K_LBLNEG:
+    case K_LBL:
+    case K_LBLPOS:
+      if (lst->length() != 3) formulaError(expr);
+      expr = lst->nth(2);
+      goto retry;
     default:
       formulaError(expr);
     }
@@ -472,10 +498,10 @@ void SimplifyProver::parseFormula()
     parseAtom(expr,context);
     return;
   case K_TRUE:
-    _built.push(new Formula(true));
+    parseTrueFalse(true,context);
     return;
   case K_FALSE:
-    _built.push(new Formula(false));
+    parseTrueFalse(false,context);
     return;
   default:
     formulaError(expr);
@@ -485,7 +511,7 @@ void SimplifyProver::parseFormula()
 /**
  * Parse a quantified formula from a list of expressions
  * The resulting formula will be pushed on the stack _parsed
- * @since 29/08/2009, Redmond
+ * @since 29/08/2009 Redmond
  */
 void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* expr,Connective c,Context context)
 {
@@ -528,15 +554,15 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
     vars = vars->tail();
   }
   _built.push(qvars);
-  // if there are boolean variables in the quantifier, then the formula (Q x)F should be changed
-  // into (Q x)(prefix -> F), where prefix is x=0 \/ x=1
+  // if there are boolean variables in the quantifier, then the formula (A x)F should be changed
+  // into (A x)(x=0 \/ x=1 -> F) and (E x) into (E x)((x=0 \/ x=1) & F)
   _isaved.push(booleanVars.length());
   while (! booleanVars.isEmpty()) {
     TermList x(booleanVars.pop(),false);
     Formula* l = new AtomicFormula(Literal::createEquality(true,x,_zero));
     Formula* r = new AtomicFormula(Literal::createEquality(true,x,_one));
     _built.push(new JunctionFormula(OR,
-				    new FormulaList(new Formula(l),
+				    new FormulaList(l,
 						    new FormulaList(r))));
   }
 
@@ -547,6 +573,7 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
     switch (keyword(ex->list->head()->str)) {
     case K_QID: // ignore QID command
     case K_PATS: // ignore PATS command
+    case K_NOPATS: // ignore NOPATS command
     case K_SKOLEMID: // ignore SKOLEMID command
     case K_WEIGHT: // ignore WEIGHT command
       lst = lst->tail();
@@ -567,7 +594,7 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
 /**
  * Parse a formula with a binary connective from a list of expressions
  * The resulting formula will be pushed on the stack _parsed
- * @since 29/08/2009, Redmond
+ * @since 29/08/2009 Redmond
  */
 void SimplifyProver::parseBinaryFormula(const List* lst,const Expression* expr,Connective c,Context context)
 {
@@ -591,7 +618,7 @@ void SimplifyProver::parseBinaryFormula(const List* lst,const Expression* expr,C
 /**
  * Parse a formula with a binary connective from a list of expressions
  * The resulting formula will be pushed on the stack _parsed
- * @since 29/08/2009, Redmond
+ * @since 29/08/2009 Redmond
  */
 void SimplifyProver::parseJunctionFormula(const List* lst,const Expression* expr,Connective c,Context context)
 {
@@ -613,7 +640,7 @@ void SimplifyProver::parseJunctionFormula(const List* lst,const Expression* expr
 
 /**
  * Parse an atom from a list of expressions
- * @since 29/08/2009, Redmond
+ * @since 29/08/2009 Redmond
  */
 void SimplifyProver::parseAtom(const List* lst,const Expression* expr,Context context)
 {
@@ -622,14 +649,15 @@ void SimplifyProver::parseAtom(const List* lst,const Expression* expr,Context co
   if (lst->head()->tag == LispParser::LIST) formulaError(expr);
   string symb = lst->head()->str;
   int arity = lst->length() - 1;
+
   SymbolInfo* sinfo;
   if (!_symbolInfo.find(symb,sinfo)) {
     sinfo = builtInPredicate(symb,arity);
     if (! sinfo) error((string)"predicate symbol " + symb + " not previously defined");
   }
   _saved.push(sinfo);
-  if (sinfo->arity != arity) error((string)"predicate symbol " + symb + "is used with an arity different from declared");
-  if (sinfo->returnType != BIT_BOOL) error((string)"symbol " + symb + "is used both as a function and as a predicate");
+  if (sinfo->arity != arity) error((string)"predicate symbol " + symb + " is used with an arity different from declared");
+  if (sinfo->returnType != BIT_BOOL) error((string)"symbol " + symb + " is used both as a function and as a predicate");
   _commands.push(BUILD_ATOM);
   _isaved.push(context);
   List::Iterator lit(lst->tail());
@@ -648,21 +676,79 @@ void SimplifyProver::parseAtom(const List* lst,const Expression* expr,Context co
 } // parseAtom
 
 /**
+ * Parse a formula TRUE or FALSE
+ * @since 19/09/2009 Redmond
+ */
+void SimplifyProver::parseTrueFalse(bool tf,Context context)
+{
+  CALL("parseTrueFalse");
+
+  switch (context) {
+  case CN_TOP_LEVEL:
+    {
+      Formula* f = new Formula(tf);
+      if (_isaved.pop()) { // goal
+	f = new NegatedFormula(f);
+	addUnit(new FormulaUnit(f,
+				new Inference(Inference::NEGATED_CONJECTURE),
+				Unit::CONJECTURE));
+      }
+      else { // assumption
+	addUnit(new FormulaUnit(f,
+				new Inference(Inference::INPUT),
+				Unit::ASSUMPTION));
+      }
+      env.statistics->inputFormulas++;
+    }
+    return;
+  case CN_FORMULA:
+    processFormula(new Formula(tf),context);
+    return;
+  case CN_ARGUMENT:
+    _tsaved.push(tf ? _one : _zero);
+    return;
+  }
+} // parseTrueFalse
+
+/**
  * Parse an atom from an atomic formula expressions
- * @since 29/08/2009, Redmond
+ * @since 29/08/2009 Redmond
  */
 void SimplifyProver::parseAtom(const Expression* expr,Context context)
 {
   CALL("SimplifyProver::parseAtom");
 
   string symb = expr->str;
+  IntList* bindings;
+  if (_variables.find(symb,bindings) && bindings) {
+    // a boolean variable
+    TermList v(bindings->head(),false);
+    switch (context) {
+    case CN_TOP_LEVEL:
+      ASS(false);
+    case CN_FORMULA:
+      processFormula(new AtomicFormula(Literal::createEquality(true,v,_one)),context);
+      return;
+    case CN_ARGUMENT:
+      _tsaved.push(v);
+      return;
+    }
+  }
+
+  Lib::List<Formula*>* binding = 0;
+  _formulaLet.find(symb,binding);
+  if (! binding->isEmpty()) {
+    processFormula(binding->head(),context);
+    return;
+  }
+
   SymbolInfo* sinfo;
   if (!_symbolInfo.find(symb,sinfo)) {
     sinfo = builtInPredicate(symb,0);
     if (! sinfo) error((string)"predicate symbol " + symb + " not previously defined");
   }
-  if (sinfo->arity != 0) error((string)"predicate symbol " + symb + "is used with an arity different from declared");
-  if (sinfo->returnType != BIT_BOOL) error((string)"symbol " + symb + "is used both as a function and as a predicate");
+  if (sinfo->arity != 0) error((string)"predicate symbol " + symb + " is used with an arity different from declared");
+  if (sinfo->returnType != BIT_BOOL) error((string)"symbol " + symb + " is used both as a function and as a predicate");
 
   Literal* lit = Literal::create(sinfo->number,0,true,false,0);
   processFormula(new AtomicFormula(lit),context);
@@ -670,7 +756,7 @@ void SimplifyProver::parseAtom(const Expression* expr,Context context)
 
 /**
  * Parse a DISTINCT formula
- * @since 01/09/2009, Redmond
+ * @since 01/09/2009 Redmond
  */
 void SimplifyProver::parseDistinct(const List* lst,const Expression* expr,Context context)
 {
@@ -692,8 +778,30 @@ void SimplifyProver::parseDistinct(const List* lst,const Expression* expr,Contex
 } // parseDistinct
 
 /**
+ * Parse a LET formula
+ * @since 11/09/2009 Redmond
+ */
+void SimplifyProver::parseLet(const List* lst,const Expression* expr,Context context)
+{
+  CALL("SimplifyProver::parseLet");
+
+  if (lst->length() != 2) formulaError(expr);
+  Expression* let = lst->head();
+  if (let->tag == LispParser::ATOM) formulaError(expr);
+  // bindings produced by LET
+  _saved.push(let->list);
+  _commands.push(UNDO_LET);
+  _saved.push(lst->tail()->head());
+  _isaved.push(context);
+  _commands.push(PARSE_FORMULA);
+  _saved.push(expr);
+  _saved.push(let->list);
+  _commands.push(DO_LET);
+} // parseLet
+
+/**
  * Parse an equality atom
- * @since 01/09/2009, Redmond
+ * @since 01/09/2009 Redmond
  */
 void SimplifyProver::parseEquality(const List* lst,const Expression* expr,Context context,bool polarity)
 {
@@ -714,7 +822,7 @@ void SimplifyProver::parseEquality(const List* lst,const Expression* expr,Contex
 /**
  * True if symb is a built-in predicate. Built-in predicates do not
  * have to be declared in advance but they can be used.
- * @since 29/08/2009, Redmond
+ * @since 29/08/2009 Redmond
  */
 SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const string& symb,int arity)
 {
@@ -745,7 +853,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const string& symb,
 /**
  * True if symb is a built-in function. Built-in functions do not
  * have to be declared in advance but they can be used.
- * @since 31/08/2009, Redmond
+ * @since 31/08/2009 Redmond
  */
 SimplifyProver::SymbolInfo* SimplifyProver::builtInFunction(const string& symb,int arity)
 {
@@ -780,7 +888,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInFunction(const string& symb,i
 
 /**
  * Parse a term from a list of expressions
- * @since 29/08/2009, Redmond
+ * @since 29/08/2009 Redmond
  */
 void SimplifyProver::parseTerm()
 {
@@ -792,8 +900,9 @@ void SimplifyProver::parseTerm()
 #endif
   if (expr->tag == LispParser::ATOM) {
     string symb = expr->str;
+    if (keyword(symb) != K_NONE) error((string)"term expected: " + expr->toString());
     IntList* bindings;
-    if (_variables.find(symb,bindings)) {
+    if (_variables.find(symb,bindings) && bindings) {
       TermList ts(bindings->head(),false);
       _tsaved.push(ts);
 #if TRACE
@@ -801,13 +910,23 @@ void SimplifyProver::parseTerm()
 #endif
       return;
     }
+    Lib::List<TermList>* binding = 0;
+    _termLet.find(symb,binding);
+    if (binding) {
+      _tsaved.push(binding->head());
+#if TRACE
+      cout << "TERM: " << binding->head().toString() << '\n';
+#endif
+      return;
+    }
+
     SymbolInfo* sinfo;
     if (!_symbolInfo.find(symb,sinfo)) {
       sinfo = builtInFunction(symb,0);
       if (! sinfo) error((string)"function symbol " + symb + " not previously defined");
     }
-    if (sinfo->arity != 0) error((string)"function symbol " + symb + "is used with an arity different from declared");
-    if (sinfo->returnType == BIT_BOOL) error((string)"symbol " + symb + "is used both as a constant and as a predicate");
+    if (sinfo->arity != 0) error((string)"function symbol " + symb + " is used with an arity different from declared");
+    if (sinfo->returnType == BIT_BOOL) error((string)"symbol " + symb + " is used both as a constant and as a predicate");
     TermList ts;
     Term* t = Term::create(sinfo->number,0,0);
     ts.setTerm(t);
@@ -818,37 +937,60 @@ void SimplifyProver::parseTerm()
     return;
   }
 
+  // list
   List* lst = expr->list;
   if (lst->head()->tag == LispParser::LIST) termError(expr);
   string symb = lst->head()->str;
-  int arity = lst->length() - 1;
-  SymbolInfo* sinfo;
-  if (!_symbolInfo.find(symb,sinfo)) {
-    sinfo = builtInFunction(symb,arity);
-    if (! sinfo) error((string)"function symbol " + symb + " not previously defined");
-  }
-  _saved.push(sinfo);
-  if (sinfo->arity != arity) error((string)"function symbol " + symb + "is used with an arity different from declared");
-  if (sinfo->returnType == BIT_BOOL) error((string)"symbol " + symb + "is used both as a function and as a predicate");
-  _commands.push(BUILD_TERM);
-  List::Iterator lit(lst->tail());
-  Type* types = (Type*)(sinfo->argTypes);
-  while (lit.hasNext()) {
-    _saved.push(lit.next());
-    if (*types == BIT_BOOL) {
-      _isaved.push(CN_ARGUMENT);
-      _commands.push(PARSE_FORMULA);
+  switch (keyword(symb)) {
+  case K_NONE:
+    {
+      int arity = lst->length() - 1;
+      SymbolInfo* sinfo;
+      if (!_symbolInfo.find(symb,sinfo)) {
+	sinfo = builtInFunction(symb,arity);
+	if (! sinfo) error((string)"function symbol " + symb + " not previously defined");
+      }
+      _saved.push(sinfo);
+      if (sinfo->arity != arity) error((string)"function symbol " + symb + " is used with an arity different from declared");
+      if (sinfo->returnType == BIT_BOOL) error((string)"symbol " + symb + " is used both as a function and as a predicate");
+      _commands.push(BUILD_TERM);
+      List::Iterator lit(lst->tail());
+      Type* types = (Type*)(sinfo->argTypes);
+      while (lit.hasNext()) {
+	_saved.push(lit.next());
+	if (*types == BIT_BOOL) {
+	  _isaved.push(CN_ARGUMENT);
+	  _commands.push(PARSE_FORMULA);
+	}
+	else {
+	  _commands.push(PARSE_TERM);
+	}
+	types++;
+      }
     }
-    else {
-      _commands.push(PARSE_TERM);
-    }
-    types++;
+    return;
+  case K_ITE:
+    _commands.push(BUILD_ITE_TERM);
+    lst = lst->tail();
+    _saved.push(lst->head());
+    _isaved.push(CN_FORMULA);
+    _commands.push(PARSE_FORMULA);
+    lst = lst->tail();
+    _saved.push(lst->head());
+    _commands.push(PARSE_TERM);
+    lst = lst->tail();
+    _saved.push(lst->head());
+    _commands.push(PARSE_TERM);
+    return;
+
+  default:
+    error((string)"term expected: " + expr->toString());
   }
 } // parseTerm
 
 /**
  * Parse a DEFTYPE declaration
- * @since 31/08/2009, Redmond
+ * @since 31/08/2009 Redmond
  */
 void SimplifyProver::defType(const List* list,const Expression* expr)
 {
@@ -870,18 +1012,22 @@ void SimplifyProver::defType(const List* list,const Expression* expr)
     _nextType++;
     return;
   }
-  if (length != 4) goto err;
+  if (length < 4 || length > 5) goto err;
   List* l2 = l1->tail();
   if (l2->head()->tag == LispParser::LIST) goto err;
   if (keyword(l2->head()->str) != K_BUILTIN) goto err;
   List* l3 = l2->tail();
   if (l3->head()->tag == LispParser::LIST) goto err;
   Type tp;
-  if (l3->head()->str == "Int") {
+  if (l3->head()->str == "Int" && length == 4) {
     tp = BIT_INT;
   }
-  else if (l3->head()->str == "bool") {
+  else if (l3->head()->str == "bool" && length == 4) {
     tp = BIT_BOOL;
+  }
+  else if (l3->head()->str == "BitVec" && length == 5) {
+    // the length of the bit-vector is ignored
+    tp = BIT_BITVEC;
   }
   else {
     goto err;
@@ -891,66 +1037,96 @@ void SimplifyProver::defType(const List* list,const Expression* expr)
 
 /**
  * Parse a DEFOP declaration
- * @since 31/08/2009, Redmond
+ * @since 31/08/2009 Redmond
  */
 void SimplifyProver::defOp(const List* list,const Expression* expr)
 {
   CALL("SimplifyProver::defOp");
 
-  int length = list->length();
-  if (length < 3) {
-  err:
-    error((string)"Bad DEFOP declaration " + expr->toString());
-  }
+  Stack<Type> types;
   List* l1 = list->tail();
   Expression* h1 = l1->head();
-  if (h1->tag == LispParser::LIST) goto err;
+  if (h1->tag == LispParser::LIST) {
+  err:
+    error((string)"Bad DEFOP declaration: " + expr->toString());
+  }
   string symb = h1->str;
   if (keyword(symb) != K_NONE) goto err;
-  SymbolInfo* symInfo = new(length-3) SymbolInfo(length-3);
-  for (int argNo = 0;argNo<length-3;argNo++) {
-    l1 = l1->tail();
-    h1 = l1->head();
+  List::Iterator lit(l1->tail());
+  bool done = false;
+  while (lit.hasNext()) {
+    h1 = lit.next();
     if (h1->tag == LispParser::LIST) goto err;
     string typeName = h1->str;
-    if (keyword(typeName) != K_NONE) goto err;
+    switch (keyword(typeName)) {
+    case K_NONE:
+      break;
+    case K_BUILTIN:
+      done = true;
+      break;
+    default:
+      goto err;
+    }
+    if (done) break;
     Type tp;
     if (! _types.find(typeName,tp)) error((string)"Type " + typeName + " not declared in " + expr->toString());
     if (tp == BIT_BOOL) {
       _hasBooleanArgs.insert(symb);
     }
-    symInfo->argTypes[argNo] = tp;
+    types.push(tp);
   }
-  l1 = l1->tail();
-  ASS(! l1->tail());
-  h1 = l1->head();
-  if (h1->tag == LispParser::LIST) goto err;
-  string typeName = h1->str;
-  if (keyword(typeName) != K_NONE) goto err;
-  Type tp;
-  if (! _types.find(typeName,tp)) error((string)"Type " + typeName + " not declared in " + expr->toString());
+
+  int length = types.length();
+  if (length == 0) goto err;
+  SymbolInfo* symInfo = new(length-1) SymbolInfo(length-1);
+  Type tp = types.pop();
   symInfo->returnType = tp;
-  _symbolInfo.insert(symb,symInfo);
-  // Insert the symbol to the signature
+  for (int i = 0;i < length-1;i++) {
+    symInfo->argTypes[i] = types[i];
+  }
+
   if (tp == BIT_BOOL) {
-    symInfo->number = env.signature->addPredicate(symb,length-3);
+    symInfo->number = env.signature->addPredicate(symb,length-1);
   }
   else {
-    symInfo->number = env.signature->addFunction(symb,length-3);
+    symInfo->number = env.signature->addFunction(symb,length-1);
   }
+  _symbolInfo.insert(symb,symInfo);
 } // SimplifyProver::defOp
 
 /**
- * Parse a BG_PUSH command
- * @since 31/08/2009, Redmond
+ * Parse a BG_PUSH command. To avoid very large formulas in the proofs we use the following
+ * trick: if the argument of BG_PUSH is a conjuction, we split it as if it were several
+ * BG_PUSH declarations.
+ * @since 31/08/2009 Redmond
  */
 void SimplifyProver::bgPush(const List* list)
 {
   CALL("SimplifyProver::bgPush");
-
-  for (List* l1 = list->tail();l1;l1 = l1->tail()) {
-    _saved.push(l1->head());
+  Stack<const List*> in;
+  in.push(list->tail());
+  Stack<const Expression*> out;
+  while (! in.isEmpty()) {
+    list = in.pop();
+    if (list->isEmpty()) continue;
+    in.push(list->tail());
+    const Expression* ex = list->head();
+    if (ex->tag == LispParser::LIST) {
+      list = ex->list;
+      if (list->isEmpty()) formulaError(ex);
+      const Expression* hd = list->head();
+      if (hd->tag == LispParser::ATOM &&
+	  keyword(hd->str) == K_AND) {
+	in.push(list->tail());
+	continue;
+      }
+    }
+    out.push(ex);
+  }
+  while (! out.isEmpty()) {
+    _saved.push(out.pop());
     _commands.push(PARSE_FORMULA);
+    _isaved.push(0); // assumption
     _isaved.push(CN_TOP_LEVEL);
   }
   parse();
@@ -958,7 +1134,7 @@ void SimplifyProver::bgPush(const List* list)
 
 /**
  * Build a parsed term
- * @since 01/09/2009, Redmond
+ * @since 01/09/2009 Redmond
  */
 void SimplifyProver::buildTerm()
 {
@@ -980,7 +1156,7 @@ void SimplifyProver::buildTerm()
 
 /**
  * Build a parsed atom
- * @since 01/09/2009, Redmond
+ * @since 01/09/2009 Redmond
  */
 void SimplifyProver::buildAtom()
 {
@@ -1002,7 +1178,7 @@ void SimplifyProver::buildAtom()
 
 /**
  * Build a binary formula
- * @since 01/09/2009, Redmond
+ * @since 01/09/2009 Redmond
  */
 void SimplifyProver::buildBinaryFormula()
 {
@@ -1011,14 +1187,14 @@ void SimplifyProver::buildBinaryFormula()
   Context context = (Context)_isaved.pop();
   Connective con = (Connective)_isaved.pop();
 
-  Formula* r = (Formula*)_built.pop();
   Formula* l = (Formula*)_built.pop();
+  Formula* r = (Formula*)_built.pop();
   processFormula(new BinaryFormula(con,l,r),context);
 } // buildBinaryFormula
 
 /**
  * Build a negated formula
- * @since 04/09/2009, Redmond
+ * @since 04/09/2009 Redmond
  */
 void SimplifyProver::buildNegatedFormula()
 {
@@ -1031,7 +1207,7 @@ void SimplifyProver::buildNegatedFormula()
 
 /**
  * Build a conjunction or a disjunction
- * @since 01/09/2009, Redmond
+ * @since 01/09/2009 Redmond
  */
 void SimplifyProver::buildJunctionFormula()
 {
@@ -1050,7 +1226,7 @@ void SimplifyProver::buildJunctionFormula()
 
 /**
  * Build a quantified formula
- * @since 01/09/2009, Redmond
+ * @since 01/09/2009 Redmond
  */
 void SimplifyProver::buildQuantifiedFormula()
 {
@@ -1060,7 +1236,15 @@ void SimplifyProver::buildQuantifiedFormula()
   Connective con = (Connective)_isaved.pop();
   Formula* f = (Formula*)_built.pop();
   for (int i = _isaved.pop();i > 0;i--) { // i = number of formula to be prefixed with g
-    f = new BinaryFormula(IMP,(Formula*)_built.pop(),f);
+    Formula* guard = (Formula*)_built.pop();
+    if (con == FORALL) {
+      f = new BinaryFormula(IMP,guard,f);
+    }
+    else {
+      f = new JunctionFormula(AND,
+			      new FormulaList(guard,
+					      new FormulaList(f)));
+    }
   }
   // undoing bindings
   List* vars = (List*)_saved.pop();
@@ -1080,7 +1264,7 @@ void SimplifyProver::buildQuantifiedFormula()
 
 /**
  * Build an equality atom
- * @since 01/09/2009, Redmond
+ * @since 01/09/2009 Redmond
  */
 void SimplifyProver::buildEquality()
 {
@@ -1088,14 +1272,94 @@ void SimplifyProver::buildEquality()
   Context context = (Context)_isaved.pop();
   int polarity = _isaved.pop();
 
-  TermList r = _tsaved.pop();
   TermList l = _tsaved.pop();
+  TermList r = _tsaved.pop();
   processFormula(new AtomicFormula(Literal::createEquality(polarity,l,r)),context);
 } // buildEquality
 
 /**
+ * Do bindings introduced by LET
+ * @since 13/09/2009 Redmond
+ */
+void SimplifyProver::doLet()
+{
+  CALL("SimplifyProver::doLet");
+
+  const List* lst = (const List*)_saved.pop();
+  if (lst->isEmpty()) {
+    _saved.pop();
+    return;
+  }
+  _saved.push(lst->tail());
+  _commands.push(DO_LET);
+
+  const Expression* hd = lst->head();
+  if (hd->tag == LispParser::ATOM) {
+  err:
+    _saved.pop();
+    const Expression* expr = (const Expression*)_saved.top();
+    formulaError(expr);
+  }
+  lst = hd->list;
+  if (lst->length() != 3) goto err;
+  hd = lst->head(); // hd is either FORMULA or TERM
+  if (hd->tag == LispParser::LIST) goto err;
+  lst = lst->tail();
+  switch (keyword(hd->str)) {
+  case K_FORMULA:
+    _ssaved.push(lst->head()->str);
+    _commands.push(BUILD_LET_FORMULA);
+    _isaved.push(CN_FORMULA);
+    _saved.push(lst->tail()->head());
+    _commands.push(PARSE_FORMULA);
+    return;
+  case K_TERM:
+    _ssaved.push(lst->head()->str);
+    _commands.push(BUILD_LET_TERM);
+    _saved.push(lst->tail()->head());
+    _commands.push(PARSE_TERM);
+    return;
+  default:
+    goto err;
+  }
+} // doLet
+
+/**
+ * Undo bindings introduced by LET
+ * @since 13/09/2009 Redmond
+ */
+void SimplifyProver::undoLet()
+{
+  CALL("SimplifyProver::undoLet");
+  for (const List* lst = (const List*)_saved.pop();! lst->isEmpty(); lst=lst->tail()) {
+    const List* bind = lst->head()->list;
+    string symb = bind->tail()->head()->str;
+    switch (keyword(bind->head()->str)) {
+    case K_FORMULA:
+      {
+	Lib::List<Formula*>* binding;
+	_formulaLet.find(symb,binding);
+	_formulaLet.replace(symb,binding->tail());
+	delete binding;
+      }
+      return;
+    case K_TERM:
+      {
+	Lib::List<TermList>* binding;
+	_termLet.find(symb,binding);
+	_termLet.replace(symb,binding->tail());
+	delete binding;
+      }
+      return;
+    default: // though only K_TERM is possible here
+      return;
+    }
+  }
+} // undoLet
+
+/**
  * Build a DISTINCT formula
- * @since 01/09/2009, Redmond
+ * @since 01/09/2009 Redmond
  */
 void SimplifyProver::buildDistinct()
 {
@@ -1114,19 +1378,35 @@ void SimplifyProver::buildDistinct()
     return;
   }
   FormulaList* fs = 0;
+
+  bool top = (context == CN_TOP_LEVEL) && ! _isaved.top();
+  // TEMPORARY, only 300 are processed
+  if (length > 300) length = 300;
   for (int i = 1;i < length;i++) {
     for (int j = 0;j < i;j++) {
       Literal* lit = Literal::createEquality(false,args[i],args[j]);
-      fs = new FormulaList(new AtomicFormula(lit));
+      Formula* ineq = new AtomicFormula(lit);
+      if (top) {
+	addUnit(new FormulaUnit(ineq,
+				new Inference(Inference::INPUT),
+				Unit::ASSUMPTION));
+      }
+      else {
+	fs = new FormulaList(ineq,fs);
+      }
     }
   }
-  processFormula(new JunctionFormula(AND,fs),context);
+  if (top) {
+    _isaved.pop();
+  }
+  else {
+    processFormula(new JunctionFormula(AND,fs),context);
+  }
 } // buildDistinct
-
 
 /**
  * Process a build formula depending on the context in which it was built
- * @since 01/09/2009, Redmond
+ * @since 01/09/2009 Redmond
  */
 void SimplifyProver::processFormula(Formula* f,Context context)
 {
@@ -1140,11 +1420,24 @@ void SimplifyProver::processFormula(Formula* f,Context context)
     _built.push(f);
     return;
   case CN_TOP_LEVEL:
-    {
+    if (_isaved.pop()) { // goal
+      Formula::VarList* vs = f->freeVariables();
+      if (vs->isEmpty()) {
+	f = new NegatedFormula(f);
+      }
+      else {
+	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,f));
+      }
+      addUnit(new FormulaUnit(f,
+			      new Inference(Inference::NEGATED_CONJECTURE),
+			      Unit::CONJECTURE));
+    }
+    else { // assumption
       addUnit(new FormulaUnit(f,
 			      new Inference(Inference::INPUT),
 			      Unit::ASSUMPTION));
     }
+    env.statistics->inputFormulas++;
     return;
   case CN_ARGUMENT:
     {
@@ -1186,7 +1479,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::addNumber(const string& symb)
 {
   CALL("SimplifyProver::addNumber");
 
-  SymbolInfo* sinfo;
+  SymbolInfo* sinfo = 0;
   if (_symbolInfo.find(symb,sinfo)) return sinfo;
   sinfo = new(0) SymbolInfo(0);
   sinfo->returnType = BIT_INT;
@@ -1219,11 +1512,11 @@ void SimplifyProver::addUnit(Unit* u)
 
 /**
  * Parse a formula under the negation connective from a list of expressions
- * @since 04/09/2009, Redmond
+ * @since 04/09/2009 Redmond
  */
 void SimplifyProver::parseNegatedFormula(const List* lst,const Expression* expr,Context context)
 {
-  CALL("SimplifyProver::parseBinaryFormula");
+  CALL("SimplifyProver::parseNegatedFormula");
 
   if (lst->length()!=1) formulaError(expr);
   _isaved.push(context);
@@ -1232,4 +1525,149 @@ void SimplifyProver::parseNegatedFormula(const List* lst,const Expression* expr,
   _isaved.push(CN_FORMULA);
   _saved.push(lst->head());
   _commands.push(PARSE_FORMULA);
-} // SimplifyProver::parseBinaryFormula
+} // SimplifyProver::parseNegatedFormula
+
+/**
+ * Build an if-then-else term
+ * @since 14/09/2009 Redmond
+ */
+void SimplifyProver::buildIfThenElseTerm()
+{
+  CALL("SimplifyProver::buildIfThenElseTerm");
+
+  Formula* f = (Formula*)_built.pop();
+  TermList s = _tsaved.pop();
+  TermList t = _tsaved.pop();
+  Stack<TermList> args;
+  FormulaVarIterator fit(f);
+  MultiCounter mc;
+  while (fit.hasNext()) {
+    unsigned v = fit.next();
+    mc.inc(v);
+    TermList ts(v,false);
+    args.push(ts);
+  }
+  if (s.isVar()) {
+    unsigned v = s.var();
+    if (! mc.get(v)) {
+      mc.inc(v);
+      TermList ts(v,false);
+      args.push(ts);
+    }
+  }
+  else {
+    TermVarIterator tit(s.term()->args());
+    while (tit.hasNext()) {
+      unsigned v = tit.next();
+      if (mc.get(v)) continue;
+      mc.inc(v);
+      TermList ts(v,false);
+      args.push(ts);
+    }
+  }
+  if (t.isVar()) {
+    unsigned v = t.var();
+    if (! mc.get(v)) {
+      mc.inc(v);
+      TermList ts(v,false);
+      args.push(ts);
+    }
+  }
+  else {
+    TermVarIterator tit(t.term()->args());
+    while (tit.hasNext()) {
+      unsigned v = tit.next();
+      if (mc.get(v)) continue;
+      mc.inc(v);
+      TermList ts(v,false);
+      args.push(ts);
+    }
+  }
+  int arity = args.length();
+  unsigned sf = env.signature->addSkolemFunction(arity);
+  TermList fx(Term::create(sf,arity,args.begin()));
+  // add axioms f => fx=s and ~f => fx=t
+ 
+  Formula* fxs = new AtomicFormula(Literal::createEquality(true,fx,s));
+  Formula* fxt = new AtomicFormula(Literal::createEquality(true,fx,t));
+
+  Formula* f1 = new BinaryFormula(IMP,f,fxs);
+  Formula* f2 = new BinaryFormula(IMP,new NegatedFormula(f),fxt);
+  addUnit(new FormulaUnit(f1,
+			  new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION),
+			  Unit::AXIOM));
+  addUnit(new FormulaUnit(f2,
+			  new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION),
+			  Unit::AXIOM));
+  // and save the term fx as the result
+  _tsaved.push(fx);
+} // buildIfThenElseTerm
+
+/**
+ * Build a definition introduced by the LET expression for formulas
+ * @since 18/09/2009 Redmond
+ */
+void SimplifyProver::buildLetFormula()
+{
+  CALL("SimplifyProver::buildLetFormula");
+
+  Formula* f = (Formula*)_built.pop();
+  string symb = _ssaved.pop();
+  FormulaVarIterator fvi(f);
+  Stack<TermList> args;
+  while (fvi.hasNext()) {
+    args.push(TermList(fvi.next(),false));
+  }
+  int arity = args.length();
+  unsigned sf = env.signature->addNamePredicate(arity);
+  // atom p(x)
+  Formula* px = new AtomicFormula(Literal::create(sf,arity,true,false,args.begin()));
+  // add binding to the let-stack
+  Lib::List<Formula*>* binding = 0;
+  _formulaLet.find(symb,binding);
+  binding = new Lib::List<Formula*>(px);
+  _formulaLet.replaceOrInsert(symb,binding);
+  _isaved.push(0); // assumption
+  processFormula(new BinaryFormula(IFF,px,f),CN_TOP_LEVEL);
+} // SimplifyProver::buildLetFormula
+
+/**
+ * Build a definition introduced by the LET expression for terms
+ * @since 18/09/2009 Redmond
+ */
+void SimplifyProver::buildLetTerm()
+{
+  CALL("SimplifyProver::buildLetTerm");
+
+  TermList s = _tsaved.pop();
+  string symb = _ssaved.pop();
+  Stack<TermList> args;
+
+  if (s.isVar()) {
+    unsigned v = s.var();
+    args.push(TermList(v,false));
+  }
+  else {
+    MultiCounter mc;
+    TermVarIterator tit(s.term()->args());
+    while (tit.hasNext()) {
+      unsigned v = tit.next();
+      if (mc.get(v)) continue;
+      mc.inc(v);
+      args.push(TermList(v,false));
+    }
+  }
+
+  int arity = args.length();
+  unsigned sf = env.signature->addSkolemFunction(arity);
+  // term f(x)
+  TermList fx(Term::create(sf,arity,args.begin()));
+  // add binding to the let-stack
+  Lib::List<TermList>* binding = 0;
+  _termLet.find(symb,binding);
+  binding = new Lib::List<TermList>(fx);
+  _termLet.replaceOrInsert(symb,binding);
+  _isaved.push(0); // assumption
+  processFormula(new AtomicFormula(Literal::createEquality(true,fx,s)),CN_TOP_LEVEL);
+} // SimplifyProver::buildLetTerm
+

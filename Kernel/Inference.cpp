@@ -309,7 +309,8 @@ string Inference::ruleName(Rule rule)
     return "theory axiom";
   case BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
-
+  case TERM_IF_THEN_ELSE_DEFINITION:
+    return "term if-then-else definition";
   case SPLITTING:
     return "splitting";
   case COMMON_NONPROP_MERGE:

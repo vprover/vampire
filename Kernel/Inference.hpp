@@ -27,161 +27,161 @@ class Inference
 public:
   /**
    * Tag to denote various kinds of inference rules.
-   * Consecutive numbering is important since arrays are used
-   * to store the names of the rules.
    */
   enum Rule {
     /** input formula or clause */
-    INPUT = 0u,
+    INPUT,
     /** negated conjecture from the input */
-    NEGATED_CONJECTURE = 1u,
+    NEGATED_CONJECTURE,
 //     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
-//     CHOICE_AXIOM = 2u,
+//     CHOICE_AXIOM,
 //     /** (Ax)(F(x)->F'(x)), G[F(t)] / G[F'(t)] */
-//     MONOTONE_REPLACEMENT = 3u,
+//     MONOTONE_REPLACEMENT,
 //     /** G[(Ax)F(x)] => G[F(t)] */
-//     FORALL_ELIMINATION = 4u,
+//     FORALL_ELIMINATION,
     /** rectify a formula */
-    RECTIFY = 5u,
+    RECTIFY,
 //     /** ~(F1 & ... & Fn) => ~F1 \/ ... \/ ~Fn */
-//     NOT_AND = 6u,
+//     NOT_AND,
 //     /** ~(F1 \/ ... \/ Fn) => ~F1 & ... & ~Fn */
-//     NOT_OR = 7u,
+//     NOT_OR,
 //     /** ~(F1 -> F2) => F1 & ~F2 */
-//     NOT_IMP = 8u,
+//     NOT_IMP,
 //     /** ~(F1 <-> F2) => F1 <~> F2 */
-//     NOT_IFF = 9u,
+//     NOT_IFF,
 //     /** ~(F1 <~> F2) => F1 <-> F2 */
-//     NOT_XOR = 10u,
+//     NOT_XOR = 1,
 //     /** ~~F => F */
-//     NOT_NOT = 11u,
+//     NOT_NOT = 1,
 //     /** ~(Ax)F => (Ex)~F */
-//     NOT_FORALL = 12u,
+//     NOT_FORALL,
 //     /** ~(Ex)F => (Ax)~F */
-//     NOT_EXISTS = 13u,
+//     NOT_EXISTS,
 //     /** F1 -> F2 => ~F1 \/ F2 */
-//     IMP_TO_OR = 14u,
+//     IMP_TO_OR,
 //     /** F1 <-> F2 => (F1 -> F2) & (F2 -> F1) */
-//     IFF_TO_AND = 15u,
+//     IFF_TO_AND,
 //     /** F1 <~> F2 => (F1 \/ F2) & (~F1 \/ ~F2) */
-//     XOR_TO_AND = 16u,
+//     XOR_TO_AND,
     /** replace formula F by (A x1...xn)F, where x1 ... xn are all
      *  free variables of F */
-    CLOSURE = 17u,
+    CLOSURE,
     /** obtained by flattening (quantifiers, junctions) */
-    FLATTEN = 18u,
+    FLATTEN,
     /** obtained by reordering literals */
-    REORDER_LITERALS = 19u,
+    REORDER_LITERALS,
     /** obtained by transformation into ENNF */
-    ENNF = 20u,
+    ENNF,
     /** obtained by transformation into NNF */
-    NNF = 21u,
+    NNF,
 //     /** Replace formula (Q x1 ... xk ... x_n)A by
 //      * (Q x1 ... xk-1 xk+1 ... x_n)A, where xk does not occur in A */
-//     DUMMY_QUANTIFIER_REMOVAL = 22u,
+//     DUMMY_QUANTIFIER_REMOVAL,
 //     /** Transformation (A x1 ... xn)(F1 & ... & Fm) ->
 //      * (A x1 ... xn)F1 & ... & (A x1 ... xn)Fm) */
-//     FORALL_AND = 23u,
+//     FORALL_AND,
 //     /** Transformation (E x1 ... xn)(F1 \/ ... \/ Fm) ->
 //      * (E x1 ... xn)F1 \/ ... \/ (E x1 ... xn)Fm) */
-//     EXISTS_OR = 24u,
+//     EXISTS_OR,
 //     /** (Q x)(Q y)F -> (Q y)(Q x)F */
-//     QUANTIFIER_SWAP = 25,
+//     QUANTIFIER_SWAP,
 //     /** Transformation (A x1 x2)(F1 \/ F2) ->
 //      * (A x1)F1 \/ ... \/ (A x2)F2), where x2 does not occur in F1.
 //      * Can be applied to many variables and disjunctions of arbitrary length */
-//     FORALL_OR = 26u,
+//     FORALL_OR,
 //     /** Transformation (E x1 x2)(F1 & F2) ->
 //      * (E x1)F1 & ... & (E x2)F2), where x2 does not occur in F1.
 //      * Can be applied to many variables and disjunctions of arbitrary length */
-//     EXISTS_AND = 27u,
+//     EXISTS_AND,
 //     /** obtained by permutations, e.g. f <=> g replaced by g <=> f */
-//     PERMUT = 28u,
+//     PERMUT,
 //     /** obtained by reordering equalities */
-//     REORDER_EQ = 29u,
+//     REORDER_EQ,
 //     /** obtained by rewriting a positive equivalence
 //      * f <=> ginto an implication f => g or g => f
 //      */
-//     HALF_EQUIV = 30u,
+//     HALF_EQUIV,
 //     /** miniscoping */
-//     MINISCOPE = 31u,
+//     MINISCOPE,
     /** skolemization */
-    SKOLEMIZE = 32u,
+    SKOLEMIZE,
     /** obtain clause from a formula */
-    CLAUSIFY = 33u,
+    CLAUSIFY,
     /** obtain a clause from a clause by removing duplicate literals */
-    REMOVE_DUPLICATE_LITERALS = 34u,
+    REMOVE_DUPLICATE_LITERALS,
 //     /** shell clause transformed to a resolution clause */
-//     SHELL_TO_RESOLUTION = 35u,
+//     SHELL_TO_RESOLUTION,
     /** resolution inference */
-    RESOLUTION = 36u,
+    RESOLUTION,
     /** equality proxy replacement */
-    EQUALITY_PROXY_REPLACEMENT = 37u,
+    EQUALITY_PROXY_REPLACEMENT,
     /** equality proxy axiom E(x,x) */
-    EQUALITY_PROXY_AXIOM1 = 38u,
+    EQUALITY_PROXY_AXIOM1,
     /** equality proxy axiom ~E(x,y) \/ x=y */
-    EQUALITY_PROXY_AXIOM2 = 39u,
+    EQUALITY_PROXY_AXIOM2,
     /** unfolding by definitions f(x1,...,xn)=t */
-    DEFINITION_UNFOLDING = 40u,
+    DEFINITION_UNFOLDING,
     /** any kind of definition folding */
-    DEFINITION_FOLDING = 41u,
+    DEFINITION_FOLDING,
 //     /** expansion of row variable, KIF-specific */
-//     ROW_VARIABLE_EXPANSION = 42u,
+//     ROW_VARIABLE_EXPANSION,
     /** introduction of new name p, p <=> C */
-    PREDICATE_DEFINITION = 43u,
+    PREDICATE_DEFINITION,
     /** reduce a formula containing false or true, for example
      *  false & A ---> false */
-    REDUCE_FALSE_TRUE = 44u,
+    REDUCE_FALSE_TRUE,
     /** remove from clause one or more inequalities <i>s != s</i> */
-    TRIVIAL_INEQUALITY_REMOVAL = 45u,
+    TRIVIAL_INEQUALITY_REMOVAL,
     /** factoring inference */
-    FACTORING = 46u,
+    FACTORING,
     /** subsumption resolution simplification rule */
-    SUBSUMPTION_RESOLUTION = 47u,
+    SUBSUMPTION_RESOLUTION,
     /** superposition inference */
-    SUPERPOSITION = 48u,
+    SUPERPOSITION,
     /** equality factoring inference */
-    EQUALITY_FACTORING = 49u,
+    EQUALITY_FACTORING,
     /** equality resolution inference */
-    EQUALITY_RESOLUTION = 50u,
+    EQUALITY_RESOLUTION,
     /** forward demodulation inference */
-    FORWARD_DEMODULATION = 51u,
+    FORWARD_DEMODULATION,
     /** backward demodulation inference */
-    BACKWARD_DEMODULATION = 52u,
+    BACKWARD_DEMODULATION,
     /** condensation inference */
-    CONDENSATION = 53u,
+    CONDENSATION,
     /** evaluation inference */
-    EVALUATION = 54u,
+    EVALUATION,
     /** evaluation inference */
-    SPLITTING_COMPONENT = 55u,
+    SPLITTING_COMPONENT,
     /** unused predicate definition removal */
-    UNUSED_PREDICATE_DEFINITION_REMOVAL = 56u,
+    UNUSED_PREDICATE_DEFINITION_REMOVAL,
     /** pure predicate removal */
-    PURE_PREDICATE_REMOVAL = 57u,
+    PURE_PREDICATE_REMOVAL,
     /** inequality splitting */
-    INEQUALITY_SPLITTING = 58u,
+    INEQUALITY_SPLITTING,
     /** inequality splitting name introduction */
-    INEQUALITY_SPLITTING_NAME_INTRODUCTION = 59u,
+    INEQUALITY_SPLITTING_NAME_INTRODUCTION,
     /** grounding */
-    GROUNDING = 60u,
+    GROUNDING,
     /** equality axiom */
-    EQUALITY_AXIOM = 61u,
+    EQUALITY_AXIOM,
     /** any added theory axioms */
-    THEORY = 62u,
+    THEORY,
     /** Introduction of formula to convert formulas used as argument positions.
      *  Such formulas have the form F->f(x)=1 or ~F->f(x)=0 */
-    BOOLEAN_TERM_ENCODING = 63u,
-
+    BOOLEAN_TERM_ENCODING,
+    /** Introduction of definitions to handle the term <i>if F then s else t</i>
+     *  Such formulas have the form F->f(x)=s or ~F->f(x)=t */
+    TERM_IF_THEN_ELSE_DEFINITION,
     /** splitting */
-    SPLITTING = 201u,
+    SPLITTING,
     /** merge of clauses with common non-prop. parts */
-    COMMON_NONPROP_MERGE = 202u,
+    COMMON_NONPROP_MERGE,
     /** reducing the propositional part (due to simplification) */
-    PROP_REDUCE = 203u,
+    PROP_REDUCE,
     /** clause naming */
-    CLAUSE_NAMING = 204u,
+    CLAUSE_NAMING,
     /** tautology introduction */
-    TAUTOLOGY_INTRODUCTION = 205u
+    TAUTOLOGY_INTRODUCTION
   }; // class Inference::Rule
 
   explicit Inference(Rule r)
