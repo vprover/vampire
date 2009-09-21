@@ -30,6 +30,8 @@ RECURSIVE		= YES
 GENERATE_HTML		= YES
 HTML_OUTPUT		= html
 
+ALPHABETICAL_INDEX = YES
+
 #
 # LaTeX-related options
 #
