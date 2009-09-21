@@ -9,6 +9,7 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Environment.hpp"
+#include "../Lib/Timer.hpp"
 #include "Statistics.hpp"
 
 using namespace std;
@@ -117,6 +118,7 @@ void Statistics::print()
   SEPARATOR;
 
   env.out << "Memory used: " << (Allocator::getUsedMemory()/1024) << "KB" << endl;
+  env.out << "Time elapsed: " << Timer::msToSecondsString(env.timer->elapsedMilliseconds()) << endl;
   env.out << "------------------------------\n";
 
 #undef SEPARATOR

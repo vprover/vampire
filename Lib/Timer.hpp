@@ -7,10 +7,14 @@
 #ifndef __Timer__
 #define __Timer__
 
+#include <string>
+
 #include "../Debug/Assertion.hpp"
 
 namespace Lib
 {
+
+using namespace std;
 
 /**
  * Class implementing timers.
@@ -18,7 +22,7 @@ namespace Lib
  */
 class Timer
 {
- public:
+public:
   Timer() :
     _running(false),
     _elapsed(0)
@@ -65,6 +69,8 @@ class Timer
     return elapsed();
   }
 
+  static void initTimer();
+  static string msToSecondsString(int ms);
 private:
   /** true if the timer is running */
   bool _running;

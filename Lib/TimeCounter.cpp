@@ -90,6 +90,9 @@ void TimeCounter::printReport()
 
 void TimeCounter::printSingleStat(TimeCounterUnit tcu)
 {
+  if(s_measureInitTimes[tcu]==-1 && !s_measuredTimes[tcu]) {
+    return;
+  }
   switch(tcu) {
   case TC_BACKWARD_DEMODULATION:
     env.out<<"backward demodulation";
@@ -127,13 +130,12 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   env.out<<": ";
 
   if(s_measureInitTimes[tcu]==-1) {
-    env.out<<s_measuredTimes[tcu];
+    env.out<<Timer::msToSecondsString(s_measuredTimes[tcu])<<endl;
   } else {
     int time=s_measuredTimes[tcu];
     time += env.timer->elapsedMilliseconds()+s_measureInitTimes[tcu];
-    env.out<<time<<" and running";
+    env.out<<Timer::msToSecondsString(time)<<" and running"<<endl;
   }
-  env.out<<endl;
 }
 
 };

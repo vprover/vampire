@@ -5,9 +5,16 @@
 
 #include <ctime>
 
+#include "../Debug/Assertion.hpp"
+#include "../Debug/Tracer.hpp"
+
+#include "Int.hpp"
 #include "Portability.hpp"
 
 #include "Timer.hpp"
+
+
+#define UNIX_USE_SIGALRM 1
 
 using namespace std;
 
@@ -30,6 +37,47 @@ int Lib::Timer::miliseconds()
   return counter.QuadPart*1000/freq.QuadPart;
 }
 
+void Lib::Timer::initTimer()
+{
+}
+
+
+#elif UNIX_USE_SIGALRM
+
+#include <signal.h>
+#include <sys/time.h>
+
+int timer_sigalrm_counter=-1;
+
+void
+timer_sigalrm_handler (int sig)
+{
+  timer_sigalrm_counter++;
+}
+
+/** number of miliseconds (of CPU time) passed since some moment */
+int Lib::Timer::miliseconds()
+{
+  CALL("Timer::initTimer");
+  ASS_GE(timer_sigalrm_counter, 0);
+
+  return timer_sigalrm_counter;
+}
+
+void Lib::Timer::initTimer()
+{
+  CALL("Timer::initTimer");
+  ASS_EQ(timer_sigalrm_counter, -1);
+
+  signal (SIGALRM, timer_sigalrm_handler);
+  struct itimerval oldt, newt;
+  newt.it_interval.tv_usec = 1000;
+  newt.it_interval.tv_sec = 0;
+  newt.it_value.tv_usec = 1000;
+  newt.it_value.tv_sec = 0;
+  setitimer (ITIMER_REAL, &newt, &oldt);
+}
+
 
 #else
 
@@ -50,7 +98,21 @@ int Lib::Timer::miliseconds()
 //  return (int)( ((long long)clock())*1000/CLOCKS_PER_SEC );
 }
 
+void Lib::Timer::initTimer()
+{
+}
+
 #endif
+
+namespace Lib
+{
+
+string Timer::msToSecondsString(int ms)
+{
+  return Int::toString(static_cast<float>(ms)/1000)+" s";
+}
+
+};
 
 //#include <iostream>
 //

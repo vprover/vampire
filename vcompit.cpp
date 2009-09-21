@@ -95,6 +95,9 @@ void readSymbolTable(FILE* in)
 int main( int argc, char *argv[] )
 {
   CALL("main");
+
+  Timer::initTimer();
+
   FILE *in;
 
   if (argc != 2) {
