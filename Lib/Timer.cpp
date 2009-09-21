@@ -58,7 +58,7 @@ timer_sigalrm_handler (int sig)
 /** number of miliseconds (of CPU time) passed since some moment */
 int Lib::Timer::miliseconds()
 {
-  CALL("Timer::initTimer");
+  CALL("Timer::miliseconds");
   ASS_GE(timer_sigalrm_counter, 0);
 
   return timer_sigalrm_counter;
@@ -68,6 +68,8 @@ void Lib::Timer::initTimer()
 {
   CALL("Timer::initTimer");
   ASS_EQ(timer_sigalrm_counter, -1);
+
+  timer_sigalrm_counter=0;
 
   signal (SIGALRM, timer_sigalrm_handler);
   struct itimerval oldt, newt;

@@ -22,7 +22,7 @@ bool Assertion::_violated = false;
 
 void Assertion::printFailureHeader()
 {
-  if(env.options->mode()==Shell::Options::MODE_SPIDER) {
+  if(env.options && env.options->mode()==Shell::Options::MODE_SPIDER) {
     env.out << "! " << env.options->problemName();
     env.out << " " << env.timer->elapsedDeciseconds();
     env.out << " " << env.options->testId() << "\n";
