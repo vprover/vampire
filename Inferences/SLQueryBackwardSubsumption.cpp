@@ -10,6 +10,7 @@
 #include "../Lib/List.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/Set.hpp"
+#include "../Lib/TimeCounter.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
 #include "../Kernel/Clause.hpp"
@@ -102,6 +103,10 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 {
   CALL("SLQueryBackwardSubsumption::perform");
   ASSERT_VALID(*cl);
+
+  //we do all work in this method, so we can just measure time simply
+  //(which cannot generally be done when iterators are involved)
+  TimeCounter tc(TC_BACKWARD_SUBSUMPTION);
 
   unsigned clen=cl->length();
 

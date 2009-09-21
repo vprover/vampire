@@ -4,6 +4,8 @@
  * system stuff and don't fit anywhere else (handling signals etc...)
  */
 
+#include "Portability.hpp"
+
 #include <stdlib.h>
 #ifdef _MSC_VER
 #  include <Winsock2.h>

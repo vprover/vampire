@@ -264,9 +264,11 @@ struct InferenceStore::ProofPrinter
     Clause* cl=cs.first;
 
     out << is->getClauseIdStr(cs) << ". "
-	<< cl->nonPropToString()
-	<<" | "<<bdd->toString(cs.second)
-	<<" ("<<cl->age()<<':'<<cl->weight()<<") ";
+	<< cl->nonPropToString();
+    if(!bdd->isFalse(cs.second)) {
+	out << " | "<<bdd->toString(cs.second);
+    }
+    out << " ("<<cl->age()<<':'<<cl->weight()<<") ";
 
     out <<"["<<Inference::ruleName(finf->rule);
   }
@@ -308,9 +310,11 @@ struct InferenceStore::ProofPrinter
     ClauseSpec cs=sr->result;
     Clause* cl=cs.first;
     out << is->getClauseIdStr(cs) << ". "
-	<< cl->nonPropToString()
-	<<" | "<<bdd->toString(cs.second)
-	<<" ("<<cl->age()<<':'<<cl->weight()<<") ";
+	<< cl->nonPropToString();
+    if(!bdd->isFalse(cs.second)) {
+      out <<" | "<<bdd->toString(cs.second);
+    }
+    out << " ("<<cl->age()<<':'<<cl->weight()<<") ";
 
     ClauseSpec prevCs=getClauseSpec(cl, sr->oldResBDD);
     out <<"["<<Inference::ruleName(Inference::SPLITTING)<<" "

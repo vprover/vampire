@@ -5,8 +5,9 @@
 
 #include "../Lib/Environment.hpp"
 #include "../Lib/Metaiterators.hpp"
-#include "../Lib/SmartPtr.hpp"
 #include "../Lib/Random.hpp"
+#include "../Lib/SmartPtr.hpp"
+#include "../Lib/TimeCounter.hpp"
 
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/Term.hpp"
@@ -43,6 +44,8 @@ void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
 void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
+
+  TimeCounter tc(TC_INDEX_MAINTENANCE);
 
   LeafData ld(cls, lit, t);
   if(t.isOrdinaryVar()) {

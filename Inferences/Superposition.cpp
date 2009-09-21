@@ -142,7 +142,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   CALL("Superposition::generateClauses");
   Limits* limits=_salg->getLimits();
 
-  return pvi( getFilteredIterator(
+  return pvi( getTimeCountedIterator(
+      getFilteredIterator(
 	getConcatenatedIterator(
 	  getMappingIterator(
 		  getMapAndFlattenIterator(
@@ -158,7 +159,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 				  EqHelper::LHSIteratorFn()),
 			  RewritableResultsFn(_subtermIndex)),
 		  BackwardResultFn(premise, limits))),
-	NonzeroFn()) );
+	NonzeroFn()
+      ), TC_SUPERPOSITION) );
 }
 
 /**

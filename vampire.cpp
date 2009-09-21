@@ -9,12 +9,13 @@
 
 #include "Debug/Tracer.hpp"
 
-#include "Lib/Random.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/TimeCounter.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Lib/List.hpp"
 #include "Lib/Vector.hpp"
@@ -71,11 +72,14 @@ ClauseIterator getInputClauses()
 
   env.signature = new Kernel::Signature;
   UnitList* units;
-  string inputFile = env.options->inputFile();
-  ifstream input(inputFile.c_str());
+  {
+    TimeCounter tc1(TC_PARSING);
 
-  switch (env.options->inputSyntax()) {
-  case Options::IS_SIMPLIFY:
+    string inputFile = env.options->inputFile();
+    ifstream input(inputFile.c_str());
+
+    switch (env.options->inputSyntax()) {
+    case Options::IS_SIMPLIFY:
     {
       Shell::LispLexer lexer(input);
       Shell::LispParser parser(lexer);
@@ -84,14 +88,17 @@ ClauseIterator getInputClauses()
       units = simplify.units(expr);
     }
     break;
-  case Options::IS_TPTP:
+    case Options::IS_TPTP:
     {
       TPTPLexer lexer(input);
       TPTPParser parser(lexer);
       units = parser.units();
     }
     break;
+    }
   }
+
+  TimeCounter tc2(TC_PREPROCESSING);
 
   property.scan(units);
   Preprocess prepro(property,*env.options);
@@ -156,10 +163,11 @@ void outputResult()
     break;
   }
   env.statistics->print();
+  if(env.options->timeStatistics()) {
+    TimeCounter::printReport();
+  }
 }
 
-
-extern int gBDDTime;
 
 void vampireMode()
 {
@@ -167,7 +175,6 @@ void vampireMode()
   env.out<<env.options->testId()<<" on "<<env.options->inputFile()<<endl;
   doProving();
   outputResult();
-  cout<<"Time spent on BDDs: "<<gBDDTime<<endl;
 } // vampireMode
 
 
@@ -201,7 +208,6 @@ void spiderMode()
   env.out << " " << env.options->problemName();
   env.out << " " << env.timer->elapsedDeciseconds();
   env.out << " " << env.options->testId();
-//  env.out << " " << gBDDTime;
   env.out << "\n";
 } // spiderMode
 

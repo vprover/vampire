@@ -9,6 +9,7 @@
 #include "../Lib/Int.hpp"
 #include "../Lib/List.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/TimeCounter.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
 #include "../Kernel/Term.hpp"
@@ -190,6 +191,11 @@ void BackwardDemodulation::perform(Clause* cl,
 		    ResultFn(cl)),
  	    RemovedIsNonzeroFn()) );
 
+  //here we know that the getPersistentIterator evaluates all items of the
+  //replacementIterator right at this point, so we can measure the time just
+  //simply (which cannot be generally done when iterators are involved)
+
+  TimeCounter tc(TC_BACKWARD_DEMODULATION);
   simplifications=getPersistentIterator(replacementIterator);
 }
 

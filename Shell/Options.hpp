@@ -93,6 +93,7 @@ public:
 
     TEST_ID,
     TIME_LIMIT,
+    TIME_STATISTICS,
 
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
 
@@ -286,6 +287,7 @@ public:
   bool condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
   string namePrefix() const { return _namePrefix; }
+  bool timeStatistics() { return _timeStatistics; }
 
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal) { _inputFile = newVal; }
@@ -377,6 +379,7 @@ private:
   string _testId;
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
+  bool _timeStatistics;
 
   bool _unusedPredicateDefinitionRemoval;
 

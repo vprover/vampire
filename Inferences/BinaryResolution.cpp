@@ -147,14 +147,16 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   CALL("BinaryResolution::generateClauses");
 
   Limits* limits=_salg->getLimits();
-  return pvi( getFilteredIterator(
+  return pvi( getTimeCountedIterator(
+    getFilteredIterator(
       getMappingIterator(
 	  getFlattenedIterator(
 		  getMappingIterator(
 			  premise->getSelectedLiteralIterator(),
 			  UnificationsFn(_index))),
 	  ResultFn(premise, limits)),
-      NonzeroFn()) );
+      NonzeroFn()
+    ), TC_RESOLUTION ) );
 }
 
 }

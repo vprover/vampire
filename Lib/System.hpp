@@ -5,6 +5,9 @@
  * else (handling signals etc...)
  */
 
+#ifndef __System__
+#define __System__
+
 #include <string>
 
 namespace Lib {
@@ -19,3 +22,5 @@ public:
 };
 
 }
+
+#endif /* __System__ */

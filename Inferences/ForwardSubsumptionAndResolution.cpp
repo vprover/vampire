@@ -9,6 +9,7 @@
 #include "../Lib/List.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/TimeCounter.hpp"
 
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
@@ -238,6 +239,8 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
     return;
   }
 
+
+  TimeCounter tc(TC_FORWARD_SUBSUMPTION);
 
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);

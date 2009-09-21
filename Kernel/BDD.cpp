@@ -12,6 +12,7 @@
 #include "../Lib/List.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/Timer.hpp"
+#include "../Lib/TimeCounter.hpp"
 
 #include "../Kernel/Signature.hpp"
 
@@ -25,7 +26,6 @@
 
 #include "BDD.hpp"
 
-int gBDDTime=0;
 
 namespace Kernel {
 
@@ -148,8 +148,9 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
   ASS(n1);
   ASS(n2);
 
+  TimeCounter tc(TC_BDD);
+
   int counter=0;
-  int initTime=0;
 
   static Stack<BDDNode*> toDo(8);
   //results stack contains zeroes and proper pointers standing for
@@ -169,11 +170,6 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 
   for(;;) {
     counter++;
-    if(counter==500) {
-      if(initTime==0) {
-	initTime=env.timer->elapsedMilliseconds();
-      }
-    }
     if(counter==50000) {
       counter=0;
       if(env.timeLimitReached()) {
@@ -223,10 +219,6 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
     n2=toDo.pop();
   }
 
-  if(initTime) {
-    gBDDTime+=env.timer->elapsedMilliseconds()-initTime;
-  }
-
   ASS(toDo.isEmpty());
   ASS_EQ(results.length(),1);
   return results.pop();
@@ -254,8 +246,9 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
   ASS(n1);
   ASS(n2);
 
+  TimeCounter tc(TC_BDD);
+
   int counter=0;
-  int initTime=0;
 
   static Stack<BDDNode*> toDo(8);
   toDo.reset();
@@ -265,11 +258,6 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
 
   for(;;) {
     counter++;
-    if(counter==500) {
-      if(initTime==0) {
-	initTime=env.timer->elapsedMilliseconds();
-      }
-    }
     if(counter==50000) {
       counter=0;
       if(env.timeLimitReached()) {
@@ -280,9 +268,6 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
     if(res) {
       if( (resValue && !isTrue(res)) ||
 	      (!resValue && !isFalse(res))) {
-	if(initTime) {
-	  gBDDTime+=env.timer->elapsedMilliseconds()-initTime;
-	}
 	return false;
       }
     } else {
@@ -307,10 +292,6 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
     }
     n1=toDo.pop();
     n2=toDo.pop();
-  }
-
-  if(initTime) {
-    gBDDTime+=env.timer->elapsedMilliseconds()-initTime;
   }
 
   return true;
@@ -391,6 +372,7 @@ string BDD::toString(BDDNode* node)
   nodes.push(node);
   while(nodes.isNonEmpty()) {
     BDDNode* n=nodes.pop();
+    bool canPrintSeparator=true;
     if(n==0) {
       res+=") ";
     } else if(isTrue(n)) {
@@ -402,6 +384,10 @@ string BDD::toString(BDDNode* node)
       nodes.push(0);
       nodes.push(n->_neg);
       nodes.push(n->_pos);
+      canPrintSeparator=false;
+    }
+    if(canPrintSeparator && nodes.isNonEmpty() && nodes.top()) {
+      res+=": ";
     }
   }
   return res;
@@ -501,13 +487,12 @@ void BDDConjunction::addNode(BDDNode* n)
     return;
   }
 
+  TimeCounter tc(TC_BDD);
+
   if(n->_var > _maxVar) {
     _maxVar=n->_var;
   }
 
-
-  Timer proverTime;
-  proverTime.start();
 
   unsigned varCnt=_maxVar+1;
 
@@ -595,8 +580,6 @@ void BDDConjunction::addNode(BDDNode* n)
 #endif
 
 #endif
-  proverTime.stop();
-  gBDDTime+=proverTime.elapsedMilliseconds();
 
 //  cout<<"add node finished "<<_isFalse<<endl;
   return;

@@ -6,6 +6,8 @@
 #include "../Lib/List.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/SmartPtr.hpp"
+#include "../Lib/TimeCounter.hpp"
+
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/MLVariant.hpp"
 #include "../Kernel/Term.hpp"
@@ -33,6 +35,8 @@ ClauseVariantIndex::~ClauseVariantIndex()
 
 void ClauseVariantIndex::insert(Clause* cl)
 {
+  TimeCounter tc(TC_INDEX_MAINTENANCE);
+
   unsigned clen=cl->length();
 
   if(cl->length()==0) {

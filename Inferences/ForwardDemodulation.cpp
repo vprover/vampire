@@ -3,9 +3,10 @@
  * Implements class ForwardDemodulation.
  */
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/Metaiterators.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/Metaiterators.hpp"
+#include "../Lib/TimeCounter.hpp"
+#include "../Lib/VirtualIterator.hpp"
 
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
@@ -53,6 +54,8 @@ void ForwardDemodulation::detach()
 void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
   CALL("ForwardDemodulation::perform");
+
+  TimeCounter tc(TC_FORWARD_DEMODULATION);
 
   static Ordering* ordering=0;
   if(!ordering) {

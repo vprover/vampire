@@ -14,6 +14,7 @@
 #include "List.hpp"
 #include "Set.hpp"
 #include "VirtualIterator.hpp"
+#include "TimeCounter.hpp"
 
 namespace Lib {
 
@@ -806,6 +807,47 @@ inline
 ContextualIterator<Inner,Ctx> getContextualIterator(Inner it, Ctx context)
 {
   return ContextualIterator<Inner,Ctx>(it, context);
+}
+
+
+template<class Inner>
+class TimeCountedIterator
+: public IteratorCore<ELEMENT_TYPE(Inner)>
+{
+public:
+  typedef ELEMENT_TYPE(Inner) T;
+
+  explicit TimeCountedIterator(Inner inn, TimeCounterUnit tcu)
+  : _inn(inn), _tcu(tcu) {}
+
+  inline bool hasNext()
+  {
+    TimeCounter tc(_tcu);
+    return _inn.hasNext();
+  };
+  inline
+  T next()
+  {
+    TimeCounter tc(_tcu);
+    return _inn.next();
+  };
+private:
+  Inner _inn;
+  TimeCounterUnit _tcu;
+};
+
+/**
+ * Return iterator, that yields the same values in
+ * the same order as @b it. Benefit of this iterator
+ * is, that @b it object is used only during
+ * initialization. (So it's underlying object can be
+ * freed and the returned iterator will remain valid.)
+ */
+template<class Inner>
+inline
+VirtualIterator<ELEMENT_TYPE(Inner)> getTimeCountedIterator(Inner it, TimeCounterUnit tcu)
+{
+  return vi( new TimeCountedIterator<Inner>(it, tcu) );
 }
 
 

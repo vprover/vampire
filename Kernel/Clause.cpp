@@ -211,7 +211,7 @@ string Clause::toString(BDDNode* propPart) const
 
   string result = Int::toString(_number) + ". " + nonPropToString();
 
-  if(propPart) {
+  if(propPart && !BDD::instance()->isFalse(propPart) ) {
 #if VDEBUG
     string bddString=BDD::instance()->toString(propPart);
     if(bddString.length()>255) {

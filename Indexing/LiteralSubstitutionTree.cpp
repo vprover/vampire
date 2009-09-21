@@ -5,6 +5,8 @@
 
 #include "../Lib/Environment.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/TimeCounter.hpp"
+
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/Term.hpp"
 
@@ -33,6 +35,8 @@ void LiteralSubstitutionTree::remove(Literal* lit, Clause* cls)
 void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool insert)
 {
   CALL("LiteralSubstitutionTree::handleLiteral");
+
+  TimeCounter tc(TC_INDEX_MAINTENANCE);
 
   Renaming normalizer;
   normalizer.normalizeVariables(lit);

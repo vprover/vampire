@@ -134,6 +134,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "test_id",
   "time_limit",
+  "time_statistics",
 
   "unused_predicate_definition_removal",
 
@@ -364,6 +365,7 @@ Options::Options ()
 
   _testId ("unspecified_test"),
   _timeLimitInDeciseconds(0),
+  _timeStatistics(false),
 
   _unusedPredicateDefinitionRemoval(true),
 
@@ -677,6 +679,10 @@ void Options::set (const char* name,const char* value, int index)
 
   case TIME_LIMIT:
     _timeLimitInDeciseconds = readTimeLimit(value);
+    return;
+
+  case TIME_STATISTICS:
+    _timeStatistics = onOffToBool(value,name);
     return;
 
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
@@ -1089,6 +1095,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     if (_timeLimitInDeciseconds % 10) {
       str << '.' << _timeLimitInDeciseconds % 10;
     }
+    return;
+  case TIME_STATISTICS:
+    str << boolToOnOff(_timeStatistics);
     return;
 
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
