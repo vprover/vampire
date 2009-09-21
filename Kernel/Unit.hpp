@@ -77,13 +77,13 @@ public:
   /** the input unit number this clause is generated from, -1 if none */
   int adam() const {return _adam;}
   /** Mark the unit as left for interpolation and symbol elimination purposes */
-  void Unit::markLeft()
+  void markLeft()
   {
     ASS(! _right);
     _left = 1;
   } // markLeft
   /** Mark the unit as right for interpolation and symbol elimination purposes */
-  void Unit::markRight()
+  void markRight()
   {
     ASS(! _left);
     _right = 1;
