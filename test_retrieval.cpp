@@ -1,5 +1,5 @@
 /**
- * @file test_retrieval.cpp.
+ * @file test_retrieval.cpp
  */
 
 

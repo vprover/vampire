@@ -130,7 +130,7 @@ bool BDD::isXOrNonYConstant(BDDNode* x, BDDNode* y, bool resValue)
 /**
  * Return pointer to BDDNode that represents result of applying
  * the binary function specified by the BinBoolFn functor to
- * @b n1 and @n2. The binary functor BinBoolFn must allow to be
+ * @b n1 and @b n2. The binary functor BinBoolFn must allow to be
  * called as
  *
  * BDDNode* BinBoolFn(BDDNode* m1, BDDNode* m2)
@@ -226,7 +226,7 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 
 /**
  * Return true iff the result of applying the binary function specified
- * by the BinBoolFn functor to @b n1 and @n2 is a constant BDD with truth
+ * by the BinBoolFn functor to @b n1 and @b n2 is a constant BDD with truth
  * value equal to @b resValue.
  *
  * The binary functor BinBoolFn must allow to be called as

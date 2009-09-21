@@ -28,16 +28,30 @@ class Signature
  public:
   /** Function or predicate symbol */
   class Symbol {
-  public:
+  protected:
     /** print name */
-    const string name;
+    const string _name;
     /** arity */
-    unsigned arity;
+    unsigned _arity : 30;
+    /** used in coloured proofs and interpolation */
+    unsigned _left : 1;
+    /** used in coloured proofs and interpolation */
+    unsigned _right : 1;
+  public:
     /** standard constructor */
-    Symbol(const string& nm,int ar)
-      : name(nm),
-	arity(ar)
+    Symbol(const string& nm,unsigned arity)
+      : _name(nm),
+	_arity(arity),
+	_left(0u),
+	_right(0u)
     {}
+    void markLeft();
+    void markRight();
+    /** Return the arity of the symbol */
+    inline unsigned arity() { return _arity; }
+    /** Return the name of the symbol */
+    inline const string& name() { return _name; }
+
     CLASS_NAME("Signature::Symbol");
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
@@ -73,22 +87,22 @@ class Signature
   /** return the name of a function with a given number */
   const string& functionName(int number)
   {
-    return _funs[number]->name;
+    return _funs[number]->name();
   }
   /** return the name of a predicate with a given number */
   const string& predicateName(int number)
   {
-    return _preds[number]->name;
+    return _preds[number]->name();
   }
   /** return the arity of a function with a given number */
   const unsigned functionArity(int number)
   {
-    return _funs[number]->arity;
+    return _funs[number]->arity();
   }
   /** return the arity of a predicate with a given number */
   const unsigned predicateArity(int number)
   {
-    return _preds[number]->arity;
+    return _preds[number]->arity();
   }
 
   /** return true iff predicate of given @b name and @b arity exists. */
@@ -103,6 +117,19 @@ class Signature
   int functions() const { return _funs.length(); }
   /** return the number of predicates */
   int predicates() const { return _preds.length(); }
+
+  /** Return the function symbol by its number */
+  inline Symbol* getFunction(unsigned n)
+  {
+    ASS(n < _funs.length());
+    return _funs[n];
+  } // getFunction
+  /** Return the predicate symbol by its number */
+  inline Symbol* getPredicate(unsigned n)
+  {
+    ASS(n < _preds.length());
+    return _preds[n];
+  } // getPredicate
 
   Signature();
   ~Signature();

@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include "../Lib/List.hpp"
+#include "../Lib/Int.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/Environment.hpp"
 
@@ -155,7 +156,7 @@ void TPTPParser::units(UnitStack& stack)
 } // TPTPParser::units
 
 /**
- * Parse a unit. Return 0 if a clause with $true was read,
+ * Parse a unit. Return 0 if a clause with $true was read or a vampire() declaration discovered
  * otherwise the unit.
  * @since 17/07/2004 flight Helsinki-Stockholm
  * @since 02/05/2005 Manchester, changed to use stacks
@@ -174,7 +175,6 @@ Unit* TPTPParser::unit()
   case TT_INPUT_CLAUSE:
   case TT_CNF:
     break;
-
   default:
     throw ParserException("either input_formula or input_clause expected",
 			  currentToken());
@@ -987,21 +987,74 @@ void TPTPParser::vampire()
 
   consumeToken(TT_LPAR);
   string nm = name();
-  if (nm == "colored_predicate") {
+  if (nm == "option") { // vampire(option,age_weight_ratio,3)
+    consumeToken(TT_COMMA);
+    string opt = name();
+    consumeToken(TT_COMMA);
+    string val = name();
+    env.options->set(opt,val);
   }
-  else if (nm == "colored_function") {
-  }
-  else if (nm == "color") {
-  }
-  else if (nm == "end_color") {
+  else if (nm=="symbol") { // e.g. vampire(symbol,predicate,p,5,left).
+    consumeToken(TT_COMMA);
+    string kind = name();
+    bool pred;
+    if (kind == "predicate") {
+      pred = true;
+    }
+    else if (kind == "function") {
+      pred = false;
+    }
+    else {
+      throw ParserException("either 'predicate' or 'function' expected",
+			    currentToken1());          
+    }
+    consumeToken(TT_COMMA);
+    string symb = name();
+    consumeToken(TT_COMMA);
+    string art = name();
+    unsigned arity;
+    if (! Int::stringToUnsignedInt(art,arity)) {
+      throw ParserException("a non-negative integer (denoting arity) expected",
+			    currentToken1());          
+    }
+    consumeToken(TT_COMMA);
+    bool left;
+    string lr = name();
+    if (lr == "left") {
+      left = true;
+    }
+    else if (lr == "right") {
+      left = false;
+    }
+    else {
+      throw ParserException("either 'left' or 'right' expected",
+			    currentToken1());          
+    }
+    if (pred) {
+      Signature::Symbol* p = env.signature->getPredicate(env.signature->addPredicate(symb,arity));
+      if (left) {
+	p->markLeft();
+      }
+      else {
+	p->markRight();
+      }
+    }
+    else {
+      Signature::Symbol* f = env.signature->getFunction(env.signature->addFunction(symb,arity));
+      if (left) {
+	f->markLeft();
+      }
+      else {
+	f->markRight();
+      }
+    }
   }
   else {
     throw ParserException("unrecognised Vampire command",
-			  currentToken());    
+			  currentToken1());    
   }
   consumeToken(TT_RPAR);
   consumeToken(TT_DOT);
 } // TPTPParser::vampire
-
 
 }

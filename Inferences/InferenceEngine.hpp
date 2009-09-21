@@ -79,7 +79,7 @@ public:
   /**
    * Perform an immediate simplification on @b cl and return
    * the result. If the simplification is not applicable, return
-   * @b cl, if @cl should be deleted, return 0.
+   * @b cl, if @b cl should be deleted, return 0.
    *
    * When the simplification yields a simplified clause, repeated
    * run of the method on resulting clause can lead to another

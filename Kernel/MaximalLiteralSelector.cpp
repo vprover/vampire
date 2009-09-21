@@ -1,6 +1,6 @@
 /**
- * @file OrderingLiteralSelector.cpp
- * Implements class OrderingLiteralSelector.
+ * @file MaximalLiteralSelector.cpp
+ * Implements class MaximalLiteralSelector.
  */
 
 #include <algorithm>

@@ -135,23 +135,34 @@ bool Int::stringToLong (const char* str,long& result)
 bool Int::stringToInt (const string& str,int& result)
 {
   CALL("Int::stringToInt");
-
   return stringToInt(str.c_str(),result);
 } // Int::stringToInt
 
+/**
+ * Convert a string to an unsigned integer value.
+ * @since 20/09/2009 Redmond
+ */
+bool Int::stringToUnsignedInt (const string& str,unsigned& result)
+{
+  CALL("Int::stringToUnsignedInt");
+  return stringToUnsignedInt(str.c_str(),result);
+} // Int::stringToUnsignedInt
 
 /**
  * Convert a string to an unsigned integer value.
  * @since 15/11/2004 Manchester
  */
-bool Int::stringToUnsignedInt (const char* str,int& result)
+bool Int::stringToUnsignedInt (const char* str,unsigned& result)
 {
   CALL("Int::stringToUnsignedInt");
 
-  return stringToInt(str,result) &&
-         result >= 0;
+  int i;
+  if (stringToInt(str,i) && i >= 0) {
+    result = i;
+    return true;
+  }
+  return false;
 } // Int::stringToUnsignedInt
-
 
 /**
  * Convert a string to an integer value.

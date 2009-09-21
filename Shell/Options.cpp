@@ -316,8 +316,8 @@ Options::Options ()
 
   _include(""),
   _inequalitySplitting(3),
-  _inputSyntax(IS_TPTP),
   _inputFile(""),
+  _inputSyntax(IS_TPTP),
 
   _latexOutput("off"),
   _literalComparisonMode(LCM_STANDARD),
@@ -412,6 +412,7 @@ void Options::set (const char* name,const char* value, int index)
   CALL("Options::set/3");
 
   int intValue;
+  unsigned unsignedValue;
   float floatValue;
 
   switch (index) {
@@ -489,8 +490,8 @@ void Options::set (const char* name,const char* value, int index)
     _include = value;
     return;
   case INEQUALITY_SPLITTING:
-    if (Int::stringToUnsignedInt(value,intValue)) {
-      _inequalitySplitting = intValue;
+    if (Int::stringToUnsignedInt(value,unsignedValue)) {
+      _inequalitySplitting = unsignedValue;
       return;
     }
     break;
@@ -522,38 +523,38 @@ void Options::set (const char* name,const char* value, int index)
     break;
 
   case MAX_ACTIVE:
-    if (Int::stringToUnsignedInt(value,intValue)) {
-      _maxActive = intValue;
+    if (Int::stringToUnsignedInt(value,unsignedValue)) {
+      _maxActive = unsignedValue;
       return;
     }
     break;
   case MAX_ANSWERS:
-    if (Int::stringToUnsignedInt(value,intValue)) {
-      _maxAnswers = intValue;
+    if (Int::stringToUnsignedInt(value,unsignedValue)) {
+      _maxAnswers = unsignedValue;
       return;
     }
     break;
   case MAX_INFERENCE_DEPTH:
-    if (Int::stringToUnsignedInt(value,intValue)) {
-      _maxInferenceDepth = intValue;
+    if (Int::stringToUnsignedInt(value,unsignedValue)) {
+      _maxInferenceDepth = unsignedValue;
       return;
     }
     break;
   case MAX_PASSIVE:
-    if (Int::stringToUnsignedInt(value,intValue)) {
-      _maxPassive = intValue;
+    if (Int::stringToUnsignedInt(value,unsignedValue)) {
+      _maxPassive = unsignedValue;
       return;
     }
     break;
   case MAX_WEIGHT:
-    if (Int::stringToUnsignedInt(value,intValue)) {
-      _maxWeight = intValue;
+    if (Int::stringToUnsignedInt(value,unsignedValue)) {
+      _maxWeight = unsignedValue;
       return;
     }
     break;
   case MEMORY_LIMIT:
-    if (Int::stringToUnsignedInt(value,intValue)) {
-      _memoryLimit = intValue;
+    if (Int::stringToUnsignedInt(value,unsignedValue)) {
+      _memoryLimit = unsignedValue;
       return;
     }
     break;
@@ -568,8 +569,8 @@ void Options::set (const char* name,const char* value, int index)
     _namePrefix = value;
     return;
   case NAMING:
-    if (Int::stringToUnsignedInt(value,intValue) &&
-	setNaming(intValue)) {
+    if (Int::stringToUnsignedInt(value,unsignedValue) &&
+	setNaming(unsignedValue)) {
       return;
     }
     break;
@@ -602,14 +603,14 @@ void Options::set (const char* name,const char* value, int index)
     return;
 
   case RANDOM_SEED:
-    if (Int::stringToUnsignedInt(value,intValue)) {
-      _randomSeed = intValue;
+    if (Int::stringToUnsignedInt(value,unsignedValue)) {
+      _randomSeed = unsignedValue;
       return;
     }
     break;
   case ROW_VARIABLE_MAX_LENGTH:
-    if (Int::stringToUnsignedInt(value,intValue)) {
-      _rowVariableMaxLength = intValue;
+    if (Int::stringToUnsignedInt(value,unsignedValue)) {
+      _rowVariableMaxLength = unsignedValue;
       return;
     }
     break;

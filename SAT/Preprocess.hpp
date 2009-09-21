@@ -1,6 +1,6 @@
 /**
- * @file Preprocessor.hpp
- * Defines class Preprocessor.
+ * @file SAT/Preprocess.hpp
+ * Defines class Preprocess.
  */
 
 

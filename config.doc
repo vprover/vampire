@@ -31,6 +31,7 @@ GENERATE_HTML		= YES
 HTML_OUTPUT		= html
 
 ALPHABETICAL_INDEX = YES
+COLS_IN_ALPHA_INDEX = 2
 
 #
 # LaTeX-related options

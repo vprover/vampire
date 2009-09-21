@@ -59,7 +59,8 @@ class Int
   static bool stringToLong(const string& str,long& result);
   static bool stringToInt(const string& str,int& result);
   static bool stringToInt(const char* str,int& result);
-  static bool stringToUnsignedInt(const char* str,int& result);
+  static bool stringToUnsignedInt(const char* str,unsigned& result);
+  static bool stringToUnsignedInt(const string& str,unsigned& result);
   static bool stringToDouble(const char*,double& result);
   static bool stringToFloat(const char*,float& result);
   static bool stringToUnsigned64(const string& str,long long unsigned& result);

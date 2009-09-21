@@ -1,5 +1,5 @@
 /**
- * @file CompositeLiteralComparator.hpp
+ * @file LiteralComparators.hpp
  * Defines namespace Kernel::LiteralComparators containing atomic
  * literal comparator classes.
  */

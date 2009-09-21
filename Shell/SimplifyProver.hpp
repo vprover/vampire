@@ -31,8 +31,6 @@ public:
   enum Keyword {
     /** means no keyword */
     K_NONE,
-    K_string,
-    K_number,
     K_ID,
     K_DEFPRED,
     K_DEFPREDMAP,
@@ -87,7 +85,6 @@ public:
     K_DBG_WAS_VALID,
     K_DBG_WAS_INVALID,
     K_ECHO,
-    K_invalid_string,
     K_PROMPT_OFF,
     K_PROMPT_ON,
     K_EVALT,

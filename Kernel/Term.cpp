@@ -568,7 +568,7 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
   s->makeSymbol(function,arity);
 
   TermList* ss = s->args();
-  for (int i = 0;i < arity;i++) {
+  for (unsigned i = 0;i < arity;i++) {
     *ss-- = args[i];
   }
   return env.sharing->insert(s);
@@ -864,7 +864,7 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
   Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
 
   TermList* ss = l->args();
-  for (int i = 0;i < arity;i++) {
+  for (unsigned i = 0;i < arity;i++) {
     *ss-- = args[i];
   }
   return env.sharing->insert(l);

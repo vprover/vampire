@@ -148,7 +148,7 @@ TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
 }
 
 /**
- * If @b t is a non-variable, return @t. Else, if @b t is a variable bound to
+ * If @b t is a non-variable, return @b t. Else, if @b t is a variable bound to
  * a non-variable term, return the term. Otherwise, return the root variable
  * to which @b t belongs.
  */

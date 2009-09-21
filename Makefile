@@ -744,12 +744,12 @@ Shell/TPTPLexer.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Exception.hpp
 Shell/TPTPLexer.o: Lib/LastCopyWatcher.hpp Shell/TPTPLexer.hpp
 Shell/TPTPLexer.o: Shell/Lexer.hpp Lib/Array.hpp Lib/Allocator.hpp
 Shell/TPTPLexer.o: Shell/Token.hpp
-Shell/TPTPParser.o: Lib/List.hpp Lib/Stack.hpp Forwards.hpp Config.hpp
-Shell/TPTPParser.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Allocator.hpp
-Shell/TPTPParser.o: Lib/BacktrackData.hpp Lib/List.hpp
+Shell/TPTPParser.o: Lib/List.hpp Lib/Int.hpp Lib/Comparison.hpp
+Shell/TPTPParser.o: Lib/Portability.hpp Debug/Assertion.hpp Lib/Stack.hpp
+Shell/TPTPParser.o: Forwards.hpp Config.hpp Debug/Tracer.hpp
+Shell/TPTPParser.o: Lib/Allocator.hpp Lib/BacktrackData.hpp Lib/List.hpp
 Shell/TPTPParser.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
 Shell/TPTPParser.o: Lib/LastCopyWatcher.hpp Lib/Reflection.hpp Lib/Int.hpp
-Shell/TPTPParser.o: Lib/Comparison.hpp Lib/Portability.hpp
 Shell/TPTPParser.o: Lib/Environment.hpp Kernel/Inference.hpp Kernel/Unit.hpp
 Shell/TPTPParser.o: Lib/Allocator.hpp Kernel/Signature.hpp Lib/Map.hpp
 Shell/TPTPParser.o: Lib/Hash.hpp Kernel/Formula.hpp Lib/XML.hpp

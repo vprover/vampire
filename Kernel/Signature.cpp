@@ -9,8 +9,7 @@
 #include "Signature.hpp"
 
 using namespace std;
-
-namespace Kernel {
+using namespace Kernel;
 
 /**
  * Create a Signature.
@@ -159,5 +158,20 @@ string Signature::key(const string& name,int arity)
   return name + '_' + Int::toString(arity);
 } // Signature::key
 
+/** Mark the symbol as left for interpolation and symbol elimination purposes */
+void Signature::Symbol::markLeft()
+{
+  if (_right) {
+    throw UserErrorException("A symbol cannot be both left and right");
+  }
+  _left = 1;
+} // markLeft
 
-}
+/** Mark the symbol as right for interpolation and symbol elimination purposes */
+void Signature::Symbol::markRight()
+{
+  if (_left) {
+    throw UserErrorException("A symbol cannot be both left and right");
+  }
+  _right = 1;
+} // markRight

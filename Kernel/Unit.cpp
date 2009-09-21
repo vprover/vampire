@@ -19,6 +19,8 @@ Unit::Unit(Kind kind,Inference* inf,InputType it)
   : _number(++_lastNumber),
     _kind(kind),
     _inputType(it),
+    _left(0u),
+    _right(0u),
     _inference(inf)
 {
   switch (inf->rule()) {
@@ -41,7 +43,6 @@ Unit::Unit(Kind kind,Inference* inf,InputType it)
   }
 } // Unit::Unit
 
-
 /**
  * Print the inference as a string (used in printing units in
  * refutations).
@@ -61,3 +62,4 @@ string Unit::inferenceAsString() const
   }
   return result + ']';
 } // Unit::inferenceAsString()
+

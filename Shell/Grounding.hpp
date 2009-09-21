@@ -1,6 +1,6 @@
 /**
- * @file Preprocessor.hpp
- * Defines class Preprocessor.
+ * @file Grounding.hpp
+ * Defines class Grounding.
  */
 
 #ifndef __Grounding__

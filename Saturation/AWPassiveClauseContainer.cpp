@@ -1,6 +1,6 @@
 /**
- * @file Passive.cpp
- * Implements class Passive for the queue of passive clauses.
+ * @file AWPassiveClauseContainer.cpp
+ * Implements class AWPassiveClauseContainer for the queue of passive clauses.
  * @since 30/12/2007 Manchester
  */
 

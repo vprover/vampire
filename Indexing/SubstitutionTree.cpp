@@ -1062,10 +1062,9 @@ SubstitutionTree::GenMatcher::~GenMatcher()
 /**
  * Match special variable, that is about to be matched next during
  * iterator's traversal through the tree, to @b nodeTerm.
- *
- * @param separate If true, join this match with the previous one
- * 	on backtracking stack, so they will be undone both by one
- * 	call to the @b backtrack() method.
+ * If @b separate If true, join this match with the previous one
+ * on backtracking stack, so they will be undone both by one
+ * call to the backtrack() method.
  */
 bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
@@ -1164,11 +1163,11 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
 }
 
 /**
- * @param nextSpecVar first unassigned special variable. Is being used
+ * @b nextSpecVar is the first unassigned special variable. Is being used
  * 	to determine size of array, that stores special variable bindings.
  * 	(To maximize performance, a DArray object is being used instead
  * 	of hash map.)
- * @param reversed If true, parameters of supplied binary literal are
+ * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
 SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(

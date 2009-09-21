@@ -76,6 +76,18 @@ public:
   const Inference* inference() const { return _inference; }
   /** the input unit number this clause is generated from, -1 if none */
   int adam() const {return _adam;}
+  /** Mark the unit as left for interpolation and symbol elimination purposes */
+  void Unit::markLeft()
+  {
+    ASS(! _right);
+    _left = 1;
+  } // markLeft
+  /** Mark the unit as right for interpolation and symbol elimination purposes */
+  void Unit::markRight()
+  {
+    ASS(! _left);
+    _right = 1;
+  } // markRight
 
   /**
    * Increase the number of references to the unit.
@@ -99,6 +111,10 @@ protected:
   unsigned _kind : 1;
   /** input type  */
   unsigned _inputType : 2;
+  /** used in interpolation and symbol elimination */
+  unsigned _left : 1;
+  /** used in interpolation and symbol elimination */
+  unsigned _right : 1;
   /** inference used to obtain the unit */
   Inference* _inference;
   /** the input unit number this clause is generated from, -1 if none */

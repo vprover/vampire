@@ -1,5 +1,5 @@
 /**
- * @file Profile.hpp (syntactic properties of problems)
+ * @file Shell/Profile.hpp (syntactic properties of problems)
  *
  * @since 15/06/2008 Kemerovo
  */

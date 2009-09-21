@@ -29,8 +29,6 @@ using namespace Shell;
 // #define CALL(x) (cout << x << '\n')
 
 // This are the keywords not handled yet:
-//     K_string,
-//     K_number,
 //     K_ID,
 //     K_DEFPRED,
 //     K_DEFPREDMAP,
@@ -55,7 +53,6 @@ using namespace Shell;
 //     K_PP,
 //     K_DUMP_CTX,
 //     K_ECHO,
-//     K_invalid_string,
 //     K_PROMPT_OFF,
 //     K_PROMPT_ON,
 //     K_EVALT,
@@ -175,12 +172,6 @@ SimplifyProver::Keyword SimplifyProver::keyword(const string& str)
   }
 
   switch (str.at(0)) {
-  case 'n':
-    if (str == "number") return K_number;
-    break;
-  case 's':
-    if (str == "string") return K_string;
-    break;
   case 'A':
     if (str == "AND") return K_AND;
     if (str == "ASYNC") return K_ASYNC;
@@ -279,9 +270,6 @@ SimplifyProver::Keyword SimplifyProver::keyword(const string& str)
   case ':':
     if (str == ":BUILTIN") return K_BUILTIN;
     if (str == ":TYPE") return K_TYPE;
-    break;
-  case '<':
-    if (str == "<invalid-string>") return K_invalid_string;
     break;
   default:
     break;

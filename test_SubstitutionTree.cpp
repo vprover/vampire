@@ -1,5 +1,5 @@
 /**
- * @file test_SubstitutionTree.cpp.
+ * @file test_SubstitutionTree.cpp
  */
 
 /* Commend line:

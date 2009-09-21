@@ -1,5 +1,5 @@
 /**
- * @file VirtualIterator.hpp
+ * @file Indexing/Index.hpp
  * Defines abstract Index class and some other auxiliary classes.
  */
 

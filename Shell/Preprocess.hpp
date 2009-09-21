@@ -1,5 +1,5 @@
 /**
- * @file Preprocess.hpp
+ * @file Shell/Preprocess.hpp
  * Defines class Preprocess implementing problem preprocessing.
  * @since 05/01/2004 Manchester
  */

@@ -1,6 +1,6 @@
 /**
- * @file OrderingLiteralSelector.hpp
- * Defines class OrderingLiteralSelector.
+ * @file MaximalLiteralSelector.hpp
+ * Defines class MaximalLiteralSelector.
  */
 
 

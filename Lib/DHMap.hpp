@@ -259,7 +259,7 @@ public:
 
   /**
    * Assign pointer to value stored under @b key into @b pval.
-   * If nothing was previously stored under @key, initialize
+   * If nothing was previously stored under @b key, initialize
    * the value with @b initial, and return true. Otherwise,
    * return false.
    */
@@ -289,7 +289,7 @@ public:
 
   /**
    * Assign pointer to value stored under @b key into @b pval.
-   * If nothing was previously stored under @key, return true.
+   * If nothing was previously stored under @b key, return true.
    * Otherwise, return false.
    */
   bool getValuePtr(Key key, Val*& pval)
@@ -316,8 +316,8 @@ public:
   }
 
   /**
-   * Store @b value under @key. Return true if nothing was
-   * previously stored under @key. Otherwise,
+   * Store @b value under @b key. Return true if nothing was
+   * previously stored under @b key. Otherwise,
    * return false.
    */
   bool set(Key key, const Val& val)

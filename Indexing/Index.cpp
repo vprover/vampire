@@ -1,5 +1,5 @@
 /**
- * @file Index.cpp
+ * @file Indexing/Index.cpp
  * Implements class Index.
  *
  */

@@ -1,5 +1,5 @@
 /**
- * @file Profile.cpp (syntactic properties of problems)
+ * @file Rule/Profile.cpp (syntactic properties of problems)
  *
  * @since 15/06/2008 Kemerovo
  */

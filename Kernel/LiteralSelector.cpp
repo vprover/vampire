@@ -1,6 +1,6 @@
 /**
- * @file LiteralSelection.cpp
- * Implements class LiteralSelection for literal selection
+ * @file LiteralSelector.cpp
+ * Implements class LiteralSelector for literal selection
  */
 
 #include "../Lib/Exception.hpp"

@@ -1,6 +1,6 @@
 /**
- * @file TautologyDeletionFSE.cpp
- * Implements class TautologyDeletionFSE.
+ * @file TautologyDeletionISE.cpp
+ * Implements class TautologyDeletionISE.
  */
 
 #include "../Lib/Random.hpp"
