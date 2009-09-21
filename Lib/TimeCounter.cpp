@@ -129,8 +129,32 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   case TC_FORWARD_SUBSUMPTION:
     env.out<<"forward subsumption";
     break;
-  case TC_INDEX_MAINTENANCE:
-    env.out<<"index maintenance";
+  case TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE:
+    env.out<<"simplifying unit clause index maintenance";
+    break;
+  case TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE:
+    env.out<<"forward subsumption index maintenance";
+    break;
+  case TC_BINARY_RESOLUTION_INDEX_MAINTENANCE:
+    env.out<<"binary resolution index maintenance";
+    break;
+  case TC_BACKWARD_SUBSUMPTION_INDEX_MAINTENANCE:
+    env.out<<"backward subsumption index maintenance";
+    break;
+  case TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE:
+    env.out<<"backward superposition index maintenance";
+    break;
+  case TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE:
+    env.out<<"forward superposition index maintenance";
+    break;
+  case TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE:
+    env.out<<"backward demodulation index maintenance";
+    break;
+  case TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE:
+    env.out<<"forward demodulation index maintenance";
+    break;
+  case TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE:
+    env.out<<"splitting component index maintenance";
     break;
   case TC_OTHER:
     env.out<<"other";

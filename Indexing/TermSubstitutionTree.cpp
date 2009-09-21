@@ -45,8 +45,6 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 {
   CALL("TermSubstitutionTree::handleTerm");
 
-  TimeCounter tc(TC_INDEX_MAINTENANCE);
-
   LeafData ld(cls, lit, t);
   if(t.isOrdinaryVar()) {
     if(insert) {

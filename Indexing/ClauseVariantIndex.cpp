@@ -39,8 +39,6 @@ void ClauseVariantIndex::insert(Clause* cl)
 {
   CALL("ClauseVariantIndex::insert");
 
-  TimeCounter tc(TC_INDEX_MAINTENANCE);
-
   unsigned clen=cl->length();
 
   if(cl->length()==0) {

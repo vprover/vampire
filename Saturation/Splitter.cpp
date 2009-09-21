@@ -193,7 +193,11 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 	(*comp)[i]=lits.pop();
       }
 
-      _variantIndex.insert(comp);
+      {
+	TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
+
+	_variantIndex.insert(comp);
+      }
 
       comp->setProp(bdd->getTrue());
       InferenceStore::instance()->recordNonPropInference(comp);
@@ -374,7 +378,11 @@ Clause* Splitter::insertIntoIndex(Clause* cl, bool& newInserted, bool& modified)
 
   } else {
     env.statistics->uniqueComponents++;
-    _variantIndex.insert(cl);
+
+    {
+      TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
+      _variantIndex.insert(cl);
+    }
 
     newInserted=true;
     return cl;

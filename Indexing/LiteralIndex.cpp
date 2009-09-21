@@ -45,6 +45,8 @@ SLQueryResultIterator LiteralIndex::getInstances(Literal* lit,
 
 void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
 {
+  TimeCounter tc(TC_BINARY_RESOLUTION_INDEX_MAINTENANCE);
+
   int selCnt=c->selected();
   for(int i=0; i<selCnt; i++) {
     if(adding) {
@@ -57,6 +59,8 @@ void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
 
 void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
+  TimeCounter tc(TC_BACKWARD_SUBSUMPTION_INDEX_MAINTENANCE);
+
   unsigned clen=c->length();
   for(unsigned i=0; i<clen; i++) {
     if(adding) {
@@ -73,6 +77,8 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
   if(clen<2) {
     return;
   }
+  TimeCounter tc(TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE);
+
   Literal* best=(*c)[0];
   unsigned bestVal=best->weight()-best->getDistinctVars();
   for(unsigned i=1;i<clen;i++) {
@@ -93,14 +99,11 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 void UnitClauseSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
   if(c->length()==1) {
+    TimeCounter tc(TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE);
+
     if(adding) {
-//      cout<<"unit ins: "<<(*c)<<endl;
       _is->insert((*c)[0], c);
-//      if(c->number()==26) {
-//        cout<<_is->toString();
-//      }
     } else {
-//      cout<<"unit del: "<<(*c)<<endl;
       _is->remove((*c)[0], c);
     }
   }

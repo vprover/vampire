@@ -36,8 +36,6 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
 {
   CALL("LiteralSubstitutionTree::handleLiteral");
 
-  TimeCounter tc(TC_INDEX_MAINTENANCE);
-
   Renaming normalizer;
   normalizer.normalizeVariables(lit);
   Literal* normLit=normalizer.apply(lit);
