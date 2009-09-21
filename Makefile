@@ -19,8 +19,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -364,7 +364,8 @@ Lib/TimeCounter.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Environment.hpp
 Lib/TimeCounter.o: Forwards.hpp Config.hpp Lib/Exception.hpp
 Lib/TimeCounter.o: Lib/LastCopyWatcher.hpp Lib/Timer.hpp Shell/Options.hpp
 Lib/TimeCounter.o: Lib/Allocator.hpp Lib/XML.hpp Lib/TimeCounter.hpp
-Lib/Timer.o: Lib/Portability.hpp Debug/Assertion.hpp Lib/Timer.hpp
+Lib/Timer.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Int.hpp
+Lib/Timer.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/Timer.hpp
 Shell/CNF.o: Debug/Tracer.hpp Kernel/Clause.hpp Forwards.hpp Config.hpp
 Shell/CNF.o: Lib/Allocator.hpp Lib/Metaiterators.hpp Lib/List.hpp
 Shell/CNF.o: Debug/Assertion.hpp Lib/Allocator.hpp Lib/VirtualIterator.hpp
@@ -714,7 +715,7 @@ Shell/Skolem.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/TimeCounter.hpp
 Shell/Skolem.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 Shell/Statistics.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Environment.hpp
 Shell/Statistics.o: Forwards.hpp Config.hpp Lib/Exception.hpp
-Shell/Statistics.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
+Shell/Statistics.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp Lib/Timer.hpp
 Shell/Statistics.o: Shell/Statistics.hpp
 Shell/SymCounter.o: Lib/Allocator.hpp Debug/Tracer.hpp Kernel/Term.hpp
 Shell/SymCounter.o: Kernel/Clause.hpp Forwards.hpp Config.hpp
@@ -1125,14 +1126,15 @@ Indexing/ClauseVariantIndex.o: Debug/Tracer.hpp Lib/VirtualIterator.hpp
 Indexing/ClauseVariantIndex.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 Indexing/ClauseVariantIndex.o: Lib/Reflection.hpp Lib/Set.hpp Lib/Hash.hpp
 Indexing/ClauseVariantIndex.o: Lib/TimeCounter.hpp Lib/SmartPtr.hpp
-Indexing/ClauseVariantIndex.o: Kernel/Clause.hpp Lib/Allocator.hpp
-Indexing/ClauseVariantIndex.o: Lib/Reflection.hpp Lib/InverseLookup.hpp
-Indexing/ClauseVariantIndex.o: Lib/DHMap.hpp Kernel/Unit.hpp
-Indexing/ClauseVariantIndex.o: Kernel/MLVariant.hpp Kernel/Term.hpp
-Indexing/ClauseVariantIndex.o: Indexing/LiteralMiniIndex.hpp Lib/DArray.hpp
-Indexing/ClauseVariantIndex.o: Lib/Comparison.hpp Lib/Random.hpp
-Indexing/ClauseVariantIndex.o: Kernel/Matcher.hpp Lib/BacktrackData.hpp
-Indexing/ClauseVariantIndex.o: Lib/DHMap.hpp Lib/Hash.hpp Lib/Stack.hpp
+Indexing/ClauseVariantIndex.o: Lib/TimeCounter.hpp Kernel/Clause.hpp
+Indexing/ClauseVariantIndex.o: Lib/Allocator.hpp Lib/Reflection.hpp
+Indexing/ClauseVariantIndex.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
+Indexing/ClauseVariantIndex.o: Kernel/Unit.hpp Kernel/MLVariant.hpp
+Indexing/ClauseVariantIndex.o: Kernel/Term.hpp Indexing/LiteralMiniIndex.hpp
+Indexing/ClauseVariantIndex.o: Lib/DArray.hpp Lib/Comparison.hpp
+Indexing/ClauseVariantIndex.o: Lib/Random.hpp Kernel/Matcher.hpp
+Indexing/ClauseVariantIndex.o: Lib/BacktrackData.hpp Lib/DHMap.hpp
+Indexing/ClauseVariantIndex.o: Lib/Hash.hpp Lib/Stack.hpp
 Indexing/ClauseVariantIndex.o: Lib/BacktrackData.hpp Lib/Int.hpp
 Indexing/ClauseVariantIndex.o: Lib/Portability.hpp Lib/VirtualIterator.hpp
 Indexing/ClauseVariantIndex.o: Indexing/LiteralSubstitutionTree.hpp
@@ -1245,11 +1247,11 @@ Indexing/LiteralSubstitutionTree.o: Lib/List.hpp Lib/Allocator.hpp
 Indexing/LiteralSubstitutionTree.o: Debug/Tracer.hpp Lib/VirtualIterator.hpp
 Indexing/LiteralSubstitutionTree.o: Lib/Reflection.hpp Lib/Set.hpp
 Indexing/LiteralSubstitutionTree.o: Lib/Hash.hpp Lib/TimeCounter.hpp
-Indexing/LiteralSubstitutionTree.o: Kernel/Signature.hpp Lib/Allocator.hpp
-Indexing/LiteralSubstitutionTree.o: Lib/Stack.hpp Lib/BacktrackData.hpp
-Indexing/LiteralSubstitutionTree.o: Lib/Int.hpp Lib/Comparison.hpp
-Indexing/LiteralSubstitutionTree.o: Lib/Portability.hpp Lib/Map.hpp
-Indexing/LiteralSubstitutionTree.o: Kernel/Term.hpp
+Indexing/LiteralSubstitutionTree.o: Lib/TimeCounter.hpp Kernel/Signature.hpp
+Indexing/LiteralSubstitutionTree.o: Lib/Allocator.hpp Lib/Stack.hpp
+Indexing/LiteralSubstitutionTree.o: Lib/BacktrackData.hpp Lib/Int.hpp
+Indexing/LiteralSubstitutionTree.o: Lib/Comparison.hpp Lib/Portability.hpp
+Indexing/LiteralSubstitutionTree.o: Lib/Map.hpp Kernel/Term.hpp
 Indexing/LiteralSubstitutionTree.o: Indexing/LiteralSubstitutionTree.hpp
 Indexing/LiteralSubstitutionTree.o: Indexing/LiteralIndexingStructure.hpp
 Indexing/LiteralSubstitutionTree.o: Indexing/Index.hpp Lib/Event.hpp
@@ -1388,14 +1390,14 @@ Indexing/TermSubstitutionTree.o: Debug/Assertion.hpp Lib/Metaiterators.hpp
 Indexing/TermSubstitutionTree.o: Lib/List.hpp Lib/Allocator.hpp
 Indexing/TermSubstitutionTree.o: Debug/Tracer.hpp Lib/VirtualIterator.hpp
 Indexing/TermSubstitutionTree.o: Lib/Reflection.hpp Lib/Set.hpp Lib/Hash.hpp
-Indexing/TermSubstitutionTree.o: Lib/TimeCounter.hpp Lib/SmartPtr.hpp
-Indexing/TermSubstitutionTree.o: Lib/Random.hpp Kernel/Signature.hpp
-Indexing/TermSubstitutionTree.o: Lib/Allocator.hpp Lib/Stack.hpp
-Indexing/TermSubstitutionTree.o: Lib/BacktrackData.hpp Lib/Int.hpp
-Indexing/TermSubstitutionTree.o: Lib/Comparison.hpp Lib/Portability.hpp
-Indexing/TermSubstitutionTree.o: Lib/Map.hpp Kernel/Term.hpp
-Indexing/TermSubstitutionTree.o: Kernel/Curryfier.hpp Lib/DHMap.hpp
-Indexing/TermSubstitutionTree.o: Lib/DArray.hpp Lib/Random.hpp
+Indexing/TermSubstitutionTree.o: Lib/TimeCounter.hpp Lib/Random.hpp
+Indexing/TermSubstitutionTree.o: Lib/SmartPtr.hpp Lib/TimeCounter.hpp
+Indexing/TermSubstitutionTree.o: Kernel/Signature.hpp Lib/Allocator.hpp
+Indexing/TermSubstitutionTree.o: Lib/Stack.hpp Lib/BacktrackData.hpp
+Indexing/TermSubstitutionTree.o: Lib/Int.hpp Lib/Comparison.hpp
+Indexing/TermSubstitutionTree.o: Lib/Portability.hpp Lib/Map.hpp
+Indexing/TermSubstitutionTree.o: Kernel/Term.hpp Kernel/Curryfier.hpp
+Indexing/TermSubstitutionTree.o: Lib/DHMap.hpp Lib/DArray.hpp Lib/Random.hpp
 Indexing/TermSubstitutionTree.o: Lib/ArrayMap.hpp Lib/DArray.hpp
 Indexing/TermSubstitutionTree.o: Indexing/TermSharing.hpp Lib/Set.hpp
 Indexing/TermSubstitutionTree.o: Kernel/Term.hpp Lib/Portability.hpp

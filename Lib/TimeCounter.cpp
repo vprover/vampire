@@ -23,6 +23,7 @@ bool TimeCounter::s_measuring = true;
 bool TimeCounter::s_initialized = false;
 int TimeCounter::s_measuredTimes[__TC_ELEMENT_COUNT];
 int TimeCounter::s_measureInitTimes[__TC_ELEMENT_COUNT];
+int TimeCounter::s_measuredCnt = 0;
 
 void TimeCounter::initialize()
 {
@@ -40,11 +41,14 @@ void TimeCounter::initialize()
     s_measuredTimes[i]=0;
     s_measureInitTimes[i]=-1;
   }
+
+  s_measureInitTimes[TC_OTHER]=0;
 }
 
 void TimeCounter::startMeasuring(TimeCounterUnit tcu)
 {
   CALL("TimeCounter::startMeasuring");
+  ASS_NEQ(tcu, TC_OTHER);
 
   if(!s_initialized) {
     initialize();
@@ -59,13 +63,24 @@ void TimeCounter::startMeasuring(TimeCounterUnit tcu)
     return;
   }
 
+  int currTime=env.timer->elapsedMilliseconds();
+
   _tcu=tcu;
-  s_measureInitTimes[_tcu]=env.timer->elapsedMilliseconds();
+  s_measureInitTimes[_tcu]=currTime;
+
+  if(!s_measuredCnt) {
+    ASS_NEQ(s_measureInitTimes[TC_OTHER],-1);
+    s_measuredTimes[TC_OTHER]+=currTime-s_measureInitTimes[TC_OTHER];
+    s_measureInitTimes[TC_OTHER]=-1;
+  }
+
+  s_measuredCnt++;
 }
 
 void TimeCounter::stopMeasuring()
 {
   CALL("TimeCounter::stopMeasuring");
+  ASS_EQ(s_measureInitTimes[TC_OTHER],-1);
 
   if(_tcu==__TC_NONE) {
     //we did not start measuring
@@ -73,10 +88,15 @@ void TimeCounter::stopMeasuring()
   }
   ASS_GE(s_measureInitTimes[_tcu], 0);
 
-  int finishTime=env.timer->elapsedMilliseconds();
-  s_measuredTimes[_tcu] += finishTime-s_measureInitTimes[_tcu];
+  int currTime=env.timer->elapsedMilliseconds();
+  s_measuredTimes[_tcu] += currTime-s_measureInitTimes[_tcu];
 
   s_measureInitTimes[_tcu]=-1;
+
+  s_measuredCnt--;
+  if(!s_measuredCnt) {
+    s_measureInitTimes[TC_OTHER]=currTime;
+  }
 }
 
 void TimeCounter::printReport()
@@ -112,6 +132,9 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   case TC_INDEX_MAINTENANCE:
     env.out<<"index maintenance";
     break;
+  case TC_OTHER:
+    env.out<<"other";
+    break;
   case TC_PARSING:
     env.out<<"parsing";
     break;
@@ -129,13 +152,11 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   }
   env.out<<": ";
 
-  if(s_measureInitTimes[tcu]==-1) {
-    env.out<<Timer::msToSecondsString(s_measuredTimes[tcu])<<endl;
-  } else {
-    int time=s_measuredTimes[tcu];
-    time += env.timer->elapsedMilliseconds()+s_measureInitTimes[tcu];
-    env.out<<Timer::msToSecondsString(time)<<" and running"<<endl;
+  int time=s_measuredTimes[tcu];
+  if(s_measureInitTimes[tcu]!=-1) {
+    time += env.timer->elapsedMilliseconds()-s_measureInitTimes[tcu];
   }
+  env.out<<Timer::msToSecondsString(time)<<endl;
 }
 
 };

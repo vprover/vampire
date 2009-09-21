@@ -25,6 +25,8 @@ using namespace Kernel;
 
 ClauseVariantIndex::~ClauseVariantIndex()
 {
+  CALL("ClauseVariantIndex::~ClauseVariantIndex");
+
   unsigned streeArrSz=_strees.size();
   for(unsigned i=0;i<streeArrSz;i++) {
     if(_strees[i]!=0) {
@@ -35,6 +37,8 @@ ClauseVariantIndex::~ClauseVariantIndex()
 
 void ClauseVariantIndex::insert(Clause* cl)
 {
+  CALL("ClauseVariantIndex::insert");
+
   TimeCounter tc(TC_INDEX_MAINTENANCE);
 
   unsigned clen=cl->length();
@@ -140,6 +144,8 @@ private:
 
 ClauseIterator ClauseVariantIndex::retrieveVariants(Literal** lits, unsigned length)
 {
+  CALL("ClauseVariantIndex::retrieveVariants");
+
   if(length==0) {
     return pvi( ClauseList::Iterator(_emptyClauses) );
   }

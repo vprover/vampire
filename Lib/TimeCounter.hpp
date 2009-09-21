@@ -21,8 +21,9 @@ enum TimeCounterUnit
   TC_BACKWARD_DEMODULATION,
   TC_RESOLUTION,
   TC_SUPERPOSITION,
+  TC_OTHER,
   __TC_ELEMENT_COUNT,
-  __TC_NONE = __TC_ELEMENT_COUNT
+  __TC_NONE
 };
 
 class TimeCounter
@@ -75,6 +76,8 @@ private:
    * block in the unit.
    */
   static int s_measureInitTimes[];
+
+  static int s_measuredCnt;
 };
 
 };
