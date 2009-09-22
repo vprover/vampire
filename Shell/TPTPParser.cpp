@@ -1018,35 +1018,23 @@ void TPTPParser::vampire()
 			    currentToken1());          
     }
     consumeToken(TT_COMMA);
-    bool left;
+    unsigned color;
     string lr = name();
-    if (lr == "left") {
-      left = true;
-    }
-    else if (lr == "right") {
-      left = false;
-    }
+    if (lr == "left")
+      color=1;
+    else if (lr == "right")
+      color=2;
     else {
       throw ParserException("either 'left' or 'right' expected",
 			    currentToken1());          
     }
     if (pred) {
       Signature::Symbol* p = env.signature->getPredicate(env.signature->addPredicate(symb,arity));
-      if (left) {
-	p->markLeft();
-      }
-      else {
-	p->markRight();
-      }
+      p->addColor(color);
     }
     else {
       Signature::Symbol* f = env.signature->getFunction(env.signature->addFunction(symb,arity));
-      if (left) {
-	f->markLeft();
-      }
-      else {
-	f->markRight();
-      }
+      f->addColor(color);
     }
   }
   else {

@@ -31,7 +31,6 @@ public:
   enum Keyword {
     /** means no keyword */
     K_NONE,
-    K_ID,
     K_DEFPRED,
     K_DEFPREDMAP,
     K_DEFUN,
@@ -65,7 +64,6 @@ public:
     K_NOPATS,
     K_MPAT,
     K_PROMOTE,
-    K_EOS,
     K_AND,
     K_OR,
     K_IFF,
@@ -222,6 +220,7 @@ private:
   int isVar(const string& varName);
   void unbindVar(const string& var);
   void formulaError(const Expression* expr);
+  void formulaError(const Expression* expr,const char* explanation);
   void termError(const Expression* expr);
   void error(const string& errMsg);
   void parseFormula();

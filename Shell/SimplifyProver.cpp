@@ -29,7 +29,6 @@ using namespace Shell;
 // #define CALL(x) (cout << x << '\n')
 
 // This are the keywords not handled yet:
-//     K_ID,
 //     K_DEFPRED,
 //     K_DEFPREDMAP,
 //     K_DEFUN,
@@ -47,8 +46,6 @@ using namespace Shell;
 //     K_ORDER,
 //     K_MPAT,
 //     K_PROMOTE,
-//     K_EOS,
-//     K_ITE,
 //     K_EXPLIES,
 //     K_PP,
 //     K_DUMP_CTX,
@@ -63,7 +60,6 @@ using namespace Shell;
 //     K_MODEL,
 //     K_STATS,
 //     K_SLEEP
-
 
 /**
  * Constructor for provers.
@@ -204,7 +200,6 @@ SimplifyProver::Keyword SimplifyProver::keyword(const string& str)
     break;
   case 'E':
     if (str == "EXISTS") return K_EXISTS;
-    if (str == "EOS") return K_EOS;
     if (str == "EXPLIES") return K_EXPLIES;
     if (str == "EQ") return K_EQ;
     if (str == "ECHO") return K_ECHO;
@@ -218,7 +213,6 @@ SimplifyProver::Keyword SimplifyProver::keyword(const string& str)
     if (str == "FALSE") return K_FALSE;
     break;
   case 'I':
-    if (str == "ID") return K_ID;
     if (str == "IMPLIES") return K_IMPLIES;
     if (str == "IFF") return K_IFF;
     if (str == "ITE") return K_ITE;
@@ -391,6 +385,16 @@ void SimplifyProver::formulaError(const Expression* expr)
 } // formulaError
 
 /**
+ * Report a formula parsing error and raise an exception.
+ * @since 29/08/2009 Redmond
+ */
+void SimplifyProver::formulaError(const Expression* expr,const char* explanation)
+{
+  CALL("SimplifyProver::formulaError");
+  error((string)"Formula " + expr->toString() + " cannot be parsed" + ": " + explanation);
+} // formulaError
+
+/**
  * Report a term parsing error and raise an exception.
  * @since 31/08/2009 Redmond
  */
@@ -428,7 +432,7 @@ void SimplifyProver::parseFormula()
  retry:
   if (expr->tag == LispParser::LIST) {
     List* lst = expr->list;
-    if (lst->length() == 0) formulaError(expr);
+    if (lst->length() == 0) formulaError(expr,"empty list found");
     string head = lst->head()->str;
 
     switch (keyword(head)) {
@@ -471,7 +475,7 @@ void SimplifyProver::parseFormula()
     case K_LBLNEG:
     case K_LBL:
     case K_LBLPOS:
-      if (lst->length() != 3) formulaError(expr);
+      if (lst->length() != 3) formulaError(expr,"LBL expression has a wrong length");
       expr = lst->nth(2);
       goto retry;
     default:
@@ -492,7 +496,7 @@ void SimplifyProver::parseFormula()
     parseTrueFalse(false,context);
     return;
   default:
-    formulaError(expr);
+    formulaError(expr,"unknown token");
   }
 } // parseFormula
 
@@ -508,12 +512,12 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
   Stack<int> booleanVars;
   lst = lst->tail();
   int len = lst->length();
-  if (len < 2) formulaError(expr);
+  if (len < 2) formulaError(expr,"quantified formula too short");
   // parsing variable sequence
-  if (lst->head()->tag != LispParser::LIST) formulaError(expr);
+  if (lst->head()->tag != LispParser::LIST) formulaError(expr,"variable sequence should be a a list");
   List* vars = lst->head()->list;
   for (List* vs = vars;vs;vs = vs->tail()) {
-    if (vs->head()->tag == LispParser::LIST) formulaError(expr);
+    if (vs->head()->tag == LispParser::LIST) formulaError(expr,"variable cannot be a list");
   }
   IntList* qvars = 0;
   IntList** qvarsTailPtr = &qvars;
@@ -521,7 +525,7 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
   while (vars) {
     // bind a new variable and add it to qvars
     string vname = vars->head()->str;
-    if (keyword(vname) != K_NONE) formulaError(expr);
+    if (keyword(vname) != K_NONE) formulaError(expr,"keyword found where variable name expected");
     int varNumber = bindVar(vname);
     IntList* lvar = new IntList(varNumber);
     *qvarsTailPtr = lvar;
@@ -533,9 +537,9 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
     }
     // the type of the variable id declared
     vars = vars->tail();
-    if (! vars) formulaError(expr);
+    if (! vars) formulaError(expr,"wrong type declaration of a variable");
     Type tp;
-    if (! _types.find(vars->head()->str,tp)) formulaError(expr);
+    if (! _types.find(vars->head()->str,tp)) formulaError(expr,"type of variable not previously declared");
     if (tp == BIT_BOOL) {
       booleanVars.push(varNumber);
     }
@@ -557,7 +561,7 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
   lst = lst->tail();
   const Expression* ex = lst->head();
   while (lst->tail()) {
-    if (ex->tag != LispParser::LIST) formulaError(expr);
+    if (ex->tag != LispParser::LIST) formulaError(expr,"list (such as pattern declaration) expected");
     switch (keyword(ex->list->head()->str)) {
     case K_QID: // ignore QID command
     case K_PATS: // ignore PATS command
@@ -568,7 +572,7 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
       ex = lst->head();
       break;
     default:
-      formulaError(expr);
+      formulaError(expr,"pattern or weight declaration expected");
     }
   }
   _isaved.push((int)c);
@@ -588,7 +592,7 @@ void SimplifyProver::parseBinaryFormula(const List* lst,const Expression* expr,C
 {
   CALL("SimplifyProver::parseBinaryFormula");
 
-  if (lst->length()!=2) formulaError(expr);
+  if (lst->length()!=2) formulaError(expr,"binary connective (such as <=>) must have two arguments");
   _isaved.push(c);
   _isaved.push(context);
   _commands.push(BUILD_BINARY_FORMULA);
@@ -1613,7 +1617,7 @@ void SimplifyProver::buildLetFormula()
   // add binding to the let-stack
   Lib::List<Formula*>* binding = 0;
   _formulaLet.find(symb,binding);
-  binding = new Lib::List<Formula*>(px);
+  binding = new Lib::List<Formula*>(px,binding);
   _formulaLet.replaceOrInsert(symb,binding);
   _isaved.push(0); // assumption
   processFormula(new BinaryFormula(IFF,px,f),CN_TOP_LEVEL);
@@ -1629,33 +1633,11 @@ void SimplifyProver::buildLetTerm()
 
   TermList s = _tsaved.pop();
   string symb = _ssaved.pop();
-  Stack<TermList> args;
 
-  if (s.isVar()) {
-    unsigned v = s.var();
-    args.push(TermList(v,false));
-  }
-  else {
-    MultiCounter mc;
-    TermVarIterator tit(s.term()->args());
-    while (tit.hasNext()) {
-      unsigned v = tit.next();
-      if (mc.get(v)) continue;
-      mc.inc(v);
-      args.push(TermList(v,false));
-    }
-  }
-
-  int arity = args.length();
-  unsigned sf = env.signature->addSkolemFunction(arity);
-  // term f(x)
-  TermList fx(Term::create(sf,arity,args.begin()));
   // add binding to the let-stack
   Lib::List<TermList>* binding = 0;
   _termLet.find(symb,binding);
-  binding = new Lib::List<TermList>(fx);
+  binding = new Lib::List<TermList>(s,binding);
   _termLet.replaceOrInsert(symb,binding);
-  _isaved.push(0); // assumption
-  processFormula(new AtomicFormula(Literal::createEquality(true,fx,s)),CN_TOP_LEVEL);
 } // SimplifyProver::buildLetTerm
 

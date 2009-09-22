@@ -34,19 +34,15 @@ class Signature
     /** arity */
     unsigned _arity : 30;
     /** used in coloured proofs and interpolation */
-    unsigned _left : 1;
-    /** used in coloured proofs and interpolation */
-    unsigned _right : 1;
+    unsigned _color : 2;
   public:
     /** standard constructor */
     Symbol(const string& nm,unsigned arity)
       : _name(nm),
 	_arity(arity),
-	_left(0u),
-	_right(0u)
+	_color(0u)
     {}
-    void markLeft();
-    void markRight();
+    void addColor(unsigned color);
     /** Return the arity of the symbol */
     inline unsigned arity() { return _arity; }
     /** Return the name of the symbol */

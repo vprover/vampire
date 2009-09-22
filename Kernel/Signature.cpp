@@ -158,20 +158,15 @@ string Signature::key(const string& name,int arity)
   return name + '_' + Int::toString(arity);
 } // Signature::key
 
-/** Mark the symbol as left for interpolation and symbol elimination purposes */
-void Signature::Symbol::markLeft()
+/** Add a color to the symbol for interpolation and symbol elimination purposes */
+void Signature::Symbol::addColor(unsigned color)
 {
-  if (_right) {
-    throw UserErrorException("A symbol cannot be both left and right");
-  }
-  _left = 1;
-} // markLeft
+  ASS_L(color,3);
+  ASS_G(color,0);
 
-/** Mark the symbol as right for interpolation and symbol elimination purposes */
-void Signature::Symbol::markRight()
-{
-  if (_left) {
-    throw UserErrorException("A symbol cannot be both left and right");
+  if (_color || color != _color) {
+    throw UserErrorException("A symbol cannot have two colors");
   }
-  _right = 1;
-} // markRight
+  _color = color;
+} // addColor
+

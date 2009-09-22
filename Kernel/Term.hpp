@@ -616,7 +616,8 @@ protected:
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
-  unsigned _arity;
+  unsigned _arity : 30;
+  unsigned _color : 2;
   /** Weight of the symbol */
   unsigned _weight;
   /** number of occurrences of variables */

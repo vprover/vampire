@@ -927,6 +927,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2)
 Term::Term(const Term& t) throw()
   : _functor(t._functor),
     _arity(t._arity),
+    _color(0),
     _weight(0),
     _vars(0)
 {
@@ -952,6 +953,7 @@ Literal::Literal(const Literal& l) throw()
 Term::Term() throw()
   :_functor(0),
    _arity(0),
+   _color(0),
    _weight(0),
    _vars(0)
 {

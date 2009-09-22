@@ -92,7 +92,7 @@ public:
   /** return the tail of the list */
   inline List* tail() const
   {
-    ASS ( this != 0 );
+    ASS_NEQ(this,0);
 
     return _tail;
   } // List::tail
@@ -100,7 +100,7 @@ public:
   /** return a reference to the tail of the list */
   inline List*& tailReference ()
   {
-    ASS ( this != 0 );
+    ASS_NEQ(this,0);
 
     return _tail;
   } // List::tailReference
@@ -108,7 +108,7 @@ public:
   /** return a reference to the tail of the list */
   inline List** tailPtr ()
   {
-    ASS ( this != 0 );
+    ASS_NEQ(this,0);
 
     return &_tail;
   } // List::tailReference
@@ -116,21 +116,21 @@ public:
   /** return the head of the list */
   inline const C head () const
   {
-    ASS (this != 0);
+    ASS_NEQ(this,0);
 
     return _head;
   } // List::head
 
   inline C head ()
   {
-    ASS (this != 0);
+    ASS_NEQ(this,0);
 
     return _head;
   } // List::head
 
   inline C* headPtr ()
   {
-    ASS (this != 0);
+    ASS_NEQ(this,0);
     return &(this->_head);
   }
 
@@ -144,7 +144,7 @@ public:
   /** Set the head of the list to hd */
   inline void setHead (C hd)
   {
-    ASS (this != 0);
+    ASS_NEQ(this,0);
 
     _head = hd;
   } // List::setHead
@@ -153,7 +153,7 @@ public:
   /** Set the tail of the list to tl */
   inline void setTail(List* tl)
   {
-    ASS(this != 0);
+    ASS_NEQ(this,0);
 
     _tail = tl;
   } // list::setTail
@@ -163,18 +163,13 @@ public:
   {
     CALL("List::destroy");
 
-    if (isEmpty ()) {
-      return;
-    }
-
+    if (isEmpty()) return;
     List* current = this;
 
     for (;;) {
       List* next = current->tail();
       delete current;
-      if (next->isEmpty ()) {
-        return;
-      }
+      if (next->isEmpty()) return;
       current = next;
     }
   } // List::destroy
@@ -188,19 +183,14 @@ public:
   {
     CALL("List::destroyWithDeletion");
 
-    if (isEmpty ()) {
-      return;
-    }
-
+    if (isEmpty()) return;
     List* current = this;
 
     for (;;) {
       List* next = current->tail();
       delete current->head();
       delete current;
-      if (next->isEmpty ()) {
-        return;
-      }
+      if (next->isEmpty()) return;
       current = next;
     }
   } // List::destroyWithDeletion
@@ -208,9 +198,7 @@ public:
   /** create a shallow copy of the list */
   List* copy () const
   {
-    if (isEmpty()) {
-      return empty();
-    }
+    if (isEmpty()) return empty();
 
     List* result = new List;
     result->_head = _head;
@@ -232,9 +220,7 @@ public:
   /** appends snd to a copy of this list */
   List* append (List* snd)
   {
-    if (isEmpty()) {
-      return snd;
-    }
+    if (isEmpty()) return snd;
 
     List* result = new List;
     result->setHead(head());
@@ -281,12 +267,10 @@ public:
    */
   bool hasLength(int length) const
   {
-    ASS(length >= 0);
+    ASS_GE(length,0);
 
     for (const List* lst = this;lst;lst = lst->tail()) {
-      if (length == 0) {
-	return false;
-      }
+      if (length == 0) return false;
       length--;
     }
     return length == 0;
@@ -296,7 +280,7 @@ public:
   inline static C pop(List* &lst)
   {
     CALL("List::pop");
-    ASS(lst != 0);
+    ASS_NEQ(lst,0);
 
     List* tail = lst->tail();
     C result = lst->head();
@@ -309,14 +293,9 @@ public:
   /** destructive list concatenation */
   static List* concat(List* first,List* second)
   {
-    if (first == 0) {
-      return second;
-    }
-
+    if (first == 0) return second;
     // an optimization, not really necessary
-    if (second == 0) {
-      return first;
-    }
+    if (second == 0) return first;
 
     List* current = first;
     for (;;) {
@@ -332,9 +311,7 @@ public:
   /** Destructive list reversal */
   List* reverse()
   {
-    if (isEmpty()) {
-      return this;
-    }
+    if (isEmpty()) return this;
 
     List* result = empty();
     List* lst = this;
@@ -365,9 +342,7 @@ public:
   bool member (C elem)
   {
     for (List* lst = this; lst->isNonEmpty(); lst = lst->tail()) {
-      if (lst->head() == elem) {
-        return true;
-      }
+      if (lst->head() == elem) return true;
     }
 
     return false;
@@ -379,19 +354,14 @@ public:
    */
   List* remove (C elem)
   {
-    if (isEmpty()) {
-      return this;
-    }
+    if (isEmpty()) return this;
 
     if (head() == elem) {
       List* result = tail();
       delete this;
       return result;
     }
-
-    if (tail()->isEmpty()) {
-      return this;
-    }
+    if (tail()->isEmpty()) return this;
 
     List* current = this;
     List* next = tail();
@@ -404,9 +374,7 @@ public:
       }
       current = next;
       next = next->tail();
-      if (next->isEmpty()) {
-        return this;
-      }
+      if (next->isEmpty()) return this;
     }
   } // List::remove
 
@@ -414,12 +382,12 @@ public:
   C nth(int n) const
   {
     // nth element, counting from 0
-    ASS(n >= 0);
+    ASS_GE(n,0);
 
     const List* l = this;
 
     while (n != 0) {
-      ASS(l->isNonEmpty());
+      ASS_NEQ(l,0);
 
       l = l->tail();
       n--;
@@ -464,9 +432,7 @@ public:
   /** Add  elem as the last element and return the resulting list */
   List* addLast (C elem)
   {
-    if (! this) {
-      return new List (elem);
-    }
+    if (! this) return new List (elem);
 
     // nonempty, trying to find the end
     List* current;
@@ -483,7 +449,7 @@ public:
   List* split (int n, List*& rest)
   {
     if (! this) {
-      ASS(n == 0);
+      ASS_EQ(n,0);
       rest = empty();
       return empty();
     }
@@ -495,11 +461,11 @@ public:
 
     List* nth = this;
     while (--n > 0) {
-      ASS(nth);
+      ASS_NEQ(nth,0);
       nth = nth->_tail;
     }
 
-    ASS(nth);
+    ASS_NEQ(nth,0);
     rest = nth->_tail;
     nth->_tail = empty();
     return this;
@@ -524,7 +490,7 @@ public:
     /** return the next element */
     inline C next()
     {
-      ASS(_lst->isNonEmpty());
+      ASS_NEQ(_lst,0);
 
       C result = _lst->head();
       _lst = _lst->tail();
@@ -561,7 +527,7 @@ public:
     /** return the next element */
     inline C& next()
     {
-      ASS(_lst->isNonEmpty());
+      ASS_NEQ(_lst,0);
 
       C& result = _lst->_head;
       _lst = _lst->tail();
@@ -623,7 +589,7 @@ public:
       if (_cur) { // there was an element previously returned by next()
 	_prev = _cur;
 	_cur = _cur->tail();
-	ASS( _cur );
+	ASS_NEQ(_cur,0);
       }
       else { // result must be the first element of the list
 	_cur = _lst;
@@ -644,9 +610,9 @@ public:
     void del()
     {
       // we can only delete the element returned by next
-      ASS( _cur );
+      ASS_NEQ(_cur,0);
       // check that two delete requests in row did not occur
-      ASS(_cur != _prev);
+      ASS_NEQ(_cur,_prev);
 
       if (_cur == _lst) { // the first element must be deleted
 	_lst = _lst->tail();
@@ -666,7 +632,7 @@ public:
      */
     inline void replace(C elem)
     {
-      ASS(_cur);
+      ASS_NEQ(_cur,0);
       _cur->setHead(elem);
     } // DelIterator::replace
 
@@ -681,9 +647,7 @@ public:
     void insert (List* lst)
     {
       ASS_NEQ(_cur, _prev);
-      if (! lst) {
-	return;
-      }
+      if (! lst) return;
 
       List* last = lst;
       // lst is non-empty, find it's last element
@@ -691,12 +655,9 @@ public:
 	last = last->tail();
       }
 
-      if (_prev) {
+      if (_prev)
 	_prev->setTail(lst);
-      }
-      else {
-	_lst = lst;
-      }
+      else _lst = lst;
 
       last->setTail(_cur);
       _prev = last;
@@ -714,12 +675,9 @@ public:
     {
       ASS_NEQ(_cur, _prev);
       List* lst = new List(elem,_cur);
-      if (_prev) {
+      if (_prev)
 	_prev->setTail(lst);
-      }
-      else {
-	_lst = lst;
-      }
+      else _lst = lst;
 
       lst->setTail(_cur);
       _prev = lst;
@@ -754,8 +712,7 @@ public:
     /** return the next element */
     inline C next()
     {
-      ASS(_lst->isNonEmpty());
-
+      ASS_NEQ(_lst,0);
       return List::pop(_lst);
     }
 
@@ -786,18 +743,16 @@ public:
       : _last(0),
 	_initial(lst)
     {
-      ASS(_initial == 0);
+      ASS_EQ(_initial,0);
     }
     /** add element at the end of the original list */
     inline void push(C elem)
     {
       List* newLast = new List(elem);
-      if (_last) {
+      if (_last) 
 	_last->setTail(newLast);
-      }
-      else {
-	_initial = newLast;
-      }
+      else _initial = newLast;
+
       _last = newLast;
     } // FIFO::push
 
@@ -849,9 +804,7 @@ std::ostream& operator<< (ostream& out, const List<T>& lstr )
   while(lst) {
     out<<lst->head();
     lst=lst->tail();
-    if(lst) {
-      out<<",\n";
-    }
+    if (lst) out << ",\n";
   }
 
   return out<<']';
@@ -866,9 +819,7 @@ std::ostream& operator<< (ostream& out, const List<T*>& lstr )
   while(lst) {
     out<<(*lst->head());
     lst=lst->tail();
-    if(lst) {
-      out<<",\n";
-    }
+    if (lst) out << ",\n";
   }
 
   return out<<']';
