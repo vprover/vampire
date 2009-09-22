@@ -171,6 +171,9 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   case TC_SUPERPOSITION:
     env.out<<"superposition";
     break;
+  case TC_TERM_SHARING:
+    env.out<<"term sharing";
+    break;
   default:
     ASSERTION_VIOLATION;
   }

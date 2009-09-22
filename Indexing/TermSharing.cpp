@@ -53,6 +53,8 @@ Term* TermSharing::insert(Term* t)
   CALL("TermSharing::insert(Term*)");
   ASS(! t->isLiteral());
 
+  TimeCounter tc(TC_TERM_SHARING);
+
   // normalise commutative terms
   if (t->commutative()) {
     ASS(t->arity() == 2);
@@ -106,6 +108,8 @@ Literal* TermSharing::insert(Literal* t)
   CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
 
+  TimeCounter tc(TC_TERM_SHARING);
+
   if (t->commutative()) {
     ASS(t->arity() == 2);
 
@@ -155,6 +159,8 @@ Literal* TermSharing::insert(Literal* t)
 Term* TermSharing::insertRecurrently(Term* t)
 {
   CALL("TermSharing::insert");
+
+  TimeCounter tc(TC_TERM_SHARING);
 
   TermList tRef;
   tRef.setTerm(t);
