@@ -168,6 +168,9 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   case TC_RESOLUTION:
     env.out<<"resolution";
     break;
+  case TC_SAT_SOLVER:
+    env.out<<"SAT solver";
+    break;
   case TC_SUPERPOSITION:
     env.out<<"superposition";
     break;

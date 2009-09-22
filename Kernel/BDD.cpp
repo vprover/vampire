@@ -487,7 +487,7 @@ void BDDConjunction::addNode(BDDNode* n)
     return;
   }
 
-  TimeCounter tc(TC_BDD);
+  TimeCounter tc(TC_SAT_SOLVER);
 
   if(n->_var > _maxVar) {
     _maxVar=n->_var;
