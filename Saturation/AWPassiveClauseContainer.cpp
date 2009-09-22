@@ -339,6 +339,11 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 
   while(toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
+
+    if(removed->store()!=Clause::REACTIVATED) {
+      env.statistics->discardedNonRedundantClauses++;
+    }
+
     remove(removed);
   }
 

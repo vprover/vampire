@@ -52,6 +52,7 @@ Statistics::Statistics()
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
+    discardedNonRedundantClauses(0),
     finalPassiveClauses(0),
     finalActiveClauses(0),
     splittedClauses(0),
@@ -78,6 +79,7 @@ void Statistics::print()
   COND_OUT("Input clauses", inputClauses);
   COND_OUT("Input formulas", inputFormulas);
   COND_OUT("Initial clauses", initialClauses);
+  COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
   SEPARATOR;
 
   COND_OUT("Pure predicates", purePredicates);

@@ -171,6 +171,11 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   while(toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
     ASS(removed->store()==Clause::ACTIVE || removed->store()==Clause::REACTIVATED);
+
+    if(removed->store()!=Clause::REACTIVATED) {
+      env.statistics->discardedNonRedundantClauses++;
+    }
+
     remove(removed);
     ASS(removed->store()!=Clause::ACTIVE && removed->store()!=Clause::REACTIVATED);
   }

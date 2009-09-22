@@ -204,6 +204,7 @@ Clause* Superposition::performSuperposition(
       }
     }
     if(wlb > weightLimit) {
+      env.statistics->discardedNonRedundantClauses++;
       return 0;
     }
   }
@@ -269,6 +270,7 @@ Clause* Superposition::performSuperposition(
       if(shouldCheckWeight) {
 	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
+	  env.statistics->discardedNonRedundantClauses++;
 	  goto construction_fail;
 	}
       }
@@ -285,6 +287,7 @@ Clause* Superposition::performSuperposition(
       if(shouldCheckWeight) {
 	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
+	  env.statistics->discardedNonRedundantClauses++;
 	  goto construction_fail;
 	}
       }
@@ -293,6 +296,7 @@ Clause* Superposition::performSuperposition(
   }
 
   if(shouldCheckWeight && weight>weightLimit) {
+    env.statistics->discardedNonRedundantClauses++;
   construction_fail:
     res->destroy();
     return 0;

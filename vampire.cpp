@@ -156,7 +156,12 @@ void outputResult()
     env.out << "Memory limit exceeded!\n";
     break;
   case Statistics::UNKNOWN:
-    env.out << "Refutation not found with incomplete strategy!\n";
+    if(env.options->complete()) {
+      ASS_G(env.statistics->discardedNonRedundantClauses, 0);
+      env.out << "Refutation not found, some non-redundant clauses were discarded!\n";
+    } else {
+      env.out << "Refutation not found with incomplete strategy!\n";
+    }
     break;
   default:
     env.out << "Refutation not found!\n";

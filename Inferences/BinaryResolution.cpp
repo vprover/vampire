@@ -105,6 +105,7 @@ struct BinaryResolution::ResultFn
         }
       }
       if(wlb > weightLimit) {
+	env.statistics->discardedNonRedundantClauses++;
         return 0;
       }
     }

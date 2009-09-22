@@ -601,6 +601,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   }
 
   if(!getLimits()->fulfillsLimits(cl)) {
+    env.statistics->discardedNonRedundantClauses++;
     return false;
   }
 
