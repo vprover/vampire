@@ -36,7 +36,7 @@ using namespace Lib;
  *   SaturationAlgorithm loop
  * 	- should be done by the SaturationAlgorithm object
  * - Register Clause's inference in the InferenceStore by
- *   @code InferenceStore::instance()->recordNonPropInference(genCl); @endcode
+ *   @code InferenceStore::instance()->recordNonPropInference(clause); @endcode
  * 	- should be done by the SaturationAlgorithm object
  */
 class Clause

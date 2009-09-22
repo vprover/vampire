@@ -184,10 +184,7 @@ public:
     TAUTOLOGY_INTRODUCTION
   }; // class Inference::Rule
 
-  explicit Inference(Rule r)
-    : _rule(r)
-  {
-  }
+  explicit Inference(Rule r);
 
   /**
    * Destroy the Inference object and decrease reference

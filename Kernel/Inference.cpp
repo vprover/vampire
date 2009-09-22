@@ -11,6 +11,16 @@
 
 using namespace Kernel;
 
+Inference::Inference(Rule r)
+  : _rule(r)
+{
+  switch(r) {
+  //TODO: move env.statistics object updates here.
+  default: ;
+  }
+}
+
+
 /**
  * Destroy an inference with no premises.
  * @since 04/01/2008 Torrevieja
