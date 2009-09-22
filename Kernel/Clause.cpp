@@ -194,7 +194,7 @@ string Clause::toTPTPString() const
 
   string result = nonPropToString();
 
-  if(prop()) {
+  if(prop() && !BDD::instance()->isFalse(prop())) {
     result += " | " + BDD::instance()->toTPTPString(prop());
   }
 
