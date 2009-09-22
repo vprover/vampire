@@ -26,6 +26,18 @@ using namespace Lib;
 /**
  * Class to represent clauses.
  * @since 10/05/2007 Manchester
+ *
+ * When creating a clause object, several things usually need to be done
+ * besides calling a constructor:
+ * - Fill the Clause with Literals
+ * - Increase a relevant counter in the env.statistics object
+ * - Set Clause's age if it is not supposed to be zero
+ * - Assign Clause's non-propositional part if Clause appears in the
+ *   SaturationAlgorithm loop
+ * 	- should be done by the SaturationAlgorithm object
+ * - Register Clause's inference in the InferenceStore by
+ *   @code InferenceStore::instance()->recordNonPropInference(genCl); @endcode
+ * 	- should be done by the SaturationAlgorithm object
  */
 class Clause
   : public Unit

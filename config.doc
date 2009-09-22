@@ -22,6 +22,7 @@ WARNINGS         	= YES
 INPUT			= .
 FILE_PATTERNS		= *.cpp *.hpp
 RECURSIVE		= YES
+EXCLUDE_SYMLINKS = YES
 
 #
 # HTML-related options
