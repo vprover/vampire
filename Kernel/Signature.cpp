@@ -163,6 +163,7 @@ void Signature::Symbol::addColor(unsigned color)
 {
   ASS_L(color,3);
   ASS_G(color,0);
+  ASS(env.colorUsed);
 
   if (_color || color != _color) {
     throw UserErrorException("A symbol cannot have two colors");

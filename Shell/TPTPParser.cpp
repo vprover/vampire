@@ -29,8 +29,7 @@
 
 using namespace Lib;
 using namespace Kernel;
-
-namespace Shell {
+using namespace Shell;
 
 /**
  * Class that allows to create a list initially by pushing elements
@@ -1028,6 +1027,7 @@ void TPTPParser::vampire()
       throw ParserException("either 'left' or 'right' expected",
 			    currentToken1());          
     }
+    env.colorUsed = true;
     if (pred) {
       Signature::Symbol* p = env.signature->getPredicate(env.signature->addPredicate(symb,arity));
       p->addColor(color);
@@ -1045,4 +1045,3 @@ void TPTPParser::vampire()
   consumeToken(TT_DOT);
 } // TPTPParser::vampire
 
-}

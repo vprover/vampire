@@ -133,6 +133,12 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
   if(env.options->showPassive()) {
     cout<<"Passive: "<<c->toTPTPString()<<endl;
   }
+  if(env.options->showNewPropositional() && c->isPropositional()) {
+    VirtualIterator<string> clStrings=c->toSimpleClauseStrings();
+    while(clStrings.hasNext()) {
+      cout<<"New propositional: "<<clStrings.next()<<endl;
+    }
+  }
 }
 
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
@@ -195,13 +201,6 @@ void SaturationAlgorithm::onNewClause(Clause* c)
 
   if(env.options->showNew()) {
     cout<<"New: "<<c->toTPTPString()<<endl;
-  }
-
-  if(env.options->showNewPropositional() && c->isPropositional()) {
-    VirtualIterator<string> clStrings=c->toSimpleClauseStrings();
-    while(clStrings.hasNext()) {
-      cout<<"New propositional: "<<clStrings.next()<<endl;
-    }
   }
 }
 

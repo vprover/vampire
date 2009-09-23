@@ -1384,7 +1384,15 @@ Indexing/TermIndex.o: Indexing/TermIndexingStructure.hpp Indexing/Index.hpp
 Indexing/TermIndex.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
 Indexing/TermIndex.o: Saturation/ClauseContainer.hpp Saturation/Limits.hpp
 Indexing/TermIndex.o: Indexing/ResultSubstitution.hpp Indexing/TermIndex.hpp
-Indexing/TermSharing.o: Kernel/Term.hpp Indexing/TermSharing.hpp Lib/Set.hpp
+Indexing/TermSharing.o: Lib/Environment.hpp Forwards.hpp Config.hpp
+Indexing/TermSharing.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+Indexing/TermSharing.o: Debug/Assertion.hpp Kernel/Signature.hpp
+Indexing/TermSharing.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Stack.hpp
+Indexing/TermSharing.o: Lib/Allocator.hpp Lib/BacktrackData.hpp Lib/List.hpp
+Indexing/TermSharing.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
+Indexing/TermSharing.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
+Indexing/TermSharing.o: Lib/Map.hpp Lib/Hash.hpp Kernel/Term.hpp
+Indexing/TermSharing.o: Indexing/TermSharing.hpp Lib/Set.hpp
 Indexing/TermSubstitutionTree.o: Lib/Environment.hpp Forwards.hpp Config.hpp
 Indexing/TermSubstitutionTree.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 Indexing/TermSubstitutionTree.o: Debug/Assertion.hpp Lib/Metaiterators.hpp

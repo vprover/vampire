@@ -617,6 +617,7 @@ protected:
   unsigned _functor;
   /** Arity of the symbol */
   unsigned _arity : 30;
+  /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
   /** Weight of the symbol */
   unsigned _weight;
@@ -631,6 +632,15 @@ protected:
    *  term weight and the mask (the last two bits are 0).
    */
   TermList _args[1];
+
+  /** set the colour of the term */
+  void setColor(unsigned color)
+  {
+    ASS(_color == 0 || _color == color);
+    _color = color;
+  } // setColor
+  /** return the colour of the term */
+  unsigned color() const { return _color; }
 
 //   /** set all boolean fields to false and weight to 0 */
 //   void initialise()

@@ -24,7 +24,7 @@ public:
   Term* insert(Term*);
   Literal* insert(Literal*);
   Term* insertRecurrently(Term*);
-  /** The hash function of this term */
+  /** The hash function of this literal */
   inline static unsigned hash(const Literal* l)
   { return l->hash(); }
   /** The hash function of this term */

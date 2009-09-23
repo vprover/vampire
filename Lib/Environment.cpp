@@ -41,7 +41,8 @@ Environment::Environment()
 #endif
     sharing(0),
     statistics(0),
-    ordering(0)
+    ordering(0),
+    colorUsed(false)
 {
 } // Environment::Environment
 

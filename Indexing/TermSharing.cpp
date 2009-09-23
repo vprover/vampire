@@ -5,6 +5,8 @@
  * @since 28/12/2007 Manchester
  */
 
+#include "../Lib/Environment.hpp"
+#include "../Kernel/Signature.hpp"
 #include "../Kernel/Term.hpp"
 #include "TermSharing.hpp"
 
@@ -74,6 +76,7 @@ Term* TermSharing::insert(Term* t)
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
+    unsigned color = 0;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
 	ASS(tt->isOrdinaryVar());
@@ -86,11 +89,27 @@ Term* TermSharing::insert(Term* t)
 	Term* r = tt->term();
 	vars += r->vars();
 	weight += r->weight();
+	if (env.colorUsed) {
+	  ASS(color == 0 || color == r->color());
+	  color |= r->color();
+	}
       }
     }
     t->markShared();
     t->setVars(vars);
     t->setWeight(weight);
+    if (env.colorUsed) {
+      if (color == 0) {
+	color = env.signature->getFunction(t->functor())->color();
+      }
+#if VDEBUG
+      else {
+	unsigned fcolor = env.signature->getFunction(t->functor())->color();
+	ASS(! fcolor || color == fcolor);
+      }
+#endif
+      t->setColor(color);
+    }
     _totalTerms++;
   }
   else {
@@ -128,6 +147,7 @@ Literal* TermSharing::insert(Literal* t)
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
+    unsigned color = 0;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
 	ASS(tt->isOrdinaryVar());
@@ -139,11 +159,27 @@ Literal* TermSharing::insert(Literal* t)
 	Term* r = tt->term();
 	vars += r->vars();
 	weight += r->weight();
+	if (env.colorUsed) {
+	  ASS(color == 0 || color == r->color());
+	  color |= r->color();
+	}
       }
     }
     t->markShared();
     t->setVars(vars);
     t->setWeight(weight);
+    if (env.colorUsed) {
+      if (color == 0) {
+	color = env.signature->getFunction(t->functor())->color();
+      }
+#if VDEBUG
+      else {
+	unsigned fcolor = env.signature->getFunction(t->functor())->color();
+	ASS(! fcolor || color == fcolor);
+      }
+#endif
+      t->setColor(color);
+    }
     _totalLiterals++;
   }
   else {
@@ -262,9 +298,8 @@ bool TermSharing::equals(const Term* s,const Term* t)
 {
   CALL("TermSharing::equals");
 
-  if (s->functor() != t->functor()) {
-    return false;
-  }
+  if (s->functor() != t->functor()) return false;
+
   const TermList* ss = s->args();
   const TermList* tt = t->args();
   while (! ss->isEmpty()) {

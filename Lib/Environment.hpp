@@ -72,6 +72,8 @@ public:
   int remainingTime() const;
   /** Currently used ordering */
   Kernel::Ordering* ordering;
+  /** set to true when coloring is used for symbol elimination or interpolation */
+  bool colorUsed;
 }; // class Environment
 
 extern Environment env;

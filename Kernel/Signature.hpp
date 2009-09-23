@@ -43,6 +43,8 @@ class Signature
 	_color(0u)
     {}
     void addColor(unsigned color);
+    /** return the colour of the symbol */
+    unsigned color() const { return _color; }
     /** Return the arity of the symbol */
     inline unsigned arity() { return _arity; }
     /** Return the name of the symbol */
