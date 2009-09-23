@@ -137,6 +137,8 @@ void InferenceStore::recordNonPropInference(Clause* cl, Inference* cinf)
 
 void InferenceStore::recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp)
 {
+  CALL("InferenceStore::recordPropReduce");
+
   if(_bdd->isTrue(cl->prop())) {
     return;
   }
@@ -146,6 +148,7 @@ void InferenceStore::recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* new
 void InferenceStore::recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newProp,
 	Inference::Rule rule)
 {
+  CALL("InferenceStore::recordPropAlter");
   ASS(!_bdd->isTrue(newProp));
 
   FullInference* finf=new (1) FullInference(1);
@@ -157,6 +160,7 @@ void InferenceStore::recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newP
 
 void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp)
 {
+  CALL("InferenceStore::recordMerge/4");
   ASS(!_bdd->isTrue(resultProp));
 
   FullInference* finf=new (2) FullInference(2);
@@ -169,6 +173,7 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl
 void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* addedCls, int addedClsCnt,
 	BDDNode* resultProp)
 {
+  CALL("InferenceStore::recordMerge/5");
   ASS(!_bdd->isTrue(resultProp));
 
   FullInference* finf=new (addedClsCnt+1) FullInference(addedClsCnt+1);
@@ -184,6 +189,7 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* add
 void InferenceStore::recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
 	  unsigned premCnt, Clause** prems, SplittingRecord* srec)
 {
+  CALL("InferenceStore::recordSplitting");
   ASS(!_bdd->isTrue(newMasterProp));
 
   FullInference* finf=new (premCnt+1) FullInference(premCnt+1);

@@ -34,12 +34,13 @@ using namespace Saturation;
 #define TOTAL_SIMPLIFICATION_ONLY 1
 #define FW_DEMODULATION_FIRST 1
 
+#define PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD 1
+
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
 : _imgr(this), _passive(passiveContainer), _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector)
 {
   _performSplitting= env.options->splitting()!=Options::RA_OFF;
-  _someSplitting= env.options->splitting()!=Options::RA_OFF;
 
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
@@ -245,6 +246,11 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   ASS_EQ(cl->prop(),0);
   cl->setProp(BDD::instance()->getFalse());
 
+#if PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
+  //put propositional predicates into BDD part
+  cl=_propToBDD.simplify(cl);
+#endif
+
   if(env.options->sos() && cl->inputType()==Clause::AXIOM) {
     addInputSOSClause(cl);
   } else {
@@ -266,6 +272,7 @@ void SaturationAlgorithm::addInputSOSClause(Clause*& cl)
     }
     simplified=simplCl!=cl;
     if(simplified) {
+      ASS_EQ(simplCl->prop(), 0);
       simplCl->setProp(cl->prop());
       cl=simplCl;
       InferenceStore::instance()->recordNonPropInference(cl);
@@ -478,6 +485,7 @@ simplificationStart:
     }
     simplified=simplCl!=cl;
     if(simplified) {
+      ASS_EQ(simplCl->prop(), 0);
       cl=simplCl;
       cl->setProp(prop);
       InferenceStore::instance()->recordNonPropInference(cl);
@@ -561,7 +569,7 @@ void SaturationAlgorithm::addUnprocessedFinalClause(Clause* cl)
 
   BDD* bdd=BDD::instance();
 
-  if( _someSplitting && cl->isEmpty() && !bdd->isFalse(cl->prop()) ) {
+  if( cl->isEmpty() && !bdd->isFalse(cl->prop()) ) {
     static BDDConjunction ecProp;
     static Stack<InferenceStore::ClauseSpec> emptyClauses;
 

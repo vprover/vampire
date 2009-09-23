@@ -314,7 +314,7 @@ void Splitter::getPropPredName(Literal* lit, int& name, Clause*& premise, bool& 
   unsigned pred=lit->functor();
   int* pname;
   if(_propPredNames.getValuePtr(pred, pname)) {
-    *pname=BDD::instance()->getNewVar( env.signature->predicateName(pred) );
+    *pname=BDD::instance()->getNewVar( pred );
 
     if(env.options->showDefinitions()) {
       env.out << "Definition: " << BDD::instance()->getPropositionalPredicateName(*pname)

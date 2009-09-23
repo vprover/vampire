@@ -14,6 +14,7 @@
 #include "../Lib/Event.hpp"
 #include "../Indexing/IndexManager.hpp"
 #include "../Inferences/InferenceEngine.hpp"
+#include "../Inferences/PropositionalToBDDISE.hpp"
 
 #include "Limits.hpp"
 #include "SaturationResult.hpp"
@@ -96,7 +97,6 @@ protected:
 
   int _startTime;
   bool _performSplitting;
-  bool _someSplitting;
 
   UnprocessedClauseContainer* _unprocessed;
   PassiveClauseContainerSP _passive;
@@ -115,6 +115,7 @@ protected:
   LiteralSelectorSP _selector;
 
   Splitter _splitter;
+  PropositionalToBDDISE _propToBDD;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;

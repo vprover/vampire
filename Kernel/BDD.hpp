@@ -20,6 +20,8 @@
 #include "../Lib/SkipList.hpp"
 #include "../Lib/Stack.hpp"
 
+#include "../Kernel/Signature.hpp"
+
 #include "../SAT/TWLSolver.hpp"
 
 #define BDD_PREDICATE_PREFIX "$bdd"
@@ -57,15 +59,11 @@ public:
   ~BDD();
 
   int getNewVar() { return _newVar++; }
-  int getNewVar(string niceName)
-  {
-    int res=_newVar++;
-    _niceNames.insert(res, niceName);
-    return res;
-  }
+  int getNewVar(unsigned pred);
 
   string getPropositionalPredicateName(int var);
   bool getNiceName(int var, string& res);
+  Signature::Symbol* getSymbol(int var);
 
   BDDNode* getTrue() { return &_trueNode; }
   BDDNode* getFalse() { return &_falseNode; }
@@ -132,11 +130,11 @@ private:
   NodeSet _nodes;
 
   /**
-   * Nice names of BDD variables
+   * Predicate symbols corresponding to BDD variables
    *
-   * Not all BDD variables must have a nice name.
+   * Not all BDD variables must have a corresponding predicate.
    */
-  DHMap<int, string> _niceNames;
+  DHMap<int, unsigned> _predicateSymbols;
 
 
   int _newVar;

@@ -67,8 +67,21 @@ BDD::~BDD()
   }
 }
 
+int BDD::getNewVar(unsigned pred)
+{
+  CALL("BDD::getNewVar(unsigned)");
+  ASS_EQ(env.signature->predicateArity(pred), 0);
+
+  int res=getNewVar();
+  _predicateSymbols.insert(res, pred);
+  return res;
+}
+
+
 string BDD::getPropositionalPredicateName(int var)
 {
+  CALL("BDD::getPropositionalPredicateName");
+
   string prefix(BDD_PREDICATE_PREFIX);
   prefix+=env.options->namePrefix();
   string name = prefix + Int::toString(var);
@@ -83,13 +96,32 @@ string BDD::getPropositionalPredicateName(int var)
 
 bool BDD::getNiceName(int var, string& res)
 {
-  return _niceNames.find(var, res);
+  CALL("BDD::getNiceName");
+
+  unsigned pred;
+  bool found=_predicateSymbols.find(var, pred);
+  if(found) {
+    res=env.signature->predicateName(pred);
+  }
+  return found;
 }
+
+Signature::Symbol* BDD::getSymbol(int var)
+{
+  CALL("BDD::getSymbol");
+
+  unsigned pred;
+  if(_predicateSymbols.find(var, pred)) {
+    return env.signature->getPredicate(pred);
+  }
+  return 0;
+}
+
 
 BDDNode* BDD::getAtomic(int varNum, bool positive)
 {
   CALL("BDD::getAtomic");
-  ASS_GE(varNum,0);
+  ASS_G(varNum,0);
 
   if(varNum>=_newVar) {
     _newVar=varNum+1;
