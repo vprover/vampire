@@ -32,6 +32,9 @@ namespace Kernel {
 using namespace Lib;
 using namespace SAT;
 
+/**
+ * Return the singleton instance of the BDD class
+ */
 BDD* BDD::instance()
 {
   CALL("BDD::instance");
@@ -43,6 +46,9 @@ BDD* BDD::instance()
   return inst;
 }
 
+/**
+ * Create a new BDD object
+ */
 BDD::BDD()
 : _newVar(1)
 {
@@ -56,6 +62,9 @@ BDD::BDD()
 #endif
 }
 
+/**
+ * Destroy a BDD object
+ */
 BDD::~BDD()
 {
   CALL("BDD::~BDD");
@@ -67,6 +76,10 @@ BDD::~BDD()
   }
 }
 
+/**
+ * Return a new BDD variable that will represent propositional
+ * predicate symbol @b pred
+ */
 int BDD::getNewVar(unsigned pred)
 {
   CALL("BDD::getNewVar(unsigned)");
@@ -77,7 +90,10 @@ int BDD::getNewVar(unsigned pred)
   return res;
 }
 
-
+/**
+ * Return a propositional predicate name that can be used to represent
+ * BDD variable @b var
+ */
 string BDD::getPropositionalPredicateName(int var)
 {
   CALL("BDD::getPropositionalPredicateName");
@@ -94,6 +110,10 @@ string BDD::getPropositionalPredicateName(int var)
   return name;
 }
 
+/**
+ * If BDD variable has a corresponding propositional predicate symbol,
+ * return true, and assign its name to @b res. Otherwise return false.
+ */
 bool BDD::getNiceName(int var, string& res)
 {
   CALL("BDD::getNiceName");
@@ -106,6 +126,10 @@ bool BDD::getNiceName(int var, string& res)
   return found;
 }
 
+/**
+ * If BDD variable has a corresponding propositional predicate symbol,
+ * return pointer to its Signature::Symbol object. Otherwise return 0.
+ */
 Signature::Symbol* BDD::getSymbol(int var)
 {
   CALL("BDD::getSymbol");
@@ -117,7 +141,9 @@ Signature::Symbol* BDD::getSymbol(int var)
   return 0;
 }
 
-
+/**
+ * Return BDD representing an atomic
+ */
 BDDNode* BDD::getAtomic(int varNum, bool positive)
 {
   CALL("BDD::getAtomic");
@@ -134,18 +160,27 @@ BDDNode* BDD::getAtomic(int varNum, bool positive)
   }
 }
 
+/**
+ * Return conjunction of @b n1 and @b n2
+ */
 BDDNode* BDD::conjunction(BDDNode* n1, BDDNode* n2)
 {
   CALL("BDD::conjunction");
   return getBinaryFnResult(n1,n2, ConjunctionFn(this));
 }
 
+/**
+ * Return disjunction of @b n1 and @b n2
+ */
 BDDNode* BDD::disjunction(BDDNode* n1, BDDNode* n2)
 {
   CALL("BDD::disjunction");
   return getBinaryFnResult(n1,n2, DisjunctionFn(this));
 }
 
+/**
+ * Return result of @b x | ~ @b y
+ */
 BDDNode* BDD::xOrNonY(BDDNode* x, BDDNode* y)
 {
   CALL("BDD::xOrNonY");
@@ -153,6 +188,10 @@ BDDNode* BDD::xOrNonY(BDDNode* x, BDDNode* y)
 }
 
 
+/**
+ * Return true iff @b x | ~ @b y is a constant formula with truth value
+ * equal to @b resValue.
+ */
 bool BDD::isXOrNonYConstant(BDDNode* x, BDDNode* y, bool resValue)
 {
   CALL("BDD::isXOrNonYConstant");
@@ -160,18 +199,19 @@ bool BDD::isXOrNonYConstant(BDDNode* x, BDDNode* y, bool resValue)
 }
 
 /**
- * Return pointer to BDDNode that represents result of applying
- * the binary function specified by the BinBoolFn functor to
- * @b n1 and @b n2. The binary functor BinBoolFn must allow to be
- * called as
+ * Return result of applying the binary function specified by the
+ * BinBoolFn functor to @b n1 and @b n2. The binary functor BinBoolFn
+ * must allow to be called as
  *
+ * @code
  * BDDNode* BinBoolFn(BDDNode* m1, BDDNode* m2)
+ * @endcode
  *
- * and return either result of applying the represented binary
+ * and return either the result of applying the represented binary
  * function to @b m1 and @b m2, or 0 in case the result cannot
- * be determined by merely examining the objects pointed by
- * @b m1 and @b m2. It mustn't return 0 if both arguments are
- * either true or false BDD.
+ * be determined locally by examining just the BDDNode objects pointed
+ * by @b m1 and @b m2. It must not return 0 if both arguments are
+ * either true or false formulas.
  */
 template<class BinBoolFn>
 BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
@@ -204,6 +244,7 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
     counter++;
     if(counter==50000) {
       counter=0;
+      //time to check if we aren't over the time limit
       if(env.timeLimitReached()) {
 	throw TimeLimitExceededException();
       }
@@ -258,18 +299,20 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 
 /**
  * Return true iff the result of applying the binary function specified
- * by the BinBoolFn functor to @b n1 and @b n2 is a constant BDD with truth
+ * by the BinBoolFn functor to @b n1 and @b n2 is a constant formula with truth
  * value equal to @b resValue.
  *
  * The binary functor BinBoolFn must allow to be called as
  *
+ * @code
  * BDDNode* BinBoolFn(BDDNode* m1, BDDNode* m2)
+ * @endcode
  *
- * and return either result of applying the represented binary
+ * and return either the result of applying the represented binary
  * function to @b m1 and @b m2, or 0 in case the result cannot
- * be determined by merely examining the objects pointed by
- * @b m1 and @b m2. It mustn't return 0 if both arguments are
- * either true or false BDD.
+ * be determined locally by examining just the BDDNode objects pointed
+ * by @b m1 and @b m2. It must not return 0 if both arguments are
+ * either true or false formulas.
  */
 template<class BinBoolFn>
 bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn fn)
@@ -286,12 +329,14 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
   toDo.reset();
 
   static DHMap<pair<BDDNode*,BDDNode*>, bool, PtrPairSimpleHash > cache;
+  //if the cache was not reset, too much memory would be consumed
   cache.reset();
 
   for(;;) {
     counter++;
     if(counter==50000) {
       counter=0;
+      //time to check if we aren't over the time limit
       if(env.timeLimitReached()) {
 	throw TimeLimitExceededException();
       }
@@ -329,7 +374,10 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
   return true;
 }
 
-
+/**
+ * If it is possible to locally determine the result of the conjunction
+ * of @b n1 and @b n2, return the result, otherwise return 0.
+ */
 BDDNode* BDD::ConjunctionFn::operator()(BDDNode* n1, BDDNode* n2)
 {
   if(_parent->isFalse(n1) || _parent->isFalse(n2)) {
@@ -344,6 +392,10 @@ BDDNode* BDD::ConjunctionFn::operator()(BDDNode* n1, BDDNode* n2)
   return 0;
 }
 
+/**
+ * If it is possible to locally determine the result of the disjunction
+ * of @b n1 and @b n2, return the result, otherwise return 0.
+ */
 BDDNode* BDD::DisjunctionFn::operator()(BDDNode* n1, BDDNode* n2)
 {
   if(_parent->isTrue(n1) || _parent->isTrue(n2)) {
@@ -358,6 +410,10 @@ BDDNode* BDD::DisjunctionFn::operator()(BDDNode* n1, BDDNode* n2)
   return 0;
 }
 
+/**
+ * If it is possible to locally determine the result of the operation
+ * @b n1 | ~ @b n2, return the result, otherwise return 0.
+ */
 BDDNode* BDD::XOrNonYFn::operator()(BDDNode* n1, BDDNode* n2)
 {
   if(_parent->isTrue(n1) || _parent->isFalse(n2)) {
@@ -370,6 +426,10 @@ BDDNode* BDD::XOrNonYFn::operator()(BDDNode* n1, BDDNode* n2)
 }
 
 
+/**
+ * Return a BDD node containing variable @b varNum that points
+ * positively to @b pos and negatively to @b neg BDD node.
+ */
 BDDNode* BDD::getNode(int varNum, BDDNode* pos, BDDNode* neg)
 {
   CALL("BDD::getNode");
@@ -397,6 +457,9 @@ BDDNode* BDD::getNode(int varNum, BDDNode* pos, BDDNode* neg)
 }
 
 
+/**
+ * Return a string representation of the formula represented by @b node.
+ */
 string BDD::toString(BDDNode* node)
 {
   string res="";
@@ -425,6 +488,14 @@ string BDD::toString(BDDNode* node)
   return res;
 }
 
+/**
+ * Return the formula represented by @b node in a TPTP compatible format.
+ * The @b bddPrefix string will be added as a prefix to the each BDD
+ * variable number to form a predicate symbol name.
+ *
+ * @warning A recursion is used in this methos, which can lead to
+ *   problems with very large BDDs.
+ */
 string BDD::toTPTPString(BDDNode* node, string bddPrefix)
 {
   if(isTrue(node)) {
@@ -437,6 +508,12 @@ string BDD::toTPTPString(BDDNode* node, string bddPrefix)
   }
 }
 
+/**
+ * Return the formula represented by @b node in a TPTP compatible format.
+ *
+ * @warning A recursion is used in this methos, which can lead to
+ *   problems with very large BDDs.
+ */
 string BDD::toTPTPString(BDDNode* node)
 {
   if(isTrue(node)) {
@@ -450,10 +527,16 @@ string BDD::toTPTPString(BDDNode* node)
 }
 
 
+/**
+ * Check whether two BDDNode objects are equal
+ */
 bool BDD::equals(const BDDNode* n1,const BDDNode* n2)
 {
   return n1->_var==n2->_var && n1->_pos==n2->_pos && n1->_neg==n2->_neg;
 }
+/**
+ * Return hash value of a BDDNode object
+ */
 unsigned BDD::hash(const BDDNode* n)
 {
   CALL("BDD::hash");
@@ -465,7 +548,7 @@ unsigned BDD::hash(const BDDNode* n)
 }
 
 /**
- * Convert a BDD node into a sequence of propositional clauses.
+ * Convert a BDDNode into a list of propositional clauses.
  */
 SATClauseList* BDD::toCNF(BDDNode* node)
 {
@@ -502,7 +585,10 @@ SATClauseList* BDD::toCNF(BDDNode* node)
   }
 }
 
-
+/**
+ * Add the formula represented by @b n to the conjunction represented
+ * by this object
+ */
 void BDDConjunction::addNode(BDDNode* n)
 {
   CALL("BDDConjunction::addNode");
@@ -510,11 +596,14 @@ void BDDConjunction::addNode(BDDNode* n)
   if(_isFalse) {
     return;
   }
-  if(_bdd->isConstant(n)) {
-    if(_bdd->isFalse(n)) {
+
+  BDD* bdd=BDD::instance();
+
+  if(bdd->isConstant(n)) {
+    if(bdd->isFalse(n)) {
       _isFalse=true;
     } else {
-      ASS(_bdd->isTrue(n));
+      ASS(bdd->isTrue(n));
     }
     return;
   }
@@ -528,8 +617,8 @@ void BDDConjunction::addNode(BDDNode* n)
 
   unsigned varCnt=_maxVar+1;
 
-  SATClauseList* newClLst=_bdd->toCNF(n);
-#if 1
+  SATClauseList* newClLst=bdd->toCNF(n);
+
   _solver.ensureVarCnt(varCnt);
   _solver.addClauses(pvi( SATClauseList::DestructiveIterator(newClLst) ));
 
@@ -537,83 +626,6 @@ void BDDConjunction::addNode(BDDNode* n)
     _isFalse=true;
   }
 
-#else
-  SATClauseList* oldClLst=_clauses;
-
-//  cout<<"\n\n----------------------------------\n";
-//  {
-//    SATClauseIterator cit=pvi( getConcatenatedIterator(
-//	    SATClauseList::Iterator(oldClLst),
-//	    SATClauseList::Iterator(newClLst)) );
-//    while(cit.hasNext()) {
-//      cout<<(*cit.next())<<endl;
-//    }
-//    cout<<"---Unit propagation---\n";
-//  }
-
-//  SATClauseIterator allClIt=pvi( getConcatenatedIterator(
-//	  SATClauseList::DestructiveIterator(oldClLst),
-//	  SATClauseList::DestructiveIterator(newClLst)) );
-//  SATClauseIterator cit=Preprocess::propagateUnits(varCnt,
-//	  Preprocess::removeDuplicateLiterals(allClIt));
-
-  SATClauseIterator inpClauses=pvi( getConcatenatedIterator(
-	  getConcatenatedIterator(SATClauseList::DestructiveIterator(_units),
-		  SATClauseList::DestructiveIterator(_clauses) ),
-	  SATClauseList::DestructiveIterator(newClLst)) );
-
-  SATClauseIterator newUnitIt;
-  SATClauseIterator newClauseIt;
-  Preprocess::propagateUnits(inpClauses, newUnitIt, newClauseIt);
-
-  ClauseSharing sharing;
-
-  _clauses=0;
-  while(newClauseIt.hasNext()) {
-    SATClause* cl=newClauseIt.next();
-    if(sharing.insert(cl)==cl) {
-//      cout<<(*cl)<<endl;
-      SATClauseList::push(cl,_clauses);
-    }
-  }
-
-  _units=0;
-  while(newUnitIt.hasNext()) {
-    SATClause* cl=newUnitIt.next();
-//    cout<<"U: "<<(*cl)<<endl;
-    SATClauseList::push(cl,_units);
-  }
-
-//  cout<<"---------\n";
-
-//  SATClauseIterator solverClauses=Preprocess::filterPureLiterals(varCnt, pvi( getContentIterator(_clauses) ));
-  SATClauseIterator solverClauses=pvi( getContentIterator(_clauses) );
-
-#if 1
-  TWLSolver alg;
-  alg.ensureVarCnt(varCnt);
-  alg.addClauses(solverClauses);
-
-  if(alg.getStatus()==TWLSolver::UNSATISFIABLE) {
-    _isFalse=true;
-  }
-#else
-  SingleWatchSAT alg(varCnt);
-  bool proceed=alg.loadClauses(solverClauses);
-  if(proceed) {
-    alg.satisfy(env.remainingTime());
-  }
-
-  if(alg.termination==SingleWatchSAT::TIME_LIMIT) {
-    throw TimeLimitExceededException();
-  } else if(alg.termination==SingleWatchSAT::REFUTATION) {
-    _isFalse=true;
-  }
-#endif
-
-#endif
-
-//  cout<<"add node finished "<<_isFalse<<endl;
   return;
 }
 
