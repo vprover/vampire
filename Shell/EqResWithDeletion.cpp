@@ -37,6 +37,8 @@ Clause* EqResWithDeletion::apply(Clause* cl)
 {
   CALL("EqResWithDeletion::apply(Clause*)");
 
+start_applying:
+
   unsigned clen=cl->length();
 
   _subst.reset();
@@ -44,16 +46,16 @@ Clause* EqResWithDeletion::apply(Clause* cl)
   static Stack<Literal*> resLits(8);
   resLits.reset();
 
-  bool modified=false;
+  bool foundResolvable=false;
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    if(scan(lit)) {
-      modified=true;
+    if(!foundResolvable && scan(lit)) {
+      foundResolvable=true;
     } else {
       resLits.push(lit);
     }
   }
-  if(!modified) {
+  if(!foundResolvable) {
     return cl;
   }
 
@@ -68,7 +70,8 @@ Clause* EqResWithDeletion::apply(Clause* cl)
     (*res)[i] = SubstHelper::apply(resLits[i], *this);
   }
 
-  return res;
+  cl=res;
+  goto start_applying;
 }
 
 TermList EqResWithDeletion::apply(unsigned var)

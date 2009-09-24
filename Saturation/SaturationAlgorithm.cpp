@@ -617,19 +617,10 @@ void SaturationAlgorithm::addUnprocessedFinalClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addUnprocessedFinalClause");
 
-  BDD* bdd=BDD::instance();
 
-  if( cl->isEmpty() && !bdd->isFalse(cl->prop()) ) {
-    static BDDConjunction ecProp;
-    static Stack<InferenceStore::ClauseSpec> emptyClauses;
-
-    ecProp.addNode(cl->prop());
-    if(ecProp.isFalse()) {
-      InferenceStore::instance()->recordMerge(cl, cl->prop(), emptyClauses.begin(),
-	      emptyClauses.size(), bdd->getFalse());
-      cl->setProp(bdd->getFalse());
-    } else {
-      emptyClauses.push(InferenceStore::getClauseSpec(cl));
+  if( cl->isEmpty() ) {
+    cl=handleEmptyClause(cl);
+    if(!cl) {
       return;
     }
   }
@@ -638,6 +629,39 @@ void SaturationAlgorithm::addUnprocessedFinalClause(Clause* cl)
   _unprocessed->add(cl);
 }
 
+/**
+ * Deal with clause that has an empty non-propositional part.
+ *
+ * The function receives a clause @b cl that has empty non-propositional part,
+ * and returns a contradiction (an empty clause with false propositional part)
+ * if it can be derived from @b cl and previously derived empty clauses.
+ * Otherwise it returns 0.
+ */
+Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
+{
+  CALL("SaturationAlgorithm::handleEmptyClause");
+  ASS(cl->isEmpty());
+
+  BDD* bdd=BDD::instance();
+
+  if(bdd->isFalse(cl->prop())) {
+    return cl;
+  }
+
+  static BDDConjunction ecProp;
+  static Stack<InferenceStore::ClauseSpec> emptyClauses;
+
+  ecProp.addNode(cl->prop());
+  if(ecProp.isFalse()) {
+    InferenceStore::instance()->recordMerge(cl, cl->prop(), emptyClauses.begin(),
+	    emptyClauses.size(), bdd->getFalse());
+    cl->setProp(bdd->getFalse());
+    return cl;
+  } else {
+    emptyClauses.push(InferenceStore::getClauseSpec(cl));
+    return 0;
+  }
+}
 
 void SaturationAlgorithm::reanimate(Clause* cl)
 {

@@ -90,6 +90,7 @@ private:
 
   void addInputClause(Clause* cl);
   void addUnprocessedFinalClause(Clause* cl);
+  Clause* handleEmptyClause(Clause* cl);
 
   Limits _limits;
   IndexManager _imgr;
