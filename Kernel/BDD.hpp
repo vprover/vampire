@@ -155,9 +155,9 @@ private:
 
 
   /** BDD node representing the true formula */
-  static BDDNode _trueNode;
+  BDDNode _trueNode;
   /** BDD node representing the false formula */
-  static BDDNode _falseNode;
+  BDDNode _falseNode;
 
   /** Type that stores the set of all non-constant BDD nodes */
   typedef Set<BDDNode*,BDD> NodeSet;

@@ -75,6 +75,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "decode",
 
+  "empty_clause_subsumption",
   "equality_proxy",
   "equality_resolution_with_deletion",
 
@@ -117,6 +118,7 @@ const char* Options::Constants::_optionNames[] = {
   "random_seed",
   "row_variable_max_length",
 
+  "sat_solver_for_empty_clause",
   "saturation_algorithm",
   "selection",
   "show_active",
@@ -304,6 +306,7 @@ Options::Options ()
 
   _condensation(false),
 
+  _emptyClauseSubsumption(false),
   _equalityProxy(EP_OFF),
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
 
@@ -348,6 +351,7 @@ Options::Options ()
   _randomSeed(Random::seed()),
   _rowVariableMaxLength(2),
 
+  _satSolverForEmptyClause(true),
   _saturationAlgorithm(LRS),
   _selection(10),
   _showActive(false),
@@ -438,13 +442,15 @@ void Options::set (const char* name,const char* value, int index)
     readFromTestId(value);
     return;
 
+  case EMPTY_CLAUSE_SUBSUMPTION:
+    _emptyClauseSubsumption = onOffToBool(value,name);
+    return;
   case EQUALITY_PROXY:
     _equalityProxy = (EqualityProxy)Constants::equalityProxyValues.find(value);
     if (_equalityProxy == -1) {
       break;
     }
     return;
-
   case EQUALITY_RESOLUTION_WITH_DELETION:
     _equalityResolutionWithDeletion = (RuleActivity)Constants::ruleActivityValues.find(value);
     if(_equalityResolutionWithDeletion==RA_ON) {
@@ -615,6 +621,9 @@ void Options::set (const char* name,const char* value, int index)
     }
     break;
 
+  case SAT_SOLVER_FOR_EMPTY_CLAUSE:
+    _satSolverForEmptyClause = onOffToBool(value,name);
+    return;
   case SATURATION_ALGORITHM:
     _saturationAlgorithm = (SaturationAlgorithm)Constants::satAlgValues.find(value);
     if (_saturationAlgorithm == -1) {
@@ -1042,6 +1051,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << _rowVariableMaxLength;
     return;
 
+  case SAT_SOLVER_FOR_EMPTY_CLAUSE:
+    str << boolToOnOff(_satSolverForEmptyClause);
+    return;
   case SATURATION_ALGORITHM:
     str << Constants::satAlgValues[_saturationAlgorithm];
     return;
@@ -1406,5 +1418,18 @@ bool Options::complete () const
          ! _maxWeight;
 } // Options::complete
 
+
+/**
+ * Check constraints necessary for options to make sense, and
+ * call USER_ERROR if some are violated
+ *
+ * The function is called after all options are parsed.
+ */
+void Options::checkGlobalOptionConstraints() const
+{
+  if(satSolverForEmptyClause() && emptyClauseSubsumption()) {
+    USER_ERROR("Empty clause subsumption cannot be performed when SAT solver is used for handling empty clauses");
+  }
+}
 
 }

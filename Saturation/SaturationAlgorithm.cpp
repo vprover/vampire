@@ -648,17 +648,34 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
     return cl;
   }
 
-  static BDDConjunction ecProp;
-  static Stack<InferenceStore::ClauseSpec> emptyClauses;
+  if(env.options->satSolverForEmptyClause()) {
+    static BDDConjunction ecProp;
+    static Stack<InferenceStore::ClauseSpec> emptyClauses;
 
-  ecProp.addNode(cl->prop());
-  if(ecProp.isFalse()) {
-    InferenceStore::instance()->recordMerge(cl, cl->prop(), emptyClauses.begin(),
-	    emptyClauses.size(), bdd->getFalse());
-    cl->setProp(bdd->getFalse());
-    return cl;
+    ecProp.addNode(cl->prop());
+    if(ecProp.isFalse()) {
+      InferenceStore::instance()->recordMerge(cl, cl->prop(), emptyClauses.begin(),
+	      emptyClauses.size(), bdd->getFalse());
+      cl->setProp(bdd->getFalse());
+      return cl;
+    } else {
+      emptyClauses.push(InferenceStore::getClauseSpec(cl));
+      return 0;
+    }
   } else {
-    emptyClauses.push(InferenceStore::getClauseSpec(cl));
+    static Clause* accumulator=0;
+    if(accumulator==0) {
+      accumulator=cl;
+      return 0;
+    }
+    BDDNode* newProp=bdd->conjunction(accumulator->prop(), cl->prop());
+    if(bdd->isFalse(newProp)) {
+      InferenceStore::instance()->recordMerge(cl, cl->prop(), accumulator, newProp);
+      cl->setProp(newProp);
+      return cl;
+    }
+    InferenceStore::instance()->recordMerge(accumulator, accumulator->prop(), cl, newProp);
+    accumulator->setProp(newProp);
     return 0;
   }
 }

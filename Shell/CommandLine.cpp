@@ -62,6 +62,7 @@ void CommandLine::interpret (Options& options)
   if (! fileGiven) {
     USER_ERROR("input file name not specified");
   }
+  options.checkGlobalOptionConstraints();
 } // CommandLine::interpret
 
 

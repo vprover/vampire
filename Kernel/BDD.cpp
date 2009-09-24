@@ -32,9 +32,6 @@ namespace Kernel {
 using namespace Lib;
 using namespace SAT;
 
-BDDNode BDD::_trueNode(-1,0,0);
-BDDNode BDD::_falseNode(-1,0,0);
-
 /**
  * Return the singleton instance of the BDD class
  */
@@ -53,7 +50,7 @@ BDD* BDD::instance()
  * Create a new BDD object
  */
 BDD::BDD()
-: _newVar(1)
+: _trueNode(-1,0,0), _falseNode(-1,0,0), _newVar(1)
 {
 }
 

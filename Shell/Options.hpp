@@ -33,6 +33,7 @@ public:
     /** Decode test id */
     DECODE,
 
+    EMPTY_CLAUSE_SUBSUMPTION,
     EQUALITY_PROXY,
     EQUALITY_RESOLUTION_WITH_DELETION,
 
@@ -75,6 +76,7 @@ public:
     RANDOM_SEED,
     ROW_VARIABLE_MAX_LENGTH,
 
+    SAT_SOLVER_FOR_EMPTY_CLAUSE,
     /** saturation algorithm: lrs, otter, or discount */
     SATURATION_ALGORITHM,
     SELECTION,
@@ -287,7 +289,9 @@ public:
   bool condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
   string namePrefix() const { return _namePrefix; }
-  bool timeStatistics() { return _timeStatistics; }
+  bool timeStatistics() const { return _timeStatistics; }
+  bool satSolverForEmptyClause() const { return _satSolverForEmptyClause; }
+  bool emptyClauseSubsumption() const { return _emptyClauseSubsumption; }
 
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal) { _inputFile = newVal; }
@@ -300,6 +304,9 @@ public:
   void set(const string& name, const string& value);
   void set(const char* name, const char* value);
   void setShort(const char* name, const char* value);
+
+
+  void checkGlobalOptionConstraints() const;
 
   CLASS_NAME("Options");
   USE_ALLOCATOR(Options);
@@ -318,6 +325,7 @@ private:
 
   bool _condensation;
 
+  bool _emptyClauseSubsumption;
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
 
@@ -361,6 +369,7 @@ private:
   int _randomSeed;
   int _rowVariableMaxLength;
 
+  bool _satSolverForEmptyClause;
   SaturationAlgorithm _saturationAlgorithm;
   int _selection;
   bool _showActive;
