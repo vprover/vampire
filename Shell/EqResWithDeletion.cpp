@@ -32,11 +32,15 @@ void EqResWithDeletion::apply(UnitList*& units)
   }
 }
 
-
+/**
+ *
+ * @warning The application of this rule can currently be quadratic.
+ */
 Clause* EqResWithDeletion::apply(Clause* cl)
 {
   CALL("EqResWithDeletion::apply(Clause*)");
 
+  //TODO: make the procedure linear time
 start_applying:
 
   unsigned clen=cl->length();

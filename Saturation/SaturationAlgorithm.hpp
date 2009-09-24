@@ -95,6 +95,8 @@ private:
 
   void performEmptyClauseSubsumption(Clause* cl);
 
+  void removeBackwardSimplifiedClause(Clause* cl);
+
   Limits _limits;
   IndexManager _imgr;
 protected:

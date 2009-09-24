@@ -683,6 +683,9 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
     static Clause* accumulator=0;
     if(accumulator==0) {
       accumulator=cl;
+#if PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
+      onNewUsefulPropositionalClause(cl);
+#endif
       return 0;
     }
     BDDNode* newProp=bdd->conjunction(accumulator->prop(), cl->prop());
@@ -715,6 +718,19 @@ void SaturationAlgorithm::performEmptyClauseSubsumption(Clause* cl)
   CALL("SaturationAlgorithm::performEmptyClauseSubsumption");
   ASS(cl->isEmpty());
 
+  static Stack<Clause*> parentsToCheck;
+  ASS(parentsToCheck.isEmpty());
+  parentsToCheck.push(cl);
+
+  for(;;) {
+
+
+
+    if(parentsToCheck.isEmpty()) {
+      break;
+    }
+    cl=parentsToCheck.pop();
+  }
 
 }
 
@@ -852,28 +868,11 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       InferenceStore::instance()->recordPropReduce(redundant, oldRedundantProp, newRedundantProp);
 
       if(bdd->isTrue(newRedundantProp)) {
-	switch(redundant->store()) {
-	case Clause::PASSIVE:
-	  _passive->remove(redundant);
-	  break;
-	case Clause::ACTIVE:
-	  _active->remove(redundant);
-	  break;
-	case Clause::REACTIVATED:
-	  _passive->remove(redundant);
-	  _active->remove(redundant);
-	  break;
-	default:
-	  ASSERTION_VIOLATION;
-	}
-	redundant->setStore(Clause::NONE);
+	removeBackwardSimplifiedClause(redundant);
 #if REPORT_BW_SIMPL
 	cout<<"removed\n";
 #endif
       }
-//      else if(redundant->store()==Clause::ACTIVE) {
-//	reanimate(redundant);
-//      }
 
       unsigned addCnt=replacementsToAdd.size();
       for(unsigned i=0;i<addCnt;i++) {
@@ -887,6 +886,25 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 #endif
     }
   }
+}
+
+void SaturationAlgorithm::removeBackwardSimplifiedClause(Clause* cl)
+{
+  switch(cl->store()) {
+  case Clause::PASSIVE:
+    _passive->remove(cl);
+    break;
+  case Clause::ACTIVE:
+    _active->remove(cl);
+    break;
+  case Clause::REACTIVATED:
+    _passive->remove(cl);
+    _active->remove(cl);
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+  cl->setStore(Clause::NONE);
 }
 
 void SaturationAlgorithm::addToPassive(Clause* c)
