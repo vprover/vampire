@@ -62,7 +62,7 @@ public:
   {
     if(!s_measuring) return;
     stopMeasuring();
-    _tcu=__TC_NONE;
+    _tcu=__TC_NONE; //so that nothing happens when we call stopMeasuring() in destructor
   }
 
 

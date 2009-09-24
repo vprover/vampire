@@ -80,12 +80,12 @@ void TimeCounter::startMeasuring(TimeCounterUnit tcu)
 void TimeCounter::stopMeasuring()
 {
   CALL("TimeCounter::stopMeasuring");
-  ASS_EQ(s_measureInitTimes[TC_OTHER],-1);
 
   if(_tcu==__TC_NONE) {
     //we did not start measuring
     return;
   }
+  ASS_EQ(s_measureInitTimes[TC_OTHER],-1);
   ASS_GE(s_measureInitTimes[_tcu], 0);
 
   int currTime=env.timer->elapsedMilliseconds();
