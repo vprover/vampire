@@ -72,6 +72,8 @@ public:
 
   void outputProof(ostream& out, Unit* refutation);
 
+  VirtualIterator<ClauseSpec> getParents(Clause* cl);
+
 private:
   InferenceStore();
 

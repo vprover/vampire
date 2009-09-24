@@ -724,7 +724,8 @@ void SaturationAlgorithm::performEmptyClauseSubsumption(Clause* cl)
 
   for(;;) {
 
-
+    //TODO: implement!
+    NOT_IMPLEMENTED;
 
     if(parentsToCheck.isEmpty()) {
       break;

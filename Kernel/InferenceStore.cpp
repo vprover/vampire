@@ -205,6 +205,16 @@ void InferenceStore::recordSplitting(Clause* master, BDDNode* oldMasterProp, BDD
   _splittingRecords.insert(mcs, srec);
 }
 
+VirtualIterator<InferenceStore::ClauseSpec> InferenceStore::getParents(Clause* cl)
+{
+  ClauseSpec cs=getClauseSpec(cl);
+
+  //TODO: implement!
+  NOT_IMPLEMENTED;
+
+  return VirtualIterator<InferenceStore::ClauseSpec>::getEmpty();
+}
+
 string getQuantifiedStr(Unit* u)
 {
   Set<unsigned> vars;
