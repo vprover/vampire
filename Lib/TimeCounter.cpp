@@ -129,6 +129,9 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   case TC_FORWARD_SUBSUMPTION:
     env.out<<"forward subsumption";
     break;
+  case TC_FORWARD_SUBSUMPTION_RESOLUTION:
+    env.out<<"forward subsumption resolution";
+    break;
   case TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE:
     env.out<<"simplifying unit clause index maintenance";
     break;

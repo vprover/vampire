@@ -26,6 +26,7 @@ enum TimeCounterUnit
   TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE,
   TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE,
   TC_FORWARD_SUBSUMPTION,
+  TC_FORWARD_SUBSUMPTION_RESOLUTION,
   TC_BACKWARD_SUBSUMPTION,
   TC_FORWARD_DEMODULATION,
   TC_BACKWARD_DEMODULATION,
@@ -51,6 +52,19 @@ public:
   }
 
   static void printReport();
+
+
+  /**
+   * Stop time measuring. If not called, time measuring is
+   * stopped in the destructor.
+   */
+  void stop()
+  {
+    if(!s_measuring) return;
+    stopMeasuring();
+    _tcu=__TC_NONE;
+  }
+
 
 private:
   void startMeasuring(TimeCounterUnit tcu);

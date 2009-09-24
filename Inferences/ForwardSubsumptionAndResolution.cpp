@@ -240,7 +240,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
   }
 
 
-  TimeCounter tc(TC_FORWARD_SUBSUMPTION);
+  TimeCounter tc_fs(TC_FORWARD_SUBSUMPTION);
 
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
@@ -277,12 +277,12 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
       ClauseMatches* cms=new ClauseMatches(mcl);
       mcl->setAux(cms);
       cmStore.push(cms);
-//      cms->addMatch(res.literal, (*cl)[li]);
-//      cms->fillInMatches(&miniIndex, res.literal, (*cl)[li]);
+      //      cms->addMatch(res.literal, (*cl)[li]);
+      //      cms->fillInMatches(&miniIndex, res.literal, (*cl)[li]);
       cms->fillInMatches(&miniIndex);
 
       if(cms->anyNonMatched()) {
-        continue;
+	continue;
       }
 
       if(MLMatcher::canBeMatched(mcl,cl,cms->_matches,0) && simplPerformer->willPerform(mcl)) {
@@ -294,65 +294,72 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
       }
     }
   }
+
+  tc_fs.stop();
+
   if(!_subsumptionResolution) {
     goto fin;
   }
 
-  for(unsigned li=0;li<clen;li++) {
-    Literal* resLit=(*cl)[li];
-    SLQueryResultIterator rit=_unitIndex->getGeneralizations( resLit, true, false);
-    while(rit.hasNext()) {
-      Clause* mcl=rit.next().clause;
-      if(simplPerformer->willPerform(mcl)) {
-	resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
-	simplPerformer->perform(mcl, resolutionClause);
-	if(!simplPerformer->clauseKept()) {
-	  goto fin;
-	}
-      }
-    }
-  }
-
   {
-    CMStack::Iterator csit(cmStore);
-    while(csit.hasNext()) {
-      ClauseMatches* cms=csit.next();
-      for(unsigned li=0;li<clen;li++) {
-	Literal* resLit=(*cl)[li];
-	if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
-	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-	  simplPerformer->perform(cms->_cl, resolutionClause);
+    TimeCounter tc_fsr(TC_FORWARD_SUBSUMPTION_RESOLUTION);
+
+    for(unsigned li=0;li<clen;li++) {
+      Literal* resLit=(*cl)[li];
+      SLQueryResultIterator rit=_unitIndex->getGeneralizations( resLit, true, false);
+      while(rit.hasNext()) {
+	Clause* mcl=rit.next().clause;
+	if(simplPerformer->willPerform(mcl)) {
+	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
+	  simplPerformer->perform(mcl, resolutionClause);
 	  if(!simplPerformer->clauseKept()) {
 	    goto fin;
 	  }
 	}
       }
     }
-  }
 
-  for(unsigned li=0;li<clen;li++) {
-    Literal* resLit=(*cl)[li];	//resolved literal
-    Set<Clause*> matchedClauses;
-    SLQueryResultIterator rit=_fwIndex->getGeneralizations( resLit, true, false);
-    while(rit.hasNext()) {
-      SLQueryResult res=rit.next();
-      Clause* mcl=res.clause;
-
-      if(mcl->hasAux()) {
-	//we have already examined this clause
-	continue;
+    {
+      CMStack::Iterator csit(cmStore);
+      while(csit.hasNext()) {
+	ClauseMatches* cms=csit.next();
+	for(unsigned li=0;li<clen;li++) {
+	  Literal* resLit=(*cl)[li];
+	  if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
+	    resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
+	    simplPerformer->perform(cms->_cl, resolutionClause);
+	    if(!simplPerformer->clauseKept()) {
+	      goto fin;
+	    }
+	  }
+	}
       }
+    }
 
-      ClauseMatches* cms=new ClauseMatches(mcl);
-      res.clause->setAux(cms);
-      cmStore.push(cms);
-      cms->fillInMatches(&miniIndex);
+    for(unsigned li=0;li<clen;li++) {
+      Literal* resLit=(*cl)[li];	//resolved literal
+      Set<Clause*> matchedClauses;
+      SLQueryResultIterator rit=_fwIndex->getGeneralizations( resLit, true, false);
+      while(rit.hasNext()) {
+	SLQueryResult res=rit.next();
+	Clause* mcl=res.clause;
 
-      if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
-	resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-	simplPerformer->perform(cms->_cl, resolutionClause);
-	if(!simplPerformer->clauseKept()) {
-	  goto fin;
+	if(mcl->hasAux()) {
+	  //we have already examined this clause
+	  continue;
+	}
+
+	ClauseMatches* cms=new ClauseMatches(mcl);
+	res.clause->setAux(cms);
+	cmStore.push(cms);
+	cms->fillInMatches(&miniIndex);
+
+	if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
+	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
+	  simplPerformer->perform(cms->_cl, resolutionClause);
+	  if(!simplPerformer->clauseKept()) {
+	    goto fin;
+	  }
 	}
       }
     }
