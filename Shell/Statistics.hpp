@@ -90,6 +90,10 @@ public:
   unsigned forwardSubsumed;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed;
+  /** number of subsumed empty clauses */
+  unsigned subsumedEmptyClauses;
+  /** number of empty clause subsumptions */
+  unsigned emptyClauseSubsumptions;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

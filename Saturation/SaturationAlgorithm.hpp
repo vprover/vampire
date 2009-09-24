@@ -79,6 +79,7 @@ protected:
   void onUnprocessedRemoved(Clause* c);
   void onUnprocessedSelected(Clause* c);
   void onNewClause(Clause* c);
+  void onNewUsefulPropositionalClause(Clause* c);
 
   void handleSaturationStart();
   int elapsedTime();
@@ -91,6 +92,8 @@ private:
   void addInputClause(Clause* cl);
   void addUnprocessedFinalClause(Clause* cl);
   Clause* handleEmptyClause(Clause* cl);
+
+  void performEmptyClauseSubsumption(Clause* cl);
 
   Limits _limits;
   IndexManager _imgr;

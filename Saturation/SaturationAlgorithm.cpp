@@ -159,12 +159,6 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
   if(env.options->showPassive()) {
     cout<<"Passive: "<<c->toTPTPString()<<endl;
   }
-  if(env.options->showNewPropositional() && c->isPropositional()) {
-    VirtualIterator<string> clStrings=c->toSimpleClauseStrings();
-    while(clStrings.hasNext()) {
-      cout<<"New propositional: "<<clStrings.next()<<endl;
-    }
-  }
 }
 
 /**
@@ -245,6 +239,25 @@ void SaturationAlgorithm::onNewClause(Clause* c)
 
   if(env.options->showNew()) {
     cout<<"New: "<<c->toTPTPString()<<endl;
+  }
+
+#if !PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
+  if(c->isPropositional()) {
+    onNewUsefulPropositionalClause(c);
+  }
+#endif
+}
+
+void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
+{
+  CALL("SaturationAlgorithm::onNewUsefulPropositionalClause");
+  ASS(c->isPropositional());
+
+  if(env.options->showNewPropositional()) {
+    VirtualIterator<string> clStrings=c->toSimpleClauseStrings();
+    while(clStrings.hasNext()) {
+      cout<<"New propositional: "<<clStrings.next()<<endl;
+    }
   }
 }
 
@@ -652,11 +665,15 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
     static BDDConjunction ecProp;
     static Stack<InferenceStore::ClauseSpec> emptyClauses;
 
+#if PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
+    onNewUsefulPropositionalClause(cl);
+#endif
     ecProp.addNode(cl->prop());
     if(ecProp.isFalse()) {
       InferenceStore::instance()->recordMerge(cl, cl->prop(), emptyClauses.begin(),
 	      emptyClauses.size(), bdd->getFalse());
       cl->setProp(bdd->getFalse());
+      onNewUsefulPropositionalClause(cl);
       return cl;
     } else {
       emptyClauses.push(InferenceStore::getClauseSpec(cl));
@@ -669,16 +686,38 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
       return 0;
     }
     BDDNode* newProp=bdd->conjunction(accumulator->prop(), cl->prop());
+#if PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
+    if(newProp!=accumulator->prop()) {
+      onNewUsefulPropositionalClause(cl);
+    }
+#endif
     if(bdd->isFalse(newProp)) {
       InferenceStore::instance()->recordMerge(cl, cl->prop(), accumulator, newProp);
       cl->setProp(newProp);
+      onNewUsefulPropositionalClause(cl);
       return cl;
     }
-    InferenceStore::instance()->recordMerge(accumulator, accumulator->prop(), cl, newProp);
-    accumulator->setProp(newProp);
+    if(newProp!=accumulator->prop()) {
+      InferenceStore::instance()->recordMerge(accumulator, accumulator->prop(), cl, newProp);
+      accumulator->setProp(newProp);
+    } else {
+      env.statistics->subsumedEmptyClauses++;
+      if(env.options->emptyClauseSubsumption()) {
+	performEmptyClauseSubsumption(cl);
+      }
+    }
     return 0;
   }
 }
+
+void SaturationAlgorithm::performEmptyClauseSubsumption(Clause* cl)
+{
+  CALL("SaturationAlgorithm::performEmptyClauseSubsumption");
+  ASS(cl->isEmpty());
+
+
+}
+
 
 void SaturationAlgorithm::reanimate(Clause* cl)
 {

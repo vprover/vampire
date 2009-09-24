@@ -49,6 +49,8 @@ Statistics::Statistics()
     equationalTautologies(0),
     forwardSubsumed(0),
     backwardSubsumed(0),
+    subsumedEmptyClauses(0),
+    emptyClauseSubsumptions(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -103,6 +105,8 @@ void Statistics::print()
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
+  COND_OUT("Subsumed empty clauses", subsumedEmptyClauses);
+  COND_OUT("Empty clause subsumptions", emptyClauseSubsumptions);
   SEPARATOR;
 
   COND_OUT("Binary resolution", resolution);
