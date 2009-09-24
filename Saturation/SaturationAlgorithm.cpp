@@ -28,14 +28,28 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Saturation;
 
+/** Print information changes in clause containers */
 #define REPORT_CONTAINERS 0
+/** Print information about performed forward simplifications */
 #define REPORT_FW_SIMPL 0
+/** Print information about performed backward simplifications */
 #define REPORT_BW_SIMPL 0
+/** Perform simplification on a clause only if it leads to its deletion
+ * (i.e. propositional part of the premise implies propositional part
+ * of the simplified clause. */
 #define TOTAL_SIMPLIFICATION_ONLY 1
+/** Perform forward demodulation before a clause is passed to splitting */
 #define FW_DEMODULATION_FIRST 1
 
+/** Always split out propositional literals to the propositional part of the clause */
 #define PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD 1
 
+/**
+ * Create a SaturationAlgorithm object
+ *
+ * The @b passiveContainer object will be used as a passive clause container, and
+ * @b selector object to select literals before clauses are activated.
+ */
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
 : _imgr(this), _passive(passiveContainer), _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector)
@@ -63,6 +77,9 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
 
 }
 
+/**
+ * Destroy the SaturationAlgorithm object
+ */
 SaturationAlgorithm::~SaturationAlgorithm()
 {
 
@@ -91,6 +108,9 @@ SaturationAlgorithm::~SaturationAlgorithm()
   delete _active;
 }
 
+/**
+ * A function that is called when a clause is added to the active clause container.
+ */
 void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
 #if REPORT_CONTAINERS
@@ -102,6 +122,9 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
   }
 }
 
+/**
+ * A function that is called when a clause is removed from the active clause container.
+ */
 void SaturationAlgorithm::onActiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onActiveRemoved");
@@ -124,6 +147,9 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
 #endif
 }
 
+/**
+ * A function that is called when a clause is added to the passive clause container.
+ */
 void SaturationAlgorithm::onPassiveAdded(Clause* c)
 {
 #if REPORT_CONTAINERS
@@ -141,6 +167,11 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
   }
 }
 
+/**
+ * A function that is called when a clause is removed from the active clause container.
+ * The function is not called when a selected clause is removed from the passive container.
+ * In this case the @b onPassiveSelected method is called.
+ */
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
@@ -164,6 +195,13 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 
 }
 
+/**
+ * A function that is called when a clause is selected and removed from the passive
+ * clause container to be activated.
+ *
+ * The clause @b c might not necessarily get to the activation, it can still be
+ * removed by some simplification rule (in case of the Discount saturation algorithm).
+ */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
 #if REPORT_CONTAINERS
@@ -171,6 +209,9 @@ void SaturationAlgorithm::onPassiveSelected(Clause* c)
 #endif
 }
 
+/**
+ * A function that is called when a clause is added to the unprocessed clause container.
+ */
 void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
 {
 #if REPORT_CONTAINERS
@@ -178,6 +219,9 @@ void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
 #endif
 }
 
+/**
+ * A function that is called when a clause is removed from the active clause container.
+ */
 void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
 {
 #if REPORT_CONTAINERS
@@ -193,7 +237,7 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 }
 
 /**
- * A method that is called whenever a possibly new clause appears.
+ * A function that is called whenever a possibly new clause appears.
  */
 void SaturationAlgorithm::onNewClause(Clause* c)
 {
@@ -206,9 +250,9 @@ void SaturationAlgorithm::onNewClause(Clause* c)
 
 
 /**
- * This method is subscribed to the remove event of the active container
- * instead of the @b onActiveRemoved method in the constructor, as the
- * @b onActiveRemoved method is virtual.
+ * This function is subscribed to the remove event of the active container
+ * instead of the @b onActiveRemoved function in the constructor, as the
+ * @b onActiveRemoved function is virtual.
  */
 void SaturationAlgorithm::activeRemovedHandler(Clause* cl)
 {
@@ -218,9 +262,9 @@ void SaturationAlgorithm::activeRemovedHandler(Clause* cl)
 }
 
 /**
- * This method is subscribed to the remove event of the passive container
- * instead of the @b onPassiveRemoved method in the constructor, as the
- * @b onPassiveRemoved method is virtual.
+ * This function is subscribed to the remove event of the passive container
+ * instead of the @b onPassiveRemoved function in the constructor, as the
+ * @b onPassiveRemoved function is virtual.
  */
 void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
 {
@@ -229,6 +273,13 @@ void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
   onPassiveRemoved(cl);
 }
 
+
+/**
+ * A function that is called as a first thing in the @b saturate() function.
+ *
+ * The @b saturate function is abstract and implemented by inheritors. It is therefore
+ * up to them to call this function as they should.
+ */
 void SaturationAlgorithm::handleSaturationStart()
 {
   _startTime=env.timer->elapsedMilliseconds();

@@ -32,6 +32,9 @@ namespace Kernel {
 using namespace Lib;
 using namespace SAT;
 
+BDDNode BDD::_trueNode(-1,0,0);
+BDDNode BDD::_falseNode(-1,0,0);
+
 /**
  * Return the singleton instance of the BDD class
  */
@@ -52,14 +55,6 @@ BDD* BDD::instance()
 BDD::BDD()
 : _newVar(1)
 {
-  _trueNode._var=-1;
-  _falseNode._var=-1;
-#ifdef VDEBUG
-  _trueNode._pos=0;
-  _trueNode._neg=0;
-  _falseNode._pos=0;
-  _falseNode._neg=0;
-#endif
 }
 
 /**
@@ -225,12 +220,16 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
   int counter=0;
 
   static Stack<BDDNode*> toDo(8);
-  //results stack contains zeroes and proper pointers standing for
+  //Results stack contains zeroes and proper pointers standing for
   //intermediate results.
   //It can be viewed as a prefix of an expression in prefix notation
   //with 0 being a binary function and non-zeroes constants.
   //The expression is being simplified every time a well formed
   //subexpression (i.e. zero followed by two non-zeroes) appears.
+  //
+  //For the purpose of caching, each 0 is preceeded by two pointers that
+  //will be used as a key in the cache to store the result when it is
+  //assembled.
   static Stack<BDDNode*> results(8);
   //Variable numbers to be used for building intermediate results in
   //the results stack.

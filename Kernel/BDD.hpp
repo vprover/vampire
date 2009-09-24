@@ -44,6 +44,7 @@ public:
   USE_ALLOCATOR(BDDNode);
 private:
   BDDNode() {}
+  BDDNode(int var, BDDNode* pos, BDDNode* neg) : _var(var), _pos(pos), _neg(neg) {}
 
   int _var;
   BDDNode* _pos;
@@ -124,7 +125,7 @@ private:
   struct ConjunctionFn
   {
     ConjunctionFn(BDD* parent) : _parent(parent) {}
-    BDDNode* operator()(BDDNode* n1, BDDNode* n2);
+    inline BDDNode* operator()(BDDNode* n1, BDDNode* n2);
     BDD* _parent;
   };
 
@@ -136,7 +137,7 @@ private:
   struct DisjunctionFn
   {
     DisjunctionFn(BDD* parent) : _parent(parent) {}
-    BDDNode* operator()(BDDNode* n1, BDDNode* n2);
+    inline BDDNode* operator()(BDDNode* n1, BDDNode* n2);
     BDD* _parent;
   };
 
@@ -148,15 +149,15 @@ private:
   struct XOrNonYFn
   {
     XOrNonYFn(BDD* parent) : _parent(parent) {}
-    BDDNode* operator()(BDDNode* n1, BDDNode* n2);
+    inline BDDNode* operator()(BDDNode* n1, BDDNode* n2);
     BDD* _parent;
   };
 
 
   /** BDD node representing the true formula */
-  BDDNode _trueNode;
+  static BDDNode _trueNode;
   /** BDD node representing the false formula */
-  BDDNode _falseNode;
+  static BDDNode _falseNode;
 
   /** Type that stores the set of all non-constant BDD nodes */
   typedef Set<BDDNode*,BDD> NodeSet;
