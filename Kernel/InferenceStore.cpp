@@ -209,10 +209,13 @@ VirtualIterator<InferenceStore::ClauseSpec> InferenceStore::getParents(Clause* c
 {
   ClauseSpec cs=getClauseSpec(cl);
 
-  //TODO: implement!
-  NOT_IMPLEMENTED;
+  FullInference* finf;
+  if(!_data.find(cs, finf)) {
+    //TODO: implement retrieval of parents from inferences not stored in _data
+    return VirtualIterator<InferenceStore::ClauseSpec>::getEmpty();
+  }
 
-  return VirtualIterator<InferenceStore::ClauseSpec>::getEmpty();
+  return pvi( PointerIterator<ClauseSpec>(finf->premises, finf->premises+finf->premCnt) );
 }
 
 string getQuantifiedStr(Unit* u)

@@ -52,7 +52,7 @@ using namespace Saturation;
  */
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
-: _imgr(this), _passive(passiveContainer), _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector)
+: _imgr(this), _clauseActivationInProgress(false), _passive(passiveContainer), _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector)
 {
   _performSplitting= env.options->splitting()!=Options::RA_OFF;
 
@@ -706,26 +706,48 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
     } else {
       env.statistics->subsumedEmptyClauses++;
       if(env.options->emptyClauseSubsumption()) {
-	performEmptyClauseSubsumption(cl);
+	performEmptyClauseSubsumption(cl, accumulator->prop());
       }
     }
     return 0;
   }
 }
 
-void SaturationAlgorithm::performEmptyClauseSubsumption(Clause* cl)
+void SaturationAlgorithm::performEmptyClauseSubsumption(Clause* cl, BDDNode* emptyClauseProp)
 {
   CALL("SaturationAlgorithm::performEmptyClauseSubsumption");
   ASS(cl->isEmpty());
+
+  BDD* bdd=BDD::instance();
 
   static Stack<Clause*> parentsToCheck;
   ASS(parentsToCheck.isEmpty());
   parentsToCheck.push(cl);
 
   for(;;) {
+    VirtualIterator<InferenceStore::ClauseSpec> parents=InferenceStore::instance()->getParents(cl);
 
-    //TODO: implement!
-    NOT_IMPLEMENTED;
+    while(parents.hasNext()) {
+      Clause* par=parents.next().first;
+      if(par->store()!=Clause::ACTIVE &&
+	  par->store()!=Clause::PASSIVE &&
+	  par->store()!=Clause::REACTIVATED) {
+	continue;
+      }
+      if(!par->prop() || bdd->isTrue(par->prop())) {
+	continue;
+      }
+      if(!bdd->isXOrNonYConstant(par->prop(), emptyClauseProp, true)) {
+	continue;
+      }
+      par->setProp(bdd->getTrue());
+      removeBackwardSimplifiedClause(par);
+      env.statistics->emptyClauseSubsumptions++;
+      //Here we assume that the clause object did not get deleted!
+      //(it is fine at the time of writing this function,
+      //as we now do not delete any clause objects)
+      parentsToCheck.push(par);
+    }
 
     if(parentsToCheck.isEmpty()) {
       break;
@@ -891,6 +913,15 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 
 void SaturationAlgorithm::removeBackwardSimplifiedClause(Clause* cl)
 {
+  CALL("SaturationAlgorithm::removeBackwardSimplifiedClause");
+
+  if(_clauseActivationInProgress) {
+    //we cannot remove clause now, as there indexes might be traversed now,
+    //and so we cannot modify them
+    _postponedClauseRemovals.push(cl);
+    return;
+  }
+
   switch(cl->store()) {
   case Clause::PASSIVE:
     _passive->remove(cl);
@@ -922,6 +953,8 @@ void SaturationAlgorithm::addToPassive(Clause* c)
 void SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
+
+  _clauseActivationInProgress=true;
 
   if(!cl->selected()) {
     _selector->select(cl);
@@ -970,6 +1003,19 @@ void SaturationAlgorithm::activate(Clause* cl)
     InferenceStore::instance()->recordNonPropInference(genCl);
 
     addUnprocessedClause(genCl);
+  }
+
+  _clauseActivationInProgress=false;
+
+  //now we remove clauses that could not be removed during the clause activation process
+  while(_postponedClauseRemovals.isNonEmpty()) {
+    Clause* cl=_postponedClauseRemovals.pop();
+    if(cl->store()!=Clause::ACTIVE &&
+	cl->store()!=Clause::PASSIVE &&
+	cl->store()!=Clause::REACTIVATED) {
+      continue;
+    }
+    removeBackwardSimplifiedClause(cl);
   }
 }
 

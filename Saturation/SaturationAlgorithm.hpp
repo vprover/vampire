@@ -93,7 +93,7 @@ private:
   void addUnprocessedFinalClause(Clause* cl);
   Clause* handleEmptyClause(Clause* cl);
 
-  void performEmptyClauseSubsumption(Clause* cl);
+  void performEmptyClauseSubsumption(Clause* cl, BDDNode* emptyClauseProp);
 
   void removeBackwardSimplifiedClause(Clause* cl);
 
@@ -103,6 +103,9 @@ protected:
 
   int _startTime;
   bool _performSplitting;
+  bool _clauseActivationInProgress;
+
+  Stack<Clause*> _postponedClauseRemovals;
 
   UnprocessedClauseContainer* _unprocessed;
   PassiveClauseContainerSP _passive;
