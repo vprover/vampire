@@ -298,15 +298,26 @@ void SaturationAlgorithm::handleSaturationStart()
   _startTime=env.timer->elapsedMilliseconds();
 }
 
+/**
+ * Return time spent by the run of the saturation algorithm
+ */
 int SaturationAlgorithm::elapsedTime()
 {
   return env.timer->elapsedMilliseconds()-_startTime;
 }
 
-
+/**
+ * Add input clause @b cl into the SaturationAlgorithm object
+ *
+ * The clause @b cl is added into the unprocessed container, unless the
+ * set-of-support option is enabled and @b cl has input type equal to
+ * @b Clause::AXIOM. In this case, @b cl is put into the active container.
+ */
 void SaturationAlgorithm::addInputClause(Clause* cl)
 {
+  CALL("SaturationAlgorithm::addInputClause");
   ASS_EQ(cl->prop(),0);
+
   cl->setProp(BDD::instance()->getFalse());
 
 #if PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
@@ -323,8 +334,14 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   env.statistics->initialClauses++;
 }
 
+/**
+ * Add an input set-of-support clause @b cl into the active container
+ */
 void SaturationAlgorithm::addInputSOSClause(Clause*& cl)
 {
+  CALL("SaturationAlgorithm::addInputSOSClause");
+  ASS_EQ(cl->inputType(),Clause::AXIOM);
+
   onNewClause(cl);
 
   bool simplified;
@@ -351,10 +368,15 @@ void SaturationAlgorithm::addInputSOSClause(Clause*& cl)
 
 
 /**
- * Insert input clauses into ste unprocessed container.
+ * Insert input clauses into the SaturationAlgorithm object.
+ *
+ * It usually means adding all clauses yielded by the @b toAdd iterator
+ * into the unprocessed container, but not always (see the set-of-support
+ * option).
  */
 void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
 {
+  CALL("SaturationAlgorithm::addInputClauses");
 
   while(toAdd.hasNext()) {
     Clause* cl=toAdd.next();
@@ -366,6 +388,12 @@ void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
   }
 }
 
+/**
+ * Return true iff clause @b c is refutation clause.
+ *
+ * Deriving a refutation clause means that the saturation algorithm can
+ * terminate with success.
+ */
 bool SaturationAlgorithm::isRefutation(Clause* c)
 {
   CALL("SaturationAlgorithm::isRefutation");
