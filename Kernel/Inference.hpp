@@ -180,6 +180,8 @@ public:
     PROP_REDUCE,
     /** clause naming */
     CLAUSE_NAMING,
+    /** bddzation */
+    BDDZATION,
     /** tautology introduction */
     TAUTOLOGY_INTRODUCTION
   }; // class Inference::Rule

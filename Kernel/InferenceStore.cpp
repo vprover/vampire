@@ -262,6 +262,8 @@ struct InferenceStore::ProofPrinter
   ProofPrinter(Unit* refutation, ostream& out, InferenceStore* is)
   : is(is), out(out), bdd(BDD::instance()), dummyTautIntroduction(0)
   {
+    CALL("InferenceStore::ProofPrinter::ProofPrinter");
+
     dummyTautIntroduction.rule=Inference::TAUTOLOGY_INTRODUCTION;
 
     if( refutation->isClause() && static_cast<Clause*>(refutation)->prop() ) {
@@ -337,8 +339,10 @@ struct InferenceStore::ProofPrinter
 
     ClauseSpec prevCs=getClauseSpec(cl, sr->oldResBDD);
     out <<"["<<Inference::ruleName(Inference::SPLITTING)<<" "
-      <<is->getClauseIdStr(sr->premise)<<","
-      <<is->getClauseIdStr(prevCs);
+      <<is->getClauseIdStr(sr->premise);
+    if(!bdd->isTrue(prevCs.second)) {
+      out <<","<<is->getClauseIdStr(prevCs);
+    }
 
     requestKernelProofStep(prevCs);
 
@@ -357,7 +361,7 @@ struct InferenceStore::ProofPrinter
       } else {
 	out<<getQuantifiedStr(nrec.second);
       }
-      out<<" <=> bddPred"<<nrec.first
+      out<<" <=> "<<bdd->getPropositionalPredicateName(nrec.first)
 	  <<" ["<<Inference::ruleName(Inference::SPLITTING_COMPONENT)<<"]\n";
     }
   }
@@ -369,7 +373,7 @@ struct InferenceStore::ProofPrinter
 
   void requestKernelProofStep(ClauseSpec prem)
   {
-    if(!handledKernel.contains(prem)) {
+    if(!bdd->isTrue(prem.second) && !handledKernel.contains(prem)) {
       handledKernel.insert(prem);
       outKernel.push(prem);
     }
@@ -377,16 +381,14 @@ struct InferenceStore::ProofPrinter
 
   void print()
   {
+    CALL("InferenceStore::ProofPrinter::print");
+
     while(outKernel.isNonEmpty()) {
       ClauseSpec cs=outKernel.pop();
       FullInference* finf;
       if(bdd->isTrue(cs.second)) {
-	//a tautology does not need any proof
-	ASS(!is->_data.find(cs));
-	if(!hideProofStep(Inference::TAUTOLOGY_INTRODUCTION)) {
-	  printProofStepHead(cs, &dummyTautIntroduction);
-	  printProofStepTail();
-	}
+	//tautologies should not be printed out
+	ASSERTION_VIOLATION;
       } else if(is->_data.find(cs, finf)) {
 	bool hideStep=hideProofStep(finf->rule);
 
@@ -403,7 +405,7 @@ struct InferenceStore::ProofPrinter
 	  ClauseSpec prem=finf->premises[i];
 	  ASS(prem!=cs);
 	  Clause* premCl=prem.first;
-	  if(!hideStep) {
+	  if(!hideStep && !bdd->isTrue(prem.second)) {
 	    printProofStepPremise(prem, i==0);
 	  }
 	  ASS(premCl->prop());
@@ -429,6 +431,7 @@ struct InferenceStore::ProofPrinter
 	  }
 	  first=false;
 	  if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
+	    //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
 	    ClauseSpec premCS=getClauseSpec(static_cast<Clause*>(prem), bdd->getFalse());
 	    requestKernelProofStep(premCS);
 	  } else {

@@ -329,6 +329,8 @@ string Inference::ruleName(Rule rule)
     return "prop reduce";
   case CLAUSE_NAMING:
     return "clause naming";
+  case BDDZATION:
+    return "bddzation";
   case TAUTOLOGY_INTRODUCTION:
     return "tautology introduction";
 

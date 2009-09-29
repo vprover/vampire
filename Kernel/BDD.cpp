@@ -90,14 +90,17 @@ string BDD::getPropositionalPredicateName(int var)
 {
   CALL("BDD::getPropositionalPredicateName");
 
-  string prefix(BDD_PREDICATE_PREFIX);
-  prefix+=env.options->namePrefix();
-  string name = prefix + Int::toString(var);
+  string name;
+  if(!getNiceName(var, name)) {
+    string prefix(BDD_PREDICATE_PREFIX);
+    prefix+=env.options->namePrefix();
+    name = prefix + Int::toString(var);
 
-  //We do not want the predicate to be already present!
-  //(But we also don't want to insert it into signature,
-  //as it would grow too much.)
-  ASS(!env.signature->isPredicateName(name, 0));
+    //We do not want the predicate to be already present!
+    //(But we also don't want to insert it into signature,
+    //as it would grow too much.)
+    ASS(!env.signature->isPredicateName(name, 0));
+  }
 
   return name;
 }
@@ -471,7 +474,7 @@ string BDD::toString(BDDNode* node)
     } else if(isFalse(n)) {
       res+="$false ";
     } else {
-      res+=string("( ")+Int::toString(n->_var)+" ? ";
+      res+=string("( ")+getPropositionalPredicateName(n->_var)+" ? ";
       nodes.push(0);
       nodes.push(n->_neg);
       nodes.push(n->_pos);

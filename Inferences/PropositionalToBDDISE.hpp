@@ -28,19 +28,10 @@ public:
   Clause* simplify(Clause* cl);
 
 private:
-  void getPropPredName(Literal* lit, int& name, Clause*& premise, bool& newPremise);
+  int getPropPredName(Literal* lit);
 
   /** Names assigned to propositional predicates */
   DHMap<unsigned, int> _propPredNames;
-
-  /** Clauses to be used as premises for replacing
-   * positive predicate occurence by name */
-  DHMap<unsigned, Clause*> _propPredPosNamePremises;
-
-  /** Clauses to be used as premises for replacing
-   * negative predicate occurence by name */
-  DHMap<unsigned, Clause*> _propPredNegNamePremises;
-
 };
 
 };

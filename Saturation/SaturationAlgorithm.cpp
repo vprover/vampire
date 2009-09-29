@@ -403,7 +403,13 @@ bool SaturationAlgorithm::isRefutation(Clause* c)
   return c->isEmpty() && bdd->isFalse(c->prop());
 }
 
-
+/**
+ * Class of @b ForwardSimplificationPerformer objects that
+ * perform the forward simplification only if it leads to
+ * deletion of the clause being simplified. (I.e. other
+ * possibility would be to also perform simplifications that
+ * only alter clause's BDD.)
+ */
 class TotalSimplificationPerformer
 : public ForwardSimplificationPerformer
 {
@@ -472,6 +478,12 @@ private:
   ClauseList* _toAddLst;
 };
 
+/**
+ * Class of @b ForwardSimplificationPerformer objects that
+ * perform the forward simplification anytime it is possible.
+ * I.e. not only if it leads to the deletion of the clause
+ * being simplified.
+ */
 class PartialSimplificationPerformer
 : public ForwardSimplificationPerformer
 {
@@ -541,10 +553,10 @@ private:
 };
 
 /**
- * Perform immediate simplifications on a clause and add it
+ * Perform immediate simplifications and splitting on clause @b cl and add it
  * to unprocessed.
  *
- * Splitting is also being performed in this method.
+ * Forward demodulation is also being performed on @b cl.
  */
 void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
@@ -654,6 +666,11 @@ simplificationStart:
   }
 }
 
+/**
+ * Add clause @b cl to the unprocessed container without performing any
+ * simplifications. Only clauses with empty non-propositional part are
+ * dealt with specially by the @b handleEmptyClause function.
+ */
 void SaturationAlgorithm::addUnprocessedFinalClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addUnprocessedFinalClause");

@@ -95,6 +95,17 @@ public:
   virtual Clause* simplify(Clause* cl) = 0;
 };
 
+/**
+ * A ForwardSimplificationPerformer object should be handed to
+ * a forward simplification inference with each simplification request,
+ * so that the inference object (which works only with non-propositional
+ * parts of clauses) can tell whether the forward simplification can be
+ * peformed by the @b premise clause from the propositional part point
+ * of view.
+ *
+ * It also allows for simplifications that only modify the propositional
+ * part of a clause instead of deleting it.
+ */
 class ForwardSimplificationPerformer
 {
 public:
