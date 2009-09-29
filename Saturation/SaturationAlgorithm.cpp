@@ -758,6 +758,20 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
   }
 }
 
+/**
+ * Perform a kind of backward subsumption by an empty clause, assuming that
+ * the propositional part of the empty clause is @b emptyClauseProp.
+ *
+ * The subsumption checks only clauses that are ancestors of @b cl. First
+ * its parents is checked for being subsumed, and if some is, its parents
+ * are checked as well etc...
+ *
+ * The deletion of subsumed clauses is performed by the @b removeBackwardSimplifiedClause
+ * function. As the @b performEmptyClauseSubsumption is to be called during
+ * clause activation, when some indexes are being traversed (and so cannot
+ * be modified), the clause deletion is postponed by the @b removeBackwardSimplifiedClause
+ * until the clause activation is over.
+ */
 void SaturationAlgorithm::performEmptyClauseSubsumption(Clause* cl, BDDNode* emptyClauseProp)
 {
   CALL("SaturationAlgorithm::performEmptyClauseSubsumption");
@@ -799,10 +813,17 @@ void SaturationAlgorithm::performEmptyClauseSubsumption(Clause* cl, BDDNode* emp
     }
     cl=parentsToCheck.pop();
   }
-
 }
 
 
+/**
+ * Reanimace clause @b cl
+ *
+ * Reanimation of a clause means that an active clause is put into
+ * the passive container, so that it will be used once again for
+ * generating inferences. In the meantime the clause still remains
+ * also in the active container, so that we save on index updates.
+ */
 void SaturationAlgorithm::reanimate(Clause* cl)
 {
   CALL("SaturationAlgorithm::reanimate");
