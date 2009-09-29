@@ -170,6 +170,19 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl
   _data.insert(getClauseSpec(cl, resultProp), finf);
 }
 
+void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedProp, BDDNode* resultProp)
+{
+  CALL("InferenceStore::recordMerge/4");
+  ASS(!_bdd->isTrue(resultProp));
+
+  FullInference* finf=new (2) FullInference(2);
+  finf->premises[0]=getClauseSpec(cl, oldProp);
+  finf->premises[1]=getClauseSpec(cl, addedProp);
+  finf->rule=Inference::COMMON_NONPROP_MERGE;
+  _data.insert(getClauseSpec(cl, resultProp), finf);
+}
+
+
 void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* addedCls, int addedClsCnt,
 	BDDNode* resultProp)
 {
@@ -186,21 +199,18 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* add
 }
 
 
-void InferenceStore::recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
-	  unsigned premCnt, Clause** prems, SplittingRecord* srec)
+void InferenceStore::recordSplitting(SplittingRecord* srec, unsigned premCnt, Clause** prems)
 {
   CALL("InferenceStore::recordSplitting");
-  ASS(!_bdd->isTrue(newMasterProp));
+  ASS(!_bdd->isTrue(srec->result.second));
 
-  FullInference* finf=new (premCnt+1) FullInference(premCnt+1);
+  FullInference* finf=new (premCnt) FullInference(premCnt);
   for(unsigned i=0;i<premCnt;i++) {
     finf->premises[i]=getClauseSpec(prems[i]);
   }
-  finf->premises[premCnt]=getClauseSpec(master, oldMasterProp);
 
   finf->rule=Inference::SPLITTING;
-  ClauseSpec mcs=getClauseSpec(master, newMasterProp);
-  _data.insert(mcs, finf);
+  _data.insert(srec->result, finf);
 
   _splittingRecords.insert(mcs, srec);
 }
@@ -337,14 +347,8 @@ struct InferenceStore::ProofPrinter
     }
     out << " ("<<cl->age()<<':'<<cl->weight()<<") ";
 
-    ClauseSpec prevCs=getClauseSpec(cl, sr->oldResBDD);
     out <<"["<<Inference::ruleName(Inference::SPLITTING)<<" "
       <<is->getClauseIdStr(sr->premise);
-    if(!bdd->isTrue(prevCs.second)) {
-      out <<","<<is->getClauseIdStr(prevCs);
-    }
-
-    requestKernelProofStep(prevCs);
 
     Stack<pair<int,Clause*> >::Iterator compIt(sr->namedComps);
     while(compIt.hasNext()) {
@@ -541,9 +545,6 @@ struct InferenceStore::TPTPProofCheckPrinter
 
     ClauseSpec cs=sr->result;
     Clause* cl=cs.first;
-    ClauseSpec prevCs=getClauseSpec(cl, sr->oldResBDD);
-
-    requestKernelProofStep(prevCs);
 
     out << "fof(r"<<is->getClauseIdStr(cs)
     	<< ",conjecture, "
@@ -553,11 +554,6 @@ struct InferenceStore::TPTPProofCheckPrinter
     out << "fof(pr"<<is->getClauseIdStr(sr->premise)
     	<< ",axiom, "
     	<< getQuantifiedStr(sr->premise.first) <<" | "<<bddToString(sr->premise.second)
-    	<< " ).\n";
-
-    out << "fof(pr"<<is->getClauseIdStr(prevCs)
-    	<< ",axiom, "
-    	<< getQuantifiedStr(prevCs.first) <<" | "<<bddToString(prevCs.second)
     	<< " ).\n";
 
     Stack<pair<int,Clause*> >::Iterator compIt(sr->namedComps);

@@ -45,13 +45,11 @@ public:
   class SplittingRecord
   {
   public:
-    SplittingRecord(Clause* cl) : namedComps(1), premise(getClauseSpec(cl)) {}
-    void setResult(Clause* cl) { result=getClauseSpec(cl); }
+    SplittingRecord(Clause* splittedClause) : namedComps(1), premise(getClauseSpec(splittedClause)) {}
 
     Stack<pair<int,Clause*> > namedComps;
     ClauseSpec premise;
     ClauseSpec result;
-    BDDNode* oldResBDD;
 
 
     CLASS_NAME("InferenceStore::SplittingRecord");
@@ -66,9 +64,9 @@ public:
   void recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp);
   void recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newProp, Inference::Rule rule);
   void recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp);
+  void recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedProp, BDDNode* resultProp);
   void recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* addedCls, int addedClsCnt, BDDNode* resultProp);
-  void recordSplitting(Clause* master, BDDNode* oldMasterProp, BDDNode* newMasterProp,
-	  unsigned premCnt, Clause** prems, SplittingRecord* srec);
+  void recordSplitting(SplittingRecord* srec, unsigned premCnt, Clause** prems);
 
   void outputProof(ostream& out, Unit* refutation);
 

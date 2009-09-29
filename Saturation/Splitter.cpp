@@ -269,12 +269,17 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 
   ASS(!bdd->isTrue(newMasterProp));
 
+  InferenceStore::ClauseSpec splittedMCompCS=InferenceStore::getClauseSpec(masterComp, newMasterProp);
+
+  srec->result=splittedMCompCS;
+  InferenceStore::instance()->recordSplitting(srec, masterPremises.size(),
+	  masterPremises.begin());
+
   BDDNode* oldProp=masterComp->prop();
   masterComp->setProp( bdd->conjunction(oldProp, newMasterProp) );
-  srec->setResult(masterComp);
-  srec->oldResBDD=oldProp;
-  InferenceStore::instance()->recordSplitting(masterComp, oldProp, masterComp->prop(), masterPremises.size(),
-	  masterPremises.begin(), srec);
+  if(oldProp!=masterComp->prop() && newMasterProp!=masterComp->prop()) {
+    InferenceStore::instance()->recordMerge(masterComp, oldProp, newMasterProp, masterComp->prop());
+  }
 
   ASS(!bdd->isTrue(masterComp->prop()));
 
@@ -412,10 +417,8 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
 
     InferenceStore::SplittingRecord* srec=new InferenceStore::SplittingRecord(cl);
     srec->namedComps.push(make_pair(name, cl));
-    srec->setResult(newCl);
-    srec->oldResBDD=BDD::instance()->getTrue();
-    InferenceStore::instance()->recordSplitting(newCl, BDD::instance()->getTrue(), newCl->prop(),
-	    1, &premise, srec);
+    srec->result=InferenceStore::getClauseSpec(newCl);
+    InferenceStore::instance()->recordSplitting(srec, 1, &premise);
 
     //As long as we're sure that all occurences of the propositional
     //predicate get replaced, there is no need to add the premise
