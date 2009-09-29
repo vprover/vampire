@@ -212,7 +212,7 @@ void InferenceStore::recordSplitting(SplittingRecord* srec, unsigned premCnt, Cl
   finf->rule=Inference::SPLITTING;
   _data.insert(srec->result, finf);
 
-  _splittingRecords.insert(mcs, srec);
+  _splittingRecords.insert(srec->result, srec);
 }
 
 VirtualIterator<InferenceStore::ClauseSpec> InferenceStore::getParents(Clause* cl)
