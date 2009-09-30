@@ -835,6 +835,13 @@ void SaturationAlgorithm::reanimate(Clause* cl)
   _passive->add(cl);
 }
 
+/**
+ * Forward-simplify the clause @b cl, return true iff the clause
+ * should be retained
+ *
+ * If a weight-limit is imposed on clauses, it is being checked
+ * by this function as well.
+ */
 bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::forwardSimplify");
@@ -882,6 +889,9 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   return performer.clauseKept();
 }
 
+/**
+ * The the backward simplification with the clause @b cl.
+ */
 void SaturationAlgorithm::backwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::backwardSimplify");
@@ -977,6 +987,16 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
   }
 }
 
+/**
+ * Remove either passive or active (or reactivated, which is both)
+ * clause @b cl
+ *
+ * In case the removal is requested during clause activation, when some indexes
+ * might be traversed (and so cannot be modified), the clause deletion is postponed
+ * until the clause activation is over. This is done by pushing the clause on the
+ * @b _postponedClauseRemovals stack, which is then checked at the end of the
+ * @b activate function.
+ */
 void SaturationAlgorithm::removeBackwardSimplifiedClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::removeBackwardSimplifiedClause");
@@ -1005,6 +1025,9 @@ void SaturationAlgorithm::removeBackwardSimplifiedClause(Clause* cl)
   cl->setStore(Clause::NONE);
 }
 
+/**
+ * Add clause @b c to the passive container
+ */
 void SaturationAlgorithm::addToPassive(Clause* c)
 {
   CALL("SaturationAlgorithm::addToPassive");
@@ -1016,6 +1039,18 @@ void SaturationAlgorithm::addToPassive(Clause* c)
   _passive->add(c);
 }
 
+/**
+ * Activate clause @b cl
+ *
+ * This means putting the clause into the active container, and
+ * performing generating inferences with it (in this order, so that
+ * inferences such as self-superposition can happen).
+ *
+ * During clause activation the @b _clauseActivationInProgress value
+ * is set to @b true, and clause removals by the @b removeBackwardSimplifiedClause
+ * function are postponed. During the clause activation, generalisation
+ * indexes should not be modified.
+ */
 void SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
@@ -1085,12 +1120,29 @@ void SaturationAlgorithm::activate(Clause* cl)
   }
 }
 
+/**
+ * Assign an generating inference object @b generator to be used
+ *
+ * To use multiple generating inferences, use the @b CompositeGIE
+ * object.
+ */
 void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator)
 {
   ASS(!_generator);
   _generator=generator;
   _generator->attach(this);
 }
+
+/**
+ * Assign an immediate simplifier object @b immediateSimplifier
+ * to be used
+ *
+ * For description of what an immediate simplifier is, see
+ * @b ImmediateSimplificationEngine documentation.
+ *
+ * To use multiple immediate simplifiers, use the @b CompositeISE
+ * object.
+ */
 void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificationEngineSP immediateSimplifier)
 {
   ASS(!_immediateSimplifier);
@@ -1098,18 +1150,35 @@ void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificati
   _immediateSimplifier->attach(this);
 }
 
+/**
+ * Assign forward simplifier object to perform forward demodulation
+ *
+ * A zero smart pointer can be passed as argument to dissable
+ * forward demodulation.
+ */
 void SaturationAlgorithm::setFwDemodulator(ForwardSimplificationEngineSP fwDemodulator)
 {
   _fwDemodulator=fwDemodulator;
   fwDemodulator->attach(this);
 }
 
+/**
+ * Add a forward simplifier, so that it is applied before the
+ * simplifiers that were added before it.
+ *
+ * Forward demodulation simplifier should be added by the
+ * @b setFwDemodulator function, not by this one.
+ */
 void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngineSP fwSimplifier)
 {
   FwSimplList::push(fwSimplifier, _fwSimplifiers);
   fwSimplifier->attach(this);
 }
 
+/**
+ * Add a backward simplifier, so that it is applied before the
+ * simplifiers that were added before it.
+ */
 void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEngineSP bwSimplifier)
 {
   BwSimplList::push(bwSimplifier, _bwSimplifiers);
