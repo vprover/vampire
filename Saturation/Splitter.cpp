@@ -52,9 +52,18 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   static DHMap<unsigned, int, IdentityHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
+  int coloredMaster=-1;
 
   if(clen>1) {
     for(int i=0;i<clen;i++) {
+      if((*cl)[i]->color()!=COLOR_TRANSPARENT) {
+	if(coloredMaster==-1) {
+	  coloredMaster=i;
+	} else {
+	  //colored literals must be in one component
+	  components.doUnion(coloredMaster, i);
+	}
+      }
       Term::VariableIterator vit((*cl)[i]);
       while(vit.hasNext()) {
 	int master=varMasters.findOrInsert(vit.next().var(), i);
@@ -110,7 +119,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 	continue;
       }
 
-      if(lit->arity()!=0) {
+      if(lit->arity()!=0 || lit->color()!=COLOR_TRANSPARENT) {
 	continue;
       }
 
@@ -138,22 +147,30 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 
   IntUnionFind::ComponentIterator cit(components);
   Clause* masterComp=0;
+  bool masterNew=false;
   ASS(cit.hasNext());
   while(cit.hasNext()) {
     IntUnionFind::ElementIterator elit=cit.next();
 
     lits.reset();
 
+    bool colorComponent=false;
+
     while(elit.hasNext()) {
       int litIndex=elit.next();
       lits.push((*cl)[litIndex]);
+      if(litIndex==coloredMaster) {
+	colorComponent=true;
+      }
     }
     int compLen=lits.size();
 
-    if(compLen==1 && lits.top()->arity()==0) {
-      //we have already handled propositional components
+    if(compLen==1 && lits.top()->arity()==0 && !colorComponent) {
+      //we have already handled transparent propositional components
+      ASS_NEQ(lits.top()->color(),COLOR_TRANSPARENT);
       continue;
     }
+    ASS(!colorComponent | masterComp==0);
 
     remainingComps--;
 
@@ -165,7 +182,9 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       ASS(!variants.hasNext());
       int compName;
       if(_clauseNames.find(comp, compName)) {
-	if(!remainingComps && newComponentStack.isEmpty() && unnamedComponentStack.isEmpty()) {
+	ASS(!colorComponent); //colored components don't have names
+	if(!remainingComps && !masterComp && newComponentStack.isEmpty() && unnamedComponentStack.isEmpty()) {
+	  ASS_EQ(masterComp, 0);
 	  masterComp=comp;
 	} else {
 	  newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
@@ -182,7 +201,12 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 	  srec->namedComps.push(make_pair(compName, comp));
 	}
       } else {
-	unnamedComponentStack.push(comp);
+	if(colorComponent) {
+	  masterComp=comp;
+	  masterNew=false;
+	} else {
+	  unnamedComponentStack.push(comp);
+	}
       }
     } else {
       env.statistics->uniqueComponents++;
@@ -203,22 +227,25 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
       InferenceStore::instance()->recordNonPropInference(comp);
 
 
-      newComponentStack.push(comp);
+      if(colorComponent) {
+	masterComp=comp;
+	masterNew=true;
+      } else {
+	newComponentStack.push(comp);
+      }
     }
+    ASS(!colorComponent | masterComp!=0);
   }
 
-  bool masterNew=false;
-  if(newComponentStack.isNonEmpty()) {
-    ASS(!masterComp);
-    masterNew=true;
-    masterComp=newComponentStack.pop();
-  } else if(unnamedComponentStack.isNonEmpty()) {
-    ASS(!masterComp);
-    masterComp=unnamedComponentStack.pop();
-  } else {
-    if(!masterComp) {
+  if(!masterComp) {
+    if(newComponentStack.isNonEmpty()) {
+      masterNew=true;
+      masterComp=newComponentStack.pop();
+    } else if(unnamedComponentStack.isNonEmpty()) {
+      masterComp=unnamedComponentStack.pop();
+    } else {
       //this should happen just if the clause being splitted consist
-      //of only propositional literals
+      //of only transparent propositional literals
       Clause* emptyCl=new(0) Clause(0,Clause::AXIOM, new Inference(Inference::TAUTOLOGY_INTRODUCTION));
       emptyCl->setProp(bdd->getTrue());
 
@@ -402,7 +429,7 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
   newComponents=ClauseIterator::getEmpty();
   modifiedComponents=ClauseIterator::getEmpty();
 
-  if(cl->length()==1 && (*cl)[0]->arity()==0) {
+  if(cl->length()==1 && (*cl)[0]->arity()==0 && cl->color()==COLOR_TRANSPARENT) {
     Literal* lit=(*cl)[0];
     int name;
     Clause* premise;

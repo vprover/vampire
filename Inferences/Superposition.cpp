@@ -178,6 +178,13 @@ Clause* Superposition::performSuperposition(
   unsigned eqLength = eqClause->length();
   int newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
+  if(env.colorUsed && rwClause->color()!=COLOR_TRANSPARENT &&
+	  eqClause->color()!=COLOR_TRANSPARENT && rwClause->color()!=eqClause->color()) {
+    env.statistics->inferencesSkippedDueToColors++;
+    return 0;
+  }
+
+
   bool shouldCheckWeight=false;
   int weightLimit=0;
   if(limits->ageLimited() && newAge > limits->ageLimit() && limits->weightLimited()) {

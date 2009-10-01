@@ -76,6 +76,7 @@ int BDD::getNewVar(unsigned pred)
 {
   CALL("BDD::getNewVar(unsigned)");
   ASS_EQ(env.signature->predicateArity(pred), 0);
+  ASS_EQ(env.signature->getPredicate(pred)->color(), COLOR_TRANSPARENT);
 
   int res=getNewVar();
   _predicateSymbols.insert(res, pred);

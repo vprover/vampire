@@ -86,6 +86,7 @@ public:
     SHOW_NEW_PROPOSITIONAL,
     SHOW_OPTIONS,
     SHOW_PASSIVE,
+    SHOW_SYMBOL_ELIMINATION,
     SIMULATED_TIME_LIMIT,
     SOS,
     SPLITTING,
@@ -241,6 +242,7 @@ public:
   bool showNewPropositional() const { return _showNewPropositional; }
   bool showOptions() const { return _showOptions; }
   bool showPassive() const { return _showPassive; }
+  bool showSymbolElimination() const { return _showSymbolElimination; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
   bool weightIncrement() const { return _weightIncrement; }
@@ -378,6 +380,7 @@ private:
   bool _showNewPropositional;
   bool _showOptions;
   bool _showPassive;
+  bool _showSymbolElimination;
   int _simulatedTimeLimit;
   bool _sos;
   RuleActivity _splitting;

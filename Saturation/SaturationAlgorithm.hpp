@@ -80,6 +80,7 @@ protected:
   void onUnprocessedSelected(Clause* c);
   void onNewClause(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
+  void onSymbolElimination(Clause* c);
 
   void handleSaturationStart();
   int elapsedTime();
@@ -93,12 +94,17 @@ private:
   void addUnprocessedFinalClause(Clause* cl);
   Clause* handleEmptyClause(Clause* cl);
 
+  Clause* doImmediateSimplification(Clause* cl);
+
   void performEmptyClauseSubsumption(Clause* cl, BDDNode* emptyClauseProp);
 
   void removeBackwardSimplifiedClause(Clause* cl);
 
   Limits _limits;
   IndexManager _imgr;
+
+  class TotalSimplificationPerformer;
+  class PartialSimplificationPerformer;
 protected:
 
   int _startTime;

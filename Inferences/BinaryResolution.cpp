@@ -74,6 +74,12 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
+    if(env.colorUsed && _cl->color()!=COLOR_TRANSPARENT &&
+  	  qr.clause->color()!=COLOR_TRANSPARENT && _cl->color()!=qr.clause->color()) {
+      env.statistics->inferencesSkippedDueToColors++;
+      return 0;
+    }
+
     unsigned clength = _cl->length();
     unsigned dlength = qr.clause->length();
     int newAge=Int::max(_cl->age(),qr.clause->age())+1;
@@ -91,7 +97,7 @@ struct BinaryResolution::ResultFn
 
 
     if(shouldLimitWeight) {
-      int wlb=0;//weight lower bound
+      unsigned wlb=0;//weight lower bound
       for(unsigned i=0;i<clength;i++) {
         Literal* curr=(*_cl)[i];
         if(curr!=resLit) {

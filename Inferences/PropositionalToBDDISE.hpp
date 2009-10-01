@@ -28,6 +28,7 @@ public:
   Clause* simplify(Clause* cl);
 
 private:
+  bool canBddize(Literal* l);
   int getPropPredName(Literal* lit);
 
   /** Names assigned to propositional predicates */

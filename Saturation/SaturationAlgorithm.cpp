@@ -261,6 +261,16 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
   }
 }
 
+void SaturationAlgorithm::onSymbolElimination(Clause* c)
+{
+  CALL("SaturationAlgorithm::onSymbolElimination");
+  ASS_EQ(c->color(),COLOR_TRANSPARENT);
+
+  if(env.options->showSymbolElimination()) {
+    cout<<"Symbol elimination: "<<c->toTPTPString()<<endl;
+  }
+}
+
 
 /**
  * This function is subscribed to the remove event of the active container
@@ -344,22 +354,7 @@ void SaturationAlgorithm::addInputSOSClause(Clause*& cl)
 
   onNewClause(cl);
 
-  bool simplified;
-  do {
-    Clause* simplCl=_immediateSimplifier->simplify(cl);
-    if(simplCl==0) {
-      return;
-    }
-    simplified=simplCl!=cl;
-    if(simplified) {
-      ASS_EQ(simplCl->prop(), 0);
-      simplCl->setProp(cl->prop());
-      cl=simplCl;
-      InferenceStore::instance()->recordNonPropInference(cl);
-
-      onNewClause(cl);
-    }
-  } while(simplified);
+  cl=doImmediateSimplification(cl);
 
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
@@ -410,11 +405,11 @@ bool SaturationAlgorithm::isRefutation(Clause* c)
  * possibility would be to also perform simplifications that
  * only alter clause's BDD.)
  */
-class TotalSimplificationPerformer
+class SaturationAlgorithm::TotalSimplificationPerformer
 : public ForwardSimplificationPerformer
 {
 public:
-  TotalSimplificationPerformer(Clause* cl) : _cl(cl), _toAddLst(0) {}
+  TotalSimplificationPerformer(SaturationAlgorithm* sa, Clause* cl) : _sa(sa), _cl(cl), _toAddLst(0) {}
 
   ~TotalSimplificationPerformer() { _toAddLst->destroy(); }
 
@@ -440,6 +435,14 @@ public:
       replacement->setProp(oldClProp);
       InferenceStore::instance()->recordNonPropInference(replacement);
       ClauseList::push(replacement, _toAddLst);
+
+      if(premise) {
+	Color premColor=static_cast<Color>(_cl->color() | premise->color());
+	ASS_NEQ(premColor, COLOR_INVALID);
+	if(premColor!=COLOR_TRANSPARENT && replacement->color()==COLOR_TRANSPARENT) {
+	  _sa->onSymbolElimination(replacement);
+	}
+      }
     }
 
     _cl->setProp(bdd->getTrue());
@@ -464,8 +467,15 @@ public:
       return true;
     }
 
+    if( (_cl->color()|premise->color())==COLOR_INVALID ) {
+      return false;
+    }
+
     BDD* bdd=BDD::instance();
-    return bdd->isXOrNonYConstant(_cl->prop(), premise->prop(), true);
+    if(!bdd->isXOrNonYConstant(_cl->prop(), premise->prop(), true)) {
+      return false;
+    }
+    return true;
   }
 
   bool clauseKept()
@@ -474,6 +484,7 @@ public:
   ClauseIterator clausesToAdd()
   { return pvi( ClauseList::Iterator(_toAddLst) ); }
 private:
+  SaturationAlgorithm* _sa;
   Clause* _cl;
   ClauseList* _toAddLst;
 };
@@ -484,11 +495,11 @@ private:
  * I.e. not only if it leads to the deletion of the clause
  * being simplified.
  */
-class PartialSimplificationPerformer
+class SaturationAlgorithm::PartialSimplificationPerformer
 : public ForwardSimplificationPerformer
 {
 public:
-  PartialSimplificationPerformer(Clause* cl) : _cl(cl), _toAddLst(0) {}
+  PartialSimplificationPerformer(SaturationAlgorithm* sa, Clause* cl) : _sa(sa), _cl(cl), _toAddLst(0) {}
 
   ~PartialSimplificationPerformer() { _toAddLst->destroy(); }
 
@@ -520,6 +531,14 @@ public:
 	InferenceStore::instance()->recordNonPropInference(replacement);
 	ClauseList::push(replacement, _toAddLst);
       }
+
+      if(premise) {
+	Color premColor=static_cast<Color>(_cl->color() | premise->color());
+	ASS_NEQ(premColor, COLOR_INVALID);
+	if(premColor!=COLOR_TRANSPARENT && replacement->color()==COLOR_TRANSPARENT) {
+	  _sa->onSymbolElimination(replacement);
+	}
+      }
     }
 
     _cl->setProp(newClProp);
@@ -542,15 +561,63 @@ public:
 #endif
   }
 
+  bool willPerform(Clause* premise)
+  {
+    CALL("PartialSimplificationPerformer::willPerform");
+    ASS(_cl);
+
+    if(!premise) {
+      return true;
+    }
+
+    if( (_cl->color()|premise->color())==COLOR_INVALID ) {
+      return false;
+    }
+
+    return true;
+  }
+
   bool clauseKept()
   { return _cl; }
 
   ClauseIterator clausesToAdd()
   { return pvi( ClauseList::Iterator(_toAddLst) ); }
 private:
+  SaturationAlgorithm* _sa;
   Clause* _cl;
   ClauseList* _toAddLst;
 };
+
+Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl)
+{
+  CALL("SaturationAlgorithm::doImmediateSimplification");
+
+  BDDNode* prop=cl->prop();
+  bool simplified;
+  do {
+    Clause* simplCl=_immediateSimplifier->simplify(cl);
+    if(simplCl==0) {
+      return 0;
+    }
+    simplified=simplCl!=cl;
+    if(simplified) {
+      ASS_EQ(simplCl->prop(), 0);
+      simplCl->setProp(prop);
+      InferenceStore::instance()->recordNonPropInference(simplCl);
+
+      if(cl->color()!=COLOR_TRANSPARENT && simplCl->color()==COLOR_TRANSPARENT) {
+	onSymbolElimination(simplCl);
+      }
+
+      cl=simplCl;
+
+      onNewClause(cl);
+    }
+  } while(simplified);
+
+  return cl;
+}
+
 
 /**
  * Perform immediate simplifications and splitting on clause @b cl and add it
@@ -579,28 +646,12 @@ simplificationStart:
 
   onNewClause(cl);
 
-  BDDNode* prop=cl->prop();
-  bool simplified;
-  do {
-    Clause* simplCl=_immediateSimplifier->simplify(cl);
-    if(simplCl==0) {
-      return;
-    }
-    simplified=simplCl!=cl;
-    if(simplified) {
-      ASS_EQ(simplCl->prop(), 0);
-      cl=simplCl;
-      cl->setProp(prop);
-      InferenceStore::instance()->recordNonPropInference(cl);
-
-      onNewClause(cl);
-    }
-  } while(simplified);
+  cl=doImmediateSimplification(cl);
 
 
 #if FW_DEMODULATION_FIRST
   if(_fwDemodulator) {
-    TotalSimplificationPerformer demPerformer(cl);
+    TotalSimplificationPerformer demPerformer(this, cl);
     _fwDemodulator->perform(cl, &demPerformer);
     if(!demPerformer.clauseKept()) {
       ClauseIterator rit=demPerformer.clausesToAdd();
@@ -856,14 +907,11 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   }
 
 #if TOTAL_SIMPLIFICATION_ONLY
-  TotalSimplificationPerformer performer(cl);
+  TotalSimplificationPerformer performer(this, cl);
 #else
-  PartialSimplificationPerformer performer(cl);
+  PartialSimplificationPerformer performer(this, cl);
 #endif
 
-//#if FW_DEMODULATION_FIRST
-//  FwSimplList::Iterator fsit(_fwSimplifiers);
-//#else
   VirtualIterator<ForwardSimplificationEngineSP> fsit;
   if(_fwDemodulator) {
     fsit=pvi( getConcatenatedIterator(
@@ -872,7 +920,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   } else {
     fsit=pvi( FwSimplList::Iterator(_fwSimplifiers) );
   }
-//#endif
+
   while(fsit.hasNext()) {
     ForwardSimplificationEngine* fse=fsit.next().ptr();
 
@@ -946,6 +994,9 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	BDDNode* replacementProp=bdd->disjunction(oldRedundantProp, cl->prop());
 	if(!bdd->isTrue(replacementProp)) {
 
+	  Color premColor=static_cast<Color>(redundant->color()|cl->color());
+	  ASS_NEQ(premColor, COLOR_INVALID);
+
 	  while(srec.replacements.hasNext()) {
 	    Clause* addCl=srec.replacements.next();
 	    addCl->setProp(replacementProp);
@@ -954,6 +1005,10 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 #if REPORT_BW_SIMPL
 	    cout<<"+"<<(*addCl)<<endl;
 #endif
+
+	    if(premColor!=COLOR_TRANSPARENT && addCl->color()==COLOR_TRANSPARENT) {
+	      onSymbolElimination(addCl);
+	    }
 	  }
 	}
       }
@@ -1082,15 +1137,16 @@ void SaturationAlgorithm::activate(Clause* cl)
 
     BDDNode* prop=bdd->getFalse();
     Inference::Iterator iit=genCl->inference()->iterator();
+    Color premColor=COLOR_TRANSPARENT;
     while(genCl->inference()->hasNext(iit)) {
       Unit* premUnit=genCl->inference()->next(iit);
       ASS(premUnit->isClause());
       Clause* premCl=static_cast<Clause*>(premUnit);
-//      cout<<"premCl: "<<(*premCl)<<endl;
-      prop=bdd->disjunction(prop, premCl->prop());
-//      cout<<"res: "<<bdd->toString(prop)<<endl;
-    }
 
+      premColor = static_cast<Color>(premColor | premCl->color());
+
+      prop=bdd->disjunction(prop, premCl->prop());
+    }
 
     genCl->setProp(prop);
 #if REPORT_CONTAINERS
@@ -1100,8 +1156,12 @@ void SaturationAlgorithm::activate(Clause* cl)
     if(bdd->isTrue(prop)) {
       continue;
     }
-
     InferenceStore::instance()->recordNonPropInference(genCl);
+
+    ASS_NEQ(premColor, COLOR_INVALID);
+    if(premColor!=COLOR_TRANSPARENT && genCl->color()==COLOR_TRANSPARENT) {
+      onSymbolElimination(genCl);
+    }
 
     addUnprocessedClause(genCl);
   }

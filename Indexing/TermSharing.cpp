@@ -170,11 +170,11 @@ Literal* TermSharing::insert(Literal* t)
     t->setWeight(weight);
     if (env.colorUsed) {
       if (color == COLOR_TRANSPARENT) {
-	color = env.signature->getFunction(t->functor())->color();
+	color = env.signature->getPredicate(t->functor())->color();
       }
 #if VDEBUG
       else {
-	Color fcolor = env.signature->getFunction(t->functor())->color();
+	Color fcolor = env.signature->getPredicate(t->functor())->color();
 	ASS(! fcolor || color == fcolor);
       }
 #endif

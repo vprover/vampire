@@ -36,13 +36,13 @@ class Signature
     /** arity */
     unsigned _arity : 30;
     /** used in coloured proofs and interpolation */
-    unsigned _color : 2;
+    Color _color : 2;
   public:
     /** standard constructor */
     Symbol(const string& nm,unsigned arity)
       : _name(nm),
 	_arity(arity),
-	_color(0u)
+	_color(COLOR_TRANSPARENT)
     {}
     void addColor(Color color);
     /** return the colour of the symbol */
@@ -103,6 +103,11 @@ class Signature
   const unsigned predicateArity(int number)
   {
     return _preds[number]->arity();
+  }
+
+  const bool predicateColored(int number)
+  {
+    return _preds[number]->color()!=COLOR_TRANSPARENT;
   }
 
   /** return true iff predicate of given @b name and @b arity exists. */

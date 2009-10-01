@@ -41,7 +41,7 @@ Clause* PropositionalToBDDISE::simplify(Clause* c)
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*c)[i];
 
-    if(lit->arity()==0) {
+    if(canBddize(lit)) {
       propCnt++;
     }
   }
@@ -62,10 +62,10 @@ Clause* PropositionalToBDDISE::simplify(Clause* c)
   unsigned newIndex=0;
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*c)[i];
-    if(lit->arity()==0) {
+    if(canBddize(lit)) {
       int name = getPropPredName(lit);
       propPart = bdd->disjunction(propPart, bdd->getAtomic(name, lit->isPositive()));
-    } else  {
+    } else {
       (*newCl)[newIndex++]=lit;
     }
   }
@@ -79,7 +79,10 @@ Clause* PropositionalToBDDISE::simplify(Clause* c)
   return newCl;
 }
 
-
+bool PropositionalToBDDISE::canBddize(Literal* l)
+{
+  return l->arity()==0 && l->color()==COLOR_TRANSPARENT;
+}
 int PropositionalToBDDISE::getPropPredName(Literal* lit)
 {
   CALL("PropositionalToBDDISE::getPropPredName");

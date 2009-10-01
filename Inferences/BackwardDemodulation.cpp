@@ -94,6 +94,12 @@ struct BackwardDemodulation::ResultFn
   {
     TermQueryResult qr=arg.second;
 
+    if( (_cl->color()|qr.clause->color())==COLOR_INVALID ) {
+      //colors of premises don't match
+      ASS_REP(false, "We think this should not happen. If it does and there isn't any bug, remove this assertion.");
+      return BwSimplificationRecord(0);
+    }
+
     if(_cl==qr.clause || _removed->find(qr.clause)) {
       //the retreived clause was already replaced during this
       //backward demodulation

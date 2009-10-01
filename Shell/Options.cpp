@@ -127,6 +127,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_new_propositional",
   "show_options",
   "show_passive",
+  "show_symbol_elimination",
   "simulated_time_limit",
   "sos",
   "splitting",
@@ -360,6 +361,7 @@ Options::Options ()
   _showNewPropositional(false),
   _showOptions(false),
   _showPassive(false),
+  _showSymbolElimination(false),
   _simulatedTimeLimit(0),
   _sos(false),
   _splitting(RA_INPUT_ONLY),
@@ -653,6 +655,9 @@ void Options::set (const char* name,const char* value, int index)
     return;
   case SHOW_PASSIVE:
     _showPassive = onOffToBool(value,name);
+    return;
+  case SHOW_SYMBOL_ELIMINATION:
+    _showSymbolElimination = onOffToBool(value,name);
     return;
   case SIMULATED_TIME_LIMIT:
     _simulatedTimeLimit = readTimeLimit(value);
@@ -1077,6 +1082,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SHOW_PASSIVE:
     str << boolToOnOff(_showPassive);
+    return;
+  case SHOW_SYMBOL_ELIMINATION:
+    str << boolToOnOff(_showSymbolElimination);
     return;
   case SIMULATED_TIME_LIMIT:
     str << _simulatedTimeLimit/10;
