@@ -54,7 +54,9 @@ void Inference2::destroy()
   delete this;
 }
 
-
+/**
+ * Create an inference object with multiple premisses
+ */
 InferenceMany::InferenceMany(Rule rule,UnitList* premises)
   : Inference(rule),
     _premises(premises)

@@ -15,6 +15,9 @@
 #include "../Kernel/InferenceStore.hpp"
 #include "../Kernel/LiteralSelector.hpp"
 #include "../Kernel/MLVariant.hpp"
+#include "../Kernel/Unit.hpp"
+#include "../Kernel/FormulaUnit.hpp"
+#include "../Kernel/SubformulaIterator.hpp"
 
 #include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
@@ -330,6 +333,8 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
 
   cl->setProp(BDD::instance()->getFalse());
 
+  checkForPreprocessorSymbolElimination(cl);
+
 #if PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
   //put propositional predicates into BDD part
   cl=_propToBDD.simplify(cl);
@@ -397,6 +402,78 @@ bool SaturationAlgorithm::isRefutation(Clause* c)
   BDD* bdd=BDD::instance();
   return c->isEmpty() && bdd->isFalse(c->prop());
 }
+
+
+void SaturationAlgorithm::checkForPreprocessorSymbolElimination(Clause* cl)
+{
+  CALL("SaturationAlgorithm::checkForPreprocessorSymbolElimination");
+
+  if(!env.colorUsed || cl->color()!=COLOR_TRANSPARENT) {
+    return;
+  }
+
+  //TODO: it might examine some parts of the proof-tree multiple times,
+  //so perhaps some more caching could be used if it's too slow
+
+  Color inputColor=COLOR_TRANSPARENT;
+
+  static DHMap<Unit*, Color> inputFormulaColors;
+  static Stack<Unit*> units;
+  units.reset();
+  units.push(cl);
+
+  while(units.isNonEmpty()) {
+    Unit* u=units.pop();
+    if(u->inference()->rule()==Inference::INPUT ||
+	    u->inference()->rule()==Inference::NEGATED_CONJECTURE) {
+      Color uCol;
+      if(u->isClause()) {
+	uCol=static_cast<Clause*>(u)->color();
+      } else if(!inputFormulaColors.find(u,uCol)){
+	uCol=getFormulaColor(static_cast<FormulaUnit*>(u));
+	inputFormulaColors.insert(u,uCol);
+      }
+      if(uCol!=COLOR_TRANSPARENT) {
+#if VDEBUG
+	inputColor=static_cast<Color>(inputColor|uCol);
+	ASS_NEQ(inputColor, COLOR_INVALID);
+#else
+	inputColor=uCol;
+	break;
+#endif
+      }
+    } else {
+      Inference::Iterator iit=cl->inference()->iterator();
+      while(u->inference()->hasNext(iit)) {
+        Unit* premUnit=u->inference()->next(iit);
+        units.push(premUnit);
+      }
+    }
+  }
+
+  if(inputColor!=COLOR_TRANSPARENT) {
+    onSymbolElimination(cl);
+  }
+}
+
+Color SaturationAlgorithm::getFormulaColor(FormulaUnit* f)
+{
+  CALL("SaturationAlgorithm::getFormulaColor");
+
+  SubformulaIterator si(f->formula());
+  while(si.hasNext()) {
+    Formula* f=si.next();
+    if(f->connective()!=LITERAL) {
+      continue;
+    }
+
+    if(f->literal()->color()!=COLOR_TRANSPARENT) {
+      return f->literal()->color();
+    }
+  }
+  return COLOR_TRANSPARENT;
+}
+
 
 /**
  * Class of @b ForwardSimplificationPerformer objects that
@@ -682,6 +759,7 @@ simplificationStart:
     ClauseIterator newComponents;
     ClauseIterator modifiedComponents;
     _splitter.doSplitting(cl, newComponents, modifiedComponents);
+    Color origColor=cl->color();
     while(newComponents.hasNext()) {
       Clause* comp=newComponents.next();
       ASS_EQ(comp->store(), Clause::NONE);
@@ -689,12 +767,19 @@ simplificationStart:
 
       if(comp!=cl) {
 	onNewClause(comp);
+	if(origColor!=COLOR_TRANSPARENT && comp->color()==COLOR_TRANSPARENT) {
+	  onSymbolElimination(comp);
+	}
       }
 
       addUnprocessedFinalClause(comp);
     }
     while(modifiedComponents.hasNext()) {
       Clause* comp=modifiedComponents.next();
+
+      if(origColor!=COLOR_TRANSPARENT && comp->color()==COLOR_TRANSPARENT) {
+	onSymbolElimination(comp);
+      }
 
       ASS(!bdd->isTrue(comp->prop()));
       if(comp->store()==Clause::ACTIVE) {

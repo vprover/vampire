@@ -297,12 +297,14 @@ void Clause::computeColor() const
   ASS_EQ(_color, COLOR_INVALID);
 
   Color color = COLOR_TRANSPARENT;
-  unsigned clen=length();
-  for(unsigned i=0;i<clen;i++) {
-    color = static_cast<Color>(color | (*this)[i]->color());
-  }
 
-  ASS_L(color, COLOR_INVALID);
+  if(env.colorUsed) {
+    unsigned clen=length();
+    for(unsigned i=0;i<clen;i++) {
+      color = static_cast<Color>(color | (*this)[i]->color());
+    }
+    ASS_L(color, COLOR_INVALID);
+  }
 
   _color=color;
 }
