@@ -288,6 +288,26 @@ VirtualIterator<string> Clause::toSimpleClauseStrings()
 }
 
 /**
+ * Compute the color of the clause and store it in @b _color
+ * @pre All literals are shared, so their color is computed properly.
+ */
+void Clause::computeColor() const
+{
+  CALL("Clause::computeColor");
+  ASS_EQ(_color, COLOR_INVALID);
+
+  Color color = COLOR_TRANSPARENT;
+  unsigned clen=length();
+  for(unsigned i=0;i<clen;i++) {
+    color = static_cast<Color>(color | (*this)[i]->color());
+  }
+
+  ASS_L(color, COLOR_INVALID);
+
+  _color=color;
+}
+
+/**
  * Compute the weight of the clause.
  * @pre All literals are shared, so their weight is computed properly.
  * @since 02/01/2008 Manchester.

@@ -91,7 +91,7 @@ Term* TermSharing::insert(Term* t)
 	weight += r->weight();
 	if (env.colorUsed) {
 	  ASS(color == COLOR_TRANSPARENT || color == r->color());
-	  color = static_cast<Color>(color, r->color());
+	  color = static_cast<Color>(color | r->color());
 	}
       }
     }

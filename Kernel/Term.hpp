@@ -591,6 +591,14 @@ public:
 
   bool containsSubterm(TermList v);
 
+  /** set the colour of the term */
+  void setColor(Color color)
+  {
+    ASS(_color == COLOR_TRANSPARENT || _color == color);
+    _color = color;
+  } // setColor
+  /** return the colour of the term */
+  Color color() const { return static_cast<Color>(_color); }
 
 protected:
   ArgumentOrder computeArgumentOrder() const;
@@ -633,14 +641,6 @@ protected:
    */
   TermList _args[1];
 
-  /** set the colour of the term */
-  void setColor(Color color)
-  {
-    ASS(_color == COLOR_TRANSPARENT || _color == color);
-    _color = color;
-  } // setColor
-  /** return the colour of the term */
-  Color color() const { return static_cast<Color>(_color); }
 
 //   /** set all boolean fields to false and weight to 0 */
 //   void initialise()
