@@ -618,7 +618,7 @@ protected:
   /** Arity of the symbol */
   unsigned _arity : 30;
   /** colour, used in interpolation and symbol elimination */
-  unsigned _color : 2;
+  Color _color : 2;
   /** Weight of the symbol */
   unsigned _weight;
   /** number of occurrences of variables */
@@ -634,13 +634,13 @@ protected:
   TermList _args[1];
 
   /** set the colour of the term */
-  void setColor(unsigned color)
+  void setColor(Color color)
   {
-    ASS(_color == 0 || _color == color);
+    ASS(_color == COLOR_TRANSPARENT || _color == color);
     _color = color;
   } // setColor
   /** return the colour of the term */
-  unsigned color() const { return _color; }
+  Color color() const { return static_cast<Color>(_color); }
 
 //   /** set all boolean fields to false and weight to 0 */
 //   void initialise()

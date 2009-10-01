@@ -11,6 +11,8 @@
 
 #include <string>
 
+#include "../Forwards.hpp"
+
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/Map.hpp"
@@ -42,9 +44,9 @@ class Signature
 	_arity(arity),
 	_color(0u)
     {}
-    void addColor(unsigned color);
+    void addColor(Color color);
     /** return the colour of the symbol */
-    unsigned color() const { return _color; }
+    Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */
     inline unsigned arity() { return _arity; }
     /** Return the name of the symbol */

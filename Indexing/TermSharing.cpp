@@ -76,7 +76,7 @@ Term* TermSharing::insert(Term* t)
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
-    unsigned color = 0;
+    Color color = COLOR_TRANSPARENT;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
 	ASS(tt->isOrdinaryVar());
@@ -90,8 +90,8 @@ Term* TermSharing::insert(Term* t)
 	vars += r->vars();
 	weight += r->weight();
 	if (env.colorUsed) {
-	  ASS(color == 0 || color == r->color());
-	  color |= r->color();
+	  ASS(color == COLOR_TRANSPARENT || color == r->color());
+	  color = static_cast<Color>(color, r->color());
 	}
       }
     }
@@ -99,12 +99,12 @@ Term* TermSharing::insert(Term* t)
     t->setVars(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
-      if (color == 0) {
+      if (color == COLOR_TRANSPARENT) {
 	color = env.signature->getFunction(t->functor())->color();
       }
 #if VDEBUG
       else {
-	unsigned fcolor = env.signature->getFunction(t->functor())->color();
+	Color fcolor = env.signature->getFunction(t->functor())->color();
 	ASS(! fcolor || color == fcolor);
       }
 #endif
@@ -147,7 +147,7 @@ Literal* TermSharing::insert(Literal* t)
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
-    unsigned color = 0;
+    Color color = COLOR_TRANSPARENT;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
 	ASS(tt->isOrdinaryVar());
@@ -160,8 +160,8 @@ Literal* TermSharing::insert(Literal* t)
 	vars += r->vars();
 	weight += r->weight();
 	if (env.colorUsed) {
-	  ASS(color == 0 || color == r->color());
-	  color |= r->color();
+	  ASS(color == COLOR_TRANSPARENT || color == r->color());
+	  color = static_cast<Color>(color | r->color());
 	}
       }
     }
@@ -169,12 +169,12 @@ Literal* TermSharing::insert(Literal* t)
     t->setVars(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
-      if (color == 0) {
+      if (color == COLOR_TRANSPARENT) {
 	color = env.signature->getFunction(t->functor())->color();
       }
 #if VDEBUG
       else {
-	unsigned fcolor = env.signature->getFunction(t->functor())->color();
+	Color fcolor = env.signature->getFunction(t->functor())->color();
 	ASS(! fcolor || color == fcolor);
       }
 #endif

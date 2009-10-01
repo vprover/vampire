@@ -1005,7 +1005,7 @@ void TPTPParser::vampire()
     }
     else {
       throw ParserException("either 'predicate' or 'function' expected",
-			    currentToken1());          
+			    currentToken1());
     }
     consumeToken(TT_COMMA);
     string symb = name();
@@ -1014,18 +1014,18 @@ void TPTPParser::vampire()
     unsigned arity;
     if (! Int::stringToUnsignedInt(art,arity)) {
       throw ParserException("a non-negative integer (denoting arity) expected",
-			    currentToken1());          
+			    currentToken1());
     }
     consumeToken(TT_COMMA);
-    unsigned color;
+    Color color;
     string lr = name();
     if (lr == "left")
-      color=1;
+      color=COLOR_LEFT;
     else if (lr == "right")
-      color=2;
+      color=COLOR_RIGHT;
     else {
       throw ParserException("either 'left' or 'right' expected",
-			    currentToken1());          
+			    currentToken1());
     }
     env.colorUsed = true;
     if (pred) {
@@ -1039,7 +1039,7 @@ void TPTPParser::vampire()
   }
   else {
     throw ParserException("unrecognised Vampire command",
-			  currentToken1());    
+			  currentToken1());
   }
   consumeToken(TT_RPAR);
   consumeToken(TT_DOT);

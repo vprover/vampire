@@ -70,6 +70,7 @@ public:
   Clause(unsigned length,InputType it,Inference* inf)
     : Unit(Unit::CLAUSE,inf,it),
       _length(length),
+      _color(COLOR_INVALID),
       _selected(0),
       _age(0),
       _weight(0),
@@ -244,7 +245,9 @@ public:
   float getEffectiveWeight();
 protected:
   /** number of literals */
-  unsigned _length;
+  unsigned _length : 30;
+  /** clause color, or COLOR_INVALID if not determined yet */
+  Color _color : 2;
   /** number of selected literals */
   unsigned _selected;
   /** age */

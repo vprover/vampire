@@ -102,6 +102,25 @@ typedef Lib::SmartPtr<Ordering> OrderingSP;
 class BDD;
 class BDDNode;
 
+/**
+ * Color of a term
+ *
+ * To be used for symbol elimination or interpolant extraction.
+ */
+enum Color {
+  COLOR_TRANSPARENT = 0,
+  COLOR_LEFT = 1,
+  COLOR_RIGHT = 2,
+
+  /**
+   * This color can never occur
+   *
+   * It can be used as an initial value to mark that the color is
+   * yet to be determined. */
+  COLOR_INVALID = 3
+};
+
+
 };
 
 namespace Indexing

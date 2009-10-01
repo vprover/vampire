@@ -159,7 +159,7 @@ string Signature::key(const string& name,int arity)
 } // Signature::key
 
 /** Add a color to the symbol for interpolation and symbol elimination purposes */
-void Signature::Symbol::addColor(unsigned color)
+void Signature::Symbol::addColor(Color color)
 {
   ASS_L(color,3);
   ASS_G(color,0);
