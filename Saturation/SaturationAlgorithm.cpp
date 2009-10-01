@@ -424,8 +424,10 @@ void SaturationAlgorithm::checkForPreprocessorSymbolElimination(Clause* cl)
 
   while(units.isNonEmpty()) {
     Unit* u=units.pop();
-    if(u->inference()->rule()==Inference::INPUT ||
-	    u->inference()->rule()==Inference::NEGATED_CONJECTURE) {
+    Inference::Iterator iit=u->inference()->iterator();
+//    if(u->inference()->rule()==Inference::INPUT ||
+//	    u->inference()->rule()==Inference::NEGATED_CONJECTURE) {
+    if(!u->inference()->hasNext(iit)) {
       Color uCol;
       if(u->isClause()) {
 	uCol=static_cast<Clause*>(u)->color();
@@ -443,7 +445,6 @@ void SaturationAlgorithm::checkForPreprocessorSymbolElimination(Clause* cl)
 #endif
       }
     } else {
-      Inference::Iterator iit=cl->inference()->iterator();
       while(u->inference()->hasNext(iit)) {
         Unit* premUnit=u->inference()->next(iit);
         units.push(premUnit);
