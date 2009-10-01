@@ -101,7 +101,6 @@ private:
   void removeBackwardSimplifiedClause(Clause* cl);
 
   void checkForPreprocessorSymbolElimination(Clause* cl);
-  Color getFormulaColor(FormulaUnit* f);
 
   Limits _limits;
   IndexManager _imgr;

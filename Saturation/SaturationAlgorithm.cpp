@@ -430,7 +430,7 @@ void SaturationAlgorithm::checkForPreprocessorSymbolElimination(Clause* cl)
       if(u->isClause()) {
 	uCol=static_cast<Clause*>(u)->color();
       } else if(!inputFormulaColors.find(u,uCol)){
-	uCol=getFormulaColor(static_cast<FormulaUnit*>(u));
+	uCol=static_cast<FormulaUnit*>(u)->getColor();
 	inputFormulaColors.insert(u,uCol);
       }
       if(uCol!=COLOR_TRANSPARENT) {
@@ -454,24 +454,6 @@ void SaturationAlgorithm::checkForPreprocessorSymbolElimination(Clause* cl)
   if(inputColor!=COLOR_TRANSPARENT) {
     onSymbolElimination(cl);
   }
-}
-
-Color SaturationAlgorithm::getFormulaColor(FormulaUnit* f)
-{
-  CALL("SaturationAlgorithm::getFormulaColor");
-
-  SubformulaIterator si(f->formula());
-  while(si.hasNext()) {
-    Formula* f=si.next();
-    if(f->connective()!=LITERAL) {
-      continue;
-    }
-
-    if(f->literal()->color()!=COLOR_TRANSPARENT) {
-      return f->literal()->color();
-    }
-  }
-  return COLOR_TRANSPARENT;
 }
 
 

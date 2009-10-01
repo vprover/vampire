@@ -481,6 +481,31 @@ unsigned Formula::weight() const
   return result;
 } // Formula::weight
 
+/**
+ * Return color of the formula
+ *
+ * We do not store the color of the formula, so it gets
+ * computed again each time the function is called.
+ */
+Color Formula::getColor()
+{
+  CALL("Formula::getColor");
+
+  SubformulaIterator si(this);
+  while(si.hasNext()) {
+    Formula* f=si.next();
+    if(f->connective()!=LITERAL) {
+      continue;
+    }
+
+    if(f->literal()->color()!=COLOR_TRANSPARENT) {
+      return f->literal()->color();
+    }
+  }
+  return COLOR_TRANSPARENT;
+}
+
+
 /*
   THIS IS USEFUL
   switch (connective()) {

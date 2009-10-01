@@ -43,6 +43,9 @@ public:
   Formula* formula()
   { return _formula; }
 
+
+  Color getColor();
+
   CLASS_NAME("FormulaUnit");
   USE_ALLOCATOR(FormulaUnit);
 

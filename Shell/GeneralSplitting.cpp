@@ -119,17 +119,28 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
   Stack<Literal*> mdvLits;
   Stack<Literal*> otherLits;
+  Color mdvColor=COLOR_TRANSPARENT;
+  Color otherColor=COLOR_TRANSPARENT;
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
     if(lit->containsSubterm(TermList(minDegVar, false))) {
       mdvLits.push(lit);
+      mdvColor=static_cast<Color>(mdvColor | lit->color());
     } else {
       otherLits.push(lit);
+      otherColor=static_cast<Color>(otherColor | lit->color());
     }
   }
 
   unsigned namingPred=env.signature->addNamePredicate(minDeg);
+
+  if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
+    ASS_EQ(mdvColor, otherColor);
+    env.signature->getPredicate(namingPred)->addColor(mdvColor);
+  }
+
+
   static DArray<TermList> args(8);
   args.ensure(minDeg);
   unsigned nnext=0;
@@ -159,7 +170,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   mdvCl->setAge(cl->age());
   UnitList::push(mdvCl, resultStack);
 
-  Clause* otherCl=Clause::fromStack(otherLits, cl->inputType(), new Inference(Inference::SPLITTING_COMPONENT));
+  Clause* otherCl=Clause::fromStack(otherLits, cl->inputType(), new Inference2(Inference::SPLITTING, cl, mdvCl));
   otherCl->setAge(cl->age());
 
   cl=otherCl;

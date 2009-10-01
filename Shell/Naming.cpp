@@ -24,11 +24,11 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-/** 
- * Initialise a naming. 
+/**
+ * Initialise a naming.
  * @param threshold Must be between 1 and 32767. If a non-unit clause is
- *   going to be used the number of times greater than the threshold, 
- *   it will be named. 
+ *   going to be used the number of times greater than the threshold,
+ *   it will be named.
  */
 Naming::Naming (int threshold)
   : _threshold(threshold+1)
@@ -38,7 +38,7 @@ Naming::Naming (int threshold)
 
 
 /**
- * Apply naming to a unit. 
+ * Apply naming to a unit.
  *
  * @since 13/07/2005 Haifa
  * @since 14/07/2005 Tel-Aviv airport, changed to replace the unit
@@ -77,14 +77,14 @@ Unit* Naming::apply (Unit* unit,UnitList*& defs)
 
 
 /**
- * Apply naming to a subformula. 
+ * Apply naming to a subformula.
  *
  * @param f the subformula, it must be in ENNF and different from TRUE
  *    and FALSE
  * @param where describes the position of the subformula
  * @param pos return the number of clauses resulting in converting f to CNF
  * @param neg return the number of clauses resulting in converting ~f to CNF
- * @since 01/07/2005 Manchester  
+ * @since 01/07/2005 Manchester
  * @since 11/07/2005 flight Barcelona-Tel-Aviv
  */
 Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
@@ -295,7 +295,7 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
     } // for (;;)
   } // case OR
 
-  case IFF: 
+  case IFF:
   case XOR: {
     int negl;
     int posl;
@@ -408,6 +408,14 @@ Formula* Naming::introduceDefinition (Formula* f,bool iff)
   vs = f->freeVariables();
   int length = vs->length();
   unsigned pred = env.signature->addNamePredicate(length);
+
+  if(env.colorUsed) {
+    Color fc=f->getColor();
+    if(fc!=COLOR_TRANSPARENT) {
+      env.signature->getPredicate(pred)->addColor(fc);
+    }
+  }
+
   Literal* atom = new(length) Literal(pred,length,true,false);
   TermList* args = atom->args();
   Formula::VarList::Iterator vars(vs);

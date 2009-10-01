@@ -23,11 +23,11 @@ class Formula;
 
 typedef List<Formula*> FormulaList;
 
-class Formula 
+class Formula
 {
 public:
   typedef List<int> VarList;
-  /** 
+  /**
    * Constructor of constant formulas (true/false)
    * @since 02/07/2007 Manchester
    */
@@ -70,6 +70,8 @@ public:
   void destroy();
 
   unsigned weight() const;
+
+  Color getColor();
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME("Formula");

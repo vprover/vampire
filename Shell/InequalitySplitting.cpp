@@ -133,6 +133,10 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
     t=*lit->nthArgument(1);
   }
 
+  ASS(t.isTerm());
+  if(env.colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
+    env.signature->getPredicate(predNum)->addColor(t.term()->color());
+  }
 
   Inference* inf = new Inference(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);
   Clause* defCl=new(1) Clause(1, inpType, inf);
