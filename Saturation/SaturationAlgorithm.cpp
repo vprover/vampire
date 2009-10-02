@@ -366,6 +366,9 @@ void SaturationAlgorithm::addInputSOSClause(Clause*& cl)
   onNewClause(cl);
 
   cl=doImmediateSimplification(cl);
+  if(!cl) {
+    return;
+  }
 
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
@@ -713,6 +716,9 @@ simplificationStart:
   onNewClause(cl);
 
   cl=doImmediateSimplification(cl);
+  if(!cl) {
+    return;
+  }
 
 
 #if FW_DEMODULATION_FIRST
