@@ -67,6 +67,31 @@ public:
   } // Set::~Set
 
   /**
+   * If the set contains value equal to @b key, return true,
+   * and assign the value to @b result
+   */
+  template<typename Key>
+  bool find (Key key, Val& result) const
+  {
+    CALL("Set::contains");
+
+    unsigned code = Hash::hash(key);
+    if (code == 0) {
+      code = 1;
+    }
+    for (Entry* entry = firstEntryForCode(code);
+	 entry->occupied();
+	 entry = nextEntry(entry)) {
+      if (entry->code == code &&
+	  Hash::equals(entry->value,key)) {
+	result=entry->value;
+	return true;
+      }
+    }
+    return false;
+  } // Set::contains
+
+  /**
    * True if the set contains @b val.
    * @since 29/09/2002 Manchester
    */

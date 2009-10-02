@@ -738,6 +738,7 @@ public:
   static Literal* flattenOnArgument(const Literal*,int argumentNumber);
 
   unsigned hash() const;
+  unsigned oppositeHash() const;
   /** true if positive */
   bool isPositive() const
   {

@@ -537,6 +537,21 @@ unsigned Literal::hash() const
  		       _arity*sizeof(TermList),hash);
 } // Term::hash
 
+/**
+ * Return the hash function of the top-level of a literal with opposite polarity.
+ */
+unsigned Literal::oppositeHash() const
+{
+  CALL("Literal::hash");
+
+  unsigned hash = Hash::hash( (!isPositive()) ? (2*_functor) : (2*_functor+1));
+  if (_arity == 0) {
+    return hash;
+  }
+  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
+ 		       _arity*sizeof(TermList),hash);
+} // Term::hash
+
 
 /** Create a new complex term, copy from @b t its function symbol and
  *  from the array @b args its arguments. Insert it into the sharing
