@@ -38,8 +38,7 @@ private:
    * signature */
   int _defaultSymbolWeight;
 
-  int functionSymbolWeight(unsigned fun) { return _defaultSymbolWeight; }
-
+  int functionSymbolWeight(unsigned fun);
   int functionPrecedence(unsigned fun);
   int predicatePrecedence(unsigned pred);
   int predicateLevel(unsigned pred);

@@ -23,21 +23,25 @@ LiteralSelector* LiteralSelector::getSelector(int num)
 {
   using namespace LiteralComparators;
 
-  typedef Composite<MaximalSize,
-	    LexComparator> Comparator2;
+  typedef Composite<ColoredFirst,
+	    Composite<MaximalSize,
+	    LexComparator> > Comparator2;
 
-  typedef Composite<NoPositiveEquality,
+  typedef Composite<ColoredFirst,
+	    Composite<NoPositiveEquality,
 	    Composite<LeastTopLevelVariables,
-	    Composite<LeastDistinctVariables, LexComparator> > > Comparator3;
+	    Composite<LeastDistinctVariables, LexComparator> > > > Comparator3;
 
-  typedef Composite<NoPositiveEquality,
+  typedef Composite<ColoredFirst,
+	    Composite<NoPositiveEquality,
 	    Composite<LeastTopLevelVariables,
 	    Composite<LeastVariables,
-	    Composite<MaximalSize, LexComparator> > > > Comparator4;
+	    Composite<MaximalSize, LexComparator> > > > > Comparator4;
 
-  typedef Composite<NegativeEquality,
+  typedef Composite<ColoredFirst,
+	    Composite<NegativeEquality,
 	    Composite<MaximalSize,
-	    Composite<Negative, LexComparator> > > Comparator10;
+	    Composite<Negative, LexComparator> > > > Comparator10;
 
 
   switch(num) {
@@ -58,6 +62,35 @@ LiteralSelector* LiteralSelector::getSelector(int num)
   default:
     USER_ERROR("Undefined selection function");
   }
+}
+
+void LiteralSelector::ensureSomeColoredSelected(Clause* c)
+{
+  CALL("LiteralSelector::ensureSomeColoredSelected");
+
+  if(c->color()==COLOR_TRANSPARENT) {
+    //if no literal is colored, do nothing
+    return;
+  }
+
+  unsigned selCnt=c->selected();
+
+  for(int i=0;i<selCnt;i++) {
+    if((*c)[i]->color()!=COLOR_TRANSPARENT) {
+      return;
+    }
+  }
+
+  unsigned clen=c->length();
+
+  for(int i=selCnt;i<clen;i++) {
+    if((*c)[i]->color()!=COLOR_TRANSPARENT) {
+      swap((*c)[selCnt], (*c)[i]);
+      c->setSelected(selCnt+1);
+      return;
+    }
+  }
+  ASSERTION_VIOLATION;
 }
 
 //MultiColumnMap<Literal*>* LiteralSelector::getLiteralDetailStore()

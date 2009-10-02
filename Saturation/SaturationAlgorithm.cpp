@@ -264,13 +264,19 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
   }
 }
 
-void SaturationAlgorithm::onSymbolElimination(Clause* c)
+void SaturationAlgorithm::onSymbolElimination(Color eliminated, Clause* c)
 {
   CALL("SaturationAlgorithm::onSymbolElimination");
   ASS_EQ(c->color(),COLOR_TRANSPARENT);
 
   if(env.options->showSymbolElimination()) {
-    cout<<"Symbol elimination: "<<c->toTPTPString()<<endl;
+    if(eliminated==COLOR_LEFT) {
+      cout<<"Left";
+    } else {
+      ASS_EQ(eliminated, COLOR_RIGHT);
+      cout<<"Right";
+    }
+    cout<<" symbol elimination: "<<c->toTPTPString()<<endl;
   }
 }
 
@@ -453,7 +459,7 @@ void SaturationAlgorithm::checkForPreprocessorSymbolElimination(Clause* cl)
   }
 
   if(inputColor!=COLOR_TRANSPARENT) {
-    onSymbolElimination(cl);
+    onSymbolElimination(inputColor, cl);
   }
 }
 
@@ -500,7 +506,7 @@ public:
 	Color premColor=static_cast<Color>(_cl->color() | premise->color());
 	ASS_NEQ(premColor, COLOR_INVALID);
 	if(premColor!=COLOR_TRANSPARENT && replacement->color()==COLOR_TRANSPARENT) {
-	  _sa->onSymbolElimination(replacement);
+	  _sa->onSymbolElimination(premColor, replacement);
 	}
       }
     }
@@ -596,7 +602,7 @@ public:
 	Color premColor=static_cast<Color>(_cl->color() | premise->color());
 	ASS_NEQ(premColor, COLOR_INVALID);
 	if(premColor!=COLOR_TRANSPARENT && replacement->color()==COLOR_TRANSPARENT) {
-	  _sa->onSymbolElimination(replacement);
+	  _sa->onSymbolElimination(premColor, replacement);
 	}
       }
     }
@@ -666,7 +672,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl)
       InferenceStore::instance()->recordNonPropInference(simplCl);
 
       if(cl->color()!=COLOR_TRANSPARENT && simplCl->color()==COLOR_TRANSPARENT) {
-	onSymbolElimination(simplCl);
+	onSymbolElimination(cl->color(), simplCl);
       }
 
       cl=simplCl;
@@ -751,7 +757,7 @@ simplificationStart:
       if(comp!=cl) {
 	onNewClause(comp);
 	if(origColor!=COLOR_TRANSPARENT && comp->color()==COLOR_TRANSPARENT) {
-	  onSymbolElimination(comp);
+	  onSymbolElimination(origColor, comp);
 	}
       }
 
@@ -761,7 +767,7 @@ simplificationStart:
       Clause* comp=modifiedComponents.next();
 
       if(origColor!=COLOR_TRANSPARENT && comp->color()==COLOR_TRANSPARENT) {
-	onSymbolElimination(comp);
+	onSymbolElimination(origColor, comp);
       }
 
       ASS(!bdd->isTrue(comp->prop()));
@@ -1075,7 +1081,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 #endif
 
 	    if(premColor!=COLOR_TRANSPARENT && addCl->color()==COLOR_TRANSPARENT) {
-	      onSymbolElimination(addCl);
+	      onSymbolElimination(premColor, addCl);
 	    }
 	  }
 	}
@@ -1228,7 +1234,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 
     ASS_NEQ(premColor, COLOR_INVALID);
     if(premColor!=COLOR_TRANSPARENT && genCl->color()==COLOR_TRANSPARENT) {
-      onSymbolElimination(genCl);
+      onSymbolElimination(premColor, genCl);
     }
 
     addUnprocessedClause(genCl);

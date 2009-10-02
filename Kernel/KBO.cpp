@@ -21,6 +21,10 @@
 #include "KBO.hpp"
 #include "Signature.hpp"
 
+
+#define COLORED_WEIGHT_BOOST 0x10000
+#define COLORED_LEVEL_BOOST 0x10000
+
 namespace Kernel {
 
 using namespace Lib;
@@ -396,18 +400,33 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2)
   return state.result(t1,t2);
 }
 
+int KBO::functionSymbolWeight(unsigned fun)
+{
+  if(env.signature->functionColored(fun)) {
+    return COLORED_WEIGHT_BOOST*_defaultSymbolWeight;
+  } else {
+    return _defaultSymbolWeight;
+  }
+}
 
 
 /**
  * Return the predicate level. If @b pred is less than or equal to
  * @b _predicates, then the value is taken from the array _predicateLevels,
  * otherwise it is defined to be 1 (to make it greater than the level
- * of equality).
+ * of equality). If a predicate is colored, its level is multiplied by
+ * the COLORED_LEVEL_BOOST value.
  * @since 11/05/2008 Manchester
  */
 int KBO::predicateLevel (unsigned pred)
 {
-  return pred > _predicates ? 1 : _predicateLevels[pred];
+  int basic=pred > _predicates ? 1 : _predicateLevels[pred];
+  if(env.signature->predicateColored(pred)) {
+    ASS_NEQ(pred,0); //equality should never be colored
+    return COLORED_LEVEL_BOOST*basic;
+  } else {
+    return basic;
+  }
 } // KBO::predicateLevel
 
 

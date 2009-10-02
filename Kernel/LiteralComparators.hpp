@@ -46,6 +46,20 @@ private:
   Comp _c;
 };
 
+struct ColoredFirst
+{
+  Comparison compare(Literal* l1, Literal* l2)
+  {
+    if(l1->color()!=COLOR_TRANSPARENT && l2->color()==COLOR_TRANSPARENT) {
+      return GREATER;
+    } else if(l1->color()==COLOR_TRANSPARENT && l2->color()!=COLOR_TRANSPARENT) {
+      return LESS;
+    } else {
+      return EQUAL;
+    }
+  }
+};
+
 struct NoPositiveEquality
 {
   Comparison compare(Literal* l1, Literal* l2)

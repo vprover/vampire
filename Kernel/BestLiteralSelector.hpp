@@ -66,6 +66,11 @@ public:
       std::swap((*c)[0], (*c)[besti]);
     }
     c->setSelected(1);
+
+#if VDEBUG
+    ensureSomeColoredSelected(c);
+    ASS_EQ(c->selected(), 1); //if there is colored, it should be selected by the QComparator
+#endif
   }
 
 private:
@@ -201,6 +206,8 @@ public:
       c->setSelected(1);
     }
     maximals->destroy();
+
+    ensureSomeColoredSelected(c);
   }
 
 private:

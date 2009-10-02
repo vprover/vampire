@@ -70,4 +70,6 @@ void MaximalLiteralSelector::select(Clause* c)
   ASS(selCnt>0);
 
   c->setSelected(selCnt);
+
+  ensureSomeColoredSelected(c);
 }

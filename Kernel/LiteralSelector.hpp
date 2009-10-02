@@ -24,6 +24,8 @@ public:
 
   static LiteralSelector* getSelector(int num);
 
+  static void ensureSomeColoredSelected(Clause* c);
+
 //  static MultiColumnMap<Literal*>* getLiteralDetailStore();
 };
 

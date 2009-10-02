@@ -110,6 +110,11 @@ class Signature
     return _preds[number]->color()!=COLOR_TRANSPARENT;
   }
 
+  const bool functionColored(int number)
+  {
+    return _funs[number]->color()!=COLOR_TRANSPARENT;
+  }
+
   /** return true iff predicate of given @b name and @b arity exists. */
   bool isPredicateName(string name, unsigned arity)
   {

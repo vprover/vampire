@@ -80,7 +80,7 @@ protected:
   void onUnprocessedSelected(Clause* c);
   void onNewClause(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
-  void onSymbolElimination(Clause* c);
+  void onSymbolElimination(Color eliminated, Clause* c);
 
   void handleSaturationStart();
   int elapsedTime();
