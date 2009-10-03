@@ -8,6 +8,7 @@
 
 #include <cstring>
 
+#include "Exception.hpp"
 #include "NameArray.hpp"
 #include "../Debug/Tracer.hpp"
 
@@ -16,14 +17,15 @@ namespace Lib {
 NameArray::NameArray (const char* array[],int len)
   : length(len),
     _array(array)
-    
+
 {
 } // NameArray::NameArray
 
 /**
- * Find the index of a string in the name array.
+ * Find the index of a string in the name array. Throw a
+ * ValueNotFoundException if it is not present.
  *
- * @return the index, if found, and -1 if not
+ * @return the index
  * @since 12/11/2004 Manchester
  */
 int NameArray::find (const char* value) const
@@ -45,7 +47,7 @@ int NameArray::find (const char* value) const
       to = mid;
     }
   }
-  return -1;
+  throw ValueNotFoundException();
 } // Options::find
 
 

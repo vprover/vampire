@@ -140,6 +140,10 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     env.signature->getPredicate(namingPred)->addColor(mdvColor);
   }
 
+  if(env.colorUsed && cl->vip()) {
+    env.signature->getPredicate(namingPred)->markVIP();
+  }
+
 
   static DArray<TermList> args(8);
   args.ensure(minDeg);

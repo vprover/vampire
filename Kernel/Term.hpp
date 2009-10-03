@@ -600,7 +600,7 @@ public:
   /** return the colour of the term */
   Color color() const { return static_cast<Color>(_color); }
 
-  bool skipped() const;
+  bool vip() const;
 protected:
   ArgumentOrder computeArgumentOrder() const;
   unsigned computeDistinctVars() const;

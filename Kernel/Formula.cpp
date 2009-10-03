@@ -505,6 +505,28 @@ Color Formula::getColor()
   return COLOR_TRANSPARENT;
 }
 
+/**
+ * Return true iff the formula is VIP for the purpose of
+ * symbol elimination
+ */
+bool Formula::getVIP()
+{
+  CALL("Formula::getColor");
+
+  SubformulaIterator si(this);
+  while(si.hasNext()) {
+    Formula* f=si.next();
+    if(f->connective()!=LITERAL) {
+      continue;
+    }
+
+    if(f->literal()->vip()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 
 /*
   THIS IS USEFUL

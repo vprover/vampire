@@ -76,6 +76,20 @@ class UserErrorException
 }; // UserErrorException
 
 /**
+ * Class ValueNotFoundException. A ValueNotFoundException is
+ * thrown when a value is not found in some collection.
+ * Currently it is being thrown by the NameArray objects.
+ */
+class ValueNotFoundException
+  : public Exception
+{
+ public:
+   ValueNotFoundException ()
+    : Exception("")
+  {}
+}; // UserErrorException
+
+/**
  * Class MemoryLimitExceededException.
  */
 class MemoryLimitExceededException

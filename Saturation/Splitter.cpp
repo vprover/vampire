@@ -14,6 +14,7 @@
 #include "../Kernel/Term.hpp"
 #include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
+#include "../Inferences/PropositionalToBDDISE.hpp"
 
 #include "Splitter.hpp"
 
@@ -22,6 +23,7 @@ namespace Saturation
 
 using namespace Lib;
 using namespace Kernel;
+using namespace Inferences;
 
 #define REPORT_SPLITS 0
 
@@ -56,7 +58,8 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 
   if(clen>1) {
     for(int i=0;i<clen;i++) {
-      if((*cl)[i]->color()!=COLOR_TRANSPARENT) {
+      Literal* lit=(*cl)[i];
+      if( env.colorUsed && (lit->color()!=COLOR_TRANSPARENT || lit->vip()) ) {
 	if(coloredMaster==-1) {
 	  coloredMaster=i;
 	} else {
@@ -64,7 +67,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 	  components.doUnion(coloredMaster, i);
 	}
       }
-      Term::VariableIterator vit((*cl)[i]);
+      Term::VariableIterator vit(lit);
       while(vit.hasNext()) {
 	int master=varMasters.findOrInsert(vit.next().var(), i);
 	if(master!=i) {
@@ -119,7 +122,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 	continue;
       }
 
-      if(lit->arity()!=0 || lit->color()!=COLOR_TRANSPARENT) {
+      if(!PropositionalToBDDISE::canBddize(lit)) {
 	continue;
       }
 
@@ -167,7 +170,6 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 
     if(compLen==1 && lits.top()->arity()==0 && !colorComponent) {
       //we have already handled transparent propositional components
-      ASS_NEQ(lits.top()->color(),COLOR_TRANSPARENT);
       continue;
     }
     ASS(!colorComponent | masterComp==0);
@@ -429,7 +431,7 @@ void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
   newComponents=ClauseIterator::getEmpty();
   modifiedComponents=ClauseIterator::getEmpty();
 
-  if(cl->length()==1 && (*cl)[0]->arity()==0 && cl->color()==COLOR_TRANSPARENT) {
+  if(cl->length()==1 && PropositionalToBDDISE::canBddize((*cl)[0])) {
     Literal* lit=(*cl)[0];
     int name;
     Clause* premise;

@@ -414,6 +414,9 @@ Formula* Naming::introduceDefinition (Formula* f,bool iff)
     if(fc!=COLOR_TRANSPARENT) {
       env.signature->getPredicate(pred)->addColor(fc);
     }
+    if(f->getVIP()) {
+      env.signature->getPredicate(pred)->markVIP();
+    }
   }
 
   Literal* atom = new(length) Literal(pred,length,true,false);

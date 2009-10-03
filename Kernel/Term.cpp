@@ -866,24 +866,25 @@ unsigned Term::computeDistinctVars() const
   return vars.numberOfElements();
 }
 
-bool Term::skipped() const
+bool Term::vip() const
 {
   if(isLiteral()) {
-    if(!env.signature->getPredicate(functor())->skip()) {
-      return false;
+    if(env.signature->getPredicate(functor())->vip()) {
+      return true;
     }
   } else {
-    if(!env.signature->getFunction(functor())->skip()) {
-      return false;
+    if(env.signature->getFunction(functor())->vip()) {
+      return true;
     }
   }
   Term::NonVariableIterator nvi(this);
   while(nvi.hasNext()) {
     unsigned func=nvi.next().term()->functor();
-    if(!env.signature->getFunction(func)->skip()) {
-      return false;
+    if(env.signature->getFunction(func)->vip()) {
+      return true;
     }
   }
+  return false;
 }
 
 /** Create a new literal, and insert it into the sharing

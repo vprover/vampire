@@ -137,6 +137,9 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
   if(env.colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
     env.signature->getPredicate(predNum)->addColor(t.term()->color());
   }
+  if(env.colorUsed && t.term()->vip()) {
+    env.signature->getPredicate(predNum)->markVIP();
+  }
 
   Inference* inf = new Inference(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);
   Clause* defCl=new(1) Clause(1, inpType, inf);

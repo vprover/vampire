@@ -421,308 +421,269 @@ void Options::set (const char* name,const char* value, int index)
   unsigned unsignedValue;
   float floatValue;
 
-  switch (index) {
-  case AGE_WEIGHT_RATIO:
-    readAgeWeightRatio(value);
-    return;
-
-  case BACKWARD_DEMODULATION:
-    _backwardDemodulation = (Demodulation)Constants::demodulationValues.find(value);
-    if (_backwardDemodulation == -1) {
-      break;
-    }
-    return;
-  case BACKWARD_SUBSUMPTION:
-    _backwardSubsumption = onOffToBool(value,name);
-    return;
-
-  case CONDENSATION:
-    _condensation = onOffToBool(value,name);
-    return;
-
-  case DECODE:
-    readFromTestId(value);
-    return;
-
-  case EMPTY_CLAUSE_SUBSUMPTION:
-    _emptyClauseSubsumption = onOffToBool(value,name);
-    return;
-  case EQUALITY_PROXY:
-    _equalityProxy = (EqualityProxy)Constants::equalityProxyValues.find(value);
-    if (_equalityProxy == -1) {
-      break;
-    }
-    return;
-  case EQUALITY_RESOLUTION_WITH_DELETION:
-    _equalityResolutionWithDeletion = (RuleActivity)Constants::ruleActivityValues.find(value);
-    if(_equalityResolutionWithDeletion==RA_ON) {
-      USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
-    }
-    if (_equalityResolutionWithDeletion == -1) {
-      break;
-    }
-    return;
-
-  case FORWARD_DEMODULATION:
-    _forwardDemodulation =
-      (Demodulation)Constants::demodulationValues.find(value);
-    if (_forwardDemodulation == -1) {
-      break;
-    }
-    return;
-  case FORWARD_SUBSUMPTION:
-    _forwardSubsumption = onOffToBool(value,name);
-    return;
-  case FORWARD_SUBSUMPTION_RESOLUTION:
-    _forwardSubsumptionResolution = onOffToBool(value,name);
-    return;
-  case FUNCTION_DEFINITION_ELIMINATION:
-    _functionDefinitionElimination =
-      (FunctionDefinitionElimination)Constants::fdeValues.find(value);
-    if (_functionDefinitionElimination == -1) {
-      break;
-    }
-    return;
-
-  case GENERAL_SPLITTING:
-    _generalSplitting = (RuleActivity)Constants::ruleActivityValues.find(value);
-    if(_generalSplitting==RA_ON) {
-      USER_ERROR("general_splitting is not implemented for value \"on\"");
-    }
-    if (_generalSplitting == -1) {
-      break;
-    }
-    return;
-
-  case INCLUDE:
-    _include = value;
-    return;
-  case INEQUALITY_SPLITTING:
-    if (Int::stringToUnsignedInt(value,unsignedValue)) {
-      _inequalitySplitting = unsignedValue;
+  try {
+    switch (index) {
+    case AGE_WEIGHT_RATIO:
+      readAgeWeightRatio(value);
       return;
-    }
-    break;
-  case INPUT_SYNTAX:
-    _inputSyntax = (InputSyntax)Constants::inputSyntaxValues.find(value);
-    if (_inputSyntax == -1) {
+
+    case BACKWARD_DEMODULATION:
+      _backwardDemodulation = (Demodulation)Constants::demodulationValues.find(value);
+      return;
+    case BACKWARD_SUBSUMPTION:
+      _backwardSubsumption = onOffToBool(value,name);
+      return;
+
+    case CONDENSATION:
+      _condensation = onOffToBool(value,name);
+      return;
+
+    case DECODE:
+      readFromTestId(value);
+      return;
+
+    case EMPTY_CLAUSE_SUBSUMPTION:
+      _emptyClauseSubsumption = onOffToBool(value,name);
+      return;
+    case EQUALITY_PROXY:
+      _equalityProxy = (EqualityProxy)Constants::equalityProxyValues.find(value);
+      return;
+    case EQUALITY_RESOLUTION_WITH_DELETION:
+      _equalityResolutionWithDeletion = (RuleActivity)Constants::ruleActivityValues.find(value);
+      if(_equalityResolutionWithDeletion==RA_ON) {
+	USER_ERROR("equality_resolution_with_deletion is not implemented for value \"on\"");
+      }
+      return;
+
+    case FORWARD_DEMODULATION:
+      _forwardDemodulation =
+	(Demodulation)Constants::demodulationValues.find(value);
+      return;
+    case FORWARD_SUBSUMPTION:
+      _forwardSubsumption = onOffToBool(value,name);
+      return;
+    case FORWARD_SUBSUMPTION_RESOLUTION:
+      _forwardSubsumptionResolution = onOffToBool(value,name);
+      return;
+    case FUNCTION_DEFINITION_ELIMINATION:
+      _functionDefinitionElimination =
+	(FunctionDefinitionElimination)Constants::fdeValues.find(value);
+      return;
+
+    case GENERAL_SPLITTING:
+      _generalSplitting = (RuleActivity)Constants::ruleActivityValues.find(value);
+      if(_generalSplitting==RA_ON) {
+	USER_ERROR("general_splitting is not implemented for value \"on\"");
+      }
+      return;
+
+    case INCLUDE:
+      _include = value;
+      return;
+    case INEQUALITY_SPLITTING:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_inequalitySplitting = unsignedValue;
+	return;
+      }
       break;
-    }
-    return;
+    case INPUT_SYNTAX:
+      _inputSyntax = (InputSyntax)Constants::inputSyntaxValues.find(value);
+      return;
 
-  case LATEX_OUTPUT:
-    _latexOutput = value;
-    return;
-  case LITERAL_COMPARISON_MODE:
-    _literalComparisonMode =
-      (LiteralComparisonMode)Constants::lcmValues.find(value);
-    if (_literalComparisonMode == -1) {
+    case LATEX_OUTPUT:
+      _latexOutput = value;
+      return;
+    case LITERAL_COMPARISON_MODE:
+      _literalComparisonMode =
+	(LiteralComparisonMode)Constants::lcmValues.find(value);
+      return;
+    case LOG_FILE:
+      _logFile = value;
+      return;
+    case LRS_FIRST_TIME_CHECK:
+      if (Int::stringToInt(value,intValue) &&
+	  setLrsFirstTimeCheck(intValue)) {
+	return;
+      }
       break;
-    }
-    return;
-  case LOG_FILE:
-    _logFile = value;
-    return;
-  case LRS_FIRST_TIME_CHECK:
-    if (Int::stringToInt(value,intValue) &&
-	setLrsFirstTimeCheck(intValue)) {
-      return;
-    }
-    break;
 
-  case MAX_ACTIVE:
-    if (Int::stringToUnsignedInt(value,unsignedValue)) {
-      _maxActive = unsignedValue;
-      return;
-    }
-    break;
-  case MAX_ANSWERS:
-    if (Int::stringToUnsignedInt(value,unsignedValue)) {
-      _maxAnswers = unsignedValue;
-      return;
-    }
-    break;
-  case MAX_INFERENCE_DEPTH:
-    if (Int::stringToUnsignedInt(value,unsignedValue)) {
-      _maxInferenceDepth = unsignedValue;
-      return;
-    }
-    break;
-  case MAX_PASSIVE:
-    if (Int::stringToUnsignedInt(value,unsignedValue)) {
-      _maxPassive = unsignedValue;
-      return;
-    }
-    break;
-  case MAX_WEIGHT:
-    if (Int::stringToUnsignedInt(value,unsignedValue)) {
-      _maxWeight = unsignedValue;
-      return;
-    }
-    break;
-  case MEMORY_LIMIT:
-    if (Int::stringToUnsignedInt(value,unsignedValue)) {
-      _memoryLimit = unsignedValue;
-      return;
-    }
-    break;
-  case MODE:
-    _mode = (Mode)Constants::modeValues.find(value);
-    if (_mode == -1) {
+    case MAX_ACTIVE:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_maxActive = unsignedValue;
+	return;
+      }
       break;
-    }
-    return;
-
-  case NAME_PREFIX:
-    _namePrefix = value;
-    return;
-  case NAMING:
-    if (Int::stringToUnsignedInt(value,unsignedValue) &&
-	setNaming(unsignedValue)) {
-      return;
-    }
-    break;
-  case NONGOAL_WEIGHT_COEFFICIENT:
-    if (Int::stringToFloat(value,floatValue) &&
-	setNongoalWeightCoefficient(floatValue)) {
-      return;
-    }
-    break;
-  case NORMALIZE:
-    _normalize = onOffToBool(value,name);
-    return;
-
-  case ORPHAN_DELETION:
-    _orphanDeletion = onOffToBool(value,name);
-    return;
-  case OUTPUT_MESSAGES:
-    _outputMessages = onOffToBool(value,name);
-    return;
-
-  case PROOF:
-    _proof = (Proof)Constants::proofValues.find(value);
-    if (_proof == -1) {
+    case MAX_ANSWERS:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_maxAnswers = unsignedValue;
+	return;
+      }
       break;
-    }
-    return;
-
-  case PROOF_CHECKING:
-    _proofChecking = onOffToBool(value,name);
-    return;
-
-  case RANDOM_SEED:
-    if (Int::stringToUnsignedInt(value,unsignedValue)) {
-      _randomSeed = unsignedValue;
+    case MAX_INFERENCE_DEPTH:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_maxInferenceDepth = unsignedValue;
+	return;
+      }
+      break;
+    case MAX_PASSIVE:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_maxPassive = unsignedValue;
+	return;
+      }
+      break;
+    case MAX_WEIGHT:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_maxWeight = unsignedValue;
+	return;
+      }
+      break;
+    case MEMORY_LIMIT:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_memoryLimit = unsignedValue;
+	return;
+      }
+      break;
+    case MODE:
+      _mode = (Mode)Constants::modeValues.find(value);
       return;
-    }
-    break;
-  case ROW_VARIABLE_MAX_LENGTH:
-    if (Int::stringToUnsignedInt(value,unsignedValue)) {
-      _rowVariableMaxLength = unsignedValue;
+
+    case NAME_PREFIX:
+      _namePrefix = value;
       return;
-    }
-    break;
-
-  case SAT_SOLVER_FOR_EMPTY_CLAUSE:
-    _satSolverForEmptyClause = onOffToBool(value,name);
-    return;
-  case SATURATION_ALGORITHM:
-    _saturationAlgorithm = (SaturationAlgorithm)Constants::satAlgValues.find(value);
-//    cout<<_saturationAlgorithm<<endl;
-    if (_saturationAlgorithm == -1) {
+    case NAMING:
+      if (Int::stringToUnsignedInt(value,unsignedValue) &&
+	  setNaming(unsignedValue)) {
+	return;
+      }
       break;
-    }
-    return;
-  case SELECTION:
-    if (Int::stringToInt(value,intValue) &&
-	setSelection(intValue) ) {
+    case NONGOAL_WEIGHT_COEFFICIENT:
+      if (Int::stringToFloat(value,floatValue) &&
+	  setNongoalWeightCoefficient(floatValue)) {
+	return;
+      }
+      break;
+    case NORMALIZE:
+      _normalize = onOffToBool(value,name);
       return;
-    }
-    break;
-  case SHOW_ACTIVE:
-    _showActive = onOffToBool(value,name);
-    return;
-  case SHOW_DEFINITIONS:
-    _showDefinitions = onOffToBool(value,name);
-    return;
-  case SHOW_NEW:
-    _showNew = onOffToBool(value,name);
-    return;
-  case SHOW_NEW_PROPOSITIONAL:
-    _showNewPropositional = onOffToBool(value,name);
-    return;
-  case SHOW_OPTIONS:
-    _showOptions = onOffToBool(value,name);
-    return;
-  case SHOW_PASSIVE:
-    _showPassive = onOffToBool(value,name);
-    return;
-  case SHOW_SYMBOL_ELIMINATION:
-    _showSymbolElimination = onOffToBool(value,name);
-    return;
-  case SIMULATED_TIME_LIMIT:
-    _simulatedTimeLimit = readTimeLimit(value);
-    return;
-  case SOS:
-    _sos = onOffToBool(value,name);
-    return;
-  case SPLITTING:
-    _splitting = (RuleActivity)Constants::ruleActivityValues.find(value);
-    if (_splitting == -1) {
+
+    case ORPHAN_DELETION:
+      _orphanDeletion = onOffToBool(value,name);
+      return;
+    case OUTPUT_MESSAGES:
+      _outputMessages = onOffToBool(value,name);
+      return;
+
+    case PROOF:
+      _proof = (Proof)Constants::proofValues.find(value);
+      return;
+
+    case PROOF_CHECKING:
+      _proofChecking = onOffToBool(value,name);
+      return;
+
+    case RANDOM_SEED:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_randomSeed = unsignedValue;
+	return;
+      }
       break;
-    }
-    return;
-  case STATISTICS:
-    _statistics = (Statistics)Constants::statisticsValues.find(value);
-    if (_statistics == -1) {
+    case ROW_VARIABLE_MAX_LENGTH:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_rowVariableMaxLength = unsignedValue;
+	return;
+      }
       break;
-    }
-    return;
-  case SUPERPOSITION_FROM_VARIABLES:
-    _superpositionFromVariables = onOffToBool(value,name);
-    return;
-  case SYMBOL_PRECEDENCE:
-    _symbolPrecedence =
-      (SymbolPrecedence)Constants::symbolPrecedenceValues.find(value);
-    if (_symbolPrecedence == -1) {
+
+    case SAT_SOLVER_FOR_EMPTY_CLAUSE:
+      _satSolverForEmptyClause = onOffToBool(value,name);
+      return;
+    case SATURATION_ALGORITHM:
+      _saturationAlgorithm = (SaturationAlgorithm)Constants::satAlgValues.find(value);
+      return;
+    case SELECTION:
+      if (Int::stringToInt(value,intValue) &&
+	  setSelection(intValue) ) {
+	return;
+      }
       break;
-    }
-    return;
+    case SHOW_ACTIVE:
+      _showActive = onOffToBool(value,name);
+      return;
+    case SHOW_DEFINITIONS:
+      _showDefinitions = onOffToBool(value,name);
+      return;
+    case SHOW_NEW:
+      _showNew = onOffToBool(value,name);
+      return;
+    case SHOW_NEW_PROPOSITIONAL:
+      _showNewPropositional = onOffToBool(value,name);
+      return;
+    case SHOW_OPTIONS:
+      _showOptions = onOffToBool(value,name);
+      return;
+    case SHOW_PASSIVE:
+      _showPassive = onOffToBool(value,name);
+      return;
+    case SHOW_SYMBOL_ELIMINATION:
+      _showSymbolElimination = onOffToBool(value,name);
+      return;
+    case SIMULATED_TIME_LIMIT:
+      _simulatedTimeLimit = readTimeLimit(value);
+      return;
+    case SOS:
+      _sos = onOffToBool(value,name);
+      return;
+    case SPLITTING:
+      _splitting = (RuleActivity)Constants::ruleActivityValues.find(value);
+      return;
+    case STATISTICS:
+      _statistics = (Statistics)Constants::statisticsValues.find(value);
+      return;
+    case SUPERPOSITION_FROM_VARIABLES:
+      _superpositionFromVariables = onOffToBool(value,name);
+      return;
+    case SYMBOL_PRECEDENCE:
+      _symbolPrecedence =
+	(SymbolPrecedence)Constants::symbolPrecedenceValues.find(value);
+      return;
 
-  case TEST_ID:
-    _testId = value;
-    return;
+    case TEST_ID:
+      _testId = value;
+      return;
 
-  case TIME_LIMIT:
-    _timeLimitInDeciseconds = readTimeLimit(value);
-    return;
+    case TIME_LIMIT:
+      _timeLimitInDeciseconds = readTimeLimit(value);
+      return;
 
-  case TIME_STATISTICS:
-    _timeStatistics = onOffToBool(value,name);
-    return;
+    case TIME_STATISTICS:
+      _timeStatistics = onOffToBool(value,name);
+      return;
 
-  case UNUSED_PREDICATE_DEFINITION_REMOVAL:
-    _unusedPredicateDefinitionRemoval = onOffToBool(value,name);
-    return;
+    case UNUSED_PREDICATE_DEFINITION_REMOVAL:
+      _unusedPredicateDefinitionRemoval = onOffToBool(value,name);
+      return;
 
-  case WEIGHT_INCREMENT:
-    _weightIncrement = onOffToBool(value,name);
-    return;
+    case WEIGHT_INCREMENT:
+      _weightIncrement = onOffToBool(value,name);
+      return;
 
-  case XML_OUTPUT:
-    _xmlOutput = value;
-    return;
+    case XML_OUTPUT:
+      _xmlOutput = value;
+      return;
 
-  case -1: // not found
+    case -1: // not found
     USER_ERROR((string)name + " is not a valid option");
 
 #if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
+    default:
+      ASSERTION_VIOLATION;
 #endif
+    }
+  }
+  catch(ValueNotFoundException) {
+    USER_ERROR((string)"wrong value (" + value + ") for " + name);
   }
 
-  USER_ERROR((string)"wrong value (" + value + ") for " + name);
 } // Options::set
 
 

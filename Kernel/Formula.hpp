@@ -72,6 +72,7 @@ public:
   unsigned weight() const;
 
   Color getColor();
+  bool getVIP();
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME("Formula");
