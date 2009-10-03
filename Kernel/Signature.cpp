@@ -25,6 +25,7 @@ Signature::Signature ()
 
   // initialize equality
   addPredicate("=", 2);
+  getPredicate(0)->markSkip();
 } // Signature::Signature
 
 /**
@@ -144,6 +145,7 @@ unsigned Signature::addSkolemFunction (unsigned arity)
     bool added;
     unsigned result = addFunction(name,arity,added);
     if (added) {
+      getFunction(result)->markSkip();
       return result;
     }
   }

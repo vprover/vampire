@@ -628,6 +628,7 @@ void Options::set (const char* name,const char* value, int index)
     return;
   case SATURATION_ALGORITHM:
     _saturationAlgorithm = (SaturationAlgorithm)Constants::satAlgValues.find(value);
+//    cout<<_saturationAlgorithm<<endl;
     if (_saturationAlgorithm == -1) {
       break;
     }
