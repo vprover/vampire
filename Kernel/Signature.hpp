@@ -45,6 +45,8 @@ class Signature
 	_color(COLOR_TRANSPARENT)
     {}
     void addColor(Color color);
+    /** mark the symbol as skip for the purpose of symbol elimination */
+    void markSkip() {}
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */

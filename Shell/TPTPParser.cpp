@@ -1018,24 +1018,29 @@ void TPTPParser::vampire()
     }
     consumeToken(TT_COMMA);
     Color color;
+    bool skip = false;
     string lr = name();
     if (lr == "left")
       color=COLOR_LEFT;
     else if (lr == "right")
       color=COLOR_RIGHT;
+    else if (lr == "skip")
+      skip = true;
     else {
       throw ParserException("either 'left' or 'right' expected",
 			    currentToken1());
     }
     env.colorUsed = true;
-    if (pred) {
-      Signature::Symbol* p = env.signature->getPredicate(env.signature->addPredicate(symb,arity));
-      p->addColor(color);
-    }
-    else {
-      Signature::Symbol* f = env.signature->getFunction(env.signature->addFunction(symb,arity));
-      f->addColor(color);
-    }
+    Signature::Symbol* sym;
+    if (pred) 
+      sym = env.signature->getPredicate(env.signature->addPredicate(symb,arity));
+    else
+      sym = env.signature->getFunction(env.signature->addFunction(symb,arity));
+
+    if (skip)
+      sym->markSkip();
+    else 
+      sym->addColor(color);
   }
   else {
     throw ParserException("unrecognised Vampire command",
