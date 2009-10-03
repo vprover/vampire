@@ -267,6 +267,9 @@ public:
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit = newVal; }
   int maxInferenceDepth() const { return _maxInferenceDepth; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence; }
+  /**
+   * Return time limit in deciseconds, or 0 if there is no time limit
+   */
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds; }
   static int readTimeLimit(const char* val);
   int memoryLimit() const { return _memoryLimit; }

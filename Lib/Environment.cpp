@@ -55,8 +55,8 @@ bool Environment::timeLimitReached() const
 {
   CALL("ProofAttempt::timeLimitReached");
 
-  if (timer->elapsedDeciseconds() >
-      options->timeLimitInDeciseconds()) {
+  if (options->timeLimitInDeciseconds() &&
+      timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
     return true;
   }

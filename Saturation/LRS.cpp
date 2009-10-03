@@ -109,6 +109,7 @@ long LRS::estimatedReachableCount()
     timeLeft=env.options->timeLimitInDeciseconds()*100 - currTime;
   }
   if(timeLeft<=0 || processed<=10) {
+    //we end-up here even if there is no time timit (i.e. time limit is set to 0)
     return -1;
   }
   return (processed*timeLeft)/timeSpent;

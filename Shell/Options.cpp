@@ -370,7 +370,7 @@ Options::Options ()
   _symbolPrecedence(BY_ARITY),
 
   _testId ("unspecified_test"),
-  _timeLimitInDeciseconds(0),
+  _timeLimitInDeciseconds(600),
   _timeStatistics(false),
 
   _unusedPredicateDefinitionRemoval(true),
