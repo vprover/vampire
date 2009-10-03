@@ -269,7 +269,7 @@ void SaturationAlgorithm::onSymbolElimination(Color eliminated, Clause* c)
   CALL("SaturationAlgorithm::onSymbolElimination");
   ASS_EQ(c->color(),COLOR_TRANSPARENT);
 
-  if(env.options->showSymbolElimination()) {
+  if(env.options->showSymbolElimination() && !c->skipped()) {
     if(eliminated==COLOR_LEFT) {
       cout<<"Left";
     } else {

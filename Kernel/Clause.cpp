@@ -288,6 +288,29 @@ VirtualIterator<string> Clause::toSimpleClauseStrings()
 }
 
 /**
+ * Return true iff the clause should be skipped for the purpose
+ * of symbol elimination reporting.
+ */
+bool Clause::skipped() const
+{
+  unsigned clen=length();
+  for(unsigned i=0;i<clen;i++) {
+    const Literal* lit=(*this)[i];
+    if(!env.signature->getPredicate(lit->functor())->skip()) {
+      return false;
+    }
+    Term::NonVariableIterator nvi(lit);
+    while(nvi.hasNext()) {
+      unsigned func=nvi.next().term()->functor();
+      if(!env.signature->getFunction(func)->skip()) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
  * Compute the color of the clause and store it in @b _color
  * @pre All literals are shared, so their color is computed properly.
  */

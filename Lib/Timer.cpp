@@ -14,7 +14,9 @@
 #include "Timer.hpp"
 
 
-#define UNIX_USE_SIGALRM 1
+//#define UNIX_USE_SIGALRM 1
+//SIGALRM causes problems with debugging
+#define UNIX_USE_SIGALRM !VDEBUG
 
 using namespace std;
 

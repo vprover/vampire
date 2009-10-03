@@ -34,7 +34,9 @@ class Signature
     /** print name */
     const string _name;
     /** arity */
-    unsigned _arity : 30;
+    unsigned _arity : 29;
+    /** clauses with only skipped symbols will not be output when symbol eliminated*/
+    unsigned _skip : 1;
     /** used in coloured proofs and interpolation */
     Color _color : 2;
   public:
@@ -42,11 +44,14 @@ class Signature
     Symbol(const string& nm,unsigned arity)
       : _name(nm),
 	_arity(arity),
+	_skip(0),
 	_color(COLOR_TRANSPARENT)
     {}
     void addColor(Color color);
     /** mark the symbol as skip for the purpose of symbol elimination */
-    void markSkip() {}
+    void markSkip() { _skip=1; }
+    /** return true iff symbol is marked as skip for the purpose of symbol elimination */
+    bool skip() { return _skip; }
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */

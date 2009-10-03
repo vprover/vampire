@@ -699,10 +699,10 @@ Shell/SineUtils.o: Kernel/Formula.hpp Lib/XML.hpp Kernel/Connective.hpp
 Shell/SineUtils.o: Kernel/Term.hpp Kernel/TermFunIterator.hpp Lib/Stack.hpp
 Shell/SineUtils.o: Lib/BacktrackData.hpp Lib/Int.hpp Lib/Comparison.hpp
 Shell/SineUtils.o: Shell/SineUtils.hpp
-Shell/Skolem.o: Kernel/Signature.hpp Lib/Allocator.hpp Debug/Tracer.hpp
-Shell/Skolem.o: Lib/Stack.hpp Forwards.hpp Config.hpp Debug/Assertion.hpp
-Shell/Skolem.o: Lib/Allocator.hpp Lib/BacktrackData.hpp Lib/List.hpp
-Shell/Skolem.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
+Shell/Skolem.o: Kernel/Signature.hpp Forwards.hpp Config.hpp
+Shell/Skolem.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Stack.hpp
+Shell/Skolem.o: Debug/Assertion.hpp Lib/Allocator.hpp Lib/BacktrackData.hpp
+Shell/Skolem.o: Lib/List.hpp Lib/VirtualIterator.hpp Lib/Exception.hpp
 Shell/Skolem.o: Lib/LastCopyWatcher.hpp Lib/Reflection.hpp Lib/Int.hpp
 Shell/Skolem.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/Map.hpp
 Shell/Skolem.o: Lib/Hash.hpp Kernel/Term.hpp Kernel/Inference.hpp
@@ -877,11 +877,19 @@ Kernel/Formula.o: Kernel/Connective.hpp Kernel/SubformulaIterator.hpp
 Kernel/Formula.o: Lib/VirtualIterator.hpp Kernel/FormulaVarIterator.hpp
 Kernel/Formula.o: Kernel/Term.hpp Kernel/Formula.hpp
 Kernel/FormulaUnit.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
-Kernel/FormulaUnit.o: Debug/Assertion.hpp Kernel/Inference.hpp
-Kernel/FormulaUnit.o: Kernel/Unit.hpp Lib/Allocator.hpp Debug/Tracer.hpp
-Kernel/FormulaUnit.o: Kernel/Formula.hpp Lib/List.hpp Lib/XML.hpp
-Kernel/FormulaUnit.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
-Kernel/FormulaUnit.o: Kernel/Unit.hpp Forwards.hpp Config.hpp
+Kernel/FormulaUnit.o: Debug/Assertion.hpp Kernel/Formula.hpp Lib/List.hpp
+Kernel/FormulaUnit.o: Lib/XML.hpp Kernel/Connective.hpp
+Kernel/FormulaUnit.o: Kernel/FormulaUnit.hpp Lib/Allocator.hpp
+Kernel/FormulaUnit.o: Debug/Tracer.hpp Kernel/Unit.hpp Forwards.hpp
+Kernel/FormulaUnit.o: Config.hpp Kernel/Inference.hpp Kernel/Unit.hpp
+Kernel/FormulaUnit.o: Kernel/SubformulaIterator.hpp Lib/VirtualIterator.hpp
+Kernel/FormulaUnit.o: Kernel/Term.hpp Lib/Portability.hpp Lib/Comparison.hpp
+Kernel/FormulaUnit.o: Lib/Stack.hpp Lib/Allocator.hpp Lib/BacktrackData.hpp
+Kernel/FormulaUnit.o: Lib/List.hpp Lib/VirtualIterator.hpp Lib/Exception.hpp
+Kernel/FormulaUnit.o: Lib/LastCopyWatcher.hpp Lib/Reflection.hpp Lib/Int.hpp
+Kernel/FormulaUnit.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/Hash.hpp
+Kernel/FormulaUnit.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
+Kernel/FormulaUnit.o: Lib/BitUtils.hpp
 Kernel/FormulaVarIterator.o: Debug/Tracer.hpp Kernel/FormulaVarIterator.hpp
 Kernel/FormulaVarIterator.o: Lib/MultiCounter.hpp Debug/Assertion.hpp
 Kernel/FormulaVarIterator.o: Lib/XML.hpp Lib/Stack.hpp Forwards.hpp
@@ -2231,8 +2239,11 @@ Saturation/SaturationAlgorithm.o: Kernel/Inference.hpp Kernel/Unit.hpp
 Saturation/SaturationAlgorithm.o: Kernel/InferenceStore.hpp
 Saturation/SaturationAlgorithm.o: Lib/DHMultiset.hpp
 Saturation/SaturationAlgorithm.o: Kernel/LiteralSelector.hpp
-Saturation/SaturationAlgorithm.o: Kernel/MLVariant.hpp Shell/Options.hpp
-Saturation/SaturationAlgorithm.o: Lib/XML.hpp Shell/Statistics.hpp
+Saturation/SaturationAlgorithm.o: Kernel/MLVariant.hpp Kernel/FormulaUnit.hpp
+Saturation/SaturationAlgorithm.o: Kernel/SubformulaIterator.hpp
+Saturation/SaturationAlgorithm.o: Kernel/Formula.hpp Lib/XML.hpp
+Saturation/SaturationAlgorithm.o: Kernel/Connective.hpp Shell/Options.hpp
+Saturation/SaturationAlgorithm.o: Shell/Statistics.hpp
 Saturation/SaturationAlgorithm.o: Saturation/SaturationAlgorithm.hpp
 Saturation/SaturationAlgorithm.o: Lib/Event.hpp Lib/SmartPtr.hpp
 Saturation/SaturationAlgorithm.o: Indexing/IndexManager.hpp
