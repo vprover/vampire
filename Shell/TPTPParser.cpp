@@ -1018,16 +1018,16 @@ void TPTPParser::vampire()
     }
     consumeToken(TT_COMMA);
     Color color;
-    bool skip = false;
+    bool vip = false;
     string lr = name();
     if (lr == "left")
       color=COLOR_LEFT;
     else if (lr == "right")
       color=COLOR_RIGHT;
-    else if (lr == "skip")
-      skip = true;
+    else if (lr == "vip")
+      vip = true;
     else {
-      throw ParserException("either 'left' or 'right' expected",
+      throw ParserException("'left', 'right' or 'vip' expected",
 			    currentToken1());
     }
     env.colorUsed = true;
@@ -1037,8 +1037,8 @@ void TPTPParser::vampire()
     else
       sym = env.signature->getFunction(env.signature->addFunction(symb,arity));
 
-    if (skip)
-      sym->markSkip();
+    if (vip)
+      sym->markVIP();
     else 
       sym->addColor(color);
   }
