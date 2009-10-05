@@ -137,8 +137,8 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
   if(env.colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
     env.signature->getPredicate(predNum)->addColor(t.term()->color());
   }
-  if(env.colorUsed && t.term()->vip()) {
-    env.signature->getPredicate(predNum)->markVIP();
+  if(env.colorUsed && t.term()->skip()) {
+    env.signature->getPredicate(predNum)->markSkip();
   }
 
   Inference* inf = new Inference(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);

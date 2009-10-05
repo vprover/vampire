@@ -285,19 +285,19 @@ VirtualIterator<string> Clause::toSimpleClauseStrings()
 }
 
 /**
- * Return true iff the clause is VIP for the purpose
+ * Return true iff the clause is skipped for the purpose
  * of symbol elimination reporting.
  */
-bool Clause::vip() const
+bool Clause::skip() const
 {
   unsigned clen = length();
   for(unsigned i = 0; i < clen; i++) {
     const Literal* lit = (*this)[i];
-    if(lit->vip()) {
-      return true;
+    if(!lit->skip()) {
+      return false;
     }
   }
-  return false;
+  return true;
 }
 
 /**

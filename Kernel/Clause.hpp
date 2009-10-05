@@ -164,7 +164,7 @@ public:
   }
   void computeColor() const;
 
-  bool vip() const;
+  bool skip() const;
 
   unsigned getLiteralPosition(Literal* lit);
   void notifyLiteralReorder();

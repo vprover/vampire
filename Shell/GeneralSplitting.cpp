@@ -140,8 +140,8 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     env.signature->getPredicate(namingPred)->addColor(mdvColor);
   }
 
-  if(env.colorUsed && cl->vip()) {
-    env.signature->getPredicate(namingPred)->markVIP();
+  if(env.colorUsed && cl->skip()) {
+    env.signature->getPredicate(namingPred)->markSkip();
   }
 
 

@@ -144,6 +144,7 @@ unsigned Signature::addSkolemFunction (unsigned arity)
     bool added;
     unsigned result = addFunction(name,arity,added);
     if (added) {
+      getFunction(result)->markSkip();
       return result;
     }
   }

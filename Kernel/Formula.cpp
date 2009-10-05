@@ -506,10 +506,10 @@ Color Formula::getColor()
 }
 
 /**
- * Return true iff the formula is VIP for the purpose of
+ * Return true iff the formula is Skip for the purpose of
  * symbol elimination
  */
-bool Formula::getVIP()
+bool Formula::getSkip()
 {
   CALL("Formula::getColor");
 
@@ -520,11 +520,11 @@ bool Formula::getVIP()
       continue;
     }
 
-    if(f->literal()->vip()) {
-      return true;
+    if(!f->literal()->skip()) {
+      return false;
     }
   }
-  return false;
+  return true;
 }
 
 

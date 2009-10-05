@@ -59,7 +59,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   if(clen>1) {
     for(int i=0;i<clen;i++) {
       Literal* lit=(*cl)[i];
-      if( env.colorUsed && (lit->color()!=COLOR_TRANSPARENT || lit->vip()) ) {
+      if( env.colorUsed && (lit->color()!=COLOR_TRANSPARENT || !lit->skip()) ) {
 	if(coloredMaster==-1) {
 	  coloredMaster=i;
 	} else {

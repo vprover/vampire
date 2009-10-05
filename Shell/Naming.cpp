@@ -414,8 +414,8 @@ Formula* Naming::introduceDefinition (Formula* f,bool iff)
     if(fc!=COLOR_TRANSPARENT) {
       env.signature->getPredicate(pred)->addColor(fc);
     }
-    if(f->getVIP()) {
-      env.signature->getPredicate(pred)->markVIP();
+    if(f->getSkip()) {
+      env.signature->getPredicate(pred)->markSkip();
     }
   }
 
