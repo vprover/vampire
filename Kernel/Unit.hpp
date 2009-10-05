@@ -76,18 +76,21 @@ public:
   const Inference* inference() const { return _inference; }
   /** the input unit number this clause is generated from, -1 if none */
   int adam() const {return _adam;}
-  /** Mark the unit as left for interpolation and symbol elimination purposes */
-  void markLeft()
+
+  /** Return the inherited color of the unit, computing it if necessary */
+  inline Color inheritedColor() const
   {
-    ASS(! _right);
-    _left = 1;
-  } // markLeft
-  /** Mark the unit as right for interpolation and symbol elimination purposes */
-  void markRight()
+    if(_inheritedColor==COLOR_INVALID) {
+      computeInheritedColor();
+    }
+    return _inheritedColor;
+  }
+  void computeInheritedColor() const {}
+  void setInheritedColor(Color color)
   {
-    ASS(! _left);
-    _right = 1;
-  } // markRight
+    ASS_NEQ(color,COLOR_INVALID);
+    _inheritedColor = color;
+  } // setInheritedColor
 
   /**
    * Increase the number of references to the unit.
@@ -111,10 +114,8 @@ protected:
   unsigned _kind : 1;
   /** input type  */
   unsigned _inputType : 2;
-  /** used in interpolation and symbol elimination */
-  unsigned _left : 1;
-  /** used in interpolation and symbol elimination */
-  unsigned _right : 1;
+  /** used in interpolation to denote parents of what color have been used */
+  Color _inheritedColor : 2;
   /** inference used to obtain the unit */
   Inference* _inference;
   /** the input unit number this clause is generated from, -1 if none */

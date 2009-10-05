@@ -306,20 +306,20 @@ bool Clause::skip() const
  */
 void Clause::computeColor() const
 {
-CALL("Clause::computeColor");
-ASS_EQ(_color, COLOR_INVALID);
+  CALL("Clause::computeColor");
+  ASS_EQ(_color, COLOR_INVALID);
 
-Color color = COLOR_TRANSPARENT;
+  Color color = COLOR_TRANSPARENT;
 
-if(env.colorUsed) {
-  unsigned clen=length();
-  for(unsigned i=0;i<clen;i++) {
-    color = static_cast<Color>(color | (*this)[i]->color());
+  if(env.colorUsed) {
+    unsigned clen=length();
+    for(unsigned i=0;i<clen;i++) {
+      color = static_cast<Color>(color | (*this)[i]->color());
+    }
+    ASS_L(color, COLOR_INVALID);
   }
-  ASS_L(color, COLOR_INVALID);
-}
 
-_color=color;
+  _color=color;
 }
 
 /**
@@ -329,22 +329,22 @@ _color=color;
  */
 void Clause::computeWeight() const
 {
-CALL("Clause::computeWeight");
+  CALL("Clause::computeWeight");
 
-_weight = 0;
-for (int i = _length-1; i >= 0; i--) {
-  ASS(_literals[i]->shared());
-  _weight += _literals[i]->weight();
-}
+  _weight = 0;
+  for (int i = _length-1; i >= 0; i--) {
+    ASS(_literals[i]->shared());
+    _weight += _literals[i]->weight();
+  }
 } // Clause::computeWeight
 
 float Clause::getEffectiveWeight(unsigned originalWeight)
 {
-static float nongoalWeightCoef=-1;
-if(nongoalWeightCoef<0) {
-  nongoalWeightCoef=env.options->nongoalWeightCoefficient();
-}
-return originalWeight * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
+  static float nongoalWeightCoef=-1;
+  if(nongoalWeightCoef<0) {
+    nongoalWeightCoef=env.options->nongoalWeightCoefficient();
+  }
+  return originalWeight * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
 }
 
 /**
@@ -353,7 +353,7 @@ return originalWeight * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
  */
 float Clause::getEffectiveWeight()
 {
-return getEffectiveWeight(weight());
+  return getEffectiveWeight(weight());
 }
 
 /**
@@ -361,36 +361,36 @@ return getEffectiveWeight(weight());
  */
 unsigned Clause::getLiteralPosition(Literal* lit)
 {
-switch(length()) {
+  switch(length()) {
   case 1:
-  ASS_EQ(lit,(*this)[0]);
-  return 0;
+    ASS_EQ(lit,(*this)[0]);
+    return 0;
   case 2:
-  if(lit==(*this)[0]) {
-    return 0;
-  } else {
-    ASS_EQ(lit,(*this)[1]);
-    return 1;
-  }
+    if(lit==(*this)[0]) {
+      return 0;
+    } else {
+      ASS_EQ(lit,(*this)[1]);
+      return 1;
+    }
   case 3:
-  if(lit==(*this)[0]) {
-    return 0;
-  } else if(lit==(*this)[1]) {
-    return 1;
-  } else {
-    ASS_EQ(lit,(*this)[2]);
-    return 2;
-  }
+    if(lit==(*this)[0]) {
+      return 0;
+    } else if(lit==(*this)[1]) {
+      return 1;
+    } else {
+      ASS_EQ(lit,(*this)[2]);
+      return 2;
+    }
 #if VDEBUG
   case 0:
-  ASSERTION_VIOLATION;
+    ASSERTION_VIOLATION;
 #endif
   default:
-  if(!_literalPositions) {
-    _literalPositions=new InverseLookup<Literal>(_literals,length());
+    if(!_literalPositions) {
+      _literalPositions=new InverseLookup<Literal>(_literals,length());
+    }
+    return static_cast<unsigned>(_literalPositions->get(lit));
   }
-  return static_cast<unsigned>(_literalPositions->get(lit));
-}
 }
 
 /**
@@ -400,32 +400,32 @@ switch(length()) {
  */
 void Clause::notifyLiteralReorder()
 {
-if(_literalPositions) {
-  _literalPositions->update(_literals);
-}
+  if(_literalPositions) {
+    _literalPositions->update(_literals);
+  }
 }
 
 #if VDEBUG
 
 void Clause::assertValid()
 {
-ASS_ALLOC_TYPE(this, "Clause");
-if(_literalPositions) {
-  unsigned clen=length();
-  for (unsigned i = 0; i<clen; i++) {
-    ASS_EQ(getLiteralPosition((*this)[i]),i);
+  ASS_ALLOC_TYPE(this, "Clause");
+  if(_literalPositions) {
+    unsigned clen=length();
+    for (unsigned i = 0; i<clen; i++) {
+      ASS_EQ(getLiteralPosition((*this)[i]),i);
+    }
   }
-}
 }
 
 bool Clause::contains(Literal* lit)
 {
-for (int i = _length-1; i >= 0; i--) {
-  if(_literals[i]==lit) {
-    return true;
+  for (int i = _length-1; i >= 0; i--) {
+    if(_literals[i]==lit) {
+      return true;
+    }
   }
-}
-return false;
+  return false;
 }
 
 #endif

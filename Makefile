@@ -354,7 +354,8 @@ Lib/MultiCounter.o: Debug/Tracer.hpp Lib/MultiCounter.hpp Debug/Assertion.hpp
 Lib/MultiCounter.o: Lib/XML.hpp Lib/Int.hpp Lib/Comparison.hpp
 Lib/MultiCounter.o: Lib/Portability.hpp Lib/Allocator.hpp Lib/Exception.hpp
 Lib/MultiCounter.o: Lib/LastCopyWatcher.hpp
-Lib/NameArray.o: Lib/NameArray.hpp Debug/Tracer.hpp
+Lib/NameArray.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+Lib/NameArray.o: Debug/Assertion.hpp Lib/NameArray.hpp Debug/Tracer.hpp
 Lib/Random.o: Lib/Random.hpp
 Lib/System.o: Lib/Portability.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Lib/System.o: Lib/Environment.hpp Forwards.hpp Config.hpp Lib/Exception.hpp
@@ -2357,7 +2358,9 @@ Saturation/Splitter.o: Lib/Reflection.hpp Lib/InverseLookup.hpp Lib/DHMap.hpp
 Saturation/Splitter.o: Kernel/Unit.hpp Kernel/Inference.hpp Kernel/Unit.hpp
 Saturation/Splitter.o: Kernel/InferenceStore.hpp Lib/DHMultiset.hpp
 Saturation/Splitter.o: Kernel/Term.hpp Shell/Options.hpp Lib/XML.hpp
-Saturation/Splitter.o: Shell/Statistics.hpp Saturation/Splitter.hpp
+Saturation/Splitter.o: Shell/Statistics.hpp
+Saturation/Splitter.o: Inferences/PropositionalToBDDISE.hpp
+Saturation/Splitter.o: Inferences/InferenceEngine.hpp Saturation/Splitter.hpp
 Saturation/Splitter.o: Indexing/ClauseVariantIndex.hpp
 Test/Compit2Output.o: Test/Compit2Output.hpp Config.hpp
 Test/CompitOutput.o: Test/CompitOutput.hpp Config.hpp

@@ -19,8 +19,7 @@ Unit::Unit(Kind kind,Inference* inf,InputType it)
   : _number(++_lastNumber),
     _kind(kind),
     _inputType(it),
-    _left(0u),
-    _right(0u),
+    _inheritedColor(COLOR_INVALID),
     _inference(inf)
 {
   switch (inf->rule()) {

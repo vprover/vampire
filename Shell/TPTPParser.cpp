@@ -88,14 +88,19 @@ public:
  * Initialise a TPTP parser.
  * @since 01/08/2004 Torrevieja
  */
-TPTPParser::TPTPParser (TPTPLexer& lexer)
-  : Parser(lexer), _namesLimited(false)
+TPTPParser::TPTPParser(TPTPLexer& lexer)
+  : Parser(lexer),
+    _currentColor(COLOR_TRANSPARENT),
+    _namesLimited(false)
 {
 }
 
 
 TPTPParser::TPTPParser(TPTPLexer& lexer, List<string>* allowedNames)
-  : Parser(lexer), _namesLimited(true), _allowedNames(allowedNames)
+  : Parser(lexer),
+    _currentColor(COLOR_TRANSPARENT),
+    _namesLimited(true),
+    _allowedNames(allowedNames)
 {
 }
 
@@ -250,6 +255,10 @@ Unit* TPTPParser::unit()
 
   if(!allowedUnit) {
     return 0;
+  }
+
+  if (_currentColor != COLOR_TRANSPARENT) {
+    result->setInheritedColor(_currentColor);
   }
 
   return result;
@@ -742,7 +751,7 @@ void TPTPParser::args (TermStack& ts)
  * @since 16/05/2007 Manchester, changed to use Prolog terms
  * @since 02/04/2008 Budapest, changed to read $true and $false
  */
-void TPTPParser::literals (LiteralStack& ls)
+void TPTPParser::literals(LiteralStack& ls)
 {
   CALL("TPTPParser::literals");
 
@@ -1041,6 +1050,15 @@ void TPTPParser::vampire()
       sym->markSkip();
     else 
       sym->addColor(color);
+  }
+  else if (nm == "left_formula") { // e.g. vampire(left_formula)
+    _currentColor = COLOR_LEFT;
+  }
+  else if (nm == "right_formula") { // e.g. vampire(left_formula)
+    _currentColor = COLOR_LEFT;
+  }
+  else if (nm == "end_formula") { // e.g. vampire(left_formula)
+    _currentColor = COLOR_TRANSPARENT;
   }
   else {
     throw ParserException("unrecognised Vampire command",

@@ -26,7 +26,6 @@ class TPTPLexer;
 
 /**
  * Class TPTPParser, implements a TPTP Parser.
- *
  * @since 17/07/2004 Helsinki airport
  */
 class TPTPParser
@@ -74,6 +73,9 @@ private:
   /** Set to true if the constant true was read during reading the
    * last clause */
   bool _trueRead;
+  /** if left_formula or right_formula declarations are used, then the
+   *  color defined by the currently active declaration*/
+  Color _currentColor;
 
   bool _namesLimited;
   List<string>* _allowedNames;
