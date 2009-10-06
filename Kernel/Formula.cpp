@@ -546,6 +546,25 @@ bool Formula::getSkip()
   return true;
 }
 
+Formula* Formula::quantify(Formula* f)
+{
+  Set<unsigned> vars;
+  FormulaVarIterator fvit( f );
+  while(fvit.hasNext()) {
+    vars.insert(fvit.next());
+  }
+
+  //we have to quantify the formula
+  VarList* varLst=0;
+  Set<unsigned>::Iterator vit(vars);
+  while(vit.hasNext()) {
+    VarList::push(vit.next(), varLst);
+  }
+  if(varLst) {
+    f=new QuantifiedFormula(FORALL, varLst, f);
+  }
+  return f;
+}
 
 Formula* Formula::fromClause(Clause* cl)
 {

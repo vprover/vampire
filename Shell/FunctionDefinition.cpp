@@ -190,7 +190,6 @@ void FunctionDefinition::removeAllDefinitions(UnitList*& units)
 
     env.statistics->functionDefinitions++;
   }
-  _safeDefs.reset();
 
   UnitList::DelIterator unfoldIterator(units);
   while(unfoldIterator.hasNext()) {
@@ -203,7 +202,8 @@ void FunctionDefinition::removeAllDefinitions(UnitList*& units)
       unfoldIterator.replace(newCl);
     }
   }
-
+  
+  _safeDefs.reset();
 }
 
 void FunctionDefinition::checkDefinitions(Def* def0)
@@ -666,6 +666,9 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   CALL("FunctionDefinition::defines");
 
   unsigned f = lhs->functor();
+  if(lhs->color()==COLOR_TRANSPARENT && rhs->color()!=COLOR_TRANSPARENT) {
+    return 0;
+  }
 
   if (occurs(f,*rhs)) {
     return 0;

@@ -78,6 +78,8 @@ public:
 
   static Formula* fromClause(Clause* cl);
 
+  static Formula* quantify(Formula* f);
+
   // use allocator to (de)allocate objects of this class
   CLASS_NAME("Formula");
   USE_ALLOCATOR(Formula);

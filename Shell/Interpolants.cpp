@@ -58,6 +58,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
   for(;;) {
     ItemState st;
     st.us=curr;
+    //cout<<"#:"<<curr.first->toString()<<endl;
     if(curr.first->inheritedColor()!=COLOR_INVALID) {
       //set premise-color information for input clauses
       st.inheritedColor=curr.first->inheritedColor();
@@ -73,6 +74,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
 #if VDEBUG
       else {
         Color clr=curr.first->getColor();
+	//cout<<clr<<' '<<pst.inheritedColor<<endl;
         ASS(pst.inheritedColor==clr || clr==COLOR_TRANSPARENT);
       }
 #endif

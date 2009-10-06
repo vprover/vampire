@@ -57,6 +57,9 @@ Color Unit::getColor()
   }
 }
 
+/**
+ * Return quantified formula equivalent to the unit.
+ */
 Formula* Unit::getFormula(BDDNode* prop)
 {
   if(isClause()) {
@@ -64,7 +67,7 @@ Formula* Unit::getFormula(BDDNode* prop)
   }
   else {
     ASS(BDD::instance()->isFalse(prop));
-    return static_cast<FormulaUnit*>(this)->formula();
+    return Formula::quantify(static_cast<FormulaUnit*>(this)->formula());
   }
 }
 
