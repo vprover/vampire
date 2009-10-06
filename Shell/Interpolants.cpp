@@ -184,9 +184,9 @@ void generateInterpolant(ItemState& st)
     }
   }
   st.interpolant=interpolant;
-  cout<<"Unit "<<u->toString()
-	<<"\nto Formula "<<unitFormula->toString()
-	<<"\ninterpolant "<<interpolant->toString()<<endl;
+//  cout<<"Unit "<<u->toString()
+//	<<"\nto Formula "<<unitFormula->toString()
+//	<<"\ninterpolant "<<interpolant->toString()<<endl;
   UIPair uip=make_pair(unitFormula, interpolant);
   if(st.inheritedColor==COLOR_LEFT) {
     st.leftInts->destroy();
