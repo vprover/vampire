@@ -9,6 +9,7 @@
 
 #include "../Lib/Int.hpp"
 
+#include "BDD.hpp"
 #include "Inference.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
@@ -56,12 +57,13 @@ Color Unit::getColor()
   }
 }
 
-Formula* Unit::getFormula()
+Formula* Unit::getFormula(BDDNode* prop)
 {
   if(isClause()) {
-    return Formula::fromClause(static_cast<Clause*>(this));
+    return Formula::fromClause(static_cast<Clause*>(this), prop);
   }
   else {
+    ASS(BDD::instance()->isFalse(prop));
     return static_cast<FormulaUnit*>(this)->formula();
   }
 }

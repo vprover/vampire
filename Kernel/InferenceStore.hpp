@@ -45,8 +45,8 @@ public:
   struct UnitSpec
   {
     UnitSpec() {}
-    UnitSpec(Unit* first, BDDNode* second) : first(first), second(second) {}
-    UnitSpec(Unit* t) : first(first), second(BDD::instance()->getFalse()) {}
+    UnitSpec(Unit* f, BDDNode* s) : first(f), second(s) {}
+    UnitSpec(Unit* f) : first(f), second(BDD::instance()->getFalse()) {}
 
     bool operator==(UnitSpec& o) { return first==o.first && second==o.second; }
     bool operator!=(UnitSpec& o) { return !(*this==o); }

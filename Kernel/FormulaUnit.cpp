@@ -48,6 +48,7 @@ string FormulaUnit::toString() const
 Color FormulaUnit::getColor()
 {
   CALL("FormulaUnit::getColor");
+  ASS_ALLOC_TYPE(this, "FormulaUnit");
 
   return this->formula()->getColor();
 }

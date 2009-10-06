@@ -75,7 +75,7 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c)
 
   unsigned selCnt=c->selected();
 
-  for(int i=0;i<selCnt;i++) {
+  for(unsigned i=0;i<selCnt;i++) {
     if((*c)[i]->color()!=COLOR_TRANSPARENT) {
       return;
     }
@@ -83,7 +83,7 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c)
 
   unsigned clen=c->length();
 
-  for(int i=selCnt;i<clen;i++) {
+  for(unsigned i=selCnt;i<clen;i++) {
     if((*c)[i]->color()!=COLOR_TRANSPARENT) {
       swap((*c)[selCnt], (*c)[i]);
       c->setSelected(selCnt+1);

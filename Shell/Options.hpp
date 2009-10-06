@@ -380,8 +380,8 @@ private:
   SaturationAlgorithm _saturationAlgorithm;
   int _selection;
   bool _showActive;
-  bool _showInterpolant;
   bool _showDefinitions;
+  bool _showInterpolant;
   bool _showNew;
   bool _showNewPropositional;
   bool _showOptions;

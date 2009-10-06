@@ -246,6 +246,8 @@ class JunctionFormula
   /** Return a pointer to the list of immediate subformulas */
   FormulaList** getArgsPtr() { return &_args; }
 
+  static Formula* generalJunction(Connective c, FormulaList* args);
+
   // use allocator to (de)allocate objects of this class
   CLASS_NAME("JunctionFormula");
   USE_ALLOCATOR(JunctionFormula);

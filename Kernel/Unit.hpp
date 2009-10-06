@@ -89,7 +89,7 @@ public:
   } // setInheritedColor
 
   Color getColor();
-  Formula* getFormula();
+  Formula* getFormula(BDDNode* prop);
 
   /**
    * Increase the number of references to the unit.

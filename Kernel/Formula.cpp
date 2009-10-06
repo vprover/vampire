@@ -483,6 +483,23 @@ unsigned Formula::weight() const
   return result;
 } // Formula::weight
 
+Formula* JunctionFormula::generalJunction(Connective c, FormulaList* args)
+{
+  if(!args) {
+    if(c==AND) {
+      return new Formula(true);
+    }
+    else {
+      ASS_EQ(c,OR);
+      return new Formula(false);
+    }
+  }
+  if(!args->tail()) {
+    return FormulaList::pop(args);
+  }
+  return new JunctionFormula(c, args);
+}
+
 /**
  * Return color of the formula
  *
@@ -554,7 +571,7 @@ Formula* Formula::fromClause(Clause* cl, BDDNode* prop)
     FormulaList::push(BDD::instance()->toFormula(prop), resLst);
   }
   
-  Formula* res=new JunctionFormula(OR, resLst);
+  Formula* res=JunctionFormula::generalJunction(OR, resLst);
   
   Set<unsigned> vars;
   FormulaVarIterator fvit( res );

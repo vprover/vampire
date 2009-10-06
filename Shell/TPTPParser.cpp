@@ -1055,7 +1055,7 @@ void TPTPParser::vampire()
     _currentColor = COLOR_LEFT;
   }
   else if (nm == "right_formula") { // e.g. vampire(left_formula)
-    _currentColor = COLOR_LEFT;
+    _currentColor = COLOR_RIGHT;
   }
   else if (nm == "end_formula") { // e.g. vampire(left_formula)
     _currentColor = COLOR_TRANSPARENT;

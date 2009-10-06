@@ -34,6 +34,7 @@
 
 #include "Shell/CommandLine.hpp"
 #include "Shell/Grounding.hpp"
+#include "Shell/Interpolants.hpp"
 #include "Shell/LispLexer.hpp"
 #include "Shell/LispParser.hpp"
 #include "Shell/Options.hpp"
@@ -144,6 +145,11 @@ void outputResult()
 //		env.options->proof() == Options::PROOF_ON);
 //	refutation.output(env.out);
       InferenceStore::instance()->outputProof(env.out, env.statistics->refutation);
+    }
+    if(env.options->showInterpolant()) {
+      ASS(env.statistics->refutation->isClause());
+      Formula* interpolant=Interpolants::getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      env.out << "Interpolant: " << interpolant->toString() << endl;
     }
     break;
   case Statistics::TIME_LIMIT:

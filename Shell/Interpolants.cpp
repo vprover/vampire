@@ -26,17 +26,21 @@ typedef pair<Formula*, Formula*> UIPair; //pair of unit U and the U-interpolant
 
 struct ItemState
 {
-  ItemState() : parCnt(0), inheritedColor(COLOR_TRANSPARENT), leftInts(0), rightInts(0) {}
+  ItemState() : parCnt(0), inheritedColor(COLOR_TRANSPARENT), interpolant(0), leftInts(0), rightInts(0) {}
 
   //parents in the sense of inferencing, but children in the sense of DFS traversal
   VirtualIterator<UnitSpec> pars;
   int parCnt;
   Color inheritedColor;
   UnitSpec us;
+  Formula* interpolant;
   List<UIPair>* leftInts;
   List<UIPair>* rightInts;
 
 };
+
+void generateInterpolant(ItemState& st);
+
 
 Formula* Interpolants::getInterpolant(Clause* cl)
 {
@@ -73,97 +77,129 @@ Formula* Interpolants::getInterpolant(Clause* cl)
 
     sts.push(st);
 
-    do {
+    for(;;) {
       if(sts.top().pars.hasNext()) {
         curr=sts.top().pars.next();
         break;
       }
-      else {
-        //we're done with all children, now we can process what we've gathered
-        st=sts.pop();
-        Unit* u=st.us.first;
-        Color color=u->getColor();
-        if(st.inheritedColor!=color) {
-          ASS_EQ(color, COLOR_TRANSPARENT);
-	  Formula* interpolant;
-	  Formula* unitFormula=u->getFormula();
-
-          if(st.parCnt) {
-            FormulaList* conj=0;
-	    List<UIPair>* src= (st.inheritedColor==COLOR_LEFT) //source of relevant parent interpolants
-		? st.rightInts
-		: st.leftInts;
-	    //construct the common part of the interpolant
-	    List<UIPair>::Iterator sit(src);
-	    while(sit.hasNext()) {
-	      UIPair uip=sit.next();
-	      FormulaList* disj=0;
-	      FormulaList::push(uip.first, disj);
-              FormulaList::push(uip.second, disj);
-	      FormulaList::push(new JunctionFormula(OR, disj), conj);
-	    }
-
-            if(st.inheritedColor==COLOR_LEFT) {
-	      //u is justified by A
-              FormulaList* innerConj=0;
-              List<UIPair>::Iterator sit2(src);
-              while(sit2.hasNext()) {
-                UIPair uip=sit2.next();
-                FormulaList::push(uip.first, innerConj);
-              }
-	      FormulaList::push(new NegatedFormula(new JunctionFormula(AND, innerConj)), conj);
-            } 
-            else {
-              ASS_EQ(st.inheritedColor, COLOR_RIGHT);
-	      //u is justified by B
-            }
-            interpolant=new JunctionFormula(AND, conj);
-          } 
-          else {
-	    //trivial interpolants (when there are no premises)
-            if(st.inheritedColor==COLOR_LEFT) {
-	      interpolant=unitFormula;
-            }
-            else {
-              ASS_EQ(st.inheritedColor, COLOR_RIGHT);
-	      interpolant=new NegatedFormula(unitFormula);
-            }
-          }
-	  UIPair uip=make_pair(unitFormula, interpolant);
-          if(st.inheritedColor==COLOR_LEFT) {
-	    st.leftInts->destroy();
-	    st.leftInts=0;
-	    List<UIPair>::push(uip,st.leftInts);
-          }
-          else {
-            ASS_EQ(st.inheritedColor, COLOR_RIGHT);
-            st.rightInts->destroy();
-            st.rightInts=0;
-            List<UIPair>::push(uip,st.rightInts);
-          }
-
-        }
-        if(sts.isNonEmpty()) {
-          if(color!=COLOR_LEFT) {
-            sts.top().leftInts=List<UIPair>::concat(sts.top().leftInts, st.leftInts);
-          } 
-	  else {
-	    st.leftInts->destroy();
-          }
-          if(color!=COLOR_RIGHT) {
-            sts.top().rightInts=List<UIPair>::concat(sts.top().rightInts, st.rightInts);
-          }
-          else {
-            st.rightInts->destroy();
-          }
-        }
+      //we're done with all children, now we can process what we've gathered
+      st=sts.pop();
+      Unit* u=st.us.first;
+      Color color=u->getColor();
+      if(st.inheritedColor!=color || sts.isEmpty()) {
+	//we either have a transparent clause justified by A or B, or the refutation
+        ASS_EQ(color, COLOR_TRANSPARENT);
+	generateInterpolant(st);
       }
-    } while(sts.isNonEmpty());
-    if(sts.isEmpty()) {
-      break;
+      
+      if(sts.isNonEmpty()) {
+        if(color!=COLOR_LEFT) {
+          sts.top().leftInts=List<UIPair>::concat(sts.top().leftInts, st.leftInts);
+        } 
+	else {
+	  st.leftInts->destroy();
+        }
+        if(color!=COLOR_RIGHT) {
+          sts.top().rightInts=List<UIPair>::concat(sts.top().rightInts, st.rightInts);
+        }
+        else {
+          st.rightInts->destroy();
+        }
+      } 
+      else {
+        st.leftInts->destroy();
+        st.rightInts->destroy();
+	return st.interpolant;
+      }
+    };
+  }
+}
+
+Formula* generalJunction(Connective c, FormulaList* args)
+{
+  if(!args) {
+    if(c==AND) {
+      return new Formula(true);
+    }
+    else {
+      ASS_EQ(c,OR);
+      return new Formula(false);
+    }
+  }
+  if(!args->tail()) {
+    return FormulaList::pop(args);
+  }
+  return new JunctionFormula(c, args);
+}
+
+void generateInterpolant(ItemState& st)
+{
+  CALL("generateInterpolant");
+
+  Unit* u=st.us.first;
+  Color color=u->getColor();
+  ASS_EQ(color, COLOR_TRANSPARENT);
+
+  Formula* interpolant;
+  Formula* unitFormula=u->getFormula(st.us.second);
+
+  if(st.parCnt) {
+    FormulaList* conj=0;
+    List<UIPair>* src= (st.inheritedColor==COLOR_LEFT) //source of relevant parent interpolants
+        ? st.rightInts
+        : st.leftInts;
+    //construct the common part of the interpolant
+    List<UIPair>::Iterator sit(src);
+    while(sit.hasNext()) {
+      UIPair uip=sit.next();
+      FormulaList* disj=0;
+      FormulaList::push(uip.first, disj);
+      FormulaList::push(uip.second, disj);
+      FormulaList::push(generalJunction(OR, disj), conj);
     }
 
+    if(st.inheritedColor==COLOR_LEFT) {
+      //u is justified by A
+      FormulaList* innerConj=0;
+      List<UIPair>::Iterator sit2(src);
+      while(sit2.hasNext()) {
+        UIPair uip=sit2.next();
+        FormulaList::push(uip.first, innerConj);
+      }
+      FormulaList::push(new NegatedFormula(generalJunction(AND, innerConj)), conj);
+    }
+    else {
+      //u is justified by B or a refutation
+    }
+    interpolant=generalJunction(AND, conj);
   }
+  else {
+    //trivial interpolants (when there are no premises)
+    if(st.inheritedColor==COLOR_RIGHT) {
+      interpolant=new NegatedFormula(unitFormula);
+    }
+    else {
+      //a formula coming from left or a refutation
+      interpolant=unitFormula;
+    }
+  }
+  st.interpolant=interpolant;
+  cout<<"Unit "<<u->toString()
+	<<"\nto Formula "<<unitFormula->toString()
+	<<"\ninterpolant "<<interpolant->toString()<<endl;
+  UIPair uip=make_pair(unitFormula, interpolant);
+  if(st.inheritedColor==COLOR_LEFT) {
+    st.leftInts->destroy();
+    st.leftInts=0;
+    List<UIPair>::push(uip,st.leftInts);
+  }
+  else {
+    ASS_EQ(st.inheritedColor, COLOR_RIGHT);
+    st.rightInts->destroy();
+    st.rightInts=0;
+    List<UIPair>::push(uip,st.rightInts);
+  }
+
 
 }
 
