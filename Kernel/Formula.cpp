@@ -10,6 +10,8 @@
 #include "../Lib/Exception.hpp"
 #include "../Lib/MultiCounter.hpp"
 
+#include "BDD.hpp"
+#include "Clause.hpp"
 #include "Term.hpp"
 #include "Formula.hpp"
 #include "SubformulaIterator.hpp"
@@ -527,6 +529,51 @@ bool Formula::getSkip()
   return true;
 }
 
+
+Formula* Formula::fromClause(Clause* cl)
+{
+  return fromClause(cl, cl->prop());
+}
+
+/**
+ * Return formula equal to @b cl with propositional part @b prop
+ * that has all variables quantified
+ */
+Formula* Formula::fromClause(Clause* cl, BDDNode* prop)
+{
+  CALL("Formula::fromClause");
+  
+  FormulaList* resLst=0;
+  unsigned clen=cl->length();
+  for(unsigned i=0;i<clen;i++) {
+    Formula* lf=new AtomicFormula((*cl)[i]);
+    FormulaList::push(lf, resLst);
+  }
+
+  if(prop && !BDD::instance()->isFalse(prop)) {
+    FormulaList::push(BDD::instance()->toFormula(prop), resLst);
+  }
+  
+  Formula* res=new JunctionFormula(OR, resLst);
+  
+  Set<unsigned> vars;
+  FormulaVarIterator fvit( res );
+  while(fvit.hasNext()) {
+    vars.insert(fvit.next());
+  }
+
+  //we have to quantify the formula
+  VarList* varLst=0;
+  Set<unsigned>::Iterator vit(vars);
+  while(vit.hasNext()) {
+    VarList::push(vit.next(), varLst);
+  }
+  if(varLst) {
+    res=new QuantifiedFormula(FORALL, varLst, res);
+  }
+
+  return res;
+}
 
 /*
   THIS IS USEFUL

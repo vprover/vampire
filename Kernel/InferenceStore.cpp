@@ -228,6 +228,42 @@ VirtualIterator<InferenceStore::ClauseSpec> InferenceStore::getParents(Clause* c
   return pvi( PointerIterator<ClauseSpec>(finf->premises, finf->premises+finf->premCnt) );
 }
 
+struct Cs2UsFn
+{
+  DECL_RETURN_TYPE(InferenceStore::UnitSpec);
+  InferenceStore::UnitSpec operator()(InferenceStore::ClauseSpec cs)
+  {
+    return InferenceStore::UnitSpec(cs.first, cs.second);
+  }
+};
+
+VirtualIterator<InferenceStore::UnitSpec> InferenceStore::getUnitParents(Unit* u, BDDNode* prop)
+{
+  CALL("InferenceStore::getUnitParents");
+
+  if(prop && _bdd->isTrue(prop)) {
+    return VirtualIterator<InferenceStore::UnitSpec>::getEmpty();
+  }
+  if(u->isClause() && prop) {
+    Clause* cl=static_cast<Clause*>(u);
+    FullInference* finf;
+    if(_data.find(ClauseSpec(cl,prop), finf)) {
+      return pvi( getMappingIterator(
+        PointerIterator<ClauseSpec>(finf->premises, finf->premises+finf->premCnt),
+        Cs2UsFn()
+      ) );
+    }
+  }
+  List<UnitSpec>* res=0;
+  Inference::Iterator iit=u->inference()->iterator();
+  while(u->inference()->hasNext(iit)) {
+    Unit* premUnit=u->inference()->next(iit);
+    List<UnitSpec>::push(UnitSpec(premUnit), res);
+  }
+  return pvi( List<UnitSpec>::DestructiveIterator(res) );
+}
+
+
 string getQuantifiedStr(Unit* u)
 {
   Set<unsigned> vars;

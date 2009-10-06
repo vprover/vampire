@@ -80,17 +80,16 @@ public:
   /** Return the inherited color of the unit, computing it if necessary */
   inline Color inheritedColor() const
   {
-    if(_inheritedColor==COLOR_INVALID) {
-      computeInheritedColor();
-    }
     return _inheritedColor;
   }
-  void computeInheritedColor() const {}
   void setInheritedColor(Color color)
   {
     ASS_NEQ(color,COLOR_INVALID);
     _inheritedColor = color;
   } // setInheritedColor
+
+  Color getColor();
+  Formula* getFormula();
 
   /**
    * Increase the number of references to the unit.

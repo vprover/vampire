@@ -123,6 +123,7 @@ const char* Options::Constants::_optionNames[] = {
   "selection",
   "show_active",
   "show_definitions",
+  "show_interpolant",
   "show_new",
   "show_new_propositional",
   "show_options",
@@ -357,6 +358,7 @@ Options::Options ()
   _selection(10),
   _showActive(false),
   _showDefinitions(false),
+  _showInterpolant(false),
   _showNew(false),
   _showNewPropositional(false),
   _showOptions(false),
@@ -611,6 +613,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case SHOW_DEFINITIONS:
       _showDefinitions = onOffToBool(value,name);
+      return;
+    case SHOW_INTERPOLANT:
+      _showInterpolant = onOffToBool(value,name);
       return;
     case SHOW_NEW:
       _showNew = onOffToBool(value,name);
@@ -1032,6 +1037,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SHOW_DEFINITIONS:
     str << boolToOnOff(_showDefinitions);
+    return;
+  case SHOW_INTERPOLANT:
+    str << boolToOnOff(_showInterpolant);
     return;
   case SHOW_NEW:
     str << boolToOnOff(_showNew);

@@ -74,6 +74,10 @@ public:
   Color getColor();
   bool getSkip();
 
+  static Formula* fromClause(Clause* cl, BDDNode* prop);
+
+  static Formula* fromClause(Clause* cl);
+
   // use allocator to (de)allocate objects of this class
   CLASS_NAME("Formula");
   USE_ALLOCATOR(Formula);

@@ -82,6 +82,7 @@ public:
     SELECTION,
     SHOW_ACTIVE,
     SHOW_DEFINITIONS,
+    SHOW_INTERPOLANT,
     SHOW_NEW,
     SHOW_NEW_PROPOSITIONAL,
     SHOW_OPTIONS,
@@ -238,6 +239,7 @@ public:
   void setOutputMessages(bool newVal) { _outputMessages = newVal; }
   bool showActive() const { return _showActive; }
   bool showDefinitions() const { return _showDefinitions; }
+  bool showInterpolant() const { return _showInterpolant; }
   bool showNew() const { return _showNew; }
   bool showNewPropositional() const { return _showNewPropositional; }
   bool showOptions() const { return _showOptions; }
@@ -378,6 +380,7 @@ private:
   SaturationAlgorithm _saturationAlgorithm;
   int _selection;
   bool _showActive;
+  bool _showInterpolant;
   bool _showDefinitions;
   bool _showNew;
   bool _showNewPropositional;

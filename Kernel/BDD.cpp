@@ -14,7 +14,9 @@
 #include "../Lib/Timer.hpp"
 #include "../Lib/TimeCounter.hpp"
 
-#include "../Kernel/Signature.hpp"
+#include "Formula.hpp"
+#include "Signature.hpp"
+#include "Term.hpp"
 
 #include "../SAT/ClauseSharing.hpp"
 #include "../SAT/Preprocess.hpp"
@@ -518,11 +520,24 @@ string BDD::toTPTPString(BDDNode* node)
 {
   if(isTrue(node)) {
     return "$true";
-  } else if(isFalse(node)) {
+  } 
+  else if(isFalse(node)) {
     return "$false";
-  } else {
+  } 
+  else {
     return string("( ( ")+getPropositionalPredicateName(node->_var)+" => "+toTPTPString(node->_pos)+
       ") & ( ~"+getPropositionalPredicateName(node->_var)+" => "+toTPTPString(node->_neg)+" ) )";
+  }
+}
+
+void BDD::ensureDefined(BDDNode* node, bool inSignature)
+{
+  NOT_IMPLEMENTED;
+  if(!_nodeNames.find(node)) {
+    string name;
+    env.out<<"BDD definition: "<<name<<" = ";
+  }
+  if(inSignature && !_nodeConstants.find(node)) {
   }
 }
 
@@ -545,6 +560,41 @@ unsigned BDD::hash(const BDDNode* n)
   res=Hash::hash(n->_pos, res);
   res=Hash::hash(n->_neg, res);
   return res;
+}
+
+/**
+ * Convert a BDD to formula
+ * 
+ * @warning Currently the function uses recursion, so there can
+ * be problems for very large variable counts.
+ */
+Formula* BDD::toFormula(BDDNode* node)
+{
+  if(isTrue(node)) {
+    static Formula* tf=new Formula(true);
+    return tf;
+  } else if(isFalse(node)) {
+    static Formula* ff=new Formula(false);
+    return ff;
+  }
+  
+  unsigned var=node->_var;
+  unsigned predNum;
+  if(!_predicateSymbols.find(var, predNum)) {
+    string name=getPropositionalPredicateName(var);
+    bool added;
+    predNum=env.signature->addPredicate(name, 0, added);
+    ASS(added);
+    _predicateSymbols.insert(var, predNum);
+  }
+  Literal* posLit=Literal::create(predNum, 0, true, false, 0);
+  Literal* negLit=Literal::create(predNum, 0, false, false, 0);
+
+  FormulaList* args=0;
+  FormulaList::push(new BinaryFormula(IMP, new AtomicFormula(posLit) ,toFormula(node->_pos)), args);
+  FormulaList::push(new BinaryFormula(IMP, new AtomicFormula(negLit) ,toFormula(node->_neg)), args);
+  
+  return new JunctionFormula(AND, args);
 }
 
 /**

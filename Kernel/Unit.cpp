@@ -10,6 +10,10 @@
 #include "../Lib/Int.hpp"
 
 #include "Inference.hpp"
+#include "Clause.hpp"
+#include "Formula.hpp"
+#include "FormulaUnit.hpp"
+
 #include "Unit.hpp"
 
 using namespace Kernel;
@@ -41,6 +45,27 @@ Unit::Unit(Kind kind,Inference* inf,InputType it)
     break;
   }
 } // Unit::Unit
+
+Color Unit::getColor()
+{
+  if(isClause()) {
+    return static_cast<Clause*>(this)->color();
+  }
+  else {
+    return static_cast<FormulaUnit*>(this)->getColor();
+  }
+}
+
+Formula* Unit::getFormula()
+{
+  if(isClause()) {
+    return Formula::fromClause(static_cast<Clause*>(this));
+  }
+  else {
+    return static_cast<FormulaUnit*>(this)->formula();
+  }
+}
+
 
 /**
  * Print the inference as a string (used in printing units in

@@ -107,6 +107,10 @@ public:
   string toTPTPString(BDDNode* node);
 
   SATClauseList* toCNF(BDDNode* node);
+  Formula* toFormula(BDDNode* node);
+
+  void ensureDefined(BDDNode* node, bool inSignature);
+//  string toSimpleString(BDDNode* node);
 
 private:
   BDDNode* getNode(int varNum, BDDNode* pos, BDDNode* neg);
@@ -171,6 +175,8 @@ private:
    */
   DHMap<int, unsigned> _predicateSymbols;
 
+  DHMap<BDDNode*,string> _nodeNames;
+  DHMap<BDDNode*,unsigned> _nodeConstants;
 
   /** The next unused BDD variable */
   int _newVar;

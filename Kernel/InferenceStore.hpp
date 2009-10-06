@@ -17,6 +17,7 @@
 #include "../Lib/DHMap.hpp"
 #include "../Lib/DHMultiset.hpp"
 #include "../Lib/Stack.hpp"
+#include "../Kernel/BDD.hpp"
 #include "../Kernel/Inference.hpp"
 
 namespace Kernel {
@@ -40,6 +41,20 @@ public:
     Clause* first;
     BDDNode* second;
   };
+
+  struct UnitSpec
+  {
+    UnitSpec() {}
+    UnitSpec(Unit* first, BDDNode* second) : first(first), second(second) {}
+    UnitSpec(Unit* t) : first(first), second(BDD::instance()->getFalse()) {}
+
+    bool operator==(UnitSpec& o) { return first==o.first && second==o.second; }
+    bool operator!=(UnitSpec& o) { return !(*this==o); }
+
+    Unit* first;
+    BDDNode* second;
+  };
+
 
   //An ugly hack, done just to get it working a few days before CASC deadline:)
   class SplittingRecord
@@ -71,6 +86,7 @@ public:
   void outputProof(ostream& out, Unit* refutation);
 
   VirtualIterator<ClauseSpec> getParents(Clause* cl);
+  VirtualIterator<UnitSpec> getUnitParents(Unit* u, BDDNode* prop);
 
 private:
   InferenceStore();
