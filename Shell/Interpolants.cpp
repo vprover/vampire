@@ -59,10 +59,12 @@ Formula* Interpolants::getInterpolant(Clause* cl)
     ItemState st;
     st.us=curr;
     if(curr.first->inheritedColor()!=COLOR_INVALID) {
+      //set premise-color information for input clauses
       st.inheritedColor=curr.first->inheritedColor();
     }
 
     if(sts.isNonEmpty()) {
+      //update premise color information in the level above
       ItemState& pst=sts.top(); //parent state
       pst.parCnt++;
       if(pst.inheritedColor==COLOR_TRANSPARENT) {
@@ -95,6 +97,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
       }
       
       if(sts.isNonEmpty()) {
+	//pass interpolants to the level above
         if(color!=COLOR_LEFT) {
           sts.top().leftInts=List<UIPair>::concat(sts.top().leftInts, st.leftInts);
         } 
