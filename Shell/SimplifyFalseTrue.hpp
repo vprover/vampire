@@ -29,7 +29,6 @@ class SimplifyFalseTrue
 {
 public:
   static Unit* simplify(Unit*);
-private:
   static Formula* simplify(Formula*);
 }; // class SimplifyFalseTrue
 

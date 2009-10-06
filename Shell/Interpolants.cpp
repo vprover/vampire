@@ -13,6 +13,8 @@
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Unit.hpp"
 
+#include "SimplifyFalseTrue.hpp"
+
 #include "Interpolants.hpp"
 
 namespace Shell
@@ -107,29 +109,14 @@ Formula* Interpolants::getInterpolant(Clause* cl)
         }
       } 
       else {
+	//we have now the interpolant for refutation, so we can
+	//clean-up and exit
         st.leftInts->destroy();
         st.rightInts->destroy();
-	return st.interpolant;
+	return SimplifyFalseTrue::simplify(st.interpolant);
       }
     };
   }
-}
-
-Formula* generalJunction(Connective c, FormulaList* args)
-{
-  if(!args) {
-    if(c==AND) {
-      return new Formula(true);
-    }
-    else {
-      ASS_EQ(c,OR);
-      return new Formula(false);
-    }
-  }
-  if(!args->tail()) {
-    return FormulaList::pop(args);
-  }
-  return new JunctionFormula(c, args);
 }
 
 void generateInterpolant(ItemState& st)
@@ -155,7 +142,7 @@ void generateInterpolant(ItemState& st)
       FormulaList* disj=0;
       FormulaList::push(uip.first, disj);
       FormulaList::push(uip.second, disj);
-      FormulaList::push(generalJunction(OR, disj), conj);
+      FormulaList::push(JunctionFormula::generalJunction(OR, disj), conj);
     }
 
     if(st.inheritedColor==COLOR_LEFT) {
@@ -166,12 +153,12 @@ void generateInterpolant(ItemState& st)
         UIPair uip=sit2.next();
         FormulaList::push(uip.first, innerConj);
       }
-      FormulaList::push(new NegatedFormula(generalJunction(AND, innerConj)), conj);
+      FormulaList::push(new NegatedFormula(JunctionFormula::generalJunction(AND, innerConj)), conj);
     }
     else {
       //u is justified by B or a refutation
     }
-    interpolant=generalJunction(AND, conj);
+    interpolant=JunctionFormula::generalJunction(AND, conj);
   }
   else {
     //trivial interpolants (when there are no premises)
