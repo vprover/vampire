@@ -436,7 +436,8 @@ struct InferenceStore::ProofPrinter
 	  printSplitting(is->_splittingRecords.get(cs));
 	  continue;
 	}
-
+	
+	bdd->allowDefinitionOutput(false);
 	if(!hideStep) {
 	  printProofStepHead(cs, finf);
 	}
@@ -454,10 +455,14 @@ struct InferenceStore::ProofPrinter
 	if(!hideStep) {
 	  printProofStepTail();
 	}
+
+	bdd->allowDefinitionOutput(true);
       } else {
 	Clause* cl=cs.first;
 	Inference* inf = cl->inference();
 	bool hideStep=hideProofStep(inf->rule());
+
+	bdd->allowDefinitionOutput(false);
 
 	if(!hideStep) {
 	  printProofStepHead(cl);
@@ -484,6 +489,8 @@ struct InferenceStore::ProofPrinter
 	if(!hideStep) {
 	  printProofStepTail();
 	}
+	bdd->allowDefinitionOutput(true);
+
       }
     }
 

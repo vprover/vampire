@@ -52,7 +52,9 @@ BDD* BDD::instance()
  * Create a new BDD object
  */
 BDD::BDD()
-: _trueNode(-1,0,0), _falseNode(-1,0,0), _newVar(1)
+: _trueNode(-1,0,0), _falseNode(-1,0,0), 
+  _bddEvalPredicate(0), _nextNodeNum(1), 
+  _allowDefinitionOutput(true), _newVar(1)
 {
 }
 
@@ -62,6 +64,8 @@ BDD::BDD()
 BDD::~BDD()
 {
   CALL("BDD::~BDD");
+
+  ASS_REP(_allowDefinitionOutput, "Definition output has to be allowed at the BDD object destruction");
 
   NodeSet::Iterator nit(_nodes);
   while(nit.hasNext()) {
@@ -464,7 +468,8 @@ BDDNode* BDD::getNode(int varNum, BDDNode* pos, BDDNode* neg)
  */
 string BDD::toString(BDDNode* node)
 {
-  string res="";
+  return getDefinition(node);
+/*  string res="";
   static Stack<BDDNode*> nodes(8);
   nodes.push(node);
   while(nodes.isNonEmpty()) {
@@ -487,7 +492,7 @@ string BDD::toString(BDDNode* node)
       res+=": ";
     }
   }
-  return res;
+  return res;*/
 }
 
 /**
@@ -530,17 +535,101 @@ string BDD::toTPTPString(BDDNode* node)
   }
 }
 
-void BDD::ensureDefined(BDDNode* node, bool inSignature)
+
+string BDD::getDefinition(BDDNode* node)
 {
-  NOT_IMPLEMENTED;
-  if(!_nodeNames.find(node)) {
-    string name;
-    env.out<<"BDD definition: "<<name<<" = ";
+  //predicate and function symbols are mixed here, but it's how I understood it should be done
+  if(isTrue(node)) {
+    return "$true";
   }
-  if(inSignature && !_nodeConstants.find(node)) {
+  if(isFalse(node)) {
+    return "$false";
+  }
+  string propPred=getPropositionalPredicateName(node->_var);
+  if(isTrue(node->_pos) && isFalse(node->_neg)) {
+    return propPred;
+  }
+  else if(isFalse(node->_pos) && isTrue(node->_neg)) {
+    return "~"+propPred;
+  }
+  else if(isTrue(node->_pos)) {
+    return "("+propPred+" | "+getDefinition(node->_neg)+")";
+  }
+  else if(isFalse(node->_neg)) {
+    return "("+propPred+" & "+getDefinition(node->_pos)+")";
+  }
+  else if(isFalse(node->_pos)) {
+    return "(~"+propPred+" & "+getDefinition(node->_neg)+")";
+  }
+  else if(isTrue(node->_neg)) {
+    return "(~"+propPred+" | "+getDefinition(node->_pos)+")";
+  }
+  else {
+    string posName=getName(node->_pos); //indirect recursion here
+    string negName=getName(node->_neg); //indirect recursion here
+    return "("+propPred+" ? "+posName+" : "+negName+")";
+  }
+
+}
+
+void BDD::allowDefinitionOutput(bool allow)
+{
+  _allowDefinitionOutput=allow;
+  if(allow) {
+    unsigned stLen=_postponedDefinitions.size();
+    for(unsigned i=0;i<stLen;i++) {
+      env.out<<_postponedDefinitions[i]<<endl;
+    }
+    _postponedDefinitions.reset();
   }
 }
 
+string BDD::getName(BDDNode* node)
+{
+  string name;
+  if(!_nodeNames.find(node, name)) {
+    name="$bddnode"+Int::toString(_nextNodeNum++);
+    string def=getDefinition(node); //indirect recursion here
+    string report="BDD definition: "+name+" = "+def;
+    if(_allowDefinitionOutput) {
+      env.out<<report<<endl;
+    }
+    else {
+      _postponedDefinitions.push(report);
+    }
+    _nodeNames.insert(node, name);
+  }
+  return name;
+}
+
+TermList BDD::getConstant(BDDNode* node)
+{
+  TermList res;
+  if(!_nodeConstants.find(node, res)) {
+    string name=getName(node);
+    unsigned func;
+    bool added;
+    
+    func=env.signature->addFunction(name, 0, added);
+    while(!added) {
+      name+="_1";
+      func=env.signature->addFunction(name, 0, added);
+      if(added) {
+        string report="Name collision, BDD node now uses name "+name;
+        if(_allowDefinitionOutput) {
+          env.out<<report<<endl;
+        }
+        else {
+          _postponedDefinitions.push(report);
+        }
+        _nodeNames.set(node, name);
+      }
+    }
+    res=TermList(Term::create(func, 0, 0));
+    _nodeConstants.insert(node, res);
+  }
+  return res;
+}
 
 /**
  * Check whether two BDDNode objects are equal
@@ -578,7 +667,21 @@ Formula* BDD::toFormula(BDDNode* node)
     return ff;
   }
   
-  unsigned var=node->_var;
+  if(!_bddEvalPredicate) {
+    string name="$bddEval";
+    bool added;
+    _bddEvalPredicate=env.signature->addPredicate(name, 1, added);
+    while(!added) {
+      name+="_1";
+      _bddEvalPredicate=env.signature->addPredicate(name, 1, added);
+    }
+    ASS(_bddEvalPredicate);
+  }
+  TermList bddConst=getConstant(node);
+  Literal* lit=Literal::create(_bddEvalPredicate,1,true,false,&bddConst);
+  return new AtomicFormula(lit);
+
+/*  unsigned var=node->_var;
   unsigned predNum;
   if(!_predicateSymbols.find(var, predNum)) {
     string name=getPropositionalPredicateName(var);
@@ -594,7 +697,7 @@ Formula* BDD::toFormula(BDDNode* node)
   FormulaList::push(new BinaryFormula(IMP, new AtomicFormula(posLit) ,toFormula(node->_pos)), args);
   FormulaList::push(new BinaryFormula(IMP, new AtomicFormula(negLit) ,toFormula(node->_neg)), args);
   
-  return new JunctionFormula(AND, args);
+  return new JunctionFormula(AND, args);*/
 }
 
 /**
