@@ -584,7 +584,7 @@ string BDD::introduceName(BDDNode* node, string definition)
   string name="$bddnode"+Int::toString(_nextNodeNum++);
   string report="BDD definition: "+name+" = "+definition;
   outputDefinition(report);
-  _nodeNames.insert(node, name);
+  ALWAYS(_nodeNames.insert(node, name));
 
   return name;
 }
@@ -617,7 +617,11 @@ string BDD::getName(BDDNode* node)
 {
   string name;
   if(!_nodeNames.find(node, name)) {
-    name=introduceName(node, getDefinition(node));
+    string def=getDefinition(node);
+    //the name could have been introduced by the getDefinition
+    if(!_nodeNames.find(node, name)) {
+      name=introduceName(node, def);
+    }
   }
   return name;
 }
