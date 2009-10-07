@@ -433,7 +433,9 @@ struct InferenceStore::ProofPrinter
 	bool hideStep=hideProofStep(finf->rule);
 
 	if(finf->rule==Inference::SPLITTING && is->_splittingRecords.find(cs)) {
+	  bdd->allowDefinitionOutput(false);
 	  printSplitting(is->_splittingRecords.get(cs));
+	  bdd->allowDefinitionOutput(true);
 	  continue;
 	}
 	

@@ -257,9 +257,7 @@ Unit* TPTPParser::unit()
     return 0;
   }
 
-  if (_currentColor != COLOR_TRANSPARENT) {
-    result->setInheritedColor(_currentColor);
-  }
+  result->setInheritedColor(_currentColor);
 
   return result;
 } // TPTPParser::unit

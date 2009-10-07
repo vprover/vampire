@@ -168,7 +168,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
     }
     int compLen=lits.size();
 
-    if(compLen==1 && lits.top()->arity()==0 && !colorComponent) {
+    if(compLen==1 && PropositionalToBDDISE::canBddize(lits.top())) {
       //we have already handled transparent propositional components
       continue;
     }

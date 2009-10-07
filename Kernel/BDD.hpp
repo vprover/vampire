@@ -116,6 +116,9 @@ public:
   void allowDefinitionOutput(bool allow);
 
 private:
+  void outputDefinition(string def);
+  string introduceName(BDDNode* node, string definition);
+
   BDDNode* getNode(int varNum, BDDNode* pos, BDDNode* neg);
 
   template<class BinBoolFn>

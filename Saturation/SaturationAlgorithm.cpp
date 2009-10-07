@@ -270,13 +270,21 @@ void SaturationAlgorithm::onSymbolElimination(Color eliminated, Clause* c)
   ASS_EQ(c->color(),COLOR_TRANSPARENT);
 
   if(env.options->showSymbolElimination() && !c->skip()) {
+    BDD::instance()->allowDefinitionOutput(false);
     if(eliminated==COLOR_LEFT) {
       cout<<"Left";
     } else {
       ASS_EQ(eliminated, COLOR_RIGHT);
       cout<<"Right";
     }
-    cout<<" symbol elimination: "<<c->toTPTPString()<<endl;
+    cout<<" symbol elimination: "<<c->nonPropToString();
+    if(c->prop() && !BDD::instance()->isFalse(c->prop())) {
+      cout<<" | "<<BDD::instance()->toString(c->prop());
+    }
+
+    cout<<endl;
+    BDD::instance()->allowDefinitionOutput(true);
+
   }
 }
 

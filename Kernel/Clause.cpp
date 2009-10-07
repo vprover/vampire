@@ -209,16 +209,7 @@ string Clause::toString(BDDNode* propPart) const
   string result = Int::toString(_number) + ". " + nonPropToString();
 
   if(propPart && !BDD::instance()->isFalse(propPart)) {
-#if VDEBUG
-    string bddString = BDD::instance()->toString(propPart);
-    if(bddString.length() > 255) {
-      result += " | " + bddString.substr(0, 255) + "...";
-    } else {
-      result += " | " + bddString;
-    }
-#else
     result += " | " + BDD::instance()->toString(propPart);
-#endif
   }
 
   result += string(" (") + Int::toString(_age) + ':' + Int::toString(weight())

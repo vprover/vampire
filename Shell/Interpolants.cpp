@@ -61,7 +61,8 @@ Formula* Interpolants::getInterpolant(Clause* cl)
     //cout<<"#:"<<curr.first->toString()<<endl;
     if(curr.first->inheritedColor()!=COLOR_INVALID) {
       //set premise-color information for input clauses
-      st.inheritedColor=curr.first->inheritedColor();
+      st.inheritedColor=static_cast<Color>(curr.first->inheritedColor()|curr.first->getColor());
+      ASS_NEQ(st.inheritedColor, COLOR_INVALID);
     }
 
     if(sts.isNonEmpty()) {
@@ -92,6 +93,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
       st=sts.pop();
       Unit* u=st.us.first;
       Color color=u->getColor();
+      //cout<<st.inheritedColor<<" "<<u->toString()<<endl;
       if(st.inheritedColor!=color || sts.isEmpty()) {
 	//we either have a transparent clause justified by A or B, or the refutation
         ASS_EQ(color, COLOR_TRANSPARENT);

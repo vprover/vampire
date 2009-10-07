@@ -545,6 +545,12 @@ string BDD::getDefinition(BDDNode* node)
   if(isFalse(node)) {
     return "$false";
   }
+  
+  string name;
+  if(_nodeNames.find(node, name)) {
+    return name;
+  }
+
   string propPred=getPropositionalPredicateName(node->_var);
   if(isTrue(node->_pos) && isFalse(node->_neg)) {
     return propPred;
@@ -565,11 +571,22 @@ string BDD::getDefinition(BDDNode* node)
     return "(~"+propPred+" | "+getDefinition(node->_pos)+")";
   }
   else {
-    string posName=getName(node->_pos); //indirect recursion here
-    string negName=getName(node->_neg); //indirect recursion here
-    return "("+propPred+" ? "+posName+" : "+negName+")";
+    string posDef=getDefinition(node->_pos); //recursion here
+    string negDef=getDefinition(node->_neg); //recursion here
+    return introduceName(node, "("+propPred+" ? "+posDef+" : "+negDef+")");
   }
 
+}
+
+string BDD::introduceName(BDDNode* node, string definition)
+{
+  ASS(!_nodeNames.find(node));
+  string name="$bddnode"+Int::toString(_nextNodeNum++);
+  string report="BDD definition: "+name+" = "+definition;
+  outputDefinition(report);
+  _nodeNames.insert(node, name);
+
+  return name;
 }
 
 void BDD::allowDefinitionOutput(bool allow)
@@ -584,20 +601,23 @@ void BDD::allowDefinitionOutput(bool allow)
   }
 }
 
+void BDD::outputDefinition(string def)
+{
+  if(_allowDefinitionOutput) {
+    env.out<<def<<endl;
+  }
+  else {
+    _postponedDefinitions.push(def);
+  }
+
+}
+
+
 string BDD::getName(BDDNode* node)
 {
   string name;
   if(!_nodeNames.find(node, name)) {
-    name="$bddnode"+Int::toString(_nextNodeNum++);
-    string def=getDefinition(node); //indirect recursion here
-    string report="BDD definition: "+name+" = "+def;
-    if(_allowDefinitionOutput) {
-      env.out<<report<<endl;
-    }
-    else {
-      _postponedDefinitions.push(report);
-    }
-    _nodeNames.insert(node, name);
+    name=introduceName(node, getDefinition(node));
   }
   return name;
 }
@@ -616,12 +636,7 @@ TermList BDD::getConstant(BDDNode* node)
       func=env.signature->addFunction(name, 0, added);
       if(added) {
         string report="Name collision, BDD node now uses name "+name;
-        if(_allowDefinitionOutput) {
-          env.out<<report<<endl;
-        }
-        else {
-          _postponedDefinitions.push(report);
-        }
+	outputDefinition(report);
         _nodeNames.set(node, name);
       }
     }
