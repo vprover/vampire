@@ -25,6 +25,7 @@ Signature::Signature ()
 
   // initialize equality
   addPredicate("=", 2);
+  getPredicate(0)->markSkip();
 } // Signature::Signature
 
 /**
