@@ -31,6 +31,9 @@ private:
 
   Clause* insertIntoIndex(Clause* cl, bool& newInserted, bool& modified);
 
+
+  bool canSplitOut(Literal* lit);
+
   /** Names assigned to clauses stored in @b _variantIndex */
   DHMap<Clause*, int> _clauseNames;
 

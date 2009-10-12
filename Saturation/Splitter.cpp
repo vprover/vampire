@@ -59,7 +59,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   if(clen>1) {
     for(int i=0;i<clen;i++) {
       Literal* lit=(*cl)[i];
-      if( env.colorUsed && (lit->color()!=COLOR_TRANSPARENT || !lit->skip()) ) {
+      if( !canSplitOut(lit) ) {
 	if(coloredMaster==-1) {
 	  coloredMaster=i;
 	} else {
@@ -338,6 +338,12 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   cout<<"^^^^^^^^^^^^\n";
 #endif
 
+}
+
+bool Splitter::canSplitOut(Literal* lit)
+{
+  return lit->color()==COLOR_TRANSPARENT &&
+    (!env.options->showSymbolElimination() || lit->skip());
 }
 
 void Splitter::getPropPredName(Literal* lit, int& name, Clause*& premise, bool& newPremise)

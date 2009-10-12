@@ -81,7 +81,8 @@ Clause* PropositionalToBDDISE::simplify(Clause* c)
 
 bool PropositionalToBDDISE::canBddize(Literal* l)
 {
-  return l->arity()==0 && l->color()==COLOR_TRANSPARENT && l->skip();
+  return l->arity()==0 && l->color()==COLOR_TRANSPARENT &&
+    (!env.options->showSymbolElimination() || l->skip());
 }
 int PropositionalToBDDISE::getPropPredName(Literal* lit)
 {

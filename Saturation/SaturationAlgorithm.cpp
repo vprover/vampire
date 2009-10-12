@@ -669,6 +669,9 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
 
+  Clause* possibleSymEl=0;
+  Color symElColor;
+
   BDDNode* prop=cl->prop();
   bool simplified;
   do {
@@ -683,7 +686,8 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl)
       InferenceStore::instance()->recordNonPropInference(simplCl);
 
       if(cl->color()!=COLOR_TRANSPARENT && simplCl->color()==COLOR_TRANSPARENT) {
-	onSymbolElimination(cl->color(), simplCl);
+	possibleSymEl=simplCl;
+        symElColor=cl->color();
       }
 
       cl=simplCl;
@@ -691,6 +695,10 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl)
       onNewClause(cl);
     }
   } while(simplified);
+
+  if(possibleSymEl) {
+    onSymbolElimination(symElColor, possibleSymEl);
+  }
 
   return cl;
 }
