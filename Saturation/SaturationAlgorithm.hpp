@@ -82,6 +82,8 @@ protected:
   void onNewUsefulPropositionalClause(Clause* c);
   void onSymbolElimination(Color eliminated, Clause* c);
 
+  void beforeClauseActivation(Clause* c);
+
   void handleSaturationStart();
   int elapsedTime();
 

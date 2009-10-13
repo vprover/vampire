@@ -150,6 +150,13 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
 #endif
 }
 
+void SaturationAlgorithm::beforeClauseActivation(Clause* c)
+{
+  CALL("SaturationAlgorithm::beforeClauseActivation");
+  ASS(_unprocessed->isEmpty());
+
+}
+
 /**
  * A function that is called when a clause is added to the passive clause container.
  */
@@ -757,15 +764,6 @@ simplificationStart:
 
   ASS(!bdd->isTrue(cl->prop()));
 
-//  static int scCounter=0;
-//  scCounter++;
-//  if(scCounter==100) {
-//    scCounter=0;
-//    if(_performSplitting && elapsedTime()>(env.options->timeLimitInDeciseconds()*5)) {
-//      _performSplitting=false;
-//    }
-//  }
-
   if(_performSplitting && !cl->isEmpty()) {
     ClauseIterator newComponents;
     ClauseIterator modifiedComponents;
@@ -1205,6 +1203,8 @@ void SaturationAlgorithm::addToPassive(Clause* c)
 void SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
+
+  beforeClauseActivation(cl);
 
   _clauseActivationInProgress=true;
 
