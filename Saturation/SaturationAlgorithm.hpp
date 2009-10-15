@@ -10,9 +10,13 @@
 #include "../Forwards.hpp"
 
 #include "../Kernel/Clause.hpp"
-#include "../Lib/List.hpp"
+
+#include "../Lib/DHMap.hpp"
 #include "../Lib/Event.hpp"
+#include "../Lib/List.hpp"
+
 #include "../Indexing/IndexManager.hpp"
+
 #include "../Inferences/InferenceEngine.hpp"
 #include "../Inferences/PropositionalToBDDISE.hpp"
 
@@ -80,9 +84,13 @@ protected:
   void onUnprocessedSelected(Clause* c);
   void onNewClause(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
-  void onSymbolElimination(Color eliminated, Clause* c);
+  void onSymbolElimination(Color eliminated, Clause* c, bool nonRedundant=false);
+  void onClauseRewrite(Clause* from, Clause* to, bool forward=true, Clause* premise=0);
+  void onNonRedundantClause(Clause* c);
 
-  void beforeClauseActivation(Clause* c);
+  void outputSymbolElimination(Color eliminated, Clause* c);
+
+  void onAllProcessed();
 
   void handleSaturationStart();
   int elapsedTime();
@@ -135,6 +143,9 @@ protected:
 
   Splitter _splitter;
   PropositionalToBDDISE _propToBDD;
+
+  DHMap<Clause*,Clause*> _symElRewrites;
+  DHMap<Clause*,Color> _symElColors;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;

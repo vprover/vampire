@@ -57,6 +57,8 @@ SaturationResult Discount::saturate()
       }
     }
 
+    onAllProcessed();
+
     if(env.timeLimitReached()) {
       return SaturationResult(Statistics::TIME_LIMIT);
     }

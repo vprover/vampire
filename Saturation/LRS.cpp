@@ -152,6 +152,7 @@ SaturationResult LRS::saturate()
         }
       }
     }
+    onAllProcessed();
 
     if (_passive->isEmpty()) {
       return SaturationResult( complete ? Statistics::SATISFIABLE : Statistics::UNKNOWN );

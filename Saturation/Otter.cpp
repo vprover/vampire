@@ -68,6 +68,7 @@ SaturationResult Otter::saturate()
 	return SaturationResult(Statistics::TIME_LIMIT);
       }
     }
+    onAllProcessed();
 
     if (_passive->isEmpty()) {
       if(env.options->complete()) {
