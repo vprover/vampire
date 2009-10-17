@@ -125,7 +125,7 @@ SATLiteral SATClause::litToSAT(NamingContext& context, Literal* lit)
     return SATLiteral(num, 1);
   }
 
-  Literal* posLit=Literal::create(lit, true);
+  Literal* posLit=Literal::oppositeLiteral(lit);
   if(context.map.find(posLit, num)) {
     context.map.insert(lit, -num);
     return SATLiteral(num, 0);

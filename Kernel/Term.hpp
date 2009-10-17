@@ -740,6 +740,9 @@ public:
 
   unsigned hash() const;
   unsigned oppositeHash() const;
+
+  static Literal* oppositeLiteral(Literal* l);
+
   /** true if positive */
   bool isPositive() const
   {

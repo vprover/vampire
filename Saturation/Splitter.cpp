@@ -28,25 +28,23 @@ using namespace Inferences;
 #define REPORT_SPLITS 0
 
 /**
- * Split clause @b cl into components. Newly introduced will be yielded
- * by the iterator assigned to @b newComponents, and other components
- * that have changed to @b modifiedComponents.
+ * Split clause @b cl into components. Return iterator that yields
+ * new and modified components.
  *
- * A change to a component consists of a modification of its propositional
+ * A modification of a component means a change of its propositional
  * part.
  */
-void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
-	ClauseIterator& modifiedComponents)
+ClauseIterator Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
 
   BDD* bdd=BDD::instance();
 
   int clen=cl->length();
+  ASS_G(clen,0);
 
   if(clen<=1) {
-    handleNoSplit(cl, newComponents, modifiedComponents);
-    return;
+    return handleNoSplit(cl);
   }
 
   //Master literal of an variable is the literal
@@ -54,6 +52,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   static DHMap<unsigned, int, IdentityHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
+  //index of one literal that cannot be splitted-out, or -1 if there isn't any
   int coloredMaster=-1;
 
   if(clen>1) {
@@ -81,8 +80,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   int compCnt=components.getComponentCount();
 
   if(compCnt==1) {
-    handleNoSplit(cl, newComponents, modifiedComponents);
-    return;
+    return handleNoSplit(cl);
   }
 
   env.statistics->splittedClauses++;
@@ -99,9 +97,7 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 #endif
 
   static Stack<Clause*> unnamedComponentStack(16);
-  static Stack<Clause*> newComponentStack(16);
   unnamedComponentStack.reset();
-  newComponentStack.reset();
 
   BDDNode* newMasterProp=cl->prop();
   masterPremises.push(cl);
@@ -109,48 +105,9 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   static Stack<Literal*> lits(16);
 
   int remainingComps=compCnt;
-  {
-    //first we handle propositional components
-    IntUnionFind::ComponentIterator cit0(components);
-    while(cit0.hasNext()) {
-
-      IntUnionFind::ElementIterator elit=cit0.next();
-
-      ALWAYS(elit.hasNext());
-      Literal* lit=(*cl)[elit.next()];
-      if(elit.hasNext()) {
-	continue;
-      }
-
-      if(!PropositionalToBDDISE::canBddize(lit)) {
-	continue;
-      }
-
-      remainingComps--;
-
-      int name;
-      Clause* premise;
-      bool newPremise;
-
-      getPropPredName(lit, name, premise, newPremise);
-      newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(name, lit->isPositive()));
-      masterPremises.push(premise);
-      srec->namedComps.push(make_pair(name, premise));
-
-      //As long as we're sure that all occurences of the propositional
-      //predicate get replaced, there is no need to add the premise
-      //among new clauses.
-
-#if REPORT_SPLITS
-      cout<<'P'<<name<<": "<<(*premise)<<endl;
-#endif
-    }
-  }
-
 
   IntUnionFind::ComponentIterator cit(components);
   Clause* masterComp=0;
-  bool masterNew=false;
   ASS(cit.hasNext());
   while(cit.hasNext()) {
     IntUnionFind::ElementIterator elit=cit.next();
@@ -168,99 +125,54 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
     }
     int compLen=lits.size();
 
-    if(compLen==1 && PropositionalToBDDISE::canBddize(lits.top())) {
-      //we have already handled transparent propositional components
-      continue;
-    }
+    //no propositional literals that can be bddized should make it here
+    ASS(compLen!=1 || !PropositionalToBDDISE::canBddize(lits.top()))
     ASS(!colorComponent | masterComp==0);
 
     remainingComps--;
 
-    Clause* comp;
-    ClauseIterator variants=_variantIndex.retrieveVariants(lits.begin(), compLen);
-    if(variants.hasNext()) {
-      comp=variants.next();
-
-      ASS(!variants.hasNext());
-      int compName;
-      if(_clauseNames.find(comp, compName)) {
-	ASS(!colorComponent); //colored components don't have names
-	if(!remainingComps && !masterComp && newComponentStack.isEmpty() && unnamedComponentStack.isEmpty()) {
-	  ASS_EQ(masterComp, 0);
-	  masterComp=comp;
-	} else {
-	  newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
-#if REPORT_SPLITS
-	  cout<<compName<<": "<<(*comp)<<endl;
-#endif
-	  if(bdd->isTrue(newMasterProp)) {
-	    //the propositional part of cl is true, so there is no point in adding it
-	    newComponents=ClauseIterator::getEmpty();
-	    modifiedComponents=ClauseIterator::getEmpty();
-	    return;
-	  }
-	  masterPremises.push(comp);
-	  srec->namedComps.push(make_pair(compName, comp));
-	}
-      } else {
-	if(colorComponent) {
-	  masterComp=comp;
-	  masterNew=false;
-	} else {
-	  unnamedComponentStack.push(comp);
-	}
-      }
-    } else {
-      env.statistics->uniqueComponents++;
-      Inference* inf=new Inference(Inference::TAUTOLOGY_INTRODUCTION);
-      Unit::InputType inpType = cl->inputType();
-      comp = new(compLen) Clause(compLen, inpType, inf);
-      for(int i=0;i<compLen;i++) {
-	(*comp)[i]=lits.pop();
-      }
-
-      {
-	TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
-
-	_variantIndex.insert(comp);
-      }
-
-      comp->setProp(bdd->getTrue());
-      InferenceStore::instance()->recordNonPropInference(comp);
-
-
-      if(colorComponent) {
+    int compName;
+    bool compNew;
+    Clause* comp=getComponent(cl, lits.begin(), compLen, compName, compNew);
+    if(compName) {
+      ASS(!colorComponent); //colored components don't have names
+      if(!remainingComps && !masterComp && unnamedComponentStack.isEmpty()) {
+	//there's no component left and we still haven't found a master component
+	ASS_EQ(masterComp, 0);
 	masterComp=comp;
-	masterNew=true;
       } else {
-	newComponentStack.push(comp);
+	newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
+#if REPORT_SPLITS
+	cout<<compName<<": "<<(*comp)<<endl;
+#endif
+	if(bdd->isTrue(newMasterProp)) {
+	  //the propositional part of the master component is true only
+	  //due to already named components, so there's no point in adding
+	  //any clause
+	  return ClauseIterator::getEmpty();
+	}
+	masterPremises.push(comp);
+	srec->namedComps.push(make_pair(compName, comp));
+      }
+    }
+    else {
+      if(colorComponent || (!coloredMaster==-1 && !masterComp && compNew) ) {
+	ASS_EQ(masterComp, 0);
+	masterComp=comp;
+      } else {
+	unnamedComponentStack.push(comp);
       }
     }
     ASS(!colorComponent | masterComp!=0);
   }
 
   if(!masterComp) {
-    if(newComponentStack.isNonEmpty()) {
-      masterNew=true;
-      masterComp=newComponentStack.pop();
-    } else if(unnamedComponentStack.isNonEmpty()) {
-      masterComp=unnamedComponentStack.pop();
-    } else {
-      //this should happen just if the clause being splitted consist
-      //of only transparent propositional literals
-      Clause* emptyCl=new(0) Clause(0,Clause::AXIOM, new Inference(Inference::TAUTOLOGY_INTRODUCTION));
-      emptyCl->setProp(bdd->getTrue());
-
-      bool aux1, aux2;
-      masterComp=insertIntoIndex(emptyCl, aux1, aux2);
-      masterNew = masterComp==emptyCl;
-    }
+    ASS(unnamedComponentStack.isNonEmpty());
+    masterComp=unnamedComponentStack.pop();
   }
 
 
-  ClauseIterator unnamedIt=pvi( getConcatenatedIterator(
-	  Stack<Clause*>::Iterator(newComponentStack),
-	  Stack<Clause*>::Iterator(unnamedComponentStack)) );
+  Stack<Clause*>::Iterator unnamedIt(unnamedComponentStack);
   while(unnamedIt.hasNext()) {
     Clause* comp=unnamedIt.next();
     if(comp==masterComp) {
@@ -295,7 +207,6 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
 #endif
     }
   }
-
   ASS(!bdd->isTrue(newMasterProp));
 
   InferenceStore::ClauseSpec splittedMCompCS=InferenceStore::getClauseSpec(masterComp, newMasterProp);
@@ -316,22 +227,13 @@ void Splitter::doSplitting(Clause* cl, ClauseIterator& newComponents,
   cout<<(*masterComp)<<endl;
 #endif
 
-  if(!masterNew) {
-    if(oldProp!=masterComp->prop()) {
-      modifiedComponents=getPersistentIterator(getConcatenatedIterator(
-  		  getSingletonIterator(masterComp),
-  		  Stack<Clause*>::Iterator(unnamedComponentStack)) );
-    } else {
-      modifiedComponents=getPersistentIterator(
-  		  Stack<Clause*>::Iterator(unnamedComponentStack) );
-    }
-    newComponents=getPersistentIterator(Stack<Clause*>::Iterator(newComponentStack));
+  if(oldProp!=masterComp->prop()) {
+    return getPersistentIterator(getConcatenatedIterator(
+	    getSingletonIterator(masterComp),
+	    Stack<Clause*>::Iterator(unnamedComponentStack)) );
   } else {
-    modifiedComponents=getPersistentIterator(
-		  Stack<Clause*>::Iterator(unnamedComponentStack) );
-    newComponents=getPersistentIterator(getConcatenatedIterator(
-		  getSingletonIterator(masterComp),
-		  Stack<Clause*>::Iterator(newComponentStack)) );
+    return getPersistentIterator(
+	    Stack<Clause*>::Iterator(unnamedComponentStack) );
   }
 
 #if REPORT_SPLITS
@@ -346,38 +248,97 @@ bool Splitter::canSplitOut(Literal* lit)
     (!env.options->showSymbolElimination() || lit->skip());
 }
 
-void Splitter::getPropPredName(Literal* lit, int& name, Clause*& premise, bool& newPremise)
+/**
+ * Return true if literal @b l is bipolar
+ *
+ * A literal is bipolar if the same name can be used both for its
+ * positive and negative occurence.
+ */
+bool Splitter::isBipolar(Literal* lit)
 {
-  CALL("Splitter::insertIntoIndex");
-  ASS_EQ(lit->arity(), 0);
+  return lit->ground();
+}
 
-  unsigned pred=lit->functor();
-  int* pname;
-  if(_propPredNames.getValuePtr(pred, pname)) {
-    *pname=BDD::instance()->getNewVar( pred );
 
-    if(env.options->showDefinitions()) {
-      env.out << "Definition: " << BDD::instance()->getPropositionalPredicateName(*pname)
-	    << " <=> " << env.signature->predicateName(pred) << endl;
+//void Splitter::getPropPredName(Literal* lit, int& name, Clause*& premise, bool& newPremise)
+//{
+//  CALL("Splitter::getPropPredName");
+//  ASS_EQ(lit->arity(), 0);
+//
+//  unsigned pred=lit->functor();
+//  int* pname;
+//  if(_propPredNames.getValuePtr(pred, pname)) {
+//    *pname=BDD::instance()->getNewVar( pred );
+//
+//    if(env.options->showDefinitions()) {
+//      env.out << "Definition: " << BDD::instance()->getPropositionalPredicateName(*pname)
+//	    << " <=> " << env.signature->predicateName(pred) << endl;
+//    }
+//  }
+//  name=*pname;
+//
+//  Clause** ppremise;
+//  if(lit->isPositive()) {
+//    _propPredPosNamePremises.getValuePtr(pred, ppremise, 0);
+//  } else {
+//    _propPredNegNamePremises.getValuePtr(pred, ppremise, 0);
+//  }
+//  newPremise=*ppremise;
+//  if(!*ppremise) {
+//    Clause* cl=new(1) Clause(1,Clause::AXIOM,new Inference(Inference::CLAUSE_NAMING));
+//    (*cl)[0]=lit;
+//    cl->setProp( BDD::instance()->getAtomic(name, lit->isNegative()) );
+//    InferenceStore::instance()->recordNonPropInference(cl);
+//    *ppremise=cl;
+//  }
+//  premise=*ppremise;
+//}
+
+/**
+ * Return component of @b cl that contains literals in array @b lits
+ * (that has length @b compLen). If the component has a name,
+ * assign it to @b name, otherwise assigh 0 to @b name.
+ * Assign @b true to @b newComponent iff the component was
+ * newly added to the component index.
+ */
+Clause* Splitter::getComponent(Clause* cl, Literal** lits, unsigned compLen, int& name, bool& newComponent)
+{
+  Clause* comp;
+  ClauseIterator variants=_variantIndex.retrieveVariants(lits, compLen);
+  newComponent=!variants.hasNext();
+  if(!newComponent) {
+    comp=variants.next();
+
+    ASS(!variants.hasNext());
+    if(!_clauseNames.find(comp, name)) {
+      name=0;
     }
-  }
-  name=*pname;
-
-  Clause** ppremise;
-  if(lit->isPositive()) {
-    _propPredPosNamePremises.getValuePtr(pred, ppremise, 0);
+#if VDEBUG
+    else {
+      ASS_NEQ(name,0);
+    }
+#endif
   } else {
-    _propPredNegNamePremises.getValuePtr(pred, ppremise, 0);
+    name=0;
+
+    env.statistics->uniqueComponents++;
+    Inference* inf=new Inference(Inference::TAUTOLOGY_INTRODUCTION);
+    Unit::InputType inpType = cl->inputType();
+    comp = new(compLen) Clause(compLen, inpType, inf);
+    for(unsigned i=0;i<compLen;i++) {
+      (*comp)[i]=lits[i];
+    }
+
+    {
+      TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
+
+      _variantIndex.insert(comp);
+    }
+
+    comp->setProp(BDD::instance()->getTrue());
+    InferenceStore::instance()->recordNonPropInference(comp);
   }
-  newPremise=*ppremise;
-  if(!*ppremise) {
-    Clause* cl=new(1) Clause(1,Clause::AXIOM,new Inference(Inference::CLAUSE_NAMING));
-    (*cl)[0]=lit;
-    cl->setProp( BDD::instance()->getAtomic(name, lit->isNegative()) );
-    InferenceStore::instance()->recordNonPropInference(cl);
-    *ppremise=cl;
-  }
-  premise=*ppremise;
+  return comp;
 }
 
 Clause* Splitter::insertIntoIndex(Clause* cl, bool& newInserted, bool& modified)
@@ -429,66 +390,22 @@ Clause* Splitter::insertIntoIndex(Clause* cl, bool& newInserted, bool& modified)
   }
 }
 
-void Splitter::handleNoSplit(Clause* cl, ClauseIterator& newComponents,
-	ClauseIterator& modifiedComponents)
+ClauseIterator Splitter::handleNoSplit(Clause* cl)
 {
   CALL("Splitter::handleNoSplit");
-
-  newComponents=ClauseIterator::getEmpty();
-  modifiedComponents=ClauseIterator::getEmpty();
-
-  if(cl->length()==1 && PropositionalToBDDISE::canBddize((*cl)[0])) {
-    Literal* lit=(*cl)[0];
-    int name;
-    Clause* premise;
-    bool newPremise;
-
-    getPropPredName(lit, name, premise, newPremise);
-
-    Clause* newCl=new(0) Clause(0,cl->inputType(), new Inference2(Inference::SPLITTING, cl, premise));
-    newCl->setProp( BDD::instance()->getAtomic(name, lit->isPositive()) );
-
-//    InferenceStore::instance()->recordNonPropInference(newCl);
-
-    InferenceStore::SplittingRecord* srec=new InferenceStore::SplittingRecord(cl);
-    srec->namedComps.push(make_pair(name, cl));
-    srec->result=InferenceStore::getClauseSpec(newCl);
-    InferenceStore::instance()->recordSplitting(srec, 1, &premise);
-
-    //As long as we're sure that all occurences of the propositional
-    //predicate get replaced, there is no need to add the premise
-    //among new clauses.
-
-#if REPORT_SPLITS
-    cout<<"####PSplit####\n";
-    cout<<(*cl)<<endl;
-    cout<<"vvv Into vvv\n";
-    cout<<'P'<<name<<": "<<(*premise)<<endl;
-    cout<<(*newCl)<<endl;
-    cout<<"^^^^^^^^^^^^^^^\n";
-#endif
-    cl=newCl;
-  }
+  ASS_G(cl->length(), 0);
+  //no propositional literal that can be bddized should get here
+  ASS(cl->length()!=1 || !PropositionalToBDDISE::canBddize((*cl)[0]));
 
   bool newInserted;
   bool modified;
   Clause* insCl=insertIntoIndex(cl, newInserted, modified);
 
-  if(newInserted) {
-    ASS_EQ(insCl, cl);
-    newComponents=pvi( getSingletonIterator(insCl) );
-  } else if(modified) {
-    ASS_NEQ(insCl, cl);
-    if( insCl->isEmpty() && BDD::instance()->isFalse(insCl->prop()) ) {
-      BDDNode* oldClProp=cl->prop();
-      cl->setProp(insCl->prop());
-      InferenceStore::instance()->recordMerge(cl, oldClProp, insCl, cl->prop());
-
-      //we want the refutation to be a new clause that is put on the unprocessed stack.
-      newComponents=pvi( getSingletonIterator(cl) );
-    } else {
-      modifiedComponents=pvi( getSingletonIterator(insCl) );
-    }
+  if(newInserted || modified) {
+    return pvi( getSingletonIterator(insCl) );
+  }
+  else {
+    return ClauseIterator::getEmpty();
   }
 }
 

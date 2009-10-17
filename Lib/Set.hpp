@@ -69,6 +69,10 @@ public:
   /**
    * If the set contains value equal to @b key, return true,
    * and assign the value to @b result
+   *
+   * Hash class has to contain methods
+   * Hash::hash(Key)
+   * Hash::equals(Val,Key)
    */
   template<typename Key>
   bool find (Key key, Val& result) const

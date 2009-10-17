@@ -22,31 +22,27 @@ using namespace Indexing;
 class Splitter
 {
 public:
-  void doSplitting(Clause* cl, ClauseIterator& newComponents, ClauseIterator& modifiedComponents);
+  ClauseIterator doSplitting(Clause* cl);
 private:
-  void getPropPredName(Literal* lit, int& name, Clause*& premise, bool& newPremise);
+  Clause* getComponent(Clause* cl, Literal** lits, unsigned compLen, int& name, bool& newComponent);
 
-  void handleNoSplit(Clause* cl, ClauseIterator& newComponents,
-		ClauseIterator& modifiedComponents);
+  ClauseIterator handleNoSplit(Clause* cl);
 
   Clause* insertIntoIndex(Clause* cl, bool& newInserted, bool& modified);
 
 
   bool canSplitOut(Literal* lit);
+  bool isBipolar(Literal* lit);
 
   /** Names assigned to clauses stored in @b _variantIndex */
   DHMap<Clause*, int> _clauseNames;
 
-  /** Names assigned to propositional predicates */
-  DHMap<unsigned, int> _propPredNames;
+  /** Literals with assigned names such that positive and negative
+   * ones share the same name */
+  DHMap<Literal*, int> _bipolarNames;
 
-  /** Clauses to be used as premises for replacing
-   * positive predicate occurence by name */
-  DHMap<unsigned, Clause*> _propPredPosNamePremises;
-
-  /** Clauses to be used as premises for replacing
-   * negative predicate occurence by name */
-  DHMap<unsigned, Clause*> _propPredNegNamePremises;
+  /** Premises for naming literals with bipolar names */
+  DHMap<Literal*, Clause*> _bipolarPremises;
 
   /** Index containing names clauses. Name of a clause is stored in
    * @b _clauseNames */

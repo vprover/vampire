@@ -552,6 +552,18 @@ unsigned Literal::oppositeHash() const
  		       _arity*sizeof(TermList),hash);
 } // Term::hash
 
+/**
+ * Return literal opposite to @b l.
+ */
+Literal* Literal::oppositeLiteral(Literal* l)
+{
+  Literal* res=env.sharing->tryGetOpposite(l);
+  if(!l) {
+    res=create(l, !l->polarity());
+  }
+  return res;
+}
+
 
 /** Create a new complex term, copy from @b t its function symbol and
  *  from the array @b args its arguments. Insert it into the sharing

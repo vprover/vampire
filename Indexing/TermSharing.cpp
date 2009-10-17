@@ -225,6 +225,19 @@ Term* TermSharing::insertRecurrently(Term* t)
 }
 
 /**
+ * If the sharing structure contains a literal opposite to @b l, return it.
+ * Otherwise return 0.
+ */
+Literal* TermSharing::tryGetOpposite(Literal* l)
+{
+  Literal* res;
+  if(_literals.find(OpLitWrapper(l), res)) {
+    return res;
+  }
+  return 0;
+}
+
+/**
  * Return true if t1 is greater than t2 in some arbitrary
  * total ordering.
  *

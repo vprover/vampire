@@ -422,10 +422,13 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
 
   checkForPreprocessorSymbolElimination(cl);
 
-#if PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
-  //put propositional predicates into BDD part
-  cl=_propToBDD.simplify(cl);
+#if !PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
+  if(env.options->splitting()!=RA_OFF)
 #endif
+  {
+    //put propositional predicates into BDD part
+    cl=_propToBDD.simplify(cl);
+  }
 
   if(env.options->sos() && cl->inputType()==Clause::AXIOM) {
     addInputSOSClause(cl);
@@ -725,39 +728,24 @@ simplificationStart:
       premSymEl=true;
     }
 
-    ClauseIterator newComponents;
-    ClauseIterator modifiedComponents;
-    _splitter.doSplitting(cl, newComponents, modifiedComponents);
+    ClauseIterator components;
+    components=_splitter.doSplitting(cl);
     Color origColor=cl->color();
-    while(newComponents.hasNext()) {
-      Clause* comp=newComponents.next();
-      ASS_EQ(comp->store(), Clause::NONE);
-      ASS(!bdd->isTrue(comp->prop()));
-
-      if(comp!=cl) {
-	onNewClause(comp);
-	if(origColor!=COLOR_TRANSPARENT && comp->color()==COLOR_TRANSPARENT) {
-	  onSymbolElimination(origColor, comp);
-	}
-	if(premSymEl) {
-	  _symElRewrites.insert(comp, cl);
-	}
-      }
-
-      addUnprocessedFinalClause(comp);
-    }
-    while(modifiedComponents.hasNext()) {
-      Clause* comp=modifiedComponents.next();
+    while(components.hasNext()) {
+      Clause* comp=components.next();
       bool processed=comp->store()!=Clause::NONE && comp->store()!=Clause::UNPROCESSED;
       if(processed) {
 	onNonRedundantClause(comp);
       }
 
-      if(origColor!=COLOR_TRANSPARENT && comp->color()==COLOR_TRANSPARENT) {
-	onSymbolElimination(origColor, comp, processed);
-      }
-      if(premSymEl&& !processed) {
-	_symElRewrites.insert(comp, cl);
+      if(comp!=cl) {
+	onNewClause(comp);
+	if(origColor!=COLOR_TRANSPARENT && comp->color()==COLOR_TRANSPARENT) {
+	  onSymbolElimination(origColor, comp, processed);
+	}
+	if(premSymEl&& !processed) {
+	  _symElRewrites.insert(comp, cl);
+	}
       }
 
       ASS(!bdd->isTrue(comp->prop()));
@@ -774,7 +762,6 @@ simplificationStart:
 		comp->store()==Clause::REACTIVATED ||
 		comp->store()==Clause::UNPROCESSED);
       }
-      onNewClause(comp);
     }
   } else {
     addUnprocessedFinalClause(cl);

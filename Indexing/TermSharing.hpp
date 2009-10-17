@@ -24,6 +24,9 @@ public:
   Term* insert(Term*);
   Literal* insert(Literal*);
   Term* insertRecurrently(Term*);
+
+  Literal* tryGetOpposite(Literal* l);
+
   /** The hash function of this literal */
   inline static unsigned hash(const Literal* l)
   { return l->hash(); }
@@ -36,6 +39,18 @@ public:
   { return l1->polarity() == l2->polarity() &&
            equals(static_cast<const Term*>(l1),
 		  static_cast<const Term*>(l2)); }
+
+  struct OpLitWrapper {
+    OpLitWrapper(Literal* l) : l(l) {}
+    Literal* l;
+  };
+  inline static unsigned hash(const OpLitWrapper& w)
+  { return w.l->oppositeHash(); }
+  static bool equals(const Literal* l1,const OpLitWrapper& w)
+  { return l1->polarity() != w.l->polarity() &&
+           equals(static_cast<const Term*>(l1),
+		  static_cast<const Term*>(w.l)); }
+
 private:
   bool argNormGt(TermList t1, TermList t2);
 
