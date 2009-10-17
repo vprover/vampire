@@ -11,6 +11,7 @@
 
 #include "../Lib/Array.hpp"
 #include "../Lib/List.hpp"
+#include "../Lib/DHMap.hpp"
 
 namespace Indexing {
 
@@ -29,7 +30,11 @@ public:
 
 private:
   Literal* getMainLiteral(Literal** lits, unsigned length);
+  bool greater(Literal* l1, Literal* l2);
+
   class SLResultToVariantClauseFn;
+
+  DHMap<Literal*, ClauseList*> _groundUnits;
 
   ZIArray<LiteralSubstitutionTree*> _strees;
 

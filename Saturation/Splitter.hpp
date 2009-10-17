@@ -26,23 +26,26 @@ public:
 private:
   Clause* getComponent(Clause* cl, Literal** lits, unsigned compLen, int& name, bool& newComponent);
 
+  int nameComponent(Clause* comp);
+  BDDNode* getNameProp(int name);
+
   ClauseIterator handleNoSplit(Clause* cl);
 
   Clause* insertIntoIndex(Clause* cl, bool& newInserted, bool& modified);
 
 
   bool canSplitOut(Literal* lit);
-  bool isBipolar(Literal* lit);
 
   /** Names assigned to clauses stored in @b _variantIndex */
   DHMap<Clause*, int> _clauseNames;
 
-  /** Literals with assigned names such that positive and negative
-   * ones share the same name */
-  DHMap<Literal*, int> _bipolarNames;
-
-  /** Premises for naming literals with bipolar names */
-  DHMap<Literal*, Clause*> _bipolarPremises;
+  /**
+   * Names for ground literals whose opposite counterparts haven't
+   * been named yet
+   *
+   * See @b Splitter::nameComponent function.
+   */
+  DHMap<Literal*, int> _groundNames;
 
   /** Index containing names clauses. Name of a clause is stored in
    * @b _clauseNames */

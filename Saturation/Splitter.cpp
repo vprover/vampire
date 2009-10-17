@@ -14,6 +14,7 @@
 #include "../Kernel/Term.hpp"
 #include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
+#include "../Indexing/TermSharing.hpp"
 #include "../Inferences/PropositionalToBDDISE.hpp"
 
 #include "Splitter.hpp"
@@ -127,7 +128,7 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
 
     //no propositional literals that can be bddized should make it here
     ASS(compLen!=1 || !PropositionalToBDDISE::canBddize(lits.top()))
-    ASS(!colorComponent | masterComp==0);
+    ASS(!colorComponent || masterComp==0);
 
     remainingComps--;
 
@@ -141,7 +142,7 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
 	ASS_EQ(masterComp, 0);
 	masterComp=comp;
       } else {
-	newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
+	newMasterProp=bdd->disjunction(newMasterProp, getNameProp(compName));
 #if REPORT_SPLITS
 	cout<<compName<<": "<<(*comp)<<endl;
 #endif
@@ -163,7 +164,7 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
 	unnamedComponentStack.push(comp);
       }
     }
-    ASS(!colorComponent | masterComp!=0);
+    ASS(!colorComponent || masterComp!=0);
   }
 
   if(!masterComp) {
@@ -181,31 +182,21 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
       //and appears more than once.
       continue;
     }
-    int compName=bdd->getNewVar();
 
-    if(_clauseNames.insert(comp, compName)) {
+    int compName=nameComponent(comp);
+    if(!compName) {
       //The same component can appear multiple times.
-      //We detect the harmful cases here as attempts to name
-      //a component multiple times.
-      BDDNode* oldCompProp=comp->prop();
-      BDDNode* newCompProp=bdd->conjunction(oldCompProp, bdd->getAtomic(compName, false));
-      if(newCompProp!=oldCompProp) {
-	comp->setProp(newCompProp);
-	InferenceStore::instance()->recordPropAlter(comp, oldCompProp, newCompProp, Inference::CLAUSE_NAMING);
-      }
-      newMasterProp=bdd->disjunction(newMasterProp, bdd->getAtomic(compName, true));
-      masterPremises.push(comp);
-      srec->namedComps.push(make_pair(compName, comp));
+      //If compName==0 this happened, so we skip that case.
+      continue;
+    }
 
-      if(env.options->showDefinitions()) {
-        env.out << "Definition: " << BDD::instance()->getPropositionalPredicateName(compName)
-  	    << " <=> (" << comp->nonPropToString() << ")" << endl;
-      }
+    newMasterProp=bdd->disjunction(newMasterProp, getNameProp(compName));
+    masterPremises.push(comp);
+    srec->namedComps.push(make_pair(compName, comp));
 
 #if REPORT_SPLITS
-      cout<<'n'<<compName<<": "<<(*comp)<<endl;
+    cout<<'n'<<compName<<": "<<(*comp)<<endl;
 #endif
-    }
   }
   ASS(!bdd->isTrue(newMasterProp));
 
@@ -246,17 +237,6 @@ bool Splitter::canSplitOut(Literal* lit)
 {
   return lit->color()==COLOR_TRANSPARENT &&
     (!env.options->showSymbolElimination() || lit->skip());
-}
-
-/**
- * Return true if literal @b l is bipolar
- *
- * A literal is bipolar if the same name can be used both for its
- * positive and negative occurence.
- */
-bool Splitter::isBipolar(Literal* lit)
-{
-  return lit->ground();
 }
 
 
@@ -303,6 +283,8 @@ bool Splitter::isBipolar(Literal* lit)
  */
 Clause* Splitter::getComponent(Clause* cl, Literal** lits, unsigned compLen, int& name, bool& newComponent)
 {
+  CALL("Splitter::getComponent");
+
   Clause* comp;
   ClauseIterator variants=_variantIndex.retrieveVariants(lits, compLen);
   newComponent=!variants.hasNext();
@@ -340,6 +322,76 @@ Clause* Splitter::getComponent(Clause* cl, Literal** lits, unsigned compLen, int
   }
   return comp;
 }
+
+/**
+ * Name component @b comp and return the name
+ *
+ * If the component @b comp is already named, return 0.
+ */
+int Splitter::nameComponent(Clause* comp)
+{
+  CALL("Splitter::nameComponent");
+
+  int *pname;
+
+  if(!_clauseNames.getValuePtr(comp, pname)) {
+    //the component was already named
+    return 0;
+  }
+
+  int compName=0;
+  bool newlyIntroduced=true;
+
+  if(comp->length()==1 && (*comp)[0]->ground()) {
+    //both polarities of a ground component should share one name
+
+    Literal* lit=(*comp)[0];
+    Literal* opLit=env.sharing->tryGetOpposite(lit);
+    //opLit==0 if the opposite counterpart of lit is not even in the sharing structure
+    if(opLit && _groundNames.pop(opLit, compName)) {
+      //both polatiries of the literal are now named, so it can be
+      //removed from the _groundNames map (by the _groundNames.pop call above)
+
+      //oposite polarity, so we swap the sign
+      compName=-compName;
+      newlyIntroduced=false;
+    }
+    else {
+      compName = (lit->polarity()?1:-1) * BDD::instance()->getNewVar();
+      _groundNames.insert(lit, compName);
+    }
+  }
+  else {
+    compName=BDD::instance()->getNewVar();
+  }
+
+  *pname=compName;
+  BDDNode* oldCompProp=comp->prop();
+  BDDNode* nameProp=BDD::instance()->getAtomic(abs(compName), compName<0);
+  BDDNode* newCompProp=BDD::instance()->conjunction(oldCompProp, nameProp);
+  if(newCompProp!=oldCompProp) {
+    comp->setProp(newCompProp);
+    InferenceStore::instance()->recordPropAlter(comp, oldCompProp, newCompProp, Inference::CLAUSE_NAMING);
+  }
+  if(env.options->showDefinitions() && newlyIntroduced) {
+    env.out << "Definition: ";
+    if(compName<0) {
+      env.out << "~";
+    }
+    env.out << BDD::instance()->getPropositionalPredicateName(abs(compName))
+      << " <=> (" << comp->nonPropToString() << ")" << endl;
+  }
+  return compName;
+}
+
+BDDNode* Splitter::getNameProp(int name)
+{
+  CALL("Splitter::getNameProp");
+  ASS_NEQ(name,0);
+
+  return BDD::instance()->getAtomic(abs(name), name>0);
+}
+
 
 Clause* Splitter::insertIntoIndex(Clause* cl, bool& newInserted, bool& modified)
 {

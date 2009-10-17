@@ -345,6 +345,28 @@ public:
 
 
   /**
+   *  Find value by the @b key. The result is true iff a pair
+   *  with this key is in the map. If such a pair is found,
+   *  then its value is returned in @b val, and the pair is
+   *  removed. Otherwise, the value of @b val remains unchanged.
+   */
+  inline
+  bool pop(Key key, Val& val)
+  {
+    CALL("DHMap::pop");
+    Entry* e=findEntry(key);
+    if(!e) {
+      return false;
+    }
+    val=e->_val;
+    e->_info.deleted=1;
+    _size--;
+    _deleted++;
+    return true;
+  }
+
+
+  /**
    * If there is a value stored under the @b key, remove
    * it and return true. Otherwise, return false.
    */

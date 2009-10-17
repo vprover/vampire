@@ -45,6 +45,13 @@ void ClauseVariantIndex::insert(Clause* cl)
     ClauseList::push(cl, _emptyClauses);
     return;
   }
+  if(cl->length()==1 && (*cl)[0]->ground()) {
+    Literal* lit=(*cl)[0];
+    ClauseList** plist;
+    _groundUnits.getValuePtr(lit, plist,0);
+    ClauseList::push(cl, *plist);
+    return;
+  }
 
   if(!_strees[clen]) {
     _strees[clen]=new LiteralSubstitutionTree();
@@ -63,12 +70,52 @@ Literal* ClauseVariantIndex::getMainLiteral(Literal** lits, unsigned length)
   for(unsigned i=1;i<length;i++) {
     Literal* curr=lits[i];
     unsigned currVal=curr->weight()-curr->getDistinctVars();
-    if(currVal>bestVal || (currVal==bestVal && curr>best) ) {
+    if(currVal>bestVal || (currVal==bestVal && greater(curr, best) ) ) {
       best=curr;
       bestVal=currVal;
     }
   }
   return best;
+}
+
+/**
+ * Return true iff @b l1 is greater than @b l2 in an ordering
+ * in which literals are equal iff they're variants of each other
+ */
+bool ClauseVariantIndex::greater(Literal* l1, Literal* l2)
+{
+  CALL("ClauseVariantIndex::greater");
+
+  if(l1->header()!=l2->header()) {
+    return l1->header() > l2->header();
+  }
+
+  static DHMap<unsigned, unsigned> firstNums;
+  static DHMap<unsigned, unsigned> secondNums;
+  firstNums.reset();
+  secondNums.reset();
+
+  Term::DisagreementSetIterator dsit(l1,l2,true);
+  while(dsit.hasNext()) {
+    pair<TermList, TermList> dis=dsit.next();
+    if(dis.first.isTerm()) {
+      if(dis.second.isTerm()) {
+	ASS_NEQ(dis.first.term()->functor(), dis.second.term()->functor());
+	return dis.first.term()->functor() > dis.second.term()->functor();
+      }
+      return true;
+    }
+    if(dis.second.isTerm()) {
+      return false;
+    }
+    int firstNorm=firstNums.findOrInsert(dis.first.var(), firstNums.size());
+    int secondNorm=secondNums.findOrInsert(dis.second.var(), secondNums.size());
+    if(firstNorm!=secondNorm) {
+      return firstNorm < secondNorm;
+    }
+  }
+  //they're variants of eachother
+  return false;
 }
 
 class ClauseVariantIndex::SLResultToVariantClauseFn
@@ -146,6 +193,16 @@ ClauseIterator ClauseVariantIndex::retrieveVariants(Literal** lits, unsigned len
 
   if(length==0) {
     return pvi( ClauseList::Iterator(_emptyClauses) );
+  }
+  if(length==1 && lits[0]->ground()) {
+    ClauseList* lst;
+    if(_groundUnits.find(lits[0], lst)) {
+      ASS(lst);
+      return pvi( ClauseList::Iterator(lst) );
+    }
+    else {
+      return ClauseIterator::getEmpty();
+    }
   }
 
   LiteralSubstitutionTree* index=_strees[length];
