@@ -198,7 +198,6 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
     cout<<'n'<<compName<<": "<<(*comp)<<endl;
 #endif
   }
-  ASS(!bdd->isTrue(newMasterProp));
 
   InferenceStore::ClauseSpec splittedMCompCS=InferenceStore::getClauseSpec(masterComp, newMasterProp);
 
