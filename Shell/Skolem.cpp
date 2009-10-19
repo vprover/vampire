@@ -18,6 +18,12 @@
 using namespace Kernel;
 using namespace Shell;
 
+#define REPORT_SKOLEM 0
+
+#if REPORT_SKOLEM
+Unit* gBeingSkolemized;
+#endif
+
 /**
  * Skolemise the unit.
  *
@@ -31,6 +37,11 @@ Unit* Skolem::skolemise (Unit* unit)
 {
   CALL("Skolem::skolemise(Unit*)");
   ASS(! unit->isClause());
+
+#if REPORT_SKOLEM
+  gBeingSkolemized=unit;
+#endif
+
 
   unit = Rectify::rectify(unit);
   Formula* f = static_cast<FormulaUnit*>(unit)->formula();
@@ -112,10 +123,14 @@ Formula* Skolem::skolemise (Formula* f)
   case EXISTS: 
     {
       int arity = _vars.length();
+      Color clr=f->qarg()->getColor();
       Formula::VarList::Iterator vs(f->vars());
       while (vs.hasNext()) {
 	int v = vs.next();
 	unsigned fun = env.signature->addSkolemFunction(arity);
+	if(clr!=COLOR_TRANSPARENT) {
+	  env.signature->getFunction(fun)->addColor(clr);
+	}
 	Term* term = new(arity) Term;
 	term->makeSymbol(fun,arity);
 	TermList* args = term->args();
@@ -124,6 +139,9 @@ Formula* Skolem::skolemise (Formula* f)
 	  args = args->next();
 	}
 	_subst.bind(v,env.sharing->insert(term));
+#if REPORT_SKOLEM
+	cout<<"Skolemizing: "<<term->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<gBeingSkolemized->toString()<<endl;
+#endif
       }
       Formula* g = skolemise(f->qarg());
       vs.reset(f->vars());
@@ -131,6 +149,7 @@ Formula* Skolem::skolemise (Formula* f)
 	_subst.unbind(vs.next());
       }
       _vars.truncate(arity);
+
       return g;
     }
 
