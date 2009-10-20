@@ -121,6 +121,7 @@ public:
   string nonPropToString() const;
   string toString() const;
   string toTPTPString() const;
+  string toNiceString() const;
   string toString(BDDNode* propPart) const;
 
   /** Return the clause store */

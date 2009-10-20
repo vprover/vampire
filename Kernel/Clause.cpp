@@ -182,8 +182,7 @@ string Clause::nonPropToString() const
 }
 
 /**
- * Convert the clause to the TPTP-compatible string representation, assuming its
- * propositional part is @b propPart.
+ * Convert the clause to the TPTP-compatible string representation.
  */
 string Clause::toTPTPString() const
 {
@@ -193,6 +192,22 @@ string Clause::toTPTPString() const
 
   if(prop() && !BDD::instance()->isFalse(prop())) {
     result += " | " + BDD::instance()->toTPTPString(prop());
+  }
+
+  return result;
+}
+
+/**
+ * Convert the clause to easily readable string representation.
+ */
+string Clause::toTPTPString() const
+{
+  CALL("Clause::toNiceString()");
+
+  string result = nonPropToString();
+
+  if(prop() && !BDD::instance()->isFalse(prop())) {
+    result += " | " + BDD::instance()->toString(prop());
   }
 
   return result;
