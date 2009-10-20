@@ -63,7 +63,9 @@ void LRS::onPassiveRemoved(Clause* cl)
 void LRS::addInputSOSClause(Clause*& cl)
 {
   SaturationAlgorithm::addInputSOSClause(cl);
-  _simplCont.add(cl);
+  if(cl) {
+    _simplCont.add(cl);
+  }
 }
 
 bool LRS::shouldUpdateLimits()

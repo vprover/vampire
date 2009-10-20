@@ -39,7 +39,9 @@ ClauseContainer* Otter::getGenerationClauseContainer()
 void Otter::addInputSOSClause(Clause*& cl)
 {
   SaturationAlgorithm::addInputSOSClause(cl);
-  _simplCont.add(cl);
+  if(cl) {
+    _simplCont.add(cl);
+  }
 }
 
 SaturationResult Otter::saturate()
