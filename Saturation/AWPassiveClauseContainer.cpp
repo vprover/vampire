@@ -20,6 +20,9 @@
 
 #include "AWPassiveClauseContainer.hpp"
 
+//TODO: this should be made into Vampire option, and the different weights reflected in clause deletion in LRS
+#define AXIOM_AGE_DISCRIMINATION 0
+
 namespace Saturation
 {
 using namespace Lib;
@@ -40,12 +43,29 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
 {
   ASS_G(s_nwcDenominator,0);
   ASS_G(s_nwcNumerator,0);
+#if AXIOM_AGE_DISCRIMINATION
+  long w1, w2;
+  if(cl1->inputType()==0) {
+    w1=static_cast<long>(cl1->weight())*s_nwcNumerator*(cl1->age()+1);
+  }
+  else {
+    w1=static_cast<long>(cl1->weight())*s_nwcDenominator;
+  }
+  if(cl2->inputType()==0) {
+    w2=static_cast<long>(cl2->weight())*s_nwcNumerator*(cl2->age()+1);
+  }
+  else {
+    w2=static_cast<long>(cl2->weight())*s_nwcDenominator;
+  }
+  return Int::compare(w1,w2);
+#else
   if(cl1->inputType()==0 && cl2->inputType()!=0) {
     return Int::compare(cl1->weight()*s_nwcNumerator, cl2->weight()*s_nwcDenominator);
   } else if(cl1->inputType()!=0 && cl2->inputType()==0) {
     return Int::compare(cl1->weight()*s_nwcDenominator, cl2->weight()*s_nwcNumerator);
   }
   return Int::compare(cl1->weight(), cl2->weight());
+#endif
 }
 
 /**

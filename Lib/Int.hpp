@@ -48,7 +48,10 @@ class Int
   /** Compare two unsigned integers */
   inline static Comparison compare (unsigned i1, unsigned i2)
   { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
-  /** Compare two size_t integers */
+  /** Compare two long integers */
+  inline static Comparison compare (long i1, long i2)
+  { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
+  /** Compare two unsigned long integers */
   inline static Comparison compare (unsigned long i1, unsigned long i2)
   { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
   /** Compare two floats */
