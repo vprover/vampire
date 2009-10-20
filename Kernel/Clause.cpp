@@ -200,7 +200,7 @@ string Clause::toTPTPString() const
 /**
  * Convert the clause to easily readable string representation.
  */
-string Clause::toTPTPString() const
+string Clause::toNiceString() const
 {
   CALL("Clause::toNiceString()");
 
