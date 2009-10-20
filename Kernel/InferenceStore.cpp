@@ -45,6 +45,13 @@ struct InferenceStore::FullInference
     return size;
   }
 
+  void increasePremiseRefCounters()
+  {
+    for(unsigned i=0;i<premCnt;i++) {
+      premises[i].first->incRefCnt();
+    }
+  }
+
   int csId;
   unsigned premCnt : 16;
   Inference::Rule rule : 16;
@@ -132,6 +139,7 @@ void InferenceStore::recordNonPropInference(Clause* cl, Inference* cinf)
     finf->premises[i]=getClauseSpec(prems[i]);
   }
   finf->rule=cinf->rule();
+  finf->increasePremiseRefCounters();
   _data.insert(getClauseSpec(cl), finf);
 }
 
@@ -153,8 +161,9 @@ void InferenceStore::recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newP
 
   FullInference* finf=new (1) FullInference(1);
   finf->premises[0]=getClauseSpec(cl, oldProp);
-
   finf->rule=rule;
+  finf->increasePremiseRefCounters();
+
   _data.insert(getClauseSpec(cl, newProp), finf);
 }
 
@@ -167,6 +176,8 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl
   finf->premises[0]=getClauseSpec(cl, oldClProp);
   finf->premises[1]=getClauseSpec(addedCl);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
+  finf->increasePremiseRefCounters();
+
   _data.insert(getClauseSpec(cl, resultProp), finf);
 }
 
@@ -179,6 +190,8 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedPro
   finf->premises[0]=getClauseSpec(cl, oldProp);
   finf->premises[1]=getClauseSpec(cl, addedProp);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
+  finf->increasePremiseRefCounters();
+
   _data.insert(getClauseSpec(cl, resultProp), finf);
 }
 
@@ -195,6 +208,8 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* add
   }
   finf->premises[addedClsCnt]=getClauseSpec(cl, oldClProp);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
+  finf->increasePremiseRefCounters();
+
   _data.insert(getClauseSpec(cl, resultProp), finf);
 }
 
@@ -210,8 +225,13 @@ void InferenceStore::recordSplitting(SplittingRecord* srec, unsigned premCnt, Cl
   }
 
   finf->rule=Inference::SPLITTING;
+  finf->increasePremiseRefCounters();
+
   _data.insert(srec->result, finf);
 
+  //There is no need to increase reference counters in splitting premises,
+  //as they're stored in the variant index of Splitter object, so won't get
+  //deleted.
   _splittingRecords.insert(srec->result, srec);
 }
 

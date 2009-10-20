@@ -79,14 +79,13 @@ bool Clause::shouldBeDestroyed()
 }
 
 /**
- * If storage is set to NONE, there are no references to this class,
+ * If storage is set to NONE, there are no references to this clause,
  * an it is not an input clause, destroy it.
  */
 void Clause::destroyIfUnnecessary()
 {
-  //TODO: perform unnecessary clause destruction
   if(shouldBeDestroyed()) {
-    //    destroy();
+    destroy();
   }
 }
 

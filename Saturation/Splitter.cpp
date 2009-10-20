@@ -310,6 +310,7 @@ Clause* Splitter::getComponent(Clause* cl, Literal** lits, unsigned compLen, int
       (*comp)[i]=lits[i];
     }
 
+    comp->incRefCnt();
     {
       TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
 
@@ -431,6 +432,7 @@ Clause* Splitter::insertIntoIndex(Clause* cl, bool& newInserted, bool& modified)
   } else {
     env.statistics->uniqueComponents++;
 
+    cl->incRefCnt();
     {
       TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
       _variantIndex.insert(cl);
