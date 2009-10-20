@@ -401,8 +401,14 @@ struct InferenceStore::ProofPrinter
       } else {
 	out<<getQuantifiedStr(nrec.second);
       }
-      out<<" <=> "<<bdd->getPropositionalPredicateName(nrec.first)
-	  <<" ["<<Inference::ruleName(Inference::SPLITTING_COMPONENT)<<"]\n";
+      out<<" <=> ";
+      if(nrec.first>0) {
+	out<<bdd->getPropositionalPredicateName(nrec.first);
+      }
+      else {
+        out<<"~"<<bdd->getPropositionalPredicateName(-nrec.first);
+      }
+      out<<" ["<<Inference::ruleName(Inference::SPLITTING_COMPONENT)<<"]\n";
     }
   }
 
