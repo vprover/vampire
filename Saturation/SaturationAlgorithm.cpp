@@ -121,7 +121,7 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
 #endif
 
   if(env.options->showActive()) {
-    cout<<"Active: "<<c->toTPTPString()<<endl;
+    cout<<"Active: "<<c->toString()<<endl;
   }
 }
 
@@ -171,7 +171,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
   onNonRedundantClause(c);
 
   if(env.options->showPassive()) {
-    cout<<"Passive: "<<c->toTPTPString()<<endl;
+    cout<<"Passive: "<<c->toString()<<endl;
   }
 
 }
@@ -253,7 +253,7 @@ void SaturationAlgorithm::onNewClause(Clause* c)
   CALL("SaturationAlgorithm::onNewClause");
 
   if(env.options->showNew()) {
-    cout<<"New: "<<c->toTPTPString()<<endl;
+    cout<<"New: "<<c->toString()<<endl;
   }
 
 #if !PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
