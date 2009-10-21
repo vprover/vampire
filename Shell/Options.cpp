@@ -709,13 +709,19 @@ void Options::setShort (const char* name,const char* value)
 {
   CALL ("Options::setShort");
 
-  int found = Constants::shortNames.find(name);
-  if (found == -1) {
-    found = Constants::optionNames.find(name);
+  int found; 
+  try {
+    found = Constants::shortNameIndexes[Constants::shortNames.find(name)];
   }
-  else {
-    found = Constants::shortNameIndexes[found];
+  catch(ValueNotFoundException) {
+    try {
+      found = Constants::optionNames.find(name);
+    }
+    catch(ValueNotFoundException) {
+      USER_ERROR((string)name + " is not a valid option");
+    }
   }
+
   set(name,value,found);
 } // Options::setShort
 
