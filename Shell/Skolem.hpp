@@ -36,7 +36,7 @@ public:
 private:
   /** Initialise a Skolem object */
   Skolem ()
-    : _vars(16)
+    : _vars(16), _beingSkolemised(0)
   {}
   Formula* skolemise(Formula*);
   FormulaList* skolemise(FormulaList*);
@@ -44,6 +44,8 @@ private:
   Substitution _subst;
   /** Universally quantified variables collected */
   Stack<int> _vars;
+
+  Unit* _beingSkolemised;
 }; // class Skolem
 
 }

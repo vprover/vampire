@@ -128,6 +128,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_new_propositional",
   "show_options",
   "show_passive",
+  "show_skolemisations",
   "show_symbol_elimination",
   "simulated_time_limit",
   "sos",
@@ -363,6 +364,7 @@ Options::Options ()
   _showNewPropositional(false),
   _showOptions(false),
   _showPassive(false),
+  _showSkolemisations(false),
   _showSymbolElimination(false),
   _simulatedTimeLimit(0),
   _sos(false),
@@ -393,7 +395,12 @@ void Options::set (const char* name,const char* value)
 {
   CALL ("Options::set/2");
 
-  set(name,value,Constants::optionNames.find(name));
+  try{
+    set(name,value,Constants::optionNames.find(name));
+  }
+  catch(ValueNotFoundException) {
+    USER_ERROR((string)name + " is not a valid option");
+  }
 } // Options::set/2
 
 
@@ -629,6 +636,9 @@ void Options::set (const char* name,const char* value, int index)
     case SHOW_PASSIVE:
       _showPassive = onOffToBool(value,name);
       return;
+    case SHOW_SKOLEMISATIONS:
+      _showSkolemisations = onOffToBool(value,name);
+      return;
     case SHOW_SYMBOL_ELIMINATION:
       _showSymbolElimination = onOffToBool(value,name);
       return;
@@ -675,9 +685,6 @@ void Options::set (const char* name,const char* value, int index)
     case XML_OUTPUT:
       _xmlOutput = value;
       return;
-
-    case -1: // not found
-    USER_ERROR((string)name + " is not a valid option");
 
 #if VDEBUG
     default:
@@ -1051,6 +1058,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_showOptions);
     return;
   case SHOW_PASSIVE:
+    str << boolToOnOff(_showPassive);
+    return;
+  case SHOW_SKOLEMISATIONS:
     str << boolToOnOff(_showPassive);
     return;
   case SHOW_SYMBOL_ELIMINATION:

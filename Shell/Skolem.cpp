@@ -12,17 +12,12 @@
 
 #include "../Indexing/TermSharing.hpp"
 
+#include "Options.hpp"
 #include "Rectify.hpp"
 #include "Skolem.hpp"
 
 using namespace Kernel;
 using namespace Shell;
-
-#define REPORT_SKOLEM 0
-
-#if REPORT_SKOLEM
-Unit* gBeingSkolemized;
-#endif
 
 /**
  * Skolemise the unit.
@@ -38,11 +33,6 @@ Unit* Skolem::skolemise (Unit* unit)
   CALL("Skolem::skolemise(Unit*)");
   ASS(! unit->isClause());
 
-#if REPORT_SKOLEM
-  gBeingSkolemized=unit;
-#endif
-
-
   unit = Rectify::rectify(unit);
   Formula* f = static_cast<FormulaUnit*>(unit)->formula();
   switch (f->connective()) {
@@ -54,6 +44,7 @@ Unit* Skolem::skolemise (Unit* unit)
   }
 
   Skolem skol;
+  skol._beingSkolemised=unit;
   Formula* g = skol.skolemise(f);
   if (f == g) { // not changed
     return unit;
@@ -139,9 +130,10 @@ Formula* Skolem::skolemise (Formula* f)
 	  args = args->next();
 	}
 	_subst.bind(v,env.sharing->insert(term));
-#if REPORT_SKOLEM
-	cout<<"Skolemizing: "<<term->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<gBeingSkolemized->toString()<<endl;
-#endif
+
+	if(env.options->showSkolemisations()) {
+	  cout<<"Skolemising: "<<term->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
+	}
       }
       Formula* g = skolemise(f->qarg());
       vs.reset(f->vars());
