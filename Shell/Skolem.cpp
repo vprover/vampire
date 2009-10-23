@@ -9,6 +9,7 @@
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/FormulaUnit.hpp"
+#include "../Kernel/SubformulaIterator.hpp"
 
 #include "../Indexing/TermSharing.hpp"
 
@@ -114,14 +115,34 @@ Formula* Skolem::skolemise (Formula* f)
   case EXISTS: 
     {
       int arity = _vars.length();
-      Color clr=f->qarg()->getColor();
+
+      //the skolem functions are now transparent
+//      Color clr=COLOR_TRANSPARENT;
+      //Color clr=f->qarg()->getColor();
+      /*if(clr!=COLOR_TRANSPARENT) {
+	//if there are colored predicate symbols, we want it to be transparent
+	SubformulaIterator si(f);
+	while(si.hasNext()) {
+	  Formula* f=si.next();
+	  if(f->connective()!=LITERAL) {
+	    continue;
+	  }
+	  Literal* lit=f->literal();
+	  if(lit->color()!=COLOR_TRANSPARENT && env.signature->getPredicate(lit->functor())->color()!=COLOR_TRANSPARENT) {
+	    clr=COLOR_TRANSPARENT;
+	    cout<<"transparent ";
+	    break;
+	  }
+	}
+      }*/
+
       Formula::VarList::Iterator vs(f->vars());
       while (vs.hasNext()) {
 	int v = vs.next();
 	unsigned fun = env.signature->addSkolemFunction(arity);
-	if(clr!=COLOR_TRANSPARENT) {
-	  env.signature->getFunction(fun)->addColor(clr);
-	}
+//	if(clr!=COLOR_TRANSPARENT) {
+//	  env.signature->getFunction(fun)->addColor(clr);
+//	}
 	Term* term = new(arity) Term;
 	term->makeSymbol(fun,arity);
 	TermList* args = term->args();
@@ -133,6 +154,8 @@ Formula* Skolem::skolemise (Formula* f)
 
 	if(env.options->showSkolemisations()) {
 	  cout<<"Skolemising: "<<term->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
+//	  //we also output skolemisations in a TPTP format to the error output
+//	  cerr<<term->toString()<<"=X"<<v<<" => ("<<f->qarg()->toString()<<")"<<endl;
 	}
       }
       Formula* g = skolemise(f->qarg());
