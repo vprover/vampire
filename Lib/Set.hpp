@@ -62,6 +62,7 @@ public:
   inline ~Set ()
   {
     if (_entries) {
+      array_delete(_entries,_capacity);
       DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"Set::Entry");
     }
   } // Set::~Set
@@ -213,7 +214,7 @@ public:
 
     void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"Set::Entry");
 
-    _entries = new(mem) Entry [newCapacity];
+    _entries = array_new<Entry>(mem, newCapacity);
     _afterLast = _entries + newCapacity;
     _maxEntries = (int)(newCapacity * 0.8);
     size_t oldCapacity = _capacity;
@@ -242,6 +243,7 @@ public:
     }
 
     if (oldEntries) {
+      array_delete(oldEntries,oldCapacity);
       DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"Set::Entry");
     }
   } // Set::expand

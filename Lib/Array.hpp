@@ -33,7 +33,7 @@ public:
   {
     if(initialCapacity) {
       void* mem = ALLOC_KNOWN(initialCapacity*sizeof(C),"Array<>");
-      _array = new(mem) C[initialCapacity];
+      _array = array_new<C>(mem, initialCapacity);
     } else {
       _array=0;
     }
@@ -47,7 +47,7 @@ public:
     : _capacity(31)
   {
     void* mem = ALLOC_KNOWN(sizeof(C)*31,"Array<>");
-    _array = new(mem) C[31];
+    _array = array_new<C>(mem, 31);
   }
 
   /**
@@ -67,6 +67,7 @@ public:
     CALL("Array::~Array()");
 
     if(_array) {
+      array_delete(_array, _capacity);
       DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
     }
   }
@@ -152,14 +153,16 @@ protected:
 
     // allocate new array and copy old array's content to the new place
     void* mem = ALLOC_KNOWN(sizeof(C)*newCapacity,"Array<>");
-    C* newArray = new(mem) C[newCapacity];
+    C* newArray = array_new<C>(mem, newCapacity);
     if(_capacity) {
       for (int i = _capacity-1;i >= 0;i--) {
 	newArray[i] = _array[i];
       }
     }
     // deallocate the old array
+    array_delete(_array,_capacity);
     DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
+
     _array = newArray;
     fillInterval(_capacity,newCapacity);
     _capacity = newCapacity;

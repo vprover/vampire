@@ -43,12 +43,12 @@ public:
   {
     CALL("Vector::allocate");
 
-    Vector* v = reinterpret_cast<Vector*>(ALLOC_KNOWN(sizeof(Vector) + 
+    Vector* v = reinterpret_cast<Vector*>(ALLOC_KNOWN(sizeof(Vector) +
 						      (length-1)*sizeof(C),
 						      "Vector"));
     v->_length = length;
     C* arr = v->_array;
-    new(arr) C[length];
+    array_new<C>(arr, length);
     return v;
   } // allocate
 
@@ -57,9 +57,7 @@ public:
   {
     CALL("Vector::deallocate");
 
-    for (int i = _length-1;i >= 0;i--) {
-      _array[i].~C();
-    }
+    array_delete(_array, _length);
     DEALLOC_KNOWN(this,(sizeof(Vector) + (_length-1)*sizeof(C)),"Vector");
   } // deallocate
 

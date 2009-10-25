@@ -25,14 +25,14 @@ namespace Lib {
  * a new class Key. Hash is the class containing a function
  * hash() mapping keys to unsigned integer values.
  *
- * @param Key a pointer or integral value (e.g., integer or long): 
+ * @param Key a pointer or integral value (e.g., integer or long):
  *        anything that can be hashed to an unsigned integer
  *        and compared using ==
  * @param Val values, can be anything
  * @param Hash class containig the hash function for keys
  */
 template <typename Key, typename Val,class Hash=Lib::Hash>
-class Map 
+class Map
 {
 protected:
   class Entry
@@ -76,11 +76,12 @@ protected:
   {
     CALL("Map::~Map");
     if (_entries) {
+      array_delete(_entries, _capacity);
       DEALLOC_KNOWN(_entries,sizeof(Entry)*_capacity,"Map<>");
     }
   } // Map::~Map
 
-  /** 
+  /**
    * True if there is a value stored under this key.
    * @since 08/08/2008 Manchester
    */
@@ -90,7 +91,7 @@ protected:
     return find(key,val);
   }
 
-  /** 
+  /**
    * Find value by the key. The result is true if a pair with this key
    * is in the map. If such a pair is found then its value is
    * returned in found.
@@ -118,7 +119,7 @@ protected:
 
     return false;
   } // Map::find
- 
+
   /**
    * Return the first entry for @b code.
    * @since 09/12/2006 Manchester
@@ -149,7 +150,7 @@ protected:
   inline Val insert(const Key key,Val val)
   {
     CALL("Map::insert");
-    
+
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
@@ -168,7 +169,7 @@ protected:
   Val insert(const Key key, Val val,unsigned code)
   {
     CALL("Map::insert/2");
-    
+
     Entry* entry;
     for (entry = firstEntryForCode(code);
 	 entry->occupied();
@@ -196,7 +197,7 @@ protected:
   void replaceOrInsert(Key key,Val val)
   {
     CALL("Map::insertOrReplace");
-    
+
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
@@ -231,7 +232,7 @@ protected:
   void replace(const Key key,const Val val)
   {
     CALL("Map::replace");
-    
+
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
@@ -301,7 +302,7 @@ protected:
   int _noOfEntries;
   /** the array of entries */
   Entry* _entries;
-  /** the entry after the last one, required since the 
+  /** the entry after the last one, required since the
    *  array of entries is logically a ring */
   Entry* _afterLast; // entry after the last one
   /** the maximal number of entries for this capacity */
@@ -317,7 +318,7 @@ protected:
     Entry* oldEntries = _entries;
 
     void* mem = ALLOC_KNOWN(sizeof(Entry)*_capacity,"Map<>");
-    _entries = new(mem) Entry [_capacity];
+    _entries = array_new<Entry>(mem, _capacity);
 
     _afterLast = _entries + _capacity;
     _maxEntries = (int)(_capacity * 0.8);
@@ -343,13 +344,14 @@ protected:
       remaining --;
     }
     if (oldEntries) {
+      array_delete(oldEntries, oldCapacity);
       DEALLOC_KNOWN(oldEntries,sizeof(Entry)*oldCapacity,"Map<>");
     }
   } // Map::expand
 
 //   /**ul
 //    * Compute hash value of a key and return the entry.
-//    * for this key. If there is an entry stored under this key, 
+//    * for this key. If there is an entry stored under this key,
 //    * then the entry is returned. Otherwise, return the non-occupied
 //    * entry in which a pair (key,value) for this key can be stored.
 //    * @since 29/09/2002 Manchester
@@ -389,7 +391,7 @@ public:
     } // Map::Iterator
 
     /**
-     * True if there exists next element 
+     * True if there exists next element
      * @since 13/08/2005 Novotel, Moscow
      */
     bool hasNext()

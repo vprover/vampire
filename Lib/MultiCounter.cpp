@@ -30,7 +30,7 @@ void MultiCounter::expandToFit (int v)
 
   // allocate the new array
   void* mem = ALLOC_KNOWN(newTop*sizeof(int),"MultiCounter");
-  int* newCounts = new(mem) int[newTop];
+  int* newCounts = array_new<int>(mem, newTop);
   // copy the old values for the counter
   for (int i = 0;i < _top;i++) {
     newCounts[i] = _counts[i];
@@ -39,6 +39,7 @@ void MultiCounter::expandToFit (int v)
     newCounts[k] = 0;
   }
   if (_counts) {
+    array_delete(_counts,_top);
     DEALLOC_KNOWN(_counts,_top*sizeof(int),"MultiCounter");
   }
   _counts = newCounts;
@@ -53,6 +54,7 @@ void MultiCounter::expandToFit (int v)
 MultiCounter::~MultiCounter()
 {
   if (_counts) {
+    array_delete(_counts, _top);
     DEALLOC_KNOWN(_counts,_top*sizeof(int),"MultiCounter");
   }
 } // MultiCounter::~MultiCounter

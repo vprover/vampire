@@ -48,7 +48,7 @@ public:
   {
     if(size>0) {
       void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
-      _array = new(mem) C[_capacity];
+      _array = array_new<C>(mem, _capacity);
     } else {
       _array=0;
     }
@@ -58,10 +58,7 @@ public:
   inline ~DArray()
   {
     if(_array) {
-      C* p=_array+_capacity;
-      while(p!=_array) {
-	(--p)->~C();
-      }
+      array_delete(_array, _capacity);
       DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
     }
   }
@@ -105,13 +102,10 @@ public:
     }
 
     void* mem = ALLOC_KNOWN(sizeof(C)*s,"DArray<>");
-    C* newArray=new(mem) C[s];
+    C* newArray=array_new<C>(mem, s);
 
     if(_array) {
-      C* p=_array+_capacity;
-      while(p!=_array) {
-	(--p)->~C();
-      }
+      array_delete(_array, _capacity);
       DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
     }
     _size = s;

@@ -101,11 +101,11 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
     FormulaList* fs = f->args();
     int length = fs->length();
     void* mem = ALLOC_UNKNOWN(length*sizeof(int),"Naming::apply");
-    int* cls = new(mem) int[length];
+    int* cls = array_new<int>(mem, length);
     int* negCls = 0;
     if (where == UNDER_IFF) {
       mem = ALLOC_UNKNOWN(length*sizeof(int),"Naming::apply");
-      negCls = new(mem) int[length];
+      negCls = array_new<int>(mem, length);
     }
     fs = apply(fs,where,cls,negCls);
     bool split = false;
@@ -173,7 +173,7 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
       split = true;
       if (! gs) {
 	void* mem = ALLOC_UNKNOWN(length*sizeof(Formula*),"Naming::apply");
-	gs = new(mem) Formula*[length];
+	gs = array_new<Formula*>(mem, length);
 	int j = 0;
 	FormulaList::Iterator hs(fs);
 	while (hs.hasNext()) {
@@ -200,11 +200,11 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
     FormulaList* fs = f->args();
     int length = fs->length();
     void* mem = ALLOC_UNKNOWN(length*sizeof(int),"Naming::apply");
-    int* cls = new(mem) int[length];
+    int* cls = array_new<int>(mem, length);
     int* negCls = 0;
     if (where == UNDER_IFF) {
       mem = ALLOC_UNKNOWN(length*sizeof(int),"Naming::apply");
-      negCls = new(mem) int[length];
+      negCls = array_new<int>(mem, length);
     }
     fs = apply(fs,where,cls,negCls);
     bool split = false;
@@ -272,7 +272,7 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
       split = true;
       if (! gs) {
 	void* mem = ALLOC_UNKNOWN(length*sizeof(Formula*),"Naming::apply");
-	gs = new(mem) Formula*[length];
+	gs = array_new<Formula*>(mem, length);
 	int j = 0;
 	FormulaList::Iterator hs(fs);
 	while (hs.hasNext()) {

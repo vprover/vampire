@@ -59,7 +59,7 @@ void IntegerSet::insert (int n)
       words = index+1;
     }
     void* mem = ALLOC_KNOWN(sizeof(unsigned)*words,"IntegerSet");
-    unsigned int* set = new(mem) unsigned[words];
+    unsigned int* set = array_new<unsigned>(mem, words);
     for (int i = _words-1;i >= 0;i--) {
       set[i] = _set[i];
     }
@@ -67,6 +67,7 @@ void IntegerSet::insert (int n)
       set[j] = 0u;
     }
     if (_set) {
+      array_delete(_set, _words);
       DEALLOC_KNOWN(_set,sizeof(unsigned)*_words,"IntegerSet");
     }
     _set = set;
@@ -82,6 +83,7 @@ void IntegerSet::insert (int n)
 IntegerSet::~IntegerSet()
 {
   if (_set) {
+    array_delete(_set, _words);
     DEALLOC_KNOWN(_set,sizeof(unsigned)*_words,"IntegerSet");
   }
 } // IntegerSet::~IntegerSet

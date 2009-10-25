@@ -33,12 +33,12 @@ SymCounter::SymCounter (Signature& sig)
 
   if (_noOfPreds) {
     void* mem = ALLOC_KNOWN(_noOfPreds*sizeof(Pred),"SymCounter::Pred[]");
-    _preds = new(mem) Pred[_noOfPreds];
+    _preds = array_new<Pred>(mem, _noOfPreds);
   }
 
   if (_noOfFuns) {
     void* mem = ALLOC_KNOWN(_noOfFuns*sizeof(Fun),"SymCounter::Fun[]");
-    _funs = new(mem) Fun[_noOfFuns];
+    _funs = array_new<Fun>(mem, _noOfFuns);
   }
 } // SymCounter::SymCounter
 
@@ -52,9 +52,11 @@ SymCounter::~SymCounter ()
   CALL("SymCounter::~SymCounter");
 
   if (_noOfPreds) {
+    array_delete(_preds,_noOfPreds);
     DEALLOC_KNOWN(_preds,_noOfPreds*sizeof(Pred),"SymCounter::Pred[]");
   }
   if (_noOfFuns) {
+    array_delete(_funs,_noOfFuns);
     DEALLOC_KNOWN(_funs,_noOfFuns*sizeof(Fun),"SymCounter::Fun[]");
   }
 } // SymCounter::~SymCounter

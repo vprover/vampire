@@ -12,6 +12,7 @@
 
 #include <cstddef>
 
+#include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
 #if VDEBUG
@@ -246,6 +247,44 @@ private:
  *  that the memory has been initialised properly.
  */
 static Allocator::Initialiser _____;
+
+/**
+ * Allocate an array of objects of type @b T that has length @b length
+ * starting at @b placement, and return a pointer to its first element
+ * (whose value is equal to @b placement)
+ */
+template<typename T>
+T* array_new(void* placement, size_t length)
+{
+  CALL("array_new");
+  ASS_NEQ(placement,0);
+  ASS_G(length,0);
+
+  T* res=static_cast<T*>(placement);
+  T* p=res;
+  while(length--) {
+    ::new(static_cast<void*>(p++)) T();
+  }
+  return res;
+}
+
+/**
+ * Destroy the array @b array of objects of type @b T and that has length
+ * @b length
+ */
+template<typename T>
+void array_delete(T* array, size_t length)
+{
+  CALL("array_delete");
+  ASS_NEQ(array,0);
+  ASS_G(length,0);
+
+  array+=length;
+  while(length--) {
+    (--array)->~T();
+  }
+}
+
 
 #if VDEBUG
 

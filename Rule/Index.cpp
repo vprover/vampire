@@ -81,8 +81,9 @@ Index::Index(const Signature* sig)
   : _signature(sig),
     _headers(2*sig->predicates())
 {
-  _entries = new(ALLOC_KNOWN(_headers*sizeof(Entry),"Index::entries"))
-                  Entry[_headers];
+  _entries = array_new<Entry>(
+      ALLOC_KNOWN(_headers*sizeof(Entry),"Index::entries"),
+      _headers);
 } // Index::Index
 
 /**
@@ -90,6 +91,7 @@ Index::Index(const Signature* sig)
  */
 Index::~Index()
 {
+  array_delete(_entries, 2*_signature->predicates());
   DEALLOC_KNOWN(_entries,
 		2*_signature->predicates()*sizeof(Entry),
 		"Index::entries");
@@ -127,8 +129,12 @@ void Index::compile(UnitList* units,Stack<Unit*>& goals)
   cout << "Rules: " << _numberOfRules << "\n";
   cout << "Goals: " << goals.length() << "\n";
 
-  _rules = new(ALLOC_KNOWN(sizeof(Rule)*_numberOfRules,"Index::RuleArray")) Rule[_numberOfRules];
-  LRule* lrules = new(ALLOC_KNOWN(sizeof(LRule)*_numberOfRules,"Index::LRuleArray")) LRule[_numberOfRules];
+  _rules = array_new<Rule>(
+      ALLOC_KNOWN(sizeof(Rule)*_numberOfRules,"Index::RuleArray"),
+      _numberOfRules);
+  LRule* lrules = array_new<LRule>(
+      ALLOC_KNOWN(sizeof(LRule)*_numberOfRules,"Index::LRuleArray"),
+      _numberOfRules);
   int r = 0;
   // compiling rules
   uit.reset(units);
@@ -176,20 +182,20 @@ void Index::compile(UnitList* units,Stack<Unit*>& goals)
     ASS(firstRule >= 0);
     ASS(firstRule < _numberOfRules);
     if (arity == 0) {
-      entry.leaf = new(ALLOC_KNOWN(sizeof(Rule*)*numberOfRulesWithCurrentHeader,
-				   "Index::Leaf"))
-	const Rule*[numberOfRulesWithCurrentHeader];
+      entry.leaf = array_new<const Rule*>(
+	  ALLOC_KNOWN(sizeof(Rule*)*numberOfRulesWithCurrentHeader,"Index::Leaf"),
+	  numberOfRulesWithCurrentHeader);
       for (int k = 0;k < numberOfRulesWithCurrentHeader;k++) {
 	entry.leaf[k] = lrules[firstRule+k].rule;
       }
     }
     else {
-      entry.entries = new(ALLOC_KNOWN(sizeof(EntryArray)*arity,
-				      "Index::EntryArray"))
-	EntryArray[arity];
-      TRule* trules = new(ALLOC_KNOWN(sizeof(TRule)*numberOfRulesWithCurrentHeader,
-				      "Index::TRuleArray"))
-	TRule[numberOfRulesWithCurrentHeader];
+      entry.entries = array_new<EntryArray>(
+	  ALLOC_KNOWN(sizeof(EntryArray)*arity,"Index::EntryArray"),
+	  arity);
+      TRule* trules = array_new<TRule>(
+	  ALLOC_KNOWN(sizeof(TRule)*numberOfRulesWithCurrentHeader, "Index::TRuleArray"),
+	  numberOfRulesWithCurrentHeader);
       for (int k = 0;k < arity;k++) {
 	for (int m = 0;m < numberOfRulesWithCurrentHeader;m++) {
 	  LRule& nextRule = lrules[firstRule+m];
@@ -198,6 +204,7 @@ void Index::compile(UnitList* units,Stack<Unit*>& goals)
 	}
 	compile(trules,numberOfRulesWithCurrentHeader,entry.entries[k]);
       }
+      array_delete(trules, numberOfRulesWithCurrentHeader);
       DEALLOC_KNOWN(trules,sizeof(TRule)*numberOfRulesWithCurrentHeader,"Index::TRuleArray");
     }
     if (i == _numberOfRules-1) {
@@ -213,6 +220,7 @@ void Index::compile(UnitList* units,Stack<Unit*>& goals)
     numberOfRulesWithCurrentHeader = 1;
   }
 
+  array_delete(lrules, _numberOfRules);
   DEALLOC_KNOWN(lrules,sizeof(LRule)*_numberOfRules,"Index::LRuleArray");
 } // Index::compile
 
@@ -223,7 +231,7 @@ void Index::compile(UnitList* units,Stack<Unit*>& goals)
  * @param numberOfRules the length of this array
  * @param saveTo the entry array record to save
  * @since 06/08/2008 Manchester
- */ 
+ */
 void Index::compile(TRule* trules,int numberOfRules,Index::EntryArray& saveTo)
 {
   CALL("Index::compile-2");
@@ -243,8 +251,9 @@ void Index::compile(TRule* trules,int numberOfRules,Index::EntryArray& saveTo)
     }
   }
 
-  Entry* entries = new(ALLOC_KNOWN(numberOfHeaders*sizeof(Entry),
-				  "Index::entries")) Entry[numberOfHeaders];
+  Entry* entries = array_new<Entry>(
+      ALLOC_KNOWN(numberOfHeaders*sizeof(Entry),"Index::entries"),
+      numberOfHeaders);
   saveTo.array = entries;
   saveTo.length = numberOfHeaders;
   // initialising entries
@@ -276,21 +285,21 @@ void Index::compile(TRule* trules,int numberOfRules,Index::EntryArray& saveTo)
     ASS(firstRule >= 0);
     ASS(firstRule < numberOfRules);
     if (arity == 0) {
-      entry.leaf = new(ALLOC_KNOWN(sizeof(Rule*)*numberOfRulesWithCurrentHeader,
-				    "Index::Leaf"))
-	            const Rule*[numberOfRulesWithCurrentHeader];
+      entry.leaf = array_new<const Rule*>(
+	  ALLOC_KNOWN(sizeof(Rule*)*numberOfRulesWithCurrentHeader, "Index::Leaf"),
+	  numberOfRulesWithCurrentHeader);
       cerr << (void*)&entry << " A: " << numberOfRulesWithCurrentHeader << "\n";
       for (int k = 0;k < numberOfRulesWithCurrentHeader;k++) {
 	entry.leaf[k] = trules[firstRule+k].rule;
       }
     }
     else {
-      entry.entries = new(ALLOC_KNOWN(sizeof(EntryArray)*arity,
- 				      "Index::EntryArray"))
- 	EntryArray[arity];
-      TRule* nrules = new(ALLOC_KNOWN(sizeof(TRule)*numberOfRulesWithCurrentHeader,
- 				      "Index::TRuleArray"))
- 	TRule[numberOfRulesWithCurrentHeader];
+      entry.entries = array_new<EntryArray>(
+	  ALLOC_KNOWN(sizeof(EntryArray)*arity,"Index::EntryArray"),
+	  arity);
+      TRule* nrules = array_new<TRule>(
+	  ALLOC_KNOWN(sizeof(TRule)*numberOfRulesWithCurrentHeader,"Index::TRuleArray"),
+	  numberOfRulesWithCurrentHeader);
       for (int k = 0;k < arity;k++) {
  	for (int m = 0;m < numberOfRulesWithCurrentHeader;m++) {
  	  TRule& nextRule = trules[firstRule+m];
@@ -299,6 +308,7 @@ void Index::compile(TRule* trules,int numberOfRules,Index::EntryArray& saveTo)
 	}
  	compile(nrules,numberOfRulesWithCurrentHeader,entry.entries[k]);
       }
+      array_delete(nrules,numberOfRulesWithCurrentHeader);
       DEALLOC_KNOWN(nrules,sizeof(TRule)*numberOfRulesWithCurrentHeader,"Index::TRuleArray");
     }
     // going to the next header
@@ -314,7 +324,7 @@ void Index::compile(TRule* trules,int numberOfRules,Index::EntryArray& saveTo)
  * Copied from the generic Sort module for efficiency
  * @since 03/08/2008 Torrevieja
  */
-void Index::sort(LRule* lrules,int p,int r) 
+void Index::sort(LRule* lrules,int p,int r)
 {
   CALL("Index::Sort::sort(LRule*,...)");
 
@@ -363,7 +373,7 @@ void Index::sort(LRule* lrules,int p,int r)
  * Copied from the generic Sort module for efficiency
  * @since 03/08/2008 Torrevieja
  */
-void Index::sort(TRule* trules,int p,int r) 
+void Index::sort(TRule* trules,int p,int r)
 {
   CALL("Index::Sort::sort(TRule*,...)");
 
@@ -541,5 +551,5 @@ void Index::CandidateSet::cutUpTo(CandidateSet* upTo)
 // 						   CandidateSet* previous)
 // {
 //   CALL("Index::retrieve-3");
-// } 
+// }
 

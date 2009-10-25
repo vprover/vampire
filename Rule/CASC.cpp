@@ -165,7 +165,7 @@ using namespace Rule;
 //   }
 // } // CASC::VarCounter::fillInterval
 
-/** 
+/**
  * Initialize CASC.
  * @since 15/06/2008 Kemerovo
  */
@@ -177,9 +177,9 @@ CASC::CASC(ostream& str)
 
   Signature* sig = env.signature;
   _numberOfHeaders = 2*sig->predicates();
-  _occurrences = new(ALLOC_KNOWN(sizeof(int)*_numberOfHeaders,
-				 "CASC:occ"))
-		     int[_numberOfHeaders];
+  _occurrences = array_new<int>(
+      ALLOC_KNOWN(sizeof(int)*_numberOfHeaders,"CASC:occ"),
+      _numberOfHeaders);
   for (int i = _numberOfHeaders-1;i >= 0;i--) {
     _occurrences[i] = 0;
   }
@@ -240,7 +240,7 @@ CASC::~CASC()
 // //   DEALLOC_UNKNOWN(_predicates,"CASC::preds");
 } // CASC::~CASC
 
-/** 
+/**
  * Scan profile from a problem.
  * @since 15/06/2008 Kemerovo
  */
@@ -271,7 +271,9 @@ void CASC::scan(const UnitList* units)
   cout << "% Rules: " << _numberOfRules << "\n";
   cout << "% Goals: " << _goals.length() << "\n";
 
-  _rules = new(ALLOC_KNOWN(sizeof(Rule)*_numberOfRules,"CASC::RuleArray")) Rule[_numberOfRules];
+  _rules = array_new<Rule>(
+      ALLOC_KNOWN(sizeof(Rule)*_numberOfRules,"CASC::RuleArray"),
+      _numberOfRules);
   int r = 0;
   // compiling rules
   UnitList::Iterator uit1(units);
@@ -492,7 +494,7 @@ void CASC::outputArg (const TermList* arg)
  * Copied from the generic Sort module for efficiency
  * @since 03/08/2008 Torrevieja
  */
-void CASC::sort(Rule* rules,int p,int r) 
+void CASC::sort(Rule* rules,int p,int r)
 {
   CALL("CASC::Sort::sort(Rule*,...)");
 
@@ -740,7 +742,7 @@ int CASC::compare(const Rule& r1,const Rule& r2)
 //  * <li>-1 if it has no positive literals and is non-goal (such clauses
 //  * should be discarded);</li>
 //  * <li>0 if the clause is unit;</li>
-//  * <li>product, over all negative literals in it, of the number of 
+//  * <li>product, over all negative literals in it, of the number of
 //  * positive occurrences of the predicate of this literal.</li>
 //  * </ul>
 //  * @since 15/06/2008 Kemerovo

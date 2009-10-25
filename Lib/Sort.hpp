@@ -145,12 +145,14 @@ class Sort
       CALL("Sort::Sort");
 
       void* mem = ALLOC_KNOWN(length*sizeof(ToCompare),"Sort<>");
-      _elems = new(mem) ToCompare[length];
+      _elems = array_new<ToCompare>(mem, length);
     }
 
   inline ~Sort ()
   {
     CALL("Sort::~Sort");
+
+    array_delete(_elems,_size);
     DEALLOC_KNOWN(_elems,_size*sizeof(ToCompare),"Sort<>");
   }
 

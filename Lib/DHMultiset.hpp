@@ -55,10 +55,7 @@ public:
   ~DHMultiset()
   {
     if(_entries) {
-      Entry * ep=_entries;
-      while(ep!=_afterLast) {
-	(ep++)->~Entry();
-      }
+      array_delete(_entries, _capacity);
       DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMultiset::Entry");
     }
   }
@@ -232,7 +229,7 @@ private:
     _capacity = newCapacity;
     _nextExpansionOccupancy = (int)(_capacity*DHMULTISET_FILL_UP_COEFFICIENT);
 
-    _entries = new(mem) Entry [_capacity];
+    _entries = array_new<Entry>(mem, _capacity);
     _afterLast = _entries + _capacity;
 
     Entry* ep=oldEntries;
