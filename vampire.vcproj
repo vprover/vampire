@@ -45,7 +45,7 @@
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
+				WarningLevel="2"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
@@ -435,6 +435,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\Interpolants.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\inferences\InterpretedEvaluation.hpp"
 				>
 			</File>
@@ -464,6 +468,14 @@
 			</File>
 			<File
 				RelativePath=".\saturation\Limits.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\LispLexer.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\LispParser.hpp"
 				>
 			</File>
 			<File
@@ -599,11 +611,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\shell\Preprocess.hpp"
+				RelativePath=".\sat\Preprocess.hpp"
 				>
 			</File>
 			<File
-				RelativePath=".\sat\Preprocess.hpp"
+				RelativePath=".\shell\Preprocess.hpp"
 				>
 			</File>
 			<File
@@ -612,6 +624,10 @@
 			</File>
 			<File
 				RelativePath=".\shell\Property.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Inferences\PropositionalToBDDISE.hpp"
 				>
 			</File>
 			<File
@@ -680,6 +696,10 @@
 			</File>
 			<File
 				RelativePath=".\shell\SimplifyFalseTrue.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\SimplifyProver.hpp"
 				>
 			</File>
 			<File
@@ -796,6 +816,10 @@
 			</File>
 			<File
 				RelativePath=".\shell\TheoryFinder.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Lib\TimeCounter.hpp"
 				>
 			</File>
 			<File
@@ -1059,6 +1083,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\Interpolants.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\inferences\InterpretedEvaluation.cpp"
 				>
 			</File>
@@ -1080,6 +1108,14 @@
 			</File>
 			<File
 				RelativePath=".\saturation\Limits.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\LispLexer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\LispParser.cpp"
 				>
 			</File>
 			<File
@@ -1179,6 +1215,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Inferences\PropositionalToBDDISE.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\Random.cpp"
 				>
 			</File>
@@ -1232,6 +1272,10 @@
 			</File>
 			<File
 				RelativePath=".\shell\SimplifyFalseTrue.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\SimplifyProver.cpp"
 				>
 			</File>
 			<File
@@ -1328,6 +1372,10 @@
 			</File>
 			<File
 				RelativePath=".\shell\TheoryFinder.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Lib\TimeCounter.cpp"
 				>
 			</File>
 			<File

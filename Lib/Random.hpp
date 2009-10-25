@@ -80,7 +80,7 @@ class Random
 
   /** Reset the seed based on the current time */
   inline static void resetSeed ()
-  { setSeed(time(0)); }
+  { setSeed(static_cast<int>(time(0))); }
 }; // class Random
 
 
