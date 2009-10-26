@@ -193,6 +193,61 @@ struct LexComparator
   }
 };
 
+
+/**
+ * Literal ordering in which @b l1 is equal to @b l2
+ * iff they're variants of each other, and if one literal
+ * heavier than the other one, it is greater
+ */
+template<bool ignorePolarity=false>
+struct NormalizedLinearComparatorByWeight
+{
+  Comparison compare(Literal* l1, Literal* l2)
+  {
+    ASS(l1->shared());
+    ASS(l2->shared());
+
+    if(l1->weight()!=l2->weight()) {
+      return Int::compare(l1->weight(),l2->weight());
+    }
+    if(l1->functor()!=l2->functor()) {
+      return Int::compare(l1->functor(),l2->functor());
+    }
+    if(!ignorePolarity && l1->polarity()!=l2->polarity()) {
+      return Int::compare(l1->polarity(),l2->polarity());
+    }
+
+    static DHMap<unsigned, unsigned> firstNums;
+    static DHMap<unsigned, unsigned> secondNums;
+    firstNums.reset();
+    secondNums.reset();
+
+    Term::DisagreementSetIterator dsit(l1,l2,true);
+    while(dsit.hasNext()) {
+      pair<TermList, TermList> dis=dsit.next();
+      if(dis.first.isTerm()) {
+	if(dis.second.isTerm()) {
+	  ASS_NEQ(dis.first.term()->functor(), dis.second.term()->functor());
+	  return Int::compare(dis.first.term()->functor(), dis.second.term()->functor());
+	}
+	return GREATER;
+      }
+      if(dis.second.isTerm()) {
+	return LESS;
+      }
+      int firstNorm=firstNums.findOrInsert(dis.first.var(), firstNums.size());
+      int secondNorm=secondNums.findOrInsert(dis.second.var(), secondNums.size());
+      if(firstNorm!=secondNorm) {
+	return Int::compare(secondNorm, firstNorm);
+      }
+    }
+    //they're variants of each other
+    return EQUAL;
+  }
+};
+
+
+
 }
 }
 

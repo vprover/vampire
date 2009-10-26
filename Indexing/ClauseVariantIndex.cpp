@@ -9,6 +9,7 @@
 #include "../Lib/TimeCounter.hpp"
 
 #include "../Kernel/Clause.hpp"
+#include "../Kernel/LiteralComparators.hpp"
 #include "../Kernel/MLVariant.hpp"
 #include "../Kernel/Term.hpp"
 
@@ -65,57 +66,19 @@ Literal* ClauseVariantIndex::getMainLiteral(Literal** lits, unsigned length)
   CALL("ClauseVariantIndex::getMainLiteral");
   ASS_G(length,0);
 
+  static LiteralComparators::NormalizedLinearComparatorByWeight<> comp;
+
   Literal* best=lits[0];
   unsigned bestVal=best->weight()-best->getDistinctVars();
   for(unsigned i=1;i<length;i++) {
     Literal* curr=lits[i];
     unsigned currVal=curr->weight()-curr->getDistinctVars();
-    if(currVal>bestVal || (currVal==bestVal && greater(curr, best) ) ) {
+    if(currVal>bestVal || (currVal==bestVal && comp.compare(curr, best)==GREATER ) ) {
       best=curr;
       bestVal=currVal;
     }
   }
   return best;
-}
-
-/**
- * Return true iff @b l1 is greater than @b l2 in an ordering
- * in which literals are equal iff they're variants of each other
- */
-bool ClauseVariantIndex::greater(Literal* l1, Literal* l2)
-{
-  CALL("ClauseVariantIndex::greater");
-
-  if(l1->header()!=l2->header()) {
-    return l1->header() > l2->header();
-  }
-
-  static DHMap<unsigned, unsigned> firstNums;
-  static DHMap<unsigned, unsigned> secondNums;
-  firstNums.reset();
-  secondNums.reset();
-
-  Term::DisagreementSetIterator dsit(l1,l2,true);
-  while(dsit.hasNext()) {
-    pair<TermList, TermList> dis=dsit.next();
-    if(dis.first.isTerm()) {
-      if(dis.second.isTerm()) {
-	ASS_NEQ(dis.first.term()->functor(), dis.second.term()->functor());
-	return dis.first.term()->functor() > dis.second.term()->functor();
-      }
-      return true;
-    }
-    if(dis.second.isTerm()) {
-      return false;
-    }
-    int firstNorm=firstNums.findOrInsert(dis.first.var(), firstNums.size());
-    int secondNorm=secondNums.findOrInsert(dis.second.var(), secondNums.size());
-    if(firstNorm!=secondNorm) {
-      return firstNorm < secondNorm;
-    }
-  }
-  //they're variants of eachother
-  return false;
 }
 
 class ClauseVariantIndex::SLResultToVariantClauseFn

@@ -38,7 +38,7 @@ class Signature
     /** clauses with only skipped symbols will not be output when symbol eliminated*/
     unsigned _skip : 1;
     /** used in coloured proofs and interpolation */
-    Color _color : 2;
+    unsigned _color : 2;
   public:
     /** standard constructor */
     Symbol(const string& nm,unsigned arity)

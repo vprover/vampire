@@ -80,7 +80,7 @@ public:
   /** Return the inherited color of the unit, computing it if necessary */
   inline Color inheritedColor() const
   {
-    return _inheritedColor;
+    return static_cast<Color>(_inheritedColor);
   }
   void setInheritedColor(Color color)
   {
@@ -114,7 +114,7 @@ protected:
   /** input type  */
   unsigned _inputType : 2;
   /** used in interpolation to denote parents of what color have been used */
-  Color _inheritedColor : 2;
+  unsigned _inheritedColor : 2;
   /** inference used to obtain the unit */
   Inference* _inference;
   /** the input unit number this clause is generated from, -1 if none */

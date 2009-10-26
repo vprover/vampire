@@ -4,8 +4,11 @@
  */
 
 #include "../Kernel/Clause.hpp"
+#include "../Kernel/LiteralComparators.hpp"
+#include "../Kernel/Ordering.hpp"
 
 #include "LiteralIndexingStructure.hpp"
+#include "LiteralSubstitutionTree.hpp"
 
 #include "LiteralIndex.hpp"
 
@@ -108,5 +111,70 @@ void UnitClauseSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
     }
   }
 }
+
+
+RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure* is)
+: LiteralIndex(is)
+{
+  _partialIndex=new LiteralSubstitutionTree();
+}
+
+RewriteRuleIndex::~RewriteRuleIndex()
+{
+  delete _partialIndex;
+}
+
+void RewriteRuleIndex::handleClause(Clause* c, bool adding)
+{
+  if(c->length()!=2) {
+    return;
+  }
+  //TODO: add time counter
+
+  static LiteralComparators::NormalizedLinearComparatorByWeight<true> comparator;
+
+  Comparison comp=comparator.compare((*c)[0], (*c)[1]);
+
+  Literal* greater=
+    ( comp==GREATER ) ? (*c)[0] :
+    ( comp==LESS ) ? (*c)[1] : 0;
+
+  if(greater) {
+    SLQueryResultIterator vit=_partialIndex->getVariants(greater,true,false);
+    while(vit.hasNext()) {
+      SLQueryResult qr=vit.next();
+      Clause* cl=qr.clause;
+      //TODO: add variant check
+      NOT_IMPLEMENTED;
+
+
+      //we have found a counterpart
+
+      //we can remove the literal from index of partial definitions
+      _partialIndex->remove(qr.literal, qr.clause);
+
+      Ordering::Result cmpRes=Ordering::instance()->compare((*c)[0],(*c)[1]);
+      switch(cmpRes) {
+
+      }
+    }
+    //there is no counterpart, so insert the clause into the partial index
+    ALWAYS(vit.drop());
+    _partialIndex->insert(greater, c);
+  }
+  else {
+    //the two literals are variants of each other, so we don't need to wait
+    //for the complementary clause
+    if( (*c)[0]->polarity()==(*c)[1]->polarity() ) {
+      _is->insert((*c)[0], c);
+    }
+    else {
+      _is->insert((*c)[0], c);
+      _is->insert((*c)[1], c);
+    }
+  }
+
+}
+
 
 }

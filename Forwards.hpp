@@ -108,16 +108,16 @@ class BDDNode;
  * To be used for symbol elimination or interpolant extraction.
  */
 enum Color {
-  COLOR_TRANSPARENT = 0,
-  COLOR_LEFT = 1,
-  COLOR_RIGHT = 2,
+  COLOR_TRANSPARENT = 0u,
+  COLOR_LEFT = 1u,
+  COLOR_RIGHT = 2u,
 
   /**
    * This color can never occur
    *
    * It can be used as an initial value to mark that the color is
    * yet to be determined. */
-  COLOR_INVALID = 3
+  COLOR_INVALID = 3u
 };
 
 

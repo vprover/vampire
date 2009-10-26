@@ -30,7 +30,6 @@ public:
 
 private:
   Literal* getMainLiteral(Literal** lits, unsigned length);
-  bool greater(Literal* l1, Literal* l2);
 
   class SLResultToVariantClauseFn;
 

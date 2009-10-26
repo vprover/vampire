@@ -74,6 +74,17 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class RewriteRuleIndex
+: public LiteralIndex
+{
+public:
+  RewriteRuleIndex(LiteralIndexingStructure* is);
+  ~RewriteRuleIndex();
+protected:
+  void handleClause(Clause* c, bool adding);
+
+  LiteralIndexingStructure* _partialIndex;
+};
 
 };
 

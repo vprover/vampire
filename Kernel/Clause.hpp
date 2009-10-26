@@ -161,10 +161,10 @@ public:
   /** Return the color of a clause */
   Color color() const
   {
-    if(_color==COLOR_INVALID) {
+    if(static_cast<Color>(_color)==COLOR_INVALID) {
       computeColor();
     }
-    return _color;
+    return static_cast<Color>(_color);
   }
   void computeColor() const;
 
@@ -263,7 +263,7 @@ protected:
   /** number of literals */
   unsigned _length : 30;
   /** clause color, or COLOR_INVALID if not determined yet */
-  mutable Color _color : 2;
+  mutable unsigned _color : 2;
   /** number of selected literals */
   unsigned _selected;
   /** age */

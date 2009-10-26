@@ -594,7 +594,7 @@ public:
   /** set the colour of the term */
   void setColor(Color color)
   {
-    ASS(_color == COLOR_TRANSPARENT || _color == color);
+    ASS(_color == static_cast<unsigned>(COLOR_TRANSPARENT) || _color == static_cast<unsigned>(color));
     _color = color;
   } // setColor
   /** return the colour of the term */
@@ -627,7 +627,7 @@ protected:
   /** Arity of the symbol */
   unsigned _arity : 30;
   /** colour, used in interpolation and symbol elimination */
-  Color _color : 2;
+  unsigned _color : 2;
   /** Weight of the symbol */
   unsigned _weight;
   /** number of occurrences of variables */
