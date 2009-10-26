@@ -191,6 +191,12 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
     }
 
     newMasterProp=bdd->disjunction(newMasterProp, getNameProp(compName));
+
+    if(bdd->isTrue(newMasterProp)) {
+      delete srec;
+      return ClauseIterator::getEmpty();
+    }
+
     masterPremises.push(comp);
     srec->namedComps.push(make_pair(compName, comp));
 

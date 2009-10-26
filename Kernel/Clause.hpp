@@ -83,6 +83,8 @@ public:
 
   /** Should never be used, declared just to get rid of compiler warning */
   virtual ~Clause() { ASSERTION_VIOLATION; }
+  /** Should never be used, just that compiler requires it */
+  void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 
   void* operator new(size_t,unsigned length);
   void operator delete(void* ptr,unsigned length);
