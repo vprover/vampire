@@ -38,7 +38,7 @@ SymId getSymId(Literal* lit, bool polarity)
 SymId getSymId(Term* t)
 {
   ASS(!t->isLiteral());
-  return -(t->functor()+1);
+  return -static_cast<SymId>((t->functor()+1));
 }
 SymId getDefiningSymId(SymId sid)
 {

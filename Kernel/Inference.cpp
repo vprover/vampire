@@ -124,6 +124,9 @@ Inference::Iterator Inference2::iterator()
 Inference::Iterator Inference::iterator()
 {
   Iterator it;
+#if VDEBUG
+  it.integer=0;
+#endif
   return it;
 }
 

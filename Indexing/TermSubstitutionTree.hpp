@@ -41,7 +41,7 @@ public:
 private:
   void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
 
-  class TermQueryResultFn;
+  struct TermQueryResultFn;
 
   template<class Iterator>
   TermQueryResultIterator getResultIterator(Term* term,

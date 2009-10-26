@@ -41,15 +41,30 @@ bool Clause::_auxInUse = false;
 void* Clause::operator new(size_t sz, unsigned lits)
 {
   CALL("Clause::operator new");
+  ASS_EQ(sz,sizeof(Clause));
 
   //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
-  size_t size = sz + lits * sizeof(Literal*);
+  size_t size = sizeof(Clause) + lits * sizeof(Literal*);
   size -= sizeof(Literal*);
 
   return ALLOC_KNOWN(size,"Clause");
 }
+
+void Clause::operator delete(void* ptr,unsigned length)
+{
+  CALL("Clause::operator delete");
+
+  //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
+  //this way, because _length-1 wouldn't behave well for
+  //_length==0 on x64 platform.
+  size_t size = sizeof(Clause) + length * sizeof(Literal*);
+  size -= sizeof(Literal*);
+
+  DEALLOC_KNOWN(ptr, size,"Clause");
+}
+
 
 Clause* Clause::fromStack(Stack<Literal*>& lits, InputType it, Inference* inf)
 {

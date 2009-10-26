@@ -85,6 +85,7 @@ public:
   virtual ~Clause() { ASSERTION_VIOLATION; }
 
   void* operator new(size_t,unsigned length);
+  void operator delete(void* ptr,unsigned length);
 
   static Clause* fromStack(Stack<Literal*>& lits, InputType it, Inference* inf);
 

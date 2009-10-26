@@ -157,7 +157,7 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
       }
     }
     else {
-      if(colorComponent || (!coloredMaster==-1 && !masterComp && compNew) ) {
+      if(colorComponent || (coloredMaster==-1 && !masterComp && compNew) ) {
 	ASS_EQ(masterComp, 0);
 	masterComp=comp;
       } else {
