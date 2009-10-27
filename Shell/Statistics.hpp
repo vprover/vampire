@@ -76,6 +76,8 @@ public:
   unsigned backwardDemodulations;
   /** number of backward demodulations into equational tautologies */
   unsigned backwardDemodulationsToEqTaut;
+  /** number of forward literal rewrites */
+  unsigned forwardLiteralRewrites;
   /** number of condensations */
   unsigned condensations;
   /** number of evaluations */

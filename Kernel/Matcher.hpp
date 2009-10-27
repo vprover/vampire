@@ -25,12 +25,12 @@ class MatchingUtils
 {
 public:
 
-  static bool isVariant(Literal* l1, Literal* l2)
+  static bool isVariant(Literal* l1, Literal* l2, bool complementary=false)
   {
-    if(!Literal::headersMatch(l1,l2,false)) {
+    if(!Literal::headersMatch(l1,l2,complementary)) {
       return false;
     }
-    if(l1==l2) {
+    if(!complementary && l1==l2) {
       return true;
     }
     if(l1->commutative()) {

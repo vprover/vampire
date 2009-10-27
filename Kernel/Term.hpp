@@ -590,6 +590,7 @@ public:
   }
 
   bool containsSubterm(TermList v);
+  bool containsAllVariablesOf(Term* t);
 
   /** set the colour of the term */
   void setColor(Color color)

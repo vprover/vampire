@@ -89,8 +89,9 @@ void Clause::setProp(BDDNode* prop)
 
 bool Clause::shouldBeDestroyed()
 {
-  return _store == NONE && _inferenceRefCnt == 0 && _inference->rule()
-      != Inference::INPUT;
+//  return false;
+  return _store == NONE && _inferenceRefCnt == 0 &&
+    _inference->rule() != Inference::INPUT;
 }
 
 /**

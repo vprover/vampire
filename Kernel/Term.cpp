@@ -230,6 +230,23 @@ bool TermList::containsAllVariablesOf(TermList t)
   return true;
 }
 
+bool Term::containsAllVariablesOf(Term* t)
+{
+  CALL("Term::containsAllVariablesOf");
+  Set<TermList> vars;
+  Term::VariableIterator oldVars(this);
+  while(oldVars.hasNext()) {
+    vars.insert(oldVars.next());
+  }
+  Term::VariableIterator newVars(t);
+  while(newVars.hasNext()) {
+    if(!vars.contains(newVars.next())) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Return the string representation of variable var.
  * @since 16/05/2007
@@ -558,7 +575,7 @@ unsigned Literal::oppositeHash() const
 Literal* Literal::oppositeLiteral(Literal* l)
 {
   Literal* res=env.sharing->tryGetOpposite(l);
-  if(!l) {
+  if(!res) {
     res=create(l, !l->polarity());
   }
   return res;

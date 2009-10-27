@@ -997,7 +997,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 
   //TODO: hack that only clauses deleted by forward simplification are destroyed (other destruction needs debugging)
   if(performer.clauseKept()) {
-    cl->incRefCnt(); 
+    cl->incRefCnt();
   }
 
   return performer.clauseKept();

@@ -57,10 +57,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 
   TimeCounter tc(TC_FORWARD_DEMODULATION);
 
-  static Ordering* ordering=0;
-  if(!ordering) {
-    ordering=Ordering::instance();
-  }
+  static Ordering* ordering=Ordering::instance();
 
   //Perhaps it might be a good idea to try to
   //replace subterms in some special order, like

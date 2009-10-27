@@ -115,6 +115,12 @@ Index* IndexManager::create(IndexType t)
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
 
+  case REWRITE_RULE_SUBST_TREE:
+    is=new LiteralSubstitutionTree();
+    res=new RewriteRuleIndex(is);
+    res->attachContainer(_alg->getSimplificationClauseContainer());
+    break;
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

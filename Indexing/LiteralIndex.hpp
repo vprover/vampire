@@ -7,6 +7,8 @@
 #ifndef __LiteralIndex__
 #define __LiteralIndex__
 
+#include "../Lib/DHMap.hpp"
+
 #include "Index.hpp"
 
 namespace Indexing {
@@ -80,10 +82,15 @@ class RewriteRuleIndex
 public:
   RewriteRuleIndex(LiteralIndexingStructure* is);
   ~RewriteRuleIndex();
+
+  Clause* getCounterpart(Clause* c) {
+    return _counterparts.get(c);
+  }
 protected:
   void handleClause(Clause* c, bool adding);
 
   LiteralIndexingStructure* _partialIndex;
+  DHMap<Clause*,Clause*> _counterparts;
 };
 
 };

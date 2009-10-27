@@ -122,9 +122,8 @@ public:
 
   /**
    * Remove reference to the iterator core.
-   * Return true iff the number of references to
-   * the iterator core dropped to zero and it was
-   * deleted as a result of it.
+   * Return true iff the the iterator core does not exist
+   * any more after return from this function.
    *
    * The returned value can be useful for asserting
    * that the iterator core (and all resources it
@@ -134,15 +133,17 @@ public:
   bool drop()
   {
     if(_core) {
-	_core->_refCnt--;
-	if(!_core->_refCnt) {
-	  delete _core;
-	  _core=0;
-	  return true;
-	}
+      _core->_refCnt--;
+      if(_core->_refCnt) {
+	return false;
+      }
+      else {
+	delete _core;
+	_core=0;
+      }
     }
     _core=0;
-    return false;
+    return true;
   }
 
   /** True if there exists next element */

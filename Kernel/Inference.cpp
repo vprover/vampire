@@ -302,6 +302,8 @@ string Inference::ruleName(Rule rule)
     return "forward demodulation";
   case BACKWARD_DEMODULATION:
     return "backward demodulation";
+  case FORWARD_LITERAL_REWRITING:
+    return "forward literal rewriting";
   case CONDENSATION:
     return "condensation";
   case EVALUATION:

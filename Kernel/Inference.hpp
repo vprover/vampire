@@ -146,6 +146,8 @@ public:
     FORWARD_DEMODULATION,
     /** backward demodulation inference */
     BACKWARD_DEMODULATION,
+    /** forward literal rewriting inference */
+    FORWARD_LITERAL_REWRITING,
     /** condensation inference */
     CONDENSATION,
     /** evaluation inference */

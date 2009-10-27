@@ -1019,6 +1019,9 @@ public:
   TermList applyToBoundResult(TermList t)
   { return SubstHelper::apply(t, *getApplicator()); }
 
+  Literal* applyToBoundResult(Literal* lit)
+  { return SubstHelper::apply(lit, *getApplicator()); }
+
   bool isIdentityOnQueryWhenResultBound() {return true;}
 private:
   Applicator* getApplicator()

@@ -19,6 +19,7 @@
 #include "../Inferences/InterpretedEvaluation.hpp"
 #include "../Inferences/Factoring.hpp"
 #include "../Inferences/ForwardDemodulation.hpp"
+#include "../Inferences/ForwardLiteralRewriting.hpp"
 #include "../Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "../Inferences/RefutationSeekerFSE.hpp"
 #include "../Inferences/SLQueryForwardSubsumption.hpp"
@@ -88,6 +89,9 @@ void addFSEs(SaturationAlgorithm* alg)
     ASSERTION_VIOLATION;
 #endif
   }
+
+  //TODO: add cmdline option
+//  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardLiteralRewriting()));
 
   if(env.options->forwardSubsumption()) {
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(

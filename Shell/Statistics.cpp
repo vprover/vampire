@@ -43,6 +43,7 @@ Statistics::Statistics()
     forwardDemodulationsToEqTaut(0),
     backwardDemodulations(0),
     backwardDemodulationsToEqTaut(0),
+    forwardLiteralRewrites(0),
     condensations(0),
     evaluations(0),
     simpleTautologies(0),
@@ -97,6 +98,7 @@ void Statistics::print()
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
   COND_OUT("Fw demodulations", forwardDemodulations);
   COND_OUT("Bw demodulations", backwardDemodulations);
+  COND_OUT("Fw literal rewrites", forwardLiteralRewrites);
   COND_OUT("Condensations", condensations);
   COND_OUT("Evaluations", evaluations);
   SEPARATOR;

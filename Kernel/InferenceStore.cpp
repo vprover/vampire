@@ -19,6 +19,8 @@
 
 #include "InferenceStore.hpp"
 
+//TODO: when we delete clause, we should also delete all its records from the inference store
+
 namespace Kernel
 {
 
@@ -140,7 +142,7 @@ void InferenceStore::recordNonPropInference(Clause* cl, Inference* cinf)
   }
   finf->rule=cinf->rule();
   finf->increasePremiseRefCounters();
-  _data.insert(getClauseSpec(cl), finf);
+  _data.set(getClauseSpec(cl), finf);
 }
 
 void InferenceStore::recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp)
@@ -164,7 +166,7 @@ void InferenceStore::recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newP
   finf->rule=rule;
   finf->increasePremiseRefCounters();
 
-  _data.insert(getClauseSpec(cl, newProp), finf);
+  _data.set(getClauseSpec(cl, newProp), finf);
 }
 
 void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp)
@@ -178,7 +180,7 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl
   finf->rule=Inference::COMMON_NONPROP_MERGE;
   finf->increasePremiseRefCounters();
 
-  _data.insert(getClauseSpec(cl, resultProp), finf);
+  _data.set(getClauseSpec(cl, resultProp), finf);
 }
 
 void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedProp, BDDNode* resultProp)
@@ -192,7 +194,7 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedPro
   finf->rule=Inference::COMMON_NONPROP_MERGE;
   finf->increasePremiseRefCounters();
 
-  _data.insert(getClauseSpec(cl, resultProp), finf);
+  _data.set(getClauseSpec(cl, resultProp), finf);
 }
 
 
@@ -210,7 +212,7 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* add
   finf->rule=Inference::COMMON_NONPROP_MERGE;
   finf->increasePremiseRefCounters();
 
-  _data.insert(getClauseSpec(cl, resultProp), finf);
+  _data.set(getClauseSpec(cl, resultProp), finf);
 }
 
 
@@ -227,12 +229,12 @@ void InferenceStore::recordSplitting(SplittingRecord* srec, unsigned premCnt, Cl
   finf->rule=Inference::SPLITTING;
   finf->increasePremiseRefCounters();
 
-  _data.insert(srec->result, finf);
+  _data.set(srec->result, finf);
 
   //There is no need to increase reference counters in splitting premises,
   //as they're stored in the variant index of Splitter object, so won't get
   //deleted.
-  _splittingRecords.insert(srec->result, srec);
+  _splittingRecords.set(srec->result, srec);
 }
 
 VirtualIterator<InferenceStore::ClauseSpec> InferenceStore::getParents(Clause* cl)
@@ -464,7 +466,7 @@ struct InferenceStore::ProofPrinter
 	  bdd->allowDefinitionOutput(true);
 	  continue;
 	}
-	
+
 	bdd->allowDefinitionOutput(false);
 	if(!hideStep) {
 	  printProofStepHead(cs, finf);
@@ -657,6 +659,7 @@ struct InferenceStore::TPTPProofCheckPrinter
     case Inference::EQUALITY_PROXY_REPLACEMENT:
     case Inference::EQUALITY_PROXY_AXIOM1:
     case Inference::EQUALITY_PROXY_AXIOM2:
+    case Inference::BDDZATION:
       return true;
     default:
       return false;

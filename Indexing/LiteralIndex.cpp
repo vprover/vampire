@@ -5,6 +5,7 @@
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/LiteralComparators.hpp"
+#include "../Kernel/MLVariant.hpp"
 #include "../Kernel/Ordering.hpp"
 
 #include "LiteralIndexingStructure.hpp"
@@ -129,6 +130,12 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
   if(c->length()!=2) {
     return;
   }
+
+  if(!adding) {
+    return;
+  }
+  //TODO: handle deletions!!!!
+
   //TODO: add time counter
 
   static LiteralComparators::NormalizedLinearComparatorByWeight<true> comparator;
@@ -139,41 +146,101 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
     ( comp==GREATER ) ? (*c)[0] :
     ( comp==LESS ) ? (*c)[1] : 0;
 
+  if( !greater && (*c)[0]->polarity()==(*c)[1]->polarity() ) {
+    greater=(*c)[0];
+    //the two literals are variants, but should not be equal (as
+    //otherwise they would be deleted by the duplicite literal
+    //removal rule)
+    ASS_NEQ((*c)[0],(*c)[1])
+  }
+
+
   if(greater) {
     SLQueryResultIterator vit=_partialIndex->getVariants(greater,true,false);
     while(vit.hasNext()) {
       SLQueryResult qr=vit.next();
-      Clause* cl=qr.clause;
-      //TODO: add variant check
-      NOT_IMPLEMENTED;
 
+      if(!MLVariant::isVariant(c ,qr.clause, true)) {
+	continue;
+      }
 
       //we have found a counterpart
+
+      Literal* smaller = (greater==(*c)[0]) ? (*c)[1] : (*c)[0];
+      Literal* cGreater = qr.literal;
+      Literal* cSmaller = (cGreater==(*qr.clause)[0]) ? (*qr.clause)[1] : (*qr.clause)[0];
 
       //we can remove the literal from index of partial definitions
       _partialIndex->remove(qr.literal, qr.clause);
 
-      Ordering::Result cmpRes=Ordering::instance()->compare((*c)[0],(*c)[1]);
-      switch(cmpRes) {
 
+      //we use Literal::oppositeLiteral(smaller) instead of cSmaller so that
+      //the literals share variables
+      Ordering::Result cmpRes=Ordering::instance()->compare(greater,Literal::oppositeLiteral(smaller));
+      switch(cmpRes) {
+      case Ordering::GREATER:
+      case Ordering::GREATER_EQ:
+	ASS(greater->containsAllVariablesOf(smaller));
+	if(greater->isPositive()) {
+	  _is->insert(greater, c);
+	}
+	else {
+	  _is->insert(cGreater, qr.clause);
+	}
+	break;
+      case Ordering::LESS:
+      case Ordering::LESS_EQ:
+	ASS(smaller->containsAllVariablesOf(greater));
+	if(smaller->isPositive()) {
+	  _is->insert(smaller, c);
+	}
+	else {
+	  _is->insert(cSmaller, qr.clause);
+	}
+	break;
+      case Ordering::INCOMPARABLE:
+	if(greater->containsAllVariablesOf(smaller)) {
+	  if(greater->isPositive()) {
+	    _is->insert(greater, c);
+	  }
+	  else {
+	    _is->insert(cGreater, qr.clause);
+	  }
+	}
+	if(smaller->containsAllVariablesOf(greater)) {
+	  if(smaller->isPositive()) {
+	    _is->insert(smaller, c);
+	  }
+	  else {
+	    _is->insert(cSmaller, qr.clause);
+	  }
+	}
+	break;
+      case Ordering::EQUAL:
+	//equal meant they're variants which we have checked for earlier
+	ASSERTION_VIOLATION;
       }
+
+      _counterparts.insert(c, qr.clause);
+      _counterparts.insert(qr.clause, c);
+      return;
     }
     //there is no counterpart, so insert the clause into the partial index
-    ALWAYS(vit.drop());
     _partialIndex->insert(greater, c);
   }
   else {
-    //the two literals are variants of each other, so we don't need to wait
-    //for the complementary clause
-    if( (*c)[0]->polarity()==(*c)[1]->polarity() ) {
-      _is->insert((*c)[0], c);
+    //the two literals are complementary variants of each other, so we don't
+    //need to wait for the complementary clause
+    if((*c)[0]->containsAllVariablesOf((*c)[1]) && (*c)[1]->containsAllVariablesOf((*c)[0])) {
+      if((*c)[0]->isPositive()) {
+        _is->insert((*c)[0], c);
+      }
+      else {
+        _is->insert((*c)[1], c);
+      }
     }
-    else {
-      _is->insert((*c)[0], c);
-      _is->insert((*c)[1], c);
-    }
+    _counterparts.insert(c, c);
   }
-
 }
 
 

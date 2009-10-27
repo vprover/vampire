@@ -462,7 +462,7 @@ bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2, LiteralList** alts)
 }
 
 
-bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2)
+bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2, bool complementary)
 {
   CALL("MLVariant::isVariant/2");
 
@@ -474,7 +474,7 @@ bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2)
   for(unsigned i2=0;i2<clen;i2++) {
     bool cl2LitHasVariant=false;
     for(unsigned i1=0;i1<clen;i1++) {
-      if(MatchingUtils::isVariant(cl1Lits[i1], (*cl2)[i2])) {
+      if(MatchingUtils::isVariant(cl1Lits[i1], (*cl2)[i2], complementary)) {
 	cl2LitHasVariant=true;
 	LiteralList::push((*cl2)[i2], alts[i1]);
       }
