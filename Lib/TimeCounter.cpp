@@ -132,6 +132,9 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   case TC_FORWARD_SUBSUMPTION_RESOLUTION:
     env.out<<"forward subsumption resolution";
     break;
+  case TC_FORWARD_LITERAL_REWRITING:
+    env.out<<"forward literal rewriting";
+    break;
   case TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE:
     env.out<<"simplifying unit clause index maintenance";
     break;
@@ -158,6 +161,9 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
     break;
   case TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE:
     env.out<<"splitting component index maintenance";
+    break;
+  case TC_LITERAL_REWRITE_RULE_INDEX_MAINTENANCE:
+    env.out<<"literal rewrite rule index maintenance";
     break;
   case TC_OTHER:
     env.out<<"other";

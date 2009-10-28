@@ -33,6 +33,8 @@ public:
 protected:
   LiteralIndex(LiteralIndexingStructure* is) : _is(is) {}
 
+  void handleLiteral(Literal* lit, Clause* cl, bool add);
+
   LiteralIndexingStructure* _is;
 };
 
@@ -88,6 +90,9 @@ public:
   }
 protected:
   void handleClause(Clause* c, bool adding);
+
+private:
+  void handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding);
 
   LiteralIndexingStructure* _partialIndex;
   DHMap<Clause*,Clause*> _counterparts;

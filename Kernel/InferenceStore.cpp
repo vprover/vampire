@@ -640,8 +640,11 @@ struct InferenceStore::TPTPProofCheckPrinter
       } else {
 	out<<getQuantifiedStr(nrec.second);
       }
-      out<<" <=> bddPred"<<nrec.first
-      	<< " ).\n";
+      out << " <=> ";
+      if(nrec.first<0) {
+	out << "~";
+      }
+      out << "bddPred" << abs(nrec.first) << " ).\n";
     }
     out << "%#\n";
   }

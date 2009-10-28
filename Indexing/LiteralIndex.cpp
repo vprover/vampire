@@ -5,6 +5,7 @@
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/LiteralComparators.hpp"
+#include "../Kernel/Matcher.hpp"
 #include "../Kernel/MLVariant.hpp"
 #include "../Kernel/Ordering.hpp"
 
@@ -46,37 +47,45 @@ SLQueryResultIterator LiteralIndex::getInstances(Literal* lit,
   return _is->getInstances(lit, complementary, retrieveSubstitutions);
 }
 
+void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
+{
+  CALL("LiteralIndex::handleLiteral");
+
+  if(add) {
+    _is->insert(lit, cl);
+  } else {
+    _is->remove(lit, cl);
+  }
+}
 
 void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
 {
+  CALL("GeneratingLiteralIndex::handleClause");
+
   TimeCounter tc(TC_BINARY_RESOLUTION_INDEX_MAINTENANCE);
 
   int selCnt=c->selected();
   for(int i=0; i<selCnt; i++) {
-    if(adding) {
-      _is->insert((*c)[i], c);
-    } else {
-      _is->remove((*c)[i], c);
-    }
+    handleLiteral((*c)[i], c, adding);
   }
 }
 
 void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
+  CALL("SimplifyingLiteralIndex::handleClause");
+
   TimeCounter tc(TC_BACKWARD_SUBSUMPTION_INDEX_MAINTENANCE);
 
   unsigned clen=c->length();
   for(unsigned i=0; i<clen; i++) {
-    if(adding) {
-      _is->insert((*c)[i], c);
-    } else {
-      _is->remove((*c)[i], c);
-    }
+    handleLiteral((*c)[i], c, adding);
   }
 }
 
 void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
+  CALL("FwSubsSimplifyingLiteralIndex::handleClause");
+
   unsigned clen=c->length();
   if(clen<2) {
     return;
@@ -93,23 +102,17 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
       bestVal=currVal;
     }
   }
-  if(adding) {
-    _is->insert(best, c);
-  } else {
-    _is->remove(best, c);
-  }
+  handleLiteral(best, c, adding);
 }
 
 void UnitClauseSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
+  CALL("UnitClauseSimplifyingLiteralIndex::handleClause");
+
   if(c->length()==1) {
     TimeCounter tc(TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE);
 
-    if(adding) {
-      _is->insert((*c)[0], c);
-    } else {
-      _is->remove((*c)[0], c);
-    }
+    handleLiteral((*c)[0], c, adding);
   }
 }
 
@@ -127,16 +130,13 @@ RewriteRuleIndex::~RewriteRuleIndex()
 
 void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 {
+  CALL("RewriteRuleIndex::handleClause");
+
   if(c->length()!=2) {
     return;
   }
 
-  if(!adding) {
-    return;
-  }
-  //TODO: handle deletions!!!!
-
-  //TODO: add time counter
+  TimeCounter tc(TC_LITERAL_REWRITE_RULE_INDEX_MAINTENANCE);
 
   static LiteralComparators::NormalizedLinearComparatorByWeight<true> comparator;
 
@@ -154,94 +154,129 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
     ASS_NEQ((*c)[0],(*c)[1])
   }
 
-
   if(greater) {
-    SLQueryResultIterator vit=_partialIndex->getVariants(greater,true,false);
-    while(vit.hasNext()) {
-      SLQueryResult qr=vit.next();
+    if(adding) {
+      SLQueryResultIterator vit=_partialIndex->getVariants(greater,true,false);
+      while(vit.hasNext()) {
+        SLQueryResult qr=vit.next();
 
-      if(!MLVariant::isVariant(c ,qr.clause, true)) {
-	continue;
+        if(!MLVariant::isVariant(c ,qr.clause, true)) {
+  	continue;
+        }
+
+        //we have found a counterpart
+        handleEquivalence(c, greater, qr.clause, qr.literal, true);
+        return;
       }
-
-      //we have found a counterpart
-
-      Literal* smaller = (greater==(*c)[0]) ? (*c)[1] : (*c)[0];
-      Literal* cGreater = qr.literal;
-      Literal* cSmaller = (cGreater==(*qr.clause)[0]) ? (*qr.clause)[1] : (*qr.clause)[0];
-
-      //we can remove the literal from index of partial definitions
-      _partialIndex->remove(qr.literal, qr.clause);
-
-
-      //we use Literal::oppositeLiteral(smaller) instead of cSmaller so that
-      //the literals share variables
-      Ordering::Result cmpRes=Ordering::instance()->compare(greater,Literal::oppositeLiteral(smaller));
-      switch(cmpRes) {
-      case Ordering::GREATER:
-      case Ordering::GREATER_EQ:
-	ASS(greater->containsAllVariablesOf(smaller));
-	if(greater->isPositive()) {
-	  _is->insert(greater, c);
-	}
-	else {
-	  _is->insert(cGreater, qr.clause);
-	}
-	break;
-      case Ordering::LESS:
-      case Ordering::LESS_EQ:
-	ASS(smaller->containsAllVariablesOf(greater));
-	if(smaller->isPositive()) {
-	  _is->insert(smaller, c);
-	}
-	else {
-	  _is->insert(cSmaller, qr.clause);
-	}
-	break;
-      case Ordering::INCOMPARABLE:
-	if(greater->containsAllVariablesOf(smaller)) {
-	  if(greater->isPositive()) {
-	    _is->insert(greater, c);
-	  }
-	  else {
-	    _is->insert(cGreater, qr.clause);
-	  }
-	}
-	if(smaller->containsAllVariablesOf(greater)) {
-	  if(smaller->isPositive()) {
-	    _is->insert(smaller, c);
-	  }
-	  else {
-	    _is->insert(cSmaller, qr.clause);
-	  }
-	}
-	break;
-      case Ordering::EQUAL:
-	//equal meant they're variants which we have checked for earlier
-	ASSERTION_VIOLATION;
-      }
-
-      _counterparts.insert(c, qr.clause);
-      _counterparts.insert(qr.clause, c);
-      return;
+      //there is no counterpart, so insert the clause into the partial index
+      _partialIndex->insert(greater, c);
     }
-    //there is no counterpart, so insert the clause into the partial index
-    _partialIndex->insert(greater, c);
+    else {
+      Clause* d;
+      if(_counterparts.find(c, d)) {
+	Literal* dgr;
+	if(MatchingUtils::isVariant(greater, (*d)[0], true)) {
+	  dgr=(*d)[0];
+	}
+	else {
+	  ASS(MatchingUtils::isVariant(greater, (*d)[1], true));
+	  dgr=(*d)[1];
+	}
+	handleEquivalence(c, greater, d, dgr, false);
+      }
+      else {
+	_partialIndex->remove(greater, c);
+      }
+    }
   }
   else {
     //the two literals are complementary variants of each other, so we don't
     //need to wait for the complementary clause
     if((*c)[0]->containsAllVariablesOf((*c)[1]) && (*c)[1]->containsAllVariablesOf((*c)[0])) {
       if((*c)[0]->isPositive()) {
-        _is->insert((*c)[0], c);
+	handleLiteral((*c)[0], c, adding);
       }
       else {
-        _is->insert((*c)[1], c);
+	ASS((*c)[0]->isPositive());
+	handleLiteral((*c)[1], c, adding);
+      }
+      if(adding) {
+        _counterparts.insert(c, c);
+      } else {
+        _counterparts.remove(c);
       }
     }
-    _counterparts.insert(c, c);
+
   }
 }
 
+void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding)
+{
+  Literal* csm = (cgr==(*c)[0]) ? (*c)[1] : (*c)[0];
+  Literal* dsm = (dgr==(*d)[0]) ? (*d)[1] : (*d)[0];
+
+  //we use Literal::oppositeLiteral(csm) instead of dsm (which is a variant with
+  //opposite polarity), so that the literals share variables
+  Ordering::Result cmpRes=Ordering::instance()->compare(cgr,Literal::oppositeLiteral(csm));
+  switch(cmpRes) {
+  case Ordering::GREATER:
+  case Ordering::GREATER_EQ:
+    ASS(cgr->containsAllVariablesOf(csm));
+    if(cgr->isPositive()) {
+      handleLiteral(cgr, c, adding);
+    }
+    else {
+      handleLiteral(dgr, d, adding);
+    }
+    break;
+  case Ordering::LESS:
+  case Ordering::LESS_EQ:
+    ASS(csm->containsAllVariablesOf(cgr));
+    if(csm->isPositive()) {
+      handleLiteral(csm, c, adding);
+    }
+    else {
+      handleLiteral(dsm, d, adding);
+    }
+    break;
+  case Ordering::INCOMPARABLE:
+    if(cgr->containsAllVariablesOf(csm)) {
+      if(cgr->isPositive()) {
+	handleLiteral(cgr, c, adding);
+      }
+      else {
+	handleLiteral(dgr, d, adding);
+      }
+    }
+    if(csm->containsAllVariablesOf(cgr)) {
+      if(csm->isPositive()) {
+	handleLiteral(csm, c, adding);
+      }
+      else {
+	handleLiteral(dsm, d, adding);
+      }
+    }
+    break;
+  case Ordering::EQUAL:
+    //equal meant they're variants which we have checked for earlier
+    ASSERTION_VIOLATION;
+  }
+
+  if(adding) {
+    ALWAYS(_counterparts.insert(c, d));
+    ALWAYS(_counterparts.insert(d, c));
+
+    //we can remove the literal from the index of partial definitions
+    _partialIndex->remove(dgr, d);
+  }
+  else {
+    _counterparts.remove(c);
+    _counterparts.remove(d);
+
+    //we put the remaining counterpart into the index of partial definitions
+    _partialIndex->insert(dgr, d);
+  }
+
+}
 
 }

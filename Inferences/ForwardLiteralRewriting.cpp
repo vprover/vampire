@@ -40,7 +40,7 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
 
   static Ordering* ordering=Ordering::instance();
 
-  //TODO: add time counter
+  TimeCounter tc(TC_FORWARD_LITERAL_REWRITING);
 
   unsigned clen=cl->length();
 

@@ -437,7 +437,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
 
   // check if the allocatio isn't too big
   if(index>=MAX_PAGES) {
-#if 1
+#if 0
     //TODO: just a quick solution for CASC
     if(env.options->mode()==Options::MODE_SPIDER) {
       env.out << "? " << env.options->problemName();
@@ -464,7 +464,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       //increase the limit, so that the exception can be handled properly.
       _tolerated=newSize+1000000;
 
-#if 1
+#if 0
       //TODO: just a quick solution for CASC
       if(env.options->mode()==Options::MODE_SPIDER) {
         env.out << "? " << env.options->problemName();

@@ -38,6 +38,7 @@ public:
     EQUALITY_RESOLUTION_WITH_DELETION,
 
     FORWARD_DEMODULATION,
+    FORWARD_LITERAL_REWRITING,
     FORWARD_SUBSUMPTION,
     FORWARD_SUBSUMPTION_RESOLUTION,
     FUNCTION_DEFINITION_ELIMINATION,
@@ -264,6 +265,7 @@ public:
   bool backwardSubsumption() const { return _backwardSubsumption; }
   void setBackwardSubsumption(bool newVal) { _backwardSubsumption = newVal; }
   bool forwardSubsumption() const { return _forwardSubsumption; }
+  bool forwardLiteralRewriting() const { return _forwardLiteralRewriting; }
   bool orphanDeletion() const { return _orphanDeletion; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck; }
   bool setLrsFirstTimeCheck(int newVal);
@@ -339,6 +341,7 @@ private:
   RuleActivity _equalityResolutionWithDeletion;
 
   Demodulation _forwardDemodulation;
+  bool _forwardLiteralRewriting;
   bool _forwardSubsumption;
   bool _forwardSubsumptionResolution;
   FunctionDefinitionElimination _functionDefinitionElimination;

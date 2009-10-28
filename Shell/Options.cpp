@@ -80,6 +80,7 @@ const char* Options::Constants::_optionNames[] = {
   "equality_resolution_with_deletion",
 
   "forward_demodulation",
+  "forward_literal_rewriting",
   "forward_subsumption",
   "forward_subsumption_resolution",
   "function_definition_elimination",
@@ -314,6 +315,7 @@ Options::Options ()
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
 
   _forwardDemodulation(DEMODULATION_ALL),
+  _forwardLiteralRewriting(false),
   _forwardSubsumption(true),
   _forwardSubsumptionResolution(true),
   _functionDefinitionElimination(FDE_ALL),
@@ -467,6 +469,9 @@ void Options::set (const char* name,const char* value, int index)
     case FORWARD_DEMODULATION:
       _forwardDemodulation =
 	(Demodulation)Constants::demodulationValues.find(value);
+      return;
+    case FORWARD_LITERAL_REWRITING:
+      _forwardLiteralRewriting = onOffToBool(value,name);
       return;
     case FORWARD_SUBSUMPTION:
       _forwardSubsumption = onOffToBool(value,name);
@@ -709,7 +714,7 @@ void Options::setShort (const char* name,const char* value)
 {
   CALL ("Options::setShort");
 
-  int found; 
+  int found;
   try {
     found = Constants::shortNameIndexes[Constants::shortNames.find(name)];
   }
@@ -939,6 +944,9 @@ void Options::outputValue (ostream& str,int optionTag) const
 
   case FORWARD_DEMODULATION:
     str << Constants::demodulationValues[_forwardDemodulation];
+    return;
+  case FORWARD_LITERAL_REWRITING:
+    str << boolToOnOff(_forwardLiteralRewriting);
     return;
   case FORWARD_SUBSUMPTION:
     str << boolToOnOff(_forwardSubsumption);
@@ -1409,7 +1417,8 @@ bool Options::complete () const
          _selection > -20 &&
          ! _sos &&
          _superpositionFromVariables &&
-         ! _maxWeight;
+         ! _maxWeight &&
+         ! _forwardLiteralRewriting;
 } // Options::complete
 
 

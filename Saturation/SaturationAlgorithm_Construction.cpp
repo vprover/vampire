@@ -90,8 +90,9 @@ void addFSEs(SaturationAlgorithm* alg)
 #endif
   }
 
-  //TODO: add cmdline option
-//  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardLiteralRewriting()));
+  if(env.options->forwardLiteralRewriting()) {
+    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardLiteralRewriting()));
+  }
 
   if(env.options->forwardSubsumption()) {
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
