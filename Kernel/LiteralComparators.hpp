@@ -202,19 +202,49 @@ struct LexComparator
 template<bool ignorePolarity=false>
 struct NormalizedLinearComparatorByWeight
 {
-  Comparison compare(Literal* l1, Literal* l2)
+  Comparison compare(Term* t1, Term* t2)
   {
-    ASS(l1->shared());
-    ASS(l2->shared());
+    ASS_EQ(t1->isLiteral(), t2->isLiteral());
 
-    if(l1->weight()!=l2->weight()) {
-      return Int::compare(l1->weight(),l2->weight());
+    if(t1->weight()!=t2->weight()) {
+      return Int::compare(t1->weight(),t2->weight());
     }
-    if(l1->functor()!=l2->functor()) {
-      return Int::compare(l1->functor(),l2->functor());
+    if(t1->functor()!=t2->functor()) {
+      return Int::compare(t1->functor(),t2->functor());
     }
-    if(!ignorePolarity && l1->polarity()!=l2->polarity()) {
-      return Int::compare(l1->polarity(),l2->polarity());
+    if(t1->isLiteral() && !ignorePolarity &&
+	    static_cast<Literal*>(t1)->polarity()!=static_cast<Literal*>(t2)->polarity()) {
+      return Int::compare(static_cast<Literal*>(t1)->polarity(),
+	      static_cast<Literal*>(t2)->polarity());
+    }
+
+    if(false && t1->commutative()) {
+      ASS(t2->commutative());
+      ASS_EQ(t1->arity(),2);
+
+      //TODO: doesn't work for p(X)=p(X) and p(X)=p(Y)
+
+      NOT_IMPLEMENTED;
+
+      TermList t1f=*t1->nthArgument(0);
+      TermList t1s=*t1->nthArgument(1);
+      TermList t2f=*t2->nthArgument(0);
+      TermList t2s=*t2->nthArgument(1);
+
+      //we can call compare recurrently, as we haven't reached any
+      //static variables yet
+      bool t1FirstGreater=compare(t1f, t1s);
+      if(compare(t1f, t1s)==LESS) {
+	swap(t1f, t1s);
+      }
+      if(compare(t2f, t2s)==LESS) {
+	swap(t2f, t2s);
+      }
+      Comparison res=compare(t1f, t2f);
+      if(res==EQUAL) {
+	res=compare(t1s,t2s);
+      }
+      return res;
     }
 
     static DHMap<unsigned, unsigned> firstNums;
@@ -222,7 +252,7 @@ struct NormalizedLinearComparatorByWeight
     firstNums.reset();
     secondNums.reset();
 
-    Term::DisagreementSetIterator dsit(l1,l2,true);
+    Term::DisagreementSetIterator dsit(t1,t2,true);
     while(dsit.hasNext()) {
       pair<TermList, TermList> dis=dsit.next();
       if(dis.first.isTerm()) {
@@ -244,6 +274,17 @@ struct NormalizedLinearComparatorByWeight
     //they're variants of each other
     return EQUAL;
   }
+
+  Comparison compare(TermList t1, TermList t2)
+  {
+    NOT_IMPLEMENTED;
+    if(t1.isVar()) {
+      if(t2.isVar()) {
+
+      }
+    }
+  }
+
 };
 
 

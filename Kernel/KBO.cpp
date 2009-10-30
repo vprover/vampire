@@ -300,10 +300,14 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
   CALL("KBO::compare(Literal*...)");
   ASS(l1->shared());
   ASS(l2->shared());
-  ASS_EQ(l1->isNegative(), l2->isNegative());
 
   if (l1 == l2) {
     return EQUAL;
+  }
+
+  if( (l1->isNegative() ^ l2->isNegative()) &&
+	  l1==Literal::oppositeLiteral(l2)) {
+    return l1->isNegative() ? LESS : GREATER;
   }
 
   Result res;
@@ -345,19 +349,22 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
   }
 
 fin:
-  if(_reverseLCM && l1->isNegative()) {
-    switch(res) {
-    case GREATER:
-      return LESS;
-    case GREATER_EQ:
-      return LESS_EQ;
-    case LESS:
-      return GREATER;
-    case LESS_EQ:
-      return GREATER_EQ;
-    default:
-      return res;
+  if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
+    if(l1->isNegative() && l2->isNegative()) {
+      switch(res) {
+      case GREATER:
+	return LESS;
+      case GREATER_EQ:
+	return LESS_EQ;
+      case LESS:
+	return GREATER;
+      case LESS_EQ:
+	return GREATER_EQ;
+      default:
+	return res;
+      }
     }
+    return l1->isNegative() ? LESS : GREATER;
   }
   return res;
 } // KBO::compare()

@@ -62,6 +62,7 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
 
       //Due to the way we build the _index, we know that rhs contains only
       //variables present in qr.literal
+      ASS(qr.literal->containsAllVariablesOf(rhs));
       Literal* rhsS=qr.substitution->applyToBoundResult(rhs);
 
       if(ordering->compare(lit, rhsS)!=Ordering::GREATER) {

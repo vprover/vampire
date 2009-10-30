@@ -197,7 +197,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 	handleLiteral((*c)[0], c, adding);
       }
       else {
-	ASS((*c)[0]->isPositive());
+	ASS((*c)[1]->isPositive());
 	handleLiteral((*c)[1], c, adding);
       }
       if(adding) {
@@ -221,22 +221,24 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
   switch(cmpRes) {
   case Ordering::GREATER:
   case Ordering::GREATER_EQ:
-    ASS(cgr->containsAllVariablesOf(csm));
-    if(cgr->isPositive()) {
-      handleLiteral(cgr, c, adding);
-    }
-    else {
-      handleLiteral(dgr, d, adding);
+    if(cgr->containsAllVariablesOf(csm)) {
+      if(cgr->isPositive()) {
+        handleLiteral(cgr, c, adding);
+      }
+      else {
+        handleLiteral(dgr, d, adding);
+      }
     }
     break;
   case Ordering::LESS:
   case Ordering::LESS_EQ:
-    ASS(csm->containsAllVariablesOf(cgr));
-    if(csm->isPositive()) {
-      handleLiteral(csm, c, adding);
-    }
-    else {
-      handleLiteral(dsm, d, adding);
+    if(csm->containsAllVariablesOf(cgr)) {
+      if(csm->isPositive()) {
+        handleLiteral(csm, c, adding);
+      }
+      else {
+        handleLiteral(dsm, d, adding);
+      }
     }
     break;
   case Ordering::INCOMPARABLE:
