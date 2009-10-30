@@ -371,6 +371,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Inferences\ForwardLiteralRewriting.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Forwards.hpp"
 				>
 			</File>
@@ -611,11 +615,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\sat\Preprocess.hpp"
+				RelativePath=".\shell\Preprocess.hpp"
 				>
 			</File>
 			<File
-				RelativePath=".\shell\Preprocess.hpp"
+				RelativePath=".\sat\Preprocess.hpp"
 				>
 			</File>
 			<File
@@ -1020,6 +1024,10 @@
 			</File>
 			<File
 				RelativePath=".\inferences\ForwardDemodulation.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Inferences\ForwardLiteralRewriting.cpp"
 				>
 			</File>
 			<File
