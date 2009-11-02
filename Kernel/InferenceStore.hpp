@@ -88,6 +88,8 @@ public:
   VirtualIterator<ClauseSpec> getParents(Clause* cl);
   VirtualIterator<UnitSpec> getUnitParents(Unit* u, BDDNode* prop);
 
+  void deleteClauseRecords(Clause* cl);
+
 private:
   InferenceStore();
 

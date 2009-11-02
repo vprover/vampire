@@ -54,6 +54,8 @@ public:
   void normalizeVariables(TermList t);
   void makeInverse(const Renaming& orig);
 
+  static Literal* normalize(Literal* l);
+
 #if VDEBUG
   void assertValid() const;
   string toString() const;

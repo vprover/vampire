@@ -88,6 +88,14 @@ void Renaming::makeInverse(const Renaming& orig)
   }
 }
 
+Literal* Renaming::normalize(Literal* l)
+{
+  Renaming n;
+  n.normalizeVariables(l);
+  return n.apply(l);
+}
+
+
 #if VDEBUG
 
 void Renaming::assertValid() const

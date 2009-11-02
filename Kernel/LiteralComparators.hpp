@@ -11,6 +11,7 @@
 #include "../Lib/Int.hpp"
 
 #include "LiteralSelector.hpp"
+#include "Renaming.hpp"
 #include "Term.hpp"
 
 namespace Kernel {
@@ -218,33 +219,17 @@ struct NormalizedLinearComparatorByWeight
 	      static_cast<Literal*>(t2)->polarity());
     }
 
-    if(false && t1->commutative()) {
+    if(t1->commutative()) {
       ASS(t2->commutative());
+      ASS(t1->isLiteral());
       ASS_EQ(t1->arity(),2);
 
-      //TODO: doesn't work for p(X)=p(X) and p(X)=p(Y)
+      t1=Renaming::normalize(static_cast<Literal*>(t1));
+      t2=Renaming::normalize(static_cast<Literal*>(t2));
 
-      NOT_IMPLEMENTED;
-
-      TermList t1f=*t1->nthArgument(0);
-      TermList t1s=*t1->nthArgument(1);
-      TermList t2f=*t2->nthArgument(0);
-      TermList t2s=*t2->nthArgument(1);
-
-      //we can call compare recurrently, as we haven't reached any
-      //static variables yet
-      bool t1FirstGreater=compare(t1f, t1s);
-      if(compare(t1f, t1s)==LESS) {
-	swap(t1f, t1s);
+      if(t1==t2) {
+	return EQUAL;
       }
-      if(compare(t2f, t2s)==LESS) {
-	swap(t2f, t2s);
-      }
-      Comparison res=compare(t1f, t2f);
-      if(res==EQUAL) {
-	res=compare(t1s,t2s);
-      }
-      return res;
     }
 
     static DHMap<unsigned, unsigned> firstNums;
@@ -277,12 +262,16 @@ struct NormalizedLinearComparatorByWeight
 
   Comparison compare(TermList t1, TermList t2)
   {
-    NOT_IMPLEMENTED;
     if(t1.isVar()) {
       if(t2.isVar()) {
-
+	return EQUAL;
       }
+      return LESS;
     }
+    if(t2.isVar()) {
+      return GREATER;
+    }
+    return compare(t1.term(), t2.term());
   }
 
 };

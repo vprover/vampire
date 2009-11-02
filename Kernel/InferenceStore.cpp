@@ -237,6 +237,23 @@ void InferenceStore::recordSplitting(SplittingRecord* srec, unsigned premCnt, Cl
   _splittingRecords.set(srec->result, srec);
 }
 
+/**
+ * Called before a clause is destroyed
+ *
+ * Deletes all records for the clause @b cl that can be efficiently reached,
+ * as the clause is being destroyed and there will be no further need of them.
+ */
+void InferenceStore::deleteClauseRecords(Clause* cl)
+{
+  if(!cl->prop()) {
+    return;
+  }
+  ClauseSpec cs=getClauseSpec(cl);
+  if(_data.find(cs)) {
+    _data.remove(cs);
+  }
+}
+
 VirtualIterator<InferenceStore::ClauseSpec> InferenceStore::getParents(Clause* cl)
 {
   ClauseSpec cs=getClauseSpec(cl);

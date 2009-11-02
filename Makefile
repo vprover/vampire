@@ -221,7 +221,7 @@ ALUCARD_OBJ = $(ALUC_BASIC) Global.o alucard.o
 all:#default make disabled
 
 vampire: $(VAMPIRE_OBJ)
-	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
+	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
 #	strip vampire
 
 vground: $(VGROUND_OBJ)

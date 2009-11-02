@@ -488,26 +488,12 @@ public:
     /**
      * Create an iterator over the disagreement set of two terms/literals
      * with the same top functor
-     *
-     * If terms or literals @b t1 and @b t2 are commutative,
-     * @b reverseArg can be @b true. In that case the first argument of
-     * @b t1 will be compared to the second one of @b t2, and vice versa.
      */
-    DisagreementSetIterator(Term* t1, Term* t2, bool disjunctVariables=true
-//	    , bool reverseArg=false
-	    )
+    DisagreementSetIterator(Term* t1, Term* t2, bool disjunctVariables=true)
     : _stack(8), _disjunctVariables(disjunctVariables)
     {
       ASS_EQ(t1->functor(), t2->functor());
       _arg1.makeEmpty();
-
-//      if(reverseArg) {
-//	ASS_EQ(t1->arity(),2);
-//	ASS(t1->commutative());
-//	NOT_IMPLEMENTED;
-//	_stack.push(t1->args());
-//	_stack.push(t2->args());
-//      }
 
       if(t1->arity()>0) {
 	_stack.push(t1->args());
