@@ -1,0 +1,18 @@
+Submit the journal paper on unification
+Discrimination trees for propositional parts of clauses
++empty clause subsumptions
++check whether apply splitting before or after simplifications
+Memory management (very important!)
+General literal rewriting (for set theory problems)
+Consequence finding
+Reasoning with interpreted symbols
++Reiner Hahnle in Dagstuhl asked whether we'll have also some decision algorithms (e.g. linear inequality)
+Proper indexing for important algorithms
+Code trees
++native compilation of code trees
+SInE axiom selection as offline algorithm
+Multiple Vampire instances sharing simplification indexes
+Support for commutative function symbols
+Sorts
+Check what happens if we garbage-collect shared terms: do we gain or lose in memory?
+
