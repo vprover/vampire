@@ -37,10 +37,6 @@ using namespace Saturation;
 #define REPORT_FW_SIMPL 0
 /** Print information about performed backward simplifications */
 #define REPORT_BW_SIMPL 0
-/** Perform simplification on a clause only if it leads to its deletion
- * (i.e. propositional part of the premise implies propositional part
- * of the simplified clause. */
-#define TOTAL_SIMPLIFICATION_ONLY 1
 /** Perform forward demodulation before a clause is passed to splitting */
 #define FW_DEMODULATION_FIRST 1
 
@@ -967,11 +963,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     return false;
   }
 
-#if TOTAL_SIMPLIFICATION_ONLY
   TotalSimplificationPerformer performer(this, cl);
-#else
-  PartialSimplificationPerformer performer(this, cl);
-#endif
 
   VirtualIterator<ForwardSimplificationEngineSP> fsit;
   if(_fwDemodulator) {
@@ -1026,17 +1018,10 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       BDDNode* oldRedundantProp=redundant->prop();
       BDDNode* newRedundantProp;
 
-#if TOTAL_SIMPLIFICATION_ONLY
       if( !bdd->isXOrNonYConstant(oldRedundantProp, cl->prop(), true) ) {
 	continue;
       }
       newRedundantProp=bdd->getTrue();
-#else
-      newRedundantProp=bdd->xOrNonY(oldRedundantProp, cl->prop());
-      if( newRedundantProp==oldRedundantProp ) {
-	continue;
-      }
-#endif
 
 #if REPORT_BW_SIMPL
       cout<<"-<<--------\n";
