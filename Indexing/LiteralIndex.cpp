@@ -147,11 +147,15 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
     ( comp==LESS ) ? (*c)[1] : 0;
 
   if( !greater && (*c)[0]->polarity()==(*c)[1]->polarity() ) {
-    greater=(*c)[0];
-    //the two literals are variants, but should not be equal (as
-    //otherwise they would be deleted by the duplicite literal
-    //removal rule)
-    ASS_NEQ((*c)[0],(*c)[1])
+    if((*c)[0]>(*c)[1]) {
+      greater=(*c)[0];
+    } else {
+      greater=(*c)[1];
+      //the two literals are variants, but should not be equal (as
+      //otherwise they would be deleted by the duplicite literal
+      //removal rule)
+      ASS_NEQ((*c)[0],(*c)[1])
+    }
   }
 
   if(greater) {
