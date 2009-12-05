@@ -139,7 +139,8 @@ void outputResult()
 
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
-    env.out << "Refutation found. Thanks to Tanya!\n";
+    env.out << "Refutation found. Thanks to "
+	    << env.options->thanks() << "!\n";
     if (env.options->proof() != Options::PROOF_OFF) {
 //	Shell::Refutation refutation(env.statistics->refutation,
 //		env.options->proof() == Options::PROOF_ON);

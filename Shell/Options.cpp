@@ -139,6 +139,7 @@ const char* Options::Constants::_optionNames[] = {
   "symbol_precedence",
 
   "test_id",
+  "thanks",
   "time_limit",
   "time_statistics",
 
@@ -376,6 +377,7 @@ Options::Options ()
   _symbolPrecedence(BY_ARITY),
 
   _testId ("unspecified_test"),
+  _thanks("Tanya"),
   _timeLimitInDeciseconds(600),
   _timeStatistics(false),
 
@@ -669,6 +671,10 @@ void Options::set (const char* name,const char* value, int index)
 
     case TEST_ID:
       _testId = value;
+      return;
+
+    case THANKS:
+      _thanks = value;
       return;
 
     case TIME_LIMIT:
@@ -1104,6 +1110,9 @@ void Options::outputValue (ostream& str,int optionTag) const
 
   case TEST_ID:
     str << _testId;
+    return;
+  case THANKS:
+    str << _thanks;
     return;
   case TIME_LIMIT:
     str << _timeLimitInDeciseconds/10;

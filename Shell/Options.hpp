@@ -98,6 +98,7 @@ public:
     SYMBOL_PRECEDENCE,
 
     TEST_ID,
+    THANKS,
     TIME_LIMIT,
     TIME_STATISTICS,
 
@@ -296,6 +297,7 @@ public:
   void setSos(bool newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination; }
   string xmlOutput() const { return _xmlOutput; }
+  string thanks() const { return _thanks; }
 
   bool condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
@@ -401,6 +403,7 @@ private:
   SymbolPrecedence _symbolPrecedence;
 
   string _testId;
+  string _thanks;
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
   bool _timeStatistics;
