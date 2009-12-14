@@ -75,8 +75,21 @@ void groundingMode()
     UnitList* units;
     {
       string inputFile = env.options->inputFile();
-      ifstream input(inputFile.c_str());
-      TPTPLexer lexer(input);
+
+      istream* input;
+      if(inputFile=="") {
+        input=&cin;
+      } else {
+        input=new ifstream(inputFile.c_str());
+      }
+      TPTPLexer lexer(*input);
+
+      if(inputFile!="") {
+        delete static_cast<ifstream*>(input);
+        input=0;
+      }
+
+
       TPTPParser parser(lexer);
       units = parser.units();
     }

@@ -35,7 +35,6 @@ void CommandLine::interpret (Options& options)
 {
   CALL ("CommandLine::interpret");
 
-  bool fileGiven = false;
   while (_next != _last) {
     ASS(_next < _last);
     const char* arg = *_next++;
@@ -52,15 +51,8 @@ void CommandLine::interpret (Options& options)
       _next++;
     }
     else { // next is not an option but a file name
-      if (fileGiven) {
-	USER_ERROR("two input file names specified");
-      }
-      fileGiven = true;
-      options.setInputFile(arg);
+      USER_ERROR((string)"option name expected, "+arg+" found");
     }
-  }
-  if (! fileGiven) {
-    USER_ERROR("input file name not specified");
   }
   options.checkGlobalOptionConstraints();
 } // CommandLine::interpret

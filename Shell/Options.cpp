@@ -90,6 +90,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "include",
   "inequality_splitting",
+  "input_file",
   "input_syntax",
 
   "latex_output",
@@ -507,6 +508,9 @@ void Options::set (const char* name,const char* value, int index)
 	return;
       }
       break;
+    case INPUT_FILE:
+      setInputFile(value);
+      return;
     case INPUT_SYNTAX:
       _inputSyntax = (InputSyntax)Constants::inputSyntaxValues.find(value);
       return;
@@ -981,6 +985,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case INEQUALITY_SPLITTING:
     str << _inequalitySplitting;
+    return;
+  case INPUT_FILE:
+    str << _inputFile;
     return;
   case INPUT_SYNTAX:
     str << Constants::inputSyntaxValues[_inputSyntax];

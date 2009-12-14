@@ -77,12 +77,19 @@ ClauseIterator getInputClauses()
     TimeCounter tc1(TC_PARSING);
 
     string inputFile = env.options->inputFile();
-    ifstream input(inputFile.c_str());
+
+    istream* input;
+    if(inputFile=="") {
+      input=&cin;
+    } else {
+      input=new ifstream(inputFile.c_str());
+    }
+
 
     switch (env.options->inputSyntax()) {
     case Options::IS_SIMPLIFY:
     {
-      Shell::LispLexer lexer(input);
+      Shell::LispLexer lexer(*input);
       Shell::LispParser parser(lexer);
       LispParser::Expression* expr = parser.parse();
       SimplifyProver simplify;
@@ -91,11 +98,16 @@ ClauseIterator getInputClauses()
     break;
     case Options::IS_TPTP:
     {
-      TPTPLexer lexer(input);
+      TPTPLexer lexer(*input);
       TPTPParser parser(lexer);
       units = parser.units();
     }
     break;
+    }
+
+    if(inputFile!="") {
+      delete static_cast<ifstream*>(input);
+      input=0;
     }
   }
 
@@ -184,7 +196,7 @@ void outputResult()
 void vampireMode()
 {
   CALL("vampireMode()");
-  env.out<<env.options->testId()<<" on "<<env.options->inputFile()<<endl;
+  env.out<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   doProving();
   outputResult();
 } // vampireMode

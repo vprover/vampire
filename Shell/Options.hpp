@@ -48,6 +48,7 @@ public:
 
     INCLUDE,
     INEQUALITY_SPLITTING,
+    INPUT_FILE,
     INPUT_SYNTAX,
 
     LATEX_OUTPUT,
