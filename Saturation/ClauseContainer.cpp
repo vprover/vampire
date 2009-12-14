@@ -118,6 +118,8 @@ void ActiveClauseContainer::remove(Clause* c)
 
 void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 {
+  CALL("ActiveClauseContainer::onLimitsUpdated");
+
   if(change==LIMITS_LOOSENED) {
     return;
   }

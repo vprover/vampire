@@ -23,7 +23,7 @@ using namespace Shell;
 string TPTP::toString(const Formula* f)
 {
   static string names [] =
-    { "", " & ", " | ", " => ", " <=> ", " <~> ", 
+    { "", " & ", " | ", " => ", " <=> ", " <~> ",
       "~", "!", "?", "$false", "$true"};
   Connective c = f->connective();
   string con = names[(int)c];
@@ -31,7 +31,7 @@ string TPTP::toString(const Formula* f)
   case LITERAL:
     return f->literal()->toString();
   case AND:
-  case OR: 
+  case OR:
     {
       const FormulaList* fs = f->args();
       string result = "(" + toString(fs->head());
@@ -77,7 +77,7 @@ string TPTP::toString(const Formula* f)
 #endif
   }
   return "formula";
-} 
+}
 
 string TPTP::toString (const Unit* unit)
 {
@@ -87,7 +87,7 @@ string TPTP::toString (const Unit* unit)
 
   string prefix;
   string main = "";
-  
+
   bool negate = false;
   string kind;
   switch (unit->inputType()) {
@@ -107,15 +107,15 @@ string TPTP::toString (const Unit* unit)
 
   if (unit->isClause()) {
     prefix = "cnf";
-    main = toString(static_cast<const Clause*>(unit));
+    main = static_cast<const Clause*>(unit)->toTPTPString();
   }
   else {
     prefix = "fof";
-    const Formula* f = static_cast<const FormulaUnit*>(unit)->formula(); 
+    const Formula* f = static_cast<const FormulaUnit*>(unit)->formula();
     main = negate ? toString(f->uarg()) : toString(f);
   }
 
   return prefix + "(u" + Int::toString(unit->number()) + "," + kind + ",\n"
     + "    " + main + ").\n";
-} 
+}
 
