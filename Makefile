@@ -19,8 +19,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-XFLAGS = -O6 -DVDEBUG=0 # no debugging
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+#XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -227,7 +227,8 @@ vampire: $(VAMPIRE_OBJ)
 #	strip vampire
 
 vground: $(VGROUND_OBJ)
-	$(CXX) -static $(CXXFLAGS) $(VGROUND_OBJ) -o vground
+#	$(CXX) -static $(CXXFLAGS) $(VGROUND_OBJ) -o vground
+	$(CXX) $(CXXFLAGS) $(VGROUND_OBJ) -o vground
 
 vcompit: $(VCOMPIT_OBJ)
 	$(CXX) $(CXXFLAGS) $(VCOMPIT_OBJ) -o vcompit
@@ -518,8 +519,6 @@ Shell/Interpolants.o: Kernel/SubstHelper.hpp Kernel/Term.hpp
 Shell/Interpolants.o: Lib/Portability.hpp Lib/Comparison.hpp
 Shell/Interpolants.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp Kernel/Term.hpp
 Shell/Interpolants.o: Shell/SimplifyFalseTrue.hpp Shell/Interpolants.hpp
-Shell/LaTeX.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp
-Shell/LaTeX.o: Lib/Portability.hpp Debug/Assertion.hpp Shell/LaTeX.hpp
 Shell/Lexer.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Int.hpp
 Shell/Lexer.o: Lib/Comparison.hpp Lib/Portability.hpp Shell/Lexer.hpp
 Shell/Lexer.o: Lib/Array.hpp Lib/Allocator.hpp Lib/Exception.hpp

@@ -68,6 +68,19 @@ unsigned Signature::addFunction (const string& name,
     added = false;
     return result;
   }
+  if (env.options->arityCheck()) {
+    unsigned prev;
+    if (_arityCheck.find(name,prev)) {
+      unsigned prevArity = prev/2;
+      bool isFun = prev % 2;
+      USER_ERROR((string)"Symbol " + name +
+		 " is used both as a function of arity " + Int::toString(arity) +
+		 " and a " + (isFun ? "function" : "predicate") +
+		 " of arity " + Int::toString(prevArity));
+    }
+    _arityCheck.insert(name,2*arity+1);
+  }
+
   result = _funs.length();
   _funs.push(new Symbol(name,arity));
   _funNames.insert(symbolKey,result);
@@ -85,10 +98,11 @@ unsigned Signature::addFunction (const string& name,
  *        otherwise
  * @since 07/05/2007 Manchester
  * @since 08/07/2007 Manchester, adds parameter added
+ * @since 06/12/2009 Haifa, arity check added
  */
-  unsigned Signature::addPredicate (const string& name,
-				    unsigned arity,
-				    bool& added)
+unsigned Signature::addPredicate (const string& name,
+				  unsigned arity,
+				  bool& added)
 {
   CALL("Signature::addPredicate");
 
@@ -102,6 +116,19 @@ unsigned Signature::addFunction (const string& name,
     added = false;
     return result;
   }
+  if (env.options->arityCheck()) {
+    unsigned prev;
+    if (_arityCheck.find(name,prev)) {
+      unsigned prevArity = prev/2;
+      bool isFun = prev % 2;
+      USER_ERROR((string)"Symbol " + name +
+		 " is used both as a predicate of arity " + Int::toString(arity) +
+		 " and a " + (isFun ? "function" : "predicate") +
+		 " of arity " + Int::toString(prevArity));
+    }
+    _arityCheck.insert(name,2*arity);
+  }
+
   result = _preds.length();
   _preds.push(new Symbol(name,arity));
   _predNames.insert(symbolKey,result);
@@ -168,7 +195,7 @@ void Signature::Symbol::addColor(Color color)
   ASS(env.colorUsed);
 
   if (_color && color != _color) {
-    throw UserErrorException("A symbol cannot have two colors");
+    USER_ERROR("A symbol cannot have two colors");
   }
   _color = color;
 } // addColor

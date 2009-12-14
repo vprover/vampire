@@ -67,6 +67,7 @@ public:
 /** Names for all options */
 const char* Options::Constants::_optionNames[] = {
   "age_weight_ratio",
+  "arity_check",
 
   "backward_demodulation",
   "backward_subsumption",
@@ -279,8 +280,8 @@ NameArray Options::Constants::inputSyntaxValues(_inputSyntaxValues,
 
 const char* Options::Constants::_modeValues[] = {
   "casc",
+  "clausify",
   "grounding",
-  "output",
   "profile",
   "rule",
   "spider",
@@ -304,6 +305,7 @@ NameArray Options::Constants::proofValues(_proofValues,
 Options::Options ()
   :
   _ageRatio(1),
+  _arityCheck(false),
   _weightRatio(1),
 
   _backwardDemodulation(DEMODULATION_ALL),
@@ -438,6 +440,9 @@ void Options::set (const char* name,const char* value, int index)
     switch (index) {
     case AGE_WEIGHT_RATIO:
       readAgeWeightRatio(value);
+      return;
+    case ARITY_CHECK:
+      _arityCheck = onOffToBool(value,name);
       return;
 
     case BACKWARD_DEMODULATION:
@@ -925,6 +930,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   switch (optionTag) {
   case AGE_WEIGHT_RATIO:
     str << _ageRatio << ':' << _weightRatio;
+    return;
+  case ARITY_CHECK:
+    str << boolToOnOff(_arityCheck);
     return;
 
   case BACKWARD_DEMODULATION:

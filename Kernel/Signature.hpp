@@ -166,6 +166,8 @@ private:
   SymbolMap _funNames;
   /** Map from string "name_arity" to their numbers */
   SymbolMap _predNames;
+  /** Map for the arity_check options: maps symbols to their arities */
+  SymbolMap _arityCheck;
   /** Last number used for name predicates */
   int _lastName;
   /** Last number used for skolem functions */

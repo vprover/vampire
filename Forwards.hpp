@@ -74,6 +74,7 @@ typedef List<Unit*> UnitList;
 typedef VirtualIterator<Unit*> UnitIterator;
 
 class Clause;
+/** Defined as VirtualIterator<Clause*> */
 typedef VirtualIterator<Clause*> ClauseIterator;
 typedef SingleParamEvent<Clause*> ClauseEvent;
 typedef List<Clause*> ClauseList;

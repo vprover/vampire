@@ -24,6 +24,7 @@ class Options
 public:
   enum Tag {
     AGE_WEIGHT_RATIO,
+    ARITY_CHECK,
 
     BACKWARD_DEMODULATION,
     BACKWARD_SUBSUMPTION,
@@ -142,8 +143,8 @@ public:
    */
   enum Mode {
     MODE_CASC,
+    MODE_CLAUSIFY,
     MODE_GROUNDING,
-    MODE_OUTPUT,
     MODE_PROFILE,
     MODE_RULE,
     MODE_SPIDER,
@@ -261,6 +262,8 @@ public:
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution; }
   void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation; }
+  bool arityCheck() const { return _arityCheck; }
+  void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation; }
   void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   bool backwardSubsumption() const { return _backwardSubsumption; }
@@ -332,6 +335,7 @@ private:
 
   int _ageRatio;
   int _weightRatio;
+  bool _arityCheck;
 
   Demodulation _backwardDemodulation;
   bool _backwardSubsumption;

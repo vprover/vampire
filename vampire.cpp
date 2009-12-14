@@ -57,8 +57,8 @@
 #include "Lib/MemoryLeak.hpp"
 #endif
 
-#define SPIDER 1
-#define SAVE_SPIDER_PROPERTIES 1
+#define SPIDER 0
+#define SAVE_SPIDER_PROPERTIES 0
 
 using namespace Shell;
 using namespace SAT;
@@ -223,6 +223,16 @@ void spiderMode()
   env.out << "\n";
 } // spiderMode
 
+void clausifyMode()
+{
+  CALL("clausifyMode()");
+
+  ClauseIterator cit = getInputClauses();
+  while (cit.hasNext()) {
+    cout << TPTP::toString(cit.next()) << "\n";
+  }
+} // clausifyMode
+
 void explainException (Exception& exception)
 {
   exception.cry(env.out);
@@ -271,6 +281,18 @@ int main(int argc, char* argv [])
       break;
     case Options::MODE_VAMPIRE:
       vampireMode();
+      break;
+    case Options::MODE_CASC:
+      USER_ERROR("CASC mode is not implemented");
+      break;
+    case Options::MODE_CLAUSIFY:
+      clausifyMode();
+      break;
+    case Options::MODE_PROFILE:
+      USER_ERROR("Profile mode is not implemented");
+      break;
+    case Options::MODE_RULE:
+      USER_ERROR("Rule mode is not implemented");
       break;
 #if VDEBUG
     default:
