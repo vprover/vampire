@@ -15,6 +15,7 @@
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/Term.hpp"
 
+#include "../Shell/LaTeX.hpp"
 #include "../Shell/Options.hpp"
 
 #include "InferenceStore.hpp"
@@ -28,37 +29,14 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-struct InferenceStore::FullInference
+void InferenceStore::FullInference::increasePremiseRefCounters()
 {
-  FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { ASS_L(premCnt, 0xFFFF); }
-
-  void* operator new(size_t,unsigned premCnt)
-  {
-    size_t size=sizeof(FullInference)+premCnt*sizeof(ClauseSpec);
-    size-=sizeof(ClauseSpec);
-
-    return ALLOC_KNOWN(size,"InferenceStore::FullInference");
+  for(unsigned i=0;i<premCnt;i++) {
+    premises[i].first->incRefCnt();
   }
+}
 
-  size_t occupiedBytes()
-  {
-    size_t size=sizeof(FullInference)+premCnt*sizeof(ClauseSpec);
-    size-=sizeof(ClauseSpec);
-    return size;
-  }
 
-  void increasePremiseRefCounters()
-  {
-    for(unsigned i=0;i<premCnt;i++) {
-      premises[i].first->incRefCnt();
-    }
-  }
-
-  int csId;
-  unsigned premCnt : 16;
-  Inference::Rule rule : 16;
-  ClauseSpec premises[1];
-};
 
 InferenceStore::InferenceStore()
 : _bdd(BDD::instance())
@@ -77,20 +55,28 @@ InferenceStore::ClauseSpec InferenceStore::getClauseSpec(Clause* cl, BDDNode* pr
 
 string InferenceStore::getClauseIdStr(ClauseSpec cs)
 {
-  string res=Int::toString(cs.first->number());
+  string suffix=getClauseIdSuffix(cs);
+  if(suffix=="") {
+    return Int::toString(cs.first->number());
+  }
+  return Int::toString(cs.first->number())+"_"+suffix;
+}
+
+string InferenceStore::getClauseIdSuffix(ClauseSpec cs)
+{
   FullInference* finf;
   if(_data.find(cs,finf)) {
     if(!finf->csId) {
       finf->csId=_nextClIds.insert(cs.first);
     }
-    return res+"_"+Int::toString(finf->csId);
+    return Int::toString(finf->csId);
   } else {
     //only clause constant prop. part can miss their Kernel-inference.
     if(_bdd->isTrue(cs.second)) {
-      return res+"_T";
+      return "T";
     } else {
       ASS(_bdd->isFalse(cs.second));
-      return res;
+      return "";
     }
   }
 }
@@ -686,6 +672,7 @@ struct InferenceStore::TPTPProofCheckPrinter
     }
   }
 };
+
 
 void InferenceStore::outputProof(ostream& out, Unit* refutation)
 {

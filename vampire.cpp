@@ -2,6 +2,7 @@
  * @file vampire.cpp. Implements the top-level procedures of Vampire.
  */
 
+#include <string>
 #include <iostream>
 #include <ostream>
 #include <fstream>
@@ -35,6 +36,7 @@
 #include "Shell/CommandLine.hpp"
 #include "Shell/Grounding.hpp"
 #include "Shell/Interpolants.hpp"
+#include "Shell/LaTeX.hpp"
 #include "Shell/LispLexer.hpp"
 #include "Shell/LispParser.hpp"
 #include "Shell/Options.hpp"
@@ -164,6 +166,12 @@ void outputResult()
       Formula* interpolant=Interpolants::getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       env.out << "Interpolant: " << interpolant->toString() << endl;
     }
+    if(env.options->latexOutput()!="off") {
+      ofstream latexOut(env.options->latexOutput().c_str());
+
+      LaTeX formatter;
+      latexOut<<formatter.refutationToString(env.statistics->refutation);
+    }
     break;
   case Statistics::TIME_LIMIT:
     env.out << "Time limit reached!\n";
@@ -190,6 +198,7 @@ void outputResult()
   if(env.options->timeStatistics()) {
     TimeCounter::printReport();
   }
+
 }
 
 

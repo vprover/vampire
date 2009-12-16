@@ -52,6 +52,7 @@ private:
 
   friend class BDD;
   friend class BDDConjunction;
+  friend class Shell::LaTeX;
 };
 
 /**

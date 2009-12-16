@@ -52,8 +52,8 @@ BDD* BDD::instance()
  * Create a new BDD object
  */
 BDD::BDD()
-: _trueNode(-1,0,0), _falseNode(-1,0,0), 
-  _bddEvalPredicate(0), _nextNodeNum(1), 
+: _trueNode(-1,0,0), _falseNode(-1,0,0),
+  _bddEvalPredicate(0), _nextNodeNum(1),
   _allowDefinitionOutput(true), _newVar(1)
 {
 }
@@ -518,17 +518,17 @@ string BDD::toTPTPString(BDDNode* node, string bddPrefix)
 /**
  * Return the formula represented by @b node in a TPTP compatible format.
  *
- * @warning A recursion is used in this methos, which can lead to
+ * @warning A recursion is used in this method, which can lead to
  *   problems with very large BDDs.
  */
 string BDD::toTPTPString(BDDNode* node)
 {
   if(isTrue(node)) {
     return "$true";
-  } 
+  }
   else if(isFalse(node)) {
     return "$false";
-  } 
+  }
   else {
     return string("( ( ")+getPropositionalPredicateName(node->_var)+" => "+toTPTPString(node->_pos)+
       ") & ( ~"+getPropositionalPredicateName(node->_var)+" => "+toTPTPString(node->_neg)+" ) )";
@@ -545,7 +545,7 @@ string BDD::getDefinition(BDDNode* node)
   if(isFalse(node)) {
     return "$false";
   }
-  
+
   string name;
   if(_nodeNames.find(node, name)) {
     return name;
@@ -633,7 +633,7 @@ TermList BDD::getConstant(BDDNode* node)
     string name=getName(node);
     unsigned func;
     bool added;
-    
+
     func=env.signature->addFunction(name, 0, added);
     while(!added) {
       name+="_1";
@@ -672,7 +672,7 @@ unsigned BDD::hash(const BDDNode* n)
 
 /**
  * Convert a BDD to formula
- * 
+ *
  * @warning Currently the function uses recursion, so there can
  * be problems for very large variable counts.
  */
@@ -685,7 +685,7 @@ Formula* BDD::toFormula(BDDNode* node)
     static Formula* ff=new Formula(false);
     return ff;
   }
-  
+
   if(!_bddEvalPredicate) {
     string name="$bddEval";
     bool added;
@@ -715,7 +715,7 @@ Formula* BDD::toFormula(BDDNode* node)
   FormulaList* args=0;
   FormulaList::push(new BinaryFormula(IMP, new AtomicFormula(posLit) ,toFormula(node->_pos)), args);
   FormulaList::push(new BinaryFormula(IMP, new AtomicFormula(negLit) ,toFormula(node->_neg)), args);
-  
+
   return new JunctionFormula(AND, args);*/
 }
 

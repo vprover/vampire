@@ -1,15 +1,23 @@
-// /**
-//  * @file LaTeX.hpp
-//  * Defines a class LaTeX translating Vampire data structures 
-//  * into LaTeX.
-//  *
-//  * @since 04/01/2004 Manchester
-//  */
+/**
+ * @file LaTeX.hpp
+ * Defines a class LaTeX translating Vampire data structures
+ * into LaTeX.
+ *
+ * @since 04/01/2004 Manchester
+ */
 
-// #ifndef __LaTeX__
-// #define __LaTeX__
+#ifndef __LaTeX__
+#define __LaTeX__
 
-// #include <string>
+#include <string>
+
+#include "../Forwards.hpp"
+
+#include "../Lib/DHMap.hpp"
+#include "../Lib/Stack.hpp"
+
+#include "../Kernel/Connective.hpp"
+#include "../Kernel/InferenceStore.hpp"
 
 // #include "../VS/Connective.hpp"
 // #include "Var.hpp"
@@ -21,49 +29,59 @@
 
 // using namespace VS;
 
-// namespace Shell {
+namespace Shell {
 
-// class Term;
-// class TermList;
-// class Atom;
-// class Literal;
-// class Clause;
-// class Formula;
-// class Refutation;
-// class Unit;
-// class Options;
+using namespace Kernel;
+
+/**
+ * Translates Vampire refutations into LaTeX.
+ * @since 04/01/2004 Manchester
+ */
+class LaTeX
+{
+public:
+  LaTeX() : _nextNodeNum(0) {}
+
+  string refutationToString(Unit* ref);
+
+//  LaTeX(const Options& options,const SymbolMap* map);
+//  void output (const Refutation&) const;
+  string toString(const Term&) const;
+  string toString(const string& funOrPred,const TermList& args) const;
+  string toString(Unit*);
+  string toString(Unit*,BDDNode*);
+private:
+//  /** options used for output */
+//  const Options& _options;
+//  /** symbol map for printing atoms, functions and variables */
+//  const SymbolMap* _map;
+  string varToString(unsigned num) const;
+  string toString(TermList*) const;
+  string toString(Literal*) const;
+  string toString(Clause*);
+  string toString(Clause*, BDDNode*);
+  string toString(Formula*) const;
+  string toString(Formula*, Connective c) const;
+
+  string getClauseLatexId(InferenceStore::ClauseSpec cs);
+
+  string splittingToString(InferenceStore::SplittingRecord*);
+  string toStringAsInference(Unit*);
+  string toStringAsInference(InferenceStore::ClauseSpec cs, InferenceStore::FullInference* inf);
+
+  string symbolToString (unsigned num, bool pred) const;
 
 
-// /**
-//  * Translates Vampire refutations into LaTeX.
-//  * @since 04/01/2004 Manchester
-//  */
-// class LaTeX
-// {
-// public:
-//   LaTeX(const Options& options,const SymbolMap* map);
-//   void output (const Refutation&) const;
-//   string toString(const Term&) const;
-//   string toString(const string& funOrPred,const TermList& args) const;
-// private:
-//   /** options used for output */
-//   const Options& _options;
-//   /** symbol map for printing atoms, functions and variables */
-//   const SymbolMap* _map;
-//   string toString(const Refutation&) const;
-//   string toString(Var) const;
-//   string toString(const Symbol&) const;
-//   string toString(const TermList&) const;
-//   string toString(const Atom&) const;
-//   string toString(const Literal&) const;
-//   string toString(const Clause&) const;
-//   string toString(const Formula&) const;
-//   string toString(const Formula&, Connective c) const;
-//   string toString(const Unit&) const;
-//   string toStringAsInference(const Unit&) const;
-// }; // class LaTeX
+  string toString(BDDNode*);
+  string getBDDVarName(int var);
 
-// }
+  Stack<string> definitionStack;
+  int _nextNodeNum;
+  DHMap<BDDNode*,string> _nodeNames;
+}; // class LaTeX
 
-// #endif // _LaTeX__
+
+}
+
+#endif // _LaTeX__
 

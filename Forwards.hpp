@@ -193,6 +193,8 @@ namespace Shell
 {
 class TPTPLexer;
 class TPTPParser;
+
+class LaTeX;
 }
 
 

@@ -1,30 +1,44 @@
-// /**
-//  * Implements class LaTeX translating Vampire data structures 
-//  * into LaTeX.
-//  *
-//  * @since 04/01/2004 Manchester
-//  */
+/**
+ * Implements class LaTeX translating Vampire data structures
+ * into LaTeX.
+ *
+ * @since 04/01/2004 Manchester
+ */
 
-// #include <fstream>
+#include <fstream>
 
 
 // #include "../VL/Int.hpp"
 
 // #include "../VS/SymbolMap.hpp"
 
-// #include "Options.hpp"
-// #include "LaTeX.hpp"
+#include "Options.hpp"
+#include "LaTeX.hpp"
 // #include "Refutation.hpp"
 
-// // #include "Tracer.hpp"
-// // #include "Unit.hpp"
-// // #include "VampireException.hpp"
+#include "../Debug/Tracer.hpp"
+
+#include "../Lib/Environment.hpp"
+#include "../Lib/Exception.hpp"
+#include "../Lib/Int.hpp"
+#include "../Lib/List.hpp"
+
+#include "../Kernel/BDD.hpp"
+#include "../Kernel/Clause.hpp"
+#include "../Kernel/Formula.hpp"
+#include "../Kernel/FormulaUnit.hpp"
+#include "../Kernel/Inference.hpp"
+#include "../Kernel/Signature.hpp"
+#include "../Kernel/Term.hpp"
+#include "../Kernel/Unit.hpp"
 
 // #define KIF_EXPERIMENTS 0
 
-// using namespace VL;
-// using namespace VS;
-// using namespace Shell;
+namespace Shell
+{
+
+using namespace Lib;
+using namespace Kernel;
 
 // /**
 //  * Initialise LaTeX.
@@ -37,337 +51,458 @@
 // } // LaTeX::LaTeX
 
 
-// /**
-//  * Convert the refutation to LaTeX
-//  * @since 04/01/2004 Manchester
-//  */
-// string LaTeX::toString (const Refutation& ref) const
-// {
-//   TRACER("LaTeX::toString (const Refutation& ref)");
+/**
+ * Convert the refutation to LaTeX
+ * @since 04/01/2004 Manchester
+ */
+string LaTeX::refutationToString(Unit* ref)
+{
+  CALL("LaTeX::refutationToString(Unit* ref)");
 
-//   string result = "\\documentclass[fleqn]{article}\n"
-//                   "\\usepackage{fullpage,latexsym}\n"
-//                   "\\input{VampireProofMacros}\n"
-//                   "\\begin{document}\n"
-//                   "\\begin{VampireProof}\n";
+  string res = "\\documentclass[fleqn]{article}\n"
+    "\\usepackage{fullpage,latexsym}\n"
 
-//   VL::Iterator<Unit> units(ref.refutation());
-//   while (units.hasNext()) {
-//     result += toStringAsInference(units.next());
-//   }
+    "\\newenvironment{VampireProof}{%\n"
+    "	\\section{Proof}}{}\n"
+    "\\newenvironment{VampireInference}{%\n"
+    "	\\begin{array}{c}}{\\end{array}}\n"
+    "\\newenvironment{VampireInferencePremises}{}{}\n"
+    "\\newenvironment{VampirePremise}%\n"
+    "	{\\begin{array}{l}}%\n"
+    "	{\\end{array}}\n"
+    "\\newenvironment{VampireConclusion}%\n"
+    "	{\\begin{array}{l}}%\n"
+    "	{\\end{array}}\n"
+    "\\newcommand{\\VampireUnit}[3]{%\n"
+    "	#1.~#2~[#3]}\n"
 
-//   return result + "\\end{VampireProof}\n"
-// 	          "\\end{document}\n";
-// } // LaTeX::toString (const Refutation& ref)
+    "\\newcommand{\\VPremiseSeparator}{\\\\}\n"
+    "\\newcommand{\\VConclusionSeparator}{\\\\ \\hline}\n"
+
+    "\\newcommand{\\Vor}{\\vee}\n"
+    "\\newcommand{\\Vand}{\\wedge}\n"
+    "\\newcommand{\\Vimp}{\\rightarrow}\n"
+    "\\newcommand{\\Viff}{\\leftrightarrow}\n"
+    "\\newcommand{\\Vxor}{\\not\\Viff}\n"
+
+    "\\newcommand{\\VEmptyClause}{\\Box}\n"
+
+    "\\begin{document}\n"
+    "\\begin{VampireProof}\n";
 
 
-// /**
-//  * Convert the formula to LaTeX
-//  *
-//  * @since 12/10/2002 Tbilisi, implemented as ostream output function
-//  * @since 09/12/2003 Manchester
-//  * @since 11/12/2004 Manchester, true and false added
-//  * @since 29/04/2005 Manchester, inequality instead of negation of equality
-//  */
-// string LaTeX::toString (const Formula& f) const
-// {
-//   TRACER("LaTeX::toString (const Formula& f)");
+  BDD* bdd=BDD::instance();
+  InferenceStore* is=InferenceStore::instance();
 
-//   static string names [] =
-//     { "", " \\Vand ", " \\Vor ", " \\Vimp ", " \\Viff ", " \\Vxor ", 
-//       "\\neg ", "\\forall ", "\\exists ", "\bot", "\top"};
+  Stack<InferenceStore::ClauseSpec> outKernel;
+  Set<InferenceStore::ClauseSpec> handledKernel;
+  Stack<Unit*> outShell;
+  Set<Unit*> handledShell;
 
-//   Connective c = f.connective();
-//   string con = names[(int)c];
-//   switch (c) {
-//   case ATOM:
-//     return toString(f.atom());
+  if( ref->isClause() && static_cast<Clause*>(ref)->prop() ) {
+    Clause* refCl=static_cast<Clause*>(ref);
+    ASS( bdd->isFalse(refCl->prop()) );
+    InferenceStore::ClauseSpec cs=InferenceStore::getClauseSpec(refCl);
+    outKernel.push(cs);
+    handledKernel.insert(cs);
+  } else {
+    outShell.push(ref);
+    handledShell.insert(ref);
+  }
 
-//   case AND:
-//   case OR: 
-//     {
-//       string result = toString(f.args().head(),c);
-//       VL::Iterator<Formula> arg (f.args().tail());
-//       while (arg.hasNext()) {
-// 	result += con + toString(arg.next(),c);
-//       }
+  while(outKernel.isNonEmpty()) {
+    InferenceStore::ClauseSpec cs=outKernel.pop();
+    InferenceStore::FullInference* finf;
+    if(bdd->isTrue(cs.second)) {
+      //tautologies should not be printed out
+      ASSERTION_VIOLATION;
+    } else if(is->findInference(cs, finf)) {
+      InferenceStore::SplittingRecord* srec;
+      if(finf->rule==Inference::SPLITTING && is->findSplitting(cs, srec)) {
+	if(!bdd->isTrue(srec->premise.second) && !handledKernel.contains(srec->premise)) {
+	  handledKernel.insert(srec->premise);
+	  outKernel.push(srec->premise);
+	}
+	res+=splittingToString(srec);
+	continue;
+      }
+
+      res+=toStringAsInference(cs, finf);
+
+      for(unsigned i=0;i<finf->premCnt;i++) {
+	InferenceStore::ClauseSpec prem=finf->premises[i];
+	ASS(prem!=cs);
+	Clause* premCl=prem.first;
+	ASS(premCl->prop());
+
+	if(!bdd->isTrue(prem.second) && !handledKernel.contains(prem)) {
+	  handledKernel.insert(prem);
+	  outKernel.push(prem);
+	}
+      }
+
+    } else {
+      Clause* cl=cs.first;
+      Inference* inf = cl->inference();
+
+      res+=toStringAsInference(cl);
+      Inference::Iterator it = inf->iterator();
+      bool first=true;
+      while (inf->hasNext(it)) {
+	Unit* prem=inf->next(it);
+	first=false;
+	if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
+	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
+	  InferenceStore::ClauseSpec premCS=InferenceStore::getClauseSpec(static_cast<Clause*>(prem), bdd->getFalse());
+
+	  if(!handledKernel.contains(premCS)) {
+	    handledKernel.insert(premCS);
+	    outKernel.push(premCS);
+	  }
+	} else {
+	  if(!handledShell.contains(prem)) {
+	    handledShell.insert(prem);
+	    outShell.push(prem);
+	  }
+	}
+      }
+    }
+  }
+
+  while(outShell.isNonEmpty()) {
+    Unit* unit=outShell.pop();
+    Inference* inf = unit->inference();
+
+    res+=toStringAsInference(unit);
+    Inference::Iterator it = inf->iterator();
+    bool first=true;
+    while (inf->hasNext(it)) {
+      Unit* prem=inf->next(it);
+      first=false;
+      if(!handledShell.contains(prem)) {
+	handledShell.insert(prem);
+	outShell.push(prem);
+      }
+    }
+  }
+
+  if(definitionStack.isNonEmpty()) {
+    res+="\\section{BDD Definitions}\n";
+    for(unsigned i=0;i<definitionStack.length();i++) {
+      res+=definitionStack[i];
+    }
+  }
+
+  return res + "\\end{VampireProof}\n"
+    "\\end{document}\n";
+}
+
+
+string LaTeX::toString(Unit* u)
+{
+  CALL("LaTeX::toString(Unit* u)");
+
+  if(u->isClause()) {
+    return toString(static_cast<Clause*>(u));
+  } else {
+    return toString(static_cast<FormulaUnit*>(u)->formula());
+  }
+}
+
+string LaTeX::toString(Unit* u, BDDNode* prop)
+{
+  CALL("LaTeX::toString(Unit* u, BDDNode* prop)");
+
+  if(u->isClause()) {
+    return toString(static_cast<Clause*>(u), prop);
+  } else {
+    ASS(prop==0 || BDD::instance()->isFalse(prop));
+    return toString(static_cast<FormulaUnit*>(u)->formula());
+  }
+}
+
+/**
+ * Convert the formula to LaTeX
+ *
+ * @since 12/10/2002 Tbilisi, implemented as ostream output function
+ * @since 09/12/2003 Manchester
+ * @since 11/12/2004 Manchester, true and false added
+ * @since 29/04/2005 Manchester, inequality instead of negation of equality
+ */
+string LaTeX::toString (Formula* f) const
+{
+  CALL("LaTeX::toString(Formula* f)");
+
+  static string names [] =
+  { "", " \\Vand ", " \\Vor ", " \\Vimp ", " \\Viff ", " \\Vxor ",
+	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top"};
+
+  Connective c = f->connective();
+  string con = names[(int)c];
+  switch (c) {
+  case LITERAL:
+    return toString(f->literal());
+
+  case AND:
+  case OR:
+  {
+    FormulaList::Iterator arg(f->args());
+    ASS(arg.hasNext());
+    string result = toString(arg.next(),c);
+    while (arg.hasNext()) {
+      result += con + toString(arg.next(),c);
+    }
+    return result;
+  }
+
+  case IMP:
+  case IFF:
+  case XOR:
+    return toString(f->left(),c) + con + toString(f->right(),c);
+
+  case NOT:
+    if (f->uarg()->connective() == LITERAL &&
+	    f->uarg()->literal()->isEquality()) {
+      Literal* l = f->uarg()->literal();
+      return toString(l->nthArgument(0)) + " \\neq " + toString(l->nthArgument(1));
+    }
+    return con + toString(f->uarg(),c);
+
+  case FORALL:
+  case EXISTS:
+  {
+    string result("(");
+    Formula::VarList::Iterator vs(f->vars());
+    while (vs.hasNext()) {
+      result += con + varToString(vs.next()) + string(" ");
+    }
+    return result + ")" + toString(f->qarg(),c);
+  }
+
+  case FALSE:
+  case TRUE:
+    return con;
+
+#if VDEBUG
+  default:
+    ASSERTION_VIOLATION;
+#endif
+  }
+} // LaTeX::toString (const Formula&)
+
+/**
+ * Convert the formula in scope of another formula
+ * to LaTeX.
+ * @param f the formula
+ * @param outer connective of the outer formula
+ * @since 09/12/2003 Manchester
+ */
+string LaTeX::toString (Formula* f, Connective outer) const
+{
+  CALL("LaTeX::toString (Formula* f, Connective outer)");
+
+  return f->parenthesesRequired(outer) ?
+	  string("(") + toString(f) + ")" :
+	  toString(f);
+} // LaTeX::toString (const Formula&, Connective outer)
+
+
+/**
+ * Convert clause to LaTeX.
+ */
+string LaTeX::toString (Clause* c)
+{
+  CALL("LaTeX::toString (Clause* c)");
+
+  return toString(c,c->prop());
+} // LaTeX::toString (const Clause& c)
+/**
+ * Convert clause to LaTeX.
+ * @since 23/10/2003 Manchester, implemented as stream output function
+ * @since 09/12/2003 Manchester
+ */
+string LaTeX::toString (Clause* c, BDDNode* prop)
+{
+  CALL("LaTeX::toString (Clause* c)");
+
+  string result;
+
+  if (c->isEmpty()) {
+    result = "\\VEmptyClause";
+  }
+  else {
+    result = toString((*c)[0]);
+
+    unsigned clen=c->length();
+    for(unsigned i=1;i<clen;i++) {
+      result += string(" \\Vor ") + toString((*c)[i]);
+    }
+  }
+
+  if(prop && !BDD::instance()->isFalse(prop)) {
+    result += string(" \\Vor ") + toString(prop);
+  }
+
+  return result;
+} // LaTeX::toString (const Clause& c)
+
+
+/**
+ * Convert literal to LaTeX.
+ * @since 09/12/2003 Manchester
+ */
+string LaTeX::toString (Literal* l) const
+{
+  CALL("LaTeX::toString (Literal* l)");
+
+  if (l->isEquality()) {
+    if (l->isNegative()) {
+      return toString(l->nthArgument(0)) + " \\neq " + toString(l->nthArgument(1));
+    }
+    else {
+      return toString(l->nthArgument(0)) + "=" + toString(l->nthArgument(1));
+    }
+  }
+
+//   if (_map) {
+//     string result;
+//     if (_map->toString(a,*this,result)) {
 //       return result;
 //     }
-
-//   case IMP:
-//   case IFF:
-//   case XOR:
-//     return toString(f.left(),c) + con + toString(f.right(),c);
-
-//   case NOT:
-//     if (f.uarg().connective() == ATOM &&
-// 	f.uarg().atom().isEquality()) {
-//       const TermList& ts = f.uarg().atom().args();
-//       return toString(ts.head()) + " \\neq " + toString(ts.second());
-//     }
-//     return con + toString(f.uarg(),c);
-
-//   case FORALL:
-//   case EXISTS:
-//     {
-//       string result("(");
-//       VL::Iterator<Var> vs(f.vars());
-//       while (vs.hasNext()) {
-// 	result += con + toString(vs.next()) + string(" ");
-//       }
-//       return result + ")" + toString(f.qarg(),c);
-//     }
-
-//   case FALSE:
-//   case TRUE:
-//     return con;
-
-// #if VDEBUG
-//   default:
-//     ASSERTION_VIOLATION;
-// #endif
-//   }
-// } // LaTeX::toString (const Formula&)
-
-// /**
-//  * Convert the formula in scope of another formula 
-//  * to LaTeX.
-//  * @param f the formula
-//  * @param outer connective of the outer formula
-//  * @since 09/12/2003 Manchester
-//  */
-// string LaTeX::toString (const Formula& f, Connective outer) const
-// {
-//   TRACER("LaTeX::toString (const Formula& f, Connective outer)");
-
-//   return f.parenthesesRequired(outer) ?
-//          string("(") + toString(f) + ")" :
-//          toString(f);
-// } // LaTeX::toString (const Formula&, Connective outer)
-
-
-// /**
-//  * Convert clause to LaTeX.
-//  * @since 23/10/2003 Manchester, implemented as stream output function
-//  * @since 09/12/2003 Manchester
-//  */
-// string LaTeX::toString (const Clause& c) const
-// {
-//   TRACER("LaTeX::toString (const Clause& c)");
-
-//   if (c.isEmpty()) {
-//     return "\\VEmptyClause";
 //   }
 
-//   string result = toString(c.literals().head());
+  string res;
 
-//   VL::Iterator<Literal> lits (c.literals().tail());
-//   while (lits.hasNext()) {
-//     result += string(" \\Vor ") + toString(lits.next());
-//   }
-//   return result;
-// } // LaTeX::toString (const Clause& c)
+  if (l->isNegative()) {
+    res="\\neg ";
+  }
+  res+=symbolToString(l->functor(), true) + toString(l->args());
 
-
-// /**
-//  * Convert literal to LaTeX.
-//  * @since 09/12/2003 Manchester
-//  */
-// string LaTeX::toString (const Literal& l) const
-// {
-//   TRACER("LaTeX::toString (const Literal& l)");
-
-//   if (l.isPositive()) {
-//     return toString(l.atom());
-//   }
-//   Atom a(l.atom());
-//   if (a.isEquality()) {
-//     TermList ts (a.args());
-//     return toString(ts.head()) + " \\neq " + toString(ts.second());
-//   }
-//   return string("\\neg ") + toString(a);
-// } // LaTeX::toString (const Literal& l)
+  return res;
+} // LaTeX::toString (const Literal& l)
 
 
-// /**
-//  * Otput function or predicate symbol in LaTeX
-//  *
-//  * @since 05/10/2002 Manchester
-//  * @since 23/10/2002 Manchester, changed to handle special KIF names
-//  * @since 09/09/2003 Manchester, changed to use string instead of char*
-//  * @since 25/07/2005 Tallinn, changed to parse the name symbol by symbol
-//  */
-// string LaTeX::toString (const Symbol& s) const
-// {
-//   TRACER("LaTeX::toString (const Symbol& s)");
+/**
+ * Output function or predicate symbol in LaTeX
+ *
+ * @since 05/10/2002 Manchester
+ * @since 23/10/2002 Manchester, changed to handle special KIF names
+ * @since 09/09/2003 Manchester, changed to use string instead of char*
+ * @since 25/07/2005 Tallinn, changed to parse the name symbol by symbol
+ */
+string LaTeX::symbolToString (unsigned num, bool pred) const
+{
+  CALL("LaTeX::symbolToString (unsigned num, bool pred)");
 
-//   string symbolName; // the name of this symbol, if any
-//   switch (s.kind()) {
-//   case Symbol::Function:
-//     {
-//       const FunctionSymbol& f = static_cast<const FunctionSymbol&>(s);
-//       if (f.isSkolemFunction()) {
-// 	return (string)"\\sigma_{" + Int::toString(f.number()) + "}";
-//       }
-//       symbolName = f.name();
-//     }
-//     break;
+  string symbolName; // the name of this symbol, if any
 
-//   case Symbol::Predicate:
-//     {
-//       const PredicateSymbol& p = static_cast<const PredicateSymbol&>(s);
-//       if (p.isName()) {
-// 	return (string)"\\delta_{" + Int::toString(p.number()) + "}";
-//       }
-//       if (p.isAnswer()) {
-// 	return "\\mathit{answer}";
-//       }
-//       symbolName = p.name();
-//     }
-//     break;
+  if(pred) {
+    symbolName = env.signature->predicateName(num);
+  }
+  else {
+//    if (f.isSkolemFunction()) {
+//      return (string)"\\sigma_{" + Int::toString(f.number()) + "}";
+//    }
+    symbolName = env.signature->functionName(num);
+  }
 
-//   case Symbol::Integer:
-//     {
-//       const IntegerConstant& i = static_cast<const IntegerConstant&>(s);
-//       return Int::toString(i.value());
-//     }
+  // cut names longer than 8000 symbols
+#define LENGTH 8004
+  char newName[LENGTH]; // LaTeX name of this symbol
+  char* name = newName;
+  const char* nm = symbolName.substr(0,8000).c_str();
+  // finding end of the name
+  const char* end = nm;
+  while (*end) {
+    end++;
+  }
+  // finding the tail consisting only of digits and turning it into
+  // the LaTeX index
+  const char* digits = end;
+  while (nm != digits) {
+    if (digits[-1] >= '0' && digits[-1] <= '9') {
+      digits--;
+    }
+    else {
+      break;
+    }
+  }
+  if (digits == nm) { // digit-only name
+    return symbolName;
+  }
+  while (nm < digits) {
+    switch (*nm) {
+    case '$':
+    case '_':
+      *name++ = '\\';
+      *name++ = *nm;
+      break;
+    default:
+      *name++ = *nm;
+      break;
+    }
+    nm++;
+  }
+  if (digits == end) {
+    *name = 0;
+    return string("\\mathit{") + newName + '}';
+  }
+  // copy digits as an index
+  *name++ = '_';
+  *name++ = '{';
+  while (digits != end) {
+    *name++ = *digits++;
+  }
+  *name++ = '}';
+  *name = 0;
+  return string("\\mathit{") + newName + '}';
+}
 
-//   case Symbol::Real:
-//     {
-//       const RealConstant& r = static_cast<const RealConstant&>(s);
-//       return Int::toString(r.value());
-//     }
 
-//   case Symbol::String:
-//     {
-//       const StringConstant& str = static_cast<const StringConstant&>(s);
-//       symbolName = string("``") + str.value() + "\'\'";
-//     }
+/**
+ * Convert term list to LaTeX.
+ * @since 09/12/2003 Manchester
+ */
+string LaTeX::toString (TermList* terms) const
+{
+  CALL("LaTeX::toString (TermList* terms)");
 
-// #if VDEBUG
-//   default:
-//     ASSERTION_VIOLATION;
-// #endif
-//   }
+  if (terms->isEmpty()) {
+    return "";
+  }
 
-//   // cut names longer than 8000 symbols
-// #define LENGTH 8004
-//   char newName[LENGTH]; // LaTeX name of this symbol
-//   char* name = newName;
-//   const char* nm = symbolName.c_str();
-//   // finding end of the name
-//   const char* end = nm;
-//   while (*end) {
-//     end++;
-//   }
-//   // finding the tail consisting only of digits and turning it into
-//   // the LaTeX index
-//   const char* digits = end;
-//   while (nm != digits) {
-//     if (digits[-1] >= '0' && digits[-1] <= '9') {
-//       digits--;
-//     }
-//     else {
-//       break;
+  string result = string("(");
+  bool first=true;
+  TermList* t=terms;
+  while(t->isNonEmpty()) {
+//   if (_map) {
+//     string result;
+//     if (_map->toString(t,*this,result)) {
+//       return result;
 //     }
 //   }
-//   if (digits == nm) { // digit-only name
-//     return symbolName;
-//   }
-//   while (nm < digits) {
-//     switch (*nm) {
-//     case '$':
-//     case '_':
-//       *name++ = '\\';
-//       *name++ = *nm;
-//       break;
-//     default:
-//       *name++ = *nm;
-//       break;
-//     }
-//     nm++;
-//   }
-//   if (digits == end) {
-//     *name = 0;
-//     return string("\\mathit{") + newName + '}';
-//   }
-//   // copy digits as an index
-//   *name++ = '_';
-//   *name++ = '{';
-//   while (digits != end) {
-//     *name++ = *digits++;
-//   }
-//   *name++ = '}';
-//   *name = 0;
-//   return string("\\mathit{") + newName + '}';
-// } // LaTeX::toString (const Symbol& s)
+    if(t->isVar()) {
+      ASS(t->isOrdinaryVar());
+
+    }
+    else {
+      ASS(t->isTerm());
+      Term* trm=t->term();
+      result += symbolToString(trm->functor(), false) + toString(trm->args());
+    }
+
+    t=t->next();
+    if(first) {
+      first=false;
+    }
+    else if(t->isNonEmpty()){
+      result += ",";
+    }
+  }
+  return result + ")";
+}
 
 
-// /**
-//  * Convert term to a string using the LaTeX syntax.
-//  * @since 09/12/2003 Manchester
-//  */
-// string LaTeX::toString (const Term& t) const
-// {
-//   TRACER("LaTeX::toString (const Term& t)");
-
-// //   if (_map) {
-// //     string result;
-// //     if (_map->toString(t,*this,result)) {
-// //       return result;
-// //     }
-// //   }
-//   if (t.isVar()) {
-//     return toString(t.var());
-//   }
-
-//   return toString(t.functor()) + toString(t.args());
-// } // LaTeX::toString (const Term& t)
-
-
-// /**
-//  * Convert term list to LaTeX.
-//  * @since 09/12/2003 Manchester
-//  */
-// string LaTeX::toString (const TermList& terms) const
-// {
-//   TRACER("LaTeX::toString (const TermList& terms)");
-
-//   if (terms.isEmpty()) {
-//     return "";
-//   }
-//   string result = string("(") + toString(terms.head());
-//   VL::Iterator<Term> ts (terms.tail());
-//   while (ts.hasNext()) {
-//     result += ",";
-//     result += toString(ts.next());
-//   }
-//   return result + ")";
-// } // LaTeX::toString (const TermList& terms)
-
-
-// /**
-//  * Convert the atom to LaTeX.
-//  * @since 09/12/2003 Manchester
-//  */
-// string LaTeX::toString (const Atom& a) const
-// {
-//   TRACER("LaTeX::toString (const Atom& a)");
-
-// //   if (_map) {
-// //     string result;
-// //     if (_map->toString(a,*this,result)) {
-// //       return result;
-// //     }
-// //   }
-
-//   TermList ts(a.args());
-//   if (a.isEquality()) {
-//     return toString(ts.head()) + "=" + toString(ts.second());
-//   }
-
-//   return toString(a.functor()) + toString(ts);
-// } // LaTeX::toString (const Atom& a)
 
 // /**
 //  * Convert unit to LaTeX.
@@ -392,108 +527,184 @@
 //   }
 // } // LaTeX::toString (const Unit& u)
 
+string LaTeX::getClauseLatexId(InferenceStore::ClauseSpec cs)
+{
+  return Int::toString(cs.first->number())+"_{"+InferenceStore::instance()->getClauseIdSuffix(cs)+"}";
+}
 
-// /**
-//  * Convert inference to LaTeX.
-//  * @since 23/10/2002 Manchester, as stream output function
-//  * @since 09/12/2003 Manchester
-//  */
-// string LaTeX::toStringAsInference (const Unit& u) const
-// {
-// //   TRACER("LaTeX::toStringAsInference (const Unit& u)");
+string LaTeX::toStringAsInference(InferenceStore::ClauseSpec cs, InferenceStore::FullInference* inf)
+{
+  CALL("LaTeX::toStringAsInference(ClauseSpec,FullInference*)");
 
-// //   UnitList parents(u.parents());
-// //   string result = "[$";
+  string res("[$");
 
-// //   VL::Iterator<Unit> ps1 (parents);
-// //   while (ps1.hasNext()) {
-// //     result += Int::toString(ps1.next().number());
-// //     if (ps1.hasNext()) {
-// //       result += ",";
-// //     }
-// //   }
-// //   if (parents.isNonEmpty()) {
-// //     result += "\\rightarrow ";
-// //   }
-// //   const Inference& inf = u.inference();
-// //   string infString = inf.rule() == IR_KERNEL ?
-// //     inf.rulesAsString() :
-// //     Inference::toString(inf.rule());
+  bool hasParents=inf->premCnt;
+  for(unsigned i=0;i<inf->premCnt;i++) {
+    InferenceStore::ClauseSpec prem=inf->premises[i];
+    res += getClauseLatexId(prem);
+    if(i+1<inf->premCnt) {
+	res += ",";
+    }
+  }
+  if(hasParents) {
+    res += "\\rightarrow ";
+  }
+  res += getClauseLatexId(cs)
+    +"$, "+Inference::ruleName(inf->rule)+"]\\\\*[-2ex]\n";
 
-// //   result += Int::toString(u.number()) + "$, " + 
-// //     infString + "]\\\\*[-2ex]\n";
+  res += "\\[\\begin{VampireInference}\n";
 
-// //   // premises
-// //   result += "\\[\\begin{VampireInference}\n";
+  if(hasParents) {
+    for(unsigned i=0;i<inf->premCnt;i++) {
+      InferenceStore::ClauseSpec prem=inf->premises[i];
+      res += "\\begin{VampirePremise}%\n~~";
+      res += toString(prem.first,prem.second);
+      res += "\n\\end{VampirePremise}\n";
+      if(i+1<inf->premCnt) {
+	res += "\\VPremiseSeparator\n";
+      }
+    }
+    res += "\\VConclusionSeparator\n";
+  }
 
-// //   if (parents.isNonEmpty()) {
-// //     VL::Iterator<Unit> ps (parents);
-// //     while (ps.hasNext()) {
-// //       Unit premise (ps.next());
-// //       result += "\\begin{VampirePremise}%\n~~";
-// //       switch (premise.unitType()) {
-// //       case CLAUSE:
-// // 	result += toString(premise.clause());
-// // 	break;
-// //       case FORMULA:
-// // 	result += toString(premise.formula());
-// // 	break;
-// //       }
-// //       result += "\n\\end{VampirePremise}\n";
-// //       if (ps.hasNext()) {
-// // 	result += "\\VPremiseSeparator\n";
-// //       }
-// //     }
-// //     result += "\\VConclusionSeparator\n";
-// //   }
+  res += "\\begin{VampireConclusion}\n~~";
 
-// //   // conclusion
-// //   result += "\\begin{VampireConclusion}\n~~";
-// //   switch (u.unitType()) {
-// //   case CLAUSE:
-// //     result += toString(u.clause());
-// //     break;
-// //   case FORMULA:
-// //     result += toString(u.formula());
-// //     break;
-// //   }
+  res += toString(cs.first,cs.second);
 
-// //   return result + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
-// } // LaTeX::toStringAsInference (const Unit& u)
+  return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
+}
+
+/**
+ * Convert inference without propositional part to LaTeX.
+ * @since 23/10/2002 Manchester, as stream output function
+ * @since 09/12/2003 Manchester
+ */
+string LaTeX::toStringAsInference(Unit* unit)
+{
+  CALL("LaTeX::toStringAsInference(Unit* unit)");
+
+  Inference* inf = unit->inference();
+
+  string res("[$");
+
+  bool hasParents=false;
+  Inference::Iterator it = inf->iterator();
+  while (inf->hasNext(it)) {
+    hasParents=true;
+    Unit* prem=inf->next(it);
+    res += Int::toString(prem->number());
+    if(inf->hasNext(it)) {
+	res += ",";
+    }
+  }
+  if(hasParents) {
+    res += "\\rightarrow ";
+  }
+  res += Int::toString(unit->number())+"$, "+Inference::ruleName(inf->rule())+"]\\\\*[-2ex]\n";
+
+  res += "\\[\\begin{VampireInference}\n";
+
+  if(hasParents) {
+    it = inf->iterator();
+    while (inf->hasNext(it)) {
+	Unit* prem=inf->next(it);
+      res += "\\begin{VampirePremise}%\n~~";
+      res += toString(prem,0);
+      res += "\n\\end{VampirePremise}\n";
+	if(inf->hasNext(it)) {
+	  res += "\\VPremiseSeparator\n";
+	}
+    }
+    res += "\\VConclusionSeparator\n";
+  }
+
+  res += "\\begin{VampireConclusion}\n~~";
+
+  res += toString(unit,0);
+
+  return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
+}
+
+string LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
+{
+  CALL("LaTeX::splittingToString");
+
+  string res("[$");
+  res += getClauseLatexId(sr->premise);
 
 
-// /**
-//  * Convert variable to LaTeX.
-//  * @since 09/12/2003 Manchester
-//  * @since 17/9/2005 flight Chicago-Frankfurt, row variables case added
-//  */
-// string LaTeX::toString (Var v) const
-// {
-//   TRACER("LaTeX::toString (Var v)");
+  Stack<pair<int,Clause*> >::Iterator ncit(sr->namedComps);
+  while(ncit.hasNext()) {
+    res += string(",")+Int::toString(ncit.next().second->number())+"_D";
+  }
+  res += "\\rightarrow ";
+  res += getClauseLatexId(sr->result)
+    +"$, "+Inference::ruleName(Inference::SPLITTING)+"]\\\\*[-2ex]\n";
 
-//   if (v.toInt() < 0) { // row variable
-//     return string("@_{") + Int::toString(-v.toInt()) + "}";
-//   }
-// #if KIF_EXPERIMENTS
-//   switch (v.toInt()) {
-//   case 0:
-//     return "x";
-//   case 1:
-//     return "y";
-//   case 2:
-//     return "z";
-//   case 3:
-//     return "u";
-//   case 4:
-//     return "v";
-//   case 5:
-//     return "w";
-//   default:
-//     break;
-//   }
-// #endif
-//   return string("x_{") + Int::toString(v.toInt()) + "}";
-// } // LaTeX::toString (Var v)
+
+  res += "\\[\\begin{VampireInference}\n";
+
+  res += "\\begin{VampirePremise}%\n~~";
+  res += toString(sr->premise.first,sr->premise.second);
+  res += "\n\\end{VampirePremise}\n";
+
+  Stack<pair<int,Clause*> >::Iterator ncit2(sr->namedComps);
+  while(ncit2.hasNext()) {
+    pair<int,Clause*> nrec=ncit2.next();
+    res += "\\VPremiseSeparator\n";
+    res += "\\begin{VampirePremise}%\n~~";
+    if(nrec.first>0) {
+      res += getBDDVarName(nrec.first);
+    }
+    else {
+      res += "\\neg " + getBDDVarName(-nrec.first);
+    }
+    res += "\\Viff" + toString(nrec.second,0);
+    res += "\n\\end{VampirePremise}\n";
+  }
+  res += "\\VConclusionSeparator\n";
+
+  res += "\\begin{VampireConclusion}\n~~";
+
+  res += toString(sr->result.first,sr->result.second);
+
+  return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
+}
+
+
+
+/**
+ * Convert variable to LaTeX.
+ * @since 09/12/2003 Manchester
+ * @since 17/9/2005 flight Chicago-Frankfurt, row variables case added
+ */
+string LaTeX::varToString (unsigned num) const
+{
+  CALL("LaTeX::varToString (unsigned num)");
+
+//  if (v.toInt() < 0) { // row variable
+//    return string("@_{") + Int::toString(-v.toInt()) + "}";
+//  }
+//#if KIF_EXPERIMENTS
+//  switch (v.toInt()) {
+//  case 0:
+//    return "x";
+//  case 1:
+//    return "y";
+//  case 2:
+//    return "z";
+//  case 3:
+//    return "u";
+//  case 4:
+//    return "v";
+//  case 5:
+//    return "w";
+//  default:
+//    break;
+//  }
+//#endif
+  return string("x_{") + Int::toString(num) + "}";
+} // LaTeX::toString (Var v)
 
 
 // /**
@@ -532,3 +743,71 @@
 // {
 //   return funOrPred + toString(args);
 // }
+
+
+string LaTeX::getBDDVarName(int var)
+{
+  CALL("LaTeX::getBDDVarName(int var)");
+
+  string name;
+  if(BDD::instance()->getNiceName(var, name)) {
+    return string("\\mathit{") + name + '}';
+  }
+  return string("\\mathit{b_{") + Int::toString(var) + "}}";
+}
+
+string LaTeX::toString(BDDNode* node)
+{
+  CALL("LaTeX::toString(BDDNode*)");
+
+  BDD* inst=BDD::instance();
+
+  //predicate and function symbols are mixed here, but it's how I understood it should be done
+  if(inst->isTrue(node)) {
+    return "\\top";
+  }
+  if(inst->isFalse(node)) {
+    return "\\bot";
+  }
+
+  string name;
+  if(_nodeNames.find(node, name)) {
+    return name;
+  }
+
+
+  string propPred=getBDDVarName(node->_var);
+  if(inst->isTrue(node->_pos) && inst->isFalse(node->_neg)) {
+    return propPred;
+  }
+  else if(inst->isFalse(node->_pos) && inst->isTrue(node->_neg)) {
+    return "\\neg "+propPred;
+  }
+  else if(inst->isTrue(node->_pos)) {
+    return "("+propPred+" \\Vor "+toString(node->_neg)+")";
+  }
+  else if(inst->isFalse(node->_neg)) {
+    return "("+propPred+" \\Vand "+toString(node->_pos)+")";
+  }
+  else if(inst->isFalse(node->_pos)) {
+    return "(\\neg "+propPred+" \\Vand "+toString(node->_neg)+")";
+  }
+  else if(inst->isTrue(node->_neg)) {
+    return "(\\neg "+propPred+" \\Vor "+toString(node->_pos)+")";
+  }
+  else {
+    string posDef=toString(node->_pos);
+    string negDef=toString(node->_neg);
+
+    string name=string("\\mathit{n_{") + Int::toString(_nextNodeNum++) + "}}";
+    string report="$"+name+" \\Viff ("+propPred+" ? "+posDef+" : "+negDef+")$\\\\\n";
+    definitionStack.push(report);
+    ALWAYS(_nodeNames.insert(node, name));
+
+    return name;
+  }
+
+}
+
+
+}

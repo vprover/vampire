@@ -55,6 +55,33 @@ public:
     BDDNode* second;
   };
 
+  struct FullInference
+  {
+    FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { ASS_L(premCnt, 0xFFFF); }
+
+    void* operator new(size_t,unsigned premCnt)
+    {
+      size_t size=sizeof(FullInference)+premCnt*sizeof(ClauseSpec);
+      size-=sizeof(ClauseSpec);
+
+      return ALLOC_KNOWN(size,"InferenceStore::FullInference");
+    }
+
+    size_t occupiedBytes()
+    {
+      size_t size=sizeof(FullInference)+premCnt*sizeof(ClauseSpec);
+      size-=sizeof(ClauseSpec);
+      return size;
+    }
+
+    void increasePremiseRefCounters();
+
+    int csId;
+    unsigned premCnt : 16;
+    Inference::Rule rule : 16;
+    ClauseSpec premises[1];
+  };
+
 
   //An ugly hack, done just to get it working a few days before CASC deadline:)
   class SplittingRecord
@@ -90,16 +117,28 @@ public:
 
   void deleteClauseRecords(Clause* cl);
 
+  std::string getClauseIdStr(ClauseSpec cs);
+  std::string getClauseIdSuffix(ClauseSpec cs);
+
+  bool findInference(ClauseSpec cs, FullInference*& finf)
+  {
+    return _data.find(cs,finf);
+  }
+
+  bool findSplitting(ClauseSpec cs, SplittingRecord*& srec)
+  {
+    return _splittingRecords.find(cs,srec);
+  }
+
+
 private:
   InferenceStore();
 
-
-  struct FullInference;
   struct ProofPrinter;
   struct TPTPProofCheckPrinter;
+  struct LatexProofPrinter;
 
 
-  std::string getClauseIdStr(ClauseSpec cs);
 
 
   /**
