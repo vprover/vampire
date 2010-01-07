@@ -23,6 +23,8 @@ namespace Kernel {
 
 using namespace Lib;
 
+typedef SharedSet<unsigned> SplitSet;
+
 /**
  * Class to represent clauses.
  * @since 10/05/2007 Manchester
@@ -66,20 +68,7 @@ public:
     REACTIVATED = 5u
   };
 
-  /** New unit of a given kind */
-  Clause(unsigned length,InputType it,Inference* inf)
-    : Unit(Unit::CLAUSE,inf,it),
-      _length(length),
-      _color(COLOR_INVALID),
-      _selected(0),
-      _age(0),
-      _weight(0),
-      _store(NONE),
-      _inferenceRefCnt(0),
-      _literalPositions(0),
-      _prop(0),
-      _auxTimestamp(0)
-  {}
+  Clause(unsigned length,InputType it,Inference* inf);
 
   /** Should never be used, declared just to get rid of compiler warning */
   virtual ~Clause() { ASSERTION_VIOLATION; }
@@ -192,6 +181,8 @@ public:
   /** Return the propositional part of the clause */
   BDDNode* prop() const { return _prop; }
 
+  SplitSet* splits() const { return _splits; }
+
   void setProp(BDDNode* prop);
 
   VirtualIterator<string> toSimpleClauseStrings();
@@ -279,6 +270,8 @@ protected:
 
   /** propositional part of the Clause */
   BDDNode* _prop;
+
+  SplitSet* _splits;
 
   size_t _auxTimestamp;
   void* _auxData;

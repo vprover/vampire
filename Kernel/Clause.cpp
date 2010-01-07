@@ -11,6 +11,7 @@
 #include "../Lib/DArray.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/SharedSet.hpp"
 #include "../Lib/Stack.hpp"
 
 #include "../SAT/SATClause.hpp"
@@ -33,6 +34,24 @@ size_t Clause::_auxCurrTimestamp = 0;
 #if VDEBUG
 bool Clause::_auxInUse = false;
 #endif
+
+
+/** New clause */
+Clause::Clause(unsigned length,InputType it,Inference* inf)
+  : Unit(Unit::CLAUSE,inf,it),
+    _length(length),
+    _color(COLOR_INVALID),
+    _selected(0),
+    _age(0),
+    _weight(0),
+    _store(NONE),
+    _inferenceRefCnt(0),
+    _literalPositions(0),
+    _prop(0),
+    _splits(SplitSet::getEmpty()),
+    _auxTimestamp(0)
+{
+}
 
 /**
  * Allocate a clause having lits literals.

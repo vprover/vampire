@@ -21,7 +21,8 @@ template<typename T> class SingleParamEvent;
 template<class C> class DArray;
 template<class C> class Stack;
 template<typename T> class List;
-template <typename T, class Comparator> class BinaryHeap;
+template<typename T, class Comparator> class BinaryHeap;
+template<typename T> class SharedSet;
 
 template<typename T> class ArrayishObjectIterator;
 
