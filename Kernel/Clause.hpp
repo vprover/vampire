@@ -23,8 +23,6 @@ namespace Kernel {
 
 using namespace Lib;
 
-typedef SharedSet<unsigned> SplitSet;
-
 /**
  * Class to represent clauses.
  * @since 10/05/2007 Manchester
@@ -180,10 +178,10 @@ public:
 
   /** Return the propositional part of the clause */
   BDDNode* prop() const { return _prop; }
+  void setProp(BDDNode* prop);
 
   SplitSet* splits() const { return _splits; }
-
-  void setProp(BDDNode* prop);
+  void setSplits(SplitSet* splits) { _splits=splits; }
 
   VirtualIterator<string> toSimpleClauseStrings();
 

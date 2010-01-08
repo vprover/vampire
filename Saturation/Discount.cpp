@@ -35,6 +35,8 @@ SaturationResult Discount::saturate()
   handleSaturationStart();
 
   for (;;) {
+    newClausesToUnprocessed();
+
     int counter=0;
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
@@ -48,6 +50,8 @@ SaturationResult Discount::saturate()
 	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
       }
+
+      newClausesToUnprocessed();
 
       if(++counter==100) {
 	counter=0;

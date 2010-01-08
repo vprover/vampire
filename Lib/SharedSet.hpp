@@ -32,12 +32,23 @@ public:
 
   inline bool isEmpty() const { return !_size; }
 
-  inline T operator[] (int n) const
+  inline T operator[] (size_t n) const
   {
     CALL("SharedSet::operator[]");
     ASS_L(n,size());
 
     return _items[n];
+  }
+
+  /**
+   * Return value of the item in a singleton set
+   */
+  inline T sval() const
+  {
+    CALL("SharedSet::sval");
+    ASS_EQ(size(),1);
+
+    return (*this)[0];
   }
 
   SharedSet* getUnion(SharedSet* s)
@@ -49,8 +60,8 @@ public:
 
     T* p1=_items;
     T* p2=s->_items;
-    T* p1e=size();
-    T* p2e=s->size();
+    T* p1e=p1+size();
+    T* p2e=p2+s->size();
 
     while(p1!=p1e && p2!=p2e) {
       if(*p1==*p2) {
@@ -95,8 +106,8 @@ public:
 
     T* p1=_items;
     T* p2=s->_items;
-    T* p1e=size();
-    T* p2e=s->size();
+    T* p1e=p1+size();
+    T* p2e=p2+s->size();
 
     while(p1!=p1e && p2!=p2e) {
       if(*p1==*p2) {
@@ -167,11 +178,11 @@ private:
   T _items[1];
 
 
-  static bool equals(T* arr1, T* arr2, size_t len)
+  static bool equals(const T* arr1, const T* arr2, size_t len)
   {
     CALL("SharedSet::equals(T*,T*,size_t)");
 
-    T* arr1e=arr1+len;
+    const T* arr1e=arr1+len;
     while(arr1!=arr1e) {
       if(*arr1!=*arr2) {
 	return false;
@@ -181,12 +192,12 @@ private:
     }
     return true;
   }
-  static unsigned hash(T* arr, size_t len)
+  static unsigned hash(const T* arr, size_t len)
   {
     CALL("SharedSet::hash(T*,size_t)");
 
     unsigned res=1234567890; //arbitrary number, hopefully won't cause problems:)
-    T* arre=arr+len;
+    const T* arre=arr+len;
     while(arr!=arre) {
       res=Hash::hash(*arr,res);
       arr++;
@@ -198,14 +209,14 @@ private:
   {
     CALL("SharedSet::create");
 
-    size_t sz=is->size();
+    size_t sz=is.size();
 
     if(!sz) {
       return getEmpty();
     }
 
     SharedSet* res;
-    if(_sharing.find(is,res)) {
+    if(getSStruct().find<const ItemStack&>(is,res)) {
       return res;
     }
 
@@ -214,7 +225,7 @@ private:
       res->_items[i]=is[i];
     }
 
-    _sharing.insert(res);
+    getSStruct().insert(res);
     return res;
   }
 
@@ -235,19 +246,26 @@ public:
 
   static bool equals(const SharedSet* s1,const ItemStack& is)
   {
-    if(s1->size()!=is->size()) {
+    if(s1->size()!=is.size()) {
       return false;
     }
-    return equals(s1->_items, is->begin(), s1->size());
+    return equals(s1->_items, is.begin(), s1->size());
   }
 
   static unsigned hash(const ItemStack& is)
   {
-    return hash(is->begin(), is->size());
+    return hash(is.begin(), is.size());
   }
 
 
-  static Set<SharedSet> _sharing;
+private:
+  typedef Set<SharedSet*, SharedSet> SharingStruct;
+
+  static SharingStruct& getSStruct()
+  {
+    static SharingStruct sstruct;
+    return sstruct;
+  }
 
 };
 

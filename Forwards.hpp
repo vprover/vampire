@@ -104,6 +104,10 @@ typedef Lib::SmartPtr<Ordering> OrderingSP;
 class BDD;
 class BDDNode;
 
+typedef unsigned SplitLevel;
+typedef SharedSet<SplitLevel> SplitSet;
+
+
 /**
  * Color of a term
  *

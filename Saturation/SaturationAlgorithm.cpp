@@ -394,6 +394,9 @@ void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
  */
 void SaturationAlgorithm::handleSaturationStart()
 {
+  CALL("SaturationAlgorithm::handleSaturationStart");
+
+  _bsplitter.init(this);
   _startTime=env.timer->elapsedMilliseconds();
 }
 
@@ -432,7 +435,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   if(env.options->sos() && cl->inputType()==Clause::AXIOM) {
     addInputSOSClause(cl);
   } else {
-    addUnprocessedClause(cl);
+    addNewClause(cl);
   }
 
   env.statistics->initialClauses++;
@@ -663,6 +666,28 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl)
   } while(simplified);
 
   return cl;
+}
+
+/**
+ * Add a new clause to the saturation algorithm run
+ *
+ * At some point of the algorithm loop the @b newClausesToUnprocessed function
+ * is called and all new clauses are added to the unprocessed container.
+ */
+void SaturationAlgorithm::addNewClause(Clause* cl)
+{
+  CALL("SaturationAlgorithm::addNewClause");
+
+  _newClauses.push(cl);
+}
+
+void SaturationAlgorithm::newClausesToUnprocessed()
+{
+  CALL("SaturationAlgorithm::newClausesToUnprocessed");
+
+  while(_newClauses.isNonEmpty()) {
+    addUnprocessedClause(_newClauses.pop());
+  }
 }
 
 
@@ -984,7 +1009,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   }
   ClauseIterator replacements=performer.clausesToAdd();
   while(replacements.hasNext()) {
-    addUnprocessedClause(replacements.next());
+    addNewClause(replacements.next());
   }
 
   //TODO: hack that only clauses deleted by forward simplification are destroyed (other destruction needs debugging)
@@ -1065,7 +1090,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       }
 
       if(replacement) {
-	addUnprocessedClause(replacement);
+	addNewClause(replacement);
       }
 
 
@@ -1197,7 +1222,7 @@ void SaturationAlgorithm::activate(Clause* cl)
       onSymbolElimination(premColor, genCl);
     }
 
-    addUnprocessedClause(genCl);
+    addNewClause(genCl);
   }
 
   _clauseActivationInProgress=false;

@@ -51,6 +51,8 @@ SaturationResult Otter::saturate()
   handleSaturationStart();
 
   for (;;) {
+    newClausesToUnprocessed();
+
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
 
@@ -65,6 +67,7 @@ SaturationResult Otter::saturate()
 	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
       }
+      newClausesToUnprocessed();
 
       if(env.timeLimitReached()) {
 	return SaturationResult(Statistics::TIME_LIMIT);

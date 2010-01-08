@@ -22,6 +22,7 @@
 
 #include "Limits.hpp"
 #include "SaturationResult.hpp"
+#include "BSplitter.hpp"
 #include "Splitter.hpp"
 
 #if VDEBUG
@@ -62,8 +63,12 @@ public:
 
   static SaturationAlgorithmSP createFromOptions();
 
+  void addNewClause(Clause* cl);
+
 protected:
   virtual void addInputSOSClause(Clause*& cl);
+
+  void newClausesToUnprocessed();
 
   void addUnprocessedClause(Clause* cl);
 
@@ -123,6 +128,8 @@ protected:
   bool _performSplitting;
   bool _clauseActivationInProgress;
 
+  Stack<Clause*> _newClauses;
+
   Stack<Clause*> _postponedClauseRemovals;
 
   UnprocessedClauseContainer* _unprocessed;
@@ -141,6 +148,7 @@ protected:
 
   LiteralSelectorSP _selector;
 
+  BSplitter _bsplitter;
   Splitter _splitter;
   PropositionalToBDDISE _propToBDD;
 

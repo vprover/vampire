@@ -125,6 +125,8 @@ SaturationResult LRS::saturate()
   bool complete=env.options->complete();
 
   for (;;) {
+    newClausesToUnprocessed();
+
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
 
@@ -139,6 +141,7 @@ SaturationResult LRS::saturate()
 	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
       }
+      newClausesToUnprocessed();
 
       if (env.timeLimitReached()) {
   	return SaturationResult(Statistics::TIME_LIMIT);
