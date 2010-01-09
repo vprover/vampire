@@ -55,6 +55,11 @@ public:
 
   void addInputClauses(ClauseIterator cit);
 
+  void addNewClause(Clause* cl);
+  bool clausesFlushed();
+
+  void removeActiveOrPassiveClause(Clause* cl);
+
   virtual ClauseContainer* getSimplificationClauseContainer() = 0;
   virtual ClauseContainer* getGenerationClauseContainer() = 0;
 
@@ -62,8 +67,6 @@ public:
   IndexManager* getIndexManager() { return &_imgr; }
 
   static SaturationAlgorithmSP createFromOptions();
-
-  void addNewClause(Clause* cl);
 
 protected:
   virtual void addInputSOSClause(Clause*& cl);
@@ -112,8 +115,6 @@ private:
   Clause* doImmediateSimplification(Clause* cl);
 
   void performEmptyClauseSubsumption(Clause* cl, BDDNode* emptyClauseProp);
-
-  void removeBackwardSimplifiedClause(Clause* cl);
 
   void checkForPreprocessorSymbolElimination(Clause* cl);
 

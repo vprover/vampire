@@ -18,6 +18,26 @@
 
 namespace Lib {
 
+struct DefaultComparator
+{
+  template<typename T>
+  static Comparison compare(T a, T b)
+  {
+    CALL("DefaultComparator::compare");
+
+    if(a==b) {
+      return EQUAL;
+    }
+    else if(a<b) {
+      return LESS;
+    }
+    else {
+      ASS(a>b);
+      return GREATER;
+    }
+  }
+};
+
 template <class Comparator, typename C>
 void sort(C* first, C* afterLast)
 {

@@ -719,5 +719,5 @@ public:
 
 }
 
-#endif // __DHSet__
+#endif // __DHMap__
 

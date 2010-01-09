@@ -48,6 +48,7 @@ template<typename T> struct FirstHashTypeInfo;
 //template <typename Key, typename Val, class Hash1, class Hash2> class DHMap
 //                   ^^^
 template <typename Key, typename Val, class Hash1=FIRST_HASH(Key), class Hash2=Hash> class DHMap;
+template <typename Val, class Hash1=FIRST_HASH(Val), class Hash2=Hash> class DHSet;
 template <typename K,typename V, class Hash1=FIRST_HASH(K), class Hash2=Hash> class MapToLIFO;
 
 
@@ -79,6 +80,7 @@ class Clause;
 typedef VirtualIterator<Clause*> ClauseIterator;
 typedef SingleParamEvent<Clause*> ClauseEvent;
 typedef List<Clause*> ClauseList;
+typedef Stack<Clause*> ClauseStack;
 
 class DoubleSubstitution;
 class Renaming;

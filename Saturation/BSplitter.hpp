@@ -8,7 +8,9 @@
 
 #include "../Forwards.hpp"
 
+#include "../Lib/Allocator.hpp"
 #include "../Lib/Array.hpp"
+//#include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Stack.hpp"
 
 namespace Saturation {
@@ -17,14 +19,21 @@ using namespace Kernel;
 
 class BSplitter {
 private:
+  typedef Stack<SplitLevel> LevelStack;
   struct SplitRecord
   {
+    SplitRecord(SplitLevel level, Clause* base, Clause* comp)
+     : level(level), base(base), component(comp) {}
+
     SplitLevel level;
     Clause* base;
-    Stack<SplitLevel> dependent;
-    Stack<Clause*> alternatives;
+    Clause* component;
+    LevelStack dependent;
     Stack<Clause*> children;
     Stack<Clause*> reduced;
+
+    CLASS_NAME("BSplitter::SplitRecord");
+    USE_ALLOCATOR(SplitRecord);
   };
 public:
   void init(SaturationAlgorithm* sa);
@@ -33,15 +42,21 @@ public:
 
   void onClauseReduction(Clause* cl, Clause* to, Clause* premise, bool forward);
   void onNewClause(Clause* cl);
+
+  void backtrack(ClauseIterator emptyClauses);
 private:
+
+  SplitSet* getTransitivelyDependentLevels(SplitLevel l);
 
   bool stackSplitting() { return false; }
 
   bool canBeSplitted(Clause* cl) { return true; }
-  bool getComponents(Clause* icl, Clause*& ocl1, Clause*& ocl2);
+  Clause* getComponent(Clause* icl);
 
   SplitSet* getNewClauseSplitSet(Clause* cl);
-  void backtrack(Clause* cl);
+  void assignClauseSplitSet(Clause* cl, SplitSet* splits);
+
+  void backtrack(SplitLevel lev);
 
   SplitLevel _nextLev;
   SaturationAlgorithm* _sa;

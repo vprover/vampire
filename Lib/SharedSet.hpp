@@ -12,7 +12,9 @@
 #include "../Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
+#include "Metaiterators.hpp"
 #include "Set.hpp"
+#include "Sort.hpp"
 #include "Stack.hpp"
 
 namespace Lib {
@@ -49,6 +51,40 @@ public:
     ASS_EQ(size(),1);
 
     return (*this)[0];
+  }
+
+  /**
+   * Return value of the maximal item in a non-empty set
+   */
+  inline T maxval() const
+  {
+    CALL("SharedSet::maxval");
+    ASS(!isEmpty());
+
+    return (*this)[size()-1];
+  }
+
+  bool member(T val)
+  {
+    CALL("SharedSet::member");
+
+    size_t l=0;
+    size_t r=size();
+    while(l<r) {
+      size_t m=(l+r)>>1;
+      T mv=(*this)[m];
+      if(mv==val) {
+	return true;
+      }
+      else if(mv<val) {
+	r=m;
+      }
+      else {
+	ASS_G(mv,val);
+	l=m+1;
+      }
+    }
+    return false;
   }
 
   SharedSet* getUnion(SharedSet* s)
@@ -99,7 +135,7 @@ public:
    */
   SharedSet* subtract(SharedSet* s)
   {
-    CALL("SharedSet::getUnion");
+    CALL("SharedSet::subtract");
 
     static ItemStack acc;
     ASS(acc.isEmpty());
@@ -134,6 +170,30 @@ public:
     return res;
   }
 
+  bool hasIntersection(SharedSet* s)
+  {
+    CALL("SharedSet::hasIntersection");
+
+    T* p1=_items;
+    T* p2=s->_items;
+    T* p1e=p1+size();
+    T* p2e=p2+s->size();
+
+    while(p1!=p1e && p2!=p2e) {
+      if(*p1==*p2) {
+	return true;
+      }
+      else if(*p1>*p2) {
+	p2++;
+      }
+      else {
+	ASS_L(*p1,*p2);
+	p1++;
+      }
+    }
+
+    return false;
+  }
 
   static SharedSet* getEmpty()
   {
@@ -146,18 +206,39 @@ public:
     return empty;
   }
 
-  static SharedSet* getSingleton(T val)
+  static SharedSet* getFromArray(T* arr, size_t len)
   {
-    CALL("SharedSet::getSingleton");
+    CALL("SharedSet::getFromArray");
 
-    static ItemStack is(1);
+    if(!len) {
+      return getEmpty();
+    }
+
+    static ItemStack is;
     ASS(is.isEmpty());
 
-    is.push(val);
+    bool sorted=true;
+    is.push(arr[0]);
+    for(size_t i=1; i<len; i++) {
+      is.push(arr[i]);
+      if(sorted && arr[i-1]>arr[i]) {
+	sorted&=false;
+      }
+    }
+    if(!sorted) {
+      sort<DefaultComparator>(is.begin(), is.end());
+    }
     SharedSet* res=create(is);
     is.pop();
 
     return res;
+  }
+
+  static SharedSet* getSingleton(T val)
+  {
+    CALL("SharedSet::getSingleton");
+
+    return getFromArray(&val, 1);
   }
 
 private:
@@ -229,6 +310,14 @@ private:
     return res;
   }
 
+  typedef Set<SharedSet*, SharedSet> SharingStruct;
+
+  static SharingStruct& getSStruct()
+  {
+    static SharingStruct sstruct;
+    return sstruct;
+  }
+
 public:
 
   static bool equals(const SharedSet* s1,const SharedSet* s2)
@@ -257,15 +346,11 @@ public:
     return hash(is.begin(), is.size());
   }
 
-
-private:
-  typedef Set<SharedSet*, SharedSet> SharingStruct;
-
-  static SharingStruct& getSStruct()
+  class Iterator : public PointerIterator<T>
   {
-    static SharingStruct sstruct;
-    return sstruct;
-  }
+  public:
+    Iterator(const SharedSet* s) : PointerIterator<T>(s->_items, s->_items+s->size()) {}
+  };
 
 };
 

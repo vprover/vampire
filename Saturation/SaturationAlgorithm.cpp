@@ -690,6 +690,17 @@ void SaturationAlgorithm::newClausesToUnprocessed()
   }
 }
 
+/**
+ * Return true iff there are no clauses left to be processed
+ *
+ * More precisely, true is returned iff the unprocessed clause
+ * container and the new clause stack are empty.
+ */
+bool SaturationAlgorithm::clausesFlushed()
+{
+  return _unprocessed->isEmpty() && _newClauses.isEmpty();
+}
+
 
 /**
  * Perform immediate simplifications and splitting on clause @b cl and add it
@@ -933,7 +944,7 @@ void SaturationAlgorithm::performEmptyClauseSubsumption(Clause* cl, BDDNode* emp
 	continue;
       }
       par->setProp(bdd->getTrue());
-      removeBackwardSimplifiedClause(par);
+      removeActiveOrPassiveClause(par);
       env.statistics->emptyClauseSubsumptions++;
       //Here we assume that the clause object did not get deleted!
       //(it is fine at the time of writing this function,
@@ -1012,7 +1023,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     addNewClause(replacements.next());
   }
 
-  //TODO: hack that only clauses deleted by forward simplification are destroyed (other destruction needs debugging)
+  //TODO: hack that only clauses deleted by forward simplification can be destroyed (other destruction needs debugging)
   if(performer.clauseKept()) {
     cl->incRefCnt();
   }
@@ -1083,7 +1094,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       InferenceStore::instance()->recordPropReduce(redundant, oldRedundantProp, newRedundantProp);
 
       if(bdd->isTrue(newRedundantProp)) {
-	removeBackwardSimplifiedClause(redundant);
+	removeActiveOrPassiveClause(redundant);
 #if REPORT_BW_SIMPL
 	cout<<"removed\n";
 #endif
@@ -1111,7 +1122,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
  * @b _postponedClauseRemovals stack, which is then checked at the end of the
  * @b activate function.
  */
-void SaturationAlgorithm::removeBackwardSimplifiedClause(Clause* cl)
+void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::removeBackwardSimplifiedClause");
 
@@ -1235,7 +1246,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 	cl->store()!=Clause::REACTIVATED) {
       continue;
     }
-    removeBackwardSimplifiedClause(cl);
+    removeActiveOrPassiveClause(cl);
   }
 }
 

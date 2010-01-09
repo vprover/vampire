@@ -9,7 +9,7 @@
 #include "../Lib/DArray.hpp"
 #include "../Lib/List.hpp"
 #include "../Lib/Random.hpp"
-#include "../Lib/DHMultiset.hpp"
+#include "../Lib/DHSet.hpp"
 #include "../Lib/DHMap.hpp"
 #include "../Lib/SkipList.hpp"
 #include "../Lib/Int.hpp"
@@ -281,42 +281,32 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
       return false;
     }
   }
-  typedef DHMultiset<VarSpec, VarSpec::Hash1> EncounterStore;
-  EncounterStore* encountered=0;
+  typedef DHSet<VarSpec, VarSpec::Hash1> EncounterStore;
+  static EncounterStore encountered;
+  encountered.reset();
 
-  bool res;
   for(;;){
     ASS(ts.term.isTerm());
     Term::VariableIterator vit(ts.term.term());
     while(vit.hasNext()) {
       VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
       if(tvar==vs) {
-	res=true;
-	goto end;
+	return true;
       }
-      if(!encountered || !encountered->find(tvar)) {
+      if(!encountered.find(tvar)) {
 	TermSpec dtvar=derefBound(TermSpec(tvar));
 	if(!dtvar.isVar()) {
-	  if(!encountered) {
-	    encountered=new EncounterStore();
-	  }
-	  encountered->insert(tvar);
+	  encountered.insert(tvar);
 	  toDo.push(dtvar);
 	}
       }
     }
 
     if(toDo.isEmpty()) {
-      res=false;
-      goto end;
+      return false;
     }
     ts=toDo.pop();
   }
-end:
-  if(encountered) {
-    delete encountered;
-  }
-  return res;
 }
 
 bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
@@ -335,8 +325,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   static Stack<TermList*> subterms(64);
   ASS(toDo.isEmpty() && subterms.isEmpty());
 
-  typedef DHMultiset<TTPair,TTPairHash> EncStore;
-  EncStore* encountered=0;
+  typedef DHSet<TTPair,TTPairHash> EncStore;
+  EncStore encountered;
+  encountered.reset();
 
   for(;;) {
     TermSpec dt1=derefBound(t1);
@@ -386,12 +377,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
               if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
         	  (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
                 toDo.push(itm);
-              } else if(!encountered || !encountered->find(itm)) {
+              } else if(!encountered.find(itm)) {
         	  toDo.push(itm);
-        	  if(!encountered) {
-        	    encountered=new EncStore();
-        	  }
-        	  encountered->insert(itm);
+        	  encountered.insert(itm);
         	}
             } else {
               mismatch=true;
@@ -433,10 +421,6 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
       bdCommit(localBD);
     }
     localBD.drop();
-  }
-
-  if(encountered) {
-    delete encountered;
   }
 
   return !mismatch;

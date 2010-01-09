@@ -69,13 +69,13 @@ class PointerIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
-  inline PointerIterator(T* first, T* afterLast) :
+  inline PointerIterator(const T* first, const T* afterLast) :
     _curr(first), _afterLast(afterLast) {}
   inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
   inline T next() { ASS(hasNext()); return *(_curr++); }
 private:
-  T* _curr;
-  T* _afterLast;
+  const T* _curr;
+  const T* _afterLast;
 };
 
 template<typename T>

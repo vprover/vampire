@@ -43,8 +43,10 @@ class Clause
   : public Unit
 {
 public:
+  typedef ArrayishObjectIterator<Clause> Iterator;
+
   DECL_ELEMENT_TYPE(Literal*);
-  DECL_ITERATOR_TYPE(ArrayishObjectIterator<Clause>);
+  DECL_ITERATOR_TYPE(Iterator);
 
   /** Storage kind */
   enum Store {
@@ -169,6 +171,7 @@ public:
   ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
   { return ArrayishObjectIterator<Clause>(*this,selected()); }
 
+  bool isGround();
   bool isPropositional();
 
 #if VDEBUG
@@ -233,6 +236,9 @@ public:
     _auxInUse=true;
 #endif
     _auxCurrTimestamp++;
+    if(_auxCurrTimestamp==0) {
+      INVALID_OPERATION("Auxiliary clause value timestamp overflow!");
+    }
   }
   /**
    * Announce that the auxiliary value in clauses is no longer

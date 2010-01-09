@@ -11,7 +11,6 @@
 #include "../Lib/DArray.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
-#include "../Lib/SharedSet.hpp"
 #include "../Lib/Stack.hpp"
 
 #include "../SAT/SATClause.hpp"
@@ -48,7 +47,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _inferenceRefCnt(0),
     _literalPositions(0),
     _prop(0),
-    _splits(SplitSet::getEmpty()),
+    _splits(0),
     _auxTimestamp(0)
 {
 }
@@ -173,14 +172,31 @@ void Clause::destroyExceptInferenceObject()
 }
 
 /**
- * Return true iff clause contains no literals of non-zero arity.
+ * Return true iff clause contains no variables
+ */
+bool Clause::isGround()
+{
+  CALL("Clause::isGround");
+
+  Iterator it(*this);
+  while(it.hasNext()) {
+    if(!it.next()->ground()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Return true iff clause contains no literals of non-zero arity
  */
 bool Clause::isPropositional()
 {
   CALL("Clause::isPropositional");
 
-  for(unsigned i = 0; i < _length; i++) {
-    if(_literals[i]->arity() > 0) {
+  Iterator it(*this);
+  while(it.hasNext()) {
+    if(it.next()->arity() > 0) {
       return false;
     }
   }
