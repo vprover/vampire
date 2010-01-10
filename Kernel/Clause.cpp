@@ -86,6 +86,8 @@ void Clause::operator delete(void* ptr,unsigned length)
 
 Clause* Clause::fromStack(Stack<Literal*>& lits, InputType it, Inference* inf)
 {
+  CALL("Clause::fromStack");
+
   unsigned clen = lits.size();
   Clause* res = new (clen) Clause(clen, it, inf);
 
@@ -414,6 +416,8 @@ float Clause::getEffectiveWeight()
 
 /**
  * Return index of @b lit in the clause
+ *
+ * @b lit has to be present in the clause
  */
 unsigned Clause::getLiteralPosition(Literal* lit)
 {

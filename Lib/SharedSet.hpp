@@ -206,6 +206,23 @@ public:
     return empty;
   }
 
+  static SharedSet* getRange(T first, T afterLast)
+  {
+    CALL("SharedSet::getRange");
+
+    static ItemStack is;
+    ASS(is.isEmpty());
+
+    for(T itm=first;itm!=afterLast;itm++) {
+      is.push(itm);
+    }
+
+    SharedSet* res=create(is);
+    is.reset();
+
+    return res;
+  }
+
   static SharedSet* getFromArray(T* arr, size_t len)
   {
     CALL("SharedSet::getFromArray");
@@ -229,7 +246,7 @@ public:
       sort<DefaultComparator>(is.begin(), is.end());
     }
     SharedSet* res=create(is);
-    is.pop();
+    is.reset();
 
     return res;
   }
@@ -303,6 +320,7 @@ private:
 
     res=new(sz) SharedSet(sz);
     for(size_t i=0;i<sz;i++) {
+      ASS(i==0 || is[i-1]<is[i]);
       res->_items[i]=is[i];
     }
 

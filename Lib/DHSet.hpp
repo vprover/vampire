@@ -98,6 +98,18 @@ public:
     return _map.getOneKey();
   }
 
+  /**
+   * Insert all elements of the iterator @b it
+   */
+  template<class It>
+  void loadFromIterator(It it) {
+    CALL("DHSet::loadFromIterator");
+
+    while(it.hasNext()) {
+      insert(it.next());
+    }
+  }
+
   VirtualIterator<Val> iterator() const
   {
     return _map.domain();

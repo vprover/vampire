@@ -11,10 +11,12 @@
 #include <iosfwd>
 
 #include "../Forwards.hpp"
+
 #include "../Lib/Allocator.hpp"
+#include "../Lib/InverseLookup.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/Reflection.hpp"
-#include "../Lib/InverseLookup.hpp"
+#include "../Lib/Stack.hpp"
 
 #include "Unit.hpp"
 
@@ -79,6 +81,17 @@ public:
   void operator delete(void* ptr,unsigned length);
 
   static Clause* fromStack(Stack<Literal*>& lits, InputType it, Inference* inf);
+
+  template<class Iter>
+  static Clause* fromIterator(Iter litit, InputType it, Inference* inf)
+  {
+    CALL("Clause::fromIterator");
+
+    static Stack<Literal*> st;
+    st.reset();
+    st.loadFromIterator(litit);
+    return fromStack(st, it, inf);
+  }
 
   /**
    * Return the (reference to) the nth literal

@@ -56,7 +56,7 @@ private:
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
 
-  void backtrack(SplitLevel lev);
+  void getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, ClauseStack& acc);
 
   SplitLevel _nextLev;
   SaturationAlgorithm* _sa;

@@ -4,6 +4,7 @@
  */
 
 #include "../Lib/DHSet.hpp"
+#include "../Lib/Metaiterators.hpp"
 #include "../Lib/SharedSet.hpp"
 
 #include "../Kernel/Clause.hpp"
@@ -108,8 +109,16 @@ SplitSet* BSplitter::getNewClauseSplitSet(Clause* cl)
     res=SplitSet::getEmpty();
 
     while(inf->hasNext(it)) {
-      Clause* prem=static_cast<Clause*>(inf->next(it));
-      ASS(prem->isClause());
+      Unit* premu=inf->next(it);
+      if(!premu->isClause()) {
+	//the premise comes from preprocessing
+	continue;
+      }
+      Clause* prem=static_cast<Clause*>(premu);
+      if(!prem->splits()) {
+	//the premise comes from preprocessing
+	continue;
+      }
 
       res=res->getUnion(prem->splits());
     }
@@ -176,10 +185,14 @@ start:
 
   SplitLevel refLvl=refSplits->maxval(); //refuted level
 
-  //TODO: add alternatives!!!
-  NOT_IMPLEMENTED;
+  SplitSet* backtracked;
+  if(stackSplitting()) {
+    backtracked=SplitSet::getRange(refLvl,_nextLev);
+  }
+  else {
+    backtracked=getTransitivelyDependentLevels(refLvl);
+  }
 
-  SplitSet* backtracked=getTransitivelyDependentLevels(refLvl);
 
   ClauseStack::Iterator tdit(toDo);
   while(tdit.hasNext()) {
@@ -195,6 +208,10 @@ start:
   ASS(trashed.isEmpty());
   ASS(restored.isEmpty());
   Clause::requestAux();
+
+  //add the other component of the splitted clause (plus possibly some other clauses)
+  getAlternativeClauses(_db[refLvl]->base, _db[refLvl]->component, cl, restored);
+
 
   SplitSet::Iterator blit(backtracked);
   while(blit.hasNext()) {
@@ -244,6 +261,39 @@ start:
 
   if(toDo.isNonEmpty()) {
     goto start;
+  }
+}
+
+void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, ClauseStack& acc)
+{
+  CALL("BSplitter::getAlternativeClauses");
+
+  Unit::InputType inp=max(base->inputType(), refutation->inputType());
+
+  static DHSet<Literal*> firstLits;
+  static Stack<Literal*> secLits;
+  firstLits.reset();
+  secLits.reset();
+
+  firstLits.loadFromIterator(Clause::Iterator(*firstComp));
+  Clause::Iterator bit(*base);
+  while(bit.hasNext()) {
+    Literal* l=bit.next();
+    if(!firstLits.find(l)) {
+      secLits.push(l);
+    }
+  }
+  Inference* sinf=new Inference2(Inference::SPLITTING, base, refutation);
+  acc.push(Clause::fromStack(secLits, inp, sinf));
+
+  if(firstComp->isGround()) {
+    //if the first component is ground, add its negation
+    Clause::Iterator fcit(*firstComp);
+    while(fcit.hasNext()) {
+      Literal* glit=fcit.next();
+      Inference* ginf=new Inference2(Inference::SPLITTING, base, refutation);
+      acc.push(Clause::fromIterator(getSingletonIterator(Literal::oppositeLiteral(glit)), inp, ginf));
+    }
   }
 }
 
