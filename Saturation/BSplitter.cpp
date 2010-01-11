@@ -4,6 +4,7 @@
  */
 
 #include "../Lib/DHSet.hpp"
+#include "../Lib/IntUnionFind.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/SharedSet.hpp"
 
@@ -56,11 +57,27 @@ bool BSplitter::split(Clause* cl)
   return true;
 }
 
+
+/**
+ * Register the reduction of the @b cl clause
+ *
+ * The @b onNewClause method still has to be called for the @b to clause if there is any.
+ */
 void BSplitter::onClauseReduction(Clause* cl, Clause* to, Clause* premise, bool forward)
 {
   CALL("BSplitter::onClauseReduction");
 
-  NOT_IMPLEMENTED;
+  SplitSet* diff=premise->splits()->subtract(cl->splits());
+
+  if(diff->isEmpty()) {
+    return;
+  }
+
+  SplitSet::Iterator dit(diff);
+  while(dit.hasNext()) {
+    SplitLevel slev=dit.next();
+    _db[slev]->reduced.push(cl);
+  }
 }
 
 void BSplitter::onNewClause(Clause* cl)
@@ -71,8 +88,6 @@ void BSplitter::onNewClause(Clause* cl)
     SplitSet* splits=getNewClauseSplitSet(cl);
     assignClauseSplitSet(cl, splits);
   }
-
-  NOT_IMPLEMENTED;
 }
 
 /**
@@ -84,11 +99,79 @@ void BSplitter::onNewClause(Clause* cl)
  * done this way so that the other component can be built after we
  * obtain the empty clause refuting the first component.
  */
-Clause* BSplitter::getComponent(Clause* icl)
+Clause* BSplitter::getComponent(Clause* cl)
 {
   CALL("BSplitter::getComponent");
 
-  NOT_IMPLEMENTED;
+  unsigned clen=cl->length();
+  if(clen<=1) {
+    return 0;
+  }
+
+  unsigned posLits=0;
+
+  //Master literal of an variable is the literal
+  //with lowest index, in which it appears.
+  static DHMap<unsigned, unsigned, IdentityHash> varMasters;
+  varMasters.reset();
+  IntUnionFind components(clen);
+
+  //TODO:Should we avoid colored literals to be in the splitted-out component?
+
+  for(unsigned i=0;i<clen;i++) {
+    Literal* lit=(*cl)[i];
+    if(lit->isPositive()) {
+      posLits++;
+    }
+    Term::VariableIterator vit(lit);
+    while(vit.hasNext()) {
+      unsigned master=varMasters.findOrInsert(vit.next().var(), i);
+      if(master!=i) {
+	components.doUnion(master, i);
+      }
+    }
+  }
+  components.finish();
+
+  int compCnt=components.getComponentCount();
+
+  if(compCnt==1 || (splittingForHorn() && posLits<=1)) {
+    return 0;
+  }
+
+  static Stack<Literal*> lits;
+
+compAssemblyStart:
+  lits.reset();
+
+  IntUnionFind::ComponentIterator cit(components);
+  ALWAYS(cit.hasNext());
+  IntUnionFind::ElementIterator elit=cit.next();
+
+  unsigned compPosLits=0;
+  while(elit.hasNext()) {
+    int litIndex=elit.next();
+    Literal* lit=(*cl)[litIndex];
+    lits.push(lit);
+    if(lit->isPositive()) {
+      compPosLits++;
+    }
+  }
+  if(splittingForHorn()) {
+    if(compPosLits==posLits) {
+      return 0;
+    }
+    if(compPosLits==0) {
+      if(cit.hasNext()) {
+	goto compAssemblyStart;
+      }
+      else {
+	return 0;
+      }
+    }
+  }
+
+  return Clause::fromStack(lits, cl->inputType(), new Inference(Inference::SPLITTING_COMPONENT));
 }
 
 /**

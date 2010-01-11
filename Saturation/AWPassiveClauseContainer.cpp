@@ -227,7 +227,7 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
 
   int maxAge, maxWeight;
 
-  if(estReachableCnt>_size) {
+  if(estReachableCnt>static_cast<long>(_size)) {
     maxAge=-1;
     maxWeight=-1;
     goto fin;

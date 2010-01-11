@@ -49,6 +49,12 @@ private:
   SplitSet* getTransitivelyDependentLevels(SplitLevel l);
 
   bool stackSplitting() { return false; }
+  /**
+   * Return true if splitting is to be performed only if both
+   * resulting clauses contain less positive literals than
+   * the original one.
+   */
+  bool splittingForHorn() { return false; }
 
   bool canBeSplitted(Clause* cl) { return true; }
   Clause* getComponent(Clause* icl);
