@@ -8,6 +8,7 @@
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/SharedSet.hpp"
 
+#include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
 
@@ -63,9 +64,13 @@ bool BSplitter::split(Clause* cl)
  *
  * The @b onNewClause method still has to be called for the @b to clause if there is any.
  */
-void BSplitter::onClauseReduction(Clause* cl, Clause* to, Clause* premise, bool forward)
+void BSplitter::onClauseReduction(Clause* cl, Clause* premise)
 {
   CALL("BSplitter::onClauseReduction");
+
+  if(!premise) {
+    return;
+  }
 
   SplitSet* diff=premise->splits()->subtract(cl->splits());
 
@@ -76,6 +81,7 @@ void BSplitter::onClauseReduction(Clause* cl, Clause* to, Clause* premise, bool 
   SplitSet::Iterator dit(diff);
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
+    cl->incRefCnt();
     _db[slev]->reduced.push(cl);
   }
 }
@@ -171,7 +177,9 @@ compAssemblyStart:
     }
   }
 
-  return Clause::fromStack(lits, cl->inputType(), new Inference(Inference::SPLITTING_COMPONENT));
+  Clause* res=Clause::fromStack(lits, cl->inputType(), new Inference(Inference::SPLITTING_COMPONENT));
+  res->setProp(BDD::instance()->getFalse());
+  return res;
 }
 
 /**
@@ -188,7 +196,7 @@ SplitSet* BSplitter::getNewClauseSplitSet(Clause* cl)
   Inference* inf=cl->inference();
   Inference::Iterator it=inf->iterator();
 
-  if(stackSplitting()) {
+  if(!stackSplitting()) {
     res=SplitSet::getEmpty();
 
     while(inf->hasNext(it)) {
@@ -210,8 +218,16 @@ SplitSet* BSplitter::getNewClauseSplitSet(Clause* cl)
     SplitLevel maxLev=0;
 
     while(inf->hasNext(it)) {
-      Clause* prem=static_cast<Clause*>(inf->next(it));
-      ASS(prem->isClause());
+      Unit* premu=inf->next(it);
+      if(!premu->isClause()) {
+	//the premise comes from preprocessing
+	continue;
+      }
+      Clause* prem=static_cast<Clause*>(premu);
+      if(!prem->splits()) {
+	//the premise comes from preprocessing
+	continue;
+      }
 
       if(!prem->splits()->isEmpty()) {
 	maxLev=max(maxLev,prem->splits()->sval());
@@ -240,6 +256,7 @@ void BSplitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
   while(bsit.hasNext()) {
     SplitLevel slev=bsit.next();
     _db[slev]->children.push(cl);
+    cl->incRefCnt();
   }
 }
 
@@ -303,12 +320,14 @@ start:
 
     while(sr->children.isNonEmpty()) {
       Clause* ccl=sr->children.pop();
-      if(ccl->hasAux()) {
-	continue;
+      if(!ccl->hasAux()) {
+	ASS(ccl->splits()->member(bl));
+	if(ccl->store()!=Clause::NONE) {
+	  trashed.push(ccl);
+	}
+	ccl->setAux(0);
       }
-      ASS(ccl->splits()->member(bl));
-      trashed.push(ccl);
-      ccl->setAux(0);
+      ccl->decRefCnt();
     }
   }
 
@@ -319,12 +338,12 @@ start:
 
     while(sr->reduced.isNonEmpty()) {
       Clause* rcl=sr->reduced.pop();
-      if(rcl->hasAux()) {
-	continue;
+      if(!rcl->hasAux()) {
+	ASS(!rcl->splits()->hasIntersection(backtracked));
+	restored.push(rcl);
+	rcl->setAux(0);
       }
-      ASS(!rcl->splits()->hasIntersection(backtracked));
-      restored.push(rcl);
-      rcl->setAux(0);
+      rcl->decRefCnt();
     }
 
     _db[bl]=0;
@@ -332,11 +351,14 @@ start:
   }
 
   while(trashed.isNonEmpty()) {
-    _sa->removeActiveOrPassiveClause(trashed.pop());
+    Clause* tcl=trashed.pop();
+    _sa->removeActiveOrPassiveClause(tcl);
   }
 
   while(restored.isNonEmpty()) {
-    _sa->addNewClause(restored.pop());
+    Clause* rcl=restored.pop();
+    ASS_EQ(rcl->store(), Clause::NONE);
+    _sa->addNewClause(rcl);
   }
 
   Clause::releaseAux();
@@ -367,7 +389,10 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
     }
   }
   Inference* sinf=new Inference2(Inference::SPLITTING, base, refutation);
-  acc.push(Clause::fromStack(secLits, inp, sinf));
+  Clause* scl=Clause::fromStack(secLits, inp, sinf);
+  scl->setProp(base->prop());
+  scl->setSplits(base->splits());
+  acc.push(scl);
 
   if(firstComp->isGround()) {
     //if the first component is ground, add its negation
@@ -375,7 +400,10 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
     while(fcit.hasNext()) {
       Literal* glit=fcit.next();
       Inference* ginf=new Inference2(Inference::SPLITTING, base, refutation);
-      acc.push(Clause::fromIterator(getSingletonIterator(Literal::oppositeLiteral(glit)), inp, ginf));
+      Clause* gcl=Clause::fromIterator(getSingletonIterator(Literal::oppositeLiteral(glit)), inp, ginf);
+      gcl->setProp(base->prop());
+      gcl->setSplits(base->splits());
+      acc.push(gcl);
     }
   }
 }

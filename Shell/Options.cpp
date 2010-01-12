@@ -69,6 +69,7 @@ const char* Options::Constants::_optionNames[] = {
   "age_weight_ratio",
   "arity_check",
 
+  "backtracking_splitting",
   "backward_demodulation",
   "backward_subsumption",
 
@@ -117,6 +118,7 @@ const char* Options::Constants::_optionNames[] = {
   "problem_name",
   "proof",
   "proof_checking",
+  "propositional_to_bdd",
 
   "random_seed",
   "row_variable_max_length",
@@ -309,6 +311,7 @@ Options::Options ()
   _arityCheck(false),
   _weightRatio(1),
 
+  _backtrackingSplitting(false),
   _backwardDemodulation(DEMODULATION_ALL),
   _backwardSubsumption(true),
 
@@ -356,6 +359,7 @@ Options::Options ()
   _problemName(""),
   _proof(PROOF_ON),
   _proofChecking(false),
+  _propositionalToBDD(true),
 
   _randomSeed(Random::seed()),
   _rowVariableMaxLength(2),
@@ -446,6 +450,9 @@ void Options::set (const char* name,const char* value, int index)
       _arityCheck = onOffToBool(value,name);
       return;
 
+    case BACKTRACKING_SPLITTING:
+      _backtrackingSplitting = onOffToBool(value,name);
+      return;
     case BACKWARD_DEMODULATION:
       _backwardDemodulation = (Demodulation)Constants::demodulationValues.find(value);
       return;
@@ -601,9 +608,11 @@ void Options::set (const char* name,const char* value, int index)
     case PROOF:
       _proof = (Proof)Constants::proofValues.find(value);
       return;
-
     case PROOF_CHECKING:
       _proofChecking = onOffToBool(value,name);
+      return;
+    case PROPOSITIONAL_TO_BDD:
+      _propositionalToBDD = onOffToBool(value,name);
       return;
 
     case RANDOM_SEED:
@@ -939,6 +948,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_arityCheck);
     return;
 
+  case BACKTRACKING_SPLITTING:
+    str << boolToOnOff(_backtrackingSplitting);
+    return;
   case BACKWARD_DEMODULATION:
     str << Constants::demodulationValues[_backwardDemodulation];
     return;
@@ -1056,6 +1068,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case PROOF_CHECKING:
     str << boolToOnOff(_proofChecking);
+    return;
+  case PROPOSITIONAL_TO_BDD:
+    str << boolToOnOff(_propositionalToBDD);
     return;
 
   case RANDOM_SEED:
@@ -1456,6 +1471,12 @@ void Options::checkGlobalOptionConstraints() const
 {
   if(satSolverForEmptyClause() && emptyClauseSubsumption()) {
     USER_ERROR("Empty clause subsumption cannot be performed when SAT solver is used for handling empty clauses");
+  }
+  if(!propositionalToBDD() && splitting()!=RA_OFF) {
+    USER_ERROR("If propositional atoms are not being converted to BDD, splitting has to be disabled");
+  }
+  if(backtrackingSplitting() && propositionalToBDD()) {
+    USER_ERROR("Backtracking splitting cannot be used unless all BDD related options are disabled");
   }
 }
 

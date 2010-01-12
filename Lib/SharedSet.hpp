@@ -77,11 +77,11 @@ public:
 	return true;
       }
       else if(mv<val) {
-	r=m;
+	l=m+1;
       }
       else {
 	ASS_G(mv,val);
-	l=m+1;
+	r=m;
       }
     }
     return false;
@@ -371,6 +371,20 @@ public:
   };
 
 };
+
+template<typename T>
+std::ostream& operator<< (ostream& out, const SharedSet<T>& s )
+{
+  typename SharedSet<T>::Iterator it(&s);
+  while(it.hasNext()) {
+    out<<it.next();
+    if(it.hasNext()) {
+      out<<", ";
+    }
+  }
+  return out;
+}
+
 
 }
 

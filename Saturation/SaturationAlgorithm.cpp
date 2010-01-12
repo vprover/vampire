@@ -5,6 +5,7 @@
 
 #include "../Lib/Environment.hpp"
 #include "../Lib/Metaiterators.hpp"
+#include "../Lib/SharedSet.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/Timer.hpp"
 #include "../Lib/VirtualIterator.hpp"
@@ -40,9 +41,6 @@ using namespace Saturation;
 /** Perform forward demodulation before a clause is passed to splitting */
 #define FW_DEMODULATION_FIRST 1
 
-/** Always split out propositional literals to the propositional part of the clause */
-#define PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD 1
-
 /**
  * Create a SaturationAlgorithm object
  *
@@ -54,6 +52,7 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
 : _imgr(this), _clauseActivationInProgress(false), _passive(passiveContainer), _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector)
 {
   _performSplitting= env.options->splitting()!=Options::RA_OFF;
+  _propToBDD= env.options->propositionalToBDD();
 
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
@@ -149,10 +148,15 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
 void SaturationAlgorithm::onAllProcessed()
 {
   CALL("SaturationAlgorithm::beforeClauseActivation");
-  ASS(_unprocessed->isEmpty());
+  ASS(clausesFlushed());
 
   _symElRewrites.reset();
   _symElColors.reset();
+
+  if(_emptyBSplitClauses.isNonEmpty()) {
+    _bsplitter.backtrack(pvi( ClauseStack::Iterator(_emptyBSplitClauses) ));
+    _emptyBSplitClauses.reset();
+  }
 }
 
 /**
@@ -244,19 +248,19 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 /**
  * A function that is called whenever a possibly new clause appears.
  */
-void SaturationAlgorithm::onNewClause(Clause* c)
+void SaturationAlgorithm::onNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::onNewClause");
 
+  _bsplitter.onNewClause(cl);
+
   if(env.options->showNew()) {
-    cout<<"New: "<<c->toNiceString()<<endl;
+    cout<<"New: "<<cl->toNiceString()<<endl;
   }
 
-#if !PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
-  if(c->isPropositional()) {
-    onNewUsefulPropositionalClause(c);
+  if(!_propToBDD && cl->isPropositional()) {
+    onNewUsefulPropositionalClause(cl);
   }
-#endif
 }
 
 void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
@@ -293,6 +297,18 @@ void SaturationAlgorithm::onClauseRewrite(Clause* from, Clause* to, bool forward
       }
     }
   }
+}
+
+/**
+ * Called whenever a clause is simplified or deleted at any point of the
+ * saturation algorithm
+ */
+void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* premise)
+{
+  CALL("SaturationAlgorithm::onClauseReduction");
+  ASS(cl);
+
+  _bsplitter.onClauseReduction(cl, premise);
 }
 
 void SaturationAlgorithm::onNonRedundantClause(Clause* c)
@@ -424,12 +440,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
 
   checkForPreprocessorSymbolElimination(cl);
 
-#if !PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
-  if(env.options->splitting()!=RA_OFF)
-#endif
+  if(_propToBDD || env.options->splitting()!=Options::RA_OFF)
   {
     //put propositional predicates into BDD part
-    cl=_propToBDD.simplify(cl);
+    cl=_propToBDDConv.simplify(cl);
   }
 
   if(env.options->sos() && cl->inputType()==Clause::AXIOM) {
@@ -493,9 +507,10 @@ bool SaturationAlgorithm::isRefutation(Clause* c)
 {
   CALL("SaturationAlgorithm::isRefutation");
   ASS(c->prop());
+  ASS(c->splits());
 
   BDD* bdd=BDD::instance();
-  return c->isEmpty() && bdd->isFalse(c->prop());
+  return c->isEmpty() && bdd->isFalse(c->prop()) && c->splits()->isEmpty();
 }
 
 
@@ -586,6 +601,7 @@ public:
     cout<<"-"<<(*_cl)<<endl;
 #endif
 
+    _sa->onClauseReduction(_cl, premise);
     if(replacement) {
       replacement->setProp(oldClProp);
       InferenceStore::instance()->recordNonPropInference(replacement);
@@ -640,11 +656,14 @@ private:
 };
 
 
-Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl)
+Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl, bool fwDemodulation)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
+  ASS(cl->prop());
+  ASS(cl->splits());
 
   BDDNode* prop=cl->prop();
+simplificationStart:
   bool simplified;
   do {
     Clause* simplCl=_immediateSimplifier->simplify(cl);
@@ -657,6 +676,7 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl)
       simplCl->setProp(prop);
       InferenceStore::instance()->recordNonPropInference(simplCl);
 
+      onClauseReduction(cl, 0);
       onClauseRewrite(cl, simplCl, true);
 
       cl=simplCl;
@@ -664,6 +684,26 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl)
       onNewClause(cl);
     }
   } while(simplified);
+
+  if(fwDemodulation && _fwDemodulator) {
+    TotalSimplificationPerformer demPerformer(this, cl);
+    _fwDemodulator->perform(cl, &demPerformer);
+    if(!demPerformer.clauseKept()) {
+      ClauseIterator rit=demPerformer.clausesToAdd();
+      if(!rit.hasNext()) {
+	//clause was demodulated into a tautology
+	return 0;
+      }
+      cl=rit.next();
+      onNewClause(cl);
+
+      ASS(!rit.hasNext()); //there's at most one result of the demodulation
+      ASS_EQ(cl->prop(), prop);
+
+      goto simplificationStart;
+    }
+  }
+
 
   return cl;
 }
@@ -725,38 +765,29 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   env.checkTimeSometime<64>();
 
-simplificationStart:
-
   onNewClause(cl);
 
-  cl=doImmediateSimplification(cl);
+  cl=doImmediateSimplification(cl, FW_DEMODULATION_FIRST);
   if(!cl) {
     return;
   }
 
-
-#if FW_DEMODULATION_FIRST
-  if(_fwDemodulator) {
-    TotalSimplificationPerformer demPerformer(this, cl);
-    _fwDemodulator->perform(cl, &demPerformer);
-    if(!demPerformer.clauseKept()) {
-      ClauseIterator rit=demPerformer.clausesToAdd();
-      if(!rit.hasNext()) {
-	//clause was demodulated into a tautology
-	return;
-      }
-      cl=rit.next();
-
-      ASS(!rit.hasNext());
-      goto simplificationStart;
-    }
+  if(cl->isEmpty() && !cl->splits()->isEmpty()) {
+    ASS(bdd->isFalse(cl->prop()));
+    _emptyBSplitClauses.push(cl);
+    return;
   }
-#endif
 
   ASS(!bdd->isTrue(cl->prop()));
 
+  if(env.options->backtrackingSplitting()) {
+    if(_bsplitter.split(cl)) {
+      return;
+    }
+  }
 
-  if(_performSplitting && !cl->isEmpty()) {
+
+  if(_performSplitting && cl->splits()->isEmpty() && !cl->isEmpty()) {
 
     bool premSymEl=false;
     if(env.options->showSymbolElimination() && cl->color()==COLOR_TRANSPARENT && _symElRewrites.find(cl)) {
@@ -774,6 +805,7 @@ simplificationStart:
       }
 
       if(comp!=cl) {
+	onClauseReduction(cl, 0);
 	onNewClause(comp);
 	if(origColor!=COLOR_TRANSPARENT && comp->color()==COLOR_TRANSPARENT) {
 	  onSymbolElimination(origColor, comp, processed);
@@ -787,18 +819,22 @@ simplificationStart:
       if(comp->store()==Clause::ACTIVE) {
         if(!comp->isEmpty()) { //don't reanimate empty clause
           reanimate(comp);
-        } else {
+        }
+        else {
           ASS(!isRefutation(comp));
         }
-      } else if(comp->store()==Clause::NONE) {
+      }
+      else if(comp->store()==Clause::NONE) {
         addUnprocessedFinalClause(comp);
-      } else {
+      }
+      else {
 	ASS(comp->store()==Clause::PASSIVE ||
 		comp->store()==Clause::REACTIVATED ||
 		comp->store()==Clause::UNPROCESSED);
       }
     }
-  } else {
+  }
+  else {
     addUnprocessedFinalClause(cl);
   }
 }
@@ -849,9 +885,7 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
     static Stack<InferenceStore::ClauseSpec> emptyClauses;
 
     onNonRedundantClause(cl);
-#if PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
     onNewUsefulPropositionalClause(cl);
-#endif
     ecProp.addNode(cl->prop());
     if(ecProp.isFalse()) {
       InferenceStore::instance()->recordMerge(cl, cl->prop(), emptyClauses.begin(),
@@ -869,17 +903,13 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
     if(accumulator==0) {
       onNonRedundantClause(cl);
       accumulator=cl;
-#if PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
       onNewUsefulPropositionalClause(cl);
-#endif
       return 0;
     }
     BDDNode* newProp=bdd->conjunction(accumulator->prop(), cl->prop());
     if(newProp!=accumulator->prop()) {
       onNonRedundantClause(cl);
-#if PROPOSITIONAL_PREDICATES_ALWAYS_TO_BDD
       onNewUsefulPropositionalClause(cl);
-#endif
     }
     if(bdd->isFalse(newProp)) {
       InferenceStore::instance()->recordMerge(cl, cl->prop(), accumulator, newProp);

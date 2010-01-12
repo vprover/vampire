@@ -26,6 +26,7 @@ public:
     AGE_WEIGHT_RATIO,
     ARITY_CHECK,
 
+    BACKTRACKING_SPLITTING,
     BACKWARD_DEMODULATION,
     BACKWARD_SUBSUMPTION,
 
@@ -75,6 +76,7 @@ public:
     PROBLEM_NAME,
     PROOF,
     PROOF_CHECKING,
+    PROPOSITIONAL_TO_BDD,
 
     RANDOM_SEED,
     ROW_VARIABLE_MAX_LENGTH,
@@ -309,6 +311,8 @@ public:
   bool timeStatistics() const { return _timeStatistics; }
   bool satSolverForEmptyClause() const { return _satSolverForEmptyClause; }
   bool emptyClauseSubsumption() const { return _emptyClauseSubsumption; }
+  bool propositionalToBDD() const { return _propositionalToBDD; }
+  bool backtrackingSplitting() const { return _backtrackingSplitting; }
 
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal) { _inputFile = newVal; }
@@ -338,6 +342,7 @@ private:
   int _weightRatio;
   bool _arityCheck;
 
+  bool _backtrackingSplitting;
   Demodulation _backwardDemodulation;
   bool _backwardSubsumption;
 
@@ -384,6 +389,7 @@ private:
   string _problemName;
   Proof _proof;
   bool _proofChecking;
+  bool _propositionalToBDD;
 
   int _randomSeed;
   int _rowVariableMaxLength;

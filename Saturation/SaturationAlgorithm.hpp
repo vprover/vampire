@@ -94,6 +94,7 @@ protected:
   void onNewUsefulPropositionalClause(Clause* c);
   void onSymbolElimination(Color eliminated, Clause* c, bool nonRedundant=false);
   void onClauseRewrite(Clause* from, Clause* to, bool forward=true, Clause* premise=0);
+  void onClauseReduction(Clause* cl, Clause* premise);
   void onNonRedundantClause(Clause* c);
 
   void outputSymbolElimination(Color eliminated, Clause* c);
@@ -112,7 +113,7 @@ private:
   void addUnprocessedFinalClause(Clause* cl);
   Clause* handleEmptyClause(Clause* cl);
 
-  Clause* doImmediateSimplification(Clause* cl);
+  Clause* doImmediateSimplification(Clause* cl, bool fwDemodulation=false);
 
   void performEmptyClauseSubsumption(Clause* cl, BDDNode* emptyClauseProp);
 
@@ -127,11 +128,13 @@ protected:
 
   int _startTime;
   bool _performSplitting;
+  bool _propToBDD;
   bool _clauseActivationInProgress;
 
-  Stack<Clause*> _newClauses;
+  ClauseStack _newClauses;
+  ClauseStack _emptyBSplitClauses;
 
-  Stack<Clause*> _postponedClauseRemovals;
+  ClauseStack _postponedClauseRemovals;
 
   UnprocessedClauseContainer* _unprocessed;
   PassiveClauseContainerSP _passive;
@@ -151,7 +154,7 @@ protected:
 
   BSplitter _bsplitter;
   Splitter _splitter;
-  PropositionalToBDDISE _propToBDD;
+  PropositionalToBDDISE _propToBDDConv;
 
   DHMap<Clause*,Clause*> _symElRewrites;
   DHMap<Clause*,Color> _symElColors;
