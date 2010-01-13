@@ -60,6 +60,8 @@ public:
     UNPROCESSED = 2u,
     /** anything else */
     NONE = 3u,
+    /** clause removed by backtracking splitting */
+    BACKTRACKED = 4u,
     /**
      * Active clause (it is in appropriate indexes) that is put to
      * passive queue for another activation.
@@ -179,7 +181,23 @@ public:
   void destroyIfUnnecessary();
 
   void incRefCnt() { _inferenceRefCnt++; }
-  void decRefCnt() { _inferenceRefCnt--; destroyIfUnnecessary(); }
+  void decRefCnt()
+  {
+    CALL("Clause::decRefCnt");
+
+    ASS_G(_inferenceRefCnt,0);
+    _inferenceRefCnt--;
+    destroyIfUnnecessary();
+  }
+
+  unsigned getReductionTimestamp() { return _reductionTimestamp; }
+  void incReductionTimestamp()
+  {
+    _reductionTimestamp++;
+    if(_reductionTimestamp==0) {
+      INVALID_OPERATION("Clause reduction timestamp overflow!");
+    }
+  }
 
   ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
   { return ArrayishObjectIterator<Clause>(*this,selected()); }
@@ -282,6 +300,8 @@ protected:
   Store _store;
   /** number of references to this clause by inference rules */
   unsigned _inferenceRefCnt;
+  /** timestamp marking when has the clause been reduced or restored by a backtracking splitting most recently */
+  unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
 

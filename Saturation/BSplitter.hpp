@@ -13,24 +13,44 @@
 //#include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Stack.hpp"
 
+#include "../Kernel/Clause.hpp"
+#include "../Kernel/RCClauseStack.hpp"
+
 namespace Saturation {
 
 using namespace Kernel;
 
 class BSplitter {
 private:
+  struct ReductionRecord
+  {
+    ReductionRecord(unsigned timestamp, Clause* clause) : timestamp(timestamp), clause(clause) {}
+    unsigned timestamp;
+    Clause* clause;
+  };
+
   typedef Stack<SplitLevel> LevelStack;
   struct SplitRecord
   {
     SplitRecord(SplitLevel level, Clause* base, Clause* comp)
-     : level(level), base(base), component(comp) {}
+     : level(level), base(base), component(comp)
+    {
+      base->incRefCnt();
+      component->incRefCnt();
+    }
+
+    ~SplitRecord()
+    {
+      base->decRefCnt();
+      component->decRefCnt();
+    }
 
     SplitLevel level;
     Clause* base;
     Clause* component;
     LevelStack dependent;
-    Stack<Clause*> children;
-    Stack<Clause*> reduced;
+    ClauseStack children;
+    Stack<ReductionRecord> reduced;
 
     CLASS_NAME("BSplitter::SplitRecord");
     USE_ALLOCATOR(SplitRecord);
@@ -62,7 +82,11 @@ private:
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
 
-  void getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, ClauseStack& acc);
+  void getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, RCClauseStack& acc);
+
+#if VDEBUG
+  void assertSplitLevelsExist(SplitSet* s);
+#endif
 
   SplitLevel _nextLev;
   SaturationAlgorithm* _sa;

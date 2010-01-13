@@ -154,7 +154,7 @@ void SaturationAlgorithm::onAllProcessed()
   _symElColors.reset();
 
   if(_emptyBSplitClauses.isNonEmpty()) {
-    _bsplitter.backtrack(pvi( ClauseStack::Iterator(_emptyBSplitClauses) ));
+    _bsplitter.backtrack(pvi( RCClauseStack::Iterator(_emptyBSplitClauses) ));
     _emptyBSplitClauses.reset();
   }
 }
@@ -726,7 +726,9 @@ void SaturationAlgorithm::newClausesToUnprocessed()
   CALL("SaturationAlgorithm::newClausesToUnprocessed");
 
   while(_newClauses.isNonEmpty()) {
-    addUnprocessedClause(_newClauses.pop());
+    Clause* cl=_newClauses.popWithoutDec();
+    addUnprocessedClause(cl);
+    cl->decRefCnt(); //belongs to _newClauses.popWithoutDec()
   }
 }
 

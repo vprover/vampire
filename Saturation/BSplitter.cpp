@@ -72,17 +72,26 @@ void BSplitter::onClauseReduction(Clause* cl, Clause* premise)
     return;
   }
 
+//  cout<<cl->toString()<<" reduced by "<<premise->toString()<<endl;
+
+#if VDEBUG
+  assertSplitLevelsExist(premise->splits());
+#endif
+
   SplitSet* diff=premise->splits()->subtract(cl->splits());
 
   if(diff->isEmpty()) {
     return;
   }
 
+  cl->incReductionTimestamp();
+  unsigned ts=cl->getReductionTimestamp();
+  ASS(BDD::instance()->isFalse(cl->prop())); //BDDs are disabled when we do backtracking splitting
   SplitSet::Iterator dit(diff);
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
-    cl->incRefCnt();
-    _db[slev]->reduced.push(cl);
+    cl->incRefCnt(); //dec when popped from the '_db[slev]->reduced' stack in backtrack method
+    _db[slev]->reduced.push(ReductionRecord(ts,cl));
   }
 }
 
@@ -284,9 +293,11 @@ start:
   ASS_G(refSplits->size(),0);
 
   SplitLevel refLvl=refSplits->maxval(); //refuted level
+  cout<<"Level "<<refLvl<<" refuted\n";
 
   SplitSet* backtracked;
   if(stackSplitting()) {
+    NOT_IMPLEMENTED;
     backtracked=SplitSet::getRange(refLvl,_nextLev);
   }
   else {
@@ -303,8 +314,8 @@ start:
     }
   }
 
-  static ClauseStack trashed;
-  static ClauseStack restored;
+  static RCClauseStack trashed;
+  static RCClauseStack restored;
   ASS(trashed.isEmpty());
   ASS(restored.isEmpty());
   Clause::requestAux();
@@ -316,13 +327,14 @@ start:
   SplitSet::Iterator blit(backtracked);
   while(blit.hasNext()) {
     SplitLevel bl=blit.next();
+    cout<<"backtracking level "<<refLvl<<"\n";
     SplitRecord* sr=_db[bl];
 
     while(sr->children.isNonEmpty()) {
       Clause* ccl=sr->children.pop();
       if(!ccl->hasAux()) {
 	ASS(ccl->splits()->member(bl));
-	if(ccl->store()!=Clause::NONE) {
+	if(ccl->store()!=Clause::BACKTRACKED) {
 	  trashed.push(ccl);
 	}
 	ccl->setAux(0);
@@ -337,13 +349,14 @@ start:
     SplitRecord* sr=_db[bl];
 
     while(sr->reduced.isNonEmpty()) {
-      Clause* rcl=sr->reduced.pop();
-      if(!rcl->hasAux()) {
+      ReductionRecord rrec=sr->reduced.pop();
+      Clause* rcl=rrec.clause;
+      if(!rcl->hasAux() && rcl->store()!=Clause::BACKTRACKED && rrec.timestamp==rcl->getReductionTimestamp()) {
 	ASS(!rcl->splits()->hasIntersection(backtracked));
 	restored.push(rcl);
 	rcl->setAux(0);
       }
-      rcl->decRefCnt();
+      rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in onClauseReduction
     }
 
     _db[bl]=0;
@@ -351,14 +364,26 @@ start:
   }
 
   while(trashed.isNonEmpty()) {
-    Clause* tcl=trashed.pop();
-    _sa->removeActiveOrPassiveClause(tcl);
+    Clause* tcl=trashed.popWithoutDec();
+    if(tcl->store()!=Clause::NONE) {
+      _sa->removeActiveOrPassiveClause(tcl);
+      ASS_EQ(tcl->store(), Clause::NONE);
+    }
+    tcl->setStore(Clause::BACKTRACKED);
+    tcl->decRefCnt(); //belongs to trashed.popWithoutDec()
   }
 
   while(restored.isNonEmpty()) {
-    Clause* rcl=restored.pop();
+    Clause* rcl=restored.popWithoutDec();
     ASS_EQ(rcl->store(), Clause::NONE);
+    rcl->incReductionTimestamp();
+    rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
     _sa->addNewClause(rcl);
+    rcl->decRefCnt(); //belongs to restored.popWithoutDec();
+#if VDEBUG
+    //check that restored clause does not depend on splits that were already backtracked
+    assertSplitLevelsExist(rcl->splits());
+#endif
   }
 
   Clause::releaseAux();
@@ -367,9 +392,10 @@ start:
   if(toDo.isNonEmpty()) {
     goto start;
   }
+  cout<<"-- backtracking done --"<<"\n";
 }
 
-void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, ClauseStack& acc)
+void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, RCClauseStack& acc)
 {
   CALL("BSplitter::getAlternativeClauses");
 
@@ -393,7 +419,6 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   scl->setProp(base->prop());
   scl->setSplits(base->splits());
   acc.push(scl);
-
   if(firstComp->isGround()) {
     //if the first component is ground, add its negation
     Clause::Iterator fcit(*firstComp);
@@ -416,7 +441,7 @@ SplitSet* BSplitter::getTransitivelyDependentLevels(SplitLevel lev)
 {
   CALL("BSplitter::getTransitivelyDependentLevels");
 
-  static DHSet<SplitLevel> depSet;
+  static DHSet<SplitLevel> depSet; //in this set also levels already backtracked can occur
   static LevelStack depStack;
   static LevelStack toDo;
   depSet.reset();
@@ -425,21 +450,37 @@ SplitSet* BSplitter::getTransitivelyDependentLevels(SplitLevel lev)
 
   toDo.push(lev);
   depSet.insert(lev);
-  depStack.push(lev);
-
   while(toDo.isNonEmpty()) {
     SplitLevel l=toDo.pop();
+    if(!_db[l]) {
+      continue;
+    }
+    depStack.push(l);
     LevelStack::Iterator dit(_db[l]->dependent);
     while(dit.hasNext()) {
       SplitLevel dl=dit.next();
       if(!depSet.find(dl)) {
 	toDo.push(dl);
 	depSet.insert(dl);
-	depStack.push(dl);
       }
     }
   }
   return SplitSet::getFromArray(depStack.begin(), depStack.size());
 }
+
+#if VDEBUG
+
+void BSplitter::assertSplitLevelsExist(SplitSet* s)
+{
+  CALL("BSplitter::assertSplitLevelsExist");
+
+  SplitSet::Iterator sit(s);
+  while(sit.hasNext()) {
+    SplitLevel lev=sit.next();
+    ASS_NEQ(_db[lev],0);
+  }
+}
+
+#endif
 
 }

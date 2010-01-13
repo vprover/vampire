@@ -40,7 +40,7 @@ using namespace Saturation;
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
 {
-  CALL("SLQueryForwardSubsumption::attach");
+  CALL("ForwardSubsumptionAndResolution::attach");
   ForwardSimplificationEngine::attach(salg);
   _unitIndex=static_cast<UnitClauseSimplifyingLiteralIndex*>(
 	  _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE) );
@@ -50,7 +50,7 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
 
 void ForwardSubsumptionAndResolution::detach()
 {
-  CALL("SLQueryForwardSubsumption::detach");
+  CALL("ForwardSubsumptionAndResolution::detach");
   _unitIndex=0;
   _fwIndex=0;
   _salg->getIndexManager()->release(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
@@ -230,7 +230,7 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
 
 void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
-  CALL("ForwardSubsumptionResolution::perform");
+  CALL("ForwardSubsumptionAndResolution::perform");
 
   Clause* resolutionClause=0;
 

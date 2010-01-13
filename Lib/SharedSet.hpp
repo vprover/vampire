@@ -6,6 +6,9 @@
 #ifndef __SharedSet__
 #define __SharedSet__
 
+#include <string>
+#include <sstream>
+
 #include "../Forwards.hpp"
 
 #include "../Debug/Assertion.hpp"
@@ -19,6 +22,7 @@
 
 namespace Lib {
 
+using namespace std;
 
 template<typename T>
 class SharedSet {
@@ -193,6 +197,15 @@ public:
     }
 
     return false;
+  }
+
+  string toString()
+  {
+    CALL("SharedSet::toString");
+
+    stringstream res;
+    res<<(*this);
+    return res.str();
   }
 
   static SharedSet* getEmpty()

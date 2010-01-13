@@ -11,6 +11,7 @@
 #include "../Lib/DArray.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/SharedSet.hpp"
 #include "../Lib/Stack.hpp"
 
 #include "../SAT/SATClause.hpp"
@@ -45,6 +46,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
     _weight(0),
     _store(NONE),
     _inferenceRefCnt(0),
+    _reductionTimestamp(0),
     _literalPositions(0),
     _prop(0),
     _splits(0),
@@ -110,7 +112,7 @@ void Clause::setProp(BDDNode* prop)
 bool Clause::shouldBeDestroyed()
 {
 //  return false;
-  return _store == NONE && _inferenceRefCnt == 0 &&
+  return (_store == NONE || _store == BACKTRACKED) && _inferenceRefCnt == 0 &&
     _inference->rule() != Inference::INPUT;
 }
 
@@ -277,6 +279,10 @@ string Clause::toString(BDDNode* propPart) const
 
   if(propPart && !BDD::instance()->isFalse(propPart)) {
     result += " | " + BDD::instance()->toString(propPart);
+  }
+
+  if(splits() && !splits()->isEmpty()) {
+    result += string(" {") + splits()->toString() + "}";
   }
 
   result += string(" (") + Int::toString(_age) + ':' + Int::toString(weight())

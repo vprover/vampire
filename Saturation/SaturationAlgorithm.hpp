@@ -10,6 +10,7 @@
 #include "../Forwards.hpp"
 
 #include "../Kernel/Clause.hpp"
+#include "../Kernel/RCClauseStack.hpp"
 
 #include "../Lib/DHMap.hpp"
 #include "../Lib/Event.hpp"
@@ -131,8 +132,8 @@ protected:
   bool _propToBDD;
   bool _clauseActivationInProgress;
 
-  ClauseStack _newClauses;
-  ClauseStack _emptyBSplitClauses;
+  RCClauseStack _newClauses;
+  RCClauseStack _emptyBSplitClauses;
 
   ClauseStack _postponedClauseRemovals;
 
