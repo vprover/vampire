@@ -62,6 +62,9 @@ Statistics::Statistics()
     splittedClauses(0),
     splittedComponents(0),
     uniqueComponents(0),
+    backtrackingSplits(0),
+    backtrackingSplitsRefuted(0),
+    backtrackingSplitsRefutedZeroLevel(0),
     terminationReason(UNKNOWN),
     refutation(0)
 {
@@ -125,6 +128,11 @@ void Statistics::print()
   COND_OUT("Splitted clauses", splittedClauses);
   COND_OUT("Splitted components", splittedComponents);
   COND_OUT("Unique components", uniqueComponents);
+  SEPARATOR;
+
+  COND_OUT("Backtracking splits", backtrackingSplits);
+  COND_OUT("Backtracking splits refuted", backtrackingSplitsRefuted);
+  COND_OUT("Backtracking splits refuted at zero level", backtrackingSplitsRefutedZeroLevel);
   SEPARATOR;
 
   env.out << "Memory used: " << (Allocator::getUsedMemory()/1024) << "KB" << endl;

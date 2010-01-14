@@ -82,11 +82,9 @@ private:
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
 
-  void getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, RCClauseStack& acc);
+  void getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl, RCClauseStack& acc);
 
-#if VDEBUG
   void assertSplitLevelsExist(SplitSet* s);
-#endif
 
   SplitLevel _nextLev;
   SaturationAlgorithm* _sa;

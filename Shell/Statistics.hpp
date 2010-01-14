@@ -118,6 +118,10 @@ public:
   unsigned splittedComponents;
   unsigned uniqueComponents;
 
+  unsigned backtrackingSplits;
+  unsigned backtrackingSplitsRefuted;
+  unsigned backtrackingSplitsRefutedZeroLevel;
+
   /** termination reason */
   enum TerminationReason {
     /** refutation found */

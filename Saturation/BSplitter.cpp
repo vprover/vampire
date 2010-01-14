@@ -4,6 +4,7 @@
  */
 
 #include "../Lib/DHSet.hpp"
+#include "../Lib/Environment.hpp"
 #include "../Lib/IntUnionFind.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/SharedSet.hpp"
@@ -11,6 +12,8 @@
 #include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
+
+#include "../Shell/Statistics.hpp"
 
 #include "BSplitter.hpp"
 #include "SaturationAlgorithm.hpp"
@@ -39,6 +42,11 @@ bool BSplitter::split(Clause* cl)
     return false;
   }
 
+//  cout<<"Splitting "<<(*cl)<<endl;
+#if VDEBUG
+  assertSplitLevelsExist(cl->splits());
+#endif
+
   SplitLevel lev=_nextLev++;
   SplitRecord* sr=new SplitRecord(lev, cl, comp);
 
@@ -55,6 +63,7 @@ bool BSplitter::split(Clause* cl)
   assignClauseSplitSet(comp, cl->splits()->getUnion(SplitSet::getSingleton(lev)));
   _sa->addNewClause(comp);
 
+  env.statistics->backtrackingSplits++;
   return true;
 }
 
@@ -75,6 +84,7 @@ void BSplitter::onClauseReduction(Clause* cl, Clause* premise)
 //  cout<<cl->toString()<<" reduced by "<<premise->toString()<<endl;
 
 #if VDEBUG
+  assertSplitLevelsExist(cl->splits());
   assertSplitLevelsExist(premise->splits());
 #endif
 
@@ -103,6 +113,10 @@ void BSplitter::onNewClause(Clause* cl)
     SplitSet* splits=getNewClauseSplitSet(cl);
     assignClauseSplitSet(cl, splits);
   }
+//  cout<<(*cl)<<endl;
+#if VDEBUG
+  assertSplitLevelsExist(cl->splits());
+#endif
 }
 
 /**
@@ -187,6 +201,7 @@ compAssemblyStart:
   }
 
   Clause* res=Clause::fromStack(lits, cl->inputType(), new Inference(Inference::SPLITTING_COMPONENT));
+  res->setAge(cl->age());
   res->setProp(BDD::instance()->getFalse());
   return res;
 }
@@ -285,7 +300,14 @@ void BSplitter::backtrack(ClauseIterator emptyClauses)
   toDo.reset();
   toDo.loadFromIterator(emptyClauses);
 
+  Clause::requestAux();
+  static RCClauseStack trashed;
+  static RCClauseStack restored;
+  ASS(restored.isEmpty());
+
 start:
+  ASS(trashed.isEmpty());
+
   Clause* cl=toDo.pop();
   ASS(cl->isEmpty());
 
@@ -293,7 +315,7 @@ start:
   ASS_G(refSplits->size(),0);
 
   SplitLevel refLvl=refSplits->maxval(); //refuted level
-  cout<<"Level "<<refLvl<<" refuted\n";
+//  cout<<"Level "<<refLvl<<" refuted\n";
 
   SplitSet* backtracked;
   if(stackSplitting()) {
@@ -314,14 +336,12 @@ start:
     }
   }
 
-  static RCClauseStack trashed;
-  static RCClauseStack restored;
-  ASS(trashed.isEmpty());
-  ASS(restored.isEmpty());
-  Clause::requestAux();
+  cout<<"Backtracking on "<<(*cl)<<endl;
+  cout<<"base "<<(*_db[refLvl]->base)<<endl;
+  cout<<"comp "<<(*_db[refLvl]->component)<<endl;
 
   //add the other component of the splitted clause (plus possibly some other clauses)
-  getAlternativeClauses(_db[refLvl]->base, _db[refLvl]->component, cl, restored);
+  getAlternativeClauses(_db[refLvl]->base, _db[refLvl]->component, cl, refLvl, restored);
 
 
   SplitSet::Iterator blit(backtracked);
@@ -354,7 +374,6 @@ start:
       if(!rcl->hasAux() && rcl->store()!=Clause::BACKTRACKED && rrec.timestamp==rcl->getReductionTimestamp()) {
 	ASS(!rcl->splits()->hasIntersection(backtracked));
 	restored.push(rcl);
-	rcl->setAux(0);
       }
       rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in onClauseReduction
     }
@@ -373,33 +392,46 @@ start:
     tcl->decRefCnt(); //belongs to trashed.popWithoutDec()
   }
 
+  if(toDo.isNonEmpty()) {
+    goto start; //////goto start here///////
+  }
+
   while(restored.isNonEmpty()) {
     Clause* rcl=restored.popWithoutDec();
-    ASS_EQ(rcl->store(), Clause::NONE);
-    rcl->incReductionTimestamp();
-    rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
-    _sa->addNewClause(rcl);
+    if(!rcl->hasAux() && rcl->store()!=Clause::BACKTRACKED) {
+      rcl->setAux(0);
+      ASS_EQ(rcl->store(), Clause::NONE);
+      rcl->incReductionTimestamp();
+      rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
+      _sa->addNewClause(rcl);
+  #if VDEBUG
+      //check that restored clause does not depend on splits that were already backtracked
+      assertSplitLevelsExist(rcl->splits());
+  #endif
+    }
     rcl->decRefCnt(); //belongs to restored.popWithoutDec();
-#if VDEBUG
-    //check that restored clause does not depend on splits that were already backtracked
-    assertSplitLevelsExist(rcl->splits());
-#endif
   }
 
   Clause::releaseAux();
 
-
-  if(toDo.isNonEmpty()) {
-    goto start;
-  }
   cout<<"-- backtracking done --"<<"\n";
 }
 
-void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, RCClauseStack& acc)
+void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl, RCClauseStack& acc)
 {
   CALL("BSplitter::getAlternativeClauses");
 
   Unit::InputType inp=max(base->inputType(), refutation->inputType());
+
+  SplitSet* resSplits=base->splits()->getUnion(refutation->splits())->subtract(SplitSet::getSingleton(refLvl));
+  BDDNode* resProp=BDD::instance()->getFalse(); //all BDD resoning is disabled when doing backtracking splitting
+  int resAge=base->age();
+
+  env.statistics->backtrackingSplitsRefuted++;
+  if(resSplits->isEmpty()) {
+    env.statistics->backtrackingSplitsRefutedZeroLevel++;
+  }
+
 
   static DHSet<Literal*> firstLits;
   static Stack<Literal*> secLits;
@@ -416,9 +448,12 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   }
   Inference* sinf=new Inference2(Inference::SPLITTING, base, refutation);
   Clause* scl=Clause::fromStack(secLits, inp, sinf);
-  scl->setProp(base->prop());
-  scl->setSplits(base->splits());
+  scl->setAge(resAge);
+  scl->setProp(resProp);
+  assignClauseSplitSet(scl, resSplits);
   acc.push(scl);
+  cout<<"sp add "<<(*scl)<<endl;
+
   if(firstComp->isGround()) {
     //if the first component is ground, add its negation
     Clause::Iterator fcit(*firstComp);
@@ -426,9 +461,11 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
       Literal* glit=fcit.next();
       Inference* ginf=new Inference2(Inference::SPLITTING, base, refutation);
       Clause* gcl=Clause::fromIterator(getSingletonIterator(Literal::oppositeLiteral(glit)), inp, ginf);
-      gcl->setProp(base->prop());
-      gcl->setSplits(base->splits());
+      gcl->setAge(resAge);
+      gcl->setProp(resProp);
+      assignClauseSplitSet(gcl, resSplits);
       acc.push(gcl);
+      cout<<"sp add "<<(*gcl)<<endl;
     }
   }
 }
@@ -477,7 +514,7 @@ void BSplitter::assertSplitLevelsExist(SplitSet* s)
   SplitSet::Iterator sit(s);
   while(sit.hasNext()) {
     SplitLevel lev=sit.next();
-    ASS_NEQ(_db[lev],0);
+    ASS_REP(_db[lev]!=0, lev);
   }
 }
 

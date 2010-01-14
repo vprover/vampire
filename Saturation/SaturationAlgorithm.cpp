@@ -782,13 +782,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   ASS(!bdd->isTrue(cl->prop()));
 
-  if(env.options->backtrackingSplitting()) {
-    if(_bsplitter.split(cl)) {
-      return;
-    }
-  }
-
-
   if(_performSplitting && cl->splits()->isEmpty() && !cl->isEmpty()) {
 
     bool premSymEl=false;
@@ -1177,7 +1170,7 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     _active->remove(cl);
     break;
   default:
-    ASSERTION_VIOLATION;
+    ASS_REP(false, cl->store());
   }
   cl->setStore(Clause::NONE);
 }
@@ -1185,15 +1178,24 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
 /**
  * Add clause @b c to the passive container
  */
-void SaturationAlgorithm::addToPassive(Clause* c)
+void SaturationAlgorithm::addToPassive(Clause* cl)
 {
   CALL("SaturationAlgorithm::addToPassive");
+  ASS_EQ(cl->store(), Clause::UNPROCESSED);
 
-  ASS_EQ(c->store(), Clause::UNPROCESSED);
-  c->setStore(Clause::PASSIVE);
+  if(env.options->backtrackingSplitting()) {
+    if(_bsplitter.split(cl)) {
+      //we keep the clause even if splitting succeeded, it will get subsumed by the component clause
+      cl->setStore(Clause::NONE);
+      addNewClause(cl);
+      return;
+    }
+  }
+
+  cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
 
-  _passive->add(c);
+  _passive->add(cl);
 }
 
 /**

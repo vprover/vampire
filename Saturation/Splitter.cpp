@@ -323,6 +323,7 @@ Clause* Splitter::getComponent(Clause* cl, Literal** lits, unsigned compLen, int
       _variantIndex.insert(comp);
     }
 
+    comp->setAge(cl->age());
     comp->setProp(BDD::instance()->getTrue());
     InferenceStore::instance()->recordNonPropInference(comp);
   }
