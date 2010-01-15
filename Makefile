@@ -20,7 +20,7 @@
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -36,7 +36,7 @@
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -g #Valgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -g #Valgrind
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -g #Valgrind
-XFLAGS = -O0 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -fno-default-inline -g #Valgrind
+#XFLAGS = -O0 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -fno-default-inline -g #Valgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -fno-inline -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
@@ -973,22 +973,23 @@ Kernel/InferenceStore.o: Lib/Allocator.hpp Debug/Assertion.hpp
 Kernel/InferenceStore.o: Debug/Tracer.hpp Lib/Environment.hpp Forwards.hpp
 Kernel/InferenceStore.o: Config.hpp Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 Kernel/InferenceStore.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
-Kernel/InferenceStore.o: Lib/Stack.hpp Lib/Allocator.hpp
-Kernel/InferenceStore.o: Lib/BacktrackData.hpp Lib/List.hpp
+Kernel/InferenceStore.o: Lib/SharedSet.hpp Lib/Allocator.hpp
+Kernel/InferenceStore.o: Lib/Metaiterators.hpp Lib/List.hpp
 Kernel/InferenceStore.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
-Kernel/InferenceStore.o: Lib/Int.hpp Kernel/BDD.hpp Lib/Array.hpp
+Kernel/InferenceStore.o: Lib/Set.hpp Lib/Hash.hpp Lib/TimeCounter.hpp
+Kernel/InferenceStore.o: Lib/Sort.hpp Lib/DArray.hpp Lib/Random.hpp
+Kernel/InferenceStore.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/Int.hpp
+Kernel/InferenceStore.o: Lib/Stack.hpp Kernel/BDD.hpp Lib/Array.hpp
 Kernel/InferenceStore.o: Lib/DHMap.hpp Lib/Hash.hpp Lib/List.hpp Lib/Set.hpp
-Kernel/InferenceStore.o: Lib/SkipList.hpp Lib/Random.hpp Kernel/Signature.hpp
-Kernel/InferenceStore.o: Lib/Map.hpp Lib/Hash.hpp SAT/TWLSolver.hpp
-Kernel/InferenceStore.o: Lib/DArray.hpp Lib/Exception.hpp Kernel/Clause.hpp
-Kernel/InferenceStore.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
-Kernel/InferenceStore.o: Lib/Metaiterators.hpp Lib/Set.hpp
-Kernel/InferenceStore.o: Lib/TimeCounter.hpp Lib/Reflection.hpp
-Kernel/InferenceStore.o: Kernel/Unit.hpp Kernel/Formula.hpp Lib/XML.hpp
-Kernel/InferenceStore.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
-Kernel/InferenceStore.o: Kernel/FormulaVarIterator.hpp Lib/MultiCounter.hpp
-Kernel/InferenceStore.o: Lib/XML.hpp Kernel/Term.hpp Kernel/Inference.hpp
-Kernel/InferenceStore.o: Kernel/Unit.hpp Shell/LaTeX.hpp
+Kernel/InferenceStore.o: Lib/SkipList.hpp Kernel/Signature.hpp Lib/Map.hpp
+Kernel/InferenceStore.o: SAT/TWLSolver.hpp Lib/DArray.hpp Lib/Exception.hpp
+Kernel/InferenceStore.o: Kernel/Clause.hpp Lib/InverseLookup.hpp
+Kernel/InferenceStore.o: Lib/DHMap.hpp Lib/Metaiterators.hpp
+Kernel/InferenceStore.o: Lib/Reflection.hpp Kernel/Unit.hpp
+Kernel/InferenceStore.o: Kernel/Formula.hpp Lib/XML.hpp Kernel/Connective.hpp
+Kernel/InferenceStore.o: Kernel/FormulaUnit.hpp Kernel/FormulaVarIterator.hpp
+Kernel/InferenceStore.o: Lib/MultiCounter.hpp Lib/XML.hpp Kernel/Term.hpp
+Kernel/InferenceStore.o: Kernel/Inference.hpp Kernel/Unit.hpp Shell/LaTeX.hpp
 Kernel/InferenceStore.o: Kernel/Connective.hpp Kernel/InferenceStore.hpp
 Kernel/InferenceStore.o: Lib/DHMultiset.hpp Shell/Options.hpp
 Kernel/InferenceStore.o: Kernel/InferenceStore.hpp
@@ -2265,7 +2266,8 @@ Saturation/BSplitter.o: Lib/DHSet.hpp Lib/DHMap.hpp Debug/Assertion.hpp
 Saturation/BSplitter.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Exception.hpp
 Saturation/BSplitter.o: Lib/LastCopyWatcher.hpp Lib/Hash.hpp
 Saturation/BSplitter.o: Lib/VirtualIterator.hpp Forwards.hpp Config.hpp
-Saturation/BSplitter.o: Lib/Reflection.hpp Lib/IntUnionFind.hpp Lib/Stack.hpp
+Saturation/BSplitter.o: Lib/Reflection.hpp Lib/Environment.hpp
+Saturation/BSplitter.o: Lib/IntUnionFind.hpp Lib/Stack.hpp
 Saturation/BSplitter.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/Int.hpp
 Saturation/BSplitter.o: Lib/Comparison.hpp Lib/Portability.hpp
 Saturation/BSplitter.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/TimeCounter.hpp
@@ -2278,7 +2280,8 @@ Saturation/BSplitter.o: Lib/Map.hpp SAT/TWLSolver.hpp Lib/DArray.hpp
 Saturation/BSplitter.o: Lib/Exception.hpp Kernel/Clause.hpp
 Saturation/BSplitter.o: Lib/InverseLookup.hpp Lib/Reflection.hpp
 Saturation/BSplitter.o: Kernel/Unit.hpp Kernel/Inference.hpp Kernel/Unit.hpp
-Saturation/BSplitter.o: Saturation/BSplitter.hpp Kernel/RCClauseStack.hpp
+Saturation/BSplitter.o: Shell/Statistics.hpp Saturation/BSplitter.hpp
+Saturation/BSplitter.o: Kernel/RCClauseStack.hpp
 Saturation/BSplitter.o: Saturation/SaturationAlgorithm.hpp Lib/Event.hpp
 Saturation/BSplitter.o: Lib/SmartPtr.hpp Indexing/IndexManager.hpp
 Saturation/BSplitter.o: Indexing/Index.hpp Lib/VirtualIterator.hpp
@@ -2287,8 +2290,8 @@ Saturation/BSplitter.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
 Saturation/BSplitter.o: Kernel/Term.hpp Inferences/InferenceEngine.hpp
 Saturation/BSplitter.o: Inferences/PropositionalToBDDISE.hpp
 Saturation/BSplitter.o: Inferences/InferenceEngine.hpp
-Saturation/BSplitter.o: Saturation/SaturationResult.hpp Shell/Statistics.hpp
-Saturation/BSplitter.o: Lib/Environment.hpp Saturation/Splitter.hpp
+Saturation/BSplitter.o: Saturation/SaturationResult.hpp
+Saturation/BSplitter.o: Saturation/Splitter.hpp
 Saturation/BSplitter.o: Indexing/ClauseVariantIndex.hpp
 Saturation/ClauseContainer.o: Lib/Environment.hpp Forwards.hpp Config.hpp
 Saturation/ClauseContainer.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp

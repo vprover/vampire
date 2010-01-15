@@ -84,7 +84,8 @@ private:
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
 
-  void getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl, RCClauseStack& acc);
+  void getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl,
+      RCClauseStack& acc, SplitSet*& altSplitSet);
 
   void assertSplitLevelsExist(SplitSet* s);
 

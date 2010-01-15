@@ -95,7 +95,6 @@ void BSplitter::onClauseReduction(Clause* cl, Clause* premise)
   }
 
   cl->incReductionTimestamp();
-  unsigned ts=cl->getReductionTimestamp();
   ASS(BDD::instance()->isFalse(cl->prop())); //BDDs are disabled when we do backtracking splitting
   SplitSet::Iterator dit(diff);
   while(dit.hasNext()) {
@@ -347,14 +346,16 @@ start:
 //  cout<<"base "<<(*_db[refLvl]->base)<<endl;
 //  cout<<"comp "<<(*_db[refLvl]->component)<<endl;
 
+
+  SplitSet* altSplitSet;
   //add the other component of the splitted clause (plus possibly some other clauses)
-  getAlternativeClauses(_db[refLvl]->base, _db[refLvl]->component, cl, refLvl, restored);
+  getAlternativeClauses(_db[refLvl]->base, _db[refLvl]->component, cl, refLvl, restored, altSplitSet);
 
 
   SplitSet::Iterator blit(backtracked);
   while(blit.hasNext()) {
     SplitLevel bl=blit.next();
-//    cout<<"backtracking level "<<refLvl<<"\n";
+//    cout<<"scanning level "<<bl<<"\n";
     SplitRecord* sr=_db[bl];
 
     while(sr->children.isNonEmpty()) {
@@ -375,19 +376,31 @@ start:
     SplitLevel bl=blit2.next();
     SplitRecord* sr=_db[bl];
 
+//    cout<<"backtracking level "<<bl<<"\n";
+    Clause* bcl=sr->base;
     if(bl!=refLvl) {
-      Clause* rcl=sr->base;
-      if(!rcl->hasAux() && rcl->store()!=Clause::BACKTRACKED) {
-	ASS(!rcl->splits()->hasIntersection(backtracked));
-	restored.push(rcl);
+      restored.push(bcl);
+    }
+    else {
+      //If the refutation depended on more split-levels than the base
+      //clause, we should restore the base clause when backtracking
+      //those extra levels.
+      SplitSet* difSet=altSplitSet->subtract(bcl->splits());
+      if(!difSet->isEmpty()) {
+	SplitSet::Iterator dsit(difSet);
+	bcl->incReductionTimestamp();
+	while(dsit.hasNext()) {
+	  SplitLevel slev=dsit.next();
+	  ASS(_db[slev]);
+	  _db[slev]->addReduced(bcl);
+	}
       }
     }
 
     while(sr->reduced.isNonEmpty()) {
       ReductionRecord rrec=sr->reduced.pop();
       Clause* rcl=rrec.clause;
-      if(!rcl->hasAux() && rcl->store()!=Clause::BACKTRACKED && rrec.timestamp==rcl->getReductionTimestamp()) {
-	ASS(!rcl->splits()->hasIntersection(backtracked));
+      if(rrec.timestamp==rcl->getReductionTimestamp()) {
 	restored.push(rcl);
       }
       rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in BSplitter::SplitRecord::addReduced
@@ -414,6 +427,7 @@ start:
   while(restored.isNonEmpty()) {
     Clause* rcl=restored.popWithoutDec();
     if(!rcl->hasAux() && rcl->store()!=Clause::BACKTRACKED) {
+      ASS(!rcl->splits()->hasIntersection(backtracked));
       rcl->setAux(0);
       ASS_EQ(rcl->store(), Clause::NONE);
       rcl->incReductionTimestamp();
@@ -432,7 +446,8 @@ start:
 //  cout<<"-- backtracking done --"<<"\n";
 }
 
-void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl, RCClauseStack& acc)
+void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl,
+    RCClauseStack& acc, SplitSet*& altSplitSet)
 {
   CALL("BSplitter::getAlternativeClauses");
 
@@ -441,6 +456,8 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   SplitSet* resSplits=base->splits()->getUnion(refutation->splits())->subtract(SplitSet::getSingleton(refLvl));
   BDDNode* resProp=BDD::instance()->getFalse(); //all BDD resoning is disabled when doing backtracking splitting
   int resAge=base->age();
+
+  altSplitSet=resSplits;
 
   env.statistics->backtrackingSplitsRefuted++;
   if(resSplits->isEmpty()) {
