@@ -6,6 +6,7 @@
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/SharedSet.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
@@ -31,6 +32,8 @@ using namespace Shell;
 
 void InferenceStore::FullInference::increasePremiseRefCounters()
 {
+  CALL("InferenceStore::FullInference::increasePremiseRefCounters");
+
   for(unsigned i=0;i<premCnt;i++) {
     premises[i].first->incRefCnt();
   }
@@ -360,6 +363,9 @@ struct InferenceStore::ProofPrinter
     if(!bdd->isFalse(cs.second)) {
 	out << " | "<<bdd->toString(cs.second);
     }
+    if(cl->splits() && !cl->splits()->isEmpty()) {
+      out << " {" << cl->splits()->toString() << "}";
+    }
     out << " ("<<cl->age()<<':'<<cl->weight()<<") ";
 
     out <<"["<<Inference::ruleName(finf->rule);
@@ -376,7 +382,11 @@ struct InferenceStore::ProofPrinter
     out << unit->number() << ". ";
     if(unit->isClause()) {
       Clause* cl=static_cast<Clause*>(unit);
-      out << cl->nonPropToString() << " ("<<cl->age()<<':'<<cl->weight()<<")";
+      out << cl->nonPropToString();
+      if(cl->splits() && !cl->splits()->isEmpty()) {
+        out << " {" << cl->splits()->toString() << "}";
+      }
+      out << " ("<<cl->age()<<':'<<cl->weight()<<")";
     } else {
       FormulaUnit* fu=static_cast<FormulaUnit*>(unit);
       out << fu->formula()->toString();

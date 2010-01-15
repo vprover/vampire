@@ -45,6 +45,8 @@ private:
       component->decRefCnt();
     }
 
+    void addReduced(Clause* cl);
+
     SplitLevel level;
     Clause* base;
     Clause* component;

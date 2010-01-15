@@ -62,6 +62,10 @@ SaturationResult Discount::saturate()
     }
 
     onAllProcessed();
+    if(!clausesFlushed()) {
+      //there were some new clauses added, so let's process them
+      continue;
+    }
 
     if(env.timeLimitReached()) {
       return SaturationResult(Statistics::TIME_LIMIT);

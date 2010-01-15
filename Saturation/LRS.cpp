@@ -135,8 +135,9 @@ SaturationResult LRS::saturate()
       }
       if(forwardSimplify(c)) {
 	backwardSimplify(c);
-	addToPassive(c);
-	_simplCont.add(c);
+	if(addToPassive(c)) {
+	  _simplCont.add(c);
+	}
       } else {
 	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
@@ -158,6 +159,10 @@ SaturationResult LRS::saturate()
       }
     }
     onAllProcessed();
+    if(!clausesFlushed()) {
+      //there were some new clauses added, so let's process them
+      continue;
+    }
 
     if (_passive->isEmpty()) {
       return SaturationResult( complete ? Statistics::SATISFIABLE : Statistics::UNKNOWN );

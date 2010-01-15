@@ -890,12 +890,14 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
       onNonRedundantClause(cl);
       return cl;
     } else {
+      cl->incRefCnt();
       emptyClauses.push(InferenceStore::getClauseSpec(cl));
       return 0;
     }
   } else {
     static Clause* accumulator=0;
     if(accumulator==0) {
+      cl->incRefCnt();
       onNonRedundantClause(cl);
       accumulator=cl;
       onNewUsefulPropositionalClause(cl);
@@ -1176,9 +1178,9 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
 }
 
 /**
- * Add clause @b c to the passive container
+ * Add clause @b c to the passive container and return true iff it was indeed added
  */
-void SaturationAlgorithm::addToPassive(Clause* cl)
+bool SaturationAlgorithm::addToPassive(Clause* cl)
 {
   CALL("SaturationAlgorithm::addToPassive");
   ASS_EQ(cl->store(), Clause::UNPROCESSED);
@@ -1187,8 +1189,7 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
     if(_bsplitter.split(cl)) {
       //we keep the clause even if splitting succeeded, it will get subsumed by the component clause
       cl->setStore(Clause::NONE);
-      addNewClause(cl);
-      return;
+      return false;
     }
   }
 
@@ -1196,6 +1197,7 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   env.statistics->passiveClauses++;
 
   _passive->add(cl);
+  return true;
 }
 
 /**

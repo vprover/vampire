@@ -100,8 +100,7 @@ void BSplitter::onClauseReduction(Clause* cl, Clause* premise)
   SplitSet::Iterator dit(diff);
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
-    cl->incRefCnt(); //dec when popped from the '_db[slev]->reduced' stack in backtrack method
-    _db[slev]->reduced.push(ReductionRecord(ts,cl));
+    _db[slev]->addReduced(cl);
   }
 }
 
@@ -117,6 +116,14 @@ void BSplitter::onNewClause(Clause* cl)
 #if VDEBUG
   assertSplitLevelsExist(cl->splits());
 #endif
+}
+
+void BSplitter::SplitRecord::addReduced(Clause* cl)
+{
+  CALL("BSplitter::SplitRecord::addReduced");
+
+  cl->incRefCnt(); //dec when popped from the '_db[slev]->reduced' stack in backtrack method
+  reduced.push(ReductionRecord(cl->getReductionTimestamp(),cl));
 }
 
 /**
@@ -336,9 +343,9 @@ start:
     }
   }
 
-  cout<<"Backtracking on "<<(*cl)<<endl;
-  cout<<"base "<<(*_db[refLvl]->base)<<endl;
-  cout<<"comp "<<(*_db[refLvl]->component)<<endl;
+//  cout<<"Backtracking on "<<(*cl)<<endl;
+//  cout<<"base "<<(*_db[refLvl]->base)<<endl;
+//  cout<<"comp "<<(*_db[refLvl]->component)<<endl;
 
   //add the other component of the splitted clause (plus possibly some other clauses)
   getAlternativeClauses(_db[refLvl]->base, _db[refLvl]->component, cl, refLvl, restored);
@@ -347,7 +354,7 @@ start:
   SplitSet::Iterator blit(backtracked);
   while(blit.hasNext()) {
     SplitLevel bl=blit.next();
-    cout<<"backtracking level "<<refLvl<<"\n";
+//    cout<<"backtracking level "<<refLvl<<"\n";
     SplitRecord* sr=_db[bl];
 
     while(sr->children.isNonEmpty()) {
@@ -368,6 +375,14 @@ start:
     SplitLevel bl=blit2.next();
     SplitRecord* sr=_db[bl];
 
+    if(bl!=refLvl) {
+      Clause* rcl=sr->base;
+      if(!rcl->hasAux() && rcl->store()!=Clause::BACKTRACKED) {
+	ASS(!rcl->splits()->hasIntersection(backtracked));
+	restored.push(rcl);
+      }
+    }
+
     while(sr->reduced.isNonEmpty()) {
       ReductionRecord rrec=sr->reduced.pop();
       Clause* rcl=rrec.clause;
@@ -375,7 +390,7 @@ start:
 	ASS(!rcl->splits()->hasIntersection(backtracked));
 	restored.push(rcl);
       }
-      rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in onClauseReduction
+      rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in BSplitter::SplitRecord::addReduced
     }
 
     _db[bl]=0;
@@ -414,7 +429,7 @@ start:
 
   Clause::releaseAux();
 
-  cout<<"-- backtracking done --"<<"\n";
+//  cout<<"-- backtracking done --"<<"\n";
 }
 
 void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl, RCClauseStack& acc)
@@ -452,7 +467,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   scl->setProp(resProp);
   assignClauseSplitSet(scl, resSplits);
   acc.push(scl);
-  cout<<"sp add "<<(*scl)<<endl;
+//  cout<<"sp add "<<(*scl)<<endl;
 
   if(firstComp->isGround()) {
     //if the first component is ground, add its negation
@@ -465,7 +480,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
       gcl->setProp(resProp);
       assignClauseSplitSet(gcl, resSplits);
       acc.push(gcl);
-      cout<<"sp add "<<(*gcl)<<endl;
+//      cout<<"sp add "<<(*gcl)<<endl;
     }
   }
 }

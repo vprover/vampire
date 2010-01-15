@@ -79,7 +79,7 @@ protected:
   bool isRefutation(Clause* c);
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
-  void addToPassive(Clause* c);
+  bool addToPassive(Clause* c);
   void reanimate(Clause* c);
   void activate(Clause* c);
 
