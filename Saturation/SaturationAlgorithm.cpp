@@ -1092,6 +1092,8 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       cout<<"-"<<(*redundant)<<endl;
 #endif
 
+      onClauseReduction(redundant, cl);
+
       Clause* replacement=0;
 
       if(srec.replacements.hasNext()) {

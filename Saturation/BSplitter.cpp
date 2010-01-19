@@ -18,6 +18,8 @@
 #include "BSplitter.hpp"
 #include "SaturationAlgorithm.hpp"
 
+#define SP_REPORTS 0
+
 namespace Saturation
 {
 
@@ -42,7 +44,6 @@ bool BSplitter::split(Clause* cl)
     return false;
   }
 
-//  cout<<"Splitting "<<(*cl)<<endl;
 #if VDEBUG
   assertSplitLevelsExist(cl->splits());
 #endif
@@ -62,6 +63,11 @@ bool BSplitter::split(Clause* cl)
 
   assignClauseSplitSet(comp, cl->splits()->getUnion(SplitSet::getSingleton(lev)));
   _sa->addNewClause(comp);
+
+#if SP_REPORTS
+  cout<<"Splitting "<<(*cl)<<" into level "<<lev<<", first component "<<(*comp)<<endl;
+#endif
+
 
   env.statistics->backtrackingSplits++;
   return true;
@@ -90,6 +96,10 @@ void BSplitter::onClauseReduction(Clause* cl, Clause* premise)
 
   SplitSet* diff=premise->splits()->subtract(cl->splits());
 
+#if SP_REPORTS==2
+  cout<<"Reduced "<<(*cl)<<" by "<<(*premise)<<". Added to reduced stack on levels "<<diff->toString()<<endl;
+#endif
+
   if(diff->isEmpty()) {
     return;
   }
@@ -110,6 +120,9 @@ void BSplitter::onNewClause(Clause* cl)
   if(!cl->splits()) {
     SplitSet* splits=getNewClauseSplitSet(cl);
     assignClauseSplitSet(cl, splits);
+#if SP_REPORTS==2
+    cout<<"New clause assigned levels: "<<(*cl)<<endl;
+#endif
   }
 //  cout<<(*cl)<<endl;
 #if VDEBUG
@@ -321,7 +334,9 @@ start:
   ASS_G(refSplits->size(),0);
 
   SplitLevel refLvl=refSplits->maxval(); //refuted level
-//  cout<<"Level "<<refLvl<<" refuted\n";
+#if SP_REPORTS
+  cout<<"Level "<<refLvl<<" refuted\n";
+#endif
 
   SplitSet* backtracked;
   if(stackSplitting()) {
@@ -342,10 +357,12 @@ start:
     }
   }
 
-//  cout<<"Backtracking on "<<(*cl)<<endl;
-//  cout<<"base "<<(*_db[refLvl]->base)<<endl;
-//  cout<<"comp "<<(*_db[refLvl]->component)<<endl;
-
+#if SP_REPORTS
+  cout<<"Backtracking on "<<(*cl)<<endl;
+  cout<<"base "<<(*_db[refLvl]->base)<<endl;
+  cout<<"comp "<<(*_db[refLvl]->component)<<endl;
+  cout<<"to be backtracked: "<<backtracked->toString()<<endl;
+#endif
 
   SplitSet* altSplitSet;
   //add the other component of the splitted clause (plus possibly some other clauses)
@@ -437,13 +454,19 @@ start:
       //check that restored clause does not depend on splits that were already backtracked
       assertSplitLevelsExist(rcl->splits());
   #endif
+#if SP_REPORTS==2
+      cout<<"Restored clause "<<(*rcl)<<endl;
+#endif
+
     }
     rcl->decRefCnt(); //belongs to restored.popWithoutDec();
   }
 
   Clause::releaseAux();
 
-//  cout<<"-- backtracking done --"<<"\n";
+#if SP_REPORTS
+  cout<<"-- backtracking done --"<<"\n";
+#endif
 }
 
 void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl,
@@ -484,7 +507,9 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   scl->setProp(resProp);
   assignClauseSplitSet(scl, resSplits);
   acc.push(scl);
-//  cout<<"sp add "<<(*scl)<<endl;
+#if SP_REPORTS
+  cout<<"sp add "<<(*scl)<<endl;
+#endif
 
   if(firstComp->isGround()) {
     //if the first component is ground, add its negation
@@ -497,7 +522,9 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
       gcl->setProp(resProp);
       assignClauseSplitSet(gcl, resSplits);
       acc.push(gcl);
-//      cout<<"sp add "<<(*gcl)<<endl;
+#if SP_REPORTS
+      cout<<"sp add "<<(*gcl)<<endl;
+#endif
     }
   }
 }
