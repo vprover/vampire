@@ -34,6 +34,7 @@ public:
   static const char* _shortNames[];
   static const char* _statisticsValues[];
   static const char* _demodulationValues[];
+  static const char* _backtrackingSplittingModeValues[];
   static const char* _fdeValues[];
   static const char* _lcmValues[];
   static const char* _satAlgValues[];
@@ -51,6 +52,7 @@ public:
   static NameArray shortNames;
   static NameArray statisticsValues;
   static NameArray demodulationValues;
+  static NameArray backtrackingSplittingModeValues;
   static NameArray fdeValues;
   static NameArray lcmValues;
   static NameArray satAlgValues;
@@ -221,6 +223,13 @@ const char* Options::Constants::_demodulationValues[] = {
 NameArray Options::Constants::demodulationValues(_demodulationValues,
 						 sizeof(_demodulationValues)/sizeof(char*));
 
+const char* Options::Constants::_backtrackingSplittingModeValues[] = {
+  "at_activation",
+  "off",
+  "on"};
+NameArray Options::Constants::backtrackingSplittingModeValues(_backtrackingSplittingModeValues,
+					sizeof(_backtrackingSplittingModeValues)/sizeof(char*));
+
 const char* Options::Constants::_fdeValues[] = {
   "all",
   "none",
@@ -308,10 +317,10 @@ NameArray Options::Constants::proofValues(_proofValues,
 Options::Options ()
   :
   _ageRatio(1),
-  _arityCheck(false),
   _weightRatio(1),
+  _arityCheck(false),
 
-  _backtrackingSplitting(false),
+  _backtrackingSplitting(BS_OFF),
   _backwardDemodulation(DEMODULATION_ALL),
   _backwardSubsumption(true),
 
@@ -451,7 +460,7 @@ void Options::set (const char* name,const char* value, int index)
       return;
 
     case BACKTRACKING_SPLITTING:
-      _backtrackingSplitting = onOffToBool(value,name);
+      _backtrackingSplitting = (BacktrackingSplittingMode)Constants::backtrackingSplittingModeValues.find(value);
       return;
     case BACKWARD_DEMODULATION:
       _backwardDemodulation = (Demodulation)Constants::demodulationValues.find(value);
@@ -949,7 +958,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
 
   case BACKTRACKING_SPLITTING:
-    str << boolToOnOff(_backtrackingSplitting);
+    str << Constants::backtrackingSplittingModeValues[_backtrackingSplitting];
     return;
   case BACKWARD_DEMODULATION:
     str << Constants::demodulationValues[_backwardDemodulation];
@@ -1475,7 +1484,7 @@ void Options::checkGlobalOptionConstraints() const
   if(!propositionalToBDD() && splitting()!=RA_OFF) {
     USER_ERROR("If propositional atoms are not being converted to BDD, splitting has to be disabled");
   }
-  if(backtrackingSplitting() && propositionalToBDD()) {
+  if(backtrackingSplitting()!=BS_OFF && propositionalToBDD()) {
     USER_ERROR("Backtracking splitting cannot be used unless all BDD related options are disabled");
   }
 }

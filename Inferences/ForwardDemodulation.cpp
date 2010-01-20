@@ -63,6 +63,14 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
   //replace subterms in some special order, like
   //the heaviest first...
 
+  //TODO: Add completeness check:
+  //
+  //h(a,a,a)=f(a,a)       g(h(a,a,a))=a (DEL)
+  //-----------------------------------------
+  //               g(f(a,a))=a
+  //
+  //is incomplete as the premise is greated than the demodulated clause
+
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];

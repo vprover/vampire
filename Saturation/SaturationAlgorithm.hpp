@@ -81,7 +81,7 @@ protected:
   void backwardSimplify(Clause* c);
   bool addToPassive(Clause* c);
   void reanimate(Clause* c);
-  void activate(Clause* c);
+  bool activate(Clause* c);
 
   void onActiveAdded(Clause* c);
   virtual void onActiveRemoved(Clause* c);

@@ -1187,10 +1187,8 @@ bool SaturationAlgorithm::addToPassive(Clause* cl)
   CALL("SaturationAlgorithm::addToPassive");
   ASS_EQ(cl->store(), Clause::UNPROCESSED);
 
-  if(env.options->backtrackingSplitting()) {
+  if(env.options->backtrackingSplitting()==Options::BS_ON) {
     if(_bsplitter.split(cl)) {
-      //we keep the clause even if splitting succeeded, it will get subsumed by the component clause
-      cl->setStore(Clause::NONE);
       return false;
     }
   }
@@ -1214,9 +1212,15 @@ bool SaturationAlgorithm::addToPassive(Clause* cl)
  * function are postponed. During the clause activation, generalisation
  * indexes should not be modified.
  */
-void SaturationAlgorithm::activate(Clause* cl)
+bool SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
+
+  if(env.options->backtrackingSplitting()==Options::BS_AT_ACTIVATION) {
+    if(_bsplitter.split(cl)) {
+      return false;
+    }
+  }
 
   _clauseActivationInProgress=true;
 
@@ -1286,6 +1290,8 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
     removeActiveOrPassiveClause(cl);
   }
+
+  return true;
 }
 
 /**

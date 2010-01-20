@@ -178,6 +178,13 @@ public:
     RA_ON = 2
   };
 
+  /** Possible values for backtracking splitting */
+  enum BacktrackingSplittingMode {
+    BS_AT_ACTIVATION = 0,
+    BS_OFF = 1,
+    BS_ON = 2
+  };
+
   enum LiteralComparisonMode {
     LCM_REVERSE = 0,
     LCM_PREDICATE = 1,
@@ -312,7 +319,7 @@ public:
   bool satSolverForEmptyClause() const { return _satSolverForEmptyClause; }
   bool emptyClauseSubsumption() const { return _emptyClauseSubsumption; }
   bool propositionalToBDD() const { return _propositionalToBDD; }
-  bool backtrackingSplitting() const { return _backtrackingSplitting; }
+  BacktrackingSplittingMode backtrackingSplitting() const { return _backtrackingSplitting; }
 
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal) { _inputFile = newVal; }
@@ -342,7 +349,7 @@ private:
   int _weightRatio;
   bool _arityCheck;
 
-  bool _backtrackingSplitting;
+  BacktrackingSplittingMode _backtrackingSplitting;
   Demodulation _backwardDemodulation;
   bool _backwardSubsumption;
 

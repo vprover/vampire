@@ -59,15 +59,20 @@ SaturationResult Otter::saturate()
       if (isRefutation(c)) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
+
+      bool inPassive=false;
       if(forwardSimplify(c)) {
 	backwardSimplify(c);
-	if(addToPassive(c)) {
-	  _simplCont.add(c);
-	}
+	inPassive=addToPassive(c);
+      }
+      if(inPassive) {
+	ASS_EQ(c->store(), Clause::PASSIVE);
+	_simplCont.add(c);
       } else {
 	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
       }
+
       newClausesToUnprocessed();
 
       if(env.timeLimitReached()) {
@@ -89,7 +94,14 @@ SaturationResult Otter::saturate()
     }
 
     Clause* c = _passive->popSelected();
-    activate(c);
+
+    bool isActivated=activate(c);
+    if(!isActivated) {
+      //reactivated clauses should always get activated
+      ASS_EQ(c->store(), Clause::PASSIVE);
+      _simplCont.remove(c);
+      c->setStore(Clause::NONE);
+    }
 
     if(env.timeLimitReached()) {
       return SaturationResult(Statistics::TIME_LIMIT);

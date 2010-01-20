@@ -44,6 +44,17 @@ SaturationResult Discount::saturate()
       if(isRefutation(c)) {
     	return SaturationResult(Statistics::REFUTATION, c);
       }
+
+      bool inPassive=false;
+      if(forwardSimplify(c)) {
+	inPassive=addToPassive(c);
+      }
+      ASS(!inPassive || c->store()==Clause::PASSIVE);
+      if(!inPassive) {
+	ASS_EQ(c->store(), Clause::UNPROCESSED);
+	c->setStore(Clause::NONE);
+      }
+
       if(forwardSimplify(c)) {
 	addToPassive(c);
       } else {
@@ -87,7 +98,13 @@ SaturationResult Discount::saturate()
       continue;
     }
     backwardSimplify(cl);
-    activate(cl);
+
+    bool isActivated=activate(cl);
+    if(!isActivated) {
+      //reactivated clauses should always get activated
+      ASS_EQ(cl->store(), Clause::PASSIVE);
+      cl->setStore(Clause::NONE);
+    }
 
     if(env.timeLimitReached()) {
       return SaturationResult(Statistics::TIME_LIMIT);
