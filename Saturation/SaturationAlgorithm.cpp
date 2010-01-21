@@ -444,6 +444,9 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   {
     //put propositional predicates into BDD part
     cl=_propToBDDConv.simplify(cl);
+    if(!cl) {
+      return;
+    }
   }
 
   if(env.options->sos() && cl->inputType()==Clause::AXIOM) {
@@ -765,7 +768,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   env.statistics->generatedClauses++;
 
   BDD* bdd=BDD::instance();
-  ASS(!bdd->isTrue(cl->prop()));
+  ASS_REP(!bdd->isTrue(cl->prop()), *cl);
 
   env.checkTimeSometime<64>();
 

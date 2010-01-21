@@ -30,8 +30,9 @@ Clause* PropositionalToBDDISE::simplify(Clause* c)
 
   BDD* bdd=BDD::instance();
 
-  unsigned propCnt=0;
+  ASS(bdd->isFalse(c->prop()));
 
+  unsigned propCnt=0;
   BDDNode* propPart=bdd->getFalse();
 
   static Stack<Clause*> premises(8);
@@ -73,8 +74,12 @@ Clause* PropositionalToBDDISE::simplify(Clause* c)
 
   newCl->setProp(propPart);
 
-  InferenceStore::instance()->recordNonPropInference(newCl);
+  if(bdd->isTrue(propPart)) {
+    newCl->destroyIfUnnecessary();
+    return 0;
+  }
 
+  InferenceStore::instance()->recordNonPropInference(newCl);
 
   return newCl;
 }
