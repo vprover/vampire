@@ -14,7 +14,7 @@
 
 #include "Allocator.hpp"
 
-#define REPORT_VACANCIES 1
+#define REPORT_VACANCIES 0
 
 namespace Lib {
 
