@@ -341,9 +341,11 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
   static Stack<BDDNode*> toDo(8);
   toDo.reset();
 
-  static Cache<pair<BDDNode*,BDDNode*>, EmptyStruct, PtrPairSimpleHash > cache;
+//  static Cache<pair<BDDNode*,BDDNode*>, EmptyStruct, PtrPairSimpleHash > cache;
+  static DHMap<pair<BDDNode*,BDDNode*>, EmptyStruct, PtrPairSimpleHash > cache;
   //if the cache was not reset, too much memory would be consumed
-  cache.resetEvictionCounter();
+//  cache.resetEvictionCounter();
+  cache.reset();
 
   for(;;) {
     counter++;
@@ -371,7 +373,9 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 	toDo.push((n2->_var==splitVar) ? n2->_pos : n2);
 	toDo.push((n1->_var==splitVar) ? n1->_pos : n1);
 
-	cache.insert(make_pair(n1, n2), EmptyStruct());
+	if(counter%4) {
+	  cache.insert(make_pair(n1, n2), EmptyStruct());
+	}
       }
     }
 
