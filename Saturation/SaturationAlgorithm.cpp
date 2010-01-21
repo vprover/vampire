@@ -492,6 +492,8 @@ void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
     addInputClause(cl);
   }
 
+  newClausesToUnprocessed();
+
   if(env.options->splitting()==Options::RA_INPUT_ONLY) {
     _performSplitting=false;
   }
