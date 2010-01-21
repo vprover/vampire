@@ -62,7 +62,7 @@ struct PtrPairSimpleHash {
   template<typename T>
   static unsigned hash(T pp) {
     return static_cast<unsigned>(reinterpret_cast<size_t>(pp.first)^reinterpret_cast<size_t>(pp.second)^
-	    (reinterpret_cast<size_t>(pp.first)>>3));
+	    (reinterpret_cast<size_t>(pp.first)>>3)^(reinterpret_cast<size_t>(pp.second)>>4));
   }
 };
 

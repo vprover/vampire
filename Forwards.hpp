@@ -10,6 +10,10 @@
 
 namespace Lib
 {
+
+struct EmptyStruct {};
+
+
 class Hash;
 struct IdentityHash;
 struct PtrIdentityHash;

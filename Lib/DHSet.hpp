@@ -7,6 +7,8 @@
 #ifndef __DHSet__
 #define __DHSet__
 
+#include "../Forwards.hpp""
+
 #include "DHMap.hpp"
 
 namespace Lib {
@@ -120,11 +122,6 @@ private:
   DHSet(const DHSet& obj);
   /** operator= is private and without a body, because we don't want any. */
   DHSet& operator=(const DHSet& obj);
-
-
-  struct EmptyStruct
-  {
-  };
 
   DHMap<Val,EmptyStruct,Hash1,Hash2> _map;
 

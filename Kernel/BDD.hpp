@@ -125,8 +125,8 @@ private:
   template<class BinBoolFn>
   BDDNode* getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn);
 
-  template<class BinBoolFn>
-  bool hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn fn);
+  template<bool ResValue, class BinBoolFn>
+  bool hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn);
 
   /**
    * A functor used by @b getBinaryFnResult to compute the conjunction of two BDDs,

@@ -5,6 +5,7 @@
 
 #include <utility>
 
+#include "../Lib/Cache.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Exception.hpp"
 #include "../Lib/DHMap.hpp"
@@ -197,7 +198,12 @@ BDDNode* BDD::xOrNonY(BDDNode* x, BDDNode* y)
 bool BDD::isXOrNonYConstant(BDDNode* x, BDDNode* y, bool resValue)
 {
   CALL("BDD::isXOrNonYConstant");
-  return hasConstantResult(x,y, resValue, XOrNonYFn(this));
+  if(resValue) {
+    return hasConstantResult<true>(x,y, XOrNonYFn(this));
+  }
+  else {
+    return hasConstantResult<false>(x,y, XOrNonYFn(this));
+  }
 }
 
 /**
@@ -242,9 +248,9 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
   //the results stack.
   static Stack<int> vars(8);
 
-  static DHMap<pair<BDDNode*,BDDNode*>, BDDNode*, PtrPairSimpleHash > cache;
+  static Cache<pair<BDDNode*,BDDNode*>, BDDNode*, PtrPairSimpleHash > cache;
   //if the cache was not reset, too much memory would be consumed
-  cache.reset();
+  cache.resetEvictionCounter();
 
   for(;;) {
     counter++;
@@ -270,9 +276,7 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 	results.pop();
 	BDDNode* arg1=results.pop();
 	BDDNode* arg2=results.pop();
-	if( !(counter%4) ) {
-	  cache.insert(make_pair(arg1, arg2), res);
-	}
+	cache.insert(make_pair(arg1, arg2), res);
       }
       results.push(res);
     } else {
@@ -306,7 +310,7 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 /**
  * Return true iff the result of applying the binary function specified
  * by the BinBoolFn functor to @b n1 and @b n2 is a constant formula with truth
- * value equal to @b resValue.
+ * value equal to @b ResValue.
  *
  * The binary functor BinBoolFn must allow to be called as
  *
@@ -319,9 +323,12 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
  * be determined locally by examining just the BDDNode objects pointed
  * by @b m1 and @b m2. It must not return 0 if both arguments are
  * either true or false formulas.
+ *
+ * @b ResValue must be a template argument, so that we would have separate
+ * caches for ResValue==true and ResValue==false.
  */
-template<class BinBoolFn>
-bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn fn)
+template<bool ResValue, class BinBoolFn>
+bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 {
   CALL("BDD::hasConstantResult");
   ASS(n1);
@@ -334,9 +341,9 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
   static Stack<BDDNode*> toDo(8);
   toDo.reset();
 
-  static DHMap<pair<BDDNode*,BDDNode*>, bool, PtrPairSimpleHash > cache;
+  static Cache<pair<BDDNode*,BDDNode*>, EmptyStruct, PtrPairSimpleHash > cache;
   //if the cache was not reset, too much memory would be consumed
-  cache.reset();
+  cache.resetEvictionCounter();
 
   for(;;) {
     counter++;
@@ -349,8 +356,8 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
     }
     BDDNode* res=fn(n1,n2);
     if(res) {
-      if( (resValue && !isTrue(res)) ||
-	      (!resValue && !isFalse(res))) {
+      if( (ResValue && !isTrue(res)) ||
+	      (!ResValue && !isFalse(res))) {
 	return false;
       }
     } else {
@@ -364,9 +371,7 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, bool resValue, BinBoolFn f
 	toDo.push((n2->_var==splitVar) ? n2->_pos : n2);
 	toDo.push((n1->_var==splitVar) ? n1->_pos : n1);
 
-	if( !(counter%4) ) {
-	  cache.insert(make_pair(n1, n2), false);
-	}
+	cache.insert(make_pair(n1, n2), EmptyStruct());
       }
     }
 

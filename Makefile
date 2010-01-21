@@ -825,26 +825,26 @@ Shell/TheoryFinder.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
 Shell/TheoryFinder.o: Kernel/Term.hpp Shell/Property.hpp Kernel/Unit.hpp
 Shell/TheoryFinder.o: Shell/TheoryFinder.hpp
 Shell/Token.o: Debug/Assertion.hpp Shell/Token.hpp
-Kernel/BDD.o: Lib/Environment.hpp Forwards.hpp Config.hpp Lib/Exception.hpp
-Kernel/BDD.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp Lib/Exception.hpp
+Kernel/BDD.o: Lib/Cache.hpp Forwards.hpp Config.hpp Debug/Assertion.hpp
+Kernel/BDD.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Environment.hpp
+Kernel/BDD.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp Lib/Exception.hpp
 Kernel/BDD.o: Lib/DHMap.hpp Lib/Int.hpp Lib/Comparison.hpp
-Kernel/BDD.o: Lib/Portability.hpp Lib/List.hpp Lib/Stack.hpp Debug/Tracer.hpp
-Kernel/BDD.o: Lib/Allocator.hpp Lib/BacktrackData.hpp Lib/List.hpp
-Kernel/BDD.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp Lib/Int.hpp
-Kernel/BDD.o: Lib/Timer.hpp Lib/TimeCounter.hpp Kernel/Formula.hpp
-Kernel/BDD.o: Lib/XML.hpp Kernel/Connective.hpp Kernel/Signature.hpp
-Kernel/BDD.o: Lib/Allocator.hpp Lib/Map.hpp Lib/Hash.hpp Kernel/Term.hpp
-Kernel/BDD.o: Lib/Portability.hpp Lib/Comparison.hpp Lib/Metaiterators.hpp
-Kernel/BDD.o: Lib/Set.hpp Lib/TimeCounter.hpp Kernel/MatchTag.hpp
-Kernel/BDD.o: Lib/BitUtils.hpp SAT/ClauseSharing.hpp Lib/Set.hpp
-Kernel/BDD.o: Lib/VirtualIterator.hpp SAT/SATClause.hpp Lib/InverseLookup.hpp
-Kernel/BDD.o: Lib/DHMap.hpp Lib/Reflection.hpp SAT/SATLiteral.hpp
-Kernel/BDD.o: SAT/Preprocess.hpp SAT/SATClause.hpp SAT/SATLiteral.hpp
-Kernel/BDD.o: SAT/SingleWatchSAT.hpp Lib/DArray.hpp Lib/Random.hpp
-Kernel/BDD.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp Lib/BucketSorter.hpp
-Kernel/BDD.o: Lib/Stack.hpp Shell/Options.hpp Kernel/BDD.hpp Lib/Array.hpp
-Kernel/BDD.o: Lib/Hash.hpp Lib/SkipList.hpp Kernel/Signature.hpp
-Kernel/BDD.o: SAT/TWLSolver.hpp
+Kernel/BDD.o: Lib/Portability.hpp Lib/List.hpp Lib/Stack.hpp
+Kernel/BDD.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/VirtualIterator.hpp
+Kernel/BDD.o: Lib/Reflection.hpp Lib/Int.hpp Lib/Timer.hpp
+Kernel/BDD.o: Lib/TimeCounter.hpp Kernel/Formula.hpp Lib/XML.hpp
+Kernel/BDD.o: Kernel/Connective.hpp Kernel/Signature.hpp Lib/Allocator.hpp
+Kernel/BDD.o: Lib/Map.hpp Lib/Hash.hpp Kernel/Term.hpp Lib/Portability.hpp
+Kernel/BDD.o: Lib/Comparison.hpp Lib/Metaiterators.hpp Lib/Set.hpp
+Kernel/BDD.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp Lib/BitUtils.hpp
+Kernel/BDD.o: SAT/ClauseSharing.hpp Lib/Set.hpp Lib/VirtualIterator.hpp
+Kernel/BDD.o: SAT/SATClause.hpp Lib/InverseLookup.hpp Lib/DHMap.hpp
+Kernel/BDD.o: Lib/Reflection.hpp SAT/SATLiteral.hpp SAT/Preprocess.hpp
+Kernel/BDD.o: SAT/SATClause.hpp SAT/SATLiteral.hpp SAT/SingleWatchSAT.hpp
+Kernel/BDD.o: Lib/DArray.hpp Lib/Random.hpp Lib/BinaryHeap.hpp
+Kernel/BDD.o: Lib/Metaiterators.hpp Lib/BucketSorter.hpp Lib/Stack.hpp
+Kernel/BDD.o: Shell/Options.hpp Kernel/BDD.hpp Lib/Array.hpp Lib/Hash.hpp
+Kernel/BDD.o: Lib/SkipList.hpp Kernel/Signature.hpp SAT/TWLSolver.hpp
 Kernel/Clause.o: Lib/Allocator.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Kernel/Clause.o: Lib/DArray.hpp Forwards.hpp Config.hpp Lib/Allocator.hpp
 Kernel/Clause.o: Lib/Comparison.hpp Lib/Exception.hpp Lib/LastCopyWatcher.hpp
@@ -2262,14 +2262,14 @@ Saturation/AWPassiveClauseContainer.o: Saturation/AWPassiveClauseContainer.hpp
 Saturation/AWPassiveClauseContainer.o: Lib/Comparison.hpp
 Saturation/AWPassiveClauseContainer.o: Kernel/ClauseQueue.hpp
 Saturation/AWPassiveClauseContainer.o: Saturation/ClauseContainer.hpp
-Saturation/BSplitter.o: Lib/DHSet.hpp Lib/DHMap.hpp Debug/Assertion.hpp
-Saturation/BSplitter.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Exception.hpp
+Saturation/BSplitter.o: Lib/DHSet.hpp Forwards.hpp Config.hpp Lib/DHMap.hpp
+Saturation/BSplitter.o: Debug/Assertion.hpp Lib/Allocator.hpp
+Saturation/BSplitter.o: Debug/Tracer.hpp Lib/Exception.hpp
 Saturation/BSplitter.o: Lib/LastCopyWatcher.hpp Lib/Hash.hpp
-Saturation/BSplitter.o: Lib/VirtualIterator.hpp Forwards.hpp Config.hpp
-Saturation/BSplitter.o: Lib/Reflection.hpp Lib/Environment.hpp
-Saturation/BSplitter.o: Lib/IntUnionFind.hpp Lib/Stack.hpp
-Saturation/BSplitter.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/Int.hpp
-Saturation/BSplitter.o: Lib/Comparison.hpp Lib/Portability.hpp
+Saturation/BSplitter.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
+Saturation/BSplitter.o: Lib/Environment.hpp Lib/IntUnionFind.hpp
+Saturation/BSplitter.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/List.hpp
+Saturation/BSplitter.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
 Saturation/BSplitter.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/TimeCounter.hpp
 Saturation/BSplitter.o: Lib/SharedSet.hpp Lib/Metaiterators.hpp Lib/Sort.hpp
 Saturation/BSplitter.o: Lib/DArray.hpp Lib/Random.hpp Kernel/BDD.hpp
