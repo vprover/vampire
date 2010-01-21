@@ -9,6 +9,7 @@
 #include "../Lib/Environment.hpp"
 #include "../Lib/Exception.hpp"
 #include "../Lib/DHMap.hpp"
+#include "../Lib/DHSet.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/List.hpp"
 #include "../Lib/Stack.hpp"
@@ -341,11 +342,8 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
   static Stack<BDDNode*> toDo(8);
   toDo.reset();
 
-//  static Cache<pair<BDDNode*,BDDNode*>, EmptyStruct, PtrPairSimpleHash > cache;
-  static DHMap<pair<BDDNode*,BDDNode*>, EmptyStruct, PtrPairSimpleHash > cache;
-  //if the cache was not reset, too much memory would be consumed
-//  cache.resetEvictionCounter();
-  cache.reset();
+  static DHSet<pair<BDDNode*,BDDNode*>, PtrPairSimpleHash > examined;
+  examined.reset();
 
   for(;;) {
     counter++;
@@ -363,7 +361,7 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 	return false;
       }
     } else {
-      if(!cache.find(make_pair(n1, n2)))
+      if(!examined.find(make_pair(n1, n2)))
       {
 	//we split at variables with higher numbers first
 	int splitVar=max(n1->_var, n2->_var);
@@ -374,7 +372,7 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 	toDo.push((n1->_var==splitVar) ? n1->_pos : n1);
 
 	if(counter%4) {
-	  cache.insert(make_pair(n1, n2), EmptyStruct());
+	  examined.insert(make_pair(n1, n2));
 	}
       }
     }
