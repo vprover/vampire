@@ -381,7 +381,6 @@ start:
   SplitSet::Iterator blit(backtracked);
   while(blit.hasNext()) {
     SplitLevel bl=blit.next();
-//    cout<<"scanning level "<<bl<<"\n";
     SplitRecord* sr=_db[bl];
 
     while(sr->children.isNonEmpty()) {
@@ -402,7 +401,6 @@ start:
     SplitLevel bl=blit2.next();
     SplitRecord* sr=_db[bl];
 
-//    cout<<"backtracking level "<<bl<<"\n";
     Clause* bcl=sr->base;
     if(bl!=refLvl) {
       restored.push(bcl);
