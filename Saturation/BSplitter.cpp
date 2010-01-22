@@ -196,10 +196,11 @@ Clause* BSplitter::getComponent(Clause* cl)
 
   static Stack<Literal*> lits;
 
-compAssemblyStart:
+  IntUnionFind::ComponentIterator cit(components);
+
+  compAssemblyStart:
   lits.reset();
 
-  IntUnionFind::ComponentIterator cit(components);
   ALWAYS(cit.hasNext());
   IntUnionFind::ElementIterator elit=cit.next();
 
