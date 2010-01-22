@@ -10,7 +10,6 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Array.hpp"
-//#include "../Lib/VirtualIterator.hpp"
 #include "../Lib/Stack.hpp"
 
 #include "../Kernel/Clause.hpp"
@@ -32,8 +31,8 @@ private:
   typedef Stack<SplitLevel> LevelStack;
   struct SplitRecord
   {
-    SplitRecord(SplitLevel level, Clause* base, Clause* comp)
-     : level(level), base(base), component(comp)
+    SplitRecord(Clause* base, Clause* comp)
+     : base(base), component(comp)
     {
       base->incRefCnt();
       component->incRefCnt();
@@ -47,7 +46,6 @@ private:
 
     void addReduced(Clause* cl);
 
-    SplitLevel level;
     Clause* base;
     Clause* component;
     LevelStack dependent;

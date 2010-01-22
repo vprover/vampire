@@ -56,7 +56,7 @@ bool BSplitter::split(Clause* cl)
 #endif
 
   SplitLevel lev=_nextLev++;
-  SplitRecord* sr=new SplitRecord(lev, cl, comp);
+  SplitRecord* sr=new SplitRecord(cl, comp);
 
   //update "dependent" field of base SplitRecords
   SplitSet::Iterator bsit(cl->splits());
@@ -68,7 +68,8 @@ bool BSplitter::split(Clause* cl)
   ASS(!_db[lev]);
   _db[lev]=sr;
 
-  assignClauseSplitSet(comp, cl->splits()->getUnion(SplitSet::getSingleton(lev)));
+//  assignClauseSplitSet(comp, cl->splits()->getUnion(SplitSet::getSingleton(lev)));
+  assignClauseSplitSet(comp, SplitSet::getSingleton(lev));
   _sa->addNewClause(comp);
 
 #if SP_REPORTS
