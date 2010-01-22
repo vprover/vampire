@@ -74,6 +74,7 @@ const char* Options::Constants::_optionNames[] = {
   "backtracking_splitting",
   "backward_demodulation",
   "backward_subsumption",
+  "bs_toward_horn",
 
   "condensation",
 
@@ -323,6 +324,7 @@ Options::Options ()
   _backtrackingSplitting(BS_OFF),
   _backwardDemodulation(DEMODULATION_ALL),
   _backwardSubsumption(true),
+  _bsTowardHorn(false),
 
   _condensation(false),
 
@@ -467,6 +469,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case BACKWARD_SUBSUMPTION:
       _backwardSubsumption = onOffToBool(value,name);
+      return;
+    case BS_TOWARD_HORN:
+      _bsTowardHorn = onOffToBool(value,name);
       return;
 
     case CONDENSATION:
@@ -965,6 +970,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case BACKWARD_SUBSUMPTION:
     str << boolToOnOff(_backwardSubsumption);
+    return;
+  case BS_TOWARD_HORN:
+    str << boolToOnOff(_bsTowardHorn);
     return;
 
   case CONDENSATION:

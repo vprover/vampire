@@ -76,7 +76,7 @@ private:
    * resulting clauses contain less positive literals than
    * the original one.
    */
-  bool splittingForHorn() { return false; }
+  bool splittingForHorn();
 
   bool canBeSplitted(Clause* cl) { return true; }
   Clause* getComponent(Clause* icl);

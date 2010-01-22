@@ -14,6 +14,7 @@
 #include "../Kernel/Inference.hpp"
 
 #include "../Shell/Statistics.hpp"
+#include "../Shell/Options.hpp"
 
 #include "BSplitter.hpp"
 #include "SaturationAlgorithm.hpp"
@@ -33,6 +34,12 @@ void BSplitter::init(SaturationAlgorithm* sa)
   _nextLev=1;
   _sa=sa;
 }
+
+bool BSplitter::splittingForHorn()
+{
+  return env.options->bsTowardHorn();
+}
+
 
 bool BSplitter::split(Clause* cl)
 {
