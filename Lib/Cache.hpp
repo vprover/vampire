@@ -14,6 +14,10 @@
 
 #include "Allocator.hpp"
 
+/**
+ * When set to 1, at each cache expansion the number of empty cache entries
+ * will be printed out. This is to help discover problems with hash functions.
+ */
 #define REPORT_VACANCIES 0
 
 namespace Lib {
