@@ -10,6 +10,10 @@
 
 #include <string>
 
+bool inSpiderMode();
+void reportSpiderFail();
+void reportSpiderStatus(char status);
+
 namespace Lib {
 
 using namespace std;

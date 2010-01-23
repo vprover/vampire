@@ -24,6 +24,8 @@
 
 #include "Tracer.hpp"
 
+#include "../Lib/System.hpp"
+
 namespace Debug {
 
 // any function. It can be declared in one module and called in
@@ -202,13 +204,15 @@ void Debug::Assertion::violated (const char* file,int line,const char* cond,
   }
 
   _violated = true;
-  printFailureHeader();
-  cout << "Condition in file " << file << ", line " << line
-       << " violated:\n" << cond << "\n"
-       << "Value of " << repStr << " is: " << rep
-       << "\n----- stack dump -----\n";
-  Tracer::printStack(cout);
-  cout << "----- end of stack dump -----\n";
+  reportSpiderFail();
+  if(!inSpiderMode()) {
+    cout << "Condition in file " << file << ", line " << line
+	<< " violated:\n" << cond << "\n"
+	<< "Value of " << repStr << " is: " << rep
+	<< "\n----- stack dump -----\n";
+    Tracer::printStack(cout);
+    cout << "----- end of stack dump -----\n";
+  }
 } // Assertion::violated
 
 template<typename T,typename U>
@@ -220,12 +224,14 @@ void Debug::Assertion::violatedEquality(const char* file,int line,const char* va
   }
 
   _violated = true;
-  printFailureHeader();
-  std::cout << "Condition "<<val1Str<<" == "<<val2Str<<" in file " << file << ", line " << line
-       << " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
-       << "----- stack dump -----\n";
-  Tracer::printStack(cout);
-  std::cout << "----- end of stack dump -----\n";
+  reportSpiderFail();
+  if(!inSpiderMode()) {
+    std::cout << "Condition "<<val1Str<<" == "<<val2Str<<" in file " << file << ", line " << line
+	<< " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
+	<< "----- stack dump -----\n";
+    Tracer::printStack(cout);
+    std::cout << "----- end of stack dump -----\n";
+  }
 } // Assertion::violatedEquality
 
 
@@ -238,12 +244,14 @@ void Debug::Assertion::violatedNonequality(const char* file,int line,const char*
   }
 
   _violated = true;
-  printFailureHeader();
-  std::cout << "Condition "<<val1Str<<" != "<<val2Str<<" in file " << file << ", line " << line
-       << " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
-       << "----- stack dump -----\n";
-  Tracer::printStack(cout);
-  std::cout << "----- end of stack dump -----\n";
+  reportSpiderFail();
+  if(!inSpiderMode()) {
+    std::cout << "Condition "<<val1Str<<" != "<<val2Str<<" in file " << file << ", line " << line
+	<< " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
+	<< "----- stack dump -----\n";
+    Tracer::printStack(cout);
+    std::cout << "----- end of stack dump -----\n";
+  }
 } // Assertion::violatedNonequality
 
 
@@ -256,28 +264,30 @@ void Debug::Assertion::violatedComparison(const char* file,int line,const char* 
   }
 
   _violated = true;
-  printFailureHeader();
-  std::cout << "Condition "<<val1Str;
-  if(strict) {
-    if(greater) {
-      std::cout<<" > ";
+  reportSpiderFail();
+  if(!inSpiderMode()) {
+    std::cout << "Condition "<<val1Str;
+    if(strict) {
+      if(greater) {
+	std::cout<<" > ";
+      } else {
+	std::cout<<" < ";
+      }
     } else {
-      std::cout<<" < ";
+      if(greater) {
+	std::cout<<" >= ";
+      } else {
+	std::cout<<" <= ";
+      }
     }
-  } else {
-    if(greater) {
-      std::cout<<" >= ";
-    } else {
-      std::cout<<" <= ";
-    }
+
+
+    std::cout<<val2Str<<" in file " << file << ", line " << line
+	<< " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
+	<< "----- stack dump -----\n";
+    Tracer::printStack(cout);
+    std::cout << "----- end of stack dump -----\n";
   }
-
-
-  std::cout<<val2Str<<" in file " << file << ", line " << line
-       << " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
-       << "----- stack dump -----\n";
-  Tracer::printStack(cout);
-  std::cout << "----- end of stack dump -----\n";
 } // Assertion::violatedComparison
 
 template<typename T>
@@ -289,13 +299,15 @@ void Debug::Assertion::violatedMethod(const char* file,int line,const T& obj,
   }
 
   _violated = true;
-  printFailureHeader();
-  std::cout << "Condition "<<prefix<<"("<<objStr<<")."<<methodStr<<" in file "
-       << file << ", line " << line << " was violated for:\n"
-       << objStr << " == " << obj << "\n"
-       << "----- stack dump -----\n";
-  Tracer::printStack(cout);
-  std::cout << "----- end of stack dump -----\n";
+  reportSpiderFail();
+  if(!inSpiderMode()) {
+    std::cout << "Condition "<<prefix<<"("<<objStr<<")."<<methodStr<<" in file "
+	  << file << ", line " << line << " was violated for:\n"
+	  << objStr << " == " << obj << "\n"
+	  << "----- stack dump -----\n";
+    Tracer::printStack(cout);
+    std::cout << "----- end of stack dump -----\n";
+  }
 } // Assertion::violatedMethod
 
 #endif

@@ -220,28 +220,26 @@ void spiderMode()
   }
   catch(...) {
     noException=false;
-    env.out << "! ";
   }
 
   if(noException) {
     switch (env.statistics->terminationReason) {
     case Statistics::REFUTATION:
-      env.out << "+ ";
+      reportSpiderStatus('+');
       break;
     case Statistics::TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:
     case Statistics::UNKNOWN:
-      env.out << "? ";
+      reportSpiderStatus('?');
       break;
     default:
-      env.out << "- ";
+      reportSpiderStatus('-');
       break;
     }
   }
-  env.out << " " << env.options->problemName();
-  env.out << " " << env.timer->elapsedDeciseconds();
-  env.out << " " << env.options->testId();
-  env.out << "\n";
+  else {
+    reportSpiderFail();
+  }
 } // spiderMode
 
 void clausifyMode()

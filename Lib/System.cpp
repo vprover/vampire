@@ -27,6 +27,30 @@
 
 #include "System.hpp"
 
+
+bool inSpiderMode()
+{
+  return Lib::env.options->mode()==Shell::Options::MODE_SPIDER;
+}
+
+void reportSpiderFail()
+{
+  reportSpiderStatus('!');
+}
+
+void reportSpiderStatus(char status)
+{
+  static bool headerPrinted=false;
+
+  if(inSpiderMode() && !headerPrinted) {
+    headerPrinted=true;
+
+    Lib::env.out << status << " " << Lib::env.options->problemName();
+    Lib::env.out << " " << Lib::env.timer->elapsedDeciseconds();
+    Lib::env.out << " " << Lib::env.options->testId() << "\n";
+  }
+}
+
 namespace Lib {
 
 using namespace std;
@@ -74,14 +98,6 @@ string signalToString (int sigNum)
     }
 } // signalToString
 
-void printFailureHeader()
-{
-  if(env.options->mode()==Options::MODE_SPIDER) {
-    env.out << "! " << env.options->problemName();
-    env.out << " " << env.timer->elapsedDeciseconds();
-    env.out << " " << env.options->testId() << "\n";
-  }
-}
 
 /**
  * Signal handling function. Rewritten from the kernel standalone.
@@ -107,10 +123,12 @@ void handleSignal (int sigNum)
 	exit(0);
       }
       handled = true;
-      if(env.options) {
-	env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-      } else {
-	cout << "Aborted by signal " << signalDescription << "\n";
+      if(!inSpiderMode()) {
+	if(env.options) {
+	  env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	} else {
+	  cout << "Aborted by signal " << signalDescription << "\n";
+	}
       }
       return;
 # endif
@@ -132,17 +150,19 @@ void handleSignal (int sigNum)
 	if (handled) {
 	  exit(0);
 	}
-	printFailureHeader();
+	reportSpiderFail();
 	handled = true;
-	if(env.options) {
-	  env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	  env.statistics->print();
-	} else {
-	  cout << "Aborted by signal " << signalDescription << "\n";
-	}
+	if(!inSpiderMode()) {
+	  if(env.options) {
+	    env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	    env.statistics->print();
+	  } else {
+	    cout << "Aborted by signal " << signalDescription << "\n";
+	  }
 #if VDEBUG
-	Debug::Tracer::printStack(cout);
+	  Debug::Tracer::printStack(cout);
 #endif
+	}
 	exit(0);
 	return;
       }

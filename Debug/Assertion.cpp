@@ -40,12 +40,14 @@ void Assertion::violated (const char* file,int line,const char* cond)
   }
 
   _violated = true;
-  printFailureHeader();
-  cout << "Condition in file " << file << ", line " << line
-       << " violated:\n" << cond << "\n"
-       << "----- stack dump -----\n";
-  Tracer::printStack(cout);
-  cout << "----- end of stack dump -----\n";
+  reportSpiderFail();
+  if(!inSpiderMode()) {
+    cout << "Condition in file " << file << ", line " << line
+	<< " violated:\n" << cond << "\n"
+	<< "----- stack dump -----\n";
+    Tracer::printStack(cout);
+    cout << "----- end of stack dump -----\n";
+  }
 } // Assertion::violated
 
 
@@ -57,14 +59,16 @@ void Assertion::violatedStrEquality(const char* file,int line,const char* val1St
   }
 
   _violated = true;
-  printFailureHeader();
-  std::cout << "Condition for string equality "<<val1Str<<" == "<<val2Str
-       << " in file " << file << ", line " << line
-       << " was violated, as:\n" << val1Str<<" == \""<<val1 <<"\"\n"
-       << val2Str<<" == \""<<val2 << "\"\n"
-       << "----- stack dump -----\n";
-  Tracer::printStack(cout);
-  std::cout << "----- end of stack dump -----\n";
+  reportSpiderFail();
+  if(!inSpiderMode()) {
+    std::cout << "Condition for string equality "<<val1Str<<" == "<<val2Str
+	<< " in file " << file << ", line " << line
+	<< " was violated, as:\n" << val1Str<<" == \""<<val1 <<"\"\n"
+	<< val2Str<<" == \""<<val2 << "\"\n"
+	<< "----- stack dump -----\n";
+    Tracer::printStack(cout);
+    std::cout << "----- end of stack dump -----\n";
+  }
 }
 
 
@@ -78,27 +82,36 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
   Allocator::Descriptor* desc = Allocator::Descriptor::find(ptr);
 
   if(!desc) {
-    printFailureHeader();
-    cout << "Type condition in file " << file << ", line " << line
-         << " violated:\n" << ptrStr << " was not allocated by Lib::Allocator.\n";
+    reportSpiderFail();
+    if(!inSpiderMode()) {
+      cout << "Type condition in file " << file << ", line " << line
+	  << " violated:\n" << ptrStr << " was not allocated by Lib::Allocator.\n";
+    }
   } else if( strcmp(assumed, desc->cls) ) {
-    printFailureHeader();
-    cout << "Type condition in file " << file << ", line " << line
-         << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
-         << "\" instead of \"" << assumed <<"\".\n";
+    reportSpiderFail();
+    if(!inSpiderMode()) {
+      cout << "Type condition in file " << file << ", line " << line
+	   << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
+	   << "\" instead of \"" << assumed <<"\".\n";
+    }
   } else if( !desc->allocated ) {
-    printFailureHeader();
-    cout << "Type condition in file " << file << ", line " << line
-         << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
-         << "\", but no longer is.\n";
+    reportSpiderFail();
+    if(!inSpiderMode()) {
+      cout << "Type condition in file " << file << ", line " << line
+	   << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
+	   << "\", but no longer is.\n";
+    }
   } else {
     return;
   }
 
   _violated = true;
-  cout << "----- stack dump -----\n";
-  Tracer::printStack(cout);
-  cout << "----- end of stack dump -----\n";
+
+  if(!inSpiderMode()) {
+    cout << "----- stack dump -----\n";
+    Tracer::printStack(cout);
+    cout << "----- end of stack dump -----\n";
+  }
   throw Debug::AssertionViolationException(file,line);
 } // Assertion::violated
 
@@ -108,8 +121,10 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
  */
 void Assertion::reportAssertValidException (const char* file,int line,const char* obj)
 {
-  cout << "An exception was thrown by ASSERT_VALID on object " << obj
-       << " in file " << file << ", line " << line << ".\n";
+  if(!inSpiderMode()) {
+    cout << "An exception was thrown by ASSERT_VALID on object " << obj
+	<< " in file " << file << ", line " << line << ".\n";
+  }
 } // Assertion::violated
 
 /**
