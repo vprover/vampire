@@ -99,11 +99,12 @@ public:
   {
     _evictionCounter=0;
   }
+private:
   bool shouldExpand() const
   {
     return _evictionCounter>=_evictionTreshold;
   }
-private:
+
   size_t getPosition(Key k) const
   {
     return Hash::hash(k) & _sizeMask;

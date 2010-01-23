@@ -780,6 +780,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   }
 
   if(cl->isEmpty() && !cl->splits()->isEmpty()) {
+    //TODO: move this to handleEmptyClause
     ASS(bdd->isFalse(cl->prop()));
     _emptyBSplitClauses.push(cl);
     return;

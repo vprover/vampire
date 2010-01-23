@@ -41,6 +41,15 @@ bool BSplitter::splittingForHorn()
 }
 
 
+/**
+ * Attempt to split clause @b cl, and return true if successful
+ *
+ * If splitting successful, the first splitting component is added
+ * to the saturation algorithm through @b SaturationAlgorithm::addNewClause,
+ * and the base clause can be considered to be already reduced
+ * (it will be handled as such at the backtracking), so it can be safely
+ * removed from the saturation algorithm by the caller.
+ */
 bool BSplitter::split(Clause* cl)
 {
   CALL("BSplitter::split");
@@ -84,8 +93,6 @@ bool BSplitter::split(Clause* cl)
 
 /**
  * Register the reduction of the @b cl clause
- *
- * The @b onNewClause method still has to be called for the @b to clause if there is any.
  */
 void BSplitter::onClauseReduction(Clause* cl, Clause* premise)
 {
@@ -138,6 +145,9 @@ void BSplitter::onNewClause(Clause* cl)
 #endif
 }
 
+/**
+ * Add a reduced clause to the @b SplitRecord object.
+ */
 void BSplitter::SplitRecord::addReduced(Clause* cl)
 {
   CALL("BSplitter::SplitRecord::addReduced");
@@ -296,6 +306,9 @@ SplitSet* BSplitter::getNewClauseSplitSet(Clause* cl)
   return res;
 }
 
+/**
+ * Assign the @b SplitSet @b splits to the clause @b cl.
+ */
 void BSplitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
 {
   CALL("BSplitter::assignClauseSplitSet");
@@ -362,7 +375,6 @@ start:
     Clause* ecl=tdit.next();
     if(ecl->splits()->hasIntersection(backtracked)) {
       tdit.del();
-      //TODO: here the empty clause probably can be also deleted from memory
     }
   }
 
