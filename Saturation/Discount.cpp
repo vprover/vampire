@@ -55,13 +55,6 @@ SaturationResult Discount::saturate()
 	c->setStore(Clause::NONE);
       }
 
-      if(forwardSimplify(c)) {
-	addToPassive(c);
-      } else {
-	ASS_EQ(c->store(), Clause::UNPROCESSED);
-	c->setStore(Clause::NONE);
-      }
-
       newClausesToUnprocessed();
 
       if(++counter==100) {
