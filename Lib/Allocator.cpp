@@ -440,10 +440,11 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   if(index>=MAX_PAGES) {
 #if SAFE_OUT_OF_MEM_SOLUTION
     //TODO: just a quick solution for CASC
-    if(env.options->mode()==Options::MODE_SPIDER) {
+    if(env.options && env.statistics && env.options->mode()==Options::MODE_SPIDER) {
       env.out << "? " << env.options->problemName();
       env.out << " " << env.timer->elapsedDeciseconds();
       env.out << " " << env.options->testId() << "\n";
+      env.statistics->print();
     } else {
       env.out << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
       env.statistics->print();
@@ -467,10 +468,11 @@ Allocator::Page* Allocator::allocatePages(size_t size)
 
 #if SAFE_OUT_OF_MEM_SOLUTION
       //TODO: just a quick solution for CASC
-      if(env.options->mode()==Options::MODE_SPIDER) {
+      if(env.options && env.statistics && env.options->mode()==Options::MODE_SPIDER) {
         env.out << "? " << env.options->problemName();
         env.out << " " << env.timer->elapsedDeciseconds();
         env.out << " " << env.options->testId() << "\n";
+	env.statistics->print();
       } else {
 	env.out << "Memory limit exceeded!\n";
 	env.statistics->print();

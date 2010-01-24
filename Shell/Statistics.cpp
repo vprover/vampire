@@ -78,6 +78,29 @@ void Statistics::print()
 #define SEPARATOR if(separable) { env.out<<endl; separable=false; }
 
   env.out << "------------------------------\n";
+
+  env.out << "Termination reason: ";
+  switch(terminationReason) {
+  case Statistics::REFUTATION:
+    env.out << "Refutation";
+    break;
+  case Statistics::TIME_LIMIT:
+    env.out << "Time limit";
+    break;
+  case Statistics::MEMORY_LIMIT:
+    env.out << "Memory limit";
+    break;
+  case Statistics::UNKNOWN:
+    env.out << "Unknown";
+    break;
+  case Statistics::SATISFIABLE:
+    env.out << "Satisfiable";
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+  env.out << endl << endl;
+
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Generated clauses", generatedClauses);
