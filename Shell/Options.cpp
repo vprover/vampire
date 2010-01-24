@@ -236,9 +236,8 @@ NameArray Options::Constants::fdeValues(_fdeValues,
 					sizeof(_fdeValues)/sizeof(char*));
 
 const char* Options::Constants::_lcmValues[] = {
-  "kinky",
   "predicate",
-//   "reverse",
+  "reverse",
   "standard"
 };
 NameArray Options::Constants::lcmValues(_lcmValues,
@@ -255,7 +254,6 @@ const char* Options::Constants::_equalityProxyValues[] = {
     "R",
     "RS",
     "RST",
-    "exp1",
     "off",
     "on"};
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
@@ -352,7 +350,7 @@ Options::Options ()
   _maxInferenceDepth(0),
   _maxPassive(0),
   _maxWeight(0),
-  _memoryLimit(700),
+  _memoryLimit(3000),
   _mode(MODE_VAMPIRE),
 
   _namePrefix(""),

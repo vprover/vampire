@@ -273,6 +273,7 @@ void spiderMode()
       reportSpiderStatus('-');
       break;
     }
+    env.statistics->print();
   }
   else {
     reportSpiderFail();

@@ -19,8 +19,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -223,9 +223,9 @@ ALUCARD_OBJ = $(ALUC_BASIC) Global.o alucard.o
 all:#default make disabled
 
 vampire: $(VAMPIRE_OBJ)
-	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
-#	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
-#	strip vampire
+#	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
+	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
+	strip vampire
 
 vground: $(VGROUND_OBJ)
 #	$(CXX) -static $(CXXFLAGS) $(VGROUND_OBJ) -o vground
@@ -290,11 +290,11 @@ doc:
 
 # DO NOT DELETE
 
-Debug/Assertion.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Allocator.hpp
-Debug/Assertion.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Environment.hpp
-Debug/Assertion.o: Forwards.hpp Config.hpp Lib/Exception.hpp
-Debug/Assertion.o: Lib/LastCopyWatcher.hpp Lib/Timer.hpp Shell/Options.hpp
-Debug/Assertion.o: Lib/XML.hpp
+Debug/Assertion.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/System.hpp
+Debug/Assertion.o: Lib/Allocator.hpp Debug/Assertion.hpp Debug/Tracer.hpp
+Debug/Assertion.o: Lib/Environment.hpp Forwards.hpp Config.hpp
+Debug/Assertion.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp Lib/Timer.hpp
+Debug/Assertion.o: Shell/Options.hpp Lib/XML.hpp
 Debug/Tracer.o: Debug/Tracer.hpp
 Lib/Allocator.o: Lib/DHMap.hpp Debug/Assertion.hpp Lib/Allocator.hpp
 Lib/Allocator.o: Debug/Tracer.hpp Lib/Exception.hpp Lib/LastCopyWatcher.hpp
@@ -828,17 +828,17 @@ Shell/Token.o: Debug/Assertion.hpp Shell/Token.hpp
 Kernel/BDD.o: Lib/Cache.hpp Forwards.hpp Config.hpp Debug/Assertion.hpp
 Kernel/BDD.o: Lib/Allocator.hpp Debug/Tracer.hpp Lib/Environment.hpp
 Kernel/BDD.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp Lib/Exception.hpp
-Kernel/BDD.o: Lib/DHMap.hpp Lib/Int.hpp Lib/Comparison.hpp
-Kernel/BDD.o: Lib/Portability.hpp Lib/List.hpp Lib/Stack.hpp
-Kernel/BDD.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/VirtualIterator.hpp
-Kernel/BDD.o: Lib/Reflection.hpp Lib/Int.hpp Lib/Timer.hpp
-Kernel/BDD.o: Lib/TimeCounter.hpp Kernel/Formula.hpp Lib/XML.hpp
-Kernel/BDD.o: Kernel/Connective.hpp Kernel/Signature.hpp Lib/Allocator.hpp
-Kernel/BDD.o: Lib/Map.hpp Lib/Hash.hpp Kernel/Term.hpp Lib/Portability.hpp
-Kernel/BDD.o: Lib/Comparison.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-Kernel/BDD.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp Lib/BitUtils.hpp
-Kernel/BDD.o: SAT/ClauseSharing.hpp Lib/Set.hpp Lib/VirtualIterator.hpp
-Kernel/BDD.o: SAT/SATClause.hpp Lib/InverseLookup.hpp Lib/DHMap.hpp
+Kernel/BDD.o: Lib/DHMap.hpp Lib/DHSet.hpp Lib/DHMap.hpp Lib/Hash.hpp
+Kernel/BDD.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp Lib/Int.hpp
+Kernel/BDD.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/List.hpp
+Kernel/BDD.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/List.hpp Lib/Int.hpp
+Kernel/BDD.o: Lib/Timer.hpp Lib/TimeCounter.hpp Kernel/Formula.hpp
+Kernel/BDD.o: Lib/XML.hpp Kernel/Connective.hpp Kernel/Signature.hpp
+Kernel/BDD.o: Lib/Allocator.hpp Lib/Map.hpp Kernel/Term.hpp
+Kernel/BDD.o: Lib/Portability.hpp Lib/Comparison.hpp Lib/Metaiterators.hpp
+Kernel/BDD.o: Lib/Set.hpp Lib/TimeCounter.hpp Kernel/MatchTag.hpp
+Kernel/BDD.o: Lib/BitUtils.hpp SAT/ClauseSharing.hpp Lib/Set.hpp
+Kernel/BDD.o: Lib/VirtualIterator.hpp SAT/SATClause.hpp Lib/InverseLookup.hpp
 Kernel/BDD.o: Lib/Reflection.hpp SAT/SATLiteral.hpp SAT/Preprocess.hpp
 Kernel/BDD.o: SAT/SATClause.hpp SAT/SATLiteral.hpp SAT/SingleWatchSAT.hpp
 Kernel/BDD.o: Lib/DArray.hpp Lib/Random.hpp Lib/BinaryHeap.hpp
@@ -2280,8 +2280,8 @@ Saturation/BSplitter.o: Lib/Map.hpp SAT/TWLSolver.hpp Lib/DArray.hpp
 Saturation/BSplitter.o: Lib/Exception.hpp Kernel/Clause.hpp
 Saturation/BSplitter.o: Lib/InverseLookup.hpp Lib/Reflection.hpp
 Saturation/BSplitter.o: Kernel/Unit.hpp Kernel/Inference.hpp Kernel/Unit.hpp
-Saturation/BSplitter.o: Shell/Statistics.hpp Saturation/BSplitter.hpp
-Saturation/BSplitter.o: Kernel/RCClauseStack.hpp
+Saturation/BSplitter.o: Shell/Statistics.hpp Shell/Options.hpp Lib/XML.hpp
+Saturation/BSplitter.o: Saturation/BSplitter.hpp Kernel/RCClauseStack.hpp
 Saturation/BSplitter.o: Saturation/SaturationAlgorithm.hpp Lib/Event.hpp
 Saturation/BSplitter.o: Lib/SmartPtr.hpp Indexing/IndexManager.hpp
 Saturation/BSplitter.o: Indexing/Index.hpp Lib/VirtualIterator.hpp
@@ -2581,10 +2581,11 @@ Test/Output.o: Lib/BacktrackData.hpp Lib/Int.hpp Lib/Comparison.hpp
 Test/Output.o: Lib/Portability.hpp Kernel/Unit.hpp Lib/List.hpp Lib/Int.hpp
 Test/Output.o: Test/Output.hpp Lib/Environment.hpp Kernel/Signature.hpp
 Test/Output.o: Lib/Map.hpp
-Global.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Enumerator.hpp
-Global.o: Kernel/Formula.hpp Lib/List.hpp Lib/XML.hpp Kernel/Connective.hpp
-Global.o: Kernel/Unit.hpp Forwards.hpp Config.hpp Lib/Environment.hpp
-Global.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
+Global.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/System.hpp
+Global.o: Lib/Enumerator.hpp Kernel/Formula.hpp Lib/List.hpp Lib/XML.hpp
+Global.o: Kernel/Connective.hpp Kernel/Unit.hpp Forwards.hpp Config.hpp
+Global.o: Lib/Environment.hpp Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+Global.o: Debug/Assertion.hpp
 compit2.o: compit2.hpp Kernel/Term.hpp Forwards.hpp Config.hpp
 compit2.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Allocator.hpp
 compit2.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp Lib/Stack.hpp
@@ -2695,9 +2696,9 @@ test_SubstitutionTree.o: Rule/Index.hpp Rule/Rule.hpp Rule/Index.hpp
 test_SubstitutionTree.o: Rule/ProofAttempt.hpp Test/Output.hpp
 test_SubstitutionTree.o: Lib/MemoryLeak.hpp
 test_alloc.o: Forwards.hpp Config.hpp Debug/Assertion.hpp Debug/Tracer.hpp
-test_alloc.o: Lib/Allocator.hpp Lib/Environment.hpp Forwards.hpp
-test_alloc.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
-test_alloc.o: Lib/Random.hpp Lib/Stack.hpp Lib/Timer.hpp
+test_alloc.o: Lib/System.hpp Lib/Allocator.hpp Lib/Environment.hpp
+test_alloc.o: Forwards.hpp Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+test_alloc.o: Debug/Assertion.hpp Lib/Random.hpp Lib/Stack.hpp Lib/Timer.hpp
 test_alloc.o: Lib/VirtualIterator.hpp SAT/ClauseSharing.hpp Lib/Set.hpp
 test_alloc.o: Lib/VirtualIterator.hpp SAT/SATClause.hpp Lib/Allocator.hpp
 test_alloc.o: Debug/Tracer.hpp Lib/InverseLookup.hpp Lib/Hash.hpp
@@ -2809,9 +2810,9 @@ vampire.o: Shell/LaTeX.hpp Kernel/Connective.hpp Kernel/InferenceStore.hpp
 vampire.o: Shell/LispLexer.hpp Shell/Lexer.hpp Shell/Token.hpp
 vampire.o: Shell/LispParser.hpp Shell/Parser.hpp Lib/IntNameTable.hpp
 vampire.o: Lib/Array.hpp Lib/Map.hpp Shell/Options.hpp Shell/Property.hpp
-vampire.o: Shell/Preprocess.hpp Shell/Refutation.hpp Shell/SimplifyProver.hpp
-vampire.o: Shell/LispParser.hpp Shell/Statistics.hpp Shell/TPTPLexer.hpp
-vampire.o: Shell/TPTP.hpp Shell/TPTPParser.hpp
+vampire.o: Shell/Preprocess.hpp Shell/Refutation.hpp Shell/TheoryFinder.hpp
+vampire.o: Shell/SimplifyProver.hpp Shell/LispParser.hpp Shell/Statistics.hpp
+vampire.o: Shell/TPTPLexer.hpp Shell/TPTP.hpp Shell/TPTPParser.hpp
 vampire.o: Saturation/SaturationAlgorithm.hpp Kernel/RCClauseStack.hpp
 vampire.o: Indexing/IndexManager.hpp Inferences/InferenceEngine.hpp
 vampire.o: Inferences/PropositionalToBDDISE.hpp

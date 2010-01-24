@@ -184,9 +184,8 @@ public:
   };
 
   enum LiteralComparisonMode {
-    LCM_REVERSE = 0,
-    LCM_PREDICATE = 1,
-//     LCM_REVERSE = 1,
+    LCM_PREDICATE = 0,
+    LCM_REVERSE = 1,
     LCM_STANDARD = 2
   };
 
@@ -213,8 +212,6 @@ public:
     EP_R = 0,
     EP_RS = 1,
     EP_RST = 2,
-    /** experimental */
-    EP_EXP1 = 3,
     /** --equality_proxy=off */
     EP_OFF = 4,
     /** --equality_proxy=on */
