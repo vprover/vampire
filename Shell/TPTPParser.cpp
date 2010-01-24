@@ -196,6 +196,9 @@ Unit* TPTPParser::unit()
   if (tp == "axiom") {
     it = Unit::AXIOM;
   }
+  else if (tp == "definition") {
+    it = Unit::AXIOM;
+  }
   else if (tp == "conjecture") {
     it = Unit::CONJECTURE;
   }
@@ -257,7 +260,9 @@ Unit* TPTPParser::unit()
     return 0;
   }
 
-  result->setInheritedColor(_currentColor);
+  if (result) {
+    result->setInheritedColor(_currentColor);
+  }
 
   return result;
 } // TPTPParser::unit
@@ -308,7 +313,7 @@ string TPTPParser::name ()
  * @since 10/05/2007 Manchester
  * @since 03/06/2007 Manchester, changed to new datastructures.
  */
-Clause* TPTPParser::clause (int inputType)
+Clause* TPTPParser::clause(int inputType)
 {
   CALL("TPTPParser::clause");
 
@@ -326,7 +331,7 @@ Clause* TPTPParser::clause (int inputType)
  * @since 02/05/2005 Manchester
  * @since 03/06/2007 Manchester, changed to new datastructures.
  */
-Clause* TPTPParser::formulaClause (int inputType)
+Clause* TPTPParser::formulaClause(int inputType)
 {
   CALL("TPTPParser::formulaClause");
 
@@ -351,7 +356,7 @@ Clause* TPTPParser::formulaClause (int inputType)
  * @since 20/05/2007 Manchester
  * @since 03/06/2007 Manchester, changed to new datastructures.
  */
-Formula* TPTPParser::iffFormula ()
+Formula* TPTPParser::iffFormula()
 {
   CALL("TPTPParser::iffFormula");
 
@@ -529,7 +534,7 @@ Formula* TPTPParser::simpleFormula ()
  * @since 26/07/2004 Torrevieja
  * @since 02/08/2004 Torrevieja, changed to use tail recursion
  */
-List<int>* TPTPParser::varList ()
+List<int>* TPTPParser::varList()
 {
   CALL("TPTPParser::varList");
 
@@ -552,10 +557,10 @@ List<int>* TPTPParser::varList ()
 } // TPTPParser::varList
 
 /**
- * Read an literal. A literal is an atom prefixed by ++ or --.
+ * Read a literal. A literal is an atom prefixed by ++ or --.
  * @since 26/07/2004 Torrevieja
  */
-Literal* TPTPParser::literal ()
+Literal* TPTPParser::literal()
 {
   CALL("TPTPParser::literal");
 
@@ -776,7 +781,7 @@ void TPTPParser::literals(LiteralStack& ls)
  * @since 16/05/2007 Manchester, changed to use Prolog terms
  * @since 02/04/2008 Budapest, changed to read $true and $false
  */
-void TPTPParser::formulaLiterals (LiteralStack& ls)
+void TPTPParser::formulaLiterals(LiteralStack& ls)
 {
   CALL("TPTPParser::formulaLiterals");
 
@@ -952,7 +957,7 @@ Literal* TPTPParser::makeAtom(const string& functor,
  * Fill arguments of a term t with values from the term stack ts.
  * @since 16/05/2007 Manchester
  */
-void TPTPParser::fillArgs (Term* t,TermStack& ts)
+void TPTPParser::fillArgs(Term* t,TermStack& ts)
 {
   CALL("TPTPParser::fillArgs");
 

@@ -43,6 +43,7 @@
 #include "Shell/Property.hpp"
 #include "Shell/Preprocess.hpp"
 #include "Shell/Refutation.hpp"
+#include "Shell/TheoryFinder.hpp"
 #include "Shell/SimplifyProver.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/TPTPLexer.hpp"
@@ -201,6 +202,42 @@ void outputResult()
 
 }
 
+/**
+ * Read a problem and output profiling information about it.
+ * @since 03/08/2008 Torrevieja
+ */
+void profileMode()
+{
+  CALL("profileMode()");
+
+  Property property;
+  env.signature = new Kernel::Signature;
+  UnitList* units;
+  string inputFile = env.options->inputFile();
+  istream* input;
+  if(inputFile=="") {
+    input=&cin;
+  }
+  else {
+    input=new ifstream(inputFile.c_str());
+  }
+
+  TPTPLexer lexer(*input);
+  TPTPParser parser(lexer);
+  units = parser.units();
+  if(inputFile!="") {
+    delete static_cast<ifstream*>(input);
+    input=0;
+  }
+
+  property.scan(units);
+  TheoryFinder tf(units,&property);
+  Preprocess prepro(property,*env.options);
+  tf.search();
+  cout << property.categoryString() << ' '
+       << property.props() << ' '
+       << property.atoms() << "\n";
+} // profileMode
 
 void vampireMode()
 {
@@ -308,7 +345,7 @@ int main(int argc, char* argv [])
       clausifyMode();
       break;
     case Options::MODE_PROFILE:
-      USER_ERROR("Profile mode is not implemented");
+      profileMode();
       break;
     case Options::MODE_RULE:
       USER_ERROR("Rule mode is not implemented");
