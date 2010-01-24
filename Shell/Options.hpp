@@ -71,9 +71,6 @@ public:
     NONGOAL_WEIGHT_COEFFICIENT,
     NORMALIZE,
 
-    ORPHAN_DELETION,
-    OUTPUT_MESSAGES,
-
     PROBLEM_NAME,
     PROOF,
     PROOF_CHECKING,
@@ -250,8 +247,6 @@ public:
   int randomSeed() const { return _randomSeed; }
   int rowVariableMaxLength() const { return _rowVariableMaxLength; }
   void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
-  bool outputMessages() const { return _outputMessages; }
-  void setOutputMessages(bool newVal) { _outputMessages = newVal; }
   bool showActive() const { return _showActive; }
   bool showDefinitions() const { return _showDefinitions; }
   bool showInterpolant() const { return _showInterpolant; }
@@ -281,7 +276,6 @@ public:
   void setBackwardSubsumption(bool newVal) { _backwardSubsumption = newVal; }
   bool forwardSubsumption() const { return _forwardSubsumption; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting; }
-  bool orphanDeletion() const { return _orphanDeletion; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck; }
   bool setLrsFirstTimeCheck(int newVal);
   int simulatedTimeLimit() const { return _simulatedTimeLimit; }
@@ -392,9 +386,6 @@ private:
   int _naming;
   float _nongoalWeightCoefficient;
   bool _normalize;
-
-  bool _orphanDeletion;
-  bool _outputMessages;
 
   string _problemName;
   Proof _proof;

@@ -115,9 +115,6 @@ const char* Options::Constants::_optionNames[] = {
   "nongoal_weight_coefficient",
   "normalize",
 
-  "orphan_deletion",
-  "output_messages",
-
   "problem_name",
   "proof",
   "proof_checking",
@@ -364,9 +361,6 @@ Options::Options ()
   _nongoalWeightCoefficient(1.0),
   _normalize(false),
 
-  _orphanDeletion(false),
-  _outputMessages(true),
-
   _problemName(""),
   _proof(PROOF_ON),
   _proofChecking(false),
@@ -610,13 +604,6 @@ void Options::set (const char* name,const char* value, int index)
       break;
     case NORMALIZE:
       _normalize = onOffToBool(value,name);
-      return;
-
-    case ORPHAN_DELETION:
-      _orphanDeletion = onOffToBool(value,name);
-      return;
-    case OUTPUT_MESSAGES:
-      _outputMessages = onOffToBool(value,name);
       return;
 
     case PROOF:
@@ -1068,13 +1055,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case NORMALIZE:
     str << boolToOnOff(_normalize);
-    return;
-
-  case ORPHAN_DELETION:
-    str << boolToOnOff(_orphanDeletion);
-    return;
-  case OUTPUT_MESSAGES:
-    str << boolToOnOff(_outputMessages);
     return;
 
   case PROBLEM_NAME:
