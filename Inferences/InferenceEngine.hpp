@@ -110,7 +110,14 @@ class ForwardSimplificationPerformer
 {
 public:
   virtual ~ForwardSimplificationPerformer() {};
-  virtual void perform(Clause* premise, Clause* replacement) = 0;
+  /**
+   * Perform forward simplification
+   *
+   * In case the deletion of the clause is justified also by some other clause than
+   * @b replacement and @b premise clauses, it should be passed as the @b reductionPremise.
+   * Otherwise the @b reductionPremise should be 0.
+   */
+  virtual void perform(Clause* premise, Clause* replacement, Clause* reductionPremise=0) = 0;
   virtual bool willPerform(Clause* premise) { return true; }
   virtual bool clauseKept() = 0;
 };
@@ -138,13 +145,12 @@ struct BwSimplificationRecord
 {
   BwSimplificationRecord() {}
   BwSimplificationRecord(Clause* toRemove)
-  : toRemove(toRemove), replacements(ClauseIterator::getEmpty()) {}
-  BwSimplificationRecord(Clause* toRemove, Clause* replacement);
-  BwSimplificationRecord(Clause* toRemove, ClauseIterator replacements)
-  : toRemove(toRemove), replacements(replacements) {}
+  : toRemove(toRemove), replacement(0) {}
+  BwSimplificationRecord(Clause* toRemove, Clause* replacement)
+  : toRemove(toRemove), replacement(replacement) {}
 
   Clause* toRemove;
-  ClauseIterator replacements;
+  Clause* replacement;
 };
 typedef VirtualIterator<BwSimplificationRecord> BwSimplificationRecordIterator;
 

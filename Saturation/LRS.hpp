@@ -31,7 +31,7 @@ public:
 protected:
   bool shouldUpdateLimits();
 
-  long estimatedReachableCount();
+  long long estimatedReachableCount();
 
   void addInputSOSClause(Clause*& cl);
 

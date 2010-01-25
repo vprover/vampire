@@ -60,7 +60,7 @@ public:
 
   bool split(Clause* cl);
 
-  void onClauseReduction(Clause* cl, Clause* premise);
+  void onClauseReduction(Clause* cl, Clause* premise, Clause* replacement=0);
   void onNewClause(Clause* cl);
 
   void backtrack(ClauseIterator emptyClauses);

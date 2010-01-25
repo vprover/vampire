@@ -89,7 +89,7 @@ SaturationResult Otter::saturate()
       if(env.options->complete()) {
 	return SaturationResult(Statistics::SATISFIABLE);
       } else {
-	return SaturationResult(Statistics::UNKNOWN);
+	return SaturationResult(Statistics::REFUTATION_NOT_FOUND);
       }
     }
 

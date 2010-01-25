@@ -83,7 +83,7 @@ public:
   bool isEmpty() const
   { return _ageQueue.isEmpty() && _weightQueue.isEmpty(); }
 
-  void updateLimits(long estReachableCnt);
+  void updateLimits(long long estReachableCnt);
 
   unsigned size() {
     return _size;

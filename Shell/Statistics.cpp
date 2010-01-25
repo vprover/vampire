@@ -92,7 +92,7 @@ void Statistics::print()
   case Statistics::MEMORY_LIMIT:
     env.out << "Memory limit";
     break;
-  case Statistics::UNKNOWN:
+  case Statistics::REFUTATION_NOT_FOUND:
     if(env.options->complete()) {
       ASS_G(env.statistics->discardedNonRedundantClauses, 0);
       env.out << "Refutation not found, non-redundant clauses discarded";
@@ -102,6 +102,9 @@ void Statistics::print()
     break;
   case Statistics::SATISFIABLE:
     env.out << "Satisfiable";
+    break;
+  case Statistics::UNKNOWN:
+    env.out << "Unknown";
     break;
   default:
     ASSERTION_VIOLATION;

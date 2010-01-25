@@ -19,6 +19,10 @@
 #include "BSplitter.hpp"
 #include "SaturationAlgorithm.hpp"
 
+/**
+ * If set to 1 or 2, details about splitting operations performed will be output
+ * (more of them for 2). Otherwise set to 0.
+ */
 #define SP_REPORTS 0
 
 namespace Saturation
@@ -94,13 +98,14 @@ bool BSplitter::split(Clause* cl)
 /**
  * Register the reduction of the @b cl clause
  */
-void BSplitter::onClauseReduction(Clause* cl, Clause* premise)
+void BSplitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacement)
 {
   CALL("BSplitter::onClauseReduction");
 
   if(!premise) {
     return;
   }
+  ASS(premise->splits());
 
 //  cout<<cl->toString()<<" reduced by "<<premise->toString()<<endl;
 
@@ -109,7 +114,14 @@ void BSplitter::onClauseReduction(Clause* cl, Clause* premise)
   assertSplitLevelsExist(premise->splits());
 #endif
 
-  SplitSet* diff=premise->splits()->subtract(cl->splits());
+  SplitSet* diff;
+  if(replacement) {
+    ASS(replacement->splits());
+    diff=premise->splits()->getUnion(replacement->splits())->subtract(cl->splits());
+  }
+  else {
+    diff=premise->splits()->subtract(cl->splits());
+  }
 
 #if SP_REPORTS==2
   cout<<"Reduced "<<(*cl)<<" by "<<(*premise)<<". Added to reduced stack on levels "<<diff->toString()<<endl;

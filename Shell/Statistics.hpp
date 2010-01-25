@@ -129,6 +129,8 @@ public:
     /** satisfiability detected (saturated set built) */
     SATISFIABLE,
     /** saturation terminated but an incomplete strategy was used */
+    REFUTATION_NOT_FOUND,
+    /** unknown termination reason */
     UNKNOWN,
     /** time limit reached */
     TIME_LIMIT,

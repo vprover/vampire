@@ -4,6 +4,8 @@
  * @since 30/12/2007 Manchester
  */
 
+#include <math.h>
+
 #include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Timer.hpp"
@@ -220,14 +222,14 @@ Clause* AWPassiveClauseContainer::popSelected()
   return cl;
 } // AWPassiveClauseContainer::popSelected
 
-void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
+void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
 {
   CALL("AWPassiveClauseContainer::updateLimits");
   ASS_GE(estReachableCnt,0);
 
   int maxAge, maxWeight;
 
-  if(estReachableCnt>static_cast<long>(_size)) {
+  if(estReachableCnt>static_cast<long long>(_size)) {
     maxAge=-1;
     maxWeight=-1;
     goto fin;
@@ -242,7 +244,7 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
       return;
     }
 
-    long remains=estReachableCnt;
+    long long remains=estReachableCnt;
     Clause* wcl=0;
     Clause* acl=0;
     if(_ageRatio==0) {
@@ -260,7 +262,7 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
     } else {
       ASS(wit.hasNext()&&ait.hasNext());
 
-      unsigned balance=(_ageRatio<=_weightRatio)?1:0;
+      int balance=(_ageRatio<=_weightRatio)?1:0;
       while(remains) {
 	ASS_G(remains,0);
 	if( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
@@ -288,7 +290,7 @@ void AWPassiveClauseContainer::updateLimits(long estReachableCnt)
       maxAge=acl->age();
     }
     if(wcl!=0 && wit.hasNext()) {
-      maxWeight=static_cast<int>(wcl->getEffectiveWeight());
+      maxWeight=static_cast<int>(ceil(wcl->getEffectiveWeight()));
     }
   }
 

@@ -94,8 +94,8 @@ protected:
   void onNewClause(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
   void onSymbolElimination(Color eliminated, Clause* c, bool nonRedundant=false);
-  void onClauseRewrite(Clause* from, Clause* to, bool forward=true, Clause* premise=0);
-  void onClauseReduction(Clause* cl, Clause* premise);
+  void onClauseReduction(Clause* cl, Clause* replacement, Clause* premise,
+      Clause* reductionPremise=0, bool forward=true);
   void onNonRedundantClause(Clause* c);
 
   void outputSymbolElimination(Color eliminated, Clause* c);

@@ -72,30 +72,24 @@ bool LRS::shouldUpdateLimits()
 {
   CALL("LRS::shouldUpdateLimits");
 
-//  unsigned currTime=env.timer->elapsedMilliseconds();
-
   static unsigned cnt=0;
-//  static unsigned lastCheck=currTime;
   cnt++;
-//  if(cnt==500 || currTime>lastCheck+500) {
-  if(cnt==500) {
-//  if(currTime>lastCheck+500) {
-//  if(currTime>lastCheck+5) {
-//  if(currTime>lastCheck+50) {
+
+  //when there are limits, we check more frequently so we don't skip too much inferences
+  if(cnt==500 || ((getLimits()->weightLimited() || getLimits()->ageLimited()) && cnt>50 ) ) {
     cnt=0;
-//    lastCheck=currTime;
     return true;
   }
   return false;
 }
 
-long LRS::estimatedReachableCount()
+long long LRS::estimatedReachableCount()
 {
   CALL("LRS::estimatedReachableCount");
 
-  unsigned processed=env.statistics->activeClauses;
+  long long processed=env.statistics->activeClauses;
   int currTime=env.timer->elapsedMilliseconds();
-  int timeSpent=currTime-_startTime;
+  long long timeSpent=currTime-_startTime;
   //the result is in miliseconds, as env.options->lrsFirstTimeCheck() is in percents.
   int firstCheck=env.options->lrsFirstTimeCheck()*env.options->timeLimitInDeciseconds();
 //  int timeSpent=currTime;
@@ -104,7 +98,7 @@ long LRS::estimatedReachableCount()
     return -1;
   }
 
-  long timeLeft;
+  long long timeLeft;
   if(env.options->simulatedTimeLimit()) {
     timeLeft=env.options->simulatedTimeLimit()*100 - currTime;
   } else {
@@ -153,7 +147,7 @@ SaturationResult LRS::saturate()
   	return SaturationResult(Statistics::TIME_LIMIT);
       }
       if(shouldUpdateLimits()) {
-        long estimatedReachable=estimatedReachableCount();
+	long long estimatedReachable=estimatedReachableCount();
         if(estimatedReachable>=0) {
           _passive->updateLimits(estimatedReachable);
           if(complete) {
@@ -170,7 +164,7 @@ SaturationResult LRS::saturate()
     }
 
     if (_passive->isEmpty()) {
-      return SaturationResult( complete ? Statistics::SATISFIABLE : Statistics::UNKNOWN );
+      return SaturationResult( complete ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND );
     }
 
     Clause* c = _passive->popSelected();

@@ -90,7 +90,7 @@ public:
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
 
-  virtual void updateLimits(long estReachableCnt) {}
+  virtual void updateLimits(long long estReachableCnt) {}
 };
 
 class ActiveClauseContainer

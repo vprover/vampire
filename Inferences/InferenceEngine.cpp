@@ -27,15 +27,7 @@ using namespace Indexing;
 using namespace Saturation;
 
 
-//GeneratingRecord::GeneratingRecord(Clause* newClause, Clause* premise)
-//: newClause(newClause), premises(pvi( getSingletonIterator(premise) ))
-//{
-//}
 
-BwSimplificationRecord::BwSimplificationRecord(Clause* toRemove, Clause* replacement)
-: toRemove(toRemove), replacements(pvi( getSingletonIterator(replacement) ))
-{
-}
 
 CompositeISE::~CompositeISE()
 {

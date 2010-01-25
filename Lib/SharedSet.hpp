@@ -95,6 +95,10 @@ public:
   {
     CALL("SharedSet::getUnion");
 
+    if(s==this) {
+      return this;
+    }
+
     static ItemStack acc;
     ASS(acc.isEmpty());
 
@@ -140,6 +144,10 @@ public:
   SharedSet* subtract(SharedSet* s)
   {
     CALL("SharedSet::subtract");
+
+    if(s==this) {
+      return getEmpty();
+    }
 
     static ItemStack acc;
     ASS(acc.isEmpty());

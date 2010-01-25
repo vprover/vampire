@@ -183,7 +183,7 @@ void outputResult()
 #endif
     env.out << "Memory limit exceeded!\n";
     break;
-  case Statistics::UNKNOWN:
+  case Statistics::REFUTATION_NOT_FOUND:
     if(env.options->complete()) {
       ASS_G(env.statistics->discardedNonRedundantClauses, 0);
       env.out << "Refutation not found, some non-redundant clauses were discarded!\n";
@@ -191,9 +191,14 @@ void outputResult()
       env.out << "Refutation not found with incomplete strategy!\n";
     }
     break;
-  default:
+  case Statistics::SATISFIABLE:
     env.out << "Refutation not found!\n";
     break;
+  case Statistics::UNKNOWN:
+    env.out << "Unknown reason of termination!\n";
+    break;
+  default:
+    ASSERTION_VIOLATION;
   }
   env.statistics->print();
   if(env.options->timeStatistics()) {
@@ -267,11 +272,14 @@ void spiderMode()
     case Statistics::TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:
     case Statistics::UNKNOWN:
+    case Statistics::REFUTATION_NOT_FOUND:
       reportSpiderStatus('?');
       break;
-    default:
+    case Statistics::SATISFIABLE:
       reportSpiderStatus('-');
       break;
+    default:
+      ASSERTION_VIOLATION;
     }
     env.statistics->print();
   }

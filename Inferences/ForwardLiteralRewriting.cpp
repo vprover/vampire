@@ -74,6 +74,10 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       }
 
       Clause* premise=lit->isNegative() ? qr.clause : counterpart;
+      Clause* reductionPremise=lit->isNegative() ? counterpart : qr.clause;
+      if(reductionPremise==premise) {
+	reductionPremise=0;
+      }
 
       Inference* inf = new Inference2(Inference::FORWARD_LITERAL_REWRITING, cl, premise);
       Unit::InputType inpType = (Unit::InputType)
@@ -95,7 +99,7 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       res->setAge(cl->age());
       env.statistics->forwardLiteralRewrites++;
 
-      simplPerformer->perform(premise, res);
+      simplPerformer->perform(premise, res, reductionPremise);
       if(!simplPerformer->clauseKept()) {
 	return;
       }
