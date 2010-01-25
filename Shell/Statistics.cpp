@@ -10,6 +10,8 @@
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Timer.hpp"
+#include "Options.hpp"
+
 #include "Statistics.hpp"
 
 using namespace std;
@@ -91,7 +93,12 @@ void Statistics::print()
     env.out << "Memory limit";
     break;
   case Statistics::UNKNOWN:
-    env.out << "Unknown";
+    if(env.options->complete()) {
+      ASS_G(env.statistics->discardedNonRedundantClauses, 0);
+      env.out << "Refutation not found, non-redundant clauses discarded";
+    } else {
+      env.out << "Refutation not found, incomplete strategy";
+    }
     break;
   case Statistics::SATISFIABLE:
     env.out << "Satisfiable";
