@@ -29,6 +29,7 @@ public:
     BACKTRACKING_SPLITTING,
     BACKWARD_DEMODULATION,
     BACKWARD_SUBSUMPTION,
+    BDD_MARKING_SUBSUMPTION,
     BS_TOWARD_HORN,
 
     CONDENSATION,
@@ -313,6 +314,7 @@ public:
   bool propositionalToBDD() const { return _propositionalToBDD; }
   BacktrackingSplittingMode backtrackingSplitting() const { return _backtrackingSplitting; }
   bool bsTowardHorn() const { return _bsTowardHorn; }
+  bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
 
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal) { _inputFile = newVal; }
@@ -345,6 +347,7 @@ private:
   BacktrackingSplittingMode _backtrackingSplitting;
   Demodulation _backwardDemodulation;
   bool _backwardSubsumption;
+  bool _bddMarkingSubsumption;
   bool _bsTowardHorn;
 
   bool _condensation;

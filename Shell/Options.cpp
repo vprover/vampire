@@ -10,6 +10,8 @@
 #include <sstream>
 #include <cstring>
 
+#include "../Forwards.hpp"
+
 #include "../Debug/Tracer.hpp"
 #include "../Debug/Assertion.hpp"
 
@@ -74,6 +76,7 @@ const char* Options::Constants::_optionNames[] = {
   "backtracking_splitting",
   "backward_demodulation",
   "backward_subsumption",
+  "bdd_marking_subsumption",
   "bs_toward_horn",
 
   "condensation",
@@ -319,6 +322,7 @@ Options::Options ()
   _backtrackingSplitting(BS_OFF),
   _backwardDemodulation(DEMODULATION_ALL),
   _backwardSubsumption(true),
+  _bddMarkingSubsumption(false),
   _bsTowardHorn(false),
 
   _condensation(false),
@@ -461,6 +465,13 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case BACKWARD_SUBSUMPTION:
       _backwardSubsumption = onOffToBool(value,name);
+      return;
+    case BDD_MARKING_SUBSUMPTION:
+#if BDD_MARKING
+      _bddMarkingSubsumption = onOffToBool(value,name);
+#else
+      USER_ERROR("bdd_marking_subsumption was not enabled at compilation");
+#endif
       return;
     case BS_TOWARD_HORN:
       _bsTowardHorn = onOffToBool(value,name);
@@ -955,6 +966,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case BACKWARD_SUBSUMPTION:
     str << boolToOnOff(_backwardSubsumption);
+    return;
+  case BDD_MARKING_SUBSUMPTION:
+    str << boolToOnOff(_bddMarkingSubsumption);
     return;
   case BS_TOWARD_HORN:
     str << boolToOnOff(_bsTowardHorn);

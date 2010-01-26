@@ -54,7 +54,7 @@ BDD* BDD::instance()
  * Create a new BDD object
  */
 BDD::BDD()
-: _trueNode(-1,0,0), _falseNode(-1,0,0),
+: _trueNode(0,0,0), _falseNode(0,0,0),
   _bddEvalPredicate(0), _nextNodeNum(1),
   _allowDefinitionOutput(true), _newVar(1)
 {
@@ -312,8 +312,8 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
       results.push(res);
     } else {
       //we split at variables with higher numbers first
-      int splitVar=max(n1->_var, n2->_var);
-      ASS_GE(splitVar,0);
+      unsigned splitVar=max(n1->_var, n2->_var);
+      ASS_G(splitVar,0);
       toDo.push((n2->_var==splitVar) ? n2->_neg : n2);
       toDo.push((n1->_var==splitVar) ? n1->_neg : n1);
       toDo.push((n2->_var==splitVar) ? n2->_pos : n2);
@@ -394,8 +394,8 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
       if(!examined.find(make_pair(n1, n2)))
       {
 	//we split at variables with higher numbers first
-	int splitVar=max(n1->_var, n2->_var);
-	ASS_GE(splitVar,0);
+	unsigned splitVar=max(n1->_var, n2->_var);
+	ASS_G(splitVar,0);
 	toDo.push((n2->_var==splitVar) ? n2->_neg : n2);
 	toDo.push((n1->_var==splitVar) ? n1->_neg : n1);
 	toDo.push((n2->_var==splitVar) ? n2->_pos : n2);
@@ -485,7 +485,7 @@ BDDNode* BDD::XOrNonYFn::operator()(BDDNode* n1, BDDNode* n2)
 BDDNode* BDD::getNode(int varNum, BDDNode* pos, BDDNode* neg)
 {
   CALL("BDD::getNode");
-  ASS_GE(varNum,0);
+  ASS_G(varNum,0);
   ASS_L(varNum,_newVar);
   ASS_NEQ(pos,neg);
 

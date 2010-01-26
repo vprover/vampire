@@ -32,8 +32,6 @@ using namespace std;
 using namespace Lib;
 using namespace SAT;
 
-#define BDD_MARKING 0
-
 class BDDConjunction;
 
 /**
@@ -50,15 +48,17 @@ private:
      : _refuted(false)
 #endif
   {}
-  BDDNode(int var, BDDNode* pos, BDDNode* neg) : _var(var),
+  BDDNode(unsigned var, BDDNode* pos, BDDNode* neg) :
 #if BDD_MARKING
       _refuted(false),
 #endif
-      _pos(pos), _neg(neg) {}
+      _var(var), _pos(pos), _neg(neg) {}
 
-  int _var;
 #if BDD_MARKING
-  bool _refuted;
+  bool _refuted : 1;
+  unsigned _var : 31;
+#else
+  unsigned _var;
 #endif
   BDDNode* _pos;
   BDDNode* _neg;
@@ -111,7 +111,7 @@ public:
   /** Return @b true iff @b node represents a false formula */
   bool isFalse(BDDNode* node) { return node==getFalse(); }
   /** Return @b true iff @b node represents either a false or a true formula */
-  bool isConstant(BDDNode* node) { return node->_var==-1; }
+  bool isConstant(BDDNode* node) { return node->_var==0; }
 
   static bool equals(const BDDNode* n1,const BDDNode* n2);
   static unsigned hash(const BDDNode* n);
@@ -241,7 +241,7 @@ private:
 class BDDConjunction
 {
 public:
-  BDDConjunction() : _isFalse(false), _maxVar(-1) {}
+  BDDConjunction() : _isFalse(false), _maxVar(0) {}
   void addNode(BDDNode* n);
 
   /** Return @b true iff the conjunction represented by this object is unsatisfiable */
@@ -250,7 +250,7 @@ private:
   /** Is equal to @b true iff the conjunction represented by this object is unsatisfiable */
   bool _isFalse;
   /** Maximal BDD variable that appears in this object */
-  int _maxVar;
+  unsigned _maxVar;
 
   /**
    * Two-watched-literal incremental SAT solver that is used to check whether

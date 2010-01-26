@@ -8,6 +8,13 @@
 #define __Config__
 
 /**
+ * Determines whether the support of bdd_marking_subsumption
+ * is enabled.
+ */
+#define BDD_MARKING 1
+
+
+/**
  * Determines, whether COMPIT unification benchmarks are
  * being recorded. If 0, they're not, if 1, rewritable
  * subterm index operations are recorded, if 2,
