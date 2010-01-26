@@ -117,6 +117,8 @@ public:
   unsigned splittedClauses;
   unsigned splittedComponents;
   unsigned uniqueComponents;
+  /** Derived clauses with empty non-propositional and non-empty propositional part */
+  unsigned bddPropClauses;
 
   unsigned backtrackingSplits;
   unsigned backtrackingSplitsRefuted;

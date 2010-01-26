@@ -64,6 +64,7 @@ Statistics::Statistics()
     splittedClauses(0),
     splittedComponents(0),
     uniqueComponents(0),
+    bddPropClauses(0),
     backtrackingSplits(0),
     backtrackingSplitsRefuted(0),
     backtrackingSplitsRefutedZeroLevel(0),
@@ -161,6 +162,7 @@ void Statistics::print()
   COND_OUT("Splitted clauses", splittedClauses);
   COND_OUT("Splitted components", splittedComponents);
   COND_OUT("Unique components", uniqueComponents);
+  COND_OUT("BDD propositional clauses", bddPropClauses);
   SEPARATOR;
 
   COND_OUT("Backtracking splits", backtrackingSplits);

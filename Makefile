@@ -19,8 +19,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-XFLAGS = -O6 -DVDEBUG=0 # no debugging
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+#XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -223,9 +223,9 @@ ALUCARD_OBJ = $(ALUC_BASIC) Global.o alucard.o
 all:#default make disabled
 
 vampire: $(VAMPIRE_OBJ)
-#	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
-	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
-	strip vampire
+	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
+#	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
+#	strip vampire
 
 vground: $(VGROUND_OBJ)
 #	$(CXX) -static $(CXXFLAGS) $(VGROUND_OBJ) -o vground

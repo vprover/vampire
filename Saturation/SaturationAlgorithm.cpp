@@ -892,6 +892,11 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
   CALL("SaturationAlgorithm::handleEmptyClause");
   ASS(cl->isEmpty());
 
+  if(isRefutation(cl)) {
+    onNonRedundantClause(cl);
+    return cl;
+  }
+
   BDD* bdd=BDD::instance();
 
   if(cl->isEmpty() && !cl->splits()->isEmpty()) {
@@ -900,10 +905,8 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
     return 0;
   }
 
-  if(bdd->isFalse(cl->prop())) {
-    onNonRedundantClause(cl);
-    return cl;
-  }
+  ASS(!bdd->isFalse(cl->prop()));
+  env.statistics->bddPropClauses++;
 
   if(env.options->satSolverForEmptyClause()) {
     static BDDConjunction ecProp;
@@ -952,7 +955,7 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
     } else {
       env.statistics->subsumedEmptyClauses++;
       if(env.options->emptyClauseSubsumption()) {
-	performEmptyClauseSubsumption(cl, accumulator->prop());
+	performEmptyClauseParentSubsumption(cl, accumulator->prop());
       }
     }
     return 0;
@@ -973,17 +976,17 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
  * be modified), the clause deletion is postponed by the @b removeBackwardSimplifiedClause
  * until the clause activation is over.
  */
-void SaturationAlgorithm::performEmptyClauseSubsumption(Clause* cl, BDDNode* emptyClauseProp)
+void SaturationAlgorithm::performEmptyClauseParentSubsumption(Clause* cl0, BDDNode* emptyClauseProp)
 {
   CALL("SaturationAlgorithm::performEmptyClauseSubsumption");
-  ASS(cl->isEmpty());
+  ASS(cl0->isEmpty());
 
   BDD* bdd=BDD::instance();
 
   static Stack<Clause*> parentsToCheck;
   ASS(parentsToCheck.isEmpty());
-  parentsToCheck.push(cl);
 
+  Clause* cl=cl0;
   for(;;) {
     VirtualIterator<InferenceStore::ClauseSpec> parents=InferenceStore::instance()->getParents(cl);
 

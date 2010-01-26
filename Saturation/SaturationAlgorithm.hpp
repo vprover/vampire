@@ -116,7 +116,7 @@ private:
 
   Clause* doImmediateSimplification(Clause* cl, bool fwDemodulation=false);
 
-  void performEmptyClauseSubsumption(Clause* cl, BDDNode* emptyClauseProp);
+  void performEmptyClauseParentSubsumption(Clause* cl, BDDNode* emptyClauseProp);
 
   void checkForPreprocessorSymbolElimination(Clause* cl);
 

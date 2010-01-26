@@ -402,6 +402,9 @@ BDDNode* BDD::ConjunctionFn::operator()(BDDNode* n1, BDDNode* n2)
   if(_parent->isTrue(n2)) {
     return n1;
   }
+  if(n1==n2) {
+    return n1;
+  }
   return 0;
 }
 
@@ -411,6 +414,9 @@ BDDNode* BDD::ConjunctionFn::operator()(BDDNode* n1, BDDNode* n2)
  */
 BDDNode* BDD::DisjunctionFn::operator()(BDDNode* n1, BDDNode* n2)
 {
+  if(n1==n2) {
+    return n1;
+  }
   if(_parent->isTrue(n1) || _parent->isTrue(n2)) {
     return _parent->getTrue();
   }
@@ -429,6 +435,9 @@ BDDNode* BDD::DisjunctionFn::operator()(BDDNode* n1, BDDNode* n2)
  */
 BDDNode* BDD::XOrNonYFn::operator()(BDDNode* n1, BDDNode* n2)
 {
+  if(n1==n2) {
+    return _parent->getTrue();
+  }
   if(_parent->isTrue(n1) || _parent->isFalse(n2)) {
     return _parent->getTrue();
   }
