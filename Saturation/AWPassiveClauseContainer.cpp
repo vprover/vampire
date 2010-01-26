@@ -41,6 +41,11 @@ AWPassiveClauseContainer::AWPassiveClauseContainer()
   s_nwcDenominator=100;
 }
 
+ClauseIterator AWPassiveClauseContainer::iterator()
+{
+  return pvi( ClauseQueue::Iterator(_weightQueue) );
+}
+
 Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
 {
   ASS_G(s_nwcDenominator,0);

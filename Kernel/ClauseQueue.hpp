@@ -17,6 +17,8 @@ using namespace std;
 
 #include "../Debug/Assertion.hpp"
 
+#include "../Lib/Reflection.hpp"
+
 namespace Kernel {
 
 class Clause;
@@ -77,6 +79,8 @@ public:
    */
   class Iterator {
   public:
+    DECL_ELEMENT_TYPE(Clause*);
+
     /** Create a new iterator */
     inline explicit Iterator(ClauseQueue& queue)
       : _current(&queue._left)

@@ -106,7 +106,7 @@ public:
 private:
   bool shouldExpand() const
   {
-    return _evictionCounter>=_evictionTreshold;
+    return _evictionCounter>=_evictionThreshold;
   }
 
   size_t getPosition(Key k) const
@@ -124,26 +124,34 @@ private:
     CALL("Cache::expand");
     ASS_G(newSize, _size);
 
-    if(_size) {
-      ASS(_data);
-      array_delete(_data, _size);
-      DEALLOC_KNOWN(_data,_size*sizeof(Entry),"Cache<>");
+    size_t oldSize=_size;
+    Entry* oldData=_data;
 #if REPORT_VACANCIES
-      std::cout<<"Expanding from "<<_size<<" with "<<_vacancies<<" vacancies to "<<newSize<<endl;
+    size_t oldVacancies=_vacancies;
 #endif
-    }
 
+    void* mem=ALLOC_KNOWN(newSize*sizeof(Entry),"Cache<>");
+    _data=array_new<Entry>(mem, newSize);
     _size=newSize;
-    _sizeMask=_size-1;
-    void* mem=ALLOC_KNOWN(_size*sizeof(Entry),"Cache<>");
-    _data=array_new<Entry>(mem, _size);
+    _sizeMask=newSize-1;
 
-    _evictionTreshold=2*_size;
+    _evictionThreshold=2*newSize;
     _evictionCounter=0;
 
 #if REPORT_VACANCIES
-    _vacancies=_size;
+    _vacancies=newSize;
 #endif
+
+    if(oldSize) {
+      ASS(oldData);
+      array_delete(oldData, oldSize);
+      DEALLOC_KNOWN(oldData,oldSize*sizeof(Entry),"Cache<>");
+#if REPORT_VACANCIES
+      std::cout<<"Expanding from "<<oldSize<<" with "<<oldVacancies<<" vacancies to "<<newSize<<endl;
+#endif
+    }
+
+
   }
 
   /**
@@ -156,7 +164,7 @@ private:
   Entry* _data;
 
   size_t _evictionCounter;
-  size_t _evictionTreshold;
+  size_t _evictionThreshold;
 
 #if REPORT_VACANCIES
   size_t _vacancies;

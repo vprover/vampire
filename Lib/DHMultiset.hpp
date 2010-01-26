@@ -4,8 +4,8 @@
  * double hashed hashtables.
  */
 
-#ifndef __DHSet__
-#define __DHSet__
+#ifndef __DHMultiset__
+#define __DHMultiset__
 
 #include <cstdlib>
 #include <algorithm>

@@ -141,8 +141,8 @@ void handleSignal (int sigNum)
 # endif
 
     case SIGINT:
-      exit(0);
-      return;
+//      exit(0);
+//      return;
 
     case SIGILL:
     case SIGFPE:
@@ -160,7 +160,7 @@ void handleSignal (int sigNum)
 	reportSpiderFail();
 	handled = true;
 	if(!inSpiderMode()) {
-	  if(env.options) {
+	  if(env.options && env.statistics) {
 	    env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	    env.statistics->print();
 	  } else {

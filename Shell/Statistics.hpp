@@ -96,6 +96,8 @@ public:
   unsigned subsumedEmptyClauses;
   /** number of empty clause subsumptions */
   unsigned emptyClauseSubsumptions;
+  /** number of empty clause subsumptions by BDD marking*/
+  unsigned subsumedByMarking;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

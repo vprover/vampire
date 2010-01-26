@@ -32,6 +32,8 @@ using namespace std;
 using namespace Lib;
 using namespace SAT;
 
+#define BDD_MARKING 0
+
 class BDDConjunction;
 
 /**
@@ -43,10 +45,21 @@ public:
   CLASS_NAME("BDDNode");
   USE_ALLOCATOR(BDDNode);
 private:
-  BDDNode() {}
-  BDDNode(int var, BDDNode* pos, BDDNode* neg) : _var(var), _pos(pos), _neg(neg) {}
+  BDDNode()
+#if BDD_MARKING
+     : _refuted(false)
+#endif
+  {}
+  BDDNode(int var, BDDNode* pos, BDDNode* neg) : _var(var),
+#if BDD_MARKING
+      _refuted(false),
+#endif
+      _pos(pos), _neg(neg) {}
 
   int _var;
+#if BDD_MARKING
+  bool _refuted;
+#endif
   BDDNode* _pos;
   BDDNode* _neg;
 
@@ -116,6 +129,11 @@ public:
 
   void allowDefinitionOutput(bool allow);
 
+#if BDD_MARKING
+  void markRefuted(BDDNode* n) { n->_refuted=true; }
+  bool isRefuted(BDDNode* n) { return n->_refuted; }
+#endif
+
 private:
   void outputDefinition(string def);
   string introduceName(BDDNode* node, string definition);
@@ -128,6 +146,13 @@ private:
   template<bool ResValue, class BinBoolFn>
   bool hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn);
 
+  enum Operation
+  {
+    CONJUNCTION,
+    DISJUNCTION,
+    X_OR_NON_Y
+  };
+
   /**
    * A functor used by @b getBinaryFnResult to compute the conjunction of two BDDs,
    * and by @b hasConstantResult to check whether the conjunction of two BDDs is
@@ -135,6 +160,9 @@ private:
    */
   struct ConjunctionFn
   {
+    static const Operation op=CONJUNCTION;
+    static const bool commutative=true;
+
     ConjunctionFn(BDD* parent) : _parent(parent) {}
     inline BDDNode* operator()(BDDNode* n1, BDDNode* n2);
     BDD* _parent;
@@ -147,6 +175,9 @@ private:
    */
   struct DisjunctionFn
   {
+    static const Operation op=DISJUNCTION;
+    static const bool commutative=true;
+
     DisjunctionFn(BDD* parent) : _parent(parent) {}
     inline BDDNode* operator()(BDDNode* n1, BDDNode* n2);
     BDD* _parent;
@@ -159,10 +190,15 @@ private:
    */
   struct XOrNonYFn
   {
+    static const Operation op=X_OR_NON_Y;
+    static const bool commutative=false;
+
     XOrNonYFn(BDD* parent) : _parent(parent) {}
     inline BDDNode* operator()(BDDNode* n1, BDDNode* n2);
     BDD* _parent;
   };
+
+
 
 
   /** BDD node representing the true formula */

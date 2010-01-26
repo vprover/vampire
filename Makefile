@@ -19,8 +19,8 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -223,8 +223,8 @@ ALUCARD_OBJ = $(ALUC_BASIC) Global.o alucard.o
 all:#default make disabled
 
 vampire: $(VAMPIRE_OBJ)
-	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
-#	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
+#	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
+	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
 #	strip vampire
 
 vground: $(VGROUND_OBJ)
@@ -764,7 +764,7 @@ Shell/Skolem.o: Lib/BitUtils.hpp
 Shell/Statistics.o: Lib/Allocator.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Shell/Statistics.o: Lib/Environment.hpp Forwards.hpp Config.hpp
 Shell/Statistics.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp Lib/Timer.hpp
-Shell/Statistics.o: Shell/Statistics.hpp
+Shell/Statistics.o: Shell/Options.hpp Lib/XML.hpp Shell/Statistics.hpp
 Shell/SymCounter.o: Lib/Allocator.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Shell/SymCounter.o: Kernel/Term.hpp Kernel/Clause.hpp Forwards.hpp Config.hpp
 Shell/SymCounter.o: Lib/InverseLookup.hpp Lib/Hash.hpp Lib/DHMap.hpp
@@ -2412,28 +2412,36 @@ Saturation/Otter.o: Inferences/InferenceEngine.hpp
 Saturation/Otter.o: Saturation/SaturationResult.hpp Saturation/BSplitter.hpp
 Saturation/Otter.o: Lib/Array.hpp Saturation/Splitter.hpp
 Saturation/Otter.o: Indexing/ClauseVariantIndex.hpp
-Saturation/SaturationAlgorithm.o: Lib/Environment.hpp Forwards.hpp Config.hpp
+Saturation/SaturationAlgorithm.o: Lib/DHSet.hpp Forwards.hpp Config.hpp
+Saturation/SaturationAlgorithm.o: Lib/DHMap.hpp Debug/Assertion.hpp
+Saturation/SaturationAlgorithm.o: Lib/Allocator.hpp Debug/Tracer.hpp
 Saturation/SaturationAlgorithm.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
-Saturation/SaturationAlgorithm.o: Debug/Assertion.hpp Lib/Metaiterators.hpp
-Saturation/SaturationAlgorithm.o: Lib/List.hpp Lib/Allocator.hpp
-Saturation/SaturationAlgorithm.o: Debug/Tracer.hpp Lib/VirtualIterator.hpp
-Saturation/SaturationAlgorithm.o: Lib/Reflection.hpp Lib/Set.hpp Lib/Hash.hpp
-Saturation/SaturationAlgorithm.o: Lib/TimeCounter.hpp Lib/SharedSet.hpp
-Saturation/SaturationAlgorithm.o: Lib/Metaiterators.hpp Lib/Sort.hpp
-Saturation/SaturationAlgorithm.o: Lib/DArray.hpp Lib/Comparison.hpp
-Saturation/SaturationAlgorithm.o: Lib/Random.hpp Lib/Stack.hpp
-Saturation/SaturationAlgorithm.o: Lib/BacktrackData.hpp Lib/Int.hpp
-Saturation/SaturationAlgorithm.o: Lib/Portability.hpp Lib/Stack.hpp
-Saturation/SaturationAlgorithm.o: Lib/Timer.hpp Lib/VirtualIterator.hpp
-Saturation/SaturationAlgorithm.o: Kernel/BDD.hpp Lib/Allocator.hpp
-Saturation/SaturationAlgorithm.o: Lib/Array.hpp Lib/DHMap.hpp Lib/Hash.hpp
-Saturation/SaturationAlgorithm.o: Lib/Int.hpp Lib/List.hpp Lib/Set.hpp
+Saturation/SaturationAlgorithm.o: Lib/Hash.hpp Lib/VirtualIterator.hpp
+Saturation/SaturationAlgorithm.o: Lib/Reflection.hpp Lib/Environment.hpp
+Saturation/SaturationAlgorithm.o: Lib/Metaiterators.hpp Lib/List.hpp
+Saturation/SaturationAlgorithm.o: Lib/Set.hpp Lib/TimeCounter.hpp
+Saturation/SaturationAlgorithm.o: Lib/SharedSet.hpp Lib/Metaiterators.hpp
+Saturation/SaturationAlgorithm.o: Lib/Sort.hpp Lib/DArray.hpp
+Saturation/SaturationAlgorithm.o: Lib/Comparison.hpp Lib/Random.hpp
+Saturation/SaturationAlgorithm.o: Lib/Stack.hpp Lib/BacktrackData.hpp
+Saturation/SaturationAlgorithm.o: Lib/Int.hpp Lib/Portability.hpp
+Saturation/SaturationAlgorithm.o: Lib/Stack.hpp Lib/Timer.hpp
+Saturation/SaturationAlgorithm.o: Lib/VirtualIterator.hpp
+Saturation/SaturationAlgorithm.o: Indexing/LiteralIndexingStructure.hpp
+Saturation/SaturationAlgorithm.o: Indexing/Index.hpp Lib/Event.hpp
+Saturation/SaturationAlgorithm.o: Lib/SmartPtr.hpp Lib/Exception.hpp
+Saturation/SaturationAlgorithm.o: Saturation/ClauseContainer.hpp
+Saturation/SaturationAlgorithm.o: Saturation/Limits.hpp Kernel/Clause.hpp
+Saturation/SaturationAlgorithm.o: Lib/Allocator.hpp Lib/InverseLookup.hpp
+Saturation/SaturationAlgorithm.o: Lib/Reflection.hpp Kernel/Unit.hpp
+Saturation/SaturationAlgorithm.o: Lib/List.hpp
+Saturation/SaturationAlgorithm.o: Indexing/ResultSubstitution.hpp
+Saturation/SaturationAlgorithm.o: Lib/SmartPtr.hpp Kernel/Term.hpp
+Saturation/SaturationAlgorithm.o: Kernel/BDD.hpp Lib/Array.hpp Lib/DHMap.hpp
+Saturation/SaturationAlgorithm.o: Lib/Hash.hpp Lib/Int.hpp Lib/Set.hpp
 Saturation/SaturationAlgorithm.o: Lib/SkipList.hpp Kernel/Signature.hpp
 Saturation/SaturationAlgorithm.o: Lib/Map.hpp SAT/TWLSolver.hpp
-Saturation/SaturationAlgorithm.o: Lib/DArray.hpp Lib/Exception.hpp
-Saturation/SaturationAlgorithm.o: Kernel/Clause.hpp Lib/InverseLookup.hpp
-Saturation/SaturationAlgorithm.o: Lib/DHMap.hpp Lib/Reflection.hpp
-Saturation/SaturationAlgorithm.o: Kernel/Unit.hpp Kernel/Inference.hpp
+Saturation/SaturationAlgorithm.o: Lib/DArray.hpp Kernel/Inference.hpp
 Saturation/SaturationAlgorithm.o: Kernel/Unit.hpp Kernel/InferenceStore.hpp
 Saturation/SaturationAlgorithm.o: Lib/DHMultiset.hpp
 Saturation/SaturationAlgorithm.o: Kernel/LiteralSelector.hpp
@@ -2443,13 +2451,8 @@ Saturation/SaturationAlgorithm.o: Kernel/Formula.hpp Lib/XML.hpp
 Saturation/SaturationAlgorithm.o: Kernel/Connective.hpp Shell/Options.hpp
 Saturation/SaturationAlgorithm.o: Shell/Statistics.hpp
 Saturation/SaturationAlgorithm.o: Saturation/SaturationAlgorithm.hpp
-Saturation/SaturationAlgorithm.o: Kernel/RCClauseStack.hpp Lib/Event.hpp
-Saturation/SaturationAlgorithm.o: Lib/SmartPtr.hpp Indexing/IndexManager.hpp
-Saturation/SaturationAlgorithm.o: Indexing/Index.hpp
-Saturation/SaturationAlgorithm.o: Saturation/ClauseContainer.hpp
-Saturation/SaturationAlgorithm.o: Saturation/Limits.hpp
-Saturation/SaturationAlgorithm.o: Indexing/ResultSubstitution.hpp
-Saturation/SaturationAlgorithm.o: Lib/SmartPtr.hpp Kernel/Term.hpp
+Saturation/SaturationAlgorithm.o: Kernel/RCClauseStack.hpp
+Saturation/SaturationAlgorithm.o: Indexing/IndexManager.hpp
 Saturation/SaturationAlgorithm.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm.o: Inferences/PropositionalToBDDISE.hpp
 Saturation/SaturationAlgorithm.o: Inferences/InferenceEngine.hpp

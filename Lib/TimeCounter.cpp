@@ -123,6 +123,9 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   case TC_BDD:
     env.out<<"BDD operations";
     break;
+  case TC_BDD_MARKING_SUBSUMPTION:
+    env.out<<"BDD marking subsumption";
+    break;
   case TC_FORWARD_DEMODULATION:
     env.out<<"forward demodulation";
     break;

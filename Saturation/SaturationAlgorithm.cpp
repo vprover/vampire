@@ -3,12 +3,17 @@
  * Implementing SaturationAlgorithm class.
  */
 
+#include <math.h>
+
+#include "../Lib/DHSet.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/SharedSet.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/Timer.hpp"
 #include "../Lib/VirtualIterator.hpp"
+
+#include "../Indexing/LiteralIndexingStructure.hpp"
 
 #include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
@@ -158,6 +163,70 @@ void SaturationAlgorithm::onAllProcessed()
     _bsplitter.backtrack(pvi( RCClauseStack::Iterator(_emptyBSplitClauses) ));
     _emptyBSplitClauses.reset();
   }
+
+#if BDD_MARKING
+  static Stack<Clause*> toRemove(64);
+  static DHSet<Clause*> checked;
+  static BDD* bdd=BDD::instance();
+
+  static int counter1=0;
+  counter1++;
+  if(counter1>sqrt(_active->size())) {
+    counter1=0;
+
+    TimeCounter tc(TC_BDD_MARKING_SUBSUMPTION);
+
+    //check active clauses
+    checked.reset();
+    LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
+    SLQueryResultIterator rit=gis->getAll();
+    while(rit.hasNext()) {
+      Clause* cl=rit.next().clause;
+      if(checked.find(cl)) {
+        continue;
+      }
+      checked.insert(cl);
+      if(bdd->isRefuted(cl->prop())) {
+	toRemove.push(cl);
+      }
+    }
+  }
+
+  static int counter2=0;
+  counter2++;
+  if(counter2>sqrt(_passive->size())) {
+    counter2=0;
+
+    TimeCounter tc(TC_BDD_MARKING_SUBSUMPTION);
+
+    //check passive clauses
+    checked.reset();
+    ClauseIterator cit=_passive->iterator();
+    while(cit.hasNext()) {
+      Clause* cl=cit.next();
+      if(cl->store()!=Clause::PASSIVE || checked.find(cl)) {
+        continue;
+      }
+      checked.insert(cl);
+      if(bdd->isRefuted(cl->prop())) {
+	toRemove.push(cl);
+      }
+    }
+  }
+
+  if(toRemove.isNonEmpty()) {
+    TimeCounter tc(TC_BDD_MARKING_SUBSUMPTION);
+
+    while(toRemove.isNonEmpty()) {
+      Clause* cl=toRemove.pop();
+
+      cl->setProp(bdd->getTrue());
+      removeActiveOrPassiveClause(cl);
+      env.statistics->subsumedByMarking++;
+    }
+  }
+
+#endif
 }
 
 /**
@@ -747,6 +816,13 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
     return;
   }
 
+#if BDD_MARKING
+  if(BDD::instance()->isRefuted(cl->prop())) {
+    env.statistics->subsumedByMarking++;
+    return;
+  }
+#endif
+
   _newClauses.push(cl);
 }
 
@@ -899,7 +975,7 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
 
   BDD* bdd=BDD::instance();
 
-  if(cl->isEmpty() && !cl->splits()->isEmpty()) {
+  if(!cl->splits()->isEmpty()) {
     ASS(bdd->isFalse(cl->prop()));
     _emptyBSplitClauses.push(cl);
     return 0;
@@ -907,6 +983,10 @@ Clause* SaturationAlgorithm::handleEmptyClause(Clause* cl)
 
   ASS(!bdd->isFalse(cl->prop()));
   env.statistics->bddPropClauses++;
+
+#if BDD_MARKING
+  bdd->markRefuted(cl->prop());
+#endif
 
   if(env.options->satSolverForEmptyClause()) {
     static BDDConjunction ecProp;
@@ -1229,6 +1309,12 @@ bool SaturationAlgorithm::activate(Clause* cl)
       return false;
     }
   }
+#if BDD_MARKING
+  if(BDD::instance()->isRefuted(cl->prop())) {
+    env.statistics->subsumedByMarking++;
+    return false;
+  }
+#endif
 
   _clauseActivationInProgress=true;
 
