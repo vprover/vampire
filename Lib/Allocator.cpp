@@ -17,7 +17,7 @@ using namespace Kernel;
 
 #include <cstdlib>
 
-#define SAFE_OUT_OF_MEM_SOLUTION 0
+#define SAFE_OUT_OF_MEM_SOLUTION 1
 
 #ifndef USE_SYSTEM_ALLOCATION
 /** If the following is set to true the Vampire will use the
