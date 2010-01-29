@@ -21,7 +21,7 @@
 
 #include "SineUtils.hpp"
 
-#define SINE_PRINT_SELECTED 1
+#define SINE_PRINT_SELECTED 0
 
 namespace Shell
 {
