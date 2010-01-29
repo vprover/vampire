@@ -4,43 +4,64 @@
  */
 
 #include "../Lib/DHMultiset.hpp"
-#include "../Lib/MapToLIFO.hpp"
+#include "../Lib/Environment.hpp"
+#include "../Lib/List.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/Set.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/FormulaUnit.hpp"
+#include "../Kernel/Signature.hpp"
 #include "../Kernel/SubformulaIterator.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Kernel/TermFunIterator.hpp"
 
+#include "Options.hpp"
+
 #include "SineUtils.hpp"
 
-#define SINE_PRINT_SELECTED 0
+#define SINE_PRINT_SELECTED 1
 
 namespace Shell
-{
-namespace SineAux
 {
 
 using namespace Lib;
 using namespace Kernel;
 
-typedef int SymId;
-typedef VirtualIterator<SymId> SymIdIterator;
 
-SymId getSymId(Literal* lit, bool polarity)
+SineSelector::SineSelector()
+: _benevolence(env.options->sineSelection()), _fnOfs(env.signature->predicates())
+{
+  CALL("SineSelector::SineSelector");
+
+  ASS_GE(_benevolence, 1.0f);
+  _strict=_benevolence==1.0f;
+}
+
+/**
+ * Return @b SymId that is greater than any @b SymId that can come from
+ * the current problem
+ *
+ * The returned value is to be used to determine the size of various
+ * arrays.
+ */
+SineSelector::SymId SineSelector::getSymIdBound()
+{
+  return env.signature->predicates() + env.signature->functions();
+}
+
+SineSelector::SymId SineSelector::getSymId(Literal* lit, bool polarity)
 {
 //  return lit->functor()*2 + (polarity^lit->isNegative()?0:1);
   return lit->functor();
 }
-SymId getSymId(Term* t)
+SineSelector::SymId SineSelector::getSymId(Term* t)
 {
   ASS(!t->isLiteral());
-  return -static_cast<SymId>((t->functor()+1));
+  return _fnOfs+t->functor();
 }
-SymId getDefiningSymId(SymId sid)
+SineSelector::SymId SineSelector::getDefiningSymId(SymId sid)
 {
 //  if(sid>=0) {
 //    return sid^1;
@@ -48,48 +69,23 @@ SymId getDefiningSymId(SymId sid)
   return sid;
 }
 
-struct IsLiteralFormulaFn
+struct SineSelector::FunctionSymIdFn
 {
-  DECL_RETURN_TYPE(bool);
-  bool operator()(Formula* f)
-  {
-    return f->connective()==LITERAL;
-  }
-};
-
-struct FunctionSymIdFn
-{
+  FunctionSymIdFn(SineSelector* ss) : _ss(ss) {}
   DECL_RETURN_TYPE(SymId);
   SymId operator()(TermList t)
   {
     ASS(t.isTerm());
-    return getSymId(t.term());
+    return _ss->getSymId(t.term());
   }
-};
 
-struct LiteralSymIdsFn
-{
-  DECL_RETURN_TYPE(SymIdIterator);
-  SymIdIterator operator()(Formula* f)
-  {
-    ASS_EQ(f->connective(),LITERAL);
-    return (*this)(f->literal());
-  }
-  SymIdIterator operator()(Literal* lit)
-  {
-    return pvi( getConcatenatedIterator(
-	    getSingletonIterator( getSymId(lit) ),
-	    getMappingIterator(
-		    vi( new Term::NonVariableIterator(lit) ),
-		    FunctionSymIdFn() )
-	    ) );
-  }
+  SineSelector* _ss;
 };
 
 
-void addFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
+void SineSelector::extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
 {
-  CALL("PredicateDefinition::addFormulaSymbols");
+  CALL("SineSelector::extractFormulaSymbols");
 
   switch (f->connective()) {
     case LITERAL:
@@ -115,7 +111,7 @@ void addFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
 
       itms.pushFromIterator( getMappingIterator(
 		    vi( new Term::NonVariableIterator(lit) ),
-		    FunctionSymIdFn()) );
+		    FunctionSymIdFn(this)) );
       return;
     }
 
@@ -123,29 +119,29 @@ void addFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
     case OR: {
       FormulaList::Iterator fs(f->args());
       while (fs.hasNext()) {
-	addFormulaSymbols (fs.next(),polarity,itms);
+	extractFormulaSymbols (fs.next(),polarity,itms);
       }
       return;
     }
 
     case IMP:
-      addFormulaSymbols (f->left(), -polarity, itms);
-      addFormulaSymbols (f->right(), polarity, itms);
+      extractFormulaSymbols (f->left(), -polarity, itms);
+      extractFormulaSymbols (f->right(), polarity, itms);
       return;
 
     case NOT:
-      addFormulaSymbols (f->uarg(), -polarity, itms);
+      extractFormulaSymbols (f->uarg(), -polarity, itms);
       return;
 
     case IFF:
     case XOR:
-      addFormulaSymbols (f->left(), 0, itms);
-      addFormulaSymbols (f->right(), 0, itms);
+      extractFormulaSymbols (f->left(), 0, itms);
+      extractFormulaSymbols (f->right(), 0, itms);
       return;
 
     case FORALL:
     case EXISTS:
-      addFormulaSymbols (f->qarg(), polarity, itms);
+      extractFormulaSymbols (f->qarg(), polarity, itms);
       return;
 
     case TRUE:
@@ -163,8 +159,10 @@ void addFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
  * Return iterator that yields SymIds of all symbols in a unit.
  * Each SymId is yielded at most once.
  */
-SymIdIterator getSymIds(Unit* u)
+SineSelector::SymIdIterator SineSelector::extractSymIds(Unit* u)
 {
+  CALL("SineSelector::extractSymIds");
+
   Stack<SymId> itms;
   if(u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
@@ -174,159 +172,111 @@ SymIdIterator getSymIds(Unit* u)
       itms.push( getSymId(lit, true) );
       itms.pushFromIterator( getMappingIterator(
 		    vi( new Term::NonVariableIterator(lit) ),
-		    FunctionSymIdFn()) );
+		    FunctionSymIdFn(this)) );
     }
   } else {
     FormulaUnit* fu=static_cast<FormulaUnit*>(u);
-    addFormulaSymbols(fu->formula(), 1, itms);
+    extractFormulaSymbols(fu->formula(), 1, itms);
   }
   return pvi( getUniquePersistentIterator(Stack<SymId>::Iterator(itms)) );
 }
 
-class GeneralityMeasure
+void SineSelector::updateDefRelation(Unit* u)
 {
-public:
-  GeneralityMeasure(UnitList* units)
-  {
-    CALL("GeneralityMeasure::GeneralityMeasure");
+  CALL("SineSelector::updateDefRelation");
 
-    UnitList::Iterator uit(units);
-    while(uit.hasNext()) {
-      count(uit.next());
-    }
+  ASS_EQ(u->inputType(),Unit::AXIOM);
+
+  SymIdIterator sit=extractSymIds(u);
+
+  if(!sit.hasNext()) {
+    _unitsWithoutSymbols.push(u);
+    return;
   }
 
-  int generality(SymId sid)
-  {
-    return _appearanceCounter.multiplicity(sid);
-  }
-private:
-  void count(Unit* u)
-  {
-    CALL("GeneralityMeasure::count(Unit*)");
+  static Stack<SymId> equalGenerality;
+  equalGenerality.reset();
 
-    Set<SymId> symbols;
+  SymId leastGenSym=sit.next();
+  unsigned leastGenVal=_gen[leastGenSym];
 
-    SymIdIterator sit=getSymIds(u);
-    while(sit.hasNext()) {
-      SymId sid=sit.next();
-      _appearanceCounter.insert(sid);
-    }
-  }
-
-  DHMultiset<SymId, IdentityHash> _appearanceCounter;
-};
-
-class DefRelation
-{
-public:
-  DefRelation(UnitList* units)
-  {
-    GeneralityMeasure gm(units);
-    Stack<SymId> equalGenerality;
-
-    UnitList::Iterator uit(units);
-    while(uit.hasNext()) {
-      Unit* u=uit.next();
-
-      if(u->inputType()!=Unit::AXIOM) {
-        continue;
-      }
-
-      SymIdIterator sit=getSymIds(u);
-
-      if(!sit.hasNext()) {
-	_unitsWithoutSymbols.push(u);
-	continue;
-      }
-      SymId leastGenSym=sit.next();
-      int leastGenVal=gm.generality(leastGenSym);
-      int genSum=0;
-      int symCnt=1;
-      ASS(equalGenerality.isEmpty());
-
-      while(sit.hasNext()) {
-	SymId sym=sit.next();
-	int val=gm.generality(sym);
-	genSum+=val;
-	symCnt++;
-	if(val<leastGenVal) {
-	  leastGenSym=sym;
-	  leastGenVal=val;
-	  equalGenerality.reset();
-	} else if(val==leastGenVal) {
-	  equalGenerality.push(sym);
-	}
-      }
-
-#if 0
-//      int avgGen=genSum/symCnt;
+  while(sit.hasNext()) {
+    SymId sym=sit.next();
+    unsigned val=_gen[sym];
+    if(val<leastGenVal) {
+      leastGenSym=sym;
+      leastGenVal=val;
       equalGenerality.reset();
-//      int treshold=static_cast<int>(leastGenVal*1.5405f);
-      int treshold=static_cast<int>(leastGenVal*1.2f);
-//      int treshold=leastGenVal+static_cast<int>(genSum*0.01f/symCnt);
-//      int treshold=leastGenVal+static_cast<int>((float(genSum)/symCnt-leastGenVal)*0.018f);
-      sit=getSymIds(u);
-      while(sit.hasNext()) {
-	SymId sym=sit.next();
-	if(gm.generality(sym)<=treshold) {
-	  _data.pushToKey(sym, u);
-	}
-      }
-#else
-      _data.pushToKey(leastGenSym, u);
-      while(equalGenerality.isNonEmpty()) {
-	_data.pushToKey(equalGenerality.pop(), u);
-      }
-#endif
+    } else if(val==leastGenVal) {
+      equalGenerality.push(sym);
     }
   }
 
-  UnitIterator definingUnits(SymId sym)
-  {
-    return pvi( _data.keyIterator(getDefiningSymId(sym)) );
+  if(_strict) {
+    UnitList::push(u,_def[leastGenSym]);
+    while(equalGenerality.isNonEmpty()) {
+      UnitList::push(u,_def[equalGenerality.pop()]);
+    }
   }
-
-  UnitIterator unitsWithoutSymbols()
-  {
-    return pvi( Stack<Unit*>::Iterator(_unitsWithoutSymbols) );
+  else {
+    unsigned threshold=static_cast<int>(leastGenVal*_benevolence);
+    sit=extractSymIds(u);
+    while(sit.hasNext()) {
+      SymId sym=sit.next();
+      if(_gen[sym]<=threshold) {
+	UnitList::push(u,_def[sym]);
+      }
+    }
   }
-private:
-  MapToLIFO<SymId, Unit*> _data;
-  Stack<Unit*> _unitsWithoutSymbols;
-};
 
 }
 
-using namespace Lib;
-using namespace Kernel;
-using namespace SineAux;
 
 void SineSelector::perform(UnitList*& units)
 {
-  DefRelation dr(units);
-  Set<Unit*> selected;
-  //on this stack there are Units in the order they were selected
-  Stack<Unit*> selectedStack;
-  Stack<Unit*> newlySelected;
+  CALL("SineSelector::perform");
 
-  UnitList::Iterator uit(units);
-  while(uit.hasNext()) {
-    Unit* u=uit.next();
-    if(u->inputType()==Unit::AXIOM) {
-      continue;
+  SymId symIdBound=getSymIdBound();
+
+  //determine symbol generality
+  _gen.init(symIdBound,0);
+  UnitList::Iterator uit1(units);
+  while(uit1.hasNext()) {
+    Unit* u=uit1.next();
+    SymIdIterator sit=extractSymIds(u);
+    while(sit.hasNext()) {
+      SymId sid=sit.next();
+      _gen[sid]++;
     }
-    selected.insert(u);
-    selectedStack.push(u);
-    newlySelected.push(u);
   }
 
+  Set<Unit*> selected;
+  Stack<Unit*> selectedStack; //on this stack there are Units in the order they were selected
+  Stack<Unit*> newlySelected;
+
+  //build the D-relation and select the non-axiom formulas
+  _def.init(symIdBound,0);
+  UnitList::Iterator uit2(units);
+  while(uit2.hasNext()) {
+    Unit* u=uit2.next();
+    if(u->inputType()==Unit::AXIOM) {
+      updateDefRelation(u);
+    }
+    else {
+      selected.insert(u);
+      selectedStack.push(u);
+      newlySelected.push(u);
+    }
+  }
+
+
+  //select required axiom formulas
   while(newlySelected.isNonEmpty()) {
     Unit* u=newlySelected.pop();
-    SymIdIterator sit=getSymIds(u);
+    SymIdIterator sit=extractSymIds(u);
     while(sit.hasNext()) {
       SymId sym=sit.next();
-      UnitIterator defUnits=dr.definingUnits(sym);
+      UnitList::Iterator defUnits(_def[sym]);
       while(defUnits.hasNext()) {
 	Unit* du=defUnits.next();
 	if(selected.contains(du)) {
@@ -336,23 +286,16 @@ void SineSelector::perform(UnitList*& units)
 	selectedStack.push(du);
 	newlySelected.push(du);
       }
+      //all defining units for the symbol sym were selected,
+      //so we can remove them from the relation
+      _def[sym]->destroy();
+      _def[sym]=0;
     }
   }
 
-//  UnitList::Iterator uit2(units);
-//  while(uit2.hasNext()) {
-//    Unit* u=uit2.next();
-//    if(u->inputType()!=Unit::AXIOM) {
-//      continue;
-//    }
-//    if(selected.contains(u)) {
-//      u->setInputType(Unit::LEMMA);
-//    }
-//  }
-
   units->destroy();
   units=0;
-  UnitList::pushFromIterator(dr.unitsWithoutSymbols(), units);
+  UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), units);
   while(selectedStack.isNonEmpty()) {
     UnitList::push(selectedStack.pop(), units);
   }
@@ -360,7 +303,7 @@ void SineSelector::perform(UnitList*& units)
 #if SINE_PRINT_SELECTED
   UnitList::Iterator selIt(units);
   while(selIt.hasNext()) {
-    cout<<selIt.next()->toString()<<endl;
+    cout<<'#'<<selIt.next()->toString()<<endl;
   }
 #endif
 }

@@ -139,6 +139,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_skolemisations",
   "show_symbol_elimination",
   "simulated_time_limit",
+  "sine_selection",
   "sos",
   "splitting",
   "statistics",
@@ -384,6 +385,7 @@ Options::Options ()
   _showSkolemisations(false),
   _showSymbolElimination(false),
   _simulatedTimeLimit(0),
+  _sineSelection(0.0f),
   _sos(false),
   _splitting(RA_INPUT_ONLY),
   _statistics(STATISTICS_FULL),
@@ -679,6 +681,12 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case SIMULATED_TIME_LIMIT:
       _simulatedTimeLimit = readTimeLimit(value);
+      return;
+    case SINE_SELECTION:
+      if(!Int::stringToFloat(value,floatValue) || (floatValue!=0.0f && floatValue<1.0f)) {
+	USER_ERROR("sine_selection value must be a float number either equal to 0 or greater than or equal to 1");
+      }
+      _sineSelection = floatValue;
       return;
     case SOS:
       _sos = onOffToBool(value,name);
@@ -1131,6 +1139,9 @@ void Options::outputValue (ostream& str,int optionTag) const
       str << '.' << _simulatedTimeLimit % 10;
     }
     return;
+  case SINE_SELECTION:
+    str << _sineSelection;
+    return;
   case SOS:
     str << boolToOnOff(_sos);
     return;
@@ -1466,7 +1477,8 @@ bool Options::complete () const
          ! _sos &&
          _superpositionFromVariables &&
          ! _maxWeight &&
-         ! _forwardLiteralRewriting;
+         ! _forwardLiteralRewriting &&
+         _sineSelection==0.0f;
 } // Options::complete
 
 

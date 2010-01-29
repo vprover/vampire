@@ -91,7 +91,9 @@ void Preprocess::preprocess (UnitList*& units)
     units = norm.normalise(units);
   }
 
-//  SineSelector().perform(units);
+  if(env.options->sineSelection()!=0.0f) {
+    SineSelector().perform(units);
+  }
 
   {
     UnitList::DelIterator us(units);
