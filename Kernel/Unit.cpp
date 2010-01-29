@@ -25,6 +25,7 @@ Unit::Unit(Kind kind,Inference* inf,InputType it)
     _kind(kind),
     _inputType(it),
     _inheritedColor(COLOR_INVALID),
+    _included(0),
     _inference(inf)
 {
   switch (inf->rule()) {

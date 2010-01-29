@@ -106,6 +106,11 @@ public:
    */
   virtual void decRefCnt() {}
 
+  /** mark the unit as read from a TPTP included file  */
+  inline void markIncluded() {_included = 1;}
+  /** true if the unit is read from a TPTP included file  */
+  inline bool included() const {return _included;}
+
 protected:
   /** Number of this unit, used for printing and statistics */
   unsigned _number;
@@ -115,6 +120,8 @@ protected:
   unsigned _inputType : 2;
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
+  /** true if the unit is read from a TPTP included file  */
+  unsigned _included : 1;
   /** inference used to obtain the unit */
   Inference* _inference;
   /** the input unit number this clause is generated from, -1 if none */

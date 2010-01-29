@@ -91,6 +91,7 @@ public:
 TPTPParser::TPTPParser(TPTPLexer& lexer)
   : Parser(lexer),
     _currentColor(COLOR_TRANSPARENT),
+    _includeDepth(0),
     _namesLimited(false)
 {
 }
@@ -140,7 +141,9 @@ void TPTPParser::units(UnitStack& stack)
       return;
     case TT_INCLUDE:
       consumeToken();
+      _includeDepth++;
       include(stack);
+      _includeDepth--;
       break;
     case TT_VAMPIRE:
       consumeToken();
@@ -236,6 +239,9 @@ Unit* TPTPParser::unit()
 					       Inference::NEGATED_CONJECTURE :
 					       Inference::INPUT),
 			       it);
+      if (_includeDepth) {
+	result->markIncluded();
+      }
       env.statistics->inputFormulas++;
     }
     break;
@@ -863,7 +869,7 @@ Literal* TPTPParser::formulaLiteral()
  *
  * @since 02/05/2005 Manchester
  */
-void TPTPParser::include (UnitStack& stack)
+void TPTPParser::include(UnitStack& stack)
 {
   CALL("TPTPParser::include");
 
@@ -981,6 +987,9 @@ Clause* TPTPParser::createClause(LiteralStack& lits,int inputType)
   Clause* result = new(length) Clause(length,
 				      (Unit::InputType)inputType,
 				      new Inference(Inference::INPUT));
+  if (_includeDepth) {
+    result->markIncluded();
+  }
   env.statistics->inputClauses++;
   for (int i=length-1;i >= 0;i--) {
     (*result)[i] = lits[i];

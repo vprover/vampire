@@ -76,6 +76,8 @@ private:
   /** if left_formula or right_formula declarations are used, then the
    *  color defined by the currently active declaration*/
   Color _currentColor;
+  /** if include() is used, then the depth of includes, 0 if top-level */
+  int _includeDepth;
 
   bool _namesLimited;
   List<string>* _allowedNames;
