@@ -94,6 +94,7 @@ public:
     SHOW_SKOLEMISATIONS,
     SHOW_SYMBOL_ELIMINATION,
     SIMULATED_TIME_LIMIT,
+    SINE_BENEVOLENCE,
     SINE_SELECTION,
     SOS,
     SPLITTING,
@@ -201,6 +202,12 @@ public:
     BY_ARITY = 0,
     BY_OCCURRENCE = 1,
     BY_REVERSE_ARITY = 2
+  };
+
+  enum SineSelection {
+    SS_AXIOMS = 0,
+    SS_INCLUDED = 1,
+    SS_OFF = 2
   };
 
   enum Proof {
@@ -316,7 +323,8 @@ public:
   BacktrackingSplittingMode backtrackingSplitting() const { return _backtrackingSplitting; }
   bool bsTowardHorn() const { return _bsTowardHorn; }
   bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
-  float sineSelection() const { return _sineSelection; }
+  float sineBenevolence() const { return _sineBenevolence; }
+  SineSelection sineSelection() const { return _sineSelection; }
 
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal) { _inputFile = newVal; }
@@ -410,7 +418,8 @@ private:
   bool _showSkolemisations;
   bool _showSymbolElimination;
   int _simulatedTimeLimit;
-  float _sineSelection;
+  float _sineBenevolence;
+  SineSelection _sineSelection;
   bool _sos;
   RuleActivity _splitting;
   Statistics _statistics;

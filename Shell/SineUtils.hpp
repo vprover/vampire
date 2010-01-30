@@ -16,6 +16,9 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
+/**
+ * Class that performs the SInE axiom selection
+ */
 class SineSelector
 {
 public:
@@ -31,13 +34,13 @@ private:
   SymId getSymIdBound();
   SymId getSymId(Literal* lit, bool polarity);
   SymId getSymId(Term* t);
-  SymId getDefiningSymId(SymId sid);
   void extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms);
 
   SymIdIterator extractSymIds(Unit* u);
 
   void updateDefRelation(Unit* u);
 
+  bool _onIncluded;
   bool _strict;
   float _benevolence;
 

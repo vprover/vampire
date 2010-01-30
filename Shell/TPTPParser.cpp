@@ -88,18 +88,19 @@ public:
  * Initialise a TPTP parser.
  * @since 01/08/2004 Torrevieja
  */
-TPTPParser::TPTPParser(TPTPLexer& lexer)
+TPTPParser::TPTPParser(TPTPLexer& lexer, int includeDepth)
   : Parser(lexer),
     _currentColor(COLOR_TRANSPARENT),
-    _includeDepth(0),
+    _includeDepth(includeDepth),
     _namesLimited(false)
 {
 }
 
 
-TPTPParser::TPTPParser(TPTPLexer& lexer, List<string>* allowedNames)
+TPTPParser::TPTPParser(TPTPLexer& lexer, List<string>* allowedNames, int includeDepth)
   : Parser(lexer),
     _currentColor(COLOR_TRANSPARENT),
+    _includeDepth(includeDepth),
     _namesLimited(true),
     _allowedNames(allowedNames)
 {
@@ -141,9 +142,7 @@ void TPTPParser::units(UnitStack& stack)
       return;
     case TT_INCLUDE:
       consumeToken();
-      _includeDepth++;
       include(stack);
-      _includeDepth--;
       break;
     case TT_VAMPIRE:
       consumeToken();
@@ -915,12 +914,12 @@ void TPTPParser::include(UnitStack& stack)
 
   if(incLimited) {
     if(incAllowedNames) {
-      TPTPParser parser(lexer, incAllowedNames);
+      TPTPParser parser(lexer, incAllowedNames, _includeDepth+1);
       parser.units(stack);
       incAllowedNames->destroy();
     }
   } else {
-    TPTPParser parser(lexer);
+    TPTPParser parser(lexer, _includeDepth+1);
     parser.units(stack);
   }
 } // TPTPParser::include
@@ -1053,14 +1052,14 @@ void TPTPParser::vampire()
     }
     env.colorUsed = true;
     Signature::Symbol* sym;
-    if (pred) 
+    if (pred)
       sym = env.signature->getPredicate(env.signature->addPredicate(symb,arity));
     else
       sym = env.signature->getFunction(env.signature->addFunction(symb,arity));
 
     if (skip)
       sym->markSkip();
-    else 
+    else
       sym->addColor(color);
   }
   else if (nm == "left_formula") { // e.g. vampire(left_formula)

@@ -31,11 +31,14 @@ using namespace Kernel;
 
 
 SineSelector::SineSelector()
-: _benevolence(env.options->sineSelection()), _fnOfs(env.signature->predicates())
+: _onIncluded(env.options->sineSelection()==Options::SS_INCLUDED),
+  _benevolence(env.options->sineBenevolence()),
+  _fnOfs(env.signature->predicates())
 {
   CALL("SineSelector::SineSelector");
-
+  ASS_NEQ(env.options->sineSelection(),Options::SS_OFF);
   ASS_GE(_benevolence, 1.0f);
+
   _strict=_benevolence==1.0f;
 }
 
@@ -60,13 +63,6 @@ SineSelector::SymId SineSelector::getSymId(Term* t)
 {
   ASS(!t->isLiteral());
   return _fnOfs+t->functor();
-}
-SineSelector::SymId SineSelector::getDefiningSymId(SymId sid)
-{
-//  if(sid>=0) {
-//    return sid^1;
-//  }
-  return sid;
 }
 
 struct SineSelector::FunctionSymIdFn
@@ -181,11 +177,12 @@ SineSelector::SymIdIterator SineSelector::extractSymIds(Unit* u)
   return pvi( getUniquePersistentIterator(Stack<SymId>::Iterator(itms)) );
 }
 
+/**
+ * Connect unit @b u with symbols it defines
+ */
 void SineSelector::updateDefRelation(Unit* u)
 {
   CALL("SineSelector::updateDefRelation");
-
-  ASS_EQ(u->inputType(),Unit::AXIOM);
 
   SymIdIterator sit=extractSymIds(u);
 
@@ -259,7 +256,8 @@ void SineSelector::perform(UnitList*& units)
   UnitList::Iterator uit2(units);
   while(uit2.hasNext()) {
     Unit* u=uit2.next();
-    if(u->inputType()==Unit::AXIOM) {
+    bool performSelection= _onIncluded ? u->included() : (u->inputType()==Unit::AXIOM);
+    if(performSelection) {
       updateDefRelation(u);
     }
     else {

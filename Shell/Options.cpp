@@ -46,6 +46,7 @@ public:
   static const char* _ruleActivityValues[];
   static const char* _symbolPrecedenceValues[];
   static const char* _tcValues[];
+  static const char* _sineSelectionValues[];
   static const char* _proofValues[];
 
   static int shortNameIndexes[];
@@ -64,6 +65,7 @@ public:
   static NameArray ruleActivityValues;
   static NameArray symbolPrecedenceValues;
   static NameArray tcValues;
+  static NameArray sineSelectionValues;
   static NameArray proofValues;
 }; // class Options::Constants
 
@@ -139,6 +141,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_skolemisations",
   "show_symbol_elimination",
   "simulated_time_limit",
+  "sine_benevolence",
   "sine_selection",
   "sos",
   "splitting",
@@ -301,6 +304,14 @@ const char* Options::Constants::_modeValues[] = {
 NameArray Options::Constants::modeValues(_modeValues,
 					 sizeof(_modeValues)/sizeof(char*));
 
+/** Possible values for --sine_selection */
+const char* Options::Constants::_sineSelectionValues[] = {
+  "axioms",
+  "included",
+  "off"};
+NameArray Options::Constants::sineSelectionValues(_sineSelectionValues,
+					  sizeof(_sineSelectionValues)/sizeof(char*));
+
 /** Possible values for --proof */
 const char* Options::Constants::_proofValues[] = {
   "off",
@@ -385,7 +396,8 @@ Options::Options ()
   _showSkolemisations(false),
   _showSymbolElimination(false),
   _simulatedTimeLimit(0),
-  _sineSelection(0.0f),
+  _sineBenevolence(1.0f),
+  _sineSelection(SS_OFF),
   _sos(false),
   _splitting(RA_INPUT_ONLY),
   _statistics(STATISTICS_FULL),
@@ -682,11 +694,15 @@ void Options::set (const char* name,const char* value, int index)
     case SIMULATED_TIME_LIMIT:
       _simulatedTimeLimit = readTimeLimit(value);
       return;
-    case SINE_SELECTION:
+    case SINE_BENEVOLENCE:
       if(!Int::stringToFloat(value,floatValue) || (floatValue!=0.0f && floatValue<1.0f)) {
-	USER_ERROR("sine_selection value must be a float number either equal to 0 or greater than or equal to 1");
+	USER_ERROR("sine_benevolence value must be a float number greater than or equal to 1");
       }
-      _sineSelection = floatValue;
+      _sineBenevolence = floatValue;
+      return;
+    case SINE_SELECTION:
+      _sineSelection =
+	(SineSelection)Constants::sineSelectionValues.find(value);
       return;
     case SOS:
       _sos = onOffToBool(value,name);
@@ -1139,8 +1155,11 @@ void Options::outputValue (ostream& str,int optionTag) const
       str << '.' << _simulatedTimeLimit % 10;
     }
     return;
+  case SINE_BENEVOLENCE:
+    str << _sineBenevolence;
+    return;
   case SINE_SELECTION:
-    str << _sineSelection;
+    str << Constants::sineSelectionValues[_sineSelection];
     return;
   case SOS:
     str << boolToOnOff(_sos);

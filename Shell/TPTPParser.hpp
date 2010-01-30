@@ -32,8 +32,8 @@ class TPTPParser
   : public Parser
 {
 public:
-  explicit TPTPParser(TPTPLexer& lexer);
-  TPTPParser(TPTPLexer& lexer, List<string>* allowedNames);
+  explicit TPTPParser(TPTPLexer& lexer, int includeDepth=0);
+  TPTPParser(TPTPLexer& lexer, List<string>* allowedNames, int includeDepth=0);
   UnitList* units();
 
 private:
@@ -79,7 +79,17 @@ private:
   /** if include() is used, then the depth of includes, 0 if top-level */
   int _includeDepth;
 
+  /**
+   * Is set true by the constructor, if this instance of the parser
+   * should yield only formulas with names from @b _allowedNames
+   *
+   * This is to support the feature formula_selection of the include
+   * directive of the TPTP format.
+   */
   bool _namesLimited;
+  /**
+   * Allowed names of formulas (see @b _namesLimited)
+   */
   List<string>* _allowedNames;
 }; // class TPTPParser
 

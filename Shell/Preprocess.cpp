@@ -91,7 +91,7 @@ void Preprocess::preprocess (UnitList*& units)
     units = norm.normalise(units);
   }
 
-  if(env.options->sineSelection()!=0.0f) {
+  if(env.options->sineSelection()!=Options::SS_OFF) {
     SineSelector().perform(units);
   }
 
