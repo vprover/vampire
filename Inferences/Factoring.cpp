@@ -17,6 +17,7 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Unit.hpp"
 #include "../Kernel/Inference.hpp"
+#include "../Kernel/LiteralSelector.hpp"
 #include "../Kernel/RobSubstitution.hpp"
 
 #include "Factoring.hpp"
@@ -128,7 +129,7 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }
-  if(premise->selected()==1 && (*premise)[0]->isNegative()) {
+  if(premise->selected()==1 && LiteralSelector::isNegativeForSelection((*premise)[0])) {
     return ClauseIterator::getEmpty();
   }
   return pvi( getMappingIterator(

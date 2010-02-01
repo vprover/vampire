@@ -19,6 +19,24 @@
 namespace Kernel
 {
 
+/**
+ * If set to true, the polarity for non-equality literals is
+ * considered to be reversed for the purposes of literal selection
+ */
+bool LiteralSelector::_reversePolarity=false;
+
+#if VDEBUG
+
+/**
+ * Counter of existing LiteralSelector instances
+ *
+ * As we use the @b _reversePolarity static variable in the selector
+ * setting, we want always at most one instance to exist.
+ */
+int LiteralSelector::_instCtr=0;
+
+#endif
+
 LiteralSelector* LiteralSelector::getSelector(int num)
 {
   using namespace LiteralComparators;
@@ -43,6 +61,13 @@ LiteralSelector* LiteralSelector::getSelector(int num)
 	    Composite<MaximalSize,
 	    Composite<Negative, LexComparator> > > > Comparator10;
 
+#if VDEBUG
+  ASS_EQ(_instCtr,0);
+#endif
+  _reversePolarity=num<0;
+  if(num<0) {
+    num=-num;
+  }
 
   switch(num) {
   case 0: return new TotalLiteralSelector();
@@ -58,9 +83,8 @@ LiteralSelector* LiteralSelector::getSelector(int num)
   case 1004: return new BestLiteralSelector<Comparator4>();
 
   case 1010: return new BestLiteralSelector<Comparator10>();
-
   default:
-    USER_ERROR("Undefined selection function");
+    INVALID_OPERATION("Undefined selection function");
   }
 }
 
@@ -92,12 +116,6 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c)
   }
   ASSERTION_VIOLATION;
 }
-
-//MultiColumnMap<Literal*>* LiteralSelector::getLiteralDetailStore()
-//{
-//  static MultiColumnMap<Literal*> map;
-//  return &map;
-//}
 
 
 void TotalLiteralSelector::select(Clause* c)

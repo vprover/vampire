@@ -81,8 +81,8 @@ struct Negative
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
-    bool l1N=l1->isNegative();
-    bool l2N=l2->isNegative();
+    bool l1N=LiteralSelector::isNegativeForSelection(l1);
+    bool l2N=LiteralSelector::isNegativeForSelection(l2);
     if( l1N && !l2N ) {
       return GREATER;
     } else if( !l1N && l2N ) {

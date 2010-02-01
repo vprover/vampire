@@ -844,6 +844,15 @@ bool Options::setSelection(int sel)
   case 1003:
   case 1004:
   case 1010:
+  case -1:
+  case -2:
+  case -3:
+  case -4:
+  case -10:
+  case -1002:
+  case -1003:
+  case -1004:
+  case -1010:
     _selection = sel;
     return true;
   default:
@@ -1497,7 +1506,7 @@ bool Options::complete () const
          _superpositionFromVariables &&
          ! _maxWeight &&
          ! _forwardLiteralRewriting &&
-         _sineSelection==0.0f;
+         _sineSelection==SS_OFF;
 } // Options::complete
 
 

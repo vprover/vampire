@@ -8,7 +8,8 @@
 #define __LiteralSelector__
 
 #include "../Forwards.hpp"
-//#include "../Lib/MultiColumnMap.hpp"
+
+#include "Term.hpp"
 
 namespace Kernel {
 
@@ -19,14 +20,43 @@ namespace Kernel {
 class LiteralSelector
 {
 public:
-  virtual ~LiteralSelector() {}
+  LiteralSelector()
+  {
+#if VDEBUG
+    _instCtr++;
+#endif
+  }
+  virtual ~LiteralSelector()
+  {
+#if VDEBUG
+    _instCtr--;
+#endif
+  }
   virtual void select(Clause* c) = 0;
 
   static LiteralSelector* getSelector(int num);
 
   static void ensureSomeColoredSelected(Clause* c);
 
-//  static MultiColumnMap<Literal*>* getLiteralDetailStore();
+  static bool isPositiveForSelection(Literal* l)
+  {
+    if(_reversePolarity) {
+      return l->isNegative()^l->isEquality(); //we don't change polarity for equality
+    }
+    else {
+      return l->isPositive();
+    }
+  }
+  static bool isNegativeForSelection(Literal* l)
+  {
+    return !isPositiveForSelection(l);
+  }
+
+private:
+  static bool _reversePolarity;
+#if VDEBUG
+  static int _instCtr;
+#endif
 };
 
 /**

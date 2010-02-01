@@ -25,13 +25,13 @@ void MaximalLiteralSelector::select(Clause* c)
   bool anyNegative=false;
 
   for(int li=(int)clen-1; li>=0; li--) {
-    if((*c)[li]->isNegative()) {
+    if(isNegativeForSelection((*c)[li])) {
       anyNegative=true;
       break;
     }
   }
   for(int li=(int)clen-1; li>=0; li--) {
-    if(!anyNegative || (*c)[li]->isNegative()) {
+    if(!anyNegative || isNegativeForSelection((*c)[li])) {
       LiteralList::push((*c)[li],sel);
     }
   }
@@ -43,7 +43,7 @@ void MaximalLiteralSelector::select(Clause* c)
   LiteralList::Iterator sit(sel);
   while(sit.hasNext()) {
     Literal* sl=sit.next();
-    if(sl->isNegative()) {
+    if(isNegativeForSelection(sl)) {
       singleSel=sl;
       break;
     }

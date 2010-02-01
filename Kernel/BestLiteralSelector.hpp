@@ -124,13 +124,13 @@ public:
 			       //literals will be selected.
     bool allSelected=false;
 
-    if(litArr[0]->isNegative()) {
+    if(isNegativeForSelection(litArr[0])) {
       singleSelected=litArr[0];
     } else {
       DArray<Literal*>::ReversedIterator rlit(litArr);
       while(rlit.hasNext()) {
 	Literal* lit=rlit.next();
-	if(lit->isPositive()) {
+	if(isPositiveForSelection(lit)) {
 	  LiteralList::push(lit,maximals);
 	}
       }
@@ -146,7 +146,7 @@ public:
 	}
 	besti++;
 	ASS_L(besti,clen);
-	if(litArr[besti]->isNegative()) {
+	if(isNegativeForSelection(litArr[besti])) {
 	  singleSelected=litArr[besti];
 	  break;
 	}
