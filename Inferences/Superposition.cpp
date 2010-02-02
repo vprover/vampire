@@ -156,7 +156,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 		  getMapAndFlattenIterator(
 			  getMapAndFlattenIterator(
 				  premise->getSelectedLiteralIterator(),
-				  EqHelper::LHSIteratorFn()),
+				  EqHelper::SuperpositionLHSIteratorFn()),
 			  RewritableResultsFn(_subtermIndex)),
 		  BackwardResultFn(premise, limits))),
 	NonzeroFn()

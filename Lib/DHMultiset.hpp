@@ -122,8 +122,8 @@ public:
   }
 
   /**
-   * If given value is stored in the set, remove
-   * it and return true. Otherwise, return false.
+   * If given value is stored in the multiset, remove
+   * it (once) and return true. Otherwise, return false.
    */
   bool remove(Val val)
   {
@@ -142,6 +142,32 @@ public:
       _multiplicities--;
     }
     return true;
+  }
+
+  /**
+   * If given value is stored in the multiset, remove
+   * it (once). Return multiplicity of the value before removal.
+   *
+   * If the item is not in the multiset, 0 is returned and
+   * nothing happens.
+   */
+  unsigned getMultiplicityAndRemove(Val val)
+  {
+    CALL("DHMultiset::getMultiplicityAndRemove");
+    Entry* e=findEntry(val);
+    if(!e) {
+      return 0;
+    }
+    ASS(e->_info.multiplicity>0);
+    e->_info.multiplicity--;
+    if(e->_info.multiplicity==0) {
+      e->_info.deleted=1;
+      _size--;
+      _deleted++;
+    } else {
+      _multiplicities--;
+    }
+    return e->_info.multiplicity+1;
   }
 
 

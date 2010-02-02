@@ -48,12 +48,9 @@ public:
 
   void removeAllDefinitions(UnitList*& units);
 
+  void removeUnusedDefinitions(UnitList*& units);
 
-  void scan(const UnitList* units);
-  /** true if any definition has been found, must only be called
-   *  after scan() */
-  bool definitionFound() const
-  { return _defs.size()!=0; }
+
   static Def* isFunctionDefinition (Unit&);
   static void deleteDef(Def* def);
 

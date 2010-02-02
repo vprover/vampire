@@ -68,7 +68,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->selected();
   for(unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator lhsi=EqHelper::getLHSIterator(lit);
+    TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit);
     while(lhsi.hasNext()) {
       if(adding) {
 	_is->insert(lhsi.next(), lit, c);

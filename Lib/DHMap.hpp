@@ -383,7 +383,7 @@ public:
 
   /** Return mumber of entries stored in this DHMap */
   inline
-  int size() const
+  unsigned size() const
   {
     ASS(_size>=0);
     return _size;
@@ -492,7 +492,7 @@ private:
   const Entry* findEntry(Key key) const
   {
     CALL("DHMap::findEntry");
-    ASS(_capacity>size()+_deleted);
+    ASS(_capacity>_size+_deleted);
 
     unsigned h1=computeHash<Hash1>(key, _capacity);
     int pos=h1%_capacity;
@@ -534,7 +534,7 @@ private:
   Entry* findEntryToInsert(Key key)
   {
     CALL("DHMap::findEntryToInsert");
-    ASS(_capacity>size()+_deleted);
+    ASS(_capacity>_size+_deleted);
 
     unsigned h1=computeHash<Hash1>(key, _capacity);
     int pos=h1%_capacity;

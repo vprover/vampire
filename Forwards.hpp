@@ -86,7 +86,6 @@ typedef SingleParamEvent<Clause*> ClauseEvent;
 typedef List<Clause*> ClauseList;
 typedef Stack<Clause*> ClauseStack;
 
-class DoubleSubstitution;
 class Renaming;
 class Substitution;
 

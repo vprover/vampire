@@ -9,6 +9,7 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/BitUtils.hpp"
+#include "../Lib/DHMultiset.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 
@@ -16,6 +17,7 @@
 #include "../Kernel/Formula.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/FormulaUnit.hpp"
+#include "../Kernel/Signature.hpp"
 #include "../Kernel/SubstHelper.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Kernel/TermVarIterator.hpp"
@@ -114,6 +116,118 @@ FunctionDefinition::FunctionDefinition ()
 {
   CALL("FunctionDefinition::FunctionDefinition");
 } // FunctionDefinition::FunctionDefinition
+
+
+void FunctionDefinition::removeUnusedDefinitions(UnitList*& units)
+{
+  CALL("FunctionDefinition::removeUnusedDefinitions");
+
+  NOT_IMPLEMENTED;
+
+  //TODO: finish
+
+  unsigned funs=env.signature->functions();
+  //a functor number that never occurs
+  unsigned noFn=funs;
+
+  DArray<bool> defined;
+  DArray<unsigned> occCounter;
+  defined.init(funs, false);
+  occCounter.init(funs, 0);
+
+
+  UnitList::DelIterator scanIterator(units);
+  while(scanIterator.hasNext()) {
+    Clause* cl=static_cast<Clause*>(scanIterator.next());
+    unsigned clen=cl->length();
+    ASS(cl->isClause());
+    Def* d=isFunctionDefinition(cl);
+    if(d) {
+      d->defCl=cl;
+      if(_defs.insert(d->fun, d)) {
+	scanIterator.del();
+      } else {
+	delete d;
+      }
+    }
+    for(unsigned i=0;i<clen;i++) {
+      Term::NonVariableIterator nvit((*cl)[i]);
+      while(nvit.hasNext()) {
+	unsigned fn=nvit.next().term()->functor();
+	occCounter[fn]++;
+      }
+    }
+  }
+
+  if(!_defs.size()) {
+    return;
+  }
+
+  Fn2DefMap::Iterator dit(_defs);
+  while(dit.hasNext()) {
+    Def* d=dit.next();
+
+    if(d->mark==Def::SAFE || d->mark==Def::BLOCKED) {
+      continue;
+    }
+    ASS(d->mark==Def::UNTOUCHED);
+    checkDefinitions(d);
+  }
+
+  while(_blockedDefs.isNonEmpty()) {
+    Def* d=_blockedDefs.pop();
+    ASS_EQ(d->mark, Def::BLOCKED);
+//    cout<<"Blocked: "<<(*(*d->defCl)[0])<<endl;
+
+    UnitList::push(d->defCl, units);
+    _defs.remove(d->fun);
+    delete d;
+  }
+
+  ASS_EQ(_defs.size(), _safeDefs.size());
+  //_safeDefs contains definitions in topologically ordered,
+  //so that _safeDefs[i] uses only definitions up to
+  //_safeDefs[i-1].
+  for(unsigned i=0;i<_safeDefs.size(); i++) {
+    Def* d=_safeDefs[i];
+    ASS_EQ(d->mark, Def::SAFE);
+//    cout<<"Safe: "<<(*(*d->defCl)[0]);
+
+    //we temporarily block the definition, so that we can rewrite
+    //the definition clause without rewriting the lhs
+    d->mark=Def::BLOCKED;
+    Clause* oldCl=d->defCl;
+    d->defCl=applyDefinitions(d->defCl);
+//    cout<<" unfolded into "<<(*(*d->defCl)[0])<<endl;
+
+    //update d->rhs with the right hand side of the equality
+    Literal* defEq=(*d->defCl)[0];
+    if( defEq->nthArgument(0)->term()==d->lhs ) {
+      d->rhs=defEq->nthArgument(1)->term();
+    } else {
+      ASS_EQ(defEq->nthArgument(1)->term(),d->lhs);
+      d->rhs=defEq->nthArgument(0)->term();
+    }
+
+    d->mark=Def::UNFOLDED;
+
+    env.statistics->functionDefinitions++;
+  }
+
+  UnitList::DelIterator unfoldIterator(units);
+  while(unfoldIterator.hasNext()) {
+    Clause* cl=static_cast<Clause*>(unfoldIterator.next());
+    ASS(cl->isClause());
+    Clause* newCl=applyDefinitions(cl);
+    if(cl!=newCl) {
+//      cout<<"D- "<<(*cl)<<endl;
+//      cout<<"D+ "<<(*newCl)<<endl;
+      unfoldIterator.replace(newCl);
+    }
+  }
+
+  _safeDefs.reset();
+}
 
 
 void FunctionDefinition::removeAllDefinitions(UnitList*& units)

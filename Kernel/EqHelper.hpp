@@ -25,6 +25,7 @@ public:
   static TermList getRHS(Literal* eq, TermList lhs);
   static TermIterator getRewritableSubtermIterator(Literal* lit);
   static TermIterator getLHSIterator(Literal* lit);
+  static TermIterator getSuperpositionLHSIterator(Literal* lit);
   static TermIterator getDemodulationLHSIterator(Literal* lit);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
@@ -36,6 +37,15 @@ public:
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit)) );
+    }
+  };
+
+  struct SuperpositionLHSIteratorFn
+  {
+    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
+    OWN_RETURN_TYPE operator()(Literal* lit)
+    {
+      return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit)) );
     }
   };
 
@@ -52,6 +62,9 @@ public:
   {
     return lit->isEquality() && lit->isPositive() && (*lit->nthArgument(0))==(*lit->nthArgument(1));
   }
+private:
+
+  struct IsNonVariable;
 
 };
 

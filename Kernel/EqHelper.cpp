@@ -3,10 +3,17 @@
  * Implements class EqHelper.
  */
 
+#include "../Lib/Environment.hpp"
+
+#include "../Shell/Options.hpp"
+
 #include "EqHelper.hpp"
 
 namespace Kernel {
 
+/**
+ * Return the other side of an equality @b eq than the @b lhs
+ */
 TermList EqHelper::getRHS(Literal* eq, TermList lhs)
 {
   CALL("EqHelper::getRHS");
@@ -20,6 +27,10 @@ TermList EqHelper::getRHS(Literal* eq, TermList lhs)
   }
 }
 
+/**
+ * Replace all occurences of the term @b tSrc by @b tDest in the literal
+ * @b lit, and return the result
+ */
 Literal* EqHelper::replace(Literal* lit, TermList tSrc, TermList tDest)
 {
   CALL("EqHelper::replace");
@@ -145,6 +156,12 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit)
   }
 }
 
+/**
+ * Return iterator on sides of the equality @b lit that can be used as an LHS
+ * for a rewriting inference (i.e. the other side of the equality is not greater)
+ *
+ * If the literal @b lit is not a positive equality, empty iterator is returned.
+ */
 TermIterator EqHelper::getLHSIterator(Literal* lit)
 {
   CALL("EqHelper::getLHSIterator");
@@ -177,6 +194,40 @@ TermIterator EqHelper::getLHSIterator(Literal* lit)
   }
 }
 
+/**
+ * A functor that returns true iff its argument is a non-variable term
+ */
+struct EqHelper::IsNonVariable
+{
+  DECL_RETURN_TYPE(bool);
+  bool operator()(TermList t)
+  { return t.isTerm(); }
+};
+
+/**
+ * Return iterator on sides of the equality @b lit that can be used as an LHS
+ * for superposition
+ *
+ * If the literal @b lit is not a positive equality, empty iterator is returned.
+ */
+TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit)
+{
+  CALL("EqHelper::getSuperpositionLHSIterator");
+
+  if(env.options->superpositionFromVariables()) {
+    return getLHSIterator(lit);
+  }
+  else {
+    return pvi( getFilteredIterator(getLHSIterator(lit), IsNonVariable()) );
+  }
+}
+
+/**
+ * Return iterator on sides of the equality @b lit that can be used as an LHS
+ * for demodulation
+ *
+ * If the literal @b lit is not a positive equality, empty iterator is returned.
+ */
 TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit)
 {
   CALL("EqHelper::getDemodulationLHSIterator");

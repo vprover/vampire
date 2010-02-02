@@ -188,7 +188,13 @@ void Preprocess::preprocess (UnitList*& units)
   if (_options.functionDefinitionElimination() == Options::FDE_ALL &&
 	  _property.hasProp(Property::PR_HAS_FUNCTION_DEFINITIONS)) {
     FunctionDefinition fd;
-    fd.removeAllDefinitions(units);
+    if(_options.functionDefinitionElimination() == Options::FDE_ALL) {
+      fd.removeAllDefinitions(units);
+    }
+    else {
+      ASS_NEQ(_options.functionDefinitionElimination(), Options::FDE_UNUSED);
+      fd.removeUnusedDefinitions(units);
+    }
   }
 
   if (_options.inequalitySplitting() != 0) {
