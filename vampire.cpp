@@ -403,8 +403,6 @@ int main(int argc, char* argv [])
   }
 //   delete env.allocator;
 
-  /*cout<<"good:\t"<<LiteralMiniIndex::goodPred<<endl;
-  cout<<"bad:\t"<<LiteralMiniIndex::badPred<<endl;*/
   return EXIT_SUCCESS;
 } // main
 

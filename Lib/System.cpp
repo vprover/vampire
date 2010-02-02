@@ -30,7 +30,7 @@
 
 bool inSpiderMode()
 {
-  return Lib::env.options->mode()==Shell::Options::MODE_SPIDER;
+  return Lib::env.options && Lib::env.options->mode()==Shell::Options::MODE_SPIDER;
 }
 
 void reportSpiderFail()
