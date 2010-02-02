@@ -55,6 +55,8 @@
 #include "SAT/DIMACS.hpp"
 #include "SAT/SATClause.hpp"
 
+#include "Lib/Stack.hpp"
+#include "Kernel/Term.hpp"
 
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
@@ -120,6 +122,33 @@ ClauseIterator getInputClauses()
   Preprocess prepro(property,*env.options);
   prepro.preprocess(units);
   globUnitList=units;
+
+#if 0
+  //TODO: remove
+  unsigned fns=env.signature->functions();
+  Stack<Literal*> lits;
+  Stack<TermList> a1;
+  Stack<TermList> a2;
+  for(unsigned fn=0;fn<fns;fn++) {
+    unsigned ar=env.signature->functionArity(fn);
+    lits.reset();
+    a1.reset();
+    a2.reset();
+    for(unsigned i=0;i<ar;i++) {
+      TermList v1(i*2,false);
+      TermList v2(i*2+1,false);
+      lits.push(Literal::createEquality(false, v1, v2));
+      a1.push(v1);
+      a2.push(v2);
+    }
+    lits.push(Literal::createEquality(true, TermList(Term::create(fn, ar, a1.begin())),
+	TermList(Term::create(fn, ar, a2.begin()))));
+    swap(lits[0], lits[lits.size()-1]);
+    Clause* cl=Clause::fromStack(lits, Unit::LEMMA, new Inference(Inference::ENNF));
+    cl->setSelected(1);
+    UnitList::push(cl, units);
+  }
+#endif
 
   return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
 }

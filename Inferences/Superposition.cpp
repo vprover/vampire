@@ -174,6 +174,13 @@ Clause* Superposition::performSuperposition(
 {
   CALL("Superposition::performSuperposition");
 
+#if 0
+  if(eqClause->inference()->rule()==Inference::ENNF ||
+      rwClause->inference()->rule()==Inference::ENNF) {
+    return 0;
+  }
+#endif
+
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
   int newAge=Int::max(rwClause->age(),eqClause->age())+1;
