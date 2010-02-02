@@ -29,7 +29,7 @@ public:
   { s_exceptionCounter++; }
   Exception (const char* msg, int line);
   explicit Exception (const string msg)
-    : _message(msg.c_str())
+    : _message(msg)
   { s_exceptionCounter++; }
   virtual void cry (ostream&);
   virtual ~Exception()
@@ -47,10 +47,12 @@ protected:
    * so that it cannot be called directly */
   Exception () { s_exceptionCounter++; }
   /** The error message */
-  const char* _message;
+  string _message;
 
   LastCopyWatcher _lcw;
 
+  /** Number of currently existing Exception objects
+   * (not counting copies of the same object) */
   static int s_exceptionCounter;
 
 }; // Exception

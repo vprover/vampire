@@ -58,7 +58,7 @@ void CommandLine::interpret (Options& options)
       }
       _next++;
     }
-    else { // next is not an option but a file name
+    else {
       USER_ERROR((string)"option name expected, "+arg+" found");
     }
   }

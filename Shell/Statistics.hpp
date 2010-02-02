@@ -11,7 +11,7 @@
 /**
  * Identifier of the Vampire version
  */
-#define VERSION_STRING "Vampire 1.0 (revision 532)"
+#define VERSION_STRING "Vampire 1.0 (revision 535)"
 
 namespace Kernel {
   class Unit;
