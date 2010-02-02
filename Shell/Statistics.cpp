@@ -82,6 +82,7 @@ void Statistics::print()
 #define SEPARATOR if(separable) { env.out<<endl; separable=false; }
 
   env.out << "------------------------------\n";
+  env.out << "Version: " << VERSION_STRING << endl;
 
   env.out << "Termination reason: ";
   switch(terminationReason) {

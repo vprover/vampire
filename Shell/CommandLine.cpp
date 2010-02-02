@@ -5,6 +5,9 @@
  * @since 14/11/2004 Manchester
  */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
@@ -12,6 +15,7 @@
 
 #include "CommandLine.hpp"
 #include "Options.hpp"
+#include "Statistics.hpp"
 
 namespace Shell {
 
@@ -38,6 +42,10 @@ void CommandLine::interpret (Options& options)
   while (_next != _last) {
     ASS(_next < _last);
     const char* arg = *_next++;
+    if (strcmp(arg, "--version")==0) {
+      cout<<VERSION_STRING<<endl;
+      exit(0);
+    }
     if (arg[0] == '-') {
       if (_next == _last) {
 	USER_ERROR((string)"no value specified for option " + arg);

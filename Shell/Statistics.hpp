@@ -8,6 +8,11 @@
 #ifndef __Statistics__
 #define __Statistics__
 
+/**
+ * Identifier of the Vampire version
+ */
+#define VERSION_STRING "Vampire 1.0 (revision 532)"
+
 namespace Kernel {
   class Unit;
 }

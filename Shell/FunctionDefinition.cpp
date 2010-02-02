@@ -117,22 +117,24 @@ FunctionDefinition::FunctionDefinition ()
   CALL("FunctionDefinition::FunctionDefinition");
 } // FunctionDefinition::FunctionDefinition
 
-
+/**
+ * From @b units remove clauses that contain function definitions
+ * which are never used (i.e. the function occurs only in it's definition)
+ *
+ * The removal is performed iteratively, so that if one function is used
+ * only in definition of an other one which is removed, the first definition
+ * is removed as well.
+ */
 void FunctionDefinition::removeUnusedDefinitions(UnitList*& units)
 {
   CALL("FunctionDefinition::removeUnusedDefinitions");
 
-  NOT_IMPLEMENTED;
-
-  //TODO: finish
-
   unsigned funs=env.signature->functions();
-  //a functor number that never occurs
-  unsigned noFn=funs;
 
-  DArray<bool> defined;
+  Stack<Def*> defStack;
+  DArray<Def*> def;
   DArray<unsigned> occCounter;
-  defined.init(funs, false);
+  def.init(funs, 0);
   occCounter.init(funs, 0);
 
 
@@ -144,7 +146,9 @@ void FunctionDefinition::removeUnusedDefinitions(UnitList*& units)
     Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
-      if(_defs.insert(d->fun, d)) {
+      if(!def[d->fun]) {
+	defStack.push(d);
+	def[d->fun]=d;
 	scanIterator.del();
       } else {
 	delete d;
@@ -159,77 +163,47 @@ void FunctionDefinition::removeUnusedDefinitions(UnitList*& units)
     }
   }
 
-  if(!_defs.size()) {
-    return;
-  }
-
-  Fn2DefMap::Iterator dit(_defs);
+  Stack<Def*> toDo;
+  Stack<Def*>::Iterator dit(defStack);
   while(dit.hasNext()) {
     Def* d=dit.next();
-
-    if(d->mark==Def::SAFE || d->mark==Def::BLOCKED) {
-      continue;
+    unsigned fn=d->fun;
+    ASS_GE(occCounter[fn],1);
+    if(occCounter[fn]==1) {
+      toDo.push(d);
     }
-    ASS(d->mark==Def::UNTOUCHED);
-    checkDefinitions(d);
   }
 
-  while(_blockedDefs.isNonEmpty()) {
-    Def* d=_blockedDefs.pop();
-    ASS_EQ(d->mark, Def::BLOCKED);
-//    cout<<"Blocked: "<<(*(*d->defCl)[0])<<endl;
+  while(toDo.isNonEmpty()) {
+    Def* d=toDo.pop();
+    d->mark=Def::REMOVED;
+    ASS_EQ(d->defCl->length(), 1);
+    ASS_EQ(occCounter[d->fun], 1);
+    Term::NonVariableIterator nvit((*d->defCl)[0]);
+    while(nvit.hasNext()) {
+      unsigned fn=nvit.next().term()->functor();
+      occCounter[fn]--;
+      if(occCounter[fn]==1 && def[fn]) {
+	toDo.push(def[fn]);
+      }
+    }
+    ASS_EQ(occCounter[d->fun], 0);
+  }
 
-    UnitList::push(d->defCl, units);
-    _defs.remove(d->fun);
+  while(defStack.isNonEmpty()) {
+    Def* d=defStack.pop();
+    if(d->mark!=Def::REMOVED) {
+      ASS_EQ(d->mark, Def::UNTOUCHED);
+      UnitList::push(d->defCl, units);
+    }
     delete d;
   }
 
-  ASS_EQ(_defs.size(), _safeDefs.size());
-  //_safeDefs contains definitions in topologically ordered,
-  //so that _safeDefs[i] uses only definitions up to
-  //_safeDefs[i-1].
-  for(unsigned i=0;i<_safeDefs.size(); i++) {
-    Def* d=_safeDefs[i];
-    ASS_EQ(d->mark, Def::SAFE);
-//    cout<<"Safe: "<<(*(*d->defCl)[0]);
-
-    //we temporarily block the definition, so that we can rewrite
-    //the definition clause without rewriting the lhs
-    d->mark=Def::BLOCKED;
-    Clause* oldCl=d->defCl;
-    d->defCl=applyDefinitions(d->defCl);
-//    cout<<" unfolded into "<<(*(*d->defCl)[0])<<endl;
-
-    //update d->rhs with the right hand side of the equality
-    Literal* defEq=(*d->defCl)[0];
-    if( defEq->nthArgument(0)->term()==d->lhs ) {
-      d->rhs=defEq->nthArgument(1)->term();
-    } else {
-      ASS_EQ(defEq->nthArgument(1)->term(),d->lhs);
-      d->rhs=defEq->nthArgument(0)->term();
-    }
-
-    d->mark=Def::UNFOLDED;
-
-    env.statistics->functionDefinitions++;
-  }
-
-  UnitList::DelIterator unfoldIterator(units);
-  while(unfoldIterator.hasNext()) {
-    Clause* cl=static_cast<Clause*>(unfoldIterator.next());
-    ASS(cl->isClause());
-    Clause* newCl=applyDefinitions(cl);
-    if(cl!=newCl) {
-//      cout<<"D- "<<(*cl)<<endl;
-//      cout<<"D+ "<<(*newCl)<<endl;
-      unfoldIterator.replace(newCl);
-    }
-  }
-
-  _safeDefs.reset();
 }
 
-
+/**
+ * When possible, unfold function definitions in @b units and remove them
+ */
 void FunctionDefinition::removeAllDefinitions(UnitList*& units)
 {
   CALL("FunctionDefinition::removeAllDefinitions");
@@ -316,7 +290,7 @@ void FunctionDefinition::removeAllDefinitions(UnitList*& units)
       unfoldIterator.replace(newCl);
     }
   }
-  
+
   _safeDefs.reset();
 }
 

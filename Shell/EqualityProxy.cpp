@@ -41,9 +41,11 @@ EqualityProxy::EqualityProxy()
   case Options::EP_RST:
     _rst = true;
     break;
-  default:
+  case Options::EP_ON:
     _rst = false;
     break;
+  default:
+    ASSERTION_VIOLATION;
   }
   string proxy("$$e");
   bool added;

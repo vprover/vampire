@@ -222,9 +222,9 @@ public:
     EP_RS = 1,
     EP_RST = 2,
     /** --equality_proxy=off */
-    EP_OFF = 4,
+    EP_OFF = 3,
     /** --equality_proxy=on */
-    EP_ON = 5
+    EP_ON = 4
   };
 
 public:

@@ -185,17 +185,16 @@ void Preprocess::preprocess (UnitList*& units)
     }
   }
 
-  if (_options.functionDefinitionElimination() == Options::FDE_ALL &&
-	  _property.hasProp(Property::PR_HAS_FUNCTION_DEFINITIONS)) {
-    FunctionDefinition fd;
+  if(_property.hasProp(Property::PR_HAS_FUNCTION_DEFINITIONS)) {
     if(_options.functionDefinitionElimination() == Options::FDE_ALL) {
+      FunctionDefinition fd;
       fd.removeAllDefinitions(units);
     }
-    else {
-      ASS_NEQ(_options.functionDefinitionElimination(), Options::FDE_UNUSED);
-      fd.removeUnusedDefinitions(units);
+    else if(_options.functionDefinitionElimination() == Options::FDE_UNUSED) {
+      FunctionDefinition::removeUnusedDefinitions(units);
     }
   }
+
 
   if (_options.inequalitySplitting() != 0) {
     InequalitySplitting is;

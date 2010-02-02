@@ -48,7 +48,7 @@ public:
 
   void removeAllDefinitions(UnitList*& units);
 
-  void removeUnusedDefinitions(UnitList*& units);
+  static void removeUnusedDefinitions(UnitList*& units);
 
 
   static Def* isFunctionDefinition (Unit&);

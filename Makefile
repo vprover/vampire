@@ -224,7 +224,7 @@ all:#default make disabled
 vampire: $(VAMPIRE_OBJ)
 #	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
 	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
-#	strip vampire
+	strip vampire
 
 vground: $(VGROUND_OBJ)
 #	$(CXX) -static $(CXXFLAGS) $(VGROUND_OBJ) -o vground

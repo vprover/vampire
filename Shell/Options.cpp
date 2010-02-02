@@ -754,6 +754,7 @@ void Options::set (const char* name,const char* value, int index)
       ASSERTION_VIOLATION;
 #endif
     }
+    throw ValueNotFoundException();
   }
   catch(ValueNotFoundException) {
     USER_ERROR((string)"wrong value (" + value + ") for " + name);
