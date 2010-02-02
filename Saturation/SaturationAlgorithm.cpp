@@ -172,7 +172,7 @@ void SaturationAlgorithm::onAllProcessed()
 
     static int counter1=0;
     counter1++;
-    if(counter1>sqrt(_active->size())) {
+    if(counter1>sqrt((float)_active->size())) {
       counter1=0;
 
       TimeCounter tc(TC_BDD_MARKING_SUBSUMPTION);
@@ -195,7 +195,7 @@ void SaturationAlgorithm::onAllProcessed()
 
     static int counter2=0;
     counter2++;
-    if(counter2>sqrt(_passive->size())) {
+    if(counter2>sqrt((float)_passive->size())) {
       counter2=0;
 
       TimeCounter tc(TC_BDD_MARKING_SUBSUMPTION);

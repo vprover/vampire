@@ -219,7 +219,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Saturation\BSplitter.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\BucketSorter.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Lib\Cache.hpp"
 				>
 			</File>
 			<File
@@ -295,15 +303,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Lib\DHSet.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\sat\DIMACS.hpp"
 				>
 			</File>
 			<File
 				RelativePath=".\saturation\Discount.hpp"
-				>
-			</File>
-			<File
-				RelativePath=".\kernel\DoubleSubstitution.hpp"
 				>
 			</File>
 			<File
@@ -467,6 +475,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\LaTeX.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\shell\Lexer.hpp"
 				>
 			</File>
@@ -615,11 +627,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\shell\Preprocess.hpp"
+				RelativePath=".\sat\Preprocess.hpp"
 				>
 			</File>
 			<File
-				RelativePath=".\sat\Preprocess.hpp"
+				RelativePath=".\shell\Preprocess.hpp"
 				>
 			</File>
 			<File
@@ -636,6 +648,10 @@
 			</File>
 			<File
 				RelativePath=".\lib\Random.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\RCClauseStack.hpp"
 				>
 			</File>
 			<File
@@ -692,6 +708,10 @@
 			</File>
 			<File
 				RelativePath=".\lib\Set.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Lib\SharedSet.hpp"
 				>
 			</File>
 			<File
@@ -911,6 +931,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Saturation\BSplitter.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\kernel\Clause.cpp"
 				>
 			</File>
@@ -960,10 +984,6 @@
 			</File>
 			<File
 				RelativePath=".\saturation\Discount.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\kernel\DoubleSubstitution.cpp"
 				>
 			</File>
 			<File
@@ -1108,6 +1128,10 @@
 			</File>
 			<File
 				RelativePath=".\kernel\KBO.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\LaTeX.cpp"
 				>
 			</File>
 			<File
