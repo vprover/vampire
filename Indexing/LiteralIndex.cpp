@@ -216,12 +216,22 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 
 void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding)
 {
+  CALL("RewriteRuleIndex::handleEquivalence");
+
   Literal* csm = (cgr==(*c)[0]) ? (*c)[1] : (*c)[0];
   Literal* dsm = (dgr==(*d)[0]) ? (*d)[1] : (*d)[0];
 
-  //we use Literal::oppositeLiteral(csm) instead of dsm (which is a variant with
-  //opposite polarity), so that the literals share variables
-  Ordering::Result cmpRes=Ordering::instance()->compare(cgr,Literal::oppositeLiteral(csm));
+  Ordering::Result cmpRes;
+  //we want to always pass the greater literal as positive in order to get consistent results
+  //when using the LCM_REVERSE literal comparison mode.
+  if(cgr->isPositive()) {
+    //we use Literal::oppositeLiteral(csm) instead of dsm (which is a variant with
+    //opposite polarity), so that the literals share variables
+    cmpRes=Ordering::instance()->compare(cgr,Literal::oppositeLiteral(csm));
+  }
+  else {
+    cmpRes=Ordering::instance()->compare(Literal::oppositeLiteral(cgr),csm);
+  }
   switch(cmpRes) {
   case Ordering::GREATER:
   case Ordering::GREATER_EQ:

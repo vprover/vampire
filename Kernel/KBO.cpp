@@ -560,18 +560,18 @@ KBO* KBO::create()
   switch(env.options->literalComparisonMode()) {
   case Shell::Options::LCM_STANDARD:
     res->_predicateLevels.init(res->_predicates, 1);
-    res->_reverseLCM=false;
     break;
   case Shell::Options::LCM_PREDICATE:
   case Shell::Options::LCM_REVERSE:
     for(unsigned i=1;i<preds;i++) {
       res->_predicateLevels[i]=res->_predicatePrecedences[i]+1;
     }
-    res->_reverseLCM = env.options->literalComparisonMode()==Shell::Options::LCM_REVERSE;
     break;
   }
   //equality is on the lowest level
   res->_predicateLevels[0]=0;
+
+  res->_reverseLCM = env.options->literalComparisonMode()==Shell::Options::LCM_REVERSE;
 
   if(EqualityProxy::s_proxyPredicate) {
     res->_predicateLevels[EqualityProxy::s_proxyPredicate]=preds+2;

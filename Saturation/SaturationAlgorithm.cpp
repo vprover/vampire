@@ -141,6 +141,7 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
 
   if(c->store()==Clause::ACTIVE) {
     c->setStore(Clause::NONE);
+    //at this point the c object can be deleted
   } else if(c->store()==Clause::REACTIVATED) {
     c->setStore(Clause::PASSIVE);
   }
@@ -265,6 +266,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 
   if(c->store()==Clause::PASSIVE) {
     c->setStore(Clause::NONE);
+    //at this point the c object can be deleted
   } else if(c->store()==Clause::REACTIVATED) {
     c->setStore(Clause::ACTIVE);
   }
@@ -1268,7 +1270,7 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
   default:
     ASS_REP(false, cl->store());
   }
-  cl->setStore(Clause::NONE);
+  //at this point the cl object can be already deleted
 }
 
 /**
