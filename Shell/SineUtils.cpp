@@ -18,6 +18,7 @@
 #include "../Kernel/TermFunIterator.hpp"
 
 #include "Options.hpp"
+#include "Statistics.hpp"
 
 #include "SineUtils.hpp"
 
@@ -313,6 +314,8 @@ void SineSelector::perform(UnitList*& units)
       _def[sym]=0;
     }
   }
+
+  env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selectedStack.size();
 
   units->destroy();
   units=0;
