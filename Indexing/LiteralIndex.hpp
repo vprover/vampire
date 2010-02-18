@@ -90,6 +90,7 @@ public:
   }
 protected:
   void handleClause(Clause* c, bool adding);
+  Literal* getGreater(Clause* c);
 
 private:
   void handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding);

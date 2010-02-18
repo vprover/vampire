@@ -128,15 +128,19 @@ RewriteRuleIndex::~RewriteRuleIndex()
   delete _partialIndex;
 }
 
-void RewriteRuleIndex::handleClause(Clause* c, bool adding)
+/**
+ * For a two-literal clause return its literal that is
+ * in some ordering greater, or 0 if the two literals
+ * are complamentary variants of each other
+ *
+ * If A and B are not variants of each other, it must hold:
+ * - if A>B, it also holds ~A>~B
+ * - if A',B' are variants of A,B, it holds A'>B'
+ */
+Literal* RewriteRuleIndex::getGreater(Clause* c)
 {
-  CALL("RewriteRuleIndex::handleClause");
-
-  if(c->length()!=2) {
-    return;
-  }
-
-  TimeCounter tc(TC_LITERAL_REWRITE_RULE_INDEX_MAINTENANCE);
+  CALL("RewriteRuleIndex::getGreater");
+  ASS_EQ(c->length(), 2);
 
   static LiteralComparators::NormalizedLinearComparatorByWeight<true> comparator;
 
@@ -152,11 +156,26 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
     } else {
       greater=(*c)[1];
       //the two literals are variants, but should not be equal (as
-      //otherwise they would be deleted by the duplicite literal
+      //otherwise they would be deleted by the duplicate literal
       //removal rule)
       ASS_NEQ((*c)[0],(*c)[1])
     }
   }
+
+  return greater;
+}
+
+void RewriteRuleIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("RewriteRuleIndex::handleClause");
+
+  if(c->length()!=2) {
+    return;
+  }
+
+  TimeCounter tc(TC_LITERAL_REWRITE_RULE_INDEX_MAINTENANCE);
+
+  Literal* greater=getGreater(c);
 
   if(greater) {
     if(adding) {
@@ -165,7 +184,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
         SLQueryResult qr=vit.next();
 
         if(!MLVariant::isVariant(c ,qr.clause, true)) {
-  	continue;
+          continue;
         }
 
         //we have found a counterpart
@@ -178,14 +197,8 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
     else {
       Clause* d;
       if(_counterparts.find(c, d)) {
-	Literal* dgr;
-	if(MatchingUtils::isVariant(greater, (*d)[0], true)) {
-	  dgr=(*d)[0];
-	}
-	else {
-	  ASS(MatchingUtils::isVariant(greater, (*d)[1], true));
-	  dgr=(*d)[1];
-	}
+	Literal* dgr=getGreater(d);
+	ASS(MatchingUtils::isVariant(greater, dgr, true))
 	handleEquivalence(c, greater, d, dgr, false);
       }
       else {
