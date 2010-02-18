@@ -198,6 +198,11 @@ void SineSelector::updateDefRelation(Unit* u)
   SymId leastGenSym=sit.next();
   unsigned leastGenVal=_gen[leastGenSym];
 
+  //it a symbol fits under _genThreshold, add it immediately [into the relation]
+  if(leastGenVal<=_genThreshold) {
+    UnitList::push(u,_def[leastGenSym]);
+  }
+
   while(sit.hasNext()) {
     SymId sym=sit.next();
     unsigned val=_gen[sym];
