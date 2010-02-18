@@ -95,6 +95,7 @@ public:
     SHOW_SYMBOL_ELIMINATION,
     SIMULATED_TIME_LIMIT,
     SINE_BENEVOLENCE,
+    SINE_GENERALITY_THRESHOLD,
     SINE_SELECTION,
     SOS,
     SPLITTING,
@@ -324,6 +325,7 @@ public:
   bool bsTowardHorn() const { return _bsTowardHorn; }
   bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
   float sineBenevolence() const { return _sineBenevolence; }
+  unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold; }
   SineSelection sineSelection() const { return _sineSelection; }
 
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
@@ -419,6 +421,7 @@ private:
   bool _showSymbolElimination;
   int _simulatedTimeLimit;
   float _sineBenevolence;
+  unsigned _sineGeneralityThreshold;
   SineSelection _sineSelection;
   bool _sos;
   RuleActivity _splitting;

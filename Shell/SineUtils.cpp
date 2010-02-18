@@ -32,6 +32,7 @@ using namespace Kernel;
 
 SineSelector::SineSelector()
 : _onIncluded(env.options->sineSelection()==Options::SS_INCLUDED),
+  _genThreshold(env.options->sineGeneralityThreshold()),
   _benevolence(env.options->sineBenevolence()),
   _fnOfs(env.signature->predicates())
 {
@@ -200,6 +201,13 @@ void SineSelector::updateDefRelation(Unit* u)
   while(sit.hasNext()) {
     SymId sym=sit.next();
     unsigned val=_gen[sym];
+    ASS_G(val,0);
+
+    //it a symbol fits under _genThreshold, add it immediately [into the relation]
+    if(val<=_genThreshold) {
+      UnitList::push(u,_def[sym]);
+    }
+
     if(val<leastGenVal) {
       leastGenSym=sym;
       leastGenVal=val;
@@ -209,19 +217,29 @@ void SineSelector::updateDefRelation(Unit* u)
     }
   }
 
+
   if(_strict) {
-    UnitList::push(u,_def[leastGenSym]);
-    while(equalGenerality.isNonEmpty()) {
-      UnitList::push(u,_def[equalGenerality.pop()]);
+    //only if the least general symbol is over _genThreshold; otherwise it is already added
+    if(leastGenVal>_genThreshold) {
+      UnitList::push(u,_def[leastGenSym]);
+      while(equalGenerality.isNonEmpty()) {
+        UnitList::push(u,_def[equalGenerality.pop()]);
+      }
     }
   }
   else {
-    unsigned threshold=static_cast<int>(leastGenVal*_benevolence);
-    sit=extractSymIds(u);
-    while(sit.hasNext()) {
-      SymId sym=sit.next();
-      if(_gen[sym]<=threshold) {
-	UnitList::push(u,_def[sym]);
+    unsigned generalityLimit=static_cast<int>(leastGenVal*_benevolence);
+
+    //if the generalityLimit is under _genThreshold, all suitable symbols are already added
+    if(generalityLimit>_genThreshold) {
+      sit=extractSymIds(u);
+      while(sit.hasNext()) {
+	SymId sym=sit.next();
+	unsigned val=_gen[sym];
+	//only if the symbol is over _genThreshold; otherwise it is already added
+	if(val>_genThreshold && val<=generalityLimit) {
+	  UnitList::push(u,_def[sym]);
+	}
       }
     }
   }

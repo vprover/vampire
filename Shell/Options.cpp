@@ -142,6 +142,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_symbol_elimination",
   "simulated_time_limit",
   "sine_benevolence",
+  "sine_generality_threshold",
   "sine_selection",
   "sos",
   "splitting",
@@ -397,6 +398,7 @@ Options::Options ()
   _showSymbolElimination(false),
   _simulatedTimeLimit(0),
   _sineBenevolence(1.0f),
+  _sineGeneralityThreshold(0),
   _sineSelection(SS_OFF),
   _sos(false),
   _splitting(RA_INPUT_ONLY),
@@ -700,6 +702,12 @@ void Options::set (const char* name,const char* value, int index)
       }
       _sineBenevolence = floatValue;
       return;
+    case SINE_GENERALITY_THRESHOLD:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_sineGeneralityThreshold = unsignedValue;
+	return;
+      }
+      break;
     case SINE_SELECTION:
       _sineSelection =
 	(SineSelection)Constants::sineSelectionValues.find(value);
@@ -1167,6 +1175,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SINE_BENEVOLENCE:
     str << _sineBenevolence;
+    return;
+  case SINE_GENERALITY_THRESHOLD:
+    str << _sineGeneralityThreshold;
     return;
   case SINE_SELECTION:
     str << Constants::sineSelectionValues[_sineSelection];
