@@ -20,10 +20,6 @@ using namespace Saturation;
 Otter::Otter(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
   : SaturationAlgorithm(passiveContainer,selector)
 {
-  _passiveContRemovalSData=_passive->removedEvent.subscribe(
-      &_simplCont, &FakeContainer::remove);
-  _activeContRemovalSData=_active->removedEvent.subscribe(
-      &_simplCont, &FakeContainer::remove);
 }
 
 ClauseContainer* Otter::getSimplificationClauseContainer()
@@ -36,12 +32,36 @@ ClauseContainer* Otter::getGenerationClauseContainer()
   return _active;
 }
 
-void Otter::addInputSOSClause(Clause*& cl)
+void Otter::onActiveRemoved(Clause* cl)
 {
-  SaturationAlgorithm::addInputSOSClause(cl);
-  if(cl) {
-    _simplCont.add(cl);
+  CALL("Otter::onActiveRemoved");
+
+  if(cl->store()==Clause::ACTIVE) {
+    _simplCont.remove(cl);
   }
+
+  SaturationAlgorithm::onActiveRemoved(cl);
+}
+
+void Otter::onPassiveRemoved(Clause* cl)
+{
+  CALL("Otter::onPassiveRemoved");
+
+  if(cl->store()==Clause::PASSIVE) {
+    _simplCont.remove(cl);
+  }
+
+  SaturationAlgorithm::onPassiveRemoved(cl);
+}
+
+
+void Otter::onSOSClauseAdded(Clause* cl)
+{
+  CALL("Otter::onSOSClauseAdded");
+  ASS(cl);
+  ASS_EQ(cl->store(), Clause::ACTIVE);
+
+  _simplCont.add(cl);
 }
 
 SaturationResult Otter::saturate()

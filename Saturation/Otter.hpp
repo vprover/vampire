@@ -27,7 +27,13 @@ public:
 
 protected:
 
-  void addInputSOSClause(Clause*& cl);
+  //overrides SaturationAlgorithm::onSOSClauseAdded
+  void onSOSClauseAdded(Clause* cl);
+
+  //overrides SaturationAlgorithm::onActiveRemoved
+  void onActiveRemoved(Clause* cl);
+  //overrides SaturationAlgorithm::onPassiveRemoved
+  void onPassiveRemoved(Clause* cl);
 
   class FakeContainer
   : public ClauseContainer
@@ -50,8 +56,6 @@ protected:
     { removedEvent.fire(c); }
   };
 
-  SubscriptionData _passiveContRemovalSData;
-  SubscriptionData _activeContRemovalSData;
   FakeContainer _simplCont;
 };
 

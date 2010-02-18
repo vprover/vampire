@@ -133,8 +133,16 @@ public:
 
   /** Return the clause store */
   Store store() const { return _store; }
-  /** Set the store to @b s */
-  void setStore(Store s) { _store = s; destroyIfUnnecessary(); }
+
+  /** Set the store to @b s
+   *
+   * Can lead to clause deletion if the store is @b NONE
+   * and there Clause's reference counter is zero. */
+  void setStore(Store s)
+  {
+    _store = s;
+    destroyIfUnnecessary();
+  }
 
   /** Return the age */
   int age() const { return _age; }

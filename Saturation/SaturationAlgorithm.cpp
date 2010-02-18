@@ -575,7 +575,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
 /**
  * Add an input set-of-support clause @b cl into the active container
  */
-void SaturationAlgorithm::addInputSOSClause(Clause*& cl)
+void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addInputSOSClause");
   ASS_EQ(cl->inputType(),Clause::AXIOM);
@@ -599,6 +599,8 @@ simpl_start:
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
+
+  onSOSClauseAdded(cl);
 }
 
 

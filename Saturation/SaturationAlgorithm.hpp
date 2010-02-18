@@ -70,7 +70,7 @@ public:
   static SaturationAlgorithmSP createFromOptions();
 
 protected:
-  virtual void addInputSOSClause(Clause*& cl);
+  void addInputSOSClause(Clause* cl);
 
   void newClausesToUnprocessed();
 
@@ -83,6 +83,7 @@ protected:
   void reanimate(Clause* c);
   bool activate(Clause* c);
 
+  virtual void onSOSClauseAdded(Clause* c) {}
   void onActiveAdded(Clause* c);
   virtual void onActiveRemoved(Clause* c);
   void onPassiveAdded(Clause* c);

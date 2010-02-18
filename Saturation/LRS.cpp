@@ -60,12 +60,13 @@ void LRS::onPassiveRemoved(Clause* cl)
 }
 
 
-void LRS::addInputSOSClause(Clause*& cl)
+void LRS::onSOSClauseAdded(Clause* cl)
 {
-  SaturationAlgorithm::addInputSOSClause(cl);
-  if(cl) {
-    _simplCont.add(cl);
-  }
+  CALL("LRS::onSOSClauseAdded");
+  ASS(cl);
+  ASS_EQ(cl->store(), Clause::ACTIVE);
+
+  _simplCont.add(cl);
 }
 
 bool LRS::shouldUpdateLimits()

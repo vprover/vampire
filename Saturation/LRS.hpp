@@ -33,9 +33,12 @@ protected:
 
   long long estimatedReachableCount();
 
-  void addInputSOSClause(Clause*& cl);
+  //overrides SaturationAlgorithm::onSOSClauseAdded
+  void onSOSClauseAdded(Clause* cl);
 
+  //overrides SaturationAlgorithm::onActiveRemoved
   void onActiveRemoved(Clause* cl);
+  //overrides SaturationAlgorithm::onPassiveRemoved
   void onPassiveRemoved(Clause* cl);
 
 
