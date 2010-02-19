@@ -34,14 +34,14 @@ using namespace Kernel;
 SineSelector::SineSelector()
 : _onIncluded(env.options->sineSelection()==Options::SS_INCLUDED),
   _genThreshold(env.options->sineGeneralityThreshold()),
-  _benevolence(env.options->sineBenevolence()),
+  _tolerance(env.options->sineTolerance()),
   _fnOfs(env.signature->predicates())
 {
   CALL("SineSelector::SineSelector");
   ASS_NEQ(env.options->sineSelection(),Options::SS_OFF);
-  ASS_GE(_benevolence, 1.0f);
+  ASS_GE(_tolerance, 1.0f);
 
-  _strict=_benevolence==1.0f;
+  _strict=_tolerance==1.0f;
 }
 
 /**
@@ -234,7 +234,7 @@ void SineSelector::updateDefRelation(Unit* u)
     }
   }
   else {
-    unsigned generalityLimit=static_cast<int>(leastGenVal*_benevolence);
+    unsigned generalityLimit=static_cast<int>(leastGenVal*_tolerance);
 
     //if the generalityLimit is under _genThreshold, all suitable symbols are already added
     if(generalityLimit>_genThreshold) {

@@ -94,9 +94,9 @@ public:
     SHOW_SKOLEMISATIONS,
     SHOW_SYMBOL_ELIMINATION,
     SIMULATED_TIME_LIMIT,
-    SINE_BENEVOLENCE,
     SINE_GENERALITY_THRESHOLD,
     SINE_SELECTION,
+    SINE_TOLERANCE,
     SOS,
     SPLITTING,
     STATISTICS,
@@ -324,9 +324,9 @@ public:
   BacktrackingSplittingMode backtrackingSplitting() const { return _backtrackingSplitting; }
   bool bsTowardHorn() const { return _bsTowardHorn; }
   bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
-  float sineBenevolence() const { return _sineBenevolence; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold; }
   SineSelection sineSelection() const { return _sineSelection; }
+  float sineTolerance() const { return _sineTolerance; }
 
   void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal) { _inputFile = newVal; }
@@ -420,9 +420,9 @@ private:
   bool _showSkolemisations;
   bool _showSymbolElimination;
   int _simulatedTimeLimit;
-  float _sineBenevolence;
   unsigned _sineGeneralityThreshold;
   SineSelection _sineSelection;
+  float _sineTolerance;
   bool _sos;
   RuleActivity _splitting;
   Statistics _statistics;

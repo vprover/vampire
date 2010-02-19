@@ -141,9 +141,9 @@ const char* Options::Constants::_optionNames[] = {
   "show_skolemisations",
   "show_symbol_elimination",
   "simulated_time_limit",
-  "sine_benevolence",
   "sine_generality_threshold",
   "sine_selection",
+  "sine_tolerance",
   "sos",
   "splitting",
   "statistics",
@@ -397,9 +397,9 @@ Options::Options ()
   _showSkolemisations(false),
   _showSymbolElimination(false),
   _simulatedTimeLimit(0),
-  _sineBenevolence(1.0f),
   _sineGeneralityThreshold(0),
   _sineSelection(SS_OFF),
+  _sineTolerance(1.0f),
   _sos(false),
   _splitting(RA_INPUT_ONLY),
   _statistics(STATISTICS_FULL),
@@ -696,12 +696,6 @@ void Options::set (const char* name,const char* value, int index)
     case SIMULATED_TIME_LIMIT:
       _simulatedTimeLimit = readTimeLimit(value);
       return;
-    case SINE_BENEVOLENCE:
-      if(!Int::stringToFloat(value,floatValue) || (floatValue!=0.0f && floatValue<1.0f)) {
-	USER_ERROR("sine_benevolence value must be a float number greater than or equal to 1");
-      }
-      _sineBenevolence = floatValue;
-      return;
     case SINE_GENERALITY_THRESHOLD:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
 	_sineGeneralityThreshold = unsignedValue;
@@ -711,6 +705,12 @@ void Options::set (const char* name,const char* value, int index)
     case SINE_SELECTION:
       _sineSelection =
 	(SineSelection)Constants::sineSelectionValues.find(value);
+      return;
+    case SINE_TOLERANCE:
+      if(!Int::stringToFloat(value,floatValue) || (floatValue!=0.0f && floatValue<1.0f)) {
+	USER_ERROR("sine_tolerance value must be a float number greater than or equal to 1");
+      }
+      _sineTolerance = floatValue;
       return;
     case SOS:
       _sos = onOffToBool(value,name);
@@ -1173,14 +1173,14 @@ void Options::outputValue (ostream& str,int optionTag) const
       str << '.' << _simulatedTimeLimit % 10;
     }
     return;
-  case SINE_BENEVOLENCE:
-    str << _sineBenevolence;
-    return;
   case SINE_GENERALITY_THRESHOLD:
     str << _sineGeneralityThreshold;
     return;
   case SINE_SELECTION:
     str << Constants::sineSelectionValues[_sineSelection];
+    return;
+  case SINE_TOLERANCE:
+    str << _sineTolerance;
     return;
   case SOS:
     str << boolToOnOff(_sos);

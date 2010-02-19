@@ -43,7 +43,7 @@ private:
   bool _onIncluded;
   bool _strict;
   unsigned _genThreshold;
-  float _benevolence;
+  float _tolerance;
 
   unsigned _fnOfs;
 
