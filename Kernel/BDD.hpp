@@ -206,6 +206,9 @@ private:
   /** BDD node representing the false formula */
   BDDNode _falseNode;
 
+  //struct used in the toCNF function
+  struct CNFStackRec;
+
   /** Type that stores the set of all non-constant BDD nodes */
   typedef Set<BDDNode*,BDD> NodeSet;
   /** The set storing all nodes */

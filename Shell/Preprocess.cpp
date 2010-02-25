@@ -28,6 +28,7 @@
 #include "Skolem.hpp"
 #include "SimplifyFalseTrue.hpp"
 #include "SineUtils.hpp"
+#include "Statistics.hpp"
 
 // #include "../Lib/Sort.hpp"
 // #include "ClausalDefinition.hpp"
@@ -87,15 +88,18 @@ void Preprocess::preprocess (UnitList*& units)
 
   // reorder units
   if (_options.normalize()) {
+    env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
     units = norm.normalise(units);
   }
 
   if(env.options->sineSelection()!=Options::SS_OFF) {
+    env.statistics->phase=Statistics::SINE_SELECTION;
     SineSelector().perform(units);
   }
 
   {
+    env.statistics->phase=Statistics::PREPROCESS_1;
     UnitList::DelIterator us(units);
     while (us.hasNext()) {
       Unit* u = us.next();
@@ -111,11 +115,13 @@ void Preprocess::preprocess (UnitList*& units)
 //   theoryFinder.search();
 
   if (_options.unusedPredicateDefinitionRemoval()) {
+    env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(units);
   }
 
   if (_property.hasFormulas()) {
+    env.statistics->phase=Statistics::PREPROCESS_2;
     UnitList::DelIterator us(units);
     while (us.hasNext()) {
       Unit* u = us.next();
@@ -130,6 +136,7 @@ void Preprocess::preprocess (UnitList*& units)
   }
 
   if (_property.hasFormulas() && _options.naming()) {
+    env.statistics->phase=Statistics::NAMING;
     UnitList::DelIterator us(units);
     Naming naming(_options.naming());
     while (us.hasNext()) {
@@ -148,6 +155,7 @@ void Preprocess::preprocess (UnitList*& units)
   }
 
   {
+    env.statistics->phase=Statistics::PREPROCESS_3;
     UnitList::DelIterator us(units);
     while (us.hasNext()) {
       Unit* u = us.next();
@@ -169,6 +177,7 @@ void Preprocess::preprocess (UnitList*& units)
 //   }
 
   if (_property.hasFormulas()) {
+    env.statistics->phase=Statistics::CLAUSIFICATION;
     UnitList::DelIterator us(units);
     CNF cnf;
     Stack<Clause*> clauses(32);
@@ -186,6 +195,7 @@ void Preprocess::preprocess (UnitList*& units)
   }
 
   if(_property.hasProp(Property::PR_HAS_FUNCTION_DEFINITIONS)) {
+    env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
     if(_options.functionDefinitionElimination() == Options::FDE_ALL) {
       FunctionDefinition fd;
       fd.removeAllDefinitions(units);
@@ -197,6 +207,7 @@ void Preprocess::preprocess (UnitList*& units)
 
 
   if (_options.inequalitySplitting() != 0) {
+    env.statistics->phase=Statistics::INEQUALITY_SPLITTING;
     InequalitySplitting is;
     is.perform(units);
   }
@@ -221,6 +232,7 @@ void Preprocess::preprocess (UnitList*& units)
 
    if (_options.equalityResolutionWithDeletion()!=Options::RA_OFF &&
 	   _property.hasProp(Property::PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) ) {
+     env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
      EqResWithDeletion resolver;
      resolver.apply(units);
    }
@@ -228,11 +240,13 @@ void Preprocess::preprocess (UnitList*& units)
    if (_options.equalityProxy()!=Options::EP_OFF &&
 	   (_property.hasProp(Property::PR_HAS_X_EQUALS_Y) ||
 	    _options.equalityProxy()!=Options::EP_ON) ) {
+     env.statistics->phase=Statistics::EQUALITY_PROXY;
      EqualityProxy proxy;
      proxy.apply(units);
    }
 
    if (_options.generalSplitting()!=Options::RA_OFF) {
+     env.statistics->phase=Statistics::GENERAL_SPLITTING;
      GeneralSplitting gs;
      gs.apply(units);
    }

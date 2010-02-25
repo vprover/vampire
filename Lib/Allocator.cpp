@@ -16,6 +16,7 @@ using namespace Kernel;
 #endif
 
 #include <cstdlib>
+#include "../Lib/System.hpp"
 
 #define SAFE_OUT_OF_MEM_SOLUTION 1
 
@@ -444,9 +445,11 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       env.out << "? " << env.options->problemName();
       env.out << " " << env.timer->elapsedDeciseconds();
       env.out << " " << env.options->testId() << "\n";
-      env.statistics->print();
-    } else {
+    }
+    if(outputAllowed()) {
       env.out << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
+    }
+    if(env.statistics) {
       env.statistics->print();
     }
     abort();
@@ -472,9 +475,14 @@ Allocator::Page* Allocator::allocatePages(size_t size)
         env.out << "? " << env.options->problemName();
         env.out << " " << env.timer->elapsedDeciseconds();
         env.out << " " << env.options->testId() << "\n";
-	env.statistics->print();
-      } else {
+      }
+      if(outputAllowed()) {
 	env.out << "Memory limit exceeded!\n";
+#if VDEBUG
+	Allocator::reportUsageByClasses();
+#endif
+      }
+      if(env.statistics) {
 	env.statistics->print();
       }
       abort();

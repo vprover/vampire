@@ -71,7 +71,8 @@ Statistics::Statistics()
     backtrackingSplitsRefuted(0),
     backtrackingSplitsRefutedZeroLevel(0),
     terminationReason(UNKNOWN),
-    refutation(0)
+    refutation(0),
+    phase(INITIALIZATION)
 {
 } // Statistics::Statistics
 
@@ -113,7 +114,11 @@ void Statistics::print()
   default:
     ASSERTION_VIOLATION;
   }
-  env.out << endl << endl;
+  env.out << endl;
+  if(phase!=FINALIZATION) {
+    env.out << "Termination phase: " << phaseToString(phase) << endl;
+  }
+  env.out << endl;
 
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
@@ -181,4 +186,46 @@ void Statistics::print()
 
 #undef SEPARATOR
 #undef COND_OUT
+}
+
+std::string Statistics::phaseToString(ExecutionPhase p)
+{
+  switch(p) {
+  case INITIALIZATION:
+    return "Initialization";
+  case PARSING:
+    return "Parsing";
+  case PROPERTY_SCANNING:
+    return "Property scanning";
+  case NORMALIZATION:
+    return "Normalization";
+  case SINE_SELECTION:
+    return "SInE selection";
+  case PREPROCESS_1:
+    return "Preprocessing 1";
+  case UNUSED_PREDICATE_DEFINITION_REMOVAL:
+    return "Unused predicate definition removal";
+  case PREPROCESS_2:
+    return "Preprocessing 2";
+  case NAMING:
+    return "Naming";
+  case PREPROCESS_3:
+    return "Preprocessing 3";
+  case CLAUSIFICATION:
+    return "Clausification";
+  case FUNCTION_DEFINITION_ELIMINATION:
+    return "Function definition elimination";
+  case INEQUALITY_SPLITTING:
+    return "Inequality splitting";
+  case EQUALITY_RESOLUTION_WITH_DELETION:
+    return "Equality resolution with deletion";
+  case EQUALITY_PROXY:
+    return "Equality proxy";
+  case GENERAL_SPLITTING:
+    return "General splitting";
+  case SATURATION:
+    return "Saturation";
+  case FINALIZATION:
+    return "Finalization";
+  }
 }

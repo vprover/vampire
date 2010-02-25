@@ -91,6 +91,7 @@ ClauseIterator getInputClauses()
     }
 
 
+    env.statistics->phase=Statistics::PARSING;
     switch (env.options->inputSyntax()) {
     case Options::IS_SIMPLIFY:
     {
@@ -118,8 +119,10 @@ ClauseIterator getInputClauses()
 
   TimeCounter tc2(TC_PREPROCESSING);
 
+  env.statistics->phase=Statistics::PROPERTY_SCANNING;
   property.scan(units);
   Preprocess prepro(property,*env.options);
+  //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(units);
   globUnitList=units;
 
@@ -131,10 +134,12 @@ void doProving()
   CALL("doProving()");
   try {
     ClauseIterator clauses=getInputClauses();
+    env.statistics->phase=Statistics::SATURATION;
     SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
     salg->addInputClauses(clauses);
 
     SaturationResult sres(salg->saturate());
+    env.statistics->phase=Statistics::FINALIZATION;
     sres.updateStatistics();
   }
   catch(MemoryLimitExceededException) {
@@ -284,6 +289,9 @@ void spiderMode()
       ASSERTION_VIOLATION;
     }
     env.statistics->print();
+    if(env.options->timeStatistics()) {
+      TimeCounter::printReport();
+    }
   }
   else {
     reportSpiderFail();

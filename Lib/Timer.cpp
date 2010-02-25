@@ -8,17 +8,26 @@
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
+#include "Environment.hpp"
 #include "Int.hpp"
 #include "Portability.hpp"
+#include "System.hpp"
+#include "TimeCounter.hpp"
+
+#include "../Shell/Options.hpp"
+#include "../Shell/Statistics.hpp"
 
 #include "Timer.hpp"
 
 
 //#define UNIX_USE_SIGALRM 1
 //SIGALRM causes problems with debugging
+#ifndef UNIX_USE_SIGALRM
 #define UNIX_USE_SIGALRM !VDEBUG
+#endif
 
 using namespace std;
+using namespace Lib;
 
 #if COMPILER_MSVC
 
@@ -46,15 +55,34 @@ void Lib::Timer::initTimer()
 
 #elif UNIX_USE_SIGALRM
 
+#include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
 
 int timer_sigalrm_counter=-1;
 
+void timeLimitReached()
+{
+  reportSpiderStatus('?');
+  if(!inSpiderMode()) {
+    env.out << "Time limit reached!\n";
+  }
+  env.statistics->print();
+  if(env.options->timeStatistics()) {
+    TimeCounter::printReport();
+  }
+
+  abort();
+}
+
 void
 timer_sigalrm_handler (int sig)
 {
   timer_sigalrm_counter++;
+
+  if(env.timeLimitReached()) {
+    timeLimitReached();
+  }
 }
 
 /** number of miliseconds (of CPU time) passed since some moment */

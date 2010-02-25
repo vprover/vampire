@@ -765,9 +765,100 @@ Formula* BDD::toFormula(BDDNode* node)
   return new JunctionFormula(AND, args);*/
 }
 
+
+struct BDD::CNFStackRec {
+  CNFStackRec(BDDNode* n, bool firstPos, bool second=false) : n(n), firstPos(firstPos),
+  second(second), resolved(false) {}
+
+  BDDNode* n;
+  /** we first descended into node's @b _pos child */
+  bool firstPos;
+  /** we are already in the second child of the node */
+  bool second;
+  /** true if the literal is resolved and therefore  it should not be put into created clauses
+   *
+   * Loop invariant: can be true only if @b second is true */
+  bool resolved;
+};
+
+
+#if 0
 /**
  * Convert a BDDNode into a list of propositional clauses.
  */
+SATClauseList* BDD::toCNF(BDDNode* node)
+{
+  CALL("BDD::toCNF");
+
+  SATClauseList* res=0;
+  int resolvedCnt=0; //number of resolved literals on the stack
+  static Stack<CNFStackRec> stack;
+  stack.reset();
+
+  for(;;) {
+    while(!isConstant(node)) {
+      if(isTrue(node->_pos)) {
+	stack.push(CNFStackRec(node, true, true));
+	node=node->_neg;
+      }
+      else if(isTrue(node->_neg)) {
+	stack.push(CNFStackRec(node, false, true));
+	node=node->_pos;
+      }
+      else if(isFalse(node->_pos)) {
+	stack.push(CNFStackRec(node, true));
+	node=node->_pos;
+      }
+      else {
+	stack.push(CNFStackRec(node, false));
+	node=node->_neg;
+      }
+    }
+    if(isFalse(node)) {
+      //the new SATClause will contain literal for each non-resolved stack item
+      unsigned clen=stack.size()-resolvedCnt;
+      SATClause* cl=new(clen) SATClause(clen, true);
+
+      unsigned si=stack.size();
+      for(unsigned ci=0;ci<clen;ci++) {
+	do {
+	  si--;
+	  ASS_GE(si,0);
+	} while(stack[si].resolved);
+	CNFStackRec& sr=stack[si];
+	(*cl)[ci]=SATLiteral(sr.n->_var, !(sr.second^sr.firstPos));
+      }
+
+      SATClauseList::push(cl, res);
+
+      if(!stack.top().second) {
+	stack.top().resolved=true;
+	resolvedCnt++;
+      }
+    }
+    while(stack.isNonEmpty() && stack.top().second) {
+      if(stack.top().resolved) {
+	resolvedCnt--;
+      }
+      stack.pop();
+    }
+    if(stack.isEmpty()) {
+      return res;
+    }
+
+    CNFStackRec& sr=stack.top();
+    ASS(!sr.second);
+    //move to the other child
+    sr.second=true;
+    if(sr.firstPos) {
+      node=sr.n->_neg;
+    }
+    else {
+      node=sr.n->_pos;
+    }
+  }
+}
+#else
 SATClauseList* BDD::toCNF(BDDNode* node)
 {
   CALL("BDD::toCNF");
@@ -786,7 +877,7 @@ SATClauseList* BDD::toCNF(BDDNode* node)
       SATClause* cl=new(clen) SATClause(clen, true);
 
       for(unsigned i=0;i<clen;i++) {
-	(*cl)[i]=SATLiteral(stack[i].first->_var, !stack[i].second);
+        (*cl)[i]=SATLiteral(stack[i].first->_var, !stack[i].second);
       }
 
       SATClauseList::push(cl, res);
@@ -802,6 +893,8 @@ SATClauseList* BDD::toCNF(BDDNode* node)
     node=stack.top().first->_pos;
   }
 }
+
+#endif
 
 /**
  * Add the formula represented by @b n to the conjunction represented

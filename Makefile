@@ -19,8 +19,9 @@
 #XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-XFLAGS = -O6 -DVDEBUG=0 # no debugging
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 # debugging for spider
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+#XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -303,9 +304,10 @@ Lib/Allocator.o: Lib/InverseLookup.hpp Lib/Metaiterators.hpp Lib/List.hpp
 Lib/Allocator.o: Lib/Set.hpp Lib/TimeCounter.hpp Lib/Reflection.hpp
 Lib/Allocator.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/Int.hpp
 Lib/Allocator.o: Lib/Comparison.hpp Lib/Portability.hpp Kernel/Unit.hpp
-Lib/Allocator.o: Lib/List.hpp Shell/Statistics.hpp Shell/Options.hpp
-Lib/Allocator.o: Lib/XML.hpp Lib/Environment.hpp Lib/Timer.hpp
-Lib/Allocator.o: Lib/MemoryLeak.hpp Kernel/Unit.hpp Lib/Random.hpp
+Lib/Allocator.o: Lib/List.hpp Lib/System.hpp Shell/Statistics.hpp
+Lib/Allocator.o: Shell/Options.hpp Lib/XML.hpp Lib/Environment.hpp
+Lib/Allocator.o: Lib/Timer.hpp Lib/MemoryLeak.hpp Kernel/Unit.hpp
+Lib/Allocator.o: Lib/Random.hpp
 Lib/DHMap.o: Lib/DHMap.hpp Debug/Assertion.hpp Lib/Allocator.hpp
 Lib/DHMap.o: Debug/Tracer.hpp Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 Lib/DHMap.o: Lib/Hash.hpp Lib/VirtualIterator.hpp Forwards.hpp Config.hpp
@@ -372,8 +374,12 @@ Lib/TimeCounter.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Environment.hpp
 Lib/TimeCounter.o: Forwards.hpp Config.hpp Lib/Exception.hpp
 Lib/TimeCounter.o: Lib/LastCopyWatcher.hpp Lib/Timer.hpp Shell/Options.hpp
 Lib/TimeCounter.o: Lib/Allocator.hpp Lib/XML.hpp Lib/TimeCounter.hpp
-Lib/Timer.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Int.hpp
-Lib/Timer.o: Lib/Comparison.hpp Lib/Portability.hpp Lib/Timer.hpp
+Lib/Timer.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Environment.hpp
+Lib/Timer.o: Forwards.hpp Config.hpp Lib/Exception.hpp
+Lib/Timer.o: Lib/LastCopyWatcher.hpp Lib/Int.hpp Lib/Comparison.hpp
+Lib/Timer.o: Lib/Portability.hpp Lib/System.hpp Lib/TimeCounter.hpp
+Lib/Timer.o: Shell/Options.hpp Lib/Allocator.hpp Lib/XML.hpp
+Lib/Timer.o: Shell/Statistics.hpp Lib/Timer.hpp
 Shell/CNF.o: Debug/Tracer.hpp Kernel/Clause.hpp Forwards.hpp Config.hpp
 Shell/CNF.o: Lib/Allocator.hpp Debug/Assertion.hpp Lib/InverseLookup.hpp
 Shell/CNF.o: Lib/Hash.hpp Lib/DHMap.hpp Lib/Allocator.hpp Lib/Exception.hpp
@@ -648,6 +654,7 @@ Shell/Preprocess.o: Lib/Array.hpp Shell/Skolem.hpp Kernel/Substitution.hpp
 Shell/Preprocess.o: Lib/Random.hpp Lib/Environment.hpp Kernel/Term.hpp
 Shell/Preprocess.o: Lib/Portability.hpp Kernel/MatchTag.hpp Lib/BitUtils.hpp
 Shell/Preprocess.o: Shell/SimplifyFalseTrue.hpp Shell/SineUtils.hpp
+Shell/Preprocess.o: Shell/Statistics.hpp
 Shell/Profile.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp
 Shell/Profile.o: Lib/Portability.hpp Debug/Assertion.hpp Lib/Sort.hpp
 Shell/Profile.o: Lib/Allocator.hpp Lib/DArray.hpp Forwards.hpp Config.hpp
@@ -2357,9 +2364,9 @@ Saturation/LRS.o: Lib/List.hpp Kernel/LiteralSelector.hpp Kernel/Term.hpp
 Saturation/LRS.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
 Saturation/LRS.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp Shell/Statistics.hpp
 Saturation/LRS.o: Shell/Options.hpp Saturation/LRS.hpp Lib/Event.hpp
-Saturation/LRS.o: Lib/SmartPtr.hpp Saturation/SaturationAlgorithm.hpp
-Saturation/LRS.o: Kernel/RCClauseStack.hpp Lib/DHMap.hpp
-Saturation/LRS.o: Indexing/IndexManager.hpp Indexing/Index.hpp
+Saturation/LRS.o: Lib/SmartPtr.hpp Saturation/Otter.hpp
+Saturation/LRS.o: Saturation/SaturationAlgorithm.hpp Kernel/RCClauseStack.hpp
+Saturation/LRS.o: Lib/DHMap.hpp Indexing/IndexManager.hpp Indexing/Index.hpp
 Saturation/LRS.o: Lib/Exception.hpp Saturation/ClauseContainer.hpp
 Saturation/LRS.o: Saturation/Limits.hpp Indexing/ResultSubstitution.hpp
 Saturation/LRS.o: Lib/SmartPtr.hpp Kernel/Term.hpp

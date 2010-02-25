@@ -8,6 +8,8 @@
 #ifndef __Statistics__
 #define __Statistics__
 
+#include <string>
+
 /**
  * Identifier of the Vampire version
  */
@@ -152,6 +154,36 @@ public:
   TerminationReason terminationReason;
   /** refutation, if any */
   Kernel::Unit* refutation;
+
+  enum ExecutionPhase {
+    /** Whatever happens before we start parsing the problem */
+    INITIALIZATION,
+    PARSING,
+    /** Scanning for properties to be passed to preprocessing */
+    PROPERTY_SCANNING,
+    NORMALIZATION,
+    SINE_SELECTION,
+    PREPROCESS_1,
+    UNUSED_PREDICATE_DEFINITION_REMOVAL,
+    PREPROCESS_2,
+    NAMING,
+    PREPROCESS_3,
+    CLAUSIFICATION,
+    FUNCTION_DEFINITION_ELIMINATION,
+    INEQUALITY_SPLITTING,
+    EQUALITY_RESOLUTION_WITH_DELETION,
+    EQUALITY_PROXY,
+    GENERAL_SPLITTING,
+    /** The actual run of the saturation algorithm */
+    SATURATION,
+    /** Whatever happens after the saturation algorithm finishes */
+    FINALIZATION
+  };
+
+  ExecutionPhase phase;
+
+private:
+  static std::string phaseToString(ExecutionPhase p);
 }; // class Statistics
 
 }
