@@ -321,20 +321,23 @@ int main(int argc, char* argv [])
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);
 
+  Timer timer;
+  Options options;
+
   try {
+    timer.start();
+    env.timer = &timer;
+
     // read the command line and interpret it
-    Options options;
+    env.options = &options;
     Shell::CommandLine cl(argc,argv);
     cl.interpret(options);
+
     Allocator::setMemoryLimit(options.memoryLimit()*1048576ul);
     Lib::Random::setSeed(options.randomSeed());
 
-    Timer timer;
-    timer.start();
-    env.timer = &timer;
     Indexing::TermSharing sharing;
     env.sharing = &sharing;
-    env.options = &options;
     Shell::Statistics statistics;
     env.statistics = &statistics;
 
@@ -377,18 +380,21 @@ int main(int argc, char* argv [])
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {
+    reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
   }
 #endif
   catch (UserErrorException& exception) {
+    reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
     explainException(exception);
   }
   catch (Exception& exception) {
+    reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
@@ -396,6 +402,7 @@ int main(int argc, char* argv [])
     env.statistics->print();
   }
   catch (std::bad_alloc& _) {
+    reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif

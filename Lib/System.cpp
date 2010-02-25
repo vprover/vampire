@@ -54,15 +54,9 @@ void reportSpiderStatus(char status)
     headerPrinted=true;
 
     Lib::env.out << status << " ";
-    if(Lib::env.options && Lib::env.timer)
-    {
-      Lib::env.out << Lib::env.options->problemName();
-      Lib::env.out << " " << Lib::env.timer->elapsedDeciseconds();
-      Lib::env.out << " " << Lib::env.options->testId() << "\n";
-    }
-    else {
-      Lib::env.out << "unknown unknown unknown\n";
-    }
+    Lib::env.out << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " ";
+    Lib::env.out << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " ";
+    Lib::env.out << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
   }
 }
 
