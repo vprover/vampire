@@ -28,8 +28,13 @@
 #include "System.hpp"
 
 
-bool inSpiderMode()
+bool inSpiderMode(bool notDebugging)
 {
+#if VDEBUG
+  if(notDebugging) {
+    return false;
+  }
+#endif
   return Lib::env.options && Lib::env.options->mode()==Shell::Options::MODE_SPIDER;
 }
 
@@ -42,7 +47,7 @@ void reportSpiderStatus(char status)
 {
   static bool headerPrinted=false;
 
-  if(inSpiderMode() && !headerPrinted) {
+  if(inSpiderMode(false) && !headerPrinted) {
     headerPrinted=true;
 
     Lib::env.out << status << " ";
