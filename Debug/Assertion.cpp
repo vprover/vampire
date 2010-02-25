@@ -20,14 +20,6 @@ using namespace Debug;
 
 bool Assertion::_violated = false;
 
-void Assertion::printFailureHeader()
-{
-  if(env.options && env.options->mode()==Shell::Options::MODE_SPIDER) {
-    env.out << "! " << env.options->problemName();
-    env.out << " " << env.timer->elapsedDeciseconds();
-    env.out << " " << env.options->testId() << "\n";
-  }
-}
 
 /**
  * Called when an assertion is violated. Simply print the stack and
@@ -41,7 +33,7 @@ void Assertion::violated (const char* file,int line,const char* cond)
 
   _violated = true;
   reportSpiderFail();
-  if(!inSpiderMode()) {
+  if(outputAllowed()) {
     cout << "Condition in file " << file << ", line " << line
 	<< " violated:\n" << cond << "\n"
 	<< "----- stack dump -----\n";
@@ -60,7 +52,7 @@ void Assertion::violatedStrEquality(const char* file,int line,const char* val1St
 
   _violated = true;
   reportSpiderFail();
-  if(!inSpiderMode()) {
+  if(outputAllowed()) {
     std::cout << "Condition for string equality "<<val1Str<<" == "<<val2Str
 	<< " in file " << file << ", line " << line
 	<< " was violated, as:\n" << val1Str<<" == \""<<val1 <<"\"\n"
@@ -83,20 +75,20 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
 
   if(!desc) {
     reportSpiderFail();
-    if(!inSpiderMode()) {
+    if(outputAllowed()) {
       cout << "Type condition in file " << file << ", line " << line
 	  << " violated:\n" << ptrStr << " was not allocated by Lib::Allocator.\n";
     }
   } else if( strcmp(assumed, desc->cls) ) {
     reportSpiderFail();
-    if(!inSpiderMode()) {
+    if(outputAllowed()) {
       cout << "Type condition in file " << file << ", line " << line
 	   << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
 	   << "\" instead of \"" << assumed <<"\".\n";
     }
   } else if( !desc->allocated ) {
     reportSpiderFail();
-    if(!inSpiderMode()) {
+    if(outputAllowed()) {
       cout << "Type condition in file " << file << ", line " << line
 	   << " violated:\n" << ptrStr << " was allocated as \"" << desc->cls
 	   << "\", but no longer is.\n";
@@ -107,7 +99,7 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
 
   _violated = true;
 
-  if(!inSpiderMode()) {
+  if(outputAllowed()) {
     cout << "----- stack dump -----\n";
     Tracer::printStack(cout);
     cout << "----- end of stack dump -----\n";
@@ -121,7 +113,7 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
  */
 void Assertion::reportAssertValidException (const char* file,int line,const char* obj)
 {
-  if(!inSpiderMode()) {
+  if(outputAllowed()) {
     cout << "An exception was thrown by ASSERT_VALID on object " << obj
 	<< " in file " << file << ", line " << line << ".\n";
   }

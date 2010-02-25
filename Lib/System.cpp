@@ -27,14 +27,17 @@
 
 #include "System.hpp"
 
-
-bool inSpiderMode(bool notDebugging)
+bool outputAllowed()
 {
 #if VDEBUG
-  if(notDebugging) {
-    return false;
-  }
+  return true;
+#else
+  return !Lib::env.options || Lib::env.options->mode()!=Shell::Options::MODE_SPIDER;
 #endif
+}
+
+bool inSpiderMode()
+{
   return Lib::env.options && Lib::env.options->mode()==Shell::Options::MODE_SPIDER;
 }
 
@@ -47,7 +50,7 @@ void reportSpiderStatus(char status)
 {
   static bool headerPrinted=false;
 
-  if(inSpiderMode(false) && !headerPrinted) {
+  if(inSpiderMode() && !headerPrinted) {
     headerPrinted=true;
 
     Lib::env.out << status << " ";
@@ -135,7 +138,7 @@ void handleSignal (int sigNum)
 	exit(0);
       }
       handled = true;
-      if(!inSpiderMode()) {
+      if(outputAllowed()) {
 	if(env.options) {
 	  env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	} else {
@@ -164,7 +167,7 @@ void handleSignal (int sigNum)
 	}
 	reportSpiderFail();
 	handled = true;
-	if(!inSpiderMode()) {
+	if(outputAllowed()) {
 	  if(env.options && env.statistics) {
 	    env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	    env.statistics->print();

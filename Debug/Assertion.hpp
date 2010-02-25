@@ -68,8 +68,6 @@ public:
   static void reportAssertValidException(const char* file,int line,const char* obj);
 private:
   static bool _violated;
-
-  static void printFailureHeader();
 };
 
 /**
@@ -205,7 +203,7 @@ void Debug::Assertion::violated (const char* file,int line,const char* cond,
 
   _violated = true;
   reportSpiderFail();
-  if(!inSpiderMode()) {
+  if(outputAllowed()) {
     cout << "Condition in file " << file << ", line " << line
 	<< " violated:\n" << cond << "\n"
 	<< "Value of " << repStr << " is: " << rep
@@ -225,7 +223,7 @@ void Debug::Assertion::violatedEquality(const char* file,int line,const char* va
 
   _violated = true;
   reportSpiderFail();
-  if(!inSpiderMode()) {
+  if(outputAllowed()) {
     std::cout << "Condition "<<val1Str<<" == "<<val2Str<<" in file " << file << ", line " << line
 	<< " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
 	<< "----- stack dump -----\n";
@@ -245,7 +243,7 @@ void Debug::Assertion::violatedNonequality(const char* file,int line,const char*
 
   _violated = true;
   reportSpiderFail();
-  if(!inSpiderMode()) {
+  if(outputAllowed()) {
     std::cout << "Condition "<<val1Str<<" != "<<val2Str<<" in file " << file << ", line " << line
 	<< " was violated, as:\n" << val1Str<<" == "<<val1 <<"\n" << val2Str<<" == "<<val2 << "\n"
 	<< "----- stack dump -----\n";
@@ -265,7 +263,7 @@ void Debug::Assertion::violatedComparison(const char* file,int line,const char* 
 
   _violated = true;
   reportSpiderFail();
-  if(!inSpiderMode()) {
+  if(outputAllowed()) {
     std::cout << "Condition "<<val1Str;
     if(strict) {
       if(greater) {
@@ -300,7 +298,7 @@ void Debug::Assertion::violatedMethod(const char* file,int line,const T& obj,
 
   _violated = true;
   reportSpiderFail();
-  if(!inSpiderMode()) {
+  if(outputAllowed()) {
     std::cout << "Condition "<<prefix<<"("<<objStr<<")."<<methodStr<<" in file "
 	  << file << ", line " << line << " was violated for:\n"
 	  << objStr << " == " << obj << "\n"

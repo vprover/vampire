@@ -10,7 +10,8 @@
 
 #include <string>
 
-bool inSpiderMode(bool notDebugging=true);
+bool outputAllowed();
+bool inSpiderMode();
 void reportSpiderFail();
 void reportSpiderStatus(char status);
 
