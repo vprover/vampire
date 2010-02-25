@@ -388,6 +388,7 @@ Shell/CNF.o: Shell/CNF.hpp
 Shell/CommandLine.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Exception.hpp
 Shell/CommandLine.o: Lib/LastCopyWatcher.hpp Shell/CommandLine.hpp
 Shell/CommandLine.o: Shell/Options.hpp Lib/Allocator.hpp Lib/XML.hpp
+Shell/CommandLine.o: Shell/Statistics.hpp
 Shell/EqResWithDeletion.o: Kernel/Clause.hpp Forwards.hpp Config.hpp
 Shell/EqResWithDeletion.o: Lib/Allocator.hpp Debug/Assertion.hpp
 Shell/EqResWithDeletion.o: Debug/Tracer.hpp Lib/InverseLookup.hpp
@@ -427,19 +428,21 @@ Shell/Flattening.o: Config.hpp Lib/List.hpp Shell/Flattening.hpp
 Shell/Flattening.o: Kernel/Formula.hpp Lib/XML.hpp Kernel/Connective.hpp
 Shell/FunctionDefinition.o: Debug/Tracer.hpp Lib/Allocator.hpp
 Shell/FunctionDefinition.o: Debug/Assertion.hpp Lib/BitUtils.hpp
-Shell/FunctionDefinition.o: Lib/Environment.hpp Forwards.hpp Config.hpp
+Shell/FunctionDefinition.o: Lib/DHMultiset.hpp Lib/Allocator.hpp
 Shell/FunctionDefinition.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
-Shell/FunctionDefinition.o: Lib/Int.hpp Lib/Comparison.hpp
-Shell/FunctionDefinition.o: Lib/Portability.hpp Kernel/Clause.hpp
-Shell/FunctionDefinition.o: Lib/InverseLookup.hpp Lib/Hash.hpp Lib/DHMap.hpp
-Shell/FunctionDefinition.o: Lib/Allocator.hpp Lib/VirtualIterator.hpp
-Shell/FunctionDefinition.o: Lib/Reflection.hpp Lib/Metaiterators.hpp
+Shell/FunctionDefinition.o: Lib/Hash.hpp Lib/DHMap.hpp
+Shell/FunctionDefinition.o: Lib/VirtualIterator.hpp Forwards.hpp Config.hpp
+Shell/FunctionDefinition.o: Lib/Reflection.hpp Lib/Portability.hpp
+Shell/FunctionDefinition.o: Lib/Environment.hpp Lib/Int.hpp
+Shell/FunctionDefinition.o: Lib/Comparison.hpp Kernel/Clause.hpp
+Shell/FunctionDefinition.o: Lib/InverseLookup.hpp Lib/Metaiterators.hpp
 Shell/FunctionDefinition.o: Lib/List.hpp Lib/Set.hpp Lib/TimeCounter.hpp
 Shell/FunctionDefinition.o: Lib/Reflection.hpp Lib/Stack.hpp
 Shell/FunctionDefinition.o: Lib/BacktrackData.hpp Lib/Int.hpp Kernel/Unit.hpp
 Shell/FunctionDefinition.o: Lib/List.hpp Kernel/Formula.hpp Lib/XML.hpp
 Shell/FunctionDefinition.o: Kernel/Connective.hpp Kernel/Inference.hpp
 Shell/FunctionDefinition.o: Kernel/Unit.hpp Kernel/FormulaUnit.hpp
+Shell/FunctionDefinition.o: Kernel/Signature.hpp Lib/Map.hpp
 Shell/FunctionDefinition.o: Kernel/SubstHelper.hpp Lib/DArray.hpp
 Shell/FunctionDefinition.o: Lib/Random.hpp Kernel/Term.hpp
 Shell/FunctionDefinition.o: Lib/Portability.hpp Lib/Comparison.hpp
@@ -744,7 +747,8 @@ Shell/SineUtils.o: Kernel/FormulaUnit.hpp Kernel/Signature.hpp Lib/Map.hpp
 Shell/SineUtils.o: Kernel/SubformulaIterator.hpp Kernel/Formula.hpp
 Shell/SineUtils.o: Lib/XML.hpp Kernel/Connective.hpp Kernel/Term.hpp
 Shell/SineUtils.o: Kernel/TermFunIterator.hpp Shell/Options.hpp
-Shell/SineUtils.o: Shell/SineUtils.hpp Lib/DArray.hpp Lib/Random.hpp
+Shell/SineUtils.o: Shell/Statistics.hpp Shell/SineUtils.hpp Lib/DArray.hpp
+Shell/SineUtils.o: Lib/Random.hpp
 Shell/Skolem.o: Kernel/Signature.hpp Forwards.hpp Config.hpp
 Shell/Skolem.o: Lib/Allocator.hpp Debug/Assertion.hpp Debug/Tracer.hpp
 Shell/Skolem.o: Lib/Stack.hpp Lib/Allocator.hpp Lib/BacktrackData.hpp

@@ -294,7 +294,7 @@ public:
    */
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds; }
   static int readTimeLimit(const char* val);
-  int memoryLimit() const { return _memoryLimit; }
+  size_t memoryLimit() const { return _memoryLimit; }
   int inequalitySplitting() const { return _inequalitySplitting; }
   long maxActive() const { return _maxActive; }
   long maxAnswers() const { return _maxAnswers; }
@@ -328,7 +328,7 @@ public:
   SineSelection sineSelection() const { return _sineSelection; }
   float sineTolerance() const { return _sineTolerance; }
 
-  void setMemoryLimit(int newVal) { _memoryLimit = newVal; }
+  void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal) { _inputFile = newVal; }
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
@@ -391,7 +391,7 @@ private:
   int _maxInferenceDepth;
   long _maxPassive;
   int _maxWeight;
-  int _memoryLimit;
+  size_t _memoryLimit;
   Mode _mode;
 
   string _namePrefix;
