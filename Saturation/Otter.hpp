@@ -35,10 +35,16 @@ protected:
   //overrides SaturationAlgorithm::onPassiveRemoved
   void onPassiveRemoved(Clause* cl);
 
-  class FakeContainer
+
+  void handleUnsuccessfulActivation(Clause* c);
+
+  /**
+   * Dummy container for simplification indexes to subscribe
+   * to its events.
+   */
+  struct FakeContainer
   : public ClauseContainer
   {
-  public:
     /**
      * This method is called by @b saturate() method when a clause
      * makes it from unprocessed to passive container.

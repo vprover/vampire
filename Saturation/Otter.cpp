@@ -64,6 +64,21 @@ void Otter::onSOSClauseAdded(Clause* cl)
   _simplCont.add(cl);
 }
 
+void Otter::handleUnsuccessfulActivation(Clause* c)
+{
+  CALL("Otter::handleUnsuccessfulActivation");
+
+  if(c->store()==Clause::REACTIVATED) {
+    c->setStore(Clause::ACTIVE);
+  }
+  else {
+    //reactivated clauses should always get activated
+    ASS_EQ(c->store(), Clause::PASSIVE);
+    _simplCont.remove(c);
+    c->setStore(Clause::NONE);
+  }
+}
+
 SaturationResult Otter::saturate()
 {
   CALL("Otter::saturate");
@@ -117,10 +132,7 @@ SaturationResult Otter::saturate()
 
     bool isActivated=activate(c);
     if(!isActivated) {
-      //reactivated clauses should always get activated
-      ASS_EQ(c->store(), Clause::PASSIVE);
-      _simplCont.remove(c);
-      c->setStore(Clause::NONE);
+      handleUnsuccessfulActivation(c);
     }
 
     if(env.timeLimitReached()) {

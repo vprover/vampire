@@ -11,63 +11,27 @@
 
 #include "../Lib/Event.hpp"
 
-#include "SaturationAlgorithm.hpp"
+#include "Otter.hpp"
 
 namespace Saturation {
 
 using namespace Kernel;
 
 class LRS
-: public SaturationAlgorithm
+: public Otter
 {
 public:
-  LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector);
+  LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
+  : Otter(passiveContainer,selector) {}
 
+  //overrides Otter::saturate
   SaturationResult saturate();
-
-  ClauseContainer* getSimplificationClauseContainer();
-  ClauseContainer* getGenerationClauseContainer();
 
 protected:
   bool shouldUpdateLimits();
 
   long long estimatedReachableCount();
 
-  //overrides SaturationAlgorithm::onSOSClauseAdded
-  void onSOSClauseAdded(Clause* cl);
-
-  //overrides SaturationAlgorithm::onActiveRemoved
-  void onActiveRemoved(Clause* cl);
-  //overrides SaturationAlgorithm::onPassiveRemoved
-  void onPassiveRemoved(Clause* cl);
-
-
-  /**
-   * Dummy container for simplification indexes to subscribe
-   * to its events.
-   */
-  struct FakeContainer
-  : public ClauseContainer
-  {
-    /**
-     * This method is called by @b saturate() method when a clause
-     * makes it from unprocessed to passive container.
-     */
-    void add(Clause* c)
-    { addedEvent.fire(c); }
-
-    /**
-     * This method is subscribed to remove events of passive
-     * and active container, so it gets called automatically
-     * when a clause is removed from one of them. (Clause
-     * selection in passive container doesn't count as removal.)
-     */
-    void remove(Clause* c)
-    { removedEvent.fire(c); }
-  };
-
-
-  FakeContainer _simplCont;
 };
 
 };

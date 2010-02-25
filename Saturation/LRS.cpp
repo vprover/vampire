@@ -21,54 +21,13 @@ using namespace Kernel;
 using namespace Shell;
 
 
-
-LRS::LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
-  : SaturationAlgorithm(passiveContainer,selector)
-{
-}
-
-ClauseContainer* LRS::getSimplificationClauseContainer()
-{
-  return &_simplCont;
-}
-
-ClauseContainer* LRS::getGenerationClauseContainer()
-{
-  return _active;
-}
-
-void LRS::onActiveRemoved(Clause* cl)
-{
-  CALL("LRS::onActiveRemoved");
-
-  if(cl->store()==Clause::ACTIVE) {
-    _simplCont.remove(cl);
-  }
-
-  SaturationAlgorithm::onActiveRemoved(cl);
-}
-
-void LRS::onPassiveRemoved(Clause* cl)
-{
-  CALL("LRS::onPassiveRemoved");
-
-  if(cl->store()==Clause::PASSIVE) {
-    _simplCont.remove(cl);
-  }
-
-  SaturationAlgorithm::onPassiveRemoved(cl);
-}
-
-
-void LRS::onSOSClauseAdded(Clause* cl)
-{
-  CALL("LRS::onSOSClauseAdded");
-  ASS(cl);
-  ASS_EQ(cl->store(), Clause::ACTIVE);
-
-  _simplCont.add(cl);
-}
-
+/**
+ * Return true if it is time to update age and weight
+ * limits of the LRS strategy
+ *
+ * The time of the limit update is determined by a counter
+ * of calls of this method.
+ */
 bool LRS::shouldUpdateLimits()
 {
   CALL("LRS::shouldUpdateLimits");
@@ -84,6 +43,10 @@ bool LRS::shouldUpdateLimits()
   return false;
 }
 
+/**
+ * Resturn an estimate of the number of clauses that the saturation
+ * algorithm will be able to activate in the remaining time
+ */
 long long LRS::estimatedReachableCount()
 {
   CALL("LRS::estimatedReachableCount");
@@ -172,10 +135,7 @@ SaturationResult LRS::saturate()
 
     bool isActivated=activate(c);
     if(!isActivated) {
-      //reactivated clauses should always get activated
-      ASS_EQ(c->store(), Clause::PASSIVE);
-      _simplCont.remove(c);
-      c->setStore(Clause::NONE);
+      handleUnsuccessfulActivation(c);
     }
 
     if(env.timeLimitReached()) {

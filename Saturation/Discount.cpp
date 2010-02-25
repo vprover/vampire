@@ -94,9 +94,13 @@ SaturationResult Discount::saturate()
 
     bool isActivated=activate(cl);
     if(!isActivated) {
-      //reactivated clauses should always get activated
-      ASS_EQ(cl->store(), Clause::PASSIVE);
-      cl->setStore(Clause::NONE);
+      if(cl->store()==Clause::REACTIVATED) {
+	cl->setStore(Clause::ACTIVE);
+      }
+      else {
+	ASS_EQ(cl->store(), Clause::PASSIVE);
+	cl->setStore(Clause::NONE);
+      }
     }
 
     if(env.timeLimitReached()) {
