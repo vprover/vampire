@@ -326,7 +326,7 @@ int main(int argc, char* argv [])
     Options options;
     Shell::CommandLine cl(argc,argv);
     cl.interpret(options);
-    Allocator::setMemoryLimit(options.memoryLimit()*1048576);
+    Allocator::setMemoryLimit(options.memoryLimit()*1048576ul);
     Lib::Random::setSeed(options.randomSeed());
 
     Timer timer;

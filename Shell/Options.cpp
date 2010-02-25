@@ -367,7 +367,11 @@ Options::Options ()
   _maxInferenceDepth(0),
   _maxPassive(0),
   _maxWeight(0),
+#if VDEBUG
   _memoryLimit(1000),
+#else
+  _memoryLimit(3000),
+#endif
   _mode(MODE_VAMPIRE),
 
   _namePrefix(""),
