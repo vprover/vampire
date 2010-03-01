@@ -8,8 +8,6 @@
 #ifndef __Statistics__
 #define __Statistics__
 
-#include <string>
-
 /**
  * Identifier of the Vampire version
  */
@@ -183,7 +181,7 @@ public:
   ExecutionPhase phase;
 
 private:
-  static std::string phaseToString(ExecutionPhase p);
+  static const char* phaseToString(ExecutionPhase p);
 }; // class Statistics
 
 }

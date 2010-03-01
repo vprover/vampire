@@ -188,7 +188,7 @@ void Statistics::print()
 #undef COND_OUT
 }
 
-std::string Statistics::phaseToString(ExecutionPhase p)
+const char* Statistics::phaseToString(ExecutionPhase p)
 {
   switch(p) {
   case INITIALIZATION:

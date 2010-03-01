@@ -74,7 +74,7 @@ using namespace Shell;
 //  ::gethostname(hostname,maxlength);
 //}
 
-string signalToString (int sigNum)
+const char* signalToString (int sigNum)
 {
   switch (sigNum)
     {
@@ -119,7 +119,7 @@ void handleSignal (int sigNum)
   // true if a terminal signal has been handled already.
   // to avoid catching signals over and over again
   static bool handled = false;
-  string signalDescription = signalToString(sigNum);
+  const char* signalDescription = signalToString(sigNum);
 
   switch (sigNum)
     {
