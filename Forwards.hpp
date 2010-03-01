@@ -55,6 +55,8 @@ template <typename Key, typename Val, class Hash1=FIRST_HASH(Key), class Hash2=H
 template <typename Val, class Hash1=FIRST_HASH(Val), class Hash2=Hash> class DHSet;
 template <typename K,typename V, class Hash1=FIRST_HASH(K), class Hash2=Hash> class MapToLIFO;
 
+template <typename Value,class ValueComparator> class SkipList;
+
 
 class BacktrackData;
 };
@@ -168,6 +170,8 @@ class PassiveClauseContainer;
 typedef Lib::SmartPtr<PassiveClauseContainer> PassiveClauseContainerSP;
 
 class ActiveClauseContainer;
+
+class ConsequenceFinder;
 }
 
 namespace Inferences

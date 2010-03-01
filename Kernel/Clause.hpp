@@ -212,6 +212,7 @@ public:
 
   bool isGround();
   bool isPropositional();
+  bool isHorn();
 
 #if VDEBUG
   bool contains(Literal* lit);

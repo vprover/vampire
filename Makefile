@@ -141,6 +141,7 @@ VSAT_OBJ=SAT/ClauseSharing.o\
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 	 Saturation/BSplitter.o\
          Saturation/ClauseContainer.o\
+         Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
@@ -757,7 +758,7 @@ Shell/SineUtils.o: Kernel/TermFunIterator.hpp Shell/Options.hpp
 Shell/SineUtils.o: Shell/Statistics.hpp Shell/SineUtils.hpp Lib/DArray.hpp
 Shell/SineUtils.o: Lib/Random.hpp
 Shell/Skolem.o: Kernel/Signature.hpp Forwards.hpp Config.hpp
-Shell/Skolem.o: Lib/Allocator.hpp Debug/Assertion.hpp Debug/Tracer.hpp
+Shell/Skolem.o: Debug/Assertion.hpp Lib/Allocator.hpp Debug/Tracer.hpp
 Shell/Skolem.o: Lib/Stack.hpp Lib/Allocator.hpp Lib/BacktrackData.hpp
 Shell/Skolem.o: Lib/List.hpp Lib/VirtualIterator.hpp Lib/Exception.hpp
 Shell/Skolem.o: Lib/LastCopyWatcher.hpp Lib/Reflection.hpp Lib/Int.hpp
@@ -2322,6 +2323,41 @@ Saturation/ClauseContainer.o: Saturation/BSplitter.hpp Lib/Array.hpp
 Saturation/ClauseContainer.o: Saturation/Splitter.hpp
 Saturation/ClauseContainer.o: Indexing/ClauseVariantIndex.hpp
 Saturation/ClauseContainer.o: Saturation/ClauseContainer.hpp
+Saturation/ConsequenceFinder.o: Lib/Environment.hpp Forwards.hpp Config.hpp
+Saturation/ConsequenceFinder.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+Saturation/ConsequenceFinder.o: Debug/Assertion.hpp Lib/Metaiterators.hpp
+Saturation/ConsequenceFinder.o: Lib/List.hpp Lib/Allocator.hpp
+Saturation/ConsequenceFinder.o: Debug/Tracer.hpp Lib/VirtualIterator.hpp
+Saturation/ConsequenceFinder.o: Lib/Reflection.hpp Lib/Set.hpp Lib/Hash.hpp
+Saturation/ConsequenceFinder.o: Lib/TimeCounter.hpp Lib/SharedSet.hpp
+Saturation/ConsequenceFinder.o: Lib/Metaiterators.hpp Lib/Sort.hpp
+Saturation/ConsequenceFinder.o: Lib/DArray.hpp Lib/Comparison.hpp
+Saturation/ConsequenceFinder.o: Lib/Random.hpp Lib/Stack.hpp
+Saturation/ConsequenceFinder.o: Lib/BacktrackData.hpp Lib/Int.hpp
+Saturation/ConsequenceFinder.o: Lib/Portability.hpp Kernel/Clause.hpp
+Saturation/ConsequenceFinder.o: Lib/Allocator.hpp Lib/InverseLookup.hpp
+Saturation/ConsequenceFinder.o: Lib/DHMap.hpp Lib/Reflection.hpp
+Saturation/ConsequenceFinder.o: Lib/Stack.hpp Kernel/Unit.hpp Lib/List.hpp
+Saturation/ConsequenceFinder.o: Kernel/Signature.hpp Lib/Map.hpp
+Saturation/ConsequenceFinder.o: Shell/Options.hpp Lib/XML.hpp
+Saturation/ConsequenceFinder.o: Saturation/ConsequenceFinder.hpp
+Saturation/ConsequenceFinder.o: Lib/Array.hpp Lib/Int.hpp
+Saturation/ConsequenceFinder.o: Saturation/SaturationAlgorithm.hpp
+Saturation/ConsequenceFinder.o: Kernel/RCClauseStack.hpp Lib/DHMap.hpp
+Saturation/ConsequenceFinder.o: Lib/Event.hpp Lib/SmartPtr.hpp
+Saturation/ConsequenceFinder.o: Indexing/IndexManager.hpp Indexing/Index.hpp
+Saturation/ConsequenceFinder.o: Lib/Exception.hpp Lib/VirtualIterator.hpp
+Saturation/ConsequenceFinder.o: Saturation/ClauseContainer.hpp
+Saturation/ConsequenceFinder.o: Saturation/Limits.hpp
+Saturation/ConsequenceFinder.o: Indexing/ResultSubstitution.hpp
+Saturation/ConsequenceFinder.o: Lib/SmartPtr.hpp Kernel/Term.hpp
+Saturation/ConsequenceFinder.o: Inferences/InferenceEngine.hpp
+Saturation/ConsequenceFinder.o: Inferences/PropositionalToBDDISE.hpp
+Saturation/ConsequenceFinder.o: Inferences/InferenceEngine.hpp
+Saturation/ConsequenceFinder.o: Saturation/SaturationResult.hpp
+Saturation/ConsequenceFinder.o: Shell/Statistics.hpp Saturation/BSplitter.hpp
+Saturation/ConsequenceFinder.o: Saturation/Splitter.hpp
+Saturation/ConsequenceFinder.o: Indexing/ClauseVariantIndex.hpp
 Saturation/Discount.o: Lib/Environment.hpp Forwards.hpp Config.hpp
 Saturation/Discount.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 Saturation/Discount.o: Debug/Assertion.hpp Lib/VirtualIterator.hpp

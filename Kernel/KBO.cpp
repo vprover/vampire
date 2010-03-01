@@ -305,15 +305,16 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
     return EQUAL;
   }
 
-  if( (l1->isNegative() ^ l2->isNegative()) &&
+  unsigned p1 = l1->functor();
+  unsigned p2 = l2->functor();
+
+  if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
 	  l1==Literal::oppositeLiteral(l2)) {
     return l1->isNegative() ? LESS : GREATER;
   }
 
   Result res;
 
-  unsigned p1 = l1->functor();
-  unsigned p2 = l2->functor();
   if (p1 != p2) {
     int lev1 = predicateLevel(p1);
     int lev2 = predicateLevel(p2);
@@ -573,9 +574,18 @@ KBO* KBO::create()
 
   res->_reverseLCM = env.options->literalComparisonMode()==Shell::Options::LCM_REVERSE;
 
+  //equality proxy predicate has the highest level (lower than colored predicates)
   if(EqualityProxy::s_proxyPredicate) {
     res->_predicateLevels[EqualityProxy::s_proxyPredicate]=preds+2;
   }
+
+  //consequence-finding name predicates have the lowest level
+  for(unsigned i=1;i<preds;i++) {
+    if(env.signature->getPredicate(i)->cfName()) {
+      res->_predicateLevels[i]=-1;
+    }
+  }
+
 
   return res;
 }

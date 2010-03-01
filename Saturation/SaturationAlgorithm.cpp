@@ -28,6 +28,8 @@
 #include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
+#include "ConsequenceFinder.hpp"
+
 #include "SaturationAlgorithm.hpp"
 
 
@@ -55,7 +57,7 @@ using namespace Saturation;
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
 : _imgr(this), _clauseActivationInProgress(false), _passive(passiveContainer),
-  _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector)
+  _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _consFinder(0)
 {
   _performSplitting= env.options->splitting()!=Options::RA_OFF;
   _propToBDD= env.options->propositionalToBDD();
@@ -375,6 +377,10 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
       cout<<"New propositional: "<<clStrings.next()<<endl;
     }
   }
+
+  if(_consFinder) {
+    _consFinder->onNewPropositionalClause(c);
+  }
 }
 
 
@@ -527,6 +533,9 @@ void SaturationAlgorithm::handleSaturationStart()
   CALL("SaturationAlgorithm::handleSaturationStart");
 
   _bsplitter.init(this);
+  if(_consFinder) {
+    _consFinder->init(this);
+  }
   _startTime=env.timer->elapsedMilliseconds();
 }
 
@@ -1323,6 +1332,10 @@ bool SaturationAlgorithm::activate(Clause* cl)
     return false;
   }
 #endif
+
+  if(_consFinder && _consFinder->isRedundant(cl)) {
+    return false;
+  }
 
   _clauseActivationInProgress=true;
 

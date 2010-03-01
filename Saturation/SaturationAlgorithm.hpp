@@ -157,6 +157,7 @@ protected:
   BSplitter _bsplitter;
   Splitter _splitter;
   PropositionalToBDDISE _propToBDDConv;
+  ConsequenceFinder* _consFinder;
 
   DHMap<Clause*,Clause*> _symElRewrites;
   DHMap<Clause*,Color> _symElColors;

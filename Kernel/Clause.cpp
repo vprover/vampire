@@ -207,6 +207,28 @@ bool Clause::isPropositional()
   return true;
 }
 
+/**
+ * Return true iff clause is Horn
+ */
+bool Clause::isHorn()
+{
+  CALL("Clause::isHorn");
+
+  bool posFound=false;
+  Iterator it(*this);
+  while(it.hasNext()) {
+    if(it.next()->isPositive()) {
+      if(posFound) {
+        return false;
+      }
+      else {
+        posFound=true;
+      }
+    }
+  }
+  return true;
+}
+
 //struct StrComparator {
 //  Comparison compare(string s1, string s2)
 //  {

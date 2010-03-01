@@ -29,7 +29,7 @@ namespace Lib
  * compare Values.
  * @since 04/05/2006 Bellevue
  */
-template <class Value,class ValueComparator>
+template <typename Value,class ValueComparator>
 class SkipList
 {
 public:
