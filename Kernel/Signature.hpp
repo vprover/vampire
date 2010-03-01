@@ -13,6 +13,8 @@
 
 #include "../Forwards.hpp"
 
+#include "../Debug/Assertion.hpp"
+
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/Map.hpp"
@@ -34,9 +36,12 @@ class Signature
     /** print name */
     const string _name;
     /** arity */
-    unsigned _arity : 29;
+    unsigned _arity : 28;
     /** clauses with only skipped symbols will not be output when symbol eliminated*/
     unsigned _skip : 1;
+    /** marks propositional predicate symbols that are to 
+        be used as names during consequence finding */
+    unsigned _cfName : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
   public:
@@ -50,8 +55,13 @@ class Signature
     void addColor(Color color);
     /** mark the symbol as skip for the purpose of symbol elimination */
     void markSkip() { _skip=1; }
+    /** mark the symbol as name for consequence finding */
+    void markCFName() { ASS_EQ(arity(), 0); _cfName=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() { return _skip; }
+    /** return true iff the symbol is marked as name predicate 
+        for consequence finding */
+    bool cfName() { return _cfName; }
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */
