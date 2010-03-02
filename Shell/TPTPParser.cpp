@@ -83,7 +83,6 @@ public:
   {}
 };
 
-
 /**
  * Initialise a TPTP parser.
  * @since 01/08/2004 Torrevieja
@@ -195,6 +194,7 @@ Unit* TPTPParser::unit()
   consumeToken(TT_COMMA);
   string tp = name();
   Unit::InputType it;
+  _claim = 0;
   if (tp == "axiom") {
     it = Unit::AXIOM;
   }
@@ -208,6 +208,14 @@ Unit* TPTPParser::unit()
     it = Unit::CONJECTURE;
   }
   else if (tp == "hypothesis") {
+    it = Unit::ASSUMPTION;
+  }
+  else if (tp == "claim") {
+    unsigned pred = env.signature->addPredicate(nm,0);
+    env.signature->getPredicate(pred)->markCFName();
+    Literal* a = new(0) Literal(pred,0,true,false);
+    a = env.sharing->insert(a);
+    _claim = new Formula(a);
     it = Unit::ASSUMPTION;
   }
   else if (tp == "lemma") {
@@ -232,6 +240,9 @@ Unit* TPTPParser::unit()
 	else {
 	  f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,f));
 	}
+      }
+      if (_claim) {
+	f = new BinaryFormula(IFF,_claim,f);
       }
       result = new FormulaUnit(f,
 			       new Inference( (it == Unit::CONJECTURE) ?
@@ -956,7 +967,7 @@ Literal* TPTPParser::makeAtom(const string& functor,
   fillArgs(a,ts);
   a = env.sharing->insert(a);
   return a;
-} // makeTerm
+} // makeAtom
 
 /**
  * Fill arguments of a term t with values from the term stack ts.

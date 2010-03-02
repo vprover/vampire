@@ -78,6 +78,8 @@ private:
   Color _currentColor;
   /** if include() is used, then the depth of includes, 0 if top-level */
   int _includeDepth;
+  /** used for claims */
+  Formula* _claim;
 
   /**
    * Is set true by the constructor, if this instance of the parser
