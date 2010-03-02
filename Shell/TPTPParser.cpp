@@ -215,7 +215,7 @@ Unit* TPTPParser::unit()
     env.signature->getPredicate(pred)->markCFName();
     Literal* a = new(0) Literal(pred,0,true,false);
     a = env.sharing->insert(a);
-    _claim = new Formula(a);
+    _claim = new AtomicFormula(a);
     it = Unit::ASSUMPTION;
   }
   else if (tp == "lemma") {
