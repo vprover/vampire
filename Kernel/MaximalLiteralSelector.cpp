@@ -18,21 +18,31 @@ using namespace Kernel;
 
 void MaximalLiteralSelector::select(Clause* c)
 {
-  CALL("OrderingLiteralSelector::select");
+  CALL("MaximalLiteralSelector::select");
 
   unsigned clen=c->length();
   LiteralList* sel=0;
   bool anyNegative=false;
+  bool anySelectable=false;
 
   for(int li=(int)clen-1; li>=0; li--) {
-    if(isNegativeForSelection((*c)[li])) {
+    Literal* lit=(*c)[li];
+    if(!isSelectable(lit)) {
+      continue;
+    }
+    anySelectable=true;
+    if(isNegativeForSelection(lit)) {
       anyNegative=true;
       break;
     }
   }
   for(int li=(int)clen-1; li>=0; li--) {
-    if(!anyNegative || isNegativeForSelection((*c)[li])) {
-      LiteralList::push((*c)[li],sel);
+    Literal* lit=(*c)[li];
+    if(anySelectable && !isSelectable(lit)) {
+      continue;
+    }
+    if(!anyNegative || isNegativeForSelection(lit)) {
+      LiteralList::push(lit,sel);
     }
   }
 

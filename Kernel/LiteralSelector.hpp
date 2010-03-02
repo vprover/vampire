@@ -52,6 +52,17 @@ public:
     return !isPositiveForSelection(l);
   }
 
+  static bool isSelectable(Literal* l);
+
+  struct IsSelectableFn
+  {
+    DECL_RETURN_TYPE(bool);
+    bool operator()(Literal* l)
+    {
+      return isSelectable(l);
+    }
+  };
+
 private:
   static bool _reversePolarity;
 #if VDEBUG

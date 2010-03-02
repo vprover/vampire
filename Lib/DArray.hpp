@@ -183,11 +183,10 @@ public:
 
   /**
    * Ensure that the array's size is at least @b count and
-   * initialize first @b count elements with halues from @b src.
+   * initialize first @b count elements with values from @b src.
    *
    * @b src has to support C operator[](size_t).
    */
-  /**  */
   template<typename Arr>
   void initFromArray(size_t count, Arr& src) {
     CALL("DArray::initFromArray");

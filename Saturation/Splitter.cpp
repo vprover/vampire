@@ -241,7 +241,8 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
 bool Splitter::canSplitOut(Literal* lit)
 {
   return lit->color()==COLOR_TRANSPARENT &&
-    (!env.options->showSymbolElimination() || lit->skip());
+    (!env.options->showSymbolElimination() || lit->skip()) &&
+    !env.signature->getPredicate(lit->functor())->cfName();
 }
 
 

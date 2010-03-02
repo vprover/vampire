@@ -8,6 +8,7 @@
 #include "../Lib/SharedSet.hpp"
 #include "../Lib/SkipList.hpp"
 
+#include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Signature.hpp"
 
@@ -46,10 +47,11 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
 {
   CALL("ConsequenceFinder::onNewPropositionalClause");
 
-  if(!cl->splits()->isEmpty() || cl->isHorn()) {
+  if(!cl->splits()->isEmpty() || BDD::instance()->isFalse(cl->prop())) {
     return;
   }
   Literal* pos=0;
+  bool horn=true;
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
     Literal* l=it.next();
@@ -57,9 +59,19 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
       return;
     }
     if(l->isPositive()) {
-      ASS(!pos);
-      pos=l;
+      if(pos) {
+        horn=false;
+      }
+      else {
+        pos=l;
+      }
     }
+  }
+
+  env.out << "Pure cf clause: " << cl->toNiceString() <<endl;
+
+  if(!horn || !pos) {
+    return;
   }
 
   unsigned red=pos->functor(); //redundant cf symbol number

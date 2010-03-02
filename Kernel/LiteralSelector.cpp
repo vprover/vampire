@@ -3,10 +3,12 @@
  * Implements class LiteralSelector for literal selection
  */
 
+#include "../Lib/Environment.hpp"
 #include "../Lib/Exception.hpp"
 
-#include "Term.hpp"
 #include "Clause.hpp"
+#include "Signature.hpp"
+#include "Term.hpp"
 
 #include "LiteralSelector.hpp"
 
@@ -36,6 +38,15 @@ bool LiteralSelector::_reversePolarity=false;
 int LiteralSelector::_instCtr=0;
 
 #endif
+
+/**
+ * If there is a selectable literal in the clause, no
+ * non-selectable ones will be selected.
+ */
+bool LiteralSelector::isSelectable(Literal* l)
+{
+  return !env.signature->getPredicate(l->functor())->cfName();
+}
 
 LiteralSelector* LiteralSelector::getSelector(int num)
 {
@@ -109,6 +120,7 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c)
 
   for(unsigned i=selCnt;i<clen;i++) {
     if((*c)[i]->color()!=COLOR_TRANSPARENT) {
+      ASS(isSelectable((*c)[i])); //colored literals have to be selectable
       swap((*c)[selCnt], (*c)[i]);
       c->setSelected(selCnt+1);
       return;
@@ -120,9 +132,17 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c)
 
 void TotalLiteralSelector::select(Clause* c)
 {
-  CALL("EagerLiteralSelector::select");
+  CALL("TotalLiteralSelector::select");
 
-  c->setSelected(c->length());
+  unsigned clen=c->length();
+  unsigned selCnt=clen;
+  for(unsigned i=0;i<selCnt;i++) {
+    if(!isSelectable((*c)[i])) {
+      selCnt--;
+      swap((*c)[i],(*c)[selCnt]);
+    }
+  }
+  c->setSelected(selCnt);
 }
 
 }

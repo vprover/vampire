@@ -14,6 +14,7 @@
 #include "../Lib/Comparison.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/List.hpp"
+#include "../Lib/Metaiterators.hpp"
 #include "../Lib/Set.hpp"
 #include "../Lib/Stack.hpp"
 
@@ -22,6 +23,7 @@
 #include "Ordering.hpp"
 
 #include "LiteralSelector.hpp"
+#include "LiteralComparators.hpp"
 
 namespace Kernel {
 
@@ -57,9 +59,10 @@ public:
     unsigned besti=0;
     Literal* best=(*c)[0];
     for(unsigned i=1;i<clen;i++) {
-      if(_comp.compare(best, (*c)[i])==LESS) {
+      Literal* lit=(*c)[i];
+      if(_comp.compare(best, lit)==LESS) {
         besti=i;
-        best=(*c)[i];
+        best=lit;
       }
     }
     if(besti>0) {
@@ -74,7 +77,8 @@ public:
   }
 
 private:
-  QComparator _comp;
+  LiteralComparators::Composite
+    <LiteralComparators::SelectableFirst, QComparator> _comp;
 };
 
 
@@ -116,7 +120,12 @@ public:
     }
 
     static DArray<Literal*> litArr(64);
-    litArr.initFromArray(clen,*c);
+    litArr.initFromIterator(
+      getFilteredIterator(Clause::Iterator(*c),
+        LiteralSelector::IsSelectableFn()));
+    if(litArr.size()==0) {
+      litArr.initFromArray(clen,*c);
+    }
     litArr.sortInversed(_comp);
 
     LiteralList* maximals=0;
@@ -187,7 +196,7 @@ public:
       ASS_G(selCnt,1);
       ASS_LE(selCnt,clen);
 
-      //put back non-selected literals, that were removed
+      //put back non-selected literals that were removed
       unsigned i=selCnt;
       while(replaced.isNonEmpty()) {
 	while(!maxSet.contains((*c)[i])) {
