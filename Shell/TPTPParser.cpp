@@ -211,7 +211,11 @@ Unit* TPTPParser::unit()
     it = Unit::ASSUMPTION;
   }
   else if (tp == "claim") {
-    unsigned pred = env.signature->addPredicate(nm,0);
+    bool added;
+    unsigned pred = env.signature->addPredicate(nm,0,added);
+    if(!added) {
+      USER_ERROR("Names of claims must be unique: "+nm);
+    }
     env.signature->getPredicate(pred)->markCFName();
     Literal* a = new(0) Literal(pred,0,true,false);
     a = env.sharing->insert(a);

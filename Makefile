@@ -20,8 +20,8 @@
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
 #XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 # debugging for spider
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-XFLAGS = -O6 -DVDEBUG=0 # no debugging
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+#XFLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
@@ -2391,6 +2391,8 @@ Saturation/ConsequenceFinder.o: Lib/Reflection.hpp Kernel/Unit.hpp
 Saturation/ConsequenceFinder.o: Shell/Options.hpp Lib/XML.hpp
 Saturation/ConsequenceFinder.o: Saturation/ConsequenceFinder.hpp
 Saturation/ConsequenceFinder.o: Lib/Event.hpp Lib/SmartPtr.hpp
+Saturation/ConsequenceFinder.o: Inferences/TautologyDeletionISE.hpp
+Saturation/ConsequenceFinder.o: Inferences/InferenceEngine.hpp
 Saturation/ConsequenceFinder.o: Saturation/SaturationAlgorithm.hpp
 Saturation/ConsequenceFinder.o: Kernel/RCClauseStack.hpp
 Saturation/ConsequenceFinder.o: Indexing/IndexManager.hpp Indexing/Index.hpp
@@ -2401,7 +2403,6 @@ Saturation/ConsequenceFinder.o: Indexing/ResultSubstitution.hpp
 Saturation/ConsequenceFinder.o: Lib/SmartPtr.hpp Kernel/Term.hpp
 Saturation/ConsequenceFinder.o: Inferences/InferenceEngine.hpp
 Saturation/ConsequenceFinder.o: Inferences/PropositionalToBDDISE.hpp
-Saturation/ConsequenceFinder.o: Inferences/InferenceEngine.hpp
 Saturation/ConsequenceFinder.o: Saturation/SaturationResult.hpp
 Saturation/ConsequenceFinder.o: Shell/Statistics.hpp Saturation/BSplitter.hpp
 Saturation/ConsequenceFinder.o: Saturation/Splitter.hpp
@@ -2545,12 +2546,13 @@ Saturation/SaturationAlgorithm.o: Kernel/SubformulaIterator.hpp
 Saturation/SaturationAlgorithm.o: Kernel/Formula.hpp Kernel/Connective.hpp
 Saturation/SaturationAlgorithm.o: Shell/Options.hpp Shell/Statistics.hpp
 Saturation/SaturationAlgorithm.o: Saturation/ConsequenceFinder.hpp
+Saturation/SaturationAlgorithm.o: Inferences/TautologyDeletionISE.hpp
+Saturation/SaturationAlgorithm.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm.o: Saturation/SaturationAlgorithm.hpp
 Saturation/SaturationAlgorithm.o: Kernel/RCClauseStack.hpp
 Saturation/SaturationAlgorithm.o: Indexing/IndexManager.hpp
 Saturation/SaturationAlgorithm.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm.o: Inferences/PropositionalToBDDISE.hpp
-Saturation/SaturationAlgorithm.o: Inferences/InferenceEngine.hpp
 Saturation/SaturationAlgorithm.o: Saturation/SaturationResult.hpp
 Saturation/SaturationAlgorithm.o: Saturation/BSplitter.hpp
 Saturation/SaturationAlgorithm.o: Saturation/Splitter.hpp
@@ -2638,6 +2640,8 @@ Saturation/SaturationAlgorithm_Construction.o: Indexing/ClauseVariantIndex.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/Discount.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/LRS.hpp
 Saturation/SaturationAlgorithm_Construction.o: Saturation/Otter.hpp
+Saturation/SaturationAlgorithm_Construction.o: Saturation/ConsequenceFinder.hpp
+Saturation/SaturationAlgorithm_Construction.o: Lib/Int.hpp
 Saturation/SaturationResult.o: Kernel/Clause.hpp Forwards.hpp Config.hpp
 Saturation/SaturationResult.o: Lib/Allocator.hpp Debug/Assertion.hpp
 Saturation/SaturationResult.o: Debug/Tracer.hpp Lib/InverseLookup.hpp

@@ -47,7 +47,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
 {
   CALL("ConsequenceFinder::onNewPropositionalClause");
 
-  if(!cl->splits()->isEmpty() || BDD::instance()->isFalse(cl->prop())) {
+  if(!cl->splits()->isEmpty() || !BDD::instance()->isFalse(cl->prop()) || !_td.simplify(cl)) {
     return;
   }
   Literal* pos=0;

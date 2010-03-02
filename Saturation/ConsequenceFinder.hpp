@@ -15,9 +15,12 @@
 
 #include "../Kernel/Clause.hpp"
 
+#include "../Inferences/TautologyDeletionISE.hpp"
+
 namespace Saturation {
 
 using namespace Kernel;
+using namespace Inferences;
 
 class ConsequenceFinder {
 public: 
@@ -42,6 +45,8 @@ private:
 
   ZIArray<ClauseSL*> _index;
   ZIArray<bool> _redundant;
+
+  TautologyDeletionISE _td;
 
   /** SubscriptionData for the @b onClauseInserted method */
   SubscriptionData _sdInsertion;
