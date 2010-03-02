@@ -35,6 +35,8 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+#include "ConsequenceFinder.hpp"
+
 namespace Saturation
 {
 
@@ -171,6 +173,10 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
   res->setImmediateSimplificationEngine(createImmediateSE());
   addFSEs(res);
   addBSEs(res);
+  
+  if(env.options->mode()==Options::MODE_CONSEQUENCE_FINDING) {
+    res->_consFinder=new ConsequenceFinder();
+  }
 
   return SaturationAlgorithmSP(res);
 }
