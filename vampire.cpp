@@ -357,6 +357,7 @@ int main(int argc, char* argv [])
     case Options::MODE_SPIDER:
       spiderMode();
       break;
+    case Options::MODE_CONSEQUENCE_FINDING:
     case Options::MODE_VAMPIRE:
       vampireMode();
       break;

@@ -291,13 +291,9 @@ Clause* Splitter::getComponent(Clause* cl, Literal** lits, unsigned compLen, int
 {
   CALL("Splitter::getComponent");
 
-  Clause* comp;
-  ClauseIterator variants=_variantIndex.retrieveVariants(lits, compLen);
-  newComponent=!variants.hasNext();
-  if(!newComponent) {
-    comp=variants.next();
-
-    ASS(!variants.hasNext());
+  Clause* comp=_sharing.tryGet(lits,compLen);
+  newComponent=!comp;
+  if(comp) {
     if(!_clauseNames.find(comp, name)) {
       name=0;
     }
@@ -309,7 +305,6 @@ Clause* Splitter::getComponent(Clause* cl, Literal** lits, unsigned compLen, int
   } else {
     name=0;
 
-    env.statistics->uniqueComponents++;
     Inference* inf=new Inference(Inference::TAUTOLOGY_INTRODUCTION);
     Unit::InputType inpType = cl->inputType();
     comp = new(compLen) Clause(compLen, inpType, inf);
@@ -317,16 +312,11 @@ Clause* Splitter::getComponent(Clause* cl, Literal** lits, unsigned compLen, int
       (*comp)[i]=lits[i];
     }
 
-    comp->incRefCnt();
-    {
-      TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
-
-      _variantIndex.insert(comp);
-    }
-
     comp->setAge(cl->age());
     comp->setProp(BDD::instance()->getTrue());
     InferenceStore::instance()->recordNonPropInference(comp);
+
+    _sharing.insertNew(comp);
   }
   return comp;
 }
@@ -400,57 +390,6 @@ BDDNode* Splitter::getNameProp(int name)
   return BDD::instance()->getAtomic(abs(name), name>0);
 }
 
-
-Clause* Splitter::insertIntoIndex(Clause* cl, bool& newInserted, bool& modified)
-{
-  CALL("Splitter::insertIntoIndex");
-
-  BDD* bdd=BDD::instance();
-
-  newInserted=false;
-  modified=false;
-
-  ClauseIterator variants=_variantIndex.retrieveVariants(cl->literals(), cl->length());
-  if(variants.hasNext()) {
-    Clause* comp=variants.next();
-
-    ASS(!variants.hasNext());
-
-    BDDNode* oldCompProp=comp->prop();
-    BDDNode* oldClProp=cl->prop();
-    BDDNode* newCompProp=bdd->conjunction(oldCompProp, oldClProp);
-
-    if(oldCompProp==newCompProp) {
-      return comp;
-    }
-
-#if REPORT_SPLITS
-    cout<<"----Merging----\n";
-    cout<<"Clause "<<(*cl)<<" caused\n";
-    cout<<(*comp)<<" to get prop. part\n";
-    cout<<bdd->toString(newCompProp)<<endl;
-    cout<<"^^^^^^^^^^^^^^^\n";
-#endif
-    comp->setProp( newCompProp );
-    InferenceStore::instance()->recordMerge(comp, oldCompProp, cl, newCompProp);
-
-    modified=true;
-    return comp;
-
-  } else {
-    env.statistics->uniqueComponents++;
-
-    cl->incRefCnt();
-    {
-      TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
-      _variantIndex.insert(cl);
-    }
-
-    newInserted=true;
-    return cl;
-  }
-}
-
 ClauseIterator Splitter::handleNoSplit(Clause* cl)
 {
   CALL("Splitter::handleNoSplit");
@@ -458,11 +397,10 @@ ClauseIterator Splitter::handleNoSplit(Clause* cl)
   //no propositional literal that can be bddized should get here
   ASS(cl->length()!=1 || !PropositionalToBDDISE::canBddize((*cl)[0]));
 
-  bool newInserted;
-  bool modified;
-  Clause* insCl=insertIntoIndex(cl, newInserted, modified);
+  ClauseSharing::InsertionResult res;
+  Clause* insCl=_sharing.insert(cl, res);
 
-  if(newInserted || modified) {
+  if(res!=ClauseSharing::OLD) {
     return pvi( getSingletonIterator(insCl) );
   }
   else {

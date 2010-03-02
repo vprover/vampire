@@ -297,6 +297,7 @@ NameArray Options::Constants::inputSyntaxValues(_inputSyntaxValues,
 const char* Options::Constants::_modeValues[] = {
   "casc",
   "clausify",
+  "consequence_finding",
   "grounding",
   "profile",
   "rule",

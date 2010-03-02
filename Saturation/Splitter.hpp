@@ -11,6 +11,7 @@
 
 #include "../Lib/DHMap.hpp"
 
+#include "../Indexing/ClauseSharing.hpp"
 #include "../Indexing/ClauseVariantIndex.hpp"
 
 namespace Saturation {
@@ -31,9 +32,6 @@ private:
 
   ClauseIterator handleNoSplit(Clause* cl);
 
-  Clause* insertIntoIndex(Clause* cl, bool& newInserted, bool& modified);
-
-
   bool canSplitOut(Literal* lit);
 
   /** Names assigned to clauses stored in @b _variantIndex */
@@ -47,9 +45,8 @@ private:
    */
   DHMap<Literal*, int> _groundNames;
 
-  /** Index containing names clauses. Name of a clause is stored in
-   * @b _clauseNames */
-  ClauseVariantIndex _variantIndex;
+  /** Index that takes care of the sharing and merging of clauses */
+  ClauseSharing _sharing;
 };
 
 };

@@ -149,6 +149,7 @@ public:
   enum Mode {
     MODE_CASC,
     MODE_CLAUSIFY,
+    MODE_CONSEQUENCE_FINDING,
     MODE_GROUNDING,
     MODE_PROFILE,
     MODE_RULE,
