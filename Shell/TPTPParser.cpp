@@ -246,6 +246,10 @@ Unit* TPTPParser::unit()
 	}
       }
       if (_claim) {
+	Formula::VarList* vs = f->freeVariables();
+	if (!vs->isEmpty()) {
+	  f = new QuantifiedFormula(FORALL,vs,f);
+	}
 	f = new BinaryFormula(IFF,_claim,f);
       }
       result = new FormulaUnit(f,
