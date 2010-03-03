@@ -159,6 +159,7 @@ protected:
   PropositionalToBDDISE _propToBDDConv;
   ConsequenceFinder* _consFinder;
 
+  unsigned _symElNextClauseNumber;
   DHMap<Clause*,Clause*> _symElRewrites;
   DHMap<Clause*,Color> _symElColors;
 

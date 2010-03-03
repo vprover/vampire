@@ -57,7 +57,8 @@ using namespace Saturation;
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
 : _imgr(this), _clauseActivationInProgress(false), _passive(passiveContainer),
-  _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _consFinder(0)
+  _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _consFinder(0),
+  _symElNextClauseNumber(0)
 {
   _performSplitting= env.options->splitting()!=Options::RA_OFF;
   _propToBDD= env.options->propositionalToBDD();
@@ -483,18 +484,29 @@ void SaturationAlgorithm::outputSymbolElimination(Color eliminated, Clause* c)
   ASS(!c->skip());
 
   BDD::instance()->allowDefinitionOutput(false);
+  cout<<"%";
   if(eliminated==COLOR_LEFT) {
     cout<<"Left";
   } else {
     ASS_EQ(eliminated, COLOR_RIGHT);
     cout<<"Right";
   }
-  cout<<" symbol elimination: "<<c->nonPropToString();
-  if(c->prop() && !BDD::instance()->isFalse(c->prop())) {
-    cout<<" | "<<BDD::instance()->toString(c->prop());
+  cout<<" symbol elimination"<<endl;
+  
+  string cname="inv"+_symElNextClauseNumber;
+  while(env.signature->isPredicateName(cname, 0)) {
+    _symElNextClauseNumber++;
+    cname="inv"+_symElNextClauseNumber;
   }
-  cout<<endl;
+
+  cout<<"fof(inv"<<_symElNextClauseNumber<<", claim, ( ";
+  cout<<c->nonPropToString();
+  if(c->prop() && !BDD::instance()->isFalse(c->prop())) {
+    cout<<" | "<<BDD::instance()->toTPTPString(c->prop());
+  }
+  cout<<" ) )."<<endl;
   BDD::instance()->allowDefinitionOutput(true);
+  _symElNextClauseNumber++;
 }
 
 /**
