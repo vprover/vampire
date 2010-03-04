@@ -42,6 +42,8 @@ private:
   class TermStack;
   class TermArray;
 
+  void recognizeTopLevelTokens();
+
   Formula* formula();
   void units(UnitStack&);
   Unit* unit();

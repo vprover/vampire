@@ -382,49 +382,15 @@ TokenType TPTPLexer::detectNameTokenTypeOfLastToken ()
 {
   CALL("TPTPLexer::detectNameTokenTypeOfLastToken");
 
-  switch (_charBuffer[0]) {
-  case 'c':
-    if (! strcmp(_charBuffer.content(),"cnf")) {
-      return TT_CNF;
-    }
-    return TT_NAME;
-
-  case 'f':
-    if (! strcmp(_charBuffer.content(),"fof")) {
-      return TT_INPUT_FORMULA;
-    }
-    return TT_NAME;
-
-  case 'i':
-    if (! strcmp(_charBuffer.content(),"input_formula")) {
-      return TT_INPUT_FORMULA;
-    }
-    if (! strcmp(_charBuffer.content(),"input_clause")) {
-      return TT_INPUT_CLAUSE;
-    }
-    if (! strcmp(_charBuffer.content(),"include")) {
-      return TT_INCLUDE;
-    }
-    return TT_NAME;
-
-  case 'v':
-    if (! strcmp(_charBuffer.content(),"vampire")) {
-      return TT_VAMPIRE;
-    }
-    return TT_NAME;
-
-  case '$':
+  if(_charBuffer[0]=='$') {
     if (! strcmp(_charBuffer.content(),"$false")) {
       return TT_FALSE;
     }
     if (! strcmp(_charBuffer.content(),"$true")) {
      return TT_TRUE;
     }
-    return TT_NAME;
-
-  default:
-    return TT_NAME;
   }
+  return TT_NAME;
 } // TPTPLexer::detectNameTokenTypeOfLastToken
 
 

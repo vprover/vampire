@@ -5,6 +5,8 @@
  * @since 14/07/2004 Turku
  */
 
+#include <string.h>
+
 #include <fstream>
 
 #include "../Lib/List.hpp"
@@ -122,6 +124,57 @@ UnitList* TPTPParser::units()
   return stack.list();
 } // TPTPParser::units
 
+/**
+ * Replace TT_NAME token type for keywords that are keywords
+ * only when they appear at the top-level
+ */
+void TPTPParser::recognizeTopLevelTokens()
+{
+  Token& t=currentToken1();
+
+  if(t.tag!=TT_NAME) {
+    return;
+  }
+
+  const char* str=t.text.c_str();
+
+  switch (str[0]) {
+  case 'c':
+    if (! strcmp(str,"cnf")) {
+      t.tag=TT_CNF;
+    }
+    break;
+
+  case 'f':
+    if (! strcmp(str,"fof")) {
+      t.tag=TT_INPUT_FORMULA;
+    }
+    break;
+
+  case 'i':
+    if (! strcmp(str,"input_formula")) {
+      t.tag=TT_INPUT_FORMULA;
+    }
+    if (! strcmp(str,"input_clause")) {
+      t.tag=TT_INPUT_CLAUSE;
+    }
+    if (! strcmp(str,"include")) {
+      t.tag=TT_INCLUDE;
+    }
+    break;
+
+  case 'v':
+    if (! strcmp(str,"vampire")) {
+      t.tag=TT_VAMPIRE;
+    }
+    break;
+
+  default:
+    break;
+  }
+
+}
+
 
 /**
  * Parse units into a stack.
@@ -136,6 +189,9 @@ void TPTPParser::units(UnitStack& stack)
     if (env.timeLimitReached()) {
       return;
     }
+
+    recognizeTopLevelTokens();
+
     switch (currentToken1().tag) {
     case TT_EOF:
       return;
