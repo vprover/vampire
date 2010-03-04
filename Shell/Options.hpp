@@ -330,7 +330,7 @@ public:
   float sineTolerance() const { return _sineTolerance; }
 
   void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
-  void setInputFile(const string& newVal) { _inputFile = newVal; }
+  void setInputFile(const string& newVal);
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
 

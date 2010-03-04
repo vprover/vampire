@@ -381,7 +381,7 @@ Options::Options ()
   _nongoalWeightCoefficient(1.0),
   _normalize(false),
 
-  _problemName(""),
+  _problemName("unknown"),
   _proof(PROOF_ON),
   _proofChecking(false),
   _propositionalToBDD(true),
@@ -1240,12 +1240,12 @@ void Options::outputValue (ostream& str,int optionTag) const
 
 
 /**
- * Return the problem name computed from the input file name. Returns
- * null pointer if the input file name is not specified or is wrong;
+ * Return the problem name
  *
- * @since 07/07/2003 Manchester, bug fixed (when the problem name contained
- *        more than one ".", the name was calculated wrongly
- * @since 06/12/2003 Manchester, changed to use and return string
+ * The problem name is computed from the input file name in
+ * the @b setInputFile function. If the input file is not set,
+ * the problem name is equal to "unknown".
+ *
  */
 string Options::problemName () const
 {
@@ -1253,17 +1253,27 @@ string Options::problemName () const
   //violation reporting and it influenced the output.
 //  CALL("Options::problemName");
 
-  if (_problemName != "") {
-    return _problemName;
+  return _problemName;
+} // const char* Options::problemName () const
+
+/**
+ * Set input file and also update problemName if it was not
+ * set before
+ */
+void Options::setInputFile(const string& inputFile)
+{
+  CALL("Options::setInputFile");
+
+  _inputFile = inputFile;
+
+  if(inputFile=="") {
+    return;
   }
 
-  string inputFileName = inputFile();
-  if (inputFileName == "") {
-    return "unknown";
-  }
+  //update the problem name
 
-  int length = inputFileName.length() - 1;
-  const char* name = inputFileName.c_str();
+  int length = inputFile.length() - 1;
+  const char* name = inputFile.c_str();
 
   int b = length - 1;
   while (b >= 0 && name[b] != '/') {
@@ -1279,8 +1289,8 @@ string Options::problemName () const
     e = length-1;
   }
 
-  return inputFileName.substr(b,e-b);
-} // const char* Options::problemName () const
+  _problemName=inputFile.substr(b,e-b);
+}
 
 
 // /**
