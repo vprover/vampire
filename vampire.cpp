@@ -15,6 +15,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/Stack.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 
@@ -23,15 +24,19 @@
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
 
-#include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Indexing/TermSharing.hpp"
 #include "Indexing/SubstitutionTree.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
+
+#include "Inferences/InferenceEngine.hpp"
+#include "Inferences/TautologyDeletionISE.hpp"
 
 #include "Shell/CommandLine.hpp"
 #include "Shell/Grounding.hpp"
@@ -55,8 +60,6 @@
 #include "SAT/DIMACS.hpp"
 #include "SAT/SATClause.hpp"
 
-#include "Lib/Stack.hpp"
-#include "Kernel/Term.hpp"
 
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
@@ -302,9 +305,19 @@ void clausifyMode()
 {
   CALL("clausifyMode()");
 
+  CompositeISE simplifier;
+  simplifier.addFront(ImmediateSimplificationEngineSP(new TrivialInequalitiesRemovalISE()));
+  simplifier.addFront(ImmediateSimplificationEngineSP(new TautologyDeletionISE()));
+  simplifier.addFront(ImmediateSimplificationEngineSP(new DuplicateLiteralRemovalISE()));
+
   ClauseIterator cit = getInputClauses();
   while (cit.hasNext()) {
-    cout << TPTP::toString(cit.next()) << "\n";
+    Clause* cl=cit.next();
+    cl=simplifier.simplify(cl);
+    if(!cl) {
+      continue;
+    }
+    cout << TPTP::toString(cl) << "\n";
   }
 } // clausifyMode
 
