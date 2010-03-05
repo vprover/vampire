@@ -198,7 +198,9 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   if(s_measureInitTimes[tcu]!=-1) {
     time += env.timer->elapsedMilliseconds()-s_measureInitTimes[tcu];
   }
-  env.out<<Timer::msToSecondsString(time)<<endl;
+  
+  Timer::printMSString(env.out, time);
+  env.out<<endl;
 }
 
 };

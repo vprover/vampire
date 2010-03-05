@@ -67,8 +67,10 @@ void timeLimitReached()
   if(!inSpiderMode()) {
     env.out << "Time limit reached!\n";
   }
-  env.statistics->print();
-  if(env.options->timeStatistics()) {
+  if(env.statistics) {
+    env.statistics->print();
+  }
+  if(env.options && env.options->timeStatistics()) {
     TimeCounter::printReport();
   }
 
@@ -169,7 +171,7 @@ void Timer::printMSString(ostream& str, int ms)
       }
     }
   }
-  str<<msonly;
+  str<<msonly<<" s";
 }
 
 };

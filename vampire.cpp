@@ -344,13 +344,16 @@ int main(int argc, char* argv [])
 
   Timer timer;
   Options options;
+  Shell::Statistics statistics;
 
   try {
     timer.start();
+
     env.timer = &timer;
+    env.options = &options;
+    env.statistics = &statistics;
 
     // read the command line and interpret it
-    env.options = &options;
     Shell::CommandLine cl(argc,argv);
     cl.interpret(options);
 
@@ -359,8 +362,6 @@ int main(int argc, char* argv [])
 
     Indexing::TermSharing sharing;
     env.sharing = &sharing;
-    Shell::Statistics statistics;
-    env.statistics = &statistics;
 
     switch (options.mode())
     {
