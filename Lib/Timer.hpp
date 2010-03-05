@@ -8,6 +8,7 @@
 #define __Timer__
 
 #include <string>
+#include <iostream>
 
 #include "../Debug/Assertion.hpp"
 
@@ -71,6 +72,7 @@ public:
 
   static void initTimer();
   static string msToSecondsString(int ms);
+  static void printMSString(ostream& str, int ms);
 private:
   /** true if the timer is running */
   bool _running;

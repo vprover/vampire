@@ -144,6 +144,34 @@ string Timer::msToSecondsString(int ms)
   return Int::toString(static_cast<float>(ms)/1000)+" s";
 }
 
+/**
+ * Print string representing @b ms of milliseconds to @b str
+ */
+void Timer::printMSString(ostream& str, int ms)
+{
+  CALL("Timer::printMSString");
+
+  int sec=ms/1000;
+  int msonly=ms%1000;
+  if(sec) {
+    str<<sec;
+  }
+  else {
+    str<<'0';
+  }
+  str<<'.';
+  if(msonly<100) {
+    str<<'0';
+    if(msonly<10) {
+      str<<'0';
+      if(!msonly) {
+	str<<'0';
+      }
+    }
+  }
+  str<<msonly;
+}
+
 };
 
 //#include <iostream>

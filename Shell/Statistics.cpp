@@ -181,7 +181,9 @@ void Statistics::print()
   SEPARATOR;
 
   env.out << "Memory used: " << (Allocator::getUsedMemory()/1024) << "KB" << endl;
-  env.out << "Time elapsed: " << Timer::msToSecondsString(env.timer->elapsedMilliseconds()) << endl;
+  env.out << "Time elapsed: ";
+  Timer::printMSString(env.out,env.timer->elapsedMilliseconds());
+  env.out << endl;
   env.out << "------------------------------\n";
 
 #undef SEPARATOR
