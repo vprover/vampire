@@ -152,7 +152,8 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SaturationResult.o\
          Saturation/Splitter.o
 
-VS_OBJ = Shell/CommandLine.o\
+VS_OBJ = Shell/AxiomGenerator.o\
+         Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/EqResWithDeletion.o\
          Shell/EqualityProxy.o\
