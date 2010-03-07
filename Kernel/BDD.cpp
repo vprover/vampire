@@ -20,7 +20,6 @@
 #include "Signature.hpp"
 #include "Term.hpp"
 
-#include "../SAT/ClauseSharing.hpp"
 #include "../SAT/Preprocess.hpp"
 #include "../SAT/SATClause.hpp"
 #include "../SAT/SATLiteral.hpp"
@@ -781,7 +780,9 @@ struct BDD::CNFStackRec {
   bool resolved;
 };
 
-
+//The first implementation performs subsumption resolution.
+//Interestingly, the SATSolver seems to perform worse on the
+//resulting clauses.
 #if 0
 /**
  * Convert a BDDNode into a list of propositional clauses.

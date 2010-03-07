@@ -21,7 +21,8 @@ class Discount
 public:
   Discount(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
     : SaturationAlgorithm(passiveContainer, selector) {}
-  SaturationResult saturate();
+
+  SaturationResult doSaturation();
 
   ClauseContainer* getSimplificationClauseContainer();
   ClauseContainer* getGenerationClauseContainer();

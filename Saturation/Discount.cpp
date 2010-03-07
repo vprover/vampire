@@ -28,22 +28,16 @@ ClauseContainer* Discount::getGenerationClauseContainer()
   return _active;
 }
 
-SaturationResult Discount::saturate()
+SaturationResult Discount::doSaturation()
 {
-  CALL("Discount::saturate");
-
-  handleSaturationStart();
+  CALL("Discount::doSaturation");
 
   for (;;) {
     newClausesToUnprocessed();
 
-    int counter=0;
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
-
-      if(isRefutation(c)) {
-    	return SaturationResult(Statistics::REFUTATION, c);
-      }
+      ASS(!isRefutation(c));
 
       bool inPassive=false;
       if(forwardSimplify(c)) {
@@ -57,11 +51,8 @@ SaturationResult Discount::saturate()
 
       newClausesToUnprocessed();
 
-      if(++counter==100) {
-	counter=0;
-	if (env.timeLimitReached()) {
-	  return SaturationResult(Statistics::TIME_LIMIT);
-	}
+      if (env.timeLimitReached()) {
+	return SaturationResult(Statistics::TIME_LIMIT);
       }
     }
 

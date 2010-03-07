@@ -79,21 +79,16 @@ void Otter::handleUnsuccessfulActivation(Clause* c)
   }
 }
 
-SaturationResult Otter::saturate()
+SaturationResult Otter::doSaturation()
 {
-  CALL("Otter::saturate");
-
-  handleSaturationStart();
+  CALL("Otter::doSaturation");
 
   for (;;) {
     newClausesToUnprocessed();
 
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
-
-      if (isRefutation(c)) {
-    	return SaturationResult(Statistics::REFUTATION, c);
-      }
+      ASS(!isRefutation(c));
 
       bool inPassive=false;
       if(forwardSimplify(c)) {

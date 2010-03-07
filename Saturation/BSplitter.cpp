@@ -508,7 +508,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   Unit::InputType inp=max(base->inputType(), refutation->inputType());
 
   SplitSet* resSplits=base->splits()->getUnion(refutation->splits())->subtract(SplitSet::getSingleton(refLvl));
-  BDDNode* resProp=BDD::instance()->getFalse(); //all BDD resoning is disabled when doing backtracking splitting
+  BDDNode* resProp=BDD::instance()->getFalse(); //all BDD reasoning is disabled when doing backtracking splitting
   int resAge=base->age();
 
   altSplitSet=resSplits;
@@ -538,6 +538,8 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   scl->setProp(resProp);
   assignClauseSplitSet(scl, resSplits);
   acc.push(scl);
+  _sa->onParenthood(scl, base);
+  _sa->onParenthood(scl, refutation);
 #if SP_REPORTS
   cout<<"sp add "<<(*scl)<<endl;
 #endif
@@ -553,6 +555,8 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
       gcl->setProp(resProp);
       assignClauseSplitSet(gcl, resSplits);
       acc.push(gcl);
+      _sa->onParenthood(gcl, base);
+      _sa->onParenthood(gcl, refutation);
 #if SP_REPORTS
       cout<<"sp add "<<(*gcl)<<endl;
 #endif

@@ -23,14 +23,14 @@ using namespace Indexing;
 class Splitter
 {
 public:
-  ClauseIterator doSplitting(Clause* cl);
+  void init(SaturationAlgorithm* sa);
+
+  bool doSplitting(Clause* cl);
 private:
   Clause* getComponent(Clause* cl, Literal** lits, unsigned compLen, int& name, bool& newComponent);
 
   int nameComponent(Clause* comp);
   BDDNode* getNameProp(int name);
-
-  ClauseIterator handleNoSplit(Clause* cl);
 
   bool canSplitOut(Literal* lit);
 
@@ -45,8 +45,7 @@ private:
    */
   DHMap<Literal*, int> _groundNames;
 
-  /** Index that takes care of the sharing and merging of clauses */
-  ClauseSharing _sharing;
+  SaturationAlgorithm* _sa;
 };
 
 };

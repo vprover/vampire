@@ -75,11 +75,10 @@ long long LRS::estimatedReachableCount()
   return (processed*timeLeft)/timeSpent;
 }
 
-SaturationResult LRS::saturate()
+SaturationResult LRS::doSaturation()
 {
-  CALL("LRS::saturate");
+  CALL("LRS::doSaturation");
 
-  handleSaturationStart();
   bool complete=env.options->complete();
 
   for (;;) {
@@ -87,10 +86,7 @@ SaturationResult LRS::saturate()
 
     while (! _unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();
-
-      if (isRefutation(c)) {
-    	return SaturationResult(Statistics::REFUTATION, c);
-      }
+      ASS(!isRefutation(c));
 
       bool inPassive=false;
       if(forwardSimplify(c)) {

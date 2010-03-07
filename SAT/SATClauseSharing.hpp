@@ -1,11 +1,11 @@
 /**
- * @file ClauseSharing.hpp
- * Defines class ClauseSharing.
+ * @file SATClauseSharing.hpp
+ * Defines class SATClauseSharing.
  */
 
 
-#ifndef __ClauseSharing__
-#define __ClauseSharing__
+#ifndef __SATClauseSharing__
+#define __SATClauseSharing__
 
 #include "../Debug/Assertion.hpp"
 
@@ -19,13 +19,13 @@ namespace SAT {
 
 using namespace Lib;
 
-class ClauseSharing
+class SATClauseSharing
 {
 public:
   SATClause* insert(SATClause* c);
   void wipe();
 
-  static ClauseSharing* getInstance();
+  static SATClauseSharing* getInstance();
 
   SATClauseIterator content() { return pvi( ClauseSet::Iterator(_storage) ); }
 
@@ -40,4 +40,4 @@ private:
 
 };
 
-#endif /* __ClauseSharing__ */
+#endif /* __SATClauseSharing__ */

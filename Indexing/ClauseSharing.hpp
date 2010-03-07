@@ -10,7 +10,7 @@
 
 #include "ClauseVariantIndex.hpp"
 
-namespace Indexing 
+namespace Indexing
 {
 
 using namespace Kernel;
@@ -21,7 +21,8 @@ public:
   enum InsertionResult {
     INSERTED,
     OLD_MODIFIED,
-    OLD
+    OLD,
+    ALREADY_THERE
   };
   Clause* insert(Clause* c, InsertionResult& res);
   void insertNew(Clause* c);

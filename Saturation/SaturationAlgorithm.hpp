@@ -52,7 +52,7 @@ public:
   void addForwardSimplifierToFront(ForwardSimplificationEngineSP fwSimplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngineSP bwSimplifier);
 
-  virtual SaturationResult saturate() = 0;
+  SaturationResult saturate();
 
   void addInputClauses(ClauseIterator cit);
 
@@ -61,22 +61,27 @@ public:
 
   void removeActiveOrPassiveClause(Clause* cl);
 
+  void onParenthood(Clause* cl, Clause* parent);
+
   virtual ClauseContainer* getSimplificationClauseContainer() = 0;
   virtual ClauseContainer* getGenerationClauseContainer() = 0;
 
   Limits* getLimits() { return &_limits; }
   IndexManager* getIndexManager() { return &_imgr; }
+  ClauseSharing* getSharing() { return &_sharing; }
 
   static SaturationAlgorithmSP createFromOptions();
 
 protected:
+  virtual SaturationResult doSaturation() = 0;
+
   void addInputSOSClause(Clause* cl);
 
   void newClausesToUnprocessed();
 
   void addUnprocessedClause(Clause* cl);
 
-  bool isRefutation(Clause* c);
+  static bool isRefutation(Clause* c);
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   bool addToPassive(Clause* c);
@@ -103,21 +108,21 @@ protected:
 
   void onAllProcessed();
 
-  void handleSaturationStart();
   int elapsedTime();
 
+
+  struct RefutationFoundExceptionStruct;
 
 private:
   void passiveRemovedHandler(Clause* cl);
   void activeRemovedHandler(Clause* cl);
 
   void addInputClause(Clause* cl);
-  void addUnprocessedFinalClause(Clause* cl);
-  Clause* handleEmptyClause(Clause* cl);
+
+  void handleEmptyClause(Clause* cl);
+  void performEmptyClauseParentSubsumption(Clause* cl, BDDNode* emptyClauseProp);
 
   Clause* doImmediateSimplification(Clause* cl, bool fwDemodulation=false);
-
-  void performEmptyClauseParentSubsumption(Clause* cl, BDDNode* emptyClauseProp);
 
   void checkForPreprocessorSymbolElimination(Clause* cl);
 
@@ -159,8 +164,30 @@ protected:
   PropositionalToBDDISE _propToBDDConv;
   ConsequenceFinder* _consFinder;
 
+  /** Index that takes care of the sharing and merging of clauses */
+  ClauseSharing _sharing;
+
+
+  /** Number that would be used for the next symbol-eliminating
+   * inference conclusion that is output */
   unsigned _symElNextClauseNumber;
+
+  /**
+   * Contains record of rewrites on symbol-eliminating clauses
+   *
+   * Is reset in the call to the @b onAllProcessed method.
+   *
+   * It is used so that we output symbol eliminating clauses
+   * after they are simplified and shown to be non-redundant.
+   */
   DHMap<Clause*,Clause*> _symElRewrites;
+
+  /**
+   * Contains record of colors that were aliminated in
+   * symbol-eliminating clauses
+   *
+   * Is reset in the call to the @b onAllProcessed method.
+   */
   DHMap<Clause*,Color> _symElColors;
 
   SubscriptionData _passiveContRemovalSData;

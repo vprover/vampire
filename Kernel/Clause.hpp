@@ -219,6 +219,11 @@ public:
   void assertValid();
 #endif
 
+  /** Mark clause as input clause for the saturation algorithm */
+  void markInput() { _input=1; }
+  /** Clause is an input clause for the saturation algorithm */
+  bool isInput() { return _input; }
+
   /** Return the propositional part of the clause */
   BDDNode* prop() const { return _prop; }
   void setProp(BDDNode* prop);
@@ -296,9 +301,11 @@ public:
   float getEffectiveWeight();
 protected:
   /** number of literals */
-  unsigned _length : 30;
+  unsigned _length : 29;
   /** clause color, or COLOR_INVALID if not determined yet */
   mutable unsigned _color : 2;
+  /** clause is an input clause for the saturation algorithm */
+  unsigned _input : 1;
   /** number of selected literals */
   unsigned _selected;
   /** age */

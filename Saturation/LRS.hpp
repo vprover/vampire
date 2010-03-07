@@ -24,8 +24,8 @@ public:
   LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
   : Otter(passiveContainer,selector) {}
 
-  //overrides Otter::saturate
-  SaturationResult saturate();
+  //overrides Otter::doSaturation
+  SaturationResult doSaturation();
 
 protected:
   bool shouldUpdateLimits();

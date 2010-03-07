@@ -17,6 +17,8 @@
 #include "../Indexing/TermSharing.hpp"
 #include "../Inferences/PropositionalToBDDISE.hpp"
 
+#include "SaturationAlgorithm.hpp"
+
 #include "Splitter.hpp"
 
 namespace Saturation
@@ -28,24 +30,38 @@ using namespace Inferences;
 
 #define REPORT_SPLITS 0
 
+void Splitter::init(SaturationAlgorithm* sa)
+{
+  CALL("Splitter::init");
+
+  _sa=sa;
+}
+
 /**
- * Split clause @b cl into components. Return iterator that yields
- * new and modified components.
+ * Try to split clause @b cl into components, return true if successful
  *
- * A modification of a component means a change of its propositional
- * part.
+ * When true is returned, the clause @b cl should not be kept in the
+ * run of the saturation algorithm.
+ *
+ * The splitted components (or the clause replacement) are added to the
+ * @b SaturationAlgorithm object through the @b addNewClause function,
+ * also the function @b onParenthood is called with appropriate arguments.
  */
-ClauseIterator Splitter::doSplitting(Clause* cl)
+bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
 
   BDD* bdd=BDD::instance();
 
+  if(env.options->splitting()==Options::RA_INPUT_ONLY && !cl->isInput()) {
+    return false;
+  }
+
   int clen=cl->length();
   ASS_G(clen,0);
 
   if(clen<=1) {
-    return handleNoSplit(cl);
+    return false;
   }
 
   //Master literal of an variable is the literal
@@ -81,7 +97,7 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
   int compCnt=components.getComponentCount();
 
   if(compCnt==1) {
-    return handleNoSplit(cl);
+    return false;
   }
 
   env.statistics->splittedClauses++;
@@ -150,7 +166,7 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
 	  //the propositional part of the master component is true only
 	  //due to already named components, so there's no point in adding
 	  //any clause
-	  return ClauseIterator::getEmpty();
+	  return true;
 	}
 	masterPremises.push(comp);
 	srec->namedComps.push(make_pair(compName, comp));
@@ -186,7 +202,7 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
     int compName=nameComponent(comp);
     if(!compName) {
       //The same component can appear multiple times.
-      //If compName==0 this happened, so we skip that case.
+      //If compName==0, this happened, so we skip that case.
       continue;
     }
 
@@ -194,7 +210,7 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
 
     if(bdd->isTrue(newMasterProp)) {
       delete srec;
-      return ClauseIterator::getEmpty();
+      return true;
     }
 
     masterPremises.push(comp);
@@ -205,7 +221,8 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
 #endif
   }
 
-  InferenceStore::ClauseSpec splittedMCompCS=InferenceStore::getClauseSpec(masterComp, newMasterProp);
+  InferenceStore::ClauseSpec splittedMCompCS=
+    InferenceStore::getClauseSpec(masterComp, newMasterProp);
 
   srec->result=splittedMCompCS;
   InferenceStore::instance()->recordSplitting(srec, masterPremises.size(),
@@ -214,7 +231,8 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
   BDDNode* oldProp=masterComp->prop();
   masterComp->setProp( bdd->conjunction(oldProp, newMasterProp) );
   if(oldProp!=masterComp->prop() && newMasterProp!=masterComp->prop()) {
-    InferenceStore::instance()->recordMerge(masterComp, oldProp, newMasterProp, masterComp->prop());
+    InferenceStore::instance()->
+      recordMerge(masterComp, oldProp, newMasterProp, masterComp->prop());
   }
 
   ASS(!bdd->isTrue(masterComp->prop()));
@@ -224,18 +242,20 @@ ClauseIterator Splitter::doSplitting(Clause* cl)
 #endif
 
   if(oldProp!=masterComp->prop()) {
-    return getPersistentIterator(getConcatenatedIterator(
-	    getSingletonIterator(masterComp),
-	    Stack<Clause*>::Iterator(unnamedComponentStack)) );
-  } else {
-    return getPersistentIterator(
-	    Stack<Clause*>::Iterator(unnamedComponentStack) );
+    _sa->addNewClause(masterComp);
+    _sa->onParenthood(masterComp, cl);
+  }
+  while(unnamedComponentStack.isNonEmpty()) {
+    Clause* comp=unnamedComponentStack.pop();
+    _sa->addNewClause(comp);
+    _sa->onParenthood(comp, cl);
   }
 
 #if REPORT_SPLITS
   cout<<"^^^^^^^^^^^^\n";
 #endif
 
+  return true;
 }
 
 bool Splitter::canSplitOut(Literal* lit)
@@ -244,41 +264,6 @@ bool Splitter::canSplitOut(Literal* lit)
     (!env.options->showSymbolElimination() || lit->skip()) &&
     !env.signature->getPredicate(lit->functor())->cfName();
 }
-
-
-//void Splitter::getPropPredName(Literal* lit, int& name, Clause*& premise, bool& newPremise)
-//{
-//  CALL("Splitter::getPropPredName");
-//  ASS_EQ(lit->arity(), 0);
-//
-//  unsigned pred=lit->functor();
-//  int* pname;
-//  if(_propPredNames.getValuePtr(pred, pname)) {
-//    *pname=BDD::instance()->getNewVar( pred );
-//
-//    if(env.options->showDefinitions()) {
-//      env.out << "Definition: " << BDD::instance()->getPropositionalPredicateName(*pname)
-//	    << " <=> " << env.signature->predicateName(pred) << endl;
-//    }
-//  }
-//  name=*pname;
-//
-//  Clause** ppremise;
-//  if(lit->isPositive()) {
-//    _propPredPosNamePremises.getValuePtr(pred, ppremise, 0);
-//  } else {
-//    _propPredNegNamePremises.getValuePtr(pred, ppremise, 0);
-//  }
-//  newPremise=*ppremise;
-//  if(!*ppremise) {
-//    Clause* cl=new(1) Clause(1,Clause::AXIOM,new Inference(Inference::CLAUSE_NAMING));
-//    (*cl)[0]=lit;
-//    cl->setProp( BDD::instance()->getAtomic(name, lit->isNegative()) );
-//    InferenceStore::instance()->recordNonPropInference(cl);
-//    *ppremise=cl;
-//  }
-//  premise=*ppremise;
-//}
 
 /**
  * Return component of @b cl that contains literals in array @b lits
@@ -291,7 +276,7 @@ Clause* Splitter::getComponent(Clause* cl, Literal** lits, unsigned compLen, int
 {
   CALL("Splitter::getComponent");
 
-  Clause* comp=_sharing.tryGet(lits,compLen);
+  Clause* comp=_sa->getSharing()->tryGet(lits,compLen);
   newComponent=!comp;
   if(comp) {
     if(!_clauseNames.find(comp, name)) {
@@ -316,7 +301,7 @@ Clause* Splitter::getComponent(Clause* cl, Literal** lits, unsigned compLen, int
     comp->setProp(BDD::instance()->getTrue());
     InferenceStore::instance()->recordNonPropInference(comp);
 
-    _sharing.insertNew(comp);
+    _sa->getSharing()->insertNew(comp);
   }
   return comp;
 }
@@ -388,24 +373,6 @@ BDDNode* Splitter::getNameProp(int name)
   ASS_NEQ(name,0);
 
   return BDD::instance()->getAtomic(abs(name), name>0);
-}
-
-ClauseIterator Splitter::handleNoSplit(Clause* cl)
-{
-  CALL("Splitter::handleNoSplit");
-  ASS_G(cl->length(), 0);
-  //no propositional literal that can be bddized should get here
-  ASS(cl->length()!=1 || !PropositionalToBDDISE::canBddize((*cl)[0]));
-
-  ClauseSharing::InsertionResult res;
-  Clause* insCl=_sharing.insert(cl, res);
-
-  if(res!=ClauseSharing::OLD) {
-    return pvi( getSingletonIterator(insCl) );
-  }
-  else {
-    return ClauseIterator::getEmpty();
-  }
 }
 
 

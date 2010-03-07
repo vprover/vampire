@@ -23,7 +23,7 @@ using namespace Kernel;
  * of the literals in the @b lits array, return it.
  * Otherwise return 0.
  *
- * For variants we consider only the non-propositional parts 
+ * For variants we consider only the non-propositional parts
  * of clauses.
  */
 Clause* ClauseSharing::tryGet(Literal** lits, unsigned len)
@@ -39,11 +39,11 @@ Clause* ClauseSharing::tryGet(Literal** lits, unsigned len)
   return res;
 }
 
-/** 
- * Return a variant of the clause @b c if it is contained in 
+/**
+ * Return a variant of the clause @b c if it is contained in
  * the sharing index, otherwise return 0
  *
- * For variants we consider only the non-propositional parts 
+ * For variants we consider only the non-propositional parts
  * of clauses.
  */
 Clause* ClauseSharing::tryGet(Clause* c)
@@ -54,10 +54,10 @@ Clause* ClauseSharing::tryGet(Clause* c)
 }
 
 /**
- * Insert a clause @b c that is new (it does not have 
+ * Insert a clause @b c that is new (it does not have
  * a variant in the index)
  *
- * For variants we consider only the non-propositional parts 
+ * For variants we consider only the non-propositional parts
  * of clauses.
  */
 void ClauseSharing::insertNew(Clause* c)
@@ -75,13 +75,13 @@ void ClauseSharing::insertNew(Clause* c)
 }
 
 /**
- * If a variant of the clause @b cl is already present in the 
+ * If a variant of the clause @b cl is already present in the
  * sharing index, merge their propositional parts. Otherwise
  * insert @b cl into the index. Assign the information about
  * what has happened into @b res and return the clause that is
  * in the index.
  *
- * For variants we consider only the non-propositional parts 
+ * For variants we consider only the non-propositional parts
  * of clauses.
  */
 Clause* ClauseSharing::insert(Clause* cl, InsertionResult& res)
@@ -91,6 +91,11 @@ Clause* ClauseSharing::insert(Clause* cl, InsertionResult& res)
   ClauseIterator variants=_index.retrieveVariants(cl->literals(), cl->length());
   if(variants.hasNext()) {
     Clause* comp=variants.next();
+
+    if(comp==cl) {
+      res=ALREADY_THERE;
+      return cl;
+    }
 
     ASS(!variants.hasNext());
 

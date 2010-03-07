@@ -15,7 +15,7 @@
 #include "../Lib/Sort.hpp"
 
 #include "SATClause.hpp"
-#include "ClauseSharing.hpp"
+#include "SATClauseSharing.hpp"
 //#include "Inference.hpp"
 
 #include "SingleWatchSAT.hpp"
@@ -75,7 +75,7 @@ void SingleWatchSAT::reset()
 {
   CALL("SingleWatchSAT::reset");
 
-  ClauseSharing::getInstance()->wipe();
+  SATClauseSharing::getInstance()->wipe();
 
   _currTimeStamp=1;
 }
@@ -89,7 +89,7 @@ SATClauseIterator SingleWatchSAT::learntClauses()
 {
   CALL("SingleWatchSAT::learntClauses");
 
-  return pvi( getFilteredIterator(ClauseSharing::getInstance()->content(), isLearnt) );
+  return pvi( getFilteredIterator(SATClauseSharing::getInstance()->content(), isLearnt) );
 }
 
 //struct ClauseConflictnessComparator {
@@ -172,7 +172,7 @@ SATClause* SingleWatchSAT::resolveClauses(SATClause* c1, SATClause* c2)
 
   res->resetSATAlgorithmData();
 
-  res=ClauseSharing::getInstance()->insert(res);
+  res=SATClauseSharing::getInstance()->insert(res);
   res->incGenCounter();
 
 

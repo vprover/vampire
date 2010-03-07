@@ -20,7 +20,7 @@ class Otter
 {
 public:
   Otter(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector);
-  SaturationResult saturate();
+  SaturationResult doSaturation();
 
   ClauseContainer* getSimplificationClauseContainer();
   ClauseContainer* getGenerationClauseContainer();

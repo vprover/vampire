@@ -1,16 +1,16 @@
 /**
- * @file ClauseSharing.cpp
- * Implements class ClauseSharing.
+ * @file SATClauseSharing.cpp
+ * Implements class SATClauseSharing.
  */
 
 #include "../Lib/Hash.hpp"
 
-#include "ClauseSharing.hpp"
+#include "SATClauseSharing.hpp"
 
 namespace SAT
 {
 
-SATClause* ClauseSharing::insert(SATClause* c)
+SATClause* SATClauseSharing::insert(SATClause* c)
 {
   SATClause* res=_storage.insert(c);
   if(res!=c) {
@@ -19,7 +19,7 @@ SATClause* ClauseSharing::insert(SATClause* c)
   return res;
 }
 
-void ClauseSharing::wipe()
+void SATClauseSharing::wipe()
 {
   ClauseSet::Iterator it(_storage);
   while(it.hasNext()) {
@@ -33,23 +33,23 @@ void ClauseSharing::wipe()
 }
 
 
-ClauseSharing* ClauseSharing::getInstance()
+SATClauseSharing* SATClauseSharing::getInstance()
 {
-  static ClauseSharing* inst=0;
+  static SATClauseSharing* inst=0;
   if(!inst) {
-    inst=new ClauseSharing();
+    inst=new SATClauseSharing();
   }
   return inst;
 }
 
 
-unsigned ClauseSharing::Hasher::hash(SATClause* c)
+unsigned SATClauseSharing::Hasher::hash(SATClause* c)
 {
   return Hash::hash(reinterpret_cast<const unsigned char*>(c->literals()),
 	  c->length()*sizeof(SATLiteral));
 }
 
-bool ClauseSharing::Hasher::equals(SATClause* c1, SATClause* c2)
+bool SATClauseSharing::Hasher::equals(SATClause* c1, SATClause* c2)
 {
   if(c1->length()!=c2->length()) {
     return false;
