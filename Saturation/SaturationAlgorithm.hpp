@@ -62,9 +62,15 @@ public:
   void removeActiveOrPassiveClause(Clause* cl);
 
   void onParenthood(Clause* cl, Clause* parent);
+  void onNonRedundantClause(Clause* c);
 
   virtual ClauseContainer* getSimplificationClauseContainer() = 0;
   virtual ClauseContainer* getGenerationClauseContainer() = 0;
+
+  ClauseIterator activeClauses();
+  ClauseIterator passiveClauses();
+  size_t activeClauseCount();
+  size_t passiveClauseCount();
 
   Limits* getLimits() { return &_limits; }
   IndexManager* getIndexManager() { return &_imgr; }
@@ -84,25 +90,26 @@ protected:
   static bool isRefutation(Clause* c);
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
-  bool addToPassive(Clause* c);
+  void addToPassive(Clause* c);
   void reanimate(Clause* c);
   bool activate(Clause* c);
 
   virtual void onSOSClauseAdded(Clause* c) {}
   void onActiveAdded(Clause* c);
   virtual void onActiveRemoved(Clause* c);
-  void onPassiveAdded(Clause* c);
+  virtual void onPassiveAdded(Clause* c);
   virtual void onPassiveRemoved(Clause* c);
   void onPassiveSelected(Clause* c);
   void onUnprocessedAdded(Clause* c);
   void onUnprocessedRemoved(Clause* c);
-  void onUnprocessedSelected(Clause* c);
+  virtual void onUnprocessedSelected(Clause* c);
   void onNewClause(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
   void onSymbolElimination(Color eliminated, Clause* c, bool nonRedundant=false);
   void onClauseReduction(Clause* cl, Clause* replacement, Clause* premise,
       Clause* reductionPremise=0, bool forward=true);
-  void onNonRedundantClause(Clause* c);
+
+  virtual void onClauseRetained(Clause* cl);
 
   void outputSymbolElimination(Color eliminated, Clause* c);
 
@@ -163,6 +170,8 @@ protected:
   Splitter _splitter;
   PropositionalToBDDISE _propToBDDConv;
   ConsequenceFinder* _consFinder;
+
+  BDDMarkingSubsumption* _bddMarkingSubsumption;
 
   /** Index that takes care of the sharing and merging of clauses */
   ClauseSharing _sharing;

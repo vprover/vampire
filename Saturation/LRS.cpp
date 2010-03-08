@@ -20,6 +20,23 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+void LRS::onUnprocessedSelected(Clause* c)
+{
+  CALL("LRS::onUnprocessedSelected");
+
+  SaturationAlgorithm::onUnprocessedSelected(c);
+
+  if(shouldUpdateLimits()) {
+    long long estimatedReachable=estimatedReachableCount();
+    if(estimatedReachable>=0) {
+      _passive->updateLimits(estimatedReachable);
+      if(_complete) {
+        Limits* lims=getLimits();
+        _complete=!lims->weightLimited() && !lims->ageLimited();
+      }
+    }
+  }
+}
 
 /**
  * Return true if it is time to update age and weight
@@ -88,15 +105,12 @@ SaturationResult LRS::doSaturation()
       Clause* c = _unprocessed->pop();
       ASS(!isRefutation(c));
 
-      bool inPassive=false;
       if(forwardSimplify(c)) {
-	backwardSimplify(c);
-	inPassive=addToPassive(c);
-      }
-      if(inPassive) {
+	onClauseRetained(c);
+	addToPassive(c);
 	ASS_EQ(c->store(), Clause::PASSIVE);
-	_simplCont.add(c);
-      } else {
+      }
+      else {
 	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
       }
@@ -105,16 +119,6 @@ SaturationResult LRS::doSaturation()
 
       if (env.timeLimitReached()) {
   	return SaturationResult(Statistics::TIME_LIMIT);
-      }
-      if(shouldUpdateLimits()) {
-	long long estimatedReachable=estimatedReachableCount();
-        if(estimatedReachable>=0) {
-          _passive->updateLimits(estimatedReachable);
-          if(complete) {
-            Limits* lims=getLimits();
-            complete=!lims->weightLimited() && !lims->ageLimited();
-          }
-        }
       }
     }
     onAllProcessed();

@@ -20,20 +20,28 @@ class Otter
 {
 public:
   Otter(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector);
-  SaturationResult doSaturation();
 
   ClauseContainer* getSimplificationClauseContainer();
   ClauseContainer* getGenerationClauseContainer();
 
 protected:
 
+  SaturationResult doSaturation();
+
   //overrides SaturationAlgorithm::onSOSClauseAdded
   void onSOSClauseAdded(Clause* cl);
 
   //overrides SaturationAlgorithm::onActiveRemoved
   void onActiveRemoved(Clause* cl);
+
+  //overrides SaturationAlgorithm::onPassiveAdded
+  void onPassiveAdded(Clause* cl);
   //overrides SaturationAlgorithm::onPassiveRemoved
   void onPassiveRemoved(Clause* cl);
+
+  //overrides SaturationAlgorithm::onClauseRetained
+  void onClauseRetained(Clause* cl);
+
 
 
   void handleUnsuccessfulActivation(Clause* c);

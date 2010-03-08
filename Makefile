@@ -114,6 +114,7 @@ VI_OBJ = Indexing/ClauseSharing.o\
          Indexing/TermSubstitutionTree.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
+         Inferences/BDDMarkingSubsumption.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
          Inferences/EqualityFactoring.o\

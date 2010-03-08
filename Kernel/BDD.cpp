@@ -170,11 +170,11 @@ BDDNode* BDD::conjunction(BDDNode* n1, BDDNode* n2)
 {
   CALL("BDD::conjunction");
   BDDNode* res=getBinaryFnResult(n1,n2, ConjunctionFn(this));
-#if BDD_MARKING
+
   if(isRefuted(n1) && isRefuted(n2)) {
     markRefuted(res);
   }
-#endif
+
   return res;
 }
 
@@ -185,11 +185,11 @@ BDDNode* BDD::disjunction(BDDNode* n1, BDDNode* n2)
 {
   CALL("BDD::disjunction");
   BDDNode* res=getBinaryFnResult(n1,n2, DisjunctionFn(this));
-#if BDD_MARKING
+
   if(isRefuted(n1) || isRefuted(n2)) {
     markRefuted(res);
   }
-#endif
+
   return res;
 }
 
@@ -212,11 +212,11 @@ bool BDD::isXOrNonYConstant(BDDNode* x, BDDNode* y, bool resValue)
   CALL("BDD::isXOrNonYConstant");
   if(resValue) {
     bool res=hasConstantResult<true>(x,y, XOrNonYFn(this));
-#if BDD_MARKING
+
     if(res && isRefuted(y)) {
       markRefuted(x);
     }
-#endif
+
     return res;
   }
   else {
@@ -300,13 +300,13 @@ BDDNode* BDD::getBinaryFnResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 	BDDNode* arg1=results.pop();
 	BDDNode* arg2=results.pop();
 	cache.insert(make_pair(arg1, arg2), res);
-#if BDD_MARKING
+
 	if(BinBoolFn::op==DISJUNCTION) {
 	  if(isRefuted(arg1) || isRefuted(arg2)) {
 	    markRefuted(res);
 	  }
 	}
-#endif
+
       }
       results.push(res);
     } else {

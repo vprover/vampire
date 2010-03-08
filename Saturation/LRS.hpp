@@ -24,14 +24,20 @@ public:
   LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
   : Otter(passiveContainer,selector) {}
 
+
+protected:
+
   //overrides Otter::doSaturation
   SaturationResult doSaturation();
 
-protected:
+  //overrides SaturationAlgorithm::onUnprocessedSelected
+  void onUnprocessedSelected(Clause* c);
+
   bool shouldUpdateLimits();
 
   long long estimatedReachableCount();
 
+  bool _complete;
 };
 
 };

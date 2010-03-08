@@ -14,6 +14,7 @@ namespace Indexing
 {
 
 using namespace Kernel;
+using namespace Saturation;
 
 class ClauseSharing
 {
@@ -24,12 +25,19 @@ public:
     OLD,
     ALREADY_THERE
   };
+
+  void init(SaturationAlgorithm* sa);
+
+  bool doSharing(Clause* cl);
+
   Clause* insert(Clause* c, InsertionResult& res);
   void insertNew(Clause* c);
   Clause* tryGet(Literal** lits, unsigned len);
   Clause* tryGet(Clause* c);
 private:
   ClauseVariantIndex _index;
+
+  SaturationAlgorithm* _sa;
 };
 
 };

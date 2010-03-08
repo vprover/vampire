@@ -43,6 +43,15 @@ void Otter::onActiveRemoved(Clause* cl)
   SaturationAlgorithm::onActiveRemoved(cl);
 }
 
+void Otter::onPassiveAdded(Clause* cl)
+{
+  CALL("Otter::onPassiveAdded");
+
+  if(cl->store()==Clause::PASSIVE) {
+    _simplCont.add(cl);
+  }
+}
+
 void Otter::onPassiveRemoved(Clause* cl)
 {
   CALL("Otter::onPassiveRemoved");
@@ -54,6 +63,12 @@ void Otter::onPassiveRemoved(Clause* cl)
   SaturationAlgorithm::onPassiveRemoved(cl);
 }
 
+void Otter::onClauseRetained(Clause* cl)
+{
+  CALL("Otter::onClauseRetained");
+
+  backwardSimplify(cl);
+}
 
 void Otter::onSOSClauseAdded(Clause* cl)
 {
@@ -90,15 +105,12 @@ SaturationResult Otter::doSaturation()
       Clause* c = _unprocessed->pop();
       ASS(!isRefutation(c));
 
-      bool inPassive=false;
       if(forwardSimplify(c)) {
-	backwardSimplify(c);
-	inPassive=addToPassive(c);
-      }
-      if(inPassive) {
+	onClauseRetained(c);
+	addToPassive(c);
 	ASS_EQ(c->store(), Clause::PASSIVE);
-	_simplCont.add(c);
-      } else {
+      }
+      else {
 	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
       }

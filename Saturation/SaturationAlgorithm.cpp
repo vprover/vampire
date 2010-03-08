@@ -3,8 +3,6 @@
  * Implementing SaturationAlgorithm class.
  */
 
-#include <math.h>
-
 #include "../Lib/DHSet.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Metaiterators.hpp"
@@ -14,6 +12,8 @@
 #include "../Lib/VirtualIterator.hpp"
 
 #include "../Indexing/LiteralIndexingStructure.hpp"
+
+#include "../Inferences/BDDMarkingSubsumption.hpp"
 
 #include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
@@ -132,6 +132,33 @@ SaturationAlgorithm::~SaturationAlgorithm()
   delete _active;
 }
 
+ClauseIterator SaturationAlgorithm::activeClauses()
+{
+  CALL("SaturationAlgorithm::activeClauses");
+
+  LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
+
+  return pvi( getMappingIterator(gis->getAll(), SLQueryResult::ClauseExtractFn()) );
+}
+
+ClauseIterator SaturationAlgorithm::passiveClauses()
+{
+  CALL("SaturationAlgorithm::passiveClauses");
+
+  return _passive->iterator();
+}
+
+size_t SaturationAlgorithm::activeClauseCount()
+{
+  return _active->size();
+}
+
+size_t SaturationAlgorithm::passiveClauseCount()
+{
+  return _passive->size();
+}
+
+
 /**
  * A function that is called when a clause is added to the active clause container.
  */
@@ -185,71 +212,9 @@ void SaturationAlgorithm::onAllProcessed()
     _emptyBSplitClauses.reset();
   }
 
-#if BDD_MARKING
-  if(env.options->bddMarkingSubsumption()) {
-    static Stack<Clause*> toRemove(64);
-    static DHSet<Clause*> checked;
-    static BDD* bdd=BDD::instance();
-
-    static int counter1=0;
-    counter1++;
-    if(counter1>sqrt((float)_active->size())) {
-      counter1=0;
-
-      TimeCounter tc(TC_BDD_MARKING_SUBSUMPTION);
-
-      //check active clauses
-      checked.reset();
-      LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
-      SLQueryResultIterator rit=gis->getAll();
-      while(rit.hasNext()) {
-	Clause* cl=rit.next().clause;
-	if(checked.find(cl)) {
-	  continue;
-	}
-	checked.insert(cl);
-	if(bdd->isRefuted(cl->prop())) {
-	  toRemove.push(cl);
-	}
-      }
-    }
-
-    static int counter2=0;
-    counter2++;
-    if(counter2>sqrt((float)_passive->size())) {
-      counter2=0;
-
-      TimeCounter tc(TC_BDD_MARKING_SUBSUMPTION);
-
-      //check passive clauses
-      checked.reset();
-      ClauseIterator cit=_passive->iterator();
-      while(cit.hasNext()) {
-	Clause* cl=cit.next();
-	if(cl->store()!=Clause::PASSIVE || checked.find(cl)) {
-	  continue;
-	}
-	checked.insert(cl);
-	if(bdd->isRefuted(cl->prop())) {
-	  toRemove.push(cl);
-	}
-      }
-    }
-
-    if(toRemove.isNonEmpty()) {
-      TimeCounter tc(TC_BDD_MARKING_SUBSUMPTION);
-
-      while(toRemove.isNonEmpty()) {
-	Clause* cl=toRemove.pop();
-
-	cl->setProp(bdd->getTrue());
-	removeActiveOrPassiveClause(cl);
-	env.statistics->subsumedByMarking++;
-      }
-    }
+  if(_bddMarkingSubsumption) {
+    _bddMarkingSubsumption->onAllProcessed();
   }
-
-#endif
 }
 
 /**
@@ -398,11 +363,23 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
     }
   }
 
+  if(_bddMarkingSubsumption) {
+    _bddMarkingSubsumption->onNewPropositionalClause(c);
+  }
+
   if(_consFinder) {
     _consFinder->onNewPropositionalClause(c);
   }
 }
 
+/**
+ * Called when a clause successfully passes the forward simplification
+ */
+void SaturationAlgorithm::onClauseRetained(Clause* cl)
+{
+  CALL("SaturationAlgorithm::onClauseRetained");
+
+}
 
 /**
  * Called whenever a clause is simplified or deleted at any point of the
@@ -875,12 +852,9 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
     return;
   }
 
-#if BDD_MARKING
-  if(env.options->bddMarkingSubsumption() && BDD::instance()->isRefuted(cl->prop())) {
-    env.statistics->subsumedByMarking++;
+  if(_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
     return;
   }
-#endif
 
   _newClauses.push(cl);
 }
@@ -972,25 +946,8 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   }
 
   bool performSharing=_performSplitting;
-  if(performSharing) {
-    ClauseSharing::InsertionResult res;
-    Clause* shCl=_sharing.insert(cl, res);
-
-    if(cl!=shCl) {
-      if(res==ClauseSharing::OLD_MODIFIED) {
-        addNewClause(shCl);
-      }
-      onParenthood(shCl, cl);
-      if(res==ClauseSharing::OLD) {
-	if(shCl->store()==Clause::ACTIVE || shCl->store()==Clause::PASSIVE ||
-	    shCl->store()==Clause::REACTIVATED) {
-	  onNonRedundantClause(shCl);
-	}
-      }
-      ASS(res==ClauseSharing::OLD || res==ClauseSharing::OLD_MODIFIED);
-      return;
-    }
-    ASS(res==ClauseSharing::INSERTED || res==ClauseSharing::ALREADY_THERE);
+  if(performSharing && _sharing.doSharing(cl)) {
+    return;
   }
 
   cl->setStore(Clause::UNPROCESSED);
@@ -1025,12 +982,6 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 
   ASS(!bdd->isFalse(cl->prop()));
   env.statistics->bddPropClauses++;
-
-#if BDD_MARKING
-  if(env.options->bddMarkingSubsumption()) {
-    bdd->markRefuted(cl->prop());
-  }
-#endif
 
   if(env.options->satSolverForEmptyClause()) {
     static BDDConjunction ecProp;
@@ -1207,7 +1158,17 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     cl->incRefCnt();
   }
 
-  return performer.clauseKept();
+  if(!performer.clauseKept()) {
+    return false;
+  }
+
+  if(env.options->backtrackingSplitting()==Options::BS_ON) {
+    if(_bsplitter.split(cl)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -1310,24 +1271,17 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
 }
 
 /**
- * Add clause @b c to the passive container and return true iff it was indeed added
+ * Add clause @b c to the passive container
  */
-bool SaturationAlgorithm::addToPassive(Clause* cl)
+void SaturationAlgorithm::addToPassive(Clause* cl)
 {
   CALL("SaturationAlgorithm::addToPassive");
   ASS_EQ(cl->store(), Clause::UNPROCESSED);
-
-  if(env.options->backtrackingSplitting()==Options::BS_ON) {
-    if(_bsplitter.split(cl)) {
-      return false;
-    }
-  }
 
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
 
   _passive->add(cl);
-  return true;
 }
 
 /**
@@ -1351,12 +1305,10 @@ bool SaturationAlgorithm::activate(Clause* cl)
       return false;
     }
   }
-#if BDD_MARKING
-  if(env.options->bddMarkingSubsumption() && BDD::instance()->isRefuted(cl->prop())) {
-    env.statistics->subsumedByMarking++;
+
+  if(_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
     return false;
   }
-#endif
 
   if(_consFinder && _consFinder->isRedundant(cl)) {
     return false;
@@ -1426,11 +1378,16 @@ SaturationResult SaturationAlgorithm::saturate()
 {
   CALL("SaturationALgorithm::saturate");
 
+  _sharing.init(this);
   _splitter.init(this);
   _bsplitter.init(this);
   if(_consFinder) {
     _consFinder->init(this);
   }
+  if(_bddMarkingSubsumption) {
+    _bddMarkingSubsumption->init(this);
+  }
+
   _startTime=env.timer->elapsedMilliseconds();
 
   try

@@ -36,6 +36,15 @@ struct SLQueryResult
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
+
+  struct ClauseExtractFn
+  {
+    DECL_RETURN_TYPE(Clause*);
+    Clause* operator()(const SLQueryResult& res)
+    {
+      return res.clause;
+    }
+  };
 };
 
 /**

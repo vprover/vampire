@@ -189,6 +189,8 @@ typedef Lib::SmartPtr<ForwardSimplificationEngine> ForwardSimplificationEngineSP
 
 class BackwardSimplificationEngine;
 typedef Lib::SmartPtr<BackwardSimplificationEngine> BackwardSimplificationEngineSP;
+
+class BDDMarkingSubsumption;
 }
 
 namespace SAT

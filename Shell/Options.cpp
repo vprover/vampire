@@ -488,11 +488,7 @@ void Options::set (const char* name,const char* value, int index)
       _backwardSubsumption = onOffToBool(value,name);
       return;
     case BDD_MARKING_SUBSUMPTION:
-#if BDD_MARKING
       _bddMarkingSubsumption = onOffToBool(value,name);
-#else
-      USER_ERROR("bdd_marking_subsumption was not enabled at compilation");
-#endif
       return;
     case BS_TOWARD_HORN:
       _bsTowardHorn = onOffToBool(value,name);

@@ -9,6 +9,8 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/InferenceStore.hpp"
 
+#include "../Saturation/SaturationAlgorithm.hpp"
+
 #include "../Shell/Statistics.hpp"
 
 #include "ClauseSharing.hpp"
@@ -17,6 +19,45 @@ namespace Indexing
 {
 using namespace Lib;
 using namespace Kernel;
+using namespace Saturation;
+
+void ClauseSharing::init(SaturationAlgorithm* sa)
+{
+  CALL("ClauseSharing::init");
+
+  _sa=sa;
+}
+
+/**
+ * Make the clause @b cl shared, and return true if the clause
+ * should be retained (otherwise its variant is already in the
+ * sharing index)
+ */
+bool ClauseSharing::doSharing(Clause* cl)
+{
+  CALL("ClauseSharing::doSharing");
+
+  ClauseSharing::InsertionResult res;
+  Clause* shCl=insert(cl, res);
+
+  if(cl!=shCl) {
+    if(res==ClauseSharing::OLD_MODIFIED) {
+      _sa->addNewClause(shCl);
+    }
+    _sa->onParenthood(shCl, cl);
+    if(res==ClauseSharing::OLD) {
+	if(shCl->store()==Clause::ACTIVE || shCl->store()==Clause::PASSIVE ||
+	    shCl->store()==Clause::REACTIVATED) {
+	  _sa->onNonRedundantClause(shCl);
+	}
+    }
+    ASS(res==ClauseSharing::OLD || res==ClauseSharing::OLD_MODIFIED);
+    return true;
+  }
+  ASS(res==ClauseSharing::INSERTED || res==ClauseSharing::ALREADY_THERE);
+  return false;
+
+}
 
 /**
  * If the sharing index contains a clause that is variant

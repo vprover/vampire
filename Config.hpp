@@ -7,12 +7,6 @@
 #ifndef __Config__
 #define __Config__
 
-/**
- * Determines whether the support of bdd_marking_subsumption
- * is enabled.
- */
-#define BDD_MARKING 1
-
 
 /**
  * Determines, whether COMPIT unification benchmarks are

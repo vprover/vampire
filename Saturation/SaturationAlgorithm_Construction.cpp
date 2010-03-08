@@ -12,6 +12,7 @@
 
 #include "../Inferences/InferenceEngine.hpp"
 #include "../Inferences/BackwardDemodulation.hpp"
+#include "../Inferences/BDDMarkingSubsumption.hpp"
 #include "../Inferences/BinaryResolution.hpp"
 #include "../Inferences/Condensation.hpp"
 #include "../Inferences/EqualityFactoring.hpp"
@@ -176,6 +177,10 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
   
   if(env.options->mode()==Options::MODE_CONSEQUENCE_FINDING) {
     res->_consFinder=new ConsequenceFinder();
+  }
+
+  if(env.options->bddMarkingSubsumption()) {
+    res->_bddMarkingSubsumption=new BDDMarkingSubsumption();
   }
 
   return SaturationAlgorithmSP(res);

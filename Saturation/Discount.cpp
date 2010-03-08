@@ -39,12 +39,12 @@ SaturationResult Discount::doSaturation()
       Clause* c = _unprocessed->pop();
       ASS(!isRefutation(c));
 
-      bool inPassive=false;
       if(forwardSimplify(c)) {
-	inPassive=addToPassive(c);
+	onClauseRetained(c);
+	addToPassive(c);
+	ASS_EQ(c->store(), Clause::PASSIVE);
       }
-      ASS(!inPassive || c->store()==Clause::PASSIVE);
-      if(!inPassive) {
+      else {
 	ASS_EQ(c->store(), Clause::UNPROCESSED);
 	c->setStore(Clause::NONE);
       }

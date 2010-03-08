@@ -43,23 +43,13 @@ public:
   CLASS_NAME("BDDNode");
   USE_ALLOCATOR(BDDNode);
 private:
-  BDDNode()
-#if BDD_MARKING
-     : _refuted(false)
-#endif
-  {}
+  BDDNode() : _refuted(false) {}
   BDDNode(unsigned var, BDDNode* pos, BDDNode* neg) :
-#if BDD_MARKING
-      _refuted(false),
-#endif
-      _var(var), _pos(pos), _neg(neg) {}
+      _refuted(false), _var(var), _pos(pos), _neg(neg) {}
 
-#if BDD_MARKING
   bool _refuted : 1;
   unsigned _var : 31;
-#else
-  unsigned _var;
-#endif
+
   BDDNode* _pos;
   BDDNode* _neg;
 
@@ -129,10 +119,8 @@ public:
 
   void allowDefinitionOutput(bool allow);
 
-#if BDD_MARKING
   void markRefuted(BDDNode* n) { n->_refuted=true; }
   bool isRefuted(BDDNode* n) { return n->_refuted; }
-#endif
 
 private:
   void outputDefinition(string def);
