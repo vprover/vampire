@@ -26,11 +26,9 @@ public:
     AGE_WEIGHT_RATIO,
     ARITY_CHECK,
 
-    BACKTRACKING_SPLITTING,
     BACKWARD_DEMODULATION,
     BACKWARD_SUBSUMPTION,
     BDD_MARKING_SUBSUMPTION,
-    BS_TOWARD_HORN,
 
     CONDENSATION,
 
@@ -98,7 +96,12 @@ public:
     SINE_SELECTION,
     SINE_TOLERANCE,
     SOS,
+    SPLIT_AT_ACTIVATION,
+    SPLIT_GOAL_ONLY,
+    SPLIT_INPUT_ONLY,
+    SPLIT_POSITIVE,
     SPLITTING,
+    SPLITTING_WITH_BLOCKING,
     STATISTICS,
     SUPERPOSITION_FROM_VARIABLES,
     SYMBOL_PRECEDENCE,
@@ -174,18 +177,18 @@ public:
      OTTER = 2
    };
 
-  /** Possible values for splitting */
+  /** Possible values for activity of some inference rules */
   enum RuleActivity {
     RA_INPUT_ONLY = 0,
     RA_OFF = 1,
     RA_ON = 2
   };
 
-  /** Possible values for backtracking splitting */
-  enum BacktrackingSplittingMode {
-    BS_AT_ACTIVATION = 0,
-    BS_OFF = 1,
-    BS_ON = 2
+  /** Possible values for splitting */
+  enum SplittingMode {
+    SM_BACKTRACKING = 0,
+    SM_NOBACKTRACKING = 1,
+    SM_OFF = 2
   };
 
   enum LiteralComparisonMode {
@@ -268,7 +271,6 @@ public:
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
   bool weightIncrement() const { return _weightIncrement; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm; }
-  RuleActivity splitting() const { return _splitting; }
   int selection() const { return _selection; }
   bool setSelection(int newValue);
   string latexOutput() const { return _latexOutput; }
@@ -322,8 +324,12 @@ public:
   bool satSolverForEmptyClause() const { return _satSolverForEmptyClause; }
   bool emptyClauseSubsumption() const { return _emptyClauseSubsumption; }
   bool propositionalToBDD() const { return _propositionalToBDD; }
-  BacktrackingSplittingMode backtrackingSplitting() const { return _backtrackingSplitting; }
-  bool bsTowardHorn() const { return _bsTowardHorn; }
+  bool splitAtActivation() const { return _splitAtActivation; }
+  bool splitGoalOnly() const { return _splitGoalOnly; }
+  bool splitInputOnly() const { return _splitInputOnly; }
+  bool splitPositive() const { return _splitPositive; }
+  SplittingMode splitting() const { return _splitting; }
+  bool splittingWithBlocking() const { return _splittingWithBlocking; }
   bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold; }
   SineSelection sineSelection() const { return _sineSelection; }
@@ -357,11 +363,9 @@ private:
   int _weightRatio;
   bool _arityCheck;
 
-  BacktrackingSplittingMode _backtrackingSplitting;
   Demodulation _backwardDemodulation;
   bool _backwardSubsumption;
   bool _bddMarkingSubsumption;
-  bool _bsTowardHorn;
 
   bool _condensation;
 
@@ -425,7 +429,12 @@ private:
   SineSelection _sineSelection;
   float _sineTolerance;
   bool _sos;
-  RuleActivity _splitting;
+  bool _splitAtActivation;
+  bool _splitGoalOnly;
+  bool _splitInputOnly;
+  bool _splitPositive;
+  SplittingMode _splitting;
+  bool _splittingWithBlocking;
   Statistics _statistics;
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;

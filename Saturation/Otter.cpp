@@ -12,10 +12,12 @@
 
 #include "Otter.hpp"
 
+namespace Saturation
+{
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
-using namespace Saturation;
 
 Otter::Otter(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
   : SaturationAlgorithm(passiveContainer,selector)
@@ -47,6 +49,8 @@ void Otter::onPassiveAdded(Clause* cl)
 {
   CALL("Otter::onPassiveAdded");
 
+  SaturationAlgorithm::onPassiveAdded(cl);
+
   if(cl->store()==Clause::PASSIVE) {
     _simplCont.add(cl);
   }
@@ -67,6 +71,8 @@ void Otter::onClauseRetained(Clause* cl)
 {
   CALL("Otter::onClauseRetained");
 
+  SaturationAlgorithm::onClauseRetained(cl);
+
   backwardSimplify(cl);
 }
 
@@ -75,6 +81,8 @@ void Otter::onSOSClauseAdded(Clause* cl)
   CALL("Otter::onSOSClauseAdded");
   ASS(cl);
   ASS_EQ(cl->store(), Clause::ACTIVE);
+
+  SaturationAlgorithm::onSOSClauseAdded(cl);
 
   _simplCont.add(cl);
 }
@@ -87,63 +95,10 @@ void Otter::handleUnsuccessfulActivation(Clause* c)
     c->setStore(Clause::ACTIVE);
   }
   else {
-    //reactivated clauses should always get activated
     ASS_EQ(c->store(), Clause::PASSIVE);
     _simplCont.remove(c);
     c->setStore(Clause::NONE);
   }
 }
 
-SaturationResult Otter::doSaturation()
-{
-  CALL("Otter::doSaturation");
-
-  for (;;) {
-    newClausesToUnprocessed();
-
-    while (! _unprocessed->isEmpty()) {
-      Clause* c = _unprocessed->pop();
-      ASS(!isRefutation(c));
-
-      if(forwardSimplify(c)) {
-	onClauseRetained(c);
-	addToPassive(c);
-	ASS_EQ(c->store(), Clause::PASSIVE);
-      }
-      else {
-	ASS_EQ(c->store(), Clause::UNPROCESSED);
-	c->setStore(Clause::NONE);
-      }
-
-      newClausesToUnprocessed();
-
-      if(env.timeLimitReached()) {
-	return SaturationResult(Statistics::TIME_LIMIT);
-      }
-    }
-    onAllProcessed();
-    if(!clausesFlushed()) {
-      //there were some new clauses added, so let's process them
-      continue;
-    }
-
-    if (_passive->isEmpty()) {
-      if(env.options->complete()) {
-	return SaturationResult(Statistics::SATISFIABLE);
-      } else {
-	return SaturationResult(Statistics::REFUTATION_NOT_FOUND);
-      }
-    }
-
-    Clause* c = _passive->popSelected();
-
-    bool isActivated=activate(c);
-    if(!isActivated) {
-      handleUnsuccessfulActivation(c);
-    }
-
-    if(env.timeLimitReached()) {
-      return SaturationResult(Statistics::TIME_LIMIT);
-    }
-  }
 }

@@ -55,7 +55,7 @@ void BDDMarkingSubsumption::onNewPropositionalClause(Clause* cl)
   BDD* bdd=BDD::instance();
 
   if(cl->isEmpty() && !bdd->isFalse(cl->prop())) {
-    ASS(cl->splits()->isEmpty());
+    ASS(cl->noSplits());
 
     bdd->markRefuted(cl->prop());
   }

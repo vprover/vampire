@@ -14,7 +14,6 @@
 #include "../Kernel/Inference.hpp"
 
 #include "../Shell/Statistics.hpp"
-#include "../Shell/Options.hpp"
 
 #include "BSplitter.hpp"
 #include "SaturationAlgorithm.hpp"
@@ -31,20 +30,6 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
-void BSplitter::init(SaturationAlgorithm* sa)
-{
-  CALL("BSplitter::init");
-
-  _nextLev=1;
-  _sa=sa;
-}
-
-bool BSplitter::splittingForHorn()
-{
-  return env.options->bsTowardHorn();
-}
-
-
 /**
  * Attempt to split clause @b cl, and return true if successful
  *
@@ -54,9 +39,13 @@ bool BSplitter::splittingForHorn()
  * (it will be handled as such at the backtracking), so it can be safely
  * removed from the saturation algorithm by the caller.
  */
-bool BSplitter::split(Clause* cl)
+bool BSplitter::doSplitting(Clause* cl)
 {
-  CALL("BSplitter::split");
+  CALL("BSplitter::doSplitting");
+
+  if(!splittingAllowed(cl)) {
+    return false;
+  }
 
   Clause* comp;
   comp=getComponent(cl);
@@ -209,11 +198,11 @@ Clause* BSplitter::getComponent(Clause* cl)
       }
     }
   }
-  components.finish();
+  components.evalComponents();
 
   int compCnt=components.getComponentCount();
 
-  if(compCnt==1 || (splittingForHorn() && posLits<=1)) {
+  if(compCnt==1 || (splitPositive() && posLits<=1)) {
     return 0;
   }
 
@@ -236,7 +225,7 @@ Clause* BSplitter::getComponent(Clause* cl)
       compPosLits++;
     }
   }
-  if(splittingForHorn()) {
+  if(splitPositive()) {
     if(compPosLits==posLits) {
       return 0;
     }
@@ -334,6 +323,30 @@ void BSplitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
     SplitLevel slev=bsit.next();
     _db[slev]->children.push(cl);
     cl->incRefCnt();
+  }
+}
+
+bool BSplitter::handleEmptyClause(Clause* cl)
+{
+  CALL("BSplitter::handleEmptyClause");
+
+  if(cl->splits()->isEmpty()) {
+    return false;
+  }
+  ASS(BDD::instance()->isFalse(cl->prop()));
+
+  _splitRefutations.push(cl);
+  return true;
+}
+
+void BSplitter::onAllProcessed()
+{
+  CALL("BSplitter::onAllProcessed");
+  ASS(_sa->clausesFlushed());
+
+  if(_splitRefutations.isNonEmpty()) {
+    backtrack(pvi( RCClauseStack::Iterator(_splitRefutations) ));
+    _splitRefutations.reset();
   }
 }
 

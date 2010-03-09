@@ -26,8 +26,6 @@ public:
 
 protected:
 
-  SaturationResult doSaturation();
-
   //overrides SaturationAlgorithm::onSOSClauseAdded
   void onSOSClauseAdded(Clause* cl);
 
@@ -44,6 +42,7 @@ protected:
 
 
 
+  //overrides SaturationAlgorithm::handleUnsuccessfulActivation
   void handleUnsuccessfulActivation(Clause* c);
 
   /**

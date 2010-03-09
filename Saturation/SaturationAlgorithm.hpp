@@ -16,6 +16,7 @@
 #include "../Lib/Event.hpp"
 #include "../Lib/List.hpp"
 
+#include "../Indexing/ClauseSharing.hpp"
 #include "../Indexing/IndexManager.hpp"
 
 #include "../Inferences/InferenceEngine.hpp"
@@ -23,8 +24,6 @@
 
 #include "Limits.hpp"
 #include "SaturationResult.hpp"
-#include "BSplitter.hpp"
-#include "Splitter.hpp"
 
 #if VDEBUG
 #include<iostream>
@@ -61,8 +60,10 @@ public:
 
   void removeActiveOrPassiveClause(Clause* cl);
 
-  void onParenthood(Clause* cl, Clause* parent);
+  void onClauseReduction(Clause* cl, Clause* replacement, Clause* premise,
+      Clause* reductionPremise=0, bool forward=true);
   void onNonRedundantClause(Clause* c);
+  void onParenthood(Clause* cl, Clause* parent);
 
   virtual ClauseContainer* getSimplificationClauseContainer() = 0;
   virtual ClauseContainer* getGenerationClauseContainer() = 0;
@@ -79,7 +80,10 @@ public:
   static SaturationAlgorithmSP createFromOptions();
 
 protected:
-  virtual SaturationResult doSaturation() = 0;
+  void doUnprocessedLoop();
+  virtual void handleUnsuccessfulActivation(Clause* c);
+
+  virtual bool handleClauseBeforeActivation(Clause* c);
 
   void addInputSOSClause(Clause* cl);
 
@@ -105,20 +109,16 @@ protected:
   virtual void onUnprocessedSelected(Clause* c);
   void onNewClause(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
-  void onSymbolElimination(Color eliminated, Clause* c, bool nonRedundant=false);
-  void onClauseReduction(Clause* cl, Clause* replacement, Clause* premise,
-      Clause* reductionPremise=0, bool forward=true);
 
   virtual void onClauseRetained(Clause* cl);
-
-  void outputSymbolElimination(Color eliminated, Clause* c);
 
   void onAllProcessed();
 
   int elapsedTime();
 
+  virtual bool isComplete();
 
-  struct RefutationFoundExceptionStruct;
+  struct RefutationFoundException;
 
 private:
   void passiveRemovedHandler(Clause* cl);
@@ -131,8 +131,6 @@ private:
 
   Clause* doImmediateSimplification(Clause* cl, bool fwDemodulation=false);
 
-  void checkForPreprocessorSymbolElimination(Clause* cl);
-
   Limits _limits;
   IndexManager _imgr;
 
@@ -141,12 +139,10 @@ private:
 protected:
 
   int _startTime;
-  bool _performSplitting;
   bool _propToBDD;
   bool _clauseActivationInProgress;
 
   RCClauseStack _newClauses;
-  RCClauseStack _emptyBSplitClauses;
 
   ClauseStack _postponedClauseRemovals;
 
@@ -166,38 +162,17 @@ protected:
 
   LiteralSelectorSP _selector;
 
-  BSplitter _bsplitter;
-  Splitter _splitter;
+  Splitter* _splitter;
+
   PropositionalToBDDISE _propToBDDConv;
+
   ConsequenceFinder* _consFinder;
+  SymElOutput* _symEl;
 
   BDDMarkingSubsumption* _bddMarkingSubsumption;
 
   /** Index that takes care of the sharing and merging of clauses */
   ClauseSharing _sharing;
-
-
-  /** Number that would be used for the next symbol-eliminating
-   * inference conclusion that is output */
-  unsigned _symElNextClauseNumber;
-
-  /**
-   * Contains record of rewrites on symbol-eliminating clauses
-   *
-   * Is reset in the call to the @b onAllProcessed method.
-   *
-   * It is used so that we output symbol eliminating clauses
-   * after they are simplified and shown to be non-redundant.
-   */
-  DHMap<Clause*,Clause*> _symElRewrites;
-
-  /**
-   * Contains record of colors that were aliminated in
-   * symbol-eliminating clauses
-   *
-   * Is reset in the call to the @b onAllProcessed method.
-   */
-  DHMap<Clause*,Color> _symElColors;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;

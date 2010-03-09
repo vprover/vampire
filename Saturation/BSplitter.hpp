@@ -15,11 +15,13 @@
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/RCClauseStack.hpp"
 
+#include "Splitter.hpp"
+
 namespace Saturation {
 
 using namespace Kernel;
 
-class BSplitter {
+class BSplitter : public Splitter {
 private:
   struct ReductionRecord
   {
@@ -56,12 +58,15 @@ private:
     USE_ALLOCATOR(SplitRecord);
   };
 public:
-  void init(SaturationAlgorithm* sa);
+  BSplitter() : _nextLev(1) {}
 
-  bool split(Clause* cl);
+  bool doSplitting(Clause* cl);
 
   void onClauseReduction(Clause* cl, Clause* premise, Clause* replacement=0);
   void onNewClause(Clause* cl);
+  void onAllProcessed();
+
+  bool handleEmptyClause(Clause* cl);
 
   void backtrack(ClauseIterator emptyClauses);
 private:
@@ -69,12 +74,6 @@ private:
   SplitSet* getTransitivelyDependentLevels(SplitLevel l);
 
   bool stackSplitting() { return false; }
-  /**
-   * Return true if splitting is to be performed only if both
-   * resulting clauses contain less positive literals than
-   * the original one.
-   */
-  bool splittingForHorn();
 
   bool canBeSplitted(Clause* cl) { return true; }
   Clause* getComponent(Clause* icl);
@@ -88,8 +87,9 @@ private:
   void assertSplitLevelsExist(SplitSet* s);
 
   SplitLevel _nextLev;
-  SaturationAlgorithm* _sa;
+
   ZIArray<SplitRecord*> _db;
+  RCClauseStack _splitRefutations;
 };
 
 }

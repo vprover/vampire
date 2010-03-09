@@ -195,8 +195,8 @@ void outputResult()
     break;
   case Statistics::REFUTATION_NOT_FOUND:
     if(env.options->complete()) {
-      ASS_G(env.statistics->discardedNonRedundantClauses, 0);
-      env.out << "Refutation not found, some non-redundant clauses were discarded!\n";
+      ASS_EQ(env.options->saturationAlgorithm(), Options::LRS);
+      env.out << "Refutation not found, LRS age and weight limit was active for some time!\n";
     } else {
       env.out << "Refutation not found with incomplete strategy!\n";
     }

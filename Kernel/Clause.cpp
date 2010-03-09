@@ -41,6 +41,7 @@ Clause::Clause(unsigned length,InputType it,Inference* inf)
   : Unit(Unit::CLAUSE,inf,it),
     _length(length),
     _color(COLOR_INVALID),
+    _input(0),
     _selected(0),
     _age(0),
     _weight(0),
@@ -227,6 +228,17 @@ bool Clause::isHorn()
     }
   }
   return true;
+}
+
+/**
+ * Return true if the clause does not depend on any splits
+ * in the backtracking splitting.
+ */
+bool Clause::noSplits() const
+{
+  CALL("Clause::noSplits");
+
+  return !this->splits() || this->splits()->isEmpty();
 }
 
 //struct StrComparator {

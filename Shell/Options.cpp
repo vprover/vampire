@@ -36,7 +36,7 @@ public:
   static const char* _shortNames[];
   static const char* _statisticsValues[];
   static const char* _demodulationValues[];
-  static const char* _backtrackingSplittingModeValues[];
+  static const char* _splittingModeValues[];
   static const char* _fdeValues[];
   static const char* _lcmValues[];
   static const char* _satAlgValues[];
@@ -55,7 +55,7 @@ public:
   static NameArray shortNames;
   static NameArray statisticsValues;
   static NameArray demodulationValues;
-  static NameArray backtrackingSplittingModeValues;
+  static NameArray splittingModeValues;
   static NameArray fdeValues;
   static NameArray lcmValues;
   static NameArray satAlgValues;
@@ -75,11 +75,9 @@ const char* Options::Constants::_optionNames[] = {
   "age_weight_ratio",
   "arity_check",
 
-  "backtracking_splitting",
   "backward_demodulation",
   "backward_subsumption",
   "bdd_marking_subsumption",
-  "bs_toward_horn",
 
   "condensation",
 
@@ -145,7 +143,12 @@ const char* Options::Constants::_optionNames[] = {
   "sine_selection",
   "sine_tolerance",
   "sos",
+  "split_at_activation",
+  "split_goal_only",
+  "split_input_only",
+  "split_positive",
   "splitting",
+  "splitting_with_blocking",
   "statistics",
   "superposition_from_variables",
   "symbol_precedence",
@@ -229,12 +232,12 @@ const char* Options::Constants::_demodulationValues[] = {
 NameArray Options::Constants::demodulationValues(_demodulationValues,
 						 sizeof(_demodulationValues)/sizeof(char*));
 
-const char* Options::Constants::_backtrackingSplittingModeValues[] = {
-  "at_activation",
-  "off",
-  "on"};
-NameArray Options::Constants::backtrackingSplittingModeValues(_backtrackingSplittingModeValues,
-					sizeof(_backtrackingSplittingModeValues)/sizeof(char*));
+const char* Options::Constants::_splittingModeValues[] = {
+  "backtracking",
+  "nobacktracking",
+  "off"};
+NameArray Options::Constants::splittingModeValues(_splittingModeValues,
+					sizeof(_splittingModeValues)/sizeof(char*));
 
 const char* Options::Constants::_fdeValues[] = {
   "all",
@@ -333,11 +336,9 @@ Options::Options ()
   _weightRatio(1),
   _arityCheck(false),
 
-  _backtrackingSplitting(BS_OFF),
   _backwardDemodulation(DEMODULATION_ALL),
   _backwardSubsumption(true),
   _bddMarkingSubsumption(false),
-  _bsTowardHorn(false),
 
   _condensation(false),
 
@@ -406,7 +407,12 @@ Options::Options ()
   _sineSelection(SS_OFF),
   _sineTolerance(1.0f),
   _sos(false),
-  _splitting(RA_INPUT_ONLY),
+  _splitAtActivation(false),
+  _splitGoalOnly(false),
+  _splitInputOnly(true),
+  _splitPositive(false),
+  _splitting(SM_NOBACKTRACKING),
+  _splittingWithBlocking(false),
   _statistics(STATISTICS_FULL),
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
@@ -478,9 +484,6 @@ void Options::set (const char* name,const char* value, int index)
       _arityCheck = onOffToBool(value,name);
       return;
 
-    case BACKTRACKING_SPLITTING:
-      _backtrackingSplitting = (BacktrackingSplittingMode)Constants::backtrackingSplittingModeValues.find(value);
-      return;
     case BACKWARD_DEMODULATION:
       _backwardDemodulation = (Demodulation)Constants::demodulationValues.find(value);
       return;
@@ -489,9 +492,6 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case BDD_MARKING_SUBSUMPTION:
       _bddMarkingSubsumption = onOffToBool(value,name);
-      return;
-    case BS_TOWARD_HORN:
-      _bsTowardHorn = onOffToBool(value,name);
       return;
 
     case CONDENSATION:
@@ -716,8 +716,23 @@ void Options::set (const char* name,const char* value, int index)
     case SOS:
       _sos = onOffToBool(value,name);
       return;
+    case SPLIT_AT_ACTIVATION:
+      _splitAtActivation = onOffToBool(value,name);
+      return;
+    case SPLIT_GOAL_ONLY:
+      _splitGoalOnly = onOffToBool(value,name);
+      return;
+    case SPLIT_INPUT_ONLY:
+      _splitInputOnly = onOffToBool(value,name);
+      return;
+    case SPLIT_POSITIVE:
+      _splitPositive = onOffToBool(value,name);
+      return;
     case SPLITTING:
-      _splitting = (RuleActivity)Constants::ruleActivityValues.find(value);
+      _splitting = (SplittingMode)Constants::splittingModeValues.find(value);
+      return;
+    case SPLITTING_WITH_BLOCKING:
+      _splittingWithBlocking = onOffToBool(value,name);
       return;
     case STATISTICS:
       _statistics = (Statistics)Constants::statisticsValues.find(value);
@@ -1001,9 +1016,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_arityCheck);
     return;
 
-  case BACKTRACKING_SPLITTING:
-    str << Constants::backtrackingSplittingModeValues[_backtrackingSplitting];
-    return;
   case BACKWARD_DEMODULATION:
     str << Constants::demodulationValues[_backwardDemodulation];
     return;
@@ -1012,9 +1024,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case BDD_MARKING_SUBSUMPTION:
     str << boolToOnOff(_bddMarkingSubsumption);
-    return;
-  case BS_TOWARD_HORN:
-    str << boolToOnOff(_bsTowardHorn);
     return;
 
   case CONDENSATION:
@@ -1186,8 +1195,23 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SOS:
     str << boolToOnOff(_sos);
     return;
+  case SPLIT_AT_ACTIVATION:
+    str << boolToOnOff(_splitAtActivation);
+    return;
+  case SPLIT_GOAL_ONLY:
+    str << boolToOnOff(_splitGoalOnly);
+    return;
+  case SPLIT_INPUT_ONLY:
+    str << boolToOnOff(_splitInputOnly);
+    return;
+  case SPLIT_POSITIVE:
+    str << boolToOnOff(_splitPositive);
+    return;
   case SPLITTING:
-    str << Constants::ruleActivityValues[_splitting];
+    str << Constants::splittingModeValues[_splitting];
+    return;
+  case SPLITTING_WITH_BLOCKING:
+    str << boolToOnOff(_splittingWithBlocking);
     return;
   case STATISTICS:
     str << Constants::statisticsValues[_statistics];
@@ -1544,10 +1568,13 @@ void Options::checkGlobalOptionConstraints() const
   if(satSolverForEmptyClause() && emptyClauseSubsumption()) {
     USER_ERROR("Empty clause subsumption cannot be performed when SAT solver is used for handling empty clauses");
   }
-  if(!propositionalToBDD() && splitting()!=RA_OFF) {
-    USER_ERROR("If propositional atoms are not being converted to BDD, splitting has to be disabled");
+  if(!propositionalToBDD() && splitting()==SM_NOBACKTRACKING) {
+    USER_ERROR("If propositional atoms are not being converted to BDD, splitting without backtracking has to be disabled");
   }
-  if(backtrackingSplitting()!=BS_OFF && propositionalToBDD()) {
+  if(!propositionalToBDD() && bddMarkingSubsumption()) {
+    USER_ERROR("BDD marking subsumption cannot be used without BDDs enabled (the \"propositional_to_bdd\" option)");
+  }
+  if(splitting()==SM_BACKTRACKING && propositionalToBDD()) {
     USER_ERROR("Backtracking splitting cannot be used unless all BDD related options are disabled");
   }
 }

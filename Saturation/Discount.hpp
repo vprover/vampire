@@ -27,7 +27,8 @@ public:
 
 protected:
 
-  SaturationResult doSaturation();
+  //overrides SaturationAlgorithm::handleClauseBeforeActivation
+  bool handleClauseBeforeActivation(Clause* cl);
 
 };
 

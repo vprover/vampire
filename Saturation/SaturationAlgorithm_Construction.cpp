@@ -36,7 +36,11 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+#include "BSplitter.hpp"
+#include "SWBSplitter.hpp"
+
 #include "ConsequenceFinder.hpp"
+#include "SymElOutput.hpp"
 
 namespace Saturation
 {
@@ -178,6 +182,17 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
   if(env.options->mode()==Options::MODE_CONSEQUENCE_FINDING) {
     res->_consFinder=new ConsequenceFinder();
   }
+  if(env.options->showSymbolElimination()) {
+    res->_symEl=new SymElOutput();
+  }
+
+  if(env.options->splitting()==Options::SM_BACKTRACKING) {
+    res->_splitter=new BSplitter();
+  }
+  else if(env.options->splitting()==Options::SM_NOBACKTRACKING) {
+    res->_splitter=new SWBSplitter();
+  }
+
 
   if(env.options->bddMarkingSubsumption()) {
     res->_bddMarkingSubsumption=new BDDMarkingSubsumption();

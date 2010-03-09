@@ -151,7 +151,8 @@ string Timer::msToSecondsString(int ms)
  */
 void Timer::printMSString(ostream& str, int ms)
 {
-  CALL("Timer::printMSString");
+  //having the call macro here distorts the stacks printouts
+//  CALL("Timer::printMSString");
 
   int sec=ms/1000;
   int msonly=ms%1000;

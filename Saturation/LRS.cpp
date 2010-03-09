@@ -20,6 +20,14 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+bool LRS::isComplete()
+{
+  CALL("LRS::isComplete");
+
+  return !_limitsEverActive && SaturationAlgorithm::isComplete();
+}
+
+
 void LRS::onUnprocessedSelected(Clause* c)
 {
   CALL("LRS::onUnprocessedSelected");
@@ -30,9 +38,9 @@ void LRS::onUnprocessedSelected(Clause* c)
     long long estimatedReachable=estimatedReachableCount();
     if(estimatedReachable>=0) {
       _passive->updateLimits(estimatedReachable);
-      if(_complete) {
+      if(!_limitsEverActive) {
         Limits* lims=getLimits();
-        _complete=!lims->weightLimited() && !lims->ageLimited();
+        _limitsEverActive=lims->weightLimited() || lims->ageLimited();
       }
     }
   }
@@ -90,58 +98,6 @@ long long LRS::estimatedReachableCount()
     return -1;
   }
   return (processed*timeLeft)/timeSpent;
-}
-
-SaturationResult LRS::doSaturation()
-{
-  CALL("LRS::doSaturation");
-
-  bool complete=env.options->complete();
-
-  for (;;) {
-    newClausesToUnprocessed();
-
-    while (! _unprocessed->isEmpty()) {
-      Clause* c = _unprocessed->pop();
-      ASS(!isRefutation(c));
-
-      if(forwardSimplify(c)) {
-	onClauseRetained(c);
-	addToPassive(c);
-	ASS_EQ(c->store(), Clause::PASSIVE);
-      }
-      else {
-	ASS_EQ(c->store(), Clause::UNPROCESSED);
-	c->setStore(Clause::NONE);
-      }
-
-      newClausesToUnprocessed();
-
-      if (env.timeLimitReached()) {
-  	return SaturationResult(Statistics::TIME_LIMIT);
-      }
-    }
-    onAllProcessed();
-    if(!clausesFlushed()) {
-      //there were some new clauses added, so let's process them
-      continue;
-    }
-
-    if (_passive->isEmpty()) {
-      return SaturationResult( complete ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND );
-    }
-
-    Clause* c = _passive->popSelected();
-
-    bool isActivated=activate(c);
-    if(!isActivated) {
-      handleUnsuccessfulActivation(c);
-    }
-
-    if(env.timeLimitReached()) {
-      return SaturationResult(Statistics::TIME_LIMIT);
-    }
-  }
 }
 
 }

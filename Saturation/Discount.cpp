@@ -28,74 +28,18 @@ ClauseContainer* Discount::getGenerationClauseContainer()
   return _active;
 }
 
-SaturationResult Discount::doSaturation()
+bool Discount::handleClauseBeforeActivation(Clause* cl)
 {
-  CALL("Discount::doSaturation");
+  CALL("Discount::handleClauseBeforeActivation");
 
-  for (;;) {
-    newClausesToUnprocessed();
-
-    while (! _unprocessed->isEmpty()) {
-      Clause* c = _unprocessed->pop();
-      ASS(!isRefutation(c));
-
-      if(forwardSimplify(c)) {
-	onClauseRetained(c);
-	addToPassive(c);
-	ASS_EQ(c->store(), Clause::PASSIVE);
-      }
-      else {
-	ASS_EQ(c->store(), Clause::UNPROCESSED);
-	c->setStore(Clause::NONE);
-      }
-
-      newClausesToUnprocessed();
-
-      if (env.timeLimitReached()) {
-	return SaturationResult(Statistics::TIME_LIMIT);
-      }
-    }
-
-    onAllProcessed();
-    if(!clausesFlushed()) {
-      //there were some new clauses added, so let's process them
-      continue;
-    }
-
-    if(env.timeLimitReached()) {
-      return SaturationResult(Statistics::TIME_LIMIT);
-    }
-    if(_passive->isEmpty()) {
-      if(env.options->complete()) {
-	return SaturationResult(Statistics::SATISFIABLE);
-      } else {
-	return SaturationResult(Statistics::REFUTATION_NOT_FOUND);
-      }
-    }
-
-    Clause* cl = _passive->popSelected();
-    if(!forwardSimplify(cl)) {
-      if(cl->store()==Clause::REACTIVATED) {
+  if(!forwardSimplify(cl)) {
+    if(cl->store()==Clause::REACTIVATED) {
 	_active->remove(cl);
-      }
-      cl->setStore(Clause::NONE);
-      continue;
     }
-    backwardSimplify(cl);
-
-    bool isActivated=activate(cl);
-    if(!isActivated) {
-      if(cl->store()==Clause::REACTIVATED) {
-	cl->setStore(Clause::ACTIVE);
-      }
-      else {
-	ASS_EQ(cl->store(), Clause::PASSIVE);
-	cl->setStore(Clause::NONE);
-      }
-    }
-
-    if(env.timeLimitReached()) {
-      return SaturationResult(Statistics::TIME_LIMIT);
-    }
+    cl->setStore(Clause::NONE);
+    return false;
   }
+  backwardSimplify(cl);
+  return true;
 }
+

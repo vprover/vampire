@@ -22,13 +22,13 @@ class LRS
 {
 public:
   LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
-  : Otter(passiveContainer,selector) {}
+  : Otter(passiveContainer,selector), _limitsEverActive(false) {}
 
 
 protected:
 
-  //overrides Otter::doSaturation
-  SaturationResult doSaturation();
+  //overrides SaturationAlgorithm::isComplete
+  bool isComplete();
 
   //overrides SaturationAlgorithm::onUnprocessedSelected
   void onUnprocessedSelected(Clause* c);
@@ -37,7 +37,7 @@ protected:
 
   long long estimatedReachableCount();
 
-  bool _complete;
+  bool _limitsEverActive;
 };
 
 };

@@ -229,6 +229,7 @@ public:
   void setProp(BDDNode* prop);
 
   SplitSet* splits() const { return _splits; }
+  bool noSplits() const;
   void setSplits(SplitSet* splits) { _splits=splits; }
 
   VirtualIterator<string> toSimpleClauseStrings();

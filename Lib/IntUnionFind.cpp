@@ -14,18 +14,21 @@ namespace Lib {
 using namespace std;
 
 IntUnionFind::IntUnionFind(int cnt)
-: _cnt(cnt), _components(8)
+: _cnt(cnt), _modified(true), _components(8)
 {
   CALL("IntUnionFind::IntUnionFind");
+  ASS_G(cnt, 0);
 
-  _data=reinterpret_cast<int*>(ALLOC_KNOWN(_cnt*sizeof(int), "IntUnionFind"));
+  _parents=reinterpret_cast<int*>(ALLOC_KNOWN(_cnt*sizeof(int), "IntUnionFind"));
   for(int i=0;i<_cnt;i++) {
-    _data[i]=-1;
+    _parents[i]=-1;
   }
+  _data=reinterpret_cast<int*>(ALLOC_KNOWN(_cnt*sizeof(int), "IntUnionFind"));
 }
 
 IntUnionFind::~IntUnionFind()
 {
+  DEALLOC_KNOWN(_parents, _cnt*sizeof(int), "IntUnionFind");
   DEALLOC_KNOWN(_data, _cnt*sizeof(int), "IntUnionFind");
 }
 
@@ -41,8 +44,11 @@ void IntUnionFind::doUnion(int c1, int c2)
   if(c1>c2) {
     swap(c1,c2);
   }
-  ASS_EQ(_data[c2],-1);
-  _data[c2]=c1;
+  ASS_EQ(_parents[c2],-1);
+  _parents[c2]=c1;
+
+  //the component structure has changed
+  _modified=true;
 }
 
 int IntUnionFind::root(int c)
@@ -53,25 +59,34 @@ int IntUnionFind::root(int c)
   ASS(path.isEmpty());
   int prev=-1;
 
-  while(_data[c]!=-1) {
+  while(_parents[c]!=-1) {
     if(prev!=-1) {
       path.push(prev);
     }
     prev=c;
-    c=_data[c];
+    c=_parents[c];
   }
 
   while(path.isNonEmpty()) {
-    _data[path.pop()]=c;
+    _parents[path.pop()]=c;
   }
   return c;
 }
 
-void IntUnionFind::finish()
+void IntUnionFind::evalComponents()
 {
-  CALL("IntUnionFind::finish");
-  ASS(_components.isEmpty());
+  CALL("IntUnionFind::evalComponents");
 
+  if(!_modified) {
+    //the components are already evaluated
+    return;
+  }
+
+  _components.reset();
+
+  for(int i=0;i<_cnt;i++) {
+    _data[i]=_parents[i];
+  }
   for(int i=0;i<_cnt;i++) {
     if(_data[i]==-1) {
       _components.push(i);
@@ -82,8 +97,24 @@ void IntUnionFind::finish()
       _data[prev]=i;
     }
   }
+  ASS_G(_components.size(),0);
+  _modified=false;
 }
 
+/**
+ * Return the number of components
+ *
+ * The @b evalComponents function must be called before
+ * this function is called (and if the @b doUnion is called
+ * later, the @b evalComponents has to be called again).
+ */
+int IntUnionFind::getComponentCount()
+{
+  CALL("IntUnionFind::getComponentCount");
+  ASS(!_modified);
+
+  return _components.size();
+}
 
 
 }

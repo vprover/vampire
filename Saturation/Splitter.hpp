@@ -9,11 +9,6 @@
 
 #include "../Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
-
-#include "../Indexing/ClauseSharing.hpp"
-#include "../Indexing/ClauseVariantIndex.hpp"
-
 namespace Saturation {
 
 using namespace Lib;
@@ -25,25 +20,23 @@ class Splitter
 public:
   void init(SaturationAlgorithm* sa);
 
-  bool doSplitting(Clause* cl);
-private:
-  Clause* getComponent(Clause* cl, Literal** lits, unsigned compLen, int& name, bool& newComponent);
-
-  int nameComponent(Clause* comp);
-  BDDNode* getNameProp(int name);
-
-  bool canSplitOut(Literal* lit);
-
-  /** Names assigned to clauses stored in @b _variantIndex */
-  DHMap<Clause*, int> _clauseNames;
+  virtual bool doSplitting(Clause* cl) = 0;
 
   /**
-   * Names for ground literals whose opposite counterparts haven't
-   * been named yet
-   *
-   * See @b Splitter::nameComponent function.
+   * Return true if the splitter handles the empty clause and
+   * it should not be further processed
    */
-  DHMap<Literal*, int> _groundNames;
+  virtual bool handleEmptyClause(Clause* cl) { return false; }
+
+  virtual void onClauseReduction(Clause* cl, Clause* premise, Clause* replacement=0) {}
+  virtual void onNewClause(Clause* cl) {}
+  virtual void onAllProcessed() {}
+
+protected:
+
+  bool splitPositive();
+
+  virtual bool splittingAllowed(Clause* cl);
 
   SaturationAlgorithm* _sa;
 };

@@ -29,6 +29,8 @@
 #include "../Shell/Statistics.hpp"
 
 #include "ConsequenceFinder.hpp"
+#include "Splitter.hpp"
+#include "SymElOutput.hpp"
 
 #include "SaturationAlgorithm.hpp"
 
@@ -53,11 +55,11 @@ using namespace Saturation;
  * A struct that is thrown as an exception when a refutation is found
  * during the saturation process.
  */
-struct SaturationAlgorithm::RefutationFoundExceptionStruct
+struct SaturationAlgorithm::RefutationFoundException
 {
-  RefutationFoundExceptionStruct(Clause* ref) : refutation(ref)
+  RefutationFoundException(Clause* ref) : refutation(ref)
   {
-    CALL("SaturationAlgorithm::RefutationFoundExceptionStruct::RefutationFoundExceptionStruct");
+    CALL("SaturationAlgorithm::RefutationFoundException::RefutationFoundException");
     ASS(isRefutation(ref));
   }
 
@@ -74,10 +76,9 @@ struct SaturationAlgorithm::RefutationFoundExceptionStruct
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
 	LiteralSelectorSP selector)
 : _imgr(this), _clauseActivationInProgress(false), _passive(passiveContainer),
-  _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _consFinder(0),
-  _symElNextClauseNumber(0)
+  _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _splitter(0),
+  _consFinder(0), _symEl(0), _bddMarkingSubsumption(0)
 {
-  _performSplitting= env.options->splitting()!=Options::RA_OFF;
   _propToBDD= env.options->propositionalToBDD();
 
   _unprocessed=new UnprocessedClauseContainer();
@@ -130,6 +131,16 @@ SaturationAlgorithm::~SaturationAlgorithm()
 
   delete _unprocessed;
   delete _active;
+}
+
+/**
+ * Return true if the run of the prover so far is complete
+ */
+bool SaturationAlgorithm::isComplete()
+{
+  CALL("SaturationAlgorithm::isComplete");
+
+  return env.options->complete();
 }
 
 ClauseIterator SaturationAlgorithm::activeClauses()
@@ -204,12 +215,12 @@ void SaturationAlgorithm::onAllProcessed()
   CALL("SaturationAlgorithm::beforeClauseActivation");
   ASS(clausesFlushed());
 
-  _symElRewrites.reset();
-  _symElColors.reset();
+  if(_symEl) {
+    _symEl->onAllProcessed();
+  }
 
-  if(_emptyBSplitClauses.isNonEmpty()) {
-    _bsplitter.backtrack(pvi( RCClauseStack::Iterator(_emptyBSplitClauses) ));
-    _emptyBSplitClauses.reset();
+  if(_splitter) {
+    _splitter->onAllProcessed();
   }
 
   if(_bddMarkingSubsumption) {
@@ -233,7 +244,6 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
   if(env.options->showPassive()) {
     cout<<"Passive: "<<c->toNiceString()<<endl;
   }
-
 }
 
 /**
@@ -262,7 +272,6 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
     ASSERTION_VIOLATION;
   }
 #endif
-
 }
 
 /**
@@ -313,7 +322,9 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::onNewClause");
 
-  _bsplitter.onNewClause(cl);
+  if(_splitter) {
+    _splitter->onNewClause(cl);
+  }
 
   if(!cl->prop()) {
     BDD* bdd=BDD::instance();
@@ -378,7 +389,6 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 void SaturationAlgorithm::onClauseRetained(Clause* cl)
 {
   CALL("SaturationAlgorithm::onClauseRetained");
-
 }
 
 /**
@@ -402,11 +412,13 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
   }
 
 
-  if(reductionPremise) {
-    _bsplitter.onClauseReduction(cl, reductionPremise, replacement);
-  }
-  else {
-    _bsplitter.onClauseReduction(cl, premise, replacement);
+  if(_splitter) {
+    if(reductionPremise) {
+      _splitter->onClauseReduction(cl, reductionPremise, replacement);
+    }
+    else {
+      _splitter->onClauseReduction(cl, premise, replacement);
+    }
   }
 
   if(replacement) {
@@ -421,26 +433,9 @@ void SaturationAlgorithm::onNonRedundantClause(Clause* c)
 {
   CALL("SaturationAlgorithm::onNonRedundantClause");
 
-  if(env.options->showSymbolElimination() && c->color()==COLOR_TRANSPARENT && !c->skip()) {
-    Clause* tgt=c;
-    Clause* src;
-    bool notFound=false;
-    do {
-      src=tgt;
-      if(!_symElRewrites.find(src, tgt)) {
-	ASS_EQ(src, c); //not found can happen only at the first iteration
-	notFound=true;
-	break;
-      }
-    } while(tgt);
-    if(!notFound) {
-      //if we use src instead of c in the second argument, we can output non-simplified clauses
-      outputSymbolElimination(_symElColors.get(src), c);
-    }
+  if(_symEl) {
+    _symEl->onNonRedundantClause(c);
   }
-//  if(c->color()==COLOR_TRANSPARENT && c->inputType()!=Clause::AXIOM && !c->skip()) {
-//    cout<<"Interesting: "<<c->toNiceString()<<endl;
-//  }
 }
 
 /**
@@ -455,78 +450,9 @@ void SaturationAlgorithm::onParenthood(Clause* cl, Clause* parent)
 {
   CALL("SaturationAlgorithm::onParenthood");
 
-  Color pcol=parent->color();
-  Clause::Store pstore=parent->store();
-
-  if(pcol!=COLOR_TRANSPARENT &&
-     cl->color()==COLOR_TRANSPARENT) {
-    onSymbolElimination(parent->color(), cl);
+  if(_symEl) {
+    _symEl->onParenthood(cl, parent);
   }
-  if(env.options->showSymbolElimination() &&
-     pcol==COLOR_TRANSPARENT &&
-     pstore!=Clause::NONE && pstore!=Clause::UNPROCESSED &&
-     _symElRewrites.find(parent)) {
-    //Only one of clause's premises can be a clause derived since the
-    //previous call to the @b onAllProcessed function, so the insertion
-    //should always happen.
-    //We don't have an assertion check here, however, as in a rare case
-    //the same clause object can be "derived" multiple times due to clause
-    //sharing in splitting without backtracking.
-    _symElRewrites.insert(cl, parent);
-  }
-}
-
-void SaturationAlgorithm::onSymbolElimination(Color eliminated,
-					      Clause* c, bool nonRedundant)
-{
-  CALL("SaturationAlgorithm::onSymbolElimination");
-  ASS_EQ(c->color(),COLOR_TRANSPARENT);
-
-  if(env.options->showSymbolElimination() && !c->skip() && c->splits()->isEmpty()) {
-    if(!_symElColors.insert(c,eliminated)) {
-      //the clause was already reported for symbol elimination
-      return;
-    }
-    if(nonRedundant) {
-      outputSymbolElimination(eliminated, c);
-    }
-    else {
-      _symElRewrites.insert(c,0);
-    }
-  }
-}
-
-void SaturationAlgorithm::outputSymbolElimination(Color eliminated, Clause* c)
-{
-  CALL("SaturationAlgorithm::outputSymbolElimination");
-  ASS_EQ(c->color(),COLOR_TRANSPARENT);
-  ASS(env.options->showSymbolElimination());
-  ASS(!c->skip());
-
-  BDD::instance()->allowDefinitionOutput(false);
-  cout<<"%";
-  if(eliminated==COLOR_LEFT) {
-    cout<<"Left";
-  } else {
-    ASS_EQ(eliminated, COLOR_RIGHT);
-    cout<<"Right";
-  }
-  cout<<" symbol elimination"<<endl;
-
-  string cname="inv"+_symElNextClauseNumber;
-  while(env.signature->isPredicateName(cname, 0)) {
-    _symElNextClauseNumber++;
-    cname="inv"+_symElNextClauseNumber;
-  }
-
-  cout<<"fof(inv"<<_symElNextClauseNumber<<", claim, ( ";
-  cout<<c->nonPropToString();
-  if(c->prop() && !BDD::instance()->isFalse(c->prop())) {
-    cout<<" | "<<BDD::instance()->toTPTPString(c->prop());
-  }
-  cout<<" ) )."<<endl;
-  BDD::instance()->allowDefinitionOutput(true);
-  _symElNextClauseNumber++;
 }
 
 /**
@@ -576,10 +502,11 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   cl->markInput();
   cl->setProp(BDD::instance()->getFalse());
 
-  checkForPreprocessorSymbolElimination(cl);
+  if(_symEl) {
+    _symEl->onInputClause(cl);
+  }
 
-  if(_propToBDD || env.options->splitting()!=Options::RA_OFF)
-  {
+  if(_propToBDD) {
     //put propositional predicates into BDD part
     cl=_propToBDDConv.simplify(cl);
     if(!cl) {
@@ -660,64 +587,9 @@ bool SaturationAlgorithm::isRefutation(Clause* c)
 {
   CALL("SaturationAlgorithm::isRefutation");
   ASS(c->prop());
-  ASS(c->splits());
 
   BDD* bdd=BDD::instance();
-  return c->isEmpty() && bdd->isFalse(c->prop()) && c->splits()->isEmpty();
-}
-
-
-void SaturationAlgorithm::checkForPreprocessorSymbolElimination(Clause* cl)
-{
-  CALL("SaturationAlgorithm::checkForPreprocessorSymbolElimination");
-
-  if(!env.colorUsed || cl->color()!=COLOR_TRANSPARENT || cl->skip()) {
-    return;
-  }
-
-  //TODO: it might examine some parts of the proof-tree multiple times,
-  //so perhaps some more caching could be used if it's too slow
-
-  Color inputColor=COLOR_TRANSPARENT;
-
-  static DHMap<Unit*, Color> inputFormulaColors;
-  static Stack<Unit*> units;
-  units.reset();
-  units.push(cl);
-
-  while(units.isNonEmpty()) {
-    Unit* u=units.pop();
-    Inference::Iterator iit=u->inference()->iterator();
-//    if(u->inference()->rule()==Inference::INPUT ||
-//	    u->inference()->rule()==Inference::NEGATED_CONJECTURE) {
-    if(!u->inference()->hasNext(iit)) {
-      Color uCol;
-      if(u->isClause()) {
-	uCol=static_cast<Clause*>(u)->color();
-      } else if(!inputFormulaColors.find(u,uCol)){
-	uCol=static_cast<FormulaUnit*>(u)->getColor();
-	inputFormulaColors.insert(u,uCol);
-      }
-      if(uCol!=COLOR_TRANSPARENT) {
-#if VDEBUG
-	inputColor=static_cast<Color>(inputColor|uCol);
-	ASS_NEQ(inputColor, COLOR_INVALID);
-#else
-	inputColor=uCol;
-	break;
-#endif
-      }
-    } else {
-      while(u->inference()->hasNext(iit)) {
-        Unit* premUnit=u->inference()->next(iit);
-        units.push(premUnit);
-      }
-    }
-  }
-
-  if(inputColor!=COLOR_TRANSPARENT) {
-    onSymbolElimination(inputColor, cl);
-  }
+  return c->isEmpty() && bdd->isFalse(c->prop()) && c->noSplits();
 }
 
 
@@ -805,7 +677,6 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0, bool fwDemod
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
   ASS(cl0->prop());
-  ASS(cl0->splits());
 
   Clause* cl=cl0;
 
@@ -933,23 +804,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     return;
   }
 
-  if(_performSplitting && env.options->splitting()==Options::RA_INPUT_ONLY && !cl->isInput()) {
-    //we're done with input clauses, as now we've encountered a non-input one
-    _performSplitting=false;
-  }
-
-  if(_performSplitting && cl->splits()->isEmpty()) {
-    if(_splitter.doSplitting(cl)) {
-      onClauseReduction(cl, 0, 0);
-      return;
-    }
-  }
-
-  bool performSharing=_performSplitting;
-  if(performSharing && _sharing.doSharing(cl)) {
-    return;
-  }
-
   cl->setStore(Clause::UNPROCESSED);
   _unprocessed->add(cl);
 }
@@ -969,16 +823,14 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 
   if(isRefutation(cl)) {
     onNonRedundantClause(cl);
-    throw RefutationFoundExceptionStruct(cl);
+    throw RefutationFoundException(cl);
+  }
+
+  if(_splitter && _splitter->handleEmptyClause(cl)) {
+    return;
   }
 
   BDD* bdd=BDD::instance();
-
-  if(!cl->splits()->isEmpty()) {
-    ASS(bdd->isFalse(cl->prop()));
-    _emptyBSplitClauses.push(cl);
-    return;
-  }
 
   ASS(!bdd->isFalse(cl->prop()));
   env.statistics->bddPropClauses++;
@@ -996,7 +848,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       cl->setProp(bdd->getFalse());
       onNewUsefulPropositionalClause(cl);
       onNonRedundantClause(cl);
-      throw RefutationFoundExceptionStruct(cl);
+      throw RefutationFoundException(cl);
     } else {
       cl->incRefCnt();
       emptyClauses.push(InferenceStore::getClauseSpec(cl));
@@ -1021,7 +873,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       cl->setProp(newProp);
       onNonRedundantClause(cl);
       onNewUsefulPropositionalClause(cl);
-      throw RefutationFoundExceptionStruct(cl);
+      throw RefutationFoundException(cl);
     }
     if(newProp!=accumulator->prop()) {
       InferenceStore::instance()->recordMerge(accumulator, accumulator->prop(), cl, newProp);
@@ -1162,8 +1014,9 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     return false;
   }
 
-  if(env.options->backtrackingSplitting()==Options::BS_ON) {
-    if(_bsplitter.split(cl)) {
+
+  if( _splitter && !env.options->splitAtActivation() ) {
+    if(_splitter->doSplitting(cl)) {
       return false;
     }
   }
@@ -1300,18 +1153,18 @@ bool SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
 
-  if(env.options->backtrackingSplitting()==Options::BS_AT_ACTIVATION) {
-    if(_bsplitter.split(cl)) {
-      return false;
-    }
-  }
-
   if(_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
     return false;
   }
 
   if(_consFinder && _consFinder->isRedundant(cl)) {
     return false;
+  }
+
+  if(_splitter && env.options->splitAtActivation()) {
+    if(_splitter->doSplitting(cl)) {
+      return false;
+    }
   }
 
   _clauseActivationInProgress=true;
@@ -1371,6 +1224,72 @@ bool SaturationAlgorithm::activate(Clause* cl)
 }
 
 /**
+ * Perform the loop that puts clauses from the unprocessed to the passive container.
+ */
+void SaturationAlgorithm::doUnprocessedLoop()
+{
+  CALL("SaturationAlgorithm::doUnprocessedLoop");
+
+start:
+
+  newClausesToUnprocessed();
+
+  while (! _unprocessed->isEmpty()) {
+    Clause* c = _unprocessed->pop();
+    ASS(!isRefutation(c));
+
+    if(forwardSimplify(c)) {
+      onClauseRetained(c);
+      addToPassive(c);
+      ASS_EQ(c->store(), Clause::PASSIVE);
+    }
+    else {
+      ASS_EQ(c->store(), Clause::UNPROCESSED);
+      c->setStore(Clause::NONE);
+    }
+
+    newClausesToUnprocessed();
+
+    if(env.timeLimitReached()) {
+      throw TimeLimitExceededException();
+    }
+  }
+
+  ASS(clausesFlushed());
+  onAllProcessed();
+  if(!clausesFlushed()) {
+    //there were some new clauses added, so let's process them
+    goto start;
+  }
+
+}
+
+void SaturationAlgorithm::handleUnsuccessfulActivation(Clause* cl)
+{
+  CALL("SaturationAlgorithm::handleUnsuccessfulActivation");
+
+  if(cl->store()==Clause::REACTIVATED) {
+    cl->setStore(Clause::ACTIVE);
+  }
+  else {
+    ASS_EQ(cl->store(), Clause::PASSIVE);
+    cl->setStore(Clause::NONE);
+  }
+}
+
+/**
+ * Return true if clause can be passed to activation
+ *
+ * If false is returned, disposing of the clause is responsibility of
+ * this function.
+ */
+bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
+{
+  return true;
+}
+
+
+/**
  * Perform saturation on clauses that were added through
  * @b addInputClauses function
  */
@@ -1379,10 +1298,14 @@ SaturationResult SaturationAlgorithm::saturate()
   CALL("SaturationALgorithm::saturate");
 
   _sharing.init(this);
-  _splitter.init(this);
-  _bsplitter.init(this);
+  if(_splitter) {
+    _splitter->init(this);
+  }
   if(_consFinder) {
     _consFinder->init(this);
+  }
+  if(_symEl) {
+    _symEl->init(this);
   }
   if(_bddMarkingSubsumption) {
     _bddMarkingSubsumption->init(this);
@@ -1392,11 +1315,35 @@ SaturationResult SaturationAlgorithm::saturate()
 
   try
   {
-    return doSaturation();
+    for (;;) {
+      doUnprocessedLoop();
+
+      if(_passive->isEmpty()) {
+        return SaturationResult(isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND);
+      }
+
+      Clause* cl = _passive->popSelected();
+      if(!handleClauseBeforeActivation(cl)) {
+        continue;
+      }
+
+      bool isActivated=activate(cl);
+      if(!isActivated) {
+        handleUnsuccessfulActivation(cl);
+      }
+
+      if(env.timeLimitReached()) {
+        return SaturationResult(Statistics::TIME_LIMIT);
+      }
+    }
   }
-  catch(RefutationFoundExceptionStruct rs)
+  catch(RefutationFoundException rs)
   {
     return SaturationResult(Statistics::REFUTATION, rs.refutation);
+  }
+  catch(TimeLimitExceededException)
+  {
+    return SaturationResult(Statistics::TIME_LIMIT);
   }
 }
 

@@ -171,7 +171,9 @@ typedef Lib::SmartPtr<PassiveClauseContainer> PassiveClauseContainerSP;
 
 class ActiveClauseContainer;
 
+class Splitter;
 class ConsequenceFinder;
+class SymElOutput;
 }
 
 namespace Inferences

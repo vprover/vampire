@@ -1,0 +1,67 @@
+/**
+ * @file SymElOutput.hpp
+ * Defines class SymElOutput.
+ */
+
+#ifndef __SymElOutput__
+#define __SymElOutput__
+
+#include "../Forwards.hpp"
+
+#include "../Lib/DHMap.hpp"
+
+namespace Saturation {
+
+using namespace Lib;
+using namespace Kernel;
+
+
+class SymElOutput {
+public:
+  SymElOutput();
+
+  void init(SaturationAlgorithm* sa);
+
+  void onAllProcessed();
+  void onInputClause(Clause* c);
+  void onNonRedundantClause(Clause* c);
+  void onParenthood(Clause* cl, Clause* parent);
+
+
+private:
+
+  void onSymbolElimination(Color eliminated, Clause* c, bool nonRedundant=false);
+
+  void outputSymbolElimination(Color eliminated, Clause* c);
+
+  void checkForPreprocessorSymbolElimination(Clause* cl);
+
+  /** Number that would be used for the next symbol-eliminating
+   * inference conclusion that is output */
+  unsigned _symElNextClauseNumber;
+
+  /**
+   * Contains record of rewrites on symbol-eliminating clauses
+   *
+   * Is reset in the call to the @b onAllProcessed method.
+   *
+   * It is used so that we output symbol eliminating clauses
+   * after they are simplified and shown to be non-redundant.
+   */
+  DHMap<Clause*,Clause*> _symElRewrites;
+
+  /**
+   * Contains record of colors that were aliminated in
+   * symbol-eliminating clauses
+   *
+   * Is reset in the call to the @b onAllProcessed method.
+   */
+  DHMap<Clause*,Color> _symElColors;
+
+
+  SaturationAlgorithm* _sa;
+};
+
+}
+
+#endif // __SymElOutput__
