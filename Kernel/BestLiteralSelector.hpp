@@ -45,20 +45,14 @@ class BestLiteralSelector
 {
 public:
   BestLiteralSelector() {}
-  void select(Clause* c)
+protected:
+  void doSelection(Clause* c, unsigned eligible)
   {
-    CALL("BestLiteralSelector::select");
-
-    unsigned clen=c->length();
-
-    if(clen<=1) {
-      c->setSelected(clen);
-      return;
-    }
+    CALL("BestLiteralSelector::doSelection");
 
     unsigned besti=0;
     Literal* best=(*c)[0];
-    for(unsigned i=1;i<clen;i++) {
+    for(unsigned i=1;i<eligible;i++) {
       Literal* lit=(*c)[i];
       if(_comp.compare(best, lit)==LESS) {
         besti=i;
@@ -71,14 +65,13 @@ public:
     c->setSelected(1);
 
 #if VDEBUG
-    ensureSomeColoredSelected(c);
+    ensureSomeColoredSelected(c, eligible);
     ASS_EQ(c->selected(), 1); //if there is colored, it should be selected by the QComparator
 #endif
   }
 
 private:
-  LiteralComparators::Composite
-    <LiteralComparators::SelectableFirst, QComparator> _comp;
+  QComparator _comp;
 };
 
 
@@ -108,24 +101,14 @@ class CompleteBestLiteralSelector
 {
 public:
   CompleteBestLiteralSelector() : _ord(Ordering::instance()) {}
-  void select(Clause* c)
+protected:
+  void doSelection(Clause* c, unsigned eligible)
   {
-    CALL("CompleteBestLiteralSelector::select");
-
-    unsigned clen=c->length();
-
-    if(clen<=1) {
-      c->setSelected(clen);
-      return;
-    }
+    CALL("CompleteBestLiteralSelector::doSelection");
+    ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector
 
     static DArray<Literal*> litArr(64);
-    litArr.initFromIterator(
-      getFilteredIterator(Clause::Iterator(*c),
-        LiteralSelector::IsSelectableFn()));
-    if(litArr.size()==0) {
-      litArr.initFromArray(clen,*c);
-    }
+    litArr.initFromArray(eligible,*c);
     litArr.sortInversed(_comp);
 
     LiteralList* maximals=0;
@@ -154,7 +137,7 @@ public:
 	  }
 	}
 	besti++;
-	ASS_L(besti,clen);
+	ASS_L(besti,eligible);
 	if(isNegativeForSelection(litArr[besti])) {
 	  singleSelected=litArr[besti];
 	  break;
@@ -170,12 +153,12 @@ public:
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {
 	selCnt++;
       }
-      if(selCnt==clen) {
+      if(selCnt==eligible) {
 	allSelected=true;
       }
     }
     if(allSelected) {
-      c->setSelected(clen);
+      c->setSelected(eligible);
     } else if(!singleSelected) {
       //select multiple maximal literals
       static Stack<Literal*> replaced(16);
@@ -194,14 +177,14 @@ public:
 	selCnt++;
       }
       ASS_G(selCnt,1);
-      ASS_LE(selCnt,clen);
+      ASS_LE(selCnt,eligible);
 
       //put back non-selected literals that were removed
       unsigned i=selCnt;
       while(replaced.isNonEmpty()) {
 	while(!maxSet.contains((*c)[i])) {
 	  i++;
-	  ASS_L(i,clen);
+	  ASS_L(i,eligible);
 	}
 	(*c)[i++]=replaced.pop();
       }
@@ -216,7 +199,7 @@ public:
     }
     maximals->destroy();
 
-    ensureSomeColoredSelected(c);
+    ensureSomeColoredSelected(c, eligible);
   }
 
 private:

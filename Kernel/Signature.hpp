@@ -36,12 +36,16 @@ class Signature
     /** print name */
     const string _name;
     /** arity */
-    unsigned _arity : 28;
+    unsigned _arity : 27;
     /** clauses with only skipped symbols will not be output when symbol eliminated*/
     unsigned _skip : 1;
-    /** marks propositional predicate symbols that are to 
+    /** marks propositional predicate symbols that are to
         be used as names during consequence finding */
     unsigned _cfName : 1;
+    /** marks propositional predicate symbols that are to
+        be used as names for splitting without backtracking
+        when BDDs are not used */
+    unsigned _swbName : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
   public:
@@ -50,6 +54,8 @@ class Signature
       : _name(nm),
 	_arity(arity),
 	_skip(0),
+	_cfName(0),
+	_swbName(0),
 	_color(COLOR_TRANSPARENT)
     {}
     void addColor(Color color);
@@ -57,11 +63,16 @@ class Signature
     void markSkip() { _skip=1; }
     /** mark the symbol as name for consequence finding */
     void markCFName() { ASS_EQ(arity(), 0); _cfName=1; }
+    /** mark the symbol as name for splitting without backtracking */
+    void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() { return _skip; }
-    /** return true iff the symbol is marked as name predicate 
+    /** return true iff the symbol is marked as name predicate
         for consequence finding */
     bool cfName() { return _cfName; }
+    /** return true iff the symbol is marked as name predicate
+        for splitting without backtracking */
+    bool swbName() { return _swbName; }
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */

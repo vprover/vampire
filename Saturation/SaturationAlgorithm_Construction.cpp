@@ -37,7 +37,8 @@
 #include "Otter.hpp"
 
 #include "BSplitter.hpp"
-#include "SWBSplitter.hpp"
+#include "SWBSplitterWithBDDs.hpp"
+#include "SWBSplitterWithoutBDDs.hpp"
 
 #include "ConsequenceFinder.hpp"
 #include "SymElOutput.hpp"
@@ -178,7 +179,7 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
   res->setImmediateSimplificationEngine(createImmediateSE());
   addFSEs(res);
   addBSEs(res);
-  
+
   if(env.options->mode()==Options::MODE_CONSEQUENCE_FINDING) {
     res->_consFinder=new ConsequenceFinder();
   }
@@ -190,7 +191,12 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
     res->_splitter=new BSplitter();
   }
   else if(env.options->splitting()==Options::SM_NOBACKTRACKING) {
-    res->_splitter=new SWBSplitter();
+    if(env.options->propositionalToBDD()) {
+      res->_splitter=new SWBSplitterWithBDDs();
+    }
+    else {
+      res->_splitter=new SWBSplitterWithoutBDDs();
+    }
   }
 
 

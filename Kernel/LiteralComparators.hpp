@@ -47,20 +47,6 @@ private:
   Comp _c;
 };
 
-struct SelectableFirst
-{
-  Comparison compare(Literal* l1, Literal* l2)
-  {
-    if(LiteralSelector::isSelectable(l1) && !LiteralSelector::isSelectable(l2)) {
-      return GREATER;
-    } else if(!LiteralSelector::isSelectable(l1) && LiteralSelector::isSelectable(l2)) {
-      return LESS;
-    } else {
-      return EQUAL;
-    }
-  }
-};
-
 struct ColoredFirst
 {
   Comparison compare(Literal* l1, Literal* l2)

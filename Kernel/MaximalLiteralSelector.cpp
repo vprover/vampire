@@ -16,31 +16,22 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-void MaximalLiteralSelector::select(Clause* c)
+void MaximalLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
-  CALL("MaximalLiteralSelector::select");
+  CALL("MaximalLiteralSelector::doSelection");
 
-  unsigned clen=c->length();
   LiteralList* sel=0;
   bool anyNegative=false;
-  bool anySelectable=false;
 
-  for(int li=(int)clen-1; li>=0; li--) {
+  for(int li=((int)eligible)-1; li>=0; li--) {
     Literal* lit=(*c)[li];
-    if(!isSelectable(lit)) {
-      continue;
-    }
-    anySelectable=true;
     if(isNegativeForSelection(lit)) {
       anyNegative=true;
       break;
     }
   }
-  for(int li=(int)clen-1; li>=0; li--) {
+  for(int li=((int)eligible)-1; li>=0; li--) {
     Literal* lit=(*c)[li];
-    if(anySelectable && !isSelectable(lit)) {
-      continue;
-    }
     if(!anyNegative || isNegativeForSelection(lit)) {
       LiteralList::push(lit,sel);
     }
@@ -67,7 +58,7 @@ void MaximalLiteralSelector::select(Clause* c)
   unsigned selCnt=0;
 
   for(unsigned li=0; sel; li++) {
-    ASS(li<clen);
+    ASS(li<eligible);
     if((*c)[li]==sel->head()) {
       if(li!=selCnt) {
 	swap((*c)[li], (*c)[selCnt]);
@@ -81,5 +72,5 @@ void MaximalLiteralSelector::select(Clause* c)
 
   c->setSelected(selCnt);
 
-  ensureSomeColoredSelected(c);
+  ensureSomeColoredSelected(c, eligible);
 }

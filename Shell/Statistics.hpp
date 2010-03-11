@@ -126,6 +126,8 @@ public:
   unsigned splittedClauses;
   unsigned splittedComponents;
   unsigned uniqueComponents;
+  /** Number of introduced name predicates for splitting without backtracking */
+  unsigned splittingNamesIntroduced;
   /** Derived clauses with empty non-propositional and non-empty propositional part */
   unsigned bddPropClauses;
 

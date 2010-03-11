@@ -1568,11 +1568,14 @@ void Options::checkGlobalOptionConstraints() const
   if(satSolverForEmptyClause() && emptyClauseSubsumption()) {
     USER_ERROR("Empty clause subsumption cannot be performed when SAT solver is used for handling empty clauses");
   }
-  if(!propositionalToBDD() && splitting()==SM_NOBACKTRACKING) {
-    USER_ERROR("If propositional atoms are not being converted to BDD, splitting without backtracking has to be disabled");
-  }
   if(!propositionalToBDD() && bddMarkingSubsumption()) {
     USER_ERROR("BDD marking subsumption cannot be used without BDDs enabled (the \"propositional_to_bdd\" option)");
+  }
+  if(propositionalToBDD() && splittingWithBlocking()) {
+    USER_ERROR("Splitting with blocking cannot be used with BDDs enabled (the \"propositional_to_bdd\" option)");
+  }
+  if(splitting()!=SM_NOBACKTRACKING && splittingWithBlocking()) {
+    USER_ERROR("Splitting with blocking can be used only with splitting without backtracking");
   }
   if(splitting()==SM_BACKTRACKING && propositionalToBDD()) {
     USER_ERROR("Backtracking splitting cannot be used unless all BDD related options are disabled");

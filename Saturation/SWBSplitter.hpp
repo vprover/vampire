@@ -6,15 +6,13 @@
 #ifndef __SWBSplitter__
 #define __SWBSplitter__
 
+#include <utility>
+
 #include "../Forwards.hpp"
-
-#include "../Lib/DHMap.hpp"
-
-#include "../Indexing/ClauseSharing.hpp"
-#include "../Indexing/ClauseVariantIndex.hpp"
 
 #include "Splitter.hpp"
 
+#define REPORT_SPLITS 0
 
 namespace Saturation {
 
@@ -26,27 +24,22 @@ class SWBSplitter : public Splitter
 {
 public:
   bool doSplitting(Clause* cl);
-private:
-  bool handleNoSplit(Clause* cl);
+protected:
+  struct CompRec
+  {
+    CompRec() {}
+    CompRec(Literal** lits, unsigned len) : lits(lits), len(len) {}
+    Literal** lits;
+    unsigned len;
+  };
 
-  Clause* getComponent(Clause* cl, Literal** lits, unsigned compLen, int& name, bool& newComponent);
+  virtual void buildAndInsertComponents(Clause* cl, CompRec* comps, unsigned compCnt, bool firstIsMaster) = 0;
 
-  int nameComponent(Clause* comp);
-  BDDNode* getNameProp(int name);
+  virtual bool handleNoSplit(Clause* cl) = 0;
 
   bool canSplitOut(Literal* lit);
-
-  /** Names assigned to clauses stored in @b _variantIndex */
-  DHMap<Clause*, int> _clauseNames;
-
-  /**
-   * Names for ground literals whose opposite counterparts haven't
-   * been named yet
-   *
-   * See @b Splitter::nameComponent function.
-   */
-  DHMap<Literal*, int> _groundNames;
-
+  virtual bool canStandAlone(Literal* lit);
+  virtual bool standAloneObligations();
 };
 
 }

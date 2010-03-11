@@ -26,7 +26,8 @@ class MaximalLiteralSelector
 {
 public:
   MaximalLiteralSelector() : _ord(Ordering::instance()) {}
-  void select(Clause* c);
+protected:
+  void doSelection(Clause* c, unsigned eligible);
 private:
   Ordering* _ord;
 };

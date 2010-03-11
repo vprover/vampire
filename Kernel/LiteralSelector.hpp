@@ -32,11 +32,11 @@ public:
     _instCtr--;
 #endif
   }
-  virtual void select(Clause* c) = 0;
+  void select(Clause* c);
 
   static LiteralSelector* getSelector(int num);
 
-  static void ensureSomeColoredSelected(Clause* c);
+  static void ensureSomeColoredSelected(Clause* c, unsigned eligible);
 
   static bool isPositiveForSelection(Literal* l)
   {
@@ -52,17 +52,16 @@ public:
     return !isPositiveForSelection(l);
   }
 
-  static bool isSelectable(Literal* l);
+  static int getSelectionPriority(Literal* l);
 
-  struct IsSelectableFn
-  {
-    DECL_RETURN_TYPE(bool);
-    bool operator()(Literal* l)
-    {
-      return isSelectable(l);
-    }
-  };
-
+protected:
+  /**
+   * Perform selection on first @b eligible literals of clause @b c
+   *
+   * @b eligible has to be greater than 1. (Trivial cases should be taken
+   * care of separately.)
+   */
+  virtual void doSelection(Clause* c, unsigned eligible) = 0;
 private:
   static bool _reversePolarity;
 #if VDEBUG
@@ -77,8 +76,8 @@ private:
 class TotalLiteralSelector
 : public LiteralSelector
 {
-public:
-  void select(Clause* c);
+protected:
+  void doSelection(Clause* c, unsigned eligible);
 };
 
 

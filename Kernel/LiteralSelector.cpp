@@ -6,6 +6,8 @@
 #include "../Lib/Environment.hpp"
 #include "../Lib/Exception.hpp"
 
+#include "../Shell/Options.hpp"
+
 #include "Clause.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
@@ -13,8 +15,8 @@
 #include "LiteralSelector.hpp"
 
 #include "MaximalLiteralSelector.hpp"
-
 #include "BestLiteralSelector.hpp"
+
 #include "LiteralComparators.hpp"
 
 
@@ -40,12 +42,22 @@ int LiteralSelector::_instCtr=0;
 #endif
 
 /**
- * If there is a selectable literal in the clause, no
- * non-selectable ones will be selected.
+ * The selection will be performed among the literals with the
+ * highest selection priority in the clause
  */
-bool LiteralSelector::isSelectable(Literal* l)
+int LiteralSelector::getSelectionPriority(Literal* l)
 {
-  return !env.signature->getPredicate(l->functor())->cfName();
+  Signature::Symbol* psym=env.signature->getPredicate(l->functor());
+  if(psym->swbName()) {
+    if(l->isPositive() && env.options->splittingWithBlocking()) {
+      return 1;
+    }
+    return -1;
+  }
+  if(psym->cfName()) {
+    return -1;
+  }
+  return 0;
 }
 
 LiteralSelector* LiteralSelector::getSelector(int num)
@@ -99,7 +111,11 @@ LiteralSelector* LiteralSelector::getSelector(int num)
   }
 }
 
-void LiteralSelector::ensureSomeColoredSelected(Clause* c)
+/**
+ * If there is a colored literal among the first @b eligible
+ * ones, ensure at least one colored literal is selected
+ */
+void LiteralSelector::ensureSomeColoredSelected(Clause* c, unsigned eligible)
 {
   CALL("LiteralSelector::ensureSomeColoredSelected");
 
@@ -116,33 +132,67 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c)
     }
   }
 
-  unsigned clen=c->length();
-
-  for(unsigned i=selCnt;i<clen;i++) {
+  for(unsigned i=selCnt;i<eligible;i++) {
     if((*c)[i]->color()!=COLOR_TRANSPARENT) {
-      ASS(isSelectable((*c)[i])); //colored literals have to be selectable
       swap((*c)[selCnt], (*c)[i]);
       c->setSelected(selCnt+1);
       return;
     }
   }
-  ASSERTION_VIOLATION;
+  //the colored literals are not among the eligible ones
+  ASS_L(eligible, c->length());
 }
 
-
-void TotalLiteralSelector::select(Clause* c)
+void LiteralSelector::select(Clause* c)
 {
-  CALL("TotalLiteralSelector::select");
+  CALL("LiteralSelector::select");
 
   unsigned clen=c->length();
-  unsigned selCnt=clen;
-  for(unsigned i=0;i<selCnt;i++) {
-    if(!isSelectable((*c)[i])) {
-      selCnt--;
-      swap((*c)[i],(*c)[selCnt]);
+
+  if(clen<=1) {
+    c->setSelected(clen);
+    return;
+  }
+
+  unsigned eligible=1;
+  int maxPriority=getSelectionPriority((*c)[0]);
+  bool modified=false;
+
+  for(unsigned i=1;i<eligible;i++) {
+    int priority=getSelectionPriority((*c)[i]);
+    if(priority==maxPriority) {
+      if(eligible!=i) {
+	swap((*c)[i],(*c)[eligible]);
+	modified=true;
+      }
+      eligible++;
+    }
+    else if(priority>maxPriority) {
+      maxPriority=priority;
+      eligible=1;
+      swap((*c)[i],(*c)[0]);
+      modified=true;
     }
   }
-  c->setSelected(selCnt);
+  ASS_LE(eligible,clen);
+  if(modified) {
+    c->notifyLiteralReorder();
+  }
+
+  if(eligible==1) {
+    c->setSelected(eligible);
+    return;
+  }
+
+  ASS_G(eligible,1);
+  doSelection(c, eligible);
+}
+
+void TotalLiteralSelector::doSelection(Clause* c, unsigned eligible)
+{
+  CALL("TotalLiteralSelector::doSelection");
+
+  c->setSelected(eligible);
 }
 
 }
