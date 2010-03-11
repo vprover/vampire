@@ -6,28 +6,28 @@
 ################################################################
 
 # The following flags are available for compilation:
-#   VDEBUG      - the debug mode
-#   VTEST       - testing procedures will also be compiled
-#   CHECK_LEAKS - test for memory leaks (debugging mode only)
+#   VDEBUG           - the debug mode
+#   VTEST            - testing procedures will also be compiled
+#   CHECK_LEAKS      - test for memory leaks (debugging mode only)
+#   UNIX_USE_SIGALRM - the SIGALRM timer will be used even in debug mode
 #	
 
+DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 # debugging for spider 
+REL_FLAGS = -O6 -DVDEBUG=0 # no debugging 
+
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
-#XFLAGS = -g -DVDEBUG=0 -DCHECK_LEAKS=0 # debug mode without VDEBUG macro 
-#XFLAGS = -g -O6 -DVDEBUG=0 # no debugging, but debugging info present
+#XFLAGS = $(DBG_FLAGS)
+XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+#XFLAGS = $(REL_FLAGS)
+
 #XFLAGS = -pg -g -O6 -DVDEBUG=0 # profiling with max optimization
 #XFLAGS = -pg -g -O6 -DVDEBUG=0 -fno-inline # profiling with no inlining
-#XFLAGS = -fprofile-arcs -pg -g -DVDEBUG=0 # coverage & profiling
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
-#XFLAGS = -pg -DVDEBUG=0 # profiling without debug info
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 # debugging for spider
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
-#XFLAGS = -O6 -DVDEBUG=0 # no debugging
-
-#XFLAGS = -O6 -DVDEBUG=0 -mtune=athlon64 -march=athlon64 # no debugging, cpu optimization
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
 #XFLAGS = -fprofile-arcs -pg -O6 -DVDEBUG=0 # coverage & profiling optimized
-#XFLAGS = -DVDEBUG=0 # no debugging, no optimization
+#XFLAGS = -O0 -DVDEBUG=0 # no debugging, no optimization
 #XFLAGS = -O6 -DVDEBUG=1 -DCHECK_LEAKS=0 -g # debugging and optimized
+
 #XFLAGS = -O6 -DVDEBUG=0 -g # Cachegrind
 #XFLAGS = -O2 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-inline-small-functions -fno-early-inlining -g # Callgrind
 #XFLAGS = -O6 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
@@ -42,12 +42,15 @@ XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
+ifeq ($(MAKECMDGOALS),vampire_dbg)
+XFLAGS = $(DBG_FLAGS)
+endif
+ifeq ($(MAKECMDGOALS),vampire_rel)
+XFLAGS = $(REL_FLAGS)
+endif
+
 CXX = g++
 CXXFLAGS = $(XFLAGS) -Wall
-
-# Valgrind
-#VCXX = /usr/bin/g++-4.2
-#VCXXFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -g -Wall
 
 ################################################################
 
@@ -208,72 +211,95 @@ VT_OBJ = Test/Output.o\
          Test/Compit2Output.o
 
 
-VAMP_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
-VCOMPIT_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VT_OBJ)  
-VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
+#VCOMPIT_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VT_OBJ)  
+#VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
-VAMPIRE_OBJ = $(VAMP_BASIC) Global.o vampire.o
-VCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o vcompit.o
-UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
-VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
-SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
-TEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_SubstitutionTree.o
-RTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_retrieval.o
-DHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMap.o
-DHMSTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMultiset.o
-BHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_BinaryHeap.o
-SLTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_SkipList.o
-ALLOCTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VT_OBJ) $(VSAT_OBJ) $(VS_OBJ) Global.o test_alloc.o
-ALUCARD_OBJ = $(ALUC_BASIC) Global.o alucard.o
-
-################################################################
+VAMPIRE_DEP := $(VAMP_BASIC) Global.o vampire.o
+#VCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o vcompit.o
+#UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
+#VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
+#SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
+#TEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_SubstitutionTree.o
+#RTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_retrieval.o
+#DHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMap.o
+#DHMSTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMultiset.o
+#BHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_BinaryHeap.o
+#SLTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_SkipList.o
+#ALLOCTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VT_OBJ) $(VSAT_OBJ) $(VS_OBJ) Global.o test_alloc.o
+#ALUCARD_OBJ = $(ALUC_BASIC) Global.o alucard.o
 
 all:#default make disabled
 
-vampire: $(VAMPIRE_OBJ)
-	$(CXX) $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
-#	$(CXX) -static $(CXXFLAGS) $(VAMPIRE_OBJ) -o vampire
-#	strip vampire
+################################################################
+# separate directory for object files implementation
 
-vground: $(VGROUND_OBJ)
-#	$(CXX) -static $(CXXFLAGS) $(VGROUND_OBJ) -o vground
-	$(CXX) $(CXXFLAGS) $(VGROUND_OBJ) -o vground
+# different directory for each configuration, so there is no need for "make clean"
+CONF_ID := obj/$(shell echo -n "$(XFLAGS)"|sum|cut -d' ' -f1)X
 
-vcompit: $(VCOMPIT_OBJ)
-	$(CXX) $(CXXFLAGS) $(VCOMPIT_OBJ) -o vcompit
+obj:
+	-mkdir obj
+obj/%X: | obj
+	-mkdir $@
+	-cd $@ ; mkdir Debug Lib Kernel Indexing Inferences Shell Rule SAT Saturation Test ; cd .. 
 
-ucompit: $(UCOMPIT_OBJ)
-	$(CXX) $(CXXFLAGS) $(UCOMPIT_OBJ) -o ucompit
+#cancel the implicit rule
+%.o : %.cpp
 
-# Vampipre for valgrind
-vv: $(VAMPIRE_OBJ)
-	$(VCXX) $(VCXXFLAGS) $(VAMPIRE_OBJ) -o vv
+$(CONF_ID)/%.o : %.cpp | $(CONF_ID)
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp
 
-sat: $(SAT_OBJ)
-	$(CXX) $(CXXFLAGS) $(SAT_OBJ) -o sat
-#	strip sat
+################################################################
+# targets for executables
 
-test: $(TEST_OBJ)
-	$(CXX) $(CXXFLAGS) $(TEST_OBJ) -o test
+VAMPIRE_OBJ := $(addprefix $(CONF_ID)/, $(VAMPIRE_DEP))
 
-rtest: $(RTEST_OBJ)
-	$(CXX) $(CXXFLAGS) $(RTEST_OBJ) -o rtest
+define COMPILE_CMD
+$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@
+@#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
+@#strip $@
+endef
 
-test_alloc: $(ALLOCTEST_OBJ)
-	$(CXX) $(CXXFLAGS) $(ALLOCTEST_OBJ) -o test_alloc
+EXEC_DEF_PREREQ = Makefile
 
+vampire vampire_rel vampire_dbg: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD)
 
-test_DHMap: $(DHTEST_OBJ)
-	$(CXX) $(CXXFLAGS) $(DHTEST_OBJ) -o test_DHMap
-
-test_DHMultiset: $(DHMSTEST_OBJ)
-	$(CXX) $(CXXFLAGS) $(DHMSTEST_OBJ) -o test_DHMultiset
-
-test_BinaryHeap: $(BHTEST_OBJ)
-	$(CXX) $(CXXFLAGS) $(BHTEST_OBJ) -o test_BinaryHeap
-
-test_SkipList: $(SLTEST_OBJ)
-	$(CXX) $(CXXFLAGS) $(SLTEST_OBJ) -o test_SkipList
+#vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
+##	$(CXX) -static $(CXXFLAGS) $^ -o vground
+#	$(CXX) $(CXXFLAGS) $^ -o $@
+#
+#vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
+#	$(CXX) $(CXXFLAGS) $^ -o $@
+#
+#ucompit: $(UCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
+#	$(CXX) $(CXXFLAGS) $^ -o $@
+#
+#sat: $(SAT_OBJ) $(EXEC_DEF_PREREQ)
+#	$(CXX) $(CXXFLAGS) $^ -o $@
+##	strip sat
+#
+#test: $(TEST_OBJ) $(EXEC_DEF_PREREQ)
+#	$(CXX) $(CXXFLAGS) $^ -o $@
+#
+#rtest: $(RTEST_OBJ) $(EXEC_DEF_PREREQ)
+#	$(CXX) $(CXXFLAGS) $^ -o $@
+#
+#test_alloc: $(ALLOCTEST_OBJ) $(EXEC_DEF_PREREQ)
+#	$(CXX) $(CXXFLAGS) $^ -o $@
+#
+#
+#test_DHMap: $(DHTEST_OBJ) $(EXEC_DEF_PREREQ)
+#	$(CXX) $(CXXFLAGS) $^ -o $@
+#
+#test_DHMultiset: $(DHMSTEST_OBJ) $(EXEC_DEF_PREREQ)
+#	$(CXX) $(CXXFLAGS) $^ -o $@
+#
+#test_BinaryHeap: $(BHTEST_OBJ) $(EXEC_DEF_PREREQ)
+#	$(CXX) $(CXXFLAGS) $^ -o $@
+#
+#test_SkipList: $(SLTEST_OBJ) $(EXEC_DEF_PREREQ)
+#	$(CXX) $(CXXFLAGS) $^ -o $@
 
 clean:
 	cd Debug ; rm -f *.o *~ *.bak ; cd ..
@@ -287,9 +313,10 @@ clean:
 	cd Saturation ; rm -f *.o *~ *.bak ; cd ..
 	cd Test ; rm -f *.o *~ *.bak ; cd ..
 	rm -f *.o *~ *.bak
+	rm -rf obj
 
 depend:
-	makedepend -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 Debug/*.cpp Lib/*.cpp Shell/*.cpp Kernel/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp *.cpp
+	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 Debug/*.cpp Lib/*.cpp Shell/*.cpp Kernel/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp *.cpp
 
 doc:
 	rm -fr doc/html
@@ -297,4 +324,10 @@ doc:
 
 .PHONY: doc depend clean
 
+ $(warning default goal is $(MAKECMDGOALS))
+
+
+###########################
+# include header dependencies
+	
 include Makefile_depend
