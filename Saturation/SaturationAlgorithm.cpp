@@ -111,6 +111,19 @@ SaturationAlgorithm::~SaturationAlgorithm()
   env.statistics->finalActiveClauses=_active->size();
   env.statistics->finalPassiveClauses=_passive->size();
 
+  if(_splitter) {
+    delete _splitter;
+  }
+  if(_consFinder) {
+    delete _consFinder;
+  }
+  if(_symEl) {
+    delete _symEl;
+  }
+  if(_bddMarkingSubsumption) {
+    delete _bddMarkingSubsumption;
+  }
+
   _active->detach();
   _passive->detach();
 

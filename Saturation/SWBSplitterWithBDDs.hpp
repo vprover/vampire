@@ -17,6 +17,11 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 
+/**
+ * @b SWBSplitterWithBDDs object performs splitting
+ * without backtracking when the use of BDDs for
+ * propositional predicates is enabled
+ */
 class SWBSplitterWithBDDs : public SWBSplitter
 {
 protected:
@@ -37,7 +42,7 @@ private:
    * Names for ground literals whose opposite counterparts haven't
    * been named yet
    *
-   * See @b Splitter::nameComponent function.
+   * See @b SWBSplitterWithBDDs::nameComponent function.
    */
   DHMap<Literal*, int> _groundNames;
 };

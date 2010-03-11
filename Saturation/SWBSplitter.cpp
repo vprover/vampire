@@ -37,7 +37,8 @@ using namespace Inferences;
  *
  * The splitted components (or the clause replacement) are added to the
  * @b SaturationAlgorithm object through the @b addNewClause function,
- * also the function @b onParenthood is called with appropriate arguments.
+ * also the functions @b onParenthood and @b onClauseReduction are
+ * called when appropriate.
  */
 bool SWBSplitter::doSplitting(Clause* cl)
 {

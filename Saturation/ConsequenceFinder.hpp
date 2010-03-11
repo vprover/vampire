@@ -22,8 +22,12 @@ namespace Saturation {
 using namespace Kernel;
 using namespace Inferences;
 
+/**
+ * The @b ConsequenceFinder object takes care of the
+ * consequence-finding mode in Vampire
+ */
 class ConsequenceFinder {
-public: 
+public:
   ~ConsequenceFinder();
 
   void init(SaturationAlgorithm* sa);
@@ -43,7 +47,11 @@ private:
 
   typedef SkipList<Clause*,Int> ClauseSL;
 
+  /** Index of clauses that contain specific consequence-finding
+   * name predicate */
   ZIArray<ClauseSL*> _index;
+  /** Keeps information on which claims have already been found
+   * redundant (implied by others) */
   ZIArray<bool> _redundant;
 
   TautologyDeletionISE _td;

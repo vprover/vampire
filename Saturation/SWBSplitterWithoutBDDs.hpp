@@ -19,12 +19,15 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 
+/**
+ * @b SWBSplitterWithoutBDDs object performs splitting
+ * without backtracking when the use of BDDs for
+ * propositional predicates is disabled
+ */
 class SWBSplitterWithoutBDDs : public SWBSplitter
 {
 protected:
   void buildAndInsertComponents(Clause* cl, CompRec* comps, unsigned compCnt, bool firstIsMaster);
-
-  bool handleNoSplit(Clause* cl);
 
   //overrides SWBSplitter::canStandAlone
   bool canStandAlone(Literal* lit);
@@ -49,15 +52,7 @@ private:
   Literal* getNameLiteral(int name, bool forMaster);
   int getNewName();
 
-  int nameComponent(Clause* comp);
-  BDDNode* getNameProp(int name);
-
-  /** Names assigned to clauses stored in @b _variantIndex */
-  DHMap<Clause*, int> _clauseNames;
-
-  /**
-   * Names for ground literals
-   */
+  /** Names for ground literals */
   DHMap<Literal*, CompNameRec> _groundNames;
 };
 

@@ -15,7 +15,10 @@ namespace Saturation {
 using namespace Lib;
 using namespace Kernel;
 
-
+/**
+ * The @b SymElOutput object takes care of the output of
+ * the consequences of symbol eliminating inferences
+ */
 class SymElOutput {
 public:
   SymElOutput();

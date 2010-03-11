@@ -18,6 +18,8 @@ using namespace Indexing;
 class Splitter
 {
 public:
+  virtual ~Splitter() {}
+
   void init(SaturationAlgorithm* sa);
 
   virtual bool doSplitting(Clause* cl) = 0;

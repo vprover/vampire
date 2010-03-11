@@ -11,6 +11,15 @@
 namespace Shell
 {
 
+namespace AxGen
+{
+
+enum TheoryElement
+{
+
+};
+
+}
 
 };
 

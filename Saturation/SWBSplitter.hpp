@@ -20,6 +20,14 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 
+/**
+ * Descendant objects of the @b SWBSplitter class perform the
+ * splitting without backtracking
+ *
+ * If BDDs are used for propositional predicates, the
+ * @b SWBSplitterWithBDDs object should be used, otherwise
+ * it should be @b SWBSplitterWithoutBDDs.
+ */
 class SWBSplitter : public Splitter
 {
 public:
@@ -33,9 +41,23 @@ protected:
     unsigned len;
   };
 
-  virtual void buildAndInsertComponents(Clause* cl, CompRec* comps, unsigned compCnt, bool firstIsMaster) = 0;
+  /**
+   * Build clauses based on the component info in @b comps
+   * and put them into the saturation algorithm
+   *
+   * If @b firstIsMaster is true, the record @b comps[0]
+   * has to be used for the master component.
+   */
+  virtual void buildAndInsertComponents(Clause* cl, CompRec* comps,
+      unsigned compCnt, bool firstIsMaster) = 0;
 
-  virtual bool handleNoSplit(Clause* cl) = 0;
+  /**
+   * Perform necessary actions on a clause that is not being split
+   *
+   * When true is returned, the clause @b cl should not be kept in the
+   * run of the saturation algorithm.
+   */
+  virtual bool handleNoSplit(Clause* cl) { return false; }
 
   bool canSplitOut(Literal* lit);
   virtual bool canStandAlone(Literal* lit);

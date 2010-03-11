@@ -90,6 +90,10 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   }
 }
 
+/**
+ * Return true if a clause is redundant for the process of
+ * consequence finding and can therefore be deleted
+ */
 bool ConsequenceFinder::isRedundant(Clause* cl)
 {
   CALL("ConsequenceFinder::isRedundant");
@@ -129,7 +133,7 @@ void ConsequenceFinder::onClauseInserted(Clause* cl)
   if(red) {
     //the clause is already redundant, so we should delete it
 
-    //it may not be the right moment to call this function, so in 
+    //it may not be the right moment to call this function, so in
     //case of problems just comment this out (it will lead just to
     //some extra work of the algorithm).
     //_sa->removeActiveOrPassiveClause(cl);

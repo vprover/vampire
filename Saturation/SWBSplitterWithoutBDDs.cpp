@@ -79,6 +79,13 @@ void SWBSplitterWithoutBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps
 
 }
 
+/**
+ * Name the component @b cr and return the @b CompNameRec
+ * describing the naming
+ *
+ * If necessary, the naming clause is inserted into the
+ * saturation algorithm.
+ */
 SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::getNamedComponent(Clause* cl, CompRec cr)
 {
   CALL("SWBSplitterWithoutBDDs::getNamedComponent");
@@ -110,6 +117,8 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::getNamedComponent(Cl
 /**
  * Create a clause that names the component @b cr coming from the clause @b cr
  * using the name @b knownName. If @b knownName==0, a new name will ne used.
+ *
+ * The created clause is inserted into the saturation algorithm.
  */
 SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::createNamedComponent(Clause* cl, CompRec cr, int knownName)
 {
@@ -143,6 +152,12 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::createNamedComponent
   return CompNameRec(name, res);
 }
 
+/**
+ * Return a new name for a component
+ *
+ * The returned name is an index of a new propositional
+ * predicate symbol.
+ */
 int SWBSplitterWithoutBDDs::getNewName()
 {
   CALL("SWBSplitterWithoutBDDs::getNewName");
@@ -155,6 +170,12 @@ int SWBSplitterWithoutBDDs::getNewName()
   return res;
 }
 
+/**
+ * Return naming literal for name @b name. If @b forMaster is true,
+ * the literal to be used in the master component is returned,
+ * otherwise it is a literal to be used in the clause that names
+ * the component.
+ */
 Literal* SWBSplitterWithoutBDDs::getNameLiteral(int name, bool forMaster)
 {
   CALL("SWBSplitterWithoutBDDs::getNameLiteral");
@@ -164,13 +185,6 @@ Literal* SWBSplitterWithoutBDDs::getNameLiteral(int name, bool forMaster)
   unsigned num=abs(name);
 
   return Literal::create(num, 0, positive, false, 0);
-}
-
-bool SWBSplitterWithoutBDDs::handleNoSplit(Clause* cl)
-{
-  CALL("SWBSplitterWithoutBDDs::handleNoSplit");
-
-  return false;
 }
 
 bool SWBSplitterWithoutBDDs::canStandAlone(Literal* lit)
