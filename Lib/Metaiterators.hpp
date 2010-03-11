@@ -721,7 +721,7 @@ private:
 /**
  * Return iterator, that yields all unordered pairs from set {@b from,
  * (@b from)+1, (@b from)+2,..., (@b to2)-1} where one of the pair is
- * less than $b to1. (The addition is performed by the operator++.)
+ * less than @b to1. (The addition is performed by the operator++.)
  * For a singleton set, nothing is yielded.
  *
  * Parameter @b to1 must be less than or equal to @b to2.
