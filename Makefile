@@ -231,6 +231,10 @@ VAMPIRE_DEP := $(VAMP_BASIC) Global.o vampire.o
 
 all:#default make disabled
 
+#the $(CONF_ID) directory is considered intermediate and make would otherwise try to delete it
+#(this forbids deletion of intermediate files)
+.SECONDARY:
+
 ################################################################
 # separate directory for object files implementation
 
@@ -323,8 +327,6 @@ doc:
 	doxygen config.doc
 
 .PHONY: doc depend clean
-
- $(warning default goal is $(MAKECMDGOALS))
 
 
 ###########################
