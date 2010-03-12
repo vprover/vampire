@@ -79,7 +79,6 @@ ClauseIterator getInputClauses()
 {
   Property property;
 
-  env.signature = new Kernel::Signature;
   UnitList* units;
   {
     TimeCounter tc1(TC_PARSING);
@@ -352,6 +351,7 @@ int main(int argc, char* argv [])
     env.timer = &timer;
     env.options = &options;
     env.statistics = &statistics;
+    env.signature = new Kernel::Signature;
 
     // read the command line and interpret it
     Shell::CommandLine cl(argc,argv);
