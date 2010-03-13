@@ -428,7 +428,7 @@ int KBO::functionSymbolWeight(unsigned fun)
  */
 int KBO::predicateLevel (unsigned pred)
 {
-  int basic=pred > _predicates ? 1 : _predicateLevels[pred];
+  int basic=pred >= _predicates ? 1 : _predicateLevels[pred];
   if(env.signature->predicateColored(pred)) {
     ASS_NEQ(pred,0); //equality should never be colored
     return COLORED_LEVEL_BOOST*basic;
@@ -447,7 +447,7 @@ int KBO::predicateLevel (unsigned pred)
  */
 int KBO::predicatePrecedence (unsigned pred)
 {
-  return pred > _predicates ? (int)pred : _predicatePrecedences[pred];
+  return pred >= _predicates ? (int)pred : _predicatePrecedences[pred];
 } // KBO::predicatePrecedences
 
 /**
@@ -459,7 +459,7 @@ int KBO::predicatePrecedence (unsigned pred)
  */
 int KBO::functionPrecedence (unsigned fun)
 {
-  return fun > _functions ? (int)fun : _functionPrecedences[fun];
+  return fun >= _functions ? (int)fun : _functionPrecedences[fun];
 } // KBO::functionPrecedences
 
 
