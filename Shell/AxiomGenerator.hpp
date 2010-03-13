@@ -98,7 +98,17 @@ struct HalfImpl {
 };
 
 HalfImpl operator--(const FormBlock& l, int);
-FormBlock operator>(const HalfImpl& hi, const FormBlock& r);
+FormBlock operator>(const HalfImpl& l, const FormBlock& r);
+
+//the followint is to allow having --> stand for an implication
+struct HalfEquiv {
+  HalfEquiv(const FormBlock& fb) : fb(fb) {}
+  FormBlock fb;
+};
+
+FormBlock operator-=(const FormBlock& l, const HalfEquiv& r);
+HalfEquiv operator-(const FormBlock& l);
+
 
 };
 

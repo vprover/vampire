@@ -259,6 +259,41 @@ TermBlock operator+(const TermBlock& b1, const TermBlock& b2)
 TermBlock operator++(const TermBlock& b1,int)
 { return fun1(SUCCESSOR, b1); }
 
+//formula operators
+
+//negation
+FormBlock operator!(const FormBlock& f)
+{
+  CALL("AxGen::operator!(FormBlock)");
+  ASS(f.ctx);
+  return FormBlock(f.ctx, new NegatedFormula(f.form));
+}
+
+//disjunction
+FormBlock operator|(const FormBlock& l, const FormBlock& r)
+{
+  CALL("AxGen::operator&(FormBlock,FormBlock)");
+  ASS(r.ctx);
+  ASS_EQ(l.ctx,r.ctx);
+  FormulaList* args=0;
+  FormulaList::push(r.form, args);
+  FormulaList::push(l.form, args);
+  return FormBlock(l.ctx, new JunctionFormula(OR, args));
+}
+
+//conjunction
+FormBlock operator&(const FormBlock& l, const FormBlock& r)
+{
+  CALL("AxGen::operator&(FormBlock,FormBlock)");
+  ASS(r.ctx);
+  ASS_EQ(l.ctx,r.ctx);
+  FormulaList* args=0;
+  FormulaList::push(r.form, args);
+  FormulaList::push(l.form, args);
+  return FormBlock(l.ctx, new JunctionFormula(AND, args));
+}
+
+//the following two implement --> for implication
 HalfImpl operator--(const FormBlock& l, int)
 {
   return HalfImpl(l);
@@ -270,6 +305,20 @@ FormBlock operator>(const HalfImpl& l, const FormBlock& r)
   ASS_EQ(l.fb.ctx,r.ctx);
   return FormBlock(r.ctx, new BinaryFormula(IMP, l.fb.form, r.form));
 }
+
+//the following two implement -=- for equivalence
+FormBlock operator-=(const FormBlock& l, const HalfEquiv& r)
+{
+  CALL("AxGen::operator-=(FormBlock,HalfEquiv)");
+  ASS(l.ctx);
+  ASS_EQ(l.ctx,r.fb.ctx);
+  return FormBlock(l.ctx, new BinaryFormula(IFF, l.form, r.fb.form));
+}
+HalfEquiv operator-(const FormBlock& r)
+{
+  return HalfEquiv(r);
+}
+
 
 };
 
@@ -316,9 +365,17 @@ struct PlusTestAxioms : public AxiomGenerator
     axiom( X0+zero==X0 );
     axiom( X0+(X1++)==(X0+X1)++ );
 
+    axiom( !(X0>X0) );
+    axiom( (X0>X1) --> !(X1>X0) );
+    axiom( ((X0>X1) & (X1>X2)) --> (X0>X2) );
+
+
     axiom( X0++>X0 );
 
-    axiom( (X0>X1) --> (X0!=X1) );
+
+    axiom( (X0++>X1++) -=- (X0>X1) );
+
+    axiom( (X0+X1>X0) -=- (X1>zero) );
   }
 };
 
