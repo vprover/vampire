@@ -108,6 +108,7 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::getNamedComponent(Cl
   }
 
   if(cr.len==1 && cr.lits[0]->ground()) {
+    res.namingClause->incRefCnt();
     ALWAYS(_groundNames.insert(cr.lits[0], res));
   }
 
