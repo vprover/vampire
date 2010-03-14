@@ -111,6 +111,7 @@ public:
   string toTPTPString(BDDNode* node);
 
   SATClauseList* toCNF(BDDNode* node);
+  SATClauseList* toCNFWithSubsumptionResolution(BDDNode* node);
   Formula* toFormula(BDDNode* node);
 
   string getDefinition(BDDNode* node);

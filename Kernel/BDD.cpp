@@ -781,15 +781,15 @@ struct BDD::CNFStackRec {
 };
 
 //The first implementation performs subsumption resolution.
-//Interestingly, the SATSolver seems to perform worse on the
+//Interestingly, the SATSolver often seems to perform worse on the
 //resulting clauses.
-#if 0
+
 /**
  * Convert a BDDNode into a list of propositional clauses.
  */
-SATClauseList* BDD::toCNF(BDDNode* node)
+SATClauseList* BDD::toCNFWithSubsumptionResolution(BDDNode* node)
 {
-  CALL("BDD::toCNF");
+  CALL("BDD::toCNFSubsumptionResolution");
 
   SATClauseList* res=0;
   int resolvedCnt=0; //number of resolved literals on the stack
@@ -859,7 +859,7 @@ SATClauseList* BDD::toCNF(BDDNode* node)
     }
   }
 }
-#else
+
 SATClauseList* BDD::toCNF(BDDNode* node)
 {
   CALL("BDD::toCNF");
@@ -895,8 +895,6 @@ SATClauseList* BDD::toCNF(BDDNode* node)
   }
 }
 
-#endif
-
 /**
  * Add the formula represented by @b n to the conjunction represented
  * by this object
@@ -929,7 +927,13 @@ void BDDConjunction::addNode(BDDNode* n)
 
   unsigned varCnt=_maxVar+1;
 
-  SATClauseList* newClLst=bdd->toCNF(n);
+  SATClauseList* newClLst;
+  if(env.options->satSolverWithSubsumptionResolution()) {
+    newClLst=bdd->toCNFWithSubsumptionResolution(n);
+  }
+  else {
+    newClLst=bdd->toCNF(n);
+  }
 
   _solver.ensureVarCnt(varCnt);
   _solver.addClauses(pvi( SATClauseList::DestructiveIterator(newClLst) ));

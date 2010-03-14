@@ -127,6 +127,7 @@ const char* Options::Constants::_optionNames[] = {
   "row_variable_max_length",
 
   "sat_solver_for_empty_clause",
+  "sat_solver_with_subsumption_resolution",
   "saturation_algorithm",
   "selection",
   "show_active",
@@ -391,6 +392,7 @@ Options::Options ()
   _rowVariableMaxLength(2),
 
   _satSolverForEmptyClause(true),
+  _satSolverWithSubsumptionResolution(false),
   _saturationAlgorithm(LRS),
   _selection(10),
   _showActive(false),
@@ -657,6 +659,9 @@ void Options::set (const char* name,const char* value, int index)
 
     case SAT_SOLVER_FOR_EMPTY_CLAUSE:
       _satSolverForEmptyClause = onOffToBool(value,name);
+      return;
+    case SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION:
+      _satSolverWithSubsumptionResolution = onOffToBool(value,name);
       return;
     case SATURATION_ALGORITHM:
       _saturationAlgorithm = (SaturationAlgorithm)Constants::satAlgValues.find(value);
@@ -1143,6 +1148,9 @@ void Options::outputValue (ostream& str,int optionTag) const
 
   case SAT_SOLVER_FOR_EMPTY_CLAUSE:
     str << boolToOnOff(_satSolverForEmptyClause);
+    return;
+  case SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION:
+    str << boolToOnOff(_satSolverWithSubsumptionResolution);
     return;
   case SATURATION_ALGORITHM:
     str << Constants::satAlgValues[_saturationAlgorithm];
