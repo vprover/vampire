@@ -26,6 +26,9 @@ public:
 
   struct Entry
   {
+    Entry() {}
+    Entry(EntryTag tag, unsigned num) { _info.tag=tag; _info.number=num; }
+    Entry(Term* ptr) : _ptr(ptr) {}
     union {
       Term* _ptr;
       struct {
@@ -40,6 +43,7 @@ private:
   void destroy();
 
   size_t _length;
+  bool _literal;
   Entry _data[1];
 };
 

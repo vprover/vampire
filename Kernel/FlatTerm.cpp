@@ -8,6 +8,8 @@
 
 #include "../Lib/Allocator.hpp"
 
+#include "Term.hpp"
+
 #include "FlatTerm.hpp"
 
 namespace Kernel
@@ -52,7 +54,37 @@ FlatTerm::FlatTerm(size_t length)
 
 FlatTerm* FlatTerm::create(Term* t)
 {
-  throw 0; //not implemented
+  CALL("FlatTerm::create");
+
+  //one for start, one for end, two per function and one per variable
+  size_t entries=2+t->weight()*2-t->vars();
+
+  FlatTerm* res=new(entries) FlatTerm(entries);
+  res->_literal=t->isLiteral();
+  size_t fti=0;
+  res->_data[fti++]._info.tag=EDGE;
+  res->_data[fti++]=Entry(FUN,
+      res->_literal ? static_cast<Literal*>(t)->header() : t->functor());
+  res->_data[fti++]=Entry(t);
+
+  Term::SubtermIterator sti(t);
+  while(sti.hasNext()) {
+    ASS_L(fti, entries);
+    TermList s=sti.next();
+    if(s.isVar()) {
+      ASS(s.isOrdinaryVar());
+      res->_data[fti++]=Entry(VAR, s.var());
+    }
+    else {
+      ASS(s.isTerm());
+      res->_data[fti++]=Entry(FUN, s.term()->functor());
+      res->_data[fti++]=Entry(s.term());
+    }
+  }
+  res->_data[fti]._info.tag=EDGE;
+  ASS_EQ(fti+1, entries);
+
+  return res;
 }
 
 
