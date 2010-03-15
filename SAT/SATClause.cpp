@@ -24,7 +24,6 @@ using namespace Lib;
 
 /**
  * Allocate a clause having lits literals.
- * @since 18/05/2007 Manchester
  */
 void* SATClause::operator new(size_t sz,unsigned lits)
 {
@@ -40,11 +39,7 @@ void* SATClause::operator new(size_t sz,unsigned lits)
 }
 
 /**
- * Destroy the clause by deleting the clause itself and all of its
- * literals.
- *
- * Only clauses that aren't referenced by any Inference object should
- * be deleted.
+ * Destroy the SATClause object.
  */
 void SATClause::destroy()
 {

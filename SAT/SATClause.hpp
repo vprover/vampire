@@ -42,9 +42,6 @@ public:
     : _length(length), _kept(kept?1:0), _genCounter(0xFFFFFFFF)
   {}
 
-  /** Should never be used, declared just to get rid of compiler warning */
-  virtual ~SATClause() { ASSERTION_VIOLATION; }
-
   void* operator new(size_t,unsigned length);
 
   /**

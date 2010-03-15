@@ -80,6 +80,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/ClauseQueue.o\
         Kernel/EGSubstitution.o\
         Kernel/EqHelper.o\
+        Kernel/FlatTerm.o\
         Kernel/Formula.o\
         Kernel/FormulaUnit.o\
         Kernel/FormulaVarIterator.o\
@@ -104,6 +105,7 @@ VK_OBJ= Kernel/BDD.o\
 
 VI_OBJ = Indexing/ClauseSharing.o\
          Indexing/ClauseVariantIndex.o\
+         Indexing/CodeTree.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
          Indexing/LiteralIndex.o\
