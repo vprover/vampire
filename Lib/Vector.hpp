@@ -8,10 +8,14 @@
 #ifndef __Vector__
 #define __Vector__
 
+#include <string>
+
 #include "../Debug/Assertion.hpp"
 #include "Allocator.hpp"
 
 namespace Lib {
+
+using namespace std;
 
 /**
  * Class of variable-size generic vectors
@@ -43,9 +47,13 @@ public:
   {
     CALL("Vector::allocate");
 
-    Vector* v = reinterpret_cast<Vector*>(ALLOC_KNOWN(sizeof(Vector) +
-						      (length-1)*sizeof(C),
-						      "Vector"));
+    //We have to get sizeof(Vector) + (_length-1)*sizeof(C)
+    //this way, because _length-1 wouldn't behave well for
+    //_length==0 on x64 platform.
+    size_t sz=sizeof(Vector) + length*sizeof(C);
+    sz-=sizeof(C);
+
+    Vector* v = reinterpret_cast<Vector*>(ALLOC_KNOWN(sz, "Vector"));
     v->_length = length;
     C* arr = v->_array;
     array_new<C>(arr, length);
@@ -58,7 +66,14 @@ public:
     CALL("Vector::deallocate");
 
     array_delete(_array, _length);
-    DEALLOC_KNOWN(this,(sizeof(Vector) + (_length-1)*sizeof(C)),"Vector");
+
+    //We have to get sizeof(Vector) + (_length-1)*sizeof(C)
+    //this way, because _length-1 wouldn't behave well for
+    //_length==0 on x64 platform.
+    size_t sz=sizeof(Vector) + _length*sizeof(C);
+    sz-=sizeof(C);
+
+    DEALLOC_KNOWN(this,sz,"Vector");
   } // deallocate
 
   void* operator new(size_t,size_t length);
@@ -67,6 +82,18 @@ public:
     ASS(false);
   }
   Vector();
+
+  string toString()
+  {
+    string res;
+    for(size_t i=0;i<_length;i++) {
+      if(i>0) {
+	res+=",";
+      }
+      res+=(*this)[i].toString();
+    }
+    return res;
+  }
 
 protected:
   /** array's length */

@@ -19,11 +19,13 @@ public:
   virtual void remove(TermList t, Literal* lit, Clause* cls) = 0;
 
   virtual TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions = true) = 0;
+	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions = true) = 0;
+	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions = true) = 0;
+	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+
+  virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }
 };
 
 };

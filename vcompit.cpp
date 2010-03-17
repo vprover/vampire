@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdio.h>
 
 #include "Forwards.hpp"
 
@@ -21,6 +22,7 @@
 
 #include "Indexing/TermSharing.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/CommandLine.hpp"
@@ -44,7 +46,8 @@ typedef char *stringterm;
 void ApplicationOp(char op, TermList t);
 TermList MakeTerm(char* str);
 
-
+#define LOG_OP(x)
+//#define LOG_OP(x) cout<<x<<endl
 
 
 /* ======= Data structures for general driver: =================== */
@@ -113,12 +116,15 @@ int main( int argc, char *argv[] )
   Allocator::setMemoryLimit(1000000000); //memory limit set to 1g
 
   Timer timer;
-//  timer.start();
+  timer.start();
   env.timer = &timer;
+  Shell::Options options;
+  env.options = &options;
   env.signature = new Kernel::Signature;
   Indexing::TermSharing sharing;
   env.sharing = &sharing;
 
+  env.options->setTimeLimitInDeciseconds(0);
 
   readSymbolTable(in);
 
@@ -171,17 +177,15 @@ int main( int argc, char *argv[] )
 #endif
 
       compitTimer.start();
-      timer.start();
       for (j=0;j<numops;j++) {
 	/* The translated queries (terms and operations) are send to application. */
         ApplicationOp(oper[j], (terms[j]) );
       }
 
-      timer.stop();
       compitTimer.stop();
     }
   printf("Indexing time without compiling:\t%d ms\nIndexing time:\t%d ms\n",
-	  timer.elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
+	  compitTimer.elapsedMilliseconds(), timer.elapsedMilliseconds());
 
   printf("ops:%d, +:%d, -:%d.\n",operations,insertions,deletions);
   return 0;
@@ -190,27 +194,32 @@ int main( int argc, char *argv[] )
 /* The actual queries are performed (send to Waldmeister). */
 void ApplicationOp(char op, TermList t)
 {
-  static TermSubstitutionTree* index=0;
+  static TermIndexingStructure* index=0;
   if(!index) {
-    index=new TermSubstitutionTree();
+//    index=new TermSubstitutionTree();
+    index=new CodeTreeTIS();
   }
   int found;
 //  t=Curryfier::instance()->curryfy(t);
   switch (op)
     {
     case '+':
+      LOG_OP('+'<<t.toString());
       insertions++;
       index->insert(t,0,0);
       break;
     case '-':
+      LOG_OP('-'<<t.toString());
       index->remove(t,0,0);
       deletions++;
       break;
     case '!':
+      LOG_OP('!'<<t.toString());
       found = index->generalizationExists(t);
       if (!found) { printf("match not found!\n"); exit(1); }
       break;
     case '?':
+      LOG_OP('?'<<t.toString());
       found = index->generalizationExists(t);
       if (found)  { printf("wrong match found! (w/ %d).\n",found); exit(1); }
       break;

@@ -15,20 +15,33 @@ class FlatTerm
 {
 public:
   static FlatTerm* create(Term* t);
+  static FlatTerm* create(TermList t);
+  void destroy();
+
+  static const size_t functionEntryCount=3;
 
   enum EntryTag {
-    TERM_PTR = 0,
+    FUN_TERM_PTR = 0,
     FUN = 1,
     VAR = 2,
-    /** Either the first or the last entry of the FlatTerm */
-    EDGE = 3
+    /**
+     * If tag is set to this, @b number() gives offset that needs to be
+     * added to the position of the corresponding @b FUN Entry in order
+     * to get behind the function
+     */
+    FUN_RIGHT_OFS = 3
   };
 
   struct Entry
   {
     Entry() {}
     Entry(EntryTag tag, unsigned num) { _info.tag=tag; _info.number=num; }
-    Entry(Term* ptr) : _ptr(ptr) {}
+    Entry(Term* ptr) : _ptr(ptr) { ASS_EQ(tag(), FUN_TERM_PTR); }
+
+    inline EntryTag tag() const { return static_cast<EntryTag>(_info.tag); }
+    inline unsigned number() const { return _info.number; }
+    inline Term* ptr() const { return _ptr; }
+
     union {
       Term* _ptr;
       struct {
@@ -37,13 +50,16 @@ public:
       } _info;
     };
   };
+
+  inline const Entry& operator[](size_t i) const { ASS_L(i,_length); return _data[i]; }
+
 private:
+  static size_t getEntryCount(Term* t);
+
   FlatTerm(size_t length);
   void* operator new(size_t,unsigned length);
-  void destroy();
 
   size_t _length;
-  bool _literal;
   Entry _data[1];
 };
 

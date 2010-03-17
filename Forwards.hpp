@@ -31,6 +31,8 @@ template<typename T> class SharedSet;
 template<typename T> class ArrayishObjectIterator;
 
 template<typename T> class ArrayMap;
+template<typename C> class Vector;
+
 
 typedef List<int> IntList;
 
@@ -88,6 +90,7 @@ typedef SingleParamEvent<Clause*> ClauseEvent;
 typedef List<Clause*> ClauseList;
 typedef Stack<Clause*> ClauseStack;
 
+class FlatTerm;
 class Renaming;
 class Substitution;
 
@@ -156,6 +159,11 @@ class FwSubsSimplifyingLiteralIndex;
 
 class SubstitutionTree;
 class LiteralSubstitutionTree;
+
+class CodeTree;
+class TermCodeTree;
+class ClauseCodeTree;
+class CodeTreeTIS;
 };
 
 namespace Saturation

@@ -23,7 +23,7 @@ using namespace Lib;
 void* FlatTerm::operator new(size_t sz,unsigned num)
 {
   CALL("FlatTerm::operator new");
-  ASS_G(num,1);
+  ASS_GE(num,1);
   ASS_EQ(sz, sizeof(FlatTerm));
 
   //one entry is already accounted for in the size of the FlatTerm object
@@ -38,7 +38,7 @@ void* FlatTerm::operator new(size_t sz,unsigned num)
 void FlatTerm::destroy()
 {
   CALL("FlatTerm::destroy");
-  ASS_G(_length,1);
+  ASS_GE(_length,1);
 
   //one entry is already accounted for in the size of the FlatTerm object
   size_t size=sizeof(FlatTerm)+(_length-1)*sizeof(FlatTerm::Entry);
@@ -52,20 +52,24 @@ FlatTerm::FlatTerm(size_t length)
   CALL("FlatTerm::FlatTerm");
 }
 
+size_t FlatTerm::getEntryCount(Term* t)
+{
+  //functionEntryCount entries per function and one per variable
+  return t->weight()*functionEntryCount-(functionEntryCount-1)*t->vars();
+}
+
 FlatTerm* FlatTerm::create(Term* t)
 {
-  CALL("FlatTerm::create");
+  CALL("FlatTerm::create(Term)");
 
-  //one for start, one for end, two per function and one per variable
-  size_t entries=2+t->weight()*2-t->vars();
+  size_t entries=getEntryCount(t);
 
   FlatTerm* res=new(entries) FlatTerm(entries);
-  res->_literal=t->isLiteral();
   size_t fti=0;
-  res->_data[fti++]._info.tag=EDGE;
   res->_data[fti++]=Entry(FUN,
-      res->_literal ? static_cast<Literal*>(t)->header() : t->functor());
+      t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
   res->_data[fti++]=Entry(t);
+  res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
 
   Term::SubtermIterator sti(t);
   while(sti.hasNext()) {
@@ -79,10 +83,26 @@ FlatTerm* FlatTerm::create(Term* t)
       ASS(s.isTerm());
       res->_data[fti++]=Entry(FUN, s.term()->functor());
       res->_data[fti++]=Entry(s.term());
+      res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
     }
   }
-  res->_data[fti]._info.tag=EDGE;
-  ASS_EQ(fti+1, entries);
+  ASS_EQ(fti, entries);
+
+  return res;
+}
+
+FlatTerm* FlatTerm::create(TermList t)
+{
+  CALL("FlatTerm::create(TermList)");
+
+  if(t.isTerm()) {
+    return create(t.term());
+  }
+  ASS(t.isOrdinaryVar());
+
+
+  FlatTerm* res=new(1) FlatTerm(1);
+  res->_data[0]=Entry(VAR, t.var());
 
   return res;
 }

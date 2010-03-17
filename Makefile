@@ -32,7 +32,7 @@ XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
 #XFLAGS = -O2 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-inline-small-functions -fno-early-inlining -g # Callgrind
 #XFLAGS = -O6 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
 #XFLAGS = -O0 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
-#XFLAGS = -O6 -DVDEBUG=0 -fno-inline -g # Callgrind
+#XFLAGS = -O6 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -fno-inline -g # Callgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -fno-default-inline -g # Valgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -g #Valgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -g #Valgrind
@@ -106,6 +106,7 @@ VK_OBJ= Kernel/BDD.o\
 VI_OBJ = Indexing/ClauseSharing.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
+         Indexing/CodeTreeInterfaces.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
          Indexing/LiteralIndex.o\
@@ -214,11 +215,10 @@ VT_OBJ = Test/Output.o\
 
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
-#VCOMPIT_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VT_OBJ)  
 #VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
 VAMPIRE_DEP := $(VAMP_BASIC) Global.o vampire.o
-#VCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o vcompit.o
+VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 #VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
 #SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
@@ -259,6 +259,7 @@ $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 # targets for executables
 
 VAMPIRE_OBJ := $(addprefix $(CONF_ID)/, $(VAMPIRE_DEP))
+VCOMPIT_OBJ := $(addprefix $(CONF_ID)/, $(VCOMPIT_DEP))
 
 define COMPILE_CMD
 $(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@
@@ -271,11 +272,11 @@ EXEC_DEF_PREREQ = Makefile
 vampire vampire_rel vampire_dbg: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
+vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD)
+
 #vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
 ##	$(CXX) -static $(CXXFLAGS) $^ -o vground
-#	$(CXX) $(CXXFLAGS) $^ -o $@
-#
-#vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
 #	$(CXX) $(CXXFLAGS) $^ -o $@
 #
 #ucompit: $(UCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
