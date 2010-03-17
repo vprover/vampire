@@ -14,8 +14,11 @@
 #include "Stack.hpp"
 #include "DArray.hpp"
 
+#include "../Indexing/CodeTree.hpp"
+
 namespace Lib
 {
+using namespace Indexing;
 
 class Recycler {
 public:
@@ -56,6 +59,13 @@ public:
     ASS(obj);
 
     putIntoStoreOrDelete<DArray<T> >(obj);
+  }
+
+  static void release(TermCodeTree::TermEContext* obj)
+  {
+    ASS(obj);
+
+    putIntoStoreOrDelete<TermCodeTree::TermEContext>(obj);
   }
 
 

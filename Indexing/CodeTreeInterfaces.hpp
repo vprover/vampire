@@ -32,6 +32,7 @@ public:
 
 private:
   struct TermInfo;
+  class ResultIterator;
 
   TermCodeTree _ct;
 };

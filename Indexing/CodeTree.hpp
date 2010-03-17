@@ -10,6 +10,7 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/DArray.hpp"
+#include "../Lib/Hash.hpp"
 #include "../Lib/Stack.hpp"
 
 namespace Indexing
@@ -20,7 +21,7 @@ using namespace Lib;
 
 class CodeTree
 {
-protected:
+public:
   CodeTree();
 
   enum Instruction
@@ -29,8 +30,9 @@ protected:
     CHECK_FUN = 1,
     ASSIGN_VAR = 2,
     CHECK_VAR = 3,
-    FAIL = 4,
-    NEXT_LIT = 5
+    SUCCESS2 = 4, //this one is here because pointers are only 4-byte aligned
+    FAIL = 5,
+    NEXT_LIT = 6
   };
 
   /** Structure containing a single instruction and its arguments */
@@ -39,7 +41,7 @@ protected:
     OpCode() {}
     OpCode(Instruction i) : alternative(0) { info.instr=i; }
     OpCode(Instruction i, unsigned arg) : alternative(0) { info.instr=i; info.arg=arg; }
-    OpCode(void* result) : result(result), alternative(0) { ASS_EQ(instr(), SUCCESS); }
+    OpCode(void* result) : result(result), alternative(0) { ASS_EQ(instr() & 3, SUCCESS); }
 
     /** Return true iff @b o is equal to the current object except
      * for the value of the @b alternative field */
@@ -80,6 +82,7 @@ protected:
   struct EContext
   {
     void init(CodeTree* tree);
+    void deinit(CodeTree* tree);
     inline void load(BTPoint bp) { tp=bp.tp; op=bp.op; }
     bool backtrack();
 
@@ -114,17 +117,21 @@ protected:
   /** Maximum number of variables in an inserted term/clause */
   unsigned _maxVarCnt;
 
+#if VDEBUG
+  int _initEContextCounter;
+#endif
+
   CodeBlock* _data;
 };
 
 class TermCodeTree : public CodeTree
 {
-protected:
+public:
 
   struct TermEContext : public EContext
   {
     void init(TermList t, TermCodeTree* tree);
-    void deinit();
+    void deinit(TermCodeTree* tree);
 
     CLASS_NAME("TermEContext");
     USE_ALLOCATOR(TermEContext);
@@ -132,7 +139,7 @@ protected:
 
   void compile(TermList tl, CodeStack& code);
 
-  bool next(TermEContext& ctx, void*& res);
+  static bool next(TermEContext& ctx, void*& res);
 
   friend class CodeTreeTIS;
 };
@@ -140,7 +147,7 @@ protected:
 
 class ClauseCodeTree : public CodeTree
 {
-protected:
+public:
   void compile(Clause* c, CodeStack& code);
 
 };

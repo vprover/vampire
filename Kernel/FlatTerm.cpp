@@ -4,9 +4,10 @@
  * Implements class FlatTerm.
  */
 
-
+#include <string.h>
 
 #include "../Lib/Allocator.hpp"
+#include "../Lib/DArray.hpp"
 
 #include "Term.hpp"
 
@@ -105,6 +106,44 @@ FlatTerm* FlatTerm::create(TermList t)
   res->_data[0]=Entry(VAR, t.var());
 
   return res;
+}
+
+void FlatTerm::swapCommutativePredicateArguments()
+{
+  CALL("FlatTerm::swapCommutativePredicateArguments");
+  ASS_EQ((*this)[0].tag(), FUN);
+  ASS_EQ((*this)[0].number(), 0); //now the only commutative predicate is equality
+
+  size_t firstStart=3;
+  size_t firstLen;
+  if((*this)[firstStart].tag()==FUN) {
+    ASS_EQ((*this)[firstStart+2].tag(), FUN_RIGHT_OFS);
+    firstLen=(*this)[firstStart+2].number();
+  }
+  else {
+    ASS_EQ((*this)[firstStart].tag(), VAR);
+    firstLen=1;
+  }
+
+  static DArray<Entry> buf;
+  buf.ensure(firstLen);
+
+  memcpy(buf.array(), &_data[firstStart], firstLen*sizeof(Entry));
+
+  size_t secStart=firstStart+firstLen;
+  size_t secLen;
+  if((*this)[secStart].tag()==FUN) {
+    ASS_EQ((*this)[secStart+2].tag(), FUN_RIGHT_OFS);
+    secLen=(*this)[secStart+2].number();
+  }
+  else {
+    ASS_EQ((*this)[secStart].tag(), VAR);
+    secLen=1;
+  }
+  ASS_EQ(secStart+secLen,_length);
+
+  memcpy(&_data[firstStart], &_data[secStart], secLen*sizeof(Entry));
+  memcpy(&_data[firstStart+secLen], buf.array(), firstLen*sizeof(Entry));
 }
 
 

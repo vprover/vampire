@@ -53,6 +53,8 @@ public:
 
   inline const Entry& operator[](size_t i) const { ASS_L(i,_length); return _data[i]; }
 
+  void swapCommutativePredicateArguments();
+
 private:
   static size_t getEntryCount(Term* t);
 

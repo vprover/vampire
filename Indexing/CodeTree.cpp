@@ -6,6 +6,7 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/DHMap.hpp"
+#include "../Lib/Portability.hpp"
 #include "../Lib/Vector.hpp"
 
 #include "../Kernel/Clause.hpp"
@@ -38,6 +39,7 @@ string CodeTree::OpCode::toString() const
   string res;
   switch(instr()) {
   case SUCCESS:
+  case SUCCESS2:
     res+="suc";
     break;
   case CHECK_FUN:
@@ -63,7 +65,11 @@ string CodeTree::OpCode::toString() const
 
 
 CodeTree::CodeTree()
-: _maxVarCnt(0), _data(0)
+: _maxVarCnt(0),
+#if VDEBUG
+  _initEContextCounter(0),
+#endif
+  _data(0)
 {
   CALL("CodeTree::CodeTree");
 }
@@ -145,7 +151,7 @@ void CodeTree::incorporate(CodeStack& code)
     treeOp++;
   }
   //if we are here, we are inserting a clause/term multiple times
-  ASS_EQ(treeOp->instr(),SUCCESS);
+  ASS_EQ(treeOp->instr()&3,SUCCESS);
 
   //we insert it anyway becouse later we will be removing it multiple
   //times as well
@@ -162,11 +168,26 @@ void CodeTree::EContext::init(CodeTree* tree)
   CALL("CodeTree::EContext::init");
   ASS(tree->_data); //the tree must already contain something
 
+#if VDEBUG
+  tree->_initEContextCounter++;
+#endif
+
   fresh=true;
   tp=0;
   op=&(*tree->_data)[0];
   btStack.reset();
   bindings.ensure(tree->_maxVarCnt);
+
+}
+
+void CodeTree::EContext::deinit(CodeTree* tree)
+{
+  CALL("CodeTree::EContext::deinit");
+
+#if VDEBUG
+  ASS_G(tree->_initEContextCounter,0);
+  tree->_initEContextCounter--;
+#endif
 }
 
 inline bool CodeTree::EContext::backtrack()
@@ -276,11 +297,13 @@ void TermCodeTree::TermEContext::init(TermList t, TermCodeTree* tree)
   ft=FlatTerm::create(t);
 }
 
-void TermCodeTree::TermEContext::deinit()
+void TermCodeTree::TermEContext::deinit(TermCodeTree* tree)
 {
   CALL("TermCodeTree::TermEContext::deinit");
 
   ft->destroy();
+
+  EContext::deinit(tree);
 }
 
 /**
@@ -309,6 +332,7 @@ bool TermCodeTree::next(TermEContext& ctx, void*& res)
     LOG_OP(ctx.tp<<':'<<ctx.op->toString());
     switch(ctx.op->instr()) {
     case SUCCESS:
+    case SUCCESS2:
       res=ctx.op->result;
       return true;
     case CHECK_FUN:
