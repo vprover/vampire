@@ -11,6 +11,7 @@
 #include "../Lib/Allocator.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/Hash.hpp"
+#include "../Lib/Portability.hpp"
 #include "../Lib/Stack.hpp"
 
 namespace Indexing
@@ -43,11 +44,11 @@ public:
     OpCode(Instruction i, unsigned arg) : alternative(0) { info.instr=i; info.arg=arg; }
     OpCode(void* result) : result(result), alternative(0) { ASS_EQ(instr() & 3, SUCCESS); }
 
-    /** Return true iff @b o is equal to the current object except
-     * for the value of the @b alternative field */
-    inline bool eqModAlt(const OpCode& o) const { return result==o.result; }
+    bool eqModAlt(const OpCode& o) const;
 
     inline Instruction instr() const { return info.instr; }
+    inline void setInstr(Instruction i) { info.instr=i; }
+
     inline unsigned arg() const { return info.arg; }
 
 #if VDEBUG
@@ -60,6 +61,7 @@ public:
         unsigned arg : 29;
       } info;
       void* result;
+      size_t data;
     };
     OpCode* alternative;
   };
@@ -131,13 +133,18 @@ public:
   struct TermEContext : public EContext
   {
     void init(TermList t, TermCodeTree* tree);
+    void init(Term* t, TermCodeTree* tree);
+    void init(FlatTerm* flatTerm, TermCodeTree* tree);
     void deinit(TermCodeTree* tree);
 
     CLASS_NAME("TermEContext");
     USE_ALLOCATOR(TermEContext);
+  private:
+    bool _ownFlatTerm;
   };
 
-  void compile(TermList tl, CodeStack& code);
+  void compile(TermList t, CodeStack& code);
+  void compile(Term* t, CodeStack& code);
 
   static bool next(TermEContext& ctx, void*& res);
 

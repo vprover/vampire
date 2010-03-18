@@ -6,7 +6,6 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/DHMap.hpp"
-#include "../Lib/Portability.hpp"
 #include "../Lib/Vector.hpp"
 
 #include "../Kernel/Clause.hpp"
@@ -62,6 +61,26 @@ string CodeTree::OpCode::toString() const
 }
 
 #endif
+
+/**
+ * Return true iff @b o is equal to the current object except
+ * for the value of the @b alternative field
+ */
+inline bool CodeTree::OpCode::eqModAlt(const OpCode& o) const
+{
+#ifdef ARCH_X64
+  if((data&3)==0) {
+    //the operation is SUCCESS so all 64 bits are initialized
+    return data==o.data;
+  }
+  else {
+    //only the first 32 bits are initialized
+    return (data&0xFFFFFFFF)==(o.data&0xFFFFFFFF);
+  }
+#else
+  return result==o.result;
+#endif
+}
 
 
 CodeTree::CodeTree()
@@ -221,13 +240,14 @@ inline void CodeTree::EContext::doAssignVar()
   unsigned var=op->arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
   if(fte->tag()==FlatTerm::VAR) {
-    bindings[var]=TermList(fte->number());
+    bindings[var]=TermList(fte->number(),false);
     tp++;
   }
   else {
     ASS_EQ(fte->tag(), FlatTerm::FUN);
     fte++;
     ASS_EQ(fte->tag(), FlatTerm::FUN_TERM_PTR);
+    ASS(fte->ptr());
     bindings[var]=TermList(fte->ptr());
     fte++;
     ASS_EQ(fte->tag(), FlatTerm::FUN_RIGHT_OFS);
@@ -242,7 +262,7 @@ inline bool CodeTree::EContext::doCheckVar()
   unsigned var=op->arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
   if(fte->tag()==FlatTerm::VAR) {
-    if(bindings[var]!=TermList(fte->number())) {
+    if(bindings[var]!=TermList(fte->number(),false)) {
       return false;
     }
     tp++;
@@ -267,7 +287,7 @@ inline bool CodeTree::EContext::doCheckVar()
 
 void TermCodeTree::compile(TermList t, CodeStack& code)
 {
-  CALL("TermCodeTree::compile");
+  CALL("TermCodeTree::compile(TermList...)");
 
   unsigned nextVarNum=0;
 
@@ -288,20 +308,61 @@ void TermCodeTree::compile(TermList t, CodeStack& code)
   }
 }
 
+void TermCodeTree::compile(Term* t, CodeStack& code)
+{
+  CALL("TermCodeTree::compile(TermList...)");
+
+  unsigned nextVarNum=0;
+
+  static VarMap varMap;
+  varMap.reset();
+
+  CodeTree::compile(t, code, varMap, nextVarNum);
+  code.push(OpCode(SUCCESS));
+
+  //update the max. number of variables, if necessary
+  if(nextVarNum>_maxVarCnt) {
+    _maxVarCnt=nextVarNum;
+  }
+}
+
 void TermCodeTree::TermEContext::init(TermList t, TermCodeTree* tree)
 {
-  CALL("TermCodeTree::TermEContext::init");
+  CALL("TermCodeTree::TermEContext::init(TermList...)");
 
   EContext::init(tree);
 
   ft=FlatTerm::create(t);
+  _ownFlatTerm=true;
+}
+
+void TermCodeTree::TermEContext::init(Term* t, TermCodeTree* tree)
+{
+  CALL("TermCodeTree::TermEContext::init(Term*...)");
+
+  EContext::init(tree);
+
+  ft=FlatTerm::create(t);
+  _ownFlatTerm=true;
+}
+
+void TermCodeTree::TermEContext::init(FlatTerm* flatTerm, TermCodeTree* tree)
+{
+  CALL("TermCodeTree::TermEContext::init(FlatTerm*...)");
+
+  EContext::init(tree);
+
+  ft=flatTerm;
+  _ownFlatTerm=false;
 }
 
 void TermCodeTree::TermEContext::deinit(TermCodeTree* tree)
 {
   CALL("TermCodeTree::TermEContext::deinit");
 
-  ft->destroy();
+  if(_ownFlatTerm) {
+    ft->destroy();
+  }
 
   EContext::deinit(tree);
 }

@@ -21,19 +21,25 @@ class SmartPtr {
 public:
   inline
   SmartPtr() : _obj(0), _refCnt(0) {}
+  /**
+   * Create a smart pointer containing pointer @b obj. If @b nondisposable
+   * is true, the object will not be destroyed even after all references to
+   * it are gone.
+   */
   inline
-  explicit SmartPtr(T* obj) : _obj(obj), _refCnt(new int(1)) {ASS(obj);}
+  explicit SmartPtr(T* obj, bool nondisposable=false)
+  : _obj(obj), _refCnt(nondisposable ? 0 : new int(1)) {ASS(obj);}
   inline
   SmartPtr(const SmartPtr& ptr) : _obj(ptr._obj), _refCnt(ptr._refCnt)
   {
-    if(_obj) {
+    if(_obj && _refCnt) {
       (*_refCnt)++;
     }
   }
   inline
   ~SmartPtr()
   {
-    if(!_obj) {
+    if(!_obj || !_refCnt) {
       return;
     }
     (*_refCnt)--;
@@ -52,11 +58,11 @@ public:
     _obj=ptr._obj;
     _refCnt=ptr._refCnt;
 
-    if(_obj) {
+    if(_obj && _refCnt) {
       (*_refCnt)++;
     }
 
-    if(oldObj) {
+    if(oldObj && oldCnt) {
       (*oldCnt)--;
       ASS(*oldCnt>=0);
       if(! *oldCnt) {

@@ -112,7 +112,7 @@ void FlatTerm::swapCommutativePredicateArguments()
 {
   CALL("FlatTerm::swapCommutativePredicateArguments");
   ASS_EQ((*this)[0].tag(), FUN);
-  ASS_EQ((*this)[0].number(), 0); //now the only commutative predicate is equality
+  ASS_EQ((*this)[0].number()|1, 1); //as for now, the only commutative predicate is equality
 
   size_t firstStart=3;
   size_t firstLen;
@@ -145,7 +145,6 @@ void FlatTerm::swapCommutativePredicateArguments()
   memcpy(&_data[firstStart], &_data[secStart], secLen*sizeof(Entry));
   memcpy(&_data[firstStart+secLen], buf.array(), firstLen*sizeof(Entry));
 }
-
 
 };
 

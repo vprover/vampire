@@ -54,12 +54,20 @@ public:
   inline const Entry& operator[](size_t i) const { ASS_L(i,_length); return _data[i]; }
 
   void swapCommutativePredicateArguments();
+  void changeLiteralPolarity()
+  { _data[0]._info.number^=1; }
 
 private:
   static size_t getEntryCount(Term* t);
 
   FlatTerm(size_t length);
   void* operator new(size_t,unsigned length);
+
+  /**
+   * The @b operator @b delete is undefined, FlatTerm objects should
+   * be destroyed by the @b destroy() function
+   */
+  void operator delete(void*);
 
   size_t _length;
   Entry _data[1];

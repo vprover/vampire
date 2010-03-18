@@ -7,10 +7,12 @@
 
 #include "../Saturation/SaturationAlgorithm.hpp"
 
+#include "CodeTreeInterfaces.hpp"
 #include "LiteralIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
+
 #include "IndexManager.hpp"
 
 using namespace Lib;
@@ -104,13 +106,15 @@ Index* IndexManager::create(IndexType t)
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
   case DEMODULATION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree();
+//    tis=new TermSubstitutionTree();
+    tis=new CodeTreeTIS();
     res=new DemodulationLHSIndex(tis);
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+//    is=new LiteralSubstitutionTree();
+    is=new CodeTreeLIS();
     res=new FwSubsSimplifyingLiteralIndex(is);
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
