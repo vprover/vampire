@@ -268,6 +268,9 @@ void CodeTree::remove(EContext& ctx, CodeTree* tree, NextLitFn nextLitFun, Found
   firstsInBlocks.reset();
   firstsInBlocks.push(ctx.op);
 
+  static Stack<unsigned> depthsForLits;
+
+
   //in this loop the handlers of ASSIGN_VAR and CHECK_VAR operations are
   //modified so that we look for variants, not for generalisations
   bool backtrack=false;
@@ -331,10 +334,16 @@ void CodeTree::remove(EContext& ctx, CodeTree* tree, NextLitFn nextLitFun, Found
       backtrack=true;
       break;
     case NEXT_LIT:
+      if(ctx.tp!=BTPoint::tpSpecial) {
+	depthsForLits.push(firstsInBlocks.size());
+      }
       backtrack=!nextLitFun(ctx);
       if(!backtrack) {
       	LOG_OP("nl-alt placed");
       	ctx.btStack.push(BTPoint(BTPoint::tpSpecial, ctx.op));
+      }
+      else {
+	depthsForLits.pop();
       }
       break;
     }
@@ -348,6 +357,10 @@ void CodeTree::remove(EContext& ctx, CodeTree* tree, NextLitFn nextLitFun, Found
       if(ctx.tp!=BTPoint::tpSpecial) {
 	//we backtracked to the first operation of another block
 	firstsInBlocks.push(ctx.op);
+      }
+      else {
+	//we are backtracking somewhere we've been before
+	firstsInBlocks.truncate(depthsForLits.top());
       }
       LOG_OP(ctx.tp<<"<-bt");
       backtrack=false;
@@ -366,6 +379,9 @@ found_handler:
 
   OpCode* op0=ctx.op;
   op0->setInstr(CodeTree::FAIL);
+
+  //now let us remove unnecessary instructions and the free memory
+
   OpCode* op=ctx.op;
   ASS(firstsInBlocks.isNonEmpty());
   OpCode* firstOp=firstsInBlocks.pop();

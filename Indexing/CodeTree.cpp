@@ -7,6 +7,7 @@
 #include <stddef.h>
 
 #include "../Lib/Allocator.hpp"
+#include "../Lib/Int.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Term.hpp"
@@ -14,7 +15,6 @@
 #if VDEBUG
 
 #include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
 #include "../Kernel/Signature.hpp"
 
 #endif
@@ -473,6 +473,25 @@ bool TermCodeTree::next(TermEContext& ctx, void*& res)
 
 /////////////////////////
 
+/**
+ * Compares literals based on which one is easier to find a
+ * match for.
+ */
+struct LiteralMatchabilityComparator
+{
+  Comparison compare(Literal* l1, Literal* l2)
+  {
+    unsigned l1Num=l1->header();
+    unsigned l2Num=l2->header();
+    Comparison res=Int::compare(l2Num,l1Num);
+    if(res!=EQUAL) { return res; }
+
+    l1Num=l1->weight() - l1->getDistinctVars();
+    l2Num=l2->weight() - l2->getDistinctVars();
+    return Int::compare(l2Num,l1Num);
+  }
+};
+
 void ClauseCodeTree::compile(Clause* c, CodeStack& code)
 {
   CALL("ClauseCodeTree::compile(Clause*...)");
@@ -481,7 +500,11 @@ void ClauseCodeTree::compile(Clause* c, CodeStack& code)
   static DArray<Literal*> lits;
   lits.initFromArray(clen, *c);
 
-  //here we can perform literal reordering
+//  if(clen>1) {
+//    swap(lits[1],lits[clen-1]);
+//  }
+//  lits.sort(LiteralMatchabilityComparator());
+//  lits.sortInversed(LiteralMatchabilityComparator());
 
   static VarMap varMap;
   varMap.reset();
