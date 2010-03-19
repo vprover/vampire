@@ -15,6 +15,7 @@
 #include "../Inferences/BDDMarkingSubsumption.hpp"
 #include "../Inferences/BinaryResolution.hpp"
 #include "../Inferences/Condensation.hpp"
+#include "../Inferences/CTFwSubsAndRes.hpp"
 #include "../Inferences/EqualityFactoring.hpp"
 #include "../Inferences/EqualityResolution.hpp"
 #include "../Inferences/InterpretedEvaluation.hpp"
@@ -103,9 +104,19 @@ void addFSEs(SaturationAlgorithm* alg)
   }
 
   if(env.options->forwardSubsumption()) {
-    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
-	    new ForwardSubsumptionAndResolution(
-		    env.options->forwardSubsumptionResolution()) ));
+
+    if(env.options->forwardSubsumptionResolution()) {
+      alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
+	  new ForwardSubsumptionAndResolution(true) ));
+//	  new ForwardSubsumptionAndResolution(false) ));
+    }
+    else {
+      alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
+	  new CTFwSubsAndRes() ));
+    }
+//    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
+//	    new ForwardSubsumptionAndResolution(
+//		    env.options->forwardSubsumptionResolution()) ));
 //    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
 //	    new SLQueryForwardSubsumption() ));
   } else if(env.options->forwardSubsumptionResolution()) {

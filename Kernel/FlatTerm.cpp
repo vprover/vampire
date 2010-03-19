@@ -125,13 +125,9 @@ void FlatTerm::swapCommutativePredicateArguments()
     firstLen=1;
   }
 
-  static DArray<Entry> buf;
-  buf.ensure(firstLen);
-
-  memcpy(buf.array(), &_data[firstStart], firstLen*sizeof(Entry));
-
   size_t secStart=firstStart+firstLen;
   size_t secLen;
+
   if((*this)[secStart].tag()==FUN) {
     ASS_EQ((*this)[secStart+2].tag(), FUN_RIGHT_OFS);
     secLen=(*this)[secStart+2].number();
@@ -142,8 +138,19 @@ void FlatTerm::swapCommutativePredicateArguments()
   }
   ASS_EQ(secStart+secLen,_length);
 
-  memcpy(&_data[firstStart], &_data[secStart], secLen*sizeof(Entry));
-  memcpy(&_data[firstStart+secLen], buf.array(), firstLen*sizeof(Entry));
+  static DArray<Entry> buf;
+  if(firstLen>secLen) {
+    buf.ensure(firstLen);
+    memcpy(buf.array(), &_data[firstStart], firstLen*sizeof(Entry));
+    memcpy(&_data[firstStart], &_data[secStart], secLen*sizeof(Entry));
+    memcpy(&_data[firstStart+secLen], buf.array(), firstLen*sizeof(Entry));
+  }
+  else {
+    buf.ensure(secLen);
+    memcpy(buf.array(), &_data[secStart], secLen*sizeof(Entry));
+    memcpy(&_data[firstStart+secLen], &_data[firstStart], firstLen*sizeof(Entry));
+    memcpy(&_data[firstStart], buf.array(), secLen*sizeof(Entry));
+  }
 }
 
 };

@@ -10,6 +10,8 @@
 
 #include <string>
 
+#include "../Forwards.hpp"
+
 #include "../Debug/Assertion.hpp"
 #include "Allocator.hpp"
 
@@ -79,7 +81,7 @@ public:
   void* operator new(size_t,size_t length);
   void operator delete(void*)
   {
-    ASS(false);
+    ASSERTION_VIOLATION
   }
   Vector();
 
@@ -95,6 +97,7 @@ public:
     return res;
   }
 
+  friend class Indexing::CodeTree;
 protected:
   /** array's length */
   size_t _length;

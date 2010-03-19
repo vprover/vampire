@@ -73,9 +73,8 @@ public:
   virtual ~Index();
 
   void attachContainer(ClauseContainer* cc);
-  void detachContainer(ClauseContainer* cc);
 protected:
-  Index(): _attachedContainers(0), _subscriptionData(0) {}
+  Index() {}
 
   void onAddedToContainer(Clause* c)
   { handleClause(c, true); }
@@ -87,10 +86,8 @@ protected:
   //TODO: postponing index modifications during iteration (methods isBeingIterated() etc...)
 
 private:
-  typedef List<ClauseContainer*> ContainerList;
-  typedef List<SubscriptionData> SDataList;
-  ContainerList* _attachedContainers;
-  SDataList* _subscriptionData;
+  SubscriptionData _addedSD;
+  SubscriptionData _removedSD;
 };
 
 

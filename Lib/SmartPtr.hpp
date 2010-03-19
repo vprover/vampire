@@ -84,6 +84,9 @@ public:
   inline
   T* ptr() { return _obj; }
 
+  inline
+  bool isEmpty() { return !_obj; }
+
   template<class Target>
   inline
   Target* pcast() { return static_cast<Target*>(_obj); }

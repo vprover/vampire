@@ -9,6 +9,7 @@
 #include "../Forwards.hpp"
 
 #include "CodeTree.hpp"
+#include "Index.hpp"
 #include "TermIndexingStructure.hpp"
 #include "LiteralIndexingStructure.hpp"
 
@@ -53,6 +54,20 @@ private:
   TermCodeTree _ct;
 };
 
+
+class CodeTreeSubsumptionIndex
+: public Index
+{
+public:
+  ClauseIterator getSubsumingClauses(Clause* c);
+protected:
+  //overrides Index::handleClause
+  void handleClause(Clause* c, bool adding);
+private:
+  class SubsumptionIterator;
+
+  ClauseCodeTree _ct;
+};
 
 };
 #endif /*__CodeTreeInterfaces__*/

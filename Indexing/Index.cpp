@@ -16,33 +16,24 @@ using namespace Saturation;
 
 Index::~Index()
 {
-  while(_attachedContainers) {
-    detachContainer(_attachedContainers->head());
+  if(!_addedSD.isEmpty()) {
+    ASS(!_removedSD.isEmpty());
+    _addedSD->unsubscribe();
+    _removedSD->unsubscribe();
   }
 }
 
+/**
+ * Attaches index to a clause container
+ *
+ * Can only be called once per @b Index obejct lifetime.
+ */
 void Index::attachContainer(ClauseContainer* cc)
 {
-  SubscriptionData addedSD = cc->addedEvent.subscribe(this,&Index::onAddedToContainer);
-  SubscriptionData removedSD = cc->removedEvent.subscribe(this,&Index::onRemovedFromContainer);
+  ASS(_addedSD.isEmpty()); //only one container can be attached
 
-  ASS(!_attachedContainers->member(cc));
-  ContainerList::push(cc,_attachedContainers);
-  SDataList::push(addedSD, _subscriptionData);
-  SDataList::push(removedSD, _subscriptionData);
-}
-
-void Index::detachContainer(ClauseContainer* cc)
-{
-  SubscriptionData removedSD = SDataList::pop(_subscriptionData);
-  SubscriptionData addedSD = SDataList::pop(_subscriptionData);
-  ASS(addedSD->belongsTo(cc->addedEvent));
-  ASS(removedSD->belongsTo(cc->removedEvent));
-  addedSD->unsubscribe();
-  removedSD->unsubscribe();
-
-  ASS(_attachedContainers->member(cc));
-  _attachedContainers=_attachedContainers->remove(cc);
+  _addedSD = cc->addedEvent.subscribe(this,&Index::onAddedToContainer);
+  _removedSD = cc->removedEvent.subscribe(this,&Index::onRemovedFromContainer);
 }
 
 }

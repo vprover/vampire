@@ -21,6 +21,39 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
+/**
+ * A functor object that reveives a @void* as an argument, casts it
+ * to type @b T* and checks whether the references object is equal to
+ * the object pointed to by the pointer given in the constructor.
+ */
+template<typename T>
+struct EqualityCastingFn
+{
+  EqualityCastingFn(T* o) : obj(o) {}
+
+  bool operator() (void* arg)
+  {
+    return *obj==*static_cast<T*>(arg);
+  }
+
+private:
+  T* obj;
+};
+
+template<typename T>
+struct EqualityFn
+{
+  EqualityFn(T o) : obj(o) {}
+
+  bool operator() (T arg)
+  {
+    return obj==arg;
+  }
+
+private:
+  T obj;
+};
+
 class CodeTreeSubstitution
 : public ResultSubstitution
 {
@@ -193,11 +226,11 @@ void CodeTreeTIS::insert(TermList t, Literal* lit, Clause* cls)
   code.reset();
 
   _ct.compile(t,code);
-  ASS_EQ(code.top().instr(), CodeTree::SUCCESS);
+  ASS(code.top().isSuccess());
 
   //assign the term info
   code.top().result=new TermInfo(t,lit,cls);
-  ASS_EQ(code.top().instr()&3, CodeTree::SUCCESS);
+  ASS(code.top().isSuccess());
 
   _ct.incorporate(code);
 }
@@ -207,21 +240,12 @@ void CodeTreeTIS::remove(TermList t, Literal* lit, Clause* cls)
   CALL("CodeTreeTIS::remove");
   ASS_EQ(_ct._initEContextCounter,0); //index must not be modified while traversed
 
-  //TODO: implement deletion that frees unnecessary memory
-
   TermInfo ti(t,lit,cls);
 
   static TermCodeTree::TermEContext ctx;
   ctx.init(t, &_ct);
-  void* data;
-  do {
-    //we delete only terms that are present, so 'not found' is not possible
-    ALWAYS(TermCodeTree::next(ctx, data));
-  } while(ti!=*static_cast<TermInfo*>(data));
 
-  ASS_EQ(ctx.op->instr()&3, CodeTree::SUCCESS);
-  //we may only change the instruction, the alternative must remain unchanged
-  ctx.op->setInstr(CodeTree::FAIL);
+  CodeTree::remove(ctx, &_ct, TermCodeTree::InvOpNextLitFun(), EqualityCastingFn<TermInfo>(&ti));
 
   ctx.deinit(&_ct);
 }
@@ -384,11 +408,11 @@ void CodeTreeLIS::insert(Literal* lit, Clause* cls)
   code.reset();
 
   _ct.compile(lit,code);
-  ASS_EQ(code.top().instr(), CodeTree::SUCCESS);
+  ASS(code.top().isSuccess());
 
   //assign the term info
   code.top().result=new LiteralInfo(lit,cls);
-  ASS_EQ(code.top().instr()&3, CodeTree::SUCCESS);
+  ASS(code.top().isSuccess());
 
   _ct.incorporate(code);
 }
@@ -398,24 +422,14 @@ void CodeTreeLIS::remove(Literal* lit, Clause* cls)
   CALL("CodeTreeLIS::remove");
   ASS_EQ(_ct._initEContextCounter,0); //index must not be modified while traversed
 
-  //TODO: implement deletion that frees unnecessary memory
-
   LiteralInfo li(lit,cls);
 
   static TermCodeTree::TermEContext ctx;
   ctx.init(lit, &_ct);
-  void* data;
-  do {
-    //we delete only terms that are present, so 'not found' is not possible
-    ALWAYS(TermCodeTree::next(ctx, data));
-  } while(li!=*static_cast<LiteralInfo*>(data));
 
-  ASS_EQ(ctx.op->instr()&3, CodeTree::SUCCESS);
-  //we may only change the instruction, the alternative must remain unchanged
-  ctx.op->setInstr(CodeTree::FAIL);
+  CodeTree::remove(ctx, &_ct, TermCodeTree::InvOpNextLitFun(), EqualityCastingFn<LiteralInfo>(&li));
 
   ctx.deinit(&_ct);
-
 }
 
 SLQueryResultIterator CodeTreeLIS::getGeneralizations(Literal* lit,
@@ -430,6 +444,109 @@ SLQueryResultIterator CodeTreeLIS::getGeneralizations(Literal* lit,
   return vi( new ResultIterator(this, lit, complementary,
       retrieveSubstitutions) );
 }
+
+
+///////////////////////////////////////
+
+class CodeTreeSubsumptionIndex::SubsumptionIterator
+: public IteratorCore<Clause*>
+{
+public:
+  SubsumptionIterator(CodeTreeSubsumptionIndex* tree, Clause* cl)
+  : _found(0), _finished(false), _tree(tree)
+  {
+    Recycler::get(_ctx);
+    _ctx->init(cl,&_tree->_ct);
+  }
+
+  ~SubsumptionIterator()
+  {
+    _ctx->deinit(&_tree->_ct);
+    Recycler::release(_ctx);
+  }
+
+  CLASS_NAME("CodeTreeSubsumptionIndex::SubsumptionIterator");
+  USE_ALLOCATOR(SubsumptionIterator);
+
+  bool hasNext()
+  {
+    CALL("CodeTreeSubsumptionIndex::SubsumptionIterator::hasNext");
+
+    if(_found) {
+      return true;
+    }
+    if(_finished) {
+      return false;
+    }
+
+    void* data;
+    if(ClauseCodeTree::next(*_ctx, data)) {
+      _found=static_cast<Clause*>(data);
+    }
+    else {
+      _found=0;
+      _finished=true;
+    }
+    return _found;
+  }
+
+  Clause* next()
+  {
+    CALL("CodeTreeSubsumptionIndex::SubsumptionIterator::next");
+    ASS(_found);
+
+    Clause* res=_found;
+    _found=0;
+    return res;
+  }
+private:
+  Clause* _found;
+  bool _finished;
+  CodeTreeSubsumptionIndex* _tree;
+  ClauseCodeTree::ClauseEContext* _ctx;
+};
+
+void CodeTreeSubsumptionIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("CodeTreeSubsumptionIndex::handleClause");
+  ASS_EQ(_ct._initEContextCounter,0); //index must not be modified while traversed
+
+  TimeCounter tc(TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE);
+
+  if(adding) {
+    static CodeTree::CodeStack code;
+    code.reset();
+
+    _ct.compile(c,code);
+    ASS(code.top().isSuccess());
+
+    //assign the term info
+    code.top().result=c;
+    ASS(code.top().isSuccess());
+
+    _ct.incorporate(code);
+  }
+  else {
+    static ClauseCodeTree::ClauseEContext ctx;
+    ctx.init(c, &_ct);
+
+    CodeTree::remove(ctx, &_ct, ClauseCodeTree::RemovalNextLitFun(), EqualityFn<void*>(c));
+
+    ctx.deinit(&_ct);
+  }
+}
+
+ClauseIterator CodeTreeSubsumptionIndex::getSubsumingClauses(Clause* c)
+{
+  CALL("CodeTreeSubsumptionIndex::getSubsumingClauses");
+
+  if(!_ct._data) {
+    return ClauseIterator::getEmpty();
+  }
+
+  return vi( new SubsumptionIterator(this, c) );
+}
+
 
 }
 

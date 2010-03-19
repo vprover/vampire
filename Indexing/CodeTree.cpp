@@ -4,12 +4,11 @@
  *
  */
 
+#include <stddef.h>
+
 #include "../Lib/Allocator.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Vector.hpp"
 
 #include "../Kernel/Clause.hpp"
-#include "../Kernel/FlatTerm.hpp"
 #include "../Kernel/Term.hpp"
 
 #if VDEBUG
@@ -21,9 +20,6 @@
 #endif
 
 #include "CodeTree.hpp"
-
-#define LOG_OP(x)
-//#define LOG_OP(x) cout<<x<<endl
 
 namespace Indexing
 {
@@ -42,7 +38,8 @@ string CodeTree::OpCode::toString() const
     res+="suc";
     break;
   case CHECK_FUN:
-    res+="chf:"+env.signature->functionName(arg());
+    res+="chf:"+Int::toString(arg())+
+      ((env.signature->functions()>(int)arg()) ? ("("+env.signature->functionName(arg())+")") : string() );
     break;
   case ASSIGN_VAR:
     res+="asv:"+Int::toString(arg());
@@ -56,6 +53,9 @@ string CodeTree::OpCode::toString() const
   case NEXT_LIT:
     res+="nlit";
     break;
+  }
+  if(alternative) {
+    res+="+A";
   }
   return res;
 }
@@ -82,6 +82,24 @@ inline bool CodeTree::OpCode::eqModAlt(const OpCode& o) const
 #endif
 }
 
+/**
+ * Return CodeBlock which contains @b op as its first operation
+ */
+CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(OpCode* op)
+{
+  CALL("CodeTree::firstOpToCodeBlock");
+
+  //the following line gives warning for not being according
+  //to the standard, so we have to work around
+//  static const size_t opOfs=offsetof(CodeBlock,_array);
+  static const size_t opOfs=reinterpret_cast<size_t>(
+	&reinterpret_cast<CodeBlock*>(8)->_array[0])-8;
+
+  CodeBlock* res=reinterpret_cast<CodeBlock*>(
+      reinterpret_cast<size_t>(op)-opOfs);
+  ASS_ALLOC_TYPE(res,"Vector");
+  return res;
+}
 
 CodeTree::CodeTree()
 : _maxVarCnt(0),
@@ -170,7 +188,7 @@ void CodeTree::incorporate(CodeStack& code)
     treeOp++;
   }
   //if we are here, we are inserting a clause/term multiple times
-  ASS_EQ(treeOp->instr()&3,SUCCESS);
+  ASS(treeOp->isSuccess());
 
   //we insert it anyway becouse later we will be removing it multiple
   //times as well
@@ -209,7 +227,7 @@ void CodeTree::EContext::deinit(CodeTree* tree)
 #endif
 }
 
-inline bool CodeTree::EContext::backtrack()
+bool CodeTree::EContext::backtrack()
 {
   if(btStack.isEmpty()) {
     return false;
@@ -218,7 +236,7 @@ inline bool CodeTree::EContext::backtrack()
   return true;
 }
 
-inline bool CodeTree::EContext::doCheckFun()
+bool CodeTree::EContext::doCheckFun()
 {
   ASS_EQ(op->instr(), CHECK_FUN);
 
@@ -233,7 +251,7 @@ inline bool CodeTree::EContext::doCheckFun()
   return true;
 }
 
-inline void CodeTree::EContext::doAssignVar()
+void CodeTree::EContext::doAssignVar()
 {
   ASS_EQ(op->instr(), ASSIGN_VAR);
 
@@ -255,7 +273,7 @@ inline void CodeTree::EContext::doAssignVar()
   }
 }
 
-inline bool CodeTree::EContext::doCheckVar()
+bool CodeTree::EContext::doCheckVar()
 {
   ASS_EQ(op->instr(), CHECK_VAR);
 
@@ -281,6 +299,79 @@ inline bool CodeTree::EContext::doCheckVar()
   return true;
 }
 
+/**
+ * Perform the operations of the code tree until a SUCCESS
+ * operation is reached or the end of the code is reached
+ *
+ * The @b NextLitFn is a functor corresponding to a function
+ *
+ * bool nextLitFun(EContext& ctx)
+ *
+ * that handles the NEXT_LIT operation and returns false in
+ * case it was unsuccessful and we should backtrack.
+ */
+template<class NextLitFn>
+bool CodeTree::next(EContext& ctx, void*& res, NextLitFn nextLitFun)
+{
+  CALL("CodeTree::next");
+
+  if(!ctx.fresh) {
+    //we backtrack from what we found in the previous run
+    if(!ctx.backtrack()) {
+      return false;
+    }
+  }
+
+  ctx.fresh=false;
+
+  bool backtrack=false;
+  for(;;) {
+    if(ctx.op->alternative) {
+      LOG_OP("alt at "<<ctx.tp);
+      ctx.btStack.push(BTPoint(ctx.tp, ctx.op->alternative));
+    }
+    LOG_OP(ctx.tp<<':'<<ctx.op->toString());
+    switch(ctx.op->instr()) {
+    case SUCCESS:
+    case SUCCESS2:
+      res=ctx.op->result;
+      return true;
+    case CHECK_FUN:
+      backtrack=!ctx.doCheckFun();
+      break;
+    case ASSIGN_VAR:
+      ctx.doAssignVar();
+      break;
+    case CHECK_VAR:
+      backtrack=!ctx.doCheckVar();
+      break;
+    case FAIL:
+      backtrack=true;
+      break;
+    case NEXT_LIT:
+      backtrack=!nextLitFun(ctx);
+      if(!backtrack) {
+      	LOG_OP("nl-alt placed");
+      	ctx.btStack.push(BTPoint(BTPoint::tpSpecial, ctx.op));
+      }
+      break;
+    }
+    if(backtrack) {
+      if(!ctx.backtrack()) {
+	LOG_OP("not found");
+	return false;
+      }
+      LOG_OP(ctx.tp<<"<-bt");
+      backtrack=false;
+    }
+    else {
+      //in each CodeBlock there is always either operation SUCCESS or FAIL,
+      //so as we haven't encountered one yet, we may safely increase the
+      //operation pointer
+      ctx.op++;
+    }
+  }
+}
 
 
 /////////////////////////
@@ -367,6 +458,7 @@ void TermCodeTree::TermEContext::deinit(TermCodeTree* tree)
   EContext::deinit(tree);
 }
 
+
 /**
  * Perform the operations of the code tree until a SUCCESS
  * operation is reached or the end of the code is reached
@@ -375,58 +467,7 @@ bool TermCodeTree::next(TermEContext& ctx, void*& res)
 {
   CALL("TermCodeTree::next");
 
-  if(!ctx.fresh) {
-    //we backtrack from what we found in the previous run
-    if(!ctx.backtrack()) {
-      return false;
-    }
-  }
-
-  ctx.fresh=false;
-
-  bool backtrack=false;
-  for(;;) {
-    if(ctx.op->alternative) {
-      LOG_OP("alt at "<<ctx.tp);
-      ctx.btStack.push(BTPoint(ctx.tp, ctx.op->alternative));
-    }
-    LOG_OP(ctx.tp<<':'<<ctx.op->toString());
-    switch(ctx.op->instr()) {
-    case SUCCESS:
-    case SUCCESS2:
-      res=ctx.op->result;
-      return true;
-    case CHECK_FUN:
-      backtrack=!ctx.doCheckFun();
-      break;
-    case ASSIGN_VAR:
-      ctx.doAssignVar();
-      break;
-    case CHECK_VAR:
-      backtrack=!ctx.doCheckVar();
-      break;
-    case FAIL:
-      backtrack=true;
-      break;
-    case NEXT_LIT:
-      //the NEXT_LIT operation shuold not appear in a TermCodeTree
-      ASSERTION_VIOLATION;
-    }
-    if(backtrack) {
-      if(!ctx.backtrack()) {
-	LOG_OP("not found");
-	return false;
-      }
-      LOG_OP(ctx.tp<<"<-bt");
-      backtrack=false;
-    }
-    else {
-      //in each CodeBlock there is always either operation SUCCESS or FAIL,
-      //so as we haven't encountered one yet, we may safely increase the
-      //operation pointer
-      ctx.op++;
-    }
-  }
+  return CodeTree::next(ctx,res,InvOpNextLitFun());
 }
 
 
@@ -458,9 +499,150 @@ void ClauseCodeTree::compile(Clause* c, CodeStack& code)
   }
 }
 
+void ClauseCodeTree::ClauseEContext::init(Clause* cl, ClauseCodeTree* tree)
+{
+  CALL("ClauseCodeTree::ClauseEContext::init");
 
+  EContext::init(tree);
 
+  _clen=cl->length();
+  _curLitPos=-1;
+  _flits.ensure(_clen);
+  //this array's elements correspont to literals of indexed clause,
+  //but we reject indexed clauses that are longer that the query clause
+  _litIndexes.ensure(_clen);
+  _canReorder.ensure(_clen);
+  for(unsigned i=0;i<_clen;i++) {
+    _flits[i]=FlatTerm::create((*cl)[i]);
+  }
+}
 
+void ClauseCodeTree::ClauseEContext::deinit(ClauseCodeTree* tree)
+{
+  CALL("ClauseCodeTree::ClauseEContext::deinit");
+
+  for(unsigned i=0;i<_clen;i++) {
+    _flits[i]->destroy();
+  }
+
+  EContext::deinit(tree);
+}
+
+/**
+ * Move to the next query literal that isn't already matched to an
+ * index literal with lower number. If successful, return true.
+ * Otherwise move back to the previous index literal and return false.
+ */
+bool ClauseCodeTree::ClauseEContext::assignNextUnmatchedOrGoBack()
+{
+  CALL("ClauseCodeTree::ClauseEContext::assignNextUnmatchedOrGoBack");
+
+  int newIndex=_litIndexes[_curLitPos]+1;
+  //make sure we perform a multi-set subsumption check
+  bool passed;
+  do {
+    passed=true;
+    if(newIndex>=static_cast<int>(_clen)) {
+      //there is no next unmatched query literal, we must go back
+      //by one index literal
+      _curLitPos--;
+      if(_curLitPos!=-1) {
+  	ft=_flits[_litIndexes[_curLitPos]];
+      }
+      //there is no need to set the @b tp position, as we'll backtrack
+      //to it as soon as we get to the main interpreter loop
+      return false;
+    }
+    for(int i=0;i<_curLitPos;i++) {
+      if(_litIndexes[i]==newIndex) {
+	newIndex++;
+	passed=false;
+	break;
+      }
+    }
+  } while(!passed);
+
+  _litIndexes[_curLitPos]=newIndex;
+
+  ft=_flits[newIndex];
+  tp=0;
+  return true;
+}
+
+bool ClauseCodeTree::RemovalNextLitFun::operator()(EContext& ctx0)
+{
+  CALL("ClauseCodeTree::RemovalNextLitFun::operator()");
+
+  ClauseEContext& ctx=static_cast<ClauseEContext&>(ctx0);
+
+  ASS_EQ(ctx.op->instr(), NEXT_LIT);
+
+  if(ctx.tp!=BTPoint::tpSpecial) {
+    //we are entering a new index clause literal
+    //(otherwise we would have landed on the operation
+    //by backtracking)
+    if(ctx._curLitPos==static_cast<int>(ctx._clen)-1) {
+      return false;
+    }
+    ctx._curLitPos++;
+    ctx._litIndexes[ctx._curLitPos]=-1;
+  }
+  ASS_GE(ctx._curLitPos,0);
+
+  return ctx.assignNextUnmatchedOrGoBack();
+}
+
+bool ClauseCodeTree::ClauseSubsumptionNextLitFun::operator()(EContext& ctx0)
+{
+  CALL("ClauseCodeTree::ClauseSubsumptionNextLitFun::operator()");
+  ASS_EQ(ctx0.op->instr(), NEXT_LIT);
+
+  ClauseEContext& ctx=static_cast<ClauseEContext&>(ctx0);
+
+  //marks whether we have landed on the operation by backtracking
+  //or we are entering a new index literal after succesfully matching
+  //the previous one
+  bool cameFromBacktrack=ctx.tp==BTPoint::tpSpecial;
+
+  if(cameFromBacktrack && ctx._canReorder[ctx._curLitPos]) {
+    ASS_GE(ctx._curLitPos,0);
+    //we can swap arguments of a commutative predicate and try again
+    ctx.ft->swapCommutativePredicateArguments();
+    ctx._canReorder[ctx._curLitPos]=false;
+    ctx.tp=0;
+    return true;
+  }
+
+  if(!cameFromBacktrack) {
+    //we are entering a new index clause literal
+    if(ctx._curLitPos==static_cast<int>(ctx._clen)-1) {
+      return false;
+    }
+    ctx._curLitPos++;
+    ctx._litIndexes[ctx._curLitPos]=-1;
+  }
+  ASS_GE(ctx._curLitPos,0);
+
+  if(!ctx.assignNextUnmatchedOrGoBack()) {
+    return false;
+  }
+
+  if(!cameFromBacktrack) {
+    ASS_EQ((*ctx.ft)[0].tag(), FlatTerm::FUN);
+    //mark commutative predicates so we can later swap their arguments
+    //(as for now, only the equality is commutative)
+    ctx._canReorder[ctx._curLitPos]= ((*ctx.ft)[0].number()|1) == 1;
+  }
+
+  return true;
+}
+
+bool ClauseCodeTree::next(ClauseEContext& ctx, void*& res)
+{
+  CALL("ClauseCodeTree::next");
+
+  return CodeTree::next(ctx,res,ClauseSubsumptionNextLitFun());
+}
 
 }
 

@@ -112,6 +112,11 @@ Index* IndexManager::create(IndexType t)
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
 
+  case FW_SUBSUMPTION_CODE_TREE:
+    res=new CodeTreeSubsumptionIndex();
+    res->attachContainer(_alg->getSimplificationClauseContainer());
+    break;
+
   case FW_SUBSUMPTION_SUBST_TREE:
 //    is=new LiteralSubstitutionTree();
     is=new CodeTreeLIS();

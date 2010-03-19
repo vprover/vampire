@@ -11,10 +11,7 @@
 #include "../Forwards.hpp"
 
 #include "List.hpp"
-#include "Stack.hpp"
 #include "DArray.hpp"
-
-#include "../Indexing/CodeTree.hpp"
 
 namespace Lib
 {
@@ -50,22 +47,7 @@ public:
   {
     ASS(obj);
 
-    obj->reset();
     putIntoStoreOrDelete<T>(obj);
-  }
-  template<typename T>
-  static void release(DArray<T>* obj)
-  {
-    ASS(obj);
-
-    putIntoStoreOrDelete<DArray<T> >(obj);
-  }
-
-  static void release(TermCodeTree::TermEContext* obj)
-  {
-    ASS(obj);
-
-    putIntoStoreOrDelete<TermCodeTree::TermEContext>(obj);
   }
 
 
