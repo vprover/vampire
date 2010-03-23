@@ -149,6 +149,8 @@ public:
   static void compile(Term* t, CodeStack& code, VarMap& varMap, unsigned& nextVarNum);
 
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt);
+  void matchCode(CodeStack& code, size_t& matchedCnt, OpCode*& lastOp);
+
   void incorporate(CodeStack& code);
 
   static CodeBlock* firstOpToCodeBlock(OpCode* op);

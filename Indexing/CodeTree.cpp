@@ -159,6 +159,15 @@ CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt)
   return res;
 }
 
+void CodeTree::matchCode(CodeStack& code, size_t& matchedCnt, OpCode*& lastOp)
+{
+  CALL("CodeTree::matchCode");
+  ASS(_data);
+
+  NOT_IMPLEMENTED;
+  //TODO:!
+}
+
 void CodeTree::incorporate(CodeStack& code)
 {
   CALL("CodeTree::incorporate");
@@ -190,7 +199,7 @@ void CodeTree::incorporate(CodeStack& code)
   //if we are here, we are inserting a clause/term multiple times
   ASS(treeOp->isSuccess());
 
-  //we insert it anyway becouse later we will be removing it multiple
+  //we insert it anyway because later we will be removing it multiple
   //times as well
   while(treeOp->alternative) {
     treeOp=treeOp->alternative;
