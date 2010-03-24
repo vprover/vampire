@@ -149,7 +149,7 @@ public:
   static void compile(Term* t, CodeStack& code, VarMap& varMap, unsigned& nextVarNum);
 
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt);
-  void matchCode(CodeStack& code, size_t& matchedCnt, OpCode*& lastOp);
+  static void matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastMatchedOp, size_t& matchedCnt);
 
   void incorporate(CodeStack& code);
 

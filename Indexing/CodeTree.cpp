@@ -159,54 +159,66 @@ CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt)
   return res;
 }
 
-void CodeTree::matchCode(CodeStack& code, size_t& matchedCnt, OpCode*& lastOp)
+void CodeTree::matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastMatchedOp, size_t& matchedCnt)
 {
   CALL("CodeTree::matchCode");
-  ASS(_data);
-
-  NOT_IMPLEMENTED;
-  //TODO:!
-}
-
-void CodeTree::incorporate(CodeStack& code)
-{
-  CALL("CodeTree::incorporate");
-
-  if(!_data) {
-    _data=buildBlock(code, code.length());
-    return;
-  }
 
   size_t clen=code.length();
-  OpCode* treeOp=&(*_data)[0];
+  OpCode* treeOp=startOp;
 
   for(size_t i=0;i<clen;i++) {
     while(!code[i].eqModAlt(*treeOp) && treeOp->alternative) {
       treeOp=treeOp->alternative;
     }
     if(!code[i].eqModAlt(*treeOp)) {
-      ASS(!treeOp->alternative);
-      CodeBlock* rem=buildBlock(code, clen-i);
-      treeOp->alternative=&(*rem)[0];
-      LOG_OP(rem->toString()<<" incorporated at "<<treeOp->toString()<<" caused by "<<code[i].toString());
+      matchedCnt=i;
+      lastMatchedOp=treeOp;
       return;
     }
     //we can safely do increase because as long as we match and something
     //remains in the @b code stack, we aren't at the end of the CodeBlock
-    //either
+    //either (as each code block contains at least one FAIL or SUCCESS
+    //operation, and CodeStack contains at most one SUCCESS as the last
+    //operation)
     treeOp++;
   }
-  //if we are here, we are inserting a clause/term multiple times
-  ASS(treeOp->isSuccess());
+  //we matched the whole CodeStack
+  matchedCnt=clen;
+  lastMatchedOp=treeOp;
+}
 
-  //we insert it anyway because later we will be removing it multiple
-  //times as well
-  while(treeOp->alternative) {
-    treeOp=treeOp->alternative;
+void CodeTree::incorporate(CodeStack& code)
+{
+  CALL("CodeTree::incorporate");
+  ASS_EQ(code.top().instr(),SUCCESS);
+
+  if(!_data) {
+    _data=buildBlock(code, code.length());
+    return;
   }
-  CodeBlock* rem=buildBlock(code, 1);
+
+  OpCode* treeOp;
+  size_t matchedCnt;
+  matchCode(code, &(*_data)[0], treeOp, matchedCnt);
+
+  size_t clen=code.length();
+  if(clen==matchedCnt) {
+    ASS(treeOp->isSuccess());
+    //If we are here, we are inserting an item multiple times.
+    //We will insert it anyway, because later we may be removing it multiple
+    //times as well.
+    matchedCnt--;
+
+    //we need to find where to put it
+    while(treeOp->alternative) {
+      treeOp=treeOp->alternative;
+    }
+  }
+
+  ASS(!treeOp->alternative);
+  CodeBlock* rem=buildBlock(code, clen-matchedCnt);
   treeOp->alternative=&(*rem)[0];
-  LOG_OP(rem->toString()<<" incorporated");
+  LOG_OP(rem->toString()<<" incorporated at "<<treeOp->toString()<<" caused by "<<code[i].toString());
 }
 
 void CodeTree::EContext::init(CodeTree* tree)
@@ -648,6 +660,7 @@ bool ClauseCodeTree::ClauseSubsumptionNextLitFun::operator()(EContext& ctx0)
   if(!cameFromBacktrack) {
     //we are entering a new index clause literal
     if(ctx._curLitPos==static_cast<int>(ctx._clen)-1) {
+      //unless the index clause has more literals than the query clause
       return false;
     }
     ctx._curLitPos++;

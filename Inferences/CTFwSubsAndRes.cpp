@@ -46,17 +46,27 @@ void CTFwSubsAndRes::perform(Clause* cl, ForwardSimplificationPerformer* simplPe
 
   TimeCounter tc_fs(TC_FORWARD_SUBSUMPTION);
 
+  Clause::requestAux();
+
   ClauseIterator subsumers=_index->getSubsumingClauses(cl);
   while(subsumers.hasNext()) {
     Clause* premise=subsumers.next();
+    if(premise->hasAux()) {
+      //we already yielded this clause as a potential subsumer
+      continue;
+    }
+    premise->setAux(0);
     if(simplPerformer->willPerform(premise)) {
-	simplPerformer->perform(premise, 0);
-	env.statistics->forwardSubsumed++;
-	if(!simplPerformer->clauseKept()) {
-	  return;
-	}
+      simplPerformer->perform(premise, 0);
+      env.statistics->forwardSubsumed++;
+      if(!simplPerformer->clauseKept()) {
+	goto fin;
+      }
     }
   }
+
+fin:
+  Clause::releaseAux();
 }
 
 

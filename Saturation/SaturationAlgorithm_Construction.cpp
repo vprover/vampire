@@ -29,6 +29,8 @@
 #include "../Inferences/Superposition.hpp"
 #include "../Inferences/TautologyDeletionISE.hpp"
 
+#include "../Test/CheckedFwSimplifier.hpp"
+
 
 #include "AWPassiveClauseContainer.hpp"
 #include "SaturationAlgorithm.hpp"
@@ -111,8 +113,10 @@ void addFSEs(SaturationAlgorithm* alg)
 //	  new ForwardSubsumptionAndResolution(false) ));
     }
     else {
+//      alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
+//	  new CTFwSubsAndRes() ));
       alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
-	  new CTFwSubsAndRes() ));
+	  new Test::CheckedFwSimplifier(new CTFwSubsAndRes(), new ForwardSubsumptionAndResolution(false)) ));
     }
 //    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
 //	    new ForwardSubsumptionAndResolution(

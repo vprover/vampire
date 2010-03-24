@@ -212,9 +212,10 @@ VRULE_OBJ = Rule/Index.o\
             Rule/ProofAttempt.o
 
 # testing procedures
-VT_OBJ = Test/Output.o\
+VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/CompitOutput.o\
-         Test/Compit2Output.o
+         Test/Compit2Output.o\
+         Test/Output.o
 
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
