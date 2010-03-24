@@ -242,25 +242,31 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 
   TimeCounter tc_fs(TC_FORWARD_SUBSUMPTION);
 
+  Clause::requestAux();
+
+  static CMStack cmStore(64);
+  ASS(cmStore.isEmpty());
+
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
     while(rit.hasNext()) {
       Clause* premise=rit.next().clause;
+      if(premise->hasAux()) {
+	continue;
+      }
+      premise->setAux(0);
       if(simplPerformer->willPerform(premise)) {
 	simplPerformer->perform(premise, 0);
 	env.statistics->forwardSubsumed++;
 	if(!simplPerformer->clauseKept()) {
-	  return;
+	  goto fin;
 	}
       }
     }
   }
 
+  {
   LiteralMiniIndex miniIndex(cl);
-  Clause::requestAux();
-
-  static CMStack cmStore(64);
-  ASS(cmStore.isEmpty());
 
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_fwIndex->getGeneralizations( (*cl)[li], false, false);
@@ -364,7 +370,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
       }
     }
   }
-
+  }
 
 fin:
   Clause::releaseAux();

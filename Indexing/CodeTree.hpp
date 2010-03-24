@@ -19,8 +19,13 @@
 #include "../Kernel/FlatTerm.hpp"
 #include "../Kernel/Term.hpp"
 
+#if VDEBUG
+#include "../Lib/TimeCounter.hpp"
+#endif
+
 #define LOG_OP(x)
 //#define LOG_OP(x) cout<<x<<endl
+//#define LOG_OP(x) if(TimeCounter::isBeingMeasured(TC_FORWARD_SUBSUMPTION)) { cout<<x<<endl; }
 
 namespace Indexing
 {
@@ -141,12 +146,21 @@ public:
   template<class NextLitFn>
   static bool next(EContext& ctx, void*& res, NextLitFn nextLitFun);
 
-
   typedef Vector<OpCode> CodeBlock;
   typedef Stack<OpCode> CodeStack;
   typedef DHMap<unsigned,unsigned> VarMap;
 
-  static void compile(Term* t, CodeStack& code, VarMap& varMap, unsigned& nextVarNum);
+  /** Context for code compilation */
+  struct CompileContext
+  {
+    void init();
+    void deinit(CodeTree* tree, bool discarded=false);
+
+    unsigned nextVarNum;
+    VarMap varMap;
+  };
+
+  static void compile(Term* t, CodeStack& code, CompileContext* cctx);
 
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt);
   static void matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastMatchedOp, size_t& matchedCnt);
@@ -234,6 +248,8 @@ public:
      * by swapping its arguments */
     DArray<bool> _canReorder;
   };
+
+  static void evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLen, size_t& unsharedLen);
 
   void compile(Clause* c, CodeStack& code);
 

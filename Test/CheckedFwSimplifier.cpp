@@ -37,11 +37,13 @@ public:
 
     if(_recording) {
       _firstCnt++;
-      _results.insert(premise);
+      _resultSet.insert(premise);
+      _resultsOfFirst.push(premise);
     }
     else {
       _secondCnt++;
-      if(!_results.remove(premise)) {
+      _resultsOfSecond.push(premise);
+      if(!_resultSet.remove(premise)) {
 	if(_ok) { _ok=false; cout<<endl; }
 	cout<<"-the second inference yielded premise that the first one did not"<<endl;
 	cout<<"query:  "<<_query->toString()<<endl;
@@ -67,7 +69,9 @@ public:
     _secondCnt=0;
     _ok=true;
 
-    _results.reset();
+    _resultSet.reset();
+    _resultsOfFirst.reset();
+    _resultsOfSecond.reset();
     _recording=true;
   }
 
@@ -82,7 +86,7 @@ public:
   {
     CALL("CheckedFwSimplifier::CheckingPerformer::doneChecking");
 
-    ClauseIterator it=_results.iterator();
+    ClauseIterator it=_resultSet.iterator();
 
     while(it.hasNext()) {
       Clause* cl=it.next();
@@ -101,13 +105,26 @@ public:
       cout<<"first:second is "<<_firstCnt<<":"<<_secondCnt<<endl;
 //      INVALID_OPERATION("first and second inference didn't come up with the same premises");
     }
+
+    if(!_ok) {
+      cout<<"All results given by first:"<<endl;
+      while(_resultsOfFirst.isNonEmpty()) {
+	cout<<_resultsOfFirst.pop()->toString()<<endl;
+      }
+      cout<<"All results given by second:"<<endl;
+      while(_resultsOfSecond.isNonEmpty()) {
+	cout<<_resultsOfSecond.pop()->toString()<<endl;
+      }
+    }
   }
 
 private:
   Clause* _query;
   bool _ok;
   bool _recording;
-  DHSet<Clause*> _results;
+  DHSet<Clause*> _resultSet;
+  ClauseStack _resultsOfFirst;
+  ClauseStack _resultsOfSecond;
   size_t _firstCnt;
   size_t _secondCnt;
 };

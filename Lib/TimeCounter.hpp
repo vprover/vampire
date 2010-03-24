@@ -68,6 +68,10 @@ public:
     _tcu=__TC_NONE; //so that nothing happens when we call stopMeasuring() in destructor
   }
 
+  static bool isBeingMeasured(TimeCounterUnit tcu)
+  {
+    return s_measureInitTimes[tcu]!=-1;
+  }
 
 private:
   void startMeasuring(TimeCounterUnit tcu);

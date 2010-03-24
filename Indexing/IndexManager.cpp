@@ -118,8 +118,8 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
-//    is=new LiteralSubstitutionTree();
-    is=new CodeTreeLIS();
+    is=new LiteralSubstitutionTree();
+//    is=new CodeTreeLIS();
     res=new FwSubsSimplifyingLiteralIndex(is);
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;

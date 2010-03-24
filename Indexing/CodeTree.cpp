@@ -111,7 +111,26 @@ CodeTree::CodeTree()
   CALL("CodeTree::CodeTree");
 }
 
-void CodeTree::compile(Term* t, CodeStack& code, VarMap& varMap, unsigned& nextVarNum)
+void CodeTree::CompileContext::init()
+{
+  CALL("CodeTree::CompileContext::init");
+
+  nextVarNum=0;
+  varMap.reset();
+}
+
+void CodeTree::CompileContext::deinit(CodeTree* tree, bool discarded)
+{
+  CALL("CodeTree::CompileContext::deinit");
+
+  //update the max. number of variables, if necessary
+  if(!discarded && nextVarNum>tree->_maxVarCnt) {
+    tree->_maxVarCnt=nextVarNum;
+  }
+}
+
+
+void CodeTree::compile(Term* t, CodeStack& code, CompileContext* cctx)
 {
   CALL("CodeTree::compile(Term*...)");
 
@@ -124,8 +143,8 @@ void CodeTree::compile(Term* t, CodeStack& code, VarMap& varMap, unsigned& nextV
     if(s.isVar()) {
       unsigned var=s.var();
       unsigned* varNumPtr;
-      if(varMap.getValuePtr(var,varNumPtr)) {
-	*varNumPtr=nextVarNum++;
+      if(cctx->varMap.getValuePtr(var,varNumPtr)) {
+	*varNumPtr=cctx->nextVarNum++;
 	code.push(OpCode(ASSIGN_VAR, *varNumPtr));
       }
       else {
@@ -190,7 +209,7 @@ void CodeTree::matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastMatchedO
 void CodeTree::incorporate(CodeStack& code)
 {
   CALL("CodeTree::incorporate");
-  ASS_EQ(code.top().instr(),SUCCESS);
+  ASS(code.top().isSuccess());
 
   if(!_data) {
     _data=buildBlock(code, code.length());
@@ -218,7 +237,7 @@ void CodeTree::incorporate(CodeStack& code)
   ASS(!treeOp->alternative);
   CodeBlock* rem=buildBlock(code, clen-matchedCnt);
   treeOp->alternative=&(*rem)[0];
-  LOG_OP(rem->toString()<<" incorporated at "<<treeOp->toString()<<" caused by "<<code[i].toString());
+  LOG_OP(rem->toString()<<" incorporated at "<<treeOp->toString()<<" caused by "<<code[matchedCnt].toString());
 }
 
 void CodeTree::EContext::init(CodeTree* tree)
@@ -401,41 +420,34 @@ void TermCodeTree::compile(TermList t, CodeStack& code)
 {
   CALL("TermCodeTree::compile(TermList...)");
 
-  unsigned nextVarNum=0;
-
   if(t.isVar()) {
-    code.push(OpCode(ASSIGN_VAR, nextVarNum++));
+    code.push(OpCode(ASSIGN_VAR, 0));
+    if(_maxVarCnt==0) {
+      _maxVarCnt=1;
+    }
   }
   else {
-    static VarMap varMap;
-    varMap.reset();
+    static CompileContext cctx;
+    cctx.init();
 
-    CodeTree::compile(t.term(), code, varMap, nextVarNum);
+    CodeTree::compile(t.term(), code, &cctx);
+
+    cctx.deinit(this);
   }
   code.push(OpCode(SUCCESS));
-
-  //update the max. number of variables, if necessary
-  if(nextVarNum>_maxVarCnt) {
-    _maxVarCnt=nextVarNum;
-  }
 }
 
 void TermCodeTree::compile(Term* t, CodeStack& code)
 {
   CALL("TermCodeTree::compile(TermList...)");
 
-  unsigned nextVarNum=0;
+  static CompileContext cctx;
+  cctx.init();
 
-  static VarMap varMap;
-  varMap.reset();
-
-  CodeTree::compile(t, code, varMap, nextVarNum);
+  CodeTree::compile(t, code, &cctx);
   code.push(OpCode(SUCCESS));
 
-  //update the max. number of variables, if necessary
-  if(nextVarNum>_maxVarCnt) {
-    _maxVarCnt=nextVarNum;
-  }
+  cctx.deinit(this);
 }
 
 void TermCodeTree::TermEContext::init(TermList t, TermCodeTree* tree)
@@ -513,6 +525,14 @@ struct LiteralMatchabilityComparator
   }
 };
 
+void ClauseCodeTree::evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLen, size_t& unsharedLen)
+{
+  CALL("ClauseCodeTree::evalSharing");
+
+
+
+}
+
 void ClauseCodeTree::compile(Clause* c, CodeStack& code)
 {
   CALL("ClauseCodeTree::compile(Clause*...)");
@@ -527,20 +547,16 @@ void ClauseCodeTree::compile(Clause* c, CodeStack& code)
 //  lits.sort(LiteralMatchabilityComparator());
 //  lits.sortInversed(LiteralMatchabilityComparator());
 
-  static VarMap varMap;
-  varMap.reset();
-  unsigned nextVarNum=0;
+  static CompileContext cctx;
+  cctx.init();
 
   for(unsigned i=0;i<clen;i++) {
     code.push(OpCode(NEXT_LIT));
-    CodeTree::compile(lits[i], code, varMap, nextVarNum);
+    CodeTree::compile(lits[i], code, &cctx);
   }
   code.push(OpCode(SUCCESS));
 
-  //update the max. number of variables, if necessary
-  if(nextVarNum>_maxVarCnt) {
-    _maxVarCnt=nextVarNum;
-  }
+  cctx.deinit(this);
 }
 
 void ClauseCodeTree::ClauseEContext::init(Clause* cl, ClauseCodeTree* tree)
@@ -672,12 +688,12 @@ bool ClauseCodeTree::ClauseSubsumptionNextLitFun::operator()(EContext& ctx0)
     return false;
   }
 
-  if(!cameFromBacktrack) {
-    ASS_EQ((*ctx.ft)[0].tag(), FlatTerm::FUN);
-    //mark commutative predicates so we can later swap their arguments
-    //(as for now, only the equality is commutative)
-    ctx._canReorder[ctx._curLitPos]= ((*ctx.ft)[0].number()|1) == 1;
-  }
+  //we are dealing with literals, so the first element in the flatterm must be
+  //FUN (not a variable)
+  ASS_EQ((*ctx.ft)[0].tag(), FlatTerm::FUN);
+  //mark commutative predicates so we can later swap their arguments
+  //(as for now, only the equality is commutative)
+  ctx._canReorder[ctx._curLitPos]= ((*ctx.ft)[0].number()|1) == 1;
 
   return true;
 }
