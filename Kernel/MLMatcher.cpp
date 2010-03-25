@@ -20,8 +20,10 @@
 #include "../Lib/TriangularArray.hpp"
 
 #include "Clause.hpp"
-#include "Term.hpp"
 #include "Matcher.hpp"
+#include "Term.hpp"
+#include "TermIterators.hpp"
+
 #include "MLMatcher.hpp"
 
 #if VDEBUG
@@ -78,7 +80,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl, 
   variablePositions.reset();
   varNums.reset();
 
-  Term::VariableIterator bvit(baseLit);
+  VariableIterator bvit(baseLit);
   while(bvit.hasNext()) {
     unsigned var=bvit.next().var();
     varNums.insert(var);

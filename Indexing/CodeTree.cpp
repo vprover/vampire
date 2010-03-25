@@ -11,6 +11,7 @@
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Term.hpp"
+#include "../Kernel/TermIterators.hpp"
 
 #if VDEBUG
 
@@ -130,16 +131,26 @@ void CodeTree::CompileContext::deinit(CodeTree* tree, bool discarded)
 }
 
 
-void CodeTree::compile(Term* t, CodeStack& code, CompileContext& cctx)
+void CodeTree::compile(Term* t, CodeStack& code, CompileContext& cctx, bool reverseCommutativePredicate)
 {
   CALL("CodeTree::compile(Term*...)");
 
   unsigned func=t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor();
   code.push(OpCode(CHECK_FUN, func));
 
-  Term::SubtermIterator sti(t);
-  while(sti.hasNext()) {
-    TermList s=sti.next();
+  SubtermIterator* sti;
+
+  if(reverseCommutativePredicate) {
+    ASS(t->isLiteral());
+    ASS(t->commutative());
+    sti=new ReversedCommutativeSubtermIterator(static_cast<Literal*>(t));
+  }
+  else {
+    sti=new SubtermIterator(t);
+  }
+
+  while(sti->hasNext()) {
+    TermList s=sti->next();
     if(s.isVar()) {
       unsigned var=s.var();
       unsigned* varNumPtr;
@@ -156,6 +167,8 @@ void CodeTree::compile(Term* t, CodeStack& code, CompileContext& cctx)
       code.push(OpCode(CHECK_FUN, s.term()->functor()));
     }
   }
+
+  delete sti;
 }
 
 /**
@@ -291,13 +304,11 @@ bool CodeTree::EContext::doCheckFun()
   ASS_EQ(op->instr(), CHECK_FUN);
 
   unsigned functor=op->arg();
-  FlatTerm::Entry fte=(*ft)[tp];
-  if(fte.tag()!=FlatTerm::FUN || fte.number()!=functor) {
+  const FlatTerm::Entry& fte=(*ft)[tp];
+  if(!fte.isFun(functor)) {
     return false;
   }
-  else {
-    tp+=FlatTerm::functionEntryCount;
-  }
+  tp+=FlatTerm::functionEntryCount;
   return true;
 }
 
@@ -593,7 +604,7 @@ void ClauseCodeTree::compile(Clause* c, CodeStack& code)
   }
 
 //  if(clen>1) {
-//    swap(lits[1],lits[clen-1]);
+//    swap(lits[0],lits[clen-1]);
 //  }
 //  lits.sort(LiteralMatchabilityComparator());
 //  lits.sortInversed(LiteralMatchabilityComparator());

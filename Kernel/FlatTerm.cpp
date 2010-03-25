@@ -10,6 +10,7 @@
 #include "../Lib/DArray.hpp"
 
 #include "Term.hpp"
+#include "TermIterators.hpp"
 
 #include "FlatTerm.hpp"
 
@@ -72,7 +73,7 @@ FlatTerm* FlatTerm::create(Term* t)
   res->_data[fti++]=Entry(t);
   res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
 
-  Term::SubtermIterator sti(t);
+  SubtermIterator sti(t);
   while(sti.hasNext()) {
     ASS_L(fti, entries);
     TermList s=sti.next();

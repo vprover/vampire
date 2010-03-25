@@ -160,7 +160,7 @@ public:
     VarMap varMap;
   };
 
-  static void compile(Term* t, CodeStack& code, CompileContext& cctx);
+  static void compile(Term* t, CodeStack& code, CompileContext& cctx, bool reverseCommutativePredicate=false);
 
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt);
   static void matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastAttemptedOp, size_t& matchedCnt);
@@ -281,10 +281,6 @@ void CodeTree::remove(EContext& ctx, CodeTree* tree, NextLitFn nextLitFun, Found
   ASS(ctx.fresh);
   ctx.fresh=false;
 
-  //this is to help us ensure we're looking for variants, not generalizations
-  static DHMap<unsigned,unsigned> queryVarBindings;
-  queryVarBindings.reset();
-
   //first op in the current CodeBlock
   static Stack<OpCode*> firstsInBlocks;
   firstsInBlocks.reset();
@@ -294,7 +290,9 @@ void CodeTree::remove(EContext& ctx, CodeTree* tree, NextLitFn nextLitFun, Found
 
 
   //in this loop the handlers of ASSIGN_VAR and CHECK_VAR operations are
-  //modified so that we look for variants, not for generalisations
+  //modified so that we look for something more general than variants, but
+  //not for all generalisations (looking for variants would be better but
+  //the check for it would be complicated with backtracking)
   bool backtrack=false;
   for(;;) {
     if(ctx.op->alternative) {
@@ -317,19 +315,11 @@ void CodeTree::remove(EContext& ctx, CodeTree* tree, NextLitFn nextLitFun, Found
     {
       unsigned var=ctx.op->arg();
       const FlatTerm::Entry* fte=&(*ctx.ft)[ctx.tp];
-      if(fte->tag()==FlatTerm::VAR) {
-	unsigned qvar=fte->number();
-        unsigned* pAsgnVar;
-        if(!queryVarBindings.getValuePtr(qvar,pAsgnVar)) {
-          if(*pAsgnVar<var) {
-            backtrack=true;
-            break;
-          }
-        }
-        *pAsgnVar=var;
-
-        ctx.bindings[var]=TermList(qvar,false);
+      if(fte->isVar()) {
+        ctx.bindings[var]=TermList(fte->number(),false);
         ctx.tp++;
+	//if we wanted to look for variants only, here we should have put a check
+	//that we don't assign one query variable into multiple index variables
       }
       else {
 	backtrack=true;
@@ -340,11 +330,7 @@ void CodeTree::remove(EContext& ctx, CodeTree* tree, NextLitFn nextLitFun, Found
     {
       unsigned var=ctx.op->arg();
       const FlatTerm::Entry* fte=&(*ctx.ft)[ctx.tp];
-      if(fte->tag()==FlatTerm::VAR) {
-        if(ctx.bindings[var]!=TermList(fte->number(),false)) {
-          backtrack=true;
-          break;
-        }
+      if(fte->isVar(ctx.bindings[var].var())) {
         ctx.tp++;
       }
       else {
@@ -401,6 +387,8 @@ found_handler:
 
   OpCode* op0=ctx.op;
   op0->setInstr(CodeTree::FAIL);
+
+  return;
 
   //now let us remove unnecessary instructions and the free memory
 

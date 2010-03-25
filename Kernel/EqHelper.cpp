@@ -7,6 +7,8 @@
 
 #include "../Shell/Options.hpp"
 
+#include "TermIterators.hpp"
+
 #include "EqHelper.hpp"
 
 namespace Kernel {
@@ -129,7 +131,7 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit)
     {
     case Term::INCOMPARABLE:
     {
-      Term::NonVariableIterator nvi(lit);
+      NonVariableIterator nvi(lit);
       return getUniquePersistentIteratorFromPtr(&nvi);
     }
     case Term::EQUAL:
@@ -149,9 +151,9 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit)
     }
     return getUniquePersistentIterator(
 	    getConcatenatedIterator(getSingletonIterator(sel),
-	    vi( new Term::NonVariableIterator(sel.term()) )) );
+	    vi( new NonVariableIterator(sel.term()) )) );
   } else {
-    Term::NonVariableIterator nvi(lit);
+    NonVariableIterator nvi(lit);
     return getUniquePersistentIteratorFromPtr(&nvi);
   }
 }

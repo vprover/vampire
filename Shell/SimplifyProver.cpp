@@ -16,7 +16,7 @@
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/FormulaUnit.hpp"
 #include "../Kernel/FormulaVarIterator.hpp"
-#include "../Kernel/TermVarIterator.hpp"
+#include "../Kernel/TermIterators.hpp"
 
 #include "SimplifyProver.hpp"
 #include "Statistics.hpp"

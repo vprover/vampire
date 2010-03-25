@@ -20,8 +20,7 @@
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/SubstHelper.hpp"
 #include "../Kernel/Term.hpp"
-#include "../Kernel/TermVarIterator.hpp"
-#include "../Kernel/TermFunIterator.hpp"
+#include "../Kernel/TermIterators.hpp"
 
 #include "Statistics.hpp"
 
@@ -155,7 +154,7 @@ void FunctionDefinition::removeUnusedDefinitions(UnitList*& units)
       }
     }
     for(unsigned i=0;i<clen;i++) {
-      Term::NonVariableIterator nvit((*cl)[i]);
+      NonVariableIterator nvit((*cl)[i]);
       while(nvit.hasNext()) {
 	unsigned fn=nvit.next().term()->functor();
 	occCounter[fn]++;
@@ -179,7 +178,7 @@ void FunctionDefinition::removeUnusedDefinitions(UnitList*& units)
     d->mark=Def::REMOVED;
     ASS_EQ(d->defCl->length(), 1);
     ASS_EQ(occCounter[d->fun], 1);
-    Term::NonVariableIterator nvit((*d->defCl)[0]);
+    NonVariableIterator nvit((*d->defCl)[0]);
     while(nvit.hasNext()) {
       unsigned fn=nvit.next().term()->functor();
       occCounter[fn]--;
@@ -261,7 +260,7 @@ void FunctionDefinition::removeAllDefinitions(UnitList*& units)
     //we temporarily block the definition, so that we can rewrite
     //the definition clause without rewriting the lhs
     d->mark=Def::BLOCKED;
-    Clause* oldCl=d->defCl;
+//    Clause* oldCl=d->defCl;
     d->defCl=applyDefinitions(d->defCl);
 //    cout<<" unfolded into "<<(*(*d->defCl)[0])<<endl;
 

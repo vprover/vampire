@@ -8,16 +8,18 @@
 #include "../Lib/Int.hpp"
 #include "../Lib/SharedSet.hpp"
 #include "../Lib/Stack.hpp"
-#include "../Kernel/BDD.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/FormulaVarIterator.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Term.hpp"
 
 #include "../Shell/LaTeX.hpp"
 #include "../Shell/Options.hpp"
+
+#include "BDD.hpp"
+#include "Clause.hpp"
+#include "Formula.hpp"
+#include "FormulaUnit.hpp"
+#include "FormulaVarIterator.hpp"
+#include "Inference.hpp"
+#include "Term.hpp"
+#include "TermIterators.hpp"
 
 #include "InferenceStore.hpp"
 
@@ -300,10 +302,10 @@ string getQuantifiedStr(Unit* u)
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
     for(unsigned i=0;i<clen;i++) {
-	Term::VariableIterator vit( (*cl)[i] );
-	while(vit.hasNext()) {
-	  vars.insert(vit.next().var());
-	}
+      TermVarIterator vit( (*cl)[i] );
+      while(vit.hasNext()) {
+	vars.insert(vit.next());
+      }
     }
     res=cl->nonPropToString();
   } else {

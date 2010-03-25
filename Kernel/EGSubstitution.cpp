@@ -14,9 +14,10 @@
 #include "../Lib/SkipList.hpp"
 #include "../Lib/Int.hpp"
 
-#include "Term.hpp"
 #include "Clause.hpp"
 #include "Renaming.hpp"
+#include "Term.hpp"
+#include "TermIterators.hpp"
 
 #include "../Indexing/TermSharing.hpp"
 
@@ -467,7 +468,7 @@ bool EGSubstitution::occursCheck(VarSpec var)
 //    setParent(v, TS_LOOP);
 
     ASS(vPar.term.isTerm());
-    Term::VariableIterator vit(vPar.term.term());
+    VariableIterator vit(vPar.term.term());
     while(vit.hasNext()) {
       VarSpec innVar=getVarSpec(vit.next(), vPar.index);
       if(parent(innVar)==TS_NIL) {

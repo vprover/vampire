@@ -3,26 +3,27 @@
  * Implements class ForwardDemodulation.
  */
 
+#include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Metaiterators.hpp"
 #include "../Lib/TimeCounter.hpp"
+#include "../Lib/Timer.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
-#include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/EqHelper.hpp"
-#include "../Kernel/Ordering.hpp"
 #include "../Kernel/Inference.hpp"
+#include "../Kernel/Ordering.hpp"
 #include "../Kernel/Renaming.hpp"
+#include "../Kernel/Term.hpp"
+#include "../Kernel/TermIterators.hpp"
 
 #include "../Indexing/Index.hpp"
-#include "../Indexing/TermIndex.hpp"
 #include "../Indexing/IndexManager.hpp"
+#include "../Indexing/TermIndex.hpp"
 
 #include "../Saturation/SaturationAlgorithm.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Timer.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "ForwardDemodulation.hpp"
@@ -74,7 +75,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
-    Term::NonVariableIterator nvi(lit);
+    NonVariableIterator nvi(lit);
     while(nvi.hasNext()) {
       TermList trm=nvi.next();
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);

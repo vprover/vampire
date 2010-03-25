@@ -4,10 +4,11 @@
  */
 
 #include "../Kernel/Clause.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Ordering.hpp"
-
 #include "../Kernel/EqHelper.hpp"
+#include "../Kernel/Ordering.hpp"
+#include "../Kernel/Term.hpp"
+#include "../Kernel/TermIterators.hpp"
+
 
 #include "TermIndexingStructure.hpp"
 
@@ -86,7 +87,7 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned cLen=c->length();
   for(unsigned i=0; i<cLen; i++) {
     Literal* lit=(*c)[i];
-    Term::NonVariableIterator nvi(lit);
+    NonVariableIterator nvi(lit);
     while(nvi.hasNext()) {
       if(adding) {
 	_is->insert(nvi.next(), lit, c);

@@ -15,7 +15,8 @@
 #include "../Lib/Stack.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
-#include "../Kernel/Term.hpp"
+#include "Term.hpp"
+#include "TermIterators.hpp"
 
 namespace Kernel {
 
@@ -51,8 +52,8 @@ public:
     rightToLeft.reset();
 
     VirtualIterator<pair<TermList, TermList> > dsit=pvi( getConcatenatedIterator(
-	    vi( new Term::DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
-	    vi( new Term::DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) )) );
+	    vi( new DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
+	    vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) )) );
     while(dsit.hasNext()) {
       pair<TermList,TermList> dp=dsit.next(); //disagreement pair
       if(!dp.first.isVar() || !dp.second.isVar()) {
@@ -86,7 +87,7 @@ public:
     leftToRight.reset();
     rightToLeft.reset();
 
-    Term::DisagreementSetIterator dsit(l1,l2);
+    DisagreementSetIterator dsit(l1,l2);
     while(dsit.hasNext()) {
       pair<TermList,TermList> dp=dsit.next(); //disagreement pair
       if(!dp.first.isVar() || !dp.second.isVar()) {

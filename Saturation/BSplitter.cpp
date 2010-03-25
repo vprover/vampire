@@ -12,6 +12,7 @@
 #include "../Kernel/BDD.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
+#include "../Kernel/TermIterators.hpp"
 
 #include "../Shell/Statistics.hpp"
 
@@ -190,7 +191,7 @@ Clause* BSplitter::getComponent(Clause* cl)
     if(lit->isPositive()) {
       posLits++;
     }
-    Term::VariableIterator vit(lit);
+    VariableIterator vit(lit);
     while(vit.hasNext()) {
       unsigned master=varMasters.findOrInsert(vit.next().var(), i);
       if(master!=i) {

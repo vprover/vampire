@@ -16,6 +16,7 @@
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/SubformulaIterator.hpp"
 #include "../Kernel/Term.hpp"
+#include "../Kernel/TermIterators.hpp"
 #include "../Kernel/Unit.hpp"
 
 #include "Statistics.hpp"
@@ -678,7 +679,7 @@ bool PredicateDefinition::tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* uni
     if(lit->functor()==lhs->functor()) {
       return false;
     }
-    Term::VariableIterator vit(lit);
+    VariableIterator vit(lit);
     while(vit.hasNext()) {
       unsigned v=vit.next().var();
       if(!counter.get(v)) {

@@ -5,13 +5,15 @@
 
 #include "GeneralSplitting.hpp"
 
+#include "../Lib/DArray.hpp"
+#include "../Lib/DHMultiset.hpp"
 #include "../Lib/Environment.hpp"
-#include "../Lib/Graph.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/Term.hpp"
+#include "../Kernel/TermIterators.hpp"
 #include "../Kernel/Unit.hpp"
 
 namespace Shell
@@ -62,7 +64,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     Literal* lit=(*cl)[i];
     Set<unsigned> litVars;
 
-    Term::VariableIterator vit(lit);
+    VariableIterator vit(lit);
     while(vit.hasNext()) {
       litVars.insert(vit.next().var());
     }

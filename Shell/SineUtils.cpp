@@ -15,7 +15,7 @@
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/SubformulaIterator.hpp"
 #include "../Kernel/Term.hpp"
-#include "../Kernel/TermFunIterator.hpp"
+#include "../Kernel/TermIterators.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"
@@ -108,7 +108,7 @@ void SineSelector::extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& i
       }
 
       itms.pushFromIterator( getMappingIterator(
-		    vi( new Term::NonVariableIterator(lit) ),
+		    vi( new NonVariableIterator(lit) ),
 		    FunctionSymIdFn(this)) );
       return;
     }
@@ -169,7 +169,7 @@ SineSelector::SymIdIterator SineSelector::extractSymIds(Unit* u)
       Literal* lit=(*cl)[i];
       itms.push( getSymId(lit, true) );
       itms.pushFromIterator( getMappingIterator(
-		    vi( new Term::NonVariableIterator(lit) ),
+		    vi( new NonVariableIterator(lit) ),
 		    FunctionSymIdFn(this)) );
     }
   } else {

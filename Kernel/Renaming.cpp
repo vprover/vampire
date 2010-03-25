@@ -5,7 +5,9 @@
 
 #include "../Lib/DArray.hpp"
 #include "../Indexing/TermSharing.hpp"
+
 #include "SubstHelper.hpp"
+#include "TermIterators.hpp"
 
 #include "Renaming.hpp"
 
@@ -56,7 +58,7 @@ bool Renaming::identity() const
 
 void Renaming::normalizeVariables(const Term* t)
 {
-  Term::VariableIterator vit(t);
+  VariableIterator vit(t);
   while(vit.hasNext()) {
     TermList var=vit.next();
     if(var.isOrdinaryVar()) {

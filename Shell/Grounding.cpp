@@ -10,6 +10,7 @@
 #include "../Kernel/Signature.hpp"
 #include "../Kernel/SubstHelper.hpp"
 #include "../Kernel/Term.hpp"
+#include "../Kernel/TermIterators.hpp"
 
 #include "Grounding.hpp"
 
@@ -39,7 +40,7 @@ void Grounding::GroundingApplicator::initForClause(Clause* cl)
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    Term::VariableIterator vit(lit);
+    VariableIterator vit(lit);
     while(vit.hasNext()) {
       unsigned var=vit.next().var();
       if(_varNumbering.insert(var,nextNum)) {

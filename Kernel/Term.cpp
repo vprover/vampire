@@ -16,13 +16,14 @@
 #include "../Lib/Set.hpp"
 #include "../Lib/Int.hpp"
 
+#include "../Indexing/TermSharing.hpp"
+
+#include "Ordering.hpp"
 #include "Signature.hpp"
 #include "Substitution.hpp"
-#include "Ordering.hpp"
+#include "TermIterators.hpp"
 
 #include "Term.hpp"
-
-#include "../Indexing/TermSharing.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -234,11 +235,11 @@ bool Term::containsAllVariablesOf(Term* t)
 {
   CALL("Term::containsAllVariablesOf");
   Set<TermList> vars;
-  Term::VariableIterator oldVars(this);
+  VariableIterator oldVars(this);
   while(oldVars.hasNext()) {
     vars.insert(oldVars.next());
   }
-  Term::VariableIterator newVars(t);
+  VariableIterator newVars(t);
   while(newVars.hasNext()) {
     if(!vars.contains(newVars.next())) {
       return false;
@@ -246,6 +247,16 @@ bool Term::containsAllVariablesOf(Term* t)
   }
   return true;
 }
+
+TermIterator Term::getVariableIterator(TermList tl)
+{
+  if(tl.isVar()) {
+    return pvi( getSingletonIterator(tl) );
+  }
+  ASS(tl.isTerm());
+  return vi( new VariableIterator(tl.term()) );
+}
+
 
 /**
  * Return the string representation of variable var.
@@ -666,159 +677,6 @@ Term* Term::cloneNonShared(Term* t)
   return s;
 } // Term::cloneNonShared(const Term* t,Term* args)
 
-/**
- * True if there exists next variable
- */
-bool Term::VariableIterator::hasNext()
-{
-  CALL("Term::VariableIterator::hasNext");
-  if(_stack.isEmpty()) {
-    return false;
-  }
-  if(!_used && _stack.top()->isVar()) {
-    return true;
-  }
-  while(!_stack.isEmpty()) {
-    const TermList* t=_stack.pop();
-    if(_used && t->isVar()) {
-      _used=false;
-      t=t->next();
-    }
-    if(t->isEmpty()) {
-	continue;
-    }
-    if(t->isVar()) {
-      ASS(!_used);
-      _stack.push(t);
-      return true;
-    }
-    _stack.push(t->next());
-    ASS(t->isTerm());
-    const Term* trm=t->term();
-    if(!trm->shared() || !trm->ground()) {
-      _stack.push(trm->args());
-    }
-  }
-  return false;
-}
-
-/**
- * True if there exists next subterm
- */
-bool Term::SubtermIterator::hasNext()
-{
-  CALL("Term::SubtermIterator::hasNext");
-
-  if(_stack.isEmpty()) {
-    return false;
-  }
-  if(!_used) {
-    return true;
-  }
-  _used=false;
-  const TermList* t=_stack.pop();
-  pushNext(t->next());
-  if(t->isTerm()) {
-    pushNext(t->term()->args());
-  }
-  return !_stack.isEmpty();
-}
-
-/**
- * True if there exists next subterm
- */
-bool Term::PolishSubtermIterator::hasNext()
-{
-  CALL("Term::PolishSubtermIterator::hasNext");
-
-  if(_stack.isEmpty()) {
-    return false;
-  }
-  if(!_used) {
-    return true;
-  }
-  _used=false;
-  const TermList* t=_stack.pop();
-  pushNext(t->next());
-  return !_stack.isEmpty();
-}
-
-/**
- * True if there exists next non-variable subterm
- */
-bool Term::NonVariableIterator::hasNext()
-{
-  CALL("Term::NonVariableIterator::hasNext");
-
-  if(_stack.isEmpty()) {
-    return false;
-  }
-  ASS(_stack.top()->isTerm());
-  if(!_used) {
-    return true;
-  }
-  _used=false;
-  const TermList* t=_stack.pop();
-  pushNextNonVar(t->next());
-  pushNextNonVar(t->term()->args());
-  return !_stack.isEmpty();
-}
-
-void Term::NonVariableIterator::pushNextNonVar(const TermList* t)
-{
-  while(t->isVar()) {
-    t=t->next();
-  }
-  if(!t->isEmpty()) {
-    ASS(t->isTerm());
-    _stack.push(t);
-  }
-}
-
-
-/**
- * True if there exists another disagreement between the two
- * terms specified in the constructor.
- */
-bool Term::DisagreementSetIterator::hasNext()
-{
-  CALL("Term::DisagreementSetIterator::hasNext");
-  ASS(_stack.size()%2==0);
-
-  if(!_arg1.isEmpty()) {
-    return true;
-  }
-  if(_stack.isEmpty()) {
-    return false;
-  }
-  TermList* ss; //t1 subterms
-  TermList* tt; //t2 subterms
-  while(!_stack.isEmpty()) {
-    tt=_stack.pop();
-    ss=_stack.pop();
-    if(!ss->next()->isEmpty()) {
-      _stack.push(ss->next());
-      _stack.push(tt->next());
-    }
-    if(!_disjunctVariables && ss->sameContent(tt)) {
-      //if content is the same, neighter weightDiff nor varDiffs would change
-      continue;
-    }
-    if(TermList::sameTopFunctor(*ss,*tt)) {
-      ASS(ss->isTerm());
-      ASS(tt->isTerm());
-      if(ss->term()->arity()) {
-	_stack.push(ss->term()->args());
-	_stack.push(tt->term()->args());
-      }
-    } else {
-      _arg1=*ss;
-      _arg2=*tt;
-      return true;
-    }
-  }
-  return false;
-}
 
 //Comparison Term::lexicographicCompare(TermList t1, TermList t2)
 //{
@@ -888,7 +746,7 @@ Term::ArgumentOrder Term::computeArgumentOrder() const
 unsigned Term::computeDistinctVars() const
 {
   Set<unsigned> vars;
-  Term::VariableIterator vit(this);
+  VariableIterator vit(this);
   while(vit.hasNext()) {
     vars.insert(vit.next().var());
   }
@@ -906,7 +764,7 @@ bool Term::skip() const
       return false;
     }
   }
-  Term::NonVariableIterator nvi(this);
+  NonVariableIterator nvi(this);
   while(nvi.hasNext()) {
     unsigned func=nvi.next().term()->functor();
     if(!env.signature->getFunction(func)->skip()) {

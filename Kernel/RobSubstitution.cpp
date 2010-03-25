@@ -14,9 +14,10 @@
 #include "../Lib/SkipList.hpp"
 #include "../Lib/Int.hpp"
 
-#include "Term.hpp"
 #include "Clause.hpp"
 #include "Renaming.hpp"
+#include "Term.hpp"
+#include "TermIterators.hpp"
 
 #include "../Indexing/TermSharing.hpp"
 
@@ -287,7 +288,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 
   for(;;){
     ASS(ts.term.isTerm());
-    Term::VariableIterator vit(ts.term.term());
+    VariableIterator vit(ts.term.term());
     while(vit.hasNext()) {
       VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
       if(tvar==vs) {

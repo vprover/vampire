@@ -41,6 +41,10 @@ public:
     inline EntryTag tag() const { return static_cast<EntryTag>(_info.tag); }
     inline unsigned number() const { return _info.number; }
     inline Term* ptr() const { return _ptr; }
+    inline bool isVar() const { return tag()==VAR; }
+    inline bool isVar(unsigned num) const { return isVar() && number()==num; }
+    inline bool isFun() const { return tag()==FUN; }
+    inline bool isFun(unsigned num) const { return isFun() && number()==num; }
 
     union {
       Term* _ptr;

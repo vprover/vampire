@@ -101,8 +101,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
-        Kernel/TermFunIterator.o\
-        Kernel/TermVarIterator.o\
+        Kernel/TermIterators.o\
         Kernel/Unit.o
 
 VI_OBJ = Indexing/ClauseSharing.o\

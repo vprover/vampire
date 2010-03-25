@@ -13,6 +13,7 @@
 #include "LiteralSelector.hpp"
 #include "Renaming.hpp"
 #include "Term.hpp"
+#include "TermIterators.hpp"
 
 namespace Kernel {
 namespace LiteralComparators {
@@ -163,8 +164,8 @@ struct LexComparator
       return Int::compare(l1->header(),l2->header());
     }
 
-    Term::SubtermIterator sit1(l1);
-    Term::SubtermIterator sit2(l2);
+    SubtermIterator sit1(l1);
+    SubtermIterator sit2(l2);
     while(sit1.hasNext()) {
       ALWAYS(sit2.hasNext());
       TermList st1=sit1.next();
@@ -237,7 +238,7 @@ struct NormalizedLinearComparatorByWeight
     firstNums.reset();
     secondNums.reset();
 
-    Term::DisagreementSetIterator dsit(t1,t2,true);
+    DisagreementSetIterator dsit(t1,t2,true);
     while(dsit.hasNext()) {
       pair<TermList, TermList> dis=dsit.next();
       if(dis.first.isTerm()) {
