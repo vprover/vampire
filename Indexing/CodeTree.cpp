@@ -130,7 +130,7 @@ void CodeTree::CompileContext::deinit(CodeTree* tree, bool discarded)
 }
 
 
-void CodeTree::compile(Term* t, CodeStack& code, CompileContext* cctx)
+void CodeTree::compile(Term* t, CodeStack& code, CompileContext& cctx)
 {
   CALL("CodeTree::compile(Term*...)");
 
@@ -143,8 +143,8 @@ void CodeTree::compile(Term* t, CodeStack& code, CompileContext* cctx)
     if(s.isVar()) {
       unsigned var=s.var();
       unsigned* varNumPtr;
-      if(cctx->varMap.getValuePtr(var,varNumPtr)) {
-	*varNumPtr=cctx->nextVarNum++;
+      if(cctx.varMap.getValuePtr(var,varNumPtr)) {
+	*varNumPtr=cctx.nextVarNum++;
 	code.push(OpCode(ASSIGN_VAR, *varNumPtr));
       }
       else {
@@ -178,7 +178,16 @@ CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt)
   return res;
 }
 
-void CodeTree::matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastMatchedOp, size_t& matchedCnt)
+/**
+ * Match the operations in @b code CodeStack on the code starting at @b startOp.
+ *
+ * Into @b matchedCnt assign number of matched operations and into @b lastAttemptedOp
+ * the last operation on which we have attempted matching. If @b matchedCnt==code.size(),
+ * the @b lastAttemptedOp is equal to the last operation in the @b code stack, otherwise
+ * it is the first operation on which mismatch occured and there was no alternative to
+ * proceed to (in this case it therefore holds that @b lastAttemptedOp->alternative==0 ).
+ */
+void CodeTree::matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastAttemptedOp, size_t& matchedCnt)
 {
   CALL("CodeTree::matchCode");
 
@@ -190,8 +199,9 @@ void CodeTree::matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastMatchedO
       treeOp=treeOp->alternative;
     }
     if(!code[i].eqModAlt(*treeOp)) {
+      ASS(!treeOp->alternative);
       matchedCnt=i;
-      lastMatchedOp=treeOp;
+      lastAttemptedOp=treeOp;
       return;
     }
     //we can safely do increase because as long as we match and something
@@ -203,7 +213,7 @@ void CodeTree::matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastMatchedO
   }
   //we matched the whole CodeStack
   matchedCnt=clen;
-  lastMatchedOp=treeOp;
+  lastAttemptedOp=treeOp;
 }
 
 void CodeTree::incorporate(CodeStack& code)
@@ -211,14 +221,14 @@ void CodeTree::incorporate(CodeStack& code)
   CALL("CodeTree::incorporate");
   ASS(code.top().isSuccess());
 
-  if(!_data) {
+  if(isEmpty()) {
     _data=buildBlock(code, code.length());
     return;
   }
 
   OpCode* treeOp;
   size_t matchedCnt;
-  matchCode(code, &(*_data)[0], treeOp, matchedCnt);
+  matchCode(code, getEntryPoint(), treeOp, matchedCnt);
 
   size_t clen=code.length();
   if(clen==matchedCnt) {
@@ -243,7 +253,7 @@ void CodeTree::incorporate(CodeStack& code)
 void CodeTree::EContext::init(CodeTree* tree)
 {
   CALL("CodeTree::EContext::init");
-  ASS(tree->_data); //the tree must already contain something
+  ASS(!tree->isEmpty()); //the tree must already contain something
 
 #if VDEBUG
   tree->_initEContextCounter++;
@@ -251,7 +261,7 @@ void CodeTree::EContext::init(CodeTree* tree)
 
   fresh=true;
   tp=0;
-  op=&(*tree->_data)[0];
+  op=tree->getEntryPoint();
   btStack.reset();
   bindings.ensure(tree->_maxVarCnt);
 
@@ -430,7 +440,7 @@ void TermCodeTree::compile(TermList t, CodeStack& code)
     static CompileContext cctx;
     cctx.init();
 
-    CodeTree::compile(t.term(), code, &cctx);
+    CodeTree::compile(t.term(), code, cctx);
 
     cctx.deinit(this);
   }
@@ -444,7 +454,7 @@ void TermCodeTree::compile(Term* t, CodeStack& code)
   static CompileContext cctx;
   cctx.init();
 
-  CodeTree::compile(t, code, &cctx);
+  CodeTree::compile(t, code, cctx);
   code.push(OpCode(SUCCESS));
 
   cctx.deinit(this);
@@ -529,8 +539,28 @@ void ClauseCodeTree::evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLe
 {
   CALL("ClauseCodeTree::evalSharing");
 
+  static CodeStack code;
+  static CompileContext cctx;
 
+  code.reset();
+  cctx.init();
 
+  compileLiteral(lit, code, cctx);
+
+  cctx.deinit(this, true);
+
+  OpCode* lastMatched;
+  matchCode(code, startOp, lastMatched, sharedLen);
+
+  unsharedLen=code.size()-sharedLen;
+}
+
+void ClauseCodeTree::compileLiteral(Literal* lit, CodeStack& code, CompileContext& cctx)
+{
+  CALL("ClauseCodeTree::compileLiteral");
+
+  code.push(OpCode(NEXT_LIT));
+  CodeTree::compile(lit, code, cctx);
 }
 
 void ClauseCodeTree::compile(Clause* c, CodeStack& code)
@@ -540,6 +570,27 @@ void ClauseCodeTree::compile(Clause* c, CodeStack& code)
   unsigned clen=c->length();
   static DArray<Literal*> lits;
   lits.initFromArray(clen, *c);
+
+  if(!isEmpty() && clen>1) {
+    lits.sort(LiteralMatchabilityComparator());
+
+    size_t aux;
+
+    unsigned bestIndex=0;
+    size_t bestSharedLen;
+    evalSharing(lits[0], getEntryPoint(), bestSharedLen, aux);
+
+    for(unsigned i=0;i<clen;i++) {
+      size_t sharedLen;
+      evalSharing(lits[i], getEntryPoint(), sharedLen, aux);
+      if(sharedLen>bestSharedLen) {
+//	cout<<lits[i]->toString()<<" is better than "<<lits[bestIndex]->toString()<<endl;
+	bestSharedLen=sharedLen;
+	bestIndex=i;
+      }
+    }
+    swap(lits[0],lits[bestIndex]);
+  }
 
 //  if(clen>1) {
 //    swap(lits[1],lits[clen-1]);
@@ -551,8 +602,7 @@ void ClauseCodeTree::compile(Clause* c, CodeStack& code)
   cctx.init();
 
   for(unsigned i=0;i<clen;i++) {
-    code.push(OpCode(NEXT_LIT));
-    CodeTree::compile(lits[i], code, &cctx);
+    compileLiteral(lits[i], code, cctx);
   }
   code.push(OpCode(SUCCESS));
 

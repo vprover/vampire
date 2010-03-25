@@ -254,7 +254,7 @@ TermQueryResultIterator CodeTreeTIS::getGeneralizations(TermList t, bool retriev
 {
   CALL("CodeTreeTIS::getGeneralizations");
 
-  if(!_ct._data) {
+  if(_ct.isEmpty()) {
     return TermQueryResultIterator::getEmpty();
   }
 
@@ -265,7 +265,7 @@ bool CodeTreeTIS::generalizationExists(TermList t)
 {
   CALL("CodeTreeTIS::generalizationExists");
 
-  if(!_ct._data) {
+  if(_ct.isEmpty()) {
     return false;
   }
 
@@ -437,7 +437,7 @@ SLQueryResultIterator CodeTreeLIS::getGeneralizations(Literal* lit,
 {
   CALL("CodeTreeLIS::getGeneralizations");
 
-  if(!_ct._data) {
+  if(_ct.isEmpty()) {
     return SLQueryResultIterator::getEmpty();
   }
 
@@ -540,7 +540,7 @@ ClauseIterator CodeTreeSubsumptionIndex::getSubsumingClauses(Clause* c)
 {
   CALL("CodeTreeSubsumptionIndex::getSubsumingClauses");
 
-  if(!_ct._data) {
+  if(_ct.isEmpty()) {
     return ClauseIterator::getEmpty();
   }
 

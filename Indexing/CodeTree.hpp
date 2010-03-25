@@ -55,7 +55,7 @@ public:
     OpCode() {}
     OpCode(Instruction i) : alternative(0) { info.instr=i; info.arg=0; }
     OpCode(Instruction i, unsigned arg) : alternative(0) { info.instr=i; info.arg=arg; }
-    OpCode(void* result) : result(result), alternative(0) { ASS_EQ(instr() & 3, SUCCESS); }
+    OpCode(void* result) : result(result), alternative(0) { ASS(isSuccess()); }
 
     bool eqModAlt(const OpCode& o) const;
 
@@ -160,10 +160,10 @@ public:
     VarMap varMap;
   };
 
-  static void compile(Term* t, CodeStack& code, CompileContext* cctx);
+  static void compile(Term* t, CodeStack& code, CompileContext& cctx);
 
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt);
-  static void matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastMatchedOp, size_t& matchedCnt);
+  static void matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastAttemptedOp, size_t& matchedCnt);
 
   void incorporate(CodeStack& code);
 
@@ -172,6 +172,8 @@ public:
   template<class NextLitFn, class FoundFn>
   static void remove(EContext& ctx, CodeTree* tree, NextLitFn nextLitFun, FoundFn foundFun);
 
+  inline bool isEmpty() { return !_data; }
+  inline OpCode* getEntryPoint() { ASS(!isEmpty()); return &(*_data)[0]; }
 
   /** Maximum number of variables in an inserted term/clause */
   unsigned _maxVarCnt;
@@ -249,7 +251,9 @@ public:
     DArray<bool> _canReorder;
   };
 
-  static void evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLen, size_t& unsharedLen);
+  void evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLen, size_t& unsharedLen);
+
+  static void compileLiteral(Literal* lit, CodeStack& code, CompileContext& cctx);
 
   void compile(Clause* c, CodeStack& code);
 
