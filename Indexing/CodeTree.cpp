@@ -8,6 +8,7 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/Portability.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Term.hpp"
@@ -69,18 +70,24 @@ string CodeTree::OpCode::toString() const
  */
 inline bool CodeTree::OpCode::eqModAlt(const OpCode& o) const
 {
-#ifdef ARCH_X64
-  if((data&3)==0) {
-    //the operation is SUCCESS so all 64 bits are initialized
-    return data==o.data;
+  if(instr()!=o.instr()) {
+    //this works even though SUCCESS and SUCCESS2 are distinct but equivalent
+    //(as we would have failed on the result==o.result anyway)
+    return false;
   }
-  else {
-    //only the first 32 bits are initialized
-    return (data&0xFFFFFFFF)==(o.data&0xFFFFFFFF);
+  switch(instr()) {
+  case SUCCESS:
+  case SUCCESS2:
+    return result==o.result;
+  case CHECK_FUN:
+  case ASSIGN_VAR:
+  case CHECK_VAR:
+    return arg()==o.arg();
+  case FAIL:
+  case NEXT_LIT:
+    return true;
   }
-#else
-  return result==o.result;
-#endif
+  ASSERTION_VIOLATION;
 }
 
 /**
@@ -688,29 +695,6 @@ bool ClauseCodeTree::ClauseEContext::assignNextUnmatchedOrGoBack()
   ft=_flits[newIndex];
   tp=0;
   return true;
-}
-
-bool ClauseCodeTree::RemovalNextLitFun::operator()(EContext& ctx0)
-{
-  CALL("ClauseCodeTree::RemovalNextLitFun::operator()");
-
-  ClauseEContext& ctx=static_cast<ClauseEContext&>(ctx0);
-
-  ASS_EQ(ctx.op->instr(), NEXT_LIT);
-
-  if(ctx.tp!=BTPoint::tpSpecial) {
-    //we are entering a new index clause literal
-    //(otherwise we would have landed on the operation
-    //by backtracking)
-    if(ctx._curLitPos==static_cast<int>(ctx._clen)-1) {
-      return false;
-    }
-    ctx._curLitPos++;
-    ctx._litIndexes[ctx._curLitPos]=-1;
-  }
-  ASS_GE(ctx._curLitPos,0);
-
-  return ctx.assignNextUnmatchedOrGoBack();
 }
 
 bool ClauseCodeTree::ClauseSubsumptionNextLitFun::operator()(EContext& ctx0)

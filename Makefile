@@ -107,6 +107,7 @@ VK_OBJ= Kernel/BDD.o\
 VI_OBJ = Indexing/ClauseSharing.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
+         Indexing/CodeTree_remove.o\
          Indexing/CodeTreeInterfaces.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\

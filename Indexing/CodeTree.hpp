@@ -12,7 +12,6 @@
 #include "../Lib/DArray.hpp"
 #include "../Lib/DHMap.hpp"
 #include "../Lib/Hash.hpp"
-#include "../Lib/Portability.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/Vector.hpp"
 
@@ -160,20 +159,30 @@ public:
     VarMap varMap;
   };
 
+  struct SuccessDataMatchingFn
+  {
+    virtual ~SuccessDataMatchingFn() {}
+
+    virtual bool operator()(void* data) = 0;
+  };
+
   static void compile(Term* t, CodeStack& code, CompileContext& cctx, bool reverseCommutativePredicate=false);
 
+  static CodeBlock* firstOpToCodeBlock(OpCode* op);
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt);
+
   static void matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastAttemptedOp, size_t& matchedCnt);
 
   void incorporate(CodeStack& code);
 
-  static CodeBlock* firstOpToCodeBlock(OpCode* op);
-
-  template<class NextLitFn, class FoundFn>
-  static void remove(EContext& ctx, CodeTree* tree, NextLitFn nextLitFun, FoundFn foundFun);
+  struct RemoverStruct;
+  static void remove(EContext& ctx, CodeTree* tree, SuccessDataMatchingFn* successFn);
 
   inline bool isEmpty() { return !_data; }
   inline OpCode* getEntryPoint() { ASS(!isEmpty()); return &(*_data)[0]; }
+
+  template<class Visitor>
+  void visitAllOps(Visitor visitor);
 
   /** Maximum number of variables in an inserted term/clause */
   unsigned _maxVarCnt;
@@ -257,12 +266,6 @@ public:
 
   void compile(Clause* c, CodeStack& code);
 
-  struct RemovalNextLitFun
-  {
-    DECL_RETURN_TYPE(bool);
-    bool operator()(EContext& ctx0);
-  };
-
   struct ClauseSubsumptionNextLitFun
   {
     DECL_RETURN_TYPE(bool);
@@ -272,191 +275,27 @@ public:
   static bool next(ClauseEContext& ctx, void*& res);
 };
 
-template<class NextLitFn, class FoundFn>
-void CodeTree::remove(EContext& ctx, CodeTree* tree, NextLitFn nextLitFun, FoundFn foundFun)
+template<class Visitor>
+void CodeTree::visitAllOps(Visitor visitor)
 {
-  CALL("CodeTree::remove");
+  CALL("CodeTree::visitAllOps");
 
-  //the remove has to be the first and only thing called on a context
-  ASS(ctx.fresh);
-  ctx.fresh=false;
+  static Stack<CodeBlock*> blocks;
+  blocks.reset();
 
-  //first op in the current CodeBlock
-  static Stack<OpCode*> firstsInBlocks;
-  firstsInBlocks.reset();
-  firstsInBlocks.push(ctx.op);
+  if(_data) { blocks.push(_data); }
 
-  static Stack<unsigned> depthsForLits;
+  while(blocks.isNonEmpty()) {
+    CodeBlock* cb=blocks.pop();
 
-
-  //in this loop the handlers of ASSIGN_VAR and CHECK_VAR operations are
-  //modified so that we look for something more general than variants, but
-  //not for all generalisations (looking for variants would be better but
-  //the check for it would be complicated with backtracking)
-  bool backtrack=false;
-  for(;;) {
-    if(ctx.op->alternative) {
-      LOG_OP("alt at "<<ctx.tp);
-      ctx.btStack.push(BTPoint(ctx.tp, ctx.op->alternative));
-    }
-    LOG_OP(ctx.tp<<':'<<ctx.op->toString());
-    switch(ctx.op->instr()) {
-    case SUCCESS:
-    case SUCCESS2:
-      if(foundFun(ctx.op->result)) {
-	goto found_handler;
-      }
-      backtrack=true;
-      break;
-    case CHECK_FUN:
-      backtrack=!ctx.doCheckFun();
-      break;
-    case ASSIGN_VAR:
-    {
-      unsigned var=ctx.op->arg();
-      const FlatTerm::Entry* fte=&(*ctx.ft)[ctx.tp];
-      if(fte->isVar()) {
-        ctx.bindings[var]=TermList(fte->number(),false);
-        ctx.tp++;
-	//if we wanted to look for variants only, here we should have put a check
-	//that we don't assign one query variable into multiple index variables
-      }
-      else {
-	backtrack=true;
-      }
-      break;
-    }
-    case CHECK_VAR:
-    {
-      unsigned var=ctx.op->arg();
-      const FlatTerm::Entry* fte=&(*ctx.ft)[ctx.tp];
-      if(fte->isVar(ctx.bindings[var].var())) {
-        ctx.tp++;
-      }
-      else {
-	backtrack=true;
-      }
-      break;
-    }
-    case FAIL:
-      backtrack=true;
-      break;
-    case NEXT_LIT:
-      if(ctx.tp!=BTPoint::tpSpecial) {
-	depthsForLits.push(firstsInBlocks.size());
-      }
-      backtrack=!nextLitFun(ctx);
-      if(!backtrack) {
-      	LOG_OP("nl-alt placed");
-      	ctx.btStack.push(BTPoint(BTPoint::tpSpecial, ctx.op));
-      }
-      else {
-	depthsForLits.pop();
-      }
-      break;
-    }
-    if(backtrack) {
-      if(!ctx.backtrack()) {
-	LOG_OP("not found");
-	//the element to be removed was not found
-	ASSERTION_VIOLATION;
-	return;
-      }
-      if(ctx.tp!=BTPoint::tpSpecial) {
-	//we backtracked to the first operation of another block
-	firstsInBlocks.push(ctx.op);
-      }
-      else {
-	//we are backtracking somewhere we've been before
-	firstsInBlocks.truncate(depthsForLits.top());
-      }
-      LOG_OP(ctx.tp<<"<-bt");
-      backtrack=false;
-    }
-    else {
-      //in each CodeBlock there is always either operation SUCCESS or FAIL,
-      //so as we haven't encountered one yet, we may safely increase the
-      //operation pointer
-      ctx.op++;
+    OpCode* op=&(*cb)[0];
+    for(size_t rem=cb->length(); rem; rem--,op++) {
+	visitor(op);
+	if(op->alternative) {
+	  blocks.push(firstOpToCodeBlock(op->alternative));
+	}
     }
   }
-
-
-found_handler:
-  ASS(ctx.op->isSuccess());
-
-  OpCode* op0=ctx.op;
-  op0->setInstr(CodeTree::FAIL);
-
-  return;
-
-  //now let us remove unnecessary instructions and the free memory
-
-  OpCode* op=ctx.op;
-  ASS(firstsInBlocks.isNonEmpty());
-  OpCode* firstOp=firstsInBlocks.pop();
-  for(;;) {
-
-    while(op>firstOp && !op->alternative) { op--; }
-
-    if(op!=firstOp) {
-      ASS(op->alternative);
-      //we may only change the instruction, the alternative must remain unchanged
-      ASS(op==op0 || !op->isSuccess());
-      op->setInstr(CodeTree::FAIL);
-      return;
-    }
-    OpCode* alt=firstOp->alternative;
-    CodeBlock* cb=firstOpToCodeBlock(firstOp);
-    if(firstsInBlocks.isEmpty()) {
-      ASS_EQ(tree->_data,cb);
-      tree->_data=alt ? firstOpToCodeBlock(alt) : 0;
-      cb->deallocate();
-      return;
-    }
-
-    //first operation in the CodeBlock that points to the current one (i.e. cb)
-    OpCode* prevFirstOp=firstsInBlocks.pop();
-    CodeBlock* pcb=firstOpToCodeBlock(prevFirstOp);
-    OpCode* prevOp=prevFirstOp;
-    //last operatio in the pcb block that cannot be lost
-    OpCode* lastPersistent=0;
-    //operation that points to the current CodeBlock
-    OpCode* pointingOp=0;
-    size_t prevRem=pcb->length();
-    while(prevRem>0) {
-      if(prevOp->alternative==firstOp) {
-	ASS_EQ(pointingOp,0);
-	pointingOp=prevOp;
-      }
-      if((prevOp->alternative && (alt || prevOp->alternative!=firstOp)) || prevOp->isSuccess()) {
-	lastPersistent=prevOp;
-      }
-      prevOp++;
-      prevRem--;
-    }
-    ASS(pointingOp);
-    pointingOp->alternative=alt;
-
-    cb->deallocate();
-
-    if(lastPersistent && lastPersistent<pointingOp && !lastPersistent->isSuccess()) {
-//      cout<<endl;
-//      cout<<"pointingOp:"<<pointingOp->toString()<<endl;
-//      cout<<"setting fail on "<<lastPersistent->toString()<<" of "<<endl;
-//      cout<<"    "<<pcb->toString()<<endl;
-      lastPersistent->setInstr(FAIL);
-//      cout<<"res:"<<pcb->toString()<<endl;
-    }
-
-    if(lastPersistent) {
-      return;
-    }
-
-    firstOp=prevFirstOp;
-    op=pointingOp;
-  }
-
 }
 
 

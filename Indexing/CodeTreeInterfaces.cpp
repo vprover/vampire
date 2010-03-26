@@ -27,9 +27,10 @@ using namespace Kernel;
  * the object pointed to by the pointer given in the constructor.
  */
 template<typename T>
-struct EqualityCastingFn
+struct EqualityDerefFn
+: public CodeTree::SuccessDataMatchingFn
 {
-  EqualityCastingFn(T* o) : obj(o) {}
+  EqualityDerefFn(T* o) : obj(o) {}
 
   bool operator() (void* arg)
   {
@@ -42,6 +43,7 @@ private:
 
 template<typename T>
 struct EqualityFn
+: public CodeTree::SuccessDataMatchingFn
 {
   EqualityFn(T o) : obj(o) {}
 
@@ -245,7 +247,8 @@ void CodeTreeTIS::remove(TermList t, Literal* lit, Clause* cls)
   static TermCodeTree::TermEContext ctx;
   ctx.init(t, &_ct);
 
-  CodeTree::remove(ctx, &_ct, TermCodeTree::InvOpNextLitFun(), EqualityCastingFn<TermInfo>(&ti));
+  EqualityDerefFn<TermInfo> succFn(&ti);
+  CodeTree::remove(ctx, &_ct, &succFn);
 
   ctx.deinit(&_ct);
 }
@@ -427,7 +430,8 @@ void CodeTreeLIS::remove(Literal* lit, Clause* cls)
   static TermCodeTree::TermEContext ctx;
   ctx.init(lit, &_ct);
 
-  CodeTree::remove(ctx, &_ct, TermCodeTree::InvOpNextLitFun(), EqualityCastingFn<LiteralInfo>(&li));
+  EqualityDerefFn<LiteralInfo> succFn(&li);
+  CodeTree::remove(ctx, &_ct, &succFn);
 
   ctx.deinit(&_ct);
 }
@@ -530,7 +534,8 @@ void CodeTreeSubsumptionIndex::handleClause(Clause* c, bool adding)
     static ClauseCodeTree::ClauseEContext ctx;
     ctx.init(c, &_ct);
 
-    CodeTree::remove(ctx, &_ct, ClauseCodeTree::RemovalNextLitFun(), EqualityFn<void*>(c));
+    EqualityFn<void*> succFn(c);
+    CodeTree::remove(ctx, &_ct, &succFn);
 
     ctx.deinit(&_ct);
   }
