@@ -7,11 +7,19 @@
 #ifndef __BitUtils__
 #define __BitUtils__
 
+#include<string.h>
+
+
 namespace Lib {
 
 class BitUtils
 {
 public:
+  static bool memEqual(const void* ptr1, const void* ptr2, size_t sz)
+  {
+    return !memcmp(ptr1,ptr2,sz);
+  }
+
   static void zeroMemory(void* ptr, size_t bytes)
   {
     size_t* sptr=static_cast<size_t*>(ptr);

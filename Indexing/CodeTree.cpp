@@ -553,7 +553,7 @@ struct LiteralMatchabilityComparator
   }
 };
 
-void ClauseCodeTree::evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLen, size_t& unsharedLen)
+void ClCodeTree::evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLen, size_t& unsharedLen)
 {
   CALL("ClauseCodeTree::evalSharing");
 
@@ -573,7 +573,7 @@ void ClauseCodeTree::evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLe
   unsharedLen=code.size()-sharedLen;
 }
 
-void ClauseCodeTree::compileLiteral(Literal* lit, CodeStack& code, CompileContext& cctx)
+void ClCodeTree::compileLiteral(Literal* lit, CodeStack& code, CompileContext& cctx)
 {
   CALL("ClauseCodeTree::compileLiteral");
 
@@ -581,7 +581,7 @@ void ClauseCodeTree::compileLiteral(Literal* lit, CodeStack& code, CompileContex
   CodeTree::compile(lit, code, cctx);
 }
 
-void ClauseCodeTree::compile(Clause* c, CodeStack& code)
+void ClCodeTree::compile(Clause* c, CodeStack& code)
 {
   CALL("ClauseCodeTree::compile(Clause*...)");
 
@@ -627,7 +627,7 @@ void ClauseCodeTree::compile(Clause* c, CodeStack& code)
   cctx.deinit(this);
 }
 
-void ClauseCodeTree::ClauseEContext::init(Clause* cl, ClauseCodeTree* tree)
+void ClCodeTree::ClauseEContext::init(Clause* cl, ClCodeTree* tree)
 {
   CALL("ClauseCodeTree::ClauseEContext::init");
 
@@ -645,7 +645,7 @@ void ClauseCodeTree::ClauseEContext::init(Clause* cl, ClauseCodeTree* tree)
   }
 }
 
-void ClauseCodeTree::ClauseEContext::deinit(ClauseCodeTree* tree)
+void ClCodeTree::ClauseEContext::deinit(ClCodeTree* tree)
 {
   CALL("ClauseCodeTree::ClauseEContext::deinit");
 
@@ -661,7 +661,7 @@ void ClauseCodeTree::ClauseEContext::deinit(ClauseCodeTree* tree)
  * index literal with lower number. If successful, return true.
  * Otherwise move back to the previous index literal and return false.
  */
-bool ClauseCodeTree::ClauseEContext::assignNextUnmatchedOrGoBack()
+bool ClCodeTree::ClauseEContext::assignNextUnmatchedOrGoBack()
 {
   CALL("ClauseCodeTree::ClauseEContext::assignNextUnmatchedOrGoBack");
 
@@ -697,7 +697,7 @@ bool ClauseCodeTree::ClauseEContext::assignNextUnmatchedOrGoBack()
   return true;
 }
 
-bool ClauseCodeTree::ClauseSubsumptionNextLitFun::operator()(EContext& ctx0)
+bool ClCodeTree::ClauseSubsumptionNextLitFun::operator()(EContext& ctx0)
 {
   CALL("ClauseCodeTree::ClauseSubsumptionNextLitFun::operator()");
   ASS_EQ(ctx0.op->instr(), NEXT_LIT);
@@ -743,7 +743,7 @@ bool ClauseCodeTree::ClauseSubsumptionNextLitFun::operator()(EContext& ctx0)
   return true;
 }
 
-bool ClauseCodeTree::next(ClauseEContext& ctx, void*& res)
+bool ClCodeTree::next(ClauseEContext& ctx, void*& res)
 {
   CALL("ClauseCodeTree::next");
 

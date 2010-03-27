@@ -228,14 +228,14 @@ public:
 };
 
 
-class ClauseCodeTree : public CodeTree
+class ClCodeTree : public CodeTree
 {
 public:
 
   struct ClauseEContext : public EContext
   {
-    void init(Clause* c, ClauseCodeTree* tree);
-    void deinit(ClauseCodeTree* tree);
+    void init(Clause* c, ClCodeTree* tree);
+    void deinit(ClCodeTree* tree);
 
     bool doNextLit();
 

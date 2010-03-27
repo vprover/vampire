@@ -162,7 +162,7 @@ class LiteralSubstitutionTree;
 
 class CodeTree;
 class TermCodeTree;
-class ClauseCodeTree;
+class ClCodeTree;
 class CodeTreeTIS;
 class CodeTreeLIS;
 class CodeTreeSubsumptionIndex;

@@ -136,7 +136,7 @@ struct CodeTree::RemoverStruct
     CALL("CodeTree::RemoverStruct::doNextLit");
 
     //only in ClauseCodeTree a NEXT_LIT instruction can occur
-    ClauseCodeTree::ClauseEContext& cctx=static_cast<ClauseCodeTree::ClauseEContext&>(ctx);
+    ClCodeTree::ClauseEContext& cctx=static_cast<ClCodeTree::ClauseEContext&>(ctx);
 
     bool res=true;
 

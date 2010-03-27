@@ -484,7 +484,7 @@ public:
     }
 
     void* data;
-    if(ClauseCodeTree::next(*_ctx, data)) {
+    if(ClCodeTree::next(*_ctx, data)) {
       _found=static_cast<Clause*>(data);
     }
     else {
@@ -507,7 +507,7 @@ private:
   Clause* _found;
   bool _finished;
   CodeTreeSubsumptionIndex* _tree;
-  ClauseCodeTree::ClauseEContext* _ctx;
+  ClCodeTree::ClauseEContext* _ctx;
 };
 
 void CodeTreeSubsumptionIndex::handleClause(Clause* c, bool adding)
@@ -531,7 +531,7 @@ void CodeTreeSubsumptionIndex::handleClause(Clause* c, bool adding)
     _ct.incorporate(code);
   }
   else {
-    static ClauseCodeTree::ClauseEContext ctx;
+    static ClCodeTree::ClauseEContext ctx;
     ctx.init(c, &_ct);
 
     EqualityFn<void*> succFn(c);

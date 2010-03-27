@@ -66,7 +66,7 @@ protected:
 private:
   class SubsumptionIterator;
 
-  ClauseCodeTree _ct;
+  ClCodeTree _ct;
 };
 
 };
