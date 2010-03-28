@@ -673,6 +673,10 @@ inline bool ClauseCodeTree::LiteralMatcher::doCheckVar()
 
 ////////// ClauseMatcher
 
+/**
+ * Initialize the ClauseMatcher to retrieve generalizetions
+ * of the @b query_ clause
+ */
 void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_)
 {
   CALL("ClauseCodeTree::ClauseMatcher::init");
