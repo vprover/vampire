@@ -181,9 +181,6 @@ public:
   inline bool isEmpty() { return !_data; }
   inline OpCode* getEntryPoint() { ASS(!isEmpty()); return &(*_data)[0]; }
 
-  template<class Visitor>
-  void visitAllOps(Visitor visitor);
-
   /** Maximum number of variables in an inserted term/clause */
   unsigned _maxVarCnt;
 
@@ -274,30 +271,6 @@ public:
 
   static bool next(ClauseEContext& ctx, void*& res);
 };
-
-template<class Visitor>
-void CodeTree::visitAllOps(Visitor visitor)
-{
-  CALL("CodeTree::visitAllOps");
-
-  static Stack<CodeBlock*> blocks;
-  blocks.reset();
-
-  if(_data) { blocks.push(_data); }
-
-  while(blocks.isNonEmpty()) {
-    CodeBlock* cb=blocks.pop();
-
-    OpCode* op=&(*cb)[0];
-    for(size_t rem=cb->length(); rem; rem--,op++) {
-	visitor(op);
-	if(op->alternative) {
-	  blocks.push(firstOpToCodeBlock(op->alternative));
-	}
-    }
-  }
-}
-
 
 };
 #endif /*__CodeTree__*/

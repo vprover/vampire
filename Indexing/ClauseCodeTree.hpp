@@ -26,13 +26,13 @@ public:
 
   struct LitInfo
   {
-    LitInfo(Clause* cl, unsigned index);
+    LitInfo() {}
+    LitInfo(Clause* cl, unsigned litIndex);
+    void dispose();
 
-    static LitInfo* createReversed(LitInfo* li);
+    static LitInfo getReversed(const LitInfo& li);
 
-    CLASS_NAME("ClauseCodeTree::LitInfo");
-    USE_ALLOCATOR(LitInfo);
-
+    /** Index of the literal in the query clause */
     unsigned litIndex;
     FlatTerm* ft;
     bool reversed;
@@ -41,6 +41,12 @@ public:
 
   struct MatchInfo
   {
+    MatchInfo(unsigned liIndex, unsigned bindCnt, DArray<TermList>& bindingArray);
+    ~MatchInfo();
+
+    CLASS_NAME("ClauseCodeTree::MatchInfo");
+    USE_ALLOCATOR(MatchInfo);
+
     /** Index of the matched LitInfo in the EContext */
     unsigned liIndex;
     /** this is redundant and is present here just so that the object
@@ -55,7 +61,7 @@ public:
    */
   struct ILStruct
   {
-    ILStruct(ILStruct* previous, unsigned varCnt, Stack<unsigned>& gvnStack);
+    ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack);
     ~ILStruct();
 
     bool equalsForOpMatching(const ILStruct& o) const;
@@ -69,7 +75,7 @@ public:
 
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
-    List<MatchInfo> matches;
+    List<MatchInfo>* matches;
     /** all possible lits were tried to match */
     bool populated;
   };
@@ -91,8 +97,7 @@ public:
   {
     static OpCode getSuccess(Clause* cl);
     static OpCode getLitEnd(ILStruct* ils);
-    static OpCode getCheckOp(Instruction i, unsigned num);
-    static OpCode getAssignVar();
+    static OpCode getTermOp(Instruction i, unsigned num);
 
     bool equalsForOpMatching(const OpCode& o) const;
 
@@ -144,54 +149,6 @@ public:
     OpCode* alternative;
   };
 
-  /**
-   * Backtracking point for the interpretation of the code tree.
-   *
-   * Invariant:
-   * Iff @b tp==tpSpecial, @b op points to a NEXT_LIT operation.
-   * Otherwise it points to a first operation in a CodeBlock.
-   */
-  struct BTPoint
-  {
-    BTPoint() {}
-    BTPoint(size_t tp, OpCode* op) : tp(tp), op(op) {}
-
-    static const size_t tpSpecial=-1;
-
-    /** Position in the flat term */
-    size_t tp;
-    /** Pointer to the next operation */
-    OpCode* op;
-  };
-
-  typedef Stack<BTPoint> BTStack;
-
-  /** Context for execution of the code */
-  struct EContext
-  {
-    void init(CodeTree* tree);
-    void deinit(CodeTree* tree);
-    inline void load(BTPoint bp) { tp=bp.tp; op=bp.op; }
-    bool backtrack();
-
-    bool doCheckFun();
-    void doAssignVar();
-    bool doCheckVar();
-
-    /** true iff the EContext was just initialized */
-    bool fresh;
-    /** Position in the flat term */
-    size_t tp;
-    /** Pointer to the next operation */
-    OpCode* op;
-    /** Flat term to be traversed */
-    FlatTerm* ft;
-    /** Stack containing backtracking points */
-    BTStack btStack;
-    /** Variable bindings */
-    DArray<TermList> bindings;
-  };
-
 
   typedef Vector<OpCode> CodeBlock;
   typedef Stack<OpCode> CodeStack;
@@ -201,6 +158,10 @@ public:
   ClauseCodeTree();
   inline bool isEmpty() { return !_entryPoint; }
   inline OpCode* getEntryPoint() { ASS(!isEmpty()); return &(*_entryPoint)[0]; }
+  static CodeBlock* firstOpToCodeBlock(OpCode* op);
+
+  template<class Visitor>
+  void visitAllOps(Visitor visitor);
 
   //////////// insertion //////////////
 
@@ -222,13 +183,90 @@ public:
 
   void optimizeLiteralOrder(DArray<Literal*>& lits);
   void evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLen, size_t& unsharedLen);
-  static void matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastAttemptedOp, size_t& matchedCnt);
+  static void matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastAttemptedOp,
+      size_t& matchedCnt, ILStruct*& lastILS);
+  static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
+  void incorporate(CodeStack& code);
 
   static void compileLiteral(Literal* lit, CodeStack& code, CompileContext& cctx, bool addLitEnd);
 
+  //////// retrieval //////////
+
+  /**
+   * Backtracking point for the interpretation of the code tree.
+   */
+  struct BTPoint
+  {
+    BTPoint() {}
+    BTPoint(size_t tp, OpCode* op) : tp(tp), op(op) {}
+
+    /** Position in the flat term */
+    size_t tp;
+    /** Pointer to the next operation */
+    OpCode* op;
+  };
+
+  typedef Stack<BTPoint> BTStack;
+
+  /** Context for finding matches of literals
+   *
+   * Here the actual execution of the code of the tree takes place */
+  struct LiteralMatcher
+  {
+    void init(ClauseCodeTree* tree, OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_);
+    bool next(MatchInfo*& mi, OpCode*& litEnd);
+
+    CLASS_NAME("ClauseCodeTree::LiteralMatcher");
+    USE_ALLOCATOR(MatchInfo);
+
+    /** Position in the flat term */
+    size_t tp;
+    /** Pointer to the next operation */
+    OpCode* op;
+    /** Flat term to be traversed */
+    FlatTerm* ft;
+    /** Stack containing backtracking points */
+    BTStack btStack;
+    /** Variable bindings */
+    DArray<TermList> bindings;
+
+    bool fresh;
+
+    OpCode* entry;
+    LitInfo* linfos;
+    size_t linfoCnt;
+    size_t curLInfo;
+  private:
+    bool execute();
+
+    bool backtrack();
+    bool prepareLiteral();
+
+    bool doCheckFun();
+    void doAssignVar();
+    bool doCheckVar();
+  };
+
+  struct ClauseMatcher
+  {
+    void init(ClauseCodeTree* tree_, Clause* query_);
+    void deinit();
+
+    Clause* next();
+
+    Clause* query;
+    ClauseCodeTree* tree;
+    DArray<LitInfo> lInfos;
+
+    Stack<LiteralMatcher*> lms;
+  };
+
+
+  void incTimeStamp();
 
   //////// member variables //////////
 
+  unsigned _curTimeStamp;
   unsigned _maxVarCnt;
 
   CodeBlock* _entryPoint;
@@ -239,3 +277,4 @@ public:
 }
 
 #endif // __ClauseCodeTree__
+

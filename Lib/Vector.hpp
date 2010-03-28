@@ -98,6 +98,7 @@ public:
   }
 
   friend class Indexing::CodeTree;
+  friend class Indexing::ClauseCodeTree;
 protected:
   /** array's length */
   size_t _length;

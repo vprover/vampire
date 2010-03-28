@@ -18,6 +18,8 @@ public:
   static FlatTerm* create(TermList t);
   void destroy();
 
+  static FlatTerm* copy(const FlatTerm* ft);
+
   static const size_t functionEntryCount=3;
 
   enum EntryTag {

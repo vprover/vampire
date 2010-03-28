@@ -29,7 +29,7 @@ void* FlatTerm::operator new(size_t sz,unsigned num)
   ASS_EQ(sz, sizeof(FlatTerm));
 
   //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(num-1)*sizeof(FlatTerm::Entry);
+  size_t size=sizeof(FlatTerm)+(num-1)*sizeof(Entry);
 
   return ALLOC_KNOWN(size,"FlatTerm");
 }
@@ -43,7 +43,7 @@ void FlatTerm::destroy()
   ASS_GE(_length,1);
 
   //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(_length-1)*sizeof(FlatTerm::Entry);
+  size_t size=sizeof(FlatTerm)+(_length-1)*sizeof(Entry);
 
   DEALLOC_KNOWN(this, size,"FlatTerm");
 }
@@ -106,6 +106,16 @@ FlatTerm* FlatTerm::create(TermList t)
   FlatTerm* res=new(1) FlatTerm(1);
   res->_data[0]=Entry(VAR, t.var());
 
+  return res;
+}
+
+FlatTerm* FlatTerm::copy(const FlatTerm* ft)
+{
+  CALL("FlatTerm::copy");
+
+  size_t entries=ft->_length;
+  FlatTerm* res=new(entries) FlatTerm(entries);
+  memcpy(res->_data, ft->_data, entries*sizeof(Entry));
   return res;
 }
 
