@@ -75,7 +75,7 @@ public:
 
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
-    List<MatchInfo>* matches;
+    List<MatchInfo*>* matches;
     /** all possible lits were tried to match */
     bool visited;
     bool finished;
@@ -218,11 +218,11 @@ public:
   {
     void init(ClauseCodeTree* tree, OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_);
     bool next();
+    void doEagerMatching();
     
+    bool eagerlyMatched() const { return _eagerlyMatched; }
     bool matched() const { return _matched && op->isLitEnd(); }
     bool success() const { return _matched && op->isSuccess(); }
-
-    MatchInfo* createMatchInfo();
 
     CLASS_NAME("ClauseCodeTree::LiteralMatcher");
     USE_ALLOCATOR(MatchInfo);
@@ -241,7 +241,9 @@ public:
 
     bool _fresh;
     bool _matched;
+    bool _eagerlyMatched;
 
+    ClauseCodeTree* tree;
     OpCode* entry;
     LitInfo* linfos;
     size_t linfoCnt;
@@ -255,6 +257,8 @@ public:
     bool doCheckFun();
     void doAssignVar();
     bool doCheckVar();
+    
+    void recordMatch();
   };
 
   struct ClauseMatcher
