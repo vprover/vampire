@@ -4,6 +4,7 @@
  */
 
 #include "../Lib/BitUtils.hpp"
+#include "../Lib/Recycler.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/FlatTerm.hpp"
@@ -684,7 +685,10 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_)
   query=query_;
   tree=tree_;
   lms.reset();
+  
+  op=tree->getEntryPoint();
 
+  //init LitInfo records
   unsigned clen=query->length();
   unsigned liCnt=clen;
   for(unsigned i=0;i<clen;i++) {
@@ -713,6 +717,10 @@ void ClauseCodeTree::ClauseMatcher::deinit()
   for(unsigned i=0;i<liCnt;i++) {
     lInfos[i].dispose();
   }
+  while(lms.isNonEmpty()) {
+    LiteralMatcher* lm=lms.pop();
+    Recycler::release(lm);
+  }
 }
 
 /**
@@ -722,9 +730,59 @@ Clause* ClauseCodeTree::ClauseMatcher::next()
 {
   CALL("ClauseCodeTree::ClauseMatcher::next");
 
+  while(op->isSuccess()) {
+    Clause* candidate=op->getSuccessResult();
+    op=op->alternative;
+    if(checkCandidate(candidate)) {
+      return candidate;
+    }
+  }
+  
+  if(op) {
+    enterLiteral(op);
+  }
+  
+  MatchInfo* mi;
+  OpCode* litEnd;
+  bool found=false;
+  while(lms.isNonEmpty()) {
+    found=lms.top()->next(mi,litEnd);
+    if(found) {
+      break;
+    }
+    leaveLiteral();
+  }
+  
+  
   return 0;
 }
 
+void ClauseCodeTree::ClauseMatcher::enterLiteral(OpCode* entry)
+{
+  CALL("ClauseCodeTree::ClauseMatcher::enterLiteral");
+  
+  LiteralMatcher* lm;
+  Recycler::get(lm);
+  lm->init(tree, entry, lInfos.array(), lInfos.size());
+  lms.push(lm);
+}
+
+void ClauseCodeTree::ClauseMatcher::leaveLiteral()
+{
+  CALL("ClauseCodeTree::ClauseMatcher::leaveLiteral");
+  ASS(lms.isNonEmpty());
+  
+  LiteralMatcher* lm=lms.pop();
+  Recycler::release(lm);
+}
+
+
+bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
+{
+  CALL("ClauseCodeTree::ClauseMatcher::checkCandidate");
+  
+  return false;
+}
 
 }
 

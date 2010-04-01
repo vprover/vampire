@@ -109,9 +109,11 @@ public:
      * the instruction is stored in first three bits.
      */
     inline bool isSuccess() const { return (instr()&3)==SUCCESS; }
-    inline Clause* getSuccessResult() { ASS(isSuccess()); return result; }
+    inline bool isFailure() const { return instr()==FAIL; }
     inline bool isLitEnd() const { return (instr()&3)==LIT_END; }
 
+    inline Clause* getSuccessResult() { ASS(isSuccess()); return result; }
+    
     inline ILStruct* getILS()
     {
       ASS(isLitEnd());
@@ -253,10 +255,17 @@ public:
     void deinit();
 
     Clause* next();
+    
+  private:
+    void enterLiteral(OpCode* entry);
+    void leaveLiteral();
+    bool checkCandidate(Clause* cl);
 
     Clause* query;
     ClauseCodeTree* tree;
     DArray<LitInfo> lInfos;
+    
+    OpCode* op;
 
     Stack<LiteralMatcher*> lms;
   };
