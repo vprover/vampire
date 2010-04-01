@@ -216,15 +216,21 @@ public:
   struct LiteralMatcher
   {
     void init(ClauseCodeTree* tree, OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_);
-    bool next(MatchInfo*& mi, OpCode*& litEnd);
+    bool next();
+    
+    bool matched() const { return _matched && op->isLitEnd(); }
+    bool success() const { return _matched && op->isSuccess(); }
+
+    MatchInfo* createMatchInfo();
 
     CLASS_NAME("ClauseCodeTree::LiteralMatcher");
     USE_ALLOCATOR(MatchInfo);
 
+    /** Pointer to the current operation */
+    OpCode* op;
+  private:
     /** Position in the flat term */
     size_t tp;
-    /** Pointer to the next operation */
-    OpCode* op;
     /** Flat term to be traversed */
     FlatTerm* ft;
     /** Stack containing backtracking points */
@@ -232,7 +238,8 @@ public:
     /** Variable bindings */
     DArray<TermList> bindings;
 
-    bool fresh;
+    bool _fresh;
+    bool _matched;
 
     OpCode* entry;
     LitInfo* linfos;
@@ -260,6 +267,7 @@ public:
     void enterLiteral(OpCode* entry);
     void leaveLiteral();
     bool checkCandidate(Clause* cl);
+    bool litEndAlreadyVisited(OpCode* op);
 
     Clause* query;
     ClauseCodeTree* tree;

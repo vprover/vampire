@@ -496,7 +496,8 @@ void ClauseCodeTree::LiteralMatcher::init(ClauseCodeTree* tree, OpCode* entry_, 
   linfos=linfos_;
   linfoCnt=linfoCnt_;
 
-  fresh=true;
+  _fresh=true;
+  _matched=false;
   curLInfo=0;
   btStack.reset();
   bindings.ensure(tree->_maxVarCnt);
@@ -505,32 +506,48 @@ void ClauseCodeTree::LiteralMatcher::init(ClauseCodeTree* tree, OpCode* entry_, 
 }
 
 /**
- * If there is a match reachable by the @b LiteralMatcher, return true
- * and assign pointer to the @b LIT_END operation into @b litEnd and a
- * new MatchInfo structure into @b mi. It is a responsibility of the caller
- * to delete the structure pointed to by @b mi.
+ * Try to find a match, and if one is found, return true
  */
-bool ClauseCodeTree::LiteralMatcher::next(MatchInfo*& mi, OpCode*& litEnd)
+bool ClauseCodeTree::LiteralMatcher::next()
 {
   CALL("ClauseCodeTree::LiteralMatcher::next");
 
+  if(!_fresh && !_matched) {
+    //all possible matches are exhausted
+    return false;
+  }
+  
   if(!execute()) {
+    _matched=false;
     return false;
   }
 
-  ASS(op->isLitEnd());
-  litEnd=op;
-  ILStruct* ils=op->getILS();
-  mi=new MatchInfo(linfos[curLInfo].litIndex, ils->varCnt, bindings);
+  _matched=true;
+  ASS(op->isLitEnd() || op->isSuccess());
   return true;
 }
+
+/**
+ * Create new MatchInfo structure describing the current match. 
+ *
+ * It is a responsibility of the caller to delete the returned structure.
+ */
+ClauseCodeTree::MatchInfo* ClauseCodeTree::LiteralMatcher::createMatchInfo()
+{
+  CALL("ClauseCodeTree::LiteralMatcher::createMatchInfo");
+  ASS(matched());
+
+  ILStruct* ils=op->getILS();
+  return new MatchInfo(linfos[curLInfo].litIndex, ils->varCnt, bindings);
+}
+
 
 bool ClauseCodeTree::LiteralMatcher::execute()
 {
   CALL("ClauseCodeTree::LiteralMatcher::execute");
 
-  if(fresh) {
-    fresh=false;
+  if(_fresh) {
+    _fresh=false;
   }
   else {
     //we backtrack from what we found in the previous run
@@ -565,8 +582,9 @@ bool ClauseCodeTree::LiteralMatcher::execute()
       return true;
     case SUCCESS:
     case SUCCESS2:
-      ASSERTION_VIOLATION;
-      INVALID_OPERATION("SUCCES operation should not appear in the middle of the literal code");
+      //SUCCESS can only appear as the first operation in a literal block
+      ASS_EQ(tp,0);
+      return true;
     }
     if(shouldBacktrack) {
       if(!backtrack()) {
@@ -600,6 +618,7 @@ bool ClauseCodeTree::LiteralMatcher::backtrack()
 bool ClauseCodeTree::LiteralMatcher::prepareLiteral()
 {
   CALL("ClauseCodeTree::LiteralMatcher::prepareLiteral");
+  ASS_LE(curLInfo,linfoCnt);
 
   if(curLInfo==linfoCnt) {
     return false;
@@ -686,8 +705,6 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_)
   tree=tree_;
   lms.reset();
   
-  op=tree->getEntryPoint();
-
   //init LitInfo records
   unsigned clen=query->length();
   unsigned liCnt=clen;
@@ -707,6 +724,8 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_)
     liIndex++;
   }
 
+  tree->incTimeStamp();
+  enterLiteral(tree->getEntryPoint());
 }
 
 void ClauseCodeTree::ClauseMatcher::deinit()
@@ -730,31 +749,42 @@ Clause* ClauseCodeTree::ClauseMatcher::next()
 {
   CALL("ClauseCodeTree::ClauseMatcher::next");
 
-  while(op->isSuccess()) {
-    Clause* candidate=op->getSuccessResult();
-    op=op->alternative;
-    if(checkCandidate(candidate)) {
-      return candidate;
-    }
+  if(lms.isEmpty()) {
+    return 0;
   }
   
-  if(op) {
-    enterLiteral(op);
-  }
-  
-  MatchInfo* mi;
-  OpCode* litEnd;
-  bool found=false;
-  while(lms.isNonEmpty()) {
-    found=lms.top()->next(mi,litEnd);
-    if(found) {
-      break;
+  for(;;) {
+    LiteralMatcher* lm=lms.top();
+
+    bool found=lm->next();
+    
+    if(!found) {
+      leaveLiteral();
+      if(lms.isEmpty()) {
+	return 0;
+      }
     }
-    leaveLiteral();
+    else if(lm->op->isSuccess()) {
+      Clause* candidate=lm->op->getSuccessResult();
+      if(checkCandidate(candidate)) {
+	return candidate;
+      }
+    }
+    else if(!litEndAlreadyVisited(lm->op)) {
+      NOT_IMPLEMENTED;
+    }
   }
   
   
   return 0;
+}
+
+inline bool ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited(OpCode* op)
+{
+  CALL("ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited");
+  ASS(op->isLitEnd());
+  
+  return op->getILS()->timestamp==tree->_curTimeStamp;
 }
 
 void ClauseCodeTree::ClauseMatcher::enterLiteral(OpCode* entry)
