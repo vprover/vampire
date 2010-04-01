@@ -771,7 +771,10 @@ Clause* ClauseCodeTree::ClauseMatcher::next()
       }
     }
     else if(!litEndAlreadyVisited(lm->op)) {
-      NOT_IMPLEMENTED;
+      //LIT_END is never the last operation in the CodeBlock, 
+      //so we can increase here
+      OpCode* newLitEntry=lm->op+1;
+      enterLiteral(newLitEntry);
     }
   }
   
@@ -784,12 +787,26 @@ inline bool ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited(OpCode* op)
   CALL("ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited");
   ASS(op->isLitEnd());
   
-  return op->getILS()->timestamp==tree->_curTimeStamp;
+  ILStruct* ils=op->getILS();
+  return ils->timestamp==tree->_curTimeStamp && ils->visited;
 }
 
 void ClauseCodeTree::ClauseMatcher::enterLiteral(OpCode* entry)
 {
   CALL("ClauseCodeTree::ClauseMatcher::enterLiteral");
+  
+  if(lms.isNonEmpty()) {
+    LiteralMatcher* prevLM=lms.top();
+    ILStruct* ils=prevLM->op->getILS();
+    if(ils->timestamp!=tree->_curTimeStamp) {
+      ils->timestamp=tree->_curTimeStamp;
+      ils->matches->destroy();
+      ils->matches=0;
+      ils->finished=false;
+    }
+    ils->visited=true;
+    ASS(!ils->finished);
+  }
   
   LiteralMatcher* lm;
   Recycler::get(lm);
@@ -804,6 +821,15 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
   
   LiteralMatcher* lm=lms.pop();
   Recycler::release(lm);
+  
+  if(lms.isNonEmpty()) {
+    LiteralMatcher* prevLM=lms.top();
+    ILStruct* ils=prevLM->op->getILS();
+    ils->matches->destroy();
+    ils->matches=0;
+    ils->visited=true;
+    ils->finished=false;
+  }
 }
 
 

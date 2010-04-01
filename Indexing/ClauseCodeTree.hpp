@@ -77,7 +77,8 @@ public:
     //from here on, the values are valid only if the timestamp is current
     List<MatchInfo>* matches;
     /** all possible lits were tried to match */
-    bool populated;
+    bool visited;
+    bool finished;
   };
 
   enum Instruction
