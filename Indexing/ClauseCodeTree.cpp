@@ -4,6 +4,7 @@
  */
 
 #include "../Lib/BitUtils.hpp"
+#include "../Lib/TimeCounter.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/FlatTerm.hpp"
@@ -202,6 +203,8 @@ void ClauseCodeTree::handleClause(Clause* cl, bool adding)
 {
   CALL("ClauseCodeTree::handleClause");
   
+  TimeCounter tc(TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE);
+
   if(adding) {
     insert(cl);
   }
