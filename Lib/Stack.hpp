@@ -61,7 +61,7 @@ public:
    * Create a stack having initialCapacity.
    */
   inline
-  Stack (size_t initialCapacity)
+  explicit Stack (size_t initialCapacity)
     : _capacity(initialCapacity)
   {
     CALL("Stack::Stack");

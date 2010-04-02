@@ -51,30 +51,46 @@ ClauseCodeTree::LitInfo ClauseCodeTree::LitInfo::getReversed(const LitInfo& li)
 ClauseCodeTree::MatchInfo::MatchInfo(unsigned liIndex, unsigned bindCnt, DArray<TermList>& bindingArray)
 : liIndex(liIndex), bindCnt(bindCnt)
 {
-  size_t bSize=sizeof(TermList)*bindCnt;
-  bindings=static_cast<TermList*>(
-      ALLOC_KNOWN(bSize, "ClauseCodeTree::MatchInfo::bindings"));
-  memcpy(bindings, bindingArray.array(), bSize);
+  if(bindCnt) {
+    size_t bSize=sizeof(TermList)*bindCnt;
+    bindings=static_cast<TermList*>(
+	ALLOC_KNOWN(bSize, "ClauseCodeTree::MatchInfo::bindings"));
+    memcpy(bindings, bindingArray.array(), bSize);
+  }
+  else {
+    bindings=0;
+  }
 }
 
 ClauseCodeTree::MatchInfo::~MatchInfo()
 {
-  DEALLOC_KNOWN(bindings, sizeof(TermList)*bindCnt, "ClauseCodeTree::MatchInfo::bindings");
+  if(bindings) {
+    DEALLOC_KNOWN(bindings, sizeof(TermList)*bindCnt, 
+		"ClauseCodeTree::MatchInfo::bindings");
+  }
 }
 
 
 ClauseCodeTree::ILStruct::ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack)
-: varCnt(varCnt), timestamp(0), matches(0)
+: varCnt(varCnt), timestamp(0)
 {
-  size_t gvnSize=sizeof(unsigned)*varCnt;
-  globalVarNumbers=static_cast<unsigned*>(
-      ALLOC_KNOWN(gvnSize, "ClauseCodeTree::ILStruct::globalVarNumbers"));
-  memcpy(globalVarNumbers, gvnStack.begin(), gvnSize);
+  if(varCnt) {
+    size_t gvnSize=sizeof(unsigned)*varCnt;
+    globalVarNumbers=static_cast<unsigned*>(
+	ALLOC_KNOWN(gvnSize, "ClauseCodeTree::ILStruct::globalVarNumbers"));
+    memcpy(globalVarNumbers, gvnStack.begin(), gvnSize);
+  }
+  else {
+    globalVarNumbers=0;
+  }
 }
 
 ClauseCodeTree::ILStruct::~ILStruct()
 {
-  DEALLOC_KNOWN(globalVarNumbers, sizeof(unsigned)*varCnt, "ClauseCodeTree::ILStruct::globalVarNumbers");
+  if(globalVarNumbers) {
+    DEALLOC_KNOWN(globalVarNumbers, sizeof(unsigned)*varCnt, 
+		"ClauseCodeTree::ILStruct::globalVarNumbers");
+  }
 
   disposeMatches();
 }
@@ -331,6 +347,8 @@ void ClauseCodeTree::matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastAt
 
   size_t clen=code.length();
   OpCode* treeOp=startOp;
+  
+  lastILS=0;
 
   for(size_t i=0;i<clen;i++) {
     while(!code[i].equalsForOpMatching(*treeOp) && treeOp->alternative) {
@@ -449,6 +467,7 @@ void ClauseCodeTree::incorporate(CodeStack& code)
 
   if(isEmpty()) {
     _entryPoint=buildBlock(code, code.length(), 0);
+    code.reset();
     return;
   }
 
@@ -547,7 +566,10 @@ void ClauseCodeTree::remove(Clause* cl)
 ClauseIterator ClauseCodeTree::getSubsumingClauses(Clause* cl)
 {
   CALL("ClauseCodeTree::getSubsumingClauses");
-
+  
+  if(isEmpty()) {
+    return ClauseIterator::getEmpty();
+  }
   return vi( new SubsumingClauseIterator(this, cl) );
 }
 
@@ -845,6 +867,7 @@ inline bool ClauseCodeTree::LiteralMatcher::doCheckVar()
 void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_)
 {
   CALL("ClauseCodeTree::ClauseMatcher::init");
+  ASS(!tree_->isEmpty());
   
   query=query_;
   tree=tree_;
@@ -991,8 +1014,9 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
   CALL("ClauseCodeTree::ClauseMatcher::checkCandidate");
   
   unsigned clen=cl->length();
-  ASS_EQ(clen, lms.size());
-  ASS_EQ(clen, lms.top()->op->getILS()->depth+1);
+  //the last matcher in mls is the one that yielded the SUCCESS operation
+  ASS_EQ(clen, lms.size()-1);
+  ASS_EQ(clen, lms[clen-1]->op->getILS()->depth+1);
   
   if(clen<=1) {
     //if clause doesn't have multiple literals, there is no need 
@@ -1000,7 +1024,7 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
     return true;
   }
   
-  for(int i=lms.size()-1;i>=0;i--) {
+  for(int i=clen-1;i>=0;i--) {
     LiteralMatcher* lm=lms[i];
     if(lm->eagerlyMatched()) {
       break;
@@ -1024,8 +1048,9 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
   }
   
   static DArray<int> matchIndex;
-  matchIndex.init(clen,-1);
+  matchIndex.ensure(clen);
   for(unsigned i=0;i<clen;i++) {
+    matchIndex[i]=-1;
   bind_next_match:
     matchIndex[i]++;
     if(matchIndex[i]==remaining.get(i,i)) {

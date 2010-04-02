@@ -114,8 +114,8 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case FW_SUBSUMPTION_CODE_TREE:
-//    res=new ClauseCodeTree();
-    res=new CodeTreeSubsumptionIndex();
+    res=new ClauseCodeTree();
+//    res=new CodeTreeSubsumptionIndex();
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
 
