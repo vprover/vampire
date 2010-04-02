@@ -63,6 +63,7 @@ ClauseCodeTree::MatchInfo::~MatchInfo()
   DEALLOC_KNOWN(bindings, sizeof(TermList)*bindCnt, "ClauseCodeTree::MatchInfo::bindings");
 }
 
+
 ClauseCodeTree::ILStruct::ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack)
 : varCnt(varCnt), timestamp(0), matches(0)
 {
@@ -76,7 +77,19 @@ ClauseCodeTree::ILStruct::~ILStruct()
 {
   DEALLOC_KNOWN(globalVarNumbers, sizeof(unsigned)*varCnt, "ClauseCodeTree::ILStruct::globalVarNumbers");
 
-  matches->destroy();
+  disposeMatches();
+}
+
+/**
+ * This function is called by the buildBlock function to make the 
+ * ILStruct object relate to its predecessors
+ */
+void ClauseCodeTree::ILStruct::putIntoSequence(ILStruct* previous_)
+{
+  CALL("ClauseCodeTree::ILStruct::putIntoSequence");
+  
+  previous=previous_;
+  depth=previous ? (previous->depth+1) : 0;
 }
 
 bool ClauseCodeTree::ILStruct::equalsForOpMatching(const ILStruct& o) const
@@ -89,6 +102,16 @@ bool ClauseCodeTree::ILStruct::equalsForOpMatching(const ILStruct& o) const
   size_t gvnSize=sizeof(unsigned)*varCnt;
   return BitUtils::memEqual(globalVarNumbers, o.globalVarNumbers, gvnSize);
 }
+
+void ClauseCodeTree::ILStruct::disposeMatches()
+{
+  CALL("ClauseCodeTree::ILStruct::disposeMatches");
+  
+  while(matches.isNonEmpty()) {
+    delete matches.pop();
+  }
+}
+
 
 ClauseCodeTree::OpCode ClauseCodeTree::OpCode::getSuccess(Clause* cl)
 {
@@ -155,6 +178,9 @@ bool ClauseCodeTree::OpCode::equalsForOpMatching(const OpCode& o) const
 ClauseCodeTree::ClauseCodeTree()
 : _curTimeStamp(0), _maxVarCnt(0), _entryPoint(0)
 {
+#if VDEBUG
+  _clauseMatcherCounter=0;
+#endif
 }
 
 /**
@@ -393,7 +419,7 @@ ClauseCodeTree::CodeBlock* ClauseCodeTree::buildBlock(CodeStack& code, size_t cn
     ASS_EQ(op.alternative,0); //the ops should not have an alternattive set yet
     if(op.isLitEnd()) {
       ILStruct* ils=op.getILS();
-      ils->previous=prev;
+      ils->putIntoSequence(prev);
       prev=ils;
     }
     (*res)[i]=op;
@@ -476,6 +502,20 @@ void ClauseCodeTree::insert(Clause* cl)
   ASS(code.isEmpty());
 }
 
+
+//////////////// removal ////////////////////
+
+void ClauseCodeTree::remove(Clause* cl)
+{
+  CALL("ClauseCodeTree::remove");
+  
+  static ClauseMatcher cm;
+  cm.init(this, cl);
+  
+  cm.deinit();
+}
+
+
 //////////////// retrieval ////////////////////
 
 void ClauseCodeTree::incTimeStamp()
@@ -503,6 +543,7 @@ void ClauseCodeTree::LiteralMatcher::init(ClauseCodeTree* tree_, OpCode* entry_,
   curLInfo=0;
   btStack.reset();
   bindings.ensure(tree->_maxVarCnt);
+  eagerResults.reset();
 
   ALWAYS(prepareLiteral());
 }
@@ -513,18 +554,26 @@ void ClauseCodeTree::LiteralMatcher::init(ClauseCodeTree* tree_, OpCode* entry_,
 bool ClauseCodeTree::LiteralMatcher::next()
 {
   CALL("ClauseCodeTree::LiteralMatcher::next");
+  
+  if(eagerlyMatched()) {
+    _matched=!eagerResults.isEmpty();
+    if(!_matched) {
+      return false;
+    }
+    op=eagerResults.pop();
+    return true;
+  }
 
-  if(!_fresh && !_matched) {
+  if(finished()) {
     //all possible matches are exhausted
     return false;
   }
   
-  if(!execute()) {
-    _matched=false;
+  _matched=execute();
+  if(!_matched) {
     return false;
   }
 
-  _matched=true;
   ASS(op->isLitEnd() || op->isSuccess());
   if(op->isLitEnd()) {
     recordMatch();
@@ -535,17 +584,36 @@ bool ClauseCodeTree::LiteralMatcher::next()
 void ClauseCodeTree::LiteralMatcher::doEagerMatching()
 {
   CALL("ClauseCodeTree::LiteralMatcher::doEagerMatching");
+  ASS(!eagerlyMatched()); //eager matching can be done only once
+  ASS(eagerResults.isEmpty());
+  ASS(!finished());
+  
+  //backup the current op
+  OpCode* currOp=op;
+  
+  static Stack<OpCode*> successes;
+  successes.reset();
   
   while(execute()) {
     if(op->isLitEnd()) {
       recordMatch();
+      eagerResults.push(op);
     }
-    NOT_IMPLEMENTED;
+    else {
+      ASS(op->isSuccess());
+      successes.push(op);
+    }
+  }
+  ASS(btStack.isEmpty()); //there are no other alternatives now
+  ASS_EQ(curLInfo,linfoCnt);
+  //we want to yield SUCCESS operations first (as after them there may 
+  //be no need for further clause retrieval)
+  while(successes.isNonEmpty()) {
+    eagerResults.push(successes.pop());
   }
   
   _eagerlyMatched=true;
 
-  ASS(btStack.isEmpty());
 #if VDEBUG
   //now the context for the tree code execution is invalid
   bindings.ensure(0);
@@ -553,6 +621,8 @@ void ClauseCodeTree::LiteralMatcher::doEagerMatching()
   curLInfo=-1;
   tp=-1;
 #endif
+
+  op=currOp; //restore the current op
 }
 
 void ClauseCodeTree::LiteralMatcher::recordMatch()
@@ -563,18 +633,22 @@ void ClauseCodeTree::LiteralMatcher::recordMatch()
   ILStruct* ils=op->getILS();
   if(ils->timestamp!=tree->_curTimeStamp) {
     ils->timestamp=tree->_curTimeStamp;
-    ils->matches->destroy();
-    ils->matches=0;
+    ils->disposeMatches();
     ils->visited=false;
     ils->finished=false;
   }
-  MatchInfo* mi=new MatchInfo(linfos[curLInfo].litIndex, ils->varCnt, bindings);
-  List<MatchInfo*>::push(mi, ils->matches);
+  else if(ils->finished) {
+    //no need to record matches which we already know will not lead to anything
+    return;
+  }
+  MatchInfo* mi=new MatchInfo(linfos[curLInfo].liIndex, ils->varCnt, bindings);
+  ils->matches.push(mi);
 }
 
 bool ClauseCodeTree::LiteralMatcher::execute()
 {
   CALL("ClauseCodeTree::LiteralMatcher::execute");
+  ASS_L(curLInfo,linfoCnt); //we haven't finished yet
 
   if(_fresh) {
     _fresh=false;
@@ -738,10 +812,15 @@ inline bool ClauseCodeTree::LiteralMatcher::doCheckVar()
 void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_)
 {
   CALL("ClauseCodeTree::ClauseMatcher::init");
-
+  
   query=query_;
   tree=tree_;
   lms.reset();
+
+#if VDEBUG
+  ASS_EQ(tree->_clauseMatcherCounter,0);
+  tree->_clauseMatcherCounter++;
+#endif
   
   //init LitInfo records
   unsigned clen=query->length();
@@ -755,11 +834,13 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_)
   unsigned liIndex=0;
   for(unsigned i=0;i<clen;i++) {
     lInfos[liIndex]=LitInfo(query,i);
+    lInfos[liIndex].liIndex=liIndex;
+    liIndex++;
     if((*query)[i]->isEquality()) {
-      lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex]);
+      lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1]);
+      lInfos[liIndex].liIndex=liIndex;
       liIndex++;
     }
-    liIndex++;
   }
 
   tree->incTimeStamp();
@@ -778,6 +859,11 @@ void ClauseCodeTree::ClauseMatcher::deinit()
     LiteralMatcher* lm=lms.pop();
     Recycler::release(lm);
   }
+  
+#if VDEBUG
+  ASS_EQ(tree->_clauseMatcherCounter,1);
+  tree->_clauseMatcherCounter--;
+#endif
 }
 
 /**
@@ -815,9 +901,6 @@ Clause* ClauseCodeTree::ClauseMatcher::next()
       enterLiteral(newLitEntry);
     }
   }
-  
-  
-  return 0;
 }
 
 inline bool ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited(OpCode* op)
@@ -862,27 +945,138 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
     ASS_EQ(ils->timestamp,tree->_curTimeStamp);
     ASS(ils->visited);
     
-    ils->matches->destroy();
-    ils->matches=0;
+    ils->disposeMatches();
     ils->finished=true;
   }
 }
 
+
+//////////////// Multi-literal matching /////////
 
 bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
 {
   CALL("ClauseCodeTree::ClauseMatcher::checkCandidate");
   
   unsigned clen=cl->length();
+  ASS_EQ(clen, lms.size());
+  ASS_EQ(clen, lms.top()->op->getILS()->depth+1);
+  
   if(clen<=1) {
     //if clause doesn't have multiple literals, there is no need 
     //for multi-literal matching
     return true;
   }
   
-  NOT_IMPLEMENTED;
-  return false;
+  for(int i=lms.size()-1;i>=0;i--) {
+    LiteralMatcher* lm=lms[i];
+    if(lm->eagerlyMatched()) {
+      break;
+    }
+    lm->doEagerMatching();
+  }
+  
+  //remaining[j,0] contains number of matches for j-th index literal
+  //remaining[j,i+1] (for j>i) contains number of matches for j-th 
+  //  index literal compatible with the bindings of i-th literal (and 
+  //  those before it)
+  //remaining[j,j] therefore contains number of matches we have to try
+  //  when we get to binding j-th literal
+  //  Matches in ILStruct::matches are reordered, so that we always try 
+  //  the _first_ remaining[j,j] literals
+  static TriangularArray<int> remaining(10);
+  remaining.setSide(clen);
+  for(unsigned j=0;j<clen;j++) {
+    ILStruct* ils=lms[j]->getILS();
+    remaining.set(j,0,ils->matches.size());
+  }
+  
+  static DArray<int> matchIndex;
+  matchIndex.init(clen,-1);
+  for(unsigned i=0;i<clen;i++) {
+  bind_next_match:
+    matchIndex[i]++;
+    if(matchIndex[i]==remaining.get(i,i)) {
+      if(i==0) {
+	return false;
+      }
+      i--;
+      goto bind_next_match;
+    }
+    ASS_L(matchIndex[i],remaining.get(i,i));
+    
+    ILStruct* bi=lms[i]->getILS(); 		//bound index literal
+    MatchInfo* bq=bi->matches[matchIndex[i]];	//bound query literal
+    
+    //propagate the implications of this binding to next literals
+    for(unsigned j=i+1;j<clen;j++) {
+      ILStruct* ni=lms[j]->getILS();		//next index literal
+      unsigned rem=remaining.get(j,i);
+      unsigned k=0;
+      while(k<rem) {
+	MatchInfo* nq=ni->matches[k];		//next query literal
+	if(!compatible(bi,bq,ni,nq)) {
+	  rem--;
+	  swap(ni->matches[k],ni->matches[rem]);
+	  continue;
+	}
+	k++;
+      }
+      if(rem==0) {
+	goto bind_next_match;
+      }
+      remaining.set(j,i+1,rem);
+    }
+  }
+  
+  return true;
 }
+
+bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq)
+{
+  CALL("ClauseCodeTree::ClauseMatcher::compatible");
+  ASS_L(bi->depth, ni->depth);
+  
+  if( lInfos[bq->liIndex].litIndex==lInfos[nq->liIndex].litIndex ||
+      (lInfos[bq->liIndex].opposite && lInfos[nq->liIndex].opposite) ) {
+    return false;
+  }
+  
+  unsigned bvars=bi->varCnt;
+  unsigned* bgvn=bi->globalVarNumbers;
+  TermList* bb=bq->bindings;
+  
+  unsigned nvars=ni->varCnt;
+  unsigned* ngvn=ni->globalVarNumbers;
+  TermList* nb=nq->bindings;
+  
+  while(bvars && nvars) {
+    while(bvars && *bgvn<*ngvn) {
+      bvars--;
+      bgvn++;
+      bb++;
+    }
+    while(nvars && *bgvn>*ngvn) {
+      nvars--;
+      ngvn++;
+      nb++;
+    }
+    while(bvars && nvars && *bgvn==*ngvn) {
+      if(*bb!=*nb) {
+	return false;
+      }
+      bvars--;
+      bgvn++;
+      bb++;
+      nvars--;
+      ngvn++;
+      nb++;
+    }
+  }
+  
+  return true;
+}
+
+
 
 }
 

@@ -147,6 +147,8 @@ class LiteralIndex;
 class LiteralIndexingStructure;
 class TermIndex;
 class TermIndexingStructure;
+class ClauseSubsumptionIndex;
+
 class TermSharing;
 
 class ResultSubstitution;

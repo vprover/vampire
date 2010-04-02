@@ -12,6 +12,11 @@
 
 namespace Lib {
 
+/**
+ * Class offering packed representation of arrays in upper 
+ * triangular form (only elements with the first coordinate greater 
+ * than or equal to the second one are accessible).
+ */
 template<typename T>
 class TriangularArray
 {

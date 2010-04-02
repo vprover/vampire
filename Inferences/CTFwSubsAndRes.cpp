@@ -4,7 +4,7 @@
  */
 
 
-#include "../Indexing/CodeTreeInterfaces.hpp"
+#include "../Indexing/Index.hpp"
 #include "../Indexing/IndexManager.hpp"
 
 #include "../Saturation/SaturationAlgorithm.hpp"
@@ -27,7 +27,7 @@ void CTFwSubsAndRes::attach(SaturationAlgorithm* salg)
   CALL("CTFwSubsAndRes::attach");
 
   ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<CodeTreeSubsumptionIndex*>(
+  _index=static_cast<ClauseSubsumptionIndex*>(
 	  _salg->getIndexManager()->request(FW_SUBSUMPTION_CODE_TREE) );
 }
 

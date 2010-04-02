@@ -90,7 +90,12 @@ private:
   SubscriptionData _removedSD;
 };
 
-
+class ClauseSubsumptionIndex
+: public Index
+{
+public:
+  virtual ClauseIterator getSubsumingClauses(Clause* c) = 0;
+};
 
 };
 #endif /*__Indexing_Index__*/

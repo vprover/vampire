@@ -24,7 +24,7 @@ public:
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
 private:
-  CodeTreeSubsumptionIndex* _index;
+  ClauseSubsumptionIndex* _index;
 };
 
 }

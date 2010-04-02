@@ -14,6 +14,7 @@
 #include "../Lib/Hash.hpp"
 #include "../Lib/List.hpp"
 #include "../Lib/Stack.hpp"
+#include "../Lib/TriangularArray.hpp"
 #include "../Lib/Vector.hpp"
 
 namespace Indexing {
@@ -32,6 +33,8 @@ public:
 
     static LitInfo getReversed(const LitInfo& li);
 
+    /** Index of this LitInfo in the ClauseMatcher object */
+    unsigned liIndex;
     /** Index of the literal in the query clause */
     unsigned litIndex;
     FlatTerm* ft;
@@ -63,19 +66,23 @@ public:
   {
     ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack);
     ~ILStruct();
+    void putIntoSequence(ILStruct* previous_);
 
     bool equalsForOpMatching(const ILStruct& o) const;
+    
+    void disposeMatches();
 
     CLASS_NAME("ClauseCodeTree::ILStruct");
     USE_ALLOCATOR(ILStruct);
 
+    unsigned depth;
     ILStruct* previous;
     unsigned varCnt;
     unsigned* globalVarNumbers;
 
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
-    List<MatchInfo*>* matches;
+    Stack<MatchInfo*> matches;
     /** all possible lits were tried to match */
     bool visited;
     bool finished;
@@ -122,8 +129,7 @@ public:
     }
     inline const ILStruct* getILS() const
     {
-      ASS(isLitEnd());
-      return reinterpret_cast<const ILStruct*>(data&~static_cast<size_t>(LIT_END));
+      return const_cast<OpCode*>(this)->getILS();
     }
 
     inline Instruction instr() const { return info.instr; }
@@ -220,9 +226,12 @@ public:
     bool next();
     void doEagerMatching();
     
-    bool eagerlyMatched() const { return _eagerlyMatched; }
-    bool matched() const { return _matched && op->isLitEnd(); }
-    bool success() const { return _matched && op->isSuccess(); }
+    inline bool finished() const { return !_fresh && !_matched; }
+    inline bool eagerlyMatched() const { return _eagerlyMatched; }
+    inline bool matched() const { return _matched && op->isLitEnd(); }
+    inline bool success() const { return _matched && op->isSuccess(); }
+
+    inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
 
     CLASS_NAME("ClauseCodeTree::LiteralMatcher");
     USE_ALLOCATOR(MatchInfo);
@@ -248,6 +257,8 @@ public:
     LitInfo* linfos;
     size_t linfoCnt;
     size_t curLInfo;
+    
+    Stack<OpCode*> eagerResults;
   private:
     bool execute();
 
@@ -273,6 +284,8 @@ public:
     void leaveLiteral();
     bool checkCandidate(Clause* cl);
     bool litEndAlreadyVisited(OpCode* op);
+    
+    bool compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq);
 
     Clause* query;
     ClauseCodeTree* tree;
@@ -287,6 +300,10 @@ public:
   void incTimeStamp();
 
   //////// member variables //////////
+  
+#if VDEBUG
+  unsigned _clauseMatcherCounter;
+#endif
 
   unsigned _curTimeStamp;
   unsigned _maxVarCnt;
@@ -294,6 +311,7 @@ public:
   CodeBlock* _entryPoint;
 public:
   void insert(Clause* cl);
+  void remove(Clause* cl);
 };
 
 }

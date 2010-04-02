@@ -56,7 +56,7 @@ private:
 
 
 class CodeTreeSubsumptionIndex
-: public Index
+: public ClauseSubsumptionIndex
 {
 public:
   ClauseIterator getSubsumingClauses(Clause* c);
