@@ -13,16 +13,22 @@
 #include "../Lib/DHMap.hpp"
 #include "../Lib/Hash.hpp"
 #include "../Lib/List.hpp"
+#include "../Lib/Recycler.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/TriangularArray.hpp"
 #include "../Lib/Vector.hpp"
+#include "../Lib/VirtualIterator.hpp"
+
+#include "Index.hpp"
+
 
 namespace Indexing {
 
 using namespace Lib;
 using namespace Kernel;
 
-class ClauseCodeTree {
+class ClauseCodeTree : public ClauseSubsumptionIndex 
+{
 public:
 
   struct LitInfo
@@ -107,6 +113,8 @@ public:
     static OpCode getLitEnd(ILStruct* ils);
     static OpCode getTermOp(Instruction i, unsigned num);
 
+    void makeFail() { setInstr(FAIL); }
+    
     bool equalsForOpMatching(const OpCode& o) const;
 
     /**
@@ -117,7 +125,7 @@ public:
      * the instruction is stored in first three bits.
      */
     inline bool isSuccess() const { return (instr()&3)==SUCCESS; }
-    inline bool isFailure() const { return instr()==FAIL; }
+    inline bool isFail() const { return instr()==FAIL; }
     inline bool isLitEnd() const { return (instr()&3)==LIT_END; }
 
     inline Clause* getSuccessResult() { ASS(isSuccess()); return result; }
@@ -164,7 +172,6 @@ public:
 
   //////// auxiliary methods //////////
 
-  ClauseCodeTree();
   inline bool isEmpty() { return !_entryPoint; }
   inline OpCode* getEntryPoint() { ASS(!isEmpty()); return &(*_entryPoint)[0]; }
   static CodeBlock* firstOpToCodeBlock(OpCode* op);
@@ -234,7 +241,7 @@ public:
     inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
 
     CLASS_NAME("ClauseCodeTree::LiteralMatcher");
-    USE_ALLOCATOR(MatchInfo);
+    USE_ALLOCATOR(LiteralMatcher);
 
     /** Pointer to the current operation */
     OpCode* op;
@@ -279,6 +286,12 @@ public:
 
     Clause* next();
     
+    bool matched() { return lms.isNonEmpty() && lms.top()->success(); }
+    OpCode* getSuccessOp() { ASS(matched()); return lms.top()->op; }
+
+    CLASS_NAME("ClauseCodeTree::ClauseMatcher");
+    USE_ALLOCATOR(ClauseMatcher);
+    
   private:
     void enterLiteral(OpCode* entry);
     void leaveLiteral();
@@ -291,8 +304,6 @@ public:
     ClauseCodeTree* tree;
     DArray<LitInfo> lInfos;
     
-    OpCode* op;
-
     Stack<LiteralMatcher*> lms;
   };
 
@@ -309,9 +320,55 @@ public:
   unsigned _maxVarCnt;
 
   CodeBlock* _entryPoint;
+  
+  struct SubsumingClauseIterator
+  : public IteratorCore<Clause*>
+  {
+    SubsumingClauseIterator(ClauseCodeTree* tree, Clause* query)
+    : ready(false)
+    {
+      Recycler::get(cm);
+      cm->init(tree, query);
+    }
+    ~SubsumingClauseIterator()
+    {
+      cm->deinit();
+      Recycler::release(cm);
+    }
+    
+    bool hasNext()
+    {
+      if(ready) {
+	return true;
+      }
+      ready=true;
+      result=cm->next();
+      return result;
+    }
+    
+    Clause* next()
+    {
+      CALL("ClauseCodeTree::SubsumingClauseIterator::next");
+      ASS(result);
+      
+      ready=false;
+      return result;
+    }
+  private:
+    bool ready;
+    Clause* result;
+    ClauseMatcher* cm;
+  };
 public:
+  ClauseCodeTree();
+  
   void insert(Clause* cl);
   void remove(Clause* cl);
+  
+  //overriding Index::handleClause
+  void handleClause(Clause* cl, bool adding);
+  
+  ClauseIterator getSubsumingClauses(Clause* cl);
 };
 
 }

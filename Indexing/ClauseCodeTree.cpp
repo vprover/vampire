@@ -4,7 +4,6 @@
  */
 
 #include "../Lib/BitUtils.hpp"
-#include "../Lib/Recycler.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/FlatTerm.hpp"
@@ -181,6 +180,18 @@ ClauseCodeTree::ClauseCodeTree()
 #if VDEBUG
   _clauseMatcherCounter=0;
 #endif
+}
+
+void ClauseCodeTree::handleClause(Clause* cl, bool adding)
+{
+  CALL("ClauseCodeTree::handleClause");
+  
+  if(adding) {
+    insert(cl);
+  }
+  else {
+    remove(cl);
+  }
 }
 
 /**
@@ -512,11 +523,33 @@ void ClauseCodeTree::remove(Clause* cl)
   static ClauseMatcher cm;
   cm.init(this, cl);
   
+  Clause* stored;
+  do {
+    stored=cm.next();
+    if(!stored) {
+      ASSERTION_VIOLATION;
+      INVALID_OPERATION("clause to be removed not found.");
+    }
+  } while(stored!=cl);
+  
+  ASS(cm.matched());
+  OpCode* successOp=cm.getSuccessOp();
+  ASS_EQ(successOp->getSuccessResult(),cl);
+  
+  successOp->makeFail();
+  
   cm.deinit();
 }
 
 
 //////////////// retrieval ////////////////////
+
+ClauseIterator ClauseCodeTree::getSubsumingClauses(Clause* cl)
+{
+  CALL("ClauseCodeTree::getSubsumingClauses");
+
+  return vi( new SubsumingClauseIterator(this, cl) );
+}
 
 void ClauseCodeTree::incTimeStamp()
 {
