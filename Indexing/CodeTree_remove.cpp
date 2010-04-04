@@ -23,8 +23,8 @@ struct CodeTree::RemoverStruct
     Recycler::get(firstsInBlocks);
     firstsInBlocks->reset();
 
-    Recycler::get(depthsForLits);
-    depthsForLits->reset();
+    Recycler::get(fibDepthsForBt);
+    fibDepthsForBt->reset();
 
     //the remove has to be the first and only thing called on a context
     ASS(ctx.fresh);
@@ -34,7 +34,7 @@ struct CodeTree::RemoverStruct
   ~RemoverStruct()
   {
     Recycler::release(firstsInBlocks);
-    Recycler::release(depthsForLits);
+    Recycler::release(fibDepthsForBt);
   }
 
   void perform()
@@ -69,6 +69,7 @@ struct CodeTree::RemoverStruct
       if(ctx.op->alternative) {
 	LOG_OP("alt at "<<ctx.tp);
 	ctx.btStack.push(BTPoint(ctx.tp, ctx.op->alternative));
+	fibDepthsForBt->push(firstsInBlocks->size());
       }
       LOG_OP(ctx.tp<<':'<<ctx.op->toString());
       switch(ctx.op->instr()) {
@@ -145,8 +146,6 @@ struct CodeTree::RemoverStruct
       //(otherwise we would have landed on the operation
       //by backtracking)
 
-      depthsForLits->push(firstsInBlocks->size());
-
       if(cctx._curLitPos==static_cast<int>(cctx._clen)-1) {
 	res=false;
       }
@@ -162,9 +161,7 @@ struct CodeTree::RemoverStruct
     if(res) {
       LOG_OP("nl-alt placed");
       cctx.btStack.push(BTPoint(BTPoint::tpSpecial, cctx.op));
-    }
-    else {
-      depthsForLits->pop();
+      fibDepthsForBt->push(firstsInBlocks->size());
     }
 
     return res;
@@ -180,13 +177,10 @@ struct CodeTree::RemoverStruct
       ASSERTION_VIOLATION;
       INVALID_OPERATION("Attempt to remove a non-existing item from a code tree");
     }
+    firstsInBlocks->truncate(fibDepthsForBt->pop());
     if(ctx.tp!=BTPoint::tpSpecial) {
       //we backtracked to the first operation of another block
       firstsInBlocks->push(ctx.op);
-    }
-    else {
-      //we are backtracking somewhere we've been before
-      firstsInBlocks->truncate(depthsForLits->top());
     }
     LOG_OP(ctx.tp<<"<-bt");
 
@@ -195,6 +189,8 @@ struct CodeTree::RemoverStruct
   void optimizeMemory()
   {
     CALL("CodeTree::RemoverStruct::optimizeMemory");
+    LOG_OP("Code tree removal memory optimization");
+    LOG_OP("firstsInBlocks->size()="<<firstsInBlocks->size());
 
     OpCode* op0=ctx.op;
 
@@ -269,7 +265,8 @@ struct CodeTree::RemoverStruct
   /** Stack that contains first op in each CodeBlock on the way to the root */
   Stack<OpCode*>* firstsInBlocks;
 
-  Stack<unsigned>* depthsForLits;
+  /** Depths of the firstsInBlocks stack at each backtrack point */
+  Stack<unsigned>* fibDepthsForBt;
 
   EContext& ctx;
   CodeTree* tree;
@@ -279,6 +276,7 @@ struct CodeTree::RemoverStruct
 void CodeTree::remove(EContext& ctx, CodeTree* tree, SuccessDataMatchingFn* successFn)
 {
   CALL("CodeTree::remove");
+  LOG_OP("Code tree item removing");
 
   RemoverStruct(ctx, tree, successFn).perform();
 }
