@@ -241,7 +241,7 @@ public:
   {
     void init(ClauseCodeTree* tree, OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_);
     bool next();
-    void doEagerMatching();
+    bool doEagerMatching();
     
     inline bool finished() const { return !_fresh && !_matched; }
     inline bool eagerlyMatched() const { return _eagerlyMatched; }
@@ -305,9 +305,10 @@ public:
   private:
     void enterLiteral(OpCode* entry);
     void leaveLiteral();
-    bool checkCandidate(Clause* cl);
     bool litEndAlreadyVisited(OpCode* op);
     
+    bool checkCandidate(Clause* cl);
+    bool matchGlobalVars();
     bool compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq);
 
     Clause* query;

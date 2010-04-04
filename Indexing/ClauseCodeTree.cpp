@@ -690,7 +690,10 @@ bool ClauseCodeTree::LiteralMatcher::next()
   return true;
 }
 
-void ClauseCodeTree::LiteralMatcher::doEagerMatching()
+/**
+ * Perofrm eager matching and return true iff new matches were found
+ */
+bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
 {
   CALL("ClauseCodeTree::LiteralMatcher::doEagerMatching");
   ASS(!eagerlyMatched()); //eager matching can be done only once
@@ -732,6 +735,8 @@ void ClauseCodeTree::LiteralMatcher::doEagerMatching()
 #endif
 
   op=currOp; //restore the current op
+  
+  return eagerResults.isNonEmpty();
 }
 
 void ClauseCodeTree::LiteralMatcher::recordMatch()
@@ -1080,15 +1085,30 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
     //for multi-literal matching
     return true;
   }
+
+//  if(matchGlobalVars()) {
+//    return true;
+//  }
   
+  bool newMatches=false;
   for(int i=clen-1;i>=0;i--) {
     LiteralMatcher* lm=lms[i];
     if(lm->eagerlyMatched()) {
       break;
     }
-    lm->doEagerMatching();
+    newMatches|=lm->doEagerMatching();
   }
   
+  return matchGlobalVars();
+//  return newMatches && matchGlobalVars();
+}
+
+bool ClauseCodeTree::ClauseMatcher::matchGlobalVars()
+{
+  CALL("ClauseCodeTree::ClauseMatcher::matchGlobalVars");
+  
+  unsigned clen=lms.size()-1;
+
   //remaining[j,0] contains number of matches for j-th index literal
   //remaining[j,i+1] (for j>i) contains number of matches for j-th 
   //  index literal compatible with the bindings of i-th literal (and 
@@ -1149,7 +1169,7 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
       remaining.set(j,i+1,rem);
     }
   }
-  
+
   return true;
 }
 
