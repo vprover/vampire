@@ -31,6 +31,8 @@ class ClauseCodeTree : public ClauseSubsumptionIndex
 {
 public:
 
+  struct ILStruct;
+
   struct LitInfo
   {
     LitInfo() {}
@@ -50,7 +52,7 @@ public:
 
   struct MatchInfo
   {
-    MatchInfo(unsigned liIndex, unsigned bindCnt, DArray<TermList>& bindingArray);
+    MatchInfo(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray);
     ~MatchInfo();
 
     CLASS_NAME("ClauseCodeTree::MatchInfo");
@@ -81,11 +83,19 @@ public:
     CLASS_NAME("ClauseCodeTree::ILStruct");
     USE_ALLOCATOR(ILStruct);
 
+    struct GVArrComparator;
+    
     unsigned depth;
     ILStruct* previous;
     unsigned varCnt;
     unsigned* globalVarNumbers;
 
+    unsigned* sortedGlobalVarNumbers;
+    
+    /** Permutation that should be applied to bindings so that they will
+     *  correspond to the sortedGlobalVarNumbers */
+    unsigned* globalVarPermutation;
+    
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
     Stack<MatchInfo*> matches;

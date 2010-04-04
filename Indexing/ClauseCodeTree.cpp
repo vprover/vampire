@@ -3,7 +3,11 @@
  * Implements class ClauseCodeTree.
  */
 
+#include <utility>
+ 
 #include "../Lib/BitUtils.hpp"
+#include "../Lib/Comparison.hpp"
+#include "../Lib/Int.hpp"
 #include "../Lib/TimeCounter.hpp"
 
 #include "../Kernel/Clause.hpp"
@@ -49,14 +53,18 @@ ClauseCodeTree::LitInfo ClauseCodeTree::LitInfo::getReversed(const LitInfo& li)
 }
 
 
-ClauseCodeTree::MatchInfo::MatchInfo(unsigned liIndex, unsigned bindCnt, DArray<TermList>& bindingArray)
-: liIndex(liIndex), bindCnt(bindCnt)
+ClauseCodeTree::MatchInfo::MatchInfo(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray)
+: liIndex(liIndex), bindCnt(ils->varCnt)
 {
   if(bindCnt) {
     size_t bSize=sizeof(TermList)*bindCnt;
     bindings=static_cast<TermList*>(
 	ALLOC_KNOWN(bSize, "ClauseCodeTree::MatchInfo::bindings"));
-    memcpy(bindings, bindingArray.array(), bSize);
+	
+    unsigned* perm=ils->globalVarPermutation;
+    for(unsigned i=0;i<bindCnt;i++) {
+      bindings[perm[i]]=bindingArray[i];
+    }
   }
   else {
     bindings=0;
@@ -73,7 +81,7 @@ ClauseCodeTree::MatchInfo::~MatchInfo()
 
 
 ClauseCodeTree::ILStruct::ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack)
-: varCnt(varCnt), timestamp(0)
+: varCnt(varCnt), sortedGlobalVarNumbers(0), globalVarPermutation(0), timestamp(0)
 {
   if(varCnt) {
     size_t gvnSize=sizeof(unsigned)*varCnt;
@@ -89,12 +97,34 @@ ClauseCodeTree::ILStruct::ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack)
 ClauseCodeTree::ILStruct::~ILStruct()
 {
   if(globalVarNumbers) {
-    DEALLOC_KNOWN(globalVarNumbers, sizeof(unsigned)*varCnt, 
+    size_t gvSize=sizeof(unsigned)*varCnt;
+    DEALLOC_KNOWN(globalVarNumbers, gvSize, 
 		"ClauseCodeTree::ILStruct::globalVarNumbers");
+    if(sortedGlobalVarNumbers) {
+      DEALLOC_KNOWN(sortedGlobalVarNumbers, gvSize, 
+		  "ClauseCodeTree::ILStruct::sortedGlobalVarNumbers");
+    }
+    if(globalVarPermutation) {
+      DEALLOC_KNOWN(globalVarPermutation, gvSize, 
+		  "ClauseCodeTree::ILStruct::globalVarPermutation");
+    }
   }
 
   disposeMatches();
 }
+
+/**
+ * Comparator used by the @b putIntoSequence function to order global 
+ * variable numbers
+ */
+struct ClauseCodeTree::ILStruct::GVArrComparator
+{
+  Comparison compare(const pair<unsigned,unsigned>& p1, 
+      const pair<unsigned,unsigned>& p2)
+  {
+    return Int::compare(p1.first, p2.first);
+  }
+};
 
 /**
  * This function is called by the buildBlock function to make the 
@@ -106,6 +136,27 @@ void ClauseCodeTree::ILStruct::putIntoSequence(ILStruct* previous_)
   
   previous=previous_;
   depth=previous ? (previous->depth+1) : 0;
+  
+  if(!varCnt) { return; }
+
+  static DArray<pair<unsigned,unsigned> > gvArr;
+  gvArr.ensure(varCnt);
+  for(unsigned i=0;i<varCnt;i++) {
+    gvArr[i].first=globalVarNumbers[i];
+    gvArr[i].second=i;
+  }
+  gvArr.sort(GVArrComparator());
+
+  size_t gvSize=sizeof(unsigned)*varCnt;
+  sortedGlobalVarNumbers=static_cast<unsigned*>(
+	ALLOC_KNOWN(gvSize, "ClauseCodeTree::ILStruct::sortedGlobalVarNumbers"));
+  globalVarPermutation=static_cast<unsigned*>(
+	ALLOC_KNOWN(gvSize, "ClauseCodeTree::ILStruct::globalVarPermutation"));
+  
+  for(unsigned i=0;i<varCnt;i++) {
+    sortedGlobalVarNumbers[i]=gvArr[i].first;
+    globalVarPermutation[gvArr[i].second]=i;
+  }
 }
 
 bool ClauseCodeTree::ILStruct::equalsForOpMatching(const ILStruct& o) const
@@ -699,7 +750,7 @@ void ClauseCodeTree::LiteralMatcher::recordMatch()
     //no need to record matches which we already know will not lead to anything
     return;
   }
-  MatchInfo* mi=new MatchInfo(linfos[curLInfo].liIndex, ils->varCnt, bindings);
+  MatchInfo* mi=new MatchInfo(ils, linfos[curLInfo].liIndex, bindings);
   ils->matches.push(mi);
 }
 
@@ -1016,6 +1067,9 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
 {
   CALL("ClauseCodeTree::ClauseMatcher::checkCandidate");
   
+//  bool verbose=false;//cl->number()==784 && query->number()==1053;
+//#define VERB_OUT(x) if(verbose) {cout<<x<<endl;}
+  
   unsigned clen=cl->length();
   //the last matcher in mls is the one that yielded the SUCCESS operation
   ASS_EQ(clen, lms.size()-1);
@@ -1048,6 +1102,13 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
   for(unsigned j=0;j<clen;j++) {
     ILStruct* ils=lms[j]->getILS();
     remaining.set(j,0,ils->matches.size());
+//    VERB_OUT("matches "<<ils->matches.size()<<" index:"<<j<<" vars:"<<ils->varCnt);
+//    for(unsigned x=0;x<ils->varCnt;x++) {
+//      VERB_OUT(" glob var: "<<ils->sortedGlobalVarNumbers[x]);
+//      for(unsigned y=0;y<ils->matches.size();y++) {
+//	VERB_OUT(" match "<<y<<" binding: "<<ils->matches[y]->bindings[x]);
+//      }
+//    }
   }
   
   static DArray<int> matchIndex;
@@ -1103,11 +1164,11 @@ bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILSt
   }
   
   unsigned bvars=bi->varCnt;
-  unsigned* bgvn=bi->globalVarNumbers;
+  unsigned* bgvn=bi->sortedGlobalVarNumbers;
   TermList* bb=bq->bindings;
   
   unsigned nvars=ni->varCnt;
-  unsigned* ngvn=ni->globalVarNumbers;
+  unsigned* ngvn=ni->sortedGlobalVarNumbers;
   TermList* nb=nq->bindings;
   
   while(bvars && nvars) {
