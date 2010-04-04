@@ -58,6 +58,8 @@ namespace Construction {
 
 GeneratingInferenceEngineSP createGIE()
 {
+  CALL("Saturation::Construction::createGIE");
+
   CompositeGIE* res=new CompositeGIE();
 
   res->addFront(GeneratingInferenceEngineSP(new EqualityFactoring()));
@@ -71,6 +73,8 @@ GeneratingInferenceEngineSP createGIE()
 
 ImmediateSimplificationEngineSP createImmediateSE()
 {
+  CALL("Saturation::Construction::createImmediateSE");
+
   CompositeISE* res=new CompositeISE();
 
 //  res->addFront(ImmediateSimplificationEngineSP(new InterpretedEvaluation()));
@@ -83,7 +87,8 @@ ImmediateSimplificationEngineSP createImmediateSE()
 
 void addFSEs(SaturationAlgorithm* alg)
 {
-/**/
+  CALL("Saturation::Construction::addFSEs");
+
   alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new RefutationSeekerFSE()));
 
   switch(env.options->forwardDemodulation()) {
@@ -124,7 +129,7 @@ void addFSEs(SaturationAlgorithm* alg)
 //	    new SLQueryForwardSubsumption() ));
   } else if(env.options->forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
-  }/**/
+  }
   if(env.options->condensation()) {
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new Condensation()));
   }
@@ -133,6 +138,8 @@ void addFSEs(SaturationAlgorithm* alg)
 
 void addBSEs(SaturationAlgorithm* alg)
 {
+  CALL("Saturation::Construction::addBSEs");
+
   switch(env.options->backwardDemodulation()) {
   case Options::DEMODULATION_ALL:
     alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardDemodulation()));
@@ -155,11 +162,15 @@ void addBSEs(SaturationAlgorithm* alg)
 
 LiteralSelectorSP createLiteralSelector()
 {
+  CALL("Saturation::Construction::createLiteralSelector");
+
   return LiteralSelectorSP(LiteralSelector::getSelector(env.options->selection()));
 }
 
 PassiveClauseContainerSP createPassiveContainer()
 {
+  CALL("Saturation::Construction::createPassiveContainer");
+
   AWPassiveClauseContainer* res=new AWPassiveClauseContainer();
   res->setAgeWeightRatio(env.options->ageRatio(),env.options->weightRatio());
   return PassiveClauseContainerSP(res);
@@ -171,6 +182,8 @@ using namespace Construction;
 
 SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
 {
+  CALL("SaturationAlgorithm::createFromOptions");
+
   PassiveClauseContainerSP passive=createPassiveContainer();
   LiteralSelectorSP selector=createLiteralSelector();
 

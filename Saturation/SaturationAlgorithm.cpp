@@ -79,6 +79,8 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
   _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _splitter(0),
   _consFinder(0), _symEl(0), _bddMarkingSubsumption(0)
 {
+  CALL("SaturationAlgorithm::SaturationAlgorithm");
+
   _propToBDD= env.options->propositionalToBDD();
 
   _unprocessed=new UnprocessedClauseContainer();
@@ -107,7 +109,8 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
  */
 SaturationAlgorithm::~SaturationAlgorithm()
 {
-
+  CALL("SaturationAlgorithm::~SaturationAlgorithm");
+  
   env.statistics->finalActiveClauses=_active->size();
   env.statistics->finalPassiveClauses=_passive->size();
 
@@ -134,7 +137,9 @@ SaturationAlgorithm::~SaturationAlgorithm()
     _immediateSimplifier->detach();
   }
 
-  _fwDemodulator->detach();
+  if(_fwDemodulator) {
+    _fwDemodulator->detach();
+  }
   while(_fwSimplifiers) {
     FwSimplList::pop(_fwSimplifiers)->detach();
   }
