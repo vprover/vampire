@@ -620,7 +620,7 @@ void ClauseCodeTree::incorporate(CodeStack& code)
     return;
   }
   
-  static const unsigned checkFunOpThreshold=100; //must be greater than 2 or it would cause loops
+  static const unsigned checkFunOpThreshold=2; //must be greater than 1 or it would cause loops
 
   size_t clen=code.length();
   OpCode** tailTarget;
@@ -665,6 +665,7 @@ void ClauseCodeTree::incorporate(CodeStack& code)
 	    //restart with the chain
 	    compressCheckFnOps(chainStart);
 	    treeOp=chainStart;
+	    checkFunOps=0;
 	    continue;
 	  }
 	}
@@ -721,11 +722,9 @@ void ClauseCodeTree::compressCheckFnOps(OpCode* chainStart)
   static Stack<OpCode*> toDo;
   static Stack<OpCode*> chfOps;
   static Stack<OpCode*> otherOps;
-  static Stack<SearchStruct*> sstructs;
   toDo.reset();
   chfOps.reset();
   otherOps.reset();
-  sstructs.reset();
   
   toDo.push(chainStart->alternative);
   while(toDo.isNonEmpty()) {
@@ -760,6 +759,7 @@ void ClauseCodeTree::compressCheckFnOps(OpCode* chainStart)
     ASS(chfOps[i]->isCheckFun());
     res->values[i]=chfOps[i]->arg();
     res->targets[i]=chfOps[i];
+    chfOps[i]->alternative=0;
   }
   
   OpCode* op=&res->landingOp;

@@ -139,7 +139,7 @@ public:
     inline bool isSuccess() const { return (instr()&3)==SUCCESS_OR_FAIL && data; }
     inline bool isFail() const { return !data; }
     inline bool isLitEnd() const { return (instr()&3)==LIT_END; }
-    inline bool isSearchStruct() const { return (instr()&3)==SEARCH_STRUCT; }
+    inline bool isSearchStruct() const { return instr()==SEARCH_STRUCT; }
     inline bool isCheckFun() const { return instr()==CHECK_FUN; }
 
     inline Clause* getSuccessResult() { ASS(isSuccess()); return result; }
