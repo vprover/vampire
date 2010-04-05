@@ -8,6 +8,7 @@
 #include "../Lib/BitUtils.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/Sort.hpp"
 #include "../Lib/TimeCounter.hpp"
 
 #include "../Kernel/Clause.hpp"
@@ -183,6 +184,7 @@ void ClauseCodeTree::ILStruct::disposeMatches()
 ClauseCodeTree::OpCode ClauseCodeTree::OpCode::getSuccess(Clause* cl)
 {
   CALL("ClauseCodeTree::OpCode::getSuccess");
+  ASS(cl); //cl has to be a non-zero pointer
 
   OpCode res;
   res.alternative=0;
@@ -220,25 +222,118 @@ bool ClauseCodeTree::OpCode::equalsForOpMatching(const OpCode& o) const
 {
   CALL("ClauseCodeTree::OpCode::equalsForOpMatching");
 
+  if(isLitEnd() && o.isLitEnd()) {
+    return getILS()->equalsForOpMatching(*o.getILS());
+  }
+  
   if(instr()!=o.instr()) {
     return false;
   }
   switch(instr()) {
-  case SUCCESS:
+  case SUCCESS_OR_FAIL:
   case SUCCESS2:
     return data==o.data;
-  case LIT_END:
-  case LIT_END2:
-    return getILS()->equalsForOpMatching(*o.getILS());
   case CHECK_FUN:
   case CHECK_VAR:
   case ASSIGN_VAR:
     return arg()==o.arg();
-  case FAIL:
-    return true;
+  case LIT_END:
+  case LIT_END2:
+  case SEARCH_STRUCT:
+    //SEARCH_STRUCT operations in the tree should be handled separately
+    //during insertion into the code tree
+    ASSERTION_VIOLATION;
   }
   ASSERTION_VIOLATION;
 }
+
+ClauseCodeTree::SearchStruct* ClauseCodeTree::OpCode::getSearchStruct()
+{
+  CALL("ClauseCodeTree::OpCode::getSearchStruct");
+  
+  //the following line gives warning for not being according
+  //to the standard, so we have to work around
+//  static const size_t opOfs=offsetof(SearchStruct,landingOp);
+  static const size_t opOfs=reinterpret_cast<size_t>(
+	&reinterpret_cast<SearchStruct*>(8)->landingOp)-8;
+
+  SearchStruct* res=reinterpret_cast<SearchStruct*>(
+      reinterpret_cast<size_t>(this)-opOfs);
+  ASS_ALLOC_TYPE(res,"ClauseCodeTree::SearchStruct");
+  return res;
+}
+
+
+ClauseCodeTree::SearchStruct::SearchStruct(size_t length)
+: length(length)
+{
+  CALL("ClauseCodeTree::SearchStruct::SearchStruct");
+  ASS(length);
+  
+  landingOp.alternative=0;
+  landingOp.setInstr(SEARCH_STRUCT);
+  
+  size_t valSize=sizeof(unsigned)*length;
+  values=static_cast<unsigned*>(
+      ALLOC_KNOWN(valSize, "ClauseCodeTree::SearchStruct::values"));
+  size_t tgtSize=sizeof(OpCode*)*length;
+  targets=static_cast<OpCode**>(
+      ALLOC_KNOWN(tgtSize, "ClauseCodeTree::SearchStruct::targets"));
+}
+
+ClauseCodeTree::SearchStruct::~SearchStruct()
+{
+  CALL("ClauseCodeTree::SearchStruct::~SearchStruct");
+
+  size_t valSize=sizeof(unsigned)*length;
+  DEALLOC_KNOWN(values, valSize, "ClauseCodeTree::SearchStruct::values");
+  size_t tgtSize=sizeof(OpCode*)*length;
+  DEALLOC_KNOWN(targets, tgtSize, "ClauseCodeTree::SearchStruct::targets");
+}
+
+ClauseCodeTree::OpCode*& ClauseCodeTree::SearchStruct::targetOp(unsigned fn)
+{
+  CALL("ClauseCodeTree::SearchStruct::findTargetOp");
+  
+  size_t left=0;
+  size_t right=length-1;
+  while(left<right) {
+    size_t mid=(left+right)/2;
+    switch(Int::compare(fn, values[mid])) {
+    case LESS:
+      right=mid;
+      break;
+    case GREATER:
+      left=mid+1;
+      break;
+    case EQUAL:
+      return targets[mid];
+    }
+  }
+  ASS_EQ(left,right);
+  ASS(left==length-1 || fn<=values[left]);
+  return targets[left];
+//  if(fn>values[left]) {
+//    return &targets[length];
+//  }
+//  else {
+//    return &targets[left];
+//  }
+}
+
+/**
+ * Comparator that compares two CHECK_FUN operations for the 
+ * purpose of insertion into the SearchStruct.
+ * 
+ * Is used in the @b compressCheckFnOps function.
+ */
+struct ClauseCodeTree::SearchStruct::OpComparator
+{
+  static Comparison compare(OpCode* op1, OpCode* op2)
+  {
+    return Int::compare(op1->arg(), op2->arg());
+  }
+};
 
 //////////////// auxiliary ////////////////////
 
@@ -378,9 +473,7 @@ void ClauseCodeTree::evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLe
 
   cctx.deinit(this, true);
 
-  ILStruct* aux;
-  OpCode* lastMatched;
-  matchCode(code, startOp, lastMatched, sharedLen, aux);
+  matchCode(code, startOp, sharedLen);
 
   unsharedLen=code.size()-sharedLen;
 }
@@ -394,31 +487,34 @@ void ClauseCodeTree::evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLe
  * it is the first operation on which mismatch occured and there was no alternative to
  * proceed to (in this case it therefore holds that @b lastAttemptedOp->alternative==0 ).
  */
-void ClauseCodeTree::matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastAttemptedOp,
-    size_t& matchedCnt, ILStruct*& lastILS)
+void ClauseCodeTree::matchCode(CodeStack& code, OpCode* startOp, size_t& matchedCnt)
 {
   CALL("ClauseCodeTree::matchCode");
 
   size_t clen=code.length();
   OpCode* treeOp=startOp;
   
-  lastILS=0;
-
   for(size_t i=0;i<clen;i++) {
-    while(!code[i].equalsForOpMatching(*treeOp) && treeOp->alternative) {
+    for(;;) {
+      if(treeOp->isSearchStruct()) {
+	if(code[i].isCheckFun()) {
+	  SearchStruct* ss=treeOp->getSearchStruct();
+	  treeOp=ss->targetOp(code[i].arg());
+	  continue;
+	}
+      }
+      else if(code[i].equalsForOpMatching(*treeOp)) {
+	break;
+      }
       treeOp=treeOp->alternative;
-    }
-    if(!code[i].equalsForOpMatching(*treeOp)) {
-      ASS(!treeOp->alternative);
-      matchedCnt=i;
-      lastAttemptedOp=treeOp;
-      return;
+      if(!treeOp) {
+	matchedCnt=i;
+	return;
+      }
     }
 
-    if(treeOp->isLitEnd()) {
-      lastILS=treeOp->getILS();
-    }
-
+    //the SEARCH_STRUCT operation does not occur in a CodeBlock
+    ASS(!treeOp->isSearchStruct());
     //we can safely do increase because as long as we match and something
     //remains in the @b code stack, we aren't at the end of the CodeBlock
     //either (as each code block contains at least one FAIL or SUCCESS
@@ -428,7 +524,6 @@ void ClauseCodeTree::matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastAt
   }
   //we matched the whole CodeStack
   matchedCnt=clen;
-  lastAttemptedOp=treeOp;
 }
 
 
@@ -524,32 +619,92 @@ void ClauseCodeTree::incorporate(CodeStack& code)
     code.reset();
     return;
   }
-
-  OpCode* treeOp;
-  size_t matchedCnt;
-  ILStruct* lastMatchedILS;
-  matchCode(code, getEntryPoint(), treeOp, matchedCnt, lastMatchedILS);
+  
+  static const unsigned checkFunOpThreshold=100; //must be greater than 2 or it would cause loops
 
   size_t clen=code.length();
-  if(clen==matchedCnt) {
-    ASS(treeOp->isSuccess());
-    //If we are here, we are inserting an item multiple times.
-    //We will insert it anyway, because later we may be removing it multiple
-    //times as well.
-    matchedCnt--;
+  OpCode** tailTarget;
+  size_t matchedCnt;
+  ILStruct* lastMatchedILS=0;
+  
+  {
+    OpCode* treeOp=getEntryPoint();
+    
+    for(size_t i=0;i<clen;i++) {
+      OpCode* chainStart=treeOp;
+      size_t checkFunOps=0;
+      for(;;) {
+	if(treeOp->isSearchStruct()) {
+	  if(code[i].isCheckFun()) {
+	    SearchStruct* ss=treeOp->getSearchStruct();
+	    OpCode** to=&ss->targetOp(code[i].arg());
+	    if(!*to) {
+	      tailTarget=to;
+	      matchedCnt=i;
+	      goto matching_done;
+	    }
+	    treeOp=*to;
+	    continue;
+	  }
+	}
+	else if(code[i].equalsForOpMatching(*treeOp)) {
+	  break;
+	}
+	if(treeOp->alternative) {
+	  treeOp=treeOp->alternative;
+	}
+	else {
+	  tailTarget=&treeOp->alternative;
+	  matchedCnt=i;
+	  goto matching_done;
+	}
+	if(treeOp->isCheckFun()) {
+	  checkFunOps++;
+	  if(checkFunOps>checkFunOpThreshold) {
+	    //we put CHECK_FUN ops into the SEARCH_STRUCT op, and 
+	    //restart with the chain
+	    compressCheckFnOps(chainStart);
+	    treeOp=chainStart;
+	    continue;
+	  }
+	}
+      }
+
+      if(treeOp->isLitEnd()) {
+	lastMatchedILS=treeOp->getILS();
+      }
+
+      //the SEARCH_STRUCT operation does not occur in a CodeBlock
+      ASS(!treeOp->isSearchStruct());
+      //we can safely do increase because as long as we match and something
+      //remains in the @b code stack, we aren't at the end of the CodeBlock
+      //either (as each code block contains at least one FAIL or SUCCESS
+      //operation, and CodeStack contains at most one SUCCESS as the last
+      //operation)
+      treeOp++;
+    }
+    //We matched the whole CodeStack. If we are here, we are inserting an 
+    //item multiple times. We will insert it anyway, because later we may 
+    //be removing it multiple times as well.
+    matchedCnt=clen-1;
 
     //we need to find where to put it
     while(treeOp->alternative) {
       treeOp=treeOp->alternative;
     }
+    tailTarget=&treeOp->alternative;
   }
+matching_done:
+  
+  ASS_L(matchedCnt,clen);
 
-  ASS(!treeOp->alternative);
   CodeBlock* rem=buildBlock(code, clen-matchedCnt, lastMatchedILS);
-  treeOp->alternative=&(*rem)[0];
-  LOG_OP(rem->toString()<<" incorporated at "<<treeOp->toString()<<" caused by "<<code[matchedCnt].toString());
+  *tailTarget=&(*rem)[0];
+  LOG_OP(rem->toString()<<" incorporated, mismatch caused by "<<code[matchedCnt].toString());
 
+  //truncate the part that was used and thus does not need disposing
   code.truncate(matchedCnt);
+  //dispose of the unused code
   while(code.isNonEmpty()) {
     if(code.top().isLitEnd()) {
       delete code.top().getILS();
@@ -558,6 +713,63 @@ void ClauseCodeTree::incorporate(CodeStack& code)
   }
 }
 
+void ClauseCodeTree::compressCheckFnOps(OpCode* chainStart)
+{
+  CALL("ClauseCodeTree::compressCheckFnOps");
+  ASS(chainStart->alternative);
+  
+  static Stack<OpCode*> toDo;
+  static Stack<OpCode*> chfOps;
+  static Stack<OpCode*> otherOps;
+  static Stack<SearchStruct*> sstructs;
+  toDo.reset();
+  chfOps.reset();
+  otherOps.reset();
+  sstructs.reset();
+  
+  toDo.push(chainStart->alternative);
+  while(toDo.isNonEmpty()) {
+    OpCode* op=toDo.pop();
+    if(op->alternative) {
+      toDo.push(op->alternative);
+    }
+    if(op->isCheckFun()) {
+      chfOps.push(op);
+    }
+    else if(op->isSearchStruct()) {
+      SearchStruct* ss=op->getSearchStruct();
+      for(size_t i=0;i<ss->length;i++) {
+	if(ss->targets[i]) {
+	  toDo.push(ss->targets[i]);
+	}
+      }
+      delete ss;
+    }
+    else {
+      otherOps.push(op);
+    }
+  }
+
+  ASS_G(chfOps.size(),1);
+  size_t slen=chfOps.size();
+  SearchStruct* res=new SearchStruct(slen);
+  
+  sort<SearchStruct::OpComparator>(chfOps.begin(), chfOps.end());
+  
+  for(size_t i=0;i<slen;i++) {
+    ASS(chfOps[i]->isCheckFun());
+    res->values[i]=chfOps[i]->arg();
+    res->targets[i]=chfOps[i];
+  }
+  
+  OpCode* op=&res->landingOp;
+  chainStart->alternative=op;
+  while(otherOps.isNonEmpty()) {
+    op->alternative=otherOps.pop();
+    op=op->alternative;
+  }
+  op->alternative=0;
+}
 
 void ClauseCodeTree::insert(Clause* cl)
 {
@@ -792,13 +1004,23 @@ bool ClauseCodeTree::LiteralMatcher::execute()
     case CHECK_VAR:
       shouldBacktrack=!doCheckVar();
       break;
-    case FAIL:
-      shouldBacktrack=true;
+    case SEARCH_STRUCT:
+      if(doSearchStruct()) {
+	//a new value of @b op is assigned, so restart the loop
+	continue;
+      }
+      else {
+	shouldBacktrack=true;
+      }
       break;
     case LIT_END:
     case LIT_END2:
       return true;
-    case SUCCESS:
+    case SUCCESS_OR_FAIL:
+      if(op->isFail()) {
+	shouldBacktrack=true;
+	break;
+      }
     case SUCCESS2:
       //SUCCESS can only appear as the first operation in a literal block
       ASS_EQ(tp,0);
@@ -821,6 +1043,8 @@ bool ClauseCodeTree::LiteralMatcher::execute()
       shouldBacktrack=false;
     }
     else {
+      //the SEARCH_STRUCT operation does not appear in CodeBlocks
+      ASS(!op->isSearchStruct());
       //In each CodeBlock there is always either operation LIT_END or FAIL.
       //As we haven't encountered one yet, we may safely increase the
       //operation pointer
@@ -853,6 +1077,18 @@ bool ClauseCodeTree::LiteralMatcher::prepareLiteral()
   tp=0;
   op=entry;
   ft=linfos[curLInfo].ft;
+  return true;
+}
+
+inline bool ClauseCodeTree::LiteralMatcher::doSearchStruct()
+{
+  ASS_EQ(op->instr(), SEARCH_STRUCT);
+
+  const FlatTerm::Entry& fte=(*ft)[tp];
+  if(!fte.isFun()) {
+    return false;
+  }
+  op=op->getSearchStruct()->targetOp(fte.number());
   return true;
 }
 

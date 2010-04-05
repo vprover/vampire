@@ -32,6 +32,7 @@ class ClauseCodeTree : public ClauseSubsumptionIndex
 public:
 
   struct ILStruct;
+  struct SearchStruct;
 
   struct LitInfo
   {
@@ -106,14 +107,15 @@ public:
 
   enum Instruction
   {
-    SUCCESS = 0,
+    //it means fail if data==0
+    SUCCESS_OR_FAIL = 0,
     SUCCESS2 = 4, //this one is here because pointers are guaranted to be only 4-byte aligned
     LIT_END = 1,
     LIT_END2 = 5, //this one also
     CHECK_FUN = 2,
     ASSIGN_VAR = 3,
     CHECK_VAR = 6,
-    FAIL = 7
+    SEARCH_STRUCT = 7
   };
 
   /** Structure containing a single instruction and its arguments */
@@ -123,7 +125,7 @@ public:
     static OpCode getLitEnd(ILStruct* ils);
     static OpCode getTermOp(Instruction i, unsigned num);
 
-    void makeFail() { setInstr(FAIL); }
+    void makeFail() { data=0; }
     
     bool equalsForOpMatching(const OpCode& o) const;
 
@@ -134,9 +136,11 @@ public:
      * on some architectures, pointers are only 4-byte aligned and
      * the instruction is stored in first three bits.
      */
-    inline bool isSuccess() const { return (instr()&3)==SUCCESS; }
-    inline bool isFail() const { return instr()==FAIL; }
+    inline bool isSuccess() const { return (instr()&3)==SUCCESS_OR_FAIL && data; }
+    inline bool isFail() const { return !data; }
     inline bool isLitEnd() const { return (instr()&3)==LIT_END; }
+    inline bool isSearchStruct() const { return (instr()&3)==SEARCH_STRUCT; }
+    inline bool isCheckFun() const { return instr()==CHECK_FUN; }
 
     inline Clause* getSuccessResult() { ASS(isSuccess()); return result; }
     
@@ -149,6 +153,8 @@ public:
     {
       return const_cast<OpCode*>(this)->getILS();
     }
+    
+    SearchStruct* getSearchStruct();
 
     inline Instruction instr() const { return info.instr; }
     inline void setInstr(Instruction i) { info.instr=i; }
@@ -174,6 +180,23 @@ public:
      * a @b CodeBlock.
      */
     OpCode* alternative;
+  };
+  
+  struct SearchStruct
+  {
+    SearchStruct(size_t length);
+    ~SearchStruct();
+    OpCode*& targetOp(unsigned fn);
+
+    CLASS_NAME("ClauseCodeTree::SearchStruct");
+    USE_ALLOCATOR(SearchStruct);
+    
+    struct OpComparator;
+
+    OpCode landingOp;
+    size_t length;
+    unsigned* values;
+    OpCode** targets;
   };
 
 
@@ -209,10 +232,11 @@ public:
 
   void optimizeLiteralOrder(DArray<Literal*>& lits);
   void evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLen, size_t& unsharedLen);
-  static void matchCode(CodeStack& code, OpCode* startOp, OpCode*& lastAttemptedOp,
-      size_t& matchedCnt, ILStruct*& lastILS);
+  static void matchCode(CodeStack& code, OpCode* startOp, size_t& matchedCnt);
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
   void incorporate(CodeStack& code);
+  
+  void compressCheckFnOps(OpCode* chainStart);
 
   static void compileLiteral(Literal* lit, CodeStack& code, CompileContext& cctx, bool addLitEnd);
 
@@ -282,6 +306,7 @@ public:
     bool backtrack();
     bool prepareLiteral();
 
+    bool doSearchStruct();
     bool doCheckFun();
     void doAssignVar();
     bool doCheckVar();
