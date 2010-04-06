@@ -164,12 +164,11 @@ class LiteralSubstitutionTree;
 
 class CodeTree;
 class TermCodeTree;
-class ClCodeTree;
+class ClauseCodeTree;
+
 class CodeTreeTIS;
 class CodeTreeLIS;
 class CodeTreeSubsumptionIndex;
-
-class ClauseCodeTree;
 };
 
 namespace Saturation

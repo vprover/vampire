@@ -8,7 +8,9 @@
 
 #include "../Forwards.hpp"
 
-#include "CodeTree.hpp"
+#include "TermCodeTree.hpp"
+#include "ClauseCodeTree.hpp"
+
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
 #include "LiteralIndexingStructure.hpp"
@@ -20,9 +22,11 @@ namespace Indexing
 using namespace Kernel;
 using namespace Lib;
 
+
 /**
  * Term indexing structure using code trees to retrieve generalizations
  */
+
 class CodeTreeTIS : public TermIndexingStructure
 {
 public:
@@ -38,7 +42,7 @@ private:
 
   TermCodeTree _ct;
 };
-
+/*
 class CodeTreeLIS : public LiteralIndexingStructure
 {
 public:
@@ -53,20 +57,20 @@ private:
 
   TermCodeTree _ct;
 };
-
+*/
 
 class CodeTreeSubsumptionIndex
 : public ClauseSubsumptionIndex
 {
 public:
-  ClauseIterator getSubsumingClauses(Clause* c);
+  ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);
 protected:
   //overrides Index::handleClause
   void handleClause(Clause* c, bool adding);
 private:
-  class SubsumptionIterator;
+  class ClauseSResIterator;
 
-  ClCodeTree _ct;
+  ClauseCodeTree _ct;
 };
 
 };

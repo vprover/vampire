@@ -118,6 +118,7 @@ VI_OBJ = Indexing/ClauseCodeTree.o\
          Indexing/ResultSubstitution.o\
          Indexing/SubstitutionTree.o\
          Indexing/SubstitutionTree_Nodes.o\
+         Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o

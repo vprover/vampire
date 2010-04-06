@@ -6,12 +6,15 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Recycler.hpp"
+#include "../Lib/TimeCounter.hpp"
+#include "../Lib/VirtualIterator.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/FlatTerm.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Kernel/SubstHelper.hpp"
 #include "../Kernel/Term.hpp"
+
+#include "ClauseCodeTree.hpp"
+#include "TermCodeTree.hpp"
 
 #include "CodeTreeInterfaces.hpp"
 
@@ -21,47 +24,12 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-/**
- * A functor object that reveives a @void* as an argument, casts it
- * to type @b T* and checks whether the references object is equal to
- * the object pointed to by the pointer given in the constructor.
- */
-template<typename T>
-struct EqualityDerefFn
-: public CodeTree::SuccessDataMatchingFn
-{
-  EqualityDerefFn(T* o) : obj(o) {}
-
-  bool operator() (void* arg)
-  {
-    return *obj==*static_cast<T*>(arg);
-  }
-
-private:
-  T* obj;
-};
-
-template<typename T>
-struct EqualityFn
-: public CodeTree::SuccessDataMatchingFn
-{
-  EqualityFn(T o) : obj(o) {}
-
-  bool operator() (T arg)
-  {
-    return obj==arg;
-  }
-
-private:
-  T obj;
-};
-
 class CodeTreeSubstitution
 : public ResultSubstitution
 {
 public:
-  CodeTreeSubstitution(TermCodeTree::TermEContext* ctx, Renaming* resultNormalizer)
-  : _ctx(ctx), _resultNormalizer(resultNormalizer),
+  CodeTreeSubstitution(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
+  : _bindings(bindings), _resultNormalizer(resultNormalizer),
   _applicator(0)
   {}
   ~CodeTreeSubstitution()
@@ -85,14 +53,14 @@ private:
   struct Applicator
   {
     inline
-    Applicator(TermCodeTree::TermEContext* ctx, Renaming* resultNormalizer)
-    : _ctx(ctx), _resultNormalizer(resultNormalizer) {}
+    Applicator(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
+    : _bindings(bindings), _resultNormalizer(resultNormalizer) {}
 
     TermList apply(unsigned var)
     {
       ASS(_resultNormalizer->contains(var));
       unsigned nvar=_resultNormalizer->get(var);
-      TermList res=_ctx->bindings[nvar];
+      TermList res=(*_bindings)[nvar];
       ASS(res.isTerm()||res.isOrdinaryVar());
       ASSERT_VALID(res);
       return res;
@@ -101,43 +69,25 @@ private:
     CLASS_NAME("CodeTreeSubstitution::Applicator");
     USE_ALLOCATOR(Applicator);
   private:
-    TermCodeTree::TermEContext* _ctx;
+    CodeTree::BindingArray* _bindings;
     Renaming* _resultNormalizer;
   };
 
   Applicator* getApplicator()
   {
     if(!_applicator) {
-      _applicator=new Applicator(_ctx, _resultNormalizer);
+      _applicator=new Applicator(_bindings, _resultNormalizer);
     }
     return _applicator;
   }
 
-  TermCodeTree::TermEContext* _ctx;
+  CodeTree::BindingArray* _bindings;
   Renaming* _resultNormalizer;
   Applicator* _applicator;
 };
 
 ///////////////////////////////////////
 
-struct CodeTreeTIS::TermInfo
-{
-  TermInfo(TermList t, Literal* lit, Clause* cls)
-  : t(t), lit(lit), cls(cls) {}
-
-  inline bool operator==(const TermInfo& o)
-  { return cls==o.cls && t==o.t && lit==o.lit; }
-
-  inline bool operator!=(const TermInfo& o)
-  { return !(*this==o); }
-
-  CLASS_NAME("CodeTreeTIS::TermInfo");
-  USE_ALLOCATOR(TermInfo);
-
-  TermList t;
-  Literal* lit;
-  Clause* cls;
-};
 
 class CodeTreeTIS::ResultIterator
 : public IteratorCore<TermQueryResult>
@@ -147,19 +97,19 @@ public:
   : _retrieveSubstitutions(retrieveSubstitutions),
     _found(0), _finished(false), _tree(tree)
   {
-    Recycler::get(_ctx);
-    _ctx->init(t,&_tree->_ct);
+    Recycler::get(_matcher);
+    _matcher->init(&_tree->_ct, t);
 
     if(_retrieveSubstitutions) {
       Recycler::get(_resultNormalizer);
-      _subst=new CodeTreeSubstitution(_ctx, _resultNormalizer);
+      _subst=new CodeTreeSubstitution(&_matcher->bindings, _resultNormalizer);
     }
   }
 
   ~ResultIterator()
   {
-    _ctx->deinit(&_tree->_ct);
-    Recycler::release(_ctx);
+    _matcher->deinit();
+    Recycler::release(_matcher);
     if(_retrieveSubstitutions) {
       Recycler::release(_resultNormalizer);
       delete _subst;
@@ -179,12 +129,9 @@ public:
     if(_finished) {
       return false;
     }
-    void* data;
-    if(TermCodeTree::next(*_ctx, data)) {
-      _found=static_cast<TermInfo*>(data);
-    }
-    else {
-      _found=0;
+    void* data=_matcher->next();
+    _found=static_cast<TermCodeTree::TermInfo*>(data);
+    if(!_found) {
       _finished=true;
     }
     return _found;
@@ -213,44 +160,25 @@ private:
   CodeTreeSubstitution* _subst;
   Renaming* _resultNormalizer;
   bool _retrieveSubstitutions;
-  TermInfo* _found;
+  TermCodeTree::TermInfo* _found;
   bool _finished;
   CodeTreeTIS* _tree;
-  TermCodeTree::TermEContext* _ctx;
+  TermCodeTree::TermMatcher* _matcher;
 };
 
 void CodeTreeTIS::insert(TermList t, Literal* lit, Clause* cls)
 {
   CALL("CodeTreeTIS::insert");
-  ASS_EQ(_ct._initEContextCounter,0); //index must not be modified while traversed
 
-  static CodeTree::CodeStack code;
-  code.reset();
-
-  _ct.compile(t,code);
-  ASS(code.top().isSuccess());
-
-  //assign the term info
-  code.top().result=new TermInfo(t,lit,cls);
-  ASS(code.top().isSuccess());
-
-  _ct.incorporate(code);
+  TermCodeTree::TermInfo* ti=new TermCodeTree::TermInfo(t,lit,cls);
+  _ct.insert(ti);
 }
 
 void CodeTreeTIS::remove(TermList t, Literal* lit, Clause* cls)
 {
   CALL("CodeTreeTIS::remove");
-  ASS_EQ(_ct._initEContextCounter,0); //index must not be modified while traversed
-
-  TermInfo ti(t,lit,cls);
-
-  static TermCodeTree::TermEContext ctx;
-  ctx.init(t, &_ct);
-
-  EqualityDerefFn<TermInfo> succFn(&ti);
-  CodeTree::remove(ctx, &_ct, &succFn);
-
-  ctx.deinit(&_ct);
+  
+  _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
 TermQueryResultIterator CodeTreeTIS::getGeneralizations(TermList t, bool retrieveSubstitutions)
@@ -272,18 +200,17 @@ bool CodeTreeTIS::generalizationExists(TermList t)
     return false;
   }
 
-  static TermCodeTree::TermEContext ctx;
-  ctx.init(t, &_ct);
-
-  void* aux;
-  bool res=TermCodeTree::next(ctx, aux);
-
-  ctx.deinit(&_ct);
+  static TermCodeTree::TermMatcher tm;
+  
+  tm.init(&_ct, t);
+  bool res=tm.next();
+  tm.deinit();
+  
   return res;
 }
 
 ////////////////////////////////////////
-
+/*
 struct CodeTreeLIS::LiteralInfo
 {
   LiteralInfo(Literal* lit, Clause* cls)
@@ -390,7 +317,7 @@ public:
   }
 private:
   /** True if the query literal is commutative and we still
-   * may try swaping its arguments */
+   * may try swaping its arguments /
   bool _canReorder;
   FlatTerm* _flatTerm;
   CodeTreeSubstitution* _subst;
@@ -448,108 +375,82 @@ SLQueryResultIterator CodeTreeLIS::getGeneralizations(Literal* lit,
   return vi( new ResultIterator(this, lit, complementary,
       retrieveSubstitutions) );
 }
+*/
 
+/////////////////   CodeTreeSubsumptionIndex   //////////////////////
 
-///////////////////////////////////////
-
-class CodeTreeSubsumptionIndex::SubsumptionIterator
-: public IteratorCore<Clause*>
+class CodeTreeSubsumptionIndex::ClauseSResIterator
+: public IteratorCore<ClauseSResQueryResult>
 {
 public:
-  SubsumptionIterator(CodeTreeSubsumptionIndex* tree, Clause* cl)
-  : _found(0), _finished(false), _tree(tree)
+  ClauseSResIterator(ClauseCodeTree* tree, Clause* query, bool sres)
+  : ready(false)
   {
-    Recycler::get(_ctx);
-    _ctx->init(cl,&_tree->_ct);
+    Recycler::get(cm);
+    cm->init(tree, query, sres);
   }
-
-  ~SubsumptionIterator()
+  ~ClauseSResIterator()
   {
-    _ctx->deinit(&_tree->_ct);
-    Recycler::release(_ctx);
+    cm->deinit();
+    Recycler::release(cm);
   }
-
-  CLASS_NAME("CodeTreeSubsumptionIndex::SubsumptionIterator");
-  USE_ALLOCATOR(SubsumptionIterator);
-
+  
   bool hasNext()
   {
-    CALL("CodeTreeSubsumptionIndex::SubsumptionIterator::hasNext");
-
-    if(_found) {
-      return true;
+    CALL("CodeTreeSubsumptionIndex::ClauseSResIterator::hasNext");
+    if(ready) {
+      return result;
     }
-    if(_finished) {
-      return false;
-    }
-
-    void* data;
-    if(ClCodeTree::next(*_ctx, data)) {
-      _found=static_cast<Clause*>(data);
+    ready=true;
+    result=cm->next(resolvedQueryLit);
+    ASS(!result || resolvedQueryLit<1000000);
+    return result;
+  }
+  
+  ClauseSResQueryResult next()
+  {
+    CALL("CodeTreeSubsumptionIndex::ClauseSResIterator::next");
+    ASS(result);
+    
+    ready=false;
+    if(resolvedQueryLit==-1) {
+      return ClauseSResQueryResult(result);
     }
     else {
-      _found=0;
-      _finished=true;
+      return ClauseSResQueryResult(result, resolvedQueryLit);
     }
-    return _found;
-  }
-
-  Clause* next()
-  {
-    CALL("CodeTreeSubsumptionIndex::SubsumptionIterator::next");
-    ASS(_found);
-
-    Clause* res=_found;
-    _found=0;
-    return res;
   }
 private:
-  Clause* _found;
-  bool _finished;
-  CodeTreeSubsumptionIndex* _tree;
-  ClCodeTree::ClauseEContext* _ctx;
+  bool ready;
+  Clause* result;
+  int resolvedQueryLit;
+  ClauseCodeTree::ClauseMatcher* cm;
 };
 
-void CodeTreeSubsumptionIndex::handleClause(Clause* c, bool adding)
+void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
 {
   CALL("CodeTreeSubsumptionIndex::handleClause");
-  ASS_EQ(_ct._initEContextCounter,0); //index must not be modified while traversed
-
+  
   TimeCounter tc(TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE);
 
   if(adding) {
-    static CodeTree::CodeStack code;
-    code.reset();
-
-    _ct.compile(c,code);
-    ASS(code.top().isSuccess());
-
-    //assign the term info
-    code.top().result=c;
-    ASS(code.top().isSuccess());
-
-    _ct.incorporate(code);
+    _ct.insert(cl);
   }
   else {
-    static ClCodeTree::ClauseEContext ctx;
-    ctx.init(c, &_ct);
-
-    EqualityFn<void*> succFn(c);
-    CodeTree::remove(ctx, &_ct, &succFn);
-
-    ctx.deinit(&_ct);
+    _ct.remove(cl);
   }
 }
 
-ClauseIterator CodeTreeSubsumptionIndex::getSubsumingClauses(Clause* c)
+ClauseSResResultIterator CodeTreeSubsumptionIndex
+	::getSubsumingOrSResolvingClauses(Clause* cl, bool subsumptionResolution)
 {
   CALL("CodeTreeSubsumptionIndex::getSubsumingClauses");
 
   if(_ct.isEmpty()) {
-    return ClauseIterator::getEmpty();
+    return ClauseSResResultIterator::getEmpty();
   }
 
-  return vi( new SubsumptionIterator(this, c) );
+  return vi( new ClauseSResIterator(&_ct, cl, subsumptionResolution) );
 }
 
 

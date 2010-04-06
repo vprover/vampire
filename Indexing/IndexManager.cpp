@@ -7,7 +7,6 @@
 
 #include "../Saturation/SaturationAlgorithm.hpp"
 
-#include "ClauseCodeTree.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "LiteralIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"
@@ -114,8 +113,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case FW_SUBSUMPTION_CODE_TREE:
-    res=new ClauseCodeTree();
-//    res=new CodeTreeSubsumptionIndex();
+    res=new CodeTreeSubsumptionIndex();
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
 
