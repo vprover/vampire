@@ -37,7 +37,6 @@ public:
   bool generalizationExists(TermList t);
 
 private:
-  struct TermInfo;
   class ResultIterator;
 
   TermCodeTree _ct;
