@@ -114,13 +114,15 @@ void addFSEs(SaturationAlgorithm* alg)
 
     if(env.options->forwardSubsumptionResolution()) {
       alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
-	  new ForwardSubsumptionAndResolution(true) ));
+//	  new ForwardSubsumptionAndResolution(true) ));
 //	  new ForwardSubsumptionAndResolution(false) ));
+	  new CTFwSubsAndRes(true) ));
+//	  new Test::CheckedFwSimplifier(new CTFwSubsAndRes(true), new ForwardSubsumptionAndResolution(true)) ));
     }
     else {
       alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
-	  new CTFwSubsAndRes() ));
-//	  new Test::CheckedFwSimplifier(new CTFwSubsAndRes(), new ForwardSubsumptionAndResolution(false)) ));
+	  new CTFwSubsAndRes(false) ));
+//	  new Test::CheckedFwSimplifier(new CTFwSubsAndRes(false), new ForwardSubsumptionAndResolution(false)) ));
     }
 //    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(
 //	    new ForwardSubsumptionAndResolution(

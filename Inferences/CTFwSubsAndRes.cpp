@@ -4,6 +4,8 @@
  */
 
 
+#include "../Kernel/Inference.hpp"
+
 #include "../Indexing/Index.hpp"
 #include "../Indexing/IndexManager.hpp"
 
@@ -40,28 +42,72 @@ void CTFwSubsAndRes::detach()
   ForwardSimplificationEngine::detach();
 }
 
+Clause* CTFwSubsAndRes::buildSResClause(Clause* cl, unsigned resolvedIndex, Clause* premise)
+{
+  CALL("CTFwSubsAndRes::buildSResClause");
+  
+  unsigned clen = cl->length();
+  ASS_L(resolvedIndex,clen);
+
+  unsigned newLength = clen-1;
+
+  Inference* inf = new Inference2(Inference::SUBSUMPTION_RESOLUTION, cl, premise);
+  Unit::InputType inpType = (Unit::InputType)
+  	max(cl->inputType(), premise->inputType());
+
+  Clause* res = new(newLength) Clause(newLength, inpType, inf);
+
+  unsigned next = 0;
+  for(unsigned i=0;i<clen;i++) {
+    if(i!=resolvedIndex) {
+	(*res)[next++] = (*cl)[i];
+    }
+  }
+  ASS_EQ(next,newLength);
+
+  res->setAge(cl->age());
+
+  return res;
+}
+
 void CTFwSubsAndRes::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
   CALL("CTFwSubsAndRes::perform");
+  
+  if(cl->length()==0) {
+    return;
+  }
 
   TimeCounter tc_fs(TC_FORWARD_SUBSUMPTION);
 
   Clause::requestAux();
 
-  ClauseIterator subsumers=_index->getSubsumingClauses(cl);
-  while(subsumers.hasNext()) {
-    Clause* premise=subsumers.next();
+  ClauseSResResultIterator sresIt=_index->getSubsumingOrSResolvingClauses(cl, 
+	  _subsumptionResolution);
+  while(sresIt.hasNext()) {
+    ClauseSResQueryResult res=sresIt.next();
+    Clause* premise=res.clause;
     if(premise->hasAux()) {
       //we already yielded this clause as a potential subsumer
       continue;
     }
     premise->setAux(0);
-    if(simplPerformer->willPerform(premise)) {
+    if(!simplPerformer->willPerform(premise)) {
+      continue;
+    }
+    
+    if(res.resolved) {
+      Clause* replacement=buildSResClause(cl, res.resolvedQueryLiteralIndex, premise);
+      simplPerformer->perform(premise, replacement);
+      env.statistics->forwardSubsumptionResolution++;
+    }
+    else {
       simplPerformer->perform(premise, 0);
       env.statistics->forwardSubsumed++;
-      if(!simplPerformer->clauseKept()) {
-	goto fin;
-      }
+    }
+    
+    if(!simplPerformer->clauseKept()) {
+      goto fin;
     }
   }
 

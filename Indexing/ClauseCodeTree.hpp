@@ -41,13 +41,13 @@ public:
     void dispose();
 
     static LitInfo getReversed(const LitInfo& li);
+    static LitInfo getOpposite(const LitInfo& li);
 
     /** Index of this LitInfo in the ClauseMatcher object */
     unsigned liIndex;
     /** Index of the literal in the query clause */
     unsigned litIndex;
     FlatTerm* ft;
-    bool reversed;
     bool opposite;
   };
 
@@ -67,6 +67,8 @@ public:
     /** array of bindings */
     TermList* bindings;
   };
+  
+  typedef Stack<MatchInfo*> MatchStack;
 
   /**
    * Structure with information about an indexed literal
@@ -99,7 +101,7 @@ public:
     
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
-    Stack<MatchInfo*> matches;
+    MatchStack matches;
     /** all possible lits were tried to match */
     bool visited;
     bool finished;
@@ -316,10 +318,10 @@ public:
 
   struct ClauseMatcher
   {
-    void init(ClauseCodeTree* tree_, Clause* query_);
+    void init(ClauseCodeTree* tree_, Clause* query_, bool sres_);
     void deinit();
 
-    Clause* next();
+    Clause* next(int& resolvedQueryLit);
     
     bool matched() { return lms.isNonEmpty() && lms.top()->success(); }
     OpCode* getSuccessOp() { ASS(matched()); return lms.top()->op; }
@@ -332,12 +334,14 @@ public:
     void leaveLiteral();
     bool litEndAlreadyVisited(OpCode* op);
     
-    bool checkCandidate(Clause* cl);
-    bool matchGlobalVars();
+    bool checkCandidate(Clause* cl, int& resolvedQueryLit);
+    bool matchGlobalVars(int& resolvedQueryLit);
     bool compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq);
 
     Clause* query;
     ClauseCodeTree* tree;
+    bool sres;
+
     DArray<LitInfo> lInfos;
     
     Stack<LiteralMatcher*> lms;
@@ -357,16 +361,16 @@ public:
 
   CodeBlock* _entryPoint;
   
-  struct SubsumingClauseIterator
-  : public IteratorCore<Clause*>
+  struct ClauseSResIterator
+  : public IteratorCore<ClauseSResQueryResult>
   {
-    SubsumingClauseIterator(ClauseCodeTree* tree, Clause* query)
+    ClauseSResIterator(ClauseCodeTree* tree, Clause* query, bool sres)
     : ready(false)
     {
       Recycler::get(cm);
-      cm->init(tree, query);
+      cm->init(tree, query, sres);
     }
-    ~SubsumingClauseIterator()
+    ~ClauseSResIterator()
     {
       cm->deinit();
       Recycler::release(cm);
@@ -374,25 +378,33 @@ public:
     
     bool hasNext()
     {
+      CALL("ClauseCodeTree::ClauseSResIterator::hasNext");
       if(ready) {
-	return true;
+	return result;
       }
       ready=true;
-      result=cm->next();
+      result=cm->next(resolvedQueryLit);
+      ASS(!result || resolvedQueryLit<1000000);
       return result;
     }
     
-    Clause* next()
+    ClauseSResQueryResult next()
     {
-      CALL("ClauseCodeTree::SubsumingClauseIterator::next");
+      CALL("ClauseCodeTree::ClauseSResIterator::next");
       ASS(result);
       
       ready=false;
-      return result;
+      if(resolvedQueryLit==-1) {
+	return ClauseSResQueryResult(result);
+      }
+      else {
+	return ClauseSResQueryResult(result, resolvedQueryLit);
+      }
     }
   private:
     bool ready;
     Clause* result;
+    int resolvedQueryLit;
     ClauseMatcher* cm;
   };
 public:
@@ -404,7 +416,7 @@ public:
   //overriding Index::handleClause
   void handleClause(Clause* cl, bool adding);
   
-  ClauseIterator getSubsumingClauses(Clause* cl);
+  ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);
 };
 
 }

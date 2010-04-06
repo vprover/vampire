@@ -20,10 +20,16 @@ class CTFwSubsAndRes
 : public ForwardSimplificationEngine
 {
 public:
+  CTFwSubsAndRes(bool subsumptionResolution)
+  : _subsumptionResolution(subsumptionResolution) {}
+  
   void attach(SaturationAlgorithm* salg);
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
 private:
+  Clause* buildSResClause(Clause* cl, unsigned resolvedIndex, Clause* premise);
+
+  bool _subsumptionResolution;
   ClauseSubsumptionIndex* _index;
 };
 

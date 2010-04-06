@@ -31,7 +31,7 @@ using namespace Kernel;
 //////////////// general datastructures ////////////////////
 
 ClauseCodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex)
-: litIndex(litIndex), reversed(false), opposite(false)
+: litIndex(litIndex), opposite(false)
 {
   CALL("ClauseCodeTree::LitInfo::LitInfo");
 
@@ -50,6 +50,23 @@ ClauseCodeTree::LitInfo ClauseCodeTree::LitInfo::getReversed(const LitInfo& li)
 
   LitInfo res=li;
   res.ft=ft;
+#if VDEBUG
+  res.liIndex=-1; //the liIndex has to be updated by caller
+#endif
+  return res;
+}
+
+ClauseCodeTree::LitInfo ClauseCodeTree::LitInfo::getOpposite(const LitInfo& li)
+{
+  FlatTerm* ft=FlatTerm::copy(li.ft);
+  ft->changeLiteralPolarity();
+
+  LitInfo res=li;
+  res.ft=ft;
+  res.opposite=true;
+#if VDEBUG
+  res.liIndex=-1; //the liIndex has to be updated by caller
+#endif
   return res;
 }
 
@@ -806,11 +823,13 @@ void ClauseCodeTree::remove(Clause* cl)
   CALL("ClauseCodeTree::remove");
   
   static ClauseMatcher cm;
-  cm.init(this, cl);
+  cm.init(this, cl, false);
   
   Clause* stored;
   do {
-    stored=cm.next();
+    int resolvedLit;
+    stored=cm.next(resolvedLit);
+    ASS_EQ(resolvedLit,-1);
     if(!stored) {
       ASSERTION_VIOLATION;
       INVALID_OPERATION("clause to be removed not found.");
@@ -829,14 +848,15 @@ void ClauseCodeTree::remove(Clause* cl)
 
 //////////////// retrieval ////////////////////
 
-ClauseIterator ClauseCodeTree::getSubsumingClauses(Clause* cl)
+ClauseSResResultIterator ClauseCodeTree::getSubsumingOrSResolvingClauses(Clause* cl, bool subsumptionResolution)
 {
-  CALL("ClauseCodeTree::getSubsumingClauses");
+  CALL("ClauseCodeTree::getSubsumingOrSResolvingClauses");
   
   if(isEmpty()) {
-    return ClauseIterator::getEmpty();
+    return ClauseSResResultIterator::getEmpty();
   }
-  return vi( new SubsumingClauseIterator(this, cl) );
+
+  return vi( new ClauseSResIterator(this, cl, subsumptionResolution) );
 }
 
 void ClauseCodeTree::incTimeStamp()
@@ -848,7 +868,8 @@ void ClauseCodeTree::incTimeStamp()
   }
 }
 
-void ClauseCodeTree::LiteralMatcher::init(ClauseCodeTree* tree_, OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_)
+void ClauseCodeTree::LiteralMatcher::init(ClauseCodeTree* tree_, OpCode* entry_, 
+	LitInfo* linfos_, size_t linfoCnt_)
 {
   CALL("ClauseCodeTree::LiteralMatcher::init");
   ASS_G(linfoCnt_,0);
@@ -1022,8 +1043,6 @@ bool ClauseCodeTree::LiteralMatcher::execute()
 	break;
       }
     case SUCCESS2:
-      //SUCCESS can only appear as the first operation in a literal block
-      ASS_EQ(tp,0);
       //yield successes only in the first round (we don't want to yield the
       //same thing for each query literal)
       if(curLInfo==0) {
@@ -1159,13 +1178,14 @@ inline bool ClauseCodeTree::LiteralMatcher::doCheckVar()
  * Initialize the ClauseMatcher to retrieve generalizetions
  * of the @b query_ clause
  */
-void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_)
+void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, bool sres_)
 {
   CALL("ClauseCodeTree::ClauseMatcher::init");
   ASS(!tree_->isEmpty());
   
   query=query_;
   tree=tree_;
+  sres=sres_;
   lms.reset();
 
 #if VDEBUG
@@ -1175,12 +1195,13 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_)
   
   //init LitInfo records
   unsigned clen=query->length();
-  unsigned liCnt=clen;
+  unsigned baseLICnt=clen;
   for(unsigned i=0;i<clen;i++) {
     if((*query)[i]->isEquality()) {
-      liCnt++;
+      baseLICnt++;
     }
   }
+  unsigned liCnt=sres ? (baseLICnt*2) : baseLICnt;
   lInfos.ensure(liCnt);
   unsigned liIndex=0;
   for(unsigned i=0;i<clen;i++) {
@@ -1191,6 +1212,13 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_)
       lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1]);
       lInfos[liIndex].liIndex=liIndex;
       liIndex++;
+    }
+  }
+  if(sres) {
+    for(unsigned i=0;i<baseLICnt;i++) {
+      unsigned newIndex=i+baseLICnt;
+      lInfos[newIndex]=LitInfo::getOpposite(lInfos[i]);
+      lInfos[newIndex].liIndex=newIndex;
     }
   }
 
@@ -1220,7 +1248,7 @@ void ClauseCodeTree::ClauseMatcher::deinit()
 /**
  * Return next clause matching query or 0 if there is not such
  */
-Clause* ClauseCodeTree::ClauseMatcher::next()
+Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
 {
   CALL("ClauseCodeTree::ClauseMatcher::next");
 
@@ -1241,7 +1269,9 @@ Clause* ClauseCodeTree::ClauseMatcher::next()
     }
     else if(lm->op->isSuccess()) {
       Clause* candidate=lm->op->getSuccessResult();
-      if(checkCandidate(candidate)) {
+      if(checkCandidate(candidate, resolvedQueryLit)) {
+	ASS_L(resolvedQueryLit,1000000);
+
 	return candidate;
       }
     }
@@ -1304,12 +1334,9 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
 
 //////////////// Multi-literal matching /////////
 
-bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
+bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQueryLit)
 {
   CALL("ClauseCodeTree::ClauseMatcher::checkCandidate");
-  
-//  bool verbose=false;//cl->number()==784 && query->number()==1053;
-//#define VERB_OUT(x) if(verbose) {cout<<x<<endl;}
   
   unsigned clen=cl->length();
   //the last matcher in mls is the one that yielded the SUCCESS operation
@@ -1319,10 +1346,25 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
   if(clen<=1) {
     //if clause doesn't have multiple literals, there is no need 
     //for multi-literal matching
+    resolvedQueryLit=-1;
+    if(sres) {
+      MatchStack::Iterator mit(lms[clen-1]->getILS()->matches);
+      while(mit.hasNext()) {
+	MatchInfo* mi=mit.next();
+	if(!lInfos[mi->liIndex].opposite) {
+	  //we preffer subsumption to subsumption resolution
+	  resolvedQueryLit=-1;
+	  break;
+	}
+	else {
+	  resolvedQueryLit=lInfos[mi->liIndex].litIndex;
+	}
+      }
+    }
     return true;
   }
 
-//  if(matchGlobalVars()) {
+//  if(matchGlobalVars(resolvedQueryLit)) {
 //    return true;
 //  }
   
@@ -1335,14 +1377,19 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl)
     newMatches|=lm->doEagerMatching();
   }
   
-  return matchGlobalVars();
-//  return newMatches && matchGlobalVars();
+  return matchGlobalVars(resolvedQueryLit);
+//  return newMatches && matchGlobalVars(resolvedQueryLit);
 }
 
-bool ClauseCodeTree::ClauseMatcher::matchGlobalVars()
+bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
 {
   CALL("ClauseCodeTree::ClauseMatcher::matchGlobalVars");
   
+  //TODO: perform _set_, not _multiset_ subsumption for subsumption resolution
+  
+//  bool verbose=query->number()==58746;
+//#define VERB_OUT(x) if(verbose) {cout<<x<<endl;}
+
   unsigned clen=lms.size()-1;
 
   //remaining[j,0] contains number of matches for j-th index literal
@@ -1358,7 +1405,13 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars()
   for(unsigned j=0;j<clen;j++) {
     ILStruct* ils=lms[j]->getILS();
     remaining.set(j,0,ils->matches.size());
-//    VERB_OUT("matches "<<ils->matches.size()<<" index:"<<j<<" vars:"<<ils->varCnt);
+    
+//    VERB_OUT("matches "<<ils->matches.size()<<" index:"<<j<<" vars:"<<ils->varCnt<<" linfos:"<<lInfos.size());
+//    for(unsigned y=0;y<ils->matches.size();y++) {
+//      LitInfo* linf=&lInfos[ils->matches[y]->liIndex];
+//      VERB_OUT(" match "<<y<<" liIndex:"<<ils->matches[y]->liIndex<<" op: "<<linf->opposite);
+//      VERB_OUT(" hdr: "<<(*linf->ft)[0].number());
+//    }
 //    for(unsigned x=0;x<ils->varCnt;x++) {
 //      VERB_OUT(" glob var: "<<ils->sortedGlobalVarNumbers[x]);
 //      for(unsigned y=0;y<ils->matches.size();y++) {
@@ -1366,6 +1419,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars()
 //      }
 //    }
   }
+//  VERB_OUT("secOp:"<<(lms[1]->op-1)->instr()<<" "<<(lms[1]->op-1)->arg());
   
   static DArray<int> matchIndex;
   matchIndex.ensure(clen);
@@ -1374,6 +1428,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars()
   bind_next_match:
     matchIndex[i]++;
     if(matchIndex[i]==remaining.get(i,i)) {
+      //no more choices at this level, so try going up
       if(i==0) {
 	return false;
       }
@@ -1405,7 +1460,20 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars()
       remaining.set(j,i+1,rem);
     }
   }
-
+  
+  resolvedQueryLit=-1;
+  if(sres) {
+    for(unsigned i=0;i<clen;i++) {
+      ILStruct* ils=lms[i]->getILS();
+      MatchInfo* mi=ils->matches[matchIndex[i]];
+      if(lInfos[mi->liIndex].opposite) {
+	resolvedQueryLit=lInfos[mi->liIndex].litIndex;
+	ASS_L(resolvedQueryLit,1000000);
+	break;
+      }
+    }
+  }
+  
   return true;
 }
 

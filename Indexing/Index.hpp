@@ -28,9 +28,9 @@ struct SLQueryResult
 {
   SLQueryResult() {}
   SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s)
-  :literal(l), clause(c), substitution(s) {}
+  : literal(l), clause(c), substitution(s) {}
   SLQueryResult(Literal* l, Clause* c)
-  :literal(l), clause(c) {}
+  : literal(l), clause(c) {}
 
 
   Literal* literal;
@@ -54,9 +54,9 @@ struct TermQueryResult
 {
   TermQueryResult() {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
-  :term(t), literal(l), clause(c), substitution(s) {}
+  : term(t), literal(l), clause(c), substitution(s) {}
   TermQueryResult(TermList t, Literal* l, Clause* c)
-  :term(t), literal(l), clause(c) {}
+  : term(t), literal(l), clause(c) {}
 
   TermList term;
   Literal* literal;
@@ -64,8 +64,22 @@ struct TermQueryResult
   ResultSubstitutionSP substitution;
 };
 
+struct ClauseSResQueryResult
+{
+  ClauseSResQueryResult() {}
+  ClauseSResQueryResult(Clause* c)
+  : clause(c), resolved(false) {}
+  ClauseSResQueryResult(Clause* c, unsigned rqlIndex)
+  : clause(c), resolved(true), resolvedQueryLiteralIndex(rqlIndex) {}
+  
+  Clause* clause;
+  bool resolved;
+  unsigned resolvedQueryLiteralIndex;
+};
+
 typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
 typedef VirtualIterator<TermQueryResult> TermQueryResultIterator;
+typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 
 class Index
 {
@@ -90,11 +104,15 @@ private:
   SubscriptionData _removedSD;
 };
 
+
+
 class ClauseSubsumptionIndex
 : public Index
 {
 public:
-  virtual ClauseIterator getSubsumingClauses(Clause* c) = 0;
+  virtual ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, 
+    bool subsumptionResolution)
+  { NOT_IMPLEMENTED; };
 };
 
 };
