@@ -723,6 +723,17 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
     OpCode* alt=firstOp->alternative;
 
     CodeBlock* cb=firstOpToCodeBlock(firstOp);
+
+    if(firstsInBlocks->isEmpty() && alt && alt->isSearchStruct()) {
+      //We should remove the CodeBlock referenced by _entryPoint, but
+      //we cannot replace it by its alternative as it is not a CodeBlock
+      //(it's a SearchStruct). Therefore w will not delete it, just set 
+      //the first operation to fail.
+      ASS_EQ(cb,_entryPoint);
+      firstOp->makeFail();
+      return;
+    }
+    
     if(_clauseCodeTree) {
       //delete ILStruct objects
       size_t cbLen=cb->length();
@@ -735,6 +746,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
     cb->deallocate(); //from now on we mustn't dereference firstOp
     
     if(firstsInBlocks->isEmpty()) {
+      ASS(!alt || !alt->isSearchStruct());
       ASS_EQ(cb,_entryPoint);
       _entryPoint=alt ? firstOpToCodeBlock(alt) : 0;
       return;
