@@ -110,6 +110,8 @@ CodeTree::ILStruct::ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack)
 
 CodeTree::ILStruct::~ILStruct()
 {
+  disposeMatches();
+  
   if(globalVarNumbers) {
     size_t gvSize=sizeof(unsigned)*varCnt;
     DEALLOC_KNOWN(globalVarNumbers, gvSize, 
@@ -123,8 +125,6 @@ CodeTree::ILStruct::~ILStruct()
 		  "CodeTree::ILStruct::globalVarPermutation");
     }
   }
-
-  disposeMatches();
 }
 
 /**
@@ -723,6 +723,15 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
     OpCode* alt=firstOp->alternative;
     
     CodeBlock* cb=firstOpToCodeBlock(firstOp);
+    if(_clauseCodeTree) {
+      //delete ILStruct objects
+      size_t cbLen=cb->length();
+      for(size_t i=0;i<cbLen;i++) {
+	if((*cb)[i].isLitEnd()) {
+	  delete (*cb)[i].getILS();
+	}
+      }
+    }
     cb->deallocate(); //from now on we mustn't dereference firstOp
     
     if(firstsInBlocks->isEmpty()) {
@@ -802,6 +811,198 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
     op=pointingOp;
   }
 }
+
+void CodeTree::RemovingMatcher::init(OpCode* entry_, LitInfo* linfos_,
+    size_t linfoCnt_, CodeTree* tree_, Stack<OpCode*>* firstsInBlocks_)
+{
+  CALL("CodeTree::RemovingMatcher::init");
+  
+  fresh=true;
+  entry=entry_;
+  linfos=linfos_;
+  linfoCnt=linfoCnt_;
+  tree=tree_;
+  firstsInBlocks=firstsInBlocks_;
+  
+  initFIBDepth=firstsInBlocks->size();
+
+  matchingClauses=tree->_clauseCodeTree;
+  bindings.ensure(tree->_maxVarCnt);
+  btStack.reset();
+  
+  curLInfo=0;
+}
+
+bool CodeTree::RemovingMatcher::next()
+{
+  CALL("CodeTree::RemovingMatcher::next");
+
+  if(fresh) {
+    fresh=false;
+  }
+  else {
+    //we backtrack from what we found in the previous run
+    if(!backtrack()) {
+      return false;
+    }
+  }
+
+
+  bool shouldBacktrack=false;
+  for(;;) {
+    if(op->alternative) {
+      LOG_OP("alt at "<<tp);
+      btStack.push(BTPoint(tp, op->alternative, firstsInBlocks->size()));
+    }
+    LOG_OP(tp<<':'<<op->instr());
+    switch(op->instr()) {
+    case CHECK_FUN:
+      shouldBacktrack=!doCheckFun();
+      break;
+    case ASSIGN_VAR:
+      shouldBacktrack=!doAssignVar();
+      break;
+    case CHECK_VAR:
+      shouldBacktrack=!doCheckVar();
+      break;
+    case SEARCH_STRUCT:
+      if(doSearchStruct()) {
+	//a new value of @b op is assigned, so restart the loop
+	continue;
+      }
+      else {
+	shouldBacktrack=true;
+      }
+      break;
+    case LIT_END:
+    case LIT_END2:
+      ASS(matchingClauses);
+      return true;
+    case SUCCESS_OR_FAIL:
+      if(op->isFail()) {
+	shouldBacktrack=true;
+	break;
+      }
+    case SUCCESS2:
+      if(matchingClauses) {
+	//we can succeed only in certain depth and that will be handled separately
+	shouldBacktrack=true;
+      }
+      else {
+	//we are matching terms in a TermCodeTree
+	return true;
+      }
+      break;
+    }
+    if(shouldBacktrack) {
+      if(!backtrack()) {
+	LOG_OP("not found");
+	return false;
+      }
+      LOG_OP(ctx.tp<<"<-bt");
+      shouldBacktrack=false;
+    }
+    else {
+      //the SEARCH_STRUCT operation does not appear in CodeBlocks
+      ASS(!op->isSearchStruct());
+      //In each CodeBlock there is always either operation LIT_END or FAIL.
+      //As we haven't encountered one yet, we may safely increase the
+      //operation pointer
+      op++;
+    }
+  }
+}
+
+bool CodeTree::RemovingMatcher::backtrack()
+{
+  CALL("CodeTree::RemovingMatcher::backtrack");
+  
+  if(btStack.isEmpty()) {
+    curLInfo++;
+    return prepareLiteral();
+  }
+  BTPoint bp=btStack.pop();
+  tp=bp.tp;
+  op=bp.op;
+  firstsInBlocks->truncate(bp.fibDepth);
+  firstsInBlocks->push(op);
+  return true;
+}
+
+bool CodeTree::RemovingMatcher::prepareLiteral()
+{
+  CALL("CodeTree::RemovingMatcher::prepareLiteral");
+
+  firstsInBlocks->truncate(initFIBDepth);
+  if(curLInfo>=linfoCnt) {
+    return false;
+  }
+  ft=linfos[curLInfo].ft;
+  tp=0;
+  op=entry;
+  return true;
+}
+
+inline bool CodeTree::RemovingMatcher::doSearchStruct()
+{
+  CALL("CodeTree::RemovingMatcher::doSearchStruct");
+  ASS_EQ(op->instr(), SEARCH_STRUCT);
+  
+  const FlatTerm::Entry& fte=(*ft)[tp];
+  if(!fte.isFun()) {
+    return false;
+  }
+  OpCode* target=op->getSearchStruct()->targetOp(fte.number());
+  if(!target) {
+    return false;
+  }
+  op=target;
+  firstsInBlocks->push(op);
+  return true;
+}
+
+inline bool CodeTree::RemovingMatcher::doCheckFun()
+{
+  ASS_EQ(op->instr(), CHECK_FUN);
+
+  unsigned functor=op->arg();
+  const FlatTerm::Entry& fte=(*ft)[tp];
+  if(!fte.isFun(functor)) {
+    return false;
+  }
+  tp+=FlatTerm::functionEntryCount;
+  return true;
+}
+
+inline bool CodeTree::RemovingMatcher::doAssignVar()
+{
+  ASS_EQ(op->instr(), ASSIGN_VAR);
+
+  //we are looking for variants and they match only other variables into variables
+  unsigned var=op->arg();
+  const FlatTerm::Entry* fte=&(*ft)[tp];
+  if(fte->tag()!=FlatTerm::VAR) {
+    return false;
+  }
+  bindings[var]=fte->number();
+  tp++;
+  return true;
+}
+
+inline bool CodeTree::RemovingMatcher::doCheckVar()
+{
+  ASS_EQ(op->instr(), CHECK_VAR);
+
+  //we are looking for variants and they match only other variables into variables
+  unsigned var=op->arg();
+  const FlatTerm::Entry* fte=&(*ft)[tp];
+  if(fte->tag()!=FlatTerm::VAR || bindings[var]!=fte->number()) {
+    return false;
+  }
+  tp++;
+  return true;
+}
+
 
 
 //////////////// retrieval ////////////////////

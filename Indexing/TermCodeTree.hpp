@@ -31,6 +31,8 @@ using namespace Kernel;
 class TermCodeTree : public CodeTree 
 {
 public:
+  TermCodeTree();
+  
   struct TermInfo
   {
     TermInfo(TermList t, Literal* lit, Clause* cls)
@@ -50,9 +52,18 @@ public:
     Clause* cls;
   };
 
-public:
+
   void insert(TermInfo* ti);
   void remove(const TermInfo& ti);
+  
+private:
+  struct RemovingTermMatcher
+  : public RemovingMatcher
+  {
+  public:
+    void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<OpCode*>* firstsInBlocks_);
+
+  };
   
 public:
   struct TermMatcher

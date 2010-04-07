@@ -46,52 +46,13 @@ private:
   bool removeOneOfAlternatives(OpCode* op, Clause* cl, Stack<OpCode*>* firstsInBlocks);
   
   struct RemovingLiteralMatcher
+  : public RemovingMatcher
   {
     void init(OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	ClauseCodeTree* tree_, Stack<OpCode*>* firstsInBlocks_);
 
-    bool next();
-	
     CLASS_NAME("ClauseCodeTree::RemovingLiteralMatcher");
     USE_ALLOCATOR(RemovingLiteralMatcher);
-    
-    OpCode* op;
-  private:
-  
-    bool prepareLiteral();
-    bool backtrack();
-    bool doSearchStruct();
-    bool doCheckFun();
-    bool doAssignVar();
-    bool doCheckVar();
-  
-    struct BTPoint
-    {
-      BTPoint(size_t tp, OpCode* op, size_t fibDepth)
-      : tp(tp), op(op), fibDepth(fibDepth) {}
-      
-      size_t tp;
-      OpCode* op;
-      size_t fibDepth;
-    };
-    
-    size_t tp;
-    FlatTerm* ft;
-    /** Variable bindings */
-    DArray<unsigned> bindings;
-    
-    Stack<BTPoint> btStack;
-    Stack<OpCode*>* firstsInBlocks;
-    bool fresh;
-    size_t curLInfo;
-    
-    OpCode* entry;
-    size_t initFIBDepth;
-    
-    LitInfo* linfos;
-    size_t linfoCnt;
-    
-    ClauseCodeTree* tree;
   };
   
   //////// retrieval //////////

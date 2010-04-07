@@ -249,6 +249,54 @@ public:
 
   void optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode* removedOp);
 
+  struct RemovingMatcher
+  {
+  public:
+    bool next();
+    
+    OpCode* op;
+  protected:
+    void init(OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_,
+	CodeTree* tree_, Stack<OpCode*>* firstsInBlocks_);
+
+
+    bool prepareLiteral();
+    bool backtrack();
+    bool doSearchStruct();
+    bool doCheckFun();
+    bool doAssignVar();
+    bool doCheckVar();
+    
+  
+    struct BTPoint
+    {
+      BTPoint(size_t tp, OpCode* op, size_t fibDepth)
+      : tp(tp), op(op), fibDepth(fibDepth) {}
+      
+      size_t tp;
+      OpCode* op;
+      size_t fibDepth;
+    };
+  
+    size_t tp;
+    FlatTerm* ft;
+    /** Variable bindings */
+    DArray<unsigned> bindings;
+    
+    Stack<BTPoint> btStack;
+    Stack<OpCode*>* firstsInBlocks;
+    bool fresh;
+    size_t curLInfo;
+    
+    OpCode* entry;
+    size_t initFIBDepth;
+    
+    LitInfo* linfos;
+    size_t linfoCnt;
+    
+    bool matchingClauses;
+    CodeTree* tree;
+  };
   
   //////// retrieval //////////
 
@@ -363,6 +411,7 @@ public:
   //////// member variables //////////
   
 
+  bool _clauseCodeTree;
   unsigned _curTimeStamp;
   
   /** maximal number of local variables in a stored term/literal (always at least 1) */

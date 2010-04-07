@@ -24,6 +24,11 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
+TermCodeTree::TermCodeTree()
+{
+  _clauseCodeTree=false;
+}
+
 //////////////// insertion ////////////////////
 
 void TermCodeTree::insert(TermInfo* ti)
@@ -62,10 +67,39 @@ void TermCodeTree::remove(const TermInfo& ti)
 {
   CALL("TermCodeTree::remove");
   
+  /**/
+  static RemovingTermMatcher rtm;
+  static Stack<OpCode*> firstsInBlocks;
+  firstsInBlocks.reset();
+  
+  FlatTerm* ft=FlatTerm::create(ti.t);
+  rtm.init(ft, this, &firstsInBlocks);
+  
+  TermInfo* rti;
+  for(;;) {
+    if(!rtm.next()) {
+      ASSERTION_VIOLATION;
+      INVALID_OPERATION("term being removed was not found");
+    }
+    ASS_REP(rtm.op->isSuccess(), rtm.op->instr());
+    rti=static_cast<TermInfo*>(rtm.op->getSuccessResult());
+    if(*rti==ti) {
+      break;
+    }
+  }
+  
+  rtm.op->makeFail();
+  
+  delete rti;
+  ft->destroy();
+  
+  optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
+  /*/
+  
   static TermMatcher tm;
-  
+
   tm.init(this, ti.t);
-  
+
   for(;;) {
     TermInfo* found=tm.next();
     if(!found) {
@@ -77,8 +111,21 @@ void TermCodeTree::remove(const TermInfo& ti)
       break;
     }
   }
-  
+
   tm.deinit();
+  /**/
+}
+
+void TermCodeTree::RemovingTermMatcher::init(FlatTerm* ft_, 
+	TermCodeTree* tree_, Stack<OpCode*>* firstsInBlocks_)
+{
+  CALL("TermCodeTree::RemovingTermMatcher::init");
+  
+  RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
+  
+  ft=ft_;
+  tp=0;
+  op=entry;
 }
 
 //////////////// retrieval ////////////////////
