@@ -2,7 +2,7 @@
  * @file CodeTree_remove.cpp
  * Implements class CodeTree_remove.
  */
-/*
+
 #include "../Lib/Recycler.hpp"
 
 #include "CodeTree.hpp"
@@ -261,12 +261,12 @@ struct CodeTree::RemoverStruct
       op=pointingOp;
     }
   }
-*/
+
   /** Stack that contains first op in each CodeBlock on the way to the root */
-//  Stack<OpCode*>* firstsInBlocks;
+  Stack<OpCode*>* firstsInBlocks;
 
   /** Depths of the firstsInBlocks stack at each backtrack point */
-/*  Stack<unsigned>* fibDepthsForBt;
+  Stack<unsigned>* fibDepthsForBt;
 
   EContext& ctx;
   CodeTree* tree;
@@ -283,4 +283,3 @@ void CodeTree::remove(EContext& ctx, CodeTree* tree, SuccessDataMatchingFn* succ
 
 
 }
-*/

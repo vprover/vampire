@@ -245,6 +245,11 @@ public:
 
   static void compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd);
 
+  //////////// removal //////////////
+
+  void optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode* removedOp);
+
+  
   //////// retrieval //////////
 
   /**

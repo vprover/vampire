@@ -127,8 +127,11 @@ void ClauseCodeTree::matchCode(CodeStack& code, OpCode* startOp, size_t& matched
       if(treeOp->isSearchStruct()) {
 	if(code[i].isCheckFun()) {
 	  SearchStruct* ss=treeOp->getSearchStruct();
-	  treeOp=ss->targetOp(code[i].arg());
-	  continue;
+	  OpCode* target=ss->targetOp(code[i].arg());
+	  if(target) {
+	    treeOp=target;
+	    continue;
+	  }
 	}
       }
       else if(code[i].equalsForOpMatching(*treeOp)) {
@@ -160,28 +163,286 @@ void ClauseCodeTree::matchCode(CodeStack& code, OpCode* startOp, size_t& matched
 void ClauseCodeTree::remove(Clause* cl)
 {
   CALL("ClauseCodeTree::remove");
+
+  static DArray<LitInfo> lInfos;
+  static Stack<OpCode*> firstsInBlocks;
+  static Stack<RemovingLiteralMatcher*> rlms;
+
+  unsigned clen=cl->length();
+  lInfos.ensure(clen);
+  firstsInBlocks.reset();
+  rlms.reset();
   
-  static ClauseMatcher cm;
-  cm.init(this, cl, false);
-  
-  Clause* stored;
-  do {
-    int resolvedLit;
-    stored=cm.next(resolvedLit);
-    if(!stored) {
+  if(!clen) {
+    OpCode* op=getEntryPoint();
+    firstsInBlocks.push(op);
+    if(!removeOneOfAlternatives(op, cl, &firstsInBlocks)) {
       ASSERTION_VIOLATION;
-      INVALID_OPERATION("clause to be removed not found.");
+      INVALID_OPERATION("empty clause to be removed was not found");
     }
-    ASS_EQ(resolvedLit,-1);
-  } while(stored!=cl);
+    return;
+  }
   
-  ASS(cm.matched());
-  OpCode* successOp=cm.getSuccessOp();
-  ASS_EQ(successOp->getSuccessResult(),cl);
+  for(unsigned i=0;i<clen;i++) {
+    lInfos[i]=LitInfo(cl,i);
+    lInfos[i].liIndex=i;
+  }
+  incTimeStamp();
+
+  OpCode* op=getEntryPoint();
+  firstsInBlocks.push(op);
+  unsigned depth=0;
+  for(;;) {
+    RemovingLiteralMatcher* rlm;
+    Recycler::get(rlm);
+    rlm->init(op, lInfos.array(), lInfos.size(), this, &firstsInBlocks);
+    rlms.push(rlm);
+    
+  iteration_restart:
+    if(!rlm->next()) {
+      if(depth==0) {
+	ASSERTION_VIOLATION;
+	INVALID_OPERATION("clause to be removed was not found");
+      }
+      Recycler::release(rlms.pop());
+      depth--;
+      rlm=rlms.top();
+      goto iteration_restart;
+    }
+    
+    op=rlm->op;
+    ASS(op->isLitEnd());
+    ASS_EQ(op->getILS()->depth, depth);
+    
+    if(op->getILS()->timestamp==_curTimeStamp) {
+      //we have already been here
+      goto iteration_restart;
+    }
+    op->getILS()->timestamp=_curTimeStamp;
+    
+    op++;
+    if(depth==clen-1) {
+      if(removeOneOfAlternatives(op, cl, &firstsInBlocks)) {
+	//successfully removed
+	break;
+      }
+      goto iteration_restart;
+    }
+    ASS_L(depth,clen-1);
+    depth++;
+  }
   
-  successOp->makeFail();
+  while(rlms.isNonEmpty()) {
+    Recycler::release(rlms.pop());
+  }
+  for(unsigned i=0;i<clen;i++) {
+    lInfos[i].dispose();
+  }
+}
+
+void ClauseCodeTree::RemovingLiteralMatcher::init(OpCode* entry_, LitInfo* linfos_,
+    size_t linfoCnt_, ClauseCodeTree* tree_, Stack<OpCode*>* firstsInBlocks_)
+{
+  CALL("ClauseCodeTree::RemovingLiteralMatcher::init");
   
-  cm.deinit();
+  fresh=true;
+  entry=entry_;
+  linfos=linfos_;
+  linfoCnt=linfoCnt_;
+  tree=tree_;
+  firstsInBlocks=firstsInBlocks_;
+  
+  initFIBDepth=firstsInBlocks->size();
+
+  bindings.ensure(tree->_maxVarCnt);
+  btStack.reset();
+  
+  curLInfo=0;
+  ALWAYS(prepareLiteral());
+}
+
+bool ClauseCodeTree::RemovingLiteralMatcher::next()
+{
+  CALL("ClauseCodeTree::RemovingLiteralMatcher::next");
+
+  if(fresh) {
+    fresh=false;
+  }
+  else {
+    //we backtrack from what we found in the previous run
+    if(!backtrack()) {
+      return false;
+    }
+  }
+
+
+  bool shouldBacktrack=false;
+  for(;;) {
+    if(op->alternative) {
+      LOG_OP("alt at "<<tp);
+      btStack.push(BTPoint(tp, op->alternative, firstsInBlocks->size()));
+    }
+    LOG_OP(tp<<':'<<op->instr());
+    switch(op->instr()) {
+    case CHECK_FUN:
+      shouldBacktrack=!doCheckFun();
+      break;
+    case ASSIGN_VAR:
+      shouldBacktrack=!doAssignVar();
+      break;
+    case CHECK_VAR:
+      shouldBacktrack=!doCheckVar();
+      break;
+    case SEARCH_STRUCT:
+      if(doSearchStruct()) {
+	//a new value of @b op is assigned, so restart the loop
+	continue;
+      }
+      else {
+	shouldBacktrack=true;
+      }
+      break;
+    case LIT_END:
+    case LIT_END2:
+      return true;
+    case SUCCESS_OR_FAIL:
+    case SUCCESS2:
+      //we can succeed only in certain depth and that will be handled separately
+      shouldBacktrack=true;
+      break;
+    }
+    if(shouldBacktrack) {
+      if(!backtrack()) {
+	LOG_OP("not found");
+	return false;
+      }
+      LOG_OP(ctx.tp<<"<-bt");
+      shouldBacktrack=false;
+    }
+    else {
+      //the SEARCH_STRUCT operation does not appear in CodeBlocks
+      ASS(!op->isSearchStruct());
+      //In each CodeBlock there is always either operation LIT_END or FAIL.
+      //As we haven't encountered one yet, we may safely increase the
+      //operation pointer
+      op++;
+    }
+  }
+}
+
+bool ClauseCodeTree::RemovingLiteralMatcher::backtrack()
+{
+  CALL("ClauseCodeTree::RemovingLiteralMatcher::backtrack");
+  
+  if(btStack.isEmpty()) {
+    curLInfo++;
+    return prepareLiteral();
+  }
+  BTPoint bp=btStack.pop();
+  tp=bp.tp;
+  op=bp.op;
+  firstsInBlocks->truncate(bp.fibDepth);
+  firstsInBlocks->push(op);
+  return true;
+}
+
+bool ClauseCodeTree::RemovingLiteralMatcher::prepareLiteral()
+{
+  CALL("ClauseCodeTree::RemovingLiteralMatcher::prepareLiteral");
+
+  firstsInBlocks->truncate(initFIBDepth);
+  if(curLInfo>=linfoCnt) {
+    return false;
+  }
+  ft=linfos[curLInfo].ft;
+  tp=0;
+  op=entry;
+  return true;
+}
+
+inline bool ClauseCodeTree::RemovingLiteralMatcher::doSearchStruct()
+{
+  CALL("ClauseCodeTree::RemovingLiteralMatcher::doSearchStruct");
+  ASS_EQ(op->instr(), SEARCH_STRUCT);
+  
+  const FlatTerm::Entry& fte=(*ft)[tp];
+  if(!fte.isFun()) {
+    return false;
+  }
+  OpCode* target=op->getSearchStruct()->targetOp(fte.number());
+  if(!target) {
+    return false;
+  }
+  op=target;
+  firstsInBlocks->push(op);
+  return true;
+}
+
+inline bool ClauseCodeTree::RemovingLiteralMatcher::doCheckFun()
+{
+  ASS_EQ(op->instr(), CHECK_FUN);
+
+  unsigned functor=op->arg();
+  const FlatTerm::Entry& fte=(*ft)[tp];
+  if(!fte.isFun(functor)) {
+    return false;
+  }
+  tp+=FlatTerm::functionEntryCount;
+  return true;
+}
+
+inline bool ClauseCodeTree::RemovingLiteralMatcher::doAssignVar()
+{
+  ASS_EQ(op->instr(), ASSIGN_VAR);
+
+  //we are looking for variants and they match only other variables into variables
+  unsigned var=op->arg();
+  const FlatTerm::Entry* fte=&(*ft)[tp];
+  if(fte->tag()!=FlatTerm::VAR) {
+    return false;
+  }
+  bindings[var]=fte->number();
+  tp++;
+  return true;
+}
+
+inline bool ClauseCodeTree::RemovingLiteralMatcher::doCheckVar()
+{
+  ASS_EQ(op->instr(), CHECK_VAR);
+
+  //we are looking for variants and they match only other variables into variables
+  unsigned var=op->arg();
+  const FlatTerm::Entry* fte=&(*ft)[tp];
+  if(fte->tag()!=FlatTerm::VAR || bindings[var]!=fte->number()) {
+    return false;
+  }
+  tp++;
+  return true;
+}
+
+/**
+ *
+ *
+ * The first operation of the CodeBlock containing @b op 
+ * must already be on the @b firstsInBlocks stack.
+ */
+bool ClauseCodeTree::removeOneOfAlternatives(OpCode* op, Clause* cl, Stack<OpCode*>* firstsInBlocks)
+{
+  CALL("ClauseCodeTree::removeOneOfAlternatives");
+  
+  unsigned initDepth=firstsInBlocks->size();
+
+  while(!op->isSuccess() || op->getSuccessResult()!=cl) {
+    op=op->alternative;
+    if(!op) {
+      firstsInBlocks->truncate(initDepth);
+      return false;
+    }
+    firstsInBlocks->push(op);
+  }
+  op->makeFail();
+  optimizeMemoryAfterRemoval(firstsInBlocks, op);
+  return true;
 }
 
 //////////////// retrieval ////////////////////

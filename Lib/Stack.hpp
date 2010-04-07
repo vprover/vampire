@@ -238,7 +238,7 @@ public:
   inline
   void truncate(size_t len)
   {
-    ASS(len <= length());
+    ASS_LE(len,length());
     C* p=_stack+len;
     while(p!=_cursor) {
       (p++)->~C();

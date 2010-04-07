@@ -1313,7 +1313,7 @@ bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
  */
 SaturationResult SaturationAlgorithm::saturate()
 {
-  CALL("SaturationALgorithm::saturate");
+  CALL("SaturationAlgorithm::saturate");
 
   _sharing.init(this);
   if(_splitter) {

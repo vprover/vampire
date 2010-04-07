@@ -71,7 +71,9 @@ class Tracer {
 
 } // namespace Debug
 
-#  define CALL(Fun) Debug::Tracer _tmp_(Fun);
+#  define AUX_CALL_(SEED,Fun) Debug::Tracer _tmp_##SEED##_(Fun);
+#  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
+#  define CALL(Fun) AUX_CALL(__LINE__,Fun)
 #  define CONTROL(description) Debug::Tracer::controlPoint(description)
 #  define AFTER(number,command) \
             if (Debug::Tracer::passedControlPoints() >= number) { command };

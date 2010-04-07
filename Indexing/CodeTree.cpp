@@ -361,6 +361,7 @@ CodeTree::CodeTree()
 CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(OpCode* op)
 {
   CALL("CodeTree::firstOpToCodeBlock");
+  ASS(!op->isSearchStruct());
 
   //the following line gives warning for not being according
   //to the standard, so we have to work around
@@ -686,6 +687,122 @@ void CodeTree::compressCheckFnOps(OpCode* chainStart)
   op->alternative=0;
 }
 
+//////////// removal //////////////
+
+void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode* removedOp)
+{
+  CALL("CodeTree::optimizeMemoryAfterRemoval");
+  ASS(removedOp->isFail());
+  LOG_OP("Code tree removal memory optimization");
+  LOG_OP("firstsInBlocks->size()="<<firstsInBlocks->size());
+  
+  //now let us remove unnecessary instructions and the free memory
+
+  OpCode* op=removedOp;
+  ASS(firstsInBlocks->isNonEmpty());
+  OpCode* firstOp=firstsInBlocks->pop();
+  for(;;) {
+    //firstOp is in a CodeBlock
+    ASS(!firstOp->isSearchStruct());
+    //op is in the CodeBlock starting at firstOp
+    ASS_LE(firstOp, op);
+    ASS_G(firstOp+firstOpToCodeBlock(firstOp)->length(), op);
+
+    int firstOpFun= firstOp->isCheckFun() ? firstOp->arg() : -1;
+    
+    while(op>firstOp && !op->alternative) { ASS(!op->isSuccess()); op--; }
+    
+    ASS(!op->isSuccess());
+
+    if(op!=firstOp) {
+      ASS(op->alternative);
+      //we only change the instruction, the alternative must remain unchanged
+      op->makeFail();
+      return;
+    }
+    OpCode* alt=firstOp->alternative;
+    
+    CodeBlock* cb=firstOpToCodeBlock(firstOp);
+    cb->deallocate(); //from now on we mustn't dereference firstOp
+    
+    if(firstsInBlocks->isEmpty()) {
+      //cb was referenced to by _entryPoint
+      _entryPoint=alt ? firstOpToCodeBlock(alt) : 0;
+      return;
+    }
+
+    //first operation in the CodeBlock that points to the current one (i.e. cb)
+    OpCode* prevFirstOp=firstsInBlocks->pop();
+    
+    if(prevFirstOp->isSearchStruct()) {
+      SearchStruct* ss=prevFirstOp->getSearchStruct();
+      if(prevFirstOp->alternative==firstOp) {
+	//firstOp was an alternative to the SearchStruct
+	prevFirstOp->alternative=alt;
+	return;
+      }
+      ASS_GE(firstOpFun,0);
+      ASS_EQ(ss->targetOp(firstOpFun), firstOp);
+
+      ss->targetOp(firstOpFun)=alt;
+      if(alt) {
+	ASS(alt->isCheckFun());
+	return;
+      }
+      for(size_t i=0; i<ss->length; i++) {
+	if(ss->targets[i]!=0) {
+	  //the SearchStruct still contains something, so we won't delete it
+	  //TODO: we might want to compress the SearchStruct, if there are too many zeroes
+	  return;
+	}
+      }
+      firstOp=&ss->landingOp;
+      alt=ss->landingOp.alternative;
+      delete ss;
+      
+      //now let's continue as if there wasn't any SEARCH_STRUCT operation:)
+      
+      //the SEARCH_STRUCT is never the first operation in the CodeTree
+      ASS(firstsInBlocks->isNonEmpty());
+      prevFirstOp=firstsInBlocks->pop();
+      //there never are two nested SEARCH_STRUCT operations
+      ASS(!prevFirstOp->isSearchStruct());
+    }
+
+    CodeBlock* pcb=firstOpToCodeBlock(prevFirstOp);
+
+    //operation that points to the current CodeBlock
+    OpCode* pointingOp=0;
+
+    OpCode* prevAfterLastOp=prevFirstOp+pcb->length();
+    OpCode* prevOp=prevFirstOp;
+    while(prevOp->alternative!=firstOp) {
+      ASS_L(prevOp,prevAfterLastOp);
+      prevOp++;
+    }
+    pointingOp=prevOp;
+
+    pointingOp->alternative=alt;
+    if(pointingOp->isSuccess()) {
+      return;
+    }
+    
+    prevOp++;
+    while(prevOp!=prevAfterLastOp) {
+      ASS_NEQ(prevOp->alternative,firstOp);
+
+      if(prevOp->alternative || prevOp->isSuccess()) {
+	//there is an operation after the pointingOp that cannot be lost
+	return;
+      }
+      prevOp++;
+    }
+    
+    firstOp=prevFirstOp;
+    op=pointingOp;
+  }
+}
+
 
 //////////////// retrieval ////////////////////
 
@@ -825,7 +942,7 @@ inline bool CodeTree::Matcher::doSearchStruct()
     return false;
   }
   op=op->getSearchStruct()->targetOp(fte.number());
-  return true;
+  return op;
 }
 
 inline bool CodeTree::Matcher::doCheckFun()
