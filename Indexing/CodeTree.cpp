@@ -721,7 +721,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
       return;
     }
     OpCode* alt=firstOp->alternative;
-    
+
     CodeBlock* cb=firstOpToCodeBlock(firstOp);
     if(_clauseCodeTree) {
       //delete ILStruct objects
@@ -735,7 +735,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
     cb->deallocate(); //from now on we mustn't dereference firstOp
     
     if(firstsInBlocks->isEmpty()) {
-      //cb was referenced to by _entryPoint
+      ASS_EQ(cb,_entryPoint);
       _entryPoint=alt ? firstOpToCodeBlock(alt) : 0;
       return;
     }

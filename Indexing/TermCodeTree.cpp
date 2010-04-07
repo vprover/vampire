@@ -123,6 +123,8 @@ void TermCodeTree::RemovingTermMatcher::init(FlatTerm* ft_,
   
   RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
   
+  firstsInBlocks->push(entry);
+
   ft=ft_;
   tp=0;
   op=entry;
