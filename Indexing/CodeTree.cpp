@@ -8,6 +8,7 @@
 #include "../Lib/BitUtils.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/Portability.hpp"
 #include "../Lib/Sort.hpp"
 #include "../Lib/TimeCounter.hpp"
 

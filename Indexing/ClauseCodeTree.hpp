@@ -63,7 +63,7 @@ private:
   struct LiteralMatcher
   : public Matcher
   {
-    void init(CodeTree* tree, OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_);
+    void init(CodeTree* tree, OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
     bool next();
     bool doEagerMatching();
     
@@ -97,7 +97,7 @@ public:
     USE_ALLOCATOR(ClauseMatcher);
     
   private:
-    void enterLiteral(OpCode* entry);
+    void enterLiteral(OpCode* entry, bool seekOnlySuccess);
     void leaveLiteral();
     bool litEndAlreadyVisited(OpCode* op);
     
@@ -108,6 +108,9 @@ public:
     Clause* query;
     ClauseCodeTree* tree;
     bool sres;
+
+    static const unsigned sresNoLiteral=static_cast<unsigned>(-1);
+    unsigned sresLiteral;
 
     DArray<LitInfo> lInfos;
     

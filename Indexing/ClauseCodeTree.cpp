@@ -281,7 +281,7 @@ bool ClauseCodeTree::removeOneOfAlternatives(OpCode* op, Clause* cl, Stack<OpCod
 ////////// LiteralMatcher
 
 void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, OpCode* entry_, 
-	LitInfo* linfos_, size_t linfoCnt_)
+	LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess)
 {
   CALL("ClauseCodeTree::LiteralMatcher::init");
   ASS_G(linfoCnt_,0);
@@ -293,6 +293,22 @@ void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, OpCode* entry_,
 
   _eagerlyMatched=false;
   eagerResults.reset();
+
+  if(seekOnlySuccess) {
+    //we are interested only in SUCCESS operations
+    //(and those must be at the entry point or its alternatives)
+
+    _eagerlyMatched=true;
+    _fresh=false;
+    OpCode* sop=entry;
+    while(sop) {
+      if(sop->isSuccess()) {
+	eagerResults.push(sop);
+      }
+      sop=sop->alternative;
+    }
+    return;
+  }
 
   ALWAYS(prepareLiteral());
 }
@@ -439,10 +455,11 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
       lInfos[newIndex]=LitInfo::getOpposite(lInfos[i]);
       lInfos[newIndex].liIndex=newIndex;
     }
+    sresLiteral=sresNoLiteral;
   }
 
   tree->incTimeStamp();
-  enterLiteral(tree->getEntryPoint());
+  enterLiteral(tree->getEntryPoint(), clen==0);
 }
 
 void ClauseCodeTree::ClauseMatcher::deinit()
@@ -489,16 +506,35 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
     else if(lm->op->isSuccess()) {
       Clause* candidate=static_cast<Clause*>(lm->op->getSuccessResult());
       if(checkCandidate(candidate, resolvedQueryLit)) {
-	ASS_L(resolvedQueryLit,1000000);
-
 	return candidate;
       }
     }
     else if(!litEndAlreadyVisited(lm->op)) {
-      //LIT_END is never the last operation in the CodeBlock, 
+      ASS(lm->op->isLitEnd());
+      ASS_LE(lms.size(), query->length()); //this is due to the seekOnlySuccess part below
+
+      //LIT_END is never the last operation in the CodeBlock,
       //so we can increase here
       OpCode* newLitEntry=lm->op+1;
-      enterLiteral(newLitEntry);
+
+      if(sres && sresLiteral==sresNoLiteral) {
+	//we check whether we haven't matched only opposite literals on the previous level
+	MatchStack& prevMatches=lm->getILS()->matches;
+	if(prevMatches.size() && lInfos[prevMatches[0]->liIndex].opposite) {
+	  sresLiteral=lms.size()-1;
+#if VDEBUG
+	  for(unsigned i=1;i<prevMatches.size();i++) {
+	    //liIndex in matches must be ascending
+	    ASS_G(prevMatches[i]->liIndex,prevMatches[i-1]->liIndex);
+	    //all matches after an opposite match must be opposite as well
+	    ASS(lInfos[prevMatches[i]->liIndex].opposite);
+	  }
+#endif
+	}
+      }
+
+      bool seekOnlySuccess=lms.size()==query->length();
+      enterLiteral(newLitEntry, seekOnlySuccess);
     }
   }
 }
@@ -512,7 +548,7 @@ inline bool ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited(OpCode* op)
   return ils->timestamp==tree->_curTimeStamp && ils->visited;
 }
 
-void ClauseCodeTree::ClauseMatcher::enterLiteral(OpCode* entry)
+void ClauseCodeTree::ClauseMatcher::enterLiteral(OpCode* entry, bool seekOnlySuccess)
 {
   CALL("ClauseCodeTree::ClauseMatcher::enterLiteral");
   
@@ -525,9 +561,20 @@ void ClauseCodeTree::ClauseMatcher::enterLiteral(OpCode* entry)
     ils->visited=true;
   }
   
+  size_t linfoCnt=lInfos.size();
+  if(sres && sresLiteral!=sresNoLiteral) {
+    ASS_L(sresLiteral,lms.size());
+    //we do not need to match index literals with opposite query
+    //literals, as one of already matched index literals matched only
+    //to opposite literals (and opposite literals cannot be matched
+    //on more than one index literal)
+    ASS_EQ(linfoCnt%2,0);
+    linfoCnt/=2;
+  }
+
   LiteralMatcher* lm;
   Recycler::get(lm);
-  lm->init(tree, entry, lInfos.array(), lInfos.size());
+  lm->init(tree, entry, lInfos.array(), linfoCnt, seekOnlySuccess);
   lms.push(lm);
 }
 
@@ -547,6 +594,14 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
     
     ils->disposeMatches();
     ils->finished=true;
+  }
+
+  if(sres) {
+    unsigned depth=lms.size();
+    if(sresLiteral==depth) {
+      sresLiteral=sresNoLiteral;
+    }
+    ASS(sresLiteral==sresNoLiteral || sresLiteral<depth);
   }
 }
 
@@ -687,7 +742,6 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
       MatchInfo* mi=ils->matches[matchIndex[i]];
       if(lInfos[mi->liIndex].opposite) {
 	resolvedQueryLit=lInfos[mi->liIndex].litIndex;
-	ASS_L(resolvedQueryLit,1000000);
 	break;
       }
     }

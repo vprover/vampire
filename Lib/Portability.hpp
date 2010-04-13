@@ -47,14 +47,14 @@ ASS_STATIC(sizeof(char)==1);
 
 #ifdef NO_PREFETCH
 # define PREFETCH(x)
-# define PREFETCH1(x)
+# define PREFETCH_LOC(x)
 #else
 # ifdef __GNUC__
 #  define PREFETCH(x) __builtin_prefetch((x),0,2)
-#  define PREFETCH1(x) __builtin_prefetch((x),0,1)
+#  define PREFETCH_LOC(x) __builtin_prefetch((x),0,0)
 # else
 #  define PREFETCH(x)
-#  define PREFETCH1(x)
+#  define PREFETCH_LOC(x)
 # endif
 #endif
 
