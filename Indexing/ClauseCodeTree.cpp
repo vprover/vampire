@@ -594,14 +594,15 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
     
     ils->disposeMatches();
     ils->finished=true;
-  }
 
-  if(sres) {
-    unsigned depth=lms.size();
-    if(sresLiteral==depth) {
-      sresLiteral=sresNoLiteral;
+    if(sres) {
+      //clear the resolved literal flag if we have backtracked from it
+      unsigned depth=lms.size()-1;
+      if(sresLiteral==depth) {
+        sresLiteral=sresNoLiteral;
+      }
+      ASS(sresLiteral==sresNoLiteral || sresLiteral<depth);
     }
-    ASS(sresLiteral==sresNoLiteral || sresLiteral<depth);
   }
 }
 
