@@ -195,36 +195,47 @@ void CodeTree::ILStruct::disposeMatches()
 }
 
 
-CodeTree::OpCode CodeTree::OpCode::getSuccess(void* data)
+CodeTree::CodeOp CodeTree::CodeOp::getSuccess(void* ptr)
 {
-  CALL("CodeTree::OpCode::getSuccess");
-  ASS(data); //data has to be a non-zero pointer
+  CALL("CodeTree::CodeOp::getSuccess");
+  ASS(ptr); //data has to be a non-zero pointer
 
-  OpCode res;
-  res.alternative=0;
-  res.result=data;
+  CodeOp res;
+  res.setAlternative(0);
+  res._result=ptr;
   ASS(res.isSuccess());
   return res;
 }
-CodeTree::OpCode CodeTree::OpCode::getLitEnd(ILStruct* ils)
+CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
 {
-  CALL("CodeTree::OpCode::getLitEnd");
+  CALL("CodeTree::CodeOp::getLitEnd");
 
-  OpCode res;
-  res.alternative=0;
-  res.data=reinterpret_cast<size_t>(ils)|LIT_END;
+  CodeOp res;
+  res.setAlternative(0);
+  res._data=reinterpret_cast<size_t>(ils)|LIT_END;
   ASS(res.isLitEnd());
   return res;
 }
-CodeTree::OpCode CodeTree::OpCode::getTermOp(Instruction i, unsigned num)
+CodeTree::CodeOp CodeTree::CodeOp::getTermOp(InstructionSuffix i, unsigned num)
 {
-  CALL("CodeTree::OpCode::getCheckOp");
+  CALL("CodeTree::CodeOp::getTermOp");
   ASS(i==CHECK_FUN || i==CHECK_VAR || i==ASSIGN_VAR);
 
-  OpCode res;
-  res.alternative=0;
-  res.info.instr=i;
-  res.info.arg=num;
+  CodeOp res;
+  res.setAlternative(0);
+  res.setLongInstr(i);
+  res.setArg(num);
+  return res;
+}
+CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(Term* trm)
+{
+  CALL("CodeTree::CodeOp::getGroundTermCheck");
+  ASS(trm->ground());
+
+  CodeOp res;
+  res.setAlternative(0);
+  res._data=reinterpret_cast<size_t>(trm)|CHECK_GROUND_TERM;
+  ASS(res.isCheckGroundTerm());
   return res;
 }
 
@@ -232,38 +243,34 @@ CodeTree::OpCode CodeTree::OpCode::getTermOp(Instruction i, unsigned num)
  * Return true iff @b o is equal to the object for the purpose
  * of operation matching during cide insertion into the tree
  */
-bool CodeTree::OpCode::equalsForOpMatching(const OpCode& o) const
+bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
 {
-  CALL("CodeTree::OpCode::equalsForOpMatching");
+  CALL("CodeTree::CodeOp::equalsForOpMatching");
 
-  if(isLitEnd() && o.isLitEnd()) {
-    return getILS()->equalsForOpMatching(*o.getILS());
-  }
-  
-  if(instr()!=o.instr()) {
+  if(instrPrefix()!=o.instrPrefix()) {
     return false;
   }
-  switch(instr()) {
-  case SUCCESS_OR_FAIL:
-  case SUCCESS2:
-    return data==o.data;
-  case CHECK_FUN:
-  case CHECK_VAR:
-  case ASSIGN_VAR:
-    return arg()==o.arg();
+  switch(instrPrefix()) {
   case LIT_END:
-  case LIT_END2:
-  case SEARCH_STRUCT:
+    return getILS()->equalsForOpMatching(*o.getILS());
+  case SUCCESS_OR_FAIL:
+  case CHECK_GROUND_TERM:
+    return data()==o.data();
+  case SUFFIX_INSTR:
     //SEARCH_STRUCT operations in the tree should be handled separately
     //during insertion into the code tree
+    ASS_NEQ(instrSuffix(), SEARCH_STRUCT);
+    return instrSuffix()==o.instrSuffix() && arg()==o.arg();
+#if VDEBUG
+  default:
     ASSERTION_VIOLATION;
+#endif
   }
-  ASSERTION_VIOLATION;
 }
 
-CodeTree::SearchStruct* CodeTree::OpCode::getSearchStruct()
+CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
 {
-  CALL("CodeTree::OpCode::getSearchStruct");
+  CALL("CodeTree::CodeOp::getSearchStruct");
   
   //the following line gives warning for not being according
   //to the standard, so we have to work around
@@ -284,14 +291,14 @@ CodeTree::SearchStruct::SearchStruct(size_t length)
   CALL("CodeTree::SearchStruct::SearchStruct");
   ASS(length);
   
-  landingOp.alternative=0;
-  landingOp.setInstr(SEARCH_STRUCT);
+  landingOp.setAlternative(0);
+  landingOp.setLongInstr(SEARCH_STRUCT);
   
   size_t valSize=sizeof(unsigned)*length;
   values=static_cast<unsigned*>(
       ALLOC_KNOWN(valSize, "CodeTree::SearchStruct::values"));
-  size_t tgtSize=sizeof(OpCode*)*length;
-  targets=static_cast<OpCode**>(
+  size_t tgtSize=sizeof(CodeOp*)*length;
+  targets=static_cast<CodeOp**>(
       ALLOC_KNOWN(tgtSize, "CodeTree::SearchStruct::targets"));
 }
 
@@ -301,11 +308,11 @@ CodeTree::SearchStruct::~SearchStruct()
 
   size_t valSize=sizeof(unsigned)*length;
   DEALLOC_KNOWN(values, valSize, "CodeTree::SearchStruct::values");
-  size_t tgtSize=sizeof(OpCode*)*length;
+  size_t tgtSize=sizeof(CodeOp*)*length;
   DEALLOC_KNOWN(targets, tgtSize, "CodeTree::SearchStruct::targets");
 }
 
-CodeTree::OpCode*& CodeTree::SearchStruct::targetOp(unsigned fn)
+CodeTree::CodeOp*& CodeTree::SearchStruct::targetOp(unsigned fn)
 {
   CALL("CodeTree::SearchStruct::findTargetOp");
   
@@ -343,11 +350,35 @@ CodeTree::OpCode*& CodeTree::SearchStruct::targetOp(unsigned fn)
  */
 struct CodeTree::SearchStruct::OpComparator
 {
-  static Comparison compare(OpCode* op1, OpCode* op2)
+  static Comparison compare(CodeOp* op1, CodeOp* op2)
   {
     return Int::compare(op1->arg(), op2->arg());
   }
 };
+
+
+inline bool CodeTree::BaseMatcher::doCheckGroundTerm()
+{
+  ASS_EQ(op->instrPrefix(), CHECK_GROUND_TERM);
+
+  const FlatTerm::Entry* fte=&(*ft)[tp];
+  if(!fte->isFun()) {
+    return false;
+  }
+
+  Term* trm=op->getTargetTerm();
+
+  fte++;
+  ASS_EQ(fte->tag(), FlatTerm::FUN_TERM_PTR);
+  ASS(fte->ptr());
+  if(trm!=fte->ptr()) {
+    return false;
+  }
+  fte++;
+  ASS_EQ(fte->tag(), FlatTerm::FUN_RIGHT_OFS);
+  tp+=fte->number();
+  return true;
+}
 
 //////////////// auxiliary ////////////////////
 
@@ -359,7 +390,7 @@ CodeTree::CodeTree()
 /**
  * Return CodeBlock which contains @b op as its first operation
  */
-CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(OpCode* op)
+CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(CodeOp* op)
 {
   CALL("CodeTree::firstOpToCodeBlock");
   ASS(!op->isSearchStruct());
@@ -390,11 +421,11 @@ void CodeTree::visitAllOps(Visitor visitor)
   while(blocks.isNonEmpty()) {
     CodeBlock* cb=blocks.pop();
 
-    OpCode* op=&(*cb)[0];
+    CodeOp* op=&(*cb)[0];
     for(size_t rem=cb->length(); rem; rem--,op++) {
 	visitor(op);
-	if(op->alternative) {
-	  blocks.push(firstOpToCodeBlock(op->alternative));
+	if(op->alternative()) {
+	  blocks.push(firstOpToCodeBlock(op->alternative()));
 	}
     }
   }
@@ -447,39 +478,54 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
 
   cctx.nextLit();
 
-  if(trm->isLiteral()) {
-    Literal* lit=static_cast<Literal*>(trm);
-    code.push(OpCode::getTermOp(CHECK_FUN, lit->header()));
+//  if(trm->ground()) {
+  if(false) {
+    code.push(CodeOp::getGroundTermCheck(trm));
   }
   else {
-    code.push(OpCode::getTermOp(CHECK_FUN, trm->functor()));
-  }
-  
-  SubtermIterator sti(trm);
-  while(sti.hasNext()) {
-    TermList s=sti.next();
-    if(s.isVar()) {
-      unsigned var=s.var();
-      unsigned* varNumPtr;
-      if(cctx.varMap.getValuePtr(var,varNumPtr)) {
-	*varNumPtr=cctx.nextVarNum++;
-	code.push(OpCode::getTermOp(ASSIGN_VAR, *varNumPtr));
+    if(trm->isLiteral()) {
+      Literal* lit=static_cast<Literal*>(trm);
+      code.push(CodeOp::getTermOp(CHECK_FUN, lit->header()));
+    }
+    else {
+      code.push(CodeOp::getTermOp(CHECK_FUN, trm->functor()));
+    }
 
-	if(addLitEnd) {
-	  unsigned* globalVarNumPtr;
-	  if(cctx.globalVarMap.getValuePtr(var,globalVarNumPtr)) {
-	    *globalVarNumPtr=cctx.nextGlobalVarNum++;
+    SubtermIterator sti(trm);
+    while(sti.hasNext()) {
+      TermList s=sti.next();
+      if(s.isVar()) {
+	unsigned var=s.var();
+	unsigned* varNumPtr;
+	if(cctx.varMap.getValuePtr(var,varNumPtr)) {
+	  *varNumPtr=cctx.nextVarNum++;
+	  code.push(CodeOp::getTermOp(ASSIGN_VAR, *varNumPtr));
+
+	  if(addLitEnd) {
+	    unsigned* globalVarNumPtr;
+	    if(cctx.globalVarMap.getValuePtr(var,globalVarNumPtr)) {
+	      *globalVarNumPtr=cctx.nextGlobalVarNum++;
+	    }
+	    globalCounterparts.push(*globalVarNumPtr);
 	  }
-	  globalCounterparts.push(*globalVarNumPtr);
+	}
+	else {
+	  code.push(CodeOp::getTermOp(CHECK_VAR, *varNumPtr));
 	}
       }
       else {
-	code.push(OpCode::getTermOp(CHECK_VAR, *varNumPtr));
+	ASS(s.isTerm());
+	Term* t=s.term();
+
+//	if(t->ground()) {
+	if(false) {
+	  code.push(CodeOp::getGroundTermCheck(t));
+	  sti.right();
+	}
+	else {
+	  code.push(CodeOp::getTermOp(CHECK_FUN, s.term()->functor()));
+	}
       }
-    }
-    else {
-      ASS(s.isTerm());
-      code.push(OpCode::getTermOp(CHECK_FUN, s.term()->functor()));
     }
   }
 
@@ -488,7 +534,7 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
     unsigned varCnt=cctx.nextVarNum;
     ASS_EQ(varCnt, globalCounterparts.size());
     ILStruct* ils=new ILStruct(varCnt, globalCounterparts);
-    code.push(OpCode::getLitEnd(ils));
+    code.push(CodeOp::getLitEnd(ils));
   }
 
 }
@@ -510,8 +556,8 @@ CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt, ILStruct*
   CodeBlock* res=CodeBlock::allocate(cnt);
   size_t sOfs=clen-cnt;
   for(size_t i=0;i<cnt;i++) {
-    OpCode& op=code[i+sOfs];
-    ASS_EQ(op.alternative,0); //the ops should not have an alternattive set yet
+    CodeOp& op=code[i+sOfs];
+    ASS_EQ(op.alternative(),0); //the ops should not have an alternattive set yet
     if(op.isLitEnd()) {
       ILStruct* ils=op.getILS();
       ils->putIntoSequence(prev);
@@ -540,21 +586,22 @@ void CodeTree::incorporate(CodeStack& code)
   static const unsigned checkFunOpThreshold=5; //must be greater than 1 or it would cause loops
 
   size_t clen=code.length();
-  OpCode** tailTarget;
+  CodeOp** tailTarget;
   size_t matchedCnt;
   ILStruct* lastMatchedILS=0;
   
   {
-    OpCode* treeOp=getEntryPoint();
+    CodeOp* treeOp=getEntryPoint();
     
     for(size_t i=0;i<clen;i++) {
-      OpCode* chainStart=treeOp;
+      CodeOp* chainStart=treeOp;
       size_t checkFunOps=0;
       for(;;) {
 	if(treeOp->isSearchStruct()) {
+	  //handle the SEARCH_STRUCT
 	  if(code[i].isCheckFun()) {
 	    SearchStruct* ss=treeOp->getSearchStruct();
-	    OpCode** to=&ss->targetOp(code[i].arg());
+	    CodeOp** to=&ss->targetOp(code[i].arg());
 	    if(!*to) {
 	      tailTarget=to;
 	      matchedCnt=i;
@@ -565,18 +612,23 @@ void CodeTree::incorporate(CodeStack& code)
 	  }
 	}
 	else if(code[i].equalsForOpMatching(*treeOp)) {
+	  //matched, go to the next compiled instruction
 	  break;
 	}
-	if(treeOp->alternative) {
-	  treeOp=treeOp->alternative;
+	if(treeOp->alternative()) {
+	  //try alternative if there is some
+	  treeOp=treeOp->alternative();
 	}
 	else {
-	  tailTarget=&treeOp->alternative;
+	  //matching failed, we'll add the new branch here
+	  tailTarget=&treeOp->alternative();
 	  matchedCnt=i;
 	  goto matching_done;
 	}
 	if(treeOp->isCheckFun()) {
 	  checkFunOps++;
+	  //if there were too many CHECK_FUN alternative operations, put them
+	  //into a SEARCH_STRUCT
 	  if(checkFunOps>checkFunOpThreshold) {
 	    //we put CHECK_FUN ops into the SEARCH_STRUCT op, and 
 	    //restart with the chain
@@ -607,10 +659,10 @@ void CodeTree::incorporate(CodeStack& code)
     matchedCnt=clen-1;
 
     //we need to find where to put it
-    while(treeOp->alternative) {
-      treeOp=treeOp->alternative;
+    while(treeOp->alternative()) {
+      treeOp=treeOp->alternative();
     }
-    tailTarget=&treeOp->alternative;
+    tailTarget=&treeOp->alternative();
   }
 matching_done:
   
@@ -631,23 +683,23 @@ matching_done:
   }
 }
 
-void CodeTree::compressCheckFnOps(OpCode* chainStart)
+void CodeTree::compressCheckFnOps(CodeOp* chainStart)
 {
   CALL("CodeTree::compressCheckFnOps");
-  ASS(chainStart->alternative);
+  ASS(chainStart->alternative());
   
-  static Stack<OpCode*> toDo;
-  static Stack<OpCode*> chfOps;
-  static Stack<OpCode*> otherOps;
+  static Stack<CodeOp*> toDo;
+  static Stack<CodeOp*> chfOps;
+  static Stack<CodeOp*> otherOps;
   toDo.reset();
   chfOps.reset();
   otherOps.reset();
   
-  toDo.push(chainStart->alternative);
+  toDo.push(chainStart->alternative());
   while(toDo.isNonEmpty()) {
-    OpCode* op=toDo.pop();
-    if(op->alternative) {
-      toDo.push(op->alternative);
+    CodeOp* op=toDo.pop();
+    if(op->alternative()) {
+      toDo.push(op->alternative());
     }
     if(op->isCheckFun()) {
       chfOps.push(op);
@@ -676,21 +728,22 @@ void CodeTree::compressCheckFnOps(OpCode* chainStart)
     ASS(chfOps[i]->isCheckFun());
     res->values[i]=chfOps[i]->arg();
     res->targets[i]=chfOps[i];
-    chfOps[i]->alternative=0;
+    chfOps[i]->setAlternative(0);
   }
   
-  OpCode* op=&res->landingOp;
-  chainStart->alternative=op;
+  CodeOp* op=&res->landingOp;
+  chainStart->setAlternative(op);
   while(otherOps.isNonEmpty()) {
-    op->alternative=otherOps.pop();
-    op=op->alternative;
+    CodeOp* next=otherOps.pop();
+    op->setAlternative(next);
+    op=next;
   }
-  op->alternative=0;
+  op->setAlternative(0);
 }
 
 //////////// removal //////////////
 
-void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode* removedOp)
+void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp* removedOp)
 {
   CALL("CodeTree::optimizeMemoryAfterRemoval");
   ASS(removedOp->isFail());
@@ -699,9 +752,9 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
   
   //now let us remove unnecessary instructions and the free memory
 
-  OpCode* op=removedOp;
+  CodeOp* op=removedOp;
   ASS(firstsInBlocks->isNonEmpty());
-  OpCode* firstOp=firstsInBlocks->pop();
+  CodeOp* firstOp=firstsInBlocks->pop();
   for(;;) {
     //firstOp is in a CodeBlock
     ASS(!firstOp->isSearchStruct());
@@ -711,17 +764,17 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
 
     int firstOpFun= firstOp->isCheckFun() ? firstOp->arg() : -1;
     
-    while(op>firstOp && !op->alternative) { ASS(!op->isSuccess()); op--; }
+    while(op>firstOp && !op->alternative()) { ASS(!op->isSuccess()); op--; }
     
     ASS(!op->isSuccess());
 
     if(op!=firstOp) {
-      ASS(op->alternative);
+      ASS(op->alternative());
       //we only change the instruction, the alternative must remain unchanged
       op->makeFail();
       return;
     }
-    OpCode* alt=firstOp->alternative;
+    CodeOp* alt=firstOp->alternative();
 
     CodeBlock* cb=firstOpToCodeBlock(firstOp);
 
@@ -754,13 +807,13 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
     }
 
     //first operation in the CodeBlock that points to the current one (i.e. cb)
-    OpCode* prevFirstOp=firstsInBlocks->pop();
+    CodeOp* prevFirstOp=firstsInBlocks->pop();
     
     if(prevFirstOp->isSearchStruct()) {
       SearchStruct* ss=prevFirstOp->getSearchStruct();
-      if(prevFirstOp->alternative==firstOp) {
+      if(prevFirstOp->alternative()==firstOp) {
 	//firstOp was an alternative to the SearchStruct
-	prevFirstOp->alternative=alt;
+	prevFirstOp->setAlternative(alt);
 	return;
       }
       ASS_GE(firstOpFun,0);
@@ -779,7 +832,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
 	}
       }
       firstOp=&ss->landingOp;
-      alt=ss->landingOp.alternative;
+      alt=ss->landingOp.alternative();
       delete ss;
       
       //now let's continue as if there wasn't any SEARCH_STRUCT operation:)
@@ -794,26 +847,26 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
     CodeBlock* pcb=firstOpToCodeBlock(prevFirstOp);
 
     //operation that points to the current CodeBlock
-    OpCode* pointingOp=0;
+    CodeOp* pointingOp=0;
 
-    OpCode* prevAfterLastOp=prevFirstOp+pcb->length();
-    OpCode* prevOp=prevFirstOp;
-    while(prevOp->alternative!=firstOp) {
+    CodeOp* prevAfterLastOp=prevFirstOp+pcb->length();
+    CodeOp* prevOp=prevFirstOp;
+    while(prevOp->alternative()!=firstOp) {
       ASS_L(prevOp,prevAfterLastOp);
       prevOp++;
     }
     pointingOp=prevOp;
 
-    pointingOp->alternative=alt;
+    pointingOp->setAlternative(alt);
     if(pointingOp->isSuccess()) {
       return;
     }
     
     prevOp++;
     while(prevOp!=prevAfterLastOp) {
-      ASS_NEQ(prevOp->alternative,firstOp);
+      ASS_NEQ(prevOp->alternative(),firstOp);
 
-      if(prevOp->alternative || prevOp->isSuccess()) {
+      if(prevOp->alternative() || prevOp->isSuccess()) {
 	//there is an operation after the pointingOp that cannot be lost
 	return;
       }
@@ -825,8 +878,8 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode
   }
 }
 
-void CodeTree::RemovingMatcher::init(OpCode* entry_, LitInfo* linfos_,
-    size_t linfoCnt_, CodeTree* tree_, Stack<OpCode*>* firstsInBlocks_)
+void CodeTree::RemovingMatcher::init(CodeOp* entry_, LitInfo* linfos_,
+    size_t linfoCnt_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
   CALL("CodeTree::RemovingMatcher::init");
   
@@ -863,40 +916,15 @@ bool CodeTree::RemovingMatcher::next()
 
   bool shouldBacktrack=false;
   for(;;) {
-    if(op->alternative) {
-      LOG_OP("alt at "<<tp);
-      btStack.push(BTPoint(tp, op->alternative, firstsInBlocks->size()));
+    if(op->alternative()) {
+      btStack.push(BTPoint(tp, op->alternative(), firstsInBlocks->size()));
     }
-    LOG_OP(tp<<':'<<op->instr());
-    switch(op->instr()) {
-    case CHECK_FUN:
-      shouldBacktrack=!doCheckFun();
-      break;
-    case ASSIGN_VAR:
-      shouldBacktrack=!doAssignVar();
-      break;
-    case CHECK_VAR:
-      shouldBacktrack=!doCheckVar();
-      break;
-    case SEARCH_STRUCT:
-      if(doSearchStruct()) {
-	//a new value of @b op is assigned, so restart the loop
-	continue;
-      }
-      else {
-	shouldBacktrack=true;
-      }
-      break;
-    case LIT_END:
-    case LIT_END2:
-      ASS(matchingClauses);
-      return true;
+    switch(op->instrPrefix()) {
     case SUCCESS_OR_FAIL:
       if(op->isFail()) {
 	shouldBacktrack=true;
 	break;
       }
-    case SUCCESS2:
       if(matchingClauses) {
 	//we can succeed only in certain depth and that will be handled separately
 	shouldBacktrack=true;
@@ -906,13 +934,39 @@ bool CodeTree::RemovingMatcher::next()
 	return true;
       }
       break;
+    case LIT_END:
+      ASS(matchingClauses);
+      return true;
+    case CHECK_GROUND_TERM:
+      shouldBacktrack=!doCheckGroundTerm();
+      break;
+    case SUFFIX_INSTR:
+      switch(op->instrSuffix()) {
+      case CHECK_FUN:
+        shouldBacktrack=!doCheckFun();
+        break;
+      case ASSIGN_VAR:
+        shouldBacktrack=!doAssignVar();
+        break;
+      case CHECK_VAR:
+        shouldBacktrack=!doCheckVar();
+        break;
+      case SEARCH_STRUCT:
+        if(doSearchStruct()) {
+          //a new value of @b op is assigned, so restart the loop
+          continue;
+        }
+        else {
+          shouldBacktrack=true;
+        }
+        break;
+      }
+      break;
     }
     if(shouldBacktrack) {
       if(!backtrack()) {
-	LOG_OP("not found");
 	return false;
       }
-      LOG_OP(ctx.tp<<"<-bt");
       shouldBacktrack=false;
     }
     else {
@@ -959,13 +1013,13 @@ bool CodeTree::RemovingMatcher::prepareLiteral()
 inline bool CodeTree::RemovingMatcher::doSearchStruct()
 {
   CALL("CodeTree::RemovingMatcher::doSearchStruct");
-  ASS_EQ(op->instr(), SEARCH_STRUCT);
+  ASS_EQ(op->instrSuffix(), SEARCH_STRUCT);
   
   const FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun()) {
     return false;
   }
-  OpCode* target=op->getSearchStruct()->targetOp(fte.number());
+  CodeOp* target=op->getSearchStruct()->targetOp(fte.number());
   if(!target) {
     return false;
   }
@@ -976,7 +1030,7 @@ inline bool CodeTree::RemovingMatcher::doSearchStruct()
 
 inline bool CodeTree::RemovingMatcher::doCheckFun()
 {
-  ASS_EQ(op->instr(), CHECK_FUN);
+  ASS_EQ(op->instrSuffix(), CHECK_FUN);
 
   unsigned functor=op->arg();
   const FlatTerm::Entry& fte=(*ft)[tp];
@@ -989,7 +1043,7 @@ inline bool CodeTree::RemovingMatcher::doCheckFun()
 
 inline bool CodeTree::RemovingMatcher::doAssignVar()
 {
-  ASS_EQ(op->instr(), ASSIGN_VAR);
+  ASS_EQ(op->instrSuffix(), ASSIGN_VAR);
 
   //we are looking for variants and they match only other variables into variables
   unsigned var=op->arg();
@@ -1004,7 +1058,7 @@ inline bool CodeTree::RemovingMatcher::doAssignVar()
 
 inline bool CodeTree::RemovingMatcher::doCheckVar()
 {
-  ASS_EQ(op->instr(), CHECK_VAR);
+  ASS_EQ(op->instrSuffix(), CHECK_VAR);
 
   //we are looking for variants and they match only other variables into variables
   unsigned var=op->arg();
@@ -1029,7 +1083,7 @@ void CodeTree::incTimeStamp()
   }
 }
 
-void CodeTree::Matcher::init(CodeTree* tree_, OpCode* entry_)
+void CodeTree::Matcher::init(CodeTree* tree_, CodeOp* entry_)
 {
   CALL("CodeTree::Matcher::init");
 
@@ -1060,39 +1114,15 @@ bool CodeTree::Matcher::execute()
 
   bool shouldBacktrack=false;
   for(;;) {
-    if(op->alternative) {
-      LOG_OP("alt at "<<tp);
-      btStack.push(BTPoint(tp, op->alternative));
+    if(op->alternative()) {
+      btStack.push(BTPoint(tp, op->alternative()));
     }
-    LOG_OP(tp<<':'<<op->instr());
-    switch(op->instr()) {
-    case CHECK_FUN:
-      shouldBacktrack=!doCheckFun();
-      break;
-    case ASSIGN_VAR:
-      doAssignVar();
-      break;
-    case CHECK_VAR:
-      shouldBacktrack=!doCheckVar();
-      break;
-    case SEARCH_STRUCT:
-      if(doSearchStruct()) {
-	//a new value of @b op is assigned, so restart the loop
-	continue;
-      }
-      else {
-	shouldBacktrack=true;
-      }
-      break;
-    case LIT_END:
-    case LIT_END2:
-      return true;
+    switch(op->instrPrefix()) {
     case SUCCESS_OR_FAIL:
       if(op->isFail()) {
 	shouldBacktrack=true;
 	break;
       }
-    case SUCCESS2:
       //yield successes only in the first round (we don't want to yield the
       //same thing for each query literal)
       if(curLInfo==0) {
@@ -1102,13 +1132,38 @@ bool CodeTree::Matcher::execute()
 	shouldBacktrack=true;
       }
       break;
+    case LIT_END:
+      return true;
+    case CHECK_GROUND_TERM:
+      shouldBacktrack=!doCheckGroundTerm();
+      break;
+    case SUFFIX_INSTR:
+      switch(op->instrSuffix()) {
+      case CHECK_FUN:
+        shouldBacktrack=!doCheckFun();
+        break;
+      case ASSIGN_VAR:
+        doAssignVar();
+        break;
+      case CHECK_VAR:
+        shouldBacktrack=!doCheckVar();
+        break;
+      case SEARCH_STRUCT:
+	if(doSearchStruct()) {
+	  //a new value of @b op is assigned, so restart the loop
+	  continue;
+	}
+	else {
+	  shouldBacktrack=true;
+	}
+	break;
+      }
+      break;
     }
     if(shouldBacktrack) {
       if(!backtrack()) {
-	LOG_OP("not found");
 	return false;
       }
-      LOG_OP(ctx.tp<<"<-bt");
       shouldBacktrack=false;
     }
     else {
@@ -1149,7 +1204,7 @@ bool CodeTree::Matcher::prepareLiteral()
 
 inline bool CodeTree::Matcher::doSearchStruct()
 {
-  ASS_EQ(op->instr(), SEARCH_STRUCT);
+  ASS_EQ(op->instrSuffix(), SEARCH_STRUCT);
 
   const FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun()) {
@@ -1161,7 +1216,7 @@ inline bool CodeTree::Matcher::doSearchStruct()
 
 inline bool CodeTree::Matcher::doCheckFun()
 {
-  ASS_EQ(op->instr(), CHECK_FUN);
+  ASS_EQ(op->instrSuffix(), CHECK_FUN);
 
   unsigned functor=op->arg();
   const FlatTerm::Entry& fte=(*ft)[tp];
@@ -1174,7 +1229,7 @@ inline bool CodeTree::Matcher::doCheckFun()
 
 inline void CodeTree::Matcher::doAssignVar()
 {
-  ASS_EQ(op->instr(), ASSIGN_VAR);
+  ASS_EQ(op->instrSuffix(), ASSIGN_VAR);
 
   unsigned var=op->arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
@@ -1196,7 +1251,7 @@ inline void CodeTree::Matcher::doAssignVar()
 
 inline bool CodeTree::Matcher::doCheckVar()
 {
-  ASS_EQ(op->instr(), CHECK_VAR);
+  ASS_EQ(op->instrSuffix(), CHECK_VAR);
 
   unsigned var=op->arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];

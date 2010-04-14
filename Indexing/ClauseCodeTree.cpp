@@ -54,7 +54,7 @@ void ClauseCodeTree::insert(Clause* cl)
   for(unsigned i=0;i<clen;i++) {
     compileTerm(lits[i], code, cctx, true);
   }
-  code.push(OpCode::getSuccess(cl));
+  code.push(CodeOp::getSuccess(cl));
 
   cctx.deinit(this);
 
@@ -88,7 +88,7 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
   }
 }
 
-void ClauseCodeTree::evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLen, size_t& unsharedLen)
+void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen)
 {
   CALL("ClauseCodeTree::evalSharing");
 
@@ -116,19 +116,19 @@ void ClauseCodeTree::evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLe
  * it is the first operation on which mismatch occured and there was no alternative to
  * proceed to (in this case it therefore holds that @b lastAttemptedOp->alternative==0 ).
  */
-void ClauseCodeTree::matchCode(CodeStack& code, OpCode* startOp, size_t& matchedCnt)
+void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt)
 {
   CALL("ClauseCodeTree::matchCode");
 
   size_t clen=code.length();
-  OpCode* treeOp=startOp;
+  CodeOp* treeOp=startOp;
   
   for(size_t i=0;i<clen;i++) {
     for(;;) {
       if(treeOp->isSearchStruct()) {
 	if(code[i].isCheckFun()) {
 	  SearchStruct* ss=treeOp->getSearchStruct();
-	  OpCode* target=ss->targetOp(code[i].arg());
+	  CodeOp* target=ss->targetOp(code[i].arg());
 	  if(target) {
 	    treeOp=target;
 	    continue;
@@ -138,7 +138,7 @@ void ClauseCodeTree::matchCode(CodeStack& code, OpCode* startOp, size_t& matched
       else if(code[i].equalsForOpMatching(*treeOp)) {
 	break;
       }
-      treeOp=treeOp->alternative;
+      treeOp=treeOp->alternative();
       if(!treeOp) {
 	matchedCnt=i;
 	return;
@@ -166,7 +166,7 @@ void ClauseCodeTree::remove(Clause* cl)
   CALL("ClauseCodeTree::remove");
 
   static DArray<LitInfo> lInfos;
-  static Stack<OpCode*> firstsInBlocks;
+  static Stack<CodeOp*> firstsInBlocks;
   static Stack<RemovingLiteralMatcher*> rlms;
 
   unsigned clen=cl->length();
@@ -175,7 +175,7 @@ void ClauseCodeTree::remove(Clause* cl)
   rlms.reset();
   
   if(!clen) {
-    OpCode* op=getEntryPoint();
+    CodeOp* op=getEntryPoint();
     firstsInBlocks.push(op);
     if(!removeOneOfAlternatives(op, cl, &firstsInBlocks)) {
       ASSERTION_VIOLATION;
@@ -190,7 +190,7 @@ void ClauseCodeTree::remove(Clause* cl)
   }
   incTimeStamp();
 
-  OpCode* op=getEntryPoint();
+  CodeOp* op=getEntryPoint();
   firstsInBlocks.push(op);
   unsigned depth=0;
   for(;;) {
@@ -241,8 +241,8 @@ void ClauseCodeTree::remove(Clause* cl)
   }
 }
 
-void ClauseCodeTree::RemovingLiteralMatcher::init(OpCode* entry_, LitInfo* linfos_,
-    size_t linfoCnt_, ClauseCodeTree* tree_, Stack<OpCode*>* firstsInBlocks_)
+void ClauseCodeTree::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfos_,
+    size_t linfoCnt_, ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
   CALL("ClauseCodeTree::RemovingLiteralMatcher::init");
   
@@ -257,14 +257,14 @@ void ClauseCodeTree::RemovingLiteralMatcher::init(OpCode* entry_, LitInfo* linfo
  * The first operation of the CodeBlock containing @b op 
  * must already be on the @b firstsInBlocks stack.
  */
-bool ClauseCodeTree::removeOneOfAlternatives(OpCode* op, Clause* cl, Stack<OpCode*>* firstsInBlocks)
+bool ClauseCodeTree::removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks)
 {
   CALL("ClauseCodeTree::removeOneOfAlternatives");
   
   unsigned initDepth=firstsInBlocks->size();
 
   while(!op->isSuccess() || op->getSuccessResult()!=cl) {
-    op=op->alternative;
+    op=op->alternative();
     if(!op) {
       firstsInBlocks->truncate(initDepth);
       return false;
@@ -280,7 +280,7 @@ bool ClauseCodeTree::removeOneOfAlternatives(OpCode* op, Clause* cl, Stack<OpCod
 
 ////////// LiteralMatcher
 
-void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, OpCode* entry_, 
+void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_, 
 	LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess)
 {
   CALL("ClauseCodeTree::LiteralMatcher::init");
@@ -300,12 +300,12 @@ void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, OpCode* entry_,
 
     _eagerlyMatched=true;
     _fresh=false;
-    OpCode* sop=entry;
+    CodeOp* sop=entry;
     while(sop) {
       if(sop->isSuccess()) {
 	eagerResults.push(sop);
       }
-      sop=sop->alternative;
+      sop=sop->alternative();
     }
     return;
   }
@@ -357,9 +357,9 @@ bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
   ASS(!finished());
   
   //backup the current op
-  OpCode* currOp=op;
+  CodeOp* currOp=op;
   
-  static Stack<OpCode*> successes;
+  static Stack<CodeOp*> successes;
   successes.reset();
   
   while(execute()) {
@@ -515,7 +515,10 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
 
       //LIT_END is never the last operation in the CodeBlock,
       //so we can increase here
-      OpCode* newLitEntry=lm->op+1;
+      CodeOp* newLitEntry=lm->op+1;
+
+      //check that we have cleared the sresLiteral value if it is no longer valid
+      ASS(sresLiteral==sresNoLiteral || sresLiteral<lms.size()-1);
 
       if(sres && sresLiteral==sresNoLiteral) {
 	//we check whether we haven't matched only opposite literals on the previous level
@@ -539,7 +542,7 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
   }
 }
 
-inline bool ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited(OpCode* op)
+inline bool ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited(CodeOp* op)
 {
   CALL("ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited");
   ASS(op->isLitEnd());
@@ -548,7 +551,7 @@ inline bool ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited(OpCode* op)
   return ils->timestamp==tree->_curTimeStamp && ils->visited;
 }
 
-void ClauseCodeTree::ClauseMatcher::enterLiteral(OpCode* entry, bool seekOnlySuccess)
+void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuccess)
 {
   CALL("ClauseCodeTree::ClauseMatcher::enterLiteral");
   
@@ -774,6 +777,9 @@ bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILSt
       bvars--;
       bgvn++;
       bb++;
+    }
+    if(!bvars) {
+      break;
     }
     while(nvars && *bgvn>*ngvn) {
       nvars--;

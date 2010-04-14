@@ -113,73 +113,96 @@ public:
     bool finished;
   };
 
-  enum Instruction
+  enum InstructionPrefix
   {
     //it means fail if data==0
     SUCCESS_OR_FAIL = 0,
-    SUCCESS2 = 4, //this one is here because pointers are guaranted to be only 4-byte aligned
-    LIT_END = 1,
-    LIT_END2 = 5, //this one also
-    CHECK_FUN = 2,
-    ASSIGN_VAR = 3,
-    CHECK_VAR = 6,
-    SEARCH_STRUCT = 7
+    CHECK_GROUND_TERM = 1,
+    LIT_END = 2,
+    /** One of instructions that are determined by the instruction suffix */
+    SUFFIX_INSTR = 3
+  };
+  enum InstructionSuffix
+  {
+    CHECK_FUN = 0,
+    ASSIGN_VAR = 1,
+    CHECK_VAR = 2,
+    SEARCH_STRUCT = 3
   };
 
   /** Structure containing a single instruction and its arguments */
-  struct OpCode
+  struct CodeOp
   {
-    static OpCode getSuccess(void* data);
-    static OpCode getLitEnd(ILStruct* ils);
-    static OpCode getTermOp(Instruction i, unsigned num);
+    static CodeOp getSuccess(void* data);
+    static CodeOp getLitEnd(ILStruct* ils);
+    static CodeOp getTermOp(InstructionSuffix i, unsigned num);
+    static CodeOp getGroundTermCheck(Term* trm);
 
-    void makeFail() { data=0; }
-    
-    bool equalsForOpMatching(const OpCode& o) const;
+    bool equalsForOpMatching(const CodeOp& o) const;
 
     /**
-     * Return true iff OpCode contains a success instruction
+     * Return true iff CodeOp contains a success instruction
      *
      * A succes instruction is either SUCCESS or SUCCESS2, because
      * on some architectures, pointers are only 4-byte aligned and
      * the instruction is stored in first three bits.
      */
-    inline bool isSuccess() const { return (instr()&3)==SUCCESS_OR_FAIL && data; }
-    inline bool isFail() const { return !data; }
-    inline bool isLitEnd() const { return (instr()&3)==LIT_END; }
-    inline bool isSearchStruct() const { return instr()==SEARCH_STRUCT; }
-    inline bool isCheckFun() const { return instr()==CHECK_FUN; }
+    inline bool isSuccess() const { return instrPrefix()==SUCCESS_OR_FAIL && data(); }
+    inline bool isFail() const { return !data(); }
+    inline bool isLitEnd() const { return instrPrefix()==LIT_END; }
+    inline bool isSearchStruct() const { return instrPrefix()==SUFFIX_INSTR && instrSuffix()==SEARCH_STRUCT; }
+    inline bool isCheckFun() const { return instrPrefix()==SUFFIX_INSTR && instrSuffix()==CHECK_FUN; }
+    inline bool isCheckGroundTerm() const { return instrPrefix()==CHECK_GROUND_TERM; }
 
-    inline void* getSuccessResult() { ASS(isSuccess()); return result; }
+    inline Term* getTargetTerm()
+    {
+      ASS(isCheckGroundTerm());
+      return reinterpret_cast<Term*>(data()&~static_cast<size_t>(CHECK_GROUND_TERM));
+    }
+
+    inline void* getSuccessResult() { ASS(isSuccess()); return _result; }
     
     inline ILStruct* getILS()
     {
       ASS(isLitEnd());
-      return reinterpret_cast<ILStruct*>(data&~static_cast<size_t>(LIT_END));
+      return reinterpret_cast<ILStruct*>(data()&~static_cast<size_t>(LIT_END));
     }
     inline const ILStruct* getILS() const
     {
-      return const_cast<OpCode*>(this)->getILS();
+      return const_cast<CodeOp*>(this)->getILS();
     }
     
     SearchStruct* getSearchStruct();
 
-    inline Instruction instr() const { return info.instr; }
-    inline void setInstr(Instruction i) { info.instr=i; }
+    inline InstructionPrefix instrPrefix() const { return static_cast<InstructionPrefix>(_info.prefix); }
+    inline InstructionSuffix instrSuffix() const
+    {
+      ASS_EQ(instrPrefix(), SUFFIX_INSTR);
+      return static_cast<InstructionSuffix>(_info.suffix);
+    }
 
-    inline unsigned arg() const { return info.arg; }
+    inline unsigned arg() const { return _info.arg; }
+    inline CodeOp* alternative() const { return _alternative; }
+    inline CodeOp*& alternative() { return _alternative; }
 
-#if VDEBUG
-    string toString() const;
-#endif
+    inline void setAlternative(CodeOp* op) { _alternative=op; }
+    inline void setLongInstr(InstructionSuffix i) { _info.prefix=SUFFIX_INSTR; _info.suffix=i; }
+
+    void makeFail() { _data=0; }
+
+  private:
+    inline size_t data() const { return _data; }
+
+    inline void setArg(unsigned arg) { ASS_L(arg,1<<28); _info.arg=arg; }
 
     union {
       struct {
-        Instruction instr : 3;
-        unsigned arg : 29;
-      } info;
-      void* result;
-      size_t data;
+        unsigned prefix : 2;
+        unsigned suffix : 2;
+        unsigned arg : 28;
+      } _info;
+      void* _result;
+      size_t _data;
     };
     /**
      * Pointer to an alternative operation
@@ -187,35 +210,66 @@ public:
      * If nonzero, always points to the first operation of
      * a @b CodeBlock.
      */
-    OpCode* alternative;
+    CodeOp* _alternative;
   };
   
   struct SearchStruct
   {
     SearchStruct(size_t length);
     ~SearchStruct();
-    OpCode*& targetOp(unsigned fn);
+    CodeOp*& targetOp(unsigned fn);
 
     CLASS_NAME("CodeTree::SearchStruct");
     USE_ALLOCATOR(SearchStruct);
     
     struct OpComparator;
 
-    OpCode landingOp;
+    CodeOp landingOp;
     size_t length;
     unsigned* values;
-    OpCode** targets;
+    CodeOp** targets;
   };
 
 
-  typedef Vector<OpCode> CodeBlock;
-  typedef Stack<OpCode> CodeStack;
+  typedef Vector<CodeOp> CodeBlock;
+  typedef Stack<CodeOp> CodeStack;
+
+  struct BaseMatcher
+  {
+  public:
+    /**
+     * Pointer to the current operation
+     *
+     * Must be initialized by inheritor (either directly or by
+     * a call to the @b prepareLiteral function).
+     */
+    CodeOp* op;
+  protected:
+
+    bool doCheckGroundTerm();
+
+    /**
+     * Position in the flat term
+     *
+     * Must be initialized by inheritor (either directly or by
+     * a call to the @b prepareLiteral function).
+     */
+    size_t tp;
+    /**
+     * Flat term to be traversed
+     *
+     * Must be initialized by inheritor (either directly or by
+     * a call to the @b prepareLiteral function).
+     */
+    FlatTerm* ft;
+
+  };
 
   //////// auxiliary methods //////////
 
   inline bool isEmpty() { return !_entryPoint; }
-  inline OpCode* getEntryPoint() { ASS(!isEmpty()); return &(*_entryPoint)[0]; }
-  static CodeBlock* firstOpToCodeBlock(OpCode* op);
+  inline CodeOp* getEntryPoint() { ASS(!isEmpty()); return &(*_entryPoint)[0]; }
+  static CodeBlock* firstOpToCodeBlock(CodeOp* op);
 
   template<class Visitor>
   void visitAllOps(Visitor visitor);
@@ -241,23 +295,23 @@ public:
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
   void incorporate(CodeStack& code);
   
-  void compressCheckFnOps(OpCode* chainStart);
+  void compressCheckFnOps(CodeOp* chainStart);
 
   static void compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd);
 
   //////////// removal //////////////
 
-  void optimizeMemoryAfterRemoval(Stack<OpCode*>* firstsInBlocks, OpCode* removedOp);
+  void optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp* removedOp);
 
   struct RemovingMatcher
+  : public BaseMatcher
   {
   public:
     bool next();
     
-    OpCode* op;
   protected:
-    void init(OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_,
-	CodeTree* tree_, Stack<OpCode*>* firstsInBlocks_);
+    void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
+	CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
 
 
     bool prepareLiteral();
@@ -270,25 +324,23 @@ public:
   
     struct BTPoint
     {
-      BTPoint(size_t tp, OpCode* op, size_t fibDepth)
+      BTPoint(size_t tp, CodeOp* op, size_t fibDepth)
       : tp(tp), op(op), fibDepth(fibDepth) {}
       
       size_t tp;
-      OpCode* op;
+      CodeOp* op;
       size_t fibDepth;
     };
   
-    size_t tp;
-    FlatTerm* ft;
     /** Variable bindings */
     DArray<unsigned> bindings;
     
     Stack<BTPoint> btStack;
-    Stack<OpCode*>* firstsInBlocks;
+    Stack<CodeOp*>* firstsInBlocks;
     bool fresh;
     size_t curLInfo;
     
-    OpCode* entry;
+    CodeOp* entry;
     size_t initFIBDepth;
     
     LitInfo* linfos;
@@ -306,12 +358,12 @@ public:
   struct BTPoint
   {
     BTPoint() {}
-    BTPoint(size_t tp, OpCode* op) : tp(tp), op(op) {}
+    BTPoint(size_t tp, CodeOp* op) : tp(tp), op(op) {}
 
     /** Position in the flat term */
     size_t tp;
     /** Pointer to the next operation */
-    OpCode* op;
+    CodeOp* op;
   };
 
   typedef Stack<BTPoint> BTStack;
@@ -329,8 +381,9 @@ public:
    * present). This allows for reuse of a single object.
    */
   struct Matcher
+  : public BaseMatcher
   {
-    void init(CodeTree* tree, OpCode* entry_);
+    void init(CodeTree* tree, CodeOp* entry_);
     
     inline bool finished() const { return !_fresh && !_matched; }
     inline bool matched() const { return _matched && op->isLitEnd(); }
@@ -350,13 +403,6 @@ public:
     bool prepareLiteral();
 
   public:
-    /**
-     * Pointer to the current operation
-     *
-     * Must be initialized by inheritor (either directly or by 
-     * a call to the @b prepareLiteral function).
-     */
-    OpCode* op;
     /** Variable bindings */
     BindingArray bindings;
     
@@ -364,24 +410,10 @@ public:
     bool _fresh;
     bool _matched;
 
-    /**
-     * Position in the flat term
-     *
-     * Must be initialized by inheritor (either directly or by 
-     * a call to the @b prepareLiteral function).
-     */
-    size_t tp;
-    /**
-     * Flat term to be traversed
-     *
-     * Must be initialized by inheritor (either directly or by 
-     * a call to the @b prepareLiteral function).
-     */
-    FlatTerm* ft;
     /** Stack containing backtracking points */
     BTStack btStack;
 
-    OpCode* entry;
+    CodeOp* entry;
     
     CodeTree* tree;
     /**

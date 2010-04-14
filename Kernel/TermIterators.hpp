@@ -70,6 +70,8 @@ public:
     _used=true;
     return *_stack.top();
   }
+
+  void right();
 protected:
   SubtermIterator() : _stack(8), _used(false) {}
 

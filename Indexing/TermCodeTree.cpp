@@ -41,7 +41,7 @@ void TermCodeTree::insert(TermInfo* ti)
 
   TermList t=ti->t;
   if(t.isVar()) {
-    code.push(OpCode::getTermOp(ASSIGN_VAR,0));
+    code.push(CodeOp::getTermOp(ASSIGN_VAR,0));
   }
   else {
     ASS(t.isTerm());
@@ -52,7 +52,7 @@ void TermCodeTree::insert(TermInfo* ti)
     cctx.deinit(this);
   }
 
-  code.push(OpCode::getSuccess(ti));
+  code.push(CodeOp::getSuccess(ti));
 
 
   incorporate(code);
@@ -69,7 +69,7 @@ void TermCodeTree::remove(const TermInfo& ti)
   
   /**/
   static RemovingTermMatcher rtm;
-  static Stack<OpCode*> firstsInBlocks;
+  static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
   
   FlatTerm* ft=FlatTerm::create(ti.t);
@@ -81,7 +81,7 @@ void TermCodeTree::remove(const TermInfo& ti)
       ASSERTION_VIOLATION;
       INVALID_OPERATION("term being removed was not found");
     }
-    ASS_REP(rtm.op->isSuccess(), rtm.op->instr());
+    ASS(rtm.op->isSuccess());
     rti=static_cast<TermInfo*>(rtm.op->getSuccessResult());
     if(*rti==ti) {
       break;
@@ -117,7 +117,7 @@ void TermCodeTree::remove(const TermInfo& ti)
 }
 
 void TermCodeTree::RemovingTermMatcher::init(FlatTerm* ft_, 
-	TermCodeTree* tree_, Stack<OpCode*>* firstsInBlocks_)
+	TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
   CALL("TermCodeTree::RemovingTermMatcher::init");
   

@@ -38,18 +38,18 @@ private:
   //////// insertion //////////
 
   void optimizeLiteralOrder(DArray<Literal*>& lits);
-  void evalSharing(Literal* lit, OpCode* startOp, size_t& sharedLen, size_t& unsharedLen);
-  static void matchCode(CodeStack& code, OpCode* startOp, size_t& matchedCnt);
+  void evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen);
+  static void matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt);
 
   //////// removal //////////
   
-  bool removeOneOfAlternatives(OpCode* op, Clause* cl, Stack<OpCode*>* firstsInBlocks);
+  bool removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks);
   
   struct RemovingLiteralMatcher
   : public RemovingMatcher
   {
-    void init(OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_,
-	ClauseCodeTree* tree_, Stack<OpCode*>* firstsInBlocks_);
+    void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
+	ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
 
     CLASS_NAME("ClauseCodeTree::RemovingLiteralMatcher");
     USE_ALLOCATOR(RemovingLiteralMatcher);
@@ -63,7 +63,7 @@ private:
   struct LiteralMatcher
   : public Matcher
   {
-    void init(CodeTree* tree, OpCode* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
+    void init(CodeTree* tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
     bool next();
     bool doEagerMatching();
     
@@ -77,7 +77,7 @@ private:
   private:
     bool _eagerlyMatched;
     
-    Stack<OpCode*> eagerResults;
+    Stack<CodeOp*> eagerResults;
 
     void recordMatch();
   };
@@ -91,15 +91,15 @@ public:
     Clause* next(int& resolvedQueryLit);
     
     bool matched() { return lms.isNonEmpty() && lms.top()->success(); }
-    OpCode* getSuccessOp() { ASS(matched()); return lms.top()->op; }
+    CodeOp* getSuccessOp() { ASS(matched()); return lms.top()->op; }
 
     CLASS_NAME("ClauseCodeTree::ClauseMatcher");
     USE_ALLOCATOR(ClauseMatcher);
     
   private:
-    void enterLiteral(OpCode* entry, bool seekOnlySuccess);
+    void enterLiteral(CodeOp* entry, bool seekOnlySuccess);
     void leaveLiteral();
-    bool litEndAlreadyVisited(OpCode* op);
+    bool litEndAlreadyVisited(CodeOp* op);
     
     bool checkCandidate(Clause* cl, int& resolvedQueryLit);
     bool matchGlobalVars(int& resolvedQueryLit);

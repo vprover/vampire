@@ -61,7 +61,7 @@ private:
   : public RemovingMatcher
   {
   public:
-    void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<OpCode*>* firstsInBlocks_);
+    void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
 
   };
   

@@ -18,7 +18,7 @@ namespace Kernel
  */
 bool VariableIterator::hasNext()
 {
-  CALL("Term::VariableIterator::hasNext");
+  CALL("VariableIterator::hasNext");
   if(_stack.isEmpty()) {
     return false;
   }
@@ -57,7 +57,7 @@ bool VariableIterator::hasNext()
  */
 bool SubtermIterator::hasNext()
 {
-  CALL("Term::SubtermIterator::hasNext");
+  CALL("SubtermIterator::hasNext");
 
   if(_stack.isEmpty()) {
     return false;
@@ -74,6 +74,25 @@ bool SubtermIterator::hasNext()
   return !_stack.isEmpty();
 }
 
+/**
+ * Skip subterms of the term just returned by the @b next function
+ *
+ * Must be called after the @b next function before the @b hasNext
+ * function is called again.
+ */
+void SubtermIterator::right()
+{
+  CALL("SubtermIterator::right");
+  ASS(_stack.isNonEmpty());
+  ASS(_used);
+
+  _used=false;
+  const TermList* t=_stack.pop();
+  pushNext(t->next());
+
+  //we did here the same as in the hasNext function, we only didn't call
+  //the pushNext function on arguments of t
+}
 
 ///////////////////////////////////////////
 
@@ -82,7 +101,7 @@ bool SubtermIterator::hasNext()
  */
 bool PolishSubtermIterator::hasNext()
 {
-  CALL("Term::PolishSubtermIterator::hasNext");
+  CALL("PolishSubtermIterator::hasNext");
 
   if(_stack.isEmpty()) {
     return false;
@@ -104,7 +123,7 @@ bool PolishSubtermIterator::hasNext()
  */
 bool NonVariableIterator::hasNext()
 {
-  CALL("Term::NonVariableIterator::hasNext");
+  CALL("NonVariableIterator::hasNext");
 
   if(_stack.isEmpty()) {
     return false;
@@ -140,7 +159,7 @@ void NonVariableIterator::pushNextNonVar(const TermList* t)
  */
 bool DisagreementSetIterator::hasNext()
 {
-  CALL("Term::DisagreementSetIterator::hasNext");
+  CALL("DisagreementSetIterator::hasNext");
   ASS(_stack.size()%2==0);
 
   if(!_arg1.isEmpty()) {
