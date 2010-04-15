@@ -650,6 +650,16 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
     if(lm->eagerlyMatched()) {
       break;
     }
+    if(lm->getILS()->varCnt==0) {
+      //If the index term is ground, at most two literals can be matched on
+      //it (the second one is the opposite one in case we're performing the
+      //subsumption resolution) We are here, so we have matched one already,
+      //and we know that the query clause doesn't contain two equal or opposite
+      //literals (or else it would have been simplified by duplicate literal
+      //removal or by tautology deletion). Therefore we don't need to try
+      //matching the rest of the query clause.
+      continue;
+    }
     newMatches|=lm->doEagerMatching();
   }
 
