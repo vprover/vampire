@@ -66,16 +66,31 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 {
   CALL("ClauseCodeTree::optimizeLiteralOrder");
 
-  unsigned clen=lits.size();
-  if(!isEmpty() && clen>1) {
+  if(isEmpty()) {
+    return;
+  }
 
+  unsigned clen=lits.size();
+  unsigned candidates=clen;
+
+  //if there are ground literals, we put them first (it sometimes helps)
+  unsigned gndCnt=0;
+  for(unsigned i=0;i<candidates;i++) {
+    if(lits[i]->ground()) {
+	swap(lits[i], lits[gndCnt]);
+	gndCnt++;
+    }
+  }
+  if(gndCnt) {candidates=gndCnt;}
+
+  if(candidates>1) {
     size_t aux;
 
     unsigned bestIndex=0;
     size_t bestSharedLen;
     evalSharing(lits[0], getEntryPoint(), bestSharedLen, aux);
 
-    for(unsigned i=0;i<clen;i++) {
+    for(unsigned i=1;i<candidates;i++) {
       size_t sharedLen;
       evalSharing(lits[i], getEntryPoint(), sharedLen, aux);
       if(sharedLen>bestSharedLen) {
