@@ -18,6 +18,8 @@
 #include "../Lib/Vector.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
+#include "../Kernel/FlatTerm.hpp"
+
 #include "Index.hpp"
 
 
@@ -73,7 +75,7 @@ public:
     /** array of bindings */
     TermList* bindings;
   };
-  
+
   typedef Stack<MatchInfo*> MatchStack;
 
   /**
@@ -86,25 +88,25 @@ public:
     void putIntoSequence(ILStruct* previous_);
 
     bool equalsForOpMatching(const ILStruct& o) const;
-    
+
     void disposeMatches();
 
     CLASS_NAME("CodeTree::ILStruct");
     USE_ALLOCATOR(ILStruct);
 
     struct GVArrComparator;
-    
+
     unsigned depth;
     ILStruct* previous;
     unsigned varCnt;
     unsigned* globalVarNumbers;
 
     unsigned* sortedGlobalVarNumbers;
-    
+
     /** Permutation that should be applied to bindings so that they will
      *  correspond to the sortedGlobalVarNumbers */
     unsigned* globalVarPermutation;
-    
+
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
     MatchStack matches;
@@ -154,14 +156,14 @@ public:
     inline bool isCheckFun() const { return instrPrefix()==SUFFIX_INSTR && instrSuffix()==CHECK_FUN; }
     inline bool isCheckGroundTerm() const { return instrPrefix()==CHECK_GROUND_TERM; }
 
-    inline Term* getTargetTerm()
+    inline Term* getTargetTerm() const
     {
       ASS(isCheckGroundTerm());
       return reinterpret_cast<Term*>(data()&~static_cast<size_t>(CHECK_GROUND_TERM));
     }
 
     inline void* getSuccessResult() { ASS(isSuccess()); return _result; }
-    
+
     inline ILStruct* getILS()
     {
       ASS(isLitEnd());
@@ -171,7 +173,7 @@ public:
     {
       return const_cast<CodeOp*>(this)->getILS();
     }
-    
+
     SearchStruct* getSearchStruct();
 
     inline InstructionPrefix instrPrefix() const { return static_cast<InstructionPrefix>(_info.prefix); }
@@ -212,22 +214,66 @@ public:
      */
     CodeOp* _alternative;
   };
-  
+
   struct SearchStruct
   {
-    SearchStruct(size_t length);
-    ~SearchStruct();
-    CodeOp*& targetOp(unsigned fn);
+    void destroy();
+    bool isFixedSearchStruct() const { return true; }
 
-    CLASS_NAME("CodeTree::SearchStruct");
-    USE_ALLOCATOR(SearchStruct);
-    
-    struct OpComparator;
+    bool getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& tgt);
+
+    CodeOp* getTargetOp(const FlatTerm::Entry* ftPos);
+
+    enum Kind
+    {
+      FN_STRUCT,
+      GROUND_TERM_STRUCT
+    };
 
     CodeOp landingOp;
+    Kind kind;
+  protected:
+    SearchStruct(Kind kind);
+  };
+
+  struct FixedSearchStruct
+  : public SearchStruct
+  {
+    FixedSearchStruct(Kind kind, size_t length);
+    ~FixedSearchStruct();
+
     size_t length;
-    unsigned* values;
     CodeOp** targets;
+  };
+
+  struct FnSearchStruct
+  : public FixedSearchStruct
+  {
+    FnSearchStruct(size_t length);
+    ~FnSearchStruct();
+    CodeOp*& targetOp(unsigned fn);
+
+    CLASS_NAME("CodeTree::FnSearchStruct");
+    USE_ALLOCATOR(FnSearchStruct);
+
+    struct OpComparator;
+
+    unsigned* values;
+  };
+
+  struct GroundTermSearchStruct
+  : public FixedSearchStruct
+  {
+    GroundTermSearchStruct(size_t length);
+    ~GroundTermSearchStruct();
+    CodeOp*& targetOp(const Term* trm);
+
+    CLASS_NAME("CodeTree::GroundTermSearchStruct");
+    USE_ALLOCATOR(GroundTermSearchStruct);
+
+    struct OpComparator;
+
+    Term** values;
   };
 
 
@@ -294,8 +340,8 @@ public:
 
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
   void incorporate(CodeStack& code);
-  
-  void compressCheckFnOps(CodeOp* chainStart);
+
+  void compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind);
 
   static void compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd);
 
@@ -308,7 +354,7 @@ public:
   {
   public:
     bool next();
-    
+
   protected:
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
@@ -320,36 +366,36 @@ public:
     bool doCheckFun();
     bool doAssignVar();
     bool doCheckVar();
-    
-  
+
+
     struct BTPoint
     {
       BTPoint(size_t tp, CodeOp* op, size_t fibDepth)
       : tp(tp), op(op), fibDepth(fibDepth) {}
-      
+
       size_t tp;
       CodeOp* op;
       size_t fibDepth;
     };
-  
+
     /** Variable bindings */
     DArray<unsigned> bindings;
-    
+
     Stack<BTPoint> btStack;
     Stack<CodeOp*>* firstsInBlocks;
     bool fresh;
     size_t curLInfo;
-    
+
     CodeOp* entry;
     size_t initFIBDepth;
-    
+
     LitInfo* linfos;
     size_t linfoCnt;
-    
+
     bool matchingClauses;
     CodeTree* tree;
   };
-  
+
   //////// retrieval //////////
 
   /**
@@ -374,17 +420,17 @@ public:
    *
    * Here the actual execution of the code of the tree takes place.
    *
-   * The object is not initialized not only by constructor, but also by 
-   * a call to the @b init function (inheritors should implement their 
-   * own @b init function (possibly with other arguments) that will call 
-   * this one. After use, the @b deinit function should be called (if 
+   * The object is not initialized not only by constructor, but also by
+   * a call to the @b init function (inheritors should implement their
+   * own @b init function (possibly with other arguments) that will call
+   * this one. After use, the @b deinit function should be called (if
    * present). This allows for reuse of a single object.
    */
   struct Matcher
   : public BaseMatcher
   {
     void init(CodeTree* tree, CodeOp* entry_);
-    
+
     inline bool finished() const { return !_fresh && !_matched; }
     inline bool matched() const { return _matched && op->isLitEnd(); }
     inline bool success() const { return _matched && op->isSuccess(); }
@@ -405,7 +451,7 @@ public:
   public:
     /** Variable bindings */
     BindingArray bindings;
-    
+
   protected:
     bool _fresh;
     bool _matched;
@@ -414,7 +460,7 @@ public:
     BTStack btStack;
 
     CodeOp* entry;
-    
+
     CodeTree* tree;
     /**
      * Array of alternative LitInfo objects
@@ -430,7 +476,7 @@ public:
     size_t linfoCnt;
 
     /**
-     * Currently matched LitInfo object in case LitInfo objects 
+     * Currently matched LitInfo object in case LitInfo objects
      * are used (they are not in TermCodeTree::TermMatcher).
      */
     size_t curLInfo;
@@ -441,16 +487,16 @@ public:
   void incTimeStamp();
 
   //////// member variables //////////
-  
+
 
   bool _clauseCodeTree;
   unsigned _curTimeStamp;
-  
+
   /** maximal number of local variables in a stored term/literal (always at least 1) */
   unsigned _maxVarCnt;
 
   CodeBlock* _entryPoint;
-  
+
 };
 
 }

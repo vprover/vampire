@@ -57,6 +57,7 @@ public:
     };
   };
 
+  inline Entry& operator[](size_t i) { ASS_L(i,_length); return _data[i]; }
   inline const Entry& operator[](size_t i) const { ASS_L(i,_length); return _data[i]; }
 
   void swapCommutativePredicateArguments();

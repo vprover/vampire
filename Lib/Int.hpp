@@ -55,7 +55,7 @@ class Int
   inline static Comparison compare (unsigned long i1, unsigned long i2)
   { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }
   /** Compare two pointers */
-  inline static Comparison compare (void* p1, void* p2)
+  inline static Comparison compare (const void* p1, const void* p2)
   { return p1 < p2 ? LESS : p1 == p2 ? EQUAL : GREATER; }
   /** Compare two floats */
   inline static Comparison compare (float f1, float f2)
