@@ -5,6 +5,8 @@
 
 #include <utility>
 
+#include "../Debug/RuntimeStatistics.hpp"
+
 #include "../Lib/BitUtils.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Int.hpp"
@@ -83,27 +85,51 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
   }
   if(gndCnt) {candidates=gndCnt;}
 
-  if(candidates>1) {
-    size_t aux;
+  if(candidates<=1) {
+    return;
+  }
 
-    unsigned bestIndex=0;
+  CodeOp* entry=getEntryPoint();
+  for(unsigned startIndex=0;startIndex<candidates-1;startIndex++) {
+//  for(unsigned startIndex=0;startIndex<1;startIndex++) {
+
+    size_t unshared=1;
+    unsigned bestIndex=startIndex;
     size_t bestSharedLen;
-    evalSharing(lits[0], getEntryPoint(), bestSharedLen, aux);
+    CodeOp* nextOp;
+    evalSharing(lits[startIndex], entry, bestSharedLen, unshared, nextOp);
+    if(!unshared) {
+      goto have_best;
+    }
 
-    for(unsigned i=1;i<candidates;i++) {
+    for(unsigned i=startIndex+1;i<candidates;i++) {
       size_t sharedLen;
-      evalSharing(lits[i], getEntryPoint(), sharedLen, aux);
+      evalSharing(lits[i], entry, sharedLen, unshared, nextOp);
+      if(!unshared) {
+	bestIndex=i;
+        goto have_best;
+      }
+
       if(sharedLen>bestSharedLen) {
 //	cout<<lits[i]->toString()<<" is better than "<<lits[bestIndex]->toString()<<endl;
 	bestSharedLen=sharedLen;
 	bestIndex=i;
       }
     }
-    swap(lits[0],lits[bestIndex]);
+
+  have_best:
+    swap(lits[startIndex],lits[bestIndex]);
+
+    if(unshared) {
+      //we haven't matched the whole literal, so we won't proceed with the next one
+      return;
+    }
+    ASS(nextOp);
+    entry=nextOp;
   }
 }
 
-void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen)
+void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp)
 {
   CALL("ClauseCodeTree::evalSharing");
 
@@ -113,13 +139,16 @@ void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLe
   code.reset();
   cctx.init();
 
-  compileTerm(lit, code, cctx, false);
+  compileTerm(lit, code, cctx, true);
 
   cctx.deinit(this, true);
 
-  matchCode(code, startOp, sharedLen);
+  matchCode(code, startOp, sharedLen, nextOp);
 
   unsharedLen=code.size()-sharedLen;
+
+  ASS(code.top().isLitEnd());
+  delete code.pop().getILS();
 }
 
 /**
@@ -131,7 +160,7 @@ void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLe
  * it is the first operation on which mismatch occured and there was no alternative to
  * proceed to (in this case it therefore holds that @b lastAttemptedOp->alternative==0 ).
  */
-void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt)
+void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt, CodeOp*& nextOp)
 {
   CALL("ClauseCodeTree::matchCode");
 
@@ -151,9 +180,11 @@ void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matched
       else if(code[i].equalsForOpMatching(*treeOp)) {
 	break;
       }
+      ASS_NEQ(treeOp,treeOp->alternative());
       treeOp=treeOp->alternative();
       if(!treeOp) {
 	matchedCnt=i;
+	nextOp=0;
 	return;
       }
     }
@@ -169,6 +200,7 @@ void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matched
   }
   //we matched the whole CodeStack
   matchedCnt=clen;
+  nextOp=treeOp;
 }
 
 
@@ -307,7 +339,9 @@ void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
   _eagerlyMatched=false;
   eagerResults.reset();
 
+  RSTAT_CTR_INC("LiteralMatcher::init");
   if(seekOnlySuccess) {
+    RSTAT_CTR_INC("LiteralMatcher::init - seekOnlySuccess");
     //we are interested only in SUCCESS operations
     //(and those must be at the entry point or its alternatives)
 
@@ -518,7 +552,9 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
     }
     else if(lm->op->isSuccess()) {
       Clause* candidate=static_cast<Clause*>(lm->op->getSuccessResult());
+      RSTAT_MCTR_INC("candidates", lms.size()-1);
       if(checkCandidate(candidate, resolvedQueryLit)) {
+	RSTAT_MCTR_INC("candidates (success)", lms.size()-1);
 	return candidate;
       }
     }
@@ -567,6 +603,10 @@ inline bool ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited(CodeOp* op)
 void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuccess)
 {
   CALL("ClauseCodeTree::ClauseMatcher::enterLiteral");
+
+  if(!seekOnlySuccess) {
+    RSTAT_MCTR_INC("enterLiteral levels (non-sos)", lms.size());
+  }
 
   if(lms.isNonEmpty()) {
     LiteralMatcher* prevLM=lms.top();
@@ -724,13 +764,16 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
 
   static DArray<int> matchIndex;
   matchIndex.ensure(clen);
+  unsigned failLev=0;
   for(unsigned i=0;i<clen;i++) {
     matchIndex[i]=-1;
+    if(i>0) { failLev=20; }
   bind_next_match:
     matchIndex[i]++;
     if(matchIndex[i]==remaining.get(i,i)) {
       //no more choices at this level, so try going up
       if(i==0) {
+	RSTAT_MCTR_INC("zero level fails at", failLev);
 	return false;
       }
       i--;
@@ -756,6 +799,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
 	k++;
       }
       if(rem==0) {
+	if(failLev<j) { failLev=j; }
 	goto bind_next_match;
       }
       remaining.set(j,i+1,rem);

@@ -7,6 +7,8 @@
 
 #include <iostream>
 
+#include "../Debug/RuntimeStatistics.hpp"
+
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Timer.hpp"
@@ -187,6 +189,8 @@ void Statistics::print()
   Timer::printMSString(env.out,env.timer->elapsedMilliseconds());
   env.out << endl;
   env.out << "------------------------------\n";
+
+  RSTAT_PRINT(env.out);
 
 #undef SEPARATOR
 #undef COND_OUT

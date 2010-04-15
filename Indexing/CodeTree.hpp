@@ -187,7 +187,7 @@ public:
     inline CodeOp* alternative() const { return _alternative; }
     inline CodeOp*& alternative() { return _alternative; }
 
-    inline void setAlternative(CodeOp* op) { _alternative=op; }
+    inline void setAlternative(CodeOp* op) { ASS_NEQ(op, this); _alternative=op; }
     inline void setLongInstr(InstructionSuffix i) { _info.prefix=SUFFIX_INSTR; _info.suffix=i; }
 
     void makeFail() { _data=0; }

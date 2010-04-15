@@ -6,6 +6,17 @@ $(CONF_ID)/Debug/Assertion.o: Debug/Assertion.hpp Debug/Tracer.hpp
 $(CONF_ID)/Debug/Assertion.o: Lib/Environment.hpp Forwards.hpp Config.hpp
 $(CONF_ID)/Debug/Assertion.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 $(CONF_ID)/Debug/Assertion.o: Lib/Timer.hpp Shell/Options.hpp Lib/XML.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Lib/Comparison.hpp Lib/Sort.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Debug/Assertion.hpp Debug/Tracer.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Lib/Allocator.hpp Lib/DArray.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Forwards.hpp Config.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Lib/Comparison.hpp Lib/Exception.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Lib/LastCopyWatcher.hpp Lib/Random.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Lib/Reflection.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Lib/VirtualIterator.hpp Lib/Stack.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Lib/BacktrackData.hpp Lib/List.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Lib/Int.hpp Lib/Portability.hpp
+$(CONF_ID)/Debug/RuntimeStatistics.o: Debug/RuntimeStatistics.hpp
 $(CONF_ID)/Debug/Tracer.o: Debug/Tracer.hpp
 $(CONF_ID)/Lib/Allocator.o: Lib/DHMap.hpp Debug/Assertion.hpp
 $(CONF_ID)/Lib/Allocator.o: Lib/Allocator.hpp Debug/Tracer.hpp
@@ -681,11 +692,11 @@ $(CONF_ID)/Shell/Skolem.o: Lib/Set.hpp Shell/Options.hpp Shell/Rectify.hpp
 $(CONF_ID)/Shell/Skolem.o: Lib/Array.hpp Kernel/Formula.hpp Shell/Skolem.hpp
 $(CONF_ID)/Shell/Skolem.o: Kernel/Substitution.hpp Lib/Random.hpp
 $(CONF_ID)/Shell/Skolem.o: Lib/Environment.hpp Kernel/Term.hpp
-$(CONF_ID)/Shell/Statistics.o: Lib/Allocator.hpp Debug/Assertion.hpp
-$(CONF_ID)/Shell/Statistics.o: Debug/Tracer.hpp Lib/Environment.hpp
-$(CONF_ID)/Shell/Statistics.o: Forwards.hpp Config.hpp Lib/Exception.hpp
-$(CONF_ID)/Shell/Statistics.o: Lib/LastCopyWatcher.hpp Lib/Timer.hpp
-$(CONF_ID)/Shell/Statistics.o: Shell/Options.hpp Lib/XML.hpp
+$(CONF_ID)/Shell/Statistics.o: Debug/RuntimeStatistics.hpp Lib/Allocator.hpp
+$(CONF_ID)/Shell/Statistics.o: Debug/Assertion.hpp Debug/Tracer.hpp
+$(CONF_ID)/Shell/Statistics.o: Lib/Environment.hpp Forwards.hpp Config.hpp
+$(CONF_ID)/Shell/Statistics.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Shell/Statistics.o: Lib/Timer.hpp Shell/Options.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/Statistics.o: Shell/Statistics.hpp
 $(CONF_ID)/Shell/SymCounter.o: Lib/Allocator.hpp Debug/Assertion.hpp
 $(CONF_ID)/Shell/SymCounter.o: Debug/Tracer.hpp Kernel/Term.hpp Forwards.hpp
@@ -1271,6 +1282,7 @@ $(CONF_ID)/Kernel/Unit.o: Lib/DHMap.hpp Lib/Metaiterators.hpp Lib/Set.hpp
 $(CONF_ID)/Kernel/Unit.o: Lib/TimeCounter.hpp Lib/Reflection.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Unit.hpp Kernel/Formula.hpp Lib/XML.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
+$(CONF_ID)/Indexing/ClauseCodeTree.o: Debug/RuntimeStatistics.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/BitUtils.hpp Lib/Comparison.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/Int.hpp Lib/Comparison.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/Portability.hpp Debug/Assertion.hpp
@@ -1399,9 +1411,10 @@ $(CONF_ID)/Indexing/ClauseVariantIndex.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/Indexing/ClauseVariantIndex.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/Indexing/ClauseVariantIndex.o: Kernel/Renaming.hpp Test/Output.hpp
 $(CONF_ID)/Indexing/ClauseVariantIndex.o: Indexing/ClauseVariantIndex.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Lib/BitUtils.hpp Lib/Comparison.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Lib/Int.hpp Lib/Comparison.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Lib/Portability.hpp Debug/Assertion.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Debug/RuntimeStatistics.hpp Lib/BitUtils.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Lib/Comparison.hpp Lib/Int.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Lib/Comparison.hpp Lib/Portability.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Debug/Assertion.hpp Lib/Portability.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/Sort.hpp Debug/Tracer.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/Allocator.hpp Lib/DArray.hpp Forwards.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Config.hpp Lib/Exception.hpp
@@ -1414,17 +1427,16 @@ $(CONF_ID)/Indexing/CodeTree.o: Lib/Metaiterators.hpp Lib/List.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/Set.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/Reflection.hpp Lib/Stack.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/BacktrackData.hpp Lib/Int.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Kernel/Unit.hpp Lib/List.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Kernel/FlatTerm.hpp Kernel/Term.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Kernel/MatchTag.hpp Kernel/TermIterators.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Kernel/Unit.hpp Lib/List.hpp Kernel/Term.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Lib/XML.hpp Kernel/MatchTag.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Kernel/TermIterators.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/VirtualIterator.hpp Kernel/Term.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Indexing/CodeTree.hpp Lib/DArray.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/DHMap.hpp Lib/Hash.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/TriangularArray.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Lib/Vector.hpp Indexing/Index.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Lib/Event.hpp Lib/SmartPtr.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Lib/Exception.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Lib/Vector.hpp Kernel/FlatTerm.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Indexing/Index.hpp Lib/Event.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Saturation/Limits.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Indexing/ResultSubstitution.hpp
@@ -1467,6 +1479,7 @@ $(CONF_ID)/Indexing/CodeTreeInterfaces.o: Lib/SmartPtr.hpp
 $(CONF_ID)/Indexing/CodeTreeInterfaces.o: Indexing/CodeTree.hpp
 $(CONF_ID)/Indexing/CodeTreeInterfaces.o: Lib/TriangularArray.hpp
 $(CONF_ID)/Indexing/CodeTreeInterfaces.o: Lib/BitUtils.hpp Lib/Vector.hpp
+$(CONF_ID)/Indexing/CodeTreeInterfaces.o: Kernel/FlatTerm.hpp
 $(CONF_ID)/Indexing/CodeTreeInterfaces.o: Indexing/TermCodeTree.hpp
 $(CONF_ID)/Indexing/CodeTreeInterfaces.o: Indexing/CodeTreeInterfaces.hpp
 $(CONF_ID)/Indexing/CodeTreeInterfaces.o: Indexing/TermIndexingStructure.hpp
@@ -1530,6 +1543,7 @@ $(CONF_ID)/Indexing/IndexManager.o: Lib/Random.hpp Lib/Hash.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Lib/Recycler.hpp Lib/DArray.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Lib/TriangularArray.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Lib/Vector.hpp Indexing/CodeTree.hpp
+$(CONF_ID)/Indexing/IndexManager.o: Kernel/FlatTerm.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Indexing/ClauseCodeTree.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Indexing/TermIndexingStructure.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Indexing/LiteralIndexingStructure.hpp
@@ -4088,7 +4102,8 @@ $(CONF_ID)/vcompit.o: Kernel/RobSubstitution.hpp Test/Output.hpp
 $(CONF_ID)/vcompit.o: Indexing/CodeTreeInterfaces.hpp
 $(CONF_ID)/vcompit.o: Indexing/TermCodeTree.hpp Lib/Hash.hpp Lib/Recycler.hpp
 $(CONF_ID)/vcompit.o: Lib/TriangularArray.hpp Lib/BitUtils.hpp Lib/Vector.hpp
-$(CONF_ID)/vcompit.o: Indexing/CodeTree.hpp Indexing/ClauseCodeTree.hpp
+$(CONF_ID)/vcompit.o: Indexing/CodeTree.hpp Kernel/FlatTerm.hpp
+$(CONF_ID)/vcompit.o: Indexing/ClauseCodeTree.hpp
 $(CONF_ID)/vcompit.o: Indexing/LiteralIndexingStructure.hpp Shell/Options.hpp
 $(CONF_ID)/vcompit.o: Shell/CommandLine.hpp Shell/Property.hpp
 $(CONF_ID)/vcompit.o: Kernel/Unit.hpp Shell/Preprocess.hpp

@@ -5,6 +5,8 @@
 
 #include <utility>
 
+#include "../Debug/RuntimeStatistics.hpp"
+
 #include "../Lib/BitUtils.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/Int.hpp"
@@ -808,6 +810,7 @@ void CodeTree::incorporate(CodeStack& code)
 matching_done:
 
   ASS_L(matchedCnt,clen);
+  RSTAT_MCTR_INC("alt split literal", lastMatchedILS ? (lastMatchedILS->depth+1) : 0);
 
   CodeBlock* rem=buildBlock(code, clen-matchedCnt, lastMatchedILS);
   *tailTarget=&(*rem)[0];

@@ -38,8 +38,8 @@ private:
   //////// insertion //////////
 
   void optimizeLiteralOrder(DArray<Literal*>& lits);
-  void evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen);
-  static void matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt);
+  void evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp);
+  static void matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt, CodeOp*& nextOp);
 
   //////// removal //////////
   
