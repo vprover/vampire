@@ -91,6 +91,8 @@ public:
 
     void disposeMatches();
 
+    void ensureFreshness(unsigned globalTimestamp);
+
     CLASS_NAME("CodeTree::ILStruct");
     USE_ALLOCATOR(ILStruct);
 
@@ -113,6 +115,7 @@ public:
     /** all possible lits were tried to match */
     bool visited;
     bool finished;
+    bool noNonOppositeMatches;
   };
 
   enum InstructionPrefix

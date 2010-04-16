@@ -439,15 +439,14 @@ void ClauseCodeTree::LiteralMatcher::recordMatch()
   ASS(matched());
 
   ILStruct* ils=op->getILS();
-  if(ils->timestamp!=tree->_curTimeStamp) {
-    ils->timestamp=tree->_curTimeStamp;
-    ils->disposeMatches();
-    ils->visited=false;
-    ils->finished=false;
-  }
-  else if(ils->finished) {
+  ils->ensureFreshness(tree->_curTimeStamp);
+  if(ils->finished) {
     //no need to record matches which we already know will not lead to anything
     return;
+  }
+  if(ils->matches.isEmpty() && linfos[curLInfo].opposite) {
+    //if we're matching opposite matches, we have already tried all non-opposite ones
+    ils->noNonOppositeMatches=true;
   }
   MatchInfo* mi=new MatchInfo(ils, linfos[curLInfo].liIndex, bindings);
   ils->matches.push(mi);
@@ -558,7 +557,7 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
 	return candidate;
       }
     }
-    else if(!litEndAlreadyVisited(lm->op)) {
+    else if(canEnterLiteral(lm->op)) {
       ASS(lm->op->isLitEnd());
       ASS_LE(lms.size(), query->length()); //this is due to the seekOnlySuccess part below
 
@@ -567,21 +566,12 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
       CodeOp* newLitEntry=lm->op+1;
 
       //check that we have cleared the sresLiteral value if it is no longer valid
-      ASS(sresLiteral==sresNoLiteral || sresLiteral<lms.size()-1);
+      ASS(!sres || sresLiteral==sresNoLiteral || sresLiteral<lms.size()-1);
 
       if(sres && sresLiteral==sresNoLiteral) {
 	//we check whether we haven't matched only opposite literals on the previous level
-	MatchStack& prevMatches=lm->getILS()->matches;
-	if(prevMatches.size() && lInfos[prevMatches[0]->liIndex].opposite) {
+	if(lm->getILS()->noNonOppositeMatches) {
 	  sresLiteral=lms.size()-1;
-#if VDEBUG
-	  for(unsigned i=1;i<prevMatches.size();i++) {
-	    //liIndex in matches must be ascending
-	    ASS_G(prevMatches[i]->liIndex,prevMatches[i-1]->liIndex);
-	    //all matches after an opposite match must be opposite as well
-	    ASS(lInfos[prevMatches[i]->liIndex].opposite);
-	  }
-#endif
 	}
       }
 
@@ -591,13 +581,43 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
   }
 }
 
-inline bool ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited(CodeOp* op)
+inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
 {
   CALL("ClauseCodeTree::ClauseMatcher::litEndAlreadyVisited");
   ASS(op->isLitEnd());
+  ASS_EQ(lms.top()->op, op);
 
   ILStruct* ils=op->getILS();
-  return ils->timestamp==tree->_curTimeStamp && ils->visited;
+  if(ils->timestamp==tree->_curTimeStamp && ils->visited) {
+    return false;
+  }
+
+  if(lms.size()>1) {
+    //we have matched at least two index literals
+    if(ils->varCnt && !lms.top()->eagerlyMatched()) {
+      lms.top()->doEagerMatching();
+    }
+    for(size_t ilIndex=0;ilIndex<lms.size()-1;ilIndex++) {
+      ILStruct* prevILS=lms[ilIndex]->getILS();
+      if(prevILS->varCnt && !lms[ilIndex]->eagerlyMatched()) {
+	lms[ilIndex]->doEagerMatching();
+      }
+
+      MatchStack::Iterator mit(ils->matches);
+      while(mit.hasNext()) {
+	MatchInfo* mi=mit.next();
+	if(!existsCompatibleMatch(ils, mi, prevILS)) {
+	  delete mi;
+	  mit.del();
+	}
+      }
+      if(ils->matches.isEmpty()) {
+	return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuccess)
@@ -824,7 +844,6 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
 bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq)
 {
   CALL("ClauseCodeTree::ClauseMatcher::compatible");
-  ASS_L(bi->depth, ni->depth);
 
   if( lInfos[bq->liIndex].litIndex==lInfos[nq->liIndex].litIndex ||
       (lInfos[bq->liIndex].opposite && lInfos[nq->liIndex].opposite) ) {
@@ -869,5 +888,24 @@ bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILSt
   return true;
 }
 
+bool ClauseCodeTree::ClauseMatcher::existsCompatibleMatch(ILStruct* si, MatchInfo* sq, ILStruct* targets)
+{
+  CALL("ClauseCodeTree::ClauseMatcher::existsCompatibleMatch");
+
+  size_t tcnt=targets->matches.size();
+  for(size_t i=0;i<tcnt;i++) {
+    if(compatible(si,sq,targets,targets->matches[i])) {
+      return true;
+    }
+  }
+  return false;
 }
+
+}
+
+
+
+
+
+
 

@@ -29,7 +29,7 @@ class ClauseCodeTree : public CodeTree
 {
 public:
   ClauseCodeTree();
-  
+
   void insert(Clause* cl);
   void remove(Clause* cl);
 
@@ -42,9 +42,9 @@ private:
   static void matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt, CodeOp*& nextOp);
 
   //////// removal //////////
-  
+
   bool removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks);
-  
+
   struct RemovingLiteralMatcher
   : public RemovingMatcher
   {
@@ -54,7 +54,7 @@ private:
     CLASS_NAME("ClauseCodeTree::RemovingLiteralMatcher");
     USE_ALLOCATOR(RemovingLiteralMatcher);
   };
-  
+
   //////// retrieval //////////
 
   /** Context for finding matches of literals
@@ -66,7 +66,7 @@ private:
     void init(CodeTree* tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
     bool next();
     bool doEagerMatching();
-    
+
     inline bool eagerlyMatched() const { return _eagerlyMatched; }
 
     inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
@@ -76,7 +76,7 @@ private:
 
   private:
     bool _eagerlyMatched;
-    
+
     Stack<CodeOp*> eagerResults;
 
     void recordMatch();
@@ -89,21 +89,23 @@ public:
     void deinit();
 
     Clause* next(int& resolvedQueryLit);
-    
+
     bool matched() { return lms.isNonEmpty() && lms.top()->success(); }
     CodeOp* getSuccessOp() { ASS(matched()); return lms.top()->op; }
 
     CLASS_NAME("ClauseCodeTree::ClauseMatcher");
     USE_ALLOCATOR(ClauseMatcher);
-    
+
   private:
     void enterLiteral(CodeOp* entry, bool seekOnlySuccess);
     void leaveLiteral();
-    bool litEndAlreadyVisited(CodeOp* op);
-    
+    bool canEnterLiteral(CodeOp* op);
+
     bool checkCandidate(Clause* cl, int& resolvedQueryLit);
     bool matchGlobalVars(int& resolvedQueryLit);
     bool compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq);
+
+    bool existsCompatibleMatch(ILStruct* si, MatchInfo* sq, ILStruct* oi);
 
     Clause* query;
     ClauseCodeTree* tree;
@@ -113,14 +115,14 @@ public:
     unsigned sresLiteral;
 
     DArray<LitInfo> lInfos;
-    
+
     Stack<LiteralMatcher*> lms;
   };
 
 private:
 
   //////// member variables //////////
-  
+
 #if VDEBUG
   unsigned _clauseMatcherCounter;
 #endif

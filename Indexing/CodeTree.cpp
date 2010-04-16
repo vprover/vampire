@@ -201,6 +201,19 @@ void CodeTree::ILStruct::disposeMatches()
   }
 }
 
+void CodeTree::ILStruct::ensureFreshness(unsigned globalTimestamp)
+{
+  CALL("CodeTree::ILStruct::ensureFreshness");
+
+  if(timestamp!=globalTimestamp) {
+    timestamp=globalTimestamp;
+    disposeMatches();
+    visited=false;
+    finished=false;
+    noNonOppositeMatches=false;
+  }
+
+}
 
 CodeTree::CodeOp CodeTree::CodeOp::getSuccess(void* ptr)
 {

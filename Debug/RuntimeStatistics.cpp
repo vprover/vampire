@@ -9,7 +9,7 @@
 
 #include "RuntimeStatistics.hpp"
 
-#if !NO_RUNTIME_STATS
+#if RUNTIME_STATS
 
 namespace Debug
 {

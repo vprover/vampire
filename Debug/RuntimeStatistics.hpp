@@ -6,18 +6,11 @@
 #ifndef __RuntimeStatistics__
 #define __RuntimeStatistics__
 
-#ifndef NO_RUNTIME_STATS
-#define NO_RUNTIME_STATS 0
+#ifndef RUNTIME_STATS
+#define RUNTIME_STATS 0
 #endif
 
-#if NO_RUNTIME_STATS
-
-#define RSTAT_CTR_INC(stat)
-#define RSTAT_MCTR_INC(stat, index)
-
-#define RSTAT_PRINT(out)
-
-#else
+#if RUNTIME_STATS
 
 #include <string.h>
 #include <ostream>
@@ -116,6 +109,13 @@ private:
 
 }
 
-#endif // else branch of NO_RUNTIME_STATS
+#else // RUNTIME_STATS
+
+#define RSTAT_CTR_INC(stat)
+#define RSTAT_MCTR_INC(stat, index)
+
+#define RSTAT_PRINT(out)
+
+#endif
 
 #endif // __RuntimeStatistics__
