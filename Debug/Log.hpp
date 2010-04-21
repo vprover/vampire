@@ -3,9 +3,30 @@
  * Defines class Log.
  */
 
+
 //command for interactive replacing cout<<something<<endl; by LOG()
 //vim -c '%s/^\([\t /]*\)cout<<\(.*\)<<endl; */\1LOG(\2);/gc' -c 'w' -c 'q' filename.cpp
 //(y - replace, n - don't replace, q - stop replacing, a - replace all
+
+/*
+
+example:
+int main(int argc, char* argv [])
+{
+  LOG("enabled "<<123<<'a'<<"bcd"<<argc);
+
+#undef LOGGING
+#define LOGGING 0
+  LOG("disabled");
+
+#undef LOGGING
+#define LOGGING 1
+
+  LOG("enabled again");
+}
+
+
+*/
 
 #ifndef __Debug_Log__
 #define __Debug_Log__
