@@ -6,11 +6,56 @@
 #ifndef __RuntimeStatistics__
 #define __RuntimeStatistics__
 
+/**
+If RUNTIME_STATS is defined as 0, runtime statistics are not being
+collected nor output.
+*/
+
 #ifndef RUNTIME_STATS
-#define RUNTIME_STATS 0
+#define RUNTIME_STATS 1
 #endif
 
 #if RUNTIME_STATS
+
+/**
+Defined macros:
+RSTAT_CTR_INC(ctr) -- Increases counter named ctr by one
+RSTAT_MCTR_INC(ctr, index) -- Increases counter ctr[index] by one. index must be non-negative integer.
+RSTAT_PRINT(stream) -- Outputs current values of counters into stream (typically std::cout)
+
+RSTAT_CTR_INC and RSTAT_MCTR_INC cannot use a counter of the same name
+
+Usage:
+
+#include <iostream>
+#include "Debug/RuntimeStatistics.hpp"
+
+int main(int argc, char* argv [])
+{
+  CALL ("main");
+
+  for(int i=0;i<100;i++) {
+    if((i*i)%7==1) {
+      RSTAT_CTR_INC("numbers with (i*i)%7==1");
+    }
+    RSTAT_MCTR_INC("square's last digit", (i*i)%10);
+  }
+  RSTAT_PRINT(std::cout);
+}
+
+outputs:
+----  Runtime statistics ----
+numbers with (i*i)%7==1: 29
+square's last digit:
+  0: 10
+  1: 20
+  4: 20
+  5: 10
+  6: 20
+  9: 20
+-----------------------------
+*/
+
 
 #include <string.h>
 #include <ostream>

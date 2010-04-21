@@ -9,22 +9,43 @@
 //(y - replace, n - don't replace, q - stop replacing, a - replace all
 
 /*
+Enabling/disabling depends on the position in the file.
+E.g.:
 
-example:
-int main(int argc, char* argv [])
+#include <Log.hpp>
+
+void f()
 {
-  LOG("enabled "<<123<<'a'<<"bcd"<<argc);
+  LOG("f called");
+}
 
 #undef LOGGING
 #define LOGGING 0
-  LOG("disabled");
 
+void g()
+{
+  LOG("disabled");
+}
+
+int main(int argc, char* argv [])
+{
+  CALL ("main");
+
+  LOG("still disabled");
+  f();
+  g();
 #undef LOGGING
 #define LOGGING 1
 
-  LOG("enabled again");
+  LOG("reenabled "<<123<<'a'<<"bcd"<<argc);
+  f();
+  g();
 }
 
+outputs:
+f called
+reenabled 123abcd2
+f called
 
 */
 
@@ -35,6 +56,23 @@ int main(int argc, char* argv [])
 #define GLOBAL_LOGGING 1
 #endif
 
+/**
+Controls whether logs sould be output.
+
+Lines
+
+#undef LOGGING
+#define LOGGING 0
+
+disable logging for code below it, and 
+
+#undef LOGGING
+#define LOGGING 1
+
+enable it again.
+
+*/
+
 #define LOGGING 1
 
 #if GLOBAL_LOGGING
@@ -43,6 +81,17 @@ int main(int argc, char* argv [])
 
 # define LOG_TARGET std::cout
 
+/**
+Outputs X if logging is enabled.
+
+To toutput value of multiple variables v1,v2, one should write
+LOG(v1<<v2)
+
+Expressions must be enclosed in parentheses:
+LOG((1+1))
+rather than
+LOG(1+1)
+*/
 # define LOG(X) if(LOGGING) { LOG_TARGET<<X<<endl; }
 
 #else // GLOBAL_LOGGING
