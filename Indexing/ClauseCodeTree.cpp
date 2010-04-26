@@ -406,13 +406,15 @@ bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
   //backup the current op
   CodeOp* currOp=op;
 
+  static Stack<CodeOp*> eagerResultsRevOrder;
   static Stack<CodeOp*> successes;
+  eagerResultsRevOrder.reset();
   successes.reset();
 
   while(execute()) {
     if(op->isLitEnd()) {
       recordMatch();
-      eagerResults.push(op);
+      eagerResultsRevOrder.push(op);
     }
     else {
       ASS(op->isSuccess());
@@ -420,6 +422,12 @@ bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
     }
   }
 
+  //we want to yield results in the order we found them
+  //(otherwise the subsumption resolution would be preferred to the
+  //subsumption)
+  while(eagerResultsRevOrder.isNonEmpty()) {
+    eagerResults.push(eagerResultsRevOrder.pop());
+  }
   //we want to yield SUCCESS operations first (as after them there may
   //be no need for further clause retrieval)
   while(successes.isNonEmpty()) {
@@ -484,8 +492,26 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
   }
   unsigned liCnt=sres ? (baseLICnt*2) : baseLICnt;
   lInfos.ensure(liCnt);
+
+  //we put ground literals first
   unsigned liIndex=0;
   for(unsigned i=0;i<clen;i++) {
+    if(!(*query)[i]->ground()) {
+      continue;
+    }
+    lInfos[liIndex]=LitInfo(query,i);
+    lInfos[liIndex].liIndex=liIndex;
+    liIndex++;
+    if((*query)[i]->isEquality()) {
+      lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1]);
+      lInfos[liIndex].liIndex=liIndex;
+      liIndex++;
+    }
+  }
+  for(unsigned i=0;i<clen;i++) {
+    if((*query)[i]->ground()) {
+      continue;
+    }
     lInfos[liIndex]=LitInfo(query,i);
     lInfos[liIndex].liIndex=liIndex;
     liIndex++;
@@ -593,7 +619,8 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
   }
 
   if(lms.size()>1) {
-    //we have matched at least two index literals
+    //we have already matched and entered some index literals, so we
+    //will check for compatibility of variable assignments
     if(ils->varCnt && !lms.top()->eagerlyMatched()) {
       lms.top()->doEagerMatching();
     }

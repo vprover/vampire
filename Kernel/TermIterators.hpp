@@ -8,6 +8,7 @@
 
 #include "../Forwards.hpp"
 
+#include "../Lib/Recycler.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/VirtualIterator.hpp"
 
@@ -56,9 +57,16 @@ class SubtermIterator
 : public IteratorCore<TermList>
 {
 public:
-  SubtermIterator(const Term* term) : _stack(8), _used(false)
+  SubtermIterator(const Term* term) : _used(false)
   {
+    Recycler::get(_stack);
+    _stack->reset();
+
     pushNext(term->args());
+  }
+  ~SubtermIterator()
+  {
+    Recycler::release(_stack);
   }
 
   bool hasNext();
@@ -66,24 +74,28 @@ public:
    * @warning hasNext() must have been called before */
   TermList next()
   {
-    ASS(!_used && !_stack.isEmpty());
+    ASS(!_used && !_stack->isEmpty());
     _used=true;
-    return *_stack.top();
+    return *_stack->top();
   }
 
   void right();
 protected:
-  SubtermIterator() : _stack(8), _used(false) {}
+  SubtermIterator() : _used(false)
+  {
+    Recycler::get(_stack);
+    _stack->reset();
+  }
 
   inline
   void pushNext(const TermList* t)
   {
     if(!t->isEmpty()) {
-	_stack.push(t);
+      _stack->push(t);
     }
   }
 
-  Stack<const TermList*> _stack;
+  Stack<const TermList*>* _stack;
   bool _used;
 };
 
@@ -107,8 +119,8 @@ public:
     aux[2]=*trm->nthArgument(0);
     aux[3].makeEmpty();
 
-    _stack.push(&aux[0]);
-    _stack.push(&aux[2]);
+    _stack->push(&aux[0]);
+    _stack->push(&aux[2]);
   }
 private:
   TermList aux[4];

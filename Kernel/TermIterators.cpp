@@ -52,6 +52,7 @@ bool VariableIterator::hasNext()
 
 ///////////////////////////////////////////
 
+
 /**
  * True if there exists next subterm
  */
@@ -59,19 +60,19 @@ bool SubtermIterator::hasNext()
 {
   CALL("SubtermIterator::hasNext");
 
-  if(_stack.isEmpty()) {
+  if(_stack->isEmpty()) {
     return false;
   }
   if(!_used) {
     return true;
   }
   _used=false;
-  const TermList* t=_stack.pop();
+  const TermList* t=_stack->pop();
   pushNext(t->next());
   if(t->isTerm()) {
     pushNext(t->term()->args());
   }
-  return !_stack.isEmpty();
+  return !_stack->isEmpty();
 }
 
 /**
@@ -83,11 +84,11 @@ bool SubtermIterator::hasNext()
 void SubtermIterator::right()
 {
   CALL("SubtermIterator::right");
-  ASS(_stack.isNonEmpty());
+  ASS(_stack->isNonEmpty());
   ASS(_used);
 
   _used=false;
-  const TermList* t=_stack.pop();
+  const TermList* t=_stack->pop();
   pushNext(t->next());
 
   //we did here the same as in the hasNext function, we only didn't call
