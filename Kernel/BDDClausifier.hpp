@@ -19,17 +19,24 @@ class BDDClausifier {
 public:
   BDDClausifier(bool naming=false);
 
-  void clausify(BDDNode* node, SATClauseStack& acc);
+  void clausify(BDDNode* node, SATClauseStack& acc)
+  { clausify(node, acc, 0); }
   unsigned getCNFVarCount();
 private:
-  void clausifyWithSR(BDDNode* node, SATClauseStack& acc);
-  void clausifyWithoutSR(BDDNode* node, SATClauseStack& acc);
+  struct CNFStackRec;
+
+  void clausify(BDDNode* node, SATClauseStack& acc, unsigned givenName);
+  void clausifyWithSR(BDDNode* node, SATClauseStack& acc, unsigned givenName);
+  void clausifyWithoutSR(BDDNode* node, SATClauseStack& acc, unsigned givenName);
+
+  SATClause* buildClause(unsigned givenName, Stack<CNFStackRec>& stack,
+      unsigned resolvedCnt=0, unsigned nodeName=0);
+
+  unsigned getName(BDDNode* node);
 
   unsigned name(BDDNode* node, SATClauseStack& acc);
   unsigned getCNFVar(unsigned bddVar);
 
-  //struct used in the toCNF function
-  struct CNFStackRec;
 
   unsigned _nextCNFVar;
   unsigned _maxBDDVar;

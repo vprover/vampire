@@ -200,6 +200,20 @@ public:
   }
 
   /**
+   *  If @b key is present in the map, return value associated
+   *  with it; otherwise return @b def
+   */
+  inline
+  Val get(Key key, Val def) const
+  {
+    const Entry* e=findEntry(key);
+    if(!e) {
+      return def;
+    }
+    return e->_val;
+  }
+
+  /**
    * If there is no value stored under @b key in the map,
    * insert pair (key,value) and return true. Otherwise,
    * return false.
