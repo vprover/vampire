@@ -22,6 +22,7 @@
 #include "Clause.hpp"
 #include "Term.hpp"
 #include "BDD.hpp"
+#include "BDDClausifier.hpp"
 #include "Signature.hpp"
 
 namespace Kernel
@@ -353,11 +354,14 @@ VirtualIterator<string> Clause::toSimpleClauseStrings()
 
   string np(length() ? (nonPropToString() + " | ") : string(""));
 
-  SATClauseList* scl = bdd->toCNF(prop());
+  static BDDClausifier clausifier(false);
+  static SATClauseStack sclAcc;
+  sclAcc.reset();
+  clausifier.clausify(prop(), sclAcc);
   List<string>* res = 0;
 
-  while(scl) {
-    SATClause* sc = SATClauseList::pop(scl);
+  while(sclAcc.isNonEmpty()) {
+    SATClause* sc = sclAcc.pop();
     string rstr(np);
 
     for(unsigned i = 0; i < sc->length(); i++) {

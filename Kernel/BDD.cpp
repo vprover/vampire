@@ -21,8 +21,6 @@
 #include "Term.hpp"
 
 #include "../SAT/Preprocess.hpp"
-#include "../SAT/SATClause.hpp"
-#include "../SAT/SATLiteral.hpp"
 #include "../SAT/SingleWatchSAT.hpp"
 
 #include "../Shell/Options.hpp"
@@ -765,134 +763,19 @@ Formula* BDD::toFormula(BDDNode* node)
 }
 
 
-struct BDD::CNFStackRec {
-  CNFStackRec(BDDNode* n, bool firstPos, bool second=false) : n(n), firstPos(firstPos),
-  second(second), resolved(false) {}
-
-  BDDNode* n;
-  /** we first descended into node's @b _pos child */
-  bool firstPos;
-  /** we are already in the second child of the node */
-  bool second;
-  /** true if the literal is resolved and therefore  it should not be put into created clauses
-   *
-   * Loop invariant: can be true only if @b second is true */
-  bool resolved;
-};
-
-//The first implementation performs subsumption resolution.
-//Interestingly, the SATSolver often seems to perform worse on the
-//resulting clauses.
-
 /**
- * Convert a BDDNode into a list of propositional clauses.
+ * Convert a BDDNode into propositional clauses that are put into @b acc
  */
-SATClauseList* BDD::toCNFWithSubsumptionResolution(BDDNode* node)
-{
-  CALL("BDD::toCNFSubsumptionResolution");
-
-  SATClauseList* res=0;
-  int resolvedCnt=0; //number of resolved literals on the stack
-  static Stack<CNFStackRec> stack;
-  stack.reset();
-
-  for(;;) {
-    while(!isConstant(node)) {
-      if(isTrue(node->_pos)) {
-	stack.push(CNFStackRec(node, true, true));
-	node=node->_neg;
-      }
-      else if(isTrue(node->_neg)) {
-	stack.push(CNFStackRec(node, false, true));
-	node=node->_pos;
-      }
-      else if(isFalse(node->_pos)) {
-	stack.push(CNFStackRec(node, true));
-	node=node->_pos;
-      }
-      else {
-	stack.push(CNFStackRec(node, false));
-	node=node->_neg;
-      }
-    }
-    if(isFalse(node)) {
-      //the new SATClause will contain literal for each non-resolved stack item
-      unsigned clen=stack.size()-resolvedCnt;
-      SATClause* cl=new(clen) SATClause(clen, true);
-
-      unsigned si=stack.size();
-      for(unsigned ci=0;ci<clen;ci++) {
-	do {
-	  si--;
-	  ASS_GE(si,0);
-	} while(stack[si].resolved);
-	CNFStackRec& sr=stack[si];
-	(*cl)[ci]=SATLiteral(sr.n->_var, !(sr.second^sr.firstPos));
-      }
-
-      SATClauseList::push(cl, res);
-
-      if(!stack.top().second) {
-	stack.top().resolved=true;
-	resolvedCnt++;
-      }
-    }
-    while(stack.isNonEmpty() && stack.top().second) {
-      if(stack.top().resolved) {
-	resolvedCnt--;
-      }
-      stack.pop();
-    }
-    if(stack.isEmpty()) {
-      return res;
-    }
-
-    CNFStackRec& sr=stack.top();
-    ASS(!sr.second);
-    //move to the other child
-    sr.second=true;
-    if(sr.firstPos) {
-      node=sr.n->_neg;
-    }
-    else {
-      node=sr.n->_pos;
-    }
-  }
-}
-
-SATClauseList* BDD::toCNF(BDDNode* node)
+void BDD::toCNF(BDDNode* node, SATClauseStack& acc)
 {
   CALL("BDD::toCNF");
+  _clausifier.clausify(node, acc);
+}
 
-  SATClauseList* res=0;
-  static Stack<pair<BDDNode*,bool> > stack;
-  stack.reset();
-
-  for(;;) {
-    while(!isConstant(node)) {
-      stack.push(make_pair(node, false));
-      node=node->_neg;
-    }
-    if(isFalse(node)) {
-      unsigned clen=stack.size();
-      SATClause* cl=new(clen) SATClause(clen, true);
-
-      for(unsigned i=0;i<clen;i++) {
-        (*cl)[i]=SATLiteral(stack[i].first->_var, !stack[i].second);
-      }
-
-      SATClauseList::push(cl, res);
-    }
-    while(stack.isNonEmpty() && stack.top().second==true) {
-      stack.pop();
-    }
-    if(stack.isEmpty()) {
-      return res;
-    }
-    ASS(!stack.top().second);
-    stack.top().second=true;
-    node=stack.top().first->_pos;
-  }
+unsigned BDD::getCNFVarCount()
+{
+  CALL("BDD::getCNFVarCount");
+  return _clausifier.getCNFVarCount();
 }
 
 /**
@@ -920,23 +803,14 @@ void BDDConjunction::addNode(BDDNode* n)
 
   TimeCounter tc(TC_SAT_SOLVER);
 
-  if(n->_var > _maxVar) {
-    _maxVar=n->_var;
-  }
 
+  static SATClauseStack acc;
+  acc.reset();
 
-  unsigned varCnt=_maxVar+1;
+  bdd->toCNF(n, acc);
 
-  SATClauseList* newClLst;
-  if(env.options->satSolverWithSubsumptionResolution()) {
-    newClLst=bdd->toCNFWithSubsumptionResolution(n);
-  }
-  else {
-    newClLst=bdd->toCNF(n);
-  }
-
-  _solver.ensureVarCnt(varCnt);
-  _solver.addClauses(pvi( SATClauseList::DestructiveIterator(newClLst) ));
+  _solver.ensureVarCnt(bdd->getCNFVarCount());
+  _solver.addClauses(pvi( SATClauseStack::Iterator(acc) ));
 
   if(_solver.getStatus()==TWLSolver::UNSATISFIABLE) {
     _isFalse=true;

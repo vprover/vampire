@@ -20,6 +20,7 @@
 #include "../Lib/SkipList.hpp"
 #include "../Lib/Stack.hpp"
 
+#include "../Kernel/BDDClausifier.hpp"
 #include "../Kernel/Signature.hpp"
 
 #include "../SAT/TWLSolver.hpp"
@@ -55,6 +56,7 @@ private:
 
   friend class BDD;
   friend class BDDConjunction;
+  friend class BDDClausifier;
   friend class Shell::LaTeX;
 };
 
@@ -110,8 +112,8 @@ public:
   string toTPTPString(BDDNode* node, string bddPrefix);
   string toTPTPString(BDDNode* node);
 
-  SATClauseList* toCNF(BDDNode* node);
-  SATClauseList* toCNFWithSubsumptionResolution(BDDNode* node);
+  void toCNF(BDDNode* node, SATClauseStack& acc);
+  unsigned getCNFVarCount();
   Formula* toFormula(BDDNode* node);
 
   string getDefinition(BDDNode* node);
@@ -195,8 +197,7 @@ private:
   /** BDD node representing the false formula */
   BDDNode _falseNode;
 
-  //struct used in the toCNF function
-  struct CNFStackRec;
+  BDDClausifier _clausifier;
 
   /** Type that stores the set of all non-constant BDD nodes */
   typedef Set<BDDNode*,BDD> NodeSet;
@@ -233,7 +234,7 @@ private:
 class BDDConjunction
 {
 public:
-  BDDConjunction() : _isFalse(false), _maxVar(0) {}
+  BDDConjunction() : _isFalse(false) {}
   void addNode(BDDNode* n);
 
   /** Return @b true iff the conjunction represented by this object is unsatisfiable */
@@ -241,8 +242,6 @@ public:
 private:
   /** Is equal to @b true iff the conjunction represented by this object is unsatisfiable */
   bool _isFalse;
-  /** Maximal BDD variable that appears in this object */
-  unsigned _maxVar;
 
   /**
    * Two-watched-literal incremental SAT solver that is used to check whether

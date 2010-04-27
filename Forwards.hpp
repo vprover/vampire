@@ -217,6 +217,7 @@ class SATLiteral;
 
 typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;
+typedef Stack<SATClause*> SATClauseStack;
 
 }
 

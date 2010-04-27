@@ -84,6 +84,7 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Timer.o
 
 VK_OBJ= Kernel/BDD.o\
+        Kernel/BDDClausifier.o\
         Kernel/Clause.o\
         Kernel/ClauseQueue.o\
         Kernel/EGSubstitution.o\
