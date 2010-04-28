@@ -3,7 +3,10 @@
  * Implements class BDDClausifier.
  */
 
+#include "../Lib/BinaryHeap.hpp"
 #include "../Lib/Environment.hpp"
+#include "../Lib/Int.hpp"
+#include "../Lib/MapToLIFO.hpp"
 
 #include "../SAT/SATClause.hpp"
 #include "../SAT/SATLiteral.hpp"
@@ -73,14 +76,22 @@ unsigned BDDClausifier::getName(BDDNode* node)
 {
   CALL("BDDClausifier::getName");
 
+  if(!_naming) {
+    return 0;
+  }
   return _names.get(node, 0);
 }
 
-unsigned BDDClausifier::name(BDDNode* node, SATClauseStack& acc)
+unsigned BDDClausifier::assignName(BDDNode* node, SATClauseStack& acc)
 {
-  CALL("BDDClausifier::name");
+  CALL("BDDClausifier::assignName");
+  ASS(_naming);
+  ASS_EQ(getName(node), 0); //not already named
 
-  NOT_IMPLEMENTED;
+  unsigned name=_nextCNFVar++;
+  clausify(node, acc, name);
+  ALWAYS(_names.insert(node, name));
+  return name;
 }
 
 unsigned BDDClausifier::getCNFVar(unsigned bddVar)
@@ -106,7 +117,7 @@ SATClause* BDDClausifier::buildClause(unsigned givenName, Stack<CNFStackRec>& st
     unsigned nodeName)
 {
   CALL("BDDClausifier::buildClause");
-  ASS(!givenName || givenName>nodeName); //the newly given name must be greater than previously given ones
+  ASS_REP2(!givenName || givenName>nodeName,givenName,nodeName); //the newly given name must be greater than previously given ones
 
   //the new SATClause will contain literal for each non-resolved stack item
   //and possibly for the name of the inner node and the naming literal of node
@@ -146,7 +157,14 @@ void BDDClausifier::clausifyWithSR(BDDNode* node, SATClauseStack& acc, unsigned 
   stack.reset();
 
   for(;;) {
-    while(!bdd->isConstant(node)) {
+    if(!bdd->isConstant(node)) {
+
+      unsigned name=getName(node);
+      if(name) {
+        acc.push(buildClause(givenName, stack, resolvedCnt, name));
+	goto node_handled;
+      }
+
       if(bdd->isTrue(node->_pos)) {
 	stack.push(CNFStackRec(node, true, true));
 	node=node->_neg;
@@ -163,6 +181,7 @@ void BDDClausifier::clausifyWithSR(BDDNode* node, SATClauseStack& acc, unsigned 
 	stack.push(CNFStackRec(node, false));
 	node=node->_neg;
       }
+      continue;
     }
     if(bdd->isFalse(node)) {
       acc.push(buildClause(givenName, stack, resolvedCnt));
@@ -172,6 +191,8 @@ void BDDClausifier::clausifyWithSR(BDDNode* node, SATClauseStack& acc, unsigned 
 	resolvedCnt++;
       }
     }
+
+  node_handled:
     while(stack.isNonEmpty() && stack.top().second) {
       if(stack.top().resolved) {
 	resolvedCnt--;
@@ -195,11 +216,13 @@ void BDDClausifier::clausifyWithSR(BDDNode* node, SATClauseStack& acc, unsigned 
   }
 }
 
-void BDDClausifier::clausifyWithoutSR(BDDNode* node, SATClauseStack& acc, unsigned givenName)
+void BDDClausifier::clausifyWithoutSR(BDDNode* node0, SATClauseStack& acc, unsigned givenName)
 {
   CALL("BDDClausifier::clausifyWithoutSR");
 
   BDD* bdd=BDD::instance();
+
+  BDDNode* node=node0;
 
   static Stack<CNFStackRec> stack;
   stack.reset();
@@ -236,4 +259,82 @@ void BDDClausifier::clausifyWithoutSR(BDDNode* node, SATClauseStack& acc, unsign
 }
 
 
+void BDDClausifier::introduceNames(BDDNode* node0, SATClauseStack& acc)
+{
+  CALL("BDDClausifier::introduceNames");
+
+  BDD* bdd=BDD::instance();
+
+  if(bdd->isConstant(node0) || getName(node0)) {
+    return;
+  }
+
+  static BinaryHeap<unsigned, Int> varNums;
+  static DHMap<BDDNode*, unsigned> occurenceCounts;
+  static MapToLIFO<unsigned, BDDNode*> nodesToExamine;
+  static Stack<BDDNode*> nodesToName;
+
+  varNums.reset();
+  occurenceCounts.reset();
+  nodesToExamine.reset();
+  nodesToName.reset();
+
+
+  varNums.insert(node0->_var);
+  nodesToExamine.pushToKey(node0->_var, node0);
+
+  while(!varNums.isEmpty()) {
+    unsigned var=varNums.pop();
+    ASS(varNums.isEmpty() || varNums.top()>var);
+
+    while(!nodesToExamine.isKeyEmpty(var)) {
+      BDDNode* node=nodesToExamine.popFromKey(var);
+      ASS_EQ(node->_var, var);
+      ASS(!bdd->isConstant(node));
+      ASS(!getName(node));
+
+      for(int i=0;i<2;i++) {
+	BDDNode* childNode= i ? node->_neg : node->_pos;
+
+	if(bdd->isConstant(childNode) || getName(childNode)) {
+	  continue;
+	}
+	unsigned* ocPtr;
+	if(occurenceCounts.getValuePtr(childNode, ocPtr, 0)) {
+	  unsigned chVar=childNode->_var;
+	  if(nodesToExamine.isKeyEmpty(chVar)) {
+	    varNums.insert(chVar);
+	  }
+	  nodesToExamine.pushToKey(chVar, childNode);
+	}
+	(*ocPtr)++;
+	if(*ocPtr==2) {
+	  nodesToName.push(childNode);
+	}
+      }
+    }
+  }
+
+
+  while(nodesToName.isNonEmpty()) {
+    BDDNode* node=nodesToName.pop();
+    assignName(node, acc);
+  }
 }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

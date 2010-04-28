@@ -24,23 +24,48 @@ public:
 
   ~MapToLIFO()
   {
+    CALL("MapToLIFO::~MapToLIFO");
+
     makeEmpty();
+  }
+
+  void reset()
+  {
+    CALL("MapToLIFO::reset");
+
+    if(!_data.size()) {
+      return;
+    }
+    typename InnerMap::Iterator it(_data);
+    while(it.hasNext()) {
+      ValList* lst=it.next();
+      lst->destroy();
+    }
+    _data.reset();
   }
 
   void pushToKey(K key, V val)
   {
+    CALL("MapToLIFO::pushToKey");
+
     ValList** pLst;
     _data.getValuePtr(key, pLst, 0);
     ValList::push(val, *pLst);
   }
+
   void pushManyToKey(K key, ValList* val)
   {
+    CALL("MapToLIFO::pushManyToKey");
+
     ValList** pLst;
     _data.getValuePtr(key, pLst, 0);
     *pLst=ValList::concat(val, *pLst);
   }
+
   V popFromKey(K key)
   {
+    CALL("MapToLIFO::popFromKey");
+
     ValList** pLst;
     _data.getValuePtr(key, pLst, 0);
     ASS(*pLst);
@@ -50,12 +75,16 @@ public:
     }
     return res;
   }
+
   bool isKeyEmpty(K key)
   {
+    CALL("MapToLIFO::isKeyEmpty");
+
     bool found=_data.find(key);
     ASS(!found || _data.get(key)!=0);
     return !found;
   }
+
 
   typename ValList::Iterator keyIterator(K key)
   {

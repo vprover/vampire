@@ -20,7 +20,13 @@ public:
   BDDClausifier(bool naming=false);
 
   void clausify(BDDNode* node, SATClauseStack& acc)
-  { clausify(node, acc, 0); }
+  {
+    if(_naming) {
+      introduceNames(node, acc);
+    }
+    clausify(node, acc, 0);
+  }
+
   unsigned getCNFVarCount();
 private:
   struct CNFStackRec;
@@ -34,8 +40,13 @@ private:
 
   unsigned getName(BDDNode* node);
 
-  unsigned name(BDDNode* node, SATClauseStack& acc);
+  bool shouldName(BDDNode* node);
+
+  unsigned assignName(BDDNode* node, SATClauseStack& acc);
   unsigned getCNFVar(unsigned bddVar);
+
+
+  void introduceNames(BDDNode* node, SATClauseStack& acc);
 
 
   unsigned _nextCNFVar;

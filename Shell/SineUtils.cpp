@@ -107,7 +107,7 @@ void SineSelector::extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& i
 #endif
       }
 
-      itms.pushFromIterator( getMappingIterator(
+      itms.loadFromIterator( getMappingIterator(
 		    vi( new NonVariableIterator(lit) ),
 		    FunctionSymIdFn(this)) );
       return;
@@ -168,7 +168,7 @@ SineSelector::SymIdIterator SineSelector::extractSymIds(Unit* u)
     for(unsigned i=0;i<clen;i++) {
       Literal* lit=(*cl)[i];
       itms.push( getSymId(lit, true) );
-      itms.pushFromIterator( getMappingIterator(
+      itms.loadFromIterator( getMappingIterator(
 		    vi( new NonVariableIterator(lit) ),
 		    FunctionSymIdFn(this)) );
     }

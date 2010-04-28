@@ -16,6 +16,7 @@
 #include "../Inferences/BDDMarkingSubsumption.hpp"
 
 #include "../Kernel/BDD.hpp"
+#include "../Kernel/BDDConjunction.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/InferenceStore.hpp"

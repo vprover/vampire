@@ -41,6 +41,10 @@ public:
   static void violated(const char* file,int line,const char* condition,
 	  const T& rep, const char* repStr);
 
+  template<typename T>
+  static void violated(const char* file,int line,const char* condition,
+	  const T& rep, const char* repStr,const T& rep2, const char* repStr2);
+
 
   static void checkType(const char* file,int line,const void* ptr,
 	  const char* assumed, const char* ptrStr);
@@ -99,6 +103,12 @@ private:
 #define ASS_REP(Cond, ReportedVal)                                      \
   if (! (Cond)) {                                               \
     Debug::Assertion::violated(__FILE__,__LINE__,#Cond,ReportedVal,#ReportedVal); \
+    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
+  }
+
+#define ASS_REP2(Cond, ReportedVal, ReportedVal2)               \
+  if (! (Cond)) {                                               \
+    Debug::Assertion::violated(__FILE__,__LINE__,#Cond,ReportedVal,#ReportedVal,ReportedVal2,#ReportedVal2); \
     throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
   }
 
@@ -170,6 +180,7 @@ private:
 #define NEVER(Cond) Cond
 
 #define ASS_REP(Cond, ReportedVal)
+#define ASS_REP2(Cond, ReportedVal, ReportedVal2)
 
 #define ASS_EQ(VAL1,VAL2)
 #define ASS_NEQ(VAL1,VAL2)
@@ -207,6 +218,27 @@ void Debug::Assertion::violated (const char* file,int line,const char* cond,
     cout << "Condition in file " << file << ", line " << line
 	<< " violated:\n" << cond << "\n"
 	<< "Value of " << repStr << " is: " << rep
+	<< "\n----- stack dump -----\n";
+    Tracer::printStack(cout);
+    cout << "----- end of stack dump -----\n";
+  }
+} // Assertion::violated
+
+template<typename T>
+void Debug::Assertion::violated (const char* file,int line,const char* cond,
+	const T& rep, const char* repStr, const T& rep2, const char* repStr2)
+{
+  if (_violated) {
+    return;
+  }
+
+  _violated = true;
+  reportSpiderFail();
+  if(outputAllowed()) {
+    cout << "Condition in file " << file << ", line " << line
+	<< " violated:\n" << cond << "\n"
+	<< "Value of " << repStr << " is: " << rep << "\n"
+	<< "Value of " << repStr2 << " is: " << rep2
 	<< "\n----- stack dump -----\n";
     Tracer::printStack(cout);
     cout << "----- end of stack dump -----\n";

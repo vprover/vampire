@@ -42,32 +42,18 @@ public:
 
   DECL_ELEMENT_TYPE(C);
   DECL_ITERATOR_TYPE(Iterator);
-  /**
-   * Create a stack with initial capacity 8.
-   */
-  inline
-  Stack ()
-    : _capacity(8)
-  {
-    CALL("Stack::Stack");
-
-    void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Stack<>");
-    _stack = static_cast<C*>(mem);
-    _cursor = _stack;
-    _end = _stack+_capacity;
-  }
 
   /**
    * Create a stack having initialCapacity.
    */
   inline
-  explicit Stack (size_t initialCapacity)
+  explicit Stack (size_t initialCapacity=8)
     : _capacity(initialCapacity)
   {
     CALL("Stack::Stack");
     ASS(initialCapacity > 0);
 
-    void* mem = ALLOC_KNOWN(initialCapacity*sizeof(C),"Stack<>");
+    void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Stack<>");
     _stack = static_cast<C*>(mem);
     _cursor = _stack;
     _end = _stack+_capacity;
@@ -81,7 +67,8 @@ public:
     CALL("Stack::~Stack");
 
     //The while cycle is completely eliminated by compiler
-    //in "-O6 -DVDEBUG=0" mode, so destructor is constant time.
+    //in "-O6 -DVDEBUG=0" mode for types without destructor,
+    //so this destructor is constant time.
     C* p=_cursor;
     while(p!=_stack) {
       (--p)->~C();
@@ -255,15 +242,6 @@ public:
   inline
   size_t size() const
   { return _cursor - _stack; }
-
-  /** Push all elements from @b it iterator on the stack */
-  template<class It>
-  void pushFromIterator(It it)
-  {
-    while(it.hasNext()) {
-      push(it.next());
-    }
-  }
 
 
   friend class Iterator;

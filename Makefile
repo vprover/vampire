@@ -85,6 +85,7 @@ VL_OBJ= Lib/Allocator.o\
 
 VK_OBJ= Kernel/BDD.o\
         Kernel/BDDClausifier.o\
+        Kernel/BDDConjunction.o\
         Kernel/Clause.o\
         Kernel/ClauseQueue.o\
         Kernel/EGSubstitution.o\
