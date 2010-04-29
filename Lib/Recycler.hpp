@@ -38,6 +38,7 @@ public:
       result=List<DArray<T>*>::pop(store);
     } else {
       result=new DArray<T>(64);
+      result->ensure(0);
     }
   }
 
@@ -47,31 +48,13 @@ public:
   {
     ASS(obj);
 
-    putIntoStoreOrDelete<T>(obj);
+    List<T*>*& store=getStore<T>();
+
+    List<T*>::push(obj, store);
   }
 
 
 private:
-
-  template<typename T>
-  static void putIntoStoreOrDelete(T* obj)
-  {
-    List<T*>* itm=0;
-    List<T*>*& store=getStore<T>();
-    try {
-      itm=new List<T*>(obj, store);
-    } catch(MemoryLimitExceededException e) {
-      if(!Exception::isThrownDuringExceptionHandling()) {
-	throw;
-      }
-    }
-
-    if(itm) {
-      store=itm;
-    } else {
-      delete obj;
-    }
-  }
 
   template<typename T>
   static List<T*>*& getStore() throw()

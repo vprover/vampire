@@ -210,9 +210,6 @@ void outputResult()
     ASSERTION_VIOLATION;
   }
   env.statistics->print();
-  if(env.options->timeStatistics()) {
-    TimeCounter::printReport();
-  }
 
 }
 
@@ -291,9 +288,6 @@ void spiderMode()
       ASSERTION_VIOLATION;
     }
     env.statistics->print();
-    if(env.options->timeStatistics()) {
-      TimeCounter::printReport();
-    }
   }
   else {
     reportSpiderFail();

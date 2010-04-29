@@ -122,7 +122,8 @@ void BSplitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replaceme
   }
 
   cl->incReductionTimestamp();
-  ASS(BDD::instance()->isFalse(cl->prop())); //BDDs are disabled when we do backtracking splitting
+  //BDDs are disabled when we do backtracking splitting so they can only contain false
+  ASS(BDD::instance()->isFalse(cl->prop()));
   SplitSet::Iterator dit(diff);
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
@@ -242,7 +243,7 @@ Clause* BSplitter::getComponent(Clause* cl)
 
   Clause* res=Clause::fromStack(lits, cl->inputType(), new Inference(Inference::SPLITTING_COMPONENT));
   res->setAge(cl->age());
-  res->setProp(BDD::instance()->getFalse());
+  res->initProp(BDD::instance()->getFalse());
   return res;
 }
 
@@ -493,7 +494,7 @@ start:
       rcl->setAux(0);
       ASS_EQ(rcl->store(), Clause::NONE);
       rcl->incReductionTimestamp();
-      rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
+      ASS(BDD::instance()->isFalse(rcl->prop())); //we asserted it was false in onClauseReduction
       _sa->addNewClause(rcl);
   #if VDEBUG
       //check that restored clause does not depend on splits that were already backtracked
@@ -549,7 +550,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   Inference* sinf=new Inference2(Inference::SPLITTING, base, refutation);
   Clause* scl=Clause::fromStack(secLits, inp, sinf);
   scl->setAge(resAge);
-  scl->setProp(resProp);
+  scl->initProp(resProp);
   assignClauseSplitSet(scl, resSplits);
   acc.push(scl);
   _sa->onParenthood(scl, base);
@@ -566,7 +567,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
       Inference* ginf=new Inference2(Inference::SPLITTING, base, refutation);
       Clause* gcl=Clause::fromIterator(getSingletonIterator(Literal::oppositeLiteral(glit)), inp, ginf);
       gcl->setAge(resAge);
-      gcl->setProp(resProp);
+      gcl->initProp(resProp);
       assignClauseSplitSet(gcl, resSplits);
       acc.push(gcl);
       _sa->onParenthood(gcl, base);

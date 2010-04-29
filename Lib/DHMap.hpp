@@ -23,7 +23,6 @@
 namespace Lib {
 
 #define DHMAP_MAX_CAPACITY_INDEX 29
-#define DHMAP_FILL_UP_COEFFICIENT 0.7f
 
 
 /**
@@ -78,6 +77,7 @@ unsigned computeHash(Key& key, int capacity)
 };
 
 extern const unsigned DHMapTableCapacities[];
+extern const unsigned DHMapTableNextExpansions[];
 
 /**
  * Class DHMap implements generic maps with keys of a class Key
@@ -505,7 +505,7 @@ private:
     _deleted=0;
     _capacityIndex++;
     _capacity = newCapacity;
-    _nextExpansionOccupancy = (int)(_capacity*DHMAP_FILL_UP_COEFFICIENT);
+    _nextExpansionOccupancy = DHMapTableNextExpansions[_capacityIndex];
 
     _entries = array_new<Entry>(mem, _capacity);
     _afterLast = _entries + _capacity;

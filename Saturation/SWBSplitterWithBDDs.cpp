@@ -213,7 +213,7 @@ Clause* SWBSplitterWithBDDs::getComponent(Clause* cl, CompRec cr, int& name, boo
     }
 
     comp->setAge(cl->age());
-    comp->setProp(BDD::instance()->getTrue());
+    comp->initProp(BDD::instance()->getTrue());
     InferenceStore::instance()->recordNonPropInference(comp);
 
     _sa->getSharing()->insertNew(comp);

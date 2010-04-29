@@ -366,7 +366,7 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
       prop=bdd->disjunction(prop, prem->prop());
     }
 
-    cl->setProp(prop);
+    cl->initProp(prop);
     if(!bdd->isTrue(prop)) {
       InferenceStore::instance()->recordNonPropInference(cl);
     }
@@ -519,7 +519,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   ASS_EQ(cl->prop(),0);
 
   cl->markInput();
-  cl->setProp(BDD::instance()->getFalse());
+  cl->initProp(BDD::instance()->getFalse());
 
   if(_symEl) {
     _symEl->onInputClause(cl);
@@ -645,7 +645,7 @@ public:
 #endif
 
     if(replacement) {
-      replacement->setProp(oldClProp);
+      replacement->initProp(oldClProp);
       InferenceStore::instance()->recordNonPropInference(replacement);
       _sa->addNewClause(replacement);
     }

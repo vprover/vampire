@@ -70,9 +70,6 @@ void timeLimitReached()
   if(env.statistics) {
     env.statistics->print();
   }
-  if(env.options && env.options->timeStatistics()) {
-    TimeCounter::printReport();
-  }
 
   abort();
 }

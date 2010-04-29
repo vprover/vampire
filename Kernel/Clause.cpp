@@ -102,12 +102,27 @@ Clause* Clause::fromStack(Stack<Literal*>& lits, InputType it, Inference* inf)
   return res;
 }
 
+/**
+ * Initialize the propositional part of the clause
+ *
+ * The difference from setProp is that the clause couldn't have been assigned
+ * a propositional part before. This ensures we don't have to worry about
+ * affecting things such as the position of the clause in the passive clause
+ * queue.
+ */
+void Clause::initProp(BDDNode* prop)
+{
+  CALL("Clause::initProp");
+  ASS(!_prop);
+
+  _prop = prop;
+}
+
 /** Set the propositional part of the clause */
 void Clause::setProp(BDDNode* prop)
 {
-  //  if(_prop) {
-  //    cout<<"%% prop change: " << (*this) << "-->" << BDD::instance()->toString(prop)<<endl;
-  //  }
+  CALL("Clause::setProp");
+
   _prop = prop;
 }
 

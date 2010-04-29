@@ -66,7 +66,7 @@ void SWBSplitterWithoutBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps
   ASS_EQ(ri, resLen);
 
   res->setAge(cl->age());
-  res->setProp(cl->prop());
+  res->initProp(cl->prop());
   InferenceStore::instance()->recordNonPropInference(res);
 
   _sa->addNewClause(res);
@@ -141,7 +141,7 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::createNamedComponent
   (*res)[cr.len]=getNameLiteral(name, false);
 
   res->setAge(cl->age());
-  res->setProp(BDD::instance()->getFalse());
+  res->initProp(BDD::instance()->getFalse());
   InferenceStore::instance()->recordNonPropInference(res);
 
   _sa->addNewClause(res);

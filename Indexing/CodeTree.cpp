@@ -75,29 +75,49 @@ CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
 }
 
 
-CodeTree::MatchInfo::MatchInfo(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray)
-: liIndex(liIndex), bindCnt(ils->varCnt)
+/**
+ * Allocate a MatchInfo object having @b bindCnt binding positions.
+ */
+CodeTree::MatchInfo* CodeTree::MatchInfo::alloc(unsigned bindCnt)
 {
-  if(bindCnt) {
-    size_t bSize=sizeof(TermList)*bindCnt;
-    bindings=static_cast<TermList*>(
-	ALLOC_KNOWN(bSize, "CodeTree::MatchInfo::bindings"));
+  CALL("MatchInfo::alloc");
 
-    unsigned* perm=ils->globalVarPermutation;
-    for(unsigned i=0;i<bindCnt;i++) {
-      bindings[perm[i]]=bindingArray[i];
-    }
-  }
-  else {
-    bindings=0;
-  }
+  //We have to get sizeof(MatchInfo) + (bindCnt-1)*sizeof(TermList)
+  //this way, because bindCnt-1 wouldn't behave well for
+  //bindCnt==0 on x64 platform.
+  size_t size=sizeof(MatchInfo)+bindCnt*sizeof(TermList);
+  size-=sizeof(TermList);
+
+  void* mem=ALLOC_KNOWN(size,"CodeTree::MatchInfo");
+  return reinterpret_cast<MatchInfo*>(mem);
 }
 
-CodeTree::MatchInfo::~MatchInfo()
+/**
+ * Destroy the MatchInfo object with @b bindCnt bindings
+ */
+void CodeTree::MatchInfo::destroy(unsigned bindCnt)
 {
-  if(bindings) {
-    DEALLOC_KNOWN(bindings, sizeof(TermList)*bindCnt,
-		"CodeTree::MatchInfo::bindings");
+  CALL("MatchInfo::destroy");
+
+  //We have to get sizeof(MatchInfo) + (bindCnt-1)*sizeof(TermList)
+  //this way, because bindCnt-1 wouldn't behave well for
+  //bindCnt==0 on x64 platform.
+  size_t size=sizeof(MatchInfo)+bindCnt*sizeof(TermList);
+  size-=sizeof(TermList);
+
+  DEALLOC_KNOWN(this, size,"CodeTree::MatchInfo");
+}
+
+
+void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList>& bindingArray)
+{
+  liIndex=liIndex_;
+  size_t bindCnt=ils->varCnt;
+  if(bindCnt) {
+    unsigned* perm=ils->globalVarPermutation;
+    for(size_t i=0;i<bindCnt;i++) {
+      bindings[perm[i]]=bindingArray[i];
+    }
   }
 }
 
@@ -105,6 +125,8 @@ CodeTree::MatchInfo::~MatchInfo()
 CodeTree::ILStruct::ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack)
 : varCnt(varCnt), sortedGlobalVarNumbers(0), globalVarPermutation(0), timestamp(0)
 {
+  ASS_EQ(matches.size(), 0); //we don't want any uninitialized pointers in the array
+
   if(varCnt) {
     size_t gvnSize=sizeof(unsigned)*varCnt;
     globalVarNumbers=static_cast<unsigned*>(
@@ -118,7 +140,16 @@ CodeTree::ILStruct::ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack)
 
 CodeTree::ILStruct::~ILStruct()
 {
-  disposeMatches();
+  size_t msize=matches.size();
+  for(size_t i=0;i<msize;i++) {
+    if(matches[i]) {
+      matches[i]->destroy(varCnt);
+    }
+    else {
+      //non-zero entries are only in the beginning of the matches array
+      break;
+    }
+  }
 
   if(globalVarNumbers) {
     size_t gvSize=sizeof(unsigned)*varCnt;
@@ -192,27 +223,55 @@ bool CodeTree::ILStruct::equalsForOpMatching(const ILStruct& o) const
   return BitUtils::memEqual(globalVarNumbers, o.globalVarNumbers, gvnSize);
 }
 
-void CodeTree::ILStruct::disposeMatches()
-{
-  CALL("CodeTree::ILStruct::disposeMatches");
-
-  while(matches.isNonEmpty()) {
-    delete matches.pop();
-  }
-}
-
 void CodeTree::ILStruct::ensureFreshness(unsigned globalTimestamp)
 {
   CALL("CodeTree::ILStruct::ensureFreshness");
 
   if(timestamp!=globalTimestamp) {
     timestamp=globalTimestamp;
-    disposeMatches();
     visited=false;
     finished=false;
     noNonOppositeMatches=false;
+    matchCnt=0;
   }
+}
 
+void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArray)
+{
+  CALL("CodeTree::ILStruct::addMatch");
+
+  if(matchCnt==matches.size()) {
+    matches.expand(matchCnt ? (matchCnt*2) : 4);
+    size_t newSize=matches.size();
+    for(size_t i=matchCnt;i<newSize;i++) {
+      matches[i]=0;
+    }
+  }
+  ASS_L(matchCnt,matches.size());
+  if(!matches[matchCnt]) {
+    matches[matchCnt]=MatchInfo::alloc(varCnt);
+  }
+  matches[matchCnt]->init(this, liIndex, bindingArray);
+  matchCnt++;
+}
+
+void CodeTree::ILStruct::deleteMatch(unsigned matchIndex)
+{
+  CALL("CodeTree::ILStruct::deleteMatch");
+  ASS_L(matchIndex, matchCnt);
+
+  matchCnt--;
+  swap(matches[matchIndex], matches[matchCnt]);
+}
+
+CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
+{
+  CALL("CodeTree::ILStruct::getMatch");
+  ASS(!finished);
+  ASS_L(matchIndex, matchCnt);
+  ASS(matches[matchIndex]);
+
+  return matches[matchIndex];
 }
 
 CodeTree::CodeOp CodeTree::CodeOp::getSuccess(void* ptr)

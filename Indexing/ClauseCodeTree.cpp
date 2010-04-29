@@ -452,12 +452,11 @@ void ClauseCodeTree::LiteralMatcher::recordMatch()
     //no need to record matches which we already know will not lead to anything
     return;
   }
-  if(ils->matches.isEmpty() && linfos[curLInfo].opposite) {
+  if(!ils->matchCnt && linfos[curLInfo].opposite) {
     //if we're matching opposite matches, we have already tried all non-opposite ones
     ils->noNonOppositeMatches=true;
   }
-  MatchInfo* mi=new MatchInfo(ils, linfos[curLInfo].liIndex, bindings);
-  ils->matches.push(mi);
+  ils->addMatch(linfos[curLInfo].liIndex, bindings);
 }
 
 
@@ -630,15 +629,15 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
 	lms[ilIndex]->doEagerMatching();
       }
 
-      MatchStack::Iterator mit(ils->matches);
-      while(mit.hasNext()) {
-	MatchInfo* mi=mit.next();
+      size_t matchIndex=ils->matchCnt;
+      while(matchIndex!=0) {
+	matchIndex--;
+	MatchInfo* mi=ils->getMatch(matchIndex);
 	if(!existsCompatibleMatch(ils, mi, prevILS)) {
-	  delete mi;
-	  mit.del();
+	  ils->deleteMatch(matchIndex); //decreases ils->matchCnt
 	}
       }
-      if(ils->matches.isEmpty()) {
+      if(!ils->matchCnt) {
 	return false;
       }
     }
@@ -695,7 +694,6 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
     ASS_EQ(ils->timestamp,tree->_curTimeStamp);
     ASS(ils->visited);
 
-    ils->disposeMatches();
     ils->finished=true;
 
     if(sres) {
@@ -725,17 +723,17 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
     //if clause doesn't have multiple literals, there is no need
     //for multi-literal matching
     resolvedQueryLit=-1;
-    if(sres) {
-      MatchStack::Iterator mit(lms[clen-1]->getILS()->matches);
-      while(mit.hasNext()) {
-	MatchInfo* mi=mit.next();
-	if(!lInfos[mi->liIndex].opposite) {
+    if(sres && clen==1) {
+      size_t matchCnt=lms[0]->getILS()->matchCnt;
+      for(size_t i=0;i<matchCnt;i++) {
+	MatchInfo* mi=lms[0]->getILS()->getMatch(i);
+	if(lInfos[mi->liIndex].opposite) {
+	  resolvedQueryLit=lInfos[mi->liIndex].litIndex;
+	}
+	else {
 	  //we preffer subsumption to subsumption resolution
 	  resolvedQueryLit=-1;
 	  break;
-	}
-	else {
-	  resolvedQueryLit=lInfos[mi->liIndex].litIndex;
 	}
       }
     }
@@ -792,7 +790,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
   remaining.setSide(clen);
   for(unsigned j=0;j<clen;j++) {
     ILStruct* ils=lms[j]->getILS();
-    remaining.set(j,0,ils->matches.size());
+    remaining.set(j,0,ils->matchCnt);
 
 //    VERB_OUT("matches "<<ils->matches.size()<<" index:"<<j<<" vars:"<<ils->varCnt<<" linfos:"<<lInfos.size());
 //    for(unsigned y=0;y<ils->matches.size();y++) {
@@ -829,7 +827,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
     ASS_L(matchIndex[i],remaining.get(i,i));
 
     ILStruct* bi=lms[i]->getILS(); 		//bound index literal
-    MatchInfo* bq=bi->matches[matchIndex[i]];	//bound query literal
+    MatchInfo* bq=bi->getMatch(matchIndex[i]);	//bound query literal
 
     //propagate the implications of this binding to next literals
     for(unsigned j=i+1;j<clen;j++) {
@@ -837,10 +835,10 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
       unsigned rem=remaining.get(j,i);
       unsigned k=0;
       while(k<rem) {
-	MatchInfo* nq=ni->matches[k];		//next query literal
+	MatchInfo* nq=ni->getMatch(k);		//next query literal
 	if(!compatible(bi,bq,ni,nq)) {
 	  rem--;
-	  swap(ni->matches[k],ni->matches[rem]);
+	  swap(ni->getMatch(k),ni->getMatch(rem));
 	  continue;
 	}
 	k++;
@@ -857,7 +855,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
   if(sres) {
     for(unsigned i=0;i<clen;i++) {
       ILStruct* ils=lms[i]->getILS();
-      MatchInfo* mi=ils->matches[matchIndex[i]];
+      MatchInfo* mi=ils->getMatch(matchIndex[i]);
       if(lInfos[mi->liIndex].opposite) {
 	resolvedQueryLit=lInfos[mi->liIndex].litIndex;
 	break;
@@ -919,9 +917,9 @@ bool ClauseCodeTree::ClauseMatcher::existsCompatibleMatch(ILStruct* si, MatchInf
 {
   CALL("ClauseCodeTree::ClauseMatcher::existsCompatibleMatch");
 
-  size_t tcnt=targets->matches.size();
+  size_t tcnt=targets->matchCnt;
   for(size_t i=0;i<tcnt;i++) {
-    if(compatible(si,sq,targets,targets->matches[i])) {
+    if(compatible(si,sq,targets,targets->getMatch(i))) {
       return true;
     }
   }

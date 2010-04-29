@@ -226,6 +226,7 @@ public:
 
   /** Return the propositional part of the clause */
   BDDNode* prop() const { return _prop; }
+  void initProp(BDDNode* prop);
   void setProp(BDDNode* prop);
 
   SplitSet* splits() const { return _splits; }

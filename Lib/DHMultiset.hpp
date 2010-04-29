@@ -253,7 +253,7 @@ private:
     _deleted=0;
     _capacityIndex++;
     _capacity = newCapacity;
-    _nextExpansionOccupancy = (int)(_capacity*DHMULTISET_FILL_UP_COEFFICIENT);
+    _nextExpansionOccupancy = DHMapTableNextExpansions[_capacityIndex];
 
     _entries = array_new<Entry>(mem, _capacity);
     _afterLast = _entries + _capacity;

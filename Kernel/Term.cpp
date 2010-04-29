@@ -69,33 +69,22 @@ void Term::destroyNonShared()
   TermList* ts=&selfRef;
   static Stack<TermList*> stack(4);
   static Stack<Term*> deletingStack(8);
-  try {
-    for(;;) {
-      if(ts->tag()==REF && !ts->term()->shared()) {
-	stack.push(ts->term()->args());
-	deletingStack.push(ts->term());
-      }
-      if(stack.isEmpty()) {
-	break;
-      }
-      ts=stack.pop();
-      if(!ts->next()->isEmpty()) {
-	stack.push(ts->next());
-      }
+
+  for(;;) {
+    if(ts->tag()==REF && !ts->term()->shared()) {
+      stack.push(ts->term()->args());
+      deletingStack.push(ts->term());
     }
-    while(!deletingStack.isEmpty()) {
-      deletingStack.pop()->destroy();
+    if(stack.isEmpty()) {
+      break;
     }
-  } catch(MemoryLimitExceededException) {
-    //The MemoryLimitExceededException here can lead to memory leaks,
-    //as we miss some subterms.
-    stack.reset();
-    while(!deletingStack.isEmpty()) {
-      deletingStack.pop()->destroy();
+    ts=stack.pop();
+    if(!ts->next()->isEmpty()) {
+      stack.push(ts->next());
     }
-    if(!Exception::isThrownDuringExceptionHandling()) {
-      throw;
-    }
+  }
+  while(!deletingStack.isEmpty()) {
+    deletingStack.pop()->destroy();
   }
 }
 

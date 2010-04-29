@@ -440,15 +440,8 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   // check if the allocatio isn't too big
   if(index>=MAX_PAGES) {
 #if SAFE_OUT_OF_MEM_SOLUTION
-    //TODO: just a quick solution for CASC
-    if(env.options && env.statistics && env.options->mode()==Options::MODE_SPIDER) {
-      env.out << "? " << env.options->problemName();
-      env.out << " " << env.timer->elapsedDeciseconds();
-      env.out << " " << env.options->testId() << "\n";
-    }
-    if(outputAllowed()) {
-      env.out << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
-    }
+    reportSpiderStatus('?');
+    env.out << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
     if(env.statistics) {
       env.statistics->print();
     }
@@ -470,18 +463,11 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       _tolerated=newSize+1000000;
 
 #if SAFE_OUT_OF_MEM_SOLUTION
-      //TODO: just a quick solution for CASC
-      if(env.options && env.statistics && env.options->mode()==Options::MODE_SPIDER) {
-        env.out << "? " << env.options->problemName();
-        env.out << " " << env.timer->elapsedDeciseconds();
-        env.out << " " << env.options->testId() << "\n";
-      }
-      if(outputAllowed()) {
-	env.out << "Memory limit exceeded!\n";
-#if VDEBUG
+      reportSpiderStatus('?');
+      env.out << "Memory limit exceeded!\n";
+# if VDEBUG
 	Allocator::reportUsageByClasses();
-#endif
-      }
+# endif
       if(env.statistics) {
 	env.statistics->print();
       }

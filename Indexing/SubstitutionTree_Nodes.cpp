@@ -121,27 +121,22 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(Ter
 
 void SubstitutionTree::IntermediateNode::destroyChildren()
 {
-  try {
-    static Stack<Node*> toDelete;
-    toDelete.reset();
-    toDelete.push(this);
-    while(toDelete.isNonEmpty()) {
-      Node* n=toDelete.pop();
-      if(!n->isLeaf()) {
-	IntermediateNode* in=static_cast<IntermediateNode*>(n);
-	NodeIterator children=in->allChildren();
-	while(children.hasNext()) {
-	  toDelete.push(*children.next());
-	}
-	in->removeAllChildren();
+  static Stack<Node*> toDelete;
+  toDelete.reset();
+  toDelete.push(this);
+  while(toDelete.isNonEmpty()) {
+    Node* n=toDelete.pop();
+    if(!n->isLeaf()) {
+      IntermediateNode* in=static_cast<IntermediateNode*>(n);
+      NodeIterator children=in->allChildren();
+      while(children.hasNext()) {
+	toDelete.push(*children.next());
       }
-      if(n!=this) {
-	delete n;
-      }
+      in->removeAllChildren();
     }
-  } catch (MemoryLimitExceededException) {
-    //this will cause a memory leak, but after the
-    //MemoryLimitExceededException we're done anyway.
+    if(n!=this) {
+      delete n;
+    }
   }
 }
 

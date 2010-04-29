@@ -72,7 +72,7 @@ Clause* PropositionalToBDDISE::simplify(Clause* c)
   }
   ASS_EQ(newIndex, nlen);
 
-  newCl->setProp(propPart);
+  newCl->initProp(propPart);
 
   if(bdd->isTrue(propPart)) {
     newCl->destroyIfUnnecessary();

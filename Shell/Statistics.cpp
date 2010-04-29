@@ -11,7 +11,9 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Environment.hpp"
+#include "../Lib/TimeCounter.hpp"
 #include "../Lib/Timer.hpp"
+
 #include "Options.hpp"
 
 #include "Statistics.hpp"
@@ -194,6 +196,10 @@ void Statistics::print()
 
 #undef SEPARATOR
 #undef COND_OUT
+
+  if(env.options && env.options->timeStatistics()) {
+    TimeCounter::printReport();
+  }
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)

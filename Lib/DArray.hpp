@@ -140,31 +140,20 @@ public:
     C* nptr=_array;
     C* firstEmpty=_array+_size;
     C* afterLast=_array+_capacity;
-    try{
-      while(nptr!=firstEmpty) {
-        Relocator<C>::relocate(optr++, nptr++);
-      }
-      while(nptr!=afterLast) {
-        new(nptr++) C();
-      }
-      _size = s;
 
-      if(oldArr) {
-        DEALLOC_KNOWN(oldArr,sizeof(C)*oldCapacity,"DArray<>");
-      }
-    } catch(MemoryLimitExceededException) {
-      //This is quite dirty solution, but it works as long as
-      //we don't try to recover from the exception and just output
-      //some informations and exit.
-      //Without this a SEGFAULT would appear in the destructor with
-      //more complex objects, as non-constructed parts of the _array
-      //would be attempted to be destroyed.
-      _size=0;
-      _capacity=0;
-      _array=0;
-      throw;
+    while(nptr!=firstEmpty) {
+      Relocator<C>::relocate(optr++, nptr++);
     }
-  } // ensure
+    while(nptr!=afterLast) {
+      new(nptr++) C();
+    }
+    _size = s;
+
+    if(oldArr) {
+      DEALLOC_KNOWN(oldArr,sizeof(C)*oldCapacity,"DArray<>");
+    }
+
+  } // expand
 
   /** Return the ensured size of the array */
   inline size_t size() const { return _size; }

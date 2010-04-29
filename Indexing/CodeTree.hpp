@@ -61,22 +61,28 @@ public:
 
   struct MatchInfo
   {
-    MatchInfo(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray);
-    ~MatchInfo();
-
-    CLASS_NAME("CodeTree::MatchInfo");
-    USE_ALLOCATOR(MatchInfo);
-
     /** Index of the matched LitInfo in the EContext */
     unsigned liIndex;
-    /** this is redundant and is present here just so that the object
-     * can be conveniently destroyed */
-    unsigned bindCnt;
     /** array of bindings */
-    TermList* bindings;
-  };
+    TermList bindings[1];
 
-  typedef Stack<MatchInfo*> MatchStack;
+  private:
+    void init(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray);
+
+    static MatchInfo* alloc(unsigned bindCnt);
+
+    void destroy(unsigned bindCnt);
+
+
+    friend class ILStruct;
+
+    //these functions are undefined as we take care of the MatchInfo initialisation
+    //and destruction ourselves
+    MatchInfo();
+    ~MatchInfo();
+    void operator delete(void*);
+    void* operator new(size_t,unsigned length);
+  };
 
   /**
    * Structure with information about an indexed literal
@@ -88,8 +94,6 @@ public:
     void putIntoSequence(ILStruct* previous_);
 
     bool equalsForOpMatching(const ILStruct& o) const;
-
-    void disposeMatches();
 
     void ensureFreshness(unsigned globalTimestamp);
 
@@ -111,11 +115,19 @@ public:
 
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
-    MatchStack matches;
+
+    void addMatch(unsigned liIndex, DArray<TermList>& bindingArray);
+    void deleteMatch(unsigned matchIndex);
+    MatchInfo*& getMatch(unsigned matchIndex);
+
+    unsigned matchCnt;
+
     /** all possible lits were tried to match */
     bool visited;
     bool finished;
     bool noNonOppositeMatches;
+  private:
+    DArray<MatchInfo*> matches;
   };
 
   enum InstructionPrefix
