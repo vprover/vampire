@@ -14,6 +14,8 @@
 #include "../Lib/SharedSet.hpp"
 #include "../Lib/Stack.hpp"
 
+#include "../Saturation/ClauseContainer.hpp"
+
 #include "../SAT/SATClause.hpp"
 
 #include "../Shell/Options.hpp"
@@ -29,6 +31,7 @@ namespace Kernel
 {
 
 using namespace Lib;
+using namespace Saturation;
 using namespace Shell;
 
 size_t Clause::_auxCurrTimestamp = 0;
@@ -123,7 +126,20 @@ void Clause::setProp(BDDNode* prop)
 {
   CALL("Clause::setProp");
 
-  _prop = prop;
+  if(prop==_prop) {
+    return;
+  }
+
+  if( (store()==PASSIVE || store()==REACTIVATED) && env.options->nonliteralsInClauseWeight() ) {
+    PassiveClauseContainer* passive=PassiveClauseContainer::instance();
+    ASS(passive); //if there is a passive clause, there must be the passive container
+    passive->beforePassiveClauseUpdated(this);
+    _prop = prop;
+    passive->afterPassiveClauseUpdated(this);
+  }
+  else {
+    _prop = prop;
+  }
 }
 
 bool Clause::shouldBeDestroyed()
@@ -190,6 +206,30 @@ void Clause::destroyExceptInferenceObject()
   size -= sizeof(Literal*);
 
   DEALLOC_KNOWN(this, size,"Clause");
+}
+
+/** Set the store to @b s
+ *
+ * Can lead to clause deletion if the store is @b NONE
+ * and there Clause's reference counter is zero. */
+void Clause::setStore(Store s)
+{
+  CALL("Clause::setStore");
+
+#if VDEBUG
+  //assure there is one selected clause
+  static Clause* selected=0;
+  if(_store==SELECTED || _store==SELECTED_REACTIVATED) {
+    ASS_EQ(selected, this);
+    selected=0;
+  }
+  if(s==SELECTED || s==SELECTED_REACTIVATED) {
+    ASS_EQ(selected, 0);
+    selected=this;
+  }
+#endif
+  _store = s;
+  destroyIfUnnecessary();
 }
 
 /**
@@ -455,13 +495,27 @@ void Clause::computeWeight() const
   }
 } // Clause::computeWeight
 
-float Clause::getEffectiveWeight(unsigned originalWeight)
+
+/**
+ * Return weight of the propositional part of the clause
+ *
+ * This weight is not included in the number returned by the
+ * @b weight() function.
+ */
+unsigned Clause::propWeight() const
 {
-  static float nongoalWeightCoef=-1;
-  if(nongoalWeightCoef<0) {
-    nongoalWeightCoef=env.options->nongoalWeightCoefficient();
-  }
-  return originalWeight * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
+  return prop()->depth();
+}
+
+/**
+ * Return weight of the split part of the clause
+ *
+ * This weight is not included in the number returned by the
+ * @b weight() function.
+ */
+unsigned Clause::splitWeight() const
+{
+  return splits() ? splits()->size() : 0;
 }
 
 /**
@@ -470,7 +524,15 @@ float Clause::getEffectiveWeight(unsigned originalWeight)
  */
 float Clause::getEffectiveWeight()
 {
-  return getEffectiveWeight(weight());
+  static float nongoalWeightCoef=-1;
+  if(nongoalWeightCoef<0) {
+    nongoalWeightCoef=env.options->nongoalWeightCoefficient();
+  }
+  unsigned w=weight();
+  if(env.options->nonliteralsInClauseWeight()) {
+    w+=propWeight()+splitWeight();
+  }
+  return w * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
 }
 
 /**

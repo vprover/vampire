@@ -47,7 +47,7 @@ bool ClauseSharing::doSharing(Clause* cl)
     _sa->onParenthood(shCl, cl);
     if(res==ClauseSharing::OLD) {
 	if(shCl->store()==Clause::ACTIVE || shCl->store()==Clause::PASSIVE ||
-	    shCl->store()==Clause::REACTIVATED) {
+	    shCl->store()==Clause::REACTIVATED || shCl->store()==Clause::SELECTED_REACTIVATED) {
 	  _sa->onNonRedundantClause(shCl);
 	}
     }

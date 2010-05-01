@@ -123,6 +123,9 @@ public:
   /** active clauses at the end of the saturation algorithm run */
   unsigned finalActiveClauses;
 
+  /** number of clause reactivations */
+  unsigned reactivatedClauses;
+
   unsigned splittedClauses;
   unsigned splittedComponents;
   unsigned uniqueComponents;

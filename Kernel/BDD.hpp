@@ -40,6 +40,8 @@ class BDDNode
 public:
   CLASS_NAME("BDDNode");
   USE_ALLOCATOR(BDDNode);
+
+  unsigned depth() const { return _depth; }
 private:
   BDDNode() : _refuted(false) {}
   BDDNode(unsigned var, BDDNode* pos, BDDNode* neg) :
@@ -47,6 +49,7 @@ private:
 
   bool _refuted : 1;
   unsigned _var : 31;
+  unsigned _depth;
 
   BDDNode* _pos;
   BDDNode* _neg;

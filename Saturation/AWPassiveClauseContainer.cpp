@@ -22,9 +22,6 @@
 
 #include "AWPassiveClauseContainer.hpp"
 
-//TODO: this should be made into Vampire option, and the different weights reflected in clause deletion in LRS
-#define AXIOM_AGE_DISCRIMINATION 0
-
 namespace Saturation
 {
 using namespace Lib;
@@ -50,29 +47,21 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
 {
   ASS_G(s_nwcDenominator,0);
   ASS_G(s_nwcNumerator,0);
-#if AXIOM_AGE_DISCRIMINATION
-  long w1, w2;
-  if(cl1->inputType()==0) {
-    w1=static_cast<long>(cl1->weight())*s_nwcNumerator*(cl1->age()+1);
+
+  unsigned cl1Weight=cl1->weight();
+  unsigned cl2Weight=cl2->weight();
+
+  if(env.options->nonliteralsInClauseWeight()) {
+    cl1Weight+= cl1->propWeight() + cl1->splitWeight();
+    cl2Weight+= cl2->propWeight() + cl2->splitWeight();
   }
-  else {
-    w1=static_cast<long>(cl1->weight())*s_nwcDenominator;
-  }
-  if(cl2->inputType()==0) {
-    w2=static_cast<long>(cl2->weight())*s_nwcNumerator*(cl2->age()+1);
-  }
-  else {
-    w2=static_cast<long>(cl2->weight())*s_nwcDenominator;
-  }
-  return Int::compare(w1,w2);
-#else
+
   if(cl1->inputType()==0 && cl2->inputType()!=0) {
-    return Int::compare(cl1->weight()*s_nwcNumerator, cl2->weight()*s_nwcDenominator);
+    return Int::compare(cl1Weight*s_nwcNumerator, cl2Weight*s_nwcDenominator);
   } else if(cl1->inputType()!=0 && cl2->inputType()==0) {
-    return Int::compare(cl1->weight()*s_nwcDenominator, cl2->weight()*s_nwcNumerator);
+    return Int::compare(cl1Weight*s_nwcDenominator, cl2Weight*s_nwcNumerator);
   }
-  return Int::compare(cl1->weight(), cl2->weight());
-#endif
+  return Int::compare(cl1Weight, cl2Weight);
 }
 
 /**
@@ -186,6 +175,31 @@ void AWPassiveClauseContainer::add(Clause* cl)
 } // AWPassiveClauseContainer::add
 
 /**
+ * Remove Clause from the Passive store. Should be called only
+ * when the Clause is no longer needed by the inference process
+ * (i.e. was backward subsumed/simplified), as it can result in
+ * deletion of the clause.
+ */
+void AWPassiveClauseContainer::remove(Clause* cl)
+{
+  CALL("AWPassiveClauseContainer::remove");
+  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED);
+
+  if(_ageRatio) {
+    ALWAYS(_ageQueue.remove(cl));
+  }
+  if(_weightRatio) {
+    ALWAYS(_weightQueue.remove(cl));
+  }
+  _size--;
+
+  removedEvent.fire(cl);
+
+  ASS(cl->store()!=Clause::PASSIVE && cl->store()!=Clause::REACTIVATED);
+}
+
+
+/**
  * Return the next selected clause and remove it from the queue.
  * @since 31/12/2007 Manchester
  */
@@ -226,6 +240,49 @@ Clause* AWPassiveClauseContainer::popSelected()
   selectedEvent.fire(cl);
   return cl;
 } // AWPassiveClauseContainer::popSelected
+
+/**
+ * This function should be called before clause @b cl is modified in a
+ * way that could affect its placement in age and weight queues of the
+ * passive container. The function should be called only for clauses
+ * that are contained in this container. The function
+ * @b afterPassiveClauseUpdated must be called after the modification
+ * is done.
+ */
+void AWPassiveClauseContainer::beforePassiveClauseUpdated(Clause* cl)
+{
+  CALL("AWPassiveClauseContainer::beforePassiveClauseUpdated");
+  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED);
+
+  if(_ageRatio) {
+    ALWAYS(_ageQueue.remove(cl));
+  }
+  if(_weightRatio) {
+    ALWAYS(_weightQueue.remove(cl));
+  }
+}
+
+/**
+ * This function should be called after clause @b cl is modified in a
+ * way that could affect its placement in age and weight queues of the
+ * passive container. The function should be called only for clauses
+ * that are contained in this container. The function
+ * @b beforePassiveClauseUpdated must have been called before the
+ * modification was done.
+ */
+void AWPassiveClauseContainer::afterPassiveClauseUpdated(Clause* cl)
+{
+  CALL("AWPassiveClauseContainer::afterPassiveClauseUpdated");
+  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED);
+
+  if(_ageRatio) {
+    _ageQueue.insert(cl);
+  }
+  if(_weightRatio) {
+    _weightQueue.insert(cl);
+  }
+}
+
 
 void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
 {
@@ -272,13 +329,13 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
 	ASS_G(remains,0);
 	if( (balance>0 || !ait.hasNext()) && wit.hasNext()) {
 	  wcl=wit.next();
-	  if(!acl || wcl->age() >= acl->age()) {
+	  if(!acl || _ageQueue.lessThan(acl, wcl)) {
 	    balance-=_ageRatio;
 	    remains--;
 	  }
 	} else if(ait.hasNext()){
 	  acl=ait.next();
-	  if(!wcl || acl->getEffectiveWeight() > wcl->getEffectiveWeight()) {
+	  if(!wcl || _weightQueue.lessThan(wcl, acl)) {
 	    balance+=_weightRatio;
 	    remains--;
 	  }

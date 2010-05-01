@@ -22,6 +22,8 @@ class AgeQueue
 {
 protected:
   virtual bool lessThan(Clause*,Clause*);
+
+  friend class AWPassiveClauseContainer;
 };
 
 class WeightQueue
@@ -29,6 +31,8 @@ class WeightQueue
 {
 protected:
   virtual bool lessThan(Clause*,Clause*);
+
+  friend class AWPassiveClauseContainer;
 };
 
 /**
@@ -43,27 +47,7 @@ public:
   ~AWPassiveClauseContainer();
   void add(Clause* cl);
 
-  /**
-   * Remove Clause from the Passive store. Should be called only
-   * when the Clause is no longer needed by the inference process
-   * (i.e. was backward subsumed/simplified), as it can result in
-   * deletion of the clause.
-   */
-  void remove(Clause* cl)
-  {
-    ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED);
-    if(_ageRatio) {
-      ALWAYS(_ageQueue.remove(cl));
-    }
-    if(_weightRatio) {
-      ALWAYS(_weightQueue.remove(cl));
-    }
-    _size--;
-
-    removedEvent.fire(cl);
-
-    ASS(cl->store()!=Clause::PASSIVE && cl->store()!=Clause::REACTIVATED);
-  }
+  void remove(Clause* cl);
 
   /**
    * Set age-weight ratio
@@ -87,9 +71,11 @@ public:
 
   void updateLimits(long long estReachableCnt);
 
-  unsigned size() {
-    return _size;
-  }
+  unsigned size() const { return _size; }
+
+  void beforePassiveClauseUpdated(Clause* cl);
+  void afterPassiveClauseUpdated(Clause* cl);
+
 
   static Comparison compareWeight(Clause* cl1, Clause* cl2);
 protected:

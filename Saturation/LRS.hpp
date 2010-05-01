@@ -21,7 +21,7 @@ class LRS
 : public Otter
 {
 public:
-  LRS(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
+  LRS(PassiveClauseContainer* passiveContainer, LiteralSelector* selector)
   : Otter(passiveContainer,selector), _limitsEverActive(false) {}
 
 

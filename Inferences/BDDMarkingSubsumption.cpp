@@ -125,8 +125,8 @@ void BDDMarkingSubsumption::onAllProcessed()
     while(toRemove.isNonEmpty()) {
 	Clause* cl=toRemove.pop();
 
-	cl->setProp(bdd->getTrue());
 	_sa->removeActiveOrPassiveClause(cl);
+	cl->setProp(bdd->getTrue());
 	env.statistics->subsumedByMarking++;
     }
   }

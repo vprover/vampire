@@ -55,6 +55,8 @@ BDD::BDD()
   _bddEvalPredicate(0), _nextNodeNum(1),
   _allowDefinitionOutput(true), _newVar(1)
 {
+  _trueNode._depth=0;
+  _falseNode._depth=0;
 }
 
 /**
@@ -501,6 +503,7 @@ BDDNode* BDD::getNode(int varNum, BDDNode* pos, BDDNode* neg)
   BDDNode* res=_nodes.insert(newNode);
   if(res==newNode) {
     newNode=0;
+    res->_depth=max(pos->depth(), neg->depth())+1;
   }
   return res;
 }

@@ -40,7 +40,7 @@ using namespace Inferences;
 class SaturationAlgorithm
 {
 public:
-  SaturationAlgorithm(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector);
+  SaturationAlgorithm(PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
   virtual ~SaturationAlgorithm();
 
   void setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator);
@@ -147,7 +147,7 @@ protected:
   ClauseStack _postponedClauseRemovals;
 
   UnprocessedClauseContainer* _unprocessed;
-  PassiveClauseContainerSP _passive;
+  PassiveClauseContainer* _passive;
   ActiveClauseContainer* _active;
 
   GeneratingInferenceEngineSP _generator;
@@ -160,7 +160,7 @@ protected:
   typedef List<BackwardSimplificationEngineSP> BwSimplList;
   BwSimplList* _bwSimplifiers;
 
-  LiteralSelectorSP _selector;
+  LiteralSelector* _selector;
 
   Splitter* _splitter;
 

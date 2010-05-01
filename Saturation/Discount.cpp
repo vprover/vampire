@@ -31,9 +31,10 @@ ClauseContainer* Discount::getGenerationClauseContainer()
 bool Discount::handleClauseBeforeActivation(Clause* cl)
 {
   CALL("Discount::handleClauseBeforeActivation");
+  ASS(cl->store()==Clause::SELECTED || cl->store()==Clause::SELECTED_REACTIVATED);
 
   if(!forwardSimplify(cl)) {
-    if(cl->store()==Clause::REACTIVATED) {
+    if(cl->store()==Clause::SELECTED_REACTIVATED) {
 	_active->remove(cl);
     }
     cl->setStore(Clause::NONE);

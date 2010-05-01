@@ -494,7 +494,7 @@ start:
       rcl->setAux(0);
       ASS_EQ(rcl->store(), Clause::NONE);
       rcl->incReductionTimestamp();
-      ASS(BDD::instance()->isFalse(rcl->prop())); //we asserted it was false in onClauseReduction
+      rcl->setProp(BDD::instance()->getFalse()); //we asserted it was false in onClauseReduction
       _sa->addNewClause(rcl);
   #if VDEBUG
       //check that restored clause does not depend on splits that were already backtracked

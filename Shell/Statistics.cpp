@@ -67,6 +67,7 @@ Statistics::Statistics()
     inferencesSkippedDueToColors(0),
     finalPassiveClauses(0),
     finalActiveClauses(0),
+    reactivatedClauses(0),
     splittedClauses(0),
     splittedComponents(0),
     uniqueComponents(0),
@@ -135,6 +136,7 @@ void Statistics::print()
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
   COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
+  COND_OUT("Reactivated clauses", reactivatedClauses);
   SEPARATOR;
 
   COND_OUT("Pure predicates", purePredicates);

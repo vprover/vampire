@@ -19,7 +19,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-Otter::Otter(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector)
+Otter::Otter(PassiveClauseContainer* passiveContainer, LiteralSelector* selector)
   : SaturationAlgorithm(passiveContainer,selector)
 {
 }
@@ -91,11 +91,11 @@ void Otter::handleUnsuccessfulActivation(Clause* c)
 {
   CALL("Otter::handleUnsuccessfulActivation");
 
-  if(c->store()==Clause::REACTIVATED) {
+  if(c->store()==Clause::SELECTED_REACTIVATED) {
     c->setStore(Clause::ACTIVE);
   }
   else {
-    ASS_EQ(c->store(), Clause::PASSIVE);
+    ASS_EQ(c->store(), Clause::SELECTED);
     _simplCont.remove(c);
     c->setStore(Clause::NONE);
   }

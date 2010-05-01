@@ -19,7 +19,7 @@ class Otter
 : public SaturationAlgorithm
 {
 public:
-  Otter(PassiveClauseContainerSP passiveContainer, LiteralSelectorSP selector);
+  Otter(PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
 
   ClauseContainer* getSimplificationClauseContainer();
   ClauseContainer* getGenerationClauseContainer();

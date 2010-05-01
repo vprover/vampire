@@ -15,8 +15,6 @@
 #include "../Lib/List.hpp"
 #include "../Lib/Stack.hpp"
 
-#include "Index.hpp"
-
 #include "CodeTree.hpp"
 
 

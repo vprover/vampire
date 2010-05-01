@@ -68,6 +68,7 @@ public:
     NAME_PREFIX,
     NAMING,
     NONGOAL_WEIGHT_COEFFICIENT,
+    NONLITERALS_IN_CLAUSE_WEIGHT,
     NORMALIZE,
 
     PROBLEM_NAME,
@@ -333,6 +334,7 @@ public:
   SplittingMode splitting() const { return _splitting; }
   bool splittingWithBlocking() const { return _splittingWithBlocking; }
   bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
+  bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold; }
   SineSelection sineSelection() const { return _sineSelection; }
   float sineTolerance() const { return _sineTolerance; }
@@ -404,6 +406,7 @@ private:
   string _namePrefix;
   int _naming;
   float _nongoalWeightCoefficient;
+  float _nonliteralsInClauseWeight;
   bool _normalize;
 
   string _problemName;

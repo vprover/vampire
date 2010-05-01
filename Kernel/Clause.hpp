@@ -69,7 +69,13 @@ public:
      * This is intended for clauses whose propositional part has
      * changed.
      */
-    REACTIVATED = 5u
+    REACTIVATED = 5u,
+    /** clause is selected from the passive container
+     * and is not added to the active one yet */
+    SELECTED = 6u,
+    /** reactivated clause selected from the passive container
+     * for activation */
+    SELECTED_REACTIVATED = 7u
   };
 
   Clause(unsigned length,InputType it,Inference* inf);
@@ -134,15 +140,7 @@ public:
   /** Return the clause store */
   Store store() const { return _store; }
 
-  /** Set the store to @b s
-   *
-   * Can lead to clause deletion if the store is @b NONE
-   * and there Clause's reference counter is zero. */
-  void setStore(Store s)
-  {
-    _store = s;
-    destroyIfUnnecessary();
-  }
+  void setStore(Store s);
 
   /** Return the age */
   int age() const { return _age; }
@@ -299,7 +297,8 @@ public:
 #endif
   }
 
-  float getEffectiveWeight(unsigned originalWeight);
+  unsigned propWeight() const;
+  unsigned splitWeight() const;
   float getEffectiveWeight();
 protected:
   /** number of literals */

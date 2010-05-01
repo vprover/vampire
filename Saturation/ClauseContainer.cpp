@@ -4,7 +4,7 @@
  */
 
 #include "../Lib/Environment.hpp"
-#include "../Lib/Set.hpp"
+#include "../Lib/DHSet.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Shell/Statistics.hpp"
@@ -32,6 +32,9 @@ void ClauseContainer::addClauses(ClauseIterator cit)
     add(cit.next());
   }
 }
+
+
+/////////////////   RandomAccessClauseContainer   //////////////////////
 
 void RandomAccessClauseContainer::removeClauses(ClauseIterator cit)
 {
@@ -70,6 +73,9 @@ void RandomAccessClauseContainer::detach()
   _salg=0;
 }
 
+
+/////////////////   UnprocessedClauseContainer   //////////////////////
+
 UnprocessedClauseContainer::~UnprocessedClauseContainer()
 {
   while(!_data.isEmpty()) {
@@ -93,6 +99,29 @@ Clause* UnprocessedClauseContainer::pop()
 }
 
 
+/////////////////   PassiveClauseContainer   //////////////////////
+
+PassiveClauseContainer* PassiveClauseContainer::s_instance = 0;
+
+void PassiveClauseContainer::registerInstance(PassiveClauseContainer* cont)
+{
+  CALL("PassiveClauseContainer::registerInstance");
+  ASS_EQ(s_instance, 0);
+
+  s_instance=cont;
+}
+
+void PassiveClauseContainer::unregisterInstance(PassiveClauseContainer* cont)
+{
+  CALL("PassiveClauseContainer::unregisterInstance");
+  ASS_EQ(cont, s_instance);
+
+  s_instance=0;
+}
+
+
+/////////////////   ActiveClauseContainer   //////////////////////
+
 void ActiveClauseContainer::add(Clause* c)
 {
   _size++;
@@ -109,7 +138,7 @@ void ActiveClauseContainer::add(Clause* c)
  */
 void ActiveClauseContainer::remove(Clause* c)
 {
-  ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED);
+  ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED || c->store()==Clause::SELECTED_REACTIVATED);
 
   _size--;
 
@@ -136,8 +165,11 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
   int ageLimit=limits->ageLimit();
   int weightLimit=limits->weightLimit();
 
-  Set<Clause*> checked;
+  static DHSet<Clause*> checked;
   static Stack<Clause*> toRemove(64);
+  checked.reset();
+  toRemove.reset();
+
   SLQueryResultIterator rit=gis->getAll();
   while(rit.hasNext()) {
     Clause* cl=rit.next().clause;
@@ -159,7 +191,8 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     }
 
     if(shouldRemove) {
-      ASS(cl->store()==Clause::ACTIVE || cl->store()==Clause::REACTIVATED);
+      ASS(cl->store()==Clause::ACTIVE || cl->store()==Clause::REACTIVATED ||
+	  cl->store()==Clause::SELECTED_REACTIVATED);
       toRemove.push(cl);
     }
   }
@@ -172,14 +205,17 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 
   while(toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
-    ASS(removed->store()==Clause::ACTIVE || removed->store()==Clause::REACTIVATED);
+    ASS(removed->store()==Clause::ACTIVE || removed->store()==Clause::REACTIVATED ||
+	removed->store()==Clause::SELECTED_REACTIVATED);
 
     if(removed->store()!=Clause::REACTIVATED) {
       env.statistics->discardedNonRedundantClauses++;
     }
 
     remove(removed);
-    ASS(removed->store()!=Clause::ACTIVE && removed->store()!=Clause::REACTIVATED);
+    ASS_NEQ(removed->store(), Clause::ACTIVE);
+    ASS_NEQ(removed->store(), Clause::REACTIVATED);
+    ASS_NEQ(removed->store(), Clause::SELECTED_REACTIVATED);
   }
 }
 

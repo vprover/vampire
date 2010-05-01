@@ -74,8 +74,8 @@ struct SaturationAlgorithm::RefutationFoundException
  * The @b passiveContainer object will be used as a passive clause container, and
  * @b selector object to select literals before clauses are activated.
  */
-SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContainer,
-	LiteralSelectorSP selector)
+SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContainer,
+	LiteralSelector* selector)
 : _imgr(this), _clauseActivationInProgress(false), _passive(passiveContainer),
   _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _splitter(0),
   _consFinder(0), _symEl(0), _bddMarkingSubsumption(0)
@@ -103,6 +103,7 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
     _limits.setLimits(-1,env.options->maxWeight());
   }
 
+  PassiveClauseContainer::registerInstance(_passive);
 }
 
 /**
@@ -111,9 +112,11 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainerSP passiveContain
 SaturationAlgorithm::~SaturationAlgorithm()
 {
   CALL("SaturationAlgorithm::~SaturationAlgorithm");
-  
+
   env.statistics->finalActiveClauses=_active->size();
   env.statistics->finalPassiveClauses=_passive->size();
+
+  PassiveClauseContainer::unregisterInstance(_passive);
 
   if(_splitter) {
     delete _splitter;
@@ -150,6 +153,9 @@ SaturationAlgorithm::~SaturationAlgorithm()
 
   delete _unprocessed;
   delete _active;
+  delete _passive;
+
+  delete _selector;
 }
 
 /**
@@ -214,13 +220,16 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
   cout<<"== Active removed: "<<(*c)<<endl;
 #endif
 
-  ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED)
+  ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED ||
+      c->store()==Clause::SELECTED_REACTIVATED);
 
   if(c->store()==Clause::ACTIVE) {
     c->setStore(Clause::NONE);
-    //at this point the c object can be deleted
+    //at this point the c object may be deleted
   } else if(c->store()==Clause::REACTIVATED) {
     c->setStore(Clause::PASSIVE);
+  } else if(c->store()==Clause::SELECTED_REACTIVATED) {
+    c->setStore(Clause::SELECTED);
   }
 #if VDEBUG
   else {
@@ -772,6 +781,12 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::NONE:
       addUnprocessedClause(cl);
       break;
+#if VDEBUG
+    case Clause::SELECTED:
+    case Clause::SELECTED_REACTIVATED:
+      //such clauses should not appear as new ones
+      ASSERTION_VIOLATION;
+#endif
     }
     cl->decRefCnt(); //belongs to _newClauses.popWithoutDec()
   }
@@ -995,7 +1010,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::forwardSimplify");
 
-  if(cl->store()==Clause::REACTIVATED) {
+  if(cl->store()==Clause::REACTIVATED || cl->store()==Clause::SELECTED_REACTIVATED) {
     return true;
   }
 
@@ -1092,10 +1107,11 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       //as otherwise the redundant one might demodulate the replacement into
       //a tautology
 
+      removeActiveOrPassiveClause(redundant);
+
       redundant->setProp(bdd->getTrue());
       InferenceStore::instance()->recordPropReduce(redundant, oldRedundantProp, bdd->getTrue());
 
-      removeActiveOrPassiveClause(redundant);
 #if REPORT_BW_SIMPL
       cout<<"removed\n";
       cout<<"^^^^^^^^^^^\n";
@@ -1130,6 +1146,7 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     _passive->remove(cl);
     break;
   case Clause::ACTIVE:
+  case Clause::SELECTED_REACTIVATED:
     _active->remove(cl);
     break;
   case Clause::REACTIVATED:
@@ -1192,13 +1209,14 @@ bool SaturationAlgorithm::activate(Clause* cl)
     _selector->select(cl);
   }
 
-  if(cl->store()==Clause::REACTIVATED) {
+  if(cl->store()==Clause::SELECTED_REACTIVATED) {
     cl->setStore(Clause::ACTIVE);
+    env.statistics->reactivatedClauses++;
 #if REPORT_CONTAINERS
     cout<<"** Reanimated: "<<(*cl)<<endl;
 #endif
   } else {
-    ASS_EQ(cl->store(), Clause::PASSIVE);
+    ASS_EQ(cl->store(), Clause::SELECTED);
     cl->setStore(Clause::ACTIVE);
     env.statistics->activeClauses++;
 
@@ -1233,7 +1251,8 @@ bool SaturationAlgorithm::activate(Clause* cl)
     Clause* cl=_postponedClauseRemovals.pop();
     if(cl->store()!=Clause::ACTIVE &&
 	cl->store()!=Clause::PASSIVE &&
-	cl->store()!=Clause::REACTIVATED) {
+	cl->store()!=Clause::REACTIVATED &&
+	cl->store()!=Clause::SELECTED_REACTIVATED) {
       continue;
     }
     removeActiveOrPassiveClause(cl);
@@ -1287,11 +1306,11 @@ void SaturationAlgorithm::handleUnsuccessfulActivation(Clause* cl)
 {
   CALL("SaturationAlgorithm::handleUnsuccessfulActivation");
 
-  if(cl->store()==Clause::REACTIVATED) {
+  if(cl->store()==Clause::SELECTED_REACTIVATED) {
     cl->setStore(Clause::ACTIVE);
   }
   else {
-    ASS_EQ(cl->store(), Clause::PASSIVE);
+    ASS_EQ(cl->store(), Clause::SELECTED);
     cl->setStore(Clause::NONE);
   }
 }
@@ -1342,6 +1361,15 @@ SaturationResult SaturationAlgorithm::saturate()
       }
 
       Clause* cl = _passive->popSelected();
+
+      if(cl->store()==Clause::REACTIVATED) {
+	cl->setStore(Clause::SELECTED_REACTIVATED);
+      }
+      else {
+	ASS_EQ(cl->store(),Clause::PASSIVE);
+	cl->setStore(Clause::SELECTED);
+      }
+
       if(!handleClauseBeforeActivation(cl)) {
         continue;
       }

@@ -116,6 +116,7 @@ const char* Options::Constants::_optionNames[] = {
   "name_prefix",
   "naming",
   "nongoal_weight_coefficient",
+  "nonliterals_in_clause_weight",
   "normalize",
 
   "problem_name",
@@ -381,6 +382,7 @@ Options::Options ()
   _naming(8),
 
   _nongoalWeightCoefficient(1.0),
+  _nonliteralsInClauseWeight(false),
   _normalize(false),
 
   _problemName("unknown"),
@@ -630,6 +632,9 @@ void Options::set (const char* name,const char* value, int index)
 	return;
       }
       break;
+    case NONLITERALS_IN_CLAUSE_WEIGHT:
+      _nonliteralsInClauseWeight = onOffToBool(value,name);
+      return;
     case NORMALIZE:
       _normalize = onOffToBool(value,name);
       return;
@@ -1121,6 +1126,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case NONGOAL_WEIGHT_COEFFICIENT:
     str << _nongoalWeightCoefficient;
+    return;
+  case NONLITERALS_IN_CLAUSE_WEIGHT:
+    str << boolToOnOff(_nonliteralsInClauseWeight);
     return;
   case NORMALIZE:
     str << boolToOnOff(_normalize);

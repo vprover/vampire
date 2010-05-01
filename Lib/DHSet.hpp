@@ -58,6 +58,19 @@ public:
   }
 
   /**
+   *  Return true iff @b val is in the set.
+   *
+   *  (synomym for the @b find function)
+   */
+  inline
+  bool contains(Val val) const
+  {
+    CALL("DHSet::contains");
+
+    return find(val);
+  }
+
+  /**
    * If the @b val is not in the set, insert it and return true.
    * Otherwise, return false.
    */

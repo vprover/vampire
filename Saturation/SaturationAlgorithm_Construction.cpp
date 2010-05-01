@@ -163,20 +163,13 @@ void addBSEs(SaturationAlgorithm* alg)
   }
 }
 
-LiteralSelectorSP createLiteralSelector()
-{
-  CALL("Saturation::Construction::createLiteralSelector");
-
-  return LiteralSelectorSP(LiteralSelector::getSelector(env.options->selection()));
-}
-
-PassiveClauseContainerSP createPassiveContainer()
+PassiveClauseContainer* createPassiveContainer()
 {
   CALL("Saturation::Construction::createPassiveContainer");
 
   AWPassiveClauseContainer* res=new AWPassiveClauseContainer();
   res->setAgeWeightRatio(env.options->ageRatio(),env.options->weightRatio());
-  return PassiveClauseContainerSP(res);
+  return res;
 }
 
 };
@@ -187,8 +180,8 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
 {
   CALL("SaturationAlgorithm::createFromOptions");
 
-  PassiveClauseContainerSP passive=createPassiveContainer();
-  LiteralSelectorSP selector=createLiteralSelector();
+  PassiveClauseContainer* passive=createPassiveContainer();
+  LiteralSelector* selector=LiteralSelector::getSelector(env.options->selection());
 
   SaturationAlgorithm* res;
   switch(env.options->saturationAlgorithm()) {
