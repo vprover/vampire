@@ -19,13 +19,7 @@ class BDDClausifier {
 public:
   BDDClausifier(bool subsumptionResolution, bool naming=false);
 
-  void clausify(BDDNode* node, SATClauseStack& acc)
-  {
-    if(_naming) {
-      introduceNames(node, acc);
-    }
-    clausify(node, acc, 0);
-  }
+  void clausify(BDDNode* node, SATClauseStack& acc);
 
   unsigned getCNFVarCount();
 private:

@@ -25,6 +25,9 @@ namespace Kernel
 using namespace Lib;
 using namespace SAT;
 
+/**
+ * Struct used by a stack in DFS traversal of BDDs during clausification
+ */
 struct BDDClausifier::CNFStackRec {
   CNFStackRec(BDDNode* n, bool firstPos=false, bool second=false) : n(n), firstPos(firstPos),
   second(second), resolved(false) {}
@@ -47,6 +50,35 @@ BDDClausifier::BDDClausifier(bool subsumptionResolution, bool naming)
   _useSR=subsumptionResolution;
 }
 
+/**
+ * Clausify @b node and add resulting clauses into @b acc.
+ *
+ * Based on the value of the member variable @b _useSR,
+ * the subsumption resolution is either used or not.
+ *
+ * If the member variable @b _naming is set to true,
+ * the function @b introduceNames() is called before
+ * the actual clausification to introduce names that may
+ * reduce the number of generated clauses.
+ */
+void BDDClausifier::clausify(BDDNode* node, SATClauseStack& acc)
+{
+  if(_naming) {
+    introduceNames(node, acc);
+  }
+  clausify(node, acc, 0);
+}
+
+
+/**
+ * Clausify @b node and add resulting clauses into @b acc. If
+ * @b givenName is non-zero, add negative occurrence of the
+ * @b givenName CNF variable into each generated clause
+ * (this is used to generate name definition clauses).
+ *
+ * Based on the value of the member variable @b _useSR,
+ * the subsumption resolution is either used or not.
+ */
 void BDDClausifier::clausify(BDDNode* node, SATClauseStack& acc, unsigned givenName)
 {
   CALL("BDDClausifier::clausify");
@@ -59,6 +91,11 @@ void BDDClausifier::clausify(BDDNode* node, SATClauseStack& acc, unsigned givenN
   }
 }
 
+/**
+ * Return the number of used CNF variables
+ *
+ * The used CNF variables are then {1,...,(returned value)-1}
+ */
 unsigned BDDClausifier::getCNFVarCount()
 {
   CALL("BDDClausifier::getCNFVarCount");
@@ -84,6 +121,10 @@ unsigned BDDClausifier::getName(BDDNode* node)
   return _names.get(node, 0);
 }
 
+/**
+ * Assign name to BDD node @b node, add name defining clauses to @b acc
+ * and return the assigned name
+ */
 unsigned BDDClausifier::assignName(BDDNode* node, SATClauseStack& acc)
 {
   CALL("BDDClausifier::assignName");
@@ -97,6 +138,11 @@ unsigned BDDClausifier::assignName(BDDNode* node, SATClauseStack& acc)
   return name;
 }
 
+/**
+ * Return number of CNF variable that corresponds to the BDD variable @b bddVar
+ *
+ * If naming is disabled, this function is an identity.
+ */
 unsigned BDDClausifier::getCNFVar(unsigned bddVar)
 {
   CALL("BDDClausifier::getSatVar");
@@ -117,6 +163,18 @@ unsigned BDDClausifier::getCNFVar(unsigned bddVar)
   return cnfVar;
 }
 
+/**
+ * Return pointer to new SATClause object containing literals
+ * corresponding to non-resolved entries in @b stack (the number of
+ * resolved entried is passed in @b resolvedCnt to spare one pass
+ * through the stack). If @b givenName is non-zero, negative occurrence
+ * of the CNF variable @b givenName is added to the clause. If
+ * @b nodeName is non-zero, positive occurrence of the CNF variable
+ * @b nodeName is added to the clause.
+ *
+ * Specifying @b givenName is used to build a name definition clause,
+ * and specifying @b nodeName is used to refer to a name of a node.
+ */
 SATClause* BDDClausifier::buildClause(unsigned givenName, Stack<CNFStackRec>& stack, unsigned resolvedCnt,
     unsigned nodeName)
 {
@@ -150,6 +208,13 @@ SATClause* BDDClausifier::buildClause(unsigned givenName, Stack<CNFStackRec>& st
   return cl;
 }
 
+/**
+ * Clausify @b node0 and add resulting clauses into @b acc. Try
+ * to simplify generated clauses by each other using subsumption
+ * resolution. If @b givenName is non-zero, add negative occurrence
+ * of the @b givenName CNF variable into each generated clause
+ * (this is used to generate name definition clauses).
+ */
 void BDDClausifier::clausifyWithSR(BDDNode* node, SATClauseStack& acc, unsigned givenName)
 {
   CALL("BDDClausifier::clausifyWithSR");
@@ -220,6 +285,12 @@ void BDDClausifier::clausifyWithSR(BDDNode* node, SATClauseStack& acc, unsigned 
   }
 }
 
+/**
+ * Clausify @b node0 and add resulting clauses into @b acc. If
+ * @b givenName is non-zero, add negative occurrence of the
+ * @b givenName CNF variable into each generated clause
+ * (this is used to generate name definition clauses).
+ */
 void BDDClausifier::clausifyWithoutSR(BDDNode* node0, SATClauseStack& acc, unsigned givenName)
 {
   CALL("BDDClausifier::clausifyWithoutSR");
@@ -262,7 +333,11 @@ void BDDClausifier::clausifyWithoutSR(BDDNode* node0, SATClauseStack& acc, unsig
   }
 }
 
-
+/**
+ * Introduce names for some nodes used by @b node0 in order to reduce
+ * amount of clauses generated during its clausification. Add name
+ * defining clauses into @b acc.
+ */
 void BDDClausifier::introduceNames(BDDNode* node0, SATClauseStack& acc)
 {
   CALL("BDDClausifier::introduceNames");
