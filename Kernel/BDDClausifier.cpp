@@ -3,19 +3,21 @@
  * Implements class BDDClausifier.
  */
 
+#include "../Debug/Log.hpp"
+
 #include "../Lib/BinaryHeap.hpp"
-#include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/MapToLIFO.hpp"
 
 #include "../SAT/SATClause.hpp"
 #include "../SAT/SATLiteral.hpp"
 
-#include "../Shell/Options.hpp"
-
 #include "BDD.hpp"
 
 #include "BDDClausifier.hpp"
+
+#undef LOGGING
+#define LOGGING 0
 
 namespace Kernel
 {
@@ -38,11 +40,11 @@ struct BDDClausifier::CNFStackRec {
   bool resolved;
 };
 
-BDDClausifier::BDDClausifier(bool naming)
+BDDClausifier::BDDClausifier(bool subsumptionResolution, bool naming)
 : _nextCNFVar(1), _maxBDDVar(1)
 {
   _naming=naming;
-  _useSR=env.options->satSolverWithSubsumptionResolution();
+  _useSR=subsumptionResolution;
 }
 
 void BDDClausifier::clausify(BDDNode* node, SATClauseStack& acc, unsigned givenName)
@@ -91,6 +93,7 @@ unsigned BDDClausifier::assignName(BDDNode* node, SATClauseStack& acc)
   unsigned name=_nextCNFVar++;
   clausify(node, acc, name);
   ALWAYS(_names.insert(node, name));
+  LOG("name "<<name<<" assigned to node "<<BDD::instance()->toString(node));
   return name;
 }
 
@@ -106,11 +109,12 @@ unsigned BDDClausifier::getCNFVar(unsigned bddVar)
     return bddVar;
   }
 
-  unsigned sv;
-  if(_bdd2cnfVars.findOrInsert(bddVar, sv, _nextCNFVar)) {
+  unsigned cnfVar;
+  if(_bdd2cnfVars.findOrInsert(bddVar, cnfVar, _nextCNFVar)) {
+    LOG("bdd var "<<bddVar<<" has assigned cnf var "<<cnfVar);
     _nextCNFVar++;
   }
-  return sv;
+  return cnfVar;
 }
 
 SATClause* BDDClausifier::buildClause(unsigned givenName, Stack<CNFStackRec>& stack, unsigned resolvedCnt,
@@ -269,7 +273,7 @@ void BDDClausifier::introduceNames(BDDNode* node0, SATClauseStack& acc)
     return;
   }
 
-  static BinaryHeap<unsigned, Int> varNums;
+  static BinaryHeap<unsigned, ReversedComparator<Int> > varNums;
   static DHMap<BDDNode*, unsigned> occurenceCounts;
   static MapToLIFO<unsigned, BDDNode*> nodesToExamine;
   static Stack<BDDNode*> nodesToName;
@@ -285,7 +289,7 @@ void BDDClausifier::introduceNames(BDDNode* node0, SATClauseStack& acc)
 
   while(!varNums.isEmpty()) {
     unsigned var=varNums.pop();
-    ASS(varNums.isEmpty() || varNums.top()>var);
+    ASS(varNums.isEmpty() || varNums.top()<var);
 
     while(!nodesToExamine.isKeyEmpty(var)) {
       BDDNode* node=nodesToExamine.popFromKey(var);
@@ -299,17 +303,30 @@ void BDDClausifier::introduceNames(BDDNode* node0, SATClauseStack& acc)
 	if(bdd->isConstant(childNode) || getName(childNode)) {
 	  continue;
 	}
-	unsigned* ocPtr;
-	if(occurenceCounts.getValuePtr(childNode, ocPtr, 0)) {
+	//If node has one child equal to true, it won't be named, as it
+	//does not add an extra CNF clause. Also we name only ondes with
+	//even variable numbers to decrease number of names.
+	bool nameable=!bdd->isTrue(childNode->_pos) && !bdd->isTrue(childNode->_neg) &&
+	    childNode->_var%2==0;
+	bool shouldBeExamined=true;
+	if(nameable) {
+	  unsigned* ocPtr;
+	  if(!occurenceCounts.getValuePtr(childNode, ocPtr, 0)) {
+	    //this node is already marked for examination and there
+	    //is no need to examine it multiple times, as it is nameable
+	    shouldBeExamined=false;
+	  }
+	  (*ocPtr)++;
+	  if(*ocPtr==2) {
+	    nodesToName.push(childNode);
+	  }
+	}
+	if(shouldBeExamined) {
 	  unsigned chVar=childNode->_var;
 	  if(nodesToExamine.isKeyEmpty(chVar)) {
 	    varNums.insert(chVar);
 	  }
 	  nodesToExamine.pushToKey(chVar, childNode);
-	}
-	(*ocPtr)++;
-	if(*ocPtr==2) {
-	  nodesToName.push(childNode);
 	}
       }
     }

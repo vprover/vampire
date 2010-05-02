@@ -3,7 +3,10 @@
  * Implements class BDDConjunction.
  */
 
+#include "../Lib/Environment.hpp"
 #include "../Lib/TimeCounter.hpp"
+
+#include "../Shell/Options.hpp"
 
 #include "BDD.hpp"
 
@@ -11,6 +14,13 @@
 
 namespace Kernel
 {
+
+BDDConjunction::BDDConjunction()
+: _isFalse(false),
+  _clausifier(env.options->satSolverWithSubsumptionResolution(), env.options->satSolverWithNaming())
+{
+}
+
 
 /**
  * Add the formula represented by @b n to the conjunction represented

@@ -17,7 +17,7 @@ using namespace SAT;
 
 class BDDClausifier {
 public:
-  BDDClausifier(bool naming=false);
+  BDDClausifier(bool subsumptionResolution, bool naming=false);
 
   void clausify(BDDNode* node, SATClauseStack& acc)
   {

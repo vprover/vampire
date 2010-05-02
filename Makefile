@@ -150,13 +150,14 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o
 
-VSAT_OBJ=SAT/DIMACS.o\
-         SAT/Preprocess.o\
+VSAT_OBJ=\
          SAT/SATClause.o\
-         SAT/SATClauseSharing.o\
          SAT/SATLiteral.o\
-         SAT/SingleWatchSAT.o\
-         SAT/TWLSolver.o
+         SAT/TWLSolver.o\
+#         SAT/DIMACS.o\
+#         SAT/Preprocess.o\
+#         SAT/SATClauseSharing.o\
+#         SAT/SingleWatchSAT.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/BSplitter.o\

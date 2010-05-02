@@ -409,7 +409,7 @@ VirtualIterator<string> Clause::toSimpleClauseStrings()
 
   string np(length() ? (nonPropToString() + " | ") : string(""));
 
-  static BDDClausifier clausifier(false);
+  static BDDClausifier clausifier(true, false);
   static SATClauseStack sclAcc;
   sclAcc.reset();
   clausifier.clausify(prop(), sclAcc);

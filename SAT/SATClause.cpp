@@ -8,10 +8,13 @@
 
 #include "../Lib/Allocator.hpp"
 #include "../Lib/DHMap.hpp"
+#include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Term.hpp"
+
+#include "../Shell/Statistics.hpp"
 
 //#include "Inference.hpp"
 
@@ -21,6 +24,7 @@
 namespace SAT {
 
 using namespace Lib;
+using namespace Shell;
 
 /**
  * Allocate a clause having lits literals.
@@ -28,6 +32,8 @@ using namespace Lib;
 void* SATClause::operator new(size_t sz,unsigned lits)
 {
   CALL("SATClause::operator new");
+
+  env.statistics->satClauses++;
 
   //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
   //this way, because _length-1 wouldn't behave well for

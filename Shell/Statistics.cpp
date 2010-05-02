@@ -73,6 +73,7 @@ Statistics::Statistics()
     uniqueComponents(0),
     splittingNamesIntroduced(0),
     bddPropClauses(0),
+    satClauses(0),
     backtrackingSplits(0),
     backtrackingSplitsRefuted(0),
     backtrackingSplitsRefutedZeroLevel(0),
@@ -181,6 +182,7 @@ void Statistics::print()
   COND_OUT("Unique components", uniqueComponents);
   COND_OUT("Introduced splitting names", splittingNamesIntroduced);
   COND_OUT("BDD propositional clauses", bddPropClauses);
+  COND_OUT("SAT solver clauses", satClauses);
   SEPARATOR;
 
   COND_OUT("Backtracking splits", backtrackingSplits);

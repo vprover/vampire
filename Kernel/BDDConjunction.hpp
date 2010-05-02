@@ -27,7 +27,8 @@ using namespace SAT;
 class BDDConjunction
 {
 public:
-  BDDConjunction() : _isFalse(false), _clausifier(false) {}
+  BDDConjunction();
+
   void addNode(BDDNode* n);
 
   /** Return @b true iff the conjunction represented by this object is unsatisfiable */

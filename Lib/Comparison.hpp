@@ -32,6 +32,16 @@ enum PartialComparison
   PC_INCOMPARABLE = 2
 };
 
+template<class Comp>
+struct ReversedComparator
+{
+  template<typename T>
+  inline static Comparison compare(T o1, T o2)
+  {
+    return static_cast<Comparison>(-Comp::compare(o1, o2));
+  }
+};
+
 }
 
 #endif

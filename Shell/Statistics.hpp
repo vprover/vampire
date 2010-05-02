@@ -133,6 +133,8 @@ public:
   unsigned splittingNamesIntroduced;
   /** Derived clauses with empty non-propositional and non-empty propositional part */
   unsigned bddPropClauses;
+  /** Number of clauses generated for the SAT solver */
+  unsigned satClauses;
 
   unsigned backtrackingSplits;
   unsigned backtrackingSplitsRefuted;

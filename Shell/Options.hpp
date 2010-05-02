@@ -80,6 +80,7 @@ public:
     ROW_VARIABLE_MAX_LENGTH,
 
     SAT_SOLVER_FOR_EMPTY_CLAUSE,
+    SAT_SOLVER_WITH_NAMING,
     SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION,
     /** saturation algorithm: lrs, otter, or discount */
     SATURATION_ALGORITHM,
@@ -324,6 +325,7 @@ public:
   string namePrefix() const { return _namePrefix; }
   bool timeStatistics() const { return _timeStatistics; }
   bool satSolverForEmptyClause() const { return _satSolverForEmptyClause; }
+  bool satSolverWithNaming() const { return _satSolverWithNaming; }
   bool satSolverWithSubsumptionResolution() const { return _satSolverWithSubsumptionResolution; }
   bool emptyClauseSubsumption() const { return _emptyClauseSubsumption; }
   bool propositionalToBDD() const { return _propositionalToBDD; }
@@ -418,6 +420,7 @@ private:
   int _rowVariableMaxLength;
 
   bool _satSolverForEmptyClause;
+  bool _satSolverWithNaming;
   bool _satSolverWithSubsumptionResolution;
   SaturationAlgorithm _saturationAlgorithm;
   int _selection;

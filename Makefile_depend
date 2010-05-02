@@ -809,38 +809,40 @@ $(CONF_ID)/Kernel/BDD.o: Lib/Metaiterators.hpp Lib/BucketSorter.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/Stack.hpp Shell/Options.hpp Kernel/BDD.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/Array.hpp Lib/Hash.hpp Lib/Set.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/SkipList.hpp Kernel/Signature.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/BinaryHeap.hpp Debug/Assertion.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Allocator.hpp Debug/Tracer.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Comparison.hpp Lib/BacktrackData.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/List.hpp Forwards.hpp Config.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Debug/Log.hpp Lib/BinaryHeap.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Debug/Assertion.hpp Lib/Allocator.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Debug/Tracer.hpp Lib/Exception.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/LastCopyWatcher.hpp Lib/Comparison.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/BacktrackData.hpp Lib/List.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Forwards.hpp Config.hpp
 $(CONF_ID)/Kernel/BDDClausifier.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
 $(CONF_ID)/Kernel/BDDClausifier.o: Lib/Int.hpp Lib/Portability.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Metaiterators.hpp Lib/Environment.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Int.hpp Lib/MapToLIFO.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/DHMap.hpp Lib/Hash.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: SAT/SATClause.hpp Lib/Allocator.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/InverseLookup.hpp Lib/List.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Metaiterators.hpp Lib/Set.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/TimeCounter.hpp Lib/Reflection.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/VirtualIterator.hpp SAT/SATLiteral.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: SAT/SATLiteral.hpp Shell/Options.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/XML.hpp Kernel/BDD.hpp Lib/Array.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/DHMap.hpp Lib/Hash.hpp Lib/Set.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/SkipList.hpp Lib/Random.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Stack.hpp Kernel/Signature.hpp
-$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Map.hpp Kernel/BDDClausifier.hpp
-$(CONF_ID)/Kernel/BDDConjunction.o: Lib/TimeCounter.hpp Kernel/BDD.hpp
-$(CONF_ID)/Kernel/BDDConjunction.o: Forwards.hpp Config.hpp Lib/Allocator.hpp
-$(CONF_ID)/Kernel/BDDConjunction.o: Debug/Assertion.hpp Debug/Tracer.hpp
-$(CONF_ID)/Kernel/BDDConjunction.o: Lib/Array.hpp Lib/DHMap.hpp Lib/Hash.hpp
-$(CONF_ID)/Kernel/BDDConjunction.o: Lib/Int.hpp Lib/Comparison.hpp
-$(CONF_ID)/Kernel/BDDConjunction.o: Lib/Portability.hpp Lib/List.hpp
-$(CONF_ID)/Kernel/BDDConjunction.o: Lib/Set.hpp Lib/SkipList.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Metaiterators.hpp Lib/Int.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/MapToLIFO.hpp Lib/DHMap.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Hash.hpp SAT/SATClause.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Allocator.hpp Lib/InverseLookup.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/List.hpp Lib/Metaiterators.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Set.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Reflection.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: SAT/SATLiteral.hpp SAT/SATLiteral.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Kernel/BDD.hpp Lib/Array.hpp Lib/DHMap.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Hash.hpp Lib/Set.hpp Lib/SkipList.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Lib/Random.hpp Lib/Stack.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Kernel/Signature.hpp Lib/Map.hpp
+$(CONF_ID)/Kernel/BDDClausifier.o: Kernel/BDDClausifier.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Lib/Environment.hpp Forwards.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Config.hpp Lib/Exception.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Debug/Assertion.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Shell/Options.hpp Lib/Allocator.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Debug/Tracer.hpp Lib/XML.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Kernel/BDD.hpp Lib/Array.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Lib/DHMap.hpp Lib/Hash.hpp Lib/Int.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Lib/Comparison.hpp Lib/Portability.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Lib/List.hpp Lib/Set.hpp Lib/SkipList.hpp
 $(CONF_ID)/Kernel/BDDConjunction.o: Lib/Allocator.hpp Lib/Random.hpp
 $(CONF_ID)/Kernel/BDDConjunction.o: Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/Kernel/BDDConjunction.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-$(CONF_ID)/Kernel/BDDConjunction.o: Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Kernel/BDDConjunction.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Kernel/BDDConjunction.o: Lib/Reflection.hpp Lib/Int.hpp
 $(CONF_ID)/Kernel/BDDConjunction.o: Lib/Stack.hpp Kernel/Signature.hpp
 $(CONF_ID)/Kernel/BDDConjunction.o: Lib/Map.hpp Lib/Hash.hpp
@@ -2951,12 +2953,13 @@ $(CONF_ID)/SAT/Preprocess.o: Lib/InverseLookup.hpp Lib/List.hpp
 $(CONF_ID)/SAT/Preprocess.o: SAT/SATLiteral.hpp Shell/Preprocess.hpp
 $(CONF_ID)/SAT/Preprocess.o: Kernel/Unit.hpp
 $(CONF_ID)/SAT/SATClause.o: Lib/Allocator.hpp Debug/Assertion.hpp
-$(CONF_ID)/SAT/SATClause.o: Debug/Tracer.hpp Lib/DHMap.hpp Lib/Int.hpp
-$(CONF_ID)/SAT/SATClause.o: Lib/Comparison.hpp Lib/Portability.hpp
-$(CONF_ID)/SAT/SATClause.o: Kernel/Clause.hpp Forwards.hpp Config.hpp
+$(CONF_ID)/SAT/SATClause.o: Debug/Tracer.hpp Lib/DHMap.hpp
+$(CONF_ID)/SAT/SATClause.o: Lib/Environment.hpp Forwards.hpp Config.hpp
+$(CONF_ID)/SAT/SATClause.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/SAT/SATClause.o: Lib/Int.hpp Lib/Comparison.hpp
+$(CONF_ID)/SAT/SATClause.o: Lib/Portability.hpp Kernel/Clause.hpp
 $(CONF_ID)/SAT/SATClause.o: Lib/InverseLookup.hpp Lib/Hash.hpp Lib/DHMap.hpp
-$(CONF_ID)/SAT/SATClause.o: Lib/Allocator.hpp Lib/Exception.hpp
-$(CONF_ID)/SAT/SATClause.o: Lib/LastCopyWatcher.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/SAT/SATClause.o: Lib/Allocator.hpp Lib/VirtualIterator.hpp
 $(CONF_ID)/SAT/SATClause.o: Lib/Reflection.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/SAT/SATClause.o: Lib/List.hpp Lib/Set.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/SAT/SATClause.o: Lib/Reflection.hpp Lib/Stack.hpp
@@ -2964,8 +2967,8 @@ $(CONF_ID)/SAT/SATClause.o: Lib/BacktrackData.hpp Lib/Int.hpp Kernel/Unit.hpp
 $(CONF_ID)/SAT/SATClause.o: Lib/List.hpp Kernel/Term.hpp Lib/Portability.hpp
 $(CONF_ID)/SAT/SATClause.o: Lib/XML.hpp Lib/Comparison.hpp
 $(CONF_ID)/SAT/SATClause.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/SAT/SATClause.o: SAT/SATClause.hpp Lib/VirtualIterator.hpp
-$(CONF_ID)/SAT/SATClause.o: SAT/SATLiteral.hpp
+$(CONF_ID)/SAT/SATClause.o: Shell/Statistics.hpp SAT/SATClause.hpp
+$(CONF_ID)/SAT/SATClause.o: Lib/VirtualIterator.hpp SAT/SATLiteral.hpp
 $(CONF_ID)/SAT/SATClauseSharing.o: Lib/Hash.hpp SAT/SATClauseSharing.hpp
 $(CONF_ID)/SAT/SATClauseSharing.o: Debug/Assertion.hpp Lib/Set.hpp
 $(CONF_ID)/SAT/SATClauseSharing.o: Lib/VirtualIterator.hpp SAT/SATClause.hpp
