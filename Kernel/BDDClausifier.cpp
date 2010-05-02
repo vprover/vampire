@@ -349,12 +349,12 @@ void BDDClausifier::introduceNames(BDDNode* node0, SATClauseStack& acc)
   }
 
   static BinaryHeap<unsigned, ReversedComparator<Int> > varNums;
-  static DHMap<BDDNode*, unsigned> occurenceCounts;
+  static DHMap<BDDNode*, unsigned> occurrenceCounts;
   static MapToLIFO<unsigned, BDDNode*> nodesToExamine;
   static Stack<BDDNode*> nodesToName;
 
   varNums.reset();
-  occurenceCounts.reset();
+  occurrenceCounts.reset();
   nodesToExamine.reset();
   nodesToName.reset();
 
@@ -372,6 +372,11 @@ void BDDClausifier::introduceNames(BDDNode* node0, SATClauseStack& acc)
       ASS(!bdd->isConstant(node));
       ASS(!getName(node));
 
+      unsigned occurrences;
+      if(occurrenceCounts.find(node,occurrences) && occurrences>=2) {
+	nodesToName.push(node);
+      }
+
       for(int i=0;i<2;i++) {
 	BDDNode* childNode= i ? node->_neg : node->_pos;
 
@@ -386,15 +391,12 @@ void BDDClausifier::introduceNames(BDDNode* node0, SATClauseStack& acc)
 	bool shouldBeExamined=true;
 	if(nameable) {
 	  unsigned* ocPtr;
-	  if(!occurenceCounts.getValuePtr(childNode, ocPtr, 0)) {
+	  if(!occurrenceCounts.getValuePtr(childNode, ocPtr, 0)) {
 	    //this node is already marked for examination and there
 	    //is no need to examine it multiple times, as it is nameable
 	    shouldBeExamined=false;
 	  }
 	  (*ocPtr)++;
-	  if(*ocPtr==2) {
-	    nodesToName.push(childNode);
-	  }
 	}
 	if(shouldBeExamined) {
 	  unsigned chVar=childNode->_var;
@@ -407,9 +409,12 @@ void BDDClausifier::introduceNames(BDDNode* node0, SATClauseStack& acc)
     }
   }
 
-
   while(nodesToName.isNonEmpty()) {
     BDDNode* node=nodesToName.pop();
+    //It is important that here we will first introduce names for nodes
+    //with low BDD variables. This way we will be able to use these
+    //names when naming nodes with higher variables.
+    ASS(nodesToName.isEmpty() || nodesToName.top()->_var >= node->_var);
     assignName(node, acc);
   }
 }
