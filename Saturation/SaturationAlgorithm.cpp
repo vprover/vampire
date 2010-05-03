@@ -1107,10 +1107,14 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       //as otherwise the redundant one might demodulate the replacement into
       //a tautology
 
+      redundant->incRefCnt(); //we don't want the clause deleted before we record the simplification
+
       removeActiveOrPassiveClause(redundant);
 
       redundant->setProp(bdd->getTrue());
       InferenceStore::instance()->recordPropReduce(redundant, oldRedundantProp, bdd->getTrue());
+
+      redundant->decRefCnt();
 
 #if REPORT_BW_SIMPL
       cout<<"removed\n";
