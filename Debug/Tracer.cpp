@@ -152,6 +152,17 @@ void Tracer::outputLastControlPoint (ostream& str)
  * Print the stack.
  * @since 24/10/2002 Manchester
  */
+void Tracer::printOnlyStack (ostream& str)
+{
+  int depth = 0;
+  _current->printStack (str, depth);
+} // Tracer::printStack (ostream& str)
+
+
+/**
+ * Print the stack.
+ * @since 24/10/2002 Manchester
+ */
 void Tracer::printStack (ostream& str)
 {
   int depth = 0;

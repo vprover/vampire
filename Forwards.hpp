@@ -6,6 +6,8 @@
 #ifndef __Forwards__
 #define __Forwards__
 
+#include "Debug/Log.hpp"
+
 #include "Config.hpp"
 
 namespace Lib

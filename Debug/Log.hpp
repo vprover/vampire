@@ -77,9 +77,11 @@ enable it again.
 
 #if GLOBAL_LOGGING
 
-# include<iostream>
+#include<iostream>
 
-# define LOG_TARGET std::cout
+#include "Tracer.hpp"
+
+#define LOG_TARGET std::cout
 
 /**
 Outputs X if logging is enabled.
@@ -92,11 +94,19 @@ LOG((1+1))
 rather than
 LOG(1+1)
 */
-# define LOG(X) if(LOGGING) { LOG_TARGET<<X<<endl; }
+#define LOG(X) if(LOGGING) { LOG_TARGET<<X<<endl; }
+
+#define LOGV(X) if(LOGGING) { LOG_TARGET<<#X<<": "<<X<<endl; }
+
+#define LOGS(X) if(LOGGING) { LOG_TARGET<<X<<endl<<"Stack trace:"<<endl; \
+			      Debug::Tracer::printOnlyStack(LOG_TARGET); \
+			      LOG_TARGET<<endl; }
 
 #else // GLOBAL_LOGGING
 
-# define LOG(X)
+#define LOG(X)
+#define LOGV(X)
+#define LOGS(X)
 
 #endif
 

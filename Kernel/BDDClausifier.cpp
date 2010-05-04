@@ -3,8 +3,6 @@
  * Implements class BDDClausifier.
  */
 
-#include "../Debug/Log.hpp"
-
 #include "../Lib/BinaryHeap.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/MapToLIFO.hpp"
