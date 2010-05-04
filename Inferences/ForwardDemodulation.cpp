@@ -3,6 +3,7 @@
  * Implements class ForwardDemodulation.
  */
 
+#include "../Lib/DHSet.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Metaiterators.hpp"
@@ -72,12 +73,23 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
   //
   //is incomplete as the premise is greated than the demodulated clause
 
+  static DHSet<TermList> attempted;
+  attempted.reset();
+
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
     NonVariableIterator nvi(lit);
     while(nvi.hasNext()) {
       TermList trm=nvi.next();
+      if(!attempted.insert(trm)) {
+	//We have already tried to demodulate the term @b trm and did not
+	//succeed (otherwise we would have returned from the function).
+	//If we have tried the term @b trm, we must have tried to
+	//demodulate also its subterms, so we can skip them too.
+	nvi.right();
+	continue;
+      }
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
 	TermQueryResult qr=git.next();

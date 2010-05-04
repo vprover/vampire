@@ -607,9 +607,26 @@ public:
 
 }; // class Literal
 
+struct TermListHash {
+  static unsigned hash(TermList t) {
+    return static_cast<unsigned>(t.content());
+  }
+};
+
 std::ostream& operator<< (ostream& out, TermList tl );
 std::ostream& operator<< (ostream& out, const Term& tl );
 std::ostream& operator<< (ostream& out, const Literal& tl );
 
+};
+
+namespace Lib
+{
+
+template<>
+struct FirstHashTypeInfo<Kernel::TermList> {
+  typedef Kernel::TermListHash Type;
+};
+
 }
+
 #endif

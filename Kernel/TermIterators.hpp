@@ -187,6 +187,8 @@ public:
     _used=true;
     return *_stack.top();
   }
+
+  void right();
 private:
   void pushNextNonVar(const TermList* t);
 
