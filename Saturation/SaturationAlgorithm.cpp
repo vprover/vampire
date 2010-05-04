@@ -100,7 +100,7 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContaine
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
   if(env.options->maxWeight()) {
-    _limits.setLimits(-1,env.options->maxWeight());
+    _limits.setLimits(0,env.options->maxWeight());
   }
 
   PassiveClauseContainer::registerInstance(_passive);

@@ -86,6 +86,10 @@ Statistics::Statistics()
 
 void Statistics::print()
 {
+  if(env.options->statistics()==Options::STATISTICS_NONE) {
+    return;
+  }
+
   bool separable=false;
 #define COND_OUT(text, num) if(num) { env.out<<(text)<<": "<<(num)<<endl; separable=true; }
 #define SEPARATOR if(separable) { env.out<<endl; separable=false; }
