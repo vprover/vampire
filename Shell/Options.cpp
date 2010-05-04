@@ -204,6 +204,7 @@ const char* Options::Constants::_shortNames[] = {
   "sio",
   "sos",
   "sp",
+  "spl",
   "spo",
   "ssec",
   "sswn",
@@ -250,6 +251,7 @@ int Options::Constants::shortNameIndexes[] = {
   SPLIT_GOAL_ONLY,
   SPLIT_INPUT_ONLY,
   SOS,
+  SYMBOL_PRECEDENCE,
   SPLITTING,
   SPLIT_POSITIVE,
   SAT_SOLVER_FOR_EMPTY_CLAUSE,
@@ -1587,13 +1589,6 @@ void Options::readFromTestId (string testId)
     }
     else {
       value = testId.substr(index1+1,index-index1-1);
-    }
-    //we handle sp and spl separately as they mean different things in testIds and as short options
-    if(param=="sp") {
-      param="symbol_precedence";
-    }
-    else if(param=="spl") {
-      param="splitting";
     }
     setShort(param.c_str(),value.c_str());
 
