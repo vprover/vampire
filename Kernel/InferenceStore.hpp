@@ -57,7 +57,7 @@ public:
 
   struct FullInference
   {
-    FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { ASS_L(premCnt, 0xFFFF); }
+    FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { }
 
     void* operator new(size_t,unsigned premCnt)
     {
@@ -77,8 +77,8 @@ public:
     void increasePremiseRefCounters();
 
     int csId;
-    unsigned premCnt : 16;
-    Inference::Rule rule : 16;
+    unsigned premCnt;
+    Inference::Rule rule;
     ClauseSpec premises[1];
   };
 

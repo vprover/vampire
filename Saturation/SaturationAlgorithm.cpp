@@ -765,6 +765,10 @@ void SaturationAlgorithm::newClausesToUnprocessed()
   while(_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
 
+    if(BDD::instance()->isTrue(cl->prop())) {
+      continue;
+    }
+
     switch(cl->store())
     {
     case Clause::BACKTRACKED:

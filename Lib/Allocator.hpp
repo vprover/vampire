@@ -155,7 +155,7 @@ public:
     /** time when it allocated/deallocated */
     unsigned timestamp;
     /** size in bytes, 0 is unused */
-    unsigned size : 29;
+    unsigned size;
     /** true if allocated */
     unsigned allocated : 1;
     /** true if allocated as a known-size object */
