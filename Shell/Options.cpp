@@ -174,24 +174,44 @@ NameArray Options::Constants::optionNames(_optionNames,
 const char* Options::Constants::_shortNames[] = {
   "awr",
   "bd",
+  "bms",
   "bs",
   "cond",
+  "ecs",
   "ep",
+  "erd",
+  "fd",
   "fde",
+  "flr",
+  "fs",
   "fsr",
+  "gsp",
+  "is",
   "l",
   "lcm",
   "m",
   "n",
+  "nicw",
+  "nm",
   "nwc",
   "p",
   "pc",
+  "ptb",
   "s",
   "sa",
+  "sac",
+  "sgo",
+  "sio",
   "sos",
   "sp",
+  "spo",
+  "ssec",
+  "sswn",
+  "sswsr",
   "stl",
+  "swb",
   "t",
+  "updr",
   "wi"};
 
 /** Short names for all options */
@@ -201,24 +221,44 @@ NameArray Options::Constants::shortNames(_shortNames,
 int Options::Constants::shortNameIndexes[] = {
   AGE_WEIGHT_RATIO,
   BACKWARD_DEMODULATION,
+  BDD_MARKING_SUBSUMPTION,
   BACKWARD_SUBSUMPTION,
   CONDENSATION,
+  EMPTY_CLAUSE_SUBSUMPTION,
   EQUALITY_PROXY,
+  EQUALITY_RESOLUTION_WITH_DELETION,
+  FORWARD_DEMODULATION,
   FUNCTION_DEFINITION_ELIMINATION,
+  FORWARD_LITERAL_REWRITING,
+  FORWARD_SUBSUMPTION,
   FORWARD_SUBSUMPTION_RESOLUTION,
+  GENERAL_SPLITTING,
+  INEQUALITY_SPLITTING,
   LOG_FILE,
   LITERAL_COMPARISON_MODE,
   MEMORY_LIMIT,
   NORMALIZE,
+  NONLITERALS_IN_CLAUSE_WEIGHT,
+  NAMING,
   NONGOAL_WEIGHT_COEFFICIENT,
   PROOF,
   PROOF_CHECKING,
+  PROPOSITIONAL_TO_BDD,
   SELECTION,
   SATURATION_ALGORITHM,
+  SPLIT_AT_ACTIVATION,
+  SPLIT_GOAL_ONLY,
+  SPLIT_INPUT_ONLY,
   SOS,
   SPLITTING,
+  SPLIT_POSITIVE,
+  SAT_SOLVER_FOR_EMPTY_CLAUSE,
+  SAT_SOLVER_WITH_NAMING,
+  SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION,
   SIMULATED_TIME_LIMIT,
+  SPLITTING_WITH_BLOCKING,
   TIME_LIMIT,
+  UNUSED_PREDICATE_DEFINITION_REMOVAL,
   WEIGHT_INCREMENT};
 
 const char* Options::Constants::_statisticsValues[] = {
@@ -1476,7 +1516,7 @@ int Options::readTimeLimit(const char* val)
  */
 void Options::readFromTestId (string testId)
 {
-  CALL("Options::setLrsFirstTimeCheck");
+  CALL("Options::readFromTestId");
 
   _normalize = true;
   _testId = testId;
@@ -1503,7 +1543,7 @@ void Options::readFromTestId (string testId)
   string timeString = testId.substr(index+1);
   _timeLimitInDeciseconds = readTimeLimit(timeString.c_str()) / 10;
 
-  testId = testId.substr(3,index-2);
+  testId = testId.substr(3,index-3);
   switch (testId[0]) {
   case '+':
     testId = testId.substr(1);
@@ -1535,14 +1575,31 @@ void Options::readFromTestId (string testId)
     if (index1 == string::npos) {
       goto error;
     }
-    index = testId.find('_');
-    if (index1 > index) {
+    index = testId.find(':');
+    if (index!=string::npos && index1 > index) {
       goto error;
     }
 
     string param = testId.substr(0,index1);
-    string value = testId.substr(index1+1,index-index1-1);
+    string value;
+    if(index==string::npos) {
+      value = testId.substr(index1+1);
+    }
+    else {
+      value = testId.substr(index1+1,index-index1-1);
+    }
+    //we handle sp and spl separately as they mean different things in testIds and as short options
+    if(param=="sp") {
+      param="symbol_precedence";
+    }
+    else if(param=="spl") {
+      param="splitting";
+    }
     setShort(param.c_str(),value.c_str());
+
+    if(index==string::npos) {
+      break;
+    }
     testId = testId.substr(index+1);
   }
 } // Options::readFromTestId
