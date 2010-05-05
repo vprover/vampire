@@ -48,8 +48,6 @@ using namespace Saturation;
 #define REPORT_FW_SIMPL 0
 /** Print information about performed backward simplifications */
 #define REPORT_BW_SIMPL 0
-/** Perform forward demodulation before a clause is passed to splitting */
-#define FW_DEMODULATION_FIRST 1
 
 
 /**
@@ -141,9 +139,6 @@ SaturationAlgorithm::~SaturationAlgorithm()
     _immediateSimplifier->detach();
   }
 
-  if(_fwDemodulator) {
-    _fwDemodulator->detach();
-  }
   while(_fwSimplifiers) {
     FwSimplList::pop(_fwSimplifiers)->detach();
   }
@@ -701,7 +696,7 @@ private:
 };
 
 
-Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0, bool fwDemodulation)
+Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
   ASS(cl0->prop());
@@ -715,14 +710,6 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0, bool fwDemod
     }
     onClauseReduction(cl, simplCl, 0);
     return 0;
-  }
-
-  if(fwDemodulation && _fwDemodulator) {
-    TotalSimplificationPerformer demPerformer(this, cl);
-    _fwDemodulator->perform(cl, &demPerformer);
-    if(!demPerformer.clauseKept()) {
-      return 0;
-    }
   }
 
   if(cl!=cl0 && cl0->isInput()) {
@@ -831,7 +818,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   env.checkTimeSometime<64>();
 
-  cl=doImmediateSimplification(cl, FW_DEMODULATION_FIRST);
+  cl=doImmediateSimplification(cl);
   if(!cl) {
     return;
   }
@@ -1025,14 +1012,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 
   TotalSimplificationPerformer performer(this, cl);
 
-  VirtualIterator<ForwardSimplificationEngineSP> fsit;
-  if(_fwDemodulator) {
-    fsit=pvi( getConcatenatedIterator(
-	    FwSimplList::Iterator(_fwSimplifiers),
-	    getSingletonIterator(_fwDemodulator)) );
-  } else {
-    fsit=pvi( FwSimplList::Iterator(_fwSimplifiers) );
-  }
+  FwSimplList::Iterator fsit(_fwSimplifiers);
 
   while(fsit.hasNext()) {
     ForwardSimplificationEngine* fse=fsit.next().ptr();
@@ -1430,18 +1410,6 @@ void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificati
   ASS(!_immediateSimplifier);
   _immediateSimplifier=immediateSimplifier;
   _immediateSimplifier->attach(this);
-}
-
-/**
- * Assign forward simplifier object to perform forward demodulation
- *
- * A zero smart pointer can be passed as argument to dissable
- * forward demodulation.
- */
-void SaturationAlgorithm::setFwDemodulator(ForwardSimplificationEngineSP fwDemodulator)
-{
-  _fwDemodulator=fwDemodulator;
-  fwDemodulator->attach(this);
 }
 
 /**

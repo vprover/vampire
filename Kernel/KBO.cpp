@@ -7,12 +7,15 @@
 
 #include "../Debug/Tracer.hpp"
 
+
 #include "../Lib/Environment.hpp"
 #include "../Lib/Comparison.hpp"
 #include "../Lib/DArray.hpp"
 #include "../Lib/DHMap.hpp"
 #include "../Lib/Int.hpp"
 #include "../Lib/Metaiterators.hpp"
+
+#include "../Indexing/TermSharing.hpp"
 
 #include "../Shell/EqualityProxy.hpp"
 #include "../Shell/Options.hpp"
@@ -38,11 +41,22 @@ class KBO::State
 {
 public:
   /** Initialise the state */
-  State(KBO& kbo)
-    : _weightDiff(0), _posNum(0), _negNum(0),
-      _lexResult(EQUAL),
-      _kbo(kbo)
+  State(KBO* kbo)
+    : _kbo(*kbo)
   {}
+
+  void init()
+  {
+    _weightDiff=0;
+    _posNum=0;
+    _negNum=0;
+    _lexResult=EQUAL;
+    _varDiffs.reset();
+  }
+
+  CLASS_NAME("KBO::State");
+  USE_ALLOCATOR(State);
+
   void traverse(Term* t1, Term* t2);
   void traverse(TermList tl,int coefficient);
   Result result(Term* t1, Term* t2);
@@ -287,7 +301,17 @@ KBO::KBO(const Signature& sig)
     _predicatePrecedences(_predicates),
     _functionPrecedences(_functions)
 {
+  CALL("KBO::KBO");
   ASS_G(_predicates, 0);
+
+  _state=new State(this);
+}
+
+KBO::~KBO()
+{
+  CALL("KBO::~KBO");
+
+  delete _state;
 }
 
 /**
@@ -309,7 +333,8 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
   unsigned p2 = l2->functor();
 
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
-	  l1==Literal::oppositeLiteral(l2)) {
+	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&
+	  l1==env.sharing->tryGetOpposite(l2)) {
     return l1->isNegative() ? LESS : GREATER;
   }
 
@@ -329,24 +354,33 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
   }
 
   {
-    State state(*this);
+    ASS(_state);
+    State* state=_state;
+#if VDEBUG
+    //this is to make sure _state isn't used while we're using it
+    _state=0;
+#endif
+    state->init();
     if(p1!=p2) {
       TermList* ts;
       ts=l1->args();
       while(!ts->isEmpty()) {
-	state.traverse(*ts,1);
+	state->traverse(*ts,1);
 	ts=ts->next();
       }
       ts=l2->args();
       while(!ts->isEmpty()) {
-	state.traverse(*ts,-1);
+	state->traverse(*ts,-1);
 	ts=ts->next();
       }
     } else {
-      state.traverse(l1,l2);
+      state->traverse(l1,l2);
     }
 
-    res=state.result(l1,l2);
+    res=state->result(l1,l2);
+#if VDEBUG
+    _state=state;
+#endif
   }
 
 fin:
@@ -398,14 +432,25 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2)
   Term* t1=tl1.term();
   Term* t2=tl2.term();
 
-  State state(*this);
+  ASS(_state);
+  State* state=_state;
+#if VDEBUG
+  //this is to make sure _state isn't used while we're using it
+  _state=0;
+#endif
+
+  state->init();
   if(t1->functor()==t2->functor()) {
-    state.traverse(t1,t2);
+    state->traverse(t1,t2);
   } else {
-    state.traverse(tl1,1);
-    state.traverse(tl2,-1);
+    state->traverse(tl1,1);
+    state->traverse(tl2,-1);
   }
-  return state.result(t1,t2);
+  Result res=state->result(t1,t2);
+#if VDEBUG
+  _state=state;
+#endif
+  return res;
 }
 
 int KBO::functionSymbolWeight(unsigned fun)

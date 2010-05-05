@@ -25,6 +25,7 @@
 
 #include "../Saturation/SaturationAlgorithm.hpp"
 
+#include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
 #include "ForwardDemodulation.hpp"
@@ -42,6 +43,8 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_SUBST_TREE) );
+
+  _preorderedOnly=env.options->forwardDemodulation()==Options::DEMODULATION_PREORDERED;
 }
 
 void ForwardDemodulation::detach()
@@ -115,7 +118,19 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	  rhsS=qr.substitution->applyToBoundResult(rhs);
 	}
 
-	if(ordering->compare(trm,rhsS)!=Ordering::GREATER) {
+	Term::ArgumentOrder argOrder=qr.literal->askArgumentOrder();
+	bool preordered=argOrder==Term::LESS || argOrder==Term::GREATER;
+#if VDEBUG
+	if(preordered) {
+	  if(argOrder==Term::LESS) {
+	    ASS_EQ(rhs, *qr.literal->nthArgument(0));
+	  }
+	  else {
+	    ASS_EQ(rhs, *qr.literal->nthArgument(1));
+	  }
+	}
+#endif
+	if(!preordered && (_preorderedOnly || ordering->compare(trm,rhsS)!=Ordering::GREATER) ) {
 	  continue;
 	}
 

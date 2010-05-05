@@ -47,7 +47,6 @@ public:
   void setImmediateSimplificationEngine(ImmediateSimplificationEngineSP immediateSimplifier);
 
 
-  void setFwDemodulator(ForwardSimplificationEngineSP fwDemodulator);
   void addForwardSimplifierToFront(ForwardSimplificationEngineSP fwSimplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngineSP bwSimplifier);
 
@@ -129,7 +128,7 @@ private:
   void handleEmptyClause(Clause* cl);
   void performEmptyClauseParentSubsumption(Clause* cl, BDDNode* emptyClauseProp);
 
-  Clause* doImmediateSimplification(Clause* cl, bool fwDemodulation=false);
+  Clause* doImmediateSimplification(Clause* cl);
 
   Limits _limits;
   IndexManager _imgr;
@@ -155,7 +154,6 @@ protected:
 
   typedef List<ForwardSimplificationEngineSP> FwSimplList;
   FwSimplList* _fwSimplifiers;
-  ForwardSimplificationEngineSP _fwDemodulator;
 
   typedef List<BackwardSimplificationEngineSP> BwSimplList;
   BwSimplList* _bwSimplifiers;

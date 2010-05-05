@@ -332,10 +332,9 @@ public:
 
   /** Return argument order as stored in term.
    * (Can also return UNKNOWN if it wasn't determined yet.) */
-  bool askArgumentOrder(ArgumentOrder& res) const
+  ArgumentOrder askArgumentOrder() const
   {
-    res=static_cast<ArgumentOrder>(_args[0]._info.order);
-    return res!=UNKNOWN;
+    return static_cast<ArgumentOrder>(_args[0]._info.order);
   }
   ArgumentOrder getArgumentOrder()
   {

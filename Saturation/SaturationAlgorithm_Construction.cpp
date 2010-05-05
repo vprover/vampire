@@ -89,14 +89,16 @@ void addFSEs(SaturationAlgorithm* alg)
 {
   CALL("Saturation::Construction::addFSEs");
 
-  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new RefutationSeekerFSE()));
+//  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new RefutationSeekerFSE()));
+
+  if(env.options->forwardLiteralRewriting()) {
+    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardLiteralRewriting()));
+  }
 
   switch(env.options->forwardDemodulation()) {
   case Options::DEMODULATION_ALL:
-    alg->setFwDemodulator(ForwardSimplificationEngineSP(new ForwardDemodulation()));
-    break;
   case Options::DEMODULATION_PREORDERED:
-    NOT_IMPLEMENTED;
+    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardDemodulation()));
     break;
   case Options::DEMODULATION_OFF:
     break;
@@ -104,10 +106,6 @@ void addFSEs(SaturationAlgorithm* alg)
   default:
     ASSERTION_VIOLATION;
 #endif
-  }
-
-  if(env.options->forwardLiteralRewriting()) {
-    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardLiteralRewriting()));
   }
 
   if(env.options->forwardSubsumption()) {

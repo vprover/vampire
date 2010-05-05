@@ -27,6 +27,7 @@ public:
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
 private:
+  bool _preorderedOnly;
   DemodulationLHSIndex* _index;
 };
 

@@ -30,6 +30,7 @@ public:
   static KBO* create();
 private:
   KBO(const Signature&);
+  ~KBO();
 
   class State;
   /** Weight of variables */
@@ -59,6 +60,10 @@ private:
 
   bool _reverseLCM;
 
+  /**
+   * State used for comparing terms and literals
+   */
+  State* _state;
 };
 
 }

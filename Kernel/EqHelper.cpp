@@ -13,6 +13,8 @@
 
 namespace Kernel {
 
+using namespace Shell;
+
 /**
  * Return the other side of an equality @b eq than the @b lhs
  */
@@ -243,6 +245,9 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit)
     switch(lit->getArgumentOrder())
     {
     case Term::INCOMPARABLE:
+      if(env.options->forwardDemodulation()==Options::DEMODULATION_PREORDERED) {
+	return TermIterator::getEmpty();
+      }
       if(t0.containsAllVariablesOf(t1)) {
 	if(t1.containsAllVariablesOf(t0)) {
 	  return pvi( getConcatenatedIterator(getSingletonIterator(t0),
