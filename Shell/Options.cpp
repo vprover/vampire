@@ -119,6 +119,8 @@ const char* Options::Constants::_optionNames[] = {
   "nonliterals_in_clause_weight",
   "normalize",
 
+  "output_axiom_names",
+
   "problem_name",
   "proof",
   "proof_checking",
@@ -428,6 +430,8 @@ Options::Options ()
   _nonliteralsInClauseWeight(false),
   _normalize(false),
 
+  _outputAxiomNames(false),
+
   _problemName("unknown"),
   _proof(PROOF_ON),
   _proofChecking(false),
@@ -681,6 +685,10 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case NORMALIZE:
       _normalize = onOffToBool(value,name);
+      return;
+
+    case OUTPUT_AXIOM_NAMES:
+      _outputAxiomNames = onOffToBool(value,name);
       return;
 
     case PROOF:
@@ -1179,6 +1187,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case NORMALIZE:
     str << boolToOnOff(_normalize);
+    return;
+
+  case OUTPUT_AXIOM_NAMES:
+    str << boolToOnOff(_outputAxiomNames);
     return;
 
   case PROBLEM_NAME:

@@ -11,6 +11,7 @@
 
 #include "../Shell/LaTeX.hpp"
 #include "../Shell/Options.hpp"
+#include "../Shell/Parser.hpp"
 
 #include "BDD.hpp"
 #include "Clause.hpp"
@@ -342,6 +343,8 @@ struct InferenceStore::ProofPrinter
 
     dummyTautIntroduction.rule=Inference::TAUTOLOGY_INTRODUCTION;
 
+    outputAxiomNames=env.options->outputAxiomNames();
+
     if( refutation->isClause() && static_cast<Clause*>(refutation)->prop() ) {
       Clause* refCl=static_cast<Clause*>(refutation);
       ASS( bdd->isFalse(refCl->prop()) );
@@ -371,6 +374,12 @@ struct InferenceStore::ProofPrinter
     out << " ("<<cl->age()<<':'<<cl->weight()<<") ";
 
     out <<"["<<Inference::ruleName(finf->rule);
+    if(outputAxiomNames && finf->rule==Inference::INPUT) {
+      string name;
+      if(Parser::findAxiomName(cl, name)) {
+	out << " " << name;
+      }
+    }
   }
 
   virtual void printProofStepPremise(ClauseSpec cs, bool first)
@@ -394,6 +403,12 @@ struct InferenceStore::ProofPrinter
       out << fu->formula()->toString();
     }
     out << " [" << unit->inference()->name();
+    if(outputAxiomNames && unit->inference()->rule()==Inference::INPUT) {
+      string name;
+      if(Parser::findAxiomName(unit, name)) {
+	out << " " << name;
+      }
+    }
   }
 
   virtual void printProofStepPremise(Unit* unit, bool first)
@@ -579,6 +594,8 @@ struct InferenceStore::ProofPrinter
   BDD* bdd;
 
   FullInference dummyTautIntroduction;
+
+  bool outputAxiomNames;
 };
 
 struct InferenceStore::TPTPProofCheckPrinter

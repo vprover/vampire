@@ -17,6 +17,8 @@
 using namespace Lib;
 using namespace Shell;
 
+DHMap<unsigned, string> Parser::s_axiomNames;
+
 /**
  * Initialise a parser.
  * @since 17/07/2004 Helsinki Airport
@@ -53,6 +55,16 @@ void ParserException::cry (ostream& out)
   out << "Parser exception: " << _message << '\n';
 } // ParserException::cry
 
+/**
+ * If @b unit has a name associated, assign it into @b result,
+ * and return true; otherwise return false
+ */
+bool Parser::findAxiomName(Unit* unit, string& result)
+{
+  CALL("Parser::findAxiomName");
+
+  return s_axiomNames.find(unit->number(), result);
+}
 
 /**
  * Read and consume a token of type tt. If the buffer contains

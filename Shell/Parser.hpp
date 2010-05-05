@@ -8,6 +8,7 @@
 #ifndef __Parser__
 #define __Parser__
 
+#include "../Lib/DHMap.hpp"
 #include "../Lib/IntNameTable.hpp"
 #include "../Lib/Exception.hpp"
 #include "../Lib/XML.hpp"
@@ -53,6 +54,7 @@ public:
   Parser(Lexer& lexer);
   UnitList* units();
 
+  static bool findAxiomName(Unit* unit, string& result);
 protected:
   /** The lexer which supplies tokens */
   Lexer& _lexer;
@@ -95,6 +97,10 @@ protected:
   static double real(const Token& t);
   static int integer(const Token& t);
   static long long unsigned unsigned64(const Token& t);
+
+  /** This field stores names of input units if the
+   * output_axiom_names option is enabled */
+  static DHMap<unsigned, string> s_axiomNames;
 }; // class Parser
 
 }

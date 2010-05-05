@@ -71,6 +71,8 @@ public:
     NONLITERALS_IN_CLAUSE_WEIGHT,
     NORMALIZE,
 
+    OUTPUT_AXIOM_NAMES,
+
     PROBLEM_NAME,
     PROOF,
     PROOF_CHECKING,
@@ -317,6 +319,7 @@ public:
   bool sos() const { return _sos; }
   void setSos(bool newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination; }
+  bool outputAxiomNames() const { return _outputAxiomNames; }
   string xmlOutput() const { return _xmlOutput; }
   string thanks() const { return _thanks; }
 
@@ -410,6 +413,8 @@ private:
   float _nongoalWeightCoefficient;
   float _nonliteralsInClauseWeight;
   bool _normalize;
+
+  bool _outputAxiomNames;
 
   string _problemName;
   Proof _proof;

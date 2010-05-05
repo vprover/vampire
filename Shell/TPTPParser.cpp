@@ -344,6 +344,10 @@ Unit* TPTPParser::unit()
     result->setInheritedColor(_currentColor);
   }
 
+  if(env.options->outputAxiomNames()) {
+    s_axiomNames.insert(result->number(), nm);
+  }
+
   return result;
 } // TPTPParser::unit
 
