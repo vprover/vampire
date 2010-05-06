@@ -68,11 +68,11 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 {
   CALL("ClauseCodeTree::optimizeLiteralOrder");
 
-  if(isEmpty()) {
+  unsigned clen=lits.size();
+  if(isEmpty() || clen<=1) {
     return;
   }
 
-  unsigned clen=lits.size();
   unsigned candidates=clen;
 
   //if there are ground literals, we put them first (it sometimes helps)
@@ -83,14 +83,30 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 	gndCnt++;
     }
   }
-  if(gndCnt) {candidates=gndCnt;}
 
-  if(candidates<=1) {
-    return;
-  }
 
   CodeOp* entry=getEntryPoint();
-  for(unsigned startIndex=0;startIndex<candidates-1;startIndex++) {
+  unsigned firstToOptimize=0;
+
+  if(gndCnt==1) {
+    if(clen==2) {
+      return;
+    }
+
+    size_t sharedLen, unshared;
+    CodeOp* nextOp;
+    evalSharing(lits[0], entry, sharedLen, unshared, nextOp);
+    if(unshared) {
+      return;
+    }
+    entry=nextOp;
+    firstToOptimize=1;
+  }
+  else if(gndCnt>1) {
+    candidates=gndCnt;
+  }
+
+  for(unsigned startIndex=firstToOptimize;startIndex<candidates-1;startIndex++) {
 //  for(unsigned startIndex=0;startIndex<1;startIndex++) {
 
     size_t unshared=1;
@@ -622,11 +638,13 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
     //will check for compatibility of variable assignments
     if(ils->varCnt && !lms.top()->eagerlyMatched()) {
       lms.top()->doEagerMatching();
+      RSTAT_MST_INC("match count", lms.size()-1, lms.top()->getILS()->matchCnt);
     }
     for(size_t ilIndex=0;ilIndex<lms.size()-1;ilIndex++) {
       ILStruct* prevILS=lms[ilIndex]->getILS();
       if(prevILS->varCnt && !lms[ilIndex]->eagerlyMatched()) {
 	lms[ilIndex]->doEagerMatching();
+	RSTAT_MST_INC("match count", ilIndex, lms[ilIndex]->getILS()->matchCnt);
       }
 
       size_t matchIndex=ils->matchCnt;

@@ -3,6 +3,8 @@
  * Implements class TermIndex.
  */
 
+#include "../Lib/DHSet.hpp"
+
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/EqHelper.hpp"
 #include "../Kernel/Ordering.hpp"
@@ -45,6 +47,8 @@ TermQueryResultIterator TermIndex::getInstances(TermList t,
 
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
+  CALL("SuperpositionSubtermIndex::handleClause");
+
   TimeCounter tc(TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
   unsigned selCnt=c->selected();
@@ -64,6 +68,8 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
+  CALL("SuperpositionLHSIndex::handleClause");
+
   TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
   unsigned selCnt=c->selected();
@@ -82,17 +88,30 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 
 void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
+  CALL("DemodulationSubtermIndex::handleClause");
+
   TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
+
+  static DHSet<TermList> inserted;
+  inserted.reset();
 
   unsigned cLen=c->length();
   for(unsigned i=0; i<cLen; i++) {
     Literal* lit=(*c)[i];
     NonVariableIterator nvi(lit);
     while(nvi.hasNext()) {
+      TermList t=nvi.next();
+      if(!inserted.insert(t)) {
+	//It is enough to insert a term only once per clause.
+	//Also, once we know term was inserted, we know that all its
+	//subterms were inserted as well, so we can skip them.
+	nvi.right();
+	continue;
+      }
       if(adding) {
-	_is->insert(nvi.next(), lit, c);
+	_is->insert(t, lit, c);
       } else {
-	_is->remove(nvi.next(), lit, c);
+	_is->remove(t, lit, c);
       }
     }
   }
@@ -101,6 +120,8 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
+  CALL("DemodulationLHSIndex::handleClause");
+
   if(c->length()!=1) {
     return;
   }

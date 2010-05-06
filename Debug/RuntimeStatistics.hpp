@@ -111,6 +111,20 @@ private:
   ZIArray<size_t> _counters;
 };
 
+class RSMultiStatistic
+: public RSObject
+{
+  typedef List<int> ValList;
+public:
+  RSMultiStatistic(const char* name) : RSObject(name) {}
+  ~RSMultiStatistic();
+
+  void print(ostream& out);
+  void addRecord(size_t index, int value) { ValList::push(value, _values[index]); }
+private:
+  ZIArray<ValList* > _values;
+};
+
 class RuntimeStatistics
 {
 public:
@@ -148,6 +162,7 @@ private:
 
 #define RSTAT_CTR_INC(stat) static Debug::RSCounter* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSCounter>(stat); RSTAT_AUX_NAME->inc()
 #define RSTAT_MCTR_INC(stat, index) static Debug::RSMultiCounter* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSMultiCounter>(stat); RSTAT_AUX_NAME->inc(index)
+#define RSTAT_MST_INC(stat, index, val) static Debug::RSMultiStatistic* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSMultiStatistic>(stat); RSTAT_AUX_NAME->addRecord(index, val)
 
 #define RSTAT_PRINT(out) Debug::RuntimeStatistics::instance()->print(out)
 
@@ -158,6 +173,7 @@ private:
 
 #define RSTAT_CTR_INC(stat)
 #define RSTAT_MCTR_INC(stat, index)
+#define RSTAT_MST_INC(stat, index, val)
 
 #define RSTAT_PRINT(out)
 
