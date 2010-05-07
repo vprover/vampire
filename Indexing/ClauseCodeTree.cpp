@@ -64,6 +64,17 @@ void ClauseCodeTree::insert(Clause* cl)
   ASS(code.isEmpty());
 }
 
+struct ClauseCodeTree::InitialLiteralOrderingComparator
+{
+  Comparison compare(Literal* l1, Literal* l2)
+  {
+    if(l1->weight()!=l2->weight()) {
+      return Int::compare(l2->weight(), l1->weight());
+    }
+    return Int::compare(l1, l2);
+  }
+};
+
 void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 {
   CALL("ClauseCodeTree::optimizeLiteralOrder");
@@ -73,52 +84,23 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
     return;
   }
 
-  unsigned candidates=clen;
-
-  //if there are ground literals, we put them first (it sometimes helps)
-  unsigned gndCnt=0;
-  for(unsigned i=0;i<candidates;i++) {
-    if(lits[i]->ground()) {
-	swap(lits[i], lits[gndCnt]);
-	gndCnt++;
-    }
-  }
-
+  lits.sort(InitialLiteralOrderingComparator());
 
   CodeOp* entry=getEntryPoint();
-  unsigned firstToOptimize=0;
-
-  if(gndCnt==1) {
-    if(clen==2) {
-      return;
-    }
-
-    size_t sharedLen, unshared;
-    CodeOp* nextOp;
-    evalSharing(lits[0], entry, sharedLen, unshared, nextOp);
-    if(unshared) {
-      return;
-    }
-    entry=nextOp;
-    firstToOptimize=1;
-  }
-  else if(gndCnt>1) {
-    candidates=gndCnt;
-  }
-
-  for(unsigned startIndex=firstToOptimize;startIndex<candidates-1;startIndex++) {
+  for(unsigned startIndex=0;startIndex<clen-1;startIndex++) {
 //  for(unsigned startIndex=0;startIndex<1;startIndex++) {
 
     size_t unshared=1;
     unsigned bestIndex=startIndex;
     size_t bestSharedLen;
+    bool bestGround=lits[startIndex]->ground();
     CodeOp* nextOp;
     evalSharing(lits[startIndex], entry, bestSharedLen, unshared, nextOp);
     if(!unshared) {
       goto have_best;
     }
 
-    for(unsigned i=startIndex+1;i<candidates;i++) {
+    for(unsigned i=startIndex+1;i<clen;i++) {
       size_t sharedLen;
       evalSharing(lits[i], entry, sharedLen, unshared, nextOp);
       if(!unshared) {
@@ -126,10 +108,11 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
         goto have_best;
       }
 
-      if(sharedLen>bestSharedLen) {
+      if(sharedLen>bestSharedLen && (!bestGround || lits[i]->ground()) ) {
 //	cout<<lits[i]->toString()<<" is better than "<<lits[bestIndex]->toString()<<endl;
 	bestSharedLen=sharedLen;
 	bestIndex=i;
+	bestGround=lits[i]->ground();
       }
     }
 

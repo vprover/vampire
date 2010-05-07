@@ -21,6 +21,7 @@ collected nor output.
 Defined macros:
 RSTAT_CTR_INC(ctr) -- Increases counter named ctr by one
 RSTAT_MCTR_INC(ctr, index) -- Increases counter ctr[index] by one. index must be non-negative integer.
+RSTAT_MST_INC(stat, index, val) -- Collects integer values @b val in classes @b index to output some simple statistics in the end.
 RSTAT_PRINT(stream) -- Outputs current values of counters into stream (typically std::cout)
 
 RSTAT_CTR_INC and RSTAT_MCTR_INC cannot use a counter of the same name
