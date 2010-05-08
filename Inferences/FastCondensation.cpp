@@ -92,6 +92,11 @@ Clause* FastCondensation::simplify(Clause* cl)
 
   for(unsigned cIndex=0;cIndex<clen;cIndex++) {
     Literal* cLit=(*cl)[cIndex];
+    if(cLit->ground()) {
+      //succeeding with ground literal would mean there are duplitace
+      //literals in the clause, which should have already been removed
+      continue;
+    }
     for(unsigned mIndex=0;mIndex<clen;mIndex++) {
       if(mIndex==cIndex) {
 	continue;
