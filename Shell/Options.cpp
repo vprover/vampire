@@ -35,6 +35,7 @@ public:
   static const char* _optionNames[];
   static const char* _shortNames[];
   static const char* _statisticsValues[];
+  static const char* _condensationValues[];
   static const char* _demodulationValues[];
   static const char* _splittingModeValues[];
   static const char* _fdeValues[];
@@ -54,6 +55,7 @@ public:
   static NameArray optionNames;
   static NameArray shortNames;
   static NameArray statisticsValues;
+  static NameArray condensationValues;
   static NameArray demodulationValues;
   static NameArray splittingModeValues;
   static NameArray fdeValues;
@@ -272,6 +274,13 @@ const char* Options::Constants::_statisticsValues[] = {
 NameArray Options::Constants::statisticsValues(_statisticsValues,
 					       sizeof(_statisticsValues)/sizeof(char*));
 
+const char* Options::Constants::_condensationValues[] = {
+  "fast",
+  "off",
+  "on"};
+NameArray Options::Constants::condensationValues(_condensationValues,
+						 sizeof(_condensationValues)/sizeof(char*));
+
 const char* Options::Constants::_demodulationValues[] = {
   "all",
   "off",
@@ -387,7 +396,7 @@ Options::Options ()
   _backwardSubsumption(true),
   _bddMarkingSubsumption(false),
 
-  _condensation(false),
+  _condensation(CONDENSATION_OFF),
 
   _emptyClauseSubsumption(false),
   _equalityProxy(EP_OFF),
@@ -547,7 +556,8 @@ void Options::set (const char* name,const char* value, int index)
       return;
 
     case CONDENSATION:
-      _condensation = onOffToBool(value,name);
+      _condensation =
+	(Condensation)Constants::condensationValues.find(value);
       return;
 
     case DECODE:
@@ -1092,7 +1102,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
 
   case CONDENSATION:
-    str << boolToOnOff(_condensation);
+    str << Constants::condensationValues[_condensation];
     return;
 
   case DECODE: // no output for DECODE

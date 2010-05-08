@@ -202,6 +202,12 @@ public:
     LCM_STANDARD = 2
   };
 
+  enum Condensation {
+    CONDENSATION_FAST = 0,
+    CONDENSATION_OFF = 1,
+    CONDENSATION_ON = 2
+  };
+
   enum Demodulation {
     DEMODULATION_ALL = 0,
     DEMODULATION_OFF = 1,
@@ -323,7 +329,7 @@ public:
   string xmlOutput() const { return _xmlOutput; }
   string thanks() const { return _thanks; }
 
-  bool condensation() const { return _condensation; }
+  Condensation condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
   string namePrefix() const { return _namePrefix; }
   bool timeStatistics() const { return _timeStatistics; }
@@ -376,7 +382,7 @@ private:
   bool _backwardSubsumption;
   bool _bddMarkingSubsumption;
 
-  bool _condensation;
+  Condensation _condensation;
 
   bool _emptyClauseSubsumption;
   EqualityProxy _equalityProxy;

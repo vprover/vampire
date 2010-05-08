@@ -3,23 +3,21 @@
  * Implements class Condensation.
  */
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Int.hpp"
 #include "../Lib/DArray.hpp"
+#include "../Lib/Int.hpp"
+#include "../Lib/Metaiterators.hpp"
+#include "../Lib/TimeCounter.hpp"
+#include "../Lib/VirtualIterator.hpp"
 
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/MLMatcher.hpp"
-#include "../Kernel/Ordering.hpp"
 #include "../Kernel/Inference.hpp"
 #include "../Kernel/Renaming.hpp"
 #include "../Kernel/Matcher.hpp"
 #include "../Kernel/RobSubstitution.hpp"
 
 #include "../Indexing/LiteralMiniIndex.hpp"
-
-#include "../Saturation/SaturationAlgorithm.hpp"
 
 #include "../Lib/Environment.hpp"
 #include "../Shell/Statistics.hpp"
@@ -33,27 +31,32 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-
-void Condensation::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+Clause* Condensation::simplify(Clause* cl)
 {
   CALL("Condensation::perform");
 
-  if(!simplPerformer->willPerform(0)) {
-    return;
+  TimeCounter tc(TC_CONDENSATION);
+
+  unsigned clen=cl->length();
+  if(clen<=1) {
+    return cl;
   }
+  unsigned newLen=clen-1;
 
   static DArray<Literal*> newLits(32);
   static DArray<LiteralList*> alts(32);
+  static OCMatchIterator matcher;
 
   LiteralMiniIndex cmi(cl);
 
-  unsigned cLen=cl->length();
-  unsigned newLen=cLen-1;
-  CombinationIterator<unsigned> pairIt(0, cLen);
+  CombinationIterator<unsigned> pairIt(0, clen);
   while(pairIt.hasNext()) {
     pair<unsigned,unsigned> lpair=pairIt.next();
     unsigned l1Index=lpair.first;
     unsigned l2Index=lpair.second;
+    if(l1Index==l2Index) {
+      continue;
+    }
     Literal* l1=(*cl)[l1Index];
     Literal* l2=(*cl)[l2Index];
 
@@ -80,7 +83,7 @@ void Condensation::perform(Clause* cl, ForwardSimplificationPerformer* simplPerf
         next++;
       }
 
-      for(unsigned i=0;i<cLen;i++) {
+      for(unsigned i=0;i<clen;i++) {
         if(i!=l1Index && i!=l2Index) {
           Literal* lit=subst->apply((*cl)[i],0);
           newLits[next] = lit;
@@ -113,12 +116,12 @@ void Condensation::perform(Clause* cl, ForwardSimplificationPerformer* simplPerf
 	res->setAge(cl->age());
 	env.statistics->condensations++;
 
-	simplPerformer->perform(0,res);
-	ASS(!simplPerformer->clauseKept());
-	return;
+	return res;
       }
     }
   }
+
+  return cl;
 }
 
 }

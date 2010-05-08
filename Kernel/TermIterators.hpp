@@ -33,6 +33,21 @@ public:
     }
   }
 
+  VariableIterator(TermList t) : _stack(8), _used(false)
+  {
+    if(t.isVar()) {
+      _aux[0].makeEmpty();
+      _aux[1]=t;
+      _stack.push(&_aux[1]);
+    }
+    else {
+      Term* term=t.term();
+      if(!term->shared() || !term->ground()) {
+	_stack.push(term->args());
+      }
+    }
+  }
+
   bool hasNext();
   /** Return the next variable
    * @warning hasNext() must have been called before */
@@ -46,6 +61,7 @@ public:
 private:
   Stack<const TermList*> _stack;
   bool _used;
+  TermList _aux[2];
 };
 
 

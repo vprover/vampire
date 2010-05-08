@@ -1,0 +1,389 @@
+/**
+ * @file Matcher.cpp
+ * Implements class Matcher.
+ */
+
+#include "../Lib/DHMap.hpp"
+#include "../Lib/DHSet.hpp"
+
+#include "SubstHelper.hpp"
+
+#include "Matcher.hpp"
+
+namespace Kernel
+{
+
+//////////////// FastMatchIterator ////////////////////
+
+void OCMatchIterator::init(Literal* base, Literal* inst, bool complementary)
+{
+  CALL("FastMatchIterator::init");
+
+  if(!Literal::headersMatch(base, inst, complementary)) {
+    _finished=true;
+    return;
+  }
+  _finished=false;
+  _firstMatchDone=false;
+  _base=base;
+  _inst=inst;
+}
+
+bool OCMatchIterator::tryNextMatch()
+{
+  CALL("FastMatchIterator::tryNextMatch");
+
+  if(_finished) {
+    return false;
+  }
+  bool success=false;
+  if(!_firstMatchDone) {
+    _firstMatchDone=true;
+    if(!_base->commutative()) {
+      _finished=true;
+    }
+    reset();
+    success=tryDirectMatch();
+  }
+
+  if(!success && !_finished) {
+    ASS(_base->commutative());
+    _finished=true;
+
+    reset();
+    success=tryReversedMatch();
+  }
+  return success;
+}
+
+void OCMatchIterator::reset()
+{
+  CALL("FastMatchIterator::reset");
+
+  _bindings.reset();
+  _bound.reset();
+}
+
+bool OCMatchIterator::tryDirectMatch()
+{
+  CALL("FastMatchIterator::tryDirectMatch");
+
+  bool res=MatchingUtils::matchArgs(_base, _inst, *this);
+  res&=occursCheck();
+  return res;
+}
+
+bool OCMatchIterator::tryReversedMatch()
+{
+  CALL("FastMatchIterator::tryReversedMatch");
+  ASS(_base->commutative());
+  ASS(_inst->commutative());
+
+  bool res=MatchingUtils::matchTerms(*_base->nthArgument(0), *_inst->nthArgument(1), *this);
+  if(res) {
+    res=MatchingUtils::matchTerms(*_base->nthArgument(1), *_inst->nthArgument(0), *this);
+  }
+  res&=occursCheck();
+  return res;
+}
+
+#undef LOGGING
+#define LOGGING 0
+
+bool OCMatchIterator::occursCheck()
+{
+  CALL("OCMatchIterator::occursCheck");
+
+  static DHMap<unsigned, OCStatus> statuses;
+  static Stack<int> toDo;
+  statuses.reset();
+  toDo.reset();
+  LOG("-----");
+  BoundStack::Iterator bit(_bound);
+  while(bit.hasNext()) {
+    unsigned var0=bit.next();
+    OCStatus* pst0;
+    if(!statuses.getValuePtr(var0, pst0)) {
+      ASS_EQ(*pst0, CHECKED);
+      continue;
+    }
+
+    *pst0=ENQUEUED;
+    toDo.push(var0);
+    LOG("enq1: "<<var0);
+
+    while(toDo.isNonEmpty()) {
+      int task=toDo.pop();
+      if(task==-1) {
+	unsigned var=toDo.pop();
+	ASS_EQ(statuses.get(var), TRAVERSING);
+	statuses.set(var, CHECKED);
+	LOG("ch1: "<<var);
+	continue;
+      }
+
+      unsigned var=task;
+
+      ASS_EQ(statuses.get(var), ENQUEUED);
+      statuses.set(var, TRAVERSING);
+      LOG("trav1: "<<var);
+
+      //this schedules the update of the state to CHECKED
+      toDo.push(var);
+      toDo.push(-1);
+
+      TermList tgt;
+      if(!_bindings.find(var, tgt)) {
+	continue;
+      }
+//      if(tgt.isVar()) {
+//	int tvar=tgt.var();
+//	if(var<tvar) {
+//
+//	}
+//	NOT_IMPLEMENTED;
+//      }
+//      VariableIterator vit(tgt.term());
+      VariableIterator vit(tgt);
+      while(vit.hasNext()) {
+	unsigned chvar=vit.next().var(); //child variable number
+
+	OCStatus* pChStatus;
+	if(!statuses.getValuePtr(chvar, pChStatus)) {
+	  if(*pChStatus==TRAVERSING) {
+	    return false;
+	  }
+	  ASS_REP(*pChStatus==CHECKED||*pChStatus==ENQUEUED, *pChStatus);
+	  continue;
+	}
+	*pChStatus=ENQUEUED;
+	LOG("enq2: "<<chvar);
+
+	toDo.push(chvar);
+      }
+
+    }
+  }
+  return true;
+}
+
+TermList OCMatchIterator::apply(unsigned var)
+{
+  CALL("OCMatchIterator::apply(unsigned)");
+
+  TermList bnd;
+  if(_bindings.find(var, bnd)) {
+    //this may lead to an indirect recursion, but if the occurs check
+    //has passed, it won't get into an infinite cycle
+    return apply(bnd);
+  }
+  //variable is unbound
+  return TermList(var, false);
+}
+
+TermList OCMatchIterator::apply(TermList t)
+{
+  CALL("OCMatchIterator::apply(TermList)");
+
+  return SubstHelper::apply(t, *this);
+}
+
+Literal* OCMatchIterator::apply(Literal* lit)
+{
+  CALL("OCMatchIterator::apply(Literal*)");
+
+  return SubstHelper::apply(lit, *this);
+}
+
+
+//////////////// Matcher ////////////////////
+
+class Matcher::CommutativeMatchIterator
+: public IteratorCore<Matcher*>
+{
+public:
+  CommutativeMatchIterator(Matcher* matcher, Literal* base, Literal* instance)
+  : _matcher(matcher), _base(base), _instance(instance),
+  _state(FIRST), _used(true)
+  {
+    ASS(_base->commutative());
+    ASS_EQ(_base->arity(), 2);
+  }
+  ~CommutativeMatchIterator()
+  {
+    if(_state!=FINISHED && _state!=FIRST) {
+	backtrack();
+    }
+    ASS(_bdata.isEmpty());
+  }
+  bool hasNext()
+  {
+    CALL("Matcher::CommutativeMatchIterator::hasNext");
+
+    if(_state==FINISHED) {
+      return false;
+    }
+    if(!_used) {
+      return true;
+    }
+    _used=false;
+
+    if(_state!=FIRST) {
+	backtrack();
+    }
+    _matcher->bdRecord(_bdata);
+
+    switch(_state) {
+    case NEXT_STRAIGHT:
+	if(_matcher->matchArgs(_base,_instance)) {
+	  _state=NEXT_REVERSED;
+	  break;
+	}
+	//no break here intentionally
+    case NEXT_REVERSED:
+	if(_matcher->matchReversedArgs(_base,_instance)) {
+	  _state=NEXT_CLEANUP;
+	  break;
+	}
+    //no break here intentionally
+    case NEXT_CLEANUP:
+      //undo the previous match
+	backtrack();
+
+	_state=FINISHED;
+	break;
+    default:
+	ASSERTION_VIOLATION;
+    }
+
+    ASS(_state!=FINISHED || _bdata.isEmpty());
+    return _state!=FINISHED;
+  }
+  Matcher* next()
+  {
+    _used=true;
+    return _matcher;
+  }
+private:
+  void backtrack()
+  {
+    ASS_EQ(&_bdata,&_matcher->bdGet());
+    _matcher->bdDone();
+    _bdata.backtrack();
+  }
+
+  enum State {
+    FIRST=0,
+    NEXT_STRAIGHT=0,
+    NEXT_REVERSED=1,
+    NEXT_CLEANUP=2,
+    FINISHED=3
+  };
+  Matcher* _matcher;
+  Literal* _base;
+  Literal* _instance;
+  BacktrackData _bdata;
+
+  State _state;
+  /**
+   * true if the current substitution have already been
+   * retrieved by the next() method, or if there isn't
+   * any (hasNext() hasn't been called yet)
+   */
+  bool _used;
+};
+
+struct Matcher::MatchContext
+{
+  MatchContext(Literal* base, Literal* instance)
+  : _base(base), _instance(instance) {}
+  bool enter(Matcher* matcher)
+  {
+    CALL("Matcher::MatchContext::enter");
+
+    matcher->bdRecord(_bdata);
+    bool res=matcher->matchArgs(_base, _instance);
+    if(!res) {
+	matcher->bdDone();
+      ASS(_bdata.isEmpty());
+    }
+    return res;
+  }
+  void leave(Matcher* matcher)
+  {
+    matcher->bdDone();
+    _bdata.backtrack();
+  }
+private:
+  Literal* _base;
+  Literal* _instance;
+  BacktrackData _bdata;
+};
+
+MatchIterator Matcher::matches(Literal* base, Literal* instance,
+	  bool complementary)
+{
+  CALL("Matcher::matches");
+
+  if(!Literal::headersMatch(base, instance, complementary)) {
+    return MatchIterator::getEmpty();
+  }
+  if(base->arity()==0) {
+    return pvi( getSingletonIterator(this) );
+  }
+  if( !base->commutative() ) {
+    return pvi( getContextualIterator(getSingletonIterator(this),
+	      MatchContext(base, instance)) );
+  }
+  return vi( new CommutativeMatchIterator(this, base, instance) );
+
+}
+
+bool Matcher::matchArgs(Literal* base, Literal* instance)
+{
+  CALL("Matcher::matchArgs");
+
+  BacktrackData localBD;
+
+  bdRecord(localBD);
+  bool res=MatchingUtils::matchArgs(base,instance, _binder);
+  bdDone();
+
+  if(res) {
+    if(bdIsRecording()) {
+      bdCommit(localBD);
+    }
+    localBD.drop();
+  } else {
+    localBD.backtrack();
+  }
+  return res;
+}
+
+bool Matcher::matchReversedArgs(Literal* base, Literal* instance)
+{
+  CALL("Matcher::matchReversedArgs");
+  ASS(base->commutative());
+
+  BacktrackData localBD;
+
+  bdRecord(localBD);
+  bool res=MatchingUtils::matchTerms(*base->nthArgument(0), *instance->nthArgument(1), _binder);
+  if(res) {
+    res=MatchingUtils::matchTerms(*base->nthArgument(1), *instance->nthArgument(0), _binder);
+  }
+  bdDone();
+
+  if(res) {
+    if(bdIsRecording()) {
+      bdCommit(localBD);
+    }
+    localBD.drop();
+  } else {
+    localBD.backtrack();
+  }
+  return res;
+}
+
+
+}

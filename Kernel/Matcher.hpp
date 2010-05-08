@@ -113,6 +113,25 @@ public:
   {
     CALL("MatchingUtils::match");
 
+    static MapBinder binder;
+    return match(base, instance, complementary, binder);
+  }
+
+  /**
+   * Matches two literals, using @b binder to store and check bindings
+   * of base variables. @b binder must be a functor with parameters
+   * (unsigned var, TermList term), that in case variable @b var is
+   * unbound, binds it to @b term and returns true, if @b var is
+   * bound, returns true iff it is bound to @b term. @b binder also
+   * must contain function reset() that resets the binding. The
+   * @b binder is reset by the function also for the first time if
+   * needed.
+   */
+  template<class Binder>
+  static bool match(Literal* base, Literal* instance, bool complementary, Binder& binder)
+  {
+    CALL("MatchingUtils::match(Literal*, Literal*, bool, Binder&)");
+
     if(!Literal::headersMatch(base,instance,complementary)) {
       return false;
     }
@@ -121,7 +140,6 @@ public:
       return true;
     }
 
-    static MapBinder binder;
     binder.reset();
 
     if(base->commutative()) {
@@ -234,6 +252,62 @@ private:
 
 };
 
+/**
+ * Class of objects that iterate over matches between two literals that
+ * may share variables (therefore it has to perform occurs check).
+ */
+class OCMatchIterator
+{
+public:
+  void init(Literal* base, Literal* inst, bool complementary);
+
+  bool tryNextMatch();
+
+  TermList apply(unsigned var);
+  TermList apply(TermList t);
+  Literal* apply(Literal* lit);
+
+private:
+
+  void reset();
+
+  bool tryDirectMatch();
+  bool tryReversedMatch();
+
+  enum OCStatus {
+    ENQUEUED,
+    TRAVERSING,
+    CHECKED
+  };
+  bool occursCheck();
+
+
+  bool bind(unsigned var, TermList term)
+  {
+    TermList* binding;
+
+    if(_bindings.getValuePtr(var,binding,term)) {
+      _bound.push(var);
+      return true;
+    }
+    return *binding==term;
+  }
+  void specVar(unsigned var, TermList term)
+  { ASSERTION_VIOLATION; }
+
+
+  typedef DHMap<unsigned,TermList> BindingMap;
+  typedef Stack<unsigned> BoundStack;
+
+  BindingMap _bindings;
+  BoundStack _bound;
+  bool _finished;
+  bool _firstMatchDone;
+  Literal* _base;
+  Literal* _inst;
+
+  friend class MatchingUtils;
+};
 
 class Matcher
 : public Backtrackable
@@ -241,193 +315,18 @@ class Matcher
 public:
   Matcher() : _binder(*this) {}
 
-  MatchIterator matches(Literal* base, Literal* instance,
-	  bool complementary)
-  {
-    if(!Literal::headersMatch(base, instance, complementary)) {
-      return MatchIterator::getEmpty();
-    }
-    if(base->arity()==0) {
-      return pvi( getSingletonIterator(this) );
-    }
-    if( !base->commutative() ) {
-      return pvi( getContextualIterator(getSingletonIterator(this),
-	      MatchContext(base, instance)) );
-    }
-    return vi( new CommutativeMatchIterator(this, base, instance) );
-
-  }
+  MatchIterator matches(Literal* base, Literal* instance, bool complementary);
 
 private:
-  class CommutativeMatchIterator
-  : public IteratorCore<Matcher*>
-  {
-  public:
-    CommutativeMatchIterator(Matcher* matcher, Literal* base, Literal* instance)
-    : _matcher(matcher), _base(base), _instance(instance),
-    _state(FIRST), _used(true)
-    {
-      ASS(_base->commutative());
-      ASS_EQ(_base->arity(), 2);
-    }
-    ~CommutativeMatchIterator()
-    {
-      if(_state!=FINISHED && _state!=FIRST) {
-	backtrack();
-      }
-      ASS(_bdata.isEmpty());
-    }
-    bool hasNext()
-    {
-      CALL("Matcher::CommutativeMatchIterator::hasNext");
+  class CommutativeMatchIterator;
 
-      if(_state==FINISHED) {
-        return false;
-      }
-      if(!_used) {
-        return true;
-      }
-      _used=false;
+  struct MatchContext;
 
-      if(_state!=FIRST) {
-	backtrack();
-      }
-      _matcher->bdRecord(_bdata);
+  bool matchArgs(Literal* base, Literal* instance);
 
-      switch(_state) {
-      case NEXT_STRAIGHT:
-	if(_matcher->matchArgs(_base,_instance)) {
-	  _state=NEXT_REVERSED;
-	  break;
-	}
-	//no break here intentionally
-      case NEXT_REVERSED:
-	if(_matcher->matchReversedArgs(_base,_instance)) {
-	  _state=NEXT_CLEANUP;
-	  break;
-	}
-      //no break here intentionally
-      case NEXT_CLEANUP:
-        //undo the previous match
-	backtrack();
+  bool matchReversedArgs(Literal* base, Literal* instance);
 
-	_state=FINISHED;
-	break;
-      default:
-	ASSERTION_VIOLATION;
-      }
-
-      ASS(_state!=FINISHED || _bdata.isEmpty());
-      return _state!=FINISHED;
-    }
-    Matcher* next()
-    {
-      _used=true;
-      return _matcher;
-    }
-  private:
-    void backtrack()
-    {
-      ASS_EQ(&_bdata,&_matcher->bdGet());
-      _matcher->bdDone();
-      _bdata.backtrack();
-    }
-
-    enum State {
-      FIRST=0,
-      NEXT_STRAIGHT=0,
-      NEXT_REVERSED=1,
-      NEXT_CLEANUP=2,
-      FINISHED=3
-    };
-    Matcher* _matcher;
-    Literal* _base;
-    Literal* _instance;
-    BacktrackData _bdata;
-
-    State _state;
-    /**
-     * true if the current substitution have already been
-     * retrieved by the next() method, or if there isn't
-     * any (hasNext() hasn't been called yet)
-     */
-    bool _used;
-  };
-
-  struct MatchContext
-  {
-    MatchContext(Literal* base, Literal* instance)
-    : _base(base), _instance(instance) {}
-    bool enter(Matcher* matcher)
-    {
-      CALL("Matcher::MatchContext::enter");
-
-      matcher->bdRecord(_bdata);
-      bool res=matcher->matchArgs(_base, _instance);
-      if(!res) {
-	matcher->bdDone();
-        ASS(_bdata.isEmpty());
-      }
-      return res;
-    }
-    void leave(Matcher* matcher)
-    {
-      matcher->bdDone();
-      _bdata.backtrack();
-    }
-  private:
-    Literal* _base;
-    Literal* _instance;
-    BacktrackData _bdata;
-  };
-
-  bool matchArgs(Literal* base, Literal* instance)
-  {
-    CALL("Matcher::matchArgs");
-
-    BacktrackData localBD;
-
-    bdRecord(localBD);
-    bool res=MatchingUtils::matchArgs(base,instance, _binder);
-    bdDone();
-
-    if(res) {
-      if(bdIsRecording()) {
-        bdCommit(localBD);
-      }
-      localBD.drop();
-    } else {
-      localBD.backtrack();
-    }
-    return res;
-  }
-
-  bool matchReversedArgs(Literal* base, Literal* instance)
-  {
-    CALL("Matcher::matchReversedArgs");
-    ASS(base->commutative());
-
-    BacktrackData localBD;
-
-    bdRecord(localBD);
-    bool res=MatchingUtils::matchTerms(*base->nthArgument(0), *instance->nthArgument(1), _binder);
-    if(res) {
-      res=MatchingUtils::matchTerms(*base->nthArgument(1), *instance->nthArgument(0), _binder);
-    }
-    bdDone();
-
-    if(res) {
-      if(bdIsRecording()) {
-        bdCommit(localBD);
-      }
-      localBD.drop();
-    } else {
-      localBD.backtrack();
-    }
-    return res;
-  }
-
-  typedef DHMap<unsigned,TermList,IdentityHash> BindingMap;
+  typedef DHMap<unsigned,TermList> BindingMap;
   struct MapBinder
   {
     MapBinder(Matcher& parent) : _parent(parent) {}

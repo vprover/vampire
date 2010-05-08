@@ -88,7 +88,6 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/BDDConjunction.o\
         Kernel/Clause.o\
         Kernel/ClauseQueue.o\
-        Kernel/EGSubstitution.o\
         Kernel/EqHelper.o\
         Kernel/FlatTerm.o\
         Kernel/Formula.o\
@@ -99,6 +98,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/KBO.o\
         Kernel/LiteralSelector.o\
         Kernel/MatchTag.o\
+        Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\
         Kernel/MLMatcher.o\
         Kernel/MLVariant.o\
@@ -110,7 +110,8 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
         Kernel/TermIterators.o\
-        Kernel/Unit.o
+        Kernel/Unit.o\
+#        Kernel/EGSubstitution.o
 
 VI_OBJ = Indexing/ClauseCodeTree.o\
          Indexing/ClauseSharing.o\
@@ -138,6 +139,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
          Inferences/Factoring.o\
+         Inferences/FastCondensation.o\
          Inferences/ForwardDemodulation.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\

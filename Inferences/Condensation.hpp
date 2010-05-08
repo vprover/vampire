@@ -8,7 +8,6 @@
 #define __Condensation__
 
 #include "../Forwards.hpp"
-#include "../Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -23,10 +22,10 @@ using namespace Saturation;
  * Condensation simplification rule.
  */
 class Condensation
-: public ForwardSimplificationEngine
+: public ImmediateSimplificationEngine
 {
 public:
-  void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
+  Clause* simplify(Clause* cl);
 };
 
 };

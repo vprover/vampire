@@ -8,6 +8,7 @@
 #define __SubstHelper__
 
 #include "../Lib/DArray.hpp"
+#include "../Lib/Recycler.hpp"
 
 #include "Term.hpp"
 
@@ -105,37 +106,43 @@ Term* SubstHelper::apply(Term* trm, Applicator& applicator, bool noSharing)
 {
   CALL("SubstHelper::apply(Term*...)");
 
-  static Stack<TermList*> toDo(8);
-  static Stack<Term*> terms(8);
-  static Stack<bool> modified(8);
-  static Stack<TermList> args(8);
-  ASS(toDo.isEmpty());
-  ASS(terms.isEmpty());
-  modified.reset();
-  args.reset();
+  Stack<TermList*>* toDo;
+  Stack<Term*>* terms;
+  Stack<bool>* modified;
+  Stack<TermList>* args;
 
-  modified.push(false);
-  toDo.push(trm->args());
+  Recycler::get(toDo);
+  Recycler::get(terms);
+  Recycler::get(modified);
+  Recycler::get(args);
+
+  toDo->reset();
+  terms->reset();
+  modified->reset();
+  args->reset();
+
+  modified->push(false);
+  toDo->push(trm->args());
 
   for(;;) {
-    TermList* tt=toDo.pop();
+    TermList* tt=toDo->pop();
     if(tt->isEmpty()) {
-      if(terms.isEmpty()) {
+      if(terms->isEmpty()) {
 	//we're done, args stack contains modified arguments
 	//of the literal.
-	ASS(toDo.isEmpty());
+	ASS(toDo->isEmpty());
 	break;
       }
-      Term* orig=terms.pop();
-      if(!modified.pop()) {
-	args.truncate(args.length() - orig->arity());
-	args.push(TermList(orig));
+      Term* orig=terms->pop();
+      if(!modified->pop()) {
+	args->truncate(args->length() - orig->arity());
+	args->push(TermList(orig));
 	continue;
       }
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
       //&top()-2, etc...
-      TermList* argLst=&args.top() - (orig->arity()-1);
+      TermList* argLst=&args->top() - (orig->arity()-1);
 
       Term* newTrm;
       if(noSharing || !orig->shared()) {
@@ -143,60 +150,69 @@ Term* SubstHelper::apply(Term* trm, Applicator& applicator, bool noSharing)
       } else {
 	newTrm=Term::create(orig,argLst);
       }
-      args.truncate(args.length() - orig->arity());
-      args.push(TermList(newTrm));
+      args->truncate(args->length() - orig->arity());
+      args->push(TermList(newTrm));
 
-      modified.setTop(true);
+      modified->setTop(true);
       continue;
     }
-    toDo.push(tt->next());
+    toDo->push(tt->next());
 
     TermList tl=*tt;
     if(tl.isOrdinaryVar()) {
       TermList tDest=applicator.apply(tl.var());
-      args.push(tDest);
+      args->push(tDest);
       if(tDest!=tl) {
-	modified.setTop(true);
+	modified->setTop(true);
       }
       continue;
     }
     if(tl.isSpecialVar()) {
-      args.push(tl);
+      args->push(tl);
       continue;
     }
     ASS(tl.isTerm());
     Term* t=tl.term();
     if(t->shared() && t->ground()) {
-      args.push(tl);
+      args->push(tl);
       continue;
     }
-    terms.push(t);
-    modified.push(false);
-    toDo.push(t->args());
+    terms->push(t);
+    modified->push(false);
+    toDo->push(t->args());
   }
-  ASS(toDo.isEmpty());
-  ASS(terms.isEmpty());
-  ASS_EQ(modified.length(),1);
-  ASS_EQ(args.length(),trm->arity());
+  ASS(toDo->isEmpty());
+  ASS(terms->isEmpty());
+  ASS_EQ(modified->length(),1);
+  ASS_EQ(args->length(),trm->arity());
 
-  if(!modified.pop()) {
-    return trm;
+  Term* result;
+  if(!modified->pop()) {
+    result=trm;
   }
-
-  //here we assume, that stack is an array with
-  //second topmost element as &top()-1, third at
-  //&top()-2, etc...
-  TermList* argLst=&args.top() - (trm->arity()-1);
-  if(trm->isLiteral()) {
-    ASS(!noSharing);
-    return Literal::create(static_cast<Literal*>(trm),argLst);
-  } else {
-    if(noSharing || !trm->shared()) {
-      return Term::createNonShared(trm,argLst);
+  else {
+    //here we assume, that stack is an array with
+    //second topmost element as &top()-1, third at
+    //&top()-2, etc...
+    TermList* argLst=&args->top() - (trm->arity()-1);
+    if(trm->isLiteral()) {
+      ASS(!noSharing);
+      result=Literal::create(static_cast<Literal*>(trm),argLst);
     } else {
-      return Term::create(trm,argLst);
+      if(noSharing || !trm->shared()) {
+	result=Term::createNonShared(trm,argLst);
+      } else {
+	result=Term::create(trm,argLst);
+      }
     }
   }
+
+  Recycler::release(args);
+  Recycler::release(modified);
+  Recycler::release(terms);
+  Recycler::release(toDo);
+
+  return result;
 }
 
 };

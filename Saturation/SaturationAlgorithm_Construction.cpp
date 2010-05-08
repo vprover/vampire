@@ -18,11 +18,12 @@
 #include "../Inferences/CTFwSubsAndRes.hpp"
 #include "../Inferences/EqualityFactoring.hpp"
 #include "../Inferences/EqualityResolution.hpp"
-#include "../Inferences/InterpretedEvaluation.hpp"
+#include "../Inferences/FastCondensation.hpp"
 #include "../Inferences/Factoring.hpp"
 #include "../Inferences/ForwardDemodulation.hpp"
 #include "../Inferences/ForwardLiteralRewriting.hpp"
 #include "../Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "../Inferences/InterpretedEvaluation.hpp"
 #include "../Inferences/RefutationSeekerFSE.hpp"
 #include "../Inferences/SLQueryForwardSubsumption.hpp"
 #include "../Inferences/SLQueryBackwardSubsumption.hpp"
@@ -77,6 +78,16 @@ ImmediateSimplificationEngineSP createImmediateSE()
 
   CompositeISE* res=new CompositeISE();
 
+  switch(env.options->condensation()) {
+  case Options::CONDENSATION_ON:
+    res->addFront(ImmediateSimplificationEngineSP(new Condensation()));
+    break;
+  case Options::CONDENSATION_FAST:
+    res->addFront(ImmediateSimplificationEngineSP(new FastCondensation()));
+    break;
+  case Options::CONDENSATION_OFF:
+    break;
+  }
 //  res->addFront(ImmediateSimplificationEngineSP(new InterpretedEvaluation()));
   res->addFront(ImmediateSimplificationEngineSP(new TrivialInequalitiesRemovalISE()));
   res->addFront(ImmediateSimplificationEngineSP(new TautologyDeletionISE()));
@@ -130,9 +141,6 @@ void addFSEs(SaturationAlgorithm* alg)
 //	    new SLQueryForwardSubsumption() ));
   } else if(env.options->forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
-  }
-  if(env.options->condensation()) {
-    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new Condensation()));
   }
 }
 
