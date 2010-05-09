@@ -33,14 +33,9 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
   BDD* bdd=BDD::instance();
 
   InferenceStore::SplittingRecord* srec=new InferenceStore::SplittingRecord(cl);
-  static Stack<Clause*> masterPremises;
-  masterPremises.reset();
 
   static Stack<Clause*> unnamedComponentStack(16);
   unnamedComponentStack.reset();
-
-  BDDNode* newMasterProp=cl->prop();
-  masterPremises.push(cl);
 
   typedef pair<int, Clause*> CompNameRec;
   //The namedComponents stack contains pairs of component name and
@@ -116,6 +111,22 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
     cout<<'n'<<compName<<": "<<(*comp)<<endl;
 #endif
   }
+
+  static Stack<Clause*> masterPremises;
+  masterPremises.reset();
+  masterPremises.push(cl);
+
+  if(env.options->splittingWithEagerNaming() &&
+      bdd->isFalse(cl->prop()) && namedComponents.size()==1) {
+    //the new name that we'll be introducing for the master component by
+    //adding the result of the splitting
+    int masterNewName= -namedComponents.top().first;
+    //this command will not introduce the name if the master component
+    //already has one
+    _clauseNames.insert(masterComp, masterNewName);
+  }
+
+  BDDNode* newMasterProp=cl->prop();
 
   while(namedComponents.isNonEmpty()) {
     CompNameRec cr=namedComponents.pop();

@@ -156,6 +156,7 @@ const char* Options::Constants::_optionNames[] = {
   "split_positive",
   "splitting",
   "splitting_with_blocking",
+  "splitting_with_eager_naming",
   "statistics",
   "superposition_from_variables",
   "symbol_precedence",
@@ -215,6 +216,7 @@ const char* Options::Constants::_shortNames[] = {
   "sswsr",
   "stl",
   "swb",
+  "swen",
   "t",
   "updr",
   "wi"};
@@ -263,6 +265,7 @@ int Options::Constants::shortNameIndexes[] = {
   SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION,
   SIMULATED_TIME_LIMIT,
   SPLITTING_WITH_BLOCKING,
+  SPLITTING_WITH_EAGER_NAMING,
   TIME_LIMIT,
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   WEIGHT_INCREMENT};
@@ -474,6 +477,7 @@ Options::Options ()
   _splitPositive(false),
   _splitting(SM_NOBACKTRACKING),
   _splittingWithBlocking(false),
+  _splittingWithEagerNaming(false),
   _statistics(STATISTICS_FULL),
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
@@ -808,6 +812,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case SPLITTING_WITH_BLOCKING:
       _splittingWithBlocking = onOffToBool(value,name);
+      return;
+    case SPLITTING_WITH_EAGER_NAMING:
+      _splittingWithEagerNaming = onOffToBool(value,name);
       return;
     case STATISTICS:
       _statistics = (Statistics)Constants::statisticsValues.find(value);
@@ -1300,6 +1307,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SPLITTING_WITH_BLOCKING:
     str << boolToOnOff(_splittingWithBlocking);
+    return;
+  case SPLITTING_WITH_EAGER_NAMING:
+    str << boolToOnOff(_splittingWithEagerNaming);
     return;
   case STATISTICS:
     str << Constants::statisticsValues[_statistics];
