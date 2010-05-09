@@ -107,7 +107,6 @@ public:
     SPLIT_POSITIVE,
     SPLITTING,
     SPLITTING_WITH_BLOCKING,
-    SPLITTING_WITH_EAGER_NAMING,
     STATISTICS,
     SUPERPOSITION_FROM_VARIABLES,
     SYMBOL_PRECEDENCE,
@@ -345,7 +344,6 @@ public:
   bool splitPositive() const { return _splitPositive; }
   SplittingMode splitting() const { return _splitting; }
   bool splittingWithBlocking() const { return _splittingWithBlocking; }
-  bool splittingWithEagerNaming() const { return _splittingWithEagerNaming; }
   bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold; }
@@ -457,7 +455,6 @@ private:
   bool _splitPositive;
   SplittingMode _splitting;
   bool _splittingWithBlocking;
-  bool _splittingWithEagerNaming;
   Statistics _statistics;
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;
