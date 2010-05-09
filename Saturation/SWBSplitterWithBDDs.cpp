@@ -33,14 +33,9 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
   BDD* bdd=BDD::instance();
 
   InferenceStore::SplittingRecord* srec=new InferenceStore::SplittingRecord(cl);
-  static Stack<Clause*> masterPremises;
-  masterPremises.reset();
 
   static Stack<Clause*> unnamedComponentStack(16);
   unnamedComponentStack.reset();
-
-  BDDNode* newMasterProp=cl->prop();
-  masterPremises.push(cl);
 
   typedef pair<int, Clause*> CompNameRec;
   //The namedComponents stack contains pairs of component name and
@@ -116,6 +111,12 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
     cout<<'n'<<compName<<": "<<(*comp)<<endl;
 #endif
   }
+
+  static Stack<Clause*> masterPremises;
+  masterPremises.reset();
+  masterPremises.push(cl);
+
+  BDDNode* newMasterProp=cl->prop();
 
   while(namedComponents.isNonEmpty()) {
     CompNameRec cr=namedComponents.pop();
