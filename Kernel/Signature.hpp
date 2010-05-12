@@ -36,8 +36,10 @@ class Signature
     /** print name */
     const string _name;
     /** arity */
-    unsigned _arity : 27;
-    /** clauses with only skipped symbols will not be output when symbol eliminated*/
+    unsigned _arity : 26;
+    /** the object is of type InterpretedSymbol */
+    unsigned _interpreted : 1;
+    /** clauses with only skipped symbols will not be output as symbol eliminating */
     unsigned _skip : 1;
     /** marks propositional predicate symbols that are to
         be used as names during consequence finding */
@@ -53,6 +55,7 @@ class Signature
     Symbol(const string& nm,unsigned arity)
       : _name(nm),
 	_arity(arity),
+	_interpreted(0),
 	_skip(0),
 	_cfName(0),
 	_swbName(0),
@@ -79,10 +82,71 @@ class Signature
     inline unsigned arity() { return _arity; }
     /** Return the name of the symbol */
     inline const string& name() { return _name; }
+    /** Return true iff the object is of type InterpretedSymbol */
+    inline bool interpreted() const { return _interpreted; }
 
     CLASS_NAME("Signature::Symbol");
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
+
+  class InterpretedSymbol
+  : public Symbol
+  {
+  public:
+    enum Interpretation
+    {
+      //functions
+
+      UNARY_MINUS,
+      PLUS,
+      MINUS,
+      MULTIPLY,
+      DIVIDE,
+      /** The X?Y:Z ternary operator like in C++ */
+      IF_THEN_ELSE,
+
+      //predicates
+
+      GREATER,
+      GREATER_EQUAL,
+      LESS,
+      LESS_EQUAL
+    };
+
+    static unsigned getArity(Interpretation i);
+  protected:
+    union {
+      int _value;
+      Interpretation _interp;
+    };
+
+  public:
+
+    InterpretedSymbol(const string& nm,unsigned arity)
+    : Symbol(nm, arity)
+    {
+      CALL("InterpretedSymbol");
+
+      _interpreted=true;
+    }
+
+    /** Return integer value of the interpreted constant */
+    inline int getValue() const { ASS(interpreted()); ASS_EQ(_arity,0); return _value; }
+    /** Return the interpreted function that corresponds to this symbol */
+    inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(_arity,0); return _interp; }
+
+    void setValue(int value) {
+      ASS(interpreted());
+      ASS_EQ(_arity,0);
+      _value=value;
+    }
+    void setInterpretation(Interpretation i) {
+      ASS(interpreted());
+      ASS_EQ(_arity,getArity(i));
+      _interp=i;
+    }
+  };
+
   typedef Map<string,unsigned,Hash> SymbolMap;
 
   unsigned addSkolemFunction(unsigned arity);

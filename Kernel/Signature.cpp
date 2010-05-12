@@ -12,6 +12,34 @@ using namespace std;
 using namespace Kernel;
 
 /**
+ * Return arity of the symbol that is interpreted by Interpretation
+ * @b i.
+ */
+unsigned Signature::InterpretedSymbol::getArity(Interpretation i)
+{
+  CALL("Signature::InterpretedSymbol::getArity");
+
+  switch(i) {
+  case UNARY_MINUS:
+    return 1;
+
+  case PLUS:
+  case MINUS:
+  case MULTIPLY:
+  case DIVIDE:
+  case GREATER:
+  case GREATER_EQUAL:
+  case LESS:
+  case LESS_EQUAL:
+    return 2;
+
+  case IF_THEN_ELSE:
+    return 3;
+  }
+  ASSERTION_VIOLATION;
+}
+
+/**
  * Create a Signature.
  * @since 07/05/2007 Manchester
  */

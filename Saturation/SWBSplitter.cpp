@@ -135,8 +135,8 @@ bool SWBSplitter::doSplitting(Clause* cl)
     return handleNoSplit(cl);
   }
 
-  env.statistics->splittedClauses++;
-  env.statistics->splittedComponents+=compCnt;
+  env.statistics->splitClauses++;
+  env.statistics->splitComponents+=compCnt;
 
   static DArray<Literal*> lits;
   lits.ensure(clen);

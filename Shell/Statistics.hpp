@@ -126,8 +126,8 @@ public:
   /** number of clause reactivations */
   unsigned reactivatedClauses;
 
-  unsigned splittedClauses;
-  unsigned splittedComponents;
+  unsigned splitClauses;
+  unsigned splitComponents;
   unsigned uniqueComponents;
   /** Number of introduced name predicates for splitting without backtracking */
   unsigned splittingNamesIntroduced;
