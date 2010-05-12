@@ -294,7 +294,6 @@ public:
   static List* concat(List* first,List* second)
   {
     if (first == 0) return second;
-    // an optimization, not really necessary
     if (second == 0) return first;
 
     List* current = first;

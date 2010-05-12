@@ -88,7 +88,10 @@ ImmediateSimplificationEngineSP createImmediateSE()
   case Options::CONDENSATION_OFF:
     break;
   }
-//  res->addFront(ImmediateSimplificationEngineSP(new InterpretedEvaluation()));
+
+  if(env.options->interpretedEvaluation()) {
+    res->addFront(ImmediateSimplificationEngineSP(new InterpretedEvaluation()));
+  }
   res->addFront(ImmediateSimplificationEngineSP(new TrivialInequalitiesRemovalISE()));
   res->addFront(ImmediateSimplificationEngineSP(new TautologyDeletionISE()));
   res->addFront(ImmediateSimplificationEngineSP(new DuplicateLiteralRemovalISE()));

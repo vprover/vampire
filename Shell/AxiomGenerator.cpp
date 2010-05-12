@@ -43,6 +43,9 @@ unsigned Context::pred(TheoryElement el)
 unsigned Context::fun(TheoryElement el)
 {
   CALL("Context::fun");
+  if(el==ZERO) {
+    return env.signature->addInterpretedConstant(0);
+  }
   return _interpretation.get(el);
 }
 bool Context::supported(TheoryElement el)
@@ -84,6 +87,11 @@ bool Context::isFunction(TheoryElement el)
   default:
     ASSERTION_VIOLATION;
   }
+}
+
+LazyConstant::operator TermBlock()
+{
+  return fun0(te, ctx);
 }
 
 
@@ -245,13 +253,13 @@ FormBlock operator>(const TermBlock& b1, const TermBlock& b2)
 { return pred2(GREATER, true, b1, b2); }
 
 FormBlock operator<=(const TermBlock& b1, const TermBlock& b2)
-{ return pred2(GREATER, false, b1, b2); }
+{ return pred2(LESS_EQUAL, true, b1, b2); }
 
 FormBlock operator<(const TermBlock& b1, const TermBlock& b2)
-{ return pred2(GREATER, true, b2, b1); }
+{ return pred2(LESS, true, b1, b2); }
 
 FormBlock operator>=(const TermBlock& b1, const TermBlock& b2)
-{ return pred2(GREATER, false, b2, b1); }
+{ return pred2(GREATER_EQUAL, true, b1, b2); }
 
 TermBlock operator+(const TermBlock& b1, const TermBlock& b2)
 { return fun2(PLUS, b1, b2); }
@@ -337,7 +345,7 @@ UnitList* AxiomGenerator::getAxioms(Context* ctx)
 
   _ctx=ctx;
 
-  zero=fun0(ZERO, _ctx);
+  zero=LazyConstant(ZERO, _ctx);
   X0=var(0, _ctx);
   X1=var(1, _ctx);
   X2=var(2, _ctx);

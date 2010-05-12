@@ -211,6 +211,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/SMTParser.o\
          Shell/Statistics.o\
          Shell/SymCounter.o\
+         Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/Token.o\
          Shell/TPTPLexer.o\

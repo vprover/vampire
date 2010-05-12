@@ -10,6 +10,9 @@
 #include "../Forwards.hpp"
 
 #include "../Lib/DHMap.hpp"
+#include "../Lib/DHSet.hpp"
+
+#include "../Kernel/Term.hpp"
 
 
 namespace Shell
@@ -25,6 +28,9 @@ enum TheoryElement
   //predicates
   EQUAL,
   GREATER,
+  GREATER_EQUAL,
+  LESS,
+  LESS_EQUAL,
 
   //functions
   PLUS,
@@ -41,11 +47,14 @@ public:
   unsigned pred(TheoryElement el);
   unsigned fun(TheoryElement el);
   bool supported(TheoryElement el);
+  bool has(TheoryElement el) const { return _usedElements.find(el); }
+  void include(TheoryElement el) { _usedElements.insert(el); }
 
   unsigned arity(TheoryElement el);
   bool isFunction(TheoryElement el);
 private:
   DHMap<TheoryElement,unsigned> _interpretation;
+  DHSet<TheoryElement> _usedElements;
 };
 
 struct FormBlock
@@ -68,6 +77,17 @@ public:
   TermList term;
 };
 
+struct LazyConstant
+{
+public:
+  LazyConstant() : ctx(0) {}
+  LazyConstant(TheoryElement te, Context* ctx) : ctx(ctx), te(te) {}
+  operator TermBlock();
+
+  Context* ctx;
+  TheoryElement te;
+};
+
 TermBlock var(unsigned num, Context* ctx);
 
 TermBlock fun(TheoryElement te, const TermBlock* args, Context* ctx=0);
@@ -76,6 +96,7 @@ TermBlock fun(unsigned fn, const TermBlock* args, Context* ctx=0);
 FormBlock pred(TheoryElement te, bool positive, const TermBlock* args, Context* ctx=0);
 FormBlock pred(unsigned pred, bool positive, const TermBlock* args, Context* ctx=0);
 
+TermBlock fun0(TheoryElement te, Context* ctx);
 TermBlock fun1(TheoryElement te, const TermBlock& b1);
 TermBlock fun2(TheoryElement te, const TermBlock& b1, const TermBlock& b2);
 FormBlock pred2(TheoryElement te, bool positive, const TermBlock& b1, const TermBlock& b2);
@@ -90,6 +111,12 @@ FormBlock operator>=(const TermBlock& b1, const TermBlock& b2);
 
 TermBlock operator+(const TermBlock& b1, const TermBlock& b2);
 TermBlock operator++(const TermBlock& b1,int);
+
+
+FormBlock operator!(const FormBlock& f);
+FormBlock operator|(const FormBlock& l, const FormBlock& r);
+FormBlock operator&(const FormBlock& l, const FormBlock& r);
+
 
 //the followint is to allow having --> stand for an implication
 struct HalfImpl {
@@ -122,9 +149,11 @@ protected:
   virtual void enumerate() = 0;
 
   void axiom(FormBlock b);
+  bool has(TheoryElement el) const { return _ctx->has(el); }
+  void include(TheoryElement el) { return _ctx->include(el); }
 
   TermBlock X0,X1,X2,X3,X4;
-  TermBlock zero;
+  LazyConstant zero;
 private:
   Context* _ctx;
   UnitList* _acc;

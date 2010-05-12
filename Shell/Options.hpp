@@ -51,6 +51,7 @@ public:
     INEQUALITY_SPLITTING,
     INPUT_FILE,
     INPUT_SYNTAX,
+    INTERPRETED_EVALUATION,
 
     LATEX_OUTPUT,
     LITERAL_COMPARISON_MODE,
@@ -113,6 +114,7 @@ public:
 
     TEST_ID,
     THANKS,
+    THEORY_AXIOMS,
     TIME_LIMIT,
     TIME_STATISTICS,
 
@@ -329,6 +331,8 @@ public:
   string xmlOutput() const { return _xmlOutput; }
   string thanks() const { return _thanks; }
 
+  bool interpretedEvaluation() const { return _interpretedEvaluation; }
+  bool theoryAxioms() const { return _theoryAxioms; }
   Condensation condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
   string namePrefix() const { return _namePrefix; }
@@ -400,6 +404,7 @@ private:
   int _inequalitySplitting;
   string _inputFile;
   InputSyntax _inputSyntax;
+  bool _interpretedEvaluation;
 
   string _latexOutput;
   LiteralComparisonMode _literalComparisonMode;
@@ -461,6 +466,7 @@ private:
 
   string _testId;
   string _thanks;
+  bool _theoryAxioms;
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
   bool _timeStatistics;

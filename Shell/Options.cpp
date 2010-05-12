@@ -101,6 +101,7 @@ const char* Options::Constants::_optionNames[] = {
   "inequality_splitting",
   "input_file",
   "input_syntax",
+  "interpreted_evaluation",
 
   "latex_output",
   "literal_comparison_mode",
@@ -162,6 +163,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "test_id",
   "thanks",
+  "theory_axioms",
   "time_limit",
   "time_statistics",
 
@@ -414,6 +416,7 @@ Options::Options ()
   _inequalitySplitting(3),
   _inputFile(""),
   _inputSyntax(IS_TPTP),
+  _interpretedEvaluation(false),
 
   _latexOutput("off"),
   _literalComparisonMode(LCM_STANDARD),
@@ -480,6 +483,7 @@ Options::Options ()
 
   _testId ("unspecified_test"),
   _thanks("Tanya"),
+  _theoryAxioms(false),
   _timeLimitInDeciseconds(600),
   _timeStatistics(false),
 
@@ -617,6 +621,10 @@ void Options::set (const char* name,const char* value, int index)
     case INPUT_SYNTAX:
       _inputSyntax = (InputSyntax)Constants::inputSyntaxValues.find(value);
       return;
+    case INTERPRETED_EVALUATION:
+      _interpretedEvaluation = onOffToBool(value,name);
+      return;
+
 
     case LATEX_OUTPUT:
       _latexOutput = value;
@@ -823,15 +831,15 @@ void Options::set (const char* name,const char* value, int index)
     case TEST_ID:
       _testId = value;
       return;
-
     case THANKS:
       _thanks = value;
       return;
-
+    case THEORY_AXIOMS:
+      _theoryAxioms = onOffToBool(value,name);
+      return;
     case TIME_LIMIT:
       _timeLimitInDeciseconds = readTimeLimit(value);
       return;
-
     case TIME_STATISTICS:
       _timeStatistics = onOffToBool(value,name);
       return;
@@ -1147,6 +1155,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case INPUT_SYNTAX:
     str << Constants::inputSyntaxValues[_inputSyntax];
     return;
+  case INTERPRETED_EVALUATION:
+    str << boolToOnOff(_interpretedEvaluation);
+    return;
 
   case LATEX_OUTPUT:
     str << _latexOutput;
@@ -1316,6 +1327,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case THANKS:
     str << _thanks;
+    return;
+  case THEORY_AXIOMS:
+    str << boolToOnOff(_theoryAxioms);
     return;
   case TIME_LIMIT:
     str << _timeLimitInDeciseconds/10;

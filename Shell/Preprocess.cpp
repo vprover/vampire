@@ -29,6 +29,7 @@
 #include "SimplifyFalseTrue.hpp"
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
+#include "TheoryAxioms.hpp"
 
 // #include "../Lib/Sort.hpp"
 // #include "ClausalDefinition.hpp"
@@ -96,6 +97,11 @@ void Preprocess::preprocess (UnitList*& units)
   if(env.options->sineSelection()!=Options::SS_OFF) {
     env.statistics->phase=Statistics::SINE_SELECTION;
     SineSelector().perform(units);
+  }
+
+  if(env.options->theoryAxioms()) {
+    env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+    TheoryAxioms().apply(units);
   }
 
   {

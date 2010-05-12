@@ -223,6 +223,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Normalization";
   case SINE_SELECTION:
     return "SInE selection";
+  case INCLUDING_THEORY_AXIOMS:
+    return "Including theory axioms";
   case PREPROCESS_1:
     return "Preprocessing 1";
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
