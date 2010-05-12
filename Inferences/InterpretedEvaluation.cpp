@@ -37,13 +37,15 @@ enum ItpFunctionNumbers {
  */
 int InterpretedEvaluation::getInterpretedFunction(Term* t)
 {
-  //TODO: implement
+  CALL("InterpretedEvaluation::getInterpretedFunction");
 
-  //this is just a testing implementation
-  if(t->functionName()=="f_plus") {
-    return 0;
+  Signature::Symbol* sym =env.signature->getFunction(t->functor());
+  if(!sym->interpreted()) {
+    return -1;
   }
-  return -1;
+  Signature::InterpretedSymbol* isym =
+      static_cast<Signature::InterpretedSymbol*>(sym);
+  return isym->getInterpretation();
 }
 
 /**
@@ -53,8 +55,15 @@ int InterpretedEvaluation::getInterpretedFunction(Term* t)
  */
 int InterpretedEvaluation::getInterpretedPredicate(Literal* lit)
 {
-  //TODO: implement
-  return -1;
+  CALL("InterpretedEvaluation::getInterpretedPredicate");
+
+  Signature::Symbol* sym =env.signature->getPredicate(lit->functor());
+  if(!sym->interpreted()) {
+    return -1;
+  }
+  Signature::InterpretedSymbol* isym =
+      static_cast<Signature::InterpretedSymbol*>(sym);
+  return isym->getInterpretation();
 }
 
 /**
@@ -63,46 +72,46 @@ int InterpretedEvaluation::getInterpretedPredicate(Literal* lit)
  */
 bool InterpretedEvaluation::isInterpretedConstant(Term* t)
 {
-  //TODO: implement
+  CALL("InterpretedEvaluation::isInterpretedConstant");
 
-  //this is just a testing implementation
-  string fname=t->functionName();
-  if(fname.substr(0,2)=="n_") {
-    ASS_EQ(t->arity(),0);
-    return true;
-  }
-  return false;
+  return t->arity()==0 && env.signature->getFunction(t->functor())->interpreted();
 }
 
 InterpretedType InterpretedEvaluation::interpretConstant(TermList t)
 {
+  CALL("InterpretedEvaluation::interpretConstant");
+
   ASS(t.isTerm());
   return interpretConstant(t.term());
 }
 
 InterpretedType InterpretedEvaluation::interpretConstant(Term* t)
 {
-  //TODO: implement
-
-  //this is just a testing implementation
+  CALL("InterpretedEvaluation::interpretConstant");
   ASS(isInterpretedConstant(t));
-  string fname=t->functionName();
-  int res;
-  ALWAYS(Int::stringToInt(fname.substr(2,string::npos), res));
-  return res;
+
+  Signature::InterpretedSymbol* sym =
+      static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(t->functor()));
+
+  return sym->getValue();
 }
 
 Term* InterpretedEvaluation::getRepresentation(InterpretedType val)
 {
-  //TODO: implement
+  CALL("InterpretedEvaluation::getRepresentation");
 
-  //this is just a testing implementation
-  string fname="n_"+Int::toString(val);
-  int functor=env.signature->addFunction(fname, 0);
+  Term** pRes;
+
+  if(!_constants.getValuePtr(val, pRes)) {
+    return *pRes;
+  }
+
+  int functor=env.signature->addInterpretedConstant(val);
 
   Term* t = new(0) Term;
   t->makeSymbol(functor,0);
-  return env.sharing->insert(t);
+  *pRes=env.sharing->insert(t);
+  return *pRes;
 }
 
 
@@ -113,18 +122,114 @@ Term* InterpretedEvaluation::getRepresentation(InterpretedType val)
  */
 Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
 {
-  //TODO: implement
+  CALL("InterpretedEvaluation::interpretFunction");
+  ASS_GE(fnIndex, 0);
 
-  //this is just a testing implementation
-  if(fnIndex==0) {
-    return getRepresentation(interpretConstant(args[0])+interpretConstant(args[1]));
+  Signature::InterpretedSymbol::Interpretation interp=
+      static_cast<Signature::InterpretedSymbol::Interpretation>(fnIndex);
+  ASS(Signature::InterpretedSymbol::isFunction(interp));
+
+  InterpretedType arg1, arg2, arg3;
+
+  switch(Signature::InterpretedSymbol::getArity(interp)) {
+  case 3:
+    arg3=interpretConstant(args[2]);
+  case 2:
+    arg2=interpretConstant(args[1]);
+  case 1:
+    arg1=interpretConstant(args[0]);
   }
-  INVALID_OPERATION("Unsupported interpreted function");
+
+  InterpretedType res;
+
+  //we do owerflow checking based on the fact that InterpretedType is int
+  ASS_STATIC(sizeof(InterpretedType)==4);
+
+  switch(interp) {
+  case Signature::InterpretedSymbol::UNARY_MINUS:
+    res=-arg1;
+    if(res==arg1) {
+      //the overflow at INT_MIN manifests by the value staying
+      //the same for unary minus
+      return 0;
+    }
+    break;
+  case Signature::InterpretedSymbol::PLUS:
+    if(arg2<0) {
+      if(INT_MIN - arg2 > arg1) { return 0; }
+    }
+    else {
+      if(INT_MAX - arg2 < arg1) { return 0; }
+    }
+    res=arg1+arg2;
+    break;
+  case Signature::InterpretedSymbol::MINUS:
+    if(arg2<0) {
+      if(INT_MIN + arg2 < arg1) { return 0; }
+    }
+    else {
+      if(INT_MAX + arg2 > arg1) { return 0; }
+    }
+    res=arg1-arg2;
+    break;
+  case Signature::InterpretedSymbol::MULTIPLY:
+  {
+    ASS_STATIC(sizeof(long long)==8);
+    long long mres=static_cast<long long>(arg1)*arg2;
+    if(mres>INT_MAX || mres<INT_MIN) {
+      return 0;
+    }
+    res=mres;
+    break;
+  }
+  case Signature::InterpretedSymbol::DIVIDE:
+    if(arg1%arg2!=0) {
+      return 0;
+    }
+    res=arg1/arg2;
+    break;
+  case Signature::InterpretedSymbol::IF_THEN_ELSE:
+    if(arg1) {
+      res=arg2;
+    }
+    else {
+      res=arg3;
+    }
+    break;
+
+  default:
+    ASSERTION_VIOLATION;
+  }
+
+  return getRepresentation(res);
 }
 
 bool InterpretedEvaluation::interpretPredicate(int predIndex, TermList* args)
 {
-  INVALID_OPERATION("Unsupported interpreted predicate");
+  CALL("InterpretedEvaluation::interpretPredicate");
+  ASS_GE(predIndex, 0);
+
+  Signature::InterpretedSymbol::Interpretation interp=
+      static_cast<Signature::InterpretedSymbol::Interpretation>(predIndex);
+  ASS(!Signature::InterpretedSymbol::isFunction(interp));
+
+
+  //all interpreted predicates are binary
+  InterpretedType arg1=interpretConstant(args[0]);
+  InterpretedType arg2=interpretConstant(args[1]);
+
+  switch(interp) {
+  case Signature::InterpretedSymbol::GREATER:
+    return arg1>arg2;
+  case Signature::InterpretedSymbol::GREATER_EQUAL:
+    return arg1>=arg2;
+  case Signature::InterpretedSymbol::LESS:
+    return arg1<arg2;
+  case Signature::InterpretedSymbol::LESS_EQUAL:
+    return arg1<=arg2;
+  default:
+    ASSERTION_VIOLATION;
+  }
 }
 
 bool InterpretedEvaluation::evaluateLiteral(Literal* lit,

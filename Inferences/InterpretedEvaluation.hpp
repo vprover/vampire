@@ -9,6 +9,8 @@
 
 #include "../Forwards.hpp"
 
+#include "../Lib/DHMap.hpp"
+
 #include "InferenceEngine.hpp"
 
 namespace Inferences {
@@ -32,6 +34,8 @@ private:
   Term* interpretFunction(int fnIndex, TermList* args);
   bool interpretPredicate(int predIndex, TermList* args);
   bool evaluateLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
+
+  DHMap<InterpretedType, Term*> _constants;
 };
 
 };
