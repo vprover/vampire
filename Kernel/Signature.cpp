@@ -40,6 +40,32 @@ unsigned Signature::InterpretedSymbol::getArity(Interpretation i)
 }
 
 /**
+ * Return true iff the symbol that is interpreted by Interpretation
+ * is a function (false is returned for predicates).
+ */
+bool Signature::InterpretedSymbol::isFunction(Interpretation i)
+{
+  CALL("Signature::InterpretedSymbol::isFunction");
+
+  switch(i) {
+  case UNARY_MINUS:
+  case PLUS:
+  case MINUS:
+  case MULTIPLY:
+  case DIVIDE:
+  case IF_THEN_ELSE:
+    return true;
+
+  case GREATER:
+  case GREATER_EQUAL:
+  case LESS:
+  case LESS_EQUAL:
+    return false;
+  }
+  ASSERTION_VIOLATION;
+}
+
+/**
  * Create a Signature.
  * @since 07/05/2007 Manchester
  */
@@ -69,6 +95,80 @@ Signature::~Signature ()
     delete _preds[i];
   }
 } // Signature::~Signature
+
+
+/**
+ * Marks a function as interpreted.
+ *
+ * Must be called before the function appears in the problem for the first time.
+ */
+void Signature::registerInterpretedFunction(const string& name, unsigned arity,
+    InterpretedSymbol::Interpretation interpretation)
+{
+  CALL("Signature::registerInterpretedFunction");
+  ASS_EQ(arity, InterpretedSymbol::getArity(interpretation));
+  ASS(InterpretedSymbol::isFunction(interpretation));
+
+  string symbolKey = key(name,arity);
+
+  if (_funNames.find(symbolKey)) {
+    USER_ERROR("Interpreted function '"+name+"' must be declared before it is used for the first time");
+  }
+
+  unsigned fnNum = _funs.length();
+  _funs.push(new InterpretedSymbol(name, interpretation));
+  _funNames.insert(symbolKey, fnNum);
+}
+
+/**
+ * Marks a predicate as interpreted.
+ *
+ * Must be called before the predicate appears in the problem for the first time.
+ */
+void Signature::registerInterpretedPredicate(const string& name, unsigned arity,
+    InterpretedSymbol::Interpretation interpretation)
+{
+  CALL("Signature::registerInterpretedPredicate");
+  ASS_EQ(arity, InterpretedSymbol::getArity(interpretation));
+  ASS(!InterpretedSymbol::isFunction(interpretation));
+
+  string symbolKey = key(name,arity);
+
+  if (_predNames.find(symbolKey)) {
+    USER_ERROR("Interpreted predicate '"+name+"' must be declared before it is used for the first time");
+  }
+
+  unsigned predNum = _preds.length();
+  _preds.push(new InterpretedSymbol(name,interpretation));
+  _predNames.insert(symbolKey,predNum);
+}
+
+/**
+ * If an interpreted integer constant of given value exists, return its
+ * number. Otherwise add a new one and return its number.
+ */
+unsigned Signature::addInterpretedConstant(int value)
+{
+  CALL("Signature::addFunction");
+
+  unsigned result;
+  if(_intConstants.find(value, result)) {
+    return result;
+  }
+
+  string name=Int::toString(value);
+  string symbolKey = key(name,0);
+  //all integer constants must be registered in _intConstants, and
+  //other symbols cannot have the same symbolKey as an integer constant
+  ASS(!_funNames.find(symbolKey));
+
+  result = _funs.length();
+  _funs.push(new InterpretedSymbol(name,value));
+  _funNames.insert(symbolKey,result);
+  _intConstants.insert(value, result);
+  return result;
+}
+
 
 
 /**

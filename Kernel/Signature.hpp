@@ -18,6 +18,7 @@
 #include "../Lib/Allocator.hpp"
 #include "../Lib/Stack.hpp"
 #include "../Lib/Map.hpp"
+#include "../Lib/DHMap.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -79,9 +80,9 @@ class Signature
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */
-    inline unsigned arity() { return _arity; }
+    inline unsigned arity() const { return _arity; }
     /** Return the name of the symbol */
-    inline const string& name() { return _name; }
+    inline const string& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
     inline bool interpreted() const { return _interpreted; }
 
@@ -114,6 +115,7 @@ class Signature
     };
 
     static unsigned getArity(Interpretation i);
+    static bool isFunction(Interpretation i);
   protected:
     union {
       int _value;
@@ -122,8 +124,15 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const string& nm,unsigned arity)
-    : Symbol(nm, arity)
+    InterpretedSymbol(const string& nm, Interpretation interp)
+    : Symbol(nm, getArity(interp)), _interp(interp)
+    {
+      CALL("InterpretedSymbol");
+
+      _interpreted=true;
+    }
+    InterpretedSymbol(const string& nm,int value)
+    : Symbol(nm, 0), _value(value)
     {
       CALL("InterpretedSymbol");
 
@@ -131,23 +140,18 @@ class Signature
     }
 
     /** Return integer value of the interpreted constant */
-    inline int getValue() const { ASS(interpreted()); ASS_EQ(_arity,0); return _value; }
+    inline int getValue() const { ASS(interpreted()); ASS_EQ(arity(),0); return _value; }
     /** Return the interpreted function that corresponds to this symbol */
-    inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(_arity,0); return _interp; }
-
-    void setValue(int value) {
-      ASS(interpreted());
-      ASS_EQ(_arity,0);
-      _value=value;
-    }
-    void setInterpretation(Interpretation i) {
-      ASS(interpreted());
-      ASS_EQ(_arity,getArity(i));
-      _interp=i;
-    }
+    inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(arity(),0); return _interp; }
   };
 
   typedef Map<string,unsigned,Hash> SymbolMap;
+
+  void registerInterpretedFunction(const string& name,unsigned arity,
+      InterpretedSymbol::Interpretation interpretation);
+  void registerInterpretedPredicate(const string& name, unsigned arity,
+      InterpretedSymbol::Interpretation interpretation);
+  unsigned addInterpretedConstant(int value);
 
   unsigned addSkolemFunction(unsigned arity);
   /**
@@ -257,6 +261,9 @@ private:
   int _lastName;
   /** Last number used for skolem functions */
   int _lastSkolem;
+
+  /** Map from integers to constant symbols representing them */
+  DHMap<int, unsigned> _intConstants;
 
   static string key(const string& name,int arity);
 }; // class Signature
