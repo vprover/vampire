@@ -20,6 +20,7 @@ unsigned Signature::InterpretedSymbol::getArity(Interpretation i)
   CALL("Signature::InterpretedSymbol::getArity");
 
   switch(i) {
+  case SUCCESSOR:
   case UNARY_MINUS:
     return 1;
 
@@ -48,6 +49,7 @@ bool Signature::InterpretedSymbol::isFunction(Interpretation i)
   CALL("Signature::InterpretedSymbol::isFunction");
 
   switch(i) {
+  case SUCCESSOR:
   case UNARY_MINUS:
   case PLUS:
   case MINUS:

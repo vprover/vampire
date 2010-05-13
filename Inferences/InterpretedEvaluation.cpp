@@ -146,6 +146,12 @@ Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
   ASS_STATIC(sizeof(InterpretedType)==4);
 
   switch(interp) {
+  case Signature::InterpretedSymbol::SUCCESSOR:
+    if(arg1==INT_MAX) {
+      return 0;
+    }
+    res=arg1+1;
+    break;
   case Signature::InterpretedSymbol::UNARY_MINUS:
     res=-arg1;
     if(res==arg1) {
@@ -183,7 +189,7 @@ Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
     break;
   }
   case Signature::InterpretedSymbol::DIVIDE:
-    if(arg1%arg2!=0) {
+    if(arg2==0 || arg1%arg2!=0) {
       return 0;
     }
     res=arg1/arg2;
@@ -280,13 +286,20 @@ bool InterpretedEvaluation::evaluateLiteral(Literal* lit,
       if(itpFn>=0) {
 	newTrm=interpretFunction(itpFn, argLst);
       }
-      if(!newTrm) {
+      if(!newTrm && childrenModified) {
 	newTrm=Term::create(orig,argLst);
 	allItpConsts.setTop(false);
       }
       args.truncate(args.length() - orig->arity());
-      args.push(TermList(newTrm));
-      modified.setTop(true);
+      if(newTrm) {
+	args.push(TermList(newTrm));
+	modified.setTop(true);
+      }
+      else {
+	//we weren't able to simplify the term
+	args.push(TermList(orig));
+	allItpConsts.setTop(false);
+      }
       continue;
     }
 
@@ -385,7 +398,10 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   res->setAge(cl->age());
   env.statistics->evaluations++;
 
-  return cl;
+//  LOG("orig: "<<(*cl));
+//  LOG("res:  "<<(*res));
+
+  return res;
 }
 
 }

@@ -98,6 +98,7 @@ class Signature
     {
       //functions
 
+      SUCCESSOR,
       UNARY_MINUS,
       PLUS,
       MINUS,
@@ -138,6 +139,8 @@ class Signature
 
       _interpreted=true;
     }
+    CLASS_NAME("Signature::InterpretedSymbol");
+    USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return integer value of the interpreted constant */
     inline int getValue() const { ASS(interpreted()); ASS_EQ(arity(),0); return _value; }
