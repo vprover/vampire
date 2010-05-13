@@ -4,6 +4,7 @@
  */
 
 #include "../Debug/Assertion.hpp"
+#include "../Debug/Tracer.hpp"
 
 #include "Theory.hpp"
 
