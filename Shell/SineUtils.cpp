@@ -3,6 +3,7 @@
  * Implements class SineUtils.
  */
 
+#include "../Lib/Deque.hpp"
 #include "../Lib/DHMultiset.hpp"
 #include "../Lib/Environment.hpp"
 #include "../Lib/List.hpp"
@@ -273,7 +274,7 @@ void SineSelector::perform(UnitList*& units)
 
   Set<Unit*> selected;
   Stack<Unit*> selectedStack; //on this stack there are Units in the order they were selected
-  Stack<Unit*> newlySelected;
+  Deque<Unit*> newlySelected;
 
   //build the D-relation and select the non-axiom formulas
   _def.init(symIdBound,0);
@@ -287,14 +288,34 @@ void SineSelector::perform(UnitList*& units)
     else {
       selected.insert(u);
       selectedStack.push(u);
-      newlySelected.push(u);
+      newlySelected.push_back(u);
     }
   }
 
+  int depth=0;
+  if(env.options->sineDepth()) {
+    //for depth limit we must keep track of distance from the original formulas
+    newlySelected.push_back(0);
+  }
 
   //select required axiom formulas
   while(newlySelected.isNonEmpty()) {
-    Unit* u=newlySelected.pop();
+    Unit* u=newlySelected.pop_front();
+
+    if(!u) {
+      //next selected formulas will be one step further from the original formulas
+      depth++;
+      if(depth==env.options->sineDepth()) {
+	break;
+      }
+
+      if(newlySelected.isNonEmpty()) {
+	//we must push another mark if we're not done yet
+	newlySelected.push_back(0);
+      }
+      continue;
+    }
+
     SymIdIterator sit=extractSymIds(u);
     while(sit.hasNext()) {
       SymId sym=sit.next();
@@ -306,7 +327,7 @@ void SineSelector::perform(UnitList*& units)
 	}
 	selected.insert(du);
 	selectedStack.push(du);
-	newlySelected.push(du);
+	newlySelected.push_back(du);
       }
       //all defining units for the symbol sym were selected,
       //so we can remove them from the relation

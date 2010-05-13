@@ -98,6 +98,7 @@ public:
     SHOW_SKOLEMISATIONS,
     SHOW_SYMBOL_ELIMINATION,
     SIMULATED_TIME_LIMIT,
+    SINE_DEPTH,
     SINE_GENERALITY_THRESHOLD,
     SINE_SELECTION,
     SINE_TOLERANCE,
@@ -350,6 +351,7 @@ public:
   bool splittingWithBlocking() const { return _splittingWithBlocking; }
   bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
+  unsigned sineDepth() const { return _sineDepth; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold; }
   SineSelection sineSelection() const { return _sineSelection; }
   float sineTolerance() const { return _sineTolerance; }
@@ -450,6 +452,7 @@ private:
   bool _showSkolemisations;
   bool _showSymbolElimination;
   int _simulatedTimeLimit;
+  unsigned _sineDepth;
   unsigned _sineGeneralityThreshold;
   SineSelection _sineSelection;
   float _sineTolerance;

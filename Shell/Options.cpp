@@ -147,6 +147,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_skolemisations",
   "show_symbol_elimination",
   "simulated_time_limit",
+  "sine_depth",
   "sine_generality_threshold",
   "sine_selection",
   "sine_tolerance",
@@ -467,6 +468,7 @@ Options::Options ()
   _showSkolemisations(false),
   _showSymbolElimination(false),
   _simulatedTimeLimit(0),
+  _sineDepth(0),
   _sineGeneralityThreshold(0),
   _sineSelection(SS_OFF),
   _sineTolerance(1.0f),
@@ -780,6 +782,12 @@ void Options::set (const char* name,const char* value, int index)
     case SIMULATED_TIME_LIMIT:
       _simulatedTimeLimit = readTimeLimit(value);
       return;
+    case SINE_DEPTH:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_sineDepth = unsignedValue;
+	return;
+      }
+      break;
     case SINE_GENERALITY_THRESHOLD:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
 	_sineGeneralityThreshold = unsignedValue;
@@ -1281,6 +1289,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     if (_simulatedTimeLimit % 10) {
       str << '.' << _simulatedTimeLimit % 10;
     }
+    return;
+  case SINE_DEPTH:
+    str << _sineDepth;
     return;
   case SINE_GENERALITY_THRESHOLD:
     str << _sineGeneralityThreshold;
