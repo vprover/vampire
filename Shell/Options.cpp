@@ -1665,6 +1665,7 @@ bool Options::complete () const
          _superpositionFromVariables &&
          ! _maxWeight &&
          ! _forwardLiteralRewriting &&
+         ! _interpretedEvaluation &&
          _sineSelection==SS_OFF;
 } // Options::complete
 

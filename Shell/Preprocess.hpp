@@ -24,7 +24,7 @@ class Preprocess
 {
 public:
   /** Initialise the preprocessor */
-  explicit Preprocess(const Property& property,const Options& options)
+  explicit Preprocess(Property& property,const Options& options)
     : _property(property),
       _options(options)
   {}
@@ -36,7 +36,7 @@ private:
   UnitList* normalise(UnitList*);
 
   /** Properties of the problem */
-  const Property& _property;
+  Property& _property;
   /** Options used in the normalisation */
   const Options& _options;
 }; // class Preprocess

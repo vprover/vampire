@@ -225,6 +225,8 @@ typedef Stack<SATClause*> SATClauseStack;
 
 namespace Shell
 {
+class Property;
+
 class TPTPLexer;
 class TPTPParser;
 

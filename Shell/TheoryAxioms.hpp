@@ -18,7 +18,7 @@ public:
 
   struct Arithmetic;
 
-  void apply(UnitList*& units);
+  void apply(UnitList*& units, Property* prop);
 
 };
 

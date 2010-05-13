@@ -8,6 +8,7 @@
 #include "../Kernel/Signature.hpp"
 
 #include "AxiomGenerator.hpp"
+#include "Property.hpp"q
 #include "SymCounter.hpp"
 
 #include "TheoryAxioms.hpp"
@@ -38,6 +39,9 @@ struct TheoryAxioms::Arithmetic
       axiom( !(X0>X0) );
       axiom( (X0>X1) --> !(X1>X0) );
       axiom( ((X0>X1) & (X1>X2)) --> (X0>X2) );
+      if(has(Theory::SUCCESSOR)) {
+	axiom( X0++>X0 );
+      }
     }
     if(has(Theory::PLUS)) {
       include(Theory::SUCCESSOR);
@@ -48,14 +52,14 @@ struct TheoryAxioms::Arithmetic
       axiom( X0+(X1++)==(X0+X1)++ );
 
       if(has(Theory::GREATER)) {
-
+	axiom( (X0+X1>X0+X2) -=- (X1>X2) );
       }
     }
 
   }
 };
 
-void TheoryAxioms::apply(UnitList*& units)
+void TheoryAxioms::apply(UnitList*& units, Property* prop)
 {
 
   Arithmetic axGen;
@@ -84,6 +88,10 @@ void TheoryAxioms::apply(UnitList*& units)
   }
 
   UnitList* newAxioms=axGen.getAxioms();
+
+  if(newAxioms) {
+    prop->scan(newAxioms);
+  }
 
   units=UnitList::concat(newAxioms, units);
 }

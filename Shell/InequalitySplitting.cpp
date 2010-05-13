@@ -41,7 +41,7 @@ void InequalitySplitting::perform(UnitList*& units)
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
     Clause* cl=static_cast<Clause*>(uit.next());
-    ASS(cl->isClause());
+    ASS_REP(cl->isClause(), *cl);
     Clause* cl2=trySplitClause(cl);
     if(cl2!=cl) {
       uit.replace(cl2);

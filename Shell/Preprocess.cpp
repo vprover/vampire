@@ -101,7 +101,7 @@ void Preprocess::preprocess (UnitList*& units)
 
   if(env.options->theoryAxioms()) {
     env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
-    TheoryAxioms().apply(units);
+    TheoryAxioms().apply(units, &_property);
   }
 
   {

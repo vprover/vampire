@@ -133,9 +133,9 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
 {
   CALL("Signature::getInterpretingSymbol");
 
-  unsigned* pRes;
-  if(!_iSymbols.getValuePtr(interp, pRes)) {
-    return *pRes;
+  unsigned res;
+  if(_iSymbols.find(interp, res)) {
+    return res;
   }
   const char* name;
   switch(interp) {
