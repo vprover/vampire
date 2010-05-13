@@ -24,7 +24,8 @@ Signature::Signature ()
   CALL("Signature::Signature");
 
   // initialize equality
-  addPredicate("=", 2);
+  registerInterpretedPredicate("=", 2, Theory::EQUAL);
+  ASS_EQ(predicateName(0), "="); //equality must have number 0
   getPredicate(0)->markSkip();
 } // Signature::Signature
 
@@ -65,7 +66,8 @@ void Signature::registerInterpretedFunction(const string& name, unsigned arity,
   _funs.push(new InterpretedSymbol(name, interpretation));
   _funNames.insert(symbolKey, fnNum);
   if(!_iSymbols.insert(interpretation, fnNum)) {
-    USER_ERROR("One theory function cannot correspond to multiple signature functions.");
+    USER_ERROR("One theory function cannot correspond to multiple signature functions: "+
+	functionName(_iSymbols.get(interpretation))+", "+name);
   }
 }
 
@@ -91,7 +93,8 @@ void Signature::registerInterpretedPredicate(const string& name, unsigned arity,
   _preds.push(new InterpretedSymbol(name,interpretation));
   _predNames.insert(symbolKey,predNum);
   if(!_iSymbols.insert(interpretation, predNum)) {
-    USER_ERROR("One theory predicate cannot correspond to multiple signature predicates.");
+    USER_ERROR("One theory predicate cannot correspond to multiple signature predicates: "+
+	predicateName(_iSymbols.get(interpretation))+", "+name);
   }
 }
 
@@ -121,6 +124,11 @@ unsigned Signature::addInterpretedConstant(InterpretedType value)
   return result;
 }
 
+/**
+ * Return number of symbol that is interpreted by Interpretation @b interp.
+ *
+ * If no such symbol exists, it is created.
+ */
 unsigned Signature::getInterpretingSymbol(Interpretation interp)
 {
   CALL("Signature::getInterpretingSymbol");

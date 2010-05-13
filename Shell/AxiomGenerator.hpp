@@ -24,82 +24,47 @@ using namespace Kernel;
 namespace AxGen
 {
 
-enum TheoryElement
-{
-  //predicates
-  EQUAL,
-  GREATER,
-  GREATER_EQUAL,
-  LESS,
-  LESS_EQUAL,
-
-  //functions
-  PLUS,
-  SUCCESSOR,
-};
-
-class Context
-{
-public:
-  void interpret(TheoryElement el, unsigned num);
-
-  unsigned pred(TheoryElement el);
-  unsigned fun(TheoryElement el);
-  bool supported(TheoryElement el);
-  bool has(TheoryElement el) const { return _usedElements.find(el); }
-  void include(TheoryElement el) { _usedElements.insert(el); }
-
-  unsigned arity(TheoryElement el);
-  bool isFunction(TheoryElement el);
-private:
-  DHMap<TheoryElement,unsigned> _interpretation;
-  DHSet<TheoryElement> _usedElements;
-};
-
 struct FormBlock
 {
 public:
-  FormBlock() : ctx(ctx) {}
-  FormBlock(Context* ctx, Formula* f) : ctx(ctx), form(f) {}
+  FormBlock() {}
+  FormBlock(Formula* f) : form(f) {}
 
-  Context* ctx;
   Formula* form;
 };
 
 struct TermBlock
 {
 public:
-  TermBlock() : ctx(0) {}
-  TermBlock(Context* ctx, TermList t) : ctx(ctx), term(t) {}
+  TermBlock()  {}
+  TermBlock(TermList t) : term(t) {}
 
-  Context* ctx;
   TermList term;
 };
 
 struct LazyConstant
 {
 public:
-  LazyConstant() : ctx(0) {}
-  LazyConstant(InterpretedType val, Context* ctx) : ctx(ctx), val(val) {}
+  LazyConstant() {}
+  LazyConstant(InterpretedType val) : val(val) {}
   operator TermBlock();
 
-  Context* ctx;
   InterpretedType val;
 };
 
-TermBlock var(unsigned num, Context* ctx);
+TermBlock var(unsigned num);
 
-TermBlock fun(TheoryElement te, const TermBlock* args, Context* ctx=0);
-TermBlock fun(unsigned fn, const TermBlock* args, Context* ctx=0);
+TermBlock fun(Interpretation te, const TermBlock* args);
+TermBlock fun(unsigned fn, const TermBlock* args);
 
-FormBlock pred(TheoryElement te, bool positive, const TermBlock* args, Context* ctx=0);
-FormBlock pred(unsigned pred, bool positive, const TermBlock* args, Context* ctx=0);
+FormBlock pred(Interpretation te, bool positive, const TermBlock* args);
+FormBlock pred(unsigned pred, bool positive, const TermBlock* args);
 
-TermBlock iConst(InterpretedType val, Context* ctx);
-TermBlock fun0(TheoryElement te, Context* ctx);
-TermBlock fun1(TheoryElement te, const TermBlock& b1);
-TermBlock fun2(TheoryElement te, const TermBlock& b1, const TermBlock& b2);
-FormBlock pred2(TheoryElement te, bool positive, const TermBlock& b1, const TermBlock& b2);
+TermBlock iConst(InterpretedType val);
+TermBlock fun0(Interpretation te);
+TermBlock fun1(Interpretation te, const TermBlock& b1);
+TermBlock fun2(Interpretation te, const TermBlock& b1, const TermBlock& b2);
+FormBlock pred2(Interpretation te, bool positive, const TermBlock& b1, const TermBlock& b2);
 
 FormBlock operator==(const TermBlock& b1, const TermBlock& b2);
 FormBlock operator!=(const TermBlock& b1, const TermBlock& b2);
@@ -144,23 +109,23 @@ using namespace AxGen;
 class AxiomGenerator
 {
 public:
-  UnitList* getAxioms(Context* ctx);
+  UnitList* getAxioms();
+
+  bool has(Interpretation el) const { return _presentElements.find(el); }
+  void include(Interpretation el) { _presentElements.insert(el); }
 protected:
   virtual void enumerate() = 0;
 
   void axiom(FormBlock b);
-  bool has(TheoryElement el) const { return _ctx->has(el); }
-  void include(TheoryElement el) { return _ctx->include(el); }
 
   TermBlock X0,X1,X2,X3,X4;
   LazyConstant zero;
 private:
-  Context* _ctx;
   UnitList* _acc;
+
+  DHSet<Interpretation> _presentElements;
 };
 
 };
-
-void testAxGen();
 
 #endif /* __AxiomGenerator__ */

@@ -5,6 +5,8 @@
 
 #include "../Lib/Environment.hpp"
 
+#include "../Kernel/Signature.hpp"
+
 #include "AxiomGenerator.hpp"
 #include "SymCounter.hpp"
 
@@ -20,32 +22,32 @@ struct TheoryAxioms::Arithmetic
 {
   void enumerate()
   {
-    if(has(GREATER_EQUAL)) {
-      include(GREATER);
+    if(has(Theory::GREATER_EQUAL)) {
+      include(Theory::GREATER);
       axiom( (X0>=X1) -=- !(X1>X0) );
     }
-    if(has(LESS)) {
-      include(GREATER);
+    if(has(Theory::LESS)) {
+      include(Theory::GREATER);
       axiom( (X0<X1) -=- (X1>X0) );
     }
-    if(has(LESS_EQUAL)) {
-      include(GREATER);
+    if(has(Theory::LESS_EQUAL)) {
+      include(Theory::GREATER);
       axiom( (X0<=X1) -=- !(X0>X1) );
     }
-    if(has(GREATER)) {
+    if(has(Theory::GREATER)) {
       axiom( !(X0>X0) );
       axiom( (X0>X1) --> !(X1>X0) );
       axiom( ((X0>X1) & (X1>X2)) --> (X0>X2) );
     }
-    if(has(PLUS)) {
-      include(SUCCESSOR);
+    if(has(Theory::PLUS)) {
+      include(Theory::SUCCESSOR);
 
       axiom( X0+X1==X1+X0 );
       axiom( (X0+X1)+X2==X0+(X1+X2) );
       axiom( X0+zero==X0 );
       axiom( X0+(X1++)==(X0+X1)++ );
 
-      if(has(GREATER)) {
+      if(has(Theory::GREATER)) {
 
       }
     }
@@ -55,13 +57,33 @@ struct TheoryAxioms::Arithmetic
 
 void TheoryAxioms::apply(UnitList*& units)
 {
-  SymCounter sctr(*env.signature);
-  sctr.count(units,1);
 
   Arithmetic axGen;
-  AxGen::Context ctx;
 
-  UnitList* newAxioms=axGen.getAxioms(&ctx);
+  //find out which symbols are used in the problem
+  SymCounter sctr(*env.signature);
+  sctr.count(units,1);
+  for(unsigned i=0;i<Theory::interpretationElementCount; i++) {
+    Interpretation interp=static_cast<Interpretation>(i);
+    if(!env.signature->haveInterpretingSymbol(interp)) {
+      continue;
+    }
+    if(Theory::isFunction(interp)) {
+      unsigned fn=env.signature->getInterpretingSymbol(interp);
+      if(sctr.getFun(fn).occ()) {
+	axGen.include(interp);
+      }
+    }
+    else {
+      unsigned pred=env.signature->getInterpretingSymbol(interp);
+      SymCounter::Pred* pc=&sctr.getPred(pred);
+      if(pc->pocc() || pc->nocc() || pc->docc()) {
+	axGen.include(interp);
+      }
+    }
+  }
+
+  UnitList* newAxioms=axGen.getAxioms();
 
   units=UnitList::concat(newAxioms, units);
 }

@@ -15,6 +15,14 @@ class Theory
 public:
   enum Interpretation
   {
+    //predicates
+
+    EQUAL,
+    GREATER,
+    GREATER_EQUAL,
+    LESS,
+    LESS_EQUAL,
+
     //functions
 
     SUCCESSOR,
@@ -25,14 +33,14 @@ public:
     DIVIDE,
     /** The X?Y:Z ternary operator like in C++ */
     IF_THEN_ELSE,
-
-    //predicates
-
-    GREATER,
-    GREATER_EQUAL,
-    LESS,
-    LESS_EQUAL
   };
+  /**
+   * Number of elements in the enum Interpretation
+   *
+   * At some points we make use of the fact that we can iterate through all
+   * interpretations by going through the set {0,...,interpretationElementCount-1}.
+   */
+  static const int interpretationElementCount=12;
 
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);

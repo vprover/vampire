@@ -26,110 +26,44 @@ using namespace Kernel;
 namespace AxGen
 {
 
-void Context::interpret(TheoryElement el, unsigned num)
-{
-  CALL("Context::interpret");
-  ASS( isFunction(el) ? (env.signature->functionArity(num)==arity(el)) :
-      (env.signature->predicateArity(num)==arity(el)));
-
-  ALWAYS(_interpretation.insert(el,num));
-}
-
-unsigned Context::pred(TheoryElement el)
-{
-  CALL("Context::pred");
-  return _interpretation.get(el);
-}
-unsigned Context::fun(TheoryElement el)
-{
-  CALL("Context::fun");
-  return _interpretation.get(el);
-}
-bool Context::supported(TheoryElement el)
-{
-  CALL("Context::supported");
-  return _interpretation.find(el);
-}
-
-unsigned Context::arity(TheoryElement el)
-{
-  CALL("Context::arity");
-
-  switch(el) {
-  case EQUAL:
-  case GREATER:
-  case PLUS:
-    return 2;
-  case SUCCESSOR:
-    return 1;
-  default:
-    ASSERTION_VIOLATION;
-  }
-}
-
-bool Context::isFunction(TheoryElement el)
-{
-  CALL("Context::isFunction");
-
-  switch(el) {
-  case EQUAL:
-  case GREATER:
-    return false;
-  case PLUS:
-  case SUCCESSOR:
-    return true;
-  default:
-    ASSERTION_VIOLATION;
-  }
-}
-
 LazyConstant::operator TermBlock()
 {
-  return iConst(val, ctx);
+  return iConst(val);
 }
 
 
-TermBlock iConst(InterpretedType val, Context* ctx)
+TermBlock iConst(InterpretedType val)
 {
   CALL("AxGen::fun0");
-  ASS(ctx);
 
-  return fun(env.signature->addInterpretedConstant(val), 0, ctx);
+  return fun(env.signature->addInterpretedConstant(val), 0);
 }
 
-TermBlock fun0(TheoryElement te, Context* ctx)
+TermBlock fun0(Interpretation te)
 {
   CALL("AxGen::fun0");
-  ASS(ctx);
-  ASS_EQ(ctx->arity(te),0);
 
-  return fun(te, 0, ctx);
+  return fun(te, 0);
 }
 
-TermBlock fun1(TheoryElement te, const TermBlock& b1)
+TermBlock fun1(Interpretation te, const TermBlock& b1)
 {
   CALL("AxGen::fun1");
-  ASS(b1.ctx);
-  ASS_EQ(b1.ctx->arity(te),1);
 
   return fun(te, &b1);
 }
 
-TermBlock fun2(TheoryElement te, const TermBlock& b1, const TermBlock& b2)
+TermBlock fun2(Interpretation te, const TermBlock& b1, const TermBlock& b2)
 {
   CALL("AxGen::fun2");
-  ASS(b1.ctx);
-  ASS_EQ(b1.ctx->arity(te),2);
 
   TermBlock args[]={b1,b2};
   return fun(te, args);
 }
 
-FormBlock pred2(TheoryElement te, bool positive, const TermBlock& b1, const TermBlock& b2)
+FormBlock pred2(Interpretation te, bool positive, const TermBlock& b1, const TermBlock& b2)
 {
   CALL("AxGen::pred2");
-  ASS(b1.ctx);
-  ASS_EQ(b1.ctx->arity(te),2);
 
   TermBlock args[]={b1,b2};
   return pred(te, positive, args);
@@ -142,21 +76,11 @@ FormBlock pred2(TheoryElement te, bool positive, const TermBlock& b1, const Term
  * where @b n is the arity of the function corresponding to @b te.
  * (Therefore the size of the array @b args is at least 1 in this case.)
  */
-TermBlock fun(TheoryElement te, const TermBlock* args, Context* ctx)
+TermBlock fun(Interpretation te, const TermBlock* args)
 {
-  CALL("AxGen::fun(TheoryElement...)");
+  CALL("AxGen::fun(Interpretation...)");
 
-  if(ctx==0) {
-    ctx=args[0].ctx;
-    ASS(ctx);
-  }
-
-  if(ctx->supported(te)) {
-    return fun(ctx->fun(te), args, ctx);
-  }
-  else {
-    return TermBlock();
-  }
+  return fun(env.signature->getInterpretingSymbol(te), args);
 }
 
 /**
@@ -166,64 +90,42 @@ TermBlock fun(TheoryElement te, const TermBlock* args, Context* ctx)
  * where @b n is the arity of the function corresponding to @b te.
  * (Therefore the size of the array @b args is at least 1 in this case.)
  */
-FormBlock pred(TheoryElement te, bool positive, const TermBlock* args, Context* ctx)
+FormBlock pred(Interpretation te, bool positive, const TermBlock* args)
 {
-  CALL("AxGen::pred(TheoryElement...)");
+  CALL("AxGen::pred(Interpretation...)");
 
-  if(ctx==0) {
-    ctx=args[0].ctx;
-    ASS(ctx);
-  }
-
-  if(ctx->supported(te)) {
-    return pred(ctx->pred(te), positive, args, ctx);
-  }
-  else {
-    return FormBlock();
-  }
+  return pred(env.signature->getInterpretingSymbol(te), positive, args);
 }
 
-TermBlock var(unsigned num, Context* ctx)
+TermBlock var(unsigned num)
 {
   CALL("AxGen::var");
 
-  return TermBlock(ctx, TermList(num, false));
+  return TermBlock(TermList(num, false));
 }
 
-TermBlock fun(unsigned fn, const TermBlock* args, Context* ctx)
+TermBlock fun(unsigned fn, const TermBlock* args)
 {
   CALL("AxGen::fun(unsigned...)");
 
   unsigned arity=env.signature->functionArity(fn);
-  ASS(arity!=0 || ctx!=0);
-  if(ctx==0) {
-    ctx=args[0].ctx;
-    ASS(ctx);
-  }
 
   static DArray<TermList> targs;
   targs.ensure(arity);
 
   for(unsigned i=0;i<arity;i++) {
-    ASS_EQ(args[i].ctx,ctx);
     targs[i]=args[i].term;
   }
 
   Term* t=Term::create(fn, arity, targs.array());
-  return TermBlock(ctx, TermList(t));
-
+  return TermBlock(TermList(t));
 }
 
-FormBlock pred(unsigned pred, bool positive, const TermBlock* args, Context* ctx)
+FormBlock pred(unsigned pred, bool positive, const TermBlock* args)
 {
   CALL("AxGen::pred(unsigned...)");
 
   unsigned arity=env.signature->predicateArity(pred);
-  ASS(arity!=0 || ctx!=0);
-  if(ctx==0) {
-    ctx=args[0].ctx;
-    ASS(ctx);
-  }
 
   Literal* lit;
   if(pred==0) {
@@ -235,39 +137,38 @@ FormBlock pred(unsigned pred, bool positive, const TermBlock* args, Context* ctx
     targs.ensure(arity);
 
     for(unsigned i=0;i<arity;i++) {
-      ASS_EQ(args[i].ctx,ctx);
       targs[i]=args[i].term;
     }
     lit=Literal::create(pred, 2, positive, false, targs.array());
   }
 
-  return FormBlock(ctx, new AtomicFormula(lit));
+  return FormBlock(new AtomicFormula(lit));
 }
 
 
 FormBlock operator==(const TermBlock& b1, const TermBlock& b2)
-{ return pred2(EQUAL, true, b1, b2); }
+{ return pred2(Theory::EQUAL, true, b1, b2); }
 
 FormBlock operator!=(const TermBlock& b1, const TermBlock& b2)
-{ return pred2(EQUAL, false, b1, b2); }
+{ return pred2(Theory::EQUAL, false, b1, b2); }
 
 FormBlock operator>(const TermBlock& b1, const TermBlock& b2)
-{ return pred2(GREATER, true, b1, b2); }
+{ return pred2(Theory::GREATER, true, b1, b2); }
 
 FormBlock operator<=(const TermBlock& b1, const TermBlock& b2)
-{ return pred2(LESS_EQUAL, true, b1, b2); }
+{ return pred2(Theory::LESS_EQUAL, true, b1, b2); }
 
 FormBlock operator<(const TermBlock& b1, const TermBlock& b2)
-{ return pred2(LESS, true, b1, b2); }
+{ return pred2(Theory::LESS, true, b1, b2); }
 
 FormBlock operator>=(const TermBlock& b1, const TermBlock& b2)
-{ return pred2(GREATER_EQUAL, true, b1, b2); }
+{ return pred2(Theory::GREATER_EQUAL, true, b1, b2); }
 
 TermBlock operator+(const TermBlock& b1, const TermBlock& b2)
-{ return fun2(PLUS, b1, b2); }
+{ return fun2(Theory::PLUS, b1, b2); }
 
 TermBlock operator++(const TermBlock& b1,int)
-{ return fun1(SUCCESSOR, b1); }
+{ return fun1(Theory::SUCCESSOR, b1); }
 
 //formula operators
 
@@ -275,32 +176,30 @@ TermBlock operator++(const TermBlock& b1,int)
 FormBlock operator!(const FormBlock& f)
 {
   CALL("AxGen::operator!(FormBlock)");
-  ASS(f.ctx);
-  return FormBlock(f.ctx, new NegatedFormula(f.form));
+
+  return FormBlock(new NegatedFormula(f.form));
 }
 
 //disjunction
 FormBlock operator|(const FormBlock& l, const FormBlock& r)
 {
   CALL("AxGen::operator&(FormBlock,FormBlock)");
-  ASS(r.ctx);
-  ASS_EQ(l.ctx,r.ctx);
+
   FormulaList* args=0;
   FormulaList::push(r.form, args);
   FormulaList::push(l.form, args);
-  return FormBlock(l.ctx, new JunctionFormula(OR, args));
+  return FormBlock(new JunctionFormula(OR, args));
 }
 
 //conjunction
 FormBlock operator&(const FormBlock& l, const FormBlock& r)
 {
   CALL("AxGen::operator&(FormBlock,FormBlock)");
-  ASS(r.ctx);
-  ASS_EQ(l.ctx,r.ctx);
+
   FormulaList* args=0;
   FormulaList::push(r.form, args);
   FormulaList::push(l.form, args);
-  return FormBlock(l.ctx, new JunctionFormula(AND, args));
+  return FormBlock(new JunctionFormula(AND, args));
 }
 
 //the following two implement --> for implication
@@ -311,18 +210,16 @@ HalfImpl operator--(const FormBlock& l, int)
 FormBlock operator>(const HalfImpl& l, const FormBlock& r)
 {
   CALL("AxGen::operator>(HalfImpl,FormBlock)");
-  ASS(r.ctx);
-  ASS_EQ(l.fb.ctx,r.ctx);
-  return FormBlock(r.ctx, new BinaryFormula(IMP, l.fb.form, r.form));
+
+  return FormBlock(new BinaryFormula(IMP, l.fb.form, r.form));
 }
 
 //the following two implement -=- for equivalence
 FormBlock operator-=(const FormBlock& l, const HalfEquiv& r)
 {
   CALL("AxGen::operator-=(FormBlock,HalfEquiv)");
-  ASS(l.ctx);
-  ASS_EQ(l.ctx,r.fb.ctx);
-  return FormBlock(l.ctx, new BinaryFormula(IFF, l.form, r.fb.form));
+
+  return FormBlock(new BinaryFormula(IFF, l.form, r.fb.form));
 }
 HalfEquiv operator-(const FormBlock& r)
 {
@@ -341,18 +238,16 @@ void AxiomGenerator::axiom(FormBlock b)
   UnitList::push(new FormulaUnit(b.form, inf, Unit::AXIOM), _acc);
 }
 
-UnitList* AxiomGenerator::getAxioms(Context* ctx)
+UnitList* AxiomGenerator::getAxioms()
 {
   CALL("AxiomGenerator::getAxioms");
 
-  _ctx=ctx;
-
-  zero=LazyConstant(0, _ctx);
-  X0=var(0, _ctx);
-  X1=var(1, _ctx);
-  X2=var(2, _ctx);
-  X3=var(3, _ctx);
-  X4=var(4, _ctx);
+  zero=LazyConstant(0);
+  X0=var(0);
+  X1=var(1);
+  X2=var(2);
+  X3=var(3);
+  X4=var(4);
 
   _acc=0;
   enumerate();
@@ -361,60 +256,4 @@ UnitList* AxiomGenerator::getAxioms(Context* ctx)
 
 };
 
-using namespace Lib;
-using namespace Kernel;
-using namespace Shell;
-
-struct PlusTestAxioms : public AxiomGenerator
-{
-  void enumerate()
-  {
-    axiom( X0+X1==X1+X0 );
-    axiom( (X0+X1)+X2==X0+(X1+X2) );
-
-    axiom( X0+zero==X0 );
-    axiom( X0+(X1++)==(X0+X1)++ );
-
-    axiom( !(X0>X0) );
-    axiom( (X0>X1) --> !(X1>X0) );
-    axiom( ((X0>X1) & (X1>X2)) --> (X0>X2) );
-
-
-    axiom( X0++>X0 );
-
-
-    axiom( (X0++>X1++) -=- (X0>X1) );
-
-    axiom( (X0+X1>X0) -=- (X1>zero) );
-  }
-};
-
-void testAxGen()
-{
-  AxGen::Context ctx;
-
-  ctx.interpret(AxGen::EQUAL, 0);
-  ctx.interpret(AxGen::GREATER, env.signature->addPredicate("greater",2));
-
-  ctx.interpret(AxGen::PLUS, env.signature->addFunction("plus",2));
-  ctx.interpret(AxGen::SUCCESSOR, env.signature->addFunction("s",1));
-
-  UnitList* pta=PlusTestAxioms().getAxioms(&ctx);
-  UnitList::Iterator uit(pta);
-  while(uit.hasNext()) {
-    Unit* u=uit.next();
-    cout<<(u->toString())<<endl;
-  }
-
-//  The output is:
-//
-//  6. greater(X0,X1) => X0 != X1 [theory axiom]
-//  5. greater(s(X0),X0) [theory axiom]
-//  4. plus(X0,s(X1)) = s(plus(X0,X1)) [theory axiom]
-//  3. plus(X0,zero) = X0 [theory axiom]
-//  2. plus(X0,plus(X1,X2)) = plus(plus(X0,X1),X2) [theory axiom]
-//  1. plus(X1,X0) = plus(X0,X1) [theory axiom]
-
-
-}
 

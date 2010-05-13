@@ -137,6 +137,9 @@ class Signature
 
   unsigned getInterpretingSymbol(Interpretation interp);
 
+  /** Return true iff there is a symbol interpreted by Interpretation @b interp */
+  unsigned haveInterpretingSymbol(Interpretation interp) const { return _iSymbols.find(interp); }
+
   unsigned addSkolemFunction(unsigned arity);
   /**
    * If a predicate with this name and arity exists, return its number.
@@ -248,6 +251,7 @@ private:
 
   /** Map from InterpretedType values to constant symbols representing them */
   DHMap<InterpretedType, unsigned> _iConstants;
+
   /**
    * Map from Interpretation values to function and predicate symbols representing them
    *

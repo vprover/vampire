@@ -224,6 +224,8 @@ bool InterpretedEvaluation::interpretPredicate(int predIndex, TermList* args)
   InterpretedType arg2=interpretConstant(args[1]);
 
   switch(interp) {
+  case Theory::EQUAL:
+    return arg1==arg2;
   case Theory::GREATER:
     return arg1>arg2;
   case Theory::GREATER_EQUAL:

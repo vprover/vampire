@@ -10,6 +10,8 @@
 namespace Kernel
 {
 
+const int Theory::interpretationElementCount;
+
 /**
  * Return arity of the symbol that is interpreted by Interpretation
  * @b i.
@@ -17,6 +19,7 @@ namespace Kernel
 unsigned Theory::getArity(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::getArity");
+  ASS_L(i,interpretationElementCount);
 
   switch(i) {
   case SUCCESSOR:
@@ -27,6 +30,7 @@ unsigned Theory::getArity(Interpretation i)
   case MINUS:
   case MULTIPLY:
   case DIVIDE:
+  case EQUAL:
   case GREATER:
   case GREATER_EQUAL:
   case LESS:
@@ -46,6 +50,7 @@ unsigned Theory::getArity(Interpretation i)
 bool Theory::isFunction(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isFunction");
+  ASS_L(i,interpretationElementCount);
 
   switch(i) {
   case SUCCESSOR:
@@ -57,6 +62,7 @@ bool Theory::isFunction(Interpretation i)
   case IF_THEN_ELSE:
     return true;
 
+  case EQUAL:
   case GREATER:
   case GREATER_EQUAL:
   case LESS:
