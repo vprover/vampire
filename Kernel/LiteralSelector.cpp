@@ -158,7 +158,7 @@ void LiteralSelector::select(Clause* c)
   int maxPriority=getSelectionPriority((*c)[0]);
   bool modified=false;
 
-  for(unsigned i=1;i<eligible;i++) {
+  for(unsigned i=1;i<clen;i++) {
     int priority=getSelectionPriority((*c)[i]);
     if(priority==maxPriority) {
       if(eligible!=i) {

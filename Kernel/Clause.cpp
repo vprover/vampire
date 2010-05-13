@@ -581,6 +581,7 @@ unsigned Clause::getLiteralPosition(Literal* lit)
  */
 void Clause::notifyLiteralReorder()
 {
+  CALL("Clause::notifyLiteralReorder");
   if(_literalPositions) {
     _literalPositions->update(_literals);
   }
