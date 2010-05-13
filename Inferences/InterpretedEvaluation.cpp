@@ -507,6 +507,8 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
 {
   CALL("InterpretedEvaluation::perform");
 
+  TimeCounter tc(TC_INTERPRETED_EVALUATION);
+
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();
   bool modified=false;
