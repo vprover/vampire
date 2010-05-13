@@ -40,7 +40,7 @@ int InterpretedEvaluation::getInterpretedFunction(Term* t)
   CALL("InterpretedEvaluation::getInterpretedFunction");
 
   Signature::Symbol* sym =env.signature->getFunction(t->functor());
-  if(!sym->interpreted()) {
+  if(!sym->interpreted() || sym->arity()==0) {
     return -1;
   }
   Signature::InterpretedSymbol* isym =
@@ -120,7 +120,7 @@ Term* InterpretedEvaluation::getRepresentation(InterpretedType val)
  * @b args and return resulting interpreted constant. If the evaluation
  * cannot be performed, return 0 and no simplification will occur.
  */
-Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
+Term* InterpretedEvaluation::evaluateFunction(int fnIndex, TermList* args)
 {
   CALL("InterpretedEvaluation::interpretFunction");
   ASS_GE(fnIndex, 0);
@@ -170,10 +170,10 @@ Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
     break;
   case Theory::MINUS:
     if(arg2<0) {
-      if(INT_MIN + arg2 < arg1) { return 0; }
+      if(INT_MAX + arg2 < arg1) { return 0; }
     }
     else {
-      if(INT_MAX + arg2 > arg1) { return 0; }
+      if(INT_MIN + arg2 > arg1) { return 0; }
     }
     res=arg1-arg2;
     break;
@@ -209,7 +209,7 @@ Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
   return getRepresentation(res);
 }
 
-bool InterpretedEvaluation::interpretPredicate(int predIndex, TermList* args)
+bool InterpretedEvaluation::evaluatePredicate(int predIndex, TermList* args)
 {
   CALL("InterpretedEvaluation::interpretPredicate");
   ASS_GE(predIndex, 0);
@@ -239,7 +239,142 @@ bool InterpretedEvaluation::interpretPredicate(int predIndex, TermList* args)
   }
 }
 
-bool InterpretedEvaluation::evaluateLiteral(Literal* lit,
+
+/**
+ * Remove addition and subtraction of equal values in given terms.
+ * Return true iff any simplification was performed.
+ *
+ * Helps to simplify e.g. a+b>b+c into a>c.
+ */
+bool InterpretedEvaluation::removeEquivalentAdditionsAndSubtractions(TermList& arg1, TermList& arg2)
+{
+  bool res=false;
+
+reevaluation:
+  if(arg1==arg2) {
+    arg1=TermList(getRepresentation(0));
+    if(arg2==arg1) {
+      return res;
+    }
+    arg2=arg1;
+    return true;
+  }
+
+  if(arg1.isTerm() && getInterpretedFunction(arg1.term())==Theory::PLUS) {
+    Term* t1=arg1.term();
+
+    bool modified=true;
+    if(*t1->nthArgument(0)==arg2) {
+      arg1=*t1->nthArgument(1);
+      arg2=TermList(getRepresentation(0));
+    }
+    else if(*t1->nthArgument(1)==arg2) {
+      arg1=*t1->nthArgument(0);
+      arg2=TermList(getRepresentation(0));
+    }
+    else {
+      modified=false;
+    }
+    if(modified) {
+      res=true;
+      goto reevaluation;
+    }
+  }
+
+  if(arg2.isTerm() && getInterpretedFunction(arg2.term())==Theory::PLUS) {
+    Term* t2=arg2.term();
+
+    bool modified=true;
+    if(*t2->nthArgument(0)==arg1) {
+      arg1=TermList(getRepresentation(0));
+      arg2=*t2->nthArgument(1);
+    }
+    else if(*t2->nthArgument(1)==arg1) {
+      arg1=TermList(getRepresentation(0));
+      arg2=*t2->nthArgument(0);
+    }
+    else {
+      modified=false;
+    }
+    if(modified) {
+      res=true;
+      goto reevaluation;
+    }
+  }
+
+  if(!arg1.isTerm() || !arg2.isTerm()) {
+    return res;
+  }
+  Term* t1=arg1.term();
+  Term* t2=arg2.term();
+  if(t1->functor()!=t2->functor()) {
+    return res;
+  }
+  if(getInterpretedFunction(t1)==Theory::PLUS) {
+    bool modified=true;
+    if(*t1->nthArgument(0)==*t2->nthArgument(0)) {
+      arg1=*t1->nthArgument(1);
+      arg2=*t2->nthArgument(1);
+    }
+    else if(*t1->nthArgument(0)==*t2->nthArgument(1)) {
+      arg1=*t1->nthArgument(1);
+      arg2=*t2->nthArgument(0);
+    }
+    else if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
+      arg1=*t1->nthArgument(0);
+      arg2=*t2->nthArgument(0);
+    }
+    else if(*t1->nthArgument(1)==*t2->nthArgument(0)) {
+      arg1=*t1->nthArgument(0);
+      arg2=*t2->nthArgument(1);
+    }
+    else {
+      modified=false;
+    }
+    if(modified) {
+      res=true;
+      goto reevaluation;
+    }
+  }
+  if(getInterpretedFunction(t1)==Theory::MINUS) {
+    if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
+      arg1=*t1->nthArgument(0);
+      arg2=*t2->nthArgument(0);
+      res=true;
+      goto reevaluation;
+    }
+  }
+  return res;
+}
+
+Literal* InterpretedEvaluation::simplifyPredicate(int predIndex, TermList* args, Literal* original)
+{
+  CALL("InterpretedEvaluation::simplifyPredicate");
+  ASS_GE(predIndex, 0);
+
+  Interpretation interp = static_cast<Interpretation>(predIndex);
+  ASS(!Theory::isFunction(interp));
+
+  //all interpreted predicates are binary
+  ASS_EQ(Theory::getArity(interp), 2);
+
+  switch(interp) {
+  case Theory::EQUAL:
+  case Theory::GREATER:
+  case Theory::GREATER_EQUAL:
+  case Theory::LESS:
+  case Theory::LESS_EQUAL:
+    if(removeEquivalentAdditionsAndSubtractions(args[0], args[1])) {
+      return Literal::create(original,args);
+    }
+    break;
+  default:;
+  }
+
+  return 0;
+}
+
+bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 	bool& constant, Literal*& res, bool& constantTrue)
 {
   CALL("InterpretedEvaluation::evaluateLiteral");
@@ -270,7 +405,7 @@ bool InterpretedEvaluation::evaluateLiteral(Literal* lit,
       Term* orig=terms.pop();
       bool childrenModified=modified.pop();
       bool allChildrenInterpreted=allItpConsts.pop();
-      int itpFn=allChildrenInterpreted ? getInterpretedFunction(orig) : -1;
+      int itpFn=getInterpretedFunction(orig);
 
       if(!childrenModified && itpFn<0) {
 	args.truncate(args.length() - orig->arity());
@@ -285,7 +420,9 @@ bool InterpretedEvaluation::evaluateLiteral(Literal* lit,
       TermList* argLst=&args.top() - (orig->arity()-1);
       Term* newTrm=0;
       if(itpFn>=0) {
-	newTrm=interpretFunction(itpFn, argLst);
+	if(allChildrenInterpreted) {
+	  newTrm=evaluateFunction(itpFn, argLst);
+	}
       }
       if(!newTrm && childrenModified) {
 	newTrm=Term::create(orig,argLst);
@@ -331,7 +468,7 @@ bool InterpretedEvaluation::evaluateLiteral(Literal* lit,
 
   bool childrenModified=modified.pop();
   bool allChildrenInterpreted=allItpConsts.pop();
-  int itpPred=allChildrenInterpreted ? getInterpretedPredicate(lit) : -1;
+  int itpPred=getInterpretedPredicate(lit);
 
   if(!childrenModified && itpPred<0) {
     res=lit;
@@ -343,14 +480,26 @@ bool InterpretedEvaluation::evaluateLiteral(Literal* lit,
   //&top()-2, etc...
   TermList* argLst=&args.top() - (lit->arity()-1);
 
-  if(itpPred>=0) {
+  if(itpPred>=0 && allChildrenInterpreted) {
     constant=true;
-    constantTrue=lit->isNegative() ^ interpretPredicate(itpPred, argLst);
+    constantTrue=lit->isNegative() ^ evaluatePredicate(itpPred, argLst);
     return true;
   }
 
   constant=false;
-  res=Literal::create(static_cast<Literal*>(lit),argLst);
+
+  res=0;
+  if(itpPred>=0) {
+    res=simplifyPredicate(itpPred, argLst, lit);
+    if(!res && !childrenModified) {
+      res=lit;
+      return false;
+    }
+  }
+
+  if(!res) {
+    res=Literal::create(lit,argLst);
+  }
   return true;
 }
 
@@ -367,7 +516,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     Literal* lit=(*cl)[li];
     Literal* res;
     bool constant, constTrue;
-    bool litMod=evaluateLiteral(lit, constant, res, constTrue);
+    bool litMod=simplifyLiteral(lit, constant, res, constTrue);
     if(!litMod) {
       newLits[next++]=lit;
       continue;

@@ -31,9 +31,13 @@ private:
   InterpretedType interpretConstant(TermList t);
   Term* getRepresentation(InterpretedType val);
 
-  Term* interpretFunction(int fnIndex, TermList* args);
-  bool interpretPredicate(int predIndex, TermList* args);
-  bool evaluateLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
+  Term* evaluateFunction(int fnIndex, TermList* args);
+  bool evaluatePredicate(int predIndex, TermList* args);
+  Literal* simplifyPredicate(int predIndex, TermList* args, Literal* original);
+
+  bool removeEquivalentAdditionsAndSubtractions(TermList& arg1, TermList& arg2);
+
+  bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
 
   DHMap<InterpretedType, Term*> _constants;
 };
