@@ -110,6 +110,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
         Kernel/TermIterators.o\
+        Kernel/Theory.o\
         Kernel/Unit.o\
 #        Kernel/EGSubstitution.o
 

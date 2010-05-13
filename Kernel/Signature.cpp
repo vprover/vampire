@@ -12,62 +12,6 @@ using namespace std;
 using namespace Kernel;
 
 /**
- * Return arity of the symbol that is interpreted by Interpretation
- * @b i.
- */
-unsigned Signature::InterpretedSymbol::getArity(Interpretation i)
-{
-  CALL("Signature::InterpretedSymbol::getArity");
-
-  switch(i) {
-  case SUCCESSOR:
-  case UNARY_MINUS:
-    return 1;
-
-  case PLUS:
-  case MINUS:
-  case MULTIPLY:
-  case DIVIDE:
-  case GREATER:
-  case GREATER_EQUAL:
-  case LESS:
-  case LESS_EQUAL:
-    return 2;
-
-  case IF_THEN_ELSE:
-    return 3;
-  }
-  ASSERTION_VIOLATION;
-}
-
-/**
- * Return true iff the symbol that is interpreted by Interpretation
- * is a function (false is returned for predicates).
- */
-bool Signature::InterpretedSymbol::isFunction(Interpretation i)
-{
-  CALL("Signature::InterpretedSymbol::isFunction");
-
-  switch(i) {
-  case SUCCESSOR:
-  case UNARY_MINUS:
-  case PLUS:
-  case MINUS:
-  case MULTIPLY:
-  case DIVIDE:
-  case IF_THEN_ELSE:
-    return true;
-
-  case GREATER:
-  case GREATER_EQUAL:
-  case LESS:
-  case LESS_EQUAL:
-    return false;
-  }
-  ASSERTION_VIOLATION;
-}
-
-/**
  * Create a Signature.
  * @since 07/05/2007 Manchester
  */
@@ -105,11 +49,11 @@ Signature::~Signature ()
  * Must be called before the function appears in the problem for the first time.
  */
 void Signature::registerInterpretedFunction(const string& name, unsigned arity,
-    InterpretedSymbol::Interpretation interpretation)
+    Interpretation interpretation)
 {
   CALL("Signature::registerInterpretedFunction");
-  ASS_EQ(arity, InterpretedSymbol::getArity(interpretation));
-  ASS(InterpretedSymbol::isFunction(interpretation));
+  ASS_EQ(arity, Theory::getArity(interpretation));
+  ASS(Theory::isFunction(interpretation));
 
   string symbolKey = key(name,arity);
 
@@ -120,6 +64,9 @@ void Signature::registerInterpretedFunction(const string& name, unsigned arity,
   unsigned fnNum = _funs.length();
   _funs.push(new InterpretedSymbol(name, interpretation));
   _funNames.insert(symbolKey, fnNum);
+  if(!_iSymbols.insert(interpretation, fnNum)) {
+    USER_ERROR("One theory function cannot correspond to multiple signature functions.");
+  }
 }
 
 /**
@@ -128,11 +75,11 @@ void Signature::registerInterpretedFunction(const string& name, unsigned arity,
  * Must be called before the predicate appears in the problem for the first time.
  */
 void Signature::registerInterpretedPredicate(const string& name, unsigned arity,
-    InterpretedSymbol::Interpretation interpretation)
+    Interpretation interpretation)
 {
   CALL("Signature::registerInterpretedPredicate");
-  ASS_EQ(arity, InterpretedSymbol::getArity(interpretation));
-  ASS(!InterpretedSymbol::isFunction(interpretation));
+  ASS_EQ(arity, Theory::getArity(interpretation));
+  ASS(!Theory::isFunction(interpretation));
 
   string symbolKey = key(name,arity);
 
@@ -143,18 +90,21 @@ void Signature::registerInterpretedPredicate(const string& name, unsigned arity,
   unsigned predNum = _preds.length();
   _preds.push(new InterpretedSymbol(name,interpretation));
   _predNames.insert(symbolKey,predNum);
+  if(!_iSymbols.insert(interpretation, predNum)) {
+    USER_ERROR("One theory predicate cannot correspond to multiple signature predicates.");
+  }
 }
 
 /**
- * If an interpreted integer constant of given value exists, return its
+ * If an interpreted constant of given value exists, return its
  * number. Otherwise add a new one and return its number.
  */
-unsigned Signature::addInterpretedConstant(int value)
+unsigned Signature::addInterpretedConstant(InterpretedType value)
 {
-  CALL("Signature::addFunction");
+  CALL("Signature::addInterpretedConstant");
 
   unsigned result;
-  if(_intConstants.find(value, result)) {
+  if(_iConstants.find(value, result)) {
     return result;
   }
 
@@ -167,11 +117,66 @@ unsigned Signature::addInterpretedConstant(int value)
   result = _funs.length();
   _funs.push(new InterpretedSymbol(name,value));
   _funNames.insert(symbolKey,result);
-  _intConstants.insert(value, result);
+  _iConstants.insert(value, result);
   return result;
 }
 
+unsigned Signature::getInterpretingSymbol(Interpretation interp)
+{
+  CALL("Signature::getInterpretingSymbol");
 
+  unsigned* pRes;
+  if(!_iSymbols.getValuePtr(interp, pRes)) {
+    return *pRes;
+  }
+  const char* name;
+  switch(interp) {
+  case Theory::SUCCESSOR:
+    name="$s";
+    break;
+  case Theory::UNARY_MINUS:
+    name="$uminus";
+    break;
+  case Theory::PLUS:
+    name="$plus";
+    break;
+  case Theory::MINUS:
+    name="$minus";
+    break;
+  case Theory::MULTIPLY:
+    name="$mul";
+    break;
+  case Theory::DIVIDE:
+    name="$div";
+    break;
+  case Theory::GREATER:
+    name="$greater";
+    break;
+  case Theory::GREATER_EQUAL:
+    name="$geq";
+    break;
+  case Theory::LESS:
+    name="$less";
+    break;
+  case Theory::LESS_EQUAL:
+    name="$leq";
+    break;
+  case Theory::IF_THEN_ELSE:
+    name="$ite";
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+  if(Theory::isFunction(interp)) {
+    registerInterpretedFunction(name, Theory::getArity(interp), interp);
+  }
+  else {
+    registerInterpretedPredicate(name, Theory::getArity(interp), interp);
+  }
+
+  //we have now registered a new function, so it should be present in the map
+  return _iSymbols.get(interp);
+}
 
 /**
  * If a function with this name and arity exists, return its number.

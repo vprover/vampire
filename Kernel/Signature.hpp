@@ -20,6 +20,8 @@
 #include "../Lib/Map.hpp"
 #include "../Lib/DHMap.hpp"
 
+#include "Theory.hpp"
+
 using namespace std;
 using namespace Lib;
 
@@ -93,46 +95,22 @@ class Signature
   class InterpretedSymbol
   : public Symbol
   {
-  public:
-    enum Interpretation
-    {
-      //functions
-
-      SUCCESSOR,
-      UNARY_MINUS,
-      PLUS,
-      MINUS,
-      MULTIPLY,
-      DIVIDE,
-      /** The X?Y:Z ternary operator like in C++ */
-      IF_THEN_ELSE,
-
-      //predicates
-
-      GREATER,
-      GREATER_EQUAL,
-      LESS,
-      LESS_EQUAL
-    };
-
-    static unsigned getArity(Interpretation i);
-    static bool isFunction(Interpretation i);
   protected:
     union {
-      int _value;
+      InterpretedType _value;
       Interpretation _interp;
     };
 
   public:
 
     InterpretedSymbol(const string& nm, Interpretation interp)
-    : Symbol(nm, getArity(interp)), _interp(interp)
+    : Symbol(nm, Theory::getArity(interp)), _interp(interp)
     {
       CALL("InterpretedSymbol");
 
       _interpreted=true;
     }
-    InterpretedSymbol(const string& nm,int value)
+    InterpretedSymbol(const string& nm,InterpretedType value)
     : Symbol(nm, 0), _value(value)
     {
       CALL("InterpretedSymbol");
@@ -143,7 +121,7 @@ class Signature
     USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return integer value of the interpreted constant */
-    inline int getValue() const { ASS(interpreted()); ASS_EQ(arity(),0); return _value; }
+    inline InterpretedType getValue() const { ASS(interpreted()); ASS_EQ(arity(),0); return _value; }
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(arity(),0); return _interp; }
   };
@@ -151,10 +129,13 @@ class Signature
   typedef Map<string,unsigned,Hash> SymbolMap;
 
   void registerInterpretedFunction(const string& name,unsigned arity,
-      InterpretedSymbol::Interpretation interpretation);
+      Interpretation interpretation);
   void registerInterpretedPredicate(const string& name, unsigned arity,
-      InterpretedSymbol::Interpretation interpretation);
-  unsigned addInterpretedConstant(int value);
+      Interpretation interpretation);
+
+  unsigned addInterpretedConstant(InterpretedType value);
+
+  unsigned getInterpretingSymbol(Interpretation interp);
 
   unsigned addSkolemFunction(unsigned arity);
   /**
@@ -265,8 +246,16 @@ private:
   /** Last number used for skolem functions */
   int _lastSkolem;
 
-  /** Map from integers to constant symbols representing them */
-  DHMap<int, unsigned> _intConstants;
+  /** Map from InterpretedType values to constant symbols representing them */
+  DHMap<InterpretedType, unsigned> _iConstants;
+  /**
+   * Map from Interpretation values to function and predicate symbols representing them
+   *
+   * We mix here function and predicate symbols, but it is not a problem, as
+   * the Interpretation value already determines whether we deal with a function
+   * or a predicate.
+   */
+  DHMap<Interpretation, unsigned> _iSymbols;
 
   static string key(const string& name,int arity);
 }; // class Signature

@@ -13,6 +13,7 @@
 #include "../Lib/DHSet.hpp"
 
 #include "../Kernel/Term.hpp"
+#include "../Kernel/Theory.hpp"
 
 
 namespace Shell
@@ -35,8 +36,6 @@ enum TheoryElement
   //functions
   PLUS,
   SUCCESSOR,
-  ZERO
-
 };
 
 class Context
@@ -81,11 +80,11 @@ struct LazyConstant
 {
 public:
   LazyConstant() : ctx(0) {}
-  LazyConstant(TheoryElement te, Context* ctx) : ctx(ctx), te(te) {}
+  LazyConstant(InterpretedType val, Context* ctx) : ctx(ctx), val(val) {}
   operator TermBlock();
 
   Context* ctx;
-  TheoryElement te;
+  InterpretedType val;
 };
 
 TermBlock var(unsigned num, Context* ctx);
@@ -96,6 +95,7 @@ TermBlock fun(unsigned fn, const TermBlock* args, Context* ctx=0);
 FormBlock pred(TheoryElement te, bool positive, const TermBlock* args, Context* ctx=0);
 FormBlock pred(unsigned pred, bool positive, const TermBlock* args, Context* ctx=0);
 
+TermBlock iConst(InterpretedType val, Context* ctx);
 TermBlock fun0(TheoryElement te, Context* ctx);
 TermBlock fun1(TheoryElement te, const TermBlock& b1);
 TermBlock fun2(TheoryElement te, const TermBlock& b1, const TermBlock& b2);

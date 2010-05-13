@@ -11,11 +11,11 @@
 
 #include "../Lib/DHMap.hpp"
 
+#include "../Kernel/Theory.hpp"
+
 #include "InferenceEngine.hpp"
 
 namespace Inferences {
-
-typedef int InterpretedType;
 
 class InterpretedEvaluation
 : public ImmediateSimplificationEngine

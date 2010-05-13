@@ -43,9 +43,6 @@ unsigned Context::pred(TheoryElement el)
 unsigned Context::fun(TheoryElement el)
 {
   CALL("Context::fun");
-  if(el==ZERO) {
-    return env.signature->addInterpretedConstant(0);
-  }
   return _interpretation.get(el);
 }
 bool Context::supported(TheoryElement el)
@@ -65,8 +62,6 @@ unsigned Context::arity(TheoryElement el)
     return 2;
   case SUCCESSOR:
     return 1;
-  case ZERO:
-    return 0;
   default:
     ASSERTION_VIOLATION;
   }
@@ -82,7 +77,6 @@ bool Context::isFunction(TheoryElement el)
     return false;
   case PLUS:
   case SUCCESSOR:
-  case ZERO:
     return true;
   default:
     ASSERTION_VIOLATION;
@@ -91,9 +85,17 @@ bool Context::isFunction(TheoryElement el)
 
 LazyConstant::operator TermBlock()
 {
-  return fun0(te, ctx);
+  return iConst(val, ctx);
 }
 
+
+TermBlock iConst(InterpretedType val, Context* ctx)
+{
+  CALL("AxGen::fun0");
+  ASS(ctx);
+
+  return fun(env.signature->addInterpretedConstant(val), 0, ctx);
+}
 
 TermBlock fun0(TheoryElement te, Context* ctx)
 {
@@ -345,7 +347,7 @@ UnitList* AxiomGenerator::getAxioms(Context* ctx)
 
   _ctx=ctx;
 
-  zero=LazyConstant(ZERO, _ctx);
+  zero=LazyConstant(0, _ctx);
   X0=var(0, _ctx);
   X1=var(1, _ctx);
   X2=var(2, _ctx);
@@ -396,7 +398,6 @@ void testAxGen()
 
   ctx.interpret(AxGen::PLUS, env.signature->addFunction("plus",2));
   ctx.interpret(AxGen::SUCCESSOR, env.signature->addFunction("s",1));
-  ctx.interpret(AxGen::ZERO, env.signature->addFunction("zero",0));
 
   UnitList* pta=PlusTestAxioms().getAxioms(&ctx);
   UnitList::Iterator uit(pta);

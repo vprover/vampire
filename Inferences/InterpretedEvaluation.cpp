@@ -125,13 +125,12 @@ Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
   CALL("InterpretedEvaluation::interpretFunction");
   ASS_GE(fnIndex, 0);
 
-  Signature::InterpretedSymbol::Interpretation interp=
-      static_cast<Signature::InterpretedSymbol::Interpretation>(fnIndex);
-  ASS(Signature::InterpretedSymbol::isFunction(interp));
+  Interpretation interp = static_cast<Interpretation>(fnIndex);
+  ASS(Theory::isFunction(interp));
 
   InterpretedType arg1, arg2, arg3;
 
-  switch(Signature::InterpretedSymbol::getArity(interp)) {
+  switch(Theory::getArity(interp)) {
   case 3:
     arg3=interpretConstant(args[2]);
   case 2:
@@ -146,13 +145,13 @@ Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
   ASS_STATIC(sizeof(InterpretedType)==4);
 
   switch(interp) {
-  case Signature::InterpretedSymbol::SUCCESSOR:
+  case Theory::SUCCESSOR:
     if(arg1==INT_MAX) {
       return 0;
     }
     res=arg1+1;
     break;
-  case Signature::InterpretedSymbol::UNARY_MINUS:
+  case Theory::UNARY_MINUS:
     res=-arg1;
     if(res==arg1) {
       //the overflow at INT_MIN manifests by the value staying
@@ -160,7 +159,7 @@ Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
       return 0;
     }
     break;
-  case Signature::InterpretedSymbol::PLUS:
+  case Theory::PLUS:
     if(arg2<0) {
       if(INT_MIN - arg2 > arg1) { return 0; }
     }
@@ -169,7 +168,7 @@ Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
     }
     res=arg1+arg2;
     break;
-  case Signature::InterpretedSymbol::MINUS:
+  case Theory::MINUS:
     if(arg2<0) {
       if(INT_MIN + arg2 < arg1) { return 0; }
     }
@@ -178,7 +177,7 @@ Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
     }
     res=arg1-arg2;
     break;
-  case Signature::InterpretedSymbol::MULTIPLY:
+  case Theory::MULTIPLY:
   {
     ASS_STATIC(sizeof(long long)==8);
     long long mres=static_cast<long long>(arg1)*arg2;
@@ -188,13 +187,13 @@ Term* InterpretedEvaluation::interpretFunction(int fnIndex, TermList* args)
     res=mres;
     break;
   }
-  case Signature::InterpretedSymbol::DIVIDE:
+  case Theory::DIVIDE:
     if(arg2==0 || arg1%arg2!=0) {
       return 0;
     }
     res=arg1/arg2;
     break;
-  case Signature::InterpretedSymbol::IF_THEN_ELSE:
+  case Theory::IF_THEN_ELSE:
     if(arg1) {
       res=arg2;
     }
@@ -215,23 +214,23 @@ bool InterpretedEvaluation::interpretPredicate(int predIndex, TermList* args)
   CALL("InterpretedEvaluation::interpretPredicate");
   ASS_GE(predIndex, 0);
 
-  Signature::InterpretedSymbol::Interpretation interp=
-      static_cast<Signature::InterpretedSymbol::Interpretation>(predIndex);
-  ASS(!Signature::InterpretedSymbol::isFunction(interp));
+  Interpretation interp = static_cast<Interpretation>(predIndex);
+  ASS(!Theory::isFunction(interp));
 
 
   //all interpreted predicates are binary
+  ASS_EQ(Theory::getArity(interp), 2);
   InterpretedType arg1=interpretConstant(args[0]);
   InterpretedType arg2=interpretConstant(args[1]);
 
   switch(interp) {
-  case Signature::InterpretedSymbol::GREATER:
+  case Theory::GREATER:
     return arg1>arg2;
-  case Signature::InterpretedSymbol::GREATER_EQUAL:
+  case Theory::GREATER_EQUAL:
     return arg1>=arg2;
-  case Signature::InterpretedSymbol::LESS:
+  case Theory::LESS:
     return arg1<arg2;
-  case Signature::InterpretedSymbol::LESS_EQUAL:
+  case Theory::LESS_EQUAL:
     return arg1<=arg2;
   default:
     ASSERTION_VIOLATION;
