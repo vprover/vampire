@@ -26,9 +26,12 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 
-enum ItpFunctionNumbers {
-  ADD=0
-};
+InterpretedEvaluation::InterpretedEvaluation()
+{
+  _zero=TermList(getRepresentation(0));
+  _one=TermList(getRepresentation(1));
+}
+
 
 /**
  * Return number of internal interpreting function that
@@ -75,6 +78,13 @@ bool InterpretedEvaluation::isInterpretedConstant(Term* t)
   CALL("InterpretedEvaluation::isInterpretedConstant");
 
   return t->arity()==0 && env.signature->getFunction(t->functor())->interpreted();
+}
+
+bool InterpretedEvaluation::isInterpretedConstant(TermList t)
+{
+  CALL("InterpretedEvaluation::isInterpretedConstant(TermList)");
+
+  return t.isTerm() && isInterpretedConstant(t.term());
 }
 
 InterpretedType InterpretedEvaluation::interpretConstant(TermList t)
@@ -239,6 +249,103 @@ bool InterpretedEvaluation::evaluatePredicate(int predIndex, TermList* args)
   }
 }
 
+bool InterpretedEvaluation::simplifyFunction(int fnIndex, TermList* args, TermList& res)
+{
+  CALL("InterpretedEvaluation::simplifyFunction");
+  ASS_GE(fnIndex, 0);
+
+  Interpretation interp = static_cast<Interpretation>(fnIndex);
+  ASS(Theory::isFunction(interp));
+
+  switch(interp) {
+  case Theory::PLUS:
+    if(args[0]==_zero) {
+      res=args[1];
+      return true;
+    }
+    if(args[1]==_zero) {
+      res=args[0];
+      return true;
+    }
+    break;
+  case Theory::MINUS:
+    if(args[1]==_zero) {
+      res=args[0];
+      return true;
+    }
+    break;
+  case Theory::MULTIPLY:
+    if(args[0]==_one) {
+      res=args[1];
+      return true;
+    }
+    if(args[1]==_one) {
+      res=args[0];
+      return true;
+    }
+    break;
+  case Theory::DIVIDE:
+    if(args[1]==_one) {
+      res=args[0];
+      return true;
+    }
+    break;
+  case Theory::IF_THEN_ELSE:
+    if(args[0]==_zero) {
+      res=args[2];
+      return true;
+    }
+    if(args[0].isTerm() && isInterpretedConstant(args[0].term())) {
+      //if we had zero, we would have succeeded with the previous condition
+      ASS_NEQ(interpretConstant(args[0]), 0);
+      res=args[1];
+      return true;
+    }
+    break;
+  default:;
+  }
+
+  return false;
+}
+
+bool InterpretedEvaluation::removeEquivalentAdditionsAndSubtractionsFromOneSide(TermList& arg1, TermList& arg2)
+{
+  CALL("InterpretedEvaluation::removeEquivalentAdditionsAndSubtractionsFromOneSide");
+
+  if(!arg1.isTerm()) {
+    return false;
+  }
+  Term* t1=arg1.term();
+
+  if(getInterpretedFunction(t1)==Theory::PLUS) {
+    if(*t1->nthArgument(0)==arg2) {
+      arg1=*t1->nthArgument(1);
+      arg2=_zero;
+      return true;
+    }
+    if(*t1->nthArgument(1)==arg2) {
+      arg1=*t1->nthArgument(0);
+      arg2=_zero;
+      return true;
+    }
+  }
+
+  if(!arg2.isTerm()) {
+    return false;
+  }
+  Term* t2=arg2.term();
+  if(getInterpretedFunction(t1)==Theory::SUCCESSOR && isInterpretedConstant(t2)) {
+    InterpretedType t2Val=interpretConstant(t2);
+    if(t2Val!=INT_MIN) {
+      arg1=*t1->nthArgument(0);
+      arg2=TermList(getRepresentation(t2Val-1));
+      return true;
+    }
+  }
+
+
+  return false;
+}
 
 /**
  * Remove addition and subtraction of equal values in given terms.
@@ -248,6 +355,8 @@ bool InterpretedEvaluation::evaluatePredicate(int predIndex, TermList* args)
  */
 bool InterpretedEvaluation::removeEquivalentAdditionsAndSubtractions(TermList& arg1, TermList& arg2)
 {
+  CALL("InterpretedEvaluation::removeEquivalentAdditionsAndSubtractions");
+
   bool res=false;
 
 reevaluation:
@@ -260,46 +369,13 @@ reevaluation:
     return true;
   }
 
-  if(arg1.isTerm() && getInterpretedFunction(arg1.term())==Theory::PLUS) {
-    Term* t1=arg1.term();
-
-    bool modified=true;
-    if(*t1->nthArgument(0)==arg2) {
-      arg1=*t1->nthArgument(1);
-      arg2=TermList(getRepresentation(0));
-    }
-    else if(*t1->nthArgument(1)==arg2) {
-      arg1=*t1->nthArgument(0);
-      arg2=TermList(getRepresentation(0));
-    }
-    else {
-      modified=false;
-    }
-    if(modified) {
-      res=true;
-      goto reevaluation;
-    }
+  if(removeEquivalentAdditionsAndSubtractionsFromOneSide(arg1, arg2)) {
+    res=true;
+    goto reevaluation;
   }
-
-  if(arg2.isTerm() && getInterpretedFunction(arg2.term())==Theory::PLUS) {
-    Term* t2=arg2.term();
-
-    bool modified=true;
-    if(*t2->nthArgument(0)==arg1) {
-      arg1=TermList(getRepresentation(0));
-      arg2=*t2->nthArgument(1);
-    }
-    else if(*t2->nthArgument(1)==arg1) {
-      arg1=TermList(getRepresentation(0));
-      arg2=*t2->nthArgument(0);
-    }
-    else {
-      modified=false;
-    }
-    if(modified) {
-      res=true;
-      goto reevaluation;
-    }
+  if(removeEquivalentAdditionsAndSubtractionsFromOneSide(arg2, arg1)) {
+    res=true;
+    goto reevaluation;
   }
 
   if(!arg1.isTerm() || !arg2.isTerm()) {
@@ -422,6 +498,16 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
       if(itpFn>=0) {
 	if(allChildrenInterpreted) {
 	  newTrm=evaluateFunction(itpFn, argLst);
+	}
+	if(!newTrm) {
+	  TermList sfRes;
+	  if(simplifyFunction(itpFn, argLst, sfRes)) {
+	    args.truncate(args.length() - orig->arity());
+	    args.push(sfRes);
+	    modified.setTop(true);
+	    allItpConsts.setTop(isInterpretedConstant(sfRes));
+	    continue;
+	  }
 	}
       }
       if(!newTrm && childrenModified) {

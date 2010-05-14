@@ -25,6 +25,8 @@
 #include "Signature.hpp"
 
 
+//#define NONINTERPRETED_PRECEDENCE_BOOST 0x10000
+#define NONINTERPRETED_PRECEDENCE_BOOST 0
 #define COLORED_WEIGHT_BOOST 0x10000
 #define COLORED_LEVEL_BOOST 0x10000
 
@@ -492,7 +494,11 @@ int KBO::predicateLevel (unsigned pred)
  */
 int KBO::predicatePrecedence (unsigned pred)
 {
-  return pred >= _predicates ? (int)pred : _predicatePrecedences[pred];
+  int res=pred >= _predicates ? (int)pred : _predicatePrecedences[pred];
+  if(NONINTERPRETED_PRECEDENCE_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
+    return res+NONINTERPRETED_PRECEDENCE_BOOST;
+  }
+  return res;
 } // KBO::predicatePrecedences
 
 /**
@@ -504,7 +510,11 @@ int KBO::predicatePrecedence (unsigned pred)
  */
 int KBO::functionPrecedence (unsigned fun)
 {
-  return fun >= _functions ? (int)fun : _functionPrecedences[fun];
+  int res=fun >= _functions ? (int)fun : _functionPrecedences[fun];
+  if(NONINTERPRETED_PRECEDENCE_BOOST && !env.signature->getFunction(fun)->interpreted()) {
+    return res+NONINTERPRETED_PRECEDENCE_BOOST;
+  }
+  return res;
 } // KBO::functionPrecedences
 
 
