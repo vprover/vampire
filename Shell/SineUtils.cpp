@@ -292,11 +292,9 @@ void SineSelector::perform(UnitList*& units)
     }
   }
 
+  unsigned depthLimit=env.options->sineDepth();
   int depth=0;
-  if(env.options->sineDepth()) {
-    //for depth limit we must keep track of distance from the original formulas
-    newlySelected.push_back(0);
-  }
+  newlySelected.push_back(0);
 
   //select required axiom formulas
   while(newlySelected.isNonEmpty()) {
@@ -305,9 +303,10 @@ void SineSelector::perform(UnitList*& units)
     if(!u) {
       //next selected formulas will be one step further from the original formulas
       depth++;
-      if(depth==env.options->sineDepth()) {
+      if(depthLimit && depth==depthLimit) {
 	break;
       }
+      ASS(!depthLimit || depth<depthLimit);
 
       if(newlySelected.isNonEmpty()) {
 	//we must push another mark if we're not done yet
@@ -335,6 +334,8 @@ void SineSelector::perform(UnitList*& units)
       _def[sym]=0;
     }
   }
+
+  env.statistics->sineIterations=depth;
 
   env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selectedStack.size();
 

@@ -36,6 +36,7 @@ Statistics::Statistics()
     unusedPredicateDefinitions(0),
     functionDefinitions(0),
     selectedBySine(0),
+    sineIterations(0),
     factoring(0),
     resolution(0),
     forwardSuperposition(0),
@@ -148,6 +149,7 @@ void Statistics::print()
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
   COND_OUT("Function definitions", functionDefinitions);
   COND_OUT("Selected by SInE selection", selectedBySine);
+  COND_OUT("SInE iterations", sineIterations);
   COND_OUT("Splitted inequalities", splittedInequalities);
   SEPARATOR;
 
