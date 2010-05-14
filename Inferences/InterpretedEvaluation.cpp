@@ -28,8 +28,7 @@ using namespace Kernel;
 
 InterpretedEvaluation::InterpretedEvaluation()
 {
-  _zero=TermList(getRepresentation(0));
-  _one=TermList(getRepresentation(1));
+  theory=Theory::instance();
 }
 
 
@@ -70,62 +69,6 @@ int InterpretedEvaluation::getInterpretedPredicate(Literal* lit)
 }
 
 /**
- * Return number of interpreted function that is the top function of
- * @b t.
- */
-bool InterpretedEvaluation::isInterpretedConstant(Term* t)
-{
-  CALL("InterpretedEvaluation::isInterpretedConstant");
-
-  return t->arity()==0 && env.signature->getFunction(t->functor())->interpreted();
-}
-
-bool InterpretedEvaluation::isInterpretedConstant(TermList t)
-{
-  CALL("InterpretedEvaluation::isInterpretedConstant(TermList)");
-
-  return t.isTerm() && isInterpretedConstant(t.term());
-}
-
-InterpretedType InterpretedEvaluation::interpretConstant(TermList t)
-{
-  CALL("InterpretedEvaluation::interpretConstant");
-
-  ASS(t.isTerm());
-  return interpretConstant(t.term());
-}
-
-InterpretedType InterpretedEvaluation::interpretConstant(Term* t)
-{
-  CALL("InterpretedEvaluation::interpretConstant");
-  ASS(isInterpretedConstant(t));
-
-  Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(t->functor()));
-
-  return sym->getValue();
-}
-
-Term* InterpretedEvaluation::getRepresentation(InterpretedType val)
-{
-  CALL("InterpretedEvaluation::getRepresentation");
-
-  Term** pRes;
-
-  if(!_constants.getValuePtr(val, pRes)) {
-    return *pRes;
-  }
-
-  int functor=env.signature->addInterpretedConstant(val);
-
-  Term* t = new(0) Term;
-  t->makeSymbol(functor,0);
-  *pRes=env.sharing->insert(t);
-  return *pRes;
-}
-
-
-/**
  * Evaluate internal interpreted function number @b fnIndex on arguments
  * @b args and return resulting interpreted constant. If the evaluation
  * cannot be performed, return 0 and no simplification will occur.
@@ -142,11 +85,11 @@ Term* InterpretedEvaluation::evaluateFunction(int fnIndex, TermList* args)
 
   switch(Theory::getArity(interp)) {
   case 3:
-    arg3=interpretConstant(args[2]);
+    arg3=theory->interpretConstant(args[2]);
   case 2:
-    arg2=interpretConstant(args[1]);
+    arg2=theory->interpretConstant(args[1]);
   case 1:
-    arg1=interpretConstant(args[0]);
+    arg1=theory->interpretConstant(args[0]);
   }
 
   InterpretedType res;
@@ -216,7 +159,7 @@ Term* InterpretedEvaluation::evaluateFunction(int fnIndex, TermList* args)
     ASSERTION_VIOLATION;
   }
 
-  return getRepresentation(res);
+  return theory->getRepresentation(res);
 }
 
 bool InterpretedEvaluation::evaluatePredicate(int predIndex, TermList* args)
@@ -230,8 +173,8 @@ bool InterpretedEvaluation::evaluatePredicate(int predIndex, TermList* args)
 
   //all interpreted predicates are binary
   ASS_EQ(Theory::getArity(interp), 2);
-  InterpretedType arg1=interpretConstant(args[0]);
-  InterpretedType arg2=interpretConstant(args[1]);
+  InterpretedType arg1=theory->interpretConstant(args[0]);
+  InterpretedType arg2=theory->interpretConstant(args[1]);
 
   switch(interp) {
   case Theory::EQUAL:
@@ -259,45 +202,45 @@ bool InterpretedEvaluation::simplifyFunction(int fnIndex, TermList* args, TermLi
 
   switch(interp) {
   case Theory::PLUS:
-    if(args[0]==_zero) {
+    if(args[0]==theory->zero()) {
       res=args[1];
       return true;
     }
-    if(args[1]==_zero) {
+    if(args[1]==theory->zero()) {
       res=args[0];
       return true;
     }
     break;
   case Theory::MINUS:
-    if(args[1]==_zero) {
+    if(args[1]==theory->zero()) {
       res=args[0];
       return true;
     }
     break;
   case Theory::MULTIPLY:
-    if(args[0]==_one) {
+    if(args[0]==theory->one()) {
       res=args[1];
       return true;
     }
-    if(args[1]==_one) {
+    if(args[1]==theory->one()) {
       res=args[0];
       return true;
     }
     break;
   case Theory::DIVIDE:
-    if(args[1]==_one) {
+    if(args[1]==theory->one()) {
       res=args[0];
       return true;
     }
     break;
   case Theory::IF_THEN_ELSE:
-    if(args[0]==_zero) {
+    if(args[0]==theory->zero()) {
       res=args[2];
       return true;
     }
-    if(args[0].isTerm() && isInterpretedConstant(args[0].term())) {
+    if(args[0].isTerm() && theory->isInterpretedConstant(args[0].term())) {
       //if we had zero, we would have succeeded with the previous condition
-      ASS_NEQ(interpretConstant(args[0]), 0);
+      ASS_NEQ(theory->interpretConstant(args[0]), 0);
       res=args[1];
       return true;
     }
@@ -319,13 +262,15 @@ bool InterpretedEvaluation::removeEquivalentAdditionsAndSubtractionsFromOneSide(
 
   if(getInterpretedFunction(t1)==Theory::PLUS) {
     if(*t1->nthArgument(0)==arg2) {
+      //X+Y # X  ---> Y # 0
       arg1=*t1->nthArgument(1);
-      arg2=_zero;
+      arg2=theory->zero();
       return true;
     }
     if(*t1->nthArgument(1)==arg2) {
+      //X+Y # Y  ---> X # 0
       arg1=*t1->nthArgument(0);
-      arg2=_zero;
+      arg2=theory->zero();
       return true;
     }
   }
@@ -334,11 +279,12 @@ bool InterpretedEvaluation::removeEquivalentAdditionsAndSubtractionsFromOneSide(
     return false;
   }
   Term* t2=arg2.term();
-  if(getInterpretedFunction(t1)==Theory::SUCCESSOR && isInterpretedConstant(t2)) {
-    InterpretedType t2Val=interpretConstant(t2);
+  if(getInterpretedFunction(t1)==Theory::SUCCESSOR && theory->isInterpretedConstant(t2)) {
+    //s(X) # N ---> X # (N-1)
+    InterpretedType t2Val=theory->interpretConstant(t2);
     if(t2Val!=INT_MIN) {
       arg1=*t1->nthArgument(0);
-      arg2=TermList(getRepresentation(t2Val-1));
+      arg2=TermList(theory->getRepresentation(t2Val-1));
       return true;
     }
   }
@@ -360,11 +306,8 @@ bool InterpretedEvaluation::removeEquivalentAdditionsAndSubtractions(TermList& a
   bool res=false;
 
 reevaluation:
-  if(arg1==arg2) {
-    arg1=TermList(getRepresentation(0));
-    if(arg2==arg1) {
-      return res;
-    }
+  if(arg1==arg2 && arg1!=theory->zero()) {
+    arg1=theory->zero();
     arg2=arg1;
     return true;
   }
@@ -387,6 +330,7 @@ reevaluation:
     return res;
   }
   if(getInterpretedFunction(t1)==Theory::PLUS) {
+    //X+Y # X+Z ---> Y # Z  (modulo commutativity)
     bool modified=true;
     if(*t1->nthArgument(0)==*t2->nthArgument(0)) {
       arg1=*t1->nthArgument(1);
@@ -414,6 +358,7 @@ reevaluation:
   }
   if(getInterpretedFunction(t1)==Theory::MINUS) {
     if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
+      //X-Y # Z-Y ---> X # Z
       arg1=*t1->nthArgument(0);
       arg2=*t2->nthArgument(0);
       res=true;
@@ -435,11 +380,24 @@ Literal* InterpretedEvaluation::simplifyPredicate(int predIndex, TermList* args,
   ASS_EQ(Theory::getArity(interp), 2);
 
   switch(interp) {
-  case Theory::EQUAL:
-  case Theory::GREATER:
   case Theory::GREATER_EQUAL:
   case Theory::LESS:
   case Theory::LESS_EQUAL:
+  {
+    //we want to transform all inequalities to GREATER
+    unsigned grPred=env.signature->getInterpretingSymbol(Theory::GREATER);
+    bool polarity=original->polarity();
+    if(interp==Theory::LESS_EQUAL || interp==Theory::GREATER_EQUAL) {
+      polarity^=1;
+    }
+    if(interp==Theory::LESS || interp==Theory::GREATER_EQUAL) {
+      swap(args[0], args[1]);
+    }
+    return Literal::create(grPred, 2, polarity, false, args);
+  }
+
+  case Theory::EQUAL:
+  case Theory::GREATER:
     if(removeEquivalentAdditionsAndSubtractions(args[0], args[1])) {
       return Literal::create(original,args);
     }
@@ -505,7 +463,7 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 	    args.truncate(args.length() - orig->arity());
 	    args.push(sfRes);
 	    modified.setTop(true);
-	    allItpConsts.setTop(isInterpretedConstant(sfRes));
+	    allItpConsts.setTop(theory->isInterpretedConstant(sfRes));
 	    continue;
 	  }
 	}
@@ -537,7 +495,7 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
     }
     ASS(tl.isTerm());
     Term* t=tl.term();
-    if(isInterpretedConstant(t)) {
+    if(theory->isInterpretedConstant(t)) {
       args.push(tl);
       continue;
     }

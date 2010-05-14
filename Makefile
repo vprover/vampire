@@ -114,7 +114,8 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Unit.o\
 #        Kernel/EGSubstitution.o
 
-VI_OBJ = Indexing/ClauseCodeTree.o\
+VI_OBJ = Indexing/ArithmeticIndex.o\
+         Indexing/ClauseCodeTree.o\
          Indexing/ClauseSharing.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\

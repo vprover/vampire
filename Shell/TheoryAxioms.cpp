@@ -8,7 +8,7 @@
 #include "../Kernel/Signature.hpp"
 
 #include "AxiomGenerator.hpp"
-#include "Property.hpp"q
+#include "Property.hpp"
 #include "SymCounter.hpp"
 
 #include "TheoryAxioms.hpp"

@@ -7,6 +7,7 @@
 
 #include "../Saturation/SaturationAlgorithm.hpp"
 
+#include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "LiteralIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"
@@ -127,6 +128,11 @@ Index* IndexManager::create(IndexType t)
   case REWRITE_RULE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new RewriteRuleIndex(is);
+    res->attachContainer(_alg->getSimplificationClauseContainer());
+    break;
+
+  case ARITHMETIC_INDEX:
+    res=new ArithmeticIndex();
     res->attachContainer(_alg->getSimplificationClauseContainer());
     break;
 

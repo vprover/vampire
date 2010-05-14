@@ -27,12 +27,6 @@ public:
 private:
   int getInterpretedFunction(Term* t);
   int getInterpretedPredicate(Literal* lit);
-  bool isInterpretedConstant(Term* t);
-  bool isInterpretedConstant(TermList t);
-
-  InterpretedType interpretConstant(Term* t);
-  InterpretedType interpretConstant(TermList t);
-  Term* getRepresentation(InterpretedType val);
 
   Term* evaluateFunction(int fnIndex, TermList* args);
   bool simplifyFunction(int fnIndex, TermList* args, TermList& res);
@@ -45,9 +39,7 @@ private:
 
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
 
-  TermList _zero;
-  TermList _one;
-  DHMap<InterpretedType, Term*> _constants;
+  Theory* theory;
 };
 
 };

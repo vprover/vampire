@@ -6,12 +6,31 @@
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
+#include "../Lib/Environment.hpp"
+
+#include "../Kernel/Signature.hpp"
+
 #include "Theory.hpp"
 
 namespace Kernel
 {
 
-const int Theory::interpretationElementCount;
+using namespace Lib;
+
+const unsigned Theory::interpretationElementCount;
+
+Theory* Theory::instance()
+{
+  static Theory* inst=new Theory;
+
+  return inst;
+}
+
+Theory::Theory()
+: _zero(0), _one(0)
+{
+
+}
 
 /**
  * Return arity of the symbol that is interpreted by Interpretation
@@ -20,7 +39,7 @@ const int Theory::interpretationElementCount;
 unsigned Theory::getArity(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::getArity");
-  ASS_L(i,interpretationElementCount);
+  ASS_L(i,(int)interpretationElementCount);
 
   switch(i) {
   case SUCCESSOR:
@@ -51,7 +70,7 @@ unsigned Theory::getArity(Interpretation i)
 bool Theory::isFunction(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isFunction");
-  ASS_L(i,interpretationElementCount);
+  ASS_L(i,(int)interpretationElementCount);
 
   switch(i) {
   case SUCCESSOR:
@@ -74,4 +93,82 @@ bool Theory::isFunction(Interpretation i)
 }
 
 
+TermList Theory::zero()
+{
+  if(!_zero) {
+    _zero=getRepresentation(0);
+  }
+  return TermList(_zero);
 }
+
+TermList Theory::one()
+{
+  if(!_one) {
+    _one=getRepresentation(1);
+  }
+  return TermList(_one);
+}
+
+bool Theory::isInterpretedConstant(Term* t)
+{
+  CALL("Theory::isInterpretedConstant");
+
+  return t->arity()==0 && env.signature->getFunction(t->functor())->interpreted();
+}
+
+bool Theory::isInterpretedConstant(TermList t)
+{
+  return t.isTerm() && isInterpretedConstant(t.term());
+}
+
+InterpretedType Theory::interpretConstant(Term* t)
+{
+  CALL("Theory::interpretConstant");
+  ASS(isInterpretedConstant(t));
+
+  Signature::InterpretedSymbol* sym =
+      static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(t->functor()));
+
+  return sym->getValue();
+}
+
+InterpretedType Theory::interpretConstant(TermList t)
+{
+  CALL("Theory::interpretConstant(TermList)");
+  ASS(t.isTerm());
+
+  return interpretConstant(t.term());
+}
+
+Term* Theory::getRepresentation(InterpretedType val)
+{
+  Term** pRes;
+
+  if(!_constants.getValuePtr(val, pRes)) {
+    return *pRes;
+  }
+
+  int functor=env.signature->addInterpretedConstant(val);
+
+  *pRes=Term::create(functor, 0, 0);
+  return *pRes;
+}
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

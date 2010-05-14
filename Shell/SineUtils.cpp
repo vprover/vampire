@@ -293,7 +293,7 @@ void SineSelector::perform(UnitList*& units)
   }
 
   unsigned depthLimit=env.options->sineDepth();
-  int depth=0;
+  unsigned depth=0;
   newlySelected.push_back(0);
 
   //select required axiom formulas
