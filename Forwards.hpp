@@ -76,6 +76,7 @@ typedef VirtualIterator<TermList> TermIterator;
 class Term;
 class Literal;
 typedef List<Literal*> LiteralList;
+typedef Stack<Literal*> LiteralStack;
 
 class Inference;
 
@@ -171,6 +172,9 @@ class ClauseCodeTree;
 class CodeTreeTIS;
 class CodeTreeLIS;
 class CodeTreeSubsumptionIndex;
+
+class ArithmeticIndex;
+class ConstraintDatabase;
 };
 
 namespace Saturation

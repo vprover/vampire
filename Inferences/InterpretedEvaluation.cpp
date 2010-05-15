@@ -192,222 +192,6 @@ bool InterpretedEvaluation::evaluatePredicate(int predIndex, TermList* args)
   }
 }
 
-bool InterpretedEvaluation::simplifyFunction(int fnIndex, TermList* args, TermList& res)
-{
-  CALL("InterpretedEvaluation::simplifyFunction");
-  ASS_GE(fnIndex, 0);
-
-  Interpretation interp = static_cast<Interpretation>(fnIndex);
-  ASS(Theory::isFunction(interp));
-
-  switch(interp) {
-  case Theory::PLUS:
-    if(args[0]==theory->zero()) {
-      res=args[1];
-      return true;
-    }
-    if(args[1]==theory->zero()) {
-      res=args[0];
-      return true;
-    }
-    break;
-  case Theory::MINUS:
-    if(args[1]==theory->zero()) {
-      res=args[0];
-      return true;
-    }
-    break;
-  case Theory::MULTIPLY:
-    if(args[0]==theory->one()) {
-      res=args[1];
-      return true;
-    }
-    if(args[1]==theory->one()) {
-      res=args[0];
-      return true;
-    }
-    break;
-  case Theory::DIVIDE:
-    if(args[1]==theory->one()) {
-      res=args[0];
-      return true;
-    }
-    break;
-  case Theory::IF_THEN_ELSE:
-    if(args[0]==theory->zero()) {
-      res=args[2];
-      return true;
-    }
-    if(args[0].isTerm() && theory->isInterpretedConstant(args[0].term())) {
-      //if we had zero, we would have succeeded with the previous condition
-      ASS_NEQ(theory->interpretConstant(args[0]), 0);
-      res=args[1];
-      return true;
-    }
-    break;
-  default:;
-  }
-
-  return false;
-}
-
-bool InterpretedEvaluation::removeEquivalentAdditionsAndSubtractionsFromOneSide(TermList& arg1, TermList& arg2)
-{
-  CALL("InterpretedEvaluation::removeEquivalentAdditionsAndSubtractionsFromOneSide");
-
-  if(!arg1.isTerm()) {
-    return false;
-  }
-  Term* t1=arg1.term();
-
-  if(getInterpretedFunction(t1)==Theory::PLUS) {
-    if(*t1->nthArgument(0)==arg2) {
-      //X+Y # X  ---> Y # 0
-      arg1=*t1->nthArgument(1);
-      arg2=theory->zero();
-      return true;
-    }
-    if(*t1->nthArgument(1)==arg2) {
-      //X+Y # Y  ---> X # 0
-      arg1=*t1->nthArgument(0);
-      arg2=theory->zero();
-      return true;
-    }
-  }
-
-  if(!arg2.isTerm()) {
-    return false;
-  }
-  Term* t2=arg2.term();
-  if(getInterpretedFunction(t1)==Theory::SUCCESSOR && theory->isInterpretedConstant(t2)) {
-    //s(X) # N ---> X # (N-1)
-    InterpretedType t2Val=theory->interpretConstant(t2);
-    if(t2Val!=INT_MIN) {
-      arg1=*t1->nthArgument(0);
-      arg2=TermList(theory->getRepresentation(t2Val-1));
-      return true;
-    }
-  }
-
-
-  return false;
-}
-
-/**
- * Remove addition and subtraction of equal values in given terms.
- * Return true iff any simplification was performed.
- *
- * Helps to simplify e.g. a+b>b+c into a>c.
- */
-bool InterpretedEvaluation::removeEquivalentAdditionsAndSubtractions(TermList& arg1, TermList& arg2)
-{
-  CALL("InterpretedEvaluation::removeEquivalentAdditionsAndSubtractions");
-
-  bool res=false;
-
-reevaluation:
-  if(arg1==arg2 && arg1!=theory->zero()) {
-    arg1=theory->zero();
-    arg2=arg1;
-    return true;
-  }
-
-  if(removeEquivalentAdditionsAndSubtractionsFromOneSide(arg1, arg2)) {
-    res=true;
-    goto reevaluation;
-  }
-  if(removeEquivalentAdditionsAndSubtractionsFromOneSide(arg2, arg1)) {
-    res=true;
-    goto reevaluation;
-  }
-
-  if(!arg1.isTerm() || !arg2.isTerm()) {
-    return res;
-  }
-  Term* t1=arg1.term();
-  Term* t2=arg2.term();
-  if(t1->functor()!=t2->functor()) {
-    return res;
-  }
-  if(getInterpretedFunction(t1)==Theory::PLUS) {
-    //X+Y # X+Z ---> Y # Z  (modulo commutativity)
-    bool modified=true;
-    if(*t1->nthArgument(0)==*t2->nthArgument(0)) {
-      arg1=*t1->nthArgument(1);
-      arg2=*t2->nthArgument(1);
-    }
-    else if(*t1->nthArgument(0)==*t2->nthArgument(1)) {
-      arg1=*t1->nthArgument(1);
-      arg2=*t2->nthArgument(0);
-    }
-    else if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
-      arg1=*t1->nthArgument(0);
-      arg2=*t2->nthArgument(0);
-    }
-    else if(*t1->nthArgument(1)==*t2->nthArgument(0)) {
-      arg1=*t1->nthArgument(0);
-      arg2=*t2->nthArgument(1);
-    }
-    else {
-      modified=false;
-    }
-    if(modified) {
-      res=true;
-      goto reevaluation;
-    }
-  }
-  if(getInterpretedFunction(t1)==Theory::MINUS) {
-    if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
-      //X-Y # Z-Y ---> X # Z
-      arg1=*t1->nthArgument(0);
-      arg2=*t2->nthArgument(0);
-      res=true;
-      goto reevaluation;
-    }
-  }
-  return res;
-}
-
-Literal* InterpretedEvaluation::simplifyPredicate(int predIndex, TermList* args, Literal* original)
-{
-  CALL("InterpretedEvaluation::simplifyPredicate");
-  ASS_GE(predIndex, 0);
-
-  Interpretation interp = static_cast<Interpretation>(predIndex);
-  ASS(!Theory::isFunction(interp));
-
-  //all interpreted predicates are binary
-  ASS_EQ(Theory::getArity(interp), 2);
-
-  switch(interp) {
-  case Theory::GREATER_EQUAL:
-  case Theory::LESS:
-  case Theory::LESS_EQUAL:
-  {
-    //we want to transform all inequalities to GREATER
-    unsigned grPred=env.signature->getInterpretingSymbol(Theory::GREATER);
-    bool polarity=original->polarity();
-    if(interp==Theory::LESS_EQUAL || interp==Theory::GREATER_EQUAL) {
-      polarity^=1;
-    }
-    if(interp==Theory::LESS || interp==Theory::GREATER_EQUAL) {
-      swap(args[0], args[1]);
-    }
-    return Literal::create(grPred, 2, polarity, false, args);
-  }
-
-  case Theory::EQUAL:
-  case Theory::GREATER:
-    if(removeEquivalentAdditionsAndSubtractions(args[0], args[1])) {
-      return Literal::create(original,args);
-    }
-    break;
-  default:;
-  }
-
-  return 0;
-}
-
 bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 	bool& constant, Literal*& res, bool& constantTrue)
 {
@@ -453,20 +237,8 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
       //&top()-2, etc...
       TermList* argLst=&args.top() - (orig->arity()-1);
       Term* newTrm=0;
-      if(itpFn>=0) {
-	if(allChildrenInterpreted) {
-	  newTrm=evaluateFunction(itpFn, argLst);
-	}
-	if(!newTrm) {
-	  TermList sfRes;
-	  if(simplifyFunction(itpFn, argLst, sfRes)) {
-	    args.truncate(args.length() - orig->arity());
-	    args.push(sfRes);
-	    modified.setTop(true);
-	    allItpConsts.setTop(theory->isInterpretedConstant(sfRes));
-	    continue;
-	  }
-	}
+      if(itpFn>=0 && allChildrenInterpreted) {
+	newTrm=evaluateFunction(itpFn, argLst);
       }
       if(!newTrm && childrenModified) {
 	newTrm=Term::create(orig,argLst);
@@ -514,10 +286,6 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
   bool allChildrenInterpreted=allItpConsts.pop();
   int itpPred=getInterpretedPredicate(lit);
 
-  if(!childrenModified && itpPred<0) {
-    res=lit;
-    return false;
-  }
 
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
@@ -530,20 +298,30 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
     return true;
   }
 
+  if(itpPred==Theory::GREATER_EQUAL || itpPred==Theory::LESS || itpPred==Theory::LESS_EQUAL) {
+    //we want to transform all inequalities to GREATER
+    //TODO: create a preprocessing rule for this
+    unsigned grPred=env.signature->getInterpretingSymbol(Theory::GREATER);
+    bool polarity=lit->polarity();
+    if(itpPred==Theory::LESS_EQUAL || itpPred==Theory::GREATER_EQUAL) {
+      polarity^=1;
+    }
+    if(itpPred==Theory::LESS || itpPred==Theory::GREATER_EQUAL) {
+      swap(argLst[0], argLst[1]);
+    }
+    constant=false;
+    res=Literal::create(grPred, 2, polarity, false, argLst);
+    return true;
+  }
+
+  if(!childrenModified) {
+    res=lit;
+    return false;
+  }
+
   constant=false;
 
-  res=0;
-  if(itpPred>=0) {
-    res=simplifyPredicate(itpPred, argLst, lit);
-    if(!res && !childrenModified) {
-      res=lit;
-      return false;
-    }
-  }
-
-  if(!res) {
-    res=Literal::create(lit,argLst);
-  }
+  res=Literal::create(lit,argLst);
   return true;
 }
 

@@ -24,6 +24,7 @@
 #include "../Inferences/ForwardLiteralRewriting.hpp"
 #include "../Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "../Inferences/InterpretedEvaluation.hpp"
+#include "../Inferences/InterpretedSimplifier.hpp"
 #include "../Inferences/RefutationSeekerFSE.hpp"
 #include "../Inferences/SLQueryForwardSubsumption.hpp"
 #include "../Inferences/SLQueryBackwardSubsumption.hpp"
@@ -104,6 +105,10 @@ void addFSEs(SaturationAlgorithm* alg)
   CALL("Saturation::Construction::addFSEs");
 
 //  alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new RefutationSeekerFSE()));
+
+  if(env.options->interpretedSimplification()) {
+    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new InterpretedSimplifier()));
+  }
 
   if(env.options->forwardLiteralRewriting()) {
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardLiteralRewriting()));

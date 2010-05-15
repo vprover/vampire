@@ -20,21 +20,54 @@ namespace Indexing
 
 using namespace Kernel;
 
-ArithmeticIndex::ArithmeticIndex()
+ConstraintDatabase::ConstraintDatabase()
 {
   theory=Theory::instance();
 }
 
-void ArithmeticIndex::handleClause(Clause* c, bool adding)
+bool ConstraintDatabase::isNonEqual(TermList t, InterpretedType val, Clause*& premise)
 {
-  CALL("ArithmeticIndex::handleClause");
-  ASS(env.options->interpretedEvaluation()); //this index should be used only when we interpret symbols
+  CALL("ConstraintDatabase::isNonEqual");
 
-  if(c->length()!=1 || !BDD::instance()->isFalse(c->prop())) {
-    return;
+  ConstraintInfo* ci;
+  if(!_termConstraints.find(t, ci)) {
+    return false;
   }
+  ASS(ci);
+  if( ci->hasLowerLimit && (ci->lowerLimit > val ||
+      (ci->strongLowerLimit && ci->lowerLimit==val) ) ) {
+    premise=ci->lowerLimitPremise;
+    return true;
+  }
+  if( ci->hasUpperLimit && (ci->upperLimit < val ||
+      (ci->strongUpperLimit && ci->upperLimit==val) ) ) {
+    premise=ci->upperLimitPremise;
+    return true;
+  }
+  return false;
+}
 
-  Literal* lit=(*c)[0];
+bool ConstraintDatabase::isGreater(TermList t, InterpretedType val, Clause*& premise)
+{
+  CALL("ConstraintDatabase::isGreater");
+
+  ConstraintInfo* ci;
+  if(!_termConstraints.find(t, ci)) {
+    return false;
+  }
+  ASS(ci);
+  if( ci->hasLowerLimit && (ci->lowerLimit > val ||
+      (ci->strongLowerLimit && ci->lowerLimit==val) ) ) {
+    premise=ci->lowerLimitPremise;
+    return true;
+  }
+  return false;
+}
+
+
+void ConstraintDatabase::handleLiteral(Literal* lit, bool adding, Clause* premise, bool negative)
+{
+  CALL("ConstraintDatabase::handleLiteral");
 
   Signature::Symbol* sym0=env.signature->getPredicate(lit->functor());
 
@@ -52,7 +85,10 @@ void ArithmeticIndex::handleClause(Clause* c, bool adding)
   bool numFirst=theory->isInterpretedConstant(*lit->nthArgument(0));
   if(numFirst) {
     //if both arguments were numbers, the predicate would have been simplified
-    ASS(!theory->isInterpretedConstant(*lit->nthArgument(1)));
+    if(theory->isInterpretedConstant(*lit->nthArgument(1))) {
+      //comparison of two interpreted constants is of no use to us
+      return;
+    }
     num=theory->interpretConstant(*lit->nthArgument(0));
     arg=*lit->nthArgument(1);
   }
@@ -65,8 +101,9 @@ void ArithmeticIndex::handleClause(Clause* c, bool adding)
     arg=*lit->nthArgument(0);
   }
 
-  bool strong = lit->polarity();
-  bool upper = numFirst ^ (lit->polarity()==0);
+  bool litPositive = static_cast<bool>(lit->polarity()) ^ negative;
+  bool strong = litPositive;
+  bool upper = !(numFirst ^ litPositive);
 
   if(adding) {
     ConstraintInfo** pctr;
@@ -80,6 +117,7 @@ void ArithmeticIndex::handleClause(Clause* c, bool adding)
 	ctr->hasUpperLimit=true;
 	ctr->strongUpperLimit=strong;
 	ctr->upperLimit=num;
+	ctr->upperLimitPremise=premise;
       }
     }
     else {
@@ -88,22 +126,40 @@ void ArithmeticIndex::handleClause(Clause* c, bool adding)
 	ctr->hasLowerLimit=true;
 	ctr->strongLowerLimit=strong;
 	ctr->lowerLimit=num;
+	ctr->lowerLimitPremise=premise;
       }
     }
   }
   else {
     ConstraintInfo* ctr=_termConstraints.get(arg);
     if(upper) {
-      if(c==ctr->upperLimitPremise) {
+      if(premise==ctr->upperLimitPremise) {
 	ctr->hasUpperLimit=false;
       }
     }
     else {
-      if(c==ctr->lowerLimitPremise) {
+      if(premise==ctr->lowerLimitPremise) {
 	ctr->hasLowerLimit=false;
       }
     }
   }
+}
+
+ArithmeticIndex::ArithmeticIndex()
+{
+}
+
+void ArithmeticIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("ArithmeticIndex::handleClause");
+  ASS(env.options->interpretedEvaluation()); //this index should be used only when we interpret symbols
+
+  if(c->length()!=1 || !BDD::instance()->isFalse(c->prop())) {
+    return;
+  }
+
+  Literal* lit=(*c)[0];
+  _db.handleLiteral(lit, adding, c);
 }
 
 }

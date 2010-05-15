@@ -121,6 +121,45 @@ bool Theory::isInterpretedConstant(TermList t)
   return t.isTerm() && isInterpretedConstant(t.term());
 }
 
+bool Theory::isInterpretedPredicate(Literal* lit)
+{
+  return env.signature->getPredicate(lit->functor())->interpreted();
+}
+
+bool Theory::isInterpretedFunction(Term* t)
+{
+  return t->arity()!=0 && env.signature->getFunction(t->functor())->interpreted();
+}
+
+bool Theory::isInterpretedFunction(TermList t)
+{
+  return t.isTerm() && isInterpretedFunction(t.term());
+}
+
+bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
+{
+  return t->arity()!=0 && env.signature->getFunction(t->functor())->interpreted() &&
+      interpretFunction(t)==itp;
+}
+
+Interpretation Theory::interpretFunction(Term* t)
+{
+  CALL("Theory::interpretFunction");
+  ASS(isInterpretedFunction(t));
+
+  return static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(t->functor()))
+      ->getInterpretation();
+}
+
+Interpretation Theory::interpretPredicate(Literal* lit)
+{
+  CALL("Theory::interpretFunction");
+  ASS(isInterpretedPredicate(lit));
+
+  return static_cast<Signature::InterpretedSymbol*>(env.signature->getPredicate(lit->functor()))
+      ->getInterpretation();
+}
+
 InterpretedType Theory::interpretConstant(Term* t)
 {
   CALL("Theory::interpretConstant");

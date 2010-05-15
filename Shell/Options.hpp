@@ -52,6 +52,7 @@ public:
     INPUT_FILE,
     INPUT_SYNTAX,
     INTERPRETED_EVALUATION,
+    INTERPRETED_SIMPLIFICATION,
 
     LATEX_OUTPUT,
     LITERAL_COMPARISON_MODE,
@@ -333,6 +334,7 @@ public:
   string thanks() const { return _thanks; }
 
   bool interpretedEvaluation() const { return _interpretedEvaluation; }
+  bool interpretedSimplification() const { return _interpretedSimplification; }
   bool theoryAxioms() const { return _theoryAxioms; }
   Condensation condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
@@ -407,6 +409,7 @@ private:
   string _inputFile;
   InputSyntax _inputSyntax;
   bool _interpretedEvaluation;
+  bool _interpretedSimplification;
 
   string _latexOutput;
   LiteralComparisonMode _literalComparisonMode;

@@ -29,13 +29,8 @@ private:
   int getInterpretedPredicate(Literal* lit);
 
   Term* evaluateFunction(int fnIndex, TermList* args);
-  bool simplifyFunction(int fnIndex, TermList* args, TermList& res);
 
   bool evaluatePredicate(int predIndex, TermList* args);
-  Literal* simplifyPredicate(int predIndex, TermList* args, Literal* original);
-
-  bool removeEquivalentAdditionsAndSubtractionsFromOneSide(TermList& arg1, TermList& arg2);
-  bool removeEquivalentAdditionsAndSubtractions(TermList& arg1, TermList& arg2);
 
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
 

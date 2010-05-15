@@ -102,6 +102,7 @@ const char* Options::Constants::_optionNames[] = {
   "input_file",
   "input_syntax",
   "interpreted_evaluation",
+  "interpreted_simplification",
 
   "latex_output",
   "literal_comparison_mode",
@@ -418,6 +419,7 @@ Options::Options ()
   _inputFile(""),
   _inputSyntax(IS_TPTP),
   _interpretedEvaluation(false),
+  _interpretedSimplification(false),
 
   _latexOutput("off"),
   _literalComparisonMode(LCM_STANDARD),
@@ -625,6 +627,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case INTERPRETED_EVALUATION:
       _interpretedEvaluation = onOffToBool(value,name);
+      return;
+    case INTERPRETED_SIMPLIFICATION:
+      _interpretedSimplification = onOffToBool(value,name);
       return;
 
 
@@ -1166,6 +1171,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case INTERPRETED_EVALUATION:
     str << boolToOnOff(_interpretedEvaluation);
     return;
+  case INTERPRETED_SIMPLIFICATION:
+    str << boolToOnOff(_interpretedSimplification);
+    return;
 
   case LATEX_OUTPUT:
     str << _latexOutput;
@@ -1703,6 +1711,12 @@ void Options::checkGlobalOptionConstraints() const
   }
   if(splitting()==SM_BACKTRACKING && propositionalToBDD()) {
     USER_ERROR("Backtracking splitting cannot be used unless all BDD related options are disabled");
+  }
+  if(interpretedSimplification() && !interpretedEvaluation()) {
+    USER_ERROR("Interpreted simplification can only be used together with interpreted evaluation");
+  }
+  if(interpretedSimplification() && splitting()==SM_BACKTRACKING) {
+    USER_ERROR("Interpreted simplification is not supported with backtracking splitting");
   }
 }
 

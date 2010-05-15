@@ -62,6 +62,13 @@ public:
 
   bool isInterpretedConstant(Term* t);
   bool isInterpretedConstant(TermList t);
+  bool isInterpretedPredicate(Literal* lit);
+  bool isInterpretedFunction(Term* t);
+  bool isInterpretedFunction(TermList t);
+  bool isInterpretedFunction(Term* t, Interpretation itp);
+
+  Interpretation interpretFunction(Term* t);
+  Interpretation interpretPredicate(Literal* t);
 
   InterpretedType interpretConstant(Term* t);
   InterpretedType interpretConstant(TermList t);

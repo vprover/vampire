@@ -91,6 +91,8 @@ public:
   unsigned condensations;
   /** number of evaluations */
   unsigned evaluations;
+  /** number of interpreted simplifications */
+  unsigned interpretedSimplifications;
 
   // Deletion inferences
   /** number of tautologies A \/ ~A */
