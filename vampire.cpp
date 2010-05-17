@@ -347,6 +347,8 @@ int main(int argc, char* argv [])
     env.statistics = &statistics;
     env.signature = new Kernel::Signature;
 
+    Kernel::theory = Theory::instance();
+
     // read the command line and interpret it
     Shell::CommandLine cl(argc,argv);
     cl.interpret(options);
