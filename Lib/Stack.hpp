@@ -193,6 +193,22 @@ public:
   } // Stack::pop()
 
   /**
+   * If the element @b el is present in the stack, remove it and return
+   * true, otherwise return false.
+   */
+  bool remove(C el)
+  {
+    Iterator it(*this);
+    while(it.hasNext()) {
+      if(it.next()==el) {
+        it.del();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Return the element past the end of the stack, can be used together
    * with begin() for iterating over the elements of the stack.
    * @since 11/03/2006 Bellevue

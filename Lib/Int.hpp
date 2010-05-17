@@ -77,6 +77,11 @@ class Int
   static int max(int i,int j);
   static int min(int i,int j);
   static int gcd(int i,int j);
+  
+  static bool safeUnaryMinus(int num, int& res);
+  static bool safePlus(int arg1, int arg2, int& res);
+  static bool safeMinus(int num, int sub, int& res);
+  static bool safeMultiply(int arg1, int arg2, int& res);
 };
 
 

@@ -15,6 +15,79 @@
 
 namespace Lib {
 
+int Int::gcd(int i,int j)
+{
+  CALL("Int::gcd");
+  
+  i=abs(i);
+  j=abs(j);
+  
+  for(;;)
+  {
+    i = i % j;
+    if(i==0) {
+      return j;
+    }
+    j = j % i;
+    if(j==0) {
+      return i;
+    }
+  }
+}
+
+bool Int::safeUnaryMinus(int num, int& res)
+{
+  CALL("Int::safeUnaryMinus");
+  
+  if(num == INT_MIN) {
+    return false;
+  }
+  res=-num;
+  return true;
+}
+
+bool Int::safePlus(int arg1, int arg2, int& res)
+{
+  CALL("Int::safePlus");
+  
+  if(arg2<0) {
+    if(INT_MIN - arg2 > arg1) { return false; }
+  }
+  else {
+    if(INT_MAX - arg2 < arg1) { return false; }
+  }
+  res=arg1+arg2;
+  return true;
+}
+
+bool Int::safeMinus(int num, int sub, int& res)
+{
+  CALL("Int::safeMinus");
+  
+  if(sub<0) {
+    if(INT_MAX + sub < num) { return false; }
+  }
+  else {
+    if(INT_MIN + sub > num) { return false; }
+  }
+  res=num-sub;
+  return true;
+}
+
+bool Int::safeMultiply(int arg1, int arg2, int& res)
+{
+  CALL("Int::safeMultiply");
+  
+  ASS_STATIC(sizeof(int)==4);
+  ASS_STATIC(sizeof(long long)==8);
+  long long mres=static_cast<long long>(arg1)*arg2;
+  if(mres>INT_MAX || mres<INT_MIN) {
+    return false;
+  }
+  res=mres;
+  return true;
+}
+
 /**
  * Return the string representation of an integer.
  *

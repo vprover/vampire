@@ -28,28 +28,15 @@ public:
 
   bool isNonEqual(TermList t, InterpretedType val, Clause*& premise);
   bool isGreater(TermList t, InterpretedType val, Clause*& premise);
+  bool isLess(TermList t, InterpretedType val, Clause*& premise);
 
   void reset()
   { _termConstraints.reset(); }
 
 private:
-  struct ConstraintInfo {
-    ConstraintInfo() : hasUpperLimit(false), hasLowerLimit(false) {}
-
-    bool hasUpperLimit;
-    bool strongUpperLimit;
-    InterpretedType upperLimit;
-    Clause* upperLimitPremise;
-
-    bool hasLowerLimit;
-    bool strongLowerLimit;
-    InterpretedType lowerLimit;
-    Clause* lowerLimitPremise;
-
-    CLASS_NAME("ArithmeticIndex::ConstraintInfo");
-    USE_ALLOCATOR(ConstraintInfo);
-  };
-
+  
+  struct ConstraintInfo;
+  
   Theory* theory;
   DHMap<TermList, ConstraintInfo*> _termConstraints;
 };
@@ -67,6 +54,8 @@ public:
   { return _db.isNonEqual(t, val, premise); }
   bool isGreater(TermList t, InterpretedType val, Clause*& premise)
   { return _db.isGreater(t, val, premise); }
+  bool isLess(TermList t, InterpretedType val, Clause*& premise)
+  { return _db.isLess(t, val, premise); }
 
 
 private:

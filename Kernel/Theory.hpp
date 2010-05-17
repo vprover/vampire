@@ -8,7 +8,9 @@
 
 #include "../Forwards.hpp"
 
-#include "../Kernel/Term.hpp"
+#include "../Lib/DHMap.hpp"
+
+#include "Term.hpp"
 
 namespace Kernel {
 
@@ -63,30 +65,39 @@ public:
   bool isInterpretedConstant(Term* t);
   bool isInterpretedConstant(TermList t);
   bool isInterpretedPredicate(Literal* lit);
+  bool isInterpretedPredicate(Literal* lit, Interpretation itp);
   bool isInterpretedFunction(Term* t);
   bool isInterpretedFunction(TermList t);
   bool isInterpretedFunction(Term* t, Interpretation itp);
+  bool isInterpretedFunction(TermList t, Interpretation itp);
 
   Interpretation interpretFunction(Term* t);
+  Interpretation interpretFunction(TermList t);
   Interpretation interpretPredicate(Literal* t);
 
   InterpretedType interpretConstant(Term* t);
   InterpretedType interpretConstant(TermList t);
   Term* getRepresentation(InterpretedType val);
+  unsigned getFnNum(Interpretation itp);
+  unsigned getPredNum(Interpretation itp);
 
   TermList zero();
   TermList one();
+  TermList minusOne();
 
 private:
   Theory();
 
   Term* _zero;
   Term* _one;
+  Term* _minusOne;
   DHMap<InterpretedType, Term*> _constants;
 
 };
 
 typedef Theory::Interpretation Interpretation;
+
+extern Theory* theory;
 
 }
 

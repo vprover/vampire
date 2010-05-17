@@ -19,6 +19,8 @@ using namespace Lib;
 
 const unsigned Theory::interpretationElementCount;
 
+Theory* theory = 0;
+
 Theory* Theory::instance()
 {
   static Theory* inst=new Theory;
@@ -27,7 +29,7 @@ Theory* Theory::instance()
 }
 
 Theory::Theory()
-: _zero(0), _one(0)
+: _zero(0), _one(0), _minusOne(0)
 {
 
 }
@@ -109,6 +111,14 @@ TermList Theory::one()
   return TermList(_one);
 }
 
+TermList Theory::minusOne()
+{
+  if(!_minusOne) {
+    _minusOne=getRepresentation(-1);
+  }
+  return TermList(_minusOne);
+}
+
 bool Theory::isInterpretedConstant(Term* t)
 {
   CALL("Theory::isInterpretedConstant");
@@ -124,6 +134,12 @@ bool Theory::isInterpretedConstant(TermList t)
 bool Theory::isInterpretedPredicate(Literal* lit)
 {
   return env.signature->getPredicate(lit->functor())->interpreted();
+}
+
+bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
+{
+  return env.signature->getPredicate(lit->functor())->interpreted() &&
+      interpretPredicate(lit)==itp;
 }
 
 bool Theory::isInterpretedFunction(Term* t)
@@ -142,6 +158,11 @@ bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
       interpretFunction(t)==itp;
 }
 
+bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
+{
+  return t.isTerm() && isInterpretedFunction(t.term(), itp);
+}
+
 Interpretation Theory::interpretFunction(Term* t)
 {
   CALL("Theory::interpretFunction");
@@ -149,6 +170,14 @@ Interpretation Theory::interpretFunction(Term* t)
 
   return static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(t->functor()))
       ->getInterpretation();
+}
+
+Interpretation Theory::interpretFunction(TermList t)
+{
+  CALL("Theory::interpretFunction");
+  ASS(t.isTerm());
+
+  return interpretFunction(t.term());
 }
 
 Interpretation Theory::interpretPredicate(Literal* lit)
@@ -193,6 +222,21 @@ Term* Theory::getRepresentation(InterpretedType val)
   return *pRes;
 }
 
+unsigned Theory::getFnNum(Interpretation itp)
+{
+  CALL("Theory::getFnNum");
+  ASS(isFunction(itp));
+  
+  return env.signature->getInterpretingSymbol(itp);
+}
+
+unsigned Theory::getPredNum(Interpretation itp)
+{
+  CALL("Theory::getPredNum");
+  ASS(!isFunction(itp));
+  
+  return env.signature->getInterpretingSymbol(itp);
+}
 
 }
 

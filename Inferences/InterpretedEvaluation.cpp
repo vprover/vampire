@@ -26,12 +26,6 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 
-InterpretedEvaluation::InterpretedEvaluation()
-{
-  theory=Theory::instance();
-}
-
-
 /**
  * Return number of internal interpreting function that
  * interprets the top function of @b t. It the top function
@@ -105,39 +99,25 @@ Term* InterpretedEvaluation::evaluateFunction(int fnIndex, TermList* args)
     res=arg1+1;
     break;
   case Theory::UNARY_MINUS:
-    res=-arg1;
-    if(res==arg1) {
-      //the overflow at INT_MIN manifests by the value staying
-      //the same for unary minus
+    if(!Int::safeUnaryMinus(arg1, res)) {
       return 0;
     }
     break;
   case Theory::PLUS:
-    if(arg2<0) {
-      if(INT_MIN - arg2 > arg1) { return 0; }
+    if(!Int::safePlus(arg1, arg2, res)) {
+      return 0;
     }
-    else {
-      if(INT_MAX - arg2 < arg1) { return 0; }
-    }
-    res=arg1+arg2;
     break;
   case Theory::MINUS:
-    if(arg2<0) {
-      if(INT_MAX + arg2 < arg1) { return 0; }
+    if(!Int::safeMinus(arg1, arg2, res)) {
+      return 0;
     }
-    else {
-      if(INT_MIN + arg2 > arg1) { return 0; }
-    }
-    res=arg1-arg2;
     break;
   case Theory::MULTIPLY:
   {
-    ASS_STATIC(sizeof(long long)==8);
-    long long mres=static_cast<long long>(arg1)*arg2;
-    if(mres>INT_MAX || mres<INT_MIN) {
+    if(!Int::safeMultiply(arg1, arg2, res)) {
       return 0;
     }
-    res=mres;
     break;
   }
   case Theory::DIVIDE:

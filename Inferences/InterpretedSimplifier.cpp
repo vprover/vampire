@@ -5,10 +5,17 @@
 
 #include "../Lib/Comparison.hpp"
 #include "../Lib/DArray.hpp"
+#include "../Lib/DHMap.hpp"
+#include "../Lib/DHMultiset.hpp"
+#include "../Lib/DHSet.hpp"
+#include "../Lib/Int.hpp"
+#include "../Lib/TimeCounter.hpp"
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
+#include "../Kernel/Polynomial.hpp"
 #include "../Kernel/Term.hpp"
+#include "../Kernel/TermIterators.hpp"
 #include "../Kernel/Theory.hpp"
 
 #include "../Indexing/ArithmeticIndex.hpp"
@@ -37,14 +44,12 @@ private:
   bool simplified;
   LiteralStack resLits;
   ConstraintDatabase localConstraints;
-  Theory* theory;
 public:
   bool deleted;
   ClauseStack premises;
 
   ClauseSimplifier(ArithmeticIndex* ai) : _ai(ai)
   {
-    theory=Theory::instance();
   }
 
   struct LitProcOrderComparator
@@ -118,6 +123,14 @@ public:
       resLits.push(lit);
     }
 
+    if(simplifySingletonVariables()) {
+      simplified=true;
+    }
+
+    if(simplifyGreaterChains()) {
+      simplified=true;
+    }
+
     return simplified;
   }
 
@@ -130,10 +143,11 @@ public:
     Inference* inf;
     Unit::InputType it=cl->inputType();
     if(premises.isEmpty()) {
-      inf=new Inference(Inference::EVALUATION);
+      inf=new Inference1(Inference::EVALUATION, cl);
     }
     else {
       UnitList* lst=0;
+      UnitList::push(cl, lst);
       while(premises.isNonEmpty()) {
 	Clause* prem=premises.pop();
 	UnitList::push(prem, lst);
@@ -148,13 +162,14 @@ public:
   bool simplifyFunction(Interpretation interp, TermList* args, TermList& res);
 
 
-  bool removeEquivalentAdditionsAndSubtractionsFromOneSide(TermList& arg1, TermList& arg2);
-  bool removeEquivalentAdditionsAndSubtractions(TermList& arg1, TermList& arg2);
-
-  bool simplifyGreaterFromOneSide(TermList& arg1, TermList& arg2);
+  bool doEqualityAndInequalityEquivalentSimplificationsFromOneSide(TermList& arg1, TermList& arg2, bool equality);
+  bool doEqualityAndInequalityEquivalentSimplifications(TermList& arg1, TermList& arg2, bool equality);
 
   bool simplifyPredicate(Interpretation interp, TermList* args, Literal* original,
       bool& constant, Literal*& res, bool& constantTrue);
+
+  bool simplifyGreaterChains();
+  bool simplifySingletonVariables();
 
   bool isNonEqual(TermList t, InterpretedType val, Clause*& premise)
   {
@@ -192,6 +207,24 @@ public:
     }
     return false;
   }
+  bool isLess(TermList t, InterpretedType val, Clause*& premise)
+  {
+    premise=0;
+    if(theory->isInterpretedConstant(t)) {
+      return theory->interpretConstant(t)<val;
+    }
+    if(localConstraints.isLess(t, val, premise)) {
+      if(!premise || sperf->willPerform(premise)) {
+	return true;
+      }
+    }
+    if(_ai->isLess(t, val, premise)) {
+      if(!premise || sperf->willPerform(premise)) {
+	return true;
+      }
+    }
+    return false;
+  }
 
   void addPremise(Clause* premise)
   {
@@ -207,9 +240,22 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
   CALL("InterpretedSimplifier::ClauseSimplifier::simplifyFunction");
   ASS(Theory::isFunction(interp));
 
-  Clause* premise;
-
   switch(interp) {
+  case Theory::UNARY_MINUS:
+    if(theory->isInterpretedFunction(args[0], Theory::UNARY_MINUS)) {
+      res=*args[0].term()->nthArgument(0);
+      return true;
+    }
+    if(theory->isInterpretedFunction(args[0], Theory::MINUS)) {
+      //-(X-Y) ---> Y-X
+      TermList newArgs[2];
+      newArgs[0]=*args[0].term()->nthArgument(1);
+      newArgs[1]=*args[0].term()->nthArgument(0);
+      unsigned minusFun=theory->getFnNum(Theory::MINUS);
+      res=TermList(Term::create(minusFun, 2, newArgs));
+      return true;
+    }
+    break;
   case Theory::PLUS:
     if(args[0]==theory->zero()) {
       res=args[1];
@@ -241,10 +287,42 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
       res=args[0];
       return true;
     }
-    if(args[0]==args[1] && isNonEqual(args[0], 0, premise)) {
-      addPremise(premise);
-      res=theory->one();
+    if(args[1]==theory->minusOne()) {
+      // X/-1 --> -X
+      res=TermList(Term::create(theory->getFnNum(Theory::UNARY_MINUS), 1, &args[0]));
       return true;
+    }
+    
+    Clause* nonZeronessPremise;
+    if(isNonEqual(args[1], 0, nonZeronessPremise)) {
+      if(args[0]==args[1]) {
+        addPremise(nonZeronessPremise);
+        res=theory->one();
+        return true;
+      }
+      if(theory->isInterpretedConstant(args[0]) && theory->isInterpretedConstant(args[1])) {
+        // N1/N2 ---> (N1/gcd(N1,N2))/(N2/gcd(N1,N2))
+        InterpretedType iarg1=theory->interpretConstant(args[0]);
+        InterpretedType iarg2=theory->interpretConstant(args[1]);
+        InterpretedType gcd=Int::gcd(iarg1,iarg2);
+        if(gcd!=1) {
+          iarg1/=gcd;
+          iarg2/=gcd;
+          if(iarg2==1) {
+            res=TermList(theory->getRepresentation(iarg1));
+          }
+          else {
+            TermList newArgs[2];
+            newArgs[0]=TermList(theory->getRepresentation(iarg1));
+            newArgs[1]=TermList(theory->getRepresentation(iarg2));
+            unsigned divFun=theory->getFnNum(Theory::DIVIDE);
+            res=TermList(Term::create(divFun, 2, newArgs));
+          }
+          
+          addPremise(nonZeronessPremise);
+          return true;
+        }
+      }
     }
     break;
   case Theory::IF_THEN_ELSE:
@@ -262,14 +340,23 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
   default:;
   }
 
+  Polynomial pol(TermList(Term::create(theory->getFnNum(interp), Theory::getArity(interp), args)));
+  if(pol.mergeSummands()) {
+    res=pol.toTerm();
+    return true;
+  }
+
   return false;
 }
 
 
 bool InterpretedSimplifier::ClauseSimplifier::
-  removeEquivalentAdditionsAndSubtractionsFromOneSide(TermList& arg1, TermList& arg2)
+  doEqualityAndInequalityEquivalentSimplificationsFromOneSide(TermList& arg1, TermList& arg2, bool equality)
 {
-  CALL("InterpretedSimplifier::ClauseSimplifier::removeEquivalentAdditionsAndSubtractionsFromOneSide");
+  CALL("InterpretedSimplifier::ClauseSimplifier::doEqualityAndInequalityEquivalentSimplificationsFromOneSide");
+
+  Clause* premise;
+  Clause* premise2;
 
   if(!arg1.isTerm()) {
     return false;
@@ -277,18 +364,30 @@ bool InterpretedSimplifier::ClauseSimplifier::
   Term* t1=arg1.term();
 
   if(theory->isInterpretedFunction(t1, Theory::PLUS)) {
-    if(*t1->nthArgument(0)==arg2) {
-      //X+Y # X  ---> Y # 0
-      arg1=*t1->nthArgument(1);
-      arg2=theory->zero();
-      return true;
-    }
-    if(*t1->nthArgument(1)==arg2) {
-      //X+Y # Y  ---> X # 0
-      arg1=*t1->nthArgument(0);
-      arg2=theory->zero();
-      return true;
-    }
+    TermList arg11=*t1->nthArgument(0);
+    TermList arg12=*t1->nthArgument(1);
+
+    for(int i=0; i<2; i++, swap(arg11,arg12)) {
+      //swap the arguments second time to check both possibilities with the commutative PLUS
+      if(arg11==arg2) {
+        //X+Y # X  ---> Y # 0
+        arg1=arg12;
+        arg2=theory->zero();
+        return true;
+      }
+      if(theory->isInterpretedConstant(arg2) && theory->isInterpretedConstant(arg11)) {
+        //X+N1 # N2  ---> X # (N2-N1)
+        arg1=arg12;
+        InterpretedType v1=theory->interpretConstant(arg2);
+        InterpretedType vSub=theory->interpretConstant(arg11);
+        InterpretedType res;
+        if(Int::safeMinus(v1, vSub, res)) {
+          arg2=TermList(theory->getRepresentation(res));
+          return true;
+        }
+      }
+    } 
+
   }
 
   if(!arg2.isTerm()) {
@@ -298,115 +397,70 @@ bool InterpretedSimplifier::ClauseSimplifier::
   if(theory->isInterpretedFunction(t1, Theory::SUCCESSOR) && theory->isInterpretedConstant(t2)) {
     //s(X) # N ---> X # (N-1)
     InterpretedType t2Val=theory->interpretConstant(t2);
-    if(t2Val!=INT_MIN) {
+    InterpretedType newArg2;
+    if(Int::safeMinus(t2Val, 1, newArg2)) {
       arg1=*t1->nthArgument(0);
-      arg2=TermList(theory->getRepresentation(t2Val-1));
+      arg2=TermList(theory->getRepresentation(newArg2));
+      return true;
+    }
+  }
+  if(theory->isInterpretedFunction(t1, Theory::UNARY_MINUS) && theory->isInterpretedConstant(t2)) {
+    //-X # N ---> -N # X
+    InterpretedType t2Val=theory->interpretConstant(t2);
+    InterpretedType newArg2;
+    if(Int::safeUnaryMinus(t2Val, newArg2)) {
+      arg1=*t1->nthArgument(0);
+      arg2=TermList(theory->getRepresentation(newArg2));
+      swap(arg1, arg2);
       return true;
     }
   }
 
-
-  return false;
-}
-
-/**
- * Remove addition and subtraction of equal values in given terms.
- * Return true iff any simplification was performed.
- *
- * Helps to simplify e.g. a+b>b+c into a>c.
- */
-bool InterpretedSimplifier::ClauseSimplifier::
-  removeEquivalentAdditionsAndSubtractions(TermList& arg1, TermList& arg2)
-{
-  CALL("InterpretedSimplifier::ClauseSimplifier::removeEquivalentAdditionsAndSubtractions");
-
-  bool res=false;
-
-reevaluation:
-  if(arg1==arg2 && arg1!=theory->zero()) {
-    arg1=theory->zero();
-    arg2=arg1;
-    return true;
-  }
-
-  if(removeEquivalentAdditionsAndSubtractionsFromOneSide(arg1, arg2)) {
-    res=true;
-    goto reevaluation;
-  }
-  if(removeEquivalentAdditionsAndSubtractionsFromOneSide(arg2, arg1)) {
-    res=true;
-    goto reevaluation;
-  }
-
-  if(!arg1.isTerm() || !arg2.isTerm()) {
-    return res;
-  }
-  Term* t1=arg1.term();
-  Term* t2=arg2.term();
-  if(t1->functor()!=t2->functor()) {
-    return res;
-  }
-  if(theory->isInterpretedFunction(t1, Theory::PLUS)) {
-    //X+Y # X+Z ---> Y # Z  (modulo commutativity)
-    bool modified=true;
-    if(*t1->nthArgument(0)==*t2->nthArgument(0)) {
-      arg1=*t1->nthArgument(1);
-      arg2=*t2->nthArgument(1);
-    }
-    else if(*t1->nthArgument(0)==*t2->nthArgument(1)) {
-      arg1=*t1->nthArgument(1);
-      arg2=*t2->nthArgument(0);
-    }
-    else if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
-      arg1=*t1->nthArgument(0);
-      arg2=*t2->nthArgument(0);
-    }
-    else if(*t1->nthArgument(1)==*t2->nthArgument(0)) {
-      arg1=*t1->nthArgument(0);
-      arg2=*t2->nthArgument(1);
-    }
-    else {
-      modified=false;
-    }
-    if(modified) {
-      res=true;
-      goto reevaluation;
-    }
-  }
-  if(theory->isInterpretedFunction(t1, Theory::MINUS)) {
-    if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
-      //X-Y # Z-Y ---> X # Z
-      arg1=*t1->nthArgument(0);
-      arg2=*t2->nthArgument(0);
-      res=true;
-      goto reevaluation;
-    }
-  }
-  return res;
-}
-
-bool InterpretedSimplifier::ClauseSimplifier::simplifyGreaterFromOneSide(TermList& arg1, TermList& arg2)
-{
-  Clause* premise;
-  Clause* premise2;
-
   if(arg1==theory->zero()) {
-    if(theory->isInterpretedFunction(arg2)) {
-      Interpretation itp=theory->interpretFunction(arg2.term());
-      if(arg2.term()->arity()==2) {
-        TermList arg21=*arg2.term()->nthArgument(0);
-        TermList arg22=*arg2.term()->nthArgument(1);
+    if(theory->isInterpretedFunction(t2)) {
+      Interpretation itp=theory->interpretFunction(t2);
+      if(t2->arity()==2) {
+        TermList arg21=*t2->nthArgument(0);
+        TermList arg22=*t2->nthArgument(1);
         if(itp==Theory::MULTIPLY) {
-          // X*Y>0 ---> Y>0 for X>0
-          if(isGreater(arg21, 0, premise)) {
-            arg2=arg22;
-            addPremise(premise);
-            return true;
+          if(equality) {
+            // X*Y=0 ---> Y=0 for X!=0
+            if(isNonEqual(arg21, 0, premise)) {
+              arg2=arg22;
+              addPremise(premise);
+              return true;
+            }
+            if(isNonEqual(arg22, 0, premise)) {
+              arg2=arg21;
+              addPremise(premise);
+              return true;
+            }
           }
-          if(isGreater(arg22, 0, premise)) {
-            arg2=arg21;
-            addPremise(premise);
-            return true;
+          else {
+            // X*Y>0 ---> Y>0 for X>0
+            if(isGreater(arg21, 0, premise)) {
+              arg2=arg22;
+              addPremise(premise);
+              return true;
+            }
+            if(isGreater(arg22, 0, premise)) {
+              arg2=arg21;
+              addPremise(premise);
+              return true;
+            }
+            // X*Y>0 ---> 0>Y for X<0
+            if(isLess(arg21, 0, premise)) {
+              arg2=arg22;
+              swap(arg1,arg2);
+              addPremise(premise);
+              return true;
+            }
+            if(isLess(arg22, 0, premise)) {
+              arg2=arg21;
+              swap(arg1,arg2);
+              addPremise(premise);
+              return true;
+            }
           }
         }
         else if(itp==Theory::DIVIDE) {
@@ -427,6 +481,92 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyGreaterFromOneSide(TermLis
       }
     }
   }
+
+  return false;
+}
+
+/**
+ * Perform equivalent simplifications on given RHS and LHS of an (in)equality.
+ * Return true iff any simplification was performed.
+ *
+ * Helps to simplify e.g. a+b>b+c into a>c. If a simplification reversing the 
+ * inequality sign is performed, arguments are swapped.
+ */
+bool InterpretedSimplifier::ClauseSimplifier::
+  doEqualityAndInequalityEquivalentSimplifications(TermList& arg1, TermList& arg2, bool equality)
+{
+  CALL("InterpretedSimplifier::ClauseSimplifier::doEqualityAndInequalityEquivalentSimplifications");
+
+  if(arg1==arg2 && arg1!=theory->zero()) {
+    arg1=theory->zero();
+    arg2=arg1;
+    return true;
+  }
+
+  if(doEqualityAndInequalityEquivalentSimplificationsFromOneSide(arg1, arg2, equality)) {
+    return true;
+  }
+  if(doEqualityAndInequalityEquivalentSimplificationsFromOneSide(arg2, arg1, equality)) {
+    return true;
+  }
+
+  if(arg1.isTerm() && arg2.isTerm() && arg1.term()->functor()==arg2.term()->functor()) {
+    Term* t1=arg1.term();
+    Term* t2=arg2.term();
+    
+    if(theory->isInterpretedFunction(t1, Theory::PLUS)) {
+      //X+Y # X+Z ---> Y # Z  (modulo commutativity)
+      bool modified=true;
+      if(*t1->nthArgument(0)==*t2->nthArgument(0)) {
+        arg1=*t1->nthArgument(1);
+        arg2=*t2->nthArgument(1);
+      }
+      else if(*t1->nthArgument(0)==*t2->nthArgument(1)) {
+        arg1=*t1->nthArgument(1);
+        arg2=*t2->nthArgument(0);
+      }
+      else if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
+        arg1=*t1->nthArgument(0);
+        arg2=*t2->nthArgument(0);
+      }
+      else if(*t1->nthArgument(1)==*t2->nthArgument(0)) {
+        arg1=*t1->nthArgument(0);
+        arg2=*t2->nthArgument(1);
+      }
+      else {
+        modified=false;
+      }
+      if(modified) {
+        return true;
+      }
+    }
+    if(theory->isInterpretedFunction(t1, Theory::MINUS)) {
+      if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
+        //X-Y # Z-Y ---> X # Z
+        arg1=*t1->nthArgument(0);
+        arg2=*t2->nthArgument(0);
+        return true;
+      }
+    }
+    if(theory->isInterpretedFunction(t1, Theory::SUCCESSOR)) {
+      //s(X) # s(Y) ---> X # Y
+      arg1=*t1->nthArgument(0);
+      arg2=*t2->nthArgument(0);
+      return true;
+    }
+  }
+  
+  if(arg1!=theory->zero() && arg2!=theory->zero()) {
+    Polynomial pol1(arg1);
+    Polynomial pol2(arg2);
+    pol1.subtract(pol2);
+    if(pol1.mergeSummands()) {
+      arg1=pol1.toTerm();
+      arg2=theory->zero();
+      return true;
+    }
+  }
+  
   return false;
 }
 
@@ -445,7 +585,7 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyPredicate(Interpretation i
 
   switch(interp) {
   case Theory::EQUAL:
-    if(removeEquivalentAdditionsAndSubtractions(args[0], args[1])) {
+    if(doEqualityAndInequalityEquivalentSimplifications(args[0], args[1], true)) {
       modified=true;
     }
     break;
@@ -458,8 +598,22 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyPredicate(Interpretation i
 	constantTrue=original->polarity();
 	return true;
       }
+      if(isLess(args[0], theory->interpretConstant(args[1]), premise)) {
+	// X>N ---> false if X<N
+	addPremise(premise);
+	constant=true;
+	constantTrue=!original->polarity();
+	return true;
+      }
     }
     if(theory->isInterpretedConstant(args[0])) {
+      if(isLess(args[1], theory->interpretConstant(args[0]), premise)) {
+	// N>X ---> true if X<N
+	addPremise(premise);
+	constant=true;
+	constantTrue=original->polarity();
+	return true;
+      }
       if(isGreater(args[1], theory->interpretConstant(args[0]), premise)) {
 	// N>X ---> false if X>N
 	addPremise(premise);
@@ -468,13 +622,7 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyPredicate(Interpretation i
 	return true;
       }
     }
-    if(removeEquivalentAdditionsAndSubtractions(args[0], args[1])) {
-      modified=true;
-    }
-    if(simplifyGreaterFromOneSide(args[0], args[1])) {
-      modified=true;
-    }
-    if(simplifyGreaterFromOneSide(args[1], args[0])) {
+    if(doEqualityAndInequalityEquivalentSimplifications(args[0], args[1], false)) {
       modified=true;
     }
     break;
@@ -605,6 +753,155 @@ bool InterpretedSimplifier::ClauseSimplifier::simplify(Literal* lit,
   return false;
 }
 
+bool InterpretedSimplifier::ClauseSimplifier::simplifySingletonVariables()
+{
+  CALL("InterpretedSimplifier::ClauseSimplifier::simplifySingletonVariables");
+
+  //remove X # Y   for # in {=,>} and their negations (if Y is a variable that doesn't appear elsewhere)
+  
+  DHMultiset<unsigned> varOccurences;
+
+  LiteralStack::Iterator lIt1(resLits);
+  while(lIt1.hasNext()) {
+    VariableIterator vit(lIt1.next());
+    while(vit.hasNext()) {
+      varOccurences.insert(vit.next().var());
+    }
+  }
+
+  LiteralStack::Iterator lIt2(resLits);
+  while(lIt2.hasNext()) {
+    Literal* lit=lIt2.next();
+    if(!theory->isInterpretedPredicate(lit)) {
+      continue;
+    }
+    Interpretation itp=theory->interpretPredicate(lit);
+    if(itp!=Theory::EQUAL && itp!=Theory::GREATER) {
+      continue;
+    }
+    bool shouldBeRemoved=false;
+    for(unsigned argIndex=0;argIndex<2;argIndex++) {
+      if(!lit->nthArgument(argIndex)->isVar()) {
+        continue;
+      }
+      if(varOccurences.multiplicity(lit->nthArgument(argIndex)->var())==1) {
+	shouldBeRemoved=true;
+	break;
+      }
+    }
+    if(shouldBeRemoved) {
+      lIt2.del();
+    }
+  }
+  
+  return false;
+}
+
+bool InterpretedSimplifier::ClauseSimplifier::simplifyGreaterChains()
+{
+  CALL("InterpretedSimplifier::ClauseSimplifier::simplifyGreaterChains");
+  
+  //X>Y | Y>Z ---> X>Z  (if Y is variable that doesn't appear elsewhere)
+  //X>Y | !(Z>Y) ---> !(Z>X)  (if Y is variable that doesn't appear elsewhere)
+  
+  typedef pair<Literal*, Literal*> LitPair;
+
+  Stack<unsigned> vars;
+  DHSet<unsigned> forbiddenVars;
+  DHMap<unsigned,LitPair > varLits;
+  
+  vars.reset();
+  forbiddenVars.reset();
+  varLits.reset();
+  
+  LiteralStack::Iterator lIt1(resLits);
+  while(lIt1.hasNext()) {
+    Literal* l=lIt1.next();
+    if(theory->isInterpretedPredicate(l, Theory::GREATER)) {
+      for(unsigned argIndex=0;argIndex<2;argIndex++) {
+        TermList arg=*l->nthArgument(argIndex);
+        bool ok=false;
+        if(arg.isVar()) {
+          unsigned v=arg.var();
+          if(!forbiddenVars.find(v)) {
+            LitPair* lp;
+            varLits.getValuePtr(v, lp, make_pair((Literal*)0,(Literal*)0));
+            Literal** ltgt;
+            Literal** lOther;
+            if( (argIndex==0) ^ l->isPositive() ) {
+              ltgt=&lp->first;
+              lOther=&lp->second;
+            }
+            else {
+              ltgt=&lp->second;
+              lOther=&lp->first;
+            }
+            if(!*ltgt) {
+              *ltgt=l;
+              ok=true;
+              if(*lOther) {
+                vars.push(v);
+              }
+            }
+          }
+        }
+        if(!ok) {
+	  VariableIterator vit(arg);
+	  while(vit.hasNext()) {
+	    forbiddenVars.insert(vit.next().var());
+	  }
+        }
+      }
+    }
+    else {
+      VariableIterator vit(l);
+      while(vit.hasNext()) {
+        forbiddenVars.insert(vit.next().var());
+      }
+    }
+  }
+  while(vars.isNonEmpty()) {
+    unsigned var=vars.pop();
+    if(forbiddenVars.find(var)) {
+      continue;
+    }
+    LitPair lp=varLits.get(var);
+    ASS(lp.first);
+    ASS(lp.second);
+    if(lp.first->isNegative() && lp.second->isNegative()) {
+      //we cannot safely merge the two literals if we have
+      //!(X>Y) | !(Y>Z)
+      continue;
+    }
+    bool neg=lp.first->isNegative() || lp.second->isNegative();
+    unsigned firstArgIndex=lp.first->isPositive() ? 0 : 1;
+    unsigned secondArgIndex=lp.second->isPositive() ? 1 : 0;
+    ASS_EQ(lp.first->nthArgument(1-firstArgIndex)->var(), var);
+    ASS_EQ(lp.second->nthArgument(1-secondArgIndex)->var(), var);
+    
+    unsigned gtPred=theory->getPredNum(Theory::GREATER);
+    TermList args[2];
+    args[0]=*lp.first->nthArgument(firstArgIndex);
+    args[1]=*lp.second->nthArgument(secondArgIndex);
+    if(neg) {
+      swap(args[0],args[1]);
+    }
+    
+    LiteralStack::Iterator lIt2(resLits);
+    while(lIt2.hasNext()) {
+      Literal* rlit=lIt2.next();
+      if(rlit==lp.first || rlit==lp.second) {
+        lIt2.del();
+      }
+    }
+    
+    Literal* newLit=Literal::create(gtPred, 2, !neg, false, args);
+    resLits.push(newLit);
+    return true;
+  }
+  
+  return false;
+}
 
 ///////////////////////////////////////
 
@@ -645,6 +942,8 @@ void InterpretedSimplifier::detach()
 void InterpretedSimplifier::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
   CALL("ForwardDemodulation::perform");
+  
+  TimeCounter tc(TC_INTERPRETED_SIMPLIFICATION);
 
   if(!_simpl->simplify(cl, simplPerformer)) {
     return;

@@ -20,6 +20,24 @@ namespace Indexing
 
 using namespace Kernel;
 
+struct ConstraintDatabase::ConstraintInfo {
+  ConstraintInfo() : hasUpperLimit(false), hasLowerLimit(false) {}
+
+  bool hasUpperLimit;
+  bool strongUpperLimit;
+  InterpretedType upperLimit;
+  Clause* upperLimitPremise;
+
+  bool hasLowerLimit;
+  bool strongLowerLimit;
+  InterpretedType lowerLimit;
+  Clause* lowerLimitPremise;
+
+  CLASS_NAME("ArithmeticIndex::ConstraintInfo");
+  USE_ALLOCATOR(ConstraintInfo);
+};
+
+
 ConstraintDatabase::ConstraintDatabase()
 {
   theory=Theory::instance();
@@ -59,6 +77,23 @@ bool ConstraintDatabase::isGreater(TermList t, InterpretedType val, Clause*& pre
   if( ci->hasLowerLimit && (ci->lowerLimit > val ||
       (ci->strongLowerLimit && ci->lowerLimit==val) ) ) {
     premise=ci->lowerLimitPremise;
+    return true;
+  }
+  return false;
+}
+
+bool ConstraintDatabase::isLess(TermList t, InterpretedType val, Clause*& premise)
+{
+  CALL("ConstraintDatabase::isLess");
+
+  ConstraintInfo* ci;
+  if(!_termConstraints.find(t, ci)) {
+    return false;
+  }
+  ASS(ci);
+  if( ci->hasUpperLimit && (ci->upperLimit > val ||
+      (ci->strongUpperLimit && ci->upperLimit==val) ) ) {
+    premise=ci->upperLimitPremise;
     return true;
   }
   return false;

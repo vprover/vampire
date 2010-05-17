@@ -146,8 +146,9 @@ $(CONF_ID)/Shell/AxiomGenerator.o: Kernel/Signature.hpp Lib/Map.hpp
 $(CONF_ID)/Shell/AxiomGenerator.o: Lib/DHMap.hpp Kernel/Theory.hpp
 $(CONF_ID)/Shell/AxiomGenerator.o: Kernel/Term.hpp Lib/Portability.hpp
 $(CONF_ID)/Shell/AxiomGenerator.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/AxiomGenerator.o: Lib/BitUtils.hpp Shell/AxiomGenerator.hpp
-$(CONF_ID)/Shell/AxiomGenerator.o: Lib/DHSet.hpp Kernel/Theory.hpp
+$(CONF_ID)/Shell/AxiomGenerator.o: Lib/BitUtils.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/AxiomGenerator.o: Shell/AxiomGenerator.hpp Lib/DHSet.hpp
+$(CONF_ID)/Shell/AxiomGenerator.o: Kernel/Theory.hpp
 $(CONF_ID)/Shell/CNF.o: Debug/Tracer.hpp Kernel/Clause.hpp Forwards.hpp
 $(CONF_ID)/Shell/CNF.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
 $(CONF_ID)/Shell/CNF.o: Lib/Allocator.hpp Debug/Assertion.hpp
@@ -211,8 +212,9 @@ $(CONF_ID)/Shell/EqualityProxy.o: Lib/DHMap.hpp Kernel/Theory.hpp
 $(CONF_ID)/Shell/EqualityProxy.o: Kernel/Term.hpp Lib/Portability.hpp
 $(CONF_ID)/Shell/EqualityProxy.o: Lib/XML.hpp Lib/Comparison.hpp
 $(CONF_ID)/Shell/EqualityProxy.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Shell/EqualityProxy.o: Indexing/TermSharing.hpp Lib/Set.hpp
-$(CONF_ID)/Shell/EqualityProxy.o: Shell/EqualityProxy.hpp Shell/Options.hpp
+$(CONF_ID)/Shell/EqualityProxy.o: Kernel/Term.hpp Indexing/TermSharing.hpp
+$(CONF_ID)/Shell/EqualityProxy.o: Lib/Set.hpp Shell/EqualityProxy.hpp
+$(CONF_ID)/Shell/EqualityProxy.o: Shell/Options.hpp
 $(CONF_ID)/Shell/Flattening.o: Debug/Tracer.hpp Kernel/Inference.hpp
 $(CONF_ID)/Shell/Flattening.o: Kernel/Unit.hpp Lib/Allocator.hpp
 $(CONF_ID)/Shell/Flattening.o: Debug/Assertion.hpp Kernel/FormulaUnit.hpp
@@ -277,9 +279,9 @@ $(CONF_ID)/Shell/GeneralSplitting.o: Lib/DHMap.hpp Kernel/Theory.hpp
 $(CONF_ID)/Shell/GeneralSplitting.o: Kernel/Term.hpp Lib/Portability.hpp
 $(CONF_ID)/Shell/GeneralSplitting.o: Lib/XML.hpp Lib/Comparison.hpp
 $(CONF_ID)/Shell/GeneralSplitting.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Shell/GeneralSplitting.o: Kernel/TermIterators.hpp
+$(CONF_ID)/Shell/GeneralSplitting.o: Kernel/Term.hpp Kernel/TermIterators.hpp
 $(CONF_ID)/Shell/GeneralSplitting.o: Lib/Recycler.hpp Lib/DArray.hpp
-$(CONF_ID)/Shell/GeneralSplitting.o: Lib/VirtualIterator.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/GeneralSplitting.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Shell/Grounding.o: Lib/Environment.hpp Forwards.hpp Debug/Log.hpp
 $(CONF_ID)/Shell/Grounding.o: Debug/Tracer.hpp Config.hpp Lib/Exception.hpp
 $(CONF_ID)/Shell/Grounding.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
@@ -324,6 +326,7 @@ $(CONF_ID)/Shell/InequalitySplitting.o: Lib/DHMap.hpp Kernel/Theory.hpp
 $(CONF_ID)/Shell/InequalitySplitting.o: Kernel/Term.hpp Lib/Portability.hpp
 $(CONF_ID)/Shell/InequalitySplitting.o: Lib/XML.hpp Lib/Comparison.hpp
 $(CONF_ID)/Shell/InequalitySplitting.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
+$(CONF_ID)/Shell/InequalitySplitting.o: Kernel/Term.hpp
 $(CONF_ID)/Shell/InequalitySplitting.o: Indexing/TermSharing.hpp Lib/Set.hpp
 $(CONF_ID)/Shell/InequalitySplitting.o: Shell/Options.hpp
 $(CONF_ID)/Shell/InequalitySplitting.o: Shell/Statistics.hpp
@@ -380,6 +383,7 @@ $(CONF_ID)/Shell/LaTeX.o: Lib/Exception.hpp Kernel/Clause.hpp
 $(CONF_ID)/Shell/LaTeX.o: Lib/InverseLookup.hpp Lib/Reflection.hpp
 $(CONF_ID)/Shell/LaTeX.o: Kernel/Unit.hpp Kernel/Formula.hpp
 $(CONF_ID)/Shell/LaTeX.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
+$(CONF_ID)/Shell/LaTeX.o: Kernel/Term.hpp
 $(CONF_ID)/Shell/Lexer.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Int.hpp
 $(CONF_ID)/Shell/Lexer.o: Lib/Comparison.hpp Lib/Portability.hpp
 $(CONF_ID)/Shell/Lexer.o: Shell/Lexer.hpp Lib/Array.hpp Lib/Allocator.hpp
@@ -406,14 +410,8 @@ $(CONF_ID)/Shell/NNF.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
 $(CONF_ID)/Shell/NNF.o: Kernel/Inference.hpp Kernel/Unit.hpp
 $(CONF_ID)/Shell/NNF.o: Lib/Allocator.hpp Debug/Tracer.hpp
 $(CONF_ID)/Shell/NNF.o: Kernel/FormulaUnit.hpp Kernel/Unit.hpp Lib/List.hpp
-$(CONF_ID)/Shell/NNF.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Shell/NNF.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/Allocator.hpp
-$(CONF_ID)/Shell/NNF.o: Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/Shell/NNF.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
-$(CONF_ID)/Shell/NNF.o: Lib/Int.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-$(CONF_ID)/Shell/NNF.o: Lib/Hash.hpp Lib/TimeCounter.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/NNF.o: Lib/BitUtils.hpp Indexing/TermSharing.hpp Lib/Set.hpp
-$(CONF_ID)/Shell/NNF.o: Shell/NNF.hpp Kernel/Formula.hpp
+$(CONF_ID)/Shell/NNF.o: Kernel/Term.hpp Indexing/TermSharing.hpp Lib/Set.hpp
+$(CONF_ID)/Shell/NNF.o: Shell/NNF.hpp Kernel/Formula.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/NNF.o: Kernel/Connective.hpp
 $(CONF_ID)/Shell/Naming.o: Lib/Allocator.hpp Debug/Assertion.hpp
 $(CONF_ID)/Shell/Naming.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp
@@ -431,8 +429,9 @@ $(CONF_ID)/Shell/Naming.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/Naming.o: Lib/Comparison.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/Shell/Naming.o: Lib/Set.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Shell/Naming.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Shell/Naming.o: Shell/Statistics.hpp Indexing/TermSharing.hpp
-$(CONF_ID)/Shell/Naming.o: Lib/Set.hpp Shell/Naming.hpp Kernel/Formula.hpp
+$(CONF_ID)/Shell/Naming.o: Kernel/Term.hpp Shell/Statistics.hpp
+$(CONF_ID)/Shell/Naming.o: Indexing/TermSharing.hpp Lib/Set.hpp
+$(CONF_ID)/Shell/Naming.o: Shell/Naming.hpp Kernel/Formula.hpp
 $(CONF_ID)/Shell/Naming.o: Kernel/Connective.hpp
 $(CONF_ID)/Shell/Normalisation.o: Lib/Sort.hpp Debug/Assertion.hpp
 $(CONF_ID)/Shell/Normalisation.o: Debug/Tracer.hpp Lib/Allocator.hpp
@@ -451,10 +450,11 @@ $(CONF_ID)/Shell/Normalisation.o: Lib/BacktrackData.hpp Lib/Int.hpp
 $(CONF_ID)/Shell/Normalisation.o: Kernel/Unit.hpp Lib/List.hpp
 $(CONF_ID)/Shell/Normalisation.o: Kernel/FormulaUnit.hpp Kernel/Inference.hpp
 $(CONF_ID)/Shell/Normalisation.o: Kernel/Unit.hpp Kernel/Term.hpp
-$(CONF_ID)/Shell/Normalisation.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Shell/Normalisation.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/Normalisation.o: Lib/BitUtils.hpp Kernel/Signature.hpp
-$(CONF_ID)/Shell/Normalisation.o: Lib/Map.hpp Lib/DHMap.hpp Kernel/Theory.hpp
+$(CONF_ID)/Shell/Normalisation.o: Kernel/Signature.hpp Lib/Map.hpp
+$(CONF_ID)/Shell/Normalisation.o: Lib/DHMap.hpp Kernel/Theory.hpp
+$(CONF_ID)/Shell/Normalisation.o: Kernel/Term.hpp Lib/Portability.hpp
+$(CONF_ID)/Shell/Normalisation.o: Lib/XML.hpp Lib/Comparison.hpp
+$(CONF_ID)/Shell/Normalisation.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Shell/Normalisation.o: Kernel/SubformulaIterator.hpp
 $(CONF_ID)/Shell/Normalisation.o: Lib/VirtualIterator.hpp Kernel/Formula.hpp
 $(CONF_ID)/Shell/Normalisation.o: Kernel/Connective.hpp
@@ -503,11 +503,11 @@ $(CONF_ID)/Shell/PredicateDefinition.o: Lib/Comparison.hpp
 $(CONF_ID)/Shell/PredicateDefinition.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Shell/PredicateDefinition.o: Kernel/SubformulaIterator.hpp
 $(CONF_ID)/Shell/PredicateDefinition.o: Lib/VirtualIterator.hpp
-$(CONF_ID)/Shell/PredicateDefinition.o: Kernel/Formula.hpp
+$(CONF_ID)/Shell/PredicateDefinition.o: Kernel/Formula.hpp Kernel/Term.hpp
 $(CONF_ID)/Shell/PredicateDefinition.o: Kernel/TermIterators.hpp
 $(CONF_ID)/Shell/PredicateDefinition.o: Lib/Recycler.hpp Lib/DArray.hpp
 $(CONF_ID)/Shell/PredicateDefinition.o: Lib/Comparison.hpp Lib/Random.hpp
-$(CONF_ID)/Shell/PredicateDefinition.o: Kernel/Term.hpp Shell/Statistics.hpp
+$(CONF_ID)/Shell/PredicateDefinition.o: Shell/Statistics.hpp
 $(CONF_ID)/Shell/PredicateDefinition.o: Shell/PredicateDefinition.hpp
 $(CONF_ID)/Shell/PredicateDefinition.o: Lib/DArray.hpp Shell/SymCounter.hpp
 $(CONF_ID)/Shell/Preprocess.o: Debug/Tracer.hpp Kernel/Unit.hpp
@@ -523,24 +523,24 @@ $(CONF_ID)/Shell/Preprocess.o: Lib/Stack.hpp Lib/BacktrackData.hpp
 $(CONF_ID)/Shell/Preprocess.o: Lib/Int.hpp Kernel/Unit.hpp Lib/List.hpp
 $(CONF_ID)/Shell/Preprocess.o: Shell/CNF.hpp Shell/EqResWithDeletion.hpp
 $(CONF_ID)/Shell/Preprocess.o: Lib/DHMap.hpp Kernel/Term.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/BitUtils.hpp Shell/EqualityProxy.hpp
-$(CONF_ID)/Shell/Preprocess.o: Shell/Options.hpp Shell/Flattening.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/EqualityProxy.hpp Shell/Options.hpp
+$(CONF_ID)/Shell/Preprocess.o: Lib/XML.hpp Shell/Flattening.hpp
 $(CONF_ID)/Shell/Preprocess.o: Kernel/Formula.hpp Kernel/Connective.hpp
 $(CONF_ID)/Shell/Preprocess.o: Shell/FunctionDefinition.hpp
 $(CONF_ID)/Shell/Preprocess.o: Lib/MultiCounter.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/Preprocess.o: Shell/GeneralSplitting.hpp
 $(CONF_ID)/Shell/Preprocess.o: Shell/InequalitySplitting.hpp Shell/Naming.hpp
-$(CONF_ID)/Shell/Preprocess.o: Shell/Normalisation.hpp Shell/SymCounter.hpp
-$(CONF_ID)/Shell/Preprocess.o: Shell/NNF.hpp Shell/PredicateDefinition.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/DArray.hpp Lib/Comparison.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/Random.hpp Kernel/FormulaUnit.hpp
-$(CONF_ID)/Shell/Preprocess.o: Shell/Preprocess.hpp Shell/Property.hpp
-$(CONF_ID)/Shell/Preprocess.o: Shell/Rectify.hpp Lib/Array.hpp
-$(CONF_ID)/Shell/Preprocess.o: Shell/Skolem.hpp Kernel/Substitution.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/Random.hpp Lib/Environment.hpp
-$(CONF_ID)/Shell/Preprocess.o: Kernel/Term.hpp Shell/SimplifyFalseTrue.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/Normalisation.hpp Lib/Comparison.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/SymCounter.hpp Shell/NNF.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/PredicateDefinition.hpp Lib/DArray.hpp
+$(CONF_ID)/Shell/Preprocess.o: Lib/Comparison.hpp Lib/Random.hpp
+$(CONF_ID)/Shell/Preprocess.o: Kernel/FormulaUnit.hpp Shell/Preprocess.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/Property.hpp Shell/Rectify.hpp
+$(CONF_ID)/Shell/Preprocess.o: Lib/Array.hpp Shell/Skolem.hpp
+$(CONF_ID)/Shell/Preprocess.o: Kernel/Substitution.hpp Lib/Random.hpp
+$(CONF_ID)/Shell/Preprocess.o: Lib/Environment.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/Preprocess.o: Lib/Portability.hpp Kernel/MatchTag.hpp
+$(CONF_ID)/Shell/Preprocess.o: Lib/BitUtils.hpp Shell/SimplifyFalseTrue.hpp
 $(CONF_ID)/Shell/Preprocess.o: Shell/SineUtils.hpp Shell/Statistics.hpp
 $(CONF_ID)/Shell/Preprocess.o: Shell/TheoryAxioms.hpp
 $(CONF_ID)/Shell/Profile.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp
@@ -560,8 +560,8 @@ $(CONF_ID)/Shell/Profile.o: Lib/List.hpp Kernel/Signature.hpp Lib/Map.hpp
 $(CONF_ID)/Shell/Profile.o: Lib/DHMap.hpp Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Shell/Profile.o: Lib/Portability.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/Profile.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/Profile.o: Lib/BitUtils.hpp Shell/Profile.hpp
-$(CONF_ID)/Shell/Profile.o: Kernel/Unit.hpp Lib/Array.hpp
+$(CONF_ID)/Shell/Profile.o: Lib/BitUtils.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/Profile.o: Shell/Profile.hpp Kernel/Unit.hpp Lib/Array.hpp
 $(CONF_ID)/Shell/Property.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp
 $(CONF_ID)/Shell/Property.o: Lib/Portability.hpp Debug/Assertion.hpp
 $(CONF_ID)/Shell/Property.o: Kernel/Clause.hpp Forwards.hpp Debug/Log.hpp
@@ -578,9 +578,7 @@ $(CONF_ID)/Shell/Property.o: Kernel/FormulaUnit.hpp
 $(CONF_ID)/Shell/Property.o: Kernel/SubformulaIterator.hpp
 $(CONF_ID)/Shell/Property.o: Lib/VirtualIterator.hpp Kernel/Formula.hpp
 $(CONF_ID)/Shell/Property.o: Lib/XML.hpp Kernel/Connective.hpp
-$(CONF_ID)/Shell/Property.o: Kernel/Term.hpp Lib/Portability.hpp
-$(CONF_ID)/Shell/Property.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/Property.o: Lib/BitUtils.hpp Shell/FunctionDefinition.hpp
+$(CONF_ID)/Shell/Property.o: Kernel/Term.hpp Shell/FunctionDefinition.hpp
 $(CONF_ID)/Shell/Property.o: Lib/DHMap.hpp Lib/MultiCounter.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/Property.o: Kernel/Unit.hpp Shell/Property.hpp
 $(CONF_ID)/Shell/Rectify.o: Lib/Environment.hpp Forwards.hpp Debug/Log.hpp
@@ -591,13 +589,6 @@ $(CONF_ID)/Shell/Rectify.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
 $(CONF_ID)/Shell/Rectify.o: Lib/Allocator.hpp Debug/Tracer.hpp
 $(CONF_ID)/Shell/Rectify.o: Kernel/Unit.hpp Kernel/Inference.hpp
 $(CONF_ID)/Shell/Rectify.o: Kernel/Unit.hpp Kernel/Term.hpp
-$(CONF_ID)/Shell/Rectify.o: Lib/Portability.hpp Lib/Comparison.hpp
-$(CONF_ID)/Shell/Rectify.o: Lib/Stack.hpp Lib/Allocator.hpp
-$(CONF_ID)/Shell/Rectify.o: Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/Shell/Rectify.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
-$(CONF_ID)/Shell/Rectify.o: Lib/Int.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-$(CONF_ID)/Shell/Rectify.o: Lib/Hash.hpp Lib/TimeCounter.hpp
-$(CONF_ID)/Shell/Rectify.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Shell/Rectify.o: Indexing/TermSharing.hpp Lib/Set.hpp
 $(CONF_ID)/Shell/Rectify.o: Shell/Rectify.hpp Lib/Array.hpp
 $(CONF_ID)/Shell/Refutation.o: Debug/Tracer.hpp Lib/Hash.hpp Lib/Set.hpp
@@ -655,25 +646,25 @@ $(CONF_ID)/Shell/SimplifyProver.o: Lib/Environment.hpp Lib/Int.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Lib/Portability.hpp Kernel/Formula.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Lib/List.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Kernel/Connective.hpp Kernel/Term.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Lib/Allocator.hpp Lib/Portability.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Lib/Comparison.hpp Lib/Stack.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Lib/Int.hpp Lib/Metaiterators.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Lib/Set.hpp Lib/Hash.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Kernel/Inference.hpp Kernel/Unit.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Lib/Allocator.hpp Kernel/Signature.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Lib/Stack.hpp Lib/BacktrackData.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Lib/List.hpp Lib/Int.hpp Lib/Map.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Lib/Hash.hpp Lib/DHMap.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Kernel/Theory.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Lib/Portability.hpp Lib/Comparison.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Lib/Metaiterators.hpp Lib/Set.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Lib/BitUtils.hpp Kernel/Inference.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Kernel/Unit.hpp Kernel/Signature.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Lib/Map.hpp Lib/DHMap.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Kernel/Theory.hpp Kernel/FormulaUnit.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Lib/BitUtils.hpp Kernel/FormulaUnit.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Kernel/Unit.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Kernel/FormulaVarIterator.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Lib/MultiCounter.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Kernel/TermIterators.hpp Lib/Recycler.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Lib/DArray.hpp Lib/VirtualIterator.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Kernel/Term.hpp Shell/SimplifyProver.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Lib/Set.hpp Shell/LispParser.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Shell/Parser.hpp Lib/IntNameTable.hpp
-$(CONF_ID)/Shell/SimplifyProver.o: Lib/Array.hpp Lib/Map.hpp Shell/Token.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Shell/SimplifyProver.hpp Lib/Set.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Shell/LispParser.hpp Shell/Parser.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Lib/IntNameTable.hpp Lib/Array.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Lib/Map.hpp Shell/Token.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Shell/Statistics.hpp
 $(CONF_ID)/Shell/SineUtils.o: Lib/Deque.hpp Forwards.hpp Debug/Log.hpp
 $(CONF_ID)/Shell/SineUtils.o: Debug/Tracer.hpp Config.hpp Debug/Assertion.hpp
@@ -696,9 +687,9 @@ $(CONF_ID)/Shell/SineUtils.o: Lib/Portability.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/SineUtils.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
 $(CONF_ID)/Shell/SineUtils.o: Lib/BitUtils.hpp Kernel/SubformulaIterator.hpp
 $(CONF_ID)/Shell/SineUtils.o: Kernel/Formula.hpp Kernel/Connective.hpp
-$(CONF_ID)/Shell/SineUtils.o: Kernel/TermIterators.hpp Lib/Recycler.hpp
-$(CONF_ID)/Shell/SineUtils.o: Lib/DArray.hpp Lib/Comparison.hpp
-$(CONF_ID)/Shell/SineUtils.o: Lib/Random.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/SineUtils.o: Kernel/Term.hpp Kernel/TermIterators.hpp
+$(CONF_ID)/Shell/SineUtils.o: Lib/Recycler.hpp Lib/DArray.hpp
+$(CONF_ID)/Shell/SineUtils.o: Lib/Comparison.hpp Lib/Random.hpp
 $(CONF_ID)/Shell/SineUtils.o: Shell/Options.hpp Shell/Statistics.hpp
 $(CONF_ID)/Shell/SineUtils.o: Shell/SineUtils.hpp Lib/DArray.hpp
 $(CONF_ID)/Shell/Skolem.o: Kernel/Signature.hpp Forwards.hpp Debug/Log.hpp
@@ -713,15 +704,16 @@ $(CONF_ID)/Shell/Skolem.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/Skolem.o: Lib/Comparison.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/Shell/Skolem.o: Lib/Set.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Shell/Skolem.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Shell/Skolem.o: Kernel/Inference.hpp Kernel/Unit.hpp
-$(CONF_ID)/Shell/Skolem.o: Kernel/FormulaUnit.hpp Kernel/Unit.hpp
-$(CONF_ID)/Shell/Skolem.o: Lib/List.hpp Kernel/SubformulaIterator.hpp
+$(CONF_ID)/Shell/Skolem.o: Kernel/Term.hpp Kernel/Inference.hpp
+$(CONF_ID)/Shell/Skolem.o: Kernel/Unit.hpp Kernel/FormulaUnit.hpp
+$(CONF_ID)/Shell/Skolem.o: Kernel/Unit.hpp Lib/List.hpp
+$(CONF_ID)/Shell/Skolem.o: Kernel/SubformulaIterator.hpp
 $(CONF_ID)/Shell/Skolem.o: Lib/VirtualIterator.hpp Kernel/Formula.hpp
 $(CONF_ID)/Shell/Skolem.o: Kernel/Connective.hpp Indexing/TermSharing.hpp
 $(CONF_ID)/Shell/Skolem.o: Lib/Set.hpp Shell/Options.hpp Shell/Rectify.hpp
 $(CONF_ID)/Shell/Skolem.o: Lib/Array.hpp Kernel/Formula.hpp Shell/Skolem.hpp
 $(CONF_ID)/Shell/Skolem.o: Kernel/Substitution.hpp Lib/Random.hpp
-$(CONF_ID)/Shell/Skolem.o: Lib/Environment.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/Skolem.o: Lib/Environment.hpp
 $(CONF_ID)/Shell/Statistics.o: Debug/RuntimeStatistics.hpp Lib/Allocator.hpp
 $(CONF_ID)/Shell/Statistics.o: Debug/Assertion.hpp Debug/Tracer.hpp
 $(CONF_ID)/Shell/Statistics.o: Lib/Environment.hpp Forwards.hpp Debug/Log.hpp
@@ -730,41 +722,39 @@ $(CONF_ID)/Shell/Statistics.o: Lib/LastCopyWatcher.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Shell/Statistics.o: Lib/Timer.hpp Shell/Options.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/Statistics.o: Shell/Statistics.hpp
 $(CONF_ID)/Shell/SymCounter.o: Lib/Allocator.hpp Debug/Assertion.hpp
-$(CONF_ID)/Shell/SymCounter.o: Debug/Tracer.hpp Kernel/Term.hpp Forwards.hpp
-$(CONF_ID)/Shell/SymCounter.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/Comparison.hpp Lib/Stack.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/Allocator.hpp Lib/BacktrackData.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/List.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Shell/SymCounter.o: Debug/Tracer.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/SymCounter.o: Kernel/Clause.hpp Forwards.hpp Debug/Log.hpp
+$(CONF_ID)/Shell/SymCounter.o: Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Shell/SymCounter.o: Lib/InverseLookup.hpp Lib/Hash.hpp
+$(CONF_ID)/Shell/SymCounter.o: Lib/DHMap.hpp Lib/Allocator.hpp
 $(CONF_ID)/Shell/SymCounter.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/Reflection.hpp Lib/Int.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/Hash.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/BitUtils.hpp Kernel/Clause.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/Reflection.hpp Kernel/Unit.hpp
-$(CONF_ID)/Shell/SymCounter.o: Lib/List.hpp Kernel/Formula.hpp
+$(CONF_ID)/Shell/SymCounter.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
+$(CONF_ID)/Shell/SymCounter.o: Lib/Metaiterators.hpp Lib/List.hpp Lib/Set.hpp
+$(CONF_ID)/Shell/SymCounter.o: Lib/TimeCounter.hpp Lib/Reflection.hpp
+$(CONF_ID)/Shell/SymCounter.o: Lib/Stack.hpp Lib/BacktrackData.hpp
+$(CONF_ID)/Shell/SymCounter.o: Lib/Int.hpp Kernel/Unit.hpp Lib/List.hpp
+$(CONF_ID)/Shell/SymCounter.o: Kernel/Formula.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/SymCounter.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
 $(CONF_ID)/Shell/SymCounter.o: Kernel/Signature.hpp Lib/Map.hpp Lib/DHMap.hpp
-$(CONF_ID)/Shell/SymCounter.o: Kernel/Theory.hpp Kernel/Unit.hpp
-$(CONF_ID)/Shell/SymCounter.o: Shell/SymCounter.hpp
+$(CONF_ID)/Shell/SymCounter.o: Kernel/Theory.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/SymCounter.o: Lib/Portability.hpp Lib/Comparison.hpp
+$(CONF_ID)/Shell/SymCounter.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
+$(CONF_ID)/Shell/SymCounter.o: Kernel/Unit.hpp Shell/SymCounter.hpp
 $(CONF_ID)/Shell/TPTP.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
-$(CONF_ID)/Shell/TPTP.o: Debug/Assertion.hpp Kernel/Term.hpp Forwards.hpp
-$(CONF_ID)/Shell/TPTP.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
-$(CONF_ID)/Shell/TPTP.o: Debug/Tracer.hpp Lib/Allocator.hpp
-$(CONF_ID)/Shell/TPTP.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
-$(CONF_ID)/Shell/TPTP.o: Lib/Stack.hpp Lib/Allocator.hpp
-$(CONF_ID)/Shell/TPTP.o: Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/Shell/TPTP.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-$(CONF_ID)/Shell/TPTP.o: Lib/LastCopyWatcher.hpp Lib/Reflection.hpp
-$(CONF_ID)/Shell/TPTP.o: Lib/Int.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-$(CONF_ID)/Shell/TPTP.o: Lib/Hash.hpp Lib/TimeCounter.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/TPTP.o: Lib/BitUtils.hpp Kernel/Inference.hpp
-$(CONF_ID)/Shell/TPTP.o: Kernel/Unit.hpp Kernel/Formula.hpp Lib/List.hpp
+$(CONF_ID)/Shell/TPTP.o: Debug/Assertion.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/TPTP.o: Kernel/Inference.hpp Kernel/Unit.hpp
+$(CONF_ID)/Shell/TPTP.o: Lib/Allocator.hpp Debug/Tracer.hpp
+$(CONF_ID)/Shell/TPTP.o: Kernel/Formula.hpp Lib/List.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/TPTP.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
-$(CONF_ID)/Shell/TPTP.o: Kernel/Unit.hpp Kernel/Clause.hpp
-$(CONF_ID)/Shell/TPTP.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
-$(CONF_ID)/Shell/TPTP.o: Lib/Reflection.hpp Shell/TPTP.hpp
+$(CONF_ID)/Shell/TPTP.o: Kernel/Unit.hpp Forwards.hpp Debug/Log.hpp
+$(CONF_ID)/Shell/TPTP.o: Debug/Tracer.hpp Config.hpp Kernel/Clause.hpp
+$(CONF_ID)/Shell/TPTP.o: Lib/InverseLookup.hpp Lib/Hash.hpp Lib/DHMap.hpp
+$(CONF_ID)/Shell/TPTP.o: Lib/Allocator.hpp Lib/Exception.hpp
+$(CONF_ID)/Shell/TPTP.o: Lib/LastCopyWatcher.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Shell/TPTP.o: Lib/Reflection.hpp Lib/Metaiterators.hpp
+$(CONF_ID)/Shell/TPTP.o: Lib/List.hpp Lib/Set.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Shell/TPTP.o: Lib/Reflection.hpp Lib/Stack.hpp
+$(CONF_ID)/Shell/TPTP.o: Lib/BacktrackData.hpp Lib/Int.hpp Shell/TPTP.hpp
 $(CONF_ID)/Shell/TPTPLexer.o: Debug/Assertion.hpp Debug/Tracer.hpp
 $(CONF_ID)/Shell/TPTPLexer.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 $(CONF_ID)/Shell/TPTPLexer.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp
@@ -787,15 +777,16 @@ $(CONF_ID)/Shell/TPTPParser.o: Lib/Metaiterators.hpp Lib/Set.hpp
 $(CONF_ID)/Shell/TPTPParser.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
 $(CONF_ID)/Shell/TPTPParser.o: Lib/BitUtils.hpp Kernel/Formula.hpp
 $(CONF_ID)/Shell/TPTPParser.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
-$(CONF_ID)/Shell/TPTPParser.o: Kernel/Unit.hpp Kernel/Clause.hpp
-$(CONF_ID)/Shell/TPTPParser.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
-$(CONF_ID)/Shell/TPTPParser.o: Lib/Reflection.hpp Shell/Statistics.hpp
-$(CONF_ID)/Shell/TPTPParser.o: Indexing/TermSharing.hpp Lib/Set.hpp
-$(CONF_ID)/Shell/TPTPParser.o: Shell/Options.hpp Shell/TPTPLexer.hpp
-$(CONF_ID)/Shell/TPTPParser.o: Shell/Lexer.hpp Lib/Array.hpp
-$(CONF_ID)/Shell/TPTPParser.o: Lib/Exception.hpp Shell/Token.hpp
-$(CONF_ID)/Shell/TPTPParser.o: Shell/TPTPParser.hpp Shell/Parser.hpp
-$(CONF_ID)/Shell/TPTPParser.o: Lib/IntNameTable.hpp Lib/Array.hpp Lib/Map.hpp
+$(CONF_ID)/Shell/TPTPParser.o: Kernel/Unit.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/TPTPParser.o: Kernel/Clause.hpp Lib/InverseLookup.hpp
+$(CONF_ID)/Shell/TPTPParser.o: Lib/DHMap.hpp Lib/Reflection.hpp
+$(CONF_ID)/Shell/TPTPParser.o: Shell/Statistics.hpp Indexing/TermSharing.hpp
+$(CONF_ID)/Shell/TPTPParser.o: Lib/Set.hpp Shell/Options.hpp
+$(CONF_ID)/Shell/TPTPParser.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp
+$(CONF_ID)/Shell/TPTPParser.o: Lib/Array.hpp Lib/Exception.hpp
+$(CONF_ID)/Shell/TPTPParser.o: Shell/Token.hpp Shell/TPTPParser.hpp
+$(CONF_ID)/Shell/TPTPParser.o: Shell/Parser.hpp Lib/IntNameTable.hpp
+$(CONF_ID)/Shell/TPTPParser.o: Lib/Array.hpp Lib/Map.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Lib/Environment.hpp Forwards.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
@@ -811,7 +802,7 @@ $(CONF_ID)/Shell/TheoryAxioms.o: Lib/XML.hpp Lib/Comparison.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Lib/Metaiterators.hpp Lib/Set.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Lib/BitUtils.hpp Shell/AxiomGenerator.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Lib/DHSet.hpp Lib/DHMap.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/DHSet.hpp Lib/DHMap.hpp Kernel/Term.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Kernel/Theory.hpp Shell/Property.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Kernel/Unit.hpp Shell/SymCounter.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Shell/TheoryAxioms.hpp
@@ -829,9 +820,7 @@ $(CONF_ID)/Shell/TheoryFinder.o: Lib/BacktrackData.hpp Lib/Int.hpp
 $(CONF_ID)/Shell/TheoryFinder.o: Kernel/Unit.hpp Lib/List.hpp
 $(CONF_ID)/Shell/TheoryFinder.o: Kernel/Formula.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/TheoryFinder.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
-$(CONF_ID)/Shell/TheoryFinder.o: Kernel/Term.hpp Lib/Portability.hpp
-$(CONF_ID)/Shell/TheoryFinder.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/TheoryFinder.o: Lib/BitUtils.hpp Shell/Property.hpp
+$(CONF_ID)/Shell/TheoryFinder.o: Kernel/Term.hpp Shell/Property.hpp
 $(CONF_ID)/Shell/TheoryFinder.o: Kernel/Unit.hpp Shell/TheoryFinder.hpp
 $(CONF_ID)/Shell/Token.o: Debug/Assertion.hpp Shell/Token.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/Cache.hpp Forwards.hpp Debug/Log.hpp
@@ -851,7 +840,7 @@ $(CONF_ID)/Kernel/BDD.o: Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/Portability.hpp Lib/Comparison.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/Metaiterators.hpp Lib/Set.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Kernel/BDD.o: Lib/BitUtils.hpp Kernel/Term.hpp SAT/Preprocess.hpp
+$(CONF_ID)/Kernel/BDD.o: Lib/BitUtils.hpp SAT/Preprocess.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/VirtualIterator.hpp SAT/SATClause.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/InverseLookup.hpp Lib/Reflection.hpp
 $(CONF_ID)/Kernel/BDD.o: SAT/SATLiteral.hpp SAT/SingleWatchSAT.hpp
@@ -935,8 +924,8 @@ $(CONF_ID)/Kernel/Clause.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Kernel/Clause.o: Kernel/BDD.hpp Lib/Array.hpp Lib/DHMap.hpp
 $(CONF_ID)/Kernel/Clause.o: Lib/Hash.hpp Lib/Set.hpp Lib/SkipList.hpp
 $(CONF_ID)/Kernel/Clause.o: Kernel/Signature.hpp Lib/Map.hpp
-$(CONF_ID)/Kernel/Clause.o: Kernel/Theory.hpp Kernel/Term.hpp
-$(CONF_ID)/Kernel/Clause.o: Kernel/BDDClausifier.hpp Kernel/Signature.hpp
+$(CONF_ID)/Kernel/Clause.o: Kernel/Theory.hpp Kernel/BDDClausifier.hpp
+$(CONF_ID)/Kernel/Clause.o: Kernel/Signature.hpp
 $(CONF_ID)/Kernel/ClauseQueue.o: Debug/Tracer.hpp Lib/Allocator.hpp
 $(CONF_ID)/Kernel/ClauseQueue.o: Debug/Assertion.hpp Lib/Random.hpp
 $(CONF_ID)/Kernel/ClauseQueue.o: Lib/Environment.hpp Forwards.hpp
@@ -1022,11 +1011,12 @@ $(CONF_ID)/Kernel/Formula.o: Lib/Portability.hpp Lib/XML.hpp
 $(CONF_ID)/Kernel/Formula.o: Lib/Comparison.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/Kernel/Formula.o: Lib/Set.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Kernel/Formula.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Kernel/Formula.o: Kernel/Clause.hpp Kernel/Term.hpp
-$(CONF_ID)/Kernel/Formula.o: Kernel/Formula.hpp Kernel/Connective.hpp
+$(CONF_ID)/Kernel/Formula.o: Kernel/Clause.hpp Kernel/Formula.hpp
+$(CONF_ID)/Kernel/Formula.o: Kernel/Connective.hpp
 $(CONF_ID)/Kernel/Formula.o: Kernel/SubformulaIterator.hpp
 $(CONF_ID)/Kernel/Formula.o: Lib/VirtualIterator.hpp
-$(CONF_ID)/Kernel/Formula.o: Kernel/FormulaVarIterator.hpp Kernel/Formula.hpp
+$(CONF_ID)/Kernel/Formula.o: Kernel/FormulaVarIterator.hpp Kernel/Term.hpp
+$(CONF_ID)/Kernel/Formula.o: Kernel/Formula.hpp
 $(CONF_ID)/Kernel/FormulaUnit.o: Lib/Int.hpp Lib/Comparison.hpp
 $(CONF_ID)/Kernel/FormulaUnit.o: Lib/Portability.hpp Debug/Assertion.hpp
 $(CONF_ID)/Kernel/FormulaUnit.o: Kernel/Formula.hpp Lib/List.hpp Lib/XML.hpp
@@ -1057,15 +1047,15 @@ $(CONF_ID)/Kernel/FormulaVarIterator.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Kernel/FormulaVarIterator.o: Lib/Exception.hpp
 $(CONF_ID)/Kernel/FormulaVarIterator.o: Lib/LastCopyWatcher.hpp
 $(CONF_ID)/Kernel/FormulaVarIterator.o: Lib/Reflection.hpp Lib/Int.hpp
-$(CONF_ID)/Kernel/FormulaVarIterator.o: Kernel/Term.hpp Lib/Allocator.hpp
-$(CONF_ID)/Kernel/FormulaVarIterator.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Kernel/FormulaVarIterator.o: Kernel/Term.hpp Kernel/Formula.hpp
+$(CONF_ID)/Kernel/FormulaVarIterator.o: Lib/List.hpp Lib/XML.hpp
+$(CONF_ID)/Kernel/FormulaVarIterator.o: Kernel/Connective.hpp
+$(CONF_ID)/Kernel/FormulaVarIterator.o: Kernel/Formula.hpp Kernel/Term.hpp
+$(CONF_ID)/Kernel/FormulaVarIterator.o: Lib/Allocator.hpp Lib/Portability.hpp
 $(CONF_ID)/Kernel/FormulaVarIterator.o: Lib/Comparison.hpp
 $(CONF_ID)/Kernel/FormulaVarIterator.o: Lib/Metaiterators.hpp Lib/Set.hpp
 $(CONF_ID)/Kernel/FormulaVarIterator.o: Lib/Hash.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Kernel/FormulaVarIterator.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Kernel/FormulaVarIterator.o: Kernel/Formula.hpp Lib/List.hpp
-$(CONF_ID)/Kernel/FormulaVarIterator.o: Kernel/Connective.hpp
-$(CONF_ID)/Kernel/FormulaVarIterator.o: Kernel/Formula.hpp Kernel/Term.hpp
 $(CONF_ID)/Kernel/Inference.o: Debug/Tracer.hpp Kernel/Inference.hpp
 $(CONF_ID)/Kernel/Inference.o: Kernel/Unit.hpp Lib/Allocator.hpp
 $(CONF_ID)/Kernel/Inference.o: Debug/Assertion.hpp
@@ -1103,9 +1093,10 @@ $(CONF_ID)/Kernel/InferenceStore.o: Kernel/Formula.hpp Kernel/Connective.hpp
 $(CONF_ID)/Kernel/InferenceStore.o: Kernel/FormulaUnit.hpp Kernel/Unit.hpp
 $(CONF_ID)/Kernel/InferenceStore.o: Kernel/FormulaVarIterator.hpp
 $(CONF_ID)/Kernel/InferenceStore.o: Lib/MultiCounter.hpp Lib/XML.hpp
-$(CONF_ID)/Kernel/InferenceStore.o: Kernel/Formula.hpp Kernel/Inference.hpp
-$(CONF_ID)/Kernel/InferenceStore.o: Kernel/Term.hpp Kernel/TermIterators.hpp
-$(CONF_ID)/Kernel/InferenceStore.o: Lib/Recycler.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Kernel/InferenceStore.o: Kernel/Term.hpp Kernel/Formula.hpp
+$(CONF_ID)/Kernel/InferenceStore.o: Kernel/Inference.hpp
+$(CONF_ID)/Kernel/InferenceStore.o: Kernel/TermIterators.hpp Lib/Recycler.hpp
+$(CONF_ID)/Kernel/InferenceStore.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Kernel/InferenceStore.o: Kernel/InferenceStore.hpp
 $(CONF_ID)/Kernel/KBO.o: Debug/Tracer.hpp Lib/Environment.hpp Forwards.hpp
 $(CONF_ID)/Kernel/KBO.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
@@ -1117,12 +1108,12 @@ $(CONF_ID)/Kernel/KBO.o: Lib/VirtualIterator.hpp Lib/DHMap.hpp Lib/Int.hpp
 $(CONF_ID)/Kernel/KBO.o: Lib/Portability.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/Kernel/KBO.o: Lib/List.hpp Lib/Set.hpp Lib/Hash.hpp
 $(CONF_ID)/Kernel/KBO.o: Lib/TimeCounter.hpp Indexing/TermSharing.hpp
-$(CONF_ID)/Kernel/KBO.o: Lib/Set.hpp Kernel/Term.hpp Lib/Allocator.hpp
-$(CONF_ID)/Kernel/KBO.o: Lib/Portability.hpp Lib/XML.hpp Lib/Stack.hpp
+$(CONF_ID)/Kernel/KBO.o: Lib/Set.hpp Kernel/Term.hpp Shell/EqualityProxy.hpp
+$(CONF_ID)/Kernel/KBO.o: Shell/Options.hpp Lib/Allocator.hpp Lib/XML.hpp
+$(CONF_ID)/Kernel/KBO.o: Shell/Options.hpp Kernel/Term.hpp
+$(CONF_ID)/Kernel/KBO.o: Lib/Portability.hpp Lib/Stack.hpp
 $(CONF_ID)/Kernel/KBO.o: Lib/BacktrackData.hpp Lib/Int.hpp
-$(CONF_ID)/Kernel/KBO.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Kernel/KBO.o: Shell/EqualityProxy.hpp Shell/Options.hpp
-$(CONF_ID)/Kernel/KBO.o: Shell/Options.hpp Kernel/Term.hpp Kernel/KBO.hpp
+$(CONF_ID)/Kernel/KBO.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp Kernel/KBO.hpp
 $(CONF_ID)/Kernel/KBO.o: Kernel/Ordering.hpp Lib/SmartPtr.hpp
 $(CONF_ID)/Kernel/KBO.o: Kernel/Signature.hpp Lib/Map.hpp Kernel/Theory.hpp
 $(CONF_ID)/Kernel/LiteralSelector.o: Lib/Environment.hpp Forwards.hpp
@@ -1142,7 +1133,7 @@ $(CONF_ID)/Kernel/LiteralSelector.o: Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Kernel/LiteralSelector.o: Lib/Portability.hpp Lib/Comparison.hpp
 $(CONF_ID)/Kernel/LiteralSelector.o: Lib/Metaiterators.hpp Lib/Set.hpp
 $(CONF_ID)/Kernel/LiteralSelector.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Kernel/LiteralSelector.o: Lib/BitUtils.hpp Kernel/Term.hpp
+$(CONF_ID)/Kernel/LiteralSelector.o: Lib/BitUtils.hpp
 $(CONF_ID)/Kernel/LiteralSelector.o: Kernel/LiteralSelector.hpp
 $(CONF_ID)/Kernel/LiteralSelector.o: Kernel/MaximalLiteralSelector.hpp
 $(CONF_ID)/Kernel/LiteralSelector.o: Lib/SmartPtr.hpp Kernel/Ordering.hpp
@@ -1270,6 +1261,21 @@ $(CONF_ID)/Kernel/Ordering.o: Kernel/Ordering.hpp Kernel/KBO.hpp
 $(CONF_ID)/Kernel/Ordering.o: Lib/DArray.hpp Lib/Allocator.hpp
 $(CONF_ID)/Kernel/Ordering.o: Lib/Comparison.hpp Lib/Random.hpp
 $(CONF_ID)/Kernel/Ordering.o: Lib/Reflection.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/DHMultiset.hpp Debug/Assertion.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/Allocator.hpp Debug/Tracer.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/Hash.hpp Lib/DHMap.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/VirtualIterator.hpp Forwards.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/Reflection.hpp Lib/Portability.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Kernel/Term.hpp Lib/Allocator.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/Comparison.hpp Lib/Stack.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/BacktrackData.hpp Lib/List.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/Int.hpp Lib/Metaiterators.hpp Lib/Set.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Lib/BitUtils.hpp Kernel/Polynomial.hpp
+$(CONF_ID)/Kernel/Polynomial.o: Kernel/Theory.hpp Lib/DHMap.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/DArray.hpp Forwards.hpp Debug/Log.hpp
 $(CONF_ID)/Kernel/Renaming.o: Debug/Tracer.hpp Config.hpp Debug/Assertion.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/Allocator.hpp Debug/Tracer.hpp
@@ -1277,15 +1283,15 @@ $(CONF_ID)/Kernel/Renaming.o: Lib/Comparison.hpp Lib/Exception.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/LastCopyWatcher.hpp Lib/Random.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/Reflection.hpp Lib/VirtualIterator.hpp
 $(CONF_ID)/Kernel/Renaming.o: Indexing/TermSharing.hpp Lib/Set.hpp
+$(CONF_ID)/Kernel/Renaming.o: Kernel/Term.hpp Kernel/SubstHelper.hpp
+$(CONF_ID)/Kernel/Renaming.o: Lib/Recycler.hpp Lib/List.hpp Lib/DArray.hpp
 $(CONF_ID)/Kernel/Renaming.o: Kernel/Term.hpp Lib/Allocator.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/Portability.hpp Lib/XML.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/Comparison.hpp Lib/Stack.hpp
-$(CONF_ID)/Kernel/Renaming.o: Lib/BacktrackData.hpp Lib/List.hpp Lib/Int.hpp
+$(CONF_ID)/Kernel/Renaming.o: Lib/BacktrackData.hpp Lib/Int.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/Hash.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Kernel/Renaming.o: Lib/BitUtils.hpp Kernel/SubstHelper.hpp
-$(CONF_ID)/Kernel/Renaming.o: Lib/Recycler.hpp Lib/DArray.hpp Kernel/Term.hpp
-$(CONF_ID)/Kernel/Renaming.o: Kernel/TermIterators.hpp
+$(CONF_ID)/Kernel/Renaming.o: Lib/BitUtils.hpp Kernel/TermIterators.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/VirtualIterator.hpp Kernel/Renaming.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/DHMap.hpp Lib/Int.hpp Lib/Portability.hpp
 $(CONF_ID)/Kernel/RobSubstitution.o: Lib/Environment.hpp Forwards.hpp
@@ -1362,14 +1368,14 @@ $(CONF_ID)/Kernel/Term.o: Lib/List.hpp Lib/VirtualIterator.hpp
 $(CONF_ID)/Kernel/Term.o: Lib/Reflection.hpp Lib/Int.hpp Lib/Set.hpp
 $(CONF_ID)/Kernel/Term.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Portability.hpp
 $(CONF_ID)/Kernel/Term.o: Indexing/TermSharing.hpp Kernel/Term.hpp
+$(CONF_ID)/Kernel/Term.o: Kernel/Ordering.hpp Lib/SmartPtr.hpp
+$(CONF_ID)/Kernel/Term.o: Kernel/Signature.hpp Lib/Map.hpp Lib/Hash.hpp
+$(CONF_ID)/Kernel/Term.o: Lib/DHMap.hpp Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Kernel/Term.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
-$(CONF_ID)/Kernel/Term.o: Lib/Metaiterators.hpp Lib/Set.hpp Lib/Hash.hpp
+$(CONF_ID)/Kernel/Term.o: Lib/Metaiterators.hpp Lib/Set.hpp
 $(CONF_ID)/Kernel/Term.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Kernel/Term.o: Lib/BitUtils.hpp Kernel/Ordering.hpp
-$(CONF_ID)/Kernel/Term.o: Lib/SmartPtr.hpp Kernel/Signature.hpp Lib/Map.hpp
-$(CONF_ID)/Kernel/Term.o: Lib/DHMap.hpp Kernel/Theory.hpp
-$(CONF_ID)/Kernel/Term.o: Kernel/Substitution.hpp Lib/Random.hpp
-$(CONF_ID)/Kernel/Term.o: Kernel/Term.hpp Kernel/TermIterators.hpp
+$(CONF_ID)/Kernel/Term.o: Lib/BitUtils.hpp Kernel/Substitution.hpp
+$(CONF_ID)/Kernel/Term.o: Lib/Random.hpp Kernel/TermIterators.hpp
 $(CONF_ID)/Kernel/Term.o: Lib/Recycler.hpp Lib/DArray.hpp Lib/Random.hpp
 $(CONF_ID)/Kernel/Term.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Kernel/TermIterators.o: Debug/Tracer.hpp Kernel/Term.hpp
@@ -1453,7 +1459,7 @@ $(CONF_ID)/Indexing/ArithmeticIndex.o: Kernel/Clause.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Lib/Reflection.hpp Kernel/Unit.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Indexing/ResultSubstitution.hpp
-$(CONF_ID)/Indexing/ArithmeticIndex.o: Lib/SmartPtr.hpp
+$(CONF_ID)/Indexing/ArithmeticIndex.o: Lib/SmartPtr.hpp Kernel/Term.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Debug/RuntimeStatistics.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/BitUtils.hpp Lib/Comparison.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/Int.hpp Lib/Comparison.hpp
@@ -1476,10 +1482,11 @@ $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/TimeCounter.hpp Lib/Reflection.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/Stack.hpp Lib/BacktrackData.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/Int.hpp Kernel/Unit.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/List.hpp Kernel/FlatTerm.hpp
-$(CONF_ID)/Indexing/ClauseCodeTree.o: Kernel/Term.hpp Lib/Portability.hpp
-$(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/XML.hpp Kernel/MatchTag.hpp
+$(CONF_ID)/Indexing/ClauseCodeTree.o: Kernel/Term.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Kernel/TermIterators.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/VirtualIterator.hpp Kernel/Term.hpp
+$(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Indexing/ClauseCodeTree.o: Kernel/MatchTag.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Indexing/ClauseCodeTree.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/DArray.hpp Lib/DHMap.hpp
 $(CONF_ID)/Indexing/ClauseCodeTree.o: Lib/Hash.hpp Indexing/CodeTree.hpp
@@ -1528,7 +1535,7 @@ $(CONF_ID)/Indexing/ClauseSharing.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Indexing/ClauseSharing.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Indexing/ClauseSharing.o: Saturation/Limits.hpp
 $(CONF_ID)/Indexing/ClauseSharing.o: Indexing/ResultSubstitution.hpp
-$(CONF_ID)/Indexing/ClauseSharing.o: Lib/SmartPtr.hpp
+$(CONF_ID)/Indexing/ClauseSharing.o: Lib/SmartPtr.hpp Kernel/Term.hpp
 $(CONF_ID)/Indexing/ClauseSharing.o: Inferences/InferenceEngine.hpp
 $(CONF_ID)/Indexing/ClauseSharing.o: Inferences/PropositionalToBDDISE.hpp
 $(CONF_ID)/Indexing/ClauseSharing.o: Inferences/InferenceEngine.hpp
@@ -1602,9 +1609,9 @@ $(CONF_ID)/Indexing/CodeTree.o: Lib/List.hpp Lib/Set.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/Reflection.hpp Lib/Stack.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/BacktrackData.hpp Lib/Int.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Kernel/Unit.hpp Lib/List.hpp Kernel/Term.hpp
-$(CONF_ID)/Indexing/CodeTree.o: Lib/XML.hpp Kernel/MatchTag.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Kernel/TermIterators.hpp Lib/Recycler.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/VirtualIterator.hpp Kernel/Term.hpp
+$(CONF_ID)/Indexing/CodeTree.o: Lib/XML.hpp Kernel/MatchTag.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Indexing/CodeTree.hpp Lib/DArray.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/DHMap.hpp Lib/Hash.hpp
 $(CONF_ID)/Indexing/CodeTree.o: Lib/TriangularArray.hpp Lib/BitUtils.hpp
@@ -1673,9 +1680,7 @@ $(CONF_ID)/Indexing/Index.o: Lib/Hash.hpp Lib/DHMap.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/Indexing/Index.o: Lib/Set.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Indexing/Index.o: Lib/Reflection.hpp Kernel/Unit.hpp Lib/List.hpp
 $(CONF_ID)/Indexing/Index.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
-$(CONF_ID)/Indexing/Index.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Indexing/Index.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Indexing/Index.o: Lib/BitUtils.hpp
+$(CONF_ID)/Indexing/Index.o: Kernel/Term.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Debug/Assertion.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Saturation/SaturationAlgorithm.hpp
@@ -1702,9 +1707,6 @@ $(CONF_ID)/Indexing/IndexManager.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Saturation/Limits.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Lib/SmartPtr.hpp Kernel/Term.hpp
-$(CONF_ID)/Indexing/IndexManager.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Indexing/IndexManager.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Indexing/IndexManager.o: Lib/BitUtils.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Inferences/InferenceEngine.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Inferences/PropositionalToBDDISE.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Inferences/InferenceEngine.hpp
@@ -1724,11 +1726,14 @@ $(CONF_ID)/Indexing/IndexManager.o: Indexing/TermIndexingStructure.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Indexing/LiteralIndexingStructure.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Indexing/LiteralIndex.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Indexing/LiteralSubstitutionTree.hpp
-$(CONF_ID)/Indexing/IndexManager.o: Indexing/SubstitutionTree.hpp Lib/Int.hpp
+$(CONF_ID)/Indexing/IndexManager.o: Indexing/SubstitutionTree.hpp
+$(CONF_ID)/Indexing/IndexManager.o: Lib/Comparison.hpp Lib/Int.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Lib/Portability.hpp Lib/SkipList.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Lib/BacktrackData.hpp Lib/ArrayMap.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Kernel/EGSubstitution.hpp Kernel/Term.hpp
+$(CONF_ID)/Indexing/IndexManager.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Indexing/IndexManager.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Kernel/Renaming.hpp Test/Output.hpp
@@ -1829,6 +1834,7 @@ $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Lib/Portability.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Lib/XML.hpp Lib/Comparison.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Kernel/MatchTag.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Lib/BitUtils.hpp
+$(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Kernel/Term.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Indexing/LiteralSubstitutionTree.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Indexing/LiteralIndexingStructure.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Indexing/Index.hpp
@@ -1855,7 +1861,6 @@ $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Lib/BacktrackData.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Lib/ArrayMap.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Lib/DArray.hpp Lib/Array.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Kernel/EGSubstitution.hpp
-$(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Kernel/Term.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/Indexing/LiteralSubstitutionTree.o: Kernel/Renaming.hpp
@@ -1965,18 +1970,18 @@ $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Kernel/Unit.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/SmartPtr.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Kernel/Term.hpp
-$(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/Comparison.hpp
-$(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/BitUtils.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Indexing/SubstitutionTree.hpp
-$(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/Int.hpp Lib/BinaryHeap.hpp
+$(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/Comparison.hpp Lib/Int.hpp
+$(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/BinaryHeap.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/Metaiterators.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/BacktrackData.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/ArrayMap.hpp Lib/DArray.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/Array.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Kernel/EGSubstitution.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/DHMap.hpp Kernel/Term.hpp
+$(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Kernel/MatchTag.hpp
+$(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Lib/BitUtils.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/Indexing/SubstitutionTree_Nodes.o: Kernel/Renaming.hpp
@@ -2000,10 +2005,10 @@ $(CONF_ID)/Indexing/TermCodeTree.o: Lib/Reflection.hpp Lib/Stack.hpp
 $(CONF_ID)/Indexing/TermCodeTree.o: Lib/BacktrackData.hpp Lib/Int.hpp
 $(CONF_ID)/Indexing/TermCodeTree.o: Kernel/Unit.hpp Lib/List.hpp
 $(CONF_ID)/Indexing/TermCodeTree.o: Kernel/FlatTerm.hpp Kernel/Term.hpp
-$(CONF_ID)/Indexing/TermCodeTree.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Indexing/TermCodeTree.o: Kernel/MatchTag.hpp
 $(CONF_ID)/Indexing/TermCodeTree.o: Kernel/TermIterators.hpp Lib/Recycler.hpp
 $(CONF_ID)/Indexing/TermCodeTree.o: Lib/VirtualIterator.hpp Kernel/Term.hpp
+$(CONF_ID)/Indexing/TermCodeTree.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Indexing/TermCodeTree.o: Kernel/MatchTag.hpp
 $(CONF_ID)/Indexing/TermCodeTree.o: Indexing/TermCodeTree.hpp Lib/DArray.hpp
 $(CONF_ID)/Indexing/TermCodeTree.o: Lib/DHMap.hpp Lib/Hash.hpp
 $(CONF_ID)/Indexing/TermCodeTree.o: Lib/TriangularArray.hpp Lib/BitUtils.hpp
@@ -2057,8 +2062,8 @@ $(CONF_ID)/Indexing/TermSharing.o: Kernel/Term.hpp Lib/Portability.hpp
 $(CONF_ID)/Indexing/TermSharing.o: Lib/XML.hpp Lib/Comparison.hpp
 $(CONF_ID)/Indexing/TermSharing.o: Lib/Metaiterators.hpp Lib/Set.hpp
 $(CONF_ID)/Indexing/TermSharing.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Indexing/TermSharing.o: Lib/BitUtils.hpp Indexing/TermSharing.hpp
-$(CONF_ID)/Indexing/TermSharing.o: Lib/Set.hpp
+$(CONF_ID)/Indexing/TermSharing.o: Lib/BitUtils.hpp Kernel/Term.hpp
+$(CONF_ID)/Indexing/TermSharing.o: Indexing/TermSharing.hpp Lib/Set.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/Environment.hpp Forwards.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Debug/Log.hpp Debug/Tracer.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Config.hpp Lib/Exception.hpp
@@ -2080,14 +2085,13 @@ $(CONF_ID)/Indexing/TermSubstitutionTree.o: Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/Portability.hpp Lib/XML.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/Comparison.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/BitUtils.hpp
+$(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/BitUtils.hpp Kernel/Term.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Kernel/Curryfier.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/DArray.hpp Lib/Comparison.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/Random.hpp Lib/ArrayMap.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/DArray.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Indexing/TermSharing.hpp
-$(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/Set.hpp Kernel/Term.hpp
-$(CONF_ID)/Indexing/TermSubstitutionTree.o: Kernel/Signature.hpp
+$(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/Set.hpp Kernel/Signature.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Indexing/TermSubstitutionTree.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Kernel/Renaming.hpp
 $(CONF_ID)/Indexing/TermSubstitutionTree.o: Lib/SkipList.hpp
@@ -2166,6 +2170,7 @@ $(CONF_ID)/Inferences/BDDMarkingSubsumption.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Inferences/BDDMarkingSubsumption.o: Saturation/Limits.hpp
 $(CONF_ID)/Inferences/BDDMarkingSubsumption.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/Inferences/BDDMarkingSubsumption.o: Lib/SmartPtr.hpp
+$(CONF_ID)/Inferences/BDDMarkingSubsumption.o: Kernel/Term.hpp
 $(CONF_ID)/Inferences/BDDMarkingSubsumption.o: Inferences/InferenceEngine.hpp
 $(CONF_ID)/Inferences/BDDMarkingSubsumption.o: Inferences/PropositionalToBDDISE.hpp
 $(CONF_ID)/Inferences/BDDMarkingSubsumption.o: Inferences/InferenceEngine.hpp
@@ -2192,22 +2197,22 @@ $(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/TimeCounter.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/TimeCounter.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Kernel/Term.hpp
-$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Allocator.hpp
-$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Comparison.hpp
-$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Stack.hpp
-$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/BacktrackData.hpp
-$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Int.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Kernel/Clause.hpp
+$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Allocator.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/InverseLookup.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Reflection.hpp
-$(CONF_ID)/Inferences/BackwardDemodulation.o: Kernel/Unit.hpp
+$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Stack.hpp
+$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/BacktrackData.hpp
+$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Int.hpp Kernel/Unit.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Kernel/EqHelper.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/PairUtils.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Metaiterators.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Metaarrays.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Kernel/Term.hpp
+$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/Comparison.hpp
+$(CONF_ID)/Inferences/BackwardDemodulation.o: Kernel/MatchTag.hpp
+$(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Kernel/Renaming.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Kernel/Ordering.hpp
 $(CONF_ID)/Inferences/BackwardDemodulation.o: Lib/SmartPtr.hpp
@@ -2264,10 +2269,6 @@ $(CONF_ID)/Inferences/BinaryResolution.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Inferences/BinaryResolution.o: Saturation/Limits.hpp
 $(CONF_ID)/Inferences/BinaryResolution.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/Inferences/BinaryResolution.o: Lib/SmartPtr.hpp Kernel/Term.hpp
-$(CONF_ID)/Inferences/BinaryResolution.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Inferences/BinaryResolution.o: Lib/Comparison.hpp
-$(CONF_ID)/Inferences/BinaryResolution.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Inferences/BinaryResolution.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/BinaryResolution.o: Indexing/LiteralIndex.hpp
 $(CONF_ID)/Inferences/BinaryResolution.o: Lib/DHMap.hpp Indexing/Index.hpp
 $(CONF_ID)/Inferences/BinaryResolution.o: Indexing/IndexManager.hpp
@@ -2305,9 +2306,6 @@ $(CONF_ID)/Inferences/CTFwSubsAndRes.o: Lib/Reflection.hpp Kernel/Unit.hpp
 $(CONF_ID)/Inferences/CTFwSubsAndRes.o: Lib/List.hpp
 $(CONF_ID)/Inferences/CTFwSubsAndRes.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/Inferences/CTFwSubsAndRes.o: Lib/SmartPtr.hpp Kernel/Term.hpp
-$(CONF_ID)/Inferences/CTFwSubsAndRes.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Inferences/CTFwSubsAndRes.o: Lib/Comparison.hpp
-$(CONF_ID)/Inferences/CTFwSubsAndRes.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/CTFwSubsAndRes.o: Indexing/IndexManager.hpp
 $(CONF_ID)/Inferences/CTFwSubsAndRes.o: Lib/DHMap.hpp Indexing/Index.hpp
 $(CONF_ID)/Inferences/CTFwSubsAndRes.o: Saturation/SaturationAlgorithm.hpp
@@ -2335,18 +2333,19 @@ $(CONF_ID)/Inferences/Condensation.o: Lib/Metaiterators.hpp Lib/List.hpp
 $(CONF_ID)/Inferences/Condensation.o: Lib/Set.hpp Lib/Hash.hpp
 $(CONF_ID)/Inferences/Condensation.o: Lib/TimeCounter.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Inferences/Condensation.o: Lib/VirtualIterator.hpp Kernel/Term.hpp
-$(CONF_ID)/Inferences/Condensation.o: Lib/Allocator.hpp Lib/Portability.hpp
-$(CONF_ID)/Inferences/Condensation.o: Lib/XML.hpp Lib/Comparison.hpp
-$(CONF_ID)/Inferences/Condensation.o: Lib/Stack.hpp Lib/BacktrackData.hpp
-$(CONF_ID)/Inferences/Condensation.o: Lib/Int.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Inferences/Condensation.o: Lib/BitUtils.hpp Kernel/Clause.hpp
+$(CONF_ID)/Inferences/Condensation.o: Kernel/Clause.hpp Lib/Allocator.hpp
 $(CONF_ID)/Inferences/Condensation.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
-$(CONF_ID)/Inferences/Condensation.o: Lib/Reflection.hpp Kernel/Unit.hpp
-$(CONF_ID)/Inferences/Condensation.o: Lib/List.hpp Kernel/MLMatcher.hpp
+$(CONF_ID)/Inferences/Condensation.o: Lib/Reflection.hpp Lib/Stack.hpp
+$(CONF_ID)/Inferences/Condensation.o: Lib/BacktrackData.hpp Lib/Int.hpp
+$(CONF_ID)/Inferences/Condensation.o: Kernel/Unit.hpp Lib/List.hpp
+$(CONF_ID)/Inferences/Condensation.o: Kernel/MLMatcher.hpp
 $(CONF_ID)/Inferences/Condensation.o: Kernel/Inference.hpp Kernel/Unit.hpp
 $(CONF_ID)/Inferences/Condensation.o: Kernel/Renaming.hpp Kernel/Matcher.hpp
 $(CONF_ID)/Inferences/Condensation.o: Lib/BacktrackData.hpp Lib/DHMap.hpp
 $(CONF_ID)/Inferences/Condensation.o: Lib/Hash.hpp Kernel/Term.hpp
+$(CONF_ID)/Inferences/Condensation.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Inferences/Condensation.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
+$(CONF_ID)/Inferences/Condensation.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/Condensation.o: Kernel/TermIterators.hpp
 $(CONF_ID)/Inferences/Condensation.o: Lib/Recycler.hpp Lib/DArray.hpp
 $(CONF_ID)/Inferences/Condensation.o: Kernel/RobSubstitution.hpp
@@ -2458,28 +2457,29 @@ $(CONF_ID)/Inferences/FastCondensation.o: Lib/Comparison.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Lib/Portability.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Debug/Assertion.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Lib/TimeCounter.hpp Kernel/Term.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Forwards.hpp Debug/Log.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Debug/Tracer.hpp Config.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Debug/Tracer.hpp Lib/Allocator.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/Comparison.hpp Lib/Stack.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/Allocator.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Kernel/Clause.hpp Forwards.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Debug/Log.hpp Debug/Tracer.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Config.hpp Lib/Allocator.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Debug/Tracer.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Lib/InverseLookup.hpp Lib/Hash.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Lib/DHMap.hpp Lib/Allocator.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Lib/Exception.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Lib/LastCopyWatcher.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/Reflection.hpp Lib/Int.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/Metaiterators.hpp Lib/Set.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/Hash.hpp Lib/TimeCounter.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/BitUtils.hpp Kernel/Clause.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/Reflection.hpp Kernel/Unit.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Lib/List.hpp Kernel/Inference.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Lib/Reflection.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Lib/Metaiterators.hpp Lib/List.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Lib/Set.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Lib/Reflection.hpp Lib/Stack.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Lib/BacktrackData.hpp Lib/Int.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Kernel/Unit.hpp Lib/List.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Kernel/Inference.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Kernel/Unit.hpp Kernel/Matcher.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Lib/BacktrackData.hpp Lib/Hash.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Lib/VirtualIterator.hpp
-$(CONF_ID)/Inferences/FastCondensation.o: Kernel/Term.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Kernel/Term.hpp Lib/Portability.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Lib/XML.hpp Lib/Comparison.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Kernel/MatchTag.hpp
+$(CONF_ID)/Inferences/FastCondensation.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Kernel/TermIterators.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Lib/Recycler.hpp Lib/DArray.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Lib/Random.hpp Lib/Environment.hpp
@@ -2590,11 +2590,6 @@ $(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Lib/Reflection.hpp
 $(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Kernel/Unit.hpp Lib/List.hpp
 $(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Kernel/Term.hpp
-$(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Lib/Portability.hpp
-$(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Lib/XML.hpp
-$(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Lib/Comparison.hpp
-$(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Saturation/SaturationAlgorithm.hpp
 $(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Kernel/RCClauseStack.hpp
 $(CONF_ID)/Inferences/ForwardLiteralRewriting.o: Indexing/ClauseSharing.hpp
@@ -2632,18 +2627,14 @@ $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Hash.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/TimeCounter.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/TimeCounter.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Kernel/Term.hpp
-$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Allocator.hpp
-$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Portability.hpp
-$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/XML.hpp
-$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Stack.hpp
-$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/BacktrackData.hpp
-$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Int.hpp
-$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Kernel/Clause.hpp
+$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Allocator.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/InverseLookup.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/DHMap.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Reflection.hpp
+$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Stack.hpp
+$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/BacktrackData.hpp
+$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Int.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Kernel/Unit.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Kernel/Inference.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Kernel/Unit.hpp
@@ -2652,6 +2643,10 @@ $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/BacktrackData.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/DHMap.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Hash.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Kernel/Term.hpp
+$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Portability.hpp
+$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/XML.hpp
+$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Kernel/MatchTag.hpp
+$(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Kernel/TermIterators.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/Recycler.hpp
 $(CONF_ID)/Inferences/ForwardSubsumptionAndResolution.o: Lib/DArray.hpp
@@ -2692,16 +2687,12 @@ $(CONF_ID)/Inferences/InferenceEngine.o: Lib/VirtualIterator.hpp Lib/List.hpp
 $(CONF_ID)/Inferences/InferenceEngine.o: Lib/Metaiterators.hpp Lib/List.hpp
 $(CONF_ID)/Inferences/InferenceEngine.o: Lib/Set.hpp Lib/Hash.hpp
 $(CONF_ID)/Inferences/InferenceEngine.o: Lib/TimeCounter.hpp Kernel/Term.hpp
-$(CONF_ID)/Inferences/InferenceEngine.o: Lib/Allocator.hpp
-$(CONF_ID)/Inferences/InferenceEngine.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Inferences/InferenceEngine.o: Lib/Comparison.hpp Lib/Stack.hpp
-$(CONF_ID)/Inferences/InferenceEngine.o: Lib/BacktrackData.hpp Lib/Int.hpp
-$(CONF_ID)/Inferences/InferenceEngine.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Inferences/InferenceEngine.o: Kernel/Clause.hpp
+$(CONF_ID)/Inferences/InferenceEngine.o: Kernel/Clause.hpp Lib/Allocator.hpp
 $(CONF_ID)/Inferences/InferenceEngine.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
-$(CONF_ID)/Inferences/InferenceEngine.o: Lib/Reflection.hpp Kernel/Unit.hpp
-$(CONF_ID)/Inferences/InferenceEngine.o: Kernel/Inference.hpp Kernel/Unit.hpp
-$(CONF_ID)/Inferences/InferenceEngine.o: Shell/Statistics.hpp
+$(CONF_ID)/Inferences/InferenceEngine.o: Lib/Reflection.hpp Lib/Stack.hpp
+$(CONF_ID)/Inferences/InferenceEngine.o: Lib/BacktrackData.hpp Lib/Int.hpp
+$(CONF_ID)/Inferences/InferenceEngine.o: Kernel/Unit.hpp Kernel/Inference.hpp
+$(CONF_ID)/Inferences/InferenceEngine.o: Kernel/Unit.hpp Shell/Statistics.hpp
 $(CONF_ID)/Inferences/InferenceEngine.o: Inferences/InferenceEngine.hpp
 $(CONF_ID)/Inferences/InterpretedEvaluation.o: Lib/Exception.hpp
 $(CONF_ID)/Inferences/InterpretedEvaluation.o: Lib/LastCopyWatcher.hpp
@@ -2733,6 +2724,7 @@ $(CONF_ID)/Inferences/InterpretedEvaluation.o: Lib/Portability.hpp
 $(CONF_ID)/Inferences/InterpretedEvaluation.o: Lib/XML.hpp Lib/Comparison.hpp
 $(CONF_ID)/Inferences/InterpretedEvaluation.o: Kernel/MatchTag.hpp
 $(CONF_ID)/Inferences/InterpretedEvaluation.o: Lib/BitUtils.hpp
+$(CONF_ID)/Inferences/InterpretedEvaluation.o: Kernel/Term.hpp
 $(CONF_ID)/Inferences/InterpretedEvaluation.o: Kernel/Clause.hpp
 $(CONF_ID)/Inferences/InterpretedEvaluation.o: Lib/InverseLookup.hpp
 $(CONF_ID)/Inferences/InterpretedEvaluation.o: Lib/DHMap.hpp
@@ -2758,10 +2750,15 @@ $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/LastCopyWatcher.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Random.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Reflection.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/DHMap.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/DHMultiset.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Hash.hpp Lib/DHMap.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Portability.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/DHSet.hpp Lib/Int.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/TimeCounter.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Clause.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Allocator.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/InverseLookup.hpp
-$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Hash.hpp Lib/DHMap.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Metaiterators.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/List.hpp Lib/Set.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/TimeCounter.hpp
@@ -2772,18 +2769,23 @@ $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Int.hpp Kernel/Unit.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/List.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Inference.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Unit.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Polynomial.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Term.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Portability.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/XML.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/MatchTag.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Theory.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Term.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/TermIterators.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Recycler.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/DArray.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Theory.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Indexing/ArithmeticIndex.hpp
-$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/DHMap.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Indexing/Index.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Event.hpp Lib/SmartPtr.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Exception.hpp
-$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Saturation/Limits.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Indexing/ResultSubstitution.hpp
@@ -2842,6 +2844,7 @@ $(CONF_ID)/Inferences/PropositionalToBDDISE.o: Kernel/InferenceStore.hpp
 $(CONF_ID)/Inferences/PropositionalToBDDISE.o: Lib/DHMultiset.hpp
 $(CONF_ID)/Inferences/PropositionalToBDDISE.o: Kernel/Inference.hpp
 $(CONF_ID)/Inferences/PropositionalToBDDISE.o: Kernel/Unit.hpp
+$(CONF_ID)/Inferences/PropositionalToBDDISE.o: Kernel/Term.hpp
 $(CONF_ID)/Inferences/PropositionalToBDDISE.o: Shell/Statistics.hpp
 $(CONF_ID)/Inferences/PropositionalToBDDISE.o: Shell/Options.hpp
 $(CONF_ID)/Inferences/PropositionalToBDDISE.o: Inferences/PropositionalToBDDISE.hpp
@@ -2876,10 +2879,6 @@ $(CONF_ID)/Inferences/RefutationSeekerFSE.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Inferences/RefutationSeekerFSE.o: Saturation/Limits.hpp
 $(CONF_ID)/Inferences/RefutationSeekerFSE.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/Inferences/RefutationSeekerFSE.o: Lib/SmartPtr.hpp Kernel/Term.hpp
-$(CONF_ID)/Inferences/RefutationSeekerFSE.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Inferences/RefutationSeekerFSE.o: Lib/Comparison.hpp
-$(CONF_ID)/Inferences/RefutationSeekerFSE.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Inferences/RefutationSeekerFSE.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/RefutationSeekerFSE.o: Indexing/LiteralIndex.hpp
 $(CONF_ID)/Inferences/RefutationSeekerFSE.o: Lib/DHMap.hpp Indexing/Index.hpp
 $(CONF_ID)/Inferences/RefutationSeekerFSE.o: Indexing/IndexManager.hpp
@@ -2988,17 +2987,14 @@ $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/Hash.hpp Lib/DHMap.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/Portability.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/Comparison.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Kernel/Term.hpp
+$(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Kernel/Clause.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/Allocator.hpp
-$(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/Portability.hpp
-$(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/XML.hpp Lib/Stack.hpp
+$(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/InverseLookup.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/Metaiterators.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/Set.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/TimeCounter.hpp
-$(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/BitUtils.hpp
-$(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Kernel/Clause.hpp
-$(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/InverseLookup.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/Reflection.hpp
+$(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Lib/Stack.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Kernel/Unit.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Kernel/MLMatcher.hpp
 $(CONF_ID)/Inferences/SLQueryForwardSubsumption.o: Indexing/Index.hpp
@@ -3041,17 +3037,16 @@ $(CONF_ID)/Inferences/Superposition.o: Lib/Metaarrays.hpp
 $(CONF_ID)/Inferences/Superposition.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Inferences/Superposition.o: Shell/Options.hpp Lib/Allocator.hpp
 $(CONF_ID)/Inferences/Superposition.o: Lib/XML.hpp Shell/Statistics.hpp
-$(CONF_ID)/Inferences/Superposition.o: Kernel/Term.hpp Lib/Portability.hpp
-$(CONF_ID)/Inferences/Superposition.o: Lib/Comparison.hpp Lib/Stack.hpp
-$(CONF_ID)/Inferences/Superposition.o: Lib/BacktrackData.hpp Lib/Int.hpp
-$(CONF_ID)/Inferences/Superposition.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Inferences/Superposition.o: Kernel/Clause.hpp
+$(CONF_ID)/Inferences/Superposition.o: Kernel/Term.hpp Kernel/Clause.hpp
 $(CONF_ID)/Inferences/Superposition.o: Lib/InverseLookup.hpp Lib/DHMap.hpp
-$(CONF_ID)/Inferences/Superposition.o: Lib/Reflection.hpp Kernel/Unit.hpp
-$(CONF_ID)/Inferences/Superposition.o: Lib/List.hpp Kernel/Unit.hpp
-$(CONF_ID)/Inferences/Superposition.o: Kernel/Inference.hpp
+$(CONF_ID)/Inferences/Superposition.o: Lib/Reflection.hpp Lib/Stack.hpp
+$(CONF_ID)/Inferences/Superposition.o: Lib/BacktrackData.hpp Lib/Int.hpp
+$(CONF_ID)/Inferences/Superposition.o: Kernel/Unit.hpp Lib/List.hpp
+$(CONF_ID)/Inferences/Superposition.o: Kernel/Unit.hpp Kernel/Inference.hpp
 $(CONF_ID)/Inferences/Superposition.o: Kernel/Ordering.hpp Lib/SmartPtr.hpp
 $(CONF_ID)/Inferences/Superposition.o: Kernel/EqHelper.hpp Kernel/Term.hpp
+$(CONF_ID)/Inferences/Superposition.o: Lib/Portability.hpp Lib/Comparison.hpp
+$(CONF_ID)/Inferences/Superposition.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/Superposition.o: Indexing/Index.hpp Lib/Event.hpp
 $(CONF_ID)/Inferences/Superposition.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 $(CONF_ID)/Inferences/Superposition.o: Saturation/ClauseContainer.hpp
@@ -3086,28 +3081,28 @@ $(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Random.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Reflection.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Kernel/Term.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Kernel/Clause.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Allocator.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Comparison.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/InverseLookup.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Hash.hpp Lib/DHMap.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Metaiterators.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/List.hpp Lib/Set.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/TimeCounter.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Reflection.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Stack.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/BacktrackData.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/List.hpp Lib/Int.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Metaiterators.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Set.hpp Lib/Hash.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/TimeCounter.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/BitUtils.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Kernel/Clause.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/InverseLookup.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/DHMap.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Reflection.hpp
-$(CONF_ID)/Inferences/TautologyDeletionISE.o: Kernel/Unit.hpp Lib/List.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Int.hpp Kernel/Unit.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/List.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Kernel/EqHelper.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/PairUtils.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Metaiterators.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Metaarrays.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Kernel/Term.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/Comparison.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Kernel/MatchTag.hpp
+$(CONF_ID)/Inferences/TautologyDeletionISE.o: Lib/BitUtils.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Shell/Statistics.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Inferences/TautologyDeletionISE.hpp
 $(CONF_ID)/Inferences/TautologyDeletionISE.o: Inferences/InferenceEngine.hpp
@@ -3126,8 +3121,9 @@ $(CONF_ID)/Rule/CASC.o: Lib/BacktrackData.hpp Lib/Int.hpp Kernel/Unit.hpp
 $(CONF_ID)/Rule/CASC.o: Lib/List.hpp Kernel/Signature.hpp Lib/Map.hpp
 $(CONF_ID)/Rule/CASC.o: Lib/DHMap.hpp Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Rule/CASC.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
-$(CONF_ID)/Rule/CASC.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp Rule/Rule.hpp
-$(CONF_ID)/Rule/CASC.o: Rule/CASC.hpp Kernel/Unit.hpp Lib/Array.hpp
+$(CONF_ID)/Rule/CASC.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp Kernel/Term.hpp
+$(CONF_ID)/Rule/CASC.o: Rule/Rule.hpp Rule/CASC.hpp Kernel/Unit.hpp
+$(CONF_ID)/Rule/CASC.o: Lib/Array.hpp
 $(CONF_ID)/Rule/Index.o: Lib/Stack.hpp Forwards.hpp Debug/Log.hpp
 $(CONF_ID)/Rule/Index.o: Debug/Tracer.hpp Config.hpp Debug/Assertion.hpp
 $(CONF_ID)/Rule/Index.o: Debug/Tracer.hpp Lib/Allocator.hpp
@@ -3142,8 +3138,8 @@ $(CONF_ID)/Rule/Index.o: Kernel/Unit.hpp Lib/List.hpp Kernel/Signature.hpp
 $(CONF_ID)/Rule/Index.o: Lib/Map.hpp Lib/DHMap.hpp Kernel/Theory.hpp
 $(CONF_ID)/Rule/Index.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
 $(CONF_ID)/Rule/Index.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Rule/Index.o: Lib/BitUtils.hpp Indexing/Index.hpp Lib/Event.hpp
-$(CONF_ID)/Rule/Index.o: Lib/SmartPtr.hpp Lib/Exception.hpp
+$(CONF_ID)/Rule/Index.o: Lib/BitUtils.hpp Kernel/Term.hpp Indexing/Index.hpp
+$(CONF_ID)/Rule/Index.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
 $(CONF_ID)/Rule/Index.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Rule/Index.o: Saturation/ClauseContainer.hpp Saturation/Limits.hpp
 $(CONF_ID)/Rule/Index.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
@@ -3164,20 +3160,18 @@ $(CONF_ID)/Rule/Profile.o: Lib/List.hpp Kernel/Signature.hpp Lib/Map.hpp
 $(CONF_ID)/Rule/Profile.o: Lib/DHMap.hpp Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Rule/Profile.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
 $(CONF_ID)/Rule/Profile.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Rule/Profile.o: Shell/Profile.hpp Kernel/Unit.hpp Lib/Array.hpp
-$(CONF_ID)/Rule/Prolog.o: Kernel/Term.hpp Forwards.hpp Debug/Log.hpp
-$(CONF_ID)/Rule/Prolog.o: Debug/Tracer.hpp Config.hpp Debug/Assertion.hpp
-$(CONF_ID)/Rule/Prolog.o: Debug/Tracer.hpp Lib/Allocator.hpp
-$(CONF_ID)/Rule/Prolog.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
-$(CONF_ID)/Rule/Prolog.o: Lib/Stack.hpp Lib/Allocator.hpp
-$(CONF_ID)/Rule/Prolog.o: Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/Rule/Prolog.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-$(CONF_ID)/Rule/Prolog.o: Lib/LastCopyWatcher.hpp Lib/Reflection.hpp
-$(CONF_ID)/Rule/Prolog.o: Lib/Int.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-$(CONF_ID)/Rule/Prolog.o: Lib/Hash.hpp Lib/TimeCounter.hpp
-$(CONF_ID)/Rule/Prolog.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Rule/Prolog.o: Kernel/Clause.hpp Lib/InverseLookup.hpp
-$(CONF_ID)/Rule/Prolog.o: Lib/DHMap.hpp Lib/Reflection.hpp Kernel/Unit.hpp
+$(CONF_ID)/Rule/Profile.o: Kernel/Term.hpp Shell/Profile.hpp Kernel/Unit.hpp
+$(CONF_ID)/Rule/Profile.o: Lib/Array.hpp
+$(CONF_ID)/Rule/Prolog.o: Kernel/Term.hpp Kernel/Clause.hpp Forwards.hpp
+$(CONF_ID)/Rule/Prolog.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Rule/Prolog.o: Lib/Allocator.hpp Debug/Assertion.hpp
+$(CONF_ID)/Rule/Prolog.o: Debug/Tracer.hpp Lib/InverseLookup.hpp Lib/Hash.hpp
+$(CONF_ID)/Rule/Prolog.o: Lib/DHMap.hpp Lib/Allocator.hpp Lib/Exception.hpp
+$(CONF_ID)/Rule/Prolog.o: Lib/LastCopyWatcher.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Rule/Prolog.o: Lib/Reflection.hpp Lib/Metaiterators.hpp
+$(CONF_ID)/Rule/Prolog.o: Lib/List.hpp Lib/Set.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Rule/Prolog.o: Lib/Reflection.hpp Lib/Stack.hpp
+$(CONF_ID)/Rule/Prolog.o: Lib/BacktrackData.hpp Lib/Int.hpp Kernel/Unit.hpp
 $(CONF_ID)/Rule/Prolog.o: Lib/List.hpp Rule/Prolog.hpp Lib/Map.hpp
 $(CONF_ID)/Rule/Prolog.o: Rule/Index.hpp Kernel/Unit.hpp Rule/Rule.hpp
 $(CONF_ID)/Rule/ProofAttempt.o: Debug/Tracer.hpp Lib/Environment.hpp
@@ -3199,10 +3193,8 @@ $(CONF_ID)/SAT/DIMACS.o: Lib/Stack.hpp Lib/VirtualIterator.hpp
 $(CONF_ID)/SAT/DIMACS.o: Kernel/Clause.hpp Lib/Allocator.hpp
 $(CONF_ID)/SAT/DIMACS.o: Lib/InverseLookup.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/SAT/DIMACS.o: Lib/Set.hpp Lib/TimeCounter.hpp Lib/Reflection.hpp
-$(CONF_ID)/SAT/DIMACS.o: Kernel/Unit.hpp Kernel/Term.hpp Lib/Portability.hpp
-$(CONF_ID)/SAT/DIMACS.o: Lib/XML.hpp Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/SAT/DIMACS.o: Lib/BitUtils.hpp SAT/DIMACS.hpp SAT/SATClause.hpp
-$(CONF_ID)/SAT/DIMACS.o: SAT/SATLiteral.hpp
+$(CONF_ID)/SAT/DIMACS.o: Kernel/Unit.hpp Kernel/Term.hpp SAT/DIMACS.hpp
+$(CONF_ID)/SAT/DIMACS.o: SAT/SATClause.hpp SAT/SATLiteral.hpp
 $(CONF_ID)/SAT/Preprocess.o: Lib/VirtualIterator.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/SAT/Preprocess.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp
 $(CONF_ID)/SAT/Preprocess.o: Config.hpp Lib/List.hpp Debug/Assertion.hpp
@@ -3232,11 +3224,8 @@ $(CONF_ID)/SAT/SATClause.o: Lib/Metaiterators.hpp Lib/List.hpp Lib/Set.hpp
 $(CONF_ID)/SAT/SATClause.o: Lib/TimeCounter.hpp Lib/Reflection.hpp
 $(CONF_ID)/SAT/SATClause.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/Int.hpp
 $(CONF_ID)/SAT/SATClause.o: Kernel/Unit.hpp Lib/List.hpp Kernel/Term.hpp
-$(CONF_ID)/SAT/SATClause.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/SAT/SATClause.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/SAT/SATClause.o: Lib/BitUtils.hpp Shell/Statistics.hpp
-$(CONF_ID)/SAT/SATClause.o: SAT/SATClause.hpp Lib/VirtualIterator.hpp
-$(CONF_ID)/SAT/SATClause.o: SAT/SATLiteral.hpp
+$(CONF_ID)/SAT/SATClause.o: Shell/Statistics.hpp SAT/SATClause.hpp
+$(CONF_ID)/SAT/SATClause.o: Lib/VirtualIterator.hpp SAT/SATLiteral.hpp
 $(CONF_ID)/SAT/SATClauseSharing.o: Lib/Hash.hpp SAT/SATClauseSharing.hpp
 $(CONF_ID)/SAT/SATClauseSharing.o: Debug/Assertion.hpp Lib/Set.hpp
 $(CONF_ID)/SAT/SATClauseSharing.o: Lib/VirtualIterator.hpp SAT/SATClause.hpp
@@ -3302,31 +3291,25 @@ $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Comparison.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Portability.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Timer.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Kernel/Term.hpp
+$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Kernel/Clause.hpp
+$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Allocator.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Debug/Tracer.hpp
+$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/InverseLookup.hpp
+$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Hash.hpp Lib/DHMap.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Allocator.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Portability.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/XML.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Comparison.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Stack.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Allocator.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/BacktrackData.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/List.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Reflection.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Int.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Metaiterators.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Set.hpp Lib/Hash.hpp
+$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/List.hpp Lib/Set.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/TimeCounter.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/BitUtils.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Kernel/Clause.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/InverseLookup.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/DHMap.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Reflection.hpp
-$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Kernel/Unit.hpp
+$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Stack.hpp
+$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/BacktrackData.hpp
+$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Int.hpp Kernel/Unit.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/List.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Shell/Statistics.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Shell/Options.hpp
+$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/XML.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Saturation/SaturationAlgorithm.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Kernel/RCClauseStack.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/DHMap.hpp Lib/Event.hpp
@@ -3347,6 +3330,7 @@ $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Inferences/PropositionalToBDDI
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Inferences/InferenceEngine.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Saturation/SaturationResult.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Saturation/AWPassiveClauseContainer.hpp
+$(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Lib/Comparison.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Kernel/ClauseQueue.hpp
 $(CONF_ID)/Saturation/AWPassiveClauseContainer.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Lib/DHSet.hpp Forwards.hpp Debug/Log.hpp
@@ -3376,7 +3360,7 @@ $(CONF_ID)/Saturation/BSplitter.o: Lib/InverseLookup.hpp Lib/Reflection.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Kernel/Unit.hpp Kernel/Inference.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Kernel/Unit.hpp Kernel/TermIterators.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Lib/Recycler.hpp Lib/VirtualIterator.hpp
-$(CONF_ID)/Saturation/BSplitter.o: Kernel/Term.hpp Shell/Statistics.hpp
+$(CONF_ID)/Saturation/BSplitter.o: Shell/Statistics.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Saturation/BSplitter.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Kernel/RCClauseStack.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Saturation/Splitter.hpp
@@ -3389,7 +3373,7 @@ $(CONF_ID)/Saturation/BSplitter.o: Indexing/Index.hpp Lib/Exception.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Saturation/Limits.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Indexing/ResultSubstitution.hpp
-$(CONF_ID)/Saturation/BSplitter.o: Lib/SmartPtr.hpp
+$(CONF_ID)/Saturation/BSplitter.o: Lib/SmartPtr.hpp Kernel/Term.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Inferences/InferenceEngine.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Inferences/PropositionalToBDDISE.hpp
 $(CONF_ID)/Saturation/BSplitter.o: Inferences/InferenceEngine.hpp
@@ -3419,9 +3403,6 @@ $(CONF_ID)/Saturation/ClauseContainer.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Saturation/ClauseContainer.o: Saturation/Limits.hpp
 $(CONF_ID)/Saturation/ClauseContainer.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/Saturation/ClauseContainer.o: Lib/SmartPtr.hpp Kernel/Term.hpp
-$(CONF_ID)/Saturation/ClauseContainer.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Saturation/ClauseContainer.o: Lib/Comparison.hpp
-$(CONF_ID)/Saturation/ClauseContainer.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Saturation/ClauseContainer.o: Saturation/SaturationAlgorithm.hpp
 $(CONF_ID)/Saturation/ClauseContainer.o: Kernel/RCClauseStack.hpp
 $(CONF_ID)/Saturation/ClauseContainer.o: Lib/DHMap.hpp
@@ -3479,7 +3460,7 @@ $(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Saturation/Limits.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Indexing/ResultSubstitution.hpp
-$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/SmartPtr.hpp
+$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/SmartPtr.hpp Kernel/Term.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Inferences/InferenceEngine.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Inferences/PropositionalToBDDISE.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Saturation/SaturationResult.hpp
@@ -3623,10 +3604,10 @@ $(CONF_ID)/Saturation/SWBSplitter.o: Lib/DHMap.hpp Lib/Reflection.hpp
 $(CONF_ID)/Saturation/SWBSplitter.o: Kernel/Unit.hpp Kernel/Inference.hpp
 $(CONF_ID)/Saturation/SWBSplitter.o: Kernel/Unit.hpp
 $(CONF_ID)/Saturation/SWBSplitter.o: Kernel/InferenceStore.hpp
-$(CONF_ID)/Saturation/SWBSplitter.o: Lib/DHMultiset.hpp
+$(CONF_ID)/Saturation/SWBSplitter.o: Lib/DHMultiset.hpp Kernel/Term.hpp
 $(CONF_ID)/Saturation/SWBSplitter.o: Kernel/TermIterators.hpp
 $(CONF_ID)/Saturation/SWBSplitter.o: Lib/Recycler.hpp Lib/DArray.hpp
-$(CONF_ID)/Saturation/SWBSplitter.o: Lib/VirtualIterator.hpp Kernel/Term.hpp
+$(CONF_ID)/Saturation/SWBSplitter.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Saturation/SWBSplitter.o: Shell/Options.hpp Shell/Statistics.hpp
 $(CONF_ID)/Saturation/SWBSplitter.o: Indexing/TermSharing.hpp
 $(CONF_ID)/Saturation/SWBSplitter.o: Inferences/PropositionalToBDDISE.hpp
@@ -3679,7 +3660,7 @@ $(CONF_ID)/Saturation/SWBSplitterWithBDDs.o: Kernel/Unit.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithBDDs.o: Kernel/InferenceStore.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithBDDs.o: Lib/DHMultiset.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithBDDs.o: Kernel/Inference.hpp
-$(CONF_ID)/Saturation/SWBSplitterWithBDDs.o: Kernel/Unit.hpp
+$(CONF_ID)/Saturation/SWBSplitterWithBDDs.o: Kernel/Unit.hpp Kernel/Term.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithBDDs.o: Indexing/TermSharing.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithBDDs.o: Shell/Options.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithBDDs.o: Shell/Statistics.hpp
@@ -3745,6 +3726,7 @@ $(CONF_ID)/Saturation/SWBSplitterWithoutBDDs.o: Kernel/MatchTag.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithoutBDDs.o: Lib/BitUtils.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithoutBDDs.o: Kernel/Inference.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithoutBDDs.o: Kernel/Unit.hpp
+$(CONF_ID)/Saturation/SWBSplitterWithoutBDDs.o: Kernel/Term.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithoutBDDs.o: Indexing/TermSharing.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithoutBDDs.o: Shell/Options.hpp
 $(CONF_ID)/Saturation/SWBSplitterWithoutBDDs.o: Shell/Statistics.hpp
@@ -3806,10 +3788,6 @@ $(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/Reflection.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/Unit.hpp Lib/List.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/SmartPtr.hpp Kernel/Term.hpp
-$(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/Comparison.hpp
-$(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/MatchTag.hpp
-$(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/BitUtils.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Inferences/BDDMarkingSubsumption.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/BDD.hpp Lib/Array.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/DHMap.hpp Lib/Hash.hpp
@@ -3817,6 +3795,11 @@ $(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/Int.hpp Lib/Portability.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/Set.hpp Lib/SkipList.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/Signature.hpp Lib/Map.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/Theory.hpp
+$(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/Term.hpp
+$(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/Comparison.hpp
+$(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/MatchTag.hpp
+$(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/BitUtils.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/BDDConjunction.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/BDDClausifier.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: SAT/TWLSolver.hpp Lib/DArray.hpp
@@ -3825,7 +3808,6 @@ $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/Unit.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/InferenceStore.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Lib/DHMultiset.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/LiteralSelector.hpp
-$(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/Term.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/MLVariant.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/FormulaUnit.hpp
 $(CONF_ID)/Saturation/SaturationAlgorithm.o: Kernel/SubformulaIterator.hpp
@@ -3992,8 +3974,6 @@ $(CONF_ID)/Saturation/Splitter.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Saturation/Splitter.o: Saturation/Limits.hpp
 $(CONF_ID)/Saturation/Splitter.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/Saturation/Splitter.o: Lib/SmartPtr.hpp Kernel/Term.hpp
-$(CONF_ID)/Saturation/Splitter.o: Lib/Portability.hpp Lib/Comparison.hpp
-$(CONF_ID)/Saturation/Splitter.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Saturation/Splitter.o: Inferences/InferenceEngine.hpp
 $(CONF_ID)/Saturation/Splitter.o: Inferences/PropositionalToBDDISE.hpp
 $(CONF_ID)/Saturation/Splitter.o: Inferences/InferenceEngine.hpp
@@ -4024,6 +4004,7 @@ $(CONF_ID)/Saturation/SymElOutput.o: Kernel/Clause.hpp Lib/InverseLookup.hpp
 $(CONF_ID)/Saturation/SymElOutput.o: Lib/DHMap.hpp Lib/Reflection.hpp
 $(CONF_ID)/Saturation/SymElOutput.o: Kernel/Unit.hpp Kernel/FormulaUnit.hpp
 $(CONF_ID)/Saturation/SymElOutput.o: Kernel/Inference.hpp Kernel/Unit.hpp
+$(CONF_ID)/Saturation/SymElOutput.o: Kernel/Term.hpp
 $(CONF_ID)/Saturation/SymElOutput.o: Saturation/SymElOutput.hpp
 $(CONF_ID)/Test/CheckedFwSimplifier.o: Lib/DHSet.hpp Forwards.hpp
 $(CONF_ID)/Test/CheckedFwSimplifier.o: Debug/Log.hpp Debug/Tracer.hpp
@@ -4046,23 +4027,23 @@ $(CONF_ID)/Test/CheckedFwSimplifier.o: Lib/SmartPtr.hpp
 $(CONF_ID)/Test/CheckedFwSimplifier.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Test/Compit2Output.o: Test/Compit2Output.hpp Config.hpp
 $(CONF_ID)/Test/CompitOutput.o: Test/CompitOutput.hpp Config.hpp
-$(CONF_ID)/Test/Output.o: Debug/Assertion.hpp Kernel/Term.hpp Forwards.hpp
-$(CONF_ID)/Test/Output.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
-$(CONF_ID)/Test/Output.o: Debug/Tracer.hpp Lib/Allocator.hpp
-$(CONF_ID)/Test/Output.o: Lib/Portability.hpp Lib/XML.hpp Lib/Comparison.hpp
-$(CONF_ID)/Test/Output.o: Lib/Stack.hpp Lib/Allocator.hpp
-$(CONF_ID)/Test/Output.o: Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/Test/Output.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-$(CONF_ID)/Test/Output.o: Lib/LastCopyWatcher.hpp Lib/Reflection.hpp
-$(CONF_ID)/Test/Output.o: Lib/Int.hpp Lib/Metaiterators.hpp Lib/Set.hpp
-$(CONF_ID)/Test/Output.o: Lib/Hash.hpp Lib/TimeCounter.hpp
-$(CONF_ID)/Test/Output.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
-$(CONF_ID)/Test/Output.o: Kernel/Clause.hpp Lib/InverseLookup.hpp
-$(CONF_ID)/Test/Output.o: Lib/DHMap.hpp Lib/Reflection.hpp Kernel/Unit.hpp
+$(CONF_ID)/Test/Output.o: Debug/Assertion.hpp Kernel/Term.hpp
+$(CONF_ID)/Test/Output.o: Kernel/Clause.hpp Forwards.hpp Debug/Log.hpp
+$(CONF_ID)/Test/Output.o: Debug/Tracer.hpp Config.hpp Lib/Allocator.hpp
+$(CONF_ID)/Test/Output.o: Debug/Tracer.hpp Lib/InverseLookup.hpp Lib/Hash.hpp
+$(CONF_ID)/Test/Output.o: Lib/DHMap.hpp Lib/Allocator.hpp Lib/Exception.hpp
+$(CONF_ID)/Test/Output.o: Lib/LastCopyWatcher.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Test/Output.o: Lib/Reflection.hpp Lib/Metaiterators.hpp
+$(CONF_ID)/Test/Output.o: Lib/List.hpp Lib/Set.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Test/Output.o: Lib/Reflection.hpp Lib/Stack.hpp
+$(CONF_ID)/Test/Output.o: Lib/BacktrackData.hpp Lib/Int.hpp Kernel/Unit.hpp
 $(CONF_ID)/Test/Output.o: Lib/List.hpp Lib/Int.hpp Lib/Comparison.hpp
 $(CONF_ID)/Test/Output.o: Lib/Portability.hpp Test/Output.hpp
 $(CONF_ID)/Test/Output.o: Lib/Environment.hpp Kernel/Signature.hpp
 $(CONF_ID)/Test/Output.o: Lib/Map.hpp Lib/DHMap.hpp Kernel/Theory.hpp
+$(CONF_ID)/Test/Output.o: Kernel/Term.hpp Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Test/Output.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
+$(CONF_ID)/Test/Output.o: Lib/BitUtils.hpp
 $(CONF_ID)/Global.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/System.hpp
 $(CONF_ID)/Global.o: Lib/Enumerator.hpp Kernel/Formula.hpp Lib/List.hpp
 $(CONF_ID)/Global.o: Lib/XML.hpp Kernel/Connective.hpp Kernel/Unit.hpp
@@ -4186,7 +4167,7 @@ $(CONF_ID)/test_SubstitutionTree.o: Lib/SkipList.hpp Lib/Random.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Lib/BacktrackData.hpp Lib/ArrayMap.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Lib/DArray.hpp Lib/Array.hpp
-$(CONF_ID)/test_SubstitutionTree.o: Kernel/EGSubstitution.hpp Kernel/Term.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Kernel/EGSubstitution.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Kernel/Renaming.hpp Kernel/Clause.hpp
@@ -4195,15 +4176,16 @@ $(CONF_ID)/test_SubstitutionTree.o: Lib/SmartPtr.hpp Lib/Exception.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Saturation/Limits.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Indexing/ResultSubstitution.hpp
-$(CONF_ID)/test_SubstitutionTree.o: Lib/SmartPtr.hpp Test/Output.hpp
-$(CONF_ID)/test_SubstitutionTree.o: Shell/Options.hpp Shell/CommandLine.hpp
-$(CONF_ID)/test_SubstitutionTree.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp
-$(CONF_ID)/test_SubstitutionTree.o: Shell/Token.hpp Shell/TPTP.hpp
-$(CONF_ID)/test_SubstitutionTree.o: Shell/TPTPParser.hpp Kernel/Unit.hpp
-$(CONF_ID)/test_SubstitutionTree.o: Shell/Parser.hpp Lib/IntNameTable.hpp
-$(CONF_ID)/test_SubstitutionTree.o: Lib/Array.hpp Lib/Map.hpp
-$(CONF_ID)/test_SubstitutionTree.o: Shell/Property.hpp Shell/Preprocess.hpp
-$(CONF_ID)/test_SubstitutionTree.o: Shell/Statistics.hpp Shell/Refutation.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Lib/SmartPtr.hpp Kernel/Term.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Test/Output.hpp Shell/Options.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Shell/CommandLine.hpp Shell/TPTPLexer.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Shell/Lexer.hpp Shell/Token.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Shell/TPTP.hpp Shell/TPTPParser.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Kernel/Unit.hpp Shell/Parser.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Lib/IntNameTable.hpp Lib/Array.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Lib/Map.hpp Shell/Property.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Shell/Preprocess.hpp Shell/Statistics.hpp
+$(CONF_ID)/test_SubstitutionTree.o: Shell/Refutation.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Shell/TheoryFinder.hpp Rule/CASC.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Rule/Prolog.hpp Rule/Index.hpp
 $(CONF_ID)/test_SubstitutionTree.o: Rule/Rule.hpp Rule/Index.hpp
@@ -4261,7 +4243,7 @@ $(CONF_ID)/test_retrieval.o: Lib/SkipList.hpp Lib/Random.hpp
 $(CONF_ID)/test_retrieval.o: Lib/BinaryHeap.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/test_retrieval.o: Lib/BacktrackData.hpp Lib/ArrayMap.hpp
 $(CONF_ID)/test_retrieval.o: Lib/DArray.hpp Lib/Array.hpp
-$(CONF_ID)/test_retrieval.o: Kernel/EGSubstitution.hpp Kernel/Term.hpp
+$(CONF_ID)/test_retrieval.o: Kernel/EGSubstitution.hpp
 $(CONF_ID)/test_retrieval.o: Kernel/RobSubstitution.hpp
 $(CONF_ID)/test_retrieval.o: Kernel/RobSubstitution.hpp Kernel/Renaming.hpp
 $(CONF_ID)/test_retrieval.o: Kernel/Clause.hpp Indexing/Index.hpp
@@ -4269,9 +4251,10 @@ $(CONF_ID)/test_retrieval.o: Lib/Event.hpp Lib/SmartPtr.hpp Lib/Exception.hpp
 $(CONF_ID)/test_retrieval.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/test_retrieval.o: Saturation/Limits.hpp
 $(CONF_ID)/test_retrieval.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
-$(CONF_ID)/test_retrieval.o: Test/Output.hpp Shell/Options.hpp
-$(CONF_ID)/test_retrieval.o: Shell/CommandLine.hpp Shell/TPTPLexer.hpp
-$(CONF_ID)/test_retrieval.o: Shell/Lexer.hpp Shell/Token.hpp Shell/TPTP.hpp
+$(CONF_ID)/test_retrieval.o: Kernel/Term.hpp Test/Output.hpp
+$(CONF_ID)/test_retrieval.o: Shell/Options.hpp Shell/CommandLine.hpp
+$(CONF_ID)/test_retrieval.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp
+$(CONF_ID)/test_retrieval.o: Shell/Token.hpp Shell/TPTP.hpp
 $(CONF_ID)/test_retrieval.o: Shell/TPTPParser.hpp Kernel/Unit.hpp
 $(CONF_ID)/test_retrieval.o: Shell/Parser.hpp Lib/IntNameTable.hpp
 $(CONF_ID)/test_retrieval.o: Lib/Array.hpp Lib/Map.hpp Shell/Property.hpp
@@ -4345,13 +4328,13 @@ $(CONF_ID)/vampire.o: Indexing/TermSharing.hpp Indexing/SubstitutionTree.hpp
 $(CONF_ID)/vampire.o: Lib/VirtualIterator.hpp Lib/BinaryHeap.hpp
 $(CONF_ID)/vampire.o: Lib/Metaiterators.hpp Lib/BacktrackData.hpp
 $(CONF_ID)/vampire.o: Lib/ArrayMap.hpp Lib/DArray.hpp
-$(CONF_ID)/vampire.o: Kernel/EGSubstitution.hpp Kernel/Term.hpp
-$(CONF_ID)/vampire.o: Kernel/RobSubstitution.hpp Kernel/RobSubstitution.hpp
-$(CONF_ID)/vampire.o: Kernel/Renaming.hpp Kernel/Clause.hpp
-$(CONF_ID)/vampire.o: Indexing/Index.hpp Lib/Event.hpp Lib/SmartPtr.hpp
-$(CONF_ID)/vampire.o: Lib/Exception.hpp Saturation/ClauseContainer.hpp
-$(CONF_ID)/vampire.o: Saturation/Limits.hpp Indexing/ResultSubstitution.hpp
-$(CONF_ID)/vampire.o: Lib/SmartPtr.hpp Test/Output.hpp
+$(CONF_ID)/vampire.o: Kernel/EGSubstitution.hpp Kernel/RobSubstitution.hpp
+$(CONF_ID)/vampire.o: Kernel/RobSubstitution.hpp Kernel/Renaming.hpp
+$(CONF_ID)/vampire.o: Kernel/Clause.hpp Indexing/Index.hpp Lib/Event.hpp
+$(CONF_ID)/vampire.o: Lib/SmartPtr.hpp Lib/Exception.hpp
+$(CONF_ID)/vampire.o: Saturation/ClauseContainer.hpp Saturation/Limits.hpp
+$(CONF_ID)/vampire.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
+$(CONF_ID)/vampire.o: Kernel/Term.hpp Test/Output.hpp
 $(CONF_ID)/vampire.o: Indexing/LiteralMiniIndex.hpp Lib/DArray.hpp
 $(CONF_ID)/vampire.o: Kernel/Matcher.hpp Kernel/TermIterators.hpp
 $(CONF_ID)/vampire.o: Lib/Recycler.hpp Inferences/InferenceEngine.hpp
@@ -4445,13 +4428,13 @@ $(CONF_ID)/vground.o: Kernel/Unit.hpp Indexing/TermSharing.hpp
 $(CONF_ID)/vground.o: Indexing/SubstitutionTree.hpp Lib/VirtualIterator.hpp
 $(CONF_ID)/vground.o: Lib/BinaryHeap.hpp Lib/BacktrackData.hpp
 $(CONF_ID)/vground.o: Lib/ArrayMap.hpp Lib/DArray.hpp
-$(CONF_ID)/vground.o: Kernel/EGSubstitution.hpp Kernel/Term.hpp
-$(CONF_ID)/vground.o: Kernel/RobSubstitution.hpp Kernel/RobSubstitution.hpp
-$(CONF_ID)/vground.o: Kernel/Renaming.hpp Kernel/Clause.hpp
-$(CONF_ID)/vground.o: Indexing/Index.hpp Lib/Event.hpp Lib/SmartPtr.hpp
-$(CONF_ID)/vground.o: Lib/Exception.hpp Saturation/ClauseContainer.hpp
-$(CONF_ID)/vground.o: Saturation/Limits.hpp Indexing/ResultSubstitution.hpp
-$(CONF_ID)/vground.o: Lib/SmartPtr.hpp Test/Output.hpp
+$(CONF_ID)/vground.o: Kernel/EGSubstitution.hpp Kernel/RobSubstitution.hpp
+$(CONF_ID)/vground.o: Kernel/RobSubstitution.hpp Kernel/Renaming.hpp
+$(CONF_ID)/vground.o: Kernel/Clause.hpp Indexing/Index.hpp Lib/Event.hpp
+$(CONF_ID)/vground.o: Lib/SmartPtr.hpp Lib/Exception.hpp
+$(CONF_ID)/vground.o: Saturation/ClauseContainer.hpp Saturation/Limits.hpp
+$(CONF_ID)/vground.o: Indexing/ResultSubstitution.hpp Lib/SmartPtr.hpp
+$(CONF_ID)/vground.o: Kernel/Term.hpp Test/Output.hpp
 $(CONF_ID)/vground.o: Indexing/LiteralMiniIndex.hpp Lib/DArray.hpp
 $(CONF_ID)/vground.o: Kernel/Matcher.hpp Kernel/TermIterators.hpp
 $(CONF_ID)/vground.o: Lib/Recycler.hpp Shell/CommandLine.hpp

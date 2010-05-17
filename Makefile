@@ -103,6 +103,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/MLMatcher.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
+        Kernel/Polynomial.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
         Kernel/Signature.o\

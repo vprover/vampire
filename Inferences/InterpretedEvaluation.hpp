@@ -21,8 +21,6 @@ class InterpretedEvaluation
 : public ImmediateSimplificationEngine
 {
 public:
-  InterpretedEvaluation();
-
   Clause* simplify(Clause* cl);
 private:
   int getInterpretedFunction(Term* t);
@@ -33,8 +31,6 @@ private:
   bool evaluatePredicate(int predIndex, TermList* args);
 
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
-
-  Theory* theory;
 };
 
 };

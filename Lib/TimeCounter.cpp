@@ -132,6 +132,9 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   case TC_INTERPRETED_EVALUATION:
     env.out<<"interpreted evaluation";
     break;
+  case TC_INTERPRETED_SIMPLIFICATION:
+    env.out<<"interpreted simplification";
+    break;
   case TC_CONDENSATION:
     env.out<<"condensation";
     break;
