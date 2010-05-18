@@ -308,6 +308,8 @@ string Inference::ruleName(Rule rule)
     return "condensation";
   case EVALUATION:
     return "evaluation";
+  case INTERPRETED_SIMPLIFICATION:
+    return "interpreted simplification";
   case SPLITTING_COMPONENT:
     return "splitting component introduction";
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:

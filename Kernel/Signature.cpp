@@ -112,6 +112,7 @@ unsigned Signature::addInterpretedConstant(InterpretedType value)
   }
 
   string name=Int::toString(value);
+//  string name= (value>=0) ? Int::toString(value) : ("uminus("+Int::toString(abs(value))+")");
   string symbolKey = key(name,0);
   //all integer constants must be registered in _intConstants, and
   //other symbols cannot have the same symbolKey as an integer constant

@@ -146,6 +146,9 @@ void ConstraintDatabase::handleLiteral(Literal* lit, bool adding, Clause* premis
   bool litPositive = static_cast<bool>(lit->polarity()) ^ negative;
 
   if(itp==Theory::EQUAL) {
+    if(litPositive) {
+      return;
+    }
     if(adding) {
       ConstraintInfo** pctr;
       if(_termConstraints.getValuePtr(arg, pctr)) {

@@ -143,7 +143,7 @@ public:
     Inference* inf;
     Unit::InputType it=cl->inputType();
     if(premises.isEmpty()) {
-      inf=new Inference1(Inference::EVALUATION, cl);
+      inf=new Inference1(Inference::INTERPRETED_SIMPLIFICATION, cl);
     }
     else {
       UnitList* lst=0;
@@ -153,7 +153,7 @@ public:
 	UnitList::push(prem, lst);
 	it=static_cast<Unit::InputType>(Int::max(it, prem->inputType()));
       }
-      inf=new InferenceMany(Inference::EVALUATION, lst);
+      inf=new InferenceMany(Inference::INTERPRETED_SIMPLIFICATION, lst);
     }
     return Clause::fromIterator(LiteralStack::Iterator(resLits), it, inf);
   }
@@ -399,11 +399,11 @@ bool InterpretedSimplifier::ClauseSimplifier::
       }
       if(theory->isInterpretedConstant(arg2) && theory->isInterpretedConstant(arg11)) {
         //X+N1 # N2  ---> X # (N2-N1)
-        arg1=arg12;
         InterpretedType v1=theory->interpretConstant(arg2);
         InterpretedType vSub=theory->interpretConstant(arg11);
         InterpretedType res;
         if(Int::safeMinus(v1, vSub, res)) {
+          arg1=arg12;
           arg2=TermList(theory->getRepresentation(res));
           return true;
         }

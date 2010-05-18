@@ -32,7 +32,7 @@ XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
 #XFLAGS = -pg -g -DVDEBUG=0 # profiling
 #XFLAGS = -pg -g -DVDEBUG=1 -DCHECK_LEAKS=0 # profiling & debugging
 #XFLAGS = -fprofile-arcs -pg -O6 -DVDEBUG=0 # coverage & profiling optimized
-#XFLAGS = -O0 -DVDEBUG=0 # no debugging, no optimization
+#XFLAGS = -O0 -DVDEBUG=0 -g # no debugging, no optimization
 #XFLAGS = -O6 -DVDEBUG=1 -DCHECK_LEAKS=0 -g # debugging and optimized
 
 #XFLAGS = -O6 -DVDEBUG=0 -g # Cachegrind

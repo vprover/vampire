@@ -153,6 +153,8 @@ public:
     /** evaluation inference */
     EVALUATION,
     /** evaluation inference */
+    INTERPRETED_SIMPLIFICATION,
+    /** component introduced by splitting */
     SPLITTING_COMPONENT,
     /** unused predicate definition removal */
     UNUSED_PREDICATE_DEFINITION_REMOVAL,

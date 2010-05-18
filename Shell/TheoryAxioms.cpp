@@ -43,6 +43,10 @@ struct TheoryAxioms::Arithmetic
 	axiom( X0++>X0 );
       }
     }
+    if(has(Theory::MINUS)) {
+      include(Theory::PLUS);
+      axiom( (X0-X1==X2) -=- (X0==X1+X2) );
+    }
     if(has(Theory::PLUS)) {
       include(Theory::SUCCESSOR);
 
@@ -55,6 +59,20 @@ struct TheoryAxioms::Arithmetic
 	axiom( (X0+X1>X0+X2) -=- (X1>X2) );
       }
     }
+    if(has(Theory::MULTIPLY)) {
+      axiom( X0*X1==X1*X0 );
+      axiom( (X0*X1)*X2==X0*(X1*X2) );
+      axiom( X0*one==X0 );
+      axiom( X0*zero==zero );
+      
+      if(has(Theory::PLUS)) {
+        include(Theory::SUCCESSOR);
+        
+        axiom( X0*(X1++)==(X0*X1)+X0 );
+	axiom( (X0+X1)*(X2+X3) == (X0*X2 + X0*X3 + X1*X2 + X1*X3) );
+      }
+    }
+    
 
   }
 };

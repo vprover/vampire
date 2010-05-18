@@ -166,9 +166,17 @@ FormBlock operator>=(const TermBlock& b1, const TermBlock& b2)
 
 TermBlock operator+(const TermBlock& b1, const TermBlock& b2)
 { return fun2(Theory::PLUS, b1, b2); }
+TermBlock operator-(const TermBlock& b1, const TermBlock& b2)
+{ return fun2(Theory::MINUS, b1, b2); }
+TermBlock operator*(const TermBlock& b1, const TermBlock& b2)
+{ return fun2(Theory::MULTIPLY, b1, b2); }
+TermBlock operator/(const TermBlock& b1, const TermBlock& b2)
+{ return fun2(Theory::DIVIDE, b1, b2); }
 
 TermBlock operator++(const TermBlock& b1,int)
 { return fun1(Theory::SUCCESSOR, b1); }
+TermBlock operator-(const TermBlock& b1,int)
+{ return fun1(Theory::UNARY_MINUS, b1); }
 
 //formula operators
 
@@ -243,6 +251,7 @@ UnitList* AxiomGenerator::getAxioms()
   CALL("AxiomGenerator::getAxioms");
 
   zero=LazyConstant(0);
+  one=LazyConstant(1);
   X0=var(0);
   X1=var(1);
   X2=var(2);

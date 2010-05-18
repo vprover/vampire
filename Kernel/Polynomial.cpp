@@ -109,8 +109,14 @@ void Polynomial::subtract(Polynomial& pol)
       _data.push(Summand(newCoef, smd.term));
     }
     else {
-      TermList negTrm=TermList(Term::create(theory->getFnNum(Theory::UNARY_MINUS), 1, &smd.term));
-      _data.push(Summand(newCoef, negTrm));
+      TermList negTrm;
+      if(smd.term.isEmpty()) {
+        negTrm=TermList(theory->minusOne());
+      }
+      else {
+        negTrm=TermList(Term::create(theory->getFnNum(Theory::UNARY_MINUS), 1, &smd.term));
+      }
+      _data.push(Summand(smd.coef, negTrm));
     }
   }
 }
@@ -156,12 +162,7 @@ bool Polynomial::mergeSummands()
   
   while(merged.isNonEmpty()) {
     TermList trm=merged.pop();
-    if(trm.isEmpty()) {
-      _data.push(Summand(coefs.get(trm)));
-    }
-    else {
-      _data.push(Summand(coefs.get(trm), trm));
-    }
+    _data.push(Summand(coefs.get(trm), trm));
   }
   return mergesDone;
 }

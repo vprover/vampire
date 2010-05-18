@@ -75,6 +75,11 @@ FormBlock operator<(const TermBlock& b1, const TermBlock& b2);
 FormBlock operator>=(const TermBlock& b1, const TermBlock& b2);
 
 TermBlock operator+(const TermBlock& b1, const TermBlock& b2);
+TermBlock operator-(const TermBlock& b1, const TermBlock& b2);
+TermBlock operator*(const TermBlock& b1, const TermBlock& b2);
+TermBlock operator/(const TermBlock& b1, const TermBlock& b2);
+
+TermBlock operator-(const TermBlock& b1);
 TermBlock operator++(const TermBlock& b1,int);
 
 
@@ -120,6 +125,7 @@ protected:
 
   TermBlock X0,X1,X2,X3,X4;
   LazyConstant zero;
+  LazyConstant one;
 private:
   UnitList* _acc;
 

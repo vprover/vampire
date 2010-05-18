@@ -30,7 +30,7 @@ private:
   struct Summand
   {
     Summand(InterpretedType coef) : coef(coef), constant(true) { term.makeEmpty(); }
-    Summand(InterpretedType coef, TermList term) : coef(coef), constant(false), term(term) {}
+    Summand(InterpretedType coef, TermList term) : coef(coef), constant(term.isEmpty()), term(term) {}
     
     TermList toTerm();
     
