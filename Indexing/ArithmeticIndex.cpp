@@ -6,6 +6,7 @@
 #include "../Debug/Assertion.hpp"
 #include "../Debug/Tracer.hpp"
 
+#include "../Lib/DHMap.hpp"
 #include "../Lib/Environment.hpp"
 
 #include "../Kernel/BDD.hpp"
@@ -32,6 +33,8 @@ struct ConstraintDatabase::ConstraintInfo {
   bool strongLowerLimit;
   InterpretedType lowerLimit;
   Clause* lowerLimitPremise;
+
+  DHMap<InterpretedType, Clause*> neqConstraints;
 
   CLASS_NAME("ArithmeticIndex::ConstraintInfo");
   USE_ALLOCATOR(ConstraintInfo);
@@ -60,6 +63,11 @@ bool ConstraintDatabase::isNonEqual(TermList t, InterpretedType val, Clause*& pr
   if( ci->hasUpperLimit && (ci->upperLimit < val ||
       (ci->strongUpperLimit && ci->upperLimit==val) ) ) {
     premise=ci->upperLimitPremise;
+    return true;
+  }
+  Clause* neqPremise;
+  if(ci->neqConstraints.find(val, neqPremise)) {
+    premise=neqPremise;
     return true;
   }
   return false;
@@ -111,7 +119,7 @@ void ConstraintDatabase::handleLiteral(Literal* lit, bool adding, Clause* premis
   }
   Signature::InterpretedSymbol* sym=static_cast<Signature::InterpretedSymbol*>(sym0);
   Interpretation itp=sym->getInterpretation();
-  if(itp!=Theory::GREATER) {
+  if(itp!=Theory::GREATER && itp!=Theory::EQUAL) {
     return;
   }
 
@@ -119,7 +127,6 @@ void ConstraintDatabase::handleLiteral(Literal* lit, bool adding, Clause* premis
   InterpretedType num;
   bool numFirst=theory->isInterpretedConstant(*lit->nthArgument(0));
   if(numFirst) {
-    //if both arguments were numbers, the predicate would have been simplified
     if(theory->isInterpretedConstant(*lit->nthArgument(1))) {
       //comparison of two interpreted constants is of no use to us
       return;
@@ -137,6 +144,30 @@ void ConstraintDatabase::handleLiteral(Literal* lit, bool adding, Clause* premis
   }
 
   bool litPositive = static_cast<bool>(lit->polarity()) ^ negative;
+
+  if(itp==Theory::EQUAL) {
+    if(adding) {
+      ConstraintInfo** pctr;
+      if(_termConstraints.getValuePtr(arg, pctr)) {
+        *pctr=new ConstraintInfo;
+      }
+      ConstraintInfo* ctr=*pctr;
+      //if there is an inequality with this number already, the new one won't be inserted
+      ctr->neqConstraints.insert(num, premise);
+    }
+    else {
+      ConstraintInfo* ctr=_termConstraints.get(arg);
+      Clause* storedPrem;
+      if(ctr->neqConstraints.find(num, storedPrem)) {
+        if(storedPrem==premise) {
+          ALWAYS(ctr->neqConstraints.remove(num));
+        }
+      }
+    }
+    return;
+  }
+
+
   bool strong = litPositive;
   bool upper = !(numFirst ^ litPositive);
 

@@ -4,6 +4,7 @@
  */
 
 #include "../Lib/DHMultiset.hpp"
+#include "../Lib/Int.hpp"
 
 #include "Term.hpp"
 

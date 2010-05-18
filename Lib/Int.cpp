@@ -21,6 +21,9 @@ int Int::gcd(int i,int j)
   
   i=abs(i);
   j=abs(j);
+  if(!i || !j) {
+    return 1;
+  }
   
   for(;;)
   {

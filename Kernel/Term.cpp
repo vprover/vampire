@@ -595,6 +595,7 @@ Term* Term::create(Term* t,TermList* args)
   Term* s = new(arity) Term(*t);
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
+    ASS(!args[i].isEmpty());
     *ss-- = args[i];
   }
   return env.sharing->insert(s);
@@ -613,6 +614,7 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
 
   TermList* ss = s->args();
   for (unsigned i = 0;i < arity;i++) {
+    ASS(!args[i].isEmpty());
     *ss-- = args[i];
   }
   return env.sharing->insert(s);
@@ -630,6 +632,7 @@ Term* Term::createNonShared(Term* t,TermList* args)
   Term* s = new(arity) Term(*t);
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
+    ASS(!args[i].isEmpty());
     *ss-- = args[i];
   }
   return s;

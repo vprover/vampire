@@ -25,7 +25,7 @@ namespace Lib
 
 /**
  * Skip lists storing a value of class Value.
- * The class ValueComparator should contain a function compare used to
+ * The class ValueComparator should contain a static function compare used to
  * compare Values.
  * @since 04/05/2006 Bellevue
  */

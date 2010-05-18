@@ -20,6 +20,7 @@
 #include "../Kernel/FormulaUnit.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Kernel/Clause.hpp"
+#include "../Kernel/Theory.hpp"
 
 #include "../Shell/Statistics.hpp"
 
@@ -712,8 +713,37 @@ Literal* TPTPParser::atom (bool polarity)
     }
 
   case TT_REAL:
+    throw ParserException("reading reals is not supported",token);
+    
   case TT_INTEGER:
-    throw ParserException("reading integers and reals is not supported",token);
+    {
+      int v;
+      Term* intTrm=term(v);
+      ASS(intTrm);
+      switch (currentToken1().tag) {
+      case TT_NEQ:
+	polarity = ! polarity;
+	// no break is intended
+      case TT_EQUAL:
+	{
+	  Literal* l = Literal::equality(polarity);
+	  TermList* args = l->args();
+	  args->setTerm(intTrm);
+	  args = args->next();
+	  consumeToken();
+	  Term* t = term(v);
+	  if (t) {
+	    args->setTerm(t);
+	  }
+	  else {
+	    args->makeVar(v);
+	  }
+	  return env.sharing->insert(l);
+	}
+      default:
+	throw ParserException("= or != expected after term",token);
+      }
+    }
   case TT_VAR:
     {
       int v;
@@ -773,8 +803,17 @@ Term* TPTPParser::term(int& v)
     }
 
   case TT_INTEGER:
+    {
+      string intStr = token.text;
+      consumeToken();
+      InterpretedType val;
+      if(!Int::stringToInt(intStr, val)) {
+        throw ParserException("unsupported integer value",token);
+      }
+      return theory->getRepresentation(val);
+    }
   case TT_REAL:
-    throw ParserException("reading integers and reals is not supported",token);
+    throw ParserException("reading reals is not supported",token);
 
   case TT_VAR:
     {

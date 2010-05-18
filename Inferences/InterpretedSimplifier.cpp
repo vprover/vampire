@@ -281,6 +281,28 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
       res=args[0];
       return true;
     }
+    for(unsigned argIndex=0;argIndex<2;argIndex++) {
+      if(theory->isInterpretedConstant(args[1-argIndex]) && 
+         theory->isInterpretedFunction(args[argIndex], Theory::DIVIDE) && 
+         theory->isInterpretedConstant(*args[argIndex].term()->nthArgument(1)) ) {
+        // N0*(Y/N1) ---> (N0/gcd(N0,N1))*(Y/(N0/gcd(N0,N1)))
+        InterpretedType n1=theory->interpretConstant(args[1-argIndex]);
+        InterpretedType n22=theory->interpretConstant(*args[argIndex].term()->nthArgument(1));
+        TermList arg21=*args[argIndex].term()->nthArgument(0);
+        InterpretedType argGcd=Int::gcd(n1,n22);
+        if(argGcd!=1) {
+          unsigned divFun=theory->getFnNum(Theory::DIVIDE);
+          unsigned mulFun=theory->getFnNum(Theory::MULTIPLY);
+          TermList newArg2Args[2];
+          newArg2Args[0]=arg21;
+          newArg2Args[1]=TermList(theory->getRepresentation(n22/argGcd));
+          args[0]=TermList(theory->getRepresentation(n1/argGcd));
+          args[1]=TermList(Term::create(divFun, 2, newArg2Args));
+          res=TermList(Term::create(mulFun, 2, args));
+          return true;
+        }
+      }
+    }
     break;
   case Theory::DIVIDE:
     if(args[1]==theory->one()) {
@@ -340,11 +362,11 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
   default:;
   }
 
-  Polynomial pol(TermList(Term::create(theory->getFnNum(interp), Theory::getArity(interp), args)));
-  if(pol.mergeSummands()) {
-    res=pol.toTerm();
-    return true;
-  }
+//  Polynomial pol(TermList(Term::create(theory->getFnNum(interp), Theory::getArity(interp), args)));
+//  if(pol.mergeSummands()) {
+//    res=pol.toTerm();
+//    return true;
+//  }
 
   return false;
 }
@@ -388,6 +410,49 @@ bool InterpretedSimplifier::ClauseSimplifier::
       }
     } 
 
+  }
+
+  if(theory->isInterpretedFunction(t1, Theory::DIVIDE)) {
+    TermList arg11=*t1->nthArgument(0);
+    TermList arg12=*t1->nthArgument(1);
+    if(equality) {
+      if(isNonEqual(arg12,0, premise)) {
+        //X/Y=Z ---> X=Y*Z if Y!=0
+        arg1=arg11;
+        unsigned mulFn=theory->getFnNum(Theory::MULTIPLY);
+        TermList newArgs[2];
+        newArgs[0]=arg12;
+        newArgs[1]=arg2;
+        arg2=TermList(Term::create(mulFn,2,newArgs));
+        addPremise(premise);
+        return true;
+      }
+    }
+    else {
+      if(isGreater(arg12,0, premise)) {
+        //X/Y>Z ---> X>Y*Z if Y>0
+        unsigned mulFn=theory->getFnNum(Theory::MULTIPLY);
+        TermList newArgs[2];
+        newArgs[0]=arg12;
+        newArgs[1]=arg2;
+        arg1=arg11;
+        arg2=TermList(Term::create(mulFn,2,newArgs));
+        addPremise(premise);
+        return true;
+      }
+      if(isLess(arg12,0, premise)) {
+        //X/Y>Z ---> Y*Z>X if Y<0
+        unsigned mulFn=theory->getFnNum(Theory::MULTIPLY);
+        TermList newArgs[2];
+        newArgs[0]=arg12;
+        newArgs[1]=arg2;
+        arg1=arg11;
+        arg2=TermList(Term::create(mulFn,2,newArgs));
+        swap(arg1,arg2);
+        addPremise(premise);
+        return true;
+      }
+    }
   }
 
   if(!arg2.isTerm()) {
