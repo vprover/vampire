@@ -195,7 +195,8 @@ bool Int::stringToLong (const char* str,long& result)
   result = strtol(str,&endptr,10);
 
   if (*endptr ||
-      (result == 0 && errno)) { // error returned by strtol
+      (result == 0 && errno) ||
+      ( (result == LONG_MAX || result == LONG_MIN) && errno==ERANGE ) ) { // error returned by strtol
 
     return false;
   }
