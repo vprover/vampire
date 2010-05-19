@@ -24,7 +24,9 @@ public:
   Polynomial(TermList t);
 
   void subtract(Polynomial& pol);
-  bool mergeSummands();  
+  bool simplify();
+  bool mergeSummands();
+  bool reduceCoeffitients();
   TermList toTerm();
 private:
   struct Summand

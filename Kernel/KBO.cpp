@@ -26,7 +26,9 @@
 
 
 //#define NONINTERPRETED_PRECEDENCE_BOOST 0x10000
+//#define NONINTERPRETED_LEVEL_BOOST 0x1000
 #define NONINTERPRETED_PRECEDENCE_BOOST 0
+#define NONINTERPRETED_LEVEL_BOOST 0
 #define COLORED_WEIGHT_BOOST 0x10000
 #define COLORED_LEVEL_BOOST 0x10000
 
@@ -476,6 +478,10 @@ int KBO::functionSymbolWeight(unsigned fun)
 int KBO::predicateLevel (unsigned pred)
 {
   int basic=pred >= _predicates ? 1 : _predicateLevels[pred];
+  if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
+    ASS_NEQ(pred,0); //equality is always interpreted
+    basic+=NONINTERPRETED_LEVEL_BOOST;
+  }
   if(env.signature->predicateColored(pred)) {
     ASS_NEQ(pred,0); //equality should never be colored
     return COLORED_LEVEL_BOOST*basic;

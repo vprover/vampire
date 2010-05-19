@@ -121,6 +121,13 @@ void Polynomial::subtract(Polynomial& pol)
   }
 }
 
+bool Polynomial::simplify()
+{
+  CALL("Polynomial::simplify");
+
+  return mergeSummands();
+}
+
 bool Polynomial::mergeSummands()
 {
   CALL("Polynomial::mergeSummands");
@@ -165,6 +172,44 @@ bool Polynomial::mergeSummands()
     _data.push(Summand(coefs.get(trm), trm));
   }
   return mergesDone;
+}
+
+/**
+ * Divide all summands in the polynomial by the GCD of their coeffitients.
+ *
+ * This is not a simplification, it changes the value of the polynomial.
+ * The GCD used for reduction of summands is always positive.
+ */
+bool Polynomial::reduceCoeffitients()
+{
+  CALL("Polynomial::reduceCoeffitients");
+
+  SummandStack::Iterator sit(_data);
+  InterpretedType coefGcd=0;
+  while(sit.hasNext()) {
+    InterpretedType coef=sit.next().coef;
+    if(coef==0) {
+      continue;
+    }
+    if(coefGcd==0) {
+      coefGcd=abs(coef);
+    }
+    else {
+      coefGcd=Int::gcd(coefGcd, coef);
+    }
+  }
+  if(coefGcd==0) {
+    return false;
+  }
+  ASS_G(coefGcd,0);
+  if(coefGcd==1) {
+    return false;
+  }
+  size_t len=_data.size();
+  for(size_t i=0;i<len;i++) {
+    _data[i].coef/=coefGcd;
+  }
+  return true;
 }
 
 TermList Polynomial::toTerm()

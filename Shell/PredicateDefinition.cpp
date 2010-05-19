@@ -35,6 +35,7 @@ struct PredicateDefinition::PredData
 {
   Set<Unit*> containingUnits;
 
+  bool interpreted;
   int pred;
 
   int pocc;
@@ -85,6 +86,12 @@ struct PredicateDefinition::PredData
   void check(PredicateDefinition* pdObj)
   {
     CALL("PredicateDefinition::PredData::check");
+
+    //we don't remove anything that concerns interpreted predicates
+    if(interpreted) {
+      return;
+    }
+    
     if(!enqueuedForDefEl && isEliminable()) {
       ASS(!enqueuedForReplacement);
       pdObj->_eliminable.push(pred);
@@ -122,6 +129,7 @@ PredicateDefinition::PredicateDefinition()
   _preds = new PredData[predCnt];
   for(int i=0;i<predCnt;i++) {
     _preds[i].pred=i;
+    _preds[i].interpreted=env.signature->getPredicate(i)->interpreted();
   }
 }
 

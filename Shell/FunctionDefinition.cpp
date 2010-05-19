@@ -753,6 +753,9 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   CALL("FunctionDefinition::defines");
 
   unsigned f = lhs->functor();
+  if(env.signature->getFunction(f)->interpreted()) {
+    return 0;
+  }
   if(lhs->color()==COLOR_TRANSPARENT && rhs->color()!=COLOR_TRANSPARENT) {
     return 0;
   }

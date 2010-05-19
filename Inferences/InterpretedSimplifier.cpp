@@ -265,6 +265,13 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
       res=args[0];
       return true;
     }
+    for(unsigned argIndex=0;argIndex<2;argIndex++) {
+      if(theory->isInterpretedFunction(args[argIndex], Theory::UNARY_MINUS) && 
+         args[1-argIndex]==*args[argIndex].term()->nthArgument(0) ) {
+        //X+(-X) ---> 0
+        res=theory->zero();
+      }
+    }
     break;
   case Theory::MINUS:
     if(args[1]==theory->zero()) {
@@ -374,7 +381,7 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
   }
 
 //  Polynomial pol(TermList(Term::create(theory->getFnNum(interp), Theory::getArity(interp), args)));
-//  if(pol.mergeSummands()) {
+//  if(pol.simplify()) {
 //    res=pol.toTerm();
 //    return true;
 //  }
@@ -631,12 +638,36 @@ bool InterpretedSimplifier::ClauseSimplifier::
       return true;
     }
   }
-  
-  if(arg1!=theory->zero() && arg2!=theory->zero()) {
+
+  //merge both sides as polynomials and try to simplify them
+  if(arg1==theory->zero()) {
+    Polynomial pol(arg2);
+    bool simplified=pol.simplify();
+    
+    simplified=pol.reduceCoeffitients()||simplified;
+    if(simplified) {
+      arg2=pol.toTerm();
+      return true;
+    }
+  }
+  else if(arg2==theory->zero()) {
+    Polynomial pol(arg1);
+    
+    bool simplified=pol.simplify();
+    simplified=pol.reduceCoeffitients()||simplified;
+    if(simplified) {
+      arg1=pol.toTerm();
+      return true;
+    }
+  }
+  else {
     Polynomial pol1(arg1);
     Polynomial pol2(arg2);
     pol1.subtract(pol2);
-    if(pol1.mergeSummands()) {
+    
+    bool simplified=pol1.simplify();
+    simplified=pol1.reduceCoeffitients()||simplified;
+    if(simplified) {
       arg1=pol1.toTerm();
       arg2=theory->zero();
       return true;
@@ -661,6 +692,17 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyPredicate(Interpretation i
 
   switch(interp) {
   case Theory::EQUAL:
+    for(unsigned argIndex=0;argIndex<2;argIndex++) {
+      if(theory->isInterpretedConstant(args[argIndex])) {
+        if(isNonEqual(args[1-argIndex], theory->interpretConstant(args[argIndex]), premise)) {
+	  // X=N ---> false if X!=N
+	  addPremise(premise);
+	  constant=true;
+	  constantTrue=!original->polarity();
+	  return true;
+        }
+      }
+    }
     if(doEqualityAndInequalityEquivalentSimplifications(args[0], args[1], true)) {
       modified=true;
     }

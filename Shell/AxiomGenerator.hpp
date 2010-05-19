@@ -119,7 +119,19 @@ public:
   bool has(Interpretation el) const { return _presentElements.find(el); }
   void include(Interpretation el) { _presentElements.insert(el); }
 protected:
+  /**
+   * In this function, neccessary axioms are be included into the problem by 
+   * call to the @b axiom function. The decision on axiom inclusion should 
+   * be done based on presence of interpreted symbols which is queried by the 
+   * @b has function.
+   */
   virtual void enumerate() = 0;
+  /**
+   * In this function, neccessary interpreted symbols should be included
+   * into the problem by call to the @b include function. The decision on
+   * symbol inclusion should be done based on presence of other interpreted 
+   * symbols which is queried by the @b has function.
+   */
   virtual void inclusionImplications() = 0;
 
   void axiom(FormBlock b);

@@ -32,6 +32,9 @@ struct TheoryAxioms::Arithmetic
     if(has(Theory::PLUS)) {
       include(Theory::SUCCESSOR);
     }
+    if(has(Theory::DIVIDE)) {
+      include(Theory::MULTIPLY);
+    }
   }
   void enumerate()
   {
@@ -75,6 +78,9 @@ struct TheoryAxioms::Arithmetic
         axiom( X0*(X1++)==(X0*X1)+X0 );
 	axiom( (X0+X1)*(X2+X3) == (X0*X2 + X0*X3 + X1*X2 + X1*X3) );
       }
+    }
+    if(has(Theory::DIVIDE)) {
+      axiom( (X1!=zero) --> ( (X0/X1==X2) -=- (X1*X2==X0) ) );
     }
     
 
