@@ -1189,6 +1189,46 @@ void TPTPParser::vampire()
   else if (nm == "end_formula") { // e.g. vampire(left_formula)
     _currentColor = COLOR_TRANSPARENT;
   }
+  else if (nm == "interpreted_symbol") { // e.g. vampire(interpreted_symbol,+,integer_plus);
+    consumeToken(TT_COMMA);
+    string sname = name();
+    consumeToken(TT_COMMA);
+    string symb = name();
+    if (symb == "integer_plus") {
+      env.signature->registerInterpretedFunction(sname,Theory::PLUS);
+    }
+    else if (symb == "integer_greater") {
+      env.signature->registerInterpretedPredicate(sname,Theory::GREATER);
+    }
+    else if (symb == "integer_greater_equal") {
+      env.signature->registerInterpretedPredicate(sname,Theory::GREATER_EQUAL);
+    }
+    else if (symb == "integer_less") {
+      env.signature->registerInterpretedPredicate(sname,Theory::LESS);
+    }
+    else if (symb == "integer_less_equal") {
+      env.signature->registerInterpretedPredicate(sname,Theory::LESS_EQUAL);
+    }
+    else if (symb == "successor") {
+      env.signature->registerInterpretedFunction(sname,Theory::SUCCESSOR);
+    }
+    else if (symb == "integer_unary_minus") {
+      env.signature->registerInterpretedFunction(sname,Theory::UNARY_MINUS);
+    }
+    else if (symb == "integer_minus") {
+      env.signature->registerInterpretedFunction(sname,Theory::MINUS);
+    }
+    else if (symb == "integer_product") {
+      env.signature->registerInterpretedFunction(sname,Theory::MULTIPLY);
+    }
+//     else if (symb == "integer_divide") {
+//       env.signature->registerInterpretedFunction(sname,Theory::DIVIDE);
+//     }
+    else {
+      throw ParserException("unrecognised interpreted symbol",
+                            currentToken());
+    }
+  }
   else {
     throw ParserException("unrecognised Vampire command",
 			  currentToken1());

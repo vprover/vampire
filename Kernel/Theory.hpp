@@ -44,9 +44,7 @@ public:
     PLUS,
     MINUS,
     MULTIPLY,
-    DIVIDE,
-    /** The X?Y:Z ternary operator like in C++ */
-    IF_THEN_ELSE,
+    DIVIDE
   };
   /**
    * Number of elements in the enum Interpretation

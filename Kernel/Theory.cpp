@@ -58,9 +58,6 @@ unsigned Theory::getArity(Interpretation i)
   case LESS:
   case LESS_EQUAL:
     return 2;
-
-  case IF_THEN_ELSE:
-    return 3;
   }
   ASSERTION_VIOLATION;
 }
@@ -81,7 +78,6 @@ bool Theory::isFunction(Interpretation i)
   case MINUS:
   case MULTIPLY:
   case DIVIDE:
-  case IF_THEN_ELSE:
     return true;
 
   case EQUAL:

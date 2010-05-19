@@ -80,10 +80,10 @@ protected:
   void saveChar(int character);
   void saveTokenText(Token&);
   /** True if the character with this code is a digit */
-  static bool isDigit (int charCode) 
+  static bool isDigit(int charCode) 
   { return charCode >= '0' && charCode <= '9'; }
   /** True if the character with this code is a letter */
-  static bool isLetter (int charCode) 
+  static bool isLetter(int charCode) 
   { return (charCode >= 'A' && charCode <= 'Z') || 
            (charCode >= 'a' && charCode <= 'z'); }
   void readSequence(const char* chars);

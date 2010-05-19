@@ -370,18 +370,6 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
       }
     }
     break;
-  case Theory::IF_THEN_ELSE:
-    if(args[0]==theory->zero()) {
-      res=args[2];
-      return true;
-    }
-    if(args[0].isTerm() && theory->isInterpretedConstant(args[0].term())) {
-      //if we had zero, we would have succeeded with the previous condition
-      ASS_NEQ(theory->interpretConstant(args[0]), 0);
-      res=args[1];
-      return true;
-    }
-    break;
   default:;
   }
 

@@ -170,9 +170,6 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::LESS_EQUAL:
     name="$leq";
     break;
-  case Theory::IF_THEN_ELSE:
-    name="$ite";
-    break;
   default:
     ASSERTION_VIOLATION;
   }

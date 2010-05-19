@@ -126,14 +126,6 @@ Term* InterpretedEvaluation::evaluateFunction(int fnIndex, TermList* args)
     }
     res=arg1/arg2;
     break;
-  case Theory::IF_THEN_ELSE:
-    if(arg1) {
-      res=arg2;
-    }
-    else {
-      res=arg3;
-    }
-    break;
 
   default:
     ASSERTION_VIOLATION;

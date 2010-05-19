@@ -76,6 +76,10 @@ void Lexer::readNumber (Token& token)
 {
   CALL("Lexer::readNumber");
 
+  if (_lastCharacter == '-') {
+    saveLastChar();
+    readNextChar();
+  }
   readUnsignedInteger();
   if (_lastCharacter == '.') {
     saveLastChar();
@@ -200,7 +204,7 @@ void Lexer::readSequence (const char* cs)
  * Look ahead one character and return it.
  * @since 27/11/2006 Haifa
  */
-int Lexer::lookAhead ()
+int Lexer::lookAhead()
 {
   CALL("Lexer::lookAhead");
   ASS(! _lookAheadChar); // cannot look ahead by two characters!

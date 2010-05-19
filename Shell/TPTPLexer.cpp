@@ -149,6 +149,12 @@ void TPTPLexer::readToken (Token& token)
     return;
 
   case SYMBOLIC:
+    if (_lastCharacter == '-') {
+      if (isDigit(lookAhead())) {
+        readNumber(token);
+        return;
+      }
+    }
     readSymbolic(token);
     token.tag = detectSymbolicTokenTypeOfLastToken();
     return;
