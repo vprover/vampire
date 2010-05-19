@@ -128,10 +128,8 @@ class Signature
 
   typedef Map<string,unsigned,Hash> SymbolMap;
 
-  void registerInterpretedFunction(const string& name,unsigned arity,
-      Interpretation interpretation);
-  void registerInterpretedPredicate(const string& name, unsigned arity,
-      Interpretation interpretation);
+  void registerInterpretedFunction(const string& name, Interpretation interpretation);
+  void registerInterpretedPredicate(const string& name, Interpretation interpretation);
 
   unsigned addInterpretedConstant(InterpretedType value);
 

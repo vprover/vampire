@@ -24,7 +24,7 @@ Signature::Signature ()
   CALL("Signature::Signature");
 
   // initialize equality
-  registerInterpretedPredicate("=", 2, Theory::EQUAL);
+  registerInterpretedPredicate("=", Theory::EQUAL);
   ASS_EQ(predicateName(0), "="); //equality must have number 0
   getPredicate(0)->markSkip();
 } // Signature::Signature
@@ -49,12 +49,12 @@ Signature::~Signature ()
  *
  * Must be called before the function appears in the problem for the first time.
  */
-void Signature::registerInterpretedFunction(const string& name, unsigned arity,
-    Interpretation interpretation)
+void Signature::registerInterpretedFunction(const string& name, Interpretation interpretation)
 {
   CALL("Signature::registerInterpretedFunction");
-  ASS_EQ(arity, Theory::getArity(interpretation));
   ASS(Theory::isFunction(interpretation));
+  
+  unsigned arity = Theory::getArity(interpretation);
 
   string symbolKey = key(name,arity);
 
@@ -76,12 +76,12 @@ void Signature::registerInterpretedFunction(const string& name, unsigned arity,
  *
  * Must be called before the predicate appears in the problem for the first time.
  */
-void Signature::registerInterpretedPredicate(const string& name, unsigned arity,
-    Interpretation interpretation)
+void Signature::registerInterpretedPredicate(const string& name, Interpretation interpretation)
 {
   CALL("Signature::registerInterpretedPredicate");
-  ASS_EQ(arity, Theory::getArity(interpretation));
   ASS(!Theory::isFunction(interpretation));
+
+  unsigned arity = Theory::getArity(interpretation);
 
   string symbolKey = key(name,arity);
 
@@ -138,7 +138,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   if(_iSymbols.find(interp, res)) {
     return res;
   }
-  const char* name;
+  string name;
   switch(interp) {
   case Theory::SUCCESSOR:
     name="$s";
@@ -176,11 +176,26 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   default:
     ASSERTION_VIOLATION;
   }
+
   if(Theory::isFunction(interp)) {
-    registerInterpretedFunction(name, Theory::getArity(interp), interp);
+    if(_funNames.find(name)) {
+      int i=0;
+      while(_funNames.find(name+Int::toString(i))) {
+        i++;
+      }
+      name=name+Int::toString(i);
+    }
+    registerInterpretedFunction(name, interp);
   }
   else {
-    registerInterpretedPredicate(name, Theory::getArity(interp), interp);
+    if(_predNames.find(name)) {
+      int i=0;
+      while(_predNames.find(name+Int::toString(i))) {
+        i++;
+      }
+      name=name+Int::toString(i);
+    }
+    registerInterpretedPredicate(name, interp);
   }
 
   //we have now registered a new function, so it should be present in the map
