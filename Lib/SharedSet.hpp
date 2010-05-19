@@ -94,6 +94,7 @@ public:
   SharedSet* getUnion(SharedSet* s)
   {
     CALL("SharedSet::getUnion");
+    ASS(s);
 
     if(s==this) {
       return this;
@@ -144,6 +145,7 @@ public:
   SharedSet* subtract(SharedSet* s)
   {
     CALL("SharedSet::subtract");
+    ASS(s);
 
     if(s==this) {
       return getEmpty();
@@ -185,6 +187,7 @@ public:
   bool hasIntersection(SharedSet* s)
   {
     CALL("SharedSet::hasIntersection");
+    ASS(s);
 
     T* p1=_items;
     T* p2=s->_items;

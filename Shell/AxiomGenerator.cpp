@@ -259,6 +259,17 @@ UnitList* AxiomGenerator::getAxioms()
   X4=var(4);
 
   _acc=0;
+
+  //stabilize the list of included symbols
+  size_t oldPESize=_presentElements.size();
+  for(;;) {
+    inclusionImplications();
+    if(oldPESize==_presentElements.size()) {
+      break;
+    }
+    oldPESize=_presentElements.size();
+  }
+  
   enumerate();
   return _acc;
 }

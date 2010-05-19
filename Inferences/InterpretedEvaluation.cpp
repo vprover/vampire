@@ -177,6 +177,11 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 {
   CALL("InterpretedEvaluation::evaluateLiteral");
 
+  if(lit->arity()==0) {
+    //we have no interpreted predicates of zero arity
+    return false;
+  }
+
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);
   static Stack<bool> modified(8);

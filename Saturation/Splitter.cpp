@@ -3,6 +3,8 @@
  * Implements class Splitter.
  */
 
+#include "../Lib/Metaiterators.hpp"
+
 #include "../Kernel/Clause.hpp"
 
 #include "../Shell/Options.hpp"
@@ -22,6 +24,20 @@ void Splitter::init(SaturationAlgorithm* sa)
   _sa=sa;
 }
 
+/**
+ * Register the reduction of the @b cl clause
+ */
+void Splitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacement)
+{
+  CALL("Splitter::onClauseReduction(Clause*,Clause*,Clause*)");
+  
+  if(!premise) {
+    ASS(!replacement);
+    return;
+  }
+
+  onClauseReduction(cl, pvi( getSingletonIterator(premise) ), replacement);
+}
 
 /**
  * Return true if splitting is to be performed only if all

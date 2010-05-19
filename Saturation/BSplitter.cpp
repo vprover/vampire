@@ -53,7 +53,6 @@ bool BSplitter::doSplitting(Clause* cl)
   if(!comp) {
     return false;
   }
-
 #if VDEBUG
   assertSplitLevelsExist(cl->splits());
 #endif
@@ -84,37 +83,36 @@ bool BSplitter::doSplitting(Clause* cl)
   return true;
 }
 
-
 /**
  * Register the reduction of the @b cl clause
  */
-void BSplitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacement)
+void BSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement)
 {
   CALL("BSplitter::onClauseReduction");
+  ASS(cl);
 
-  if(!premise) {
+  if(!premises.hasNext()) {
+    ASS(!replacement || cl->splits()==replacement->splits());
     return;
   }
-  ASS(premise->splits());
 
-//  cout<<cl->toString()<<" reduced by "<<premise->toString()<<endl;
-
+  SplitSet* diff=premises.next()->splits();
+  while(premises.hasNext()) {
+    Clause* premise=premises.next();
+    ASS(premise);
+    diff=diff->getUnion(premise->splits());
+  }
+  if(replacement) {
+    diff=diff->getUnion(replacement->splits());
+  }
+  diff=diff->subtract(cl->splits());
+  
 #if VDEBUG
-  assertSplitLevelsExist(cl->splits());
-  assertSplitLevelsExist(premise->splits());
+  assertSplitLevelsExist(diff);
 #endif
 
-  SplitSet* diff;
-  if(replacement) {
-    ASS(replacement->splits());
-    diff=premise->splits()->getUnion(replacement->splits())->subtract(cl->splits());
-  }
-  else {
-    diff=premise->splits()->subtract(cl->splits());
-  }
-
 #if SP_REPORTS==2
-  cout<<"Reduced "<<(*cl)<<" by "<<(*premise)<<". Added to reduced stack on levels "<<diff->toString()<<endl;
+  cout<<"Reduced "<<(*cl)". Added to reduced stack on levels {"<<diff->toString()<<"}."<<endl;
 #endif
 
   if(diff->isEmpty()) {

@@ -1715,9 +1715,6 @@ void Options::checkGlobalOptionConstraints() const
   if(interpretedSimplification() && !interpretedEvaluation()) {
     USER_ERROR("Interpreted simplification can only be used together with interpreted evaluation");
   }
-  if(interpretedSimplification() && splitting()==SM_BACKTRACKING) {
-    USER_ERROR("Interpreted simplification is not supported with backtracking splitting");
-  }
 }
 
 }

@@ -21,18 +21,27 @@ using namespace Kernel;
 struct TheoryAxioms::Arithmetic
 : public AxiomGenerator
 {
+  void inclusionImplications()
+  {
+    if(has(Theory::GREATER_EQUAL) || has(Theory::LESS) || has(Theory::LESS_EQUAL)) {
+      include(Theory::GREATER);
+    }
+    if(has(Theory::MINUS)) {
+      include(Theory::PLUS);
+    }
+    if(has(Theory::PLUS)) {
+      include(Theory::SUCCESSOR);
+    }
+  }
   void enumerate()
   {
     if(has(Theory::GREATER_EQUAL)) {
-      include(Theory::GREATER);
       axiom( (X0>=X1) -=- !(X1>X0) );
     }
     if(has(Theory::LESS)) {
-      include(Theory::GREATER);
       axiom( (X0<X1) -=- (X1>X0) );
     }
     if(has(Theory::LESS_EQUAL)) {
-      include(Theory::GREATER);
       axiom( (X0<=X1) -=- !(X0>X1) );
     }
     if(has(Theory::GREATER)) {
@@ -44,12 +53,9 @@ struct TheoryAxioms::Arithmetic
       }
     }
     if(has(Theory::MINUS)) {
-      include(Theory::PLUS);
       axiom( (X0-X1==X2) -=- (X0==X1+X2) );
     }
     if(has(Theory::PLUS)) {
-      include(Theory::SUCCESSOR);
-
       axiom( X0+X1==X1+X0 );
       axiom( (X0+X1)+X2==X0+(X1+X2) );
       axiom( X0+zero==X0 );
@@ -66,8 +72,6 @@ struct TheoryAxioms::Arithmetic
       axiom( X0*zero==zero );
       
       if(has(Theory::PLUS)) {
-        include(Theory::SUCCESSOR);
-        
         axiom( X0*(X1++)==(X0*X1)+X0 );
 	axiom( (X0+X1)*(X2+X3) == (X0*X2 + X0*X3 + X1*X2 + X1*X3) );
       }

@@ -30,7 +30,8 @@ public:
    */
   virtual bool handleEmptyClause(Clause* cl) { return false; }
 
-  virtual void onClauseReduction(Clause* cl, Clause* premise, Clause* replacement=0) {}
+  virtual void onClauseReduction(Clause* cl, Clause* premise, Clause* replacement=0);
+  virtual void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement=0) {}
   virtual void onNewClause(Clause* cl) {}
   virtual void onAllProcessed() {}
 

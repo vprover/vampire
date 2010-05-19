@@ -26,6 +26,24 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+void ForwardSimplificationPerformer::perform(Clause* premise, Clause* replacement, Clause* reductionPremise)
+{
+  CALL("ForwardSimplificationPerformer::perform/3");
+
+  ClauseIterator premises;
+  
+  if(reductionPremise) {
+    ASS(premise);
+    premises = pvi( getConcatenatedIterator(getSingletonIterator(premise), getSingletonIterator(reductionPremise)) );
+  }
+  else if(premise) {
+    premises = pvi( getSingletonIterator(premise) );
+  }
+  else {
+    premises=ClauseIterator::getEmpty();
+  }
+  perform(premises, replacement);
+}
 
 
 

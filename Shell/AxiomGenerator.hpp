@@ -120,6 +120,7 @@ public:
   void include(Interpretation el) { _presentElements.insert(el); }
 protected:
   virtual void enumerate() = 0;
+  virtual void inclusionImplications() = 0;
 
   void axiom(FormBlock b);
 

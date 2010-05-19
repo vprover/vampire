@@ -285,7 +285,7 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
       if(theory->isInterpretedConstant(args[1-argIndex]) && 
          theory->isInterpretedFunction(args[argIndex], Theory::DIVIDE) && 
          theory->isInterpretedConstant(*args[argIndex].term()->nthArgument(1)) ) {
-        // N0*(Y/N1) ---> (N0/gcd(N0,N1))*(Y/(N0/gcd(N0,N1)))
+        // N0*(Y/N1) ---> (N0/gcd(N0,N1))*(Y/(N1/gcd(N0,N1)))
         InterpretedType n1=theory->interpretConstant(args[1-argIndex]);
         InterpretedType n22=theory->interpretConstant(*args[argIndex].term()->nthArgument(1));
         TermList arg21=*args[argIndex].term()->nthArgument(0);
@@ -343,6 +343,29 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
           
           addPremise(nonZeronessPremise);
           return true;
+        }
+      }
+    }
+    if(theory->isInterpretedConstant(args[1]) &&
+       theory->isInterpretedFunction(args[0], Theory::MULTIPLY)) {
+      for(unsigned argIndex=0;argIndex<2;argIndex++) {
+        if(theory->isInterpretedConstant(*args[0].term()->nthArgument(argIndex)) ) {
+          // (N0*Y)/N1 ---> (N0/gcd(N0,N1)*Y)/(N1/gcd(N0,N1))
+          InterpretedType n11=theory->interpretConstant(*args[0].term()->nthArgument(argIndex));
+          TermList arg12=*args[0].term()->nthArgument(1-argIndex);
+          InterpretedType n2=theory->interpretConstant(args[1]);
+          InterpretedType argGcd=Int::gcd(n11,n2);
+          if(argGcd!=1) {
+            unsigned divFun=theory->getFnNum(Theory::DIVIDE);
+            unsigned mulFun=theory->getFnNum(Theory::MULTIPLY);
+            TermList newArg2Args[2];
+            newArg2Args[0]=TermList(theory->getRepresentation(n11/argGcd));
+            newArg2Args[1]=arg12;
+            args[0]=TermList(Term::create(mulFun, 2, newArg2Args));
+            args[1]=TermList(theory->getRepresentation(n2/argGcd));
+            res=TermList(Term::create(divFun, 2, args));
+            return true;
+          }
         }
       }
     }
@@ -709,6 +732,11 @@ bool InterpretedSimplifier::ClauseSimplifier::simplify(Literal* lit,
 {
   CALL("InterpretedSimplifier::ClauseSimplifier::simplify(Literal*)");
 
+  if(lit->arity()==0) {
+    //we have no interpreted predicates of zero arity
+    return false;
+  }
+
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);
   static Stack<bool> modified(8);
@@ -1023,14 +1051,14 @@ void InterpretedSimplifier::perform(Clause* cl, ForwardSimplificationPerformer* 
 
   env.statistics->interpretedSimplifications++;
 
+  ClauseIterator premises=pvi( ClauseStack::Iterator(_simpl->premises) );
+
   if(_simpl->deleted) {
-    simplPerformer->perform(0, 0, 0);
+    simplPerformer->perform(premises, 0);
   }
   else {
     Clause* res=_simpl->getResult();
-    //we may pass zeroes for premisses only because we have forbidden use of
-    //this rule together with backtracking splitting
-    simplPerformer->perform(0, res, 0);
+    simplPerformer->perform(premises, res);
   }
 }
 

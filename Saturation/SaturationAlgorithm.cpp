@@ -425,7 +425,29 @@ void SaturationAlgorithm::onClauseRetained(Clause* cl)
 void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
     Clause* premise, Clause* reductionPremise, bool forward)
 {
-  CALL("SaturationAlgorithm::onClauseReduction");
+  CALL("SaturationAlgorithm::onClauseReduction/5");
+  ASS(cl);
+
+  ClauseIterator premises;
+  
+  if(reductionPremise) {
+    ASS(premise);
+    premises = pvi( getConcatenatedIterator(getSingletonIterator(premise), getSingletonIterator(reductionPremise)) );
+  }
+  else if(premise) {
+    premises = pvi( getSingletonIterator(premise) );
+  }
+  else {
+    premises=ClauseIterator::getEmpty();
+  }
+
+  onClauseReduction(cl, replacement, premises, forward);
+}
+
+void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
+    ClauseIterator premises, bool forward)
+{
+  CALL("SaturationAlgorithm::onClauseReduction/4");
   ASS(cl);
 
   if(replacement && BDD::instance()->isTrue(replacement->prop())) {
@@ -434,23 +456,22 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause* replacement,
     replacement=0;
   }
 
+  static ClauseStack premStack;
+  premStack.reset();
+  premStack.loadFromIterator(premises);
 
   if(_splitter) {
-    if(reductionPremise) {
-      _splitter->onClauseReduction(cl, reductionPremise, replacement);
-    }
-    else {
-      _splitter->onClauseReduction(cl, premise, replacement);
-    }
+    _splitter->onClauseReduction(cl, pvi( ClauseStack::Iterator(premStack) ), replacement);
   }
 
   if(replacement) {
     onParenthood(replacement, cl);
-    if(premise) {
-      onParenthood(replacement, premise);
+    while(premStack.isNonEmpty()) {
+      onParenthood(replacement, premStack.pop());
     }
   }
 }
+
 
 void SaturationAlgorithm::onNonRedundantClause(Clause* c)
 {
@@ -630,11 +651,10 @@ class SaturationAlgorithm::TotalSimplificationPerformer
 public:
   TotalSimplificationPerformer(SaturationAlgorithm* sa, Clause* cl) : _sa(sa), _cl(cl) {}
 
-  void perform(Clause* premise, Clause* replacement, Clause* reductionPremise)
+  void perform(ClauseIterator premises, Clause* replacement)
   {
     CALL("TotalSimplificationPerformer::perform");
     ASS(_cl);
-    ASS(willPerform(premise));
 
     BDD* bdd=BDD::instance();
 
@@ -642,10 +662,15 @@ public:
 
 #if REPORT_FW_SIMPL
     cout<<"->>--------\n";
-    if(premise) {
+    ClauseList* lst=0;
+    while(premises.hasNext()) {
+      Clause* premise=premises.next();
+      ASS(willPerform(premise));
+      ClauseList::push(premise, lst);
       cout<<":"<<(*premise)<<endl;
     }
     cout<<"-"<<(*_cl)<<endl;
+    premises=pvi( ClauseList::DestructiveIterator(lst) );
 #endif
 
     if(replacement) {
@@ -653,7 +678,7 @@ public:
       InferenceStore::instance()->recordNonPropInference(replacement);
       _sa->addNewClause(replacement);
     }
-    _sa->onClauseReduction(_cl, replacement, premise, reductionPremise);
+    _sa->onClauseReduction(_cl, replacement, premises);
 
     _cl->setProp(bdd->getTrue());
     InferenceStore::instance()->recordPropReduce(_cl, oldClProp, bdd->getTrue());

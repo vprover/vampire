@@ -24,7 +24,7 @@ public:
   {
   }
 
-  void perform(Clause* premise, Clause* replacement, Clause* reductionPremise=0)
+  void perform(ClauseIterator premises, Clause* replacement)
   {
     CALL("CheckedFwSimplifier::CheckingPerformer::perform");
     ASSERTION_VIOLATION;
