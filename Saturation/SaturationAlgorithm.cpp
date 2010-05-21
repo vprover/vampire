@@ -596,6 +596,9 @@ simpl_start:
     return;
   }
 
+  ASS(!cl->selected());
+  _selector->select(cl);
+
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
