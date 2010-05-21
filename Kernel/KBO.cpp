@@ -24,14 +24,9 @@
 #include "KBO.hpp"
 #include "Signature.hpp"
 
-
-#define NONNUMBER_PRECEDENCE_BOOST 0x1000
-#define NONINTERPRETED_PRECEDENCE_BOOST 0x10000
-//#define NONNUMBER_PRECEDENCE_BOOST 0x0
-//#define NONINTERPRETED_PRECEDENCE_BOOST 0
+#define NONINTERPRETED_PRECEDENCE_BOOST 0x1000
 
 #define NONINTERPRETED_LEVEL_BOOST 0x1000
-//#define NONINTERPRETED_LEVEL_BOOST 0
 #define COLORED_WEIGHT_BOOST 0x10000
 #define COLORED_LEVEL_BOOST 0x10000
 
@@ -106,16 +101,16 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
   if(_weightDiff) {
     res=_weightDiff>0 ? GREATER : LESS;
   } else if(t1->functor()!=t2->functor()) {
-    int prec1, prec2;
     if(t1->isLiteral()) {
+      int prec1, prec2;
       prec1=_kbo.predicatePrecedence(t1->functor());
       prec2=_kbo.predicatePrecedence(t2->functor());
+      ASS_NEQ(prec1,prec2);//precedence ordering must be total
+      res=(prec1>prec2)?GREATER:LESS;
     } else {
-      prec1=_kbo.functionPrecedence(t1->functor());
-      prec2=_kbo.functionPrecedence(t2->functor());
+      res=_kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
+      ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
     }
-    ASS_NEQ(prec1,prec2);//precedence ordering must be total
-    res=(prec1>prec2)?GREATER:LESS;
   } else {
     res=_lexResult;
   }
@@ -155,10 +150,8 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
       ASS_EQ(_posNum,0);
       res=GREATER;
     } else {
-      int prec1=_kbo.functionPrecedence(tl1.term()->functor());
-      int prec2=_kbo.functionPrecedence(tl2.term()->functor());
-      ASS_NEQ(prec1,prec2);//precedence ordering must be total
-      res=(prec1>prec2)?GREATER:LESS;
+      res=_kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
+      ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     }
   }
   return applyVariableCondition(res);
@@ -460,6 +453,21 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2)
   return res;
 }
 
+Comparison KBO::compareFunctors(unsigned fun1, unsigned fun2)
+{
+  CALL("KBO::compareFunctors");
+
+  if(fun1==fun2) {
+    return Lib::EQUAL;
+  }
+  switch(compareFunctionPrecedences(fun1, fun2)) {
+  case GREATER: return Lib::GREATER;
+  case LESS: return Lib::LESS;
+  default:  
+    ASSERTION_VIOLATION;
+  }
+}
+
 int KBO::functionSymbolWeight(unsigned fun)
 {
   if(env.signature->functionColored(fun)) {
@@ -511,24 +519,40 @@ int KBO::predicatePrecedence (unsigned pred)
 } // KBO::predicatePrecedences
 
 /**
- * Return the function precedence. If @b pred is less than or equal to
- * @b _functions, then the value is taken from the array _functionPrecedences,
- * otherwise it is defined to be 1 (to make it greater than the level
- * of equality).
- * @since 11/05/2008 Manchester
+ * Compare precedences of two function symbols
  */
-int KBO::functionPrecedence (unsigned fun)
+Ordering::Result KBO::compareFunctionPrecedences(unsigned fun1, unsigned fun2)
 {
-  int res=fun >= _functions ? (int)fun : _functionPrecedences[fun];
-  if(NONINTERPRETED_PRECEDENCE_BOOST && !env.signature->getFunction(fun)->interpreted()) {
-    return res+NONINTERPRETED_PRECEDENCE_BOOST;
+  ASS_NEQ(fun1, fun2);
+  Signature::Symbol* s1=env.signature->getFunction(fun1);
+  Signature::Symbol* s2=env.signature->getFunction(fun2);
+  if(!s1->interpreted()) {
+    if(s2->interpreted()) {
+      return GREATER;
+    }
+    //two non-interpreted functions
+    return fromComparison(Int::compare(
+        fun1 >= _functions ? (int)fun1 : _functionPrecedences[fun1],
+        fun2 >= _functions ? (int)fun2 : _functionPrecedences[fun2] ));
   }
-  else if(NONNUMBER_PRECEDENCE_BOOST && env.signature->getFunction(fun)->arity()!=0) {
-    return res+NONNUMBER_PRECEDENCE_BOOST;
+  if(!s2->interpreted()) {
+    return LESS;
   }
-  return res;
-} // KBO::functionPrecedences
-
+  if(s1->arity()) {
+    if(!s2->arity()) {
+      return GREATER;
+    }
+    //two interpreted functions
+    return fromComparison(Int::compare(fun1, fun2));
+  }
+  if(s2->arity()) {
+    return LESS;
+  }
+  //two interpreted constants
+  Signature::InterpretedSymbol* is1=static_cast<Signature::InterpretedSymbol*>(s1);
+  Signature::InterpretedSymbol* is2=static_cast<Signature::InterpretedSymbol*>(s2);
+  return fromComparison(Int::compare(abs(is1->getValue()), abs(is2->getValue())));
+}
 
 struct FnArityComparator
 {

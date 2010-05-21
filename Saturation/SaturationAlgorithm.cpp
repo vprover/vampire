@@ -378,6 +378,7 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 
   if(env.options->showNew()) {
     cout<<"New: "<<cl->toNiceString()<<endl;
+//    cout<<"New: "<<cl->toString()<<endl;
   }
 
   if(!_propToBDD && cl->isPropositional()) {

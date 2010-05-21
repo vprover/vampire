@@ -13,6 +13,7 @@
 
 #include "../Kernel/Clause.hpp"
 #include "../Kernel/Inference.hpp"
+#include "../Kernel/Ordering.hpp"
 #include "../Kernel/Polynomial.hpp"
 #include "../Kernel/Term.hpp"
 #include "../Kernel/TermIterators.hpp"
@@ -107,8 +108,8 @@ public:
       bool constant, constantTrue;
       Literal* slit;
       if(simplify(lit, constant, slit, constantTrue)) {
-	simplified=true;
 	if(constant) {
+	  simplified=true;
 	  if(constantTrue) {
 	    deleted=true;
 	    return true;
@@ -117,7 +118,10 @@ public:
 	    continue;
 	  }
 	}
-	lit=slit;
+	if(Ordering::instance()->compare(slit, lit)==LESS) {
+	  simplified=true;
+	  lit=slit;
+	}
       }
       localConstraints.handleLiteral(lit, true, 0, true);
       resLits.push(lit);

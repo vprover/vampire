@@ -27,6 +27,9 @@ class KBO
 public:
   Result compare(Literal* l1, Literal* l2);
   Result compare(TermList tl1, TermList tl2);
+
+  Comparison compareFunctors(unsigned fun1, unsigned fun2);
+  
   static KBO* create();
 private:
   KBO(const Signature&);
@@ -39,8 +42,9 @@ private:
    * signature */
   int _defaultSymbolWeight;
 
+  Result compareFunctionPrecedences(unsigned fun1, unsigned fun2);
+
   int functionSymbolWeight(unsigned fun);
-  int functionPrecedence(unsigned fun);
   int predicatePrecedence(unsigned pred);
   int predicateLevel(unsigned pred);
 

@@ -10,6 +10,7 @@
 
 #include "../Forwards.hpp"
 
+#include "../Lib/Comparison.hpp"
 #include "../Lib/SmartPtr.hpp"
 
 namespace Kernel {
@@ -37,7 +38,11 @@ public:
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) = 0;
 
+  virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) = 0;
+
   void removeNonMaximal(LiteralList*& lits);
+
+  static Result fromComparison(Comparison c);
 
   static Ordering* instance();
   static bool orderingCreated();

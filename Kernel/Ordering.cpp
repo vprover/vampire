@@ -33,6 +33,21 @@ bool Ordering::orderingCreated()
   return s_instance;
 }
 
+Ordering::Result Ordering::fromComparison(Comparison c)
+{
+  CALL("Ordering::fromComparison");
+
+  switch(c) {
+  case Lib::GREATER:
+    return GREATER;
+  case Lib::EQUAL:
+    return EQUAL;
+  case Lib::LESS:
+    return LESS;
+  }
+  ASSERTION_VIOLATION;
+}
+
 /**
  * Remove non-maximal literals from the list @b lits. The order
  * of remaining literals stays unchanged.

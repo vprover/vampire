@@ -8,6 +8,7 @@
 
 #include "../Forwards.hpp"
 
+#include "../Lib/Comparison.hpp"
 #include "../Lib/Stack.hpp"
 
 #include "Term.hpp"
@@ -29,21 +30,28 @@ public:
 
   bool reduceCoeffitients();
   bool negate();
-  
 
+  void removeSingletonTerm(TermList trm);
+
+  bool getMaximalCoefOneConstant(bool& positive, TermList& trm);
   bool isProperLinearPolynomial();
+
+  void sort();
   
   TermList toTerm();
 private:
   struct Summand
   {
-    Summand(InterpretedType coef) : coef(coef), constant(true) { term.makeEmpty(); }
-    Summand(InterpretedType coef, TermList term) : coef(coef), constant(term.isEmpty()), term(term) {}
+    Summand(InterpretedType coef) : coef(coef) { term.makeEmpty(); }
+    Summand(InterpretedType coef, TermList term) : coef(coef), term(term) {}
     
     TermList toTerm();
+
+    static Comparison compare(const Summand& s1, const Summand& s2);
+
+    bool constant() const { return term.isEmpty(); }
     
     InterpretedType coef;
-    bool constant;
     TermList term;
   };
   

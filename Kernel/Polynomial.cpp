@@ -5,8 +5,9 @@
 
 #include "../Lib/DHMultiset.hpp"
 #include "../Lib/Int.hpp"
+#include "../Lib/Sort.hpp"
 
-#include "Term.hpp"
+#include "Ordering.hpp"
 
 #include "Polynomial.hpp"
 
@@ -253,6 +254,17 @@ bool Polynomial::isProperLinearPolynomial()
   return true;
 }
 
+void Polynomial::removeSingletonTerm(TermList trm)
+{
+  CALL("Polynomial::removeSingletonTerm");
+}
+
+bool Polynomial::getMaximalCoefOneConstant(bool& positive, TermList& trm)
+{
+  CALL("Polynomial::getMaximalCoefOneConstant");
+  NOT_IMPLEMENTED;
+}
+
 TermList Polynomial::toTerm()
 {
   CALL("Polynomial::toTerm");
@@ -260,11 +272,19 @@ TermList Polynomial::toTerm()
   if(_data.isEmpty()) {
     return TermList(theory->getRepresentation(0));
   }
+
+  Lib::sort<Summand>(_data.begin(), _data.end());
+  
   unsigned plusFn=theory->getFnNum(Theory::PLUS);
-  TermList res=_data.pop().toTerm();
-  while(_data.isNonEmpty()) {
+  
+  SummandStack::Iterator sit(_data);
+  
+  ALWAYS(sit.hasNext());
+  TermList res=sit.next().toTerm();
+
+  while(sit.hasNext()) {
     TermList args[2];
-    args[0]=_data.pop().toTerm();
+    args[0]=sit.next().toTerm();
     args[1]=res;
     res=TermList(Term::create(plusFn, 2, args));
   }
@@ -275,7 +295,7 @@ TermList Polynomial::Summand::toTerm()
 {
   CALL("Polynomial::toTerm");
   
-  if(constant || coef==0) {
+  if(constant() || coef==0) {
     return TermList(theory->getRepresentation(coef));
   }
   if(coef==1) {
@@ -288,6 +308,51 @@ TermList Polynomial::Summand::toTerm()
   args[0]=TermList(theory->getRepresentation(coef));
   args[1]=term;
   return TermList(Term::create(theory->getFnNum(Theory::MULTIPLY), 2, args));
+}
+
+Comparison Polynomial::Summand::compare(const Summand& s1, const Summand& s2)
+{
+  CALL("Polynomial::Summand::compare");
+
+  TermList t1=s1.term;
+  TermList t2=s2.term;
+
+  if(t1.isEmpty()!=t2.isEmpty()) {
+    return t1.isEmpty() ? LESS : GREATER;
+  }
+  if(t1.isEmpty()) {
+    return EQUAL;
+  }
+
+  if(t1.isVar()!=t2.isVar()) {
+    return t1.isVar() ? GREATER : LESS;
+  }
+  if(t1.isVar()) {
+    return Int::compare(t1.var(), t2.var());
+  }
+
+  unsigned fun1=t1.term()->functor();
+  unsigned fun2=t2.term()->functor();
+  Comparison res=Ordering::instance()->compareFunctors(fun1, fun2);
+  if(res==EQUAL) {
+    switch(Ordering::instance()->compare(t1,t2)) {
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ:
+      res=GREATER;
+      break;
+    case Ordering::LESS:
+    case Ordering::LESS_EQ:
+      res=LESS;
+      break;
+    default:;
+    }
+  }
+  if(res==EQUAL) {
+    //now we don't care, just want to be deterministic...
+    return Int::compare(t1.content(), t2.content());
+  }
+  return res;
+
 }
 
 
