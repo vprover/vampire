@@ -271,6 +271,29 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyFunction(Interpretation in
         //X+(-X) ---> 0
         res=theory->zero();
       }
+      if(theory->isInterpretedFunction(args[argIndex], Theory::INT_DIVIDE) && 
+         theory->isInterpretedConstant(*args[argIndex].term()->nthArgument(1))) {
+        //X+idiv(Y,N) --> idiv(X*N+Y,N) if X can be merged into Y (Y is a polynomial that contains a summand with term X)
+        TermList divisorTerm=*args[argIndex].term()->nthArgument(1);
+        InterpretedType divisor=theory->interpretConstant(divisorTerm);
+        if(divisor!=0) {
+          TermList newArgs[2];
+          newArgs[0]=divisorTerm;
+          newArgs[1]=args[1-argIndex];
+          TermList mulTerm=TermList(Term::create(theory->getFnNum(Theory::MULTIPLY),2,newArgs));
+          newArgs[0]=mulTerm;
+          newArgs[1]=*args[argIndex].term()->nthArgument(0);
+          TermList addTerm=TermList(Term::create(theory->getFnNum(Theory::PLUS),2,newArgs));
+          
+          Polynomial pol(addTerm);
+          if(pol.mergeSummands()) {
+            newArgs[0]=pol.toTerm();
+            newArgs[1]=divisorTerm;
+            res=TermList(Term::create(theory->getFnNum(Theory::INT_DIVIDE),2,newArgs));
+            return true;
+          }
+        }
+      }
     }
     break;
   case Theory::MINUS:
@@ -1066,6 +1089,10 @@ void InterpretedSimplifier::detach()
 void InterpretedSimplifier::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
 {
   CALL("ForwardDemodulation::perform");
+
+  if(cl->inputType()==Unit::AXIOM) {
+    return;
+  }
   
   TimeCounter tc(TC_INTERPRETED_SIMPLIFICATION);
 
