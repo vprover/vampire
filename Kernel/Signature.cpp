@@ -158,6 +158,9 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::DIVIDE:
     name="$div";
     break;
+  case Theory::INT_DIVIDE:
+    name="$idiv";
+    break;
   case Theory::GREATER:
     name="$greater";
     break;
@@ -169,6 +172,17 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
     break;
   case Theory::LESS_EQUAL:
     name="$leq";
+  case Theory::INT_GREATER:
+    name="$igreater";
+    break;
+  case Theory::INT_GREATER_EQUAL:
+    name="$igeq";
+    break;
+  case Theory::INT_LESS:
+    name="$iless";
+    break;
+  case Theory::INT_LESS_EQUAL:
+    name="$ileq";
     break;
   default:
     ASSERTION_VIOLATION;

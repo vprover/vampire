@@ -212,6 +212,47 @@ bool Polynomial::reduceCoeffitients()
   return true;
 }
 
+/**
+ * Multiply all coeffitients by -1, return true iff successful.
+ * Do not modify the polynomial if unsuccessful.
+ */
+bool Polynomial::negate()
+{
+  CALL("Polynomial::negate");
+  
+  size_t len=_data.size();
+  for(size_t i=0;i<len;i++) {
+    InterpretedType newCoef;
+    if(!Int::safeUnaryMinus(_data[i].coef, newCoef)) {
+      return false;
+    }
+  }
+  for(size_t i=0;i<len;i++) {
+    InterpretedType newCoef;
+    ALWAYS(Int::safeUnaryMinus(_data[i].coef, newCoef));
+    _data[i].coef=newCoef;
+  }
+  return true;
+}
+
+/**
+ * Return true if all summands are either interpreted constants 
+ * or contain constant functions as terms.
+ */
+bool Polynomial::isProperLinearPolynomial()
+{
+  CALL("Polynomial::isProperLinearPolynomial");
+
+  size_t len=_data.size();
+  for(size_t i=0;i<len;i++) {
+    TermList trm=_data[i].term;
+    if(!trm.isEmpty() && (!trm.isTerm() || trm.term()->arity()!=0)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 TermList Polynomial::toTerm()
 {
   CALL("Polynomial::toTerm");

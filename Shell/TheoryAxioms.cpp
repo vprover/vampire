@@ -26,11 +26,28 @@ struct TheoryAxioms::Arithmetic
     if(has(Theory::GREATER_EQUAL) || has(Theory::LESS) || has(Theory::LESS_EQUAL)) {
       include(Theory::GREATER);
     }
+    if(has(Theory::INT_GREATER_EQUAL) || has(Theory::INT_LESS) || has(Theory::INT_LESS_EQUAL)) {
+      include(Theory::INT_GREATER);
+    }
+    if(has(Theory::INT_GREATER)) {
+      include(Theory::SUCCESSOR);
+    }
+
     if(has(Theory::MINUS)) {
       include(Theory::PLUS);
     }
     if(has(Theory::PLUS)) {
       include(Theory::SUCCESSOR);
+    }
+    if(has(Theory::INT_DIVIDE)) {
+      include(Theory::MINUS);
+      include(Theory::PLUS);
+      include(Theory::MULTIPLY);
+
+      include(Theory::INT_GREATER);
+      include(Theory::INT_GREATER_EQUAL);
+      include(Theory::INT_LESS);
+      include(Theory::INT_LESS_EQUAL);
     }
     if(has(Theory::DIVIDE)) {
       include(Theory::MULTIPLY);
@@ -51,10 +68,32 @@ struct TheoryAxioms::Arithmetic
       axiom( !(X0>X0) );
       axiom( (X0>X1) --> !(X1>X0) );
       axiom( ((X0>X1) & (X1>X2)) --> (X0>X2) );
+      axiom( (!(X0>X1)) --> ((X0==X1) | (X1>X0)) );
+      
       if(has(Theory::SUCCESSOR)) {
 	axiom( X0++>X0 );
       }
     }
+
+    if(has(Theory::INT_GREATER_EQUAL)) {
+      axiom( ige(X0,X1) -=- !igt(X1,X0) );
+    }
+    if(has(Theory::INT_LESS)) {
+      axiom( ilt(X0,X1) -=- igt(X1,X0) );
+    }
+    if(has(Theory::INT_LESS_EQUAL)) {
+      axiom( ile(X0,X1) -=- !igt(X0,X1) );
+    }
+    if(has(Theory::INT_GREATER)) {
+      axiom( !igt(X0,X0) );
+      axiom( igt(X0,X1) --> !igt(X1,X0) );
+      axiom( (igt(X0,X1) & igt(X1,X2)) --> igt(X0,X2) );
+      axiom( (!igt(X0,X1)) --> ((X0==X1) | igt(X1,X0)) );
+
+      axiom( igt(X0++,X0) );
+      axiom( !ex(X1, igt(X0++,X1) & igt(X1, X0) ) );
+    }
+
     if(has(Theory::MINUS)) {
       axiom( (X0-X1==X2) -=- (X0==X1+X2) );
     }
@@ -67,6 +106,9 @@ struct TheoryAxioms::Arithmetic
       if(has(Theory::GREATER)) {
 	axiom( (X0+X1>X0+X2) -=- (X1>X2) );
       }
+      if(has(Theory::INT_GREATER)) {
+	axiom( igt(X0+X1,X0+X2) -=- igt(X1,X2) );
+      }
     }
     if(has(Theory::MULTIPLY)) {
       axiom( X0*X1==X1*X0 );
@@ -76,8 +118,15 @@ struct TheoryAxioms::Arithmetic
       
       if(has(Theory::PLUS)) {
         axiom( X0*(X1++)==(X0*X1)+X0 );
-	axiom( (X0+X1)*(X2+X3) == (X0*X2 + X0*X3 + X1*X2 + X1*X3) );
+        axiom( (X0+X1)*(X2+X3) == (X0*X2 + X0*X3 + X1*X2 + X1*X3) );
+//	axiom( X0*(X1+X2) == (X0*X1 + X0*X2) );
       }
+    }
+    if(has(Theory::INT_DIVIDE)) {
+      axiom( (ige(X0,zero) & igt(X1,zero)) --> ( ilt(X0-X1, idiv(X0,X1)*X1) & ile(idiv(X0,X1)*X1, X0) ) );
+      axiom( (ilt(X0,zero) & ilt(X1,zero)) --> ( igt(X0-X1, idiv(X0,X1)*X1) & ige(idiv(X0,X1)*X1, X0) ) );
+      axiom( (ige(X0,zero) & ilt(X1,zero)) --> ( ilt(X0+X1, idiv(X0,X1)*X1) & ile(idiv(X0,X1)*X1, X0) ) );
+      axiom( (ilt(X0,zero) & igt(X1,zero)) --> ( igt(X0+X1, idiv(X0,X1)*X1) & ige(idiv(X0,X1)*X1, X0) ) );
     }
     if(has(Theory::DIVIDE)) {
       axiom( (X1!=zero) --> ( (X0/X1==X2) -=- (X1*X2==X0) ) );

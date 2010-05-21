@@ -77,6 +77,8 @@ UnitList* globUnitList=0;
 
 ClauseIterator getInputClauses()
 {
+  CALL("getInputClauses");
+  
   Property property;
 
   UnitList* units;
@@ -126,6 +128,7 @@ ClauseIterator getInputClauses()
   Preprocess prepro(property,*env.options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(units);
+
   globUnitList=units;
 
   return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
@@ -346,7 +349,7 @@ int main(int argc, char* argv [])
     env.options = &options;
     env.statistics = &statistics;
     env.signature = new Kernel::Signature;
-
+    
     Kernel::theory = Theory::instance();
 
     // read the command line and interpret it

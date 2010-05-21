@@ -237,6 +237,26 @@ HalfEquiv operator-(const FormBlock& r)
 
 };
 
+TermBlock AxiomGenerator::idiv(TermBlock arg1, TermBlock arg2)
+{ return fun2(Theory::INT_DIVIDE, arg1, arg2); }
+
+FormBlock AxiomGenerator::igt(TermBlock arg1, TermBlock arg2)
+{ return pred2(Theory::INT_GREATER, true, arg1, arg2); }
+FormBlock AxiomGenerator::ige(TermBlock arg1, TermBlock arg2)
+{ return pred2(Theory::INT_GREATER_EQUAL, true, arg1, arg2); }
+FormBlock AxiomGenerator::ilt(TermBlock arg1, TermBlock arg2)
+{ return pred2(Theory::INT_LESS, true, arg1, arg2); }
+FormBlock AxiomGenerator::ile(TermBlock arg1, TermBlock arg2)
+{ return pred2(Theory::INT_LESS_EQUAL, true, arg1, arg2); }
+
+FormBlock AxiomGenerator::ex(TermBlock var, FormBlock f)
+{
+  ASS(var.term.isVar());
+  Formula::VarList* vars=0;
+  Formula::VarList::push(var.term.var(), vars);
+  return FormBlock(new QuantifiedFormula(EXISTS, vars, f.form));
+}
+
 
 void AxiomGenerator::axiom(FormBlock b)
 {

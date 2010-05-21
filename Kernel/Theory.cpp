@@ -52,11 +52,16 @@ unsigned Theory::getArity(Interpretation i)
   case MINUS:
   case MULTIPLY:
   case DIVIDE:
+  case INT_DIVIDE:
   case EQUAL:
   case GREATER:
   case GREATER_EQUAL:
   case LESS:
   case LESS_EQUAL:
+  case INT_GREATER:
+  case INT_GREATER_EQUAL:
+  case INT_LESS:
+  case INT_LESS_EQUAL:
     return 2;
   }
   ASSERTION_VIOLATION;
@@ -78,6 +83,7 @@ bool Theory::isFunction(Interpretation i)
   case MINUS:
   case MULTIPLY:
   case DIVIDE:
+  case INT_DIVIDE:
     return true;
 
   case EQUAL:
@@ -85,6 +91,10 @@ bool Theory::isFunction(Interpretation i)
   case GREATER_EQUAL:
   case LESS:
   case LESS_EQUAL:
+  case INT_GREATER:
+  case INT_GREATER_EQUAL:
+  case INT_LESS:
+  case INT_LESS_EQUAL:
     return false;
   }
   ASSERTION_VIOLATION;

@@ -136,6 +136,16 @@ protected:
 
   void axiom(FormBlock b);
 
+
+  FormBlock ex(TermBlock var, FormBlock form);
+
+  TermBlock idiv(TermBlock arg1, TermBlock arg2);
+
+  FormBlock igt(TermBlock arg1, TermBlock arg2);
+  FormBlock ilt(TermBlock arg1, TermBlock arg2);
+  FormBlock ige(TermBlock arg1, TermBlock arg2);
+  FormBlock ile(TermBlock arg1, TermBlock arg2);
+  
   TermBlock X0,X1,X2,X3,X4;
   LazyConstant zero;
   LazyConstant one;

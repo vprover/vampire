@@ -126,6 +126,12 @@ Term* InterpretedEvaluation::evaluateFunction(int fnIndex, TermList* args)
     }
     res=arg1/arg2;
     break;
+  case Theory::INT_DIVIDE:
+    if(arg2==0) {
+      return 0;
+    }
+    res=arg1/arg2;
+    break;
 
   default:
     ASSERTION_VIOLATION;
@@ -152,12 +158,16 @@ bool InterpretedEvaluation::evaluatePredicate(int predIndex, TermList* args)
   case Theory::EQUAL:
     return arg1==arg2;
   case Theory::GREATER:
+  case Theory::INT_GREATER:
     return arg1>arg2;
   case Theory::GREATER_EQUAL:
+  case Theory::INT_GREATER_EQUAL:
     return arg1>=arg2;
   case Theory::LESS:
+  case Theory::INT_LESS:
     return arg1<arg2;
   case Theory::LESS_EQUAL:
+  case Theory::INT_LESS_EQUAL:
     return arg1<=arg2;
   default:
     ASSERTION_VIOLATION;
@@ -284,6 +294,21 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
       polarity^=1;
     }
     if(itpPred==Theory::LESS || itpPred==Theory::GREATER_EQUAL) {
+      swap(argLst[0], argLst[1]);
+    }
+    constant=false;
+    res=Literal::create(grPred, 2, polarity, false, argLst);
+    return true;
+  }
+  if(itpPred==Theory::INT_GREATER_EQUAL || itpPred==Theory::INT_LESS || itpPred==Theory::INT_LESS_EQUAL) {
+    //we want to transform all integer inequalities to INT_GREATER
+    //TODO: create a preprocessing rule for this
+    unsigned grPred=env.signature->getInterpretingSymbol(Theory::INT_GREATER);
+    bool polarity=lit->polarity();
+    if(itpPred==Theory::INT_LESS_EQUAL || itpPred==Theory::INT_GREATER_EQUAL) {
+      polarity^=1;
+    }
+    if(itpPred==Theory::INT_LESS || itpPred==Theory::INT_GREATER_EQUAL) {
       swap(argLst[0], argLst[1]);
     }
     constant=false;

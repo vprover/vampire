@@ -36,6 +36,10 @@ public:
     GREATER_EQUAL,
     LESS,
     LESS_EQUAL,
+    INT_GREATER,
+    INT_GREATER_EQUAL,
+    INT_LESS,
+    INT_LESS_EQUAL,
 
     //functions
 
@@ -44,7 +48,8 @@ public:
     PLUS,
     MINUS,
     MULTIPLY,
-    DIVIDE
+    DIVIDE,
+    INT_DIVIDE
   };
   /**
    * Number of elements in the enum Interpretation
@@ -52,7 +57,7 @@ public:
    * At some points we make use of the fact that we can iterate through all
    * interpretations by going through the set {0,...,interpretationElementCount-1}.
    */
-  static const unsigned interpretationElementCount=12;
+  static const unsigned interpretationElementCount=16;
 
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);

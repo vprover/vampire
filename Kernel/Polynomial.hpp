@@ -26,7 +26,13 @@ public:
   void subtract(Polynomial& pol);
   bool simplify();
   bool mergeSummands();
+
   bool reduceCoeffitients();
+  bool negate();
+  
+
+  bool isProperLinearPolynomial();
+  
   TermList toTerm();
 private:
   struct Summand

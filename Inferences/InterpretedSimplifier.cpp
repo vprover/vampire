@@ -708,6 +708,7 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifyPredicate(Interpretation i
     }
     break;
   case Theory::GREATER:
+  case Theory::INT_GREATER:
     if(theory->isInterpretedConstant(args[1])) {
       if(isGreater(args[0], theory->interpretConstant(args[1]), premise)) {
 	// X>N ---> true if X>N
