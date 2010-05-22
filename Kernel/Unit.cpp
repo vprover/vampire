@@ -19,6 +19,20 @@
 
 using namespace Kernel;
 
+unsigned Unit::_firstNonPreprocessingNumber = 0;
+
+/**
+ * Should be called after the preprocessing and before the start
+ * of the saturation algorithm.
+ */
+void Unit::onPreprocessingEnd()
+{
+  CALL("Unit::onPreprocessingEnd");
+  ASS(!_firstNonPreprocessingNumber);
+
+  _firstNonPreprocessingNumber=_lastNumber;
+}
+
 /** New unit of a given kind */
 Unit::Unit(Kind kind,Inference* inf,InputType it)
   : _number(++_lastNumber),

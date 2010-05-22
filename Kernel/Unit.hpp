@@ -111,6 +111,13 @@ public:
   /** true if the unit is read from a TPTP included file  */
   inline bool included() const {return _included;}
 
+  /** Return true iff unit was created during preprocessing
+   * (and not during the run of the saturation algorithm) */
+  inline bool ifFromPreprocessing()
+  { return !_firstNonPreprocessingNumber || _number<_firstNonPreprocessingNumber; }
+
+  static void onPreprocessingEnd();
+
 protected:
   /** Number of this unit, used for printing and statistics */
   unsigned _number;
@@ -131,6 +138,11 @@ protected:
 
   /** Used to enumerate units */
   static unsigned _lastNumber;
+
+  /** Used to determine which clauses come from preprocessing
+   *
+   * 0 means preprocessing is not over yet.*/
+  static unsigned _firstNonPreprocessingNumber;
 }; // class Unit
 
 }

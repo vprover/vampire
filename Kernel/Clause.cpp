@@ -146,7 +146,7 @@ bool Clause::shouldBeDestroyed()
 {
 //  return false;
   return (_store == NONE || _store == BACKTRACKED) && _inferenceRefCnt == 0 &&
-    _inference->rule() != Inference::INPUT;
+    !ifFromPreprocessing();
 }
 
 /**

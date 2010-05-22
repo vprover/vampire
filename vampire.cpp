@@ -139,6 +139,8 @@ void doProving()
   CALL("doProving()");
   try {
     ClauseIterator clauses=getInputClauses();
+    Unit::onPreprocessingEnd();
+
     env.statistics->phase=Statistics::SATURATION;
     SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
     salg->addInputClauses(clauses);
