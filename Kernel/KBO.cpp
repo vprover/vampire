@@ -305,12 +305,15 @@ KBO::KBO(const Signature& sig)
   ASS_G(_predicates, 0);
 
   _state=new State(this);
+  createEqualityComparator();
+  ASS(_eqCmp);
 }
 
 KBO::~KBO()
 {
   CALL("KBO::~KBO");
 
+  destroyEqualityComparator();
   delete _state;
 }
 
@@ -352,6 +355,12 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
       goto fin;
     }
   }
+
+  if(l1->isEquality()) {
+    ASS(l2->isEquality());
+    return compareEqualities(l1, l2);
+  }
+  ASS(!l1->isEquality());
 
   {
     ASS(_state);

@@ -10,6 +10,8 @@
 
 #include "../Forwards.hpp"
 
+#include "../Debug/Assertion.hpp"
+
 #include "../Lib/Comparison.hpp"
 #include "../Lib/SmartPtr.hpp"
 
@@ -43,6 +45,25 @@ public:
   void removeNonMaximal(LiteralList*& lits);
 
   static Result fromComparison(Comparison c);
+
+  static Result reverse(Result r)
+  {
+    switch(r) {
+    case GREATER:
+      return LESS;
+    case GREATER_EQ:
+      return LESS_EQ;
+    case LESS:
+      return GREATER;
+    case LESS_EQ:
+      return GREATER_EQ;
+    case EQUAL:
+    case INCOMPARABLE:
+      return r;
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
 
   static Ordering* instance();
   static bool orderingCreated();

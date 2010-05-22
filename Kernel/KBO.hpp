@@ -35,12 +35,17 @@ private:
   KBO(const Signature&);
   ~KBO();
 
+  class EqCmp;
   class State;
   /** Weight of variables */
   int _variableWeight;
   /** Weight of function symbols not occurring in the
    * signature */
   int _defaultSymbolWeight;
+
+  void createEqualityComparator();
+  void destroyEqualityComparator();
+  Result compareEqualities(Literal* eq1, Literal* eq2);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2);
 
@@ -68,6 +73,9 @@ private:
    * State used for comparing terms and literals
    */
   State* _state;
+
+  /** Object used to compare equalities */
+  EqCmp* _eqCmp;
 };
 
 }

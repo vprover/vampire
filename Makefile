@@ -96,6 +96,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
+        Kernel/KBO_Equality.o\
         Kernel/LiteralSelector.o\
         Kernel/MatchTag.o\
         Kernel/Matcher.o\
