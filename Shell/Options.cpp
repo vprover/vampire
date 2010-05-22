@@ -1676,7 +1676,8 @@ bool Options::complete () const
 {
   CALL("Options::complete");
 
-  return (_equalityResolutionWithDeletion != RA_ON ) &&
+  return (_equalityProxy==EP_OFF || _equalityProxy==EP_ON) &&
+         (_equalityResolutionWithDeletion != RA_ON ) &&
          (_literalComparisonMode != LCM_REVERSE) &&
          _selection < 20 &&
          _selection > -20 &&

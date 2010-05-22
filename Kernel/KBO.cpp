@@ -338,7 +338,7 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
 	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&
 	  l1==env.sharing->tryGetOpposite(l2)) {
-    return l1->isNegative() ? LESS : GREATER;
+    return l1->isNegative() ? GREATER : LESS;
   }
 
   Result res;
@@ -395,18 +395,7 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
 fin:
   if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
     if(l1->isNegative() && l2->isNegative()) {
-      switch(res) {
-      case GREATER:
-	return LESS;
-      case GREATER_EQ:
-	return LESS_EQ;
-      case LESS:
-	return GREATER;
-      case LESS_EQ:
-	return GREATER_EQ;
-      default:
-	return res;
-      }
+      return reverse(res);
     }
     return l1->isNegative() ? LESS : GREATER;
   }

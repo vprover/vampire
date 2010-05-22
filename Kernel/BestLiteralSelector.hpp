@@ -122,9 +122,7 @@ protected:
       DArray<Literal*>::ReversedIterator rlit(litArr);
       while(rlit.hasNext()) {
 	Literal* lit=rlit.next();
-	if(isPositiveForSelection(lit)) {
-	  LiteralList::push(lit,maximals);
-	}
+	LiteralList::push(lit,maximals);
       }
       _ord->removeNonMaximal(maximals);
       unsigned besti=0;
@@ -151,6 +149,7 @@ protected:
     if(!singleSelected) {
       unsigned selCnt=0;
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {
+	ASS(mit->head()->isPositive());
 	selCnt++;
       }
       if(selCnt==eligible) {
