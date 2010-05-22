@@ -560,7 +560,12 @@ Ordering::Result KBO::compareFunctionPrecedences(unsigned fun1, unsigned fun2)
   //two interpreted constants
   Signature::InterpretedSymbol* is1=static_cast<Signature::InterpretedSymbol*>(s1);
   Signature::InterpretedSymbol* is2=static_cast<Signature::InterpretedSymbol*>(s2);
-  return fromComparison(Int::compare(abs(is1->getValue()), abs(is2->getValue())));
+  InterpretedType val1=is1->getValue();
+  InterpretedType val2=is2->getValue();
+  if(val1==-val2) {
+    return (val1>0) ? LESS : GREATER;
+  }
+  return fromComparison(Int::compare(abs(val1), abs(is2->getValue())));
 }
 
 struct FnArityComparator

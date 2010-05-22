@@ -1238,9 +1238,9 @@ void TPTPParser::vampire()
     else if (symb == "integer_division") {
       env.signature->registerInterpretedFunction(sname,Theory::INT_DIVIDE);
     }
-//     else if (symb == "division") {
-//       env.signature->registerInterpretedFunction(sname,Theory::DIVIDE);
-//     }
+    else if (symb == "division") {
+      env.signature->registerInterpretedFunction(sname,Theory::DIVIDE);
+    }
     else {
       throw ParserException("unrecognised interpreted symbol",
                             currentToken());

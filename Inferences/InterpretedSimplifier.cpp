@@ -39,6 +39,7 @@ class InterpretedSimplifier::ClauseSimplifier
 {
 private:
   ArithmeticIndex* _ai;
+  Ordering* _ordering;
 
   Clause* cl;
   ForwardSimplificationPerformer* sperf;
@@ -51,6 +52,7 @@ public:
 
   ClauseSimplifier(ArithmeticIndex* ai) : _ai(ai)
   {
+    _ordering=Ordering::instance();
   }
 
   struct LitProcOrderComparator
@@ -108,6 +110,7 @@ public:
       bool constant, constantTrue;
       Literal* slit;
       if(simplify(lit, constant, slit, constantTrue)) {
+	simplified=true;
 	if(constant) {
 	  simplified=true;
 	  if(constantTrue) {
@@ -118,10 +121,8 @@ public:
 	    continue;
 	  }
 	}
-	if(Ordering::instance()->compare(slit, lit)==LESS) {
-	  simplified=true;
-	  lit=slit;
-	}
+	ASS_REP2(_ordering->compare(slit, lit)==Ordering::LESS, *slit, *lit);
+	lit=slit;
       }
       localConstraints.handleLiteral(lit, true, 0, true);
       resLits.push(lit);
@@ -175,8 +176,30 @@ public:
   bool simplifyGreaterChains();
   bool simplifySingletonVariables();
 
+  /**
+   * Take the topmost subterm of t that does not have a SUCCESSOR
+   * function at the top, and decrease the @b queryValue appropriately.
+   */
+  void stripOffSuccessors(TermList& t, InterpretedType& queryValue)
+  {
+    TermList newT=t;
+    int res=0;
+    while(theory->isInterpretedFunction(newT, Theory::SUCCESSOR)) {
+      newT=*newT.term()->nthArgument(0);
+      res++;
+    }
+
+    int newVal;
+    if(res && Int::safeMinus(queryValue,res,newVal)) {
+      queryValue=newVal;
+      t=newT;
+    }
+  }
+
   bool isNonEqual(TermList t, InterpretedType val, Clause*& premise)
   {
+    stripOffSuccessors(t, val);
+    
     premise=0;
     if(theory->isInterpretedConstant(t)) {
       return val!=theory->interpretConstant(t);
@@ -195,6 +218,8 @@ public:
   }
   bool isGreater(TermList t, InterpretedType val, Clause*& premise)
   {
+    stripOffSuccessors(t, val);
+
     premise=0;
     if(theory->isInterpretedConstant(t)) {
       return theory->interpretConstant(t)>val;
@@ -213,6 +238,8 @@ public:
   }
   bool isLess(TermList t, InterpretedType val, Clause*& premise)
   {
+    stripOffSuccessors(t, val);
+
     premise=0;
     if(theory->isInterpretedConstant(t)) {
       return theory->interpretConstant(t)<val;
@@ -834,7 +861,8 @@ bool InterpretedSimplifier::ClauseSimplifier::simplify(Literal* lit,
       if(isInterpreted) {
 	Interpretation itp=theory->interpretFunction(orig);
 	TermList sfRes;
-	if(simplifyFunction(itp, argLst, sfRes)) {
+	if(simplifyFunction(itp, argLst, sfRes) && _ordering->compare(sfRes,TermList(orig))==Ordering::LESS) {
+//	if(simplifyFunction(itp, argLst, sfRes)) {
 	  args.truncate(args.length() - orig->arity());
 	  args.push(sfRes);
 	  modified.setTop(true);
@@ -890,12 +918,14 @@ bool InterpretedSimplifier::ClauseSimplifier::simplify(Literal* lit,
   if(isInterpreted) {
     Interpretation itp=theory->interpretPredicate(lit);
     if(simplifyPredicate(itp, argLst, lit, constant, res, constantTrue)) {
-      return true;
+      if(constant || _ordering->compare(res, lit)==Ordering::LESS) {
+        return true;
+      }
     }
   }
 
+  constant=false;
   if(childrenModified) {
-    constant=false;
     res=Literal::create(lit,argLst);
     return true;
   }
