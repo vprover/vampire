@@ -112,7 +112,7 @@ void BSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 #endif
 
 #if SP_REPORTS==2
-  cout<<"Reduced "<<(*cl)". Added to reduced stack on levels {"<<diff->toString()<<"}."<<endl;
+  cout<<"Reduced "<<(*cl)<<". Added to reduced stack on levels {"<<diff->toString()<<"}."<<endl;
 #endif
 
   if(diff->isEmpty()) {
@@ -559,6 +559,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
 
   if(firstComp->isGround()) {
     //if the first component is ground, add its negation
+    SplitSet* gndResSplits=refutation->splits()->subtract(SplitSet::getSingleton(refLvl));
     Clause::Iterator fcit(*firstComp);
     while(fcit.hasNext()) {
       Literal* glit=fcit.next();
@@ -566,7 +567,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
       Clause* gcl=Clause::fromIterator(getSingletonIterator(Literal::oppositeLiteral(glit)), inp, ginf);
       gcl->setAge(resAge);
       gcl->initProp(resProp);
-      assignClauseSplitSet(gcl, resSplits);
+      assignClauseSplitSet(gcl, gndResSplits);
       acc.push(gcl);
       _sa->onParenthood(gcl, base);
       _sa->onParenthood(gcl, refutation);

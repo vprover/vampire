@@ -77,10 +77,11 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit);
     while(lhsi.hasNext()) {
+      TermList lhs=lhsi.next();
       if(adding) {
-	_is->insert(lhsi.next(), lit, c);
+	_is->insert(lhs, lit, c);
       } else {
-	_is->remove(lhsi.next(), lit, c);
+	_is->remove(lhs, lit, c);
       }
     }
   }

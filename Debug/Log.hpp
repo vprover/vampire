@@ -98,9 +98,15 @@ LOG(1+1)
 
 #define LOGV(X) if(LOGGING) { LOG_TARGET<<#X<<": "<<X<<endl; }
 
+#if VDEBUG
 #define LOGS(X) if(LOGGING) { LOG_TARGET<<X<<endl<<"Stack trace:"<<endl; \
 			      Debug::Tracer::printOnlyStack(LOG_TARGET); \
 			      LOG_TARGET<<endl; }
+#else
+#define LOGS(X) if(LOGGING) { LOG_TARGET<<X<<endl<<"Stack trace:"<<endl; \
+			      LOG_TARGET<<"# Stack trace is not supported when not in debug mode."<<endl; \
+			      LOG_TARGET<<endl; }
+#endif
 
 #else // GLOBAL_LOGGING
 
