@@ -3,19 +3,19 @@
  * Implements class SWBSplitterWithoutBDDs.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/InferenceStore.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/InferenceStore.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
-#include "../Shell/Options.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "SaturationAlgorithm.hpp"
 

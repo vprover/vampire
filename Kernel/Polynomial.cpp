@@ -3,9 +3,9 @@
  * Implements class Polynomial.
  */
 
-#include "../Lib/DHMultiset.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Sort.hpp"
+#include "Lib/DHMultiset.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Sort.hpp"
 
 #include "Ordering.hpp"
 

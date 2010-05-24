@@ -9,7 +9,7 @@
 #ifndef __ArrayMap__
 #define __ArrayMap__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "DArray.hpp"
 

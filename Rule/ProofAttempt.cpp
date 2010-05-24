@@ -4,9 +4,9 @@
  * @since 12/07/2008 Linz
  */
 
-#include "../Debug/Tracer.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Debug/Tracer.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "ProofAttempt.hpp"
 

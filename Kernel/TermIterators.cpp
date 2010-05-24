@@ -4,7 +4,7 @@
  */
 
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Term.hpp"
 

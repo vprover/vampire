@@ -7,9 +7,9 @@
 
 #ifndef __KBO__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DArray.hpp"
+#include "Lib/DArray.hpp"
 
 #include "Ordering.hpp"
 

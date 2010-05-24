@@ -6,13 +6,13 @@
 
 #include <math.h>
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Timer.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Shell/Statistics.hpp"
-#include "../Shell/Options.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Timer.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
 
 #include "SaturationAlgorithm.hpp"
 

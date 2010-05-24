@@ -8,8 +8,8 @@
 #ifndef __Profile__
 #define __Profile__
 
-#include "../Kernel/Unit.hpp"
-#include "../Lib/Array.hpp"
+#include "Kernel/Unit.hpp"
+#include "Lib/Array.hpp"
 
 namespace Kernel
 {

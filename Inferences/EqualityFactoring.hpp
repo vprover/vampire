@@ -7,7 +7,7 @@
 #ifndef __EqualityFactoring__
 #define __EqualityFactoring__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
 

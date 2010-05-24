@@ -6,12 +6,12 @@
 #ifndef __Indexing_Index__
 #define __Indexing_Index__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Event.hpp"
-#include "../Lib/Exception.hpp"
-#include "../Lib/VirtualIterator.hpp"
-#include "../Saturation/ClauseContainer.hpp"
+#include "Lib/Event.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
 
 namespace Indexing

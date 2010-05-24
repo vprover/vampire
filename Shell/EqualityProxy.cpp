@@ -3,17 +3,17 @@
  * Implements class EqualityProxy.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/List.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/List.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Ordering.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Unit.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "EqualityProxy.hpp"
 

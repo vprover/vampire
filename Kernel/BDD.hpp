@@ -9,18 +9,18 @@
 #include <iosfwd>
 #include <string>
 
-#include "../Forwards.hpp"
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Array.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Hash.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Set.hpp"
-#include "../Lib/SkipList.hpp"
-#include "../Lib/Stack.hpp"
+#include "Forwards.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Array.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Hash.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/SkipList.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/Signature.hpp"
+#include "Kernel/Signature.hpp"
 
 #define BDD_PREDICATE_PREFIX "$bdd"
 

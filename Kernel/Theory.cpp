@@ -3,12 +3,12 @@
  * Implements class Theory.
  */
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Environment.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Kernel/Signature.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Theory.hpp"
 

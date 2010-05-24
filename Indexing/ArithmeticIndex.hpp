@@ -6,11 +6,11 @@
 #ifndef __ArithmeticIndex__
 #define __ArithmeticIndex__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
+#include "Lib/DHMap.hpp"
 
-#include "../Kernel/Theory.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "Index.hpp"
 

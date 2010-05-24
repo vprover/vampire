@@ -3,15 +3,15 @@
  * Implements class TermSubstitutionTree.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Random.hpp"
-#include "../Lib/SmartPtr.hpp"
-#include "../Lib/TimeCounter.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/SmartPtr.hpp"
+#include "Lib/TimeCounter.hpp"
 
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Curryfier.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Curryfier.hpp"
 
 #include "TermSubstitutionTree.hpp"
 

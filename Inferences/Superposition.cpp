@@ -3,26 +3,26 @@
  * Implements class Superposition.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/PairUtils.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/PairUtils.hpp"
+#include "Lib/VirtualIterator.hpp"
 
-#include "../Shell/Options.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Unit.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Ordering.hpp"
-#include "../Kernel/EqHelper.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Unit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Kernel/EqHelper.hpp"
 
-#include "../Indexing/Index.hpp"
-#include "../Indexing/IndexManager.hpp"
-#include "../Indexing/TermSharing.hpp"
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Indexing/Index.hpp"
+#include "Indexing/IndexManager.hpp"
+#include "Indexing/TermSharing.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Superposition.hpp"
 

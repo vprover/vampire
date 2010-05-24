@@ -7,7 +7,7 @@
 #ifndef __RefutationSeekerFSE__
 #define __RefutationSeekerFSE__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences

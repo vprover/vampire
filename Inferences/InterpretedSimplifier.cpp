@@ -3,28 +3,28 @@
  * Implements class InterpretedSimplifier.
  */
 
-#include "../Lib/Comparison.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/DHMultiset.hpp"
-#include "../Lib/DHSet.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/TimeCounter.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/DHMultiset.hpp"
+#include "Lib/DHSet.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/TimeCounter.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Ordering.hpp"
-#include "../Kernel/Polynomial.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/TermIterators.hpp"
-#include "../Kernel/Theory.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Kernel/Polynomial.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/Theory.hpp"
 
-#include "../Indexing/ArithmeticIndex.hpp"
-#include "../Indexing/IndexManager.hpp"
+#include "Indexing/ArithmeticIndex.hpp"
+#include "Indexing/IndexManager.hpp"
 
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
-#include "../Shell/Statistics.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "InterpretedSimplifier.hpp"
 

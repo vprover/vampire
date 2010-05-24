@@ -7,11 +7,11 @@
 #ifndef __ClauseVariantIndex__
 #define __ClauseVariantIndex__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Array.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/DHMap.hpp"
+#include "Lib/Array.hpp"
+#include "Lib/List.hpp"
+#include "Lib/DHMap.hpp"
 
 namespace Indexing {
 

@@ -3,13 +3,13 @@
  * Implementing ClauseContainer and its descendants.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/DHSet.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/DHSet.hpp"
+#include "Lib/Stack.hpp"
+#include "Kernel/Clause.hpp"
+#include "Shell/Statistics.hpp"
 
-#include "../Indexing/LiteralIndexingStructure.hpp"
+#include "Indexing/LiteralIndexingStructure.hpp"
 
 #include "SaturationAlgorithm.hpp"
 

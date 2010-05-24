@@ -7,11 +7,11 @@
 #ifndef __PredicateDefinition__
 #define __PredicateDefinition__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DArray.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Kernel/FormulaUnit.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
+#include "Kernel/FormulaUnit.hpp"
 
 #include "SymCounter.hpp"
 

@@ -6,7 +6,7 @@
 #ifndef __TheoryAxioms__
 #define __TheoryAxioms__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 namespace Shell {
 

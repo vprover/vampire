@@ -9,7 +9,7 @@
 #ifndef __TheoryFinder__
 #define __TheoryFinder__
 
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Unit.hpp"
 
 namespace Kernel {
   class Clause;

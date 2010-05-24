@@ -3,15 +3,15 @@
  * Implements class ClauseVariantIndex.
  */
 
-#include "../Lib/List.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/SmartPtr.hpp"
-#include "../Lib/TimeCounter.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/SmartPtr.hpp"
+#include "Lib/TimeCounter.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/LiteralComparators.hpp"
-#include "../Kernel/MLVariant.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/LiteralComparators.hpp"
+#include "Kernel/MLVariant.hpp"
+#include "Kernel/Term.hpp"
 
 #include "LiteralMiniIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"

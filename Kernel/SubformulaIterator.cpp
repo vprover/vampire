@@ -7,7 +7,7 @@
  * @since 02/06/2007 Manchester changed to new datastructures
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "SubformulaIterator.hpp"
 

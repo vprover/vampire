@@ -3,11 +3,11 @@
  * Implements class EqResWithDeletion.
  */
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/SubstHelper.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "EqResWithDeletion.hpp"
 

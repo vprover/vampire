@@ -7,15 +7,15 @@
 #ifndef __SingleWatchSAT__
 #define __SingleWatchSAT__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DArray.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/BinaryHeap.hpp"
-#include "../Lib/Comparison.hpp"
-#include "../Lib/BucketSorter.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/BinaryHeap.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/BucketSorter.hpp"
 
 #include "SATClause.hpp"
 

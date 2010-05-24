@@ -5,9 +5,9 @@
  * @since 28/12/2007 Manchester
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
+#include "Lib/Environment.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
 #include "TermSharing.hpp"
 
 

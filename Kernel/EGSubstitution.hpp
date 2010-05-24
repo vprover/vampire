@@ -9,10 +9,10 @@
 
 #include <utility>
 
-#include "../Forwards.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/BacktrackData.hpp"
+#include "Forwards.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/BacktrackData.hpp"
 #include "Term.hpp"
 #include "RobSubstitution.hpp"
 

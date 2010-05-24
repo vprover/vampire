@@ -5,7 +5,7 @@
  * @since 19/05/2007 Manchester
  */
 
-#include "../Lib/Int.hpp"
+#include "Lib/Int.hpp"
 
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"

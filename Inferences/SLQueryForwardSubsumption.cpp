@@ -3,27 +3,27 @@
  * Implements class SLQueryForwardSubsumption.
  */
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/BacktrackData.hpp"
-#include "../Lib/SkipList.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/DHMultiset.hpp"
-#include "../Lib/Comparison.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Lib/BacktrackData.hpp"
+#include "Lib/SkipList.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/List.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/DHMultiset.hpp"
+#include "Lib/Comparison.hpp"
 
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/MLMatcher.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/MLMatcher.hpp"
 
-#include "../Indexing/Index.hpp"
-#include "../Indexing/LiteralIndex.hpp"
-#include "../Indexing/IndexManager.hpp"
+#include "Indexing/Index.hpp"
+#include "Indexing/LiteralIndex.hpp"
+#include "Indexing/IndexManager.hpp"
 
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "SLQueryForwardSubsumption.hpp"
 

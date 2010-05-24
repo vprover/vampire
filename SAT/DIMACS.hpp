@@ -6,8 +6,8 @@
 #ifndef __DIMACS__
 #define __DIMACS__
 
-#include "../Forwards.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Forwards.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include "SATClause.hpp"
 

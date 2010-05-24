@@ -9,8 +9,8 @@
 #ifndef __DArray__
 #define __DArray__
 
-#include "../Forwards.hpp"
-#include "../Debug/Assertion.hpp"
+#include "Forwards.hpp"
+#include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
 #include "Comparison.hpp"

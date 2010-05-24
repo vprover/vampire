@@ -7,18 +7,18 @@
 
 #include <ostream>
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/SharedSet.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/SharedSet.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Saturation/ClauseContainer.hpp"
+#include "Saturation/ClauseContainer.hpp"
 
-#include "../SAT/SATClause.hpp"
+#include "SAT/SATClause.hpp"
 
-#include "../Shell/Options.hpp"
+#include "Shell/Options.hpp"
 
 #include "Inference.hpp"
 #include "Clause.hpp"

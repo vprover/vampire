@@ -10,13 +10,13 @@
 
 #include <iosfwd>
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/InverseLookup.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Reflection.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/InverseLookup.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Reflection.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Unit.hpp"
 

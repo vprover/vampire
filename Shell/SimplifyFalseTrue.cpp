@@ -6,13 +6,13 @@
  * @since 11/12/2004 Manchester
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/DArray.hpp"
+#include "Lib/DArray.hpp"
 
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "SimplifyFalseTrue.hpp"
 

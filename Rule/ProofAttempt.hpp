@@ -7,7 +7,7 @@
 #ifndef __Rule_ProofAttempt__
 #define __Rule_ProofAttempt__
 
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Unit.hpp"
 
 using namespace Kernel;
 

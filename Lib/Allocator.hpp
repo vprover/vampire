@@ -12,8 +12,8 @@
 
 #include <cstddef>
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
 #if VDEBUG
 #include <string>

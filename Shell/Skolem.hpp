@@ -8,10 +8,10 @@
 #ifndef __Skolem__
 #define __Skolem__
 
-#include "../Lib/Stack.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/Substitution.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/Substitution.hpp"
 
 namespace Kernel {
   class Unit;

@@ -3,15 +3,15 @@
  * Implements class Interpolants.
  */
 
-#include "../Lib/Stack.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/InferenceStore.hpp"
-#include "../Kernel/SubstHelper.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "SimplifyFalseTrue.hpp"
 

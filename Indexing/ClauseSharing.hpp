@@ -6,7 +6,7 @@
 #ifndef __ClauseSharing__
 #define __ClauseSharing__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "ClauseVariantIndex.hpp"
 

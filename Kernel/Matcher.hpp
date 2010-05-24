@@ -7,13 +7,13 @@
 #ifndef __Matcher__
 #define __Matcher__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/BacktrackData.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Hash.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/BacktrackData.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Hash.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include "Term.hpp"
 #include "TermIterators.hpp"

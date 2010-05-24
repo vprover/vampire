@@ -7,9 +7,9 @@
 #ifndef __Rule_Index__
 #define __Rule_Index__
 
-#include "../Lib/Stack.hpp"
-#include "../Kernel/Unit.hpp"
-#include "../Rule/Rule.hpp"
+#include "Lib/Stack.hpp"
+#include "Kernel/Unit.hpp"
+#include "Rule/Rule.hpp"
 
 namespace Kernel {
   class Signature;

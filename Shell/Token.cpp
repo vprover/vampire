@@ -5,7 +5,7 @@
  * @since 25/07/2004 Torrevieja
  */
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 #include "Token.hpp"
 
 using namespace std;

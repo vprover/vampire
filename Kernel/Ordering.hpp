@@ -8,12 +8,12 @@
 #ifndef __Ordering__
 #define __Ordering__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
-#include "../Lib/Comparison.hpp"
-#include "../Lib/SmartPtr.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/SmartPtr.hpp"
 
 namespace Kernel {
 

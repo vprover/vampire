@@ -10,7 +10,7 @@
 #include <string>
 #include <iostream>
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
 namespace Lib
 {

@@ -11,11 +11,11 @@
 #ifndef __FormulaVarIterator__
 #define __FormulaVarIterator__
 
-#include "../Lib/MultiCounter.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/MultiCounter.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Formula.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Formula.hpp"
 
 using namespace Lib;
 

@@ -7,7 +7,7 @@
 #ifndef __LiteralSelector__
 #define __LiteralSelector__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "Term.hpp"
 

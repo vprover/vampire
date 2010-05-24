@@ -7,12 +7,12 @@
 #ifndef __Curryfier__
 #define __Curryfier__
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/ArrayMap.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/ArrayMap.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "Term.hpp"
 #include "Signature.hpp"

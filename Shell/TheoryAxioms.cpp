@@ -3,9 +3,9 @@
  * Implements class TheoryAxioms.
  */
 
-#include "../Lib/Environment.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Kernel/Signature.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "AxiomGenerator.hpp"
 #include "Property.hpp"

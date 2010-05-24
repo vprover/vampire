@@ -7,7 +7,7 @@
 #ifndef __LiteralIndexingStructure__
 #define __LiteralIndexingStructure__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 #include "Index.hpp"
 
 namespace Indexing {

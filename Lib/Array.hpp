@@ -8,9 +8,9 @@
 #ifndef __Array__
 #define __Array__
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
-#include "../Lib/Allocator.hpp"
+#include "Lib/Allocator.hpp"
 
 namespace Lib {
 

@@ -7,8 +7,8 @@
 #ifndef __CompositeLiteralComparator__
 #define __CompositeLiteralComparator__
 
-#include "../Lib/Comparison.hpp"
-#include "../Lib/Int.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/Int.hpp"
 
 #include "LiteralSelector.hpp"
 #include "Renaming.hpp"

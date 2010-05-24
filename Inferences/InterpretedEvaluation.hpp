@@ -7,11 +7,11 @@
 #ifndef __InterpretedEvaluation__
 #define __InterpretedEvaluation__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
+#include "Lib/DHMap.hpp"
 
-#include "../Kernel/Theory.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "InferenceEngine.hpp"
 

@@ -6,7 +6,7 @@
 #ifndef __CodeTreeInterfaces__
 #define __CodeTreeInterfaces__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "TermCodeTree.hpp"
 #include "ClauseCodeTree.hpp"

@@ -4,21 +4,21 @@
  */
 
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Int.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Kernel/Unit.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Unit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Clause.hpp"
 
-#include "../Indexing/Index.hpp"
-#include "../Indexing/LiteralIndex.hpp"
-#include "../Indexing/IndexManager.hpp"
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Indexing/Index.hpp"
+#include "Indexing/LiteralIndex.hpp"
+#include "Indexing/IndexManager.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
 
 #include "RefutationSeekerFSE.hpp"

@@ -7,8 +7,8 @@
 #ifndef __ForwardDemodulation__
 #define __ForwardDemodulation__
 
-#include "../Forwards.hpp"
-#include "../Indexing/TermIndex.hpp"
+#include "Forwards.hpp"
+#include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
 

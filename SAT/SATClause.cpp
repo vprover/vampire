@@ -6,15 +6,15 @@
 #include <algorithm>
 #include <ostream>
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Term.hpp"
 
-#include "../Shell/Statistics.hpp"
+#include "Shell/Statistics.hpp"
 
 //#include "Inference.hpp"
 

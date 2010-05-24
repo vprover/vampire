@@ -7,9 +7,9 @@
 #ifndef __MatchTag__
 #define __MatchTag__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/BitUtils.hpp"
+#include "Lib/BitUtils.hpp"
 
 //Tests shown it as not helping. Perhaps needs just some improvement of bit selection.
 #define USE_MATCH_TAG 0

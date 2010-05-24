@@ -30,9 +30,9 @@
 #  define __list__
 
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
 #include "VirtualIterator.hpp"

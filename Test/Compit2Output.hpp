@@ -6,14 +6,14 @@
 #ifndef __Compit2Output__
 #define __Compit2Output__
 
-#include "../Config.hpp"
+#include "Config.hpp"
 
 #if COMPIT_VERSION==2
 
-#include "../Forwards.hpp"
-#include "../compit2.hpp"
-#include "../Indexing/LiteralSubstitutionTree.hpp"
-#include "../Indexing/TermSubstitutionTree.hpp"
+#include "Forwards.hpp"
+#include "compit2.hpp"
+#include "Indexing/LiteralSubstitutionTree.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 
 namespace Test {
 

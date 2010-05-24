@@ -11,14 +11,14 @@
 
 #include <string>
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/Map.hpp"
-#include "../Lib/DHMap.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/Map.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "Theory.hpp"
 

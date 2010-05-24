@@ -5,7 +5,7 @@
  */
 
 #if VDEBUG
-#  include "../Lib/Int.hpp"
+#  include "Lib/Int.hpp"
 #  include "Term.hpp"
 #endif
 

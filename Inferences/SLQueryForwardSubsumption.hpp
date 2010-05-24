@@ -7,7 +7,7 @@
 #ifndef __SLQueryForwardSubsumption__
 #define __SLQueryForwardSubsumption__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences

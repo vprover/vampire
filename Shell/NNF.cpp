@@ -4,14 +4,14 @@
  * @since 28/12/2003 Manchester
  */
 
-#include "../Lib/Environment.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Unit.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "NNF.hpp"
 

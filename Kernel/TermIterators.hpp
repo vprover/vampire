@@ -6,11 +6,11 @@
 #ifndef __TermIterators__
 #define __TermIterators__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Recycler.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/Recycler.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include "Term.hpp"
 

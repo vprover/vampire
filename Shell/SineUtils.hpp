@@ -7,9 +7,9 @@
 #ifndef __SineUtils__
 #define __SineUtils__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DArray.hpp"
+#include "Lib/DArray.hpp"
 
 namespace Shell {
 

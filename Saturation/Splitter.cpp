@@ -3,12 +3,12 @@
  * Implements class Splitter.
  */
 
-#include "../Lib/Metaiterators.hpp"
+#include "Lib/Metaiterators.hpp"
 
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Clause.hpp"
 
-#include "../Shell/Options.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "SaturationAlgorithm.hpp"
 

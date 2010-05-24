@@ -6,16 +6,16 @@
 #ifndef __ConsequenceFinder__
 #define __ConsequenceFinder__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Array.hpp"
-#include "../Lib/Event.hpp"
-#include "../Lib/Int.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Array.hpp"
+#include "Lib/Event.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Clause.hpp"
 
-#include "../Inferences/TautologyDeletionISE.hpp"
+#include "Inferences/TautologyDeletionISE.hpp"
 
 namespace Saturation {
 

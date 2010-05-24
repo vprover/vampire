@@ -3,18 +3,18 @@
  * Implements class BSplitter.
  */
 
-#include "../Lib/DHSet.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/IntUnionFind.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/SharedSet.hpp"
+#include "Lib/DHSet.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/IntUnionFind.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/SharedSet.hpp"
 
-#include "../Kernel/BDD.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/TermIterators.hpp"
+#include "Kernel/BDD.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/TermIterators.hpp"
 
-#include "../Shell/Statistics.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "BSplitter.hpp"
 #include "SaturationAlgorithm.hpp"

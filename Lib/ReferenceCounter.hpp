@@ -8,7 +8,7 @@
 #define __ReferenceCounter__
 
 #include "Allocator.hpp"
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
 namespace Lib {
 

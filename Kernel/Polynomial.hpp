@@ -6,10 +6,10 @@
 #ifndef __Polynomial__
 #define __Polynomial__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Comparison.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Term.hpp"
 #include "Theory.hpp"

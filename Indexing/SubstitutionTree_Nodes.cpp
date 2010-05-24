@@ -3,12 +3,12 @@
  * Different SubstitutionTree Node implementations.
  */
 
-#include "../Lib/DHMultiset.hpp"
-#include "../Lib/Exception.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/SkipList.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/DHMultiset.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/SkipList.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include "Index.hpp"
 #include "SubstitutionTree.hpp"

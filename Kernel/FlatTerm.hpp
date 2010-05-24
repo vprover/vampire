@@ -7,7 +7,7 @@
 #ifndef __FlatTerm__
 #define __FlatTerm__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 namespace Kernel {
 

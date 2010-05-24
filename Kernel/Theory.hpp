@@ -6,9 +6,9 @@
 #ifndef __Theory__
 #define __Theory__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "Term.hpp"
 

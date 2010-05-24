@@ -3,12 +3,12 @@
  * Implements class LiteralSubstitutionTree.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/TimeCounter.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/TimeCounter.hpp"
 
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
 
 #include "LiteralSubstitutionTree.hpp"
 

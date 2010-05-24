@@ -8,8 +8,8 @@
 #define __TermSubstitutionTree__
 
 
-#include "../Kernel/Renaming.hpp"
-#include "../Lib/SkipList.hpp"
+#include "Kernel/Renaming.hpp"
+#include "Lib/SkipList.hpp"
 
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"

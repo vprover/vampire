@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "../Lib/Exception.hpp"
+#include "Lib/Exception.hpp"
 #include "Parser.hpp"
 
 using namespace std;

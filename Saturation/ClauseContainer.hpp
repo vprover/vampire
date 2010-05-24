@@ -7,11 +7,11 @@
 #ifndef __ClauseContainer__
 #define __ClauseContainer__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Event.hpp"
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Event.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Limits.hpp"
 

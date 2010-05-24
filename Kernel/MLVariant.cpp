@@ -5,18 +5,18 @@
 
 #include <algorithm>
 
-#include "../Lib/BacktrackData.hpp"
-#include "../Lib/BacktrackIterators.hpp"
-#include "../Lib/BinaryHeap.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Hash.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Metaarrays.hpp"
-#include "../Lib/PairUtils.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/TriangularArray.hpp"
+#include "Lib/BacktrackData.hpp"
+#include "Lib/BacktrackIterators.hpp"
+#include "Lib/BinaryHeap.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Hash.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Metaarrays.hpp"
+#include "Lib/PairUtils.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/TriangularArray.hpp"
 
 #include "Clause.hpp"
 #include "Term.hpp"
@@ -25,13 +25,13 @@
 
 #if VDEBUG
 #include <iostream>
-#include "../Test/Output.hpp"
+#include "Test/Output.hpp"
 using namespace std;
 #endif
 
 #define TRACE_LONG_MATCHING 0
 #if TRACE_LONG_MATCHING
-#include "../Lib/Timer.hpp"
+#include "Lib/Timer.hpp"
 #endif
 
 namespace Kernel

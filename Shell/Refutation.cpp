@@ -4,14 +4,14 @@
  * @since 04/01/2008 Torrevieja
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Hash.hpp"
-#include "../Lib/Set.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Hash.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Inference.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
 
 #include "Refutation.hpp"
 

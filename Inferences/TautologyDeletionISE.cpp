@@ -3,13 +3,13 @@
  * Implements class TautologyDeletionISE.
  */
 
-#include "../Lib/Random.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/EqHelper.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/DArray.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/EqHelper.hpp"
+#include "Shell/Statistics.hpp"
 #include "TautologyDeletionISE.hpp"
 
 using namespace Lib;

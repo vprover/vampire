@@ -10,15 +10,15 @@
 #include <sstream>
 #include <cstring>
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Debug/Tracer.hpp"
-#include "../Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
 
-#include "../Lib/Int.hpp"
-#include "../Lib/NameArray.hpp"
-#include "../Lib/Random.hpp"
-#include "../Lib/Exception.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/NameArray.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/Exception.hpp"
 
 #include "Options.hpp"
 

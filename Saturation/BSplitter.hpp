@@ -6,14 +6,14 @@
 #ifndef __BSplitter__
 #define __BSplitter__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Array.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Array.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/RCClauseStack.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/RCClauseStack.hpp"
 
 #include "Splitter.hpp"
 

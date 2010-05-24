@@ -11,14 +11,14 @@
 #include <ostream>
 #include <string>
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/DHMultiset.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Kernel/BDD.hpp"
-#include "../Kernel/Inference.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/DHMultiset.hpp"
+#include "Lib/Stack.hpp"
+#include "Kernel/BDD.hpp"
+#include "Kernel/Inference.hpp"
 
 namespace Kernel {
 

@@ -8,12 +8,12 @@
 #ifndef __TPTPParser__
 #define __TPTPParser__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Exception.hpp"
-#include "../Lib/List.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/List.hpp"
 
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "Parser.hpp"
 

@@ -12,10 +12,10 @@
 #include "Stack.hpp"
 #include "MemoryLeak.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/FormulaUnit.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
 
 using namespace Kernel;
 

@@ -11,8 +11,8 @@
 #include <cstdlib>
 #include <string>
 
-#include "../Kernel/Unit.hpp"
-#include "../Lib/Allocator.hpp"
+#include "Kernel/Unit.hpp"
+#include "Lib/Allocator.hpp"
 
 using namespace std;
 using namespace Lib;

@@ -5,11 +5,11 @@
  * @since 14/07/2004 Turku
  */
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
-#include "../Lib/Int.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Lib/IntNameTable.hpp"
+#include "Lib/IntNameTable.hpp"
 
 #include "Lexer.hpp"
 #include "Parser.hpp"

@@ -3,24 +3,24 @@
  * Implements class Condensation.
  */
 
-#include "../Lib/DArray.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/TimeCounter.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/TimeCounter.hpp"
+#include "Lib/VirtualIterator.hpp"
 
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/MLMatcher.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Renaming.hpp"
-#include "../Kernel/Matcher.hpp"
-#include "../Kernel/RobSubstitution.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/MLMatcher.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Renaming.hpp"
+#include "Kernel/Matcher.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
-#include "../Indexing/LiteralMiniIndex.hpp"
+#include "Indexing/LiteralMiniIndex.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Condensation.hpp"
 

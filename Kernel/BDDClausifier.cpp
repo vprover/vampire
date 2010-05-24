@@ -3,12 +3,12 @@
  * Implements class BDDClausifier.
  */
 
-#include "../Lib/BinaryHeap.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/MapToLIFO.hpp"
+#include "Lib/BinaryHeap.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/MapToLIFO.hpp"
 
-#include "../SAT/SATClause.hpp"
-#include "../SAT/SATLiteral.hpp"
+#include "SAT/SATClause.hpp"
+#include "SAT/SATLiteral.hpp"
 
 #include "BDD.hpp"
 

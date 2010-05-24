@@ -5,15 +5,14 @@
  * @since 06/05/2007 Manchester
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-//#include "../Indexing/TermSharing.hpp"
 #include "Indexing/TermSharing.hpp"
 
-#include "../Kernel/Theory.hpp"
+#include "Kernel/Theory.hpp"
 
-#include "../Shell/Options.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Timer.hpp"
 

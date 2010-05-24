@@ -3,14 +3,14 @@
  * Implements class ForwardLiteralRewriting.
  */
 
-#include "../Lib/Int.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Ordering.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Ordering.hpp"
 
-#include "../Indexing/IndexManager.hpp"
+#include "Indexing/IndexManager.hpp"
 
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ForwardLiteralRewriting.hpp"
 

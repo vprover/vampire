@@ -3,16 +3,16 @@
  * Implements class InequalitySplitting.
  */
 
-#include "../Lib/DArray.hpp"
-#include "../Lib/Environment.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Unit.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"

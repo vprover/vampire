@@ -8,11 +8,11 @@
 #ifndef __SimplifyProver__
 #define __SimplifyProver__
 
-#include "../Lib/List.hpp"
-#include "../Lib/Map.hpp"
-#include "../Lib/Set.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Map.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/Stack.hpp"
+#include "Kernel/Unit.hpp"
 #include "LispParser.hpp"
 
 using namespace Lib;

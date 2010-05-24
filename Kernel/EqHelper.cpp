@@ -3,9 +3,9 @@
  * Implements class EqHelper.
  */
 
-#include "../Lib/Environment.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Shell/Options.hpp"
+#include "Shell/Options.hpp"
 
 #include "TermIterators.hpp"
 

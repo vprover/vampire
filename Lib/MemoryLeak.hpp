@@ -15,7 +15,7 @@
 #include "Set.hpp"
 #include "Hash.hpp"
 
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Unit.hpp"
 
 namespace Kernel {
   class Formula;

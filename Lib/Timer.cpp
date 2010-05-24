@@ -5,8 +5,8 @@
 
 #include <ctime>
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Environment.hpp"
 #include "Int.hpp"
@@ -14,8 +14,8 @@
 #include "System.hpp"
 #include "TimeCounter.hpp"
 
-#include "../Shell/Options.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Timer.hpp"
 

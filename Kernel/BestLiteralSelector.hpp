@@ -9,14 +9,14 @@
 
 #include <algorithm>
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Comparison.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Set.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Term.hpp"
 #include "Clause.hpp"

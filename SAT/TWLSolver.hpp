@@ -7,12 +7,12 @@
 #ifndef __TWLSolver__
 #define __TWLSolver__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Array.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/Exception.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Array.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/Stack.hpp"
 
 namespace SAT {
 

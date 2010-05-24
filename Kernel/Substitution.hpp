@@ -15,9 +15,9 @@
 using namespace std;
 #endif
 
-#include "../Lib/Random.hpp"
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Environment.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Term.hpp"
 

@@ -8,10 +8,10 @@
 #ifndef __SmartPtr__
 #define __SmartPtr__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
 namespace Lib
 {

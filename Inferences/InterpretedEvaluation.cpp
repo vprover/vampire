@@ -3,21 +3,21 @@
  * Implements class InterpretedEvaluation.
  */
 
-#include "../Lib/Exception.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Int.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
-#include "../Shell/Statistics.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "InterpretedEvaluation.hpp"
 

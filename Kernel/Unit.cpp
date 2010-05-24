@@ -5,9 +5,9 @@
  * @since 09/05/2007 Manchester
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Int.hpp"
+#include "Lib/Int.hpp"
 
 #include "BDD.hpp"
 #include "Inference.hpp"

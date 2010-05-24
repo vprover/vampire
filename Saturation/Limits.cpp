@@ -3,9 +3,9 @@
  * Implements class Limits.
  */
 
-#include "../Lib/Environment.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Shell/Options.hpp"
+#include "Shell/Options.hpp"
 
 
 #include "Limits.hpp"

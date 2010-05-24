@@ -6,8 +6,8 @@
 
 // #include <fstream>
 
-// #include "../Debug/Assertion.hpp"
-// #include "../Debug/Tracer.hpp"
+// #include "Debug/Assertion.hpp"
+// #include "Debug/Tracer.hpp"
 
 // #include "Allocator.hpp"
 // #include "XML.hpp"

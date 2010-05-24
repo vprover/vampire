@@ -6,9 +6,9 @@
 #ifndef __BDDClausifier__
 #define __BDDClausifier__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
+#include "Lib/DHMap.hpp"
 
 namespace Kernel {
 

@@ -10,31 +10,31 @@
 
 #include <utility>
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Comparison.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/SkipList.hpp"
-#include "../Lib/BinaryHeap.hpp"
-#include "../Lib/BacktrackData.hpp"
-#include "../Lib/ArrayMap.hpp"
-#include "../Lib/Array.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/List.hpp"
+#include "Lib/SkipList.hpp"
+#include "Lib/BinaryHeap.hpp"
+#include "Lib/BacktrackData.hpp"
+#include "Lib/ArrayMap.hpp"
+#include "Lib/Array.hpp"
 
-#include "../Kernel/EGSubstitution.hpp"
-#include "../Kernel/RobSubstitution.hpp"
-#include "../Kernel/Renaming.hpp"
-#include "../Kernel/Clause.hpp"
+#include "Kernel/EGSubstitution.hpp"
+#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/Renaming.hpp"
+#include "Kernel/Clause.hpp"
 
 #include "Index.hpp"
 
 #if VDEBUG
 
 #include <iostream>
-#include "../Test/Output.hpp"
+#include "Test/Output.hpp"
 
 #endif
 

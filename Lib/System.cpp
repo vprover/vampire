@@ -18,12 +18,12 @@
 #include <csignal>
 #include <iostream>
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Timer.hpp"
-#include "../Shell/Options.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Timer.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "System.hpp"
 

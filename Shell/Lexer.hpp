@@ -10,8 +10,8 @@
 
 #include <iostream>
 
-#include "../Lib/Array.hpp"
-#include "../Lib/Exception.hpp"
+#include "Lib/Array.hpp"
+#include "Lib/Exception.hpp"
 
 #include "Token.hpp"
 

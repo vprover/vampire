@@ -7,7 +7,7 @@
 #ifndef __Splitter__
 #define __Splitter__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 namespace Saturation {
 

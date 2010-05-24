@@ -7,10 +7,10 @@
 #ifndef __SATClauseSharing__
 #define __SATClauseSharing__
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
-#include "../Lib/Set.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include "SATClause.hpp"
 

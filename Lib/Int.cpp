@@ -11,7 +11,7 @@
 #include <climits>
 
 #include "Int.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
 namespace Lib {
 

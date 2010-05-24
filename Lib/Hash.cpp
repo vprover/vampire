@@ -4,8 +4,8 @@
  * @since 31/03/2006 Redmond
  */
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Hash.hpp"
 #include "Portability.hpp"

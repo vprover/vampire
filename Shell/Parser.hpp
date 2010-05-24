@@ -8,12 +8,12 @@
 #ifndef __Parser__
 #define __Parser__
 
-#include "../Lib/DHMap.hpp"
-#include "../Lib/IntNameTable.hpp"
-#include "../Lib/Exception.hpp"
-#include "../Lib/XML.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/IntNameTable.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/XML.hpp"
 
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "Token.hpp"
 

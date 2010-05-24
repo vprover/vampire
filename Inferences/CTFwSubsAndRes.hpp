@@ -6,7 +6,7 @@
 #ifndef __CTFwSubsAndRes__
 #define __CTFwSubsAndRes__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
 

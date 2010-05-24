@@ -4,27 +4,27 @@
  */
 
 
-#include "../Lib/Comparison.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Set.hpp"
-#include "../Lib/TimeCounter.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/TimeCounter.hpp"
+#include "Lib/VirtualIterator.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Matcher.hpp"
-#include "../Kernel/MLMatcher.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Matcher.hpp"
+#include "Kernel/MLMatcher.hpp"
+#include "Kernel/Term.hpp"
 
-#include "../Indexing/Index.hpp"
-#include "../Indexing/LiteralIndex.hpp"
-#include "../Indexing/IndexManager.hpp"
+#include "Indexing/Index.hpp"
+#include "Indexing/LiteralIndex.hpp"
+#include "Indexing/IndexManager.hpp"
 
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
-#include "../Shell/Statistics.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "SLQueryBackwardSubsumption.hpp"
 

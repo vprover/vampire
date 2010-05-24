@@ -11,16 +11,16 @@
 #include <iostream>
 #include <fstream>
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/DHMultiset.hpp"
-#include "../Lib/Random.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Comparison.hpp"
-#include "../Lib/Reflection.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/DHMultiset.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/Reflection.hpp"
+#include "Lib/Stack.hpp"
 
 #include "SATClause.hpp"
 //#include "SATInference.hpp"

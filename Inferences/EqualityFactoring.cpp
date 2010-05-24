@@ -5,19 +5,19 @@
 
 #include <utility>
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/PairUtils.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/PairUtils.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Unit.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/RobSubstitution.hpp"
-#include "../Kernel/EqHelper.hpp"
-#include "../Kernel/Ordering.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Unit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/EqHelper.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "EqualityFactoring.hpp"
 

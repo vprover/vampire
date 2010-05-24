@@ -5,14 +5,14 @@
  * @since 12/04/2008 Manchester
  */
 
-#include "../Lib/Int.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Unit.hpp"
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Unit.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Clause.hpp"
 
 #include "TPTP.hpp"
 

@@ -7,13 +7,13 @@
 #ifndef __AxiomGenerator__
 #define __AxiomGenerator__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
-#include "../Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
 
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Theory.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Theory.hpp"
 
 
 namespace Shell

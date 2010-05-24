@@ -7,7 +7,7 @@
 #ifndef __LiteralIndex__
 #define __LiteralIndex__
 
-#include "../Lib/DHMap.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
 

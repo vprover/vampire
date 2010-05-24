@@ -8,7 +8,7 @@
 #ifndef __CNF__
 #define __CNF__
 
-#include "../Lib/Stack.hpp"
+#include "Lib/Stack.hpp"
 
 namespace Kernel {
   class Formula;

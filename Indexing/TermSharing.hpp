@@ -8,8 +8,8 @@
 #ifndef __TermSharing__
 #define __TermSharing__
 
-#include "../Lib/Set.hpp"
-#include "../Kernel/Term.hpp"
+#include "Lib/Set.hpp"
+#include "Kernel/Term.hpp"
 
 using namespace Lib;
 using namespace Kernel;

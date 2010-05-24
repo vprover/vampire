@@ -6,19 +6,19 @@
 #ifndef __CodeTree__
 #define __CodeTree__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Hash.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/TriangularArray.hpp"
-#include "../Lib/Vector.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Hash.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/TriangularArray.hpp"
+#include "Lib/Vector.hpp"
+#include "Lib/VirtualIterator.hpp"
 
-#include "../Kernel/FlatTerm.hpp"
+#include "Kernel/FlatTerm.hpp"
 
 #include "Index.hpp"
 

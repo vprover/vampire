@@ -5,22 +5,22 @@
  * @since 28/05/2004 Manchester
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/BitUtils.hpp"
-#include "../Lib/DHMultiset.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/BitUtils.hpp"
+#include "Lib/DHMultiset.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/SubstHelper.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/TermIterators.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Statistics.hpp"
 

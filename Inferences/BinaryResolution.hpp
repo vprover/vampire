@@ -7,7 +7,7 @@
 #ifndef __BinaryResolution__
 #define __BinaryResolution__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
 

@@ -3,15 +3,15 @@
  * Implements class ClauseSharing.
  */
 
-#include "../Lib/Environment.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Kernel/BDD.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/InferenceStore.hpp"
+#include "Kernel/BDD.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/InferenceStore.hpp"
 
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
-#include "../Shell/Statistics.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "ClauseSharing.hpp"
 

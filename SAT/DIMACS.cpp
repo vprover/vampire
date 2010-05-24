@@ -7,16 +7,16 @@
 #include <iostream>
 #include <fstream>
 
-#include "../Lib/BinaryHeap.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/MapToLIFO.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/BinaryHeap.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/List.hpp"
+#include "Lib/MapToLIFO.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/VirtualIterator.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Term.hpp"
 
 #include "DIMACS.hpp"
 

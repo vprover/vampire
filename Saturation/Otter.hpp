@@ -7,7 +7,7 @@
 #ifndef __Otter__
 #define __Otter__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "SaturationAlgorithm.hpp"
 

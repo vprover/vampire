@@ -7,7 +7,7 @@
 #ifndef __Rule__
 #define __Rule__
 
-#include "../Lib/Allocator.hpp"
+#include "Lib/Allocator.hpp"
 
 namespace Kernel {
   class Clause;

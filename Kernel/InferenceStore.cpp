@@ -3,15 +3,15 @@
  * Implements class InferenceStore.
  */
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/SharedSet.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/SharedSet.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Shell/LaTeX.hpp"
-#include "../Shell/Options.hpp"
-#include "../Shell/Parser.hpp"
+#include "Shell/LaTeX.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Parser.hpp"
 
 #include "BDD.hpp"
 #include "Clause.hpp"

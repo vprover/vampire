@@ -6,8 +6,8 @@
 
 #include <string.h>
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/DArray.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/DArray.hpp"
 
 #include "Term.hpp"
 #include "TermIterators.hpp"

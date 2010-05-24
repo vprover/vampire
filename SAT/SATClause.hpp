@@ -10,14 +10,14 @@
 #include <string>
 #include <iosfwd>
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/InverseLookup.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Reflection.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/InverseLookup.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Reflection.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include "SATLiteral.hpp"
 

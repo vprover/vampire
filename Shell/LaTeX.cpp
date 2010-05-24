@@ -8,29 +8,29 @@
 #include <fstream>
 
 
-// #include "../VL/Int.hpp"
+// #include "VL/Int.hpp"
 
-// #include "../VS/SymbolMap.hpp"
+// #include "VS/SymbolMap.hpp"
 
 #include "Options.hpp"
 #include "LaTeX.hpp"
 // #include "Refutation.hpp"
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Exception.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/List.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/List.hpp"
 
-#include "../Kernel/BDD.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/BDD.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Unit.hpp"
 
 // #define KIF_EXPERIMENTS 0
 

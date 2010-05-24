@@ -10,7 +10,7 @@
 #include <string>
 #include <ostream>
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
 namespace SAT {
 

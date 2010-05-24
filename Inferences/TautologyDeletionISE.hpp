@@ -7,7 +7,7 @@
 #ifndef __TautologyDeletionISE__
 #define __TautologyDeletionISE__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences {

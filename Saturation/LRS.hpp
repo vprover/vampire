@@ -7,9 +7,9 @@
 #ifndef __LRS__
 #define __LRS__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Event.hpp"
+#include "Lib/Event.hpp"
 
 #include "Otter.hpp"
 

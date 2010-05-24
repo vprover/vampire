@@ -6,13 +6,13 @@
 
 #include <climits>
 
-#include "../Debug/Tracer.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Sort.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
+#include "Debug/Tracer.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Sort.hpp"
+#include "Lib/Environment.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Rule.hpp"
 #include "CASC.hpp"

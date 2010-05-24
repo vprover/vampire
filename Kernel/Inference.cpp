@@ -5,7 +5,7 @@
  * @since 19/05/2007 Manchester
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Inference.hpp"
 

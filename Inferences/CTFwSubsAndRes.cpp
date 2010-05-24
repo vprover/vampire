@@ -4,15 +4,15 @@
  */
 
 
-#include "../Kernel/Inference.hpp"
+#include "Kernel/Inference.hpp"
 
-#include "../Indexing/Index.hpp"
-#include "../Indexing/IndexManager.hpp"
+#include "Indexing/Index.hpp"
+#include "Indexing/IndexManager.hpp"
 
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
 
 #include "CTFwSubsAndRes.hpp"

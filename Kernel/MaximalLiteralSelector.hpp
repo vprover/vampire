@@ -7,8 +7,8 @@
 #ifndef __OrderingLiteralSelector__
 #define __OrderingLiteralSelector__
 
-#include "../Forwards.hpp"
-#include "../Lib/SmartPtr.hpp"
+#include "Forwards.hpp"
+#include "Lib/SmartPtr.hpp"
 #include "Ordering.hpp"
 
 #include "LiteralSelector.hpp"

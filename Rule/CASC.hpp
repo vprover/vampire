@@ -10,8 +10,8 @@
 
 #include <iostream>
 
-#include "../Kernel/Unit.hpp"
-#include "../Lib/Array.hpp"
+#include "Kernel/Unit.hpp"
+#include "Lib/Array.hpp"
 
 namespace Kernel
 {

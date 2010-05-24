@@ -3,22 +3,22 @@
  * Implements class BinaryResolution.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/PairUtils.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/PairUtils.hpp"
+#include "Lib/VirtualIterator.hpp"
 
-#include "../Shell/Statistics.hpp"
+#include "Shell/Statistics.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Unit.hpp"
-#include "../Kernel/Inference.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Unit.hpp"
+#include "Kernel/Inference.hpp"
 
-#include "../Indexing/Index.hpp"
-#include "../Indexing/LiteralIndex.hpp"
-#include "../Indexing/IndexManager.hpp"
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Indexing/Index.hpp"
+#include "Indexing/LiteralIndex.hpp"
+#include "Indexing/IndexManager.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "BinaryResolution.hpp"
 

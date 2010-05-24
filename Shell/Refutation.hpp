@@ -9,7 +9,7 @@
 
 #include <ostream>
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 namespace Shell {
 

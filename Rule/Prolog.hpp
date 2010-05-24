@@ -9,8 +9,8 @@
 
 #include <iostream>
 
-#include "../Lib/Map.hpp"
-#include "../Rule/Index.hpp"
+#include "Lib/Map.hpp"
+#include "Rule/Index.hpp"
 
 using namespace std;
 using namespace Lib;

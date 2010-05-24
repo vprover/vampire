@@ -7,8 +7,8 @@
 #ifndef __ForwardLiteralRewriting__
 #define __ForwardLiteralRewriting__
 
-#include "../Forwards.hpp"
-#include "../Indexing/LiteralIndex.hpp"
+#include "Forwards.hpp"
+#include "Indexing/LiteralIndex.hpp"
 
 #include "InferenceEngine.hpp"
 

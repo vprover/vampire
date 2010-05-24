@@ -6,9 +6,9 @@
 #ifndef __CheckedFwSimplifier__
 #define __CheckedFwSimplifier__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Inferences/InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 
 namespace Test {
 

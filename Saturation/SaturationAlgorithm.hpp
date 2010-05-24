@@ -7,20 +7,20 @@
 #ifndef __SaturationAlgorithm__
 #define __SaturationAlgorithm__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/RCClauseStack.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/RCClauseStack.hpp"
 
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Event.hpp"
-#include "../Lib/List.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Event.hpp"
+#include "Lib/List.hpp"
 
-#include "../Indexing/ClauseSharing.hpp"
-#include "../Indexing/IndexManager.hpp"
+#include "Indexing/ClauseSharing.hpp"
+#include "Indexing/IndexManager.hpp"
 
-#include "../Inferences/InferenceEngine.hpp"
-#include "../Inferences/PropositionalToBDDISE.hpp"
+#include "Inferences/InferenceEngine.hpp"
+#include "Inferences/PropositionalToBDDISE.hpp"
 
 #include "Limits.hpp"
 #include "SaturationResult.hpp"

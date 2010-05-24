@@ -7,7 +7,7 @@
 #ifndef __Discount__
 #define __Discount__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "SaturationAlgorithm.hpp"
 

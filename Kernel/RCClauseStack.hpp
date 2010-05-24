@@ -6,11 +6,11 @@
 #ifndef __RCClauseStack__
 #define __RCClauseStack__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Stack.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Kernel {
 

@@ -6,7 +6,7 @@
 #ifndef __InterpretedSimplifier__
 #define __InterpretedSimplifier__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
 

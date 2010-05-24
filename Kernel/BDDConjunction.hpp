@@ -6,11 +6,11 @@
 #ifndef __BDDConjunction__
 #define __BDDConjunction__
 
-#include "../Kernel/BDDClausifier.hpp"
+#include "Kernel/BDDClausifier.hpp"
 
-#include "../SAT/TWLSolver.hpp"
+#include "SAT/TWLSolver.hpp"
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 namespace Kernel {
 

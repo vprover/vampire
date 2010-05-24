@@ -7,7 +7,7 @@
 #ifndef __LastCopyWatcher__
 #define __LastCopyWatcher__
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
 namespace Lib {
 

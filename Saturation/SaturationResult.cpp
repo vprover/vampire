@@ -3,7 +3,7 @@
  * Implementing SaturationResult struct.
  */
 
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Clause.hpp"
 #include "SaturationResult.hpp"
 
 using namespace Saturation;

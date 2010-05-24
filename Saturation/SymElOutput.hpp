@@ -6,9 +6,9 @@
 #ifndef __SymElOutput__
 #define __SymElOutput__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
+#include "Lib/DHMap.hpp"
 
 namespace Saturation {
 

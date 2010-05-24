@@ -7,10 +7,10 @@
 #ifndef __ResultSubstitution__
 #define __ResultSubstitution__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/SmartPtr.hpp"
-#include "../Kernel/Term.hpp"
+#include "Lib/SmartPtr.hpp"
+#include "Kernel/Term.hpp"
 
 
 namespace Indexing {

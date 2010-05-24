@@ -3,16 +3,16 @@
  * Implements class ArithmeticIndex.
  */
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Environment.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Kernel/BDD.hpp"
-#include "../Kernel/Signature.hpp"
+#include "Kernel/BDD.hpp"
+#include "Kernel/Signature.hpp"
 
-#include "../Shell/Options.hpp"
+#include "Shell/Options.hpp"
 
 #include "ArithmeticIndex.hpp"
 

@@ -3,16 +3,16 @@
  * Implements class ConsequenceFinder.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/SharedSet.hpp"
-#include "../Lib/SkipList.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/SharedSet.hpp"
+#include "Lib/SkipList.hpp"
 
-#include "../Kernel/BDD.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Signature.hpp"
+#include "Kernel/BDD.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Signature.hpp"
 
-#include "../Shell/Options.hpp"
+#include "Shell/Options.hpp"
 
 #include "ConsequenceFinder.hpp"
 #include "SaturationAlgorithm.hpp"

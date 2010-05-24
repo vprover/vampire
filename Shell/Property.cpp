@@ -6,14 +6,14 @@
  * @since 17/07/2003 Manchester, changed to new representation
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Int.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/SubformulaIterator.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/SubformulaIterator.hpp"
+#include "Kernel/Term.hpp"
 
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"

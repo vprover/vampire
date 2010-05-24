@@ -7,7 +7,7 @@
 
 #include <fstream>
 
-#include "../Lib/List.hpp"
+#include "Lib/List.hpp"
 #include "LispLexer.hpp"
 #include "LispParser.hpp"
 

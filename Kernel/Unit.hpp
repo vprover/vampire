@@ -10,9 +10,9 @@
 
 #include <string>
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/List.hpp"
+#include "Lib/List.hpp"
 
 namespace Kernel {
 

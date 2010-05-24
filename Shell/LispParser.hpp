@@ -9,9 +9,9 @@
 #define __LispParser__
 
 #include <string>
-#include "../Forwards.hpp"
-#include "../Lib/Exception.hpp"
-#include "../Lib/List.hpp"
+#include "Forwards.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/List.hpp"
 
 #include "Parser.hpp"
 

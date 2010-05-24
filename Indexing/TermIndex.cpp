@@ -3,13 +3,13 @@
  * Implements class TermIndex.
  */
 
-#include "../Lib/DHSet.hpp"
+#include "Lib/DHSet.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/EqHelper.hpp"
-#include "../Kernel/Ordering.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/TermIterators.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/EqHelper.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 
 
 #include "TermIndexingStructure.hpp"

@@ -8,10 +8,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Exception.hpp"
+#include "Lib/Exception.hpp"
 
 #include "CommandLine.hpp"
 #include "Options.hpp"

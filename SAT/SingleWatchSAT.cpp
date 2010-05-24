@@ -5,14 +5,14 @@
 
 #include <algorithm>
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Random.hpp"
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/Portability.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Timer.hpp"
-#include "../Lib/Sort.hpp"
-#include "../Lib/Sort.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Lib/Portability.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Timer.hpp"
+#include "Lib/Sort.hpp"
+#include "Lib/Sort.hpp"
 
 #include "SATClause.hpp"
 #include "SATClauseSharing.hpp"

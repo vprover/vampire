@@ -9,22 +9,22 @@
 
 #include <fstream>
 
-#include "../Lib/List.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/Environment.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Theory.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Theory.hpp"
 
-#include "../Shell/Statistics.hpp"
+#include "Shell/Statistics.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
 #include "TPTPLexer.hpp"

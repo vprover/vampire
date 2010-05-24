@@ -9,8 +9,8 @@
 #ifndef __SkipList__
 #  define __SkipList__
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "Comparison.hpp"

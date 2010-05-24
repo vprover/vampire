@@ -8,7 +8,7 @@
 #ifndef __MLVariant__
 #define __MLVariant__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 namespace Kernel {
 

@@ -7,7 +7,7 @@
 #ifndef __SWBSplitterWithBDDs__
 #define __SWBSplitterWithBDDs__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "SWBSplitter.hpp"
 

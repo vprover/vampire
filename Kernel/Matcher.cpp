@@ -3,8 +3,8 @@
  * Implements class Matcher.
  */
 
-#include "../Lib/DHMap.hpp"
-#include "../Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
 
 #include "SubstHelper.hpp"
 

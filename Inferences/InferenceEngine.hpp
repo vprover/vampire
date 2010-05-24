@@ -7,11 +7,11 @@
 #ifndef __InferenceEngine__
 #define __InferenceEngine__
 
-#include "../Forwards.hpp"
-#include "../Lib/SmartPtr.hpp"
+#include "Forwards.hpp"
+#include "Lib/SmartPtr.hpp"
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/List.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Lib/List.hpp"
 
 namespace Inferences
 {

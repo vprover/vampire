@@ -3,11 +3,11 @@
  * Implements class LiteralIndex.
  */
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/LiteralComparators.hpp"
-#include "../Kernel/Matcher.hpp"
-#include "../Kernel/MLVariant.hpp"
-#include "../Kernel/Ordering.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/LiteralComparators.hpp"
+#include "Kernel/Matcher.hpp"
+#include "Kernel/MLVariant.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "LiteralIndexingStructure.hpp"
 #include "LiteralSubstitutionTree.hpp"

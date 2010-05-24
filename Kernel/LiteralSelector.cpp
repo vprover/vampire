@@ -3,10 +3,10 @@
  * Implements class LiteralSelector for literal selection
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Exception.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Exception.hpp"
 
-#include "../Shell/Options.hpp"
+#include "Shell/Options.hpp"
 
 #include "Clause.hpp"
 #include "Signature.hpp"

@@ -7,9 +7,9 @@
 #ifndef __PropositionalToBDDISE__
 #define __PropositionalToBDDISE__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "InferenceEngine.hpp"
 

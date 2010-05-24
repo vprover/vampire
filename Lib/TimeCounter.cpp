@@ -3,13 +3,13 @@
  * Implements class TimeCounter.
  */
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Timer.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Timer.hpp"
 
-#include "../Shell/Options.hpp"
+#include "Shell/Options.hpp"
 
 #include "TimeCounter.hpp"
 

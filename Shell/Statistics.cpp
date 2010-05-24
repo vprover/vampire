@@ -7,12 +7,12 @@
 
 #include <iostream>
 
-#include "../Debug/RuntimeStatistics.hpp"
+#include "Debug/RuntimeStatistics.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/TimeCounter.hpp"
-#include "../Lib/Timer.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/TimeCounter.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Options.hpp"
 

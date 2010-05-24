@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <limits>
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
 #include "Exception.hpp"
 #include "Comparison.hpp"

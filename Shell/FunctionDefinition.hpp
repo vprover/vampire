@@ -16,12 +16,12 @@
 #ifndef __FunctionDefinition__
 #define __FunctionDefinition__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
-#include "../Lib/MultiCounter.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/MultiCounter.hpp"
+#include "Lib/Stack.hpp"
+#include "Kernel/Unit.hpp"
 
 namespace Shell {
 

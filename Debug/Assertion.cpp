@@ -10,10 +10,10 @@
 
 #if VDEBUG
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Timer.hpp"
-#include "../Shell/Options.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Timer.hpp"
+#include "Shell/Options.hpp"
 
 using namespace Lib;
 using namespace Debug;

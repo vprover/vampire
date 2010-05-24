@@ -6,7 +6,7 @@
 #ifndef __BDDMarkingSubsumption__
 #define __BDDMarkingSubsumption__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 namespace Inferences {
 

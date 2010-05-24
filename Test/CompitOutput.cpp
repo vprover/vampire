@@ -7,12 +7,12 @@
 
 #if COMPIT_VERSION==1
 
-#include "../Debug/Assertion.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Kernel/Signature.hpp"
+#include "Debug/Assertion.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Environment.hpp"
+#include "Kernel/Signature.hpp"
 
 
 namespace Test

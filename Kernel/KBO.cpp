@@ -5,20 +5,20 @@
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Comparison.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Metaiterators.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Metaiterators.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
-#include "../Shell/EqualityProxy.hpp"
-#include "../Shell/Options.hpp"
+#include "Shell/EqualityProxy.hpp"
+#include "Shell/Options.hpp"
 
 #include "Term.hpp"
 #include "KBO.hpp"

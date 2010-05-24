@@ -5,18 +5,18 @@
 
 #include <utility>
 
-#include "../Debug/RuntimeStatistics.hpp"
+#include "Debug/RuntimeStatistics.hpp"
 
-#include "../Lib/BitUtils.hpp"
-#include "../Lib/Comparison.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Portability.hpp"
-#include "../Lib/Sort.hpp"
-#include "../Lib/TimeCounter.hpp"
+#include "Lib/BitUtils.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Portability.hpp"
+#include "Lib/Sort.hpp"
+#include "Lib/TimeCounter.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/TermIterators.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "CodeTree.hpp"
 

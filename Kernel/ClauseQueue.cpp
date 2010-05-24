@@ -4,11 +4,11 @@
  * @since 30/12/2007 Manchester
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Random.hpp"
-#include "../Lib/Environment.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/Environment.hpp"
 
 #if VDEBUG
 #include "Clause.hpp"

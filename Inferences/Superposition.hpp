@@ -7,8 +7,8 @@
 #ifndef __Superposition__
 #define __Superposition__
 
-#include "../Forwards.hpp"
-#include "../Indexing/TermIndex.hpp"
+#include "Forwards.hpp"
+#include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
 

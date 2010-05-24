@@ -1,7 +1,7 @@
 #ifndef __Portability__
 #define __Portability__
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
 //////////////////////////////////////////////////////
 // Detect compiler

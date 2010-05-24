@@ -11,15 +11,15 @@
 
 #include <string>
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/Connective.hpp"
-#include "../Kernel/InferenceStore.hpp"
+#include "Kernel/Connective.hpp"
+#include "Kernel/InferenceStore.hpp"
 
-// #include "../VS/Connective.hpp"
+// #include "VS/Connective.hpp"
 // #include "Var.hpp"
 
 // namespace VS {

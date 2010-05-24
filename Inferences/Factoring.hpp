@@ -7,7 +7,7 @@
 #ifndef __Factoring__
 #define __Factoring__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
 

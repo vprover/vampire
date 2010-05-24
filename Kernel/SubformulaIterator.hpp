@@ -9,7 +9,7 @@
 #ifndef __SubformulaIterator__
 #define __SubformulaIterator__
 
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include "Formula.hpp"
 

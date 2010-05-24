@@ -11,12 +11,12 @@
 #include <cstring>
 #include "DHMap.hpp"
 
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Clause.hpp"
 using namespace Kernel;
 #endif
 
 #include <cstdlib>
-#include "../Lib/System.hpp"
+#include "Lib/System.hpp"
 
 #define SAFE_OUT_OF_MEM_SOLUTION 1
 
@@ -62,11 +62,11 @@ bool watchPage = false;
 unsigned watchAddressLastValue = 0;
 #endif
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Shell/Statistics.hpp"
-#include "../Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
 
 #include "Exception.hpp"
 #include "Environment.hpp"

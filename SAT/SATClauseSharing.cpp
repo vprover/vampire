@@ -3,7 +3,7 @@
  * Implements class SATClauseSharing.
  */
 
-#include "../Lib/Hash.hpp"
+#include "Lib/Hash.hpp"
 
 #include "SATClauseSharing.hpp"
 

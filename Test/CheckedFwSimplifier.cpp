@@ -3,9 +3,9 @@
  * Implements class CheckedFwSimplifier.
  */
 
-#include "../Lib/DHSet.hpp"
+#include "Lib/DHSet.hpp"
 
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Clause.hpp"
 
 #include "CheckedFwSimplifier.hpp"
 

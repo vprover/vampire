@@ -6,7 +6,7 @@
  * @since 06/01/2004, Manchester
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "MultiCounter.hpp"
 #include "Int.hpp"

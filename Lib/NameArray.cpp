@@ -10,7 +10,7 @@
 
 #include "Exception.hpp"
 #include "NameArray.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
 namespace Lib {
 

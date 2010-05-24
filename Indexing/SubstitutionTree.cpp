@@ -7,25 +7,25 @@
 
 #include <utility>
 
-#include "../Kernel/Matcher.hpp"
-#include "../Kernel/Renaming.hpp"
-#include "../Kernel/SubstHelper.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/Matcher.hpp"
+#include "Kernel/Renaming.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Term.hpp"
 
-#include "../Lib/BinaryHeap.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Recycler.hpp"
-#include "../Lib/DHMultiset.hpp"
+#include "Lib/BinaryHeap.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Recycler.hpp"
+#include "Lib/DHMultiset.hpp"
 
 #include "TermSharing.hpp"
 
 #include <iostream>
 #if VDEBUG
-#include "../Kernel/Signature.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
-#include "../Test/Output.hpp"
+#include "Kernel/Signature.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Test/Output.hpp"
 
 string SingleTermListToString(const TermList* ts);
 

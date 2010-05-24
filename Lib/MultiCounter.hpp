@@ -9,7 +9,7 @@
 #ifndef __MultiCounter__
 #define __MultiCounter__
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 #include "XML.hpp"
 
 namespace Lib {

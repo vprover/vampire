@@ -5,13 +5,13 @@
  * @since 08/07/2007 flight Manchester-Cork, changed to new datastructures
  */
 
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/SubformulaIterator.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/SubformulaIterator.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
 #include "Rectify.hpp"

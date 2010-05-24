@@ -6,14 +6,14 @@
  * @since 01/05/2002, Manchester
  */
 
-#include "../Lib/Allocator.hpp"
+#include "Lib/Allocator.hpp"
 
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "SymCounter.hpp"
 

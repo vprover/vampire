@@ -7,8 +7,8 @@
 #ifndef __SubstHelper__
 #define __SubstHelper__
 
-#include "../Lib/DArray.hpp"
-#include "../Lib/Recycler.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/Recycler.hpp"
 
 #include "Term.hpp"
 

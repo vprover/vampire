@@ -5,15 +5,15 @@
  * @since 23/01/2004 Manchester, changed to use non-static objects
  */
 
-#include "../Lib/Environment.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Unit.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "Rectify.hpp"
 

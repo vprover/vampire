@@ -8,15 +8,15 @@
 
 #include <ostream>
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/Set.hpp"
-#include "../Lib/Int.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "Ordering.hpp"
 #include "Signature.hpp"

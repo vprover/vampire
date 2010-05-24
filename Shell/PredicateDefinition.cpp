@@ -3,21 +3,21 @@
  * Implements class PredicateDefinition.
  */
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/Set.hpp"
-#include "../Lib/MultiCounter.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/MultiCounter.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/SubformulaIterator.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/TermIterators.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/SubformulaIterator.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "Statistics.hpp"
 

@@ -5,10 +5,10 @@
  * @since 02/06/2007 Manchester, changed to new datastructures
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Kernel/Unit.hpp"
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Unit.hpp"
+#include "Kernel/Clause.hpp"
 
 #include "CNF.hpp"
 #include "EqResWithDeletion.hpp"
@@ -31,7 +31,7 @@
 #include "Statistics.hpp"
 #include "TheoryAxioms.hpp"
 
-// #include "../Lib/Sort.hpp"
+// #include "Lib/Sort.hpp"
 // #include "ClausalDefinition.hpp"
 // #include "Definition.hpp"
 // #include "Environment.hpp"

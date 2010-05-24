@@ -7,7 +7,7 @@
 #ifndef __EqualityResolution__
 #define __EqualityResolution__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
 

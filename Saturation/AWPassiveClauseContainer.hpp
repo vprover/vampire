@@ -7,9 +7,9 @@
 #ifndef __AWPassiveClauseContainer__
 #define __AWPassiveClauseContainer__
 
-#include "../Lib/Comparison.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/ClauseQueue.hpp"
+#include "Lib/Comparison.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/ClauseQueue.hpp"
 #include "ClauseContainer.hpp"
 
 

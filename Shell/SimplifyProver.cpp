@@ -5,18 +5,18 @@
  * @since 26/08/2009 Redmond
  */
 
-#include "../Lib/Exception.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/FormulaVarIterator.hpp"
-#include "../Kernel/TermIterators.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "SimplifyProver.hpp"
 #include "Statistics.hpp"

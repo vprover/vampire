@@ -7,9 +7,9 @@
 #ifndef __SaturationResult__
 #define __SaturationResult__
 
-#include "../Forwards.hpp"
-#include "../Shell/Statistics.hpp"
-#include "../Lib/Environment.hpp"
+#include "Forwards.hpp"
+#include "Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
 
 namespace Saturation
 {

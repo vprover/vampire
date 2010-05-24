@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <algorithm>
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
 #include "Exception.hpp"
 #include "Hash.hpp"

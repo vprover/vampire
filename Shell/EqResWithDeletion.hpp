@@ -7,11 +7,11 @@
 #ifndef __Shell_EqResWithDeletion__
 #define __Shell_EqResWithDeletion__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
+#include "Lib/DHMap.hpp"
 
-#include "../Kernel/Term.hpp"
+#include "Kernel/Term.hpp"
 
 namespace Shell {
 

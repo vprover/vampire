@@ -5,10 +5,10 @@
  * @since 27/07/2004 Torrevieja
  */
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Int.hpp"
+#include "Lib/Int.hpp"
 
 #include "Lexer.hpp"
 

@@ -3,20 +3,20 @@
  * Implements class SineUtils.
  */
 
-#include "../Lib/Deque.hpp"
-#include "../Lib/DHMultiset.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Set.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/Deque.hpp"
+#include "Lib/DHMultiset.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/VirtualIterator.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/SubformulaIterator.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/TermIterators.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/SubformulaIterator.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"

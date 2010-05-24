@@ -3,9 +3,9 @@
  * Implements class IndexManager.
  */
 
-#include "../Lib/Exception.hpp"
+#include "Lib/Exception.hpp"
 
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"

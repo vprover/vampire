@@ -5,10 +5,10 @@
 
 #include <string>
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Exception.hpp"
-#include "../Lib/MultiCounter.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/MultiCounter.hpp"
 
 #include "BDD.hpp"
 #include "Clause.hpp"

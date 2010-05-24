@@ -15,9 +15,9 @@
 using namespace std;
 #endif
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
-#include "../Lib/Reflection.hpp"
+#include "Lib/Reflection.hpp"
 
 namespace Kernel {
 

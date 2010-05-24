@@ -3,9 +3,9 @@
  * Implements class Signature consisting of predicate and function symbols
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
-#include "../Shell/Options.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Shell/Options.hpp"
 #include "Signature.hpp"
 
 using namespace std;

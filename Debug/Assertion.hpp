@@ -24,7 +24,7 @@
 
 #include "Tracer.hpp"
 
-#include "../Lib/System.hpp"
+#include "Lib/System.hpp"
 
 namespace Debug {
 

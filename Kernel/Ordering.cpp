@@ -3,13 +3,13 @@
  * Implements class Ordering.
  */
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/List.hpp"
-#include "../Lib/SmartPtr.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Exception.hpp"
-#include "../Shell/Options.hpp"
+#include "Lib/List.hpp"
+#include "Lib/SmartPtr.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Exception.hpp"
+#include "Shell/Options.hpp"
 
 #include "Ordering.hpp"
 #include "KBO.hpp"

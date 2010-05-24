@@ -5,7 +5,7 @@
 
 #include <ostream>
 
-#include "../Lib/Int.hpp"
+#include "Lib/Int.hpp"
 
 #include "SATLiteral.hpp"
 

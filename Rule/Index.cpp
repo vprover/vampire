@@ -4,11 +4,11 @@
  * @since 28/07/2008 train London-Manchester
  */
 
-#include "../Lib/Stack.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Index.hpp"
 

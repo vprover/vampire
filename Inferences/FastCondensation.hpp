@@ -7,7 +7,7 @@
 #ifndef __FastCondensation__
 #define __FastCondensation__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
 

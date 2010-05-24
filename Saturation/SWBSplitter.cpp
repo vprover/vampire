@@ -3,24 +3,24 @@
  * Implements class SWBSplitter.
  */
 
-#include "../Lib/DArray.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/IntUnionFind.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/IntUnionFind.hpp"
 
-#include "../Kernel/BDD.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/InferenceStore.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/TermIterators.hpp"
+#include "Kernel/BDD.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 
-#include "../Shell/Options.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
-#include "../Indexing/TermSharing.hpp"
-#include "../Inferences/PropositionalToBDDISE.hpp"
+#include "Indexing/TermSharing.hpp"
+#include "Inferences/PropositionalToBDDISE.hpp"
 
 #include "SaturationAlgorithm.hpp"
 

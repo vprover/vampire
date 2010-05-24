@@ -3,12 +3,12 @@
  * Implements class Otter.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/VirtualIterator.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/LiteralSelector.hpp"
-#include "../Shell/Options.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/LiteralSelector.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Otter.hpp"
 

@@ -3,30 +3,30 @@
  * Implements polynomial modification of the Robinson unification algorithm.
  */
 
-#include "../Lib/Environment.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Lib/Hash.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Random.hpp"
-#include "../Lib/DHSet.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/SkipList.hpp"
-#include "../Lib/Int.hpp"
+#include "Lib/Hash.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/SkipList.hpp"
+#include "Lib/Int.hpp"
 
 #include "Clause.hpp"
 #include "Renaming.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "RobSubstitution.hpp"
 
 #if VDEBUG
-#include "../Test/Output.hpp"
-#include "../Lib/Int.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Test/Output.hpp"
+#include "Lib/Int.hpp"
+#include "Debug/Tracer.hpp"
 #include <string>
 #include <iostream>
 using namespace Debug;

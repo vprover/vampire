@@ -5,14 +5,14 @@
  * @since 25/04/2008 flight Frankfurt-Vienna
  */
 
-#include "../Debug/Assertion.hpp"
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Lib/Int.hpp"
+#include "Debug/Assertion.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Lib/Int.hpp"
 #include "Output.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Kernel/Signature.hpp"
+#include "Lib/Environment.hpp"
+#include "Kernel/Signature.hpp"
 
 using namespace std;
 using namespace Kernel;

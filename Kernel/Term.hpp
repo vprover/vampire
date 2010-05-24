@@ -14,16 +14,16 @@
 #include <iosfwd>
 #include <utility>
 
-#include "../Forwards.hpp"
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Forwards.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Portability.hpp"
-#include "../Lib/XML.hpp"
-#include "../Lib/Comparison.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/Metaiterators.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Portability.hpp"
+#include "Lib/XML.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "MatchTag.hpp"
 

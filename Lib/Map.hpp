@@ -9,8 +9,8 @@
 #include <cstdlib>
 #include <string>
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 

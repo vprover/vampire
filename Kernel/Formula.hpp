@@ -9,8 +9,8 @@
 #ifndef __Formula__
 #define __Formula__
 
-#include "../Lib/List.hpp"
-#include "../Lib/XML.hpp"
+#include "Lib/List.hpp"
+#include "Lib/XML.hpp"
 
 #include "Connective.hpp"
 

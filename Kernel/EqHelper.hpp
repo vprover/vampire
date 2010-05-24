@@ -7,11 +7,11 @@
 #ifndef __EqHelper__
 #define __EqHelper__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/PairUtils.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/PairUtils.hpp"
 
 #include "Term.hpp"
 

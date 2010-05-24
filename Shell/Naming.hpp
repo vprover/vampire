@@ -8,8 +8,8 @@
 #ifndef __Naming__
 #define __Naming__
 
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/Unit.hpp"
 
 using namespace Kernel;
 

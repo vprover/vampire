@@ -3,15 +3,15 @@
  * Implements class SWBSplitterWithBDDs.
  */
 
-#include "../Kernel/BDD.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/InferenceStore.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/BDD.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/InferenceStore.hpp"
+#include "Kernel/Term.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
-#include "../Shell/Options.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "SaturationAlgorithm.hpp"
 

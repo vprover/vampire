@@ -4,28 +4,28 @@
  */
 
 
-#include "../Lib/DHMultiset.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/TimeCounter.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/DHMultiset.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/TimeCounter.hpp"
+#include "Lib/VirtualIterator.hpp"
 
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/EqHelper.hpp"
-#include "../Kernel/Renaming.hpp"
-#include "../Kernel/Ordering.hpp"
-#include "../Kernel/Inference.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/EqHelper.hpp"
+#include "Kernel/Renaming.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Kernel/Inference.hpp"
 
-#include "../Indexing/Index.hpp"
-#include "../Indexing/TermIndex.hpp"
-#include "../Indexing/IndexManager.hpp"
+#include "Indexing/Index.hpp"
+#include "Indexing/TermIndex.hpp"
+#include "Indexing/IndexManager.hpp"
 
-#include "../Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
-#include "../Shell/Statistics.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "BackwardDemodulation.hpp"
 

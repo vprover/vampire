@@ -3,17 +3,17 @@
  * Implements class PropositionalToBDDISE.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/Stack.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Stack.hpp"
 
-#include "../Kernel/BDD.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/InferenceStore.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/BDD.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/InferenceStore.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
 
-#include "../Shell/Statistics.hpp"
-#include "../Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
 
 #include "PropositionalToBDDISE.hpp"
 

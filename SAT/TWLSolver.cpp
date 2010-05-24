@@ -4,10 +4,10 @@
  */
 
 
-#include "../Debug/Assertion.hpp"
+#include "Debug/Assertion.hpp"
 
-#include "../Lib/Array.hpp"
-#include "../Lib/Environment.hpp"
+#include "Lib/Array.hpp"
+#include "Lib/Environment.hpp"
 
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"

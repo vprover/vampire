@@ -7,8 +7,8 @@
 #ifndef __InequalitySplitting__
 #define __InequalitySplitting__
 
-#include "../Forwards.hpp"
-#include "../Lib/Stack.hpp"
+#include "Forwards.hpp"
+#include "Lib/Stack.hpp"
 
 namespace Shell {
 

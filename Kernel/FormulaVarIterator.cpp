@@ -8,7 +8,7 @@
  * formulas and return each variable only once
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "FormulaVarIterator.hpp"
 #include "Formula.hpp"

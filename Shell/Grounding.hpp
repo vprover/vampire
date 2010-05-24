@@ -6,12 +6,12 @@
 #ifndef __Grounding__
 #define __Grounding__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DArray.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 namespace Shell
 {

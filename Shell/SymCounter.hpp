@@ -9,7 +9,7 @@
 #ifndef __sym_counter__
 #define __sym_counter__
 
-#include "../Kernel/Unit.hpp"
+#include "Kernel/Unit.hpp"
 
 namespace Kernel {
   class Signature;

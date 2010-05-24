@@ -61,9 +61,9 @@ square's last digit:
 #include <string.h>
 #include <ostream>
 
-#include "../Lib/Array.hpp"
-#include "../Lib/Allocator.hpp"
-#include "../Lib/List.hpp"
+#include "Lib/Array.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/List.hpp"
 
 namespace Debug {
 

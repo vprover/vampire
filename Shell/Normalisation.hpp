@@ -7,10 +7,10 @@
 #ifndef __Normalisation__
 #define __Normalisation__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Comparison.hpp"
-#include "../Kernel/Unit.hpp"
+#include "Lib/Comparison.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "SymCounter.hpp"
 

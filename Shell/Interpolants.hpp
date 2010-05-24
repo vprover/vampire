@@ -7,9 +7,9 @@
 #ifndef __Interpolants__
 #define __Interpolants__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Kernel/Term.hpp"
+#include "Kernel/Term.hpp"
 
 namespace Shell {
 

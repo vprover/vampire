@@ -7,7 +7,7 @@
 #ifndef __Flattening__
 #define __Flattening__
 
-#include "../Kernel/Formula.hpp"
+#include "Kernel/Formula.hpp"
 
 namespace Kernel {
   class Unit;

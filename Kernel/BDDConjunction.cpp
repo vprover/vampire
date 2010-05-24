@@ -3,10 +3,10 @@
  * Implements class BDDConjunction.
  */
 
-#include "../Lib/Environment.hpp"
-#include "../Lib/TimeCounter.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/TimeCounter.hpp"
 
-#include "../Shell/Options.hpp"
+#include "Shell/Options.hpp"
 
 #include "BDD.hpp"
 

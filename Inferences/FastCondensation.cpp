@@ -3,17 +3,17 @@
  * Implements class FastCondensation.
  */
 
-#include "../Lib/DHMap.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/TimeCounter.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/TimeCounter.hpp"
 
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Matcher.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Matcher.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "FastCondensation.hpp"
 

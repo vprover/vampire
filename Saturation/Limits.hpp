@@ -7,11 +7,11 @@
 #ifndef __Limits__
 #define __Limits__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/Event.hpp"
+#include "Lib/Event.hpp"
 
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Clause.hpp"
 
 
 namespace Saturation

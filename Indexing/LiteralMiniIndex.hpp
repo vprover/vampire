@@ -7,10 +7,10 @@
 #ifndef __LiteralMiniIndex__
 #define __LiteralMiniIndex__
 
-#include "../Forwards.hpp"
-#include "../Lib/DArray.hpp"
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Matcher.hpp"
+#include "Forwards.hpp"
+#include "Lib/DArray.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Matcher.hpp"
 
 namespace Indexing {
 

@@ -5,12 +5,12 @@
  * @since 27/12/2007 Manchester, changed completely to a new implementation
  */
 
-#include "../Debug/Tracer.hpp"
+#include "Debug/Tracer.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Formula.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/FormulaUnit.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "CNF.hpp"
 
 using namespace Kernel;

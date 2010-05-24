@@ -7,9 +7,9 @@
 #ifndef __EqualityProxy__
 #define __EqualityProxy__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Kernel/Term.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Options.hpp"
 

@@ -5,20 +5,20 @@
 
 #include <utility>
 
-#include "../Lib/Int.hpp"
-#include "../Lib/VirtualIterator.hpp"
-#include "../Lib/Metaiterators.hpp"
-#include "../Lib/Comparison.hpp"
-#include "../Lib/PairUtils.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/PairUtils.hpp"
 
-#include "../Lib/Environment.hpp"
-#include "../Shell/Statistics.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
-#include "../Kernel/Clause.hpp"
-#include "../Kernel/Unit.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/LiteralSelector.hpp"
-#include "../Kernel/RobSubstitution.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Unit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/LiteralSelector.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Factoring.hpp"
 

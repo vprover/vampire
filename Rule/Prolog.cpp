@@ -4,8 +4,8 @@
  * @since 08/08/2008 flight Singapore-Sydney
  */
 
-#include "../Kernel/Term.hpp"
-#include "../Kernel/Clause.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
 #include "Prolog.hpp"
 
 using namespace std;

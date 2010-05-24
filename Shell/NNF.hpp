@@ -12,7 +12,7 @@ namespace Kernel {
   class Unit;
 };
 
-#include "../Kernel/Formula.hpp"
+#include "Kernel/Formula.hpp"
 
 using namespace Kernel;
 

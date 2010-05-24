@@ -7,7 +7,7 @@
 #ifndef __GeneralSplitting__
 #define __GeneralSplitting__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
 namespace Shell {
 

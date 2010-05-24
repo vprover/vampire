@@ -5,18 +5,18 @@
  * @since 07/07/2007 Manchester, changed to new datastructures
  */
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/Environment.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Environment.hpp"
 
-#include "../Kernel/FormulaUnit.hpp"
-#include "../Kernel/Inference.hpp"
-#include "../Kernel/Signature.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
 
-#include "../Shell/Statistics.hpp"
+#include "Shell/Statistics.hpp"
 
-#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "Naming.hpp"
 

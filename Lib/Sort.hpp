@@ -10,8 +10,8 @@
 #ifndef __Sort__
 #  define __Sort__
 
-#include "../Debug/Assertion.hpp"
-#include "../Debug/Tracer.hpp"
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "DArray.hpp"

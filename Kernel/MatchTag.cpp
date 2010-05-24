@@ -3,7 +3,7 @@
  * Implements class MatchTag.
  */
 
-#include "../Lib/Int.hpp"
+#include "Lib/Int.hpp"
 #include "Term.hpp"
 
 #include "MatchTag.hpp"

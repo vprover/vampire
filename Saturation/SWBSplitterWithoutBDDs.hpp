@@ -7,9 +7,9 @@
 #ifndef __SWBSplitterWithoutBDDs__
 #define __SWBSplitterWithoutBDDs__
 
-#include "../Forwards.hpp"
+#include "Forwards.hpp"
 
-#include "../Lib/DHMap.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "SWBSplitter.hpp"
 

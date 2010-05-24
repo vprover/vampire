@@ -5,25 +5,25 @@
 
 #include <utility>
 
-#include "../Lib/Cache.hpp"
-#include "../Lib/Environment.hpp"
-#include "../Lib/Exception.hpp"
-#include "../Lib/DHMap.hpp"
-#include "../Lib/DHSet.hpp"
-#include "../Lib/Int.hpp"
-#include "../Lib/List.hpp"
-#include "../Lib/Stack.hpp"
-#include "../Lib/Timer.hpp"
-#include "../Lib/TimeCounter.hpp"
+#include "Lib/Cache.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/List.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/Timer.hpp"
+#include "Lib/TimeCounter.hpp"
 
 #include "Formula.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
 
-#include "../SAT/Preprocess.hpp"
-#include "../SAT/SingleWatchSAT.hpp"
+#include "SAT/Preprocess.hpp"
+#include "SAT/SingleWatchSAT.hpp"
 
-#include "../Shell/Options.hpp"
+#include "Shell/Options.hpp"
 
 #include "BDD.hpp"
 

@@ -4,14 +4,14 @@
  *
  */
 
-#include "../Lib/Allocator.hpp"
-#include "../Lib/Recycler.hpp"
-#include "../Lib/TimeCounter.hpp"
-#include "../Lib/VirtualIterator.hpp"
+#include "Lib/Allocator.hpp"
+#include "Lib/Recycler.hpp"
+#include "Lib/TimeCounter.hpp"
+#include "Lib/VirtualIterator.hpp"
 
-#include "../Kernel/Renaming.hpp"
-#include "../Kernel/SubstHelper.hpp"
-#include "../Kernel/Term.hpp"
+#include "Kernel/Renaming.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Term.hpp"
 
 #include "ClauseCodeTree.hpp"
 #include "TermCodeTree.hpp"
