@@ -223,11 +223,12 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/TPTP.o\
          Shell/TPTPParser.o
 
-
 VRULE_OBJ = Rule/Index.o\
             Rule/CASC.o\
             Rule/Prolog.o\
             Rule/ProofAttempt.o
+
+LTB_OBJ = Shell/LTB/Storage.o
 
 # testing procedures
 VT_OBJ = Test/CheckedFwSimplifier.o\
@@ -241,6 +242,7 @@ VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(
 
 VAMPIRE_DEP := $(VAMP_BASIC) Global.o vampire.o
 VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
+VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 #VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
 #SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
@@ -269,7 +271,7 @@ obj:
 	-mkdir obj
 obj/%X: | obj
 	-mkdir $@
-	-cd $@ ; mkdir Debug Lib Kernel Indexing Inferences Shell Rule SAT Saturation Test ; cd .. 
+	-cd $@ ; mkdir Debug Lib Kernel Indexing Inferences Shell Shell/LTB Rule SAT Saturation Test ; cd .. 
 
 #cancel the implicit rule
 %.o : %.cpp
@@ -282,12 +284,17 @@ $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 
 VAMPIRE_OBJ := $(addprefix $(CONF_ID)/, $(VAMPIRE_DEP))
 VCOMPIT_OBJ := $(addprefix $(CONF_ID)/, $(VCOMPIT_DEP))
+VLTB_OBJ := $(addprefix $(CONF_ID)/, $(VLTB_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
 @#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
 @#strip $@
 endef
+
+.LIBPATTERNS =
+
+-lmemcached:
 
 EXEC_DEF_PREREQ = Makefile
 
@@ -295,6 +302,9 @@ vampire vampire_rel vampire_dbg: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD)
+
+vltb: -lmemcached $(VLTB_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 #vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
