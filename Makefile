@@ -228,7 +228,9 @@ VRULE_OBJ = Rule/Index.o\
             Rule/Prolog.o\
             Rule/ProofAttempt.o
 
-LTB_OBJ = Shell/LTB/Storage.o
+LTB_OBJ = Shell/LTB/Builder.o\
+          Shell/LTB/Selector.o\
+          Shell/LTB/Storage.o
 
 # testing procedures
 VT_OBJ = Test/CheckedFwSimplifier.o\

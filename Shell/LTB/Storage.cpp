@@ -3,6 +3,7 @@
  * Implements class Storage.
  */
 
+#include <malloc.h>
 #include <string.h>
 #include <libmemcached/memcached.h>
 
@@ -30,35 +31,70 @@ public:
   StorageImpl()
   {
     CALL("Storage::StorageImpl::StorageImpl");
-    memc=memcached_create(0);
+
+    memc=memcached_create(&memcObj);
+    ASS_EQ(memc, &memcObj);
 
     memcached_return res;
+    res=memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, 1);
+    ASS_EQ(res,MEMCACHED_SUCCESS);
+
     res=memcached_server_add_unix_socket(memc, "vampire_mc_socket");
     if(res!=MEMCACHED_SUCCESS) {
       USER_ERROR("Cannot connect to memcached socket.");
     }
+
+    resStruct=memcached_result_create(memc, &resStructObj);
+    ASS_EQ(resStruct, &resStructObj);
   }
   ~StorageImpl()
   {
     CALL("Storage::StorageImpl::~StorageImpl");
 
+    memcached_result_free(resStruct);
+
     memcached_free(memc);
+  }
+
+  string getString(const char* key, size_t keyLen)
+  {
+    CALL("Storage::StorageImpl::add");
+    ASS_L(keyLen, MEMCACHED_MAX_KEY);
+
+    memcached_return res;
+    size_t valueLen;
+    char* valueChars;
+    uint32_t flags;
+    valueChars=memcached_get(memc, key, keyLen, &valueLen, &flags, &res);
+    if(!valueChars) {
+      throw StorageCorruptedException();
+    }
+    ASS_EQ(res,MEMCACHED_SUCCESS);
+
+    string valueString(valueChars, valueLen);
+    free(valueChars);
+    return valueString;
   }
 
   void add(const char* key, size_t keyLen, const char* val, size_t valLen)
   {
     CALL("Storage::StorageImpl::add");
+    ASS_L(keyLen, MEMCACHED_MAX_KEY);
 
     memcached_return res;
     res=memcached_add(memc, key, keyLen, val, valLen, 0, 0);
-    ASS(res==MEMCACHED_SUCCESS);
+    ASS_EQ(res,MEMCACHED_SUCCESS);
   }
 
 private:
-  memcached_st *memc;
+  memcached_st* memc;
+  memcached_st memcObj;
+  memcached_result_st* resStruct;
+  memcached_result_st resStructObj;
 };
 
 Storage::Storage(bool translateSignature)
+: _translateSignature(translateSignature)
 {
   _impl=new StorageImpl;
 
@@ -82,8 +118,58 @@ size_t Storage::storeInt(int num, char* bufStart)
   return sizeof(int);
 }
 
+void Storage::storeTheoryFileNames(StringStack& fnames)
+{
+  CALL("Storage::storeTheoryFiles");
+  DArray<char> buf;
+  size_t bufLen=0;
+
+  //find out how big the value buffer should be
+  StringStack::Iterator fnit1(fnames);
+  while(fnit1.hasNext()) {
+    bufLen=fnit1.next().length()+1;
+  }
+
+  //fill in the value buffer
+  buf.ensure(bufLen);
+  char* pbuf=buf.array();
+  StringStack::Iterator fnit2(fnames);
+  while(fnit2.hasNext()) {
+    string fname=fnit2.next();
+    strcpy(pbuf, fname.c_str());
+    pbuf+=fname.length()+1;
+  }
+  ASS_EQ(pbuf,buf.array()+bufLen);
+
+  //store the value
+  char key=THEORY_FILES;
+  _impl->add(&key,1,buf.array(), bufLen);
+}
+
+StringList* Storage::getTheoryFileNames()
+{
+  char key=THEORY_FILES;
+  string nameList=_impl->getString(&key, 1);
+
+  const char* ptr=nameList.c_str();
+  const char* afterLast=ptr+nameList.size();
+
+  StringList* res=0;
+  while(ptr!=afterLast) {
+    string fname(ptr);
+    ptr+=fname.size()+1;
+    StringList::push(fname, res);
+  }
+
+  return res;
+}
+
+
 void Storage::dumpSignature()
 {
+  CALL("Storage::dumpSignature");
+  ASS(!_translateSignature);
+
   int preds=env.signature->predicates();
   for(int i=0;i<preds;i++) {
     Signature::Symbol* sym=env.signature->getPredicate(i);
@@ -99,6 +185,8 @@ void Storage::dumpSignature()
 
 void Storage::storeSymbolInfo(Signature::Symbol* sym, int symIndex, bool function)
 {
+  CALL("Storage::storeSymbolInfo");
+
   static DArray<char> nameBuf;
   static DArray<char> numBuf(storedIntMaxSize+1);
   static DArray<char> arityBuf(storedIntMaxSize);

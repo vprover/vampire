@@ -235,6 +235,13 @@ class TPTPLexer;
 class TPTPParser;
 
 class LaTeX;
+
+namespace LTB
+{
+class Storage;
+class Builder;
+class Selector;
+}
 }
 
 
