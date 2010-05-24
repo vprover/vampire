@@ -57,7 +57,7 @@ XFLAGS = $(REL_FLAGS)
 endif
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall
+CXXFLAGS = $(XFLAGS) -Wall -I.
 
 ################################################################
 

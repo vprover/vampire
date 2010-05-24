@@ -7,15 +7,25 @@
 
 #include "../Debug/Tracer.hpp"
 
-#include "Timer.hpp"
+//#include "../Indexing/TermSharing.hpp"
+#include "Indexing/TermSharing.hpp"
+
+#include "../Kernel/Theory.hpp"
 
 #include "../Shell/Options.hpp"
 #include "../Shell/Statistics.hpp"
 
+#include "Timer.hpp"
+
 #include "Environment.hpp"
 
+namespace Lib
+{
+
 using namespace std;
-using namespace Lib;
+using namespace Kernel;
+using namespace Indexing;
+using namespace Shell;
 
 #if COMPIT_GENERATOR
 struct nullstream:
@@ -32,19 +42,34 @@ nullstream nullStream;
  * @since 06/05/2007 Manchester
  */
 Environment::Environment()
-  : options(0),
-    signature(0),
+  : signature(0),
 #if COMPIT_GENERATOR// && !VDEBUG
     out(nullStream),
 #else
     out(std::cout),
 #endif
     sharing(0),
-    statistics(0),
     ordering(0),
     colorUsed(false)
 {
+  options=new Options;
+  statistics=new Statistics;
+  timer=new Timer;
+  sharing=new TermSharing;
+
+  timer->start();
+
+  ASS_EQ(Kernel::theory, 0);
+  Kernel::theory = Theory::instance();
 } // Environment::Environment
+
+Environment::~Environment()
+{
+  delete sharing;
+  delete timer;
+  delete statistics;
+  delete options;
+}
 
 /**
  * If the global time limit reached set Statistics::terminationReason
@@ -70,4 +95,6 @@ bool Environment::timeLimitReached() const
 int Environment::remainingTime() const
 {
   return options->timeLimitInDeciseconds()*100 - timer->elapsedMilliseconds();
+}
+
 }

@@ -43,6 +43,8 @@ class Environment
 {
 public:
   Environment();
+  ~Environment();
+
   /** options for the current proof attempt */
   Shell::Options* options;
   /** currently used signature */
@@ -55,6 +57,7 @@ public:
   Shell::Statistics* statistics;
   /** Currently used timer */
   Timer* timer;
+
   bool timeLimitReached() const;
 
   template<int Period>

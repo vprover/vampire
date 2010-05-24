@@ -340,31 +340,17 @@ int main(int argc, char* argv [])
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);
 
-  Timer timer;
-  Options options;
-  Shell::Statistics statistics;
-
   try {
-    timer.start();
-
-    env.timer = &timer;
-    env.options = &options;
-    env.statistics = &statistics;
     env.signature = new Kernel::Signature;
     
-    Kernel::theory = Theory::instance();
-
     // read the command line and interpret it
     Shell::CommandLine cl(argc,argv);
-    cl.interpret(options);
+    cl.interpret(*env.options);
 
-    Allocator::setMemoryLimit(options.memoryLimit()*1048576ul);
-    Lib::Random::setSeed(options.randomSeed());
+    Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
+    Lib::Random::setSeed(env.options->randomSeed());
 
-    Indexing::TermSharing sharing;
-    env.sharing = &sharing;
-
-    switch (options.mode())
+    switch (env.options->mode())
     {
     case Options::MODE_GROUNDING:
       USER_ERROR("Use the vground executable for grounding.");
