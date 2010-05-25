@@ -16,6 +16,30 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
+class SineSymbolExtractor
+{
+public:
+  SineSymbolExtractor();
+  void onSignatureChange();
+
+  typedef unsigned SymId;
+  typedef VirtualIterator<SymId> SymIdIterator;
+
+  SymId getSymIdBound();
+  SymId getSymId(Literal* lit, bool polarity);
+  SymId getSymId(Term* t);
+
+  SymIdIterator extractSymIds(Unit* u);
+
+private:
+  struct FunctionSymIdFn;
+
+  void extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms);
+
+  unsigned _fnOfs;
+};
+
+
 /**
  * Class that performs the SInE axiom selection
  */
@@ -26,17 +50,8 @@ public:
   void perform(UnitList*& units);
 
 private:
-  typedef unsigned SymId;
-  typedef VirtualIterator<SymId> SymIdIterator;
-
-  struct FunctionSymIdFn;
-
-  SymId getSymIdBound();
-  SymId getSymId(Literal* lit, bool polarity);
-  SymId getSymId(Term* t);
-  void extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms);
-
-  SymIdIterator extractSymIds(Unit* u);
+  typedef SineSymbolExtractor::SymId SymId;
+  typedef SineSymbolExtractor::SymIdIterator SymIdIterator;
 
   void updateDefRelation(Unit* u);
 
@@ -44,8 +59,6 @@ private:
   bool _strict;
   unsigned _genThreshold;
   float _tolerance;
-
-  unsigned _fnOfs;
 
   /** Stores symbol generality */
   DArray<unsigned> _gen;
@@ -60,7 +73,7 @@ private:
    */
   Stack<Unit*> _unitsWithoutSymbols;
 
-
+  SineSymbolExtractor _symExtr;
 };
 
 }

@@ -8,12 +8,17 @@
 #include <libmemcached/memcached.h>
 
 #include "Debug/Assertion.hpp"
+#include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/DArray.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Stack.hpp"
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Storage.hpp"
 
@@ -79,7 +84,13 @@ public:
   void add(const char* key, size_t keyLen, const char* val, size_t valLen)
   {
     CALL("Storage::StorageImpl::add");
-    ASS_L(keyLen, MEMCACHED_MAX_KEY);
+    ASS(valLen<10000);
+    if(keyLen>=MEMCACHED_MAX_KEY) {
+      USER_ERROR("Maximum key length for memcached exceeded: "+Int::toString(keyLen));
+    }
+    if(valLen>=1000000) {
+      USER_ERROR("Maximum value length for memcached exceeded: "+Int::toString(valLen));
+    }
 
     memcached_return res;
     res=memcached_add(memc, key, keyLen, val, valLen, 0, 0);
@@ -107,15 +118,213 @@ Storage::~Storage()
   delete _impl;
 }
 
+void Storage::storeConstKey(KeyPrefix p, char* val, size_t valLen)
+{
+  CALL("Storage::storeConstKey");
+
+  char key=p;
+  _impl->add(&key, 1, val, valLen);
+}
+
+void Storage::storeIntKey(KeyPrefix p, int keyNum, char* val, size_t valLen)
+{
+  CALL("Storage::storeIntKey");
+
+  char keyBuf[1+storedIntMaxSize];
+  keyBuf[0]=p;
+  size_t keyLen=1+dumpInt(keyNum, keyBuf+1);
+  _impl->add(keyBuf, keyLen, val, valLen);
+
+}
+
+
 /**
  * Store integer @b num into the buffer starting at @b bufStart
  * and return number of bytes used.
  */
-size_t Storage::storeInt(int num, char* bufStart)
+size_t Storage::dumpInt(int num, char* bufStart)
 {
   char* pnumData=reinterpret_cast<char*>(&num);
   memcpy(bufStart, pnumData, sizeof(int));
   return sizeof(int);
+}
+
+
+/**
+ * Store clauses from @b cit as associated with the unit with number @b unitNumber
+ *
+ * E.g. clauses L11 \/ L12 and L21 are stored as
+ *
+ * <L11>0<L12>00<L21>
+ *
+ * Literals are stored in the postfix notation. Variables are stored as negative
+ * numbers decreased by one (as we have only one zero), term symbols as positive
+ * numbers increased by one. Positive occurences of predicate symbols are stored
+ * as positive numbers increased by one, negative ones as negative decreased by one.
+ *
+ * This is done because zero is used as a separator.
+ *
+ * If there is no clause associated with the unit, one zero is stored (storing empty
+ * sequence would mean an empty clause).
+ */
+void Storage::storeCNFOfUnit(unsigned unitNumber, ClauseIterator cit)
+{
+  CALL("Storage::storeCNFOfUnit");
+  ASS(!_translateSignature);
+
+  static ClauseStack cls;
+  cls.reset();
+  cls.loadFromIterator(cit);
+
+  if(cls.isEmpty()) {
+    char val=0;
+    storeIntKey(UNIT_CNF, unitNumber, &val, 1);
+    return;
+  }
+
+  size_t bufEntries=0;
+  ClauseStack::Iterator cit1(cls);
+  while(cit1.hasNext()) {
+    Clause* cl=cit1.next();
+    ASS(cl->isClause());
+
+    bufEntries+=cl->weight()+cl->length()+1;
+  }
+
+  size_t bufLen=bufEntries*storedIntMaxSize;
+  static DArray<char> buf;
+  buf.ensure(bufLen);
+
+  char* ptr=buf.array();
+  ClauseStack::Iterator cit2(cls);
+  while(cit2.hasNext()) {
+    Clause* cl=cit2.next();
+    bool isLastClause=!cit2.hasNext();
+    unsigned clen=cl->length();
+    for(unsigned i=0;i<clen;i++) {
+      Literal* lit=(*cl)[i];
+
+      PolishSubtermIterator trmIt(lit);
+      while(trmIt.hasNext()) {
+	TermList t=trmIt.next();
+	if(t.isVar()) {
+	  ptr+=dumpInt(-t.var()-1, ptr);
+	}
+	else {
+	  ptr+=dumpInt(t.term()->functor()+1, ptr);
+	}
+      }
+      if(lit->isPositive()) {
+	ptr+=dumpInt(lit->functor()+1, ptr);
+      }
+      else {
+	ptr+=dumpInt(-lit->functor()-1, ptr);
+      }
+
+      if(!isLastClause || i!=(clen-1)) {
+	*(ptr++)=0;
+      }
+    }
+    if(!isLastClause) {
+      *(ptr++)=0;
+    }
+  }
+  size_t valLen=ptr-buf.array();
+  ASS_L(valLen, bufLen);
+
+  storeIntKey(UNIT_CNF, unitNumber, buf.array(), valLen);
+}
+
+void Storage::storeUnitsWithoutSymbols(Stack<Unit*>& units)
+{
+  CALL("Storage::storeUnitsWithoutSymbols");
+
+  DArray<char> buf(units.size()*storedIntMaxSize);
+  char* ptr=buf.array();
+
+  Stack<Unit*>::Iterator uit(units);
+  while(uit.hasNext()) {
+    ptr+=dumpInt(uit.next()->number(), ptr);
+  }
+
+  size_t valLen=ptr-buf.array();
+  ASS_LE(valLen, buf.size());
+
+  storeConstKey(UNITS_WITHOUT_SYMBOLS,  buf.array(), valLen);
+}
+
+/**
+ * Store DUnitRecords for symbol @b s from stack @b durs.
+ *
+ * The records in stack @b s must be unique and sorted by the tolerance threshold.
+ *
+ * E.g.: The sequence of thresholds and units
+ * (100, unit1), (120, unit2), (120, unit3), (300, unit4)
+ *
+ * will be stored as
+ *
+ * <number of unit1><-120><number of unit2><number of unit3><-300><number of unit4>
+ */
+void Storage::storeDURs(SymId s, Stack<DUnitRecord>& durs)
+{
+  CALL("Storage::storeDURs");
+
+  static DArray<char> buf;
+  buf.ensure(2*durs.size()*storedIntMaxSize);
+  char* ptr=buf.array();
+
+  unsigned prevThreshold=100;
+  Stack<DUnitRecord>::Iterator dit(durs);
+  while(dit.hasNext()) {
+    DUnitRecord dur=dit.next();
+    if(prevThreshold!=dur.first) {
+      ASS_G(dur.first, 0);
+      ptr+=dumpInt(-dur.first, ptr);
+    }
+    ptr+=dumpInt(dur.second->number(), ptr);
+  }
+  size_t valLen=ptr-buf.array();
+  ASS_LE(valLen, buf.size());
+
+  storeIntKey(SYM_DURS, s, buf.array(), valLen);
+}
+
+/**
+ * Store DSymRecords for symbol @b s from stack @b dsrs.
+ *
+ * The records in stack @b s must be unique and sorted by the tolerance threshold.
+ *
+ * E.g.: The sequence of thresholds and SymIds
+ * (100, 5), (120, 2), (120, 4), (300, 1)
+ *
+ * will be stored as
+ *
+ * <5><-120><2><4><-300><1>
+ */
+void Storage::storeDSRs(SymId s, Stack<DSymRecord>& dsrs)
+{
+  CALL("Storage::storeDSRs");
+
+  static DArray<char> buf;
+  buf.ensure(2*dsrs.size()*storedIntMaxSize);
+
+  char* ptr=buf.array();
+
+  unsigned prevThreshold=100;
+  Stack<DSymRecord>::Iterator dit(dsrs);
+  while(dit.hasNext()) {
+    DSymRecord dsr=dit.next();
+    if(prevThreshold!=dsr.first) {
+      ASS_G(dsr.first, 100);
+      ptr+=dumpInt(-dsr.first, ptr);
+    }
+    ASS_GE(dsr.second, 0);
+    ptr+=dumpInt(dsr.second, ptr);
+  }
+  size_t valLen=ptr-buf.array();
+  ASS_LE(valLen, buf.size());
+
+  storeIntKey(SYM_DSRS, s, buf.array(), valLen);
 }
 
 void Storage::storeTheoryFileNames(StringStack& fnames)
@@ -127,7 +336,7 @@ void Storage::storeTheoryFileNames(StringStack& fnames)
   //find out how big the value buffer should be
   StringStack::Iterator fnit1(fnames);
   while(fnit1.hasNext()) {
-    bufLen=fnit1.next().length()+1;
+    bufLen+=fnit1.next().length()+1;
   }
 
   //fill in the value buffer
@@ -141,9 +350,7 @@ void Storage::storeTheoryFileNames(StringStack& fnames)
   }
   ASS_EQ(pbuf,buf.array()+bufLen);
 
-  //store the value
-  char key=THEORY_FILES;
-  _impl->add(&key,1,buf.array(), bufLen);
+  storeConstKey(THEORY_FILES, buf.array(), bufLen);
 }
 
 StringList* Storage::getTheoryFileNames()
@@ -165,18 +372,30 @@ StringList* Storage::getTheoryFileNames()
 }
 
 
-void Storage::dumpSignature()
+void Storage::storeSignature()
 {
   CALL("Storage::dumpSignature");
   ASS(!_translateSignature);
 
   int preds=env.signature->predicates();
+  int funs=env.signature->functions();
+
+  //store number of predicates and functions
+  DArray<char> predFunCountBuf(storedIntMaxSize*2);
+  char* ptr=predFunCountBuf.array();
+  ptr+=dumpInt(preds, ptr);
+  ptr+=dumpInt(funs, ptr);
+  size_t valLength=ptr-predFunCountBuf.array();
+  ASS_LE(valLength, predFunCountBuf.size());
+
+  storeConstKey(PRED_FUN_CNT, predFunCountBuf.array(), valLength);
+
+
   for(int i=0;i<preds;i++) {
     Signature::Symbol* sym=env.signature->getPredicate(i);
     storeSymbolInfo(sym, i, false);
   }
 
-  int funs=env.signature->functions();
   for(int i=0;i<funs;i++) {
     Signature::Symbol* sym=env.signature->getFunction(i);
     storeSymbolInfo(sym, i, true);
@@ -198,8 +417,8 @@ void Storage::storeSymbolInfo(Signature::Symbol* sym, int symIndex, bool functio
   nameBuf.ensure(nameLen+1);
   strcpy(nameBuf.array()+1, name.c_str());
 
-  size_t numLen=storeInt(symIndex, numBuf.array()+1);
-  size_t arityLen=storeInt(arity, arityBuf.array());
+  size_t numLen=dumpInt(symIndex, numBuf.array()+1);
+  size_t arityLen=dumpInt(arity, arityBuf.array());
 
   //store (PRED/FUN)_TO_NUM
   nameBuf[0]=function ? FUN_TO_NUM : PRED_TO_NUM;

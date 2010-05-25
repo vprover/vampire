@@ -50,6 +50,9 @@
 #include "Shell/TPTP.hpp"
 #include "Shell/TPTPParser.hpp"
 
+#include "Shell/LTB/Builder.hpp"
+
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "SAT/DIMACS.hpp"
@@ -131,6 +134,42 @@ void explainException (Exception& exception)
   exception.cry(env.out);
 } // explainException
 
+void ltbBuildMode()
+{
+  CALL("ltbBuildMode");
+
+  string inputFile = env.options->inputFile();
+
+  istream* input0;
+  if(inputFile=="") {
+    input0=&cin;
+  } else {
+    input0=new ifstream(inputFile.c_str());
+  }
+  istream& input=*input0;
+
+  Stack<string> nameStack;
+  char lineBuf[1024];
+
+  while(!input.eof()) {
+    input.getline(lineBuf, 1024);
+    string line(lineBuf);
+    if(line.length()<12 || line.substr(0,9)!="include('" || line.substr(line.length()-3,3)!="').") {
+      continue;
+    }
+    string fname(line, 9, line.length()-3-9);
+
+    nameStack.push(env.options->includeFileName(fname));
+  }
+
+  Shell::LTB::Builder builder;
+  builder.build(pvi( Stack<string>::Iterator(nameStack) ));
+
+  if(inputFile!="") {
+    delete static_cast<ifstream*>(&input);
+  }
+}
+
 /**
  * The main function.
   * @since 03/12/2003 many changes related to logging
@@ -159,6 +198,9 @@ int main(int argc, char* argv [])
 
     switch (env.options->mode())
     {
+    case Options::MODE_LTB_BUILD:
+      ltbBuildMode();
+      break;
     case Options::MODE_GROUNDING:
     case Options::MODE_SPIDER:
     case Options::MODE_CONSEQUENCE_FINDING:
@@ -167,7 +209,7 @@ int main(int argc, char* argv [])
     case Options::MODE_CLAUSIFY:
     case Options::MODE_PROFILE:
     case Options::MODE_RULE:
-      USER_ERROR("Specified mode is not supported by the vltb executable (use '--mode ltb_scan' or '--mode ltb_solve')");
+      USER_ERROR("Specified mode is not supported by the vltb executable (use '--mode ltb_build' or '--mode ltb_solve')");
       break;
 #if VDEBUG
     default:

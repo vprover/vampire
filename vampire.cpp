@@ -374,10 +374,8 @@ int main(int argc, char* argv [])
     case Options::MODE_RULE:
       USER_ERROR("Rule mode is not implemented");
       break;
-#if VDEBUG
     default:
-      ASSERTION_VIOLATION;
-#endif
+      USER_ERROR("Unsupported mode");
     }
 #if CHECK_LEAKS
     if (globUnitList) {

@@ -31,18 +31,23 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
-
-SineSelector::SineSelector()
-: _onIncluded(env.options->sineSelection()==Options::SS_INCLUDED),
-  _genThreshold(env.options->sineGeneralityThreshold()),
-  _tolerance(env.options->sineTolerance()),
-  _fnOfs(env.signature->predicates())
+SineSymbolExtractor::SineSymbolExtractor()
+: _fnOfs(env.signature->predicates())
 {
-  CALL("SineSelector::SineSelector");
-  ASS_NEQ(env.options->sineSelection(),Options::SS_OFF);
-  ASS_GE(_tolerance, 1.0f);
+  CALL("SineSymbolExtractor::SineSymbolExtractor");
+}
 
-  _strict=_tolerance==1.0f;
+/**
+ * Should be called if there were new symbols added to the signature
+ * since the construction of the object
+ *
+ * SymId corresponding to each symbol may change after a call to this function.
+ */
+void SineSymbolExtractor::onSignatureChange()
+{
+  CALL("SineSymbolExtractor::onSignatureChange");
+
+  _fnOfs=env.signature->predicates();
 }
 
 /**
@@ -52,39 +57,41 @@ SineSelector::SineSelector()
  * The returned value is to be used to determine the size of various
  * arrays.
  */
-SineSelector::SymId SineSelector::getSymIdBound()
+SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 {
   return env.signature->predicates() + env.signature->functions();
 }
 
-SineSelector::SymId SineSelector::getSymId(Literal* lit, bool polarity)
+SineSymbolExtractor::SymId SineSymbolExtractor::getSymId(Literal* lit, bool polarity)
 {
 //  return lit->functor()*2 + (polarity^lit->isNegative()?0:1);
   return lit->functor();
 }
-SineSelector::SymId SineSelector::getSymId(Term* t)
+SineSymbolExtractor::SymId SineSymbolExtractor::getSymId(Term* t)
 {
+  CALL("SineSymbolExtractor::getSymId");
   ASS(!t->isLiteral());
+
   return _fnOfs+t->functor();
 }
 
-struct SineSelector::FunctionSymIdFn
+struct SineSymbolExtractor::FunctionSymIdFn
 {
-  FunctionSymIdFn(SineSelector* ss) : _ss(ss) {}
+  FunctionSymIdFn(SineSymbolExtractor* sse) : _sse(sse) {}
   DECL_RETURN_TYPE(SymId);
   SymId operator()(TermList t)
   {
     ASS(t.isTerm());
-    return _ss->getSymId(t.term());
+    return _sse->getSymId(t.term());
   }
 
-  SineSelector* _ss;
+  SineSymbolExtractor* _sse;
 };
 
 
-void SineSelector::extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
+void SineSymbolExtractor::extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
 {
-  CALL("SineSelector::extractFormulaSymbols");
+  CALL("SineSymbolExtractor::extractFormulaSymbols");
 
   switch (f->connective()) {
     case LITERAL:
@@ -158,9 +165,10 @@ void SineSelector::extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& i
  * Return iterator that yields SymIds of all symbols in a unit.
  * Each SymId is yielded at most once.
  */
-SineSelector::SymIdIterator SineSelector::extractSymIds(Unit* u)
+SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
 {
-  CALL("SineSelector::extractSymIds");
+  CALL("SineSymbolExtractor::extractSymIds");
+  ASS_EQ(_fnOfs,env.signature->predicates()); //check that signature hasn't changed
 
   Stack<SymId> itms;
   if(u->isClause()) {
@@ -180,6 +188,19 @@ SineSelector::SymIdIterator SineSelector::extractSymIds(Unit* u)
   return pvi( getUniquePersistentIterator(Stack<SymId>::Iterator(itms)) );
 }
 
+
+SineSelector::SineSelector()
+: _onIncluded(env.options->sineSelection()==Options::SS_INCLUDED),
+  _genThreshold(env.options->sineGeneralityThreshold()),
+  _tolerance(env.options->sineTolerance())
+{
+  CALL("SineSelector::SineSelector");
+  ASS_NEQ(env.options->sineSelection(),Options::SS_OFF);
+  ASS_GE(_tolerance, 1.0f);
+
+  _strict=_tolerance==1.0f;
+}
+
 /**
  * Connect unit @b u with symbols it defines
  */
@@ -187,7 +208,7 @@ void SineSelector::updateDefRelation(Unit* u)
 {
   CALL("SineSelector::updateDefRelation");
 
-  SymIdIterator sit=extractSymIds(u);
+  SymIdIterator sit=_symExtr.extractSymIds(u);
 
   if(!sit.hasNext()) {
     _unitsWithoutSymbols.push(u);
@@ -239,7 +260,7 @@ void SineSelector::updateDefRelation(Unit* u)
 
     //if the generalityLimit is under _genThreshold, all suitable symbols are already added
     if(generalityLimit>_genThreshold) {
-      sit=extractSymIds(u);
+      sit=_symExtr.extractSymIds(u);
       while(sit.hasNext()) {
 	SymId sym=sit.next();
 	unsigned val=_gen[sym];
@@ -258,14 +279,14 @@ void SineSelector::perform(UnitList*& units)
 {
   CALL("SineSelector::perform");
 
-  SymId symIdBound=getSymIdBound();
+  SymId symIdBound=_symExtr.getSymIdBound();
 
   //determine symbol generality
   _gen.init(symIdBound,0);
   UnitList::Iterator uit1(units);
   while(uit1.hasNext()) {
     Unit* u=uit1.next();
-    SymIdIterator sit=extractSymIds(u);
+    SymIdIterator sit=_symExtr.extractSymIds(u);
     while(sit.hasNext()) {
       SymId sid=sit.next();
       _gen[sid]++;
@@ -315,7 +336,7 @@ void SineSelector::perform(UnitList*& units)
       continue;
     }
 
-    SymIdIterator sit=extractSymIds(u);
+    SymIdIterator sit=_symExtr.extractSymIds(u);
     while(sit.hasNext()) {
       SymId sym=sit.next();
       UnitList::Iterator defUnits(_def[sym]);

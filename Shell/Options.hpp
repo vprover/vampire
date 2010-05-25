@@ -6,6 +6,8 @@
 #ifndef __Options__
 #define __Options__
 
+#include "Forwards.hpp"
+
 #include "Debug/Assertion.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -163,6 +165,7 @@ public:
     MODE_CLAUSIFY,
     MODE_CONSEQUENCE_FINDING,
     MODE_GROUNDING,
+    MODE_LTB_BUILD,
     MODE_PROFILE,
     MODE_RULE,
     MODE_SPIDER,
@@ -487,6 +490,8 @@ private:
   void readAgeWeightRatio(const char* val);
   static string boolToOnOff(bool);
   void outputValue(ostream& str,int optionTag) const;
+
+  friend class Shell::LTB::Builder;
 
 public:
   // the following two functions are used by Environment

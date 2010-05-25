@@ -144,8 +144,8 @@ private:
 
 /**
  * Iterator that yields proper subterms
- * of specified @b term for a function first yielding
- * its params left to right and then the function itself.
+ * of specified @b term, so that for each function it first yields
+ * its arguments left to right, and then the function itself.
  */
 class PolishSubtermIterator
 : public IteratorCore<TermList>
