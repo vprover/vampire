@@ -1,0 +1,7 @@
+#!/bin/bash
+
+memcached -s vampire_mc_socket -m 512 -v &
+
+./vltb --mode ltb_build < $1
+
+kill %?memcached
