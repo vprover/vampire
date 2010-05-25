@@ -41,10 +41,15 @@ struct DefaultComparator
 template <class Comparator, typename C>
 void sort(C* first, C* afterLast)
 {
+  CALL("sort");
   //modified sorting code, that was originally in Resolution::Tautology::sort
 
   C* arr=first;
   size_t size=afterLast-first;
+  if(size<=1) {
+    //nothing to sort
+    return;
+  }
 
   // array behaves as a stack of calls to quicksort
   static DArray<size_t> ft(32);

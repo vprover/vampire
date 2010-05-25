@@ -1,6 +1,6 @@
 #!/bin/bash
 
-memcached -s vampire_mc_socket -m 512 -v &
+memcached -s vampire_mc_socket -m 128 -v &
 
 ./vltb --mode ltb_build < $1
 

@@ -94,7 +94,8 @@ TPTPParser::TPTPParser(TPTPLexer& lexer, int includeDepth)
   : Parser(lexer),
     _currentColor(COLOR_TRANSPARENT),
     _includeDepth(includeDepth),
-    _namesLimited(false)
+    _namesLimited(false),
+    _forbiddenIncludes(0)
 {
 }
 
@@ -104,10 +105,17 @@ TPTPParser::TPTPParser(TPTPLexer& lexer, List<string>* allowedNames, int include
     _currentColor(COLOR_TRANSPARENT),
     _includeDepth(includeDepth),
     _namesLimited(true),
-    _allowedNames(allowedNames)
+    _allowedNames(allowedNames),
+    _forbiddenIncludes(0)
 {
 }
 
+void TPTPParser::setForbiddenIncludes(List<string>* fileNames)
+{
+  CALL("TPTPParser::setForbiddenIncludes");
+
+  _forbiddenIncludes=fileNames;
+}
 
 /**
  * Parse a unit list.
@@ -995,7 +1003,7 @@ void TPTPParser::include(UnitStack& stack)
   if (token.tag != TT_NAME) {
     throw ParserException("name expected",token);
   }
-  string fileName(env.options->includeFileName(token.text));
+  string relativeName=token.text;
 
   bool incLimited=false;
   List<string>* incAllowedNames;
@@ -1023,6 +1031,11 @@ void TPTPParser::include(UnitStack& stack)
   }
   consumeToken(TT_RPAR);
   consumeToken(TT_DOT);
+
+  if(_forbiddenIncludes->member(relativeName)) {
+    return;
+  }
+  string fileName(env.options->includeFileName(relativeName));
 
   ifstream in(fileName.c_str());
   if (! in) {

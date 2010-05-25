@@ -36,6 +36,8 @@ public:
   TPTPParser(TPTPLexer& lexer, List<string>* allowedNames, int includeDepth=0);
   UnitList* units();
 
+  void setForbiddenIncludes(List<string>* fileNames);
+
 private:
   class UnitStack;
   class LiteralStack;
@@ -91,10 +93,11 @@ private:
    * directive of the TPTP format.
    */
   bool _namesLimited;
-  /**
-   * Allowed names of formulas (see @b _namesLimited)
-   */
+  /** Allowed names of formulas (see @b _namesLimited) */
   List<string>* _allowedNames;
+
+  /** Names of files that will be skipped if they appear in the include directive */
+  List<string>* _forbiddenIncludes;
 }; // class TPTPParser
 
 }

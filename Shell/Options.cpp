@@ -363,6 +363,7 @@ const char* Options::Constants::_modeValues[] = {
   "consequence_finding",
   "grounding",
   "ltb_build",
+  "ltb_solve",
   "profile",
   "rule",
   "spider",

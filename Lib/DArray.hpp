@@ -46,6 +46,8 @@ public:
   DArray (size_t size=0)
     : _size(size), _capacity(size)
   {
+    CALL("DArray::DArray");
+
     if(size>0) {
       void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
       _array = array_new<C>(mem, _capacity);
@@ -96,6 +98,8 @@ public:
    */
   inline bool ensure(size_t s)
   {
+    CALL("DArray::ensure");
+
     if (_capacity >= s) {
       _size = s;
       return true;
@@ -122,6 +126,8 @@ public:
    */
   void expand(size_t s)
   {
+    CALL("DArray::expand");
+
     if (_capacity >= s) {
       _size = s;
       return;
@@ -231,6 +237,8 @@ public:
   template<bool Inversed, typename Comparator>
   void sortGen(Comparator comp)
   {
+    CALL("DArray::sortGen");
+
     if(!size()) {
       return;
     }
