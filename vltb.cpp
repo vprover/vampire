@@ -170,6 +170,13 @@ void ltbBuildMode()
   }
 }
 
+void ltbSolveMode()
+{
+  CALL("ltbSolveMode");
+
+  NOT_IMPLEMENTED;
+}
+
 /**
  * The main function.
   * @since 03/12/2003 many changes related to logging
@@ -200,6 +207,9 @@ int main(int argc, char* argv [])
     {
     case Options::MODE_LTB_BUILD:
       ltbBuildMode();
+      break;
+    case Options::MODE_LTB_SOLVE:
+      ltbSolveMode();
       break;
     case Options::MODE_GROUNDING:
     case Options::MODE_SPIDER:
