@@ -10,6 +10,10 @@
 
 #include "Forwards.hpp"
 
+#include "Shell/SineUtils.hpp"
+
+#include "Storage.hpp"
+
 namespace Shell
 {
 namespace LTB
@@ -21,7 +25,13 @@ using namespace Kernel;
 class Selector
 {
 public:
-  ClauseList* selectForProblem(string fname);
+  Selector() : _storage(true) {}
+  StringList* theoryFileNames()
+  { return _storage.getTheoryFileNames(); }
+
+  void selectForProblem(UnitList*& units);
+private:
+  Storage _storage;
 };
 
 }

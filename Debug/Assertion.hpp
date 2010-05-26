@@ -172,6 +172,8 @@ private:
 #define ASSERTION_VIOLATION \
   Debug::Assertion::violated(__FILE__,__LINE__,"true");		\
   throw Debug::AssertionViolationException(__FILE__,__LINE__);
+#define ASSERTION_VIOLATION_REP(Val) \
+  ASS_REP(false, Val)
 #else // ! VDEBUG
 
 #define ASS(Cond)
@@ -197,6 +199,7 @@ private:
 
 
 #define ASSERTION_VIOLATION
+#define ASSERTION_VIOLATION_REP(Val)
 
 #define ASSERT_VALID(obj)
 

@@ -9,6 +9,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/TimeCounter.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -73,6 +74,17 @@ SineSymbolExtractor::SymId SineSymbolExtractor::getSymId(Term* t)
   ASS(!t->isLiteral());
 
   return _fnOfs+t->functor();
+}
+
+void SineSymbolExtractor::decodeSymId(SymId s, bool& pred, unsigned& functor)
+{
+  pred=s<_fnOfs;
+  if(pred) {
+    functor=s;
+  }
+  else {
+    functor=s-_fnOfs;
+  }
 }
 
 struct SineSymbolExtractor::FunctionSymIdFn
@@ -278,6 +290,8 @@ void SineSelector::updateDefRelation(Unit* u)
 void SineSelector::perform(UnitList*& units)
 {
   CALL("SineSelector::perform");
+
+  TimeCounter tc(TC_SINE_SELECTION);
 
   SymId symIdBound=_symExtr.getSymIdBound();
 

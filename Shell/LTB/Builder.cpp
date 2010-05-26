@@ -199,7 +199,10 @@ void Builder::build(VirtualIterator<string> fnameIterator)
       SymIdIterator sit2=_symExtr.extractSymIds(dur.second);
       ASS(sit2.hasNext());
       while(sit2.hasNext()) {
-        symStack.push(make_pair(dur.first, sit2.next()));
+	SymId symToAdd=sit2.next();
+	if(symToAdd!=i) {
+	  symStack.push(make_pair(dur.first, symToAdd));
+	}
       }
     }
 

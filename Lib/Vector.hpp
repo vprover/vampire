@@ -78,12 +78,6 @@ public:
     DEALLOC_KNOWN(this,sz,"Vector");
   } // deallocate
 
-  void* operator new(size_t,size_t length);
-  void operator delete(void*)
-  {
-    ASSERTION_VIOLATION
-  }
-  Vector();
 
   string toString()
   {
@@ -99,11 +93,60 @@ public:
 
   friend class Indexing::CodeTree;
   friend class Indexing::ClauseCodeTree;
+
+  /**
+   * Iterator that deallocates the vector when it yields the last value.
+   *
+   * @warning if the Vector is of length zero, it is deallocated in the
+   *   	      constructor of the iterator.
+   */
+  class DestructiveIterator
+  {
+  public:
+    DECL_ELEMENT_TYPE(C);
+
+    DestructiveIterator(Vector& v)
+    : cur(v._array), afterLast(v._array+v.length()), vec(&v)
+    {
+      if(cur==afterLast) {
+	vec->deallocate();
+      }
+    }
+
+    bool hasNext()
+    {
+      return cur!=afterLast;
+    }
+
+    C next()
+    {
+      CALL("Vector::DestructiveIterator::next");
+      ASS(hasNext());
+
+      C res=*cur;
+      cur++;
+      if(cur==afterLast) {
+	vec->deallocate();
+      }
+      return res;
+    }
+  private:
+    C* cur;
+    C* afterLast;
+    Vector* vec;
+  };
 protected:
   /** array's length */
   size_t _length;
   /** array's content */
   C _array[1];
+private:
+  void* operator new(size_t,size_t length);
+  void operator delete(void*)
+  {
+    ASSERTION_VIOLATION
+  }
+  Vector();
 }; // class Vector
 
 } // namespace Lib

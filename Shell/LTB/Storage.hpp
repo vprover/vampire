@@ -10,8 +10,10 @@
 
 #include "Debug/Assertion.hpp"
 
+#include "Lib/DHMap.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Signature.hpp"
 
@@ -37,6 +39,7 @@ typedef SineSymbolExtractor::SymIdIterator SymIdIterator;
 
 typedef List<string> StringList;
 typedef Stack<string> StringStack;
+typedef VirtualIterator<string> StringIterator;
 
 typedef pair<unsigned, Unit*> DUnitRecord;
 typedef pair<unsigned, SymId> DSymRecord;
@@ -49,10 +52,25 @@ public:
   Storage(bool translateSignature);
   ~Storage();
 
+  /////////// retrieving ////////
+
+  StringList* getTheoryFileNames();
+  void getSignatureSize(int& preds, int& funs);
+
+  VirtualIterator<pair<bool, unsigned> > getGlobalSymbols(Stack<pair<bool, unsigned> >& syms);
+  void getLocalSymbols(VirtualIterator<pair<bool,unsigned> > globSyms, DHMap<pair<bool,unsigned>, unsigned>& resMap);
+
+  SymIdIterator getDRelatedSymbols(Stack<SymId>& qsymbols, unsigned itolerance);
+  VirtualIterator<unsigned> getDRelatedUnitNumbers(SymIdIterator qsymbols, unsigned itolerance);
+
+  VirtualIterator<unsigned> getNumbersOfUnitsWithoutSymbols();
+
+  UnitList* getClausesByUnitNumbers(VirtualIterator<unsigned> numIt);
+
+  //////////// storing //////////
   void storeSignature();
 
   void storeTheoryFileNames(StringStack& fnames);
-  StringList* getTheoryFileNames();
 
   void storeCNFOfUnit(unsigned unitNumber, ClauseIterator cit);
 
@@ -66,9 +84,9 @@ private:
 
   enum KeyPrefix
   {
-    /** Key continues by "<name>/<arity>", value contains predicate number in the global signature */
+    /** Key continues by "<name>_<arity>", value contains predicate number in the global signature */
     PRED_TO_NUM,
-    /** Key continues by "<name>/<arity>", value contains function number in the global signature */
+    /** Key continues by "<name>_<arity>", value contains function number in the global signature */
     FUN_TO_NUM,
     /** Key continues by "<number in global signature>", value contains predicate name */
     PRED_NUM_NAME,
@@ -80,7 +98,7 @@ private:
     FUN_NUM_ARITY,
     /** Value contains list of theory file names separated by NULL character */
     THEORY_FILES,
-    /** Value contains number of predicates and functions */
+    /** Value contains <number of predicates><number of functions> */
     PRED_FUN_CNT,
     /** Key continues by "<number of unit>", value contains the unit converted to the CNF form
      * (See @b storeCNFOfUnit for details) */
@@ -97,15 +115,22 @@ private:
     PREFIX_COUNT
   };
 
+  string getConstKey(KeyPrefix p);
+  string getIntKey(KeyPrefix p, int keyNum);
+
+  StringIterator getIntKeyValues(KeyPrefix p, VirtualIterator<int> keyNums);
+
   void storeConstKey(KeyPrefix p, char* val, size_t valLen);
   void storeIntKey(KeyPrefix p, int keyNum, char* val, size_t valLen);
 
   void storeSymbolInfo(Signature::Symbol* sym, int index, bool function);
 
-  static const int storedIntMaxSize=4;
+  static const unsigned storedIntMaxSize=4;
   static size_t dumpInt(int num, char* bufStart);
+  size_t readInt(const char* buf, int& num);
 
 
+  DHMap<pair<bool, unsigned>, unsigned> _glob2loc;
   bool _translateSignature;
   StorageImpl* _impl;
 };

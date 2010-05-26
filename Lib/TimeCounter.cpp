@@ -189,6 +189,9 @@ void TimeCounter::printSingleStat(TimeCounterUnit tcu)
   case TC_PREPROCESSING:
     env.out<<"preprocessing";
     break;
+  case TC_SINE_SELECTION:
+    env.out<<"sine selection";
+    break;
   case TC_RESOLUTION:
     env.out<<"resolution";
     break;

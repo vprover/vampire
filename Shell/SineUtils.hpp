@@ -26,13 +26,16 @@ public:
   typedef VirtualIterator<SymId> SymIdIterator;
 
   SymId getSymIdBound();
-  SymId getSymId(Literal* lit, bool polarity);
-  SymId getSymId(Term* t);
 
   SymIdIterator extractSymIds(Unit* u);
 
+  void decodeSymId(SymId s, bool& pred, unsigned& functor);
+
 private:
   struct FunctionSymIdFn;
+
+  SymId getSymId(Literal* lit, bool polarity);
+  SymId getSymId(Term* t);
 
   void extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms);
 

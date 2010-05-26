@@ -51,6 +51,7 @@
 #include "Shell/TPTPParser.hpp"
 
 #include "Shell/LTB/Builder.hpp"
+#include "Shell/LTB/Selector.hpp"
 
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -73,6 +74,59 @@ using namespace Inferences;
 
 UnitList* globUnitList=0;
 
+ClauseIterator getProblemClauses()
+{
+  CALL("getProblemClauses");
+
+  Shell::LTB::Selector selector;
+  Property property;
+
+  UnitList* units;
+  {
+    TimeCounter tc1(TC_PARSING);
+
+    string inputFile = env.options->inputFile();
+
+    istream* input;
+    if(inputFile=="") {
+      input=&cin;
+    } else {
+      input=new ifstream(inputFile.c_str());
+    }
+
+    env.statistics->phase=Statistics::PARSING;
+    if(env.options->inputSyntax()!=Options::IS_TPTP) {
+      USER_ERROR("Unsupported input syntax");
+    }
+
+    {
+      TPTPLexer lexer(*input);
+      TPTPParser parser(lexer);
+      parser.setForbiddenIncludes(selector.theoryFileNames());
+
+      units = parser.units();
+    }
+
+    if(inputFile!="") {
+      delete static_cast<ifstream*>(input);
+      input=0;
+    }
+  }
+
+  selector.selectForProblem(units);
+
+  TimeCounter tc2(TC_PREPROCESSING);
+
+  env.statistics->phase=Statistics::PROPERTY_SCANNING;
+  property.scan(units);
+  Preprocess prepro(property,*env.options);
+  //phases for preprocessing are being set inside the proprocess method
+  prepro.preprocess(units);
+
+  globUnitList=units;
+
+  return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
+}
 
 void outputResult()
 {
@@ -174,7 +228,29 @@ void ltbSolveMode()
 {
   CALL("ltbSolveMode");
 
-  NOT_IMPLEMENTED;
+  try {
+    ClauseIterator clauses=getProblemClauses();
+    Unit::onPreprocessingEnd();
+
+    env.statistics->phase=Statistics::SATURATION;
+    SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
+    salg->addInputClauses(clauses);
+
+    SaturationResult sres(salg->saturate());
+    env.statistics->phase=Statistics::FINALIZATION;
+    sres.updateStatistics();
+  }
+  catch(MemoryLimitExceededException) {
+    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env.statistics->refutation=0;
+    size_t limit=Allocator::getMemoryLimit();
+    //add extra 1 MB to allow proper termination
+    Allocator::setMemoryLimit(limit+1000000);
+  }
+  catch(TimeLimitExceededException) {
+    env.statistics->terminationReason=Statistics::TIME_LIMIT;
+    env.statistics->refutation=0;
+  }
 }
 
 /**

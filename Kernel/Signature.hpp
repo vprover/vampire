@@ -230,6 +230,8 @@ class Signature
 
   unsigned addPredicate(const string& name,unsigned arity,bool& added);
   unsigned addFunction(const string& name,unsigned arity,bool& added);
+
+  static string key(const string& name,int arity);
 private:
 
   /** Stack of function symbols */
@@ -258,8 +260,6 @@ private:
    * or a predicate.
    */
   DHMap<Interpretation, unsigned> _iSymbols;
-
-  static string key(const string& name,int arity);
 }; // class Signature
 
 }
