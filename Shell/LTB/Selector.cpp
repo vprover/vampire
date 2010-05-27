@@ -10,6 +10,9 @@
 #include "Lib/Stack.hpp"
 #include "Lib/TimeCounter.hpp"
 
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -138,6 +141,14 @@ void Selector::selectForProblem(UnitList*& units)
   CALL("Selector::selectForProblem");
 
   TimeCounter tc(TC_SINE_SELECTION);
+
+  if(_storage.getEmptyClausePossession()) {
+    Clause* cl=Clause::fromIterator(VirtualIterator<Literal*>::getEmpty(), Unit::AXIOM, new Inference(Inference::THEORY));
+    units->destroy();
+    units=0;
+    UnitList::push(cl, units);
+    return;
+  }
 
   TranslatingSymbolCollector tsc(&_storage);
   UnitList::Iterator uit(units);

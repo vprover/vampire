@@ -711,10 +711,10 @@ $(CONF_ID)/Shell/SineUtils.o: Lib/VirtualIterator.hpp Lib/Portability.hpp
 $(CONF_ID)/Shell/SineUtils.o: Lib/Environment.hpp Lib/List.hpp
 $(CONF_ID)/Shell/SineUtils.o: Lib/Metaiterators.hpp Lib/List.hpp Lib/Set.hpp
 $(CONF_ID)/Shell/SineUtils.o: Lib/TimeCounter.hpp Lib/Set.hpp
-$(CONF_ID)/Shell/SineUtils.o: Lib/VirtualIterator.hpp Kernel/Clause.hpp
-$(CONF_ID)/Shell/SineUtils.o: Lib/Allocator.hpp Lib/InverseLookup.hpp
-$(CONF_ID)/Shell/SineUtils.o: Lib/Reflection.hpp Lib/Stack.hpp
-$(CONF_ID)/Shell/SineUtils.o: Lib/BacktrackData.hpp Lib/Int.hpp
+$(CONF_ID)/Shell/SineUtils.o: Lib/TimeCounter.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Shell/SineUtils.o: Kernel/Clause.hpp Lib/Allocator.hpp
+$(CONF_ID)/Shell/SineUtils.o: Lib/InverseLookup.hpp Lib/Reflection.hpp
+$(CONF_ID)/Shell/SineUtils.o: Lib/Stack.hpp Lib/BacktrackData.hpp Lib/Int.hpp
 $(CONF_ID)/Shell/SineUtils.o: Kernel/Unit.hpp Kernel/FormulaUnit.hpp
 $(CONF_ID)/Shell/SineUtils.o: Kernel/Signature.hpp Lib/Map.hpp Lib/DHMap.hpp
 $(CONF_ID)/Shell/SineUtils.o: Kernel/Theory.hpp Kernel/Term.hpp
@@ -894,8 +894,24 @@ $(CONF_ID)/Shell/LTB/Builder.o: Lib/Array.hpp Lib/Map.hpp
 $(CONF_ID)/Shell/LTB/Builder.o: Shell/LTB/Storage.hpp Kernel/Signature.hpp
 $(CONF_ID)/Shell/LTB/Builder.o: Lib/Map.hpp Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Shell/LTB/Builder.o: Shell/LTB/Builder.hpp
-$(CONF_ID)/Shell/LTB/Selector.o: Shell/LTB/Selector.hpp Forwards.hpp
-$(CONF_ID)/Shell/LTB/Selector.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/DHMap.hpp Debug/Assertion.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/Allocator.hpp Debug/Tracer.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/Hash.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Config.hpp Lib/Reflection.hpp Lib/DHSet.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/DHMap.hpp Lib/Environment.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/Exception.hpp Lib/Stack.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/BacktrackData.hpp Lib/List.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/Int.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Shell/Options.hpp Lib/Allocator.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/XML.hpp Shell/Statistics.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Shell/LTB/Selector.hpp Shell/SineUtils.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/DArray.hpp Lib/Comparison.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/Random.hpp Shell/LTB/Storage.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Lib/List.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Kernel/Signature.hpp Lib/Map.hpp
+$(CONF_ID)/Shell/LTB/Selector.o: Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Debug/Assertion.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Debug/RuntimeStatistics.hpp Lib/Array.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/Allocator.hpp Debug/Tracer.hpp
@@ -904,14 +920,15 @@ $(CONF_ID)/Shell/LTB/Storage.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/Allocator.hpp Lib/Comparison.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/Random.hpp Lib/Reflection.hpp
-$(CONF_ID)/Shell/LTB/Storage.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
+$(CONF_ID)/Shell/LTB/Storage.o: Lib/VirtualIterator.hpp Lib/DHSet.hpp
+$(CONF_ID)/Shell/LTB/Storage.o: Lib/DHMap.hpp Lib/Hash.hpp Lib/Exception.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/Environment.hpp Lib/Stack.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/Shell/LTB/Storage.o: Lib/Int.hpp Kernel/Clause.hpp
-$(CONF_ID)/Shell/LTB/Storage.o: Lib/InverseLookup.hpp Lib/Hash.hpp
-$(CONF_ID)/Shell/LTB/Storage.o: Lib/DHMap.hpp Lib/Metaiterators.hpp
+$(CONF_ID)/Shell/LTB/Storage.o: Lib/Int.hpp Lib/Vector.hpp Kernel/Clause.hpp
+$(CONF_ID)/Shell/LTB/Storage.o: Lib/InverseLookup.hpp Lib/Metaiterators.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/Set.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/Reflection.hpp Kernel/Unit.hpp
+$(CONF_ID)/Shell/LTB/Storage.o: Kernel/Inference.hpp Kernel/Unit.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Kernel/Signature.hpp Lib/Map.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/DHMap.hpp Kernel/Theory.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Kernel/Term.hpp Kernel/Term.hpp
@@ -4527,7 +4544,7 @@ $(CONF_ID)/vltb.o: Shell/SimplifyProver.hpp Shell/LispParser.hpp
 $(CONF_ID)/vltb.o: Shell/Statistics.hpp Shell/TPTPLexer.hpp Shell/TPTP.hpp
 $(CONF_ID)/vltb.o: Shell/TPTPParser.hpp Shell/LTB/Builder.hpp
 $(CONF_ID)/vltb.o: Shell/SineUtils.hpp Shell/LTB/Storage.hpp
-$(CONF_ID)/vltb.o: Saturation/SaturationAlgorithm.hpp
+$(CONF_ID)/vltb.o: Shell/LTB/Selector.hpp Saturation/SaturationAlgorithm.hpp
 $(CONF_ID)/vltb.o: Kernel/RCClauseStack.hpp Indexing/ClauseSharing.hpp
 $(CONF_ID)/vltb.o: Indexing/ClauseVariantIndex.hpp Indexing/IndexManager.hpp
 $(CONF_ID)/vltb.o: Inferences/InferenceEngine.hpp

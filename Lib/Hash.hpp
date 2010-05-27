@@ -32,6 +32,15 @@ public:
   static unsigned hash(T obj)
   { return hash(reinterpret_cast<const unsigned char*>(&obj),sizeof(obj)); }
 
+  template<typename T, typename U>
+  static unsigned hash(std::pair<T,U> obj)
+  {
+    unsigned h[2];
+    h[0]=hash(obj.first);
+    h[1]=hash(obj.second);
+    return hash(reinterpret_cast<const unsigned char*>(h), 2*sizeof(unsigned));
+  }
+
   template<typename T>
   static unsigned hash(T obj, unsigned begin)
   { return hash(reinterpret_cast<const unsigned char*>(&obj),sizeof(obj), begin); }
@@ -73,11 +82,20 @@ struct IntPairSimpleHash {
   }
 };
 
-
 template<typename T>
 struct FirstHashTypeInfo {
   typedef Hash Type;
 };
+
+struct GeneralPairSimpleHash {
+  template<typename T, typename U>
+  static unsigned hash(std::pair<T,U> pp) {
+    unsigned h1=FirstHashTypeInfo<T>::Type::hash(pp.first);
+    unsigned h2=FirstHashTypeInfo<U>::Type::hash(pp.second);
+    return static_cast<unsigned>(h1^h2^(h1<<1));
+  }
+};
+
 
 template<typename T>
 struct FirstHashTypeInfo<T*> {
@@ -110,6 +128,10 @@ struct FirstHashTypeInfo<std::pair<int,int> > {
 template<>
 struct FirstHashTypeInfo<std::pair<unsigned,unsigned> > {
   typedef IntPairSimpleHash Type;
+};
+template<typename T, typename U>
+struct FirstHashTypeInfo<std::pair<T,U> > {
+  typedef GeneralPairSimpleHash Type;
 };
 
 }

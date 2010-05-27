@@ -49,10 +49,10 @@ XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-ifeq ($(MAKECMDGOALS),vampire_dbg)
+ifneq (,$(filter %_dbg,$(MAKECMDGOALS)))
 XFLAGS = $(DBG_FLAGS)
 endif
-ifeq ($(MAKECMDGOALS),vampire_rel)
+ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS)
 endif
 
@@ -306,7 +306,7 @@ vampire vampire_rel vampire_dbg: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
-vltb: -lmemcached $(VLTB_OBJ) $(EXEC_DEF_PREREQ)
+vltb vltb_rel vltb_dbg: -lmemcached $(VLTB_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 #vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)

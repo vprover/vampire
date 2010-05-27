@@ -213,7 +213,7 @@ void ltbBuildMode()
     }
     string fname(line, 9, line.length()-3-9);
 
-    nameStack.push(env.options->includeFileName(fname));
+    nameStack.push(fname);
   }
 
   Shell::LTB::Builder builder;
@@ -228,6 +228,7 @@ void ltbSolveMode()
 {
   CALL("ltbSolveMode");
 
+  env.out<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   try {
     ClauseIterator clauses=getProblemClauses();
     Unit::onPreprocessingEnd();
@@ -251,6 +252,7 @@ void ltbSolveMode()
     env.statistics->terminationReason=Statistics::TIME_LIMIT;
     env.statistics->refutation=0;
   }
+  outputResult();
 }
 
 /**
@@ -287,20 +289,9 @@ int main(int argc, char* argv [])
     case Options::MODE_LTB_SOLVE:
       ltbSolveMode();
       break;
-    case Options::MODE_GROUNDING:
-    case Options::MODE_SPIDER:
-    case Options::MODE_CONSEQUENCE_FINDING:
-    case Options::MODE_VAMPIRE:
-    case Options::MODE_CASC:
-    case Options::MODE_CLAUSIFY:
-    case Options::MODE_PROFILE:
-    case Options::MODE_RULE:
+    default:
       USER_ERROR("Specified mode is not supported by the vltb executable (use '--mode ltb_build' or '--mode ltb_solve')");
       break;
-#if VDEBUG
-    default:
-      ASSERTION_VIOLATION;
-#endif
     }
 #if CHECK_LEAKS
     if (globUnitList) {

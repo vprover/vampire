@@ -7,6 +7,7 @@
 
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Sort.hpp"
 #include "Lib/Stack.hpp"
@@ -93,7 +94,7 @@ void Builder::build(VirtualIterator<string> fnameIterator)
   StringStack::Iterator fnit(fnames);
   while(fnit.hasNext()) {
     string fname=fnit.next();
-    ifstream input(fname.c_str());
+    ifstream input(env.options->includeFileName(fname).c_str());
 
     TPTPLexer lexer(input);
     TPTPParser parser(lexer);
@@ -125,6 +126,8 @@ void Builder::build(VirtualIterator<string> fnameIterator)
   clausifyOptions._equalityProxy=Options::EP_OFF;
   clausifyOptions._generalSplitting=Options::RA_OFF;
 
+  bool haveEmptyClause=false;
+
   //and now to the storing part
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
@@ -138,8 +141,28 @@ void Builder::build(VirtualIterator<string> fnameIterator)
     Preprocess preproc(prop, clausifyOptions);
     preproc.preprocess(localUnits);
 
+    //here we go through generated clauses and we check whether there isn't an empty clause
+    //(as storage.storeCNFOfUnit doesn't allow storing them)
+    UnitList::Iterator cit0(localUnits);
+    while(cit0.hasNext()) {
+      Unit* u=cit0.next();
+      ASS(u->isClause());
+      if(static_cast<Clause*>(u)->isEmpty()) {
+	haveEmptyClause=true;
+	goto cnf_storing_finished;
+      }
+    }
+
+
     ClauseIterator cit=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(localUnits)) );
     storage.storeCNFOfUnit(u->number(), cit);
+  }
+
+cnf_storing_finished:
+
+  storage.storeEmptyClausePossession(haveEmptyClause);
+  if(haveEmptyClause) {
+    return;
   }
 
   storage.storeSignature();
@@ -181,14 +204,19 @@ void Builder::build(VirtualIterator<string> fnameIterator)
   }
 
   _defSyms.init(symIdBound,0);
+
   Stack<DUnitRecord> unitStack;
+  Stack<DUnitRecord> unitUniqueStack;
+  DHSet<Unit*> prevUnits;
+
   Stack<DSymRecord> symStack;
   Stack<DSymRecord> symUniqueStack;
+  DHSet<SymId> prevSyms;
+
   for(SymId i=0;i<symIdBound;i++) {
 
     unitStack.reset();
     symStack.reset();
-    symUniqueStack.reset();
 
     while(_def[i]) {
       DUnitRecord dur;
@@ -209,19 +237,30 @@ void Builder::build(VirtualIterator<string> fnameIterator)
     sort<DRecordComparator>(unitStack.begin(), unitStack.end());
     sort<DRecordComparator>(symStack.begin(), symStack.end());
 
-
-    //tolerance thresholds are at lest 100, so nothing will be equal to the initial value
-    DSymRecord prevDSR=make_pair(0,0);
-    Stack<DSymRecord>::Iterator ssit(symStack);
+    //filter out duplicate symbols
+    prevSyms.reset();
+    symUniqueStack.reset();
+    Stack<DSymRecord>::BottomFirstIterator ssit(symStack);
     while(ssit.hasNext()) {
       DSymRecord dsr=ssit.next();
-      if(prevDSR==dsr) {
-	continue;
+      if(prevSyms.insert(dsr.second)) {
+	symUniqueStack.push(dsr);
       }
-      symUniqueStack.push(dsr);
-      prevDSR=dsr;
     }
-    storage.storeDURs(i, unitStack);
+
+    //filter out duplicate units
+    prevUnits.reset();
+    unitUniqueStack.reset();
+    Stack<DUnitRecord>::BottomFirstIterator usit(unitStack);
+    while(usit.hasNext()) {
+      DUnitRecord dur=usit.next();
+      if(prevUnits.insert(dur.second)) {
+	unitUniqueStack.push(dur);
+      }
+    }
+
+
+    storage.storeDURs(i, unitUniqueStack);
     storage.storeDSRs(i, symUniqueStack);
   }
 

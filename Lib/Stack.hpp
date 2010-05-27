@@ -43,6 +43,11 @@ public:
   DECL_ELEMENT_TYPE(C);
   DECL_ITERATOR_TYPE(Iterator);
 
+  CLASS_NAME("Stack");
+  USE_ALLOCATOR(Stack);
+  DECLARE_PLACEMENT_NEW;
+
+
   /**
    * Create a stack having initialCapacity.
    */
@@ -347,6 +352,45 @@ public:
     /** last operation: 0(none), 1(next), 2(hasNext), 3(del) */
     int _last;
 #endif
+  };
+
+  /**
+   * An iterator object that for stack @b s first yields element s[0]
+   * and the element s.top() is last.
+   */
+  class BottomFirstIterator {
+  public:
+    DECL_ELEMENT_TYPE(C);
+    /** create an iterator for @b s */
+    inline
+    explicit BottomFirstIterator (Stack& s)
+      : _pointer(s._stack),
+	_afterLast(s._cursor)
+    {
+    }
+
+    /** true if there exists the next element */
+    inline
+    bool hasNext() const
+    {
+      ASS_LE(_pointer, _afterLast);
+      return _pointer != _afterLast;
+    }
+
+    /** return the next element */
+    inline
+    C next()
+    {
+      ASS_L(_pointer, _afterLast);
+
+      return *(_pointer++);
+    }
+
+  private:
+    /** pointer to the stack element returned by next call to @b next() */
+    C* _pointer;
+    /** pointer to element after the last element on the stack */
+    C*  _afterLast;
   };
 
 protected:

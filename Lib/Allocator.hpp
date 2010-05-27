@@ -285,6 +285,10 @@ void array_delete(T* array, size_t length)
   }
 }
 
+#define DECLARE_PLACEMENT_NEW                                           \
+  void* operator new (size_t, void* buffer) { return buffer; } 		\
+  void operator delete (void*, void*) {}
+
 
 #if VDEBUG
 

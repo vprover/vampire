@@ -58,7 +58,7 @@ public:
   void getSignatureSize(int& preds, int& funs);
 
   VirtualIterator<pair<bool, unsigned> > getGlobalSymbols(Stack<pair<bool, unsigned> >& syms);
-  void getLocalSymbols(VirtualIterator<pair<bool,unsigned> > globSyms, DHMap<pair<bool,unsigned>, unsigned>& resMap);
+  void addCorrespondingLocalSymbols(VirtualIterator<pair<bool,unsigned> > globSyms);
 
   SymIdIterator getDRelatedSymbols(Stack<SymId>& qsymbols, unsigned itolerance);
   VirtualIterator<unsigned> getDRelatedUnitNumbers(SymIdIterator qsymbols, unsigned itolerance);
@@ -66,6 +66,8 @@ public:
   VirtualIterator<unsigned> getNumbersOfUnitsWithoutSymbols();
 
   UnitList* getClausesByUnitNumbers(VirtualIterator<unsigned> numIt);
+
+  bool getEmptyClausePossession();
 
   //////////// storing //////////
   void storeSignature();
@@ -78,6 +80,8 @@ public:
 
   void storeDURs(SymId s, Stack<DUnitRecord>& durs);
   void storeDSRs(SymId s, Stack<DSymRecord>& dsrs);
+
+  void storeEmptyClausePossession(bool hasEmptyClause);
 
 private:
   class StorageImpl;
@@ -111,6 +115,8 @@ private:
     /** Key continues by "<SymId>", value contains SymIds D-related with the symbol
      * (See @b storeDSRs for details) */
     SYM_DSRS,
+    /** Value contains single character '1' iff the theory contains an empty clause. */
+    HAS_EMPTY_CLAUSE,
     /** Equal to number of different prefixes */
     PREFIX_COUNT
   };
