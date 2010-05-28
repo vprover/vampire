@@ -58,10 +58,10 @@ Formula* Interpolants::getInterpolant(Clause* cl)
   for(;;) {
     ItemState st;
     st.us=curr;
-    //cout<<"#:"<<curr.first->toString()<<endl;
-    if(curr.first->inheritedColor()!=COLOR_INVALID) {
+    //cout<<"#:"<<curr.unit()->toString()<<endl;
+    if(curr.unit()->inheritedColor()!=COLOR_INVALID) {
       //set premise-color information for input clauses
-      st.inheritedColor=static_cast<Color>(curr.first->inheritedColor()|curr.first->getColor());
+      st.inheritedColor=static_cast<Color>(curr.unit()->inheritedColor()|curr.unit()->getColor());
       ASS_NEQ(st.inheritedColor, COLOR_INVALID);
     }
 
@@ -70,17 +70,17 @@ Formula* Interpolants::getInterpolant(Clause* cl)
       ItemState& pst=sts.top(); //parent state
       pst.parCnt++;
       if(pst.inheritedColor==COLOR_TRANSPARENT) {
-        pst.inheritedColor=curr.first->getColor();
+        pst.inheritedColor=curr.unit()->getColor();
       }
 #if VDEBUG
       else {
-        Color clr=curr.first->getColor();
+        Color clr=curr.unit()->getColor();
 	//cout<<clr<<' '<<pst.inheritedColor<<endl;
         ASS(pst.inheritedColor==clr || clr==COLOR_TRANSPARENT);
       }
 #endif
     }
-    st.pars=InferenceStore::instance()->getUnitParents(curr.first, curr.second);
+    st.pars=InferenceStore::instance()->getParents(curr);
 
     sts.push(st);
 
@@ -91,7 +91,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
       }
       //we're done with all children, now we can process what we've gathered
       st=sts.pop();
-      Unit* u=st.us.first;
+      Unit* u=st.us.unit();
       Color color=u->getColor();
       //cout<<st.inheritedColor<<" "<<u->toString()<<endl;
       if(st.inheritedColor!=color || sts.isEmpty()) {
@@ -130,12 +130,12 @@ void generateInterpolant(ItemState& st)
 {
   CALL("generateInterpolant");
 
-  Unit* u=st.us.first;
+  Unit* u=st.us.unit();
   Color color=u->getColor();
   ASS_EQ(color, COLOR_TRANSPARENT);
 
   Formula* interpolant;
-  Formula* unitFormula=u->getFormula(st.us.second);
+  Formula* unitFormula=u->getFormula(st.us.prop());
 
   if(st.parCnt) {
     FormulaList* conj=0;

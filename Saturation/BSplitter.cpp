@@ -239,7 +239,7 @@ Clause* BSplitter::getComponent(Clause* cl)
     }
   }
 
-  Clause* res=Clause::fromStack(lits, cl->inputType(), new Inference(Inference::SPLITTING_COMPONENT));
+  Clause* res=Clause::fromStack(lits, cl->inputType(), new Inference(Inference::BACKTRACKING_SPLITTING_COMPONENT));
   res->setAge(cl->age());
   res->initProp(BDD::instance()->getFalse());
   return res;
@@ -545,7 +545,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
       secLits.push(l);
     }
   }
-  Inference* sinf=new Inference2(Inference::SPLITTING, base, refutation);
+  Inference* sinf=new Inference2(Inference::BACKTRACKING_SPLIT_REFUTATION, base, refutation);
   Clause* scl=Clause::fromStack(secLits, inp, sinf);
   scl->setAge(resAge);
   scl->initProp(resProp);
@@ -563,7 +563,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
     Clause::Iterator fcit(*firstComp);
     while(fcit.hasNext()) {
       Literal* glit=fcit.next();
-      Inference* ginf=new Inference2(Inference::SPLITTING, base, refutation);
+      Inference* ginf=new Inference2(Inference::BACKTRACKING_SPLIT_REFUTATION, base, refutation);
       Clause* gcl=Clause::fromIterator(getSingletonIterator(Literal::oppositeLiteral(glit)), inp, ginf);
       gcl->setAge(resAge);
       gcl->initProp(resProp);

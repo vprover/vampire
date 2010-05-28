@@ -310,8 +310,6 @@ string Inference::ruleName(Rule rule)
     return "evaluation";
   case INTERPRETED_SIMPLIFICATION:
     return "interpreted simplification";
-  case SPLITTING_COMPONENT:
-    return "splitting component introduction";
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
     return "unused predicate definition removal";
   case PURE_PREDICATE_REMOVAL:
@@ -330,8 +328,14 @@ string Inference::ruleName(Rule rule)
     return "boolean term encoding";
   case TERM_IF_THEN_ELSE_DEFINITION:
     return "term if-then-else definition";
+  case SPLITTING_COMPONENT:
+    return "splitting component introduction";
   case SPLITTING:
     return "splitting";
+  case BACKTRACKING_SPLITTING_COMPONENT:
+    return "backtracking splitting";
+  case BACKTRACKING_SPLIT_REFUTATION:
+    return "backtracking split refutation";
   case COMMON_NONPROP_MERGE:
     return "merge";
   case PROP_REDUCE:

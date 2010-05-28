@@ -38,7 +38,7 @@ void InferenceStore::FullInference::increasePremiseRefCounters()
   CALL("InferenceStore::FullInference::increasePremiseRefCounters");
 
   for(unsigned i=0;i<premCnt;i++) {
-    premises[i].first->incRefCnt();
+    premises[i].cl()->incRefCnt();
   }
 }
 
@@ -50,38 +50,38 @@ InferenceStore::InferenceStore()
 }
 
 
-InferenceStore::ClauseSpec InferenceStore::getClauseSpec(Clause* cl)
+InferenceStore::UnitSpec InferenceStore::getClauseSpec(Clause* cl)
 {
-  return ClauseSpec(cl, cl->prop());
+  return UnitSpec(cl, cl->prop());
 }
-InferenceStore::ClauseSpec InferenceStore::getClauseSpec(Clause* cl, BDDNode* prop)
+InferenceStore::UnitSpec InferenceStore::getClauseSpec(Clause* cl, BDDNode* prop)
 {
-  return ClauseSpec(cl, prop);
+  return UnitSpec(cl, prop);
 }
 
-string InferenceStore::getClauseIdStr(ClauseSpec cs)
+string InferenceStore::getClauseIdStr(UnitSpec cs)
 {
   string suffix=getClauseIdSuffix(cs);
   if(suffix=="") {
-    return Int::toString(cs.first->number());
+    return Int::toString(cs.cl()->number());
   }
-  return Int::toString(cs.first->number())+"_"+suffix;
+  return Int::toString(cs.cl()->number())+"_"+suffix;
 }
 
-string InferenceStore::getClauseIdSuffix(ClauseSpec cs)
+string InferenceStore::getClauseIdSuffix(UnitSpec cs)
 {
   FullInference* finf;
   if(_data.find(cs,finf)) {
     if(!finf->csId) {
-      finf->csId=_nextClIds.insert(cs.first);
+      finf->csId=_nextClIds.insert(cs.cl());
     }
     return Int::toString(finf->csId);
   } else {
     //only clause constant prop. part can miss their Kernel-inference.
-    if(_bdd->isTrue(cs.second)) {
+    if(_bdd->isTrue(cs.prop())) {
       return "T";
     } else {
-      ASS(_bdd->isFalse(cs.second));
+      ASS(_bdd->isFalse(cs.prop()));
       return "";
     }
   }
@@ -190,7 +190,7 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedPro
 }
 
 
-void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* addedCls, int addedClsCnt,
+void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, UnitSpec* addedCls, int addedClsCnt,
 	BDDNode* resultProp)
 {
   CALL("InferenceStore::recordMerge/5");
@@ -211,7 +211,7 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, ClauseSpec* add
 void InferenceStore::recordSplitting(SplittingRecord* srec, unsigned premCnt, Clause** prems)
 {
   CALL("InferenceStore::recordSplitting");
-  ASS(!_bdd->isTrue(srec->result.second));
+  ASS(!_bdd->isTrue(srec->result.prop()));
 
   FullInference* finf=new (premCnt) FullInference(premCnt);
   for(unsigned i=0;i<premCnt;i++) {
@@ -240,56 +240,31 @@ void InferenceStore::deleteClauseRecords(Clause* cl)
   if(!cl->prop()) {
     return;
   }
-  ClauseSpec cs=getClauseSpec(cl);
+  UnitSpec cs=getClauseSpec(cl);
   if(_data.find(cs)) {
     _data.remove(cs);
   }
 }
 
-VirtualIterator<InferenceStore::ClauseSpec> InferenceStore::getParents(Clause* cl)
+VirtualIterator<InferenceStore::UnitSpec> InferenceStore::getParents(UnitSpec us)
 {
-  ClauseSpec cs=getClauseSpec(cl);
+  CALL("InferenceStore::getParents");
 
-  FullInference* finf;
-  if(!_data.find(cs, finf)) {
-    //TODO: implement retrieval of parents from inferences not stored in _data
-    return VirtualIterator<InferenceStore::ClauseSpec>::getEmpty();
-  }
-
-  return pvi( PointerIterator<ClauseSpec>(finf->premises, finf->premises+finf->premCnt) );
-}
-
-struct Cs2UsFn
-{
-  DECL_RETURN_TYPE(InferenceStore::UnitSpec);
-  InferenceStore::UnitSpec operator()(InferenceStore::ClauseSpec cs)
-  {
-    return InferenceStore::UnitSpec(cs.first, cs.second);
-  }
-};
-
-VirtualIterator<InferenceStore::UnitSpec> InferenceStore::getUnitParents(Unit* u, BDDNode* prop)
-{
-  CALL("InferenceStore::getUnitParents");
-
-  if(prop && _bdd->isTrue(prop)) {
+  if(us.isPropTautology()) {
     return VirtualIterator<InferenceStore::UnitSpec>::getEmpty();
   }
-  if(u->isClause() && prop) {
-    Clause* cl=static_cast<Clause*>(u);
+  if(us.isClause()) {
     FullInference* finf;
-    if(_data.find(ClauseSpec(cl,prop), finf)) {
-      return pvi( getMappingIterator(
-        PointerIterator<ClauseSpec>(finf->premises, finf->premises+finf->premCnt),
-        Cs2UsFn()
-      ) );
+    if(_data.find(us, finf)) {
+      return pvi( PointerIterator<UnitSpec>(finf->premises, finf->premises+finf->premCnt) );
     }
   }
+  Unit* u=us.unit();
   List<UnitSpec>* res=0;
   Inference::Iterator iit=u->inference()->iterator();
   while(u->inference()->hasNext(iit)) {
     Unit* premUnit=u->inference()->next(iit);
-    List<UnitSpec>::push(UnitSpec(premUnit), res);
+    List<UnitSpec>::push(UnitSpec(premUnit, false), res);
   }
   return pvi( List<UnitSpec>::DestructiveIterator(res) );
 }
@@ -334,6 +309,256 @@ string getQuantifiedStr(Unit* u)
   return "( ! ["+varStr+"] : ("+res+") )";
 }
 
+//TODO: this struct is not being used yet
+struct InferenceStore::ProofPrinter2
+{
+  struct ProofStep
+  {
+    ProofStep(UnitSpec us, FullInference* finf)
+    : _us(us), _isFullInf(true), _finf(finf) {}
+
+    ProofStep(UnitSpec us, Inference* inf)
+    : _us(us), _isFullInf(false), _inf(inf) {}
+
+    Inference::Rule rule() const
+    {
+      if(_isFullInf) {
+	return _finf->rule;
+      }
+    }
+
+  private:
+    UnitSpec _us;
+    bool _isFullInf;
+    union {
+      FullInference* _finf;
+      Inference* _inf;
+    };
+  };
+
+  ProofPrinter2(Unit* refutation, ostream& out)
+  : is(InferenceStore::instance()), out(out), bdd(BDD::instance())
+  {
+    CALL("InferenceStore::ProofPrinter::ProofPrinter");
+
+    outputAxiomNames=env.options->outputAxiomNames();
+
+    if( refutation->isClause() && static_cast<Clause*>(refutation)->prop() ) {
+      Clause* refCl=static_cast<Clause*>(refutation);
+      ASS( bdd->isFalse(refCl->prop()) );
+      UnitSpec cs=getClauseSpec(refCl);
+      outKernel.push(cs);
+      handledKernel.insert(cs);
+    } else {
+      outShell.push(refutation);
+      handledShell.insert(refutation);
+    }
+  }
+
+  virtual ~ProofPrinter2() {}
+
+  virtual void printSplitting(SplittingRecord* sr)
+  {
+    requestKernelProofStep(sr->premise);
+    UnitSpec cs=sr->result;
+    Clause* cl=cs.cl();
+    out << is->getClauseIdStr(cs) << ". "
+	<< cl->nonPropToString();
+    if(!bdd->isFalse(cs.prop())) {
+      out <<" | "<<bdd->toString(cs.prop());
+    }
+    out << " ("<<cl->age()<<':'<<cl->weight()<<") ";
+
+    out <<"["<<Inference::ruleName(Inference::SPLITTING)<<" "
+      <<is->getClauseIdStr(sr->premise);
+
+    Stack<pair<int,Clause*> >::Iterator compIt(sr->namedComps);
+    while(compIt.hasNext()) {
+      out<<","<<compIt.next().second->number()<<"_D";
+    }
+    out <<"]\n";
+
+    Stack<pair<int,Clause*> >::Iterator compIt2(sr->namedComps);
+    while(compIt2.hasNext()) {
+      pair<int,Clause*> nrec=compIt2.next();
+      out<<nrec.second->number()<<"_D. ";
+      if(nrec.second->length()==1 && (*nrec.second)[0]->arity()==0) {
+	out<<(*nrec.second)[0]->predicateName();
+      } else {
+	out<<getQuantifiedStr(nrec.second);
+      }
+      out<<" <=> ";
+      if(nrec.first>0) {
+	out<<bdd->getPropositionalPredicateName(nrec.first);
+      }
+      else {
+        out<<"~"<<bdd->getPropositionalPredicateName(-nrec.first);
+      }
+      out<<" ["<<Inference::ruleName(Inference::SPLITTING_COMPONENT)<<"]\n";
+    }
+  }
+
+  virtual bool hideProofStep(Inference::Rule rule)
+  {
+    return false;
+  }
+
+  void requestKernelProofStep(UnitSpec prem)
+  {
+    if(!bdd->isTrue(prem.prop()) && !handledKernel.contains(prem)) {
+      handledKernel.insert(prem);
+      outKernel.push(prem);
+    }
+  }
+
+  void requestShellProofStep(Unit* prem)
+  {
+    if(!handledShell.contains(prem)) {
+      handledShell.insert(prem);
+      outShell.push(prem);
+    }
+  }
+
+  void printClauseSpecStep(UnitSpec cs, FullInference* finf)
+  {
+    ASS_NEQ(finf->rule,Inference::INPUT); //input clauses belong to the preprocessor part
+    Clause* cl=cs.cl();
+
+    out << is->getClauseIdStr(cs) << ". "
+	<< cl->nonPropToString();
+    if(!bdd->isFalse(cs.prop())) {
+	out << " | "<<bdd->toString(cs.prop());
+    }
+    if(cl->splits() && !cl->splits()->isEmpty()) {
+      out << " {" << cl->splits()->toString() << "}";
+    }
+    out << " ("<<cl->age()<<':'<<cl->weight()<<") ";
+
+    out <<"["<<Inference::ruleName(finf->rule);
+    for(unsigned i=0;i<finf->premCnt;i++) {
+      out << ((i==0) ? ' ' : ',');
+      out << is->getClauseIdStr(finf->premises[i]);
+    }
+    out << "]" << endl;
+
+  }
+
+  void printOrdinaryStep(Unit* unit)
+  {
+    out << unit->number() << ". ";
+    if(unit->isClause()) {
+      Clause* cl=static_cast<Clause*>(unit);
+      out << cl->nonPropToString();
+      if(cl->splits() && !cl->splits()->isEmpty()) {
+        out << " {" << cl->splits()->toString() << "}";
+      }
+      out << " ("<<cl->age()<<':'<<cl->weight()<<")";
+    } else {
+      FormulaUnit* fu=static_cast<FormulaUnit*>(unit);
+      out << fu->formula()->toString();
+    }
+    out << " [" << unit->inference()->name();
+    if(outputAxiomNames && unit->inference()->rule()==Inference::INPUT) {
+      string name;
+      if(Parser::findAxiomName(unit, name)) {
+	out << " " << name;
+      }
+    }
+    Inference* inf=unit->inference();
+    Inference::Iterator it = inf->iterator();
+    bool first=true;
+    while (inf->hasNext(it)) {
+      Unit* prem=inf->next(it);
+      out << (first ? ' ' : ',');
+      out << prem->number();
+      first=false;
+    }
+    out << "]\n";
+
+  }
+
+  void handleClauseSpecStep(UnitSpec cs, FullInference* finf)
+  {
+    if(finf->rule==Inference::SPLITTING && is->_splittingRecords.find(cs)) {
+      printSplitting(is->_splittingRecords.get(cs));
+      return;
+    }
+
+    for(unsigned i=0;i<finf->premCnt;i++) {
+      UnitSpec prem=finf->premises[i];
+      ASS(prem!=cs);
+      requestKernelProofStep(prem);
+    }
+
+    if(!hideProofStep(finf->rule)) {
+      printClauseSpecStep(cs, finf);
+    }
+  }
+
+  void handleOrdinaryStep(Unit* u)
+  {
+    Inference* inf = u->inference();
+
+    Inference::Iterator it = inf->iterator();
+    while (inf->hasNext(it)) {
+      Unit* prem=inf->next(it);
+      if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
+	//this branch is for clauses that were inserted as input into the SaturationAlgorithm object
+	UnitSpec premCS=getClauseSpec(static_cast<Clause*>(prem), bdd->getFalse());
+	requestKernelProofStep(premCS);
+      } else {
+	requestShellProofStep(prem);
+      }
+    }
+    if(!hideProofStep(inf->rule())) {
+      printOrdinaryStep(u);
+    }
+  }
+
+  void print()
+  {
+    CALL("InferenceStore::ProofPrinter::print");
+
+    while(outKernel.isNonEmpty()) {
+      UnitSpec cs=outKernel.pop();
+      FullInference* finf;
+      if(bdd->isTrue(cs.prop())) {
+	//tautologies should not be used as inference premises
+	ASSERTION_VIOLATION;
+      } else if(is->_data.find(cs, finf)) {
+	bdd->allowDefinitionOutput(false);
+	handleClauseSpecStep(cs, finf);
+	bdd->allowDefinitionOutput(true);
+      } else {
+	Clause* cl=cs.cl();
+	bdd->allowDefinitionOutput(false);
+	handleOrdinaryStep(cl);
+	bdd->allowDefinitionOutput(true);
+
+      }
+    }
+
+    while(outShell.isNonEmpty()) {
+      Unit* unit=outShell.pop();
+      handleOrdinaryStep(unit);
+    }
+  }
+
+  /** Clauses that have propositional part assigned are put here
+   * to be output as an inference step */
+  Stack<UnitSpec> outKernel;
+  Set<UnitSpec> handledKernel;
+
+  Stack<Unit*> outShell;
+  Set<Unit*> handledShell;
+
+  InferenceStore* is;
+  ostream& out;
+  BDD* bdd;
+
+  bool outputAxiomNames;
+};
+
 struct InferenceStore::ProofPrinter
 {
   ProofPrinter(Unit* refutation, ostream& out, InferenceStore* is)
@@ -348,7 +573,7 @@ struct InferenceStore::ProofPrinter
     if( refutation->isClause() && static_cast<Clause*>(refutation)->prop() ) {
       Clause* refCl=static_cast<Clause*>(refutation);
       ASS( bdd->isFalse(refCl->prop()) );
-      ClauseSpec cs=getClauseSpec(refCl);
+      UnitSpec cs=getClauseSpec(refCl);
       outKernel.push(cs);
       handledKernel.insert(cs);
     } else {
@@ -359,14 +584,14 @@ struct InferenceStore::ProofPrinter
 
   virtual ~ProofPrinter() {}
 
-  virtual void printProofStepHead(ClauseSpec cs, FullInference* finf)
+  virtual void printProofStepHead(UnitSpec cs, FullInference* finf)
   {
-    Clause* cl=cs.first;
+    Clause* cl=cs.cl();
 
     out << is->getClauseIdStr(cs) << ". "
 	<< cl->nonPropToString();
-    if(!bdd->isFalse(cs.second)) {
-	out << " | "<<bdd->toString(cs.second);
+    if(!bdd->isFalse(cs.prop())) {
+	out << " | "<<bdd->toString(cs.prop());
     }
     if(cl->splits() && !cl->splits()->isEmpty()) {
       out << " {" << cl->splits()->toString() << "}";
@@ -382,7 +607,7 @@ struct InferenceStore::ProofPrinter
     }
   }
 
-  virtual void printProofStepPremise(ClauseSpec cs, bool first)
+  virtual void printProofStepPremise(UnitSpec cs, bool first)
   {
     out << (first ? ' ' : ',');
     out << is->getClauseIdStr(cs);
@@ -426,12 +651,12 @@ struct InferenceStore::ProofPrinter
   {
     requestKernelProofStep(sr->premise);
 
-    ClauseSpec cs=sr->result;
-    Clause* cl=cs.first;
+    UnitSpec cs=sr->result;
+    Clause* cl=cs.cl();
     out << is->getClauseIdStr(cs) << ". "
 	<< cl->nonPropToString();
-    if(!bdd->isFalse(cs.second)) {
-      out <<" | "<<bdd->toString(cs.second);
+    if(!bdd->isFalse(cs.prop())) {
+      out <<" | "<<bdd->toString(cs.prop());
     }
     out << " ("<<cl->age()<<':'<<cl->weight()<<") ";
 
@@ -469,9 +694,9 @@ struct InferenceStore::ProofPrinter
     return false;
   }
 
-  void requestKernelProofStep(ClauseSpec prem)
+  void requestKernelProofStep(UnitSpec prem)
   {
-    if(!bdd->isTrue(prem.second) && !handledKernel.contains(prem)) {
+    if(!bdd->isTrue(prem.prop()) && !handledKernel.contains(prem)) {
       handledKernel.insert(prem);
       outKernel.push(prem);
     }
@@ -482,9 +707,9 @@ struct InferenceStore::ProofPrinter
     CALL("InferenceStore::ProofPrinter::print");
 
     while(outKernel.isNonEmpty()) {
-      ClauseSpec cs=outKernel.pop();
+      UnitSpec cs=outKernel.pop();
       FullInference* finf;
-      if(bdd->isTrue(cs.second)) {
+      if(bdd->isTrue(cs.prop())) {
 	//tautologies should not be printed out
 	ASSERTION_VIOLATION;
       } else if(is->_data.find(cs, finf)) {
@@ -503,10 +728,10 @@ struct InferenceStore::ProofPrinter
 	}
 
 	for(unsigned i=0;i<finf->premCnt;i++) {
-	  ClauseSpec prem=finf->premises[i];
+	  UnitSpec prem=finf->premises[i];
 	  ASS(prem!=cs);
-	  Clause* premCl=prem.first;
-	  if(!hideStep && !bdd->isTrue(prem.second)) {
+	  Clause* premCl=prem.cl();
+	  if(!hideStep && !bdd->isTrue(prem.prop())) {
 	    printProofStepPremise(prem, i==0);
 	  }
 	  ASS(premCl->prop());
@@ -518,7 +743,7 @@ struct InferenceStore::ProofPrinter
 
 	bdd->allowDefinitionOutput(true);
       } else {
-	Clause* cl=cs.first;
+	Clause* cl=cs.cl();
 	Inference* inf = cl->inference();
 	bool hideStep=hideProofStep(inf->rule());
 
@@ -537,7 +762,7 @@ struct InferenceStore::ProofPrinter
 	  first=false;
 	  if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
 	    //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
-	    ClauseSpec premCS=getClauseSpec(static_cast<Clause*>(prem), bdd->getFalse());
+	    UnitSpec premCS=getClauseSpec(static_cast<Clause*>(prem), bdd->getFalse());
 	    requestKernelProofStep(premCS);
 	  } else {
 	    if(!handledShell.contains(prem)) {
@@ -583,8 +808,8 @@ struct InferenceStore::ProofPrinter
 
   /** Clauses that have propositional part assigned are put here
    * to be output as an inference step */
-  Stack<ClauseSpec> outKernel;
-  Set<ClauseSpec> handledKernel;
+  Stack<UnitSpec> outKernel;
+  Set<UnitSpec> handledKernel;
 
   Stack<Unit*> outShell;
   Set<Unit*> handledShell;
@@ -609,21 +834,21 @@ struct InferenceStore::TPTPProofCheckPrinter
     return bdd->toTPTPString(node, "bddPred");
   }
 
-  void printProofStepHead(ClauseSpec cs, FullInference* finf)
+  void printProofStepHead(UnitSpec cs, FullInference* finf)
   {
-    Clause* cl=cs.first;
+    Clause* cl=cs.cl();
     out << "fof(r"<<is->getClauseIdStr(cs)
     	<< ",conjecture, "
-    	<< getQuantifiedStr(cl) <<" | "<<bddToString(cs.second)
+    	<< getQuantifiedStr(cl) <<" | "<<bddToString(cs.prop())
     	<< " ). %"<<Inference::ruleName(finf->rule)<<"\n";
   }
 
-  void printProofStepPremise(ClauseSpec cs, bool first)
+  void printProofStepPremise(UnitSpec cs, bool first)
   {
-    Clause* cl=cs.first;
+    Clause* cl=cs.cl();
     out << "fof(pr"<<is->getClauseIdStr(cs)
 	<< ",axiom, "
-	<< getQuantifiedStr(cl)<<" | "<<bddToString(cs.second)
+	<< getQuantifiedStr(cl)<<" | "<<bddToString(cs.prop())
     	<< " ).\n";
   }
 
@@ -648,17 +873,17 @@ struct InferenceStore::TPTPProofCheckPrinter
   {
     requestKernelProofStep(sr->premise);
 
-    ClauseSpec cs=sr->result;
-    Clause* cl=cs.first;
+    UnitSpec cs=sr->result;
+    Clause* cl=cs.cl();
 
     out << "fof(r"<<is->getClauseIdStr(cs)
     	<< ",conjecture, "
-    	<< getQuantifiedStr(cl) <<" | "<<bddToString(cs.second)
+    	<< getQuantifiedStr(cl) <<" | "<<bddToString(cs.prop())
     	<< " ). %"<<Inference::ruleName(Inference::SPLITTING)<<"\n";
 
     out << "fof(pr"<<is->getClauseIdStr(sr->premise)
     	<< ",axiom, "
-    	<< getQuantifiedStr(sr->premise.first) <<" | "<<bddToString(sr->premise.second)
+    	<< getQuantifiedStr(sr->premise.cl()) <<" | "<<bddToString(sr->premise.prop())
     	<< " ).\n";
 
     Stack<pair<int,Clause*> >::Iterator compIt(sr->namedComps);

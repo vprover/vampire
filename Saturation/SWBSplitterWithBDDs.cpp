@@ -136,8 +136,7 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
     srec->namedComps.push(make_pair(compName, comp));
   }
 
-  InferenceStore::ClauseSpec splittedMCompCS=
-    InferenceStore::getClauseSpec(masterComp, newMasterProp);
+  InferenceStore::UnitSpec splittedMCompCS(masterComp, newMasterProp);
 
   srec->result=splittedMCompCS;
   InferenceStore::instance()->recordSplitting(srec, masterPremises.size(),

@@ -154,8 +154,6 @@ public:
     EVALUATION,
     /** evaluation inference */
     INTERPRETED_SIMPLIFICATION,
-    /** component introduced by splitting */
-    SPLITTING_COMPONENT,
     /** unused predicate definition removal */
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     /** pure predicate removal */
@@ -178,6 +176,12 @@ public:
     TERM_IF_THEN_ELSE_DEFINITION,
     /** splitting */
     SPLITTING,
+    /** component introduced by splitting */
+    SPLITTING_COMPONENT,
+    /** component introduced by backtracking splitting */
+    BACKTRACKING_SPLITTING_COMPONENT,
+    /** refutation of a backtracking splitting branch */
+    BACKTRACKING_SPLIT_REFUTATION,
     /** merge of clauses with common non-prop. parts */
     COMMON_NONPROP_MERGE,
     /** reducing the propositional part (due to simplification) */

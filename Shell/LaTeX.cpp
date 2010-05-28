@@ -94,15 +94,15 @@ string LaTeX::refutationToString(Unit* ref)
   BDD* bdd=BDD::instance();
   InferenceStore* is=InferenceStore::instance();
 
-  Stack<InferenceStore::ClauseSpec> outKernel;
-  Set<InferenceStore::ClauseSpec> handledKernel;
+  Stack<InferenceStore::UnitSpec> outKernel;
+  Set<InferenceStore::UnitSpec> handledKernel;
   Stack<Unit*> outShell;
   Set<Unit*> handledShell;
 
   if( ref->isClause() && static_cast<Clause*>(ref)->prop() ) {
     Clause* refCl=static_cast<Clause*>(ref);
     ASS( bdd->isFalse(refCl->prop()) );
-    InferenceStore::ClauseSpec cs=InferenceStore::getClauseSpec(refCl);
+    InferenceStore::UnitSpec cs=InferenceStore::getClauseSpec(refCl);
     outKernel.push(cs);
     handledKernel.insert(cs);
   } else {
@@ -111,15 +111,15 @@ string LaTeX::refutationToString(Unit* ref)
   }
 
   while(outKernel.isNonEmpty()) {
-    InferenceStore::ClauseSpec cs=outKernel.pop();
+    InferenceStore::UnitSpec cs=outKernel.pop();
     InferenceStore::FullInference* finf;
-    if(bdd->isTrue(cs.second)) {
+    if(bdd->isTrue(cs.prop())) {
       //tautologies should not be printed out
       ASSERTION_VIOLATION;
     } else if(is->findInference(cs, finf)) {
       InferenceStore::SplittingRecord* srec;
       if(finf->rule==Inference::SPLITTING && is->findSplitting(cs, srec)) {
-	if(!bdd->isTrue(srec->premise.second) && !handledKernel.contains(srec->premise)) {
+	if(!bdd->isTrue(srec->premise.prop()) && !handledKernel.contains(srec->premise)) {
 	  handledKernel.insert(srec->premise);
 	  outKernel.push(srec->premise);
 	}
@@ -130,19 +130,19 @@ string LaTeX::refutationToString(Unit* ref)
       res+=toStringAsInference(cs, finf);
 
       for(unsigned i=0;i<finf->premCnt;i++) {
-	InferenceStore::ClauseSpec prem=finf->premises[i];
+	InferenceStore::UnitSpec prem=finf->premises[i];
 	ASS(prem!=cs);
-	Clause* premCl=prem.first;
+	Clause* premCl=prem.cl();
 	ASS(premCl->prop());
 
-	if(!bdd->isTrue(prem.second) && !handledKernel.contains(prem)) {
+	if(!bdd->isTrue(prem.prop()) && !handledKernel.contains(prem)) {
 	  handledKernel.insert(prem);
 	  outKernel.push(prem);
 	}
       }
 
     } else {
-      Clause* cl=cs.first;
+      Clause* cl=cs.cl();
       Inference* inf = cl->inference();
 
       res+=toStringAsInference(cl);
@@ -153,7 +153,7 @@ string LaTeX::refutationToString(Unit* ref)
 	first=false;
 	if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
 	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
-	  InferenceStore::ClauseSpec premCS=InferenceStore::getClauseSpec(static_cast<Clause*>(prem), bdd->getFalse());
+	  InferenceStore::UnitSpec premCS=InferenceStore::getClauseSpec(static_cast<Clause*>(prem), bdd->getFalse());
 
 	  if(!handledKernel.contains(premCS)) {
 	    handledKernel.insert(premCS);
@@ -527,12 +527,12 @@ string LaTeX::toString (TermList* terms) const
 //   }
 // } // LaTeX::toString (const Unit& u)
 
-string LaTeX::getClauseLatexId(InferenceStore::ClauseSpec cs)
+string LaTeX::getClauseLatexId(InferenceStore::UnitSpec cs)
 {
-  return Int::toString(cs.first->number())+"_{"+InferenceStore::instance()->getClauseIdSuffix(cs)+"}";
+  return Int::toString(cs.cl()->number())+"_{"+InferenceStore::instance()->getClauseIdSuffix(cs)+"}";
 }
 
-string LaTeX::toStringAsInference(InferenceStore::ClauseSpec cs, InferenceStore::FullInference* inf)
+string LaTeX::toStringAsInference(InferenceStore::UnitSpec cs, InferenceStore::FullInference* inf)
 {
   CALL("LaTeX::toStringAsInference(ClauseSpec,FullInference*)");
 
@@ -540,7 +540,7 @@ string LaTeX::toStringAsInference(InferenceStore::ClauseSpec cs, InferenceStore:
 
   bool hasParents=inf->premCnt;
   for(unsigned i=0;i<inf->premCnt;i++) {
-    InferenceStore::ClauseSpec prem=inf->premises[i];
+    InferenceStore::UnitSpec prem=inf->premises[i];
     res += getClauseLatexId(prem);
     if(i+1<inf->premCnt) {
 	res += ",";
@@ -556,9 +556,9 @@ string LaTeX::toStringAsInference(InferenceStore::ClauseSpec cs, InferenceStore:
 
   if(hasParents) {
     for(unsigned i=0;i<inf->premCnt;i++) {
-      InferenceStore::ClauseSpec prem=inf->premises[i];
+      InferenceStore::UnitSpec prem=inf->premises[i];
       res += "\\begin{VampirePremise}%\n~~";
-      res += toString(prem.first,prem.second);
+      res += toString(prem.cl(),prem.prop());
       res += "\n\\end{VampirePremise}\n";
       if(i+1<inf->premCnt) {
 	res += "\\VPremiseSeparator\n";
@@ -569,7 +569,7 @@ string LaTeX::toStringAsInference(InferenceStore::ClauseSpec cs, InferenceStore:
 
   res += "\\begin{VampireConclusion}\n~~";
 
-  res += toString(cs.first,cs.second);
+  res += toString(cs.cl(),cs.prop());
 
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }
@@ -645,7 +645,7 @@ string LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
   res += "\\[\\begin{VampireInference}\n";
 
   res += "\\begin{VampirePremise}%\n~~";
-  res += toString(sr->premise.first,sr->premise.second);
+  res += toString(sr->premise.cl(),sr->premise.prop());
   res += "\n\\end{VampirePremise}\n";
 
   Stack<pair<int,Clause*> >::Iterator ncit2(sr->namedComps);
@@ -666,7 +666,7 @@ string LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
 
   res += "\\begin{VampireConclusion}\n~~";
 
-  res += toString(sr->result.first,sr->result.second);
+  res += toString(sr->result.cl(),sr->result.prop());
 
   return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
 }
