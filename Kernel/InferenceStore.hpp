@@ -70,6 +70,8 @@ public:
     BDDNode* _prop;
   };
 
+  typedef VirtualIterator<UnitSpec> UnitSpecIterator;
+
   struct FullInference
   {
     FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { }
@@ -127,11 +129,12 @@ public:
 
   void outputProof(ostream& out, Unit* refutation);
 
-  VirtualIterator<UnitSpec> getParents(UnitSpec us);
+  UnitSpecIterator getParents(UnitSpec us, Inference::Rule& rule);
+  UnitSpecIterator getParents(UnitSpec us);
 
   void deleteClauseRecords(Clause* cl);
 
-  std::string getClauseIdStr(UnitSpec cs);
+  std::string getUnitIdStr(UnitSpec cs);
   std::string getClauseIdSuffix(UnitSpec cs);
 
   bool findInference(UnitSpec cs, FullInference*& finf)
@@ -149,12 +152,8 @@ private:
   InferenceStore();
 
   struct ProofPrinter;
-  struct ProofPrinter2;
-  struct TPTPProofCheckPrinter;
-  struct LatexProofPrinter;
-
-
-
+  struct TPTPProofPrinter;
+  struct ProofCheckPrinter;
 
   /**
    * A map that for a clause specified by its non-prop. part

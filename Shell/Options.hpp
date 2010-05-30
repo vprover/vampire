@@ -237,7 +237,8 @@ public:
   enum Proof {
     PROOF_OFF = 0,
     PROOF_ON = 1,
-    PROOF_SUCCINCT = 2
+    PROOF_PROOFCHECK = 2,
+    PROOF_TPTP = 3
   };
 
   /** Values for --equality_proxy */

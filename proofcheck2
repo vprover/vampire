@@ -4,7 +4,7 @@ VAMPIRE='/raid/hoder/Dracula/vampire'
 #EPROVER='/raid/hoder/eprover/PROVER/eprover'
 OTHER_PROVER='/raid/hoder/vampire_old'
 
-$VAMPIRE --proof succinct $* |awk '
+$VAMPIRE --proof proofcheck $* |awk '
 BEGIN { RS = "\n%#\n"; first=1; prev=0; checkedCnt=0 }
 END { print "checked steps: " checkedCnt }
 {

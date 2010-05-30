@@ -383,7 +383,8 @@ NameArray Options::Constants::sineSelectionValues(_sineSelectionValues,
 const char* Options::Constants::_proofValues[] = {
   "off",
   "on",
-  "succinct"};
+  "proofcheck",
+  "tptp"};
 NameArray Options::Constants::proofValues(_proofValues,
 					  sizeof(_proofValues)/sizeof(char*));
 
