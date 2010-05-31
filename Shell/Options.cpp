@@ -153,6 +153,7 @@ const char* Options::Constants::_optionNames[] = {
   "sine_selection",
   "sine_tolerance",
   "sos",
+  "split_add_ground_negation",
   "split_at_activation",
   "split_goal_only",
   "split_input_only",
@@ -208,6 +209,7 @@ const char* Options::Constants::_shortNames[] = {
   "s",
   "sa",
   "sac",
+  "sagn",
   "sgo",
   "sio",
   "sos",
@@ -256,6 +258,7 @@ int Options::Constants::shortNameIndexes[] = {
   SELECTION,
   SATURATION_ALGORITHM,
   SPLIT_AT_ACTIVATION,
+  SPLIT_ADD_GROUND_NEGATION,
   SPLIT_GOAL_ONLY,
   SPLIT_INPUT_ONLY,
   SOS,
@@ -478,6 +481,7 @@ Options::Options ()
   _sineSelection(SS_OFF),
   _sineTolerance(1.0f),
   _sos(false),
+  _splitAddGroundNegation(true),
   _splitAtActivation(false),
   _splitGoalOnly(false),
   _splitInputOnly(true),
@@ -814,6 +818,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case SOS:
       _sos = onOffToBool(value,name);
+      return;
+    case SPLIT_ADD_GROUND_NEGATION:
+      _splitAddGroundNegation = onOffToBool(value,name);
       return;
     case SPLIT_AT_ACTIVATION:
       _splitAtActivation = onOffToBool(value,name);
@@ -1315,6 +1322,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SOS:
     str << boolToOnOff(_sos);
+    return;
+  case SPLIT_ADD_GROUND_NEGATION:
+    str << boolToOnOff(_splitAddGroundNegation);
     return;
   case SPLIT_AT_ACTIVATION:
     str << boolToOnOff(_splitAtActivation);

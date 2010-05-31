@@ -58,7 +58,7 @@ private:
     USE_ALLOCATOR(SplitRecord);
   };
 public:
-  BSplitter() : _nextLev(1) {}
+  BSplitter();
 
   bool doSplitting(Clause* cl);
 
@@ -86,6 +86,7 @@ private:
 
   void assertSplitLevelsExist(SplitSet* s);
 
+  bool _addGroundNegation;
   SplitLevel _nextLev;
 
   ZIArray<SplitRecord*> _db;

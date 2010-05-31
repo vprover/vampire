@@ -14,6 +14,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
 
+#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "BSplitter.hpp"
@@ -30,6 +31,13 @@ namespace Saturation
 
 using namespace Lib;
 using namespace Kernel;
+
+BSplitter::BSplitter()
+: _nextLev(1)
+{
+  _addGroundNegation=env.options->splitAddGroundNegation();
+}
+
 
 /**
  * Attempt to split clause @b cl, and return true if successful
@@ -557,7 +565,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
   cout<<"sp add "<<(*scl)<<endl;
 #endif
 
-  if(firstComp->isGround()) {
+  if(_addGroundNegation && firstComp->isGround()) {
     //if the first component is ground, add its negation
     SplitSet* gndResSplits=refutation->splits()->subtract(SplitSet::getSingleton(refLvl));
     Clause::Iterator fcit(*firstComp);

@@ -106,6 +106,7 @@ public:
     SINE_SELECTION,
     SINE_TOLERANCE,
     SOS,
+    SPLIT_ADD_GROUND_NEGATION,
     SPLIT_AT_ACTIVATION,
     SPLIT_GOAL_ONLY,
     SPLIT_INPUT_ONLY,
@@ -350,6 +351,7 @@ public:
   bool satSolverWithSubsumptionResolution() const { return _satSolverWithSubsumptionResolution; }
   bool emptyClauseSubsumption() const { return _emptyClauseSubsumption; }
   bool propositionalToBDD() const { return _propositionalToBDD; }
+  bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
   bool splitAtActivation() const { return _splitAtActivation; }
   bool splitGoalOnly() const { return _splitGoalOnly; }
   bool splitInputOnly() const { return _splitInputOnly; }
@@ -465,6 +467,7 @@ private:
   SineSelection _sineSelection;
   float _sineTolerance;
   bool _sos;
+  bool _splitAddGroundNegation;
   bool _splitAtActivation;
   bool _splitGoalOnly;
   bool _splitInputOnly;

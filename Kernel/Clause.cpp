@@ -354,6 +354,10 @@ string Clause::toNiceString() const
     result += " | " + BDD::instance()->toString(prop());
   }
 
+  if(splits() && !splits()->isEmpty()) {
+    result += string(" {") + splits()->toString() + "}";
+  }
+
   return result;
 }
 
