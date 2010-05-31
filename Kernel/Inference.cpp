@@ -274,7 +274,7 @@ string Inference::ruleName(Rule rule)
   case EQUALITY_PROXY_REPLACEMENT:
     return "equality proxy replacement";
   case EQUALITY_PROXY_AXIOM1:
-    return "equality proxy axiom E(x,x)";
+    return "equality proxy reflexivity axiom";
   case EQUALITY_PROXY_AXIOM2:
     return "equality proxy axiom";
   case DEFINITION_UNFOLDING:
@@ -333,7 +333,7 @@ string Inference::ruleName(Rule rule)
   case SPLITTING:
     return "splitting";
   case BACKTRACKING_SPLITTING_COMPONENT:
-    return "backtracking splitting";
+    return "backtracking splitting component";
   case BACKTRACKING_SPLIT_REFUTATION:
     return "backtracking split refutation";
   case COMMON_NONPROP_MERGE:

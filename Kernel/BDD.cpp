@@ -555,6 +555,10 @@ string BDD::toTPTPString(BDDNode* node, string bddPrefix)
     return "$true";
   } else if(isFalse(node)) {
     return "$false";
+  } else if(isTrue(node->_pos) && isFalse(node->_neg)) {
+    return bddPrefix+Int::toString(node->_var);
+  } else if(isFalse(node->_pos) && isTrue(node->_neg)) {
+    return "~"+bddPrefix+Int::toString(node->_var);
   } else {
     return string("( ( ")+bddPrefix+Int::toString(node->_var)+" => "+toTPTPString(node->_pos, bddPrefix)+
       ") & ( ~"+bddPrefix+Int::toString(node->_var)+" => "+toTPTPString(node->_neg, bddPrefix)+" ) )";

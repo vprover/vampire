@@ -8,6 +8,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
@@ -288,7 +289,12 @@ InferenceStore::UnitSpecIterator InferenceStore::getParents(UnitSpec us)
   return getParents(us, aux);
 }
 
-
+/**
+ * Return string containing quantified unit @b u.
+ *
+ * If @b u is clause, only non-propositional part of the clause is
+ * returned. (BDD part and the split history are ommitted.)
+ */
 string getQuantifiedStr(Unit* u)
 {
   Set<unsigned> vars;
@@ -434,6 +440,9 @@ struct InferenceStore::ProofPrinter
     bool first=true;
     while(parents.hasNext()) {
       UnitSpec prem=parents.next();
+      if(prem.isPropTautology()) {
+	continue;
+      }
       out << (first ? ' ' : ',');
       out << is->getUnitIdStr(prem);
       first=false;
@@ -506,26 +515,67 @@ struct InferenceStore::TPTPProofPrinter
     }
   }
 
+  string tptpRuleName(Inference::Rule rule)
+  {
+    return StringUtils::replaceChar(Inference::ruleName(rule), ' ', '_');
+  }
+
+  string unitIdToTptp(string unitId)
+  {
+    return "f"+unitId;
+  }
+
+  string tptpUnitId(UnitSpec us)
+  {
+    return unitIdToTptp(is->getUnitIdStr(us));
+  }
+
+  string bddToString(BDDNode* prop)
+  {
+    CALL("InferenceStore::TPTPProofPrinter::bddToString");
+
+    return bdd->toTPTPString(prop,bddPrefix);
+  }
+
+  string splitsToString(SplitSet* splits)
+  {
+    CALL("InferenceStore::TPTPProofPrinter::splitsToString");
+    ASS_G(splits->size(),0);
+
+    if(splits->size()==1) {
+      return splitPrefix+Int::toString(splits->sval());
+    }
+    SplitSet::Iterator sit(splits);
+    string res("(");
+    while(sit.hasNext()) {
+      res+=splitPrefix+Int::toString(sit.next());
+      if(sit.hasNext()) {
+	res+=" | ";
+      }
+    }
+    res+=")";
+    return res;
+  }
+
   void printStep(UnitSpec cs)
   {
     Inference::Rule rule;
     UnitSpecIterator parents=is->getParents(cs, rule);
 
-    out << "fof("<<is->getUnitIdStr(cs)<<","<<getRole(rule)<<",("<<endl;
+    out<<"fof("<<tptpUnitId(cs)<<","<<getRole(rule)<<",("<<endl;
 
     //print the unit itself
 
-    out << "  "; //indent
+    out<<"  "; //indent
     if(cs.isClause()) {
       Clause* cl=cs.cl();
-      out << cl->nonPropToString();
+      out<<getQuantifiedStr(cl);
       if(!bdd->isFalse(cs.prop())) {
-  	out << " | "<<bdd->toString(cs.prop());
+  	out<<" | "<<bddToString(cs.prop());
       }
       if(cl->splits() && !cl->splits()->isEmpty()) {
-        out << " {" << cl->splits()->toString() << "}";
+        out<<" | "<<splitsToString(cl->splits());
       }
-      out << " ("<<cl->age()<<':'<<cl->weight()<<") ";
     }
     else {
       ASS(bdd->isFalse(cs.prop()));
@@ -533,42 +583,104 @@ struct InferenceStore::TPTPProofPrinter
       out << fu->formula()->toString();
     }
 
-    out << "),"<<endl;
+    out<<"),"<<endl;
 
     //print inference
 
-    out << "  "; //indent
+    out<<"  "; //indent
     if(rule==Inference::INPUT || rule==Inference::NEGATED_CONJECTURE) {
-      string fileName=env.options->inputFile();
-      if(fileName.size()==0) {
+      string fileName;
+      if(env.options->inputFile()=="") {
 	fileName="unknown";
       }
+      else {
+	fileName="'"+env.options->inputFile()+"'";
+      }
       string axiomName;
-      if(!outputAxiomNames && !Parser::findAxiomName(cs.unit(), axiomName)) {
+      if(!outputAxiomNames || !Parser::findAxiomName(cs.unit(), axiomName)) {
 	axiomName="unknown";
       }
       out<<"file("<<fileName<<","<<axiomName<<")";
     }
     else {
-      out <<"["<<Inference::ruleName(rule);
+      out<<"inference("<<tptpRuleName(rule);
 
       bool first=true;
       while(parents.hasNext()) {
         UnitSpec prem=parents.next();
-        out << (first ? ' ' : ',');
-        out << is->getUnitIdStr(prem);
+        if(prem.isPropTautology()) {
+          continue;
+        }
+        if(first) {
+          out<<",[],[";
+        }
+        else {
+          out<<',';
+        }
+        out<<tptpUnitId(prem);
         first=false;
       }
-
-      out << "]" << endl;
+      if(!first) {
+	//we had at least one premise
+	out<<"]";
+      }
+      out<<")";
     }
 
-    out << ")." << endl;
-
+    out<<")." << endl;
   }
 
+  void handleSplitting(SplittingRecord* sr)
+  {
+    requestProofStep(sr->premise);
+    UnitSpec cs=sr->result;
+    Clause* cl=cs.cl();
+    ASS(!cl->splits() || cl->splits()->isEmpty());
 
+    out<<"fof("<<tptpUnitId(cs)<<",plain,("<<endl;
+
+    out<<"  "<<getQuantifiedStr(cl);
+    if(!bdd->isFalse(cs.prop())) {
+      out<<" | "<<bddToString(cs.prop());
+    }
+    out<<"),"<<endl;
+
+
+    out<<"  inference("<<tptpRuleName(Inference::SPLITTING)<<",[],[";
+    out<<tptpUnitId(sr->premise);
+    Stack<pair<int,Clause*> >::Iterator compIt(sr->namedComps);
+    while(compIt.hasNext()) {
+      out<<","<<unitIdToTptp(Int::toString(compIt.next().second->number())+"_D");
+    }
+    out<<"]))."<<endl;
+
+    Stack<pair<int,Clause*> >::Iterator compIt2(sr->namedComps);
+    while(compIt2.hasNext()) {
+      pair<int,Clause*> nrec=compIt2.next();
+      out<<"fof("<<unitIdToTptp(Int::toString(nrec.second->number())+"_D")<<",plain,("<<endl;
+
+      out<<"  ";
+      if(nrec.second->length()==1 && (*nrec.second)[0]->arity()==0) {
+	out<<(*nrec.second)[0]->predicateName();
+      } else {
+	out<<getQuantifiedStr(nrec.second);
+      }
+      out<<" <=> ";
+      if(nrec.first<0) {
+	out<<"~";
+      }
+      out<<bddPrefix<<Int::toString(abs(nrec.first))<<"),"<<endl;
+
+      out<<"  inference("<<tptpRuleName(Inference::SPLITTING_COMPONENT)<<"))."<<endl;
+    }
+  }
+
+  static const char* bddPrefix;
+  static const char* splitPrefix;
 };
+
+const char* InferenceStore::TPTPProofPrinter::bddPrefix = "$bdd";
+const char* InferenceStore::TPTPProofPrinter::splitPrefix = "$spl";
 
 struct InferenceStore::ProofCheckPrinter
 : public InferenceStore::ProofPrinter
@@ -689,7 +801,6 @@ void InferenceStore::outputProof(ostream& out, Unit* refutation)
   }
   case Options::PROOF_TPTP:
   {
-    NOT_IMPLEMENTED;
     TPTPProofPrinter pp(refutation, out, this);
     pp.print();
     return;

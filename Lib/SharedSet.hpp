@@ -26,8 +26,11 @@ using namespace std;
 
 template<typename T>
 class SharedSet {
-public:
+
   typedef Stack<T> ItemStack;
+
+public:
+  DECL_ELEMENT_TYPE(T);
 
   SharedSet(size_t sz) : _size(sz) {}
 

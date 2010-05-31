@@ -61,6 +61,9 @@ template <typename K,typename V, class Hash1=FIRST_HASH(K), class Hash2=Hash> cl
 
 template <typename Value,class ValueComparator> class SkipList;
 
+template<class Arr> class ArrayishObjectIterator;
+template<typename T> class PointerIterator;
+
 
 class BacktrackData;
 };

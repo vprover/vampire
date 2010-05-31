@@ -79,6 +79,7 @@ VL_OBJ= Lib/Allocator.o\
         Lib/MultiCounter.o\
         Lib/NameArray.o\
         Lib/Random.o\
+        Lib/StringUtils.o\
         Lib/System.o\
         Lib/TimeCounter.o\
         Lib/Timer.o

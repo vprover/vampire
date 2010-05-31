@@ -271,7 +271,7 @@ int SWBSplitterWithBDDs::nameComponent(Clause* comp)
   BDDNode* newCompProp=BDD::instance()->conjunction(oldCompProp, nameProp);
   if(newCompProp!=oldCompProp) {
     comp->setProp(newCompProp);
-    InferenceStore::instance()->recordPropAlter(comp, oldCompProp, newCompProp, Inference::CLAUSE_NAMING);
+    InferenceStore::instance()->recordPropAlter(comp, oldCompProp, newCompProp, Inference::SPLITTING_COMPONENT);
   }
   if(env.options->showDefinitions() && newlyIntroduced) {
     env.out << "Definition: ";
