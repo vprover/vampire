@@ -17,8 +17,6 @@ namespace Kernel
 
 using namespace Lib;
 
-const unsigned Theory::interpretationElementCount;
-
 Theory* theory = 0;
 
 Theory* Theory::instance()

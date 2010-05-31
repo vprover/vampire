@@ -69,6 +69,8 @@ public:
   struct TermMatcher
   : public Matcher
   {
+    TermMatcher();
+
     void init(CodeTree* tree, TermList t);
     void deinit();
     

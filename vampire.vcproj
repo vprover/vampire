@@ -40,6 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="$(ProjectDir)"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;VDEBUG=1;CHECK_LEAKS=0"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -110,6 +111,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="$(ProjectDir)"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;VDEBUG=0"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -171,6 +173,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Indexing\ArithmeticIndex.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\Array.hpp"
 				>
 			</File>
@@ -187,6 +193,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\AxiomGenerator.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\BacktrackData.hpp"
 				>
 			</File>
@@ -200,6 +210,18 @@
 			</File>
 			<File
 				RelativePath=".\kernel\BDD.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\BDDClausifier.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\BDDConjunction.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Inferences\BDDMarkingSubsumption.hpp"
 				>
 			</File>
 			<File
@@ -231,7 +253,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Test\CheckedFwSimplifier.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\kernel\Clause.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Indexing\ClauseCodeTree.hpp"
 				>
 			</File>
 			<File
@@ -243,7 +273,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\sat\ClauseSharing.hpp"
+				RelativePath=".\Indexing\ClauseSharing.hpp"
 				>
 			</File>
 			<File
@@ -252,6 +282,14 @@
 			</File>
 			<File
 				RelativePath=".\shell\CNF.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Indexing\CodeTree.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Indexing\CodeTreeInterfaces.hpp"
 				>
 			</File>
 			<File
@@ -283,7 +321,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Saturation\ConsequenceFinder.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\Counter.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Inferences\CTFwSubsAndRes.hpp"
 				>
 			</File>
 			<File
@@ -292,6 +338,10 @@
 			</File>
 			<File
 				RelativePath=".\lib\DArray.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Lib\Deque.hpp"
 				>
 			</File>
 			<File
@@ -359,7 +409,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Inferences\FastCondensation.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\shell\Flattening.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\FlatTerm.hpp"
 				>
 			</File>
 			<File
@@ -455,6 +513,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Inferences\InterpretedSimplifier.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\IntNameTable.hpp"
 				>
 			</File>
@@ -520,6 +582,10 @@
 			</File>
 			<File
 				RelativePath=".\indexing\LiteralSubstitutionTree.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Debug\Log.hpp"
 				>
 			</File>
 			<File
@@ -619,6 +685,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Kernel\Polynomial.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\Portability.hpp"
 				>
 			</File>
@@ -691,6 +761,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Debug\RuntimeStatistics.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\sat\SATClause.hpp"
 				>
 			</File>
@@ -728,10 +802,6 @@
 			</File>
 			<File
 				RelativePath=".\shell\SineUtils.hpp"
-				>
-			</File>
-			<File
-				RelativePath=".\sat\SingleWatchSAT.hpp"
 				>
 			</File>
 			<File
@@ -779,6 +849,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Lib\StringUtils.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\kernel\SubformulaIterator.hpp"
 				>
 			</File>
@@ -799,7 +873,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Saturation\SWBSplitter.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Saturation\SWBSplitterWithBDDs.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Saturation\SWBSplitterWithoutBDDs.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\shell\SymCounter.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Saturation\SymElOutput.hpp"
 				>
 			</File>
 			<File
@@ -815,7 +905,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\kernel\TermFunIterator.hpp"
+				RelativePath=".\Indexing\TermCodeTree.hpp"
 				>
 			</File>
 			<File
@@ -827,6 +917,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Kernel\TermIterators.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\indexing\TermSharing.hpp"
 				>
 			</File>
@@ -835,7 +929,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\kernel\TermVarIterator.hpp"
+				RelativePath=".\Kernel\Theory.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\TheoryAxioms.hpp"
 				>
 			</File>
 			<File
@@ -911,11 +1009,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Indexing\ArithmeticIndex.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\debug\Assertion.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\saturation\AWPassiveClauseContainer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\AxiomGenerator.cpp"
 				>
 			</File>
 			<File
@@ -927,6 +1033,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Kernel\BDDClausifier.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\BDDConjunction.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Inferences\BDDMarkingSubsumption.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\inferences\BinaryResolution.cpp"
 				>
 			</File>
@@ -935,7 +1053,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Test\CheckedFwSimplifier.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\kernel\Clause.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Indexing\ClauseCodeTree.cpp"
 				>
 			</File>
 			<File
@@ -947,7 +1073,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\sat\ClauseSharing.cpp"
+				RelativePath=".\Indexing\ClauseSharing.cpp"
 				>
 			</File>
 			<File
@@ -956,6 +1082,14 @@
 			</File>
 			<File
 				RelativePath=".\shell\CNF.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Indexing\CodeTree.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Indexing\CodeTreeInterfaces.cpp"
 				>
 			</File>
 			<File
@@ -972,6 +1106,14 @@
 			</File>
 			<File
 				RelativePath=".\inferences\Condensation.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Saturation\ConsequenceFinder.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Inferences\CTFwSubsAndRes.cpp"
 				>
 			</File>
 			<File
@@ -1027,7 +1169,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Inferences\FastCondensation.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\shell\Flattening.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\FlatTerm.cpp"
 				>
 			</File>
 			<File
@@ -1119,6 +1269,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Inferences\InterpretedSimplifier.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\IntNameTable.cpp"
 				>
 			</File>
@@ -1128,6 +1282,10 @@
 			</File>
 			<File
 				RelativePath=".\kernel\KBO.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\KBO_Equality.cpp"
 				>
 			</File>
 			<File
@@ -1168,6 +1326,10 @@
 			</File>
 			<File
 				RelativePath=".\saturation\LRS.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\Matcher.cpp"
 				>
 			</File>
 			<File
@@ -1231,11 +1393,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Kernel\Polynomial.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\shell\PredicateDefinition.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\shell\Preprocess.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\SAT\Preprocess.cpp"
 				>
 			</File>
 			<File
@@ -1279,6 +1449,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Debug\RuntimeStatistics.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\sat\SATClause.cpp"
 				>
 			</File>
@@ -1315,10 +1489,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\sat\SingleWatchSAT.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\shell\Skolem.cpp"
 				>
 			</File>
@@ -1347,6 +1517,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Lib\StringUtils.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\kernel\SubformulaIterator.cpp"
 				>
 			</File>
@@ -1367,7 +1541,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Saturation\SWBSplitter.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Saturation\SWBSplitterWithBDDs.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Saturation\SWBSplitterWithoutBDDs.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\shell\SymCounter.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Saturation\SymElOutput.cpp"
 				>
 			</File>
 			<File
@@ -1383,11 +1573,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\kernel\TermFunIterator.cpp"
+				RelativePath=".\Indexing\TermCodeTree.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\indexing\TermIndex.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\TermIterators.cpp"
 				>
 			</File>
 			<File
@@ -1399,7 +1593,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\kernel\TermVarIterator.cpp"
+				RelativePath=".\Kernel\Theory.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\TheoryAxioms.cpp"
 				>
 			</File>
 			<File

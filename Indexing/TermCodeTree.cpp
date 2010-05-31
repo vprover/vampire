@@ -132,6 +132,13 @@ void TermCodeTree::RemovingTermMatcher::init(FlatTerm* ft_,
 
 //////////////// retrieval ////////////////////
 
+TermCodeTree::TermMatcher::TermMatcher()
+{
+#if VDEBUG
+  ft=0;
+#endif
+}
+
 void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t)
 {
   CALL("TermCodeTree::TermMatcher::init");
