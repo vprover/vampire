@@ -557,37 +557,40 @@ struct InferenceStore::TPTPProofPrinter
     return res;
   }
 
+  string getFormulaString(string id, string formula, string inference, Inference::Rule rule)
+  {
+    return "fof("+id+","+getRole(rule)+",("+"\n"
+	+"  "+formula+"),\n"
+	+"  "+inference+").";
+  }
+
   void printStep(UnitSpec cs)
   {
     Inference::Rule rule;
     UnitSpecIterator parents=is->getParents(cs, rule);
 
-    out<<"fof("<<tptpUnitId(cs)<<","<<getRole(rule)<<",("<<endl;
+    //get string representing the formula
 
-    //print the unit itself
-
-    out<<"  "; //indent
+    string formulaStr;
     if(cs.isClause()) {
       Clause* cl=cs.cl();
-      out<<getQuantifiedStr(cl);
+      formulaStr=getQuantifiedStr(cl);
       if(!bdd->isFalse(cs.prop())) {
-  	out<<" | "<<bddToString(cs.prop());
+	formulaStr+=" | "+bddToString(cs.prop());
       }
       if(cl->splits() && !cl->splits()->isEmpty()) {
-        out<<" | "<<splitsToString(cl->splits());
+	formulaStr+=" | "+splitsToString(cl->splits());
       }
     }
     else {
       ASS(bdd->isFalse(cs.prop()));
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs.unit());
-      out << fu->formula()->toString();
+      formulaStr=getQuantifiedStr(fu);
     }
 
-    out<<"),"<<endl;
+    //get inference string
 
-    //print inference
-
-    out<<"  "; //indent
+    string inferenceStr;
     if(rule==Inference::INPUT || rule==Inference::NEGATED_CONJECTURE) {
       string fileName;
       if(env.options->inputFile()=="") {
@@ -600,10 +603,10 @@ struct InferenceStore::TPTPProofPrinter
       if(!outputAxiomNames || !Parser::findAxiomName(cs.unit(), axiomName)) {
 	axiomName="unknown";
       }
-      out<<"file("<<fileName<<","<<axiomName<<")";
+      inferenceStr="file("+fileName+","+axiomName+")";
     }
     else {
-      out<<"inference("<<tptpRuleName(rule);
+      inferenceStr="inference("+tptpRuleName(rule);
 
       bool first=true;
       while(parents.hasNext()) {
@@ -612,22 +615,22 @@ struct InferenceStore::TPTPProofPrinter
           continue;
         }
         if(first) {
-          out<<",[],[";
+          inferenceStr+=",[],[";
         }
         else {
-          out<<',';
+          inferenceStr+=',';
         }
-        out<<tptpUnitId(prem);
+        inferenceStr+=tptpUnitId(prem);
         first=false;
       }
       if(!first) {
 	//we had at least one premise
-	out<<"]";
+	inferenceStr+="]";
       }
-      out<<")";
+      inferenceStr+=")";
     }
 
-    out<<")." << endl;
+    out<<getFormulaString(tptpUnitId(cs), formulaStr, inferenceStr, rule)<<endl;
   }
 
   void handleSplitting(SplittingRecord* sr)
@@ -637,41 +640,42 @@ struct InferenceStore::TPTPProofPrinter
     Clause* cl=cs.cl();
     ASS(!cl->splits() || cl->splits()->isEmpty());
 
-    out<<"fof("<<tptpUnitId(cs)<<",plain,("<<endl;
-
-    out<<"  "<<getQuantifiedStr(cl);
+    string formulaStr=getQuantifiedStr(cl);
     if(!bdd->isFalse(cs.prop())) {
-      out<<" | "<<bddToString(cs.prop());
+      formulaStr+=" | "+bddToString(cs.prop());
     }
-    out<<"),"<<endl;
 
-
-    out<<"  inference("<<tptpRuleName(Inference::SPLITTING)<<",[],[";
-    out<<tptpUnitId(sr->premise);
+    string inferenceStr="inference("+tptpRuleName(Inference::SPLITTING)+",[],[";
+    inferenceStr+=tptpUnitId(sr->premise);
     Stack<pair<int,Clause*> >::Iterator compIt(sr->namedComps);
     while(compIt.hasNext()) {
-      out<<","<<unitIdToTptp(Int::toString(compIt.next().second->number())+"_D");
+      inferenceStr+=","+unitIdToTptp(Int::toString(compIt.next().second->number())+"_D");
     }
-    out<<"]))."<<endl;
+    inferenceStr+="])";
+
+    out<<getFormulaString(tptpUnitId(cs), formulaStr, inferenceStr, Inference::SPLITTING)<<endl;
+
 
     Stack<pair<int,Clause*> >::Iterator compIt2(sr->namedComps);
     while(compIt2.hasNext()) {
       pair<int,Clause*> nrec=compIt2.next();
-      out<<"fof("<<unitIdToTptp(Int::toString(nrec.second->number())+"_D")<<",plain,("<<endl;
+      string defUnitId=unitIdToTptp(Int::toString(nrec.second->number())+"_D");
 
-      out<<"  ";
+      string defFormulaStr;
       if(nrec.second->length()==1 && (*nrec.second)[0]->arity()==0) {
-	out<<(*nrec.second)[0]->predicateName();
+	defFormulaStr=(*nrec.second)[0]->predicateName();
       } else {
-	out<<getQuantifiedStr(nrec.second);
+	defFormulaStr=getQuantifiedStr(nrec.second);
       }
-      out<<" <=> ";
+      defFormulaStr+=" <=> ";
       if(nrec.first<0) {
-	out<<"~";
+	defFormulaStr+="~";
       }
-      out<<bddPrefix<<Int::toString(abs(nrec.first))<<"),"<<endl;
+      defFormulaStr+=bddPrefix+Int::toString(abs(nrec.first));
 
-      out<<"  inference("<<tptpRuleName(Inference::SPLITTING_COMPONENT)<<"))."<<endl;
+      string defInferenceStr="inference("+tptpRuleName(Inference::SPLITTING_COMPONENT)+")";
+
+      out<<getFormulaString(defUnitId, defFormulaStr, defInferenceStr, Inference::SPLITTING_COMPONENT)<<endl;
     }
   }
 
