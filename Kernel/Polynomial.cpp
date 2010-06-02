@@ -277,7 +277,7 @@ TermList Polynomial::toTerm()
   
   unsigned plusFn=theory->getFnNum(Theory::PLUS);
   
-  SummandStack::Iterator sit(_data);
+  SummandStack::BottomFirstIterator sit(_data);
   
   ALWAYS(sit.hasNext());
   TermList res=sit.next().toTerm();
