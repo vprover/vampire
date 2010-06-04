@@ -11,6 +11,8 @@
 #include "Forwards.hpp"
 
 namespace Shell {
+namespace CASC
+{
 
 using namespace std;
 
@@ -18,20 +20,25 @@ class CASCMode {
 public:
 
   static bool perform(int argc, char* argv []);
-private:
-  CASCMode(string executable);
+protected:
+  virtual Property* getProperty() = 0;
 
+  /**
+   * Run Vampire with strategy @b strategy for @b ds deciseconds.
+   *
+   * Return true iff the proof or satisfiability was found
+   */
+  virtual bool runStrategy(string strategy, unsigned ds) = 0;
+
+private:
   bool perform();
 
   bool runStrategySet(const char** strategies, unsigned ds);
-  bool runStrategy(string strategy, unsigned ds);
 
   unsigned getStrategyTime(string st);
-
-  string _executable;
-  string _inputFile;
 };
 
+}
 }
 
 #endif // __CASCMode__

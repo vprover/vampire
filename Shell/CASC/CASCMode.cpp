@@ -3,25 +3,23 @@
  * Implements class CASCMode.
  */
 
-#include <stdlib.h>
-#include <csignal>
-
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Timer.hpp"
 
-#include "Options.hpp"
+#include "ForkingCM.hpp"
+#include "SpawningCM.hpp"
 
 #include "CASCMode.hpp"
 
 namespace Shell
 {
+namespace CASC
+{
 
 using namespace Lib;
 
-namespace CASCMode_Aux
-{
 const char* ltbStrategies[] = {
     "dis+2_10_bs=off:cond=fast:fde=none:gsp=input_only:lcm=predicate:nwc=2.5:ptb=off:ssec=off:ss=included:sos=on:sgo=on:spl=backtracking:sp=reverse_arity:updr=off_600",
     "dis+2_3_bs=off:ep=on:fde=none:nwc=4.0:ptb=off:ssec=off:ss=included:st=1.5:sos=on:sio=off:spl=off:sp=occurrence:updr=off_600",
@@ -39,9 +37,6 @@ const char* ltbStrategies[] = {
     0
 };
 
-}
-
-using namespace CASCMode_Aux;
 
 bool CASCMode::perform(int argc, char* argv [])
 {
@@ -53,20 +48,9 @@ bool CASCMode::perform(int argc, char* argv [])
     USER_ERROR("The CASC mode is not supported on this system (the \"int system(const char *)\" function is not available)");
   }
 
-  CASCMode cm(argv[0]);
+  SpawningCM cm(argv[0]);
 
   return cm.perform();
-}
-
-CASCMode::CASCMode(string executable)
-: _executable(executable)
-{
-  CALL("CASCMode::CASCMode");
-
-  if(env.options->inputFile()=="") {
-    USER_ERROR("Value for the option --input_file has to be specified in CASC mode.");
-  }
-  _inputFile=env.options->inputFile();
 }
 
 bool CASCMode::perform()
@@ -139,43 +123,6 @@ bool CASCMode::runStrategySet(const char** strategies, unsigned ds)
   return false;
 }
 
-#if COMPILER_MSVC
-bool CASCMode::runStrategy(string strategy, unsigned ds)
-{
-  NOT_IMPLEMENTED;
+
 }
-#else
-
-/**
- * Run Vampire with strategy @b strategy for @b ds deciseconds.
- *
- * Return true iff the proof or satisfiability was found
- */
-bool CASCMode::runStrategy(string strategy, unsigned ds)
-{
-  CALL("CASCMode::runStrategy");
-
-  string cmdLine=_executable+" --decode "+strategy+" -t "+Int::toString(static_cast<float>(ds)/10.0f)+" --input_file "+_inputFile;
-
-  int res=system(cmdLine.c_str());
-
-  if( (WIFSIGNALED(res) && WTERMSIG(res)==SIGINT) ||
-      (WIFEXITED(res) && WEXITSTATUS(res)==3) )  {
-    //if child Vampire was terminated by SIGINT (Ctrl+C), we also terminate
-    //(3 is the return value for this case; see documentation for the
-    //@b vampireReturnValue global variable)
-    env.out<<"% Terminated by SIGINT!"<<endl;
-    exit(3);
-  }
-
-  if(WIFEXITED(res) && WEXITSTATUS(res)==0) {
-    //if Vampire succeeds, its return value is zero
-    return true;
-  }
-
-  return false;
-}
-
-#endif
-
 }

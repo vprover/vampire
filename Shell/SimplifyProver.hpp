@@ -12,6 +12,8 @@
 #include "Lib/Map.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 #include "LispParser.hpp"
 

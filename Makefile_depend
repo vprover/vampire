@@ -165,16 +165,6 @@ $(CONF_ID)/Shell/AxiomGenerator.o: Lib/Portability.hpp Lib/Comparison.hpp
 $(CONF_ID)/Shell/AxiomGenerator.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Shell/AxiomGenerator.o: Shell/AxiomGenerator.hpp Lib/DHSet.hpp
 $(CONF_ID)/Shell/AxiomGenerator.o: Kernel/Theory.hpp
-$(CONF_ID)/Shell/CASCMode.o: Lib/Environment.hpp Forwards.hpp Debug/Log.hpp
-$(CONF_ID)/Shell/CASCMode.o: Debug/Tracer.hpp Config.hpp Lib/Exception.hpp
-$(CONF_ID)/Shell/CASCMode.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
-$(CONF_ID)/Shell/CASCMode.o: Lib/Int.hpp Lib/Comparison.hpp
-$(CONF_ID)/Shell/CASCMode.o: Lib/Portability.hpp Lib/Stack.hpp
-$(CONF_ID)/Shell/CASCMode.o: Debug/Tracer.hpp Lib/Allocator.hpp
-$(CONF_ID)/Shell/CASCMode.o: Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/Shell/CASCMode.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
-$(CONF_ID)/Shell/CASCMode.o: Lib/Int.hpp Lib/Timer.hpp Shell/Options.hpp
-$(CONF_ID)/Shell/CASCMode.o: Lib/Allocator.hpp Lib/XML.hpp Shell/CASCMode.hpp
 $(CONF_ID)/Shell/CNF.o: Debug/Tracer.hpp Kernel/Clause.hpp Forwards.hpp
 $(CONF_ID)/Shell/CNF.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
 $(CONF_ID)/Shell/CNF.o: Lib/Allocator.hpp Debug/Assertion.hpp
@@ -358,6 +348,30 @@ $(CONF_ID)/Shell/InequalitySplitting.o: Indexing/TermSharing.hpp Lib/Set.hpp
 $(CONF_ID)/Shell/InequalitySplitting.o: Shell/Options.hpp
 $(CONF_ID)/Shell/InequalitySplitting.o: Shell/Statistics.hpp
 $(CONF_ID)/Shell/InequalitySplitting.o: Shell/InequalitySplitting.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/Environment.hpp Forwards.hpp
+$(CONF_ID)/Shell/InputReader.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Shell/InputReader.o: Debug/Assertion.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Shell/InputReader.o: Shell/LispLexer.hpp Shell/Lexer.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/Array.hpp Lib/Allocator.hpp
+$(CONF_ID)/Shell/InputReader.o: Debug/Tracer.hpp Lib/Exception.hpp
+$(CONF_ID)/Shell/InputReader.o: Shell/Token.hpp Shell/LispParser.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/List.hpp Shell/Parser.hpp Lib/DHMap.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/Allocator.hpp Lib/Hash.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/IntNameTable.hpp Lib/Array.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/Map.hpp Lib/XML.hpp Kernel/Unit.hpp
+$(CONF_ID)/Shell/InputReader.o: Shell/Options.hpp Shell/SimplifyProver.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/Map.hpp Lib/Set.hpp Lib/Stack.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/BacktrackData.hpp Lib/List.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/Int.hpp Kernel/Formula.hpp
+$(CONF_ID)/Shell/InputReader.o: Kernel/Connective.hpp Kernel/Term.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/Portability.hpp Lib/Comparison.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/Metaiterators.hpp Lib/Set.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/TimeCounter.hpp Kernel/MatchTag.hpp
+$(CONF_ID)/Shell/InputReader.o: Lib/BitUtils.hpp Shell/Statistics.hpp
+$(CONF_ID)/Shell/InputReader.o: Shell/TPTPLexer.hpp Shell/TPTPParser.hpp
+$(CONF_ID)/Shell/InputReader.o: Shell/InputReader.hpp
 $(CONF_ID)/Shell/Interpolants.o: Lib/Stack.hpp Forwards.hpp Debug/Log.hpp
 $(CONF_ID)/Shell/Interpolants.o: Debug/Tracer.hpp Config.hpp
 $(CONF_ID)/Shell/Interpolants.o: Debug/Assertion.hpp Debug/Tracer.hpp
@@ -957,6 +971,35 @@ $(CONF_ID)/Shell/LTB/Storage.o: Lib/BitUtils.hpp Kernel/TermIterators.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/Recycler.hpp Lib/DArray.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Lib/VirtualIterator.hpp Shell/LTB/Storage.hpp
 $(CONF_ID)/Shell/LTB/Storage.o: Shell/SineUtils.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Environment.hpp Forwards.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Debug/Assertion.hpp Lib/Int.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Comparison.hpp Lib/Portability.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Stack.hpp Debug/Tracer.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Allocator.hpp Lib/BacktrackData.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/List.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Reflection.hpp Lib/Int.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Timer.hpp Shell/CASC/ForkingCM.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Portability.hpp Shell/Property.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Kernel/Unit.hpp Shell/CASC/CASCMode.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Shell/CASC/SpawningCM.hpp
+$(CONF_ID)/Shell/CASC/ForkingCM.o: Shell/CASC/ForkingCM.hpp Forwards.hpp
+$(CONF_ID)/Shell/CASC/ForkingCM.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Shell/CASC/ForkingCM.o: Lib/Portability.hpp Debug/Assertion.hpp
+$(CONF_ID)/Shell/CASC/ForkingCM.o: Shell/Property.hpp Kernel/Unit.hpp
+$(CONF_ID)/Shell/CASC/ForkingCM.o: Shell/CASC/CASCMode.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Lib/Environment.hpp Forwards.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Debug/Assertion.hpp Lib/Int.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Lib/Comparison.hpp Lib/Portability.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Lib/List.hpp Kernel/Unit.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Shell/InputReader.hpp Shell/Options.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Lib/Allocator.hpp Debug/Tracer.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Lib/XML.hpp Shell/CASC/SpawningCM.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Shell/Property.hpp
+$(CONF_ID)/Shell/CASC/SpawningCM.o: Shell/CASC/CASCMode.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/Cache.hpp Forwards.hpp Debug/Log.hpp
 $(CONF_ID)/Kernel/BDD.o: Debug/Tracer.hpp Config.hpp Debug/Assertion.hpp
 $(CONF_ID)/Kernel/BDD.o: Lib/Allocator.hpp Debug/Tracer.hpp
@@ -4415,18 +4458,16 @@ $(CONF_ID)/vampire.o: Lib/DArray.hpp Kernel/Matcher.hpp
 $(CONF_ID)/vampire.o: Kernel/TermIterators.hpp Lib/Recycler.hpp
 $(CONF_ID)/vampire.o: Inferences/InferenceEngine.hpp
 $(CONF_ID)/vampire.o: Inferences/TautologyDeletionISE.hpp
-$(CONF_ID)/vampire.o: Inferences/InferenceEngine.hpp Shell/CASCMode.hpp
+$(CONF_ID)/vampire.o: Inferences/InferenceEngine.hpp Shell/CASC/CASCMode.hpp
 $(CONF_ID)/vampire.o: Shell/CommandLine.hpp Shell/Grounding.hpp
-$(CONF_ID)/vampire.o: Shell/Interpolants.hpp Shell/LaTeX.hpp
-$(CONF_ID)/vampire.o: Kernel/Connective.hpp Shell/LispLexer.hpp
-$(CONF_ID)/vampire.o: Shell/Lexer.hpp Shell/Token.hpp Shell/LispParser.hpp
-$(CONF_ID)/vampire.o: Shell/Parser.hpp Lib/IntNameTable.hpp Lib/Array.hpp
-$(CONF_ID)/vampire.o: Lib/Map.hpp Shell/Options.hpp Shell/Property.hpp
-$(CONF_ID)/vampire.o: Shell/Preprocess.hpp Shell/Refutation.hpp
-$(CONF_ID)/vampire.o: Shell/TheoryFinder.hpp Shell/SimplifyProver.hpp
-$(CONF_ID)/vampire.o: Shell/LispParser.hpp Shell/Statistics.hpp
-$(CONF_ID)/vampire.o: Shell/TPTPLexer.hpp Shell/TPTP.hpp Shell/TPTPParser.hpp
-$(CONF_ID)/vampire.o: Saturation/SaturationAlgorithm.hpp
+$(CONF_ID)/vampire.o: Shell/InputReader.hpp Shell/Interpolants.hpp
+$(CONF_ID)/vampire.o: Shell/LaTeX.hpp Kernel/Connective.hpp Shell/Options.hpp
+$(CONF_ID)/vampire.o: Shell/Property.hpp Shell/Preprocess.hpp
+$(CONF_ID)/vampire.o: Shell/Refutation.hpp Shell/TheoryFinder.hpp
+$(CONF_ID)/vampire.o: Shell/TPTP.hpp Shell/TPTPLexer.hpp Shell/Lexer.hpp
+$(CONF_ID)/vampire.o: Shell/Token.hpp Shell/TPTPParser.hpp Shell/Parser.hpp
+$(CONF_ID)/vampire.o: Lib/IntNameTable.hpp Lib/Array.hpp Lib/Map.hpp
+$(CONF_ID)/vampire.o: Shell/Statistics.hpp Saturation/SaturationAlgorithm.hpp
 $(CONF_ID)/vampire.o: Kernel/RCClauseStack.hpp Indexing/ClauseSharing.hpp
 $(CONF_ID)/vampire.o: Indexing/ClauseVariantIndex.hpp
 $(CONF_ID)/vampire.o: Indexing/IndexManager.hpp

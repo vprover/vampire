@@ -38,23 +38,21 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
-#include "Shell/CASCMode.hpp"
+#include "Shell/CASC/CASCMode.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/Grounding.hpp"
+#include "Shell/InputReader.hpp"
 #include "Shell/Interpolants.hpp"
 #include "Shell/LaTeX.hpp"
-#include "Shell/LispLexer.hpp"
-#include "Shell/LispParser.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Preprocess.hpp"
 #include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
-#include "Shell/SimplifyProver.hpp"
-#include "Shell/Statistics.hpp"
-#include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTP.hpp"
+#include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -97,51 +95,13 @@ ClauseIterator getInputClauses()
 {
   CALL("getInputClauses");
   
-  Property property;
 
-  UnitList* units;
-  {
-    TimeCounter tc1(TC_PARSING);
-
-    string inputFile = env.options->inputFile();
-
-    istream* input;
-    if(inputFile=="") {
-      input=&cin;
-    } else {
-      input=new ifstream(inputFile.c_str());
-    }
-
-
-    env.statistics->phase=Statistics::PARSING;
-    switch (env.options->inputSyntax()) {
-    case Options::IS_SIMPLIFY:
-    {
-      Shell::LispLexer lexer(*input);
-      Shell::LispParser parser(lexer);
-      LispParser::Expression* expr = parser.parse();
-      SimplifyProver simplify;
-      units = simplify.units(expr);
-    }
-    break;
-    case Options::IS_TPTP:
-    {
-      TPTPLexer lexer(*input);
-      TPTPParser parser(lexer);
-      units = parser.units();
-    }
-    break;
-    }
-
-    if(inputFile!="") {
-      delete static_cast<ifstream*>(input);
-      input=0;
-    }
-  }
+  UnitList* units=InputReader::getUnits();
 
   TimeCounter tc2(TC_PREPROCESSING);
 
   env.statistics->phase=Statistics::PROPERTY_SCANNING;
+  Property property;
   property.scan(units);
   Preprocess prepro(property,*env.options);
   //phases for preprocessing are being set inside the proprocess method
@@ -393,7 +353,7 @@ int main(int argc, char* argv [])
       vampireMode();
       break;
     case Options::MODE_CASC:
-      if(CASCMode::perform(argc, argv)) {
+      if(Shell::CASC::CASCMode::perform(argc, argv)) {
 	//casc mode has succeeded solving the problem, so we return zero
 	vampireReturnValue=0;
       }

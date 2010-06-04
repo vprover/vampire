@@ -185,7 +185,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SymElOutput.o
 
 VS_OBJ = Shell/AxiomGenerator.o\
-         Shell/CASCMode.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/EqResWithDeletion.o\
@@ -195,6 +194,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/GeneralSplitting.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
+         Shell/InputReader.o\
          Shell/Interpolants.o\
          Shell/LaTeX.o\
          Shell/Lexer.o\
@@ -234,6 +234,10 @@ LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Selector.o\
           Shell/LTB/Storage.o
 
+CASC_OBJ = Shell/CASC/CASCMode.o\
+           Shell/CASC/ForkingCM.o\
+           Shell/CASC/SpawningCM.o
+
 # testing procedures
 VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/CompitOutput.o\
@@ -244,7 +248,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 #VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
-VAMPIRE_DEP := $(VAMP_BASIC) Global.o vampire.o
+VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) Global.o vampire.o
 VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
 VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
@@ -275,7 +279,7 @@ obj:
 	-mkdir obj
 obj/%X: | obj
 	-mkdir $@
-	-cd $@ ; mkdir Debug Lib Kernel Indexing Inferences Shell Shell/LTB Rule SAT Saturation Test ; cd .. 
+	-cd $@ ; mkdir Debug Lib Kernel Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test ; cd .. 
 
 #cancel the implicit rule
 %.o : %.cpp
@@ -359,7 +363,7 @@ clean:
 	rm -rf obj
 
 depend:
-	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 Debug/*.cpp Lib/*.cpp Shell/*.cpp Shell/LTB/*.cpp Kernel/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp *.cpp
+	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 Debug/*.cpp Lib/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp *.cpp
 
 doc:
 	rm -fr doc/html
