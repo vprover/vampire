@@ -149,7 +149,7 @@ protected:
     if(!singleSelected) {
       unsigned selCnt=0;
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {
-	ASS(mit->head()->isPositive());
+	ASS(isPositiveForSelection(mit->head()));
 	selCnt++;
       }
       if(selCnt==eligible) {

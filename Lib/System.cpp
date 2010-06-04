@@ -119,6 +119,7 @@ void handleSignal (int sigNum)
   // true if a terminal signal has been handled already.
   // to avoid catching signals over and over again
   static bool handled = false;
+  static bool haveSigInt = false;
   const char* signalDescription = signalToString(sigNum);
 
   switch (sigNum)
@@ -129,7 +130,7 @@ void handleSignal (int sigNum)
     case SIGHUP:
     case SIGXCPU:
       if (handled) {
-	exit(0);
+	exit(haveSigInt ? 3 : 2);
       }
       handled = true;
       if(outputAllowed()) {
@@ -143,6 +144,7 @@ void handleSignal (int sigNum)
 # endif
 
     case SIGINT:
+      haveSigInt=true;
 //      exit(0);
 //      return;
 
@@ -154,10 +156,10 @@ void handleSignal (int sigNum)
     case SIGBUS:
     case SIGTRAP:
 # endif
-    case SIGABRT:
+    case SIGABRT: //not handled by this function (see below)
       {
 	if (handled) {
-	  exit(0);
+	  exit(haveSigInt ? 3 : 2);
 	}
 	reportSpiderFail();
 	handled = true;
@@ -172,7 +174,7 @@ void handleSignal (int sigNum)
 	  Debug::Tracer::printStack(cout);
 #endif
 	}
-	exit(0);
+	exit(haveSigInt ? 3 : 2);
 	return;
       }
 

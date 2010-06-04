@@ -24,7 +24,8 @@ using namespace std;
 class Timer
 {
 public:
-  Timer() :
+  Timer(bool mustIncludeChildren=false) :
+    _mustIncludeChildren(mustIncludeChildren),
     _running(false),
     _elapsed(0)
   {}
@@ -70,10 +71,15 @@ public:
     return elapsed();
   }
 
+  void makeChildrenIncluded();
+
   static void initTimer();
   static string msToSecondsString(int ms);
   static void printMSString(ostream& str, int ms);
 private:
+  /** true if the timer must account for the time spent in
+   * children (otherwise it may or may not) */
+  bool _mustIncludeChildren;
   /** true if the timer is running */
   bool _running;
   /** last start time */

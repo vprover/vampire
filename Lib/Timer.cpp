@@ -35,6 +35,10 @@ using namespace Lib;
 
 int Lib::Timer::miliseconds()
 {
+  if(_mustIncludeChildren) {
+    NOT_IMPLEMENTED;
+  }
+
   static bool init=false;
   static LARGE_INTEGER freq;
   if(!init) {
@@ -46,6 +50,11 @@ int Lib::Timer::miliseconds()
   QueryPerformanceCounter(&counter);
 
   return counter.QuadPart*1000/freq.QuadPart;
+}
+
+void Lib::Timer::makeChildrenIncluded()
+{
+  NOT_IMPLEMENTED;
 }
 
 void Lib::Timer::initTimer()
@@ -109,6 +118,10 @@ void Lib::Timer::initTimer()
   setitimer (ITIMER_REAL, &newt, &oldt);
 }
 
+void Lib::Timer::makeChildrenIncluded()
+{
+  //here are children always included as we measure the wall clock time
+}
 
 #else
 
@@ -125,6 +138,14 @@ int Lib::Timer::miliseconds()
   int t=tim.tv_sec*1000 + tim.tv_usec / 1000;
   tim=ru.ru_stime;
   t+=tim.tv_sec*1000 + tim.tv_usec / 1000;
+
+  if(_mustIncludeChildren) {
+    getrusage(RUSAGE_CHILDREN, &ru);
+    tim=ru.ru_utime;
+    t+=tim.tv_sec*1000 + tim.tv_usec / 1000;
+    tim=ru.ru_stime;
+    t+=tim.tv_sec*1000 + tim.tv_usec / 1000;
+  }
   return t;
 //  return (int)( ((long long)clock())*1000/CLOCKS_PER_SEC );
 }
@@ -132,6 +153,27 @@ int Lib::Timer::miliseconds()
 void Lib::Timer::initTimer()
 {
 }
+
+void Lib::Timer::makeChildrenIncluded()
+{
+  CALL("Lib::Timer::makeChildrenIncluded");
+
+  if(_mustIncludeChildren) {
+    return;
+  }
+
+  if(_running) {
+    struct timeval tim;
+    struct rusage ru;
+    getrusage(RUSAGE_CHILDREN, &ru);
+    tim=ru.ru_utime;
+    _start+=tim.tv_sec*1000 + tim.tv_usec / 1000;
+    tim=ru.ru_stime;
+    _start+=tim.tv_sec*1000 + tim.tv_usec / 1000;
+  }
+  _mustIncludeChildren=true;
+}
+
 
 #endif
 

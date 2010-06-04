@@ -185,6 +185,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SymElOutput.o
 
 VS_OBJ = Shell/AxiomGenerator.o\
+         Shell/CASCMode.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/EqResWithDeletion.o\

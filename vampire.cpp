@@ -38,6 +38,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
+#include "Shell/CASCMode.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/Grounding.hpp"
 #include "Shell/Interpolants.hpp"
@@ -74,6 +75,23 @@ using namespace Saturation;
 using namespace Inferences;
 
 UnitList* globUnitList=0;
+
+/**
+ * Return value is non-zero unless we were successful.
+ *
+ * Being successful for modes that involve proving means that we have
+ * either found refutation or established satisfiability.
+ *
+ *
+ * If Vampire was interupted by a SIGINT, value 3 is returned,
+ * and in case of other signal we return 2. For implementation
+ * of these return values see Lib/System.hpp.
+ *
+ * In case Vampire was terminated by the timer, return value is
+ * uncertain (but definitely not zero), probably it will be 134
+ * (we terminate by a call to the @b abort() function in this case).
+ */
+int vampireReturnValue = 1;
 
 ClauseIterator getInputClauses()
 {
@@ -148,6 +166,12 @@ void doProving()
     SaturationResult sres(salg->saturate());
     env.statistics->phase=Statistics::FINALIZATION;
     sres.updateStatistics();
+
+    //set return value to zero if we were successful
+    if(sres.terminationReason==Statistics::REFUTATION ||
+	sres.terminationReason==Statistics::SATISFIABLE) {
+      vampireReturnValue=0;
+    }
   }
   catch(MemoryLimitExceededException) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
@@ -253,6 +277,9 @@ void profileMode()
   cout << property.categoryString() << ' '
        << property.props() << ' '
        << property.atoms() << "\n";
+
+  //we have succeeded with the profile mode, so we'll terminate with zero return value
+  vampireReturnValue=0;
 } // profileMode
 
 void vampireMode()
@@ -317,6 +344,9 @@ void clausifyMode()
     }
     cout << TPTP::toString(cl) << "\n";
   }
+
+  //we have successfully output all clauses, so we'll terminate with zero return value
+  vampireReturnValue=0;
 } // clausifyMode
 
 void explainException (Exception& exception)
@@ -363,7 +393,10 @@ int main(int argc, char* argv [])
       vampireMode();
       break;
     case Options::MODE_CASC:
-      USER_ERROR("CASC mode is not implemented");
+      if(CASCMode::perform(argc, argv)) {
+	//casc mode has succeeded solving the problem, so we return zero
+	vampireReturnValue=0;
+      }
       break;
     case Options::MODE_CLAUSIFY:
       clausifyMode();
@@ -418,6 +451,6 @@ int main(int argc, char* argv [])
   }
 //   delete env.allocator;
 
-  return EXIT_SUCCESS;
+  return vampireReturnValue;
 } // main
 
