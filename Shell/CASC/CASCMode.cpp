@@ -78,9 +78,18 @@ bool CASCMode::perform()
 {
   CALL("CASCMode::perform/0");
 
-  unsigned remainingTime=env.remainingTime()/100;
-
-  return runStrategySet(ltbStrategies, remainingTime);
+  Options opt=*env.options;
+  opt.setTimeLimitInDeciseconds(10);
+  if(runStrategy(opt)) {
+    return true;
+  }
+  if(runStrategy(opt)) {
+    return true;
+  }
+  return false;
+//  unsigned remainingTime=env.remainingTime()/100;
+//
+//  return runStrategySet(ltbStrategies, remainingTime);
 }
 
 unsigned CASCMode::getStrategyTime(string st)
