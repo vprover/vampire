@@ -45,14 +45,52 @@ SpawningCM::SpawningCM(string executable)
   }
 }
 
+#if COMPILER_MSVC
+
+void emptySignalHandler(int)
+{
+}
+
+#endif
+
+
 bool SpawningCM::runStrategy(string strategy, unsigned ds)
 {
   CALL("SpawningCM::runStrategy");
 
-  string cmdLine=_executable+" --decode "+strategy+" -t "+Int::toString(static_cast<float>(ds)/10.0f)+" --input_file "+_inputFile;
+  string cmdLine=_executable+" -decode "+strategy+" -t "+Int::toString(static_cast<float>(ds)/10.0f)+" -input_file "+_inputFile;
+
+  if(env.options->include()!="") {
+    cmdLine+=" -include "+env.options->include();
+  }
+
+#if COMPILER_MSVC
+  //required by MSDN
+  _flushall();
+
+  //also we want to deal with Ctrl+C in a nice way
+  void (*oldSIGINTHandler)(int);
+  oldSIGINTHandler=signal(SIGINT, emptySignalHandler);
+#endif
 
   int res=system(cmdLine.c_str());
 
+#if COMPILER_MSVC
+  //restore signal handler for Ctrl+C
+  signal(SIGINT, oldSIGINTHandler);
+
+  if(res==3)  {
+    //if child Vampire was terminated by SIGINT (Ctrl+C), we also terminate
+    //(3 is the return value for this case; see documentation for the
+    //@b vampireReturnValue global variable)
+    env.out<<"% Terminated by SIGINT!"<<endl;
+    exit(3);
+  }
+
+  if(res==0) {
+    return true;
+  }
+#else
   if( (WIFSIGNALED(res) && WTERMSIG(res)==SIGINT) ||
       (WIFEXITED(res) && WEXITSTATUS(res)==3) )  {
     //if child Vampire was terminated by SIGINT (Ctrl+C), we also terminate
@@ -66,6 +104,7 @@ bool SpawningCM::runStrategy(string strategy, unsigned ds)
     //if Vampire succeeds, its return value is zero
     return true;
   }
+#endif
 
   return false;
 }

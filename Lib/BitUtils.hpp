@@ -7,8 +7,9 @@
 #ifndef __BitUtils__
 #define __BitUtils__
 
-#include<string.h>
+#include <string.h>
 
+#include "Lib/Portability.hpp"
 
 namespace Lib {
 

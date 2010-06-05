@@ -253,6 +253,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\CASC\CASCMode.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Test\CheckedFwSimplifier.hpp"
 				>
 			</File>
@@ -418,6 +422,10 @@
 			</File>
 			<File
 				RelativePath=".\Kernel\FlatTerm.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\CASC\ForkingCM.hpp"
 				>
 			</File>
 			<File
@@ -837,6 +845,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\CASC\SpawningCM.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\saturation\Splitter.hpp"
 				>
 			</File>
@@ -977,6 +989,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\UIHelper.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\kernel\Unit.hpp"
 				>
 			</File>
@@ -1050,6 +1066,10 @@
 			</File>
 			<File
 				RelativePath=".\Saturation\BSplitter.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\CASC\CASCMode.cpp"
 				>
 			</File>
 			<File
@@ -1178,6 +1198,10 @@
 			</File>
 			<File
 				RelativePath=".\Kernel\FlatTerm.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\CASC\ForkingCM.cpp"
 				>
 			</File>
 			<File
@@ -1401,11 +1425,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\shell\Preprocess.cpp"
+				RelativePath=".\SAT\Preprocess.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\SAT\Preprocess.cpp"
+				RelativePath=".\shell\Preprocess.cpp"
 				>
 			</File>
 			<File
@@ -1506,6 +1530,10 @@
 			</File>
 			<File
 				RelativePath=".\shell\SMTParser.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\CASC\SpawningCM.cpp"
 				>
 			</File>
 			<File
@@ -1634,6 +1662,10 @@
 			</File>
 			<File
 				RelativePath=".\sat\TWLSolver.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\UIHelper.cpp"
 				>
 			</File>
 			<File

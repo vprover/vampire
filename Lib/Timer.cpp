@@ -48,7 +48,7 @@ int Lib::Timer::miliseconds()
 
 void Lib::Timer::makeChildrenIncluded()
 {
-  NOT_IMPLEMENTED;
+  //here are children always included as we measure the wall clock time
 }
 
 void Lib::Timer::initTimer()
