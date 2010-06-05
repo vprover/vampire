@@ -59,7 +59,7 @@ ForkingCM::ForkingCM()
   }
 }
 
-bool ForkingCM::runStrategy(string strategy, unsigned ds)
+bool ForkingCM::runStrategy(Options& opt)
 {
   CALL("ForkingCM::runStrategy");
 
@@ -87,7 +87,7 @@ bool ForkingCM::runStrategy(string strategy, unsigned ds)
 #endif
 
   if(!fres) {
-    childRun(strategy, ds);
+    childRun(opt);
 
     INVALID_OPERATION("ForkingCM::childRun should never return.");
   }
@@ -130,7 +130,7 @@ bool ForkingCM::runStrategy(string strategy, unsigned ds)
   return false;
 }
 
-void ForkingCM::childRun(string strategy, unsigned ds)
+void ForkingCM::childRun(Options& opt)
 {
   CALL("ForkingCM::childRun");
 
@@ -140,11 +140,11 @@ void ForkingCM::childRun(string strategy, unsigned ds)
   env.timer->start();
   TimeCounter::reinitialize();
 
-  env.options->readFromTestId(strategy);
-  env.options->setTimeLimitInDeciseconds(ds);
+  *env.options=opt;
+  //we have already performed the normalization
   env.options->setNormalize(false);
 
-  env.out<<strategy<<" on "<<env.options->problemName()<<endl;
+  env.out<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   ClauseIterator clauses;
   {
     TimeCounter tc2(TC_PREPROCESSING);

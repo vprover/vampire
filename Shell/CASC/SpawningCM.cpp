@@ -46,6 +46,13 @@ SpawningCM::SpawningCM(string executable)
   }
 }
 
+bool SpawningCM::runStrategy(Options& opt)
+{
+  CALL("SpawningCM::runStrategy");
+
+  NOT_IMPLEMENTED;
+}
+
 bool SpawningCM::runStrategy(string strategy, unsigned ds)
 {
   CALL("SpawningCM::runStrategy");

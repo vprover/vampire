@@ -9,6 +9,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "ForkingCM.hpp"
@@ -147,6 +148,15 @@ bool CASCMode::runStrategySet(const char** strategies, unsigned ds)
   return false;
 }
 
+bool CASCMode::runStrategy(string strategy, unsigned ds)
+{
+  CALL("CASCMode::runStrategy");
+
+  Options opt=*env.options;
+  opt.readFromTestId(strategy);
+  opt.setTimeLimitInDeciseconds(ds);
+  return runStrategy(opt);
+}
 
 }
 }

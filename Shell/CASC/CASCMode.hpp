@@ -30,7 +30,7 @@ protected:
    *
    * Return true iff the proof or satisfiability was found
    */
-  virtual bool runStrategy(string strategy, unsigned ds) = 0;
+  virtual bool runStrategy(Options& opt) = 0;
 
   void handleSIGINT() __attribute__((noreturn));
 
@@ -38,6 +38,7 @@ private:
   bool perform();
 
   bool runStrategySet(const char** strategies, unsigned ds);
+  bool runStrategy(string strategy, unsigned ds);
 
   unsigned getStrategyTime(string st);
 };

@@ -45,9 +45,9 @@ public:
 protected:
   Property* getProperty() { return &_property; }
 
-  bool runStrategy(string strategy, unsigned ds);
+  bool runStrategy(Options& opt);
 
-  void childRun(string strategy, unsigned ds) __attribute__((noreturn));
+  void childRun(Options& opt) __attribute__((noreturn));
 
 private:
   UnitList* _units;

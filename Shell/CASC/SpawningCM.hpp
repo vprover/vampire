@@ -27,9 +27,11 @@ public:
 protected:
   Property* getProperty() { return &_property; }
 
-  bool runStrategy(string strategy, unsigned ds);
+  bool runStrategy(Options& opt);
 
 private:
+  bool runStrategy(string strategy, unsigned ds);
+
   string _executable;
   string _inputFile;
   Property _property;
