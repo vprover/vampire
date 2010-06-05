@@ -298,7 +298,6 @@ int main(int argc, char* argv [])
 	//casc mode has succeeded solving the problem, so we return zero
 	vampireReturnValue=0;
       }
-      env.statistics->print();
       break;
     case Options::MODE_CLAUSIFY:
       clausifyMode();

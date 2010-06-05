@@ -9,6 +9,8 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Shell/Statistics.hpp"
+
 #include "ForkingCM.hpp"
 #include "SpawningCM.hpp"
 
@@ -51,7 +53,15 @@ bool CASCMode::perform(int argc, char* argv [])
   ForkingCM cm;
 #endif
 
-  return cm.perform();
+  bool res=cm.perform();
+  if(res) {
+    env.out<<"% Success!"<<endl;
+  }
+  else {
+    env.out<<"% Proof not found"<<endl;
+  }
+  env.statistics->print();
+  return res;
 }
 
 bool CASCMode::perform()

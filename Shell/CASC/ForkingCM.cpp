@@ -22,6 +22,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
 #include "Shell/Statistics.hpp"
@@ -45,6 +46,16 @@ ForkingCM::ForkingCM()
   _units=UIHelper::getInputUnits();
 //  _units=0;
   _property.scan(_units);
+
+  {
+    TimeCounter tc(TC_PREPROCESSING);
+
+    //we normalize now so that we don't have to do it in every child Vampire
+    env.statistics->phase=Statistics::NORMALIZATION;
+    Normalisation norm;
+    _units = norm.normalise(_units);
+    env.statistics->phase=Statistics::UNKNOWN_PHASE;
+  }
 }
 
 bool ForkingCM::runStrategy(string strategy, unsigned ds)
@@ -126,6 +137,7 @@ void ForkingCM::childRun(string strategy, unsigned ds)
 
   env.options->readFromTestId(strategy);
   env.options->setTimeLimitInDeciseconds(ds);
+  env.options->setNormalize(false);
 
   env.out<<strategy<<" on "<<env.options->problemName()<<endl;
   ClauseIterator clauses;

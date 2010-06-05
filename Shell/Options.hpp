@@ -272,6 +272,7 @@ public:
   InputSyntax inputSyntax() { return _inputSyntax; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
   bool normalize() const { return _normalize; }
+  void setNormalize(bool normalize) { _normalize = normalize; }
   string include() const { return _include; }
   string includeFileName (const string& relativeName);
   string logFile() const { return _logFile; }
