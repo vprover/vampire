@@ -9,6 +9,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
+#include "Lib/System.hpp"
 
 #include "Kernel/Unit.hpp"
 
@@ -45,15 +46,6 @@ SpawningCM::SpawningCM(string executable)
   }
 }
 
-#if COMPILER_MSVC
-
-void emptySignalHandler(int)
-{
-}
-
-#endif
-
-
 bool SpawningCM::runStrategy(string strategy, unsigned ds)
 {
   CALL("SpawningCM::runStrategy");
@@ -68,23 +60,21 @@ bool SpawningCM::runStrategy(string strategy, unsigned ds)
   //required by MSDN
   _flushall();
 
-  //also we want to deal with Ctrl+C in a nice way
-  void (*oldSIGINTHandler)(int);
-  oldSIGINTHandler=signal(SIGINT, emptySignalHandler);
+  //we want to deal with Ctrl+C sent to the child in a special way
+  System::ignoreSIGINT();
 #endif
 
   int res=system(cmdLine.c_str());
 
 #if COMPILER_MSVC
   //restore signal handler for Ctrl+C
-  signal(SIGINT, oldSIGINTHandler);
+  System::heedSIGINT();
 
   if(res==3)  {
     //if child Vampire was terminated by SIGINT (Ctrl+C), we also terminate
     //(3 is the return value for this case; see documentation for the
     //@b vampireReturnValue global variable)
-    env.out<<"% Terminated by SIGINT!"<<endl;
-    exit(3);
+    handleSIGINT();
   }
 
   if(res==0) {
@@ -96,8 +86,7 @@ bool SpawningCM::runStrategy(string strategy, unsigned ds)
     //if child Vampire was terminated by SIGINT (Ctrl+C), we also terminate
     //(3 is the return value for this case; see documentation for the
     //@b vampireReturnValue global variable)
-    env.out<<"% Terminated by SIGINT!"<<endl;
-    exit(3);
+    handleSIGINT();
   }
 
   if(WIFEXITED(res) && WEXITSTATUS(res)==0) {

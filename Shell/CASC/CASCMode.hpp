@@ -10,6 +10,8 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Portability.hpp"
+
 namespace Shell {
 namespace CASC
 {
@@ -29,6 +31,8 @@ protected:
    * Return true iff the proof or satisfiability was found
    */
   virtual bool runStrategy(string strategy, unsigned ds) = 0;
+
+  void handleSIGINT() __attribute__((noreturn));
 
 private:
   bool perform();

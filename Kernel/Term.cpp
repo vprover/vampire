@@ -843,6 +843,7 @@ Term::Term(const Term& t) throw()
   : _functor(t._functor),
     _arity(t._arity),
     _color(COLOR_TRANSPARENT),
+    _hasInterpretedConstants(0),
     _weight(0),
     _vars(0)
 {
@@ -869,6 +870,7 @@ Term::Term() throw()
   :_functor(0),
    _arity(0),
    _color(COLOR_TRANSPARENT),
+   _hasInterpretedConstants(0),
    _weight(0),
    _vars(0)
 {

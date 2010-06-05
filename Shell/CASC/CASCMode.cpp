@@ -64,6 +64,15 @@ bool CASCMode::perform(int argc, char* argv [])
   return res;
 }
 
+void CASCMode::handleSIGINT()
+{
+  CALL("CASCMode::handleSIGINT");
+
+  env.out<<"% Terminated by SIGINT!"<<endl;
+  env.statistics->print();
+  exit(3);
+}
+
 bool CASCMode::perform()
 {
   CALL("CASCMode::perform/0");
@@ -88,6 +97,10 @@ unsigned CASCMode::getStrategyTime(string st)
 /**
  * Run strategies from the null-terminated array @b strategies,
  * so that the sequence would not take longer tham @b ds deciseconds
+ *
+ * The remaining time is always split between the remaining strategies
+ * in the ratio of their hard-coded time (the last number in the
+ * strategy string).
  *
  * Return true iff the proof or satisfiability was found
  */

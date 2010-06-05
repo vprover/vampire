@@ -402,6 +402,9 @@ public:
   Color color() const { return static_cast<Color>(_color); }
 
   bool skip() const;
+
+  bool hasInterpretedConstants() const { return _hasInterpretedConstants; }
+  void setInterpretedConstantsPresence(bool value) { _hasInterpretedConstants=value; }
 protected:
   ArgumentOrder computeArgumentOrder() const;
   unsigned computeDistinctVars() const;
@@ -426,9 +429,11 @@ protected:
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
-  unsigned _arity : 30;
+  unsigned _arity : 29;
   /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
+  /** Equal to 1 if the term/literal contains any interpreted constants */
+  unsigned _hasInterpretedConstants : 1;
   /** Weight of the symbol */
   unsigned _weight;
   /** number of occurrences of variables */

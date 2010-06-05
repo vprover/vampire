@@ -65,6 +65,8 @@ namespace Lib {
 using namespace std;
 using namespace Shell;
 
+bool System::s_shouldIgnoreSIGINT = false;
+
 ///**
 // * Reimplements the system gethostname function.
 // * @since 31/03/2005 Torrevieja
@@ -144,6 +146,9 @@ void handleSignal (int sigNum)
 # endif
 
     case SIGINT:
+      if(System::shouldIgnoreSIGINT()) {
+	return;
+      }
       haveSigInt=true;
 //      exit(0);
 //      return;

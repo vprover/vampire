@@ -20,12 +20,14 @@
 
 #include "Shell/Options.hpp"
 
-#include "Inference.hpp"
-#include "Clause.hpp"
-#include "Term.hpp"
 #include "BDD.hpp"
 #include "BDDClausifier.hpp"
+#include "Inference.hpp"
 #include "Signature.hpp"
+#include "Term.hpp"
+#include "TermIterators.hpp"
+
+#include "Clause.hpp"
 
 namespace Kernel
 {
@@ -520,6 +522,37 @@ unsigned Clause::propWeight() const
 unsigned Clause::splitWeight() const
 {
   return splits() ? splits()->size() : 0;
+}
+
+unsigned Clause::getNumeralWeight()
+{
+  CALL("Clause::getNumeralWeight");
+
+  unsigned res=0;
+  Iterator litIt(*this);
+  while(litIt.hasNext()) {
+    Literal* lit=litIt.next();
+    if(!lit->hasInterpretedConstants()) {
+      continue;
+    }
+    NonVariableIterator nvi(lit);
+    while(nvi.hasNext()) {
+      Term* t=nvi.next().term();
+      if(!t->hasInterpretedConstants()) {
+	nvi.right();
+      }
+      if(t->arity()!=0) {
+	continue;
+      }
+      ASS(theory->isInterpretedConstant(t));
+      InterpretedType val=theory->interpretConstant(t);
+      int w=BitUtils::log2(abs(val))-1;
+      if(w>0) {
+	res+=w;
+      }
+    }
+  }
+  return res;
 }
 
 /**

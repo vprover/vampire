@@ -17,6 +17,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/System.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 
@@ -95,9 +96,13 @@ bool ForkingCM::runStrategy(string strategy, unsigned ds)
     INVALID_OPERATION("Unable to perform fork() in ForkingCM::runStrategy.");
   }
 
+  System::ignoreSIGINT();
+
   int status;
   errno=0;
   pid_t res=waitpid(fres, &status, 0);
+
+  System::heedSIGINT();
 
   if(res==-1) {
     INVALID_OPERATION("Error in waiting for forked process: "+Int::toString(errno));
@@ -113,8 +118,8 @@ bool ForkingCM::runStrategy(string strategy, unsigned ds)
     //if the forked Vampire was terminated by SIGINT (Ctrl+C), we also terminate
     //(3 is the return value for this case; see documentation for the
     //@b vampireReturnValue global variable)
-    env.out<<"% Terminated by SIGINT!"<<endl;
-    exit(3);
+
+    handleSIGINT();
   }
 
   if(WIFEXITED(status) && WEXITSTATUS(status)==0) {

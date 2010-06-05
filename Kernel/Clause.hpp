@@ -299,6 +299,7 @@ public:
 
   unsigned propWeight() const;
   unsigned splitWeight() const;
+  unsigned getNumeralWeight();
   float getEffectiveWeight();
 protected:
   /** number of literals */

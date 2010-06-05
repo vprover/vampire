@@ -76,6 +76,8 @@ Term* TermSharing::insert(Term* t)
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
+    bool hasInterpretedConstants=t->arity()==0 &&
+	env.signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
@@ -92,6 +94,9 @@ Term* TermSharing::insert(Term* t)
 	if (env.colorUsed) {
 	  ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
 	  color = static_cast<Color>(color | r->color());
+	}
+	if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
+	  hasInterpretedConstants=true;
 	}
       }
     }
@@ -110,6 +115,7 @@ Term* TermSharing::insert(Term* t)
 #endif
       t->setColor(color);
     }
+    t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalTerms++;
   }
   else {
@@ -148,6 +154,7 @@ Literal* TermSharing::insert(Literal* t)
     unsigned weight = 1;
     unsigned vars = 0;
     Color color = COLOR_TRANSPARENT;
+    bool hasInterpretedConstants=false;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
 	ASS(tt->isOrdinaryVar());
@@ -162,6 +169,9 @@ Literal* TermSharing::insert(Literal* t)
 	if (env.colorUsed) {
 	  ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
 	  color = static_cast<Color>(color | r->color());
+	}
+	if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
+	  hasInterpretedConstants=true;
 	}
       }
     }
@@ -180,6 +190,7 @@ Literal* TermSharing::insert(Literal* t)
 #endif
       t->setColor(color);
     }
+    t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalLiterals++;
   }
   else {

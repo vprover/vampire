@@ -19,11 +19,19 @@ namespace Lib {
 
 using namespace std;
 
+typedef void (*SignalHandler)(int);
+
 class System {
 public:
 //  static void gethostname(char* hostname,int maxlength);
   static void setSignalHandlers();
   static string extractFileNameFromPath(string str);
+
+  static void ignoreSIGINT() { s_shouldIgnoreSIGINT=true; }
+  static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }
+  static bool shouldIgnoreSIGINT() { return s_shouldIgnoreSIGINT; }
+protected:
+  static bool s_shouldIgnoreSIGINT;
 };
 
 }
