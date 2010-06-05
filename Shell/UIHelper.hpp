@@ -13,9 +13,11 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
-class InputReader {
+class UIHelper {
 public:
-  static UnitList* getUnits();
+  static UnitList* getInputUnits();
+
+  static void outputResult();
 };
 
 }

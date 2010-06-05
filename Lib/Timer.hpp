@@ -12,6 +12,11 @@
 
 #include "Debug/Assertion.hpp"
 
+#ifndef UNIX_USE_SIGALRM
+//SIGALRM causes some problems with debugging
+#define UNIX_USE_SIGALRM !VDEBUG
+#endif
+
 namespace Lib
 {
 

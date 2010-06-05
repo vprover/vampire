@@ -20,12 +20,6 @@
 #include "Timer.hpp"
 
 
-//#define UNIX_USE_SIGALRM 1
-//SIGALRM causes problems with debugging
-#ifndef UNIX_USE_SIGALRM
-#define UNIX_USE_SIGALRM !VDEBUG
-#endif
-
 using namespace std;
 using namespace Lib;
 
@@ -105,7 +99,6 @@ int Lib::Timer::miliseconds()
 void Lib::Timer::initTimer()
 {
   CALL("Timer::initTimer");
-  ASS_EQ(timer_sigalrm_counter, -1);
 
   timer_sigalrm_counter=0;
 

@@ -7,6 +7,7 @@
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/Stack.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Shell/Options.hpp"
@@ -24,6 +25,36 @@ bool TimeCounter::s_initialized = false;
 int TimeCounter::s_measuredTimes[__TC_ELEMENT_COUNT];
 int TimeCounter::s_measureInitTimes[__TC_ELEMENT_COUNT];
 int TimeCounter::s_measuredCnt = 0;
+
+
+/**
+ * Reinitializes the time counting
+ *
+ * This is useful when we fork a new the process and want
+ * to start counting from begining.
+ */
+void TimeCounter::reinitialize()
+{
+  CALL("TimeCounter::reinitialize");
+
+  Stack<int> measured;
+  for(int i=0; i<__TC_ELEMENT_COUNT; i++) {
+    if(isBeingMeasured(static_cast<TimeCounterUnit>(i))) {
+      measured.push(i);
+    }
+  }
+
+  s_initialized=0;
+
+  initialize();
+
+  int currTime=env.timer->elapsedMilliseconds();
+
+  while(measured.isNonEmpty()) {
+    int i=measured.pop();
+    s_measureInitTimes[i]=currTime;
+  }
+}
 
 void TimeCounter::initialize()
 {

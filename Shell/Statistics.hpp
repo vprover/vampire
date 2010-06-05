@@ -187,7 +187,8 @@ public:
     /** The actual run of the saturation algorithm */
     SATURATION,
     /** Whatever happens after the saturation algorithm finishes */
-    FINALIZATION
+    FINALIZATION,
+    UNKNOWN_PHASE
   };
 
   ExecutionPhase phase;

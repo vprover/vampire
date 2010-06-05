@@ -5,6 +5,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Portability.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Timer.hpp"
 
@@ -40,22 +41,22 @@ const char* ltbStrategies[] = {
 
 bool CASCMode::perform(int argc, char* argv [])
 {
-  CALL("CASCMode::perform");
+  CALL("CASCMode::perform/2");
 
   env.timer->makeChildrenIncluded();
 
-  if(!system(0)) {
-    USER_ERROR("The CASC mode is not supported on this system (the \"int system(const char *)\" function is not available)");
-  }
-
+#if COMPILER_MSVC
   SpawningCM cm(argv[0]);
+#else
+  ForkingCM cm;
+#endif
 
   return cm.perform();
 }
 
 bool CASCMode::perform()
 {
-  CALL("CASCMode::perform");
+  CALL("CASCMode::perform/0");
 
   unsigned remainingTime=env.remainingTime()/100;
 

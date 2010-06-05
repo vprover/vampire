@@ -78,6 +78,8 @@ public:
     return s_measureInitTimes[tcu]!=-1;
   }
 
+  static void reinitialize();
+
 private:
   void startMeasuring(TimeCounterUnit tcu);
   void stopMeasuring();

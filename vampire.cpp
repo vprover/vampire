@@ -27,7 +27,6 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
@@ -41,9 +40,6 @@
 #include "Shell/CASC/CASCMode.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/Grounding.hpp"
-#include "Shell/InputReader.hpp"
-#include "Shell/Interpolants.hpp"
-#include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Preprocess.hpp"
@@ -53,6 +49,7 @@
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -91,12 +88,12 @@ UnitList* globUnitList=0;
  */
 int vampireReturnValue = 1;
 
-ClauseIterator getInputClauses()
+ClauseIterator getProblemClauses()
 {
   CALL("getInputClauses");
   
 
-  UnitList* units=InputReader::getUnits();
+  UnitList* units=UIHelper::getInputUnits();
 
   TimeCounter tc2(TC_PREPROCESSING);
 
@@ -116,7 +113,7 @@ void doProving()
 {
   CALL("doProving()");
   try {
-    ClauseIterator clauses=getInputClauses();
+    ClauseIterator clauses=getProblemClauses();
     Unit::onPreprocessingEnd();
 
     env.statistics->phase=Statistics::SATURATION;
@@ -144,62 +141,6 @@ void doProving()
     env.statistics->terminationReason=Statistics::TIME_LIMIT;
     env.statistics->refutation=0;
   }
-}
-
-void outputResult()
-{
-  CALL("outputResult()");
-
-  switch (env.statistics->terminationReason) {
-  case Statistics::REFUTATION:
-    env.out << "Refutation found. Thanks to "
-	    << env.options->thanks() << "!\n";
-    if (env.options->proof() != Options::PROOF_OFF) {
-//	Shell::Refutation refutation(env.statistics->refutation,
-//		env.options->proof() == Options::PROOF_ON);
-//	refutation.output(env.out);
-      InferenceStore::instance()->outputProof(env.out, env.statistics->refutation);
-    }
-    if(env.options->showInterpolant()) {
-      ASS(env.statistics->refutation->isClause());
-      Formula* interpolant=Interpolants::getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      env.out << "Interpolant: " << interpolant->toString() << endl;
-    }
-    if(env.options->latexOutput()!="off") {
-      ofstream latexOut(env.options->latexOutput().c_str());
-
-      LaTeX formatter;
-      latexOut<<formatter.refutationToString(env.statistics->refutation);
-    }
-    break;
-  case Statistics::TIME_LIMIT:
-    env.out << "Time limit reached!\n";
-    break;
-  case Statistics::MEMORY_LIMIT:
-#if VDEBUG
-    Allocator::reportUsageByClasses();
-#endif
-    env.out << "Memory limit exceeded!\n";
-    break;
-  case Statistics::REFUTATION_NOT_FOUND:
-    if(env.options->complete()) {
-      ASS_EQ(env.options->saturationAlgorithm(), Options::LRS);
-      env.out << "Refutation not found, LRS age and weight limit was active for some time!\n";
-    } else {
-      env.out << "Refutation not found with incomplete strategy!\n";
-    }
-    break;
-  case Statistics::SATISFIABLE:
-    env.out << "Refutation not found!\n";
-    break;
-  case Statistics::UNKNOWN:
-    env.out << "Unknown reason of termination!\n";
-    break;
-  default:
-    ASSERTION_VIOLATION;
-  }
-  env.statistics->print();
-
 }
 
 /**
@@ -247,7 +188,7 @@ void vampireMode()
   CALL("vampireMode()");
   env.out<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   doProving();
-  outputResult();
+  UIHelper::outputResult();
 } // vampireMode
 
 
@@ -295,7 +236,7 @@ void clausifyMode()
   simplifier.addFront(ImmediateSimplificationEngineSP(new TautologyDeletionISE()));
   simplifier.addFront(ImmediateSimplificationEngineSP(new DuplicateLiteralRemovalISE()));
 
-  ClauseIterator cit = getInputClauses();
+  ClauseIterator cit = getProblemClauses();
   while (cit.hasNext()) {
     Clause* cl=cit.next();
     cl=simplifier.simplify(cl);
@@ -357,6 +298,7 @@ int main(int argc, char* argv [])
 	//casc mode has succeeded solving the problem, so we return zero
 	vampireReturnValue=0;
       }
+      env.statistics->print();
       break;
     case Options::MODE_CLAUSIFY:
       clausifyMode();

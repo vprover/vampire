@@ -255,6 +255,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Saturation";
   case FINALIZATION:
     return "Finalization";
+  case UNKNOWN_PHASE:
+    return "Unknown";
   default:
     ASSERTION_VIOLATION;
   }

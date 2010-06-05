@@ -15,6 +15,8 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
+#include "Portability.hpp"
+
 #if VDEBUG
 #include <string>
 #endif
@@ -62,16 +64,16 @@ public:
   static Allocator* current;
 
 #if VDEBUG
-  void* allocateKnown(size_t size,const char* className);
+  void* allocateKnown(size_t size,const char* className) __attribute__((malloc, alloc_size(1)));
   void deallocateKnown(void* obj,size_t size,const char* className);
-  void* allocateUnknown(size_t size,const char* className);
+  void* allocateUnknown(size_t size,const char* className) __attribute__((malloc, alloc_size(1)));
   void deallocateUnknown(void* obj,const char* className);
   static void addressStatus(const void* address);
   static void reportUsageByClasses();
 #else
-  void* allocateKnown(size_t size);
+  void* allocateKnown(size_t size) __attribute__((malloc, alloc_size(1)));
   void deallocateKnown(void* obj,size_t size);
-  void* allocateUnknown(size_t size);
+  void* allocateUnknown(size_t size) __attribute__((malloc, alloc_size(1)));
   void deallocateUnknown(void* obj);
 #endif
 

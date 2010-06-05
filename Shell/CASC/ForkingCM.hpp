@@ -47,6 +47,8 @@ protected:
 
   bool runStrategy(string strategy, unsigned ds);
 
+  void childRun(string strategy, unsigned ds) __attribute__((noreturn));
+
 private:
   UnitList* _units;
   Property _property;

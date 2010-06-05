@@ -57,7 +57,7 @@ public:
     return (set&subset)==subset;
   }
 
-  static unsigned reverseBits(unsigned v)
+  static unsigned reverseBits(unsigned v) __attribute__((const))
   {
     // swap odd and even bits
     v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);
@@ -72,7 +72,7 @@ public:
     return v;
   }
 
-  static unsigned log2(unsigned v)
+  static unsigned log2(unsigned v) __attribute__((const))
   {
     const unsigned int b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
     const unsigned int S[] = {1, 2, 4, 8, 16};

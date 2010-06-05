@@ -12,8 +12,8 @@
 
 #include "Kernel/Unit.hpp"
 
-#include "Shell/InputReader.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "SpawningCM.hpp"
 
@@ -27,12 +27,16 @@ SpawningCM::SpawningCM(string executable)
 {
   CALL("SpawningCM::SpawningCM");
 
+  if(!system(0)) {
+    USER_ERROR("The spawning CASC mode is not supported on this system (the \"int system(const char *)\" function is not available)");
+  }
+
   if(env.options->inputFile()=="") {
-    USER_ERROR("Value for the option --input_file has to be specified in CASC mode.");
+    USER_ERROR("Value for the option --input_file has to be specified for the spawning CASC mode.");
   }
   _inputFile=env.options->inputFile();
 
-  UnitList* units=InputReader::getUnits();
+  UnitList* units=UIHelper::getInputUnits();
   _property.scan(units);
   while(units) {
     Unit* u=UnitList::pop(units);
