@@ -415,7 +415,7 @@ private:
   RuleActivity _generalSplitting;
 
   string _include;
-  string _increasedNumeralWeight;
+  bool _increasedNumeralWeight;
   int _inequalitySplitting;
   string _inputFile;
   InputSyntax _inputSyntax;
