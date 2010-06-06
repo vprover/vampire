@@ -130,6 +130,9 @@ bool ForkingCM::runStrategy(Options& opt)
   return false;
 }
 
+/**
+ * Do the theorem proving in a forked-off process
+ */
 void ForkingCM::childRun(Options& opt)
 {
   CALL("ForkingCM::childRun");
@@ -166,8 +169,7 @@ void ForkingCM::childRun(Options& opt)
     sres.updateStatistics();
 
     //set return value to zero if we were successful
-    if(sres.terminationReason==Statistics::REFUTATION ||
-	sres.terminationReason==Statistics::SATISFIABLE) {
+    if(sres.terminationReason==Statistics::REFUTATION) {
       resultValue=0;
     }
   }

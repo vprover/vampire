@@ -125,8 +125,7 @@ void doProving()
     sres.updateStatistics();
 
     //set return value to zero if we were successful
-    if(sres.terminationReason==Statistics::REFUTATION ||
-	sres.terminationReason==Statistics::SATISFIABLE) {
+    if(sres.terminationReason==Statistics::REFUTATION) {
       vampireReturnValue=0;
     }
   }
