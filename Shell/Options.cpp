@@ -98,6 +98,7 @@ const char* Options::Constants::_optionNames[] = {
   "general_splitting",
 
   "include",
+  "increasedNumeralWeight",
   "inequality_splitting",
   "input_file",
   "input_syntax",
@@ -425,6 +426,7 @@ Options::Options ()
   _generalSplitting(RA_OFF),
 
   _include(""),
+  _increasedNumeralWeight(false),
   _inequalitySplitting(3),
   _inputFile(""),
   _inputSyntax(IS_TPTP),
@@ -623,6 +625,9 @@ void Options::set (const char* name,const char* value, int index)
 
     case INCLUDE:
       _include = value;
+      return;
+    case INCREASED_NUMERAL_WEIGHT:
+      _increasedNumeralWeight = onOffToBool(value,name);
       return;
     case INEQUALITY_SPLITTING:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
@@ -1172,6 +1177,9 @@ void Options::outputValue (ostream& str,int optionTag) const
 
   case INCLUDE:
     str << _include;
+    return;
+  case INCREASED_NUMERAL_WEIGHT:
+    str << boolToOnOff(_increasedNumeralWeight);
     return;
   case INEQUALITY_SPLITTING:
     str << _inequalitySplitting;

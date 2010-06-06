@@ -148,7 +148,7 @@ bool Clause::shouldBeDestroyed()
 {
 //  return false;
   return (_store == NONE || _store == BACKTRACKED) && _inferenceRefCnt == 0 &&
-    !ifFromPreprocessing();
+    !isFromPreprocessing();
 }
 
 /**
@@ -540,6 +540,7 @@ unsigned Clause::getNumeralWeight()
       Term* t=nvi.next().term();
       if(!t->hasInterpretedConstants()) {
 	nvi.right();
+	continue;
       }
       if(t->arity()!=0) {
 	continue;
@@ -569,7 +570,12 @@ float Clause::getEffectiveWeight()
   if(env.options->nonliteralsInClauseWeight()) {
     w+=propWeight()+splitWeight();
   }
-  return w * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
+  if(env.options->increasedNumeralWeight()) {
+    return (2*w+getNumeralWeight()) * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
+  }
+  else {
+    return w * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
+  }
 }
 
 /**

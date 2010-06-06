@@ -113,7 +113,7 @@ public:
 
   /** Return true iff unit was created during preprocessing
    * (and not during the run of the saturation algorithm) */
-  inline bool ifFromPreprocessing()
+  inline bool isFromPreprocessing()
   { return !_firstNonPreprocessingNumber || _number<_firstNonPreprocessingNumber; }
 
   static void onPreprocessingEnd();

@@ -50,6 +50,7 @@ public:
     GENERAL_SPLITTING,
 
     INCLUDE,
+    INCREASED_NUMERAL_WEIGHT,
     INEQUALITY_SPLITTING,
     INPUT_FILE,
     INPUT_SYNTAX,
@@ -340,6 +341,7 @@ public:
   string xmlOutput() const { return _xmlOutput; }
   string thanks() const { return _thanks; }
 
+  bool increasedNumeralWeight() const { return _increasedNumeralWeight; }
   bool interpretedEvaluation() const { return _interpretedEvaluation; }
   bool interpretedSimplification() const { return _interpretedSimplification; }
   bool theoryAxioms() const { return _theoryAxioms; }
@@ -413,6 +415,7 @@ private:
   RuleActivity _generalSplitting;
 
   string _include;
+  string _increasedNumeralWeight;
   int _inequalitySplitting;
   string _inputFile;
   InputSyntax _inputSyntax;

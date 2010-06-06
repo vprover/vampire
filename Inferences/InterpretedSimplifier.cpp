@@ -136,6 +136,10 @@ public:
       simplified=true;
     }
 
+    if(mergeSimpleVariableInequalities()) {
+      simplified=true;
+    }
+
     return simplified;
   }
 
@@ -175,6 +179,7 @@ public:
 
   bool simplifyGreaterChains();
   bool simplifySingletonVariables();
+  bool mergeSimpleVariableInequalities();
 
   /**
    * Take the topmost subterm of t that does not have a SUCCESSOR
@@ -978,6 +983,18 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifySingletonVariables()
   return false;
 }
 
+bool InterpretedSimplifier::ClauseSimplifier::mergeSimpleVariableInequalities()
+{
+  CALL("InterpretedSimplifier::ClauseSimplifier::mergeSimpleVariableInequalities");
+
+  //replace 0 # N1*X+P1 \/ 0 # N2*X+P2  by 0 # N2*P1-N1*P2  for # in {<,>,<=,>=,=,!=}
+  //if X is a variable that doesn't appear elsewhere
+
+  //TODO: implement
+
+  return false;
+}
+
 bool InterpretedSimplifier::ClauseSimplifier::simplifyGreaterChains()
 {
   CALL("InterpretedSimplifier::ClauseSimplifier::simplifyGreaterChains");
@@ -1124,7 +1141,7 @@ void InterpretedSimplifier::perform(Clause* cl, ForwardSimplificationPerformer* 
 {
   CALL("ForwardDemodulation::perform");
 
-  if(cl->inputType()==Unit::AXIOM) {
+  if(cl->isFromPreprocessing() && cl->inputType()==Unit::AXIOM) {
     return;
   }
   
