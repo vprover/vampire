@@ -7,11 +7,7 @@
 #define __ForkingCM__
 
 #include "Forwards.hpp"
-
 #include "Lib/Portability.hpp"
-
-#include "Shell/Property.hpp"
-
 #include "CASCMode.hpp"
 
 namespace Shell
@@ -28,10 +24,7 @@ class ForkingCM
 : public CASCMode
 {
   ForkingCM() { INVALID_OPERATION("Forking CASC mode is not supported on the Windows platform."); }
-
-  Property* getProperty() { ASSERTION_VIOLATION; }
-
-  bool runStrategy(string strategy, unsigned ds) { ASSERTION_VIOLATION; }
+  bool runSlice(string sliceCode, unsigned ds) { ASSERTION_VIOLATION; }
 };
 
 #else
@@ -43,15 +36,11 @@ public:
   ForkingCM();
 
 protected:
-  Property* getProperty() { return &_property; }
-
-  bool runStrategy(Options& opt);
-
+  bool runSlice(Options& opt);
   void childRun(Options& opt) __attribute__((noreturn));
 
 private:
   UnitList* _units;
-  Property _property;
 };
 
 #endif

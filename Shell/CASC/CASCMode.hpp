@@ -11,6 +11,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Portability.hpp"
+#include "Shell/Property.hpp"
 
 namespace Shell {
 namespace CASC
@@ -23,24 +24,23 @@ public:
 
   static bool perform(int argc, char* argv []);
 protected:
-  virtual Property* getProperty() = 0;
-
   /**
-   * Run Vampire with strategy @b strategy for @b ds deciseconds.
-   *
+   * Run a slice correponding to the options.
    * Return true iff the proof or satisfiability was found
    */
-  virtual bool runStrategy(Options& opt) = 0;
+  virtual bool runSlice(Options& opt) = 0;
 
   void handleSIGINT() __attribute__((noreturn));
+  /** The problem property, computed only once */
+  Property _property;
 
 private:
   bool perform();
 
-  bool runStrategySet(const char** strategies, unsigned ds);
-  bool runStrategy(string strategy, unsigned ds);
+  bool runSchedule(const char** sliceCodes, unsigned ds);
+  bool runSlice(string sliceCode, unsigned ds);
 
-  unsigned getStrategyTime(string st);
+  unsigned getSliceTime(string sliceCode);
 };
 
 }

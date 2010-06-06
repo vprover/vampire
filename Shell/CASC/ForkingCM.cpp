@@ -59,9 +59,9 @@ ForkingCM::ForkingCM()
   }
 }
 
-bool ForkingCM::runStrategy(Options& opt)
+bool ForkingCM::runSlice(Options& opt)
 {
-  CALL("ForkingCM::runStrategy");
+  CALL("ForkingCM::runSlice");
 
 #if UNIX_USE_SIGALRM
   //if we use SIGALRM, we must disable it before forking and the restore it
@@ -93,7 +93,7 @@ bool ForkingCM::runStrategy(Options& opt)
   }
 
   if(fres==-1) {
-    INVALID_OPERATION("Unable to perform fork() in ForkingCM::runStrategy.");
+    INVALID_OPERATION("Unable to perform fork() in ForkingCM::runSlice.");
   }
 
   System::ignoreSIGINT();

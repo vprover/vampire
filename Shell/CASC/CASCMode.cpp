@@ -24,24 +24,6 @@ namespace CASC
 
 using namespace Lib;
 
-const char* ltbStrategies[] = {
-    "dis+2_10_bs=off:cond=fast:fde=none:gsp=input_only:lcm=predicate:nwc=2.5:ptb=off:ssec=off:ss=included:sos=on:sgo=on:spl=backtracking:sp=reverse_arity:updr=off_600",
-    "dis+2_3_bs=off:ep=on:fde=none:nwc=4.0:ptb=off:ssec=off:ss=included:st=1.5:sos=on:sio=off:spl=off:sp=occurrence:updr=off_600",
-    "dis-4_5_bd=off:bs=off:ep=RST:fde=none:lcm=predicate:nwc=2.0:nicw=on:ptb=off:ssec=off:ss=included:st=5.0:sio=off:spl=backtracking:updr=off_600",
-    "dis+1010_8_bs=off:ep=on:fde=none:lcm=predicate:nwc=1.7:sswn=on:sswsr=on:sac=on:spo=on:sp=occurrence_600",
-    "dis+2_4_bs=off:ep=on:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking_600",
-    "lrs-1010_3_bd=off:bs=off:ep=on:fde=none:gsp=input_only:nwc=5.0:ptb=off:ssec=off:sos=on:sac=on:sgo=on:sio=off:spl=backtracking_600",
-    "lrs+4_6_bd=off:bs=off:cond=on:flr=on:fde=none:nwc=4:nicw=on:ptb=off:ssec=off:sio=off:spl=backtracking_600",
-    "lrs+1_1_bs=off:lcm=predicate:nwc=5.0:ptb=off:ssec=off:sos=on:sagn=off:sac=on:spl=backtracking:updr=off_600",
-    "dis-1010_2_bs=off:ep=on:nwc=1.5:sswn=on:sswsr=on:ss=included:st=1.5:sgo=on:sp=occurrence_600",
-    "lrs-1010_4_bd=off:bs=off:ep=on:fde=none:nwc=4.0:ptb=off:ssec=off:ss=axioms:st=2.0:sos=on:spo=on:spl=backtracking:sp=occurrence_600",
-    "dis+1_6_bd=off:bs=off:lcm=predicate:nwc=1.5:nicw=on:sswsr=on:ss=included:st=1.5:sac=on:sp=occurrence_600",
-    "dis+1003_8_bms=on:ecs=on:lcm=predicate:nwc=3.0:ssec=off:sgo=on:sio=off:spo=on:sp=occurrence:updr=off_600",
-    "dis+10_10_bs=off:gsp=input_only:lcm=reverse:nwc=10.0:nicw=on:sswn=on:sgo=on_600",
-    0
-};
-
-
 bool CASCMode::perform(int argc, char* argv [])
 {
   CALL("CASCMode::perform/2");
@@ -78,30 +60,88 @@ bool CASCMode::perform()
 {
   CALL("CASCMode::perform/0");
 
-  Options opt=*env.options;
-  opt.setTimeLimitInDeciseconds(10);
-  if(runStrategy(opt)) {
+  Property::Category cat = _property.category();
+  const char** quickSlices;
+  const char** slowSlices;
+  const char* backupSlices[] = {0};
+  switch (cat) {
+  case Property::NEQ: {
+    break;
+  }
+  case Property::HEQ: {
+    break;
+  }
+  case Property::PEQ: {
+    break;
+  }
+  case Property::HNE: {
+    break;
+  }
+  case Property::NNE: {
+    break;
+  }
+  case Property::FEQ: {
+    break;
+  }
+  case Property::FNE: {
+    break;
+  }
+  case Property::EPR: {
+    break;
+  }
+  case Property::UEQ: {
+    break;
+  }
+  }
+    const char* quick[] = {
+      "lrs+1010_4_cond=on:flr=on:nwc=1.2:nicw=on:sswn=on:stl=94.6:sac=on:sio=off:spo=on_46",
+      "lrs-4_28_bd=off:flr=on:ptb=off:ssec=off:stl=63.1:sac=on:sgo=on:sio=off:spo=on:spl=backtracking:sp=occurrence:updr=off_2",
+      "dis-10_28_ep=on:fsr=off:fde=none:nwc=1.5:ptb=off:ssec=off:sos=on:sgo=on:sp=reverse_arity:updr=off_78",
+      "lrs+1003_5_flr=on:fde=none:nwc=1.3:nicw=on:ptb=off:ssec=off:stl=63.1:sos=on:sac=on:sgo=on:sio=off:spo=on:spl=backtracking:updr=off_139",
+      "dis+1003_8_bs=off:flr=on:fsr=off:gsp=input_only:nwc=1.2:ssec=off:sac=on:sgo=on:sio=off:sp=occurrence_119",
+      "lrs-1010_8_bs=off:cond=fast:ep=on:fsr=off:gsp=input_only:nwc=1.1:nicw=on:sswn=on:sswsr=on:stl=63.1:sac=on:updr=off_86",
+      "lrs-1_5_bs=off:bms=on:cond=fast:fsr=off:gsp=input_only:nwc=1.2:nicw=on:sswn=on:stl=63.1:sac=on:sp=reverse_arity_179",
+      "lrs+1010_8_cond=on:flr=on:nwc=1:sswn=on:sswsr=on:stl=63.1:sac=on:sgo=on:spo=on:updr=off_224",
+      "dis+10_10_bs=off:ep=on:nwc=1.1:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking_327",
+      0
+    };
+    quickSlices = quick;
+    const char* slow[] = {
+      "lrs+1010_4_cond=on:flr=on:nwc=1.2:nicw=on:sswn=on:stl=94.6:sac=on:sio=off:spo=on_507",
+      "lrs-4_28_bd=off:flr=on:ptb=off:ssec=off:stl=63.1:sac=on:sgo=on:sio=off:spo=on:spl=backtracking:sp=occurrence:updr=off_601",
+      "dis-10_28_ep=on:fsr=off:fde=none:nwc=1.5:ptb=off:ssec=off:sos=on:sgo=on:sp=reverse_arity:updr=off_373",
+      "dis+10_2_bd=off:cond=on:ecs=on:flr=on:gsp=input_only:nwc=5.0:nicw=on:ssec=off:sio=off:spl=off:sp=occurrence:updr=off_328",
+      "dis+1003_8_bs=off:flr=on:fsr=off:gsp=input_only:nwc=1.2:ssec=off:sac=on:sgo=on:sio=off:sp=occurrence_532",
+      0
+    };
+    slowSlices = slow;
+  unsigned remainingTime=env.remainingTime()/100;
+  if (runSchedule(quickSlices,remainingTime)) {
     return true;
   }
-  if(runStrategy(opt)) {
+  remainingTime=env.remainingTime()/100;
+  if(remainingTime<=0) {
+    return false;
+  }
+  if (runSchedule(slowSlices,remainingTime)) {
     return true;
   }
-  return false;
-//  unsigned remainingTime=env.remainingTime()/100;
-//
-//  return runStrategySet(ltbStrategies, remainingTime);
+  if(remainingTime<=0) {
+    return false;
+  }
+  return runSchedule(backupSlices,remainingTime);
 }
 
-unsigned CASCMode::getStrategyTime(string st)
+unsigned CASCMode::getSliceTime(string sliceCode)
 {
-  CALL("CASCMode::getStrategyTime");
+  CALL("CASCMode::getSliceTime");
 
-  string stTimeStr=st.substr(st.find_last_of('_')+1);
-  unsigned stTime;
-  ALWAYS(Int::stringToUnsignedInt(stTimeStr, stTime));
-  ASS_G(stTime,0); //strategies with zero time don't make sense
+  string sliceTimeStr=sliceCode.substr(sliceCode.find_last_of('_')+1);
+  unsigned sliceTime;
+  ALWAYS(Int::stringToUnsignedInt(sliceTimeStr, sliceTime));
+  ASS_G(sliceTime,0); //strategies with zero time don't make sense
 
-  return stTime;
+  return sliceTime;
 }
 
 /**
@@ -110,61 +150,42 @@ unsigned CASCMode::getStrategyTime(string st)
  *
  * The remaining time is always split between the remaining strategies
  * in the ratio of their hard-coded time (the last number in the
- * strategy string).
+ * slice string).
  *
  * Return true iff the proof or satisfiability was found
  */
-bool CASCMode::runStrategySet(const char** strategies, unsigned ds)
+ bool CASCMode::runSchedule(const char** schedule, unsigned ds)
 {
-  CALL("CASCMode::runStrategySet");
+  CALL("CASCMode::runSchedule");
 
-  unsigned startTime=env.timer->elapsedDeciseconds();
-  unsigned finishTime=startTime+ds;
-
-  static Stack<string> stStack;
-  stStack.reset();
-
-  unsigned strategyTimeSum=0;
-
-  const char** ptr=strategies;
-  while(*ptr) {
-    string st(*ptr);
-    stStack.push(st);
-    strategyTimeSum+=getStrategyTime(st);
-    ptr++;
-  }
-
-  unsigned strategyTimeRemaining=strategyTimeSum;
-
-  Stack<string>::BottomFirstIterator stIt(stStack);
-  while(stIt.hasNext()) {
-    string st=stIt.next();
-    unsigned stTime=getStrategyTime(st);
-
-    int realTimeRemaining=finishTime-env.timer->elapsedDeciseconds();
-    if(realTimeRemaining<=0) {
+  for (const char** ptr=schedule; *ptr; ptr++) {
+    string sliceCode(*ptr);
+    unsigned sliceTime = getSliceTime(sliceCode);
+    int remainingTime = env.remainingTime()/100;
+    if(remainingTime<=0) {
       return false;
     }
-    unsigned rTime=(realTimeRemaining*stTime)/strategyTimeRemaining;
-    strategyTimeRemaining-=stTime;
 
-    env.out<<"% remaining time: "<<realTimeRemaining<<" next slice time: "<<rTime<<endl;
-
-    if(runStrategy(st, rTime)) {
+    // cast to unsigned is OK since realTimeRemaining is positive
+    if(sliceTime > (unsigned)remainingTime) {
+      sliceTime = remainingTime;
+    }
+    env.out<<"% remaining time: "<<remainingTime<<" next slice time: "<<sliceTime<<endl;
+    if(runSlice(sliceCode,sliceTime)) {
       return true;
     }
   }
   return false;
 }
 
-bool CASCMode::runStrategy(string strategy, unsigned ds)
+bool CASCMode::runSlice(string slice, unsigned ds)
 {
-  CALL("CASCMode::runStrategy");
+  CALL("CASCMode::runSlice");
 
   Options opt=*env.options;
-  opt.readFromTestId(strategy);
+  opt.readFromTestId(slice);
   opt.setTimeLimitInDeciseconds(ds);
-  return runStrategy(opt);
+  return runSlice(opt);
 }
 
 }
