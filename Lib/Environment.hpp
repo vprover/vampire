@@ -72,6 +72,7 @@ public:
       }
     }
   }
+  /** Time remaining until the end of the time-limit in miliseconds */
   int remainingTime() const;
   /** Currently used ordering */
   Kernel::Ordering* ordering;

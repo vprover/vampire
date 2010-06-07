@@ -23,6 +23,8 @@
 using namespace std;
 using namespace Lib;
 
+bool Timer::s_timeLimitEnforcement = true;
+
 #if COMPILER_MSVC
 
 #include <windows.h>
@@ -82,7 +84,7 @@ timer_sigalrm_handler (int sig)
 {
   timer_sigalrm_counter++;
 
-  if(env.timeLimitReached()) {
+  if(Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
     timeLimitReached();
   }
 }

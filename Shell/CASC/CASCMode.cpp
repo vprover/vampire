@@ -7,6 +7,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Shell/Options.hpp"
@@ -38,12 +39,14 @@ bool CASCMode::perform(int argc, char* argv [])
 
   bool res=cm.perform();
   if(res) {
-    env.out<<"% Success!"<<endl;
+    env.out<<"% Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
   }
   else {
-    env.out<<"% Proof not found"<<endl;
+    env.out<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
   }
-  env.statistics->print();
+  if(env.options && env.options->timeStatistics()) {
+    TimeCounter::printReport();
+  }
   return res;
 }
 

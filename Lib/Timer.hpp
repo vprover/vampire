@@ -81,6 +81,11 @@ public:
   static void initTimer();
   static string msToSecondsString(int ms);
   static void printMSString(ostream& str, int ms);
+
+  static void setTimeLimitEnforcement(bool enabled)
+  { s_timeLimitEnforcement = enabled; }
+
+  static bool s_timeLimitEnforcement;
 private:
   /** true if the timer must account for the time spent in
    * children (otherwise it may or may not) */
@@ -93,7 +98,6 @@ private:
   int _elapsed;
 
   int miliseconds();
-
 
 
   /** elapsed time in ticks */

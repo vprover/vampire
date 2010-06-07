@@ -166,6 +166,7 @@ void ForkingCM::childRun(Options& opt)
 
     SaturationResult sres(salg->saturate());
     env.statistics->phase=Statistics::FINALIZATION;
+    Timer::setTimeLimitEnforcement(false);
     sres.updateStatistics();
 
     //set return value to zero if we were successful

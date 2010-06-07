@@ -259,5 +259,6 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Unknown";
   default:
     ASSERTION_VIOLATION;
+    return "Invalid ExecutionPhase value";
   }
 }
