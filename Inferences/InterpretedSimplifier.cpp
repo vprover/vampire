@@ -14,10 +14,11 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Polynomial.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
+
+#include "Kernel/Algebra/Polynomial.hpp"
 
 #include "Indexing/ArithmeticIndex.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -33,6 +34,7 @@ namespace Inferences
 
 using namespace Lib;
 using namespace Kernel;
+using namespace Kernel::Algebra;
 using namespace Indexing;
 
 class InterpretedSimplifier::ClauseSimplifier
@@ -461,33 +463,6 @@ bool InterpretedSimplifier::ClauseSimplifier::
     return false;
   }
   Term* t1=arg1.term();
-
-  if(theory->isInterpretedFunction(t1, Theory::PLUS)) {
-    TermList arg11=*t1->nthArgument(0);
-    TermList arg12=*t1->nthArgument(1);
-
-    for(int i=0; i<2; i++, swap(arg11,arg12)) {
-      //swap the arguments second time to check both possibilities with the commutative PLUS
-      if(arg11==arg2) {
-        //X+Y # X  ---> Y # 0
-        arg1=arg12;
-        arg2=theory->zero();
-        return true;
-      }
-      if(theory->isInterpretedConstant(arg2) && theory->isInterpretedConstant(arg11)) {
-        //X+N1 # N2  ---> X # (N2-N1)
-        InterpretedType v1=theory->interpretConstant(arg2);
-        InterpretedType vSub=theory->interpretConstant(arg11);
-        InterpretedType res;
-        if(Int::safeMinus(v1, vSub, res)) {
-          arg1=arg12;
-          arg2=TermList(theory->getRepresentation(res));
-          return true;
-        }
-      }
-    } 
-
-  }
 
   if(theory->isInterpretedFunction(t1, Theory::DIVIDE)) {
     TermList arg11=*t1->nthArgument(0);
@@ -987,10 +962,25 @@ bool InterpretedSimplifier::ClauseSimplifier::mergeSimpleVariableInequalities()
 {
   CALL("InterpretedSimplifier::ClauseSimplifier::mergeSimpleVariableInequalities");
 
-  //replace 0 # N1*X+P1 \/ 0 # N2*X+P2  by 0 # N2*P1-N1*P2  for # in {<,>,<=,>=,=,!=}
+  //replace 0 # N1*X+P1 \/ 0 # -N2*X+P2  by 0 # N2*P1+N1*P2  for N1,N2>0 and # in {<,>,<=,>=,=,!=}
   //if X is a variable that doesn't appear elsewhere
 
   //TODO: implement
+
+  DHMultiset<unsigned> varOccurences;
+
+  LiteralStack::Iterator lIt1(resLits);
+  while(lIt1.hasNext()) {
+    VariableIterator vit(lIt1.next());
+    while(vit.hasNext()) {
+      varOccurences.insert(vit.next().var());
+    }
+  }
+
+  typedef pair<Literal*, Polynomial*> LitData;
+  DHMap<unsigned, pair<Literal*, Literal*> >  varPresence;
+
+
 
   return false;
 }

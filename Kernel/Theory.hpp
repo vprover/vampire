@@ -80,9 +80,11 @@ public:
 
   InterpretedType interpretConstant(Term* t);
   InterpretedType interpretConstant(TermList t);
-  Term* getRepresentation(InterpretedType val);
   unsigned getFnNum(Interpretation itp);
   unsigned getPredNum(Interpretation itp);
+
+  Term* getRepresentation(InterpretedType val);
+  Term* fun1(Interpretation itp, TermList arg);
 
   TermList zero();
   TermList one();

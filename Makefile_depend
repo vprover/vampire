@@ -1018,7 +1018,8 @@ $(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Portability.hpp Lib/Stack.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Debug/Tracer.hpp Lib/Allocator.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Lib/BacktrackData.hpp Lib/List.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
-$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Int.hpp Lib/Timer.hpp Shell/Options.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Int.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Timer.hpp Shell/Options.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Allocator.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Shell/Statistics.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Shell/CASC/ForkingCM.hpp
@@ -1469,20 +1470,6 @@ $(CONF_ID)/Kernel/Ordering.o: Kernel/Ordering.hpp Lib/Comparison.hpp
 $(CONF_ID)/Kernel/Ordering.o: Kernel/KBO.hpp Lib/DArray.hpp Lib/Allocator.hpp
 $(CONF_ID)/Kernel/Ordering.o: Lib/Comparison.hpp Lib/Random.hpp
 $(CONF_ID)/Kernel/Ordering.o: Lib/Reflection.hpp Lib/VirtualIterator.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Lib/DHMultiset.hpp Debug/Assertion.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Lib/Allocator.hpp Debug/Tracer.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Lib/Portability.hpp Lib/Exception.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Lib/LastCopyWatcher.hpp Lib/Hash.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Lib/DHMap.hpp Lib/VirtualIterator.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Config.hpp Lib/Reflection.hpp Lib/Int.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Lib/Comparison.hpp Lib/Sort.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Lib/DArray.hpp Lib/Random.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Kernel/Ordering.hpp Lib/Comparison.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Lib/SmartPtr.hpp Kernel/Polynomial.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Lib/Stack.hpp Lib/BacktrackData.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Lib/List.hpp Lib/Int.hpp Kernel/Term.hpp
-$(CONF_ID)/Kernel/Polynomial.o: Kernel/Theory.hpp Lib/DHMap.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/DArray.hpp Forwards.hpp Debug/Log.hpp
 $(CONF_ID)/Kernel/Renaming.o: Debug/Tracer.hpp Config.hpp Debug/Assertion.hpp
 $(CONF_ID)/Kernel/Renaming.o: Lib/Allocator.hpp Debug/Tracer.hpp
@@ -1612,6 +1599,48 @@ $(CONF_ID)/Kernel/Unit.o: Kernel/Inference.hpp Kernel/Unit.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Clause.hpp Kernel/Formula.hpp Lib/XML.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Unit.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Kernel/Theory.hpp Forwards.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Debug/Log.hpp Debug/Tracer.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Config.hpp Lib/DHMap.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Debug/Assertion.hpp Lib/Allocator.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Debug/Tracer.hpp Lib/Portability.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/Exception.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/LastCopyWatcher.hpp Lib/Hash.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/Reflection.hpp Kernel/Term.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Kernel/Algebra/Constraint.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/Allocator.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Kernel/Algebra/Polynomial.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/Comparison.hpp Lib/Stack.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/BacktrackData.hpp Lib/List.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/Int.hpp Kernel/Term.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/Metaiterators.hpp Lib/Set.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Lib/TimeCounter.hpp
+$(CONF_ID)/Kernel/Algebra/Constraint.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/DHMultiset.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Debug/Assertion.hpp Lib/Allocator.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Debug/Tracer.hpp Lib/Portability.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/Exception.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/LastCopyWatcher.hpp Lib/Hash.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/DHMap.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Forwards.hpp Debug/Log.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/Reflection.hpp Lib/Int.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/Comparison.hpp Lib/Sort.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/DArray.hpp Lib/Random.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Kernel/Ordering.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/Comparison.hpp Lib/SmartPtr.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Kernel/Algebra/Polynomial.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/Allocator.hpp Lib/Stack.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/BacktrackData.hpp Lib/List.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/Int.hpp Kernel/Term.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/Metaiterators.hpp Lib/Set.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Lib/TimeCounter.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Kernel/Theory.hpp Lib/DHMap.hpp
+$(CONF_ID)/Kernel/Algebra/Polynomial.o: Kernel/Term.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Debug/Assertion.hpp Debug/Tracer.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Lib/DHMap.hpp Lib/Allocator.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Lib/Portability.hpp Lib/Exception.hpp
@@ -2974,9 +3003,6 @@ $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Inference.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Unit.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Ordering.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/SmartPtr.hpp
-$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Polynomial.hpp
-$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Term.hpp
-$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Theory.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Term.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Portability.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/XML.hpp
@@ -2986,7 +3012,9 @@ $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/TermIterators.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Recycler.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/DArray.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Term.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Theory.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Algebra/Polynomial.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Indexing/ArithmeticIndex.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Indexing/Index.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Event.hpp Lib/SmartPtr.hpp
@@ -4342,16 +4370,6 @@ $(CONF_ID)/compit2_impl.o: Kernel/RobSubstitution.hpp Test/Output.hpp
 $(CONF_ID)/compit2_impl.o: Shell/Options.hpp Shell/CommandLine.hpp
 $(CONF_ID)/compit2_impl.o: Shell/Property.hpp Kernel/Unit.hpp
 $(CONF_ID)/compit2_impl.o: Shell/Preprocess.hpp Shell/Statistics.hpp
-$(CONF_ID)/q.o: Kernel/Term.hpp Kernel/KBO.hpp Forwards.hpp Debug/Log.hpp
-$(CONF_ID)/q.o: Debug/Tracer.hpp Config.hpp Lib/DArray.hpp
-$(CONF_ID)/q.o: Debug/Assertion.hpp Lib/Allocator.hpp Debug/Tracer.hpp
-$(CONF_ID)/q.o: Lib/Portability.hpp Lib/Comparison.hpp Lib/Exception.hpp
-$(CONF_ID)/q.o: Lib/LastCopyWatcher.hpp Lib/Random.hpp Lib/Reflection.hpp
-$(CONF_ID)/q.o: Lib/VirtualIterator.hpp Kernel/Ordering.hpp
-$(CONF_ID)/q.o: Lib/Comparison.hpp Lib/SmartPtr.hpp Kernel/Signature.hpp
-$(CONF_ID)/q.o: Lib/Allocator.hpp Lib/Stack.hpp Lib/BacktrackData.hpp
-$(CONF_ID)/q.o: Lib/List.hpp Lib/Int.hpp Lib/Map.hpp Lib/Hash.hpp
-$(CONF_ID)/q.o: Lib/DHMap.hpp Kernel/Theory.hpp
 $(CONF_ID)/test_BinaryHeap.o: Lib/BinaryHeap.hpp Debug/Assertion.hpp
 $(CONF_ID)/test_BinaryHeap.o: Lib/Allocator.hpp Debug/Tracer.hpp
 $(CONF_ID)/test_BinaryHeap.o: Lib/Portability.hpp Lib/Exception.hpp

@@ -99,6 +99,9 @@ bool Theory::isFunction(Interpretation i)
 }
 
 
+/**
+ * Return term with constant representing number 0
+ */
 TermList Theory::zero()
 {
   if(!_zero) {
@@ -107,6 +110,9 @@ TermList Theory::zero()
   return TermList(_zero);
 }
 
+/**
+ * Return term with constant representing number 1
+ */
 TermList Theory::one()
 {
   if(!_one) {
@@ -115,6 +121,9 @@ TermList Theory::one()
   return TermList(_one);
 }
 
+/**
+ * Return term with constant representing number -1
+ */
 TermList Theory::minusOne()
 {
   if(!_minusOne) {
@@ -123,50 +132,94 @@ TermList Theory::minusOne()
   return TermList(_minusOne);
 }
 
+/**
+ * Return true iff @b t is an interpreted constant
+ */
 bool Theory::isInterpretedConstant(Term* t)
 {
-  CALL("Theory::isInterpretedConstant");
+  CALL("Theory::isInterpretedConstant(Term*)");
 
   return t->arity()==0 && env.signature->getFunction(t->functor())->interpreted();
 }
 
+/**
+ * Return true iff @b t is an interpreted constant
+ */
 bool Theory::isInterpretedConstant(TermList t)
 {
+  CALL("Theory::isInterpretedConstant(TermList)");
+
   return t.isTerm() && isInterpretedConstant(t.term());
 }
 
+/**
+ * Return true iff @b lit has an interpreted predicate
+ */
 bool Theory::isInterpretedPredicate(Literal* lit)
 {
+  CALL("Theory::isInterpretedPredicate");
+
   return env.signature->getPredicate(lit->functor())->interpreted();
 }
 
+/**
+ * Return true iff @b lit has an interpreted predicate interpreted
+ * as @b itp
+ */
 bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
 {
+  CALL("Theory::isInterpretedPredicate/2");
+
   return env.signature->getPredicate(lit->functor())->interpreted() &&
       interpretPredicate(lit)==itp;
 }
 
+/**
+ * Return true iff @b t is an interpreted function
+ */
 bool Theory::isInterpretedFunction(Term* t)
 {
+  CALL("Theory::isInterpretedFunction(Term*)");
+
   return t->arity()!=0 && env.signature->getFunction(t->functor())->interpreted();
 }
 
+/**
+ * Return true iff @b t is an interpreted function
+ */
 bool Theory::isInterpretedFunction(TermList t)
 {
+  CALL("Theory::isInterpretedFunction(TermList)");
+
   return t.isTerm() && isInterpretedFunction(t.term());
 }
 
+/**
+ * Return true iff @b t is an interpreted function interpreted
+ * as @b itp
+ */
 bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
 {
+  CALL("Theory::isInterpretedFunction(Term*,Interpretation)");
+
   return t->arity()!=0 && env.signature->getFunction(t->functor())->interpreted() &&
       interpretFunction(t)==itp;
 }
 
+/**
+ * Return true iff @b t is an interpreted function interpreted
+ * as @b itp
+ */
 bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
 {
+  CALL("Theory::isInterpretedFunction(TermList,Interpretation)");
+
   return t.isTerm() && isInterpretedFunction(t.term(), itp);
 }
 
+/**
+ * Assuming @b t is an interpreted function, return its interpretation
+ */
 Interpretation Theory::interpretFunction(Term* t)
 {
   CALL("Theory::interpretFunction");
@@ -176,6 +229,9 @@ Interpretation Theory::interpretFunction(Term* t)
       ->getInterpretation();
 }
 
+/**
+ * Assuming @b t is an interpreted function, return its interpretation
+ */
 Interpretation Theory::interpretFunction(TermList t)
 {
   CALL("Theory::interpretFunction");
@@ -184,6 +240,9 @@ Interpretation Theory::interpretFunction(TermList t)
   return interpretFunction(t.term());
 }
 
+/**
+ * Assuming @b lit has an interpreted predicate, return its interpretation
+ */
 Interpretation Theory::interpretPredicate(Literal* lit)
 {
   CALL("Theory::interpretFunction");
@@ -193,6 +252,9 @@ Interpretation Theory::interpretPredicate(Literal* lit)
       ->getInterpretation();
 }
 
+/**
+ * Assuming @b t is an interpreted constant, return value of this constant
+ */
 InterpretedType Theory::interpretConstant(Term* t)
 {
   CALL("Theory::interpretConstant");
@@ -204,6 +266,9 @@ InterpretedType Theory::interpretConstant(Term* t)
   return sym->getValue();
 }
 
+/**
+ * Assuming @b t is an interpreted constant, return value of this constant
+ */
 InterpretedType Theory::interpretConstant(TermList t)
 {
   CALL("Theory::interpretConstant(TermList)");
@@ -212,8 +277,13 @@ InterpretedType Theory::interpretConstant(TermList t)
   return interpretConstant(t.term());
 }
 
+/**
+ * Return term containing the constant of value @b val
+ */
 Term* Theory::getRepresentation(InterpretedType val)
 {
+  CALL("Theory::getRepresentation");
+
   Term** pRes;
 
   if(!_constants.getValuePtr(val, pRes)) {
@@ -226,6 +296,23 @@ Term* Theory::getRepresentation(InterpretedType val)
   return *pRes;
 }
 
+/**
+ * Return term containing function interpreted as @b itp with
+ * @b arg as its first argument
+ */
+Term* Theory::fun1(Interpretation itp, TermList arg)
+{
+  CALL("Theory::fun1");
+  ASS(isFunction(itp));
+  ASS_EQ(getArity(itp), 1);
+
+  unsigned fn=theory->getFnNum(itp);
+  return Term::create(fn, 1, &arg);
+}
+
+/**
+ * Return number of function that is intepreted as @b itp
+ */
 unsigned Theory::getFnNum(Interpretation itp)
 {
   CALL("Theory::getFnNum");
@@ -234,6 +321,9 @@ unsigned Theory::getFnNum(Interpretation itp)
   return env.signature->getInterpretingSymbol(itp);
 }
 
+/**
+ * Return number of predicate that is intepreted as @b itp
+ */
 unsigned Theory::getPredNum(Interpretation itp)
 {
   CALL("Theory::getPredNum");

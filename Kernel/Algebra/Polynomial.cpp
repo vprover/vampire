@@ -7,16 +7,32 @@
 #include "Lib/Int.hpp"
 #include "Lib/Sort.hpp"
 
-#include "Ordering.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "Polynomial.hpp"
 
 namespace Kernel
 {
+namespace Algebra
+{
 
-Polynomial::Polynomial(TermList t0)
+Polynomial::Polynomial(TermList t)
 {
   CALL("Polynomial::Polynomian(TermList)");
+
+  init(t);
+}
+
+/**
+ * Initialize the polynomial from the term @b t0
+ *
+ * The polynomial must be freshly constructed or reset in order to
+ * call this function.
+ */
+void Polynomial::init(TermList t0)
+{
+  CALL("Polynomial::init");
+  ASS(_data.isEmpty()); //if we're doing init, there cannot be anything from before
   
   //pairs of inherited coefficients and terms to be interpreted
   static Stack<pair<InterpretedType,TermList> > toDo;
@@ -98,6 +114,16 @@ Polynomial::Polynomial(TermList t0)
   }
 }
 
+/**
+ * Empties the polynomial, so that it can be newly initialized
+ */
+void Polynomial::reset()
+{
+  CALL("Polynomial::reset");
+
+  _data.reset();
+}
+
 void Polynomial::subtract(Polynomial& pol)
 {
   CALL("Polynomial::subtract");
@@ -129,6 +155,10 @@ bool Polynomial::simplify()
   return mergeSummands();
 }
 
+/**
+ * Merge summands that have common terms, and return true
+ * iff some merges were performed
+ */
 bool Polynomial::mergeSummands()
 {
   CALL("Polynomial::mergeSummands");
@@ -356,4 +386,5 @@ Comparison Polynomial::Summand::compare(const Summand& s1, const Summand& s2)
 }
 
 
+}
 }

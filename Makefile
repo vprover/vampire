@@ -106,7 +106,6 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/MLMatcher.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
-        Kernel/Polynomial.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
         Kernel/Signature.o\
@@ -117,6 +116,9 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Theory.o\
         Kernel/Unit.o\
 #        Kernel/EGSubstitution.o
+
+ALG_OBJ = Kernel/Algebra/Constraint.o\
+          Kernel/Algebra/Polynomial.o
 
 VI_OBJ = Indexing/ArithmeticIndex.o\
          Indexing/ClauseCodeTree.o\
@@ -246,7 +248,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/Output.o
 
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 #VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) Global.o vampire.o
@@ -280,7 +282,7 @@ obj:
 	-mkdir obj
 obj/%X: | obj
 	-mkdir $@
-	-cd $@ ; mkdir Debug Lib Kernel Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test ; cd .. 
+	-cd $@ ; mkdir Debug Lib Kernel Kernel/Algebra Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test ; cd .. 
 
 #cancel the implicit rule
 %.o : %.cpp
@@ -364,7 +366,7 @@ clean:
 	rm -rf obj
 
 depend:
-	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 Debug/*.cpp Lib/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp *.cpp
+	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 Debug/*.cpp Lib/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp *.cpp
 
 doc:
 	rm -fr doc/html
