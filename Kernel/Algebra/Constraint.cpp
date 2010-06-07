@@ -87,7 +87,7 @@ bool Constraint::doSimplifications()
 {
   CALL("Constraint::doSimplifications");
 
-  if(_equality) {
+  if(!_inequality) {
     if(_pol.size()==1 && _pol[0].coef!=0) {
       _pol[0].coef=1;
       return true;
