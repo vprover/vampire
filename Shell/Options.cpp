@@ -1070,7 +1070,7 @@ string Options::includeFileName (const string& relativeName)
   string dir = include ();
   if (dir == "") { // include undefined
     // (b) search the value of the environment variable TPTP_DIR
-    char* env = getenv("TPTP_DIR");
+    char* env = getenv("TPTP");
     if (env) {
       dir = env;
     }
