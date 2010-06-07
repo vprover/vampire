@@ -521,6 +521,20 @@ start:
 #endif
 }
 
+Inference* BSplitter::getAlternativeClauseInference(Clause* base, Clause* firstComp, Clause* refutation)
+{
+  CALL("BSplitter::getAlternativeClauseInference");
+  ASS_EQ(firstComp->splits()->size(), 1); //the 'definition' clause always has exactly one level in the split history
+  ASS_EQ(refutation->length(), 0); //refutation is always an empty clause
+
+  UnitList* premises=0;
+  UnitList::push(refutation, premises);
+  UnitList::push(firstComp, premises);
+  UnitList::push(base, premises);
+
+  return new InferenceMany(Inference::BACKTRACKING_SPLIT_REFUTATION, premises);
+}
+
 void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl,
     RCClauseStack& acc, SplitSet*& altSplitSet)
 {
@@ -553,7 +567,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
       secLits.push(l);
     }
   }
-  Inference* sinf=new Inference2(Inference::BACKTRACKING_SPLIT_REFUTATION, base, refutation);
+  Inference* sinf=getAlternativeClauseInference(base, firstComp, refutation);
   Clause* scl=Clause::fromStack(secLits, inp, sinf);
   scl->setAge(resAge);
   scl->initProp(resProp);
@@ -571,7 +585,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
     Clause::Iterator fcit(*firstComp);
     while(fcit.hasNext()) {
       Literal* glit=fcit.next();
-      Inference* ginf=new Inference2(Inference::BACKTRACKING_SPLIT_REFUTATION, base, refutation);
+      Inference* ginf=getAlternativeClauseInference(base, firstComp, refutation);
       Clause* gcl=Clause::fromIterator(getSingletonIterator(Literal::oppositeLiteral(glit)), inp, ginf);
       gcl->setAge(resAge);
       gcl->initProp(resProp);

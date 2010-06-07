@@ -95,7 +95,8 @@ TPTPParser::TPTPParser(TPTPLexer& lexer, int includeDepth)
     _currentColor(COLOR_TRANSPARENT),
     _includeDepth(includeDepth),
     _namesLimited(false),
-    _forbiddenIncludes(0)
+    _forbiddenIncludes(0),
+    _haveConjecture(false)
 {
 }
 
@@ -106,7 +107,8 @@ TPTPParser::TPTPParser(TPTPLexer& lexer, List<string>* allowedNames, int include
     _includeDepth(includeDepth),
     _namesLimited(true),
     _allowedNames(allowedNames),
-    _forbiddenIncludes(0)
+    _forbiddenIncludes(0),
+    _haveConjecture(false)
 {
 }
 
@@ -309,6 +311,7 @@ Unit* TPTPParser::unit()
 	else {
 	  f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,f));
 	}
+	_haveConjecture=true;
       }
       if (_claim) {
 	Formula::VarList* vs = f->freeVariables();
@@ -1048,10 +1051,12 @@ void TPTPParser::include(UnitStack& stack)
       TPTPParser parser(lexer, incAllowedNames, _includeDepth+1);
       parser.units(stack);
       incAllowedNames->destroy();
+      _haveConjecture|=parser.haveConjecture();
     }
   } else {
     TPTPParser parser(lexer, _includeDepth+1);
     parser.units(stack);
+    _haveConjecture|=parser.haveConjecture();
   }
 } // TPTPParser::include
 

@@ -18,6 +18,18 @@ public:
   static UnitList* getInputUnits();
 
   static void outputResult();
+
+  /**
+   * Return true if there was a conjecture formula among the parsed units
+   *
+   * The purpose of this information is that when we report success in the
+   * SZS ontology, we decide whether to output "Theorem" or "Unsatisfiable"
+   * based on this value.
+   */
+  static bool haveConjecture() { return s_haveConjecture; }
+
+private:
+  static bool s_haveConjecture;
 };
 
 }

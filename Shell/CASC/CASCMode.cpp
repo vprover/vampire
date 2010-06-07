@@ -12,6 +12,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "ForkingCM.hpp"
 #include "SpawningCM.hpp"
@@ -42,7 +43,7 @@ bool CASCMode::perform(int argc, char* argv [])
   bool res=cm.perform();
   if(res) {
     env.out<<"% Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
-    env.out<<"% SZS status Theorem for "<<env.options->problemName()<<endl;
+    env.out<<"% SZS status "<<( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )<<" for "<<env.options->problemName()<<endl;
   }
   else {
     env.out<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;

@@ -38,6 +38,15 @@ public:
 
   void setForbiddenIncludes(List<string>* fileNames);
 
+  /**
+   * Return true if there was a conjecture formula among the parsed units
+   *
+   * The purpose of this information is that when we report success in the
+   * SZS ontology, we decide whether to output "Theorem" or "Unsatisfiable"
+   * based on this value.
+   */
+  bool haveConjecture() const { return _haveConjecture; }
+
 private:
   class UnitStack;
   class LiteralStack;
@@ -98,6 +107,9 @@ private:
 
   /** Names of files that will be skipped if they appear in the include directive */
   List<string>* _forbiddenIncludes;
+
+  /** See the documentation for @b haveConjecture() function */
+  bool _haveConjecture;
 }; // class TPTPParser
 
 }

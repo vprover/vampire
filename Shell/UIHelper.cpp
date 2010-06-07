@@ -29,6 +29,8 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
+bool UIHelper::s_haveConjecture=false;
+
 UnitList* UIHelper::getInputUnits()
 {
   CALL("UIHelper::getUnits");
@@ -63,6 +65,7 @@ UnitList* UIHelper::getInputUnits()
     TPTPLexer lexer(*input);
     TPTPParser parser(lexer);
     units = parser.units();
+    s_haveConjecture=parser.haveConjecture();
   }
   break;
   }

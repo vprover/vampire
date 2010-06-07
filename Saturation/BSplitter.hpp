@@ -81,6 +81,9 @@ private:
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
 
+
+  Inference* getAlternativeClauseInference(Clause* base, Clause* firstComp, Clause* refutation);
+
   void getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl,
       RCClauseStack& acc, SplitSet*& altSplitSet);
 
