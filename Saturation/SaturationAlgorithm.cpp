@@ -1399,11 +1399,7 @@ SaturationResult SaturationAlgorithm::saturate()
         handleUnsuccessfulActivation(cl);
       }
 
-      syncCounter++;
-      if(syncCounter==50) {
-	syncCounter=0;
-	Timer::syncClock();
-      }
+      Timer::syncClock();
       if(env.timeLimitReached()) {
         return SaturationResult(Statistics::TIME_LIMIT);
       }

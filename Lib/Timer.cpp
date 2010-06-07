@@ -109,7 +109,8 @@ int Lib::Timer::miliseconds()
 
 int Lib::Timer::guaranteedMilliseconds()
 {
-  clock_t ticks=times(0);
+  tms aux;
+  clock_t ticks=times(&aux);
   return static_cast<long long>(ticks*1000)/s_ticksPerSec;
 }
 
