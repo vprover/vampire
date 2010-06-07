@@ -80,6 +80,14 @@ void timeLimitReached()
   reportSpiderStatus('?');
   if(!inSpiderMode()) {
     env.out << "Time limit reached!\n";
+    env.out << "% SZS status Timeout for ";
+    if(env.options) {
+       env.out << env.options->problemName();
+    }
+    else {
+      env.out << "unknown";
+    }
+    env.out << endl;
   }
   if(env.statistics) {
     env.statistics->print();

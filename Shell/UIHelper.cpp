@@ -96,7 +96,9 @@ void UIHelper::outputResult()
 //	Shell::Refutation refutation(env.statistics->refutation,
 //		env.options->proof() == Options::PROOF_ON);
 //	refutation.output(env.out);
+      env.out<<"% SZS output start Proof for "<<env.options->problemName()<<endl;
       InferenceStore::instance()->outputProof(env.out, env.statistics->refutation);
+      env.out<<"% SZS output end Proof for "<<env.options->problemName()<<endl;
     }
     if(env.options->showInterpolant()) {
       ASS(env.statistics->refutation->isClause());
