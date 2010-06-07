@@ -445,7 +445,7 @@ bool CASCMode::perform()
       break;
     }
     // prop != 0,1,131087,131073
-    if (prop & 131072 == 0) {
+    if ((prop & 131072) == 0) {
       const char* quick[] = {
 	"dis-1010_2_bs=off:ep=on:nwc=1.5:sswn=on:sswsr=on:ss=included:st=1.5:sgo=on:sp=occurrence_5",
 	"dis-4_5_bd=off:bs=off:ep=RST:fde=none:lcm=predicate:nwc=2.0:nicw=on:ptb=off:ssec=off:ss=included:st=5.0:sio=off:spl=backtracking:updr=off_10",
@@ -464,7 +464,7 @@ bool CASCMode::perform()
       break;
     }
     // prop != 0,1,131087,131073, prop & 131072 != 0
-    if (prop & 2 == 0) {
+    if ((prop & 2) == 0) {
       const char* quick[] = {
 	"dis-1010_2_bs=off:ep=on:nwc=1.5:sswn=on:sswsr=on:ss=included:st=1.5:sgo=on:sp=occurrence_5",
 	"lrs+4_20_cond=fast:lcm=predicate:nwc=5.0:ptb=off:ssec=off:stl=60:sac=on:sgo=on:updr=off_40",
