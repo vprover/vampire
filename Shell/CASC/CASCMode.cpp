@@ -69,6 +69,8 @@ bool CASCMode::perform()
   unsigned prop = _property.props();
   unsigned atoms = _property.atoms();
 
+  cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
+
   const char** quickSlices;
   const char* backupSlices[] = {
     "dis+10_32_nwc=2.0:sac=on:spl=backtracking_10000",
