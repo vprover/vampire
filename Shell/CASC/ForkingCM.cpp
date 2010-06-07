@@ -104,6 +104,8 @@ bool ForkingCM::runSlice(Options& opt)
 
   System::heedSIGINT();
 
+  Timer::syncClock();
+
   if(res==-1) {
     INVALID_OPERATION("Error in waiting for forked process: "+Int::toString(errno));
   }

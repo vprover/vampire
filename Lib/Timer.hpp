@@ -85,6 +85,8 @@ public:
   static void setTimeLimitEnforcement(bool enabled)
   { s_timeLimitEnforcement = enabled; }
 
+  static void syncClock();
+
   static bool s_timeLimitEnforcement;
 private:
   /** true if the timer must account for the time spent in
@@ -99,6 +101,12 @@ private:
 
   int miliseconds();
 
+#if UNIX_USE_SIGALRM
+  static int guaranteedMilliseconds();
+
+  static long s_ticksPerSec;
+  static int s_initGuarantedMiliseconds;
+#endif
 
   /** elapsed time in ticks */
   inline

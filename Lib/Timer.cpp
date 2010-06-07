@@ -53,6 +53,10 @@ void Lib::Timer::makeChildrenIncluded()
   //here are children always included as we measure the wall clock time
 }
 
+void Lib::Timer::syncClock()
+{
+}
+
 void Lib::Timer::initTimer()
 {
 }
@@ -63,8 +67,13 @@ void Lib::Timer::initTimer()
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <sys/times.h>
 
 int timer_sigalrm_counter=-1;
+
+long Timer::s_ticksPerSec;
+int Timer::s_initGuarantedMiliseconds;
+
 
 void timeLimitReached()
 {
@@ -98,6 +107,12 @@ int Lib::Timer::miliseconds()
   return timer_sigalrm_counter;
 }
 
+int Lib::Timer::guaranteedMilliseconds()
+{
+  clock_t ticks=times(0);
+  return static_cast<long long>(ticks*1000)/s_ticksPerSec;
+}
+
 void Lib::Timer::initTimer()
 {
   CALL("Timer::initTimer");
@@ -111,6 +126,17 @@ void Lib::Timer::initTimer()
   newt.it_value.tv_usec = 1000;
   newt.it_value.tv_sec = 0;
   setitimer (ITIMER_REAL, &newt, &oldt);
+
+  s_ticksPerSec=sysconf(_SC_CLK_TCK);
+  s_initGuarantedMiliseconds=guaranteedMilliseconds();
+}
+
+void Lib::Timer::syncClock()
+{
+  int newVal=guaranteedMilliseconds()-s_initGuarantedMiliseconds;
+  if(abs(newVal-timer_sigalrm_counter)>20) {
+    timer_sigalrm_counter=newVal;
+  }
 }
 
 void Lib::Timer::makeChildrenIncluded()
@@ -143,6 +169,10 @@ int Lib::Timer::miliseconds()
   }
   return t;
 //  return (int)( ((long long)clock())*1000/CLOCKS_PER_SEC );
+}
+
+void Lib::Timer::syncClock()
+{
 }
 
 void Lib::Timer::initTimer()
