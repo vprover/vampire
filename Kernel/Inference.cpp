@@ -264,7 +264,7 @@ string Inference::ruleName(Rule rule)
 //  case HALF_EQUIV:
 //  case MINISCOPE:
   case CLAUSIFY:
-    return "CNF transformation";
+    return "cnf transformation";
   case REMOVE_DUPLICATE_LITERALS:
     return "duplicate literal removal";
   case SKOLEMIZE:

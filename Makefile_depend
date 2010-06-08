@@ -1021,7 +1021,7 @@ $(CONF_ID)/Shell/CASC/CASCMode.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Int.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Timer.hpp Shell/Options.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Lib/Allocator.hpp Lib/XML.hpp
-$(CONF_ID)/Shell/CASC/CASCMode.o: Shell/Statistics.hpp
+$(CONF_ID)/Shell/CASC/CASCMode.o: Shell/Statistics.hpp Shell/UIHelper.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Shell/CASC/ForkingCM.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Shell/CASC/CASCMode.hpp Shell/Property.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Kernel/Unit.hpp Shell/CASC/SpawningCM.hpp
@@ -1599,6 +1599,7 @@ $(CONF_ID)/Kernel/Unit.o: Kernel/Inference.hpp Kernel/Unit.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Clause.hpp Kernel/Formula.hpp Lib/XML.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Unit.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Kernel/Algebra/ArithmeticKB.hpp
 $(CONF_ID)/Kernel/Algebra/Constraint.o: Kernel/Theory.hpp Forwards.hpp
 $(CONF_ID)/Kernel/Algebra/Constraint.o: Debug/Log.hpp Debug/Tracer.hpp
 $(CONF_ID)/Kernel/Algebra/Constraint.o: Config.hpp Lib/DHMap.hpp
@@ -3014,6 +3015,8 @@ $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/DArray.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Term.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Theory.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Algebra/Constraint.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Algebra/Polynomial.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Algebra/Polynomial.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Indexing/ArithmeticIndex.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Indexing/Index.hpp

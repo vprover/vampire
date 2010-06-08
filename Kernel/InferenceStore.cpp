@@ -626,10 +626,14 @@ struct InferenceStore::TPTPProofPrinter
     }
     else {
       ASS(parents.hasNext());
+      string statusStr;
+      if(rule==Inference::SKOLEMIZE) {
+	statusStr="status(esa)";
+      }
 
       inferenceStr="inference("+tptpRuleName(rule);
 
-      inferenceStr+=",[],[";
+      inferenceStr+=",["+statusStr+"],[";
       bool first=true;
       while(parents.hasNext()) {
         UnitSpec prem=parents.next();

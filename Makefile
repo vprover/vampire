@@ -117,7 +117,8 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Unit.o\
 #        Kernel/EGSubstitution.o
 
-ALG_OBJ = Kernel/Algebra/Constraint.o\
+ALG_OBJ = Kernel/Algebra/ArithmeticKB.o\
+          Kernel/Algebra/Constraint.o\
           Kernel/Algebra/Polynomial.o
 
 VI_OBJ = Indexing/ArithmeticIndex.o\

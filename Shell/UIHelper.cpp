@@ -95,6 +95,8 @@ void UIHelper::outputResult()
   case Statistics::REFUTATION:
     env.out << "Refutation found. Thanks to "
 	    << env.options->thanks() << "!\n";
+    env.out<<"% SZS status "<<( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
+	<<" for "<<env.options->problemName()<<endl;
     if (env.options->proof() != Options::PROOF_OFF) {
 //	Shell::Refutation refutation(env.statistics->refutation,
 //		env.options->proof() == Options::PROOF_ON);
@@ -134,6 +136,8 @@ void UIHelper::outputResult()
     break;
   case Statistics::SATISFIABLE:
     env.out << "Refutation not found!\n";
+    env.out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+	<<" for "<<env.options->problemName()<<endl;
     break;
   case Statistics::UNKNOWN:
     env.out << "Unknown reason of termination!\n";

@@ -43,11 +43,15 @@ bool CASCMode::perform(int argc, char* argv [])
   bool res=cm.perform();
   if(res) {
     env.out<<"% Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
-    env.out<<"% SZS status "<<( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )<<" for "<<env.options->problemName()<<endl;
   }
   else {
     env.out<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
-    env.out<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
+    if(env.timeLimitReached()) {
+      env.out<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
+    }
+    else {
+      env.out<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
+    }
   }
   if(env.options && env.options->timeStatistics()) {
     TimeCounter::printReport();

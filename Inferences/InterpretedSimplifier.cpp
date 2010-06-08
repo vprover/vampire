@@ -18,6 +18,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 
+#include "Kernel/Algebra/Constraint.hpp"
 #include "Kernel/Algebra/Polynomial.hpp"
 
 #include "Indexing/ArithmeticIndex.hpp"
@@ -511,27 +512,6 @@ bool InterpretedSimplifier::ClauseSimplifier::
     return false;
   }
   Term* t2=arg2.term();
-  if(theory->isInterpretedFunction(t1, Theory::SUCCESSOR) && theory->isInterpretedConstant(t2)) {
-    //s(X) # N ---> X # (N-1)
-    InterpretedType t2Val=theory->interpretConstant(t2);
-    InterpretedType newArg2;
-    if(Int::safeMinus(t2Val, 1, newArg2)) {
-      arg1=*t1->nthArgument(0);
-      arg2=TermList(theory->getRepresentation(newArg2));
-      return true;
-    }
-  }
-  if(theory->isInterpretedFunction(t1, Theory::UNARY_MINUS) && theory->isInterpretedConstant(t2)) {
-    //-X # N ---> -N # X
-    InterpretedType t2Val=theory->interpretConstant(t2);
-    InterpretedType newArg2;
-    if(Int::safeUnaryMinus(t2Val, newArg2)) {
-      arg1=*t1->nthArgument(0);
-      arg2=TermList(theory->getRepresentation(newArg2));
-      swap(arg1, arg2);
-      return true;
-    }
-  }
 
   if(arg1==theory->zero()) {
     if(theory->isInterpretedFunction(t2)) {
@@ -614,63 +594,11 @@ bool InterpretedSimplifier::ClauseSimplifier::
 {
   CALL("InterpretedSimplifier::ClauseSimplifier::doEqualityAndInequalityEquivalentSimplifications");
 
-  if(arg1==arg2 && arg1!=theory->zero()) {
-    arg1=theory->zero();
-    arg2=arg1;
-    return true;
-  }
-
   if(doEqualityAndInequalityEquivalentSimplificationsFromOneSide(arg1, arg2, equality)) {
     return true;
   }
   if(doEqualityAndInequalityEquivalentSimplificationsFromOneSide(arg2, arg1, equality)) {
     return true;
-  }
-
-  if(arg1.isTerm() && arg2.isTerm() && arg1.term()->functor()==arg2.term()->functor()) {
-    Term* t1=arg1.term();
-    Term* t2=arg2.term();
-    
-    if(theory->isInterpretedFunction(t1, Theory::PLUS)) {
-      //X+Y # X+Z ---> Y # Z  (modulo commutativity)
-      bool modified=true;
-      if(*t1->nthArgument(0)==*t2->nthArgument(0)) {
-        arg1=*t1->nthArgument(1);
-        arg2=*t2->nthArgument(1);
-      }
-      else if(*t1->nthArgument(0)==*t2->nthArgument(1)) {
-        arg1=*t1->nthArgument(1);
-        arg2=*t2->nthArgument(0);
-      }
-      else if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
-        arg1=*t1->nthArgument(0);
-        arg2=*t2->nthArgument(0);
-      }
-      else if(*t1->nthArgument(1)==*t2->nthArgument(0)) {
-        arg1=*t1->nthArgument(0);
-        arg2=*t2->nthArgument(1);
-      }
-      else {
-        modified=false;
-      }
-      if(modified) {
-        return true;
-      }
-    }
-    if(theory->isInterpretedFunction(t1, Theory::MINUS)) {
-      if(*t1->nthArgument(1)==*t2->nthArgument(1)) {
-        //X-Y # Z-Y ---> X # Z
-        arg1=*t1->nthArgument(0);
-        arg2=*t2->nthArgument(0);
-        return true;
-      }
-    }
-    if(theory->isInterpretedFunction(t1, Theory::SUCCESSOR)) {
-      //s(X) # s(Y) ---> X # Y
-      arg1=*t1->nthArgument(0);
-      arg2=*t2->nthArgument(0);
-      return true;
-    }
   }
 
   //merge both sides as polynomials and try to simplify them
