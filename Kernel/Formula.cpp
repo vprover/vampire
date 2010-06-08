@@ -328,14 +328,7 @@ bool Formula::parenthesesRequired (Connective outer) const
 
     case OR:
     case AND:
-      return outer != IMP &&
-	     outer != IFF &&
-             outer != XOR;
-
     case IMP:
-      return outer != IFF &&
-	     outer != XOR;
-
     case IFF:
     case XOR:
       return true;
