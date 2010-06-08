@@ -32,6 +32,8 @@ bool CASCMode::perform(int argc, char* argv [])
 {
   CALL("CASCMode::perform/2");
 
+  UIHelper::cascMode=true;
+
   env.timer->makeChildrenIncluded();
 
 #if COMPILER_MSVC

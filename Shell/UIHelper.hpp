@@ -27,7 +27,7 @@ public:
    * based on this value.
    */
   static bool haveConjecture() { return s_haveConjecture; }
-
+  static bool cascMode;
 private:
   static bool s_haveConjecture;
 };

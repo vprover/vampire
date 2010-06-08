@@ -29,6 +29,7 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
+bool UIHelper::cascMode=false;
 bool UIHelper::s_haveConjecture=false;
 
 UnitList* UIHelper::getInputUnits()
@@ -94,16 +95,22 @@ void UIHelper::outputResult()
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
     env.out << "Refutation found. Thanks to "
-	    << env.options->thanks() << "!\n";
-    env.out<<"% SZS status "<<( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
-	<<" for "<<env.options->problemName()<<endl;
+	      << env.options->thanks() << "!\n";
+    if(cascMode) {
+      env.out<<"% SZS status "<<( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
+	  <<" for "<<env.options->problemName()<<endl;
+    }
     if (env.options->proof() != Options::PROOF_OFF) {
 //	Shell::Refutation refutation(env.statistics->refutation,
 //		env.options->proof() == Options::PROOF_ON);
 //	refutation.output(env.out);
-      env.out<<"% SZS output start Proof for "<<env.options->problemName()<<endl;
+      if(cascMode) {
+	env.out<<"% SZS output start Proof for "<<env.options->problemName()<<endl;
+      }
       InferenceStore::instance()->outputProof(env.out, env.statistics->refutation);
-      env.out<<"% SZS output end Proof for "<<env.options->problemName()<<endl;
+      if(cascMode) {
+	env.out<<"% SZS output end Proof for "<<env.options->problemName()<<endl;
+      }
     }
     if(env.options->showInterpolant()) {
       ASS(env.statistics->refutation->isClause());
@@ -136,8 +143,10 @@ void UIHelper::outputResult()
     break;
   case Statistics::SATISFIABLE:
     env.out << "Refutation not found!\n";
-    env.out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-	<<" for "<<env.options->problemName()<<endl;
+    if(cascMode) {
+      env.out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+	  <<" for "<<env.options->problemName()<<endl;
+    }
     break;
   case Statistics::UNKNOWN:
     env.out << "Unknown reason of termination!\n";

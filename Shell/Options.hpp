@@ -258,6 +258,7 @@ public:
   Options ();
   void output (ostream&) const;
   void readFromTestId (string testId);
+  string generateTestId() const;
   bool complete() const;
 
   string problemName () const;

@@ -15,10 +15,11 @@
 #include "Debug/Tracer.hpp"
 #include "Debug/Assertion.hpp"
 
+#include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/NameArray.hpp"
 #include "Lib/Random.hpp"
-#include "Lib/Exception.hpp"
+#include "Lib/Set.hpp"
 
 #include "Options.hpp"
 
@@ -1152,6 +1153,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case DECODE: // no output for DECODE
     return;
 
+  case EMPTY_CLAUSE_SUBSUMPTION:
+    str << boolToOnOff(_emptyClauseSubsumption);
+    return;
   case EQUALITY_PROXY:
     str << Constants::equalityProxyValues[_equalityProxy];
     return;
@@ -1618,7 +1622,7 @@ void Options::readFromTestId (string testId)
     _saturationAlgorithm = OTTER;
   }
   else {
-  error: USER_ERROR("bad test id " + testId);
+  error: USER_ERROR("bad test id " + _testId);
   }
 
   // after last '_' we have time limit
@@ -1654,6 +1658,10 @@ void Options::readFromTestId (string testId)
   index = testId.find('_');
   string awr = testId.substr(0,index);
   readAgeWeightRatio(awr.c_str());
+  if(index==string::npos) {
+    //there are no extra options
+    return;
+  }
   testId = testId.substr(index+1);
   // repeatedly look for param=value
   while (testId != "") {
@@ -1683,6 +1691,104 @@ void Options::readFromTestId (string testId)
   }
 } // Options::readFromTestId
 
+/**
+ * Return testId string that represents current values of the options
+ */
+string Options::generateTestId() const
+{
+  CALL("Options::generateTestId");
+
+  stringstream res;
+
+  //saturation algorithm
+  res<<( (saturationAlgorithm()==DISCOUNT) ? "dis" : ( (saturationAlgorithm()==LRS) ? "lrs" : "ott") );
+
+  //selection function
+  res<< ( (selection()<0) ? "-" : "+" ) << abs(selection());
+  res<<"_";
+
+  //age-weight ratio
+  if(ageRatio()!=1) {
+    res<<ageRatio()<<":";
+  }
+  res<<weightRatio();
+  res<<"_";
+
+  Options def;
+  //Initially contains current values. The values that we have output
+  //as short options we set to default.
+  Options cur=*this;
+
+  bool first=true;
+
+  static Set<Tag> forbidden;
+  //we initialize the set if there's nothing inside
+  if(forbidden.numberOfElements()==0) {
+    //things we output elsewhere
+    forbidden.insert(SATURATION_ALGORITHM);
+    forbidden.insert(SELECTION);
+    forbidden.insert(AGE_WEIGHT_RATIO);
+    forbidden.insert(TIME_LIMIT);
+
+    //things we don't want to output
+    forbidden.insert(MODE);
+    forbidden.insert(TEST_ID);
+    forbidden.insert(INCLUDE);
+    forbidden.insert(PROBLEM_NAME);
+    forbidden.insert(INPUT_FILE);
+  }
+
+  for(int i=0;i<Constants::shortNames.length;i++) {
+    Tag t=static_cast<Tag>(Constants::shortNameIndexes[i]);
+    if(forbidden.contains(t)) {
+      continue;
+    }
+    stringstream valCur;
+    stringstream valDef;
+    cur.outputValue(valCur, t);
+    def.outputValue(valDef, t);
+    if(valCur.str()==valDef.str()) {
+      continue;
+    }
+    if(!first) {
+      res<<":";
+    }
+    else {
+      first=false;
+    }
+    string name=Constants::shortNames[i];
+    res<<name<<"="<<valCur.str();
+    cur.set(name.c_str(), valDef.str().c_str(), t);
+  }
+
+  for(int i=0;i<NUMBER_OF_OPTIONS;i++) {
+    Tag t=static_cast<Tag>(i);
+    if(forbidden.contains(t)) {
+      continue;
+    }
+    stringstream valCur;
+    stringstream valDef;
+    cur.outputValue(valCur, t);
+    def.outputValue(valDef, t);
+    if(valCur.str()==valDef.str()) {
+      continue;
+    }
+    if(!first) {
+      res<<":";
+    }
+    else {
+      first=false;
+    }
+    res<<Constants::optionNames[i]<<"="<<valCur.str();
+  }
+
+  if(!first) {
+    res<<"_";
+  }
+
+  res<<timeLimitInDeciseconds();
+  return res.str();
+}
 
 /**
  * The standard output is suppressed if either LaTeX or XML
