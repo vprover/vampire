@@ -51,11 +51,11 @@ InferenceStore::InferenceStore()
 }
 
 
-InferenceStore::UnitSpec InferenceStore::getClauseSpec(Clause* cl)
+InferenceStore::UnitSpec InferenceStore::getUnitSpec(Clause* cl)
 {
-  return UnitSpec(cl, cl->prop());
+  return UnitSpec(cl, false);
 }
-InferenceStore::UnitSpec InferenceStore::getClauseSpec(Clause* cl, BDDNode* prop)
+InferenceStore::UnitSpec InferenceStore::getUnitSpec(Clause* cl, BDDNode* prop)
 {
   return UnitSpec(cl, prop);
 }
@@ -138,11 +138,11 @@ void InferenceStore::recordNonPropInference(Clause* cl, Inference* cinf)
   unsigned premCnt=prems.size();
   FullInference* finf=new (premCnt) FullInference(premCnt);
   for(unsigned i=0;i<premCnt;i++) {
-    finf->premises[i]=getClauseSpec(prems[i]);
+    finf->premises[i]=getUnitSpec(prems[i]);
   }
   finf->rule=cinf->rule();
   finf->increasePremiseRefCounters();
-  _data.set(getClauseSpec(cl), finf);
+  _data.set(getUnitSpec(cl), finf);
 }
 
 void InferenceStore::recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp)
@@ -162,12 +162,26 @@ void InferenceStore::recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newP
   ASS(!_bdd->isTrue(newProp));
 
   FullInference* finf=new (1) FullInference(1);
-  finf->premises[0]=getClauseSpec(cl, oldProp);
+  finf->premises[0]=getUnitSpec(cl, oldProp);
   finf->rule=rule;
   finf->increasePremiseRefCounters();
 
-  _data.set(getClauseSpec(cl, newProp), finf);
+  _data.set(getUnitSpec(cl, newProp), finf);
 }
+
+void InferenceStore::recordIntroduction(Clause* cl, BDDNode* prop, Inference::Rule rule)
+{
+  CALL("InferenceStore::recordIntroduction");
+  ASS(!_bdd->isTrue(prop));
+
+  FullInference* finf=new (0) FullInference(0);
+  finf->rule=rule;
+  finf->increasePremiseRefCounters();
+
+  _data.set(getUnitSpec(cl, prop), finf);
+}
+
+
 
 void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp)
 {
@@ -175,12 +189,12 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl
   ASS(!_bdd->isTrue(resultProp));
 
   FullInference* finf=new (2) FullInference(2);
-  finf->premises[0]=getClauseSpec(cl, oldClProp);
-  finf->premises[1]=getClauseSpec(addedCl);
+  finf->premises[0]=getUnitSpec(cl, oldClProp);
+  finf->premises[1]=getUnitSpec(addedCl);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
   finf->increasePremiseRefCounters();
 
-  _data.set(getClauseSpec(cl, resultProp), finf);
+  _data.set(getUnitSpec(cl, resultProp), finf);
 }
 
 void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedProp, BDDNode* resultProp)
@@ -189,12 +203,12 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedPro
   ASS(!_bdd->isTrue(resultProp));
 
   FullInference* finf=new (2) FullInference(2);
-  finf->premises[0]=getClauseSpec(cl, oldProp);
-  finf->premises[1]=getClauseSpec(cl, addedProp);
+  finf->premises[0]=getUnitSpec(cl, oldProp);
+  finf->premises[1]=getUnitSpec(cl, addedProp);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
   finf->increasePremiseRefCounters();
 
-  _data.set(getClauseSpec(cl, resultProp), finf);
+  _data.set(getUnitSpec(cl, resultProp), finf);
 }
 
 
@@ -208,22 +222,37 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, UnitSpec* added
   for(int i=0;i<addedClsCnt;i++) {
     finf->premises[i]=addedCls[i];
   }
-  finf->premises[addedClsCnt]=getClauseSpec(cl, oldClProp);
+  finf->premises[addedClsCnt]=getUnitSpec(cl, oldClProp);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
   finf->increasePremiseRefCounters();
 
-  _data.set(getClauseSpec(cl, resultProp), finf);
+  _data.set(getUnitSpec(cl, resultProp), finf);
 }
 
+/**
+ * Records informations needed for outputting proofs of splitting without
+ * backtracking that does not use BDDs and of general splitting
+ */
+void InferenceStore::recordSplittingNameLiteral(UnitSpec us, Literal* lit)
+{
+  CALL("InferenceStore::recordSplittingNameLiteral");
 
-void InferenceStore::recordSplitting(SplittingRecord* srec, unsigned premCnt, Clause** prems)
+  //each clause is result of a splitting only once
+  ALWAYS(_splittingNameLiterals.insert(us, lit));
+}
+
+/**
+ * Records informations needed for outputting proofs of splitting without
+ * backtracking that uses BDDs
+ */
+void InferenceStore::recordSplitting(SplittingRecord* srec, unsigned premCnt, UnitSpec* prems)
 {
   CALL("InferenceStore::recordSplitting");
   ASS(!_bdd->isTrue(srec->result.prop()));
 
   FullInference* finf=new (premCnt) FullInference(premCnt);
   for(unsigned i=0;i<premCnt;i++) {
-    finf->premises[i]=getClauseSpec(prems[i]);
+    finf->premises[i]=prems[i];
   }
 
   finf->rule=Inference::SPLITTING;
@@ -248,7 +277,7 @@ void InferenceStore::deleteClauseRecords(Clause* cl)
   if(!cl->prop()) {
     return;
   }
-  UnitSpec cs=getClauseSpec(cl);
+  UnitSpec cs=getUnitSpec(cl);
   if(_data.find(cs)) {
     _data.remove(cs);
   }
@@ -291,13 +320,50 @@ InferenceStore::UnitSpecIterator InferenceStore::getParents(UnitSpec us)
 }
 
 /**
+ * Return @b inner quentified over variables in @b vars
+ *
+ * It is caller's responsibility to ensure that variables in @b vars are unique.
+ */
+template<typename VarContainer>
+string getQuantifiedStr(const VarContainer& vars, string inner, bool innerParentheses=true)
+{
+  CALL("getQuantifiedStr(VarContainer, string)");
+
+  VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
+  string varStr;
+  bool first=true;
+  while(vit.hasNext()) {
+    unsigned var=vit.next();
+    if(!first) {
+      varStr+=",";
+    }
+    varStr+=string("X")+Int::toString(var);
+    first=false;
+  }
+
+  if(first) {
+    //we didn't quantify any variable
+    return inner;
+  }
+
+  if(innerParentheses) {
+    return "( ! ["+varStr+"] : ("+inner+") )";
+  }
+  else {
+    return "( ! ["+varStr+"] : "+inner+" )";
+  }
+}
+
+/**
  * Return string containing quantified unit @b u.
  *
  * If @b u is clause, only non-propositional part of the clause is
  * returned. (BDD part and the split history are ommitted.)
  */
-string getQuantifiedStr(Unit* u)
+string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 {
+  CALL("getQuantifiedStr(Unit*...)");
+
   Set<unsigned> vars;
   string res;
   if(u->isClause()) {
@@ -306,7 +372,11 @@ string getQuantifiedStr(Unit* u)
     for(unsigned i=0;i<clen;i++) {
       TermVarIterator vit( (*cl)[i] );
       while(vit.hasNext()) {
-	vars.insert(vit.next());
+	unsigned var=vit.next();
+	if(nonQuantified->member(var)) {
+	  continue;
+	}
+	vars.insert(var);
       }
     }
     res=cl->nonPropToString();
@@ -314,25 +384,16 @@ string getQuantifiedStr(Unit* u)
     Formula* formula=static_cast<FormulaUnit*>(u)->formula();
     FormulaVarIterator fvit( formula );
     while(fvit.hasNext()) {
-	vars.insert(fvit.next());
+      unsigned var=fvit.next();
+      if(nonQuantified->member(var)) {
+        continue;
+      }
+      vars.insert(var);
     }
     res=formula->toString();
   }
-  if(!vars.numberOfElements()) {
-    return res;
-  }
-  Set<unsigned>::Iterator vit(vars);
-  string varStr;
-  bool first=true;
-  while(vit.hasNext()) {
-    if(!first) {
-	varStr+=",";
-    }
-    varStr+=string("X")+Int::toString(vit.next());
-    first=false;
-  }
 
-  return "( ! ["+varStr+"] : ("+res+") )";
+  return getQuantifiedStr(vars, res);
 }
 
 struct InferenceStore::ProofPrinter
@@ -453,13 +514,21 @@ struct InferenceStore::ProofPrinter
 
   }
 
+  virtual bool specialTreatment(UnitSpec cs, Inference::Rule rule)
+  {
+    if(rule==Inference::SPLITTING && is->_splittingRecords.find(cs)) {
+      handleSplitting(is->_splittingRecords.get(cs));
+      return true;
+    }
+    return false;
+  }
+
   void handleStep(UnitSpec cs)
   {
     Inference::Rule rule;
     UnitSpecIterator parents=is->getParents(cs, rule);
 
-    if(rule==Inference::SPLITTING && is->_splittingRecords.find(cs)) {
-      handleSplitting(is->_splittingRecords.get(cs));
+    if(specialTreatment(cs, rule)) {
       return;
     }
 
@@ -504,6 +573,12 @@ struct InferenceStore::TPTPProofPrinter
   TPTPProofPrinter(Unit* refutation, ostream& out, InferenceStore* is)
   : ProofPrinter(refutation, out, is) {}
 
+  //overrides ProofPrinter::specialTreatment
+  bool specialTreatment(UnitSpec cs, Inference::Rule rule)
+  {
+    return false;
+  }
+
   string getRole(Inference::Rule rule)
   {
     switch(rule) {
@@ -529,6 +604,11 @@ struct InferenceStore::TPTPProofPrinter
   string tptpUnitId(UnitSpec us)
   {
     return unitIdToTptp(is->getUnitIdStr(us));
+  }
+
+  string tptpDefId(UnitSpec us)
+  {
+    return unitIdToTptp(Int::toString(us.unit()->number())+"_D");
   }
 
   string bddToString(BDDNode* prop)
@@ -560,49 +640,67 @@ struct InferenceStore::TPTPProofPrinter
 
   string getFofString(string id, string formula, string inference, Inference::Rule rule)
   {
+    CALL("InferenceStore::TPTPProofPrinter::getFofString");
+
     return "fof("+id+","+getRole(rule)+",("+"\n"
 	+"  "+formula+"),\n"
 	+"  "+inference+").";
   }
 
-  string getFormulaString(UnitSpec cs)
+  string getFormulaString(UnitSpec us)
   {
+    CALL("InferenceStore::TPTPProofPrinter::getFormulaString");
+
     string formulaStr;
-    if(cs.isClause()) {
-      Clause* cl=cs.cl();
+    if(us.isClause()) {
+      Clause* cl=us.cl();
       formulaStr=getQuantifiedStr(cl);
-      if(!bdd->isFalse(cs.prop())) {
-	formulaStr+=" | "+bddToString(cs.prop());
+      if(!bdd->isFalse(us.prop())) {
+	formulaStr+=" | "+bddToString(us.prop());
       }
       if(cl->splits() && !cl->splits()->isEmpty()) {
 	formulaStr+=" | "+splitsToString(cl->splits());
       }
     }
     else {
-      ASS(bdd->isFalse(cs.prop()));
-      FormulaUnit* fu=static_cast<FormulaUnit*>(cs.unit());
+      ASS(bdd->isFalse(us.prop()));
+      FormulaUnit* fu=static_cast<FormulaUnit*>(us.unit());
       formulaStr=getQuantifiedStr(fu);
     }
     return formulaStr;
   }
 
-  void printStep(UnitSpec cs)
+  void printStep(UnitSpec us)
   {
-    Inference::Rule rule;
-    UnitSpecIterator parents=is->getParents(cs, rule);
+    CALL("InferenceStore::TPTPProofPrinter::printStep");
 
-    if(rule==Inference::BACKTRACKING_SPLITTING_COMPONENT) {
-      printBacktrackingSplittingComponentIntroduction(cs);
+    Inference::Rule rule;
+    UnitSpecIterator parents=is->getParents(us, rule);
+
+    switch(rule) {
+    case Inference::BACKTRACKING_SPLITTING_COMPONENT:
+      printBacktrackingSplittingComponentIntroduction(us);
       return;
-    }
-    if(rule==Inference::BACKTRACKING_SPLIT_REFUTATION) {
-      printBacktrackingSplittingComponentRefutation(cs);
+    case Inference::BACKTRACKING_SPLIT_REFUTATION:
+      printBacktrackingSplittingComponentRefutation(us);
       return;
+    case Inference::GENERAL_SPLITTING_COMPONENT:
+      printGeneralSplittingComponent(us);
+      return;
+    case Inference::SPLITTING: //only without BDDs
+    case Inference::GENERAL_SPLITTING:
+      printSplitting(us);
+      return;
+    case Inference::SPLITTING_COMPONENT:
+      printSplittingComponent(us);
+      return;
+    default: ;
     }
+
 
     //get string representing the formula
 
-    string formulaStr=getFormulaString(cs);
+    string formulaStr=getFormulaString(us);
 
     //get inference string
 
@@ -616,7 +714,7 @@ struct InferenceStore::TPTPProofPrinter
 	fileName="'"+env.options->inputFile()+"'";
       }
       string axiomName;
-      if(!outputAxiomNames || !Parser::findAxiomName(cs.unit(), axiomName)) {
+      if(!outputAxiomNames || !Parser::findAxiomName(us.unit(), axiomName)) {
 	axiomName="unknown";
       }
       inferenceStr="file("+fileName+","+axiomName+")";
@@ -649,39 +747,183 @@ struct InferenceStore::TPTPProofPrinter
       inferenceStr+="])";
     }
 
-    out<<getFofString(tptpUnitId(cs), formulaStr, inferenceStr, rule)<<endl;
+    out<<getFofString(tptpUnitId(us), formulaStr, inferenceStr, rule)<<endl;
   }
 
-  void printBacktrackingSplittingComponentIntroduction(UnitSpec cs)
+  void printSplittingComponent(UnitSpec us)
+  {
+    CALL("InferenceStore::TPTPProofPrinter::printSplittingComponent");
+
+    if(is->_splittingNameLiterals.find(us)) {
+      //this one comes from splitting without backtracking without BDDs, which is
+      //compatible with the @b printGeneralSplittingComponent function
+      printGeneralSplittingComponent(us);
+      return;
+    }
+
+    ASS(!bdd->isConstant(us.prop())); //the bdd part is the introduced name, so it must be a single variable
+    Clause* cl=us.cl();
+
+    string defId=tptpDefId(us);
+    out<<getFofString(tptpUnitId(us), getFormulaString(us),
+	"inference("+tptpRuleName(Inference::CLAUSIFY)+",[],["+defId+"])", Inference::CLAUSIFY)<<endl;
+
+
+    unsigned var;
+    bool varPos;
+    ALWAYS(bdd->parseAtomic(us.prop(), var, varPos));
+
+    string defStr;
+    if(cl->length()==1 && (*cl)[0]->arity()==0) {
+      defStr=(*cl)[0]->predicateName();
+    } else {
+      defStr=getQuantifiedStr(cl);
+    }
+    defStr+=" <=> ";
+    if(varPos) {
+      defStr+="~";
+    }
+    defStr+=bddPrefix+Int::toString(var);
+
+    string defInferenceStr="inference("+tptpRuleName(Inference::SPLITTING_COMPONENT)+")";
+
+    Inference::Rule rule=Inference::SPLITTING_COMPONENT;
+    out<<getFofString(defId, defStr, "introduced("+tptpRuleName(rule)+",[])", rule)<<endl;
+  }
+
+  /**
+   * This function only prints splitting for splitting without backtracking without
+   * BDDs. The SPLITTING inference of splitting without backtracking with BDDs
+   * is dealt with in @b handleSplitting.
+   */
+  void printSplitting(UnitSpec us)
+  {
+    CALL("InferenceStore::TPTPProofPrinter::printSplitting");
+//    ASS(bdd->isFalse(us.prop()));
+    ASS(us.isClause());
+
+    Inference::Rule rule;
+    UnitSpecIterator parents=is->getParents(us, rule);
+    ASS(rule==Inference::GENERAL_SPLITTING || rule==Inference::SPLITTING);
+
+
+    string inferenceStr="inference("+tptpRuleName(rule)+",[],[";
+
+    //here we rely on the fact that the base premise is always put as the first premise in
+    //GeneralSplitting::apply, in SWBSplitterWithoutBDDs::buildAndInsertComponents
+    //and in SWBSplitterWithBDDs::buildAndInsertComponents
+
+    ALWAYS(parents.hasNext());
+    UnitSpec base=parents.next();
+    inferenceStr+=tptpUnitId(base);
+
+    ASS(parents.hasNext()); //we always split off at least one component
+    while(parents.hasNext()) {
+      UnitSpec comp=parents.next();
+      ASS(!bdd->isFalse(comp.prop()) || is->_splittingNameLiterals.find(comp));
+      inferenceStr+=","+tptpDefId(comp);
+    }
+    inferenceStr+="])";
+
+    out<<getFofString(tptpUnitId(us), getFormulaString(us), inferenceStr, rule)<<endl;
+  }
+
+  void printGeneralSplittingComponent(UnitSpec us)
+  {
+    CALL("InferenceStore::TPTPProofPrinter::printGeneralSplittingComponent");
+    ASS(bdd->isFalse(us.prop()));
+    ASS(us.isClause());
+
+    Inference::Rule rule;
+    UnitSpecIterator parents=is->getParents(us, rule);
+    ASS(!parents.hasNext());
+
+    Literal* nameLit=is->_splittingNameLiterals.get(us); //the name literal must always be stored
+
+    string defId=tptpDefId(us);
+
+    out<<getFofString(tptpUnitId(us), getFormulaString(us),
+	"inference("+tptpRuleName(Inference::CLAUSIFY)+",[],["+defId+"])", Inference::CLAUSIFY)<<endl;
+
+
+    List<unsigned>* nameVars=0;
+    VariableIterator vit(nameLit);
+    while(vit.hasNext()) {
+      unsigned var=vit.next().var();
+      ASS(!nameVars->member(var)); //each variable appears only once in the naming literal
+      List<unsigned>::push(var,nameVars);
+    }
+
+    string compStr;
+    List<unsigned>* compOnlyVars=0;
+    Clause::Iterator lits(*us.cl());
+    bool first=true;
+    bool multiple=false;
+    while(lits.hasNext()) {
+      Literal* lit=lits.next();
+      if(lit==nameLit) {
+	continue;
+      }
+      if(first) {
+	first=false;
+      }
+      else {
+	multiple=true;
+	compStr+=" | ";
+      }
+      compStr+=lit->toString();
+
+      VariableIterator lvit(lit);
+      while(lvit.hasNext()) {
+        unsigned var=lvit.next().var();
+        if(!nameVars->member(var) && !compOnlyVars->member(var)) {
+          List<unsigned>::push(var,compOnlyVars);
+        }
+      }
+    }
+    ASS(!first);
+
+    compStr=getQuantifiedStr(compOnlyVars, compStr, multiple);
+    compOnlyVars->destroy();
+
+    string defStr=compStr+" <=> "+Literal::oppositeLiteral(nameLit)->toString();
+    defStr=getQuantifiedStr(nameVars, defStr);
+    nameVars->destroy();
+
+
+    out<<getFofString(defId, defStr, "introduced("+tptpRuleName(rule)+",[])", rule)<<endl;
+  }
+
+  void printBacktrackingSplittingComponentIntroduction(UnitSpec us)
   {
     CALL("InferenceStore::TPTPProofPrinter::printBacktrackingSplittingComponentIntroduction");
-    ASS(bdd->isFalse(cs.prop()));
-    ASS(cs.isClause());
+    ASS(bdd->isFalse(us.prop()));
+    ASS(us.isClause());
 
-    Clause* cl=cs.cl();
+    Clause* cl=us.cl();
     ASS(cl->splits());
     ASS_EQ(cl->splits()->size(),1);
 
     Inference::Rule rule=Inference::BACKTRACKING_SPLITTING_COMPONENT;
 
 
-    string defId=unitIdToTptp(Int::toString(cl->number())+"_D");
+    string defId=tptpDefId(us);
     string defStr=getQuantifiedStr(cl)+" <=> ~"+splitsToString(cl->splits());
 
-    out<<getFofString(tptpUnitId(cs), getFormulaString(cs),
+    out<<getFofString(tptpUnitId(us), getFormulaString(us),
 	"inference("+tptpRuleName(Inference::CLAUSIFY)+",[],["+defId+"])", Inference::CLAUSIFY)<<endl;
 
     out<<getFofString(defId, defStr, "introduced("+tptpRuleName(rule)+",[])", rule)<<endl;
   }
 
-  void printBacktrackingSplittingComponentRefutation(UnitSpec cs)
+  void printBacktrackingSplittingComponentRefutation(UnitSpec us)
   {
     CALL("InferenceStore::TPTPProofPrinter::printBacktrackingSplittingComponentRefutation");
-    ASS(bdd->isFalse(cs.prop()));
-    ASS(cs.isClause());
+    ASS(bdd->isFalse(us.prop()));
+    ASS(us.isClause());
 
     Inference::Rule rule;
-    UnitSpecIterator parents=is->getParents(cs, rule);
+    UnitSpecIterator parents=is->getParents(us, rule);
     ASS_EQ(rule, Inference::BACKTRACKING_SPLIT_REFUTATION);
 
     //here we rely on the order premises are stored in BSplitter::getAlternativeClauseInference
@@ -696,9 +938,9 @@ struct InferenceStore::TPTPProofPrinter
     ASS_EQ(refutation.cl()->length(), 0); //refutation is always an empty clause
 
     string inferenceStr="inference("+tptpRuleName(rule)+",[],["+ tptpUnitId(base)+","+
-	unitIdToTptp(is->getUnitIdStr(firstComp)+"_D")+","+tptpUnitId(refutation)+"])";
+	tptpDefId(firstComp)+","+tptpUnitId(refutation)+"])";
 
-    out<<getFofString(tptpUnitId(cs), getFormulaString(cs), inferenceStr, rule)<<endl;
+    out<<getFofString(tptpUnitId(us), getFormulaString(us), inferenceStr, rule)<<endl;
   }
 
   void handleSplitting(SplittingRecord* sr)

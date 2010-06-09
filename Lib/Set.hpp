@@ -183,9 +183,12 @@ public:
   {
     return _noOfEntries;
   }
-
+private:
   // declared but not defined, to prevent on-heap allocation
   void* operator new (size_t);
+
+  Set(const Set&); //private non-defined copy constructor to prevent copying
+
 
   /** the current capacity */
   int _capacity;
@@ -322,6 +325,7 @@ public:
     /** iterator will stop looking for the next cell after reaching this one */
     Entry* _last;
   };
+  DECL_ITERATOR_TYPE(Iterator);
 
 }; // class Set
 

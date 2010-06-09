@@ -45,7 +45,7 @@ public:
 	_prop=BDD::instance()->getFalse();
       }
     }
-    UnitSpec(Unit* u, BDDNode* prop) : _unit(u), _prop(prop) {}
+    UnitSpec(Unit* u, BDDNode* prop) : _unit(u), _prop(prop) { ASS(prop); }
     bool operator==(UnitSpec& o) { return _unit==o._unit && _prop==o._prop; }
     bool operator!=(UnitSpec& o) { return !(*this==o); }
 
@@ -104,7 +104,7 @@ public:
   class SplittingRecord
   {
   public:
-    SplittingRecord(Clause* splittedClause) : namedComps(1), premise(getClauseSpec(splittedClause)) {}
+    SplittingRecord(Clause* splittedClause) : namedComps(1), premise(getUnitSpec(splittedClause)) {}
 
     Stack<pair<int,Clause*> > namedComps;
     UnitSpec premise;
@@ -115,17 +115,20 @@ public:
     USE_ALLOCATOR(SplittingRecord);
   };
 
-  static UnitSpec getClauseSpec(Clause* cl);
-  static UnitSpec getClauseSpec(Clause* cl, BDDNode* prop);
+  static UnitSpec getUnitSpec(Clause* cl);
+  static UnitSpec getUnitSpec(Clause* cl, BDDNode* prop);
 
   void recordNonPropInference(Clause* cl);
   void recordNonPropInference(Clause* cl, Inference* inf);
   void recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp);
   void recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newProp, Inference::Rule rule);
+  void recordIntroduction(Clause* cl, BDDNode* prop, Inference::Rule rule);
   void recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl, BDDNode* resultProp);
   void recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedProp, BDDNode* resultProp);
   void recordMerge(Clause* cl, BDDNode* oldClProp, UnitSpec* addedCls, int addedClsCnt, BDDNode* resultProp);
-  void recordSplitting(SplittingRecord* srec, unsigned premCnt, Clause** prems);
+
+  void recordSplitting(SplittingRecord* srec, unsigned premCnt, UnitSpec* prems);
+  void recordSplittingNameLiteral(UnitSpec us, Literal* lit);
 
   void outputProof(ostream& out, Unit* refutation);
 
@@ -173,6 +176,8 @@ private:
   DHMultiset<Clause*, PtrIdentityHash> _nextClIds;
 
   DHMap<UnitSpec, SplittingRecord*, UnitSpec> _splittingRecords;
+
+  DHMap<UnitSpec, Literal*> _splittingNameLiterals;
 
   BDD* _bdd;
 };

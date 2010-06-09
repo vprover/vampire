@@ -790,6 +790,11 @@ struct IteratorTypeInfo<List<T>* >
 {
   typedef typename List<T>::Iterator Type;
 };
+template<typename T>
+struct IteratorTypeInfo<const List<T>*>
+{
+  typedef typename List<T>::Iterator Type;
+};
 
 
 #if VDEBUG

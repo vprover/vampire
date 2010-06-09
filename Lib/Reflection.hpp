@@ -54,6 +54,13 @@ struct IteratorTypeInfo
   typedef typename T::_IteratorType Type;
 };
 
+template<typename T>
+struct IteratorTypeInfo<T const>
+{
+  typedef typename IteratorTypeInfo<T>::Type Type;
+};
+
+
 };
 
 #endif /* __Reflection__ */

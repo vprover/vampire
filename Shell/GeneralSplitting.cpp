@@ -11,6 +11,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -44,7 +45,13 @@ void GeneralSplitting::apply(UnitList*& units)
   units=UnitList::concat(splitRes, units);
 }
 
-
+/**
+ * Find variable that occurs in literals with the smallest number
+ * of other variables, and split out into a new clause all the literals
+ * that contain this variable. (The name predicate will then have all
+ * these variables that accompany our variable in some literal as its
+ * arguments)
+ */
 bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 {
   CALL("GeneralSplitting::apply");
@@ -172,11 +179,13 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   Literal* nnLit=Literal::create(namingPred, minDeg, false, false, args.array());
   otherLits.push(nnLit);
 
-  Clause* mdvCl=Clause::fromStack(mdvLits, cl->inputType(), new Inference(Inference::SPLITTING_COMPONENT));
+  Clause* mdvCl=Clause::fromStack(mdvLits, cl->inputType(), new Inference(Inference::GENERAL_SPLITTING_COMPONENT));
   mdvCl->setAge(cl->age());
   UnitList::push(mdvCl, resultStack);
 
-  Clause* otherCl=Clause::fromStack(otherLits, cl->inputType(), new Inference2(Inference::SPLITTING, cl, mdvCl));
+  InferenceStore::instance()->recordSplittingNameLiteral(InferenceStore::getUnitSpec(mdvCl), pnLit);
+
+  Clause* otherCl=Clause::fromStack(otherLits, cl->inputType(), new Inference2(Inference::GENERAL_SPLITTING, cl, mdvCl));
   otherCl->setAge(cl->age());
 
   cl=otherCl;

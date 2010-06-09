@@ -182,6 +182,10 @@ public:
     BACKTRACKING_SPLITTING_COMPONENT,
     /** refutation of a backtracking splitting branch */
     BACKTRACKING_SPLIT_REFUTATION,
+    /** result of general splitting */
+    GENERAL_SPLITTING,
+    /** component introduced by general splitting */
+    GENERAL_SPLITTING_COMPONENT,
     /** merge of clauses with common non-prop. parts */
     COMMON_NONPROP_MERGE,
     /** reducing the propositional part (due to simplification) */

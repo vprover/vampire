@@ -164,6 +164,31 @@ BDDNode* BDD::getAtomic(int varNum, bool positive)
 }
 
 /**
+ * If @b node is an atomic BDD (contains exactly one variable),
+ * assign its variable into @b var, into @b positive assign
+ * the polarity of the variable, and return true. If @b node is
+ * not atomic, return false.
+ */
+bool BDD::parseAtomic(BDDNode* node, unsigned& var, bool& positive)
+{
+  CALL("BDD::parseAtomic");
+
+  if(isConstant(node)) {
+    return false;
+  }
+  if(!isConstant(node->_pos) || !isConstant(node->_neg)) {
+    return false;
+  }
+  if(isTrue(node->_pos)!=isFalse(node->_neg)) {
+    return false;
+  }
+
+  var=node->_var;
+  positive=isTrue(node->_pos);
+  return true;
+}
+
+/**
  * Return conjunction of @b n1 and @b n2
  */
 BDDNode* BDD::conjunction(BDDNode* n1, BDDNode* n2)

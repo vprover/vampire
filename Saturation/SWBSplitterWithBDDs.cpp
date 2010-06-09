@@ -32,8 +32,6 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
 
   BDD* bdd=BDD::instance();
 
-  InferenceStore::SplittingRecord* srec=new InferenceStore::SplittingRecord(cl);
-
   static Stack<Clause*> unnamedComponentStack(16);
   unnamedComponentStack.reset();
 
@@ -112,9 +110,11 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
 #endif
   }
 
-  static Stack<Clause*> masterPremises;
+  InferenceStore::SplittingRecord* srec=new InferenceStore::SplittingRecord(cl);
+
+  static Stack<InferenceStore::UnitSpec> masterPremises;
   masterPremises.reset();
-  masterPremises.push(cl);
+  masterPremises.push(InferenceStore::getUnitSpec(cl));
 
   BDDNode* newMasterProp=cl->prop();
 
@@ -132,7 +132,12 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
       _sa->onClauseReduction(cl, 0, 0);
       return;
     }
-    masterPremises.push(comp);
+
+    //the component with atomic bdd as propositional part was put
+    //into the inference store during component naming, so we can
+    //use it now as a premise
+    InferenceStore::UnitSpec compDefPremise=InferenceStore::getUnitSpec(comp, getNameProp(-compName));
+    masterPremises.push(compDefPremise);
     srec->namedComps.push(make_pair(compName, comp));
   }
 
@@ -268,11 +273,14 @@ int SWBSplitterWithBDDs::nameComponent(Clause* comp)
   *pname=compName;
   BDDNode* oldCompProp=comp->prop();
   BDDNode* nameProp=BDD::instance()->getAtomic(abs(compName), compName<0);
+  InferenceStore::instance()->recordIntroduction(comp, nameProp, Inference::SPLITTING_COMPONENT);
+
   BDDNode* newCompProp=BDD::instance()->conjunction(oldCompProp, nameProp);
-  if(newCompProp!=oldCompProp) {
-    comp->setProp(newCompProp);
-    InferenceStore::instance()->recordPropAlter(comp, oldCompProp, newCompProp, Inference::SPLITTING_COMPONENT);
+  if(newCompProp!=nameProp && newCompProp!=oldCompProp) {
+    InferenceStore::instance()->recordMerge(comp, oldCompProp, nameProp, newCompProp);
   }
+  comp->setProp(newCompProp);
+
   if(env.options->showDefinitions() && newlyIntroduced) {
     env.out << "Definition: ";
     if(compName<0) {

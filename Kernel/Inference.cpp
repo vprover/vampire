@@ -336,6 +336,10 @@ string Inference::ruleName(Rule rule)
     return "backtracking splitting component";
   case BACKTRACKING_SPLIT_REFUTATION:
     return "backtracking split refutation";
+  case GENERAL_SPLITTING_COMPONENT:
+    return "general splitting component introduction";
+  case GENERAL_SPLITTING:
+    return "general splitting";
   case COMMON_NONPROP_MERGE:
     return "merge";
   case PROP_REDUCE:
@@ -347,10 +351,9 @@ string Inference::ruleName(Rule rule)
   case TAUTOLOGY_INTRODUCTION:
     return "tautology introduction";
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
+    return "!UNKNOWN INFERENCE RULE!";
   }
 } // Inference::name()
 

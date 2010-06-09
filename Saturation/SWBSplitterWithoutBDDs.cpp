@@ -138,11 +138,16 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::createNamedComponent
   for(unsigned i=0;i<cr.len;i++) {
     (*res)[i]=cr.lits[i];
   }
-  (*res)[cr.len]=getNameLiteral(name, false);
+
+  Literal* nameLit=getNameLiteral(name, false);
+  (*res)[cr.len]=nameLit;
 
   res->setAge(cl->age());
   res->initProp(BDD::instance()->getFalse());
   InferenceStore::instance()->recordNonPropInference(res);
+
+  InferenceStore::instance()->recordSplittingNameLiteral(InferenceStore::getUnitSpec(res), nameLit);
+
 
   _sa->addNewClause(res);
   _sa->onParenthood(res, cl);

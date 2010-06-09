@@ -105,6 +105,8 @@ public:
   /** Return @b true iff @b node represents either a false or a true formula */
   bool isConstant(BDDNode* node) { return node->_var==0; }
 
+  bool parseAtomic(BDDNode* node, unsigned& var, bool& positive);
+
   static bool equals(const BDDNode* n1,const BDDNode* n2);
   static unsigned hash(const BDDNode* n);
 
