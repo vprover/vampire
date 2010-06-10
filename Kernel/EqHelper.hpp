@@ -22,7 +22,7 @@ using namespace Lib;
 class EqHelper
 {
 public:
-  static TermList getRHS(Literal* eq, TermList lhs);
+  static TermList getOtherEqualitySide(Literal* eq, TermList lhs);
   static TermIterator getRewritableSubtermIterator(Literal* lit);
   static TermIterator getLHSIterator(Literal* lit);
   static TermIterator getSuperpositionLHSIterator(Literal* lit);

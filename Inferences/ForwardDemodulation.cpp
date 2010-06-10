@@ -3,6 +3,8 @@
  * Implements class ForwardDemodulation.
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
@@ -93,12 +95,16 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	nvi.right();
 	continue;
       }
+
+      bool toplevelCheck=lit->isEquality() &&
+	  (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
+
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
 	TermQueryResult qr=git.next();
 	ASS_EQ(qr.clause->length(),1);
 
-	TermList rhs=EqHelper::getRHS(qr.literal,qr.term);
+	TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
 
 
 	TermList rhsS;
@@ -132,6 +138,34 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 #endif
 	if(!preordered && (_preorderedOnly || ordering->compare(trm,rhsS)!=Ordering::GREATER) ) {
 	  continue;
+	}
+
+	if(toplevelCheck) {
+	  TermList other=EqHelper::getOtherEqualitySide(lit, trm);
+	  Ordering::Result tord=ordering->compare(rhsS, other);
+	  if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
+	    Literal* eqLitS=qr.substitution->applyToBoundResult(qr.literal);
+	    bool isMax=true;
+	    for(unsigned li2=0;li2<cLen;li2++) {
+	      if(li==li2) {
+		continue;
+	      }
+	      if(ordering->compare(eqLitS, (*cl)[li2])==Ordering::LESS) {
+		isMax=false;
+		break;
+	      }
+	    }
+	    if(isMax) {
+	      //RSTAT_CTR_INC("tlCheck prevented");
+	      //LOG("prevented fw dem: "<<(*eqLitS)<<" in "<<(*lit)<<" of "<<(*cl));
+	      //The demodulation is this case which doesn't preserve completeness:
+	      //s = t     s = t1 \/ C
+	      //---------------------
+	      //     t = t1 \/ C
+	      //where t > t1 and s = t > C
+	      continue;
+	    }
+	  }
 	}
 
 	if(!simplPerformer->willPerform(qr.clause)) {

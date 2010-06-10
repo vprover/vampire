@@ -114,7 +114,7 @@ struct BackwardDemodulation::ResultFn
     }
 
     TermList lhs=arg.first;
-    TermList rhs=EqHelper::getRHS(_eqLit, lhs);
+    TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
     TermList lhsS=qr.term;
     TermList rhsS;

@@ -78,9 +78,9 @@ struct EqualityFactoring::ResultFn
     Literal* sLit=arg.first.first; //selected literal
     Literal* fLit=arg.second.first; //factored-out literal
     TermList sLHS=arg.first.second;
-    TermList sRHS=EqHelper::getRHS(sLit, sLHS);
+    TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
     TermList fLHS=arg.second.second;
-    TermList fRHS=EqHelper::getRHS(fLit, fLHS);
+    TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
     static RobSubstitution subst;

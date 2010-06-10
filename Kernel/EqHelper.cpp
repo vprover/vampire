@@ -18,9 +18,9 @@ using namespace Shell;
 /**
  * Return the other side of an equality @b eq than the @b lhs
  */
-TermList EqHelper::getRHS(Literal* eq, TermList lhs)
+TermList EqHelper::getOtherEqualitySide(Literal* eq, TermList lhs)
 {
-  CALL("EqHelper::getRHS");
+  CALL("EqHelper::getOtherEqualitySide");
   ASS(eq->isEquality());
 
   if(*eq->nthArgument(0)==lhs) {

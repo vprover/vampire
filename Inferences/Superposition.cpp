@@ -222,7 +222,7 @@ Clause* Superposition::performSuperposition(
   }
 
   TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
-  TermList tgtTerm = EqHelper::getRHS(eqLit, eqLHS);
+  TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
   //check that we're not rewriting smaller subterm with larger
