@@ -82,7 +82,6 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
     return getAllUnifyingIterator(t,retrieveSubstitutions);
   } else {
     ASS(t.isTerm());
-    return getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions);
     if(_vars.isEmpty()) {
       return getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions);
     } else {
