@@ -1095,6 +1095,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       BDDNode* oldRedundantProp=redundant->prop();
 
       if( !bdd->isXOrNonYConstant(oldRedundantProp, cl->prop(), true) ) {
+	//TODO: here the srec.replacement should probably be deleted
 	continue;
       }
 

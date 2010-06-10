@@ -145,6 +145,38 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
+    if(qr.literal->isEquality() &&
+	(qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
+      TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
+      Ordering::Result tord=ordering->compare(rhsS, other);
+      if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
+	Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS);
+	bool isMax=true;
+	Clause::Iterator cit(*qr.clause);
+	while(cit.hasNext()) {
+	  Literal* lit2=cit.next();
+	  if(qr.literal==lit2) {
+	    continue;
+	  }
+	  if(ordering->compare(eqLitS, lit2)==Ordering::LESS) {
+	    isMax=false;
+	    break;
+	  }
+	}
+	if(isMax) {
+//	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
+//	  LOG("prevented bw dem: "<<(*eqLitS)<<" in "<<(*qr.literal)<<" of "<<(*qr.clause));
+	  //The demodulation is this case which doesn't preserve completeness:
+	  //s = t     s = t1 \/ C
+	  //---------------------
+	  //     t = t1 \/ C
+	  //where t > t1 and s = t > C
+	  return BwSimplificationRecord(qr.clause);
+	}
+      }
+
+    }
+
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
