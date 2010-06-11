@@ -83,7 +83,7 @@ bool Constraint::simplify()
 /**
  * Attempt various simplifications and return true if some were performed
  */
-bool Constraint::doSimplifications()
+bool Constraint::doSimplifications(ArithmeticKB* kb)
 {
   CALL("Constraint::doSimplifications");
 

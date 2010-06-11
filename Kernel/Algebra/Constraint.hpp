@@ -54,7 +54,7 @@ class Constraint {
 
 private:
 
-  bool doSimplifications();
+  bool doSimplifications(ArithmeticKB* kb=0);
 
   bool _inequality;
   bool _negative;

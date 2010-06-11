@@ -306,8 +306,11 @@ $(CONF_ID)/Shell/GeneralSplitting.o: Lib/Reflection.hpp Lib/Stack.hpp
 $(CONF_ID)/Shell/GeneralSplitting.o: Lib/BacktrackData.hpp Lib/Int.hpp
 $(CONF_ID)/Shell/GeneralSplitting.o: Kernel/Unit.hpp Lib/List.hpp
 $(CONF_ID)/Shell/GeneralSplitting.o: Kernel/Inference.hpp Kernel/Unit.hpp
-$(CONF_ID)/Shell/GeneralSplitting.o: Kernel/Signature.hpp Lib/Map.hpp
-$(CONF_ID)/Shell/GeneralSplitting.o: Lib/DHMap.hpp Kernel/Theory.hpp
+$(CONF_ID)/Shell/GeneralSplitting.o: Kernel/InferenceStore.hpp Lib/DHMap.hpp
+$(CONF_ID)/Shell/GeneralSplitting.o: Kernel/BDD.hpp Lib/Array.hpp
+$(CONF_ID)/Shell/GeneralSplitting.o: Lib/Hash.hpp Lib/Int.hpp Lib/Set.hpp
+$(CONF_ID)/Shell/GeneralSplitting.o: Lib/SkipList.hpp Kernel/Signature.hpp
+$(CONF_ID)/Shell/GeneralSplitting.o: Lib/Map.hpp Kernel/Theory.hpp
 $(CONF_ID)/Shell/GeneralSplitting.o: Kernel/Term.hpp Kernel/Term.hpp
 $(CONF_ID)/Shell/GeneralSplitting.o: Lib/Portability.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/GeneralSplitting.o: Lib/Comparison.hpp Kernel/MatchTag.hpp
@@ -505,10 +508,11 @@ $(CONF_ID)/Shell/Normalisation.o: Shell/Normalisation.hpp
 $(CONF_ID)/Shell/Normalisation.o: Shell/SymCounter.hpp
 $(CONF_ID)/Shell/Options.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp
 $(CONF_ID)/Shell/Options.o: Config.hpp Debug/Tracer.hpp Debug/Assertion.hpp
+$(CONF_ID)/Shell/Options.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 $(CONF_ID)/Shell/Options.o: Lib/Int.hpp Lib/Comparison.hpp
 $(CONF_ID)/Shell/Options.o: Lib/Portability.hpp Lib/NameArray.hpp
-$(CONF_ID)/Shell/Options.o: Lib/Random.hpp Lib/Exception.hpp
-$(CONF_ID)/Shell/Options.o: Lib/LastCopyWatcher.hpp Shell/Options.hpp
+$(CONF_ID)/Shell/Options.o: Lib/Random.hpp Lib/Set.hpp Lib/Allocator.hpp
+$(CONF_ID)/Shell/Options.o: Lib/Hash.hpp Lib/Reflection.hpp Shell/Options.hpp
 $(CONF_ID)/Shell/Options.o: Lib/Allocator.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/Parser.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Int.hpp
 $(CONF_ID)/Shell/Parser.o: Lib/Comparison.hpp Lib/Portability.hpp
@@ -1599,7 +1603,26 @@ $(CONF_ID)/Kernel/Unit.o: Kernel/Inference.hpp Kernel/Unit.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Clause.hpp Kernel/Formula.hpp Lib/XML.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Connective.hpp Kernel/FormulaUnit.hpp
 $(CONF_ID)/Kernel/Unit.o: Kernel/Unit.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Kernel/Term.hpp Forwards.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Debug/Log.hpp Debug/Tracer.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Config.hpp Debug/Assertion.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Debug/Tracer.hpp Lib/Allocator.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/Portability.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/Comparison.hpp Lib/Stack.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/Allocator.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/BacktrackData.hpp Lib/List.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/Exception.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/Reflection.hpp Lib/Int.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/Metaiterators.hpp Lib/Set.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/Hash.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Kernel/MatchTag.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/BitUtils.hpp
 $(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Kernel/Algebra/ArithmeticKB.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/Exception.hpp Kernel/Theory.hpp
+$(CONF_ID)/Kernel/Algebra/ArithmeticKB.o: Lib/DHMap.hpp Kernel/Term.hpp
 $(CONF_ID)/Kernel/Algebra/Constraint.o: Kernel/Theory.hpp Forwards.hpp
 $(CONF_ID)/Kernel/Algebra/Constraint.o: Debug/Log.hpp Debug/Tracer.hpp
 $(CONF_ID)/Kernel/Algebra/Constraint.o: Config.hpp Lib/DHMap.hpp
@@ -1660,9 +1683,10 @@ $(CONF_ID)/Indexing/ArithmeticIndex.o: Kernel/Signature.hpp Lib/Map.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Shell/Options.hpp Lib/XML.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Indexing/ArithmeticIndex.hpp
-$(CONF_ID)/Indexing/ArithmeticIndex.o: Kernel/Theory.hpp Indexing/Index.hpp
+$(CONF_ID)/Indexing/ArithmeticIndex.o: Kernel/Theory.hpp
+$(CONF_ID)/Indexing/ArithmeticIndex.o: Kernel/Algebra/ArithmeticKB.hpp
+$(CONF_ID)/Indexing/ArithmeticIndex.o: Lib/Exception.hpp Indexing/Index.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Lib/Event.hpp Lib/SmartPtr.hpp
-$(CONF_ID)/Indexing/ArithmeticIndex.o: Lib/Exception.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Indexing/ArithmeticIndex.o: Saturation/Limits.hpp
@@ -1937,6 +1961,7 @@ $(CONF_ID)/Indexing/IndexManager.o: Saturation/SaturationResult.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Shell/Statistics.hpp Lib/Environment.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Indexing/ArithmeticIndex.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Kernel/Theory.hpp Kernel/Term.hpp
+$(CONF_ID)/Indexing/IndexManager.o: Kernel/Algebra/ArithmeticKB.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Indexing/CodeTreeInterfaces.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Indexing/TermCodeTree.hpp Lib/DArray.hpp
 $(CONF_ID)/Indexing/IndexManager.o: Lib/Comparison.hpp Lib/Random.hpp
@@ -2707,6 +2732,7 @@ $(CONF_ID)/Inferences/FastCondensation.o: Lib/Random.hpp Lib/Environment.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Shell/Statistics.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Inferences/FastCondensation.hpp
 $(CONF_ID)/Inferences/FastCondensation.o: Inferences/InferenceEngine.hpp
+$(CONF_ID)/Inferences/ForwardDemodulation.o: Debug/RuntimeStatistics.hpp
 $(CONF_ID)/Inferences/ForwardDemodulation.o: Lib/DHSet.hpp Forwards.hpp
 $(CONF_ID)/Inferences/ForwardDemodulation.o: Debug/Log.hpp Debug/Tracer.hpp
 $(CONF_ID)/Inferences/ForwardDemodulation.o: Config.hpp Lib/DHMap.hpp
@@ -3015,13 +3041,14 @@ $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/DArray.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Term.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Theory.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Algebra/ArithmeticKB.hpp
+$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Exception.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Algebra/Constraint.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Algebra/Polynomial.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Kernel/Algebra/Polynomial.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Indexing/ArithmeticIndex.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Indexing/Index.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Event.hpp Lib/SmartPtr.hpp
-$(CONF_ID)/Inferences/InterpretedSimplifier.o: Lib/Exception.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Saturation/ClauseContainer.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Saturation/Limits.hpp
 $(CONF_ID)/Inferences/InterpretedSimplifier.o: Indexing/ResultSubstitution.hpp

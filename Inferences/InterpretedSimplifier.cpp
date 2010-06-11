@@ -18,6 +18,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 
+#include "Kernel/Algebra/ArithmeticKB.hpp"
 #include "Kernel/Algebra/Constraint.hpp"
 #include "Kernel/Algebra/Polynomial.hpp"
 
@@ -39,6 +40,7 @@ using namespace Kernel::Algebra;
 using namespace Indexing;
 
 class InterpretedSimplifier::ClauseSimplifier
+: public ArithmeticKB
 {
 private:
   ArithmeticIndex* _ai;
@@ -204,8 +206,11 @@ public:
     }
   }
 
+  //overrides ArithmeticKB::isNonEqual
   bool isNonEqual(TermList t, InterpretedType val, Clause*& premise)
   {
+    CALL("isNonEqual");
+
     stripOffSuccessors(t, val);
     
     premise=0;
@@ -224,8 +229,12 @@ public:
     }
     return false;
   }
+
+  //overrides ArithmeticKB::isGreater
   bool isGreater(TermList t, InterpretedType val, Clause*& premise)
   {
+    CALL("isGreater");
+
     stripOffSuccessors(t, val);
 
     premise=0;
@@ -244,8 +253,12 @@ public:
     }
     return false;
   }
+
+  //overrides ArithmeticKB::isLess
   bool isLess(TermList t, InterpretedType val, Clause*& premise)
   {
+    CALL("isLess");
+
     stripOffSuccessors(t, val);
 
     premise=0;

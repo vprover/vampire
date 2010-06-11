@@ -92,13 +92,7 @@ struct BackwardDemodulation::ResultFn
    */
   OWN_RETURN_TYPE operator() (pair<TermList,TermQueryResult> arg)
   {
-    //TODO: Add completeness check:
-    //
-    //h(a,a,a)=f(a,a)       g(h(a,a,a))=a (DEL)
-    //-----------------------------------------
-    //               g(f(a,a))=a
-    //
-    //is incomplete as the premise is greated than the demodulated clause
+    CALL("BackwardDemodulation::ResultFn::operator()");
 
     TermQueryResult qr=arg.second;
 

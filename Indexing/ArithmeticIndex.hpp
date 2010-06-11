@@ -12,22 +12,29 @@
 
 #include "Kernel/Theory.hpp"
 
+#include "Kernel/Algebra/ArithmeticKB.hpp"
+
 #include "Index.hpp"
 
 namespace Indexing {
 
 using namespace Lib;
 using namespace Kernel;
+using namespace Kernel::Algebra;
 
 class ConstraintDatabase
+: public ArithmeticKB
 {
 public:
   ConstraintDatabase();
 
   void handleLiteral(Literal* lit, bool adding, Clause* premise, bool negative=false);
 
+  //overrides ArithmeticKB::isNonEqual
   bool isNonEqual(TermList t, InterpretedType val, Clause*& premise);
+  //overrides ArithmeticKB::isGreater
   bool isGreater(TermList t, InterpretedType val, Clause*& premise);
+  //overrides ArithmeticKB::isLess
   bool isLess(TermList t, InterpretedType val, Clause*& premise);
 
   void reset()

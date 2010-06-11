@@ -142,6 +142,10 @@ enum Color {
   COLOR_INVALID = 3u
 };
 
+namespace Algebra
+{
+class ArithmeticKB;
+};
 
 };
 
