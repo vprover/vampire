@@ -57,17 +57,22 @@ void Lib::Timer::syncClock()
 {
 }
 
-void Lib::Timer::initTimer()
+void Lib::Timer::ensureTimerInitialized()
 {
 }
 
 
 #elif UNIX_USE_SIGALRM
 
+#include <cerrno>
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
 #include <sys/times.h>
+
+#include "Lib/Sys/Multiprocessing.hpp"
+
+#include "Shell/UIHelper.hpp"
 
 int timer_sigalrm_counter=-1;
 
@@ -80,19 +85,22 @@ void timeLimitReached()
   reportSpiderStatus('?');
   if(!inSpiderMode()) {
     env.out << "Time limit reached!\n";
-    env.out << "% SZS status Timeout for ";
-    if(env.options) {
-       env.out << env.options->problemName();
+    if(Shell::UIHelper::cascMode) {
+      env.out << "% SZS status Timeout for ";
+      if(env.options) {
+	env.out << env.options->problemName();
+      }
+      else {
+	env.out << "unknown";
+      }
+      env.out << endl;
     }
-    else {
-      env.out << "unknown";
-    }
-    env.out << endl;
   }
   if(env.statistics) {
     env.statistics->print();
   }
 
+  System::onTermination();
   abort();
 }
 
@@ -122,9 +130,43 @@ int Lib::Timer::guaranteedMilliseconds()
   return static_cast<long long>(ticks*1000)/s_ticksPerSec;
 }
 
-void Lib::Timer::initTimer()
+void Lib::Timer::suspendTimerBeforeFork()
+{
+  //if we use SIGALRM, we must disable it before forking and the restore it
+  //afterwards (in both processes)
+  itimerval tv1, tv2;
+  tv1.it_value.tv_usec=0;
+  tv1.it_value.tv_sec=0;
+  tv1.it_interval.tv_usec=0;
+  tv1.it_interval.tv_sec=0;
+  errno=0;
+  int res=setitimer(ITIMER_REAL, &tv1, &tv2);
+  if(res!=0) {
+    SYSTEM_FAIL("Call to setitimer failed when suspending timer.",errno);
+  }
+}
+
+void Lib::Timer::restoreTimerAfterFork()
+{
+  itimerval tv1, tv2;
+  tv2.it_interval.tv_usec = 1000;
+  tv2.it_interval.tv_sec = 0;
+  tv2.it_value.tv_usec = 1000;
+  tv2.it_value.tv_sec = 0;
+  errno=0;
+  int res=setitimer(ITIMER_REAL, &tv2, &tv1);
+  if(res!=0) {
+    SYSTEM_FAIL("Call to setitimer failed when restoring timer.",errno);
+  }
+}
+
+void Lib::Timer::ensureTimerInitialized()
 {
   CALL("Timer::initTimer");
+
+  if(timer_sigalrm_counter!=-1) {
+    return;
+  }
 
   timer_sigalrm_counter=0;
 
@@ -138,6 +180,8 @@ void Lib::Timer::initTimer()
 
   s_ticksPerSec=sysconf(_SC_CLK_TCK);
   s_initGuarantedMiliseconds=guaranteedMilliseconds();
+
+  Sys::Multiprocessing::instance()->registerForkHandlers(suspendTimerBeforeFork, restoreTimerAfterFork, restoreTimerAfterFork);
 }
 
 void Lib::Timer::syncClock()
@@ -184,7 +228,7 @@ void Lib::Timer::syncClock()
 {
 }
 
-void Lib::Timer::initTimer()
+void Lib::Timer::ensureTimerInitialized()
 {
 }
 

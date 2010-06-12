@@ -1,10 +1,14 @@
 #include <iostream>
+
 #include "Lib/DHMultiset.hpp"
+
+#include "Test/UnitTesting.hpp"
+
+#define UNIT_ID dhmultiset
+UT_CREATE;
 
 using namespace std;
 using namespace Lib;
-
-#define LOG(x) cout<<x<<endl
 
 class IdHash {
 public:
@@ -25,26 +29,26 @@ public:
 //typedef DHMultiset<int, ConstHash, IdHash> MySet;
 typedef DHMultiset<int> MySet;
 
-void test()
+TEST_FUN(dhmultiset1)
 {
   MySet m1;
 
   //cnt has to be even number
-  int cnt=100000;
-  LOG("testing "<<cnt<<" items..");
+  int cnt=10000;
+
   for(int i=0;i<cnt;i++) {
     m1.insert(i);
     if(i%1000==0) {
       ASSERT_VALID(m1);
     }
   }
-  LOG("Filled size:"<<m1.size());
+  ASS_EQ(m1.size(), cnt);
   for(int i=0;i<cnt;i++) {
     ASS(m1.find(i));
   }
   ASS(!m1.find(cnt));
   ASSERT_VALID(m1);
-  LOG("deleting every odd and adding every even once more..");
+
   for(int i=1;i<cnt;i+=2) {
     m1.remove(i);
     if(i%1000<5) {
@@ -55,10 +59,9 @@ void test()
       ASSERT_VALID(m1);
     }
   }
-  LOG("Current size:"<<m1.size());
-  LOG("checking and removing..");
+  ASS_EQ(m1.size(), cnt);
   for(int i=0;i<cnt;i++) {
-    ASS(m1.find(i)==(i%2==0));
+    ASS_EQ(m1.find(i),(i%2==0));
   }
   for(int i=0;i<cnt;i+=2) {
     m1.remove(i);
@@ -72,13 +75,5 @@ void test()
       ASSERT_VALID(m1);
     }
   }
-  LOG("Current size:"<<m1.size());
-
-  LOG("done");
-}
-
-int main()
-{
-  test();
-  return 0;
+  ASS_EQ(m1.size(),0);
 }

@@ -1,4 +1,7 @@
-#include <iostream>
+//this file hasn't been adapted for the new testing framework yet
+
+
+/*#include <iostream>
 
 #include "Forwards.hpp"
 
@@ -11,7 +14,6 @@
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 
-#include "SAT/ClauseSharing.hpp"
 #include "SAT/DIMACS.hpp"
 #include "SAT/Preprocess.hpp"
 #include "SAT/SingleWatchSAT.hpp"
@@ -183,6 +185,7 @@ int main(int argc, char* argv [])
     }
 
   }*/
+//
+//  return 0;
+//}
 
-  return 0;
-}

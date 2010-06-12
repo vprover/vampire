@@ -99,7 +99,7 @@ int main( int argc, char *argv[] )
 {
   CALL("main");
 
-  Timer::initTimer();
+  Timer::ensureTimerInitialized();
 
   FILE *in;
 

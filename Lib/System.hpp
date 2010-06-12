@@ -10,6 +10,11 @@
 
 #include <string>
 
+#include "Forwards.hpp"
+
+#include "Array.hpp"
+#include "List.hpp"
+
 bool outputAllowed();
 bool inSpiderMode();
 void reportSpiderFail();
@@ -30,7 +35,12 @@ public:
   static void ignoreSIGINT() { s_shouldIgnoreSIGINT=true; }
   static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }
   static bool shouldIgnoreSIGINT() { return s_shouldIgnoreSIGINT; }
+
+  static void addTerminationHandler(VoidFunc proc, unsigned priority=0);
+  static void onTermination();
 protected:
+  static ZIArray<List<VoidFunc>*> s_onTerminationHandlers;
+
   static bool s_shouldIgnoreSIGINT;
 };
 

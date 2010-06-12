@@ -33,7 +33,7 @@ public:
     _mustIncludeChildren(mustIncludeChildren),
     _running(false),
     _elapsed(0)
-  {}
+  { ensureTimerInitialized(); }
 
   /** stop the timer and reset the clock */
   inline void reset()
@@ -78,7 +78,7 @@ public:
 
   void makeChildrenIncluded();
 
-  static void initTimer();
+  static void ensureTimerInitialized();
   static string msToSecondsString(int ms);
   static void printMSString(ostream& str, int ms);
 
@@ -102,6 +102,9 @@ private:
   int miliseconds();
 
 #if UNIX_USE_SIGALRM
+  static void suspendTimerBeforeFork();
+  static void restoreTimerAfterFork();
+
   static int guaranteedMilliseconds();
 
   static long s_ticksPerSec;

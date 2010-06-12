@@ -136,6 +136,17 @@ class InvalidOperationException
 }; // InvalidOperationException
 
 /**
+ * Class SystemFailException.
+ */
+class SystemFailException
+  : public Exception
+{
+public:
+  SystemFailException (const string msg, int err);
+  void cry (ostream&);
+}; // InvalidOperationException
+
+/**
  * Class NotImplementedException.
  */
 class NotImplementedException
@@ -160,6 +171,8 @@ class NotImplementedException
   throw Lib::UserErrorException(msg)
 #define INVALID_OPERATION(msg) \
   throw Lib::InvalidOperationException(msg)
+#define SYSTEM_FAIL(msg,err) \
+  throw Lib::SystemFailException(msg,err)
 #define NOT_IMPLEMENTED \
   throw Lib::NotImplementedException(__FILE__, __LINE__)
 

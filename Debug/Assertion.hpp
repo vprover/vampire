@@ -24,7 +24,8 @@
 
 #include "Tracer.hpp"
 
-#include "Lib/System.hpp"
+bool outputAllowed();
+void reportSpiderFail();
 
 namespace Debug {
 
@@ -164,6 +165,7 @@ private:
 #define ASS_METHOD(OBJ,METHOD)							\
   if(! ((OBJ).METHOD) ) {							\
     Debug::Assertion::violatedMethod(__FILE__,__LINE__,(OBJ), #OBJ, #METHOD,"");\
+    throw Debug::AssertionViolationException(__FILE__,__LINE__);	\
   }
 
 #define ASSERT_VALID(obj) try { (obj).assertValid(); } catch(...) \

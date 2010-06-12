@@ -171,7 +171,7 @@ public:
   }
 
 
-  /** Return number of values stored in this set */
+  /** Return number of values stored in this multiset (including multiplicities)*/
   inline
   int size() const
   {

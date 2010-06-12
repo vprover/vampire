@@ -10,6 +10,8 @@
 
 #include "Config.hpp"
 
+typedef void (*VoidFunc)();
+
 namespace Lib
 {
 
@@ -37,6 +39,7 @@ template<typename C> class Vector;
 
 
 typedef List<int> IntList;
+typedef List<VoidFunc> VoidFuncList;
 
 
 template<typename T> struct FirstHashTypeInfo;

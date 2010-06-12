@@ -14,6 +14,7 @@
 #  include <unistd.h>
 #endif
 
+#include <cerrno>
 #include <string>
 #include <csignal>
 #include <iostream>
@@ -21,6 +22,7 @@
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/Exception.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -64,6 +66,11 @@ namespace Lib {
 
 using namespace std;
 using namespace Shell;
+
+/**
+ * List of functions that will be called before Vampire terminates
+ */
+ZIArray<List<VoidFunc>*> System::s_onTerminationHandlers(2);
 
 bool System::s_shouldIgnoreSIGINT = false;
 
@@ -205,7 +212,51 @@ void System::setSignalHandlers()
   signal(SIGBUS,handleSignal);
   signal(SIGTRAP,handleSignal);
 #endif
+
+  errno=0;
+  int res=atexit(onTermination);
+  if(res==-1) {
+    SYSTEM_FAIL("Call of atexit() function in System::setSignalHandlers failed.", errno);
+  }
+  ASS_EQ(res,0);
 }
+
+/**
+ * Ensure that @b proc will be called before termination of the process.
+ * Functions added with lower @b priority will be called first.
+ *
+ * We try to cover all possibilities how the process may terminate, but
+ * some are probably impossible (such as receiving the signal 9). In these
+ * cases the @b proc function is not called.
+ */
+void System::addTerminationHandler(VoidFunc proc, unsigned priority)
+{
+  CALL("System::addTerminationHandler");
+
+  VoidFuncList::push(proc, s_onTerminationHandlers[priority]);
+}
+
+/**
+ * This function should be called as the last thing on every path that leads
+ * to a process termination.
+ */
+void System::onTermination()
+{
+  static bool called=false;
+  if(called) {
+    return;
+  }
+  called=true;
+
+  size_t sz=s_onTerminationHandlers.size();
+  for(size_t i=0;i<sz;i++) {
+    while(s_onTerminationHandlers[i]) {
+      VoidFunc func=VoidFuncList::pop(s_onTerminationHandlers[i]);
+      func();
+    }
+  }
+}
+
 
 string System::extractFileNameFromPath(string str)
 {

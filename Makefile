@@ -85,6 +85,10 @@ VL_OBJ= Lib/Allocator.o\
         Lib/TimeCounter.o\
         Lib/Timer.o
 
+VLS_OBJ= Lib/Sys/Multiprocessing.o\
+         Lib/Sys/Semaphore.o\
+         Lib/Sys/SyncPipe.o
+
 VK_OBJ= Kernel/BDD.o\
         Kernel/BDDClausifier.o\
         Kernel/BDDConjunction.o\
@@ -246,15 +250,22 @@ CASC_OBJ = Shell/CASC/CASCMode.o\
 VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/CompitOutput.o\
          Test/Compit2Output.o\
-         Test/Output.o
+         Test/Output.o\
+         Test/UnitTesting.o
 
+VUT_OBJ = UnitTests/tBinaryHeap.o\
+		  UnitTests/tDHMap.o\
+		  UnitTests/tDHMultiset.o\
+		  UnitTests/tfork.o\
+		  UnitTests/tSkipList.o
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 #VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) Global.o vampire.o
 VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
 VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
+VTEST_DEP = $(VAMP_BASIC) $(VUT_OBJ) Global.o vtest.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 #VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
 #SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
@@ -283,7 +294,7 @@ obj:
 	-mkdir obj
 obj/%X: | obj
 	-mkdir $@
-	-cd $@ ; mkdir Debug Lib Kernel Kernel/Algebra Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test ; cd .. 
+	-cd $@ ; mkdir Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test UnitTests; cd .. 
 
 #cancel the implicit rule
 %.o : %.cpp
@@ -297,6 +308,7 @@ $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 VAMPIRE_OBJ := $(addprefix $(CONF_ID)/, $(VAMPIRE_DEP))
 VCOMPIT_OBJ := $(addprefix $(CONF_ID)/, $(VCOMPIT_DEP))
 VLTB_OBJ := $(addprefix $(CONF_ID)/, $(VLTB_DEP))
+VTEST_OBJ := $(addprefix $(CONF_ID)/, $(VTEST_DEP))
 
 define COMPILE_CMD
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
@@ -317,6 +329,9 @@ vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vltb vltb_rel vltb_dbg: -lmemcached $(VLTB_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD)
+
+vtest vtest_rel vtest_dbg: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 #vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
@@ -367,7 +382,7 @@ clean:
 	rm -rf obj
 
 depend:
-	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 Debug/*.cpp Lib/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp *.cpp
+	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 Debug/*.cpp Lib/*.cpp Lib/Sys/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp UnitTests/*.cpp *.cpp
 
 doc:
 	rm -fr doc/html

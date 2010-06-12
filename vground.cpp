@@ -152,8 +152,6 @@ int main(int argc, char* argv [])
 {
   CALL ("main");
 
-  Timer::initTimer();
-
   System::setSignalHandlers();
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);

@@ -1,0 +1,59 @@
+
+#include <iostream>
+
+#include "Lib/BinaryHeap.hpp"
+#include "Lib/Int.hpp"
+
+#include "Test/UnitTesting.hpp"
+
+#define UNIT_ID bheap
+UT_CREATE;
+
+using namespace std;
+using namespace Lib;
+
+
+
+TEST_FUN(bheap1)
+{
+  BinaryHeap<int, Int> bh;
+  
+  int cnt=10;
+  for(int i=0;i<cnt;i++)
+  {
+    int num=rand()%cnt;
+    bh.insert(num);
+  }
+  
+  
+  int prev=0;
+  while(!bh.isEmpty()) {
+    int cur=bh.pop();
+    ASS(cur>=prev);
+    prev=cur;
+  }
+}
+
+TEST_FUN(bheap2)
+{
+  BinaryHeap<int, Int> bh;
+
+  int cnt=100;
+
+  for(int i=0;i<cnt;i++)
+  {
+    int num=rand()%cnt;
+    bh.insert(num);
+    bh.insert(-num);
+  }
+
+  int resCnt=0;
+  int prev=INT_MIN;
+  while(!bh.isEmpty()) {
+    int cur=bh.pop();
+    ASS(cur>=prev);
+    prev=cur;
+    resCnt++;
+  }
+  ASS_EQ(resCnt,200);
+}

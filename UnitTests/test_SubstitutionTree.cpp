@@ -1,6 +1,14 @@
+//this file hasn't been adapted for the new testing framework yet
+
 /**
- * @file test_retrieval.cpp
+ * @file test_SubstitutionTree.cpp
  */
+
+/* Command line:
+cd ~voronkov/TPTP-v3.5.0/
+ls Problems/AGT/* | xargs -n 1 ~/src/Dracula/test --time_limit 20 > ~/src/Dracula/st_times.txt
+
+*/
 
 
 #include <sys/time.h>
@@ -41,8 +49,6 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
-
-#include "Resolution/ProofAttempt.hpp"
 
 #include "Rule/CASC.hpp"
 #include "Rule/Prolog.hpp"
@@ -107,28 +113,46 @@ void doTest()
 
   cout<<"Unit count: "<<units->length()<<endl;
 
-
   Array<LCPair> literals;
 
   int index=0;
   UnitList::Iterator uit(units);
-
-  //don't index the first clause, and store its first literal
-  Clause* cls1=static_cast<Clause*>(uit.next());
-  ASS(cls1->length()>=1);
-  Literal* nonIndexedLit=(*cls1)[0];
-
   while(uit.hasNext()) {
     Unit* unit=uit.next();
     ASS(unit->isClause());
     Clause* cls=static_cast<Clause*>(unit);
-    for(unsigned i=0;i<cls->length();i++) {
+    for(int i=0;i<cls->length();i++) {
       literals[index++]=LCPair((*cls)[i], cls);
     }
   }
   int litCnt=index;
 
-  Literal* indexedLit=literals[0].first;
+  Array<TCPair> subterms;
+  index=0;
+  UnitList::Iterator uit2(units);
+  while(uit2.hasNext()) {
+    Unit* unit=uit2.next();
+    ASS(unit->isClause());
+    Clause* cls=static_cast<Clause*>(unit);
+    for(int i=0;i<cls->length();i++) {
+
+      Stack<TermList*> tstack(10);
+      tstack.push((*cls)[i]->args());
+      while (!tstack.isEmpty()) {
+	TermList* tl=tstack.pop();
+	if(tl->isEmpty()) {
+	  continue;
+	}
+	tstack.push(tl->next());
+
+	subterms[index++]=TCPair(tl,cls);
+	if(!tl->isVar()) {
+	  tstack.push(tl->term()->args());
+	}
+      }
+    }
+  }
+  int stCnt=index;
 
   SubstitutionTree tree(2*env.signature->predicates());
   SubstitutionTree ttree(env.signature->functions()+1);
@@ -142,22 +166,6 @@ void doTest()
   tmr.stop();
   cout<<litCnt<<" literals inserted in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
 
-  cout<<tree.toString()<<endl;
-
-  cout<<"Retrieving literals complementary unifiable with "<<Test::Output::toString(nonIndexedLit)<<":"<<endl;
-  SLQueryResultIterator rit1=tree.getComplementaryUnifications(nonIndexedLit);
-  while(rit1.hasNext()) {
-    SLQueryResult res=rit1.next();
-    cout<<Test::Output::toString(res.literal)<<" in "<<Test::Output::toString(res.clause)<<endl;
-  }
-
-  cout<<"Retrieving generalizations of "<<Test::Output::toString(nonIndexedLit)<<":"<<endl;
-  SLQueryResultIterator rit2=tree.getGeneralizations(nonIndexedLit);
-  while(rit2.hasNext()) {
-    SLQueryResult res=rit2.next();
-    cout<<Test::Output::toString(res.literal)<<" in "<<Test::Output::toString(res.clause)<<endl;
-  }
-
   tmr.reset();
   tmr.start();
   for(index=0;index<litCnt;index++) {
@@ -165,6 +173,60 @@ void doTest()
   }
   tmr.stop();
   cout<<litCnt<<" literals removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
+
+  tmr.reset();
+  tmr.start();
+  for(index=0;index<litCnt;index++) {
+    tree.insert(literals[index].first, literals[index].second);
+  }
+  tmr.stop();
+  cout<<litCnt<<" literals inserted again in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
+
+  randomize(literals, litCnt);
+
+  tmr.reset();
+  tmr.start();
+  for(index=0;index<litCnt/2;index++) {
+    tree.remove(literals[index].first, literals[index].second);
+  }
+  tmr.stop();
+  cout<<(litCnt/2)<<" random literals removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
+
+
+
+  tmr.reset();
+  tmr.start();
+  for(index=0;index<stCnt;index++) {
+    ttree.insert(subterms[index].first, subterms[index].second);
+  }
+  tmr.stop();
+  cout<<stCnt<<" subterms inserted in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
+
+  tmr.reset();
+  tmr.start();
+  for(index=0;index<stCnt;index++) {
+    ttree.remove(subterms[index].first, subterms[index].second);
+  }
+  tmr.stop();
+  cout<<stCnt<<" subterms removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
+
+  tmr.reset();
+  tmr.start();
+  for(index=0;index<stCnt;index++) {
+    ttree.insert(subterms[index].first, subterms[index].second);
+  }
+  tmr.stop();
+  cout<<stCnt<<" subterms inserted again in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
+
+  randomize(subterms, stCnt);
+
+  tmr.reset();
+  tmr.start();
+  for(index=0;index<stCnt/2;index++) {
+    ttree.remove(subterms[index].first, subterms[index].second);
+  }
+  tmr.stop();
+  cout<<(stCnt/2)<<" random subterms removed in "<<tmr.elapsedMilliseconds()<<" ms."<<endl;
 
   cout<<endl;
 
@@ -242,3 +304,4 @@ int main(int argc, char* argv [])
   //   delete env.allocator;
   return EXIT_SUCCESS;
 } // main
+

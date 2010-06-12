@@ -81,13 +81,13 @@ bool CASCMode::perform()
 
   cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
-  const char** quickSlices;
   const char* backupSlices[] = {
     "dis+10_32_nwc=2.0:sac=on:spl=backtracking_10000",
     "dis+4_8_10000",
     0
   };
   const char* empty[] = {0};
+  const char** quickSlices = empty;
   const char** slowSlices = empty; // set to empty for categories having no slow slices
 
   switch (cat) {

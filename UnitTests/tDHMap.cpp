@@ -1,10 +1,17 @@
+
 #include <iostream>
+
+#include "Debug/Log.hpp"
+
 #include "Lib/DHMap.hpp"
+
+#include "Test/UnitTesting.hpp"
+
+#define UNIT_ID dhmap
+UT_CREATE;
 
 using namespace std;
 using namespace Lib;
-
-#define LOG(x) cout<<x<<endl
 
 class IdHash {
 public:
@@ -64,7 +71,7 @@ struct HashTraits<ZigZagHash>
 
 typedef DHMap<int, int, ZigZagHash, ConstHash> MyMap; 
 
-void test()
+TEST_FUN(dhmap1)
 {
   MyMap m1;
   m1.insert(1,1);
@@ -73,63 +80,49 @@ void test()
   m1.insert(5,25);
 
   MyMap::Iterator mit(m1);
-  LOG("printing 1,2,3,5");
+
   while(mit.hasNext())
   {
     int k=mit.nextKey();
     int v;
-    if(m1.find(k,v))
-      cout<<k<<"->"<<v<<endl;
+    ALWAYS(m1.find(k,v));
   }
-  cout<<m1.find(4)<<m1.find(5)<<endl;
+  ASS(!m1.find(4));
+  ASS(m1.find(5));
 
   m1.reset();
   MyMap::Iterator mit2(m1);
-  LOG("printing after reset..");
   while(mit2.hasNext())
   {
-    int k=mit2.nextKey();
-    int v;
-    if(m1.find(k,v))
-      LOG("->"<<v);
+    ASSERTION_VIOLATION;
   }
-  LOG("done");
 
+  ASS(m1.isEmpty());
   m1.reset();
-  m1.reset();
+  ASS(m1.isEmpty());
 
   int cnt=10000;
-  LOG("testing "<<cnt<<" items..");
   for(int i=0;i<cnt;i++) {
     m1.insert(i,i*i);
   }
-  LOG("Filled size:"<<m1.size());
+  ASS_EQ(m1.size(),cnt);
   for(int i=0;i<cnt;i++) {
     int v;
-    bool res=m1.find(i,v);
-    ASS(res&&v==i*i);
+    ALWAYS(m1.find(i,v));
+    ASS_EQ(v,i*i);
   }
   ASS(!m1.find(cnt));
-  LOG("deleting every odd..");
+
   for(int i=1;i<cnt;i+=2) {
-    m1.remove(i);
+    ALWAYS(m1.remove(i));
   }
-  LOG("Current size:"<<m1.size());
-  LOG("checking..");
+  NEVER(m1.remove(cnt+1));
+  ASS_EQ(m1.size(), cnt/2+cnt%2);
   for(int i=0;i<cnt;i++) {
     int v;
     bool res=m1.find(i,v);
     ASS(res==(i%2==0));
     ASS(!res||v==i*i);
   }
-  
-  LOG("done");
-
-
 }
 
-int main()
-{
-  test();
-  return 0;
-}

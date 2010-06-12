@@ -445,6 +445,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
     if(env.statistics) {
       env.statistics->print();
     }
+    System::onTermination();
     abort();
 #else
     throw Lib::MemoryLimitExceededException();
@@ -471,6 +472,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       if(env.statistics) {
 	env.statistics->print();
       }
+      System::onTermination();
       abort();
 #else
       throw Lib::MemoryLimitExceededException();
