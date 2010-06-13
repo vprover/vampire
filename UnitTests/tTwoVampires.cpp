@@ -46,6 +46,19 @@ void runChild(UnitList* units, string slice)
 
   env.options->readFromTestId(slice);
 
+  //To make sure the outputs of the two child Vampires don't interfere,
+  //the pipe allows only one process at a time to possess the output for
+  //writing (any other process that needs to output will wait).
+
+  //However, not to block other processes from running, we claim the output
+  //only when we actually need it -- this we announce it by calling the
+  //functions env.beginOutput() and env.endOutput().
+
+  //As outputs can happen all over the Vampire, every (non-debugging) output
+  //is now encapsulated by a call to these two functions.
+
+  //Also, to allow easy switching between cout and the pipe, the env.out
+  //member has now become a function env.out().
   env.beginOutput();
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
@@ -80,37 +93,46 @@ TEST_FUN(two_vampires1)
 
   SyncPipe childOutputPipe;
 
+  //create the first child
   pid_t child1=Multiprocessing::instance()->fork();
   ASS_NEQ(child1,-1);
   if(!child1) {
     //we're in child1
-    childOutputPipe.neverRead();
-    env.setPipeOutput(&childOutputPipe);
-    runChild(units, "dis+10_32_nwc=2.0:sac=on:spl=backtracking_20");
+    childOutputPipe.neverRead(); //we won't be reading from the pipe in children
+    env.setPipeOutput(&childOutputPipe); //direct output into the pipe
+    runChild(units, "dis+10_32_nwc=2.0:sac=on:spl=backtracking_20"); //start proving
   }
 
   pid_t child2=Multiprocessing::instance()->fork();
   ASS_NEQ(child2,-1);
   if(!child2) {
-    //we're in child1
+    //we're in child2
     childOutputPipe.neverRead();
     env.setPipeOutput(&childOutputPipe);
     runChild(units, "dis+4_8_30");
   }
 
+  //We won't be writing anything into the pipe in the parent.
+  //(We cannot call this function before the forks, as then
+  //the children wouldn't be able to write either.)
   childOutputPipe.neverWrite();
 
   cout<<endl;
 
-  childOutputPipe.acquireRead();
+  childOutputPipe.acquireRead();  //start reading from the pipe
   string str;
+  //We are processing the pipe until the EOF appears. This happens
+  //when all the writing ends of the pipe are closed.
+  //The closing is done either by calling the neverWrite() function,
+  //destroying the SyncPipe object or terminating the process.
   while(!childOutputPipe.in().eof()) {
-    getline(childOutputPipe.in(), str);
-    cout<<str<<endl;
+    getline(childOutputPipe.in(), str); //read line
+    cout<<str<<endl; //and write it to the output
   }
-  childOutputPipe.releaseRead();
+  childOutputPipe.releaseRead(); //declare we have stopped reading from the pipe
 
 
+  //retrieve the exit status of the first child
   int status;
   errno=0;
   pid_t res=waitpid(child1, &status, 0);
@@ -121,6 +143,7 @@ TEST_FUN(two_vampires1)
   ASS(!WIFSTOPPED(status));
   ASS(!WIFEXITED(status) || WEXITSTATUS(status)!=0); //problem was satisfiable, so we shouldn't get zero
 
+  //retrieve the exit status of the second child
   errno=0;
   pid_t res2=waitpid(child2, &status, 0);
   if(res2==-1) {
