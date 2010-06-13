@@ -486,79 +486,71 @@ public:
   typedef pair<LeafData*, ResultSubstitutionSP> QueryResult;
 
 
-  /**
-   * Class that supports matching operations required by
-   * retrieval of generalizations in substitution trees.
-   */
-  class GenMatcher
+  class FastMatcher;
+  class GenMatcher;
+  class InstMatcher;
+
+  class FastIterator
+  : public IteratorCore<QueryResult>
   {
   public:
-    GenMatcher(Term* query, unsigned nextSpecVar);
-    ~GenMatcher();
-    /**
-     * Bind special variable @b var to @b term. This method
-     * should be called only before any calls to @b matchNext()
-     * and @b backtrack().
-     */
-    void bindSpecialVar(unsigned var, TermList term)
-    {
-      (*_specVars)[var]=term;
-    }
-    /**
-     * Return term, that is bound to special variable, that is
-     * about to be matched next during iterator's traversal
-     * through the tree.
-     *
-     * (This means the variable with highest number, that hasn't
-     * yet been used.)
-     */
-    TermList getSpecVarBinding(unsigned specVar)
-    { return (*_specVars)[specVar]; }
-    bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
-    void backtrack();
-    bool tryBacktrack();
+    FastIterator(SubstitutionTree* parent, Node* root, Term* query,
+	bool retrieveSubstitution, bool reversed, FastMatcher* subst);
 
-    ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
+    virtual ~FastIterator();
 
-    int getBSCnt()
-    {
-      int res=0;
-      VarStack::Iterator vsit(_boundVars);
-      while(vsit.hasNext()) {
-	if(vsit.next()==BACKTRACK_SEPARATOR) {
-	  res++;
-	}
-      }
-      return res;
-    }
+    QueryResult next();
+    bool hasNext();
+  protected:
+    void createInitialBindings(Term* t);
+    void createReversedInitialBindings(Term* t);
 
-  private:
-    typedef DHMap<unsigned,TermList, IdentityHash> BindingMap;
-    static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
+    virtual bool findNextLeaf() = 0;
 
 
-    struct Binder;
-    struct Applicator;
-    class Substitution;
-    struct MatchBacktrackObject;
+    bool _literalRetrieval;
+    bool _retrieveSubstitution;
+    bool _inLeaf;
 
-    VarStack _boundVars;
+    FastMatcher* _subst;
 
-    DArray<TermList>* _specVars;
-    unsigned _maxVar;
-    ArrayMap<TermList>* _bindings;
+    LDIterator _ldIterator;
+
+    Renaming _resultNormalizer;
+
+    Node* _root;
+    SubstitutionTree* _tree;
   };
 
   /**
    * Iterator, that yields generalizations of given term/literal.
    */
   class FastGeneralizationsIterator
-  : public IteratorCore<QueryResult>
+  : public FastIterator
   {
   public:
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
 	    bool retrieveSubstitution, bool reversed=false);
-    ~FastGeneralizationsIterator();
+  protected:
+    virtual bool findNextLeaf();
+    bool enterNode(Node*& node);
+  private:
+    Stack<void*> _alternatives;
+    Stack<unsigned> _specVarNumbers;
+    Stack<NodeAlgorithm> _nodeTypes;
+  };
+
+
+  /**
+   * Iterator, that yields generalizations of given term/literal.
+   */
+  class FastInstancesIterator
+  : public IteratorCore<QueryResult>
+  {
+  public:
+    FastInstancesIterator(SubstitutionTree* parent, Node* root, Term* query,
+	    bool retrieveSubstitution, bool reversed=false);
+    ~FastInstancesIterator();
 
     bool hasNext();
     QueryResult next();
@@ -570,7 +562,7 @@ public:
     bool enterNode(Node*& node);
 
   private:
-    GenMatcher _subst;
+    InstMatcher* _subst;
     bool _literalRetrieval;
     bool _retrieveSubstitution;
     bool _inLeaf;
@@ -584,7 +576,6 @@ public:
     Renaming _resultNormalizer;
     SubstitutionTree* _tree;
   };
-
 
   class UnificationsIterator
   : public IteratorCore<QueryResult>

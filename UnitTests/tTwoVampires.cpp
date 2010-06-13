@@ -92,7 +92,7 @@ TEST_FUN(two_vampires1)
   TPTPParser par(lex);
   UnitList* units=par.units();
 
-  //pipe for collecting output from children
+  //pipe for collecting the output from children
   SyncPipe childOutputPipe;
 
   //create the first child

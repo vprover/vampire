@@ -138,6 +138,7 @@ VI_OBJ = Indexing/ArithmeticIndex.o\
          Indexing/LiteralSubstitutionTree.o\
          Indexing/ResultSubstitution.o\
          Indexing/SubstitutionTree.o\
+         Indexing/SubstitutionTree_FastIterator.o\
          Indexing/SubstitutionTree_Nodes.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
