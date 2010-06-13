@@ -118,7 +118,6 @@ void ForkingCM::childRun(Options& opt)
   CALL("ForkingCM::childRun");
 
   int resultValue=1;
-//  Timer::initTimer();
   env.timer->reset();
   env.timer->start();
   TimeCounter::reinitialize();
@@ -127,45 +126,20 @@ void ForkingCM::childRun(Options& opt)
   //we have already performed the normalization
   env.options->setNormalize(false);
 
-  env.out<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
-  ClauseIterator clauses;
-  {
-    TimeCounter tc2(TC_PREPROCESSING);
+  env.beginOutput();
+  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
+  env.endOutput();
 
-    Preprocess prepro(_property,*env.options);
-    //phases for preprocessing are being set inside the proprocess method
-    prepro.preprocess(_units);
+  UIHelper::runVampire(_units, &_property);
 
-    clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(_units)) );
+  //set return value to zero if we were successful
+  if(env.statistics->terminationReason==Statistics::REFUTATION) {
+    resultValue=0;
   }
-  Unit::onPreprocessingEnd();
-  try {
-    env.statistics->phase=Statistics::SATURATION;
-    SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
-    salg->addInputClauses(clauses);
 
-    SaturationResult sres(salg->saturate());
-    env.statistics->phase=Statistics::FINALIZATION;
-    Timer::setTimeLimitEnforcement(false);
-    sres.updateStatistics();
-
-    //set return value to zero if we were successful
-    if(sres.terminationReason==Statistics::REFUTATION) {
-      resultValue=0;
-    }
-  }
-  catch(MemoryLimitExceededException) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-    env.statistics->refutation=0;
-    size_t limit=Allocator::getMemoryLimit();
-    //add extra 1 MB to allow proper termination
-    Allocator::setMemoryLimit(limit+1000000);
-  }
-  catch(TimeLimitExceededException) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.statistics->refutation=0;
-  }
-  UIHelper::outputResult();
+  env.beginOutput();
+  UIHelper::outputResult(env.out());
+  env.endOutput();
 
   exit(resultValue);
 }

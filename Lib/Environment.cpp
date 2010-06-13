@@ -7,6 +7,8 @@
 
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Sys/SyncPipe.hpp"
+
 #include "Indexing/TermSharing.hpp"
 
 #include "Kernel/Theory.hpp"
@@ -42,14 +44,11 @@ nullstream nullStream;
  */
 Environment::Environment()
   : signature(0),
-#if COMPIT_GENERATOR// && !VDEBUG
-    out(nullStream),
-#else
-    out(std::cout),
-#endif
     sharing(0),
     ordering(0),
-    colorUsed(false)
+    colorUsed(false),
+    _outputDepth(0),
+    _pipe(0)
 {
   options=new Options;
   statistics=new Statistics;
@@ -64,6 +63,8 @@ Environment::Environment()
 
 Environment::~Environment()
 {
+  ASS_EQ(_outputDepth,0);
+
   delete sharing;
   delete timer;
   delete statistics;
@@ -94,6 +95,83 @@ bool Environment::timeLimitReached() const
 int Environment::remainingTime() const
 {
   return options->timeLimitInDeciseconds()*100 - timer->elapsedMilliseconds();
+}
+
+/**
+ * Acquire an output stream
+ *
+ * A process cannot hold an output stream during forking.
+ */
+void Environment::beginOutput()
+{
+  CALL("Environment::beginOutput");
+  ASS_GE(_outputDepth,0);
+
+  _outputDepth++;
+  if(_outputDepth==1 && _pipe) {
+    _pipe->acquireWrite();
+  }
+}
+
+/**
+ * Release the output stream
+ */
+void Environment::endOutput()
+{
+  CALL("Environment::endOutput");
+  ASS_G(_outputDepth,0);
+
+  _outputDepth--;
+  if(_outputDepth==0 && _pipe) {
+    _pipe->releaseWrite();
+  }
+}
+
+/**
+ * Return true if we have an output stream acquired
+ */
+bool Environment::haveOutput()
+{
+  CALL("Environment::haveOutput");
+
+  return _outputDepth;
+}
+
+/**
+ * Return the output stream if we have it acquired
+ *
+ * Process must have an output stream acquired in order to call
+ * this function.
+ */
+ostream& Environment::out()
+{
+  CALL("Environment::out");
+  ASS(_outputDepth);
+
+#if COMPIT_GENERATOR
+  static nullstream ns;
+  return ns;
+#else
+  if(_pipe) {
+    return _pipe->out();
+  }
+  else {
+    return cout;
+  }
+#endif
+}
+
+/**
+ * Direct @b env.out() into @b pipe or to @b cout if @b pipe is zero
+ *
+ * This function cannot be called when an output is in progress.
+ */
+void Environment::setPipeOutput(SyncPipe* pipe)
+{
+  CALL("Environment::setPipeOutput");
+  ASS(!haveOutput());
+
+  _pipe=pipe;
 }
 
 }

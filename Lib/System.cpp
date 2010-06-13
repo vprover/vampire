@@ -50,15 +50,19 @@ void reportSpiderFail()
 
 void reportSpiderStatus(char status)
 {
+  using namespace Lib;
+
   static bool headerPrinted=false;
 
   if(inSpiderMode() && !headerPrinted) {
     headerPrinted=true;
 
-    Lib::env.out << status << " ";
-    Lib::env.out << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " ";
-    Lib::env.out << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " ";
-    Lib::env.out << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
+    env.beginOutput();
+    env.out() << status << " "
+      << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " "
+      << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
+      << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
+    env.endOutput();
   }
 }
 
@@ -136,7 +140,6 @@ void handleSignal (int sigNum)
     case SIGTERM:
 # ifndef _MSC_VER
     case SIGQUIT:
-    case SIGHUP:
     case SIGXCPU:
       if (handled) {
 	exit(haveSigInt ? 3 : 2);
@@ -144,7 +147,9 @@ void handleSignal (int sigNum)
       handled = true;
       if(outputAllowed()) {
 	if(env.options) {
-	  env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	  env.beginOutput();
+	  env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	  env.endOutput();
 	} else {
 	  cout << "Aborted by signal " << signalDescription << "\n";
 	}
@@ -167,6 +172,7 @@ void handleSignal (int sigNum)
 # ifndef _MSC_VER
     case SIGBUS:
     case SIGTRAP:
+    case SIGHUP:
 # endif
     case SIGABRT: //not handled by this function (see below)
       {
@@ -177,14 +183,19 @@ void handleSignal (int sigNum)
 	handled = true;
 	if(outputAllowed()) {
 	  if(env.options && env.statistics) {
-	    env.out << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	    env.statistics->print();
+	    env.beginOutput();
+	    env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	    env.statistics->print(env.out());
+#if VDEBUG
+	    Debug::Tracer::printStack(env.out());
+#endif
+	    env.endOutput();
 	  } else {
 	    cout << "Aborted by signal " << signalDescription << "\n";
-	  }
 #if VDEBUG
-	  Debug::Tracer::printStack(cout);
+	    Debug::Tracer::printStack(cout);
 #endif
+	  }
 	}
 	exit(haveSigInt ? 3 : 2);
 	return;

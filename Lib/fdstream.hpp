@@ -15,7 +15,6 @@
 #include "Forwards.hpp"
 
 #include "Exception.hpp"
-#include "Deque.hpp"
 
 namespace Lib {
 
@@ -34,24 +33,27 @@ public:
 
   typedef basic_fdbuf <char_type, traits_type> this_type;
 
-  basic_fdbuf( int fd ) : _fd( fd )
+  basic_fdbuf( int fd ) : _fd( fd ), _preRead(-1)
   { }
 
   ~basic_fdbuf()
   {
   }
+
+  int_type getPreReadChar() const { return _preRead; }
+  void setPreReadChar(int_type val) { _preRead=val; }
 protected:
 //  /**
 //   * Get the CURRENT character without advancing the file pointer
 //   */
   virtual int_type underflow()
   {
-    if(_preRead.isNonEmpty()) {
-      return _preRead.front();
+    if(_preRead!=-1) {
+      return _preRead;
     }
     int_type ch=uflow();
     if(ch!=traits_type::eof()) {
-      _preRead.push_back(ch);
+      _preRead=ch;
     }
     return ch;
   }
@@ -60,14 +62,13 @@ protected:
   {
     char_type * s=s0;
     streamsize n=n0;
-    if(_preRead.isNonEmpty()) {
-      while(n) {
-	*(s++)=_preRead.pop_front();
-	n--;
-      }
-      if(n==0) {
-	return n0;
-      }
+    if(_preRead!=-1) {
+      *(s++)=_preRead;
+      n--;
+      _preRead=-1;
+    }
+    if(n==0) {
+      return n0-n;
     }
     errno=0;
     ssize_t res=read(_fd, s, n*sizeof(char_type));
@@ -83,8 +84,10 @@ protected:
    */
   virtual int_type uflow()
   {
-    if(_preRead.isNonEmpty()) {
-      return _preRead.pop_front();
+    if(_preRead!=-1) {
+      int_type res=_preRead;
+      _preRead=-1;
+      return res;
     }
 
     char_type ch;
@@ -96,6 +99,12 @@ protected:
     }
 
     return (res==sizeof(char_type)) ? ch : traits_type::eof();
+  }
+
+  virtual int_type sync()
+  {
+    _preRead=-1; //we throw away the preread char
+    return 0;
   }
 
   virtual streamsize xsputn (const char_type * s, streamsize n)
@@ -116,7 +125,7 @@ protected:
 
 private:
   int _fd;
-  Deque<char_type> _preRead;
+  int_type _preRead;
 };
 
 
@@ -138,7 +147,12 @@ struct basic_fdstream: public std::basic_iostream <CharType, CharTraits>
   { }
 
   ~basic_fdstream()
-  { delete static_cast <sbuf_type*> ( this->rdbuf() ); }
+  { delete static_cast<sbuf_type*>(this->rdbuf()); }
+
+  typename traits_type::int_type getPreReadChar() const
+  { return static_cast<sbuf_type*>(this->rdbuf())->getPreReadChar(); }
+  void setPreReadChar(typename traits_type::int_type val)
+  { return static_cast<sbuf_type*>(this->rdbuf())->setPreReadChar(val); }
 };
 
 typedef basic_fdbuf    <char> fdbuf;

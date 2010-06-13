@@ -5,6 +5,7 @@
 
 #include <cerrno>
 
+#include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Portability.hpp"
 
@@ -62,6 +63,9 @@ void Multiprocessing::executeFuncList(VoidFuncList* lst)
 
 pid_t Multiprocessing::fork()
 {
+  CALL("Multiprocessing::fork");
+  ASS(!env.haveOutput());
+
 #if COMPILER_MSVC
   INVALID_OPERATION("fork() is not supported on Windows")
 #else

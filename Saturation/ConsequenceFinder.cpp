@@ -68,7 +68,9 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
     }
   }
 
-  env.out << "Pure cf clause: " << cl->toNiceString() <<endl;
+  env.beginOutput();
+  env.out() << "Pure cf clause: " << cl->toNiceString() <<endl;
+  env.endOutput();
 
   if(!horn || !pos) {
     return;
@@ -77,7 +79,9 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   unsigned red=pos->functor(); //redundant cf symbol number
   _redundant[red]=true;
 
-  env.out << "Consequence found: " << env.signature->predicateName(red) << endl;
+  env.beginOutput();
+  env.out() << "Consequence found: " << env.signature->predicateName(red) << endl;
+  env.endOutput();
 
   ClauseSL* rlist=_index[red];
   if(rlist) {

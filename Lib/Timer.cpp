@@ -82,23 +82,19 @@ int Timer::s_initGuarantedMiliseconds;
 
 void timeLimitReached()
 {
+  env.beginOutput();
   reportSpiderStatus('?');
   if(!inSpiderMode()) {
-    env.out << "Time limit reached!\n";
+    env.out() << "Time limit reached!\n";
     if(Shell::UIHelper::cascMode) {
-      env.out << "% SZS status Timeout for ";
-      if(env.options) {
-	env.out << env.options->problemName();
-      }
-      else {
-	env.out << "unknown";
-      }
-      env.out << endl;
+      env.out() << "% SZS status Timeout for "
+                << (env.options ? env.options->problemName() : "unknown") << endl;
     }
   }
   if(env.statistics) {
-    env.statistics->print();
+    env.statistics->print(env.out());
   }
+  env.endOutput();
 
   System::onTermination();
   abort();

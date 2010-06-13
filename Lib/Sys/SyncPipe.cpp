@@ -29,7 +29,7 @@ namespace Sys
 SyncPipe::PipeList* SyncPipe::s_instances = 0;
 
 SyncPipe::SyncPipe()
-: _canRead(false), _canWrite(false), _syncSemaphore(2)
+: _isReading(false), _isWriting(false), _syncSemaphore(3)
 {
   ensureEventHandlersInstalled();
 
@@ -46,9 +46,12 @@ SyncPipe::SyncPipe()
   _istream=new fdstream(_readDescriptor);
   _ostream=new fdstream(_writeDescriptor);
 
+  _istream->rdbuf()->pubsetbuf(0,0);
+
   //add the priviledges into the semaphore
   _syncSemaphore.inc(0);
   _syncSemaphore.inc(1);
+  _syncSemaphore.set(2,256);
 
   PipeList::push(this, s_instances);
 }
@@ -61,20 +64,12 @@ SyncPipe::~SyncPipe()
   ASS(s_instances->member(this));
   s_instances=s_instances->remove(this);
 
-  int res=close(_readDescriptor);
-  if(res==-1) {
-    SYSTEM_FAIL("Closing read descriptor of a pipe.", errno);
+  if(canRead()) {
+    neverRead();
   }
-  ASS_EQ(res,0);
-
-  res=close(_writeDescriptor);
-  if(res==-1) {
-    SYSTEM_FAIL("Closing write descriptor of a pipe.", errno);
+  if(canWrite()) {
+    neverWrite();
   }
-  ASS_EQ(res,0);
-
-  delete _istream;
-  delete _ostream;
 }
 
 /**
@@ -83,11 +78,21 @@ SyncPipe::~SyncPipe()
 void SyncPipe::acquireRead()
 {
   CALL("SyncPipe::acquireRead");
-  ASS(!canRead());
-  ASS(!canWrite()); //it does not make sense if one process would both reads and writes into a pipe
+  ASS(canRead());
+  ASS(!isReading());
+  ASS(!isWriting()); //it does not make sense if one process would both reads and writes into a pipe
 
   _syncSemaphore.dec(0);
-  _canRead=true;
+
+  //restore the preread character
+  int preRead=_syncSemaphore.get(2);
+  if(preRead==256) {
+    preRead=-1;
+  }
+  ASS_LE(preRead,255);
+  _istream->setPreReadChar(preRead);
+
+  _isReading=true;
 }
 
 /**
@@ -96,11 +101,40 @@ void SyncPipe::acquireRead()
 void SyncPipe::releaseRead()
 {
   CALL("SyncPipe::releaseRead");
-  ASS(canRead());
+  ASS(isReading());
 
-  _canRead=false;
+  _isReading=false;
+
+  int preRead=_istream->getPreReadChar();
+  if(preRead==-1) {
+    preRead=256;
+  }
+  ASS_GE(preRead,0);
+  ASS_LE(preRead,256);
+  _syncSemaphore.set(2,preRead);
+
   _syncSemaphore.inc(0);
 }
+
+/**
+ * Release the reading end of the pipe from this object. This
+ * means that it will not be possible to call @b acquireRead on it.
+ */
+void SyncPipe::neverRead()
+{
+  CALL("SyncPipe::neverRead");
+  ASS(canRead());  //@b neverRead() can only be called once
+  ASS(!isReading());
+
+  int res=close(_readDescriptor);
+  if(res==-1) {
+    SYSTEM_FAIL("Closing read descriptor of a pipe.", errno);
+  }
+  ASS_EQ(res,0);
+  delete _istream;
+  _istream=0;
+}
+
 
 /**
  * Acquire a priviledge for this process to write into the pipe
@@ -108,11 +142,12 @@ void SyncPipe::releaseRead()
 void SyncPipe::acquireWrite()
 {
   CALL("SyncPipe::acquireWrite");
-  ASS(!canWrite());
-  ASS(!canRead()); //it does not make sense if one process would both reads and writes into a pipe
+  ASS(canWrite());
+  ASS(!isWriting());
+  ASS(!isReading()); //it does not make sense if one process would both reads and writes into a pipe
 
   _syncSemaphore.dec(1);
-  _canWrite=true;
+  _isWriting=true;
 }
 
 /**
@@ -121,12 +156,32 @@ void SyncPipe::acquireWrite()
 void SyncPipe::releaseWrite()
 {
   CALL("SyncPipe::releaseWrite");
-  ASS(canWrite());
+  ASS(isWriting());
 
-  _canWrite=false;
+  _ostream->flush();
+  _isWriting=false;
   _syncSemaphore.inc(1);
 }
 
+/**
+ * Release the writing end of the pipe from this object. This
+ * means that it will not be possible to call @b acquireWrite on it.
+ */
+void SyncPipe::neverWrite()
+{
+  CALL("SyncPipe::neverWrite");
+  ASS(canWrite());  //@b neverWrite() can only be called once
+  ASS(!isWriting());
+
+  int res=close(_writeDescriptor);
+  if(res==-1) {
+    SYSTEM_FAIL("Closing write descriptor of a pipe.", errno);
+  }
+  ASS_EQ(res,0);
+
+  delete _ostream;
+  _ostream=0;
+}
 /**
  * Give up all the priviledges of this object
  */
@@ -135,10 +190,10 @@ void SyncPipe::releasePriviledges()
   CALL("SyncPipe::releasePriviledges");
   ASS(_syncSemaphore.hasSemaphore());
 
-  if(canRead()) {
+  if(isReading()) {
     releaseRead();
   }
-  if(canWrite()) {
+  if(isWriting()) {
     releaseWrite();
   }
 }

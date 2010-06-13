@@ -153,7 +153,9 @@ Formula* Skolem::skolemise (Formula* f)
 	_subst.bind(v,env.sharing->insert(term));
 
 	if(env.options->showSkolemisations()) {
-	  cout<<"Skolemising: "<<term->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
+	  env.beginOutput();
+	  env.out()<<"Skolemising: "<<term->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
+	  env.endOutput();
 //	  //we also output skolemisations in a TPTP format to the error output
 //	  cerr<<term->toString()<<"=X"<<v<<" => ("<<f->qarg()->toString()<<")"<<endl;
 	}

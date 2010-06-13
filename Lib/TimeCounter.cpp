@@ -130,123 +130,123 @@ void TimeCounter::stopMeasuring()
   }
 }
 
-void TimeCounter::printReport()
+void TimeCounter::printReport(ostream& out)
 {
-  env.out<<"Time measurement results:"<<endl;
+  out<<"Time measurement results:"<<endl;
   for(int i=0; i<__TC_ELEMENT_COUNT; i++) {
-    printSingleStat(static_cast<TimeCounterUnit>(i));
+    outputSingleStat(static_cast<TimeCounterUnit>(i), out);
   }
-  env.out<<endl;
+  out<<endl;
 }
 
-void TimeCounter::printSingleStat(TimeCounterUnit tcu)
+void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
 {
   if(s_measureInitTimes[tcu]==-1 && !s_measuredTimes[tcu]) {
     return;
   }
   switch(tcu) {
   case TC_BACKWARD_DEMODULATION:
-    env.out<<"backward demodulation";
+    out<<"backward demodulation";
     break;
   case TC_BACKWARD_SUBSUMPTION:
-    env.out<<"backward subsumption";
+    out<<"backward subsumption";
     break;
   case TC_BDD:
-    env.out<<"BDD operations";
+    out<<"BDD operations";
     break;
   case TC_BDD_CLAUSIFICATION:
-    env.out<<"BDD clausification";
+    out<<"BDD clausification";
     break;
   case TC_BDD_MARKING_SUBSUMPTION:
-    env.out<<"BDD marking subsumption";
+    out<<"BDD marking subsumption";
     break;
   case TC_INTERPRETED_EVALUATION:
-    env.out<<"interpreted evaluation";
+    out<<"interpreted evaluation";
     break;
   case TC_INTERPRETED_SIMPLIFICATION:
-    env.out<<"interpreted simplification";
+    out<<"interpreted simplification";
     break;
   case TC_CONDENSATION:
-    env.out<<"condensation";
+    out<<"condensation";
     break;
   case TC_FORWARD_DEMODULATION:
-    env.out<<"forward demodulation";
+    out<<"forward demodulation";
     break;
   case TC_FORWARD_SUBSUMPTION:
-    env.out<<"forward subsumption";
+    out<<"forward subsumption";
     break;
   case TC_FORWARD_SUBSUMPTION_RESOLUTION:
-    env.out<<"forward subsumption resolution";
+    out<<"forward subsumption resolution";
     break;
   case TC_FORWARD_LITERAL_REWRITING:
-    env.out<<"forward literal rewriting";
+    out<<"forward literal rewriting";
     break;
   case TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE:
-    env.out<<"simplifying unit clause index maintenance";
+    out<<"simplifying unit clause index maintenance";
     break;
   case TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE:
-    env.out<<"forward subsumption index maintenance";
+    out<<"forward subsumption index maintenance";
     break;
   case TC_BINARY_RESOLUTION_INDEX_MAINTENANCE:
-    env.out<<"binary resolution index maintenance";
+    out<<"binary resolution index maintenance";
     break;
   case TC_BACKWARD_SUBSUMPTION_INDEX_MAINTENANCE:
-    env.out<<"backward subsumption index maintenance";
+    out<<"backward subsumption index maintenance";
     break;
   case TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE:
-    env.out<<"backward superposition index maintenance";
+    out<<"backward superposition index maintenance";
     break;
   case TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE:
-    env.out<<"forward superposition index maintenance";
+    out<<"forward superposition index maintenance";
     break;
   case TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE:
-    env.out<<"backward demodulation index maintenance";
+    out<<"backward demodulation index maintenance";
     break;
   case TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE:
-    env.out<<"forward demodulation index maintenance";
+    out<<"forward demodulation index maintenance";
     break;
   case TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE:
-    env.out<<"splitting component index maintenance";
+    out<<"splitting component index maintenance";
     break;
   case TC_LITERAL_REWRITE_RULE_INDEX_MAINTENANCE:
-    env.out<<"literal rewrite rule index maintenance";
+    out<<"literal rewrite rule index maintenance";
     break;
   case TC_OTHER:
-    env.out<<"other";
+    out<<"other";
     break;
   case TC_PARSING:
-    env.out<<"parsing";
+    out<<"parsing";
     break;
   case TC_PREPROCESSING:
-    env.out<<"preprocessing";
+    out<<"preprocessing";
     break;
   case TC_SINE_SELECTION:
-    env.out<<"sine selection";
+    out<<"sine selection";
     break;
   case TC_RESOLUTION:
-    env.out<<"resolution";
+    out<<"resolution";
     break;
   case TC_SAT_SOLVER:
-    env.out<<"SAT solver";
+    out<<"SAT solver";
     break;
   case TC_SUPERPOSITION:
-    env.out<<"superposition";
+    out<<"superposition";
     break;
   case TC_TERM_SHARING:
-    env.out<<"term sharing";
+    out<<"term sharing";
     break;
   default:
     ASSERTION_VIOLATION;
   }
-  env.out<<": ";
+  out<<": ";
 
   int time=s_measuredTimes[tcu];
   if(s_measureInitTimes[tcu]!=-1) {
     time += env.timer->elapsedMilliseconds()-s_measureInitTimes[tcu];
   }
   
-  Timer::printMSString(env.out, time);
-  env.out<<endl;
+  Timer::printMSString(out, time);
+  out<<endl;
 }
 
 };

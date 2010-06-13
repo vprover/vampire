@@ -8,6 +8,8 @@
 #ifndef __Statistics__
 #define __Statistics__
 
+#include <ostream>
+
 /**
  * Identifier of the Vampire version
  */
@@ -19,6 +21,8 @@ namespace Kernel {
 
 namespace Shell {
 
+using namespace std;
+
 /**
  * Class Statistics
  * @since 02/01/2008 Manchester
@@ -28,7 +32,7 @@ class Statistics
 public:
   Statistics();
 
-  void print();
+  void print(ostream& out);
 
   // Input
   /** number of input clauses */

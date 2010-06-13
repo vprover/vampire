@@ -43,21 +43,25 @@ bool CASCMode::perform(int argc, char* argv [])
 #endif
 
   bool res=cm.perform();
+
+  env.beginOutput();
   if(res) {
-    env.out<<"% Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+    env.out()<<"% Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
   }
   else {
-    env.out<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+    env.out()<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
     if(env.timeLimitReached()) {
-      env.out<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
+      env.out()<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
     }
     else {
-      env.out<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
+      env.out()<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
     }
   }
   if(env.options && env.options->timeStatistics()) {
-    TimeCounter::printReport();
+    TimeCounter::printReport(env.out());
   }
+  env.endOutput();
+
   return res;
 }
 
@@ -65,9 +69,11 @@ void CASCMode::handleSIGINT()
 {
   CALL("CASCMode::handleSIGINT");
 
-  env.out<<"% Terminated by SIGINT!"<<endl;
-  env.out<<"% SZS status User for "<<env.options->problemName() <<endl;
-  env.statistics->print();
+  env.beginOutput();
+  env.out()<<"% Terminated by SIGINT!"<<endl;
+  env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
+  env.statistics->print(env.out());
+  env.endOutput();
   exit(3);
 }
 
@@ -667,7 +673,9 @@ unsigned CASCMode::getSliceTime(string sliceCode)
     if(sliceTime > (unsigned)remainingTime) {
       sliceTime = remainingTime;
     }
-    env.out<<"% remaining time: "<<remainingTime<<" next slice time: "<<sliceTime<<endl;
+    env.beginOutput();
+    env.out()<<"% remaining time: "<<remainingTime<<" next slice time: "<<sliceTime<<endl;
+    env.endOutput();
     if(runSlice(sliceCode,sliceTime)) {
       return true;
     }

@@ -86,52 +86,52 @@ Statistics::Statistics()
 } // Statistics::Statistics
 
 
-void Statistics::print()
+void Statistics::print(ostream& out)
 {
   if(env.options->statistics()==Options::STATISTICS_NONE) {
     return;
   }
 
   bool separable=false;
-#define COND_OUT(text, num) if(num) { env.out<<(text)<<": "<<(num)<<endl; separable=true; }
-#define SEPARATOR if(separable) { env.out<<endl; separable=false; }
+#define COND_OUT(text, num) if(num) { out<<(text)<<": "<<(num)<<endl; separable=true; }
+#define SEPARATOR if(separable) { out<<endl; separable=false; }
 
-  env.out << "------------------------------\n";
-  env.out << "Version: " << VERSION_STRING << endl;
+  out << "------------------------------\n";
+  out << "Version: " << VERSION_STRING << endl;
 
-  env.out << "Termination reason: ";
+  out << "Termination reason: ";
   switch(terminationReason) {
   case Statistics::REFUTATION:
-    env.out << "Refutation";
+    out << "Refutation";
     break;
   case Statistics::TIME_LIMIT:
-    env.out << "Time limit";
+    out << "Time limit";
     break;
   case Statistics::MEMORY_LIMIT:
-    env.out << "Memory limit";
+    out << "Memory limit";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
     if(env.options->complete()) {
       ASS_G(env.statistics->discardedNonRedundantClauses, 0);
-      env.out << "Refutation not found, non-redundant clauses discarded";
+      out << "Refutation not found, non-redundant clauses discarded";
     } else {
-      env.out << "Refutation not found, incomplete strategy";
+      out << "Refutation not found, incomplete strategy";
     }
     break;
   case Statistics::SATISFIABLE:
-    env.out << "Satisfiable";
+    out << "Satisfiable";
     break;
   case Statistics::UNKNOWN:
-    env.out << "Unknown";
+    out << "Unknown";
     break;
   default:
     ASSERTION_VIOLATION;
   }
-  env.out << endl;
+  out << endl;
   if(phase!=FINALIZATION) {
-    env.out << "Termination phase: " << phaseToString(phase) << endl;
+    out << "Termination phase: " << phaseToString(phase) << endl;
   }
-  env.out << endl;
+  out << endl;
 
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
@@ -198,19 +198,19 @@ void Statistics::print()
   COND_OUT("Backtracking splits refuted at zero level", backtrackingSplitsRefutedZeroLevel);
   SEPARATOR;
 
-  env.out << "Memory used: " << (Allocator::getUsedMemory()/1024) << "KB" << endl;
-  env.out << "Time elapsed: ";
-  Timer::printMSString(env.out,env.timer->elapsedMilliseconds());
-  env.out << endl;
-  env.out << "------------------------------\n";
+  out << "Memory used: " << (Allocator::getUsedMemory()/1024) << "KB" << endl;
+  out << "Time elapsed: ";
+  Timer::printMSString(out,env.timer->elapsedMilliseconds());
+  out << endl;
+  out << "------------------------------\n";
 
-  RSTAT_PRINT(env.out);
+  RSTAT_PRINT(out);
 
 #undef SEPARATOR
 #undef COND_OUT
 
   if(env.options && env.options->timeStatistics()) {
-    TimeCounter::printReport();
+    TimeCounter::printReport(out);
   }
 }
 

@@ -189,6 +189,36 @@ size_t SaturationAlgorithm::passiveClauseCount()
   return _passive->size();
 }
 
+void SaturationAlgorithm::reportClause(ClauseReportType type, Clause* cl)
+{
+  CALL("SaturationAlgorithm::reportClause(...,Clause*)");
+
+  reportClause(type, cl->toNiceString());
+}
+
+void SaturationAlgorithm::reportClause(ClauseReportType type, string clString)
+{
+  CALL("SaturationAlgorithm::reportClause(...,string)");
+
+  env.beginOutput();
+  switch(type) {
+  case CRT_ACTIVE:
+    env.out()<<"Active: ";
+    break;
+  case CRT_PASSIVE:
+    env.out()<<"Passive: ";
+    break;
+  case CRT_NEW:
+    env.out()<<"New: ";
+    break;
+  case CRT_NEW_PROPOSITIONAL:
+    env.out()<<"New propositional: ";
+    break;
+  }
+  env.out()<<clString<<endl;
+  env.endOutput();
+}
+
 
 /**
  * A function that is called when a clause is added to the active clause container.
@@ -200,7 +230,7 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
 #endif
 
   if(env.options->showActive()) {
-    cout<<"Active: "<<c->toNiceString()<<endl;
+    reportClause(CRT_ACTIVE, c);
   }
 }
 
@@ -265,7 +295,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
   onNonRedundantClause(c);
 
   if(env.options->showPassive()) {
-    cout<<"Passive: "<<c->toNiceString()<<endl;
+    reportClause(CRT_PASSIVE, c);
   }
 }
 
@@ -377,8 +407,7 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
   }
 
   if(env.options->showNew()) {
-    cout<<"New: "<<cl->toNiceString()<<endl;
-//    cout<<"New: "<<cl->toString()<<endl;
+    reportClause(CRT_NEW, cl);
   }
 
   if(!_propToBDD && cl->isPropositional()) {
@@ -394,7 +423,7 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
   if(env.options->showNewPropositional()) {
     VirtualIterator<string> clStrings=c->toSimpleClauseStrings();
     while(clStrings.hasNext()) {
-      cout<<"New propositional: "<<clStrings.next()<<endl;
+      reportClause(CRT_NEW, clStrings.next());
     }
   }
 

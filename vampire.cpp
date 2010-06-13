@@ -112,35 +112,9 @@ ClauseIterator getProblemClauses()
 void doProving()
 {
   CALL("doProving()");
-  try {
-    ClauseIterator clauses=getProblemClauses();
-    Unit::onPreprocessingEnd();
+  ClauseIterator clauses=getProblemClauses();
 
-    env.statistics->phase=Statistics::SATURATION;
-    SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
-    salg->addInputClauses(clauses);
-
-    SaturationResult sres(salg->saturate());
-    env.statistics->phase=Statistics::FINALIZATION;
-    Timer::setTimeLimitEnforcement(false);
-    sres.updateStatistics();
-
-    //set return value to zero if we were successful
-    if(sres.terminationReason==Statistics::REFUTATION) {
-      vampireReturnValue=0;
-    }
-  }
-  catch(MemoryLimitExceededException) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
-    env.statistics->refutation=0;
-    size_t limit=Allocator::getMemoryLimit();
-    //add extra 1 MB to allow proper termination
-    Allocator::setMemoryLimit(limit+1000000);
-  }
-  catch(TimeLimitExceededException) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
-    env.statistics->refutation=0;
-  }
+  UIHelper::runVampireSaturation(clauses);
 }
 
 /**
@@ -175,9 +149,12 @@ void profileMode()
   TheoryFinder tf(units,&property);
   Preprocess prepro(property,*env.options);
   tf.search();
-  cout << property.categoryString() << ' '
+
+  env.beginOutput();
+  env.out() << property.categoryString() << ' '
        << property.props() << ' '
        << property.atoms() << "\n";
+  env.endOutput();
 
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue=0;
@@ -186,9 +163,16 @@ void profileMode()
 void vampireMode()
 {
   CALL("vampireMode()");
-  env.out<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
+
+  env.beginOutput();
+  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
+  env.endOutput();
+
   doProving();
-  UIHelper::outputResult();
+
+  env.beginOutput();
+  UIHelper::outputResult(env.out());
+  env.endOutput();
 } // vampireMode
 
 
@@ -203,6 +187,7 @@ void spiderMode()
     noException=false;
   }
 
+  env.beginOutput();
   if(noException) {
     switch (env.statistics->terminationReason) {
     case Statistics::REFUTATION:
@@ -220,11 +205,12 @@ void spiderMode()
     default:
       ASSERTION_VIOLATION;
     }
-    env.statistics->print();
+    env.statistics->print(env.out());
   }
   else {
     reportSpiderFail();
   }
+  env.endOutput();
 } // spiderMode
 
 void clausifyMode()
@@ -237,14 +223,16 @@ void clausifyMode()
   simplifier.addFront(ImmediateSimplificationEngineSP(new DuplicateLiteralRemovalISE()));
 
   ClauseIterator cit = getProblemClauses();
+  env.beginOutput();
   while (cit.hasNext()) {
     Clause* cl=cit.next();
     cl=simplifier.simplify(cl);
     if(!cl) {
       continue;
     }
-    cout << TPTP::toString(cl) << "\n";
+    env.out() << TPTP::toString(cl) << "\n";
   }
+  env.endOutput();
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue=0;
@@ -252,7 +240,9 @@ void clausifyMode()
 
 void explainException (Exception& exception)
 {
-  exception.cry(env.out);
+  env.beginOutput();
+  exception.cry(env.out());
+  env.endOutput();
 } // explainException
 
 /**
@@ -338,15 +328,19 @@ int main(int argc, char* argv [])
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
+    env.beginOutput();
     explainException(exception);
-    env.statistics->print();
+    env.statistics->print(env.out());
+    env.endOutput();
   }
   catch (std::bad_alloc& _) {
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
-    env.out << "Insufficient system memory" << '\n';
+    env.beginOutput();
+    env.out() << "Insufficient system memory" << '\n';
+    env.endOutput();
   }
 //   delete env.allocator;
 

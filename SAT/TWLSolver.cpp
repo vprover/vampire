@@ -14,8 +14,8 @@
 
 #include "TWLSolver.hpp"
 
-#define LOG(x)
-//#define LOG(x) cout<<x<<endl
+#undef LOGGING
+#define LOGGING 0
 
 namespace SAT
 {

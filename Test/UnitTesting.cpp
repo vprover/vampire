@@ -87,6 +87,9 @@ void UnitTesting::runTest(TestUnit* unit, ostream& out)
   out<<"Testing unit "<<unit->id()<<":"<<endl;
 
   TestUnit::Iterator uit=unit->getTests();
+  if(!uit.hasNext()) {
+    out<<"No tests in this unit"<<endl;
+  }
   while(uit.hasNext()) {
     TestUnit::Test t=uit.next();
     out<<"Test "<<t.name<<"... ";

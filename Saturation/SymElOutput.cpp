@@ -132,15 +132,17 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
   ASS_EQ(c->color(),COLOR_TRANSPARENT);
   ASS(!c->skip());
 
+  env.beginOutput();
+
   BDD::instance()->allowDefinitionOutput(false);
-  cout<<"%";
+  env.out()<<"%";
   if(eliminated==COLOR_LEFT) {
-    cout<<"Left";
+    env.out()<<"Left";
   } else {
     ASS_EQ(eliminated, COLOR_RIGHT);
-    cout<<"Right";
+    env.out()<<"Right";
   }
-  cout<<" symbol elimination"<<endl;
+  env.out()<<" symbol elimination"<<endl;
 
   string cname="inv"+_symElNextClauseNumber;
   while(env.signature->isPredicateName(cname, 0)) {
@@ -148,14 +150,16 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
     cname="inv"+_symElNextClauseNumber;
   }
 
-  cout<<"fof(inv"<<_symElNextClauseNumber<<", claim, ( ";
-  cout<<c->nonPropToString();
+  env.out()<<"fof(inv"<<_symElNextClauseNumber<<", claim, ( ";
+  env.out()<<c->nonPropToString();
   if(c->prop() && !BDD::instance()->isFalse(c->prop())) {
-    cout<<" | "<<BDD::instance()->toTPTPString(c->prop());
+    env.out()<<" | "<<BDD::instance()->toTPTPString(c->prop());
   }
-  cout<<" ) )."<<endl;
+  env.out()<<" ) )."<<endl;
   BDD::instance()->allowDefinitionOutput(true);
   _symElNextClauseNumber++;
+
+  env.endOutput();
 }
 
 

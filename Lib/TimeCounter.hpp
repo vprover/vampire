@@ -7,7 +7,11 @@
 #ifndef __TimeCounter__
 #define __TimeCounter__
 
+#include <ostream>
+
 namespace Lib {
+
+using namespace std;
 
 enum TimeCounterUnit
 {
@@ -59,7 +63,7 @@ public:
     stopMeasuring();
   }
 
-  static void printReport();
+  static void printReport(ostream& out);
 
 
   /**
@@ -85,7 +89,7 @@ private:
   void stopMeasuring();
 
   static void initialize();
-  static void printSingleStat(TimeCounterUnit tcu);
+  static void outputSingleStat(TimeCounterUnit tcu, ostream& out);
 
 
   TimeCounterUnit _tcu;

@@ -5,13 +5,18 @@
 
 #include "Lib/Portability.hpp"
 
+#include "Test/UnitTesting.hpp"
+
+#define UNIT_ID fork
+UT_CREATE;
+
+
 //forking isn't supported in the visual studio
 #if !COMPILER_MSVC
 
 #include <cerrno>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/time.h>
 #include <sys/wait.h>
 
 #include "Lib/Int.hpp"
@@ -20,10 +25,6 @@
 #include "Lib/Sys/Semaphore.hpp"
 #include "Lib/Sys/SyncPipe.hpp"
 
-#include "Test/UnitTesting.hpp"
-
-#define UNIT_ID fork
-UT_CREATE;
 
 using namespace Lib;
 using namespace Lib::Sys;
@@ -120,6 +121,8 @@ TEST_FUN(fork_and_pipe)
   if(!fres) {
     //we're in the child1
 
+    p2.neverRead();
+
     for(;;) {
       int num=-1;
       p1.acquireRead();
@@ -147,6 +150,8 @@ TEST_FUN(fork_and_pipe)
   if(!fres2) {
     //we're in the child2
 
+    p2.neverRead();
+
     for(;;) {
       int num=-1;
       p1.acquireRead();
@@ -168,6 +173,9 @@ TEST_FUN(fork_and_pipe)
       }
     }
   }
+
+  p1.neverRead();
+  p2.neverWrite();
 
   //let's talk to children...
   for(int i=1000;i>=0;i--) {

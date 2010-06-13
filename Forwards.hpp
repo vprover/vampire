@@ -67,8 +67,15 @@ template <typename Value,class ValueComparator> class SkipList;
 template<class Arr> class ArrayishObjectIterator;
 template<typename T> class PointerIterator;
 
-
 class BacktrackData;
+
+class Timer;
+
+namespace Sys
+{
+class Semaphore;
+class SyncPipe;
+}
 };
 
 namespace Kernel
@@ -239,12 +246,12 @@ typedef Stack<SATClause*> SATClauseStack;
 
 namespace Shell
 {
+class LaTeX;
+class Options;
 class Property;
-
+class Statistics;
 class TPTPLexer;
 class TPTPParser;
-
-class LaTeX;
 
 namespace LTB
 {

@@ -667,11 +667,13 @@ string BDD::introduceName(BDDNode* node, string definition)
 void BDD::allowDefinitionOutput(bool allow)
 {
   _allowDefinitionOutput=allow;
-  if(allow) {
+  if(allow && _postponedDefinitions.isNonEmpty()) {
     unsigned stLen=_postponedDefinitions.size();
+    env.beginOutput();
     for(unsigned i=0;i<stLen;i++) {
-      env.out<<_postponedDefinitions[i]<<endl;
+      env.out()<<_postponedDefinitions[i]<<endl;
     }
+    env.endOutput();
     _postponedDefinitions.reset();
   }
 }
@@ -679,7 +681,9 @@ void BDD::allowDefinitionOutput(bool allow)
 void BDD::outputDefinition(string def)
 {
   if(_allowDefinitionOutput) {
-    env.out<<def<<endl;
+    env.beginOutput();
+    env.out()<<def<<endl;
+    env.endOutput();
   }
   else {
     _postponedDefinitions.push(def);

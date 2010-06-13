@@ -14,24 +14,10 @@
 
 #include "Exception.hpp"
 
-using namespace std;
-
-namespace Kernel {
-  class Signature;
-  class Ordering;
-};
-namespace Indexing {
-  class TermSharing;
-};
-
-namespace Shell {
-  class Options;
-  class Statistics;
-}
-
 namespace Lib {
 
-class Timer;
+using namespace std;
+using namespace Sys;
 
 /**
  * Class Environment.
@@ -49,14 +35,19 @@ public:
   Shell::Options* options;
   /** currently used signature */
   Kernel::Signature* signature;
-  /** output stream */
-  ostream& out;
   /** Term sharing structure */
   Indexing::TermSharing* sharing;
   /** Currently used statistics */
   Shell::Statistics* statistics;
   /** Currently used timer */
   Timer* timer;
+
+  bool haveOutput();
+  void beginOutput();
+  void endOutput();
+  ostream& out();
+
+  void setPipeOutput(SyncPipe* pipe);
 
   bool timeLimitReached() const;
 
@@ -78,6 +69,10 @@ public:
   Kernel::Ordering* ordering;
   /** set to true when coloring is used for symbol elimination or interpolation */
   bool colorUsed;
+
+private:
+  int _outputDepth;
+  SyncPipe* _pipe;
 }; // class Environment
 
 extern Environment env;

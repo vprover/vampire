@@ -32,6 +32,7 @@ public:
   void inc(int num);
   void dec(int num);
   int get(int num);
+  void set(int num, int val);
 
   bool isLastInstance();
 

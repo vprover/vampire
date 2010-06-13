@@ -168,6 +168,7 @@ void Semaphore::doSet(int num, int val)
   CALL("Semaphore::doSet");
   ASS(hasSemaphore());
   ASS_L(num, semCnt+2);
+  ASS_GE(val,0); //semaphores cannot be negative
 
   semun arg;
   arg.val=val;
@@ -236,6 +237,19 @@ int Semaphore::get(int num)
   ASS_L(num, semCnt);
 
   return doGet(num);
+}
+
+/**
+ * Return the value of the semaphore number @b num
+ */
+void Semaphore::set(int num, int val)
+{
+  CALL("Semaphore::set");
+  ASS(hasSemaphore());
+  ASS_L(num, semCnt);
+  ASS_GE(val, 0);
+
+  doSet(num, val);
 }
 
 /**
@@ -309,7 +323,6 @@ void Semaphore::deregisterInstance()
   else {
     //if we didn't delete the semaphore, we now allow other destructors to proceed
     doInc(semCnt+1);
-    cout.flush();
   }
 }
 

@@ -282,12 +282,14 @@ int SWBSplitterWithBDDs::nameComponent(Clause* comp)
   comp->setProp(newCompProp);
 
   if(env.options->showDefinitions() && newlyIntroduced) {
-    env.out << "Definition: ";
+    env.beginOutput();
+    env.out() << "Definition: ";
     if(compName<0) {
-      env.out << "~";
+      env.out() << "~";
     }
-    env.out << BDD::instance()->getPropositionalPredicateName(abs(compName))
+    env.out() << BDD::instance()->getPropositionalPredicateName(abs(compName))
       << " <=> (" << comp->nonPropToString() << ")" << endl;
+    env.endOutput();
   }
   return compName;
 }

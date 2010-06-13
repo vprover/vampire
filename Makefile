@@ -257,7 +257,8 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 		  UnitTests/tDHMap.o\
 		  UnitTests/tDHMultiset.o\
 		  UnitTests/tfork.o\
-		  UnitTests/tSkipList.o
+		  UnitTests/tSkipList.o\
+		  UnitTests/tTwoVampires.o
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 #VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
