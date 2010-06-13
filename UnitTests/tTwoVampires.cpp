@@ -86,11 +86,13 @@ TEST_FUN(two_vampires1)
       "fof(m3,axiom, ( ! [P] : ? [Q,R] : ( meets(Q,P) & meets(P,R) ) ))."
       "fof(not_m5,axiom, ( ~ ( ! [P,Q] : ( meets(P,Q) => ? [R,S,T] : ( meets(R,P) & meets(Q,S) & meets(R,T) & meets(T,S) ) ) ) )).";
 
+  //get the problem we'll be solving
   stringstream inp(prob);
   TPTPLexer lex(inp);
   TPTPParser par(lex);
   UnitList* units=par.units();
 
+  //pipe for collecting output from children
   SyncPipe childOutputPipe;
 
   //create the first child
