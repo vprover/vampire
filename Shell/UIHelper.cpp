@@ -37,7 +37,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 
-bool UIHelper::cascMode=false;
 bool UIHelper::s_haveConjecture=false;
 
 /**

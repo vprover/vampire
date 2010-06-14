@@ -16,12 +16,15 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Shell/UIHelper.hpp"
+
 #include "Lib/Environment.hpp"
 
 // the elements below are simple and can be initisalised before
 // any objects
 Lib::Enumerator Lib::Enumerator::unitEnumerator;
 unsigned Kernel::Unit::_lastNumber = 0;
+bool Shell::UIHelper::cascMode=false;
 
 /**
  * String names of connectives. Used in the function toXML().
