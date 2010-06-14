@@ -17,7 +17,7 @@ namespace Kernel
 
 using namespace Lib;
 
-Theory* theory = 0;
+Theory* theory = Theory::instance();
 
 Theory* Theory::instance()
 {

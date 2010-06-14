@@ -56,13 +56,11 @@ Environment::Environment()
   sharing=new TermSharing;
 
   timer->start();
-
-  ASS_EQ(Kernel::theory, 0);
-  Kernel::theory = Theory::instance();
 } // Environment::Environment
 
 Environment::~Environment()
 {
+  CALL("Environment::~Environment");
   ASS_EQ(_outputDepth,0);
 
   delete sharing;

@@ -5,6 +5,8 @@
  * @since 28/12/2007 Manchester
  */
 
+#include "Forwards.hpp"
+
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
@@ -26,6 +28,7 @@ TermSharing::TermSharing()
     _literalInsertions(0),
     _termInsertions(0)
 {
+  CALL("TermSharing::TermSharing");
 }
 
 /**
@@ -34,6 +37,8 @@ TermSharing::TermSharing()
  */
 TermSharing::~TermSharing()
 {
+  CALL("TermSharing::~TermSharing");
+
 #if CHECK_LEAKS
   Set<Term*,TermSharing>::Iterator ts(_terms);
   while (ts.hasNext()) {

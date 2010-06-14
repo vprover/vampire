@@ -39,8 +39,8 @@ public:
 
   /** New clause */
   SATClause(unsigned length,bool kept=true)
-    : _length(length)
-//  , _kept(kept?1:0), _genCounter(0xFFFFFFFF)
+    : _length(length), _kept(kept?1:0)
+//      , _genCounter(0xFFFFFFFF)
   {}
 
   void* operator new(size_t,unsigned length);
@@ -59,9 +59,9 @@ public:
   /** Alternative name for length to conform with other containers */
   inline unsigned size() const { return _length; }
 
-//  inline bool kept() const { return _kept; }
-//  inline void makeKept() { _kept=true; }
-//  inline void setKept(bool kept) { _kept=kept; }
+  inline bool kept() const { return _kept; }
+  inline void makeKept() { _kept=true; }
+  inline void setKept(bool kept) { _kept=kept; }
 
 //  inline unsigned conflicts() const { return _conflicts; }
 //  inline void incConflicts() { _conflicts++; }
@@ -115,10 +115,9 @@ protected:
 
 
   /** number of literals */
-  unsigned _length;
-//  unsigned _length : 31;
+  unsigned _length : 31;
 
-//  unsigned _kept : 1;
+  unsigned _kept : 1;
 //  unsigned _genCounter;
 
   /** Array of literals of this unit */

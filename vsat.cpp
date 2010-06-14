@@ -1,7 +1,4 @@
-//this file hasn't been adapted for the new testing framework yet
-
-
-/*#include <iostream>
+#include <iostream>
 
 #include "Forwards.hpp"
 
@@ -94,98 +91,36 @@ void runOnFile(const char* fname)
 
 int main(int argc, char* argv [])
 {
+  CALL("main");
+
   Random::setSeed(1);
   Options options;
-  Allocator::setMemoryLimit(options.memoryLimit()*1048576);
+  Allocator::setMemoryLimit(env.options->memoryLimit()*1048576);
 
-  Lib::Random::setSeed(options.randomSeed());
+  Lib::Random::setSeed(env.options->randomSeed());
 
-  Timer timer;
-  timer.start();
-  env.timer = &timer;
-  Indexing::TermSharing sharing;
-  env.sharing = &sharing;
-  env.options = &options;
-  Shell::Statistics statistics;
-  env.statistics = &statistics;
-
-  env.options->setTimeLimitInSeconds(500);
+  env.options->setTimeLimitInSeconds(3600);
 
   try {
-  switch(argc) {
-  case 1:
-//    runOnFile(0);
-    runIncrementallyOnFile(0);
-    break;
-  case 2:
-//    runOnFile(argv[1]);
-    runIncrementallyOnFile(argv[1]);
-    break;
-  default:
-    cout<<"invalid parameter"<<endl;
-    return 1;
-  }
+    switch(argc) {
+    case 1:
+    runOnFile(0);
+//      runIncrementallyOnFile(0);
+      break;
+    case 2:
+    runOnFile(argv[1]);
+//      runIncrementallyOnFile(argv[1]);
+      break;
+    default:
+      cout<<"invalid parameter"<<endl;
+      return 1;
+    }
   } catch(MemoryLimitExceededException)
   {
     cerr<<"Memory limit exceeded\n";
     cout<<"-MEMORY_LIMIT\n";
   }
 
-/*  Stack<SATClause*> cls;
-  for(int i=2;i<200;i++) {
-
-//    SATClauseIterator cit=Preprocess::removeDuplicateLiterals( Preprocess::generate(4,i,4.2f) );
-    SATClauseIterator cit=Preprocess::removeDuplicateLiterals( Preprocess::generate(4,i,9.0f) );
-    cls.reset();
-    cls.loadFromIterator(cit);
-
-    SATClauseIterator ic1=pvi( Stack<SATClause*>::Iterator(cls) );
-
-//    if(i<21) {
-//      continue;
-//    }
-
-    cout<<"-start varcnt "<<i<<"\n";
-
-    TWLSolver ts;
-    ts.ensureVarCnt(i);
-    ts.addClauses(ic1);
-
-
-    SATClauseIterator ic2, dummy;
-    ClauseSharing shr;
-    Preprocess::propagateUnits(pvi( Stack<SATClause*>::Iterator(cls) ), dummy, ic2 );
-
-    Stack<SATClause*> swcls;
-    while(ic2.hasNext()) {
-      SATClause* cl=ic2.next();
-      if(shr.insert(cl)==cl) {
-	swcls.push(cl);
-      }
-    }
-
-    SingleWatchSAT sws(i);
-    if(sws.loadClauses( pvi( Stack<SATClause*>::Iterator(swcls) ) )) {
-      sws.satisfy(500000);
-    }
-
-    if(ts.getStatus()==TWLSolver::SATISFIABLE) {
-      cout<<"-SAT\n";
-      if(sws.termination!=SingleWatchSAT::SATISFIABLE) {
-	cout<<"ERROR twl not sat\n";
-	return 1;
-      }
-    }
-    if(ts.getStatus()==TWLSolver::UNSATISFIABLE) {
-      cout<<"-UNSAT\n";
-      if(sws.termination!=SingleWatchSAT::REFUTATION) {
-	cout<<"ERROR twl not unsat\n";
-	return 1;
-      }
-    }
-
-  }*/
-//
-//  return 0;
-//}
+  return 0;
+}
 

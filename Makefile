@@ -167,12 +167,11 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o
 
-VSAT_OBJ=\
+VSAT_OBJ=SAT/DIMACS.o\
+         SAT/Preprocess.o\
          SAT/SATClause.o\
          SAT/SATLiteral.o\
          SAT/TWLSolver.o\
-#         SAT/DIMACS.o\
-#         SAT/Preprocess.o\
 #         SAT/SATClauseSharing.o\
 #         SAT/SingleWatchSAT.o
 
@@ -261,12 +260,38 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 		  UnitTests/tSkipList.o\
 		  UnitTests/tTwoVampires.o
 
+LIB_DEP = Indexing/TermSharing.o\
+		  Kernel/BDD.o\
+		  Kernel/BDDClausifier.o\
+		  Kernel/Clause.o\
+		  Kernel/Formula.o\
+		  Kernel/FormulaUnit.o\
+		  Kernel/FormulaVarIterator.o\
+		  Kernel/Inference.o\
+		  Kernel/KBO.o\
+		  Kernel/KBO_Equality.o\
+		  Kernel/Ordering.o\
+		  Kernel/Signature.o\
+		  Kernel/SubformulaIterator.o\
+		  Kernel/Substitution.o\
+		  Kernel/Term.o\
+		  Kernel/TermIterators.o\
+		  Kernel/Theory.o\
+		  Kernel/Unit.o\
+		  Saturation/ClauseContainer.o\
+		  Shell/EqualityProxy.o\
+		  Shell/Options.o\
+		  Shell/Statistics.o
+			  
+
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(VT_OBJ) $(LIB_DEP)
 #VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) Global.o vampire.o
 VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
 VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
+VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
 VTEST_DEP = $(VAMP_BASIC) $(VUT_OBJ) Global.o vtest.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 #VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
@@ -311,6 +336,7 @@ VAMPIRE_OBJ := $(addprefix $(CONF_ID)/, $(VAMPIRE_DEP))
 VCOMPIT_OBJ := $(addprefix $(CONF_ID)/, $(VCOMPIT_DEP))
 VLTB_OBJ := $(addprefix $(CONF_ID)/, $(VLTB_DEP))
 VTEST_OBJ := $(addprefix $(CONF_ID)/, $(VTEST_DEP))
+VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 
 define COMPILE_CMD
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
@@ -334,6 +360,9 @@ vltb vltb_rel vltb_dbg: -lmemcached $(VLTB_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vtest vtest_rel vtest_dbg: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD)
+
+vsat vsat_rel vsat_dbg: $(VSAT_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 #vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)

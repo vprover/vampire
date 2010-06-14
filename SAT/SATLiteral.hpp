@@ -21,8 +21,13 @@ class SATLiteral
 public:
   inline SATLiteral() {}
   inline SATLiteral(unsigned content) :_content(content) {}
+  /**
+   * Create a SAT literal of variable @b var and polarity &b polarity
+   *
+   * @b var must be greater than 0 and @b polarity either 1 or 0 (for positive or negative)
+   */
   inline SATLiteral(unsigned var, unsigned polarity) :_polarity(polarity), _var(var)
-  { ASS_NEQ(var,0x7FFFFFFF); }
+  { ASS_G(var,0); ASS_NEQ(var,0x7FFFFFFF); }
 
 
   inline void set(unsigned var, bool positive) {

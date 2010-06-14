@@ -61,6 +61,8 @@ public:
   /** Deallocate the set */
   inline ~Set ()
   {
+    CALL("~Set");
+
     if (_entries) {
       array_delete(_entries,_capacity);
       DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"Set::Entry");

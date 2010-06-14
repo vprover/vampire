@@ -115,7 +115,6 @@ public:
       bool constant, constantTrue;
       Literal* slit;
       if(simplify(lit, constant, slit, constantTrue)) {
-	simplified=true;
 	if(constant) {
 	  simplified=true;
 	  if(constantTrue) {
@@ -126,8 +125,10 @@ public:
 	    continue;
 	  }
 	}
-	ASS_REP2(_ordering->compare(slit, lit)==Ordering::LESS, *slit, *lit);
-	lit=slit;
+	if(_ordering->compare(slit, lit)==Ordering::LESS) {
+	  simplified=true;
+	  lit=slit;
+	}
       }
       localConstraints.handleLiteral(lit, true, 0, true);
       resLits.push(lit);
