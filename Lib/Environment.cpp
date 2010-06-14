@@ -11,8 +11,6 @@
 
 #include "Indexing/TermSharing.hpp"
 
-#include "Kernel/Theory.hpp"
-
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
