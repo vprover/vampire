@@ -29,6 +29,10 @@ _windex(0), _unprocessed(0), _varCnt(0), _level(1)
 
 }
 
+/**
+ * Make the SAT solver handle SAT clauses with variables up to
+ * @b newVarCnt-1
+ */
 void TWLSolver::ensureVarCnt(unsigned newVarCnt)
 {
   CALL("TWLSolver::ensureVarCnt");
