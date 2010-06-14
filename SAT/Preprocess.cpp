@@ -32,6 +32,10 @@ namespace SAT
 
 using namespace Lib;
 
+/**
+ * Filter out clauses with literals that appear only with one polarity. @b varCnt must be greater
+ * than all variable numbers.
+ */
 SATClauseIterator Preprocess::filterPureLiterals(unsigned varCnt, SATClauseIterator clauses)
 {
   CALL("Preprocess::filterPureLiterals");
