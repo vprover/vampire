@@ -55,7 +55,7 @@ class Signature
     unsigned _color : 2;
   public:
     /** standard constructor */
-    Symbol(const string& nm,unsigned arity);
+    Symbol(const string& nm,unsigned arity, bool interpreted=false);
 
     void addColor(Color color);
     /** mark the symbol as skip for the purpose of symbol elimination */
@@ -97,18 +97,14 @@ class Signature
   public:
 
     InterpretedSymbol(const string& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp)), _interp(interp)
+    : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
     {
       CALL("InterpretedSymbol");
-
-      _interpreted=true;
     }
     InterpretedSymbol(const string& nm,InterpretedType value)
-    : Symbol(nm, 0), _value(value)
+    : Symbol(nm, 0, true), _value(value)
     {
       CALL("InterpretedSymbol");
-
-      _interpreted=true;
     }
     CLASS_NAME("Signature::InterpretedSymbol");
     USE_ALLOCATOR(InterpretedSymbol);

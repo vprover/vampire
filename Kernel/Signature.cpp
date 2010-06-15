@@ -12,10 +12,10 @@ using namespace std;
 using namespace Kernel;
 
 /** standard constructor */
-Signature::Symbol::Symbol(const string& nm,unsigned arity)
+Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
   : _name(nm),
     _arity(arity),
-    _interpreted(0),
+    _interpreted(interpreted ? 1 : 0),
     _skip(0),
     _cfName(0),
     _swbName(0),
@@ -24,7 +24,7 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity)
 
   //handle quoting
   const char* c=_name.c_str();
-  if(_name!="=" && *c) {
+  if((!interpreted || (_name!="=" && arity!=0)) && *c) {
     bool quote=needsQuoting(*c, true);
     c++;
     while(*c) {
