@@ -522,9 +522,9 @@ void TPTPLexer::readQuotedString (Token& token)
       escape=true;
     } else if (_lastCharacter == '\'' && !escape) {
       saveTokenText(token);
-//      if(mustBeQuoted) {
-//	token.text="'"+token.text+"'";
-//      }
+      if(mustBeQuoted) {
+	token.text="'"+token.text+"'";
+      }
       readNextChar();
       token.tag = TT_NAME;
       return;
