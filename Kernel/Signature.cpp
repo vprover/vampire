@@ -28,7 +28,7 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity)
     bool quote=needsQuoting(*c, true);
     c++;
     while(*c) {
-      if(!needsQuoting(*c, false)) {
+      if(needsQuoting(*c, false)) {
 	quote=true;
 	break;
       }
