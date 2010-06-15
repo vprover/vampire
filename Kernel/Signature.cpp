@@ -11,6 +11,35 @@
 using namespace std;
 using namespace Kernel;
 
+/** standard constructor */
+Signature::Symbol::Symbol(const string& nm,unsigned arity)
+  : _name(nm),
+    _arity(arity),
+    _interpreted(0),
+    _skip(0),
+    _cfName(0),
+    _swbName(0),
+    _color(COLOR_TRANSPARENT)
+{
+
+  //handle quoting
+  const char* c=_name.c_str();
+  if(_name!="=" && *c) {
+    bool quote=needsQuoting(*c, true);
+    c++;
+    while(*c) {
+      if(!needsQuoting(*c, false)) {
+	quote=true;
+	break;
+      }
+      c++;
+    }
+    if(quote) {
+      _name="'"+_name+"'";
+    }
+  }
+}
+
 /**
  * Create a Signature.
  * @since 07/05/2007 Manchester
@@ -370,3 +399,79 @@ void Signature::Symbol::addColor(Color color)
   _color = color;
 } // addColor
 
+/**
+ * Return true if the name containing che character must be quoted
+ */
+bool Signature::needsQuoting(char c, bool first)
+{
+  switch (c) {
+  case 'a':
+  case 'b':
+  case 'c':
+  case 'd':
+  case 'e':
+  case 'f':
+  case 'g':
+  case 'h':
+  case 'i':
+  case 'j':
+  case 'k':
+  case 'l':
+  case 'm':
+  case 'n':
+  case 'o':
+  case 'p':
+  case 'q':
+  case 'r':
+  case 's':
+  case 't':
+  case 'u':
+  case 'v':
+  case 'w':
+  case 'x':
+  case 'y':
+  case 'z':
+  case '$':
+    return false;
+  case 'A':
+  case 'B':
+  case 'C':
+  case 'D':
+  case 'E':
+  case 'F':
+  case 'G':
+  case 'H':
+  case 'I':
+  case 'J':
+  case 'K':
+  case 'L':
+  case 'M':
+  case 'N':
+  case 'O':
+  case 'P':
+  case 'Q':
+  case 'R':
+  case 'S':
+  case 'T':
+  case 'U':
+  case 'V':
+  case 'W':
+  case 'X':
+  case 'Y':
+  case 'Z':
+  case '_':
+  case '0':
+  case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
+    return first;
+  default:
+    return true;
+  }
+}

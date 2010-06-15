@@ -37,7 +37,7 @@ class Signature
   class Symbol {
   protected:
     /** print name */
-    const string _name;
+    string _name;
     /** arity */
     unsigned _arity : 26;
     /** the object is of type InterpretedSymbol */
@@ -55,15 +55,8 @@ class Signature
     unsigned _color : 2;
   public:
     /** standard constructor */
-    Symbol(const string& nm,unsigned arity)
-      : _name(nm),
-	_arity(arity),
-	_interpreted(0),
-	_skip(0),
-	_cfName(0),
-	_swbName(0),
-	_color(COLOR_TRANSPARENT)
-    {}
+    Symbol(const string& nm,unsigned arity);
+
     void addColor(Color color);
     /** mark the symbol as skip for the purpose of symbol elimination */
     void markSkip() { _skip=1; }
@@ -233,6 +226,8 @@ class Signature
 
   static string key(const string& name,int arity);
 private:
+
+  static bool needsQuoting(char c, bool first);
 
   /** Stack of function symbols */
   Stack<Symbol*> _funs;

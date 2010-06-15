@@ -174,13 +174,10 @@ void TPTPLexer::readToken (Token& token)
 /**
  * Return the character type of _lastCharacter.
  *
- * If @b tolerant is true, does not throw the 'illegal character' exception
- * on bad characters, but rather returns @b OTHER.
- *
  * @since 15/07/2004 Turku
  * @since 30/09/2004 Manchester, $ added to lower-case characters.
  */
-TPTPLexer::CharType TPTPLexer::currentCharacterType (bool tolerant) const
+TPTPLexer::CharType TPTPLexer::currentCharacterType () const
 {
   CALL("TPTPLexer::currentCharacterType");
 
@@ -283,9 +280,6 @@ TPTPLexer::CharType TPTPLexer::currentCharacterType (bool tolerant) const
     return OTHER;
 
   default:
-    if(tolerant) {
-      return OTHER;
-    }
     throw LexerException((string)"illegal character " + (char)_lastCharacter,
 			 *this);
   }
@@ -505,6 +499,7 @@ TokenType TPTPLexer::detectSymbolicTokenTypeOfLastToken ()
 		       *this);
 } // TPTPLexer::detectSymbolicTokenTypeOfLastToken
 
+
 /**
  * Read a quoted string.
  * @since 02/05/2005 Manchester
@@ -514,17 +509,12 @@ void TPTPLexer::readQuotedString (Token& token)
   CALL("TPTPLexer::readQuotedString");
 
   bool escape=false;
-  bool mustBeQuoted=false; //true if the quotation marks must be put around the name
-  bool first=true; //true if we're at the first characted of the string
 
   while (readNextChar()) {
     if (_lastCharacter == '\\' && !escape) {
       escape=true;
     } else if (_lastCharacter == '\'' && !escape) {
       saveTokenText(token);
-      if(mustBeQuoted) {
-	token.text="'"+token.text+"'";
-      }
       readNextChar();
       token.tag = TT_NAME;
       return;
@@ -535,21 +525,6 @@ void TPTPLexer::readQuotedString (Token& token)
       escape=false;
       saveLastChar();
     }
-
-    switch (currentCharacterType(true)) {
-    case LOWER_CASE_LETTER:
-      break;
-    case UPPER_CASE_LETTER:
-    case DIGIT:
-      if(first) {
-	mustBeQuoted=true;
-      }
-      break;
-    default:
-      mustBeQuoted=true;
-      break;
-    }
-    first=false;
   }
   throw LexerException((string)"file ended while reading quoted string ", *this);
 } // TPTPLexer::readQuotedString

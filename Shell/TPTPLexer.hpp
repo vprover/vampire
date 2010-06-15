@@ -51,7 +51,7 @@ private:
   };
 
   void skipWhiteSpacesAndComments();
-  CharType currentCharacterType(bool tolerant=false) const;
+  CharType currentCharacterType() const;
   void readName(Token&);
   void readSymbolic(Token&);
   void readSingle(Token&);
