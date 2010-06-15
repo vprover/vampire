@@ -499,7 +499,6 @@ TokenType TPTPLexer::detectSymbolicTokenTypeOfLastToken ()
 		       *this);
 } // TPTPLexer::detectSymbolicTokenTypeOfLastToken
 
-
 /**
  * Read a quoted string.
  * @since 02/05/2005 Manchester
@@ -509,12 +508,17 @@ void TPTPLexer::readQuotedString (Token& token)
   CALL("TPTPLexer::readQuotedString");
 
   bool escape=false;
+  bool mustBeQuoted=false; //true if the quotation marks must be put around the name
+  bool first=true; //true if we're at the first characted of the string
 
   while (readNextChar()) {
     if (_lastCharacter == '\\' && !escape) {
       escape=true;
     } else if (_lastCharacter == '\'' && !escape) {
       saveTokenText(token);
+      if(mustBeQuoted) {
+	token.text="'"+token.text+"'";
+      }
       readNextChar();
       token.tag = TT_NAME;
       return;
@@ -525,6 +529,21 @@ void TPTPLexer::readQuotedString (Token& token)
       escape=false;
       saveLastChar();
     }
+
+    switch (currentCharacterType()) {
+    case LOWER_CASE_LETTER:
+      break;
+    case UPPER_CASE_LETTER:
+    case DIGIT:
+      if(first) {
+	mustBeQuoted=true;
+      }
+      break;
+    default:
+      mustBeQuoted=true;
+      break;
+    }
+    first=false;
   }
   throw LexerException((string)"file ended while reading quoted string ", *this);
 } // TPTPLexer::readQuotedString
