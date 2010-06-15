@@ -174,10 +174,13 @@ void TPTPLexer::readToken (Token& token)
 /**
  * Return the character type of _lastCharacter.
  *
+ * If @b tolerant is true, does not throw the 'illegal character' exception
+ * on bad characters, but rather returns @b OTHER.
+ *
  * @since 15/07/2004 Turku
  * @since 30/09/2004 Manchester, $ added to lower-case characters.
  */
-TPTPLexer::CharType TPTPLexer::currentCharacterType () const
+TPTPLexer::CharType TPTPLexer::currentCharacterType (bool tolerant) const
 {
   CALL("TPTPLexer::currentCharacterType");
 
@@ -280,6 +283,9 @@ TPTPLexer::CharType TPTPLexer::currentCharacterType () const
     return OTHER;
 
   default:
+    if(tolerant) {
+      return OTHER;
+    }
     throw LexerException((string)"illegal character " + (char)_lastCharacter,
 			 *this);
   }
@@ -516,9 +522,9 @@ void TPTPLexer::readQuotedString (Token& token)
       escape=true;
     } else if (_lastCharacter == '\'' && !escape) {
       saveTokenText(token);
-      if(mustBeQuoted) {
-	token.text="'"+token.text+"'";
-      }
+//      if(mustBeQuoted) {
+//	token.text="'"+token.text+"'";
+//      }
       readNextChar();
       token.tag = TT_NAME;
       return;
@@ -530,7 +536,7 @@ void TPTPLexer::readQuotedString (Token& token)
       saveLastChar();
     }
 
-    switch (currentCharacterType()) {
+    switch (currentCharacterType(true)) {
     case LOWER_CASE_LETTER:
       break;
     case UPPER_CASE_LETTER:
