@@ -24,6 +24,10 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
 
   //handle quoting
   const char* c=_name.c_str();
+  //we do not put quotation marks around equality, although it is not an
+  //atomic_word (in the sense of the TPTP syntax)
+  //Also numbers are not quoted. However names that just look like numbers
+  //(the distinction here is that they are not interpreted) are quoted.
   if((!interpreted || (_name!="=" && arity!=0)) && *c) {
     bool quote=needsQuoting(*c, true);
     c++;
@@ -142,14 +146,17 @@ unsigned Signature::addInterpretedConstant(InterpretedType value)
 
   string name=Int::toString(value);
 //  string name= (value>=0) ? Int::toString(value) : ("uminus("+Int::toString(abs(value))+")");
+
+  //we do not insert the constant into the _funNames map, as we will always
+  //access them through the _iConstants map. There cannot be a name clash as
+  //non-interpreted constants that appear like numbers must be in quotation
+  //marks ('1' instead of 1 -- the later is a number)
+
   string symbolKey = key(name,0);
-  //all integer constants must be registered in _intConstants, and
-  //other symbols cannot have the same symbolKey as an integer constant
-  ASS(!_funNames.find(symbolKey));
+  //all integer constants must be registered in _iConstants
 
   result = _funs.length();
   _funs.push(new InterpretedSymbol(name,value));
-  _funNames.insert(symbolKey,result);
   _iConstants.insert(value, result);
   return result;
 }
