@@ -78,7 +78,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 
   return getResultIterator<InstancesIterator>(lit, complementary, true);
 
-/*  if(retrieveSubstitutions) {
+  if(retrieveSubstitutions) {
     return getResultIterator<InstancesIterator>(lit, complementary, true);
   }
 
@@ -93,13 +93,19 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
     while(old.hasNext()) {
       LOGV(*old.next().literal);
     }
+    if(res.hasNext()) {
+      SLQueryResultIterator new2=getResultIterator<FastInstancesIterator>(lit,complementary, retrieveSubstitutions);
+      while(new2.hasNext()) {
+	LOGV(*new2.next().literal);
+      }
+    }
     LOG("----");
+    ASSERTION_VIOLATION;
   }
 
-  ASS_EQ(res.hasNext(), getResultIterator<InstancesIterator>(lit,
-      complementary, retrieveSubstitutions).hasNext());
+//  ASS_EQ(res.hasNext(), getResultIterator<InstancesIterator>(lit,
+//      complementary, retrieveSubstitutions).hasNext());
   return res;
-  */
 }
 
 struct LiteralSubstitutionTree::SLQueryResultFunctor
