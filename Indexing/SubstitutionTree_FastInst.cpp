@@ -615,13 +615,13 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
   NodeAlgorithm currType=inode->algorithm();
 
   LOGV(inode->childVar);
-  bool isSpecVarBound=_subst->isSpecVarBound(inode->childVar);
 
   TermList query;
-  if(isSpecVarBound) {
-    //here we are interested only in the top functor or the fact that the term is a variable
-    //so we can discard the information about term origin
-    query=_subst->getSpecVarBinding(inode->childVar).t;
+  InstMatcher::TermSpec querySpec;
+  //here we are interested only in the top functor or the fact that the query is a variable
+  //so we can discard the information about term origin
+  if(_subst->findSpecVarBinding(inode->childVar, querySpec)) {
+    query=querySpec.t;
   }
   else {
     query.makeVar(0);//just an arbitrary variable so that anything will match
@@ -647,7 +647,7 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
         noAlternatives=true; //there is at most one term with each top functor
       }
     } else {
-      ASS(query.isOrdinaryVar());
+      ASS(query.isVar());
       //everything is matched by a variable
       curr=*nl;
       nl++;
@@ -676,7 +676,7 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
       nl=0;
     }
     else {
-      ASS(query.isOrdinaryVar());
+      ASS(query.isVar());
       //everything is matched by a variable
       curr=nl->head();
       nl=nl->tail();

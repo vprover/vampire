@@ -7,6 +7,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/TimeCounter.hpp"
 
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
@@ -89,18 +90,28 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 
   SLQueryResultIterator old=getResultIterator<InstancesIterator>(lit,complementary, retrieveSubstitutions);
   if(res.hasNext()!=old.hasNext()) {
-    LOGV(*lit);
-    while(old.hasNext()) {
-      LOGV(*old.next().literal);
-    }
-    if(res.hasNext()) {
+    bool badMatch=old.hasNext();
+
+    if(!badMatch) {
+      ASS(res.hasNext());
       SLQueryResultIterator new2=getResultIterator<FastInstancesIterator>(lit,complementary, retrieveSubstitutions);
       while(new2.hasNext()) {
-	LOGV(*new2.next().literal);
+	Literal* newLit=new2.next().literal;
+	if(!MatchingUtils::match(lit, newLit, complementary)) {
+	  badMatch=true;
+	  LOGV(*newLit);
+	}
       }
     }
-    LOG("----");
-    ASSERTION_VIOLATION;
+    if(badMatch) {
+      while(old.hasNext()) {
+	LOGV(*old.next().literal);
+      }
+      LOGV(*lit);
+      LOG("----");
+      ASSERTION_VIOLATION;
+    }
+
   }
 
 //  ASS_EQ(res.hasNext(), getResultIterator<InstancesIterator>(lit,
