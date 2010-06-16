@@ -140,12 +140,12 @@ VI_OBJ = Indexing/ArithmeticIndex.o\
          Indexing/ResultSubstitution.o\
          Indexing/SubstitutionTree.o\
          Indexing/SubstitutionTree_FastGen.o\
+         Indexing/SubstitutionTree_FastInst.o\
          Indexing/SubstitutionTree_Nodes.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o
-#         Indexing/SubstitutionTree_FastInst.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BDDMarkingSubsumption.o\

@@ -532,6 +532,7 @@ public:
     Stack<NodeAlgorithm> _nodeTypes;
   };
 
+  class InstMatcher;
 
   /**
    * Iterator, that yields generalizations of given term/literal.
@@ -559,13 +560,15 @@ public:
     bool _inLeaf;
     LDIterator _ldIterator;
 
-    Node* _root;
-    Stack<void*> _alternatives;
-    Stack<unsigned> _specVarNumbers;
-    Stack<NodeAlgorithm> _nodeTypes;
+    InstMatcher* _subst;
 
     Renaming _resultNormalizer;
     SubstitutionTree* _tree;
+    Node* _root;
+
+    Stack<void*> _alternatives;
+    Stack<unsigned> _specVarNumbers;
+    Stack<NodeAlgorithm> _nodeTypes;
   };
 
   class UnificationsIterator

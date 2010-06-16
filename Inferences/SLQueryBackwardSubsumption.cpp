@@ -4,8 +4,10 @@
  */
 
 
+#include "Lib/Array.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/DArray.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -16,6 +18,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/MLMatcher.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Indexing/Index.hpp"
@@ -98,6 +101,7 @@ struct LitSpec {
   }
 };
 
+
 void SLQueryBackwardSubsumption::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
@@ -154,7 +158,28 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
   ClauseList* subsumed=0;
 
-  Set<Clause*> checkedClauses;
+  static ZIArray<int> basePreds;
+  static ZIArray<int> childPredPresence;
+  static int bpTimeStamp=0;
+  //this one might actually overflow, but it does not matter --
+  //if the timestamp value is not unique, few non-matching clauses
+  //might pass the check, but they will be caught on the following
+  //(more expensive) check
+  static int cppTimeStamp=0;
+  bpTimeStamp++;
+
+  unsigned basePredCnt=0;
+  for(unsigned bi=0;bi<clen;bi++) {
+    unsigned pred=(*cl)[bi]->header();
+    if(basePreds[pred]!=bpTimeStamp) {
+      basePreds[pred]=bpTimeStamp;
+      basePredCnt++;
+    }
+  }
+
+  static DHSet<Clause*> checkedClauses;
+  checkedClauses.reset();
+
   SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
   while(rit.hasNext()) {
     SLQueryResult res=rit.next();
@@ -168,6 +193,23 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
       continue;
     }
     checkedClauses.insert(icl);
+
+
+    //here we check that for every literal header in the base clause
+    //there is a literal with the same header in the instance
+    cppTimeStamp++;
+    unsigned basePredMatched=0;
+    for(unsigned ii=0;ii<ilen;ii++) {
+      unsigned pred=(*icl)[ii]->header();
+      if(basePreds[pred]==bpTimeStamp && childPredPresence[pred]!=cppTimeStamp) {
+	childPredPresence[pred]=cppTimeStamp;
+	basePredMatched++;
+      }
+    }
+    if(basePredMatched!=basePredCnt) {
+      continue;
+    }
+
 
     LiteralList::push(res.literal, matchedLits[lmIndex]);
     for(unsigned bi=0;bi<clen;bi++) {

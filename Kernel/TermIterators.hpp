@@ -220,23 +220,24 @@ class DisagreementSetIterator
 : public IteratorCore<pair<TermList, TermList> >
 {
 public:
+  /**
+   * Create an empty disagreement iterator
+   *
+   * In order to be used, it must be reset by the @b reset function
+   */
+  DisagreementSetIterator()
+  {
+    _arg1.makeEmpty();
+  }
+
+  /**
+   * Create an iterator over the disagreement set of two terms
+   */
   DisagreementSetIterator(TermList t1, TermList t2, bool disjunctVariables=true)
-  : _stack(8), _disjunctVariables(disjunctVariables)
+  : _stack(8)
   {
     CALL("Term::DisagreementSetIterator::DisagreementSetIterator(TermList...)");
-    ASS(!t1.isEmpty());
-    ASS(!t2.isEmpty());
-
-    if(!TermList::sameTop(t1,t2)) {
-      _arg1=t1;
-      _arg2=t2;
-      return;
-    }
-    _arg1.makeEmpty();
-    if(t1.isTerm() && t1.term()->arity()>0) {
-      _stack.push(t1.term()->args());
-      _stack.push(t2.term()->args());
-    }
+    reset(t1, t2, disjunctVariables);
   }
   /**
    * Create an iterator over the disagreement set of two terms/literals
@@ -251,6 +252,26 @@ public:
     if(t1->arity()>0) {
       _stack.push(t1->args());
       _stack.push(t2->args());
+    }
+  }
+
+  void reset(TermList t1, TermList t2, bool disjunctVariables=true)
+  {
+    CALL("Term::DisagreementSetIterator::reset");
+    ASS(!t1.isEmpty());
+    ASS(!t2.isEmpty());
+
+    _stack.reset();
+    _disjunctVariables=disjunctVariables;
+    if(!TermList::sameTop(t1,t2) || (t1.isVar() && disjunctVariables)) {
+      _arg1=t1;
+      _arg2=t2;
+      return;
+    }
+    _arg1.makeEmpty();
+    if(t1.isTerm() && t1.term()->arity()>0) {
+      _stack.push(t1.term()->args());
+      _stack.push(t2.term()->args());
     }
   }
 

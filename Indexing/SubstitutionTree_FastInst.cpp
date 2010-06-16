@@ -9,11 +9,12 @@
 
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "SubstitutionTree.hpp"
 
 #undef LOGGING
-#define LOGGING 1
+#define LOGGING 0
 
 namespace Indexing
 {
@@ -22,25 +23,44 @@ namespace Indexing
  * Class that supports matching operations required by
  * retrieval of generalizations in substitution trees.
  */
-class SubstitutionTree::GenMatcher
+class SubstitutionTree::InstMatcher
 {
 public:
-  GenMatcher()
-  : _boundVars(256)
+  void reset()
   {
-    Recycler::get(_specVars);
-    Recycler::get(_bindings);
-
-    _specVars->reset();
-    _bindings->reset();
+    _boundVars.reset();
+    _bindings.reset();
   }
 
-  virtual ~GenMatcher()
-  {
-    Recycler::release(_specVars);
-    Recycler::release(_bindings);
-  }
+  CLASS_NAME("SubstitutionTree::InstMatcher");
+  USE_ALLOCATOR(InstMatcher);
 
+  struct TermSpec
+  {
+    TermSpec() {
+    #if VDEBUG
+      t.makeEmpty();
+    #endif
+    }
+    TermSpec(bool q, TermList t)
+    : q(q), t(t)
+    {
+      CALL("SubstitutionTree::InstMatcher::TermSpec::TermSpec");
+
+      //query does not contain special vars
+      ASS(!q || !t.isTerm() || t.term()->shared());
+      ASS(!q || !t.isSpecialVar());
+    }
+
+    string toString()
+    {
+      CALL("SubstitutionTree::InstMatcher::TermSpec::toString");
+      return (q ? "q|" : "n|")+t.toString();
+    }
+
+    bool q;
+    TermList t;
+  };
 
   /**
    * Bind special variable @b var to @b term
@@ -50,182 +70,128 @@ public:
    */
   void bindSpecialVar(unsigned var, TermList term)
   {
-    ASSERT_VALID(term);
-    LOG("###spec var init bound: "<<var<<"  t: "<<term);
+    CALL("SubstitutionTree::InstMatcher::bindSpecialVar");
+    LOG("###spec var init bound: "<<var<<"  t: "<<term.toString());
+    ASS_EQ(getBSCnt(), 0);
 
-    ALWAYS(_specVars->insert(var,term));
+    ALWAYS(_bindings.insert(TermList(var,true),TermSpec(true,term)));
   }
 
   bool isSpecVarBound(unsigned specVar)
   {
-    return _specVars->find(specVar);
+    return _bindings.find(TermList(specVar,true));
   }
 
   /** Return term bound to special variable @b specVar */
-  TermList getSpecVarBinding(unsigned specVar)
+  TermSpec getSpecVarBinding(unsigned specVar)
   {
-    TermList res=_specVars->get(specVar);
-    ASSERT_VALID(res);
+    TermSpec res=_bindings.get(TermList(specVar,true));
+
     return res;
   }
 
-  virtual bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true) = 0;
+  bool findSpecVarBinding(unsigned specVar, TermSpec& res)
+  {
+    return _bindings.find(TermList(specVar,true), res);
+  }
 
-  virtual void backtrack();
-  virtual bool tryBacktrack();
-  virtual ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
+  bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
+
+  void backtrack();
+  bool tryBacktrack();
+  ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
 
   int getBSCnt()
   {
     int res=0;
-    VarStack::Iterator vsit(_boundVars);
+    TermStack::Iterator vsit(_boundVars);
     while(vsit.hasNext()) {
-	if(vsit.next()==BACKTRACK_SEPARATOR) {
-	  res++;
-	}
+      if(vsit.next().isEmpty()) {
+	res++;
+      }
     }
     return res;
   }
 
-protected:
-  typedef DHMap<unsigned, TermList> BindingMap;
-  static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
-
-  VarStack _boundVars;
-
-  BindingMap* _specVars;
-
-  struct Binder;
-  struct Applicator;
-  class Substitution;
-
-  /**
-   * Inheritors must ensure that the map can take at least @b _maxVar
-   * as a key
-   */
-  BindingMap* _bindings;
-
-};
-
-/**
- * Binding structure to be passed to the @b MatchingUtils::matchArgs
- * method.
- */
-struct SubstitutionTree::GenMatcher::Binder
-{
-  /**
-   * Create Binder structure for @b _parent. Use @b newSpecVars
-   * to store numbers of special variables, that were bound by
-   * this object.
-   */
-  inline
-  Binder(GenMatcher* parent)
-  : _parent(parent) {}
-  /**
-   * Ensure variable @b var is bound to @b term. Return false iff
-   * it is not possible. If a new binding was creater, push @b var
-   * onto parent's @b _boundVars stack.
-   */
-  bool bind(unsigned var, TermList term)
-  {
-    LOGV(var);
-
-    TermList* aux;
-    if(_parent->_bindings->getValuePtr(var,aux,term)) {
-      _parent->_boundVars.push(var);
-      return true;
-    } else {
-      return *aux==term;
-    }
-  }
-  /**
-   * Bind special variable @b var to @b term, and push @b var
-   * onto @b _newSpecVars stack.
-   */
-  inline
-  void specVar(unsigned var, TermList term)
-  {
-    ASSERT_VALID(term);
-    LOG("###spec var bound: "<<var<<"  t: "<<(term));
-
-    ALWAYS(_parent->_specVars->insert(var,term));
-  }
 private:
-  GenMatcher* _parent;
+
+  bool isBound(TermList var)
+  {
+    CALL("SubstitutionTree::InstMatcher::isBound");
+    ASS(var.isVar());
+
+    return _bindings.find(var);
+  }
+  void bind(TermList var, TermSpec trm)
+  {
+    CALL("SubstitutionTree::InstMatcher::bind");
+    ASS(!var.isOrdinaryVar() || !trm.q); //we do not bind ordinary vars to query terms
+
+    ALWAYS(_bindings.insert(var, trm));
+    _boundVars.push(var);
+  }
+
+  TermSpec deref(TermList var);
+
+  typedef DHMap<TermList, TermSpec> BindingMap;
+  typedef Stack<TermList> TermStack;
+
+  /** Stacks of bindings made on each backtrack level. Backtrack
+   * levels are separated by empty terms. */
+  TermStack _boundVars;
+
+  BindingMap _bindings;
+
 };
 
-struct SubstitutionTree::GenMatcher::Applicator
+std::ostream& operator<< (ostream& out, SubstitutionTree::InstMatcher::TermSpec ts )
 {
-  inline
-  Applicator(GenMatcher* parent, Renaming* resultNormalizer)
-  : _parent(parent), _resultNormalizer(resultNormalizer) {}
-  TermList apply(unsigned var)
-  {
-    TermList* cacheEntry;
-    if(_cache.getValuePtr(var,cacheEntry)) {
-      ASS(_resultNormalizer->contains(var));
-      unsigned nvar=_resultNormalizer->get(var);
-      ASS(_parent->_bindings->find(nvar));
-      *cacheEntry=_parent->_bindings->get(nvar);
-    }
-    return *cacheEntry;
-  }
-private:
-  GenMatcher* _parent;
-  Renaming* _resultNormalizer;
-  BindingMap _cache;
-};
+  CALL("operator<<(ostream&,SubstitutionTree::InstMatcher::TermSpec)");
 
-class SubstitutionTree::GenMatcher::Substitution
-: public ResultSubstitution
+  out<<ts.toString();
+  return out;
+}
+
+SubstitutionTree::InstMatcher::TermSpec SubstitutionTree::InstMatcher::deref(TermList var)
 {
-public:
-  Substitution(GenMatcher* parent, Renaming* resultNormalizer)
-  : _parent(parent), _resultNormalizer(resultNormalizer),
-  _applicator(0)
-  {}
-  ~Substitution()
-  {
-    if(_applicator) {
-      delete _applicator;
+  CALL("SubstitutionTree::InstMatcher::deref");
+  ASS_REP(var.isVar(), var.tag());
+
+#if VDEBUG
+  int ctr=0;
+#endif
+  for(;;) {
+    TermSpec res;
+    if(!_bindings.find(var, res)) {
+	return TermSpec(var.isOrdinaryVar() ? true : false, var);
     }
-  }
-
-  TermList applyToBoundResult(TermList t)
-  { return SubstHelper::apply(t, *getApplicator()); }
-
-  Literal* applyToBoundResult(Literal* lit)
-  { return SubstHelper::apply(lit, *getApplicator()); }
-
-  bool isIdentityOnQueryWhenResultBound() {return true;}
-private:
-  Applicator* getApplicator()
-  {
-    if(!_applicator) {
-      _applicator=new Applicator(_parent, _resultNormalizer);
+    if( res.t.isTerm() || (!res.q && res.t.isOrdinaryVar()) ) {
+	return res;
     }
-    return _applicator;
+    ASS(!res.q || !res.t.isSpecialVar());
+    var=res.t;
+#if VDEBUG
+    ctr++;
+    ASS_L(ctr,10000); //assert that there are no cycles
+#endif
   }
+}
 
-  GenMatcher* _parent;
-  Renaming* _resultNormalizer;
-  Applicator* _applicator;
-};
 
 /**
  * Undo one call to the @b matchNext method with separate param
  * set to @b true and all other @b matchNext calls that were joined to it.
  */
-void SubstitutionTree::GenMatcher::backtrack()
+void SubstitutionTree::InstMatcher::backtrack()
 {
-  CALL("SubstitutionTree::FastMatcher::backtrack");
+  CALL("SubstitutionTree::InstMatcher::backtrack");
 
   for(;;) {
-    unsigned boundVar=_boundVars.pop();
-    if(boundVar==BACKTRACK_SEPARATOR) {
+    TermList boundVar=_boundVars.pop();
+    if(boundVar.isEmpty()) {
       break;
     }
-    _bindings->remove(boundVar);
+    _bindings.remove(boundVar);
   }
 }
 
@@ -236,27 +202,164 @@ void SubstitutionTree::GenMatcher::backtrack()
  * is no separated @b matchNext call to be undone. In this case every binding
  * on the @b _boundVars stack would be undone.)
  */
-bool SubstitutionTree::GenMatcher::tryBacktrack()
+bool SubstitutionTree::InstMatcher::tryBacktrack()
 {
-  CALL("SubstitutionTree::FastMatcher::tryBacktrack");
+  CALL("SubstitutionTree::InstMatcher::tryBacktrack");
 
   while(_boundVars.isNonEmpty()) {
-    unsigned boundVar=_boundVars.pop();
-    if(boundVar==BACKTRACK_SEPARATOR) {
+    TermList boundVar=_boundVars.pop();
+    if(boundVar.isEmpty()) {
       return true;
     }
-    _bindings->remove(boundVar);
+    _bindings.remove(boundVar);
   }
   return false;
 }
 
-ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
-	Renaming* resultNormalizer)
+/**
+ * Match @b nodeTerm to term in the special variable @b specVar.
+ * If @b separate is true, join this match with the previous one
+ * on backtracking stack, so they will be undone both by one
+ * call to the backtrack() method.
+ */
+bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
-  return ResultSubstitutionSP(
-	  new Substitution(this, resultNormalizer));
-}
+  CALL("SubstitutionTree::InstMatcher::matchNext");
 
+  if(separate) {
+    TermList sep;
+    sep.makeEmpty();
+    _boundVars.push(sep);
+  }
+
+#if VDEBUG
+  {
+    //we assert that all the special variables in the nodeTerm are unbound
+    VariableIterator vit(nodeTerm);
+    while(vit.hasNext()) {
+      TermList var=vit.next();
+      if(var.isSpecialVar()) {
+	ASS(!isBound(var));
+      }
+    }
+  }
+#endif
+
+  LOG("match specVar: "<<specVar<<" nodeTerm: "<<nodeTerm);
+
+  TermSpec tsNode(false, nodeTerm);
+
+  TermSpec tsBinding;
+  if(!findSpecVarBinding(specVar,tsBinding)) {
+    bind(TermList(specVar,true), tsNode);
+    LOG("success: 1 (not bound)");
+    return true;
+  }
+
+  if(tsBinding.q && tsBinding.t.isOrdinaryVar() && !isBound(tsBinding.t)) {
+    bind(tsBinding.t, tsNode);
+    LOG("success: 1 (bound inst var)");
+    return true;
+  }
+
+  bool success;
+
+  if(nodeTerm.isTerm() && nodeTerm.term()->shared() && nodeTerm.term()->ground() &&
+      tsBinding.q && tsBinding.t.isTerm() && tsBinding.t.term()->ground()) {
+    LOG("both ground");
+    success=nodeTerm.term()==tsBinding.t.term();
+    goto finish;
+  }
+
+  static Stack<pair<TermSpec,TermSpec> > toDo;
+  static DisagreementSetIterator dsit;
+
+  toDo.reset();
+  toDo.push(make_pair(tsBinding, tsNode));
+
+  while(toDo.isNonEmpty()) {
+    TermSpec ts1=toDo.top().first;
+    TermSpec ts2=toDo.pop().second;
+    LOGV(ts1);
+    LOGV(ts2);
+//    ASS(!ts2.q); //ts2 is always a node term
+
+    dsit.reset(ts1.t, ts2.t, ts1.q!=ts2.q);
+    LOGV(dsit.hasNext());
+    while(dsit.hasNext()) {
+      pair<TermList,TermList> disarg=dsit.next();
+      TermList dt1=disarg.first;
+      TermList dt2=disarg.second;
+
+      bool dt1Bindable= !dt1.isTerm() && (ts1.q || !dt1.isOrdinaryVar());
+      bool dt2Bindable= !dt2.isTerm() && (ts2.q || !dt2.isOrdinaryVar());
+
+      if(!dt1Bindable && !dt2Bindable) {
+	LOG("!dt1Bindable && !dt2Bindable");
+	success=false;
+	goto finish;
+      }
+
+      //we try to bind ordinary variables first, as binding a special
+      //variable to an ordinary variable does not allow us to cut off
+      //children when entering a node (a term to bind the special variable
+      //may come later, so we want to keep it unbound)
+
+      if(ts1.q && dt1.isOrdinaryVar() && !isBound(dt1)) {
+	LOG("ts1.q && dt1.isOrdinaryVar() && !isBound(dt1)");
+	bind(dt1, TermSpec(ts2.q,dt2));
+	continue;
+      }
+      if(ts2.q && dt2.isOrdinaryVar() && !isBound(dt2)) {
+	LOG("ts2.q && dt2.isOrdinaryVar() && !isBound(dt2)");
+	bind(dt2, TermSpec(ts1.q,dt1));
+	continue;
+      }
+
+      if(dt2.isSpecialVar() && !isBound(dt2)) {
+	LOG("dt2.isSpecialVar() && !isBound(dt2)");
+	ASS(!ts2.q);
+	bind(dt2, TermSpec(ts1.q,dt1));
+	continue;
+      }
+      if(dt1.isSpecialVar() && !isBound(dt1)) {
+	LOG("dt1.isSpecialVar() && !isBound(dt1)");
+	ASS(!ts1.q);
+	bind(dt1, TermSpec(ts2.q,dt2));
+	continue;
+      }
+
+      TermSpec deref1=TermSpec(ts1.q, dt1);
+      TermSpec deref2=TermSpec(ts2.q, dt2);
+      if(dt1Bindable) {
+	ASS(isBound(dt1)); //if unbound, we would have assigned it earlier
+	deref1=deref(dt1);
+      }
+      if(dt2Bindable) {
+	ASS(isBound(dt2));
+	deref2=deref(dt2);
+      }
+
+      LOG("deref "<<dt1<<"    "<<dt2);
+      LOG("  into"<<deref1<<"    "<<deref2);
+      toDo.push(make_pair(deref1, deref2));
+    }
+  }
+  success=true;
+
+finish:
+  if(!success) {
+    //if this matching was joined to the previous one, we don't
+    //have to care about unbinding as caller will do this by calling
+    //backtrack for the matching we're joined to.
+    if(separate) {
+      //we have to unbind variables, that were bound.
+      backtrack();
+    }
+  }
+  LOGV(success);
+  return success;
+}
 
 
 /**
@@ -267,18 +370,23 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
  * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
-SubstitutionTree::FastGeneralizationIterator2::FastGeneralizationIterator2(SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed, GenMatcher* subst)
+SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
+	Term* query, bool retrieveSubstitution, bool reversed)
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
-  _subst(subst), _ldIterator(LDIterator::getEmpty()), _tree(parent)
+  _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _tree(parent),  _root(root),
+  _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
 {
-  CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
+  CALL("SubstitutionTree::FastInstancesIterator::FastGeneralizationsIterator");
   ASS(root);
   ASS(!root->isLeaf());
 
 #if VDEBUG
   _tree->_iteratorCnt++;
 #endif
+
+  Recycler::get(_subst);
+  _subst->reset();
+//  _subst=new InstMatcher;
 
   if(reversed) {
     createReversedInitialBindings(query);
@@ -287,18 +395,19 @@ SubstitutionTree::FastGeneralizationIterator2::FastGeneralizationIterator2(Subst
   }
 }
 
-SubstitutionTree::FastGeneralizationIterator2::~FastGeneralizationIterator2()
+SubstitutionTree::FastInstancesIterator::~FastInstancesIterator()
 {
 #if VDEBUG
   _tree->_iteratorCnt--;
 #endif
-  delete _subst;
+  Recycler::release(_subst);
+//  delete _subst;
 }
 
 
-void SubstitutionTree::FastGeneralizationIterator2::createInitialBindings(Term* t)
+void SubstitutionTree::FastInstancesIterator::createInitialBindings(Term* t)
 {
-  CALL("SubstitutionTree::FastIterator::createInitialBindings");
+  CALL("SubstitutionTree::FastInstancesIterator::createInitialBindings");
 
   TermList* args=t->args();
   int nextVar = 0;
@@ -313,9 +422,9 @@ void SubstitutionTree::FastGeneralizationIterator2::createInitialBindings(Term* 
  * For a binary comutative query literal, create initial bindings,
  * where the order of special variables is reversed.
  */
-void SubstitutionTree::FastGeneralizationIterator2::createReversedInitialBindings(Term* t)
+void SubstitutionTree::FastInstancesIterator::createReversedInitialBindings(Term* t)
 {
-  CALL("SubstitutionTree::FastIterator::createReversedInitialBindings");
+  CALL("SubstitutionTree::FastInstancesIterator::createReversedInitialBindings");
   ASS(t->isLiteral());
   ASS(t->commutative());
   ASS_EQ(t->arity(),2);
@@ -324,141 +433,23 @@ void SubstitutionTree::FastGeneralizationIterator2::createReversedInitialBinding
   _subst->bindSpecialVar(0,*t->nthArgument(1));
 }
 
-bool SubstitutionTree::FastGeneralizationIterator2::hasNext()
+bool SubstitutionTree::FastInstancesIterator::hasNext()
 {
-  CALL("SubstitutionTree::FastIterator::hasNext");
+  CALL("SubstitutionTree::FastInstancesIterator::hasNext");
 
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   return _ldIterator.hasNext();
 }
 
-SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationIterator2::next()
+SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
 {
-  CALL("SubstitutionTree::FastIterator::next");
+  CALL("SubstitutionTree::FastInstancesIterator::next");
 
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
   LeafData& ld=_ldIterator.next();
 
-  if(_retrieveSubstitution) {
-    _resultNormalizer.reset();
-    if(_literalRetrieval) {
-      _resultNormalizer.normalizeVariables(ld.literal);
-    } else {
-      _resultNormalizer.normalizeVariables(ld.term);
-    }
-
-    return QueryResult(&ld,
-	    _subst->getSubstitution(&_resultNormalizer));
-  } else {
-    return QueryResult(&ld, ResultSubstitutionSP());
-  }
-}
-
-//////////////////////////////////////////////
-// Instance retrieval
-//////////////////////////////////////////////
-
-/**
- * Class that supports matching operations required by
- * retrieval of generalizations in substitution trees.
- */
-class SubstitutionTree::InstMatcher
-: public GenMatcher
-{
-public:
-  CLASS_NAME("SubstitutionTree::InstMatcher");
-  USE_ALLOCATOR(InstMatcher);
-
-  virtual bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
-
-  virtual ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer)
-  { NOT_IMPLEMENTED; }
-
-};
-
-
-/**
- * Match @b nodeTerm to term in the special variable @b specVar.
- * If @b separate is true, join this match with the previous one
- * on backtracking stack, so they will be undone both by one
- * call to the backtrack() method.
- */
-bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
-{
-  CALL("SubstitutionTree::InstMatcher::matchNext");
-
-  if(separate) {
-    _boundVars.push(BACKTRACK_SEPARATOR);
-  }
-
-  TermList queryTerm;
-  if(!_specVars->find(specVar, queryTerm)) {
-    //special variable was not bound, this means we can match anything
-    LOGV("1 from unmatched spec var");
-    return true;
-  }
-
-  ASSERT_VALID(queryTerm);
-  LOG("matching q: "<<queryTerm.toString()<<"  n: "<<nodeTerm.toString());
-
-  bool success;
-  if(queryTerm.isTerm()) {
-    Term* qt=queryTerm.term();
-    if(qt->shared() && qt->ground()) {
-      //ground terms match only iff they're equal
-      success = nodeTerm==queryTerm;
-    } else {
-      Binder binder(this);
-      ASS(qt->arity()>0);
-
-      success = nodeTerm.isTerm() && nodeTerm.term()->functor()==qt->functor() &&
-	MatchingUtils::matchArgs(qt, nodeTerm.term(), binder);
-    }
-  } else {
-    ASS_METHOD(queryTerm,isOrdinaryVar());
-    unsigned var=queryTerm.var();
-    Binder binder(this);
-    success=binder.bind(var,nodeTerm);
-  }
-
-  if(!success) {
-    //if this matching was joined to the previous one, we don't
-    //have to care about unbinding as caller will do this by calling
-    //backtrack for the matching we're joined to.
-    if(separate) {
-      //we have to unbind ordinary variables, that were bound.
-      for(;;) {
-	unsigned boundVar=_boundVars.pop();
-	if(boundVar==BACKTRACK_SEPARATOR) {
-	  break;
-	}
-	_bindings->remove(boundVar);
-      }
-    }
-  }
-  LOGV(success);
-  return success;
-}
-
-/**
- * @b nextSpecVar is the first unassigned special variable. Is being used
- * 	to determine size of array, that stores special variable bindings.
- * 	(To maximize performance, a DArray object is being used instead
- * 	of hash map.)
- * If @b reversed If true, parameters of supplied binary literal are
- * 	reversed. (useful for retrieval commutative terms)
- */
-SubstitutionTree::FastInstancesIterator::FastInstancesIterator(
-	SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed)
-: FastGeneralizationIterator2(parent, root, query, retrieveSubstitution, reversed,
-    new InstMatcher),
-  _root(root), _inLeaf(false), _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
-{
-  CALL("SubstitutionTree::FastInstancesIterator::FastGeneralizationsIterator");
-  LOG("-----------new iterator--------------");
-  LOGV(*query);
+  return QueryResult(&ld, ResultSubstitutionSP());
 }
 
 /**
@@ -533,13 +524,6 @@ main_loop_start:
 	ASS_EQ(parentType,SKIP_LIST)
 	NodeList* alts=static_cast<NodeList*>(currAlt);
 	ASS(alts);
-
-	NodeList::Iterator ait(alts);
-	while(ait.hasNext()){
-	  Node* ln=ait.next();
-	  LOGV(ln->term.toString());
-	}
-	LOG("--end of list--");
 
 	curr=alts->head();
 	if(alts->tail()) {
@@ -635,7 +619,9 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
 
   TermList query;
   if(isSpecVarBound) {
-    query=_subst->getSpecVarBinding(inode->childVar);
+    //here we are interested only in the top functor or the fact that the term is a variable
+    //so we can discard the information about term origin
+    query=_subst->getSpecVarBinding(inode->childVar).t;
   }
   else {
     query.makeVar(0);//just an arbitrary variable so that anything will match
