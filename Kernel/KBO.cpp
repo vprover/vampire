@@ -35,6 +35,7 @@ namespace Kernel {
 using namespace Lib;
 using namespace Shell;
 
+
 /**
  * Class to represent the current state of the KBO comparison.
  * @since 30/04/2008 flight Brussels-Tel Aviv
@@ -284,36 +285,21 @@ void KBO::State::traverse(Term* t1, Term* t2)
 }
 
 
-
 /**
  * Create a KBO object.
- *
- * Function and predicate preferences and predicate levels
- * must be initialized after calling this constructor and
- * before any comparisons using this object are being made.
  */
-KBO::KBO(const Signature& sig)
-  : _variableWeight(1),
-    _defaultSymbolWeight(1),
-    _predicates(sig.predicates()),
-    _functions(sig.functions()),
-    _predicateLevels(_predicates),
-    _predicatePrecedences(_predicates),
-    _functionPrecedences(_functions)
+KBO::KBO()
+ :_variableWeight(1), _defaultSymbolWeight(1)
 {
   CALL("KBO::KBO");
-  ASS_G(_predicates, 0);
 
   _state=new State(this);
-  createEqualityComparator();
-  ASS(_eqCmp);
 }
 
 KBO::~KBO()
 {
   CALL("KBO::~KBO");
 
-  destroyEqualityComparator();
   delete _state;
 }
 
@@ -451,21 +437,6 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2)
   return res;
 }
 
-Comparison KBO::compareFunctors(unsigned fun1, unsigned fun2)
-{
-  CALL("KBO::compareFunctors");
-
-  if(fun1==fun2) {
-    return Lib::EQUAL;
-  }
-  switch(compareFunctionPrecedences(fun1, fun2)) {
-  case GREATER: return Lib::GREATER;
-  case LESS: return Lib::LESS;
-  default:  
-    ASSERTION_VIOLATION;
-  }
-}
-
 int KBO::functionSymbolWeight(unsigned fun)
 {
   if(env.signature->functionColored(fun)) {
@@ -475,6 +446,9 @@ int KBO::functionSymbolWeight(unsigned fun)
   }
 }
 
+//////////////////////////////////////////////////
+// KBOBase class
+//////////////////////////////////////////////////
 
 /**
  * Return the predicate level. If @b pred is less than or equal to
@@ -484,7 +458,7 @@ int KBO::functionSymbolWeight(unsigned fun)
  * the COLORED_LEVEL_BOOST value.
  * @since 11/05/2008 Manchester
  */
-int KBO::predicateLevel (unsigned pred)
+int KBOBase::predicateLevel (unsigned pred)
 {
   int basic=pred >= _predicates ? 1 : _predicateLevels[pred];
   if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
@@ -507,7 +481,7 @@ int KBO::predicateLevel (unsigned pred)
  * previously introduced predicates).
  * @since 11/05/2008 Manchester
  */
-int KBO::predicatePrecedence (unsigned pred)
+int KBOBase::predicatePrecedence (unsigned pred)
 {
   int res=pred >= _predicates ? (int)pred : _predicatePrecedences[pred];
   if(NONINTERPRETED_PRECEDENCE_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
@@ -516,12 +490,29 @@ int KBO::predicatePrecedence (unsigned pred)
   return res;
 } // KBO::predicatePrecedences
 
+Comparison KBOBase::compareFunctors(unsigned fun1, unsigned fun2)
+{
+  CALL("KBOBase::compareFunctors");
+
+  if(fun1==fun2) {
+    return Lib::EQUAL;
+  }
+  switch(compareFunctionPrecedences(fun1, fun2)) {
+  case GREATER: return Lib::GREATER;
+  case LESS: return Lib::LESS;
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
 /**
  * Compare precedences of two function symbols
  */
-Ordering::Result KBO::compareFunctionPrecedences(unsigned fun1, unsigned fun2)
+Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun2)
 {
+  CALL("KBOBase::compareFunctionPrecedences");
   ASS_NEQ(fun1, fun2);
+
   Signature::Symbol* s1=env.signature->getFunction(fun1);
   Signature::Symbol* s2=env.signature->getFunction(fun2);
   if(!s1->interpreted()) {
@@ -607,18 +598,23 @@ struct PredRevArityComparator
   }
 };
 
-KBO* KBO::create()
+
+/**
+ * Create a KBOBase object.
+ */
+KBOBase::KBOBase()
+  : _predicates(env.signature->predicates()),
+    _functions(env.signature->functions()),
+    _predicateLevels(_predicates),
+    _predicatePrecedences(_predicates),
+    _functionPrecedences(_functions)
 {
-  CALL("KBO::createArityPreferenceConstantLevels");
+  CALL("KBOBase::KBOBase");
+  ASS_G(_predicates, 0);
 
-  KBO* res=new KBO(*env.signature);
-
-  unsigned preds=res->_predicates;
-  unsigned funcs=res->_functions;
-
-  static DArray<unsigned> aux(32);
-  if(funcs) {
-    aux.initFromIterator(getRangeIterator(0u, funcs), funcs);
+  DArray<unsigned> aux(32);
+  if(_functions) {
+    aux.initFromIterator(getRangeIterator(0u, _functions), _functions);
 
     switch(env.options->symbolPrecedence()) {
     case Shell::Options::BY_ARITY:
@@ -631,12 +627,12 @@ KBO* KBO::create()
       break;
     }
 
-    for(unsigned i=0;i<funcs;i++) {
-      res->_functionPrecedences[aux[i]]=i;
+    for(unsigned i=0;i<_functions;i++) {
+      _functionPrecedences[aux[i]]=i;
     }
   }
 
-  aux.initFromIterator(getRangeIterator(0u, preds), preds);
+  aux.initFromIterator(getRangeIterator(0u, _predicates), _predicates);
 
   switch(env.options->symbolPrecedence()) {
   case Shell::Options::BY_ARITY:
@@ -648,40 +644,38 @@ KBO* KBO::create()
   case Shell::Options::BY_OCCURRENCE:
     break;
   }
-  for(unsigned i=0;i<preds;i++) {
-    res->_predicatePrecedences[aux[i]]=i;
+  for(unsigned i=0;i<_predicates;i++) {
+    _predicatePrecedences[aux[i]]=i;
   }
 
   switch(env.options->literalComparisonMode()) {
   case Shell::Options::LCM_STANDARD:
-    res->_predicateLevels.init(res->_predicates, 1);
+    _predicateLevels.init(_predicates, 1);
     break;
   case Shell::Options::LCM_PREDICATE:
   case Shell::Options::LCM_REVERSE:
-    for(unsigned i=1;i<preds;i++) {
-      res->_predicateLevels[i]=res->_predicatePrecedences[i]+1;
+    for(unsigned i=1;i<_predicates;i++) {
+      _predicateLevels[i]=_predicatePrecedences[i]+1;
     }
     break;
   }
   //equality is on the lowest level
-  res->_predicateLevels[0]=0;
+  _predicateLevels[0]=0;
 
-  res->_reverseLCM = env.options->literalComparisonMode()==Shell::Options::LCM_REVERSE;
+  _reverseLCM = env.options->literalComparisonMode()==Shell::Options::LCM_REVERSE;
 
   //equality proxy predicate has the highest level (lower than colored predicates)
   if(EqualityProxy::s_proxyPredicate) {
-    res->_predicateLevels[EqualityProxy::s_proxyPredicate]=preds+2;
+    _predicateLevels[EqualityProxy::s_proxyPredicate]=_predicates+2;
   }
 
   //consequence-finding name predicates have the lowest level
-  for(unsigned i=1;i<preds;i++) {
+  for(unsigned i=1;i<_predicates;i++) {
     if(env.signature->getPredicate(i)->cfName()) {
-      res->_predicateLevels[i]=-1;
+      _predicateLevels[i]=-1;
     }
   }
-
-
-  return res;
 }
+
 
 }

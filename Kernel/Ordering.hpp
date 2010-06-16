@@ -33,7 +33,10 @@ public:
     EQUAL,
     INCOMPARABLE
   };
-  virtual ~Ordering() {}
+
+  Ordering();
+  virtual ~Ordering();
+
   /** Return the result of comparing @b l1 and @b l2 */
   virtual Result compare(Literal* l1,Literal* l2) = 0;
   /** Return the result of comparing terms (not term lists!)
@@ -66,8 +69,21 @@ public:
   }
 
   static Ordering* instance();
+  static void create(bool epr=false);
   static bool orderingCreated();
+  static const char* resultToString(Result r);
+protected:
+
+  Result compareEqualities(Literal* eq1, Literal* eq2);
+
 private:
+  void createEqualityComparator();
+  void destroyEqualityComparator();
+
+  class EqCmp;
+  /** Object used to compare equalities */
+  EqCmp* _eqCmp;
+
   static OrderingSP s_instance;
 }; // class Ordering
 

@@ -486,18 +486,19 @@ public:
   typedef pair<LeafData*, ResultSubstitutionSP> QueryResult;
 
 
-  class FastMatcher;
   class GenMatcher;
-  class InstMatcher;
 
-  class FastIterator
+  /**
+   * Iterator, that yields generalizations of given term/literal.
+   */
+  class FastGeneralizationsIterator
   : public IteratorCore<QueryResult>
   {
   public:
-    FastIterator(SubstitutionTree* parent, Node* root, Term* query,
-	bool retrieveSubstitution, bool reversed, FastMatcher* subst);
+    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
+	    bool retrieveSubstitution, bool reversed=false);
 
-    virtual ~FastIterator();
+    ~FastGeneralizationsIterator();
 
     QueryResult next();
     bool hasNext();
@@ -505,14 +506,19 @@ public:
     void createInitialBindings(Term* t);
     void createReversedInitialBindings(Term* t);
 
-    virtual bool findNextLeaf() = 0;
+    bool findNextLeaf();
+    bool enterNode(Node*& node);
 
-
+    /** We are retrieving generalizations of a literal */
     bool _literalRetrieval;
+    /** We should include substitutions in the results */
     bool _retrieveSubstitution;
+    /** The iterator is currently in a leaf
+     *
+     * This is false in the beginning when it is in the root */
     bool _inLeaf;
 
-    FastMatcher* _subst;
+    GenMatcher* _subst;
 
     LDIterator _ldIterator;
 
@@ -520,21 +526,7 @@ public:
 
     Node* _root;
     SubstitutionTree* _tree;
-  };
 
-  /**
-   * Iterator, that yields generalizations of given term/literal.
-   */
-  class FastGeneralizationsIterator
-  : public FastIterator
-  {
-  public:
-    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
-	    bool retrieveSubstitution, bool reversed=false);
-  protected:
-    virtual bool findNextLeaf();
-    bool enterNode(Node*& node);
-  private:
     Stack<void*> _alternatives;
     Stack<unsigned> _specVarNumbers;
     Stack<NodeAlgorithm> _nodeTypes;
@@ -562,7 +554,6 @@ public:
     bool enterNode(Node*& node);
 
   private:
-    InstMatcher* _subst;
     bool _literalRetrieval;
     bool _retrieveSubstitution;
     bool _inLeaf;

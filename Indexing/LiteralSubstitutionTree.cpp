@@ -75,8 +75,31 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getInstances");
-  return getResultIterator<InstancesIterator>(lit,
+
+  return getResultIterator<InstancesIterator>(lit, complementary, true);
+
+/*  if(retrieveSubstitutions) {
+    return getResultIterator<InstancesIterator>(lit, complementary, true);
+  }
+
+  SLQueryResultIterator res=
+//      getResultIterator<InstancesIterator>(lit,
+      getResultIterator<FastInstancesIterator>(lit,
 	  complementary, retrieveSubstitutions);
+
+  SLQueryResultIterator old=getResultIterator<InstancesIterator>(lit,complementary, retrieveSubstitutions);
+  if(res.hasNext()!=old.hasNext()) {
+    LOGV(*lit);
+    while(old.hasNext()) {
+      LOGV(*old.next().literal);
+    }
+    LOG("----");
+  }
+
+  ASS_EQ(res.hasNext(), getResultIterator<InstancesIterator>(lit,
+      complementary, retrieveSubstitutions).hasNext());
+  return res;
+  */
 }
 
 struct LiteralSubstitutionTree::SLQueryResultFunctor

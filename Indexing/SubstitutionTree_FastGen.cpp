@@ -19,16 +19,14 @@ namespace Indexing
  * Class that supports matching operations required by
  * retrieval of generalizations in substitution trees.
  */
-class SubstitutionTree::FastMatcher
+class SubstitutionTree::GenMatcher
 {
 public:
-  /**
-   * @b nextSpecVar Number higher than any special variable present in the tree.
-   * 	It's used to determine size of the array that stores bindings of
-   * 	special variables.
-   */
-  FastMatcher(unsigned nextSpecVar);
-  virtual ~FastMatcher();
+  GenMatcher(Term* query, unsigned nextSpecVar);
+  ~GenMatcher();
+
+  CLASS_NAME("SubstitutionTree::GenMatcher");
+  USE_ALLOCATOR(GenMatcher);
 
   /**
    * Bind special variable @b var to @b term. This method
@@ -44,7 +42,8 @@ public:
    */
   TermList getSpecVarBinding(unsigned specVar)
   { return (*_specVars)[specVar]; }
-  virtual bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true) = 0;
+
+  bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
   void backtrack();
   bool tryBacktrack();
 
@@ -63,13 +62,11 @@ public:
   }
 
 protected:
-  typedef DHMap<unsigned,TermList, IdentityHash> BindingMap;
   static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
 
   struct Binder;
   struct Applicator;
   class Substitution;
-  struct MatchBacktrackObject;
 
   VarStack _boundVars;
 
@@ -93,7 +90,7 @@ protected:
  * Binding structure to be passed to the @b MatchingUtils::matchArgs
  * method.
  */
-struct SubstitutionTree::FastMatcher::Binder
+struct SubstitutionTree::GenMatcher::Binder
 {
   /**
    * Create Binder structure for @b _parent. Use @b newSpecVars
@@ -101,7 +98,7 @@ struct SubstitutionTree::FastMatcher::Binder
    * this object.
    */
   inline
-  Binder(FastMatcher* parent)
+  Binder(GenMatcher* parent)
   : _parent(parent), _maxVar(parent->_maxVar) {}
   /**
    * Ensure variable @b var is bound to @b term. Return false iff
@@ -131,7 +128,7 @@ struct SubstitutionTree::FastMatcher::Binder
     (*_parent->_specVars)[var]=term;
   }
 private:
-  FastMatcher* _parent;
+  GenMatcher* _parent;
   /**
    * Maximal number of boundable ordinary variable. If binding
    * bigger variable is attempted, it fails.
@@ -139,10 +136,10 @@ private:
   unsigned _maxVar;
 };
 
-struct SubstitutionTree::FastMatcher::Applicator
+struct SubstitutionTree::GenMatcher::Applicator
 {
   inline
-  Applicator(FastMatcher* parent, Renaming* resultNormalizer)
+  Applicator(GenMatcher* parent, Renaming* resultNormalizer)
   : _parent(parent), _resultNormalizer(resultNormalizer) {}
   TermList apply(unsigned var)
   {
@@ -156,16 +153,16 @@ struct SubstitutionTree::FastMatcher::Applicator
     return *cacheEntry;
   }
 private:
-  FastMatcher* _parent;
+  GenMatcher* _parent;
   Renaming* _resultNormalizer;
   BindingMap _cache;
 };
 
-class SubstitutionTree::FastMatcher::Substitution
+class SubstitutionTree::GenMatcher::Substitution
 : public ResultSubstitution
 {
 public:
-  Substitution(FastMatcher* parent, Renaming* resultNormalizer)
+  Substitution(GenMatcher* parent, Renaming* resultNormalizer)
   : _parent(parent), _resultNormalizer(resultNormalizer),
   _applicator(0)
   {}
@@ -192,7 +189,7 @@ private:
     return _applicator;
   }
 
-  FastMatcher* _parent;
+  GenMatcher* _parent;
   Renaming* _resultNormalizer;
   Applicator* _applicator;
 };
@@ -202,7 +199,7 @@ private:
  * 	It's used to determine size of the array that stores bindings of
  * 	special variables.
  */
-SubstitutionTree::FastMatcher::FastMatcher(unsigned nextSpecVar)
+SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
 : _boundVars(256)
 {
   Recycler::get(_specVars);
@@ -213,183 +210,15 @@ SubstitutionTree::FastMatcher::FastMatcher(unsigned nextSpecVar)
   }
   Recycler::get(_bindings);
   _bindings->reset();
+
+  _maxVar=query->weight()-1;
+  _bindings->ensure(query->weight());
 }
-SubstitutionTree::FastMatcher::~FastMatcher()
+SubstitutionTree::GenMatcher::~GenMatcher()
 {
   Recycler::release(_bindings);
   Recycler::release(_specVars);
 }
-
-/**
- * Undo one call to the @b matchNext method with separate param
- * set to @b true and all other @b matchNext calls that were joined to it.
- */
-void SubstitutionTree::FastMatcher::backtrack()
-{
-  CALL("SubstitutionTree::FastMatcher::backtrack");
-
-  for(;;) {
-    unsigned boundVar=_boundVars.pop();
-    if(boundVar==BACKTRACK_SEPARATOR) {
-      break;
-    }
-    _bindings->remove(boundVar);
-  }
-}
-
-/**
- * Try to undo one call to the @b matchNext method with separate param
- * set to @b true and all other @b matchNext calls that were joined to it.
- * Return true iff successful. (The failure can be due to the fact there
- * is no separated @b matchNext call to be undone. In this case every binding
- * on the @b _boundVars stack would be undone.)
- */
-bool SubstitutionTree::FastMatcher::tryBacktrack()
-{
-  CALL("SubstitutionTree::FastMatcher::tryBacktrack");
-
-  while(_boundVars.isNonEmpty()) {
-    unsigned boundVar=_boundVars.pop();
-    if(boundVar==BACKTRACK_SEPARATOR) {
-      return true;
-    }
-    _bindings->remove(boundVar);
-  }
-  return false;
-}
-
-
-ResultSubstitutionSP SubstitutionTree::FastMatcher::getSubstitution(
-	Renaming* resultNormalizer)
-{
-  return ResultSubstitutionSP(
-	  new Substitution(this, resultNormalizer));
-}
-
-
-
-/**
- * @b nextSpecVar is the first unassigned special variable. Is being used
- * 	to determine size of array, that stores special variable bindings.
- * 	(To maximize performance, a DArray object is being used instead
- * 	of hash map.)
- * If @b reversed If true, parameters of supplied binary literal are
- * 	reversed. (useful for retrieval commutative terms)
- */
-SubstitutionTree::FastIterator::FastIterator(SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed, FastMatcher* subst)
-: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
-  _inLeaf(false), _subst(subst), _ldIterator(LDIterator::getEmpty()),
-  _root(root), _tree(parent)
-{
-  CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
-  ASS(root);
-  ASS(!root->isLeaf());
-
-#if VDEBUG
-  _tree->_iteratorCnt++;
-#endif
-
-  if(reversed) {
-    createReversedInitialBindings(query);
-  } else {
-    createInitialBindings(query);
-  }
-}
-
-SubstitutionTree::FastIterator::~FastIterator()
-{
-#if VDEBUG
-  _tree->_iteratorCnt--;
-#endif
-  delete _subst;
-}
-
-
-void SubstitutionTree::FastIterator::createInitialBindings(Term* t)
-{
-  CALL("SubstitutionTree::FastIterator::createInitialBindings");
-
-  TermList* args=t->args();
-  int nextVar = 0;
-  while (! args->isEmpty()) {
-    unsigned var = nextVar++;
-    _subst->bindSpecialVar(var,*args);
-    args = args->next();
-  }
-}
-
-/**
- * For a binary comutative query literal, create initial bindings,
- * where the order of special variables is reversed.
- */
-void SubstitutionTree::FastIterator::createReversedInitialBindings(Term* t)
-{
-  CALL("SubstitutionTree::FastIterator::createReversedInitialBindings");
-  ASS(t->isLiteral());
-  ASS(t->commutative());
-  ASS_EQ(t->arity(),2);
-
-  _subst->bindSpecialVar(1,*t->nthArgument(0));
-  _subst->bindSpecialVar(0,*t->nthArgument(1));
-}
-
-bool SubstitutionTree::FastIterator::hasNext()
-{
-  CALL("SubstitutionTree::FastIterator::hasNext");
-
-  while(!_ldIterator.hasNext() && findNextLeaf()) {}
-  return _ldIterator.hasNext();
-}
-
-SubstitutionTree::QueryResult SubstitutionTree::FastIterator::next()
-{
-  CALL("SubstitutionTree::FastIterator::next");
-
-  while(!_ldIterator.hasNext() && findNextLeaf()) {}
-  ASS(_ldIterator.hasNext());
-  LeafData& ld=_ldIterator.next();
-
-  if(_retrieveSubstitution) {
-    _resultNormalizer.reset();
-    if(_literalRetrieval) {
-      _resultNormalizer.normalizeVariables(ld.literal);
-    } else {
-      _resultNormalizer.normalizeVariables(ld.term);
-    }
-
-    return QueryResult(&ld,
-	    _subst->getSubstitution(&_resultNormalizer));
-  } else {
-    return QueryResult(&ld, ResultSubstitutionSP());
-  }
-}
-
-//////////////////////////////////////////////
-// Generalization retrieval
-//////////////////////////////////////////////
-
-/**
- * Class that supports matching operations required by
- * retrieval of generalizations in substitution trees.
- */
-class SubstitutionTree::GenMatcher
-: public FastMatcher
-{
-public:
-  GenMatcher(Term* query, unsigned nextSpecVar)
-  : FastMatcher(nextSpecVar)
-  {
-    _maxVar=query->weight()-1;
-    _bindings->ensure(query->weight());
-  }
-
-  CLASS_NAME("SubstitutionTree::GenMatcher");
-  USE_ALLOCATOR(GenMatcher);
-
-  virtual bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
-};
-
 
 /**
  * Match special variable, that is about to be matched next during
@@ -448,6 +277,53 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
   return success;
 }
 
+/**
+ * Undo one call to the @b matchNext method with separate param
+ * set to @b true and all other @b matchNext calls that were joined to it.
+ */
+void SubstitutionTree::GenMatcher::backtrack()
+{
+  CALL("SubstitutionTree::GenMatcher::backtrack");
+
+  for(;;) {
+    unsigned boundVar=_boundVars.pop();
+    if(boundVar==BACKTRACK_SEPARATOR) {
+      break;
+    }
+    _bindings->remove(boundVar);
+  }
+}
+
+/**
+ * Try to undo one call to the @b matchNext method with separate param
+ * set to @b true and all other @b matchNext calls that were joined to it.
+ * Return true iff successful. (The failure can be due to the fact there
+ * is no separated @b matchNext call to be undone. In this case every binding
+ * on the @b _boundVars stack would be undone.)
+ */
+bool SubstitutionTree::GenMatcher::tryBacktrack()
+{
+  CALL("SubstitutionTree::GenMatcher::tryBacktrack");
+
+  while(_boundVars.isNonEmpty()) {
+    unsigned boundVar=_boundVars.pop();
+    if(boundVar==BACKTRACK_SEPARATOR) {
+      return true;
+    }
+    _bindings->remove(boundVar);
+  }
+  return false;
+}
+
+
+ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
+	Renaming* resultNormalizer)
+{
+  return ResultSubstitutionSP(
+	  new Substitution(this, resultNormalizer));
+}
+
+
 
 /**
  * @b nextSpecVar is the first unassigned special variable. Is being used
@@ -457,16 +333,98 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
  * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
-SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(
-	SubstitutionTree* parent, Node* root,
+SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed)
-: FastIterator(parent, root, query, retrieveSubstitution, reversed,
-    new GenMatcher(query,parent->_nextVar)),
+: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
+  _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _root(root), _tree(parent),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
+  ASS(root);
+  ASS(!root->isLeaf());
+
+#if VDEBUG
+  _tree->_iteratorCnt++;
+#endif
+
+  _subst=new GenMatcher(query,parent->_nextVar);
+
+  if(reversed) {
+    createReversedInitialBindings(query);
+  } else {
+    createInitialBindings(query);
+  }
 }
 
+SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationIterator");
+
+#if VDEBUG
+  _tree->_iteratorCnt--;
+#endif
+  delete _subst;
+}
+
+
+void SubstitutionTree::FastGeneralizationsIterator::createInitialBindings(Term* t)
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::createInitialBindings");
+
+  TermList* args=t->args();
+  int nextVar = 0;
+  while (! args->isEmpty()) {
+    unsigned var = nextVar++;
+    _subst->bindSpecialVar(var,*args);
+    args = args->next();
+  }
+}
+
+/**
+ * For a binary comutative query literal, create initial bindings,
+ * where the order of special variables is reversed.
+ */
+void SubstitutionTree::FastGeneralizationsIterator::createReversedInitialBindings(Term* t)
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::createReversedInitialBindings");
+  ASS(t->isLiteral());
+  ASS(t->commutative());
+  ASS_EQ(t->arity(),2);
+
+  _subst->bindSpecialVar(1,*t->nthArgument(0));
+  _subst->bindSpecialVar(0,*t->nthArgument(1));
+}
+
+bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::hasNext");
+
+  while(!_ldIterator.hasNext() && findNextLeaf()) {}
+  return _ldIterator.hasNext();
+}
+
+SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::next()
+{
+  CALL("SubstitutionTree::FastGeneralizationsIterator::next");
+
+  while(!_ldIterator.hasNext() && findNextLeaf()) {}
+  ASS(_ldIterator.hasNext());
+  LeafData& ld=_ldIterator.next();
+
+  if(_retrieveSubstitution) {
+    _resultNormalizer.reset();
+    if(_literalRetrieval) {
+      _resultNormalizer.normalizeVariables(ld.literal);
+    } else {
+      _resultNormalizer.normalizeVariables(ld.term);
+    }
+
+    return QueryResult(&ld,
+	    _subst->getSubstitution(&_resultNormalizer));
+  } else {
+    return QueryResult(&ld, ResultSubstitutionSP());
+  }
+}
 
 /**
  * Find next leaf, that contains generalizations of the query
@@ -610,11 +568,17 @@ main_loop_start:
 }
 
 /**
- * Enter into specified node. This means that if @b node has any admissible
- * children, return one of them and into @b _alternatives push pointer to a list,
- * that will allow retrieving the others. A zero pointer can be pushed onto
- * @b _alternatives, if there isn't more than one admissible child, if there is
- * none, zero pointer should be also returned.
+ * Enter into node @b curr, modifying the value of @b curr
+ *
+ * This means that if @b curr has any admissible children, assign one of them
+ * into @b curr, and push special variable that corresponds to it into
+ * @b _specVarNumbers.
+ *
+ * If there are more than one admissible child, push a pointer that will allow
+ * retrieving the others into @b _alternatives and node type of the current parent
+ * into @b _nodeTypes (this information will allow us later to interpret the
+ * pointer correctly). Also return true in this case. If there is none or only
+ * one admissible child, return false.
  */
 bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
 {

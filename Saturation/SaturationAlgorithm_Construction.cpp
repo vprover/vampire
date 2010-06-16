@@ -7,6 +7,7 @@
 
 #include "Kernel/KBO.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Shell/Options.hpp"
 
@@ -193,6 +194,16 @@ using namespace Construction;
 SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
 {
   CALL("SaturationAlgorithm::createFromOptions");
+
+  bool epr=true;
+  unsigned func=env.signature->functions();
+  for(unsigned fi=0;fi<func;fi++) {
+    if(env.signature->functionArity(fi)) {
+      epr=false;
+      break;
+    }
+  }
+  Ordering::create(epr);
 
   PassiveClauseContainer* passive=createPassiveContainer();
   LiteralSelector* selector=LiteralSelector::getSelector(env.options->selection());

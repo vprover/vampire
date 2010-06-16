@@ -62,6 +62,8 @@ int LiteralSelector::getSelectionPriority(Literal* l)
 
 LiteralSelector* LiteralSelector::getSelector(int num)
 {
+  CALL("LiteralSelector::getSelector");
+
   using namespace LiteralComparators;
 
   typedef Composite<ColoredFirst,

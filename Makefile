@@ -102,7 +102,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
-        Kernel/KBO_Equality.o\
+        Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
         Kernel/MatchTag.o\
         Kernel/Matcher.o\
@@ -110,6 +110,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/MLMatcher.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
+        Kernel/Ordering_Equality.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
         Kernel/Signature.o\
@@ -138,12 +139,13 @@ VI_OBJ = Indexing/ArithmeticIndex.o\
          Indexing/LiteralSubstitutionTree.o\
          Indexing/ResultSubstitution.o\
          Indexing/SubstitutionTree.o\
-         Indexing/SubstitutionTree_FastIterator.o\
+         Indexing/SubstitutionTree_FastGen.o\
          Indexing/SubstitutionTree_Nodes.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o
+#         Indexing/SubstitutionTree_FastInst.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BDDMarkingSubsumption.o\
@@ -269,8 +271,8 @@ LIB_DEP = Indexing/TermSharing.o\
 		  Kernel/FormulaVarIterator.o\
 		  Kernel/Inference.o\
 		  Kernel/KBO.o\
-		  Kernel/KBO_Equality.o\
 		  Kernel/Ordering.o\
+		  Kernel/Ordering_Equality.o\
 		  Kernel/Signature.o\
 		  Kernel/SubformulaIterator.o\
 		  Kernel/Substitution.o\
