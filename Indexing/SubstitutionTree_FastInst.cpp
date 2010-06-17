@@ -58,6 +58,18 @@ public:
       return (q ? "q|" : "n|")+t.toString();
     }
 
+    /**
+     * Return true if the @b t field can be use as a binding for a query
+     * term variable in the retrieved substitution
+     */
+    bool isFinal()
+    {
+      //the fact that a term is shared means it does not contain any special variables
+      return q
+  	? (t.isTerm() && t.term()->ground())
+  	: (t.isOrdinaryVar() || (t.isTerm() && t.term()->shared()) );
+    }
+
     bool q;
     TermList t;
   };
@@ -115,6 +127,10 @@ public:
 
 private:
 
+  class Substitution;
+
+  TermList derefQueryBinding(unsigned var);
+
   bool isBound(TermList var)
   {
     CALL("SubstitutionTree::InstMatcher::isBound");
@@ -142,7 +158,83 @@ private:
 
   BindingMap _bindings;
 
+  /**
+   * A cache for bindings of variables to result terms
+   *
+   * The map is reset in each leaf we enter
+   */
+  DHMap<TermList,TermList> _derefBindings;
+
 };
+
+
+class SubstitutionTree::InstMatcher::Substitution
+: public ResultSubstitution
+{
+public:
+  Substitution(InstMatcher* parent, Renaming* resultNormalizer)
+  : _parent(parent), _resultNormalizer(resultNormalizer)
+//  ,_applicator(0)
+  {}
+  ~Substitution()
+  {
+//    if(_applicator) {
+//      delete _applicator;
+//    }
+  }
+
+//  TermList applyToBoundQuery(TermList t)
+//  { return SubstHelper::apply(t, *getApplicator()); }
+
+  bool isIdentityOnResultWhenQueryBound() { return true; }
+private:
+//  Applicator* getApplicator()
+//  {
+//    if(!_applicator) {
+//      _applicator=new Applicator(_parent, _resultNormalizer);
+//    }
+//    return _applicator;
+//  }
+
+  InstMatcher* _parent;
+  Renaming* _resultNormalizer;
+//  Applicator* _applicator;
+};
+
+TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
+{
+  CALL("SubstitutionTree::InstMatcher::derefQueryBinding");
+
+  TermList tvar(var, false);
+
+  TermSpec varBinding;
+  {
+    TermList* pval;
+    if(!_derefBindings.getValuePtr(tvar, pval)) {
+      return *pval;
+    }
+    //only bound values can be passed to this function
+    ALWAYS(_bindings.find(tvar, varBinding));
+
+    if(varBinding.isFinal()) {
+      *pval=varBinding.t;
+      return varBinding.t;
+    }
+  }
+
+  while(!varBinding.isFinal() && !varBinding.t.isTerm()) {
+    ASS(varBinding.t.isVar());
+    ASS(!varBinding.q || !varBinding.t.isOrdinaryVar());
+
+    TermList bvar=varBinding.t;
+    ALWAYS(_bindings.find(bvar,varBinding));
+  }
+  if(varBinding.isFinal()) {
+    _derefBindings.insert(tvar, varBinding.t);
+    return varBinding.t;
+  }
+  NOT_IMPLEMENTED;
+}
 
 std::ostream& operator<< (ostream& out, SubstitutionTree::InstMatcher::TermSpec ts )
 {
@@ -449,7 +541,20 @@ SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
   ASS(_ldIterator.hasNext());
   LeafData& ld=_ldIterator.next();
 
-  return QueryResult(&ld, ResultSubstitutionSP());
+  if(_retrieveSubstitution) {
+    NOT_IMPLEMENTED;
+    _resultNormalizer.reset();
+    if(_literalRetrieval) {
+      _resultNormalizer.normalizeVariables(ld.literal);
+    } else {
+      _resultNormalizer.normalizeVariables(ld.term);
+    }
+
+    return QueryResult(&ld,
+	    _subst->getSubstitution(&_resultNormalizer));
+  } else {
+    return QueryResult(&ld, ResultSubstitutionSP());
+  }
 }
 
 /**

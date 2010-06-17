@@ -22,6 +22,9 @@
 
 #define GROUND_TERM_CHECK 0
 
+#undef RSTAT_COLLECTION
+#define RSTAT_COLLECTION 0
+
 namespace Indexing
 {
 

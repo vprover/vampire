@@ -12,8 +12,10 @@ collected nor output.
 */
 
 #ifndef RUNTIME_STATS
-#define RUNTIME_STATS 0
+#define RUNTIME_STATS 1
 #endif
+
+#define RSTAT_COLLECTION 1
 
 #if RUNTIME_STATS
 
@@ -25,6 +27,12 @@ RSTAT_MST_INC(stat, index, val) -- Collects integer values @b val in classes @b 
 RSTAT_PRINT(stream) -- Outputs current values of counters into stream (typically std::cout)
 
 RSTAT_CTR_INC and RSTAT_MCTR_INC cannot use a counter of the same name
+
+To disable statistics collection from part of the code, add
+#undef RSTAT_COLLECTION
+#define RSTAT_COLLECTION 0
+
+
 
 Usage:
 
@@ -161,9 +169,9 @@ private:
 #define RSTAT_AUX_NAME_(SEED) RSTAT_AUX_NAME__(SEED)
 #define RSTAT_AUX_NAME RSTAT_AUX_NAME_(__LINE__)
 
-#define RSTAT_CTR_INC(stat) static Debug::RSCounter* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSCounter>(stat); RSTAT_AUX_NAME->inc()
-#define RSTAT_MCTR_INC(stat, index) static Debug::RSMultiCounter* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSMultiCounter>(stat); RSTAT_AUX_NAME->inc(index)
-#define RSTAT_MST_INC(stat, index, val) static Debug::RSMultiStatistic* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSMultiStatistic>(stat); RSTAT_AUX_NAME->addRecord(index, val)
+#define RSTAT_CTR_INC(stat) if(RSTAT_COLLECTION) { static Debug::RSCounter* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSCounter>(stat); RSTAT_AUX_NAME->inc(); }
+#define RSTAT_MCTR_INC(stat, index) if(RSTAT_COLLECTION) { static Debug::RSMultiCounter* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSMultiCounter>(stat); RSTAT_AUX_NAME->inc(index); }
+#define RSTAT_MST_INC(stat, index, val) if(RSTAT_COLLECTION) { static Debug::RSMultiStatistic* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSMultiStatistic>(stat); RSTAT_AUX_NAME->addRecord(index, val); }
 
 #define RSTAT_PRINT(out) Debug::RuntimeStatistics::instance()->print(out)
 

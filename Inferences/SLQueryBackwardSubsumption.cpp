@@ -4,9 +4,12 @@
  */
 
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Array.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
@@ -101,6 +104,21 @@ struct LitSpec {
   }
 };
 
+unsigned getTopLevelVars(Term* t)
+{
+  unsigned res=0;
+  TermList* arg=t->args();
+  while(arg->isNonEmpty()) {
+    if(arg->isVar()) {
+      res++;
+    }
+    arg=arg->next();
+  }
+  return res;
+}
+
+#undef LOGGING
+#define LOGGING 0
 
 void SLQueryBackwardSubsumption::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
@@ -144,8 +162,8 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
   unsigned lmIndex=0; //least matchable literal index
   unsigned lmVal=(*cl)[0]->weight();
-  for(unsigned i=0;i<clen;i++) {
-    Literal* curr=(*cl)[i];
+  for(unsigned i=1;i<clen;i++) {
+    Literal* curr=(*cl)[i];//-getTopLevelVars((*cl)[i]);
     unsigned currVal=curr->weight();
     if(currVal>lmVal) {
       lmIndex=i;
@@ -158,25 +176,12 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
   ClauseList* subsumed=0;
 
-  static ZIArray<int> basePreds;
-  static ZIArray<int> childPredPresence;
-  static int bpTimeStamp=0;
-  //this one might actually overflow, but it does not matter --
-  //if the timestamp value is not unique, few non-matching clauses
-  //might pass the check, but they will be caught on the following
-  //(more expensive) check
-  static int cppTimeStamp=0;
-  bpTimeStamp++;
+  static DHSet<unsigned> basePreds;
+  bool basePredsInit=false;
+  bool mustPredInit=false;
+  unsigned mustPred;
 
-  unsigned basePredCnt=0;
-  for(unsigned bi=0;bi<clen;bi++) {
-    unsigned pred=(*cl)[bi]->header();
-    if(basePreds[pred]!=bpTimeStamp) {
-      basePreds[pred]=bpTimeStamp;
-      basePredCnt++;
-    }
-  }
-
+  LOGV(*cl);
   static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
@@ -184,6 +189,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   while(rit.hasNext()) {
     SLQueryResult res=rit.next();
     Clause* icl=res.clause;
+    Literal* ilit=res.literal;
     unsigned ilen=icl->length();
     if(ilen<clen || icl==cl) {
       continue;
@@ -194,21 +200,85 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     }
     checkedClauses.insert(icl);
 
+    RSTAT_CTR_INC("bs candidates");
+
+    LOGV(*icl);
+
+    if(!mustPredInit) {
+      mustPred=0;
+      for(unsigned bi=0;bi<clen;bi++) {
+	if(bi==lmIndex) {
+	  continue;
+	}
+        unsigned pred=(*cl)[bi]->header();
+        if(pred>mustPred) {
+          mustPred=pred;
+        }
+      }
+    }
+    bool haveMustPred=false;
+    for(unsigned ii=0;ii<ilen;ii++) {
+      Literal* l=(*icl)[ii];
+      if(l==ilit) {
+	continue;
+      }
+      unsigned pred=l->header();
+      if(pred==mustPred) {
+	haveMustPred=true;
+      }
+    }
+    if(!haveMustPred) {
+      continue;
+    }
+    RSTAT_CTR_INC("bs mustPred survivors");
 
     //here we check that for every literal header in the base clause
     //there is a literal with the same header in the instance
-    cppTimeStamp++;
-    unsigned basePredMatched=0;
-    for(unsigned ii=0;ii<ilen;ii++) {
-      unsigned pred=(*icl)[ii]->header();
-      if(basePreds[pred]==bpTimeStamp && childPredPresence[pred]!=cppTimeStamp) {
-	childPredPresence[pred]=cppTimeStamp;
-	basePredMatched++;
+    if(!basePredsInit) {
+      basePredsInit=true;
+      basePreds.reset();
+//      //since the base clause has at least two children, this will always
+//      //contain an existing literal header after the loop
+//      mustPred=0;
+      for(unsigned bi=0;bi<clen;bi++) {
+	if(bi==lmIndex) {
+	  continue;
+	}
+        unsigned pred=(*cl)[bi]->header();
+        basePreds.insert(pred);
+//        if(pred>mustPred) {
+//          mustPred=pred;
+//        }
       }
     }
-    if(basePredMatched!=basePredCnt) {
+    unsigned allowedMisses=ilen-clen; //how many times the instance may contain a predicate that is not in the base clause
+    bool fail=false;
+//    bool haveMustPred=false;
+    for(unsigned ii=0;ii<ilen;ii++) {
+      Literal* l=(*icl)[ii];
+      if(l==ilit) {
+	continue;
+      }
+      unsigned pred=l->header();
+      if(!basePreds.find(pred)) {
+	if(allowedMisses==0) {
+	  fail=true;
+	  break;
+	}
+	else {
+	  allowedMisses--;
+	}
+      }
+//      if(pred==mustPred) {
+//	haveMustPred=true;
+//      }
+    }
+    if(fail || !haveMustPred) {
       continue;
     }
+
+    RSTAT_CTR_INC("bs survived");
+
 
 
     LiteralList::push(res.literal, matchedLits[lmIndex]);

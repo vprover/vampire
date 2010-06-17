@@ -20,10 +20,16 @@ class SubstHelper
 {
 public:
   template<class Applicator>
-  static TermList apply(TermList t, Applicator& applicator, bool noSharing=false);
+  static TermList apply(TermList t, Applicator& applicator, bool noSharing=false)
+  {
+    return applyImpl<false,Applicator>(t, applicator, noSharing);
+  }
 
   template<class Applicator>
-  static Term* apply(Term* t, Applicator& applicator, bool noSharing=false);
+  static Term* apply(Term* t, Applicator& applicator, bool noSharing=false)
+  {
+    return applyImpl<false,Applicator>(t, applicator, noSharing);
+  }
 
   /**
    * Apply a substitution to a literal. Substitution is
@@ -35,6 +41,30 @@ public:
   {
     return static_cast<Literal*>(apply(static_cast<Term*>(lit),applicator));
   }
+
+
+  /**
+   * Apply a substitution to a literal. The substitution is
+   * specified by the applicator -- an object with methods
+   * TermList apply(unsigned var) and
+   * TermList applyToSpecVar(unsigned specVar).
+   */
+  template<class Applicator>
+  static TermList applySV(TermList t, Applicator& applicator, bool noSharing=false)
+  {
+    return applyImpl<true,Applicator>(t, applicator, noSharing);
+  }
+  template<class Applicator>
+  static Term* applySV(Term* t, Applicator& applicator, bool noSharing=false)
+  {
+    return applyImpl<true,Applicator>(t, applicator, noSharing);
+  }
+  template<class Applicator>
+  static Literal* applySV(Literal* lit, Applicator& applicator)
+  {
+    return static_cast<Literal*>(applySV(static_cast<Term*>(lit),applicator));
+  }
+
 
   /**
    * Apply a substitution represented by object, that supports
@@ -71,23 +101,56 @@ public:
     return MapApplicator<Map>(m);
   }
 
+private:
+  template<bool ProcessSpecVars, class Applicator>
+  static Term* applyImpl(Term* t, Applicator& applicator, bool noSharing=false);
+
+  template<bool ProcessSpecVars, class Applicator>
+  static TermList applyImpl(TermList t, Applicator& applicator, bool noSharing=false);
+
 };
+
+namespace SubstHelper_Aux
+{
+template<bool ProcessSpecVars>
+struct SpecVarHandler
+{
+};
+template<>
+struct SpecVarHandler<true>
+{
+  template<class Applicator>
+  static TermList apply(Applicator& a, unsigned specVar) { return a.applyToSpecVar(specVar); }
+};
+template<>
+struct SpecVarHandler<false>
+{
+  template<class Applicator>
+  static TermList apply(Applicator& a, unsigned specVar) { return TermList(specVar, true); }
+};
+}
 
 /**
  * Apply a substitution to a term. Substitution is
  * specified by the applicator -- an object with method
  * TermList apply(unsigned var)
  */
-template<class Applicator>
-TermList SubstHelper::apply(TermList trm, Applicator& applicator, bool noSharing)
+template<bool ProcessSpecVars, class Applicator>
+TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator, bool noSharing)
 {
-  CALL("SubstHelper::apply(TermList...)");
+  CALL("SubstHelper::applyImpl(TermList...)");
+
+  using namespace SubstHelper_Aux;
 
   if(trm.isOrdinaryVar()) {
     return applicator.apply(trm.var());
-  } else {
+  }
+  else if(trm.isSpecialVar()) {
+    return SpecVarHandler<ProcessSpecVars>::apply(applicator, trm.var());
+  }
+  else {
     ASS(trm.isTerm());
-    return TermList(apply(trm.term(), applicator, noSharing));
+    return TermList(applyImpl<ProcessSpecVars>(trm.term(), applicator, noSharing));
   }
 }
 
@@ -95,16 +158,19 @@ TermList SubstHelper::apply(TermList trm, Applicator& applicator, bool noSharing
 /**
  * Apply a substitution to a term. Substitution is
  * specified by the applicator -- an object with method
- * TermList apply(unsigned var).
+ * TermList apply(unsigned var) and, if ProcessSpecVars
+ * is set to true, also TermList applyToSpecVar(unsigned specVar).
  *
  * If @b trm is a shared term and @b noSharing parameter
  * is false, all newly created terms will be inserted into
  * the sharing structure. Otherwise they will not be shared.
  */
-template<class Applicator>
-Term* SubstHelper::apply(Term* trm, Applicator& applicator, bool noSharing)
+template<bool ProcessSpecVars, class Applicator>
+Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 {
-  CALL("SubstHelper::apply(Term*...)");
+  CALL("SubstHelper::applyImpl(Term*...)");
+
+  using namespace SubstHelper_Aux;
 
   Stack<TermList*>* toDo;
   Stack<Term*>* terms;
@@ -168,7 +234,11 @@ Term* SubstHelper::apply(Term* trm, Applicator& applicator, bool noSharing)
       continue;
     }
     if(tl.isSpecialVar()) {
-      args->push(tl);
+      TermList tDest=SpecVarHandler<ProcessSpecVars>::apply(applicator,tl.var());
+      args->push(tDest);
+      if(tDest!=tl) {
+	modified->setTop(true);
+      }
       continue;
     }
     ASS(tl.isTerm());

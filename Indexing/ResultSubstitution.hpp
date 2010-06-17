@@ -65,7 +65,7 @@ public:
    *
    * Applying this substitution makes sense, when
    * @b isIdentityOnQueryWhenResultBound() method returns true,
-   * as then there's no need to apply the substitution to any
+   * as then there is no need to apply the substitution to any
    * query terms.
    */
   virtual Literal* applyToBoundResult(Literal* lit)
@@ -73,10 +73,30 @@ public:
 
   /**
    * Return true if, when the substitution is applied to a result
-   * term through @b applyToBoundResult method, the substitution
-   * for query terms is identity.
+   * term through the @b applyToBoundResult function, the corresponding
+   * substitution for query terms is identity.
    */
   virtual bool isIdentityOnQueryWhenResultBound() {return false;}
+
+
+  /**
+   * Apply substitution to query term that fulfills the condition,
+   * that all its variables are bound to some term of the result.
+   *
+   * Applying this substitution makes sense, when
+   * @b isIdentityOnResultWhenQueryBound() method returns true,
+   * as then there is no need to apply the substitution to any
+   * result terms.
+   */
+  virtual TermList applyToBoundQuery(TermList t)
+  { return applyToQuery(t); }
+
+  /**
+   * Return true if, when the substitution is applied to a query
+   * term through the @b applyToBoundQuery function, the corresponding
+   * substitution for query terms is identity.
+   */
+  virtual bool isIdentityOnResultWhenQueryBound() {return false;}
 
   virtual RobSubstitution* tryGetRobSubstitution() { return 0; }
 
