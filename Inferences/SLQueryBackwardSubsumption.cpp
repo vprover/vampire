@@ -78,45 +78,6 @@ struct ClauseToBwSimplRecordFn
 };
 
 
-struct LitSpec {
-  LitSpec() {}
-  LitSpec(Clause* cl, Literal* lit)
-  : clause(cl), literal(lit) {}
-  Clause* clause;
-  Literal* literal;
-
-  static Comparison compare(const LitSpec& ls1, const LitSpec& ls2)
-  {
-    size_t c1id=reinterpret_cast<size_t>(ls1.clause);
-    size_t c2id=reinterpret_cast<size_t>(ls2.clause);
-    if(c1id!=c2id) {
-      return c1id>c2id ? GREATER : LESS;
-    }
-    size_t l1id=reinterpret_cast<size_t>(ls1.literal);
-    size_t l2id=reinterpret_cast<size_t>(ls2.literal);
-    return l1id>l2id ? GREATER : (l1id==l2id ? EQUAL : LESS);
-  }
-  static Comparison compare(Clause* c, const LitSpec& ls2)
-  {
-    size_t c1id=reinterpret_cast<size_t>(c);
-    size_t c2id=reinterpret_cast<size_t>(ls2.clause);
-    return c1id>c2id ? GREATER : (c1id==c2id ? EQUAL : LESS);
-  }
-};
-
-unsigned getTopLevelVars(Term* t)
-{
-  unsigned res=0;
-  TermList* arg=t->args();
-  while(arg->isNonEmpty()) {
-    if(arg->isVar()) {
-      res++;
-    }
-    arg=arg->next();
-  }
-  return res;
-}
-
 #undef LOGGING
 #define LOGGING 0
 
@@ -204,7 +165,11 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
     LOGV(*icl);
 
+    //here we pick one literal header of the base clause and make sure that
+    //every instance clause has it
     if(!mustPredInit) {
+      //since the base clause has at least two children, this will always
+      //contain an existing literal header after the loop
       mustPred=0;
       for(unsigned bi=0;bi<clen;bi++) {
 	if(bi==lmIndex) {
@@ -237,23 +202,16 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     if(!basePredsInit) {
       basePredsInit=true;
       basePreds.reset();
-//      //since the base clause has at least two children, this will always
-//      //contain an existing literal header after the loop
-//      mustPred=0;
       for(unsigned bi=0;bi<clen;bi++) {
 	if(bi==lmIndex) {
 	  continue;
 	}
         unsigned pred=(*cl)[bi]->header();
         basePreds.insert(pred);
-//        if(pred>mustPred) {
-//          mustPred=pred;
-//        }
       }
     }
     unsigned allowedMisses=ilen-clen; //how many times the instance may contain a predicate that is not in the base clause
     bool fail=false;
-//    bool haveMustPred=false;
     for(unsigned ii=0;ii<ilen;ii++) {
       Literal* l=(*icl)[ii];
       if(l==ilit) {
@@ -269,11 +227,8 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 	  allowedMisses--;
 	}
       }
-//      if(pred==mustPred) {
-//	haveMustPred=true;
-//      }
     }
-    if(fail || !haveMustPred) {
+    if(fail) {
       continue;
     }
 
