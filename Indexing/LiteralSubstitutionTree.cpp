@@ -101,10 +101,16 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
       while(new2.hasNext()) {
 	Literal* newLit=new2.next().literal;
 	if(!MatchingUtils::match(lit, newLit, complementary)) {
+	  if(!badMatch) {
+	    reportSpiderFail();
+	  }
 	  badMatch=true;
 	  LOGV(*newLit);
 	}
       }
+    }
+    else {
+      reportSpiderFail();
     }
     if(badMatch) {
       while(old.hasNext()) {

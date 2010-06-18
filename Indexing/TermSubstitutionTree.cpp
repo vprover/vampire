@@ -153,11 +153,15 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
       if(!badMatch) {
 	while(new2.hasNext()) {
 	  TermList newTrm=new2.next().term;
-//	  if(!MatchingUtils::matchTerms(t, newTrm)) {
+	  if(!MatchingUtils::matchTerms(t, newTrm)) {
+	    if(!badMatch) { reportSpiderFail(); }
 	    badMatch=true;
 	    LOGV(newTrm);
-//	  }
+	  }
 	}
+      }
+      else {
+	reportSpiderFail();
       }
       if(badMatch) {
 	while(old.hasNext()) {
@@ -173,6 +177,7 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
 	TermQueryResult nr=new2.next();
 	TermList nsubs=nr.substitution->applyToBoundQuery(t);
 	if(nsubs!=nr.term) {
+	  reportSpiderFail();
 	  LOGV(t);
 	}
 	ASS_EQ(nsubs, nr.term);
