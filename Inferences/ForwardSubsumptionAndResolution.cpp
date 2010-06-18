@@ -165,21 +165,21 @@ bool isSubsumed(Clause* cl, CMStack& cmStore)
   return false;
 }
 
-Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause)
+Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause)
 {
-  CALL("generateSubsumptionResolutionClause");
-  int clength = cl->length();
-  int newLength = clength-1;
+  CALL("ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause");
+  int clen = cl->length();
+  int nlen = clen-1;
 
   Inference* inf = new Inference2(Inference::SUBSUMPTION_RESOLUTION, cl, baseClause);
   Unit::InputType inpType = (Unit::InputType)
   	max(cl->inputType(), baseClause->inputType());
 
-  Clause* res = new(newLength) Clause(newLength, inpType, inf);
+  Clause* res = new(nlen) Clause(nlen, inpType, inf);
 
   int next = 0;
   bool found=false;
-  for(int i=0;i<clength;i++) {
+  for(int i=0;i<clen;i++) {
     Literal* curr=(*cl)[i];
     //As we will apply subsumption resolution after duplicate literal
     //deletion, the same literal should never occur twice.
@@ -192,7 +192,6 @@ Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* ba
   }
 
   res->setAge(cl->age());
-  env.statistics->forwardSubsumptionResolution++;
 
   return res;
 }
@@ -317,6 +316,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	Clause* mcl=rit.next().clause;
 	if(simplPerformer->willPerform(mcl)) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
+	  env.statistics->forwardSubsumptionResolution++;
 	  simplPerformer->perform(mcl, resolutionClause);
 	  if(!simplPerformer->clauseKept()) {
 	    goto fin;
@@ -333,6 +333,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 	  Literal* resLit=(*cl)[li];
 	  if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
 	    resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
+	    env.statistics->forwardSubsumptionResolution++;
 	    simplPerformer->perform(cms->_cl, resolutionClause);
 	    if(!simplPerformer->clauseKept()) {
 	      goto fin;
@@ -362,6 +363,7 @@ void ForwardSubsumptionAndResolution::perform(Clause* cl, ForwardSimplificationP
 
 	if(checkForSubsumptionResolution(cl, cms, resLit) && simplPerformer->willPerform(cms->_cl)) {
 	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
+	  env.statistics->forwardSubsumptionResolution++;
 	  simplPerformer->perform(cms->_cl, resolutionClause);
 	  if(!simplPerformer->clauseKept()) {
 	    goto fin;

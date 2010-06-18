@@ -1,11 +1,11 @@
 /**
- * @file SLQueryBackwardSubsumption.hpp
- * Defines class SLQueryBackwardSubsumption.
+ * @file BackwardSubsumptionResolution.hpp
+ * Defines class BackwardSubsumptionResolution.
  */
 
 
-#ifndef __SLQueryBackwardSubsumption__
-#define __SLQueryBackwardSubsumption__
+#ifndef __BackwardSubsumptionResolution__
+#define __BackwardSubsumptionResolution__
 
 #include "InferenceEngine.hpp"
 
@@ -13,7 +13,7 @@ namespace Inferences {
 
 using namespace Indexing;
 
-class SLQueryBackwardSubsumption
+class BackwardSubsumptionResolution
 : public BackwardSimplificationEngine
 {
 public:
@@ -30,4 +30,4 @@ private:
 
 };
 
-#endif /* __SLQueryBackwardSubsumption__ */
+#endif /* __BackwardSubsumptionResolution__ */

@@ -13,6 +13,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
+#include "Inferences/BackwardSubsumptionResolution.hpp"
 #include "Inferences/BDDMarkingSubsumption.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/Condensation.hpp"
@@ -175,6 +176,9 @@ void addBSEs(SaturationAlgorithm* alg)
 
   if(env.options->backwardSubsumption()) {
     alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption()));
+  }
+  if(env.options->backwardSubsumptionResolution()) {
+    alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardSubsumptionResolution()));
   }
 }
 

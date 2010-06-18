@@ -151,6 +151,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_BACKWARD_SUBSUMPTION:
     out<<"backward subsumption";
     break;
+  case TC_BACKWARD_SUBSUMPTION_RESOLUTION:
+    out<<"backward subsumption resolution";
+    break;
   case TC_BDD:
     out<<"BDD operations";
     break;
@@ -207,6 +210,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE:
     out<<"splitting component index maintenance";
+    break;
+  case TC_LRS_LIMIT_MAINTENANCE:
+    out<<"LRS limit maintenance";
     break;
   case TC_LITERAL_REWRITE_RULE_INDEX_MAINTENANCE:
     out<<"literal rewrite rule index maintenance";

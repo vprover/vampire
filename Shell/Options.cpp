@@ -80,6 +80,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "backward_demodulation",
   "backward_subsumption",
+  "backward_subsumption_resolution",
   "bdd_marking_subsumption",
 
   "condensation",
@@ -187,6 +188,7 @@ const char* Options::Constants::_shortNames[] = {
   "bd",
   "bms",
   "bs",
+  "bsr",
   "cond",
   "ecs",
   "ep",
@@ -240,6 +242,7 @@ int Options::Constants::shortNameIndexes[] = {
   BACKWARD_DEMODULATION,
   BDD_MARKING_SUBSUMPTION,
   BACKWARD_SUBSUMPTION,
+  BACKWARD_SUBSUMPTION_RESOLUTION,
   CONDENSATION,
   EMPTY_CLAUSE_SUBSUMPTION,
   EQUALITY_PROXY,
@@ -414,6 +417,7 @@ Options::Options ()
 
   _backwardDemodulation(DEMODULATION_ALL),
   _backwardSubsumption(true),
+  _backwardSubsumptionResolution(false),
   _bddMarkingSubsumption(false),
 
   _condensation(CONDENSATION_OFF),
@@ -576,6 +580,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case BACKWARD_SUBSUMPTION:
       _backwardSubsumption = onOffToBool(value,name);
+      return;
+    case BACKWARD_SUBSUMPTION_RESOLUTION:
+      _backwardSubsumptionResolution = onOffToBool(value,name);
       return;
     case BDD_MARKING_SUBSUMPTION:
       _bddMarkingSubsumption = onOffToBool(value,name);
@@ -1141,6 +1148,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case BACKWARD_SUBSUMPTION:
     str << boolToOnOff(_backwardSubsumption);
+    return;
+  case BACKWARD_SUBSUMPTION_RESOLUTION:
+    str << boolToOnOff(_backwardSubsumptionResolution);
     return;
   case BDD_MARKING_SUBSUMPTION:
     str << boolToOnOff(_bddMarkingSubsumption);

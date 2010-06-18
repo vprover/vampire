@@ -47,6 +47,7 @@ Statistics::Statistics()
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
+    backwardSubsumptionResolution(0),
     forwardDemodulations(0),
     forwardDemodulationsToEqTaut(0),
     backwardDemodulations(0),
@@ -157,6 +158,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
+  COND_OUT("Bw subsumption resolutions", backwardSubsumptionResolution);
   COND_OUT("Fw demodulations", forwardDemodulations);
   COND_OUT("Bw demodulations", backwardDemodulations);
   COND_OUT("Fw literal rewrites", forwardLiteralRewrites);

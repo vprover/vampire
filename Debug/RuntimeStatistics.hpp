@@ -22,6 +22,7 @@ collected nor output.
 /**
 Defined macros:
 RSTAT_CTR_INC(ctr) -- Increases counter named ctr by one
+RSTAT_CTR_INC_MANY(ctr,num) -- Increases counter named ctr by @b num
 RSTAT_MCTR_INC(ctr, index) -- Increases counter ctr[index] by one. index must be non-negative integer.
 RSTAT_MST_INC(stat, index, val) -- Collects integer values @b val in classes @b index to output some simple statistics in the end.
 RSTAT_PRINT(stream) -- Outputs current values of counters into stream (typically std::cout)
@@ -104,6 +105,7 @@ public:
 
   void print(ostream& out) { out << name() << ": " << _counter << endl; }
   void inc() { _counter++; }
+  void inc(size_t num) { _counter+=num; }
 private:
   size_t _counter;
 };
@@ -170,6 +172,7 @@ private:
 #define RSTAT_AUX_NAME RSTAT_AUX_NAME_(__LINE__)
 
 #define RSTAT_CTR_INC(stat) if(RSTAT_COLLECTION) { static Debug::RSCounter* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSCounter>(stat); RSTAT_AUX_NAME->inc(); }
+#define RSTAT_CTR_INC_MANY(stat,num) if(RSTAT_COLLECTION) { static Debug::RSCounter* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSCounter>(stat); RSTAT_AUX_NAME->inc(num); }
 #define RSTAT_MCTR_INC(stat, index) if(RSTAT_COLLECTION) { static Debug::RSMultiCounter* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSMultiCounter>(stat); RSTAT_AUX_NAME->inc(index); }
 #define RSTAT_MST_INC(stat, index, val) if(RSTAT_COLLECTION) { static Debug::RSMultiStatistic* RSTAT_AUX_NAME = Debug::RuntimeStatistics::instance()->get<Debug::RSMultiStatistic>(stat); RSTAT_AUX_NAME->addRecord(index, val); }
 
@@ -181,6 +184,7 @@ private:
 #else // RUNTIME_STATS
 
 #define RSTAT_CTR_INC(stat)
+#define RSTAT_CTR_INC_MANY(stat,num)
 #define RSTAT_MCTR_INC(stat, index)
 #define RSTAT_MST_INC(stat, index, val)
 

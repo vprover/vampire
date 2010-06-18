@@ -148,6 +148,7 @@ VI_OBJ = Indexing/ArithmeticIndex.o\
          Indexing/TermSubstitutionTree.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
+         Inferences/BackwardSubsumptionResolution.o\
          Inferences/BDDMarkingSubsumption.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\

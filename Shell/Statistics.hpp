@@ -81,6 +81,8 @@ public:
   unsigned trivialInequalities;
   /** number of forward subsumption resolutions */
   unsigned forwardSubsumptionResolution;
+  /** number of backward subsumption resolutions */
+  unsigned backwardSubsumptionResolution;
   /** number of forward demodulations */
   unsigned forwardDemodulations;
   /** number of forward demodulations into equational tautologies */

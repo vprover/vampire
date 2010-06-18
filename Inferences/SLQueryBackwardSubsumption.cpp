@@ -6,16 +6,11 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/Array.hpp"
-#include "Lib/Comparison.hpp"
 #include "Lib/DArray.hpp"
-#include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/TimeCounter.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -33,6 +28,9 @@
 #include "Shell/Statistics.hpp"
 
 #include "SLQueryBackwardSubsumption.hpp"
+
+#undef RSTAT_COLLECTION
+#define RSTAT_COLLECTION 1
 
 namespace Inferences
 {
@@ -59,7 +57,7 @@ void SLQueryBackwardSubsumption::detach()
   BackwardSimplificationEngine::detach();
 }
 
-struct ClauseExtractorFn
+struct SLQueryBackwardSubsumption::ClauseExtractorFn
 {
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(const SLQueryResult& res)
@@ -68,7 +66,7 @@ struct ClauseExtractorFn
   }
 };
 
-struct ClauseToBwSimplRecordFn
+struct SLQueryBackwardSubsumption::ClauseToBwSimplRecordFn
 {
   DECL_RETURN_TYPE(BwSimplificationRecord);
   OWN_RETURN_TYPE operator()(Clause* cl)
@@ -118,6 +116,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     simplifications=pvi( getMappingIterator(
 	    subsumedClauses, ClauseToBwSimplRecordFn()) );
     env.statistics->backwardSubsumed+=subsumedCnt;
+    RSTAT_CTR_INC_MANY("bs0 unit performed",subsumedCnt);
     return;
   }
 
@@ -148,20 +147,19 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
   SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
   while(rit.hasNext()) {
-    SLQueryResult res=rit.next();
-    Clause* icl=res.clause;
-    Literal* ilit=res.literal;
+    SLQueryResult qr=rit.next();
+    Clause* icl=qr.clause;
+    Literal* ilit=qr.literal;
     unsigned ilen=icl->length();
     if(ilen<clen || icl==cl) {
       continue;
     }
 
-    if(checkedClauses.contains(icl)) {
+    if(!checkedClauses.insert(icl)) {
       continue;
     }
-    checkedClauses.insert(icl);
 
-    RSTAT_CTR_INC("bs candidates");
+    RSTAT_CTR_INC("bs1 0 candidates");
 
     LOGV(*icl);
 
@@ -195,7 +193,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     if(!haveMustPred) {
       continue;
     }
-    RSTAT_CTR_INC("bs mustPred survivors");
+    RSTAT_CTR_INC("bs1 1 mustPred survivors");
 
     //here we check that for every literal header in the base clause
     //there is a literal with the same header in the instance
@@ -232,14 +230,14 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
       continue;
     }
 
-    RSTAT_CTR_INC("bs survived");
+    RSTAT_CTR_INC("bs1 2 survived");
 
 
 
-    LiteralList::push(res.literal, matchedLits[lmIndex]);
+    LiteralList::push(qr.literal, matchedLits[lmIndex]);
     for(unsigned bi=0;bi<clen;bi++) {
       for(unsigned ii=0;ii<ilen;ii++) {
-	if(bi==lmIndex && (*icl)[ii]==res.literal) {
+	if(bi==lmIndex && (*icl)[ii]==qr.literal) {
 	  continue;
 	}
 	if(MatchingUtils::match((*cl)[bi],(*icl)[ii],false)) {
@@ -251,9 +249,11 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
       }
     }
 
+    RSTAT_CTR_INC("bs1 3 final check");
     if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),0)) {
       ClauseList::push(icl, subsumed);
       env.statistics->backwardSubsumed++;
+      RSTAT_CTR_INC("bs1 4 performed");
     }
 
   match_fail:

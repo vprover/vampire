@@ -30,6 +30,7 @@ public:
 
     BACKWARD_DEMODULATION,
     BACKWARD_SUBSUMPTION,
+    BACKWARD_SUBSUMPTION_RESOLUTION,
     BDD_MARKING_SUBSUMPTION,
 
     CONDENSATION,
@@ -308,6 +309,7 @@ public:
   void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   bool backwardSubsumption() const { return _backwardSubsumption; }
   void setBackwardSubsumption(bool newVal) { _backwardSubsumption = newVal; }
+  bool backwardSubsumptionResolution() const { return _backwardSubsumptionResolution; }
   bool forwardSubsumption() const { return _forwardSubsumption; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck; }
@@ -399,6 +401,7 @@ private:
 
   Demodulation _backwardDemodulation;
   bool _backwardSubsumption;
+  bool _backwardSubsumptionResolution;
   bool _bddMarkingSubsumption;
 
   Condensation _condensation;

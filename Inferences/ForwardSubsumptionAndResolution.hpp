@@ -27,6 +27,8 @@ public:
   void attach(SaturationAlgorithm* salg);
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
+
+  static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
 private:
   UnitClauseSimplifyingLiteralIndex* _unitIndex;
   FwSubsSimplifyingLiteralIndex* _fwIndex;
