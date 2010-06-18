@@ -30,6 +30,7 @@ public:
   {
     _boundVars.reset();
     _bindings.reset();
+    _derefBindings.reset();
   }
 
   CLASS_NAME("SubstitutionTree::InstMatcher");
@@ -83,7 +84,7 @@ public:
   void bindSpecialVar(unsigned var, TermList term)
   {
     CALL("SubstitutionTree::InstMatcher::bindSpecialVar");
-    LOG("###spec var init bound: "<<var<<"  t: "<<term.toString());
+//    LOG("###spec var init bound: "<<var<<"  t: "<<term.toString());
     ASS_EQ(getBSCnt(), 0);
 
     ALWAYS(_bindings.insert(TermList(var,true),TermSpec(true,term)));
@@ -111,7 +112,7 @@ public:
 
   void backtrack();
   bool tryBacktrack();
-  ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
+  ResultSubstitutionSP getSubstitution(Renaming* resultDenormalizer);
 
   int getBSCnt()
   {
@@ -123,6 +124,11 @@ public:
       }
     }
     return res;
+  }
+
+  void onLeafEntered()
+  {
+    _derefBindings.reset();
   }
 
 private:
@@ -161,80 +167,44 @@ private:
   /**
    * A cache for bindings of variables to result terms
    *
-   * The map is reset in each leaf we enter
+   * The map is reset whenever we enter a new leaf
    */
   DHMap<TermList,TermList> _derefBindings;
 
-};
-
-
-class SubstitutionTree::InstMatcher::Substitution
-: public ResultSubstitution
-{
-public:
-  Substitution(InstMatcher* parent, Renaming* resultNormalizer)
-  : _parent(parent), _resultNormalizer(resultNormalizer)
-//  ,_applicator(0)
-  {}
-  ~Substitution()
+  struct DerefTask
   {
-//    if(_applicator) {
-//      delete _applicator;
-//    }
-  }
+    DerefTask(TermList var) : var(var) { trm.t.makeEmpty(); }
+    DerefTask(TermList var, TermSpec trm) : var(var), trm(trm) {}
+    TermList var;
+    TermSpec trm;
+    bool buildDerefTerm() { return trm.t.isNonEmpty(); };
+  };
 
-//  TermList applyToBoundQuery(TermList t)
-//  { return SubstHelper::apply(t, *getApplicator()); }
-
-  bool isIdentityOnResultWhenQueryBound() { return true; }
-private:
-//  Applicator* getApplicator()
-//  {
-//    if(!_applicator) {
-//      _applicator=new Applicator(_parent, _resultNormalizer);
-//    }
-//    return _applicator;
-//  }
-
-  InstMatcher* _parent;
-  Renaming* _resultNormalizer;
-//  Applicator* _applicator;
-};
-
-TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
-{
-  CALL("SubstitutionTree::InstMatcher::derefQueryBinding");
-
-  TermList tvar(var, false);
-
-  TermSpec varBinding;
+  struct DerefApplicator
   {
-    TermList* pval;
-    if(!_derefBindings.getValuePtr(tvar, pval)) {
-      return *pval;
+    DerefApplicator(InstMatcher* im, bool query) : query(query), im(im) {}
+    TermList apply(unsigned var)
+    {
+      CALL("SubstitutionTree::InstMatcher::DerefApplicator::apply");
+      if(query) {
+	return im->_derefBindings.get(TermList(var, false));
+      }
+      else {
+	return TermList(var, false);
+      }
     }
-    //only bound values can be passed to this function
-    ALWAYS(_bindings.find(tvar, varBinding));
+    TermList applyToSpecVar(unsigned specVar)
+    {
+      CALL("SubstitutionTree::InstMatcher::DerefApplicator::applyToSpecVar");
+      ASS(!query);
 
-    if(varBinding.isFinal()) {
-      *pval=varBinding.t;
-      return varBinding.t;
+      return im->_derefBindings.get(TermList(specVar, true));
     }
-  }
-
-  while(!varBinding.isFinal() && !varBinding.t.isTerm()) {
-    ASS(varBinding.t.isVar());
-    ASS(!varBinding.q || !varBinding.t.isOrdinaryVar());
-
-    TermList bvar=varBinding.t;
-    ALWAYS(_bindings.find(bvar,varBinding));
-  }
-  if(varBinding.isFinal()) {
-    _derefBindings.insert(tvar, varBinding.t);
-    return varBinding.t;
-  }
-  NOT_IMPLEMENTED;
-}
+  private:
+    bool query;
+    InstMatcher* im;
+  };
+};
 
 std::ostream& operator<< (ostream& out, SubstitutionTree::InstMatcher::TermSpec ts )
 {
@@ -242,6 +212,144 @@ std::ostream& operator<< (ostream& out, SubstitutionTree::InstMatcher::TermSpec 
 
   out<<ts.toString();
   return out;
+}
+
+
+class SubstitutionTree::InstMatcher::Substitution
+: public ResultSubstitution
+{
+public:
+  Substitution(InstMatcher* parent, Renaming* resultDenormalizer)
+  : _parent(parent), _resultDenormalizer(resultDenormalizer)
+  {}
+  ~Substitution()
+  {
+  }
+
+  TermList applyToBoundQuery(TermList t)
+  {
+    CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
+
+    if(_parent->_bindings.find(TermList(23,false))) {
+      LOGV(_parent->_bindings.get(TermList(23,false)).q);
+      LOGV(_parent->_bindings.get(TermList(23,false)).t);
+      if(_parent->_derefBindings.find(TermList(23,false))) {
+	LOGV(_parent->_derefBindings.get(TermList(23,false)));
+      }
+    }
+    return SubstHelper::apply(t, *this);
+  }
+
+  TermList apply(unsigned var)
+  {
+    CALL("SubstitutionTree::InstMatcher::Substitution::apply");
+
+    TermList normalized=_parent->derefQueryBinding(var);
+    ASS_REP(!normalized.isTerm() || normalized.term()->shared(), normalized);
+    return _resultDenormalizer->apply(normalized);
+  }
+
+  bool isIdentityOnResultWhenQueryBound() { return true; }
+private:
+  InstMatcher* _parent;
+  Renaming* _resultDenormalizer;
+};
+
+
+ResultSubstitutionSP SubstitutionTree::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
+{
+  CALL("SubstitutionTree::InstMatcher::getSubstitution");
+
+  return ResultSubstitutionSP(
+	  new Substitution(this, resultDenormalizer));
+}
+
+TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
+{
+  CALL("SubstitutionTree::InstMatcher::derefQueryBinding");
+
+  LOGV(_derefBindings.size());
+
+  TermList tvar0(var, false);
+  TermList tvar=tvar0;
+
+  TermSpec varBinding;
+  {
+    TermList val;
+    if(_derefBindings.find(tvar, val)) {
+      return val;
+    }
+    //only bound values can be passed to this function
+    ALWAYS(_bindings.find(tvar, varBinding));
+
+    if(varBinding.isFinal()) {
+      LOG("inserted final binding v: "<<tvar<<"  term: "<<varBinding.t);
+      ALWAYS(_derefBindings.insert(tvar, varBinding.t));
+      return varBinding.t;
+    }
+  }
+  LOGV(var);
+  LOGV(varBinding);
+  static Stack<DerefTask> toDo;
+  toDo.reset();
+
+  for(;;) {
+    while(!varBinding.isFinal() && !varBinding.t.isTerm()) {
+      ASS(varBinding.t.isVar());
+      ASS(!varBinding.q || !varBinding.t.isOrdinaryVar());
+
+
+      TermList bvar=varBinding.t;
+      TermList derefBoundTerm;
+
+      if(_derefBindings.find(bvar, derefBoundTerm)) {
+	LOG("inserted referenced v: "<<tvar<<"  term: "<<varBinding.t);
+	ALWAYS(_derefBindings.insert(tvar, derefBoundTerm));
+      }
+
+      ALWAYS(_bindings.find(bvar,varBinding));
+    }
+    if(varBinding.isFinal()) {
+      LOG("inserted final v: "<<tvar<<"  term: "<<varBinding.t);
+      ALWAYS(_derefBindings.insert(tvar, varBinding.t));
+      goto next_loop;
+    }
+    {
+      ASS(varBinding.t.isTerm());
+      toDo.push(DerefTask(tvar, varBinding));
+      LOGV(tvar);
+      LOGV(varBinding);
+      VariableIterator vit(varBinding.t);
+      while(vit.hasNext()) {
+	TermList btv=vit.next(); //bound term variable
+	if(varBinding.q || btv.isSpecialVar()) {
+	  LOGV(btv);
+	  ASS(_bindings.find(btv));
+	  if(!_derefBindings.find(btv)) {
+	    LOG("pushed");
+	    toDo.push(DerefTask(btv));
+	  }
+	}
+      }
+    }
+    next_loop:
+    while(toDo.isNonEmpty() && toDo.top().buildDerefTerm()) {
+      tvar=toDo.top().var;
+      TermSpec tspec=toDo.pop().trm;
+      DerefApplicator applicator(this, tspec.q);
+      TermList derefTerm=SubstHelper::applySV(tspec.t, applicator);
+      LOG("built v: "<<tvar<<"  term: "<<derefTerm);
+      ALWAYS(_derefBindings.insert(tvar, derefTerm));
+    }
+    if(toDo.isEmpty()) {
+      break;
+    }
+    tvar=toDo.pop().var;
+    LOG("next loop with "<<tvar);
+    ALWAYS(_bindings.find(tvar, varBinding));
+  };
+  LOGV(_derefBindings.get(tvar0));
+  return _derefBindings.get(tvar0);
 }
 
 SubstitutionTree::InstMatcher::TermSpec SubstitutionTree::InstMatcher::deref(TermList var)
@@ -269,6 +377,8 @@ SubstitutionTree::InstMatcher::TermSpec SubstitutionTree::InstMatcher::deref(Ter
   }
 }
 
+#undef LOGGING
+#define LOGGING 0
 
 /**
  * Undo one call to the @b matchNext method with separate param
@@ -511,7 +621,7 @@ void SubstitutionTree::FastInstancesIterator::createInitialBindings(Term* t)
 }
 
 /**
- * For a binary comutative query literal, create initial bindings,
+ * For a binary comutative query literal, create the initial binding
  * where the order of special variables is reversed.
  */
 void SubstitutionTree::FastInstancesIterator::createReversedInitialBindings(Term* t)
@@ -533,6 +643,9 @@ bool SubstitutionTree::FastInstancesIterator::hasNext()
   return _ldIterator.hasNext();
 }
 
+#undef LOGGING
+#define LOGGING 0
+
 SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
 {
   CALL("SubstitutionTree::FastInstancesIterator::next");
@@ -542,29 +655,37 @@ SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
   LeafData& ld=_ldIterator.next();
 
   if(_retrieveSubstitution) {
-    NOT_IMPLEMENTED;
-    _resultNormalizer.reset();
-    if(_literalRetrieval) {
-      _resultNormalizer.normalizeVariables(ld.literal);
-    } else {
-      _resultNormalizer.normalizeVariables(ld.term);
+    LOG(ld.term);
+    _resultDenormalizer.reset();
+    bool ground=_literalRetrieval
+	? ld.literal->ground()
+	: (ld.term.isTerm() && ld.term.term()->ground());
+    if(!ground) {
+      Renaming normalizer;
+      if(_literalRetrieval) {
+	normalizer.normalizeVariables(ld.literal);
+      } else {
+	normalizer.normalizeVariables(ld.term);
+      }
+      _resultDenormalizer.makeInverse(normalizer);
     }
 
     return QueryResult(&ld,
-	    _subst->getSubstitution(&_resultNormalizer));
+	    _subst->getSubstitution(&_resultDenormalizer));
   } else {
     return QueryResult(&ld, ResultSubstitutionSP());
   }
 }
+#undef LOGGING
+#define LOGGING 0
 
 /**
- * Find next leaf, that contains instances of the query
+ * Find next leaf that contains instances of the query
  * term. If there is no such, return false.
  */
 bool SubstitutionTree::FastInstancesIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::FastInstancesIterator::findNextLeaf");
-  LOG("findNextLeaf");
 
   Node* curr;
   bool sibilingsRemain;
@@ -581,7 +702,6 @@ bool SubstitutionTree::FastInstancesIterator::findNextLeaf()
       //it means that we're out of leafs.
       return false;
     }
-    LOG("root");
     curr=_root;
     _root=0;
     sibilingsRemain=enterNode(curr);
@@ -654,14 +774,12 @@ main_loop_start:
     }
     if(!_subst->matchNext(currSpecVar, curr->term, sibilingsRemain)) {	//[1]
       //match unsuccessful, try next alternative
-      LOG("match fail");
       curr=0;
       if(!sibilingsRemain && _alternatives.isNonEmpty()) {
 	_subst->backtrack();
       }
       continue;
     }
-    LOG("match ok");
     while(!curr->isLeaf() && curr->algorithm()==UNSORTED_LIST && static_cast<UArrIntermediateNode*>(curr)->_size==1) {
       //a node with only one child, we don't need to bother with backtracking here.
       unsigned specVar=static_cast<UArrIntermediateNode*>(curr)->childVar;
@@ -685,6 +803,7 @@ main_loop_start:
       //we've found a leaf
       _ldIterator=static_cast<Leaf*>(curr)->allChildren();
       _inLeaf=true;
+      _subst->onLeafEntered(); //we reset the bindings cache
       return true;
     }
 
@@ -712,14 +831,11 @@ main_loop_start:
 bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
 {
   CALL("SubstitutionTree::FastInstancesIterator::enterNode");
-  LOG("enterNode");
   ASSERT_VALID(*curr);
   ASS(!curr->isLeaf());
 
   IntermediateNode* inode=static_cast<IntermediateNode*>(curr);
   NodeAlgorithm currType=inode->algorithm();
-
-  LOGV(inode->childVar);
 
   TermList query;
   InstMatcher::TermSpec querySpec;
@@ -764,7 +880,6 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
     if(*nl && !noAlternatives) {
       _alternatives.push(nl);
       _nodeTypes.push(currType);
-      LOG("have alts u");
       return true;
     }
   } else {
@@ -793,7 +908,6 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
     if(nl) {
       _alternatives.push(nl);
       _nodeTypes.push(currType);
-      LOG("have alts s");
       return true;
     }
   }

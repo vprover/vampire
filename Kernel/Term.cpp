@@ -932,7 +932,7 @@ std::ostream& Kernel::operator<< (ostream& out, TermList tl )
   if(tl.isEmpty()) {
     return out<<"<empty TermList>";
   } else if(tl.isVar()) {
-    return out<<Term::variableToString(tl.var());
+    return out<<Term::variableToString(tl);
   } else {
     return out<<tl.term()->toString();
   }

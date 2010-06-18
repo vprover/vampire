@@ -562,7 +562,7 @@ public:
 
     InstMatcher* _subst;
 
-    Renaming _resultNormalizer;
+    Renaming _resultDenormalizer;
     SubstitutionTree* _tree;
     Node* _root;
 

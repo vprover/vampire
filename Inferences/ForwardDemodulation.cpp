@@ -155,6 +155,8 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	      //---------------------
 	      //     t = t1 \/ C
 	      //where t > t1 and s = t > C
+//	      LOGV(*eqLitS);
+//	      LOGV(*cl);
 	      continue;
 	    }
 	  }

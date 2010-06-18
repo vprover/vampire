@@ -9,9 +9,9 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/TimeCounter.hpp"
 
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/Curryfier.hpp"
 
 #include "TermSubstitutionTree.hpp"
 
@@ -144,6 +144,42 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
   } else {
     ASS(t.isTerm());
     return getResultIterator<InstancesIterator>(t.term(), retrieveSubstitutions);
+//#if VDEBUG
+//    TermQueryResultIterator new2=getResultIterator<FastInstancesIterator>(t.term(), retrieveSubstitutions);
+//    TermQueryResultIterator old=getResultIterator<InstancesIterator>(t.term(), retrieveSubstitutions);
+//    if(new2.hasNext()!=old.hasNext()) {
+//      bool badMatch=old.hasNext();
+//
+//      if(!badMatch) {
+//	while(new2.hasNext()) {
+//	  TermList newTrm=new2.next().term;
+//	  if(!MatchingUtils::matchTerms(t, newTrm)) {
+//	    badMatch=true;
+//	    LOGV(newTrm);
+//	  }
+//	}
+//      }
+//      if(badMatch) {
+//	while(old.hasNext()) {
+//	  LOGV(old.next().term);
+//	}
+//        LOGV(t);
+//        LOG("----");
+//        ASSERTION_VIOLATION;
+//      }
+//    }
+//    if(retrieveSubstitutions) {
+//      while(new2.hasNext()) {
+//	TermQueryResult nr=new2.next();
+//	TermList nsubs=nr.substitution->applyToBoundQuery(t);
+//	if(nsubs!=nr.term) {
+//	  LOGV(t);
+//	}
+//	ASS_EQ(nsubs, nr.term);
+//      }
+//    }
+//#endif
+//    return getResultIterator<FastInstancesIterator>(t.term(), retrieveSubstitutions);
   }
 }
 

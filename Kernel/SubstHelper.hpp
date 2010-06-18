@@ -269,7 +269,17 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       ASS(!noSharing);
       result=Literal::create(static_cast<Literal*>(trm),argLst);
     } else {
-      if(noSharing || !trm->shared()) {
+      bool shouldShare=!noSharing && trm->shared();
+      if(!noSharing && !trm->shared()) {
+	shouldShare=true;
+	for(unsigned i=0;i<trm->arity();i++) {
+	  if(argLst[i].isSpecialVar()||(argLst[i].isTerm()&&!argLst[i].term()->shared())) {
+	    shouldShare=false;
+	    break;
+	  }
+	}
+      }
+      if(!shouldShare) {
 	result=Term::createNonShared(trm,argLst);
       } else {
 	result=Term::create(trm,argLst);

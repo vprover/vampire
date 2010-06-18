@@ -113,7 +113,7 @@ struct BackwardDemodulation::ResultFn
     TermList lhsS=qr.term;
     TermList rhsS;
 
-//    if(!qr.substitution->isIdentityOnResult()) {
+    if(!qr.substitution->isIdentityOnResultWhenQueryBound()) {
       //When we apply substitution to the rhs, we get a term, that is
       //a variant of the term we'd like to get, as new variables are
       //produced in the substitution application.
@@ -127,9 +127,9 @@ struct BackwardDemodulation::ResultFn
       qDenorm.makeInverse(qNorm);
       ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
       rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-//    } else {
-//      rhsS=qr.substitution->applyToQuery(rhs);
-//    }
+    } else {
+      rhsS=qr.substitution->applyToBoundQuery(rhs);
+    }
 
     static Ordering* ordering=0;
     if(!ordering) {
