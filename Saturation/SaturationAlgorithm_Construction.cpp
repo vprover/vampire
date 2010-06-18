@@ -174,11 +174,13 @@ void addBSEs(SaturationAlgorithm* alg)
 #endif
   }
 
-  if(env.options->backwardSubsumption()) {
-    alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption()));
+  if(env.options->backwardSubsumption()!=Options::SUBSUMPTION_OFF) {
+    bool byUnitsOnly=env.options->backwardSubsumption()==Options::SUBSUMPTION_UNIT_ONLY;
+    alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption(byUnitsOnly)));
   }
-  if(env.options->backwardSubsumptionResolution()) {
-    alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardSubsumptionResolution()));
+  if(env.options->backwardSubsumptionResolution()!=Options::SUBSUMPTION_OFF) {
+    bool byUnitsOnly=env.options->backwardSubsumptionResolution()==Options::SUBSUMPTION_UNIT_ONLY;
+    alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardSubsumptionResolution(byUnitsOnly)));
   }
 }
 

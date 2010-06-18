@@ -89,6 +89,8 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   //(which cannot generally be done when iterators are involved)
   TimeCounter tc(TC_BACKWARD_SUBSUMPTION);
 
+  simplifications=BwSimplificationRecordIterator::getEmpty();
+
   unsigned clen=cl->length();
 
   if(clen==0) {
@@ -117,6 +119,10 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 	    subsumedClauses, ClauseToBwSimplRecordFn()) );
     env.statistics->backwardSubsumed+=subsumedCnt;
     RSTAT_CTR_INC_MANY("bs0 unit performed",subsumedCnt);
+    return;
+  }
+
+  if(_byUnitsOnly) {
     return;
   }
 
@@ -268,8 +274,6 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     simplifications=getPersistentIterator(
 	    getMappingIterator(ClauseList::Iterator(subsumed), ClauseToBwSimplRecordFn()));
     subsumed->destroy();
-  } else {
-    simplifications=BwSimplificationRecordIterator::getEmpty();
   }
   return;
 }

@@ -17,6 +17,8 @@ class SLQueryBackwardSubsumption
 : public BackwardSimplificationEngine
 {
 public:
+  SLQueryBackwardSubsumption(bool byUnitsOnly) : _byUnitsOnly(byUnitsOnly) {}
+
   void attach(SaturationAlgorithm* salg);
   void detach();
 
@@ -25,6 +27,7 @@ private:
   struct ClauseExtractorFn;
   struct ClauseToBwSimplRecordFn;
 
+  bool _byUnitsOnly;
   SimplifyingLiteralIndex* _index;
 };
 

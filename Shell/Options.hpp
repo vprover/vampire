@@ -225,6 +225,12 @@ public:
     DEMODULATION_PREORDERED = 2
   };
 
+  enum Subsumption {
+    SUBSUMPTION_OFF = 0,
+    SUBSUMPTION_ON = 1,
+    SUBSUMPTION_UNIT_ONLY = 2
+  };
+
   enum SymbolPrecedence {
     BY_ARITY = 0,
     BY_OCCURRENCE = 1,
@@ -307,9 +313,9 @@ public:
   void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation; }
   void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
-  bool backwardSubsumption() const { return _backwardSubsumption; }
-  void setBackwardSubsumption(bool newVal) { _backwardSubsumption = newVal; }
-  bool backwardSubsumptionResolution() const { return _backwardSubsumptionResolution; }
+  Subsumption backwardSubsumption() const { return _backwardSubsumption; }
+  void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
+  Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution; }
   bool forwardSubsumption() const { return _forwardSubsumption; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck; }
@@ -400,8 +406,8 @@ private:
   bool _arityCheck;
 
   Demodulation _backwardDemodulation;
-  bool _backwardSubsumption;
-  bool _backwardSubsumptionResolution;
+  Subsumption _backwardSubsumption;
+  Subsumption _backwardSubsumptionResolution;
   bool _bddMarkingSubsumption;
 
   Condensation _condensation;

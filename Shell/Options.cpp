@@ -38,6 +38,7 @@ public:
   static const char* _statisticsValues[];
   static const char* _condensationValues[];
   static const char* _demodulationValues[];
+  static const char* _subsumptionValues[];
   static const char* _splittingModeValues[];
   static const char* _fdeValues[];
   static const char* _lcmValues[];
@@ -58,6 +59,7 @@ public:
   static NameArray statisticsValues;
   static NameArray condensationValues;
   static NameArray demodulationValues;
+  static NameArray subsumptionValues;
   static NameArray splittingModeValues;
   static NameArray fdeValues;
   static NameArray lcmValues;
@@ -308,6 +310,13 @@ const char* Options::Constants::_demodulationValues[] = {
 NameArray Options::Constants::demodulationValues(_demodulationValues,
 						 sizeof(_demodulationValues)/sizeof(char*));
 
+const char* Options::Constants::_subsumptionValues[] = {
+  "off",
+  "on",
+  "unit_only"};
+NameArray Options::Constants::subsumptionValues(_subsumptionValues,
+						 sizeof(_subsumptionValues)/sizeof(char*));
+
 const char* Options::Constants::_splittingModeValues[] = {
   "backtracking",
   "nobacktracking",
@@ -416,8 +425,8 @@ Options::Options ()
   _arityCheck(false),
 
   _backwardDemodulation(DEMODULATION_ALL),
-  _backwardSubsumption(true),
-  _backwardSubsumptionResolution(false),
+  _backwardSubsumption(SUBSUMPTION_ON),
+  _backwardSubsumptionResolution(SUBSUMPTION_OFF),
   _bddMarkingSubsumption(false),
 
   _condensation(CONDENSATION_OFF),
@@ -579,10 +588,10 @@ void Options::set (const char* name,const char* value, int index)
       _backwardDemodulation = (Demodulation)Constants::demodulationValues.find(value);
       return;
     case BACKWARD_SUBSUMPTION:
-      _backwardSubsumption = onOffToBool(value,name);
+      _backwardSubsumption = (Subsumption)Constants::subsumptionValues.find(value);
       return;
     case BACKWARD_SUBSUMPTION_RESOLUTION:
-      _backwardSubsumptionResolution = onOffToBool(value,name);
+      _backwardSubsumptionResolution = (Subsumption)Constants::subsumptionValues.find(value);
       return;
     case BDD_MARKING_SUBSUMPTION:
       _bddMarkingSubsumption = onOffToBool(value,name);
@@ -1147,10 +1156,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << Constants::demodulationValues[_backwardDemodulation];
     return;
   case BACKWARD_SUBSUMPTION:
-    str << boolToOnOff(_backwardSubsumption);
+    str << Constants::subsumptionValues[_backwardSubsumption];
     return;
   case BACKWARD_SUBSUMPTION_RESOLUTION:
-    str << boolToOnOff(_backwardSubsumptionResolution);
+    str << Constants::subsumptionValues[_backwardSubsumptionResolution];
     return;
   case BDD_MARKING_SUBSUMPTION:
     str << boolToOnOff(_bddMarkingSubsumption);

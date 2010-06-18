@@ -128,6 +128,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     }
     return;
   }
+  if(_byUnitsOnly) {
+    return;
+  }
 
   unsigned lmIndex=0; //least matchable literal index
   unsigned lmVal=(*cl)[0]->weight();
@@ -145,8 +148,6 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   static DArray<LiteralList*> matchedLits(32);
   matchedLits.init(clen, 0);
-
-  ClauseList* subsumed=0;
 
   bool mustPredInit=false;
   unsigned mustPred;
@@ -174,13 +175,13 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     //here we pick one literal header of the base clause and make sure that
     //every instance clause has it
     if(!mustPredInit) {
-      mustPred=lmPred;
+      mustPred=lmHeader;
       for(unsigned bi=0;bi<clen;bi++) {
 	if(bi==lmIndex) {
 	  continue;
 	}
         unsigned pred=(*cl)[bi]->header();
-        if(pred!=lmPred && (mustPred==lmPred || pred>mustPred)) {
+        if(pred!=lmHeader && (mustPred==lmHeader || pred>mustPred)) {
           mustPred=pred;
         }
       }
