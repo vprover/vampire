@@ -230,13 +230,6 @@ public:
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
 
-    if(_parent->_bindings.find(TermList(23,false))) {
-      LOGV(_parent->_bindings.get(TermList(23,false)).q);
-      LOGV(_parent->_bindings.get(TermList(23,false)).t);
-      if(_parent->_derefBindings.find(TermList(23,false))) {
-	LOGV(_parent->_derefBindings.get(TermList(23,false)));
-      }
-    }
     return SubstHelper::apply(t, *this);
   }
 
@@ -339,6 +332,7 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
       DerefApplicator applicator(this, tspec.q);
       TermList derefTerm=SubstHelper::applySV(tspec.t, applicator);
       LOG("built v: "<<tvar<<"  term: "<<derefTerm);
+      ASS_REP(!derefTerm.isTerm() || derefTerm.term()->shared(), derefTerm);
       ALWAYS(_derefBindings.insert(tvar, derefTerm));
     }
     if(toDo.isEmpty()) {

@@ -108,6 +108,24 @@ private:
   template<bool ProcessSpecVars, class Applicator>
   static TermList applyImpl(TermList t, Applicator& applicator, bool noSharing=false);
 
+  /**
+   * Return true iff the @b terms array does not contain any term that cannot be shared
+   *
+   * Non-shareable is a non-shared proper term or a special variable.
+   */
+  static bool canBeShared(TermList * terms, size_t len)
+  {
+    CALL("SubstHelper::anyNonShareable");
+
+    for(unsigned i=0;i<len;i++) {
+      TermList trm=terms[i];
+      if(trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
+	return false;
+      }
+    }
+    return true;
+  }
+
 };
 
 namespace SubstHelper_Aux
@@ -210,11 +228,14 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       //&top()-2, etc...
       TermList* argLst=&args->top() - (orig->arity()-1);
 
+      bool shouldShare=!noSharing && (orig->shared() || canBeShared(argLst, orig->arity()));
+
       Term* newTrm;
-      if(noSharing || !orig->shared()) {
-	newTrm=Term::createNonShared(orig,argLst);
-      } else {
+      if(shouldShare) {
 	newTrm=Term::create(orig,argLst);
+      }
+      else {
+	newTrm=Term::createNonShared(orig,argLst);
       }
       args->truncate(args->length() - orig->arity());
       args->push(TermList(newTrm));
@@ -268,21 +289,13 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     if(trm->isLiteral()) {
       ASS(!noSharing);
       result=Literal::create(static_cast<Literal*>(trm),argLst);
-    } else {
-      bool shouldShare=!noSharing && trm->shared();
-      if(!noSharing && !trm->shared()) {
-	shouldShare=true;
-	for(unsigned i=0;i<trm->arity();i++) {
-	  if(argLst[i].isSpecialVar()||(argLst[i].isTerm()&&!argLst[i].term()->shared())) {
-	    shouldShare=false;
-	    break;
-	  }
-	}
-      }
-      if(!shouldShare) {
-	result=Term::createNonShared(trm,argLst);
-      } else {
+    }
+    else {
+      bool shouldShare=!noSharing && (trm->shared() || canBeShared(argLst, trm->arity()));
+      if(shouldShare) {
 	result=Term::create(trm,argLst);
+      } else {
+	result=Term::createNonShared(trm,argLst);
       }
     }
   }
