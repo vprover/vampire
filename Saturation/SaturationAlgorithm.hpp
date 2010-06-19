@@ -80,6 +80,11 @@ public:
 
   static SaturationAlgorithmSP createFromOptions();
 
+  /**
+   * If the saturation algorithm run is in progress, return pointer
+   * to the object; otherwise return zero.
+   */
+  static SaturationAlgorithm* tryGetInstance() { return s_instance; }
 protected:
   void doUnprocessedLoop();
   virtual void handleUnsuccessfulActivation(Clause* c);
@@ -143,11 +148,15 @@ private:
 
   Clause* doImmediateSimplification(Clause* cl);
 
+  SaturationResult saturateImpl();
+
   Limits _limits;
   IndexManager _imgr;
 
   class TotalSimplificationPerformer;
   class PartialSimplificationPerformer;
+
+  static SaturationAlgorithm* s_instance;
 protected:
 
   int _startTime;

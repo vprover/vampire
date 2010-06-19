@@ -1001,6 +1001,7 @@ bool Options::setSelection(int sel)
   case 3:
   case 4:
   case 10:
+  case 11:
   case 1002:
   case 1003:
   case 1004:
@@ -1010,6 +1011,7 @@ bool Options::setSelection(int sel)
   case -3:
   case -4:
   case -10:
+  case -11:
   case -1002:
   case -1003:
   case -1004:

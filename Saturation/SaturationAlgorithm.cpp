@@ -50,6 +50,8 @@ using namespace Saturation;
 #define REPORT_BW_SIMPL 0
 
 
+SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
+
 /**
  * A struct that is thrown as an exception when a refutation is found
  * during the saturation process.
@@ -1374,7 +1376,6 @@ bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
   return true;
 }
 
-
 /**
  * Perform saturation on clauses that were added through
  * @b addInputClauses function
@@ -1382,6 +1383,23 @@ bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
 SaturationResult SaturationAlgorithm::saturate()
 {
   CALL("SaturationAlgorithm::saturate");
+  ASS_EQ(s_instance, 0);
+
+  s_instance=this;
+
+  SaturationResult res=saturateImpl();
+
+  s_instance=0;
+
+  return res;
+}
+
+/**
+ * Private implementation function for the @b saturate function
+ */
+SaturationResult SaturationAlgorithm::saturateImpl()
+{
+  CALL("SaturationAlgorithm::saturateImpl");
 
   _sharing.init(this);
   if(_splitter) {

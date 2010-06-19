@@ -135,6 +135,7 @@ public:
     if(_core) {
       _core->_refCnt--;
       if(_core->_refCnt) {
+	_core=0;
 	return false;
       }
       else {

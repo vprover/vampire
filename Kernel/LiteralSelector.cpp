@@ -16,6 +16,7 @@
 
 #include "MaximalLiteralSelector.hpp"
 #include "BestLiteralSelector.hpp"
+#include "LookaheadLiteralSelector.hpp"
 
 #include "LiteralComparators.hpp"
 
@@ -100,8 +101,9 @@ LiteralSelector* LiteralSelector::getSelector(int num)
   case 2: return new CompleteBestLiteralSelector<Comparator2>();
   case 3: return new CompleteBestLiteralSelector<Comparator3>();
   case 4: return new CompleteBestLiteralSelector<Comparator4>();
-
   case 10: return new CompleteBestLiteralSelector<Comparator10>();
+
+  case 11: return new LookaheadLiteralSelector();
 
   case 1002: return new BestLiteralSelector<Comparator2>();
   case 1003: return new BestLiteralSelector<Comparator3>();

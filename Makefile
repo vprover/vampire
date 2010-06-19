@@ -104,6 +104,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/KBO.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
+        Kernel/LookaheadLiteralSelector.o\
         Kernel/MatchTag.o\
         Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\
