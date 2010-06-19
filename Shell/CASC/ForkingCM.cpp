@@ -117,6 +117,7 @@ void ForkingCM::childRun(Options& opt)
 {
   CALL("ForkingCM::childRun");
 
+  UIHelper::cascModeChild=true;
   int resultValue=1;
   env.timer->reset();
   env.timer->start();

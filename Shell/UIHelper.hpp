@@ -32,11 +32,15 @@ public:
   static bool haveConjecture() { return s_haveConjecture; }
 
   /**
-   * True if we are running in a CASC mode
+   * True if we are running in the CASC mode
    *
    * CASC mode means that we will output messages also in the SZS format.
    */
   static bool cascMode;
+  /**
+   * True if we are running in the CASC mode and we are the child process
+   */
+  static bool cascModeChild;
 private:
 
   static void runVampireSaturationImpl(ClauseIterator clauses);

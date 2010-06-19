@@ -50,11 +50,14 @@ bool CASCMode::perform(int argc, char* argv [])
   }
   else {
     env.out()<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
-    if(env.timeLimitReached()) {
-      env.out()<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
+    if(env.remainingTime()/100>0) {
+      env.out()<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
     }
     else {
-      env.out()<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
+      //From time to time we may also be terminating in the timeLimitReached()
+      //function in Lib/Timer.cpp in case the time runs out. We, however, output
+      //the same string there as well.
+      env.out()<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
     }
   }
   if(env.options && env.options->timeStatistics()) {

@@ -86,7 +86,7 @@ void timeLimitReached()
   reportSpiderStatus('?');
   if(!inSpiderMode()) {
     env.out() << "Time limit reached!\n";
-    if(Shell::UIHelper::cascMode) {
+    if(Shell::UIHelper::cascMode && !Shell::UIHelper::cascModeChild) {
       env.out() << "% SZS status Timeout for "
                 << (env.options ? env.options->problemName() : "unknown") << endl;
     }
