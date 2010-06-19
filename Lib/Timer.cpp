@@ -87,11 +87,15 @@ void timeLimitReached()
   if(!inSpiderMode()) {
     env.out() << "Time limit reached!\n";
     if(Shell::UIHelper::cascMode && !Shell::UIHelper::cascModeChild) {
+      env.out() << "% Proof not found in time ";
+      Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
+      env.out() << endl;
+
       env.out() << "% SZS status Timeout for "
                 << (env.options ? env.options->problemName() : "unknown") << endl;
     }
   }
-  if(env.statistics) {
+  if(env.statistics && (!Shell::UIHelper::cascMode || Shell::UIHelper::cascModeChild)) {
     env.statistics->print(env.out());
   }
   env.endOutput();
