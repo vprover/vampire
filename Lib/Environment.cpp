@@ -118,8 +118,13 @@ void Environment::endOutput()
   ASS_G(_outputDepth,0);
 
   _outputDepth--;
-  if(_outputDepth==0 && _pipe) {
-    _pipe->releaseWrite();
+  if(_outputDepth==0) {
+    if(_pipe) {
+      _pipe->releaseWrite();
+    }
+    else {
+      cout.flush();
+    }
   }
 }
 

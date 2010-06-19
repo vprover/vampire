@@ -448,7 +448,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
     }
     env.endOutput();
     System::onTermination();
-    abort();
+    _exit(1);
 #else
     throw Lib::MemoryLimitExceededException();
 #endif
@@ -477,7 +477,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       }
       env.endOutput();
       System::onTermination();
-      abort();
+      _exit(1);
 #else
       throw Lib::MemoryLimitExceededException();
 #endif
