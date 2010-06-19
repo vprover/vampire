@@ -101,7 +101,7 @@ void timeLimitReached()
   env.endOutput();
 
   System::onTermination();
-  _exit(2);
+  _exit(1);
 }
 
 void
