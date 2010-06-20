@@ -25,6 +25,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "BackwardDemodulation.hpp"
@@ -139,7 +140,7 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if(qr.literal->isEquality() &&
+    if(env.options->demodulationRedundancyCheck() && qr.literal->isEquality() &&
 	(qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=ordering->compare(rhsS, other);

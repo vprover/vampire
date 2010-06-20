@@ -103,13 +103,15 @@ LiteralSelector* LiteralSelector::getSelector(int num)
   case 4: return new CompleteBestLiteralSelector<Comparator4>();
   case 10: return new CompleteBestLiteralSelector<Comparator10>();
 
-  case 11: return new LookaheadLiteralSelector();
+  case 11: return new LookaheadLiteralSelector(true);
 
   case 1002: return new BestLiteralSelector<Comparator2>();
   case 1003: return new BestLiteralSelector<Comparator3>();
   case 1004: return new BestLiteralSelector<Comparator4>();
-
   case 1010: return new BestLiteralSelector<Comparator10>();
+
+  case 1011: return new LookaheadLiteralSelector(false);
+
   default:
     INVALID_OPERATION("Undefined selection function");
   }

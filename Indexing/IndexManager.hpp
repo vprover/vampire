@@ -42,6 +42,7 @@ public:
   Index* request(IndexType t);
   void release(IndexType t);
   bool contains(IndexType t);
+  Index* get(IndexType t);
 
   LiteralIndexingStructure* getGeneratingLiteralIndexingStructure() { return _genLitIndex; };
 private:

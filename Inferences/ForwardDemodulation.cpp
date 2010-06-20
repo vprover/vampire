@@ -88,7 +88,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	continue;
       }
 
-      bool toplevelCheck=lit->isEquality() &&
+      bool toplevelCheck=env.options->demodulationRedundancyCheck() && lit->isEquality() &&
 	  (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);

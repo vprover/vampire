@@ -37,6 +37,7 @@ public:
 
     /** Decode test id */
     DECODE,
+    DEMODULATION_REDUNDANCY_CHECK,
 
     EMPTY_CLAUSE_SUBSUMPTION,
     EQUALITY_PROXY,
@@ -312,6 +313,7 @@ public:
   bool arityCheck() const { return _arityCheck; }
   void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation; }
+  bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck; }
   void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption; }
   void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
@@ -411,6 +413,8 @@ private:
   bool _bddMarkingSubsumption;
 
   Condensation _condensation;
+
+  bool _demodulationRedundancyCheck;
 
   bool _emptyClauseSubsumption;
   EqualityProxy _equalityProxy;

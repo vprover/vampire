@@ -88,6 +88,7 @@ const char* Options::Constants::_optionNames[] = {
   "condensation",
 
   "decode",
+  "demodulation_redundancy_check",
 
   "empty_clause_subsumption",
   "equality_proxy",
@@ -192,6 +193,7 @@ const char* Options::Constants::_shortNames[] = {
   "bs",
   "bsr",
   "cond",
+  "drc",
   "ecs",
   "ep",
   "erd",
@@ -217,6 +219,7 @@ const char* Options::Constants::_shortNames[] = {
   "sac",
   "sagn",
   "sd",
+  "sfv",
   "sgo",
   "sgt",
   "sio",
@@ -246,6 +249,7 @@ int Options::Constants::shortNameIndexes[] = {
   BACKWARD_SUBSUMPTION,
   BACKWARD_SUBSUMPTION_RESOLUTION,
   CONDENSATION,
+  DEMODULATION_REDUNDANCY_CHECK,
   EMPTY_CLAUSE_SUBSUMPTION,
   EQUALITY_PROXY,
   EQUALITY_RESOLUTION_WITH_DELETION,
@@ -271,6 +275,7 @@ int Options::Constants::shortNameIndexes[] = {
   SPLIT_AT_ACTIVATION,
   SPLIT_ADD_GROUND_NEGATION,
   SINE_DEPTH,
+  SUPERPOSITION_FROM_VARIABLES,
   SPLIT_GOAL_ONLY,
   SINE_GENERALITY_THRESHOLD,
   SPLIT_INPUT_ONLY,
@@ -430,6 +435,8 @@ Options::Options ()
   _bddMarkingSubsumption(false),
 
   _condensation(CONDENSATION_OFF),
+
+  _demodulationRedundancyCheck(true),
 
   _emptyClauseSubsumption(false),
   _equalityProxy(EP_OFF),
@@ -604,6 +611,9 @@ void Options::set (const char* name,const char* value, int index)
 
     case DECODE:
       readFromTestId(value);
+      return;
+    case DEMODULATION_REDUNDANCY_CHECK:
+      _demodulationRedundancyCheck = onOffToBool(value,name);
       return;
 
     case EMPTY_CLAUSE_SUBSUMPTION:
@@ -1006,6 +1016,7 @@ bool Options::setSelection(int sel)
   case 1003:
   case 1004:
   case 1010:
+  case 1011:
   case -1:
   case -2:
   case -3:
@@ -1016,6 +1027,7 @@ bool Options::setSelection(int sel)
   case -1003:
   case -1004:
   case -1010:
+  case -1011:
     _selection = sel;
     return true;
   default:
@@ -1172,6 +1184,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
 
   case DECODE: // no output for DECODE
+    return;
+  case DEMODULATION_REDUNDANCY_CHECK:
+    str << boolToOnOff(_demodulationRedundancyCheck);
     return;
 
   case EMPTY_CLAUSE_SUBSUMPTION:

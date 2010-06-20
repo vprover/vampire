@@ -57,6 +57,17 @@ bool IndexManager::contains(IndexType t)
   return _store.find(t);
 }
 
+/**
+ * If IndexManager contains index @b t, return pointer to it
+ *
+ * The pointer can become invalid after return from the code that
+ * has requested it through this function.
+ */
+Index* IndexManager::get(IndexType t)
+{
+  return _store.get(t).index;
+}
+
 Index* IndexManager::create(IndexType t)
 {
   CALL("IndexManager::create");
