@@ -1027,7 +1027,6 @@ bool Options::setSelection(int sel)
   case -1003:
   case -1004:
   case -1010:
-  case -1011:
     _selection = sel;
     return true;
   default:
