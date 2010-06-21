@@ -47,9 +47,14 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     }
 
     SaturationAlgorithm* salg=SaturationAlgorithm::tryGetInstance();
-    ASS(salg); //we are selecting literals only during the run of the saturation algorithm
-    IndexManager* imgr=salg->getIndexManager();
+    if(!salg) {
+      //we are too early, there's no saturation algorithm and therefore no generating inferences
+      prepared=false;
+      return false;
+    }
 
+    IndexManager* imgr=salg->getIndexManager();
+    ASS(imgr);
   start:
     switch(stage) {
     case 0:  //resolution
