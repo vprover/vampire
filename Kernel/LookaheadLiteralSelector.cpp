@@ -55,12 +55,17 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     case 0:  //resolution
     {
       LiteralIndexingStructure* gli=imgr->getGeneratingLiteralIndexingStructure();
+      if(!gli) { stage++; goto start; }
+
       nextIt=pvi( getStaticCastIterator<void>(gli->getUnifications(lit,true,false)) );
       break;
     }
     case 1:  //backward superposition
     {
+      if(!imgr->contains(SUPERPOSITION_SUBTERM_SUBST_TREE)) { stage++; goto start; }
       TermIndex* bsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_SUBTERM_SUBST_TREE));
+      ASS(bsi);
+
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getLHSIterator(lit),
 	       TermUnificationRetriever(bsi)) );
@@ -68,7 +73,10 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     }
     case 2:  //forward superposition
     {
+      if(!imgr->contains(SUPERPOSITION_LHS_SUBST_TREE)) { stage++; goto start; }
       TermIndex* fsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_LHS_SUBST_TREE));
+      ASS(fsi);
+
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getRewritableSubtermIterator(lit),
 	       TermUnificationRetriever(fsi)) );

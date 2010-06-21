@@ -81,6 +81,7 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContaine
   _consFinder(0), _symEl(0), _bddMarkingSubsumption(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
+  ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
   _propToBDD= env.options->propositionalToBDD();
 
@@ -104,6 +105,8 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContaine
   }
 
   PassiveClauseContainer::registerInstance(_passive);
+
+  s_instance=this;
 }
 
 /**
@@ -112,6 +115,8 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContaine
 SaturationAlgorithm::~SaturationAlgorithm()
 {
   CALL("SaturationAlgorithm::~SaturationAlgorithm");
+
+  s_instance=0;
 
   env.statistics->finalActiveClauses=_active->size();
   env.statistics->finalPassiveClauses=_passive->size();
@@ -1383,13 +1388,8 @@ bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
 SaturationResult SaturationAlgorithm::saturate()
 {
   CALL("SaturationAlgorithm::saturate");
-  ASS_EQ(s_instance, 0);
-
-  s_instance=this;
 
   SaturationResult res=saturateImpl();
-
-  s_instance=0;
 
   return res;
 }
