@@ -32,6 +32,21 @@ int NameArray::find (const char* value) const
 {
   CALL("NameArray::find");
 
+  int res=tryToFind(value);
+  if(res==-1) {
+    throw ValueNotFoundException();
+  }
+  return res;
+} // Options::find
+
+/**
+ * Find the index of a string in the name array. Return -1
+ * if it is not present.
+ */
+int NameArray::tryToFind(const char* value) const
+{
+  CALL("NameArray::tryToFind");
+
   int from = 0;
   int to = length;
   while (from < to) {
@@ -47,8 +62,7 @@ int NameArray::find (const char* value) const
       to = mid;
     }
   }
-  throw ValueNotFoundException();
-} // Options::find
-
+  return -1;
+}
 
 } // namespace Lib

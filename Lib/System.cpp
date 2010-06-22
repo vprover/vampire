@@ -66,6 +66,43 @@ void reportSpiderStatus(char status)
   }
 }
 
+#if COMPILER_MSVC
+
+#include <windows.h>
+
+long long getTotalSystemMemory()
+{
+  MEMORYSTATUSEX status;
+  GetMemoryStatusEx(&status);
+  return status.ullTotalPhys;
+}
+
+unsigned Lib::System::getNumberOfCores()
+{
+  SYSTEM_INFO sysinfo;
+  GetSystemInfo( &sysinfo );
+  return sysinfo.dwNumberOfProcessors;
+}
+
+#else
+
+#include <unistd.h>
+
+long long Lib::System::getSystemMemory()
+{
+  long pages = sysconf(_SC_PHYS_PAGES);
+  long page_size = sysconf(_SC_PAGE_SIZE);
+  return static_cast<long long>(pages) * page_size;
+}
+
+unsigned Lib::System::getNumberOfCores()
+{
+  return sysconf( _SC_NPROCESSORS_ONLN );
+}
+
+
+#endif
+
 namespace Lib {
 
 using namespace std;

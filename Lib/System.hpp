@@ -38,6 +38,17 @@ public:
 
   static void addTerminationHandler(VoidFunc proc, unsigned priority=0);
   static void onTermination();
+
+  /**
+   * Return the size of system physical memory in bytes
+   */
+  static long long getSystemMemory();
+
+  /**
+   * Return number of CPU cores
+   */
+  static unsigned getNumberOfCores();
+
 protected:
   static ZIArray<List<VoidFunc>*> s_onTerminationHandlers;
 

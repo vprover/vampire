@@ -247,6 +247,7 @@ LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Storage.o
 
 CASC_OBJ = Shell/CASC/CASCMode.o\
+           Shell/CASC/CLTBMode.o\
            Shell/CASC/ForkingCM.o\
            Shell/CASC/SpawningCM.o
 
