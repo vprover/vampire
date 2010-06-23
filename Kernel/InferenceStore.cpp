@@ -4,6 +4,7 @@
  */
 
 #include "Lib/Allocator.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
@@ -264,6 +265,18 @@ void InferenceStore::recordSplitting(SplittingRecord* srec, unsigned premCnt, Un
   //as they're stored in the variant index of Splitter object, so won't get
   //deleted.
   _splittingRecords.set(srec->result, srec);
+}
+
+/**
+ * Record propositional variables introduced in the @b Inference::BDDZATION
+ * inference.
+ */
+void InferenceStore::recordBddizeVars(Clause* cl, IntList* vars)
+{
+  CALL("InferenceStore::recordBddizeVars");
+  ASS(vars);
+
+  ALWAYS(_bddizeVars.insert(cl, vars));
 }
 
 /**
@@ -694,6 +707,9 @@ struct InferenceStore::TPTPProofPrinter
     case Inference::SPLITTING_COMPONENT:
       printSplittingComponent(us);
       return;
+    case Inference::BDDZATION:
+      printBddize(us);
+      return;
     default: ;
     }
 
@@ -943,53 +959,56 @@ struct InferenceStore::TPTPProofPrinter
     out<<getFofString(tptpUnitId(us), getFormulaString(us), inferenceStr, rule)<<endl;
   }
 
+  void printBddize(UnitSpec us)
+  {
+    CALL("InferenceStore::TPTPProofPrinter::printBddize");
+    ASS(!bdd->isFalse(us.prop()));
+    ASS(us.isClause());
+
+    Inference::Rule rule;
+    UnitSpecIterator parents=is->getParents(us, rule);
+    ASS_EQ(rule, Inference::BDDZATION);
+
+    ALWAYS(parents.hasNext());
+    UnitSpec parent=parents.next();
+    ASS(!parents.hasNext());
+
+    Clause* cl=us.cl();
+    IntList* bddVars=is->_bddizeVars.get(cl);
+    ASS(bddVars);
+
+
+    string premiseIds=tptpUnitId(parent);
+
+    IntList::Iterator vit(bddVars);
+    while(vit.hasNext()) {
+      int var=vit.next();
+      ASS_G(var,0);
+      string defId="fbd"+Int::toString(var);
+      premiseIds+=","+defId;
+      if(!printedBddizeDefs.insert(var)) {
+	continue;
+      }
+      string predName;
+      ALWAYS(bdd->getNiceName(var, predName));
+      string defStr= predName+" <=> "+bddPrefix+Int::toString(var);
+      out<<getFofString(defId, defStr, "introduced("+tptpRuleName(rule)+",[])", rule)<<endl;
+    }
+
+
+    out<<getFofString(tptpUnitId(us), getFormulaString(us),
+	"inference("+tptpRuleName(Inference::DEFINITION_FOLDING)+",[],["+premiseIds+"])", Inference::DEFINITION_FOLDING)<<endl;
+
+  }
+
   void handleSplitting(SplittingRecord* sr)
   {
     CALL("InferenceStore::TPTPProofPrinter::handleSplitting");
 
-    requestProofStep(sr->premise);
-    UnitSpec cs=sr->result;
-    Clause* cl=cs.cl();
-    ASS(!cl->splits() || cl->splits()->isEmpty());
-
-    string formulaStr=getQuantifiedStr(cl);
-    if(!bdd->isFalse(cs.prop())) {
-      formulaStr+=" | "+bddToString(cs.prop());
-    }
-
-    string inferenceStr="inference("+tptpRuleName(Inference::SPLITTING)+",[],[";
-    inferenceStr+=tptpUnitId(sr->premise);
-    Stack<pair<int,Clause*> >::Iterator compIt(sr->namedComps);
-    while(compIt.hasNext()) {
-      inferenceStr+=","+unitIdToTptp(Int::toString(compIt.next().second->number())+"_D");
-    }
-    inferenceStr+="])";
-
-    out<<getFofString(tptpUnitId(cs), formulaStr, inferenceStr, Inference::SPLITTING)<<endl;
-
-
-    Stack<pair<int,Clause*> >::Iterator compIt2(sr->namedComps);
-    while(compIt2.hasNext()) {
-      pair<int,Clause*> nrec=compIt2.next();
-      string defUnitId=unitIdToTptp(Int::toString(nrec.second->number())+"_D");
-
-      string defFormulaStr;
-      if(nrec.second->length()==1 && (*nrec.second)[0]->arity()==0) {
-	defFormulaStr=(*nrec.second)[0]->predicateName();
-      } else {
-	defFormulaStr=getQuantifiedStr(nrec.second);
-      }
-      defFormulaStr+=" <=> ";
-      if(nrec.first<0) {
-	defFormulaStr+="~";
-      }
-      defFormulaStr+=bddPrefix+Int::toString(abs(nrec.first));
-
-      string defInferenceStr="inference("+tptpRuleName(Inference::SPLITTING_COMPONENT)+")";
-
-      out<<getFofString(defUnitId, defFormulaStr, defInferenceStr, Inference::SPLITTING_COMPONENT)<<endl;
-    }
+    INVALID_OPERATION("The function InferenceStore::TPTPProofPrinter::handleSplitting should not be called");
   }
+
+  DHSet<int> printedBddizeDefs;
 
   static const char* bddPrefix;
   static const char* splitPrefix;

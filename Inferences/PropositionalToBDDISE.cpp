@@ -60,11 +60,14 @@ Clause* PropositionalToBDDISE::simplify(Clause* c)
   Clause* newCl=new(nlen) Clause(nlen, c->inputType(), inf);
   newCl->setAge(c->age());
 
+  List<int>* propVars=0;
+
   unsigned newIndex=0;
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*c)[i];
     if(canBddize(lit)) {
       int name = getPropPredName(lit);
+      List<int>::push(name, propVars);
       propPart = bdd->disjunction(propPart, bdd->getAtomic(name, lit->isPositive()));
     } else {
       (*newCl)[newIndex++]=lit;
@@ -80,6 +83,7 @@ Clause* PropositionalToBDDISE::simplify(Clause* c)
   }
 
   InferenceStore::instance()->recordNonPropInference(newCl);
+  InferenceStore::instance()->recordBddizeVars(newCl, propVars);
 
   return newCl;
 }

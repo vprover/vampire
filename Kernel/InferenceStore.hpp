@@ -71,6 +71,7 @@ public:
   };
 
   typedef VirtualIterator<UnitSpec> UnitSpecIterator;
+  typedef List<int> IntList;
 
   struct FullInference
   {
@@ -130,6 +131,8 @@ public:
   void recordSplitting(SplittingRecord* srec, unsigned premCnt, UnitSpec* prems);
   void recordSplittingNameLiteral(UnitSpec us, Literal* lit);
 
+  void recordBddizeVars(Clause* cl, IntList* vars);
+
   void outputProof(ostream& out, Unit* refutation);
 
   UnitSpecIterator getParents(UnitSpec us, Inference::Rule& rule);
@@ -178,6 +181,9 @@ private:
   DHMap<UnitSpec, SplittingRecord*, UnitSpec> _splittingRecords;
 
   DHMap<UnitSpec, Literal*> _splittingNameLiterals;
+
+
+  DHMap<Clause*, IntList*> _bddizeVars;
 
   BDD* _bdd;
 };
