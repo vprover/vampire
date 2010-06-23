@@ -290,7 +290,10 @@ public:
     return result;
   } // List::pop
 
-  /** destructive list concatenation */
+  /** destructive list concatenation
+   *
+   * The @b first list is traversed and the @b second is attached
+   * to its end.*/
   static List* concat(List* first,List* second)
   {
     if (first == 0) return second;

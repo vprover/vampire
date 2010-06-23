@@ -166,6 +166,7 @@ public:
    */
   enum Mode {
     MODE_CASC,
+    MODE_CASC_LTB,
     MODE_CLAUSIFY,
     MODE_CONSEQUENCE_FINDING,
     MODE_GROUNDING,

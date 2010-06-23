@@ -38,6 +38,7 @@
 #include "Inferences/TautologyDeletionISE.hpp"
 
 #include "Shell/CASC/CASCMode.hpp"
+#include "Shell/CASC/CLTBMode.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/Grounding.hpp"
 #include "Shell/Options.hpp"
@@ -283,10 +284,18 @@ int main(int argc, char* argv [])
       break;
     case Options::MODE_CASC:
       if(Shell::CASC::CASCMode::perform(argc, argv)) {
-	//casc mode has succeeded solving the problem, so we return zero
+	//casc mode succeeded in solving the problem, so we return zero
 	vampireReturnValue=0;
       }
       break;
+    case Options::MODE_CASC_LTB:
+    {
+      Shell::CASC::CLTBMode ltbm;
+      ltbm.perform();
+      //we have processed the ltb batch file, so we can return zero
+      vampireReturnValue=0;
+      break;
+    }
     case Options::MODE_CLAUSIFY:
       clausifyMode();
       break;

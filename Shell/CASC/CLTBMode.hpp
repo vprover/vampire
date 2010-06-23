@@ -13,6 +13,8 @@
 
 #include "Lib/Stack.hpp"
 
+#include "Shell/SineUtils.hpp"
+
 namespace Shell {
 namespace CASC {
 
@@ -25,18 +27,25 @@ public:
 private:
   void readInput();
 
+  void loadIncludes();
+
+  typedef List<string> StringList;
   typedef Stack<string> StringStack;
-  typedef Stack<pair<string,string> > StringPairStack;
+  typedef pair<string,string> StringPair;
+  typedef Stack<StringPair> StringPairStack;
 
   string division;
   int problemTimeLimit;
   int overallTimeLimit;
 
-  StringStack includes;
+  StringList* theoryIncludes;
   /** The first string in the pair is problem file, the second
    * one is output file. The problemFiles[0] is the first
    * problem that should be attempted. */
   StringPairStack problemFiles;
+
+  SineSelector theorySelector;
+  UnitList* theoryAxioms;
 };
 
 }

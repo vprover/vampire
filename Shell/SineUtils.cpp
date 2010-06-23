@@ -180,7 +180,7 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,int polarity,Stack<Sy
 SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
 {
   CALL("SineSymbolExtractor::extractSymIds");
-  ASS_EQ(_fnOfs,env.signature->predicates()); //check that signature hasn't changed
+  ASS_EQ(static_cast<int>(_fnOfs),env.signature->predicates()); //check that signature hasn't changed
 
   Stack<SymId> itms;
   if(u->isClause()) {
@@ -207,7 +207,6 @@ SineSelector::SineSelector()
   _tolerance(env.options->sineTolerance())
 {
   CALL("SineSelector::SineSelector");
-  ASS_NEQ(env.options->sineSelection(),Options::SS_OFF);
   ASS_GE(_tolerance, 1.0f);
 
   _strict=_tolerance==1.0f;
@@ -286,26 +285,126 @@ void SineSelector::updateDefRelation(Unit* u)
 
 }
 
-
-void SineSelector::perform(UnitList*& units)
+void SineSelector::initGeneralityFunction(UnitList* units)
 {
-  CALL("SineSelector::perform");
-
-  TimeCounter tc(TC_SINE_SELECTION);
+  CALL("SineSelector::initGeneralityFunction");
 
   SymId symIdBound=_symExtr.getSymIdBound();
-
-  //determine symbol generality
   _gen.init(symIdBound,0);
-  UnitList::Iterator uit1(units);
-  while(uit1.hasNext()) {
-    Unit* u=uit1.next();
+
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u=uit.next();
     SymIdIterator sit=_symExtr.extractSymIds(u);
     while(sit.hasNext()) {
       SymId sid=sit.next();
       _gen[sid]++;
     }
   }
+}
+
+void SineSelector::initSelectionStructure(UnitList* units)
+{
+  CALL("SineSelector::initSelectionStructure");
+
+  TimeCounter tc(TC_SINE_SELECTION);
+
+  initGeneralityFunction(units);
+
+  SymId symIdBound=_symExtr.getSymIdBound();
+
+  //build the D-relation and select the non-axiom formulas
+  _def.init(symIdBound,0);
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u=uit.next();
+    updateDefRelation(u);
+  }
+}
+
+/**
+ * Modify the @b units list so that it contains units selectedby the SInE
+ * axiom selection algorithm from the units passed to the @b initSelectionStructure()
+ * function.
+ *
+ * None of the units passed to the @b initSelectionStructure() function should
+ * appear in the @b units list passed as an argument.
+ */
+void SineSelector::addSelectedAxioms(UnitList*& units)
+{
+  CALL("SineSelector::addSelectedAxioms");
+
+  Set<Unit*> selected; //selected units without the original problem units
+  Deque<Unit*> newlySelected;
+
+  newlySelected.pushBackFromIterator(UnitList::Iterator(units));
+
+  unsigned depthLimit=env.options->sineDepth();
+  unsigned depth=0;
+  newlySelected.push_back(0);
+
+  //select required axiom formulas
+  while(newlySelected.isNonEmpty()) {
+    Unit* u=newlySelected.pop_front();
+
+    if(!u) {
+      //next selected formulas will be one step further from the original formulas
+      depth++;
+      if(depthLimit && depth==depthLimit) {
+	break;
+      }
+      ASS(!depthLimit || depth<depthLimit);
+
+      if(newlySelected.isNonEmpty()) {
+	//we must push another mark if we're not done yet
+	newlySelected.push_back(0);
+      }
+      continue;
+    }
+
+    SymIdIterator sit=_symExtr.extractSymIds(u);
+    while(sit.hasNext()) {
+      SymId sym=sit.next();
+      UnitList::Iterator defUnits(_def[sym]);
+      while(defUnits.hasNext()) {
+	Unit* du=defUnits.next();
+	if(selected.contains(du)) {
+	  continue;
+	}
+	selected.insert(du);
+	UnitList::push(du, units);
+	newlySelected.push_back(du);
+      }
+      //all defining units for the symbol sym were selected,
+      //so we can remove them from the relation
+      _def[sym]->destroy();
+      _def[sym]=0;
+    }
+  }
+
+  UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), units);
+
+  env.statistics->sineIterations=depth;
+  env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selected.numberOfElements();
+
+#if SINE_PRINT_SELECTED
+  UnitList::Iterator selIt(units);
+  while(selIt.hasNext()) {
+    cout<<'#'<<selIt.next()->toString()<<endl;
+  }
+#endif
+}
+
+void SineSelector::perform(UnitList*& units)
+{
+  CALL("SineSelector::perform");
+  ASS_NEQ(env.options->sineSelection(),Options::SS_OFF);
+
+  TimeCounter tc(TC_SINE_SELECTION);
+
+  initGeneralityFunction(units);
+
+  SymId symIdBound=_symExtr.getSymIdBound();
 
   Set<Unit*> selected;
   Stack<Unit*> selectedStack; //on this stack there are Units in the order they were selected

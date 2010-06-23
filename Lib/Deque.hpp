@@ -239,6 +239,19 @@ public:
     _back = _data;
   }
 
+  /**
+   * Put all elements of an iterator onto the stack.
+   */
+  template<class It>
+  void pushBackFromIterator(It it) {
+    CALL("Deque::pushBackFromIterator");
+
+    while(it.hasNext()) {
+      push_back(it.next());
+    }
+  }
+
+
   /** Return the number of elements in the deque */
   inline
   size_t size() const
