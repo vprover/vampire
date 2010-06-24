@@ -378,6 +378,7 @@ public:
   unsigned sineDepth() const { return _sineDepth; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold; }
   SineSelection sineSelection() const { return _sineSelection; }
+  void setSineSelection(SineSelection val) { _sineSelection=val; }
   float sineTolerance() const { return _sineTolerance; }
 
   void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }

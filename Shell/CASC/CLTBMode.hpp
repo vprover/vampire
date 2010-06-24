@@ -13,6 +13,7 @@
 
 #include "Lib/Stack.hpp"
 
+#include "Shell/Property.hpp"
 #include "Shell/SineUtils.hpp"
 
 namespace Shell {
@@ -21,7 +22,10 @@ namespace CASC {
 using namespace std;
 using namespace Lib;
 
-class CLTBMode {
+class CLTBProblem;
+
+class CLTBMode
+{
 public:
   void perform();
 private:
@@ -44,8 +48,34 @@ private:
    * problem that should be attempted. */
   StringPairStack problemFiles;
 
-  SineSelector theorySelector;
+  SineTheorySelector theorySelector;
   UnitList* theoryAxioms;
+
+  Property property;
+
+  friend class CLTBProblem;
+};
+
+
+class CLTBProblem
+{
+public:
+  CLTBProblem(CLTBMode* parent, string problemFile, string outFile);
+
+  void perform();
+private:
+
+  bool runSchedule(const char** sliceCodes, unsigned ds);
+
+  void childRun(Options& opt);
+
+  CLTBMode* parent;
+  string problemFile;
+  string outFile;
+
+  UnitList* probUnits;
+  Property property;
+
 };
 
 }

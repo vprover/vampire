@@ -30,6 +30,7 @@ public:
    * based on this value.
    */
   static bool haveConjecture() { return s_haveConjecture; }
+  static void setConjecturePresence(bool haveConjecture) { s_haveConjecture=haveConjecture; }
 
   /**
    * True if we are running in the CASC mode

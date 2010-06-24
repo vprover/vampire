@@ -43,32 +43,31 @@ private:
 };
 
 
+class SineBase
+{
+protected:
+  typedef SineSymbolExtractor::SymId SymId;
+  typedef SineSymbolExtractor::SymIdIterator SymIdIterator;
+
+  void initGeneralityFunction(UnitList* units);
+
+  /** Stores symbol generality */
+  DArray<unsigned> _gen;
+
+  SineSymbolExtractor _symExtr;
+};
+
 /**
- * Class that performs the SInE axiom selection
- *
- * It has two use scenarions which must not be combined in a single
- * object:
- *
- * 1) use the @b perform(UnitList*& units) function to remove non-selected
- * units from the @b units list
- *
- * 2) first init the selection structure by @b initSelectionStructure() and
- * then select axioms for a particular problem by @b selectAxioms
+ * Class that performs the SInE axiom selection on a single problem
  */
 class SineSelector
+: public SineBase
 {
 public:
   SineSelector();
 
   void perform(UnitList*& units);
-
-  void initSelectionStructure(UnitList* units);
-  void addSelectedAxioms(UnitList*& units);
 private:
-  typedef SineSymbolExtractor::SymId SymId;
-  typedef SineSymbolExtractor::SymIdIterator SymIdIterator;
-
-  void initGeneralityFunction(UnitList* units);
 
   void updateDefRelation(Unit* u);
 
@@ -76,9 +75,6 @@ private:
   bool _strict;
   unsigned _genThreshold;
   float _tolerance;
-
-  /** Stores symbol generality */
-  DArray<unsigned> _gen;
 
   /** Stored the D-relation */
   DArray<UnitList*> _def;
@@ -89,9 +85,58 @@ private:
    * These formulas are always selected.
    */
   Stack<Unit*> _unitsWithoutSymbols;
-
-  SineSymbolExtractor _symExtr;
 };
+
+
+/**
+ * Class that can perform the SInE axiom selection for multiple problems
+ * sharing the same set of theory axioms
+ *
+ * First init the selection structure by @b initSelectionStructure() and
+ * then select axioms for a particular problem by @b addSelectedAxioms()
+ */
+class SineTheorySelector
+: public SineBase
+{
+public:
+  SineTheorySelector();
+
+  void initSelectionStructure(UnitList* units);
+  void addSelectedAxioms(UnitList*& units);
+private:
+
+  /** The integer tolerance value is the float option value multiplied by 10 and
+   * truncated
+   *
+   * Therefore, if the @b maxTolerance member is equal to 50, the maximum supported
+   * tolerance is 5. */
+  static const unsigned short maxTolerance=50;
+  static const unsigned short strictTolerance=10;
+
+  void updateDefRelation(Unit* u);
+
+  unsigned _genThreshold;
+
+  struct DEntry
+  {
+    DEntry(unsigned short minTolerance, Unit* unit) : minTolerance(minTolerance), unit(unit) {}
+
+    unsigned short minTolerance;
+    Unit* unit;
+  };
+  typedef List<DEntry> DEntryList;
+
+  /** Stored the D-relation */
+  DArray<DEntryList*> _def;
+
+  /**
+   * Stored formulas that don't contain any symbols
+   *
+   * These formulas are always selected.
+   */
+  Stack<Unit*> _unitsWithoutSymbols;
+};
+
 
 }
 

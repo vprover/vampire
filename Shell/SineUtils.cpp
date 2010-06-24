@@ -3,7 +3,10 @@
  * Implements class SineUtils.
  */
 
+#include <cmath>
+
 #include "Lib/Deque.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
@@ -200,6 +203,23 @@ SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
   return pvi( getUniquePersistentIterator(Stack<SymId>::Iterator(itms)) );
 }
 
+void SineBase::initGeneralityFunction(UnitList* units)
+{
+  CALL("SineBase::initGeneralityFunction");
+
+  SymId symIdBound=_symExtr.getSymIdBound();
+  _gen.init(symIdBound,0);
+
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u=uit.next();
+    SymIdIterator sit=_symExtr.extractSymIds(u);
+    while(sit.hasNext()) {
+      SymId sid=sit.next();
+      _gen[sid]++;
+    }
+  }
+}
 
 SineSelector::SineSelector()
 : _onIncluded(env.options->sineSelection()==Options::SS_INCLUDED),
@@ -283,116 +303,6 @@ void SineSelector::updateDefRelation(Unit* u)
     }
   }
 
-}
-
-void SineSelector::initGeneralityFunction(UnitList* units)
-{
-  CALL("SineSelector::initGeneralityFunction");
-
-  SymId symIdBound=_symExtr.getSymIdBound();
-  _gen.init(symIdBound,0);
-
-  UnitList::Iterator uit(units);
-  while(uit.hasNext()) {
-    Unit* u=uit.next();
-    SymIdIterator sit=_symExtr.extractSymIds(u);
-    while(sit.hasNext()) {
-      SymId sid=sit.next();
-      _gen[sid]++;
-    }
-  }
-}
-
-void SineSelector::initSelectionStructure(UnitList* units)
-{
-  CALL("SineSelector::initSelectionStructure");
-
-  TimeCounter tc(TC_SINE_SELECTION);
-
-  initGeneralityFunction(units);
-
-  SymId symIdBound=_symExtr.getSymIdBound();
-
-  //build the D-relation and select the non-axiom formulas
-  _def.init(symIdBound,0);
-  UnitList::Iterator uit(units);
-  while(uit.hasNext()) {
-    Unit* u=uit.next();
-    updateDefRelation(u);
-  }
-}
-
-/**
- * Modify the @b units list so that it contains units selectedby the SInE
- * axiom selection algorithm from the units passed to the @b initSelectionStructure()
- * function.
- *
- * None of the units passed to the @b initSelectionStructure() function should
- * appear in the @b units list passed as an argument.
- */
-void SineSelector::addSelectedAxioms(UnitList*& units)
-{
-  CALL("SineSelector::addSelectedAxioms");
-
-  Set<Unit*> selected; //selected units without the original problem units
-  Deque<Unit*> newlySelected;
-
-  newlySelected.pushBackFromIterator(UnitList::Iterator(units));
-
-  unsigned depthLimit=env.options->sineDepth();
-  unsigned depth=0;
-  newlySelected.push_back(0);
-
-  //select required axiom formulas
-  while(newlySelected.isNonEmpty()) {
-    Unit* u=newlySelected.pop_front();
-
-    if(!u) {
-      //next selected formulas will be one step further from the original formulas
-      depth++;
-      if(depthLimit && depth==depthLimit) {
-	break;
-      }
-      ASS(!depthLimit || depth<depthLimit);
-
-      if(newlySelected.isNonEmpty()) {
-	//we must push another mark if we're not done yet
-	newlySelected.push_back(0);
-      }
-      continue;
-    }
-
-    SymIdIterator sit=_symExtr.extractSymIds(u);
-    while(sit.hasNext()) {
-      SymId sym=sit.next();
-      UnitList::Iterator defUnits(_def[sym]);
-      while(defUnits.hasNext()) {
-	Unit* du=defUnits.next();
-	if(selected.contains(du)) {
-	  continue;
-	}
-	selected.insert(du);
-	UnitList::push(du, units);
-	newlySelected.push_back(du);
-      }
-      //all defining units for the symbol sym were selected,
-      //so we can remove them from the relation
-      _def[sym]->destroy();
-      _def[sym]=0;
-    }
-  }
-
-  UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), units);
-
-  env.statistics->sineIterations=depth;
-  env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selected.numberOfElements();
-
-#if SINE_PRINT_SELECTED
-  UnitList::Iterator selIt(units);
-  while(selIt.hasNext()) {
-    cout<<'#'<<selIt.next()->toString()<<endl;
-  }
-#endif
 }
 
 void SineSelector::perform(UnitList*& units)
@@ -487,5 +397,173 @@ void SineSelector::perform(UnitList*& units)
   }
 #endif
 }
+
+//////////////////////////////////////
+// SineTheorySelector
+//////////////////////////////////////
+
+SineTheorySelector::SineTheorySelector()
+: _genThreshold(env.options->sineGeneralityThreshold())
+{
+  CALL("SineTheorySelector::SineTheorySelector");
+}
+
+/**
+ * Connect unit @b u with symbols it defines
+ */
+void SineTheorySelector::updateDefRelation(Unit* u)
+{
+  CALL("SineTheorySelector::updateDefRelation");
+
+  SymIdIterator sit0=_symExtr.extractSymIds(u);
+
+  if(!sit0.hasNext()) {
+    _unitsWithoutSymbols.push(u);
+    return;
+  }
+
+  static Stack<SymId> symIds;
+  symIds.reset();
+  symIds.loadFromIterator(sit0);
+
+  Stack<SymId>::Iterator sit(symIds);
+
+  ALWAYS(sit.hasNext());
+  unsigned leastGenVal=_gen[sit.next()];
+
+  while(sit.hasNext()) {
+    SymId sym=sit.next();
+    unsigned val=_gen[sym];
+    ASS_G(val,0);
+
+    if(val<leastGenVal) {
+      leastGenVal=val;
+    }
+  }
+
+  unsigned generalityLimit=leastGenVal*(maxTolerance/strictTolerance);
+
+  Stack<SymId>::Iterator sit2(symIds);
+  while(sit2.hasNext()) {
+    SymId sym=sit2.next();
+    unsigned val=_gen[sym];
+
+    if(val<=_genThreshold) {
+      //if a symbol fits under _genThreshold, add it into the relation
+      DEntryList::push(DEntry(strictTolerance,u),_def[sym]);
+    }
+    else if(val<=generalityLimit) {
+      unsigned short minTolerance=(val*strictTolerance)/leastGenVal;
+      //only if the symbol is over _genThreshold; otherwise it is already added
+      DEntryList::push(DEntry(minTolerance,u),_def[sym]);
+    }
+  }
+
+}
+
+/**
+ * Preprocess the theory axioms in @b units, so that some of them can be later
+ * selected for a particular problem formulas by the @b addSelectedAxioms() function
+ *
+ * If the value of the sineTolerance and sineDepth options changes after the
+ * preprocessing and before the call to the @b addSelectedAxioms function, the
+ * modified values will be used (The preprocessing allows for selection with
+ * tolerance values up to the limit implied by the value of @b maxTolerance.)
+ */
+void SineTheorySelector::initSelectionStructure(UnitList* units)
+{
+  CALL("SineTheorySelector::initSelectionStructure");
+
+  TimeCounter tc(TC_SINE_SELECTION);
+
+  initGeneralityFunction(units);
+
+  SymId symIdBound=_symExtr.getSymIdBound();
+
+  //build the D-relation and select the non-axiom formulas
+  _def.init(symIdBound,0);
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u=uit.next();
+    updateDefRelation(u);
+  }
+}
+
+/**
+ * Modify the @b units list so that it contains units selectedby the SInE
+ * axiom selection algorithm from the units passed to the @b initSelectionStructure()
+ * function.
+ *
+ * None of the units passed to the @b initSelectionStructure() function should
+ * appear in the @b units list passed as an argument.
+ */
+void SineTheorySelector::addSelectedAxioms(UnitList*& units)
+{
+  CALL("SineTheorySelector::addSelectedAxioms");
+
+  unsigned short intTolerance=static_cast<unsigned short>(ceil(env.options->sineTolerance()*10));
+
+  DHSet<SymId> addedSymIds;
+  DHSet<Unit*> selected; //selected units without the original problem units
+  Deque<Unit*> newlySelected;
+
+  newlySelected.pushBackFromIterator(UnitList::Iterator(units));
+
+  unsigned depthLimit=env.options->sineDepth();
+  unsigned depth=0;
+  newlySelected.push_back(0);
+
+  //select required axiom formulas
+  while(newlySelected.isNonEmpty()) {
+    Unit* u=newlySelected.pop_front();
+
+    if(!u) {
+      //next selected formulas will be one step further from the original formulas
+      depth++;
+      if(depthLimit && depth==depthLimit) {
+	break;
+      }
+      ASS(!depthLimit || depth<depthLimit);
+
+      if(newlySelected.isNonEmpty()) {
+	//we must push another mark if we're not done yet
+	newlySelected.push_back(0);
+      }
+      continue;
+    }
+
+    SymIdIterator sit=_symExtr.extractSymIds(u);
+    while(sit.hasNext()) {
+      SymId sym=sit.next();
+      if(!addedSymIds.insert(sym)) {
+	//we already added units belonging to this symbol
+	continue;
+      }
+      DEntryList::Iterator defUnits(_def[sym]);
+      while(defUnits.hasNext()) {
+	DEntry de=defUnits.next();
+
+	if(de.minTolerance>intTolerance || !selected.insert(de.unit)) {
+	  continue;
+	}
+	UnitList::push(de.unit, units);
+	newlySelected.push_back(de.unit);
+      }
+    }
+  }
+
+  UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), units);
+
+  env.statistics->sineIterations=depth;
+  env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selected.size();
+
+#if SINE_PRINT_SELECTED
+  UnitList::Iterator selIt(units);
+  while(selIt.hasNext()) {
+    cout<<'#'<<selIt.next()->toString()<<endl;
+  }
+#endif
+}
+
 
 }
