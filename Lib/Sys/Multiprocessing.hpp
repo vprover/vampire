@@ -15,6 +15,8 @@ class Multiprocessing {
 public:
   static Multiprocessing* instance();
 
+  pid_t waitForChildTermination(int& resValue);
+
   pid_t fork();
   void registerForkHandlers(VoidFunc before, VoidFunc afterParent, VoidFunc afterChild);
 private:

@@ -22,6 +22,8 @@
 #include "Shell/TPTPParser.hpp"
 #include "Shell/UIHelper.hpp"
 
+#include "CASCMode.hpp"
+
 #include "CLTBMode.hpp"
 
 namespace Shell
@@ -38,18 +40,27 @@ void CLTBMode::perform()
   CALL("CLTBMode::perform");
 
   readInput();
+  loadIncludes();
 
-  cout<<division<<endl;
-  cout<<problemTimeLimit<<endl;
-  cout<<overallTimeLimit<<endl;
-  StringList::Iterator iit(theoryIncludes);
-  while(iit.hasNext()) {
-    cout<<"\""<<iit.next()<<"\""<<endl;
-  }
-  StringPairStack::BottomFirstIterator prit(problemFiles);
-  while(prit.hasNext()) {
-    StringPair prb=prit.next();
-    cout<<"'"<<prb.first<<"'  '"<<prb.second<<"'"<<endl;
+  StringPairStack::BottomFirstIterator probs(problemFiles);
+  while(probs.hasNext()) {
+    StringPair res=probs.next();
+
+    string probFile=res.first;
+    string outFile=res.second;
+
+    pid_t child=Multiprocessing::instance()->fork();
+    if(!child) {
+      CLTBProblem prob(this, probFile, outFile);
+      prob.perform();
+
+      //the prob.perform() function should never return
+      ASSERTION_VIOLATION;
+    }
+
+    int resValue;
+    pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+    ASS_EQ(finishedChild, child);
   }
 }
 
@@ -211,6 +222,29 @@ CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
   }
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
+
+  //fork off the writer child process
+  writerChildPid=Multiprocessing::instance()->fork();
+  if(!writerChildPid) {
+    runWriterChild();
+  }
+
+  //only the writer child is reading from the pipe (and it is now forked off)
+  childOutputPipe.neverRead();
+}
+
+CLTBProblem::~CLTBProblem()
+{
+  CALL("CLTBProblem::~CLTBProblem");
+
+  //We're finishing, so we'll never write to the pipe again.
+  childOutputPipe.neverWrite();
+
+  //The above should made the writer child terminate.
+  int resValue;
+  pid_t lastChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+  ASS_EQ(lastChild, writerChildPid);
+  ASS_EQ(resValue,0);
 }
 
 void CLTBProblem::perform()
@@ -228,9 +262,16 @@ void CLTBProblem::perform()
       0
   };
 
+  runSchedule(quick);
+
+  _exit(1); //we didn't find the proof, so we return nonzero status code
 }
 
-bool CLTBProblem::runSchedule(const char** sliceCodes, unsigned ds)
+/**
+ * Run schedule in @b sliceCodes. Terminate the process with 0 exit status
+ * if proof was found, otherwise return false.
+ */
+bool CLTBProblem::runSchedule(const char** sliceCodes)
 {
   CALL("CLTBProblem::runSchedule");
 
@@ -239,15 +280,116 @@ bool CLTBProblem::runSchedule(const char** sliceCodes, unsigned ds)
   int parallelProcesses=System::getNumberOfCores();
   int processesLeft=parallelProcesses;
 
-  DHSet<pid_t> childIds;
+  const char** nextSlice=sliceCodes;
+
+  while(*nextSlice) {
+    while(*nextSlice && processesLeft) {
+      ASS_G(processesLeft,0);
+
+      int remainingTime = env.remainingTime()/100;
+      if(remainingTime<=0) {
+        return false;
+      }
+      int sliceTime = getSliceTime(*nextSlice);
+      if(sliceTime>remainingTime) {
+	sliceTime=remainingTime;
+      }
+
+
+      pid_t childId=Multiprocessing::instance()->fork();
+      ASS_NEQ(childId,-1);
+      if(!childId) {
+        //we're in a proving child
+        env.setPipeOutput(&childOutputPipe); //direct output into the pipe
+        runChild(*nextSlice, sliceTime); //start proving
+      }
+
+#if VDEBUG
+      ALWAYS(childIds.insert(childId));
+#endif
+
+      nextSlice++;
+      processesLeft--;
+    }
+
+    waitForChildAndExitWhenProofFound();
+    processesLeft++;
+  }
+
+  while(parallelProcesses!=processesLeft) {
+    waitForChildAndExitWhenProofFound();
+  }
+  return false;
+}
+
+/**
+ * Wait for termination of a child and terminate the process with a zero status
+ * if a proof was found. If the child didn't find the proof, just return.
+ */
+void CLTBProblem::waitForChildAndExitWhenProofFound()
+{
+  CALL("CLTBProblem::waitForChildAndExitWhenProofFound");
+  ASS(!childIds.isEmpty());
+
+  int resValue;
+  pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+#if VDEBUG
+  ALWAYS(childIds.remove(finishedChild));
+#endif
+  if(!resValue) {
+    //we have found the proof. It has been already written down by the writter child,
+    //so we can just terminate
+    _exit(0);
+  }
+}
+
+/**
+ * Read everything from the pipe and write it into the output file.
+ * Terminate after all writing ends of the pipe are closed.
+ *
+ * This function is to be run in a forked-off process
+ */
+void CLTBProblem::runWriterChild()
+{
+  CALL("CLTBProblem::runWriterChild");
+
+  //we're in the child that writes down the output of other children
+  childOutputPipe.neverWrite();
+
+  ofstream out(outFile.c_str());
+
+  childOutputPipe.acquireRead();
+
+  while(!childOutputPipe.in().eof()) {
+    string line;
+    getline(childOutputPipe.in(), line);
+    out<<line;
+  }
+
+  childOutputPipe.releaseRead();
+  _exit(0);
+}
+
+void CLTBProblem::runChild(string slice, unsigned ds)
+{
+  CALL("CLTBProblem::runChild");
+
+  Options opt=*env.options;
+  opt.readFromTestId(slice);
+  opt.setTimeLimitInDeciseconds(ds);
+  int stl = opt.simulatedTimeLimit();
+  if(stl) {
+    opt.setSimulatedTimeLimit(int(stl * SLOWNESS));
+  }
+  runChild(opt);
 }
 
 /**
  * Do the theorem proving in a forked-off process
  */
-void CLTBProblem::childRun(Options& opt)
+void CLTBProblem::runChild(Options& opt)
 {
-  CALL("CLTBProblem::childRun");
+  CALL("CLTBProblem::runChild");
 
   UIHelper::cascModeChild=true;
   int resultValue=1;
@@ -258,7 +400,17 @@ void CLTBProblem::childRun(Options& opt)
   *env.options=opt;
   //we have already performed the normalization
   env.options->setNormalize(false);
-  env.options->setSineSelection(Options::SS_OFF);
+
+  if(env.options->sineSelection()!=Options::SS_OFF) {
+    //add selected axioms from the theory
+    parent->theorySelector.addSelectedAxioms(probUnits);
+
+    env.options->setSineSelection(Options::SS_OFF);
+  }
+  else {
+    //if there wasn't any sine selection, just put in all theory axioms
+    probUnits=UnitList::concat(probUnits, parent->theoryAxioms);
+  }
 
   env.beginOutput();
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
@@ -276,6 +428,25 @@ void CLTBProblem::childRun(Options& opt)
   env.endOutput();
 
   exit(resultValue);
+}
+
+/**
+ * Return intended slice time in deciseconds
+ */
+unsigned CLTBProblem::getSliceTime(string sliceCode)
+{
+  CALL("CLTBProblem::getSliceTime");
+
+  string sliceTimeStr=sliceCode.substr(sliceCode.find_last_of('_')+1);
+  unsigned sliceTime;
+  ALWAYS(Int::stringToUnsignedInt(sliceTimeStr, sliceTime));
+  ASS_G(sliceTime,0); //strategies with zero time don't make sense
+
+  unsigned time = (unsigned)(sliceTime * SLOWNESS) + 1;
+  if (time < 10) {
+    time++;
+  }
+  return time;
 }
 
 

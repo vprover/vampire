@@ -5,9 +5,17 @@
 
 #include <cerrno>
 
+#include "Lib/Portability.hpp"
+
+#if !COMPILER_MSVC
+
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#endif
+
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Portability.hpp"
 
 #include "Multiprocessing.hpp"
 
@@ -85,6 +93,36 @@ pid_t Multiprocessing::fork()
 #endif
 }
 
+/**
+ * Wait for a first child process to terminate, return its pid and assign
+ * its exit status into @b resValue. If the child was terminated by a signal,
+ * assign into @b resValue the signal number increased by 256.
+ */
+pid_t Multiprocessing::waitForChildTermination(int& resValue)
+{
+  CALL("Multiprocessing::waitForChildTermination");
+
+#if COMPILER_MSVC
+  INVALID_OPERATION("waitid() is not supported on Windows")
+#else
+
+  siginfo_t si;
+
+  errno=0;
+  int res=waitid(P_ALL, 0, &si, WEXITED);
+  if(res==-1) {
+    SYSTEM_FAIL("Call to waitid() function failed.", errno);
+  }
+
+  if(si.si_code) {
+    resValue=si.si_status;
+  }
+  else {
+    resValue=si.si_status+256;
+  }
+  return si.si_pid;
+#endif
+}
 
 }
 }

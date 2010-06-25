@@ -11,7 +11,11 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/DHSet.hpp"
+#include "Lib/Portability.hpp"
 #include "Lib/Stack.hpp"
+
+#include "Lib/Sys/SyncPipe.hpp"
 
 #include "Shell/Property.hpp"
 #include "Shell/SineUtils.hpp"
@@ -61,13 +65,25 @@ class CLTBProblem
 {
 public:
   CLTBProblem(CLTBMode* parent, string problemFile, string outFile);
+  ~CLTBProblem();
 
-  void perform();
+  void perform() __attribute__((noreturn));
 private:
 
-  bool runSchedule(const char** sliceCodes, unsigned ds);
+  void waitForChildAndExitWhenProofFound();
 
-  void childRun(Options& opt);
+  bool runSchedule(const char** sliceCodes);
+
+  void runWriterChild() __attribute__((noreturn));
+
+  void runChild(string slice, unsigned ds) __attribute__((noreturn));
+  void runChild(Options& opt) __attribute__((noreturn));
+
+  unsigned getSliceTime(string sliceCode);
+
+#if VDEBUG
+  DHSet<pid_t> childIds;
+#endif
 
   CLTBMode* parent;
   string problemFile;
@@ -76,6 +92,9 @@ private:
   UnitList* probUnits;
   Property property;
 
+  pid_t writerChildPid;
+  //pipe for collecting the output from children
+  SyncPipe childOutputPipe;
 };
 
 }
