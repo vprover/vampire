@@ -48,6 +48,7 @@ public:
   ostream& out();
 
   void setPipeOutput(SyncPipe* pipe);
+  SyncPipe* getOutputPipe() { return _pipe; }
 
   bool timeLimitReached() const;
 

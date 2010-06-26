@@ -172,6 +172,10 @@ void handleSignal (int sigNum)
   static bool haveSigInt = false;
   const char* signalDescription = signalToString(sigNum);
 
+  if(sigNum==SIGHUP) {
+    cout<<"SIGHUP received by "<<getpid()<<endl;
+  }
+
   switch (sigNum)
     {
     case SIGTERM:
@@ -179,7 +183,7 @@ void handleSignal (int sigNum)
     case SIGQUIT:
     case SIGXCPU:
       if (handled) {
-	exit(haveSigInt ? 3 : 2);
+	System::terminateImmediately(haveSigInt ? 3 : 2);
       }
       handled = true;
       if(outputAllowed()) {
@@ -211,10 +215,10 @@ void handleSignal (int sigNum)
     case SIGTRAP:
     case SIGHUP:
 # endif
-    case SIGABRT: //not handled by this function (see below)
+    case SIGABRT:
       {
 	if (handled) {
-	  exit(haveSigInt ? 3 : 2);
+	  System::terminateImmediately(haveSigInt ? 3 : 2);
 	}
 	reportSpiderFail();
 	handled = true;
@@ -234,8 +238,7 @@ void handleSignal (int sigNum)
 #endif
 	  }
 	}
-	exit(haveSigInt ? 3 : 2);
-	return;
+	System::terminateImmediately(haveSigInt ? 3 : 2);
       }
 
     default:
@@ -250,8 +253,7 @@ void System::setSignalHandlers()
   signal(SIGILL,handleSignal);
   signal(SIGFPE,handleSignal);
   signal(SIGSEGV,handleSignal);
-  //TODO: disabled to make abort() terminate the execution immediately (needed for CASC)
-//  signal(SIGABRT,handleSignal);
+  signal(SIGABRT,handleSignal);
 
 #ifndef _MSC_VER
   signal(SIGQUIT,handleSignal);
@@ -305,6 +307,11 @@ void System::onTermination()
   }
 }
 
+void System::terminateImmediately(int resultStatus)
+{
+  onTermination();
+  _exit(resultStatus);
+}
 
 string System::extractFileNameFromPath(string str)
 {

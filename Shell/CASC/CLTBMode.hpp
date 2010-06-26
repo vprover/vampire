@@ -65,15 +65,19 @@ class CLTBProblem
 {
 public:
   CLTBProblem(CLTBMode* parent, string problemFile, string outFile);
-  ~CLTBProblem();
 
   void perform() __attribute__((noreturn));
 private:
 
+  void performStrategy();
+
   void waitForChildAndExitWhenProofFound();
+
+  void exitOnNoSuccess() __attribute__((noreturn));
 
   bool runSchedule(const char** sliceCodes);
 
+  static void writerSIGHUPHandler(int sigNum) __attribute__((noreturn));
   void runWriterChild() __attribute__((noreturn));
 
   void runChild(string slice, unsigned ds) __attribute__((noreturn));

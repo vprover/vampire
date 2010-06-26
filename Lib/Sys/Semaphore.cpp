@@ -53,9 +53,14 @@ Semaphore::Semaphore(int num)
 
   ensureEventHandlersInstalled();
 
+  bool retrying=false;
+get_retry:
   errno=0;
   semid=semget(IPC_PRIVATE, semCnt+2, 0600);
-
+  if(semid==-1 && errno==ENOSPC && !retrying) {
+    retrying=true;
+    system("ipcs -s | grep 0x00000000 | cut -d' ' -f2|xargs -n 1 ipcrm -s");
+  }
   if(semid==-1) {
     SYSTEM_FAIL("Cannot create semaphore.",errno);
   }

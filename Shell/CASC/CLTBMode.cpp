@@ -5,9 +5,17 @@
 
 #include <fstream>
 #include <cstdlib>
+#include <csignal>
+
+//#include "Lib/Portability.hpp"
+
+//#if !COMPILER_MSVC
+//#include <unistd.h>
+//#endif
 
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/System.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
@@ -35,12 +43,24 @@ using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
 
+/**
+ * This function runs the batch master process and spawns the child master processes
+ *
+ * In this function we:
+ * 1) read the batch file
+ * 2) load the common axioms and put them into a SInE selector
+ * 3) run a child master process for each problem (sequantially)
+ */
 void CLTBMode::perform()
 {
   CALL("CLTBMode::perform");
 
   readInput();
+  env.options->setTimeLimitInSeconds(overallTimeLimit);
+
   loadIncludes();
+
+  int solvedCnt=0;
 
   StringPairStack::BottomFirstIterator probs(problemFiles);
   while(probs.hasNext()) {
@@ -57,11 +77,30 @@ void CLTBMode::perform()
       //the prob.perform() function should never return
       ASSERTION_VIOLATION;
     }
-
+    env.beginOutput();
+    env.out()<<"% SZS status Started for "<<probFile<<endl;
+    env.out()<<"solver pid "<<child<<endl;
+    env.endOutput();
     int resValue;
     pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
     ASS_EQ(finishedChild, child);
+
+    env.beginOutput();
+    if(!resValue) {
+      env.out()<<"% SZS status Theorem for "<<probFile<<endl;
+      solvedCnt++;
+    }
+    else {
+      env.out()<<"% SZS status GaveUp for "<<probFile<<endl;
+    }
+    env.out()<<"% SZS status Ended for "<<probFile<<endl;
+    env.endOutput();
+
+    Timer::syncClock();
   }
+  env.beginOutput();
+  env.out()<<"Solved "<<solvedCnt<<" out of "<<problemFiles.size()<<endl;
+  env.endOutput();
 }
 
 void CLTBMode::loadIncludes()
@@ -194,7 +233,59 @@ void CLTBMode::readInput()
 CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
 : parent(parent), problemFile(problemFile), outFile(outFile), property(parent->property)
 {
-  CALL("CLTBProblem::CLTBProblem");
+}
+
+/**
+ * This function should use the runSchedule function to prove the problem.
+ * Once the problem is proved, the @b runSchedule function does not return
+ * and the process terminates.
+ *
+ * The properties of the problem are in the @b property field.
+ * The name of division (MZR, SMO or CYC) is in @b parent->division.
+ *
+ * If a slice contains sine_selection value different from off, theory axioms
+ * will be selected using SInE from the common axioms included in the batch file
+ * (all problem axioms, including the included ones, will be used as a base
+ * for this selection).
+ *
+ * If the sine_selection is off, all the common axioms will be just added to the
+ * problem axioms. All this is done in the @b runChild(Options&) function.
+ */
+void CLTBProblem::performStrategy()
+{
+  CALL("CLTBProblem::performStrategy");
+
+  const char* quick[] = {
+//      "lrs-1010_3_bd=off:bs=off:ep=on:fde=none:gsp=input_only:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sac=on:sgo=on:sio=off:spl=backtracking_379",
+//      "lrs+1_1_bs=off:lcm=predicate:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sagn=off:sac=on:spl=backtracking:updr=off_144",
+//      "dis+2_10_bs=off:cond=fast:fde=none:gsp=input_only:lcm=predicate:nwc=2.5:ptb=off:ssec=off:ss=included:sos=on:sgo=on:spl=backtracking:sp=reverse_arity:updr=off_557",
+//      "dis+2_3_bs=off:ep=on:fde=none:nwc=4.0:ptb=off:ssec=off:ss=included:st=1.5:sos=on:sio=off:spl=off:sp=occurrence:updr=off_382",
+//      "dis-1010_2_bs=off:ep=on:nwc=1.5:sswn=on:sswsr=on:ss=included:st=1.5:sgo=on:sp=occurrence_359",
+      "lrs+11_5_cond=fast:fde=none:nwc=2.5:ptb=off:ss=included:sgo=on:spl=backtracking_35",
+      "lrs-1010_3_bd=off:bs=off:ep=on:fde=none:gsp=input_only:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sac=on:sgo=on:sio=off:spl=backtracking_37",
+      "lrs+1_1_bs=off:lcm=predicate:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sagn=off:sac=on:spl=backtracking:updr=off_14",
+      "dis+2_10_bs=off:cond=fast:fde=none:gsp=input_only:lcm=predicate:nwc=2.5:ptb=off:ssec=off:ss=included:sos=on:sgo=on:spl=backtracking:sp=reverse_arity:updr=off_35",
+      "dis+2_3_bs=off:ep=on:fde=none:nwc=4.0:ptb=off:ssec=off:ss=included:st=1.5:sos=on:sio=off:spl=off:sp=occurrence:updr=off_38",
+      "dis-1010_2_bs=off:ep=on:nwc=1.5:sswn=on:sswsr=on:ss=included:st=1.5:sgo=on:sp=occurrence_35",
+      0
+  };
+
+  runSchedule(quick);
+
+}
+
+
+void CLTBProblem::perform()
+{
+  CALL("CLTBProblem::perform");
+
+  env.timer->reset();
+  env.timer->start();
+  env.timer->makeChildrenIncluded();
+  TimeCounter::reinitialize();
+
+  env.options->setTimeLimitInSeconds(parent->problemTimeLimit);
+  env.options->setInputFile(problemFile);
 
   {
     TimeCounter tc(TC_PARSING);
@@ -223,48 +314,68 @@ CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 
+  //now all the cpu usage will be in children, we'll just be waiting for them
+  Timer::setTimeLimitEnforcement(false);
+
   //fork off the writer child process
   writerChildPid=Multiprocessing::instance()->fork();
   if(!writerChildPid) {
     runWriterChild();
+    ASSERTION_VIOLATION; // the runWriterChild() function should never return
   }
+  cout<<"writer pid "<<writerChildPid<<endl;
+  cout.flush();
 
   //only the writer child is reading from the pipe (and it is now forked off)
   childOutputPipe.neverRead();
+
+  env.setPipeOutput(&childOutputPipe); //direct output into the pipe
+  UIHelper::cascMode=true;
+
+  performStrategy();
+
+  exitOnNoSuccess();
+  ASSERTION_VIOLATION; //the exitOnNoSuccess() function should never return
 }
 
-CLTBProblem::~CLTBProblem()
+/**
+ * This function exits the problem master process if the problem
+ * was not solved
+ *
+ * The unsuccessful problem master process does not have to
+ * necessarily call this function to exit.
+ */
+void CLTBProblem::exitOnNoSuccess()
 {
-  CALL("CLTBProblem::~CLTBProblem");
+  CALL("CLTBProblem::exitOnNoSuccess");
 
-  //We're finishing, so we'll never write to the pipe again.
+  env.beginOutput();
+  env.out()<<"% Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+  if(env.remainingTime()/100>0) {
+    env.out()<<"% SZS status GaveUp for "<<env.options->problemName()<<endl;
+  }
+  else {
+    //From time to time we may also be terminating in the timeLimitReached()
+    //function in Lib/Timer.cpp in case the time runs out. We, however, output
+    //the same string there as well.
+    env.out()<<"% SZS status Timeout for "<<env.options->problemName()<<endl;
+  }
+  env.endOutput();
+
+  env.setPipeOutput(0);
+  //This should make the writer child terminate.
   childOutputPipe.neverWrite();
 
-  //The above should made the writer child terminate.
   int resValue;
   pid_t lastChild=Multiprocessing::instance()->waitForChildTermination(resValue);
   ASS_EQ(lastChild, writerChildPid);
   ASS_EQ(resValue,0);
-}
 
-void CLTBProblem::perform()
-{
-  CALL("CLTBProblem::perform");
 
-  env.options->setTimeLimitInSeconds(parent->problemTimeLimit);
+  cout<<"terminated solver pid "<<getpid()<<" (fail)"<<endl;
+  cout.flush();
 
-  const char* quick[] = {
-      "lrs-1010_3_bd=off:bs=off:ep=on:fde=none:gsp=input_only:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sac=on:sgo=on:sio=off:spl=backtracking_379",
-      "lrs+1_1_bs=off:lcm=predicate:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sagn=off:sac=on:spl=backtracking:updr=off_144",
-      "dis+2_10_bs=off:cond=fast:fde=none:gsp=input_only:lcm=predicate:nwc=2.5:ptb=off:ssec=off:ss=included:sos=on:sgo=on:spl=backtracking:sp=reverse_arity:updr=off_557",
-      "dis+2_3_bs=off:ep=on:fde=none:nwc=4.0:ptb=off:ssec=off:ss=included:st=1.5:sos=on:sio=off:spl=off:sp=occurrence:updr=off_382",
-      "dis-1010_2_bs=off:ep=on:nwc=1.5:sswn=on:sswsr=on:ss=included:st=1.5:sgo=on:sp=occurrence_359",
-      0
-  };
-
-  runSchedule(quick);
-
-  _exit(1); //we didn't find the proof, so we return nonzero status code
+  System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
 }
 
 /**
@@ -274,8 +385,6 @@ void CLTBProblem::perform()
 bool CLTBProblem::runSchedule(const char** sliceCodes)
 {
   CALL("CLTBProblem::runSchedule");
-
-  NOT_IMPLEMENTED;
 
   int parallelProcesses=System::getNumberOfCores();
   int processesLeft=parallelProcesses;
@@ -300,13 +409,19 @@ bool CLTBProblem::runSchedule(const char** sliceCodes)
       ASS_NEQ(childId,-1);
       if(!childId) {
         //we're in a proving child
-        env.setPipeOutput(&childOutputPipe); //direct output into the pipe
         runChild(*nextSlice, sliceTime); //start proving
+
+        ASSERTION_VIOLATION; //the runChild function should never return
       }
+      Timer::syncClock();
 
 #if VDEBUG
       ALWAYS(childIds.insert(childId));
 #endif
+
+      cout<<"slice pid "<<childId<<" slice: "<<(*nextSlice)<<" time: "<<sliceTime<<endl;
+      cout.flush();
+
 
       nextSlice++;
       processesLeft--;
@@ -318,6 +433,7 @@ bool CLTBProblem::runSchedule(const char** sliceCodes)
 
   while(parallelProcesses!=processesLeft) {
     waitForChildAndExitWhenProofFound();
+    Timer::syncClock();
   }
   return false;
 }
@@ -339,8 +455,12 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
   if(!resValue) {
     //we have found the proof. It has been already written down by the writter child,
     //so we can just terminate
-    _exit(0);
+    cout<<"terminated slice pid "<<finishedChild<<" (success)"<<endl;
+    cout.flush();
+    System::terminateImmediately(0);
   }
+  cout<<"terminated slice pid "<<finishedChild<<" (fail)"<<endl;
+  cout.flush();
 }
 
 /**
@@ -353,6 +473,9 @@ void CLTBProblem::runWriterChild()
 {
   CALL("CLTBProblem::runWriterChild");
 
+  signal(SIGHUP, &writerSIGHUPHandler);
+  Timer::setTimeLimitEnforcement(false);
+
   //we're in the child that writes down the output of other children
   childOutputPipe.neverWrite();
 
@@ -363,11 +486,18 @@ void CLTBProblem::runWriterChild()
   while(!childOutputPipe.in().eof()) {
     string line;
     getline(childOutputPipe.in(), line);
-    out<<line;
+    out<<line<<endl;
   }
+  out.close();
 
   childOutputPipe.releaseRead();
-  _exit(0);
+
+  System::terminateImmediately(0);
+}
+
+void CLTBProblem::writerSIGHUPHandler(int sigNum)
+{
+  System::terminateImmediately(0);
 }
 
 void CLTBProblem::runChild(string slice, unsigned ds)
@@ -396,6 +526,7 @@ void CLTBProblem::runChild(Options& opt)
   env.timer->reset();
   env.timer->start();
   TimeCounter::reinitialize();
+  Timer::setTimeLimitEnforcement(true);
 
   *env.options=opt;
   //we have already performed the normalization

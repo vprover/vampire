@@ -36,9 +36,10 @@ using namespace Lib;
 using namespace Kernel;
 
 SineSymbolExtractor::SineSymbolExtractor()
-: _fnOfs(env.signature->predicates())
 {
   CALL("SineSymbolExtractor::SineSymbolExtractor");
+
+  onSignatureChange();
 }
 
 /**
@@ -51,7 +52,9 @@ void SineSymbolExtractor::onSignatureChange()
 {
   CALL("SineSymbolExtractor::onSignatureChange");
 
-  _fnOfs=env.signature->predicates();
+  _funs=env.signature->functions();
+  _preds=env.signature->predicates();
+  _fnOfs=_preds;
 }
 
 /**
@@ -66,17 +69,24 @@ SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
   return env.signature->predicates() + env.signature->functions();
 }
 
-SineSymbolExtractor::SymId SineSymbolExtractor::getSymId(Literal* lit, bool polarity)
+void SineSymbolExtractor::addSymIds(Literal* lit, int polarity, Stack<SymId>& ids) const
 {
-//  return lit->functor()*2 + (polarity^lit->isNegative()?0:1);
-  return lit->functor();
-}
-SineSymbolExtractor::SymId SineSymbolExtractor::getSymId(Term* t)
-{
-  CALL("SineSymbolExtractor::getSymId");
-  ASS(!t->isLiteral());
+  CALL("SineSymbolExtractor::addSymIds");
 
-  return _fnOfs+t->functor();
+  unsigned predFun=lit->functor();
+  if(predFun<_preds) {
+    ids.push(predFun);
+  }
+
+  NonVariableIterator nvi(lit);
+  while(nvi.hasNext()) {
+    Term* t=nvi.next().term();
+
+    unsigned fun=t->functor();
+    if(fun<_funs) {
+      ids.push(_fnOfs+fun);
+    }
+  }
 }
 
 void SineSymbolExtractor::decodeSymId(SymId s, bool& pred, unsigned& functor)
@@ -90,51 +100,14 @@ void SineSymbolExtractor::decodeSymId(SymId s, bool& pred, unsigned& functor)
   }
 }
 
-struct SineSymbolExtractor::FunctionSymIdFn
-{
-  FunctionSymIdFn(SineSymbolExtractor* sse) : _sse(sse) {}
-  DECL_RETURN_TYPE(SymId);
-  SymId operator()(TermList t)
-  {
-    ASS(t.isTerm());
-    return _sse->getSymId(t.term());
-  }
-
-  SineSymbolExtractor* _sse;
-};
-
-
 void SineSymbolExtractor::extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
 {
   CALL("SineSymbolExtractor::extractFormulaSymbols");
 
   switch (f->connective()) {
     case LITERAL:
-    {
-      Literal* lit=f->literal();
-
-      switch(polarity) {
-      case -1:
-	itms.push( getSymId(lit, false) );
-	break;
-      case 0:
-	itms.push( getSymId(lit, true) );
-	itms.push( getSymId(lit, false) );
-	break;
-      case 1:
-	itms.push( getSymId(lit, true) );
-	break;
-#if VDEBUG
-      default:
-	ASSERTION_VIOLATION;
-#endif
-      }
-
-      itms.loadFromIterator( getMappingIterator(
-		    vi( new NonVariableIterator(lit) ),
-		    FunctionSymIdFn(this)) );
+      addSymIds(f->literal(), polarity, itms);
       return;
-    }
 
     case AND:
     case OR: {
@@ -177,24 +150,26 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,int polarity,Stack<Sy
 }
 
 /**
- * Return iterator that yields SymIds of all symbols in a unit.
+ * Return iterator that yields SymIds of symbols in a unit.
  * Each SymId is yielded at most once.
+ *
+ * Only SymIds for symbols that were in the signature at the
+ * time of the object construction or of the last call to the
+ * @b onSignatureChange function are yielded.
  */
 SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
 {
   CALL("SineSymbolExtractor::extractSymIds");
-  ASS_EQ(static_cast<int>(_fnOfs),env.signature->predicates()); //check that signature hasn't changed
 
-  Stack<SymId> itms;
+  static Stack<SymId> itms;
+  itms.reset();
+
   if(u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
     for(unsigned i=0;i<clen;i++) {
       Literal* lit=(*cl)[i];
-      itms.push( getSymId(lit, true) );
-      itms.loadFromIterator( getMappingIterator(
-		    vi( new NonVariableIterator(lit) ),
-		    FunctionSymIdFn(this)) );
+      addSymIds(lit, 1, itms);
     }
   } else {
     FormulaUnit* fu=static_cast<FormulaUnit*>(u);

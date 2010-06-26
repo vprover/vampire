@@ -14,6 +14,7 @@
 
 #include "Array.hpp"
 #include "List.hpp"
+#include "Portability.hpp"
 
 bool outputAllowed();
 bool inSpiderMode();
@@ -38,6 +39,7 @@ public:
 
   static void addTerminationHandler(VoidFunc proc, unsigned priority=0);
   static void onTermination();
+  static void terminateImmediately(int resultStatus) __attribute__((noreturn));
 
   /**
    * Return the size of system physical memory in bytes

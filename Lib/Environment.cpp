@@ -61,10 +61,12 @@ Environment::~Environment()
   CALL("Environment::~Environment");
   ASS_EQ(_outputDepth,0);
 
+#if CHECK_LEAKS
   delete sharing;
   delete timer;
   delete statistics;
   delete options;
+#endif
 }
 
 /**

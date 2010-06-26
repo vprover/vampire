@@ -32,14 +32,13 @@ public:
   void decodeSymId(SymId s, bool& pred, unsigned& functor);
 
 private:
-  struct FunctionSymIdFn;
-
-  SymId getSymId(Literal* lit, bool polarity);
-  SymId getSymId(Term* t);
+  void addSymIds(Literal* lit, int polarity, Stack<SymId>& ids) const;
 
   void extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms);
 
   unsigned _fnOfs;
+  unsigned _funs;
+  unsigned _preds;
 };
 
 
