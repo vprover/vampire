@@ -427,8 +427,10 @@ bool CLTBProblem::runSchedule(const char** sliceCodes)
       processesLeft--;
     }
 
-    waitForChildAndExitWhenProofFound();
-    processesLeft++;
+    if(processesLeft==0) {
+      waitForChildAndExitWhenProofFound();
+      processesLeft++;
+    }
   }
 
   while(parallelProcesses!=processesLeft) {
