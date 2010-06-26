@@ -42,7 +42,7 @@ private:
   typedef pair<string,string> StringPair;
   typedef Stack<StringPair> StringPairStack;
 
-  string division;
+  string category;
   int problemTimeLimit;
   int overallTimeLimit;
 

@@ -163,7 +163,7 @@ void CLTBMode::readInput()
   if(word!="division.category") {
     USER_ERROR("\"division.category\" expected, \""+word+"\" found.");
   }
-  in>>division;
+  in>>category;
 
   in>>word;
   if(word!="limit.time.problem.wc") {
@@ -241,7 +241,7 @@ CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
  * and the process terminates.
  *
  * The properties of the problem are in the @b property field.
- * The name of division (MZR, SMO or CYC) is in @b parent->division.
+ * The name of problem category (MZR, SMO or CYC) is in @b parent->category.
  *
  * If a slice contains sine_selection value different from off, theory axioms
  * will be selected using SInE from the common axioms included in the batch file
