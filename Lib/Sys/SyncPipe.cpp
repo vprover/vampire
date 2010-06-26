@@ -50,8 +50,9 @@ SyncPipe::SyncPipe()
   _istream->rdbuf()->pubsetbuf(0,0);
 
   //add the priviledges into the semaphore
-  _syncSemaphore.inc(0);
-  _syncSemaphore.inc(1);
+  _syncSemaphore.set(0,1);
+  _syncSemaphore.set(1,1);
+  //set the read-ahead byte to empty values
   _syncSemaphore.set(2,256);
 
   PipeList::push(this, s_instances);

@@ -172,10 +172,6 @@ void handleSignal (int sigNum)
   static bool haveSigInt = false;
   const char* signalDescription = signalToString(sigNum);
 
-  if(sigNum==SIGHUP) {
-    cout<<"SIGHUP received by "<<getpid()<<endl;
-  }
-
   switch (sigNum)
     {
     case SIGTERM:

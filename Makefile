@@ -63,6 +63,7 @@ CXXFLAGS = $(XFLAGS) -Wall -I.
 ################################################################
 
 VD_OBJ = Debug/Assertion.o\
+         Debug/Log.o\
          Debug/RuntimeStatistics.o\
          Debug/Tracer.o
 

@@ -77,7 +77,7 @@ private:
 
   bool runSchedule(const char** sliceCodes);
 
-  static void writerSIGHUPHandler(int sigNum) __attribute__((noreturn));
+  static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
   void runWriterChild() __attribute__((noreturn));
 
   void runChild(string slice, unsigned ds) __attribute__((noreturn));

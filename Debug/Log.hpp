@@ -57,7 +57,7 @@ f called
 #endif
 
 /**
-Controls whether logs sould be output.
+Controls whether logs should be output.
 
 Lines
 
@@ -74,6 +74,24 @@ enable it again.
 */
 
 #define LOGGING 1
+
+/**
+Controls whether logs should contain pid of the process.
+
+Lines
+
+#undef LOG_PID
+#define LOG_PID 1
+
+enable logging of the pid, and
+
+#undef LOG_PID
+#define LOG_PID 0
+
+disable it again.
+
+*/
+#define LOG_PID 0
 
 #if GLOBAL_LOGGING
 
@@ -94,16 +112,20 @@ LOG((1+1))
 rather than
 LOG(1+1)
 */
-#define LOG(X) if(LOGGING) { LOG_TARGET<<X<<endl; }
+#define LOG(X) if(LOGGING) { if(LOG_PID) { LOG_TARGET<<Debug::LOG_getpid()<<": "; } \
+			     LOG_TARGET<<X<<endl; }
 
-#define LOGV(X) if(LOGGING) { LOG_TARGET<<#X<<": "<<X<<endl; }
+#define LOGV(X) if(LOGGING) { if(LOG_PID) { LOG_TARGET<<Debug::LOG_getpid()<<": "; } \
+			      LOG_TARGET<<#X<<": "<<X<<endl; }
 
 #if VDEBUG
-#define LOGS(X) if(LOGGING) { LOG_TARGET<<X<<endl<<"Stack trace:"<<endl; \
+#define LOGS(X) if(LOGGING) { if(LOG_PID) { LOG_TARGET<<Debug::LOG_getpid()<<": "; } \
+			      LOG_TARGET<<X<<endl<<"Stack trace:"<<endl; \
 			      Debug::Tracer::printOnlyStack(LOG_TARGET); \
 			      LOG_TARGET<<endl; }
 #else
-#define LOGS(X) if(LOGGING) { LOG_TARGET<<X<<endl<<"Stack trace:"<<endl; \
+#define LOGS(X) if(LOGGING) { if(LOG_PID) { LOG_TARGET<<Debug::LOG_getpid()<<": "; } \
+			      LOG_TARGET<<X<<endl<<"Stack trace:"<<endl; \
 			      LOG_TARGET<<"# Stack trace is not supported when not in debug mode."<<endl; \
 			      LOG_TARGET<<endl; }
 #endif
@@ -115,5 +137,12 @@ LOG(1+1)
 #define LOGS(X)
 
 #endif
+
+namespace Debug
+{
+
+size_t LOG_getpid();
+
+}
 
 #endif // __Debug_Log__

@@ -23,6 +23,9 @@
 #undef LOGGING
 #define LOGGING 0
 
+#undef LOG_PID
+#define LOG_PID 1
+
 namespace Lib
 {
 namespace Sys

@@ -326,6 +326,9 @@ void CLTBProblem::perform()
   cout<<"writer pid "<<writerChildPid<<endl;
   cout.flush();
 
+  //when the pipe will be closed, we want the process to terminate properly
+  signal(SIGPIPE, &terminatingSignalHandler);
+
   //only the writer child is reading from the pipe (and it is now forked off)
   childOutputPipe.neverRead();
 
@@ -434,7 +437,9 @@ bool CLTBProblem::runSchedule(const char** sliceCodes)
   }
 
   while(parallelProcesses!=processesLeft) {
+    ASS_L(processesLeft, parallelProcesses);
     waitForChildAndExitWhenProofFound();
+    processesLeft++;
     Timer::syncClock();
   }
   return false;
@@ -475,7 +480,7 @@ void CLTBProblem::runWriterChild()
 {
   CALL("CLTBProblem::runWriterChild");
 
-  signal(SIGHUP, &writerSIGHUPHandler);
+  signal(SIGHUP, &terminatingSignalHandler);
   Timer::setTimeLimitEnforcement(false);
 
   //we're in the child that writes down the output of other children
@@ -497,7 +502,7 @@ void CLTBProblem::runWriterChild()
   System::terminateImmediately(0);
 }
 
-void CLTBProblem::writerSIGHUPHandler(int sigNum)
+void CLTBProblem::terminatingSignalHandler(int sigNum)
 {
   System::terminateImmediately(0);
 }
