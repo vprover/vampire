@@ -7,11 +7,12 @@
 #include "Portability.hpp"
 
 #include <stdlib.h>
-#ifdef _MSC_VER
+#if COMPILER_MSVC
 #  include <Winsock2.h>
 #  include <process.h>
 #else
 #  include <unistd.h>
+#  include <sys/prctl.h>
 #endif
 
 #include <cerrno>
@@ -307,6 +308,17 @@ void System::terminateImmediately(int resultStatus)
 {
   onTermination();
   _exit(resultStatus);
+}
+
+/**
+ * Make sure that the process will receive the SIGHUP signal
+ * when its parent process dies
+ *
+ * This setting is not passed to the child precesses created by fork().
+ */
+void System::registerForSIGHUPOnParentDeath()
+{
+  prctl(PR_SET_PDEATHSIG, SIGHUP);
 }
 
 string System::extractFileNameFromPath(string str)

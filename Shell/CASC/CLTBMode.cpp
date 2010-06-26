@@ -279,6 +279,8 @@ void CLTBProblem::perform()
 {
   CALL("CLTBProblem::perform");
 
+  System::registerForSIGHUPOnParentDeath();
+
   env.timer->reset();
   env.timer->start();
   env.timer->makeChildrenIncluded();
@@ -480,6 +482,7 @@ void CLTBProblem::runWriterChild()
 {
   CALL("CLTBProblem::runWriterChild");
 
+  System::registerForSIGHUPOnParentDeath();
   signal(SIGHUP, &terminatingSignalHandler);
   Timer::setTimeLimitEnforcement(false);
 
@@ -528,7 +531,10 @@ void CLTBProblem::runChild(Options& opt)
 {
   CALL("CLTBProblem::runChild");
 
+  System::registerForSIGHUPOnParentDeath();
+
   UIHelper::cascModeChild=true;
+
   int resultValue=1;
   env.timer->reset();
   env.timer->start();

@@ -41,6 +41,8 @@ public:
   static void onTermination();
   static void terminateImmediately(int resultStatus) __attribute__((noreturn));
 
+  static void registerForSIGHUPOnParentDeath();
+
   /**
    * Return the size of system physical memory in bytes
    */

@@ -63,6 +63,7 @@ get_retry:
   if(semid==-1 && errno==ENOSPC && !retrying) {
     retrying=true;
     system("ipcs -s | grep 0x00000000 | cut -d' ' -f2|xargs -n 1 ipcrm -s");
+    goto get_retry;
   }
   if(semid==-1) {
     SYSTEM_FAIL("Cannot create semaphore.",errno);
