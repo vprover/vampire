@@ -351,7 +351,7 @@ unsigned Signature::addNamePredicate (unsigned arity)
 {
   CALL("Signature::addNamePredicate");
 
-  string prefix("$n");
+  string prefix("sP");
   prefix+=env.options->namePrefix();
   for (;;) {
     string name = prefix + Int::toString(_lastName++);
@@ -371,7 +371,7 @@ unsigned Signature::addSkolemFunction (unsigned arity)
 {
   CALL("Signature::addSkolemFunction");
 
-  string prefix("$sk");
+  string prefix("sK");
   prefix+=env.options->namePrefix();
   for (;;) {
     string name = prefix + Int::toString(_lastSkolem++);

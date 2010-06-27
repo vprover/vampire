@@ -49,7 +49,7 @@ using namespace Lib::Sys;
  * In this function we:
  * 1) read the batch file
  * 2) load the common axioms and put them into a SInE selector
- * 3) run a child master process for each problem (sequantially)
+ * 3) run a child master process for each problem (sequentially)
  */
 void CLTBMode::perform()
 {
