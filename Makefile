@@ -384,9 +384,10 @@ vsat vsat_rel vsat_dbg: $(VSAT_OBJ) $(EXEC_DEF_PREREQ)
 clausify_src:
 	rm -rf clausify_src
 	mkdir clausify_src
-	mkdir clausify_src/Debug clausify_src/Indexing clausify_src/Inferences clausify_src/Kernel clausify_src/Lib clausify_src/Shell
-	cp $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP)) clausify_src
-	cp Makefile clausify_src
+	mkdir clausify_src/Debug clausify_src/Indexing clausify_src/Inferences clausify_src/Kernel clausify_src/Lib clausify_src/Lib/Sys clausify_src/SAT clausify_src/Saturation clausify_src/Shell clausify_src/Test
+	cp --parents $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) clausify_src
+	cp Makefile Makefile_depend clausify_src
+	cp --parents $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) |tr '\n' ' '|tr -d ':\\'|sed 's/\(^\| \)[^ ]\+\.\(o\|cpp\)//g' )) clausify_src 
 
 
 #vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
@@ -437,7 +438,7 @@ clean:
 	rm -rf obj
 
 depend:
-	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 Debug/*.cpp Lib/*.cpp Lib/Sys/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp UnitTests/*.cpp *.cpp
+	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 Debug/*.cpp Lib/*.cpp Lib/Sys/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp UnitTests/*.cpp *.cpp
 
 doc:
 	rm -fr doc/html
