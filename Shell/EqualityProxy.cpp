@@ -31,10 +31,6 @@ EqualityProxy::EqualityProxy()
   CALL("EqualityProxy::EqualityProxy");
   ASS_EQ(s_proxyPredicate,0);
 
-  //We want the ordering to take the proxy predicate into
-  //account, so we don't want it to be already created.
-  ASS(!Ordering::orderingCreated());
-
   switch (_opt) {
   case Options::EP_R:
   case Options::EP_RS:
@@ -47,7 +43,7 @@ EqualityProxy::EqualityProxy()
   default:
     ASSERTION_VIOLATION;
   }
-  string proxy("$$e");
+  string proxy("sQ1_eqProxy");
   bool added;
   unsigned predNum;
   for(;;) {
@@ -55,7 +51,7 @@ EqualityProxy::EqualityProxy()
     if(added) {
       break;
     }
-    proxy += "e";
+    proxy += "_";
   };
   s_proxyPredicate=predNum;
 }

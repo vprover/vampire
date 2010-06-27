@@ -97,7 +97,7 @@ string TPTP::toString (const Unit* unit)
 
   case Unit::CONJECTURE:
     negate = true;
-    kind = "conjecture";
+    kind = "negated_conjecture";
     break;
 
   default:

@@ -141,3 +141,30 @@ topLevelContinue: ;
   }
 
 }
+
+//this function is implemented here instead of Term.cpp to reduce object file dependency
+/** Return commutative term/literal argument order. */
+Term::ArgumentOrder Term::computeArgumentOrder() const
+{
+  ASS(shared());
+  ASS(commutative());
+  ASS_EQ(arity(),2);
+
+  Ordering* ord=Ordering::instance();
+  switch(ord->compare(*nthArgument(0), *nthArgument(1)))
+  {
+  case Ordering::GREATER:
+    return GREATER;
+  case Ordering::LESS:
+    return LESS;
+  case Ordering::EQUAL:
+    return EQUAL;
+  case Ordering::INCOMPARABLE:
+    return INCOMPARABLE;
+  case Ordering::GREATER_EQ:
+  case Ordering::LESS_EQ:
+  default:
+    NOT_IMPLEMENTED;
+  }
+}
+

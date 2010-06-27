@@ -188,6 +188,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/Limits.o\
          Saturation/LRS.o\
          Saturation/Otter.o\
+         Saturation/ProvingHelper.o\
          Saturation/SaturationAlgorithm_Construction.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/SaturationResult.o\
@@ -274,9 +275,6 @@ LIB_DEP = Indexing/TermSharing.o\
 		  Kernel/FormulaUnit.o\
 		  Kernel/FormulaVarIterator.o\
 		  Kernel/Inference.o\
-		  Kernel/KBO.o\
-		  Kernel/Ordering.o\
-		  Kernel/Ordering_Equality.o\
 		  Kernel/Signature.o\
 		  Kernel/SubformulaIterator.o\
 		  Kernel/Substitution.o\
@@ -285,18 +283,26 @@ LIB_DEP = Indexing/TermSharing.o\
 		  Kernel/Theory.o\
 		  Kernel/Unit.o\
 		  Saturation/ClauseContainer.o\
-		  Shell/EqualityProxy.o\
 		  Shell/Options.o\
 		  Shell/Statistics.o
 			  
+OTHER_CL_DEP = Inferences/InferenceEngine.o\
+			   Inferences/TautologyDeletionISE.o\
+			   Kernel/InferenceStore.o\
+			   SAT/SATClause.o\
+			   SAT/SATLiteral.o
+			   
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
+#VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VS_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(VT_OBJ) $(LIB_DEP)
 #VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) Global.o vampire.o
 VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
 VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
+VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
 VTEST_DEP = $(VAMP_BASIC) $(VUT_OBJ) Global.o vtest.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
@@ -341,6 +347,7 @@ $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 VAMPIRE_OBJ := $(addprefix $(CONF_ID)/, $(VAMPIRE_DEP))
 VCOMPIT_OBJ := $(addprefix $(CONF_ID)/, $(VCOMPIT_DEP))
 VLTB_OBJ := $(addprefix $(CONF_ID)/, $(VLTB_DEP))
+VCLAUSIFY_OBJ := $(addprefix $(CONF_ID)/, $(VCLAUSIFY_DEP))
 VTEST_OBJ := $(addprefix $(CONF_ID)/, $(VTEST_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 
@@ -365,11 +372,22 @@ vcompit: $(VCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
 vltb vltb_rel vltb_dbg: -lmemcached $(VLTB_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
+vclausify vclausify_rel vclausify_dbg: $(VCLAUSIFY_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD)
+
 vtest vtest_rel vtest_dbg: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vsat vsat_rel vsat_dbg: $(VSAT_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
+
+clausify_src:
+	rm -rf clausify_src
+	mkdir clausify_src
+	mkdir clausify_src/Debug clausify_src/Indexing clausify_src/Inferences clausify_src/Kernel clausify_src/Lib clausify_src/Shell
+	cp $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP)) clausify_src
+	cp Makefile clausify_src
+
 
 #vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
 ##	$(CXX) -static $(CXXFLAGS) $^ -o vground
@@ -425,7 +443,7 @@ doc:
 	rm -fr doc/html
 	doxygen config.doc
 
-.PHONY: doc depend clean
+.PHONY: doc depend clean clausify_src
 
 
 ###########################

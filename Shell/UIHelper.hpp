@@ -18,8 +18,6 @@ using namespace Kernel;
 class UIHelper {
 public:
   static UnitList* getInputUnits();
-  static void runVampireSaturation(ClauseIterator clauses);
-  static void runVampire(UnitList* units, Property* prop=0);
   static void outputResult(ostream& out);
 
   /**
@@ -43,8 +41,6 @@ public:
    */
   static bool cascModeChild;
 private:
-
-  static void runVampireSaturationImpl(ClauseIterator clauses);
 
   static bool s_haveConjecture;
 };

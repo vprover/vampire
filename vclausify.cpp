@@ -1,12 +1,9 @@
 /**
- * @file vampire.cpp. Implements the top-level procedures of Vampire.
+ * @file vclausify.cpp. Implements the main function for a separate executable that only performs clausification.
  */
 
 #include <string>
 #include <iostream>
-#include <ostream>
-#include <fstream>
-#include <csignal>
 
 #include "Debug/Tracer.hpp"
 
@@ -35,30 +32,15 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
-#include "Shell/CASC/CASCMode.hpp"
-#include "Shell/CASC/CLTBMode.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
-#include "Saturation/ProvingHelper.hpp"
 #include "Shell/Preprocess.hpp"
-#include "Shell/Refutation.hpp"
-#include "Shell/TheoryFinder.hpp"
-#include "Shell/TPTP.hpp"
-#include "Shell/TPTPLexer.hpp"
-#include "Shell/TPTPParser.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TPTP.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
-
-
-#if CHECK_LEAKS
-#include "Lib/MemoryLeak.hpp"
-#endif
-
-#define SPIDER 0
-#define SAVE_SPIDER_PROPERTIES 0
 
 using namespace Shell;
 using namespace SAT;
@@ -87,7 +69,7 @@ int vampireReturnValue = 1;
 ClauseIterator getProblemClauses()
 {
   CALL("getInputClauses");
-  
+
 
   UnitList* units=UIHelper::getInputUnits();
 
@@ -104,110 +86,6 @@ ClauseIterator getProblemClauses()
 
   return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
 }
-
-void doProving()
-{
-  CALL("doProving()");
-  ClauseIterator clauses=getProblemClauses();
-
-  ProvingHelper::runVampireSaturation(clauses);
-}
-
-/**
- * Read a problem and output profiling information about it.
- * @since 03/08/2008 Torrevieja
- */
-void profileMode()
-{
-  CALL("profileMode()");
-
-  Property property;
-  env.signature = new Kernel::Signature;
-  UnitList* units;
-  string inputFile = env.options->inputFile();
-  istream* input;
-  if(inputFile=="") {
-    input=&cin;
-  }
-  else {
-    input=new ifstream(inputFile.c_str());
-  }
-
-  TPTPLexer lexer(*input);
-  TPTPParser parser(lexer);
-  units = parser.units();
-  if(inputFile!="") {
-    delete static_cast<ifstream*>(input);
-    input=0;
-  }
-
-  property.scan(units);
-  TheoryFinder tf(units,&property);
-  Preprocess prepro(property,*env.options);
-  tf.search();
-
-  env.beginOutput();
-  env.out() << property.categoryString() << ' '
-       << property.props() << ' '
-       << property.atoms() << "\n";
-  env.endOutput();
-
-  //we have succeeded with the profile mode, so we'll terminate with zero return value
-  vampireReturnValue=0;
-} // profileMode
-
-void vampireMode()
-{
-  CALL("vampireMode()");
-
-  env.beginOutput();
-  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
-  env.endOutput();
-
-  doProving();
-
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
-} // vampireMode
-
-
-void spiderMode()
-{
-  CALL("spiderMode()");
-  bool noException=true;
-  try {
-    doProving();
-  }
-  catch(...) {
-    noException=false;
-  }
-
-  env.beginOutput();
-  if(noException) {
-    switch (env.statistics->terminationReason) {
-    case Statistics::REFUTATION:
-      reportSpiderStatus('+');
-      break;
-    case Statistics::TIME_LIMIT:
-    case Statistics::MEMORY_LIMIT:
-    case Statistics::UNKNOWN:
-    case Statistics::REFUTATION_NOT_FOUND:
-      reportSpiderStatus('?');
-      break;
-    case Statistics::SATISFIABLE:
-      reportSpiderStatus('-');
-      break;
-    default:
-      ASSERTION_VIOLATION;
-    }
-    env.statistics->print(env.out());
-  }
-  else {
-    reportSpiderFail();
-  }
-  env.endOutput();
-} // spiderMode
 
 void clausifyMode()
 {
@@ -257,81 +135,34 @@ int main(int argc, char* argv [])
 
   try {
     env.signature = new Kernel::Signature;
-    
+
+    env.options->setMode(Options::MODE_CLAUSIFY);
+
     // read the command line and interpret it
     Shell::CommandLine cl(argc,argv);
     cl.interpret(*env.options);
 
+    if(env.options->mode()!=Options::MODE_CLAUSIFY) {
+      USER_ERROR("Only the \"clausify\" mode is supported");
+    }
+
     Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
-    switch (env.options->mode())
-    {
-    case Options::MODE_GROUNDING:
-      USER_ERROR("Use the vground executable for grounding.");
-      break;
-    case Options::MODE_SPIDER:
-      spiderMode();
-      break;
-    case Options::MODE_CONSEQUENCE_FINDING:
-    case Options::MODE_VAMPIRE:
-      vampireMode();
-      break;
-    case Options::MODE_CASC:
-      if(Shell::CASC::CASCMode::perform(argc, argv)) {
-	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue=0;
-      }
-      break;
-    case Options::MODE_CASC_LTB:
-    {
-      Shell::CASC::CLTBMode ltbm;
-      ltbm.perform();
-      //we have processed the ltb batch file, so we can return zero
-      vampireReturnValue=0;
-      break;
-    }
-    case Options::MODE_CLAUSIFY:
-      clausifyMode();
-      break;
-    case Options::MODE_PROFILE:
-      profileMode();
-      break;
-    case Options::MODE_RULE:
-      USER_ERROR("Rule mode is not implemented");
-      break;
-    default:
-      USER_ERROR("Unsupported mode");
-    }
-#if CHECK_LEAKS
-    if (globUnitList) {
-      MemoryLeak leak;
-      leak.release(globUnitList);
-    }
-    delete env.signature;
-    env.signature = 0;
-#endif
+    clausifyMode();
+
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
   }
 #endif
   catch (UserErrorException& exception) {
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   }
   catch (Exception& exception) {
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     env.beginOutput();
     explainException(exception);
     env.statistics->print(env.out());
@@ -339,9 +170,6 @@ int main(int argc, char* argv [])
   }
   catch (std::bad_alloc& _) {
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     env.beginOutput();
     env.out() << "Insufficient system memory" << '\n';
     env.endOutput();

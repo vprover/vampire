@@ -25,6 +25,7 @@ UT_CREATE;
 #include "Lib/Sys/SyncPipe.hpp"
 
 #include "Shell/Options.hpp"
+#include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
@@ -33,6 +34,7 @@ UT_CREATE;
 using namespace Lib;
 using namespace Lib::Sys;
 using namespace Kernel;
+using namespace Saturation;
 using namespace Shell;
 
 void runChild(UnitList* units, string slice) __attribute__((noreturn));
@@ -63,7 +65,7 @@ void runChild(UnitList* units, string slice)
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
 
-  UIHelper::runVampire(units);
+  ProvingHelper::runVampire(units);
 
   //set return value to zero if we were successful
   if(env.statistics->terminationReason==Statistics::REFUTATION) {

@@ -25,6 +25,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Normalisation.hpp"
+#include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
@@ -42,6 +43,7 @@ namespace CASC
 using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
+using namespace Saturation;
 
 /**
  * This function runs the batch master process and spawns the child master processes
@@ -560,7 +562,7 @@ void CLTBProblem::runChild(Options& opt)
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
 
-  UIHelper::runVampire(probUnits, &property);
+  ProvingHelper::runVampire(probUnits, &property);
 
   //set return value to zero if we were successful
   if(env.statistics->terminationReason==Statistics::REFUTATION) {

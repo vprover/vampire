@@ -406,6 +406,7 @@ public:
   bool hasInterpretedConstants() const { return _hasInterpretedConstants; }
   void setInterpretedConstantsPresence(bool value) { _hasInterpretedConstants=value; }
 protected:
+  //this function is implemented in the Ordering.cpp file to reduce object file dependency
   ArgumentOrder computeArgumentOrder() const;
   unsigned computeDistinctVars() const;
 

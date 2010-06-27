@@ -28,6 +28,7 @@
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
+#include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 
@@ -131,7 +132,7 @@ void ForkingCM::childRun(Options& opt)
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
 
-  UIHelper::runVampire(_units, &_property);
+  ProvingHelper::runVampire(_units, &_property);
 
   //set return value to zero if we were successful
   if(env.statistics->terminationReason==Statistics::REFUTATION) {
