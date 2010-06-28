@@ -305,6 +305,29 @@ Formula FormulaBuilder::formula(const Predicate& p,const Term& t1,const Term& t2
   return _aux->atom(p,true,args,3);
 }
 
+AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a)
+{
+  CALL("FormulaBuilder::annotatedFormula");
+
+  Kernel::Unit::InputType it;
+  switch(a) {
+  case AXIOM:
+    it=Kernel::Unit::AXIOM;
+    break;
+  case ASSUMPTION:
+    it=Kernel::Unit::ASSUMPTION;
+    break;
+  case LEMMA:
+    it=Kernel::Unit::LEMMA;
+    break;
+  case CONJECTURE:
+    it=Kernel::Unit::CONJECTURE;
+    break;
+  }
+
+  return new Kernel::FormulaUnit(f, new Kernel::Inference(Kernel::Inference::INPUT), it);
+}
+
 //////////////////////////////
 // Wrapper implementation
 
@@ -318,23 +341,18 @@ Term::operator Kernel::TermList() const
   return TermList(content);
 }
 
-
-Formula::operator Kernel::FormulaUnit*() const
-{
-  CALL("Formula::operator Kernel::FormulaUnit *");
-
-  if(!unit) {
-    unit=new Kernel::FormulaUnit(form, new Kernel::Inference(Kernel::Inference::INPUT), Kernel::Unit::AXIOM);
-  }
-  return unit;
-}
-
 string Formula::toString() const
 {
   CALL("Formula::toString");
 
-  Unit* u=*this;
-  return TPTP::toString(u);
+  return TPTP::toString(form);
+}
+
+string AnnotatedFormula::toString() const
+{
+  CALL("AnnotatedFormula::toString");
+
+  return TPTP::toString(unit);
 }
 
 }
@@ -346,6 +364,12 @@ ostream& operator<< (ostream& str,const Api::Formula& f)
 {
   CALL("operator<< (ostream&,const Api::Formula&)");
   return str<<f.toString();
+}
+
+ostream& operator<< (ostream& str,const Api::AnnotatedFormula& af)
+{
+  CALL("operator<< (ostream&,const Api::AnnotatedFormula&)");
+  return str<<af.toString();
 }
 
 

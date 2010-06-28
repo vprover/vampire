@@ -42,6 +42,7 @@ typedef unsigned Function;
 typedef unsigned Predicate;
 class Term;
 class Formula;
+class AnnotatedFormula;
 
 class FormulaBuilder
 {
@@ -66,6 +67,19 @@ public:
     FORALL,
     EXISTS
   };
+
+  /** Annotation of formulas */
+  enum Annotation {
+    /** Axiom or derives from axioms */
+    AXIOM,
+    /** Assumption or derives from axioms and assumptions */
+    ASSUMPTION,
+    /** Lemma or derives from lemmas */
+    LEMMA,
+    /** Goal or derives from the goal */
+    CONJECTURE
+  };
+
 
   /** Create a variable
    * @param varName name of the variable. Must be a valid TPTP variable name, that is, start
@@ -127,6 +141,9 @@ public:
   /** build atom p(t1,t2,t2) */
   Formula formula(const Predicate& p,const Term& t1,const Term& t2,const Term& t3);
 
+  /** build an annotated formula (i.e. formula that is either axiom, goal, etc...) */
+  AnnotatedFormula annotatedFormula(Formula f, Annotation a);
+
 private:
   struct FBAux;
 
@@ -140,6 +157,7 @@ private:
 }
 
 std::ostream& operator<< (std::ostream& str,const Api::Formula& f);
+std::ostream& operator<< (std::ostream& str,const Api::AnnotatedFormula& f);
 
 //Now comes the implementation specific code
 
@@ -171,12 +189,23 @@ class Formula
 public:
   string toString() const;
 
-  operator Kernel::FormulaUnit*() const;
+  operator Kernel::Formula*() const { return form; }
 private:
-  Formula(Kernel::Formula* f)
-  : form(f), unit(0) {}
+  Formula(Kernel::Formula* f) : form(f) {}
   Kernel::Formula* form;
-  mutable Kernel::FormulaUnit* unit;
+
+  friend class FormulaBuilder;
+};
+
+class AnnotatedFormula
+{
+public:
+  string toString() const;
+
+  operator Kernel::FormulaUnit*() const { return unit; }
+private:
+  AnnotatedFormula(Kernel::FormulaUnit* fu) : unit(fu) {}
+  Kernel::FormulaUnit* unit;
 
   friend class FormulaBuilder;
 };
