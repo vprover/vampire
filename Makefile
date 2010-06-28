@@ -62,7 +62,8 @@ CXXFLAGS = $(XFLAGS) -Wall -I.
 
 ################################################################
 
-VAPI_OBJ = Api/FormulaBuilder.o
+VAPI_OBJ = Api/FormulaBuilder.o\
+		   Api/ResourceLimits.o
 
 VD_OBJ = Debug/Assertion.o\
          Debug/Log.o\
@@ -266,6 +267,7 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 		  UnitTests/tDHMap.o\
 		  UnitTests/tDHMultiset.o\
 		  UnitTests/tfork.o\
+		  UnitTests/tFormulaBuilderApi.o\
 		  UnitTests/tSkipList.o\
 		  UnitTests/tTwoVampires.o
 

@@ -134,8 +134,6 @@ int main(int argc, char* argv [])
   Lib::Random::setSeed(123456);
 
   try {
-    env.signature = new Kernel::Signature;
-
     env.options->setMode(Options::MODE_CLAUSIFY);
 
     // read the command line and interpret it

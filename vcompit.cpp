@@ -115,15 +115,6 @@ int main( int argc, char *argv[] )
   Lib::Random::resetSeed();
   Allocator::setMemoryLimit(1000000000); //memory limit set to 1g
 
-  Timer timer;
-  timer.start();
-  env.timer = &timer;
-  Shell::Options options;
-  env.options = &options;
-  env.signature = new Kernel::Signature;
-  Indexing::TermSharing sharing;
-  env.sharing = &sharing;
-
   env.options->setTimeLimitInDeciseconds(0);
 
   readSymbolTable(in);

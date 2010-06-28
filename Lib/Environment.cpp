@@ -11,6 +11,8 @@
 
 #include "Indexing/TermSharing.hpp"
 
+#include "Kernel/Signature.hpp"
+
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -51,6 +53,7 @@ Environment::Environment()
   options=new Options;
   statistics=new Statistics;
   timer=new Timer;
+  signature = new Signature;
   sharing=new TermSharing;
 
   timer->start();
@@ -63,6 +66,7 @@ Environment::~Environment()
 
 #if CHECK_LEAKS
   delete sharing;
+  delete signature;
   delete timer;
   delete statistics;
   delete options;

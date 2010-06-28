@@ -113,14 +113,6 @@ int main( int argc, char *argv[] )
   Lib::Random::resetSeed();
   Allocator::setMemoryLimit(1000000000); //memory limit set to 1g
 
-  Timer timer;
-//  timer.start();
-  env.timer = &timer;
-  env.signature = new Kernel::Signature;
-  Indexing::TermSharing sharing;
-  env.sharing = &sharing;
-
-
   readSymbolTable(in);
 
   Timer compitTimer;
@@ -180,7 +172,7 @@ int main( int argc, char *argv[] )
       compitTimer.stop();
     }
   printf("Total time:\t%d ms\nIndexing time:\t%d ms\n",
-	  timer.elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
+	  env.timer->elapsedMilliseconds(), compitTimer.elapsedMilliseconds());
 
   printf("ops:%d, +:%d, -:%d.\n",operations,insertions,deletions);
   return 0;

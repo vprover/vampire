@@ -71,7 +71,6 @@ void groundingMode()
   try {
     Property property;
 
-    env.signature = new Kernel::Signature;
     UnitList* units;
     {
       string inputFile = env.options->inputFile();

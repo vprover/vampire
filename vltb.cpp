@@ -270,8 +270,6 @@ int main(int argc, char* argv [])
   Lib::Random::setSeed(123456);
 
   try {
-    env.signature = new Kernel::Signature;
-    
     // read the command line and interpret it
     Shell::CommandLine cl(argc,argv);
     cl.interpret(*env.options);

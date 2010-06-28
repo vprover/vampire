@@ -5,6 +5,8 @@
 
 #include "Forwards.hpp"
 
+#include "Api/ResourceLimits.hpp"
+
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Exception.hpp"
@@ -49,16 +51,12 @@ int main(int argc, char* argv [])
 
   srand(1); //this is for the reproducibility
 
+  Api::ResourceLimits::disableLimits();
   System::setSignalHandlers();
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);
 
   try {
-    env.signature = new Kernel::Signature;
-
-    Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
-    Lib::Random::setSeed(env.options->randomSeed());
-    env.options->setTimeLimitInDeciseconds(60); //let's limit the time to kill the forked proceses, if there some remain
 
     if(argc==1) {
       UnitTesting::instance()->runAllTests(cout);

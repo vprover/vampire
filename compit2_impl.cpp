@@ -38,12 +38,6 @@ using namespace Indexing;
 
 void compitInit(unsigned symCnt, unsigned fnSymCnt)
 {
-  Timer timer;
-  timer.start();
-  env.timer = &timer;
-  env.signature = new Signature;
-  env.sharing = new TermSharing;
-
   Lib::Random::resetSeed();
   Allocator::setMemoryLimit(1000000000); //memory limit set to 1g
 

@@ -459,7 +459,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   }
   else {
     size_t newSize = _usedMemory+realSize;
-    if (newSize > _tolerated) {
+    if (_tolerated && newSize > _tolerated) {
       env.statistics->terminationReason = Shell::Statistics::MEMORY_LIMIT;
       //increase the limit, so that the exception can be handled properly.
       _tolerated=newSize+1000000;

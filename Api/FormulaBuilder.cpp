@@ -37,7 +37,13 @@ struct FormulaBuilder::FBAux
   Term term(const Function& f,const Term* args, unsigned arity)
   {
     CALL("FormulaBuilder::FormulaBuilder::FBAux::term");
-    ASS_EQ(arity, env.signature->functionArity(f));
+
+    if(f>=static_cast<unsigned>(env.signature->functions())) {
+      throw FormulaBuilderException("Function does not exist");
+    }
+    if(arity!=env.signature->functionArity(f)) {
+      throw FormulaBuilderException("Invalid function arity: "+env.signature->functionName(f));
+    }
 
     DArray<TermList> argArr;
     argArr.initFromArray(arity, args);
@@ -49,7 +55,13 @@ struct FormulaBuilder::FBAux
   Formula atom(const Predicate& p, bool positive, const Term* args, unsigned arity)
   {
     CALL("FormulaBuilder::FormulaBuilder::FBAux::atom");
-    ASS_EQ(arity, env.signature->predicateArity(p));
+
+    if(p>=static_cast<unsigned>(env.signature->predicates())) {
+      throw FormulaBuilderException("Predicate does not exist");
+    }
+    if(arity!=env.signature->predicateArity(p)) {
+      throw FormulaBuilderException("Invalid predicate arity: "+env.signature->predicateName(p));
+    }
 
     DArray<TermList> argArr;
     argArr.initFromArray(arity, args);

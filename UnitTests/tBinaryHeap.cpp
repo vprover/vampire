@@ -1,6 +1,4 @@
 
-#include <iostream>
-
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/Int.hpp"
 
