@@ -62,6 +62,8 @@ CXXFLAGS = $(XFLAGS) -Wall -I.
 
 ################################################################
 
+VAPI_OBJ = Api/FormulaBuilder.o
+
 VD_OBJ = Debug/Assertion.o\
          Debug/Log.o\
          Debug/RuntimeStatistics.o\
@@ -293,9 +295,9 @@ OTHER_CL_DEP = Inferences/InferenceEngine.o\
 			   SAT/SATLiteral.o
 			   
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VAMP_BASIC := $(VAPI_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
-VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VS_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
+VCLAUSIFY_BASIC := $(VAPI_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VS_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(VT_OBJ) $(LIB_DEP)
 #VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
@@ -333,7 +335,7 @@ obj:
 	-mkdir obj
 obj/%X: | obj
 	-mkdir $@
-	-cd $@ ; mkdir Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test UnitTests; cd .. 
+	-cd $@ ; mkdir Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test UnitTests; cd .. 
 
 #cancel the implicit rule
 %.o : %.cpp
@@ -384,7 +386,7 @@ vsat vsat_rel vsat_dbg: $(VSAT_OBJ) $(EXEC_DEF_PREREQ)
 clausify_src:
 	rm -rf clausify_src
 	mkdir clausify_src
-	mkdir clausify_src/Debug clausify_src/Indexing clausify_src/Inferences clausify_src/Kernel clausify_src/Lib clausify_src/Lib/Sys clausify_src/SAT clausify_src/Saturation clausify_src/Shell clausify_src/Test
+	mkdir clausify_src/Api clausify_src/Debug clausify_src/Indexing clausify_src/Inferences clausify_src/Kernel clausify_src/Lib clausify_src/Lib/Sys clausify_src/SAT clausify_src/Saturation clausify_src/Shell clausify_src/Test
 	cp --parents $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) clausify_src
 	cp Makefile Makefile_depend clausify_src
 	cp --parents $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) |tr '\n' ' '|tr -d ':\\'|sed 's/\(^\| \)[^ ]\+\.\(o\|cpp\)//g' )) clausify_src 
@@ -424,6 +426,7 @@ clausify_src:
 #	$(CXX) $(CXXFLAGS) $^ -o $@
 
 clean:
+	cd Api ; rm -f *.o *~ *.bak ; cd ..
 	cd Debug ; rm -f *.o *~ *.bak ; cd ..
 	cd Lib ; rm -f *.o *~ *.bak ; cd ..
 	cd Kernel ; rm -f *.o *~ *.bak ; cd ..
@@ -438,7 +441,7 @@ clean:
 	rm -rf obj
 
 depend:
-	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 Debug/*.cpp Lib/*.cpp Lib/Sys/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp UnitTests/*.cpp *.cpp
+	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 Api/*.cpp Debug/*.cpp Lib/*.cpp Lib/Sys/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp UnitTests/*.cpp *.cpp
 
 doc:
 	rm -fr doc/html
