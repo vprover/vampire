@@ -30,7 +30,6 @@ TEST_FUN(fbapi1)
   Formula rhs = api.formula(p,x,fx,fy); // p(X0,f(X0),f(X1))
 
   Formula result = api.formula(FormulaBuilder::IMP,lhs,rhs); // f(X0) = f(X1) => p(X0,f(X0),f(X1))
-  AnnotatedFormula ares = api.annotatedFormula(result, FormulaBuilder::ASSUMPTION);
 
 
   string formString=result.toString();
@@ -43,9 +42,13 @@ TEST_FUN(fbapi1)
   // example: output
   cout << formString << endl;
 
+  AnnotatedFormula ares = api.annotatedFormula(result, FormulaBuilder::ASSUMPTION);
   cout << endl << "Should print something like \"fof(u1,hypothesis,( f(X0) = f(X1) => p(X0,f(X0),f(X1)) )).\"" << endl;
-  // example: output
   cout << ares << endl;
+
+  AnnotatedFormula ares2 = api.annotatedFormula(result, FormulaBuilder::CONJECTURE);
+  cout << endl << "Should print something equivalent to \"fof(u1,conjecture,( f(X0) = f(X1) => p(X0,f(X0),f(X1)) )).\"" << endl;
+  cout << ares2 << endl;
 
 }
 

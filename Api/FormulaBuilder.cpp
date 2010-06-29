@@ -310,6 +310,7 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a)
   CALL("FormulaBuilder::annotatedFormula");
 
   Kernel::Unit::InputType it;
+  bool negate=false;
   switch(a) {
   case AXIOM:
     it=Kernel::Unit::AXIOM;
@@ -322,7 +323,12 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a)
     break;
   case CONJECTURE:
     it=Kernel::Unit::CONJECTURE;
+    negate=true;
     break;
+  }
+
+  if(negate) {
+    f=negation(Kernel::Formula::quantify(f));
   }
 
   return new Kernel::FormulaUnit(f, new Kernel::Inference(Kernel::Inference::INPUT), it);

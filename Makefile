@@ -353,15 +353,6 @@ VTEST_DEP = $(VAMP_BASIC) $(VUT_OBJ) Global.o vtest.o
 VAPI_DEP = $(API_OBJ) $(OTHER_API_DEP) Global.o dummy_main.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 #VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
-#SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
-#TEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_SubstitutionTree.o
-#RTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) Global.o test_retrieval.o
-#DHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMap.o
-#DHMSTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_DHMultiset.o
-#BHTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_BinaryHeap.o
-#SLTEST_OBJ = $(VD_OBJ) $(VL_OBJ) Global.o test_SkipList.o
-#ALLOCTEST_OBJ = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VT_OBJ) $(VSAT_OBJ) $(VS_OBJ) Global.o test_alloc.o
-#ALUCARD_OBJ = $(ALUC_BASIC) Global.o alucard.o
 
 all:#default make disabled
 

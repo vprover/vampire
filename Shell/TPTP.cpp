@@ -79,6 +79,14 @@ string TPTP::toString(const Formula* f)
   return "formula";
 }
 
+/**
+ * Output unit in TPTP format
+ *
+ * If the unit is a formula of type @b CONJECTURE, output the
+ * negation of Vampire's the internal representation with the
+ * TPTP role conjecture. If it is clause, just output it with
+ * the role negated_conjecture.
+ */
 string TPTP::toString (const Unit* unit)
 {
 
@@ -88,7 +96,7 @@ string TPTP::toString (const Unit* unit)
   string prefix;
   string main = "";
 
-  bool negate = false;
+  bool negate_formula = false;
   string kind;
   switch (unit->inputType()) {
   case Unit::ASSUMPTION:
@@ -96,8 +104,13 @@ string TPTP::toString (const Unit* unit)
     break;
 
   case Unit::CONJECTURE:
-    negate = true;
-    kind = "negated_conjecture";
+    if(unit->isClause()) {
+      kind = "negated_conjecture";
+    }
+    else {
+      negate_formula = true;
+      kind = "conjecture";
+    }
     break;
 
   default:
@@ -112,7 +125,27 @@ string TPTP::toString (const Unit* unit)
   else {
     prefix = "fof";
     const Formula* f = static_cast<const FormulaUnit*>(unit)->formula();
-    main = negate ? toString(f->uarg()) : toString(f);
+    if(negate_formula) {
+      if(f->connective()==NOT) {
+	main = toString(f->uarg());
+      }
+      else {
+	Formula* quant=Formula::quantify(const_cast<Formula*>(f));
+	Formula* neg=new NegatedFormula(quant);
+
+	main = toString(neg);
+
+	neg->destroy();
+	if(quant!=f) {
+	  ASS_EQ(quant->connective(),FORALL);
+	  static_cast<QuantifiedFormula*>(quant)->vars()->destroy();
+	  quant->destroy();
+	}
+      }
+    }
+    else {
+      main = toString(f);
+    }
   }
 
   return prefix + "(u" + Int::toString(unit->number()) + "," + kind + ",\n"
