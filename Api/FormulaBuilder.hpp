@@ -145,10 +145,11 @@ public:
   AnnotatedFormula annotatedFormula(Formula f, Annotation a);
 
 private:
-  struct FBAux;
+  //private and undefined operator= and copy constructor to avoid implicitly generated ones
+  FormulaBuilder(const FormulaBuilder&);
+  FormulaBuilder& operator=(const FormulaBuilder&);
 
-  /** indicates whether we shall check names of functions, predicates and variables */
-  bool _checkNames;
+  struct FBAux;
 
   /** structure with auxiliary data that do not need to appear in the header file */
   FBAux* _aux;
@@ -200,6 +201,8 @@ private:
 class AnnotatedFormula
 {
 public:
+  AnnotatedFormula() {}
+
   string toString() const;
 
   operator Kernel::FormulaUnit*() const { return unit; }

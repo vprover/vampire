@@ -63,6 +63,7 @@ CXXFLAGS = $(XFLAGS) -Wall -I.
 ################################################################
 
 API_OBJ = Api/FormulaBuilder.o\
+		  Api/Problem.o\
 		  Api/ResourceLimits.o
 
 VD_OBJ = Debug/Assertion.o\

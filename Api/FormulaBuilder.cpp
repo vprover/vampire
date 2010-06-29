@@ -70,6 +70,8 @@ struct FormulaBuilder::FBAux
     return new Kernel::AtomicFormula(lit);
   }
 
+  /** indicates whether we shall check names of functions, predicates and variables */
+  bool _checkNames;
   /** Map from variable namus to their numbers */
   Map<string,Var> vars;
   /** next available variable number */
@@ -77,11 +79,11 @@ struct FormulaBuilder::FBAux
 };
 
 FormulaBuilder::FormulaBuilder(bool checkNames)
-: _checkNames(checkNames)
 {
   CALL("FormulaBuilder::FormulaBuilder");
 
   _aux=new FBAux;
+  _aux->_checkNames=checkNames;
 }
 
 FormulaBuilder::~FormulaBuilder()
@@ -95,7 +97,7 @@ Var FormulaBuilder::var(const string& varName)
 {
   CALL("FormulaBuilder::var");
 
-  if(_checkNames) {
+  if(_aux->_checkNames) {
     if(!isupper(varName[0])) {
       throw InvalidTPTPNameException("Variable name must start with an uppercase character", varName);
     }
@@ -114,7 +116,7 @@ Function FormulaBuilder::function(const string& funName,unsigned arity)
 {
   CALL("FormulaBuilder::function");
 
-  if(_checkNames) {
+  if(_aux->_checkNames) {
     if(!islower(funName[0])) {
       throw InvalidTPTPNameException("Function name must start with a lowercase character", funName);
     }
@@ -128,7 +130,7 @@ Function FormulaBuilder::predicate(const string& predName,unsigned arity)
 {
   CALL("FormulaBuilder::predicate");
 
-  if(_checkNames) {
+  if(_aux->_checkNames) {
     if(!islower(predName[0])) {
       throw InvalidTPTPNameException("Predicate name must start with a lowercase character", predName);
     }
