@@ -62,8 +62,8 @@ CXXFLAGS = $(XFLAGS) -Wall -I.
 
 ################################################################
 
-VAPI_OBJ = Api/FormulaBuilder.o\
-		   Api/ResourceLimits.o
+API_OBJ = Api/FormulaBuilder.o\
+		  Api/ResourceLimits.o
 
 VD_OBJ = Debug/Assertion.o\
          Debug/Log.o\
@@ -295,11 +295,52 @@ OTHER_CL_DEP = Inferences/InferenceEngine.o\
 			   Kernel/InferenceStore.o\
 			   SAT/SATClause.o\
 			   SAT/SATLiteral.o
+
+OTHER_API_DEP = \
+			   Debug/Assertion.o\
+			   Debug/Tracer.o\
+			   Indexing/TermSharing.o\
+			   Kernel/BDD.o\
+			   Kernel/BDDClausifier.o\
+			   Kernel/Clause.o\
+			   Kernel/Formula.o\
+			   Kernel/FormulaUnit.o\
+			   Kernel/FormulaVarIterator.o\
+			   Kernel/Inference.o\
+			   Kernel/Signature.o\
+			   Kernel/SubformulaIterator.o\
+			   Kernel/Substitution.o\
+			   Kernel/Term.o\
+			   Kernel/TermIterators.o\
+			   Kernel/Theory.o\
+			   Kernel/Unit.o\
+			   Lib/Allocator.o\
+			   Lib/DHMap.o\
+			   Lib/Environment.o\
+			   Lib/Event.o\
+			   Lib/Exception.o\
+			   Lib/Hash.o\
+			   Lib/Int.o\
+			   Lib/MultiCounter.o\
+			   Lib/NameArray.o\
+			   Lib/Random.o\
+			   Lib/System.o\
+			   Lib/TimeCounter.o\
+			   Lib/Timer.o\
+			   Lib/Sys/Multiprocessing.o\
+			   Lib/Sys/Semaphore.o\
+			   Lib/Sys/SyncPipe.o\
+			   SAT/SATClause.o\
+			   SAT/SATLiteral.o\
+			   Saturation/ClauseContainer.o\
+			   Shell/Options.o\
+			   Shell/Statistics.o\
+			   Shell/TPTP.o\
 			   
 
-VAMP_BASIC := $(VAPI_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VAMP_BASIC := $(API_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
-VCLAUSIFY_BASIC := $(VAPI_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VS_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
+VCLAUSIFY_BASIC := $(API_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VS_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(VT_OBJ) $(LIB_DEP)
 #VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
@@ -309,6 +350,7 @@ VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
 VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
 VTEST_DEP = $(VAMP_BASIC) $(VUT_OBJ) Global.o vtest.o
+VAPI_DEP = $(API_OBJ) $(OTHER_API_DEP) Global.o dummy_main.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 #VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
 #SAT_OBJ = $(VD_OBJ) $(SAT) sat.o
@@ -354,6 +396,7 @@ VLTB_OBJ := $(addprefix $(CONF_ID)/, $(VLTB_DEP))
 VCLAUSIFY_OBJ := $(addprefix $(CONF_ID)/, $(VCLAUSIFY_DEP))
 VTEST_OBJ := $(addprefix $(CONF_ID)/, $(VTEST_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
+VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
 
 define COMPILE_CMD
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
@@ -385,13 +428,24 @@ vtest vtest_rel vtest_dbg: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
 vsat vsat_rel vsat_dbg: $(VSAT_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
+vapi vapi_dbg vapi_rel: $(VAPI_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD)
+
 clausify_src:
-	rm -rf clausify_src
-	mkdir clausify_src
-	mkdir clausify_src/Api clausify_src/Debug clausify_src/Indexing clausify_src/Inferences clausify_src/Kernel clausify_src/Lib clausify_src/Lib/Sys clausify_src/SAT clausify_src/Saturation clausify_src/Shell clausify_src/Test
-	cp --parents $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) clausify_src
-	cp Makefile Makefile_depend clausify_src
-	cp --parents $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) |tr '\n' ' '|tr -d ':\\'|sed 's/\(^\| \)[^ ]\+\.\(o\|cpp\)//g' )) clausify_src 
+	rm -rf $@
+	mkdir $@
+	mkdir $@/Api $@/Debug $@/Indexing $@/Inferences $@/Kernel $@/Lib $@/Lib/Sys $@/SAT $@/Saturation $@/Shell $@/Test
+	cp --parents $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) $@
+	cp Makefile Makefile_depend $@
+	cp --parents $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) |tr '\n' ' '|tr -d ':\\'|sed 's/\(^\| \)[^ ]\+\.\(o\|cpp\)//g' )) $@ 
+
+api_src:
+	rm -rf $@
+	mkdir $@
+	mkdir $@/Api $@/Debug $@/Indexing $@/Inferences $@/Kernel $@/Lib $@/Lib/Sys $@/SAT $@/Saturation $@/Shell $@/Test
+	cp --parents $(sort $(patsubst %.o,%.cpp,$(VAPI_DEP))) $@
+	cp Makefile Makefile_depend $@
+	cp --parents $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed 's/\(^\| \)[^ ]\+\.\(o\|cpp\)//g' )) $@ 
 
 
 #vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
@@ -449,7 +503,7 @@ doc:
 	rm -fr doc/html
 	doxygen config.doc
 
-.PHONY: doc depend clean clausify_src
+.PHONY: doc depend clean clausify_src api_src
 
 
 ###########################
