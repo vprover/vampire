@@ -56,6 +56,9 @@ endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS)
 endif
+ifneq (,$(filter libvapi,$(MAKECMDGOALS)))
+XFLAGS = -O6 -DVDEBUG=0 -fPIC
+endif
 
 CXX = g++
 CXXFLAGS = $(XFLAGS) -Wall -I.
@@ -352,6 +355,7 @@ VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
 VTEST_DEP = $(VAMP_BASIC) $(VUT_OBJ) Global.o vtest.o
 VAPI_DEP = $(API_OBJ) $(OTHER_API_DEP) Global.o dummy_main.o
+LIBVAPI_DEP = $(API_OBJ) $(OTHER_API_DEP) Global.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 #VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
 
@@ -389,6 +393,7 @@ VCLAUSIFY_OBJ := $(addprefix $(CONF_ID)/, $(VCLAUSIFY_DEP))
 VTEST_OBJ := $(addprefix $(CONF_ID)/, $(VTEST_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
+LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 
 define COMPILE_CMD
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
@@ -422,6 +427,9 @@ vsat vsat_rel vsat_dbg: $(VSAT_OBJ) $(EXEC_DEF_PREREQ)
 
 vapi vapi_dbg vapi_rel: $(VAPI_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
+
+libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
+	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,libvapi.so -o libvapi.so $(filter %.o, $^) -lc
 
 clausify_src:
 	rm -rf $@
