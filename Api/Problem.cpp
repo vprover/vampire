@@ -10,6 +10,25 @@
 
 #include "Lib/Exception.hpp"
 #include "Lib/List.hpp"
+#include "Lib/Stack.hpp"
+
+#include "Kernel/Clause.hpp"
+#include "Kernel/Unit.hpp"
+
+#include "Shell/CNF.hpp"
+#include "Shell/Flattening.hpp"
+#include "Shell/LispLexer.hpp"
+#include "Shell/LispParser.hpp"
+#include "Shell/Naming.hpp"
+#include "Shell/NNF.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Rectify.hpp"
+#include "Shell/Skolem.hpp"
+#include "Shell/SimplifyFalseTrue.hpp"
+#include "Shell/SimplifyProver.hpp"
+#include "Shell/TPTPLexer.hpp"
+#include "Shell/TPTPParser.hpp"
+
 
 namespace Api
 {
@@ -90,19 +109,6 @@ Problem::~Problem()
   _data->decRef();
 }
 
-void Problem::addFormula(AnnotatedFormula f)
-{
-  CALL("Problem::addFormula");
-
-  AFList::push(f,_data->_forms);
-}
-
-void Problem::addFromStream(istream s, string includeDirectory, bool simplifySyntax)
-{
-  CALL("Problem::addFromStream");
-
-}
-
 Problem Problem::clone()
 {
   CALL("Problem::clone");
@@ -112,13 +118,115 @@ Problem Problem::clone()
   return res;
 }
 
+void Problem::addFormula(AnnotatedFormula f)
+{
+  CALL("Problem::addFormula");
+
+  AFList::push(f,_data->_forms);
+}
+
+
+///////////////////////////////////////
+// Parsing
+
+void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySyntax)
+{
+  CALL("Problem::addFromStream");
+
+  using namespace Shell;
+
+  string originalInclude=env.options->include();
+  env.options->setInclude(includeDirectory);
+
+  Kernel::UnitList* units;
+  if(simplifySyntax) {
+    LispLexer lexer(s);
+    LispParser parser(lexer);
+    LispParser::Expression* expr = parser.parse();
+    SimplifyProver simplify;
+    units = simplify.units(expr);
+  }
+  else {
+    TPTPLexer lexer(s);
+    TPTPParser parser(lexer);
+    units = parser.units();
+  }
+
+  env.options->setInclude(originalInclude);
+
+  while(units) {
+    Kernel::Unit* u=Kernel::UnitList::pop(units);
+    addFormula(u);
+  }
+}
+
+
+///////////////////////////////////////
+// Clausification
+
+struct Problem::Clausifier
+{
+  Clausifier(Problem* res) : res(res), naming(env.options->naming()) {}
+
+  void clausify(Kernel::Unit* unit)
+  {
+    CALL("Problem__Clausifier::clausify");
+
+    using namespace Shell;
+
+    if(unit->isClause()) {
+      res->addFormula(unit);
+    }
+    unit = Rectify::rectify(unit);
+    unit = SimplifyFalseTrue::simplify(unit);
+    unit = Flattening::flatten(unit);
+    unit = NNF::ennf(unit);
+    unit = Flattening::flatten(unit);
+
+    Kernel::UnitList* newDefs;
+    unit = naming.apply(unit,newDefs);
+    while(newDefs) {
+      defs.push(Kernel::UnitList::pop(newDefs));
+    }
+
+    unit = NNF::nnf(unit);
+    unit = Flattening::flatten(unit);
+    unit = Skolem::skolemise(unit);
+
+    cnf.clausify(unit,auxClauseStack);
+    while (! auxClauseStack.isEmpty()) {
+      Unit* u = auxClauseStack.pop();
+      res->addFormula(u);
+    }
+  }
+
+  Problem* res;
+  Stack<Kernel::Unit*> defs;
+  Shell::CNF cnf;
+  Stack<Kernel::Clause*> auxClauseStack;
+  Shell::Naming naming;
+};
+
 Problem Problem::clausify()
 {
   CALL("Problem::clausify");
 
   Problem res;
 
-  NOT_IMPLEMENTED;
+  {
+    Clausifier clausifier(&res);
+
+    AnnotatedFormulaIterator fit=formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      clausifier.clausify(f);
+    }
+
+    //clausify also the introduced definitions
+    while(clausifier.defs.isNonEmpty()) {
+      clausifier.clausify(clausifier.defs.pop());
+    }
+  }
 
   return res;
 }
@@ -128,23 +236,53 @@ Problem Problem::clausify()
 
 bool AnnotatedFormulaIterator::hasNext()
 {
+  CALL("AnnotatedFormulaIterator::hasNext");
 
+  AFList** plst=static_cast<AFList**>(idata);
+
+  if(ready) {
+    return *plst;
+  }
+  //we need to advance to the next element of the list
+  ASS(*plst); //we're not at the end of the list
+  plst=(*plst)->tailPtr();
+  idata=plst;
+  ready=true;
+  return *plst;
 }
 
 AnnotatedFormula AnnotatedFormulaIterator::next()
 {
+  CALL("AnnotatedFormulaIterator::next");
 
+  AFList** plst=static_cast<AFList**>(idata);
+  ASS(ready);
+  ASS(*plst); //we're not at the end of the list
+  ready=false;
+  return (*plst)->head();
 }
 
 void AnnotatedFormulaIterator::del()
 {
+  CALL("AnnotatedFormulaIterator::del");
 
+  AFList** plst=static_cast<AFList**>(idata);
+  ASS(*plst); //we're not at the end of the list
+
+  AFList* removedLink=*plst;
+  *plst=removedLink->tail();
+  delete removedLink;
 }
 
 
 AnnotatedFormulaIterator Problem::formulas()
 {
+  CALL("Problem::formulas");
 
+  AnnotatedFormulaIterator res;
+  res.idata=&_data->_forms;
+  res.ready=true;
+  return res;
 }
 
 

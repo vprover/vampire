@@ -285,6 +285,7 @@ public:
   bool normalize() const { return _normalize; }
   void setNormalize(bool normalize) { _normalize = normalize; }
   string include() const { return _include; }
+  void setInclude(string val) { _include = val; }
   string includeFileName (const string& relativeName);
   string logFile() const { return _logFile; }
   string inputFile() const { return _inputFile; }

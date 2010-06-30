@@ -15,6 +15,24 @@
 namespace Api
 {
 
+#ifdef VAPI_LIBRARY
+
+//here we ensure that if Vampire is used as a library, we do not impose
+//any time or memory limit by default
+
+struct InitHelper
+{
+  InitHelper()
+  {
+    ResourceLimits::disableLimits();
+    std::cout<<"init\n";
+  }
+};
+
+InitHelper initializerAuxObject;
+
+#endif
+
 void ResourceLimits::setLimits(size_t memoryInBytes, int timeInDeciseconds)
 {
   CALL("ResourceLimits::setLimits");

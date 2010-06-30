@@ -27,6 +27,7 @@ public:
   /** delete the last returned formula from the problem */
   void del();
 private:
+  bool ready;
   void* idata;
 
   friend class Problem;
@@ -46,16 +47,6 @@ public:
   Problem& operator=(const Problem&);
   ~Problem();
 
-
-  void addFormula(AnnotatedFormula f);
-
-  /**
-   * Add formulas parsed from the stream @b s
-   * @param includeDirectory where the parser will look for included files
-   * @param simplifySyntax Simplify syntax will be used instead of the TPTP syntax.
-   */
-  void addFromStream(istream s, string includeDirectory="./", bool simplifySyntax=false);
-
   /**
    * Return a copy of the problem
    *
@@ -64,6 +55,16 @@ public:
    * To obtain a copy, this function must be used.
    */
   Problem clone();
+
+  void addFormula(AnnotatedFormula f);
+
+  /**
+   * Add formulas parsed from the stream @b s
+   * @param includeDirectory where the parser will look for included files
+   * @param simplifySyntax Simplify syntax will be used instead of the TPTP syntax.
+   */
+  void addFromStream(istream& s, string includeDirectory="./", bool simplifySyntax=false);
+
   Problem clausify();
 
   /**
@@ -76,6 +77,7 @@ public:
 
 private:
   class PData;
+  class Clausifier;
 
   PData* _data;
 };

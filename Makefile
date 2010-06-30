@@ -57,7 +57,7 @@ ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS)
 endif
 ifneq (,$(filter libvapi,$(MAKECMDGOALS)))
-XFLAGS = -O6 -DVDEBUG=0 -fPIC
+XFLAGS = -O6 -DVDEBUG=0 -DVAPI_LIBRARY=1 -fPIC
 endif
 
 CXX = g++
@@ -325,6 +325,7 @@ OTHER_API_DEP = \
 			   Lib/Exception.o\
 			   Lib/Hash.o\
 			   Lib/Int.o\
+			   Lib/IntNameTable.o\
 			   Lib/MultiCounter.o\
 			   Lib/NameArray.o\
 			   Lib/Random.o\
@@ -337,9 +338,24 @@ OTHER_API_DEP = \
 			   SAT/SATClause.o\
 			   SAT/SATLiteral.o\
 			   Saturation/ClauseContainer.o\
+			   Shell/CNF.o\
+			   Shell/Flattening.o\
+			   Shell/Lexer.o\
+			   Shell/LispLexer.o\
+			   Shell/LispParser.o\
+			   Shell/Naming.o\
+			   Shell/NNF.o\
 			   Shell/Options.o\
+			   Shell/Parser.o\
+			   Shell/Rectify.o\
+			   Shell/SimplifyFalseTrue.o\
+			   Shell/SimplifyProver.o\
+			   Shell/Skolem.o\
 			   Shell/Statistics.o\
+			   Shell/Token.o\
 			   Shell/TPTP.o\
+			   Shell/TPTPLexer.o\
+			   Shell/TPTPParser.o\
 			   
 
 VAMP_BASIC := $(API_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
@@ -431,6 +447,9 @@ vapi vapi_dbg vapi_rel: $(VAPI_OBJ) $(EXEC_DEF_PREREQ)
 libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
 	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,libvapi.so -o libvapi.so $(filter %.o, $^) -lc
 
+test_vapi: $(CONF_ID)/test_vapi.o $(EXEC_DEF_PREREQ)
+	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ -lvapi -L. -Wl,-R,\$$ORIGIN
+
 clausify_src:
 	rm -rf $@
 	mkdir $@
@@ -444,7 +463,7 @@ api_src:
 	mkdir $@
 	mkdir $@/Api $@/Debug $@/Indexing $@/Inferences $@/Kernel $@/Lib $@/Lib/Sys $@/SAT $@/Saturation $@/Shell $@/Test
 	cp --parents $(sort $(patsubst %.o,%.cpp,$(VAPI_DEP))) $@
-	cp Makefile Makefile_depend $@
+	cp Makefile Makefile_depend test_vapi.cpp $@
 	cp --parents $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed 's/\(^\| \)[^ ]\+\.\(o\|cpp\)//g' )) $@ 
 
 

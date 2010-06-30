@@ -167,12 +167,15 @@ namespace Kernel
 class Formula;
 class FormulaUnit;
 class TermList;
+class Unit;
 }
 
 namespace Api
 {
 
 using namespace std;
+
+class Problem;
 
 class Term
 {
@@ -205,12 +208,13 @@ public:
 
   string toString() const;
 
-  operator Kernel::FormulaUnit*() const { return unit; }
+  operator Kernel::Unit*() const { return unit; }
 private:
-  AnnotatedFormula(Kernel::FormulaUnit* fu) : unit(fu) {}
-  Kernel::FormulaUnit* unit;
+  AnnotatedFormula(Kernel::Unit* fu) : unit(fu) {}
+  Kernel::Unit* unit;
 
   friend class FormulaBuilder;
+  friend class Problem;
 };
 
 }
