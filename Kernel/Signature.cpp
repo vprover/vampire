@@ -438,7 +438,7 @@ bool Signature::needsQuoting(char c, bool first)
   case 'x':
   case 'y':
   case 'z':
-  case '$':
+//  case '$':
     return false;
   case 'A':
   case 'B':
