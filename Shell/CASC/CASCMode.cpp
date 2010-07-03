@@ -512,7 +512,7 @@ bool CASCMode::perform()
       quickSlices = quick;
       break;
     }
-    if (prop & 131072 == 0) {
+    if ((prop & 131072) == 0) {
       const char* quick[] = {
 	"dis+1011_3:2_bd=off:bs=off:bsr=on:nwc=2.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=reverse_arity_1",
 	"dis+1_6_bd=off:bs=off:lcm=predicate:nwc=1.5:nicw=on:sswsr=on:ss=included:st=1.5:sac=on:sp=occurrence_54",

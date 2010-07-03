@@ -263,23 +263,159 @@ void CLTBProblem::performStrategy()
 {
   CALL("CLTBProblem::performStrategy");
 
-  const char* quick[] = {
-      "lrs-1010_3_bd=off:bs=off:ep=on:fde=none:gsp=input_only:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sac=on:sgo=on:sio=off:spl=backtracking_379",
-      "lrs+1_1_bs=off:lcm=predicate:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sagn=off:sac=on:spl=backtracking:updr=off_144",
-      "dis+2_10_bs=off:cond=fast:fde=none:gsp=input_only:lcm=predicate:nwc=2.5:ptb=off:ssec=off:ss=included:sos=on:sgo=on:spl=backtracking:sp=reverse_arity:updr=off_557",
-      "dis+2_3_bs=off:ep=on:fde=none:nwc=4.0:ptb=off:ssec=off:ss=included:st=1.5:sos=on:sio=off:spl=off:sp=occurrence:updr=off_382",
-      "dis-1010_2_bs=off:ep=on:nwc=1.5:sswn=on:sswsr=on:ss=included:st=1.5:sgo=on:sp=occurrence_359",
-//      "lrs+11_5_cond=fast:fde=none:nwc=2.5:ptb=off:ss=included:sgo=on:spl=backtracking_35",
-//      "lrs-1010_3_bd=off:bs=off:ep=on:fde=none:gsp=input_only:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sac=on:sgo=on:sio=off:spl=backtracking_37",
-//      "lrs+1_1_bs=off:lcm=predicate:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sagn=off:sac=on:spl=backtracking:updr=off_14",
-//      "dis+2_10_bs=off:cond=fast:fde=none:gsp=input_only:lcm=predicate:nwc=2.5:ptb=off:ssec=off:ss=included:sos=on:sgo=on:spl=backtracking:sp=reverse_arity:updr=off_35",
-//      "dis+2_3_bs=off:ep=on:fde=none:nwc=4.0:ptb=off:ssec=off:ss=included:st=1.5:sos=on:sio=off:spl=off:sp=occurrence:updr=off_38",
-//      "dis-1010_2_bs=off:ep=on:nwc=1.5:sswn=on:sswsr=on:ss=included:st=1.5:sgo=on:sp=occurrence_35",
+  const char** quickSlices = 0;
+  unsigned atoms = property.atoms();
+  if (property.props() == 131087) {
+    if (atoms > 400000) {
+      const char* quick[] = {
+	"lrs+2_5:4_bms=on:cond=on:ep=on:flr=on:fde=none:lcm=reverse:nwc=1.5:nicw=on:sswn=on:stl=60:sd=2:ss=axioms:st=1.5:sos=on:sgo=on:spo=on:sfv=off:sp=reverse_arity:updr=off_45",
+	"lrs-1_2:3_bsr=on:bms=on:ep=RST:fde=none:nwc=10:stl=60:sd=1:ss=included:sos=on:sio=off:sfv=off:updr=off_40",
+	"lrs+1002_2_bd=off:bs=off:bsr=unit_only:bms=on:cond=on:ep=on:fde=none:gsp=input_only:lcm=reverse:nwc=3:nicw=on:sswn=on:stl=60:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sgo=on:sio=off:sfv=off:updr=off_51",
+	"lrs+2_1_drc=off:ecs=on:ep=on:gsp=input_only:lcm=predicate:nwc=1:ssec=off:stl=60:sd=2:ss=axioms:st=1.2:sos=on:sfv=off:sp=occurrence_50",
+	"dis-1010_5:4_bms=on:cond=fast:ep=on:flr=on:fde=none:nwc=5:nicw=on:sd=2:ss=axioms:sos=on:sac=on:spo=on:sfv=off_46",
+	"lrs+1002_10_bd=off:bs=off:bsr=unit_only:ecs=on:gsp=input_only:lcm=reverse:nwc=1.2:nicw=on:ssec=off:stl=30:sd=1:ss=included:st=1.2:sos=on:sio=off:spl=off:sfv=off_45",
+	"dis-1010_1_bd=off:bs=unit_only:bsr=on:bms=on:cond=fast:ep=on:fde=none:gsp=input_only:nwc=1.1:ssec=off:sd=1:ss=axioms:sac=on:sgo=on:sio=off:sp=occurrence:updr=off_42",
+	"dis+3_4_bs=unit_only:bsr=on:drc=off:ep=RST:fsr=off:nwc=1.3:ssec=off:sd=1:ss=axioms:st=1.2:sos=on:sgo=on:sfv=off_82",
+	"dis+1_6_bs=unit_only:bsr=on:drc=off:flr=on:gsp=input_only:lcm=predicate:nwc=1.3:sswn=on:sswsr=on:sd=1:ss=included:st=1.5:spo=on_168",
+	"dis-1010_5:1_bd=off:bsr=on:drc=off:ep=on:fde=none:nwc=1.1:ptb=off:ssec=off:sd=1:ss=included:sagn=off:sac=on:sgo=on:sio=off:sfv=off:sp=occurrence_125",
+	"dis+2_5:4_bd=off:bs=unit_only:bsr=unit_only:ep=on:nwc=1.2:ssec=off:sd=1:ss=included:st=3.0:sos=on:spo=on:sp=occurrence_458",
+	"lrs-2_128_bd=off:bs=off:drc=off:ep=R:gsp=input_only:lcm=predicate:nwc=1.5:nicw=on:sswn=on:stl=30:sd=7:ss=axioms:st=1.2:sos=on_255",
+	0
+      };
+      quickSlices = quick;
+    }
+    else if (atoms >= 200000) {
+      const char* quick[] = {
+	"lrs+2_1_drc=off:ecs=on:ep=on:gsp=input_only:lcm=predicate:nwc=1:ssec=off:stl=60:sd=2:ss=axioms:st=1.2:sos=on:sfv=off:sp=occurrence_48",
+	"lrs-1_2:3_bsr=on:bms=on:ep=RST:fde=none:nwc=10:stl=60:sd=1:ss=included:sos=on:sio=off:sfv=off:updr=off_23",
+	"lrs-4_1_bsr=on:bms=on:ecs=on:flr=on:gsp=input_only:lcm=predicate:nicw=on:ssec=off:stl=60:sd=1:ss=axioms:st=1.2:sos=on:sac=on:sgo=on:spo=on:sfv=off:sp=occurrence_28",
+	"lrs-2_128_bd=off:bs=off:drc=off:ep=R:gsp=input_only:lcm=predicate:nwc=1.5:nicw=on:sswn=on:stl=30:sd=7:ss=axioms:st=1.2:sos=on_22",
+	"dis-1004_40_bd=off:bms=on:drc=off:fde=none:lcm=reverse:nwc=1.1:nicw=on:sd=1:ss=axioms:st=5.0:sos=on:sgo=on:sp=reverse_arity_24",
+	"dis+2_5:4_bd=off:bs=unit_only:bsr=unit_only:ep=on:nwc=1.2:ssec=off:sd=1:ss=included:st=3.0:sos=on:spo=on:sp=occurrence_177",
+	"lrs-10_5:4_bd=off:bs=off:bsr=on:cond=fast:drc=off:flr=on:gsp=input_only:nwc=1:ptb=off:ssec=off:stl=30:sd=3:ss=axioms:sos=on:sac=on:sio=off:spo=on:spl=backtracking:sp=reverse_arity_29",
+	"dis-1_14_bd=off:bsr=unit_only:bms=on:ep=RST:gsp=input_only:lcm=reverse:nwc=3:nicw=on:sswsr=on:sd=1:ss=included:sos=on:spo=on:sp=reverse_arity_34",
+	"dis+1_6_bs=unit_only:bsr=on:drc=off:flr=on:gsp=input_only:lcm=predicate:nwc=1.3:sswn=on:sswsr=on:sd=1:ss=included:st=1.5:spo=on_395",
+	"lrs+2_5:4_bms=on:cond=on:ep=on:flr=on:fde=none:lcm=reverse:nwc=1.5:nicw=on:sswn=on:stl=60:sd=2:ss=axioms:st=1.5:sos=on:sgo=on:spo=on:sfv=off:sp=reverse_arity:updr=off_500",
+	"dis-1003_3:1_bd=off:bs=unit_only:bsr=unit_only:cond=on:ep=RST:gsp=input_only:lcm=predicate:nwc=3:ptb=off:ssec=off:sd=1:ss=included:st=1.2:sos=on:sagn=off:sac=on:swb=on:sfv=off:sp=occurrence_443",
+	"lrs+1011_5:1_bd=off:cond=fast:fde=none:lcm=reverse:nwc=10:nicw=on:ptb=off:ssec=off:stl=60:sos=on:sgo=on:sio=off:spl=backtracking:sfv=off:sp=occurrence:updr=off_359",
+	"dis-1010_5:1_bd=off:bsr=on:drc=off:ep=on:fde=none:nwc=1.1:ptb=off:ssec=off:sd=1:ss=included:sagn=off:sac=on:sgo=on:sio=off:sfv=off:sp=occurrence_24",
+	0
+      };
+      quickSlices = quick;
+    }
+    else if (atoms >= 130000) {
+      const char* quick[] = {
+	"dis+1_6_bs=unit_only:bsr=on:drc=off:flr=on:gsp=input_only:lcm=predicate:nwc=1.3:sswn=on:sswsr=on:sd=1:ss=included:st=1.5:spo=on_104",
+	"dis-1010_1_bd=off:bs=unit_only:bsr=on:bms=on:cond=fast:ep=on:fde=none:gsp=input_only:nwc=1.1:ssec=off:sd=1:ss=axioms:sac=on:sgo=on:sio=off:sp=occurrence:updr=off_10",
+	"lrs+11_2:3_bs=off:cond=fast:ecs=on:ep=on:fsr=off:fde=none:lcm=predicate:nwc=5:nicw=on:ssec=off:stl=30:sd=1:ss=axioms:sio=off:spo=on:sp=reverse_arity:updr=off_13",
+	"dis-1010_5:1_bd=off:bsr=on:drc=off:ep=on:fde=none:nwc=1.1:ptb=off:ssec=off:sd=1:ss=included:sagn=off:sac=on:sgo=on:sio=off:sfv=off:sp=occurrence_45",
+	"lrs+2_5:4_bms=on:cond=on:ep=on:flr=on:fde=none:lcm=reverse:nwc=1.5:nicw=on:sswn=on:stl=60:sd=2:ss=axioms:st=1.5:sos=on:sgo=on:spo=on:sfv=off:sp=reverse_arity:updr=off_14",
+	"dis-3_2:3_bd=off:bs=off:cond=fast:ep=RST:fsr=off:gsp=input_only:nwc=2:ssec=off:sd=2:ss=included:st=1.5:sos=on:sgo=on:sio=off:updr=off_18",
+	"dis+1004_2:1_bd=off:bs=off:bsr=unit_only:ep=on:fsr=off:fde=none:gsp=input_only:lcm=reverse:nwc=1:sswn=on:sd=1:ss=included:st=3.0:sos=on:sagn=off:sfv=off:sp=reverse_arity_10",
+	"dis-1010_5:4_bms=on:cond=fast:ep=on:flr=on:fde=none:nwc=5:nicw=on:sd=2:ss=axioms:sos=on:sac=on:spo=on:sfv=off_46",
+	"lrs-1_2:3_bsr=on:bms=on:ep=RST:fde=none:nwc=10:stl=60:sd=1:ss=included:sos=on:sio=off:sfv=off:updr=off_11",
+	"lrs+2_1_drc=off:ecs=on:ep=on:gsp=input_only:lcm=predicate:nwc=1:ssec=off:stl=60:sd=2:ss=axioms:st=1.2:sos=on:sfv=off:sp=occurrence_64",
+	"dis+3_4_bs=unit_only:bsr=on:drc=off:ep=RST:fsr=off:nwc=1.3:ssec=off:sd=1:ss=axioms:st=1.2:sos=on:sgo=on:sfv=off_19",
+	"dis-1010_5_bd=off:bs=off:cond=fast:ep=on:fde=none:lcm=predicate:nwc=1.3:nicw=on:ptb=off:ssec=off:sos=on:sac=on:sgo=on:sio=off:spl=backtracking:updr=off_350",
+	"dis+2_5:4_bd=off:bs=unit_only:bsr=unit_only:ep=on:nwc=1.2:ssec=off:sd=1:ss=included:st=3.0:sos=on:spo=on:sp=occurrence_181",
+	"lrs-1010_3_bd=off:bs=off:ep=on:fde=none:gsp=input_only:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sac=on:sgo=on:sio=off:spl=backtracking_439",
+	"lrs+10_1_bs=off:cond=fast:ep=on:lcm=predicate:stl=60:sos=on:updr=off_565",
+	0
+      };
+      quickSlices = quick;
+    }
+    else if (atoms >= 85000) {
+      const char* quick[] = {
+	"lrs-2_128_bd=off:bs=off:drc=off:ep=R:gsp=input_only:lcm=predicate:nwc=1.5:nicw=on:sswn=on:stl=30:sd=7:ss=axioms:st=1.2:sos=on_8",
+	"lrs-1_2:3_bsr=on:bms=on:ep=RST:fde=none:nwc=10:stl=60:sd=1:ss=included:sos=on:sio=off:sfv=off:updr=off_12",
+	"lrs-10_5:4_bd=off:bs=off:bsr=on:cond=fast:drc=off:flr=on:gsp=input_only:nwc=1:ptb=off:ssec=off:stl=30:sd=3:ss=axioms:sos=on:sac=on:sio=off:spo=on:spl=backtracking:sp=reverse_arity_10",
+	"lrs+2_1_drc=off:ecs=on:ep=on:gsp=input_only:lcm=predicate:nwc=1:ssec=off:stl=60:sd=2:ss=axioms:st=1.2:sos=on:sfv=off:sp=occurrence_48",
+	"dis-1010_1_bd=off:bs=unit_only:bsr=on:bms=on:cond=fast:ep=on:fde=none:gsp=input_only:nwc=1.1:ssec=off:sd=1:ss=axioms:sac=on:sgo=on:sio=off:sp=occurrence:updr=off_6",
+	"lrs+1011_5:1_bd=off:cond=fast:fde=none:lcm=reverse:nwc=10:nicw=on:ptb=off:ssec=off:stl=60:sos=on:sgo=on:sio=off:spl=backtracking:sfv=off:sp=occurrence:updr=off_197",
+	"dis-1003_3:1_bd=off:bs=unit_only:bsr=unit_only:cond=on:ep=RST:gsp=input_only:lcm=predicate:nwc=3:ptb=off:ssec=off:sd=1:ss=included:st=1.2:sos=on:sagn=off:sac=on:swb=on:sfv=off:sp=occurrence_366",
+	"lrs+10_1_bs=off:cond=fast:ep=on:lcm=predicate:stl=60:sos=on:updr=off_354",
+	"dis+2_10_bs=off:cond=fast:fde=none:gsp=input_only:lcm=predicate:nwc=2.5:ptb=off:ssec=off:ss=included:sos=on:sgo=on:spl=backtracking:sp=reverse_arity:updr=off_512",
+	"dis-1_14_bd=off:bsr=unit_only:bms=on:ep=RST:gsp=input_only:lcm=reverse:nwc=3:nicw=on:sswsr=on:sd=1:ss=included:sos=on:spo=on:sp=reverse_arity_8",
+	0
+      };
+      quickSlices = quick;
+    }
+    else if (atoms >= 21000) {
+      const char* quick[] = {
+	"lrs-1_2:3_bsr=on:bms=on:ep=RST:fde=none:nwc=10:stl=60:sd=1:ss=included:sos=on:sio=off:sfv=off:updr=off_6",
+	"lrs+2_1_drc=off:ecs=on:ep=on:gsp=input_only:lcm=predicate:nwc=1:ssec=off:stl=60:sd=2:ss=axioms:st=1.2:sos=on:sfv=off:sp=occurrence_17",
+	"lrs-10_5:4_bd=off:bs=off:bsr=on:cond=fast:drc=off:flr=on:gsp=input_only:nwc=1:ptb=off:ssec=off:stl=30:sd=3:ss=axioms:sos=on:sac=on:sio=off:spo=on:spl=backtracking:sp=reverse_arity_9",
+	"dis+1_6_bs=unit_only:bsr=on:drc=off:flr=on:gsp=input_only:lcm=predicate:nwc=1.3:sswn=on:sswsr=on:sd=1:ss=included:st=1.5:spo=on_42",
+	"lrs-2_128_bd=off:bs=off:drc=off:ep=R:gsp=input_only:lcm=predicate:nwc=1.5:nicw=on:sswn=on:stl=30:sd=7:ss=axioms:st=1.2:sos=on_4",
+	"dis-1004_40_bd=off:bms=on:drc=off:fde=none:lcm=reverse:nwc=1.1:nicw=on:sd=1:ss=axioms:st=5.0:sos=on:sgo=on:sp=reverse_arity_10",
+	"dis-1010_5:1_bd=off:bsr=on:drc=off:ep=on:fde=none:nwc=1.1:ptb=off:ssec=off:sd=1:ss=included:sagn=off:sac=on:sgo=on:sio=off:sfv=off:sp=occurrence_35",
+	"lrs+2_5:4_bms=on:cond=on:ep=on:flr=on:fde=none:lcm=reverse:nwc=1.5:nicw=on:sswn=on:stl=60:sd=2:ss=axioms:st=1.5:sos=on:sgo=on:spo=on:sfv=off:sp=reverse_arity:updr=off_45",
+	"dis-3_128_bd=off:bsr=unit_only:bms=on:ecs=on:ep=R:fsr=off:fde=none:nwc=1.3:ssec=off:sd=1:ss=included:st=2.0:sos=on:spo=on:sp=reverse_arity_6",
+	"lrs-4_1_bsr=on:bms=on:ecs=on:flr=on:gsp=input_only:lcm=predicate:nicw=on:ssec=off:stl=60:sd=1:ss=axioms:st=1.2:sos=on:sac=on:sgo=on:spo=on:sfv=off:sp=occurrence_16",
+	"dis-1010_5:4_bms=on:cond=fast:ep=on:flr=on:fde=none:nwc=5:nicw=on:sd=2:ss=axioms:sos=on:sac=on:spo=on:sfv=off_40",
+	"dis+2_5:4_bd=off:bs=unit_only:bsr=unit_only:ep=on:nwc=1.2:ssec=off:sd=1:ss=included:st=3.0:sos=on:spo=on:sp=occurrence_184",
+	"dis-1010_5_bd=off:bs=off:cond=fast:ep=on:fde=none:lcm=predicate:nwc=1.3:nicw=on:ptb=off:ssec=off:sos=on:sac=on:sgo=on:sio=off:spl=backtracking:updr=off_119",
+	"lrs+10_1_bs=off:cond=fast:ep=on:lcm=predicate:stl=60:sos=on:updr=off_94",
+	"lrs+11_14_bd=off:bs=off:bsr=on:cond=on:drc=off:fsr=off:fde=none:gsp=input_only:lcm=reverse:nwc=10:ptb=off:ssec=off:stl=60:sos=on:sgo=on:sio=off:spl=backtracking:sfv=off:sp=reverse_arity_96",
+	"dis+2_10_bs=off:cond=fast:fde=none:gsp=input_only:lcm=predicate:nwc=2.5:ptb=off:ssec=off:ss=included:sos=on:sgo=on:spl=backtracking:sp=reverse_arity:updr=off_351",
+	0
+      };
+      quickSlices = quick;
+    }
+    else {
+      const char* quick[] = {
+	"lrs+1002_2_bd=off:bs=off:bsr=unit_only:bms=on:cond=on:ep=on:fde=none:gsp=input_only:lcm=reverse:nwc=3:nicw=on:sswn=on:stl=60:sd=1:ss=axioms:st=5.0:sos=on:sac=on:sgo=on:sio=off:sfv=off:updr=off_3",
+	"dis-3_2:3_bd=off:bs=off:cond=fast:ep=RST:fsr=off:gsp=input_only:nwc=2:ssec=off:sd=2:ss=included:st=1.5:sos=on:sgo=on:sio=off:updr=off_3",
+	"dis+1004_2:1_bd=off:bs=off:bsr=unit_only:ep=on:fsr=off:fde=none:gsp=input_only:lcm=reverse:nwc=1:sswn=on:sd=1:ss=included:st=3.0:sos=on:sagn=off:sfv=off:sp=reverse_arity_9",
+	"lrs-10_5:4_bd=off:bs=off:bsr=on:cond=fast:drc=off:flr=on:gsp=input_only:nwc=1:ptb=off:ssec=off:stl=30:sd=3:ss=axioms:sos=on:sac=on:sio=off:spo=on:spl=backtracking:sp=reverse_arity_2",
+	"dis+1_6_bs=unit_only:bsr=on:drc=off:flr=on:gsp=input_only:lcm=predicate:nwc=1.3:sswn=on:sswsr=on:sd=1:ss=included:st=1.5:spo=on_6",
+	"dis-1004_40_bd=off:bms=on:drc=off:fde=none:lcm=reverse:nwc=1.1:nicw=on:sd=1:ss=axioms:st=5.0:sos=on:sgo=on:sp=reverse_arity_6",
+	"lrs+2_5:4_bms=on:cond=on:ep=on:flr=on:fde=none:lcm=reverse:nwc=1.5:nicw=on:sswn=on:stl=60:sd=2:ss=axioms:st=1.5:sos=on:sgo=on:spo=on:sfv=off:sp=reverse_arity:updr=off_49",
+	"dis+11_1_bs=unit_only:ep=R:fde=none:lcm=predicate:nwc=1.3:nicw=on:ptb=off:ssec=off:sd=2:ss=axioms:sos=on:sagn=off:sgo=on:sio=off:spl=backtracking:sp=occurrence:updr=off_21",
+	"lrs-4_1_bsr=on:bms=on:ecs=on:flr=on:gsp=input_only:lcm=predicate:nicw=on:ssec=off:stl=60:sd=1:ss=axioms:st=1.2:sos=on:sac=on:sgo=on:spo=on:sfv=off:sp=occurrence_6",
+	"dis+3_4_bs=unit_only:bsr=on:drc=off:ep=RST:fsr=off:nwc=1.3:ssec=off:sd=1:ss=axioms:st=1.2:sos=on:sgo=on:sfv=off_9",
+	"dis-1010_5_bd=off:bs=off:cond=fast:ep=on:fde=none:lcm=predicate:nwc=1.3:nicw=on:ptb=off:ssec=off:sos=on:sac=on:sgo=on:sio=off:spl=backtracking:updr=off_361",
+	"dis+2_5:4_bd=off:bs=unit_only:bsr=unit_only:ep=on:nwc=1.2:ssec=off:sd=1:ss=included:st=3.0:sos=on:spo=on:sp=occurrence_189",
+	"dis+2_10_bs=off:cond=fast:fde=none:gsp=input_only:lcm=predicate:nwc=2.5:ptb=off:ssec=off:ss=included:sos=on:sgo=on:spl=backtracking:sp=reverse_arity:updr=off_381",
+	"dis-1003_3:1_bd=off:bs=unit_only:bsr=unit_only:cond=on:ep=RST:gsp=input_only:lcm=predicate:nwc=3:ptb=off:ssec=off:sd=1:ss=included:st=1.2:sos=on:sagn=off:sac=on:swb=on:sfv=off:sp=occurrence_419",
+	"dis-2_64_bd=off:bs=unit_only:bsr=on:drc=off:flr=on:fde=none:gsp=input_only:lcm=predicate:nwc=1.7:ptb=off:ssec=off:sd=1:ss=included:sos=on:sio=off:sfv=off_3",
+	"lrs+10_1_bs=off:cond=fast:ep=on:lcm=predicate:stl=60:sos=on:updr=off_185",
+	0
+      };
+      quickSlices = quick;
+    }
+  }
+  else {
+    const char* quick[] = {
+      "dis+1011_3_bs=off:cond=fast:gsp=input_only:lcm=predicate:nwc=1.5:nicw=on:ssec=off:sos=on:spo=on:sp=reverse_arity_2",
+      "dis+1011_3:2_bd=off:bs=off:bsr=on:nwc=2.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=reverse_arity_16",
+      "lrs-1010_4_bd=off:bs=off:ep=on:fde=none:nwc=4.0:ptb=off:ssec=off:stl=60:ss=axioms:st=2.0:sos=on:spo=on:spl=backtracking:sp=occurrence_3",
+      "lrs+1002_5:4_bs=off:flr=on:fde=none:gsp=input_only:nwc=2.0:ptb=off:ssec=off:stl=30:sac=on:sgo=on:sio=off:spl=backtracking_5",
+      "dis+1_6_bd=off:bs=off:lcm=predicate:nwc=1.5:nicw=on:sswsr=on:ss=included:st=1.5:sac=on:sp=occurrence_28",
+      "lrs+1011_5:1_bd=off:cond=fast:fde=none:lcm=reverse:nwc=10:nicw=on:ptb=off:ssec=off:stl=60:sos=on:sgo=on:sio=off:spl=backtracking:sfv=off:sp=occurrence:updr=off_1",
+      "dis+1003_8_bms=on:ecs=on:lcm=predicate:nwc=3.0:ssec=off:sgo=on:sio=off:spo=on:sp=occurrence:updr=off_40",
+      "lrs+1_2:1_bs=off:ep=on:gsp=input_only:lcm=predicate:nwc=1.1:nicw=on:ptb=off:ssec=off:stl=60:sos=on:sac=on:sgo=on:sio=off:spo=on:spl=backtracking:sp=occurrence:updr=off_52",
+      "lrs+1_1_bs=off:lcm=predicate:nwc=5.0:ptb=off:ssec=off:stl=60:sos=on:sagn=off:sac=on:spl=backtracking:updr=off_48",
+      "dis-1002_3_bd=off:bs=off:cond=fast:drc=off:ep=R:flr=on:fde=none:nwc=2:nicw=on:ptb=off:ssec=off:sswn=on:ss=included:st=2.0:spl=backtracking:sp=occurrence_76",
+      "dis-1010_4_bd=off:bsr=unit_only:cond=fast:drc=off:ep=on:fde=none:lcm=reverse:nwc=1.3:nicw=on:ptb=off:ssec=off:sac=on:sgo=on:sio=off:spl=backtracking:sfv=off:sp=reverse_arity_45",
+      "lrs+11_14_bd=off:bs=off:bsr=on:cond=on:drc=off:fsr=off:fde=none:gsp=input_only:lcm=reverse:nwc=10:ptb=off:ssec=off:stl=60:sos=on:sgo=on:sio=off:spl=backtracking:sfv=off:sp=reverse_arity_72",
+      "dis+2_1_bd=off:bs=off:cond=on:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1.7:nicw=on:ptb=off:ssec=off:sio=off:spo=on:spl=backtracking:sfv=off:updr=off_200",
+      "dis-3_2:3_bd=off:bs=off:cond=fast:ep=RST:fsr=off:gsp=input_only:nwc=2:ssec=off:sd=2:ss=included:st=1.5:sos=on:sgo=on:sio=off:updr=off_5",
+      "dis+11_40_bs=off:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=10:ptb=off:ssec=off:sac=on:sgo=on:spl=backtracking_36",
+      "dis+1011_5_bs=off:cond=fast:drc=off:ep=on:lcm=predicate:nwc=1.5:nicw=on:sswn=on:sswsr=on:sac=on:sio=off:spo=on:sfv=off:sp=occurrence:updr=off_90",
+      "dis-1010_5_bd=off:bs=off:cond=fast:ep=on:fde=none:lcm=predicate:nwc=1.3:nicw=on:ptb=off:ssec=off:sos=on:sac=on:sgo=on:sio=off:spl=backtracking:updr=off_107",
+      "lrs+10_1_bs=off:cond=fast:ep=on:lcm=predicate:stl=60:sos=on:updr=off_383",
+      "dis+10_1_ep=R:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sgo=on:sio=off:spo=on:spl=backtracking_291",
+      "dis+2_4_bs=off:ep=on:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking_4",
+      "dis+1004_20_bd=off:bs=off:gsp=input_only:lcm=reverse:nwc=2.0:nicw=on:ptb=off:ssec=off:sgo=on:sio=off:spl=backtracking:sp=occurrence:updr=off_4",
+      "dis+1011_8:1_bs=off:drc=off:ep=RS:fde=none:nwc=1:ptb=off:ssec=off:sio=off:swb=on:sp=occurrence_26",
+      "dis-1010_2_bs=off:ep=on:nwc=1.5:sswn=on:sswsr=on:ss=included:st=1.5:sgo=on:sp=occurrence_71",
+      "dis-1002_1_cond=fast:lcm=predicate:nwc=2.5_149",
       0
-  };
-
-  runSchedule(quick);
-
+    };
+    quickSlices = quick;
+  }
+  runSchedule(quickSlices);
 }
 
 
