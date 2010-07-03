@@ -95,6 +95,9 @@ void Builder::build(VirtualIterator<string> fnameIterator)
   while(fnit.hasNext()) {
     string fname=fnit.next();
     ifstream input(env.options->includeFileName(fname).c_str());
+    if(input.fail()) {
+      USER_ERROR("Cannot open included file: "+env.options->includeFileName(fname));
+    }
 
     TPTPLexer lexer(input);
     TPTPParser parser(lexer);

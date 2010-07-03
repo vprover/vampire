@@ -397,6 +397,8 @@ public:
 
   void checkGlobalOptionConstraints() const;
 
+  void forceIncompleteness() { _forceIncompleteness=true; }
+
   CLASS_NAME("Options");
   USE_ALLOCATOR(Options);
 
@@ -511,6 +513,9 @@ private:
   bool _weightIncrement;
 
   string _xmlOutput;
+
+
+  bool _forceIncompleteness;
 
   // various read-from-string-write options
   void readAgeWeightRatio(const char* val);

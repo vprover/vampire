@@ -130,6 +130,9 @@ void profileMode()
   }
   else {
     input=new ifstream(inputFile.c_str());
+    if(input->fail()) {
+      USER_ERROR("Cannot open input file: "+inputFile);
+    }
   }
 
   TPTPLexer lexer(*input);

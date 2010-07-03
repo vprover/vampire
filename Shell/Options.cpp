@@ -534,7 +534,9 @@ Options::Options ()
 
   _weightIncrement(false),
 
-  _xmlOutput("off")
+  _xmlOutput("off"),
+
+  _forceIncompleteness(false)
 {
   CALL("Options::Options");
 } // Options::Options
@@ -1857,7 +1859,8 @@ bool Options::complete () const
          ! _maxWeight &&
          ! _forwardLiteralRewriting &&
          ! _interpretedEvaluation &&
-         _sineSelection==SS_OFF;
+         _sineSelection==SS_OFF &&
+         ! _forceIncompleteness;
 } // Options::complete
 
 

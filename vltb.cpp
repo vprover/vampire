@@ -92,6 +92,9 @@ ClauseIterator getProblemClauses()
       input=&cin;
     } else {
       input=new ifstream(inputFile.c_str());
+      if(input->fail()) {
+        USER_ERROR("Cannot open input file: "+inputFile);
+      }
     }
 
     env.statistics->phase=Statistics::PARSING;
@@ -199,6 +202,9 @@ void ltbBuildMode()
     input0=&cin;
   } else {
     input0=new ifstream(inputFile.c_str());
+    if(input0->fail()) {
+      USER_ERROR("Cannot open input file: "+inputFile);
+    }
   }
   istream& input=*input0;
 
@@ -228,7 +234,9 @@ void ltbSolveMode()
 {
   CALL("ltbSolveMode");
 
-  env.out<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
+  env.beginOutput();
+  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
+  env.endOutput();
   try {
     ClauseIterator clauses=getProblemClauses();
     Unit::onPreprocessingEnd();

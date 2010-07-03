@@ -55,6 +55,9 @@ UnitList* UIHelper::getInputUnits()
     input=&cin;
   } else {
     input=new ifstream(inputFile.c_str());
+    if(input->fail()) {
+      USER_ERROR("Cannot open problem file: "+inputFile);
+    }
   }
 
 
