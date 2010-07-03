@@ -116,8 +116,11 @@ void CLTBMode::loadIncludes()
     theoryAxioms=0;
     StringList::Iterator iit(theoryIncludes);
     while(iit.hasNext()) {
-      string fname=iit.next();
+      string fname=env.options->includeFileName(iit.next());
       ifstream inp(fname.c_str());
+      if(inp.fail()) {
+        USER_ERROR("Cannot open included file: "+fname);
+      }
       TPTPLexer lexer(inp);
       TPTPParser parser(lexer);
       UnitList* funits = parser.units();
@@ -299,6 +302,9 @@ void CLTBProblem::perform()
     env.statistics->phase=Statistics::PARSING;
 
     ifstream inp(problemFile.c_str());
+    if(inp.fail()) {
+      USER_ERROR("Cannot open problem file: "+problemFile);
+    }
     TPTPLexer lexer(inp);
     TPTPParser parser(lexer);
     parser.setForbiddenIncludes(parent->theoryIncludes);
