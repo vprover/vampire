@@ -5126,6 +5126,19 @@ $(CONF_ID)/compit2_impl.o: Kernel/RobSubstitution.hpp Test/Output.hpp
 $(CONF_ID)/compit2_impl.o: Shell/Options.hpp Shell/CommandLine.hpp
 $(CONF_ID)/compit2_impl.o: Shell/Property.hpp Kernel/Unit.hpp
 $(CONF_ID)/compit2_impl.o: Shell/Preprocess.hpp Shell/Statistics.hpp
+$(CONF_ID)/q.o: Kernel/Term.hpp Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp
+$(CONF_ID)/q.o: Config.hpp Debug/Assertion.hpp Debug/Tracer.hpp
+$(CONF_ID)/q.o: Lib/Allocator.hpp Lib/Portability.hpp Lib/XML.hpp
+$(CONF_ID)/q.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/Allocator.hpp
+$(CONF_ID)/q.o: Lib/Portability.hpp Lib/BacktrackData.hpp Lib/List.hpp
+$(CONF_ID)/q.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Metaiterators.hpp
+$(CONF_ID)/q.o: Lib/Set.hpp Lib/Hash.hpp Lib/Reflection.hpp
+$(CONF_ID)/q.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
+$(CONF_ID)/q.o: Lib/LastCopyWatcher.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/q.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp Kernel/KBO.hpp
+$(CONF_ID)/q.o: Lib/DArray.hpp Lib/Random.hpp Kernel/Ordering.hpp
+$(CONF_ID)/q.o: Lib/SmartPtr.hpp Kernel/Signature.hpp Lib/Map.hpp
+$(CONF_ID)/q.o: Lib/DHMap.hpp Kernel/Theory.hpp
 $(CONF_ID)/test_vapi.o: Api/FormulaBuilder.hpp Api/Problem.hpp
 $(CONF_ID)/test_vapi.o: Api/FormulaBuilder.hpp
 $(CONF_ID)/ucompit.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp Config.hpp
