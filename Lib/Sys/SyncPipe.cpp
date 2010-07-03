@@ -227,9 +227,14 @@ void SyncPipe::terminationHadler()
 {
   CALL("SyncPipe::terminationHadler");
 
-  while(s_instances) {
-    SyncPipe* p=PipeList::pop(s_instances);
-    p->releasePriviledges();
+  PipeList* listIter=s_instances;
+  while(listIter) {
+    if(listIter->head()) {
+      SyncPipe* p=PipeList::pop(s_instances);
+      p->releasePriviledges();
+      listIter->setHead(0);
+    }
+    listIter=listIter->tail();
   }
 }
 

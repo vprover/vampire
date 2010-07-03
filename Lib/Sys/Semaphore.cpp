@@ -287,7 +287,9 @@ void Semaphore::registerInstance(bool addToInstanceList)
   if(!hasSemaphore()) {
     return;
   }
-  doInc(semCnt);
+
+  acquireInstance();
+
   if(addToInstanceList) {
     SemaphoreList::push(this, s_instances);
   }
@@ -309,6 +311,29 @@ void Semaphore::deregisterInstance()
   LOG("Semaphore: deregistering instance");
   ASS(s_instances->member(this));
   s_instances=s_instances->remove(this);
+
+  releaseInstance();
+}
+
+/**
+ * Increase reference counter of linked OS semaphore
+ */
+void Semaphore::acquireInstance()
+{
+  CALL("Semaphore::registerInstance");
+  ASS(hasSemaphore());
+
+  doInc(semCnt);
+}
+
+/**
+ * Decrease reference counter of linked OS semaphore, and
+ * if @b addToInstanceList is true, add itself into the @b s_instances list
+ */
+void Semaphore::releaseInstance()
+{
+  CALL("Semaphore::deregisterInstance");
+  ASS(hasSemaphore());
 
   //Here we may wait until other deregisterInstance() calls finish.
   //There is no need to wait for calls to registerInstance() function,
@@ -348,11 +373,14 @@ void Semaphore::releaseAllSemaphores()
 
   LOG("Semaphore: releasing all");
 
-  while(s_instances) {
+  SemaphoreList* instIter=s_instances;
+  while(instIter) {
     Semaphore* s=s_instances->head();
-    ASS_NEQ(s->semid,-1);
-    s->deregisterInstance();
+    if(s->semid!=-1) {
+      s->releaseInstance();
+    }
     s->semid=-1;
+    instIter=instIter->tail();
   }
 }
 
@@ -370,7 +398,7 @@ void Semaphore::postForkInChild()
   SemaphoreList::Iterator sit(s_instances);
   while(sit.hasNext()) {
     Semaphore* s=sit.next();
-    s->registerInstance(false);
+    s->acquireInstance();
   }
 }
 

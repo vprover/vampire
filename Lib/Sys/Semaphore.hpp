@@ -46,6 +46,9 @@ private:
   void registerInstance(bool addToInstanceList=true);
   void deregisterInstance();
 
+  void acquireInstance();
+  void releaseInstance();
+
   int semid;
   /** Number of semaphores */
   int semCnt;
