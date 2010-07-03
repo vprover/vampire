@@ -558,7 +558,7 @@ void CLTBProblem::runChild(Options& opt)
 
   if(env.options->sineSelection()!=Options::SS_OFF) {
     //add selected axioms from the theory
-    parent->theorySelector.addSelectedAxioms(probUnits);
+    parent->theorySelector.perform(probUnits);
 
     env.options->setSineSelection(Options::SS_OFF);
     env.options->forceIncompleteness();

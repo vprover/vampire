@@ -19,9 +19,6 @@ using namespace Kernel;
 class SineSymbolExtractor
 {
 public:
-  SineSymbolExtractor();
-  void onSignatureChange();
-
   typedef unsigned SymId;
   typedef VirtualIterator<SymId> SymIdIterator;
 
@@ -35,10 +32,6 @@ private:
   void addSymIds(Literal* lit, int polarity, Stack<SymId>& ids) const;
 
   void extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms);
-
-  unsigned _fnOfs;
-  unsigned _funs;
-  unsigned _preds;
 };
 
 
@@ -101,7 +94,7 @@ public:
   SineTheorySelector();
 
   void initSelectionStructure(UnitList* units);
-  void addSelectedAxioms(UnitList*& units);
+  void perform(UnitList*& units);
 private:
 
   /** The integer tolerance value is the float option value multiplied by 10 and
@@ -111,6 +104,8 @@ private:
    * tolerance is 5. */
   static const unsigned short maxTolerance=50;
   static const unsigned short strictTolerance=10;
+
+  void handlePossibleSignatureChange();
 
   void updateDefRelation(Unit* u);
 

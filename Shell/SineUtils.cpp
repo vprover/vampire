@@ -35,28 +35,6 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
-SineSymbolExtractor::SineSymbolExtractor()
-{
-  CALL("SineSymbolExtractor::SineSymbolExtractor");
-
-  onSignatureChange();
-}
-
-/**
- * Should be called if there were new symbols added to the signature
- * since the construction of the object
- *
- * SymId corresponding to each symbol may change after a call to this function.
- */
-void SineSymbolExtractor::onSignatureChange()
-{
-  CALL("SineSymbolExtractor::onSignatureChange");
-
-  _funs=env.signature->functions();
-  _preds=env.signature->predicates();
-  _fnOfs=_preds;
-}
-
 /**
  * Return @b SymId that is greater than any @b SymId that can come from
  * the current problem
@@ -66,38 +44,29 @@ void SineSymbolExtractor::onSignatureChange()
  */
 SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 {
-  return env.signature->predicates() + env.signature->functions();
+  return max(env.signature->predicates()*2-1, env.signature->functions()*2);
 }
 
 void SineSymbolExtractor::addSymIds(Literal* lit, int polarity, Stack<SymId>& ids) const
 {
   CALL("SineSymbolExtractor::addSymIds");
 
-  unsigned predFun=lit->functor();
-  if(predFun<_preds) {
-    ids.push(predFun);
-  }
+  SymId predId=lit->functor()*2;
+  ids.push(predId);
 
   NonVariableIterator nvi(lit);
   while(nvi.hasNext()) {
     Term* t=nvi.next().term();
 
-    unsigned fun=t->functor();
-    if(fun<_funs) {
-      ids.push(_fnOfs+fun);
-    }
+    SymId funId=t->functor()*2+1;
+    ids.push(funId);
   }
 }
 
 void SineSymbolExtractor::decodeSymId(SymId s, bool& pred, unsigned& functor)
 {
-  pred=s<_fnOfs;
-  if(pred) {
-    functor=s;
-  }
-  else {
-    functor=s-_fnOfs;
-  }
+  pred = (s%2)==0;
+  functor = s/2;
 }
 
 void SineSymbolExtractor::extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
@@ -152,10 +121,6 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,int polarity,Stack<Sy
 /**
  * Return iterator that yields SymIds of symbols in a unit.
  * Each SymId is yielded at most once.
- *
- * Only SymIds for symbols that were in the signature at the
- * time of the object construction or of the last call to the
- * @b onSignatureChange function are yielded.
  */
 SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
 {
@@ -383,6 +348,27 @@ SineTheorySelector::SineTheorySelector()
   CALL("SineTheorySelector::SineTheorySelector");
 }
 
+void SineTheorySelector::handlePossibleSignatureChange()
+{
+  CALL("SineTheorySelector::handlePossibleSignatureChange");
+
+  size_t symIdBound=_symExtr.getSymIdBound();
+  size_t oldSize=_def.size();
+  ASS_EQ(_gen.size(), oldSize);
+
+  if(symIdBound==oldSize) {
+    return;
+  }
+  ASS_G(symIdBound, oldSize);
+
+  _gen.expand(symIdBound);
+  _def.expand(symIdBound);
+  for(size_t i=oldSize;i<symIdBound;i++) {
+    _gen[i]=0;
+    _def[i]=0;
+  }
+}
+
 /**
  * Connect unit @b u with symbols it defines
  */
@@ -455,7 +441,7 @@ void SineTheorySelector::initSelectionStructure(UnitList* units)
 
   SymId symIdBound=_symExtr.getSymIdBound();
 
-  //build the D-relation and select the non-axiom formulas
+  //build the D-relation
   _def.init(symIdBound,0);
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
@@ -464,25 +450,49 @@ void SineTheorySelector::initSelectionStructure(UnitList* units)
   }
 }
 
-/**
- * Modify the @b units list so that it contains units selectedby the SInE
- * axiom selection algorithm from the units passed to the @b initSelectionStructure()
- * function.
- *
- * None of the units passed to the @b initSelectionStructure() function should
- * appear in the @b units list passed as an argument.
- */
-void SineTheorySelector::addSelectedAxioms(UnitList*& units)
+
+void SineTheorySelector::perform(UnitList*& units)
 {
-  CALL("SineTheorySelector::addSelectedAxioms");
+  CALL("SineTheorySelector::perform");
 
-  unsigned short intTolerance=static_cast<unsigned short>(ceil(env.options->sineTolerance()*10));
+  TimeCounter tc(TC_SINE_SELECTION);
 
+  handlePossibleSignatureChange();
+
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u=uit.next();
+    SymIdIterator sit=_symExtr.extractSymIds(u);
+    while(sit.hasNext()) {
+      SymId sid=sit.next();
+      _gen[sid]++;
+    }
+  }
+
+  UnitList* res=0;
   DHSet<SymId> addedSymIds;
-  DHSet<Unit*> selected; //selected units without the original problem units
+  DHSet<Unit*> selected;
   Deque<Unit*> newlySelected;
 
-  newlySelected.pushBackFromIterator(UnitList::Iterator(units));
+  bool sineOnIncluded=env.options->sineSelection()==Options::SS_INCLUDED;
+
+  //build the D-relation and select the non-axiom formulas
+  UnitList::Iterator uit2(units);
+  while(uit2.hasNext()) {
+    Unit* u=uit2.next();
+    bool performSelection= sineOnIncluded ? u->included() : (u->inputType()==Unit::AXIOM);
+    if(performSelection) {
+      updateDefRelation(u);
+    }
+    else {
+      selected.insert(u);
+      newlySelected.push_back(u);
+      UnitList::push(u,res);
+    }
+  }
+
+
+  unsigned short intTolerance=static_cast<unsigned short>(ceil(env.options->sineTolerance()*10));
 
   unsigned depthLimit=env.options->sineDepth();
   unsigned depth=0;
@@ -521,13 +531,16 @@ void SineTheorySelector::addSelectedAxioms(UnitList*& units)
 	if(de.minTolerance>intTolerance || !selected.insert(de.unit)) {
 	  continue;
 	}
-	UnitList::push(de.unit, units);
+	UnitList::push(de.unit,res);
 	newlySelected.push_back(de.unit);
       }
     }
   }
 
-  UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), units);
+  UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), res);
+
+  units->destroy();
+  units=res;
 
   env.statistics->sineIterations=depth;
   env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selected.size();
@@ -539,6 +552,5 @@ void SineTheorySelector::addSelectedAxioms(UnitList*& units)
   }
 #endif
 }
-
 
 }
