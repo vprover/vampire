@@ -243,6 +243,7 @@ void SLTBProblem::performStrategy()
   cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
   const char* backupSlices[] = {
+    "dis+11_128_nwc=5.0:sac=on:ss=included:st=3.0:spl=backtracking_10000",
     "dis+10_32_nwc=2.0:sac=on:spl=backtracking_10000",
     "dis+4_8_10000",
     0
@@ -256,13 +257,13 @@ void SLTBProblem::performStrategy()
     if (atoms > 1000000) {
     }
     else if (atoms > 600000) {
-    const char* quick[] = {
-      "lrs-1003_14_bd=off:bs=off:nwc=1.2:nicw=on:ptb=off:ssec=off:stl=60:ss=included:st=3.0:sac=on:sgo=on:sio=off:spl=backtracking:updr=off_120",
-      "dis-4_5_bd=off:bs=off:ep=RST:fde=none:lcm=predicate:nwc=2.0:nicw=on:ptb=off:ssec=off:ss=included:st=5.0:sio=off:spl=backtracking:updr=off_117",
-      "dis+2_1_bd=off:bs=off:cond=on:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1.7:nicw=on:ptb=off:ssec=off:sio=off:spo=on:spl=backtracking:sfv=off:updr=off_200",
-      0
-    };
-    quickSlices = quick;
+      const char* quick[] = {
+	"lrs-1003_14_bd=off:bs=off:nwc=1.2:nicw=on:ptb=off:ssec=off:stl=60:ss=included:st=3.0:sac=on:sgo=on:sio=off:spl=backtracking:updr=off_120",
+	"dis-4_5_bd=off:bs=off:ep=RST:fde=none:lcm=predicate:nwc=2.0:nicw=on:ptb=off:ssec=off:ss=included:st=5.0:sio=off:spl=backtracking:updr=off_117",
+	"dis+2_1_bd=off:bs=off:cond=on:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1.7:nicw=on:ptb=off:ssec=off:sio=off:spo=on:spl=backtracking:sfv=off:updr=off_200",
+	0
+      };
+      quickSlices = quick;
     }
     else if (atoms > 450000) {
       const char* quick[] = {
