@@ -37,6 +37,7 @@
 
 #include "Shell/CASC/CASCMode.hpp"
 #include "Shell/CASC/CLTBMode.hpp"
+#include "Shell/CASC/SimpleLTBMode.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -283,6 +284,14 @@ int main(int argc, char* argv [])
 	vampireReturnValue=0;
       }
       break;
+    case Options::MODE_CASC_SIMPLE_LTB:
+    {
+      Shell::CASC::SimpleLTBMode sltbm;
+      sltbm.perform();
+      //we have processed the ltb batch file, so we can return zero
+      vampireReturnValue=0;
+      break;
+    }
     case Options::MODE_CASC_LTB:
     {
       Shell::CASC::CLTBMode ltbm;

@@ -1169,6 +1169,42 @@ $(CONF_ID)/Shell/CASC/ForkingCM.o: Saturation/ProvingHelper.hpp
 $(CONF_ID)/Shell/CASC/ForkingCM.o: Shell/UIHelper.hpp
 $(CONF_ID)/Shell/CASC/ForkingCM.o: Shell/CASC/ForkingCM.hpp
 $(CONF_ID)/Shell/CASC/ForkingCM.o: Shell/CASC/CASCMode.hpp Shell/Property.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/DHSet.hpp Forwards.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Debug/Log.hpp Debug/Tracer.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Config.hpp Lib/DHMap.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Debug/Assertion.hpp Lib/Allocator.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Debug/Tracer.hpp Lib/Portability.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Exception.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/LastCopyWatcher.hpp Lib/Hash.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Reflection.hpp Lib/Environment.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Int.hpp Lib/Comparison.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/System.hpp Lib/Array.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/List.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Timer.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Sys/Multiprocessing.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Sys/SyncPipe.hpp Lib/fdstream.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Exception.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Sys/Semaphore.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Portability.hpp Shell/Options.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Allocator.hpp Lib/XML.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/Normalisation.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Comparison.hpp Kernel/Unit.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/SymCounter.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Saturation/ProvingHelper.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/Statistics.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/TPTPLexer.hpp Shell/Lexer.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Array.hpp Shell/Token.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/TPTPParser.hpp Lib/List.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/Parser.hpp Lib/DHMap.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/IntNameTable.hpp Lib/Map.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/UIHelper.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/CASC/CASCMode.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/Property.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/CASC/SimpleLTBMode.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Stack.hpp Lib/BacktrackData.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Int.hpp Shell/SineUtils.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/DArray.hpp Lib/Random.hpp
 $(CONF_ID)/Shell/CASC/SpawningCM.o: Lib/Environment.hpp Forwards.hpp
 $(CONF_ID)/Shell/CASC/SpawningCM.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
 $(CONF_ID)/Shell/CASC/SpawningCM.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
@@ -5126,19 +5162,6 @@ $(CONF_ID)/compit2_impl.o: Kernel/RobSubstitution.hpp Test/Output.hpp
 $(CONF_ID)/compit2_impl.o: Shell/Options.hpp Shell/CommandLine.hpp
 $(CONF_ID)/compit2_impl.o: Shell/Property.hpp Kernel/Unit.hpp
 $(CONF_ID)/compit2_impl.o: Shell/Preprocess.hpp Shell/Statistics.hpp
-$(CONF_ID)/q.o: Kernel/Term.hpp Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp
-$(CONF_ID)/q.o: Config.hpp Debug/Assertion.hpp Debug/Tracer.hpp
-$(CONF_ID)/q.o: Lib/Allocator.hpp Lib/Portability.hpp Lib/XML.hpp
-$(CONF_ID)/q.o: Lib/Comparison.hpp Lib/Stack.hpp Lib/Allocator.hpp
-$(CONF_ID)/q.o: Lib/Portability.hpp Lib/BacktrackData.hpp Lib/List.hpp
-$(CONF_ID)/q.o: Lib/Int.hpp Lib/Comparison.hpp Lib/Metaiterators.hpp
-$(CONF_ID)/q.o: Lib/Set.hpp Lib/Hash.hpp Lib/Reflection.hpp
-$(CONF_ID)/q.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
-$(CONF_ID)/q.o: Lib/LastCopyWatcher.hpp Lib/TimeCounter.hpp
-$(CONF_ID)/q.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp Kernel/KBO.hpp
-$(CONF_ID)/q.o: Lib/DArray.hpp Lib/Random.hpp Kernel/Ordering.hpp
-$(CONF_ID)/q.o: Lib/SmartPtr.hpp Kernel/Signature.hpp Lib/Map.hpp
-$(CONF_ID)/q.o: Lib/DHMap.hpp Kernel/Theory.hpp
 $(CONF_ID)/test_vapi.o: Api/FormulaBuilder.hpp Api/Problem.hpp
 $(CONF_ID)/test_vapi.o: Api/FormulaBuilder.hpp
 $(CONF_ID)/ucompit.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp Config.hpp
@@ -5200,7 +5223,8 @@ $(CONF_ID)/vampire.o: Shell/Property.hpp Kernel/Unit.hpp
 $(CONF_ID)/vampire.o: Shell/CASC/CLTBMode.hpp Lib/DHSet.hpp
 $(CONF_ID)/vampire.o: Lib/Sys/SyncPipe.hpp Lib/fdstream.hpp
 $(CONF_ID)/vampire.o: Lib/Sys/Semaphore.hpp Shell/SineUtils.hpp
-$(CONF_ID)/vampire.o: Lib/DArray.hpp Lib/Random.hpp Shell/CommandLine.hpp
+$(CONF_ID)/vampire.o: Lib/DArray.hpp Lib/Random.hpp
+$(CONF_ID)/vampire.o: Shell/CASC/SimpleLTBMode.hpp Shell/CommandLine.hpp
 $(CONF_ID)/vampire.o: Shell/Options.hpp Saturation/ProvingHelper.hpp
 $(CONF_ID)/vampire.o: Shell/Preprocess.hpp Shell/Refutation.hpp
 $(CONF_ID)/vampire.o: Shell/TheoryFinder.hpp Shell/TPTP.hpp

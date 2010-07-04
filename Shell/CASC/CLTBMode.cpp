@@ -35,6 +35,8 @@
 
 #include "CLTBMode.hpp"
 
+#define SLOWNESS 1.15
+
 namespace Shell
 {
 namespace CASC

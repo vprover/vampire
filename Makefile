@@ -258,6 +258,7 @@ LTB_OBJ = Shell/LTB/Builder.o\
 CASC_OBJ = Shell/CASC/CASCMode.o\
            Shell/CASC/CLTBMode.o\
            Shell/CASC/ForkingCM.o\
+           Shell/CASC/SimpleLTBMode.o\
            Shell/CASC/SpawningCM.o
 
 # testing procedures

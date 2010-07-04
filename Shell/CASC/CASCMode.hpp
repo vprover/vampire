@@ -13,9 +13,6 @@
 #include "Lib/Portability.hpp"
 #include "Shell/Property.hpp"
 
-
-#define SLOWNESS 1.35
-
 namespace Shell {
 namespace CASC
 {
