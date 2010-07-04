@@ -192,6 +192,30 @@ SLTBProblem::SLTBProblem(SimpleLTBMode* parent, string problemFile, string outFi
 {
 }
 
+
+const char** concatStrategies(const char** st1, const char** st2)
+{
+  CALL("concatStrategies");
+
+  Stack<const char*> acc;
+  const char** ptr=st1;
+  while(*ptr) {
+    acc.push(*ptr);
+    ptr++;
+  }
+  ptr=st2;
+  while(*ptr) {
+    acc.push(*ptr);
+    ptr++;
+  }
+  acc.push(0);
+  const char** res=static_cast<const char**>(ALLOC_KNOWN(sizeof(char*)*acc.size(), "strategy"));
+  for(size_t i=0;i<acc.size();i++) {
+    res[i]=acc[i];
+  }
+  return res;
+}
+
 /**
  * This function should use the runSchedule function to prove the problem.
  * Once the problem is proved, the @b runSchedule function does not return
@@ -840,6 +864,26 @@ void SLTBProblem::performStrategy()
     break;
   }
   }
+
+  if(parent->category=="LTB.SMO") {
+    const char** smoSlice;
+    if(atoms<100000) {
+      const char* sl[] = {
+	  "lrs+11_5_cond=fast:fde=none:nwc=2.5:ptb=off:ss=included:sgo=on:spl=backtracking_8",
+	  0
+      };
+      smoSlice=sl;
+    }
+    else {
+      const char* sl[] = {
+	  "lrs+11_5_cond=fast:fde=none:nwc=2.5:ptb=off:ss=included:sgo=on:spl=backtracking_45",
+	  0
+      };
+      smoSlice=sl;
+    }
+    quickSlices=concatStrategies(smoSlice, quickSlices);
+  }
+
   int remainingTime=env.remainingTime()/100;
   if(remainingTime<=0) {
     return;
