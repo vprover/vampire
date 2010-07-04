@@ -254,6 +254,10 @@ int main(int argc, char* argv [])
 {
   CALL ("main");
 
+  cout<<"% Vampire version 0.6 licenced to run at CASC-J5"<<endl
+      <<"% Any licence to use Vampire shall only be obtained"<<endl
+      <<"% as described on Vampire's home page http://www.vprover.org."<<endl;
+
   System::setSignalHandlers();
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);
