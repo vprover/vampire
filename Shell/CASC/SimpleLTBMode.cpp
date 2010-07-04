@@ -35,7 +35,7 @@
 
 #include "SimpleLTBMode.hpp"
 
-#define SLOWNESS 1.15
+#define SLOWNESS 1.35
 
 namespace Shell
 {
@@ -260,7 +260,6 @@ void SLTBProblem::performStrategy()
       const char* quick[] = {
 	"lrs-1003_14_bd=off:bs=off:nwc=1.2:nicw=on:ptb=off:ssec=off:stl=60:ss=included:st=3.0:sac=on:sgo=on:sio=off:spl=backtracking:updr=off_120",
 	"dis-4_5_bd=off:bs=off:ep=RST:fde=none:lcm=predicate:nwc=2.0:nicw=on:ptb=off:ssec=off:ss=included:st=5.0:sio=off:spl=backtracking:updr=off_117",
-	"dis+2_1_bd=off:bs=off:cond=on:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1.7:nicw=on:ptb=off:ssec=off:sio=off:spo=on:spl=backtracking:sfv=off:updr=off_200",
 	0
       };
       quickSlices = quick;
@@ -298,6 +297,7 @@ void SLTBProblem::performStrategy()
 	"lrs-1_2:3_bsr=on:bms=on:ep=RST:fde=none:nwc=10:stl=60:sd=1:ss=included:sos=on:sio=off:sfv=off:updr=off_23",
 	"dis-1_14_bd=off:bsr=unit_only:bms=on:ep=RST:gsp=input_only:lcm=reverse:nwc=3:nicw=on:sswsr=on:sd=1:ss=included:sos=on:spo=on:sp=reverse_arity_34",
 	"dis-4_8_bs=unit_only:drc=off:ep=on:flr=on:nwc=2:ptb=off:ssec=off:sd=2:ss=axioms:st=1.5:sos=on:sagn=off:sgo=on:sio=off:swb=on_46",
+	"dis+2_1_bd=off:bs=off:cond=on:drc=off:ep=on:gsp=input_only:lcm=reverse:nwc=1.7:nicw=on:ptb=off:ssec=off:sio=off:spo=on:spl=backtracking:sfv=off:updr=off_200",
 	"lrs+1_4:1_bs=off:ep=on:fde=none:nwc=1.1:nicw=on:ptb=off:ssec=off:stl=60:sd=1:ss=included:st=3.0:sos=on:sio=off:swb=on:sp=reverse_arity_340",
 	"dis-1003_3:1_bd=off:bs=unit_only:bsr=unit_only:cond=on:ep=RST:gsp=input_only:lcm=predicate:nwc=3:ptb=off:ssec=off:sd=1:ss=included:st=1.2:sos=on:sagn=off:sac=on:swb=on:sfv=off:sp=occurrence_443",
 	0
