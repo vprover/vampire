@@ -289,6 +289,8 @@ void System::addTerminationHandler(VoidFunc proc, unsigned priority)
  */
 void System::onTermination()
 {
+  CALL("System::onTermination");
+
   static bool called=false;
   if(called) {
     return;
@@ -307,6 +309,8 @@ void System::onTermination()
 
 void System::terminateImmediately(int resultStatus)
 {
+  CALL("System::terminateImmediately");
+
   onTermination();
   _exit(resultStatus);
 }

@@ -230,7 +230,7 @@ void SyncPipe::terminationHadler()
   PipeList* listIter=s_instances;
   while(listIter) {
     if(listIter->head()) {
-      SyncPipe* p=PipeList::pop(s_instances);
+      SyncPipe* p=listIter->head();
       p->releasePriviledges();
       listIter->setHead(0);
     }
