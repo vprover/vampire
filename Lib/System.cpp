@@ -297,8 +297,9 @@ void System::onTermination()
 
   size_t sz=s_onTerminationHandlers.size();
   for(size_t i=0;i<sz;i++) {
-    while(s_onTerminationHandlers[i]) {
-      VoidFunc func=VoidFuncList::pop(s_onTerminationHandlers[i]);
+    VoidFuncList::Iterator thIter(s_onTerminationHandlers[i]);
+    while(thIter.hasNext()) {
+      VoidFunc func=thIter.next();
       func();
     }
   }

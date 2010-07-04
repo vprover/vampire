@@ -375,7 +375,7 @@ void Semaphore::releaseAllSemaphores()
 
   SemaphoreList* instIter=s_instances;
   while(instIter) {
-    Semaphore* s=s_instances->head();
+    Semaphore* s=instIter->head();
     if(s->semid!=-1) {
       s->releaseInstance();
     }
