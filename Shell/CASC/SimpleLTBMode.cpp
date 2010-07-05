@@ -35,7 +35,7 @@
 
 #include "SimpleLTBMode.hpp"
 
-#define SLOWNESS 1.35
+#define SLOWNESS 1.15
 
 namespace Shell
 {
@@ -255,6 +255,14 @@ void SLTBProblem::performStrategy()
   switch (cat) {
   case Property::FEQ: {
     if (atoms > 1000000) {
+      const char* quick[] = {
+	"dis-4_64_bs=off:drc=off:flr=on:fsr=off:gsp=input_only:lcm=reverse:nwc=5:nicw=on:sswn=on:sd=4:ss=axioms:st=1.2:sagn=off:sac=on:sgo=on:spo=on:sfv=off:sp=occurrence:updr=off_696",
+	"lrs+4_10_bd=off:bs=off:drc=off:ep=on:flr=on:fsr=off:lcm=reverse:nwc=3:ptb=off:ssec=off:stl=120:sd=7:ss=included:st=2.0:sos=on:sio=off:spo=on:spl=backtracking:updr=off_748",
+	"dis+10_20_bd=off:bs=off:bsr=on:cond=on:drc=off:ep=R:fsr=off:fde=none:nwc=1:sd=7:ss=axioms:sgo=on:sio=off:spo=on_708",
+	"lrs-4_4:1_bd=off:bs=unit_only:drc=off:ep=RS:flr=on:lcm=predicate:nwc=1:ptb=off:ssec=off:stl=120:sd=3:ss=included:sio=off:sfv=off:sp=occurrence:updr=off_709",
+	0
+      };
+      quickSlices = quick;
     }
     else if (atoms > 600000) {
       const char* quick[] = {
