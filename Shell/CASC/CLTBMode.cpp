@@ -130,6 +130,10 @@ void CLTBMode::loadIncludes()
 	USER_ERROR("Axiom file "+fname+" contains a conjecture.");
       }
 
+      UnitList::Iterator fuit(funits);
+      while(fuit.hasNext()) {
+	fuit.next()->markIncluded();
+      }
       theoryAxioms=UnitList::concat(funits,theoryAxioms);
     }
   }
