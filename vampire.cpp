@@ -254,10 +254,6 @@ int main(int argc, char* argv [])
 {
   CALL ("main");
 
-  cout<<"% Vampire version 0.6 licenced to run at CASC-J5"<<endl
-      <<"% Any licence to use Vampire shall only be obtained"<<endl
-      <<"% as described on Vampire's home page http://www.vprover.org."<<endl;
-
   System::setSignalHandlers();
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);
@@ -269,6 +265,13 @@ int main(int argc, char* argv [])
 
     Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
+
+    if(env.options->mode()!=Options::MODE_SPIDER && env.options->mode()!=Options::MODE_PROFILE) {
+      cout<<"% Vampire version 0.6 licenced to run at CASC-J5"<<endl
+	  <<"% Any licence to use Vampire shall only be obtained"<<endl
+	  <<"% as described on Vampire's home page http://www.vprover.org."<<endl;
+    }
+
 
     switch (env.options->mode())
     {
