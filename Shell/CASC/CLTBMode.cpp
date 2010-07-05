@@ -574,10 +574,12 @@ void CLTBProblem::perform()
     probUnits=UnitList::concat(probUnits, parent->theoryAxioms);
 
 
-    env.statistics->phase=Statistics::NORMALIZATION;
+    if(property.atoms()<=1000000) {
+      env.statistics->phase=Statistics::NORMALIZATION;
 
-    Normalisation norm;
-    probUnits = norm.normalise(probUnits);
+      Normalisation norm;
+      probUnits = norm.normalise(probUnits);
+    }
   }
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
