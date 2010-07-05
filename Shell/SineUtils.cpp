@@ -540,6 +540,7 @@ void SineTheorySelector::perform(UnitList*& units)
   UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), res);
 
   units->destroy();
+//  units=res->reverse(); //we want to resemble the original SInE as much as possible
   units=res;
 
   env.statistics->sineIterations=depth;

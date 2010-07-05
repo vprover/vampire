@@ -52,7 +52,7 @@ private:
    * problem that should be attempted. */
   StringPairStack problemFiles;
 
-  SineTheorySelector theorySelector;
+//  SineTheorySelector theorySelector;
   UnitList* theoryAxioms;
 
   Property property;
