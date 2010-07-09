@@ -245,19 +245,14 @@ public:
    */
   DisagreementSetIterator(Term* t1, Term* t2, bool disjunctVariables=true)
   : _stack(8), _disjunctVariables(disjunctVariables)
-    {
-    ASS_EQ(t1->functor(), t2->functor());
-    _arg1.makeEmpty();
-
-    if(t1->arity()>0) {
-      _stack.push(t1->args());
-      _stack.push(t2->args());
-    }
+  {
+    CALL("Term::DisagreementSetIterator::DisagreementSetIterator(Term*...)");
+    reset(t1,t2,disjunctVariables);
   }
 
   void reset(TermList t1, TermList t2, bool disjunctVariables=true)
   {
-    CALL("Term::DisagreementSetIterator::reset");
+    CALL("Term::DisagreementSetIterator::reset(TermList...)");
     ASS(!t1.isEmpty());
     ASS(!t2.isEmpty());
 
@@ -272,6 +267,19 @@ public:
     if(t1.isTerm() && t1.term()->arity()>0) {
       _stack.push(t1.term()->args());
       _stack.push(t2.term()->args());
+    }
+  }
+
+  void reset(Term* t1, Term* t2, bool disjunctVariables=true)
+  {
+    CALL("Term::DisagreementSetIterator::reset(Term*...)");
+    ASS_EQ(t1->functor(), t2->functor());
+
+    _arg1.makeEmpty();
+
+    if(t1->arity()>0) {
+      _stack.push(t1->args());
+      _stack.push(t2->args());
     }
   }
 

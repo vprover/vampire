@@ -10,6 +10,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "TermSharing.hpp"
 
 
@@ -285,35 +286,36 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
   return t1.content()>t2.content();
 
   //To avoid non-determinism, now we'll compare the terms lexicographicaly.
-  //This could be slow, so it's good just for debugging purposes.
-//  Term::SubtermIterator sit1(trm1);
-//  Term::SubtermIterator sit2(trm2);
-//  while(sit1.hasNext()) {
-//    ALWAYS(sit2.hasNext());
-//    TermList st1=sit1.next();
-//    TermList st2=sit2.next();
-//    if(st1.isTerm()) {
-//	if(st2.isTerm()) {
-//	  unsigned f1=st1.term()->functor();
-//	  unsigned f2=st2.term()->functor();
-//	  if(f1!=f2) {
-//	    return f1>f2;
-//	  }
-//	} else {
-//	  return true;
-//	}
-//    } else {
-//	if(st2.isTerm()) {
-//	  return false;
-//	} else {
-//	  if(st1.var()!=st2.var()) {
-//	    return st1.var()>st2.var();
-//	  }
-//	}
-//    }
-//  }
-//  ASS(trm1==trm2);
-//  return false;
+  static DisagreementSetIterator dsit;
+  dsit.reset(trm1, trm2, false);
+
+  if(!dsit.hasNext()) {
+    ASS_EQ(trm1,trm2);
+    return false;
+  }
+
+  pair<TermList, TermList> diff=dsit.next();
+  TermList st1=diff.first;
+  TermList st2=diff.second;
+  if(st1.isTerm()) {
+    if(st2.isTerm()) {
+      unsigned f1=st1.term()->functor();
+      unsigned f2=st2.term()->functor();
+      ASS_NEQ(f1,f2);
+      return f1>f2;
+    } else {
+      return true;
+    }
+  } else {
+    if(st2.isTerm()) {
+      return false;
+    } else {
+      ASS_NEQ(st1.var(),st2.var());
+      return st1.var()>st2.var();
+    }
+  }
+  ASSERTION_VIOLATION;
+  return false;
 }
 
 
