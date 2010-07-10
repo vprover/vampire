@@ -9,6 +9,8 @@
 
 #include <cstdlib>
 
+#include "Forwards.hpp"
+
 #include "Allocator.hpp"
 #include "Hash.hpp"
 #include "Reflection.hpp"
@@ -19,7 +21,7 @@ namespace Lib {
  * Defines class Set<Val> of arbitrary sets, implemented in the same way
  * as Map. Values are compared using Hash::equals.
  */
-template <typename Val,class Hash=Lib::Hash>
+template <typename Val,class Hash>
 class Set
 {
 protected:

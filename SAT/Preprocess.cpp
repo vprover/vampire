@@ -20,6 +20,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Reflection.hpp"
+#include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
 
 #include "SATClause.hpp"

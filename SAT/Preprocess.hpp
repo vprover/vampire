@@ -7,6 +7,8 @@
 #ifndef __SATPreprocess__
 #define __SATPreprocess__
 
+#include "Forwards.hpp"
+
 #include "Lib/VirtualIterator.hpp"
 
 #include "SATClause.hpp"

@@ -12,7 +12,8 @@
 #include "Forwards.hpp"
 
 #include "List.hpp"
-#include "Set.hpp"
+#include "DHSet.hpp"
+#include "Recycler.hpp"
 #include "VirtualIterator.hpp"
 #include "TimeCounter.hpp"
 
@@ -543,26 +544,55 @@ class UniquePersistentIterator
 {
 public:
   typedef ELEMENT_TYPE(Inner) T;
-  typedef Set<T> ItemSet;
+private:
+  typedef List<T> ItemList;
+public:
 
   explicit UniquePersistentIterator(Inner& inn)
   {
-    while(inn.hasNext()) {
-      _items.insert(inn.next());
-    }
-    _iit=typename ItemSet::Iterator(_items);
+    _items=getUniqueItemList(inn, _size);
   }
-  inline bool hasNext() { return _iit.hasNext(); };
-  inline
-  T next()
+  ~UniquePersistentIterator()
   {
-    return _iit.next();
+    if(_items) {
+      _items->destroy();
+    }
+  }
+  inline bool hasNext() { return _items; };
+  inline T next()
+  {
+    return ItemList::pop(_items);
   };
+
   inline bool knowsSize() const { return true; }
-  inline size_t size() const { return _items.numberOfElements(); }
+  inline size_t size() const { return _size; }
 private:
-  ItemSet _items;
-  typename ItemSet::Iterator _iit;
+  typedef DHSet<T> ItemSet;
+
+  static ItemList* getUniqueItemList(Inner& inn, size_t& sizeRef)
+  {
+    CALL("UniquePersistentIterator::getUniqueItemList");
+
+    ItemList* res=0;
+    ItemSet* iset;
+    Recycler::get(iset);
+    iset->reset();
+
+    sizeRef=0;
+    while(inn.hasNext()) {
+      T el=inn.next();
+      if(iset->insert(el)) {
+	ItemList::push(el, res);
+	sizeRef++;
+      }
+    }
+
+    Recycler::release(iset);
+    return res;
+  }
+
+  ItemList* _items;
+  size_t _size;
 };
 
 /**

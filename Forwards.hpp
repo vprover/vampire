@@ -62,6 +62,9 @@ template <typename Key, typename Val, class Hash1=FIRST_HASH(Key), class Hash2=H
 template <typename Val, class Hash1=FIRST_HASH(Val), class Hash2=Hash> class DHSet;
 template <typename K,typename V, class Hash1=FIRST_HASH(K), class Hash2=Hash> class MapToLIFO;
 
+template <typename Val,class Hash=Lib::Hash> class Set;
+
+
 template <typename Value,class ValueComparator> class SkipList;
 
 template<class Arr> class ArrayishObjectIterator;
