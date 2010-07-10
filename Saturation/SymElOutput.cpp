@@ -93,9 +93,7 @@ void SymElOutput::onParenthood(Clause* cl, Clause* parent)
   if(pcol!=COLOR_TRANSPARENT && cl->color()==COLOR_TRANSPARENT) {
     onSymbolElimination(parent->color(), cl);
   }
-  if(pcol==COLOR_TRANSPARENT &&
-     pstore!=Clause::NONE && pstore!=Clause::UNPROCESSED &&
-     _symElRewrites.find(parent)) {
+  if(pcol==COLOR_TRANSPARENT && _symElRewrites.find(parent)) {
     //Only one of clause's premises can be a clause derived since the
     //previous call to the @b onAllProcessed function, so the insertion
     //should always happen.
