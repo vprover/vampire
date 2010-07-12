@@ -286,6 +286,10 @@ void SaturationAlgorithm::onAllProcessed()
   if(_bddMarkingSubsumption) {
     _bddMarkingSubsumption->onAllProcessed();
   }
+
+  if(_consFinder) {
+    _consFinder->onAllProcessed();
+  }
 }
 
 /**
@@ -612,6 +616,10 @@ void SaturationAlgorithm::addInputSOSClause(Clause* cl)
   CALL("SaturationAlgorithm::addInputSOSClause");
   ASS_EQ(cl->inputType(),Clause::AXIOM);
 
+  //we add an extra reference until the clause is added to some container, so that
+  //it won't get deleted during some code e.g. in the onNewClause handler
+  cl->incRefCnt();
+
   onNewClause(cl);
 
 simpl_start:
@@ -620,8 +628,12 @@ simpl_start:
   if(simplCl!=cl) {
     if(!simplCl) {
       onClauseReduction(cl, 0, 0);
-      return;
+      goto fin;
     }
+
+    simplCl->incRefCnt();
+    cl->decRefCnt(); //now cl is referenced from simplCl, so after removing the extra reference, it won't be destroyed
+
     onNewClause(simplCl);
     onClauseReduction(cl, simplCl, 0);
     cl=simplCl;
@@ -630,7 +642,7 @@ simpl_start:
 
   if(cl->isEmpty()) {
     addNewClause(cl);
-    return;
+    goto fin;
   }
 
   ASS(!cl->selected());
@@ -641,6 +653,9 @@ simpl_start:
   _active->add(cl);
 
   onSOSClauseAdded(cl);
+
+fin:
+  cl->decRefCnt();
 }
 
 
@@ -796,18 +811,23 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
 
+  cl->incRefCnt();
+
   onNewClause(cl);
 
   ASS(cl->prop());
   if(BDD::instance()->isTrue(cl->prop())) {
-    return;
+    goto fin;
   }
 
   if(_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
-    return;
+    goto fin;
   }
 
   _newClauses.push(cl);
+
+fin:
+  cl->decRefCnt();
 }
 
 void SaturationAlgorithm::newClausesToUnprocessed()
@@ -1209,7 +1229,7 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     _active->remove(cl);
     break;
   default:
-    ASS_REP(false, cl->store());
+    ASS_REP2(false, cl->store(), *cl);
   }
   //at this point the cl object can be already deleted
 }

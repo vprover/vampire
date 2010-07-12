@@ -12,6 +12,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"
 
@@ -35,6 +36,7 @@ public:
   bool isRedundant(Clause* cl);
 
   void onNewPropositionalClause(Clause* cl);
+  void onAllProcessed();
 
 private:
 
@@ -44,6 +46,8 @@ private:
   void indexClause(unsigned indexNum, Clause* cl, bool add);
 
   SaturationAlgorithm* _sa;
+
+  Stack<unsigned> _redundantsToHandle;
 
   typedef SkipList<Clause*,Int> ClauseSL;
 
@@ -55,6 +59,7 @@ private:
   ZIArray<bool> _redundant;
 
   TautologyDeletionISE _td;
+  DuplicateLiteralRemovalISE _dlr;
 
   /** SubscriptionData for the @b onClauseInserted method */
   SubscriptionData _sdInsertion;

@@ -172,6 +172,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_CONDENSATION:
     out<<"condensation";
     break;
+  case TC_CONSEQUENCE_FINDING:
+    out<<"consequence finding";
+    break;
   case TC_FORWARD_DEMODULATION:
     out<<"forward demodulation";
     break;

@@ -4313,13 +4313,13 @@ $(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Stack.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/BacktrackData.hpp Lib/Int.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Comparison.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/SkipList.hpp Lib/Random.hpp
-$(CONF_ID)/Saturation/ConsequenceFinder.o: Kernel/BDD.hpp Lib/Allocator.hpp
-$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Array.hpp Lib/DHMap.hpp
-$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Hash.hpp Lib/Int.hpp
-$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/List.hpp Lib/Set.hpp
-$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Stack.hpp Kernel/Signature.hpp
-$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Map.hpp Kernel/Theory.hpp
-$(CONF_ID)/Saturation/ConsequenceFinder.o: Kernel/Term.hpp
+$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/TimeCounter.hpp Kernel/BDD.hpp
+$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Allocator.hpp Lib/Array.hpp
+$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/DHMap.hpp Lib/Hash.hpp
+$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Int.hpp Lib/List.hpp
+$(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Set.hpp Lib/Stack.hpp
+$(CONF_ID)/Saturation/ConsequenceFinder.o: Kernel/Signature.hpp Lib/Map.hpp
+$(CONF_ID)/Saturation/ConsequenceFinder.o: Kernel/Theory.hpp Kernel/Term.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Portability.hpp Lib/XML.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Lib/Comparison.hpp
 $(CONF_ID)/Saturation/ConsequenceFinder.o: Kernel/MatchTag.hpp

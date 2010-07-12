@@ -7,6 +7,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/SkipList.hpp"
+#include "Lib/TimeCounter.hpp"
 
 #include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
@@ -47,6 +48,20 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
 {
   CALL("ConsequenceFinder::onNewPropositionalClause");
 
+  TimeCounter tc(TC_CONSEQUENCE_FINDING);
+
+  //remove duplicate literals (necessary for tautology deletion)
+  Clause* dlrCl=_dlr.simplify(cl);
+
+  bool dlrSimplified=dlrCl!=cl;
+  if(dlrSimplified) {
+    //the function will be called again with the clause that is already simplified
+    //TODO: get some cheaper way of testing for duplicate literals presence
+    dlrCl->destroyIfUnnecessary();
+    return;
+  }
+
+
   if(!cl->noSplits() || !BDD::instance()->isFalse(cl->prop()) || !_td.simplify(cl)) {
     return;
   }
@@ -77,20 +92,45 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   }
 
   unsigned red=pos->functor(); //redundant cf symbol number
+  if(_redundant[red]) {
+    return;
+  }
   _redundant[red]=true;
 
+  //we will remove the redundant clauses later -- now we may be at some unsuitable part
+  //of the saturation algorithm loop
+  _redundantsToHandle.push(red);
+
+  static int num=0;
   env.beginOutput();
   env.out() << "Consequence found: " << env.signature->predicateName(red) << endl;
   env.endOutput();
+}
 
-  ClauseSL* rlist=_index[red];
-  if(rlist) {
-    _index[red]=0;
-    while(rlist->isNonEmpty()) {
-      Clause* rcl=rlist->pop();
-      _sa->removeActiveOrPassiveClause(rcl);
+void ConsequenceFinder::onAllProcessed()
+{
+  CALL("ConsequenceFinder::onAllProcessed");
+
+  TimeCounter tc(TC_CONSEQUENCE_FINDING);
+
+  while(_redundantsToHandle.isNonEmpty()) {
+    unsigned red=_redundantsToHandle.pop();
+
+    ClauseSL* rlist=_index[red];
+    if(rlist) {
+      _index[red]=0;
+      while(rlist->isNonEmpty()) {
+        Clause* rcl=rlist->pop();
+        if(rcl->store()!=Clause::UNPROCESSED && rcl->store()!=Clause::NONE &&
+  	   rcl->store()!=Clause::BACKTRACKED, rcl->store()) {
+          //this case is not very likely to happen, but possible -- one clause is redundant
+          //both due to the consequence-finding mode and to some backward simplification
+          continue;
+        }
+        _sa->removeActiveOrPassiveClause(rcl);
+      }
+      delete rlist;
     }
-    delete rlist;
   }
 }
 
@@ -120,6 +160,8 @@ void ConsequenceFinder::onClauseInserted(Clause* cl)
 {
   CALL("ConsequenceFinder::onClauseInserted");
 
+  TimeCounter tc(TC_CONSEQUENCE_FINDING);
+
   bool red=false;
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
@@ -148,6 +190,8 @@ void ConsequenceFinder::onClauseInserted(Clause* cl)
 void ConsequenceFinder::onClauseRemoved(Clause* cl)
 {
   CALL("ConsequenceFinder::onClauseRemoved");
+
+  TimeCounter tc(TC_CONSEQUENCE_FINDING);
 
   Clause::Iterator it(*cl);
   while(it.hasNext()) {

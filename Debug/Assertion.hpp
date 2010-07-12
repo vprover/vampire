@@ -42,9 +42,9 @@ public:
   static void violated(const char* file,int line,const char* condition,
 	  const T& rep, const char* repStr);
 
-  template<typename T>
+  template<typename T, typename U>
   static void violated(const char* file,int line,const char* condition,
-	  const T& rep, const char* repStr,const T& rep2, const char* repStr2);
+	  const T& rep, const char* repStr,const U& rep2, const char* repStr2);
 
 
   static void checkType(const char* file,int line,const void* ptr,
@@ -229,9 +229,9 @@ void Debug::Assertion::violated (const char* file,int line,const char* cond,
   }
 } // Assertion::violated
 
-template<typename T>
+template<typename T,typename U>
 void Debug::Assertion::violated (const char* file,int line,const char* cond,
-	const T& rep, const char* repStr, const T& rep2, const char* repStr2)
+	const T& rep, const char* repStr, const U& rep2, const char* repStr2)
 {
   if (_violated) {
     return;
