@@ -12,7 +12,9 @@
 #  include <process.h>
 #else
 #  include <unistd.h>
-#  include <sys/prctl.h>
+#  ifndef __APPLE__
+#    include <sys/prctl.h>
+#  endif
 #endif
 
 #include <cerrno>
@@ -91,14 +93,22 @@ unsigned Lib::System::getNumberOfCores()
 
 long long Lib::System::getSystemMemory()
 {
+#ifdef __APPLE__
+  NOT_IMPLEMENTED;
+#else
   long pages = sysconf(_SC_PHYS_PAGES);
   long page_size = sysconf(_SC_PAGE_SIZE);
   return static_cast<long long>(pages) * page_size;
+#endif
 }
 
 unsigned Lib::System::getNumberOfCores()
 {
+#ifdef __APPLE__
+  NOT_IMPLEMENTED;
+#else
   return sysconf( _SC_NPROCESSORS_ONLN );
+#endif
 }
 
 
@@ -323,7 +333,11 @@ void System::terminateImmediately(int resultStatus)
  */
 void System::registerForSIGHUPOnParentDeath()
 {
+#ifdef __APPLE__
+  NOT_IMPLEMENTED;
+#else
   prctl(PR_SET_PDEATHSIG, SIGHUP);
+#endif
 }
 
 string System::extractFileNameFromPath(string str)
