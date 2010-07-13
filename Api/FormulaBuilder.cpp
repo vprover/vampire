@@ -169,6 +169,20 @@ Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, bool positive)
   return new Kernel::AtomicFormula(lit);
 }
 
+Formula FormulaBuilder::trueFormula()
+{
+  CALL("FormulaBuilder::trueFormula");
+
+  return new Kernel::Formula(Kernel::TRUE);
+}
+
+Formula FormulaBuilder::falseFormula()
+{
+  CALL("FormulaBuilder::falseFormula");
+
+  return new Kernel::Formula(Kernel::FALSE);
+}
+
 Formula FormulaBuilder::negation(const Formula& f)
 {
   CALL("FormulaBuilder::negation");

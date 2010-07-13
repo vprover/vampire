@@ -811,22 +811,17 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
 
+  //we increase the reference counter here so that the cause wouldn't
+  //get destroyed during handling in the onNewClause handler
+  //(there the contl flow goes out of the SaturationAlgorithm class,
+  //so we'd better not assume on what's happening in there)
   cl->incRefCnt();
 
   onNewClause(cl);
 
   ASS(cl->prop());
-  if(BDD::instance()->isTrue(cl->prop())) {
-    goto fin;
-  }
-
-  if(_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
-    goto fin;
-  }
 
   _newClauses.push(cl);
-
-fin:
   cl->decRefCnt();
 }
 
@@ -902,6 +897,10 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   ASS(!bdd->isTrue(cl->prop()));
 
   env.checkTimeSometime<64>();
+
+  if(_bddMarkingSubsumption && _bddMarkingSubsumption->subsumed(cl)) {
+    return;
+  }
 
   cl=doImmediateSimplification(cl);
   if(!cl) {

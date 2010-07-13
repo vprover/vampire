@@ -28,7 +28,11 @@ using namespace Kernel;
 #endif
 
 #if USE_SYSTEM_ALLOCATION
+# ifdef __APPLE__
+#  include <malloc/malloc.h>
+# else
 #  include <malloc.h>
+# endif
 #endif
 
 

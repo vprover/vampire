@@ -106,6 +106,12 @@ public:
   /** build an equality */
   Formula equality(const Term& lhs,const Term& rhs, bool positive=true);
 
+  /** build a true formula */
+  Formula trueFormula();
+
+  /** build a false formula */
+  Formula falseFormula();
+
   /** build the negation of f */
   Formula negation(const Formula& f);
 
@@ -191,6 +197,8 @@ private:
 class Formula
 {
 public:
+  Formula() : form(0) {}
+
   string toString() const;
 
   operator Kernel::Formula*() const { return form; }

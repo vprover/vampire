@@ -35,6 +35,15 @@
 /** Maximal height of skip lists */
 #define MAX_SKIP_HEIGHT 32
 
+//this macro is undefine at the end of the file
+#ifdef __APPLE__
+# define ALLOC_SIZE_ATTR
+#else
+# define ALLOC_SIZE_ATTR __attribute__((malloc, alloc_size(1)))
+#endif
+
+
+
 namespace Lib {
 
 class Allocator {
@@ -64,16 +73,16 @@ public:
   static Allocator* current;
 
 #if VDEBUG
-  void* allocateKnown(size_t size,const char* className) __attribute__((malloc, alloc_size(1)));
+  void* allocateKnown(size_t size,const char* className) ALLOC_SIZE_ATTR;
   void deallocateKnown(void* obj,size_t size,const char* className);
-  void* allocateUnknown(size_t size,const char* className) __attribute__((malloc, alloc_size(1)));
+  void* allocateUnknown(size_t size,const char* className) ALLOC_SIZE_ATTR;
   void deallocateUnknown(void* obj,const char* className);
   static void addressStatus(const void* address);
   static void reportUsageByClasses();
 #else
-  void* allocateKnown(size_t size) __attribute__((malloc, alloc_size(1)));
+  void* allocateKnown(size_t size) ALLOC_SIZE_ATTR;
   void deallocateKnown(void* obj,size_t size);
-  void* allocateUnknown(size_t size) __attribute__((malloc, alloc_size(1)));
+  void* allocateUnknown(size_t size) ALLOC_SIZE_ATTR;
   void deallocateUnknown(void* obj);
 #endif
 
@@ -340,5 +349,7 @@ void array_delete(T* array, size_t length)
 #endif
 
 } // namespace Lib
+
+#undef ALLOC_SIZE_ATTR
 
 #endif // __Allocator__
