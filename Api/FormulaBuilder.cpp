@@ -173,14 +173,14 @@ Formula FormulaBuilder::trueFormula()
 {
   CALL("FormulaBuilder::trueFormula");
 
-  return new Kernel::Formula(Kernel::TRUE);
+  return new Kernel::Formula(true);
 }
 
 Formula FormulaBuilder::falseFormula()
 {
   CALL("FormulaBuilder::falseFormula");
 
-  return new Kernel::Formula(Kernel::FALSE);
+  return new Kernel::Formula(false);
 }
 
 Formula FormulaBuilder::negation(const Formula& f)
