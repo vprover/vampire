@@ -187,8 +187,8 @@ class Term
 {
 public:
   operator Kernel::TermList() const;
-private:
   Term(Kernel::TermList t);
+private:
   size_t content;
 
   friend class FormulaBuilder;
@@ -202,8 +202,8 @@ public:
   string toString() const;
 
   operator Kernel::Formula*() const { return form; }
-private:
   Formula(Kernel::Formula* f) : form(f) {}
+private:
   Kernel::Formula* form;
 
   friend class FormulaBuilder;
@@ -217,8 +217,8 @@ public:
   string toString() const;
 
   operator Kernel::Unit*() const { return unit; }
-private:
   AnnotatedFormula(Kernel::Unit* fu) : unit(fu) {}
+private:
   Kernel::Unit* unit;
 
   friend class FormulaBuilder;
