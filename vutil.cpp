@@ -39,6 +39,8 @@ int main(int argc, char* argv [])
 {
   CALL ("main");
 
+  int resultValue=2;
+
   System::setSignalHandlers();
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);
@@ -54,7 +56,7 @@ int main(int argc, char* argv [])
     }
     string module=argv[1];
     if(module=="problem_coloring") {
-      ProblemColoring().perform(argc, argv);
+      resultValue=ProblemColoring().perform(argc, argv);
     }
     else {
       USER_ERROR("unknown vutil module name: "+module);
@@ -84,6 +86,6 @@ int main(int argc, char* argv [])
   }
 //   delete env.allocator;
 
-  return 0;
+  return resultValue;
 } // main
 

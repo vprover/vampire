@@ -5,13 +5,15 @@
 
 #include "Debug/Tracer.hpp"
 
+#include "Lib/BinaryHeap.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/MapToLIFO.hpp"
 #include "Lib/Stack.hpp"
-
 #include "Kernel/Signature.hpp"
 
 #include "Shell/CommandLine.hpp"
@@ -25,10 +27,36 @@ namespace VUtils
 {
 
 using namespace Lib;
+
 using namespace Kernel;
 using namespace Shell;
 
-void ProblemColoring::perform(int argc, char** argv)
+struct ProblemColoring::SymIdComparator
+{
+  //static variable is not a very nice way of doing this, but we just need to
+  //quickly and simply fit into the BinaryHeap interface
+  static DHMultiset<SymId>* gen;
+  static Comparison compare(SymId s1, SymId s2)
+  {
+    CALL("ProblemColoring::SymIdComparator::compare");
+
+    Comparison res=Int::compare(gen->multiplicity(s1), gen->multiplicity(s2));
+    if(res==EQUAL) {
+      res=Int::compare(s1,s2);
+    }
+    return res;
+  }
+};
+
+DHMultiset<ProblemColoring::SymId>* ProblemColoring::SymIdComparator::gen;
+
+
+/**
+ * Try to assign different colors to symbols of a problem.
+ * Return 0 if both left and right color could be assigned to
+ * at least one symbol; otherwise return 1.
+ */
+int ProblemColoring::perform(int argc, char** argv)
 {
   CALL("ProblemColoring::perform");
 
@@ -41,6 +69,7 @@ void ProblemColoring::perform(int argc, char** argv)
   UnitList* units=UIHelper::getInputUnits();
 
   SineSymbolExtractor symEx;
+  DHMultiset<SymId> generality; //contains number of symbol occurences
 
 
   Stack<SymId> syms;
@@ -53,6 +82,7 @@ void ProblemColoring::perform(int argc, char** argv)
     Stack<SymId>::Iterator sit1(syms);
     while(sit1.hasNext()) {
       SymId s1=sit1.next();
+      generality.insert(s1);
 
       Stack<SymId>::Iterator sit2(syms);
       while(sit2.hasNext()) {
@@ -65,14 +95,27 @@ void ProblemColoring::perform(int argc, char** argv)
     }
   }
 
-  //first try assign left and right colors in a fair manner
-  bool lastLeft=false;
+  //make a heap that will first give symbols that occur the least
+  SymIdComparator::gen=&generality;
+  BinaryHeap<SymId, SymIdComparator> orderedSyms;
+
   SymId symIdBound=symEx.getSymIdBound();
   //we start from 1 as 0 is equality
   for(SymId i=1;i<symIdBound;i++) {
     if(!symEx.validSymId(i)) {
       continue;
     }
+    orderedSyms.insert(i);
+  }
+
+
+  //First try assign left and right colors in a fair manner to the least occurring symbols.
+  //This way we expect to assign the most diverse colors to the most symbols.
+  bool lastLeft=false;
+  while(!orderedSyms.isEmpty()) {
+    SymId i=orderedSyms.pop();
+    ASS(symEx.validSymId(i));
+
     if(lastLeft) {
       if(tryAssignColor(i, RIGHT)) {
 	lastLeft=false;
@@ -95,6 +138,8 @@ void ProblemColoring::perform(int argc, char** argv)
     }
   }
 
+  bool assignedToSome[2]={false, false};
+
   env.beginOutput();
   for(int cIndex=0;cIndex<2;cIndex++) {
     string cstr=cIndex?"left":"right";
@@ -107,6 +152,7 @@ void ProblemColoring::perform(int argc, char** argv)
       if(c!=reqCol) {
 	continue;
       }
+      assignedToSome[cIndex]=true; //set a flag that this color has been used
       bool pred;
       unsigned functor;
       symEx.decodeSymId(i, pred, functor);
@@ -131,8 +177,9 @@ void ProblemColoring::perform(int argc, char** argv)
     env.out()<<TPTP::toString(u)<<endl;
   }
 
-
   env.endOutput();
+
+  return (assignedToSome[0] && assignedToSome[1]) ? 0 : 1;
 }
 
 bool ProblemColoring::tryAssignColor(SymId sym, Color c)

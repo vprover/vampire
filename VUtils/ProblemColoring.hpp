@@ -19,7 +19,7 @@ using namespace Shell;
 class ProblemColoring
 {
 public:
-  void perform(int argc, char** argv);
+  int perform(int argc, char** argv);
 private:
 
   typedef SineSymbolExtractor::SymId SymId;
@@ -28,6 +28,7 @@ private:
   enum Color {
     ANY, LEFT, RIGHT, TRANSPARENT, NOLEFT, NORIGHT
   };
+  struct SymIdComparator;
 
   MapToLIFO<SymId, SymId> neigh;
   DHMap<SymId, Color> symCols;
