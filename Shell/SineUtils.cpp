@@ -69,6 +69,26 @@ void SineSymbolExtractor::decodeSymId(SymId s, bool& pred, unsigned& functor)
   functor = s/2;
 }
 
+bool SineSymbolExtractor::validSymId(SymId s)
+{
+  CALL("SineSymbolExtractor::validSymId");
+
+  bool pred;
+  unsigned functor;
+  decodeSymId(s, pred, functor);
+  if(pred) {
+    if(functor>=static_cast<unsigned>(env.signature->predicates())) {
+      return false;
+    }
+  }
+  else {
+    if(functor>=static_cast<unsigned>(env.signature->functions())) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void SineSymbolExtractor::extractFormulaSymbols(Formula* f,int polarity,Stack<SymId>& itms)
 {
   CALL("SineSymbolExtractor::extractFormulaSymbols");

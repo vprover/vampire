@@ -10,6 +10,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
+#include "Lib/Stack.hpp"
 
 namespace Shell {
 
@@ -27,7 +28,7 @@ public:
   SymIdIterator extractSymIds(Unit* u);
 
   void decodeSymId(SymId s, bool& pred, unsigned& functor);
-
+  bool validSymId(SymId s);
 private:
   void addSymIds(Literal* lit, int polarity, Stack<SymId>& ids) const;
 

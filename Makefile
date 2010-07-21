@@ -276,6 +276,9 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 		  UnitTests/tSkipList.o\
 		  UnitTests/tTwoVampires.o
 
+VUTIL_OBJ = VUtils/ProblemColoring.o
+
+
 LIB_DEP = Indexing/TermSharing.o\
 		  Kernel/BDD.o\
 		  Kernel/BDDClausifier.o\
@@ -369,6 +372,7 @@ VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) Global.o vampire.o
 VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
 VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
 VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
+VUTIL_DEP = $(VAMP_BASIC) $(VUTIL_OBJ) Global.o vutil.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
 VTEST_DEP = $(VAMP_BASIC) $(VUT_OBJ) Global.o vtest.o
 VAPI_DEP = $(API_OBJ) $(OTHER_API_DEP) Global.o dummy_main.o
@@ -392,7 +396,7 @@ obj:
 	-mkdir obj
 obj/%X: | obj
 	-mkdir $@
-	-cd $@ ; mkdir Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test UnitTests; cd .. 
+	-cd $@ ; mkdir Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test UnitTests VUtils; cd .. 
 
 #cancel the implicit rule
 %.o : %.cpp
@@ -408,6 +412,7 @@ VCOMPIT_OBJ := $(addprefix $(CONF_ID)/, $(VCOMPIT_DEP))
 VLTB_OBJ := $(addprefix $(CONF_ID)/, $(VLTB_DEP))
 VCLAUSIFY_OBJ := $(addprefix $(CONF_ID)/, $(VCLAUSIFY_DEP))
 VTEST_OBJ := $(addprefix $(CONF_ID)/, $(VTEST_DEP))
+VUTIL_OBJ := $(addprefix $(CONF_ID)/, $(VUTIL_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
 LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
@@ -437,6 +442,9 @@ vclausify vclausify_rel vclausify_dbg: $(VCLAUSIFY_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vtest vtest_rel vtest_dbg: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD)
+
+vutil vutil_rel vutil_dbg: $(VUTIL_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vsat vsat_rel vsat_dbg: $(VSAT_OBJ) $(EXEC_DEF_PREREQ)
