@@ -30,10 +30,12 @@ private:
   };
   struct SymIdComparator;
 
+  SineSymbolExtractor symEx;
   MapToLIFO<SymId, SymId> neigh;
   DHMap<SymId, Color> symCols;
 
   bool tryAssignColor(SymId sym, Color c);
+  Color getUnitColor(Unit* u);
 };
 
 

@@ -14,6 +14,7 @@
 #include "Lib/List.hpp"
 #include "Lib/MapToLIFO.hpp"
 #include "Lib/Stack.hpp"
+
 #include "Kernel/Signature.hpp"
 
 #include "Shell/CommandLine.hpp"
@@ -68,7 +69,6 @@ int ProblemColoring::perform(int argc, char** argv)
 
   UnitList* units=UIHelper::getInputUnits();
 
-  SineSymbolExtractor symEx;
   DHMultiset<SymId> generality; //contains number of symbol occurences
 
 
@@ -142,8 +142,8 @@ int ProblemColoring::perform(int argc, char** argv)
 
   env.beginOutput();
   for(int cIndex=0;cIndex<2;cIndex++) {
-    string cstr=cIndex?"left":"right";
-    Color reqCol=cIndex?LEFT:RIGHT;
+    string cstr=(cIndex==0)?"left":"right";
+    Color reqCol=(cIndex==0)?LEFT:RIGHT;
     for(SymId i=1;i<symIdBound;i++) {
       if(!symEx.validSymId(i)) {
 	continue;
@@ -171,10 +171,25 @@ int ProblemColoring::perform(int argc, char** argv)
 
   env.out()<<endl;
 
-  UnitList::Iterator uit2(units);
-  while(uit2.hasNext()) {
-    Unit* u=uit2.next();
-    env.out()<<TPTP::toString(u)<<endl;
+
+  for(int cIndex=0;cIndex<3;cIndex++) {
+    Color reqColor=(cIndex==0)?LEFT:(cIndex==1?RIGHT:TRANSPARENT);
+    if(cIndex<2) {
+      string cstr=(cIndex==0)?"left":"right";
+      env.out()<<"vampire("<<cstr<<"_formula)."<<endl;
+    }
+
+    uit=UnitList::Iterator(units);
+    while(uit.hasNext()) {
+      Unit* u=uit.next();
+      if(getUnitColor(u)!=reqColor) {
+	continue;
+      }
+      env.out()<<TPTP::toString(u)<<endl;
+    }
+    if(cIndex<2) {
+      env.out()<<"vampire(end_formula)."<<endl<<endl<<endl;
+    }
   }
 
   env.endOutput();
@@ -237,9 +252,24 @@ bool ProblemColoring::tryAssignColor(SymId sym, Color c)
     }
   }
 
-
   return true;
+}
 
+ProblemColoring::Color ProblemColoring::getUnitColor(Unit* u)
+{
+  CALL("ProblemColoring::getUnitColor");
+
+  Color res=TRANSPARENT;
+  SymIdIterator syms=symEx.extractSymIds(u);
+  while(syms.hasNext()) {
+    SymId s=syms.next();
+    Color c=symCols.get(s);
+    if(c==LEFT || c==RIGHT) {
+      ASS(res==c || res==TRANSPARENT);
+      res=c;
+    }
+  }
+  return res;
 }
 
 
