@@ -5570,3 +5570,16 @@ $(CONF_ID)/vtest.o: Lib/XML.hpp Lib/Comparison.hpp Kernel/MatchTag.hpp
 $(CONF_ID)/vtest.o: Lib/BitUtils.hpp Shell/Options.hpp Shell/Statistics.hpp
 $(CONF_ID)/vtest.o: Test/UnitTesting.hpp Lib/MemoryLeak.hpp Lib/Set.hpp
 $(CONF_ID)/vtest.o: Kernel/Unit.hpp
+$(CONF_ID)/vutil.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/vutil.o: Debug/Tracer.hpp Lib/Allocator.hpp Lib/Exception.hpp
+$(CONF_ID)/vutil.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
+$(CONF_ID)/vutil.o: Lib/Environment.hpp Lib/Exception.hpp Lib/Random.hpp
+$(CONF_ID)/vutil.o: Lib/System.hpp Lib/Array.hpp Lib/List.hpp
+$(CONF_ID)/vutil.o: Lib/Portability.hpp Shell/Options.hpp Lib/XML.hpp
+$(CONF_ID)/vutil.o: Shell/Statistics.hpp VUtils/ProblemColoring.hpp
+$(CONF_ID)/vutil.o: Lib/DHMap.hpp Lib/Allocator.hpp Lib/Hash.hpp
+$(CONF_ID)/vutil.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
+$(CONF_ID)/vutil.o: Lib/MapToLIFO.hpp Lib/DHMap.hpp Lib/Metaiterators.hpp
+$(CONF_ID)/vutil.o: Shell/SineUtils.hpp Lib/DArray.hpp Lib/Comparison.hpp
+$(CONF_ID)/vutil.o: Lib/Random.hpp Lib/Stack.hpp Lib/BacktrackData.hpp
+$(CONF_ID)/vutil.o: Lib/Int.hpp
