@@ -186,6 +186,8 @@ class Problem;
 class Term
 {
 public:
+  Term() : content(0) {}
+
   operator Kernel::TermList() const;
   Term(Kernel::TermList t);
 private:
@@ -212,7 +214,7 @@ private:
 class AnnotatedFormula
 {
 public:
-  AnnotatedFormula() {}
+  AnnotatedFormula() : unit(0) {}
 
   string toString() const;
 
