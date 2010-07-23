@@ -12,7 +12,7 @@
 #  include <process.h>
 #else
 #  include <unistd.h>
-#  ifndef __APPLE__
+#  if !__APPLE__
 #    include <sys/prctl.h>
 #  endif
 #endif
@@ -73,10 +73,10 @@ void reportSpiderStatus(char status)
 
 #include <windows.h>
 
-long long getTotalSystemMemory()
+long long Lib::System::getSystemMemory()
 {
   MEMORYSTATUSEX status;
-  GetMemoryStatusEx(&status);
+  GlobalMemoryStatusEx(&status);
   return status.ullTotalPhys;
 }
 
@@ -93,7 +93,7 @@ unsigned Lib::System::getNumberOfCores()
 
 long long Lib::System::getSystemMemory()
 {
-#ifdef __APPLE__
+#if __APPLE__
   NOT_IMPLEMENTED;
 #else
   long pages = sysconf(_SC_PHYS_PAGES);
@@ -104,7 +104,7 @@ long long Lib::System::getSystemMemory()
 
 unsigned Lib::System::getNumberOfCores()
 {
-#ifdef __APPLE__
+#if __APPLE__
   NOT_IMPLEMENTED;
 #else
   return sysconf( _SC_NPROCESSORS_ONLN );
@@ -333,7 +333,7 @@ void System::terminateImmediately(int resultStatus)
  */
 void System::registerForSIGHUPOnParentDeath()
 {
-#ifdef __APPLE__
+#if __APPLE__ || COMPILER_MSVC
   NOT_IMPLEMENTED;
 #else
   prctl(PR_SET_PDEATHSIG, SIGHUP);

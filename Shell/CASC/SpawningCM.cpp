@@ -33,7 +33,7 @@ SpawningCM::SpawningCM(string executable)
   }
 
   if(env.options->inputFile()=="") {
-    USER_ERROR("Value for the option --input_file has to be specified for the spawning CASC mode.");
+    USER_ERROR("Value of the --input_file option must be specified for the CASC mode in Windows.");
   }
   _inputFile=env.options->inputFile();
 
@@ -41,23 +41,18 @@ SpawningCM::SpawningCM(string executable)
   _property.scan(units);
   while(units) {
     Unit* u=UnitList::pop(units);
-    //this won't cause destruction of Formula objects but better than nothing...
+    //this won't cause destruction of the Formula objects but better than nothing...
     u->destroy();
   }
 }
 
-bool SpawningCM::runStrategy(Options& opt)
+bool SpawningCM::runSlice(Options& opt)
 {
-  CALL("SpawningCM::runStrategy");
+  CALL("SpawningCM::runSlice");
 
-  NOT_IMPLEMENTED;
-}
+  string strategy=opt.generateTestId();
 
-bool SpawningCM::runStrategy(string strategy, unsigned ds)
-{
-  CALL("SpawningCM::runStrategy");
-
-  string cmdLine=_executable+" -decode "+strategy+" -t "+Int::toString(static_cast<float>(ds)/10.0f)+" -input_file "+_inputFile;
+  string cmdLine=_executable+" -decode "+strategy+" -input_file "+_inputFile;
 
   if(env.options->include()!="") {
     cmdLine+=" -include "+env.options->include();

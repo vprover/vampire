@@ -458,7 +458,7 @@ private:
   string _namePrefix;
   int _naming;
   float _nongoalWeightCoefficient;
-  float _nonliteralsInClauseWeight;
+  bool _nonliteralsInClauseWeight;
   bool _normalize;
 
   bool _outputAxiomNames;

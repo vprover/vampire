@@ -12,11 +12,33 @@
 
 #include "Lib/fdstream.hpp"
 #include "Lib/Exception.hpp"
+#include "Lib/Portability.hpp"
 
 #include "Semaphore.hpp"
 
 namespace Lib {
 namespace Sys {
+
+#if COMPILER_MSVC
+
+class SyncPipe {
+public:
+  bool isReading() const { NOT_IMPLEMENTED; }
+  bool canRead() const { NOT_IMPLEMENTED; }
+  void acquireRead() { NOT_IMPLEMENTED; }
+  void releaseRead() { NOT_IMPLEMENTED; }
+  void neverRead() { NOT_IMPLEMENTED; }
+  bool isWriting() const { NOT_IMPLEMENTED; }
+  bool canWrite() const { NOT_IMPLEMENTED; }
+  void acquireWrite() { NOT_IMPLEMENTED; }
+  void releaseWrite() { NOT_IMPLEMENTED; }
+  void neverWrite() { NOT_IMPLEMENTED; }
+  void releasePriviledges() { NOT_IMPLEMENTED; }
+  istream& in() { NOT_IMPLEMENTED; }
+  ostream& out() { NOT_IMPLEMENTED; }
+};
+
+#else
 
 class SyncPipe {
 public:
@@ -105,6 +127,8 @@ private:
 
   static PipeList* s_instances;
 };
+
+#endif //COMPILER_MSVC
 
 }
 }

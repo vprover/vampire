@@ -24,7 +24,7 @@ class ForkingCM
 : public CASCMode
 {
   ForkingCM() { INVALID_OPERATION("Forking CASC mode is not supported on the Windows platform."); }
-  bool runSlice(string sliceCode, unsigned ds) { ASSERTION_VIOLATION; }
+  bool runSlice(Options& opt) { ASSERTION_VIOLATION; }
 };
 
 #else

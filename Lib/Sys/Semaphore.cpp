@@ -3,6 +3,10 @@
  * Implements class Semaphore.
  */
 
+#include "Lib/Portability.hpp"
+
+#if !COMPILER_MSVC
+
 #include <cerrno>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -30,8 +34,6 @@ namespace Lib
 {
 namespace Sys
 {
-
-#if !COMPILER_MSVC
 
 /**
  * List of all Semaphore objects, so that the reference counters of the
@@ -421,8 +423,8 @@ void Semaphore::ensureEventHandlersInstalled()
   installed=true;
 }
 
-#endif
+}
+}
 
-}
-}
+#endif //!COMPILER_MSVC
 

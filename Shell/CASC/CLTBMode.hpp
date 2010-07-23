@@ -26,6 +26,16 @@ namespace CASC {
 using namespace std;
 using namespace Lib;
 
+#if COMPILER_MSVC
+
+class CLTBMode
+{
+public:
+  void perform() { USER_ERROR("casc_ltb mode is not supported on Windows"); }
+};
+
+#else
+
 class CLTBProblem;
 
 class CLTBMode
@@ -100,6 +110,8 @@ private:
   //pipe for collecting the output from children
   SyncPipe childOutputPipe;
 };
+
+#endif //!COMPILER_MSVC
 
 }
 }

@@ -172,6 +172,11 @@ void vampireMode()
   env.beginOutput();
   UIHelper::outputResult(env.out());
   env.endOutput();
+
+  if(env.statistics->terminationReason==Statistics::REFUTATION) {
+    vampireReturnValue=0;
+  }
+
 } // vampireMode
 
 
@@ -191,6 +196,7 @@ void spiderMode()
     switch (env.statistics->terminationReason) {
     case Statistics::REFUTATION:
       reportSpiderStatus('+');
+      vampireReturnValue=0;
       break;
     case Statistics::TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:

@@ -75,7 +75,7 @@ pid_t Multiprocessing::fork()
   ASS(!env.haveOutput());
 
 #if COMPILER_MSVC
-  INVALID_OPERATION("fork() is not supported on Windows")
+  INVALID_OPERATION("fork() is not supported on Windows");
 #else
   executeFuncList(_preFork);
   errno=0;
@@ -103,7 +103,7 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
   CALL("Multiprocessing::waitForChildTermination");
 
 #if COMPILER_MSVC
-  INVALID_OPERATION("waitid() is not supported on Windows")
+  INVALID_OPERATION("waitid() is not supported on Windows");
 #else
 
   siginfo_t si;

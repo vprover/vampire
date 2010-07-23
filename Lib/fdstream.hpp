@@ -6,6 +6,10 @@
 #ifndef __fdstream__
 #define __fdstream__
 
+#include "Portability.hpp"
+
+#if !COMPILER_MSVC
+
 #include <unistd.h>
 #include <cerrno>
 #include <iostream>
@@ -161,5 +165,7 @@ typedef basic_fdstream <char> fdstream;
 
 
 }
+
+#endif //COMPILER_MSVC
 
 #endif // __fdstream__

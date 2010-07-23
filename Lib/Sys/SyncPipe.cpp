@@ -3,18 +3,16 @@
  * Implements class SyncPipe.
  */
 
-#include <cerrno>
-
-#include "Lib/fdstream.hpp"
-
 #include "Lib/Portability.hpp"
 
 #if !COMPILER_MSVC
+
+#include <cerrno>
 #include <unistd.h>
-#endif
 
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
+#include "Lib/fdstream.hpp"
 #include "Lib/List.hpp"
 #include "Lib/System.hpp"
 
@@ -256,3 +254,5 @@ void SyncPipe::ensureEventHandlersInstalled()
 
 }
 }
+
+#endif //!COMPILER_MSVC

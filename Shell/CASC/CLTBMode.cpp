@@ -7,11 +7,9 @@
 #include <cstdlib>
 #include <csignal>
 
-//#include "Lib/Portability.hpp"
+#include "Lib/Portability.hpp"
 
-//#if !COMPILER_MSVC
-//#include <unistd.h>
-//#endif
+#if !COMPILER_MSVC
 
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
@@ -865,3 +863,6 @@ unsigned CLTBProblem::getSliceTime(string sliceCode)
 
 }
 }
+
+
+#endif //!COMPILER_MSVC

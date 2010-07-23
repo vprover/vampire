@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="vampire"
 	ProjectGUID="{88902C89-05A7-4BA6-82E1-F2732F745902}"
 	RootNamespace="vampire"
@@ -177,6 +177,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Kernel\Algebra\ArithmeticKB.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\Array.hpp"
 				>
 			</File>
@@ -206,6 +210,10 @@
 			</File>
 			<File
 				RelativePath=".\inferences\BackwardDemodulation.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Inferences\BackwardSubsumptionResolution.hpp"
 				>
 			</File>
 			<File
@@ -285,6 +293,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\CASC\CLTBMode.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\shell\CNF.hpp"
 				>
 			</File>
@@ -329,6 +341,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Kernel\Algebra\Constraint.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\Counter.hpp"
 				>
 			</File>
@@ -358,6 +374,10 @@
 			</File>
 			<File
 				RelativePath=".\Lib\DHSet.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Test\DiffOrdering.hpp"
 				>
 			</File>
 			<File
@@ -414,6 +434,10 @@
 			</File>
 			<File
 				RelativePath=".\Inferences\FastCondensation.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Lib\fdstream.hpp"
 				>
 			</File>
 			<File
@@ -541,6 +565,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Kernel\KBOForEPR.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\LastCopyWatcher.hpp"
 				>
 			</File>
@@ -597,6 +625,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Kernel\LookaheadLiteralSelector.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\saturation\LRS.hpp"
 				>
 			</File>
@@ -649,6 +681,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Lib\Sys\Multiprocessing.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\NameArray.hpp"
 				>
 			</File>
@@ -693,7 +729,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Kernel\Polynomial.hpp"
+				RelativePath=".\Kernel\Algebra\Polynomial.hpp"
 				>
 			</File>
 			<File
@@ -702,10 +738,6 @@
 			</File>
 			<File
 				RelativePath=".\shell\PredicateDefinition.hpp"
-				>
-			</File>
-			<File
-				RelativePath=".\sat\Preprocess.hpp"
 				>
 			</File>
 			<File
@@ -722,6 +754,10 @@
 			</File>
 			<File
 				RelativePath=".\Inferences\PropositionalToBDDISE.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Saturation\ProvingHelper.hpp"
 				>
 			</File>
 			<File
@@ -789,6 +825,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Lib\Sys\Semaphore.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\Set.hpp"
 				>
 			</File>
@@ -798,6 +838,10 @@
 			</File>
 			<File
 				RelativePath=".\kernel\Signature.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\CASC\SimpleLTBMode.hpp"
 				>
 			</File>
 			<File
@@ -905,6 +949,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Lib\Sys\SyncPipe.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\System.hpp"
 				>
 			</File>
@@ -997,6 +1045,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Test\UnitTesting.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\Vector.hpp"
 				>
 			</File>
@@ -1029,6 +1081,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Kernel\Algebra\ArithmeticKB.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\debug\Assertion.cpp"
 				>
 			</File>
@@ -1042,6 +1098,10 @@
 			</File>
 			<File
 				RelativePath=".\inferences\BackwardDemodulation.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Inferences\BackwardSubsumptionResolution.cpp"
 				>
 			</File>
 			<File
@@ -1101,6 +1161,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\CASC\CLTBMode.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\shell\CNF.cpp"
 				>
 			</File>
@@ -1130,6 +1194,10 @@
 			</File>
 			<File
 				RelativePath=".\Saturation\ConsequenceFinder.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\Algebra\Constraint.cpp"
 				>
 			</File>
 			<File
@@ -1309,7 +1377,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Kernel\KBO_Equality.cpp"
+				RelativePath=".\Kernel\KBOForEPR.cpp"
 				>
 			</File>
 			<File
@@ -1349,6 +1417,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Debug\Log.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kernel\LookaheadLiteralSelector.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\saturation\LRS.cpp"
 				>
 			</File>
@@ -1381,6 +1457,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Lib\Sys\Multiprocessing.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\lib\NameArray.cpp"
 				>
 			</File>
@@ -1405,6 +1485,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Kernel\Ordering_Equality.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\saturation\Otter.cpp"
 				>
 			</File>
@@ -1417,15 +1501,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Kernel\Polynomial.cpp"
+				RelativePath=".\Kernel\Algebra\Polynomial.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\shell\PredicateDefinition.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\SAT\Preprocess.cpp"
 				>
 			</File>
 			<File
@@ -1442,6 +1522,10 @@
 			</File>
 			<File
 				RelativePath=".\Inferences\PropositionalToBDDISE.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Saturation\ProvingHelper.cpp"
 				>
 			</File>
 			<File
@@ -1497,7 +1581,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Lib\Sys\Semaphore.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\kernel\Signature.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\CASC\SimpleLTBMode.cpp"
 				>
 			</File>
 			<File
@@ -1561,6 +1653,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Indexing\SubstitutionTree_FastGen.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Indexing\SubstitutionTree_FastInst.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\indexing\SubstitutionTree_Nodes.cpp"
 				>
 			</File>
@@ -1586,6 +1686,10 @@
 			</File>
 			<File
 				RelativePath=".\Saturation\SymElOutput.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Lib\Sys\SyncPipe.cpp"
 				>
 			</File>
 			<File
@@ -1670,6 +1774,10 @@
 			</File>
 			<File
 				RelativePath=".\kernel\Unit.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Test\UnitTesting.cpp"
 				>
 			</File>
 			<File

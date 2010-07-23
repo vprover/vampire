@@ -7,9 +7,13 @@
 // Detect compiler
 
 #ifdef _MSC_VER
-#define COMPILER_MSVC 1
+# define COMPILER_MSVC 1
 #else
-#define COMPILER_MSVC 0
+# define COMPILER_MSVC 0
+#endif
+
+#ifndef __APPLE__
+# define __APPLE__ 0
 #endif
 
 //////////////////////////////////////////////////////
@@ -74,6 +78,7 @@ ASS_STATIC(sizeof(char)==1);
 #if COMPILER_MSVC
 
 #define int32_t __int32
+#define pid_t __int32
 
 #endif
 
