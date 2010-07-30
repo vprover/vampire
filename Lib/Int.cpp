@@ -13,8 +13,9 @@
 #include "Int.hpp"
 #include "Debug/Tracer.hpp"
 
-namespace Lib {
+using namespace Lib;
 
+/** Return the greatest common divisor of @b i and @b j */
 int Int::gcd(int i,int j)
 {
   CALL("Int::gcd");
@@ -38,6 +39,10 @@ int Int::gcd(int i,int j)
   }
 }
 
+/**
+ * If -num does not overflow, return true and save -num to res.
+ * Otherwise, return false.
+ */
 bool Int::safeUnaryMinus(int num, int& res)
 {
   CALL("Int::safeUnaryMinus");
@@ -49,6 +54,10 @@ bool Int::safeUnaryMinus(int num, int& res)
   return true;
 }
 
+/**
+ * If arg1+arg2 does not overflow, return true and save the sum to res.
+ * Otherwise, return false.
+ */
 bool Int::safePlus(int arg1, int arg2, int& res)
 {
   CALL("Int::safePlus");
@@ -63,6 +72,10 @@ bool Int::safePlus(int arg1, int arg2, int& res)
   return true;
 }
 
+/**
+ * If arg1-arg2 does not overflow, return true and save the result to res.
+ * Otherwise, return false.
+ */
 bool Int::safeMinus(int num, int sub, int& res)
 {
   CALL("Int::safeMinus");
@@ -77,6 +90,10 @@ bool Int::safeMinus(int num, int sub, int& res)
   return true;
 }
 
+/**
+ * If arg1*arg2 does not overflow, return true and save the result to res.
+ * Otherwise, return false.
+ */
 bool Int::safeMultiply(int arg1, int arg2, int& res)
 {
   CALL("Int::safeMultiply");
@@ -187,7 +204,7 @@ bool Int::stringToLong (const char* str,long& result)
   CALL("Int::stringToLong");
 
   if (! *str) { // empty string
-    return 0;
+    return false;
   }
 
   errno = 0;
@@ -197,7 +214,6 @@ bool Int::stringToLong (const char* str,long& result)
   if (*endptr ||
       (result == 0 && errno) ||
       ( (result == LONG_MAX || result == LONG_MIN) && errno==ERANGE ) ) { // error returned by strtol
-
     return false;
   }
 
@@ -337,5 +353,32 @@ bool Int::stringToUnsigned64 (const string& str,long long unsigned& result)
   return stringToUnsigned64(str.c_str(),result);
 } // Int::stringToUnsigned64
 
+/**
+ * True if @b str is a string representing an (arbitrary precision) integer.
+ * @since 30/07/2010 Linz
+ */
+bool Int::isInteger(const char* str)
+{
+  CALL("Int::isInteger");
 
-}
+	if (*str == '-') {
+		str++;
+	}
+
+	// str must represent a non-negative integer
+	if (! *str) {
+		return false;
+	}
+
+	// str is non-empty and must represent a non-negative integer
+	do {
+		if (*str < '0' || *str > '9') {
+			return false;
+		}
+		str++;
+	}
+	while (*str);
+
+	return true;
+} // Int::isInteger
+

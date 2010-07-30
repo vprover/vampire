@@ -162,7 +162,11 @@ private:
     /** build formula P(x1,...,xn) <=> F from a LET definition for formulas */ 
     BUILD_LET_FORMULA = 13,
     /** build formula f(x1,...,xn) = t from a LET definition for terms */ 
-    BUILD_LET_TERM = 14
+    BUILD_LET_TERM = 14,
+		/** make all symbols in a list variables */
+		BIND_VARS = 15,
+		/** make all symbols in a list non-variables */
+		UNBIND_VARS = 16
   };
 
   /** Context in which a formula is parsed */
@@ -243,6 +247,7 @@ private:
   void defType(const List*,const Expression*);
   void defOp(const List*,const Expression*);
   void bgPush(const List*);
+  void defPred(const List*,const Expression*);
   void buildTerm();
   void buildAtom();
   void buildEquality();
@@ -259,6 +264,8 @@ private:
   void buildLetFormula();
   void buildLetTerm();
   void parseTrueFalse(bool,Context);
+  void bindVars();
+  void unbindVars();
 }; // class SimplifyProver
 
 }

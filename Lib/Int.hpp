@@ -42,6 +42,10 @@ class Int
 
   static string toHexString(size_t i);
 
+	static bool isInteger(const char* str);
+	/** True if @b str is a string representing an (arbitrary precision) integer */
+	static inline bool isInteger(const string& str) { return isInteger(str.c_str()); }
+
   /** Compare two integers. */
   inline static Comparison compare (int i1, int i2)
   { return i1 < i2 ? LESS : i1 == i2 ? EQUAL : GREATER; }

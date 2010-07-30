@@ -93,12 +93,12 @@ $(CONF_ID)/Lib/Allocator.o: Kernel/Unit.hpp Lib/Random.hpp
 $(CONF_ID)/Lib/DHMap.o: Lib/DHMap.hpp
 $(CONF_ID)/Lib/Environment.o: Debug/Tracer.hpp Lib/Sys/SyncPipe.hpp
 $(CONF_ID)/Lib/Environment.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp
-$(CONF_ID)/Lib/Environment.o: Config.hpp Lib/fdstream.hpp Lib/Exception.hpp
-$(CONF_ID)/Lib/Environment.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
-$(CONF_ID)/Lib/Environment.o: Lib/Exception.hpp Lib/Sys/Semaphore.hpp
-$(CONF_ID)/Lib/Environment.o: Lib/Portability.hpp Indexing/TermSharing.hpp
-$(CONF_ID)/Lib/Environment.o: Lib/Set.hpp Lib/Allocator.hpp
-$(CONF_ID)/Lib/Environment.o: Lib/Portability.hpp Lib/Hash.hpp
+$(CONF_ID)/Lib/Environment.o: Config.hpp Lib/fdstream.hpp Lib/Portability.hpp
+$(CONF_ID)/Lib/Environment.o: Debug/Assertion.hpp Lib/Exception.hpp
+$(CONF_ID)/Lib/Environment.o: Lib/LastCopyWatcher.hpp Lib/Exception.hpp
+$(CONF_ID)/Lib/Environment.o: Lib/Portability.hpp Lib/Sys/Semaphore.hpp
+$(CONF_ID)/Lib/Environment.o: Indexing/TermSharing.hpp Lib/Set.hpp
+$(CONF_ID)/Lib/Environment.o: Lib/Allocator.hpp Lib/Hash.hpp
 $(CONF_ID)/Lib/Environment.o: Lib/Reflection.hpp Kernel/Term.hpp
 $(CONF_ID)/Lib/Environment.o: Kernel/Signature.hpp Lib/Allocator.hpp
 $(CONF_ID)/Lib/Environment.o: Lib/Stack.hpp Lib/BacktrackData.hpp
@@ -209,26 +209,26 @@ $(CONF_ID)/Lib/Sys/Multiprocessing.o: Lib/Portability.hpp
 $(CONF_ID)/Lib/Sys/Multiprocessing.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Lib/Sys/Multiprocessing.o: Lib/Reflection.hpp
 $(CONF_ID)/Lib/Sys/Multiprocessing.o: Lib/Sys/Multiprocessing.hpp
-$(CONF_ID)/Lib/Sys/Semaphore.o: Debug/Log.hpp Debug/Tracer.hpp
-$(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
-$(CONF_ID)/Lib/Sys/Semaphore.o: Debug/Assertion.hpp Lib/Int.hpp
-$(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Comparison.hpp Lib/Portability.hpp
-$(CONF_ID)/Lib/Sys/Semaphore.o: Lib/List.hpp Forwards.hpp Config.hpp
-$(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Allocator.hpp Debug/Tracer.hpp
+$(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Portability.hpp Debug/Log.hpp
+$(CONF_ID)/Lib/Sys/Semaphore.o: Debug/Tracer.hpp Lib/Exception.hpp
+$(CONF_ID)/Lib/Sys/Semaphore.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
+$(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Int.hpp Lib/Comparison.hpp
+$(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Portability.hpp Lib/List.hpp Forwards.hpp
+$(CONF_ID)/Lib/Sys/Semaphore.o: Config.hpp Lib/Allocator.hpp Debug/Tracer.hpp
 $(CONF_ID)/Lib/Sys/Semaphore.o: Lib/VirtualIterator.hpp Lib/Exception.hpp
 $(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Reflection.hpp Lib/System.hpp
 $(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Array.hpp Lib/List.hpp
 $(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Sys/Multiprocessing.hpp
-$(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Sys/Semaphore.hpp Lib/Portability.hpp
-$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/fdstream.hpp Forwards.hpp Debug/Log.hpp
-$(CONF_ID)/Lib/Sys/SyncPipe.o: Debug/Tracer.hpp Config.hpp Lib/Exception.hpp
-$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
+$(CONF_ID)/Lib/Sys/Semaphore.o: Lib/Sys/Semaphore.hpp
 $(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/Portability.hpp Lib/Environment.hpp
-$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/Exception.hpp Lib/List.hpp
+$(CONF_ID)/Lib/Sys/SyncPipe.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp
+$(CONF_ID)/Lib/Sys/SyncPipe.o: Config.hpp Lib/Exception.hpp
+$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
+$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/Exception.hpp Lib/fdstream.hpp
+$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/Portability.hpp Lib/List.hpp
 $(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/Allocator.hpp Debug/Tracer.hpp
-$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/Portability.hpp Lib/VirtualIterator.hpp
-$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/Reflection.hpp Lib/System.hpp
-$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/Array.hpp Lib/List.hpp
+$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/VirtualIterator.hpp Lib/Reflection.hpp
+$(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/System.hpp Lib/Array.hpp Lib/List.hpp
 $(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/Sys/Multiprocessing.hpp
 $(CONF_ID)/Lib/Sys/SyncPipe.o: Lib/Sys/SyncPipe.hpp Lib/Sys/Semaphore.hpp
 $(CONF_ID)/Shell/AxiomGenerator.o: Lib/DArray.hpp Forwards.hpp Debug/Log.hpp
@@ -806,6 +806,7 @@ $(CONF_ID)/Shell/SimplifyProver.o: Kernel/TermIterators.hpp Lib/Recycler.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Lib/VirtualIterator.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Shell/SimplifyProver.hpp Lib/Set.hpp
 $(CONF_ID)/Shell/SimplifyProver.o: Shell/LispParser.hpp Shell/Statistics.hpp
+$(CONF_ID)/Shell/SimplifyProver.o: Shell/Options.hpp
 $(CONF_ID)/Shell/SineUtils.o: Lib/Deque.hpp Forwards.hpp Debug/Log.hpp
 $(CONF_ID)/Shell/SineUtils.o: Debug/Tracer.hpp Config.hpp Debug/Assertion.hpp
 $(CONF_ID)/Shell/SineUtils.o: Debug/Tracer.hpp Lib/Allocator.hpp
@@ -1109,21 +1110,21 @@ $(CONF_ID)/Shell/CASC/CASCMode.o: Shell/Statistics.hpp Shell/UIHelper.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Shell/CASC/ForkingCM.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Shell/CASC/CASCMode.hpp Shell/Property.hpp
 $(CONF_ID)/Shell/CASC/CASCMode.o: Kernel/Unit.hpp Shell/CASC/SpawningCM.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/DHSet.hpp Lib/Environment.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Config.hpp Lib/Exception.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/LastCopyWatcher.hpp Debug/Assertion.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Int.hpp Lib/Comparison.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Portability.hpp Lib/System.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Array.hpp Lib/List.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Portability.hpp Lib/DHSet.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Environment.hpp Forwards.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Debug/Assertion.hpp Lib/Int.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Comparison.hpp Lib/Portability.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/System.hpp Lib/Array.hpp Lib/List.hpp
 $(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/TimeCounter.hpp Lib/Timer.hpp
 $(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Sys/Multiprocessing.hpp
 $(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Sys/SyncPipe.hpp Lib/fdstream.hpp
 $(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Exception.hpp Lib/Sys/Semaphore.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Portability.hpp Shell/Options.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Allocator.hpp Lib/XML.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Shell/Normalisation.hpp Lib/Comparison.hpp
-$(CONF_ID)/Shell/CASC/CLTBMode.o: Kernel/Unit.hpp Shell/SymCounter.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Shell/Options.hpp Lib/Allocator.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/XML.hpp Shell/Normalisation.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Lib/Comparison.hpp Kernel/Unit.hpp
+$(CONF_ID)/Shell/CASC/CLTBMode.o: Shell/SymCounter.hpp
 $(CONF_ID)/Shell/CASC/CLTBMode.o: Saturation/ProvingHelper.hpp
 $(CONF_ID)/Shell/CASC/CLTBMode.o: Shell/Statistics.hpp Shell/TPTPLexer.hpp
 $(CONF_ID)/Shell/CASC/CLTBMode.o: Shell/Lexer.hpp Lib/Array.hpp
@@ -1182,10 +1183,10 @@ $(CONF_ID)/Shell/CASC/ForkingCM.o: Saturation/ProvingHelper.hpp
 $(CONF_ID)/Shell/CASC/ForkingCM.o: Shell/UIHelper.hpp
 $(CONF_ID)/Shell/CASC/ForkingCM.o: Shell/CASC/ForkingCM.hpp
 $(CONF_ID)/Shell/CASC/ForkingCM.o: Shell/CASC/CASCMode.hpp Shell/Property.hpp
-$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/DHSet.hpp Lib/Environment.hpp
-$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Forwards.hpp Debug/Log.hpp
-$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Debug/Tracer.hpp Config.hpp
-$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Exception.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Portability.hpp Lib/DHSet.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Environment.hpp Forwards.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Debug/Log.hpp Debug/Tracer.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Config.hpp Lib/Exception.hpp
 $(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/LastCopyWatcher.hpp
 $(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Debug/Assertion.hpp Lib/Int.hpp
 $(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Comparison.hpp Lib/Portability.hpp
@@ -1196,9 +1197,8 @@ $(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Sys/Multiprocessing.hpp
 $(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Sys/SyncPipe.hpp Lib/fdstream.hpp
 $(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Exception.hpp
 $(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Sys/Semaphore.hpp
-$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Portability.hpp Shell/Options.hpp
-$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Allocator.hpp Lib/XML.hpp
-$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/Normalisation.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/Options.hpp Lib/Allocator.hpp
+$(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/XML.hpp Shell/Normalisation.hpp
 $(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Lib/Comparison.hpp Kernel/Unit.hpp
 $(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Shell/SymCounter.hpp
 $(CONF_ID)/Shell/CASC/SimpleLTBMode.o: Saturation/ProvingHelper.hpp
