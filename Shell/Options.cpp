@@ -1021,26 +1021,22 @@ bool Options::setSelection(int sel)
   case 2:
   case 3:
   case 4:
-  case 5:
   case 10:
   case 11:
   case 1002:
   case 1003:
   case 1004:
-  case 1005:
   case 1010:
   case 1011:
   case -1:
   case -2:
   case -3:
   case -4:
-  case -5:
   case -10:
   case -11:
   case -1002:
   case -1003:
   case -1004:
-  case -1005:
   case -1010:
     _selection = sel;
     return true;
