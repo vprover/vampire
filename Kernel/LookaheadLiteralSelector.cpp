@@ -32,6 +32,11 @@ using namespace Lib;
 using namespace Indexing;
 using namespace Saturation;
 
+/**
+ * Iterator that yields the same number of elements as there are inferences
+ * that can be performed with a clause that has the literal passed to
+ * the constructor selected
+ */
 struct LookaheadLiteralSelector::GenIteratorIterator
 {
   DECL_ELEMENT_TYPE(VirtualIterator<void>);
@@ -146,6 +151,10 @@ private:
   VirtualIterator<void> nextIt;
 };
 
+/**
+ * Return iterator with the same number of elements as there are inferences
+ * that can be performed with @b lit literal selected
+ */
 VirtualIterator<void> LookaheadLiteralSelector::getGeneraingInferenceIterator(Literal* lit)
 {
   CALL("LookaheadLiteralSelector::getGeneraingInferenceIterator");
@@ -153,6 +162,11 @@ VirtualIterator<void> LookaheadLiteralSelector::getGeneraingInferenceIterator(Li
   return pvi( getFlattenedIterator(GenIteratorIterator(lit)) );
 }
 
+/**
+ * Return the literal from the @b lits array (of length @b cnt) that
+ * is the best to be selected. This selection is done irregardless any
+ * completeness constraints, the caller has to handle that, if necessary.
+ */
 Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
 {
   CALL("LookaheadLiteralSelector::pickTheBest");
@@ -204,6 +218,9 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   return res;
 }
 
+/**
+ * From the stack @b lits remove literals that are variants of each other
+ */
 void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
 {
   CALL("LookaheadLiteralSelector::removeVariants");
@@ -222,6 +239,10 @@ void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
   }
 }
 
+/**
+ * Perform clause selection on the first @b eligible literals of
+ * clause @b c
+ */
 void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
   CALL("LookaheadLiteralSelector::doSelection");

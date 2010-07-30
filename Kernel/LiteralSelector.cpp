@@ -84,6 +84,11 @@ LiteralSelector* LiteralSelector::getSelector(int num)
 
   typedef Composite<ColoredFirst,
 	    Composite<NegativeEquality,
+	    Composite<Negative,
+	    Composite<MaximalSize, LexComparator> > > > Comparator5;
+
+  typedef Composite<ColoredFirst,
+	    Composite<NegativeEquality,
 	    Composite<MaximalSize,
 	    Composite<Negative, LexComparator> > > > Comparator10;
 
@@ -101,6 +106,7 @@ LiteralSelector* LiteralSelector::getSelector(int num)
   case 2: return new CompleteBestLiteralSelector<Comparator2>();
   case 3: return new CompleteBestLiteralSelector<Comparator3>();
   case 4: return new CompleteBestLiteralSelector<Comparator4>();
+  case 5: return new CompleteBestLiteralSelector<Comparator5>();
   case 10: return new CompleteBestLiteralSelector<Comparator10>();
 
   case 11: return new LookaheadLiteralSelector(true);
@@ -108,6 +114,7 @@ LiteralSelector* LiteralSelector::getSelector(int num)
   case 1002: return new BestLiteralSelector<Comparator2>();
   case 1003: return new BestLiteralSelector<Comparator3>();
   case 1004: return new BestLiteralSelector<Comparator4>();
+  case 1005: return new BestLiteralSelector<Comparator5>();
   case 1010: return new BestLiteralSelector<Comparator10>();
 
   case 1011: return new LookaheadLiteralSelector(false);

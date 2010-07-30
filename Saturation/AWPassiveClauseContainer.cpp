@@ -314,7 +314,7 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
     long long remains=estReachableCnt;
     Clause* wcl=0;
     Clause* acl=0;
-    if(_ageRatio==0) {
+    if(_ageRatio==0 || (env.options->lrsWeightLimitOnly() && _weightRatio!=0) ) {
       ASS(wit.hasNext());
       while( remains && wit.hasNext() ) {
 	wcl=wit.next();

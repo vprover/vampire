@@ -63,6 +63,7 @@ public:
     LITERAL_COMPARISON_MODE,
     LOG_FILE,
     LRS_FIRST_TIME_CHECK,
+    LRS_WEIGHT_LIMIT_ONLY,
 
     MAX_ACTIVE,
     MAX_ANSWERS,
@@ -324,6 +325,7 @@ public:
   bool forwardSubsumption() const { return _forwardSubsumption; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck; }
+  int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly; }
   bool setLrsFirstTimeCheck(int newVal);
   int simulatedTimeLimit() const { return _simulatedTimeLimit; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit = newVal; }
@@ -446,6 +448,7 @@ private:
   LiteralComparisonMode _literalComparisonMode;
   string _logFile;
   int _lrsFirstTimeCheck;
+  int _lrsWeightLimitOnly;
 
   long _maxActive;
   int _maxAnswers;

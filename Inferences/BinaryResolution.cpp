@@ -96,8 +96,8 @@ struct BinaryResolution::ResultFn
     }
 
 
+    unsigned wlb=0;//weight lower bound
     if(shouldLimitWeight) {
-      unsigned wlb=0;//weight lower bound
       for(unsigned i=0;i<clength;i++) {
         Literal* curr=(*_cl)[i];
         if(curr!=resLit) {
@@ -128,13 +128,33 @@ struct BinaryResolution::ResultFn
     for(unsigned i=0;i<clength;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=resLit) {
-	(*res)[next++] = qr.substitution->applyToQuery(curr);
+	Literal* newLit=qr.substitution->applyToQuery(curr);
+	if(shouldLimitWeight) {
+	  wlb+=newLit->weight() - curr->weight();
+	  if(wlb > weightLimit) {
+	    env.statistics->discardedNonRedundantClauses++;
+	    res->destroy();
+	    return 0;
+	  }
+	}
+	(*res)[next] = newLit;
+	next++;
       }
     }
     for(unsigned i=0;i<dlength;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
-	(*res)[next++] = qr.substitution->applyToResult(curr);
+	Literal* newLit = qr.substitution->applyToResult(curr);
+	if(shouldLimitWeight) {
+	  wlb+=newLit->weight() - curr->weight();
+	  if(wlb > weightLimit) {
+	    env.statistics->discardedNonRedundantClauses++;
+	    res->destroy();
+	    return 0;
+	  }
+	}
+	(*res)[next] = newLit;
+	next++;
       }
     }
 

@@ -114,6 +114,7 @@ const char* Options::Constants::_optionNames[] = {
   "literal_comparison_mode",
   "log_file",
   "lrs_first_time_check",
+  "lrs_weight_limit_only",
 
   "max_active",
   "max_answers",
@@ -206,6 +207,7 @@ const char* Options::Constants::_shortNames[] = {
   "is",
   "l",
   "lcm",
+  "lwlo",
   "m",
   "n",
   "nicw",
@@ -262,6 +264,7 @@ int Options::Constants::shortNameIndexes[] = {
   INEQUALITY_SPLITTING,
   LOG_FILE,
   LITERAL_COMPARISON_MODE,
+  LRS_WEIGHT_LIMIT_ONLY,
   MEMORY_LIMIT,
   NORMALIZE,
   NONLITERALS_IN_CLAUSE_WEIGHT,
@@ -464,6 +467,7 @@ Options::Options ()
   _literalComparisonMode(LCM_STANDARD),
   _logFile("off"),
   _lrsFirstTimeCheck(5),
+  _lrsWeightLimitOnly(false),
 
   _maxActive(0),
   _maxAnswers(1),
@@ -700,6 +704,9 @@ void Options::set (const char* name,const char* value, int index)
 	return;
       }
       break;
+    case LRS_WEIGHT_LIMIT_ONLY:
+      _lrsWeightLimitOnly = onOffToBool(value,name);
+      return;
 
     case MAX_ACTIVE:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
@@ -1014,22 +1021,26 @@ bool Options::setSelection(int sel)
   case 2:
   case 3:
   case 4:
+  case 5:
   case 10:
   case 11:
   case 1002:
   case 1003:
   case 1004:
+  case 1005:
   case 1010:
   case 1011:
   case -1:
   case -2:
   case -3:
   case -4:
+  case -5:
   case -10:
   case -11:
   case -1002:
   case -1003:
   case -1004:
+  case -1005:
   case -1010:
     _selection = sel;
     return true;
@@ -1255,6 +1266,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case LRS_FIRST_TIME_CHECK:
     str << _lrsFirstTimeCheck;
+    return;
+  case LRS_WEIGHT_LIMIT_ONLY:
+    str << boolToOnOff(_lrsWeightLimitOnly);
     return;
 
   case MAX_ACTIVE:
