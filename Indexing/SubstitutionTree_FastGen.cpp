@@ -209,10 +209,10 @@ SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
     _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
   }
   Recycler::get(_bindings);
+  _bindings->ensure(query->weight());
   _bindings->reset();
 
   _maxVar=query->weight()-1;
-  _bindings->ensure(query->weight());
 }
 SubstitutionTree::GenMatcher::~GenMatcher()
 {

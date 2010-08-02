@@ -13,7 +13,7 @@
 #include "Allocator.hpp"
 #include "Exception.hpp"
 #include "Comparison.hpp"
-#include "BacktrackData.hpp"
+#include "Backtrackable.hpp"
 #include "Metaiterators.hpp"
 
 namespace Lib {
@@ -53,6 +53,7 @@ public:
     }
   }
 
+  /** Make this @b BinaryHeap empty */
   void reset()
   {
     T* ep=_data+_size;
@@ -63,7 +64,7 @@ public:
   }
 
 
-  /** Return mumber of items stored in this BinaryHeap */
+  /** Return mumber of items stored in this @b BinaryHeap */
   inline
   unsigned size() const
   {

@@ -20,7 +20,7 @@
 #include "Lib/List.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/BinaryHeap.hpp"
-#include "Lib/BacktrackData.hpp"
+#include "Lib/Backtrackable.hpp"
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
 

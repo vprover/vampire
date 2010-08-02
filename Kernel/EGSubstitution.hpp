@@ -12,7 +12,7 @@
 #include "Forwards.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/BacktrackData.hpp"
+#include "Lib/Backtrackable.hpp"
 #include "Term.hpp"
 #include "RobSubstitution.hpp"
 

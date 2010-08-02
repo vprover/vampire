@@ -9,7 +9,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/BacktrackData.hpp"
+#include "Lib/Backtrackable.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"

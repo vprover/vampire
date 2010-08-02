@@ -1,6 +1,9 @@
 /**
  * @file BacktrackIterators.hpp
  * Defines class BacktrackIterators.
+ *
+ * These iterators are not being used in the current code, so they
+ * are not well documented and may be buggy.
  */
 
 

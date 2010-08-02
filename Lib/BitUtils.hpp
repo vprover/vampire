@@ -16,11 +16,18 @@ namespace Lib {
 class BitUtils
 {
 public:
+  /**
+   * Return true iff @b sz bytes starting at @b ptr1 are equal to those
+   * starting at @b ptr2
+   */
   static bool memEqual(const void* ptr1, const void* ptr2, size_t sz)
   {
     return !memcmp(ptr1,ptr2,sz);
   }
 
+  /**
+   * Set @b bytes of bytes starting at @ ptr to zero
+   */
   static void zeroMemory(void* ptr, size_t bytes)
   {
     size_t* sptr=static_cast<size_t*>(ptr);
@@ -35,12 +42,21 @@ public:
     }
   }
 
+  /**
+   * Return the value of @b index -th bit, starting at the least significant
+   * bit of the byte at @b ptr
+   */
   inline
   static bool getBitValue(void* ptr, size_t index)
   {
     unsigned char* cptr=static_cast<unsigned char*>(ptr)+index/8;
     return ((*cptr)>>(index&7))&1;
   }
+
+  /**
+   * Set the @b index -th bit, starting at the least significant bit of the
+   * byte at @b ptr, to @b value
+   */
   inline
   static void setBitValue(void* ptr, size_t index, bool value)
   {
@@ -52,14 +68,23 @@ public:
     }
   }
 
+  /**
+   * Return true iff the enabled bits of @b subset are subset of those
+   * enabled in @b set
+   */
   template<typename T>
   inline static bool isSubset(T set, T subset)
   {
     return (set&subset)==subset;
   }
 
+  /**
+   * Reverse the bit order in @b v
+   */
   static unsigned reverseBits(unsigned v) __attribute__((const))
   {
+    ASS_STATIC(sizeof(unsigned)==4);
+
     // swap odd and even bits
     v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);
     // swap consecutive pairs

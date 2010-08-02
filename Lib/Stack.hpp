@@ -16,7 +16,7 @@
 #include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
-#include "BacktrackData.hpp"
+#include "Backtrackable.hpp"
 
 namespace Lib {
 

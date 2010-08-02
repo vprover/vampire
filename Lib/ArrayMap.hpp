@@ -15,6 +15,9 @@
 
 namespace Lib {
 
+/**
+ * An entry of the @b ArrayMap object
+ */
 template<typename T>
 struct ArrayMapEntry
 {
@@ -24,15 +27,34 @@ struct ArrayMapEntry
   unsigned _timestamp;
 };
 
+/**
+ * A map from @b size_t type to elements @b T
+ *
+ * The @b ensure function has to be called with an upper bound of
+ * key values.
+ */
 template<typename T>
 class ArrayMap
 : DArray<ArrayMapEntry<T> >
 {
   typedef ArrayMapEntry<T> Entry;
 public:
+  /**
+   * Create the map object
+   *
+   * The @b ensure function has to be called to determine what keys
+   * can be stored in the map
+   */
   ArrayMap() : DArray<Entry>(8), _timestamp(1) {}
+
+  /**
+   * Create the map object that can contain keys less than @b size
+   */
   ArrayMap(size_t size) : DArray<Entry>(size), _timestamp(1) {}
 
+  /**
+   * Make the map empty
+   */
   void reset()
   {
     _timestamp++;
@@ -46,12 +68,23 @@ public:
     }
   }
 
+  /**
+   * Ensure that keys less than @b size can be stored in the map
+   *
+   * Call to this function makes the content of the map undefined,
+   * so @b reset should be called after each call to this function.
+   */
   inline
   void ensure(size_t size)
   {
     DArray<Entry>::ensure(size);
   }
 
+  /**
+   * Insert the object @b obj into the map under the key @b index.
+   * There must not have been any object stored under the key
+   * @b index before.
+   */
   inline
   void insert(size_t index, T obj)
   {
@@ -62,14 +95,27 @@ public:
     e._obj=obj;
     e._timestamp=_timestamp;
   }
+
+  /**
+   * Assign the key @b index the object @b obj
+   *
+   * The difference from the @b insert function is that with this
+   * function the key could have been assigned an object before.
+   */
   inline
   void set(size_t index, T obj)
   {
     CALL("ArrayMap::set");
+
     Entry& e=(*this)[index];
     e._obj=obj;
     e._timestamp=_timestamp;
   }
+
+  /**
+   * Return the object assigned to key @b index. The key @b index must
+   * have an object assigned.
+   */
   inline
   T get(size_t index)
   {
@@ -77,12 +123,24 @@ public:
     ASS_EQ((*this)[index]._timestamp,_timestamp);
     return (*this)[index]._obj;
   }
+
+  /**
+   * Return @b true if key @b index has an object assigned
+   *
+   * Even for this function the value of @b index must be
+   * lower that the bound set by the @b ensure function.
+   */
   inline
   bool find(size_t index)
   {
     CALL("ArrayMap::find");
     return (*this)[index]._timestamp==_timestamp;
   }
+
+  /**
+   * Remove the value assigned to the @b index key. The key
+   * @b index must have been assigned a value before.
+   */
   inline
   void remove(size_t index)
   {
@@ -91,7 +149,11 @@ public:
     (*this)[index]._timestamp=0;
   }
 
-
+  /**
+   * Assign into @b pObj the pointer that stores the value associated
+   * with key @b index. If the key was not previously assigned a value,
+   * initialize it to @b init and return true; otherwise return false.
+   */
   inline
   bool getValuePtr(size_t index, T*& pObj, T init)
   {
@@ -107,6 +169,13 @@ public:
     return false;
   }
 private:
+  /**
+   * Timestamp value that is stored in map entries that correspond
+   * to existing key-value pairs
+   *
+   * This is to allow reset of the map in constant time by increasing
+   * the value of this field.
+   */
   unsigned _timestamp;
 };
 

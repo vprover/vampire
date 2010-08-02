@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <utility>
 
-#include "Lib/BacktrackData.hpp"
+#include "Lib/Backtrackable.hpp"
 #include "Lib/BacktrackIterators.hpp"
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/DArray.hpp"

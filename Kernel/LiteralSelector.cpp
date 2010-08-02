@@ -61,6 +61,15 @@ int LiteralSelector::getSelectionPriority(Literal* l)
   return 0;
 }
 
+/**
+ * Return a literal selector object corresponding to number @b num
+ *
+ * It is expected that this function will be called at most once in
+ * the run of Vampre process (see @b _instCtr documentation).
+ *
+ * The supported literal selector numbers should correspond to numbers
+ * allowed in @b Shell::Options::setSelection.
+ */
 LiteralSelector* LiteralSelector::getSelector(int num)
 {
   CALL("LiteralSelector::getSelector");
@@ -149,6 +158,14 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c, unsigned eligible)
   ASS_L(eligible, c->length());
 }
 
+/**
+ * Perform literal selection on clause @b c
+ *
+ * First the literals eligible for selection are determined through
+ * the @b getSelectionPriority function, and then the function
+ * @b doSelection is called if there is more than one eligible
+ * literal.
+ */
 void LiteralSelector::select(Clause* c)
 {
   CALL("LiteralSelector::select");
@@ -194,6 +211,9 @@ void LiteralSelector::select(Clause* c)
   doSelection(c, eligible);
 }
 
+/**
+ * Select all eligible literals in clause @b c
+ */
 void TotalLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
   CALL("TotalLiteralSelector::doSelection");

@@ -4,7 +4,7 @@
  */
 
 #include "Lib/VirtualIterator.hpp"
-#include "Lib/BacktrackData.hpp"
+#include "Lib/Backtrackable.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/List.hpp"
