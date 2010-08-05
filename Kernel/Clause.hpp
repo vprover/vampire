@@ -212,6 +212,8 @@ public:
   bool isPropositional();
   bool isHorn();
 
+  VirtualIterator<unsigned> getVariableIterator();
+
 #if VDEBUG
   bool contains(Literal* lit);
   void assertValid();

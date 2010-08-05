@@ -156,7 +156,7 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
 
   while(units) {
     Kernel::Unit* u=Kernel::UnitList::pop(units);
-    addFormula(u);
+    addFormula(AnnotatedFormula(u));
   }
 }
 
@@ -175,7 +175,7 @@ struct Problem::Clausifier
     using namespace Shell;
 
     if(unit->isClause()) {
-      res->addFormula(unit);
+      res->addFormula(AnnotatedFormula(unit));
     }
     unit = Rectify::rectify(unit);
     unit = SimplifyFalseTrue::simplify(unit);
@@ -196,7 +196,7 @@ struct Problem::Clausifier
     cnf.clausify(unit,auxClauseStack);
     while (! auxClauseStack.isEmpty()) {
       Unit* u = auxClauseStack.pop();
-      res->addFormula(u);
+      res->addFormula(AnnotatedFormula(u));
     }
   }
 

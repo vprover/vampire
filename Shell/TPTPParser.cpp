@@ -357,7 +357,7 @@ Unit* TPTPParser::unit()
   }
 
   if(env.options->outputAxiomNames()) {
-    s_axiomNames.insert(result->number(), nm);
+    assignAxiomName(result, nm);
   }
 
   return result;

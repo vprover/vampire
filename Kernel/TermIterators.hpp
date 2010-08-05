@@ -64,6 +64,35 @@ private:
   TermList _aux[2];
 };
 
+struct VariableIteratorFn
+{
+  DECL_RETURN_TYPE(VirtualIterator<TermList>);
+  VirtualIterator<TermList> operator()(Term* t)
+  {
+    return vi( new VariableIterator(t) );
+  }
+  VirtualIterator<TermList> operator()(TermList t)
+  {
+    if(t.isVar()) {
+      return pvi( getSingletonIterator(t) );
+    }
+    else {
+      return (*this)(t.term());
+    }
+  }
+};
+
+struct OrdVarNumberExtractorFn
+{
+  DECL_RETURN_TYPE(unsigned);
+  unsigned operator()(TermList t)
+  {
+    CALL("OrdVarNumberExtractorFn::operator()");
+    ASS(t.isOrdinaryVar());
+
+    return t.var();
+  }
+};
 
 /**
  * Iterator that yields proper subterms

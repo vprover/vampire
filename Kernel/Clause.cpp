@@ -289,6 +289,21 @@ bool Clause::isHorn()
 }
 
 /**
+ * Return iterator over clause variables
+ */
+VirtualIterator<unsigned> Clause::getVariableIterator()
+{
+  CALL("Clause::getVariableIterator");
+
+  return pvi( getUniquePersistentIterator(
+      getMappingIterator(
+	  getMapAndFlattenIterator(
+	      Iterator(*this),
+	      VariableIteratorFn()),
+	  OrdVarNumberExtractorFn())));
+}
+
+/**
  * Return true if the clause does not depend on any splits
  * in the backtracking splitting.
  */

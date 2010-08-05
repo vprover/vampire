@@ -14,6 +14,8 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
 
+#include "Parser.hpp"
+
 #include "TPTP.hpp"
 
 using namespace std;
@@ -71,10 +73,8 @@ string TPTP::toString(const Formula* f)
   case FALSE:
   case TRUE:
     return con;
-#if DEBUG_SHELL
   default:
     ASSERTION_VIOLATION;
-#endif
   }
   return "formula";
 }
@@ -148,7 +148,13 @@ string TPTP::toString (const Unit* unit)
     }
   }
 
-  return prefix + "(u" + Int::toString(unit->number()) + "," + kind + ",\n"
+  string unitName;
+  if(!Parser::findAxiomName(unit, unitName)) {
+    unitName="u" + Int::toString(unit->number());
+  }
+
+
+  return prefix + "(" + unitName + "," + kind + ",\n"
     + "    " + main + ").\n";
 }
 

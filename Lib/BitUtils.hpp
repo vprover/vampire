@@ -98,6 +98,12 @@ public:
     return v;
   }
 
+  /**
+   * Return the integer part of the base two logarithm of @b v
+   *
+   * The returned value is actually index of the most significant
+   * non-zero bit.
+   */
   static unsigned log2(unsigned v) __attribute__((const))
   {
     const unsigned int b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};

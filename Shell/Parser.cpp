@@ -56,10 +56,22 @@ void ParserException::cry (ostream& out)
 } // ParserException::cry
 
 /**
+ * Associate name @b name with unit @b unit
+ *
+ * Each formula can have its name assigned at most once
+ */
+void Parser::assignAxiomName(const Unit* unit, string& name)
+{
+  CALL("Parser::assignAxiomName");
+
+  ALWAYS(s_axiomNames.insert(unit->number(), name));
+}
+
+/**
  * If @b unit has a name associated, assign it into @b result,
  * and return true; otherwise return false
  */
-bool Parser::findAxiomName(Unit* unit, string& result)
+bool Parser::findAxiomName(const Unit* unit, string& result)
 {
   CALL("Parser::findAxiomName");
 

@@ -436,11 +436,16 @@ string Formula::toStringInScopeOf (Connective outer) const
 // } // FormulaList::equals
 
 /**
- * Return the list all free variables of the formula.
+ * Return the list of all free variables of the formula
+ *
+ * Each variable in the formula is returned just once.
+ *
  * @since 12/12/2004 Manchester
  */
 Formula::VarList* Formula::freeVariables () const
 {
+  CALL("Formula::freeVariables");
+
   FormulaVarIterator fvi(this);
   VarList* result = VarList::empty();
   VarList::FIFO stack(result);
@@ -449,6 +454,30 @@ Formula::VarList* Formula::freeVariables () const
   }
   return result;
 } // Formula::freeVariables
+
+/**
+ * Return the list of all bound variables of the formula
+ *
+ * If a variable is bound multiple times in the formula,
+ * it appears in the list the same number of times as well.
+ */
+Formula::VarList* Formula::boundVariables () const
+{
+  CALL("Formula::boundVariables");
+
+  VarList* res=0;
+  SubformulaIterator sfit(const_cast<Formula*>(this));
+  while(sfit.hasNext()) {
+    Formula* sf=sfit.next();
+    if(sf->connective()==FORALL || sf->connective()==EXISTS) {
+      VarList* qvars=sf->vars();
+      VarList* qvCopy=qvars->copy();
+      res=VarList::concat(qvCopy, res);
+    }
+  }
+  return res;
+}
+
 
 /**
  * Compute the weight of the formula: the number of connectives plus the

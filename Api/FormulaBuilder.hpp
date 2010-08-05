@@ -13,16 +13,62 @@ namespace Api {
 
 using namespace std;
 
+/** Structure with auxiliary data that do not need to appear in the header file */
+class DefaultHelperCore;
+class FBHelperCore;
+class FormulaBuilder;
+class StringIterator;
+
+/**
+ * A reference counting smart pointer to FBAux
+ */
+class ApiHelper
+{
+public:
+  ApiHelper();
+  ~ApiHelper();
+  ApiHelper(const ApiHelper& h);
+  ApiHelper& operator=(const ApiHelper& h);
+  ApiHelper& operator=(FBHelperCore* hc);
+  bool operator==(const ApiHelper& h) const;
+  bool operator!=(const ApiHelper& h) const;
+
+  DefaultHelperCore* operator->();
+protected:
+  void updRef(bool inc);
+
+  FBHelperCore* _obj;
+};
+
+class FBHelper
+: public ApiHelper
+{
+public:
+  FBHelper();
+  FBHelperCore* operator->();
+};
+
+/**
+ * Exception that is thrown when the @b FormulaBuilder related code
+
+ * is used in an invalid manner.
+ */
 class FormulaBuilderException
 {
 public:
   FormulaBuilderException(string msg)
   : _msg(msg) {}
+
+  /** Description of the cause of the exception */
   string msg() const { return _msg; }
 protected:
   string _msg;
 };
 
+/**
+ * Exception that is thrown when a name is given that is not
+ * a valid TPTP name for respective entity.
+ */
 class InvalidTPTPNameException
 : public FormulaBuilderException
 {
@@ -30,12 +76,11 @@ public:
   InvalidTPTPNameException(string msg, string name)
   : FormulaBuilderException(msg), _name(name) {}
 
+  /** The invalid name that caused the exception to be thrown */
   string name() const { return _name; }
-
 private:
   string _name;
 };
-
 
 typedef unsigned Var;
 typedef unsigned Function;
@@ -44,6 +89,9 @@ class Term;
 class Formula;
 class AnnotatedFormula;
 
+/**
+ * A factory class for terms, formulas and annotated formulas
+ */
 class FormulaBuilder
 {
 public:
@@ -53,9 +101,7 @@ public:
    *        then an attempt to create a function or a predicate starting with a capital-case
    *        letter will result in an exception
    */
-  FormulaBuilder(bool checkNames=true);
-
-  ~FormulaBuilder();
+  FormulaBuilder(bool checkNames=true, bool checkBindingBoundVariables=true);
 
   enum Connective {
     AND,
@@ -148,17 +194,14 @@ public:
   Formula formula(const Predicate& p,const Term& t1,const Term& t2,const Term& t3);
 
   /** build an annotated formula (i.e. formula that is either axiom, goal, etc...) */
-  AnnotatedFormula annotatedFormula(Formula f, Annotation a);
+  AnnotatedFormula annotatedFormula(Formula f, Annotation a, string name="");
 
 private:
-  //private and undefined operator= and copy constructor to avoid implicitly generated ones
-  FormulaBuilder(const FormulaBuilder&);
-  FormulaBuilder& operator=(const FormulaBuilder&);
+  FBHelper _aux;
 
-  struct FBAux;
-
-  /** structure with auxiliary data that do not need to appear in the header file */
-  FBAux* _aux;
+  friend class StringIterator;
+  friend class Formula;
+  friend class AnnotatedFormula;
 };
 
 }
@@ -167,6 +210,11 @@ std::ostream& operator<< (std::ostream& str,const Api::Formula& f);
 std::ostream& operator<< (std::ostream& str,const Api::AnnotatedFormula& f);
 
 //Now comes the implementation specific code
+
+namespace Lib
+{
+template<typename T> class VirtualIterator;
+}
 
 namespace Kernel
 {
@@ -180,16 +228,51 @@ namespace Api
 {
 
 using namespace std;
+using namespace Lib;
 
 class Problem;
+
+/**
+ * An iterator object for strings
+ */
+class StringIterator
+{
+public:
+  StringIterator() : _impl(0) {};
+  explicit StringIterator(const VirtualIterator<string>& vit);
+  ~StringIterator();
+  StringIterator(const StringIterator& it);
+  StringIterator& operator=(const StringIterator& it);
+
+  /**
+   * Return true if there is a string to be returned by a call
+   * to the @b next() function
+   */
+  bool hasNext();
+  /**
+   * Return the next available string
+   *
+   * The @b hasNext() function must return true before a call
+   * to this function.
+   */
+  string next();
+
+private:
+  VirtualIterator<string>* _impl;
+};
 
 class Term
 {
 public:
   Term() : content(0) {}
 
+  /**
+   * Return true if this object is not initialized to a term
+   */
+  bool isNull() const { return content==0; }
+
   operator Kernel::TermList() const;
-  Term(Kernel::TermList t);
+  explicit Term(Kernel::TermList t);
 private:
   size_t content;
 
@@ -203,12 +286,49 @@ public:
 
   string toString() const;
 
+  /**
+   * Return true if this object is not initialized to a formula
+   */
+  bool isNull() const { return form==0; }
+
+  /**
+   * Return true if this is a true formula
+   */
+  bool isTrue() const;
+
+  /**
+   * Return true if this is a false formula
+   */
+  bool isFalse() const;
+
+  /**
+   * Return true if the topmost connective is a negation
+   */
+  bool isNegation() const;
+
+  /**
+   * Return iterator on names of free variables
+   *
+   * Each free variable is returned by the iterator just once
+   */
+  StringIterator freeVars();
+
+  /**
+   * Return iterator on names of bound variables
+   *
+   * If a variable is bound multiple times, it is returned
+   * by the iterator the same number of times as well.
+   */
+  StringIterator boundVars();
+
   operator Kernel::Formula*() const { return form; }
-  Formula(Kernel::Formula* f) : form(f) {}
+  explicit Formula(Kernel::Formula* f) : form(f) {}
 private:
   Kernel::Formula* form;
+  ApiHelper _aux;
 
   friend class FormulaBuilder;
+  friend class FBHelperCore;
 };
 
 class AnnotatedFormula
@@ -216,12 +336,34 @@ class AnnotatedFormula
 public:
   AnnotatedFormula() : unit(0) {}
 
+  /**
+   * Return true if this object is not initialized to
+   * an annotated formula
+   */
   string toString() const;
 
+  bool isNull() const { return unit==0; }
+
+  /**
+   * Return iterator on names of free variables
+   *
+   * Each free variable is returned by the iterator just once
+   */
+  StringIterator freeVars();
+
+  /**
+   * Return iterator on names of bound variables
+   *
+   * If a variable is bound multiple times, it is returned
+   * by the iterator the same number of times as well.
+   */
+  StringIterator boundVars();
+
   operator Kernel::Unit*() const { return unit; }
-  AnnotatedFormula(Kernel::Unit* fu) : unit(fu) {}
+  explicit AnnotatedFormula(Kernel::Unit* fu) : unit(fu) {}
 private:
   Kernel::Unit* unit;
+  ApiHelper _aux;
 
   friend class FormulaBuilder;
   friend class Problem;

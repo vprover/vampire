@@ -54,7 +54,8 @@ public:
   Parser(Lexer& lexer);
   UnitList* units();
 
-  static bool findAxiomName(Unit* unit, string& result);
+  static void assignAxiomName(const Unit* unit, string& name);
+  static bool findAxiomName(const Unit* unit, string& result);
 protected:
   /** The lexer which supplies tokens */
   Lexer& _lexer;
@@ -98,6 +99,7 @@ protected:
   static int integer(const Token& t);
   static long long unsigned unsigned64(const Token& t);
 
+private:
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
   static DHMap<unsigned, string> s_axiomNames;

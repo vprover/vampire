@@ -55,6 +55,7 @@ public:
   const Literal* literal() const;
   Literal* literal();
   VarList* freeVariables () const;
+  VarList* boundVariables () const;
 
   // miscellaneous
   bool equals(const Formula*) const;

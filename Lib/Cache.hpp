@@ -104,21 +104,29 @@ public:
     _evictionCounter=0;
   }
 private:
+  /** Return true if the cache should be expanded */
   bool shouldExpand() const
   {
     return _evictionCounter>=_evictionThreshold;
   }
 
+  /** Return the possible position of key @b k in the cache */
   size_t getPosition(Key k) const
   {
     return Hash::hash(k) & _sizeMask;
   }
 
+  /** Expand the cache to double of its current size */
   void expand()
   {
     expand(_size*2);
   }
 
+  /**
+   * Expand the cache to @b newSize
+   *
+   * @b newSize must be a power of two
+   */
   void expand(size_t newSize)
   {
     CALL("Cache::expand");
@@ -160,13 +168,29 @@ private:
    * Has to be a power of two.
    */
   size_t _size;
+
+  /**
+   * Mask for computing the modulo by cache size (taking advantage
+   * of the fact that @b _size is a power of two)
+   */
   size_t _sizeMask;
+
+  /** Array of @b _size entries containing the cached values */
   Entry* _data;
 
+  /**
+   * Number of evictions that occurred since the last cache expansion
+   */
   size_t _evictionCounter;
+  /**
+   * Number of evictions that must occurr to trigger next cache expansion
+   *
+   * We check whether we should expand in the @b shouldExpand function.
+   */
   size_t _evictionThreshold;
 
 #if REPORT_VACANCIES
+  /** Number of empty cache entries */
   size_t _vacancies;
 #endif
 };
