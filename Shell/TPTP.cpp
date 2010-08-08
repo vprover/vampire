@@ -24,6 +24,7 @@ using namespace Shell;
 
 string TPTP::toString(const Formula* f)
 {
+  CALL("TPTP::toString(const Formula*)");
   static string names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
       "~", "!", "?", "$false", "$true"};
@@ -68,7 +69,7 @@ string TPTP::toString(const Formula* f)
 	result += Int::toString(vars->head());
 	vars = vars->tail();
       }
-      return result + "] : " + toString(f->qarg()) + ")";
+      return result + "] : (" + toString(f->qarg()) + ") )";
     }
   case FALSE:
   case TRUE:
@@ -83,15 +84,15 @@ string TPTP::toString(const Formula* f)
  * Output unit in TPTP format
  *
  * If the unit is a formula of type @b CONJECTURE, output the
- * negation of Vampire's the internal representation with the
- * TPTP role conjecture. If it is clause, just output it with
- * the role negated_conjecture.
+ * negation of Vampire's internal representation with the
+ * TPTP role conjecture. If it is a clause, just output it as
+ * is, with the role negated_conjecture.
  */
 string TPTP::toString (const Unit* unit)
 {
-
-  const Inference* inf = unit->inference();
-  Inference::Rule rule = inf->rule();
+  CALL("TPTP::toString(const Unit*)");
+//  const Inference* inf = unit->inference();
+//  Inference::Rule rule = inf->rule();
 
   string prefix;
   string main = "";
@@ -126,21 +127,20 @@ string TPTP::toString (const Unit* unit)
     prefix = "fof";
     const Formula* f = static_cast<const FormulaUnit*>(unit)->formula();
     if(negate_formula) {
-      if(f->connective()==NOT) {
-	main = toString(f->uarg());
+      Formula* quant=Formula::quantify(const_cast<Formula*>(f));
+      if(quant->connective()==NOT) {
+	ASS_EQ(quant, f);
+	main = toString(quant->uarg());
       }
       else {
-	Formula* quant=Formula::quantify(const_cast<Formula*>(f));
 	Formula* neg=new NegatedFormula(quant);
-
 	main = toString(neg);
-
 	neg->destroy();
-	if(quant!=f) {
-	  ASS_EQ(quant->connective(),FORALL);
-	  static_cast<QuantifiedFormula*>(quant)->vars()->destroy();
-	  quant->destroy();
-	}
+      }
+      if(quant!=f) {
+	ASS_EQ(quant->connective(),FORALL);
+	static_cast<QuantifiedFormula*>(quant)->vars()->destroy();
+	quant->destroy();
       }
     }
     else {

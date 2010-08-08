@@ -13,6 +13,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 
+#include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Connective.hpp"
 #include "Kernel/Formula.hpp"
@@ -20,6 +21,8 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "Shell/Parser.hpp"
 #include "Shell/TPTP.hpp"
@@ -47,16 +50,16 @@ public:
     return &inst;
   }
 
-  virtual string getVarName(Var v)
+  virtual string getVarName(Var v) const
   {
     CALL("ApiHelperCore::getVarName");
 
     return "X"+Int::toString(v);
   }
 
-  string toString(Kernel::TermList t)
+  string toString(Kernel::TermList t) const
   {
-    CALL("DefaultHelperCore::toString");
+    CALL("DefaultHelperCore::toString(TermList)");
 
     if(t.isOrdinaryVar()) {
       return getVarName(t.var());
@@ -65,23 +68,228 @@ public:
     return toString(t.term());
   }
 
-  string toString(Kernel::Term* t0)
+  string toString(const Kernel::Term* t0) const
   {
+    CALL("DefaultHelperCore::toString(const Kernel::Term*)");
+
     string res;
     if(t0->isLiteral()) {
-      Literal* l=static_cast<Literal*>(t0);
+      const Literal* l=static_cast<const Literal*>(t0);
+      if(l->isEquality()) {
+	res=toString(*l->nthArgument(0));
+	res+= l->isPositive() ? " = " : " != ";
+	res+=toString(*l->nthArgument(1));
+	return res;
+      }
       res=(l->isPositive() ? "" : "~") + l->predicateName();
     }
     else {
       res=t0->functionName();
     }
-    res+="(";
+    if(t0->arity()==0) {
+      return res;
+    }
 
-    NOT_IMPLEMENTED;
+    res+='(';
 
-    res+=")";
+    static Stack<int> remArg; //how many arguments remain to be printed out for a term at each level
+    remArg.reset();
+    remArg.push(t0->arity());
+    SubtermIterator sti(t0);
+    ASS(sti.hasNext());
+
+    while(sti.hasNext()) {
+      TermList t=sti.next();
+      remArg.top()--;
+      ASS_GE(remArg.top(),0);
+      bool separated=false;
+      if(t.isOrdinaryVar()) {
+	res+=getVarName(t.var());
+      }
+      else {
+	Kernel::Term* trm=t.term();
+	res+=trm->functionName();
+	if(trm->arity()) {
+	  res+='(';
+	  remArg.push(trm->arity());
+	  separated=true;
+	}
+      }
+      if(!separated) {
+	while(!remArg.top()) {
+	  res+=')';
+	  remArg.pop();
+	  if(remArg.isEmpty()) {
+	    goto fin;
+	  }
+	}
+	ASS(remArg.top());
+	res+=',';
+      }
+    }
+    ASSERTION_VIOLATION;
+
+  fin:
+    ASS(remArg.isEmpty());
     return res;
   }
+
+  string toString(const Kernel::Formula* f)
+  {
+    CALL("DefaultHelperCore::toString(const Kernel::Formula*)");
+
+    static string names [] =
+      { "", " & ", " | ", " => ", " <=> ", " <~> ",
+        "~", "!", "?", "$false", "$true"};
+    Connective c = f->connective();
+    string con = names[(int)c];
+    switch (c) {
+    case LITERAL:
+      return toString(f->literal());
+    case AND:
+    case OR:
+    {
+      const Kernel::FormulaList* fs = f->args();
+      string result = "(" + toString(fs->head());
+      fs = fs->tail();
+      while (! fs->isEmpty()) {
+	result += con + toString(fs->head());
+	fs = fs->tail();
+      }
+      return result + ")";
+    }
+
+    case IMP:
+    case IFF:
+    case XOR:
+      return string("(") + toString(f->left()) +
+             con + toString(f->right()) + ")";
+
+    case NOT:
+      return string("(") + con + toString(f->uarg()) + ")";
+
+    case FORALL:
+    case EXISTS:
+    {
+      string result = string("(") + con + "[";
+      Kernel::Formula::VarList::Iterator vit(f->vars());
+      ASS(vit.hasNext());
+      while (vit.hasNext()) {
+	result += getVarName(vit.next());
+	if(vit.hasNext()) {
+	  result += ',';
+	}
+      }
+      return result + "] : (" + toString(f->qarg()) + ") )";
+    }
+    case FALSE:
+    case TRUE:
+      return con;
+    }
+    ASSERTION_VIOLATION;
+    return "formula";
+  }
+
+  string toString(const Kernel::Clause* clause)
+  {
+    CALL("DefaultHelperCore::toString(const Kernel::Clause*)");
+
+    string res;
+    Kernel::Clause::Iterator lits(*const_cast<Kernel::Clause*>(clause));
+    while(lits.hasNext()) {
+      res+=toString(lits.next());
+      if(lits.hasNext()) {
+	res+=" | ";
+      }
+    }
+
+    if(clause->prop() && !BDD::instance()->isFalse(clause->prop())) {
+      if(res!="") {
+	res+=" | ";
+      }
+      res+=BDD::instance()->toTPTPString(clause->prop());
+    }
+    return res;
+  }
+
+
+  /**
+   * Output unit in TPTP format
+   *
+   * If the unit is a formula of type @b CONJECTURE, output the
+   * negation of Vampire's internal representation with the
+   * TPTP role conjecture. If it is a clause, just output it as
+   * is, with the role negated_conjecture.
+   */
+  string toString (const Kernel::Unit* unit)
+  {
+    CALL("DefaultHelperCore::toString(const Kernel::Unit*)");
+
+    string prefix;
+    string main = "";
+
+    bool negate_formula = false;
+    string kind;
+    switch (unit->inputType()) {
+    case Unit::ASSUMPTION:
+      kind = "hypothesis";
+      break;
+
+    case Unit::CONJECTURE:
+      if(unit->isClause()) {
+	kind = "negated_conjecture";
+      }
+      else {
+	negate_formula = true;
+	kind = "conjecture";
+      }
+      break;
+
+    default:
+      kind = "axiom";
+      break;
+    }
+
+    if (unit->isClause()) {
+      prefix = "cnf";
+      main = toString(static_cast<const Kernel::Clause*>(unit));
+    }
+    else {
+      prefix = "fof";
+      const Kernel::Formula* f = static_cast<const Kernel::FormulaUnit*>(unit)->formula();
+      if(negate_formula) {
+	Kernel::Formula* quant=Kernel::Formula::quantify(const_cast<Kernel::Formula*>(f));
+	if(quant->connective()==NOT) {
+	  ASS_EQ(quant,f);
+	  main = toString(quant->uarg());
+	}
+	else {
+	  Kernel::Formula* neg=new Kernel::NegatedFormula(quant);
+	  main = toString(neg);
+	  neg->destroy();
+	}
+	if(quant!=f) {
+	  ASS_EQ(quant->connective(),FORALL);
+	  static_cast<Kernel::QuantifiedFormula*>(quant)->vars()->destroy();
+	  quant->destroy();
+	}
+      }
+      else {
+	main = toString(f);
+      }
+    }
+
+    string unitName;
+    if(!Parser::findAxiomName(unit, unitName)) {
+      unitName="u" + Int::toString(unit->number());
+    }
+
+
+    return prefix + "(" + unitName + "," + kind + ",\n"
+	+ "    " + main + ").\n";
+  }
+
+
 
 private:
   struct Var2NameMapper
@@ -157,7 +365,9 @@ public:
     DArray<TermList> argArr;
     argArr.initFromArray(arity, args);
 
-    return Term(Kernel::TermList(Kernel::Term::create(f,arity,argArr.array())));
+    Term res(Kernel::TermList(Kernel::Term::create(f,arity,argArr.array())));
+    res._aux=this; //assign the correct helper object
+    return res;
   }
 
   /** build a predicate p(*args) with specified @b arity */
@@ -182,7 +392,7 @@ public:
     return res;
   }
 
-  virtual string getVarName(Var v)
+  virtual string getVarName(Var v) const
   {
     CALL("FBHelperCore::getVarName");
 
@@ -294,7 +504,7 @@ bool ApiHelper::operator!=(const ApiHelper& h) const
   return _obj!=h._obj;
 }
 
-DefaultHelperCore* ApiHelper::operator->()
+DefaultHelperCore* ApiHelper::operator->() const
 {
   CALL("ApiHelper::operator->");
 
@@ -314,7 +524,7 @@ FBHelper::FBHelper()
   updRef(true);
 }
 
-FBHelperCore* FBHelper::operator->()
+FBHelperCore* FBHelper::operator->() const
 {
   CALL("FBHelper::operator->");
 
@@ -371,7 +581,9 @@ Term FormulaBuilder::varTerm(const Var& v)
 {
   CALL("FormulaBuilder::varTerm");
 
-  return Term(Kernel::TermList(v,false));
+  Term res(Kernel::TermList(v,false));
+  res._aux=_aux; //assign the correct helper object
+  return res;
 }
 
 Term FormulaBuilder::term(const Function& f,const Term* args)
@@ -636,6 +848,13 @@ Term::Term(Kernel::TermList t)
   content=t.content();
 }
 
+string Term::toString() const
+{
+  CALL("Term::toString");
+
+  return _aux->toString(static_cast<Kernel::TermList>(*this));
+}
+
 Term::operator Kernel::TermList() const
 {
   return TermList(content);
@@ -645,7 +864,7 @@ string Formula::toString() const
 {
   CALL("Formula::toString");
 
-  return TPTP::toString(form);
+  return _aux->toString(static_cast<Kernel::Formula*>(*this));
 }
 
 bool Formula::isTrue() const
@@ -684,7 +903,7 @@ string AnnotatedFormula::toString() const
 {
   CALL("AnnotatedFormula::toString");
 
-  return TPTP::toString(unit);
+  return _aux->toString(unit);
 }
 
 StringIterator AnnotatedFormula::freeVars()

@@ -33,7 +33,7 @@ public:
   bool operator==(const ApiHelper& h) const;
   bool operator!=(const ApiHelper& h) const;
 
-  DefaultHelperCore* operator->();
+  DefaultHelperCore* operator->() const;
 protected:
   void updRef(bool inc);
 
@@ -45,7 +45,7 @@ class FBHelper
 {
 public:
   FBHelper();
-  FBHelperCore* operator->();
+  FBHelperCore* operator->() const;
 };
 
 /**
@@ -266,6 +266,8 @@ class Term
 public:
   Term() : content(0) {}
 
+  string toString() const;
+
   /**
    * Return true if this object is not initialized to a term
    */
@@ -275,8 +277,10 @@ public:
   explicit Term(Kernel::TermList t);
 private:
   size_t content;
+  ApiHelper _aux;
 
   friend class FormulaBuilder;
+  friend class FBHelperCore;
 };
 
 class Formula
