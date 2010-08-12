@@ -773,12 +773,20 @@ protected:  // structure
   List* _tail;
 };  // class List
 
+///@addtogroup Iterators
+///@{
 
 template<typename T>
 typename List<T>::Iterator getContentIterator(List<T>* lst)
 {
   return typename List<T>::Iterator(lst);
 }
+
+///@}Á
+
+
+///@addtogroup Reflection
+///@{
 
 /** see Reflection.hpp */
 template<typename T>
@@ -799,6 +807,7 @@ struct IteratorTypeInfo<const List<T>*>
   typedef typename List<T>::Iterator Type;
 };
 
+///@}Á
 
 #if VDEBUG
 

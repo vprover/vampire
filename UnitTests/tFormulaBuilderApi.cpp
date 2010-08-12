@@ -275,6 +275,32 @@ TEST_FUN(fbapiProblem)
 
 }
 
+TEST_FUN(fbapiClausify)
+{
+  FormulaBuilder api;
+
+  Predicate p=api.predicate("p",0);
+  Predicate q=api.predicate("q",0);
+
+  Formula fp=api.formula(p);
+  Formula fq=api.formula(q);
+  Formula f=api.formula(FormulaBuilder::OR,fp, fq);
+
+  AnnotatedFormula af=api.annotatedFormula(f,FormulaBuilder::CONJECTURE, "abc123");
+
+  cout<<"FOF:"<<endl;
+  cout<<af<<endl;
+
+  Problem prb;
+  prb.addFormula(af);
+
+  Problem cprb=prb.clausify();
+  cout<<"CNF:"<<endl;
+  AnnotatedFormulaIterator afit=cprb.formulas();
+  while(afit.hasNext()) {
+    cout<<afit.next()<<endl;
+  }
+}
 
 
 
