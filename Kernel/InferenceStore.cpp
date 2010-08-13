@@ -651,6 +651,20 @@ struct InferenceStore::TPTPProofPrinter
     return res;
   }
 
+  string quoteAxiomName(string n)
+  {
+    CALL("InferenceStore::TPTPProofPrinter::quoteAxiomName");
+
+    static string allowedFirst("0123456789abcdefghijklmnopqrstuvwxyz");
+    const char* allowed="_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
+
+    if(n.size()==0 || allowedFirst.find(n[0])==string::npos ||
+	n.find_first_not_of(allowed)!=string::npos) {
+      n='\''+n+'\'';
+    }
+    return n;
+  }
+
   string getFofString(string id, string formula, string inference, Inference::Rule rule)
   {
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
@@ -733,7 +747,7 @@ struct InferenceStore::TPTPProofPrinter
       if(!outputAxiomNames || !Parser::findAxiomName(us.unit(), axiomName)) {
 	axiomName="unknown";
       }
-      inferenceStr="file("+fileName+","+axiomName+")";
+      inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
     }
     else if(!parents.hasNext()) {
       inferenceStr="introduced("+tptpRuleName(rule)+",[])";
