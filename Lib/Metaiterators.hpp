@@ -24,20 +24,15 @@ namespace Lib {
 
 
 /**
- * Return iterator on C, yielding objects type T.
+ * Return iterator on the container C
  *
  * The getContentIterator method makes it possible to
- * iterate on arbitrary containers. Usual implementation
- * of this functionality is some Iterable<T> interface,
- * that would be implemented by those containers. This
- * would however lead to the use of virtual methods,
- * which we'd like to avoid, especially in trivial
- * containers, such as List.
+ * iterate on arbitrary containers, provided the @b ITERATOR_TYPE
+ * macro can obtain the iterator type of the container.
  *
- * Overloads of this method, that allow for iteration on
- * different containers are usually defined together
- * with those containers (so we avoid including all their
- * header files here).
+ * For types where the use of the @b ITERATOR_TYPE macro is not
+ * suitable, this method can be overloaded to obtain the
+ * iterator by some other means.
  */
 template<class C>
 ITERATOR_TYPE(C) getContentIterator(C& c)
@@ -45,7 +40,17 @@ ITERATOR_TYPE(C) getContentIterator(C& c)
   return ITERATOR_TYPE(C)(c);
 }
 
-
+/**
+ * Iterator class for types whose elements are accessible by
+ * @b operator[](size_t) with the first element at the index 0
+ * and the others at consecutive indexes
+ *
+ * If the iterated object has a @b size() function, the single
+ * argument constructor can be used. Otherwise the two parameter
+ * constructor must be used, the second parameter being the size
+ * of the container (so that the elements are at indexes 0, ...,
+ * size-1).
+ */
 template<class Arr>
 class ArrayishObjectIterator
 {
@@ -65,6 +70,14 @@ private:
   size_t _size;
 };
 
+/**
+ * Iterator class for pointers
+ *
+ * The constructor takes two arguments - a pointer to the first element,
+ * and a pointer to the element after the last element to be returned.
+ *
+ * Consecutive elements are being obtained by the postfix @b operator++().
+ */
 template<typename T>
 class PointerIterator
 {
@@ -79,6 +92,14 @@ private:
   const T* _afterLast;
 };
 
+/**
+ * Iterator class for pointers returning pointers to elements
+ *
+ * The constructor takes two arguments - a pointer to the first element,
+ * and a pointer to the element after the last element to be returned.
+ *
+ * Consecutive elements are being obtained by the postfix @b operator++().
+ */
 template<typename T>
 class PointerPtrIterator
 {
@@ -95,8 +116,9 @@ private:
 
 
 /**
- * Implementation object for VirtualIterator, that represents
- * an iterator that yields only one object.
+ * Iterator returning a single element
+ *
+ * The single element is being passed to the constructor of the iterator.
  */
 template<typename T>
 class SingletonIterator
@@ -113,6 +135,11 @@ private:
   T _el;
 };
 
+/**
+ * Return iterator returning @b el as a single element
+ *
+ * @see SingletonIterator
+ */
 template<typename T>
 inline
 SingletonIterator<T> getSingletonIterator(T el)
@@ -121,8 +148,11 @@ SingletonIterator<T> getSingletonIterator(T el)
 }
 
 /**
- * Implementation object for VirtualIterator, that can casts objects
- * of its inner iterator to target type with static_cast.
+ * Iterator that can casts objects of its inner iterator to the target type
+ * @b To with the static_cast operator
+ *
+ * @tparam To target type of the iterator
+ * @tparam Inner type of the inner iterator
  */
 template<typename To, class Inner>
 class StaticCastIterator
@@ -136,6 +166,12 @@ private:
   Inner _inn;
 };
 
+/**
+ * Return an iterator that can casts objects of the iterator @b it to the target type
+ * @b To
+ *
+ * @see StaticCastIterator
+ */
 template<typename To, class Inner>
 inline
 StaticCastIterator<To,Inner> getStaticCastIterator(Inner it)
@@ -143,6 +179,11 @@ StaticCastIterator<To,Inner> getStaticCastIterator(Inner it)
   return StaticCastIterator<To,Inner>(it);
 }
 
+/**
+ * A functor class that returns true if the argument is non-zero
+ *
+ * The nonzeroness is tested by @b x!=0 .
+ */
 struct NonzeroFn
 {
   DECL_RETURN_TYPE(bool);
@@ -153,6 +194,15 @@ struct NonzeroFn
   }
 };
 
+/**
+ * A functor class that returns true if the argument is not equal
+ * to a specified object
+ *
+ * The forbidded object is specified by the argument of the
+ * object constructor.
+ *
+ * The nonequality is tested by the @b operator!=() .
+ */
 template<typename T>
 struct NonequalFn
 {
@@ -165,6 +215,12 @@ struct NonequalFn
   T _forbidden;
 };
 
+/**
+ * Return a functor object that checks for non-equality to the
+ * @b forbidden object
+ *
+ * @see NonequalFn
+ */
 template<typename T>
 NonequalFn<T> getNonequalFn(T forbidden)
 {
@@ -172,9 +228,12 @@ NonequalFn<T> getNonequalFn(T forbidden)
 }
 
 /**
- * A meta-iterator that yields only those elements of
- * underlying iterator, for which @b func(element)
- * returns true.
+ * Iterator class that returns elements of the inner iterator
+ * for which the functor returns true
+ *
+ * @tparam Inner type of the inner iterator
+ * @tparam Functor type of the functor used for filtering the
+ *   elements returned by the inner iterator
  */
 template<class Inner, class Functor>
 class FilteredIterator
@@ -215,8 +274,10 @@ private:
 };
 
 /**
- * Return meta-iterator that yields only those elements of
- * iterator @b inn, for which @b func(element) returns true.
+ * Return an iterator object that returns elements of the @b inn iterator
+ * for which the functor @b func returns true
+ *
+ * @see FilteredIterator
  */
 template<class Inner, class Functor>
 inline
@@ -227,8 +288,9 @@ FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
 
 
 /**
- * A meta-iterator that yields elements of underlying iterator
- * only until @b func(element) returns false for some element.
+ * Iterator class that returns elements of an inner iterator
+ * only until the specified functor returns false for some element
+ * (this element is already not returned)
  */
 template<class Inner, class Functor>
 class WhileLimitedIterator
@@ -265,8 +327,11 @@ private:
 };
 
 /**
- * Return meta-iterator that yields elements of iterator @b inn
- * only until @b func(element) returns false for some element.
+ * Return iterator object that returns elements of an inner iterator
+ * @b inn only until the functor @b func returns false for some element
+ * (this element is already not returned)
+ *
+ * @see WhileLimitedIterator
  */
 template<class Inner, class Functor>
 inline
@@ -277,11 +342,7 @@ WhileLimitedIterator<Inner,Functor> getWhileLimitedIterator(Inner inn, Functor f
 
 
 /**
- * Implementation object for VirtualIterator, that concatenates
- * two other virtual iterators.
- *
- * After the first iterator is empty, pointer to its core is dropped,
- * so that its resources can be released.
+ * Iterator that concatenates two other iterators
  */
 template<class It1,class It2>
 class CatIterator
@@ -315,6 +376,13 @@ public:
     }
     return  _it2.next();
   };
+
+  /**
+   * Return true the size of the iterator can be obtained
+   *
+   * The inner iterators do not have to contain the @b knowsSize function,
+   * as long as this function is not being called.
+   */
   bool knowsSize() const { return _it1.knowsSize() && _it2.knowsSize(); }
   size_t size() const { return _it1.size()+_it2.size(); }
 private:
