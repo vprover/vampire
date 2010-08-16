@@ -25,7 +25,6 @@ struct InitHelper
   InitHelper()
   {
     ResourceLimits::disableLimits();
-    std::cout<<"init\n";
   }
 };
 
