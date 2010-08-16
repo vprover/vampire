@@ -24,8 +24,22 @@ void printProblem(Problem p)
   cout<<"^^^^"<<endl;
 }
 
+void clausifyTest(const char* fname)
+{
+  ifstream fs(fname);
+  Problem p;
+  p.addFromStream(fs);
+
+  Problem p2=p.clausify();
+}
+
 int main(int argc, char* argv [])
 {
+
+  if(argc==2) {
+    clausifyTest(argv[1]);
+  }
+
   FormulaBuilder api(true);
 
   Var xv = api.var("X"); // variable x

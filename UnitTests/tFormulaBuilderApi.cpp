@@ -6,6 +6,8 @@
 #include "Api/Problem.hpp"
 
 #include "Lib/DHSet.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Map.hpp"
 
 #include "Kernel/Term.hpp"
 
@@ -302,7 +304,31 @@ TEST_FUN(fbapiClausify)
   }
 }
 
+string getId(Term t)
+{
+  static Map<string,string> map;
+  string newId="t_"+Int::toString(map.numberOfElements());
+  string id=map.insert(t.toString(), newId);
+  return id;
+}
 
+TEST_FUN(fbapiIds)
+{
+  FormulaBuilder api;
 
+  Var xv = api.var("X");
+  Term x = api.varTerm(xv);
+  Predicate f = api.function("f",1);
+  Term t=x;
+  for(int i=0;i<5;i++) {
+    cout<<t.toString()<<" "<<getId(t)<<endl;
+    t=api.term(f,t);
+  }
+  t=x;
+  for(int i=0;i<5;i++) {
+    cout<<t.toString()<<" "<<getId(t)<<endl;
+    t=api.term(f,t);
+  }
+}
 
 
