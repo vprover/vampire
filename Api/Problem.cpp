@@ -9,6 +9,7 @@
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Exception.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Stack.hpp"
 
