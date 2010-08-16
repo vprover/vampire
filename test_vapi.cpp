@@ -38,6 +38,7 @@ int main(int argc, char* argv [])
 
   if(argc==2) {
     clausifyTest(argv[1]);
+    return 0;
   }
 
   FormulaBuilder api(true);

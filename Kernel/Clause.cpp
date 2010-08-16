@@ -671,8 +671,3 @@ bool Clause::contains(Literal* lit)
 #endif
 
 }
-
-std::ostream& Kernel::operator<<(ostream& out, const Clause& cl)
-{
-  return out << cl.toString();
-}

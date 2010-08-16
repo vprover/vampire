@@ -342,8 +342,6 @@ protected:
   Literal* _literals[1];
 }; // class Clause
 
-std::ostream& operator<< (ostream& out, const Clause& cl );
-
 }
 
 #endif

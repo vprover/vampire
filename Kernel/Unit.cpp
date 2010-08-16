@@ -107,3 +107,8 @@ string Unit::inferenceAsString() const
   return result + ']';
 } // Unit::inferenceAsString()
 
+
+std::ostream& Kernel::operator<<(ostream& out, const Unit& u)
+{
+  return out << u.toString();
+}

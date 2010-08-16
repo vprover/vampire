@@ -45,6 +45,7 @@ bool Rectify::Renaming::bound (int var,int& boundTo) const
 Unit* Rectify::rectify (Unit* unit)
 {
   CALL("Rectify::rectify (Unit*...)");
+  ASS(!unit->isClause());
 
   Formula* f = static_cast<FormulaUnit*>(unit)->formula();
   Rectify rect;

@@ -145,5 +145,7 @@ protected:
   static unsigned _firstNonPreprocessingNumber;
 }; // class Unit
 
+std::ostream& operator<< (ostream& out, const Unit& u );
+
 }
 #endif

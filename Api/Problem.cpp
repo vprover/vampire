@@ -176,6 +176,7 @@ struct Problem::Clausifier
 
     if(unit->isClause()) {
       res->addFormula(AnnotatedFormula(unit));
+      return;
     }
     unit = Rectify::rectify(unit);
     unit = SimplifyFalseTrue::simplify(unit);
@@ -185,23 +186,26 @@ struct Problem::Clausifier
 
     Kernel::UnitList* newDefs;
     unit = naming.apply(unit,newDefs);
-    while(newDefs) {
-      defs.push(Kernel::UnitList::pop(newDefs));
-    }
 
-    unit = NNF::nnf(unit);
-    unit = Flattening::flatten(unit);
-    unit = Skolem::skolemise(unit);
+    for(;;) {
+      unit = NNF::nnf(unit);
+      unit = Flattening::flatten(unit);
+      unit = Skolem::skolemise(unit);
 
-    cnf.clausify(unit,auxClauseStack);
-    while (! auxClauseStack.isEmpty()) {
-      Unit* u = auxClauseStack.pop();
-      res->addFormula(AnnotatedFormula(u));
+      cnf.clausify(unit,auxClauseStack);
+      while (! auxClauseStack.isEmpty()) {
+	Unit* u = auxClauseStack.pop();
+	res->addFormula(AnnotatedFormula(u));
+      }
+
+      if(newDefs==0) {
+	break;
+      }
+      unit=UnitList::pop(newDefs);
     }
   }
 
   Problem* res;
-  Stack<Kernel::Unit*> defs;
   Shell::CNF cnf;
   Stack<Kernel::Clause*> auxClauseStack;
   Shell::Naming naming;
@@ -220,11 +224,6 @@ Problem Problem::clausify()
     while(fit.hasNext()) {
       AnnotatedFormula f=fit.next();
       clausifier.clausify(f);
-    }
-
-    //clausify also the introduced definitions
-    while(clausifier.defs.isNonEmpty()) {
-      clausifier.clausify(clausifier.defs.pop());
     }
   }
 
