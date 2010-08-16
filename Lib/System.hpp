@@ -61,6 +61,17 @@ private:
   static ZIArray<List<VoidFunc>*>& initializationHandlersArray();
 
   /**
+   * True if the @b onInitialization() function was already called
+   *
+   * If this variable is true, the @b addInitializationHandler()
+   * function will immediately call the function that is supposed
+   * to be an initialization handler, rather than put it into the
+   * handler list. This is done because the functions in the handler
+   * list were already called at that point.
+   */
+  static bool s_initialized;
+
+  /**
    * Lists of functions that will be called before Vampire terminates
    *
    * Functions in lists with lower numbers will be called first.

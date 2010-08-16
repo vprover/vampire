@@ -119,6 +119,7 @@ namespace Lib {
 using namespace std;
 using namespace Shell;
 
+bool System::s_initialized = false;
 bool System::s_shouldIgnoreSIGINT = false;
 
 ///**
@@ -298,7 +299,12 @@ void System::addInitializationHandler(VoidFunc proc, unsigned priority)
 {
   CALL("System::addInitializationHandler");
 
-  VoidFuncList::push(proc, initializationHandlersArray()[priority]);
+  if(s_initialized) {
+    proc();
+  }
+  else {
+    VoidFuncList::push(proc, initializationHandlersArray()[priority]);
+  }
 }
 
 /**
@@ -308,12 +314,9 @@ void System::addInitializationHandler(VoidFunc proc, unsigned priority)
 void System::onInitialization()
 {
   CALL("System::onTermination");
+  ASS(!s_initialized); //onInitialization can be called only once
 
-  static bool called=false;
-  if(called) {
-    return;
-  }
-  called=true;
+  s_initialized=true;
 
   int sz=initializationHandlersArray().size();
   for(int i=sz-1;i>=0;i--) {
