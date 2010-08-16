@@ -31,6 +31,8 @@ void clausifyTest(const char* fname)
   p.addFromStream(fs);
 
   Problem p2=p.clausify();
+
+  printProblem(p2);
 }
 
 int main(int argc, char* argv [])

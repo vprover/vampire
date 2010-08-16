@@ -19,6 +19,7 @@
 #include "Shell/UIHelper.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/System.hpp"
 
 // the elements below are simple and can be initisalised before
 // any objects
@@ -35,5 +36,19 @@ string Kernel::Formula::_connectiveNames[] =
 
 
 // From here the order does matter
+
+Lib::ZIArray<List<VoidFunc>*> Lib::System::s_terminationHandlers(2);
+
 Lib::Environment Lib::env;
+
+
+struct __Lib_System_Init_Invoker
+{
+  __Lib_System_Init_Invoker()
+  {
+    Lib::System::onInitialization();
+  }
+};
+
+__Lib_System_Init_Invoker __Lib_System_Init_Invoker_obj;
 

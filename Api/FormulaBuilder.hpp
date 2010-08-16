@@ -340,12 +340,21 @@ class AnnotatedFormula
 public:
   AnnotatedFormula() : unit(0) {}
 
+  string toString() const;
+
+  /**
+   * Return name of the annotated formula
+   *
+   * If a name was specified at the call of the
+   * @b FormulaBuilder::annotatedFormula() function, that name is
+   * returned, otherwise an automatically generated one is returned.
+   */
+  string name() const;
+
   /**
    * Return true if this object is not initialized to
    * an annotated formula
    */
-  string toString() const;
-
   bool isNull() const { return unit==0; }
 
   /**

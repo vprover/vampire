@@ -906,6 +906,17 @@ string AnnotatedFormula::toString() const
   return _aux->toString(unit);
 }
 
+string AnnotatedFormula::name() const
+{
+  CALL("AnnotatedFormula::toString");
+
+  string unitName;
+  if(!Parser::findAxiomName(unit, unitName)) {
+    unitName="u" + Int::toString(unit->number());
+  }
+  return unitName;
+}
+
 StringIterator AnnotatedFormula::freeVars()
 {
   CALL("AnnotatedFormula::freeVars");

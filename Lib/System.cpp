@@ -119,11 +119,6 @@ namespace Lib {
 using namespace std;
 using namespace Shell;
 
-/**
- * List of functions that will be called before Vampire terminates
- */
-ZIArray<List<VoidFunc>*> System::s_onTerminationHandlers(2);
-
 bool System::s_shouldIgnoreSIGINT = false;
 
 ///**
@@ -279,6 +274,58 @@ void System::setSignalHandlers()
 }
 
 /**
+ * Function that returns a reference to an array that contains
+ * lists of initialization handlers
+ *
+ * Using a function with a static variable inside is a way to ensure
+ * that no matter how early we want to register an initialization
+ * handler, the array will be constructed.
+ */
+ZIArray<List<VoidFunc>*>& System::initializationHandlersArray()
+{
+  CALL("System::initializationHandlersArray");
+
+  static ZIArray<List<VoidFunc>*> arr;
+  return arr;
+}
+
+/**
+ * Ensure that @b proc will be called after all static variables are
+ * initialized, but before the @b main() function.
+ * Functions added with higher @b priority will be called first.
+ */
+void System::addInitializationHandler(VoidFunc proc, unsigned priority)
+{
+  CALL("System::addInitializationHandler");
+
+  VoidFuncList::push(proc, initializationHandlersArray()[priority]);
+}
+
+/**
+ * This function should be called as the last thing on every path that leads
+ * to a process termination.
+ */
+void System::onInitialization()
+{
+  CALL("System::onTermination");
+
+  static bool called=false;
+  if(called) {
+    return;
+  }
+  called=true;
+
+  int sz=initializationHandlersArray().size();
+  for(int i=sz-1;i>=0;i--) {
+    VoidFuncList::Iterator ihIter(initializationHandlersArray()[i]);
+    while(ihIter.hasNext()) {
+      VoidFunc func=ihIter.next();
+      func();
+    }
+  }
+}
+
+/**
  * Ensure that @b proc will be called before termination of the process.
  * Functions added with lower @b priority will be called first.
  *
@@ -290,7 +337,7 @@ void System::addTerminationHandler(VoidFunc proc, unsigned priority)
 {
   CALL("System::addTerminationHandler");
 
-  VoidFuncList::push(proc, s_onTerminationHandlers[priority]);
+  VoidFuncList::push(proc, s_terminationHandlers[priority]);
 }
 
 /**
@@ -307,9 +354,9 @@ void System::onTermination()
   }
   called=true;
 
-  size_t sz=s_onTerminationHandlers.size();
+  size_t sz=s_terminationHandlers.size();
   for(size_t i=0;i<sz;i++) {
-    VoidFuncList::Iterator thIter(s_onTerminationHandlers[i]);
+    VoidFuncList::Iterator thIter(s_terminationHandlers[i]);
     while(thIter.hasNext()) {
       VoidFunc func=thIter.next();
       func();

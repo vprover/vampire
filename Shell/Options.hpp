@@ -354,6 +354,7 @@ public:
   void setSos(bool newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination; }
   bool outputAxiomNames() const { return _outputAxiomNames; }
+  void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
   string xmlOutput() const { return _xmlOutput; }
   string thanks() const { return _thanks; }
 

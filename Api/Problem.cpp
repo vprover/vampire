@@ -166,13 +166,16 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
 
 struct Problem::Clausifier
 {
-  Clausifier(Problem* res) : res(res), naming(env.options->naming()) {}
+  Clausifier(Problem* res) : nextDefNum(1), res(res), naming(env.options->naming()) {}
 
-  void clausify(Kernel::Unit* unit)
+  void clausify(AnnotatedFormula f)
   {
     CALL("Problem__Clausifier::clausify");
 
     using namespace Shell;
+
+    string fname=f.name();
+    Kernel::Unit* unit=f;
 
     if(unit->isClause()) {
       res->addFormula(AnnotatedFormula(unit));
@@ -187,6 +190,9 @@ struct Problem::Clausifier
     Kernel::UnitList* newDefs;
     unit = naming.apply(unit,newDefs);
 
+    unsigned nextClauseNum=1;
+    bool clausifyingDefs=false;
+
     for(;;) {
       unit = NNF::nnf(unit);
       unit = Flattening::flatten(unit);
@@ -196,15 +202,29 @@ struct Problem::Clausifier
       while (! auxClauseStack.isEmpty()) {
 	Unit* u = auxClauseStack.pop();
 	res->addFormula(AnnotatedFormula(u));
+
+	string clName;
+	if(clausifyingDefs) {
+	  clName="def_"+Int::toString(nextDefNum);
+	  nextDefNum++;
+	}
+	else {
+	  clName=fname+"_"+Int::toString(nextClauseNum);
+	  nextClauseNum++;
+	}
+
+	Parser::assignAxiomName(u, clName);
       }
 
       if(newDefs==0) {
 	break;
       }
       unit=UnitList::pop(newDefs);
+      clausifyingDefs=true;
     }
   }
 
+  unsigned nextDefNum;
   Problem* res;
   Shell::CNF cnf;
   Stack<Kernel::Clause*> auxClauseStack;

@@ -36,10 +36,10 @@
 #define MAX_SKIP_HEIGHT 32
 
 //this macro is undefine at the end of the file
-#if __APPLE__
-# define ALLOC_SIZE_ATTR
-#else
+#if defined(__GNUC__) && !defined(__ICC) && (__GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 2)
 # define ALLOC_SIZE_ATTR __attribute__((malloc, alloc_size(1)))
+#else
+# define ALLOC_SIZE_ATTR
 #endif
 
 

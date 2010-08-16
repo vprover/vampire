@@ -37,6 +37,9 @@ public:
   static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }
   static bool shouldIgnoreSIGINT() { return s_shouldIgnoreSIGINT; }
 
+  static void addInitializationHandler(VoidFunc proc, unsigned priority=0);
+  static void onInitialization();
+
   static void addTerminationHandler(VoidFunc proc, unsigned priority=0);
   static void onTermination();
   static void terminateImmediately(int resultStatus) __attribute__((noreturn));
@@ -53,8 +56,16 @@ public:
    */
   static unsigned getNumberOfCores();
 
-protected:
-  static ZIArray<List<VoidFunc>*> s_onTerminationHandlers;
+private:
+
+  static ZIArray<List<VoidFunc>*>& initializationHandlersArray();
+
+  /**
+   * Lists of functions that will be called before Vampire terminates
+   *
+   * Functions in lists with lower numbers will be called first.
+   */
+  static ZIArray<List<VoidFunc>*> s_terminationHandlers;
 
   static bool s_shouldIgnoreSIGINT;
 };

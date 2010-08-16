@@ -9,28 +9,36 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/System.hpp"
 
 #include "Shell/Options.hpp"
 
 namespace Api
 {
 
-#ifdef VAPI_LIBRARY
+//#ifdef VAPI_LIBRARY
 
 //here we ensure that if Vampire is used as a library, we do not impose
 //any time or memory limit by default
 
-struct InitHelper
+struct __InitHelper
 {
-  InitHelper()
+  static void init()
   {
     ResourceLimits::disableLimits();
+
+    env.options->setOutputAxiomNames(true);
+  }
+
+  __InitHelper()
+  {
+    System::addInitializationHandler(init,0);
   }
 };
 
-InitHelper initializerAuxObject;
+__InitHelper initializerAuxObject;
 
-#endif
+//#endif
 
 void ResourceLimits::setLimits(size_t memoryInBytes, int timeInDeciseconds)
 {
