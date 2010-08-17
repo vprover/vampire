@@ -1,13 +1,12 @@
 
 #include <iostream>
 #include <sstream>
+#include <map>
 
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
 
 #include "Lib/DHSet.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/Map.hpp"
 
 #include "Kernel/Term.hpp"
 
@@ -306,9 +305,13 @@ TEST_FUN(fbapiClausify)
 
 string getId(Term t)
 {
-  static Map<string,string> map;
-  string newId="t_"+Int::toString(map.numberOfElements());
-  string id=map.insert(t.toString(), newId);
+  static std::map<string,string> idMap;
+
+  stringstream newIdStr;
+  newIdStr<<"t_"<<idMap.size();
+  string newId=newIdStr.str();
+
+  string id=(*idMap.insert(make_pair(t.toString(), newId)).first).second;
   return id;
 }
 
