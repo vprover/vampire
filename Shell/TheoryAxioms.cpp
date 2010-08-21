@@ -141,6 +141,13 @@ struct TheoryAxioms::Arithmetic
 
 void TheoryAxioms::apply(UnitList*& units, Property* prop)
 {
+  CALL("TheoryAxioms::apply");
+
+  if(!env.signature->anyInterpretedSymbols()) {
+    //If we don't have any interpreted symbols (besides equality)
+    //there won't be any theory axioms added anyway
+    return;
+  }
 
   Arithmetic axGen;
 

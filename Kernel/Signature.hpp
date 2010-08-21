@@ -127,6 +127,21 @@ class Signature
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
   unsigned haveInterpretingSymbol(Interpretation interp) const { return _iSymbols.find(interp); }
 
+  /**
+   * Return true iff we have any declared interpreted symbols
+   *
+   * The equality symbol is always present and is interpreted,
+   * so we return true only if we have any other interpreted
+   * symbols.
+   */
+  bool anyInterpretedSymbols() const
+  {
+    CALL("Signature::anyInterpretedSymbols");
+    ASS_G(_iSymbols.size(),0); //we always have equality which is interpreted
+
+    return _iSymbols.size()!=1;
+  }
+
   unsigned addSkolemFunction(unsigned arity);
   /**
    * If a predicate with this name and arity exists, return its number.

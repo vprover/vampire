@@ -531,7 +531,7 @@ Options::Options ()
 
   _testId ("unspecified_test"),
   _thanks("Tanya"),
-  _theoryAxioms(false),
+  _theoryAxioms(true),
   _timeLimitInDeciseconds(600),
   _timeStatistics(false),
 
