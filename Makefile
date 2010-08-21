@@ -261,6 +261,12 @@ CASC_OBJ = Shell/CASC/CASCMode.o\
            Shell/CASC/SimpleLTBMode.o\
            Shell/CASC/SpawningCM.o
 
+VPROG_OBJ = Program/Type.o\
+           Program/Analyze.o\
+           Program/Expression.o\
+           Program/Statement.o\
+           Program/Variable.o
+
 # testing procedures
 VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/CompitOutput.o\
@@ -297,7 +303,7 @@ LIB_DEP = Indexing/TermSharing.o\
 		  Saturation/ClauseContainer.o\
 		  Shell/Options.o\
 		  Shell/Statistics.o
-			  
+
 OTHER_CL_DEP = Inferences/InferenceEngine.o\
 			   Inferences/TautologyDeletionISE.o\
 			   Kernel/InferenceStore.o\
@@ -360,9 +366,9 @@ OTHER_API_DEP = \
 			   Shell/TPTP.o\
 			   Shell/TPTPLexer.o\
 			   Shell/TPTPParser.o\
-			   
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
+
+VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) $(VPROG_OBJ)  
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VS_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(VT_OBJ) $(LIB_DEP)
@@ -396,7 +402,7 @@ obj:
 	-mkdir obj
 obj/%X: | obj
 	-mkdir $@
-	-cd $@ ; mkdir Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test UnitTests VUtils; cd .. 
+	-cd $@ ; mkdir Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences Shell Shell/CASC Shell/LTB Rule SAT Saturation Test UnitTests VUtils Program; cd .. 
 
 #cancel the implicit rule
 %.o : %.cpp
@@ -525,7 +531,7 @@ clean:
 	rm -rf obj
 
 depend:
-	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 Api/*.cpp Debug/*.cpp Lib/*.cpp Lib/Sys/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp UnitTests/*.cpp *.cpp
+	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 Api/*.cpp Debug/*.cpp Lib/*.cpp Lib/Sys/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp UnitTests/*.cpp Program/*.cpp *.cpp
 
 doc:
 	rm -fr doc/html
@@ -536,5 +542,5 @@ doc:
 
 ###########################
 # include header dependencies
-	
+
 include Makefile_depend
