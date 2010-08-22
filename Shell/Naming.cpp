@@ -206,6 +206,9 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
       mem = ALLOC_UNKNOWN(length*sizeof(int),"Naming::apply");
       negCls = array_new<int>(mem, length);
     }
+    if(where==ON_TOP) {
+      where=OTHER;
+    }
     fs = apply(fs,where,cls,negCls);
     bool split = false;
     // formula array, initialised only upon demand

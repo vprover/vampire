@@ -488,7 +488,7 @@ unsigned Formula::weight() const
 {
   CALL("Formula::weight");
 
-  unsigned result;
+  unsigned result=0;
 
   SubformulaIterator fs(const_cast<Formula*>(this));
   while (fs.hasNext()) {
