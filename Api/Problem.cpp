@@ -167,7 +167,8 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
 
 struct Problem::Clausifier
 {
-  Clausifier(Problem* res) : nextDefNum(1), res(res), naming(env.options->naming()) {}
+  Clausifier(Problem* res, int namingThreshold) :
+    namingThreshold(namingThreshold), nextDefNum(1), res(res), naming(env.options->naming()) {}
 
   void clausify(AnnotatedFormula f)
   {
@@ -188,8 +189,15 @@ struct Problem::Clausifier
     unit = NNF::ennf(unit);
     unit = Flattening::flatten(unit);
 
-    Kernel::UnitList* newDefs;
-    unit = naming.apply(unit,newDefs);
+    Kernel::UnitList* newDefs=0;
+    if(namingThreshold) {
+      int oldNamingThreshold=env.options->naming();
+      ALWAYS(env.options->setNaming(namingThreshold));
+
+      unit = naming.apply(unit,newDefs);
+
+      ALWAYS(env.options->setNaming(oldNamingThreshold));
+    }
 
     unsigned nextClauseNum=1;
     bool clausifyingDefs=false;
@@ -225,6 +233,8 @@ struct Problem::Clausifier
     }
   }
 
+  int namingThreshold;
+
   unsigned nextDefNum;
   Problem* res;
   Shell::CNF cnf;
@@ -232,14 +242,18 @@ struct Problem::Clausifier
   Shell::Naming naming;
 };
 
-Problem Problem::clausify()
+Problem Problem::clausify(int namingThreshold)
 {
   CALL("Problem::clausify");
+
+  if(namingThreshold>32767 || namingThreshold<0) {
+    throw new ApiException("namingThreshold must be in the range [0,32767]");
+  }
 
   Problem res;
 
   {
-    Clausifier clausifier(&res);
+    Clausifier clausifier(&res, namingThreshold);
 
     AnnotatedFormulaIterator fit=formulas();
     while(fit.hasNext()) {

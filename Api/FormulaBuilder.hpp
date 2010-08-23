@@ -49,14 +49,13 @@ public:
 };
 
 /**
- * Exception that is thrown when the @b FormulaBuilder related code
-
+ * Exception that is thrown when some of the Api code
  * is used in an invalid manner.
  */
-class FormulaBuilderException
+class ApiException
 {
 public:
-  FormulaBuilderException(string msg)
+  ApiException(string msg)
   : _msg(msg) {}
 
   /** Description of the cause of the exception */
@@ -64,6 +63,19 @@ public:
 protected:
   string _msg;
 };
+
+/**
+ * Exception that is thrown when the @b FormulaBuilder related code
+ * is used in an invalid manner.
+ */
+class FormulaBuilderException
+: public ApiException
+{
+public:
+  FormulaBuilderException(string msg)
+  : ApiException(msg) {}
+};
+
 
 /**
  * Exception that is thrown when a name is given that is not
