@@ -54,9 +54,10 @@ bool ConstantIntegerExpression::lvalue() const
 }
 
 /** constructor */
-ConstantFunctionExpression::ConstantFunctionExpression(const char* name,Type* tp)
+ConstantFunctionExpression::ConstantFunctionExpression(const char* name,Type* tp,unsigned priority)
 	: Expression(CONSTANT_FUNCTION),
-		_name(name)
+		_name(name),
+		_priority(priority)
 {
 	_type = tp;
 }
@@ -87,15 +88,15 @@ void ConstantFunctionExpression::initialize()
 	iii->setArgumentType(0,intType);
 	iii->setArgumentType(1,intType);
 
-	_integerEq = new ConstantFunctionExpression("=",iib);
-	_integerLess = new ConstantFunctionExpression("<",iib);
-	_integerLessEq = new ConstantFunctionExpression("<=",iib);
-	_integerGreater = new ConstantFunctionExpression(">",iib);
-	_integerGreaterEq = new ConstantFunctionExpression(">=",iib);
-	_integerPlus = new ConstantFunctionExpression("+",iii);
-	_integerMinus = new ConstantFunctionExpression("-",iii);
-	_integerNegation = new ConstantFunctionExpression("-",ii);
-	_integerMult = new ConstantFunctionExpression("*",iii);
+	_integerEq = new ConstantFunctionExpression("==",iib,2);
+	_integerLess = new ConstantFunctionExpression("<",iib,2);
+	_integerLessEq = new ConstantFunctionExpression("<=",iib,2);
+	_integerGreater = new ConstantFunctionExpression(">",iib,2);
+	_integerGreaterEq = new ConstantFunctionExpression(">=",iib,2);
+	_integerPlus = new ConstantFunctionExpression("+",iii,4);
+	_integerMinus = new ConstantFunctionExpression("-",iii,4);
+	_integerNegation = new ConstantFunctionExpression("-",ii,1);
+	_integerMult = new ConstantFunctionExpression("*",iii,3);
 
 	_initialized = true;
 }
@@ -285,42 +286,76 @@ Expression* Expression::SubexpressionIterator::next()
 } // next
 
 /** convert the expression to a string, can be used to output the expression */
-string ConstantIntegerExpression::toString() const
+string ConstantIntegerExpression::toString(unsigned priority) const
 {
 	return Int::toString(_value);
 }
 
 /** convert the expression to a string, can be used to output the expression */
-string ConstantFunctionExpression::toString() const
+string ConstantFunctionExpression::toString(unsigned priority) const
 {
 	return _name;
 }
 
 /** convert the expression to a string, can be used to output the expression */
-string VariableExpression::toString() const
+string VariableExpression::toString(unsigned priority) const
 {
 	return _variable->name();
 }
 
 /** convert the expression to a string, can be used to output the expression */
-string FunctionApplicationExpression::toString() const
+string FunctionApplicationExpression::toString(unsigned priority) const
 {
 	CALL("FunctionApplicationExpression::toString");
+
+	ASS(_function->kind() == CONSTANT_FUNCTION);
+	ConstantFunctionExpression* fun = static_cast<ConstantFunctionExpression*>(_function);
+	unsigned arity = fun->arity();
+	unsigned pr = fun->priority();
+
+	if (arity == 2 && pr > 0) {
+		string result("");
+		if (priority > 0 && pr >= priority) {
+			result += '(';
+		}
+		result += _arguments[0]->toString(pr) + ' ' + _function->toString() + ' ' + _arguments[1]->toString(pr);
+		if (priority > 0 && pr >= priority) {
+			result += ')';
+		}
+		return result;
+	}
+
+	if (arity == 1 && pr > 0) {
+		string result("");
+		if (priority > 0 && pr >= priority) {
+			result += '(';
+		}
+		result += _function->toString() + ' ' + _arguments[0]->toString(pr);
+		if (priority > 0 && pr >= priority) {
+			result += ')';
+		}
+		return result;
+	}
 
 	string result = _function->toString() + '(';
 	if (_numberOfArguments > 0) {
 		result += _arguments[0]->toString();
-		for (int n = 1;n < _numberOfArguments;n++) {
-			result += string(",") + _arguments[0]->toString();
+		for (unsigned n = 1;n < _numberOfArguments;n++) {
+			result += string(",") + _arguments[n]->toString();
 		}
 	}
 	return result + ")";
 }
 
 /** convert the expression to a string, can be used to output the expression */
-string ArrayApplicationExpression::toString() const
+string ArrayApplicationExpression::toString(unsigned priority) const
 {
 	CALL("ArrayApplicationExpression::toString");
 	return _array->toString() + '[' + _argument->toString() + ']';
 }
 
+/** Return the arity of the function */
+unsigned ConstantFunctionExpression::arity() const
+{
+	return static_cast<const FunctionType*>(etype())->arity();
+}

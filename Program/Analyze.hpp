@@ -14,8 +14,10 @@ using namespace Lib;
 
 namespace Program {
 
+class Variable;
 class Expression;
 class Statement;
+class Assignment;
 class WhileDo;
 
 /**
@@ -28,8 +30,11 @@ public:
 	Analyze(Statement* program);
 	void analyze();
 private:
-	void analyze(Statement* statement);
-	void addExpressionVariables(Expression* exp,Statement* st);
+	void analyzeSubstatements(Statement* statement);
+	void analyzeLoop(WhileDo* loop);
+	static void addExpressionVariables(Expression* exp,Statement* st);
+	Variable* isScalarAssignment(const Statement* st);
+	static int isScalarIncrement(const Assignment* ass);
 
 	/** the program being analyzed */
 	Statement* _program;

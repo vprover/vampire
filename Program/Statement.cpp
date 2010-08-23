@@ -49,7 +49,7 @@ void Block::setStatement(unsigned n,Statement* st)
 }
 
 /** the variable updated by this assignment */
-Variable* Assignment::variable()
+Variable* Assignment::variable() const
 {
 	CALL("Assignment::variable");
 	switch (_lhs->kind()) {
@@ -69,14 +69,14 @@ Variable* Assignment::variable()
 }
 
 /** pretty-print the assignment to a stream with a given indentation */
-void Assignment::prettyPrint(ostream& str,unsigned indent = 0)
+void Assignment::prettyPrint(ostream& str,unsigned indent)
 {
 	for (int i = indent;i > 0;i--) str << ' ';
-	str << lhs() << " = " << rhs() << "\n";
+	str << _lhs->toString() << " = " << _rhs->toString() << ";\n";
 }
 
 /** pretty-print the block to a stream with a given indentation */
-void Block::prettyPrint(ostream& str,unsigned indent = 0)
+void Block::prettyPrint(ostream& str,unsigned indent)
 {
 	for (int i = indent;i > 0;i--) str << ' ';
 	str << "{\n";
@@ -88,10 +88,10 @@ void Block::prettyPrint(ostream& str,unsigned indent = 0)
 }
 
 /** pretty-print the statement to a stream with a given indentation */
-void IfThenElse::prettyPrint(ostream& str,unsigned indent = 0)
+void IfThenElse::prettyPrint(ostream& str,unsigned indent)
 {
 	for (int i = indent;i > 0;i--) str << ' ';
-	str << "if\n";
+	str << "if (" << _condition->toString() <<  ")\n";
 	_thenPart->prettyPrint(str,indent+2);
 	for (int i = indent;i > 0;i--) str << ' ';
 	str << "else\n";
@@ -99,11 +99,46 @@ void IfThenElse::prettyPrint(ostream& str,unsigned indent = 0)
 }
 
 /** pretty-print the statement to a stream with a given indentation */
-void WhileDo::prettyPrint(ostream& str,unsigned indent = 0)
+void WhileDo::prettyPrint(ostream& str,unsigned indent)
 {
 	for (int i = indent;i > 0;i--) str << ' ';
 	str << "while (" << _condition->toString() << ")\n";
 	_body->prettyPrint(str,indent+2);
 }
 
+/** return the next substatement */
+Statement* Statement::SubstatementIterator::next()
+{
+	CALL("Statement::SubstatementIterator::next");
+	Statement* stat = _stack.pop();
+
+	switch (stat->kind()) {
+	case ASSIGNMENT:
+	case EXPRESSION:
+		break;
+	case BLOCK:
+		{
+			Block* block = static_cast<Block*>(stat);
+			for (unsigned n = 0;n < block->length();n++) {
+				_stack.push(block->getStatement(n));
+			}
+		}
+		break;
+	case ITE:
+		{
+			IfThenElse* ite = static_cast<IfThenElse*>(stat);
+			_stack.push(ite->thenPart());
+			_stack.push(ite->elsePart());
+		}
+		break;
+	case WHILE_DO:
+		{
+			WhileDo* loop = static_cast<WhileDo*>(stat);
+			_stack.push(loop->body());
+		}
+		break;
+	}
+
+	return stat;
+} // next
 

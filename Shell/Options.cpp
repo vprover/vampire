@@ -1772,7 +1772,7 @@ string Options::generateTestId() const
 
   static Set<Tag> forbidden;
   //we initialize the set if there's nothing inside
-  if(forbidden.numberOfElements()==0) {
+  if(forbidden.size()==0) {
     //things we output elsewhere
     forbidden.insert(SATURATION_ALGORITHM);
     forbidden.insert(SELECTION);

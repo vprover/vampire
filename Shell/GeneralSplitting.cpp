@@ -100,7 +100,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     }
   }
 
-  unsigned varCnt=vars.numberOfElements();
+  unsigned varCnt=vars.size();
   if(varCnt<=1) {
     //the clause is ground or with just one variable -- splitting won't help
     return false;

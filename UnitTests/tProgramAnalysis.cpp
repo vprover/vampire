@@ -1,5 +1,5 @@
 /**
- * @file ProgramAnalysis.cpp
+ * @file tProgramAnalysis.cpp
  * Implements class ProgramAnalysis.
  */
 
@@ -118,7 +118,11 @@ TEST_FUN(canonical)
 	elsePart->setStatement(1,c_ASS_c_plus_1);
 
 	// 5-11 if-then-else
-	IfThenElse* ite = new IfThenElse(a_less_m,thenPart,elsePart);
+	FunctionApplicationExpression* aa_a_geq_0 = new FunctionApplicationExpression(ConstantFunctionExpression::integerGreaterEq());
+	aa_a_geq_0->setArgument(0,aa_a);
+	aa_a_geq_0->setArgument(1,zero);
+
+	IfThenElse* ite = new IfThenElse(aa_a_geq_0,thenPart,elsePart);
 
 	Block* loopBody = new Block(2);
 	loopBody->setStatement(0,ite);
@@ -131,6 +135,7 @@ TEST_FUN(canonical)
 	program->setStatement(1,b_ASS_0);
 	program->setStatement(2,c_ASS_0);
 	program->setStatement(3,loop);
+	cout << "\n";
 	Analyze analysis(program);
 	analysis.analyze();
 }

@@ -34,16 +34,16 @@ protected:
     {
     } // Set::Entry::Entry
 
-    /** True if the cell is occupied */
-    inline bool occupied () const
+    /** True if contains an element */
+    inline bool occupied() const
     {
-      return code;
+      return code >= 2;
     } // Set::Entry::occupied
 
     /** declared but not defined, to prevent on-heap allocation */
     void* operator new (size_t);
 
-    /** Hash code of the value, 0 if not occupied */
+    /** Hash code of the value, 0 and 1 are reserved for occupied and deleted elements */
     unsigned code;
     /** The value in this cell (if any) */
     Val value;
@@ -80,25 +80,25 @@ public:
    * Hash::equals(Val,Key)
    */
   template<typename Key>
-  bool find (Key key, Val& result) const
+  bool find(Key key, Val& result) const
   {
-    CALL("Set::contains");
+    CALL("Set::find");
 
     unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
+    if (code < 2) {
+      code = 2;
     }
     for (Entry* entry = firstEntryForCode(code);
-	 entry->occupied();
-	 entry = nextEntry(entry)) {
+				 entry->occupied();
+				 entry = nextEntry(entry)) {
       if (entry->code == code &&
-	  Hash::equals(entry->value,key)) {
-	result=entry->value;
-	return true;
+					Hash::equals(entry->value,key)) {
+				result=entry->value;
+				return true;
       }
     }
     return false;
-  } // Set::contains
+  } // Set::find
 
   /**
    * True if the set contains @b val.
@@ -109,15 +109,15 @@ public:
     CALL("Set::contains");
 
     unsigned code = Hash::hash(val);
-    if (code == 0) {
-      code = 1;
+    if (code < 2) {
+      code = 2;
     }
     for (Entry* entry = firstEntryForCode(code);
-	 entry->occupied();
-	 entry = nextEntry(entry)) {
+				 entry->occupied();
+				 entry = nextEntry(entry)) {
       if (entry->code == code &&
-	  Hash::equals(entry->value,val)) {
-	return true;
+					Hash::equals(entry->value,val)) {
+				return true;
       }
     }
     return false;
@@ -141,8 +141,8 @@ public:
     unsigned code;
     code = Hash::hash(val);
 
-    if (code == 0) {
-      code = 1;
+    if (code < 2) {
+      code = 2;
     }
 
     return insert(val,code);
@@ -159,11 +159,11 @@ public:
 
     Entry* entry;
     for (entry = firstEntryForCode(code);
-	 entry->occupied();
-	 entry = nextEntry(entry)) {
+				 entry->occupied();
+				 entry = nextEntry(entry)) {
       if (entry->code == code &&
-	  Hash::equals(entry->value,val)) {
-	return entry->value;
+					Hash::equals(entry->value,val)) {
+				return entry->value;
       }
     }
     // entry is not occupied
@@ -173,17 +173,17 @@ public:
     return entry->value;
   } // Set::insert
 
-  /** Insert all elements from @b it iterator in the set */
-  template<class It>
-  void insertFromIterator(It it)
-  {
-    while(it.hasNext()) {
-      insert(it.next());
-    }
-  }
-
-  /** Return the number of elements */
-  inline int numberOfElements() const
+	/** Insert all elements from @b it iterator in the set */
+	template<class It>
+	void insertFromIterator(It it)
+	{
+		while(it.hasNext()) {
+		insert(it.next());
+		}
+	}
+	
+	/** Return the number of elements */
+	inline int size() const
   {
     return _noOfEntries;
   }
@@ -241,7 +241,7 @@ private:
     while (remaining != 0) {
       // find first occupied entry
       while (! current->occupied()) {
-	current ++;
+				current ++;
       }
       // now current is occupied
       insert(current->value,current->code);

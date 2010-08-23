@@ -26,6 +26,28 @@ class WhileDo;
 class Statement
 {
 public:
+	/**
+	 * Class for itering over all substatements of a statement. It is
+	 * guaranteed that a stamenet is always returned before any of
+	 * its proper substatements.
+	 */
+	class SubstatementIterator {
+	public:
+		/** create a substatement iterator for an statement @b expr */
+		explicit SubstatementIterator(Statement* expr)
+		{
+			_stack.push(expr);
+		}
+		/** true if there is at least one substatement left */
+		bool hasNext() const
+		{
+			return ! _stack.isEmpty();
+		}
+		Statement* next();
+	protected:
+		Stack<Statement*> _stack;
+	};
+
 	/** Kinds of statement */
 	enum Kind {
 		/** assignment */
@@ -85,11 +107,11 @@ class Assignment
 public:
 	Assignment(Expression* lhs,Expression* rhs);
 	/** the lhs of the assignment */
-	Expression* lhs() {return _lhs;}
+	Expression* lhs() const {return _lhs;}
 	/** the rhs of the assignment */
-	Expression* rhs() {return _rhs;}
-	Variable* variable();
-	virtual void prettyPrint(ostream& str,unsigned indent);
+	Expression* rhs() const {return _rhs;}
+	Variable* variable() const;
+	virtual void prettyPrint(ostream& str,unsigned indent=0);
 protected:
 	/** the lhs of the assignment */
 	Expression* _lhs;
@@ -116,7 +138,7 @@ public:
 		ASS(_statements[n]);
 		return _statements[n];
 	}
-	virtual void prettyPrint(ostream& str,unsigned indent);
+	virtual void prettyPrint(ostream& str,unsigned indent=0);
 protected:
 	/** the length (number of statements) */
 	unsigned _length;
@@ -145,7 +167,7 @@ public:
 	Statement* thenPart() const {return _thenPart;}
 	/** the else-part */
 	Statement* elsePart() const {return _elsePart;}
-	virtual void prettyPrint(ostream& str,unsigned indent);
+	virtual void prettyPrint(ostream& str,unsigned indent=0);
 protected:
 	/** the condition */
 	Expression* _condition;
@@ -173,7 +195,7 @@ public:
 	Expression* condition() const {return _condition;}
 	/** the body of the loop */
 	Statement* body() const {return _body;}
-	virtual void prettyPrint(ostream& str,unsigned indent);
+	virtual void prettyPrint(ostream& str,unsigned indent=0);
 protected:
 	/** the condition */
 	Expression* _condition;

@@ -45,7 +45,7 @@ public:
 	/** checks whether the expresssion is an lvalue */
 	virtual bool lvalue() const = 0;
 	/** convert to expression to a string, can be used to output the expression */
-	virtual string toString() const = 0;
+	virtual string toString(unsigned priority=0) const = 0;
 
 	/** return the type of the expression */
 	const Type* etype() const
@@ -95,7 +95,8 @@ class ConstantIntegerExpression
 public:
 	explicit ConstantIntegerExpression(int val);
 	bool lvalue() const;
-	string toString() const;
+	int value() const { return _value; }
+	string toString(unsigned priority) const;
 protected:
 	/** the value of this expression */
 	int _value;
@@ -110,7 +111,10 @@ class ConstantFunctionExpression
 {
 public:
 	bool lvalue() const;
-	string toString() const;
+	string toString(unsigned priority) const;
+	/** return the priority (0 for non-operators) */
+	unsigned priority() const { return _priority; }
+	unsigned arity() const;
 
 	static ConstantFunctionExpression* integerEq();
 	static ConstantFunctionExpression* integerLess(); 
@@ -124,8 +128,10 @@ public:
 protected:
 	/** the name of this expression */
 	string _name;
+	/** priority, used for printing */
+	unsigned _priority;
 private:
-	ConstantFunctionExpression(const char* name,Type* tp);
+	ConstantFunctionExpression(const char* name,Type* tp,unsigned priority);
 	/** true if initialized */
 	static bool _initialized;
 	/** initialize all built-ins */
@@ -161,7 +167,7 @@ class VariableExpression
 public:
 	explicit VariableExpression(Variable* v);
 	bool lvalue() const;
-	string toString() const;
+	string toString(unsigned priority) const;
 	/** the variable */
 	Variable* variable() const {return _variable;}
 protected:
@@ -179,7 +185,7 @@ class FunctionApplicationExpression
 public:
 	explicit FunctionApplicationExpression(Expression* fun);
 	bool lvalue() const;
-	string toString() const;
+	string toString(unsigned priority) const;
 	void setArgument(unsigned argNumber,Expression* e);
 	/** return the function */
 	Expression* function() const { return _function; }
@@ -211,7 +217,7 @@ class ArrayApplicationExpression
 public:
 	ArrayApplicationExpression(Expression* arr,Expression* arg);
 	bool lvalue() const;
-	string toString() const;
+	string toString(unsigned priority) const;
 	/** return the array expression */
 	Expression* array() const { return _array; }
 	/** return the argument expression */

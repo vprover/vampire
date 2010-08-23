@@ -716,7 +716,7 @@ unsigned Term::computeDistinctVars() const
   while(vit.hasNext()) {
     vars.insert(vit.next().var());
   }
-  return vars.numberOfElements();
+  return vars.size();
 }
 
 bool Term::skip() const
