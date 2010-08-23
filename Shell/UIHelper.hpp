@@ -1,6 +1,6 @@
 /**
- * @file InputReader.hpp
- * Defines class InputReader.
+ * @file UIHelper.hpp
+ * Defines class UIHelper.
  */
 
 #ifndef __InputReader__

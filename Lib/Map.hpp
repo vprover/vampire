@@ -190,11 +190,12 @@ protected:
   /**
    * If no value under key @b key is not contained in the set, insert
    * pair (key,value) in the map. Otherwise replace the value stored
-   * under @b key by @b val.
+   * under @b key by @b val. Returns true iff the value is replaced
+	 * and false if the value is new.
    * @since 29/09/2002 Manchester
    * @since 09/12/2006 Manchester, reimplemented
    */
-  void replaceOrInsert(Key key,Val val)
+  bool replaceOrInsert(Key key,Val val)
   {
     CALL("Map::insertOrReplace");
 
@@ -207,12 +208,12 @@ protected:
     }
     Entry* entry;
     for (entry = firstEntryForCode(code);
-	 entry->occupied();
-	 entry = nextEntry(entry)) {
+				 entry->occupied();
+				 entry = nextEntry(entry)) {
       if (entry->code == code &&
-	  entry->key == key) {
-	entry->value = val;
-	return;
+					entry->key == key) {
+				entry->value = val;
+				return true;
       }
     }
     // entry is not occupied
@@ -220,6 +221,7 @@ protected:
     entry->key = key;
     entry->value = val;
     entry->code = code;
+		return false;
   } // Map::replaceOrInsert
 
 
@@ -386,7 +388,7 @@ public:
     /** Create a new iterator */
     inline Iterator(const Map& map)
       : _next(map._entries),
-	_last(map._afterLast)
+				_last(map._afterLast)
     {
     } // Map::Iterator
 
@@ -397,10 +399,10 @@ public:
     bool hasNext()
     {
       while (_next != _last) {
-	if (_next->occupied()) {
-	  return true;
-	}
-	_next++;
+				if (_next->occupied()) {
+					return true;
+				}
+				_next++;
       }
       return false;
     }
@@ -417,6 +419,21 @@ public:
       Val result = _next->value;
       _next++;
       return result;
+    }
+
+    /**
+     * Return the next value
+     * @since 22/08/2010 Torrevieja
+     * @warning hasNext() must have been called before
+     */
+    void next(Key& key,Val& val)
+    {
+      ASS(_next != _last);
+      ASS(_next->occupied());
+			
+      val = _next->value;
+			key = _next->key;
+      _next++;
     }
   private:
     /** iterator will look for the next occupied cell starting with this one */

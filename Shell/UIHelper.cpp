@@ -1,6 +1,6 @@
 /**
- * @file InputReader.cpp
- * Implements class InputReader.
+ * @file UIHelper.cpp
+ * Implements class UIHelper.
  */
 
 #include <string>

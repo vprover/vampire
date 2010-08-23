@@ -1,51 +1,72 @@
 /**
- * @file RuntimeStatistics.hpp
- * Defines class RuntimeStatistics.
+ * @file UnitTesting.hpp
+ * Defines macros for testing
  */
 
 #ifndef __UnitTesting__
 #define __UnitTesting__
 
 /**
-Macros:
-UNIT_ID        -- must be defined in the beginning of each unit test .cpp file. Unit IDs must be unique,
-                  and must be valid variable names.
-UT_CREATE      -- must be called after the definition of UNIT_ID
-TEST_FUN(proc) -- replaces the usual function definition and creates test named @b proc in the current unit.
-		  Due to the test framework, there is no need to use the CALL macro in the beginning of this
-		  function.
+
+The way testing work is as follows.
+
+<ol>
+  <li> You should create a test file, say TestFile.cpp in the UnitTests directory of the Vampire
+	tree. The test file must define <b>the test id</b> and one or more <b>test functions</b>.</li>
+
+	<li>Update the definition of VUT_OBJ in the Makefile by adding TestFile.o</li>
+
+	<li>To build the test with debugging use <span style='color:red'>make vtest</span>
+	and without debugging <span style='color:red'>make vtest_rel</span>.</li>
+
+	<li>Call the test using <span style='color:red'>vtest test_id</span>. The call will execute
+	all the test functions in the file.</li>
+</ol>
+The following macros should be used:
+<dl>
+  <dt>UNIT_ID</dt>
+    <dd>must be defined in the beginning of each unit test .cpp file. Unit IDs must be unique,
+		and must be valid variable names</dd>
+  <dt>UT_CREATE</dt>
+    <dd>must be called after the definition of UNIT_ID</dd>
+	<dt>TEST_FUN(proc)</dt>
+	  <dd>used to declare a function of the type void->void with the name proc.
+		Due to the test framework, there is no need to use the CALL macro in the beginning of this
+		function.</dd>
+</dl>
 
 If all works well, tests should not produce any output. If test should fail,
 an assertion must be violated or an exception thrown.
 
 A sample test file:
 
-#include "Debug/Assertion.hpp"
-#include "Test/UnitTesting.hpp"
+<code><tt>
+#include "Debug/Assertion.hpp"<br/>
+#include "Test/UnitTesting.hpp"<br/>
+<br/>
+#define UNIT_ID test1  //the UNIT_ID must be a valid variable name<br/>
+UT_CREATE;<br/>
+<br/>
+TEST_FUN(commTest)<br/>
+{<br/>
+&nbsp;&nbsp;//there is no need to use the CALL macro at the beginning of a test function<br/>
+<br/>
+&nbsp;&nbsp;ASS_EQ(1+2,2+1);<br/>
+}<br/>
+<br/>
+TEST_FUN(assocTest)<br/>
+{<br/>
+&nbsp;&nbsp;ASS_EQ(1+(2+3),(1+2)+3);<br/>
+}<br/>
+</tt></code>
+To execute tests do the following:
 
-#define UNIT_ID test1  //the UNIT_ID must be a valid variable name
-UT_CREATE;
-
-TEST_FUN(commTest)
-{
-  //there is no need to use the CALL macro at the beginning of a test function
-
-  ASS_EQ(1+2,2+1);
-}
-
-TEST_FUN(assocTest)
-{
-  ASS_EQ(1+(2+3),(1+2)+3);
-}
-
-Execution:
-make vtest
-
-vtest		#this runs all tests
-vtest -l	#this lists all test IDs
-vtest test1	#this runs only test1
+<ul>
+	<li><b>vtest</b>	to run all tests</li>
+	<li><b>vtest -l</b> to list all test IDs</li>
+	<li><b>vtest test1</b> to run only test1</li>
+</ul>
 */
-
 
 #include <string.h>
 #include <ostream>

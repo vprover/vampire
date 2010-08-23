@@ -88,23 +88,23 @@ private:
 
   enum KeyPrefix
   {
-    /** Key continues by "<name>_<arity>", value contains predicate number in the global signature */
+    /** Key continues by (name,arity), value contains predicate number in the global signature */
     PRED_TO_NUM,
-    /** Key continues by "<name>_<arity>", value contains function number in the global signature */
+    /** Key continues by (name,arity), value contains function number in the global signature */
     FUN_TO_NUM,
-    /** Key continues by "<number in global signature>", value contains predicate name */
+    /** Key continues by "number in global signature", value contains predicate name */
     PRED_NUM_NAME,
-    /** Key continues by "<number in global signature>", value contains function name */
+    /** Key continues by "number in global signature", value contains function name */
     FUN_NUM_NAME,
-    /** Key continues by "<number in global signature>", value contains predicate arity */
+    /** Key continues by "number in global signature", value contains predicate arity */
     PRED_NUM_ARITY,
-    /** Key continues by "<number in global signature>", value contains function arity */
+    /** Key continues by "number in global signature", value contains function arity */
     FUN_NUM_ARITY,
     /** Value contains list of theory file names separated by NULL character */
     THEORY_FILES,
-    /** Value contains <number of predicates><number of functions> */
+    /** Value contains (number of predicates,number of functions) */
     PRED_FUN_CNT,
-    /** Key continues by "<number of unit>", value contains the unit converted to the CNF form
+    /** Key continues by "number of unit", value contains the unit converted to the CNF form
      * (See @b storeCNFOfUnit for details) */
     UNIT_CNF,
     /** Value contains sequence of numbers of units without symbols */

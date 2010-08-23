@@ -8,25 +8,15 @@
 #ifndef __ProgramAnalyze__
 #define __ProgramAnalyze__
 
-#include "Lib/Map.hpp"
-#include "Statement.hpp"
+#include "Lib/Set.hpp"
+
+using namespace Lib;
 
 namespace Program {
 
-/** Structure representing variable properties collected by analysis */
-struct VariableProperty
-{
-	/** true if constant */
-	bool isConstant;
-	/** true if counter (increased or decreased only by constant values) */
-	bool isCounter;
-
-	/** initialise */
-	VariableProperty()
-		: isConstant(false),
-			isCounter(true)
-	{}
-}; // class VariableProperty
+class Expression;
+class Statement;
+class WhileDo;
 
 /**
  * Defines utilities for program analysis
@@ -35,9 +25,16 @@ struct VariableProperty
 class Analyze
 {
 public:
-	void analyze(const Statement* program);
+	Analyze(Statement* program);
+	void analyze();
 private:
-	Map<Variable*,VariableProperty*> _variableProperties;
+	void analyze(Statement* statement);
+	void addExpressionVariables(Expression* exp,Statement* st);
+
+	/** the program being analyzed */
+	Statement* _program;
+	/** the set of all loops */
+	Set<WhileDo*> _loops;
 }; // class Analyze
 
 }

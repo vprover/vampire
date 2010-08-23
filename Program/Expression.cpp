@@ -6,8 +6,12 @@
  */
 
 #include "Debug/Tracer.hpp"
+#include "Lib/Int.hpp"
+#include "Variable.hpp"
+#include "Type.hpp"
 #include "Expression.hpp"
 
+using namespace Lib;
 using namespace Program;
 
 bool ConstantFunctionExpression::_initialized = false;
@@ -245,4 +249,78 @@ ArrayApplicationExpression::ArrayApplicationExpression(Expression* arr,Expressio
 	const ArrayType* arrayType = static_cast<const ArrayType*>(arr->etype());
 	_type = arrayType->valueType();
 } // ArrayApplicationExpression::ArrayApplicationExpression
+
+/** return the next subexpression */
+Expression* Expression::SubexpressionIterator::next()
+{
+	CALL("Expression::SubexpressionIterator::next");
+	Expression* expr = _stack.pop();
+
+	switch (expr->kind()) {
+	case VARIABLE: 
+	case CONSTANT_FUNCTION:
+	case CONSTANT_INTEGER:
+		break;
+
+	case FUNCTION_APPLICATION:
+		{
+			FunctionApplicationExpression* fun = static_cast<FunctionApplicationExpression*>(expr);
+			_stack.push(fun->function());
+			for (int i = fun->numberOfArguments()-1;i >= 0;i--) {
+				_stack.push(fun->getArgument(i));
+			}
+		}
+		break;
+
+	case ARRAY_APPLICATION:
+		{
+			ArrayApplicationExpression* app = static_cast<ArrayApplicationExpression*>(expr);
+			_stack.push(app->array());
+			_stack.push(app->argument());
+		}
+		break;
+	}
+
+	return expr;
+} // next
+
+/** convert the expression to a string, can be used to output the expression */
+string ConstantIntegerExpression::toString() const
+{
+	return Int::toString(_value);
+}
+
+/** convert the expression to a string, can be used to output the expression */
+string ConstantFunctionExpression::toString() const
+{
+	return _name;
+}
+
+/** convert the expression to a string, can be used to output the expression */
+string VariableExpression::toString() const
+{
+	return _variable->name();
+}
+
+/** convert the expression to a string, can be used to output the expression */
+string FunctionApplicationExpression::toString() const
+{
+	CALL("FunctionApplicationExpression::toString");
+
+	string result = _function->toString() + '(';
+	if (_numberOfArguments > 0) {
+		result += _arguments[0]->toString();
+		for (int n = 1;n < _numberOfArguments;n++) {
+			result += string(",") + _arguments[0]->toString();
+		}
+	}
+	return result + ")";
+}
+
+/** convert the expression to a string, can be used to output the expression */
+string ArrayApplicationExpression::toString() const
+{
+	CALL("ArrayApplicationExpression::toString");
+	return _array->toString() + '[' + _argument->toString() + ']';
+}
 

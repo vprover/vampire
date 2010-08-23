@@ -1,5 +1,5 @@
 /**
- * @file Expresson.hpp
+ * @file Expression.hpp
  * Defines class Program::Expression
  *
  * @since 20/08/2010, Torrevieja
@@ -10,12 +10,15 @@
 
 #include <string>
 #include "Debug/Assertion.hpp"
-#include "Type.hpp"
-#include "Variable.hpp"
+#include "Lib/Stack.hpp"
 
 using namespace std;
+using namespace Lib;
 
 namespace Program {
+
+class Type;
+class Variable;
 
 /**
  * Expressions used in programs
@@ -41,6 +44,8 @@ public:
 
 	/** checks whether the expresssion is an lvalue */
 	virtual bool lvalue() const = 0;
+	/** convert to expression to a string, can be used to output the expression */
+	virtual string toString() const = 0;
 
 	/** return the type of the expression */
 	const Type* etype() const
@@ -51,6 +56,28 @@ public:
 
 	/** the main constructor */
 	explicit Expression(Kind k) : _kind(k) {}
+
+	/**
+	 * Class for itering over subexpressions of an expression. It is
+	 * guaranteed that an expression is always returned before any of
+	 * its proper subexpressions.
+	 */
+	class SubexpressionIterator {
+	public:
+		/** create a subexpression iterator for an expression @b expr */
+		explicit SubexpressionIterator(Expression* expr)
+		{
+			_stack.push(expr);
+		}
+		/** true if there is at least one subexpression left */
+		bool hasNext() const
+		{
+			return ! _stack.isEmpty();
+		}
+		Expression* next();
+	protected:
+		Stack<Expression*> _stack;
+	};
 protected:
 	/** the kind */
 	const Kind _kind;
@@ -68,6 +95,7 @@ class ConstantIntegerExpression
 public:
 	explicit ConstantIntegerExpression(int val);
 	bool lvalue() const;
+	string toString() const;
 protected:
 	/** the value of this expression */
 	int _value;
@@ -82,6 +110,8 @@ class ConstantFunctionExpression
 {
 public:
 	bool lvalue() const;
+	string toString() const;
+
 	static ConstantFunctionExpression* integerEq();
 	static ConstantFunctionExpression* integerLess(); 
 	static ConstantFunctionExpression* integerLessEq(); 
@@ -131,6 +161,9 @@ class VariableExpression
 public:
 	explicit VariableExpression(Variable* v);
 	bool lvalue() const;
+	string toString() const;
+	/** the variable */
+	Variable* variable() const {return _variable;}
 protected:
 	/** the variable of this expression */
 	Variable* _variable;
@@ -146,9 +179,19 @@ class FunctionApplicationExpression
 public:
 	explicit FunctionApplicationExpression(Expression* fun);
 	bool lvalue() const;
+	string toString() const;
 	void setArgument(unsigned argNumber,Expression* e);
 	/** return the function */
 	Expression* function() const { return _function; }
+	/** return the argument number @b n */
+	Expression* getArgument(unsigned n)
+	{
+		ASS(n < _numberOfArguments);
+		ASS(_arguments[n]);
+		return _arguments[n];
+	}
+	/** number of arguments */
+	unsigned numberOfArguments() const {return _numberOfArguments;}
 protected:
 	/** the value of this expression */
 	Expression* _function;
@@ -168,6 +211,7 @@ class ArrayApplicationExpression
 public:
 	ArrayApplicationExpression(Expression* arr,Expression* arg);
 	bool lvalue() const;
+	string toString() const;
 	/** return the array expression */
 	Expression* array() const { return _array; }
 	/** return the argument expression */

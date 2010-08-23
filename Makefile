@@ -280,6 +280,7 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 		  UnitTests/tfork.o\
 		  UnitTests/tFormulaBuilderApi.o\
 		  UnitTests/tSkipList.o\
+		  UnitTests/tProgramAnalysis.o\
 		  UnitTests/tTwoVampires.o
 
 VUTIL_OBJ = VUtils/ProblemColoring.o

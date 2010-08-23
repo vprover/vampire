@@ -1,6 +1,6 @@
 /**
- * @file stdiostream.hpp
- * Defines class stdiostream.
+ * @file fdstream.hpp
+ * Defines class fdstream.
  */
 
 #ifndef __fdstream__

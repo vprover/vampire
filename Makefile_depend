@@ -5009,6 +5009,22 @@ $(CONF_ID)/UnitTests/tFormulaBuilderApi.o: Test/UnitTesting.hpp Forwards.hpp
 $(CONF_ID)/UnitTests/tFormulaBuilderApi.o: Debug/Log.hpp Debug/Tracer.hpp
 $(CONF_ID)/UnitTests/tFormulaBuilderApi.o: Config.hpp Debug/Tracer.hpp
 $(CONF_ID)/UnitTests/tFormulaBuilderApi.o: Lib/List.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Test/UnitTesting.hpp Forwards.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Debug/Log.hpp Debug/Tracer.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Config.hpp Debug/Tracer.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Lib/List.hpp Program/Analyze.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Lib/Set.hpp Lib/Allocator.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Debug/Assertion.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Lib/Portability.hpp Lib/Hash.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Lib/Reflection.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Program/Variable.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Program/Type.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Program/Expression.hpp Lib/Stack.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Lib/Backtrackable.hpp Lib/List.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Lib/Exception.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Lib/LastCopyWatcher.hpp Lib/Int.hpp
+$(CONF_ID)/UnitTests/tProgramAnalysis.o: Program/Statement.hpp Lib/Map.hpp
 $(CONF_ID)/UnitTests/tSkipList.o: Lib/SkipList.hpp Debug/Assertion.hpp
 $(CONF_ID)/UnitTests/tSkipList.o: Debug/Tracer.hpp Debug/Tracer.hpp
 $(CONF_ID)/UnitTests/tSkipList.o: Lib/Allocator.hpp Lib/Portability.hpp
@@ -5191,16 +5207,39 @@ $(CONF_ID)/UnitTests/tfork.o: Lib/Sys/Semaphore.hpp Lib/Sys/SyncPipe.hpp
 $(CONF_ID)/UnitTests/tfork.o: Lib/fdstream.hpp Lib/Exception.hpp
 $(CONF_ID)/UnitTests/tfork.o: Lib/LastCopyWatcher.hpp Lib/Exception.hpp
 $(CONF_ID)/UnitTests/tfork.o: Lib/Sys/Semaphore.hpp
+$(CONF_ID)/Program/Analyze.o: Lib/Stack.hpp Forwards.hpp Debug/Log.hpp
+$(CONF_ID)/Program/Analyze.o: Debug/Tracer.hpp Config.hpp Debug/Assertion.hpp
+$(CONF_ID)/Program/Analyze.o: Debug/Tracer.hpp Lib/Allocator.hpp
+$(CONF_ID)/Program/Analyze.o: Lib/Portability.hpp Lib/Backtrackable.hpp
+$(CONF_ID)/Program/Analyze.o: Lib/List.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Program/Analyze.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Program/Analyze.o: Lib/Reflection.hpp Lib/Int.hpp
 $(CONF_ID)/Program/Analyze.o: Program/Variable.hpp Program/Type.hpp
-$(CONF_ID)/Program/Analyze.o: Debug/Assertion.hpp Debug/Tracer.hpp
-$(CONF_ID)/Program/Expression.o: Program/Expression.hpp Debug/Assertion.hpp
-$(CONF_ID)/Program/Expression.o: Debug/Tracer.hpp Program/Type.hpp
-$(CONF_ID)/Program/Expression.o: Program/Variable.hpp
-$(CONF_ID)/Program/Statement.o: Program/Statement.hpp Program/Expression.hpp
+$(CONF_ID)/Program/Analyze.o: Program/Expression.hpp Program/Statement.hpp
+$(CONF_ID)/Program/Analyze.o: Lib/Map.hpp Lib/Hash.hpp Program/Analyze.hpp
+$(CONF_ID)/Program/Analyze.o: Lib/Set.hpp
+$(CONF_ID)/Program/Expression.o: Debug/Tracer.hpp Lib/Int.hpp
+$(CONF_ID)/Program/Expression.o: Lib/Comparison.hpp Lib/Portability.hpp
+$(CONF_ID)/Program/Expression.o: Debug/Assertion.hpp Debug/Tracer.hpp
+$(CONF_ID)/Program/Expression.o: Program/Variable.hpp Program/Type.hpp
+$(CONF_ID)/Program/Expression.o: Program/Expression.hpp Lib/Stack.hpp
+$(CONF_ID)/Program/Expression.o: Forwards.hpp Debug/Log.hpp Config.hpp
+$(CONF_ID)/Program/Expression.o: Lib/Allocator.hpp Lib/Backtrackable.hpp
+$(CONF_ID)/Program/Expression.o: Lib/List.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Program/Expression.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Program/Expression.o: Lib/Reflection.hpp Lib/Int.hpp
+$(CONF_ID)/Program/Statement.o: Debug/Tracer.hpp Program/Expression.hpp
 $(CONF_ID)/Program/Statement.o: Debug/Assertion.hpp Debug/Tracer.hpp
-$(CONF_ID)/Program/Statement.o: Program/Type.hpp Program/Variable.hpp
-$(CONF_ID)/Program/Type.o: Program/Type.hpp Debug/Assertion.hpp
-$(CONF_ID)/Program/Type.o: Debug/Tracer.hpp
+$(CONF_ID)/Program/Statement.o: Lib/Stack.hpp Forwards.hpp Debug/Log.hpp
+$(CONF_ID)/Program/Statement.o: Config.hpp Lib/Allocator.hpp
+$(CONF_ID)/Program/Statement.o: Lib/Portability.hpp Lib/Backtrackable.hpp
+$(CONF_ID)/Program/Statement.o: Lib/List.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Program/Statement.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Program/Statement.o: Lib/Reflection.hpp Lib/Int.hpp
+$(CONF_ID)/Program/Statement.o: Program/Type.hpp Program/Statement.hpp
+$(CONF_ID)/Program/Statement.o: Lib/Map.hpp Lib/Hash.hpp
+$(CONF_ID)/Program/Type.o: Debug/Tracer.hpp Program/Type.hpp
+$(CONF_ID)/Program/Type.o: Debug/Assertion.hpp Debug/Tracer.hpp
 $(CONF_ID)/Program/Variable.o: Program/Variable.hpp Program/Type.hpp
 $(CONF_ID)/Program/Variable.o: Debug/Assertion.hpp Debug/Tracer.hpp
 $(CONF_ID)/Global.o: Debug/Assertion.hpp Debug/Tracer.hpp Lib/Enumerator.hpp
@@ -5329,9 +5368,7 @@ $(CONF_ID)/vampire.o: Saturation/ClauseContainer.hpp Saturation/Limits.hpp
 $(CONF_ID)/vampire.o: Indexing/ResultSubstitution.hpp
 $(CONF_ID)/vampire.o: Inferences/PropositionalToBDDISE.hpp
 $(CONF_ID)/vampire.o: Saturation/SaturationResult.hpp Lib/MemoryLeak.hpp
-$(CONF_ID)/vampire.o: Lib/Set.hpp Program/Statement.hpp
-$(CONF_ID)/vampire.o: Program/Expression.hpp Program/Type.hpp
-$(CONF_ID)/vampire.o: Program/Variable.hpp
+$(CONF_ID)/vampire.o: Lib/Set.hpp
 $(CONF_ID)/vclausify.o: Debug/Tracer.hpp Lib/Exception.hpp
 $(CONF_ID)/vclausify.o: Lib/Environment.hpp Forwards.hpp Debug/Log.hpp
 $(CONF_ID)/vclausify.o: Debug/Tracer.hpp Config.hpp Lib/Exception.hpp

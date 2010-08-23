@@ -100,6 +100,8 @@ public:
    * @param checkNames - flag to check names of function and predicate symbols. If true,
    *        then an attempt to create a function or a predicate starting with a capital-case
    *        letter will result in an exception
+	 * @param checkBindingBoundVariables if true, then an attempt to bind an already bound variable
+	 *        will result in an exception
    */
   FormulaBuilder(bool checkNames=true, bool checkBindingBoundVariables=true);
 

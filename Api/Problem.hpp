@@ -59,7 +59,8 @@ public:
   void addFormula(AnnotatedFormula f);
 
   /**
-   * Add formulas parsed from the stream @b s
+   * Add formulas parsed from a stream
+	 * @param s the tsream
    * @param includeDirectory where the parser will look for included files
    * @param simplifySyntax Simplify syntax will be used instead of the TPTP syntax.
    */

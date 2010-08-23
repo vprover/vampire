@@ -1,6 +1,6 @@
 /**
- * @file SubstitutionTree_FastIterator.cpp
- * Implements class SubstitutionTree::FastIterator, its child classes
+ * @file SubstitutionTree_FastGen.cpp
+ * Implements class SubstitutionTree::FastGen, its child classes
  * and some auxiliary classes.
  */
 

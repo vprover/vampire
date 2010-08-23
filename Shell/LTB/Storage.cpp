@@ -768,7 +768,7 @@ bool Storage::getEmptyClausePossession()
  *
  * E.g. clauses L11 \/ L12 and L21 are stored as
  *
- * <L11>0<L12>00<L21>
+ * (L11,0,L12,00,L21)
  *
  * Literals are stored in the postfix notation. Variables are stored as negative
  * numbers decreased by one, term symbols as positive numbers increased by one.
@@ -876,7 +876,7 @@ void Storage::storeUnitsWithoutSymbols(Stack<Unit*>& units)
  *
  * will be stored as
  *
- * <number of unit1><-120><number of unit2><number of unit3><-300><number of unit4>
+ * (number of unit1,-120,number of unit2,number of unit3,-300,number of unit4)
  */
 void Storage::storeDURs(SymId s, Stack<DUnitRecord>& durs)
 {

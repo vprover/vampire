@@ -6,11 +6,13 @@
  */
 
 #include "Debug/Tracer.hpp"
+#include "Expression.hpp"
+#include "Type.hpp"
 #include "Statement.hpp"
 
 using namespace Program;
 
-Assignment::Assignment(const Expression* lhs,const Expression* rhs)
+Assignment::Assignment(Expression* lhs,Expression* rhs)
 	: Statement(ASSIGNMENT),
 		_lhs(lhs),
 		_rhs(rhs)
@@ -28,7 +30,7 @@ Block::Block(unsigned length)
 	CALL("Block::Block");
 	ASS(length > 0);
 
-	_statements = new const Statement*[length];
+	_statements = new Statement*[length];
 #if VDEBUG
 	for (int i = length-1;i >= 0;i--) {
 		_statements[i] = 0;
@@ -36,11 +38,72 @@ Block::Block(unsigned length)
 #endif
 }
 
-void Block::setStatement(unsigned number,Statement* st)
+/** set the statement number @b n to @b st */
+void Block::setStatement(unsigned n,Statement* st)
 {
 	CALL("Block::setStatement");
 
-	ASS(number < _length);
-	ASS(! _statements[number]);
-	_statements[number] = st;
+	ASS(n < _length);
+	ASS(! _statements[n]);
+	_statements[n] = st;
 }
+
+/** the variable updated by this assignment */
+Variable* Assignment::variable()
+{
+	CALL("Assignment::variable");
+	switch (_lhs->kind()) {
+	case Expression::VARIABLE:
+		return static_cast<VariableExpression*>(_lhs)->variable();
+
+  case Expression::ARRAY_APPLICATION:
+		{
+			Expression* arr = static_cast<ArrayApplicationExpression*>(_lhs)->array();
+			return static_cast<VariableExpression*>(arr)->variable();
+		}
+
+	default:
+		cout << _lhs->kind() << "\n";
+		ASS(false);
+	}
+}
+
+/** pretty-print the assignment to a stream with a given indentation */
+void Assignment::prettyPrint(ostream& str,unsigned indent = 0)
+{
+	for (int i = indent;i > 0;i--) str << ' ';
+	str << lhs() << " = " << rhs() << "\n";
+}
+
+/** pretty-print the block to a stream with a given indentation */
+void Block::prettyPrint(ostream& str,unsigned indent = 0)
+{
+	for (int i = indent;i > 0;i--) str << ' ';
+	str << "{\n";
+	for (unsigned n = 0;n < _length;n++) {
+		_statements[n]->prettyPrint(str,indent+2);
+	}
+	for (int i = indent;i > 0;i--) str << ' ';
+	str << "}\n";
+}
+
+/** pretty-print the statement to a stream with a given indentation */
+void IfThenElse::prettyPrint(ostream& str,unsigned indent = 0)
+{
+	for (int i = indent;i > 0;i--) str << ' ';
+	str << "if\n";
+	_thenPart->prettyPrint(str,indent+2);
+	for (int i = indent;i > 0;i--) str << ' ';
+	str << "else\n";
+	_elsePart->prettyPrint(str,indent+2);
+}
+
+/** pretty-print the statement to a stream with a given indentation */
+void WhileDo::prettyPrint(ostream& str,unsigned indent = 0)
+{
+	for (int i = indent;i > 0;i--) str << ' ';
+	str << "while (" << _condition->toString() << ")\n";
+	_body->prettyPrint(str,indent+2);
+}
+
+
