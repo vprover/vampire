@@ -85,6 +85,9 @@ public:
 
   Term* getRepresentation(InterpretedType val);
   Term* fun1(Interpretation itp, TermList arg);
+  Term* fun2(Interpretation itp, TermList arg1, TermList arg2);
+
+  Literal* pred2(Interpretation itp, bool polarity, TermList arg1, TermList arg2);
 
   TermList zero();
   TermList one();

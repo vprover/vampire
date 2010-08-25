@@ -297,7 +297,7 @@ Term* Theory::getRepresentation(InterpretedType val)
 }
 
 /**
- * Return term containing function interpreted as @b itp with
+ * Return term containing unary function interpreted as @b itp with
  * @b arg as its first argument
  */
 Term* Theory::fun1(Interpretation itp, TermList arg)
@@ -308,6 +308,42 @@ Term* Theory::fun1(Interpretation itp, TermList arg)
 
   unsigned fn=theory->getFnNum(itp);
   return Term::create(fn, 1, &arg);
+}
+
+/**
+ * Return term containing binary function interpreted as @b itp with
+ * arguments @b arg1 and @b arg2
+ */
+Term* Theory::fun2(Interpretation itp, TermList arg1, TermList arg2)
+{
+  CALL("Theory::fun2");
+  ASS(isFunction(itp));
+  ASS_EQ(getArity(itp), 2);
+
+  TermList args[]= {arg1, arg2};
+
+  unsigned fn=theory->getFnNum(itp);
+  return Term::create(fn, 2, args);
+}
+
+/**
+ * Return literal containing binary predicate interpreted as @b itp with
+ * arguments @b arg1 and @b arg2
+ */
+Literal* Theory::pred2(Interpretation itp, bool polarity, TermList arg1, TermList arg2)
+{
+  CALL("Theory::fun2");
+  ASS(!isFunction(itp));
+  ASS_EQ(getArity(itp), 2);
+
+  if(itp==EQUAL) {
+    return Literal::createEquality(polarity, arg1, arg2);
+  }
+
+  TermList args[]= {arg1, arg2};
+
+  unsigned pred=theory->getPredNum(itp);
+  return Literal::create(pred, 2, polarity, false, args);
 }
 
 /**
