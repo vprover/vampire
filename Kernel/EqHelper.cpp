@@ -34,6 +34,8 @@ TermList EqHelper::getOtherEqualitySide(Literal* eq, TermList lhs)
 /**
  * Replace all occurences of the term @b tSrc by @b tDest in the literal
  * @b lit, and return the result
+ *
+ * The term to be replaced must be present at least once in the literal.
  */
 Literal* EqHelper::replace(Literal* lit, TermList tSrc, TermList tDest)
 {

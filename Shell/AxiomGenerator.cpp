@@ -175,7 +175,7 @@ TermBlock operator/(const TermBlock& b1, const TermBlock& b2)
 
 TermBlock operator++(const TermBlock& b1,int)
 { return fun1(Theory::SUCCESSOR, b1); }
-TermBlock operator-(const TermBlock& b1,int)
+TermBlock operator-(const TermBlock& b1)
 { return fun1(Theory::UNARY_MINUS, b1); }
 
 //formula operators

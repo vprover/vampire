@@ -20,6 +20,11 @@ public:
 
   void apply(UnitList*& units, Property* prop);
 
+private:
+  Unit* replaceMinus(Unit* u);
+  Formula* replaceMinus(Formula* f);
+  FormulaList* replaceMinus(FormulaList* fs);
+  Literal* replaceMinus(Literal* l);
 };
 
 }
