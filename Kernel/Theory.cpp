@@ -19,6 +19,9 @@ using namespace Lib;
 
 Theory* theory = Theory::instance();
 
+/**
+ * Accessor for the singleton instance of the Theory class.
+ */
 Theory* Theory::instance()
 {
   static Theory* inst=new Theory;
@@ -26,6 +29,11 @@ Theory* Theory::instance()
   return inst;
 }
 
+/**
+ * Constructor of the Theory object
+ *
+ * The constructor is private, since Theory is a singleton class.
+ */
 Theory::Theory()
 : _zero(0), _one(0), _minusOne(0)
 {

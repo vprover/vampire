@@ -16,6 +16,9 @@ namespace Kernel {
 
 typedef int InterpretedType;
 
+/**
+ * A singleton class handling tasks related to theory symbols in Vampire
+ */
 class Theory
 {
 public:
@@ -105,6 +108,9 @@ private:
 
 typedef Theory::Interpretation Interpretation;
 
+/**
+ * Pointer to the singleton Theory instance
+ */
 extern Theory* theory;
 
 }
