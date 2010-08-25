@@ -29,9 +29,11 @@ using namespace Shell;
  * @param threshold Must be between 1 and 32767. If a non-unit clause is
  *   going to be used the number of times greater than the threshold,
  *   it will be named.
+ * @param preserveEpr If true, names will not be introduced if it would
+ *   lead to introduction of non-constant Skolem functions.
  */
-Naming::Naming (int threshold)
-  : _threshold(threshold+1)
+Naming::Naming (int threshold, bool preserveEpr)
+  : _threshold(threshold+1), _preserveEpr(preserveEpr), _varsInScope(false)
 {
   ASS(threshold < 32768);
 } // Naming::Naming
@@ -40,6 +42,8 @@ Naming::Naming (int threshold)
 /**
  * Apply naming to a unit.
  *
+ * @warning @b unit must not be a clause
+ * @warning @b unit must not have any free variables
  * @since 13/07/2005 Haifa
  * @since 14/07/2005 Tel-Aviv airport, changed to replace the unit
  */
@@ -47,6 +51,8 @@ Unit* Naming::apply (Unit* unit,UnitList*& defs)
 {
   CALL("Naming::apply(Unit*)");
   ASS(! unit->isClause());
+  ASS(static_cast<FormulaUnit*>(unit)->formula()->freeVariables()==0);
+  ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
 
   Formula* f = static_cast<FormulaUnit*>(unit)->formula();
   switch (f->connective()) {
@@ -119,23 +125,37 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
       int maxNeg = 0;
       int maxPosIndex = 0;
       int maxNegIndex = 0;
+      FormulaList* currArg = f->args();
       for (int i = 0;i < length;i++) {
 	int c = cls[i];
 	sum = Int::min(_threshold,sum+c);
+	bool canBeDefEvaluated=false;
+	bool canBeDef;
 	if (c > maxPos) {
-	  maxPos = c;
-	  maxPosIndex=i;
+	  canBeDefEvaluated=true;
+	  canBeDef=canBeInDefinition(currArg->head(), where);
+	  if(canBeDef) {
+	    maxPos = c;
+	    maxPosIndex=i;
+	  }
 	}
 	if (where == UNDER_IFF) {
 	  int d = negCls[i];
 	  product = Int::min(_threshold,product*d);
 	  if (d > maxNeg) {
-	    maxNeg = d;
-	    maxNegIndex=i;
+	    if(!canBeDefEvaluated) {
+	      canBeDef=canBeInDefinition(currArg->head(), where);
+	    }
+	    if(canBeDef) {
+	      maxNeg = d;
+	      maxNegIndex=i;
+	    }
 	  }
 	}
+	currArg=currArg->tail();
       }
-      ASS(maxPos > 0);
+      ASS(currArg==0);
+      ASS(maxPos > 0 || _preserveEpr);
       ASS(where != UNDER_IFF || maxNeg > 0);
       // splitWhat & 1 => split due to the positive part
       // splitWhat & 2 => split due to the negative part
@@ -144,7 +164,7 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
 	if (where != ON_TOP && maxPos > 1 && sum >= _threshold) {
 	  splitWhat |= 1;
 	}
-	if (where == UNDER_IFF && product >= _threshold) {
+	if (where == UNDER_IFF && product >= _threshold && maxNeg > 1) {
 	  splitWhat |= 2;
 	}
       }
@@ -221,32 +241,46 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
       int maxNeg = 0;
       int maxPosIndex = 0;
       int maxNegIndex = 0;
+      FormulaList* currArg = f->args();
       for (int i = 0;i < length;i++) {
 	int c = cls[i];
 	product = Int::min(_threshold,product*c);
+	bool canBeDefEvaluated=false;
+	bool canBeDef;
 	if (c > maxPos) {
-	  maxPos = c;
-	  maxPosIndex=i;
+	  canBeDefEvaluated=true;
+	  canBeDef=canBeInDefinition(currArg->head(), where);
+	  if(canBeDef) {
+	    maxPos = c;
+	    maxPosIndex=i;
+	  }
 	}
 	if (where == UNDER_IFF) {
 	  int d = negCls[i];
 	  sum = Int::min(_threshold,sum+d);
 	  if (d > maxNeg) {
-	    maxNeg = d;
-	    maxNegIndex=i;
+	    if(!canBeDefEvaluated) {
+	      canBeDef=canBeInDefinition(currArg->head(), where);
+	    }
+	    if(canBeDef) {
+	      maxNeg = d;
+	      maxNegIndex=i;
+	    }
 	  }
 	}
+	currArg = currArg->tail();
       }
-      ASS(maxPos > 0);
+      ASS(currArg==0);
+      ASS(maxPos > 0 || _preserveEpr);
       ASS(where != UNDER_IFF || maxNeg > 0);
       // splitWhat & 1 => split due to the positive part
       // splitWhat & 2 => split due to the negative part
       int splitWhat = 0;
-      if (where != UNDER_IFF || product > 1) { // not all formulas are atomic
-	if (product >= _threshold) {
+      if ( maxPos>0 && (where != UNDER_IFF || product > 1) ) { // not all formulas are atomic
+	if (product >= _threshold && maxPos>1) {
 	  splitWhat |= 1;
 	}
-	if (where == UNDER_IFF && sum >= _threshold) {
+	if (where == UNDER_IFF && sum >= _threshold && maxNeg>1) {
 	  splitWhat |= 2;
 	}
       }
@@ -300,6 +334,9 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
 
   case IFF:
   case XOR: {
+    //there is no need to call the canBeInDefinition function here, since
+    //the arguments will in the end appear both positive and negative anyway
+
     int negl;
     int posl;
     int negr;
@@ -373,10 +410,17 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
 
   case FORALL:
   case EXISTS: {
+    bool varFlagSet=!_varsInScope;
+    if(varFlagSet) {
+      _varsInScope=true;
+    }
     Formula* g = apply(f->qarg(),where,pos,neg);
-    ASS (pos <= _threshold);
+    ASS (pos <= _threshold || _preserveEpr);
     if (g != f->qarg()) {
       f = new QuantifiedFormula(f->connective(),f->vars(),g);
+    }
+    if(varFlagSet) {
+      _varsInScope=false;
     }
     return f;
   }
@@ -388,6 +432,61 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
   }
 } // Naming::apply
 
+/**
+ * Return true if a definition for the formula @b f may be introduced
+ */
+bool Naming::canBeInDefinition(Formula* f, Where where)
+{
+  CALL("Naming::canBeInDefinition");
+
+  if(!_preserveEpr || where==UNDER_IFF) {
+    return true;
+  }
+
+  switch (f->connective()) {
+  case LITERAL:
+    return true;
+  case AND:
+  case OR:
+  {
+    FormulaList::Iterator fit(f->args());
+    while(fit.hasNext()) {
+      Formula* arg=fit.next();
+      if(!canBeInDefinition(arg, where)) {
+	return false;
+      }
+    }
+    return true;
+  }
+  case FORALL:
+  {
+    bool varFlagSet=!_varsInScope;
+    if(varFlagSet) {
+      _varsInScope=true;
+    }
+    bool res=canBeInDefinition(f->qarg(), where);
+    if(varFlagSet) {
+      _varsInScope=false;
+    }
+    return res;
+  }
+  case EXISTS:
+    return !_varsInScope;
+  case IFF:
+  case XOR:
+    //the arguments of the formula will be both negated and non-negated
+    //anyway, so non-introducing names will not avoid Skolem functions
+    return true;
+
+  //the following connectives cannot appear, since the formula is in ENNF
+  case IMP:
+  case NOT:
+  case TRUE:
+  case FALSE:
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
 
 /**
  * Introduce definition (A X)(p(X) &lt;-&gt; f), where X are all variables

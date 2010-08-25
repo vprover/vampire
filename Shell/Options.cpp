@@ -91,6 +91,7 @@ const char* Options::Constants::_optionNames[] = {
   "demodulation_redundancy_check",
 
   "empty_clause_subsumption",
+  "epr_preserving_naming",
   "equality_proxy",
   "equality_resolution_with_deletion",
 
@@ -444,6 +445,7 @@ Options::Options ()
   _demodulationRedundancyCheck(true),
 
   _emptyClauseSubsumption(false),
+  _eprPreservingNaming(false),
   _equalityProxy(EP_OFF),
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
 
@@ -626,6 +628,9 @@ void Options::set (const char* name,const char* value, int index)
 
     case EMPTY_CLAUSE_SUBSUMPTION:
       _emptyClauseSubsumption = onOffToBool(value,name);
+      return;
+    case EPR_PRESERVING_NAMING:
+      _eprPreservingNaming = onOffToBool(value,name);
       return;
     case EQUALITY_PROXY:
       _equalityProxy = (EqualityProxy)Constants::equalityProxyValues.find(value);
@@ -1201,6 +1206,9 @@ void Options::outputValue (ostream& str,int optionTag) const
 
   case EMPTY_CLAUSE_SUBSUMPTION:
     str << boolToOnOff(_emptyClauseSubsumption);
+    return;
+  case EPR_PRESERVING_NAMING:
+    str << boolToOnOff(_eprPreservingNaming);
     return;
   case EQUALITY_PROXY:
     str << Constants::equalityProxyValues[_equalityProxy];

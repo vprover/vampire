@@ -295,7 +295,7 @@ TEST_FUN(fbapiClausify)
   Problem prb;
   prb.addFormula(af);
 
-  Problem cprb=prb.clausify();
+  Problem cprb=prb.clausify(0);
   cout<<"CNF:"<<endl;
   AnnotatedFormulaIterator afit=cprb.formulas();
   while(afit.hasNext()) {

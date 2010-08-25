@@ -22,7 +22,7 @@ namespace Shell {
 class Naming
 {
 public:
-  Naming (int threshold);
+  Naming (int threshold, bool preserveEpr);
   Unit* apply(Unit* unit,UnitList*& defs);
 private:
   /** Encodes information about the position of the sub formula */
@@ -40,6 +40,24 @@ private:
    *  it will be named. 
    */
   int _threshold;
+  /**
+   * Marks if we want to avoid causing introduction of any non-zero
+   * arity skolem functions
+   *
+   * Corresponds to the value of the epr_preserving_naming option.
+   */
+  bool _preserveEpr;
+
+  /**
+   * True if there are variables at the scope of the current formula
+   *
+   * This value is maintained in the @b apply(Formula,Where,int&,int&) function
+   * if the @b _preserveEpr value is true.
+   */
+  bool _varsInScope;
+
+  bool canBeInDefinition(Formula* f,Where where);
+
   /** The list of definitions produced by naming for this unit*/
   UnitList* _defs;
 

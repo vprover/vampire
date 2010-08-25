@@ -73,8 +73,10 @@ public:
    * @param namingThreshold When the number of clauses generated from one formula
    *   exceeds this number, we attempt to introduce names to lower the amount of
    *   generated clauses. If the value is 0, naming is disabled.
+   * @param preserveEpr If true, names will not be introduced if it would
+   *   lead to introduction of non-constant Skolem functions.
    */
-  Problem clausify(int namingThreshold=8);
+  Problem clausify(int namingThreshold=8, bool preserveEpr=false);
 
   /**
    * Return iterator of formulas in the problem

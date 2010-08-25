@@ -11,6 +11,9 @@
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
 
+#include "Lib/Environment.hpp"
+#include "Kernel/Signature.hpp"
+
 using namespace std;
 using namespace Api;
 
@@ -30,9 +33,16 @@ void clausifyTest(const char* fname)
   Problem p;
   p.addFromStream(fs);
 
-  Problem p2=p.clausify();
+  Problem p2=p.clausify(8,true);
 
   printProblem(p2);
+  LOGV(env.signature->functions());
+  for(int i=0;i<env.signature->functions();i++) {
+    if(env.signature->functionArity(i)>0) {
+      LOGV(i);
+      LOGV(env.signature->functionArity(i));
+    }
+  }
 }
 
 int main(int argc, char* argv [])

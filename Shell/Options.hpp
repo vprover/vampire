@@ -40,6 +40,7 @@ public:
     DEMODULATION_REDUNDANCY_CHECK,
 
     EMPTY_CLAUSE_SUBSUMPTION,
+    EPR_PRESERVING_NAMING,
     EQUALITY_PROXY,
     EQUALITY_RESOLUTION_WITH_DELETION,
 
@@ -280,6 +281,8 @@ public:
   bool proofChecking() const { return _proofChecking; }
   int naming() const { return _naming; }
   bool setNaming(int newVal);
+  bool eprPreservingNaming() const { return _eprPreservingNaming; }
+  void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
   Mode mode() const { return _mode; }
   void setMode(Mode newVal) { _mode = newVal; }
   InputSyntax inputSyntax() { return _inputSyntax; }
@@ -428,6 +431,7 @@ private:
   bool _demodulationRedundancyCheck;
 
   bool _emptyClauseSubsumption;
+  bool _eprPreservingNaming;
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
 

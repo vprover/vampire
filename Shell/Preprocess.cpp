@@ -144,7 +144,7 @@ void Preprocess::preprocess (UnitList*& units)
   if (_property.hasFormulas() && _options.naming()) {
     env.statistics->phase=Statistics::NAMING;
     UnitList::DelIterator us(units);
-    Naming naming(_options.naming());
+    Naming naming(_options.naming(), _options.eprPreservingNaming());
     while (us.hasNext()) {
       Unit* u = us.next();
       if (u->isClause()) {

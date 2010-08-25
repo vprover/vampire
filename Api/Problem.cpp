@@ -167,8 +167,9 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
 
 struct Problem::Clausifier
 {
-  Clausifier(Problem* res, int namingThreshold) :
-    namingThreshold(namingThreshold), nextDefNum(1), res(res), naming(env.options->naming()) {}
+  Clausifier(Problem* res, int namingThreshold, bool preserveEpr) :
+    namingThreshold(namingThreshold), nextDefNum(1), res(res),
+    naming(namingThreshold ? namingThreshold : 8, preserveEpr) {}
 
   void clausify(AnnotatedFormula f)
   {
@@ -191,12 +192,7 @@ struct Problem::Clausifier
 
     Kernel::UnitList* newDefs=0;
     if(namingThreshold) {
-      int oldNamingThreshold=env.options->naming();
-      ALWAYS(env.options->setNaming(namingThreshold));
-
       unit = naming.apply(unit,newDefs);
-
-      ALWAYS(env.options->setNaming(oldNamingThreshold));
     }
 
     unsigned nextClauseNum=1;
@@ -242,7 +238,7 @@ struct Problem::Clausifier
   Shell::Naming naming;
 };
 
-Problem Problem::clausify(int namingThreshold)
+Problem Problem::clausify(int namingThreshold, bool preserveEpr)
 {
   CALL("Problem::clausify");
 
@@ -253,7 +249,7 @@ Problem Problem::clausify(int namingThreshold)
   Problem res;
 
   {
-    Clausifier clausifier(&res, namingThreshold);
+    Clausifier clausifier(&res, namingThreshold, preserveEpr);
 
     AnnotatedFormulaIterator fit=formulas();
     while(fit.hasNext()) {
