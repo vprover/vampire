@@ -350,6 +350,8 @@ string Inference::ruleName(Rule rule)
     return "bddzation";
   case TAUTOLOGY_INTRODUCTION:
     return "tautology introduction";
+  case PROGRAM_ANALYSIS:
+    return "program analysis";
 
   default:
     ASSERTION_VIOLATION;

@@ -10,6 +10,9 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
 
 #include "Variable.hpp"
 #include "Expression.hpp"
@@ -281,12 +284,26 @@ void LoopAnalyzer::generateAxiomsForCounters()
 void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int gcd)
 {
   // value of the counter at position 0
-  Term* c = Term::createConstant(name);
+  TermList c(Term::createConstant(name));
   unsigned fun = env.signature->addFunction(name,1);
-  TermList ts;
-  ts.makeVar(0);
-  // term c(x)
-  // Term* cx = Term::create(fun,1,&ts);
+  // term x0
+  TermList x0;
+  x0.makeVar(0);
+  // term c(x0)
+  TermList cx0(Term::create(fun,1,&x0));
+  Theory* theory = Theory::instance();
+  if (min == max) {
+    if (gcd == 1 || gcd == -1) {
+      // c + x0 or c - x0
+      TermList sum(theory->fun2(gcd == 1 ? Theory::PLUS : Theory::MINUS,c,x0));
+      // create c(x0) = c + x_0
+      Literal* eq = Literal::createEquality(true,cx0,sum);
+      Formula* f = new AtomicFormula(eq);
+      cout << f->toString() << "\n";
+      Clause c(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
+      cout << c.toString() << "\n";
+    }
+  }
   // term c(
   
   // TermList 
