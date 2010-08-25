@@ -177,25 +177,25 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   string name;
   switch(interp) {
   case Theory::SUCCESSOR:
-    name="$s";
+    name="++";
     break;
   case Theory::UNARY_MINUS:
-    name="$uminus";
+    name="-";
     break;
   case Theory::PLUS:
-    name="$plus";
+    name="+";
     break;
   case Theory::MINUS:
-    name="$minus";
+    name="-";
     break;
   case Theory::MULTIPLY:
-    name="$mul";
+    name="*";
     break;
   case Theory::DIVIDE:
     name="$div";
     break;
   case Theory::INT_DIVIDE:
-    name="$idiv";
+    name="/";
     break;
   case Theory::GREATER:
     name="$greater";
@@ -209,16 +209,16 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::LESS_EQUAL:
     name="$leq";
   case Theory::INT_GREATER:
-    name="$igreater";
+    name=">";
     break;
   case Theory::INT_GREATER_EQUAL:
-    name="$igeq";
+    name=">=";
     break;
   case Theory::INT_LESS:
-    name="$iless";
+    name="<";
     break;
   case Theory::INT_LESS_EQUAL:
-    name="$ileq";
+    name="<=";
     break;
   default:
     ASSERTION_VIOLATION;
