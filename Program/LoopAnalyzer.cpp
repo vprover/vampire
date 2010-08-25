@@ -11,6 +11,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 
@@ -25,7 +26,8 @@ using namespace Program;
 
 /** Constructor, just saves the program */
 LoopAnalyzer::LoopAnalyzer(WhileDo* loop)
-  : _loop(loop)
+  : _loop(loop),
+    _units(0)
 {}
 
 /**
@@ -53,6 +55,10 @@ void LoopAnalyzer::analyze()
     it.next()->prettyPrint(cout);
   }
   generateAxiomsForCounters();
+  UnitList::Iterator units(_units);
+  while (units.hasNext()) {
+    cout << units.next()->toString() << "\n";
+  }
 }
 
 /**
@@ -293,23 +299,137 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
   TermList cx0(Term::create(fun,1,&x0));
   Theory* theory = Theory::instance();
   if (min == max) {
+    Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
+    Literal* eq;
     if (gcd == 1 || gcd == -1) {
-      // c + x0 or c - x0
+      // c +- x0
       TermList sum(theory->fun2(gcd == 1 ? Theory::PLUS : Theory::MINUS,c,x0));
       // create c(x0) = c + x_0
-      Literal* eq = Literal::createEquality(true,cx0,sum);
-      Formula* f = new AtomicFormula(eq);
-      cout << f->toString() << "\n";
-      Clause c(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
-      cout << c.toString() << "\n";
+      eq = Literal::createEquality(true,cx0,sum);
     }
+    else {
+      // gcd != 1
+      // term gcd*x0
+      TermList c_gcd(theory->getRepresentation(gcd));
+      TermList gcd_x0(theory->fun2(Theory::MULTIPLY,c_gcd,x0));
+      // c +- gcd*x0
+      TermList sum(theory->fun2(gcd > 0 ? Theory::PLUS : Theory::MINUS,c,gcd_x0));
+      // create c(x0) = c + gcd*x_0
+      eq = Literal::createEquality(true,cx0,sum);
+    }
+    (*cls)[0] = eq;
+    _units = _units->cons(cls);
+    return;
   }
-  // term c(
-  
-  // TermList 
-  // Term* c0 = Term::create(cnt,0,
-  // c0->makeSymbol(fun,arity);
 
-  // // function of the loop counter
+  // min != max
+  // Generate the upper bound axiom c(x0) <= c + max*x_0
+  if (max == 0) { // c(x0) <= c
+    Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL,true,cx0,c);
+    Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
+    (*cls)[0] = ineq;
+    _units = _units->cons(cls);
+  }
+  else if (max == 1 || max == -1) { // c(x0) <= c +- x_0
+    TermList sum(theory->fun2(max == 1 ? Theory::PLUS : Theory::MINUS,c,x0));
+    Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL,true,cx0,sum);
+    Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
+    (*cls)[0] = ineq;
+    _units = _units->cons(cls);
+  }
+  else {
+    TermList c_max(theory->getRepresentation(max));
+    TermList max_x0(theory->fun2(Theory::MULTIPLY,c_max,x0));
+    // c +- max*x0
+    TermList sum(theory->fun2(max > 0 ? Theory::PLUS : Theory::MINUS,c,max_x0));
+    Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL,true,cx0,sum);
+    Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
+    (*cls)[0] = ineq;
+    _units = _units->cons(cls);
+  }
 
+  // and the lower bound axiom c(x0) >= c + min*x_0
+  if (min == 0) { // c(x0) >= c
+    Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL,true,cx0,c);
+    Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
+    (*cls)[0] = ineq;
+    _units = _units->cons(cls);
+  }
+  else if (min == 1 || min == -1) { // c(x0) >= c +- x_0
+    TermList sum(theory->fun2(min == 1 ? Theory::PLUS : Theory::MINUS,c,x0));
+    Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL,true,cx0,sum);
+    Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
+    (*cls)[0] = ineq;
+    _units = _units->cons(cls);
+  }
+  else {
+    TermList c_min(theory->getRepresentation(min));
+    TermList min_x0(theory->fun2(Theory::MULTIPLY,c_min,x0));
+    // c +- min*x0
+    TermList sum(theory->fun2(min > 0 ? Theory::PLUS : Theory::MINUS,c,min_x0));
+    Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL,true,cx0,sum);
+    Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
+    (*cls)[0] = ineq;
+    _units = _units->cons(cls);
+  }
+
+  // generate density axioms
+  if (max == 1) {
+    // generate J > I & c(J) > V & V > c(I) -> (E K)(J > K & K > I & c(K) = V)
+    TermList I;
+    I.makeVar(0);
+    TermList J;
+    J.makeVar(1);
+    TermList K;
+    K.makeVar(2);
+    TermList V;
+    V.makeVar(3);
+    TermList cI(Term::create(fun,1,&I));
+    TermList cJ(Term::create(fun,1,&J));
+    TermList cK(Term::create(fun,1,&K));
+    Formula* JgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,J,I));
+    Formula* cJgreaterV = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,cJ,V));
+    Formula* VgreatercI = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,V,cI));
+    FormulaList* left = (new FormulaList(VgreatercI))->cons(cJgreaterV)->cons(JgreaterI);
+    Formula* lhs = new JunctionFormula(AND,left);
+    Formula* JgreaterK = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,J,K));
+    Formula* KgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,K,I));
+    Formula* cKequalV = new AtomicFormula(Literal::createEquality(true,cK,V));
+    FormulaList* right = (new FormulaList(JgreaterK))->cons(KgreaterI)->cons(cKequalV);
+    Formula* rhs = new QuantifiedFormula(EXISTS,
+					 new Formula::VarList(2),
+					 new JunctionFormula(AND,right));
+    _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP,lhs,rhs),
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));
+  }
+  if (min == -1) {
+    // generate J > I & c(J) < V & V < c(I) -> (E K)(J > K & K > I & c(K) = V)
+    TermList I;
+    I.makeVar(0);
+    TermList J;
+    J.makeVar(1);
+    TermList K;
+    K.makeVar(2);
+    TermList V;
+    V.makeVar(3);
+    TermList cI(Term::create(fun,1,&I));
+    TermList cJ(Term::create(fun,1,&J));
+    TermList cK(Term::create(fun,1,&K));
+    Formula* JgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,J,I));
+    Formula* cJlessV = new AtomicFormula(theory->pred2(Theory::INT_LESS,true,cJ,V));
+    Formula* VlessI = new AtomicFormula(theory->pred2(Theory::INT_LESS,true,V,cI));
+    FormulaList* left = (new FormulaList(VlessI))->cons(cJlessV)->cons(JgreaterI);
+    Formula* lhs = new JunctionFormula(AND,left);
+    Formula* JgreaterK = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,J,K));
+    Formula* KgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,K,I));
+    Formula* cKequalV = new AtomicFormula(Literal::createEquality(true,cK,V));
+    FormulaList* right = (new FormulaList(JgreaterK))->cons(KgreaterI)->cons(cKequalV);
+    Formula* rhs = new QuantifiedFormula(EXISTS,
+					 new Formula::VarList(2),
+					 new JunctionFormula(AND,right));
+    _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP,lhs,rhs),
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));
+  }
 }

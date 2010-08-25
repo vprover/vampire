@@ -5219,6 +5219,7 @@ $(CONF_ID)/Program/Analyze.o: Program/Variable.hpp Program/Type.hpp
 $(CONF_ID)/Program/Analyze.o: Program/Expression.hpp Program/Statement.hpp
 $(CONF_ID)/Program/Analyze.o: Lib/Map.hpp Lib/Hash.hpp Program/Analyze.hpp
 $(CONF_ID)/Program/Analyze.o: Lib/Set.hpp Program/LoopAnalyzer.hpp
+$(CONF_ID)/Program/Analyze.o: Lib/List.hpp
 $(CONF_ID)/Program/Expression.o: Debug/Tracer.hpp Lib/Int.hpp
 $(CONF_ID)/Program/Expression.o: Lib/Comparison.hpp Lib/Portability.hpp
 $(CONF_ID)/Program/Expression.o: Debug/Assertion.hpp Debug/Tracer.hpp

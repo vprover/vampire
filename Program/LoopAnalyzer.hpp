@@ -10,10 +10,15 @@
 
 #include <string>
 #include "Lib/Set.hpp"
-#include "Statement.hpp"
+#include "Lib/List.hpp"
+
+namespace Kernel {
+  class Unit;
+};
 
 using namespace std;
 using namespace Lib;
+using namespace Kernel;
 
 namespace Program {
 
@@ -47,6 +52,8 @@ private:
   Set<Variable*> _counters;
   /** All paths in the loop */
   Stack<Path*> _paths;
+  /** all generated units */
+  List<Unit*>* _units;
 }; // class Analyze
 
 }
