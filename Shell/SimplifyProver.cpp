@@ -987,15 +987,15 @@ void SimplifyProver::parseTerm()
     if (!_symbolInfo.find(symb,sinfo)) {
       sinfo = builtInFunction(symb,0);
       if (! sinfo) {
-				error((string)"function symbol " + symb + " not previously defined");
-			}
+	error((string)"function symbol " + symb + " not previously defined");
+      }
     }
     if (sinfo->arity != 0) {
-			error((string)"function symbol " + symb + " is used with an arity different from declared");
-		}
+      error((string)"function symbol " + symb + " is used with an arity different from declared");
+    }
     if (sinfo->returnType == BIT_BOOL) {
-			error((string)"symbol " + symb + " is used both as a constant and as a predicate");
-		}
+      error((string)"symbol " + symb + " is used both as a constant and as a predicate");
+    }
     TermList ts;
     Term* t = Term::create(sinfo->number,0,0);
     ts.setTerm(t);
@@ -1009,8 +1009,8 @@ void SimplifyProver::parseTerm()
   // list
   List* lst = expr->list;
   if (lst->head()->tag == LispParser::LIST) {
-		termError(expr);
-	}
+    termError(expr);
+  }
   string symb = lst->head()->str;
   switch (keyword(symb)) {
   case K_NONE:
@@ -1462,8 +1462,8 @@ void SimplifyProver::doLet()
   if (lst->length() != 3) goto err;
   hd = lst->head(); // hd is either FORMULA or TERM
   if (hd->tag == LispParser::LIST) {
-		goto err;
-	}
+    goto err;
+  }
   lst = lst->tail();
   switch (keyword(hd->str)) {
   case K_FORMULA:
@@ -1547,12 +1547,12 @@ void SimplifyProver::buildDistinct()
       Literal* lit = Literal::createEquality(false,args[i],args[j]);
       Formula* ineq = new AtomicFormula(lit);
       if (top) {
-				addUnit(new FormulaUnit(ineq,
-																new Inference(Inference::INPUT),
-																Unit::ASSUMPTION));
+	addUnit(new FormulaUnit(ineq,
+				new Inference(Inference::INPUT),
+				Unit::ASSUMPTION));
       }
       else {
-				fs = new FormulaList(ineq,fs);
+	fs = new FormulaList(ineq,fs);
       }
     }
   }
@@ -1583,19 +1583,19 @@ void SimplifyProver::processFormula(Formula* f,Context context)
     if (_isaved.pop()) { // goal
       Formula::VarList* vs = f->freeVariables();
       if (vs->isEmpty()) {
-				f = new NegatedFormula(f);
+	f = new NegatedFormula(f);
       }
       else {
-				f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,f));
+	f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,f));
       }
       addUnit(new FormulaUnit(f,
-															new Inference(Inference::NEGATED_CONJECTURE),
-															Unit::CONJECTURE));
+			      new Inference(Inference::NEGATED_CONJECTURE),
+			      Unit::CONJECTURE));
     }
     else { // assumption
       addUnit(new FormulaUnit(f,
-															new Inference(Inference::INPUT),
-															Unit::ASSUMPTION));
+			      new Inference(Inference::INPUT),
+			      Unit::ASSUMPTION));
     }
     env.statistics->inputFormulas++;
     return;
@@ -1613,16 +1613,16 @@ void SimplifyProver::processFormula(Formula* f,Context context)
       TermList fx(Term::create(sf,arity,args.begin()));
       // formula ~f => f(x) = 0
       Formula* f1 = new BinaryFormula(IMP,
-																			new NegatedFormula(f),
-																			new AtomicFormula(Literal::createEquality(true,fx,_zero)));
+				      new NegatedFormula(f),
+				      new AtomicFormula(Literal::createEquality(true,fx,_zero)));
       addUnit(new FormulaUnit(f1,
-															new Inference(Inference::BOOLEAN_TERM_ENCODING),
-															Unit::AXIOM));
+			      new Inference(Inference::BOOLEAN_TERM_ENCODING),
+			      Unit::AXIOM));
       f1 = new BinaryFormula(IMP,f,
-														 new AtomicFormula(Literal::createEquality(true,fx,_one)));
+			     new AtomicFormula(Literal::createEquality(true,fx,_one)));
       addUnit(new FormulaUnit(f1,
-															new Inference(Inference::BOOLEAN_TERM_ENCODING),
-															Unit::AXIOM));
+			      new Inference(Inference::BOOLEAN_TERM_ENCODING),
+			      Unit::AXIOM));
       _tsaved.push(fx);
     }
     return;

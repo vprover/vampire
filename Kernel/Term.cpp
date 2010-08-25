@@ -619,6 +619,17 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
   return env.sharing->insert(s);
 }
 
+/** Create a new constant and insert in into the sharing
+ *  structure.
+ */
+Term* Term::createConstant(const string& name)
+{
+  CALL("Term::createConstant");
+
+  unsigned symbolNumber = env.signature->addFunction(name,0);
+  return createConstant(symbolNumber);
+}
+
 /** Create a new complex term, copy from @b t its function symbol and
  *  from the array @b args its arguments. Do not insert it into the sharing
  *  structure.

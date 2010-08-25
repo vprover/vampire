@@ -78,37 +78,37 @@ protected:
  * @since 20/08/2010, Torrevieja
  */
 class FunctionType
-	: public Type
+  : public Type
 {
 public:
-	/** returns the value type of the array */
-	const Type* valueType() const { return _valueType; }
+  /** returns the value type of the array */
+  const Type* valueType() const { return _valueType; }
 
-	/** returns the n-th argument type */
-	const Type* argumentType(unsigned n) const
-	{
-		ASS_L(n,_arity);
-		return _argumentTypes[n];
-	}
+  /** returns the n-th argument type */
+  const Type* argumentType(unsigned n) const
+  {
+    ASS_L(n,_arity);
+    return _argumentTypes[n];
+  }
 
-	unsigned arity() const { return _arity; }
-	FunctionType(unsigned arity,const Type* valueType);
+  unsigned arity() const { return _arity; }
+  FunctionType(unsigned arity,const Type* valueType);
 
-	/** set the argument type of an argument */
-	inline void setArgumentType(unsigned argNumber,const Type* tp)
-	{
-		ASS_L(argNumber,_arity);
-		ASS_EQ(_argumentTypes[argNumber],0);
-		_argumentTypes[argNumber] = tp;
-	}
+  /** set the argument type of an argument */
+  inline void setArgumentType(unsigned argNumber,const Type* tp)
+  {
+    ASS_L(argNumber,_arity);
+    ASS_EQ(_argumentTypes[argNumber],0);
+    _argumentTypes[argNumber] = tp;
+  }
 
 protected:
-	/** the number of arguments */
-	unsigned _arity;
-	/** the value type of the function */
-	const Type* _valueType;
-	/** the array of argument types */
-	const Type** _argumentTypes;
+  /** the number of arguments */
+  unsigned _arity;
+  /** the value type of the function */
+  const Type* _valueType;
+  /** the array of argument types */
+  const Type** _argumentTypes;
 }; // class FunctionType
 
 }

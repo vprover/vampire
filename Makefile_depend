@@ -5217,7 +5217,7 @@ $(CONF_ID)/Program/Analyze.o: Lib/Reflection.hpp Lib/Int.hpp
 $(CONF_ID)/Program/Analyze.o: Program/Variable.hpp Program/Type.hpp
 $(CONF_ID)/Program/Analyze.o: Program/Expression.hpp Program/Statement.hpp
 $(CONF_ID)/Program/Analyze.o: Lib/Map.hpp Lib/Hash.hpp Program/Analyze.hpp
-$(CONF_ID)/Program/Analyze.o: Lib/Set.hpp
+$(CONF_ID)/Program/Analyze.o: Lib/Set.hpp Program/LoopAnalyzer.hpp
 $(CONF_ID)/Program/Expression.o: Debug/Tracer.hpp Lib/Int.hpp
 $(CONF_ID)/Program/Expression.o: Lib/Comparison.hpp Lib/Portability.hpp
 $(CONF_ID)/Program/Expression.o: Debug/Assertion.hpp Debug/Tracer.hpp
@@ -5228,6 +5228,40 @@ $(CONF_ID)/Program/Expression.o: Lib/Allocator.hpp Lib/Backtrackable.hpp
 $(CONF_ID)/Program/Expression.o: Lib/List.hpp Lib/VirtualIterator.hpp
 $(CONF_ID)/Program/Expression.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 $(CONF_ID)/Program/Expression.o: Lib/Reflection.hpp Lib/Int.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Debug/Tracer.hpp Lib/DArray.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Forwards.hpp Debug/Log.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Debug/Tracer.hpp Config.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Debug/Assertion.hpp Lib/Allocator.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Portability.hpp Lib/Comparison.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Random.hpp Lib/Reflection.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Environment.hpp Kernel/Signature.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Allocator.hpp Lib/Stack.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Backtrackable.hpp Lib/List.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Int.hpp Lib/Map.hpp Lib/Hash.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/DHMap.hpp Kernel/Theory.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Kernel/Term.hpp Lib/Portability.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/XML.hpp Lib/Comparison.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Metaiterators.hpp Lib/DHSet.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/DHMap.hpp Lib/Recycler.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/DArray.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Kernel/Term.hpp Program/Variable.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Program/Type.hpp Program/Expression.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Program/Statement.hpp Program/Path.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/List.hpp Program/LoopAnalyzer.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Set.hpp
+$(CONF_ID)/Program/Path.o: Program/Path.hpp Debug/Assertion.hpp
+$(CONF_ID)/Program/Path.o: Debug/Tracer.hpp Lib/List.hpp Lib/Stack.hpp
+$(CONF_ID)/Program/Path.o: Forwards.hpp Debug/Log.hpp Config.hpp
+$(CONF_ID)/Program/Path.o: Debug/Tracer.hpp Lib/Allocator.hpp
+$(CONF_ID)/Program/Path.o: Lib/Portability.hpp Lib/Backtrackable.hpp
+$(CONF_ID)/Program/Path.o: Lib/List.hpp Lib/VirtualIterator.hpp
+$(CONF_ID)/Program/Path.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
+$(CONF_ID)/Program/Path.o: Lib/Reflection.hpp Lib/Int.hpp
+$(CONF_ID)/Program/Path.o: Program/Expression.hpp Program/Statement.hpp
+$(CONF_ID)/Program/Path.o: Lib/Map.hpp Lib/Hash.hpp
 $(CONF_ID)/Program/Statement.o: Debug/Tracer.hpp Program/Expression.hpp
 $(CONF_ID)/Program/Statement.o: Debug/Assertion.hpp Debug/Tracer.hpp
 $(CONF_ID)/Program/Statement.o: Lib/Stack.hpp Forwards.hpp Debug/Log.hpp

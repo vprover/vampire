@@ -196,11 +196,11 @@ public:
   static Term* createNonShared(Term* t,TermList* args);
   static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);
+  static Term* createConstant(const string& name);
+  /** Create a new constant and insert in into the sharing structure */
+  static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   /** Function or predicate symbol of a term */
-  const unsigned functor() const
-  {
-    return _functor;
-  }
+  const unsigned functor() const { return _functor; }
 
   static XMLElement variableToXML(unsigned var);
   string toString() const;

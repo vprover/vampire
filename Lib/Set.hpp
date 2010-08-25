@@ -25,20 +25,32 @@ template <typename Val,class Hash>
 class Set
 {
 protected:
-  class Entry
+  class Cell
   {
   public:
-    /** Create a new entry */
-    inline Entry ()
+    /** Create a new cell */
+    inline Cell ()
       : code(0)
     {
-    } // Set::Entry::Entry
+    } // Set::Cell::Cell
+
+    /** True if cell is empty */
+    inline bool empty() const
+    {
+      return code == 0;
+    } // Set::Cell::empty
+
+    /** True if contains a deleted element */
+    inline bool deleted() const
+    {
+      return code == 0;
+    } // Set::Cell::deleted
 
     /** True if contains an element */
     inline bool occupied() const
     {
-      return code >= 2;
-    } // Set::Entry::occupied
+      return code > 1;
+    } // Set::Cell::occupied
 
     /** declared but not defined, to prevent on-heap allocation */
     void* operator new (size_t);
@@ -47,13 +59,14 @@ protected:
     unsigned code;
     /** The value in this cell (if any) */
     Val value;
-  }; // class Set::Entry
+  }; // class Set::Cell
 
 public:
   /** Create a new Set */
   Set()
     : _capacity(0),
-      _noOfEntries(0),
+      _nonemptyCells(0),
+      _size(0),
       _entries(0)
   {
     CALL("Set::Set");
@@ -67,7 +80,7 @@ public:
 
     if (_entries) {
       array_delete(_entries,_capacity);
-      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"Set::Entry");
+      DEALLOC_KNOWN(_entries,_capacity*sizeof(Cell),"Set::Cell");
     }
   } // Set::~Set
 
@@ -88,13 +101,16 @@ public:
     if (code < 2) {
       code = 2;
     }
-    for (Entry* entry = firstEntryForCode(code);
-				 entry->occupied();
-				 entry = nextEntry(entry)) {
-      if (entry->code == code &&
-					Hash::equals(entry->value,key)) {
-				result=entry->value;
-				return true;
+    for (Cell* cell = firstCellForCode(code);
+	 ! cell->empty();
+	 cell = nextCell(cell)) {
+      if (cell->deleted()) {
+	continue;
+      }
+      if (cell->code == code &&
+	  Hash::equals(cell->value,key)) {
+	result=cell->value;
+	return true;
       }
     }
     return false;
@@ -112,12 +128,15 @@ public:
     if (code < 2) {
       code = 2;
     }
-    for (Entry* entry = firstEntryForCode(code);
-				 entry->occupied();
-				 entry = nextEntry(entry)) {
-      if (entry->code == code &&
-					Hash::equals(entry->value,val)) {
-				return true;
+    for (Cell* cell = firstCellForCode(code);
+	 ! cell->empty();
+	 cell = nextCell(cell)) {
+      if (cell->deleted()) {
+	continue;
+      }
+      if (cell->code == code &&
+	  Hash::equals(cell->value,val)) {
+	return true;
       }
     }
     return false;
@@ -134,7 +153,7 @@ public:
   {
     CALL("Set::insert");
 
-    if (_noOfEntries >= _maxEntries) { // too many entries
+    if (_nonemptyCells >= _maxEntries) { // too many entries
       expand();
     }
 
@@ -157,36 +176,77 @@ public:
   {
     CALL("Set::insert/2");
 
-    Entry* entry;
-    for (entry = firstEntryForCode(code);
-				 entry->occupied();
-				 entry = nextEntry(entry)) {
-      if (entry->code == code &&
-					Hash::equals(entry->value,val)) {
-				return entry->value;
+    Cell* found = 0;
+    Cell* cell = firstCellForCode(code);
+    while (! cell->empty()) {
+      if (cell->deleted()) {
+	if (! found) {
+	  found = cell;
+	}
+	continue;
       }
+      if (cell->code == code &&
+	  Hash::equals(cell->value,val)) {
+	return cell->value;
+      }
+      cell = nextCell(cell);
     }
-    // entry is not occupied
-    _noOfEntries++;
-    entry->value = val;
-    entry->code = code;
-    return entry->value;
+    if (found) { // cell deleted
+      cell = found;
+    }
+    else { // cell is empty
+      _nonemptyCells++;
+    }
+    _size++;
+    cell->value = val;
+    cell->code = code;
+    return cell->value;
   } // Set::insert
 
-	/** Insert all elements from @b it iterator in the set */
-	template<class It>
-	void insertFromIterator(It it)
-	{
-		while(it.hasNext()) {
-		insert(it.next());
-		}
-	}
-	
-	/** Return the number of elements */
-	inline int size() const
+  /** Insert all elements from @b it iterator in the set */
+  template<class It>
+  void insertFromIterator(It it)
   {
-    return _noOfEntries;
+    while(it.hasNext()) {
+      insert(it.next());
+    }
   }
+	
+  /** Return the number of (non-deleted) elements */
+  inline int size() const
+  {
+    return _size;
+  }
+
+  /**
+   * Remove a value from the set. Return true if the value is found
+   * @since 23/08/2010 Torrevieja
+   */
+  bool remove(const Val val)
+  {
+    CALL("Set::remove");
+
+    unsigned code = Hash::hash(val);
+    if (code < 2) {
+      code = 2;
+    }
+
+    Cell* cell = firstCellForCode(code);
+    while (! cell->empty()) {
+      if (cell->deleted()) {
+	continue;
+      }
+      if (cell->code == code &&
+	  Hash::equals(cell->value,val)) {
+	cell->code = 1; // deleted
+	_size--;
+	return true;
+      }
+      cell = nextCell(cell);
+    }
+    return false;
+  } // Set::remove
+
 private:
   // declared but not defined, to prevent on-heap allocation
   void* operator new (size_t);
@@ -196,13 +256,15 @@ private:
 
   /** the current capacity */
   int _capacity;
-  /** the current number of entries */
-  int _noOfEntries;
+  /** the current number of cells */
+  int _nonemptyCells;
+  /** the current size */
+  int _size;
   /** the array of entries */
-  Entry* _entries;
-  /** the entry after the last one, required since the
+  Cell* _entries;
+  /** the cell after the last one, required since the
    *  array of entries is logically a ring */
-  Entry* _afterLast; // entry after the last one
+  Cell* _afterLast; // cell after the last one
   /** the maximal number of entries for this capacity */
   int _maxEntries;
 
@@ -217,11 +279,11 @@ private:
     CALL("Set::expand");
 
     size_t newCapacity = _capacity ? _capacity * 2 : 31;
-    Entry* oldEntries = _entries;
+    Cell* oldEntries = _entries;
 
-    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"Set::Entry");
+    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Cell),"Set::Cell");
 
-    _entries = array_new<Entry>(mem, newCapacity);
+    _entries = array_new<Cell>(mem, newCapacity);
     _afterLast = _entries + newCapacity;
     _maxEntries = (int)(newCapacity * 0.8);
     size_t oldCapacity = _capacity;
@@ -235,13 +297,14 @@ private:
     // 0.9 :  9.34 7.36 (fewer allocations (21 vs. 22), fewer cache faults)
     // 0.95: 10.21 7.48
     // copy old entries
-    Entry* current = oldEntries;
-    int remaining = _noOfEntries;
-    _noOfEntries = 0;
+    Cell* current = oldEntries;
+    int remaining = _size;
+    _nonemptyCells = 0;
+    _size = 0;
     while (remaining != 0) {
-      // find first occupied entry
+      // find first occupied cell
       while (! current->occupied()) {
-				current ++;
+	current++;
       }
       // now current is occupied
       insert(current->value,current->code);
@@ -251,29 +314,29 @@ private:
 
     if (oldEntries) {
       array_delete(oldEntries,oldCapacity);
-      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"Set::Entry");
+      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Cell),"Set::Cell");
     }
   } // Set::expand
 
   /**
-   * Return the entry next to @b entry.
+   * Return the cell next to @b cell.
    * @since 09/12/2006 Manchester
    */
-  inline Entry* nextEntry(Entry* entry) const
+  inline Cell* nextCell(Cell* cell) const
   {
-    entry ++;
-    // check if the entry is a valid one
-    return entry == _afterLast ? _entries : entry;
-  } // nextEntry
+    cell ++;
+    // check if the cell is a valid one
+    return cell == _afterLast ? _entries : cell;
+  } // nextCell
 
   /**
-   * Return the first entry for @b code.
+   * Return the first cell for @b code.
    * @since 09/12/2006 Manchester
    */
-  inline Entry* firstEntryForCode(unsigned code) const
+  inline Cell* firstCellForCode(unsigned code) const
   {
     return _entries + (code % _capacity);
-  } // Set::firstEntryForCode
+  } // Set::firstCellForCode
 
 public:
   /**
@@ -325,9 +388,9 @@ public:
 
   private:
     /** iterator will look for the next occupied cell starting with this one */
-    Entry* _next;
+    Cell* _next;
     /** iterator will stop looking for the next cell after reaching this one */
-    Entry* _last;
+    Cell* _last;
   };
   DECL_ITERATOR_TYPE(Iterator);
 

@@ -262,7 +262,9 @@ CASC_OBJ = Shell/CASC/CASCMode.o\
            Shell/CASC/SpawningCM.o
 
 VPROG_OBJ = Program/Type.o\
+           Program/LoopAnalyzer.o\
            Program/Analyze.o\
+           Program/Path.o\
            Program/Expression.o\
            Program/Statement.o\
            Program/Variable.o

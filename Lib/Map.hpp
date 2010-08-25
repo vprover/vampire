@@ -388,7 +388,7 @@ public:
     /** Create a new iterator */
     inline Iterator(const Map& map)
       : _next(map._entries),
-				_last(map._afterLast)
+	_last(map._afterLast)
     {
     } // Map::Iterator
 
@@ -399,10 +399,10 @@ public:
     bool hasNext()
     {
       while (_next != _last) {
-				if (_next->occupied()) {
-					return true;
-				}
-				_next++;
+	if (_next->occupied()) {
+	  return true;
+	}
+	_next++;
       }
       return false;
     }

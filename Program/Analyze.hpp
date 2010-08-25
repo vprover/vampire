@@ -27,19 +27,16 @@ class WhileDo;
 class Analyze
 {
 public:
-	Analyze(Statement* program);
-	void analyze();
+  Analyze(Statement* program);
+  void analyze();
 private:
-	void analyzeSubstatements(Statement* statement);
-	void analyzeLoop(WhileDo* loop);
-	static void addExpressionVariables(Expression* exp,Statement* st);
-	Variable* isScalarAssignment(const Statement* st);
-	static int isScalarIncrement(const Assignment* ass);
-
-	/** the program being analyzed */
-	Statement* _program;
-	/** the set of all loops */
-	Set<WhileDo*> _loops;
+  void analyzeSubstatements(Statement* statement);
+  static void addExpressionVariables(Expression* exp,Statement* st);
+  
+  /** the program being analyzed */
+  Statement* _program;
+  /** the set of all loops */
+  Set<WhileDo*> _loops;
 }; // class Analyze
 
 }
