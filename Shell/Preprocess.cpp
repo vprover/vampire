@@ -172,6 +172,29 @@ void Preprocess::preprocess (UnitList*& units)
     }
   }
 
+  //we redo the naming if the last naming was restricted by preserving EPR
+  if (_property.hasFormulas() && _options.naming() && _options.eprPreservingNaming()) {
+    env.statistics->phase=Statistics::NAMING;
+    UnitList::DelIterator us(units);
+    Naming naming(min(_options.naming()*2+1,32767), true);
+    while (us.hasNext()) {
+      Unit* u = us.next();
+      if (u->isClause()) {
+	continue;
+      }
+      UnitList* defs;
+      Unit* v = naming.apply(u,defs);
+      if (v != u) {
+	ASS(defs);
+	while(defs) {
+	  Unit* d=preprocess3(UnitList::pop(defs));
+	  us.insert(new UnitList(d,0));
+	}
+	us.replace(v);
+      }
+    }
+  }
+
 //   // find ordering on literals
 //   Ordering* ordering = environment.ordering(0);
 //   if (ordering) {

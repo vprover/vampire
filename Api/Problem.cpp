@@ -168,7 +168,7 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
 struct Problem::Clausifier
 {
   Clausifier(Problem* res, int namingThreshold, bool preserveEpr) :
-    namingThreshold(namingThreshold), nextDefNum(1), res(res),
+    namingThreshold(namingThreshold), preserveEpr(preserveEpr), nextDefNum(1), res(res),
     naming(namingThreshold ? namingThreshold : 8, preserveEpr) {}
 
   void clausify(AnnotatedFormula f)
@@ -203,6 +203,14 @@ struct Problem::Clausifier
       unit = Flattening::flatten(unit);
       unit = Skolem::skolemise(unit);
 
+      if(!clausifyingDefs && preserveEpr) {
+	Kernel::UnitList* newDefs2=0;
+	if(namingThreshold) {
+	  unit = naming.apply(unit,newDefs2);
+	  newDefs=Kernel::UnitList::concat(newDefs2, newDefs);
+	}
+      }
+
       cnf.clausify(unit,auxClauseStack);
       while (! auxClauseStack.isEmpty()) {
 	Unit* u = auxClauseStack.pop();
@@ -230,6 +238,7 @@ struct Problem::Clausifier
   }
 
   int namingThreshold;
+  bool preserveEpr;
 
   unsigned nextDefNum;
   Problem* res;

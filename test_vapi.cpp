@@ -34,6 +34,7 @@ void clausifyTest(const char* fname)
   p.addFromStream(fs);
 
   Problem p2=p.clausify(8,true);
+//  Problem p2=p.clausify(8,false);
 
   printProblem(p2);
   LOGV(env.signature->functions());

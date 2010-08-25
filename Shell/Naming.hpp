@@ -49,7 +49,7 @@ private:
   bool _preserveEpr;
 
   /**
-   * True if there are variables at the scope of the current formula
+   * True if there are universally quantified variables at the scope of the current formula
    *
    * This value is maintained in the @b apply(Formula,Where,int&,int&) function
    * if the @b _preserveEpr value is true.

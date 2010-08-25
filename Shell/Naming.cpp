@@ -12,6 +12,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -410,7 +411,7 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
 
   case FORALL:
   case EXISTS: {
-    bool varFlagSet=!_varsInScope;
+    bool varFlagSet=f->connective()==FORALL && !_varsInScope;
     if(varFlagSet) {
       _varsInScope=true;
     }
@@ -439,53 +440,51 @@ bool Naming::canBeInDefinition(Formula* f, Where where)
 {
   CALL("Naming::canBeInDefinition");
 
-  if(!_preserveEpr || where==UNDER_IFF) {
+  if(!_preserveEpr) {
     return true;
   }
 
-  switch (f->connective()) {
-  case LITERAL:
-    return true;
-  case AND:
-  case OR:
-  {
-    FormulaList::Iterator fit(f->args());
-    while(fit.hasNext()) {
-      Formula* arg=fit.next();
-      if(!canBeInDefinition(arg, where)) {
-	return false;
+  bool unQuant=false;
+  bool exQuant=false;
+  bool unUnderEx=false;
+  SubformulaIterator sfit(f);
+  //QUADRATIC ALGORITHM
+  while(sfit.hasNext()) {
+    Formula* sf=sfit.next();
+    if(sf->connective()==FORALL) {
+      unQuant=true;
+    }
+    if(sf->connective()==EXISTS) {
+      exQuant=true;
+      SubformulaIterator sfit2(sf->qarg());
+      while(sfit2.hasNext()) {
+	if(sfit2.next()->connective()==FORALL) {
+	  unUnderEx=true;
+	}
       }
     }
-    return true;
   }
-  case FORALL:
-  {
-    bool varFlagSet=!_varsInScope;
-    if(varFlagSet) {
-      _varsInScope=true;
-    }
-    bool res=canBeInDefinition(f->qarg(), where);
-    if(varFlagSet) {
-      _varsInScope=false;
-    }
-    return res;
-  }
-  case EXISTS:
-    return !_varsInScope;
-  case IFF:
-  case XOR:
-    //the arguments of the formula will be both negated and non-negated
-    //anyway, so non-introducing names will not avoid Skolem functions
-    return true;
 
-  //the following connectives cannot appear, since the formula is in ENNF
-  case IMP:
-  case NOT:
-  case TRUE:
-  case FALSE:
-  default:
-    ASSERTION_VIOLATION;
+
+  Formula::VarList* fvars=f->freeVariables();
+  bool freeVars=fvars;
+  fvars->destroy();
+
+  if(!_varsInScope && freeVars && (exQuant||unQuant)) {
+    return false;
   }
+
+  if(where==UNDER_IFF) {
+    return true;
+  }
+
+  if(unUnderEx || (freeVars && unQuant)) {
+    //a universal quantifier will turn in the definition into an existential
+    //that will be skolemized into n non-constant function
+    return false;
+  }
+
+  return true;
 }
 
 /**
