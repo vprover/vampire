@@ -32,12 +32,12 @@ struct TheoryAxioms::Arithmetic
 {
   void inclusionImplications()
   {
-    if(has(Theory::GREATER_EQUAL) || has(Theory::LESS) || has(Theory::LESS_EQUAL)) {
-      include(Theory::GREATER);
-    }
-    if(has(Theory::GREATER)) {
-      include(Theory::PLUS);
-    }
+//    if(has(Theory::GREATER)) {
+//      include(Theory::PLUS);
+//    }
+//    if(has(Theory::GREATER_EQUAL) || has(Theory::LESS) || has(Theory::LESS_EQUAL)) {
+//      include(Theory::GREATER);
+//    }
     if(has(Theory::INT_GREATER_EQUAL) || has(Theory::INT_LESS) || has(Theory::INT_LESS_EQUAL)) {
       include(Theory::INT_GREATER);
     }
@@ -45,12 +45,7 @@ struct TheoryAxioms::Arithmetic
       include(Theory::PLUS);
     }
 
-    if(has(Theory::SUCCESSOR)) {
-      include(Theory::PLUS);
-    }
-
     if(has(Theory::MINUS)) {
-      include(Theory::UNARY_MINUS);
       include(Theory::PLUS);
     }
     if(has(Theory::UNARY_MINUS)) {
@@ -58,6 +53,7 @@ struct TheoryAxioms::Arithmetic
     }
     if(has(Theory::PLUS)) {
       include(Theory::UNARY_MINUS);
+      include(Theory::INT_GREATER);
     }
 
 
@@ -71,37 +67,25 @@ struct TheoryAxioms::Arithmetic
       include(Theory::INT_LESS);
       include(Theory::INT_LESS_EQUAL);
     }
-    if(has(Theory::DIVIDE)) {
-      include(Theory::MULTIPLY);
-    }
+//    if(has(Theory::DIVIDE)) {
+//      include(Theory::MULTIPLY);
+//    }
   }
   void enumerate()
   {
     if(has(Theory::PLUS)) {
+      ASS(has(Theory::INT_GREATER));
+
       //group axioms
+      axiom( (X0+X1)+X2==X0+(X1+X2) );
       axiom( X0+zero==X0 );
       axiom( -(X0+X1)==(-X0)+(-X1) );
       axiom( X0+(-X0)==zero );
-      axiom( (X0+X1)+X2==X0+(X1+X2) );
 
       //commutativity
       axiom( X0+X1==X1+X0 );
 
-      if(has(Theory::SUCCESSOR)) {
-	axiom( X0++==(X0+one) );
-	axiom( X0+(X1++)==(X0+X1)++ );
-      }
 
-      if(has(Theory::GREATER)) {
-	axiom( (X1>X2) --> (X1+X0>X2+X0) );
-      }
-      if(has(Theory::INT_GREATER)) {
-	axiom( igt(X1,X2) --> igt(X1+X0,X2+X0) );
-	axiom( igt(X0,X1) --> !igt(X1+one,X0) );
-      }
-    }
-
-    if(has(Theory::INT_GREATER)) {
       //order axioms
       axiom( !igt(X0,X0) );
       axiom( (igt(X0,X1) & igt(X1,X2)) --> igt(X0,X2) );
@@ -109,40 +93,48 @@ struct TheoryAxioms::Arithmetic
       //total order
       axiom( (!igt(X0,X1)) | !igt(X1,X0) );
 
+      //connects groups and order
+      axiom( igt(X1,X2) --> igt(X1+X0,X2+X0) );
+
       //specific for arithmetic
       axiom( igt(one,zero) );
+      axiom( igt(X0,X1) --> !igt(X1+one,X0) );
 
 //      axiom( (!igt(X0,X1)) --> ((X0==X1) | igt(X1,X0)) );
 
-      if(has(Theory::SUCCESSOR)) {
-	axiom( igt(X0++,X0) );
-	axiom( !ex(X1, igt(X0++,X1) & igt(X1, X0) ) );
-      }
     }
-
-    if(has(Theory::GREATER)) {
-      axiom( !(X0>X0) );
-      axiom( ((X0>X1) & (X1>X2)) --> (X0>X2) );
-
-      //total order
-      axiom( (!(X0>X1)) | !(X1>X0) );
-
-      //specific for arithmetic
-      axiom( one>zero );
-
-//      axiom( (!(X0>X1)) --> ((X0==X1) | (X1>X0)) );
-
-      if(has(Theory::SUCCESSOR)) {
-	axiom( X0++>X0 );
-      }
+#if VDEBUG
+    else {
+      ASS(!has(Theory::INT_GREATER));
     }
+#endif
 
+//    if(has(Theory::GREATER)) {
+//      axiom( !(X0>X0) );
+//      axiom( ((X0>X1) & (X1>X2)) --> (X0>X2) );
+//
+//      //total order
+//      axiom( (!(X0>X1)) | !(X1>X0) );
+//
+//      //specific for arithmetic
+//      axiom( one>zero );
+//
+////      axiom( (!(X0>X1)) --> ((X0==X1) | (X1>X0)) );
+//
+//      if(has(Theory::PLUS)) {
+//	axiom( (X1>X2) --> (X1+X0>X2+X0) );
+//      }
+//      if(has(Theory::SUCCESSOR)) {
+//	axiom( X0++>X0 );
+//      }
+//    }
+//
     if(has(Theory::MULTIPLY)) {
       axiom( X0*X1==X1*X0 );
       axiom( (X0*X1)*X2==X0*(X1*X2) );
       axiom( X0*one==X0 );
       axiom( X0*zero==zero );
-      
+
       if(has(Theory::PLUS)) {
         axiom( X0*(X1++)==(X0*X1)+X0 );
         axiom( (X0+X1)*(X2+X3) == (X0*X2 + X0*X3 + X1*X2 + X1*X3) );
@@ -158,37 +150,27 @@ struct TheoryAxioms::Arithmetic
 
       axiom( (X1!=zero) --> (idiv(X0,X1)+X2==idiv(X0+(X1*X2),X1)) );
     }
-    if(has(Theory::DIVIDE)) {
-      axiom( (X1!=zero) --> ( (X0/X1==X2) -=- (X1*X2==X0) ) );
-    }
-    
-    if(has(Theory::GREATER_EQUAL)) {
-      axiom( (X0>=X1) -=- !(X1>X0) );
-    }
-    if(has(Theory::LESS)) {
-      axiom( (X0<X1) -=- (X1>X0) );
-    }
-    if(has(Theory::LESS_EQUAL)) {
-      axiom( (X0<=X1) -=- !(X0>X1) );
-    }
-
-    if(has(Theory::INT_GREATER_EQUAL)) {
-      axiom( ige(X0,X1) -=- !igt(X1,X0) );
-    }
-    if(has(Theory::INT_LESS)) {
-      axiom( ilt(X0,X1) -=- igt(X1,X0) );
-    }
-    if(has(Theory::INT_LESS_EQUAL)) {
-      axiom( ile(X0,X1) -=- !igt(X0,X1) );
-    }
+//    if(has(Theory::DIVIDE)) {
+//      axiom( (X1!=zero) --> ( (X0/X1==X2) -=- (X1*X2==X0) ) );
+//    }
+//
+//    if(has(Theory::GREATER_EQUAL)) {
+//      axiom( (X0>=X1) -=- !(X1>X0) );
+//    }
+//    if(has(Theory::LESS)) {
+//      axiom( (X0<X1) -=- (X1>X0) );
+//    }
+//    if(has(Theory::LESS_EQUAL)) {
+//      axiom( (X0<=X1) -=- !(X0>X1) );
+//    }
   }
 };
 
 /**
  * Add theory axioms to the @b units list that are relevant to
  * units present in the list. Update the property object @b prop.
- * Replace in each formula the binary minus by plus together with
- * an unary minus.
+ * Replace in each formula instances of X-Y by X+(-Y) and X++ by
+ * X+1 and <,<=,>= by >.
  */
 void TheoryAxioms::apply(UnitList*& units, Property* prop)
 {
@@ -233,12 +215,14 @@ void TheoryAxioms::apply(UnitList*& units, Property* prop)
 
   units=UnitList::concat(newAxioms, units);
 
-  //if there is a binary minus, replace it by plus and unary minus
-  if(axGen.has(Theory::MINUS)) {
+  //replace some function and predicate definitions
+  if( axGen.has(Theory::MINUS) || axGen.has(Theory::SUCCESSOR) ||
+      axGen.has(Theory::INT_LESS_EQUAL) || axGen.has(Theory::INT_LESS) ||
+      axGen.has(Theory::INT_GREATER_EQUAL) ) {
     UnitList::DelIterator us(units);
     while (us.hasNext()) {
       Unit* u = us.next();
-      Unit* v = replaceMinus(u);
+      Unit* v = replaceFunctions(u);
       if (v != u) {
 	us.replace(v);
       }
@@ -248,15 +232,15 @@ void TheoryAxioms::apply(UnitList*& units, Property* prop)
 }
 
 /**
- * Replace the binary minus by a plus together with unary minus
+ * Replace some functions and predicates by their definitions
  */
-Unit* TheoryAxioms::replaceMinus(Unit* u)
+Unit* TheoryAxioms::replaceFunctions(Unit* u)
 {
-  CALL("TheoryAxioms::replaceMinus(Unit*)");
+  CALL("TheoryAxioms::replaceFunctions(Unit*)");
 
   if(!u->isClause()) {
     Formula* f=static_cast<FormulaUnit*>(u)->formula();
-    Formula* g=replaceMinus(f);
+    Formula* g=replaceFunctions(f);
     if(f==g) {
       return u;
     }
@@ -271,7 +255,7 @@ Unit* TheoryAxioms::replaceMinus(Unit* u)
   bool modified=false;
   for(unsigned i=0;i<clen;i++) {
     Literal* l=(*cl)[i];
-    Literal* m=replaceMinus(l);
+    Literal* m=replaceFunctions(l);
     lits.push(m);
     if(l!=m) {
       modified=true;
@@ -286,23 +270,23 @@ Unit* TheoryAxioms::replaceMinus(Unit* u)
 }
 
 /**
- * Replace the binary minus by a plus together with unary minus
+ * Replace some functions and predicates by their definitions
  */
-Formula* TheoryAxioms::replaceMinus(Formula* f)
+Formula* TheoryAxioms::replaceFunctions(Formula* f)
 {
-  CALL("TheoryAxioms::replaceMinus(Formula*)");
+  CALL("TheoryAxioms::replaceFunctions(Formula*)");
 
   switch (f->connective()) {
   case LITERAL:
     {
-      Literal* lit = replaceMinus(f->literal());
+      Literal* lit = replaceFunctions(f->literal());
       return lit == f->literal() ? f : new AtomicFormula(lit);
     }
 
   case AND:
   case OR:
     {
-      FormulaList* newArgs = replaceMinus(f->args());
+      FormulaList* newArgs = replaceFunctions(f->args());
       if (newArgs == f->args()) {
 	return f;
       }
@@ -313,8 +297,8 @@ Formula* TheoryAxioms::replaceMinus(Formula* f)
   case IFF:
   case XOR:
     {
-      Formula* l = replaceMinus(f->left());
-      Formula* r = replaceMinus(f->right());
+      Formula* l = replaceFunctions(f->left());
+      Formula* r = replaceFunctions(f->right());
       if (l == f->left() && r == f->right()) {
 	return f;
       }
@@ -323,7 +307,7 @@ Formula* TheoryAxioms::replaceMinus(Formula* f)
 
   case NOT:
     {
-      Formula* arg = replaceMinus(f->uarg());
+      Formula* arg = replaceFunctions(f->uarg());
       if (f->uarg() == arg) {
 	return f;
       }
@@ -333,7 +317,7 @@ Formula* TheoryAxioms::replaceMinus(Formula* f)
   case FORALL:
   case EXISTS:
     {
-      Formula* arg = replaceMinus(f->qarg());
+      Formula* arg = replaceFunctions(f->qarg());
       if (arg == f->qarg()) {
 	return f;
       }
@@ -350,19 +334,19 @@ Formula* TheoryAxioms::replaceMinus(Formula* f)
 }
 
 /**
- * Replace the binary minus by a plus together with unary minus
+ * Replace some functions and predicates by their definitions
  */
-FormulaList* TheoryAxioms::replaceMinus(FormulaList* fs)
+FormulaList* TheoryAxioms::replaceFunctions(FormulaList* fs)
 {
-  CALL("TheoryAxioms::replaceMinus(FormulaList*)");
+  CALL("TheoryAxioms::replaceFunctions(FormulaList*)");
 
   if (fs->isEmpty()) {
     return fs;
   }
   Formula* f = fs->head();
   FormulaList* tail = fs->tail();
-  Formula* g = replaceMinus(f);
-  FormulaList* gs = replaceMinus(tail);
+  Formula* g = replaceFunctions(f);
+  FormulaList* gs = replaceFunctions(tail);
 
   if (f == g && tail == gs) {
     return fs;
@@ -372,11 +356,11 @@ FormulaList* TheoryAxioms::replaceMinus(FormulaList* fs)
 }
 
 /**
- * Replace the binary minus by a plus together with unary minus
+ * Replace some functions and predicates by their definitions
  */
-Literal* TheoryAxioms::replaceMinus(Literal* l)
+Literal* TheoryAxioms::replaceFunctions(Literal* l)
 {
-  CALL("TheoryAxioms::replaceMinus(Literal*)");
+  CALL("TheoryAxioms::replaceFunctions(Literal*)");
 
   //Term to be replaced
   //The terms are put on the stack in a 'parents first' manner,
@@ -388,10 +372,10 @@ Literal* TheoryAxioms::replaceMinus(Literal* l)
   SubtermIterator sit(l);
   while(sit.hasNext()) {
     TermList t=sit.next();
-    if(!theory->isInterpretedFunction(t, Theory::MINUS)) {
-      continue;
+    if(theory->isInterpretedFunction(t, Theory::MINUS) ||
+	theory->isInterpretedFunction(t, Theory::SUCCESSOR)) {
+      rTerms.push(t);
     }
-    rTerms.push(t);
   }
 
   //now let's do the replacing
@@ -399,12 +383,36 @@ Literal* TheoryAxioms::replaceMinus(Literal* l)
   while(rit.hasNext()) {
     TermList orig=rit.next();
     Term* ot=orig.term();
-    ASS_EQ(ot->arity(),2);
-
-    TermList arg2Neg=TermList(theory->fun1(Theory::UNARY_MINUS, *ot->nthArgument(1)));
-    TermList repl=TermList(theory->fun2(Theory::PLUS, *ot->nthArgument(0), arg2Neg));
-
+    TermList repl;
+    if(theory->isInterpretedFunction(ot, Theory::MINUS)) {
+      ASS_EQ(ot->arity(),2);
+      TermList arg2Neg=TermList(theory->fun1(Theory::UNARY_MINUS, *ot->nthArgument(1)));
+      repl=TermList(theory->fun2(Theory::PLUS, *ot->nthArgument(0), arg2Neg));
+    }
+    else {
+      ASS(theory->isInterpretedFunction(ot, Theory::SUCCESSOR));
+      ASS_EQ(ot->arity(),1);
+      repl=TermList(theory->fun2(Theory::PLUS, *ot->nthArgument(0), theory->one()));
+    }
     l=EqHelper::replace(l, orig, repl);
+  }
+
+  if(theory->isInterpretedPredicate(l)) {
+    Interpretation itpPred=theory->interpretPredicate(l);
+    //we want to transform all integer inequalities to INT_GREATER
+    if(itpPred==Theory::INT_GREATER_EQUAL || itpPred==Theory::INT_LESS || itpPred==Theory::INT_LESS_EQUAL) {
+      bool polarity=l->polarity();
+      if(itpPred==Theory::INT_LESS_EQUAL || itpPred==Theory::INT_GREATER_EQUAL) {
+	polarity^=1;
+      }
+      TermList arg1=*l->nthArgument(0);
+      TermList arg2=*l->nthArgument(1);
+      if(itpPred==Theory::INT_LESS || itpPred==Theory::INT_GREATER_EQUAL) {
+	swap(arg1, arg2);
+      }
+
+      l=theory->pred2(Theory::INT_GREATER, polarity, arg1, arg2);
+    }
   }
 
   return l;
