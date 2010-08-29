@@ -446,9 +446,7 @@ bool Naming::canBeInDefinition(Formula* f, Where where)
 
   bool unQuant=false;
   bool exQuant=false;
-  bool unUnderEx=false;
   SubformulaIterator sfit(f);
-  //QUADRATIC ALGORITHM
   while(sfit.hasNext()) {
     Formula* sf=sfit.next();
     if(sf->connective()==FORALL) {
@@ -456,12 +454,6 @@ bool Naming::canBeInDefinition(Formula* f, Where where)
     }
     if(sf->connective()==EXISTS) {
       exQuant=true;
-      SubformulaIterator sfit2(sf->qarg());
-      while(sfit2.hasNext()) {
-	if(sfit2.next()->connective()==FORALL) {
-	  unUnderEx=true;
-	}
-      }
     }
   }
 
@@ -470,17 +462,7 @@ bool Naming::canBeInDefinition(Formula* f, Where where)
   bool freeVars=fvars;
   fvars->destroy();
 
-  if(!_varsInScope && freeVars && (exQuant||unQuant)) {
-    return false;
-  }
-
-  if(where==UNDER_IFF) {
-    return true;
-  }
-
-  if(unUnderEx || (freeVars && unQuant)) {
-    //a universal quantifier will turn in the definition into an existential
-    //that will be skolemized into n non-constant function
+  if(!_varsInScope && freeVars && (exQuant|| (unQuant && where==UNDER_IFF))) {
     return false;
   }
 

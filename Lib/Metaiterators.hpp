@@ -343,6 +343,9 @@ WhileLimitedIterator<Inner,Functor> getWhileLimitedIterator(Inner inn, Functor f
 
 /**
  * Iterator that concatenates two other iterators
+ *
+ * The @b knowsSize() and @b size() functions of this iterator can be
+ * called only if both underlying iterators contain these functions.
  */
 template<class It1,class It2>
 class CatIterator
@@ -380,17 +383,30 @@ public:
   /**
    * Return true the size of the iterator can be obtained
    *
-   * The inner iterators do not have to contain the @b knowsSize function,
-   * as long as this function is not being called.
+   * This function can be called only if both underlying iterators contain
+   * the @b knowsSize() function.
    */
   bool knowsSize() const { return _it1.knowsSize() && _it2.knowsSize(); }
+  /**
+   * Return the initial number of elements of this iterator
+   *
+   * This function can be called only if both underlying iterators contain
+   * the @b size() function, and if the @b knowsSize() function returns true.
+   */
   size_t size() const { return _it1.size()+_it2.size(); }
 private:
+  /** False if we have already iterated through the first iterator */
   bool _first;
   It1 _it1;
   It2 _it2;
 };
 
+/**
+ * Return iterators @b it1 and @b it2 contatenated using object of
+ * the @b CatIterator class
+ *
+ * @see CatIterator
+ */
 template<class It1,class It2>
 inline
 CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
@@ -401,8 +417,11 @@ CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
 
 
 /**
- * Implementation object for VirtualIterator, that yields elements
- * of its inner iterator transformed by specified functor.
+ * Iterator that transforms elements of its inner iterator by
+ * a specified functor
+ *
+ * The @b knowsSize() and @b size() functions of this iterator can be
+ * called only if the underlying iterator contains these functions.
  */
 template<typename Inner, typename Functor>
 class MappingIterator
@@ -414,13 +433,31 @@ public:
   inline bool hasNext() { return _inner.hasNext(); };
   inline RETURN_TYPE(Functor) next() { return _func(_inner.next()); };
 
+  /**
+   * Return true the size of the iterator can be obtained
+   *
+   * This function can be called only if the underlying iterator contains
+   * the @b knowsSize() function.
+   */
   inline bool knowsSize() const { return _inner.knowsSize(); }
+  /**
+   * Return the initial number of elements of this iterator
+   *
+   * This function can be called only if the underlying iterator contains
+   * the @b size() function, and if the @b knowsSize() function returns true.
+   */
   inline size_t size() const { return _inner.size(); }
 private:
   Functor _func;
   Inner _inner;
 };
 
+/**
+ * Return iterator that returns elements of @b it transformed by
+ * the functor @b f
+ *
+ * @see MappingIterator
+ */
 template<typename Inner, typename Functor>
 MappingIterator<Inner,Functor> getMappingIterator(Inner it, Functor f)
 {
@@ -429,8 +466,9 @@ MappingIterator<Inner,Functor> getMappingIterator(Inner it, Functor f)
 
 
 /**
- * Implementation object for VirtualIterator, that yields elements
- * created by Constructor with parameter from its inner iterator.
+ * Iterator that uses elements of its inner iterator as argments to
+ * single-parameter constructor @b Constructor, and yields created
+ * objects.
  */
 template<typename Constructor, typename Inner>
 class ConstructingIterator
@@ -445,6 +483,13 @@ private:
   Inner _inner;
 };
 
+/**
+ * Return iterator that uses elements of @b it as arguments to
+ * the single-paramater constructor of type @b Constructor and
+ * returns the created elements
+ *
+ * @see ConstructingIterator
+ */
 template<typename Constructor, typename Inner>
 inline
 ConstructingIterator<Constructor,Inner> getConstructingIterator(Inner it)
@@ -454,14 +499,13 @@ ConstructingIterator<Constructor,Inner> getConstructingIterator(Inner it)
 
 
 /**
- * Implementation object for VirtualIterator, that flattens
- * VirtualIterator<VirtualIterator<T>> into VirtualIterator<T>.
+ * Iterator that takes iterator over iterators as its argument and
+ * flattens it, returning elements of the inner iterators.
  *
- * When the inner iterator is empty, pointer to its core is
- * dropped even before the hasNext() method of the outer iterator
- * is called. This could be important in the case, that inner
- * iterators use some resource of the outer iterator, that has to
- * be released by its destructor before calling the outer iterator.
+ * @tparam Master The outer iterator to be flattened. It must be
+ *   an iterator over iterators, which also means that the macro
+ *   @b ELEMENT_TYPE() must be applicable to the result of
+ *   @b ELEMENT_TYPE(Master)
  */
 template<typename Master>
 class FlatteningIterator
@@ -509,6 +553,20 @@ private:
   Inner _current;
 };
 
+/**
+ * Iterator that takes iterator over iterators as its argument and
+ * flattens it, returning elements of the inner iterators.
+ *
+ * This specialization is used for virtual iterators over virtual
+ * iterators. It takes care that the inner iterators are released
+ * as early as possible:
+ *
+ * When the inner iterator is empty, pointer to its core is
+ * dropped even before the hasNext() method of the outer iterator
+ * is called. This is important when inner iterators use some resource
+ * of the outer iterator which has to be released by its destructor
+ * before asking the outer iterator about next element.
+ */
 template<typename T>
 class FlatteningIterator<VirtualIterator<VirtualIterator<T> > >
 {
@@ -544,6 +602,14 @@ private:
   Inner _current;
 };
 
+/**
+ * Return iterator that flattens the iterator over iterators @b it
+ * into an iterator over elements the inner elements
+ *
+ * @b it must be an iterator over iterators
+ *
+ * @see FlatteningIterator, FlatteningIterator<VirtualIterator<VirtualIterator<T>>>
+ */
 template<typename T>
 inline
 FlatteningIterator<T> getFlattenedIterator(T it)
@@ -551,6 +617,17 @@ FlatteningIterator<T> getFlattenedIterator(T it)
   return FlatteningIterator<T>(it);
 }
 
+/**
+ * Return iterator that applies functor @b f to elements of the @b it
+ * iterator, treats the result as iterators and flattens them
+ *
+ * This function is a combination of the @b getMappingIterator() and
+ * @b getFlattenedIterator() functions.
+ *
+ * The functor @b f must return an iterator
+ *
+ * @see getMappingIterator(), getFlattenedIterator()
+ */
 template<typename Inner, typename Functor>
 inline
 FlatteningIterator<MappingIterator<Inner,Functor> > getMapAndFlattenIterator(Inner it, Functor f)
@@ -559,7 +636,19 @@ FlatteningIterator<MappingIterator<Inner,Functor> > getMapAndFlattenIterator(Inn
 	  MappingIterator<Inner,Functor>(it, f) );
 }
 
-
+/**
+ * Iterator that in its constructor stores elements of an inner iterator
+ * and then returns these elements later in the same order
+ *
+ * The iterator object does not contain the copy constructor or
+ * the operator=. If this behavior is required, it should be created
+ * on the heap and pointer to it put inside a VirtualIterator object.
+ *
+ * This iterator should be used when a resource held by an iterator
+ * needs to be released before the elements of the iterator are required.
+ *
+ * @see VirtualIterator
+ */
 template<class Inner>
 class PersistentIterator
 : public IteratorCore<ELEMENT_TYPE(Inner)>
@@ -592,11 +681,14 @@ private:
 };
 
 /**
- * Return iterator, that yields the same values in
- * the same order as @b it. Benefit of this iterator
- * is, that @b it object is used only during
- * initialization. (So it's underlying object can be
- * freed and the returned iterator will remain valid.)
+ * Return iterator that stores values of @b it in its constructor,
+ * and then yields them in the same order
+ *
+ * After the call to this function, the iterator @b it and any resources
+ * it holds may be released, since the elements are stored independently
+ * of it.
+ *
+ * @see PersistentIterator
  */
 template<class Inner>
 inline
@@ -606,6 +698,17 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getPersistentIterator(Inner it)
 }
 
 
+/**
+ * Iterator that in its constructor stores elements of an inner iterator
+ * and then returns these elements later in a deterministic order, skipping
+ * the duplicate ones
+ *
+ * The iterator object does not contain the copy constructor or
+ * the operator=. If this behavior is required, it should be created
+ * on the heap and pointer to it put inside a VirtualIterator object.
+ *
+ * @see VirtualIterator
+ */
 template<class Inner>
 class UniquePersistentIterator
 : public IteratorCore<ELEMENT_TYPE(Inner)>
@@ -664,10 +767,14 @@ private:
 };
 
 /**
- * Return iterator, that yields unique values yielded by @b it.
- * Those values are yielded in arbitrary order.
+ * Return iterator that stores values of @b it in its constructor,
+ * and then yields them in a deterministic order, skipping duplicate values
  *
- * @b it object is used only during initialization.
+ * After the call to this function, the iterator @b it and any resources
+ * it holds may be released, since the elements are stored independently
+ * of it.
+ *
+ * @see UniquePersistentIterator
  */
 template<class Inner>
 inline
@@ -678,6 +785,18 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIterator(Inner it)
   }
   return vi( new UniquePersistentIterator<Inner>(it) );
 }
+
+/**
+ * Return iterator that stores values of the iterator pointed to by @b it
+ * in its constructor, and then yields them in a deterministic order,
+ * skipping duplicate values
+ *
+ * After the call to this function, the iterator pointed to by @b it and
+ * any resources it holds may be released, since the elements are stored
+ * independently of it.
+ *
+ * @see UniquePersistentIterator
+ */
 template<class Inner>
 inline
 VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIteratorFromPtr(Inner* it)
@@ -688,7 +807,11 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIteratorFromPtr(Inner* i
   return vi( new UniquePersistentIterator<Inner>(*it) );
 }
 
-
+/**
+ * Iterator that goes from object @b from to the object @b to using the
+ * postfix @b operator++. (The objects are passed in the constructor.)
+ * The object @b to is not returned.
+ */
 template<typename T>
 class RangeIterator
 {
@@ -708,9 +831,10 @@ private:
 };
 
 /**
- * Return iterator, that yields objects @b from,
- * (@b from)++, ((@b from)++)++,... until it reaches
- * object @b to. The @b to object is not yielded.
+ * Return iterator that goes from object @b from to the object @b to
+ * using the postfix @b operator++; the object @b to is not returned
+ *
+ * @see RangeIterator
  */
 template<typename T>
 RangeIterator<T> getRangeIterator(T from, T to)

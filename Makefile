@@ -296,6 +296,10 @@ LIB_DEP = Indexing/TermSharing.o\
 		  Kernel/FormulaUnit.o\
 		  Kernel/FormulaVarIterator.o\
 		  Kernel/Inference.o\
+		  Kernel/KBO.o\
+		  Kernel/KBOForEPR.o\
+		  Kernel/Ordering.o\
+		  Kernel/Ordering_Equality.o\
 		  Kernel/Signature.o\
 		  Kernel/SubformulaIterator.o\
 		  Kernel/Substitution.o\
@@ -309,6 +313,7 @@ LIB_DEP = Indexing/TermSharing.o\
 
 OTHER_CL_DEP = Inferences/InferenceEngine.o\
 			   Inferences/TautologyDeletionISE.o\
+			   Kernel/EqHelper.o\
 			   Kernel/InferenceStore.o\
 			   SAT/SATClause.o\
 			   SAT/SATLiteral.o

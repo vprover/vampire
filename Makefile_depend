@@ -49,7 +49,7 @@ $(CONF_ID)/Api/Problem.o: Kernel/Connective.hpp Shell/LispLexer.hpp
 $(CONF_ID)/Api/Problem.o: Shell/Lexer.hpp Lib/Array.hpp Shell/Token.hpp
 $(CONF_ID)/Api/Problem.o: Shell/LispParser.hpp Shell/Parser.hpp Lib/DHMap.hpp
 $(CONF_ID)/Api/Problem.o: Lib/IntNameTable.hpp Lib/Array.hpp Lib/Map.hpp
-$(CONF_ID)/Api/Problem.o: Shell/Naming.hpp Shell/NNF.hpp Shell/Options.hpp
+$(CONF_ID)/Api/Problem.o: Shell/Naming.hpp Shell/Options.hpp Shell/NNF.hpp
 $(CONF_ID)/Api/Problem.o: Shell/Rectify.hpp Shell/Skolem.hpp
 $(CONF_ID)/Api/Problem.o: Kernel/Substitution.hpp Lib/Random.hpp
 $(CONF_ID)/Api/Problem.o: Lib/Environment.hpp Kernel/Term.hpp
@@ -572,6 +572,7 @@ $(CONF_ID)/Shell/Naming.o: Lib/VirtualIterator.hpp Kernel/Formula.hpp
 $(CONF_ID)/Shell/Naming.o: Kernel/Connective.hpp Kernel/Term.hpp
 $(CONF_ID)/Shell/Naming.o: Shell/Statistics.hpp Indexing/TermSharing.hpp
 $(CONF_ID)/Shell/Naming.o: Lib/Set.hpp Shell/Naming.hpp Kernel/Formula.hpp
+$(CONF_ID)/Shell/Naming.o: Shell/Options.hpp
 $(CONF_ID)/Shell/Normalisation.o: Lib/Sort.hpp Debug/Assertion.hpp
 $(CONF_ID)/Shell/Normalisation.o: Debug/Tracer.hpp Debug/Tracer.hpp
 $(CONF_ID)/Shell/Normalisation.o: Lib/Allocator.hpp Lib/Portability.hpp
@@ -670,17 +671,18 @@ $(CONF_ID)/Shell/Preprocess.o: Shell/FunctionDefinition.hpp
 $(CONF_ID)/Shell/Preprocess.o: Lib/MultiCounter.hpp Lib/XML.hpp
 $(CONF_ID)/Shell/Preprocess.o: Shell/GeneralSplitting.hpp
 $(CONF_ID)/Shell/Preprocess.o: Shell/InequalitySplitting.hpp Shell/Naming.hpp
-$(CONF_ID)/Shell/Preprocess.o: Shell/Normalisation.hpp Lib/Comparison.hpp
-$(CONF_ID)/Shell/Preprocess.o: Shell/SymCounter.hpp Shell/NNF.hpp
-$(CONF_ID)/Shell/Preprocess.o: Shell/PredicateDefinition.hpp Lib/DArray.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/Comparison.hpp Lib/Random.hpp
-$(CONF_ID)/Shell/Preprocess.o: Kernel/FormulaUnit.hpp Shell/Preprocess.hpp
-$(CONF_ID)/Shell/Preprocess.o: Shell/Property.hpp Shell/Rectify.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/Array.hpp Shell/Skolem.hpp
-$(CONF_ID)/Shell/Preprocess.o: Kernel/Substitution.hpp Lib/Random.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/Environment.hpp Kernel/Term.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/Portability.hpp Kernel/MatchTag.hpp
-$(CONF_ID)/Shell/Preprocess.o: Lib/BitUtils.hpp Shell/SimplifyFalseTrue.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/Options.hpp Shell/Normalisation.hpp
+$(CONF_ID)/Shell/Preprocess.o: Lib/Comparison.hpp Shell/SymCounter.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/NNF.hpp Shell/PredicateDefinition.hpp
+$(CONF_ID)/Shell/Preprocess.o: Lib/DArray.hpp Lib/Comparison.hpp
+$(CONF_ID)/Shell/Preprocess.o: Lib/Random.hpp Kernel/FormulaUnit.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/Preprocess.hpp Shell/Property.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/Rectify.hpp Lib/Array.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/Skolem.hpp Kernel/Substitution.hpp
+$(CONF_ID)/Shell/Preprocess.o: Lib/Random.hpp Lib/Environment.hpp
+$(CONF_ID)/Shell/Preprocess.o: Kernel/Term.hpp Lib/Portability.hpp
+$(CONF_ID)/Shell/Preprocess.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
+$(CONF_ID)/Shell/Preprocess.o: Shell/SimplifyFalseTrue.hpp
 $(CONF_ID)/Shell/Preprocess.o: Shell/SineUtils.hpp Shell/Statistics.hpp
 $(CONF_ID)/Shell/Preprocess.o: Shell/TheoryAxioms.hpp
 $(CONF_ID)/Shell/Profile.o: Debug/Tracer.hpp Lib/Int.hpp Lib/Comparison.hpp
@@ -941,23 +943,32 @@ $(CONF_ID)/Shell/TPTPParser.o: Lib/Array.hpp Lib/Map.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Lib/Environment.hpp Forwards.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Debug/Log.hpp Debug/Tracer.hpp Config.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Debug/Assertion.hpp Kernel/Signature.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Lib/Allocator.hpp Lib/Stack.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Debug/Assertion.hpp Lib/Stack.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Debug/Tracer.hpp Lib/Allocator.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Lib/Portability.hpp Lib/Backtrackable.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Lib/List.hpp Lib/VirtualIterator.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Lib/Reflection.hpp Lib/Int.hpp Lib/Map.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Lib/Hash.hpp Lib/DHMap.hpp Kernel/Theory.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/Reflection.hpp Lib/Int.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Kernel/Clause.hpp Lib/Allocator.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/InverseLookup.hpp Lib/Hash.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/DHMap.hpp Lib/Metaiterators.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/DHSet.hpp Lib/Recycler.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/DArray.hpp Lib/TimeCounter.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/Reflection.hpp Kernel/Unit.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/List.hpp Kernel/EqHelper.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/VirtualIterator.hpp Lib/PairUtils.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/Metaiterators.hpp Lib/Metaarrays.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Kernel/Term.hpp Lib/Portability.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Lib/XML.hpp Lib/Comparison.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Lib/Metaiterators.hpp Lib/DHSet.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Lib/DHMap.hpp Lib/Recycler.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Lib/DArray.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Kernel/Formula.hpp Kernel/Connective.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Kernel/FormulaUnit.hpp Kernel/Inference.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Kernel/Unit.hpp Kernel/Signature.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/Map.hpp Lib/DHMap.hpp Kernel/Theory.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Kernel/Term.hpp Kernel/TermIterators.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Lib/Recycler.hpp Kernel/Theory.hpp
 $(CONF_ID)/Shell/TheoryAxioms.o: Shell/AxiomGenerator.hpp Lib/DHSet.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Kernel/Term.hpp Kernel/Theory.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Shell/Property.hpp Kernel/Unit.hpp
-$(CONF_ID)/Shell/TheoryAxioms.o: Shell/SymCounter.hpp Shell/TheoryAxioms.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Shell/Property.hpp Shell/SymCounter.hpp
+$(CONF_ID)/Shell/TheoryAxioms.o: Shell/TheoryAxioms.hpp
 $(CONF_ID)/Shell/TheoryFinder.o: Debug/Tracer.hpp Kernel/Clause.hpp
 $(CONF_ID)/Shell/TheoryFinder.o: Forwards.hpp Debug/Log.hpp Debug/Tracer.hpp
 $(CONF_ID)/Shell/TheoryFinder.o: Config.hpp Lib/Allocator.hpp
@@ -5251,11 +5262,11 @@ $(CONF_ID)/Program/LoopAnalyzer.o: Lib/DArray.hpp Lib/TimeCounter.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Kernel/MatchTag.hpp Lib/BitUtils.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Kernel/Term.hpp Kernel/Formula.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Lib/List.hpp Kernel/Connective.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Kernel/FormulaUnit.hpp Kernel/Unit.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Kernel/Clause.hpp Lib/InverseLookup.hpp
-$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Reflection.hpp Kernel/Unit.hpp
-$(CONF_ID)/Program/LoopAnalyzer.o: Kernel/Inference.hpp Kernel/Unit.hpp
-$(CONF_ID)/Program/LoopAnalyzer.o: Program/Variable.hpp Program/Type.hpp
-$(CONF_ID)/Program/LoopAnalyzer.o: Program/Expression.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/Reflection.hpp Kernel/Inference.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Kernel/Unit.hpp Program/Variable.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Program/Type.hpp Program/Expression.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Program/Statement.hpp Program/Path.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Program/LoopAnalyzer.hpp Lib/Set.hpp
 $(CONF_ID)/Program/Path.o: Program/Path.hpp Debug/Assertion.hpp
