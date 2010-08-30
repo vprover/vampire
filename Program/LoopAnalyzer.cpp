@@ -7,6 +7,7 @@
 
 #include "Debug/Tracer.hpp"
 #include "Lib/DArray.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
@@ -149,12 +150,18 @@ void LoopAnalyzer::analyzeVariables()
     Variable* var;
     bool updated;
     vars.next(var,updated);
+    VariableInfo* vinfo = new VariableInfo;
+    _variableInfo.insert(var,vinfo);
     cout << "Variable: " << var->name() << ": " << (updated ? "(updated)" : "constant") << "\n";
+    bool scalar = (var->vtype()->kind() == Type::INT);
+    vinfo->scalar = scalar;
     if (updated) {
-      _updatedVariables.insert(var);
-      if (var->vtype()->kind() == Type::INT) {
-	_counters.insert(var);
-      }
+      vinfo->updated = true;
+      vinfo->counter = scalar;
+    }
+    else {
+      vinfo->updated = true;
+      vinfo->counter = false;
     }
   }
   Statement::SubstatementIterator sit (_loop->body());
@@ -165,12 +172,29 @@ void LoopAnalyzer::analyzeVariables()
       continue;
     }
     if (! isScalarIncrement(static_cast<Assignment*>(stat))) {
-      _counters.remove(var);
+      _variableInfo.get(var)->counter = false;
     }
   }
-  Set<Variable*>::Iterator vit(_counters);
+  VariableMap::Iterator vit(_variableInfo);
   while (vit.hasNext()) {
-    cout << "Counter: " << vit.next()->name() << "\n";
+    Variable* v;
+    VariableInfo* vinfo;
+    vit.next(v,vinfo);
+
+    // adding the symbol to the signature
+    unsigned arity = vinfo->scalar ? 0 : 1;
+    string name(v->name());
+    vinfo->signatureNumber = env.signature->addFunction(name,arity);
+    if (arity == 0) {
+      vinfo->constant = Term::create(vinfo->signatureNumber,0,0);
+    }
+    if (vinfo->updated) {
+      vinfo->extraSignatureNumber = env.signature->addFunction(name,arity+1);
+    }
+    
+    if (vinfo->counter) {
+      cout << "Counter: " << v->name() << "\n";
+    }
   }
 } 
 
@@ -232,14 +256,21 @@ void LoopAnalyzer::collectPaths()
 void LoopAnalyzer::generateAxiomsForCounters()
 {
   CALL("LoopAnalyzer::generateAxiomsForCounters");
+
   unsigned length = _paths.length();
   if (length == 0) {
     return;
   }
   DArray<int> increments(length);
-  Set<Variable*>::Iterator vit(_counters);
+
+  VariableMap::Iterator vit(_variableInfo);
   while (vit.hasNext()) {
-    Variable* v = vit.next();
+    Variable* v;
+    VariableInfo* vinfo;
+    vit.next(v,vinfo);
+    if (! vinfo->counter) {
+      continue;
+    }
     for (int i = length-1;i >= 0;i--) {
       increments[i] = 0;
     }
@@ -431,5 +462,40 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     _units = _units->cons(new FormulaUnit(new BinaryFormula(IMP,lhs,rhs),
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));
+  }
+}
+
+/**
+ * Convert a program expression into a Vampire expression and relativize it to
+ * the loop counter. This means that every updatable program variable gets an
+ * additional argument: variable x0 and each constant variable is translated
+ * into itself
+ */
+Term* LoopAnalyzer::relativize(Expression* expr)
+{
+  CALL("LoopAnalyzer::relativize");
+
+  switch (expr->kind()) {
+  case Expression::CONSTANT_INTEGER:
+    {
+      int val = static_cast<ConstantIntegerExpression*>(expr)->value();
+      Theory* theory = Theory::instance();
+      return theory->getRepresentation(val);
+    }
+  
+  case Expression::VARIABLE:
+    {
+      VariableExpression* vexp = static_cast<VariableExpression*>(expr);
+      // we can only work with integer variables
+      ASS(vexp->etype()->kind() == Type::INT);
+      // if (_updatedVariables.contains(
+    }
+
+  case Expression::FUNCTION_APPLICATION:
+  case Expression::ARRAY_APPLICATION:
+    return 0;
+
+  case Expression::CONSTANT_FUNCTION:
+    ASS(false);
   }
 }

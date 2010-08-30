@@ -121,6 +121,29 @@ protected:
   } // Map::find
 
   /**
+   * Return the value by the key. The value must be stored in the
+   * map already.
+   * @since 26/08/2010 Torrevieja
+   */
+  Val get(Key key) const
+  {
+    CALL("Map::get");
+
+    unsigned code = Hash::hash(key);
+    if (code == 0) {
+      code = 1;
+    }
+    Entry* entry;
+    for (entry = firstEntryForCode(code);
+	 entry->key != key;
+	 entry = nextEntry(entry)) {
+      ASS(entry->occupied());
+    }
+    ASS(entry->occupied());
+    return entry->value;
+  } // Map::get
+
+  /**
    * Return the first entry for @b code.
    * @since 09/12/2006 Manchester
    */
@@ -351,33 +374,6 @@ protected:
     }
   } // Map::expand
 
-//   /**ul
-//    * Compute hash value of a key and return the entry.
-//    * for this key. If there is an entry stored under this key,
-//    * then the entry is returned. Otherwise, return the non-occupied
-//    * entry in which a pair (key,value) for this key can be stored.
-//    * @since 29/09/2002 Manchester
-//    */
-//   Entry* findEntry (Key key) const
-//   {
-//     Entry* entry = _entries + (Hash::hash(key) % _capacity);
-//     while ( entry->isOccupied() ) {
-//       if (entry->key == key) {
-// 	return entry;
-//       }
-
-//       entry ++;
-//       // check if the entry is a valid one
-//       if (entry ==_afterLast) {
-// 	entry =_entries;
-//       }
-//     }
-
-//     // found non-occupied entry
-//     return entry;
-//   } // Map::findEntry
-
-
 public:
   /**
    * Class to allow iteration over keys and values stored in the map.
@@ -432,7 +428,7 @@ public:
       ASS(_next->occupied());
 			
       val = _next->value;
-			key = _next->key;
+      key = _next->key;
       _next++;
     }
   private:

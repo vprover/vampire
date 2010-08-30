@@ -5248,7 +5248,7 @@ $(CONF_ID)/Program/LoopAnalyzer.o: Debug/Assertion.hpp Lib/Allocator.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Lib/Portability.hpp Lib/Comparison.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Lib/Exception.hpp Lib/LastCopyWatcher.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Lib/Random.hpp Lib/Reflection.hpp
-$(CONF_ID)/Program/LoopAnalyzer.o: Lib/VirtualIterator.hpp
+$(CONF_ID)/Program/LoopAnalyzer.o: Lib/VirtualIterator.hpp Lib/Int.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Lib/Environment.hpp Kernel/Signature.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Lib/Allocator.hpp Lib/Stack.hpp
 $(CONF_ID)/Program/LoopAnalyzer.o: Lib/Backtrackable.hpp Lib/List.hpp
