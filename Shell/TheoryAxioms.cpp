@@ -32,16 +32,16 @@ struct TheoryAxioms::Arithmetic
 {
   void inclusionImplications()
   {
-//    if(has(Theory::GREATER)) {
+//    if(has(Theory::LESS_EQUAL)) {
 //      include(Theory::PLUS);
 //    }
-//    if(has(Theory::GREATER_EQUAL) || has(Theory::LESS) || has(Theory::LESS_EQUAL)) {
-//      include(Theory::GREATER);
+//    if(has(Theory::GREATER_EQUAL) || has(Theory::LESS) || has(Theory::GREATER)) {
+//      include(Theory::LESS_EQUAL);
 //    }
-    if(has(Theory::INT_GREATER_EQUAL) || has(Theory::INT_LESS) || has(Theory::INT_LESS_EQUAL)) {
-      include(Theory::INT_GREATER);
+    if(has(Theory::INT_GREATER_EQUAL) || has(Theory::INT_LESS) || has(Theory::INT_GREATER)) {
+      include(Theory::INT_LESS_EQUAL);
     }
-    if(has(Theory::INT_GREATER)) {
+    if(has(Theory::INT_LESS_EQUAL)) {
       include(Theory::PLUS);
     }
 
@@ -87,20 +87,21 @@ struct TheoryAxioms::Arithmetic
 
 
       //order axioms
-      axiom( !igt(X0,X0) );
-      axiom( (igt(X0,X1) & igt(X1,X2)) --> igt(X0,X2) );
+      axiom( ile(X0,X0) );
+      axiom( (ile(X0,X1) & ile(X1,X2)) --> ile(X0,X2) );
 
       //total order
-      axiom( (!igt(X0,X1)) | !igt(X1,X0) );
+      axiom( (ile(X0,X1)) | ile(X1,X0) );
 
       //connects groups and order
-      axiom( igt(X1,X2) --> igt(X1+X0,X2+X0) );
+      axiom( ile(X1,X2) --> ile(X1+X0,X2+X0) );
 
       //specific for arithmetic
-      axiom( igt(one,zero) );
-      axiom( igt(X0,X1) --> !igt(X1+one,X0) );
+      axiom( ile(zero,one) );
+      axiom( ilt(X0,X1) --> ile(X0+one,X1) );
 
-//      axiom( (!igt(X0,X1)) --> ((X0==X1) | igt(X1,X0)) );
+      //connect strict and non-strict inequality
+      axiom( (ile(X0,X1)) --> ((X0==X1) | ilt(X0,X1)) );
 
     }
 #if VDEBUG
@@ -152,16 +153,6 @@ struct TheoryAxioms::Arithmetic
     }
 //    if(has(Theory::DIVIDE)) {
 //      axiom( (X1!=zero) --> ( (X0/X1==X2) -=- (X1*X2==X0) ) );
-//    }
-//
-//    if(has(Theory::GREATER_EQUAL)) {
-//      axiom( (X0>=X1) -=- !(X1>X0) );
-//    }
-//    if(has(Theory::LESS)) {
-//      axiom( (X0<X1) -=- (X1>X0) );
-//    }
-//    if(has(Theory::LESS_EQUAL)) {
-//      axiom( (X0<=X1) -=- !(X0>X1) );
 //    }
   }
 };
@@ -399,10 +390,10 @@ Literal* TheoryAxioms::replaceFunctions(Literal* l)
 
   if(theory->isInterpretedPredicate(l)) {
     Interpretation itpPred=theory->interpretPredicate(l);
-    //we want to transform all integer inequalities to INT_GREATER
-    if(itpPred==Theory::INT_GREATER_EQUAL || itpPred==Theory::INT_LESS || itpPred==Theory::INT_LESS_EQUAL) {
+    //we want to transform all integer inequalities to INT_LESS_EQUAL
+    if(itpPred==Theory::INT_GREATER || itpPred==Theory::INT_GREATER_EQUAL || itpPred==Theory::INT_LESS) {
       bool polarity=l->polarity();
-      if(itpPred==Theory::INT_LESS_EQUAL || itpPred==Theory::INT_GREATER_EQUAL) {
+      if(itpPred==Theory::INT_GREATER || itpPred==Theory::INT_LESS) {
 	polarity^=1;
       }
       TermList arg1=*l->nthArgument(0);
@@ -411,7 +402,7 @@ Literal* TheoryAxioms::replaceFunctions(Literal* l)
 	swap(arg1, arg2);
       }
 
-      l=theory->pred2(Theory::INT_GREATER, polarity, arg1, arg2);
+      l=theory->pred2(Theory::INT_LESS_EQUAL, polarity, arg1, arg2);
     }
   }
 

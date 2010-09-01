@@ -19,8 +19,8 @@ bool Constraint::isConstraint(Literal* lit)
 {
   CALL("Constraint::isConstraint");
 
-  return lit->isEquality() || theory->isInterpretedPredicate(lit, Theory::GREATER) ||
-      theory->isInterpretedPredicate(lit, Theory::INT_GREATER);
+  return lit->isEquality() || theory->isInterpretedPredicate(lit, Theory::LESS_EQUAL) ||
+      theory->isInterpretedPredicate(lit, Theory::INT_LESS_EQUAL);
 }
 
 /**
@@ -36,7 +36,7 @@ Constraint::Constraint(Literal* lit, bool negate)
 
   _inequality=!lit->isEquality();
   _negative=lit->isNegative();
-  _integer=theory->isInterpretedPredicate(lit, Theory::INT_GREATER);
+  _integer=theory->isInterpretedPredicate(lit, Theory::INT_LESS_EQUAL);
 
   TermList t1=*lit->nthArgument(0);
   TermList t2=*lit->nthArgument(1);

@@ -285,10 +285,9 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
     return true;
   }
 
-  if(itpPred==Theory::GREATER_EQUAL || itpPred==Theory::LESS || itpPred==Theory::LESS_EQUAL) {
-    //we want to transform all inequalities to GREATER
+  if(itpPred==Theory::GREATER || itpPred==Theory::GREATER_EQUAL || itpPred==Theory::LESS) {
+    //we want to transform all inequalities to LESS_EQUAL
     //TODO: create a preprocessing rule for this
-    unsigned grPred=env.signature->getInterpretingSymbol(Theory::GREATER);
     bool polarity=lit->polarity();
     if(itpPred==Theory::LESS_EQUAL || itpPred==Theory::GREATER_EQUAL) {
       polarity^=1;
@@ -297,22 +296,21 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
       swap(argLst[0], argLst[1]);
     }
     constant=false;
-    res=Literal::create(grPred, 2, polarity, false, argLst);
+    res=theory->pred2(Theory::LESS_EQUAL, polarity, argLst[0], argLst[1]);
     return true;
   }
-  if(itpPred==Theory::INT_GREATER_EQUAL || itpPred==Theory::INT_LESS || itpPred==Theory::INT_LESS_EQUAL) {
-    //we want to transform all integer inequalities to INT_GREATER
+  if(itpPred==Theory::INT_GREATER || itpPred==Theory::INT_GREATER_EQUAL || itpPred==Theory::INT_LESS) {
+    //we want to transform all integer inequalities to INT_LESS_EQUAL
     //TODO: create a preprocessing rule for this
-    unsigned grPred=env.signature->getInterpretingSymbol(Theory::INT_GREATER);
     bool polarity=lit->polarity();
-    if(itpPred==Theory::INT_LESS_EQUAL || itpPred==Theory::INT_GREATER_EQUAL) {
+    if(itpPred==Theory::INT_LESS || itpPred==Theory::INT_GREATER) {
       polarity^=1;
     }
     if(itpPred==Theory::INT_LESS || itpPred==Theory::INT_GREATER_EQUAL) {
       swap(argLst[0], argLst[1]);
     }
     constant=false;
-    res=Literal::create(grPred, 2, polarity, false, argLst);
+    res=theory->pred2(Theory::INT_LESS_EQUAL, polarity, argLst[0], argLst[1]);
     return true;
   }
 

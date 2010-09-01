@@ -75,7 +75,7 @@ unsigned Theory::getArity(Interpretation i)
 
 /**
  * Return true iff the symbol that is interpreted by Interpretation
- * is a function (false is returned for predicates).
+ * is a function (false is returned for predicates)
  */
 bool Theory::isFunction(Interpretation i)
 {
@@ -106,6 +106,30 @@ bool Theory::isFunction(Interpretation i)
   ASSERTION_VIOLATION;
 }
 
+/**
+ * Return true iff the symbol that is interpreted by Interpretation
+ * is inequality predicate
+ */
+bool Theory::isInequality(Interpretation i)
+{
+  CALL("Signature::InterpretedSymbol::isInequality");
+  ASS_L(i,(int)interpretationElementCount);
+
+  switch(i) {
+  case GREATER:
+  case GREATER_EQUAL:
+  case LESS:
+  case LESS_EQUAL:
+  case INT_GREATER:
+  case INT_GREATER_EQUAL:
+  case INT_LESS:
+  case INT_LESS_EQUAL:
+    return true;
+  default:
+    return false;
+  }
+  ASSERTION_VIOLATION;
+}
 
 /**
  * Return term with constant representing number 0

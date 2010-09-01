@@ -64,6 +64,7 @@ public:
 
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
+  static bool isInequality(Interpretation i);
 
 
   static Theory* instance();

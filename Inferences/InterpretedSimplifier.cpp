@@ -3,6 +3,8 @@
  * Implements class InterpretedSimplifier.
  */
 
+//TODO: replace GREATER by LESS_EQUAL, since that is the inequality predicate that the others are converted to
+
 #include "Lib/Comparison.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
@@ -860,7 +862,7 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifySingletonVariables()
 {
   CALL("InterpretedSimplifier::ClauseSimplifier::simplifySingletonVariables");
 
-  //remove X # Y   for # in {=,>} and their negations (if Y is a variable that doesn't appear elsewhere)
+  //remove X # Y   for # in {=,<=} and their negations (if Y is a variable that doesn't appear elsewhere)
   
   DHMultiset<unsigned> varOccurences;
 
@@ -879,7 +881,7 @@ bool InterpretedSimplifier::ClauseSimplifier::simplifySingletonVariables()
       continue;
     }
     Interpretation itp=theory->interpretPredicate(lit);
-    if(itp!=Theory::EQUAL && itp!=Theory::GREATER) {
+    if(itp!=Theory::EQUAL && itp!=Theory::LESS_EQUAL) {
       continue;
     }
     bool shouldBeRemoved=false;
