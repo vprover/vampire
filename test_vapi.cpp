@@ -55,46 +55,50 @@ int main(int argc, char* argv [])
   }
 
   FormulaBuilder api(true);
-
+  LOG('a');
   Var xv = api.var("X"); // variable x
   Var yv = api.var("Y"); // variable y
   Term x =  api.varTerm(xv); // term x
   Term y =  api.varTerm(yv); // term y
   Function f = api.function("f",1);
-  Term fx = api.term(f,x); // f(x)
-  Term fy = api.term(f,y); // f(y)
-  Formula lhs = api.equality(fx,fy); // f(x) = f(y)
+  Term fx = api.term(f,x); // f(X)
+  Term fy = api.term(f,y); // f(Y)
+  Formula lhs = api.equality(fx,fy); // f(X) = f(Y)
   Predicate p=api.predicate("p",3);
-  Formula rhs = api.formula(p,x,fx,fy); // p(X0,f(X0),f(X1))
+  Formula rhs = api.formula(p,x,fx,fy); // p(X,f(X),f(Y))
 
   Formula form = api.formula(FormulaBuilder::IFF,lhs,rhs);
-  AnnotatedFormula af = api.annotatedFormula(form, FormulaBuilder::CONJECTURE);
+//  AnnotatedFormula af = api.annotatedFormula(form, FormulaBuilder::CONJECTURE);
+  AnnotatedFormula af = api.annotatedFormula(form, FormulaBuilder::AXIOM);
 
 
+  LOG('a');
   cout<<af<<endl;
+  LOG('a');
 
   Problem p1;
   p1.addFormula(af);
   printProblem(p1);
 
-  string fs=af.toString();
+//  string fs=af.toString();
+//
+//  stringstream sstr(fs);
+//
+//  Problem p2;
+//  p2.addFromStream(sstr);
+//  printProblem(p2);
 
-  stringstream sstr(fs);
-
-  Problem p2;
-  p2.addFromStream(sstr);
-  printProblem(p2);
-
-  Problem p3=p2.clausify();
+  Problem p3=p1.clausify();
   printProblem(p3);
 
+  return 0;
   AnnotatedFormulaIterator fit=p3.formulas();
   fit.hasNext();
   cout<<"deleting "<<fit.next()<<endl;
   fit.del();
 
   printProblem(p3);
-
+  return 0;
   ifstream finp("Problems/PUZ/PUZ001+1.p");
   if(!finp.fail()) {
     Problem p4;

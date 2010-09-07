@@ -6,6 +6,7 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Lib/Recycler.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -14,6 +15,8 @@
 #include "Kernel/Unit.hpp"
 
 #include "Indexing/TermSharing.hpp"
+
+#include "VarManager.hpp"
 
 #include "Rectify.hpp"
 
@@ -78,6 +81,10 @@ Rectify::Renaming::~Renaming ()
   for (int i = _capacity-1;i >= 0;i--) {
     _array[i]->destroy();
     _array[i] = 0;
+  }
+
+  if(_used) {
+    Recycler::release(_used);
   }
 } // Renaming::~Renaming
 
@@ -270,7 +277,22 @@ int Rectify::Renaming::bind (int var)
 {
   CALL("Rectify::Renaming::bind");
 
-  int result = _nextVar++;
+  int result;
+
+  if(VarManager::varNamePreserving()) {
+    if(!_used) {
+      Recycler::get(_used);
+      _used->reset();
+    }
+    if(_used->insert(var)) {
+      result=var;
+    }
+    else {
+      result=VarManager::getVarAlias(var);
+    }
+  }
+
+  result = _nextVar++;
   VarList* lstu = get(var);
   (*this)[var] = new VarList(result,lstu);
 

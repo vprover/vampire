@@ -9,44 +9,12 @@
 #include <string>
 #include <ostream>
 
+#include "Helper.hpp"
+
 namespace Api {
 
 using namespace std;
 
-/** Structure with auxiliary data that do not need to appear in the header file */
-class DefaultHelperCore;
-class FBHelperCore;
-class FormulaBuilder;
-class StringIterator;
-
-/**
- * A reference counting smart pointer to FBAux
- */
-class ApiHelper
-{
-public:
-  ApiHelper();
-  ~ApiHelper();
-  ApiHelper(const ApiHelper& h);
-  ApiHelper& operator=(const ApiHelper& h);
-  ApiHelper& operator=(FBHelperCore* hc);
-  bool operator==(const ApiHelper& h) const;
-  bool operator!=(const ApiHelper& h) const;
-
-  DefaultHelperCore* operator->() const;
-protected:
-  void updRef(bool inc);
-
-  FBHelperCore* _obj;
-};
-
-class FBHelper
-: public ApiHelper
-{
-public:
-  FBHelper();
-  FBHelperCore* operator->() const;
-};
 
 /**
  * Exception that is thrown when some of the Api code
@@ -222,21 +190,6 @@ private:
 
 std::ostream& operator<< (std::ostream& str,const Api::Formula& f);
 std::ostream& operator<< (std::ostream& str,const Api::AnnotatedFormula& f);
-
-//Now comes the implementation specific code
-
-namespace Lib
-{
-template<typename T> class VirtualIterator;
-}
-
-namespace Kernel
-{
-class Formula;
-class FormulaUnit;
-class TermList;
-class Unit;
-}
 
 namespace Api
 {

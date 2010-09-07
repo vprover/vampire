@@ -5,6 +5,8 @@
 
 #include "Problem.hpp"
 
+#include "Helper_Internal.hpp"
+
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
@@ -29,6 +31,7 @@
 #include "Shell/SimplifyProver.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
+#include "Shell/VarManager.hpp"
 
 
 namespace Api
@@ -181,9 +184,12 @@ struct Problem::Clausifier
     Kernel::Unit* unit=f;
 
     if(unit->isClause()) {
-      res->addFormula(AnnotatedFormula(unit));
+      res->addFormula(f);
       return;
     }
+    ASS(!VarManager::varNamePreserving());
+    VarManager::setVarNamePreserving(f._aux->getVarFactory());
+
     unit = Rectify::rectify(unit);
     unit = SimplifyFalseTrue::simplify(unit);
     unit = Flattening::flatten(unit);
@@ -214,7 +220,9 @@ struct Problem::Clausifier
       cnf.clausify(unit,auxClauseStack);
       while (! auxClauseStack.isEmpty()) {
 	Unit* u = auxClauseStack.pop();
-	res->addFormula(AnnotatedFormula(u));
+	AnnotatedFormula fRes=AnnotatedFormula(u);
+	fRes._aux=f._aux;
+	res->addFormula(fRes);
 
 	string clName;
 	if(clausifyingDefs) {
@@ -235,6 +243,8 @@ struct Problem::Clausifier
       unit=UnitList::pop(newDefs);
       clausifyingDefs=true;
     }
+
+    VarManager::setVarNamePreserving(0);
   }
 
   int namingThreshold;

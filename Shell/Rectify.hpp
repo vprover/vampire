@@ -48,7 +48,7 @@ private:
   public:
     Renaming()
       : Array<List<int>*>(15),
-	_nextVar(0)
+	_nextVar(0), _used(0)
     {
       fillInterval(0,15);
     }
@@ -60,7 +60,14 @@ private:
     virtual void fillInterval (size_t start,size_t end);
     /** next variable to rename to */
     int _nextVar;
+    /** Variables that already appeared in the formula
+     *
+     * This field is used only when VarManager::varNamePreserving()
+     * is true. */
+    DHSet<unsigned>* _used;
   };
+
+  void reset();
 
   Formula* rectify(Formula*);
   FormulaList* rectify(FormulaList*);
@@ -72,10 +79,10 @@ private:
   Renaming _renaming;
   /** placeholder for free variables */
   List<int>* _free;
-  /** next variable to bind to */
-  int _nextVar;
-  /** next row variable to bind to */
-  int _nextRow;
+//  /** next variable to bind to */
+//  int _nextVar;
+//  /** next row variable to bind to */
+//  int _nextRow;
 }; // class Rectify
 
 }

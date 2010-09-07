@@ -17,7 +17,7 @@ REL_FLAGS = -O6 -DVDEBUG=0 # no debugging
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
 #XFLAGS = $(REL_FLAGS)
 
 #XFLAGS = -O6 -DVDEBUG=0 -march=native -mtune=native # no debugging 
@@ -45,7 +45,7 @@ XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # standard debugging only
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -g #Valgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -g #Valgrind
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -g #Valgrind
-#XFLAGS = -O0 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -fno-default-inline -g #Valgrind
+XFLAGS = -O0 -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -fno-default-inline -g #Valgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -fno-inline -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
@@ -66,8 +66,9 @@ CXXFLAGS = $(XFLAGS) -Wall -I.
 ################################################################
 
 API_OBJ = Api/FormulaBuilder.o\
-		  Api/Problem.o\
-		  Api/ResourceLimits.o
+	  Api/Helper.o\
+	  Api/Problem.o\
+	  Api/ResourceLimits.o
 
 VD_OBJ = Debug/Assertion.o\
          Debug/Log.o\
@@ -244,7 +245,8 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/TPTPLexer.o\
          Shell/TPTP.o\
          Shell/TPTPParser.o\
-         Shell/UIHelper.o
+         Shell/UIHelper.o\
+         Shell/VarManager.o
 
 VRULE_OBJ = Rule/Index.o\
             Rule/CASC.o\
@@ -374,6 +376,7 @@ OTHER_API_DEP = \
 			   Shell/TPTP.o\
 			   Shell/TPTPLexer.o\
 			   Shell/TPTPParser.o\
+			   Shell/VarManager.o
 
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) $(VPROG_OBJ)  
