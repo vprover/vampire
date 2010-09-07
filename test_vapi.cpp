@@ -55,7 +55,7 @@ int main(int argc, char* argv [])
   }
 
   FormulaBuilder api(true);
-  LOG('a');
+
   Var xv = api.var("X"); // variable x
   Var yv = api.var("Y"); // variable y
   Term x =  api.varTerm(xv); // term x
@@ -71,10 +71,7 @@ int main(int argc, char* argv [])
 //  AnnotatedFormula af = api.annotatedFormula(form, FormulaBuilder::CONJECTURE);
   AnnotatedFormula af = api.annotatedFormula(form, FormulaBuilder::AXIOM);
 
-
-  LOG('a');
   cout<<af<<endl;
-  LOG('a');
 
   Problem p1;
   p1.addFormula(af);

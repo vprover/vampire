@@ -40,7 +40,6 @@ class DefaultHelperCore
 public:
   DefaultHelperCore() {}
   virtual ~DefaultHelperCore() {
-    LOG("dhc out");
   }
 
   static DefaultHelperCore* instance();
@@ -110,7 +109,7 @@ private:
 
   struct FBVarFactory : public VarManager::VarFactory
   {
-    FBVarFactory(FBHelperCore parent) : _parent(parent) {}
+    explicit FBVarFactory(FBHelperCore& parent) : _parent(parent) {}
     virtual unsigned getVarAlias(unsigned var);
 
     FBHelperCore& _parent;
