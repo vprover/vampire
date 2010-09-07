@@ -391,6 +391,16 @@ unsigned FBHelperCore::FBVarFactory::getVarAlias(unsigned var)
   return _parent.getVar(name);
 }
 
+/**
+ * Return name of variable number @b var
+ */
+string FBHelperCore::FBVarFactory::getVarName(unsigned var)
+{
+  CALL("FBHelperCore::FBVarFactory::getVarName");
+
+  return _parent.getVarName(var);
+}
+
 ///////////////////////
 // ApiHelper
 //

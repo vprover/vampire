@@ -111,6 +111,7 @@ private:
   {
     explicit FBVarFactory(FBHelperCore& parent) : _parent(parent) {}
     virtual unsigned getVarAlias(unsigned var);
+    virtual string getVarName(unsigned var);
 
     FBHelperCore& _parent;
   };

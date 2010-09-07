@@ -13,6 +13,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/Unit.hpp"
 
 using namespace std;
 using namespace Api;
@@ -68,14 +69,19 @@ int main(int argc, char* argv [])
   Formula rhs = api.formula(p,x,fx,fy); // p(X,f(X),f(Y))
 
   Formula form = api.formula(FormulaBuilder::IFF,lhs,rhs);
-//  AnnotatedFormula af = api.annotatedFormula(form, FormulaBuilder::CONJECTURE);
-  AnnotatedFormula af = api.annotatedFormula(form, FormulaBuilder::AXIOM);
+  AnnotatedFormula af = api.annotatedFormula(form, FormulaBuilder::CONJECTURE);
+//  AnnotatedFormula af = api.annotatedFormula(form, FormulaBuilder::AXIOM);
 
   cout<<af<<endl;
 
   Problem p1;
   p1.addFormula(af);
   printProblem(p1);
+
+  AnnotatedFormulaIterator fit1=p1.formulas();
+  fit1.hasNext();
+  cout<<"inner:"<<static_cast<Kernel::Unit*>(fit1.next())->toString()<<endl;
+
 
 //  string fs=af.toString();
 //
@@ -87,6 +93,11 @@ int main(int argc, char* argv [])
 
   Problem p3=p1.clausify();
   printProblem(p3);
+
+  AnnotatedFormulaIterator fit2=p3.formulas();
+  fit2.hasNext();
+  cout<<"inner:"<<static_cast<Kernel::Unit*>(fit2.next())->toString()<<endl;
+
 
   return 0;
   AnnotatedFormulaIterator fit=p3.formulas();

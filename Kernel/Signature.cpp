@@ -364,10 +364,11 @@ unsigned Signature::addNamePredicate (unsigned arity)
 } // addNamePredicate
 
 /**
- * Return a new Skolem function
+ * Return a new Skolem function. If @b suffix is nonzero, include it
+ * into the name of the Skolem function.
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addSkolemFunction (unsigned arity)
+unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
 {
   CALL("Signature::addSkolemFunction");
 
@@ -375,6 +376,9 @@ unsigned Signature::addSkolemFunction (unsigned arity)
   prefix+=env.options->namePrefix();
   for (;;) {
     string name = prefix + Int::toString(_lastSkolem++);
+    if(suffix) {
+      name=name+"_"+suffix;
+    }
     bool added;
     unsigned result = addFunction(name,arity,added);
     if (added) {

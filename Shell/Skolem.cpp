@@ -16,6 +16,7 @@
 #include "Options.hpp"
 #include "Rectify.hpp"
 #include "Skolem.hpp"
+#include "VarManager.hpp"
 
 using namespace Kernel;
 using namespace Shell;
@@ -139,7 +140,14 @@ Formula* Skolem::skolemise (Formula* f)
       Formula::VarList::Iterator vs(f->vars());
       while (vs.hasNext()) {
 	int v = vs.next();
-	unsigned fun = env.signature->addSkolemFunction(arity);
+	unsigned fun;
+	if(VarManager::varNamePreserving()) {
+	  string varName=VarManager::getVarName(v);
+	  fun = env.signature->addSkolemFunction(arity, varName.c_str());
+	}
+	else {
+	  fun = env.signature->addSkolemFunction(arity);
+	}
 //	if(clr!=COLOR_TRANSPARENT) {
 //	  env.signature->getFunction(fun)->addColor(clr);
 //	}

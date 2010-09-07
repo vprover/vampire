@@ -10,6 +10,8 @@
 namespace Shell
 {
 
+using namespace std;
+
 VarManager::VarFactory* VarManager::_fact = 0;
 
 unsigned VarManager::getVarAlias(unsigned var)
@@ -18,6 +20,14 @@ unsigned VarManager::getVarAlias(unsigned var)
   ASS(_fact);
 
   return _fact->getVarAlias(var);
+}
+
+string VarManager::getVarName(unsigned var)
+{
+  CALL("VarManager::getVarName");
+  ASS(_fact);
+
+  return _fact->getVarName(var);
 }
 
 }

@@ -142,7 +142,7 @@ class Signature
     return _iSymbols.size()!=1;
   }
 
-  unsigned addSkolemFunction(unsigned arity);
+  unsigned addSkolemFunction(unsigned arity, const char* suffix = 0);
   /**
    * If a predicate with this name and arity exists, return its number.
    * Otherwise, add a new one and return its number.

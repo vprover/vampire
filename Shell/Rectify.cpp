@@ -291,8 +291,9 @@ int Rectify::Renaming::bind (int var)
       result=VarManager::getVarAlias(var);
     }
   }
-
-  result = _nextVar++;
+  else {
+    result = _nextVar++;
+  }
   VarList* lstu = get(var);
   (*this)[var] = new VarList(result,lstu);
 
