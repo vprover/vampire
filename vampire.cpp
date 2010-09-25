@@ -163,9 +163,9 @@ void vampireMode()
 {
   CALL("vampireMode()");
 
-  env.beginOutput();
-  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
-  env.endOutput();
+  // env.beginOutput();
+  // env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
+  // env.endOutput();
 
   doProving();
 

@@ -321,7 +321,7 @@ void LoopAnalyzer::generateAxiomsForCounters()
 void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int gcd)
 {
   // value of the counter at position 0
-  TermList c(Term::createConstant(name));
+  TermList c(Term::createConstant(name + Int::toString(0)));
   unsigned fun = env.signature->addFunction(name,1);
   // term x0
   TermList x0;
