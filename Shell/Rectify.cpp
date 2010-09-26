@@ -240,6 +240,17 @@ Formula* Rectify::rectify (Formula* f)
       return new QuantifiedFormula(f->connective(),vs,arg);
     }
 
+  case ITE:
+    {
+      Formula* c = rectify(f->condarg());
+      Formula* t = rectify(f->thenarg());
+      Formula* e = rectify(f->elsearg());
+      if (c == f->condarg() && t == f->thenarg() && e == f->elsearg()) {
+	return f;
+      }
+      return new IteFormula(f->connective(), c, t, e);
+    }
+
   case TRUE:
   case FALSE:
     return f;

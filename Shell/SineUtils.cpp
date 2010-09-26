@@ -127,6 +127,12 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,int polarity,Stack<Sy
       extractFormulaSymbols (f->qarg(), polarity, itms);
       return;
 
+    case ITE:
+      extractFormulaSymbols (f->condarg(), 0, itms);
+      extractFormulaSymbols (f->thenarg(), polarity, itms);
+      extractFormulaSymbols (f->elsearg(), polarity, itms);
+      return;
+
     case TRUE:
     case FALSE:
       return;

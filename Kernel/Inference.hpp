@@ -68,6 +68,8 @@ public:
     CLOSURE,
     /** obtained by flattening (quantifiers, junctions) */
     FLATTEN,
+    /** obtained by expansion of the formula if-then-else connective */
+    FORMULA_ITE_EXPANSION,
     /** obtained by reordering literals */
     REORDER_LITERALS,
     /** obtained by transformation into ENNF */

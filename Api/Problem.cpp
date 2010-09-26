@@ -20,6 +20,7 @@
 
 #include "Shell/CNF.hpp"
 #include "Shell/Flattening.hpp"
+#include "Shell/FormulaIteExpander.hpp"
 #include "Shell/LispLexer.hpp"
 #include "Shell/LispParser.hpp"
 #include "Shell/Naming.hpp"
@@ -193,28 +194,31 @@ struct Problem::Clausifier
     unit = Rectify::rectify(unit);
     unit = SimplifyFalseTrue::simplify(unit);
     unit = Flattening::flatten(unit);
-    unit = NNF::ennf(unit);
-    unit = Flattening::flatten(unit);
 
     Kernel::UnitList* newDefs=0;
-    if(namingThreshold) {
-      unit = naming.apply(unit,newDefs);
-    }
+    unit = FormulaIteExpander().apply(unit, newDefs);
 
     unsigned nextClauseNum=1;
     bool clausifyingDefs=false;
 
     for(;;) {
+      unit = NNF::ennf(unit);
+      unit = Flattening::flatten(unit);
+
+      if(!clausifyingDefs && namingThreshold) {
+	Kernel::UnitList* newDefs2=0;
+        unit = naming.apply(unit,newDefs2);
+        newDefs = UnitList::concat(newDefs, newDefs2);
+      }
+
       unit = NNF::nnf(unit);
       unit = Flattening::flatten(unit);
       unit = Skolem::skolemise(unit);
 
-      if(!clausifyingDefs && preserveEpr) {
+      if(!clausifyingDefs && namingThreshold && preserveEpr) {
 	Kernel::UnitList* newDefs2=0;
-	if(namingThreshold) {
-	  unit = naming.apply(unit,newDefs2);
-	  newDefs=Kernel::UnitList::concat(newDefs2, newDefs);
-	}
+	unit = naming.apply(unit,newDefs2);
+	newDefs=Kernel::UnitList::concat(newDefs2, newDefs);
       }
 
       cnf.clausify(unit,auxClauseStack);

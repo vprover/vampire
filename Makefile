@@ -212,6 +212,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/EqResWithDeletion.o\
          Shell/EqualityProxy.o\
          Shell/Flattening.o\
+         Shell/FormulaIteExpander.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
          Shell/Grounding.o\
@@ -283,6 +284,7 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 		  UnitTests/tDHMultiset.o\
 		  UnitTests/tfork.o\
 		  UnitTests/tFormulaBuilderApi.o\
+		  UnitTests/tITE.o\
 		  UnitTests/tSkipList.o\
 		  UnitTests/tProgramAnalysis.o\
 		  UnitTests/tTwoVampires.o
@@ -360,6 +362,7 @@ OTHER_API_DEP = \
 			   Saturation/ClauseContainer.o\
 			   Shell/CNF.o\
 			   Shell/Flattening.o\
+			   Shell/FormulaIteExpander.o\
 			   Shell/Lexer.o\
 			   Shell/LispLexer.o\
 			   Shell/LispParser.o\

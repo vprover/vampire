@@ -143,6 +143,12 @@ Formula* SubformulaIterator::next ()
     _current = result->qarg();
     break;
 
+  case ITE:
+    _current = result->condarg();
+    _reserve = new Element(result->elsearg(),_reserve);
+    _reserve = new Element(result->thenarg(),_reserve);
+    break;
+
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

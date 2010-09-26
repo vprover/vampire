@@ -49,7 +49,6 @@ void clausifyTest(const char* fname)
 
 int main(int argc, char* argv [])
 {
-
   if(argc==2) {
     clausifyTest(argv[1]);
     return 0;
@@ -64,9 +63,9 @@ int main(int argc, char* argv [])
   Function f = api.function("f",1);
   Term fx = api.term(f,x); // f(X)
   Term fy = api.term(f,y); // f(Y)
-  Formula lhs = api.equality(fx,fy); // f(X) = f(Y)
+  Formula lhs = api.formula(FormulaBuilder::FORALL, xv, api.equality(fx,fy)); // f(X) = f(Y)
   Predicate p=api.predicate("p",3);
-  Formula rhs = api.formula(p,x,fx,fy); // p(X,f(X),f(Y))
+  Formula rhs = api.formula(FormulaBuilder::FORALL, xv, api.formula(p,x,fx,fy)); // p(X,f(X),f(Y))
 
   Formula form = api.formula(FormulaBuilder::IFF,lhs,rhs);
   AnnotatedFormula af = api.annotatedFormula(form, FormulaBuilder::CONJECTURE);
@@ -100,6 +99,7 @@ int main(int argc, char* argv [])
 
 
   return 0;
+
   AnnotatedFormulaIterator fit=p3.formulas();
   fit.hasNext();
   cout<<"deleting "<<fit.next()<<endl;

@@ -245,6 +245,64 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
       }
     }
 
+  case ITE:
+    {
+      Formula* c = simplify(f->condarg());
+      switch (f->connective()) {
+      case TRUE:
+	return simplify(f->thenarg());
+      case FALSE:
+	return simplify(f->elsearg());
+      default:
+	break;
+      }
+      Formula* t = simplify(f->thenarg());
+      Formula* e = simplify(f->elsearg());
+
+      switch (t->connective()) {
+      case TRUE:
+	switch (e->connective()) {
+	case TRUE:
+	  return new Formula(true);
+	case FALSE:
+	  return c;
+	default:
+	  return new BinaryFormula(IMP, new NegatedFormula(c), e);
+	}
+      case FALSE:
+	switch (e->connective()) {
+	case TRUE:
+	  return new NegatedFormula(c);
+	case FALSE:
+	  return new Formula(false);
+	default: {
+	  FormulaList* args = 0;
+	  FormulaList::push(new NegatedFormula(c), args);
+	  FormulaList::push(e, args);
+	  return new JunctionFormula(AND, args);
+	}
+	}
+      default:
+	switch (e->connective()) {
+	case TRUE:
+	  return new BinaryFormula(IMP, c, t);
+	case FALSE: {
+	  FormulaList* args = 0;
+	  FormulaList::push(c, args);
+	  FormulaList::push(t, args);
+	  return new JunctionFormula(AND, args);
+	}
+	default:
+	  break;
+	}
+      }
+
+      if (c == f->condarg() && t == f->thenarg() && e == f->elsearg()) {
+	return f;
+      }
+      return new IteFormula(con,c,t,e);
+    }
+
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

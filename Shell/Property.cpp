@@ -575,6 +575,11 @@ bool Property::hasXEqualsY (const Formula* f, MultiCounter& vc, int polarity)
     }
     return hasXEqualsY(f->qarg(),vc,polarity);
 
+  case ITE:
+    return hasXEqualsY(f->condarg(),vc,0) ||
+           hasXEqualsY(f->thenarg(),vc,polarity) ||
+           hasXEqualsY(f->elsearg(),vc,polarity);
+
   case TRUE:
   case FALSE:
     return false;

@@ -37,10 +37,12 @@ enum Connective
   FORALL = 7u,
   /** quantiffier there exists */
   EXISTS = 8u,
+  /** if-then-else */
+  ITE = 9u,
   /** constant false */
-  FALSE = 9u,
+  FALSE = 10u,
   /** constant true */
-  TRUE = 10u
+  TRUE = 11u,
 }; // enum Connective
 
 }

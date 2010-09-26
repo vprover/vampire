@@ -235,6 +235,19 @@ Formula FormulaBuilder::formula(Connective q,const Var& v,const Formula& f)
   return res;
 }
 
+Formula FormulaBuilder::formula(Connective c,const Formula& cond,const Formula& thenBranch,const Formula& elseBranch)
+{
+  CALL("FormulaBuilder::formula(Connective,const Formula&,const Formula&,const Formula&)");
+
+  if(c!=ITE) {
+    throw FormulaBuilderException("Invalid if-then-else connective");
+  }
+
+  Formula res(new IteFormula(Kernel::ITE, cond.form, thenBranch.form, elseBranch.form));
+  res._aux=_aux;
+  return res;
+}
+
 AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, string name)
 {
   CALL("FormulaBuilder::annotatedFormula");

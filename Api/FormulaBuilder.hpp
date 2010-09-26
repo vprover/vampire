@@ -93,7 +93,9 @@ public:
     XOR,
     NOT,
     FORALL,
-    EXISTS
+    EXISTS,
+    /** if-then-else connective */
+    ITE
   };
 
   /** Annotation of formulas */
@@ -148,6 +150,9 @@ public:
 
   /** build quantified formula (q v)f */
   Formula formula(Connective q,const Var& v,const Formula& f);
+
+  /** build an if-then-else formula */
+  Formula formula(Connective c,const Formula& cond,const Formula& thenBranch,const Formula& elseBranch);
 
   // Special cases, convenient to have
 

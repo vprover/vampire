@@ -233,6 +233,8 @@ string Inference::ruleName(Rule rule)
     return "closure";
   case FLATTEN:
     return "flattening";
+  case FORMULA_ITE_EXPANSION:
+    return "formula ite expansion";
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
 //  case FORALL_ELIMINATION:

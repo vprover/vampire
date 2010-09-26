@@ -99,6 +99,10 @@ void Formula::destroy ()
     delete static_cast<QuantifiedFormula*>(this);
     return;
 
+  case ITE:
+    delete static_cast<IteFormula*>(this);
+    return;
+
   case TRUE:
   case FALSE:
     delete this;
@@ -293,6 +297,10 @@ string Formula::toString () const
       return result + qarg()->toStringInScopeOf(c);
     }
 
+  case ITE:
+    return condarg()->toStringInScopeOf(c) + " ? " + thenarg()->toStringInScopeOf(c) + " : " +
+    elsearg()->toStringInScopeOf(c);
+
   case TRUE:
   case FALSE:
     return con;
@@ -331,6 +339,7 @@ bool Formula::parenthesesRequired (Connective outer) const
     case IMP:
     case IFF:
     case XOR:
+    case ITE:
       return true;
 
 #if VDEBUG
@@ -645,6 +654,7 @@ Formula* Formula::fromClause(Clause* cl, BDDNode* prop)
   case NOT:
   case FORALL:
   case EXISTS:
+  case ITE:
   case TRUE:
   case FALSE:
 #if VDEBUG

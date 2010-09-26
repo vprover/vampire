@@ -155,6 +155,11 @@ string DefaultHelperCore::toString(const Kernel::Formula* f)
     }
     return result + "] : (" + toString(f->qarg()) + ") )";
   }
+
+  case ITE:
+    return string("(") + toString(f->condarg()) + " ? " +
+	toString(f->thenarg()) + " : " + toString(f->elsearg()) + ")";
+
   case FALSE:
   case TRUE:
     return con;

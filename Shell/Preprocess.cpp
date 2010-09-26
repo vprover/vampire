@@ -14,6 +14,7 @@
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
 #include "Flattening.hpp"
+#include "FormulaIteExpander.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
 #include "InequalitySplitting.hpp"
@@ -119,6 +120,10 @@ void Preprocess::preprocess (UnitList*& units)
   // discover known theories
 //   TheoryFinder theoryFinder(_problem,0);
 //   theoryFinder.search();
+
+  {
+    FormulaIteExpander().apply(units);
+  }
 
   if (_options.unusedPredicateDefinitionRemoval()) {
     env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
