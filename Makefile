@@ -57,7 +57,7 @@ ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS)
 endif
 ifneq (,$(filter libvapi,$(MAKECMDGOALS)))
-XFLAGS = -O6 -DVDEBUG=0 -DVAPI_LIBRARY=1 -fPIC
+XFLAGS = -O6 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -DVAPI_LIBRARY=1 -fPIC
 endif
 
 CXX = g++
@@ -544,9 +544,15 @@ clean:
 	rm -f *.o *~ *.bak
 	rm -rf obj
 
-depend:
-	makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 Api/*.cpp Debug/*.cpp Lib/*.cpp Lib/Sys/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp UnitTests/*.cpp Program/*.cpp *.cpp
+DEPEND_CMD = makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 Api/*.cpp Debug/*.cpp Lib/*.cpp Lib/Sys/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp UnitTests/*.cpp Program/*.cpp *.cpp
 
+depend:
+	$(DEPEND_CMD)
+
+Makefile_depend:
+	if [ ! -e Makefile_depend ]; then touch Makefile_depend; fi
+	$(DEPEND_CMD)
+	
 doc:
 	rm -fr doc/html
 	doxygen config.doc
