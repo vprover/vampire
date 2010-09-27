@@ -24,6 +24,11 @@
 
 #include "Term.hpp"
 
+/** If non-zero, term ite functors will be always expanded to
+ * the ( p ? x : y ) notation on output */
+#define ALWAYS_OUTPUT_TERM_ITE 0
+
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -274,12 +279,52 @@ string Term::variableToString (TermList var)
 } // variableToString
 
 /**
+ * Convert an if-then-else expression to string
+ */
+string Term::termIteToString() const
+{
+  CALL("Term::termIteToString");
+  ASS(env.signature->isIteFunctor(functor()));
+
+  unsigned pred = env.signature->getIteFunctorPred(functor());
+
+  string s = "( " + env.signature->predicateName(pred);
+  unsigned ar = arity();
+  ASS_GE(ar, 2);
+  const TermList* ts = args();
+  if(ar>2) {
+    s += '(';
+    while(ar!=2) {
+      s += ts->toString();
+      ts = ts->next();
+      ar--;
+      if(ar!=2) {
+	s += ',';
+      }
+    }
+    s += ')';
+  }
+  s += " ? " + ts->toString();
+  ts = ts->next();
+  s += " : " + ts->toString();
+  s += " )";
+  ASS(ts->next()->isEmpty());
+  return s;
+}
+
+/**
  * Return the result of conversion of a term into a string.
  * @since 16/05/2007 Manchester
  */
 string Term::toString () const
 {
   CALL("Term::toString");
+
+#if ALWAYS_OUTPUT_TERM_ITE
+  if(env.signature->isIteFunctor(functor())) {
+    return termIteToString();
+  }
+#endif
 
   Stack<const TermList*> stack(64);
 
@@ -321,6 +366,12 @@ void TermList::argsToString(Stack<const TermList*>& stack,string& s)
       continue;
     }
     const Term* t = ts->term();
+#if ALWAYS_OUTPUT_TERM_ITE
+    if(env.signature->isIteFunctor(t->functor())) {
+      s+=t->termIteToString();
+      continue;
+    }
+#endif
     s += t->functionName();
     if (t->arity()) {
       s += '(';

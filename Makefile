@@ -240,6 +240,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/SMTParser.o\
          Shell/Statistics.o\
          Shell/SymCounter.o\
+         Shell/TermIteDefinitions.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/Token.o\
@@ -375,6 +376,7 @@ OTHER_API_DEP = \
 			   Shell/SimplifyProver.o\
 			   Shell/Skolem.o\
 			   Shell/Statistics.o\
+		           Shell/TermIteDefinitions.o\
 			   Shell/Token.o\
 			   Shell/TPTP.o\
 			   Shell/TPTPLexer.o\

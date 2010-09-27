@@ -76,6 +76,38 @@ Signature::~Signature ()
   }
 } // Signature::~Signature
 
+/**
+ * For a predicate p(X), return a function symbol f so that f(X,Y,Z) will
+ * stand for an if-then-else expression p(X) ? Y : Z.
+ */
+unsigned Signature::addIteFunctor(unsigned predNum)
+{
+  CALL("Signature::addIteFunctor");
+
+  unsigned fnNum;
+  if(_iteFunctorFuns.find(predNum, fnNum)) {
+    return fnNum;
+  }
+
+  Symbol* pred = getPredicate(predNum);
+  unsigned arity = pred->arity()+2;
+  string name0 = "if_" + pred->name();
+  string name = name0;
+  unsigned i=1;
+  bool added;
+  do {
+    fnNum=addFunction(name, arity, added);
+    if(!added) {
+      name=name0+"_"+Int::toString(i++);
+    }
+  } while(!added);
+
+  Symbol* fun = getFunction(fnNum);
+  fun->markIteFunction();
+  _iteFunctorFuns.insert(predNum, fnNum);
+  _iteFunctorPreds.insert(fnNum, predNum);
+  return fnNum;
+}
 
 /**
  * Marks a function as interpreted.

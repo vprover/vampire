@@ -464,6 +464,8 @@ protected:
   friend class TermList;
   friend class MatchTag;
   friend class Indexing::TermSharing;
+private:
+  string termIteToString() const;
 }; // class Term
 
 /**

@@ -30,6 +30,7 @@
 #include "Shell/Skolem.hpp"
 #include "Shell/SimplifyFalseTrue.hpp"
 #include "Shell/SimplifyProver.hpp"
+#include "Shell/TermIteDefinitions.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
 #include "Shell/VarManager.hpp"
@@ -278,6 +279,20 @@ Problem Problem::clausify(int namingThreshold, bool preserveEpr)
     while(fit.hasNext()) {
       AnnotatedFormula f=fit.next();
       clausifier.clausify(f);
+    }
+
+    //add definitiona for if-then-else terms
+    fit=formulas();
+    if(fit.hasNext()) {
+      AnnotatedFormula f0=fit.next();
+      Kernel::UnitList* iteDefs = 0;
+      Shell::TermIteDefinitions::addDefinitions(iteDefs);
+      while(iteDefs) {
+	Kernel::Unit* u = UnitList::pop(iteDefs);
+	AnnotatedFormula f=AnnotatedFormula(u);
+	f._aux=f0._aux;
+	clausifier.clausify(f);
+      }
     }
   }
 

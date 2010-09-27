@@ -70,6 +70,8 @@ public:
     FLATTEN,
     /** obtained by expansion of the formula if-then-else connective */
     FORMULA_ITE_EXPANSION,
+    /** a definition introduced for the term if-then-else operator */
+    TERM_ITE_DEFINITION,
     /** obtained by reordering literals */
     REORDER_LITERALS,
     /** obtained by transformation into ENNF */
