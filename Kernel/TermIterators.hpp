@@ -124,6 +124,10 @@ public:
     return *_stack->top();
   }
 
+  /**
+   * Do not iterate subterms of the recently returned term (i.e. go right
+   * rather than down in the term).
+   */
   void right();
 protected:
   SubtermIterator() : _used(false)
