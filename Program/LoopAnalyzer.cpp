@@ -204,7 +204,6 @@ void LoopAnalyzer::analyzeVariables()
 void LoopAnalyzer::collectPaths()
 {
   CALL("LoopAnalyzer::collectPaths");
-
   Stack<Path*> paths; // partial paths
   // statements corresponding to this path, normally then-parts of IfThenElse
   Stack<Statement*> statements;
@@ -213,7 +212,7 @@ void LoopAnalyzer::collectPaths()
   for (;;) {
     switch (stat->kind()) {
     case Statement::ASSIGNMENT:
-      path = path->add(stat);
+     path = path->add(stat);
       stat = stat->nextStatement();
       break;
     case Statement::BLOCK:
@@ -262,7 +261,6 @@ void LoopAnalyzer::generateAxiomsForCounters()
     return;
   }
   DArray<int> increments(length);
-
   VariableMap::Iterator vit(_variableInfo);
   while (vit.hasNext()) {
     Variable* v;
@@ -292,7 +290,10 @@ void LoopAnalyzer::generateAxiomsForCounters()
     int max = increments[length-1];
     int min = max;
     int gcd = max > 0 ? max : -max;
-    for (int i = length-2;i >= 0;i--) {
+    //make case distinction between loops with IFs, and no IFs.
+    //loops with IFs have at least 2 inner paths, thus length>=2, and hence length-2>=0. Then for-loop starting from length-2 makes sense.
+    //loops with no IFs have only one path (the body), thus length=1, and hence length-2<0 makes no sense to start for-loop from. For such cases, for-loop starts from 0.
+    for (int i = length>1 ? length-2:0;i >= 0;i--) {
       int inc = increments[i];
       if (inc > max) {
 	max = inc;
