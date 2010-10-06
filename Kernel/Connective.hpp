@@ -39,10 +39,14 @@ enum Connective
   EXISTS = 8u,
   /** if-then-else */
   ITE = 9u,
+  /** let P <- F in G (P is literal, F and G formulas) */
+  FORMULA_LET = 10u,
+  /** let S <- T in F (S and T are terms, F is formula) */
+  TERM_LET = 11u,
   /** constant false */
-  FALSE = 10u,
+  FALSE = 12u,
   /** constant true */
-  TRUE = 11u,
+  TRUE = 13u,
 }; // enum Connective
 
 }

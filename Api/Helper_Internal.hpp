@@ -46,9 +46,9 @@ public:
   virtual string getVarName(Var v) const;
   string toString(Kernel::TermList t) const;
   string toString(const Kernel::Term* t0) const;
-  string toString(const Kernel::Formula* f);
-  string toString(const Kernel::Clause* clause);
-  string toString (const Kernel::Unit* unit);
+  string toString(const Kernel::Formula* f) const;
+  string toString(const Kernel::Clause* clause) const;
+  string toString (const Kernel::Unit* unit) const;
 
   virtual VarManager::VarFactory* getVarFactory() { return 0; };
 

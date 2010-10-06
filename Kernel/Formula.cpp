@@ -222,7 +222,7 @@ string Formula::toString (Connective c)
 {
   static string names [] =
 //    { "", "&", "\\/", "=>", "<=>", "<~>", "~", "!", "?", "false", "true"};
-    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "false", "true"};
+    { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "<ite>", "<formula_let>", "<term_let>", "false", "true"};
 
   return names[(int)c];
 } // Formula::toString (Connective c)
@@ -301,6 +301,14 @@ string Formula::toString () const
     return condarg()->toStringInScopeOf(c) + " ? " + thenarg()->toStringInScopeOf(c) + " : " +
     elsearg()->toStringInScopeOf(c);
 
+  case FORMULA_LET:
+    return "let "+formulaLetOrigin()->toString() + " := " + formulaLetTarget()->toStringInScopeOf(c) +
+	" in " + letBody()->toStringInScopeOf(c);
+
+  case TERM_LET:
+    return "let "+termLetOrigin().toString() + " := " + termLetTarget().toString() +
+	" in " + letBody()->toStringInScopeOf(c);
+
   case TRUE:
   case FALSE:
     return con;
@@ -340,6 +348,8 @@ bool Formula::parenthesesRequired (Connective outer) const
     case IFF:
     case XOR:
     case ITE:
+    case FORMULA_LET:
+    case TERM_LET:
       return true;
 
 #if VDEBUG
@@ -655,6 +665,8 @@ Formula* Formula::fromClause(Clause* cl, BDDNode* prop)
   case FORALL:
   case EXISTS:
   case ITE:
+  case TERM_LET:
+  case FORMULA_LET:
   case TRUE:
   case FALSE:
 #if VDEBUG

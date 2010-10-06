@@ -149,6 +149,12 @@ Formula* SubformulaIterator::next ()
     _reserve = new Element(result->thenarg(),_reserve);
     break;
 
+  case TERM_LET:
+  case FORMULA_LET:
+    //we do not consider the other parts of let expressions (origin and target) to be subformulas
+    _current = result->letBody();
+    break;
+
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

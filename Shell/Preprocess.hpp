@@ -9,9 +9,9 @@
 
 #include "Kernel/Unit.hpp"
 
-using namespace Kernel;
-
 namespace Shell {
+
+using namespace Kernel;
 
 class Property;
 class Options;

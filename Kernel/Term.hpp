@@ -120,8 +120,11 @@ public:
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
+  static bool allShared(TermList* args);
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
+
+  bool isSafe() const;
 
 #if VDEBUG
   void assertValid() const;
@@ -188,6 +191,53 @@ ASS_STATIC(sizeof(TermList)==sizeof(size_t));
 class Term
 {
 public:
+  //special functor values
+  static const unsigned SF_TERM_ITE = 0xFFFFFFFF;
+  static const unsigned SF_LET_TERM_IN_TERM = 0xFFFFFFFE;
+  static const unsigned SF_LET_FORMULA_IN_TERM = 0xFFFFFFFD;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFD;
+
+  class SpecialTermData
+  {
+    friend class Term;
+  public:
+    enum Type {
+      TERM_ITE,
+      LET_TERM_IN_TERM,
+      LET_FORMULA_IN_TERM,
+    };
+  private:
+    union {
+      struct {
+        Formula * condition;
+      } _termITEData;
+      struct {
+	//The size_t stands for TermList expression which cannot be here
+	//since C++ doesnot allow objects with constructor inside a union
+        size_t origin;
+        size_t target;
+      } _termLetData;
+      struct {
+        Literal * origin;
+        Formula * target;
+      } _formulaLetData;
+    };
+    /** Return pointer to the term to which this object is attached */
+    const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
+  public:
+    unsigned getType() const {
+      unsigned res = getTerm()->functor();
+      ASS_GE(res,SPECIAL_FUNCTOR_LOWER_BOUND);
+      return res;
+    }
+    Formula* getCondition() const { ASS_EQ(getType(), SF_TERM_ITE); return _termITEData.condition; }
+    TermList getOriginTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.origin); }
+    TermList getTargetTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.target); }
+    Literal* getOriginLiteral() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.origin; }
+    Formula* getTargetFormula() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.target; }
+  };
+
+
   Term() throw();
   explicit Term(const Term& t) throw();
   void orderArguments();
@@ -196,9 +246,20 @@ public:
   static Term* createNonShared(Term* t,TermList* args);
   static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);
+
   static Term* createConstant(const string& name);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
+  static Term* createTermITE(Formula * condition, TermList thenBranch, TermList elseBranch);
+  static Term* createTermLet(TermList origin, TermList target, TermList t);
+  static Term* createFormulaLet(Literal* origin, Formula* target, TermList t);
+  static Term* create1(unsigned fn, TermList arg);
+  static Term* create2(unsigned fn, TermList arg1, TermList arg2);
+
+
+  /** Return number of bytes before the start of the term that belong to it */
+  size_t getPreDataSize() { return isSpecial() ? sizeof(SpecialTermData) : 0; }
+
   /** Function or predicate symbol of a term */
   const unsigned functor() const { return _functor; }
 
@@ -232,7 +293,7 @@ public:
   /** return the arity */
   unsigned arity() const
   { return _arity; }
-  static void* operator new(size_t,unsigned arity);
+  static void* operator new(size_t,unsigned arity,size_t preData=0);
   /** make the term into a symbol term */
   void makeSymbol(unsigned number,unsigned arity)
   {
@@ -403,8 +464,23 @@ public:
 
   bool skip() const;
 
+  /** Return true if term is an interpreted constant or contains one as its subterm */
   bool hasInterpretedConstants() const { return _hasInterpretedConstants; }
+  /** Assign value that will be returned by the hasInterpretedConstants() function */
   void setInterpretedConstantsPresence(bool value) { _hasInterpretedConstants=value; }
+
+  /** Return true if term is either an if-then-else or a let...in expression */
+  bool isSpecial() const { return functor()>=SPECIAL_FUNCTOR_LOWER_BOUND; }
+  /** Return pointer to structure containing extra data for special terms such as
+   * if-then-else or let...in */
+  const SpecialTermData* getSpecialData() const { return const_cast<Term*>(this)->getSpecialData(); }
+  /** Return pointer to structure containing extra data for special terms such as
+   * if-then-else or let...in */
+  SpecialTermData* getSpecialData() {
+    CALL("Term::getSpecialData");
+    ASS(isSpecial());
+    return reinterpret_cast<SpecialTermData*>(this)-1;
+  }
 protected:
   //this function is implemented in the Ordering.cpp file to reduce object file dependency
   ArgumentOrder computeArgumentOrder() const;
@@ -430,7 +506,7 @@ protected:
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
-  unsigned _arity : 29;
+  unsigned _arity : 28;
   /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
   /** Equal to 1 if the term/literal contains any interpreted constants */
@@ -465,7 +541,7 @@ protected:
   friend class MatchTag;
   friend class Indexing::TermSharing;
 private:
-  string termIteToString() const;
+  string specialTermToString() const;
 }; // class Term
 
 /**
@@ -544,6 +620,8 @@ public:
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
   static Literal* createEquality (bool polarity, TermList arg1, TermList arg2);
+  static Literal* create1(unsigned predicate, bool polarity, TermList arg);
+  static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
 
   static Literal* flattenOnArgument(const Literal*,int argumentNumber);
 

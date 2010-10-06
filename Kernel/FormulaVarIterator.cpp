@@ -114,6 +114,11 @@ bool FormulaVarIterator::hasNext()
 	case TRUE:
 	case FALSE:
 	  break;
+
+	case FORMULA_LET:
+	case TERM_LET:
+	  //these connectives should be eliminated before we get to this code
+	  ASSERTION_VIOLATION;
 	}
       }
       break;

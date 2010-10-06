@@ -46,6 +46,41 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
   CALL("DefaultHelperCore::toString(const Kernel::Term*)");
 
   string res;
+  if(t0->isSpecial()) {
+    const Kernel::Term::SpecialTermData* sd = t0->getSpecialData();
+    switch(t0->functor()) {
+    case Kernel::Term::SF_LET_FORMULA_IN_TERM:
+    {
+      ASS_EQ(t0->arity(),1);
+      string s = "(let " + toString(sd->getOriginLiteral());
+      s += " := " + toString(sd->getTargetFormula());
+      s += " in " + toString(*t0->nthArgument(0));
+      s += " )";
+      return s;
+    }
+    case Kernel::Term::SF_LET_TERM_IN_TERM:
+    {
+      ASS_EQ(t0->arity(),1);
+      string s = "( let " + toString(sd->getOriginTerm());
+      s += " := " + toString(sd->getTargetTerm());
+      s += " in " + toString(*t0->nthArgument(0));
+      s += " )";
+      return s;
+    }
+    case Kernel::Term::SF_TERM_ITE:
+    {
+      ASS_EQ(t0->arity(),2);
+      string s = "( " + toString(sd->getCondition());
+      s += " ? " + toString(*t0->nthArgument(0));
+      s += " : " + toString(*t0->nthArgument(1));
+      s += " )";
+      return s;
+    }
+    }
+    ASSERTION_VIOLATION;
+  }
+
+
   if(t0->isLiteral()) {
     const Literal* l=static_cast<const Literal*>(t0);
     if(l->isEquality()) {
@@ -81,11 +116,17 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
     }
     else {
       Kernel::Term* trm=t.term();
-      res+=trm->functionName();
-      if(trm->arity()) {
-	res+='(';
-	remArg.push(trm->arity());
-	separated=true;
+      if(trm->isSpecial()) {
+	//we handle special terms at the top level
+	res+=toString(trm);
+      }
+      else {
+	res+=trm->functionName();
+	if(trm->arity()) {
+	  res+='(';
+	  remArg.push(trm->arity());
+	  separated=true;
+	}
       }
     }
     if(!separated) {
@@ -107,7 +148,7 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
   return res;
 }
 
-string DefaultHelperCore::toString(const Kernel::Formula* f)
+string DefaultHelperCore::toString(const Kernel::Formula* f) const
 {
   CALL("DefaultHelperCore::toString(const Kernel::Formula*)");
 
@@ -160,6 +201,14 @@ string DefaultHelperCore::toString(const Kernel::Formula* f)
     return string("(") + toString(f->condarg()) + " ? " +
 	toString(f->thenarg()) + " : " + toString(f->elsearg()) + ")";
 
+  case FORMULA_LET:
+    return "let "+toString(f->formulaLetOrigin()) + " := " + toString(f->formulaLetTarget()) +
+	" in " + toString(f->letBody());
+
+  case TERM_LET:
+    return "let "+toString(f->termLetOrigin()) + " := " + toString(f->termLetTarget()) +
+	" in " + toString(f->letBody());
+
   case FALSE:
   case TRUE:
     return con;
@@ -168,7 +217,7 @@ string DefaultHelperCore::toString(const Kernel::Formula* f)
   return "formula";
 }
 
-string DefaultHelperCore::toString(const Kernel::Clause* clause)
+string DefaultHelperCore::toString(const Kernel::Clause* clause) const
 {
   CALL("DefaultHelperCore::toString(const Kernel::Clause*)");
 
@@ -199,7 +248,7 @@ string DefaultHelperCore::toString(const Kernel::Clause* clause)
  * TPTP role conjecture. If it is a clause, just output it as
  * is, with the role negated_conjecture.
  */
-string DefaultHelperCore::toString (const Kernel::Unit* unit)
+string DefaultHelperCore::toString (const Kernel::Unit* unit) const
 {
   CALL("DefaultHelperCore::toString(const Kernel::Unit*)");
 

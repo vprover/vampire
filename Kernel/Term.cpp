@@ -18,6 +18,7 @@
 
 #include "Indexing/TermSharing.hpp"
 
+#include "Formula.hpp"
 #include "Signature.hpp"
 #include "Substitution.hpp"
 #include "TermIterators.hpp"
@@ -33,15 +34,26 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+const unsigned Term::SF_TERM_ITE;
+const unsigned Term::SF_LET_TERM_IN_TERM;
+const unsigned Term::SF_LET_FORMULA_IN_TERM;
+const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
+
+
 /**
  * Allocate enough bytes to fit a term of a given arity.
  * @since 01/05/2006 Bellevue
  */
-void* Term::operator new(size_t sz,unsigned arity)
+void* Term::operator new(size_t,unsigned arity, size_t preData)
 {
   CALL("Term::new");
+  //preData must be a multiply of pointer size to maintain alignment
+  ASS_EQ(preData%sizeof(size_t), 0);
 
-  return (Term*)ALLOC_KNOWN(sizeof(Term)+arity*sizeof(TermList),"Term");
+  size_t sz = sizeof(Term)+arity*sizeof(TermList)+preData;
+  void* mem = ALLOC_KNOWN(sz,"Term");
+  mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)+preData);
+  return (Term*)mem;
 } // Term::operator new
 
 
@@ -55,7 +67,10 @@ void Term::destroy ()
   CALL("Term::destroy");
   ASS(CHECK_LEAKS || ! shared());
 
-  DEALLOC_KNOWN(this,sizeof(Term)+_arity*sizeof(TermList),"Term");
+  size_t sz = sizeof(Term)+_arity*sizeof(TermList);
+  void* mem = this;
+  mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)+getPreDataSize());
+  DEALLOC_KNOWN(mem,sz,"Term");
 } // Term::destroy
 
 /**
@@ -90,6 +105,19 @@ void Term::destroyNonShared()
   while(!deletingStack.isEmpty()) {
     deletingStack.pop()->destroy();
   }
+}
+
+/**
+ * Return true if the term does not contain any unshared proper term.
+ *
+ * Not containing an unshared term also means that there are no
+ * if-then-else or let...in expressions.
+ */
+bool TermList::isSafe() const
+{
+  CALL("TermList::isSafe");
+
+  return isVar() || term()->shared();
 }
 
 /**
@@ -156,6 +184,20 @@ bool TermList::equals(TermList t1, TermList t2)
       stack.push(ss->next());
       stack.push(tt->next());
     }
+  }
+  return true;
+}
+
+/**
+ * Return true if all proper terms in the @ args list are shared
+ */
+bool TermList::allShared(TermList* args)
+{
+  while(args->isNonEmpty()) {
+    if(args->isTerm() && !args->term()->shared()) {
+      return false;
+    }
+    args = args->next();
   }
   return true;
 }
@@ -279,37 +321,43 @@ string Term::variableToString (TermList var)
 } // variableToString
 
 /**
- * Convert an if-then-else expression to string
+ * Convert a term if-then-else or a let...in expression to string
  */
-string Term::termIteToString() const
+string Term::specialTermToString() const
 {
-  CALL("Term::termIteToString");
-  ASS(env.signature->isIteFunctor(functor()));
+  CALL("Term::specialTermToString");
+  ASS(isSpecial());
 
-  unsigned pred = env.signature->getIteFunctorPred(functor());
-
-  string s = "( " + env.signature->predicateName(pred);
-  unsigned ar = arity();
-  ASS_GE(ar, 2);
-  const TermList* ts = args();
-  if(ar>2) {
-    s += '(';
-    while(ar!=2) {
-      s += ts->toString();
-      ts = ts->next();
-      ar--;
-      if(ar!=2) {
-	s += ',';
-      }
-    }
-    s += ')';
+  switch(functor()) {
+  case SF_LET_FORMULA_IN_TERM:
+  {
+    ASS_EQ(arity(),1);
+    string s = "(let " + getSpecialData()->getOriginLiteral()->toString();
+    s += " := " + getSpecialData()->getTargetFormula()->toString();
+    s += " in " + nthArgument(0)->toString();
+    s += " )";
+    return s;
   }
-  s += " ? " + ts->toString();
-  ts = ts->next();
-  s += " : " + ts->toString();
-  s += " )";
-  ASS(ts->next()->isEmpty());
-  return s;
+  case SF_LET_TERM_IN_TERM:
+  {
+    ASS_EQ(arity(),1);
+    string s = "( let " + getSpecialData()->getOriginTerm().toString();
+    s += " := " + getSpecialData()->getTargetTerm().toString();
+    s += " in " + nthArgument(0)->toString();
+    s += " )";
+    return s;
+  }
+  case SF_TERM_ITE:
+  {
+    ASS_EQ(arity(),2);
+    string s = "( " + getSpecialData()->getCondition()->toString();
+    s += " ? " + nthArgument(0)->toString();
+    s += " : " + nthArgument(1)->toString();
+    s += " )";
+    return s;
+  }
+  }
+  ASSERTION_VIOLATION;
 }
 
 /**
@@ -320,11 +368,9 @@ string Term::toString () const
 {
   CALL("Term::toString");
 
-#if ALWAYS_OUTPUT_TERM_ITE
-  if(env.signature->isIteFunctor(functor())) {
-    return termIteToString();
+  if(isSpecial()) {
+    return specialTermToString();
   }
-#endif
 
   Stack<const TermList*> stack(64);
 
@@ -366,12 +412,10 @@ void TermList::argsToString(Stack<const TermList*>& stack,string& s)
       continue;
     }
     const Term* t = ts->term();
-#if ALWAYS_OUTPUT_TERM_ITE
-    if(env.signature->isIteFunctor(t->functor())) {
-      s+=t->termIteToString();
+    if(t->isSpecial()) {
+      s+=t->specialTermToString();
       continue;
     }
-#endif
     s += t->functionName();
     if (t->arity()) {
       s += '(';
@@ -634,25 +678,33 @@ Literal* Literal::oppositeLiteral(Literal* l)
 
 /** Create a new complex term, copy from @b t its function symbol and
  *  from the array @b args its arguments. Insert it into the sharing
- *  structure.
+ *  structure if all arguments are shared.
  * @since 07/01/2008 Torrevieja
  */
 Term* Term::create(Term* t,TermList* args)
 {
   CALL("Term::create/2");
+  ASS_EQ(t->getPreDataSize(), 0);
 
   int arity = t->arity();
   Term* s = new(arity) Term(*t);
+  bool share = true;
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
     ASS(!args[i].isEmpty());
     *ss-- = args[i];
+    if(!args[i].isSafe()) {
+      share = false;
+    }
   }
-  return env.sharing->insert(s);
+  if(share) {
+    s = env.sharing->insert(s);
+  }
+  return s;
 }
 
 /** Create a new complex term, and insert it into the sharing
- *  structure.
+ *  structure if all arguments are shared.
  */
 Term* Term::create(unsigned function, unsigned arity, TermList* args)
 {
@@ -662,12 +714,19 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
   Term* s = new(arity) Term;
   s->makeSymbol(function,arity);
 
+  bool share = true;
   TermList* ss = s->args();
   for (unsigned i = 0;i < arity;i++) {
     ASS(!args[i].isEmpty());
     *ss-- = args[i];
+    if(!args[i].isSafe()) {
+      share = false;
+    }
   }
-  return env.sharing->insert(s);
+  if(share) {
+    s = env.sharing->insert(s);
+  }
+  return s;
 }
 
 /** Create a new constant and insert in into the sharing
@@ -698,6 +757,58 @@ Term* Term::createNonShared(Term* t,TermList* args)
   }
   return s;
 } // Term::createNonShared(const Term* t,Term* args)
+
+/**
+ * Create a (condition ? thenBranch : elseBranch) expression
+ * and return the resulting term
+ */
+Term* Term::createTermITE(Formula * condition, TermList thenBranch, TermList elseBranch)
+{
+  CALL("Term::createTermITE");
+  Term* s = new(2,sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_TERM_ITE, 2);
+  TermList* ss = s->args();
+  *ss = thenBranch;
+  ss = ss->next();
+  *ss = elseBranch;
+  ASS(ss->next()->isEmpty());
+  s->getSpecialData()->_termITEData.condition = condition;
+  return s;
+}
+
+/**
+ * Create (let origin <- target in t) expression and return
+ * the resulting term
+ */
+Term* Term::createTermLet(TermList origin, TermList target, TermList t)
+{
+  CALL("Term::createTermLet");
+  Term* s = new(1,sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_LET_TERM_IN_TERM, 1);
+  TermList* ss = s->args();
+  *ss = t;
+  ASS(ss->next()->isEmpty());
+  s->getSpecialData()->_termLetData.origin = origin.content();
+  s->getSpecialData()->_termLetData.target = target.content();
+  return s;
+}
+
+/**
+ * Create (let origin <- target in f) expression and return
+ * the resulting term
+ */
+Term* Term::createFormulaLet(Literal* origin, Formula* target, TermList t)
+{
+  CALL("Term::createFormulaLet");
+  Term* s = new(1,sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_LET_FORMULA_IN_TERM, 1);
+  TermList* ss = s->args();
+  *ss = t;
+  ASS(ss->next()->isEmpty());
+  s->getSpecialData()->_formulaLetData.origin = origin;
+  s->getSpecialData()->_formulaLetData.target = target;
+  return s;
+}
 
 /** Create a new complex term, copy from @b t its function symbol and arity.
  *  Initialize its arguments by a dummy special variable.
@@ -730,45 +841,20 @@ Term* Term::cloneNonShared(Term* t)
   return s;
 } // Term::cloneNonShared(const Term* t,Term* args)
 
+Term* Term::create1(unsigned fn, TermList arg)
+{
+  CALL("Term::create1");
 
-//Comparison Term::lexicographicCompare(TermList t1, TermList t2)
-//{
-//  DisagreementSetIterator dsit(t1,t2, false);
-//  if(dsit.hasNext()) {
-//	pair<TermList,TermList> dp=dsit.next(); //disagreement pair
-//	if(dp.first.isTerm()) {
-//	  if(dp.second.isTerm()) {
-//	    ASS_NEQ(dp.first.term()->functor(), dp.second.term()->functor());
-//	    return Int::compare(dp.first.term()->functor(), dp.second.term()->functor());
-//	  }
-//	  return Lib::GREATER;
-//	} else {
-//	  if(dp.second.isTerm()) {
-//	    return Lib::LESS;
-//	  }
-//	  ASS(dp.first.isOrdinaryVar());
-//	  ASS(dp.second.isOrdinaryVar());
-//	  return Int::compare(dp.first.var(), dp.second.var());
-//	}
-//  } else {
-//	return Lib::EQUAL;
-//  }
-//}
-//Comparison Term::lexicographicCompare(Term* t1, Term* t2)
-//{
-//  if(t1->isLiteral()) {
-//	ASS(t2->isLiteral());
-//	if(static_cast<Literal*>(t1)->header()!=static_cast<Literal*>(t2)->header()) {
-//	  return (static_cast<Literal*>(t1)->header() > static_cast<Literal*>(t2)->header()) ?
-//		  Lib::GREATER : Lib::LESS;
-//	}
-//  }
-//  return lexicographicCompare(TermList(t1), TermList(t2));
-//  if(t1->functor()!=t2->functor()) {
-//	return (t1->functor() > t2->functor()) ?
-//		Lib::GREATER : Lib::LESS;
-//  }
-//}
+  return Term::create(fn, 1, &arg);
+}
+
+Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
+{
+  CALL("Term::create2");
+
+  TermList args[] = {arg1, arg2};
+  return Term::create(fn, 2, args);
+}
 
 
 unsigned Term::computeDistinctVars() const
@@ -803,7 +889,7 @@ bool Term::skip() const
 }
 
 /** Create a new literal, and insert it into the sharing
- *  structure.
+ *  structure if all arguments are shared.
  */
 Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args)
 {
@@ -814,21 +900,29 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
 
   Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
 
+  bool share = true;
   TermList* ss = l->args();
   for (unsigned i = 0;i < arity;i++) {
     *ss-- = args[i];
+    if(!args[i].isSafe()) {
+      share = false;
+    }
   }
-  return env.sharing->insert(l);
+  if(share) {
+    l = env.sharing->insert(l);
+  }
+  return l;
 }
 
 /** Create a new literal, copy from @b l its predicate symbol and
  *  its arguments, and set its polarity to @b polarity. Insert it
- *  into the sharing structure.
+ *  into the sharing structure if all arguments are shared.
  * @since 07/01/2008 Torrevieja
  */
 Literal* Literal::create(Literal* l,bool polarity)
 {
   CALL("Literal::create(Literal*,bool)");
+  ASS_EQ(l->getPreDataSize(), 0);
 
   int arity = l->arity();
   Literal* m = new(arity) Literal(*l);
@@ -839,38 +933,67 @@ Literal* Literal::create(Literal* l,bool polarity)
   while(ss->isNonEmpty()) {
     *ts-- = *ss--;
   }
-
-  return env.sharing->insert(m);
+  if(l->shared()) {
+    m = env.sharing->insert(m);
+  }
+  return m;
 } // Literal::create
 
 /** Create a new literal, copy from @b l its predicate symbol and
  *  from the array @b args its arguments. Insert it into the sharing
- *  structure.
+ *  structure if all arguments are shared.
  * @since 07/01/2008 Torrevieja
  */
 Literal* Literal::create(Literal* l,TermList* args)
 {
   CALL("Literal::create(Literal*,TermList*)");
+  ASS_EQ(l->getPreDataSize(), 0);
 
   int arity = l->arity();
   Literal* m = new(arity) Literal(*l);
 
+  bool share = true;
   TermList* ts = m->args();
   for (int i = 0;i < arity;i++) {
     *ts-- = args[i];
+    if(!args[i].isSafe()) {
+      share = false;
+    }
   }
-  return env.sharing->insert(m);
+  if(share) {
+    m = env.sharing->insert(m);
+  }
+  return m;
 } // Literal::create
 
 /** Return a new equality literal, with polarity @b polarity and
- * arguments @b arg1 and @b arg2. Insert it into the sharing structure. */
+ * arguments @b arg1 and @b arg2. Insert it into the sharing structure
+ * if all arguments are shared. */
 Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2)
 {
    CALL("Literal::equality/3");
    Literal* lit=new(2) Literal(0,2,polarity,true);
    *lit->nthArgument(0)=arg1;
    *lit->nthArgument(1)=arg2;
-   return env.sharing->insert(lit);
+   if(arg1.isSafe() && arg2.isSafe()) {
+     lit = env.sharing->insert(lit);
+   }
+   return lit;
+}
+
+Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
+{
+  CALL("Literal::create1");
+
+  return Literal::create(predicate, 1, polarity, false, &arg);
+}
+
+Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2)
+{
+  CALL("Literal::create2");
+
+  TermList args[] = {arg1, arg2};
+  return Literal::create(predicate, 2, polarity, false, args);
 }
 
 
@@ -884,6 +1007,7 @@ Term::Term(const Term& t) throw()
     _vars(0)
 {
   CALL("Term::Term/1");
+  ASS(!isSpecial()); //we do not copy special terms
 
   _args[0] = t._args[0];
   _args[0]._info.shared = 0u;

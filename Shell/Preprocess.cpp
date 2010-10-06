@@ -30,7 +30,7 @@
 #include "SimplifyFalseTrue.hpp"
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
-#include "TermIteDefinitions.hpp"
+#include "SpecialTermElimination.hpp"
 #include "TheoryAxioms.hpp"
 
 // #include "Lib/Sort.hpp"
@@ -89,7 +89,7 @@ void Preprocess::preprocess (UnitList*& units)
 //     }
 //   }
 
-  TermIteDefinitions::addDefinitions(units);
+  SpecialTermElimination().apply(units);
 
   // reorder units
   if (_options.normalize()) {

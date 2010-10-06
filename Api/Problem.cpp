@@ -30,7 +30,7 @@
 #include "Shell/Skolem.hpp"
 #include "Shell/SimplifyFalseTrue.hpp"
 #include "Shell/SimplifyProver.hpp"
-#include "Shell/TermIteDefinitions.hpp"
+#include "Shell/SpecialTermElimination.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
 #include "Shell/VarManager.hpp"
@@ -192,17 +192,23 @@ struct Problem::Clausifier
     ASS(!VarManager::varNamePreserving());
     VarManager::setVarNamePreserving(f._aux->getVarFactory());
 
-    unit = Rectify::rectify(unit);
-    unit = SimplifyFalseTrue::simplify(unit);
-    unit = Flattening::flatten(unit);
-
     Kernel::UnitList* newDefs=0;
-    unit = FormulaIteExpander().apply(unit, newDefs);
+    unit = SpecialTermElimination().apply(static_cast<Kernel::FormulaUnit*>(unit), newDefs);
 
     unsigned nextClauseNum=1;
     bool clausifyingDefs=false;
 
     for(;;) {
+      unit = Rectify::rectify(unit);
+      unit = SimplifyFalseTrue::simplify(unit);
+      unit = Flattening::flatten(unit);
+
+      {
+	Kernel::UnitList* newDefs2=0;
+	unit = FormulaIteExpander().apply(unit, newDefs2);
+        newDefs = UnitList::concat(newDefs2, newDefs);
+      }
+
       unit = NNF::ennf(unit);
       unit = Flattening::flatten(unit);
 
@@ -279,20 +285,6 @@ Problem Problem::clausify(int namingThreshold, bool preserveEpr)
     while(fit.hasNext()) {
       AnnotatedFormula f=fit.next();
       clausifier.clausify(f);
-    }
-
-    //add definitiona for if-then-else terms
-    fit=formulas();
-    if(fit.hasNext()) {
-      AnnotatedFormula f0=fit.next();
-      Kernel::UnitList* iteDefs = 0;
-      Shell::TermIteDefinitions::addDefinitions(iteDefs);
-      while(iteDefs) {
-	Kernel::Unit* u = UnitList::pop(iteDefs);
-	AnnotatedFormula f=AnnotatedFormula(u);
-	f._aux=f0._aux;
-	clausifier.clausify(f);
-      }
     }
   }
 

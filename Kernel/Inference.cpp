@@ -235,6 +235,10 @@ string Inference::ruleName(Rule rule)
     return "flattening";
   case FORMULA_ITE_EXPANSION:
     return "formula ite expansion";
+  case TERM_IF_THEN_ELSE_DEFINITION:
+    return "term if then else definition";
+  case SPECIAL_TERM_ELIMINATION:
+    return "special term elimination";
 //  case CHOICE_AXIOM:
 //  case MONOTONE_REPLACEMENT:
 //  case FORALL_ELIMINATION:
@@ -328,8 +332,6 @@ string Inference::ruleName(Rule rule)
     return "theory axiom";
   case BOOLEAN_TERM_ENCODING:
     return "boolean term encoding";
-  case TERM_IF_THEN_ELSE_DEFINITION:
-    return "term if-then-else definition";
   case SPLITTING_COMPONENT:
     return "splitting component introduction";
   case SPLITTING:

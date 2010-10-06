@@ -13,6 +13,7 @@
 #include "Lib/XML.hpp"
 
 #include "Connective.hpp"
+#include "Term.hpp"
 
 using namespace Lib;
 
@@ -40,6 +41,11 @@ public:
   /** Return the connective */
   Connective connective () const { return _connective; }
 
+  TermList termLetOrigin() const;
+  TermList termLetTarget() const;
+  Literal* formulaLetOrigin() const;
+  Formula* formulaLetTarget() const;
+  Formula* letBody() const;
   Formula* condarg() const;
   Formula* thenarg() const;
   Formula* elsearg() const;
@@ -270,7 +276,7 @@ class IteFormula
   : public Formula
 {
  public:
-  IteFormula (Connective con, Formula* condarg, Formula * thenarg, Formula * elsearg)
+  IteFormula (Connective con, Formula* condarg, Formula* thenarg, Formula* elsearg)
     : Formula(con),
       _condarg(condarg),
       _thenarg(thenarg),
@@ -280,11 +286,11 @@ class IteFormula
   }
 
   /** Return the subformula serving as the condition */
-  Formula* condarg() const { return const_cast<Formula*>(_condarg); }
+  Formula* condarg() const { return _condarg; }
   /** Return the subformula serving as the then branch */
-  Formula* thenarg() const { return const_cast<Formula*>(_thenarg); }
+  Formula* thenarg() const { return _thenarg; }
   /** Return the subformula serving as the else branch */
-  Formula* elsearg() const { return const_cast<Formula*>(_elsearg); }
+  Formula* elsearg() const { return _elsearg; }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME("IteFormula");
@@ -295,6 +301,77 @@ class IteFormula
   Formula* _elsearg;
 }; // class IteFormula
 
+/**
+ * Formula let...in formula.
+ */
+class FormulaLetFormula
+  : public Formula
+{
+ public:
+  /**
+   * Create a formula (let origin := target in body)
+   */
+  FormulaLetFormula (Connective con, Literal* origin, Formula* target, Formula* body)
+    : Formula(con),
+      _origin(origin),
+      _target(target),
+      _body(body)
+  {
+    ASS(con == FORMULA_LET);
+  }
+
+  /** Return the literal that should be replaced */
+  Literal* origin() const { return _origin; }
+  /** Return the formula that should replace the @b origin() literal */
+  Formula* target() const { return _target; }
+  /** Return body on which the replacement is performed */
+  Formula* body() const { return _body; }
+
+  // use allocator to (de)allocate objects of this class
+  CLASS_NAME("FormulaLetFormula");
+  USE_ALLOCATOR(FormulaLetFormula);
+ protected:
+  Literal* _origin;
+  Formula* _target;
+  Formula* _body;
+}; // class FormulaLetFormula
+
+/**
+ * Term let...in formula.
+ */
+class TermLetFormula
+  : public Formula
+{
+ public:
+  /**
+   * Create a formula (let origin := target in body)
+   */
+  TermLetFormula (Connective con, TermList origin, TermList target, Formula* body)
+    : Formula(con),
+      _origin(origin),
+      _target(target),
+      _body(body)
+  {
+    ASS(con == TERM_LET);
+    ASS(origin.isSafe());
+    ASS(target.isSafe());
+  }
+
+  /** Return the term that should be replaced */
+  TermList origin() const { return _origin; }
+  /** Return the term that should replace the @b origin() term */
+  TermList target() const { return _target; }
+  /** Return body on which the replacement is performed */
+  Formula* body() const { return _body; }
+
+  // use allocator to (de)allocate objects of this class
+  CLASS_NAME("TermLetFormula");
+  USE_ALLOCATOR(TermLetFormula);
+ protected:
+  TermList _origin;
+  TermList _target;
+  Formula* _body;
+}; // class TermLetFormula
 
 // definitions, had to be put out of class
 
@@ -430,6 +507,36 @@ inline
 Formula* Formula::elsearg() const {
   ASS(_connective == ITE);
   return static_cast<const IteFormula*>(this)->elsearg();
+}
+inline
+Formula* Formula::letBody() const {
+  if(_connective == TERM_LET) {
+    return static_cast<const TermLetFormula*>(this)->body();
+  }
+  else {
+    ASS(_connective == FORMULA_LET)
+    return static_cast<const FormulaLetFormula*>(this)->body();
+  }
+}
+inline
+Literal* Formula::formulaLetOrigin() const {
+  ASS(_connective == FORMULA_LET)
+  return static_cast<const FormulaLetFormula*>(this)->origin();
+}
+inline
+Formula* Formula::formulaLetTarget() const {
+  ASS(_connective == FORMULA_LET)
+  return static_cast<const FormulaLetFormula*>(this)->target();
+}
+inline
+TermList Formula::termLetOrigin() const {
+  ASS(_connective == TERM_LET);
+  return static_cast<const TermLetFormula*>(this)->origin();
+}
+inline
+TermList Formula::termLetTarget() const {
+  ASS(_connective == TERM_LET);
+  return static_cast<const TermLetFormula*>(this)->target();
 }
 
 

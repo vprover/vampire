@@ -59,7 +59,8 @@ TermSharing::~TermSharing()
 Term* TermSharing::insert(Term* t)
 {
   CALL("TermSharing::insert(Term*)");
-  ASS(! t->isLiteral());
+  ASS(!t->isLiteral());
+  ASS(!t->isSpecial());
 
   TimeCounter tc(TC_TERM_SHARING);
 
@@ -138,6 +139,7 @@ Literal* TermSharing::insert(Literal* t)
 {
   CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
+  ASS(!t->isSpecial());
 
   TimeCounter tc(TC_TERM_SHARING);
 
@@ -168,7 +170,7 @@ Literal* TermSharing::insert(Literal* t)
 	weight += 1;
       }
       else {
-	ASS(tt->term()->shared());
+	ASS_REP(tt->term()->shared(), tt->term()->toString());
 	Term* r = tt->term();
 	vars += r->vars();
 	weight += r->weight();

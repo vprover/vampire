@@ -44,13 +44,9 @@ class Signature
     unsigned _interpreted : 1;
     /** clauses with only skipped symbols will not be output as symbol eliminating */
     unsigned _skip : 1;
-    union {
     /** marks propositional predicate symbols that are to
         be used as names during consequence finding */
     unsigned _cfName : 1;
-    /** marks ITE functions (see Signature::addIteFunctor() function) */
-    unsigned _iteFunction : 1;
-    };
     /** marks propositional predicate symbols that are to
         be used as names for splitting without backtracking
         when BDDs are not used */
@@ -68,8 +64,6 @@ class Signature
     void markCFName() { ASS_EQ(arity(), 0); _cfName=1; }
     /** mark the symbol as name for splitting without backtracking */
     void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
-    /** mark ITE functions (see Signature::addIteFunctor() function) */
-    void markIteFunction() { _iteFunction=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() { return _skip; }
     /** return true iff the symbol is marked as name predicate
@@ -86,8 +80,6 @@ class Signature
     inline const string& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
     inline bool interpreted() const { return _interpreted; }
-    /** Return true if the object is an ITE functions (see Signature::addIteFunctor() function) */
-    inline bool iteFunction() const { return _iteFunction; }
 
 
     CLASS_NAME("Signature::Symbol");
@@ -126,20 +118,6 @@ class Signature
 
   typedef Map<string,unsigned,Hash> SymbolMap;
 
-  unsigned addIteFunctor(unsigned predNum);
-  /** Return true if @b fnNum is an ITE functor */
-  bool isIteFunctor(unsigned fnNum)
-  { return getFunction(fnNum)->iteFunction(); }
-  /** Return number of predicate for which function @b fnNum acts
-   * as an ITE functor
-   *
-   * @b fnNum must be an ITE functor.*/
-  unsigned getIteFunctorPred(unsigned fnNum)
-  { return _iteFunctorPreds.get(fnNum); }
-  /** Return iterator of all ITE functors */
-  VirtualIterator<unsigned> getIteFunctors()
-  { return _iteFunctorPreds.domain(); }
-
   void registerInterpretedFunction(const string& name, Interpretation interpretation);
   void registerInterpretedPredicate(const string& name, Interpretation interpretation);
 
@@ -165,7 +143,9 @@ class Signature
     return _iSymbols.size()!=1;
   }
 
+  unsigned addIteFunction(unsigned arity);
   unsigned addSkolemFunction(unsigned arity, const char* suffix = 0);
+  unsigned addIntroducedFunction(unsigned arity, const char* prefix, const char* suffix = 0);
   /**
    * If a predicate with this name and arity exists, return its number.
    * Otherwise, add a new one and return its number.
@@ -275,8 +255,11 @@ private:
   SymbolMap _arityCheck;
   /** Last number used for name predicates */
   int _lastName;
-  /** Last number used for skolem functions */
-  int _lastSkolem;
+  /** Last number used for introduced functions */
+  int _lastIntroducedFunctionNumber;
+  /** Last number of a function with name starting with sG
+   * (name recommended by http://www.cs.miami.edu/~tptp/TSTP/NewSymbolNames.html )*/
+  int _lastSG;
 
   /** Map from InterpretedType values to constant symbols representing them */
   DHMap<InterpretedType, unsigned> _iConstants;
@@ -289,16 +272,6 @@ private:
    * or a predicate.
    */
   DHMap<Interpretation, unsigned> _iSymbols;
-
-  /**
-   * Map from predicate symbols of p(X) to functors of f(X,Y,Z) that represent
-   * if-then-else expression p(X) ? Y : Z.
-   *
-   * @see addIteFunctor()
-   */
-  DHMap<unsigned,unsigned> _iteFunctorFuns;
-  /** Inverse of the @b _iteFunctorFuns map */
-  DHMap<unsigned,unsigned> _iteFunctorPreds;
 }; // class Signature
 
 }

@@ -238,9 +238,9 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/SineUtils.o\
          Shell/SMTLexer.o\
          Shell/SMTParser.o\
+	 Shell/SpecialTermElimination.o\
          Shell/Statistics.o\
          Shell/SymCounter.o\
-         Shell/TermIteDefinitions.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/Token.o\
@@ -334,6 +334,7 @@ OTHER_API_DEP = \
 			   Kernel/FormulaUnit.o\
 			   Kernel/FormulaVarIterator.o\
 			   Kernel/Inference.o\
+			   Kernel/Matcher.o\
 			   Kernel/Signature.o\
 			   Kernel/SubformulaIterator.o\
 			   Kernel/Substitution.o\
@@ -375,8 +376,8 @@ OTHER_API_DEP = \
 			   Shell/SimplifyFalseTrue.o\
 			   Shell/SimplifyProver.o\
 			   Shell/Skolem.o\
+		           Shell/SpecialTermElimination.o\
 			   Shell/Statistics.o\
-		           Shell/TermIteDefinitions.o\
 			   Shell/Token.o\
 			   Shell/TPTP.o\
 			   Shell/TPTPLexer.o\

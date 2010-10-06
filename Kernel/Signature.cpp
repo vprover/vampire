@@ -52,7 +52,8 @@ Signature::Signature ()
   : _funs(32),
     _preds(32),
     _lastName(0),
-    _lastSkolem(0)
+    _lastIntroducedFunctionNumber(0),
+    _lastSG(0)
 {
   CALL("Signature::Signature");
 
@@ -75,39 +76,6 @@ Signature::~Signature ()
     delete _preds[i];
   }
 } // Signature::~Signature
-
-/**
- * For a predicate p(X), return a function symbol f so that f(X,Y,Z) will
- * stand for an if-then-else expression p(X) ? Y : Z.
- */
-unsigned Signature::addIteFunctor(unsigned predNum)
-{
-  CALL("Signature::addIteFunctor");
-
-  unsigned fnNum;
-  if(_iteFunctorFuns.find(predNum, fnNum)) {
-    return fnNum;
-  }
-
-  Symbol* pred = getPredicate(predNum);
-  unsigned arity = pred->arity()+2;
-  string name0 = "if_" + pred->name();
-  string name = name0;
-  unsigned i=1;
-  bool added;
-  do {
-    fnNum=addFunction(name, arity, added);
-    if(!added) {
-      name=name0+"_"+Int::toString(i++);
-    }
-  } while(!added);
-
-  Symbol* fun = getFunction(fnNum);
-  fun->markIteFunction();
-  _iteFunctorFuns.insert(predNum, fnNum);
-  _iteFunctorPreds.insert(fnNum, predNum);
-  return fnNum;
-}
 
 /**
  * Marks a function as interpreted.
@@ -395,19 +363,14 @@ unsigned Signature::addNamePredicate (unsigned arity)
   }
 } // addNamePredicate
 
-/**
- * Return a new Skolem function. If @b suffix is nonzero, include it
- * into the name of the Skolem function.
- * @since 01/07/2005 Manchester
- */
-unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
+unsigned Signature::addIntroducedFunction(unsigned arity, const char* prefix0, const char* suffix)
 {
-  CALL("Signature::addSkolemFunction");
+  CALL("Signature::addIntroducedFunction");
 
-  string prefix("sK");
+  string prefix(prefix0);
   prefix+=env.options->namePrefix();
   for (;;) {
-    string name = prefix + Int::toString(_lastSkolem++);
+    string name = prefix + Int::toString(_lastIntroducedFunctionNumber++);
     if(suffix) {
       name=name+"_"+suffix;
     }
@@ -418,7 +381,30 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
       return result;
     }
   }
+}
+
+/**
+ * Return a new Skolem function. If @b suffix is nonzero, include it
+ * into the name of the Skolem function.
+ * @since 01/07/2005 Manchester
+ */
+unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
+{
+  CALL("Signature::addSkolemFunction");
+
+  return addIntroducedFunction(arity, "sK", suffix);
 } // addSkolemFunction
+
+/**
+ * Return number of a new function to be used in if-then-else elimination
+ */
+unsigned Signature::addIteFunction(unsigned arity)
+{
+  CALL("Signature::addIteFunction");
+
+  return addIntroducedFunction(arity, "sG");
+}
+
 
 /**
  * Return the key "name_arity" used for hashing.

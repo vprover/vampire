@@ -37,8 +37,6 @@ public:
     : _free(0)
   {}
   static Unit* rectify(Unit*);
-//   static void rectifyFormula(Formula&);
-//   static void rectifyClause(Clause&);
 private:
   typedef List<int> VarList;
   /** Renaming stores bindings for free and bound variables */
@@ -69,9 +67,14 @@ private:
 
   void reset();
 
+  unsigned rectifyVar(unsigned v);
+  void rectifyTermLet(TermList& origin, TermList& target);
+  void rectifyFormulaLet(Literal*& origin, Formula*& target);
+
   Formula* rectify(Formula*);
   FormulaList* rectify(FormulaList*);
   VarList* rectify(VarList*);
+  TermList rectify(TermList);
   Term* rectify(Term*);
   Literal* rectify(Literal*);
   bool rectify(TermList* from,TermList* to);

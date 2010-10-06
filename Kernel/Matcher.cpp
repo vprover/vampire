@@ -13,6 +13,68 @@
 namespace Kernel
 {
 
+namespace __MU_Aux {
+
+class MapBinderAndApplicator
+{
+public:
+  TermList apply(unsigned var) {
+    TermList res;
+    if(!_map.find(var, res)) {
+      res = TermList(var, false);
+    }
+    return res;
+  }
+
+  bool bind(unsigned var, TermList term)
+  {
+    TermList* aux;
+    return _map.getValuePtr(var,aux,term) || *aux==term;
+  }
+  void specVar(unsigned var, TermList term)
+  { ASSERTION_VIOLATION; }
+
+  void reset() { _map.reset(); }
+private:
+  DHMap<unsigned, TermList> _map;
+};
+
+};
+
+/**
+ * Obtain a substitution by matching @b matchedInstance onto @b matchedBase
+ * and return @b resultBase after application of that substitution
+ *
+ * @b matchedInstance must match onto @b matchedBase.
+ */
+TermList MatchingUtils::getInstanceFromMatch(TermList matchedBase,
+    TermList matchedInstance, TermList resultBase)
+{
+  CALL("MatchingUtils::getInstanceFromMatch(TermList...)");
+
+  using namespace __MU_Aux;
+
+  static MapBinderAndApplicator bap;
+  bap.reset();
+
+  ALWAYS( matchTerms(matchedBase, matchedInstance, bap) );
+  return SubstHelper::apply(resultBase, bap);
+}
+
+Formula* MatchingUtils::getInstanceFromMatch(Literal* matchedBase,
+      Literal* matchedInstance, Formula* resultBase)
+{
+  CALL("MatchingUtils::getInstanceFromMatch(Literal*...)");
+
+  using namespace __MU_Aux;
+
+  static MapBinderAndApplicator bap;
+  bap.reset();
+
+  ALWAYS( match(matchedBase, matchedInstance, false, bap) );
+  return SubstHelper::apply(resultBase, bap);
+}
+
 //////////////// FastMatchIterator ////////////////////
 
 void OCMatchIterator::init(Literal* base, Literal* inst, bool complementary)

@@ -28,12 +28,11 @@ namespace Kernel {
   class Formula;
 }
 
+namespace Shell {
+
 using namespace std;
 using namespace Kernel;
 using namespace Lib;
-
-
-namespace Shell {
 
 /**
  * Represents syntactic properties of problems.

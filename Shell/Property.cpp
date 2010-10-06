@@ -580,6 +580,11 @@ bool Property::hasXEqualsY (const Formula* f, MultiCounter& vc, int polarity)
            hasXEqualsY(f->thenarg(),vc,polarity) ||
            hasXEqualsY(f->elsearg(),vc,polarity);
 
+  case TERM_LET:
+  case FORMULA_LET:
+    //these two may introduce the X=Y literal but it would be too complicated to check for it
+    return true;
+
   case TRUE:
   case FALSE:
     return false;

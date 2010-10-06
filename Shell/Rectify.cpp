@@ -6,12 +6,14 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/Recycler.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
 #include "Indexing/TermSharing.hpp"
@@ -97,13 +99,62 @@ Term* Rectify::rectify (Term* t)
 {
   CALL("Rectify::rectify(Term*)");
 
-  if (t->ground()) {
+  if (t->shared() && t->ground()) {
     return t;
+  }
+
+  if(t->isSpecial()) {
+    Term::SpecialTermData* sd = t->getSpecialData();
+    switch(t->functor()) {
+    case Term::SF_TERM_ITE:
+    {
+      ASS_EQ(t->arity(),2);
+      Formula* c = rectify(sd->getCondition());
+      TermList th = rectify(*t->nthArgument(0));
+      TermList el = rectify(*t->nthArgument(1));
+      if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1)) {
+	return t;
+      }
+      return Term::createTermITE(c, th, el);
+    }
+    case Term::SF_LET_FORMULA_IN_TERM:
+    {
+      ASS_EQ(t->arity(),1);
+      Literal* orig = sd->getOriginLiteral();
+      Formula* tgt = sd->getTargetFormula();
+      rectifyFormulaLet(orig, tgt);
+      TermList body = rectify(*t->nthArgument(0));
+      if(orig==sd->getOriginLiteral() && tgt==sd->getTargetFormula() && body==*t->nthArgument(0)) {
+        return t;
+      }
+      return Term::createFormulaLet(orig, tgt, body);
+    }
+    case Term::SF_LET_TERM_IN_TERM:
+    {
+      ASS_EQ(t->arity(),1);
+      TermList orig = sd->getOriginTerm();
+      TermList tgt = sd->getTargetTerm();
+      rectifyTermLet(orig, tgt);
+      TermList body = rectify(*t->nthArgument(0));
+      if(orig==sd->getOriginTerm() && tgt==sd->getTargetTerm() && body==*t->nthArgument(0)) {
+        return t;
+      }
+      return Term::createTermLet(orig, tgt, body);
+    }
+    default:
+      ASSERTION_VIOLATION;
+    }
+    NOT_IMPLEMENTED;
   }
 
   Term* s = new(t->arity()) Term(*t);
   if (rectify(t->args(),s->args())) {
-    return env.sharing->insert(s);
+    if(TermList::allShared(s->args())) {
+      return env.sharing->insert(s);
+    }
+    else {
+      return s;
+    }
   }
   // term not changed
   s->destroy();
@@ -118,13 +169,18 @@ Literal* Rectify::rectify (Literal* l)
 {
   CALL("Rectify::rectify(Literal*)");
 
-  if (l->ground()) {
+  if (l->shared() && l->ground()) {
     return l;
   }
 
   Literal* m = new(l->arity()) Literal(*l);
   if (rectify(l->args(),m->args())) {
-    return env.sharing->insert(m);
+    if(TermList::allShared(m->args())) {
+      return env.sharing->insert(m);
+    }
+    else {
+      return m;
+    }
   }
   // literal not changed
   m->destroy();
@@ -144,11 +200,7 @@ bool Rectify::rectify(TermList* from,TermList* to)
   while (! from->isEmpty()) {
     if (from->isVar()) {
       int v = from->var();
-      int newV;
-      if (! _renaming.bound(v,newV)) {
-	newV = _renaming.bind(v);
-	_free = new VarList(newV,_free);
-      }
+      int newV = rectifyVar(v);
       to->makeVar(newV);
       if (v != newV) { // rename variable to itself
 	changed = true;
@@ -170,6 +222,92 @@ bool Rectify::rectify(TermList* from,TermList* to)
   return changed;
 } // Rectify::rectify (TermList*,...)
 
+/**
+ * Rectify variable @b v and return the result
+ */
+unsigned Rectify::rectifyVar(unsigned v)
+{
+  CALL("Rectify::rectifyVar");
+
+  int newV;
+  if (! _renaming.bound(v,newV)) {
+    newV = _renaming.bind(v);
+    _free = new VarList(newV,_free);
+  }
+  return newV;
+}
+
+
+/**
+ * Rectify term @b t
+ */
+TermList Rectify::rectify(TermList t)
+{
+  CALL("Rectify::rectify");
+
+  if(t.isTerm()) {
+    return TermList(rectify(t.term()));
+  }
+  ASS(t.isOrdinaryVar());
+  return TermList(rectifyVar(t.var()), false);
+}
+
+void Rectify::rectifyTermLet(TermList& origin, TermList& target)
+{
+  CALL("Rectify::rectifyTermLet");
+
+  //the variables of the origin will be bound in the target, so we
+  //need to rectify them
+  VarList* vs = 0;
+  VariableIterator vit(origin);
+  VarList::pushFromIterator(getMappingIterator(
+	getUniquePersistentIteratorFromPtr(&vit), OrdVarNumberExtractorFn()), vs);
+  //we don't need the resultof variable rectification, we just needed to do the binding
+  VarList* vs1 = rectify(vs);
+  origin = rectify(origin);
+  target = rectify(target);
+  ASS_EQ(vs->length(), vs1->length()); //the equal length is needed by our list-destroying code
+  while(vs) {
+    //the lists vs and vs1 start sharing the same links at some point, so
+    //it gets a little tricky to free all elements
+    if(vs1 && vs!=vs1) {
+      VarList::pop(vs1);
+    }
+    else {
+      vs1 = 0;
+    }
+    _renaming.undoBinding(VarList::pop(vs));
+  }
+}
+
+void Rectify::rectifyFormulaLet(Literal*& origin, Formula*& target)
+{
+  CALL("Rectify::rectifyFormulaLet");
+
+  //the variables of the origin will be bound in the target, so we
+  //need to rectify them
+  VarList* vs = 0;
+  VariableIterator vit(origin);
+  VarList::pushFromIterator(getMappingIterator(
+	getUniquePersistentIteratorFromPtr(&vit), OrdVarNumberExtractorFn()), vs);
+  //we don't need the resultof variable rectification, we just needed to do the binding
+  VarList* vs1 = rectify(vs);
+  origin = rectify(origin);
+  target = rectify(target);
+  ASS_EQ(vs->length(), vs1->length()); //the equal length is needed by our list-destroying code
+  while(vs) {
+    //the lists vs and vs1 start sharing the same links at some point, so
+    //it gets a little tricky to free all elements
+    if(vs1 && vs!=vs1) {
+      VarList::pop(vs1);
+    }
+    else {
+      vs1 = 0;
+    }
+    _renaming.undoBinding(VarList::pop(vs));
+  }
+}
+
 
 /**
  * Rectify a formula.
@@ -189,67 +327,91 @@ Formula* Rectify::rectify (Formula* f)
 
   switch (f->connective()) {
   case LITERAL: 
-    {
-      Literal* lit = rectify(f->literal());
-      return lit == f->literal() ? f : new AtomicFormula(lit);
-    }
+  {
+    Literal* lit = rectify(f->literal());
+    return lit == f->literal() ? f : new AtomicFormula(lit);
+  }
 
   case AND: 
   case OR: 
-    {
-      FormulaList* newArgs = rectify(f->args());
-      if (newArgs == f->args()) {
-	return f;
-      }
-      return new JunctionFormula(f->connective(), newArgs);
+  {
+    FormulaList* newArgs = rectify(f->args());
+    if (newArgs == f->args()) {
+      return f;
     }
+    return new JunctionFormula(f->connective(), newArgs);
+  }
 
   case IMP: 
   case IFF: 
   case XOR:
-    {
-      Formula* l = rectify(f->left());
-      Formula* r = rectify(f->right());
-      if (l == f->left() && r == f->right()) {
-	return f;
-      }
-      return new BinaryFormula(f->connective(), l, r);
+  {
+    Formula* l = rectify(f->left());
+    Formula* r = rectify(f->right());
+    if (l == f->left() && r == f->right()) {
+      return f;
     }
+    return new BinaryFormula(f->connective(), l, r);
+  }
 
   case NOT:
-    {
-      Formula* arg = rectify(f->uarg());
-      if (f->uarg() == arg) {
-	return f;
-      }
-      return new NegatedFormula(arg);
+  {
+    Formula* arg = rectify(f->uarg());
+    if (f->uarg() == arg) {
+      return f;
     }
+    return new NegatedFormula(arg);
+  }
 
   case FORALL: 
   case EXISTS:
-    {
-      VarList* vs = rectify(f->vars());
-      Formula* arg = rectify(f->qarg());
-      VarList::Iterator ws(f->vars());
-      while (ws.hasNext()) {
-	_renaming.undoBinding(ws.next());
-      }
-      if (vs == f->vars() && arg == f->qarg()) {
-	return f;
-      }
-      return new QuantifiedFormula(f->connective(),vs,arg);
+  {
+    VarList* vs = rectify(f->vars());
+    Formula* arg = rectify(f->qarg());
+    VarList::Iterator ws(f->vars());
+    while (ws.hasNext()) {
+      _renaming.undoBinding(ws.next());
     }
+    if (vs == f->vars() && arg == f->qarg()) {
+      return f;
+    }
+    return new QuantifiedFormula(f->connective(),vs,arg);
+  }
 
   case ITE:
-    {
-      Formula* c = rectify(f->condarg());
-      Formula* t = rectify(f->thenarg());
-      Formula* e = rectify(f->elsearg());
-      if (c == f->condarg() && t == f->thenarg() && e == f->elsearg()) {
-	return f;
-      }
-      return new IteFormula(f->connective(), c, t, e);
+  {
+    Formula* c = rectify(f->condarg());
+    Formula* t = rectify(f->thenarg());
+    Formula* e = rectify(f->elsearg());
+    if (c == f->condarg() && t == f->thenarg() && e == f->elsearg()) {
+      return f;
     }
+    return new IteFormula(f->connective(), c, t, e);
+  }
+
+  case TERM_LET:
+  {
+    TermList o = f->termLetOrigin();
+    TermList t = f->termLetTarget();
+    rectifyTermLet(o, t);
+    Formula* b = rectify(f->letBody());
+    if(o==f->termLetOrigin() && t==f->termLetTarget() && b==f->letBody()) {
+      return f;
+    }
+    return new TermLetFormula(TERM_LET, o, t, b);
+  }
+
+  case FORMULA_LET:
+  {
+    Literal* o = f->formulaLetOrigin();
+    Formula* t = f->formulaLetTarget();
+    rectifyFormulaLet(o, t);
+    Formula* b = rectify(f->letBody());
+    if(o==f->formulaLetOrigin() && t==f->formulaLetTarget() && b==f->letBody()) {
+      return f;
+    }
+    return new FormulaLetFormula(FORMULA_LET, o, t, b);
+  }
 
   case TRUE:
   case FALSE:

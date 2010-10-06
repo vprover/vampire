@@ -25,6 +25,10 @@ using namespace Lib;
 class MatchingUtils
 {
 public:
+  static TermList getInstanceFromMatch(TermList matchedBase,
+      TermList matchedInstance, TermList resultBase);
+  static Formula* getInstanceFromMatch(Literal* matchedBase,
+      Literal* matchedInstance, Formula* resultBase);
 
   static bool isVariant(Literal* l1, Literal* l2, bool complementary=false)
   {
