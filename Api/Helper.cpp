@@ -23,7 +23,7 @@ DefaultHelperCore* DefaultHelperCore::instance()
   return &inst;
 }
 
-string DefaultHelperCore::getVarName(unsigned v) const
+string DefaultHelperCore::getVarName(Var v) const
 {
   CALL("DefaultHelperCore::getVarName");
 
@@ -389,7 +389,7 @@ Formula FBHelperCore::atom(const Predicate& p, bool positive, const Term* args, 
   return res;
 }
 
-string FBHelperCore::getVarName(unsigned v) const
+string FBHelperCore::getVarName(Var v) const
 {
   CALL("FBHelperCore::getVarName");
 

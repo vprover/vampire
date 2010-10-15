@@ -130,8 +130,8 @@ void Analyze::analyzeSubstatements(Statement* statement)
 } // analyzeSubstatements
 
 /**
- * Add all variables of exp to the variable list of st and all
- * statements in which st occurs.
+ * Add all variables of exp to the variable list of statement and all
+ * statements in which statement occurs.
  * 
  */
 void Analyze::addExpressionVariables(Expression* exp,Statement* statement)

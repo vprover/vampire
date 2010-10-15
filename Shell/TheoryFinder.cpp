@@ -26,10 +26,8 @@
 #define TRACE_FINDER 0
 #define SHOW_FOUND 0
 
-namespace Shell
-{
-
 using namespace Lib;
+using namespace Shell;
 using namespace Kernel;
 
 /**
@@ -1350,4 +1348,3 @@ bool TheoryFinder::matchAll (const Literal* lit)
 // #endif
 // } // TheoryFinder::analyse
 
-}

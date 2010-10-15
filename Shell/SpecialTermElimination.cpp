@@ -1,6 +1,6 @@
 /**
- * @file TermIteDefinitions.cpp
- * Implements class TermIteDefinitions.
+ * @file SpecialTermElimination.cpp
+ * Implements class SpecialTermElimination.
  */
 
 #include "Lib/List.hpp"

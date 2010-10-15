@@ -1,10 +1,10 @@
 /**
- * @file TermIteDefinitions.hpp
- * Defines class TermIteDefinitions.
+ * @file SpecialTermElimination.hpp
+ * Defines class SpecialTermElimination.
  */
 
-#ifndef __TermIteDefinitions__
-#define __TermIteDefinitions__
+#ifndef __SpecialTermElimination__
+#define __SpecialTermElimination__
 
 #include "Forwards.hpp"
 
@@ -99,4 +99,4 @@ private:
 
 }
 
-#endif // __TermIteDefinitions__
+#endif // __SpecialTermElimination__

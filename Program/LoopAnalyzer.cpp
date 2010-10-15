@@ -318,6 +318,7 @@ void LoopAnalyzer::generateAxiomsForCounters()
  * @param name the counter name
  * @param min the minimal increment of the counter over all paths
  * @param max the maximal increment of the counter over all paths
+ * @param gcd greatest common divisor of all increments of the counter over all paths
  */
 void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int gcd)
 {
