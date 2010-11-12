@@ -204,6 +204,7 @@ void LoopAnalyzer::analyzeVariables()
 void LoopAnalyzer::collectPaths()
 {
   CALL("LoopAnalyzer::collectPaths");
+  cout<<"\n collectPaths\n";
   Stack<Path*> paths; // partial paths
   // statements corresponding to this path, normally then-parts of IfThenElse
   Stack<Statement*> statements;
@@ -212,15 +213,15 @@ void LoopAnalyzer::collectPaths()
   for (;;) {
     switch (stat->kind()) {
     case Statement::ASSIGNMENT:
-     path = path->add(stat);
-      stat = stat->nextStatement();
+       path = path->add(stat);
+       stat = stat->nextStatement();
       break;
     case Statement::BLOCK:
       stat = stat->nextStatement();
       break;
     case Statement::ITE:
       {
-	path = path->add(stat);
+      	path = path->add(stat);
 	IfThenElse* ite = static_cast<IfThenElse*>(stat);
 	// save the else-path for further processing
 	paths.push(path->add(ite->elsePart()));
@@ -451,8 +452,8 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     TermList cK(Term::create(fun,1,&K));
     Formula* JgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,J,I));
     Formula* cJlessV = new AtomicFormula(theory->pred2(Theory::INT_LESS,true,cJ,V));
-    Formula* VlessI = new AtomicFormula(theory->pred2(Theory::INT_LESS,true,V,cI));
-    FormulaList* left = (new FormulaList(VlessI))->cons(cJlessV)->cons(JgreaterI);
+    Formula* VlesscI = new AtomicFormula(theory->pred2(Theory::INT_LESS,true,V,cI));
+    FormulaList* left = (new FormulaList(VlesscI))->cons(cJlessV)->cons(JgreaterI);
     Formula* lhs = new JunctionFormula(AND,left);
     Formula* JgreaterK = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,J,K));
     Formula* KgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,K,I));

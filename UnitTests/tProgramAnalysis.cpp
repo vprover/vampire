@@ -5,6 +5,10 @@
 
 #include "Test/UnitTesting.hpp"
 
+
+
+
+
 #define UNIT_ID pgm_analysis  //the UNIT_ID must be a valid variable name
 UT_CREATE;
 
@@ -159,6 +163,8 @@ TEST_FUN(canonical)
 
 TEST_FUN(copy)
 {
+
+
   Variable* va = new Variable("a",Type::integerType());
   Variable* vb = new Variable("b",Type::integerType());
   Variable* vm = new Variable("m",Type::integerType());
@@ -225,4 +231,5 @@ TEST_FUN(copy)
   cout << "\n";
   Analyze analysis(program);
   analysis.analyze();
+ 
 }
