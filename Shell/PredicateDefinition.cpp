@@ -483,6 +483,10 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
     case FALSE:
     case TRUE:
       return arg;
+    case ITE:
+    case FORMULA_LET:
+    case TERM_LET:
+      ASSERTION_VIOLATION;
     default:
       return arg == f->qarg()
 	      ? f

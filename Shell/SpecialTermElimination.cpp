@@ -43,7 +43,7 @@ void SpecialTermElimination::apply(UnitList*& units)
       for(unsigned i=0;i<cl->length();i++) {
 	//we do not allow special terms in clauses so we check that all clause literals
 	//are shared (special terms can not be shared)
-	ASS(!(*cl)[i]->shared());
+	ASS((*cl)[i]->shared());
       }
 #endif
       continue;
