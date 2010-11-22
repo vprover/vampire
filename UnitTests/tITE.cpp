@@ -97,16 +97,16 @@ TEST_FUN(iteTerm)
 
   Literal* x0EQx1=Literal::createEquality(true, x0, x1);
   Formula* fletTgt = new BinaryFormula(IMP, new AtomicFormula(p01), new AtomicFormula(x0EQx1));
-  Formula* flet = new FormulaLetFormula(FORMULA_LET, p01, fletTgt, new AtomicFormula(x0EQtlet));  //formula let in formula
+  Formula* flet = new FormulaLetFormula(p01, fletTgt, new AtomicFormula(x0EQtlet));  //formula let in formula
 
-  Formula* flet2 = new TermLetFormula(TERM_LET, g1, x1, flet);  //term let in formula
+  Formula* flet2 = new TermLetFormula(g1, x1, flet);  //term let in formula
   cout << flet2->toString() <<endl;
 
 
   Formula* simple1 = new AtomicFormula(Literal::create1(q, true, gITE));
-  Formula* simple2 = new TermLetFormula(TERM_LET, g1, x1, simple1);
-  Formula* simple3 = new FormulaLetFormula(FORMULA_LET, p01, new AtomicFormula(x0EQx1), simple2);
-  Formula* simple4 = new FormulaLetFormula(FORMULA_LET, p01, fletTgt, simple2);
+  Formula* simple2 = new TermLetFormula(g1, x1, simple1);
+  Formula* simple3 = new FormulaLetFormula(p01, new AtomicFormula(x0EQx1), simple2);
+  Formula* simple4 = new FormulaLetFormula(p01, fletTgt, simple2);
 
   TermList t1 = TermList(Term::createTermLet(g1,x1,gITE));
   TermList t2 = TermList(Term::createFormulaLet(p01,new AtomicFormula(x0EQx1),t1));

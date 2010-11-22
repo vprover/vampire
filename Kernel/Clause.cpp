@@ -539,6 +539,12 @@ unsigned Clause::splitWeight() const
   return splits() ? splits()->size() : 0;
 }
 
+/**
+ * Returns the numeral weight of a clause. The weight is defined as the sum of
+ * binary sizes of all integers occurring in this clause.
+ * @warning Each call to this function recomputes the numeral weight, so the call may
+ *          potentially result in traversing the whole clause
+ */
 unsigned Clause::getNumeralWeight()
 {
   CALL("Clause::getNumeralWeight");

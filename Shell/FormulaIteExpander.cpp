@@ -36,7 +36,7 @@ void FormulaIteExpander::apply(UnitList*& units)
     }
     Unit* v = apply(u);
     if(v != u) {
-	us.replace(v);
+      us.replace(v);
     }
   }
   us.insert(_defs);
@@ -141,9 +141,9 @@ Formula* FormulaIteExpander::apply(Formula* f)
 
   case ITE:
     {
-      Formula* c = apply(f->condarg());
-      Formula* t = apply(f->thenarg());
-      Formula* e = apply(f->elsearg());
+      Formula* c = apply(f->condArg());
+      Formula* t = apply(f->thenArg());
+      Formula* e = apply(f->elseArg());
 
       while(c->connective()==NOT) {
 	c = c->uarg();

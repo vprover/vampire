@@ -332,8 +332,8 @@ string Term::specialTermToString() const
   case SF_LET_FORMULA_IN_TERM:
   {
     ASS_EQ(arity(),1);
-    string s = "(let " + getSpecialData()->getOriginLiteral()->toString();
-    s += " := " + getSpecialData()->getTargetFormula()->toString();
+    string s = "(let " + getSpecialData()->getLhsLiteral()->toString();
+    s += " := " + getSpecialData()->getRhsFormula()->toString();
     s += " in " + nthArgument(0)->toString();
     s += " )";
     return s;
@@ -341,8 +341,8 @@ string Term::specialTermToString() const
   case SF_LET_TERM_IN_TERM:
   {
     ASS_EQ(arity(),1);
-    string s = "( let " + getSpecialData()->getOriginTerm().toString();
-    s += " := " + getSpecialData()->getTargetTerm().toString();
+    string s = "( let " + getSpecialData()->getLhsTerm().toString();
+    s += " := " + getSpecialData()->getRhsTerm().toString();
     s += " in " + nthArgument(0)->toString();
     s += " )";
     return s;
@@ -777,10 +777,10 @@ Term* Term::createTermITE(Formula * condition, TermList thenBranch, TermList els
 }
 
 /**
- * Create (let origin <- target in t) expression and return
+ * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createTermLet(TermList origin, TermList target, TermList t)
+Term* Term::createTermLet(TermList lhs, TermList rhs, TermList t)
 {
   CALL("Term::createTermLet");
   Term* s = new(1,sizeof(SpecialTermData)) Term;
@@ -788,16 +788,16 @@ Term* Term::createTermLet(TermList origin, TermList target, TermList t)
   TermList* ss = s->args();
   *ss = t;
   ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_termLetData.origin = origin.content();
-  s->getSpecialData()->_termLetData.target = target.content();
+  s->getSpecialData()->_termLetData.lhs = lhs.content();
+  s->getSpecialData()->_termLetData.rhs = rhs.content();
   return s;
 }
 
 /**
- * Create (let origin <- target in f) expression and return
+ * Create (let lhs <- rhs in f) expression and return
  * the resulting term
  */
-Term* Term::createFormulaLet(Literal* origin, Formula* target, TermList t)
+Term* Term::createFormulaLet(Literal* lhs, Formula* rhs, TermList t)
 {
   CALL("Term::createFormulaLet");
   Term* s = new(1,sizeof(SpecialTermData)) Term;
@@ -805,8 +805,8 @@ Term* Term::createFormulaLet(Literal* origin, Formula* target, TermList t)
   TermList* ss = s->args();
   *ss = t;
   ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_formulaLetData.origin = origin;
-  s->getSpecialData()->_formulaLetData.target = target;
+  s->getSpecialData()->_formulaLetData.lhs = lhs;
+  s->getSpecialData()->_formulaLetData.rhs = rhs;
   return s;
 }
 

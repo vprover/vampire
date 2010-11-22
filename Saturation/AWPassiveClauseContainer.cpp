@@ -43,6 +43,13 @@ ClauseIterator AWPassiveClauseContainer::iterator()
   return pvi( ClauseQueue::Iterator(_weightQueue) );
 }
 
+/**
+ * Weight comparison of clauses.
+ * @return the result of comparison (LESS, EQUAL or GREATER)
+ * @warning if the option increased_numeral_weight is on, then each comparison
+ *          recomputes the numeral weight of clauses, see Clause::getNumeralWeight(), so it
+ *          it can be expensive
+ */
 Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
 {
   ASS_G(s_nwcDenominator,0);

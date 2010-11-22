@@ -144,9 +144,9 @@ Formula* SubformulaIterator::next ()
     break;
 
   case ITE:
-    _current = result->condarg();
-    _reserve = new Element(result->elsearg(),_reserve);
-    _reserve = new Element(result->thenarg(),_reserve);
+    _current = result->condArg();
+    _reserve = new Element(result->elseArg(),_reserve);
+    _reserve = new Element(result->thenArg(),_reserve);
     break;
 
   case TERM_LET:

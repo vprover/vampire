@@ -3,7 +3,6 @@
  * Defines class SubstHelper.
  */
 
-
 #ifndef __SubstHelper__
 #define __SubstHelper__
 
@@ -264,17 +263,17 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing)
 	  );
     case Term::SF_LET_FORMULA_IN_TERM:
-      ASS_EQ(sd->getOriginLiteral(), applyImpl<ProcessSpecVars>(sd->getOriginLiteral(), applicator, noSharing));
+      ASS_EQ(sd->getLhsLiteral(), applyImpl<ProcessSpecVars>(sd->getLhsLiteral(), applicator, noSharing));
       return Term::createFormulaLet(
-	  sd->getOriginLiteral(),
-	  applyImpl<ProcessSpecVars>(sd->getTargetFormula(), applicator, noSharing),
+	  sd->getLhsLiteral(),
+	  applyImpl<ProcessSpecVars>(sd->getRhsFormula(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
 	  );
     case Term::SF_LET_TERM_IN_TERM:
-      ASS_EQ(sd->getOriginTerm(), applyImpl<ProcessSpecVars>(sd->getOriginTerm(), applicator, noSharing));
+      ASS_EQ(sd->getLhsTerm(), applyImpl<ProcessSpecVars>(sd->getLhsTerm(), applicator, noSharing));
       return Term::createTermLet(
-	  sd->getOriginTerm(),
-	  applyImpl<ProcessSpecVars>(sd->getTargetTerm(), applicator, noSharing),
+	  sd->getLhsTerm(),
+	  applyImpl<ProcessSpecVars>(sd->getRhsTerm(), applicator, noSharing),
 	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing)
 	  );
     }
@@ -484,10 +483,10 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
 
   case ITE:
   {
-    Formula* c = applyImpl<ProcessSpecVars>(f->condarg(), applicator, noSharing);
-    Formula* t = applyImpl<ProcessSpecVars>(f->thenarg(), applicator, noSharing);
-    Formula* e = applyImpl<ProcessSpecVars>(f->elsearg(), applicator, noSharing);
-    if (c == f->condarg() && t == f->thenarg() && e == f->elsearg()) {
+    Formula* c = applyImpl<ProcessSpecVars>(f->condArg(), applicator, noSharing);
+    Formula* t = applyImpl<ProcessSpecVars>(f->thenArg(), applicator, noSharing);
+    Formula* e = applyImpl<ProcessSpecVars>(f->elseArg(), applicator, noSharing);
+    if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
       return f;
     }
     return new IteFormula(f->connective(), c, t, e);
@@ -495,28 +494,28 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
 
   case TERM_LET:
   {
-    //the origin term binds variables in it, and on all bound
+    //the lhs term binds variables in it, and on all bound
     //variables the substitution must be identity
-    ASS(f->termLetOrigin() == applyImpl<ProcessSpecVars>(f->termLetOrigin(), applicator, noSharing));
-    TermList t = applyImpl<ProcessSpecVars>(f->termLetTarget(), applicator, noSharing);
+    ASS(f->termLetLhs() == applyImpl<ProcessSpecVars>(f->termLetLhs(), applicator, noSharing));
+    TermList t = applyImpl<ProcessSpecVars>(f->termLetRhs(), applicator, noSharing);
     Formula* b = applyImpl<ProcessSpecVars>(f->letBody(), applicator, noSharing);
-    if(t==f->termLetTarget() && b==f->letBody()) {
+    if(t==f->termLetRhs() && b==f->letBody()) {
       return f;
     }
-    return new TermLetFormula(TERM_LET, f->termLetOrigin(), t, b);
+    return new TermLetFormula(f->termLetLhs(), t, b);
   }
 
   case FORMULA_LET:
   {
-    //the origin term binds variables in it, and on all bound
+    //the lhs term binds variables in it, and on all bound
     //variables the substitution must be identity
-    ASS(f->formulaLetOrigin() == applyImpl<ProcessSpecVars>(f->formulaLetOrigin(), applicator, noSharing));
-    Formula* t = applyImpl<ProcessSpecVars>(f->formulaLetTarget(), applicator, noSharing);
+    ASS(f->formulaLetLhs() == applyImpl<ProcessSpecVars>(f->formulaLetLhs(), applicator, noSharing));
+    Formula* t = applyImpl<ProcessSpecVars>(f->formulaLetRhs(), applicator, noSharing);
     Formula* b = applyImpl<ProcessSpecVars>(f->letBody(), applicator, noSharing);
-    if(t==f->formulaLetTarget() && b==f->letBody()) {
+    if(t==f->formulaLetRhs() && b==f->letBody()) {
       return f;
     }
-    return new FormulaLetFormula(FORMULA_LET, f->formulaLetOrigin(), t, b);
+    return new FormulaLetFormula(f->formulaLetLhs(), t, b);
   }
 
   case TRUE:

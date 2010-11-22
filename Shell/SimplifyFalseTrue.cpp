@@ -247,17 +247,17 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
 
   case ITE:
     {
-      Formula* c = simplify(f->condarg());
+      Formula* c = simplify(f->condArg());
       switch (f->connective()) {
       case TRUE:
-	return simplify(f->thenarg());
+	return simplify(f->thenArg());
       case FALSE:
-	return simplify(f->elsearg());
+	return simplify(f->elseArg());
       default:
 	break;
       }
-      Formula* t = simplify(f->thenarg());
-      Formula* e = simplify(f->elsearg());
+      Formula* t = simplify(f->thenArg());
+      Formula* e = simplify(f->elseArg());
 
       switch (t->connective()) {
       case TRUE:
@@ -297,7 +297,7 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
 	}
       }
 
-      if (c == f->condarg() && t == f->thenarg() && e == f->elsearg()) {
+      if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
 	return f;
       }
       return new IteFormula(con,c,t,e);

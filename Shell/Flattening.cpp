@@ -110,10 +110,10 @@ Formula* Flattening::flatten (Formula* f)
 
   case ITE:
     {
-      Formula* c = flatten(f->condarg());
-      Formula* t = flatten(f->thenarg());
-      Formula* e = flatten(f->elsearg());
-      if (c == f->condarg() && t == f->thenarg() && e == f->elsearg()) {
+      Formula* c = flatten(f->condArg());
+      Formula* t = flatten(f->thenArg());
+      Formula* e = flatten(f->elseArg());
+      if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
 	return f;
       }
       return new IteFormula(con,c,t,e);

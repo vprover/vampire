@@ -32,12 +32,12 @@ private:
     bool _term;
     union {
       struct {
-	size_t origin; //size_t here stands for TermList
-	size_t target;
+	size_t lhs; //size_t here stands for TermList
+	size_t rhs;
       } _t;
       struct {
-	Literal* origin;
-	Formula* target;
+	Literal* lhs;
+	Formula* rhs;
       } _f;
     };
   public:
@@ -45,31 +45,31 @@ private:
     {
       CALL("SpecialTermElimination::LetSpec::LetSpec(TermList...)");
       ASS(o.isSafe());
-      //here we assert that the origin is either variable or a function
+      //here we assert that the lhs is either variable or a function
       //applied to pairwise distinct variables
       ASS(!o.isTerm() || o.term()->weight()==o.term()->arity()+1);
       ASS(!o.isTerm() || o.term()->getDistinctVars()==o.term()->arity());
 
-      _t.origin = o.content();
-      _t.target = t.content();
+      _t.lhs = o.content();
+      _t.rhs = t.content();
     }
     LetSpec(Literal* o, Formula* t) : _term(false)
     {
       CALL("SpecialTermElimination::LetSpec::LetSpec(Literal*...)");
-      //here we assert that the origin is a predicate applied to
+      //here we assert that the lhs is a predicate applied to
       //pairwise distinct variables
       ASS_EQ(o->weight(),o->arity()+1);
       ASS_EQ(o->getDistinctVars(),o->arity());
 
 
-      _f.origin = o;
-      _f.target = t;
+      _f.lhs = o;
+      _f.rhs = t;
     }
     bool term() const { return _term; }
-    TermList tOrigin() const { ASS(term()); return TermList(_t.origin); }
-    TermList tTarget() const { ASS(term()); return TermList(_t.target); }
-    Literal* fOrigin() const { ASS(!term()); return _f.origin; }
-    Formula* fTarget() const { ASS(!term()); return _f.target; }
+    TermList tLhs() const { ASS(term()); return TermList(_t.lhs); }
+    TermList tRhs() const { ASS(term()); return TermList(_t.rhs); }
+    Literal* fLhs() const { ASS(!term()); return _f.lhs; }
+    Formula* fRhs() const { ASS(!term()); return _f.rhs; }
   };
 
   TermList processSpecialTerm(Term* t);

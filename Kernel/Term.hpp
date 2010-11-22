@@ -55,9 +55,15 @@ enum TermTag {
  */
 class TermList {
 public:
+  /** dummy constructor, does nothing */
   TermList() {}
+  /** creates a term list and initialises its content with data */
   explicit TermList(size_t data) : _content(data) {}
+  /** creates a term list containing a pointer to a term */
   explicit TermList(Term* t) : _term(t) {}
+  /** creates a term list containing a variable. If @b special is true, then the variable
+   * will be "special". Special variables are also variables, with a difference that a
+   * special variables and ordinary variables have an empty intersection */
   TermList(unsigned var, bool special)
   {
     if(special) {
@@ -214,12 +220,12 @@ public:
       struct {
 	//The size_t stands for TermList expression which cannot be here
 	//since C++ doesnot allow objects with constructor inside a union
-        size_t origin;
-        size_t target;
+        size_t lhs;
+        size_t rhs;
       } _termLetData;
       struct {
-        Literal * origin;
-        Formula * target;
+        Literal * lhs;
+        Formula * rhs;
       } _formulaLetData;
     };
     /** Return pointer to the term to which this object is attached */
@@ -231,10 +237,10 @@ public:
       return res;
     }
     Formula* getCondition() const { ASS_EQ(getType(), SF_TERM_ITE); return _termITEData.condition; }
-    TermList getOriginTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.origin); }
-    TermList getTargetTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.target); }
-    Literal* getOriginLiteral() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.origin; }
-    Formula* getTargetFormula() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.target; }
+    TermList getLhsTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.lhs); }
+    TermList getRhsTerm() const { ASS_EQ(getType(), SF_LET_TERM_IN_TERM); return TermList(_termLetData.rhs); }
+    Literal* getLhsLiteral() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.lhs; }
+    Formula* getRhsFormula() const { ASS_EQ(getType(), SF_LET_FORMULA_IN_TERM); return _formulaLetData.rhs; }
   };
 
 
@@ -251,8 +257,8 @@ public:
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createTermITE(Formula * condition, TermList thenBranch, TermList elseBranch);
-  static Term* createTermLet(TermList origin, TermList target, TermList t);
-  static Term* createFormulaLet(Literal* origin, Formula* target, TermList t);
+  static Term* createTermLet(TermList lhs, TermList rhs, TermList t);
+  static Term* createFormulaLet(Literal* lhs, Formula* rhs, TermList t);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 

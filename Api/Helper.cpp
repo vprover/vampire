@@ -1,4 +1,4 @@
-  /**
+/**
  * @file Helper.cpp
  * Implements class Helper.
  */
@@ -52,8 +52,8 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
     case Kernel::Term::SF_LET_FORMULA_IN_TERM:
     {
       ASS_EQ(t0->arity(),1);
-      string s = "(let " + toString(sd->getOriginLiteral());
-      s += " := " + toString(sd->getTargetFormula());
+      string s = "(let " + toString(sd->getLhsLiteral());
+      s += " := " + toString(sd->getRhsFormula());
       s += " in " + toString(*t0->nthArgument(0));
       s += " )";
       return s;
@@ -61,8 +61,8 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
     case Kernel::Term::SF_LET_TERM_IN_TERM:
     {
       ASS_EQ(t0->arity(),1);
-      string s = "( let " + toString(sd->getOriginTerm());
-      s += " := " + toString(sd->getTargetTerm());
+      string s = "( let " + toString(sd->getLhsTerm());
+      s += " := " + toString(sd->getRhsTerm());
       s += " in " + toString(*t0->nthArgument(0));
       s += " )";
       return s;
@@ -198,15 +198,15 @@ string DefaultHelperCore::toString(const Kernel::Formula* f) const
   }
 
   case ITE:
-    return string("(") + toString(f->condarg()) + " ? " +
-	toString(f->thenarg()) + " : " + toString(f->elsearg()) + ")";
+    return string("(") + toString(f->condArg()) + " ? " +
+	toString(f->thenArg()) + " : " + toString(f->elseArg()) + ")";
 
   case FORMULA_LET:
-    return "let "+toString(f->formulaLetOrigin()) + " := " + toString(f->formulaLetTarget()) +
+    return "let "+toString(f->formulaLetLhs()) + " := " + toString(f->formulaLetRhs()) +
 	" in " + toString(f->letBody());
 
   case TERM_LET:
-    return "let "+toString(f->termLetOrigin()) + " := " + toString(f->termLetTarget()) +
+    return "let "+toString(f->termLetLhs()) + " := " + toString(f->termLetRhs()) +
 	" in " + toString(f->letBody());
 
   case FALSE:

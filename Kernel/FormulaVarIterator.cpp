@@ -104,11 +104,11 @@ bool FormulaVarIterator::hasNext()
 	  
 	case ITE:
 	  _instructions.push(FVI_FORMULA);
-	  _formulas.push(f->condarg());
+	  _formulas.push(f->condArg());
 	  _instructions.push(FVI_FORMULA);
-	  _formulas.push(f->thenarg());
+	  _formulas.push(f->thenArg());
 	  _instructions.push(FVI_FORMULA);
-	  _formulas.push(f->elsearg());
+	  _formulas.push(f->elseArg());
 	  break;
 
 	case TRUE:

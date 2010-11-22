@@ -104,7 +104,7 @@ const char* Options::Constants::_optionNames[] = {
   "general_splitting",
 
   "include",
-  "increasedNumeralWeight",
+  "increased_numeral_weight",
   "inequality_splitting",
   "input_file",
   "input_syntax",

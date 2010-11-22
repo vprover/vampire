@@ -298,15 +298,15 @@ string Formula::toString () const
     }
 
   case ITE:
-    return condarg()->toStringInScopeOf(c) + " ? " + thenarg()->toStringInScopeOf(c) + " : " +
-    elsearg()->toStringInScopeOf(c);
+    return condArg()->toStringInScopeOf(c) + " ? " + thenArg()->toStringInScopeOf(c) + " : " +
+           elseArg()->toStringInScopeOf(c);
 
   case FORMULA_LET:
-    return "let "+formulaLetOrigin()->toString() + " := " + formulaLetTarget()->toStringInScopeOf(c) +
+    return "let "+formulaLetLhs()->toString() + " := " + formulaLetRhs()->toStringInScopeOf(c) +
 	" in " + letBody()->toStringInScopeOf(c);
 
   case TERM_LET:
-    return "let "+termLetOrigin().toString() + " := " + termLetTarget().toString() +
+    return "let "+termLetLhs().toString() + " := " + termLetRhs().toString() +
 	" in " + letBody()->toStringInScopeOf(c);
 
   case TRUE:

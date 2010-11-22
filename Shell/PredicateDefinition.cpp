@@ -276,7 +276,7 @@ Unit* PredicateDefinition::replacePurePredicates(Unit* u)
 
 Formula* PredicateDefinition::replacePurePredicates(Formula* f)
 {
-  CALL("SimplifyFalseTrue::replacePurePredicates");
+  CALL("PredicateDefinition::replacePurePredicates");
 
   Connective con = f->connective();
   switch (con) {

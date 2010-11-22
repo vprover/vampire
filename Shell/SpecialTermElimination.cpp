@@ -90,12 +90,12 @@ bool SpecialTermElimination::checkForTermLetReplacement(TermList t, TermList& re
 {
   CALL("SpecialTermElimination::checkForTermReplacement");
 
-  if(!t.isSafe() || !eliminatingTermLet() || !MatchingUtils::matchTerms(_letStack.top().tOrigin(), t)) {
+  if(!t.isSafe() || !eliminatingTermLet() || !MatchingUtils::matchTerms(_letStack.top().tLhs(), t)) {
     return false;
   }
-  //we are replacing an occurrence of a term let origin
-  //instance by an instance of term let target
-  res = MatchingUtils::getInstanceFromMatch(_letStack.top().tOrigin(), t, _letStack.top().tTarget());
+  //we are replacing an occurrence of a term let lhs
+  //instance by an instance of term let rhs
+  res = MatchingUtils::getInstanceFromMatch(_letStack.top().tLhs(), t, _letStack.top().tRhs());
   return true;
 }
 
@@ -126,11 +126,11 @@ TermList SpecialTermElimination::processSpecialTerm(Term* t)
   }
   else {
     if(t->functor()==Term::SF_LET_FORMULA_IN_TERM) {
-      _letStack.push(LetSpec(sd->getOriginLiteral(), sd->getTargetFormula()));
+      _letStack.push(LetSpec(sd->getLhsLiteral(), sd->getRhsFormula()));
     }
     else {
       ASS_EQ(t->functor(), Term::SF_LET_TERM_IN_TERM);
-      _letStack.push(LetSpec(sd->getOriginTerm(), sd->getTargetTerm()));
+      _letStack.push(LetSpec(sd->getLhsTerm(), sd->getRhsTerm()));
     }
     //eliminate inner let expressions
     TermList body = process(*t->nthArgument(0));
@@ -280,10 +280,10 @@ Formula* SpecialTermElimination::process(Formula* f)
     Literal* lit0 = f->literal();
     Literal* lit = static_cast<Literal*>(process(lit0));
     ASS(lit->isLiteral());
-    if(eliminatingFormulaLet() && MatchingUtils::match(_letStack.top().fOrigin(), lit, false)) {
+    if(eliminatingFormulaLet() && MatchingUtils::match(_letStack.top().fLhs(), lit, false)) {
       //perform the formula let replacement
-      Formula* res = MatchingUtils::getInstanceFromMatch(_letStack.top().fOrigin(), lit,
-	  _letStack.top().fTarget());
+      Formula* res = MatchingUtils::getInstanceFromMatch(_letStack.top().fLhs(), lit,
+	  _letStack.top().fRhs());
       return res;
     }
     else {
@@ -334,10 +334,10 @@ Formula* SpecialTermElimination::process(Formula* f)
 
   case ITE:
   {
-    Formula* c = process(f->condarg());
-    Formula* t = process(f->thenarg());
-    Formula* e = process(f->elsearg());
-    if (c == f->condarg() && t == f->thenarg() && e == f->elsearg()) {
+    Formula* c = process(f->condArg());
+    Formula* t = process(f->thenArg());
+    Formula* e = process(f->elseArg());
+    if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
       return f;
     }
     return new IteFormula(f->connective(), c, t, e);
@@ -347,11 +347,11 @@ Formula* SpecialTermElimination::process(Formula* f)
   case FORMULA_LET:
   {
     if(f->connective()==TERM_LET) {
-      _letStack.push(LetSpec(f->termLetOrigin(), f->termLetTarget()));
+      _letStack.push(LetSpec(f->termLetLhs(), f->termLetRhs()));
     }
     else {
       ASS_EQ(f->connective(),FORMULA_LET);
-      _letStack.push(LetSpec(f->formulaLetOrigin(), f->formulaLetTarget()));
+      _letStack.push(LetSpec(f->formulaLetLhs(), f->formulaLetRhs()));
     }
     //eliminate inner let expression...
     Formula* b1 = process(f->letBody());

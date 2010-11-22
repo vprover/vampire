@@ -41,14 +41,14 @@ public:
   /** Return the connective */
   Connective connective () const { return _connective; }
 
-  TermList termLetOrigin() const;
-  TermList termLetTarget() const;
-  Literal* formulaLetOrigin() const;
-  Formula* formulaLetTarget() const;
+  TermList termLetLhs() const;
+  TermList termLetRhs() const;
+  Literal* formulaLetLhs() const;
+  Formula* formulaLetRhs() const;
   Formula* letBody() const;
-  Formula* condarg() const;
-  Formula* thenarg() const;
-  Formula* elsearg() const;
+  Formula* condArg() const;
+  Formula* thenArg() const;
+  Formula* elseArg() const;
   const FormulaList* args() const;
   FormulaList* args();
   FormulaList** argsPtr();
@@ -286,11 +286,11 @@ class IteFormula
   }
 
   /** Return the subformula serving as the condition */
-  Formula* condarg() const { return _condarg; }
+  Formula* condArg() const { return _condarg; }
   /** Return the subformula serving as the then branch */
-  Formula* thenarg() const { return _thenarg; }
+  Formula* thenArg() const { return _thenarg; }
   /** Return the subformula serving as the else branch */
-  Formula* elsearg() const { return _elsearg; }
+  Formula* elseArg() const { return _elsearg; }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME("IteFormula");
@@ -309,21 +309,20 @@ class FormulaLetFormula
 {
  public:
   /**
-   * Create a formula (let origin := target in body)
+   * Create a formula (let lhs := rhs in body)
    */
-  FormulaLetFormula (Connective con, Literal* origin, Formula* target, Formula* body)
-    : Formula(con),
-      _origin(origin),
-      _target(target),
+  FormulaLetFormula (Literal* lhs, Formula* rhs, Formula* body)
+    : Formula(FORMULA_LET),
+      _lhs(lhs),
+      _rhs(rhs),
       _body(body)
   {
-    ASS(con == FORMULA_LET);
   }
 
   /** Return the literal that should be replaced */
-  Literal* origin() const { return _origin; }
-  /** Return the formula that should replace the @b origin() literal */
-  Formula* target() const { return _target; }
+  Literal* lhs() const { return _lhs; }
+  /** Return the formula that should replace the @b lhs() literal */
+  Formula* rhs() const { return _rhs; }
   /** Return body on which the replacement is performed */
   Formula* body() const { return _body; }
 
@@ -331,8 +330,8 @@ class FormulaLetFormula
   CLASS_NAME("FormulaLetFormula");
   USE_ALLOCATOR(FormulaLetFormula);
  protected:
-  Literal* _origin;
-  Formula* _target;
+  Literal* _lhs;
+  Formula* _rhs;
   Formula* _body;
 }; // class FormulaLetFormula
 
@@ -344,23 +343,22 @@ class TermLetFormula
 {
  public:
   /**
-   * Create a formula (let origin := target in body)
+   * Create a formula (let lhs := rhs in body)
    */
-  TermLetFormula (Connective con, TermList origin, TermList target, Formula* body)
-    : Formula(con),
-      _origin(origin),
-      _target(target),
+  TermLetFormula (TermList lhs, TermList rhs, Formula* body)
+    : Formula(TERM_LET),
+      _lhs(lhs),
+      _rhs(rhs),
       _body(body)
   {
-    ASS(con == TERM_LET);
-    ASS(origin.isSafe());
-    ASS(target.isSafe());
+    ASS(lhs.isSafe());
+    ASS(rhs.isSafe());
   }
 
   /** Return the term that should be replaced */
-  TermList origin() const { return _origin; }
-  /** Return the term that should replace the @b origin() term */
-  TermList target() const { return _target; }
+  TermList lhs() const { return _lhs; }
+  /** Return the term that should replace the @b lhs() term */
+  TermList rhs() const { return _rhs; }
   /** Return body on which the replacement is performed */
   Formula* body() const { return _body; }
 
@@ -368,8 +366,8 @@ class TermLetFormula
   CLASS_NAME("TermLetFormula");
   USE_ALLOCATOR(TermLetFormula);
  protected:
-  TermList _origin;
-  TermList _target;
+  TermList _lhs;
+  TermList _rhs;
   Formula* _body;
 }; // class TermLetFormula
 
@@ -492,21 +490,21 @@ Formula* Formula::right()
 }
 /** Return the condition subformula of an if-then-else formula */
 inline
-Formula* Formula::condarg() const {
+Formula* Formula::condArg() const {
   ASS(_connective == ITE);
-  return static_cast<const IteFormula*>(this)->condarg();
+  return static_cast<const IteFormula*>(this)->condArg();
 }
 /** Return the then-branch subformula of an if-then-else formula */
 inline
-Formula* Formula::thenarg() const {
+Formula* Formula::thenArg() const {
   ASS(_connective == ITE);
-  return static_cast<const IteFormula*>(this)->thenarg();
+  return static_cast<const IteFormula*>(this)->thenArg();
 }
 /** Return the else-branch subformula of an if-then-else formula */
 inline
-Formula* Formula::elsearg() const {
+Formula* Formula::elseArg() const {
   ASS(_connective == ITE);
-  return static_cast<const IteFormula*>(this)->elsearg();
+  return static_cast<const IteFormula*>(this)->elseArg();
 }
 inline
 Formula* Formula::letBody() const {
@@ -519,24 +517,24 @@ Formula* Formula::letBody() const {
   }
 }
 inline
-Literal* Formula::formulaLetOrigin() const {
+Literal* Formula::formulaLetLhs() const {
   ASS(_connective == FORMULA_LET)
-  return static_cast<const FormulaLetFormula*>(this)->origin();
+  return static_cast<const FormulaLetFormula*>(this)->lhs();
 }
 inline
-Formula* Formula::formulaLetTarget() const {
+Formula* Formula::formulaLetRhs() const {
   ASS(_connective == FORMULA_LET)
-  return static_cast<const FormulaLetFormula*>(this)->target();
+  return static_cast<const FormulaLetFormula*>(this)->rhs();
 }
 inline
-TermList Formula::termLetOrigin() const {
+TermList Formula::termLetLhs() const {
   ASS(_connective == TERM_LET);
-  return static_cast<const TermLetFormula*>(this)->origin();
+  return static_cast<const TermLetFormula*>(this)->lhs();
 }
 inline
-TermList Formula::termLetTarget() const {
+TermList Formula::termLetRhs() const {
   ASS(_connective == TERM_LET);
-  return static_cast<const TermLetFormula*>(this)->target();
+  return static_cast<const TermLetFormula*>(this)->rhs();
 }
 
 

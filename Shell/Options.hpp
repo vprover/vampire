@@ -444,6 +444,11 @@ private:
   RuleActivity _generalSplitting;
 
   string _include;
+  /** if this option is true, Vampire will add the numeral weight of a clause
+   * to its weight. The weight is defined as the sum of binary sizes of all
+   * integers occurring in this clause. This option has not been tested and
+   * may be extensive, see Clause::getNumeralWeight()
+   */
   bool _increasedNumeralWeight;
   int _inequalitySplitting;
   string _inputFile;

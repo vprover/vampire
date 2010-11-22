@@ -120,11 +120,11 @@ Term* Rectify::rectify (Term* t)
     case Term::SF_LET_FORMULA_IN_TERM:
     {
       ASS_EQ(t->arity(),1);
-      Literal* orig = sd->getOriginLiteral();
-      Formula* tgt = sd->getTargetFormula();
+      Literal* orig = sd->getLhsLiteral();
+      Formula* tgt = sd->getRhsFormula();
       rectifyFormulaLet(orig, tgt);
       TermList body = rectify(*t->nthArgument(0));
-      if(orig==sd->getOriginLiteral() && tgt==sd->getTargetFormula() && body==*t->nthArgument(0)) {
+      if(orig==sd->getLhsLiteral() && tgt==sd->getRhsFormula() && body==*t->nthArgument(0)) {
         return t;
       }
       return Term::createFormulaLet(orig, tgt, body);
@@ -132,11 +132,11 @@ Term* Rectify::rectify (Term* t)
     case Term::SF_LET_TERM_IN_TERM:
     {
       ASS_EQ(t->arity(),1);
-      TermList orig = sd->getOriginTerm();
-      TermList tgt = sd->getTargetTerm();
+      TermList orig = sd->getLhsTerm();
+      TermList tgt = sd->getRhsTerm();
       rectifyTermLet(orig, tgt);
       TermList body = rectify(*t->nthArgument(0));
-      if(orig==sd->getOriginTerm() && tgt==sd->getTargetTerm() && body==*t->nthArgument(0)) {
+      if(orig==sd->getLhsTerm() && tgt==sd->getRhsTerm() && body==*t->nthArgument(0)) {
         return t;
       }
       return Term::createTermLet(orig, tgt, body);
@@ -252,20 +252,20 @@ TermList Rectify::rectify(TermList t)
   return TermList(rectifyVar(t.var()), false);
 }
 
-void Rectify::rectifyTermLet(TermList& origin, TermList& target)
+void Rectify::rectifyTermLet(TermList& lhs, TermList& rhs)
 {
   CALL("Rectify::rectifyTermLet");
 
-  //the variables of the origin will be bound in the target, so we
+  //the variables of the lhs will be bound in the rhs, so we
   //need to rectify them
   VarList* vs = 0;
-  VariableIterator vit(origin);
+  VariableIterator vit(lhs);
   VarList::pushFromIterator(getMappingIterator(
 	getUniquePersistentIteratorFromPtr(&vit), OrdVarNumberExtractorFn()), vs);
   //we don't need the resultof variable rectification, we just needed to do the binding
   VarList* vs1 = rectify(vs);
-  origin = rectify(origin);
-  target = rectify(target);
+  lhs = rectify(lhs);
+  rhs = rectify(rhs);
   ASS_EQ(vs->length(), vs1->length()); //the equal length is needed by our list-destroying code
   while(vs) {
     //the lists vs and vs1 start sharing the same links at some point, so
@@ -280,20 +280,20 @@ void Rectify::rectifyTermLet(TermList& origin, TermList& target)
   }
 }
 
-void Rectify::rectifyFormulaLet(Literal*& origin, Formula*& target)
+void Rectify::rectifyFormulaLet(Literal*& lhs, Formula*& rhs)
 {
   CALL("Rectify::rectifyFormulaLet");
 
-  //the variables of the origin will be bound in the target, so we
+  //the variables of the lhs will be bound in the rhs, so we
   //need to rectify them
   VarList* vs = 0;
-  VariableIterator vit(origin);
+  VariableIterator vit(lhs);
   VarList::pushFromIterator(getMappingIterator(
 	getUniquePersistentIteratorFromPtr(&vit), OrdVarNumberExtractorFn()), vs);
   //we don't need the resultof variable rectification, we just needed to do the binding
   VarList* vs1 = rectify(vs);
-  origin = rectify(origin);
-  target = rectify(target);
+  lhs = rectify(lhs);
+  rhs = rectify(rhs);
   ASS_EQ(vs->length(), vs1->length()); //the equal length is needed by our list-destroying code
   while(vs) {
     //the lists vs and vs1 start sharing the same links at some point, so
@@ -380,10 +380,10 @@ Formula* Rectify::rectify (Formula* f)
 
   case ITE:
   {
-    Formula* c = rectify(f->condarg());
-    Formula* t = rectify(f->thenarg());
-    Formula* e = rectify(f->elsearg());
-    if (c == f->condarg() && t == f->thenarg() && e == f->elsearg()) {
+    Formula* c = rectify(f->condArg());
+    Formula* t = rectify(f->thenArg());
+    Formula* e = rectify(f->elseArg());
+    if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
       return f;
     }
     return new IteFormula(f->connective(), c, t, e);
@@ -391,26 +391,26 @@ Formula* Rectify::rectify (Formula* f)
 
   case TERM_LET:
   {
-    TermList o = f->termLetOrigin();
-    TermList t = f->termLetTarget();
+    TermList o = f->termLetLhs();
+    TermList t = f->termLetRhs();
     rectifyTermLet(o, t);
     Formula* b = rectify(f->letBody());
-    if(o==f->termLetOrigin() && t==f->termLetTarget() && b==f->letBody()) {
+    if(o==f->termLetLhs() && t==f->termLetRhs() && b==f->letBody()) {
       return f;
     }
-    return new TermLetFormula(TERM_LET, o, t, b);
+    return new TermLetFormula(o, t, b);
   }
 
   case FORMULA_LET:
   {
-    Literal* o = f->formulaLetOrigin();
-    Formula* t = f->formulaLetTarget();
+    Literal* o = f->formulaLetLhs();
+    Formula* t = f->formulaLetRhs();
     rectifyFormulaLet(o, t);
     Formula* b = rectify(f->letBody());
-    if(o==f->formulaLetOrigin() && t==f->formulaLetTarget() && b==f->letBody()) {
+    if(o==f->formulaLetLhs() && t==f->formulaLetRhs() && b==f->letBody()) {
       return f;
     }
-    return new FormulaLetFormula(FORMULA_LET, o, t, b);
+    return new FormulaLetFormula(o, t, b);
   }
 
   case TRUE:
