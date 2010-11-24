@@ -31,8 +31,13 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
+/**
+ * Contains details about predicate presence in the problem and state
+ * of definition elimination or predicate removal.
+ */
 struct PredicateDefinition::PredData
 {
+  /** Units that contain the predicate. */
   Set<Unit*> containingUnits;
 
   bool interpreted;
@@ -162,11 +167,13 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
       if(pd.pocc==0 && pd.nocc==0) {
 	//pred does not occur anywhere else, hence can be deleted
 	pd.newDefUnit=0;
-      } else if(pd.pocc==0) {
+      }
+      else if(pd.pocc==0) {
 	//elsewhere it occurs only negatively, so we can make
 	//an equivalence into an implication
 	makeImplFromDef(pred, false);
-      } else {
+      }
+      else {
 	ASS_EQ(pd.nocc,0);
 	//elsewhere it occurs only positively, so we can make
 	//an equivalence into an implication
@@ -210,7 +217,8 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
 	    count(static_cast<Clause*>(v), 1);
 	  }
 	  count(static_cast<Clause*>(u), -1);
-	} else {
+	}
+	else {
 	  count(static_cast<FormulaUnit*>(v), 1);
 	  count(static_cast<FormulaUnit*>(u), -1);
 	}
@@ -234,7 +242,8 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
     }
     if(!v || ( !v->isClause() && static_cast<FormulaUnit*>(v)->formula()->connective()==TRUE ) ) {
       replaceIterator.del();
-    } else {
+    }
+    else {
       replaceIterator.replace(v);
     }
   }
@@ -247,7 +256,8 @@ FormulaUnit* PredicateDefinition::replacePurePredicates(FormulaUnit* u)
   if(resf!=u->formula()) {
     return new FormulaUnit(resf, new Inference1(Inference::PURE_PREDICATE_REMOVAL, u),
 	    u->inputType());
-  } else {
+  }
+  else {
     return u;
   }
 }
@@ -269,7 +279,8 @@ Unit* PredicateDefinition::replacePurePredicates(Unit* u)
 {
   if(u->isClause()) {
     return replacePurePredicates(static_cast<Clause*>(u));
-  } else {
+  }
+  else {
     return replacePurePredicates(static_cast<FormulaUnit*>(u));
   }
 }
@@ -483,16 +494,16 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
     case FALSE:
     case TRUE:
       return arg;
-    case ITE:
-    case FORMULA_LET:
-    case TERM_LET:
-      ASSERTION_VIOLATION;
     default:
       return arg == f->qarg()
 	      ? f
 	      : new QuantifiedFormula(con,f->vars(),arg);
     }
   }
+  case ITE:
+  case FORMULA_LET:
+  case TERM_LET:
+    ASSERTION_VIOLATION;
   }
   ASSERTION_VIOLATION;
 }
@@ -583,7 +594,7 @@ void PredicateDefinition::scan(FormulaUnit* unit)
 }
 
 
-void PredicateDefinition::count (Clause* cl,int add)
+void PredicateDefinition::count (Clause* cl, int add)
 {
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++) {

@@ -20,6 +20,14 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
+/**
+ * Performs removal (and simplification) of unused predicate definitions
+ * and removal of pure predicates.
+ *
+ * Definition removal:
+ *
+ * Definition is a formula \forall \vec{X}: p(\vec{X}) <=> F[\vec{X}]
+ */
 class PredicateDefinition
 {
 public:
