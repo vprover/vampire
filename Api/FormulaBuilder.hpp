@@ -86,6 +86,9 @@ public:
   FormulaBuilder(bool checkNames=true, bool checkBindingBoundVariables=true);
 
   enum Connective {
+    TRUE,
+    FALSE,
+    ATOM,
     AND,
     OR,
     IMP,
@@ -245,8 +248,34 @@ public:
    */
   bool isNull() const { return content==0; }
 
+  /**
+   * Return true if term is a variable
+   */
+  bool isVar() const;
+
+  /**
+   * For a variable term return its variable
+   */
+  Var var() const;
+
+  /**
+   * Return the top function of a non-variable term
+   */
+  Function functor() const;
+
+  /**
+   * For a non-variable term, return arity of the top function.
+   */
+  unsigned arity() const;
+
+  /**
+   * Return @c i -th argument of a non-variable term.
+   */
+  Term arg(unsigned i);
+
   operator Kernel::TermList() const;
   explicit Term(Kernel::TermList t);
+  explicit Term(Kernel::TermList t, ApiHelper aux);
 private:
   size_t content;
   ApiHelper _aux;
@@ -283,6 +312,36 @@ public:
   bool isNegation() const;
 
   /**
+   * Return the top-level connective of the formula
+   */
+  FormulaBuilder::Connective connective() const;
+
+  /**
+   * If formula is ATOM, return the predicate symbol. If the atom is
+   * equality, 0 is returned.
+   */
+  Predicate predicate() const;
+
+  /**
+   * Return number of arguments of the top-level element in formula.
+   *
+   * If formula is an atom, arity of the predicate symbol is returned.
+   */
+  unsigned argCnt() const;
+
+  /**
+   * Return @c i -th formula argument.
+   *
+   * For atom formulas, @c termArg() function should be used.
+   */
+  Formula formulaArg(unsigned i);
+
+  /**
+   * Return @c i -th argument of atomic formula.
+   */
+  Term termArg(unsigned i);
+
+  /**
    * Return iterator on names of free variables
    *
    * Each free variable is returned by the iterator just once
@@ -299,6 +358,7 @@ public:
 
   operator Kernel::Formula*() const { return form; }
   explicit Formula(Kernel::Formula* f) : form(f) {}
+  explicit Formula(Kernel::Formula* f, ApiHelper aux) : form(f), _aux(aux) {}
 private:
   Kernel::Formula* form;
   ApiHelper _aux;
@@ -343,6 +403,12 @@ public:
    * by the iterator the same number of times as well.
    */
   StringIterator boundVars();
+
+  /** Return annotation of the annotated formula */
+  FormulaBuilder::Annotation annotation() const;
+
+  /** Return the formula inside this annotated formula */
+  Formula formula();
 
   operator Kernel::Unit*() const { return unit; }
   explicit AnnotatedFormula(Kernel::Unit* fu) : unit(fu) {}

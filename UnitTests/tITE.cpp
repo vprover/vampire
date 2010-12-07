@@ -125,14 +125,14 @@ TEST_FUN(iteTerm)
 
   UnitList* prob = 0;
 
-  UnitList::push(u, prob);
-  UnitList::push(ut3, prob);
-  UnitList::push(ut2, prob);
-  UnitList::push(ut1, prob);
+//  UnitList::push(u, prob);
+//  UnitList::push(ut3, prob);
+//  UnitList::push(ut2, prob);
+//  UnitList::push(ut1, prob);
   UnitList::push(us4, prob);
-  UnitList::push(us3, prob);
-  UnitList::push(us2, prob);
-  UnitList::push(us1, prob);
+//  UnitList::push(us3, prob);
+//  UnitList::push(us2, prob);
+//  UnitList::push(us1, prob);
 
   UnitList::Iterator uit0(prob);
   while(uit0.hasNext()) {

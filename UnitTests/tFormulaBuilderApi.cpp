@@ -120,6 +120,25 @@ TEST_FUN(fbapiReflection)
 
     AnnotatedFormula afnull;
     ASS(afnull.isNull());
+
+    cout<<endl<<af1neg.toString()<<endl;
+    cout<<af1neg.formula().toString()<<endl;
+    cout<<af1conj.toString()<<endl;
+    cout<<af1conj.formula().toString()<<endl;
+    ASS_EQ(af1neg.annotation(),FormulaBuilder::ASSUMPTION);
+    ASS_EQ(af1conj.annotation(),FormulaBuilder::CONJECTURE);
+    ASS_EQ(af1neg.formula().connective(),FormulaBuilder::NOT);
+    ASS_EQ(af1conj.formula().connective(),FormulaBuilder::FORALL);
+    ASS_EQ(af1conj.formula().formulaArg(0).connective(),FormulaBuilder::NOT);
+    ASS_EQ(af1conj.formula().formulaArg(0).formulaArg(0).connective(),FormulaBuilder::ATOM);
+    ASS_EQ(af1conj.formula().formulaArg(0).formulaArg(0).predicate(),0);
+    ASS_EQ(af1conj.formula().formulaArg(0).formulaArg(0).argCnt(),2);
+    Term t = af1conj.formula().formulaArg(0).formulaArg(0).termArg(1);
+    ASS(!t.isVar());
+    ASS_EQ(t.functor(),fun);
+    ASS_EQ(t.arity(),1);
+    ASS(t.arg(0).isVar());
+    ASS_NEQ(af1conj.formula().formulaArg(0).formulaArg(0).termArg(0).arg(0).var(), t.arg(0).var());
   }
   catch (FormulaBuilderException e)
   {

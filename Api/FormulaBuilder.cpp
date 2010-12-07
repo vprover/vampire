@@ -256,20 +256,20 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, strin
     throw FormulaBuilderException("annotatedFormula function called on a Formula object not built by the same FormulaBuilder object");
   }
 
-  Kernel::Unit::InputType it;
+  Kernel::Unit::InputType inputType;
   bool negate=false;
   switch(a) {
   case AXIOM:
-    it=Kernel::Unit::AXIOM;
+    inputType=Kernel::Unit::AXIOM;
     break;
   case ASSUMPTION:
-    it=Kernel::Unit::ASSUMPTION;
+    inputType=Kernel::Unit::ASSUMPTION;
     break;
   case LEMMA:
-    it=Kernel::Unit::LEMMA;
+    inputType=Kernel::Unit::LEMMA;
     break;
   case CONJECTURE:
-    it=Kernel::Unit::CONJECTURE;
+    inputType=Kernel::Unit::CONJECTURE;
     negate=true;
     break;
   }
@@ -280,7 +280,7 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, strin
     f=negation(inner);
   }
 
-  FormulaUnit* fures=new Kernel::FormulaUnit(f, new Kernel::Inference(Kernel::Inference::INPUT), it);
+  FormulaUnit* fures=new Kernel::FormulaUnit(f, new Kernel::Inference(Kernel::Inference::INPUT), inputType);
 
   if(name!="") {
     Parser::assignAxiomName(fures, name);
@@ -364,12 +364,86 @@ Term::Term(Kernel::TermList t)
   content=t.content();
 }
 
+Term::Term(Kernel::TermList t, ApiHelper aux) : _aux(aux)
+{
+  content=t.content();
+}
+
 string Term::toString() const
 {
   CALL("Term::toString");
 
+  if(isNull()) {
+    throw ApiException("Term not initialized");
+  }
   return _aux->toString(static_cast<Kernel::TermList>(*this));
 }
+
+bool Term::isVar() const
+{
+  CALL("Term::isVar");
+
+  if(isNull()) {
+    throw ApiException("Term not initialized");
+  }
+  return static_cast<Kernel::TermList>(*this).isVar();
+}
+
+Var Term::var() const
+{
+  CALL("Term::var");
+
+  if(isNull()) {
+    throw ApiException("Term not initialized");
+  }
+  if(!isVar()) {
+    throw ApiException("Variable can be retrieved only for a variable term");
+  }
+  return static_cast<Kernel::TermList>(*this).var();
+}
+
+Function Term::functor() const
+{
+  CALL("Term::functor");
+
+  if(isNull()) {
+    throw ApiException("Term not initialized");
+  }
+  if(isVar()) {
+    throw ApiException("Functor cannot be retrieved for a variable term");
+  }
+  return static_cast<Kernel::TermList>(*this).term()->functor();
+}
+
+Function Term::arity() const
+{
+  CALL("Term::arity");
+
+  if(isNull()) {
+    throw ApiException("Term not initialized");
+  }
+  if(isVar()) {
+    throw ApiException("Arity cannot be retrieved for a variable term");
+  }
+  return static_cast<Kernel::TermList>(*this).term()->arity();
+}
+
+Term Term::arg(unsigned i)
+{
+  CALL("Term::arg");
+
+  if(isNull()) {
+    throw ApiException("Term not initialized");
+  }
+  if(isVar()) {
+    throw ApiException("Arguments cannot be retrieved for a variable term");
+  }
+  if(i>=arity()) {
+    throw ApiException("Argument index out of bounds");
+  }
+  return Term(*static_cast<Kernel::TermList>(*this).term()->nthArgument(i), _aux);
+}
+
 
 Term::operator Kernel::TermList() const
 {
@@ -391,6 +465,157 @@ bool Formula::isFalse() const
 
 bool Formula::isNegation() const
 { return form->connective()==Kernel::NOT; }
+
+FormulaBuilder::Connective Formula::connective() const
+{
+  CALL("Formula::connective");
+
+  switch(form->connective()) {
+  case Kernel::LITERAL:
+    ASS(form->literal()->isPositive());
+    return FormulaBuilder::ATOM;
+  case Kernel::AND:
+    return FormulaBuilder::AND;
+  case Kernel::OR:
+    return FormulaBuilder::OR;
+  case Kernel::IMP:
+    return FormulaBuilder::IMP;
+  case Kernel::IFF:
+    return FormulaBuilder::IFF;
+  case Kernel::XOR:
+    return FormulaBuilder::XOR;
+  case Kernel::NOT:
+    return FormulaBuilder::NOT;
+  case Kernel::FORALL:
+    return FormulaBuilder::FORALL;
+  case Kernel::EXISTS:
+    return FormulaBuilder::EXISTS;
+  case Kernel::ITE:
+    return FormulaBuilder::ITE;
+  case Kernel::TRUE:
+    return FormulaBuilder::TRUE;
+  case Kernel::FALSE:
+    return FormulaBuilder::FALSE;
+  case Kernel::TERM_LET:
+  case Kernel::FORMULA_LET:
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+Predicate Formula::predicate() const
+{
+  CALL("Formula::predicate");
+
+  if(form->connective()!=Kernel::LITERAL) {
+    throw ApiException("Predicate symbol can be retrieved only from atoms");
+  }
+  return form->literal()->functor();
+}
+
+unsigned Formula::argCnt() const
+{
+  CALL("Formula::argCnt");
+
+  switch(form->connective()) {
+  case Kernel::LITERAL:
+    return form->literal()->arity();
+  case Kernel::AND:
+  case Kernel::OR:
+    ASS_EQ(form->args()->length(), 2);
+    return 2;
+  case Kernel::IMP:
+  case Kernel::IFF:
+  case Kernel::XOR:
+    return 2;
+  case Kernel::NOT:
+  case Kernel::FORALL:
+  case Kernel::EXISTS:
+    return 1;
+  case Kernel::ITE:
+    return 3;
+  case Kernel::TRUE:
+  case Kernel::FALSE:
+    return 0;
+  case Kernel::TERM_LET:
+  case Kernel::FORMULA_LET:
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+Formula Formula::formulaArg(unsigned i)
+{
+  CALL("Formula::formulaArg");
+
+  Kernel::Formula* res = 0;
+  switch(form->connective()) {
+  case Kernel::LITERAL:
+    throw ApiException("Formula arguments cannot be obtained from atoms");
+  case Kernel::AND:
+  case Kernel::OR:
+    res = form->args()->nth(i);
+    break;
+  case Kernel::IMP:
+  case Kernel::IFF:
+  case Kernel::XOR:
+    if(i==0) {
+      res = form->left();
+    } else if(i==1) {
+      res = form->right();
+    }
+    break;
+  case Kernel::NOT:
+    if(i==0) {
+      res = form->uarg();
+    }
+    break;
+  case Kernel::FORALL:
+  case Kernel::EXISTS:
+    if(i==0) {
+      res = form->qarg();
+    }
+    break;
+  case Kernel::ITE:
+    switch(i) {
+    case 0:
+      res = form->condArg();
+      break;
+    case 1:
+      res = form->thenArg();
+      break;
+    case 2:
+      res = form->elseArg();
+      break;
+    default:;
+    }
+    break;
+  case Kernel::TRUE:
+  case Kernel::FALSE:
+    break;
+  case Kernel::TERM_LET:
+  case Kernel::FORMULA_LET:
+  default:
+    ASSERTION_VIOLATION;
+  }
+  if(res==0) {
+    throw ApiException("Argument index out of bounds");
+  }
+  return Formula(res, _aux);
+}
+
+Term Formula::termArg(unsigned i)
+{
+  CALL("Formula::termArg");
+
+  if(form->connective()!=Kernel::LITERAL) {
+    throw ApiException("Term arguments can be obtained only from atoms");
+  }
+  if(form->literal()->arity()<=i) {
+    throw ApiException("Argument index out of bounds");
+  }
+  return Term(*form->literal()->nthArgument(i), _aux);
+}
 
 StringIterator Formula::freeVars()
 {
@@ -461,6 +686,46 @@ StringIterator AnnotatedFormula::boundVars()
   return _aux->getVarNames(vl);
 }
 
+FormulaBuilder::Annotation AnnotatedFormula::annotation() const
+{
+  CALL("AnnotatedFormula::annotation");
+
+  switch(unit->inputType()) {
+  case Kernel::Unit::AXIOM:
+    return FormulaBuilder::AXIOM;
+  case Kernel::Unit::ASSUMPTION:
+    return FormulaBuilder::ASSUMPTION;
+  case Kernel::Unit::LEMMA:
+    return FormulaBuilder::LEMMA;
+  case Kernel::Unit::CONJECTURE:
+    return FormulaBuilder::CONJECTURE;
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+Formula AnnotatedFormula::formula()
+{
+  CALL("AnnotatedFormula::formula");
+
+  if(unit->isClause()) {
+    throw ApiException("Cannot retrieve formula from clausified object");
+  }
+
+  Kernel::Formula* form = static_cast<FormulaUnit*>(unit)->formula();
+
+  if(unit->inputType()!=Kernel::Unit::CONJECTURE) {
+    return Formula(form, _aux);
+  }
+
+  //if we have a conjecture, we need to return negated formula
+  if(form->connective()==Kernel::NOT) {
+    return Formula(form->uarg(), _aux);
+  }
+
+  Kernel::Formula* negated = new Kernel::NegatedFormula(Kernel::Formula::quantify(form));
+  return Formula(negated, _aux);
+}
 
 //////////////////////////////
 // StringIterator implementation
