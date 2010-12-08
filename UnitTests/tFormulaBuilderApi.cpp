@@ -139,6 +139,10 @@ TEST_FUN(fbapiReflection)
     ASS_EQ(t.arity(),1);
     ASS(t.arg(0).isVar());
     ASS_NEQ(af1conj.formula().formulaArg(0).formulaArg(0).termArg(0).arg(0).var(), t.arg(0).var());
+    cout<<f1neg.toString()<<endl;
+    cout<<api.substitute(f1neg, xv, fx).toString()<<endl;
+    cout<<api.substitute(api.substitute(f1neg, xv, fx), xv, fx).toString()<<endl;
+    cout<<api.substitute(api.substitute(fx, xv, fx), xv, fx).toString()<<endl;
   }
   catch (FormulaBuilderException e)
   {

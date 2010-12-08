@@ -22,6 +22,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
@@ -289,6 +290,49 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, strin
   AnnotatedFormula res(fures);
   res._aux=_aux; //assign the correct helper object
   return res;
+}
+
+
+Term FormulaBuilder::substitute(Term original, Var v, Term t)
+{
+  CALL("FormulaBuilder::substitute(Term)");
+
+  Kernel::TermList tgt = static_cast<Kernel::TermList>(t);
+  SingleVarApplicator apl(v, tgt);
+  Kernel::TermList resTerm = SubstHelper::apply(static_cast<Kernel::TermList>(original), apl);
+  return Term(resTerm, _aux);
+}
+
+Formula FormulaBuilder::substitute(Formula f, Var v, Term t)
+{
+  CALL("FormulaBuilder::substitute(Formula)");
+
+  Kernel::Formula::VarList* fBound = f.form->boundVariables();
+  if(fBound->member(v)) {
+    throw ApiException("Variable we substitute for cannot be bound in the formula");
+  }
+
+  Kernel::TermList trm = static_cast<Kernel::TermList>(t);
+  Kernel::VariableIterator vit(trm);
+  while(vit.hasNext()) {
+    Kernel::TermList tVar = vit.next();
+    ASS(tVar.isOrdinaryVar());
+    if(fBound->member(tVar.var())) {
+      throw ApiException("Variable in the substituted term cannot be bound in the formula");
+    }
+  }
+
+  SingleVarApplicator apl(v, trm);
+  Kernel::Formula* resForm = SubstHelper::apply(f.form, apl);
+  return Formula(resForm, _aux);
+}
+
+AnnotatedFormula FormulaBuilder::substitute(AnnotatedFormula af, Var v, Term t)
+{
+  CALL("FormulaBuilder::substitute(AnnotatedFormula)");
+
+  Formula substForm = substitute(af.formula(), v, t);
+  return annotatedFormula(substForm, af.annotation());
 }
 
 
@@ -638,7 +682,6 @@ StringIterator Formula::boundVars()
   VarList* vars=form->boundVariables();
   return _aux->getVarNames(vars);
 }
-
 
 string AnnotatedFormula::toString() const
 {

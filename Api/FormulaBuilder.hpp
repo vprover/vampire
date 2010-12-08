@@ -186,6 +186,23 @@ public:
   /** build an annotated formula (i.e. formula that is either axiom, goal, etc...) */
   AnnotatedFormula annotatedFormula(Formula f, Annotation a, string name="");
 
+
+  /**
+   * Return copy of term @b original with all occurrences of variable @c v
+   * replaced by @c t.
+   */
+  Term substitute(Term original, Var v, Term t);
+  /**
+   * Return copy of formula @c f in which every occurrence of @c v
+   * was replaced by @c t. @c v must not be bound inside the formula.
+   * @c t must no contain any varialbes that are bound inside the formula.
+   *
+   * @warning Substitution can change order of arguments of the equality
+   * predicate.
+   */
+  Formula substitute(Formula f, Var v, Term t);
+  AnnotatedFormula substitute(AnnotatedFormula af, Var v, Term t);
+
 private:
   FBHelper _aux;
 

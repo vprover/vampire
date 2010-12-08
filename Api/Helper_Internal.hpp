@@ -128,6 +128,22 @@ private:
   FBVarFactory varFact;
 };
 
+class SingleVarApplicator
+{
+public:
+  SingleVarApplicator(unsigned var, TermList term) : _srcVar(var), _tgtTerm(term) {}
+  TermList apply(unsigned var)
+  {
+    if(var!=_srcVar) {
+      return TermList(var, false);
+    }
+    return _tgtTerm;
+  }
+private:
+  unsigned _srcVar;
+  TermList _tgtTerm;
+};
+
 
 }
 
