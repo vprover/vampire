@@ -62,7 +62,7 @@ class FBHelperCore
 : public DefaultHelperCore
 {
 public:
-  FBHelperCore() : nextVar(0), refCtr(0), varFact(*this)
+  FBHelperCore() : nextVar(0), refCtr(0), varFact(*this), _unaryPredicate(0)
   {
   }
 
@@ -105,6 +105,8 @@ public:
    * variables that are already bound in a formula */
   bool _checkBindingBoundVariables;
 
+  /** Return arbitrary uninterpreted unary predicate */
+  unsigned getUnaryPredicate();
 private:
 
   struct FBVarFactory : public VarManager::VarFactory
@@ -126,6 +128,12 @@ private:
   int refCtr;
 
   FBVarFactory varFact;
+
+  /** Can contain an un-interpreted unary predicate, or zero in case
+   * it is uninitialized
+   *
+   * Is used in @c FormulaBuilder::replaceConstant() */
+  unsigned _unaryPredicate;
 };
 
 class SingleVarApplicator

@@ -320,6 +320,7 @@ OTHER_CL_DEP = Inferences/InferenceEngine.o\
 			   Inferences/TautologyDeletionISE.o\
 			   Kernel/EqHelper.o\
 			   Kernel/InferenceStore.o\
+			   Kernel/Matcher.o\
 			   SAT/SATClause.o\
 			   SAT/SATLiteral.o
 

@@ -389,6 +389,26 @@ Formula FBHelperCore::atom(const Predicate& p, bool positive, const Term* args, 
   return res;
 }
 
+unsigned FBHelperCore::getUnaryPredicate()
+{
+  CALL("FBHelperCore::getUnaryPredicate");
+
+  if(_unaryPredicate!=0) {
+    return _unaryPredicate;
+  }
+
+  Kernel::Signature& sig = *env.signature;
+  unsigned cnt = sig.predicates();
+  for(unsigned i=1; i<cnt; i++) {
+    if(sig.predicateArity(i)==1 && !sig.getPredicate(i)->interpreted()) {
+      _unaryPredicate = i;
+      return i;
+    }
+  }
+  _unaryPredicate = sig.addNamePredicate(1);
+  return _unaryPredicate;
+}
+
 string FBHelperCore::getVarName(Var v) const
 {
   CALL("FBHelperCore::getVarName");
@@ -455,10 +475,10 @@ string FBHelperCore::FBVarFactory::getVarName(unsigned var)
   return _parent.getVarName(var);
 }
 
+
 ///////////////////////
 // ApiHelper
 //
-
 
 ApiHelper::ApiHelper() : _obj(0) {}
 

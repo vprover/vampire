@@ -18,6 +18,7 @@
 #include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Connective.hpp"
+#include "Kernel/EqHelper.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
@@ -28,6 +29,7 @@
 #include "Kernel/Unit.hpp"
 
 #include "Shell/Parser.hpp"
+#include "Shell/SpecialTermElimination.hpp"
 #include "Shell/TPTP.hpp"
 
 
@@ -333,6 +335,68 @@ AnnotatedFormula FormulaBuilder::substitute(AnnotatedFormula af, Var v, Term t)
 
   Formula substForm = substitute(af.formula(), v, t);
   return annotatedFormula(substForm, af.annotation());
+}
+
+Term FormulaBuilder::replaceConstant(Term original, Term replaced, Term target)
+{
+  CALL("FormulaBuilder::replaceConstant(Term)");
+
+  Kernel::TermList trm = static_cast<Kernel::TermList>(original);
+  Kernel::TermList tSrc = static_cast<Kernel::TermList>(replaced);
+  Kernel::TermList tTgt = static_cast<Kernel::TermList>(target);
+
+  if(!tSrc.isTerm() || tSrc.term()->arity()!=0) {
+    throw ApiException("The replaced term must be a constant (zero-arity function)");
+  }
+
+  if(!trm.containsSubterm(replaced)) {
+    return original;
+  }
+  //We only have function that replaces subterm in a literal. So we wrap the
+  //term inside a literal, transform it and the unwrap it
+  unsigned unaryPred = _aux->getUnaryPredicate();
+  Kernel::Literal* aux = Literal::create1(unaryPred, true, original);
+  Kernel::Literal* auxRepl = EqHelper::replace(aux, tSrc, tTgt);
+  Kernel::TermList res = *auxRepl->nthArgument(0);
+  return Term(res, _aux);
+}
+
+Formula FormulaBuilder::replaceConstant(Formula f, Term replaced, Term target)
+{
+  CALL("FormulaBuilder::replaceConstant(Formula)");
+
+  Kernel::TermList tSrc = static_cast<Kernel::TermList>(replaced);
+  Kernel::TermList tTgt = static_cast<Kernel::TermList>(target);
+
+  if(!tSrc.isTerm() || tSrc.term()->arity()!=0) {
+    throw ApiException("The replaced term must be a constant (zero-arity function)");
+  }
+
+  Kernel::Formula::VarList* fBound = f.form->boundVariables();
+  VariableIterator vit(tTgt);
+  while(vit.hasNext()) {
+    Kernel::TermList tVar = vit.next();
+    ASS(tVar.isOrdinaryVar());
+    if(fBound->member(tVar.var())) {
+      throw ApiException("Variable in the substituted term cannot be bound in the formula");
+    }
+  }
+
+  Kernel::Formula* letForm = new TermLetFormula(replaced, target, f.form);
+  Shell::SpecialTermElimination ste;
+  FormulaUnit* auxUnit = new FormulaUnit(letForm, new Inference(Inference::INPUT), Unit::AXIOM);
+  UnitList* defs = 0;
+  FormulaUnit* auxReplaced = ste.apply(auxUnit, defs);
+  ASS_EQ(defs, 0);
+  return Formula(auxReplaced->formula(), _aux);
+}
+
+AnnotatedFormula FormulaBuilder::replaceConstant(AnnotatedFormula af, Term replaced, Term target)
+{
+  CALL("FormulaBuilder::replaceConstant(AnnotatedFormula)");
+
+  Formula replForm = replaceConstant(af.formula(), replaced, target);
+  return annotatedFormula(replForm, af.annotation());
 }
 
 

@@ -60,6 +60,7 @@ TEST_FUN(fbapi1)
   catch (FormulaBuilderException e)
   {
     cout<< "Exception: "<<e.msg()<<endl;
+    throw;
   }
 }
 
@@ -139,14 +140,55 @@ TEST_FUN(fbapiReflection)
     ASS_EQ(t.arity(),1);
     ASS(t.arg(0).isVar());
     ASS_NEQ(af1conj.formula().formulaArg(0).formulaArg(0).termArg(0).arg(0).var(), t.arg(0).var());
-    cout<<f1neg.toString()<<endl;
-    cout<<api.substitute(f1neg, xv, fx).toString()<<endl;
-    cout<<api.substitute(api.substitute(f1neg, xv, fx), xv, fx).toString()<<endl;
-    cout<<api.substitute(api.substitute(fx, xv, fx), xv, fx).toString()<<endl;
   }
   catch (FormulaBuilderException e)
   {
     cout<< "Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
+TEST_FUN(fbapiSubst)
+{
+  try {
+    FormulaBuilder api(true);
+
+    Var xv = api.var("X"); // variable x
+    Var yv = api.var("Y"); // variable y
+    Term x =  api.varTerm(xv); // term x
+    Term y =  api.varTerm(yv); // term y
+    Function fun = api.function("f",1);
+    Function cfun = api.function("c",0);
+    Term c = api.term(cfun); // c
+    Term fx = api.term(fun,x); // f(x)
+    Term fy = api.term(fun,y); // f(y)
+    Term fc = api.term(fun,c); // f(c)
+    Term ffc = api.term(fun,fc); // f(f(c))
+    Formula f1 = api.equality(fx,fy); // f(x) = f(y)
+    Formula f2 = api.equality(fc,ffc); // f(c) = f(f(c))
+
+    Formula f1neg = api.negation(f1);
+    AnnotatedFormula af1neg = api.annotatedFormula(f1neg, FormulaBuilder::ASSUMPTION);
+    AnnotatedFormula af1conj = api.annotatedFormula(f1neg, FormulaBuilder::CONJECTURE);
+
+    cout<<f1neg.toString()<<endl;
+    cout<<api.substitute(f1neg, xv, fx).toString()<<endl;
+    cout<<api.substitute(api.substitute(f1neg, xv, fx), xv, fx).toString()<<endl;
+    cout<<api.substitute(api.substitute(af1neg, xv, fx), xv, fx).toString()<<endl;
+    cout<<api.substitute(api.substitute(fx, xv, fx), xv, fx).toString()<<endl;
+
+    Formula f2neg = api.negation(f2);
+    AnnotatedFormula af2neg = api.annotatedFormula(f2neg, FormulaBuilder::ASSUMPTION);
+    AnnotatedFormula af2conj = api.annotatedFormula(f2neg, FormulaBuilder::CONJECTURE);
+    cout<<af2neg.toString()<<endl;
+    cout<<api.replaceConstant(af2neg, c, fx).toString()<<endl;
+    cout<<api.replaceConstant(ffc, c, y).toString()<<endl;
+
+  }
+  catch (ApiException e)
+  {
+    cout<< "Exception: "<<e.msg()<<endl;
+    throw;
   }
 }
 
@@ -199,6 +241,7 @@ TEST_FUN(fbapiStrConv)
   catch (FormulaBuilderException e)
   {
     cout<< "Exception: "<<e.msg()<<endl;
+    throw;
   }
 
 
