@@ -331,11 +331,16 @@ OTHER_API_DEP = \
 			   Kernel/BDD.o\
 			   Kernel/BDDClausifier.o\
 			   Kernel/Clause.o\
+			   Kernel/EqHelper.o\
 			   Kernel/Formula.o\
 			   Kernel/FormulaUnit.o\
 			   Kernel/FormulaVarIterator.o\
 			   Kernel/Inference.o\
+        	           Kernel/KBO.o\
+	                   Kernel/KBOForEPR.o\
 			   Kernel/Matcher.o\
+			   Kernel/Ordering.o\
+	                   Kernel/Ordering_Equality.o\
 			   Kernel/Signature.o\
 			   Kernel/SubformulaIterator.o\
 			   Kernel/Substitution.o\
@@ -364,6 +369,7 @@ OTHER_API_DEP = \
 			   SAT/SATLiteral.o\
 			   Saturation/ClauseContainer.o\
 			   Shell/CNF.o\
+                           Shell/EqualityProxy.o\
 			   Shell/Flattening.o\
 			   Shell/FormulaIteExpander.o\
 			   Shell/Lexer.o\
