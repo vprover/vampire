@@ -204,13 +204,13 @@ public:
   AnnotatedFormula substitute(AnnotatedFormula af, Var v, Term t);
 
   /**
-   * Return copy of term @c original that has all occurences of term
+   * Return copy of term @c original that has all occurrences of term
    * @c replaced replaced by @c target. @c replaced must be a constant.
    */
   Term replaceConstant(Term original, Term replaced, Term target);
 
   /**
-   * Return copy of formula @c f that has all occurences of term
+   * Return copy of formula @c f that has all occurrences of term
    * @c replaced replaced by @c target. @c replaced must be a constant.
    * Variables in @c target must not be bound in @c f.
    *
