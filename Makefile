@@ -57,7 +57,10 @@ ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
 XFLAGS = $(REL_FLAGS)
 endif
 ifneq (,$(filter libvapi,$(MAKECMDGOALS)))
-XFLAGS = -O6 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -DVAPI_LIBRARY=1 -fPIC
+XFLAGS = $(REL_FLAGS) -DVAPI_LIBRARY=1 -fPIC
+endif
+ifneq (,$(filter libvapi_dbg,$(MAKECMDGOALS)))
+XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -fPIC
 endif
 
 CXX = g++
