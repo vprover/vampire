@@ -223,6 +223,7 @@ string Formula::toString (Connective c)
   static string names [] =
 //    { "", "&", "\\/", "=>", "<=>", "<~>", "~", "!", "?", "false", "true"};
     { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "<ite>", "<formula_let>", "<term_let>", "false", "true"};
+  ASS_EQ(sizeof(names)/sizeof(string), TRUE+1);
 
   return names[(int)c];
 } // Formula::toString (Connective c)

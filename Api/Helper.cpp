@@ -154,9 +154,13 @@ string DefaultHelperCore::toString(const Kernel::Formula* f) const
 
   static string names [] =
   { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "$false", "$true"};
+      "~", "!", "?", "", "", "", "$false", "$true"};
+  ASS_EQ(sizeof(names)/sizeof(string), TRUE+1);
   Connective c = f->connective();
   string con = names[(int)c];
+  switch (c) {
+
+  }
   switch (c) {
   case LITERAL:
     return toString(f->literal());

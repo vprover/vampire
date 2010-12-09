@@ -27,7 +27,8 @@ string TPTP::toString(const Formula* f)
   CALL("TPTP::toString(const Formula*)");
   static string names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "$false", "$true"};
+      "~", "!", "?", "", "", "", "$false", "$true"};
+  ASS_EQ(sizeof(names)/sizeof(string), TRUE+1);
   Connective c = f->connective();
   string con = names[(int)c];
   switch (c) {
