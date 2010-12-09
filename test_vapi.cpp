@@ -11,9 +11,9 @@
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
 
-#include "Lib/Environment.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/Unit.hpp"
+#define LOG(X) std::cout<<X<<std::endl
+#define LOGV(X) std::cout<<#X<<": "<<X<<std::endl
+
 
 using namespace std;
 using namespace Api;
@@ -38,12 +38,49 @@ void clausifyTest(const char* fname)
 //  Problem p2=p.clausify(8,false);
 
   printProblem(p2);
-  LOGV(env.signature->functions());
-  for(int i=0;i<env.signature->functions();i++) {
-    if(env.signature->functionArity(i)>0) {
-      LOGV(i);
-      LOGV(env.signature->functionArity(i));
-    }
+}
+
+void testSubst()
+{
+  try {
+    FormulaBuilder api(true);
+
+    Var xv = api.var("X"); // variable x
+    Var yv = api.var("Y"); // variable y
+    Term x =  api.varTerm(xv); // term x
+    Term y =  api.varTerm(yv); // term y
+    Function fun = api.function("f",1);
+    Function cfun = api.function("c",0);
+    Term c = api.term(cfun); // c
+    Term fx = api.term(fun,x); // f(x)
+    Term fy = api.term(fun,y); // f(y)
+    Term fc = api.term(fun,c); // f(c)
+    Term ffc = api.term(fun,fc); // f(f(c))
+    Formula f1 = api.equality(fx,fy); // f(x) = f(y)
+    Formula f2 = api.equality(fc,ffc); // f(c) = f(f(c))
+
+    Formula f1neg = api.negation(f1);
+    AnnotatedFormula af1neg = api.annotatedFormula(f1neg, FormulaBuilder::ASSUMPTION);
+    AnnotatedFormula af1conj = api.annotatedFormula(f1neg, FormulaBuilder::CONJECTURE);
+
+    cout<<f1neg.toString()<<endl;
+    cout<<api.substitute(f1neg, xv, fx).toString()<<endl;
+    cout<<api.substitute(api.substitute(f1neg, xv, fx), xv, fx).toString()<<endl;
+    cout<<api.substitute(api.substitute(af1neg, xv, fx), xv, fx).toString()<<endl;
+    cout<<api.substitute(api.substitute(fx, xv, fx), xv, fx).toString()<<endl;
+
+    Formula f2neg = api.negation(f2);
+    AnnotatedFormula af2neg = api.annotatedFormula(f2neg, FormulaBuilder::ASSUMPTION);
+    AnnotatedFormula af2conj = api.annotatedFormula(f2neg, FormulaBuilder::CONJECTURE);
+    cout<<af2neg.toString()<<endl;
+    cout<<api.replaceConstant(af2neg, c, fx).toString()<<endl;
+    cout<<api.replaceConstant(ffc, c, y).toString()<<endl;
+
+  }
+  catch (ApiException e)
+  {
+    cout<< "Exception: "<<e.msg()<<endl;
+    throw;
   }
 }
 
@@ -53,6 +90,8 @@ int main(int argc, char* argv [])
     clausifyTest(argv[1]);
     return 0;
   }
+
+  testSubst();
 
   FormulaBuilder api(true);
 
@@ -79,7 +118,7 @@ int main(int argc, char* argv [])
 
   AnnotatedFormulaIterator fit1=p1.formulas();
   fit1.hasNext();
-  cout<<"inner:"<<static_cast<Kernel::Unit*>(fit1.next())->toString()<<endl;
+  cout<<fit1.next().toString()<<endl;
 
 
 //  string fs=af.toString();
@@ -95,7 +134,7 @@ int main(int argc, char* argv [])
 
   AnnotatedFormulaIterator fit2=p3.formulas();
   fit2.hasNext();
-  cout<<"inner:"<<static_cast<Kernel::Unit*>(fit2.next())->toString()<<endl;
+  cout<<fit2.next().toString()<<endl;
 
 
   return 0;
