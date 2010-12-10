@@ -172,13 +172,29 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
 
 struct Problem::Clausifier
 {
-  Clausifier(Problem* res, int namingThreshold, bool preserveEpr) :
-    namingThreshold(namingThreshold), preserveEpr(preserveEpr), nextDefNum(1), res(res),
-    naming(namingThreshold ? namingThreshold : 8, preserveEpr) {}
+  Clausifier(Problem* res, int namingThreshold, bool preserveEpr, bool onlySkolemize) :
+    namingThreshold(namingThreshold), preserveEpr(preserveEpr), onlySkolemize(onlySkolemize),
+    nextDefNum(1), res(res), naming(namingThreshold ? namingThreshold : 8, preserveEpr) {}
 
-  void clausify(AnnotatedFormula f)
+  void assignName(Kernel::Unit* unit, bool isDef, string origFormName, unsigned nextClauseNum)
   {
-    CALL("Problem__Clausifier::clausify");
+    CALL("Problem::Clausifier::assignName");
+
+    string clName;
+    if(isDef) {
+      clName="def_"+Int::toString(nextDefNum);
+      nextDefNum++;
+    }
+    else {
+      clName=origFormName+"_"+Int::toString(nextClauseNum);
+      nextClauseNum++;
+    }
+    Parser::assignAxiomName(unit, clName);
+  }
+
+  void transform(AnnotatedFormula f)
+  {
+    CALL("Problem::Clausifier::transform");
 
     using namespace Shell;
 
@@ -221,31 +237,25 @@ struct Problem::Clausifier
       unit = NNF::nnf(unit);
       unit = Flattening::flatten(unit);
       unit = Skolem::skolemise(unit);
-
-      if(!clausifyingDefs && namingThreshold && preserveEpr) {
-	Kernel::UnitList* newDefs2=0;
-	unit = naming.apply(unit,newDefs2);
-	newDefs=Kernel::UnitList::concat(newDefs2, newDefs);
+      if(onlySkolemize) {
+	  AnnotatedFormula fRes=AnnotatedFormula(unit, f._aux);
+	  res->addFormula(fRes);
+	  assignName(unit, clausifyingDefs, fname, nextClauseNum);
       }
-
-      cnf.clausify(unit,auxClauseStack);
-      while (! auxClauseStack.isEmpty()) {
-	Unit* u = auxClauseStack.pop();
-	AnnotatedFormula fRes=AnnotatedFormula(u);
-	fRes._aux=f._aux;
-	res->addFormula(fRes);
-
-	string clName;
-	if(clausifyingDefs) {
-	  clName="def_"+Int::toString(nextDefNum);
-	  nextDefNum++;
-	}
-	else {
-	  clName=fname+"_"+Int::toString(nextClauseNum);
-	  nextClauseNum++;
+      else {
+	if(!clausifyingDefs && namingThreshold && preserveEpr) {
+	  Kernel::UnitList* newDefs2=0;
+	  unit = naming.apply(unit,newDefs2);
+	  newDefs=Kernel::UnitList::concat(newDefs2, newDefs);
 	}
 
-	Parser::assignAxiomName(u, clName);
+	cnf.clausify(unit,auxClauseStack);
+	while (! auxClauseStack.isEmpty()) {
+	  Unit* u = auxClauseStack.pop();
+	  AnnotatedFormula fRes=AnnotatedFormula(u, f._aux);
+	  res->addFormula(fRes);
+	  assignName(u, clausifyingDefs, fname, nextClauseNum);
+	}
       }
 
       if(newDefs==0) {
@@ -260,6 +270,7 @@ struct Problem::Clausifier
 
   int namingThreshold;
   bool preserveEpr;
+  bool onlySkolemize;
 
   unsigned nextDefNum;
   Problem* res;
@@ -279,12 +290,35 @@ Problem Problem::clausify(int namingThreshold, bool preserveEpr)
   Problem res;
 
   {
-    Clausifier clausifier(&res, namingThreshold, preserveEpr);
+    Clausifier clausifier(&res, namingThreshold, preserveEpr, false);
 
     AnnotatedFormulaIterator fit=formulas();
     while(fit.hasNext()) {
       AnnotatedFormula f=fit.next();
-      clausifier.clausify(f);
+      clausifier.transform(f);
+    }
+  }
+
+  return res;
+}
+
+Problem Problem::skolemize(int namingThreshold, bool preserveEpr)
+{
+  CALL("Problem::skolemize");
+
+  if(namingThreshold>32767 || namingThreshold<0) {
+    throw new ApiException("namingThreshold must be in the range [0,32767]");
+  }
+
+  Problem res;
+
+  {
+    Clausifier clausifier(&res, namingThreshold, preserveEpr, true);
+
+    AnnotatedFormulaIterator fit=formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      clausifier.transform(f);
     }
   }
 

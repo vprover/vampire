@@ -344,28 +344,54 @@ TEST_FUN(fbapiProblem)
 
 TEST_FUN(fbapiClausify)
 {
-  FormulaBuilder api;
+  try {
+    FormulaBuilder api;
 
-  Predicate p=api.predicate("p",0);
-  Predicate q=api.predicate("q",0);
+    Var xv = api.var("Var");
+    Var yv = api.var("Var2");
+    Term x = api.varTerm(xv);
+    Term y = api.varTerm(yv);
+    Predicate p=api.predicate("p",1);
+    Predicate q=api.predicate("q",0);
 
-  Formula fp=api.formula(p);
-  Formula fq=api.formula(q);
-  Formula f=api.formula(FormulaBuilder::OR,fp, fq);
+    Formula fpx=api.formula(p,x);
+    Formula fpy=api.formula(p,y);
+    Formula fq=api.formula(q);
+    Formula fpxOq=api.formula(FormulaBuilder::OR, fpx, fq);
+    Formula fFpxOq=api.formula(FormulaBuilder::FORALL, xv, fpxOq);
+    Formula fpyAFpxOq=api.formula(FormulaBuilder::AND, fpy, fFpxOq);
 
-  AnnotatedFormula af=api.annotatedFormula(f,FormulaBuilder::CONJECTURE, "abc123");
+    AnnotatedFormula af=api.annotatedFormula(fpyAFpxOq,FormulaBuilder::CONJECTURE, "abc123");
 
-  cout<<"FOF:"<<endl;
-  cout<<af<<endl;
+    cout<<endl<<"FOF:"<<endl;
+    cout<<af<<endl;
 
-  Problem prb;
-  prb.addFormula(af);
+    Problem prb;
+    prb.addFormula(af);
 
-  Problem cprb=prb.clausify(0);
-  cout<<"CNF:"<<endl;
-  AnnotatedFormulaIterator afit=cprb.formulas();
-  while(afit.hasNext()) {
-    cout<<afit.next()<<endl;
+    Problem sprb=prb.skolemize(0);
+    cout<<"Skolemized:"<<endl;
+    AnnotatedFormulaIterator afit=sprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    Problem cprb=prb.clausify(0);
+    cout<<"CNF:"<<endl;
+    afit=cprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    cprb=sprb.clausify(0);
+    cout<<"CNF from skolemized:"<<endl;
+    afit=cprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
   }
 }
 

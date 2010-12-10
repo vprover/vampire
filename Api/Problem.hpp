@@ -79,6 +79,17 @@ public:
   Problem clausify(int namingThreshold=8, bool preserveEpr=false);
 
   /**
+   * Return the current problem skolemized
+   *
+   * @param namingThreshold When the number of NNF formulas generated from one formula
+   *   exceeds this number, we attempt to introduce names to lower the amount of
+   *   generated formulas. If the value is 0, naming is disabled.
+   * @param preserveEpr If true, names will not be introduced if it would
+   *   lead to introduction of non-constant Skolem functions.
+   */
+  Problem skolemize(int namingThreshold=8, bool preserveEpr=false);
+
+  /**
    * Return iterator of formulas in the problem
    *
    * When the problem is modified, behavior of all existing iterators

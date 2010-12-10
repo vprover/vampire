@@ -445,6 +445,7 @@ public:
 
   operator Kernel::Unit*() const { return unit; }
   explicit AnnotatedFormula(Kernel::Unit* fu) : unit(fu) {}
+  explicit AnnotatedFormula(Kernel::Unit* fu, ApiHelper aux) : unit(fu), _aux(aux) {}
 private:
   Kernel::Unit* unit;
   ApiHelper _aux;
