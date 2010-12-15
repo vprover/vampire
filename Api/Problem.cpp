@@ -199,7 +199,8 @@ struct Problem::Clausifier
     using namespace Shell;
 
     string fname=f.name();
-    Kernel::Unit* unit=f;
+    Kernel::Unit* unit0=f;
+    Kernel::Unit* unit=unit0;
 
     if(unit->isClause()) {
       res->addFormula(f);
@@ -240,7 +241,9 @@ struct Problem::Clausifier
       if(onlySkolemize) {
 	  AnnotatedFormula fRes=AnnotatedFormula(unit, f._aux);
 	  res->addFormula(fRes);
-	  assignName(unit, clausifyingDefs, fname, nextClauseNum);
+	  if(unit!=unit0) {
+	    assignName(unit, clausifyingDefs, fname, nextClauseNum);
+	  }
       }
       else {
 	if(!clausifyingDefs && namingThreshold && preserveEpr) {
