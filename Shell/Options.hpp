@@ -171,7 +171,7 @@ public:
     MODE_CASC_LTB,
     MODE_CASC_SIMPLE_LTB,
     MODE_CLAUSIFY,
-    MODE_CONSEQUENCE_FINDING,
+    MODE_CONSEQUENCE_ELIMINATION,
     MODE_GROUNDING,
     MODE_LTB_BUILD,
     MODE_LTB_SOLVE,
@@ -377,6 +377,7 @@ public:
   bool satSolverWithSubsumptionResolution() const { return _satSolverWithSubsumptionResolution; }
   bool emptyClauseSubsumption() const { return _emptyClauseSubsumption; }
   bool propositionalToBDD() const { return _propositionalToBDD; }
+  void setPropositionalToBDD(bool value) { _propositionalToBDD = value; }
   bool splitAddGroundNegation() const { return _splitAddGroundNegation; }
   bool splitAtActivation() const { return _splitAtActivation; }
   bool splitGoalOnly() const { return _splitGoalOnly; }

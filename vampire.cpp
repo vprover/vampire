@@ -197,6 +197,11 @@ void vampireMode()
 {
   CALL("vampireMode()");
 
+  if(env.options->mode()==Options::MODE_CONSEQUENCE_ELIMINATION) {
+    env.options->setUnusedPredicateDefinitionRemoval(false);
+    env.options->setPropositionalToBDD(false);
+  }
+
   // env.beginOutput();
   // env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   // env.endOutput();
@@ -390,7 +395,7 @@ int main(int argc, char* argv [])
     case Options::MODE_SPIDER:
       spiderMode();
       break;
-    case Options::MODE_CONSEQUENCE_FINDING:
+    case Options::MODE_CONSEQUENCE_ELIMINATION:
     case Options::MODE_VAMPIRE:
       vampireMode();
       break;

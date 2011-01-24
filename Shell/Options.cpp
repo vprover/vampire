@@ -396,7 +396,7 @@ const char* Options::Constants::_modeValues[] = {
   "casc_ltb",
   "casc_simple_ltb",
   "clausify",
-  "consequence_finding",
+  "consequence_elimination",
   "grounding",
   "ltb_build",
   "ltb_solve",

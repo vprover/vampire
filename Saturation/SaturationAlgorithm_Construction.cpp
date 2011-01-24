@@ -234,7 +234,7 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
   addFSEs(res);
   addBSEs(res);
 
-  if(env.options->mode()==Options::MODE_CONSEQUENCE_FINDING) {
+  if(env.options->mode()==Options::MODE_CONSEQUENCE_ELIMINATION) {
     res->_consFinder=new ConsequenceFinder();
   }
   if(env.options->showSymbolElimination()) {
