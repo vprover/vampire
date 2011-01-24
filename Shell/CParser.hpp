@@ -251,6 +251,8 @@ public:
   enum PTType {
     /** constant expression */
     PT_CONSTANT_EXPRESSION,
+    /** array application */
+    PT_ARRAY_APPLICATION,
     /** identifier */
     PT_IDENTIFIER,
   };
@@ -301,7 +303,9 @@ public:
   {
   public:
     /** create a new array application expression */
-    ArrayApplication(unsigned start,unsigned end,Unit* lhs,Unit* rhs);
+    ArrayApplication(unsigned start,unsigned end,Unit* lhs,Unit* rhs):
+      Unit(PT_ARRAY_APPLICATION,start,end)
+    {}
   };
 
   CParser(const char* input);
