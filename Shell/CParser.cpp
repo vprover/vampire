@@ -1536,3 +1536,23 @@ expression
 	;
 
 */
+
+unsigned CParser::expression(unsigned pos,bool backtrack)
+{
+  return 0;
+}
+
+unsigned CParser::argumentExpressionList(unsigned int, bool)
+{
+  return 0;
+}
+
+CParser::Identifier::Identifier(unsigned start, unsigned end)
+  : Unit(PT_IDENTIFIER,start,end)
+{
+}
+
+CParser::ConstantExpression::ConstantExpression(unsigned start, unsigned end)
+  : Unit(PT_CONSTANT_EXPRESSION,start,end)
+{
+}

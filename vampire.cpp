@@ -188,7 +188,7 @@ void programAnalysisMode()
 
   CParser parser(progString.c_str());
   parser.tokenize();
-  parser.output(cout);
+  //  parser.output(cout);
 
   vampireReturnValue=0;
 } // programAnalysisMode
