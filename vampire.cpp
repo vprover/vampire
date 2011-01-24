@@ -13,6 +13,7 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/MapToLIFO.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
@@ -35,10 +36,13 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
+#include "SAT/DIMACS.hpp"
+
 #include "Shell/CASC/CASCMode.hpp"
 #include "Shell/CASC/CLTBMode.hpp"
 #include "Shell/CASC/SimpleLTBMode.hpp"
 #include "Shell/CommandLine.hpp"
+#include "Shell/Grounding.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 #include "Saturation/ProvingHelper.hpp"
@@ -243,6 +247,83 @@ void clausifyMode()
   vampireReturnValue=0;
 } // clausifyMode
 
+void groundingMode()
+{
+  CALL("groundingMode()");
+
+  try {
+    Property property;
+
+    UnitList* units;
+    {
+      string inputFile = env.options->inputFile();
+
+      istream* input;
+      if(inputFile=="") {
+        input=&cin;
+      } else {
+        input=new ifstream(inputFile.c_str());
+      }
+      TPTPLexer lexer(*input);
+
+      if(inputFile!="") {
+        delete static_cast<ifstream*>(input);
+        input=0;
+      }
+
+
+      TPTPParser parser(lexer);
+      units = parser.units();
+    }
+
+    property.scan(units);
+
+    Preprocess prepro(property,*env.options);
+    prepro.preprocess(units);
+
+    Property newProperty;
+    newProperty.scan(units);
+
+    globUnitList=units;
+
+    ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
+
+
+    if(newProperty.equalityAtoms()) {
+      ClauseList* eqAxioms=Grounding::getEqualityAxioms(newProperty.positiveEqualityAtoms()!=0);
+      clauses=pvi( getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms), clauses) );
+    }
+
+    MapToLIFO<Clause*, SATClause*> insts;
+
+    Grounding gnd;
+    SATClause::NamingContext nameCtx;
+
+    while(clauses.hasNext()) {
+      Clause* cl=clauses.next();
+      ClauseList* grounded=gnd.ground(cl);
+      SATClauseList* sGrounded=0;
+      while(grounded) {
+	Clause* gcl=ClauseList::pop(grounded);
+	SATClauseList::push(SATClause::fromFOClause(nameCtx, gcl), sGrounded);
+      }
+      insts.pushManyToKey(cl, sGrounded);
+    }
+    env.beginOutput();
+    DIMACS::outputGroundedProblem(insts, nameCtx, env.out());
+    env.endOutput();
+
+  } catch(MemoryLimitExceededException) {
+    env.beginOutput();
+    env.out()<<"Memory limit exceeded\n";
+    env.endOutput();
+  } catch(TimeLimitExceededException) {
+    env.beginOutput();
+    env.out()<<"Time limit exceeded\n";
+    env.endOutput();
+  }
+} // groundingMode
+
 void explainException (Exception& exception)
 {
   env.beginOutput();
@@ -276,7 +357,7 @@ int main(int argc, char* argv [])
     switch (env.options->mode())
     {
     case Options::MODE_GROUNDING:
-      USER_ERROR("Use the vground executable for grounding.");
+      groundingMode();
       break;
     case Options::MODE_SPIDER:
       spiderMode();
