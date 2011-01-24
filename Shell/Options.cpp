@@ -401,6 +401,7 @@ const char* Options::Constants::_modeValues[] = {
   "ltb_build",
   "ltb_solve",
   "profile",
+  "program_analysis",
   "rule",
   "spider",
   "vampire"};

@@ -212,6 +212,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 VS_OBJ = Shell/AxiomGenerator.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
+         Shell/CParser.o\
          Shell/EqResWithDeletion.o\
          Shell/EqualityProxy.o\
          Shell/Flattening.o\
@@ -284,6 +285,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/UnitTesting.o
 
 VUT_OBJ = UnitTests/tBinaryHeap.o\
+		  UnitTests/tCParser.o\
 		  UnitTests/tDHMap.o\
 		  UnitTests/tDHMultiset.o\
 		  UnitTests/tfork.o\
@@ -339,7 +341,7 @@ OTHER_API_DEP = \
 			   Kernel/FormulaUnit.o\
 			   Kernel/FormulaVarIterator.o\
 			   Kernel/Inference.o\
-        	           Kernel/KBO.o\
+		           Kernel/KBO.o\
 	                   Kernel/KBOForEPR.o\
 			   Kernel/Matcher.o\
 			   Kernel/Ordering.o\
@@ -565,7 +567,7 @@ depend:
 Makefile_depend:
 	if [ ! -e Makefile_depend ]; then touch Makefile_depend; fi
 	$(DEPEND_CMD)
-	
+
 doc:
 	rm -fr doc/html
 	doxygen config.doc

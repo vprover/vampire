@@ -41,6 +41,7 @@
 #include "Shell/CASC/CASCMode.hpp"
 #include "Shell/CASC/CLTBMode.hpp"
 #include "Shell/CASC/SimpleLTBMode.hpp"
+#include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/Grounding.hpp"
 #include "Shell/Options.hpp"
@@ -93,7 +94,6 @@ ClauseIterator getProblemClauses()
 {
   CALL("getInputClauses");
   
-
   UnitList* units=UIHelper::getInputUnits();
 
   TimeCounter tc2(TC_PREPROCESSING);
@@ -163,6 +163,36 @@ void profileMode()
   vampireReturnValue=0;
 } // profileMode
 
+void programAnalysisMode()
+{
+  CALL("programAnalysisMode()");
+
+  string inputFile = env.options->inputFile();
+  istream* input;
+  if(inputFile=="") {
+    input=&cin;
+  } else {
+    cout << "Analyzing " << inputFile << "...\n";
+    input=new ifstream(inputFile.c_str());
+    if(input->fail()) {
+      USER_ERROR("Cannot open problem file: "+inputFile);
+    }
+  }
+  string progString("");
+  while (!input->eof()) {
+    string inp;
+    getline(*input,inp);
+    progString += inp + '\n';
+  }
+  // cout << progString;
+
+  CParser parser(progString.c_str());
+  parser.tokenize();
+  parser.output(cout);
+
+  vampireReturnValue=0;
+} // programAnalysisMode
+
 void vampireMode()
 {
   CALL("vampireMode()");
@@ -180,7 +210,6 @@ void vampireMode()
   if(env.statistics->terminationReason==Statistics::REFUTATION) {
     vampireReturnValue=0;
   }
-
 } // vampireMode
 
 
@@ -353,7 +382,6 @@ int main(int argc, char* argv [])
     Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
-
     switch (env.options->mode())
     {
     case Options::MODE_GROUNDING:
@@ -393,6 +421,9 @@ int main(int argc, char* argv [])
       break;
     case Options::MODE_PROFILE:
       profileMode();
+      break;
+    case Options::MODE_PROGRAM_ANALYSIS:
+      programAnalysisMode();
       break;
     case Options::MODE_RULE:
       USER_ERROR("Rule mode is not implemented");
