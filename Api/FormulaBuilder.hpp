@@ -309,6 +309,10 @@ public:
   operator Kernel::TermList() const;
   explicit Term(Kernel::TermList t);
   explicit Term(Kernel::TermList t, ApiHelper aux);
+
+  bool operator==(const Term& o) const {
+    return toString()==o.toString();
+  }
 private:
   size_t content;
   ApiHelper _aux;
@@ -392,6 +396,10 @@ public:
   operator Kernel::Formula*() const { return form; }
   explicit Formula(Kernel::Formula* f) : form(f) {}
   explicit Formula(Kernel::Formula* f, ApiHelper aux) : form(f), _aux(aux) {}
+
+  bool operator==(const Formula& o) const {
+    return toString()==o.toString();
+  }
 private:
   Kernel::Formula* form;
   ApiHelper _aux;
@@ -446,6 +454,10 @@ public:
   operator Kernel::Unit*() const { return unit; }
   explicit AnnotatedFormula(Kernel::Unit* fu) : unit(fu) {}
   explicit AnnotatedFormula(Kernel::Unit* fu, ApiHelper aux) : unit(fu), _aux(aux) {}
+
+  bool operator==(const AnnotatedFormula& o) const {
+    return toString()==o.toString();
+  }
 private:
   Kernel::Unit* unit;
   ApiHelper _aux;
