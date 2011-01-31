@@ -145,6 +145,8 @@ public:
   unsigned bddPropClauses;
   /** Number of clauses generated for the SAT solver */
   unsigned satClauses;
+  /** Memory used by BDDs */
+  size_t bddMemoryUsage;
 
   unsigned backtrackingSplits;
   unsigned backtrackingSplitsRefuted;

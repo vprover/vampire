@@ -24,6 +24,7 @@
 #include "SAT/SingleWatchSAT.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "BDD.hpp"
 
@@ -519,6 +520,7 @@ BDDNode* BDD::getNode(int varNum, BDDNode* pos, BDDNode* neg)
 
   if(newNode==0) {
     newNode=new BDDNode();
+    env.statistics->bddMemoryUsage += sizeof(BDDNode);
   }
 
   newNode->_var=varNum;

@@ -77,6 +77,7 @@ Statistics::Statistics()
     splittingNamesIntroduced(0),
     bddPropClauses(0),
     satClauses(0),
+    bddMemoryUsage(0),
     backtrackingSplits(0),
     backtrackingSplitsRefuted(0),
     backtrackingSplitsRefutedZeroLevel(0),
@@ -193,6 +194,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Introduced splitting names", splittingNamesIntroduced);
   COND_OUT("BDD propositional clauses", bddPropClauses);
   COND_OUT("SAT solver clauses", satClauses);
+  COND_OUT("Memory used by BDDs [KB]", bddMemoryUsage/1024);
   SEPARATOR;
 
   COND_OUT("Backtracking splits", backtrackingSplits);
