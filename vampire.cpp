@@ -44,6 +44,7 @@
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/Grounding.hpp"
+#include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 #include "Saturation/ProvingHelper.hpp"
@@ -53,6 +54,7 @@
 #include "Shell/TPTP.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
+#include "Shell/SpecialTermElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 
@@ -281,6 +283,40 @@ void clausifyMode()
   vampireReturnValue=0;
 } // clausifyMode
 
+void axiomSelectionMode()
+{
+  CALL("axiomSelectionMode()");
+
+  env.options->setSineSelection(Options::SS_AXIOMS);
+
+  UnitList* units=UIHelper::getInputUnits();
+
+  SpecialTermElimination().apply(units);
+
+  // reorder units
+  if (env.options->normalize()) {
+    env.statistics->phase=Statistics::NORMALIZATION;
+    Normalisation norm;
+    units = norm.normalise(units);
+  }
+
+  env.statistics->phase=Statistics::SINE_SELECTION;
+  SineSelector().perform(units);
+
+  env.statistics->phase=Statistics::FINALIZATION;
+
+  UnitList::Iterator uit(units);
+  env.beginOutput();
+  while (uit.hasNext()) {
+    Unit* u=uit.next();
+    env.out() << TPTP::toString(u) << "\n";
+  }
+  env.endOutput();
+
+  //we have successfully output the selected units, so we'll terminate with zero return value
+  vampireReturnValue=0;
+}
+
 void groundingMode()
 {
   CALL("groundingMode()");
@@ -389,6 +425,9 @@ int main(int argc, char* argv [])
 
     switch (env.options->mode())
     {
+    case Options::MODE_AXIOM_SELECTION:
+      axiomSelectionMode();
+      break;
     case Options::MODE_GROUNDING:
       groundingMode();
       break;

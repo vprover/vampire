@@ -392,6 +392,7 @@ NameArray Options::Constants::inputSyntaxValues(_inputSyntaxValues,
 						sizeof(_inputSyntaxValues)/sizeof(char*));
 
 const char* Options::Constants::_modeValues[] = {
+  "axiom_selection",
   "casc",
   "casc_ltb",
   "casc_simple_ltb",

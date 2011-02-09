@@ -167,6 +167,7 @@ public:
    * @since 06/05/2007 Manchester
    */
   enum Mode {
+    MODE_AXIOM_SELECTION,
     MODE_CASC,
     MODE_CASC_LTB,
     MODE_CASC_SIMPLE_LTB,
