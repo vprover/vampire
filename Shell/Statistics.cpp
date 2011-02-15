@@ -202,7 +202,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Backtracking splits refuted at zero level", backtrackingSplitsRefutedZeroLevel);
   SEPARATOR;
 
-  out << "Memory used: " << (Allocator::getUsedMemory()/1024) << "KB" << endl;
+  COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
   out << "Time elapsed: ";
   Timer::printMSString(out,env.timer->elapsedMilliseconds());
   out << endl;
