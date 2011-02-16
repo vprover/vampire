@@ -12,7 +12,10 @@
 
 #include "Debug/Assertion.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Allocator.hpp"
+#include "Environment.hpp"
 
 /**
  * When set to 1, at each cache expansion the number of empty cache entries
@@ -20,7 +23,29 @@
  */
 #define REPORT_VACANCIES 0
 
+/**
+ * If cache size is greater than this amount of bytes, it will not be expanded
+ */
+#define NONEXPANDABLE_CACHE_THRESHOLD MAXIMAL_ALLOCATION/2
+
+
 namespace Lib {
+
+namespace __Cache_AUX {
+
+using namespace Shell;
+
+/**
+ * Return true if cache size can be expanded to number of bytes @c sz.
+ */
+bool canExpandToBytes(size_t sz)
+{
+  return sz<(MAXIMAL_ALLOCATION/2) && sz<(env.options->memoryLimit()-Allocator::getUsedMemory());
+}
+
+}
+
+using namespace __Cache_AUX;
 
 /**
  * A direct mapped cache that expands if the number of cache evictions is
@@ -72,7 +97,7 @@ public:
     return e->_occupied && e->_key==k;
   }
 
-  void insert(Key k, Val v)
+  void insert(Key k, Val v=Val())
   {
     Entry* e=_data+getPosition(k);
 
@@ -83,7 +108,7 @@ public:
       _evictionCounter++;
 
       if(shouldExpand()) {
-	expand();
+	tryExpand();
 	e=_data+getPosition(k);
 	ASS(!e->_occupied);
       }
@@ -117,9 +142,16 @@ private:
   }
 
   /** Expand the cache to double of its current size */
-  void expand()
+  void tryExpand()
   {
-    expand(_size*2);
+    size_t newSize = _size*2;
+    if(canExpandToBytes(newSize*sizeof(Entry))) {
+      expand(newSize);
+    }
+    else {
+      //we will never want to expand again if we cannot expand now
+      _evictionThreshold=SIZE_MAX;
+    }
   }
 
   /**

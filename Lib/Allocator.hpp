@@ -35,6 +35,9 @@
 /** Maximal height of skip lists */
 #define MAX_SKIP_HEIGHT 32
 
+/** The largest piece of memory that can be allocated at once */
+#define MAXIMAL_ALLOCATION (PAGE_SIZE*MAX_PAGES)
+
 //this macro is undefine at the end of the file
 #if defined(__GNUC__) && !defined(__ICC) && (__GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 2)
 # define ALLOC_SIZE_ATTR __attribute__((malloc, alloc_size(1)))

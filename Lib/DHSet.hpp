@@ -14,13 +14,9 @@
 namespace Lib {
 
 /**
- * Class DHMap implements generic maps with keys of a class Key
- * and values of a class Value. If you implement a map with
- * a new class Key, Hash1 and Hash2 are classes containing a function
- * hash() mapping keys to unsigned integer values.
+ * Class DHSet implements generic sets with values of a class Val.
  *
- * @param Key a pointer or integral value (e.g., integer or long):
- *        anything that can be hashed to an unsigned integer
+ * @param Val anything that can be hashed using Hash1 and Hash2,
  *        and compared using ==
  * @param Hash1 class containig the hash function for keys which
  *	  determines position of entry in hashtable when no collision

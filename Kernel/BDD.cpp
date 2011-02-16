@@ -397,8 +397,11 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
   static Stack<BDDNode*> toDo(8);
   toDo.reset();
 
-  static DHSet<pair<BDDNode*,BDDNode*>, PtrPairSimpleHash > examined;
-  examined.reset();
+  static Stack<pair<BDDNode*,BDDNode*> > current(8);
+  current.reset();
+
+  static Cache<pair<BDDNode*,BDDNode*>, EmptyStruct, PtrPairSimpleHash > examined;
+  examined.resetEvictionCounter();
 
   for(;;) {
     counter++;
@@ -415,9 +418,13 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 	      (!ResValue && !isFalse(res))) {
 	return false;
       }
-    } else {
+    }
+    else {
       if(!examined.find(make_pair(n1, n2)))
       {
+	current.push(make_pair(n1, n2));
+	toDo.push(0);
+
 	//we split at variables with higher numbers first
 	unsigned splitVar=max(n1->_var, n2->_var);
 	ASS_G(splitVar,0);
@@ -425,18 +432,23 @@ bool BDD::hasConstantResult(BDDNode* n1, BDDNode* n2, BinBoolFn fn)
 	toDo.push((n1->_var==splitVar) ? n1->_neg : n1);
 	toDo.push((n2->_var==splitVar) ? n2->_pos : n2);
 	toDo.push((n1->_var==splitVar) ? n1->_pos : n1);
-
-	if(counter%4) {
-	  examined.insert(make_pair(n1, n2));
-	}
       }
     }
-
+    while(!toDo.isEmpty() && toDo.top()==0) {
+      toDo.pop();
+      ASS(current.isNonEmpty());
+      if(counter%4) {
+	examined.insert(current.top());
+      }
+      current.pop();
+    }
     if(toDo.isEmpty()) {
       break;
     }
     n1=toDo.pop();
     n2=toDo.pop();
+    ASS(n1);
+    ASS(n2);
   }
 
   return true;
