@@ -17,6 +17,10 @@
 #include "Allocator.hpp"
 #include "Environment.hpp"
 
+#ifndef SIZE_MAX
+# define SIZE_MAX ((size_t)-1)
+#endif
+
 /**
  * When set to 1, at each cache expansion the number of empty cache entries
  * will be printed out. This is to help discover problems with hash functions.
