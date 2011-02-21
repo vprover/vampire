@@ -92,6 +92,7 @@ void Signature::registerInterpretedFunction(const string& name, Interpretation i
   string symbolKey = key(name,arity);
 
   if (_funNames.find(symbolKey)) {
+    ASSERTION_VIOLATION;
     USER_ERROR("Interpreted function '"+name+"' must be declared before it is used for the first time");
   }
 
@@ -224,10 +225,12 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
     ASSERTION_VIOLATION;
   }
 
+  unsigned arity = Theory::getArity(interp);
+
   if(Theory::isFunction(interp)) {
-    if(_funNames.find(name)) {
+    if(functionExists(name, arity)) {
       int i=0;
-      while(_funNames.find(name+Int::toString(i))) {
+      while(functionExists(name+Int::toString(i), arity)) {
         i++;
       }
       name=name+Int::toString(i);
@@ -235,9 +238,9 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
     registerInterpretedFunction(name, interp);
   }
   else {
-    if(_predNames.find(name)) {
+    if(predicateExists(name, arity)) {
       int i=0;
-      while(_predNames.find(name+Int::toString(i))) {
+      while(predicateExists(name+Int::toString(i), arity)) {
         i++;
       }
       name=name+Int::toString(i);
@@ -248,6 +251,27 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   //we have now registered a new function, so it should be present in the map
   return _iSymbols.get(interp);
 }
+
+/**
+ * Return true if specified function exists
+ */
+bool Signature::functionExists(const string& name,unsigned arity) const
+{
+  CALL("Signature::functionExists");
+
+  return _funNames.find(key(name, arity));
+}
+
+/**
+ * Return true if specified predicate exists
+ */
+bool Signature::predicateExists(const string& name,unsigned arity) const
+{
+  CALL("Signature::predicateExists");
+
+  return _predNames.find(key(name, arity));
+}
+
 
 /**
  * If a function with this name and arity exists, return its number.

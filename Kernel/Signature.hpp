@@ -238,6 +238,9 @@ class Signature
   unsigned addPredicate(const string& name,unsigned arity,bool& added);
   unsigned addFunction(const string& name,unsigned arity,bool& added);
 
+  bool functionExists(const string& name,unsigned arity) const;
+  bool predicateExists(const string& name,unsigned arity) const;
+
   static string key(const string& name,int arity);
 private:
 
