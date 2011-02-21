@@ -11,22 +11,30 @@
 #include <iostream>
 #include <fstream>
 
-#include "Lib/VirtualIterator.hpp"
-#include "Lib/Metaiterators.hpp"
+#include "Debug/Log.hpp"
+
+#include "Lib/Comparison.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
-#include "Lib/Random.hpp"
+#include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Comparison.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/VirtualIterator.hpp"
+
+#include "Shell/Statistics.hpp"
 
 #include "SATClause.hpp"
 //#include "SATInference.hpp"
 
 #include "Preprocess.hpp"
+
+#undef LOGGING
+#define LOGGING 1
 
 namespace SAT
 {
@@ -39,7 +47,21 @@ using namespace Lib;
  */
 SATClauseIterator Preprocess::filterPureLiterals(unsigned varCnt, SATClauseIterator clauses)
 {
-  CALL("Preprocess::filterPureLiterals");
+  CALL("Preprocess::filterPureLiterals(unsigned,SATClauseIterator)");
+
+  SATClauseList* lst=0;
+  SATClauseList::pushFromIterator(clauses, lst);
+  filterPureLiterals(varCnt, lst);
+  return pvi( SATClauseList::DestructiveIterator(lst) );
+}
+
+/**
+ * Filter out clauses with literals that appear only with one polarity. @b varCnt must be greater
+ * than all variable numbers.
+ */
+bool Preprocess::filterPureLiterals(unsigned varCnt, SATClauseList*& res)
+{
+  CALL("Preprocess::filterPureLiterals(unsigned,SATClauseList*&)");
 
   static Stack<unsigned> pureVars(64);
   static DArray<int> positiveOccurences(128);
@@ -49,13 +71,11 @@ SATClauseIterator Preprocess::filterPureLiterals(unsigned varCnt, SATClauseItera
   negativeOccurences.init(varCnt, 0);
   occurences.init(varCnt, 0);
 
-  SATClauseList* res=0;
-
-  while(clauses.hasNext()) {
-    SATClause* cl=clauses.next();
+  SATClauseList::Iterator cit(res);
+  while(cit.hasNext()) {
+    SATClause* cl=cit.next();
 
     cl->setKept(true);
-    SATClauseList::push(cl, res);
     unsigned clen=cl->length();
     for(unsigned i=0;i<clen;i++) {
       SATLiteral lit=(*cl)[i];
@@ -72,7 +92,12 @@ SATClauseIterator Preprocess::filterPureLiterals(unsigned varCnt, SATClauseItera
   for(unsigned i=0;i<varCnt;i++) {
     if( ((positiveOccurences[i]!=0)^(negativeOccurences[i]!=0)) && occurences[i] ) {
       pureVars.push(i);
+      env.statistics->satPureVarsEliminated++;
     }
+  }
+
+  if(pureVars.isEmpty()) {
+    return false;
   }
 
   while(pureVars.isNonEmpty()) {
@@ -93,11 +118,13 @@ SATClauseIterator Preprocess::filterPureLiterals(unsigned varCnt, SATClauseItera
 	  positiveOccurences[lvar]--;
 	  if( positiveOccurences[lvar]==0 && negativeOccurences[lvar]!=0 && occurences[lvar] ) {
 	    pureVars.push(lvar);
+	    env.statistics->satPureVarsEliminated++;
 	  }
 	} else {
 	  negativeOccurences[lvar]--;
 	  if( positiveOccurences[lvar]!=0 && negativeOccurences[lvar]==0 && occurences[lvar] ) {
 	    pureVars.push(lvar);
+	    env.statistics->satPureVarsEliminated++;
 	  }
 	}
       }
@@ -109,15 +136,22 @@ SATClauseIterator Preprocess::filterPureLiterals(unsigned varCnt, SATClauseItera
     occurences[i]->destroy();
   }
 
+#if VDEBUG
+  bool someDeleted = false;
+#endif
   SATClauseList::DelIterator rit(res);
   while(rit.hasNext()) {
     SATClause* cl=rit.next();
     if(!cl->kept()) {
       rit.del();
+#if VDEBUG
+      someDeleted = true;
+#endif
     }
   }
+  ASS(someDeleted);
 
-  return pvi( SATClauseList::DestructiveIterator(res) );
+  return true;
 }
 
 

@@ -285,49 +285,50 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/UnitTesting.o
 
 VUT_OBJ = UnitTests/tBinaryHeap.o\
-		  UnitTests/tCParser.o\
-		  UnitTests/tDHMap.o\
-		  UnitTests/tDHMultiset.o\
-		  UnitTests/tfork.o\
-		  UnitTests/tFormulaBuilderApi.o\
-		  UnitTests/tITE.o\
-		  UnitTests/tSkipList.o\
-		  UnitTests/tProgramAnalysis.o\
-		  UnitTests/tTwoVampires.o
+	  UnitTests/tCParser.o\
+	  UnitTests/tDHMap.o\
+	  UnitTests/tDHMultiset.o\
+	  UnitTests/tfork.o\
+	  UnitTests/tFormulaBuilderApi.o\
+	  UnitTests/tITE.o\
+	  UnitTests/tSkipList.o\
+	  UnitTests/tProgramAnalysis.o\
+	  UnitTests/tTwoVampires.o
 
 VUTIL_OBJ = VUtils/ProblemColoring.o
 
 
 LIB_DEP = Indexing/TermSharing.o\
-		  Kernel/BDD.o\
-		  Kernel/BDDClausifier.o\
-		  Kernel/Clause.o\
-		  Kernel/Formula.o\
-		  Kernel/FormulaUnit.o\
-		  Kernel/FormulaVarIterator.o\
-		  Kernel/Inference.o\
-		  Kernel/KBO.o\
-		  Kernel/KBOForEPR.o\
-		  Kernel/Ordering.o\
-		  Kernel/Ordering_Equality.o\
-		  Kernel/Signature.o\
-		  Kernel/SubformulaIterator.o\
-		  Kernel/Substitution.o\
-		  Kernel/Term.o\
-		  Kernel/TermIterators.o\
-		  Kernel/Theory.o\
-		  Kernel/Unit.o\
-		  Saturation/ClauseContainer.o\
-		  Shell/Options.o\
-		  Shell/Statistics.o
+	  Kernel/BDD.o\
+	  Kernel/BDDClausifier.o\
+	  Kernel/Clause.o\
+	  Kernel/Formula.o\
+	  Kernel/FormulaUnit.o\
+	  Kernel/FormulaVarIterator.o\
+	  Kernel/Inference.o\
+	  Kernel/KBO.o\
+	  Kernel/KBOForEPR.o\
+	  Kernel/Ordering.o\
+	  Kernel/Ordering_Equality.o\
+	  Kernel/Signature.o\
+	  Kernel/SubformulaIterator.o\
+	  Kernel/Substitution.o\
+	  Kernel/Term.o\
+	  Kernel/TermIterators.o\
+	  Kernel/Theory.o\
+	  Kernel/Unit.o\
+	  Saturation/ClauseContainer.o\
+          Shell/EqualityProxy.o\
+	  Shell/Options.o\
+	  Shell/Statistics.o
 
 OTHER_CL_DEP = Inferences/InferenceEngine.o\
-			   Inferences/TautologyDeletionISE.o\
-			   Kernel/EqHelper.o\
-			   Kernel/InferenceStore.o\
-			   Kernel/Matcher.o\
-			   SAT/SATClause.o\
-			   SAT/SATLiteral.o
+	       Inferences/TautologyDeletionISE.o\
+	       Kernel/EqHelper.o\
+	       Kernel/InferenceStore.o\
+	       Kernel/Matcher.o\
+	       SAT/SATClause.o\
+	       SAT/SATLiteral.o
 
 OTHER_API_DEP = \
 			   Debug/Assertion.o\

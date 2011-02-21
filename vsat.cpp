@@ -53,40 +53,44 @@ void runIncrementallyOnFile(const char* fname)
     ts.addClauses(ic1);
 
     if(ts.getStatus()==TWLSolver::UNSATISFIABLE) {
-      cout<<"-UNSATISFIABLE\n";
+      cout<<"UNSATISFIABLE\n";
       return;
     }
   }
 
 
   if(ts.getStatus()==TWLSolver::SATISFIABLE) {
-    cout<<"-SATISFIABLE\n";
+    cout<<"SATISFIABLE\n";
   }
 }
 
 void runOnFile(const char* fname)
 {
-  unsigned maxVar;
-  SATClauseIterator cit=Preprocess::removeDuplicateLiterals( DIMACS::parse(fname, maxVar) );
-  unsigned varCnt=maxVar+1;
+  unsigned varCnt;
+  SATClauseList* clauses = 0;
+  {
+    unsigned maxVar;
+    SATClauseIterator cit=Preprocess::removeDuplicateLiterals( DIMACS::parse(fname, maxVar) );
+    varCnt=maxVar+1;
+    SATClauseList::pushFromIterator(cit, clauses);
+  }
 
-  Stack<SATClause*> cls;
-  cls.loadFromIterator(cit);
-
-  SATClauseIterator ic1=pvi( Stack<SATClause*>::Iterator(cls) );
+  Preprocess::filterPureLiterals(varCnt, clauses);
 
   cout<<"-start varcnt "<<varCnt<<"\n";
 
   TWLSolver ts;
   ts.ensureVarCnt(varCnt);
-  ts.addClauses(ic1);
+  ts.addClauses(pvi( SATClauseList::Iterator(clauses)));
 
   if(ts.getStatus()==TWLSolver::SATISFIABLE) {
-    cout<<"-SATISFIABLE\n";
+    cout<<"SATISFIABLE\n";
   }
   if(ts.getStatus()==TWLSolver::UNSATISFIABLE) {
-    cout<<"-UNSATISFIABLE\n";
+    cout<<"UNSATISFIABLE\n";
   }
+
+  clauses->destroy();
 }
 
 int main(int argc, char* argv [])
@@ -104,11 +108,11 @@ int main(int argc, char* argv [])
   try {
     switch(argc) {
     case 1:
-    runOnFile(0);
+      runOnFile(0);
 //      runIncrementallyOnFile(0);
       break;
     case 2:
-    runOnFile(argv[1]);
+      runOnFile(argv[1]);
 //      runIncrementallyOnFile(argv[1]);
       break;
     default:
@@ -120,6 +124,8 @@ int main(int argc, char* argv [])
     cerr<<"Memory limit exceeded\n";
     cout<<"-MEMORY_LIMIT\n";
   }
+
+  env.statistics->print(cout);
 
   return 0;
 }

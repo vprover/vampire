@@ -152,6 +152,9 @@ public:
   unsigned backtrackingSplitsRefuted;
   unsigned backtrackingSplitsRefutedZeroLevel;
 
+  /** Number of pure variables eliminated by SAT solver */
+  unsigned satPureVarsEliminated;
+
   /** termination reason */
   enum TerminationReason {
     /** refutation found */

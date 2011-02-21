@@ -407,7 +407,7 @@ void TWLSolver::addClauses(SATClauseIterator cit)
 	backtrack(propBtLev);
 
 	if(_assignment[chosenVar]==AS_TRUE) {
-	  //the true assignments follows from some clauses added later
+	  //the true assignments follow from some clauses added later
 	  //but we have shown that the true assignment leads to
 	  //contradiction.
 

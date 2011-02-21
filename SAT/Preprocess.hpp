@@ -19,6 +19,8 @@ class Preprocess
 {
 public:
   static SATClauseIterator filterPureLiterals(unsigned varCnt, SATClauseIterator clauses);
+  static bool filterPureLiterals(unsigned varCnt, SATClauseList*& clauses);
+
   static void propagateUnits(SATClauseIterator clauses,
   	SATClauseIterator& resUnits, SATClauseIterator& resNonUnits);
   static SATClauseIterator randomizeVariables(unsigned varCnt, SATClauseIterator clauses);

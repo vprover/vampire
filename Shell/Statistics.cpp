@@ -81,6 +81,7 @@ Statistics::Statistics()
     backtrackingSplits(0),
     backtrackingSplitsRefuted(0),
     backtrackingSplitsRefutedZeroLevel(0),
+    satPureVarsEliminated(0),
     terminationReason(UNKNOWN),
     refutation(0),
     phase(INITIALIZATION)
@@ -200,6 +201,10 @@ void Statistics::print(ostream& out)
   COND_OUT("Backtracking splits", backtrackingSplits);
   COND_OUT("Backtracking splits refuted", backtrackingSplitsRefuted);
   COND_OUT("Backtracking splits refuted at zero level", backtrackingSplitsRefutedZeroLevel);
+  SEPARATOR;
+
+  COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
+
   SEPARATOR;
 
   COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
