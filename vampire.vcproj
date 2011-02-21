@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="9,00"
 	Name="vampire"
 	ProjectGUID="{88902C89-05A7-4BA6-82E1-F2732F745902}"
 	RootNamespace="vampire"
@@ -170,6 +170,10 @@
 			>
 			<File
 				RelativePath=".\lib\Allocator.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Program\Analyze.hpp"
 				>
 			</File>
 			<File
@@ -349,6 +353,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\CParser.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Inferences\CTFwSubsAndRes.hpp"
 				>
 			</File>
@@ -429,6 +437,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Program\Expression.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\inferences\Factoring.hpp"
 				>
 			</File>
@@ -454,6 +466,10 @@
 			</File>
 			<File
 				RelativePath=".\kernel\Formula.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\FormulaIteExpander.hpp"
 				>
 			</File>
 			<File
@@ -629,6 +645,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Program\LoopAnalyzer.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\saturation\LRS.hpp"
 				>
 			</File>
@@ -726,6 +746,10 @@
 			</File>
 			<File
 				RelativePath=".\shell\Parser.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Program\Path.hpp"
 				>
 			</File>
 			<File
@@ -893,11 +917,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\SpecialTermElimination.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\saturation\Splitter.hpp"
 				>
 			</File>
 			<File
 				RelativePath=".\lib\Stack.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Program\Statement.hpp"
 				>
 			</File>
 			<File
@@ -1037,6 +1069,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Program\Type.hpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Shell\UIHelper.hpp"
 				>
 			</File>
@@ -1046,6 +1082,14 @@
 			</File>
 			<File
 				RelativePath=".\Test\UnitTesting.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Program\Variable.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\VarManager.hpp"
 				>
 			</File>
 			<File
@@ -1074,6 +1118,10 @@
 			>
 			<File
 				RelativePath=".\lib\Allocator.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Program\Analyze.cpp"
 				>
 			</File>
 			<File
@@ -1201,6 +1249,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\CParser.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Inferences\CTFwSubsAndRes.cpp"
 				>
 			</File>
@@ -1253,6 +1305,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Program\Expression.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\inferences\Factoring.cpp"
 				>
 			</File>
@@ -1274,6 +1330,10 @@
 			</File>
 			<File
 				RelativePath=".\kernel\Formula.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\FormulaIteExpander.cpp"
 				>
 			</File>
 			<File
@@ -1425,6 +1485,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Program\LoopAnalyzer.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\saturation\LRS.cpp"
 				>
 			</File>
@@ -1498,6 +1562,10 @@
 			</File>
 			<File
 				RelativePath=".\shell\Parser.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Program\Path.cpp"
 				>
 			</File>
 			<File
@@ -1629,7 +1697,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shell\SpecialTermElimination.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\saturation\Splitter.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Program\Statement.cpp"
 				>
 			</File>
 			<File
@@ -1769,6 +1845,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Program\Type.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Shell\UIHelper.cpp"
 				>
 			</File>
@@ -1782,6 +1862,14 @@
 			</File>
 			<File
 				RelativePath=".\vampire.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Program\Variable.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Shell\VarManager.cpp"
 				>
 			</File>
 			<File

@@ -12,6 +12,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Portability.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Int.hpp"
@@ -34,11 +35,12 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+#if !COMPILER_MSVC 
 const unsigned Term::SF_TERM_ITE;
 const unsigned Term::SF_LET_TERM_IN_TERM;
 const unsigned Term::SF_LET_FORMULA_IN_TERM;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
-
+#endif
 
 /**
  * Allocate enough bytes to fit a term of a given arity.

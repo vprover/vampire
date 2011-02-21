@@ -1,5 +1,4 @@
 /**
- * @file CParser.cpp
  * Implements class CParser
  *
  * @since 13/01/2011 Manchester
@@ -1513,6 +1512,7 @@ unsigned CParser::conditionalExpression(unsigned pos,bool backtrack)
 unsigned CParser::assignmentExpression(unsigned pos,bool backtrack)
 {
   CALL("CParser::assignmentExpression");
+  NOT_IMPLEMENTED;
 }
 
 /*
