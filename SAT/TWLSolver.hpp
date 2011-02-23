@@ -33,23 +33,8 @@ public:
   void ensureVarCnt(unsigned newVarCnt);
 
   void assertValid();
-  bool isFalse(SATClause* cl);
   void printAssignment();
 private:
-
-  void addClause(SATClause* cl);
-  void addUnitClause(SATClause* cl);
-
-  void addMissingWatchLitClause(SATClause* cl);
-
-  void backtrack(unsigned tgtLevel);
-  unsigned propagate(unsigned var);
-  void incorporateUnprocessed();
-  unsigned getBacktrackLevel(SATClause* conflictClause);
-
-  void insertIntoWatchIndex(SATClause* cl);
-
-  bool chooseVar(unsigned& var);
 
   enum AsgnVal {
     //the true and false value also correspond to positive
@@ -58,6 +43,47 @@ private:
     AS_TRUE = 1u,
     AS_UNDEFINED = 2u
   };
+
+  typedef Stack<SATClause*> WatchStack;
+
+  WatchStack& getWatchStack(SATLiteral lit);
+  WatchStack& getWatchStack(unsigned var, unsigned polarity);
+  WatchStack& getTriggeredWatchStack(unsigned var, AsgnVal assignment);
+
+  bool isTrue(SATLiteral lit);
+  bool isFalse(SATLiteral lit);
+  bool isUndefined(SATLiteral lit);
+  bool isFalse(SATClause* cl);
+
+  void addClause(SATClause* cl);
+  void addUnitClause(SATClause* cl);
+
+  void addMissingWatchLitClause(SATClause* cl);
+
+  void backtrack(unsigned tgtLevel);
+
+  void runSatLoop();
+
+  enum ClauseVisitResult {
+    /** Visited clause is a conflict clause */
+    VR_CONFLICT,
+    /** Do nothing */
+    VR_NONE,
+    /** Propagate literal at @c litIndex position */
+    VR_PROPAGATE,
+    /** Replace the current watch by watching literal at @c litIndex position */
+    VR_CHANGE_WATCH
+  };
+
+  ClauseVisitResult visitWatchedClause(SATClause* cl, unsigned var, unsigned& litIndex);
+
+  unsigned propagate(unsigned var);
+  void incorporateUnprocessed();
+  unsigned getBacktrackLevel(SATClause* conflictClause);
+
+  void insertIntoWatchIndex(SATClause* cl);
+
+  bool chooseVar(unsigned& var);
 
   /** Unit-stack record */
   struct USRec
@@ -98,7 +124,7 @@ private:
    * Invariant: each clause is either true,
    * or it's two watched literals are undefined.
    */
-  DArray<Stack<SATClause*> > _windex;
+  DArray<WatchStack> _windex;
 
   /**
    * Clauses that aren't part of the _windex.

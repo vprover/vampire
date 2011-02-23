@@ -437,7 +437,11 @@ SATClauseIterator Preprocess::permutateVariables(unsigned varCnt, SATClauseItera
   return pvi( SATClauseList::DestructiveIterator(res) );
 }
 
-
+/**
+ * Remove duplicate literals from clauses and delete tautology clauses.
+ *
+ * This transformation doesn't preserve order of variables in clauses.
+ */
 SATClauseIterator Preprocess::removeDuplicateLiterals(SATClauseIterator clauses)
 {
   CALL("Preprocess::removeDuplicateLiterals");
@@ -446,13 +450,18 @@ SATClauseIterator Preprocess::removeDuplicateLiterals(SATClauseIterator clauses)
     SATClause* cl=clauses.next();
     unsigned clen=cl->length();
 
+    cl->sort();
+
     unsigned duplicate=0;
     for(unsigned i=1;i<clen;i++) {
       if((*cl)[i-1].var()==(*cl)[i].var()) {
 	if((*cl)[i-1].polarity()==(*cl)[i].polarity()) {
-	  std::swap((*cl)[duplicate], (*cl)[i]);
+	  //We must get rid of the first occurrence of the duplicate (at i-1). Removing
+	  //the second would make us miss the case when there are three duplicates.
+	  std::swap((*cl)[duplicate], (*cl)[i-1]);
 	  duplicate++;
 	} else {
+	  //delete tautology clauses
 	  cl->destroy();
 	  goto main_continue;
 	}
@@ -470,7 +479,7 @@ SATClauseIterator Preprocess::removeDuplicateLiterals(SATClauseIterator clauses)
     }
 
     SATClauseList::push(cl,res);
-  main_continue: {}
+  main_continue:;
   }
   return pvi( SATClauseList::DestructiveIterator(res) );
 }

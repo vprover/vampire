@@ -20,7 +20,7 @@ class SATLiteral
 {
 public:
   inline SATLiteral() {}
-  inline SATLiteral(unsigned content) :_content(content) {}
+  explicit inline SATLiteral(unsigned content) :_content(content) {}
   /**
    * Create a SAT literal of variable @b var and polarity &b polarity
    *
@@ -42,6 +42,7 @@ public:
   inline bool isNegative() const { return !_polarity; }
   inline unsigned var() const { return _var; }
   inline unsigned polarity() const { return _polarity; }
+  inline unsigned oppositePolarity() const { return 1-_polarity; }
   inline unsigned content() const { return _content; }
 
   inline bool operator==(const SATLiteral& l) const

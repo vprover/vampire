@@ -209,6 +209,54 @@ unsigned TWLSolver::getBacktrackLevel(SATClause* conflictClause)
   return btLev;
 }
 
+TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(SATClause* cl, unsigned var, unsigned& litIndex)
+{
+  CALL("TWLSolver::visitWatchedClause");
+
+  unsigned curWatchIndex=
+      ((*cl)[0].var()==var) ? 0 : 1;
+  ASS_EQ((*cl)[curWatchIndex].var(), var);
+  ASS(isFalse((*cl)[curWatchIndex]));
+
+  unsigned otherWatchIndex=1-curWatchIndex;
+  ASS_NEQ((*cl)[otherWatchIndex].var(), var);
+
+  if(isTrue((*cl)[otherWatchIndex])) {
+    return VR_NONE; //the other watched literal is true
+  }
+
+  unsigned clen=cl->length();
+  unsigned undefIndex=clen; //contains the first undefined non-watched literal or clen if there is none
+
+  for(unsigned i=2;i<clen;i++) { //we start from the first non-watched literal (which is at position 2)
+    SATLiteral lit=(*cl)[i];
+    if(isTrue(lit)) {
+      //clause is true
+      return VR_NONE;
+    }
+    else if(undefIndex==clen && isUndefined(lit)) {
+      undefIndex=i;
+    }
+  }
+
+  //  if(undefIndex!=clen && isUndefined((*cl)[otherWatchIndex])) {
+  if(undefIndex!=clen) {
+    //The other wathed literal is undefined and there is also another undefined literal.
+    //So we just replace the current watched by the other undefined.
+    litIndex = undefIndex;
+    return VR_CHANGE_WATCH;
+  }
+
+  if(!isUndefined((*cl)[otherWatchIndex])) {
+    //there is no undefined literal, so the whole clause is false
+    ASS_REP(isFalse(cl), *cl);
+    return VR_CONFLICT;
+  }
+
+  //Here we know that exactly one literal (the other watched one) is undefined and all others are false.
+  litIndex = otherWatchIndex;
+  return VR_PROPAGATE;
+}
 
 unsigned TWLSolver::propagate(unsigned var0)
 {
@@ -220,25 +268,57 @@ unsigned TWLSolver::propagate(unsigned var0)
   while(toDo.isNonEmpty()) {
     unsigned var=toDo.pop();
     LOG("propagating "<<var<<" "<<_assignment[var]);
+    ASS_NEQ(_assignment[var], AS_UNDEFINED);
 
-    //the _windex index is of the opposite literal
-    unsigned wiIndex=var*2+( (_assignment[var]==AS_FALSE) ? 1 : 0 );
-
-//    {
-//      cout<<"wi "<<var<<", "<<(_assignment[var]==AS_FALSE)<<" content:\n";
-//      Stack<SATClause*>::Iterator wit2(_windex[wiIndex]);
-//      while(wit2.hasNext()) {
-//	cout<<(*wit2.next())<<endl;
-//      }
-//      cout<<endl;
-//    }
-
-    Stack<SATClause*>::Iterator wit(_windex[wiIndex]);
+    //we go through the watch stack of literal opposite to the assigned value
+    WatchStack::Iterator wit(getTriggeredWatchStack(var, _assignment[var]));
     while(wit.hasNext()) {
       SATClause* cl=wit.next();
 
+#if 1
+      unsigned litIndex;
+      ClauseVisitResult cvr = visitWatchedClause(cl, var, litIndex);
+      switch(cvr) {
+      case VR_CHANGE_WATCH:
+      {
+	WatchStack& tgtStack = getWatchStack((*cl)[litIndex]);
+	unsigned curWatchIndex = ((*cl)[0].var()==var) ? 0 : 1;
+	swap( (*cl)[curWatchIndex], (*cl)[litIndex] );
+	wit.del();
+	tgtStack.push(cl);
+	break;
+      }
+      case VR_CONFLICT:
+	return getBacktrackLevel(cl);
+      case VR_PROPAGATE:
+      {
+	//So let's unit-propagate...
+	SATLiteral undefLit=(*cl)[litIndex];
+	unsigned uvar=undefLit.var();
+
+	ASS_EQ(_assignment[uvar], AS_UNDEFINED);
+	_assignment[uvar]=static_cast<AsgnVal>(undefLit.polarity());
+	_assignmentLevels[uvar]=_level;
+	_assignmentPremises[uvar]=cl;
+	_unitStack.push(USRec(uvar, false));
+	toDo.push(uvar);
+	break;
+      }
+      case VR_NONE:
+	break;
+      }
+#else
+      unsigned curWatchIndex=
+	((*cl)[0].var()==var) ? 0 : 1;
+      ASS_EQ((*cl)[curWatchIndex].var(), var);
+      ASS_EQ(_assignment[(*cl)[curWatchIndex].var()], (*cl)[curWatchIndex].oppositePolarity());
+
+      unsigned otherWatchIndex=1-curWatchIndex;
+      ASS_NEQ((*cl)[otherWatchIndex].var(), var);
+
+
       unsigned clen=cl->length();
-      unsigned undefIndex=0;
+      unsigned undefIndex=clen; //contains the last undefined literal or clen if there is none
 
       for(unsigned i=0;i<clen;i++) {
         SATLiteral lit=(*cl)[i];
@@ -250,29 +330,19 @@ unsigned TWLSolver::propagate(unsigned var0)
         }
       }
 
+      if(undefIndex==clen) {
+	//there is no undefined literal, so the whole clause is false
+	ASS_REP(isFalse(cl), *cl);
+	return getBacktrackLevel(cl);
+      }
+
+
       {
-	//now we know that the clause is not true
+	//now we know that the clause is not true in the assignment
 	unsigned onlyUndefIndex;
 
-	unsigned defWatchIndex=
-	  (_assignment[(*cl)[0].var()]==AS_UNDEFINED) ? 1 : 0;
-	ASS_NEQ(_assignment[(*cl)[defWatchIndex].var()], AS_UNDEFINED);
-
-	unsigned undefWatchIndex=1-defWatchIndex;
-	if(_assignment[(*cl)[undefWatchIndex].var()]!=AS_UNDEFINED) {
+	if(_assignment[(*cl)[otherWatchIndex].var()]!=AS_UNDEFINED) {
 	  //both watched literals have become defined (and false)
-
-//	  if(_assignmentLevels[(*cl)[1].var()]!=_level) {
-//	    cout<<"var: "<<var<<endl;
-//	    cout<<(*cl)<<endl;
-//	    printAssignment();
-//	  }
-
-	  if(undefIndex==0) {
-	    //the whole clause is false
-	    ASS_REP(isFalse(cl), *cl);
-	    return getBacktrackLevel(cl);
-	  }
 	  ASS_G(undefIndex,1);
 	  unsigned undefIndex0=2;
 	  while(undefIndex0<undefIndex && _assignment[ (*cl)[undefIndex0].var() ]!=AS_UNDEFINED)
@@ -310,15 +380,6 @@ unsigned TWLSolver::propagate(unsigned var0)
 	      break;
 	    }
 	  }
-//	  if(!deleted) {
-//	    Stack<SATClause*>::Iterator wit2(_windex[otherWIIndex]);
-//	    cout<<"cl: "<<(*cl)<<endl;
-//	    cout<<"windex "<<otherWIIndex<<endl;
-//	    while(wit2.hasNext()) {
-//	      cout<<(*wit2.next())<<endl;
-//	    }
-//	    cout<<endl;
-//	  }
 	  ASS(deleted);
 
 	  //...and insert the new.
@@ -332,13 +393,13 @@ unsigned TWLSolver::propagate(unsigned var0)
 	//if we're here, we know that the clause is not true
 	if(undefIndex>1) {
 	  unsigned newWIIndex=(*cl)[undefIndex].content();
-	  swap( (*cl)[defWatchIndex], (*cl)[undefIndex] );
+	  swap( (*cl)[curWatchIndex], (*cl)[undefIndex] );
 	  wit.del();
 	  _windex[newWIIndex].push(cl);
 	  continue;
 	}
 
-	onlyUndefIndex=undefWatchIndex;
+	onlyUndefIndex=otherWatchIndex;
       literal_propagate:
 	//Here we know that one literal is undefined and all others are false.
 	//So let's unit-propagate...
@@ -354,6 +415,7 @@ unsigned TWLSolver::propagate(unsigned var0)
       }
 
     wit_cont:;
+#endif
     }
   }
 
@@ -381,57 +443,7 @@ void TWLSolver::addClauses(SATClauseIterator cit)
       }
     }
 
-    int counter=0;
-
-    unsigned chosenVar;
-    while(chooseVar(chosenVar)) {
-      _level++;
-      _chosenVars[_level]=chosenVar;
-
-      ASS_EQ(_assignment[chosenVar], AS_UNDEFINED);
-      _assignment[chosenVar]=AS_TRUE;
-      _assignmentLevels[chosenVar]=_level;
-      _assignmentPremises[chosenVar]=0;
-      _unitStack.push(USRec(chosenVar, true));
-
-      LOG("choice point "<<chosenVar<<" to level "<<_level);
-
-      unsigned propagatedVar=chosenVar;
-
-      env.checkTimeSometime<500>();
-
-    prop_loop:
-      unsigned propBtLev=propagate(propagatedVar);
-      if(propBtLev!=_level) {
-      bt_loop:
-	backtrack(propBtLev);
-
-	if(_assignment[chosenVar]==AS_TRUE) {
-	  //the true assignments follow from some clauses added later
-	  //but we have shown that the true assignment leads to
-	  //contradiction.
-
-	  LOG("conflict on choice backtrack of var "<<chosenVar);
-
-	  propBtLev=_level-1;
-	  chosenVar=_chosenVars[_level];
-	  goto bt_loop;
-	}
-	if(_assignment[chosenVar]==AS_UNDEFINED) {
-	  LOG("choice negation of var "<<chosenVar<<" added at level "<<_level);
-	  _assignment[chosenVar]=AS_FALSE;
-	  _assignmentLevels[chosenVar]=_level;
-	  _assignmentPremises[chosenVar]=0;
-	  _unitStack.push(USRec(chosenVar, false));
-
-	  propagatedVar=chosenVar;
-	  chosenVar=_chosenVars[_level];
-	  goto prop_loop;
-	}
-
-      }
-//      printAssignment();
-    }
+    runSatLoop();
 
   } catch (UnsatException e)
   {
@@ -440,6 +452,61 @@ void TWLSolver::addClauses(SATClauseIterator cit)
   }
 
 //  printAssignment();
+}
+
+void TWLSolver::runSatLoop()
+{
+  CALL("TWLSolver::runSatLoop");
+
+  unsigned chosenVar;
+  while(chooseVar(chosenVar)) {
+    _level++;
+    _chosenVars[_level]=chosenVar;
+
+    ASS_EQ(_assignment[chosenVar], AS_UNDEFINED);
+    _assignment[chosenVar]=AS_TRUE;
+    _assignmentLevels[chosenVar]=_level;
+    _assignmentPremises[chosenVar]=0;
+    _unitStack.push(USRec(chosenVar, true));
+
+    LOG("choice point "<<chosenVar<<" to level "<<_level);
+
+    unsigned propagatedVar=chosenVar;
+
+    env.checkTimeSometime<500>();
+
+    prop_loop:
+    unsigned propBtLev=propagate(propagatedVar);
+    if(propBtLev!=_level) {
+      bt_loop:
+      backtrack(propBtLev);
+
+      if(_assignment[chosenVar]==AS_TRUE) {
+	//the true assignments follow from some clauses added later
+	//but we have shown that the true assignment leads to
+	//contradiction.
+
+	LOG("conflict on choice backtrack of var "<<chosenVar);
+
+	propBtLev=_level-1;
+	chosenVar=_chosenVars[_level];
+	goto bt_loop;
+      }
+      if(_assignment[chosenVar]==AS_UNDEFINED) {
+	LOG("choice negation of var "<<chosenVar<<" added at level "<<_level);
+	_assignment[chosenVar]=AS_FALSE;
+	_assignmentLevels[chosenVar]=_level;
+	_assignmentPremises[chosenVar]=0;
+	_unitStack.push(USRec(chosenVar, false));
+
+	propagatedVar=chosenVar;
+	chosenVar=_chosenVars[_level];
+	goto prop_loop;
+      }
+
+    }
+    //      printAssignment();
+  }
 }
 
 bool TWLSolver::chooseVar(unsigned& var)
@@ -697,8 +764,8 @@ void TWLSolver::addClause(SATClause* cl)
 
 void TWLSolver::insertIntoWatchIndex(SATClause* cl)
 {
-  _windex[(*cl)[0].content()].push(cl);
-  _windex[(*cl)[1].content()].push(cl);
+  getWatchStack((*cl)[0]).push(cl);
+  getWatchStack((*cl)[1]).push(cl);
 }
 
 void TWLSolver::assertValid()
@@ -711,15 +778,6 @@ void TWLSolver::assertValid()
     }
   }
 
-//  static bool vals[]={0,
-//	  0, 0, 1, 1, 0, 0, 1, 0, 1, 0,
-//	  1, 0, 1, 1, 0, 1, 0, 0, 0, 1,
-//	  0, 1, 0, 0, 0, 0, 1, 0, 1, 0,
-//	  0, 0, 0, 1, 0, 0, 0, 1, 1, 0,
-//	  1, 1, 0, 0, 0, 0, 0, 0};
-//
-//  bool chosenMiss=false;
-
   Stack<USRec>::Iterator uit(_unitStack);
   while(uit.hasNext()) {
     USRec rec=uit.next();
@@ -727,38 +785,62 @@ void TWLSolver::assertValid()
     if(rec.mark) {
       ASS_LE(_assignmentLevels[rec.var], rec.markTgtLevel);
     }
-//    if(rec.choice) {
-//      if(!vals[rec.var]) {
-//	chosenMiss=true;
-//      }
-//    }
   }
-//  if(!chosenMiss) {
-//    bool bad=false;
-//    for(int i=1;i<=48;i++) {
-//      if(_assignment[i]==(1-int(vals[i]))) {
-//	LOG("bad value of "<<i<<": "<<_assignment[i]);
-//	bad=true;
-//      }
-//    }
-//    if(bad) {
-//      printAssignment();
-//      ASSERTION_VIOLATION;
-//    }
-//  }
+}
+
+inline TWLSolver::WatchStack& TWLSolver::getWatchStack(SATLiteral lit)
+{
+  CALL("TWLSolver::getWatchStack/1");
+
+  return _windex[lit.content()];
+}
+
+inline TWLSolver::WatchStack& TWLSolver::getWatchStack(unsigned var, unsigned polarity)
+{
+  CALL("TWLSolver::getWatchStack/2");
+  ASS_REP(polarity==0 || polarity==1, polarity);
+
+  return _windex[2*var + polarity];
+}
+
+inline TWLSolver::WatchStack& TWLSolver::getTriggeredWatchStack(unsigned var, AsgnVal assignment)
+{
+  CALL("TWLSolver::getTriggeredWatchStack");
+  ASS(assignment!=AS_UNDEFINED);
+
+  return getWatchStack(var, 1-assignment);
+}
 
 
-//  if(reinterpret_cast<size_t>(_assignmentPremises[4])==0x691938) {
-//    LOG("%% cl "<<(*_assignmentPremises[4]));
-//  }
-//  ASS_NEQ(reinterpret_cast<size_t>(_assignmentPremises[4]),0x691938);
+/** Return true iff @c lit is true in the current assignment */
+inline bool TWLSolver::isTrue(SATLiteral lit)
+{
+  CALL("TWLSolver::isTrue");
+
+  return _assignment[lit.var()] == lit.polarity();
+}
+
+/** Return true iff @c lit is false in the current assignment */
+inline bool TWLSolver::isFalse(SATLiteral lit)
+{
+  CALL("TWLSolver::isFalse");
+
+  return _assignment[lit.var()] == lit.oppositePolarity();
+}
+
+/** Return true iff @c lit is undefined in the current assignment */
+inline bool TWLSolver::isUndefined(SATLiteral lit)
+{
+  CALL("TWLSolver::isUndefined");
+
+  return _assignment[lit.var()] == AS_UNDEFINED;
 }
 
 bool TWLSolver::isFalse(SATClause* cl)
 {
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++) {
-    if( _assignment[(*cl)[i].var()] != (1-(*cl)[i].polarity()) ) {
+    if( !isFalse((*cl)[i]) ) {
       return false;
     }
   }

@@ -34,7 +34,12 @@ void* SATClause::operator new(size_t sz,unsigned lits)
   CALL("SATClause::operator new");
 
   env.statistics->satClauses++;
-
+  if(lits==1) {
+    env.statistics->unitSatClauses++;
+  }
+  else if(lits==2) {
+    env.statistics->binarySatClauses++;
+  }
   //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
