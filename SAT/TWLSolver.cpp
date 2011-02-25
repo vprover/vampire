@@ -31,8 +31,8 @@ TWLSolver::TWLSolver()
 : _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
 _windex(0), _unprocessed(0), _varCnt(0), _level(1)
 {
-  _numberOfSurvivingLearntClauses = 50;
-  _numberOfSurvivingLearntClausesIncrease = 10;
+  _numberOfSurvivingLearntClauses = 30;
+  _numberOfSurvivingLearntClausesIncrease = 2;
 
 }
 
@@ -472,7 +472,7 @@ void TWLSolver::runSatLoop()
 
   for(;;) {
 
-    if(conflictsSinceLastSweep>_numberOfSurvivingLearntClauses*2) {
+    if(conflictsSinceLastSweep>_numberOfSurvivingLearntClauses*24) {
       sweepLearntClauses();
       conflictsSinceLastSweep = 0;
     }
@@ -784,6 +784,7 @@ struct ClauseActivityComparator
   static Comparison compare(SATClause* c1, SATClause* c2)
   {
     return Int::compare(c1->activity(), c2->activity());
+//    return Int::compare(c2->activity(), c1->activity());
   }
 };
 
@@ -846,7 +847,6 @@ void TWLSolver::sweepLearntClauses()
       }
     }
   }
-
 
   _numberOfSurvivingLearntClauses += _numberOfSurvivingLearntClausesIncrease;
 }
