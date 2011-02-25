@@ -64,7 +64,7 @@ public:
   }
 
 
-  /** Return mumber of items stored in this @b BinaryHeap */
+  /** Return number of items stored in this @b BinaryHeap */
   inline
   unsigned size() const
   {

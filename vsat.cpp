@@ -111,7 +111,7 @@ void satSolverMode(const char* fname)
   TWLSolver ts;
 
   SATSolver::Status res;
-  bool incremental = 1;
+  bool incremental = 0;
   if(incremental) {
     res = runSolverIncrementally(ts, varCnt, clauses);
   }

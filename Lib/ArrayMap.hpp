@@ -81,6 +81,16 @@ public:
   }
 
   /**
+   * Ensure that keys less than @b size can be stored in the map.
+   * The current content of the map remains unchanged.
+   */
+  inline
+  void expand(size_t size)
+  {
+    DArray<Entry>::expand(size);
+  }
+
+  /**
    * Insert the object @b obj into the map under the key @b index.
    * There must not have been any object stored under the key
    * @b index before.

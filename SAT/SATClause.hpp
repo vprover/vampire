@@ -40,9 +40,11 @@ public:
 
   DECL_ITERATOR_TYPE(Iterator);
 
+  typedef unsigned ActivityType;
+
   /** New clause */
   SATClause(unsigned length,bool kept=true)
-    : _length(length), _kept(kept?1:0)
+    : _activity(0), _length(length), _kept(kept?1:0)
 //      , _genCounter(0xFFFFFFFF)
   {}
 
@@ -83,6 +85,8 @@ public:
   /** True if the clause is empty */
   inline bool isEmpty() const { return _length == 0; }
 
+  ActivityType& activity() { return _activity; }
+
 
   void sort();
 
@@ -117,6 +121,7 @@ public:
 protected:
   static SATLiteral litToSAT(NamingContext& context, Literal* lit);
 
+  ActivityType _activity;
 
   /** number of literals */
   unsigned _length : 31;

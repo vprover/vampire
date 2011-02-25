@@ -10,6 +10,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Array.hpp"
+#include "Lib/ArrayMap.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Stack.hpp"
@@ -92,8 +93,15 @@ private:
 
   void insertIntoWatchIndex(SATClause* cl);
 
+  void recordClauseActivity(SATClause* cl);
+  void sweepLearntClauses();
+
   void recordVariableActivity(unsigned var);
   bool chooseVar(unsigned& var);
+
+  void schedulePropagation(unsigned var);
+  void resetPropagation();
+  bool pickForPropagation(unsigned& var);
 
   /** Unit-stack record */
   struct USRec
@@ -141,7 +149,7 @@ private:
    *
    * These clauses can't be added until we backtrack to certain level.
    */
-  DArray<Stack<SATClause*> > _unprocessed;
+  DArray<SATClauseStack > _unprocessed;
 
   ZIArray<unsigned> _chosenVars;
 
@@ -155,7 +163,13 @@ private:
 
   DArray<unsigned> _variableActivity;
 
-  Stack<SATClause*> _learntClauses;
+  SATClauseStack _learntClauses;
+
+  ArrayMap<EmptyStruct> _propagationScheduled;
+  Stack<unsigned> _toPropagate;
+
+  unsigned _numberOfSurvivingLearntClauses;
+  unsigned _numberOfSurvivingLearntClausesIncrease;
 
   class UnsatException : public Exception
   {};
