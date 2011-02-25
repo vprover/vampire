@@ -27,20 +27,47 @@ using namespace SAT;
 using namespace Shell;
 using namespace std;
 
-void runIncrementallyOnFile(const char* fname)
+SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
 {
+  CALL("getInputClauses");
+
   unsigned maxVar;
   SATClauseIterator cit=Preprocess::removeDuplicateLiterals( DIMACS::parse(fname, maxVar) );
-  unsigned varCnt=maxVar+1;
+  varCnt=maxVar+1;
+
+  SATClauseList* clauses = 0;
+  SATClauseList::pushFromIterator(cit, clauses);
+  return clauses;
+}
+
+void preprocessClauses(unsigned varCnt, SATClauseList*& clauses)
+{
+  CALL("getInputClauses");
+
+  Preprocess::filterPureLiterals(varCnt, clauses);
+}
+
+SATClauseList* getPreprocessedClauses(const char* fname, unsigned& varCnt)
+{
+  CALL("getPreprocessedClauses");
+
+  SATClauseList* clauses = getInputClauses(fname, varCnt);
+  preprocessClauses(varCnt, clauses);
+  return clauses;
+}
+
+
+
+SATSolver::Status runSolverIncrementally(SATSolver& solver, unsigned varCnt, SATClauseList* clauses)
+{
+  CALL("runSolverIncrementally");
 
   Stack<SATClause*> cls;
-  cls.loadFromIterator(cit);
+  cls.loadFromIterator(SATClauseList::Iterator(clauses));
 
+  solver.ensureVarCnt(varCnt);
 
-  cout<<"-start varcnt "<<varCnt<<"\n";
-
-  TWLSolver ts;
-  ts.ensureVarCnt(varCnt);
+  SATSolver::Status solverStatus = SATSolver::SATISFIABLE;
 
   while(cls.isNonEmpty()) {
     Stack<SATClause*> inner;
@@ -50,48 +77,64 @@ void runIncrementallyOnFile(const char* fname)
     }
 
     SATClauseIterator ic1=pvi( Stack<SATClause*>::Iterator(inner) );
-    ts.addClauses(ic1);
+    solver.addClauses(ic1);
+    solverStatus = solver.getStatus();
 
-    if(ts.getStatus()==TWLSolver::UNSATISFIABLE) {
-      cout<<"UNSATISFIABLE\n";
-      return;
+    if(solverStatus!=SATSolver::SATISFIABLE) {
+      return solverStatus;
     }
   }
 
-
-  if(ts.getStatus()==TWLSolver::SATISFIABLE) {
-    cout<<"SATISFIABLE\n";
-  }
+  ASS_EQ(solverStatus, SATSolver::SATISFIABLE);
+  return SATSolver::SATISFIABLE;
 }
 
-void runOnFile(const char* fname)
-{
-  unsigned varCnt;
-  SATClauseList* clauses = 0;
-  {
-    unsigned maxVar;
-    SATClauseIterator cit=Preprocess::removeDuplicateLiterals( DIMACS::parse(fname, maxVar) );
-    varCnt=maxVar+1;
-    SATClauseList::pushFromIterator(cit, clauses);
-  }
 
-  Preprocess::filterPureLiterals(varCnt, clauses);
+SATSolver::Status runSolver(SATSolver& solver, unsigned varCnt, SATClauseList* clauses)
+{
+  CALL("runSolver");
+
+  solver.ensureVarCnt(varCnt);
+  solver.addClauses(pvi( SATClauseList::Iterator(clauses)));
+  return solver.getStatus();
+}
+
+void satSolverMode(const char* fname)
+{
+  CALL("satSolverMode");
+
+  unsigned varCnt;
+  SATClauseList* clauses = getPreprocessedClauses(fname, varCnt);
 
   cout<<"-start varcnt "<<varCnt<<"\n";
 
   TWLSolver ts;
-  ts.ensureVarCnt(varCnt);
-  ts.addClauses(pvi( SATClauseList::Iterator(clauses)));
 
-  if(ts.getStatus()==TWLSolver::SATISFIABLE) {
-    cout<<"SATISFIABLE\n";
+  SATSolver::Status res;
+  bool incremental = 1;
+  if(incremental) {
+    res = runSolverIncrementally(ts, varCnt, clauses);
   }
-  if(ts.getStatus()==TWLSolver::UNSATISFIABLE) {
+  else {
+    res = runSolver(ts, varCnt, clauses);
+  }
+
+  switch(res) {
+  case SATSolver::SATISFIABLE:
+    cout<<"SATISFIABLE\n";
+    break;
+  case SATSolver::UNSATISFIABLE:
     cout<<"UNSATISFIABLE\n";
+    break;
+  case SATSolver::TIME_LIMIT:
+    cout<<"TIME LIMIT\n";
+    break;
   }
 
   clauses->destroy();
 }
+
+#define INCREMENTAL_TEST 1
 
 int main(int argc, char* argv [])
 {
@@ -108,12 +151,10 @@ int main(int argc, char* argv [])
   try {
     switch(argc) {
     case 1:
-      runOnFile(0);
-//      runIncrementallyOnFile(0);
+      satSolverMode(0);
       break;
     case 2:
-      runOnFile(argv[1]);
-//      runIncrementallyOnFile(argv[1]);
+      satSolverMode(argv[1]);
       break;
     default:
       cout<<"invalid parameter"<<endl;

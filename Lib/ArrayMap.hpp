@@ -86,7 +86,7 @@ public:
    * @b index before.
    */
   inline
-  void insert(size_t index, T obj)
+  void insert(size_t index, T obj=T())
   {
     CALL("ArrayMap::insert");
 

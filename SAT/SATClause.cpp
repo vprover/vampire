@@ -79,6 +79,23 @@ void SATClause::sort()
   std::sort(&_literals[0], &_literals[length()], litComparator);
 }
 
+SATClause* SATClause::fromStack(SATLiteralStack& stack)
+{
+  CALL("SATClause::fromStack");
+
+  unsigned clen = stack.size();
+  SATClause* rcl=new(clen) SATClause(clen);
+
+  SATLiteralStack::Iterator it(stack);
+
+  unsigned i=0;
+  while(it.hasNext()) {
+    (*rcl)[i]=it.next();
+    i++;
+  }
+  ASS_EQ(i, clen);
+  return rcl;
+}
 
 SATClauseList* SATClause::fromFOClauses(ClauseIterator clauses)
 {

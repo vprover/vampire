@@ -79,6 +79,7 @@ Statistics::Statistics()
     satClauses(0),
     unitSatClauses(0),
     binarySatClauses(0),
+    learntSatClauses(0),
     bddMemoryUsage(0),
     backtrackingSplits(0),
     backtrackingSplitsRefuted(0),
@@ -199,6 +200,7 @@ void Statistics::print(ostream& out)
   COND_OUT("SAT solver clauses", satClauses);
   COND_OUT("SAT solver unit clauses", unitSatClauses);
   COND_OUT("SAT solver binary clauses", binarySatClauses);
+  COND_OUT("SAT solver learnt clauses", learntSatClauses);
   COND_OUT("Memory used by BDDs [KB]", bddMemoryUsage/1024);
   SEPARATOR;
 

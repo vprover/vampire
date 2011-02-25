@@ -35,7 +35,10 @@ class SATClause
 {
 public:
   DECL_ELEMENT_TYPE(SATLiteral);
-  DECL_ITERATOR_TYPE(ArrayishObjectIterator<SATClause>);
+
+  typedef ArrayishObjectIterator<SATClause> Iterator;
+
+  DECL_ITERATOR_TYPE(Iterator);
 
   /** New clause */
   SATClause(unsigned length,bool kept=true)
@@ -109,6 +112,7 @@ public:
   static SATClauseList* fromFOClauses(NamingContext& context, ClauseIterator clauses);
   static SATClause* fromFOClause(NamingContext& context, Clause* clause);
 
+  static SATClause* fromStack(SATLiteralStack& stack);
 
 protected:
   static SATLiteral litToSAT(NamingContext& context, Literal* lit);

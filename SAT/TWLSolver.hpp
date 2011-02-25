@@ -14,23 +14,20 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Stack.hpp"
 
+#include "SATSolver.hpp"
+
 namespace SAT {
 
 using namespace Lib;
 
-class TWLSolver {
+class TWLSolver : public SATSolver {
 public:
-  enum Status {
-    SATISFIABLE,
-    UNSATISFIABLE,
-    TIME_LIMIT
-  };
-
   TWLSolver();
+  ~TWLSolver();
 
-  void addClauses(SATClauseIterator cit);
-  Status getStatus() { return _status; };
-  void ensureVarCnt(unsigned newVarCnt);
+  virtual void addClauses(SATClauseIterator cit);
+  virtual Status getStatus() { return _status; };
+  virtual void ensureVarCnt(unsigned newVarCnt);
 
   void assertValid();
   void printAssignment();
@@ -50,11 +47,15 @@ private:
   WatchStack& getWatchStack(unsigned var, unsigned polarity);
   WatchStack& getTriggeredWatchStack(unsigned var, AsgnVal assignment);
 
-  bool isTrue(SATLiteral lit);
-  bool isFalse(SATLiteral lit);
-  bool isUndefined(SATLiteral lit);
-  bool isFalse(SATClause* cl);
+  bool isTrue(SATLiteral lit) const;
+  bool isFalse(SATLiteral lit) const;
+  bool isUndefined(SATLiteral lit) const;
+  bool isFalse(SATClause* cl) const;
 
+  unsigned getAssignmentLevel(SATLiteral lit) const;
+
+
+  unsigned selectTwoNonFalseLiterals(SATClause* cl) const;
   void addClause(SATClause* cl);
   void addUnitClause(SATClause* cl);
 
@@ -63,6 +64,11 @@ private:
   void backtrack(unsigned tgtLevel);
 
   void runSatLoop();
+
+  void setAssignment(unsigned var, unsigned polarity);
+
+  void makeChoiceAssignment(unsigned var, unsigned polarity);
+  void makeForcedAssignment(SATLiteral lit, SATClause* premise);
 
   enum ClauseVisitResult {
     /** Visited clause is a conflict clause */
@@ -77,12 +83,16 @@ private:
 
   ClauseVisitResult visitWatchedClause(SATClause* cl, unsigned var, unsigned& litIndex);
 
-  unsigned propagate(unsigned var);
+  SATClause* propagate(unsigned var);
+  void propagateAndBacktrackIfNeeded(unsigned var);
+
   void incorporateUnprocessed();
   unsigned getBacktrackLevel(SATClause* conflictClause);
+  SATClause* getLearntClause(SATClause* conflictClause);
 
   void insertIntoWatchIndex(SATClause* cl);
 
+  void recordVariableActivity(unsigned var);
   bool chooseVar(unsigned& var);
 
   /** Unit-stack record */
@@ -139,6 +149,13 @@ private:
 
   /** Level 1 is the first level which is not preceded by any choice point */
   unsigned _level;
+
+  /** truth values that were assigned to each variable most recently */
+  DArray<AsgnVal> _lastAssignments;
+
+  DArray<unsigned> _variableActivity;
+
+  Stack<SATClause*> _learntClauses;
 
   class UnsatException : public Exception
   {};

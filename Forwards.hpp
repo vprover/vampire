@@ -245,6 +245,8 @@ typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;
 typedef Stack<SATClause*> SATClauseStack;
 
+typedef VirtualIterator<SATLiteral> SATLiteralIterator;
+typedef Stack<SATLiteral> SATLiteralStack;
 }
 
 namespace Shell
