@@ -39,7 +39,7 @@ void FormulaIteExpander::apply(UnitList*& units)
       us.replace(v);
     }
   }
-  us.insert(_defs);
+  units = UnitList::concat(_defs, units);
   _defs=0;
 }
 

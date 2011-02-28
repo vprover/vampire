@@ -31,9 +31,13 @@ TWLSolver::TWLSolver()
 : _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
 _windex(0), _unprocessed(0), _varCnt(0), _level(1)
 {
-  _numberOfSurvivingLearntClauses = 30;
-  _numberOfSurvivingLearntClausesIncrease = 2;
+  _initialSurvivorNumber = 30;
+  _survivorNumberIncrease = 2;
+  _phaseLength = 3000;
+  _currentPhaseLength = 0;
+  _phaseLengthIncrease = 1;
 
+  _survivorNumber = _initialSurvivorNumber;
 }
 
 TWLSolver::~TWLSolver()
@@ -214,14 +218,56 @@ unsigned TWLSolver::getBacktrackLevel(SATClause* conflictClause)
   return btLev;
 }
 
+void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits)
+{
+  CALL("TWLSolver::doSubsumptionResolution");
+
+  static ArraySet litSet;
+  litSet.ensure(_varCnt*2);
+  litSet.reset();
+
+  SATLiteralStack::Iterator litScanIt(lits);
+  while(litScanIt.hasNext()) {
+    SATLiteral lit = litScanIt.next();
+    litSet.insert(lit.content());
+  }
+
+  SATLiteralStack::Iterator litIt(lits);
+  while(litIt.hasNext()) {
+    SATLiteral rLit = litIt.next();
+    SATLiteral rLitOp = rLit.opposite();
+
+    bool resolved = false;
+    SATClauseStack::Iterator wit(getWatchStack(rLitOp));
+    while(wit.hasNext()) {
+      SATClause* cl = wit.next();
+      if(cl->size()!=2) {
+	continue;
+      }
+      SATLiteral other = ((*cl)[0]==rLitOp) ? (*cl)[1] : (*cl)[0];
+      ASS(other!=rLit);
+      ASS(other!=rLitOp);
+      ASS((*cl)[0]==rLitOp || (*cl)[1]==rLitOp);
+      if(litSet.find(other.content())) {
+	resolved = true;
+	break;
+      }
+    }
+    if(resolved) {
+      litSet.remove(rLit.content());
+      litIt.del();
+    }
+  }
+}
+
 SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
 {
   CALL("TWLSolver::getLearntClause");
   ASS(isFalse(conflictClause));
 
-  static ArrayMap<EmptyStruct> vars;
-  vars.ensure(_varCnt);
-  vars.reset();
+  static ArraySet seenVars;
+  seenVars.ensure(_varCnt);
+  seenVars.reset();
 
   static SATLiteralStack resLits;
   static SATClauseStack toDo;
@@ -236,18 +282,17 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
     while(cit.hasNext()) {
       SATLiteral curLit = cit.next();
       unsigned curVar = curLit.var();
-      if(vars.find(curVar)) {
+      if(seenVars.find(curVar)) {
 	continue;
       }
       ASS(isFalse(curLit));
-      vars.insert(curVar);
+      seenVars.insert(curVar);
 
       recordVariableActivity(curVar);
 
       SATClause* prem = _assignmentPremises[curVar];
       unsigned curLevel = getAssignmentLevel(curLit);
-      bool shouldExpand = prem!=0;
-      shouldExpand&= curLevel==_level;  //we may or may not want this one
+      bool shouldExpand = prem!=0 && curLevel==_level;
       if(shouldExpand) {
 	toDo.push(prem);
       }
@@ -256,6 +301,34 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
       }
     }
   }
+
+//  cout<<resLits.size()<<" ";
+  {
+    SATLiteralStack::Iterator rit(resLits);
+    while(rit.hasNext()) {
+      SATLiteral resLit = rit.next();
+      unsigned resLitVar = resLit.var();
+      SATClause* prem = _assignmentPremises[resLitVar];
+      if(!prem) {
+	continue;
+      }
+      bool redundant = true;
+      SATClause::Iterator premLitIt(*prem);
+      while(premLitIt.hasNext()) {
+	SATLiteral premLit = premLitIt.next();
+	if(!seenVars.find(premLit.var()) && getAssignmentLevel(premLit)>1) {
+	  redundant = false;
+	  break;
+	}
+      }
+      if(redundant) {
+	rit.del();
+      }
+    }
+  }
+//  cout<<resLits.size()<<" ";
+  doSubsumptionResolution(resLits);
+//  cout<<resLits.size()<<" ";
 
   SATClause* res = SATClause:: fromStack(resLits);
 
@@ -278,6 +351,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   _learntClauses.push(res);
   env.statistics->learntSatClauses++;
 //  cout<<res->toString()<<endl;
+  recordClauseActivity(res);
   return res;
 }
 
@@ -472,7 +546,7 @@ void TWLSolver::runSatLoop()
 
   for(;;) {
 
-    if(conflictsSinceLastSweep>_numberOfSurvivingLearntClauses*24) {
+    if(conflictsSinceLastSweep>_survivorNumber*24) {
       sweepLearntClauses();
       conflictsSinceLastSweep = 0;
     }
@@ -744,7 +818,7 @@ void TWLSolver::schedulePropagation(unsigned var)
     return;
   }
   _propagationScheduled.insert(var);
-  _toPropagate.push(var);
+  _toPropagate.push_back(var);
 }
 
 void TWLSolver::resetPropagation()
@@ -767,7 +841,7 @@ bool TWLSolver::pickForPropagation(unsigned& var)
     return false;
   }
 
-  var = _toPropagate.pop();
+  var = _toPropagate.pop_back();
   _propagationScheduled.remove(var);
   return true;
 }
@@ -805,6 +879,7 @@ void TWLSolver::sweepLearntClauses()
     if(cl) {
       cl->setKept(true);
     }
+    _variableActivity[i]/=2; //also fade the variable activity
   }
 
   for(unsigned i=0; i<_varCnt*2; i++) {
@@ -825,7 +900,7 @@ void TWLSolver::sweepLearntClauses()
     while(lrnIt.hasNext()) {
       SATClause* cl = lrnIt.next();
       mah.insert(cl);
-      if(mah.size()>_numberOfSurvivingLearntClauses) {
+      if(mah.size()>_survivorNumber) {
 	mah.pop();
       }
     }
@@ -847,8 +922,16 @@ void TWLSolver::sweepLearntClauses()
       }
     }
   }
-
-  _numberOfSurvivingLearntClauses += _numberOfSurvivingLearntClausesIncrease;
+  backtrack(1);
+  _currentPhaseLength++;
+  if(_currentPhaseLength==_phaseLength) {
+    _survivorNumber = _initialSurvivorNumber;
+    _currentPhaseLength = 0;
+    _phaseLength += _phaseLengthIncrease;
+  }
+  else {
+    _survivorNumber += _survivorNumberIncrease;
+  }
 }
 
 void TWLSolver::recordVariableActivity(unsigned var)
@@ -963,9 +1046,17 @@ inline bool TWLSolver::isFalse(SATLiteral lit) const
 /** Return true iff @c lit is undefined in the current assignment */
 inline bool TWLSolver::isUndefined(SATLiteral lit) const
 {
-  CALL("TWLSolver::isUndefined");
+  CALL("TWLSolver::isUndefined(SATLiteral)");
 
-  return _assignment[lit.var()] == AS_UNDEFINED;
+  return isUndefined(lit.var());
+}
+
+/** Return true iff variable @c var is undefined in the current assignment */
+inline bool TWLSolver::isUndefined(unsigned var) const
+{
+  CALL("TWLSolver::isUndefined(unsigned)");
+
+  return _assignment[var] == AS_UNDEFINED;
 }
 
 /**
@@ -975,10 +1066,22 @@ inline bool TWLSolver::isUndefined(SATLiteral lit) const
  */
 inline unsigned TWLSolver::getAssignmentLevel(SATLiteral lit) const
 {
-  CALL("TWLSolver::getAssignmentLevel");
-  ASS(!isUndefined(lit));
+  CALL("TWLSolver::getAssignmentLevel(SATLiteral)");
 
-  return _assignmentLevels[lit.var()];
+  return getAssignmentLevel(lit.var());
+}
+
+/**
+ * Return level on which was variable @c var assigned.
+ *
+ * Variable @c var cannot be undefined.
+ */
+inline unsigned TWLSolver::getAssignmentLevel(unsigned var) const
+{
+  CALL("TWLSolver::getAssignmentLevel(unsigned)");
+  ASS(!isUndefined(var));
+
+  return _assignmentLevels[var];
 }
 
 /** Return true iff all literals in @c c are false in the current assignment */

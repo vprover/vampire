@@ -37,6 +37,7 @@ template<typename T> class ArrayishObjectIterator;
 template<typename T> class ArrayMap;
 template<typename C> class Vector;
 
+typedef ArrayMap<EmptyStruct> ArraySet;
 
 typedef List<int> IntList;
 typedef List<VoidFunc> VoidFuncList;

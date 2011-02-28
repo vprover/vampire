@@ -134,8 +134,6 @@ void satSolverMode(const char* fname)
   clauses->destroy();
 }
 
-#define INCREMENTAL_TEST 1
-
 int main(int argc, char* argv [])
 {
   CALL("main");

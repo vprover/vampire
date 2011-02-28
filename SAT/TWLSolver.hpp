@@ -14,6 +14,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Deque.hpp"
 
 #include "SATSolver.hpp"
 
@@ -51,9 +52,11 @@ private:
   bool isTrue(SATLiteral lit) const;
   bool isFalse(SATLiteral lit) const;
   bool isUndefined(SATLiteral lit) const;
+  bool isUndefined(unsigned var) const;
   bool isFalse(SATClause* cl) const;
 
   unsigned getAssignmentLevel(SATLiteral lit) const;
+  unsigned getAssignmentLevel(unsigned var) const;
 
 
   unsigned selectTwoNonFalseLiterals(SATClause* cl) const;
@@ -89,6 +92,8 @@ private:
 
   void incorporateUnprocessed();
   unsigned getBacktrackLevel(SATClause* conflictClause);
+
+  void doSubsumptionResolution(SATLiteralStack& lits);
   SATClause* getLearntClause(SATClause* conflictClause);
 
   void insertIntoWatchIndex(SATClause* cl);
@@ -166,10 +171,14 @@ private:
   SATClauseStack _learntClauses;
 
   ArrayMap<EmptyStruct> _propagationScheduled;
-  Stack<unsigned> _toPropagate;
+  Deque<unsigned> _toPropagate;
 
-  unsigned _numberOfSurvivingLearntClauses;
-  unsigned _numberOfSurvivingLearntClausesIncrease;
+  unsigned _initialSurvivorNumber;
+  unsigned _survivorNumber;
+  unsigned _survivorNumberIncrease;
+  unsigned _phaseLength;
+  unsigned _currentPhaseLength;
+  unsigned _phaseLengthIncrease;
 
   class UnsatException : public Exception
   {};
