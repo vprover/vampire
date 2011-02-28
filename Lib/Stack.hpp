@@ -393,6 +393,118 @@ public:
     C*  _afterLast;
   };
 
+  /**
+   * Iterator iterates over the elements of a stack from s[0] to s.top()
+   * and can delete elements from the stack without changing the order of
+   * the remaining elements.
+   *  @warning The contents of the stack should not be changed by
+   *           other operations when a stack is traversed using an
+   *           iterator
+   */
+  class StableDelIterator {
+    StableDelIterator(const StableDelIterator&);
+    StableDelIterator& operator=(const StableDelIterator&);
+  public:
+    DECL_ELEMENT_TYPE(C);
+    /** create an iterator for @b s */
+    inline
+    explicit StableDelIterator (Stack& s)
+      : _reader(s._stack),
+        _writer(s._stack),
+	_stack(s)
+#if VDEBUG
+      , _last(0)
+#endif
+    {
+    }
+
+    ~StableDelIterator() {
+      if(_reader!=_writer) {
+	//if we deleted something, we must go through the rest of the stack
+	//to shift the remaining elements
+	while(hasNext()) {
+	  next();
+	}
+      }
+    }
+
+    /** true if there exists the next element */
+    inline
+    bool hasNext()
+    {
+#if VDEBUG
+      _last = 2;
+#endif
+
+      if(_reader==_stack._cursor) {
+	if(_reader!=_writer) {
+	  _stack._cursor = _writer;
+	  _reader = _writer; //this is to handle properly repeated calls to this function
+	}
+	return false;
+      }
+      ASS_L(_reader,_stack._cursor);
+      return true;
+    }
+
+    /** return the next element */
+    inline
+    C next()
+    {
+      ASS(_reader < _stack._cursor);
+      ASS(_last == 2);
+#if VDEBUG
+      _last = 1;
+#endif
+      if(_reader!=_writer) {
+	ASS_L(_writer, _reader);
+	*_writer = *_reader;
+      }
+      const C& res = *_reader;
+      _reader++;
+      _writer++;
+
+      return res;
+    }
+
+    /** Delete the last element returned by next() */
+    inline
+    void del()
+    {
+      ASS(_writer <= _stack._cursor);
+      ASS(_writer >= _stack._stack);
+      ASS(_last == 1);
+#if VDEBUG
+      _last = 3;
+#endif
+
+      _writer--;
+    }
+
+    /** Replace the last element returned by next() */
+    inline
+    void replace(C val)
+    {
+      ASS(_writer < _stack._cursor);
+      ASS(_writer >= _stack._stack);
+      ASS(_last == 1);
+
+      *_writer = val;
+    }
+  private:
+    /** pointer to the stack element returned by next() */
+    C* _reader;
+    /** pointer to the stack element returned by next() */
+    C* _writer;
+    /** stack over which we iterate */
+    Stack& _stack;
+#if VDEBUG
+    /** last operation: 0(none), 1(next), 2(hasNext), 3(del) */
+    mutable int _last;
+#endif
+  };
+
+
 protected:
   /** Capacity of the stack */
   size_t _capacity;

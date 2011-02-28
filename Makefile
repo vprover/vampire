@@ -185,6 +185,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
 
 VSAT_OBJ=SAT/DIMACS.o\
          SAT/Preprocess.o\
+         SAT/RestartStrategy.o\
          SAT/SATClause.o\
          SAT/SATLiteral.o\
          SAT/TWLSolver.o\
@@ -285,7 +286,6 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/UnitTesting.o
 
 VUT_OBJ = UnitTests/tBinaryHeap.o\
-	  UnitTests/tCParser.o\
 	  UnitTests/tDHMap.o\
 	  UnitTests/tDHMultiset.o\
 	  UnitTests/tfork.o\
@@ -293,6 +293,7 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 	  UnitTests/tITE.o\
 	  UnitTests/tSkipList.o\
 	  UnitTests/tProgramAnalysis.o\
+	  UnitTests/tStack.o\
 	  UnitTests/tTwoVampires.o
 
 VUTIL_OBJ = VUtils/ProblemColoring.o

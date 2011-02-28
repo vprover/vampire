@@ -302,7 +302,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
     }
   }
 
-//  cout<<resLits.size()<<" ";
+  cout<<resLits.size()<<" ";
   {
     SATLiteralStack::Iterator rit(resLits);
     while(rit.hasNext()) {
@@ -326,9 +326,9 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
       }
     }
   }
-//  cout<<resLits.size()<<" ";
+  cout<<resLits.size()<<" ";
   doSubsumptionResolution(resLits);
-//  cout<<resLits.size()<<" ";
+  cout<<resLits.size()<<" ";
 
   SATClause* res = SATClause:: fromStack(resLits);
 
@@ -350,7 +350,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   ASS(isFalse(res));
   _learntClauses.push(res);
   env.statistics->learntSatClauses++;
-//  cout<<res->toString()<<endl;
+  cout<<res->toString()<<endl;
   recordClauseActivity(res);
   return res;
 }
@@ -857,8 +857,8 @@ struct ClauseActivityComparator
 {
   static Comparison compare(SATClause* c1, SATClause* c2)
   {
-    return Int::compare(c1->activity(), c2->activity());
-//    return Int::compare(c2->activity(), c1->activity());
+    return Int::compare(c1->activity()*c2->length(), c2->activity()*c1->length());
+//    return Int::compare(c1->activity(), c2->activity());
   }
 };
 
@@ -910,7 +910,7 @@ void TWLSolver::sweepLearntClauses()
   }
 
   {
-    SATClauseStack::Iterator lrnIt(_learntClauses);
+    SATClauseStack::StableDelIterator lrnIt(_learntClauses);
     while(lrnIt.hasNext()) {
       SATClause* cl = lrnIt.next();
       if(!cl->kept()) {

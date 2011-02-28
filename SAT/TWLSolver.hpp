@@ -168,6 +168,11 @@ private:
 
   DArray<unsigned> _variableActivity;
 
+  /**
+   * Stack of learnt clauses
+   *
+   * The most recently learn clauses are at the top
+   */
   SATClauseStack _learntClauses;
 
   ArrayMap<EmptyStruct> _propagationScheduled;
