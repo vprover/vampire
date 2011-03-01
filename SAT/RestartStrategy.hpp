@@ -15,6 +15,7 @@ public:
   virtual ~RestartStrategy() {}
 
   virtual size_t getNextConflictCount() = 0;
+  virtual void reset() = 0;
 };
 
 class FixedRestartStrategy : public RestartStrategy {
@@ -31,6 +32,7 @@ public:
   : _conflictCnt(conflictCnt) {}
 
   virtual size_t getNextConflictCount() { return _conflictCnt; }
+  virtual void reset() {}
 private:
   size_t _conflictCnt;
 };
@@ -45,13 +47,36 @@ public:
    * Learning, 2007" paper.
    */
   GeometricRestartStrategy(size_t initCnt = 32, float increase=1.1f)
-  : _conflictCnt(initCnt) {}
+  : _initConflictCnt(initCnt), _conflictCnt(initCnt), _increase(increase) {}
 
   virtual size_t getNextConflictCount();
+  virtual void reset() { _conflictCnt = _initConflictCnt; }
 private:
+  size_t _initConflictCnt;
   size_t _conflictCnt;
   float _increase;
 };
+
+class LubyRestartStrategy : public RestartStrategy {
+public:
+  /**
+   * Create a Luby restart strategy with specified factor
+   *
+   * The algorithm from Luby numbers and the factor default value is based on
+   * http://www.satcompetition.org/gorydetails/?p=3
+   */
+  LubyRestartStrategy(size_t factor = 512)
+  : _index(1), _factor(factor) {}
+
+  virtual size_t getNextConflictCount() { return getLubyNumber(_index++)*_factor; }
+  virtual void reset() { _index = 1; }
+private:
+  static size_t getLubyNumber(size_t i);
+
+  size_t _index;
+  size_t _factor;
+};
+
 
 }
 

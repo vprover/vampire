@@ -12,9 +12,10 @@
 #include "Lib/Array.hpp"
 #include "Lib/ArrayMap.hpp"
 #include "Lib/DArray.hpp"
-#include "Lib/Exception.hpp"
-#include "Lib/Stack.hpp"
 #include "Lib/Deque.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/ScopedPtr.hpp"
+#include "Lib/Stack.hpp"
 
 #include "SATSolver.hpp"
 
@@ -177,6 +178,8 @@ private:
 
   ArrayMap<EmptyStruct> _propagationScheduled;
   Deque<unsigned> _toPropagate;
+
+  RestartStrategySCP _restartStrategy;
 
   unsigned _initialSurvivorNumber;
   unsigned _survivorNumber;

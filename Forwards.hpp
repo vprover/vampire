@@ -24,6 +24,7 @@ struct PtrIdentityHash;
 
 
 template<typename T> class VirtualIterator;
+template<typename T> class ScopedPtr;
 template<typename T> class SmartPtr;
 template<typename T> class SingleParamEvent;
 template<class C> class DArray;
@@ -242,12 +243,16 @@ using namespace Lib;
 class SATClause;
 class SATLiteral;
 
+class RestartStrategy;
+
 typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;
 typedef Stack<SATClause*> SATClauseStack;
 
 typedef VirtualIterator<SATLiteral> SATLiteralIterator;
 typedef Stack<SATLiteral> SATLiteralStack;
+
+typedef ScopedPtr<RestartStrategy> RestartStrategySCP;
 }
 
 namespace Shell

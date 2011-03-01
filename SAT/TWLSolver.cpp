@@ -17,6 +17,8 @@
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 
+#include "RestartStrategy.hpp"
+
 #include "TWLSolver.hpp"
 
 #undef LOGGING
@@ -31,6 +33,8 @@ TWLSolver::TWLSolver()
 : _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
 _windex(0), _unprocessed(0), _varCnt(0), _level(1)
 {
+  _restartStrategy = new LubyRestartStrategy();
+
   _initialSurvivorNumber = 30;
   _survivorNumberIncrease = 2;
   _phaseLength = 3000;
@@ -302,7 +306,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
     }
   }
 
-  cout<<resLits.size()<<" ";
+//  cout<<resLits.size()<<" ";
   {
     SATLiteralStack::Iterator rit(resLits);
     while(rit.hasNext()) {
@@ -326,9 +330,9 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
       }
     }
   }
-  cout<<resLits.size()<<" ";
+//  cout<<resLits.size()<<" ";
   doSubsumptionResolution(resLits);
-  cout<<resLits.size()<<" ";
+//  cout<<resLits.size()<<" ";
 
   SATClause* res = SATClause:: fromStack(resLits);
 
@@ -350,7 +354,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   ASS(isFalse(res));
   _learntClauses.push(res);
   env.statistics->learntSatClauses++;
-  cout<<res->toString()<<endl;
+//  cout<<res->toString()<<endl;
   recordClauseActivity(res);
   return res;
 }
@@ -542,13 +546,18 @@ void TWLSolver::runSatLoop()
 {
   CALL("TWLSolver::runSatLoop");
 
-  unsigned conflictsSinceLastSweep = 0;
+  _restartStrategy->reset();
+
+  size_t conflictsBeforeRestart = _restartStrategy->getNextConflictCount();
+  bool restartASAP = false;
 
   for(;;) {
 
-    if(conflictsSinceLastSweep>_survivorNumber*24) {
+    if(restartASAP) {
       sweepLearntClauses();
-      conflictsSinceLastSweep = 0;
+
+      conflictsBeforeRestart = _restartStrategy->getNextConflictCount();
+      restartASAP = false;
     }
 
     unsigned propagatedVar;
@@ -566,10 +575,14 @@ void TWLSolver::runSatLoop()
 
     env.checkTimeSometime<500>();
 
-    prop_loop:
     SATClause* conflict = propagate(propagatedVar);
     while(conflict) {
-      conflictsSinceLastSweep++;
+      if(conflictsBeforeRestart==0) {
+	restartASAP = true;
+      }
+      else {
+	conflictsBeforeRestart--;
+      }
       SATClause* learnt = getLearntClause(conflict);
 
       if(learnt->length()==1) {
