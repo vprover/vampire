@@ -243,7 +243,13 @@ using namespace Lib;
 class SATClause;
 class SATLiteral;
 
+class TWLSolver;
+
 class RestartStrategy;
+typedef ScopedPtr<RestartStrategy> RestartStrategySCP;
+class VariableSelector;
+typedef ScopedPtr<VariableSelector> VariableSelectorSCP;
+class RLCSelector;
 
 typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;
@@ -252,7 +258,6 @@ typedef Stack<SATClause*> SATClauseStack;
 typedef VirtualIterator<SATLiteral> SATLiteralIterator;
 typedef Stack<SATLiteral> SATLiteralStack;
 
-typedef ScopedPtr<RestartStrategy> RestartStrategySCP;
 }
 
 namespace Shell

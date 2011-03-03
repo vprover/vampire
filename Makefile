@@ -189,6 +189,7 @@ VSAT_OBJ=SAT/DIMACS.o\
          SAT/SATClause.o\
          SAT/SATLiteral.o\
          SAT/TWLSolver.o\
+         SAT/VariableSelector.o\
 #         SAT/SATClauseSharing.o\
 #         SAT/SingleWatchSAT.o
 
@@ -288,6 +289,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
 VUT_OBJ = UnitTests/tBinaryHeap.o\
 	  UnitTests/tDHMap.o\
 	  UnitTests/tDHMultiset.o\
+	  UnitTests/tDynamicHeap.o\
 	  UnitTests/tfork.o\
 	  UnitTests/tFormulaBuilderApi.o\
 	  UnitTests/tITE.o\

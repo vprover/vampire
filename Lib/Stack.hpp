@@ -264,6 +264,18 @@ public:
   size_t size() const
   { return _cursor - _stack; }
 
+  bool find(const C& el) const
+  {
+    CALL("Stack::find");
+
+    Iterator it(const_cast<Stack&>(*this));
+    while(it.hasNext()) {
+      if(it.next()==el) {
+	return true;
+      }
+    }
+    return false;
+  }
 
   friend class Iterator;
 
@@ -353,6 +365,8 @@ public:
     int _last;
 #endif
   };
+
+  typedef Iterator TopFirstIterator;
 
   /**
    * An iterator object that for stack @b s first yields element s[0]

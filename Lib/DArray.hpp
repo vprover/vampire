@@ -161,6 +161,28 @@ public:
 
   } // expand
 
+  /**
+   * Set array's size to @b s and that its capacity is at least @b s.
+   * If the capacity is smaller, the array will expand, and all old
+   * elements will be copied to the new array.
+   *
+   */
+  void expand(size_t s, C defVal)
+  {
+    CALL("DArray::expand/2");
+
+    size_t oldSize = _size;
+    expand(s);
+
+    if(s<=oldSize) {
+      return;
+    }
+
+    for(size_t i=oldSize; i<s; i++) {
+      (*this)[i] = defVal;
+    }
+  } // expand
+
   /** Return the ensured size of the array */
   inline size_t size() const { return _size; }
 

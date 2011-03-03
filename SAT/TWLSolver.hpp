@@ -24,6 +24,8 @@ namespace SAT {
 using namespace Lib;
 
 class TWLSolver : public SATSolver {
+  friend class VariableSelector;
+  friend class RLCVariableSelector;
 public:
   TWLSolver();
   ~TWLSolver();
@@ -53,8 +55,15 @@ private:
   bool isTrue(SATLiteral lit) const;
   bool isFalse(SATLiteral lit) const;
   bool isUndefined(SATLiteral lit) const;
-  bool isUndefined(unsigned var) const;
+
+  /** Return true iff variable @c var is undefined in the current assignment */
+  bool isUndefined(unsigned var) const {
+    return _assignment[var] == AS_UNDEFINED;
+  }
+
   bool isFalse(SATClause* cl) const;
+  bool isTrue(SATClause* cl) const;
+
 
   unsigned getAssignmentLevel(SATLiteral lit) const;
   unsigned getAssignmentLevel(unsigned var) const;
@@ -74,6 +83,7 @@ private:
 
   void makeChoiceAssignment(unsigned var, unsigned polarity);
   void makeForcedAssignment(SATLiteral lit, SATClause* premise);
+  void undoAssignment(unsigned var);
 
   enum ClauseVisitResult {
     /** Visited clause is a conflict clause */
@@ -167,8 +177,6 @@ private:
   /** truth values that were assigned to each variable most recently */
   DArray<AsgnVal> _lastAssignments;
 
-  DArray<unsigned> _variableActivity;
-
   /**
    * Stack of learnt clauses
    *
@@ -179,6 +187,7 @@ private:
   ArrayMap<EmptyStruct> _propagationScheduled;
   Deque<unsigned> _toPropagate;
 
+  VariableSelectorSCP _variableSelector;
   RestartStrategySCP _restartStrategy;
 
   unsigned _initialSurvivorNumber;

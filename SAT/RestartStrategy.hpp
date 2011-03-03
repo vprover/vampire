@@ -16,6 +16,9 @@ public:
 
   virtual size_t getNextConflictCount() = 0;
   virtual void reset() = 0;
+
+protected:
+  static size_t increase(size_t val, float quotient);
 };
 
 class FixedRestartStrategy : public RestartStrategy {
@@ -77,6 +80,24 @@ private:
   size_t _factor;
 };
 
+class MinisatRestartStrategy : public RestartStrategy {
+public:
+  /**
+   * Create a Minisat restart strategy with specified parameters
+   *
+   * According to "Armin Biere, PicoSAT Essentials" paper.
+   */
+  MinisatRestartStrategy(size_t initCnt = 100, float increase=1.1f)
+  : _initConflictCnt(initCnt), _increase(increase) { reset(); }
+
+  virtual size_t getNextConflictCount();
+  virtual void reset() { _innerCnt = _outerCnt = _initConflictCnt; }
+private:
+  size_t _initConflictCnt;
+  size_t _innerCnt;
+  size_t _outerCnt;
+  float _increase;
+};
 
 }
 

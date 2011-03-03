@@ -12,12 +12,17 @@
 namespace SAT
 {
 
+size_t RestartStrategy::increase(size_t val, float quotient)
+{
+  return static_cast<size_t>(ceilf(val*quotient));
+}
+
 size_t GeometricRestartStrategy::getNextConflictCount()
 {
   CALL("GeometricRestartStrategy::getNextConflictCount");
 
   size_t res = _conflictCnt;
-  _conflictCnt = static_cast<size_t>(ceilf(_conflictCnt*_increase));
+  _conflictCnt = increase(_conflictCnt,_increase);
   return res;
 }
 
@@ -45,5 +50,20 @@ size_t LubyRestartStrategy::getLubyNumber(size_t i)
   }
   return (getLubyNumber(i - (power / 2) + 1));
 }
+
+size_t MinisatRestartStrategy::getNextConflictCount()
+{
+  CALL("MinisatRestartStrategy::getNextConflictCount");
+
+  if(_innerCnt>=_outerCnt) {
+    _outerCnt = increase(_outerCnt,_increase);
+    _innerCnt = _initConflictCnt;
+  }
+  else {
+    _innerCnt = increase(_innerCnt,_increase);
+  }
+  return _innerCnt;
+}
+
 
 }
