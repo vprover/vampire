@@ -250,6 +250,8 @@ typedef ScopedPtr<RestartStrategy> RestartStrategySCP;
 class VariableSelector;
 typedef ScopedPtr<VariableSelector> VariableSelectorSCP;
 class RLCSelector;
+class ClauseDisposer;
+typedef ScopedPtr<ClauseDisposer> ClauseDisposerSCP;
 
 typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;

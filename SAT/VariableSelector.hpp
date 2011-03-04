@@ -11,10 +11,12 @@
 #include "Lib/DArray.hpp"
 #include "Lib/DynamicHeap.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 namespace SAT {
 
-class VariableSelector {
+class VariableSelector
+{
 public:
   VariableSelector(TWLSolver& solver) : _solver(solver) {}
 
@@ -39,7 +41,63 @@ protected:
   TWLSolver& _solver;
 };
 
-class ActiveVariableSelector : public VariableSelector{
+class AlternatingVariableSelector : public VariableSelector
+{
+public:
+  AlternatingVariableSelector(TWLSolver& solver, VariableSelector* s1, VariableSelector* s2)
+   : VariableSelector(solver) {
+    CALL("AlternatingVariableSelector::AlternatingVariableSelector");
+
+    _sels[0] = s1;
+    _sels[1] = s2;
+    _ctr = 0;
+  }
+
+  virtual bool selectVariable(unsigned& var) {
+    return _sels[_ctr%4==0]->selectVariable(var);
+  }
+
+  virtual void ensureVarCnt(unsigned varCnt) {
+    CALL("AlternatingVariableSelector::ensureVarCnt");
+
+    VariableSelector::ensureVarCnt(varCnt);
+    _sels[0]->ensureVarCnt(varCnt);
+    _sels[1]->ensureVarCnt(varCnt);
+  }
+
+  virtual void onVariableInConflict(unsigned var) {
+    _sels[0]->onVariableInConflict(var);
+    _sels[1]->onVariableInConflict(var);
+  }
+
+  virtual void onVariableUnassigned(unsigned var) {
+    _sels[0]->onVariableUnassigned(var);
+    _sels[1]->onVariableUnassigned(var);
+  }
+
+  virtual void onConflict() {
+    _sels[0]->onConflict();
+    _sels[1]->onConflict();
+  }
+
+  virtual void onInputClauseAdded(SATClause* cl) {
+    _sels[0]->onInputClauseAdded(cl);
+    _sels[1]->onInputClauseAdded(cl);
+  }
+
+  virtual void onRestart() {
+    _sels[0]->onRestart();
+    _sels[1]->onRestart();
+    _ctr++;
+  }
+
+private:
+  int _ctr;
+  VariableSelectorSCP _sels[2];
+};
+
+class ActiveVariableSelector : public VariableSelector
+{
 public:
   ActiveVariableSelector(TWLSolver& solver) : VariableSelector(solver) {}
 

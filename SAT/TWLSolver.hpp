@@ -24,6 +24,7 @@ namespace SAT {
 using namespace Lib;
 
 class TWLSolver : public SATSolver {
+  friend class ClauseDisposer;
   friend class VariableSelector;
   friend class RLCVariableSelector;
 public:
@@ -105,12 +106,14 @@ private:
   unsigned getBacktrackLevel(SATClause* conflictClause);
 
   void doSubsumptionResolution(SATLiteralStack& lits);
+  void doShallowMinimize(SATLiteralStack& lits, ArraySet& seenVars);
+  void doDeepMinimize(SATLiteralStack& lits, ArraySet& seenVars);
+  bool isRedundant(SATLiteral lit, ArraySet& seenVars);
   SATClause* getLearntClause(SATClause* conflictClause);
 
   void insertIntoWatchIndex(SATClause* cl);
 
   void recordClauseActivity(SATClause* cl);
-  void sweepLearntClauses();
 
   void recordVariableActivity(unsigned var);
   bool chooseVar(unsigned& var);
@@ -189,13 +192,7 @@ private:
 
   VariableSelectorSCP _variableSelector;
   RestartStrategySCP _restartStrategy;
-
-  unsigned _initialSurvivorNumber;
-  unsigned _survivorNumber;
-  unsigned _survivorNumberIncrease;
-  unsigned _phaseLength;
-  unsigned _currentPhaseLength;
-  unsigned _phaseLengthIncrease;
+  ClauseDisposerSCP _clauseDisposer;
 
   class UnsatException : public Exception
   {};

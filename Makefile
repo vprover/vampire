@@ -183,7 +183,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o
 
-VSAT_OBJ=SAT/DIMACS.o\
+VSAT_OBJ=SAT/ClauseDisposer.o\
+	 SAT/DIMACS.o\
          SAT/Preprocess.o\
          SAT/RestartStrategy.o\
          SAT/SATClause.o\
