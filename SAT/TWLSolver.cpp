@@ -302,21 +302,7 @@ void TWLSolver::doDeepMinimize(SATLiteralStack& lits, ArraySet& seenVars)
   SATLiteralStack::Iterator rit(lits);
   while(rit.hasNext()) {
     SATLiteral resLit = rit.next();
-    unsigned resLitVar = resLit.var();
-    SATClause* prem = _assignmentPremises[resLitVar];
-    if(!prem) {
-	continue;
-    }
-    bool redundant = true;
-    SATClause::Iterator premLitIt(*prem);
-    while(premLitIt.hasNext()) {
-      SATLiteral premLit = premLitIt.next();
-      if(!seenVars.find(premLit.var()) && getAssignmentLevel(premLit)>1) {
-	redundant = false;
-	break;
-      }
-    }
-    if(redundant) {
+    if(isRedundant(resLit, seenVars)) {
       rit.del();
     }
   }
@@ -327,6 +313,7 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars)
   CALL("TWLSolver::isRedundant");
 
   static ArraySet varsSeenHere;
+  varsSeenHere.ensure(_varCnt);
   varsSeenHere.reset();
   static Stack<unsigned> toDo;
   toDo.reset();
@@ -337,6 +324,9 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars)
 
   while(toDo.isNonEmpty()) {
     unsigned clVar = toDo.pop();
+    if(varsSeenHere.find(clVar)) {
+      continue;
+    }
     varsSeenHere.insert(clVar);
     SATClause* cl = _assignmentPremises[clVar];
     if(!cl) {
@@ -346,7 +336,7 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars)
     while(premLitIt.hasNext()) {
       SATLiteral premLit = premLitIt.next();
       unsigned premVar = premLit.var();
-      if(seenVars.find(premVar) || varsSeenHere.find(premVar) || getAssignmentLevel(premLit)==1) {
+      if(seenVars.find(premVar) || getAssignmentLevel(premLit)==1) {
 	continue;
       }
       toDo.push(premVar);
@@ -398,7 +388,8 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   }
 
 //  cout<<resLits.size()<<" ";
-  doShallowMinimize(resLits, seenVars);
+//  doShallowMinimize(resLits, seenVars);
+  doDeepMinimize(resLits, seenVars);
 //  cout<<resLits.size()<<" ";
   doSubsumptionResolution(resLits);
 //  cout<<resLits.size()<<" ";
@@ -551,8 +542,6 @@ void TWLSolver::addClauses(SATClauseIterator cit)
     return;
   }
 
-  unsigned longClauseCnt = 0;
-
   try {
     while(cit.hasNext()) {
       SATClause* cl=cit.next();
@@ -563,9 +552,7 @@ void TWLSolver::addClauses(SATClauseIterator cit)
 	addClause(cl);
       }
       _variableSelector->onInputClauseAdded(cl);
-      if(cl->length()>2) {
-	longClauseCnt++;
-      }
+      _clauseDisposer->onNewInputClause(cl);
     }
     runSatLoop();
 
@@ -635,12 +622,14 @@ void TWLSolver::runSatLoop()
   for(;;) {
 
     if(restartASAP) {
+      backtrack(1);
       _variableSelector->onRestart();
       _clauseDisposer->onRestart();
-      backtrack(1);
       conflictsBeforeRestart = _restartStrategy->getNextConflictCount();
       restartASAP = false;
     }
+
+    _clauseDisposer->onSafeSpot();
 
     unsigned propagatedVar;
     if(pickForPropagation(propagatedVar)) {

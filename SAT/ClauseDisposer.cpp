@@ -24,6 +24,14 @@ unsigned ClauseDisposer::varCnt() const
   return _solver._varCnt;
 }
 
+unsigned ClauseDisposer::decisionLevel()
+{
+  CALL("ClauseDisposer::decisionLevel");
+
+  return _solver._level;
+}
+
+
 SATClauseStack& ClauseDisposer::getLearntStack()
 {
   CALL("ClauseDisposer::getLearntStack");
@@ -173,20 +181,52 @@ void DecayingClauseDisposer::onConflict()
 ///////////////////////////
 // MinisatClauseDisposer
 
-void MinisatClauseDisposer::onRestart()
+void MinisatClauseDisposer::onNewInputClause(SATClause* cl)
 {
-  CALL("MinisatClauseDisposer::onRestart");
+  CALL("MinisatClauseDisposer::onNewInputClause");
 
-  markAllRemovableUnkept();
+  DecayingClauseDisposer::onNewInputClause(cl);
+  if(cl->size()<3) {
+    return;
+  }
+  _clauseCntAcc++;
+  if(_clauseCntAcc>=4) {
+    _survivorCnt += _clauseCntAcc/4;
+    _clauseCntAcc = _clauseCntAcc%4;
+  }
+}
+
+void MinisatClauseDisposer::onConflict()
+{
+  CALL("MinisatClauseDisposer::onConflict");
+
+  DecayingClauseDisposer::onConflict();
+//  cout<<"aa\n";
+  _phaseIdx++;
+  if(_phaseIdx>=_phaseLen) {
+    _survivorCnt = _survivorCnt+max(_survivorCnt/10,static_cast<size_t>(1));
+    _phaseIdx = 0;
+    _phaseLen += _phaseLen/2;
+    cout<<getLearntStack().size()<<"  "<<_survivorCnt<<endl;
+  }
+}
+
+void MinisatClauseDisposer::onSafeSpot()
+{
+  CALL("MinisatClauseDisposer::onSafeSpot");
 
   unsigned learntCnt = getLearntStack().size();
 
-  keepMostActive(learntCnt/2, _inc/learntCnt);
-  keepBinary();
+  if(static_cast<long>(learntCnt)-decisionLevel()>static_cast<long>(_survivorCnt)) {
+    markAllRemovableUnkept();
 
-  removeUnkept();
+    keepMostActive(learntCnt/2, _inc/learntCnt);
+    keepBinary();
+
+    removeUnkept();
+    cout<<"lco: "<<learntCnt<<" lcn: "<<getLearntStack().size()<<" sc: "<<_survivorCnt<<endl;
+  }
 }
-
 
 ///////////////////////////
 // GrowingClauseDisposer
@@ -202,7 +242,22 @@ void GrowingClauseDisposer::onNewInputClause(SATClause* cl)
   _clauseCntAcc++;
   if(_clauseCntAcc>=4) {
     _survivorCnt += _clauseCntAcc/4;
-    _clauseCntAcc += _clauseCntAcc%4;
+    _clauseCntAcc = _clauseCntAcc%4;
+  }
+}
+
+void GrowingClauseDisposer::onConflict()
+{
+  CALL("GrowingClauseDisposer::onConflict");
+
+  DecayingClauseDisposer::onConflict();
+
+  _phaseIdx++;
+  if(_phaseIdx>=_phaseLen) {
+    _survivorCnt = _survivorCnt+max(_survivorCnt/10,static_cast<size_t>(1));
+    _phaseIdx = 0;
+    _phaseLen += _phaseLen/2;
+    cout<<getLearntStack().size()<<"  "<<_survivorCnt<<endl;
   }
 }
 
@@ -217,12 +272,6 @@ void GrowingClauseDisposer::onRestart()
 
   removeUnkept();
 
-  _phaseIdx++;
-  if(_phaseIdx==_phaseLen) {
-    _survivorCnt = _survivorCnt+max(_survivorCnt/20,static_cast<size_t>(1));
-    _phaseIdx = 0;
-    _phaseLen++;
-  }
 }
 
 

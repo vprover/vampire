@@ -62,6 +62,7 @@ void CommandLine::interpret (Options& options)
       USER_ERROR((string)"option name expected, "+arg+" found");
     }
   }
+  options.setForcedOptionValues();
   options.checkGlobalOptionConstraints();
 } // CommandLine::interpret
 

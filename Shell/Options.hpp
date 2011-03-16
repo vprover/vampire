@@ -44,6 +44,7 @@ public:
     EQUALITY_PROXY,
     EQUALITY_RESOLUTION_WITH_DELETION,
 
+    FORCED_OPTIONS,
     FORWARD_DEMODULATION,
     FORWARD_LITERAL_REWRITING,
     FORWARD_SUBSUMPTION,
@@ -272,11 +273,17 @@ public:
   Options ();
   void output (ostream&) const;
   void readFromTestId (string testId);
+  void readOptionsString (string testId);
   string generateTestId() const;
   bool complete() const;
+  void setForcedOptionValues();
+  void checkGlobalOptionConstraints() const;
+
+  void forceIncompleteness() { _forceIncompleteness=true; }
 
   string problemName () const;
 
+  string forcedOptions() const { return _forcedOptions; }
   string testId() const { return _testId; }
   Statistics statistics() const { return _statistics; }
   Proof proof() const { return _proof; }
@@ -407,10 +414,6 @@ public:
   void setShort(const char* name, const char* value);
 
 
-  void checkGlobalOptionConstraints() const;
-
-  void forceIncompleteness() { _forceIncompleteness=true; }
-
   CLASS_NAME("Options");
   USE_ALLOCATOR(Options);
 
@@ -438,6 +441,7 @@ private:
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
 
+  string _forcedOptions;
   Demodulation _forwardDemodulation;
   bool _forwardLiteralRewriting;
   bool _forwardSubsumption;

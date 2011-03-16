@@ -810,6 +810,9 @@ void CLTBProblem::runChild(Options& opt)
   *env.options=opt;
   //we have already performed the normalization
   env.options->setNormalize(false);
+  env.options->setForcedOptionValues();
+  env.options->checkGlobalOptionConstraints();
+
 
 //  if(env.options->sineSelection()!=Options::SS_OFF) {
 //    //add selected axioms from the theory

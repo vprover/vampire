@@ -95,6 +95,7 @@ const char* Options::Constants::_optionNames[] = {
   "equality_proxy",
   "equality_resolution_with_deletion",
 
+  "forced_options",
   "forward_demodulation",
   "forward_literal_rewriting",
   "forward_subsumption",
@@ -644,6 +645,9 @@ void Options::set (const char* name,const char* value, int index)
       }
       return;
 
+    case FORCED_OPTIONS:
+      _forcedOptions = value;
+      return;
     case FORWARD_DEMODULATION:
       _forwardDemodulation =
 	(Demodulation)Constants::demodulationValues.find(value);
@@ -1657,6 +1661,42 @@ int Options::readTimeLimit(const char* val)
 
 
 /**
+ * Assign option values according to the argument in the format
+ * <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN>
+ */
+void Options::readOptionsString(string testId)
+{
+  CALL("Options::readOptionsString");
+
+  // repeatedly look for param=value
+  while (testId != "") {
+    size_t index1 = testId.find('=');
+    if (index1 == string::npos) {
+      error: USER_ERROR("bad option specification" + testId);
+    }
+    size_t index = testId.find(':');
+    if (index!=string::npos && index1 > index) {
+      goto error;
+    }
+
+    string param = testId.substr(0,index1);
+    string value;
+    if(index==string::npos) {
+      value = testId.substr(index1+1);
+    }
+    else {
+      value = testId.substr(index1+1,index-index1-1);
+    }
+    setShort(param.c_str(),value.c_str());
+
+    if(index==string::npos) {
+      break;
+    }
+    testId = testId.substr(index+1);
+  }
+}
+
+/**
  * Build options from a Spider test id.
  * @since 30/05/2004 Manchester
  * @since 21/06/2005 Manchester time limit in the test id must be
@@ -1722,33 +1762,16 @@ void Options::readFromTestId (string testId)
     return;
   }
   testId = testId.substr(index+1);
-  // repeatedly look for param=value
-  while (testId != "") {
-    size_t index1 = testId.find('=');
-    if (index1 == string::npos) {
-      goto error;
-    }
-    index = testId.find(':');
-    if (index!=string::npos && index1 > index) {
-      goto error;
-    }
-
-    string param = testId.substr(0,index1);
-    string value;
-    if(index==string::npos) {
-      value = testId.substr(index1+1);
-    }
-    else {
-      value = testId.substr(index1+1,index-index1-1);
-    }
-    setShort(param.c_str(),value.c_str());
-
-    if(index==string::npos) {
-      break;
-    }
-    testId = testId.substr(index+1);
-  }
+  //now read the rest of the options
+  readOptionsString(testId);
 } // Options::readFromTestId
+
+void Options::setForcedOptionValues()
+{
+  CALL("Options::setForcedOptionValues");
+
+  readOptionsString(_forcedOptions);
+}
 
 /**
  * Return testId string that represents current values of the options
@@ -1910,6 +1933,9 @@ void Options::checkGlobalOptionConstraints() const
   }
   if(interpretedSimplification() && !interpretedEvaluation()) {
     USER_ERROR("Interpreted simplification can only be used together with interpreted evaluation");
+  }
+  if(showInterpolant() && splitting()==SM_BACKTRACKING) {
+    USER_ERROR("Cannot output interpolant with backtracking splitting");
   }
 }
 

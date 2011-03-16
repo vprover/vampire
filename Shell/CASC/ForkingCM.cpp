@@ -127,6 +127,8 @@ void ForkingCM::childRun(Options& opt)
   *env.options=opt;
   //we have already performed the normalization
   env.options->setNormalize(false);
+  env.options->setForcedOptionValues();
+  env.options->checkGlobalOptionConstraints();
 
   env.beginOutput();
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;

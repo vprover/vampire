@@ -77,7 +77,12 @@ public:
   /** the input unit number this clause is generated from, -1 if none */
   int adam() const {return _adam;}
 
-  /** Return the inherited color of the unit, computing it if necessary */
+  /** Return the inherited color of the unit or COLOR_INVALID
+   * if there isn't an inherited color.
+   *
+   * Inherited color is set by parser constructs left_formula,
+   * right_formula and end_formula.
+   */
   inline Color inheritedColor() const
   {
     return static_cast<Color>(_inheritedColor);
