@@ -26,6 +26,7 @@ using namespace Kernel;
 
 typedef InferenceStore::UnitSpec UnitSpec;
 typedef pair<Formula*, Formula*> UIPair; //pair of unit U and the U-interpolant
+typedef List<UIPair> UIPairList;
 
 struct ItemState
 {
@@ -62,8 +63,52 @@ struct ItemState
 
 };
 
-void generateInterpolant(ItemState& st);
+Comparison compareUIP(const UIPair& a, const UIPair& b)
+{
+  CALL("compareUIP");
 
+  Comparison res = Int::compare(a.first, b.first);
+  if(res==EQUAL) {
+    res = Int::compare(a.second, b.second);
+  }
+  return res;
+}
+
+/**
+ * Assuming arguments are lists ordered by the @c compareUIP() function,
+ * add non-destructively new elements from @c src into @c tgt.
+ */
+void mergeCopy(UIPairList*& tgt, UIPairList* src)
+{
+  CALL("mergeCopy");
+  if(!tgt) {
+    tgt = src->copy();
+    return;
+  }
+
+  UIPairList** curr = &tgt;
+  UIPairList::Iterator sit(src);
+  while(sit.hasNext()) {
+    UIPair spl = sit.next();
+  retry_curr:
+    if(*curr) {
+      Comparison cmp = compareUIP((*curr)->head(), spl);
+      if(cmp!=GREATER) {
+	curr = (*curr)->tailPtr();
+	if(cmp==EQUAL) {
+	  continue;
+	}
+	else {
+	  goto retry_curr;
+	}
+      }
+    }
+    *curr = new UIPairList(spl, *curr);
+    curr = (*curr)->tailPtr();
+  }
+}
+
+void generateInterpolant(ItemState& st);
 
 Formula* Interpolants::getInterpolant(Clause* cl)
 {
@@ -78,6 +123,8 @@ Formula* Interpolants::getInterpolant(Clause* cl)
 
   Formula* resultInterpolant = 0;
 
+  int ctr=0;
+
   for(;;) {
     ItemState st;
 
@@ -89,6 +136,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
     }
     else {
       st.us = curr;
+      st.pars=InferenceStore::instance()->getParents(curr);
     }
 
     if(curr.unit()->inheritedColor()!=COLOR_INVALID) {
@@ -111,7 +159,6 @@ Formula* Interpolants::getInterpolant(Clause* cl)
       }
 #endif
     }
-    st.pars=InferenceStore::instance()->getParents(curr);
 
     sts.push(st);
 
@@ -122,7 +169,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
       }
       //we're done with all children, now we can process what we've gathered
       st=sts.pop();
-
+      ctr++;
       Unit* u = st.us.unit();
       Color color = u->getColor();
       if(!st.processed) {
@@ -138,10 +185,10 @@ Formula* Interpolants::getInterpolant(Clause* cl)
       if(sts.isNonEmpty()) {
 	//pass interpolants to the level above
         if(color!=COLOR_LEFT) {
-          sts.top().leftInts=List<UIPair>::concat(sts.top().leftInts, st.leftInts->copy());
+          mergeCopy(sts.top().leftInts, st.leftInts);
         } 
         if(color!=COLOR_RIGHT) {
-          sts.top().rightInts=List<UIPair>::concat(sts.top().rightInts, st.rightInts->copy());
+          mergeCopy(sts.top().rightInts, st.rightInts);
         }
       } 
       else {
