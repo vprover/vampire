@@ -2,7 +2,7 @@
 
 V_OPTS="--mode casc -show_interpolant on -forced_options spl=off:ptb=off -t 2"
 
-AUX=`mktemp -t gi`
+AUX=`mktemp -t giXXXXX`
 
 for F in $*; do
 	echo -n $F": "
