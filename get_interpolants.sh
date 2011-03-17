@@ -9,7 +9,13 @@ for F in $*; do
 	if cat $F| ./vutil problem_coloring |./vampire_rel $V_OPTS>$AUX; then
 		grep "^Interpolant" $AUX|sed "s/^Interpolant: //"
 	else
-		echo "[time out]"
+		echo -n "[time out] blocked: "
+		if grep "^Inferences skipped due to colors" $AUX >/dev/null; then
+			grep "^Inferences skipped due to colors" $AUX|sed "s/^.*: //"|tr '\n' '%'|sed 's/%$//'|sed 's/%/, /g'
+		else
+			echo 0
+		fi
+		
 	fi
 done
 
