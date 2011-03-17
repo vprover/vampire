@@ -11,7 +11,7 @@ for F in $*; do
 	else
 		echo -n "[time out] blocked: "
 		if grep "^Inferences skipped due to colors" $AUX >/dev/null; then
-			grep "^Inferences skipped due to colors" $AUX|sed "s/^.*: //"|tr '\n' '%'|sed 's/%\(.\)/, \1/g'|tr '%' '\n'
+			grep "^Inferences skipped due to colors" $AUX|sed "s/^.*: //"|tr '\n' '%'|sed 's/%\(.\)/, \1/g'|tr -d '\n'|tr '%' '\n'
 		else
 			echo 0
 		fi
