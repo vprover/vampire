@@ -813,7 +813,7 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 
   //we increase the reference counter here so that the cause wouldn't
   //get destroyed during handling in the onNewClause handler
-  //(there the contl flow goes out of the SaturationAlgorithm class,
+  //(there the control flow goes out of the SaturationAlgorithm class,
   //so we'd better not assume on what's happening in there)
   cl->incRefCnt();
 
@@ -822,6 +822,8 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   ASS(cl->prop());
 
   _newClauses.push(cl);
+  //we can decrease the counter here -- it won't get deleted because
+  //the _newClauses RC stack already took over the clause
   cl->decRefCnt();
 }
 
