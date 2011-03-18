@@ -92,6 +92,17 @@ void Renaming::makeInverse(const Renaming& orig)
 
 Literal* Renaming::normalize(Literal* l)
 {
+  CALL("Renaming::normalize(Literal*)");
+
+  Renaming n;
+  n.normalizeVariables(l);
+  return n.apply(l);
+}
+
+Term* Renaming::normalize(Term* l)
+{
+  CALL("Renaming::normalize(Term*)");
+
   Renaming n;
   n.normalizeVariables(l);
   return n.apply(l);

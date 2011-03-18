@@ -14,6 +14,7 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Ordering.hpp"
@@ -97,7 +98,7 @@ struct BackwardDemodulation::ResultFn
 
     TermQueryResult qr=arg.second;
 
-    if( (_cl->color()|qr.clause->color())==COLOR_INVALID ) {
+    if( !ColorHelper::compatible(_cl->color(), qr.clause->color()) ) {
       //colors of premises don't match
       return BwSimplificationRecord(0);
     }

@@ -85,6 +85,7 @@ const char* Options::Constants::_optionNames[] = {
   "backward_subsumption_resolution",
   "bdd_marking_subsumption",
 
+  "color_unblocking",
   "condensation",
 
   "decode",
@@ -148,6 +149,7 @@ const char* Options::Constants::_optionNames[] = {
   "saturation_algorithm",
   "selection",
   "show_active",
+  "show_blocked",
   "show_definitions",
   "show_interpolant",
   "show_new",
@@ -443,6 +445,7 @@ Options::Options ()
   _backwardSubsumptionResolution(SUBSUMPTION_OFF),
   _bddMarkingSubsumption(false),
 
+  _colorUnblocking(false),
   _condensation(CONDENSATION_OFF),
 
   _demodulationRedundancyCheck(true),
@@ -509,6 +512,7 @@ Options::Options ()
   _saturationAlgorithm(LRS),
   _selection(10),
   _showActive(false),
+  _showBlocked(false),
   _showDefinitions(false),
   _showInterpolant(false),
   _showNew(false),
@@ -617,6 +621,9 @@ void Options::set (const char* name,const char* value, int index)
       _bddMarkingSubsumption = onOffToBool(value,name);
       return;
 
+    case COLOR_UNBLOCKING:
+      _colorUnblocking = onOffToBool(value,name);
+      return;
     case CONDENSATION:
       _condensation =
 	(Condensation)Constants::condensationValues.find(value);
@@ -828,6 +835,9 @@ void Options::set (const char* name,const char* value, int index)
       break;
     case SHOW_ACTIVE:
       _showActive = onOffToBool(value,name);
+      return;
+    case SHOW_BLOCKED:
+      _showBlocked = onOffToBool(value,name);
       return;
     case SHOW_DEFINITIONS:
       _showDefinitions = onOffToBool(value,name);
@@ -1200,6 +1210,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_bddMarkingSubsumption);
     return;
 
+  case COLOR_UNBLOCKING:
+    str << boolToOnOff(_colorUnblocking);
+    return;
   case CONDENSATION:
     str << Constants::condensationValues[_condensation];
     return;
@@ -1360,6 +1373,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SHOW_ACTIVE:
     str << boolToOnOff(_showActive);
+    return;
+  case SHOW_BLOCKED:
+    str << boolToOnOff(_showBlocked);
     return;
   case SHOW_DEFINITIONS:
     str << boolToOnOff(_showDefinitions);

@@ -9,16 +9,19 @@
 #include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "Kernel/Clause.hpp"
+#include "Kernel/ColorHelper.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/IndexManager.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
+
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "BinaryResolution.hpp"
 
@@ -74,9 +77,19 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    if(env.colorUsed && _cl->color()!=COLOR_TRANSPARENT &&
-  	  qr.clause->color()!=COLOR_TRANSPARENT && _cl->color()!=qr.clause->color()) {
+    if(!ColorHelper::compatible(_cl->color(),qr.clause->color()) ) {
       env.statistics->inferencesSkippedDueToColors++;
+      if(env.options->showBlocked()) {
+        env.beginOutput();
+        env.out()<<"Blocked resolution of "<<_cl->toString()<<" and "<<qr.clause->toString()<<endl;
+        env.endOutput();
+      }
+      if(env.options->colorUnblocking()) {
+	SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
+	ASS(salg);
+	ColorHelper::tryUnblock(_cl, salg);
+	ColorHelper::tryUnblock(qr.clause, salg);
+      }
       return 0;
     }
 

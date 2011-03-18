@@ -55,6 +55,7 @@ public:
   void makeInverse(const Renaming& orig);
 
   static Literal* normalize(Literal* l);
+  static Term* normalize(Term* t);
 
 #if VDEBUG
   void assertValid() const;

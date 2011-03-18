@@ -107,6 +107,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/BDDConjunction.o\
         Kernel/Clause.o\
         Kernel/ClauseQueue.o\
+        Kernel/ColorHelper.o\
         Kernel/EqHelper.o\
         Kernel/FlatTerm.o\
         Kernel/Formula.o\

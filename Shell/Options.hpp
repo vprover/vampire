@@ -33,6 +33,7 @@ public:
     BACKWARD_SUBSUMPTION_RESOLUTION,
     BDD_MARKING_SUBSUMPTION,
 
+    COLOR_UNBLOCKING,
     CONDENSATION,
 
     /** Decode test id */
@@ -98,6 +99,7 @@ public:
     SATURATION_ALGORITHM,
     SELECTION,
     SHOW_ACTIVE,
+    SHOW_BLOCKED,
     SHOW_DEFINITIONS,
     SHOW_INTERPOLANT,
     SHOW_NEW,
@@ -307,6 +309,7 @@ public:
   int rowVariableMaxLength() const { return _rowVariableMaxLength; }
   void setRowVariableMaxLength(int newVal) { _rowVariableMaxLength = newVal; }
   bool showActive() const { return _showActive; }
+  bool showBlocked() const { return _showBlocked; }
   bool showDefinitions() const { return _showDefinitions; }
   bool showInterpolant() const { return _showInterpolant; }
   bool showNew() const { return _showNew; }
@@ -401,6 +404,8 @@ public:
   void setSineSelection(SineSelection val) { _sineSelection=val; }
   float sineTolerance() const { return _sineTolerance; }
 
+  bool colorUnblocking() const { return _colorUnblocking; }
+
   void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal);
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
@@ -432,6 +437,7 @@ private:
   Subsumption _backwardSubsumptionResolution;
   bool _bddMarkingSubsumption;
 
+  bool _colorUnblocking;
   Condensation _condensation;
 
   bool _demodulationRedundancyCheck;
@@ -499,6 +505,7 @@ private:
   SaturationAlgorithm _saturationAlgorithm;
   int _selection;
   bool _showActive;
+  bool _showBlocked;
   bool _showDefinitions;
   bool _showInterpolant;
   bool _showNew;

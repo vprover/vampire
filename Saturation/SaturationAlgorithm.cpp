@@ -18,6 +18,7 @@
 #include "Kernel/BDD.hpp"
 #include "Kernel/BDDConjunction.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/ColorHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/LiteralSelector.hpp"
@@ -757,7 +758,7 @@ public:
       return true;
     }
 
-    if( (_cl->color()|premise->color())==COLOR_INVALID ) {
+    if( !ColorHelper::compatible(_cl->color(), premise->color()) ) {
       return false;
     }
 

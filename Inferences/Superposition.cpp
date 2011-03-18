@@ -9,20 +9,22 @@
 #include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
 
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
-
-#include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
+#include "Kernel/ColorHelper.hpp"
+#include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/EqHelper.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/TermSharing.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
+
+#include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Superposition.hpp"
 
@@ -178,9 +180,19 @@ Clause* Superposition::performSuperposition(
   unsigned eqLength = eqClause->length();
   int newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
-  if(env.colorUsed && rwClause->color()!=COLOR_TRANSPARENT &&
-	  eqClause->color()!=COLOR_TRANSPARENT && rwClause->color()!=eqClause->color()) {
+  if(!ColorHelper::compatible(rwClause->color(), eqClause->color())) {
     env.statistics->inferencesSkippedDueToColors++;
+    if(env.options->showBlocked()) {
+      env.beginOutput();
+      env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
+      env.endOutput();
+    }
+    if(env.options->colorUnblocking()) {
+      SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
+      ASS(salg);
+      ColorHelper::tryUnblock(rwClause, salg);
+      ColorHelper::tryUnblock(eqClause, salg);
+    }
     return 0;
   }
 

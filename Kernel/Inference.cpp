@@ -356,6 +356,8 @@ string Inference::ruleName(Rule rule)
     return "tautology introduction";
   case PROGRAM_ANALYSIS:
     return "program analysis";
+  case COLOR_UNBLOCKING:
+    return "color unblocking";
 
   default:
     ASSERTION_VIOLATION;

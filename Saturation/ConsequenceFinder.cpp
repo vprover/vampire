@@ -101,7 +101,6 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   //of the saturation algorithm loop
   _redundantsToHandle.push(red);
 
-  static int num=0;
   env.beginOutput();
   env.out() << "Consequence found: " << env.signature->predicateName(red) << endl;
   env.endOutput();
