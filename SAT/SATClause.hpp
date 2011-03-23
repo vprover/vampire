@@ -40,7 +40,7 @@ public:
 
   DECL_ITERATOR_TYPE(Iterator);
 
-  typedef float ActivityType;
+  typedef double ActivityType;
 
   /** New clause */
   SATClause(unsigned length,bool kept=true)

@@ -126,8 +126,7 @@ public:
     _activityHeap.decay();
   }
 protected:
-  typedef size_t ActivityCounter;
-  typedef float CounterType;
+  typedef double CounterType;
 
   class VariableActivityHeap
   {
@@ -162,6 +161,7 @@ protected:
     {
       CALL("ActiveVariableSelector::VariableActivityHeap::decay");
 
+//      cout<<_inc<<endl;
       _inc*=_decayFactor;
       if(_inc>1e30f) {
 	_inc = 1.0f;

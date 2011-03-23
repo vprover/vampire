@@ -17,11 +17,28 @@
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
 
+#include "SATLiteral.hpp"
+#include "SATClause.hpp"
 #include "SATSolver.hpp"
 
 namespace SAT {
 
 using namespace Lib;
+
+struct Watch
+{
+  Watch() {}
+  Watch(SATClause* cl, SATLiteral blocker) : blocker(blocker), cl(cl)
+  {
+    CALL("Watch::Watch/2");
+    ASS((*cl)[0]==blocker || (*cl)[1]==blocker);
+  }
+  SATLiteral blocker;
+  SATClause* cl;
+};
+
+typedef Stack<Watch> WatchStack;
+
 
 class TWLSolver : public SATSolver {
   friend class ClauseDisposer;
@@ -46,8 +63,6 @@ private:
     AS_TRUE = 1u,
     AS_UNDEFINED = 2u
   };
-
-  typedef Stack<SATClause*> WatchStack;
 
   WatchStack& getWatchStack(SATLiteral lit);
   WatchStack& getWatchStack(unsigned var, unsigned polarity);
@@ -97,7 +112,7 @@ private:
     VR_CHANGE_WATCH
   };
 
-  ClauseVisitResult visitWatchedClause(SATClause* cl, unsigned var, unsigned& litIndex);
+  ClauseVisitResult visitWatchedClause(Watch watch, unsigned var, unsigned& litIndex);
 
   SATClause* propagate(unsigned var);
   void propagateAndBacktrackIfNeeded(unsigned var);

@@ -39,7 +39,7 @@ SATClauseStack& ClauseDisposer::getLearntStack()
   return _solver._learntClauses;
 }
 
-DArray<SATClauseStack>& ClauseDisposer::getWatchedStackArray()
+DArray<WatchStack>& ClauseDisposer::getWatchedStackArray()
 {
   CALL("ClauseDisposer::getWatchedStackArray");
 
@@ -85,12 +85,12 @@ void ClauseDisposer::removeUnkept()
   CALL("ClauseDisposer::removeUnkept");
 
   unsigned watchCnt = varCnt()*2;
-  DArray<SATClauseStack>& watches = getWatchedStackArray();
+  DArray<WatchStack>& watches = getWatchedStackArray();
 
   for(unsigned i=0; i<watchCnt; i++) {
-    SATClauseStack::Iterator wit(watches[i]);
+    WatchStack::Iterator wit(watches[i]);
     while(wit.hasNext()) {
-      SATClause* cl = wit.next();
+      SATClause* cl = wit.next().cl;
       if(!cl->kept()) {
 	wit.del();
       }
@@ -186,9 +186,9 @@ void MinisatClauseDisposer::onNewInputClause(SATClause* cl)
   CALL("MinisatClauseDisposer::onNewInputClause");
 
   DecayingClauseDisposer::onNewInputClause(cl);
-  if(cl->size()<3) {
-    return;
-  }
+//  if(cl->size()<3) {
+//    return;
+//  }
   _clauseCntAcc++;
   if(_clauseCntAcc>=4) {
     _survivorCnt += _clauseCntAcc/4;
@@ -207,7 +207,7 @@ void MinisatClauseDisposer::onConflict()
     _survivorCnt = _survivorCnt+max(_survivorCnt/10,static_cast<size_t>(1));
     _phaseIdx = 0;
     _phaseLen += _phaseLen/2;
-    cout<<getLearntStack().size()<<"  "<<_survivorCnt<<endl;
+//    cout<<getLearntStack().size()<<"  "<<_survivorCnt<<endl;
   }
 }
 
@@ -224,7 +224,7 @@ void MinisatClauseDisposer::onSafeSpot()
     keepBinary();
 
     removeUnkept();
-    cout<<"lco: "<<learntCnt<<" lcn: "<<getLearntStack().size()<<" sc: "<<_survivorCnt<<endl;
+//    cout<<"lco: "<<learntCnt<<" lcn: "<<getLearntStack().size()<<" sc: "<<_survivorCnt<<endl;
   }
 }
 
@@ -257,7 +257,7 @@ void GrowingClauseDisposer::onConflict()
     _survivorCnt = _survivorCnt+max(_survivorCnt/10,static_cast<size_t>(1));
     _phaseIdx = 0;
     _phaseLen += _phaseLen/2;
-    cout<<getLearntStack().size()<<"  "<<_survivorCnt<<endl;
+//    cout<<getLearntStack().size()<<"  "<<_survivorCnt<<endl;
   }
 }
 

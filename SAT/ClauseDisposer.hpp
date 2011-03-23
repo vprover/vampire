@@ -9,6 +9,7 @@
 #include "Forwards.hpp"
 
 #include "SATClause.hpp"
+#include "TWLSolver.hpp"
 
 namespace SAT {
 
@@ -36,7 +37,7 @@ protected:
   unsigned decisionLevel();
   unsigned varCnt() const;
   SATClauseStack& getLearntStack();
-  DArray<SATClauseStack>& getWatchedStackArray();
+  DArray<WatchStack>& getWatchedStackArray();
   SATClause* getAssignmentPremise(unsigned var);
 
   void markAllRemovableUnkept();

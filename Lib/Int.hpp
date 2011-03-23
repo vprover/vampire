@@ -64,6 +64,9 @@ class Int
   /** Compare two floats */
   inline static Comparison compare (float f1, float f2)
   { return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER; }
+  /** Compare two doubles */
+  inline static Comparison compare (double f1, double f2)
+  { return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER; }
   static bool stringToLong(const char*,long& result);
   static bool stringToUnsignedLong(const char*,unsigned long& result);
   static bool stringToLong(const string& str,long& result);

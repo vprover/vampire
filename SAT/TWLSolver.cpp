@@ -246,9 +246,9 @@ void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits)
     SATLiteral rLitOp = rLit.opposite();
 
     bool resolved = false;
-    SATClauseStack::Iterator wit(getWatchStack(rLitOp));
+    WatchStack::Iterator wit(getWatchStack(rLitOp));
     while(wit.hasNext()) {
-      SATClause* cl = wit.next();
+      SATClause* cl = wit.next().cl;
       if(cl->size()!=2) {
 	continue;
       }
@@ -419,9 +419,15 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   return res;
 }
 
-TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(SATClause* cl, unsigned var, unsigned& litIndex)
+TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(Watch watch, unsigned var, unsigned& litIndex)
 {
   CALL("TWLSolver::visitWatchedClause");
+
+  if(isTrue(watch.blocker)) {
+    return VR_NONE;
+  }
+
+  SATClause* cl = watch.cl;
 
   unsigned curWatchIndex=
       ((*cl)[0].var()==var) ? 0 : 1;
@@ -429,11 +435,15 @@ TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(SATClause* cl, unsign
   ASS(isFalse((*cl)[curWatchIndex]));
 
   unsigned otherWatchIndex=1-curWatchIndex;
+
+  SATLiteral otherWatched = (*cl)[otherWatchIndex];
   ASS_NEQ((*cl)[otherWatchIndex].var(), var);
 
-  if(isTrue((*cl)[otherWatchIndex])) {
+  if(watch.blocker!=otherWatched && isTrue(otherWatched)) {
+//  if(isTrue(otherWatched)) {
     return VR_NONE; //the other watched literal is true
   }
+  ASS(!isTrue(otherWatched));
 
   unsigned clen=cl->length();
   unsigned undefIndex=clen; //contains the first undefined non-watched literal or clen if there is none
@@ -457,7 +467,7 @@ TWLSolver::ClauseVisitResult TWLSolver::visitWatchedClause(SATClause* cl, unsign
     return VR_CHANGE_WATCH;
   }
 
-  if(!isUndefined((*cl)[otherWatchIndex])) {
+  if(!isUndefined(otherWatched)) {
     //there is no undefined literal, so the whole clause is false
     ASS_REP(isFalse(cl), *cl);
     return VR_CONFLICT;
@@ -482,12 +492,14 @@ SATClause* TWLSolver::propagate(unsigned var)
   ASS(!isUndefined(var));
 
   //we go through the watch stack of literal opposite to the assigned value
-  WatchStack::Iterator wit(getTriggeredWatchStack(var, _assignment[var]));
+//  WatchStack::Iterator wit(getTriggeredWatchStack(var, _assignment[var]));
+  WatchStack::StableDelIterator wit(getTriggeredWatchStack(var, _assignment[var]));
   while(wit.hasNext()) {
-    SATClause* cl=wit.next();
+    Watch watch=wit.next();
+    SATClause* cl = watch.cl;
 
     unsigned litIndex;
-    ClauseVisitResult cvr = visitWatchedClause(cl, var, litIndex);
+    ClauseVisitResult cvr = visitWatchedClause(watch, var, litIndex);
     switch(cvr) {
     case VR_CHANGE_WATCH:
     {
@@ -495,7 +507,7 @@ SATClause* TWLSolver::propagate(unsigned var)
       unsigned curWatchIndex = ((*cl)[0].var()==var) ? 0 : 1;
       swap( (*cl)[curWatchIndex], (*cl)[litIndex] );
       wit.del();
-      tgtStack.push(cl);
+      tgtStack.push(Watch(cl, (*cl)[1-curWatchIndex]));
       break;
     }
     case VR_CONFLICT:
@@ -608,92 +620,6 @@ void TWLSolver::undoAssignment(unsigned var)
   _assignmentPremises[var] = 0;
 
   _variableSelector->onVariableUnassigned(var);
-}
-
-void TWLSolver::runSatLoop()
-{
-  CALL("TWLSolver::runSatLoop");
-
-  _restartStrategy->reset();
-
-  size_t conflictsBeforeRestart = _restartStrategy->getNextConflictCount();
-  bool restartASAP = false;
-
-  for(;;) {
-
-    if(restartASAP) {
-      backtrack(1);
-      _variableSelector->onRestart();
-      _clauseDisposer->onRestart();
-      conflictsBeforeRestart = _restartStrategy->getNextConflictCount();
-      restartASAP = false;
-    }
-
-    _clauseDisposer->onSafeSpot();
-
-    unsigned propagatedVar;
-    if(pickForPropagation(propagatedVar)) {
-    }
-    else if(_variableSelector->selectVariable(propagatedVar)) {
-      AsgnVal asgn = _lastAssignments[propagatedVar];
-      if(asgn==AS_UNDEFINED) {
-	asgn = (getWatchStack(propagatedVar, 0).size()>getWatchStack(propagatedVar, 1).size()) ? AS_FALSE : AS_TRUE;
-      }
-      makeChoiceAssignment(propagatedVar, asgn);
-    }
-    else {
-      //We don't havething to propagate, nor any choice points. This means
-      //we have fount an assignment.
-      break;
-    }
-
-
-    env.checkTimeSometime<500>();
-
-    SATClause* conflict = propagate(propagatedVar);
-    while(conflict) {
-      if(conflictsBeforeRestart==0) {
-	restartASAP = true;
-      }
-      else {
-	conflictsBeforeRestart--;
-      }
-      _variableSelector->onConflict();
-      _clauseDisposer->onConflict();
-      SATClause* learnt = getLearntClause(conflict);
-
-      if(learnt->length()==1) {
-	SATLiteral lit = (*learnt)[0];
-	unsigned lvar = lit.var();
-	backtrack(1);
-	if(isFalse(lit)) {
-	  throw UnsatException();
-	}
-	ASS(isUndefined(lit));
-	makeForcedAssignment(lit, learnt);
-	conflict = propagate(lvar);
-	continue;
-      }
-
-      unsigned nonFalseLitCnt;
-      do {
-	unsigned propBtLev = getBacktrackLevel(learnt);
-	backtrack(propBtLev);
-	nonFalseLitCnt = selectTwoNonFalseLiterals(learnt);
-      } while(nonFalseLitCnt==0);
-
-      insertIntoWatchIndex(learnt);
-      if(nonFalseLitCnt==1) {
-	ASS(isFalse((*learnt)[1]));
-	unsigned propagatedVar = (*learnt)[1].var();
-	conflict = propagate(propagatedVar);
-      }
-      else {
-	ASS_EQ(nonFalseLitCnt,2);
-	conflict = 0;
-      }
-    }
-  }
 }
 
 void TWLSolver::addUnitClause(SATClause* cl)
@@ -950,8 +876,8 @@ void TWLSolver::insertIntoWatchIndex(SATClause* cl)
 {
   CALL("TWLSolver::insertIntoWatchIndex");
 
-  getWatchStack((*cl)[0]).push(cl);
-  getWatchStack((*cl)[1]).push(cl);
+  getWatchStack((*cl)[0]).push(Watch(cl, (*cl)[1]));
+  getWatchStack((*cl)[1]).push(Watch(cl, (*cl)[0]));
 }
 
 void TWLSolver::assertValid()
@@ -974,14 +900,14 @@ void TWLSolver::assertValid()
   }
 }
 
-inline TWLSolver::WatchStack& TWLSolver::getWatchStack(SATLiteral lit)
+inline WatchStack& TWLSolver::getWatchStack(SATLiteral lit)
 {
   CALL("TWLSolver::getWatchStack/1");
 
   return _windex[lit.content()];
 }
 
-inline TWLSolver::WatchStack& TWLSolver::getWatchStack(unsigned var, unsigned polarity)
+inline WatchStack& TWLSolver::getWatchStack(unsigned var, unsigned polarity)
 {
   CALL("TWLSolver::getWatchStack/2");
   ASS_REP(polarity==0 || polarity==1, polarity);
@@ -989,7 +915,7 @@ inline TWLSolver::WatchStack& TWLSolver::getWatchStack(unsigned var, unsigned po
   return _windex[2*var + polarity];
 }
 
-inline TWLSolver::WatchStack& TWLSolver::getTriggeredWatchStack(unsigned var, AsgnVal assignment)
+inline WatchStack& TWLSolver::getTriggeredWatchStack(unsigned var, AsgnVal assignment)
 {
   CALL("TWLSolver::getTriggeredWatchStack");
   ASS(assignment!=AS_UNDEFINED);
@@ -1090,5 +1016,94 @@ void TWLSolver::printAssignment()
     }
   }
 }
+
+void TWLSolver::runSatLoop()
+{
+  CALL("TWLSolver::runSatLoop");
+
+  _restartStrategy->reset();
+
+  size_t conflictsBeforeRestart = _restartStrategy->getNextConflictCount();
+  bool restartASAP = false;
+
+  for(;;) {
+
+    if(restartASAP) {
+      backtrack(1);
+      _variableSelector->onRestart();
+      _clauseDisposer->onRestart();
+      conflictsBeforeRestart = _restartStrategy->getNextConflictCount();
+      restartASAP = false;
+    }
+
+    if(_toPropagate.isEmpty()) {
+      _clauseDisposer->onSafeSpot();
+    }
+
+    unsigned propagatedVar;
+    if(pickForPropagation(propagatedVar)) {
+    }
+    else if(_variableSelector->selectVariable(propagatedVar)) {
+      AsgnVal asgn = _lastAssignments[propagatedVar];
+      if(asgn==AS_UNDEFINED) {
+	asgn = (getWatchStack(propagatedVar, 0).size()>getWatchStack(propagatedVar, 1).size()) ? AS_FALSE : AS_TRUE;
+      }
+      makeChoiceAssignment(propagatedVar, asgn);
+    }
+    else {
+      //We don't havething to propagate, nor any choice points. This means
+      //we have fount an assignment.
+      break;
+    }
+
+
+    env.checkTimeSometime<500>();
+
+    SATClause* conflict = propagate(propagatedVar);
+    while(conflict) {
+      if(conflictsBeforeRestart==0) {
+	restartASAP = true;
+      }
+      else {
+	conflictsBeforeRestart--;
+      }
+      _variableSelector->onConflict();
+      _clauseDisposer->onConflict();
+      SATClause* learnt = getLearntClause(conflict);
+
+      if(learnt->length()==1) {
+	SATLiteral lit = (*learnt)[0];
+	unsigned lvar = lit.var();
+	backtrack(1);
+	if(isFalse(lit)) {
+	  throw UnsatException();
+	}
+	ASS(isUndefined(lit));
+	makeForcedAssignment(lit, learnt);
+	conflict = propagate(lvar);
+	continue;
+      }
+
+      unsigned nonFalseLitCnt;
+      do {
+	unsigned propBtLev = getBacktrackLevel(learnt);
+	backtrack(propBtLev);
+	nonFalseLitCnt = selectTwoNonFalseLiterals(learnt);
+      } while(nonFalseLitCnt==0);
+
+      insertIntoWatchIndex(learnt);
+      if(nonFalseLitCnt==1) {
+	ASS(isFalse((*learnt)[1]));
+	unsigned propagatedVar = (*learnt)[1].var();
+	conflict = propagate(propagatedVar);
+      }
+      else {
+	ASS_EQ(nonFalseLitCnt,2);
+	conflict = 0;
+      }
+    }
+  }
+}
+
 
 }
