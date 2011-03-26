@@ -150,9 +150,16 @@ private:
   SmartPtr<LiteralMiniIndex> _queryIndex;
 };
 
+ClauseIterator ClauseVariantIndex::retrieveVariants(Clause* cl)
+{
+  CALL("ClauseVariantIndex::retrieveVariants/1");
+
+  return retrieveVariants(cl->literals(), cl->length());
+}
+
 ClauseIterator ClauseVariantIndex::retrieveVariants(Literal** lits, unsigned length)
 {
-  CALL("ClauseVariantIndex::retrieveVariants");
+  CALL("ClauseVariantIndex::retrieveVariants/2");
 
   if(length==0) {
     return pvi( ClauseList::Iterator(_emptyClauses) );

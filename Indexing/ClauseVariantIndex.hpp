@@ -27,6 +27,7 @@ public:
   void insert(Clause* cl);
 
   ClauseIterator retrieveVariants(Literal** lits, unsigned length);
+  ClauseIterator retrieveVariants(Clause* cl);
 
 private:
   Literal* getMainLiteral(Literal** lits, unsigned length);

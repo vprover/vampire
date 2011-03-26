@@ -358,6 +358,8 @@ string Inference::ruleName(Rule rule)
     return "program analysis";
   case COLOR_UNBLOCKING:
     return "color unblocking";
+  case INSTANCE_GENERATION:
+    return "instance generation";
 
   default:
     ASSERTION_VIOLATION;

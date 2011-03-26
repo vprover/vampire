@@ -36,6 +36,8 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
+#include "InstGen/IGAlgorithm.hpp"
+
 #include "SAT/DIMACS.hpp"
 
 #include "Shell/CASC/CASCMode.hpp"
@@ -72,6 +74,7 @@ using namespace Shell;
 using namespace SAT;
 using namespace Saturation;
 using namespace Inferences;
+using namespace InstGen;
 
 UnitList* globUnitList=0;
 
@@ -317,6 +320,39 @@ void axiomSelectionMode()
   vampireReturnValue=0;
 }
 
+void instGenMode()
+{
+  CALL("instGenMode()");
+
+  env.beginOutput();
+  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
+  env.endOutput();
+
+  ClauseIterator clauses=getProblemClauses();
+
+  IGAlgorithm iga;
+  iga.addInputClauses(clauses);
+
+  Statistics::TerminationReason res = iga.process();
+
+
+  env.beginOutput();
+  switch(res) {
+  case Statistics::SATISFIABLE:
+    env.out()<<"SAT"<<endl;
+    break;
+  case Statistics::REFUTATION:
+    env.out()<<"UNSAT"<<endl;
+    break;
+  default:
+    env.out()<<"ERROR"<<endl;
+    break;
+  }
+  env.endOutput();
+
+  vampireReturnValue=0;
+}
+
 void groundingMode()
 {
   CALL("groundingMode()");
@@ -430,6 +466,9 @@ int main(int argc, char* argv [])
       break;
     case Options::MODE_GROUNDING:
       groundingMode();
+      break;
+    case Options::MODE_INST_GEN:
+      instGenMode();
       break;
     case Options::MODE_SPIDER:
       spiderMode();

@@ -93,7 +93,7 @@ void TWLSolver::backtrack(unsigned tgtLevel)
 
   static Stack<USRec> marks;
   static ZIArray<unsigned> varMarkTgts;
-  static ZIArray<AsgnVal> prevAssignments;
+  static ZIArray<PackedAsgnVal> prevAssignments;
   static ZIArray<SATClause*> prevPremises;
 
   if(tgtLevel==_level) {
@@ -414,6 +414,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   ASS(isFalse(res));
   _learntClauses.push(res);
   env.statistics->learntSatClauses++;
+  env.statistics->learntSatLiterals += res->length();
 //  cout<<res->toString()<<endl;
   recordClauseActivity(res);
   return res;
@@ -857,7 +858,8 @@ bool TWLSolver::pickForPropagation(unsigned& var)
     return false;
   }
 
-  var = _toPropagate.pop_back();
+//  var = _toPropagate.pop_back();
+  var = _toPropagate.pop_front();
   _propagationScheduled.remove(var);
   return true;
 }
@@ -915,7 +917,7 @@ inline WatchStack& TWLSolver::getWatchStack(unsigned var, unsigned polarity)
   return _windex[2*var + polarity];
 }
 
-inline WatchStack& TWLSolver::getTriggeredWatchStack(unsigned var, AsgnVal assignment)
+inline WatchStack& TWLSolver::getTriggeredWatchStack(unsigned var, PackedAsgnVal assignment)
 {
   CALL("TWLSolver::getTriggeredWatchStack");
   ASS(assignment!=AS_UNDEFINED);
@@ -1000,6 +1002,15 @@ bool TWLSolver::isTrue(SATClause* cl) const
   return false;
 }
 
+bool TWLSolver::getAssignment(unsigned var)
+{
+  CALL("TWLSolver::getAssignment");
+  ASS_EQ(getStatus(), SATISFIABLE);
+  ASS_L(var, _varCnt);
+
+  return isTrue(var);
+}
+
 void TWLSolver::printAssignment()
 {
   CALL("TWLSolver::printAssignment");
@@ -1044,7 +1055,7 @@ void TWLSolver::runSatLoop()
     if(pickForPropagation(propagatedVar)) {
     }
     else if(_variableSelector->selectVariable(propagatedVar)) {
-      AsgnVal asgn = _lastAssignments[propagatedVar];
+      PackedAsgnVal asgn = _lastAssignments[propagatedVar];
       if(asgn==AS_UNDEFINED) {
 	asgn = (getWatchStack(propagatedVar, 0).size()>getWatchStack(propagatedVar, 1).size()) ? AS_FALSE : AS_TRUE;
       }

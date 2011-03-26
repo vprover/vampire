@@ -402,6 +402,7 @@ const char* Options::Constants::_modeValues[] = {
   "clausify",
   "consequence_elimination",
   "grounding",
+  "inst_gen",
   "ltb_build",
   "ltb_solve",
   "profile",

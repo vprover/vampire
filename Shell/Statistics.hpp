@@ -151,6 +151,8 @@ public:
   unsigned binarySatClauses;
   /** Number of clauses learned by the SAT solver */
   unsigned learntSatClauses;
+  /** Number of literals in clauses learned by the SAT solver */
+  unsigned learntSatLiterals;
   /** Memory used by BDDs */
   size_t bddMemoryUsage;
 

@@ -51,6 +51,7 @@ public:
   virtual void addClauses(SATClauseIterator cit);
   virtual Status getStatus() { return _status; };
   virtual void ensureVarCnt(unsigned newVarCnt);
+  virtual bool getAssignment(unsigned var);
 
   void assertValid();
   void printAssignment();
@@ -63,10 +64,11 @@ private:
     AS_TRUE = 1u,
     AS_UNDEFINED = 2u
   };
+  typedef char PackedAsgnVal;
 
   WatchStack& getWatchStack(SATLiteral lit);
   WatchStack& getWatchStack(unsigned var, unsigned polarity);
-  WatchStack& getTriggeredWatchStack(unsigned var, AsgnVal assignment);
+  WatchStack& getTriggeredWatchStack(unsigned var, PackedAsgnVal assignment);
 
   bool isTrue(SATLiteral lit) const;
   bool isFalse(SATLiteral lit) const;
@@ -75,6 +77,10 @@ private:
   /** Return true iff variable @c var is undefined in the current assignment */
   bool isUndefined(unsigned var) const {
     return _assignment[var] == AS_UNDEFINED;
+  }
+  /** Return true iff variable @c var is true in the current assignment */
+  bool isTrue(unsigned var) const {
+    return _assignment[var] == AS_TRUE;
   }
 
   bool isFalse(SATClause* cl) const;
@@ -156,7 +162,8 @@ private:
 
 
   Status _status;
-  DArray<AsgnVal> _assignment;
+//  DArray<AsgnVal> _assignment;
+  DArray<PackedAsgnVal> _assignment;
   DArray<unsigned> _assignmentLevels;
 
   /**
@@ -193,7 +200,7 @@ private:
   unsigned _level;
 
   /** truth values that were assigned to each variable most recently */
-  DArray<AsgnVal> _lastAssignments;
+  DArray<PackedAsgnVal> _lastAssignments;
 
   /**
    * Stack of learnt clauses

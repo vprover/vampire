@@ -243,6 +243,8 @@ using namespace Lib;
 class SATClause;
 class SATLiteral;
 
+class SATSolver;
+typedef ScopedPtr<SATSolver> SATSolverSCP;
 class TWLSolver;
 
 class RestartStrategy;

@@ -86,7 +86,7 @@ SATClause* SATClause::fromStack(SATLiteralStack& stack)
   unsigned clen = stack.size();
   SATClause* rcl=new(clen) SATClause(clen);
 
-  SATLiteralStack::Iterator it(stack);
+  SATLiteralStack::BottomFirstIterator it(stack);
 
   unsigned i=0;
   while(it.hasNext()) {
