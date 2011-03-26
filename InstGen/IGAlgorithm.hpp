@@ -14,6 +14,8 @@
 
 #include "Indexing/ClauseVariantIndex.hpp"
 
+#include "Inferences/InferenceEngine.hpp"
+
 #include "SAT/SATSolver.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -23,6 +25,7 @@
 namespace InstGen {
 
 using namespace Kernel;
+using namespace Inferences;
 using namespace Indexing;
 using namespace SAT;
 using namespace Shell;
@@ -37,11 +40,13 @@ public:
     addClauses(it);
   }
 
-  TerminationReason process();
+  TerminationReason run();
 private:
 
   void addClauses(ClauseIterator it);
   void addClause(Clause* cl);
+
+  void processUnprocessed();
 
   void collectSelected(LiteralSubstitutionTree& acc);
   void tryGeneratingInstances(Clause* cl, unsigned litIdx, LiteralSubstitutionTree& selected);
@@ -55,14 +60,13 @@ private:
   SATSolverSCP _satSolver;
 
   /** Clauses that weren't yet added into the SATSolver */
-  SATClauseStack _unprocessed;
+  ClauseStack _unprocessed;
   /** Clauses that are inside the SATSolver */
-  SATClauseStack _active;
+  ClauseStack _active;
 
   ClauseVariantIndex _variantIdx;
 
-  DHMap<SATClause*,Clause*> _s2c;
-  DHMap<Clause*,SATClause*> _c2s;
+  DuplicateLiteralRemovalISE _dlr;
 };
 
 }

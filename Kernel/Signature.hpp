@@ -185,11 +185,13 @@ class Signature
   /** return the arity of a function with a given number */
   const unsigned functionArity(int number)
   {
+    CALL("Signature::functionArity");
     return _funs[number]->arity();
   }
   /** return the arity of a predicate with a given number */
   const unsigned predicateArity(int number)
   {
+    CALL("Signature::predicateArity");
     return _preds[number]->arity();
   }
 

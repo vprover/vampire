@@ -95,8 +95,6 @@ private:
   void addClause(SATClause* cl);
   void addUnitClause(SATClause* cl);
 
-  void addMissingWatchLitClause(SATClause* cl);
-
   void backtrack(unsigned tgtLevel);
 
   void runSatLoop();
@@ -123,7 +121,6 @@ private:
   SATClause* propagate(unsigned var);
   void propagateAndBacktrackIfNeeded(unsigned var);
 
-  void incorporateUnprocessed();
   unsigned getBacktrackLevel(SATClause* conflictClause);
 
   void doSubsumptionResolution(SATLiteralStack& lits);
@@ -141,21 +138,17 @@ private:
 
   void schedulePropagation(unsigned var);
   void resetPropagation();
-  bool pickForPropagation(unsigned& var);
+  bool anythingToPropagate() { return _toPropagate.isNonEmpty(); }
+  unsigned pickForPropagation();
 
   /** Unit-stack record */
   struct USRec
   {
     unsigned var;
     unsigned choice : 1;
-    unsigned mark : 1;
-    unsigned markedIsDefining : 1;
-    unsigned markTgtLevel : 29;
     USRec() {}
-    USRec(unsigned var, bool choice, bool mark=false,
-	    bool markedIsDefining=false, unsigned markTgtLevel=0)
-    : var(var), choice(choice), mark(mark), markedIsDefining(markedIsDefining),
-    markTgtLevel(markTgtLevel)
+    USRec(unsigned var, bool choice)
+    : var(var), choice(choice)
     {}
 
   };
@@ -184,13 +177,6 @@ private:
    * or it's two watched literals are undefined.
    */
   DArray<WatchStack> _windex;
-
-  /**
-   * Clauses that aren't part of the _windex.
-   *
-   * These clauses can't be added until we backtrack to certain level.
-   */
-  DArray<SATClauseStack > _unprocessed;
 
   ZIArray<unsigned> _chosenVars;
 

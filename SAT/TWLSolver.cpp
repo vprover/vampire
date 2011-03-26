@@ -33,7 +33,7 @@ using namespace Lib;
 
 TWLSolver::TWLSolver()
 : _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
-_windex(0), _unprocessed(0), _varCnt(0), _level(1)
+_windex(0), _varCnt(0), _level(1)
 {
   _variableSelector = new ActiveVariableSelector(*this);
 //  _variableSelector = new ArrayActiveVariableSelector(*this);
@@ -75,7 +75,6 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
   _propagationScheduled.expand(newVarCnt);
 
   _windex.expand(newVarCnt*2);
-  _unprocessed.expand(newVarCnt+1);
 
   _varCnt=newVarCnt;
 
@@ -91,11 +90,6 @@ void TWLSolver::backtrack(unsigned tgtLevel)
   CALL("TWLSolver::backtrack");
   ASSERT_VALID(*this);
 
-  static Stack<USRec> marks;
-  static ZIArray<unsigned> varMarkTgts;
-  static ZIArray<PackedAsgnVal> prevAssignments;
-  static ZIArray<SATClause*> prevPremises;
-
   if(tgtLevel==_level) {
     return;
   }
@@ -106,62 +100,20 @@ void TWLSolver::backtrack(unsigned tgtLevel)
     throw UnsatException();
   }
 
-  ASS(marks.isEmpty());
-
   USRec rec;
   for(;;) {
     rec=_unitStack.pop();
-    if(rec.mark) {
-      if(varMarkTgts[rec.var]==0 || varMarkTgts[rec.var]>rec.markTgtLevel) {
-	marks.push(rec);
-	varMarkTgts[rec.var]=rec.markTgtLevel;
-      }
-    }
-    ASS(!rec.mark || rec.markTgtLevel>=_assignmentLevels[rec.var]);
-    if(!isUndefined(rec.var) && (!rec.mark || rec.markedIsDefining)) {
-      if(rec.mark) {
-	prevAssignments[rec.var] = _assignment[rec.var];
-	prevPremises[rec.var] = _assignmentPremises[rec.var];
-      }
+    ASS_EQ(rec.choice, (_assignmentPremises[rec.var])==0);
+    if(!isUndefined(rec.var)) {
       undoAssignment(rec.var);
     }
     if(rec.choice) {
       _level--;
-      incorporateUnprocessed();
       ASS_GE(_level, tgtLevel);
       if(_level==tgtLevel) {
 	break;
       }
     }
-  };
-
-  while(marks.isNonEmpty()) {
-    USRec rec=marks.pop();
-    ASS_NEQ(varMarkTgts[rec.var], 0);
-    ASS(rec.mark);
-    if(varMarkTgts[rec.var]<rec.markTgtLevel) {
-      continue;
-    }
-    varMarkTgts[rec.var]=0;
-
-    if(rec.mark && rec.markTgtLevel>_level) {
-      continue;
-    }
-    if(rec.mark && rec.markTgtLevel==_level) {
-      rec.mark=false;
-    }
-    ASS_LE(_assignmentLevels[rec.var],_level);
-    if(isUndefined(rec.var)) {
-      setAssignment(rec.var, prevAssignments[rec.var]);
-      _assignmentPremises[rec.var] = prevPremises[rec.var];
-      //the _assignmentLevels[rec.var] value is properly assigned from
-      //the previous time
-      rec.markedIsDefining=true;
-
-      schedulePropagation(rec.var);
-    }
-
-    _unitStack.push(rec);
   }
 
   ASS_EQ(_level, tgtLevel);
@@ -170,19 +122,6 @@ void TWLSolver::backtrack(unsigned tgtLevel)
 #if VDEBUG
   assertValid();
 #endif
-}
-
-void TWLSolver::incorporateUnprocessed()
-{
-  CALL("TWLSolver::incorporateUnprocessed");
-
-  Stack<SATClause*>& unp=_unprocessed[_level];
-  while(unp.isNonEmpty()) {
-    SATClause* cl=unp.pop();
-    //unprocessed literals must already have literals
-    //to be watched in the right place
-    insertIntoWatchIndex(cl);
-  }
 }
 
 unsigned TWLSolver::getBacktrackLevel(SATClause* conflictClause)
@@ -359,9 +298,11 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   resLits.reset();
   toDo.reset();
 
+  LOG("LC Gen");
   toDo.push(conflictClause);
   while(toDo.isNonEmpty()) {
     SATClause* cl=toDo.pop();
+    LOG(cl->toString());
     recordClauseActivity(cl);
     SATClause::Iterator cit(*cl);
     while(cit.hasNext()) {
@@ -404,6 +345,9 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
     while(rlIt.hasNext()) {
       SATLiteral lit = rlIt.next();
       if(getAssignmentLevel(lit)==_level) {
+	if(curLevFound) {
+	  printAssignment();
+	}
 	ASS(!curLevFound);
 	curLevFound = true;
       }
@@ -517,10 +461,7 @@ SATClause* TWLSolver::propagate(unsigned var)
     {
       //So let's unit-propagate...
       SATLiteral undefLit=(*cl)[litIndex];
-      unsigned uvar=undefLit.var();
-
       makeForcedAssignment(undefLit, cl);
-      schedulePropagation(uvar);
       break;
     }
     case VR_NONE:
@@ -596,6 +537,7 @@ void TWLSolver::makeChoiceAssignment(unsigned var, unsigned polarity)
   _assignmentLevels[var]=_level;
   _assignmentPremises[var]=0;
   _unitStack.push(USRec(var, true));
+  schedulePropagation(var);
 
   LOG("choice point "<<var<<" to level "<<_level);
 }
@@ -611,6 +553,7 @@ void TWLSolver::makeForcedAssignment(SATLiteral lit, SATClause* premise)
   _assignmentLevels[var]=_level;
   _assignmentPremises[var]=premise;
   _unitStack.push(USRec(var, false));
+  schedulePropagation(var);
 }
 
 void TWLSolver::undoAssignment(unsigned var)
@@ -630,73 +573,14 @@ void TWLSolver::addUnitClause(SATClause* cl)
   LOG("adding unit "<<(*cl));
 
   SATLiteral lit=(*cl)[0];
-  unsigned lvar=lit.var();
 
+  backtrack(1);
   if(isFalse(lit)) {
-    do {
-      unsigned btLevel=getBacktrackLevel(cl);
-      ASS_NEQ(btLevel, _level);
-      backtrack(btLevel);
-    } while (isFalse(lit));
-    ASS(isUndefined(lit))
+    throw UnsatException();
   }
-  ASS(!isFalse(lit));
-
-  _assignmentLevels[lvar]=1;
-  _assignmentPremises[lvar]=cl;
-  if(isUndefined(lvar)) {
-    setAssignment(lvar, lit.polarity());
-    _unitStack.push( USRec(lvar, false, true, true, 1) );
-
-    schedulePropagation(lvar);
-  } else {
-    ASS(isTrue(lit));
-    _unitStack.push( USRec(lvar, false, true, false, 1) );
+  if(isUndefined(lit)) {
+    makeForcedAssignment(lit, cl);
   }
-}
-
-/**
- * Handle clause which implies an assignment on earlier than the
- * current level.
- *
- * First literal of the clause must contain the variable whose
- * assignment is implied. Second is the literal with highest
- * assignment level in the rest of the clause (this level is the
- * level on which the assignment is implied by unit propagation).
- */
-void TWLSolver::addMissingWatchLitClause(SATClause* cl)
-{
-  CALL("TWLSolver::addMissingWatchLitClause");
-
-  LOG("mwl clause: "<<(*cl));
-  LOG("--");
-
-  SATLiteral wLit=(*cl)[0];
-  SATLiteral swLit=(*cl)[1]; //second (pseudo-)watched literal
-
-  unsigned wvar=wLit.var();
-
-  ASS(isFalse(swLit));
-
-  unsigned lowerWatchLevel=getAssignmentLevel(swLit);
-  ASS_L(lowerWatchLevel, _level);
-
-  ASS(isUndefined(wvar) || getAssignmentLevel(wLit)>lowerWatchLevel);
-
-  _unprocessed[lowerWatchLevel].push(cl);
-
-  _assignmentPremises[wvar]=cl;
-  _assignmentLevels[wvar]=lowerWatchLevel;
-  if( isUndefined(wLit) ) {
-    setAssignment(wvar, wLit.polarity());
-    _unitStack.push( USRec(wvar, false, true, true, lowerWatchLevel) );
-
-    schedulePropagation(wvar);
-  } else {
-    ASS(isTrue(wLit));
-    _unitStack.push( USRec(wvar, false, true, false, lowerWatchLevel) );
-  }
-  LOG("");
 }
 
 /**
@@ -814,15 +698,18 @@ void TWLSolver::addClause(SATClause* cl)
   SATLiteral wLit=(*cl)[0];
   unsigned hLev=getAssignmentLevel((*cl)[1]);
 
-  if(isTrue(wLit) && hLev>=getAssignmentLevel(wLit)) {
-    insertIntoWatchIndex(cl);
-  } else if(isUndefined(wLit) && hLev==_level) {
-    makeForcedAssignment(wLit, cl);
+  if(hLev!=_level) {
+    ASS_L(hLev,_level);
+    backtrack(hLev);
+  }
 
+  if(isTrue(wLit)) {
     insertIntoWatchIndex(cl);
-    schedulePropagation(wLit.var());
-  } else {
-    addMissingWatchLitClause(cl);
+  }
+  else {
+    ASS(isUndefined(wLit));
+    makeForcedAssignment(wLit, cl);
+    insertIntoWatchIndex(cl);
   }
 }
 
@@ -850,18 +737,16 @@ void TWLSolver::resetPropagation()
   _toPropagate.reset();
 }
 
-bool TWLSolver::pickForPropagation(unsigned& var)
+unsigned TWLSolver::pickForPropagation()
 {
   CALL("TWLSolver::pickForPropagation");
+  ASS(_toPropagate.isNonEmpty());
 
-  if(_toPropagate.isEmpty()) {
-    return false;
-  }
-
+  unsigned var;
 //  var = _toPropagate.pop_back();
   var = _toPropagate.pop_front();
   _propagationScheduled.remove(var);
-  return true;
+  return var;
 }
 
 void TWLSolver::recordClauseActivity(SATClause* cl)
@@ -896,9 +781,6 @@ void TWLSolver::assertValid()
   while(uit.hasNext()) {
     USRec rec=uit.next();
     ASS_NEQ(_assignment[rec.var], AS_UNDEFINED);
-    if(rec.mark) {
-      ASS_LE(_assignmentLevels[rec.var], rec.markTgtLevel);
-    }
   }
 }
 
@@ -1007,6 +889,7 @@ bool TWLSolver::getAssignment(unsigned var)
   CALL("TWLSolver::getAssignment");
   ASS_EQ(getStatus(), SATISFIABLE);
   ASS_L(var, _varCnt);
+  ASS(!isUndefined(var));
 
   return isTrue(var);
 }
@@ -1017,9 +900,9 @@ void TWLSolver::printAssignment()
 
   for(unsigned i=0;i<_varCnt;i++) {
     if(_assignment[i]==AS_UNDEFINED) {
-      cout<<i<<"\t"<<_assignment[i]<<endl;
+      cout<<i<<"\t"<<static_cast<AsgnVal>(_assignment[i])<<endl;
     } else {
-      cout<<i<<"\t"<<_assignment[i]<<"\t"<<_assignmentLevels[i];
+      cout<<i<<"\t"<<static_cast<AsgnVal>(_assignment[i])<<"\t"<<_assignmentLevels[i];
       if(_assignmentPremises[i]) {
 	cout<<"\t"<<(*_assignmentPremises[i])<<"\t"<<_assignmentPremises[i];
       }
@@ -1051,23 +934,20 @@ void TWLSolver::runSatLoop()
       _clauseDisposer->onSafeSpot();
     }
 
-    unsigned propagatedVar;
-    if(pickForPropagation(propagatedVar)) {
-    }
-    else if(_variableSelector->selectVariable(propagatedVar)) {
-      PackedAsgnVal asgn = _lastAssignments[propagatedVar];
-      if(asgn==AS_UNDEFINED) {
-	asgn = (getWatchStack(propagatedVar, 0).size()>getWatchStack(propagatedVar, 1).size()) ? AS_FALSE : AS_TRUE;
+    if(!anythingToPropagate()) {
+      unsigned choiceVar;
+      if(!_variableSelector->selectVariable(choiceVar)) {
+        //We don't havething to propagate, nor any choice points. This means
+        //we have fount an assignment.
+	break;
       }
-      makeChoiceAssignment(propagatedVar, asgn);
+      PackedAsgnVal asgn = _lastAssignments[choiceVar];
+      if(asgn==AS_UNDEFINED) {
+	asgn = (getWatchStack(choiceVar, 0).size()>getWatchStack(choiceVar, 1).size()) ? AS_FALSE : AS_TRUE;
+      }
+      makeChoiceAssignment(choiceVar, asgn);
     }
-    else {
-      //We don't havething to propagate, nor any choice points. This means
-      //we have fount an assignment.
-      break;
-    }
-
-
+    unsigned propagatedVar = pickForPropagation();
     env.checkTimeSometime<500>();
 
     SATClause* conflict = propagate(propagatedVar);

@@ -45,6 +45,7 @@
 #include "Shell/CASC/SimpleLTBMode.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
+#include "Shell/EqualityProxy.hpp"
 #include "Shell/Grounding.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
@@ -330,10 +331,21 @@ void instGenMode()
 
   ClauseIterator clauses=getProblemClauses();
 
+  UnitList* units = 0;
+  UnitList::pushFromIterator(clauses, units);
+
+  Property property;
+  property.scan(units);
+  if(property.equalityAtoms()) {
+    EqualityProxy ep(Options::EP_RSTC);
+    ep.apply(units);
+  }
+  clauses = pvi( getStaticCastIterator<Clause*>(UnitList::DestructiveIterator(units)) );
+
   IGAlgorithm iga;
   iga.addInputClauses(clauses);
 
-  Statistics::TerminationReason res = iga.process();
+  Statistics::TerminationReason res = iga.run();
 
 
   env.beginOutput();

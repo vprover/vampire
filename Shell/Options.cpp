@@ -362,6 +362,7 @@ const char* Options::Constants::_equalityProxyValues[] = {
     "R",
     "RS",
     "RST",
+    "RSTC",
     "off",
     "on"};
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,

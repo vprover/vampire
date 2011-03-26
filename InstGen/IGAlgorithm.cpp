@@ -10,14 +10,15 @@
 
 #include "Indexing/LiteralSubstitutionTree.hpp"
 
+#include "SAT/Preprocess.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/TWLSolver.hpp"
 
 #include "IGAlgorithm.hpp"
 
 #undef LOGGING
-#define LOGGING 0
-
+#define LOGGING 1
+//TODO:Equality
 namespace InstGen
 {
 
@@ -38,25 +39,47 @@ void IGAlgorithm::addClauses(ClauseIterator it)
   CALL("IGAlgorithm::addClauses");
 
   while(it.hasNext()) {
-    Clause* cl = it.next();
-    if(_variantIdx.retrieveVariants(cl).hasNext()) {
-      continue;
-    }
-    LOG("Generated "<<cl->toString());
-    SATClause* sc = _gnd.ground(cl);
-    _s2c.insert(sc, cl);
-    _c2s.insert(cl, sc);
-    _unprocessed.push(sc);
-    _variantIdx.insert(cl);
+    addClause(it.next());
   }
-  _satSolver->ensureVarCnt(_gnd.satVarCnt());
 }
 
 void IGAlgorithm::addClause(Clause* cl)
 {
   CALL("IGAlgorithm::addClause");
 
-  addClauses( pvi(getSingletonIterator(cl)) );
+  cl = _dlr.simplify(cl);
+  if(_variantIdx.retrieveVariants(cl).hasNext()) {
+    return;
+  }
+  _variantIdx.insert(cl);
+
+  _unprocessed.push(cl);
+}
+
+void IGAlgorithm::processUnprocessed()
+{
+  CALL("IGAlgorithm::processUnprocessed");
+
+  static SATClauseStack satClauses;
+  satClauses.reset();
+
+  while(_unprocessed.isNonEmpty()) {
+    Clause* cl = _unprocessed.pop();
+
+    _active.push(cl);
+
+//    LOG("Added clause "<<cl->toString());
+    SATClause* sc = _gnd.ground(cl);
+    satClauses.push(sc);
+  }
+  _satSolver->ensureVarCnt(_gnd.satVarCnt());
+
+  SATClauseIterator scit = pvi( SATClauseStack::Iterator(satClauses) );
+  scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
+
+  LOG("Solver started");
+  _satSolver->addClauses(scit);
+  LOG("Solver finished");
 }
 
 bool IGAlgorithm::isSelected(Literal* lit)
@@ -73,11 +96,9 @@ void IGAlgorithm::collectSelected(LiteralSubstitutionTree& acc)
 {
   CALL("IGAlgorithm::collectSelected");
 
-  SATClauseStack::Iterator scit(_active);
-  while(scit.hasNext()) {
-    SATClause* sc = scit.next();
-    Clause* cl = _s2c.get(sc);
-    ASS_EQ(sc->length(), cl->length()); //corresponding clauses must have the same length
+  ClauseStack::Iterator cit(_active);
+  while(cit.hasNext()) {
+    Clause* cl = cit.next();
     unsigned clen = cl->length();
     for(unsigned i=0; i<clen; i++) {
       if(!isSelected((*cl)[i])) {
@@ -143,10 +164,9 @@ void IGAlgorithm::generateInstances()
 
   collectSelected(selected);
 
-  SATClauseStack::Iterator scit(_active);
-  while(scit.hasNext()) {
-    SATClause* sc = scit.next();
-    Clause* cl = _s2c.get(sc);
+  ClauseStack::Iterator cit(_active);
+  while(cit.hasNext()) {
+    Clause* cl = cit.next();
     unsigned clen = cl->length();
     for(unsigned i=0; i<clen; i++) {
       if(!isSelected((*cl)[i])) {
@@ -154,20 +174,19 @@ void IGAlgorithm::generateInstances()
       }
       tryGeneratingInstances(cl, i, selected);
     }
+    if(_unprocessed.size()>_active.size()) {
+      return;
+    }
   }
 }
 
-IGAlgorithm::TerminationReason IGAlgorithm::process()
+IGAlgorithm::TerminationReason IGAlgorithm::run()
 {
   CALL("IGAlgorithm::process");
   LOG("IGA started");
 
   while(_unprocessed.isNonEmpty()) {
-    LOG("Solver started");
-    _satSolver->addClauses(pvi( SATClauseStack::Iterator(_unprocessed) ));
-    LOG("Solver finished");
-    _active.loadFromIterator(SATClauseStack::Iterator(_unprocessed));
-    _unprocessed.reset();
+    processUnprocessed();
 
     if(_satSolver->getStatus()==SATSolver::UNSATISFIABLE) {
       return Statistics::REFUTATION;

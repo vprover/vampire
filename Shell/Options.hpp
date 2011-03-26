@@ -266,10 +266,11 @@ public:
     EP_R = 0,
     EP_RS = 1,
     EP_RST = 2,
+    EP_RSTC = 3,
     /** --equality_proxy=off */
-    EP_OFF = 3,
+    EP_OFF = 4,
     /** --equality_proxy=on */
-    EP_ON = 4
+    EP_ON = 5
   };
 
 public:

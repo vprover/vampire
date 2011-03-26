@@ -28,13 +28,29 @@ unsigned EqualityProxy::s_proxyPredicate = 0;
 EqualityProxy::EqualityProxy()
 : _opt(env.options->equalityProxy())
 {
-  CALL("EqualityProxy::EqualityProxy");
-  ASS_EQ(s_proxyPredicate,0);
+  CALL("EqualityProxy::EqualityProxy/0");
+
+  init();
+}
+
+EqualityProxy::EqualityProxy(Options::EqualityProxy opt)
+: _opt(opt)
+{
+  CALL("EqualityProxy::EqualityProxy/1");
+
+  init();
+}
+
+
+void EqualityProxy::init()
+{
+  CALL("EqualityProxy::init");
 
   switch (_opt) {
   case Options::EP_R:
   case Options::EP_RS:
   case Options::EP_RST:
+  case Options::EP_RSTC:
     _rst = true;
     break;
   case Options::EP_ON:
@@ -43,17 +59,19 @@ EqualityProxy::EqualityProxy()
   default:
     ASSERTION_VIOLATION;
   }
-  string proxy("sQ1_eqProxy");
-  bool added;
-  unsigned predNum;
-  for(;;) {
-    predNum=env.signature->addPredicate(proxy,2,added);
-    if(added) {
-      break;
-    }
-    proxy += "_";
-  };
-  s_proxyPredicate=predNum;
+  if(!s_proxyPredicate) {
+    string proxy("sQ1_eqProxy");
+    bool added;
+    unsigned predNum;
+    for(;;) {
+      predNum=env.signature->addPredicate(proxy,2,added);
+      if(added) {
+	break;
+      }
+      proxy += "_";
+    };
+    s_proxyPredicate=predNum;
+  }
 }
 
 
@@ -85,18 +103,21 @@ void EqualityProxy::addAxioms(UnitList*& units)
     UnitList::push(axR,units);
   }
 
-  if(_opt==Options::EP_RS ||_opt==Options::EP_RST) {
+  if(_opt==Options::EP_RS || _opt==Options::EP_RST || _opt==Options::EP_RSTC) {
     Clause* axS = new(2) Clause(2, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
     (*axS)[0]=makeProxyLiteral(false,TermList(0,false),TermList(1,false));
     (*axS)[1]=makeProxyLiteral(true,TermList(1,false),TermList(0,false));
     UnitList::push(axS,units);
   }
-  if(_opt==Options::EP_RST) {
+  if(_opt==Options::EP_RST || _opt==Options::EP_RSTC) {
     Clause* axT = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
     (*axT)[0]=makeProxyLiteral(false,TermList(0,false),TermList(1,false));
     (*axT)[1]=makeProxyLiteral(false,TermList(1,false),TermList(2,false));
     (*axT)[2]=makeProxyLiteral(true,TermList(0,false),TermList(2,false));
     UnitList::push(axT,units);
+  }
+  if(_opt==Options::EP_RSTC) {
+    addCongruenceAxioms(units);
   }
 
   if(!_rst) {
@@ -106,6 +127,63 @@ void EqualityProxy::addAxioms(UnitList*& units)
     UnitList::push(axE,units);
   }
 }
+
+void EqualityProxy::getVariableEqualityLiterals(unsigned cnt, LiteralStack& lits,
+    Stack<TermList>& vars1, Stack<TermList>& vars2)
+{
+  CALL("EqualityProxy::getVariableEqualityLiterals");
+
+  lits.reset();
+  vars1.reset();
+  vars2.reset();
+
+  for(unsigned i=0; i<cnt; i++) {
+    TermList v1(2*i, false);
+    TermList v2(2*i+1, false);
+    lits.push(makeProxyLiteral(false, v1, v2));
+    vars1.push(v1);
+    vars2.push(v2);
+  }
+}
+
+void EqualityProxy::addCongruenceAxioms(UnitList*& units)
+{
+  CALL("EqualityProxy::addCongruenceAxioms");
+
+  Stack<TermList> vars1;
+  Stack<TermList> vars2;
+  LiteralStack lits;
+
+  unsigned preds = env.signature->predicates();
+  for(unsigned i=1; i<preds; i++) {
+    unsigned arity = env.signature->predicateArity(i);
+    if(i==s_proxyPredicate || !arity) {
+      continue;
+    }
+    getVariableEqualityLiterals(arity, lits, vars1, vars2);
+    lits.push(Literal::create(i, arity, false, false, vars1.begin()));
+    lits.push(Literal::create(i, arity, true, false, vars2.begin()));
+
+    Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
+    UnitList::push(cl,units);
+  }
+
+  unsigned funs = env.signature->functions();
+  for(unsigned i=0; i<funs; i++) {
+    unsigned arity = env.signature->functionArity(i);
+    if(!arity) {
+      continue;
+    }
+    getVariableEqualityLiterals(arity, lits, vars1, vars2);
+    Term* t1 = Term::create(i, arity, vars1.begin());
+    Term* t2 = Term::create(i, arity, vars2.begin());
+    lits.push(makeProxyLiteral(true, TermList(t1), TermList(t2)));
+
+    Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
+    UnitList::push(cl,units);
+  }
+}
+
 
 Clause* EqualityProxy::apply(Clause* cl)
 {
