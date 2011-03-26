@@ -210,8 +210,8 @@ void MinisatClauseDisposer::onConflict()
     _survivorCnt = _survivorCnt+max(_survivorCnt/10,static_cast<size_t>(1));
     _phaseIdx = 0;
     _phaseLen += _phaseLen/2;
-    cout<<getLearntStack().size()<<"  "<<_survivorCnt<<"  "
-	<<(env.statistics->learntSatLiterals/env.statistics->learntSatClauses)<<endl;
+//    cout<<getLearntStack().size()<<"  "<<_survivorCnt<<"  "
+//	<<(env.statistics->learntSatLiterals/env.statistics->learntSatClauses)<<endl;
   }
 }
 
@@ -228,7 +228,7 @@ void MinisatClauseDisposer::onSafeSpot()
     keepBinary();
 
     removeUnkept();
-    cout<<"lco: "<<learntCnt<<" lcn: "<<getLearntStack().size()<<" sc: "<<_survivorCnt<<endl;
+//    cout<<"lco: "<<learntCnt<<" lcn: "<<getLearntStack().size()<<" sc: "<<_survivorCnt<<endl;
   }
 }
 
