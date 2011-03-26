@@ -221,7 +221,7 @@ void MinisatClauseDisposer::onSafeSpot()
 
   unsigned learntCnt = getLearntStack().size();
 
-  if(static_cast<long>(learntCnt)-decisionLevel()>static_cast<long>(_survivorCnt)) {
+  if(static_cast<long>(learntCnt)-static_cast<long>(decisionLevel())>static_cast<long>(_survivorCnt)) {
     markAllRemovableUnkept();
 
     keepMostActive(learntCnt/2, _inc/learntCnt);

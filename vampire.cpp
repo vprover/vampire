@@ -342,11 +342,14 @@ void instGenMode()
   }
   clauses = pvi( getStaticCastIterator<Clause*>(UnitList::DestructiveIterator(units)) );
 
+  env.statistics->phase=Statistics::SATURATION;
+
   IGAlgorithm iga;
   iga.addInputClauses(clauses);
 
   Statistics::TerminationReason res = iga.run();
 
+  env.statistics->phase=Statistics::FINALIZATION;
 
   env.beginOutput();
   switch(res) {
