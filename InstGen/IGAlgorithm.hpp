@@ -12,6 +12,8 @@
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Kernel/RCClauseStack.hpp"
+
 #include "Indexing/ClauseVariantIndex.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
@@ -60,9 +62,9 @@ private:
   SATSolverSCP _satSolver;
 
   /** Clauses that weren't yet added into the SATSolver */
-  ClauseStack _unprocessed;
+  RCClauseStack _unprocessed;
   /** Clauses that are inside the SATSolver */
-  ClauseStack _active;
+  RCClauseStack _active;
 
   ClauseVariantIndex _variantIdx;
 

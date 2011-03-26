@@ -3,6 +3,7 @@
  * Implements class IGAlgorithm.
  */
 
+#include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -14,11 +15,13 @@
 #include "SAT/SATClause.hpp"
 #include "SAT/TWLSolver.hpp"
 
+#include "Shell/Statistics.hpp"
+
 #include "IGAlgorithm.hpp"
 
 #undef LOGGING
 #define LOGGING 1
-//TODO:Equality
+
 namespace InstGen
 {
 
@@ -47,13 +50,18 @@ void IGAlgorithm::addClause(Clause* cl)
 {
   CALL("IGAlgorithm::addClause");
 
+
   cl = _dlr.simplify(cl);
   if(_variantIdx.retrieveVariants(cl).hasNext()) {
+    cl->incRefCnt();
+    cl->decRefCnt();//this will lead to clause deletion if it isn't referenced from anywhere else
+    env.statistics->instGenRedundantClauses++;
     return;
   }
   _variantIdx.insert(cl);
 
   _unprocessed.push(cl);
+  env.statistics->instGenKeptClauses++;
 }
 
 void IGAlgorithm::processUnprocessed()
@@ -64,9 +72,10 @@ void IGAlgorithm::processUnprocessed()
   satClauses.reset();
 
   while(_unprocessed.isNonEmpty()) {
-    Clause* cl = _unprocessed.pop();
+    Clause* cl = _unprocessed.popWithoutDec();
 
     _active.push(cl);
+    cl->decRefCnt(); //corresponds to _unprocessed.popWithoutDec();
 
 //    LOG("Added clause "<<cl->toString());
     SATClause* sc = _gnd.ground(cl);
@@ -96,7 +105,7 @@ void IGAlgorithm::collectSelected(LiteralSubstitutionTree& acc)
 {
   CALL("IGAlgorithm::collectSelected");
 
-  ClauseStack::Iterator cit(_active);
+  RCClauseStack::Iterator cit(_active);
   while(cit.hasNext()) {
     Clause* cl = cit.next();
     unsigned clen = cl->length();
@@ -129,6 +138,8 @@ Clause* IGAlgorithm::generateClause(Clause* orig, ResultSubstitution& subst, boo
   }
   Inference* inf = new Inference1(Inference::INSTANCE_GENERATION, orig);
   Clause* res = Clause::fromStack(genLits, orig->inputType(), inf);
+
+  env.statistics->instGenGeneratedClauses++;
   return res;
 }
 
@@ -164,7 +175,7 @@ void IGAlgorithm::generateInstances()
 
   collectSelected(selected);
 
-  ClauseStack::Iterator cit(_active);
+  RCClauseStack::Iterator cit(_active);
   while(cit.hasNext()) {
     Clause* cl = cit.next();
     unsigned clen = cl->length();
@@ -186,6 +197,7 @@ IGAlgorithm::TerminationReason IGAlgorithm::run()
   LOG("IGA started");
 
   while(_unprocessed.isNonEmpty()) {
+    env.statistics->instGenIterations++;
     processUnprocessed();
 
     if(_satSolver->getStatus()==SATSolver::UNSATISFIABLE) {

@@ -82,9 +82,16 @@ Statistics::Statistics()
     learntSatClauses(0),
     learntSatLiterals(0),
     bddMemoryUsage(0),
+
     backtrackingSplits(0),
     backtrackingSplitsRefuted(0),
     backtrackingSplitsRefutedZeroLevel(0),
+
+    instGenGeneratedClauses(0),
+    instGenRedundantClauses(0),
+    instGenKeptClauses(0),
+    instGenIterations(0),
+
     satPureVarsEliminated(0),
     terminationReason(UNKNOWN),
     refutation(0),
@@ -212,6 +219,12 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
+
+  COND_OUT("InstGen generated clauses", instGenGeneratedClauses);
+  COND_OUT("InstGen redundant clauses", instGenRedundantClauses);
+  COND_OUT("InstGen kept clauses", instGenKeptClauses);
+  COND_OUT("InstGen iterations", instGenIterations);
+
 
   SEPARATOR;
 

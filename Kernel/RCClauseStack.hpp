@@ -59,6 +59,11 @@ public:
     }
   }
 
+  size_t size() const
+  {
+    return _s.size();
+  }
+
   class Iterator
   {
   public:

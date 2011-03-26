@@ -943,7 +943,8 @@ void TWLSolver::runSatLoop()
       }
       PackedAsgnVal asgn = _lastAssignments[choiceVar];
       if(asgn==AS_UNDEFINED) {
-	asgn = (getWatchStack(choiceVar, 0).size()>getWatchStack(choiceVar, 1).size()) ? AS_FALSE : AS_TRUE;
+//	asgn = (getWatchStack(choiceVar, 0).size()>getWatchStack(choiceVar, 1).size()) ? AS_FALSE : AS_TRUE;
+	asgn = (getWatchStack(choiceVar, 0).size()>getWatchStack(choiceVar, 1).size()) ? AS_TRUE : AS_FALSE;
       }
       makeChoiceAssignment(choiceVar, asgn);
     }
