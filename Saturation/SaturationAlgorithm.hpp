@@ -66,8 +66,8 @@ public:
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);
 
-  virtual ClauseContainer* getSimplificationClauseContainer() = 0;
-  virtual ClauseContainer* getGenerationClauseContainer() = 0;
+  virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
+  virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
 
   ClauseIterator activeClauses();
   ClauseIterator passiveClauses();

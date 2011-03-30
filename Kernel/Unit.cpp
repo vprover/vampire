@@ -8,6 +8,7 @@
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Int.hpp"
+#include "Lib/List.hpp"
 
 #include "BDD.hpp"
 #include "Inference.hpp"
@@ -31,6 +32,27 @@ void Unit::onPreprocessingEnd()
   ASS(!_firstNonPreprocessingNumber);
 
   _firstNonPreprocessingNumber=_lastNumber;
+}
+
+/**
+ * Return InputType of which should be a formula that has
+ * @c units as premises.
+ *
+ * @c units must be a non-empty list.
+ */
+Unit::InputType Unit::getInputType(UnitList* units)
+{
+  CALL("Unit::getInputType");
+  ASS(units);
+
+  UnitList::Iterator uit(units);
+  ALWAYS(uit.hasNext());
+  InputType res = uit.next()->inputType();
+
+  while(uit.hasNext()) {
+    res = static_cast<Unit::InputType>(Int::max(res, uit.next()->inputType()));
+  }
+  return res;
 }
 
 /** New unit of a given kind */

@@ -21,8 +21,7 @@ class Otter
 public:
   Otter(PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
 
-  ClauseContainer* getSimplificationClauseContainer();
-  ClauseContainer* getGenerationClauseContainer();
+  ClauseContainer* getSimplifyingClauseContainer();
 
 protected:
 

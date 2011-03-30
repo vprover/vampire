@@ -30,7 +30,7 @@ void ConsequenceFinder::init(SaturationAlgorithm* sa)
 
   _sa=sa;
 
-  ClauseContainer* cc=_sa->getSimplificationClauseContainer();
+  ClauseContainer* cc=_sa->getSimplifyingClauseContainer();
   _sdInsertion = cc->addedEvent.subscribe(this,&ConsequenceFinder::onClauseInserted);
   _sdRemoval = cc->removedEvent.subscribe(this,&ConsequenceFinder::onClauseRemoved);
 }

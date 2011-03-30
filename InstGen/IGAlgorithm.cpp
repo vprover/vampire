@@ -123,24 +123,31 @@ void IGAlgorithm::collectSelected(LiteralSubstitutionTree& acc)
  * query or result part of the substitution @c subst is used, based on the
  * value of @c isQuery.
  */
-Clause* IGAlgorithm::generateClause(Clause* orig, ResultSubstitution& subst, bool isQuery)
+void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery)
 {
-  CALL("IGAlgorithm::generateClause");
+  CALL("IGAlgorithm::tryGeneratingClause");
 
   static LiteralStack genLits;
   genLits.reset();
 
+  bool properInstance = false;
   unsigned clen = orig->length();
   for(unsigned i=0; i<clen; i++) {
     Literal* olit = (*orig)[i];
     Literal* glit = isQuery ? subst.applyToQuery(olit) : subst.applyToResult(olit);
     genLits.push(glit);
+    if(olit!=glit) {
+      properInstance = true;
+    }
+  }
+  if(!properInstance) {
+    return;
   }
   Inference* inf = new Inference1(Inference::INSTANCE_GENERATION, orig);
   Clause* res = Clause::fromStack(genLits, orig->inputType(), inf);
 
   env.statistics->instGenGeneratedClauses++;
-  return res;
+  addClause(res);
 }
 
 /**
@@ -157,8 +164,8 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx, LiteralSub
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();
 
-    addClause(generateClause(cl, *unif.substitution, true));
-    addClause(generateClause(unif.clause, *unif.substitution, false));
+    tryGeneratingClause(cl, *unif.substitution, true);
+    tryGeneratingClause(unif.clause, *unif.substitution, false);
   }
 }
 

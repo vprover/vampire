@@ -24,14 +24,9 @@ Otter::Otter(PassiveClauseContainer* passiveContainer, LiteralSelector* selector
 {
 }
 
-ClauseContainer* Otter::getSimplificationClauseContainer()
+ClauseContainer* Otter::getSimplifyingClauseContainer()
 {
   return &_simplCont;
-}
-
-ClauseContainer* Otter::getGenerationClauseContainer()
-{
-  return _active;
 }
 
 void Otter::onActiveRemoved(Clause* cl)

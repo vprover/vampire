@@ -31,7 +31,6 @@ class DArray
 {
 private:
   //private and undefined operator= and copy constructor to avoid implicitly generated ones
-  DArray(const DArray&);
   DArray& operator=(const DArray&);
 public:
   class Iterator;
@@ -55,6 +54,23 @@ public:
       _array=0;
     }
   }
+
+  DArray(const DArray& o)
+    : _size(o.size()), _capacity(o.size())
+  {
+    CALL("DArray::DArray(const DArray&)");
+
+    if(_size==0) {
+      _array=0;
+      return;
+    }
+    void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
+    _array = static_cast<C*>(mem);
+    for(size_t i=0; i<_size; i++) {
+      new(&_array[i]) C(o[i]);
+    }
+  }
+
 
   /** Delete array */
   inline ~DArray()

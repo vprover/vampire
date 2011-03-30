@@ -52,7 +52,7 @@ private:
 
   void collectSelected(LiteralSubstitutionTree& acc);
   void tryGeneratingInstances(Clause* cl, unsigned litIdx, LiteralSubstitutionTree& selected);
-  Clause* generateClause(Clause* orig, ResultSubstitution& subst, bool isQuery);
+  void tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery);
   void generateInstances();
 
   bool isSelected(Literal* lit);

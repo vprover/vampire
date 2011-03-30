@@ -32,6 +32,7 @@ public:
     BACKWARD_SUBSUMPTION,
     BACKWARD_SUBSUMPTION_RESOLUTION,
     BDD_MARKING_SUBSUMPTION,
+    BINARY_RESOLUTION,
 
     COLOR_UNBLOCKING,
     CONDENSATION,
@@ -131,6 +132,7 @@ public:
     TIME_LIMIT,
     TIME_STATISTICS,
 
+    UNIT_RESULTING_RESOLUTION,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
 
     WEIGHT_INCREMENT,
@@ -331,6 +333,8 @@ public:
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution; }
   void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation; }
+  bool binaryResolution() const { return _binaryResolution; }
+  bool unitResultingResolution() const { return _unitResultingResolution; }
   bool arityCheck() const { return _arityCheck; }
   void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation; }
@@ -438,6 +442,7 @@ private:
   Subsumption _backwardSubsumption;
   Subsumption _backwardSubsumptionResolution;
   bool _bddMarkingSubsumption;
+  bool _binaryResolution;
 
   bool _colorUnblocking;
   Condensation _condensation;
@@ -540,6 +545,7 @@ private:
   int _timeLimitInDeciseconds;
   bool _timeStatistics;
 
+  bool _unitResultingResolution;
   bool _unusedPredicateDefinitionRemoval;
 
   bool _weightIncrement;

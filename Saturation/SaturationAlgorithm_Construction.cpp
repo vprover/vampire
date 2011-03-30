@@ -32,6 +32,7 @@
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
+#include "Inferences/URResolution.hpp"
 
 #include "Test/CheckedFwSimplifier.hpp"
 
@@ -70,7 +71,13 @@ GeneratingInferenceEngineSP createGIE()
   res->addFront(GeneratingInferenceEngineSP(new EqualityResolution()));
   res->addFront(GeneratingInferenceEngineSP(new Superposition()));
   res->addFront(GeneratingInferenceEngineSP(new Factoring()));
-  res->addFront(GeneratingInferenceEngineSP(new BinaryResolution()));
+  if(env.options->binaryResolution()) {
+    res->addFront(GeneratingInferenceEngineSP(new BinaryResolution()));
+  }
+  if(env.options->unitResultingResolution()) {
+    res->addFront(GeneratingInferenceEngineSP(new URResolution()));
+  }
+
 
   return GeneratingInferenceEngineSP(res);
 }

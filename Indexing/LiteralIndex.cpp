@@ -105,9 +105,9 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
   handleLiteral(best, c, adding);
 }
 
-void UnitClauseSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
+void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("UnitClauseSimplifyingLiteralIndex::handleClause");
+  CALL("UnitClauseLiteralIndex::handleClause");
 
   if(c->length()==1) {
     TimeCounter tc(TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE);
@@ -116,6 +116,19 @@ void UnitClauseSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("NonUnitClauseLiteralIndex::handleClause");
+
+  unsigned clen=c->length();
+  if(clen<2) {
+    return;
+  }
+  TimeCounter tc(TC_NON_UNIT_LITERAL_INDEX_MAINTENANCE);
+  for(unsigned i=0; i<clen; i++) {
+    handleLiteral((*c)[i], c, adding);
+  }
+}
 
 RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure* is)
 : LiteralIndex(is)

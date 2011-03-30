@@ -22,8 +22,7 @@ public:
   Discount(PassiveClauseContainer* passiveContainer, LiteralSelector* selector)
     : SaturationAlgorithm(passiveContainer, selector) {}
 
-  ClauseContainer* getSimplificationClauseContainer();
-  ClauseContainer* getGenerationClauseContainer();
+  ClauseContainer* getSimplifyingClauseContainer();
 
 protected:
 

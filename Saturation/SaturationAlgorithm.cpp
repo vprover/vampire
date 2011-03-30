@@ -364,7 +364,7 @@ void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
 }
 
 /**
- * A function that is called when a clause is removed from the active clause container.
+ * A function that is called when a clause is removed from the unprocessed clause container.
  */
 void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
 {
@@ -812,10 +812,10 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
 
-  //we increase the reference counter here so that the cause wouldn't
+  //we increase the reference counter here so that the clause wouldn't
   //get destroyed during handling in the onNewClause handler
   //(there the control flow goes out of the SaturationAlgorithm class,
-  //so we'd better not assume on what's happening in there)
+  //so we'd better not assume on what's happening out there)
   cl->incRefCnt();
 
   onNewClause(cl);

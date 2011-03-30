@@ -49,6 +49,8 @@ public:
     CONJECTURE = 3
   };
 
+  static InputType getInputType(UnitList* units);
+
   virtual ~Unit() {}
 
   virtual void destroy() = 0;

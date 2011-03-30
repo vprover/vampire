@@ -188,7 +188,10 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     out<<"forward literal rewriting";
     break;
   case TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE:
-    out<<"simplifying unit clause index maintenance";
+    out<<"unit clause index maintenance";
+    break;
+  case TC_NON_UNIT_LITERAL_INDEX_MAINTENANCE:
+    out<<"non unit clause index maintenance";
     break;
   case TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE:
     out<<"forward subsumption index maintenance";
@@ -234,6 +237,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_RESOLUTION:
     out<<"resolution";
+    break;
+  case TC_UR_RESOLUTION:
+    out<<"unit resulting resolution";
     break;
   case TC_SAT_SOLVER:
     out<<"SAT solver";

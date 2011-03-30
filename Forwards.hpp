@@ -95,6 +95,7 @@ class Term;
 class Literal;
 typedef List<Literal*> LiteralList;
 typedef Stack<Literal*> LiteralStack;
+typedef VirtualIterator<Literal*> LiteralIterator;
 
 class Inference;
 
@@ -181,7 +182,7 @@ typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 
 class GeneratingLiteralIndex;
 class SimplifyingLiteralIndex;
-class UnitClauseSimplifyingLiteralIndex;
+class UnitClauseLiteralIndex;
 class FwSubsSimplifyingLiteralIndex;
 
 class SubstitutionTree;

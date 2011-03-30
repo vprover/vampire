@@ -84,17 +84,28 @@ Index* IndexManager::create(IndexType t)
 #endif
     _genLitIndex=is;
     res=new GeneratingLiteralIndex(is);
-    res->attachContainer(_alg->getGenerationClauseContainer());
+    res->attachContainer(_alg->getGeneratingClauseContainer());
     break;
   case SIMPLIFYING_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new SimplifyingLiteralIndex(is);
-    res->attachContainer(_alg->getSimplificationClauseContainer());
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
     break;
+
   case SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
-    res=new UnitClauseSimplifyingLiteralIndex(is);
-    res->attachContainer(_alg->getSimplificationClauseContainer());
+    res=new UnitClauseLiteralIndex(is);
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    break;
+  case GENERATING_UNIT_CLAUSE_SUBST_TREE:
+    is=new LiteralSubstitutionTree();
+    res=new UnitClauseLiteralIndex(is);
+    res->attachContainer(_alg->getGeneratingClauseContainer());
+    break;
+  case GENERATING_NON_UNIT_CLAUSE_SUBST_TREE:
+    is=new LiteralSubstitutionTree();
+    res=new NonUnitClauseLiteralIndex(is);
+    res->attachContainer(_alg->getGeneratingClauseContainer());
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
@@ -104,47 +115,47 @@ Index* IndexManager::create(IndexType t)
     tis=new TermSubstitutionTree();
 #endif
     res=new SuperpositionSubtermIndex(tis);
-    res->attachContainer(_alg->getGenerationClauseContainer());
+    res->attachContainer(_alg->getGeneratingClauseContainer());
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
     tis=new TermSubstitutionTree();
     res=new SuperpositionLHSIndex(tis);
-    res->attachContainer(_alg->getGenerationClauseContainer());
+    res->attachContainer(_alg->getGeneratingClauseContainer());
     break;
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree();
     res=new DemodulationSubtermIndex(tis);
-    res->attachContainer(_alg->getSimplificationClauseContainer());
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
     break;
   case DEMODULATION_LHS_SUBST_TREE:
 //    tis=new TermSubstitutionTree();
     tis=new CodeTreeTIS();
     res=new DemodulationLHSIndex(tis);
-    res->attachContainer(_alg->getSimplificationClauseContainer());
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
     break;
 
   case FW_SUBSUMPTION_CODE_TREE:
     res=new CodeTreeSubsumptionIndex();
-    res->attachContainer(_alg->getSimplificationClauseContainer());
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
     is=new LiteralSubstitutionTree();
 //    is=new CodeTreeLIS();
     res=new FwSubsSimplifyingLiteralIndex(is);
-    res->attachContainer(_alg->getSimplificationClauseContainer());
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
     break;
 
   case REWRITE_RULE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new RewriteRuleIndex(is);
-    res->attachContainer(_alg->getSimplificationClauseContainer());
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
     break;
 
   case ARITHMETIC_INDEX:
     res=new ArithmeticIndex();
-    res->attachContainer(_alg->getSimplificationClauseContainer());
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
     break;
 
   default:

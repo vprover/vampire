@@ -186,7 +186,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/SLQueryForwardSubsumption.o\
          Inferences/Superposition.o\
-         Inferences/TautologyDeletionISE.o
+         Inferences/TautologyDeletionISE.o\
+         Inferences/URResolution.o
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
 	 SAT/DIMACS.o\
@@ -299,6 +300,7 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 	  UnitTests/tfork.o\
 	  UnitTests/tFormulaBuilderApi.o\
 	  UnitTests/tITE.o\
+	  UnitTests/tList.o\
 	  UnitTests/tSkipList.o\
 	  UnitTests/tProgramAnalysis.o\
 	  UnitTests/tStack.o\

@@ -30,7 +30,8 @@ public:
 
   static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
 private:
-  UnitClauseSimplifyingLiteralIndex* _unitIndex;
+  /** Simplification unit index */
+  UnitClauseLiteralIndex* _unitIndex;
   FwSubsSimplifyingLiteralIndex* _fwIndex;
 
   bool _subsumptionResolution;

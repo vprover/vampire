@@ -84,6 +84,7 @@ const char* Options::Constants::_optionNames[] = {
   "backward_subsumption",
   "backward_subsumption_resolution",
   "bdd_marking_subsumption",
+  "binary_resolution",
 
   "color_unblocking",
   "condensation",
@@ -181,6 +182,7 @@ const char* Options::Constants::_optionNames[] = {
   "time_limit",
   "time_statistics",
 
+  "unit_resulting_resolution",
   "unused_predicate_definition_removal",
 
   "weight_increment",
@@ -446,6 +448,7 @@ Options::Options ()
   _backwardSubsumption(SUBSUMPTION_ON),
   _backwardSubsumptionResolution(SUBSUMPTION_OFF),
   _bddMarkingSubsumption(false),
+  _binaryResolution(true),
 
   _colorUnblocking(false),
   _condensation(CONDENSATION_OFF),
@@ -546,6 +549,7 @@ Options::Options ()
   _timeLimitInDeciseconds(600),
   _timeStatistics(false),
 
+  _unitResultingResolution(false),
   _unusedPredicateDefinitionRemoval(true),
 
   _weightIncrement(false),
@@ -621,6 +625,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case BDD_MARKING_SUBSUMPTION:
       _bddMarkingSubsumption = onOffToBool(value,name);
+      return;
+    case BINARY_RESOLUTION:
+      _binaryResolution = onOffToBool(value,name);
       return;
 
     case COLOR_UNBLOCKING:
@@ -941,6 +948,9 @@ void Options::set (const char* name,const char* value, int index)
       _timeStatistics = onOffToBool(value,name);
       return;
 
+    case UNIT_RESULTING_RESOLUTION:
+      _unitResultingResolution = onOffToBool(value,name);
+      return;
     case UNUSED_PREDICATE_DEFINITION_REMOVAL:
       _unusedPredicateDefinitionRemoval = onOffToBool(value,name);
       return;
@@ -1211,6 +1221,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case BDD_MARKING_SUBSUMPTION:
     str << boolToOnOff(_bddMarkingSubsumption);
     return;
+  case BINARY_RESOLUTION:
+    str << boolToOnOff(_binaryResolution);
+    return;
 
   case COLOR_UNBLOCKING:
     str << boolToOnOff(_colorUnblocking);
@@ -1474,6 +1487,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_timeStatistics);
     return;
 
+  case UNIT_RESULTING_RESOLUTION:
+    str << boolToOnOff(_unitResultingResolution);
+    return;
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
     str << boolToOnOff(_unusedPredicateDefinitionRemoval);
     return;
@@ -1919,6 +1935,7 @@ bool Options::complete () const
          ! _sos &&
          _superpositionFromVariables &&
          ! _maxWeight &&
+         _binaryResolution &&
          ! _forwardLiteralRewriting &&
          ! _interpretedEvaluation &&
          _sineSelection==SS_OFF &&

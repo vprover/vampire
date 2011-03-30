@@ -53,6 +53,13 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 
     SaturationAlgorithm* salg=SaturationAlgorithm::tryGetInstance();
     if(!salg) {
+      static bool errAnnounced = false;
+      if(!errAnnounced) {
+	errAnnounced = true;
+	env.beginOutput();
+	env.out()<<"Using LookaheadLiteralSelector without having an SaturationAlgorithm object\n";
+	env.endOutput();
+      }
       //we are too early, there's no saturation algorithm and therefore no generating inferences
       prepared=false;
       return false;

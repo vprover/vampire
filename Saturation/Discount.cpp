@@ -18,12 +18,7 @@ using namespace Shell;
 using namespace Saturation;
 
 
-ClauseContainer* Discount::getSimplificationClauseContainer()
-{
-  return _active;
-}
-
-ClauseContainer* Discount::getGenerationClauseContainer()
+ClauseContainer* Discount::getSimplifyingClauseContainer()
 {
   return _active;
 }

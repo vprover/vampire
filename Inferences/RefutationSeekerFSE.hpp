@@ -25,7 +25,8 @@ public:
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
 private:
-  UnitClauseSimplifyingLiteralIndex* _index;
+  /** Simplification unit index */
+  UnitClauseLiteralIndex* _index;
 };
 
 };

@@ -39,6 +39,7 @@ Statistics::Statistics()
     sineIterations(0),
     factoring(0),
     resolution(0),
+    urResolution(0),
     forwardSuperposition(0),
     backwardSuperposition(0),
     selfSuperposition(0),
@@ -192,6 +193,7 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   COND_OUT("Binary resolution", resolution);
+  COND_OUT("Unit resulting resolution", urResolution);
   COND_OUT("Factoring", factoring);
   COND_OUT("Forward superposition", forwardSuperposition);
   COND_OUT("Backward superposition", backwardSuperposition);

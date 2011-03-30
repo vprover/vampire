@@ -208,7 +208,9 @@ public:
     /** replacing colored constants by skolem functions */
     COLOR_UNBLOCKING,
     /** generated as instance of its parent */
-    INSTANCE_GENERATION
+    INSTANCE_GENERATION,
+    /** unit resulting resolution */
+    UNIT_RESULTING_RESOLUTION
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

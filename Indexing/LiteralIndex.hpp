@@ -68,11 +68,21 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
-class UnitClauseSimplifyingLiteralIndex
+class UnitClauseLiteralIndex
 : public LiteralIndex
 {
 public:
-  UnitClauseSimplifyingLiteralIndex(LiteralIndexingStructure* is)
+  UnitClauseLiteralIndex(LiteralIndexingStructure* is)
+  : LiteralIndex(is) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+class NonUnitClauseLiteralIndex
+: public LiteralIndex
+{
+public:
+  NonUnitClauseLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
   void handleClause(Clause* c, bool adding);

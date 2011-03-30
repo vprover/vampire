@@ -360,6 +360,8 @@ string Inference::ruleName(Rule rule)
     return "color unblocking";
   case INSTANCE_GENERATION:
     return "instance generation";
+  case UNIT_RESULTING_RESOLUTION:
+    return "unit resulting resolution";
 
   default:
     ASSERTION_VIOLATION;
