@@ -53,6 +53,9 @@ public:
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual bool getAssignment(unsigned var);
 
+  virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
+  virtual void retractAllAssumptions();
+
   void assertValid();
   void printAssignment();
 private:
@@ -97,10 +100,12 @@ private:
 
   void backtrack(unsigned tgtLevel);
 
+  void doBaseLevelPropagation();
   void runSatLoop();
 
   void setAssignment(unsigned var, unsigned polarity);
 
+  void makeAssumptionAssignment(SATLiteral lit);
   void makeChoiceAssignment(unsigned var, unsigned polarity);
   void makeForcedAssignment(SATLiteral lit, SATClause* premise);
   void undoAssignment(unsigned var);
@@ -119,7 +124,6 @@ private:
   ClauseVisitResult visitWatchedClause(Watch watch, unsigned var, unsigned& litIndex);
 
   SATClause* propagate(unsigned var);
-  void propagateAndBacktrackIfNeeded(unsigned var);
 
   unsigned getBacktrackLevel(SATClause* conflictClause);
 
@@ -146,10 +150,15 @@ private:
   {
     unsigned var;
     unsigned choice : 1;
+    unsigned assumption : 1;
+
     USRec() {}
-    USRec(unsigned var, bool choice)
+    USRec(unsigned var, bool choice, bool assumption=false)
     : var(var), choice(choice)
-    {}
+    {
+      CALL("TWLSolver::USRec::USRec");
+      ASS(!assumption || !choice);
+    }
 
   };
 
@@ -178,12 +187,20 @@ private:
    */
   DArray<WatchStack> _windex;
 
-  ZIArray<unsigned> _chosenVars;
-
   unsigned _varCnt;
 
   /** Level 1 is the first level which is not preceded by any choice point */
   unsigned _level;
+
+  /** Number of assumptions that are currently on the unit stack */
+  unsigned _assumptionCnt;
+  /**
+   * Some unsatisfiable assumptions were added.
+   *
+   * This variable can be true even if @c _assumptionCnt is zero, since
+   * conflicting assumtions aren't added on the unit stack.
+   */
+  bool _unsatisfiableAssumptions;
 
   /** truth values that were assigned to each variable most recently */
   DArray<PackedAsgnVal> _lastAssignments;

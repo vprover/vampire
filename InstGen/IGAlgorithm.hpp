@@ -10,6 +10,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/SmartPtr.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/RCClauseStack.hpp"
@@ -22,7 +23,7 @@
 
 #include "Shell/Statistics.hpp"
 
-#include "Grounder.hpp"
+#include "Kernel/Grounder.hpp"
 
 namespace InstGen {
 
@@ -37,6 +38,7 @@ public:
   typedef Statistics::TerminationReason TerminationReason;
 
   IGAlgorithm();
+  ~IGAlgorithm();
 
   void addInputClauses(ClauseIterator it) {
     addClauses(it);
@@ -58,7 +60,7 @@ private:
   bool isSelected(Literal* lit);
 
 
-  Grounder _gnd;
+  IGGrounder _gnd;
   SATSolverSCP _satSolver;
 
   /** Clauses that weren't yet added into the SATSolver */
@@ -69,6 +71,8 @@ private:
   ClauseVariantIndex _variantIdx;
 
   DuplicateLiteralRemovalISE _dlr;
+
+  SaturationAlgorithmSP _dummy;
 };
 
 }

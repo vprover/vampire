@@ -113,6 +113,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Formula.o\
         Kernel/FormulaUnit.o\
         Kernel/FormulaVarIterator.o\
+        Kernel/Grounder.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
@@ -162,8 +163,7 @@ VI_OBJ = Indexing/ArithmeticIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o
 
-VIG_OBJ = InstGen/Grounder.o\
-          InstGen/IGAlgorithm.o
+VIG_OBJ = InstGen/IGAlgorithm.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\

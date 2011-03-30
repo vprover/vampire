@@ -10,10 +10,9 @@
 
 #include "Lib/DHMap.hpp"
 
-namespace InstGen {
+namespace Kernel {
 
 using namespace Lib;
-using namespace Kernel;
 using namespace SAT;
 
 class Grounder {
@@ -25,13 +24,25 @@ public:
 
   unsigned satVarCnt() const { return _nextSatVar; }
 
+protected:
+  virtual void normalize(unsigned cnt, Literal** lits) = 0;
+
 private:
-  class CollapsingApplicator;
-  Literal* collapseVars(Literal* lit);
+  SATLiteral groundNormalized(Literal*);
+
 
   unsigned _nextSatVar;
   DHMap<Literal*, unsigned> _asgn;
 };
+
+class IGGrounder : public Grounder {
+protected:
+  virtual void normalize(unsigned cnt, Literal** lits);
+private:
+  class CollapsingApplicator;
+  Literal* collapseVars(Literal* lit);
+};
+
 
 }
 

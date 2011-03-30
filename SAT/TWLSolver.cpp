@@ -33,7 +33,7 @@ using namespace Lib;
 
 TWLSolver::TWLSolver()
 : _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
-_windex(0), _varCnt(0), _level(1)
+_windex(0), _varCnt(0), _level(1), _assumptionCnt(0), _unsatisfiableAssumptions(false)
 {
   _variableSelector = new ActiveVariableSelector(*this);
 //  _variableSelector = new ArrayActiveVariableSelector(*this);
@@ -79,6 +79,112 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
   _varCnt=newVarCnt;
 
   _variableSelector->ensureVarCnt(newVarCnt);
+}
+
+/**
+ * Add clauses into the SAT solver and saturate. New clauses cannot
+ * be added when there are any non-retracted assumptions.
+ */
+void TWLSolver::addClauses(SATClauseIterator cit)
+{
+  CALL("TWLSolver::addClauses");
+  ASS_EQ(_assumptionCnt, 0);
+  ASS(!_unsatisfiableAssumptions);
+
+  LOG("");
+  LOG("##############");
+
+  if(_status==UNSATISFIABLE) {
+    return;
+  }
+
+  try {
+    while(cit.hasNext()) {
+      SATClause* cl=cit.next();
+      cl->setKept(true);
+      if(cl->length()==1) {
+	addUnitClause(cl);
+      } else {
+	addClause(cl);
+      }
+      _variableSelector->onInputClauseAdded(cl);
+      _clauseDisposer->onNewInputClause(cl);
+    }
+    runSatLoop();
+
+  } catch (UnsatException e)
+  {
+    _status=UNSATISFIABLE;
+  }
+}
+
+void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
+{
+  CALL("TWLSolver::addAssumption");
+
+  if(_status==UNSATISFIABLE) {
+    return;
+  }
+
+  //Invariant: before adding assumptions the problem must be satisfiable
+  ASS_EQ(_status, SATISFIABLE);
+
+  try
+  {
+    backtrack(1);
+    if(isFalse(lit)) {
+      throw UnsatException();
+    }
+    if(isTrue(lit)) {
+      //the assumption follows from unit propagation
+      return;
+    }
+    makeAssumptionAssignment(lit);  //increases _assumptionCnt
+    if(onlyPropagate) {
+      doBaseLevelPropagation();
+    }
+    else {
+      runSatLoop();
+    }
+  } catch (UnsatException e)
+  {
+    _unsatisfiableAssumptions = true;
+    _status=UNSATISFIABLE;
+  }
+}
+
+void TWLSolver::retractAllAssumptions()
+{
+  CALL("TWLSolver::retractAllAssumptions");
+
+  if(_unsatisfiableAssumptions) {
+    //Invariant: before adding assumptions the problem was satisfiable
+    _status = SATISFIABLE;
+    _unsatisfiableAssumptions = false;
+  }
+
+  if(_assumptionCnt==0) {
+    return;
+  }
+
+  backtrack(1);
+  static Stack<USRec> keptUnits;
+  keptUnits.reset();
+  while(_assumptionCnt>0) {
+    ASS(_unitStack.isNonEmpty());
+    USRec rec = _unitStack.pop();
+    ASS(!rec.choice); //we're at level 1 where no choice points are
+    if(!rec.assumption) {
+      keptUnits.push(rec);
+    }
+    else {
+      _assumptionCnt--;
+    }
+  }
+
+  while(keptUnits.isNonEmpty()) {
+    _unitStack.push(keptUnits.pop());
+  }
 }
 
 
@@ -338,7 +444,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   SATClause* res = SATClause:: fromStack(resLits);
 
 #if VDEBUG
-  {
+  if(_level!=1) {
     //we check that there is at most one literal on the current decision level
     bool curLevFound = false;
     SATLiteralStack::Iterator rlIt(resLits);
@@ -346,6 +452,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
       SATLiteral lit = rlIt.next();
       if(getAssignmentLevel(lit)==_level) {
 	if(curLevFound) {
+	  cout<<"cur lev: "<<_level<<endl;
 	  printAssignment();
 	}
 	ASS(!curLevFound);
@@ -471,52 +578,6 @@ SATClause* TWLSolver::propagate(unsigned var)
   return 0;
 }
 
-void TWLSolver::propagateAndBacktrackIfNeeded(unsigned var)
-{
-  CALL("TWLSolver::propagateAndBacktrackIfNeeded");
-
-  SATClause* conflict = propagate(var);
-  if(!conflict) {
-    return;
-  }
-  unsigned btLevel = getBacktrackLevel(conflict);
-  ASS_L(btLevel, _level);
-  backtrack(btLevel);
-}
-
-
-void TWLSolver::addClauses(SATClauseIterator cit)
-{
-  CALL("TWLSolver::addClauses");
-
-  LOG("");
-  LOG("##############");
-
-  if(_status==UNSATISFIABLE) {
-    return;
-  }
-
-  try {
-    while(cit.hasNext()) {
-      SATClause* cl=cit.next();
-      cl->setKept(true);
-      if(cl->length()==1) {
-	addUnitClause(cl);
-      } else {
-	addClause(cl);
-      }
-      _variableSelector->onInputClauseAdded(cl);
-      _clauseDisposer->onNewInputClause(cl);
-    }
-    runSatLoop();
-
-  } catch (UnsatException e)
-  {
-    _status=UNSATISFIABLE;
-    return;
-  }
-}
-
 void TWLSolver::setAssignment(unsigned var, unsigned polarity)
 {
   CALL("TWLSolver::setAssignment");
@@ -525,12 +586,29 @@ void TWLSolver::setAssignment(unsigned var, unsigned polarity)
   _lastAssignments[var] = static_cast<AsgnVal>(polarity);
 }
 
+void TWLSolver::makeAssumptionAssignment(SATLiteral lit)
+{
+  CALL("TWLSolver::makeAssumptionAssignment");
+  ASS_EQ(_level, 1);
+
+  unsigned var = lit.var();
+  ASS(isUndefined(var));
+
+  _assumptionCnt++;
+  setAssignment(var, lit.polarity());
+  _assignmentLevels[var]=1;
+  _assignmentPremises[var]=0;
+  _unitStack.push(USRec(var, false, true));
+  schedulePropagation(var);
+
+  LOG("assumption point "<<lit);
+}
+
 void TWLSolver::makeChoiceAssignment(unsigned var, unsigned polarity)
 {
   CALL("TWLSolver::makeChoiceAssignment");
 
   _level++;
-  _chosenVars[_level]=var;
 
   ASS(isUndefined(var));
   setAssignment(var, polarity);
@@ -659,31 +737,15 @@ void TWLSolver::addClause(SATClause* cl)
     //the added clause is false, so we need to backtrack to get some space
     //to fix the assignment
 
-    //due to marked unit stack elements, one backtrack might not be enough
-    for(;;) {
-      unsigned btLev=getBacktrackLevel(cl);
-      ASS_NEQ(btLev, _level);
-      backtrack(btLev);
-
-      if(!isUndefined((*cl)[0])) {
-        //some other literal could have become undefined
-        for(unsigned i=1;i<clen;i++) {
-          if(isUndefined((*cl)[i])) {
-            swap( (*cl)[0], (*cl)[i] );
-            break;
-          }
-        }
-      }
-
-      if(isUndefined((*cl)[0])) {
-        break;
-      }
-    }
+    unsigned btLev=getBacktrackLevel(cl);
+    ASS_NEQ(btLev, _level);
+    backtrack(btLev);
+    ASS(isUndefined((*cl)[0]));
 
     //we have changed assignments, so we need to bring the undefined and high assigned
     //literals to front
     wCnt = selectTwoNonFalseLiterals(cl);
-    ASS_GE(wCnt,1); //now at least one literal should be undefined
+    ASS_GE(wCnt,1); //at least one literal should be undefined
     ASS(isUndefined((*cl)[0]));
     ASS(wCnt==1 || isUndefined((*cl)[1]));
   }
@@ -907,6 +969,20 @@ void TWLSolver::printAssignment()
 	cout<<"\t"<<(*_assignmentPremises[i])<<"\t"<<_assignmentPremises[i];
       }
       cout<<endl;
+    }
+  }
+}
+
+void TWLSolver::doBaseLevelPropagation()
+{
+  CALL("TWLSolver::doBaseLevelPropagation");
+  ASS_EQ(_level, 1);
+
+  while(anythingToPropagate()) {
+    unsigned propagatedVar = pickForPropagation();
+    SATClause* conflict = propagate(propagatedVar);
+    if(conflict) {
+      throw UnsatException();
     }
   }
 }

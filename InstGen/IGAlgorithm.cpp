@@ -15,6 +15,8 @@
 #include "SAT/SATClause.hpp"
 #include "SAT/TWLSolver.hpp"
 
+#include "Saturation/SaturationAlgorithm.hpp"
+
 #include "Shell/Statistics.hpp"
 
 #include "IGAlgorithm.hpp"
@@ -32,6 +34,14 @@ IGAlgorithm::IGAlgorithm()
   CALL("IGAlgorithm::IGAlgorithm");
 
   _satSolver = new TWLSolver();
+
+  _dummy = SaturationAlgorithm::createFromOptions();
+  _dlr.attach(_dummy.ptr());
+}
+
+IGAlgorithm::~IGAlgorithm()
+{
+  _dlr.detach();
 }
 
 /**

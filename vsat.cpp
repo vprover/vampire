@@ -62,6 +62,8 @@ SATSolver::Status runSolverIncrementally(SATSolver& solver, unsigned varCnt, SAT
 {
   CALL("runSolverIncrementally");
 
+  bool testAssumptions = true;
+
   Stack<SATClause*> cls;
   cls.loadFromIterator(SATClauseList::Iterator(clauses));
 
@@ -69,19 +71,48 @@ SATSolver::Status runSolverIncrementally(SATSolver& solver, unsigned varCnt, SAT
 
   SATSolver::Status solverStatus = SATSolver::SATISFIABLE;
 
+  SATClauseStack units;
+  SATClauseStack inner;
+
   while(cls.isNonEmpty()) {
-    Stack<SATClause*> inner;
+    units.reset();
+    inner.reset();
     unsigned currCnt= (cls.size()>1) ? (Random::getInteger(cls.size()-1)+1) : 1;
     while(currCnt--) {
-      inner.push(cls.pop());
+      SATClause* cl = cls.pop();
+      if(cl->length()==1) {
+	units.push(cl);
+      }
+      else {
+	inner.push(cl);
+      }
     }
 
     SATClauseIterator ic1=pvi( Stack<SATClause*>::Iterator(inner) );
     solver.addClauses(ic1);
-    solverStatus = solver.getStatus();
 
+    solverStatus = solver.getStatus();
     if(solverStatus!=SATSolver::SATISFIABLE) {
       return solverStatus;
+    }
+
+    if(testAssumptions) {
+      SATClauseStack::Iterator uit(units);
+      while(uit.hasNext()) {
+	SATClause* cl = uit.next();
+	solver.addAssumption((*cl)[0]);
+
+	solverStatus = solver.getStatus();
+	if(solverStatus!=SATSolver::SATISFIABLE) { return solverStatus; }
+      }
+      solver.retractAllAssumptions();
+    }
+
+    while(units.isNonEmpty()) {
+      SATClause* cl = units.pop();
+      solver.addClauses(pvi( getSingletonIterator(cl) ));
+
+      ASS_EQ(solver.getStatus(), SATSolver::SATISFIABLE);
     }
   }
 
