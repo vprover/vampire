@@ -85,7 +85,7 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
  * Add clauses into the SAT solver and saturate. New clauses cannot
  * be added when there are any non-retracted assumptions.
  */
-void TWLSolver::addClauses(SATClauseIterator cit)
+void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 {
   CALL("TWLSolver::addClauses");
   ASS_EQ(_assumptionCnt, 0);
@@ -110,7 +110,12 @@ void TWLSolver::addClauses(SATClauseIterator cit)
       _variableSelector->onInputClauseAdded(cl);
       _clauseDisposer->onNewInputClause(cl);
     }
-    runSatLoop();
+    if(onlyPropagate) {
+      doBaseLevelPropagation();
+    }
+    else {
+      runSatLoop();
+    }
 
   } catch (UnsatException e)
   {
@@ -122,9 +127,12 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
 {
   CALL("TWLSolver::addAssumption");
 
+  LOG("## assumption "<<lit);
+
   if(_status==UNSATISFIABLE) {
     return;
   }
+  ASS(!anythingToPropagate());
 
   //Invariant: before adding assumptions the problem must be satisfiable
   ASS_EQ(_status, SATISFIABLE);
@@ -133,6 +141,7 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
   {
     backtrack(1);
     if(isFalse(lit)) {
+      LOG("## unsat");
       throw UnsatException();
     }
     if(isTrue(lit)) {
@@ -140,6 +149,7 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
       return;
     }
     makeAssumptionAssignment(lit);  //increases _assumptionCnt
+    LOG("## assumption made");
     if(onlyPropagate) {
       doBaseLevelPropagation();
     }
@@ -157,6 +167,8 @@ void TWLSolver::retractAllAssumptions()
 {
   CALL("TWLSolver::retractAllAssumptions");
 
+  LOG("## retracting assumptions");
+
   if(_unsatisfiableAssumptions) {
     //Invariant: before adding assumptions the problem was satisfiable
     _status = SATISFIABLE;
@@ -168,23 +180,22 @@ void TWLSolver::retractAllAssumptions()
   }
 
   backtrack(1);
-  static Stack<USRec> keptUnits;
-  keptUnits.reset();
+
   while(_assumptionCnt>0) {
     ASS(_unitStack.isNonEmpty());
     USRec rec = _unitStack.pop();
     ASS(!rec.choice); //we're at level 1 where no choice points are
-    if(!rec.assumption) {
-      keptUnits.push(rec);
-    }
-    else {
+    undoAssignment(rec.var);
+    if(rec.assumption) {
       _assumptionCnt--;
+      LOG("## assumption "<<rec.var<<" retracted");
     }
   }
 
-  while(keptUnits.isNonEmpty()) {
-    _unitStack.push(keptUnits.pop());
-  }
+  //There wasn't anything to propagate before the first assumption was
+  //made, so now we may reset the propagation queue and not miss anything
+  //important.
+  resetPropagation();
 }
 
 
@@ -329,7 +340,7 @@ void TWLSolver::doShallowMinimize(SATLiteralStack& lits, ArraySet& seenVars)
     SATClause::Iterator premLitIt(*prem);
     while(premLitIt.hasNext()) {
       SATLiteral premLit = premLitIt.next();
-      if(!seenVars.find(premLit.var()) && getAssignmentLevel(premLit)>1) {
+      if(!seenVars.find(premLit.var()) && (getAssignmentLevel(premLit)>1 || !_assignmentPremises[premLit.var()])) {
 	redundant = false;
 	break;
       }
@@ -381,7 +392,7 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars)
     while(premLitIt.hasNext()) {
       SATLiteral premLit = premLitIt.next();
       unsigned premVar = premLit.var();
-      if(seenVars.find(premVar) || getAssignmentLevel(premLit)==1) {
+      if(seenVars.find(premVar) || (getAssignmentLevel(premLit)==1 && _assignmentPremises[premLit.var()] )) {
 	continue;
       }
       toDo.push(premVar);

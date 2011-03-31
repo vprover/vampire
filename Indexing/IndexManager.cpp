@@ -5,10 +5,13 @@
 
 #include "Lib/Exception.hpp"
 
+#include "Kernel/Grounder.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ArithmeticIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
+#include "GroundingIndex.hpp"
 #include "LiteralIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"
 #include "TermIndex.hpp"
@@ -152,6 +155,14 @@ Index* IndexManager::create(IndexType t)
     res=new RewriteRuleIndex(is);
     res->attachContainer(_alg->getSimplifyingClauseContainer());
     break;
+
+  case GLOBAL_SUBSUMPTION_INDEX:
+  {
+    Grounder* gnd = new GlobalSubsumptionGrounder();
+    res = new GroundingIndex(gnd);
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    break;
+  }
 
   case ARITHMETIC_INDEX:
     res=new ArithmeticIndex();

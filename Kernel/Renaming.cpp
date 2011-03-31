@@ -55,7 +55,9 @@ bool Renaming::identity() const
   return true;
 }
 
-
+/**
+ * Make the renaming normalize variables of term or literal @c t
+ */
 void Renaming::normalizeVariables(const Term* t)
 {
   VariableIterator vit(t);

@@ -362,6 +362,8 @@ string Inference::ruleName(Rule rule)
     return "instance generation";
   case UNIT_RESULTING_RESOLUTION:
     return "unit resulting resolution";
+  case GLOBAL_SUBSUMPTION:
+    return "global subsumption";
 
   default:
     ASSERTION_VIOLATION;

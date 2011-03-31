@@ -18,17 +18,19 @@ namespace Indexing {
 
 using namespace SAT;
 
-class GroundingIndex {
+class GroundingIndex : public Index {
 public:
-  GroundingIndex();
+  GroundingIndex(Grounder* gnd);
 
-  SATSolver& getSolver() { return _solver; }
+  SATSolver& getSolver() { return *_solver; }
+  Grounder& getGrounder() { return *_grounder; }
 
 protected:
   virtual void handleClause(Clause* c, bool adding);
 
 private:
   SATSolverSCP _solver;
+  GrounderSCP _grounder;
 };
 
 }

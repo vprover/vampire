@@ -28,7 +28,7 @@ public:
   /**
    * Can be called only when all assumptions are retracted
    */
-  virtual void addClauses(SATClauseIterator cit) = 0;
+  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false) = 0;
   virtual Status getStatus() = 0;
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var

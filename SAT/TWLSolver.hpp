@@ -48,7 +48,7 @@ public:
   TWLSolver();
   ~TWLSolver();
 
-  virtual void addClauses(SATClauseIterator cit);
+  virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
   virtual Status getStatus() { return _status; };
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual bool getAssignment(unsigned var);
@@ -154,7 +154,7 @@ private:
 
     USRec() {}
     USRec(unsigned var, bool choice, bool assumption=false)
-    : var(var), choice(choice)
+    : var(var), choice(choice), assumption(assumption)
     {
       CALL("TWLSolver::USRec::USRec");
       ASS(!assumption || !choice);

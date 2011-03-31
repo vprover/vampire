@@ -6,6 +6,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
 
+#include "SAT/TWLSolver.hpp"
+
 #include "Shell/Options.hpp"
 
 #include "BDD.hpp"
@@ -17,7 +19,8 @@ namespace Kernel
 
 BDDConjunction::BDDConjunction()
 : _isFalse(false),
-  _clausifier(env.options->satSolverWithSubsumptionResolution(), env.options->satSolverWithNaming())
+  _clausifier(env.options->satSolverWithSubsumptionResolution(), env.options->satSolverWithNaming()),
+  _solver(new TWLSolver())
 {
 }
 
@@ -57,10 +60,10 @@ void BDDConjunction::addNode(BDDNode* n)
 
   TimeCounter tc(TC_SAT_SOLVER);
 
-  _solver.ensureVarCnt(_clausifier.getCNFVarCount());
-  _solver.addClauses(pvi( SATClauseStack::Iterator(acc) ));
+  _solver->ensureVarCnt(_clausifier.getCNFVarCount());
+  _solver->addClauses(pvi( SATClauseStack::Iterator(acc) ));
 
-  if(_solver.getStatus()==TWLSolver::UNSATISFIABLE) {
+  if(_solver->getStatus()==TWLSolver::UNSATISFIABLE) {
     _isFalse=true;
   }
 

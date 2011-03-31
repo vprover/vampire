@@ -88,8 +88,8 @@ void IGAlgorithm::processUnprocessed()
     cl->decRefCnt(); //corresponds to _unprocessed.popWithoutDec();
 
 //    LOG("Added clause "<<cl->toString());
-    SATClause* sc = _gnd.ground(cl);
-    satClauses.push(sc);
+    SATClauseIterator sc = _gnd.ground(cl);
+    satClauses.loadFromIterator(sc);
   }
   _satSolver->ensureVarCnt(_gnd.satVarCnt());
 

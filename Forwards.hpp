@@ -133,6 +133,9 @@ typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
 
+class Grounder;
+typedef Lib::ScopedPtr<Grounder> GrounderSCP;
+
 class BDD;
 class BDDNode;
 

@@ -54,22 +54,6 @@ using namespace Saturation;
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
 /**
- * A struct that is thrown as an exception when a refutation is found
- * during the saturation process.
- */
-struct SaturationAlgorithm::RefutationFoundException
-{
-  RefutationFoundException(Clause* ref) : refutation(ref)
-  {
-    CALL("SaturationAlgorithm::RefutationFoundException::RefutationFoundException");
-    ASS(isRefutation(ref));
-  }
-
-  Clause* refutation;
-};
-
-
-/**
  * Create a SaturationAlgorithm object
  *
  * The @b passiveContainer object will be used as a passive clause container, and

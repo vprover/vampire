@@ -19,12 +19,19 @@ class Grounder {
 public:
   Grounder();
 
-  SATClause* ground(Clause* cl);
+  SATClauseIterator ground(Clause* cl);
+  SATClause* groundNonProp(Clause* cl);
+  void groundNonProp(Clause* cl, SATLiteralStack& acc);
   SATLiteral ground(Literal* lit);
 
   unsigned satVarCnt() const { return _nextSatVar; }
 
 protected:
+  /**
+   * Normalize literals before grounding.
+   *
+   * The order of literals in @c lits must be preserved.
+   */
   virtual void normalize(unsigned cnt, Literal** lits) = 0;
 
 private:
@@ -33,6 +40,11 @@ private:
 
   unsigned _nextSatVar;
   DHMap<Literal*, unsigned> _asgn;
+};
+
+class GlobalSubsumptionGrounder : public Grounder {
+protected:
+  virtual void normalize(unsigned cnt, Literal** lits);
 };
 
 class IGGrounder : public Grounder {

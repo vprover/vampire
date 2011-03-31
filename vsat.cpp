@@ -97,6 +97,15 @@ SATSolver::Status runSolverIncrementally(SATSolver& solver, unsigned varCnt, SAT
     }
 
     if(testAssumptions) {
+
+      //first we try adding wrong literals, so that we check retracting works as it should...
+      SATClauseStack::Iterator uit0(units);
+      while(uit0.hasNext()) {
+	SATClause* cl = uit0.next();
+	solver.addAssumption((*cl)[0].opposite());
+      }
+      solver.retractAllAssumptions();
+
       SATClauseStack::Iterator uit(units);
       while(uit.hasNext()) {
 	SATClause* cl = uit.next();

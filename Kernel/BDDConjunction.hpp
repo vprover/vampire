@@ -6,11 +6,13 @@
 #ifndef __BDDConjunction__
 #define __BDDConjunction__
 
+#include "Forwards.hpp"
+
+#include "Lib/ScopedPtr.hpp"
+
 #include "Kernel/BDDClausifier.hpp"
 
-#include "SAT/TWLSolver.hpp"
-
-#include "Forwards.hpp"
+#include "SAT/SATSolver.hpp"
 
 namespace Kernel {
 
@@ -43,7 +45,7 @@ private:
    * Two-watched-literal incremental SAT solver that is used to check whether
    * the conjunction represented by this object is satisfiable
    */
-  TWLSolver _solver;
+  SATSolverSCP _solver;
 };
 
 }

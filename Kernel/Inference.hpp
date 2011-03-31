@@ -210,7 +210,9 @@ public:
     /** generated as instance of its parent */
     INSTANCE_GENERATION,
     /** unit resulting resolution */
-    UNIT_RESULTING_RESOLUTION
+    UNIT_RESULTING_RESOLUTION,
+    /** global subsumption */
+    GLOBAL_SUBSUMPTION
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

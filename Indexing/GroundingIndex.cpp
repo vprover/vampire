@@ -5,12 +5,20 @@
 
 #include "GroundingIndex.hpp"
 
+#include "Lib/SharedSet.hpp"
+
+#include "Kernel/Grounder.hpp"
+#include "Kernel/Inference.hpp"
+
 #include "SAT/TWLSolver.hpp"
+
+#include "Saturation/SaturationAlgorithm.hpp"
 
 namespace Indexing
 {
 
-GroundingIndex::GroundingIndex()
+GroundingIndex::GroundingIndex(Grounder* gnd)
+ : _grounder(gnd)
 {
   CALL("GroundingIndex::GroundingIndex");
 
@@ -21,15 +29,7 @@ void GroundingIndex::handleClause(Clause* c, bool adding)
 {
   CALL("GroundingIndex::handleClause");
 
-  if(!adding) {
-    //We do not remove clauses from the SAT solver.
-    return;
-  }
-  if(c->splits() && c->splits()->size()!=0) {
-    //Since we don't remove clauses, we must ignore clauses with splitting
-    //history, because it wouldn't be possible to backtrack them
-    return;
-  }
+  //We are adding clauses into the index when performing the subsumption check
 }
 
 }

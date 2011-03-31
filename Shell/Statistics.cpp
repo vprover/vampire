@@ -55,6 +55,7 @@ Statistics::Statistics()
     backwardDemodulationsToEqTaut(0),
     forwardLiteralRewrites(0),
     condensations(0),
+    globalSubsumption(0),
     evaluations(0),
     interpretedSimplifications(0),
     simpleTautologies(0),
@@ -177,6 +178,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Bw demodulations", backwardDemodulations);
   COND_OUT("Fw literal rewrites", forwardLiteralRewrites);
   COND_OUT("Condensations", condensations);
+  COND_OUT("Global subsumptions", globalSubsumption);
   COND_OUT("Evaluations", evaluations);
   COND_OUT("Interpreted simplifications", interpretedSimplifications);
   SEPARATOR;

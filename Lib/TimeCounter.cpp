@@ -187,6 +187,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_FORWARD_LITERAL_REWRITING:
     out<<"forward literal rewriting";
     break;
+  case TC_GLOBAL_SUBSUMPTION:
+    out<<"global subsumption";
+    break;
   case TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE:
     out<<"unit clause index maintenance";
     break;

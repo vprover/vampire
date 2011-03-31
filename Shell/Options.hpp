@@ -54,6 +54,7 @@ public:
     FUNCTION_DEFINITION_ELIMINATION,
 
     GENERAL_SPLITTING,
+    GLOBAL_SUBSUMPTION,
 
     INCLUDE,
     INCREASED_NUMERAL_WEIGHT,
@@ -379,6 +380,7 @@ public:
   string xmlOutput() const { return _xmlOutput; }
   string thanks() const { return _thanks; }
 
+  bool globalSubsumption() const { return _globalSubsumption; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight; }
   bool interpretedEvaluation() const { return _interpretedEvaluation; }
   bool interpretedSimplification() const { return _interpretedSimplification; }
@@ -462,6 +464,7 @@ private:
   FunctionDefinitionElimination _functionDefinitionElimination;
 
   RuleActivity _generalSplitting;
+  bool _globalSubsumption;
 
   string _include;
   /** if this option is true, Vampire will add the numeral weight of a clause

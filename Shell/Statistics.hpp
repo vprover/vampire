@@ -97,6 +97,8 @@ public:
   unsigned forwardLiteralRewrites;
   /** number of condensations */
   unsigned condensations;
+  /** number of global subsumptions */
+  unsigned globalSubsumption;
   /** number of evaluations */
   unsigned evaluations;
   /** number of interpreted simplifications */

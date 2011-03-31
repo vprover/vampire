@@ -3,7 +3,11 @@
  * Implements class Grounder.
  */
 
+#include "Lib/SharedSet.hpp"
+
+#include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 
@@ -23,17 +27,56 @@ Grounder::Grounder()
 }
 
 /**
- * Return SATClause that is a result of grounding of @c cl.
- *
- * Corresponding literals are at corresponding positions.
+ * Return SATClauseIterator with SAT clauses that are results
+ * of grounding of @c cl.
  */
-SATClause* Grounder::ground(Clause* cl)
+SATClauseIterator Grounder::ground(Clause* cl)
 {
   CALL("Grounder::ground(Clause*)");
 
-  static DArray<Literal*> lits;
+  if(cl->splits() && cl->splits()->size()!=0) {
+    NOT_IMPLEMENTED;
+  }
+
+  if(cl->prop() && !BDD::instance()->isFalse(cl->prop())) {
+    NOT_IMPLEMENTED;
+  }
+
+  SATClause* gndNonProp = groundNonProp(cl);
+
+  return pvi( getSingletonIterator(gndNonProp) );
+}
+
+/**
+ * Return SATClause that is a result of grounding of the
+ * non-propositional part of @c cl.
+ *
+ * The order of literals in @c cl is preserved.
+ */
+SATClause* Grounder::groundNonProp(Clause* cl)
+{
+  CALL("Grounder::groundNonProp/1");
+
   static SATLiteralStack gndLits;
   gndLits.reset();
+
+  groundNonProp(cl, gndLits);
+
+  SATClause* res = SATClause::fromStack(gndLits);
+  return res;
+}
+
+/**
+ * Return SATClause that is a result of grounding of the
+ * non-propositional part of @c cl.
+ *
+ * The order of literals in @c cl is preserved.
+ */
+void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc)
+{
+  CALL("Grounder::groundNonProp/2");
+
+  static DArray<Literal*> lits;
 
   unsigned clen = cl->length();
   lits.initFromArray(clen, *cl);
@@ -41,10 +84,8 @@ SATClause* Grounder::ground(Clause* cl)
   normalize(clen, lits.array());
 
   for(unsigned i=0; i<clen; i++) {
-    gndLits.push(groundNormalized(lits[i]));
+    acc.push(groundNormalized(lits[i]));
   }
-  SATClause* res = SATClause::fromStack(gndLits);
-  return res;
 }
 
 /**
@@ -75,6 +116,31 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
   }
   return SATLiteral(*pvar, isPos);
 }
+
+
+////////////////////////////////
+// GlobalSubsumptionGrounder
+//
+
+void GlobalSubsumptionGrounder::normalize(unsigned cnt, Literal** lits)
+{
+  CALL("GlobalSubsumptionGrounder::normalize");
+
+  //TODO: maybe try somehow normalize the order of literals
+
+  static Renaming normalizer;
+  normalizer.reset();
+
+  for(unsigned i=0; i<cnt; i++) {
+    normalizer.normalizeVariables(lits[i]);
+    lits[i] = normalizer.apply(lits[i]);
+  }
+}
+
+
+/////////////////
+// IGGrounder
+//
 
 class IGGrounder::CollapsingApplicator
 {

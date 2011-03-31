@@ -85,6 +85,22 @@ public:
    * to the object; otherwise return zero.
    */
   static SaturationAlgorithm* tryGetInstance() { return s_instance; }
+
+  /**
+   * A struct that is thrown as an exception when a refutation is found
+   * during the saturation process.
+   */
+  struct RefutationFoundException
+  {
+    RefutationFoundException(Clause* ref) : refutation(ref)
+    {
+      CALL("SaturationAlgorithm::RefutationFoundException::RefutationFoundException");
+      ASS(isRefutation(ref));
+    }
+
+    Clause* refutation;
+  };
+
 protected:
   void doUnprocessedLoop();
   virtual void handleUnsuccessfulActivation(Clause* c);
@@ -123,8 +139,6 @@ protected:
   int elapsedTime();
 
   virtual bool isComplete();
-
-  struct RefutationFoundException;
 
 private:
 

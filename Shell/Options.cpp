@@ -105,6 +105,7 @@ const char* Options::Constants::_optionNames[] = {
   "function_definition_elimination",
 
   "general_splitting",
+  "global_subsumption",
 
   "include",
   "increased_numeral_weight",
@@ -467,6 +468,7 @@ Options::Options ()
   _functionDefinitionElimination(FDE_ALL),
 
   _generalSplitting(RA_OFF),
+  _globalSubsumption(false),
 
   _include(""),
   _increasedNumeralWeight(false),
@@ -687,6 +689,9 @@ void Options::set (const char* name,const char* value, int index)
       if(_generalSplitting==RA_ON) {
 	USER_ERROR("general_splitting is not implemented for value \"on\"");
       }
+      return;
+    case GLOBAL_SUBSUMPTION:
+      _globalSubsumption = onOffToBool(value,name);
       return;
 
     case INCLUDE:
@@ -1269,6 +1274,9 @@ void Options::outputValue (ostream& str,int optionTag) const
 
   case GENERAL_SPLITTING:
     str << Constants::ruleActivityValues[_generalSplitting];
+    return;
+  case GLOBAL_SUBSUMPTION:
+    str << boolToOnOff(_globalSubsumption);
     return;
 
   case INCLUDE:
