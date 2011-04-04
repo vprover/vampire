@@ -20,6 +20,7 @@
 #include "Lib/Map.hpp"
 #include "Lib/DHMap.hpp"
 
+#include "Sorts.hpp"
 #include "Theory.hpp"
 
 using namespace std;
@@ -53,9 +54,12 @@ class Signature
     unsigned _swbName : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
+    /** Either a FunctionType of a PredicateType object */
+    BaseType* _type;
   public:
     /** standard constructor */
     Symbol(const string& nm,unsigned arity, bool interpreted=false);
+    ~Symbol();
 
     void addColor(Color color);
     /** mark the symbol as skip for the purpose of symbol elimination */
@@ -81,6 +85,9 @@ class Signature
     /** Return true iff the object is of type InterpretedSymbol */
     inline bool interpreted() const { return _interpreted; }
 
+    void setType(BaseType* type);
+    const FunctionType* fnType();
+    const PredicateType* predType();
 
     CLASS_NAME("Signature::Symbol");
     USE_ALLOCATOR(Symbol);
@@ -115,8 +122,6 @@ class Signature
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(arity(),0); return _interp; }
   };
-
-  typedef Map<string,unsigned,Hash> SymbolMap;
 
   void registerInterpretedFunction(const string& name, Interpretation interpretation);
   void registerInterpretedPredicate(const string& name, Interpretation interpretation);

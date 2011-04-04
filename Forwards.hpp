@@ -6,6 +6,8 @@
 #ifndef __Forwards__
 #define __Forwards__
 
+#include <string>
+
 #include "Debug/Log.hpp"
 
 #include "Config.hpp"
@@ -33,6 +35,9 @@ template<typename T> class List;
 template<typename T, class Comparator> class BinaryHeap;
 template<typename T> class SharedSet;
 
+template <typename Key, typename Val,class Hash=Lib::Hash> class Map;
+
+
 template<typename T> class ArrayishObjectIterator;
 
 template<typename T> class ArrayMap;
@@ -42,6 +47,8 @@ typedef ArrayMap<EmptyStruct> ArraySet;
 
 typedef List<int> IntList;
 typedef List<VoidFunc> VoidFuncList;
+
+typedef Map<std::string,unsigned,Hash> SymbolMap;
 
 
 template<typename T> struct FirstHashTypeInfo;
@@ -87,6 +94,7 @@ namespace Kernel
 {
 using namespace Lib;
 
+class Sorts;
 class Signature;
 
 class TermList;

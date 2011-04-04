@@ -12,6 +12,7 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "Kernel/Signature.hpp"
+#include "Kernel/Sorts.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -50,11 +51,12 @@ Environment::Environment()
     _outputDepth(0),
     _pipe(0)
 {
-  options=new Options;
-  statistics=new Statistics;
-  timer=new Timer;
+  options = new Options;
+  statistics = new Statistics;
+  timer = new Timer;
+  sorts = new Sorts;
   signature = new Signature;
-  sharing=new TermSharing;
+  sharing = new TermSharing;
 
   timer->start();
 } // Environment::Environment
@@ -67,6 +69,7 @@ Environment::~Environment()
 #if CHECK_LEAKS
   delete sharing;
   delete signature;
+  delete sorts;
   delete timer;
   delete statistics;
   delete options;

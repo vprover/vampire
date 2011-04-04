@@ -130,6 +130,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
         Kernel/Signature.o\
+        Kernel/Sorts.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\

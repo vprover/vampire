@@ -31,7 +31,7 @@ namespace Lib {
  * @param Val values, can be anything
  * @param Hash class containig the hash function for keys
  */
-template <typename Key, typename Val,class Hash=Lib::Hash>
+template <typename Key, typename Val,class Hash>
 class Map
 {
 protected:

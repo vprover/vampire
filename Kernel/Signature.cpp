@@ -19,7 +19,8 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
     _skip(0),
     _cfName(0),
     _swbName(0),
-    _color(COLOR_TRANSPARENT)
+    _color(COLOR_TRANSPARENT),
+    _type(0)
 {
 
   //handle quoting
@@ -43,6 +44,65 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
     }
   }
 }
+
+Signature::Symbol::~Symbol()
+{
+  CALL("Signature::Symbol::~Symbol");
+
+  if(_type) {
+    delete _type;
+  }
+}
+
+/**
+ * Set type of the symbol
+ *
+ * The type can be set only once for each symbol, and if the type
+ * should be different from the default type, this function must be
+ * called before any call to @c fnType() or @c predType().
+ */
+void Signature::Symbol::setType(BaseType* type)
+{
+  CALL("Signature::Symbol::setType");
+  ASS(!_type);
+
+  _type = type;
+}
+
+/**
+ * Return the type of a function symbol
+ *
+ * If the @c setType() function was not called before, the function
+ * symbol is assigned a default type.
+ */
+const FunctionType* Signature::Symbol::fnType()
+{
+  CALL("Signature::Symbol::fnType");
+
+  if(!_type) {
+    _type = new FunctionType(arity());
+  }
+
+  return static_cast<FunctionType*>(_type);
+}
+
+/**
+ * Return the type of a predicate symbol
+ *
+ * If the @c setType() function was not called before, the function
+ * symbol is assigned a default type.
+ */
+const PredicateType* Signature::Symbol::predType()
+{
+  CALL("Signature::Symbol::predType");
+
+  if(!_type) {
+    _type = new PredicateType(arity());
+  }
+
+  return static_cast<PredicateType*>(_type);
+}
+
 
 /**
  * Create a Signature.
