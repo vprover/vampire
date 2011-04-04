@@ -939,7 +939,12 @@ Literal* Literal::create(Literal* l,bool polarity)
     *ts-- = *ss--;
   }
   if(l->shared()) {
-    m = env.sharing->insert(m);
+    if(l->isTwoVarEquality()) {
+      m = env.sharing->insertVariableEquality(m, l->twoVarEqSort());
+    }
+    else {
+      m = env.sharing->insert(m);
+    }
   }
   return m;
 } // Literal::create
