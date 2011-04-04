@@ -646,6 +646,9 @@ unsigned Literal::hash() const
   if (_arity == 0) {
     return hash;
   }
+  if (isTwoVarEquality()) {
+    hash ^= Hash::hash(twoVarEqSort());
+  }
   return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
  		       _arity*sizeof(TermList),hash);
 } // Term::hash
@@ -983,6 +986,20 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2)
    return lit;
 }
 
+Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList arg2, unsigned variableSort)
+{
+  CALL("Literal::createVariableEquality");
+  ASS(arg1.isVar());
+  ASS(arg2.isVar());
+
+  Literal* lit=new(2) Literal(0,2,polarity,true);
+  *lit->nthArgument(0)=arg1;
+  *lit->nthArgument(1)=arg2;
+  lit = env.sharing->insertVariableEquality(lit, variableSort);
+  return lit;
+}
+
+
 Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
 {
   CALL("Literal::create1");
@@ -1005,6 +1022,7 @@ Term::Term(const Term& t) throw()
     _arity(t._arity),
     _color(COLOR_TRANSPARENT),
     _hasInterpretedConstants(0),
+    _isTwoVarEquality(0),
     _weight(0),
     _vars(0)
 {
@@ -1033,6 +1051,7 @@ Term::Term() throw()
    _arity(0),
    _color(COLOR_TRANSPARENT),
    _hasInterpretedConstants(0),
+   _isTwoVarEquality(0),
    _weight(0),
    _vars(0)
 {

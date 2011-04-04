@@ -71,9 +71,7 @@ Term* TermSharing::insert(Term* t)
     TermList* ts1 = t->args();
     TermList* ts2 = ts1->next();
     if (argNormGt(*ts1, *ts2)) {
-      size_t c = ts1->_content;
-      ts1->_content = ts2->_content;
-      ts2->_content = c;
+      swap(ts1->_content, ts2->_content);
     }
   }
 
@@ -133,6 +131,10 @@ Term* TermSharing::insert(Term* t)
 
 /**
  * Insert a new literal in the index and return the result.
+ *
+ * Equalities between two variables cannot be inserted using this
+ * function. @c insertVariableEquality() must be used instead.
+ *
  * @since 28/12/2007 Manchester
  */
 Literal* TermSharing::insert(Literal* t)
@@ -140,6 +142,15 @@ Literal* TermSharing::insert(Literal* t)
   CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
   ASS(!t->isSpecial());
+
+  //equalities between variables must be inserted using insertVariableEquality() function
+
+  //#############
+  //# Uncomment this assertion when we know no
+  //# equalities between variables will be inserted
+  //# through this function!
+  //#############
+//  ASS_REP(!t->isEquality() || !t->nthArgument(0)->isVar() || !t->nthArgument(1)->isVar(), t->toString());
 
   TimeCounter tc(TC_TERM_SHARING);
 
@@ -149,9 +160,7 @@ Literal* TermSharing::insert(Literal* t)
     TermList* ts1 = t->args();
     TermList* ts2 = ts1->next();
     if (argNormGt(*ts1, *ts2)) {
-      size_t c = ts1->_content;
-      ts1->_content = ts2->_content;
-      ts2->_content = c;
+      swap(ts1->_content, ts2->_content);
     }
   }
 
@@ -206,6 +215,50 @@ Literal* TermSharing::insert(Literal* t)
   }
   return s;
 } // TermSharing::insert
+
+/**
+ * Insert a new literal in the index and return the result.
+ * @since 28/12/2007 Manchester
+ */
+Literal* TermSharing::insertVariableEquality(Literal* t,unsigned sort)
+{
+  CALL("TermSharing::insertVariableEquality");
+  ASS(t->isLiteral());
+  ASS(t->commutative());
+  ASS(t->isEquality());
+  ASS(t->nthArgument(0)->isVar());
+  ASS(t->nthArgument(1)->isVar());
+  ASS(!t->isSpecial());
+
+  TimeCounter tc(TC_TERM_SHARING);
+
+  TermList* ts1 = t->args();
+  TermList* ts2 = ts1->next();
+  if (argNormGt(*ts1, *ts2)) {
+    swap(ts1->_content, ts2->_content);
+  }
+
+  //we need these values set during insertion into the sharing set
+  t->markTwoVarEquality();
+  t->setTwoVarEqSort(sort);
+
+  _literalInsertions++;
+  Literal* s = _literals.insert(t);
+  string n = "";
+  if (s == t) {
+    t->markShared();
+    t->setWeight(3);
+    if (env.colorUsed) {
+      t->setColor(COLOR_TRANSPARENT);
+    }
+    t->setInterpretedConstantsPresence(false);
+    _totalLiterals++;
+  }
+  else {
+    t->destroy();
+  }
+  return s;
+} // TermSharing::insertVariableEquality
 
 /**
  * Insert a new term and all its unshared subterms
@@ -329,7 +382,7 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
  */
 bool TermSharing::equals(const Term* s,const Term* t)
 {
-  CALL("TermSharing::equals");
+  CALL("TermSharing::equals(Term*,Term*)");
 
   if (s->functor() != t->functor()) return false;
 
@@ -344,3 +397,25 @@ bool TermSharing::equals(const Term* s,const Term* t)
   }
   return true;
 } // TermSharing::equals
+
+/**
+ * True if the two literals are equal (or equal except polarity if @c opposite is true)
+ */
+bool TermSharing::equals(const Literal* l1, const Literal* l2, bool opposite)
+{
+  CALL("TermSharing::equals(Literal*,Literal*)");
+
+  if( (l1->polarity()==l2->polarity()) == opposite) {
+    return false;
+  }
+
+  if(l1->isTwoVarEquality() && l2->isTwoVarEquality() &&
+      l1->twoVarEqSort()!=l2->twoVarEqSort()) {
+    return false;
+  }
+
+  return equals(static_cast<const Term*>(l1),
+		static_cast<const Term*>(l2));
+}
+
+

@@ -172,10 +172,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
 {
   CALL("InequalitySplitting::makeNameLiteral");
 
-  Literal* a = new(1) Literal(predNum,1,polarity,false);
-  *a->nthArgument(0)=arg;
-  a = env.sharing->insert(a);
-  return a;
+  return Literal::create(predNum, 1, polarity, false, &arg);
 }
 
 

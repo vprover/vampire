@@ -236,11 +236,8 @@ Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList 
 {
   CALL("EqualityProxy::createProxyLiteral");
 
-  Literal* res = new(2) Literal(s_proxyPredicate,2,polarity,false);
-  *res->nthArgument(0)=arg0;
-  *res->nthArgument(1)=arg1;
-  res = env.sharing->insert(res);
-  return res;
+  TermList args[] = {arg0, arg1};
+  return Literal::create(s_proxyPredicate, 2, polarity, false, args);
 }
 
 }

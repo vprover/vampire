@@ -88,16 +88,8 @@ Formula* NNF::ennf (Formula* f, bool polarity)
   case LITERAL:
     if (! polarity) {
       Literal* lit = f->literal();
-      Literal* newLit = new(lit->arity()) Literal(*lit);
-      // copy arguments of the old literal
-      TermList* s = newLit->args();
-      for (TermList* t = lit->args();! t->isEmpty();t = t->next()) {
-	*s = *t;
-	s = s->next();
-      }
-      ASS(s->isEmpty());
-      newLit->negate();
-      return new AtomicFormula(env.sharing->insert(newLit));
+      Literal* newLit = Literal::oppositeLiteral(lit);
+      return new AtomicFormula(newLit);
     }
     return f;
 
@@ -233,15 +225,8 @@ Formula* NNF::nnf (Formula* f, bool polarity)
   case LITERAL:
     if (! polarity) {
       Literal* lit = f->literal();
-      Literal* newLit = new(lit->arity()) Literal(*lit);
-      // copy arguments of the old literal
-      TermList* s = newLit->args();
-      for (TermList* t = lit->args();! t->isEmpty();t = t->next()) {
-	*s = *t;
-	s = s->next();
-      }
-      newLit->negate();
-      return new AtomicFormula(env.sharing->insert(newLit));
+      Literal* newLit = Literal::oppositeLiteral(lit);
+      return new AtomicFormula(newLit);
     }
     return f;
 

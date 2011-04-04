@@ -314,7 +314,7 @@ public:
   bool ground() const
   {
     ASS(_args[0]._info.shared);
-    return ! _vars;
+    return ! vars();
   } // ground
 
   /** True if the term is shared */
@@ -353,15 +353,34 @@ public:
   /** Set the number of variables */
   void setVars(unsigned v)
   {
+    CALL("Term::setVars");
+
+    if(_isTwoVarEquality) {
+      ASS_EQ(v,2);
+      return;
+    }
     _vars = v;
   } // setVars
 
   /** Return the number of variables */
   unsigned vars() const
   {
-    ASS(_args[0]._info.shared);
+    ASS(shared());
+    if(_isTwoVarEquality) {
+      return 2;
+    }
     return _vars;
   } // vars()
+
+  /**
+   * Return true iff the object is an equality between two variables.
+   *
+   * This value is set during insertion into the term sharing structure
+   */
+  bool isTwoVarEquality() const
+  {
+    return _isTwoVarEquality;
+  }
 
   const string& functionName() const;
 
@@ -512,15 +531,23 @@ protected:
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
-  unsigned _arity : 28;
+  unsigned _arity : 27;
   /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
   /** Equal to 1 if the term/literal contains any interpreted constants */
   unsigned _hasInterpretedConstants : 1;
+  /** If true, the object is an equality literal between two variables */
+  unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
   unsigned _weight;
-  /** number of occurrences of variables */
-  unsigned _vars;
+  union {
+    /** If _isTwoVarEquality is false, this value is valid and contains
+     * number of occurrences of variables */
+    unsigned _vars;
+    /** If _isTwoVarEquality is true, this value is valid and contains
+     * the sort of the top-level variables */
+    unsigned _sort;
+  };
 
 #if USE_MATCH_TAG && !ARCH_X64
   MatchTag _matchTag;
@@ -626,6 +653,7 @@ public:
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
   static Literal* createEquality (bool polarity, TermList arg1, TermList arg2);
+  static Literal* createVariableEquality (bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
 
@@ -653,6 +681,42 @@ public:
   {
     return _args[0]._info.polarity;
   } // polarity
+
+  /**
+   * Mark this object as an equality between two variables.
+   */
+  void markTwoVarEquality()
+  {
+    CALL("Literal::markTwoVarEquality");
+    ASS(!shared());
+    ASS(isEquality());
+    ASS(nthArgument(0)->isVar());
+    ASS(nthArgument(1)->isVar());
+
+    _isTwoVarEquality = true;
+  }
+
+
+  /** Return sort of the variables in an equality between two variables.
+   * This value is set during insertion into the term sharing structure
+   */
+  unsigned twoVarEqSort() const
+  {
+    CALL("Literal::twoVarEqSort");
+    ASS(isTwoVarEquality());
+
+    return _sort;
+  }
+
+  /** Assign sort of the variables in an equality between two variables. */
+  void setTwoVarEqSort(unsigned sort)
+  {
+    CALL("Literal::setTwoVarEqSort");
+    ASS(isTwoVarEquality());
+
+    _sort = sort;
+  }
+
 
   /** Return a new equality literal */
   static inline Literal* equality (bool polarity)

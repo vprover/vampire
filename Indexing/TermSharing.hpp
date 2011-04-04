@@ -21,9 +21,12 @@ class TermSharing
 public:
   TermSharing();
   ~TermSharing();
+
   Term* insert(Term*);
-  Literal* insert(Literal*);
   Term* insertRecurrently(Term*);
+
+  Literal* insert(Literal*);
+  Literal* insertVariableEquality(Literal* lit,unsigned sort);
 
   Literal* tryGetOpposite(Literal* l);
 
@@ -34,11 +37,8 @@ public:
   inline static unsigned hash(const Term* t)
   { return t->hash(); }
   static bool equals(const Term* t1,const Term* t2);
-  /** True if the two literals are equal */
-  static bool equals(const Literal* l1,const Literal* l2)
-  { return l1->polarity() == l2->polarity() &&
-           equals(static_cast<const Term*>(l1),
-		  static_cast<const Term*>(l2)); }
+
+  static bool equals(const Literal* l1, const Literal* l2, bool opposite=false);
 
   struct OpLitWrapper {
     OpLitWrapper(Literal* l) : l(l) {}
@@ -46,10 +46,9 @@ public:
   };
   inline static unsigned hash(const OpLitWrapper& w)
   { return w.l->oppositeHash(); }
-  static bool equals(const Literal* l1,const OpLitWrapper& w)
-  { return l1->polarity() != w.l->polarity() &&
-           equals(static_cast<const Term*>(l1),
-		  static_cast<const Term*>(w.l)); }
+  static bool equals(const Literal* l1,const OpLitWrapper& w) {
+    return equals(l1, w.l, true);
+  }
 
 private:
   bool argNormGt(TermList t1, TermList t2);
