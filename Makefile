@@ -137,8 +137,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Term.o\
         Kernel/TermIterators.o\
         Kernel/Theory.o\
-        Kernel/Unit.o\
-#        Kernel/EGSubstitution.o
+        Kernel/Unit.o
 
 ALG_OBJ = Kernel/Algebra/ArithmeticKB.o\
           Kernel/Algebra/Constraint.o\

@@ -24,7 +24,6 @@
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
 
-#include "Kernel/EGSubstitution.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Clause.hpp"

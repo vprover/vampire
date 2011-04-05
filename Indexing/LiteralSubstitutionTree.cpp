@@ -90,39 +90,6 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 //      getResultIterator<InstancesIterator>(lit,
       getResultIterator<FastInstancesIterator>(lit,
 	  complementary, retrieveSubstitutions);
-#if VDEBUG
-  SLQueryResultIterator old=getResultIterator<InstancesIterator>(lit,complementary, retrieveSubstitutions);
-  if(res.hasNext()!=old.hasNext()) {
-    bool badMatch=old.hasNext();
-
-    if(!badMatch) {
-      ASS(res.hasNext());
-      SLQueryResultIterator new2=getResultIterator<FastInstancesIterator>(lit,complementary, retrieveSubstitutions);
-      while(new2.hasNext()) {
-	Literal* newLit=new2.next().literal;
-	if(!MatchingUtils::match(lit, newLit, complementary)) {
-	  if(!badMatch) {
-	    reportSpiderFail();
-	  }
-	  badMatch=true;
-	  LOGV(*newLit);
-	}
-      }
-    }
-    else {
-      reportSpiderFail();
-    }
-    if(badMatch) {
-      while(old.hasNext()) {
-	LOGV(*old.next().literal);
-      }
-      LOGV(*lit);
-      LOG("----");
-      ASSERTION_VIOLATION;
-    }
-
-  }
-#endif
 //  ASS_EQ(res.hasNext(), getResultIterator<InstancesIterator>(lit,
 //      complementary, retrieveSubstitutions).hasNext());
   return res;

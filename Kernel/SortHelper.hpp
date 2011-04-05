@@ -17,6 +17,13 @@ public:
 
   static unsigned getEqualityArgumentSort(Literal* lit);
   static unsigned getArgSort(Literal* lit, unsigned argIndex);
+
+  static unsigned getVariableSort(TermList var, Literal* lit);
+  static unsigned getVariableSort(TermList var, Term* t);
+  static unsigned getTermSort(TermList trm, Literal* lit);
+
+private:
+  static bool tryGetVariableSort(TermList var, Term* t, unsigned& result);
 };
 
 }

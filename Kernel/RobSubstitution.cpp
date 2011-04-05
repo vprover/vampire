@@ -678,6 +678,11 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
   if( !Literal::headersMatch(l1,l2,complementary) ) {
     return SubstIterator::getEmpty();
   }
+  if( l1->isEquality() &&
+      SortHelper::getEqualityArgumentSort(l1)!=SortHelper::getEqualityArgumentSort(l2) ) {
+    //the sorts of equalities don't match
+    return SubstIterator::getEmpty();
+  }
   if( !l1->commutative() ) {
     return pvi( getContextualIterator(getSingletonIterator(subst),
 	    AssocContext<Fn>(l1, l1Index, l2, l2Index)) );

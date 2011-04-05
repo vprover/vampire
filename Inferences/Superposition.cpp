@@ -14,6 +14,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -175,6 +176,11 @@ Clause* Superposition::performSuperposition(
 	ResultSubstitutionSP subst, bool eqIsResult, Limits* limits)
 {
   CALL("Superposition::performSuperposition");
+
+  if(SortHelper::getTermSort(rwTerm, rwLit)!=SortHelper::getEqualityArgumentSort(eqLit)) {
+    //cannot perform superposition because sorts don't match
+    return 0;
+  }
 
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();

@@ -62,6 +62,11 @@ BaseType::BaseType(unsigned arity, unsigned* sorts)
 {
   CALL("BaseType::BaseType");
 
+  if(!arity) {
+    _args = 0;
+    return;
+  }
+
   _args = SortVector::allocate(arity);
   if(!sorts) {
     unsigned def = env.sorts->defaultSort();
@@ -80,7 +85,9 @@ BaseType::~BaseType()
 {
   CALL("BaseType::~BaseType");
 
-  _args->deallocate();
+  if(_args) {
+    _args->deallocate();
+  }
 }
 
 FunctionType::FunctionType(unsigned arity)
