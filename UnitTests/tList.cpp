@@ -9,8 +9,6 @@ UT_CREATE;
 using namespace std;
 using namespace Lib;
 
-typedef List<int> IntList;
-
 TEST_FUN(list1)
 {
   IntList* lst = 0;
