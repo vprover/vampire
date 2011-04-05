@@ -20,8 +20,8 @@ TEST_FUN(list1)
 
   IntList::DelIterator dit(lst);
   ALWAYS(dit.hasNext());
-  ALWAYS(dit.next()==0);
+  ALWAYS(dit.next()==1);
   dit.del();
-  ASS_EQ(lst->head(), 1);
+  ASS_EQ(lst->head(), 0);
   ASS_ALLOC_TYPE(lst, "List");
 }
