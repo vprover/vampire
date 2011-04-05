@@ -16,6 +16,7 @@
 
 #include "Clause.hpp"
 #include "Renaming.hpp"
+#include "SortHelper.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
@@ -550,6 +551,10 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
   int i = 0;
   for (TermList* args = lit->args(); ! args->isEmpty(); args = args->next()) {
     ts[i++]=apply(*args,index);
+  }
+  if(lit->isEquality() && ts[0].isVar() && ts[1].isVar()) {
+    unsigned srt = SortHelper::getEqualityArgumentSort(lit);
+    return Literal::createVariableEquality(lit->polarity(), ts[0], ts[1], srt);
   }
   return Literal::create(lit,ts.array());
 }

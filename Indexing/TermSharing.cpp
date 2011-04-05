@@ -9,6 +9,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "TermSharing.hpp"
@@ -151,6 +152,11 @@ Literal* TermSharing::insert(Literal* t)
   //# through this function!
   //#############
 //  ASS_REP(!t->isEquality() || !t->nthArgument(0)->isVar() || !t->nthArgument(1)->isVar(), t->toString());
+  if(t->isEquality() && t->nthArgument(0)->isVar() && t->nthArgument(1)->isVar()) {
+//    cerr<<"wrongly inserted equality between variables, using default sort\n";
+//    Debug::Tracer::printOnlyStack(cerr);
+    return insertVariableEquality(t, env.sorts->defaultSort());
+  }
 
   TimeCounter tc(TC_TERM_SHARING);
 

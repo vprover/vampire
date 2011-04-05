@@ -10,6 +10,7 @@
 #include "Lib/Recycler.hpp"
 
 #include "Formula.hpp"
+#include "SortHelper.hpp"
 #include "Term.hpp"
 
 namespace Kernel {
@@ -381,9 +382,17 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     //second topmost element as &top()-1, third at
     //&top()-2, etc...
     TermList* argLst=&args->top() - (trm->arity()-1);
+    ASS_EQ(args->size(), trm->arity());
     if(trm->isLiteral()) {
       ASS(!noSharing);
-      result=Literal::create(static_cast<Literal*>(trm),argLst);
+      Literal* lit = static_cast<Literal*>(trm);
+      if(lit->isEquality() && (*args)[0].isVar() && (*args)[1].isVar()) {
+	unsigned srt = SortHelper::getEqualityArgumentSort(lit);
+	result=Literal::createVariableEquality(lit->polarity(),(*args)[0], (*args)[1], srt);
+      }
+      else {
+	result=Literal::create(lit,argLst);
+      }
     }
     else {
       bool shouldShare=!noSharing && canBeShared(argLst, trm->arity());

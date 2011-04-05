@@ -12,6 +12,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
@@ -176,7 +177,14 @@ Literal* Rectify::rectify (Literal* l)
   Literal* m = new(l->arity()) Literal(*l);
   if (rectify(l->args(),m->args())) {
     if(TermList::allShared(m->args())) {
-      return env.sharing->insert(m);
+      if(l->isEquality() && m->nthArgument(0)->isVar() && m->nthArgument(1)->isVar()) {
+	ASS(l->shared());
+	unsigned srt = SortHelper::getEqualityArgumentSort(l);
+	return env.sharing->insertVariableEquality(m, srt);
+      }
+      else {
+	return env.sharing->insert(m);
+      }
     }
     else {
       return m;

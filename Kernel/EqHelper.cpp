@@ -7,6 +7,7 @@
 
 #include "Shell/Options.hpp"
 
+#include "SortHelper.hpp"
 #include "TermIterators.hpp"
 
 #include "EqHelper.hpp"
@@ -108,6 +109,12 @@ Literal* EqHelper::replace(Literal* lit, TermList tSrc, TermList tDest)
     //there is something to be replaced.
     ASSERTION_VIOLATION;
     return lit;
+  }
+
+  ASS_EQ(args.size(), lit->arity());
+  if(lit->isEquality() && args[0].isVar() && args[1].isVar()) {
+    unsigned srt = SortHelper::getEqualityArgumentSort(lit);
+    return Literal::createVariableEquality(lit->polarity(),args[0], args[1], srt);
   }
 
   //here we assume, that stack is an array with
