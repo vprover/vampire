@@ -66,7 +66,15 @@ struct URResolution::Item
 
     unsigned clen = cl->length();
     _premises.init(clen, 0);
-    _lits.initFromArray(clen, *cl);
+    _lits.ensure(clen);
+    unsigned nonGroundCnt = 0;
+    for(unsigned i=0; i<clen; i++) {
+      _lits[i] = (*cl)[i];
+      if(!_lits[i]->ground()) {
+	nonGroundCnt++;
+      }
+    }
+    _atMostOneNonGround = nonGroundCnt<=1;
   }
 
   /**
@@ -82,19 +90,24 @@ struct URResolution::Item
 
     _lits[idx] = 0;
     _premises[idx] = premise;
+
+    if(_atMostOneNonGround) {
+      return;
+    }
+
+    unsigned nonGroundCnt = 0;
     unsigned clen = _lits.size();
     for(unsigned i=0; i<clen; i++) {
       Literal*& lit = _lits[i];
       if(!lit) {
         continue;
       }
-      if(useQuerySubstitution) {
-	lit = unif.substitution->applyToQuery(lit);
-      }
-      else {
-	lit = unif.substitution->applyToResult(lit);
+      lit = unif.substitution->apply(lit, !useQuerySubstitution);
+      if(!lit->ground()) {
+	nonGroundCnt++;
       }
     }
+    _atMostOneNonGround = nonGroundCnt<=1;
   }
 
   Clause* generateClause() const
@@ -128,8 +141,48 @@ struct URResolution::Item
     return res;
   }
 
+  int getGoodness(Literal* lit)
+  {
+    CALL("URResolution::Item::getGoodness");
+
+    return lit->weight() - lit->getDistinctVars();
+  }
+
+  /**
+   * From among the remaining literals (i.e. those with index at
+   * least @c idx), select the one most suitable for resolving
+   * (according to the @c getGoodness() function) and move it to
+   * the @c idx position (so that it is resolved next).
+   */
+  void getBestLiteralReady(unsigned idx)
+  {
+    CALL("URResolution::Item::getBestLiteralReady");
+
+    unsigned clen = _lits.size();
+    ASS_L(idx, clen);
+
+    unsigned bestIdx = idx;
+    ASS(_lits[bestIdx]);
+    int bestVal = getGoodness(_lits[bestIdx]);
+
+    for(unsigned i=idx+1; i<clen; i++) {
+      ASS(_lits[i]);
+      int val = getGoodness(_lits[i]);
+      if(val>bestVal) {
+	bestVal = val;
+	bestIdx = i;
+      }
+    }
+    if(idx!=bestIdx) {
+      swap(_lits[idx], _lits[bestIdx]);
+    }
+  }
+
   /** If true, we may skip resolving one of the remaining literals */
   bool _mustResolveAll;
+
+  /** All remaining literals except for one are ground */
+  bool _atMostOneNonGround;
 
   /** The original clause we are resolving */
   Clause* _orig;
@@ -157,6 +210,7 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
   ItemList::DelIterator iit(itms);
   while(iit.hasNext()) {
     Item* itm = iit.next();
+    itm->getBestLiteralReady(idx);
     Literal* lit = itm->_lits[idx];
     ASS(lit);
 
@@ -173,6 +227,12 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       Item* itm2 = new Item(*itm);
       itm2->resolveLiteral(idx, unif, unif.clause, true);
       iit.insert(itm2);
+
+      if(itm->_atMostOneNonGround) {
+	//if there is only one non-ground literal left, there is no need to retrieve
+	//all unifications
+	break;
+      }
     }
 
     iit.del();

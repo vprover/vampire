@@ -59,6 +59,10 @@ struct BinaryResolution::UnificationsFn
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, SLQueryResult> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
+    if(lit->isEquality()) {
+      //Binary resolution is not performed with equality literals
+      return OWN_RETURN_TYPE::getEmpty();
+    }
     return pvi( pushPairIntoRightIterator(lit, _index->getUnifications(lit, true)) );
   }
 private:

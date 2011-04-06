@@ -4,7 +4,6 @@
  */
 
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/EGSubstitution.hpp"
 
 #include "ResultSubstitution.hpp"
 

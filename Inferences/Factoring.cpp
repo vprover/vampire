@@ -50,15 +50,23 @@ public:
   {
     CALL("Factoring::UnificationsFn::operator()");
 
+    Literal* l1 = (*_cl)[nums.first];
+    Literal* l2 = (*_cl)[nums.second];
+
     //we assume there are no duplicate literals
-    ASS((*_cl)[nums.first]!=(*_cl)[nums.second]);
+    ASS(l1!=l2);
     ASS_EQ(_subst->size(),0);
 
-    SubstIterator unifs=_subst->unifiers((*_cl)[nums.first],0,(*_cl)[nums.second],0, false);
+    if(l1->isEquality()) {
+      //We don't perform factoring with equalities
+      return OWN_RETURN_TYPE::getEmpty();
+    }
+
+    SubstIterator unifs=_subst->unifiers(l1,0,l2,0, false);
     if(!unifs.hasNext()) {
       return OWN_RETURN_TYPE::getEmpty();
     }
-    return pvi( pushPairIntoRightIterator((*_cl)[nums.second], unifs) );
+    return pvi( pushPairIntoRightIterator(l2, unifs) );
   }
 private:
   Clause* _cl;
