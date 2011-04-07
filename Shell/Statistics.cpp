@@ -14,12 +14,15 @@
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Saturation/SaturationAlgorithm.hpp"
+
 #include "Options.hpp"
 
 #include "Statistics.hpp"
 
 using namespace std;
 using namespace Lib;
+using namespace Saturation;
 using namespace Shell;
 
 /**
@@ -107,6 +110,8 @@ void Statistics::print(ostream& out)
   if(env.options->statistics()==Options::STATISTICS_NONE) {
     return;
   }
+
+  SaturationAlgorithm::tryUpdateFinalClauseCount();
 
   bool separable=false;
 #define COND_OUT(text, num) if(num) { out<<(text)<<": "<<(num)<<endl; separable=true; }

@@ -100,11 +100,9 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContaine
 SaturationAlgorithm::~SaturationAlgorithm()
 {
   CALL("SaturationAlgorithm::~SaturationAlgorithm");
+  ASS_EQ(s_instance,this);
 
   s_instance=0;
-
-  env.statistics->finalActiveClauses=_active->size();
-  env.statistics->finalPassiveClauses=_passive->size();
 
   PassiveClauseContainer::unregisterInstance(_passive);
 
@@ -143,6 +141,18 @@ SaturationAlgorithm::~SaturationAlgorithm()
   delete _passive;
 
   delete _selector;
+}
+
+void SaturationAlgorithm::tryUpdateFinalClauseCount()
+{
+  CALL("SaturationAlgorithm::tryUpdateFinalClauseCount");
+
+  SaturationAlgorithm* inst = tryGetInstance();
+  if(!inst) {
+    return;
+  }
+  env.statistics->finalActiveClauses = inst->_active->size();
+  env.statistics->finalPassiveClauses = inst->_passive->size();
 }
 
 /**
@@ -1397,6 +1407,7 @@ SaturationResult SaturationAlgorithm::saturate()
 
   SaturationResult res=saturateImpl();
 
+  tryUpdateFinalClauseCount();
   return res;
 }
 

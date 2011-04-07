@@ -15,7 +15,7 @@ collected nor output.
 #define RUNTIME_STATS 0
 #endif
 
-#define RSTAT_COLLECTION 0
+#define RSTAT_COLLECTION 1
 
 #if RUNTIME_STATS
 

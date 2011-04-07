@@ -324,6 +324,8 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/KBOForEPR.o\
 	  Kernel/Ordering.o\
 	  Kernel/Ordering_Equality.o\
+	  Kernel/SortHelper.o\
+	  Kernel/Sorts.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
 	  Kernel/Substitution.o\
@@ -334,7 +336,8 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Saturation/ClauseContainer.o\
           Shell/EqualityProxy.o\
 	  Shell/Options.o\
-	  Shell/Statistics.o
+	  Shell/Statistics.o\
+	  ClausifierDependencyFix.o
 
 OTHER_CL_DEP = Inferences/InferenceEngine.o\
 	       Inferences/TautologyDeletionISE.o\
@@ -345,71 +348,74 @@ OTHER_CL_DEP = Inferences/InferenceEngine.o\
 	       SAT/SATLiteral.o
 
 OTHER_API_DEP = \
-			   Debug/Assertion.o\
-			   Debug/Tracer.o\
-			   Indexing/TermSharing.o\
-			   Kernel/BDD.o\
-			   Kernel/BDDClausifier.o\
-			   Kernel/Clause.o\
-			   Kernel/EqHelper.o\
-			   Kernel/Formula.o\
-			   Kernel/FormulaUnit.o\
-			   Kernel/FormulaVarIterator.o\
-			   Kernel/Inference.o\
-		           Kernel/KBO.o\
-	                   Kernel/KBOForEPR.o\
-			   Kernel/Matcher.o\
-			   Kernel/Ordering.o\
-	                   Kernel/Ordering_Equality.o\
-			   Kernel/Signature.o\
-			   Kernel/SubformulaIterator.o\
-			   Kernel/Substitution.o\
-			   Kernel/Term.o\
-			   Kernel/TermIterators.o\
-			   Kernel/Theory.o\
-			   Kernel/Unit.o\
-			   Lib/Allocator.o\
-			   Lib/DHMap.o\
-			   Lib/Environment.o\
-			   Lib/Event.o\
-			   Lib/Exception.o\
-			   Lib/Hash.o\
-			   Lib/Int.o\
-			   Lib/IntNameTable.o\
-			   Lib/MultiCounter.o\
-			   Lib/NameArray.o\
-			   Lib/Random.o\
-			   Lib/System.o\
-			   Lib/TimeCounter.o\
-			   Lib/Timer.o\
-			   Lib/Sys/Multiprocessing.o\
-			   Lib/Sys/Semaphore.o\
-			   Lib/Sys/SyncPipe.o\
-			   SAT/SATClause.o\
-			   SAT/SATLiteral.o\
-			   Saturation/ClauseContainer.o\
-			   Shell/CNF.o\
-                           Shell/EqualityProxy.o\
-			   Shell/Flattening.o\
-			   Shell/FormulaIteExpander.o\
-			   Shell/Lexer.o\
-			   Shell/LispLexer.o\
-			   Shell/LispParser.o\
-			   Shell/Naming.o\
-			   Shell/NNF.o\
-			   Shell/Options.o\
-			   Shell/Parser.o\
-			   Shell/Rectify.o\
-			   Shell/SimplifyFalseTrue.o\
-			   Shell/SimplifyProver.o\
-			   Shell/Skolem.o\
-		           Shell/SpecialTermElimination.o\
-			   Shell/Statistics.o\
-			   Shell/Token.o\
-			   Shell/TPTP.o\
-			   Shell/TPTPLexer.o\
-			   Shell/TPTPParser.o\
-			   Shell/VarManager.o
+	   Debug/Assertion.o\
+	   Debug/Tracer.o\
+	   Indexing/TermSharing.o\
+	   Kernel/BDD.o\
+	   Kernel/BDDClausifier.o\
+	   Kernel/Clause.o\
+	   Kernel/EqHelper.o\
+	   Kernel/Formula.o\
+	   Kernel/FormulaUnit.o\
+	   Kernel/FormulaVarIterator.o\
+	   Kernel/Inference.o\
+	   Kernel/KBO.o\
+	   Kernel/KBOForEPR.o\
+	   Kernel/Matcher.o\
+	   Kernel/Ordering.o\
+	   Kernel/Ordering_Equality.o\
+	   Kernel/SortHelper.o\
+	   Kernel/Sorts.o\
+	   Kernel/Signature.o\
+	   Kernel/SubformulaIterator.o\
+	   Kernel/Substitution.o\
+	   Kernel/Term.o\
+	   Kernel/TermIterators.o\
+	   Kernel/Theory.o\
+	   Kernel/Unit.o\
+	   Lib/Allocator.o\
+	   Lib/DHMap.o\
+	   Lib/Environment.o\
+	   Lib/Event.o\
+	   Lib/Exception.o\
+	   Lib/Hash.o\
+	   Lib/Int.o\
+	   Lib/IntNameTable.o\
+	   Lib/MultiCounter.o\
+	   Lib/NameArray.o\
+	   Lib/Random.o\
+	   Lib/System.o\
+	   Lib/TimeCounter.o\
+	   Lib/Timer.o\
+	   Lib/Sys/Multiprocessing.o\
+	   Lib/Sys/Semaphore.o\
+	   Lib/Sys/SyncPipe.o\
+	   SAT/SATClause.o\
+	   SAT/SATLiteral.o\
+	   Saturation/ClauseContainer.o\
+	   Shell/CNF.o\
+	   Shell/EqualityProxy.o\
+	   Shell/Flattening.o\
+	   Shell/FormulaIteExpander.o\
+	   Shell/Lexer.o\
+	   Shell/LispLexer.o\
+	   Shell/LispParser.o\
+	   Shell/Naming.o\
+	   Shell/NNF.o\
+	   Shell/Options.o\
+	   Shell/Parser.o\
+	   Shell/Rectify.o\
+	   Shell/SimplifyFalseTrue.o\
+	   Shell/SimplifyProver.o\
+	   Shell/Skolem.o\
+	   Shell/SpecialTermElimination.o\
+	   Shell/Statistics.o\
+	   Shell/Token.o\
+	   Shell/TPTP.o\
+	   Shell/TPTPLexer.o\
+	   Shell/TPTPParser.o\
+	   Shell/VarManager.o\
+	   ClausifierDependencyFix.o
 
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) $(VPROG_OBJ)  

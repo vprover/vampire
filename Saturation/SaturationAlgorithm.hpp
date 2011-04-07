@@ -86,6 +86,8 @@ public:
    */
   static SaturationAlgorithm* tryGetInstance() { return s_instance; }
 
+  static void tryUpdateFinalClauseCount();
+
   /**
    * A struct that is thrown as an exception when a refutation is found
    * during the saturation process.
