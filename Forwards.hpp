@@ -97,6 +97,10 @@ using namespace Lib;
 class Sorts;
 class Signature;
 
+class BaseType;
+class FunctionType;
+class PredicateType;
+
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 class Term;

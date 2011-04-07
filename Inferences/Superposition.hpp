@@ -34,6 +34,13 @@ private:
 	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
 	  ResultSubstitutionSP subst, bool eqIsResult, Limits* limits);
 
+  static bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
+  static int getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits);
+  static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
+      Clause* rwClause, Literal* rwLit, int weightLimit);
+
+  static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
+
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;
   struct ApplicableRewritesFn;

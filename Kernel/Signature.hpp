@@ -55,7 +55,7 @@ class Signature
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
     /** Either a FunctionType of a PredicateType object */
-    BaseType* _type;
+    mutable BaseType* _type;
   public:
     /** standard constructor */
     Symbol(const string& nm,unsigned arity, bool interpreted=false);
@@ -69,13 +69,13 @@ class Signature
     /** mark the symbol as name for splitting without backtracking */
     void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
-    bool skip() { return _skip; }
+    bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
         for consequence finding */
-    bool cfName() { return _cfName; }
+    bool cfName() const { return _cfName; }
     /** return true iff the symbol is marked as name predicate
         for splitting without backtracking */
-    bool swbName() { return _swbName; }
+    bool swbName() const { return _swbName; }
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */
@@ -86,8 +86,8 @@ class Signature
     inline bool interpreted() const { return _interpreted; }
 
     void setType(BaseType* type);
-    const FunctionType* fnType();
-    const PredicateType* predType();
+    FunctionType* fnType() const;
+    PredicateType* predType() const;
 
     CLASS_NAME("Signature::Symbol");
     USE_ALLOCATOR(Symbol);

@@ -62,6 +62,7 @@ private:
   string _name;
 };
 
+typedef unsigned Sort;
 typedef unsigned Var;
 typedef unsigned Function;
 typedef unsigned Predicate;
@@ -113,6 +114,16 @@ public:
     CONJECTURE
   };
 
+  /**
+   * Create a sort with name @c sortName. Sort name must be unique, otherwise
+   * and exception will be raised.
+   */
+  Sort sort(const string& sortName);
+
+  /**
+   * Return the default sort that is used when no sort is specified.
+   */
+  Sort defaultSort();
 
   /** Create a variable
    * @param varName name of the variable. Must be a valid TPTP variable name, that is, start

@@ -5,7 +5,9 @@
 
 #include "Lib/Environment.hpp"
 
+#include "Clause.hpp"
 #include "Signature.hpp"
+#include "Sorts.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
@@ -13,6 +15,19 @@
 
 namespace Kernel
 {
+
+/**
+ * Return type of term or literal @c t
+ */
+BaseType& SortHelper::getType(Term* t)
+{
+  if(t->isLiteral()) {
+    return *env.signature->getPredicate(t->functor())->predType();
+  }
+  else {
+    return *env.signature->getFunction(t->functor())->fnType();
+  }
+}
 
 unsigned SortHelper::getResultSort(Term* t)
 {
@@ -23,14 +38,19 @@ unsigned SortHelper::getResultSort(Term* t)
   return sym->fnType()->result();
 }
 
+/**
+ * Return argument sort of term or literal @c t
+ */
 unsigned SortHelper::getArgSort(Term* t, unsigned argIndex)
 {
   CALL("SortHelper::getArgSort(Term*,unsigned)");
   ASS_L(argIndex, t->arity());
-  ASS(!t->isLiteral());
 
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
-  return sym->fnType()->arg(argIndex);
+  if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    return getEqualityArgumentSort(static_cast<Literal*>(t));
+  }
+
+  return getType(t).arg(argIndex);
 }
 
 unsigned SortHelper::getEqualityArgumentSort(Literal* lit)
@@ -50,18 +70,6 @@ unsigned SortHelper::getEqualityArgumentSort(Literal* lit)
   return getResultSort(arg2.term());
 }
 
-unsigned SortHelper::getArgSort(Literal* lit, unsigned argIndex)
-{
-  CALL("SortHelper::getArgSort(Literal*,unsigned)");
-  ASS_L(argIndex, lit->arity());
-
-  if(lit->isEquality()) {
-    return getEqualityArgumentSort(lit);
-  }
-  Signature::Symbol* sym = env.signature->getPredicate(lit->functor());
-  return sym->predType()->arg(argIndex);
-}
-
 /**
  * Return sort of term @c trm that appears inside literal @c lit.
  */
@@ -79,39 +87,7 @@ unsigned SortHelper::getTermSort(TermList trm, Literal* lit)
 }
 
 /**
- * Return sort of variable @c var in literal @c lit
- *
- * Variable @c var must occurr in @c lit.
- */
-unsigned SortHelper::getVariableSort(TermList var, Literal* lit)
-{
-  CALL("SortHelper::getVariableSort(TermList,Literal*)");
-
-  int idx = 0;
-  TermList* args = lit->args();
-  while(!args->isEmpty()) {
-    if(*args==var) {
-      return getArgSort(lit, idx);
-    }
-    idx++;
-    args=args->next();
-  }
-
-  args = lit->args();
-  while(!args->isEmpty()) {
-    if(args->isTerm()) {
-      unsigned res;
-      if(tryGetVariableSort(var, args->term(), res)) {
-	return res;
-      }
-    }
-    args=args->next();
-  }
-  ASSERTION_VIOLATION;
-}
-
-/**
- * Return sort of variable @c var in term @c t
+ * Return sort of variable @c var in term or literal @c t
  *
  * Variable @c var must occurr in @c t.
  */
@@ -169,4 +145,76 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
   ASSERTION_VIOLATION;
 }
 
+/**
+ * Return true iff sorts of all terms (both functions and variables) match
+ * in clause @c cl.
+ *
+ * There should not be any clause for which would this function return false.
+ */
+bool SortHelper::areSortsValid(Clause* cl)
+{
+  CALL("SortHelper::areSortsValid");
+
+  static DHMap<TermList,unsigned> varSorts;
+  varSorts.reset();
+
+  unsigned clen = cl->length();
+  for(unsigned i=0; i<clen; i++) {
+    if(!areSortsValid((*cl)[i], varSorts)) {
+      return false;
+    }
+  }
+  return true;
 }
+
+/**
+ * Return true iff sorts are valid in term or literal @c t0. @c varSorts contains
+ * sorts of variables -- this map is used to check sorts of variables in the
+ * term, and also is extended by sorts of variables that occurr for the first time.
+ */
+bool SortHelper::areSortsValid(Term* t0, DHMap<TermList,unsigned>& varSorts)
+{
+  CALL("SortHelper::areSortsValid");
+
+  NonVariableIterator sit(t0);
+  Term* t = t0;
+
+  //in the first iteration, t is equal to t0, in subsequent ones
+  //we iterate through its non-variable subterms
+  for(;;) {
+    int idx = 0;
+    TermList* args = t->args();
+    while(!args->isEmpty()) {
+      unsigned argSrt = getArgSort(t, idx);
+      TermList arg = *args;
+      if(arg.isVar()) {
+	unsigned varSrt;
+	if(!varSorts.findOrInsert(arg, varSrt, argSrt)) {
+	  //the variable is not new
+	  if(varSrt!=argSrt) {
+	    return false;
+	  }
+	}
+      }
+      else {
+	if(argSrt!=getResultSort(arg.term())) {
+	  return false;
+	}
+      }
+      idx++;
+      args=args->next();
+    }
+
+    if(!sit.hasNext()) {
+      return true;
+    }
+    t = sit.next().term();
+  }
+  ASSERTION_VIOLATION;
+}
+
+}
+
+
+
+

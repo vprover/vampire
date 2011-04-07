@@ -32,7 +32,7 @@
 #include "BackwardSubsumptionResolution.hpp"
 
 #undef RSTAT_COLLECTION
-#define RSTAT_COLLECTION 1
+#define RSTAT_COLLECTION 0
 
 namespace Inferences
 {

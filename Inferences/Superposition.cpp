@@ -167,6 +167,132 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 }
 
 /**
+ * Return true iff superposition of @c eqClause into @c rwClause can be performed
+ * with respect to colors of the clauses. If the inference is not possible, based
+ * on the value of relevant options, report the failure, and/or attempt unblocking
+ * the clauses.
+ *
+ * This function also updates the statistics.
+ */
+bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause)
+{
+  CALL("Superposition::checkClauseColorCompatibility");
+
+  if(ColorHelper::compatible(rwClause->color(), eqClause->color())) {
+    return true;
+  }
+  if(env.options->showBlocked()) {
+    env.beginOutput();
+    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
+    env.endOutput();
+  }
+  if(env.options->colorUnblocking()) {
+    SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
+    ASS(salg);
+    ColorHelper::tryUnblock(rwClause, salg);
+    ColorHelper::tryUnblock(eqClause, salg);
+  }
+  env.statistics->inferencesSkippedDueToColors++;
+  return false;
+}
+
+/**
+ * Return weight limit for the resulting clause, or -1 if there is no limit.
+ */
+int Superposition::getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits)
+{
+  CALL("Superposition::getWeightLimit");
+
+  int newAge=Int::max(rwClause->age(),eqClause->age())+1;
+
+  if(!limits->ageLimited() || newAge <= limits->ageLimit() || !limits->weightLimited()) {
+    return -1;
+  }
+  bool isNonGoal=rwClause->inputType()==Unit::AXIOM && eqClause->inputType()==Unit::AXIOM;
+  if(isNonGoal) {
+    return limits->nonGoalWeightLimit();
+  } else {
+    return limits->weightLimit();
+  }
+}
+
+/**
+ * Return false iff superposition from variable @c eqLHS should not be
+ * performed.
+ *
+ * This function checks that we don't perform superpositions from
+ * variables that occurr in the remainin part of the clause either in
+ * a literal which is not an equality, or in a as an argument of a function.
+ * Such situation would mean that there is no ground substitution in which
+ * @c eqLHS would be the larger argument of the largest literal.
+ */
+bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS)
+{
+  CALL("Superposition::checkSuperpositionFromVariable");
+  ASS(eqLHS.isVar());
+  //if we should do rewriting, LHS cannot appear inside RHS
+  ASS(!EqHelper::getOtherEqualitySide(eqLit, eqLHS).containsSubterm(eqLHS));
+
+  unsigned clen = eqClause->length();
+  for(unsigned i=0; i<clen; i++) {
+    Literal* lit = (*eqClause)[i];
+    if(lit==eqLit) {
+      continue;
+    }
+    if(lit->isEquality()) {
+      for(unsigned aIdx=0; aIdx<2; aIdx++) {
+	TermList arg = *lit->nthArgument(aIdx);
+	if(arg.isTerm() && arg.containsSubterm(eqLHS)) {
+	  return false;
+	}
+      }
+    }
+    else if(lit->containsSubterm(eqLHS)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * If the weight of the superposition result will be greater than
+ * @c weightLimit, increase the counter of discarded non-redundant
+ * clauses and return false. Otherwise return true.
+ *
+ * The fact that true is returned doesn't mean that the weight of
+ * the resulting clause will not be over the weight limit, just that
+ * it cannot be cheaply determined at this time.
+ */
+bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
+      Clause* rwClause, Literal* rwLit, int weightLimit)
+{
+  CALL("Superposition::earlyWeightLimitCheck");
+
+  int wlb=0;//weight lower bound
+
+  unsigned rwLength = rwClause->length();
+  for(unsigned i=0;i<rwLength;i++) {
+    Literal* curr=(*rwClause)[i];
+    if(curr!=rwLit) {
+      wlb+=curr->weight();
+    }
+  }
+  unsigned eqLength = eqClause->length();
+  for(unsigned i=0;i<eqLength;i++) {
+    Literal* curr=(*eqClause)[i];
+    if(curr!=eqLit) {
+      wlb+=curr->weight();
+    }
+  }
+  if(wlb > weightLimit) {
+    env.statistics->discardedNonRedundantClauses++;
+    return false;
+  }
+  return true;
+}
+
+/**
  * If superposition should be performed, return result of the superposition,
  * otherwise return 0.
  */
@@ -182,56 +308,24 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
+  if(eqLHS.isVar()) {
+    if(!checkSuperpositionFromVariable(eqClause, eqLit, eqLHS)) {
+      return 0;
+    }
+  }
+
+  if(!checkClauseColorCompatibility(eqClause, rwClause)) {
+    return 0;
+  }
+
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
   int newAge=Int::max(rwClause->age(),eqClause->age())+1;
 
-  if(!ColorHelper::compatible(rwClause->color(), eqClause->color())) {
-    env.statistics->inferencesSkippedDueToColors++;
-    if(env.options->showBlocked()) {
-      env.beginOutput();
-      env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
-      env.endOutput();
-    }
-    if(env.options->colorUnblocking()) {
-      SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
-      ASS(salg);
-      ColorHelper::tryUnblock(rwClause, salg);
-      ColorHelper::tryUnblock(eqClause, salg);
-    }
+  int weightLimit = getWeightLimit(eqClause, rwClause, limits);
+
+  if(weightLimit!=-1 && !earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, weightLimit)) {
     return 0;
-  }
-
-
-  bool shouldCheckWeight=false;
-  int weightLimit=0;
-  if(limits->ageLimited() && newAge > limits->ageLimit() && limits->weightLimited()) {
-    bool isNonGoal=rwClause->inputType()==0 && eqClause->inputType()==0;
-    if(isNonGoal) {
-      weightLimit=limits->nonGoalWeightLimit();
-    } else {
-      weightLimit=limits->weightLimit();
-    }
-
-    shouldCheckWeight=true;
-
-    int wlb=0;//weight lower bound
-    for(unsigned i=0;i<rwLength;i++) {
-      Literal* curr=(*rwClause)[i];
-      if(curr!=rwLit) {
-  	wlb+=curr->weight();
-      }
-    }
-    for(unsigned i=0;i<eqLength;i++) {
-      Literal* curr=(*eqClause)[i];
-      if(curr!=eqLit) {
-  	wlb+=curr->weight();
-      }
-    }
-    if(wlb > weightLimit) {
-      env.statistics->discardedNonRedundantClauses++;
-      return 0;
-    }
   }
 
   static Ordering* ordering=0;
@@ -292,7 +386,7 @@ Clause* Superposition::performSuperposition(
       if(EqHelper::isEqTautology((*res)[next])) {
 	goto construction_fail;
       }
-      if(shouldCheckWeight) {
+      if(weightLimit!=-1) {
 	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
 	  env.statistics->discardedNonRedundantClauses++;
@@ -309,7 +403,7 @@ Clause* Superposition::performSuperposition(
       if(EqHelper::isEqTautology((*res)[next])) {
 	goto construction_fail;
       }
-      if(shouldCheckWeight) {
+      if(weightLimit!=-1) {
 	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
 	  env.statistics->discardedNonRedundantClauses++;
@@ -320,7 +414,7 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  if(shouldCheckWeight && weight>weightLimit) {
+  if(weightLimit!=-1 && weight>weightLimit) {
     env.statistics->discardedNonRedundantClauses++;
   construction_fail:
     res->destroy();

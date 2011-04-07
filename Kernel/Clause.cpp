@@ -7,6 +7,8 @@
 
 #include <ostream>
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
@@ -28,6 +30,9 @@
 #include "TermIterators.hpp"
 
 #include "Clause.hpp"
+
+#undef RSTAT_COLLECTION
+#define RSTAT_COLLECTION 1
 
 namespace Kernel
 {
@@ -70,6 +75,8 @@ void* Clause::operator new(size_t sz, unsigned lits)
   CALL("Clause::operator new");
   ASS_EQ(sz,sizeof(Clause));
 
+  RSTAT_CTR_INC("clauses created");
+
   //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
@@ -83,6 +90,8 @@ void Clause::operator delete(void* ptr,unsigned length)
 {
   CALL("Clause::operator delete");
 
+  RSTAT_CTR_INC("clauses deleted by delete operator");
+
   //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
@@ -90,6 +99,23 @@ void Clause::operator delete(void* ptr,unsigned length)
   size -= sizeof(Literal*);
 
   DEALLOC_KNOWN(ptr, size,"Clause");
+}
+
+void Clause::destroyExceptInferenceObject()
+{
+  if(_literalPositions) {
+    delete _literalPositions;
+  }
+
+  RSTAT_CTR_INC("clauses deleted");
+
+  //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
+  //this way, because _length-1 wouldn't behave well for
+  //_length==0 on x64 platform.
+  size_t size = sizeof(Clause) + _length * sizeof(Literal*);
+  size -= sizeof(Literal*);
+
+  DEALLOC_KNOWN(this, size,"Clause");
 }
 
 
@@ -194,21 +220,6 @@ void Clause::destroy()
     cl = toDestroy.pop();
   }
 } // Clause::destroy
-
-void Clause::destroyExceptInferenceObject()
-{
-  if(_literalPositions) {
-    delete _literalPositions;
-  }
-
-  //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
-  //this way, because _length-1 wouldn't behave well for
-  //_length==0 on x64 platform.
-  size_t size = sizeof(Clause) + _length * sizeof(Literal*);
-  size -= sizeof(Literal*);
-
-  DEALLOC_KNOWN(this, size,"Clause");
-}
 
 /** Set the store to @b s
  *

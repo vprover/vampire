@@ -75,7 +75,7 @@ void Signature::Symbol::setType(BaseType* type)
  * If the @c setType() function was not called before, the function
  * symbol is assigned a default type.
  */
-const FunctionType* Signature::Symbol::fnType()
+FunctionType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
 
@@ -92,7 +92,7 @@ const FunctionType* Signature::Symbol::fnType()
  * If the @c setType() function was not called before, the function
  * symbol is assigned a default type.
  */
-const PredicateType* Signature::Symbol::predType()
+PredicateType* Signature::Symbol::predType() const
 {
   CALL("Signature::Symbol::predType");
 

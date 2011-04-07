@@ -48,6 +48,25 @@ FormulaBuilder::FormulaBuilder(bool checkNames, bool checkBindingBoundVariables)
   _aux->_checkBindingBoundVariables=checkBindingBoundVariables;
 }
 
+Sort FormulaBuilder::sort(const string& sortName)
+{
+  CALL("FormulaBuilder::sort");
+
+  bool added;
+  unsigned res = env.sorts->addSort(sortName, added);
+  if(!added) {
+    throw ApiException("Sort name must be unique");
+  }
+  return res;
+}
+
+Sort FormulaBuilder::defaultSort()
+{
+  CALL("FormulaBuilder::defaultSort");
+
+  return env.sorts->defaultSort();
+}
+
 Var FormulaBuilder::var(const string& varName)
 {
   CALL("FormulaBuilder::var");
