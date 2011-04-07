@@ -50,6 +50,9 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+/**
+ * Term index for backward demodulation
+ */
 class DemodulationSubtermIndex
 : public TermIndex
 {
@@ -60,6 +63,9 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+/**
+ * Term index for forward demodulation
+ */
 class DemodulationLHSIndex
 : public TermIndex
 {

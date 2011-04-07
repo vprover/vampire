@@ -173,10 +173,8 @@ void addBSEs(SaturationAlgorithm* alg)
 
   switch(env.options->backwardDemodulation()) {
   case Options::DEMODULATION_ALL:
-    alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardDemodulation()));
-    break;
   case Options::DEMODULATION_PREORDERED:
-    NOT_IMPLEMENTED;
+    alg->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardDemodulation()));
     break;
   case Options::DEMODULATION_OFF:
     break;

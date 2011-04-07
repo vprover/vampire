@@ -241,7 +241,7 @@ TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit)
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
  */
-TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit)
+TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward)
 {
   CALL("EqHelper::getDemodulationLHSIterator");
 
@@ -254,7 +254,8 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit)
     switch(lit->getArgumentOrder())
     {
     case Term::INCOMPARABLE:
-      if(env.options->forwardDemodulation()==Options::DEMODULATION_PREORDERED) {
+      if( forward ? (env.options->forwardDemodulation()==Options::DEMODULATION_PREORDERED)
+		  : (env.options->backwardDemodulation()==Options::DEMODULATION_PREORDERED) ) {
 	return TermIterator::getEmpty();
       }
       if(t0.containsAllVariablesOf(t1)) {

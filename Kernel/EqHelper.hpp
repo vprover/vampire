@@ -26,7 +26,7 @@ public:
   static TermIterator getRewritableSubtermIterator(Literal* lit);
   static TermIterator getLHSIterator(Literal* lit);
   static TermIterator getSuperpositionLHSIterator(Literal* lit);
-  static TermIterator getDemodulationLHSIterator(Literal* lit);
+  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
   static Literal* replace(Literal* lit, TermList what, TermList by);
