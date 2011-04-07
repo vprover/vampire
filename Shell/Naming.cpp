@@ -76,8 +76,10 @@ Unit* Naming::apply (Unit* unit,UnitList*& defs)
   }
   ASS(! _defs->isEmpty());
   defs = _defs;
+  UnitList* premises = _defs->copy();
+  UnitList::push(unit, premises);
   return new FormulaUnit(g,
-			 new InferenceMany(Inference::DEFINITION_FOLDING,_defs->copy()),
+			 new InferenceMany(Inference::DEFINITION_FOLDING,premises),
 			 unit->inputType());
 } // Naming::apply
 
