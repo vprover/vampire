@@ -9,12 +9,17 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/DHSet.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Unit.hpp"
+#include "Api/FormulaBuilder.hpp"
+#include "Api/Problem.hpp"
+
 
 #include "Variable.hpp"
 #include "Expression.hpp"
@@ -22,8 +27,13 @@
 #include "Path.hpp"
 #include "LoopAnalyzer.hpp"
 
+#include "Shell/Options.hpp"
+#include "Shell/Property.hpp"
+#include "Shell/Preprocess.hpp"
+
 using namespace Kernel;
 using namespace Program;
+using namespace Shell;
 
 /** Constructor, just saves the program */
 LoopAnalyzer::LoopAnalyzer(WhileDo* loop)
@@ -47,8 +57,11 @@ void LoopAnalyzer::analyze()
   cout << "---------------------\n";
   _loop->prettyPrint(cout);
   cout << "---------------------\n";
-
+  cout << "Analyzing variables...\n";
+  cout << "---------------------\n";
   analyzeVariables();
+  cout << "\nCollecting paths...\n";
+  cout << "---------------------\n";
   collectPaths();
   // output paths
   Stack<Path*>::Iterator it(_paths);
@@ -60,6 +73,9 @@ void LoopAnalyzer::analyze()
   while (units.hasNext()) {
     cout << units.next()->toString() << "\n";
   }
+  cout << "\nGenerate Let...In expressions for array updates and next states...\n";
+  cout << "---------------------\n";
+  generateLetExpressions();
 }
 
 /**
@@ -204,17 +220,19 @@ void LoopAnalyzer::analyzeVariables()
 void LoopAnalyzer::collectPaths()
 {
   CALL("LoopAnalyzer::collectPaths");
-  cout<<"\n collectPaths\n";
   Stack<Path*> paths; // partial paths
+  Stack<Path*> lets;
   // statements corresponding to this path, normally then-parts of IfThenElse
   Stack<Statement*> statements;
   Path* path = Path::empty();
+  cout << "Paths wrt the loop condition: " << _loop->condition()->toString() << "\n";
   Statement* stat = _loop->body();
   for (;;) {
     switch (stat->kind()) {
     case Statement::ASSIGNMENT:
-       path = path->add(stat);
-       stat = stat->nextStatement();
+      { path = path->add(stat);
+        stat = stat->nextStatement();
+      }
       break;
     case Statement::BLOCK:
       stat = stat->nextStatement();
@@ -237,7 +255,7 @@ void LoopAnalyzer::collectPaths()
       ASS(false); // cannot yet work with embedded loops
     case Statement::EXPRESSION:
       ASS(false); // cannot yet work with procedure calls
-    }
+    } //end of switch
     if (stat != _loop) { // end of the body not reached
       continue;
     }
@@ -248,6 +266,204 @@ void LoopAnalyzer::collectPaths()
     path = paths.pop();
     stat = statements.pop();
   }
+}
+
+
+
+/**
+ * Translate program expressions into Vampire terms (termlists)
+*/
+
+TermList LoopAnalyzer::expressionToTerm(Expression* exp)
+{
+  CALL("LoopAnalyzer::generateLetExpressions");
+  switch (exp->kind()) {
+  case Expression::CONSTANT_INTEGER:
+   {
+    int val = static_cast<ConstantIntegerExpression*>(exp)->value();
+    Theory* theory = Theory::instance();
+    TermList var(theory->getRepresentation(val)); 
+    // x01(theory->fun1(Theory::SUCCESSOR,x0));
+    return var;
+   }
+  break;
+  case Expression::VARIABLE:
+    {
+      Variable* expVar=  static_cast<VariableExpression*>(exp)->variable();
+      string expName=expVar->name() ;
+      TermList var(Term::createConstant(expName));
+      cout << "expression "<< exp->toString()<< " over variable "<<expName <<" translated to Vampire term "<< var<<"\n";
+      return var;
+    }
+   break;
+   case Expression::ARRAY_APPLICATION:
+     {
+       //create term for array variable
+       Expression*  expArray=  static_cast<ArrayApplicationExpression*>(exp)->array();
+       string varName=expArray->toString();
+       unsigned arrayFct=env.signature->addFunction(varName,1);
+       //create term represenation for array arguments
+       Expression*  expArrayArguments=  static_cast<ArrayApplicationExpression*>(exp)->argument();
+       TermList varArg= expressionToTerm(expArrayArguments);
+       //create term for array application
+       TermList varArray=TermList(Term::create1(arrayFct, varArg));
+       return varArray;
+     }
+     break;
+  //case Expression::CONSTANT_FUNCTION:
+     //{}
+     //break;
+  case Expression::FUNCTION_APPLICATION:
+    {
+      //cout<<"function application in rhs of Vampire term\n";
+      FunctionApplicationExpression* app = static_cast<FunctionApplicationExpression*>(exp);
+      //switch on app->function did not work (error on non-integer value in switch), so used nested IF
+      if ( app->function() == ConstantFunctionExpression::integerPlus() )
+	{
+	   Expression* e1 = app->getArgument(0);
+	   Expression* e2 = app->getArgument(1);
+	   TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+	   TermList e2Term=expressionToTerm(e2);
+	   Theory* theory = Theory::instance();
+	   TermList fctTerm(theory->fun2(Theory::PLUS,e1Term,e2Term));
+	   return fctTerm;
+	}
+      else 
+	{
+	  if ( app->function() == ConstantFunctionExpression::integerMinus() )
+	    {
+	      Expression* e1 = app->getArgument(0);
+	      Expression* e2 = app->getArgument(1);
+	      TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+	      TermList e2Term=expressionToTerm(e2);	   
+ 	      Theory* theory = Theory::instance();
+	      TermList fctTerm(theory->fun2(Theory::MINUS,e1Term,e2Term)); 
+	      return fctTerm;
+	    }
+	  else 
+	    {
+	       if ( app->function() == ConstantFunctionExpression::integerMult() )
+		 {
+		   Expression* e1 = app->getArgument(0);
+		   Expression* e2 = app->getArgument(1);
+		   TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+		   TermList e2Term=expressionToTerm(e2);		
+		   Theory* theory = Theory::instance();
+		   TermList fctTerm(theory->fun2(Theory::MULTIPLY,e1Term,e2Term));
+		   return fctTerm;
+		 }
+	       else
+		 {
+		   if ( app->function() == ConstantFunctionExpression::integerNegation() )
+		     {
+		        Expression* e1 = app->getArgument(0);
+			TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+			Theory* theory = Theory::instance();
+			TermList fctTerm(theory->fun1(Theory::UNARY_MINUS,e1Term));
+			return fctTerm;
+		     }
+		   else //undefined/not treated theory function. Extend it to later for uninterpreted fct. 
+		     {
+		       //rhs is an uninterpreted function f(e1), 
+		       //create term for uninterpreted function
+		       Expression*  uiFct=  app->function();
+		       string uiFctName=uiFct->toString();
+		       unsigned uiFctNameTerm=env.signature->addFunction(uiFctName,1);
+		       //create term representation for arguments e1
+		       Expression* e1 = app->getArgument(0);
+		       TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+		       //create term representation of f(e1)
+		       TermList fctTerm=TermList(Term::create1(uiFctNameTerm,e1Term));
+		       return fctTerm;
+		       //string testName="toDo";
+		       // TermList fctTerm(Term::createConstant(testName)); 
+		       //return fctTerm;
+		     }
+		 }
+	    }
+	}
+    }
+    break;
+
+}
+}
+
+
+/** 
+ * Generate let expressions
+*/
+
+
+void LoopAnalyzer::generateLetExpressions()
+{
+  CALL("LoopAnalyzer::generateLetExpressions");
+  unsigned length = _paths.length();
+  //cout<<"nr. of paths: "<<length<<" \n";
+  if (length == 0) {
+    return;
+  }
+   int pathNumber = 0;
+   Stack<Path*>::Iterator pit(_paths);
+   while (pit.hasNext()) {
+      int inc = 0;
+      Path* path = pit.next();
+      Path::Iterator sit(path);
+      while (sit.hasNext()) {
+	Statement* stat = sit.next();
+        if (!sit.hasNext()) //last statement of the path, translate term into let
+	  {cout<<"last statement of the path"<<"\n";}
+        else
+	  {
+	   switch (stat->kind()) {
+	    case Statement::ASSIGNMENT:
+	      {
+		// cout << "ASSG \n"; 
+	      Expression* lhs = static_cast<Assignment*>(stat)->lhs();
+	      Expression* rhs = static_cast<Assignment*>(stat)->rhs();
+	      //create term representation of lhs and rhs
+	      TermList lhsTerm=expressionToTerm(lhs);
+	      TermList rhsTerm=expressionToTerm(rhs);
+	      cout << "expression conversion for lhs "<< lhs->toString()<<" into Vampire term: "<<lhsTerm<<"\n";
+	      cout << "expression conversion for rhs "<< rhs->toString()<<" into Vampire term: "<<rhsTerm<<"\n";
+	      if (lhs->kind() == Expression::VARIABLE) 
+	      {
+		Variable* lhsVar=  static_cast<VariableExpression*>(lhs)->variable();
+		string varName=lhsVar->name() ;
+		//cout << varName <<" variable \n";
+		TermList var(Term::createConstant(varName));
+		unsigned varFun = env.signature->addFunction(varName,1);
+		// term x0
+		TermList x0;
+		x0.makeVar(0);
+		// term x0+1 for next iteration
+		Theory* theory = Theory::instance();
+		TermList x01(theory->fun1(Theory::SUCCESSOR,x0));
+		// term c(x0)
+		TermList varX0(Term::create(varFun,1,&x0));
+		TermList varX01(Term::create(varFun,1,&x01));
+		TermList assLetTermInner=TermList(Term::createTermLet(lhsTerm, rhsTerm, var)); 
+		TermList assLetTerm=TermList(Term::createTermLet(var, varX0, assLetTermInner));  //term let  a=a(X) in a term
+		cout << assLetTerm<<" .... starting let assignemnt \n";
+		Formula* assLetFormula=new AtomicFormula(Literal::createEquality(true, varX01, assLetTerm));
+		cout << assLetFormula->toString()<<" .... creating let formula \n";
+	       }
+	      if  (lhs->kind() == Expression::ARRAY_APPLICATION)
+		{ 
+		  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
+		  Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
+		  cout <<  lhsArray->toString() << " array update application with argument(s): "<< lhsArrayArguments->toString()<<"\n";
+		}
+              cout << "updated with expression: "<<rhs->toString() <<"\n";
+	      }
+	      break;
+	    case Statement::BLOCK:
+	                  break;
+  	    case Statement::ITE:
+	                  break;
+	   }
+	  }
+      }
+   }
 }
 
 /**
