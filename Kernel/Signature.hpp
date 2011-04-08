@@ -40,7 +40,7 @@ class Signature
     /** print name */
     string _name;
     /** arity */
-    unsigned _arity : 26;
+    unsigned _arity : 25;
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
     /** clauses with only skipped symbols will not be output as symbol eliminating */
@@ -54,6 +54,8 @@ class Signature
     unsigned _swbName : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
+    /** marks distinct string constants */
+    unsigned _stringConstant : 1;
     /** Either a FunctionType of a PredicateType object */
     mutable BaseType* _type;
   public:
@@ -68,6 +70,8 @@ class Signature
     void markCFName() { ASS_EQ(arity(), 0); _cfName=1; }
     /** mark the symbol as name for splitting without backtracking */
     void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
+    /** mark symbol to be a distinct string constant */
+    void markStringConstant() { ASS_EQ(arity(), 0); _stringConstant=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
@@ -84,6 +88,8 @@ class Signature
     inline const string& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
     inline bool interpreted() const { return _interpreted; }
+    /** Return true iff symbol is a distinct string constant */
+    inline bool stringConstant() const { return _stringConstant; }
 
     void setType(BaseType* type);
     FunctionType* fnType() const;
@@ -175,6 +181,11 @@ class Signature
     bool added;
     return addFunction(name,arity,added);
   }
+  /**
+   * If a unique string constant with this name and arity exists, return its number.
+   * Otherwise, add a new one and return its number.
+   */
+  unsigned addStringConstant(const string& name);
   unsigned addNamePredicate(unsigned arity);
 
   /** return the name of a function with a given number */
@@ -249,6 +260,7 @@ class Signature
   bool predicateExists(const string& name,unsigned arity) const;
 
   static string key(const string& name,int arity);
+  static string stringConstantKey(const string& name);
 private:
 
   static bool needsQuoting(char c, bool first);

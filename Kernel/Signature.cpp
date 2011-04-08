@@ -20,6 +20,7 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
     _cfName(0),
     _swbName(0),
     _color(COLOR_TRANSPARENT),
+    _stringConstant(0),
     _type(0)
 {
 
@@ -378,6 +379,28 @@ unsigned Signature::addFunction (const string& name,
   return result;
 } // Signature::addFunction
 
+unsigned Signature::addStringConstant(const string& name)
+{
+  CALL("Signature::addStringConstant");
+
+  string symbolKey = stringConstantKey(name);
+#if VDEBUG
+  unsigned result = 0;
+#else
+  unsigned result;
+#endif
+  if (_funNames.find(symbolKey,result)) {
+    return result;
+  }
+
+  result = _funs.length();
+  Symbol* sym = new Symbol(name,0);
+  sym->markStringConstant();
+  _funs.push(sym);
+  _funNames.insert(symbolKey,result);
+  return result;
+}
+
 /**
  * If a predicate with this name and arity exists, return its number.
  * Otherwise, add a new one and return its number.
@@ -498,6 +521,17 @@ string Signature::key(const string& name,int arity)
 {
   return name + '_' + Int::toString(arity);
 } // Signature::key
+
+/**
+ * Return the key "name_c" used for hashing of unique string constants.
+ *
+ * The returned key must be different from keys that can be returned by
+ * Signature::key
+ */
+string Signature::stringConstantKey(const string& name)
+{
+  return name + "_c";
+}
 
 /** Add a color to the symbol for interpolation and symbol elimination purposes */
 void Signature::Symbol::addColor(Color color)
