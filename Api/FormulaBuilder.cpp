@@ -64,7 +64,7 @@ Sort FormulaBuilder::defaultSort()
 {
   CALL("FormulaBuilder::defaultSort");
 
-  return env.sorts->defaultSort();
+  return Sorts::SRT_DEFAULT;
 }
 
 Var FormulaBuilder::var(const string& varName)

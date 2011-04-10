@@ -18,6 +18,12 @@ namespace Kernel {
 
 class Sorts {
 public:
+  /** The default sort that is to be used when no sort is declared */
+  static const unsigned SRT_DEFAULT;
+  static const unsigned SRT_INTEGER;
+  static const unsigned SRT_RATIONAL;
+  static const unsigned SRT_REAL;
+
   Sorts();
   ~Sorts();
 
@@ -40,15 +46,11 @@ public:
     return _sorts[idx]->name();
   }
 
-  /**
-   * The default sort that is to be used when no sort is declared
-   */
-  unsigned defaultSort() const
-  { return 0; }
 private:
   SymbolMap _sortNames;
   Stack<SortInfo*> _sorts;
 };
+
 
 class BaseType
 {

@@ -11,6 +11,11 @@
 using namespace std;
 using namespace Kernel;
 
+const unsigned Signature::STRING_DISTINCT_GROUP = 0;
+const unsigned Signature::INTEGER_DISTINCT_GROUP = 1;
+const unsigned Signature::RATIONAL_DISTINCT_GROUP = 2;
+const unsigned Signature::REAL_DISTINCT_GROUP = 3;
+
 /** standard constructor */
 Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
   : _name(nm),
@@ -21,7 +26,8 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
     _swbName(0),
     _color(COLOR_TRANSPARENT),
     _stringConstant(0),
-    _type(0)
+    _type(0),
+    _distinctGroups(0)
 {
 
   //handle quoting
@@ -53,6 +59,22 @@ Signature::Symbol::~Symbol()
   if(_type) {
     delete _type;
   }
+}
+
+/**
+ * Add constant symbol into a distinct group
+ *
+ * A constant can be added into one particular distinct group
+ * at most once
+ */
+void Signature::Symbol::addToDistinctGroup(unsigned group)
+{
+  CALL("Signature::Symbol::addToDistinctGroup");
+
+  ASS_EQ(arity(), 0);
+  ASS(!_distinctGroups->member(group))
+
+  List<unsigned>::push(group, _distinctGroups);
 }
 
 /**
@@ -114,7 +136,8 @@ Signature::Signature ()
     _preds(32),
     _lastName(0),
     _lastIntroducedFunctionNumber(0),
-    _lastSG(0)
+    _lastSG(0),
+    _nextDistinctGroup(0)
 {
   CALL("Signature::Signature");
 
@@ -122,6 +145,16 @@ Signature::Signature ()
   registerInterpretedPredicate("=", Theory::EQUAL);
   ASS_EQ(predicateName(0), "="); //equality must have number 0
   getPredicate(0)->markSkip();
+
+  unsigned aux;
+  aux = createDistinctGroup();
+  ASS_EQ(STRING_DISTINCT_GROUP, aux);
+  aux = createDistinctGroup();
+  ASS_EQ(INTEGER_DISTINCT_GROUP, aux);
+  aux = createDistinctGroup();
+  ASS_EQ(RATIONAL_DISTINCT_GROUP, aux);
+  aux = createDistinctGroup();
+  ASS_EQ(REAL_DISTINCT_GROUP, aux);
 } // Signature::Signature
 
 /**
@@ -131,7 +164,12 @@ Signature::Signature ()
 Signature::~Signature ()
 {
   for (int i = _funs.length()-1;i >= 0;i--) {
-    delete _funs[i];
+    if(_funs[i]->interpreted()) {
+      delete static_cast<InterpretedSymbol*>(_funs[i]);
+    }
+    else {
+      delete _funs[i];
+    }
   }
   for (int i = _preds.length()-1;i >= 0;i--) {
     delete _preds[i];
@@ -191,6 +229,76 @@ void Signature::registerInterpretedPredicate(const string& name, Interpretation 
     USER_ERROR("One theory predicate cannot correspond to multiple signature predicates: "+
 	predicateName(_iSymbols.get(interpretation))+", "+name);
   }
+}
+
+unsigned Signature::addIntegerConstant(const string& number)
+{
+  CALL("Signature::addIntegerConstant");
+
+  string key = number + "_n";
+  unsigned result;
+  if(_funNames.find(key, result)) {
+    return result;
+  }
+  result = _funs.length();
+
+  InterpretedSymbol* sym = new InterpretedSymbol(number);
+  IntegerConstantType value;
+  ALWAYS(Int::stringToInt(number, value)); //TODO: change this for arbitrary precision
+  sym->_intValue = value;
+
+  sym->setType(new FunctionType(0, 0, Sorts::SRT_INTEGER));
+  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP);
+  _funs.push(sym);
+  return result;
+}
+
+unsigned Signature::addRationalConstant(const string& numerator, const string& denominator)
+{
+  CALL("Signature::addRationalConstant");
+
+  string key = numerator + "_" + denominator + "_q";
+  unsigned result;
+  if(_funNames.find(key, result)) {
+    return result;
+  }
+  result = _funs.length();
+
+  string name = "("+numerator+"/"+denominator+")";
+  InterpretedSymbol* sym = new InterpretedSymbol(name);
+  //TODO: change this for arbitrary precision
+  int numVal;
+  unsigned denVal;
+  ALWAYS(Int::stringToInt(numerator, numVal));
+  ALWAYS(Int::stringToUnsignedInt(denominator, denVal));
+  sym->_ratValue.init(numVal, denVal);
+
+  sym->setType(new FunctionType(0, 0, Sorts::SRT_RATIONAL));
+  sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP);
+  _funs.push(sym);
+  return result;
+}
+
+unsigned Signature::addRealConstant(const string& number)
+{
+  CALL("Signature::addRealConstant");
+
+  string key = number + "_r";
+  unsigned result;
+  if(_funNames.find(key, result)) {
+    return result;
+  }
+  result = _funs.length();
+
+  InterpretedSymbol* sym = new InterpretedSymbol(number);
+  double value;
+  ALWAYS(Int::stringToDouble(number, value)); //TODO: change this for arbitrary precision
+  sym->_realValue = value;
+
+  sym->setType(new FunctionType(0, 0, Sorts::SRT_REAL));
+  sym->addToDistinctGroup(REAL_DISTINCT_GROUP);
+  _funs.push(sym);
+  return result;
 }
 
 /**
@@ -383,7 +491,7 @@ unsigned Signature::addStringConstant(const string& name)
 {
   CALL("Signature::addStringConstant");
 
-  string symbolKey = stringConstantKey(name);
+  string symbolKey = name + "_c";
 #if VDEBUG
   unsigned result = 0;
 #else
@@ -396,6 +504,7 @@ unsigned Signature::addStringConstant(const string& name)
   result = _funs.length();
   Symbol* sym = new Symbol(name,0);
   sym->markStringConstant();
+  sym->addToDistinctGroup(STRING_DISTINCT_GROUP);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
@@ -522,16 +631,6 @@ string Signature::key(const string& name,int arity)
   return name + '_' + Int::toString(arity);
 } // Signature::key
 
-/**
- * Return the key "name_c" used for hashing of unique string constants.
- *
- * The returned key must be different from keys that can be returned by
- * Signature::key
- */
-string Signature::stringConstantKey(const string& name)
-{
-  return name + "_c";
-}
 
 /** Add a color to the symbol for interpolation and symbol elimination purposes */
 void Signature::Symbol::addColor(Color color)
@@ -545,6 +644,29 @@ void Signature::Symbol::addColor(Color color)
   }
   _color = color;
 } // addColor
+
+/**
+ * Create a group of distinct elements
+ */
+unsigned Signature::createDistinctGroup()
+{
+  CALL("Signature::createDistinctGroup");
+
+  return _nextDistinctGroup++;
+}
+
+/**
+ * Add a constant into a group of distinct elements
+ *
+ * One constant can be added into one particular distinct group only once.
+ */
+void Signature::addToDistinctGroup(unsigned constantSymbol, unsigned groupId)
+{
+  CALL("Signature::addToDistinctGroup");
+
+  Symbol* sym = getFunction(constantSymbol);
+  sym->addToDistinctGroup(groupId);
+}
 
 /**
  * Return true if the name containing che character must be quoted

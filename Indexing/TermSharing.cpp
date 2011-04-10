@@ -155,7 +155,7 @@ Literal* TermSharing::insert(Literal* t)
   if(t->isEquality() && t->nthArgument(0)->isVar() && t->nthArgument(1)->isVar()) {
 //    cerr<<"wrongly inserted equality between variables, using default sort\n";
 //    Debug::Tracer::printOnlyStack(cerr);
-    return insertVariableEquality(t, env.sorts->defaultSort());
+    return insertVariableEquality(t, Sorts::SRT_DEFAULT);
   }
 
   TimeCounter tc(TC_TERM_SHARING);

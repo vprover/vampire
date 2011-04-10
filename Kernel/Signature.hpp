@@ -58,6 +58,8 @@ class Signature
     unsigned _stringConstant : 1;
     /** Either a FunctionType of a PredicateType object */
     mutable BaseType* _type;
+    /** List of distinct groups the constant is a member of */
+    List<unsigned>* _distinctGroups;
   public:
     /** standard constructor */
     Symbol(const string& nm,unsigned arity, bool interpreted=false);
@@ -91,6 +93,29 @@ class Signature
     /** Return true iff symbol is a distinct string constant */
     inline bool stringConstant() const { return _stringConstant; }
 
+    /** Return true if symbol is an integer constant */
+    inline bool integerConstant() const
+    { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_INTEGER; }
+    /** Return true if symbol is a rational constant */
+    inline bool rationalConstant() const
+    { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_RATIONAL; }
+    /** Return true if symbol is a real constant */
+    inline bool realConstant() const
+    { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
+
+    /** Return value of an integer constant */
+    inline IntegerConstantType integerValue() const
+    { ASS(integerConstant()); return static_cast<const InterpretedSymbol*>(this)->_intValue; }
+    /** Return value of a rational constant */
+    inline RationalConstantType rationalValue() const
+    { ASS(rationalConstant()); return static_cast<const InterpretedSymbol*>(this)->_ratValue; }
+    /** Return value of a real constant */
+    inline IntegerConstantType realValue() const
+    { ASS(realConstant()); return static_cast<const InterpretedSymbol*>(this)->_realValue; }
+
+    const List<unsigned>* distinctGroups() const { return _distinctGroups; }
+    void addToDistinctGroup(unsigned group);
+
     void setType(BaseType* type);
     FunctionType* fnType() const;
     PredicateType* predType() const;
@@ -102,9 +127,13 @@ class Signature
   class InterpretedSymbol
   : public Symbol
   {
+    friend class Signature;
+    friend class Symbol;
   protected:
     union {
-      InterpretedType _value;
+      IntegerConstantType _intValue;
+      RationalConstantType _ratValue;
+      RealConstantType _realValue;
       Interpretation _interp;
     };
 
@@ -115,16 +144,22 @@ class Signature
     {
       CALL("InterpretedSymbol");
     }
+    /** OBSOLETE */
     InterpretedSymbol(const string& nm,InterpretedType value)
-    : Symbol(nm, 0, true), _value(value)
+    : Symbol(nm, 0, true), _intValue(value)
+    {
+      CALL("InterpretedSymbol");
+    }
+    InterpretedSymbol(const string& nm)
+    : Symbol(nm, 0, true)
     {
       CALL("InterpretedSymbol");
     }
     CLASS_NAME("Signature::InterpretedSymbol");
     USE_ALLOCATOR(InterpretedSymbol);
 
-    /** Return integer value of the interpreted constant */
-    inline InterpretedType getValue() const { ASS(interpreted()); ASS_EQ(arity(),0); return _value; }
+    /** OBSOLETE */
+    inline InterpretedType getValue() const { ASS(interpreted()); ASS_EQ(arity(),0); return _intValue; }
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(arity(),0); return _interp; }
   };
@@ -133,6 +168,10 @@ class Signature
   void registerInterpretedPredicate(const string& name, Interpretation interpretation);
 
   unsigned addInterpretedConstant(InterpretedType value);
+
+  unsigned addIntegerConstant(const string& number);
+  unsigned addRationalConstant(const string& numerator, const string& denominator);
+  unsigned addRealConstant(const string& number);
 
   unsigned getInterpretingSymbol(Interpretation interp);
 
@@ -184,6 +223,8 @@ class Signature
   /**
    * If a unique string constant with this name and arity exists, return its number.
    * Otherwise, add a new one and return its number.
+   *
+   * The added constant is of sort Sorts::SRT_DEFAULT.
    */
   unsigned addStringConstant(const string& name);
   unsigned addNamePredicate(unsigned arity);
@@ -259,9 +300,16 @@ class Signature
   bool functionExists(const string& name,unsigned arity) const;
   bool predicateExists(const string& name,unsigned arity) const;
 
+  unsigned createDistinctGroup();
+  void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
+
   static string key(const string& name,int arity);
-  static string stringConstantKey(const string& name);
 private:
+
+  static const unsigned STRING_DISTINCT_GROUP;
+  static const unsigned INTEGER_DISTINCT_GROUP;
+  static const unsigned RATIONAL_DISTINCT_GROUP;
+  static const unsigned REAL_DISTINCT_GROUP;
 
   static bool needsQuoting(char c, bool first);
 
@@ -269,7 +317,12 @@ private:
   Stack<Symbol*> _funs;
   /** Stack of predicate symbols */
   Stack<Symbol*> _preds;
-  /** Map from string "name_arity" to their numbers */
+  /**
+   * Map from string "name_arity" to their numbers
+   *
+   * String constants have key "value_c", integer constants "value_n",
+   * rational "numerator_denominator_q" and real "value_r".
+   */
   SymbolMap _funNames;
   /** Map from string "name_arity" to their numbers */
   SymbolMap _predNames;
@@ -282,6 +335,8 @@ private:
   /** Last number of a function with name starting with sG
    * (name recommended by http://www.cs.miami.edu/~tptp/TSTP/NewSymbolNames.html )*/
   int _lastSG;
+
+  int _nextDistinctGroup;
 
   /** Map from InterpretedType values to constant symbols representing them */
   DHMap<InterpretedType, unsigned> _iConstants;

@@ -14,6 +14,22 @@
 
 namespace Kernel {
 
+//these constant types are just a quick solution, there will be proper ones with
+//overloaded operators, overflow checking/arbitrary precision etc...
+typedef int IntegerConstantType;
+struct RationalConstantType {
+  int numerator;
+  unsigned denominator;
+
+  //we don't have constructor so that the type can appear inside union (another temporary fix)
+  void init(int num, unsigned den) {
+    numerator = num;
+    denominator = den;
+  }
+};
+typedef double RealConstantType;
+
+/** Obsolete */
 typedef int InterpretedType;
 
 /**

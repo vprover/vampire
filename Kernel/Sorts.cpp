@@ -10,12 +10,29 @@
 namespace Kernel
 {
 
+const unsigned Sorts::SRT_DEFAULT = 0;
+const unsigned Sorts::SRT_INTEGER = 1;
+const unsigned Sorts::SRT_RATIONAL = 2;
+const unsigned Sorts::SRT_REAL = 3;
+
+
 Sorts::Sorts()
 {
   CALL("Sorts::Sorts");
 
-  unsigned defIdx = addSort("$all");
-  ASS_EQ(defIdx, 0);
+  unsigned aux;
+
+  aux = addSort("$i");
+  ASS_EQ(aux, SRT_DEFAULT);
+
+  aux = addSort("$int");
+  ASS_EQ(aux, SRT_INTEGER);
+
+  aux = addSort("$rat");
+  ASS_EQ(aux, SRT_RATIONAL);
+
+  aux = addSort("$real");
+  ASS_EQ(aux, SRT_REAL);
 }
 
 Sorts::~Sorts()
@@ -69,9 +86,8 @@ BaseType::BaseType(unsigned arity, unsigned* sorts)
 
   _args = SortVector::allocate(arity);
   if(!sorts) {
-    unsigned def = env.sorts->defaultSort();
     for(unsigned i=0; i<arity; i++) {
-      (*_args)[i] = def;
+      (*_args)[i] = Sorts::SRT_DEFAULT;
     }
   }
   else {
@@ -95,7 +111,7 @@ FunctionType::FunctionType(unsigned arity)
 {
   CALL("FunctionType::FunctionType");
 
-  _result = env.sorts->defaultSort();
+  _result = Sorts::SRT_DEFAULT;
 }
 
 
