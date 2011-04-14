@@ -14,20 +14,105 @@
 
 namespace Kernel {
 
+/**
+ * Exception to be thrown when the requested operation cannot be performed,
+ * e.g. because of overflow of a native type.
+ */
+class ArithmeticException {};
+
+#if 1
+
+class IntegerConstantType
+{
+public:
+  typedef int InnerType;
+
+  IntegerConstantType() {}
+  IntegerConstantType(InnerType v) : _val(v) {}
+  explicit IntegerConstantType(const string& str);
+
+  IntegerConstantType operator+(const IntegerConstantType& num) const;
+  IntegerConstantType operator-(const IntegerConstantType& num) const;
+  IntegerConstantType operator-() const;
+  IntegerConstantType operator*(const IntegerConstantType& num) const;
+  IntegerConstantType operator/(const IntegerConstantType& num) const;
+  IntegerConstantType operator%(const IntegerConstantType& num) const;
+
+  bool operator==(const IntegerConstantType& num) const;
+  bool operator>(const IntegerConstantType& num) const;
+
+  bool operator!=(const IntegerConstantType& num) const { return !((*this)==num); }
+  bool operator<(const IntegerConstantType& o) const { return o>(*this); }
+  bool operator>=(const IntegerConstantType& o) const { return !(o>(*this)); }
+  bool operator<=(const IntegerConstantType& o) const { return !((*this)>o); }
+
+  int toInt() const { return _val; }
+
+  string toString() const;
+private:
+  InnerType _val;
+};
+
+#else
+
 //these constant types are just a quick solution, there will be proper ones with
 //overloaded operators, overflow checking/arbitrary precision etc...
 typedef int IntegerConstantType;
-struct RationalConstantType {
-  int numerator;
-  unsigned denominator;
 
-  //we don't have constructor so that the type can appear inside union (another temporary fix)
-  void init(int num, unsigned den) {
-    numerator = num;
-    denominator = den;
-  }
+#endif
+
+/**
+ * A class for representing rational numbers
+ *
+ * The class uses IntegerConstantType to store the numerator and denominator.
+ * This ensures that if there is an overflow in the operations, an exception
+ * will be raised by the IntegerConstantType methods.
+ */
+struct RationalConstantType {
+  typedef IntegerConstantType InnerType;
+
+  RationalConstantType() {}
+
+  RationalConstantType(InnerType num, InnerType den);
+  RationalConstantType(const string& num, const string& den);
+
+  RationalConstantType operator+(const RationalConstantType& num) const;
+  RationalConstantType operator-(const RationalConstantType& num) const;
+  RationalConstantType operator-() const;
+  RationalConstantType operator*(const RationalConstantType& num) const;
+  RationalConstantType operator/(const RationalConstantType& num) const;
+
+  bool operator==(const RationalConstantType& num) const;
+  bool operator>(const RationalConstantType& num) const;
+
+  bool operator!=(const RationalConstantType& num) const { return !((*this)==num); }
+  bool operator<(const RationalConstantType& o) const { return o>(*this); }
+  bool operator>=(const RationalConstantType& o) const { return !(o>(*this)); }
+  bool operator<=(const RationalConstantType& o) const { return !((*this)>o); }
+
+
+  string toString() const;
+
+protected:
+  void init(InnerType num, InnerType den);
+
+private:
+  void cannonize();
+
+  InnerType _num;
+  InnerType _den;
 };
-typedef double RealConstantType;
+
+class RealConstantType : public RationalConstantType
+{
+public:
+  RealConstantType() {}
+
+  RealConstantType(const string& number);
+
+};
+
+//typedef double RealConstantType;
 
 /** Obsolete */
 typedef int InterpretedType;

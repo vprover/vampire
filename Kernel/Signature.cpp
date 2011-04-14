@@ -62,6 +62,45 @@ Signature::Symbol::~Symbol()
 }
 
 /**
+ * Deallocate function Symbol object
+ */
+void Signature::Symbol::destroyFnSymbol()
+{
+  CALL("Signature::Symbol::destroyFnSymbol");
+
+  if(integerConstant()) {
+    delete static_cast<IntegerSymbol*>(this);
+  }
+  else if(rationalConstant()) {
+    delete static_cast<RationalSymbol*>(this);
+  }
+  else if(realConstant()) {
+    delete static_cast<RealSymbol*>(this);
+  }
+  else if(interpreted()) {
+    delete static_cast<InterpretedSymbol*>(this);
+  }
+  else {
+    delete this;
+  }
+}
+
+/**
+ * Deallocate predicate Symbol object
+ */
+void Signature::Symbol::destroyPredSymbol()
+{
+  CALL("Signature::Symbol::destroyPredSymbol");
+
+  if(interpreted()) {
+    delete static_cast<InterpretedSymbol*>(this);
+  }
+  else {
+    delete this;
+  }
+}
+
+/**
  * Add constant symbol into a distinct group
  *
  * A constant can be added into one particular distinct group
@@ -105,7 +144,6 @@ FunctionType* Signature::Symbol::fnType() const
   if(!_type) {
     _type = new FunctionType(arity());
   }
-
   return static_cast<FunctionType*>(_type);
 }
 
@@ -122,7 +160,6 @@ PredicateType* Signature::Symbol::predType() const
   if(!_type) {
     _type = new PredicateType(arity());
   }
-
   return static_cast<PredicateType*>(_type);
 }
 
@@ -136,8 +173,7 @@ Signature::Signature ()
     _preds(32),
     _lastName(0),
     _lastIntroducedFunctionNumber(0),
-    _lastSG(0),
-    _nextDistinctGroup(0)
+    _lastSG(0)
 {
   CALL("Signature::Signature");
 
@@ -164,15 +200,10 @@ Signature::Signature ()
 Signature::~Signature ()
 {
   for (int i = _funs.length()-1;i >= 0;i--) {
-    if(_funs[i]->interpreted()) {
-      delete static_cast<InterpretedSymbol*>(_funs[i]);
-    }
-    else {
-      delete _funs[i];
-    }
+    _funs[i]->destroyFnSymbol();
   }
   for (int i = _preds.length()-1;i >= 0;i--) {
-    delete _preds[i];
+    _preds[i]->destroyPredSymbol();
   }
 } // Signature::~Signature
 
@@ -241,15 +272,7 @@ unsigned Signature::addIntegerConstant(const string& number)
     return result;
   }
   result = _funs.length();
-
-  InterpretedSymbol* sym = new InterpretedSymbol(number);
-  IntegerConstantType value;
-  ALWAYS(Int::stringToInt(number, value)); //TODO: change this for arbitrary precision
-  sym->_intValue = value;
-
-  sym->setType(new FunctionType(0, 0, Sorts::SRT_INTEGER));
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP);
-  _funs.push(sym);
+  _funs.push(new IntegerSymbol(number));
   return result;
 }
 
@@ -257,25 +280,17 @@ unsigned Signature::addRationalConstant(const string& numerator, const string& d
 {
   CALL("Signature::addRationalConstant");
 
-  string key = numerator + "_" + denominator + "_q";
+  RationalConstantType value(numerator, denominator);
+
+  //we need to use the value to compute the key because we need to use
+  //th rational number in the cannonical form
+  string key = value.toString() + "_q";
   unsigned result;
   if(_funNames.find(key, result)) {
     return result;
   }
   result = _funs.length();
-
-  string name = "("+numerator+"/"+denominator+")";
-  InterpretedSymbol* sym = new InterpretedSymbol(name);
-  //TODO: change this for arbitrary precision
-  int numVal;
-  unsigned denVal;
-  ALWAYS(Int::stringToInt(numerator, numVal));
-  ALWAYS(Int::stringToUnsignedInt(denominator, denVal));
-  sym->_ratValue.init(numVal, denVal);
-
-  sym->setType(new FunctionType(0, 0, Sorts::SRT_RATIONAL));
-  sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP);
-  _funs.push(sym);
+  _funs.push(new RationalSymbol(value));
   return result;
 }
 
@@ -283,21 +298,17 @@ unsigned Signature::addRealConstant(const string& number)
 {
   CALL("Signature::addRealConstant");
 
-  string key = number + "_r";
+  RealConstantType value(number);
+
+  //we need to use the value to compute the key because we need to use
+  //the real number in the cannonical form
+  string key = value.toString() + "_r";
   unsigned result;
   if(_funNames.find(key, result)) {
     return result;
   }
   result = _funs.length();
-
-  InterpretedSymbol* sym = new InterpretedSymbol(number);
-  double value;
-  ALWAYS(Int::stringToDouble(number, value)); //TODO: change this for arbitrary precision
-  sym->_realValue = value;
-
-  sym->setType(new FunctionType(0, 0, Sorts::SRT_REAL));
-  sym->addToDistinctGroup(REAL_DISTINCT_GROUP);
-  _funs.push(sym);
+  _funs.push(new RealSymbol(value));
   return result;
 }
 
@@ -646,13 +657,26 @@ void Signature::Symbol::addColor(Color color)
 } // addColor
 
 /**
- * Create a group of distinct elements
+ * Create a group of distinct elements. @c premise should contain
+ * the unit that declared the distinct group, or zero if there isn't any.
  */
-unsigned Signature::createDistinctGroup()
+unsigned Signature::createDistinctGroup(Unit* premise)
 {
   CALL("Signature::createDistinctGroup");
 
-  return _nextDistinctGroup++;
+  unsigned res = _distinctGroupPremises.size();
+  _distinctGroupPremises.push(premise);
+  return res;
+}
+
+/**
+ * Return premise of the distinct group, or 0 if the distinct group doesn't have any
+ */
+Unit* Signature::getDistinctGroupPremise(unsigned group)
+{
+  CALL("Signature::getDistinctGroupPremise");
+
+  return _distinctGroupPremises[group];
 }
 
 /**

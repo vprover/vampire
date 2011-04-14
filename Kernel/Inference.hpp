@@ -212,7 +212,9 @@ public:
     /** unit resulting resolution */
     UNIT_RESULTING_RESOLUTION,
     /** global subsumption */
-    GLOBAL_SUBSUMPTION
+    GLOBAL_SUBSUMPTION,
+    /** distinct equality removal */
+    DISTINCT_EQUALITY_REMOVAL
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

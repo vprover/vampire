@@ -3,10 +3,13 @@
  * Implements class Theory.
  */
 
+#include <math.h>
+
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 
 #include "Kernel/Signature.hpp"
 
@@ -16,6 +19,245 @@ namespace Kernel
 {
 
 using namespace Lib;
+
+///////////////////////
+// IntegerConstantType
+//
+
+IntegerConstantType::IntegerConstantType(const string& str)
+{
+  CALL("IntegerConstantType::IntegerConstantType(string)");
+
+  ALWAYS(Int::stringToInt(str, _val));
+
+  //we want the string representation to be cannonical
+  ASS_EQ(str, toString());
+}
+
+IntegerConstantType IntegerConstantType::operator+(const IntegerConstantType& num) const
+{
+  CALL("IntegerConstantType::operator+");
+
+  InnerType res;
+  if(!Int::safePlus(_val, num._val, res)) {
+    throw ArithmeticException();
+  }
+  return IntegerConstantType(res);
+}
+
+IntegerConstantType IntegerConstantType::operator-(const IntegerConstantType& num) const
+{
+  CALL("IntegerConstantType::operator-/1");
+
+  InnerType res;
+  if(!Int::safeMinus(_val, num._val, res)) {
+    throw ArithmeticException();
+  }
+  return IntegerConstantType(res);
+}
+
+IntegerConstantType IntegerConstantType::operator-() const
+{
+  CALL("IntegerConstantType::operator-/0");
+
+  InnerType res;
+  if(!Int::safeUnaryMinus(_val, res)) {
+    throw ArithmeticException();
+  }
+  return IntegerConstantType(res);
+}
+
+IntegerConstantType IntegerConstantType::operator*(const IntegerConstantType& num) const
+{
+  CALL("IntegerConstantType::operator*");
+
+  InnerType res;
+  if(!Int::safeMultiply(_val, num._val, res)) {
+    throw ArithmeticException();
+  }
+  return IntegerConstantType(res);
+}
+
+IntegerConstantType IntegerConstantType::operator/(const IntegerConstantType& num) const
+{
+  CALL("IntegerConstantType::operator/");
+
+  //TODO: check if division corresponds to the TPTP semantic
+  if(num._val==0) {
+    throw ArithmeticException();
+  }
+  return IntegerConstantType(_val/num._val);
+}
+
+IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& num) const
+{
+  CALL("IntegerConstantType::operator%");
+
+  //TODO: check if modulo corresponds to the TPTP semantic
+  if(num._val==0) {
+    throw ArithmeticException();
+  }
+  return IntegerConstantType(_val%num._val);
+}
+
+bool IntegerConstantType::operator==(const IntegerConstantType& num) const
+{
+  CALL("IntegerConstantType::operator==");
+
+  return _val==num._val;
+}
+
+bool IntegerConstantType::operator>(const IntegerConstantType& num) const
+{
+  CALL("IntegerConstantType::operator>");
+
+  return _val>num._val;
+}
+
+
+string IntegerConstantType::toString() const
+{
+  CALL("IntegerConstantType::toString");
+
+  return Int::toString(_val);
+}
+
+///////////////////////
+// RationalConstantType
+//
+
+RationalConstantType::RationalConstantType(InnerType num, InnerType den)
+{
+  CALL("RationalConstantType::RationalConstantType");
+
+  init(num, den);
+}
+
+RationalConstantType::RationalConstantType(const string& num, const string& den)
+{
+  CALL("RationalConstantType::RationalConstantType");
+
+  init(InnerType(num), InnerType(den));
+}
+
+void RationalConstantType::init(InnerType num, InnerType den)
+{
+  CALL("RationalConstantType::init");
+
+  _num = num;
+  _den = den;
+  cannonize();
+}
+
+RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
+{
+  CALL("RationalConstantType::operator+");
+
+  if(_den==o._den) {
+    return RationalConstantType(_num + o._num, _den);
+  }
+  return RationalConstantType(_num*o._den + o._num*_den, _den*o._den);
+}
+
+RationalConstantType RationalConstantType::operator-(const RationalConstantType& o) const
+{
+  CALL("RationalConstantType::operator-/1");
+
+  return (*this) + (-o);
+}
+
+RationalConstantType RationalConstantType::operator-() const
+{
+  CALL("RationalConstantType::operator-/0");
+
+  return RationalConstantType(-_num, _den);
+}
+
+RationalConstantType RationalConstantType::operator*(const RationalConstantType& o) const
+{
+  CALL("RationalConstantType::operator*");
+
+  return RationalConstantType(_num*o._num, _den*o._den);
+}
+
+RationalConstantType RationalConstantType::operator/(const RationalConstantType& o) const
+{
+  CALL("RationalConstantType::operator/");
+
+  return RationalConstantType(_num*o._den, _den*o._num);
+}
+
+bool RationalConstantType::operator==(const RationalConstantType& o) const
+{
+  CALL("IntegerConstantType::operator==");
+
+  return _num==o._num && _den==o._den;
+}
+
+bool RationalConstantType::operator>(const RationalConstantType& o) const
+{
+  CALL("IntegerConstantType::operator>");
+
+  return (_num*o._den)>(o._num*_den);
+}
+
+
+string RationalConstantType::toString() const
+{
+  CALL("RationalConstantType::toString");
+
+  string numStr = _num.toString();
+  string denStr = _den.toString();
+
+  return "("+numStr+"/"+denStr+")";
+}
+
+/**
+ * Ensure the GCD of numerator and denominator is 1, and the only
+ * number that may be negative is numerator
+ */
+void RationalConstantType::cannonize()
+{
+  CALL("RationalConstantType::cannonize");
+
+  int gcd = Int::gcd(_num.toInt(), _den.toInt());
+  if(gcd!=1) {
+    _num = _num/InnerType(gcd);
+    _den = _den/InnerType(gcd);
+  }
+  if(_den<0) {
+    _num = -_num;
+    _den = -_den;
+  }
+}
+
+///////////////////////
+// RealConstantType
+//
+
+RealConstantType::RealConstantType(const string& number)
+{
+  CALL("RealConstantType::RealConstantType");
+
+  double numDbl;
+  ALWAYS(Int::stringToDouble(number, numDbl));
+  InnerType denominator = 1;
+  while(floor(numDbl)!=numDbl) {
+    denominator = denominator*10;
+    numDbl *= 10;
+  }
+
+  InnerType::InnerType numerator = static_cast<InnerType::InnerType>(numDbl);
+  if(numerator!=numDbl) {
+    //the numerator part of double doesn't fit inside the inner integer type
+    throw ArithmeticException();
+  }
+  init(numerator, denominator);
+}
+
+/////////////////
+// Theory
+//
 
 Theory* theory = Theory::instance();
 

@@ -21,6 +21,7 @@ namespace LiteralComparators {
 using namespace Lib;
 
 
+//typedef CompositeComaprator Composite;
 
 template<class Comp1, class Comp2>
 class Composite

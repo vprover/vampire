@@ -26,8 +26,7 @@ int Int::gcd(int i,int j)
     return 1;
   }
   
-  for(;;)
-  {
+  for(;;) {
     i = i % j;
     if(i==0) {
       return j;

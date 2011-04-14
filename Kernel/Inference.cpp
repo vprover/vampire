@@ -364,6 +364,8 @@ string Inference::ruleName(Rule rule)
     return "unit resulting resolution";
   case GLOBAL_SUBSUMPTION:
     return "global subsumption";
+  case DISTINCT_EQUALITY_REMOVAL:
+    return "distinct equality removal";
 
   default:
     ASSERTION_VIOLATION;

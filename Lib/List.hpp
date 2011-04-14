@@ -341,9 +341,9 @@ public:
   } // List::length
 
   /** True if elem is a member of the list, the comparison is made using == */
-  bool member (C elem)
+  bool member (C elem) const
   {
-    for (List* lst = this; lst->isNonEmpty(); lst = lst->tail()) {
+    for (const List* lst = this; lst->isNonEmpty(); lst = lst->tail()) {
       if (lst->head() == elem) return true;
     }
 

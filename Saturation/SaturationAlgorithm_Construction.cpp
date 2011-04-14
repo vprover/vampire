@@ -18,6 +18,7 @@
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/CTFwSubsAndRes.hpp"
+#include "Inferences/DistinctEqualitySimplifier.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -100,6 +101,7 @@ ImmediateSimplificationEngineSP createImmediateSE()
     break;
   }
 
+  res->addFront(ImmediateSimplificationEngineSP(new DistinctEqualitySimplifier()));
   if(env.options->interpretedEvaluation()) {
     res->addFront(ImmediateSimplificationEngineSP(new InterpretedEvaluation()));
   }

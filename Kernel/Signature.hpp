@@ -60,10 +60,13 @@ class Signature
     mutable BaseType* _type;
     /** List of distinct groups the constant is a member of */
     List<unsigned>* _distinctGroups;
+
+    ~Symbol();
   public:
     /** standard constructor */
     Symbol(const string& nm,unsigned arity, bool interpreted=false);
-    ~Symbol();
+    void destroyFnSymbol();
+    void destroyPredSymbol();
 
     void addColor(Color color);
     /** mark the symbol as skip for the purpose of symbol elimination */
@@ -105,13 +108,13 @@ class Signature
 
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
-    { ASS(integerConstant()); return static_cast<const InterpretedSymbol*>(this)->_intValue; }
+    { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
     /** Return value of a rational constant */
     inline RationalConstantType rationalValue() const
-    { ASS(rationalConstant()); return static_cast<const InterpretedSymbol*>(this)->_ratValue; }
+    { ASS(rationalConstant()); return static_cast<const RationalSymbol*>(this)->_ratValue; }
     /** Return value of a real constant */
-    inline IntegerConstantType realValue() const
-    { ASS(realConstant()); return static_cast<const InterpretedSymbol*>(this)->_realValue; }
+    inline RealConstantType realValue() const
+    { ASS(realConstant()); return static_cast<const RealSymbol*>(this)->_realValue; }
 
     const List<unsigned>* distinctGroups() const { return _distinctGroups; }
     void addToDistinctGroup(unsigned group);
@@ -131,9 +134,7 @@ class Signature
     friend class Symbol;
   protected:
     union {
-      IntegerConstantType _intValue;
-      RationalConstantType _ratValue;
-      RealConstantType _realValue;
+      int _intValue;
       Interpretation _interp;
     };
 
@@ -162,6 +163,69 @@ class Signature
     inline InterpretedType getValue() const { ASS(interpreted()); ASS_EQ(arity(),0); return _intValue; }
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(arity(),0); return _interp; }
+  };
+
+  class IntegerSymbol
+  : public Symbol
+  {
+    friend class Signature;
+    friend class Symbol;
+  protected:
+    IntegerConstantType _intValue;
+
+  public:
+    IntegerSymbol(const string& nm)
+    : Symbol(nm, 0, true), _intValue(nm)
+    {
+      CALL("IntegerSymbol");
+
+      setType(new FunctionType(0, 0, Sorts::SRT_INTEGER));
+      addToDistinctGroup(INTEGER_DISTINCT_GROUP);
+    }
+    CLASS_NAME("Signature::IntegerSymbol");
+    USE_ALLOCATOR(IntegerSymbol);
+  };
+
+  class RationalSymbol
+  : public Symbol
+  {
+    friend class Signature;
+    friend class Symbol;
+  protected:
+    RationalConstantType _ratValue;
+
+  public:
+    RationalSymbol(const RationalConstantType& val)
+    : Symbol(val.toString(), 0, true), _ratValue(val)
+    {
+      CALL("RationalSymbol");
+
+      setType(new FunctionType(0, 0, Sorts::SRT_RATIONAL));
+      addToDistinctGroup(RATIONAL_DISTINCT_GROUP);
+    }
+    CLASS_NAME("Signature::RationalSymbol");
+    USE_ALLOCATOR(RationalSymbol);
+  };
+
+  class RealSymbol
+  : public Symbol
+  {
+    friend class Signature;
+    friend class Symbol;
+  protected:
+    RealConstantType _realValue;
+
+  public:
+    RealSymbol(const RealConstantType& val)
+    : Symbol(val.toString(), 0, true), _realValue(val)
+    {
+      CALL("RealSymbol");
+
+      setType(new FunctionType(0, 0, Sorts::SRT_REAL));
+      addToDistinctGroup(REAL_DISTINCT_GROUP);
+    }
+    CLASS_NAME("Signature::RealSymbol");
+    USE_ALLOCATOR(RealSymbol);
   };
 
   void registerInterpretedFunction(const string& name, Interpretation interpretation);
@@ -300,7 +364,8 @@ class Signature
   bool functionExists(const string& name,unsigned arity) const;
   bool predicateExists(const string& name,unsigned arity) const;
 
-  unsigned createDistinctGroup();
+  Unit* getDistinctGroupPremise(unsigned group);
+  unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
 
   static string key(const string& name,int arity);
@@ -336,7 +401,7 @@ private:
    * (name recommended by http://www.cs.miami.edu/~tptp/TSTP/NewSymbolNames.html )*/
   int _lastSG;
 
-  int _nextDistinctGroup;
+  Stack<Unit*> _distinctGroupPremises;
 
   /** Map from InterpretedType values to constant symbols representing them */
   DHMap<InterpretedType, unsigned> _iConstants;
