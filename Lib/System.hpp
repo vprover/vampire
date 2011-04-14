@@ -56,6 +56,8 @@ public:
    */
   static unsigned getNumberOfCores();
 
+  static bool fileExists(string fname);
+
 private:
 
   static ZIArray<List<VoidFunc>*>& initializationHandlersArray();

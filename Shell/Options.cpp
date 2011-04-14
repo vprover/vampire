@@ -20,6 +20,7 @@
 #include "Lib/NameArray.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/System.hpp"
 
 #include "Options.hpp"
 
@@ -1144,6 +1145,10 @@ string Options::includeFileName (const string& relativeName)
   CALL("Options::includeFileName");
 
   if (relativeName[0] == '/') { // absolute name
+    return relativeName;
+  }
+
+  if(System::fileExists(relativeName)) {
     return relativeName;
   }
 

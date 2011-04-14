@@ -21,6 +21,7 @@
 #include <string>
 #include <csignal>
 #include <iostream>
+#include <fstream>
 
 #include "Debug/Tracer.hpp"
 
@@ -392,11 +393,21 @@ void System::registerForSIGHUPOnParentDeath()
 
 string System::extractFileNameFromPath(string str)
 {
+  CALL("System::extractFileNameFromPath");
+
   size_t index=str.find_last_of("\\/")+1;
   if(index==string::npos) {
     return str;
   }
   return string(str, index);
+}
+
+bool System::fileExists(string fname)
+{
+  CALL("System::fileExists");
+
+  ifstream ifile(fname.c_str());
+  return ifile;
 }
 
 };

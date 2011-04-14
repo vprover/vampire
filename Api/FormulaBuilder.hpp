@@ -371,6 +371,12 @@ public:
   Predicate predicate() const;
 
   /**
+   * If formula is ATOM, return true if it's polarity is positive and false
+   * if it is negative.
+   */
+  bool atomPolarity() const;
+
+  /**
    * Return number of arguments of the top-level element in formula.
    *
    * If formula is an atom, arity of the predicate symbol is returned.

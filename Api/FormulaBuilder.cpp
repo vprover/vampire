@@ -640,6 +640,17 @@ Predicate Formula::predicate() const
   return form->literal()->functor();
 }
 
+bool Formula::atomPolarity() const
+{
+  CALL("Formula::predicate");
+
+  if(form->connective()!=Kernel::LITERAL) {
+    throw ApiException("Polarity can be retrieved only from atoms");
+  }
+  return form->literal()->polarity();
+}
+
+
 unsigned Formula::argCnt() const
 {
   CALL("Formula::argCnt");
