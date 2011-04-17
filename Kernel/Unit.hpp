@@ -50,6 +50,7 @@ public:
   };
 
   static InputType getInputType(UnitList* units);
+  static InputType getInputType(InputType t1, InputType t2);
 
   virtual ~Unit() {}
 

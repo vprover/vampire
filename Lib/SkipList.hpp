@@ -46,10 +46,36 @@ public:
   void insert(Value val)
   {
     CALL("SkipList::insert");
-    Value* pval=insertPosition(val);
-    *pval=val;
+    Value* pval = insertPosition(val);
+    *pval = val;
   } // SkipList::insert
 
+  template<class Iterator>
+  inline
+  void insertFromIterator(Iterator it)
+  {
+    CALL("SkipList::insertFromIterator");
+
+    while(it.hasNext()) {
+      insert(it.next());
+    }
+  }
+
+  /**
+   * Ensure value @c val is present in the skip list. If the value is already
+   * there, do nothing and return true; otherwise insert it and return true.
+   */
+  inline
+  bool ensurePresent(Value val)
+  {
+    CALL("SkipList::ensurePresent");
+    Value* pval;
+    if(!getPosition(val, pval, true)) {
+      *pval = val;
+      return false;
+    }
+    return true;
+  }
 
   /**
    * If value with given key is present, assign pointer to the
@@ -68,12 +94,12 @@ public:
 
     if(_top==0) {
       if(canCreate) {
-	pvalue=insertPosition(key);
+	pvalue = insertPosition(key);
       }
       return false;
     }
 
-    unsigned h=_top-1;
+    unsigned h = _top-1;
 
    // left is a node with a value smaller than that of newNode and having
     // a large enough height.

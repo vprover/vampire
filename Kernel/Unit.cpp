@@ -34,6 +34,18 @@ void Unit::onPreprocessingEnd()
   _firstNonPreprocessingNumber=_lastNumber;
 }
 
+
+/**
+ * Return InputType of which should be a formula that has
+ * units of types @c t1 and @c t2 as premises.
+ */
+Unit::InputType Unit::getInputType(InputType t1, InputType t2)
+{
+  CALL("Unit::getInputType");
+
+  return static_cast<Unit::InputType>(Int::max(t1, t2));
+}
+
 /**
  * Return InputType of which should be a formula that has
  * @c units as premises.
@@ -50,7 +62,7 @@ Unit::InputType Unit::getInputType(UnitList* units)
   InputType res = uit.next()->inputType();
 
   while(uit.hasNext()) {
-    res = static_cast<Unit::InputType>(Int::max(res, uit.next()->inputType()));
+    res = getInputType(res, uit.next()->inputType());
   }
   return res;
 }

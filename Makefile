@@ -244,6 +244,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/Normalisation.o\
          Shell/Options.o\
          Shell/Parser.o\
+         Shell/PDInliner.o\
          Shell/PredicateDefinition.o\
          Shell/Preprocess.o\
          Shell/Property.o\
@@ -405,6 +406,7 @@ OTHER_API_DEP = \
 	   Shell/NNF.o\
 	   Shell/Options.o\
 	   Shell/Parser.o\
+	   Shell/PDInliner.o\
 	   Shell/Rectify.o\
 	   Shell/SimplifyFalseTrue.o\
 	   Shell/SimplifyProver.o\

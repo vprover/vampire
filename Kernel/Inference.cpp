@@ -14,10 +14,10 @@ using namespace Kernel;
 Inference::Inference(Rule r)
   : _rule(r)
 {
-  switch(r) {
-  //TODO: move env.statistics object updates here.
-  default: ;
-  }
+//  switch(r) {
+//  //TODO: move env.statistics object updates here.
+//  default: ;
+//  }
 }
 
 
@@ -290,6 +290,8 @@ string Inference::ruleName(Rule rule)
 //  case ROW_VARIABLE_EXPANSION:
   case PREDICATE_DEFINITION:
     return "predicate definition introduction";
+  case PREDICATE_DEFINITION_UNFOLDING:
+    return "predicate definition unfolding";
   case REDUCE_FALSE_TRUE:
     return "true and false elimination";
   case TRIVIAL_INEQUALITY_REMOVAL:

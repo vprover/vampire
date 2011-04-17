@@ -43,7 +43,7 @@ protected:
     /** True if contains a deleted element */
     inline bool deleted() const
     {
-      return code == 0;
+      return code == 1;
     } // Set::Cell::deleted
 
     /** True if contains an element */
@@ -246,6 +246,24 @@ public:
     }
     return false;
   } // Set::remove
+
+  /**
+   * Make the set empty
+   *
+   * Unlike reset function for some other containers, the cost
+   * of this function is linear in the size of the set.
+   */
+  void reset()
+  {
+    CALL("Set::reset");
+    Cell* ptr = _entries;
+    while(ptr!=_afterLast) {
+      ptr->code = 0;
+      ptr++;
+    }
+    _size = 0;
+    _nonemptyCells = 0;
+  }
 
 private:
   // declared but not defined, to prevent on-heap allocation

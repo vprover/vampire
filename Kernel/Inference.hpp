@@ -131,6 +131,8 @@ public:
 //     ROW_VARIABLE_EXPANSION,
     /** introduction of new name p, p <=> C */
     PREDICATE_DEFINITION,
+    /** unfolding predicate definitions */
+    PREDICATE_DEFINITION_UNFOLDING,
     /** reduce a formula containing false or true, for example
      *  false & A ---> false */
     REDUCE_FALSE_TRUE,
