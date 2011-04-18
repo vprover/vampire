@@ -395,6 +395,84 @@ TEST_FUN(fbapiClausify)
   }
 }
 
+TEST_FUN(fbapiClausifyDefinitions)
+{
+  try {
+    Problem prb;
+    stringstream stm("fof(a,axiom,(? [X]: p(X)&p(a2)) | (p(b1)&p(b2)) | (p(c1)&p(c2)) | (p(d1)&p(d2)) | (p(e1)&p(e2))).");
+    prb.addFromStream(stm);
+
+    cout<<"Problem:"<<endl;
+    AnnotatedFormulaIterator afit=prb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    Problem cprb = prb.clausify(4, true);
+    cout<<"Clausified, naming_threshold=4:"<<endl;
+    afit=cprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
+TEST_FUN(fbapiPDInlining)
+{
+  try {
+    FormulaBuilder api;
+
+    Var xv = api.var("Var");
+    Var yv = api.var("Var2");
+    Predicate cSym=api.function("c",0);
+    Term x = api.varTerm(xv);
+    Term y = api.varTerm(yv);
+    Term c = api.term(cSym);
+    Predicate p=api.predicate("p",1);
+    Predicate q=api.predicate("q",2);
+
+    Formula fpx=api.formula(p,x);
+    Formula fqyx=api.formula(q,y,x);
+    Formula fqyc=api.formula(q,y,c);
+    Formula fqycOqyx=api.formula(FormulaBuilder::OR, fqyc, fqyx);
+    Formula fFyqycOqyx=api.formula(FormulaBuilder::FORALL, yv, fqycOqyx);
+    Formula fdef=api.formula(FormulaBuilder::IFF, fpx, fFyqycOqyx);
+    AnnotatedFormula afDef=api.annotatedFormula(fdef,FormulaBuilder::AXIOM, "pd");
+
+    Formula fpy=api.formula(p,y);
+    AnnotatedFormula afpy=api.annotatedFormula(fpy,FormulaBuilder::AXIOM, "py");
+
+    cout<<endl<<"FOF:"<<endl;
+    cout<<afDef<<endl;
+    cout<<afpy<<endl;
+
+    Problem prb;
+    prb.addFormula(afDef);
+    prb.addFormula(afpy);
+
+    Problem sprb=prb.skolemize(0, true, true);
+    cout<<"Skolemized:"<<endl;
+    AnnotatedFormulaIterator afit=sprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    Problem cprb=prb.clausify(0, true, true);
+    cout<<"CNF:"<<endl;
+    afit=cprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
+
 string getId(Term t)
 {
   static std::map<string,string> idMap;

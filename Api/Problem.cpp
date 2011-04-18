@@ -10,6 +10,7 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Deque.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
@@ -26,6 +27,7 @@
 #include "Shell/Naming.hpp"
 #include "Shell/NNF.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/PDInliner.hpp"
 #include "Shell/Rectify.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/SimplifyFalseTrue.hpp"
@@ -170,119 +172,246 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
 ///////////////////////////////////////
 // Clausification
 
-struct Problem::Clausifier
+class Problem::ProblemTransformer
 {
-  Clausifier(Problem* res, int namingThreshold, bool preserveEpr, bool onlySkolemize) :
-    namingThreshold(namingThreshold), preserveEpr(preserveEpr), onlySkolemize(onlySkolemize),
-    nextDefNum(1), res(res), naming(namingThreshold ? namingThreshold : 8, preserveEpr) {}
-
-  void assignName(Kernel::Unit* unit, bool isDef, string origFormName, unsigned nextClauseNum)
+public:
+  virtual Problem transform(Problem p)
   {
-    CALL("Problem::Clausifier::assignName");
+    CALL("ProblemTransformer::transform(Problem)");
 
-    string clName;
-    if(isDef) {
-      clName="def_"+Int::toString(nextDefNum);
-      nextDefNum++;
-    }
-    else {
-      clName=origFormName+"_"+Int::toString(nextClauseNum);
-      nextClauseNum++;
-    }
-    Parser::assignAxiomName(unit, clName);
+    Problem res;
+    _res = &res;
+
+    transformImpl(p);
+
+    _res = 0;
+    return res;
   }
 
+protected:
+  ProblemTransformer() :
+    _transforming(false), _nextDefNum(1), _res(0) {}
+
+  /**
+   * Transform @c unit and call @c addUnit() on the results of the transformation.
+   */
+  virtual void transformImpl(Kernel::Unit* unit) = 0;
+
+  virtual void transformImpl(Problem p)
+  {
+    CALL("ProblemTransformer::transformImpl(Problem)");
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      transform(f);
+    }
+  }
+
+  /**
+   * To be called by transformImpl(Problem p)
+   */
   void transform(AnnotatedFormula f)
   {
-    CALL("Problem::Clausifier::transform");
+    CALL("Problem::ProblemTransformer::transform(AnnotatedFormula)");
+    ASS(!_transforming);
+    ASS(_defs.isEmpty());
 
-    using namespace Shell;
-
-    string fname=f.name();
-    Kernel::Unit* unit0=f;
-    Kernel::Unit* unit=unit0;
-
-    if(unit->isClause()) {
-      res->addFormula(f);
-      return;
-    }
+    _transforming = true;
+    _nextResNum = 1;
+    _origName = f.name();
+    _origUnit = f;
+    _origAF = f;
     ASS(!VarManager::varNamePreserving());
     VarManager::setVarNamePreserving(f._aux->getVarFactory());
 
-    Kernel::UnitList* newDefs=0;
-    unit = SpecialTermElimination().apply(static_cast<Kernel::FormulaUnit*>(unit), newDefs);
+    _transformingDef = false;
+    transformImpl(f);
 
-    unsigned nextClauseNum=1;
-    bool clausifyingDefs=false;
-
-    for(;;) {
-      unit = Rectify::rectify(unit);
-      unit = SimplifyFalseTrue::simplify(unit);
-      unit = Flattening::flatten(unit);
-
-      {
-	Kernel::UnitList* newDefs2=0;
-	unit = FormulaIteExpander().apply(unit, newDefs2);
-        newDefs = UnitList::concat(newDefs2, newDefs);
-      }
-
-      unit = NNF::ennf(unit);
-      unit = Flattening::flatten(unit);
-
-      if(!clausifyingDefs && namingThreshold) {
-	Kernel::UnitList* newDefs2=0;
-        unit = naming.apply(unit,newDefs2);
-        newDefs = UnitList::concat(newDefs, newDefs2);
-      }
-
-      unit = NNF::nnf(unit);
-      unit = Flattening::flatten(unit);
-      unit = Skolem::skolemise(unit);
-      if(onlySkolemize) {
-	  AnnotatedFormula fRes=AnnotatedFormula(unit, f._aux);
-	  res->addFormula(fRes);
-	  if(unit!=unit0) {
-	    assignName(unit, clausifyingDefs, fname, nextClauseNum);
-	  }
-      }
-      else {
-	if(!clausifyingDefs && namingThreshold && preserveEpr) {
-	  Kernel::UnitList* newDefs2=0;
-	  unit = naming.apply(unit,newDefs2);
-	  newDefs=Kernel::UnitList::concat(newDefs2, newDefs);
-	}
-
-	cnf.clausify(unit,auxClauseStack);
-	while (! auxClauseStack.isEmpty()) {
-	  Unit* u = auxClauseStack.pop();
-	  AnnotatedFormula fRes=AnnotatedFormula(u, f._aux);
-	  res->addFormula(fRes);
-	  assignName(u, clausifyingDefs, fname, nextClauseNum);
-	}
-      }
-
-      if(newDefs==0) {
-	break;
-      }
-      unit=UnitList::pop(newDefs);
-      clausifyingDefs=true;
+    _transformingDef = true;
+    while(_defs.isNonEmpty()) {
+      transformImpl(_defs.pop_front());
     }
 
+    _transforming = false;
     VarManager::setVarNamePreserving(0);
+  }
+
+  void addUnit(Kernel::Unit* unit)
+  {
+    CALL("Problem::ProblemTransformer::addUnit");
+
+    AnnotatedFormula af = AnnotatedFormula(unit, _origAF._aux);
+    _res->addFormula(af);
+
+    if(unit==_origUnit) {
+      //if added formula is the original one, we don't proceed
+      //creating a new name for it
+      return;
+    }
+    string unitName;
+    if(_transformingDef) {
+      unitName="def_"+Int::toString(_nextDefNum);
+      _nextDefNum++;
+    }
+    else {
+      unitName=_origName+"_"+Int::toString(_nextResNum);
+      _nextResNum++;
+    }
+    Parser::assignAxiomName(unit, unitName);
+  }
+
+  void handleDefs(Kernel::UnitList*& defLst)
+  {
+    CALL("Problem::ProblemTransformer::addUnit");
+
+    while(defLst) {
+      _defs.push_back(Kernel::UnitList::pop(defLst));
+    }
+  }
+
+  bool _transforming;
+  bool _transformingDef;
+  unsigned _nextResNum;
+  string _origName;
+  Kernel::Unit* _origUnit;
+  AnnotatedFormula _origAF;
+
+  Deque<Kernel::Unit*> _defs;
+
+  unsigned _nextDefNum;
+  Problem* _res;
+};
+
+struct Problem::Preprocessor1 : public ProblemTransformer
+{
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::Preprocessor1::transformImpl");
+
+    using namespace Shell;
+
+    if(unit->isClause()) {
+      addUnit(unit);
+      return;
+    }
+
+    Kernel::UnitList* newDefs=0;
+    unit = SpecialTermElimination().apply(static_cast<Kernel::FormulaUnit*>(unit), newDefs);
+    handleDefs(newDefs);
+
+    unit = Rectify::rectify(unit);
+    unit = SimplifyFalseTrue::simplify(unit);
+    unit = Flattening::flatten(unit);
+
+    {
+      unit = FormulaIteExpander().apply(unit, newDefs);
+      handleDefs(newDefs);
+    }
+
+    addUnit(unit);
+  }
+};
+
+struct Problem::PredicateDefinitionInliner : public ProblemTransformer
+{
+
+  virtual void transformImpl(Problem p)
+  {
+    CALL("Problem::PredicateDefinitionInliner::transformImpl(Problem)");
+
+    static DHSet<Kernel::Unit*> defs;
+    defs.reset();
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      if(f.unit->isClause()) {
+	continue;
+      }
+      FormulaUnit* fu = static_cast<FormulaUnit*>(f.unit);
+      if(pdInliner.tryGetDef(fu)) {
+	defs.insert(fu);
+      }
+    }
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      if(defs.contains(f.unit)) {
+	continue; //we don't keep the definitions
+      }
+      transform(f);
+    }
+  }
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::PredicateDefinitionInliner::transformImpl");
+
+    addUnit(pdInliner.apply(unit));
+  }
+
+  Shell::PDInliner pdInliner;
+};
+
+struct Problem::Clausifier : public ProblemTransformer
+{
+  Clausifier(int namingThreshold, bool preserveEpr, bool onlySkolemize) :
+    namingThreshold(namingThreshold), preserveEpr(preserveEpr), onlySkolemize(onlySkolemize),
+    naming(namingThreshold ? namingThreshold : 8, preserveEpr) {}
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::Clausifier::transformImpl");
+
+    using namespace Shell;
+
+    if(unit->isClause()) {
+      addUnit(unit);
+      return;
+    }
+
+    unit = NNF::ennf(unit);
+    unit = Flattening::flatten(unit);
+
+    if(!_transformingDef && namingThreshold) {
+      Kernel::UnitList* newDefs=0;
+      unit = naming.apply(unit,newDefs);
+      handleDefs(newDefs);
+    }
+
+    unit = NNF::nnf(unit);
+    unit = Flattening::flatten(unit);
+    unit = Skolem::skolemise(unit);
+    if(onlySkolemize) {
+      addUnit(unit);
+    }
+    else {
+      if(!_transformingDef && namingThreshold && preserveEpr) {
+	Kernel::UnitList* newDefs=0;
+	unit = naming.apply(unit,newDefs);
+	handleDefs(newDefs);
+      }
+
+      cnf.clausify(unit,auxClauseStack);
+      while (! auxClauseStack.isEmpty()) {
+	Unit* u = auxClauseStack.pop();
+	addUnit(u);
+      }
+    }
   }
 
   int namingThreshold;
   bool preserveEpr;
   bool onlySkolemize;
 
-  unsigned nextDefNum;
-  Problem* res;
   Shell::CNF cnf;
   Stack<Kernel::Clause*> auxClauseStack;
   Shell::Naming naming;
 };
 
-Problem Problem::clausify(int namingThreshold, bool preserveEpr)
+Problem Problem::clausify(int namingThreshold, bool preserveEpr, bool predicateDefinitionInlining)
 {
   CALL("Problem::clausify");
 
@@ -290,22 +419,15 @@ Problem Problem::clausify(int namingThreshold, bool preserveEpr)
     throw new ApiException("namingThreshold must be in the range [0,32767]");
   }
 
-  Problem res;
-
-  {
-    Clausifier clausifier(&res, namingThreshold, preserveEpr, false);
-
-    AnnotatedFormulaIterator fit=formulas();
-    while(fit.hasNext()) {
-      AnnotatedFormula f=fit.next();
-      clausifier.transform(f);
-    }
+  Problem res = Preprocessor1().transform(*this);
+  if(predicateDefinitionInlining) {
+    res = PredicateDefinitionInliner().transform(res);
   }
-
+  res = Clausifier(namingThreshold, preserveEpr, false).transform(res);
   return res;
 }
 
-Problem Problem::skolemize(int namingThreshold, bool preserveEpr)
+Problem Problem::skolemize(int namingThreshold, bool preserveEpr, bool predicateDefinitionInlining)
 {
   CALL("Problem::skolemize");
 
@@ -313,18 +435,11 @@ Problem Problem::skolemize(int namingThreshold, bool preserveEpr)
     throw new ApiException("namingThreshold must be in the range [0,32767]");
   }
 
-  Problem res;
-
-  {
-    Clausifier clausifier(&res, namingThreshold, preserveEpr, true);
-
-    AnnotatedFormulaIterator fit=formulas();
-    while(fit.hasNext()) {
-      AnnotatedFormula f=fit.next();
-      clausifier.transform(f);
-    }
+  Problem res = Preprocessor1().transform(*this);
+  if(predicateDefinitionInlining) {
+    res = PredicateDefinitionInliner().transform(res);
   }
-
+  res = Clausifier(namingThreshold, preserveEpr, true).transform(res);
   return res;
 }
 

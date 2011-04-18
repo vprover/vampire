@@ -76,7 +76,7 @@ public:
    * @param preserveEpr If true, names will not be introduced if it would
    *   lead to introduction of non-constant Skolem functions.
    */
-  Problem clausify(int namingThreshold=8, bool preserveEpr=false);
+  Problem clausify(int namingThreshold=8, bool preserveEpr=false, bool predicateDefinitionInlining=false);
 
   /**
    * Return the current problem skolemized
@@ -87,7 +87,7 @@ public:
    * @param preserveEpr If true, names will not be introduced if it would
    *   lead to introduction of non-constant Skolem functions.
    */
-  Problem skolemize(int namingThreshold=8, bool preserveEpr=false);
+  Problem skolemize(int namingThreshold=8, bool preserveEpr=false, bool predicateDefinitionInlining=false);
 
   /**
    * Return iterator of formulas in the problem
@@ -99,6 +99,10 @@ public:
 
 private:
   class PData;
+  class ProblemTransformer;
+
+  class Preprocessor1;
+  class PredicateDefinitionInliner;
   class Clausifier;
 
   PData* _data;

@@ -36,16 +36,20 @@ public:
    * The rule preserves flattening and true/false simplifiedness of formulas.
    */
   void apply(UnitList*& units);
+  Unit* apply(Unit* u);
+
+  /**
+   * Attempt to extract definition from formula @c unit, and return true iff
+   * successful.
+   */
+  bool tryGetDef(FormulaUnit* unit);
 
 private:
 
   struct Applicator;
   struct PDef;
 
-  Unit* apply(Unit* u);
-
   void scanAndRemoveDefinitions(UnitList*& units);
-  bool tryGetDef(FormulaUnit* unit);
   bool tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs);
 
   ZIArray<PDef*> _defs;
