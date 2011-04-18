@@ -22,6 +22,7 @@
 #include "Normalisation.hpp"
 #include "NNF.hpp"
 #include "Options.hpp"
+#include "PDInliner.hpp"
 #include "PredicateDefinition.hpp"
 #include "Preprocess.hpp"
 #include "Property.hpp"
@@ -126,6 +127,12 @@ void Preprocess::preprocess (UnitList*& units)
 
   {
     FormulaIteExpander().apply(units);
+  }
+
+  if (_options.predicateDefinitionInlining()) {
+    env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
+    PDInliner pdInliner;
+    pdInliner.apply(units);
   }
 
   if (_options.unusedPredicateDefinitionRemoval()) {

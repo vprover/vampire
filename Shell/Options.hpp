@@ -86,6 +86,7 @@ public:
 
     OUTPUT_AXIOM_NAMES,
 
+    PREDICATE_DEFINITION_INLINING,
     PROBLEM_NAME,
     PROOF,
     PROOF_CHECKING,
@@ -299,6 +300,8 @@ public:
   bool setNaming(int newVal);
   bool eprPreservingNaming() const { return _eprPreservingNaming; }
   void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
+  bool predicateDefinitionInlining() const { return _predicateDefinitionInlining; }
+  void setPredicateDefinitionInlining(bool newVal) { _predicateDefinitionInlining = newVal; }
   Mode mode() const { return _mode; }
   void setMode(Mode newVal) { _mode = newVal; }
   InputSyntax inputSyntax() { return _inputSyntax; }
@@ -501,6 +504,7 @@ private:
 
   bool _outputAxiomNames;
 
+  bool _predicateDefinitionInlining;
   string _problemName;
   Proof _proof;
   bool _proofChecking;

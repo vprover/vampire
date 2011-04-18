@@ -49,6 +49,8 @@ public:
   unsigned splittedInequalities;
   /** number of pure predicates */
   unsigned purePredicates;
+  /** number of inlined predicate definitions */
+  unsigned inlinedPredicateDefinitions;
   /** number of unused predicate definitions */
   unsigned unusedPredicateDefinitions;
   /** number of eliminated function definitions */
@@ -202,6 +204,7 @@ public:
     SINE_SELECTION,
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,
+    PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     PREPROCESS_2,
     NAMING,

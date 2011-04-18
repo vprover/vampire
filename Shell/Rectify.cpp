@@ -74,6 +74,26 @@ Unit* Rectify::rectify (Unit* unit)
 } // Rectify::rectify (Unit& unit)
 
 /**
+ * Rectify formulas in @c units
+ */
+void Rectify::rectify(UnitList*& units)
+{
+  CALL("Rectify::rectify(UnitList*&)");
+
+  UnitList::DelIterator us(units);
+  while (us.hasNext()) {
+    Unit* u = us.next();
+    if(u->isClause()) {
+      continue;
+    }
+    Unit* v = rectify(u);
+    if (v != u) {
+	us.replace(v);
+    }
+  }
+}
+
+/**
  * Destroy all renaming lists.
  * @since 07/06/2007 Manchester
  */

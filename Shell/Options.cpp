@@ -138,6 +138,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "output_axiom_names",
 
+  "predicate_definition_inlining",
   "problem_name",
   "proof",
   "proof_checking",
@@ -506,6 +507,7 @@ Options::Options ()
 
   _outputAxiomNames(false),
 
+  _predicateDefinitionInlining(false),
   _problemName("unknown"),
   _proof(PROOF_ON),
   _proofChecking(false),
@@ -807,6 +809,9 @@ void Options::set (const char* name,const char* value, int index)
       _outputAxiomNames = onOffToBool(value,name);
       return;
 
+    case PREDICATE_DEFINITION_INLINING:
+      _predicateDefinitionInlining = onOffToBool(value,name);
+      return;
     case PROOF:
       _proof = (Proof)Constants::proofValues.find(value);
       return;
@@ -1364,6 +1369,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_outputAxiomNames);
     return;
 
+  case PREDICATE_DEFINITION_INLINING:
+    str << boolToOnOff(_predicateDefinitionInlining);
+    return;
   case PROBLEM_NAME:
     str << _problemName;
     return;

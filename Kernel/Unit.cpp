@@ -15,6 +15,7 @@
 #include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
+#include "SubformulaIterator.hpp"
 
 #include "Unit.hpp"
 
@@ -120,6 +121,31 @@ Formula* Unit::getFormula(BDDNode* prop)
   }
 }
 
+/**
+ * Add into @c acc numbers of all predicates in the unit.
+ */
+void Unit::collectPredicates(Stack<unsigned>& acc)
+{
+  CALL("Unit::collectPredicates");
+
+  if(isClause()) {
+    Clause* cl = static_cast<Clause*>(this);
+    unsigned clen = cl->length();
+    for(unsigned i=0; i<clen; i++) {
+      acc.push((*cl)[i]->functor());
+    }
+  }
+  else {
+    Formula* form = static_cast<FormulaUnit*>(this)->formula();
+    SubformulaIterator sfit(form);
+    while(sfit.hasNext()) {
+      Formula* sf = sfit.next();
+      if(sf->connective()==LITERAL) {
+	acc.push(sf->literal()->functor());
+      }
+    }
+  }
+}
 
 /**
  * Print the inference as a string (used in printing units in

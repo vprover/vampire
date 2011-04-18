@@ -26,6 +26,15 @@ class PDInliner {
 public:
   PDInliner();
   ~PDInliner();
+
+  /**
+   * Apply predicate definition inlining
+   *
+   * The units must be rectified before passing to this function, they will
+   * remain rectified afterward.
+   *
+   * The rule preserves flattening and true/false simplifiedness of formulas.
+   */
   void apply(UnitList*& units);
 
 private:
@@ -33,9 +42,11 @@ private:
   struct Applicator;
   struct PDef;
 
-  void scan(UnitList* units);
-  void scan(FormulaUnit* unit);
-  bool tryGetDef(Unit* unit, Literal* lhs, Formula* rhs);
+  Unit* apply(Unit* u);
+
+  void scanAndRemoveDefinitions(UnitList*& units);
+  bool tryGetDef(FormulaUnit* unit);
+  bool tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs);
 
   ZIArray<PDef*> _defs;
   /**
@@ -47,8 +58,6 @@ private:
    * soon as we discover them, and inlining removes the dependency.
    */
   DArray<Set<unsigned> > _dependent;
-
-
 };
 
 }

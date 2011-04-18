@@ -98,6 +98,7 @@ public:
 
   Color getColor();
   Formula* getFormula(BDDNode* prop);
+  void collectPredicates(Stack<unsigned>& acc);
 
   /**
    * Increase the number of references to the unit.

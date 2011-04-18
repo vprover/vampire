@@ -36,6 +36,7 @@ Statistics::Statistics()
     initialClauses(0),
     splittedInequalities(0),
     purePredicates(0),
+    inlinedPredicateDefinitions(0),
     unusedPredicateDefinitions(0),
     functionDefinitions(0),
     selectedBySine(0),
@@ -168,6 +169,7 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   COND_OUT("Pure predicates", purePredicates);
+  COND_OUT("Inlined predicate definitions", inlinedPredicateDefinitions);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
   COND_OUT("Function definitions", functionDefinitions);
   COND_OUT("Selected by SInE selection", selectedBySine);
@@ -270,6 +272,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Including theory axioms";
   case PREPROCESS_1:
     return "Preprocessing 1";
+  case PREDICATE_DEFINITION_INLINING:
+    return "Predicate definition inlining";
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
     return "Unused predicate definition removal";
   case PREPROCESS_2:

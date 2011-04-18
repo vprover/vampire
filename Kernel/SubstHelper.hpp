@@ -76,8 +76,9 @@ public:
    * specified by the applicator -- an object with method
    * TermList apply(unsigned var)
    *
-   * The specified substitution must be an identity on variables
-   * bound inside the formula.
+   * Variables bound inside the formula must be transformed into other
+   * variables by the substitution. These variables will be transformed
+   * as well.
    *
    * This function can handle special terms. Terms that have special
    * terms as subterms will not be shared.
@@ -473,21 +474,26 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
   case FORALL:
   case EXISTS:
   {
-#if VDEBUG
-    //Assert that the substitution is an identity on bound variables
+    bool varsModified = false;
+    Formula::VarList* newVars = 0;
     Formula::VarList::Iterator vit(f->vars());
     while(vit.hasNext()) {
       unsigned v = vit.next();
       TermList binding = applicator.apply(v);
       ASS(binding.isVar());
-      ASS_EQ(v, binding.var())
+      unsigned newVar = binding.var();
+      Formula::VarList::push(newVar, newVars);
+      if(newVar!=v) {
+	varsModified = true;
+      }
     }
-#endif
+
     Formula* arg = applyImpl<ProcessSpecVars>(f->qarg(), applicator, noSharing);
-    if (arg == f->qarg()) {
+    if (!varsModified && arg == f->qarg()) {
+      newVars->destroy();
       return f;
     }
-    return new QuantifiedFormula(f->connective(),f->vars(),arg);
+    return new QuantifiedFormula(f->connective(),newVars,arg);
   }
 
   case ITE:

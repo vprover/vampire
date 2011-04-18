@@ -37,6 +37,7 @@ public:
     : _free(0)
   {}
   static Unit* rectify(Unit*);
+  static void rectify(UnitList*& units);
 private:
   typedef List<int> VarList;
   /** Renaming stores bindings for free and bound variables */
