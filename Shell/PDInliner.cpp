@@ -6,6 +6,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/MultiCounter.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -233,6 +234,10 @@ struct PDInliner::PDef
   {
     CALL("PDInliner::PDef::apply(int,Literal*)");
 
+    if(atomicBody(polarity, l)) {
+      return new AtomicFormula(atomicApply(polarity, l));
+    }
+
     Applicator apl(*this, l);
     Formula* body = getBody(polarity);
     Formula* res = SubstHelper::apply(body, apl);
@@ -305,6 +310,34 @@ struct PDInliner::PDef
       ASS_EQ(f->right()->literal()->functor(),_pred);
       makeDef(f->right()->literal(), f->left());
     }
+
+    unsigned pred1, pred2;
+    _predicateEquivalence = isPredicateEquivalence(unit, pred1, pred2);
+    if(_predicateEquivalence) {
+      if(pred1==_pred) {
+	_tgtPredicate = pred2;
+      }
+      else {
+	ASS_EQ(pred1,_pred);
+	_tgtPredicate = pred1;
+      }
+    }
+  }
+
+  bool predicateEquivalence()
+  {
+    CALL("PDInliner::PDef::predicateEquivalence");
+    return _predicateEquivalence;
+  }
+  /**
+   * If @c predicateEquivalence() returns true, this returns the target
+   * predicate of this definition.
+   */
+  unsigned tagretPredicate()
+  {
+    CALL("PDInliner::PDef::tagretPredicate");
+    ASS(predicateEquivalence());
+    return _tgtPredicate;
   }
 private:
   void makeDef(Literal* lhs, Formula* body)
@@ -329,6 +362,9 @@ public:
   Literal* _lhs;
   Formula* _body;
   Set<unsigned> _dependencies;
+  bool _predicateEquivalence;
+  /** Valid iff _isPredEquivalence==true */
+  unsigned _tgtPredicate;
 };
 
 PDInliner::Applicator::Applicator(PDef& parent, Literal* lit)
@@ -448,7 +484,8 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
   }
 }
 
-PDInliner::PDInliner()
+PDInliner::PDInliner(bool axiomsOnly)
+ : _axiomsOnly(axiomsOnly)
 {
   CALL("PDInliner::PDInliner");
 
@@ -524,21 +561,78 @@ void PDInliner::scanAndRemoveDefinitions(UnitList*& units)
 {
   CALL("PDInliner::scanAndRemoveDefinitions(UnitList*)");
 
-  UnitList::DelIterator it(units);
-  while(it.hasNext()) {
-    Unit* u = it.next();
-    if(u->isClause()) {
-      continue;
-    }
-    if(tryGetDef(static_cast<FormulaUnit*>(u))) {
-      it.del();
+  {
+    UnitList::DelIterator it(units);
+    while(it.hasNext()) {
+      Unit* u = it.next();
+      if(u->isClause()) {
+	continue;
+      }
+      if(tryGetPredicateEquivalence(static_cast<FormulaUnit*>(u))) {
+	it.del();
+      }
     }
   }
+
+  {
+    UnitList::DelIterator it(units);
+    while(it.hasNext()) {
+      Unit* u = it.next();
+      if(u->isClause()) {
+	continue;
+      }
+      if(tryGetDef(static_cast<FormulaUnit*>(u))) {
+	it.del();
+      }
+    }
+  }
+}
+
+bool PDInliner::isEligible(FormulaUnit* u)
+{
+  CALL("PDInliner::isEligible");
+
+  return !_axiomsOnly || u->inputType()==Unit::AXIOM;
+}
+
+bool PDInliner::tryGetPredicateEquivalence(FormulaUnit* unit)
+{
+  CALL("PDInliner::tryGetPredicateEquivalence");
+
+  if(!isEligible(unit)) {
+    return false;
+  }
+
+  unsigned pred1, pred2;
+  if(!isPredicateEquivalence(unit, pred1, pred2)) {
+    return false;
+  }
+
+  if(tryGetDef(unit)) {
+    return true;
+  }
+  ASS(_defs[pred1]);
+  ASS(_defs[pred2]);
+  //we first get all predicate equivalences and other definitions only after that
+  ASS(_defs[pred1]->predicateEquivalence());
+  ASS(_defs[pred2]->predicateEquivalence());
+
+  if(_defs[pred1]->tagretPredicate()==_defs[pred2]->tagretPredicate()) {
+    //this equivalence is redundant
+    return false;
+  }
+  unit = _defs[pred1]->apply(unit);
+  ALWAYS(tryGetDef(unit));
+  return true;
 }
 
 bool PDInliner::tryGetDef(FormulaUnit* unit)
 {
   CALL("PDInliner::scan(FormulaUnit*)");
+
+  if(!isEligible(unit)) {
+    return false;
+  }
 
   Formula* f = unit->formula();
   if(f->connective()==FORALL) {
@@ -558,6 +652,52 @@ bool PDInliner::tryGetDef(FormulaUnit* unit)
   return false;
 }
 
+bool PDInliner::isPredicateEquivalence(FormulaUnit* unit, unsigned& pred1, unsigned& pred2)
+{
+  CALL("PDInliner::isPredicateEquivalence");
+
+  Formula* f = unit->formula();
+  if(f->connective()==FORALL) {
+    f = f->qarg();
+  }
+  if(f->connective()!=IFF) {
+    return false;
+  }
+  if(f->left()->connective()!=LITERAL || f->right()->connective()!=LITERAL) {
+    return false;
+  }
+  Literal* l1 = f->left()->literal();
+  Literal* l2 = f->right()->literal();
+
+  if(l1->arity()!=l2->arity() || !isDefinitionHead(l1) || !isDefinitionHead(l2)) {
+    return false;
+  }
+  if(!l1->containsAllVariablesOf(l2)) {
+    return false;
+  }
+  pred1 = l1->functor();
+  pred2 = l2->functor();
+  return true;
+}
+
+/**
+ * Return true if literal can act as a definition head (i.e. is not equality,
+ * has only variable subterms, and these subterms are all distinct)
+ */
+bool PDInliner::isDefinitionHead(Literal* l)
+{
+  CALL("PDInliner::isDefinitionHead");
+
+  if(l->isEquality()) {
+    return false;
+  }
+  unsigned ar = l->arity();
+  if(l->weight()!=ar+1 || l->getDistinctVars()!=ar) {
+    return false;
+  }
+  return true;
+}
+
 bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 {
   CALL("PDInliner::tryGetDef");
@@ -566,10 +706,19 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
     return false;
   }
 
-  unsigned defPred = lhs->functor();
+  bool headInline = false;
+  unsigned origPred = lhs->functor();
+  unsigned defPred = origPred;
   if(_defs[defPred]) {
     //there already is one predicate definition
-    return false;
+    if(_defs[defPred]->predicateEquivalence()) {
+      //it is equivalence between predicates, so we will inline into the head
+      defPred = _defs[defPred]->tagretPredicate();
+      headInline = true;
+    }
+    else {
+      return false;
+    }
   }
 
   MultiCounter counter;
@@ -630,6 +779,10 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
       getUniquePersistentIterator(Stack<unsigned>::Iterator(dependencies)) );
   dependencies.reset();
   dependencies.loadFromIterator(uniqueDepIt);
+
+  if(headInline) {
+    unit = _defs[origPred]->apply(unit);
+  }
 
   PDef* def = new PDef(this, defPred);
   def->assignUnit(unit);

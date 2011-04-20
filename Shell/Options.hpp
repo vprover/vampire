@@ -215,6 +215,12 @@ public:
     RA_ON = 2
   };
 
+  enum InliningMode {
+    INL_AXIOMS_ONLY = 0,
+    INL_OFF = 1,
+    INL_ON = 2
+  };
+
   /** Possible values for splitting */
   enum SplittingMode {
     SM_BACKTRACKING = 0,
@@ -300,8 +306,8 @@ public:
   bool setNaming(int newVal);
   bool eprPreservingNaming() const { return _eprPreservingNaming; }
   void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
-  bool predicateDefinitionInlining() const { return _predicateDefinitionInlining; }
-  void setPredicateDefinitionInlining(bool newVal) { _predicateDefinitionInlining = newVal; }
+  InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining; }
+  void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
   Mode mode() const { return _mode; }
   void setMode(Mode newVal) { _mode = newVal; }
   InputSyntax inputSyntax() { return _inputSyntax; }
@@ -504,7 +510,7 @@ private:
 
   bool _outputAxiomNames;
 
-  bool _predicateDefinitionInlining;
+  InliningMode _predicateDefinitionInlining;
   string _problemName;
   Proof _proof;
   bool _proofChecking;

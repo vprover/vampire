@@ -24,7 +24,7 @@ using namespace Kernel;
  */
 class PDInliner {
 public:
-  PDInliner();
+  PDInliner(bool axiomsOnly);
   ~PDInliner();
 
   /**
@@ -44,13 +44,20 @@ public:
    */
   bool tryGetDef(FormulaUnit* unit);
 
+  bool tryGetPredicateEquivalence(FormulaUnit* unit);
+
 private:
 
   struct Applicator;
   struct PDef;
 
+  bool isEligible(FormulaUnit* u);
+
   void scanAndRemoveDefinitions(UnitList*& units);
   bool tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs);
+
+  static bool isPredicateEquivalence(FormulaUnit* u, unsigned& pred1, unsigned& pred2);
+  static bool isDefinitionHead(Literal* l);
 
   ZIArray<PDef*> _defs;
   /**
@@ -62,6 +69,8 @@ private:
    * soon as we discover them, and inlining removes the dependency.
    */
   DArray<Set<unsigned> > _dependent;
+
+  bool _axiomsOnly;
 };
 
 }

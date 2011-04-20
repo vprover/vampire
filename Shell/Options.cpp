@@ -48,6 +48,7 @@ public:
   static const char* _inputSyntaxValues[];
   static const char* _modeValues[];
   static const char* _ruleActivityValues[];
+  static const char* _inliningModeValues[];
   static const char* _symbolPrecedenceValues[];
   static const char* _tcValues[];
   static const char* _sineSelectionValues[];
@@ -69,6 +70,7 @@ public:
   static NameArray inputSyntaxValues;
   static NameArray modeValues;
   static NameArray ruleActivityValues;
+  static NameArray inliningModeValues;
   static NameArray symbolPrecedenceValues;
   static NameArray tcValues;
   static NameArray sineSelectionValues;
@@ -380,6 +382,13 @@ const char* Options::Constants::_ruleActivityValues[] = {
 NameArray Options::Constants::ruleActivityValues(_ruleActivityValues,
 					      sizeof(_ruleActivityValues)/sizeof(char*));
 
+const char* Options::Constants::_inliningModeValues[] = {
+  "axioms_only",
+  "off",
+  "on"};
+NameArray Options::Constants::inliningModeValues(_inliningModeValues,
+					      sizeof(_inliningModeValues)/sizeof(char*));
+
 const char* Options::Constants::_symbolPrecedenceValues[] = {
   "arity",
   "occurrence",
@@ -507,7 +516,7 @@ Options::Options ()
 
   _outputAxiomNames(false),
 
-  _predicateDefinitionInlining(false),
+  _predicateDefinitionInlining(INL_OFF),
   _problemName("unknown"),
   _proof(PROOF_ON),
   _proofChecking(false),
@@ -810,7 +819,7 @@ void Options::set (const char* name,const char* value, int index)
       return;
 
     case PREDICATE_DEFINITION_INLINING:
-      _predicateDefinitionInlining = onOffToBool(value,name);
+      _predicateDefinitionInlining = (InliningMode)Constants::inliningModeValues.find(value);
       return;
     case PROOF:
       _proof = (Proof)Constants::proofValues.find(value);
@@ -1370,7 +1379,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
 
   case PREDICATE_DEFINITION_INLINING:
-    str << boolToOnOff(_predicateDefinitionInlining);
+    str << Constants::inliningModeValues[_predicateDefinitionInlining];
     return;
   case PROBLEM_NAME:
     str << _problemName;

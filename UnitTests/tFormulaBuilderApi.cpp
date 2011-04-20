@@ -453,14 +453,14 @@ TEST_FUN(fbapiPDInlining)
     prb.addFormula(afDef);
     prb.addFormula(afpy);
 
-    Problem sprb=prb.skolemize(0, true, true);
+    Problem sprb=prb.skolemize(0, true, Problem::INL_ON);
     cout<<"Skolemized:"<<endl;
     AnnotatedFormulaIterator afit=sprb.formulas();
     while(afit.hasNext()) {
       cout<<afit.next()<<endl;
     }
 
-    Problem cprb=prb.clausify(0, true, true);
+    Problem cprb=prb.clausify(0, true, Problem::INL_ON);
     cout<<"CNF:"<<endl;
     afit=cprb.formulas();
     while(afit.hasNext()) {
@@ -472,6 +472,47 @@ TEST_FUN(fbapiPDInlining)
   }
 }
 
+TEST_FUN(fbapiPDInlining2)
+{
+  try {
+    Problem prb;
+//    stringstream stm(
+//	"fof(memoryEquality,axiom,"
+//	"    (toy_EXP_9(VarCurr) <=> (![A] : ((address(A) => (![B] : (((less_5(B) & (~less_0(B))) => (toy_mem_array(VarCurr,A,B) <=> toy_mem2_array(VarCurr,A,B)))) ))) )))."
+//	"fof(writeUnaryOperator,axiom,"
+//	"   ((~toy_EXP_41(VarCurr)) <=> toy_EXP_9(VarCurr)))."
+//	"fof(writeUnaryOperator,axiom,"
+//	"   ((~toy_assume_memory_correspondence_fs_assert_reachable(VarCurr)) <=> toy_EXP_41(VarCurr)))."
+//	"fof(addAssertion,conjecture,"
+//	"   (![VarCurr] : ((reachableState(VarCurr) => toy_assume_memory_correspondence_fs_assert_reachable(VarCurr))) )).");
+    stringstream stm(
+	"fof(a,axiom, p <=> r). fof(a,hypothesis, p <=> (q|s)).fof(a,axiom, r => u).");
+    prb.addFromStream(stm);
+
+    cout<<endl<<"FOF:"<<endl;
+    AnnotatedFormulaIterator afit=prb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    Problem iprb=prb.inlinePredicateDefinitions();
+    cout<<"Inlined:"<<endl;
+    afit=iprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    iprb=prb.inlinePredicateDefinitions(Problem::INL_AXIOMS_ONLY);
+    cout<<"Inlined (axioms only):"<<endl;
+    afit=iprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
 
 string getId(Term t)
 {

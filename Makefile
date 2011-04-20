@@ -522,17 +522,17 @@ clausify_src:
 	rm -rf $@
 	mkdir $@
 	mkdir $@/Api $@/Debug $@/Indexing $@/Inferences $@/Kernel $@/Lib $@/Lib/Sys $@/SAT $@/Saturation $@/Shell $@/Test
-	cp --parents $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) $@
+	tar cf - $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) | (cd $@ ; tar xvf -) 2>/dev/null
 	cp Makefile Makefile_depend $@
-	cp --parents $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) |tr '\n' ' '|tr -d ':\\'|sed 's/\(^\| \)[^ ]\+\.\(o\|cpp\)//g' )) $@ 
+	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
 
 api_src:
 	rm -rf $@
 	mkdir $@
 	mkdir $@/Api $@/Debug $@/Indexing $@/Inferences $@/Kernel $@/Lib $@/Lib/Sys $@/SAT $@/Saturation $@/Shell $@/Test
-	cp --parents $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) $@
+	tar cf - $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) | (cd $@ ; tar xvf -) 2>/dev/null
 	cp Makefile Makefile_depend test_vapi.cpp $@
-	cp --parents $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed 's/\(^\| \)[^ ]\+\.\(o\|cpp\)//g' )) $@ 
+	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
 
 
 #vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)

@@ -85,6 +85,14 @@ Formula* Flattening::flatten (Formula* f)
   case NOT: 
     {
       Formula* arg = flatten(f->uarg());
+
+      if(arg->connective()==NOT) {
+	//two negations cancel each other out
+	return arg->uarg();
+      }
+      if(arg->connective()==LITERAL) {
+	return new AtomicFormula(Literal::oppositeLiteral(arg->literal()));
+      }
       if (arg == f->uarg()) {
 	return f;
       }

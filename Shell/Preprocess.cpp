@@ -129,9 +129,9 @@ void Preprocess::preprocess (UnitList*& units)
     FormulaIteExpander().apply(units);
   }
 
-  if (_options.predicateDefinitionInlining()) {
+  if (_options.predicateDefinitionInlining()!=Options::INL_OFF) {
     env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
-    PDInliner pdInliner;
+    PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY);
     pdInliner.apply(units);
   }
 

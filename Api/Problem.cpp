@@ -48,7 +48,7 @@ typedef List<AnnotatedFormula> AFList;
 class Problem::PData
 {
 public:
-  PData() : _forms(0), _refCnt(0)
+  PData() : _size(0), _forms(0), _refCnt(0)
   {
   }
   ~PData()
@@ -74,8 +74,21 @@ public:
     obj->_forms=_forms->copy();
   }
 
-  AFList* _forms;
+  void addFormula(AnnotatedFormula f)
+  {
+    CALL("Problem::PData::addFormula");
+
+    _size++;
+    AFList::push(f, _forms);
+  }
+
+  size_t size() { return _size; }
+
+  AFList*& forms() { return _forms; }
+
 private:
+  size_t _size;
+  AFList* _forms;
   unsigned _refCnt;
 };
 
@@ -130,8 +143,16 @@ void Problem::addFormula(AnnotatedFormula f)
 {
   CALL("Problem::addFormula");
 
-  AFList::push(f,_data->_forms);
+  _data->addFormula(f);
 }
+
+size_t Problem::size()
+{
+  CALL("Problem::addFormula");
+
+  return _data->size();
+}
+
 
 
 ///////////////////////////////////////
@@ -315,6 +336,12 @@ struct Problem::Preprocessor1 : public ProblemTransformer
 
 struct Problem::PredicateDefinitionInliner : public ProblemTransformer
 {
+  PredicateDefinitionInliner(InliningMode mode)
+      : pdInliner(mode==INL_AXIOMS_ONLY)
+  {
+    ASS_NEQ(mode, INL_OFF);
+  }
+
 
   virtual void transformImpl(Problem p)
   {
@@ -327,6 +354,18 @@ struct Problem::PredicateDefinitionInliner : public ProblemTransformer
     while(fit.hasNext()) {
       AnnotatedFormula f=fit.next();
       if(f.unit->isClause()) {
+	continue;
+      }
+      FormulaUnit* fu = static_cast<FormulaUnit*>(f.unit);
+      if(pdInliner.tryGetPredicateEquivalence(fu)) {
+	defs.insert(fu);
+      }
+    }
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      if(f.unit->isClause() || defs.contains(f.unit)) {
 	continue;
       }
       FormulaUnit* fu = static_cast<FormulaUnit*>(f.unit);
@@ -411,7 +450,7 @@ struct Problem::Clausifier : public ProblemTransformer
   Shell::Naming naming;
 };
 
-Problem Problem::clausify(int namingThreshold, bool preserveEpr, bool predicateDefinitionInlining)
+Problem Problem::clausify(int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining)
 {
   CALL("Problem::clausify");
 
@@ -420,14 +459,14 @@ Problem Problem::clausify(int namingThreshold, bool preserveEpr, bool predicateD
   }
 
   Problem res = Preprocessor1().transform(*this);
-  if(predicateDefinitionInlining) {
-    res = PredicateDefinitionInliner().transform(res);
+  if(predicateDefinitionInlining!=INL_OFF) {
+    res = PredicateDefinitionInliner(predicateDefinitionInlining).transform(res);
   }
   res = Clausifier(namingThreshold, preserveEpr, false).transform(res);
   return res;
 }
 
-Problem Problem::skolemize(int namingThreshold, bool preserveEpr, bool predicateDefinitionInlining)
+Problem Problem::skolemize(int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining)
 {
   CALL("Problem::skolemize");
 
@@ -436,10 +475,23 @@ Problem Problem::skolemize(int namingThreshold, bool preserveEpr, bool predicate
   }
 
   Problem res = Preprocessor1().transform(*this);
-  if(predicateDefinitionInlining) {
-    res = PredicateDefinitionInliner().transform(res);
+  if(predicateDefinitionInlining!=INL_OFF) {
+    res = PredicateDefinitionInliner(predicateDefinitionInlining).transform(res);
   }
   res = Clausifier(namingThreshold, preserveEpr, true).transform(res);
+  return res;
+}
+
+Problem Problem::inlinePredicateDefinitions(InliningMode mode)
+{
+  CALL("Problem::inlinePredicateDefinitions");
+
+  if(mode==INL_OFF) {
+    throw ApiException("Cannot perform definition inlining in function inlinePredicateDefinitions(InliningMode) with mode INL_OFF");
+  }
+
+  Problem res = Preprocessor1().transform(*this);
+  res = PredicateDefinitionInliner(mode).transform(res);
   return res;
 }
 
@@ -492,7 +544,7 @@ AnnotatedFormulaIterator Problem::formulas()
   CALL("Problem::formulas");
 
   AnnotatedFormulaIterator res;
-  res.idata=&_data->_forms;
+  res.idata=&_data->forms();
   res.ready=true;
   return res;
 }

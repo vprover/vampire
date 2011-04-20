@@ -47,6 +47,12 @@ public:
   Problem& operator=(const Problem&);
   ~Problem();
 
+  enum InliningMode {
+    INL_OFF = 0,
+    INL_ON = 1,
+    INL_AXIOMS_ONLY = 2
+  };
+
   /**
    * Return a copy of the problem
    *
@@ -76,7 +82,7 @@ public:
    * @param preserveEpr If true, names will not be introduced if it would
    *   lead to introduction of non-constant Skolem functions.
    */
-  Problem clausify(int namingThreshold=8, bool preserveEpr=false, bool predicateDefinitionInlining=false);
+  Problem clausify(int namingThreshold=8, bool preserveEpr=false, InliningMode predicateDefinitionInlining=INL_OFF);
 
   /**
    * Return the current problem skolemized
@@ -87,7 +93,14 @@ public:
    * @param preserveEpr If true, names will not be introduced if it would
    *   lead to introduction of non-constant Skolem functions.
    */
-  Problem skolemize(int namingThreshold=8, bool preserveEpr=false, bool predicateDefinitionInlining=false);
+  Problem skolemize(int namingThreshold=8, bool preserveEpr=false, InliningMode predicateDefinitionInlining=INL_OFF);
+
+  /**
+   * Perform predicate definition inlining and return the resulting problem.
+   *
+   * @c mode cannot be @c INL_OFF.
+   */
+  Problem inlinePredicateDefinitions(InliningMode mode=INL_ON);
 
   /**
    * Return iterator of formulas in the problem
@@ -97,6 +110,10 @@ public:
    */
   AnnotatedFormulaIterator formulas();
 
+  /**
+   * Return number of formulas in this problem
+   */
+  size_t size();
 private:
   class PData;
   class ProblemTransformer;

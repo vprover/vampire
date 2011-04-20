@@ -183,6 +183,7 @@ public:
 	if (! found) {
 	  found = cell;
 	}
+	cell = nextCell(cell);
 	continue;
       }
       if (cell->code == code &&
@@ -234,6 +235,7 @@ public:
     Cell* cell = firstCellForCode(code);
     while (! cell->empty()) {
       if (cell->deleted()) {
+	cell = nextCell(cell);
 	continue;
       }
       if (cell->code == code &&
