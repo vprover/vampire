@@ -519,7 +519,14 @@ TEST_FUN(fbapiUPDR)
   try {
     Problem prb;
     stringstream stm(
-	"fof(a,axiom, p <=> (r|s&t)). fof(a,hypothesis, p). fof(a,axiom, r => ~s).");
+//	"fof(a,axiom, p <=> (r|s&t)). fof(a,hypothesis, p). fof(a,axiom, r => ~s)."
+	 "fof(addBitVectorEquality,axiom,"
+	    "(exp_17(VarCurr) <=> (![B] : (((less_5(B) & (~less_0(B))) => (outp(VarCurr,B) <=> outp2(VarCurr,B)))) )))."
+	 "fof(addAssertion,conjecture,"
+	   "(![VarCurr] : ((~exp_17(VarCurr))) ))."
+	 "fof(addAssertion,hypothesis,"
+	   "((less_5(B) & less_0(B)) <=> (outp(VarCurr,B) <=> outp2(VarCurr,B)) ))."
+	);
     prb.addFromStream(stm);
 
     cout<<endl<<"FOF:"<<endl;

@@ -701,6 +701,7 @@ bool PredicateDefinition::tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* uni
   }
 
   SubformulaIterator sfit(rhs);
+  bool hasExtraVars = false;
 
   while(sfit.hasNext()) {
     Formula* sf=sfit.next();
@@ -715,8 +716,21 @@ bool PredicateDefinition::tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* uni
     while(vit.hasNext()) {
       unsigned v=vit.next().var();
       if(!counter.get(v)) {
-	return false;
+	hasExtraVars = true;
       }
+    }
+  }
+  if(hasExtraVars) {
+    Formula::VarList* freeVars = rhs->freeVariables();
+    bool extraFreeVars = false;
+    while(freeVars) {
+      unsigned v = Formula::VarList::pop(freeVars);
+      if(!counter.get(v)) {
+	extraFreeVars = true;
+      }
+    }
+    if(extraFreeVars) {
+      return false;
     }
   }
 
