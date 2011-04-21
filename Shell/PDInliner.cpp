@@ -3,6 +3,8 @@
  * Implements class PDInliner.
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/MultiCounter.hpp"
@@ -542,6 +544,7 @@ Unit* PDInliner::apply(Unit* u)
 
   Unit* res = u;
 
+  int steps=0;
   //apply definitions of predicates that appear in the unit
   while(res && preds.isNonEmpty()) {
     unsigned pred = preds.pop();
@@ -553,14 +556,16 @@ Unit* PDInliner::apply(Unit* u)
 
     //if the unit becomes a tautology, u can be assigned zero here
     res = _defs[pred]->apply(res);
+    steps++;
   }
+  RSTAT_MCTR_INC("inl steps", steps);
+  RSTAT_MST_INC("inl grow", u->toString().size(), res ? res->toString().size() : 0);
   return res;
 }
 
 void PDInliner::scanAndRemoveDefinitions(UnitList*& units)
 {
   CALL("PDInliner::scanAndRemoveDefinitions(UnitList*)");
-
   {
     UnitList::DelIterator it(units);
     while(it.hasNext()) {

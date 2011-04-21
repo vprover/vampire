@@ -40,6 +40,18 @@ void clausifyTest(const char* fname)
   printProblem(p2);
 }
 
+void inlineTest(const char* fname)
+{
+  ifstream fs(fname);
+  Problem p;
+  p.addFromStream(fs);
+
+  Problem p2=p.inlinePredicateDefinitions();
+  Problem p3=p2.removeUnusedPredicateDefinitions();
+
+  printProblem(p3);
+}
+
 void testSubst()
 {
   try {
@@ -87,7 +99,7 @@ void testSubst()
 int main(int argc, char* argv [])
 {
   if(argc==2) {
-    clausifyTest(argv[1]);
+    inlineTest(argv[1]);
     return 0;
   }
 

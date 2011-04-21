@@ -160,6 +160,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_interpolant",
   "show_new",
   "show_new_propositional",
+  "show_nonconstant_skolem_function_trace",
   "show_options",
   "show_passive",
   "show_skolemisations",
@@ -536,6 +537,7 @@ Options::Options ()
   _showInterpolant(false),
   _showNew(false),
   _showNewPropositional(false),
+  _showNonconstantSkolemFunctionTrace(false),
   _showOptions(false),
   _showPassive(false),
   _showSkolemisations(false),
@@ -879,6 +881,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case SHOW_NEW_PROPOSITIONAL:
       _showNewPropositional = onOffToBool(value,name);
+      return;
+    case SHOW_NONCONSTANT_SKOLEM_FUNCTION_TRACE:
+      _showNonconstantSkolemFunctionTrace = onOffToBool(value,name);
       return;
     case SHOW_OPTIONS:
       _showOptions = onOffToBool(value,name);
@@ -1432,7 +1437,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_showNew);
     return;
   case SHOW_NEW_PROPOSITIONAL:
-    str << boolToOnOff(_showNew);
+    str << boolToOnOff(_showNewPropositional);
+    return;
+  case SHOW_NONCONSTANT_SKOLEM_FUNCTION_TRACE:
+    str << boolToOnOff(_showNonconstantSkolemFunctionTrace);
     return;
   case SHOW_OPTIONS:
     str << boolToOnOff(_showOptions);
@@ -1441,7 +1449,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_showPassive);
     return;
   case SHOW_SKOLEMISATIONS:
-    str << boolToOnOff(_showPassive);
+    str << boolToOnOff(_showSkolemisations);
     return;
   case SHOW_SYMBOL_ELIMINATION:
     str << boolToOnOff(_showSymbolElimination);

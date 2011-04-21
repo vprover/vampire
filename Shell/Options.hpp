@@ -107,6 +107,7 @@ public:
     SHOW_INTERPOLANT,
     SHOW_NEW,
     SHOW_NEW_PROPOSITIONAL,
+    SHOW_NONCONSTANT_SKOLEM_FUNCTION_TRACE,
     SHOW_OPTIONS,
     SHOW_PASSIVE,
     SHOW_SKOLEMISATIONS,
@@ -328,6 +329,7 @@ public:
   bool showInterpolant() const { return _showInterpolant; }
   bool showNew() const { return _showNew; }
   bool showNewPropositional() const { return _showNewPropositional; }
+  bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace; }
   bool showOptions() const { return _showOptions; }
   bool showPassive() const { return _showPassive; }
   bool showSkolemisations() const { return _showSkolemisations; }
@@ -530,6 +532,7 @@ private:
   bool _showInterpolant;
   bool _showNew;
   bool _showNewPropositional;
+  bool _showNonconstantSkolemFunctionTrace;
   bool _showOptions;
   bool _showPassive;
   bool _showSkolemisations;

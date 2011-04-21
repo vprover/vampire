@@ -406,8 +406,10 @@ OTHER_API_DEP = \
 	   Shell/NNF.o\
 	   Shell/Options.o\
 	   Shell/Parser.o\
+	   Shell/PredicateDefinition.o\
 	   Shell/PDInliner.o\
 	   Shell/Rectify.o\
+	   Shell/Refutation.o\
 	   Shell/SimplifyFalseTrue.o\
 	   Shell/SimplifyProver.o\
 	   Shell/Skolem.o\

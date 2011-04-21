@@ -15,6 +15,7 @@
 
 #include "Options.hpp"
 #include "Rectify.hpp"
+#include "Refutation.hpp"
 #include "Skolem.hpp"
 #include "VarManager.hpp"
 
@@ -166,6 +167,11 @@ Formula* Skolem::skolemise (Formula* f)
 	  env.endOutput();
 //	  //we also output skolemisations in a TPTP format to the error output
 //	  cerr<<term->toString()<<"=X"<<v<<" => ("<<f->qarg()->toString()<<")"<<endl;
+	}
+	if(arity!=0 && env.options->showNonconstantSkolemFunctionTrace()) {
+	  cerr<<"Nonconstant skolem function introduced: "<<term->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
+	  Refutation ref(_beingSkolemised, true);
+	  ref.output(cerr);
 	}
       }
       Formula* g = skolemise(f->qarg());
