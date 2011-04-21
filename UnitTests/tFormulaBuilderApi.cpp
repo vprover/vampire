@@ -514,6 +514,32 @@ TEST_FUN(fbapiPDInlining2)
   }
 }
 
+TEST_FUN(fbapiUPDR)
+{
+  try {
+    Problem prb;
+    stringstream stm(
+	"fof(a,axiom, p <=> (r|s&t)). fof(a,hypothesis, p). fof(a,axiom, r => ~s).");
+    prb.addFromStream(stm);
+
+    cout<<endl<<"FOF:"<<endl;
+    AnnotatedFormulaIterator afit=prb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    Problem iprb=prb.removeUnusedPredicateDefinitions();
+    cout<<"After updr:"<<endl;
+    afit=iprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
 string getId(Term t)
 {
   static std::map<string,string> idMap;

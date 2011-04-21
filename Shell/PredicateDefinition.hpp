@@ -34,6 +34,8 @@ public:
   PredicateDefinition();
   ~PredicateDefinition();
 
+  void collectReplacements(UnitList* units, DHMap<Unit*, Unit*>& unitReplacements);
+
   void removeUnusedDefinitionsAndPurePredicates(UnitList*& units);
 
 private:
@@ -58,9 +60,8 @@ private:
   int _predCnt;
   PredData* _preds;
 
-  DHMap<unsigned, Def*, IdentityHash> _defs;
-  DHMap<Unit*, Unit*, PtrIdentityHash> _unitReplacements;
-  DHMap<unsigned, bool, IdentityHash> _purePreds;
+  DHMap<unsigned, Def*> _defs;
+  DHMap<unsigned, bool> _purePreds;
   Stack<int> _eliminable;
   Stack<int> _pureToReplace;
 };

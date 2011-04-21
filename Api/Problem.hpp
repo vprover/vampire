@@ -82,7 +82,8 @@ public:
    * @param preserveEpr If true, names will not be introduced if it would
    *   lead to introduction of non-constant Skolem functions.
    */
-  Problem clausify(int namingThreshold=8, bool preserveEpr=false, InliningMode predicateDefinitionInlining=INL_OFF);
+  Problem clausify(int namingThreshold=8, bool preserveEpr=false, InliningMode predicateDefinitionInlining=INL_OFF,
+      bool unusedPredicateDefinitionRemoval=true);
 
   /**
    * Return the current problem skolemized
@@ -93,7 +94,8 @@ public:
    * @param preserveEpr If true, names will not be introduced if it would
    *   lead to introduction of non-constant Skolem functions.
    */
-  Problem skolemize(int namingThreshold=8, bool preserveEpr=false, InliningMode predicateDefinitionInlining=INL_OFF);
+  Problem skolemize(int namingThreshold=8, bool preserveEpr=false, InliningMode predicateDefinitionInlining=INL_OFF,
+      bool unusedPredicateDefinitionRemoval=true);
 
   /**
    * Perform predicate definition inlining and return the resulting problem.
@@ -101,6 +103,11 @@ public:
    * @c mode cannot be @c INL_OFF.
    */
   Problem inlinePredicateDefinitions(InliningMode mode=INL_ON);
+
+  /**
+   * Perform removal of pure predicates and unused predicate definitions.
+   */
+  Problem removeUnusedPredicateDefinitions();
 
   /**
    * Return iterator of formulas in the problem
@@ -120,6 +127,7 @@ private:
 
   class Preprocessor1;
   class PredicateDefinitionInliner;
+  class UnusedPredicateDefinitionRemover;
   class Clausifier;
 
   PData* _data;

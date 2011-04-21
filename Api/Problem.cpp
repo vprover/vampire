@@ -11,6 +11,7 @@
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Deque.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
@@ -28,6 +29,7 @@
 #include "Shell/NNF.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/PDInliner.hpp"
+#include "Shell/PredicateDefinition.hpp"
 #include "Shell/Rectify.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/SimplifyFalseTrue.hpp"
@@ -304,8 +306,9 @@ protected:
   Problem* _res;
 };
 
-struct Problem::Preprocessor1 : public ProblemTransformer
+class Problem::Preprocessor1 : public ProblemTransformer
 {
+protected:
   void transformImpl(Kernel::Unit* unit)
   {
     CALL("Problem::Preprocessor1::transformImpl");
@@ -334,15 +337,16 @@ struct Problem::Preprocessor1 : public ProblemTransformer
   }
 };
 
-struct Problem::PredicateDefinitionInliner : public ProblemTransformer
+class Problem::PredicateDefinitionInliner : public ProblemTransformer
 {
+public:
   PredicateDefinitionInliner(InliningMode mode)
       : pdInliner(mode==INL_AXIOMS_ONLY)
   {
     ASS_NEQ(mode, INL_OFF);
   }
 
-
+protected:
   virtual void transformImpl(Problem p)
   {
     CALL("Problem::PredicateDefinitionInliner::transformImpl(Problem)");
@@ -394,12 +398,61 @@ struct Problem::PredicateDefinitionInliner : public ProblemTransformer
   Shell::PDInliner pdInliner;
 };
 
-struct Problem::Clausifier : public ProblemTransformer
+class Problem::UnusedPredicateDefinitionRemover : public ProblemTransformer
 {
+protected:
+  virtual void transformImpl(Problem p)
+  {
+    CALL("Problem::UnusedPredicateDefinitionRemover::transformImpl(Problem)");
+    ASS(replacements.isEmpty()); //this function can be called only once per instance of this class
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+    pd.collectReplacements(units, replacements);
+    units->destroy();
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      transform(f);
+    }
+  }
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::UnusedPredicateDefinitionRemover::transformImpl");
+
+    Kernel::Unit* v;
+    if(!replacements.find(unit,v)) {
+      addUnit(unit);
+      return;
+    }
+    Kernel::Unit* tgt=v;
+    while(replacements.find(v,tgt)) {
+      v=tgt;
+    }
+    if(v && ( v->isClause() || static_cast<Kernel::FormulaUnit*>(v)->formula()->connective()!=TRUE ) ) {
+      addUnit(v);
+    }
+  }
+
+  Shell::PredicateDefinition pd;
+  DHMap<Kernel::Unit*, Kernel::Unit*> replacements;
+};
+
+class Problem::Clausifier : public ProblemTransformer
+{
+public:
   Clausifier(int namingThreshold, bool preserveEpr, bool onlySkolemize) :
     namingThreshold(namingThreshold), preserveEpr(preserveEpr), onlySkolemize(onlySkolemize),
     naming(namingThreshold ? namingThreshold : 8, preserveEpr) {}
 
+protected:
   void transformImpl(Kernel::Unit* unit)
   {
     CALL("Problem::Clausifier::transformImpl");
@@ -450,7 +503,8 @@ struct Problem::Clausifier : public ProblemTransformer
   Shell::Naming naming;
 };
 
-Problem Problem::clausify(int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining)
+Problem Problem::clausify(int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
+    bool unusedPredicateDefinitionRemoval)
 {
   CALL("Problem::clausify");
 
@@ -462,11 +516,15 @@ Problem Problem::clausify(int namingThreshold, bool preserveEpr, InliningMode pr
   if(predicateDefinitionInlining!=INL_OFF) {
     res = PredicateDefinitionInliner(predicateDefinitionInlining).transform(res);
   }
+  if(unusedPredicateDefinitionRemoval) {
+    res = UnusedPredicateDefinitionRemover().transform(res);
+  }
   res = Clausifier(namingThreshold, preserveEpr, false).transform(res);
   return res;
 }
 
-Problem Problem::skolemize(int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining)
+Problem Problem::skolemize(int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
+    bool unusedPredicateDefinitionRemoval)
 {
   CALL("Problem::skolemize");
 
@@ -477,6 +535,9 @@ Problem Problem::skolemize(int namingThreshold, bool preserveEpr, InliningMode p
   Problem res = Preprocessor1().transform(*this);
   if(predicateDefinitionInlining!=INL_OFF) {
     res = PredicateDefinitionInliner(predicateDefinitionInlining).transform(res);
+  }
+  if(unusedPredicateDefinitionRemoval) {
+    res = UnusedPredicateDefinitionRemover().transform(res);
   }
   res = Clausifier(namingThreshold, preserveEpr, true).transform(res);
   return res;
@@ -492,6 +553,15 @@ Problem Problem::inlinePredicateDefinitions(InliningMode mode)
 
   Problem res = Preprocessor1().transform(*this);
   res = PredicateDefinitionInliner(mode).transform(res);
+  return res;
+}
+
+Problem Problem::removeUnusedPredicateDefinitions()
+{
+  CALL("Problem::removeUnusedPredicateDefinitions");
+
+  Problem res = Preprocessor1().transform(*this);
+  res = UnusedPredicateDefinitionRemover().transform(res);
   return res;
 }
 

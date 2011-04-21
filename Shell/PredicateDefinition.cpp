@@ -147,9 +147,9 @@ PredicateDefinition::~PredicateDefinition()
  *
  * @pre Formulas must be rectified and flattened.
  */
-void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& units)
+void PredicateDefinition::collectReplacements(UnitList* units, DHMap<Unit*, Unit*>& replacements)
 {
-  CALL("PredicateDefinition::removeUnusedDefinitionsAndPurePredicates");
+  CALL("PredicateDefinition::collectReplacements");
 
   UnitList::Iterator scanIterator(units);
   while(scanIterator.hasNext()) {
@@ -183,7 +183,7 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
 	count(pd.newDefUnit, 1);
       }
       count(pd.defUnit, -1);
-      ALWAYS(_unitReplacements.insert(pd.defUnit, pd.newDefUnit));
+      ALWAYS(replacements.insert(pd.defUnit, pd.newDefUnit));
 
       env.statistics->unusedPredicateDefinitions++;
 #if REPORT_PRED_DEF_SIMPL
@@ -200,7 +200,7 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
       Set<Unit*>::Iterator uit(pd.containingUnits);
       while(uit.hasNext()) {
 	Unit* u=uit.next();
-	if(_unitReplacements.find(u)) {
+	if(replacements.find(u)) {
 	  //The unit has already been replaced.
 	  continue;
 	}
@@ -222,22 +222,31 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
 	  count(static_cast<FormulaUnit*>(v), 1);
 	  count(static_cast<FormulaUnit*>(u), -1);
 	}
-	ALWAYS(_unitReplacements.insert(u,v));
+	ALWAYS(replacements.insert(u,v));
       }
 
       env.statistics->purePredicates++;
     }
   }
+}
+
+void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& units)
+{
+  CALL("PredicateDefinition::removeUnusedDefinitionsAndPurePredicates");
+
+  static DHMap<Unit*, Unit*> replacements;
+
+  collectReplacements(units, replacements);
 
   UnitList::DelIterator replaceIterator(units);
   while(replaceIterator.hasNext()) {
     Unit* u=replaceIterator.next();
     Unit* v;
-    if(!_unitReplacements.find(u,v)) {
+    if(!replacements.find(u,v)) {
       continue;
     }
     Unit* tgt=v;
-    while(_unitReplacements.find(v,tgt)) {
+    while(replacements.find(v,tgt)) {
       v=tgt;
     }
     if(!v || ( !v->isClause() && static_cast<FormulaUnit*>(v)->formula()->connective()==TRUE ) ) {
