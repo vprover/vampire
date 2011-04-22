@@ -330,6 +330,7 @@ public:
   bool showNew() const { return _showNew; }
   bool showNewPropositional() const { return _showNewPropositional; }
   bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace; }
+  void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace = newVal; }
   bool showOptions() const { return _showOptions; }
   bool showPassive() const { return _showPassive; }
   bool showSkolemisations() const { return _showSkolemisations; }

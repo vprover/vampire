@@ -53,6 +53,43 @@ public:
     INL_AXIOMS_ONLY = 2
   };
 
+  enum PreprocessingMode {
+    /**
+     * This mode performs only predicate definition elimination rules
+     */
+    PM_EARLY_PREPROCESSING,
+    PM_SKOLEMIZE,
+    PM_CLAUSIFY
+  };
+
+  struct PreprocessingOptions
+  {
+    PreprocessingOptions(
+	PreprocessingMode mode=PM_CLAUSIFY,
+	int namingThreshold=8,
+	bool preserveEpr=false,
+	InliningMode predicateDefinitionInlining=INL_OFF,
+	bool unusedPredicateDefinitionRemoval=true,
+	bool showNonConstantSkolemFunctionTrace=false);
+    PreprocessingMode mode;
+    /**
+     * When the number of clauses generated from one formula
+     * exceeds this number, we attempt to introduce names to lower the amount of
+     * generated clauses. If the value is 0, naming is disabled.
+     */
+    int namingThreshold;
+    /**
+     * If true, names will not be introduced if it would
+     * lead to introduction of non-constant Skolem functions.
+     */
+    bool preserveEpr;
+    InliningMode predicateDefinitionInlining;
+    bool unusedPredicateDefinitionRemoval;
+    bool showNonConstantSkolemFunctionTrace;
+  private:
+    void validate();
+  };
+
   /**
    * Return a copy of the problem
    *
@@ -108,6 +145,8 @@ public:
    * Perform removal of pure predicates and unused predicate definitions.
    */
   Problem removeUnusedPredicateDefinitions();
+
+  Problem preprocess(const PreprocessingOptions& options);
 
   /**
    * Return iterator of formulas in the problem

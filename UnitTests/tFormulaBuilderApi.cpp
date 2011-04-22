@@ -369,21 +369,21 @@ TEST_FUN(fbapiClausify)
     Problem prb;
     prb.addFormula(af);
 
-    Problem sprb=prb.skolemize(0);
+    Problem sprb=prb.skolemize(0,false,Problem::INL_OFF,false);
     cout<<"Skolemized:"<<endl;
     AnnotatedFormulaIterator afit=sprb.formulas();
     while(afit.hasNext()) {
       cout<<afit.next()<<endl;
     }
 
-    Problem cprb=prb.clausify(0);
+    Problem cprb=prb.clausify(0,false,Problem::INL_OFF,false);
     cout<<"CNF:"<<endl;
     afit=cprb.formulas();
     while(afit.hasNext()) {
       cout<<afit.next()<<endl;
     }
 
-    cprb=sprb.clausify(0);
+    cprb=sprb.clausify(0,false,Problem::INL_OFF,false);
     cout<<"CNF from skolemized:"<<endl;
     afit=cprb.formulas();
     while(afit.hasNext()) {
@@ -408,7 +408,7 @@ TEST_FUN(fbapiClausifyDefinitions)
       cout<<afit.next()<<endl;
     }
 
-    Problem cprb = prb.clausify(4, true);
+    Problem cprb = prb.clausify(4, true, Problem::INL_OFF, false);
     cout<<"Clausified, naming_threshold=4:"<<endl;
     afit=cprb.formulas();
     while(afit.hasNext()) {
@@ -453,14 +453,14 @@ TEST_FUN(fbapiPDInlining)
     prb.addFormula(afDef);
     prb.addFormula(afpy);
 
-    Problem sprb=prb.skolemize(0, true, Problem::INL_ON);
+    Problem sprb=prb.skolemize(0, true, Problem::INL_ON, false);
     cout<<"Skolemized:"<<endl;
     AnnotatedFormulaIterator afit=sprb.formulas();
     while(afit.hasNext()) {
       cout<<afit.next()<<endl;
     }
 
-    Problem cprb=prb.clausify(0, true, Problem::INL_ON);
+    Problem cprb=prb.clausify(0, true, Problem::INL_ON, false);
     cout<<"CNF:"<<endl;
     afit=cprb.formulas();
     while(afit.hasNext()) {

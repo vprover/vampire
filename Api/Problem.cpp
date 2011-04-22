@@ -12,9 +12,11 @@
 
 #include "Lib/Deque.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
+#include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -44,6 +46,27 @@ namespace Api
 {
 
 using namespace Lib;
+
+Problem::PreprocessingOptions::PreprocessingOptions(
+    PreprocessingMode mode,
+    int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
+    bool unusedPredicateDefinitionRemoval, bool showNonConstantSkolemFunctionTrace)
+: mode(mode), namingThreshold(namingThreshold), preserveEpr(preserveEpr),
+  predicateDefinitionInlining(predicateDefinitionInlining),
+  unusedPredicateDefinitionRemoval(unusedPredicateDefinitionRemoval),
+  showNonConstantSkolemFunctionTrace(showNonConstantSkolemFunctionTrace)
+{
+  CALL("Problem::PreprocessingOptions::PreprocessingOptions");
+}
+
+void Problem::PreprocessingOptions::validate()
+{
+  CALL("Problem::PreprocessingOptions::validate");
+
+  if(namingThreshold>32767 || namingThreshold<0) {
+    throw new ApiException("namingThreshold must be in the range [0,32767]");
+  }
+}
 
 typedef List<AnnotatedFormula> AFList;
 
@@ -508,19 +531,14 @@ Problem Problem::clausify(int namingThreshold, bool preserveEpr, InliningMode pr
 {
   CALL("Problem::clausify");
 
-  if(namingThreshold>32767 || namingThreshold<0) {
-    throw new ApiException("namingThreshold must be in the range [0,32767]");
-  }
+  PreprocessingOptions opts;
+  opts.mode = PM_CLAUSIFY;
+  opts.namingThreshold = namingThreshold;
+  opts.preserveEpr = preserveEpr;
+  opts.predicateDefinitionInlining = predicateDefinitionInlining;
+  opts.unusedPredicateDefinitionRemoval = unusedPredicateDefinitionRemoval;
 
-  Problem res = Preprocessor1().transform(*this);
-  if(predicateDefinitionInlining!=INL_OFF) {
-    res = PredicateDefinitionInliner(predicateDefinitionInlining).transform(res);
-  }
-  if(unusedPredicateDefinitionRemoval) {
-    res = UnusedPredicateDefinitionRemover().transform(res);
-  }
-  res = Clausifier(namingThreshold, preserveEpr, false).transform(res);
-  return res;
+  return preprocess(opts);
 }
 
 Problem Problem::skolemize(int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
@@ -528,19 +546,14 @@ Problem Problem::skolemize(int namingThreshold, bool preserveEpr, InliningMode p
 {
   CALL("Problem::skolemize");
 
-  if(namingThreshold>32767 || namingThreshold<0) {
-    throw new ApiException("namingThreshold must be in the range [0,32767]");
-  }
+  PreprocessingOptions opts;
+  opts.mode = PM_SKOLEMIZE;
+  opts.namingThreshold = namingThreshold;
+  opts.preserveEpr = preserveEpr;
+  opts.predicateDefinitionInlining = predicateDefinitionInlining;
+  opts.unusedPredicateDefinitionRemoval = unusedPredicateDefinitionRemoval;
 
-  Problem res = Preprocessor1().transform(*this);
-  if(predicateDefinitionInlining!=INL_OFF) {
-    res = PredicateDefinitionInliner(predicateDefinitionInlining).transform(res);
-  }
-  if(unusedPredicateDefinitionRemoval) {
-    res = UnusedPredicateDefinitionRemover().transform(res);
-  }
-  res = Clausifier(namingThreshold, preserveEpr, true).transform(res);
-  return res;
+  return preprocess(opts);
 }
 
 Problem Problem::inlinePredicateDefinitions(InliningMode mode)
@@ -551,17 +564,48 @@ Problem Problem::inlinePredicateDefinitions(InliningMode mode)
     throw ApiException("Cannot perform definition inlining in function inlinePredicateDefinitions(InliningMode) with mode INL_OFF");
   }
 
-  Problem res = Preprocessor1().transform(*this);
-  res = PredicateDefinitionInliner(mode).transform(res);
-  return res;
+  PreprocessingOptions opts;
+  opts.mode = PM_EARLY_PREPROCESSING;
+  opts.predicateDefinitionInlining = mode;
+  opts.unusedPredicateDefinitionRemoval = false;
+
+  return preprocess(opts);
 }
 
 Problem Problem::removeUnusedPredicateDefinitions()
 {
   CALL("Problem::removeUnusedPredicateDefinitions");
 
+  PreprocessingOptions opts;
+  opts.mode = PM_EARLY_PREPROCESSING;
+  opts.predicateDefinitionInlining = INL_OFF;
+  opts.unusedPredicateDefinitionRemoval = true;
+
+  return preprocess(opts);
+}
+
+Problem Problem::preprocess(const PreprocessingOptions& options)
+{
+  CALL("Problem::preprocess");
+
   Problem res = Preprocessor1().transform(*this);
-  res = UnusedPredicateDefinitionRemover().transform(res);
+  if(options.predicateDefinitionInlining!=INL_OFF) {
+    res = PredicateDefinitionInliner(options.predicateDefinitionInlining).transform(res);
+  }
+  if(options.unusedPredicateDefinitionRemoval) {
+    res = UnusedPredicateDefinitionRemover().transform(res);
+  }
+  if(options.mode==PM_EARLY_PREPROCESSING) {
+    return res;
+  }
+
+  bool oldTraceVal = env.options->showNonconstantSkolemFunctionTrace();
+  env.options->setShowNonconstantSkolemFunctionTrace(options.showNonConstantSkolemFunctionTrace);
+
+  res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE).transform(res);
+
+  env.options->setShowNonconstantSkolemFunctionTrace(oldTraceVal);
+
   return res;
 }
 
