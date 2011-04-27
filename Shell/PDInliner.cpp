@@ -87,7 +87,7 @@ struct PDInliner::Applicator
  */
 struct PDInliner::PDef
 {
-  PDef(PDInliner* parent, unsigned pred) : _parent(parent), _pred(pred) {}
+  PDef(PDInliner* parent, unsigned pred) : _parent(parent), _pred(pred), _asymDef(false) {}
 
   static FormulaUnit* fixFormula(FormulaUnit* fu) {
     Unit* u = fu;
@@ -146,8 +146,16 @@ struct PDInliner::PDef
 
     env.statistics->inlinedPredicateDefinitions++;
 
-    Unit::InputType inp = Unit::getInputType(cl->inputType(), _defUnit->inputType());
-    Inference* inf = new Inference2(Inference::PREDICATE_DEFINITION_UNFOLDING, cl, _defUnit);
+    Unit::InputType inp;
+    Inference* inf;
+    if(_defUnit) {
+      inp = Unit::getInputType(cl->inputType(), _defUnit->inputType());
+      inf = new Inference2(Inference::PREDICATE_DEFINITION_UNFOLDING, cl, _defUnit);
+    }
+    else {
+      inp = cl->inputType();
+      inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, cl);
+    }
     if(forms.isEmpty()) {
       return Clause::fromIterator(LiteralStack::Iterator(lits), inp, inf);
     }
@@ -178,8 +186,16 @@ struct PDInliner::PDef
 
     env.statistics->inlinedPredicateDefinitions++;
 
-    Unit::InputType inp = Unit::getInputType(unit->inputType(), _defUnit->inputType());
-    Inference* inf = new Inference2(Inference::PREDICATE_DEFINITION_UNFOLDING, unit, _defUnit);
+    Unit::InputType inp;
+    Inference* inf;
+    if(_defUnit) {
+      inp = Unit::getInputType(unit->inputType(), _defUnit->inputType());
+      inf = new Inference2(Inference::PREDICATE_DEFINITION_UNFOLDING, unit, _defUnit);
+    }
+    else {
+      inp = unit->inputType();
+      inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, unit);
+    }
 
     FormulaUnit* res = new FormulaUnit(form, inf, inp);
     return fixFormula(res);
@@ -198,9 +214,9 @@ struct PDInliner::PDef
     }
   }
 
-  bool atomicBody(int polarity, Literal* l) { return getBody(polarity)->connective() == LITERAL; }
+  bool atomicBody(int polarity, Literal* l) { return getBody(polarity, l)->connective() == LITERAL; }
   bool constantBody(int polarity, Literal* l) {
-    Connective con = getBody(polarity)->connective();
+    Connective con = getBody(polarity, l)->connective();
     return con==TRUE || con==FALSE;
   }
 
@@ -208,10 +224,11 @@ struct PDInliner::PDef
   Literal* atomicApply(int polarity, Literal* l)
   {
     CALL("PDInliner::PDef::atomicApply");
+
     ASS(atomicBody(polarity,l));
 
     Applicator apl(*this, l);
-    Literal* body = getBody(polarity)->literal();
+    Literal* body = getBody(polarity, l)->literal();
     Literal* res = SubstHelper::apply(body, apl);
 
     if(l->isPositive() != _lhs->isPositive()) {
@@ -229,7 +246,7 @@ struct PDInliner::PDef
     ASS(constantBody(polarity,l));
 
     bool negate = l->isPositive()!=_lhs->isPositive();
-    return negate ^ (getBody(polarity)->connective()==TRUE);
+    return negate ^ (getBody(polarity,l)->connective()==TRUE);
   }
 
   Formula* apply(int polarity, Literal* l)
@@ -241,7 +258,7 @@ struct PDInliner::PDef
     }
 
     Applicator apl(*this, l);
-    Formula* body = getBody(polarity);
+    Formula* body = getBody(polarity,l);
     Formula* res = SubstHelper::apply(body, apl);
 
     if(l->isPositive() != _lhs->isPositive()) {
@@ -257,10 +274,19 @@ struct PDInliner::PDef
   {
     CALL("PDInliner::PDef::inlineDef");
 
-    LOG("Inlining "<<def->_defUnit->toString()<<" into "<<_defUnit->toString());
+    LOG("Inlining "<<(def->_defUnit ? def->_defUnit->toString() : "<none>")<<" into "
+	<<(_defUnit ? _defUnit->toString() : "<none>"));
 
-    FormulaUnit* newUnit = def->apply(_defUnit);
-    assignUnit(newUnit);
+    if(_asymDef) {
+      ASS_NEQ(def->_pred, _lhs->functor());
+      _posBody = apply(1,_posBody);
+      _negBody = apply(1,_negBody);
+      _dblBody = apply(1,_dblBody);
+    }
+    else {
+      FormulaUnit* newUnit = def->apply(_defUnit);
+      assignUnit(newUnit);
+    }
 
     //remove the inlined predicate from dependencies of the current predicate.
 
@@ -297,6 +323,8 @@ struct PDInliner::PDef
   {
     CALL("PDInliner::PDef::assignUnit");
 
+    _asymDef = false;
+
     LOG("AU:  "<<unit->toString());
     _defUnit = unit;
     Formula* f = unit->formula();
@@ -324,6 +352,33 @@ struct PDInliner::PDef
 	_tgtPredicate = pred1;
       }
     }
+  }
+
+  /**
+   * Make the object into an asymetric definition
+   *
+   * If some body argument is zero, the lhs is not transformed for that polarity.
+   */
+  void assignAsym(Literal* lhs, Formula* posBody, Formula* negBody, Formula* dblBody)
+  {
+    CALL("PDInliner::PDef::assignAsym");
+    ASS_EQ(lhs->functor(),_pred);
+
+    _asymDef = true;
+    _defUnit = 0;
+    _lhs = lhs;
+
+    if(!posBody) { posBody = new AtomicFormula(lhs); }
+    if(!negBody) { negBody = new AtomicFormula(lhs); }
+    if(!dblBody) { dblBody = new AtomicFormula(lhs); }
+
+    _posBody = posBody;
+    _negBody = negBody;
+    _dblBody = dblBody;
+
+    LOG("Asym: "<<lhs->toString()<<" --> "<<posBody->toString()<<", "<<negBody->toString()<<", "<<dblBody->toString());
+
+    _predicateEquivalence = false;
   }
 
   bool predicateEquivalence()
@@ -354,7 +409,17 @@ private:
     return (l->isPositive()==_lhs->isPositive()) ? getBody(polarity) : getBody(-polarity);
   }
   Formula* getBody(int polarity) {
-    return _body;
+    if(_asymDef) {
+      switch(polarity) {
+      case 1: return _posBody;
+      case -1: return _negBody;
+      case 0: return _dblBody;
+      default: ASSERTION_VIOLATION; break;
+      }
+    }
+    else {
+      return _body;
+    }
   }
 
 public:
@@ -367,6 +432,12 @@ public:
   bool _predicateEquivalence;
   /** Valid iff _isPredEquivalence==true */
   unsigned _tgtPredicate;
+
+  bool _asymDef;
+  Formula* _posBody;
+  Formula* _negBody;
+  /** If @c _asymDef is true, contains replacement for occurrences inside equivalences or XORs */
+  Formula* _dblBody;
 };
 
 PDInliner::Applicator::Applicator(PDef& parent, Literal* lit)
@@ -398,6 +469,8 @@ PDInliner::Applicator::Applicator(PDef& parent, Literal* lit)
 Formula* PDInliner::PDef::apply(int polarity, Formula* form)
 {
   CALL("PDInliner::PDef::apply(int,Formula*)");
+
+  LOG("Apply pol:"<<polarity<<" form:"<<form->toString());
 
   Connective con = form->connective();
   switch (con) {
@@ -466,7 +539,7 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
 
   case FORALL:
   case EXISTS:{
-    Formula* newArg = apply(-polarity, form->qarg());
+    Formula* newArg = apply(polarity, form->qarg());
     if(newArg==form->qarg()) {
       return form;
     }
@@ -818,6 +891,28 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
   _dependent[defPred].reset();
   return true;
 }
+
+/**
+ * Add asymetric definition of @c lhs or return false if predicate
+ * of @c lhs is already defined.
+ *
+ * If some body formula is zero, the definitioin acts as identity for
+ * that polarity.
+ */
+bool PDInliner::addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* negBody, Formula* dblBody)
+{
+  CALL("PDInliner::addAsymetricDefinition");
+
+  unsigned pred = lhs->functor();
+  if(_defs[pred]) {
+    return false; //predicate already defined
+  }
+  _defs[pred] = new PDef(this, pred);
+  _defs[pred]->assignAsym(lhs, posBody, negBody, dblBody);
+
+  return true;
+}
+
 
 
 }

@@ -137,13 +137,7 @@ void Unit::collectPredicates(Stack<unsigned>& acc)
   }
   else {
     Formula* form = static_cast<FormulaUnit*>(this)->formula();
-    SubformulaIterator sfit(form);
-    while(sfit.hasNext()) {
-      Formula* sf = sfit.next();
-      if(sf->connective()==LITERAL) {
-	acc.push(sf->literal()->functor());
-      }
-    }
+    form->collectPredicates(acc);
   }
 }
 

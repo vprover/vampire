@@ -286,6 +286,7 @@ protected:
   void addUnit(Kernel::Unit* unit)
   {
     CALL("Problem::ProblemTransformer::addUnit");
+    ASS(unit);
 
     AnnotatedFormula af = AnnotatedFormula(unit, _origAF._aux);
     _res->addFormula(af);
@@ -364,9 +365,34 @@ class Problem::PredicateDefinitionInliner : public ProblemTransformer
 {
 public:
   PredicateDefinitionInliner(InliningMode mode)
-      : pdInliner(mode==INL_AXIOMS_ONLY)
+      : _mode(mode), _pdInliner(mode==INL_AXIOMS_ONLY)
   {
     ASS_NEQ(mode, INL_OFF);
+  }
+
+  bool addAsymetricDefinition(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs)
+  {
+    CALL("Problem::PredicateDefinitionInliner::addAsymetricDefinition");
+
+    Kernel::Formula* lhsF = lhs;
+    bool negate = false;
+    while(lhsF->connective()==Kernel::NOT) {
+      negate = !negate;
+      lhsF = lhsF->uarg();
+    }
+    if(lhsF->connective()!=Kernel::LITERAL) {
+      throw ApiException("LHS must be an atom");
+    }
+    Kernel::Literal* lhsLit = lhsF->literal();
+    if(negate) {
+      lhsLit = Kernel::Literal::oppositeLiteral(lhsLit);
+    }
+
+    Kernel::Formula* posForm = posRhs;
+    Kernel::Formula* negForm = negRhs;
+    Kernel::Formula* dblForm = dblRhs;
+
+    return _pdInliner.addAsymetricDefinition(lhsLit, posForm, negForm, dblForm);
   }
 
 protected:
@@ -377,27 +403,30 @@ protected:
     static DHSet<Kernel::Unit*> defs;
     defs.reset();
 
-    AnnotatedFormulaIterator fit=p.formulas();
-    while(fit.hasNext()) {
-      AnnotatedFormula f=fit.next();
-      if(f.unit->isClause()) {
-	continue;
+    AnnotatedFormulaIterator fit;
+    if(_mode!=INL_NO_DISCOVERED_DEFS) {
+      fit=p.formulas();
+      while(fit.hasNext()) {
+	AnnotatedFormula f=fit.next();
+	if(f.unit->isClause()) {
+	  continue;
+	}
+	FormulaUnit* fu = static_cast<FormulaUnit*>(f.unit);
+	if(_pdInliner.tryGetPredicateEquivalence(fu)) {
+	  defs.insert(fu);
+	}
       }
-      FormulaUnit* fu = static_cast<FormulaUnit*>(f.unit);
-      if(pdInliner.tryGetPredicateEquivalence(fu)) {
-	defs.insert(fu);
-      }
-    }
 
-    fit=p.formulas();
-    while(fit.hasNext()) {
-      AnnotatedFormula f=fit.next();
-      if(f.unit->isClause() || defs.contains(f.unit)) {
-	continue;
-      }
-      FormulaUnit* fu = static_cast<FormulaUnit*>(f.unit);
-      if(pdInliner.tryGetDef(fu)) {
-	defs.insert(fu);
+      fit=p.formulas();
+      while(fit.hasNext()) {
+	AnnotatedFormula f=fit.next();
+	if(f.unit->isClause() || defs.contains(f.unit)) {
+	  continue;
+	}
+	FormulaUnit* fu = static_cast<FormulaUnit*>(f.unit);
+	if(_pdInliner.tryGetDef(fu)) {
+	  defs.insert(fu);
+	}
       }
     }
 
@@ -415,10 +444,14 @@ protected:
   {
     CALL("Problem::PredicateDefinitionInliner::transformImpl");
 
-    addUnit(pdInliner.apply(unit));
+    Kernel::Unit* res = _pdInliner.apply(unit);
+    if(res) {
+      addUnit(res);
+    }
   }
 
-  Shell::PDInliner pdInliner;
+  InliningMode _mode;
+  Shell::PDInliner _pdInliner;
 };
 
 class Problem::UnusedPredicateDefinitionRemover : public ProblemTransformer
@@ -608,6 +641,31 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
 
   return res;
 }
+
+Problem Problem::performAsymetricRewriting(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs)
+{
+  CALL("Problem::performAsymetricRewriting");
+
+  return performAsymetricRewriting(1, &lhs, &posRhs, &negRhs, &dblRhs);
+}
+
+Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formula* posRhsArray, Formula* negRhsArray,
+    Formula* dblRhsArray)
+{
+  CALL("Problem::performAsymetricRewriting");
+
+  Problem res = Preprocessor1().transform(*this);
+  PredicateDefinitionInliner inl(INL_NO_DISCOVERED_DEFS);
+  for(size_t i=0; i<cnt; i++) {
+    if(!inl.addAsymetricDefinition(lhsArray[i], posRhsArray[i], negRhsArray[i], dblRhsArray[i])) {
+      throw new ApiException("LHS is already defined");
+    }
+  }
+  res = inl.transform(res);
+  return res;
+}
+
+
 
 ///////////////////////////////////////
 // Iterating through the problem

@@ -46,6 +46,7 @@ public:
 
   bool tryGetPredicateEquivalence(FormulaUnit* unit);
 
+  bool addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* negBody, Formula* dblBody);
 private:
 
   struct Applicator;

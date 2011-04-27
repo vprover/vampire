@@ -9,6 +9,8 @@
 #ifndef __Formula__
 #define __Formula__
 
+#include "Forwards.hpp"
+
 #include "Lib/List.hpp"
 #include "Lib/XML.hpp"
 
@@ -69,6 +71,7 @@ public:
 
   // miscellaneous
   bool equals(const Formula*) const;
+  void collectPredicates(Stack<unsigned>& acc);
 
   XMLElement toXML() const;
 

@@ -498,6 +498,21 @@ Formula::VarList* Formula::boundVariables () const
   return res;
 }
 
+/**
+ * Add into @c acc numbers of all predicates in the formula.
+ */
+void Formula::collectPredicates(Stack<unsigned>& acc)
+{
+  CALL("Formula::collectPredicates");
+
+  SubformulaIterator sfit(this);
+  while(sfit.hasNext()) {
+    Formula* sf = sfit.next();
+    if(sf->connective()==LITERAL) {
+      acc.push(sf->literal()->functor());
+    }
+  }
+}
 
 /**
  * Compute the weight of the formula: the number of connectives plus the

@@ -50,7 +50,13 @@ public:
   enum InliningMode {
     INL_OFF = 0,
     INL_ON = 1,
-    INL_AXIOMS_ONLY = 2
+    INL_AXIOMS_ONLY = 2,
+    /**
+     * This options disables scanning of the problem for definitions.
+     * The definitions need to be supplied by other meand. This mode
+     * makes sense only for certaing APIs that perform definition inlining.
+     */
+    INL_NO_DISCOVERED_DEFS = 3
   };
 
   enum PreprocessingMode {
@@ -146,7 +152,37 @@ public:
    */
   Problem removeUnusedPredicateDefinitions();
 
+  /**
+   * Preprocess the problem according to @c options.
+   */
   Problem preprocess(const PreprocessingOptions& options);
+
+  /**
+   * Rewrite occurrences of @c lhs in the problem by posRhs, negRhs or dblRhs,
+   * based on the polarity. dblRhs is used inside equivalences or XOR expressions.
+   * If null formula is passed for some case, rewriting is not performed in
+   * that case.
+   * lhs must be a literal or a negation of a literal.
+   */
+  Problem performAsymetricRewriting(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs=Formula());
+
+  /**
+   * For all @c lhs, @c posRhs, @c negRhs and @c dblRhs in the correspondingly
+   * named array arguments, rewrite occurrences of @c lhs in the problem by posRhs,
+   * negRhs or dblRhs, based on the polarity. dblRhs is used inside equivalences or
+   * XOR expressions.
+   * If null formula is passed for some case, rewriting is not performed in
+   * that case.
+   *
+   * All the *Array arguments must be arrays of length @c cnt.
+   * Formulas in the lhsArray must be literals or a negations of literals that
+   * contain distinct variables as top level arguments.
+   * Predicates in the lhsArray must not appear in any formula in any *RhsArray.
+   * (These conditions might not be currently enforced by the Api, but the behavior
+   * is undefined in those cases.)
+   */
+  Problem performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formula* posRhsArray, Formula* negRhsArray,
+      Formula* dblRhsArray);
 
   /**
    * Return iterator of formulas in the problem

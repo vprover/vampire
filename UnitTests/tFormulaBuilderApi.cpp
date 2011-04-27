@@ -514,6 +514,75 @@ TEST_FUN(fbapiPDInlining2)
   }
 }
 
+TEST_FUN(fbapiAsymReplacement)
+{
+  try {
+    Problem prb;
+    stringstream stm(
+	"fof(a1,axiom, p(X) <=> r). fof(a2,hypothesis, p(X) => (q|s)). fof(a3,axiom, ~r => p(X)). fof(a4,axiom, p(X)).");
+    prb.addFromStream(stm);
+
+    cout<<endl<<"FOF:"<<endl;
+    AnnotatedFormulaIterator afit=prb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    FormulaBuilder api;
+
+    Var xv = api.var("Var");
+    Predicate cSym=api.function("c",0);
+    Predicate dSym=api.function("d",0);
+    Term x = api.varTerm(xv);
+    Term c = api.term(cSym);
+    Term d = api.term(dSym);
+    Predicate p=api.predicate("p",1);
+    Predicate r=api.predicate("r",0);
+    Predicate q=api.predicate("q",2);
+
+    Formula fr=api.formula(r);
+    Formula fpx=api.formula(p,x);
+    Formula fpc=api.formula(p,c);
+    Formula fqxx=api.formula(q,x,x);
+    Formula fqcx=api.formula(q,c,x);
+    Formula fqdd=api.formula(q,d,d);
+    Formula fOr=api.formula(FormulaBuilder::OR, fpx, fpc);
+    Formula ft=api.trueFormula();
+
+
+    Problem iprb=prb.performAsymetricRewriting(fpx, fOr, ft);
+    cout<<"Inlined (px, pxOpc, $true, 0):"<<endl;
+    afit=iprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    iprb=prb.performAsymetricRewriting(fpx, fpc, fqxx, fqcx);
+    cout<<"Inlined (px, pc, qxx, qcx):"<<endl;
+    afit=iprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    Formula lhsA[] = {fpx,api.negation(fr)};
+    Formula rhsPosA[] = {fOr,fqdd};
+    Formula rhsNegA[] = {ft,fqdd};
+    Formula rhsDblA[] = {fqxx,fqdd};
+    iprb=prb.performAsymetricRewriting(2, lhsA, rhsPosA, rhsNegA, rhsDblA);
+    cout<<"Inlined arr:"<<endl;
+    afit=iprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
+
 TEST_FUN(fbapiUPDR)
 {
   try {
