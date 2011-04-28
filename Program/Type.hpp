@@ -8,7 +8,7 @@
 #ifndef __ProgramType__
 #define __ProgramType__
 
-#include "Debug/Assertion.hpp";
+#include "Debug/Assertion.hpp"
 
 namespace Program {
 

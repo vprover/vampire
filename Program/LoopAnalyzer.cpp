@@ -65,17 +65,29 @@ void LoopAnalyzer::analyze()
   collectPaths();
   // output paths
   Stack<Path*>::Iterator it(_paths);
+   //cout << "number of paths: " <<length<<"\n";
   while (it.hasNext()) {
     it.next()->prettyPrint(cout);
   }
   generateAxiomsForCounters();
+  cout << "\nGenerate Let...In expressions for  next states...\n";
+  cout << "---------------------\n";
+  generateLetExpressions();
+  cout << "\nGenerate update predicates of arrays...\n";
+  cout << "---------------------\n";
+  generateUpdatePredicates();
+  cout << "\nGenerate correspondence between final (initial) values and final (initial) functions of variables...\n";
+  cout << "---------------------\n";
+  generateValueFunctionRelationsOfVariables();
+  cout << "\nGenerate loop condition property...\n";
+  cout << "---------------------\n";
+  generateLoopConditionProperty();
+  cout << "\nCollected first-order loop properties...\n";
+  cout << "---------------------\n";
   UnitList::Iterator units(_units);
   while (units.hasNext()) {
     cout << units.next()->toString() << "\n";
   }
-  cout << "\nGenerate Let...In expressions for array updates and next states...\n";
-  cout << "---------------------\n";
-  generateLetExpressions();
 }
 
 /**
@@ -206,6 +218,7 @@ void LoopAnalyzer::analyzeVariables()
     }
     if (vinfo->updated) {
       vinfo->extraSignatureNumber = env.signature->addFunction(name,arity+1);
+      // cout << "variable: "<<name <<" with: "<<vinfo->extraSignatureNumber<< " with arity: "<< arity+1<<"\n";
     }
     
     if (vinfo->counter) {
@@ -221,7 +234,6 @@ void LoopAnalyzer::collectPaths()
 {
   CALL("LoopAnalyzer::collectPaths");
   Stack<Path*> paths; // partial paths
-  Stack<Path*> lets;
   // statements corresponding to this path, normally then-parts of IfThenElse
   Stack<Statement*> statements;
   Path* path = Path::empty();
@@ -268,15 +280,23 @@ void LoopAnalyzer::collectPaths()
   }
 }
 
+/*
+*
+ *  @file let...in analysis in LoopAnalyzer.cpp
+ *  Simple let..in and array  analysis
+ *
+ * @since 01/04/2011, Vienna
+ */
+
 
 
 /**
- * Translate program expressions into Vampire terms (termlists)
+ * Translate program term-expressions into Vampire terms (termlists)
 */
 
 TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 {
-  CALL("LoopAnalyzer::generateLetExpressions");
+  CALL("LoopAnalyzer::expressionToTerm");
   switch (exp->kind()) {
   case Expression::CONSTANT_INTEGER:
    {
@@ -292,7 +312,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
       Variable* expVar=  static_cast<VariableExpression*>(exp)->variable();
       string expName=expVar->name() ;
       TermList var(Term::createConstant(expName));
-      cout << "expression "<< exp->toString()<< " over variable "<<expName <<" translated to Vampire term "<< var<<"\n";
+      //cout << "expression "<< exp->toString()<< " over variable "<<expName <<" translated to Vampire term "<< var<<"\n";
       return var;
     }
    break;
@@ -315,8 +335,9 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
      //break;
   case Expression::FUNCTION_APPLICATION:
     {
-      //cout<<"function application in rhs of Vampire term\n";
+      //cout<<"function application in rhs of Vampire term: "<<exp->toString()<<"\n";
       FunctionApplicationExpression* app = static_cast<FunctionApplicationExpression*>(exp);
+      //cout<<"function: "<<(app->function())->toString()<<"\n";
       //switch on app->function did not work (error on non-integer value in switch), so used nested IF
       if ( app->function() == ConstantFunctionExpression::integerPlus() )
 	{
@@ -362,30 +383,315 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 			TermList fctTerm(theory->fun1(Theory::UNARY_MINUS,e1Term));
 			return fctTerm;
 		     }
-		   else //undefined/not treated theory function. Extend it to later for uninterpreted fct. 
-		     {
-		       //rhs is an uninterpreted function f(e1), 
-		       //create term for uninterpreted function
-		       Expression*  uiFct=  app->function();
-		       string uiFctName=uiFct->toString();
-		       unsigned uiFctNameTerm=env.signature->addFunction(uiFctName,1);
-		       //create term representation for arguments e1
-		       Expression* e1 = app->getArgument(0);
-		       TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
-		       //create term representation of f(e1)
-		       TermList fctTerm=TermList(Term::create1(uiFctNameTerm,e1Term));
-		       return fctTerm;
-		       //string testName="toDo";
-		       // TermList fctTerm(Term::createConstant(testName)); 
-		       //return fctTerm;
-		     }
+   		  else //undefined/not treated theory function. Extend it to later for uninterpreted fct. 
+		   {
+		     //rhs is an uninterpreted function f(e1), 
+		     //create term for uninterpreted function
+		     Expression*  uiFct=  app->function();
+		     string uiFctName=uiFct->toString();
+		     unsigned uiFctNameTerm=env.signature->addFunction(uiFctName,1);
+		     //create term representation for arguments e1
+		     Expression* e1 = app->getArgument(0);
+		     TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+		     //create term representation of f(e1)
+		     TermList fctTerm=TermList(Term::create1(uiFctNameTerm,e1Term));
+		     return fctTerm;
+		     //string testName="toDo";
+		     // TermList fctTerm(Term::createConstant(testName)); 
+		     //return fctTerm;
+		   }
 		 }
 	    }
 	}
     }
-    break;
+      break;
+  }
+    
+}
+
+
+/**
+ * Translate program predicate-expressions into Vampire literals (termlists)
+*/
+
+Formula* LoopAnalyzer::expressionToPred(Expression* exp)
+{
+  CALL("LoopAnalyzer::expressionToPred");
+  FunctionApplicationExpression* app = static_cast<FunctionApplicationExpression*>(exp);
+  if ( app->function() == ConstantFunctionExpression::integerEq() )
+  {
+    Expression* e1 = app->getArgument(0);
+    Expression* e2 = app->getArgument(1);
+    TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+    TermList e2Term=expressionToTerm(e2);		
+    Theory* theory = Theory::instance();
+    Formula* predTerm = new AtomicFormula(theory->pred2(Theory::EQUAL,true,e1Term,e2Term));
+    return predTerm;
+  }
+  if ( app->function() == ConstantFunctionExpression::integerLess() )
+  {
+    Expression* e1 = app->getArgument(0);
+    Expression* e2 = app->getArgument(1);
+    TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+    TermList e2Term=expressionToTerm(e2);		
+    Theory* theory = Theory::instance();
+    Formula* predTerm= new AtomicFormula(theory->pred2(Theory::INT_LESS,true,e1Term,e2Term));
+    return predTerm;
+  }
+  if ( app->function() == ConstantFunctionExpression::integerLessEq() )
+  {
+    Expression* e1 = app->getArgument(0);
+    Expression* e2 = app->getArgument(1);
+    TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+    TermList e2Term=expressionToTerm(e2);		
+    Theory* theory = Theory::instance();
+    Formula* predTerm= new AtomicFormula(theory->pred2(Theory::INT_LESS_EQUAL,true,e1Term,e2Term));
+    return predTerm;
+  }
+  if ( app->function() == ConstantFunctionExpression::integerGreater() )
+  {
+    Expression* e1 = app->getArgument(0);
+    Expression* e2 = app->getArgument(1);
+    TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+    TermList e2Term=expressionToTerm(e2);		
+    Theory* theory = Theory::instance();
+    Formula* predTerm= new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,e1Term,e2Term));
+    return predTerm;
+   }
+   if ( app->function() == ConstantFunctionExpression::integerGreaterEq() )
+   {
+     Expression* e1 = app->getArgument(0);
+     Expression* e2 = app->getArgument(1);
+     TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
+     TermList e2Term=expressionToTerm(e2);		
+     Theory* theory = Theory::instance();
+     Formula* predTerm= new AtomicFormula(theory->pred2(Theory::INT_GREATER_EQUAL,true,e1Term,e2Term));
+     return predTerm;
+   }
+   //if ( app->function() == AND )
+   //{
+   // Expression* e1 = app->getArgument(0);
+   //  Expression* e2 = app->getArgument(1);
+   //  Formula* e1Pred= expressionToPred(e1); //make recursive call on function arguments
+   //  Formula* e2Pred=expressionToPred(e2);		
+   //  Theory* theory = Theory::instance();
+   //  Formula* predTerm= new BinaryFormula(AND,e1Pred,e2Pred);
+   //  return predTerm;
+   // }
+}
+
+
+/**
+ * Generate let STAT in EXP,
+ *  where STAT is path initially
+ *  and EXP is a variable initially
+*/
+
+TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
+{
+  if (!sit.hasNext()) // end of the recursion
+    {return exp;}
+  else //make recursive call
+    {
+      Statement* stat = sit.next();
+      exp = letTranslationOfPath(sit,exp);
+      switch (stat->kind()) {
+	   case Statement::ASSIGNMENT:
+	      { 
+		Expression* lhs = static_cast<Assignment*>(stat)->lhs();
+	        Expression* rhs = static_cast<Assignment*>(stat)->rhs();
+	        if (lhs->kind() == Expression::VARIABLE) 
+	        {
+		  TermList lhsTerm=expressionToTerm(lhs);
+		  TermList rhsTerm=expressionToTerm(rhs);
+		  exp=TermList(Term::createTermLet(lhsTerm, rhsTerm, exp));
+		 }
+	        if  (lhs->kind() == Expression::ARRAY_APPLICATION)
+		 { 
+		   TermList rhsTerm=expressionToTerm(rhs);
+		   Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
+		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
+		   TermList argTerms = expressionToTerm(lhsArrayArguments);
+		   string arrayName=lhsArray->toString();
+		   unsigned arrayFct1=env.signature->addFunction(arrayName,1);
+		   TermList x1;
+		   x1.makeVar(1);
+		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
+		   Literal* x1EQArgs=Literal::createEquality(true, x1, argTerms);
+		   TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
+		   TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
+		   exp=TermList(Term::createTermLet(lhsTerm, arrayITE, exp)); 
+		 }
+		return exp;
+              }
+	      break;
+	   case Statement::BLOCK:
+	     {
+	       	return exp;
+	     }
+	        break;
+	   case Statement::ITE: {
+	        return exp; 
+	   }
+	    break;
+	   }
+    }
+}
+
+/**
+ * Generate let v=v(X) in letFormula,
+ *  for each scalar updated variable
+*/
+
+Formula* LoopAnalyzer::letTranslationOfVar(VariableMap::Iterator& varit, Formula* letFormula)
+{
+  if (!varit.hasNext()) //end of the recursion
+    {return letFormula;}
+  else
+    {
+      Variable* w;
+      VariableInfo* winfo;
+      varit.next(w,winfo);
+      if (winfo->counter) { // do this only for updated scalar variables
+	string warName=w->name();
+	TermList war(Term::createConstant(warName));
+	unsigned warFun = env.signature->addFunction(warName,1);
+	// term x0
+	TermList x0;
+	x0.makeVar(0);
+	// term w(x0)
+	TermList warX0(Term::create(warFun,1,&x0));
+	letFormula= new TermLetFormula(war, warX0, letFormula);
+      }
+      return letTranslationOfVar(varit,letFormula);
+    }
 
 }
+
+
+/**
+ * Generate let A(a)=A(X0,a) in EXP,
+ *  for each updated array A
+*/
+
+
+Formula* LoopAnalyzer::letTranslationOfArray(Map<Variable*,bool>::Iterator &sit, Formula* exp)
+{
+  if (!sit.hasNext()) // end of the recursion
+    {return exp;}
+  else //make recursive call
+    {
+      Variable* v;
+      bool updated;
+      sit.next(v,updated);
+      bool array = (v->vtype()->kind() == Type::ARRAY);
+      if (updated & array) {//it is an updated array
+	      string varName=v->name();
+	      unsigned arrayFct1=env.signature->addFunction(varName,1);
+	      unsigned arrayFct2=env.signature->addFunction(varName,2);
+	      // term x0
+	      TermList x0;
+	      x0.makeVar(0);
+	      // term x1
+	      TermList x1;
+	      x1.makeVar(1);
+	      //term A(x1);
+	      TermList arrayX1(Term::create(arrayFct1,1,&x1));
+	      // term A(x0,x1)
+	      TermList arrayX01(Term::create2(arrayFct2,x0,x1));
+ 	      exp=new TermLetFormula(arrayX1, arrayX01, exp); 
+      }
+      return letTranslationOfArray(sit,exp);
+    }	       
+}
+
+
+/**For condition Ck in the  path s1;C1;...;sk;Ck;...
+ * (where s1,...,sk... are assignments)
+ * create the letFormula: let s1 in ... let sk in Ck
+ */
+Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int condPos, int currPos)
+{
+   if (condPos == currPos)  // current statement is the condition we searched, so stop
+    { return condition;  }
+  else //search for the condition
+    {
+      Statement* stat=sit.next();
+      switch (stat->kind()) {
+	   case Statement::ASSIGNMENT:
+	      { 
+		Expression* lhs = static_cast<Assignment*>(stat)->lhs();
+		Expression* rhs = static_cast<Assignment*>(stat)->rhs();
+		 if  (lhs->kind() == Expression::VARIABLE)
+		   {
+		     TermList lhsTerm=expressionToTerm(lhs);
+		     TermList rhsTerm=expressionToTerm(rhs);	
+		     condition=new TermLetFormula(lhsTerm, rhsTerm, condition);
+		   }
+		 if (lhs->kind() == Expression::ARRAY_APPLICATION)
+		 { 
+		   TermList rhsTerm=expressionToTerm(rhs);
+		   Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
+		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
+		   TermList argTerms = expressionToTerm(lhsArrayArguments);
+		   string arrayName=lhsArray->toString();
+		   unsigned arrayFct1=env.signature->addFunction(arrayName,1);
+		   TermList x1;
+		   x1.makeVar(1);
+		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
+		   Literal* x1EQArgs=Literal::createEquality(true, x1, argTerms);
+		   TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
+		   TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
+		    condition=new TermLetFormula(lhsTerm, arrayITE, condition); 
+		 }
+	      }
+	      break;
+	   case Statement::BLOCK:
+	      break;
+	   case Statement::ITE: 
+	    break;
+	   return letCondition(sit,condition, condPos, currPos+1);
+      }
+    }
+}
+
+
+/** Process and collect ALL conditions in a stack 
+ *
+ */
+
+Formula* LoopAnalyzer::letTranslationOfGuards(Path* path, Path::Iterator &sit, Formula* letFormula)
+{
+    Stack<Formula*> conditions;
+    int condPos =0;
+    while (sit.hasNext() )
+      {
+	Statement* stat=sit.next();
+	switch (stat->kind()) {
+	   case Statement::ASSIGNMENT:
+	       break;
+	   case Statement::BLOCK:
+	       break;
+	   case Statement::ITE: {
+	     IfThenElse* ite = static_cast<IfThenElse*>(stat);
+	     Formula* condition = expressionToPred(ite->condition());
+	     Statement* elsePart= ite->elsePart();
+	     if (elsePart==(sit.next())) {condition = new NegatedFormula(condition);}
+	     Path::Iterator pit(path);
+	     condition = letCondition(pit,condition,condPos,0);
+	     conditions.push(condition);		     
+	   }
+	    break;
+	}
+	condPos = condPos+1;
+      }
+    while (!(conditions.isEmpty()))
+      {
+	Formula* cond= conditions.pop();
+	letFormula =new BinaryFormula(IMP, cond, letFormula);
+      }
+    return letFormula;
+    
 }
 
 
@@ -397,73 +703,694 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 void LoopAnalyzer::generateLetExpressions()
 {
   CALL("LoopAnalyzer::generateLetExpressions");
-  unsigned length = _paths.length();
-  //cout<<"nr. of paths: "<<length<<" \n";
-  if (length == 0) {
-    return;
-  }
-   int pathNumber = 0;
-   Stack<Path*>::Iterator pit(_paths);
-   while (pit.hasNext()) {
-      int inc = 0;
+  Stack<Path*>::Iterator pit(_paths);
+  while (pit.hasNext()) {
       Path* path = pit.next();
-      Path::Iterator sit(path);
-      while (sit.hasNext()) {
-	Statement* stat = sit.next();
-        if (!sit.hasNext()) //last statement of the path, translate term into let
-	  {cout<<"last statement of the path"<<"\n";}
-        else
-	  {
-	   switch (stat->kind()) {
-	    case Statement::ASSIGNMENT:
-	      {
-		// cout << "ASSG \n"; 
-	      Expression* lhs = static_cast<Assignment*>(stat)->lhs();
-	      Expression* rhs = static_cast<Assignment*>(stat)->rhs();
-	      //create term representation of lhs and rhs
-	      TermList lhsTerm=expressionToTerm(lhs);
-	      TermList rhsTerm=expressionToTerm(rhs);
-	      cout << "expression conversion for lhs "<< lhs->toString()<<" into Vampire term: "<<lhsTerm<<"\n";
-	      cout << "expression conversion for rhs "<< rhs->toString()<<" into Vampire term: "<<rhsTerm<<"\n";
-	      if (lhs->kind() == Expression::VARIABLE) 
-	      {
-		Variable* lhsVar=  static_cast<VariableExpression*>(lhs)->variable();
-		string varName=lhsVar->name() ;
-		//cout << varName <<" variable \n";
-		TermList var(Term::createConstant(varName));
-		unsigned varFun = env.signature->addFunction(varName,1);
-		// term x0
-		TermList x0;
-		x0.makeVar(0);
-		// term x0+1 for next iteration
-		Theory* theory = Theory::instance();
-		TermList x01(theory->fun1(Theory::SUCCESSOR,x0));
-		// term c(x0)
-		TermList varX0(Term::create(varFun,1,&x0));
-		TermList varX01(Term::create(varFun,1,&x01));
-		TermList assLetTermInner=TermList(Term::createTermLet(lhsTerm, rhsTerm, var)); 
-		TermList assLetTerm=TermList(Term::createTermLet(var, varX0, assLetTermInner));  //term let  a=a(X) in a term
-		cout << assLetTerm<<" .... starting let assignemnt \n";
-		Formula* assLetFormula=new AtomicFormula(Literal::createEquality(true, varX01, assLetTerm));
-		cout << assLetFormula->toString()<<" .... creating let formula \n";
-	       }
-	      if  (lhs->kind() == Expression::ARRAY_APPLICATION)
-		{ 
-		  Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
-		  Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
-		  cout <<  lhsArray->toString() << " array update application with argument(s): "<< lhsArrayArguments->toString()<<"\n";
-		}
-              cout << "updated with expression: "<<rhs->toString() <<"\n";
-	      }
-	      break;
-	    case Statement::BLOCK:
-	                  break;
-  	    case Statement::ITE:
-	                  break;
+      //create let..in for each var wrt PATH
+      Map<Variable*,bool>::Iterator vars(*_loop->variables());//alternative for updated vars, incl. arrays
+      // iterate over variables
+       while (vars.hasNext()) {
+	 Variable* v;
+	 bool updated;
+	 vars.next(v,updated);
+    	 if (! updated) {
+	   continue;
+	}
+	 bool scalar = (v->vtype()->kind() == Type::INT);
+	 bool array = (v->vtype()->kind() == Type::ARRAY);
+	 string varName=v->name();
+	 TermList var;
+	 TermList varX01;
+	 Theory* theory = Theory::instance();
+	 // term x0
+	 TermList x0;
+	 x0.makeVar(0);
+	 // term x0+1 for next iteration
+	 TermList x01(theory->fun1(Theory::SUCCESSOR,x0));
+	 //build term representation for scalars and arrays
+	 if (scalar){
+	   TermList scalarVar(Term::createConstant(varName));
+	   var =scalarVar;
+	   //create Vampire terms for variable v:  v(X0+1)
+	   unsigned varFun = env.signature->addFunction(varName,1);
+	   // term v(x0)
+	   // TermList varX0(Term::create(varFun,1,&x0));
+	   //term v(x0+1)
+	   TermList scalarX01(Term::create(varFun,1,&x01));
+	   varX01=scalarX01;
+	 }
+	 if (array)
+	   {
+	     //create Vampire terms for array V: V(X1), V(X0+1,X1)
+	      unsigned varFun1 = env.signature->addFunction(varName,1);
+	      unsigned varFun2 = env.signature->addFunction(varName,2);
+	      // term x1
+	      TermList x1;
+	      x1.makeVar(1);
+	      // term V(x1)
+	      TermList arrayX1(Term::create(varFun1,1,&x1));
+	      var = arrayX1;
+	      // term V(x0+1,x1)
+	      Theory* theory = Theory::instance();
+	      TermList x01(theory->fun1(Theory::SUCCESSOR,x0));
+	      TermList arrayX01(Term::create2(varFun2,x01,x1));
+	      varX01=arrayX01;
 	   }
-	  }
+	 //create let..in expression for an updated  scalar/array variable v through the path
+	 Path::Iterator it(path);
+	 TermList letInBody = letTranslationOfPath(it,var);
+	 //path is processed, create letFORMULA:
+	 // if v is scalar, then let v(X+1)= letInBody 
+	 // if v is array, then v(X+1,Y) = letInBody
+	 Formula* letFormula = new AtomicFormula(Literal::createEquality(true, varX01, letInBody)); 
+	 //collect and add conditions from path to the letFormula, so we have cond=>letFormula
+	 Path::Iterator pathCondit(path);
+	 letFormula = letTranslationOfGuards(path, pathCondit, letFormula);				       
+	 //make sequence of let v=v(x) in...letInBody for all vars
+	 //process first updated array vars
+	 Map<Variable*,bool>::Iterator vars(*_loop->variables());
+	 //Path::Iterator pathit(path);
+	 letFormula = letTranslationOfArray(vars, letFormula);
+       	//process updated scalars 
+        VariableMap::Iterator varit(_variableInfo);
+        letFormula = letTranslationOfVar(varit,letFormula);
+	 _units = _units->cons(new FormulaUnit(letFormula,
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));
       }
    }
+}
+
+
+/**
+ * Given an array update a[v]=RHS at position posCnt of a path SIT, 
+ * generate let PATH_STATEMENTS in RHS, 
+ * where PATHS_STATEMENTS are all statements that are before posCnt
+*/
+
+TermList LoopAnalyzer::arrayUpdateValue(Path::Iterator &sit, TermList exp, int posCnt, int currentCnt)
+{
+  CALL("LoopAnalyzer::arrayUpdatePosition");
+  if (posCnt==currentCnt) // end of the recursion
+    {return exp;}
+  else //make recursive call
+    {
+      Statement* stat = sit.next();
+      exp = arrayUpdateValue(sit,exp,posCnt,currentCnt+1);
+      switch (stat->kind()) {
+	   case Statement::ASSIGNMENT:
+	      { 
+		Expression* lhs = static_cast<Assignment*>(stat)->lhs();
+	        Expression* rhs = static_cast<Assignment*>(stat)->rhs();
+	        if (lhs->kind() == Expression::VARIABLE) 
+	        {
+		  TermList lhsTerm=expressionToTerm(lhs);
+		  TermList rhsTerm=expressionToTerm(rhs);
+		  exp=TermList(Term::createTermLet(lhsTerm, rhsTerm, exp));
+		 }
+	        if  (lhs->kind() == Expression::ARRAY_APPLICATION)
+		 { 
+		   TermList rhsTerm=expressionToTerm(rhs);
+		   Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
+		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
+		   TermList argTerms = expressionToTerm(lhsArrayArguments);
+		   string arrayName=lhsArray->toString();
+		   unsigned arrayFct1=env.signature->addFunction(arrayName,1);
+		   TermList x1;
+		   x1.makeVar(1);
+		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
+		   Literal* x1EQArgs=Literal::createEquality(true, x1, argTerms);
+		   TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
+		   TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
+		   exp=TermList(Term::createTermLet(lhsTerm, arrayITE, exp)); 
+		 }
+		return exp;
+              }
+	      break;
+	   case Statement::BLOCK:
+	     {
+	       	return exp;
+	     }
+	        break;
+	   case Statement::ITE: {
+	        return exp; 
+	   }
+	    break;
+	   }
+    }
+}
+
+/**
+ *Check if array v is updated on path PATH
+ * if yes, return the nr. of the statement from the path updating the array
+ * if array v was not updated, return 0
+ */
+int LoopAnalyzer::arrayIsUpdatedOnPath(Path* path, Variable *v)
+{
+  CALL("LoopAnalyzer::arrayIsUpdatedOnPath");
+  Path::Iterator it(path);
+  int updated = 0;
+  while (it.hasNext())
+  {
+    Statement* stat=it.next();
+    switch (stat->kind()) {
+    case Statement::ASSIGNMENT:
+    {
+       Expression* lhs = static_cast<Assignment*>(stat)->lhs();
+       if (lhs->kind()==Expression::ARRAY_APPLICATION)
+       { 
+	   Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
+       	   string arrayName=lhsArray->toString();
+	   if (arrayName == v->name()) {updated =1;}
+       }
+    }
+    break;
+    case Statement::BLOCK:
+     break;
+    case Statement::ITE:
+      break;
+    case Statement::WHILE_DO:
+      ASS(false); // cannot yet work with embedded loops
+    case Statement::EXPRESSION:
+      ASS(false); // cannot yet work with procedure calls
+    }
+  }
+  return updated;
+}
+
+/**
+ *compute the (let...in update position ) expression updPosExp 
+ *for one array update v[update_positon]
+ */
+
+TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosExp, int posCnt, int currentCnt)
+{
+  CALL("LoopAnalyzer::arrayUpdatePosition");
+  if (posCnt == currentCnt) {return updPosExp;}
+  else
+    {
+      Statement* stat = sit.next();
+      switch (stat->kind()) {
+	   case Statement::ASSIGNMENT:
+	      { 
+		Expression* lhs = static_cast<Assignment*>(stat)->lhs();
+		Expression* rhs = static_cast<Assignment*>(stat)->rhs();
+		 if  (lhs->kind() == Expression::VARIABLE)
+		   {
+		     TermList lhsTerm=expressionToTerm(lhs);
+		     TermList rhsTerm=expressionToTerm(rhs);	
+		     updPosExp=TermList(Term::createTermLet(lhsTerm, rhsTerm, updPosExp));
+		   }
+		 if (lhs->kind() == Expression::ARRAY_APPLICATION)
+		 { 
+		   TermList rhsTerm=expressionToTerm(rhs);
+		   Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
+		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
+		   TermList argTerms = expressionToTerm(lhsArrayArguments);
+		   string arrayName=lhsArray->toString();
+		   unsigned arrayFct1=env.signature->addFunction(arrayName,1);
+		   TermList x1;
+		   x1.makeVar(1);
+		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
+		   Literal* x1EQArgs=Literal::createEquality(true, x1, argTerms);
+		   TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
+		   TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
+		   updPosExp=TermList(Term::createTermLet(lhsTerm, arrayITE, updPosExp));
+	  	 }
+	      }
+	      break;
+	   case Statement::BLOCK:
+	      break;
+	   case Statement::ITE: 
+	    break;
+	   case Statement::WHILE_DO:
+	     ASS(false); // cannot yet work with embedded loops
+           case Statement::EXPRESSION:
+             ASS(false); // cannot yet work with procedure calls
+      }
+      return arrayUpdatePosition(sit, updPosExp, posCnt, currentCnt+1);
+    }
+}
+
+/**
+ *compute the (let...in condition1 ) &(let...in condition2)... formula 
+ *for all conditions that appear before the array update of v[update_expression]
+ */
+
+Formula* LoopAnalyzer::arrayUpdateCondition(Path* path, Path::Iterator &sit, int posCnt)
+{
+  CALL("LoopAnalyzer::arrayUpdateCondition");
+  Stack<Formula*> conditions;
+  int currentCnt=0;
+  int firstCondition=1;
+  Formula* arrayUpdCondition;
+  while (posCnt != currentCnt) 
+    {
+      Statement* stat = sit.next();
+      switch (stat->kind()) {
+	   case Statement::ASSIGNMENT:
+	       break;
+	   case Statement::BLOCK:
+	     break;
+           case Statement::ITE: //condition is found on path
+	     {
+	         IfThenElse* ite = static_cast<IfThenElse*>(stat);
+		 Formula* condition = expressionToPred(ite->condition());
+		 Statement* elsePart= ite->elsePart();
+		 if (elsePart==(sit.next())) {condition = new NegatedFormula(condition);}
+       		 Path::Iterator pit(path);
+	     	 condition = letCondition(pit,condition,currentCnt,0);
+		 conditions.push(condition);
+	     }
+	     break;
+	   case Statement::WHILE_DO:
+	     ASS(false); // cannot yet work with embedded loops
+           case Statement::EXPRESSION:
+             ASS(false); // cannot yet work with procedure calls
+      }
+      currentCnt=currentCnt+1;
+    }
+   while (!(conditions.isEmpty()))
+      {
+	Formula* condition= conditions.pop();
+	if (firstCondition) {arrayUpdCondition = condition;firstCondition=0;}
+	else {FormulaList* interForm = (new FormulaList(arrayUpdCondition)) -> cons(condition); arrayUpdCondition = new JunctionFormula(AND,interForm);}
+      }
+  
+    return arrayUpdCondition;
+}
+
+
+
+/**
+ * generate all update predicates with 2 arguments over one path (i.e. updV(iteration,position))
+ * for ONE array variable v
+ * That is, if v(X) is updated on a path, for example, at positions p1 and p2, 
+ * then the update predicate should be upd(i,p) = (p=p1 AND cond1) OR (p=p2 AND cond2)
+ **/
+
+Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, Variable* v)
+{
+    CALL("LoopAnalyzer::arrayPredicateOfArray2");
+    Stack<Formula*> updPredicates;
+    int updPos =0;
+    Formula* arrayUpdPredicate; 
+    TermList updatePosition;
+    TermList updateValue;
+    Formula* updPredFormula;    
+    int firstUpdFormula=1;
+    while (sit.hasNext() )
+      {
+	Statement* stat=sit.next();
+	switch (stat->kind()) {
+	   case Statement::ASSIGNMENT:
+	     {
+	        Expression* lhs = static_cast<Assignment*>(stat)->lhs();
+		Expression* rhs = static_cast<Assignment*>(stat)->rhs();
+		TermList rhsTerm=expressionToTerm(rhs);
+		if (lhs->kind()==Expression::ARRAY_APPLICATION)
+		  { 
+		    Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
+		    Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
+		    TermList arrayArgs=expressionToTerm(lhsArrayArguments);
+		    string arrayName=lhsArray->toString();
+		    if (arrayName == v->name()) {
+		      //compute an update predicate of v
+		      Path::Iterator pit(path);
+		      updatePosition=arrayUpdatePosition(pit, arrayArgs, updPos, 0);
+		      TermList x2;
+		      x2.makeVar(2);
+		      updPredFormula =  new AtomicFormula(Literal::createEquality(true,x2,updatePosition)); 
+		      //create iteration predicate of one argument
+		      TermList x0;
+		      x0.makeVar(0);//variable for loop iteration
+		      unsigned iterPred = env.signature->addPredicate("iter",1);
+		      Literal* iter = Literal::create1(iterPred,true,x0);
+		      //create iter(X0) && updatedPosition
+		      FormulaList* iterPos=(new FormulaList(updPredFormula))->cons((new AtomicFormula(iter)));
+		      updPredFormula = new JunctionFormula(AND,iterPos);
+		      //start collecting conditions for update predicates only if the loop has multiple paths (at least 2)
+		      if (_paths.length()>1)
+			{
+			  Path::Iterator cit(path);
+			  Formula* updCondition  = arrayUpdateCondition(path, cit, updPos);
+			  FormulaList* interForm = (new FormulaList(updPredFormula)) ->cons(updCondition);
+			  updPredFormula = new JunctionFormula(AND, interForm);
+			}
+		      updPredicates.push(updPredFormula);//partial update predicate
+		    }
+		  }
+	     }
+	     break;
+	   case Statement::BLOCK:
+	       break;
+	   case Statement::ITE: 		     
+	    break;
+	}
+	updPos = updPos+1;
+      }
+    //construct the update predicate of array V throughout one path
+    // for this take OR over all partial update predicates
+    while (!(updPredicates.isEmpty()))
+      {
+	Formula* updPred= updPredicates.pop();
+	if (firstUpdFormula) {arrayUpdPredicate = updPred; firstUpdFormula=0;}
+	else {FormulaList* interForm = (new FormulaList(arrayUpdPredicate))->cons(updPred); arrayUpdPredicate=new JunctionFormula(OR,interForm);}
+      }
+    return arrayUpdPredicate;
+    
+}
+
+
+
+/**
+ * generate all update predicates with 3 arguments over one path (i.e. updV(iteration,position,value))
+ * for ONE array variable v
+ * That is, if v(X) is updated on a path, for example, at positions p1 by x1  and at position p2 by x2, 
+ * then the update predicate should be upd(i,p,val) = (p=p1 AND cond1 AND val=x1) OR (p=p2 AND cond2 AND val=x2)
+ **/
+
+Formula* LoopAnalyzer::updatePredicateOfArray3(Path* path, Path::Iterator &sit, Variable* v)
+{
+    CALL("LoopAnalyzer::arrayPredicateOfArray3");
+    Stack<Formula*> updPredicates;
+    int updPos =0;
+    Formula* arrayUpdPredicate; 
+    TermList updatePosition;
+    TermList updateValue;
+    Formula* updPredFormula;    
+    int firstUpdFormula=1;
+    while (sit.hasNext() )
+      {
+	Statement* stat=sit.next();
+	switch (stat->kind()) {
+	   case Statement::ASSIGNMENT:
+	     {
+	        Expression* lhs = static_cast<Assignment*>(stat)->lhs();
+		Expression* rhs = static_cast<Assignment*>(stat)->rhs();
+		TermList rhsTerm=expressionToTerm(rhs);
+		if (lhs->kind()==Expression::ARRAY_APPLICATION)
+		  { 
+		    Expression*  lhsArray=  static_cast<ArrayApplicationExpression*>(lhs)->array();
+		    Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
+		    TermList arrayArgs=expressionToTerm(lhsArrayArguments);
+		    string arrayName=lhsArray->toString();
+		    if (arrayName == v->name()) {
+		      //compute an update predicate of v
+		      Path::Iterator pit(path);
+		      updatePosition=arrayUpdatePosition(pit, arrayArgs, updPos, 0);
+		      TermList x2;
+		      x2.makeVar(2);
+		      updPredFormula =  new AtomicFormula(Literal::createEquality(true,x2,updatePosition)); 
+		      //create iteration predicate of one argument
+		      TermList x0;
+		      x0.makeVar(0);//variable for loop iteration
+		      unsigned iterPred = env.signature->addPredicate("iter",1);
+		      Literal* iter = Literal::create1(iterPred,true,x0);
+		      //compute the update value wrt lets
+		      Path::Iterator vit(path);
+		      TermList updateValue=arrayUpdateValue(vit, rhsTerm, updPos,0);
+		      TermList x3;
+		      x3.makeVar(3);
+		      Formula* updValFormula = new AtomicFormula(Literal::createEquality(true,x3,updateValue));
+		      //create iter(X0) && updatedPosition && updValueFormula
+		      FormulaList* iterPos=(new FormulaList(updPredFormula))->cons((new AtomicFormula(iter))) -> cons(updValFormula);
+		      updPredFormula = new JunctionFormula(AND,iterPos);
+		      //start collecting conditions for update predicates only if the loop has multiple paths (at least 2)
+		      if (_paths.length()>1)
+			{
+			  Path::Iterator cit(path);
+			  Formula* updCondition  = arrayUpdateCondition(path, cit, updPos);
+			  FormulaList* interForm = (new FormulaList(updPredFormula)) ->cons(updCondition);
+			  updPredFormula = new JunctionFormula(AND, interForm);
+			}
+		      updPredicates.push(updPredFormula);//partial update predicate
+		    }
+		  }
+	     }
+	     break;
+	   case Statement::BLOCK:
+	       break;
+	   case Statement::ITE: 		     
+	    break;
+	}
+	updPos = updPos+1;
+      }
+    //construct the update predicate of array V throughout one path
+    // for this take OR over all partial update predicates
+    while (!(updPredicates.isEmpty()))
+      {
+	Formula* updPred= updPredicates.pop();
+	if (firstUpdFormula) {arrayUpdPredicate = updPred; firstUpdFormula=0;}
+	else {FormulaList* interForm = (new FormulaList(arrayUpdPredicate))->cons(updPred); arrayUpdPredicate=new JunctionFormula(OR,interForm);}
+      }    
+
+     return arrayUpdPredicate;
+    
+}
+
+/*
+ *Generate a disjunction over all predicates in the udpate stack
+ */
+Formula* LoopAnalyzer::updPredicateStack(Stack<Formula*> &updStack)
+{
+ CALL("LoopAnalyzer::generateUpdatePredicates");
+ int firstUpdFormula=1;
+ Formula* loopUpdPredicateV;
+ while (!(updStack.isEmpty()))
+ {
+   Formula* updPred= updStack.pop();
+   if (firstUpdFormula) {loopUpdPredicateV = updPred; firstUpdFormula=0;}
+   else {FormulaList* interForm = (new FormulaList(loopUpdPredicateV))->cons(updPred); loopUpdPredicateV=new JunctionFormula(OR,interForm);}
+ }
+ //make sequence of let v=v(x) in...UPDATE_PREDICATES, for all vars
+ //process first updated array vars
+ Map<Variable*,bool>::Iterator vars(*_loop->variables());
+ //Path::Iterator pathit(path);
+ loopUpdPredicateV = letTranslationOfArray(vars, loopUpdPredicateV);
+ //process updated scalars 
+ VariableMap::Iterator varit(_variableInfo);
+ loopUpdPredicateV = letTranslationOfVar(varit,loopUpdPredicateV);
+ return loopUpdPredicateV;
+}
+
+/**generate last update property of an array ARRAY
+ *using the update predicate UpdPRED of the ARRAY
+ */
+
+Formula* LoopAnalyzer::lastUpdateProperty(Literal* updPred, string array, TermList position, TermList updValue)
+{
+   CALL("LoopAnalyzer::lastUpdateProperty");
+   unsigned arrayFct1=env.signature->addFunction(array,1);
+   TermList arrayX2(Term::create(arrayFct1,1,&position));
+   Literal* lastUpdImplies = Literal::createEquality(true,arrayX2,updValue);
+   Formula* lastUpd = new BinaryFormula(IMP,new AtomicFormula(updPred),new AtomicFormula(lastUpdImplies));
+   return lastUpd;
+}
+
+/**generate the stability property of an array ARRAY
+ *using the update predicate UpdPRED of the ARRAY
+ *that is: (iter(ITERATION) => ~UpdPred(ITERATION,POSITION)) => ARRAY(POSITION) = ARRAY0(POSITION)
+ */
+Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, string array, TermList position, TermList iteration)
+{
+  CALL("LoopAnalyzer::stabilityProperty");
+  //create ARRAY[POSITION]
+  unsigned arrayFinal=env.signature->addFunction(array,1);
+  TermList arrayFinalFct(Term::create(arrayFinal,1,&position));
+  //create ARRAY[POSITION]
+  unsigned arrayIni = env.signature->addFunction(array + Int::toString(0),1);
+  TermList arrayIniFct(Term::create(arrayIni,1,&position));
+  //create formula ARRAY(POSITION) = ARRAY0(POSITION)
+  Literal* stabilityImplication = Literal::createEquality(true,arrayFinalFct,arrayIniFct);
+  //create formula  (iter(ITERATION) => ~UpdPred(ITERATION,POSITION))
+  unsigned iter = env.signature->addPredicate("iter",1);
+  Literal* iterPred = Literal::create1(iter,true,iteration);
+  Formula* stabilityCondition = new BinaryFormula(IMP,new AtomicFormula(iterPred), new NegatedFormula(new AtomicFormula(updPred)));
+  //create stability property
+  Formula* stabilityProp = new BinaryFormula(IMP,stabilityCondition,new AtomicFormula(stabilityImplication));
+  return stabilityProp;
+}
+
+/** Generate update predicates
+ *
+ */
+
+void LoopAnalyzer::generateUpdatePredicates()
+{
+  CALL("LoopAnalyzer::generateUpdatePredicates");
+  Map<Variable*,bool>::Iterator vars(*_loop->variables());
+  // iterate over variables
+  while (vars.hasNext()) {
+     Variable* v;
+     //for one array variable v, visit all paths, and collect all predicates on a path
+     bool updated;
+     vars.next(v,updated);
+     if (! updated) {
+       continue;
+     }
+     bool array = (v->vtype()->kind() == Type::ARRAY);
+     if (!array) {continue;}
+     //updated array var
+     //collect upd predicates with 2 arguments of v through all paths in updPredicatesV2
+     //and 
+     //collect upd predicates with 3 arguments of v through all paths in updPredicatesV3
+     Stack<Formula*> updPredicatesV2;
+     Stack<Formula*> updPredicatesV3;
+     Stack<Path*>::Iterator pit(_paths);
+     while (pit.hasNext()) {
+      Path* path = pit.next();
+      //check if array v is updated on path
+      int pathUpdate = arrayIsUpdatedOnPath(path,v);
+      if (!pathUpdate) {continue;}
+      // iterate over path		
+      Path::Iterator it2(path);
+      Formula* updFormula2 = updatePredicateOfArray2(path, it2, v);
+      Path::Iterator it3(path);
+      Formula* updFormula3 = updatePredicateOfArray3(path, it3, v);
+      updPredicatesV2.push(updFormula2);
+      updPredicatesV3.push(updFormula3);
+     }
+     //all paths have been visited, 
+     //updated predicates of v are collected in updPredicateV
+     //create now update predicate of v for the entire loop by taking ORs over updPredicateV
+     Formula* loopUpdPredicateV2=updPredicateStack(updPredicatesV2);
+     Formula* loopUpdPredicateV3=updPredicateStack(updPredicatesV3);
+     //create updV predicates in the signature
+     string updName="upd"+v->name();
+     TermList x2;//variable for update position
+     x2.makeVar(2);
+     TermList x0;
+     x0.makeVar(0);//variable for loop iteration
+     TermList x3;
+     x3.makeVar(3);//variable for value of update
+     unsigned updFun1 = env.signature->addPredicate(updName,2);
+     unsigned updFun2 = env.signature->addPredicate(updName,3);
+     // term updV(x0,x2) 
+     Literal* upd1 = Literal::create2(updFun1,true,x0,x2);
+     // term updV(x0,x2,x3)
+     TermList args[] = {x0, x2, x3};
+     Literal* upd2 = Literal::create(updFun2,3,true,false,args);
+     Formula* updDefV1 = new BinaryFormula(IFF,new AtomicFormula(upd1),loopUpdPredicateV2);
+     Formula* updDefV2 = new BinaryFormula(IFF,new AtomicFormula(upd2),loopUpdPredicateV3);
+     //generate last update property: updV(x0,x2,x3) => V(X2)=X3
+     Formula* lastUpd = lastUpdateProperty(upd2,v->name(),x2,x3);
+     //generate stability property: (iter(x0)=>~updV(x0,x2)) => V(X2)=V0(X2)
+     Formula* stabProp = stabilityProperty(upd1, v->name(), x2, x0);
+     _units = _units->cons(new FormulaUnit(updDefV1,
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));
+     _units = _units->cons(new FormulaUnit(updDefV2,
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));
+     _units = _units->cons(new FormulaUnit(lastUpd,
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));	
+     _units = _units->cons(new FormulaUnit(stabProp,
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));	
+     //move/loop to the next updated array
+  }
+}
+
+/**generate axioms describing the final/initial value of updated variables 
+ * that is: 
+ * V(n,P) = V(P) and V(zero,P)=V0(P), for any updated array V
+ * v(n)=v and v(zero)=v0, for any updated scalar
+ */
+void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
+{
+   CALL("LoopAnalyzer::generateValueFunctionRelationsOfVariables");
+   //create loop counter n and position x2
+   TermList n(Term::createConstant("n"));  //name + Int::toString(0))); 
+   TermList x2;
+   x2.makeVar(2);
+   Theory* theory = Theory::instance();
+   TermList zero(theory->zero());
+   // iterate over variables
+   Map<Variable*,bool>::Iterator vars(*_loop->variables());
+   while (vars.hasNext()) {
+     Variable* v;
+     bool updated;
+     vars.next(v,updated);
+     if (! updated) {
+       continue;
+     }
+     bool array = (v->vtype()->kind() == Type::ARRAY);
+     bool scalar =  (v->vtype()->kind() == Type::INT); //so far we only have INT as scalar
+     if (array) 
+       {
+	 //create final and initial array functions
+	 unsigned arrayFinal1=env.signature->addFunction(v->name(),1);
+	 unsigned arrayFinal2=env.signature->addFunction(v->name(),2);
+	 TermList arrayFinalFct1(Term::create(arrayFinal1,1,&x2));
+	 TermList arrayFinalFct2(Term::create2(arrayFinal2,n,x2));
+	 TermList arrayIni(Term::createConstant(v->name()+Int::toString(0)));
+	 TermList arrayIniFct1(Term::create(arrayFinal1,1,&zero));
+	 //create V(n,X2)=V(X2)
+	 Formula* finalValFctCorresp = new AtomicFormula(Literal::createEquality(true,arrayFinalFct2,arrayFinalFct1));
+	 //create V0 =V(zero)
+	 Formula* initialValFctCorresp = new AtomicFormula(Literal::createEquality(true,arrayIniFct1,arrayIni));
+	 _units = _units->cons(new FormulaUnit(finalValFctCorresp,
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));	
+	 _units = _units->cons(new FormulaUnit(initialValFctCorresp,
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));	
+       }
+       if (scalar) 
+       {
+	 //create final and initial scalar functions
+	 unsigned scalarFinal=env.signature->addFunction(v->name(),1);
+	 TermList scalarFinalFct(Term::create(scalarFinal,1,&n));
+	 TermList scalarFinalConst(Term::createConstant(v->name()));
+	 TermList scalarIni(Term::createConstant(v->name()+Int::toString(0)));
+	 TermList scalarIniFct(Term::create(scalarFinal,1,&zero));
+	 //create v(n)=v
+	 Formula* finalValFctCorresp = new AtomicFormula(Literal::createEquality(true,scalarFinalFct,scalarFinalConst));
+	 //create V0 =V(zero)
+	 Formula* initialValFctCorresp = new AtomicFormula(Literal::createEquality(true,scalarIniFct,scalarIni));
+	 _units = _units->cons(new FormulaUnit(finalValFctCorresp,
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));	
+	 _units = _units->cons(new FormulaUnit(initialValFctCorresp,
+					  new Inference(Inference::PROGRAM_ANALYSIS),
+					  Unit::ASSUMPTION));	
+       }
+
+   }
+}
+
+
+/**
+ *Generate the property of the loop condition.
+ * that is, if the loop condition is v<M, 
+ * where v is a loop variable and M a constant, 
+ * the property should be: iter(X0) => v(X0)<M
+ * We use let...in constructs, so the property is: iter(X0) => let v:=v(X) in v(X0)<M
+ */
+
+void LoopAnalyzer::generateLoopConditionProperty()
+{
+  CALL("LoopAnalyzer::generateLoopConditionProperty");
+  Expression* condExp = _loop->condition();
+  Formula* condition = expressionToPred(condExp);
+  //make sequence of let v=v(x) in...CONDITION for all vars
+  //process first updated array vars
+  Map<Variable*,bool>::Iterator vars(*_loop->variables());
+  condition  = letTranslationOfArray(vars, condition);
+  //process updated scalars 
+  VariableMap::Iterator varit(_variableInfo);
+  condition = letTranslationOfVar(varit,condition);
+  //create iter(X0)
+  TermList x0;
+  x0.makeVar(0);
+  unsigned iter = env.signature->addPredicate("iter",1);
+  Literal* iterPred = Literal::create1(iter,true,x0);
+  Formula* loopConditionProp = new BinaryFormula(IMP,new AtomicFormula(iterPred),condition);
+   _units = _units->cons(new FormulaUnit(loopConditionProp,
+					new Inference(Inference::PROGRAM_ANALYSIS),
+					Unit::ASSUMPTION));	
 }
 
 /**
@@ -683,6 +1610,10 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
 					  Unit::ASSUMPTION));
   }
 }
+
+
+
+
 
 /**
  * Convert a program expression into a Vampire expression and relativize it to

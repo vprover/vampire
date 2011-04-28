@@ -11,6 +11,9 @@
 #include <string>
 #include "Lib/Set.hpp"
 #include "Lib/List.hpp"
+#include "Path.hpp"
+
+
 
 namespace Kernel {
   class Term;
@@ -37,25 +40,6 @@ public:
   LoopAnalyzer(WhileDo* loop);
   void analyze();
 private:
-  Variable* isScalarAssignment(const Statement* st);
-  static int isScalarIncrement(const Assignment* ass);
-  void analyzeVariables();
-  void collectPaths();
-  void generateAxiomsForCounters();
-  void generateCounterAxiom(const string& name,int min,int max,int gcd);
-  Term* relativize(Expression* expr);
-  void generateLetExpressions();
-  TermList expressionToTerm(Expression* exp);
-
-  /** the loop being analyzed */
-  WhileDo* _loop;
-  /** all variables updated by this loop */
-  Set<Variable*> _updatedVariables;
-  /** All paths in the loop */
-  Stack<Path*> _paths;
-  /** all generated units */
-  List<Unit*>* _units;
-
   /** For every variable, this structure stores information used to
    * write down formulas containing the variable */
   struct VariableInfo {
@@ -73,10 +57,47 @@ private:
     /** constant representing this variable, for scalar variables only */
     Term* constant;
   };
-
   typedef Map<Variable*,VariableInfo*> VariableMap;
   /** map from constant scalar variables to the corresponding terms */
   VariableMap _variableInfo;
+
+  Variable* isScalarAssignment(const Statement* st);
+  static int isScalarIncrement(const Assignment* ass);
+  void analyzeVariables();
+  void collectPaths();
+  void generateAxiomsForCounters();
+  void generateCounterAxiom(const string& name,int min,int max,int gcd);
+  Term* relativize(Expression* expr);
+  void generateLetExpressions();
+  TermList expressionToTerm(Expression* exp);
+  Formula*  expressionToPred(Expression* exp);
+  TermList letTranslationOfPath(Path::Iterator& sit, TermList variable);
+  Formula* letTranslationOfVar(VariableMap::Iterator& vit, Formula* letFormula); // VariableMap::Iterator&
+  Formula* letTranslationOfArray(Map<Variable*,bool>::Iterator &sit, Formula* exp);
+  Formula* letCondition(Path::Iterator &sit, Formula* condition, int condPos, int currPos);
+  Formula* letTranslationOfGuards(Path* path, Path::Iterator &sit, Formula* letFormula);
+  void generateUpdatePredicates();
+  static int arrayIsUpdatedOnPath(Path* path,Variable *v);
+  TermList arrayUpdatePosition(Path::Iterator &sit, TermList updPosExp, int posCnt, int currentCnt);
+  Formula* updatePredicateOfArray2(Path* path, Path::Iterator &sit, Variable* v);
+  Formula* updatePredicateOfArray3(Path* path, Path::Iterator &sit, Variable* v);
+  Formula* arrayUpdateCondition(Path* path, Path::Iterator &sit, int posCnt);
+  Formula* updPredicateStack(Stack<Formula*> &updStack);
+  TermList arrayUpdateValue(Path::Iterator &sit, TermList exp, int posCnt, int currentCnt);
+  Formula* lastUpdateProperty(Literal* updPred, string array, TermList position, TermList updValue);
+  Formula* stabilityProperty(Literal* updPred, string array, TermList position, TermList iteration);
+  void generateValueFunctionRelationsOfVariables();
+  void generateLoopConditionProperty();
+  /** the loop being analyzed */
+  WhileDo* _loop;
+  /** all variables updated by this loop */
+  Set<Variable*> _updatedVariables;
+  /** All paths in the loop */
+  Stack<Path*> _paths;
+  /** all generated units */
+  List<Unit*>* _units;
+
+  
 }; // class Analyze
 
 }
