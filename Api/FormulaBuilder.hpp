@@ -46,6 +46,18 @@ public:
 
 
 /**
+ * Exception that is thrown when the sort of the argument term and
+ * parent symbol are different.
+ */
+class SortMismatchException
+: public FormulaBuilderException
+{
+public:
+  SortMismatchException(string msg)
+  : FormulaBuilderException(msg) {}
+};
+
+/**
  * Exception that is thrown when a name is given that is not
  * a valid TPTP name for respective entity.
  */
@@ -123,20 +135,43 @@ public:
   /**
    * Return the default sort that is used when no sort is specified.
    */
-  Sort defaultSort();
+  static Sort defaultSort();
 
   /** Create a variable
    * @param varName name of the variable. Must be a valid TPTP variable name, that is, start
    *        with a capital-case letter. If the variable name does not conform to TPTP, an exception
    *        will be raised.
+   * @param varSort sort of the new variable
    */
-  Var var(const string& varName);
+  Var var(const string& varName, Sort varSort=defaultSort());
 
-  /** create a function symbol */
-  Function function(const string& funName,unsigned arity);
+  /** create a function symbol using default sorts
+   *
+   * @warning Functions of the same name and arity must have always
+   * also the same type, even across different instances of the
+   * FormulaBuilder class. */
+  Function function(const string& funName, unsigned arity);
 
-  /** create a predicate symbol */
-  Predicate predicate(const string& predName,unsigned arity);
+  /** create a function symbol with specified range and domain sorts
+   *
+   * @warning Functions of the same name and arity must have always
+   * also the same type, even across different instances of the
+   * FormulaBuilder class. */
+  Function function(const string& funName, unsigned arity, Sort rangeSort, Sort* domainSorts);
+
+  /** create a predicate symbol using default sorts
+   *
+   * @warning Predicates of the same name and arity must have always
+   * also the same type, even across different instances of the
+   * FormulaBuilder class. */
+  Predicate predicate(const string& predName, unsigned arity);
+
+  /** create a predicate symbol with specified domain sorts
+   *
+   * @warning Predicates of the same name and arity must have always
+   * also the same type, even across different instances of the
+   * FormulaBuilder class. */
+  Predicate predicate(const string& predName, unsigned arity, Sort* domainSorts);
 
   /** build a variable term */
   Term varTerm(const Var& v);

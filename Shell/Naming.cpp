@@ -6,12 +6,14 @@
  */
 
 #include "Lib/Allocator.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
 
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 
@@ -471,6 +473,45 @@ bool Naming::canBeInDefinition(Formula* f, Where where)
   return true;
 }
 
+Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars)
+{
+  CALL("Naming::getDefinitionLiteral");
+
+  int length = freeVars->length();
+  unsigned pred = env.signature->addNamePredicate(length);
+  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+
+  if(env.colorUsed) {
+    Color fc=f->getColor();
+    if(fc!=COLOR_TRANSPARENT) {
+      predSym->addColor(fc);
+    }
+    if(f->getSkip()) {
+      predSym->markSkip();
+    }
+  }
+
+  static Stack<unsigned> domainSorts;
+  static Stack<TermList> predArgs;
+  static DHMap<unsigned,unsigned> varSorts;
+  domainSorts.reset();
+  predArgs.reset();
+  varSorts.reset();
+
+  SortHelper::collectVariableSorts(f, varSorts);
+
+  Formula::VarList::Iterator vit(freeVars);
+  while(vit.hasNext()) {
+    unsigned uvar = vit.next();
+    domainSorts.push(varSorts.get(uvar, Sorts::SRT_DEFAULT));
+    predArgs.push(TermList(uvar, false));
+  }
+
+  predSym->setType(new PredicateType(length, domainSorts.begin()));
+
+  return Literal::create(pred, length, true, false, predArgs.begin());
+}
+
 /**
  * Introduce definition (A X)(p(X) &lt;-&gt; f), where X are all variables
  * of f and add it to _definitions. If @b iff is false, then the
@@ -485,33 +526,13 @@ bool Naming::canBeInDefinition(Formula* f, Where where)
 Formula* Naming::introduceDefinition (Formula* f,bool iff)
 {
   CALL("Naming::introduceDefinition");
-
-  ASS(f->connective() != LITERAL);
-  ASS(f->connective() != NOT);
+  ASS_NEQ(f->connective(), LITERAL);
+  ASS_NEQ(f->connective(), NOT);
 
   Formula::VarList* vs;
   vs = f->freeVariables();
-  int length = vs->length();
-  unsigned pred = env.signature->addNamePredicate(length);
-
-  if(env.colorUsed) {
-    Color fc=f->getColor();
-    if(fc!=COLOR_TRANSPARENT) {
-      env.signature->getPredicate(pred)->addColor(fc);
-    }
-    if(f->getSkip()) {
-      env.signature->getPredicate(pred)->markSkip();
-    }
-  }
-
-  Literal* atom = new(length) Literal(pred,length,true,false);
-  TermList* args = atom->args();
-  Formula::VarList::Iterator vars(vs);
-  while (vars.hasNext()) {
-    args->makeVar(vars.next());
-    args = args->next();
-  }
-  Formula* name = new AtomicFormula(env.sharing->insert(atom));
+  Literal* atom = getDefinitionLiteral(f, vs);
+  Formula* name = new AtomicFormula(atom);
   Formula* def;
   if (iff) {
     def = new BinaryFormula(IFF,name,f);

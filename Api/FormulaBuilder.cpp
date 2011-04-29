@@ -67,16 +67,25 @@ Sort FormulaBuilder::defaultSort()
   return Sorts::SRT_DEFAULT;
 }
 
-Var FormulaBuilder::var(const string& varName)
+Var FormulaBuilder::var(const string& varName, Sort varSort)
 {
   CALL("FormulaBuilder::var");
 
-  return _aux->getVar(varName);
+  return _aux->getVar(varName, varSort);
 }
 
 Function FormulaBuilder::function(const string& funName,unsigned arity)
 {
-  CALL("FormulaBuilder::function");
+  CALL("FormulaBuilder::function/2");
+
+  static DArray<Sort> domainSorts;
+  domainSorts.init(arity, defaultSort());
+  return function(funName, arity, defaultSort(), domainSorts.array());
+}
+
+Function FormulaBuilder::function(const string& funName, unsigned arity, Sort rangeSort, Sort* domainSorts)
+{
+  CALL("FormulaBuilder::function/4");
 
   if(_aux->_checkNames) {
     if(!islower(funName[0])) {
@@ -85,12 +94,36 @@ Function FormulaBuilder::function(const string& funName,unsigned arity)
     //TODO: add further checks
   }
 
-  return env.signature->addFunction(funName, arity);
+  bool added;
+  unsigned res = env.signature->addFunction(funName, arity, added);
+  Kernel::Signature::Symbol* sym = env.signature->getFunction(res);
+  FunctionType* fnType = new FunctionType(arity, domainSorts, rangeSort);
+
+  if(added) {
+    sym->setType(fnType);
+  }
+  else {
+    if(*fnType!=*sym->fnType()) {
+      throw FormulaBuilderException("Creating function " + sym->name() + " with different type than a previously created function "
+	  "of the same name and arity. (This must not happen even across different instances of the FormulaBuilder class.)");
+    }
+    delete fnType;
+  }
+  return res;
 }
 
 Function FormulaBuilder::predicate(const string& predName,unsigned arity)
 {
-  CALL("FormulaBuilder::predicate");
+  CALL("FormulaBuilder::predicate/2");
+
+  static DArray<Sort> domainSorts;
+  domainSorts.init(arity, defaultSort());
+  return predicate(predName, arity, domainSorts.array());
+}
+
+Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort* domainSorts)
+{
+  CALL("FormulaBuilder::predicate/3");
 
   if(_aux->_checkNames) {
     if(!islower(predName[0])) {
@@ -99,7 +132,22 @@ Function FormulaBuilder::predicate(const string& predName,unsigned arity)
     //TODO: add further checks
   }
 
-  return env.signature->addPredicate(predName, arity);
+  bool added;
+  unsigned res = env.signature->addPredicate(predName, arity, added);
+
+  Kernel::Signature::Symbol* sym = env.signature->getPredicate(res);
+  PredicateType* predType = new PredicateType(arity, domainSorts);
+  if(added) {
+    sym->setType(predType);
+  }
+  else {
+    if(*predType!=*sym->predType()) {
+      throw FormulaBuilderException("Creating predicate " + sym->name() + " with different type than a previously created predicate "
+	  "of the same name and arity. (This must not happen even across different instances of the FormulaBuilder class.)");
+    }
+    delete predType;
+  }
+  return res;
 }
 
 Term FormulaBuilder::varTerm(const Var& v)
@@ -129,6 +177,7 @@ Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, bool positive)
 {
   CALL("FormulaBuilder::equality");
 
+  _aux->ensureEqualityArgumentsSortsMatch(lhs, rhs);
   Literal* lit=Kernel::Literal::createEquality(positive, lhs, rhs);
   Formula res(new Kernel::AtomicFormula(lit));
   res._aux=_aux; //assign the correct helper object

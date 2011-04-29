@@ -159,9 +159,6 @@ string DefaultHelperCore::toString(const Kernel::Formula* f) const
   Connective c = f->connective();
   string con = names[(int)c];
   switch (c) {
-
-  }
-  switch (c) {
   case LITERAL:
     return toString(f->literal());
   case AND:
@@ -362,6 +359,7 @@ Term FBHelperCore::term(const Function& f,const Term* args, unsigned arity)
   if(arity!=env.signature->functionArity(f)) {
     throw FormulaBuilderException("Invalid function arity: "+env.signature->functionName(f));
   }
+  ensureArgumentsSortsMatch(env.signature->getFunction(f)->fnType(), args);
 
   DArray<TermList> argArr;
   argArr.initFromArray(arity, args);
@@ -382,6 +380,7 @@ Formula FBHelperCore::atom(const Predicate& p, bool positive, const Term* args, 
   if(arity!=env.signature->predicateArity(p)) {
     throw FormulaBuilderException("Invalid predicate arity: "+env.signature->predicateName(p));
   }
+  ensureArgumentsSortsMatch(env.signature->getPredicate(p)->predType(), args);
 
   DArray<TermList> argArr;
   argArr.initFromArray(arity, args);
@@ -413,6 +412,43 @@ unsigned FBHelperCore::getUnaryPredicate()
   return _unaryPredicate;
 }
 
+Sort FBHelperCore::getSort(const Api::Term t)
+{
+  CALL("FBHelperCore::getSort");
+
+  if(t.isVar()) {
+    unsigned v = t.var();
+    return getVarSort(v);
+  }
+  else {
+    unsigned fun = t.functor();
+    return env.signature->getFunction(fun)->fnType()->result();
+  }
+}
+
+void FBHelperCore::ensureArgumentsSortsMatch(BaseType* type, const Api::Term* args)
+{
+  CALL("FBHelperCore::ensureArgumentsSortsMatch");
+
+  unsigned arity = type->arity();
+  for(unsigned i=0; i<arity; i++) {
+    unsigned parentSort = type->arg(i);
+    unsigned argSort = getSort(args[i]);
+    if(parentSort!=argSort) {
+      throw SortMismatchException("Unexpected sort of term " + args[i].toString());
+    }
+  }
+}
+
+void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const Api::Term arg2)
+{
+  CALL("FBHelperCore::ensureEqualityArgumentsSortsMatch");
+
+  if(getSort(arg1)!=getSort(arg2)) {
+    throw SortMismatchException("Different sorts of equality arguments: " + arg1.toString() + " and " + arg2.toString());
+  }
+}
+
 string FBHelperCore::getVarName(Var v) const
 {
   CALL("FBHelperCore::getVarName");
@@ -433,7 +469,20 @@ string FBHelperCore::getVarName(Var v) const
   }
 }
 
-unsigned FBHelperCore::getVar(string varName)
+Sort FBHelperCore::getVarSort(Var v) const
+{
+  CALL("FBHelperCore::getVarSort");
+
+  Sort res;
+  if(varSorts.find(v,res)) {
+    return res;
+  }
+  else {
+    throw FormulaBuilderException("Var object was used in FormulaBuilder object which did not create it");
+  }
+}
+
+unsigned FBHelperCore::getVar(string varName, Sort varSort)
 {
   if(_checkNames) {
     if(!isupper(varName[0])) {
@@ -446,6 +495,13 @@ unsigned FBHelperCore::getVar(string varName)
   if(res==nextVar) {
     nextVar++;
     varNames.insert(res, varName);
+    varSorts.insert(res, varSort);
+  }
+  else {
+    Sort oldSort = varSorts.get(res);
+    if(oldSort!=varSort) {
+      throw FormulaBuilderException("Existing variable with different sort requested");
+    }
   }
   ASS_L(res, nextVar);
   return res;
@@ -466,7 +522,7 @@ unsigned FBHelperCore::FBVarFactory::getVarAlias(unsigned var)
     name=origName+"_"+Int::toString(i);
   } while(_parent.vars.find(name));
 
-  return _parent.getVar(name);
+  return _parent.getVar(name, _parent.getVarSort(var));
 }
 
 /**

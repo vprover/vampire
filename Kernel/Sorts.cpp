@@ -14,6 +14,7 @@ const unsigned Sorts::SRT_DEFAULT = 0;
 const unsigned Sorts::SRT_INTEGER = 1;
 const unsigned Sorts::SRT_RATIONAL = 2;
 const unsigned Sorts::SRT_REAL = 3;
+const unsigned Sorts::FIRST_USER_SORT = 4;
 
 
 Sorts::Sorts()
@@ -106,12 +107,56 @@ BaseType::~BaseType()
   }
 }
 
+bool BaseType::isAllDefault() const
+{
+  CALL("BaseType::isAllDefault");
+
+  unsigned len = arity();
+  for(unsigned i=0; i<len; i++) {
+    if(arg(i)!=Sorts::SRT_DEFAULT) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool BaseType::operator==(const BaseType& o) const
+{
+  CALL("BaseType::operator==");
+
+  if(isFunctionType()!=o.isFunctionType()) {
+    return false;
+  }
+  if(isFunctionType()) {
+    if(static_cast<const FunctionType&>(*this).result()!=static_cast<const FunctionType&>(o).result()) {
+      return false;
+    }
+  }
+  unsigned len = arity();
+  for(unsigned i=0; i<len; i++) {
+    if(arg(i)!=o.arg(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 FunctionType::FunctionType(unsigned arity)
  : BaseType(arity)
 {
   CALL("FunctionType::FunctionType");
 
   _result = Sorts::SRT_DEFAULT;
+}
+
+bool FunctionType::isAllDefault() const
+{
+  CALL("FunctionType::isAllDefault");
+
+  if(result()!=Sorts::SRT_DEFAULT) {
+    return false;
+  }
+  return BaseType::isAllDefault();
 }
 
 

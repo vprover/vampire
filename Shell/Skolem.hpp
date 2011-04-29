@@ -8,6 +8,7 @@
 #ifndef __Skolem__
 #define __Skolem__
 
+#include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Formula.hpp"
@@ -38,12 +39,22 @@ private:
   Skolem ()
     : _vars(16), _beingSkolemised(0)
   {}
+  FormulaUnit* skolemiseImpl(FormulaUnit*);
   Formula* skolemise(Formula*);
   FormulaList* skolemise(FormulaList*);
+
+  void reset();
+  Term* createSkolemTerm(unsigned var);
+
+  typedef Stack<int> VarStack;
+
   /** collected substitution */
   Substitution _subst;
   /** Universally quantified variables collected */
-  Stack<int> _vars;
+  VarStack _vars;
+
+  /** map var --> sort */
+  DHMap<unsigned,unsigned> _varSorts;
 
   Unit* _beingSkolemised;
 }; // class Skolem

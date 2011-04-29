@@ -21,8 +21,12 @@ public:
 
   static unsigned getEqualityArgumentSort(Literal* lit);
 
+  static bool tryGetVariableSort(unsigned var, Formula* f, unsigned& res);
   static unsigned getVariableSort(TermList var, Term* t);
   static unsigned getTermSort(TermList trm, Literal* lit);
+
+  static void collectVariableSorts(Term* t, DHMap<unsigned,unsigned>& map);
+  static void collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map);
 
   static bool areSortsValid(Clause* cl);
 
@@ -30,7 +34,7 @@ public:
 private:
   static bool tryGetVariableSort(TermList var, Term* t, unsigned& result);
 
-  static bool areSortsValid(Term* t, DHMap<TermList,unsigned>& varSorts);
+  static bool areSortsValid(Term* t, DHMap<unsigned,unsigned>& varSorts);
 };
 
 }

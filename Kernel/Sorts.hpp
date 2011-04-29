@@ -23,6 +23,7 @@ public:
   static const unsigned SRT_INTEGER;
   static const unsigned SRT_RATIONAL;
   static const unsigned SRT_REAL;
+  static const unsigned FIRST_USER_SORT;
 
   Sorts();
   ~Sorts();
@@ -46,6 +47,11 @@ public:
     return _sorts[idx]->name();
   }
 
+  /**
+   * Return the number of sorts
+   */
+  unsigned sorts() const { return _sorts.length(); }
+
 private:
   SymbolMap _sortNames;
   Stack<SortInfo*> _sorts;
@@ -62,6 +68,14 @@ public:
     CALL("PredicateType::arg");
     return (*_args)[idx];
   }
+
+  unsigned arity() const { return _args ? _args->length() : 0; }
+  virtual bool isAllDefault() const;
+
+  virtual bool isFunctionType() const { return false; }
+
+  bool operator==(const BaseType& o) const;
+  bool operator!=(const BaseType& o) const { return !(*this==o); }
 protected:
   BaseType(unsigned arity, unsigned* sorts=0);
 private:
@@ -84,6 +98,9 @@ public:
   FunctionType(unsigned arity);
 
   unsigned result() const { return _result; }
+
+  virtual bool isAllDefault() const;
+  virtual bool isFunctionType() const { return true; }
 private:
   unsigned _result;
 };

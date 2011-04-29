@@ -196,6 +196,8 @@ public:
    * Return number of formulas in this problem
    */
   size_t size();
+
+  void outputTypeDefinitions(ostream& out);
 private:
   class PData;
   class ProblemTransformer;

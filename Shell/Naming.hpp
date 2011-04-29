@@ -67,6 +67,8 @@ private:
 		     int* results,
 		     int* resultsNeg);
   Formula* introduceDefinition(Formula* f,bool iff);
+
+  Literal* getDefinitionLiteral(Formula* f, Formula::VarList* freeVars);
 }; // class Naming
 
 }

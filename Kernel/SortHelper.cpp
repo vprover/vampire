@@ -8,6 +8,7 @@
 #include "Clause.hpp"
 #include "Signature.hpp"
 #include "Sorts.hpp"
+#include "SubformulaIterator.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
@@ -101,6 +102,103 @@ unsigned SortHelper::getVariableSort(TermList var, Term* t)
 }
 
 /**
+ * Return sort of variable @c var in formula @c f.
+ *
+ * The variable
+ */
+bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, unsigned& res)
+{
+  CALL("SortHelper::tryGetVariableSort(unsigned,Formula*,unsigned&)");
+
+  TermList varTerm(var, false);
+
+  SubformulaIterator sfit(f);
+  while(sfit.hasNext()) {
+    Formula* sf = sfit.next();
+    if(sf->connective()!=LITERAL) {
+      continue;
+    }
+    Literal* lit = sf->literal();
+
+    if(!lit->containsSubterm(varTerm)) {
+      continue;
+    }
+    res = getVariableSort(varTerm, lit);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Insert variable sorts from @c t0 into @c map. If a variable
+ * is in map already (or appears multiple times), assert that
+ * the sorts are equal.
+ */
+void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
+{
+  CALL("SortHelper::collectVariableSorts(Term*,...)");
+
+  if(t0->ground()) {
+    return;
+  }
+
+  NonVariableIterator sit(t0);
+  Term* t = t0;
+
+  //in the first iteration, t is equal to t0, in subsequent ones
+  //we iterate through its non-ground non-variable subterms
+  for(;;) {
+    int idx = 0;
+    TermList* args = t->args();
+    while(!args->isEmpty()) {
+      if(args->isOrdinaryVar()) {
+	unsigned varNum = args->var();
+	unsigned varSort = getArgSort(t, idx);
+	if(!map.insert(varNum, varSort)) {
+	  ASS_EQ(varSort, map.get(varNum));
+	}
+      }
+      idx++;
+      args=args->next();
+    }
+
+    for(;;) {
+      if(!sit.hasNext()) {
+        return;
+      }
+      t = sit.next().term();
+      if(t->ground()) {
+	sit.right();
+      }
+      else {
+	break;
+      }
+    }
+  }
+}
+
+/**
+ * Insert variable sorts from @c f into @c map. If a variable
+ * is in map already (or appears multiple times), assert that
+ * the sorts are equal.
+ */
+void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
+{
+  CALL("SortHelper::collectVariableSorts(Formula*,...)");
+
+  SubformulaIterator sfit(f);
+  while(sfit.hasNext()) {
+    Formula* sf = sfit.next();
+    if(sf->connective()!=LITERAL) {
+      continue;
+    }
+    Literal* lit = sf->literal();
+
+    collectVariableSorts(lit, map);
+  }
+}
+
+/**
  * If variable @c var occurrs in term @c t, assign into @c result its
  * sort and return true. Otherwise return false.
  */
@@ -155,7 +253,7 @@ bool SortHelper::areSortsValid(Clause* cl)
 {
   CALL("SortHelper::areSortsValid");
 
-  static DHMap<TermList,unsigned> varSorts;
+  static DHMap<unsigned,unsigned> varSorts;
   varSorts.reset();
 
   unsigned clen = cl->length();
@@ -172,7 +270,7 @@ bool SortHelper::areSortsValid(Clause* cl)
  * sorts of variables -- this map is used to check sorts of variables in the
  * term, and also is extended by sorts of variables that occurr for the first time.
  */
-bool SortHelper::areSortsValid(Term* t0, DHMap<TermList,unsigned>& varSorts)
+bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,unsigned>& varSorts)
 {
   CALL("SortHelper::areSortsValid");
 
@@ -189,7 +287,7 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<TermList,unsigned>& varSorts)
       TermList arg = *args;
       if(arg.isVar()) {
 	unsigned varSrt;
-	if(!varSorts.findOrInsert(arg, varSrt, argSrt)) {
+	if(!varSorts.findOrInsert(arg.var(), varSrt, argSrt)) {
 	  //the variable is not new
 	  if(varSrt!=argSrt) {
 	    return false;

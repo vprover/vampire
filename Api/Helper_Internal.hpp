@@ -93,7 +93,8 @@ public:
   Term term(const Function& f,const Term* args, unsigned arity);
   Formula atom(const Predicate& p, bool positive, const Term* args, unsigned arity);
   virtual string getVarName(Var v) const;
-  Var getVar(string varName);
+  Sort getVarSort(Var v) const;
+  Var getVar(string varName, Sort varSort);
 
   virtual VarManager::VarFactory* getVarFactory()
   { return &varFact; }
@@ -107,6 +108,10 @@ public:
 
   /** Return arbitrary uninterpreted unary predicate */
   unsigned getUnaryPredicate();
+
+  Sort getSort(const Api::Term t);
+  void ensureArgumentsSortsMatch(BaseType* type, const Api::Term* args);
+  void ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const Api::Term arg2);
 private:
 
   struct FBVarFactory : public VarManager::VarFactory
@@ -122,6 +127,8 @@ private:
   Map<string,Var> vars;
   /** Map from variable names to their numbers */
   Map<Var,string> varNames;
+  /** Map from variable names to their sorts */
+  Map<Var,Sort> varSorts;
   /** next available variable number */
   Var nextVar;
 

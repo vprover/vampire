@@ -9,6 +9,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 
 #include "Indexing/TermSharing.hpp"
@@ -37,7 +38,8 @@ Unit* Skolem::skolemise (Unit* unit)
   ASS(! unit->isClause());
 
   unit = Rectify::rectify(unit);
-  Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+  FormulaUnit* fu = static_cast<FormulaUnit*>(unit);
+  Formula* f = fu->formula();
   switch (f->connective()) {
   case FALSE:
   case TRUE:
@@ -46,16 +48,73 @@ Unit* Skolem::skolemise (Unit* unit)
     break;
   }
 
-  Skolem skol;
-  skol._beingSkolemised=unit;
-  Formula* g = skol.skolemise(f);
+  static Skolem skol;
+  skol.reset();
+  return skol.skolemiseImpl(fu);
+} // Skolem::skolemise
+
+FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
+{
+  CALL("Skolem::skolemiseImpl(FormulaUnit*)");
+
+  _beingSkolemised=unit;
+
+  Formula* f = unit->formula();
+  SortHelper::collectVariableSorts(f, _varSorts);
+
+  Formula* g = skolemise(f);
   if (f == g) { // not changed
     return unit;
   }
   return new FormulaUnit(g,
 			 new Inference1(Inference::SKOLEMIZE,unit),
 			 unit->inputType());
-} // Skolem::skolemise
+}
+
+
+void Skolem::reset()
+{
+  CALL("Skolem::reset");
+
+  _vars.reset();
+  _varSorts.reset();
+  _subst.reset();
+}
+
+
+Term* Skolem::createSkolemTerm(unsigned var)
+{
+  CALL("Skolem::createSkolemFunction");
+
+  int arity = _vars.length();
+
+  unsigned fun;
+  if(VarManager::varNamePreserving()) {
+    string varName=VarManager::getVarName(var);
+    fun = env.signature->addSkolemFunction(arity, varName.c_str());
+  }
+  else {
+    fun = env.signature->addSkolemFunction(arity);
+  }
+
+  unsigned rangeSort=_varSorts.get(var, Sorts::SRT_DEFAULT);
+  static Stack<unsigned> domainSorts;
+  static Stack<TermList> fnArgs;
+  domainSorts.reset();
+  fnArgs.reset();
+
+  VarStack::TopFirstIterator vit(_vars);
+  while(vit.hasNext()) {
+    unsigned uvar = vit.next();
+    domainSorts.push(_varSorts.get(uvar, Sorts::SRT_DEFAULT));
+    fnArgs.push(TermList(uvar, false));
+  }
+
+  Signature::Symbol* fnSym = env.signature->getFunction(fun);
+  fnSym->setType(new FunctionType(arity, domainSorts.begin(), rangeSort));
+
+  return Term::create(fun, arity, fnArgs.begin());
+}
 
 /**
  * Skolemise a subformula.
@@ -118,58 +177,19 @@ Formula* Skolem::skolemise (Formula* f)
     {
       int arity = _vars.length();
 
-      //the skolem functions are now transparent
-//      Color clr=COLOR_TRANSPARENT;
-      //Color clr=f->qarg()->getColor();
-      /*if(clr!=COLOR_TRANSPARENT) {
-	//if there are colored predicate symbols, we want it to be transparent
-	SubformulaIterator si(f);
-	while(si.hasNext()) {
-	  Formula* f=si.next();
-	  if(f->connective()!=LITERAL) {
-	    continue;
-	  }
-	  Literal* lit=f->literal();
-	  if(lit->color()!=COLOR_TRANSPARENT && env.signature->getPredicate(lit->functor())->color()!=COLOR_TRANSPARENT) {
-	    clr=COLOR_TRANSPARENT;
-	    cout<<"transparent ";
-	    break;
-	  }
-	}
-      }*/
-
       Formula::VarList::Iterator vs(f->vars());
       while (vs.hasNext()) {
 	int v = vs.next();
-	unsigned fun;
-	if(VarManager::varNamePreserving()) {
-	  string varName=VarManager::getVarName(v);
-	  fun = env.signature->addSkolemFunction(arity, varName.c_str());
-	}
-	else {
-	  fun = env.signature->addSkolemFunction(arity);
-	}
-//	if(clr!=COLOR_TRANSPARENT) {
-//	  env.signature->getFunction(fun)->addColor(clr);
-//	}
-	Term* term = new(arity) Term;
-	term->makeSymbol(fun,arity);
-	TermList* args = term->args();
-	for (int i = arity-1;i >= 0;i--) {
-	  args->makeVar(_vars[i]);
-	  args = args->next();
-	}
-	_subst.bind(v,env.sharing->insert(term));
+	Term* skolemTerm = createSkolemTerm(v);
+	_subst.bind(v,skolemTerm);
 
 	if(env.options->showSkolemisations()) {
 	  env.beginOutput();
-	  env.out()<<"Skolemising: "<<term->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
+	  env.out()<<"Skolemising: "<<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
 	  env.endOutput();
-//	  //we also output skolemisations in a TPTP format to the error output
-//	  cerr<<term->toString()<<"=X"<<v<<" => ("<<f->qarg()->toString()<<")"<<endl;
 	}
 	if(arity!=0 && env.options->showNonconstantSkolemFunctionTrace()) {
-	  cerr<<"Nonconstant skolem function introduced: "<<term->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
+	  cerr<<"Nonconstant skolem function introduced: "<<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
 	  Refutation ref(_beingSkolemised, true);
 	  ref.output(cerr);
 	}

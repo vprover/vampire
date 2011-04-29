@@ -665,7 +665,61 @@ Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formul
   return res;
 }
 
+void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function)
+{
+  CALL("outputSymbolTypeDefinitions");
 
+  Signature::Symbol* sym = function ?
+      env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
+  BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
+
+  if(type->isAllDefault()) {
+    return;
+  }
+
+  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
+      << sym->name() << ": ";
+
+  unsigned arity = sym->arity();
+  if(arity>0) {
+    out << "(";
+    for(unsigned i=0; i<arity; i++) {
+      if(i>0) {
+	out << " * ";
+      }
+      out << env.sorts->sortName(type->arg(i));
+    }
+    out << ") > ";
+  }
+  if(function) {
+    out << env.sorts->sortName(sym->fnType()->result());
+  }
+  else {
+    out << "$o";
+  }
+  out << " )." << endl;
+
+}
+
+void Problem::outputTypeDefinitions(ostream& out)
+{
+  CALL("Problem::outputTypeDefinitions");
+
+  unsigned sorts = env.sorts->sorts();
+  for(unsigned i=Sorts::FIRST_USER_SORT; i<sorts; i++) {
+    out << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i) << ": $tType )." << endl;
+  }
+
+
+  unsigned funs = env.signature->functions();
+  for(unsigned i=0; i<funs; i++) {
+    outputSymbolTypeDefinitions(out, i, true);
+  }
+  unsigned preds = env.signature->predicates();
+  for(unsigned i=1; i<preds; i++) {
+    outputSymbolTypeDefinitions(out, i, false);
+  }
+}
 
 ///////////////////////////////////////
 // Iterating through the problem

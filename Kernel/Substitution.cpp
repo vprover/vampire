@@ -11,12 +11,8 @@
 
 #include "Substitution.hpp"
 
-using namespace Kernel;
-
-/** Temporary!!! */
-Substitution::~Substitution ()
+namespace Kernel
 {
-}
 
 /**
  * Bind @b v to @b t.
@@ -24,6 +20,7 @@ Substitution::~Substitution ()
  */
 void Substitution::bind(int v,Term* t)
 {
+  CALL("Substitution::bind(int,Term*)");
   TermList ts;
   ts.setTerm(t);
   bind(v,ts);
@@ -35,48 +32,9 @@ void Substitution::bind(int v,Term* t)
  */
 void Substitution::bind(int v,TermList t)
 {
-  CALL("Substitution::bind");
+  CALL("Substitution::bind(int,TermList)");
 
-  // select a random height between 0 and top
-  int h = 0;
-  while (Random::getBit()) {
-    h++;
-  }
-  if (h > _height) {
-    if (_height < SUBST_MAX_HEIGHT) {
-      _height++;
-    }
-    h = _height;
-    _left.nodes[h] = 0;
-  }
-  void* mem = ALLOC_KNOWN(sizeof(Node)+h*sizeof(Node*),
-			  "Substitution::Node");
-  Node* newNode = reinterpret_cast<Node*>(mem);
-  newNode->var = v;
-  newNode->term = t;
-
-  // left is a node with a value smaller than that of newNode and having
-  // a large enough height.
-  // this node is on the left of the inserted one
-  Node* left = &_left;
-  // lh is the height on which we search for the next node
-  int lh = _height;
-  for (;;) {
-    Node* next = left->nodes[lh];
-    if (next == 0 || v < next->var) {
-      if (lh <= h) {
-	left->nodes[lh] = newNode;
-	newNode->nodes[lh] = next;
-      }
-      if (lh == 0) {
-	return;
-      }
-      lh--;
-      continue;
-    }
-    ASS(v > next->var);
-    left = next;
-  }
+  ALWAYS(_map.insert(v, t));
 } // Substitution::bind
 
 /**
@@ -88,65 +46,41 @@ void Substitution::bind(int v,TermList t)
 void Substitution::unbind(int v)
 {
   CALL("Substitution::unbind");
-  ASS(_height >= 0);
 
-  int h = _height;
-  Node* left = &_left;
-
-  for (;;) {
-    Node* next = left->nodes[h];
-    if (next == 0 || next->var > v) {
-      ASS(h != 0);
-      h--;
-      continue;
-    }
-    // next != 0
-    if (next->var < v) {
-      left = next;
-      continue;
-    }
-    int height = h;
-    // found, first change the links going to next
-    for (;;) {
-      left->nodes[h] = next->nodes[h];
-      if (h == 0) {
-	break;
-      }
-      h--;
-      while (left->nodes[h] != next) {
-	left = left->nodes[h];
-      }
-    }
-    // deallocate the node
-    DEALLOC_KNOWN(next,
-		  sizeof(Node)+height*sizeof(Node*),
-		  "Substitution::Node");
-    return;
-  }
+  ALWAYS(_map.remove(v));
 } // Substitution::unbind
 
-/**
- * Return the binding for @b v.
- * @since 30/12/2007 Manchester
- */
-TermList* Substitution::bound(int v) const
+void Substitution::reset()
 {
-  CALL("Substitution::bound");
+  CALL("Substitution::reset");
 
-  int h = _height;
-  const Node* left = &_left;
-  while (h >= 0) {
-    Node* next = left->nodes[h];
-    if (next == 0 || next->var > v) {
-      h--;
-      continue;
-    }
-    if (next->var == v) {
-      return &next->term;
-    }
-    left = next;
+  _map.reset();
+}
+
+/**
+ * Return result of application of the substitution to variable @c var
+ *
+ * This function is to allow use of the @c Substitution class in the
+ * methods of the @c SubstHelper class for applying substitutions.
+ */
+TermList Substitution::apply(unsigned var)
+{
+  TermList res;
+  if(!findBinding(var, res)) {
+    res = TermList(var,false);
   }
-  return 0;
+  return res;
+}
+
+/**
+ * If @c var is bound, assign bingind into @c res and return true.
+ * Otherwise return false and do nothing.
+ */
+bool Substitution::findBinding(int var, TermList& res) const
+{
+  CALL("Substitution::findBinding");
+
+  return _map.find(var, res);
 } // Substitution::bound
 
 
@@ -171,3 +105,6 @@ TermList* Substitution::bound(int v) const
 //   return result;
 // } // Substitution::toString()
 #endif
+
+}
+

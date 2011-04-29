@@ -22,6 +22,7 @@
 #include "Formula.hpp"
 #include "Signature.hpp"
 #include "Substitution.hpp"
+#include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 
 #include "Term.hpp"
@@ -521,46 +522,7 @@ Term* Term::apply(Substitution& subst)
 {
   CALL("Term::apply");
 
-  if (ground()) {
-    return this;
-  }
-
-  bool changed = false;
-  Term* t = new(arity()) Term(*this);
-
-  TermList* ss = args();
-  TermList* tt = t->args();
-  while (! ss->isEmpty()) {
-    if (ss->isVar()) {
-      unsigned var = ss->var();
-      TermList* v = subst.bound(var);
-      if (! v) {
-	tt->makeVar(var);
-      }
-      else {
-	changed = true;
-	if (v->isVar()) {
-	  ASS(v->var() != var);
-	  tt->makeVar(v->var());
-	}
-	else {
-	  tt->setTerm(v->term());
-	}
-      }
-    }
-    else { // ss is not a variable
-      Term* s = ss->term();
-      Term* r = s->apply(subst);
-      tt->setTerm(r);
-      if (s != r) {
-	changed = true;
-      }
-    }
-    ss = ss->next();
-    tt = tt->next();
-  }
-
-  return changed ? env.sharing->insert(t) : this;
+  return SubstHelper::apply(this, subst);
 } // Term::apply
 
 
@@ -572,48 +534,7 @@ Literal* Literal::apply(Substitution& subst)
 {
   CALL("Literal::apply");
 
-  if (ground()) {
-    return this;
-  }
-
-  bool changed = false;
-  Literal* lit = new(arity()) Literal(*this);
-  ASS(! lit->shared());
-
-  TermList* ss = args();
-  TermList* tt = lit->args();
-  while (! ss->isEmpty()) {
-    if (ss->isVar()) {
-      unsigned var = ss->var();
-      TermList* v = subst.bound(var);
-      if (! v) {
-	tt->makeVar(var);
-      }
-      else {
-	changed = true;
-	if (v->isVar()) {
-	  ASS(v->var() != var);
-	  tt->makeVar(v->var());
-	}
-	else {
-	  tt->setTerm(v->term());
-	}
-      }
-    }
-    else { // ss is not a variable
-      Term* s = ss->term();
-      Term* r = s->apply(subst);
-      tt->setTerm(r);
-      if (s != r) {
-	changed = true;
-      }
-    }
-    ss = ss->next();
-    tt = tt->next();
-  }
-
-  ASS(! lit->shared());
-  return changed ? env.sharing->insert(lit) : this;
+  return SubstHelper::apply(this, subst);
 } // Literal::apply
 
 
