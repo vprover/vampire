@@ -52,6 +52,7 @@ public:
 
   virtual VarManager::VarFactory* getVarFactory() { return 0; };
 
+  virtual bool isFBHelper() const { return false; }
 private:
   struct Var2NameMapper;
 public:
@@ -89,6 +90,9 @@ public:
       delete this;
     }
   }
+
+  virtual bool isFBHelper() const { return true; }
+
 
   Term term(const Function& f,const Term* args, unsigned arity);
   Formula atom(const Predicate& p, bool positive, const Term* args, unsigned arity);

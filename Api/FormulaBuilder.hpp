@@ -185,6 +185,9 @@ public:
   /** build an equality */
   Formula equality(const Term& lhs,const Term& rhs, bool positive=true);
 
+  /** build an equality and check the sorts of the equality sides to be equal to @c sort*/
+  Formula equality(const Term& lhs,const Term& rhs, Sort sort, bool positive=true);
+
   /** build a true formula */
   Formula trueFormula();
 
@@ -286,6 +289,19 @@ using namespace Lib;
 
 class Problem;
 
+class OutputOptions
+{
+public:
+  /**
+   * If true, equality is output as $equality_sorted(sort_name, t1,t2) instead of t1=t2.
+   * The default value is false.
+   */
+  static bool sortedEquality() { return _sortedEquality; }
+  static void setSortedEquality(bool newVal) { _sortedEquality = newVal; }
+private:
+  static bool _sortedEquality;
+};
+
 /**
  * An iterator object for strings
  */
@@ -351,6 +367,14 @@ public:
    * Return @c i -th argument of a non-variable term.
    */
   Term arg(unsigned i);
+
+  /**
+   * Return sort of the term
+   *
+   * @warning this function can be used only for terms build by the
+   * FormulaBuilder, not for terms coming from the parser.
+   */
+  Sort sort() const;
 
   operator Kernel::TermList() const;
   explicit Term(Kernel::TermList t);

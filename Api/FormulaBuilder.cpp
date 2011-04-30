@@ -173,9 +173,19 @@ Formula FormulaBuilder::atom(const Predicate& p, const Term* args, bool positive
   return _aux->atom(p,positive, args,env.signature->predicateArity(p));
 }
 
+Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, Sort sort, bool positive)
+{
+  CALL("FormulaBuilder::equality/4");
+
+  if(lhs.sort()!=sort) {
+    throw SortMismatchException("Sorts of equality sides is not as declared");
+  }
+  return equality(lhs, rhs, positive);
+}
+
 Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, bool positive)
 {
-  CALL("FormulaBuilder::equality");
+  CALL("FormulaBuilder::equality/3");
 
   _aux->ensureEqualityArgumentsSortsMatch(lhs, rhs);
   Literal* lit=Kernel::Literal::createEquality(positive, lhs, rhs);
@@ -620,6 +630,15 @@ Term Term::arg(unsigned i)
   return Term(*static_cast<Kernel::TermList>(*this).term()->nthArgument(i), _aux);
 }
 
+Sort Term::sort() const
+{
+  CALL("Term::sort");
+
+  if(!_aux->isFBHelper()) {
+    throw ApiException("Sort can be retrieved only for terms created by the FormulaBuilder");
+  }
+  return static_cast<FBHelperCore*>(*_aux)->getSort(*this);
+}
 
 Term::operator Kernel::TermList() const
 {
@@ -912,6 +931,12 @@ Formula AnnotatedFormula::formula()
   Kernel::Formula* negated = new Kernel::NegatedFormula(Kernel::Formula::quantify(form));
   return Formula(negated, _aux);
 }
+
+///////////////////////
+// OutputOptions
+//
+
+bool OutputOptions::_sortedEquality = false;
 
 //////////////////////////////
 // StringIterator implementation

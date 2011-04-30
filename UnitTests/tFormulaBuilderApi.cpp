@@ -664,6 +664,13 @@ TEST_FUN(fbapiSorts)
     Term z = api.varTerm(zv);
     Term c = api.term(cSym);
     Term d = api.term(dSym);
+
+    ASS_EQ(x.sort(), s1);
+    ASS_EQ(y.sort(), s2);
+    ASS_EQ(z.sort(), api.defaultSort());
+    ASS_EQ(c.sort(), s1);
+    ASS_EQ(d.sort(), s2);
+
     Predicate p=api.predicate("p_s1",1,&s1);
     Predicate r=api.predicate("r_s2",1,&s2);
     Sort qSorts[] = {s1, s2, api.defaultSort()};
@@ -675,7 +682,9 @@ TEST_FUN(fbapiSorts)
     Formula frd=api.formula(r,d);
     Formula fqxyz=api.formula(q,x,y,z);
     Formula fqcdz=api.formula(q,c,d,z);
-    Formula fxEQd=api.equality(x,c);
+    Formula fxEQc=api.equality(x,c);
+    Formula fxEQc2=api.equality(x,c,s1);
+    Formula fzEQz=api.equality(z,z);
     Formula fOr=api.formula(FormulaBuilder::OR, fqxyz, frd);
     Formula fEx=api.formula(FormulaBuilder::EXISTS, xv, fOr);
     AnnotatedFormula af = api.annotatedFormula(fEx, FormulaBuilder::AXIOM, "ax1");
@@ -686,6 +695,15 @@ TEST_FUN(fbapiSorts)
     Formula fOr8=api.formula(FormulaBuilder::OR, fOr4, fOr4);
     AnnotatedFormula af2 = api.annotatedFormula(fOr8, FormulaBuilder::AXIOM, "ax2");
 
+    OutputOptions::setSortedEquality(true);
+    cout<<fxEQc<<" ";
+    OutputOptions::setSortedEquality(false);
+    cout<<fxEQc<<endl;
+
+    OutputOptions::setSortedEquality(true);
+    cout<<fzEQz<<" ";
+    OutputOptions::setSortedEquality(false);
+    cout<<fzEQz<<endl;
 
     Problem prb;
     prb.addFormula(af);
@@ -703,6 +721,12 @@ TEST_FUN(fbapiSorts)
 
     try{
       api.equality(x,y);
+      ASSERTION_VIOLATION;
+    } catch (SortMismatchException e)
+    {}
+
+    try{
+      api.equality(x,c, s2);
       ASSERTION_VIOLATION;
     } catch (SortMismatchException e)
     {}

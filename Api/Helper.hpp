@@ -42,6 +42,7 @@ public:
   bool operator!=(const ApiHelper& h) const;
 
   DefaultHelperCore* operator->() const;
+  DefaultHelperCore* operator*() const;
 protected:
   void updRef(bool inc);
 

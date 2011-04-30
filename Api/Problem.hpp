@@ -197,6 +197,10 @@ public:
    */
   size_t size();
 
+  /**
+   * Output tff type definitions for non-standard types and for all
+   * functions and predicates, whose type contains some non-default sort.
+   */
   void outputTypeDefinitions(ostream& out);
 private:
   class PData;

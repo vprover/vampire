@@ -54,7 +54,7 @@ unsigned SortHelper::getArgSort(Term* t, unsigned argIndex)
   return getType(t).arg(argIndex);
 }
 
-unsigned SortHelper::getEqualityArgumentSort(Literal* lit)
+unsigned SortHelper::getEqualityArgumentSort(const Literal* lit)
 {
   CALL("SortHelper::getEqualityArgumentSort");
   ASS(lit->isEquality());

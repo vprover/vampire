@@ -3,6 +3,8 @@
  * Implements class Helper.
  */
 
+#include "Kernel/SortHelper.hpp"
+
 #include "Helper_Internal.hpp"
 
 namespace Api
@@ -84,10 +86,21 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
   if(t0->isLiteral()) {
     const Literal* l=static_cast<const Literal*>(t0);
     if(l->isEquality()) {
-      res=toString(*l->nthArgument(0));
-      res+= l->isPositive() ? " = " : " != ";
-      res+=toString(*l->nthArgument(1));
-      return res;
+      if(OutputOptions::sortedEquality()) {
+	unsigned sort = SortHelper::getEqualityArgumentSort(l);
+	res=(l->isPositive() ? "" : "~");
+	res+="$equality_sorted(";
+	res+=env.sorts->sortName(sort)+",";
+	res+=toString(*l->nthArgument(0))+",";
+	res+=toString(*l->nthArgument(1))+")";
+	return res;
+      }
+      else {
+	res=toString(*l->nthArgument(0));
+	res+= l->isPositive() ? " = " : " != ";
+	res+=toString(*l->nthArgument(1));
+	return res;
+      }
     }
     res=(l->isPositive() ? "" : "~") + l->predicateName();
   }
@@ -604,6 +617,13 @@ bool ApiHelper::operator!=(const ApiHelper& h) const
 DefaultHelperCore* ApiHelper::operator->() const
 {
   CALL("ApiHelper::operator->");
+
+  return **this;
+}
+
+DefaultHelperCore* ApiHelper::operator*() const
+{
+  CALL("ApiHelper::operator*");
 
   if(_obj) {
     return _obj;
