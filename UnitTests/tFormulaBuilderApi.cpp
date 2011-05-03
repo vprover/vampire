@@ -502,7 +502,12 @@ TEST_FUN(fbapiPDInlining2)
       cout<<afit.next()<<endl;
     }
 
-    iprb=prb.inlinePredicateDefinitions(Problem::INL_AXIOMS_ONLY);
+    Problem::PreprocessingOptions opts;
+    opts.mode = Problem::PM_EARLY_PREPROCESSING;
+    opts.unusedPredicateDefinitionRemoval = false;
+    opts.traceInlining = true;
+    opts.predicateDefinitionInlining = Problem::INL_AXIOMS_ONLY;
+    iprb=prb.preprocess(opts);
     cout<<"Inlined (axioms only):"<<endl;
     afit=iprb.formulas();
     while(afit.hasNext()) {
@@ -682,6 +687,7 @@ TEST_FUN(fbapiSorts)
     Formula frd=api.formula(r,d);
     Formula fqxyz=api.formula(q,x,y,z);
     Formula fqcdz=api.formula(q,c,d,z);
+    Formula fxEQx=api.equality(x,x);
     Formula fxEQc=api.equality(x,c);
     Formula fxEQc2=api.equality(x,c,s1);
     Formula fzEQz=api.equality(z,z);
@@ -699,6 +705,11 @@ TEST_FUN(fbapiSorts)
     cout<<fxEQc<<" ";
     OutputOptions::setSortedEquality(false);
     cout<<fxEQc<<endl;
+
+    OutputOptions::setSortedEquality(true);
+    cout<<fxEQx<<" ";
+    OutputOptions::setSortedEquality(false);
+    cout<<fxEQx<<endl;
 
     OutputOptions::setSortedEquality(true);
     cout<<fzEQz<<" ";
@@ -737,12 +748,49 @@ TEST_FUN(fbapiSorts)
     } catch (SortMismatchException e)
     {}
 
+    try{
+      api.predicate("p1234",1,&s1);
+      api.predicate("p1234",1,&s2);
+      ASSERTION_VIOLATION;
+    } catch (FormulaBuilderException e)
+    {}
+
+    try{
+      api.var("Var1234",s1);
+      api.var("Var1234",s2);
+      ASSERTION_VIOLATION;
+    } catch (FormulaBuilderException e)
+    {}
+
   } catch (ApiException e) {
     cout<<"Exception: "<<e.msg()<<endl;
     throw;
   }
 }
 
+TEST_FUN(fbapiSine)
+{
+  try {
+    Problem prb;
+    stringstream stm("fof(a1,axiom,a|b).fof(a2,axiom,b|c).fof(a3,axiom,b|d).fof(a4,axiom,d).fof(a4,axiom,d|e).fof(a5,conjecture,a).");
+    prb.addFromStream(stm);
+    Problem::PreprocessingOptions opts;
+    opts.mode = Problem::PM_SELECTION_ONLY;
+    opts.sineSelection = true;
+    Problem prb1 = prb.preprocess(opts);
+    prb1.output(cout, false);
+    cout<<"------\n";
+    opts.mode = Problem::PM_CLAUSIFY;
+    opts.unusedPredicateDefinitionRemoval = false;
+    opts.sineTolerance = 3;
+    Problem prb2 = prb.preprocess(opts);
+    prb2.output(cout, false);
+
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
 
 
 

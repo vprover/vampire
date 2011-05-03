@@ -110,6 +110,8 @@ public:
    * variables that are already bound in a formula */
   bool _checkBindingBoundVariables;
 
+  bool _allowImplicitlyTypedVariables;
+
   /** Return arbitrary uninterpreted unary predicate */
   unsigned getUnaryPredicate();
 

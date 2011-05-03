@@ -93,10 +93,13 @@ public:
    * @param checkNames - flag to check names of function and predicate symbols. If true,
    *        then an attempt to create a function or a predicate starting with a capital-case
    *        letter will result in an exception
-	 * @param checkBindingBoundVariables if true, then an attempt to bind an already bound variable
-	 *        will result in an exception
+   * @param checkBindingBoundVariables if true, then an attempt to bind an already bound variable
+   *        will result in an exception
+   * @param allowImplicitlyTypedVariables allow creating variables without explicitely
+   *        specifying a type. If false, the Var var(const string& varName) function
+   *        will throw and exception.
    */
-  FormulaBuilder(bool checkNames=true, bool checkBindingBoundVariables=true);
+  FormulaBuilder(bool checkNames=true, bool checkBindingBoundVariables=true, bool allowImplicitlyTypedVariables=true);
 
   enum Connective {
     TRUE,
@@ -137,13 +140,25 @@ public:
    */
   static Sort defaultSort();
 
+  /**
+   * Return name of the sort @c s.
+   */
+  string getSortName(Sort s);
+
+  /** Create a variable with the default sort
+   * @param varName name of the variable. Must be a valid TPTP variable name, that is, start
+   *        with a capital-case letter. If the variable name does not conform to TPTP, an exception
+   *        will be raised.
+   */
+  Var var(const string& varName);
+
   /** Create a variable
    * @param varName name of the variable. Must be a valid TPTP variable name, that is, start
    *        with a capital-case letter. If the variable name does not conform to TPTP, an exception
    *        will be raised.
    * @param varSort sort of the new variable
    */
-  Var var(const string& varName, Sort varSort=defaultSort());
+  Var var(const string& varName, Sort varSort);
 
   /** create a function symbol using default sorts
    *

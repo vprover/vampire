@@ -61,7 +61,11 @@ public:
 
   enum PreprocessingMode {
     /**
-     * This mode performs only predicate definition elimination rules
+     * This mode performs only Sine axiom selection (if it is enabled)
+     */
+    PM_SELECTION_ONLY,
+    /**
+     * This mode performs only axiom selection and predicate definition elimination rules (if they are enabled)
      */
     PM_EARLY_PREPROCESSING,
     PM_SKOLEMIZE,
@@ -76,7 +80,11 @@ public:
 	bool preserveEpr=false,
 	InliningMode predicateDefinitionInlining=INL_OFF,
 	bool unusedPredicateDefinitionRemoval=true,
-	bool showNonConstantSkolemFunctionTrace=false);
+	bool showNonConstantSkolemFunctionTrace=false,
+	bool traceInlining=false,
+	bool sineSelection=false,
+	float sineTolerance=1.0f,
+	unsigned sineDepthLimit=0);
     PreprocessingMode mode;
     /**
      * When the number of clauses generated from one formula
@@ -92,8 +100,33 @@ public:
     InliningMode predicateDefinitionInlining;
     bool unusedPredicateDefinitionRemoval;
     bool showNonConstantSkolemFunctionTrace;
+    /**
+     * If true, details on every definition inlining step will be output
+     * to the standard error output.
+     */
+    bool traceInlining;
+    bool sineSelection;
+    /**
+     * Sine tolerance parameter.
+     *
+     * Must be greater than or equal to 1. More axioms are selected for
+     * greater numbers.
+     *
+     * Value has effect only when @c sineSelection is true.
+     */
+    float sineTolerance;
+    /**
+     * Maximal number of iterations of the Sine axiom selection algorithm.
+     *
+     * Zero means unlimited. The more iterations can be performed, the more
+     * axioms are selected.
+     *
+     * Value has effect only when @c sineSelection is true.
+     */
+    unsigned sineDepthLimit;
   private:
-    void validate();
+    friend class Problem;
+    void validate() const;
   };
 
   /**
@@ -105,6 +138,11 @@ public:
    */
   Problem clone();
 
+  /**
+   * Add formula into the problem
+   *
+   * @warning Problem can contain only formulas coming from one FormulaBuilder object.
+   */
   void addFormula(AnnotatedFormula f);
 
   /**
@@ -202,6 +240,13 @@ public:
    * functions and predicates, whose type contains some non-default sort.
    */
   void outputTypeDefinitions(ostream& out);
+
+  /**
+   * Output the problem in TPTP format.
+   * If @c outputTypeDefs is true, type definitions will be output
+   * using he @c outputTypeDefinitions() function.
+   */
+  void output(ostream& out, bool outputTypeDefs=false);
 private:
   class PData;
   class ProblemTransformer;
@@ -210,6 +255,7 @@ private:
   class PredicateDefinitionInliner;
   class UnusedPredicateDefinitionRemover;
   class Clausifier;
+  class SineSelector;
 
   PData* _data;
 };

@@ -412,6 +412,7 @@ OTHER_API_DEP = \
 	   Shell/Refutation.o\
 	   Shell/SimplifyFalseTrue.o\
 	   Shell/SimplifyProver.o\
+	   Shell/SineUtils.o\
 	   Shell/Skolem.o\
 	   Shell/SpecialTermElimination.o\
 	   Shell/Statistics.o\
@@ -535,6 +536,8 @@ api_src:
 	tar cf - $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) | (cd $@ ; tar xvf -) 2>/dev/null
 	cp Makefile Makefile_depend test_vapi.cpp $@
 	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
+	rm -f $@.tgz
+	tar -czf $@.tgz $@
 
 
 #vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)

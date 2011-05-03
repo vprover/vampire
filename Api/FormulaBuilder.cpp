@@ -40,12 +40,14 @@ using namespace Shell;
 namespace Api
 {
 
-FormulaBuilder::FormulaBuilder(bool checkNames, bool checkBindingBoundVariables)
+FormulaBuilder::FormulaBuilder(bool checkNames, bool checkBindingBoundVariables,
+    bool allowImplicitlyTypedVariables)
 {
   CALL("FormulaBuilder::FormulaBuilder");
 
   _aux->_checkNames=checkNames;
   _aux->_checkBindingBoundVariables=checkBindingBoundVariables;
+  _aux->_allowImplicitlyTypedVariables=allowImplicitlyTypedVariables;
 }
 
 Sort FormulaBuilder::sort(const string& sortName)
@@ -65,6 +67,26 @@ Sort FormulaBuilder::defaultSort()
   CALL("FormulaBuilder::defaultSort");
 
   return Sorts::SRT_DEFAULT;
+}
+
+string FormulaBuilder::getSortName(Sort s)
+{
+  CALL("FormulaBuilder::getSortName");
+
+  return env.sorts->sortName(s);
+}
+
+Var FormulaBuilder::var(const string& varName)
+{
+  CALL("FormulaBuilder::var");
+
+  if(!_aux->_allowImplicitlyTypedVariables) {
+    throw FormulaBuilderException("Creating implicitly typed variables is not allowed. Use function "
+	"FormulaBuilder::var(const string& varName, Sort varSort) instead of "
+	"FormulaBuilder::var(const string& varName)");
+  }
+
+  return var(varName, defaultSort());
 }
 
 Var FormulaBuilder::var(const string& varName, Sort varSort)
@@ -188,7 +210,14 @@ Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, bool positive)
   CALL("FormulaBuilder::equality/3");
 
   _aux->ensureEqualityArgumentsSortsMatch(lhs, rhs);
-  Literal* lit=Kernel::Literal::createEquality(positive, lhs, rhs);
+  Literal* lit;
+  if(lhs.isVar()&&rhs.isVar()) {
+    Sort srt = lhs.sort();
+    lit=Kernel::Literal::createVariableEquality(positive, lhs, rhs, srt);
+  }
+  else {
+    lit=Kernel::Literal::createEquality(positive, lhs, rhs);
+  }
   Formula res(new Kernel::AtomicFormula(lit));
   res._aux=_aux; //assign the correct helper object
   return res;

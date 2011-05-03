@@ -24,7 +24,7 @@ using namespace Kernel;
  */
 class PDInliner {
 public:
-  PDInliner(bool axiomsOnly);
+  PDInliner(bool axiomsOnly, bool trace=false);
   ~PDInliner();
 
   /**
@@ -72,6 +72,7 @@ private:
   DArray<Set<unsigned> > _dependent;
 
   bool _axiomsOnly;
+  bool _trace;
 };
 
 }

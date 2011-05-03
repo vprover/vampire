@@ -36,6 +36,7 @@
 #include "Shell/Skolem.hpp"
 #include "Shell/SimplifyFalseTrue.hpp"
 #include "Shell/SimplifyProver.hpp"
+#include "Shell/SineUtils.hpp"
 #include "Shell/SpecialTermElimination.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
@@ -50,21 +51,28 @@ using namespace Lib;
 Problem::PreprocessingOptions::PreprocessingOptions(
     PreprocessingMode mode,
     int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
-    bool unusedPredicateDefinitionRemoval, bool showNonConstantSkolemFunctionTrace)
+    bool unusedPredicateDefinitionRemoval, bool showNonConstantSkolemFunctionTrace,
+    bool traceInlining, bool sineSelection, float sineTolerance, unsigned sineDepthLimit)
 : mode(mode), namingThreshold(namingThreshold), preserveEpr(preserveEpr),
   predicateDefinitionInlining(predicateDefinitionInlining),
   unusedPredicateDefinitionRemoval(unusedPredicateDefinitionRemoval),
-  showNonConstantSkolemFunctionTrace(showNonConstantSkolemFunctionTrace)
+  showNonConstantSkolemFunctionTrace(showNonConstantSkolemFunctionTrace),
+  traceInlining(traceInlining), sineSelection(sineSelection),
+  sineTolerance(sineTolerance), sineDepthLimit(sineDepthLimit)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions");
 }
 
-void Problem::PreprocessingOptions::validate()
+void Problem::PreprocessingOptions::validate() const
 {
   CALL("Problem::PreprocessingOptions::validate");
 
   if(namingThreshold>32767 || namingThreshold<0) {
     throw new ApiException("namingThreshold must be in the range [0,32767]");
+  }
+
+  if(sineSelection && sineTolerance<1.0f) {
+    throw new ApiException("sineTolerance must be greater than or equal to 1");
   }
 }
 
@@ -221,15 +229,25 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
 class Problem::ProblemTransformer
 {
 public:
-  virtual Problem transform(Problem p)
+  Problem transform(Problem p)
   {
     CALL("ProblemTransformer::transform(Problem)");
+
+    if(p.size()>0) {
+      AnnotatedFormulaIterator fit=p.formulas();
+      ALWAYS(fit.hasNext());
+      AnnotatedFormula f=fit.next();
+
+      _varFactory = f._aux->getVarFactory();
+      VarManager::setVarNamePreserving(_varFactory);
+    }
 
     Problem res;
     _res = &res;
 
     transformImpl(p);
 
+    VarManager::setVarNamePreserving(0);
     _res = 0;
     return res;
   }
@@ -268,8 +286,9 @@ protected:
     _origName = f.name();
     _origUnit = f;
     _origAF = f;
-    ASS(!VarManager::varNamePreserving());
-    VarManager::setVarNamePreserving(f._aux->getVarFactory());
+    if(_varFactory!=f._aux->getVarFactory()) {
+      throw ApiException("Transforming problem that contains formulas from diferent FormulaBuilder objects.");
+    }
 
     _transformingDef = false;
     transformImpl(f);
@@ -280,7 +299,6 @@ protected:
     }
 
     _transforming = false;
-    VarManager::setVarNamePreserving(0);
   }
 
   void addUnit(Kernel::Unit* unit)
@@ -316,6 +334,8 @@ protected:
       _defs.push_back(Kernel::UnitList::pop(defLst));
     }
   }
+
+  VarManager::VarFactory* _varFactory;
 
   bool _transforming;
   bool _transformingDef;
@@ -364,8 +384,8 @@ protected:
 class Problem::PredicateDefinitionInliner : public ProblemTransformer
 {
 public:
-  PredicateDefinitionInliner(InliningMode mode)
-      : _mode(mode), _pdInliner(mode==INL_AXIOMS_ONLY)
+  PredicateDefinitionInliner(InliningMode mode, bool trace)
+      : _mode(mode), _pdInliner(mode==INL_AXIOMS_ONLY, trace)
   {
     ASS_NEQ(mode, INL_OFF);
   }
@@ -501,6 +521,52 @@ protected:
   DHMap<Kernel::Unit*, Kernel::Unit*> replacements;
 };
 
+class Problem::SineSelector : public ProblemTransformer
+{
+public:
+  SineSelector(float tolerance, unsigned depthLimit)
+      : sine(false, tolerance, depthLimit) {}
+protected:
+  virtual void transformImpl(Problem p)
+  {
+    CALL("Problem::SineSelector::transformImpl(Problem)");
+    ASS(selected.isEmpty()); //this function can be called only once per instance of this class
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+
+    sine.perform(units);
+
+    while(units) {
+      Kernel::Unit* u = Kernel::UnitList::pop(units);
+      selected.insert(u);
+    }
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      transform(f);
+    }
+  }
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::SineSelector::transformImpl");
+
+    if(selected.find(unit)) {
+      addUnit(unit);
+    }
+  }
+
+  Shell::SineSelector sine;
+  DHSet<Kernel::Unit*> selected;
+};
+
 class Problem::Clausifier : public ProblemTransformer
 {
 public:
@@ -620,10 +686,19 @@ Problem Problem::removeUnusedPredicateDefinitions()
 Problem Problem::preprocess(const PreprocessingOptions& options)
 {
   CALL("Problem::preprocess");
+  options.validate();
 
-  Problem res = Preprocessor1().transform(*this);
+  Problem res = *this;
+
+  if(options.sineSelection) {
+    res = SineSelector(options.sineTolerance, options.sineDepthLimit).transform(res);
+  }
+  if(options.mode==PM_SELECTION_ONLY) {
+    return res;
+  }
+  res = Preprocessor1().transform(res);
   if(options.predicateDefinitionInlining!=INL_OFF) {
-    res = PredicateDefinitionInliner(options.predicateDefinitionInlining).transform(res);
+    res = PredicateDefinitionInliner(options.predicateDefinitionInlining,options.traceInlining).transform(res);
   }
   if(options.unusedPredicateDefinitionRemoval) {
     res = UnusedPredicateDefinitionRemover().transform(res);
@@ -655,7 +730,7 @@ Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formul
   CALL("Problem::performAsymetricRewriting");
 
   Problem res = Preprocessor1().transform(*this);
-  PredicateDefinitionInliner inl(INL_NO_DISCOVERED_DEFS);
+  PredicateDefinitionInliner inl(INL_NO_DISCOVERED_DEFS, false);
   for(size_t i=0; i<cnt; i++) {
     if(!inl.addAsymetricDefinition(lhsArray[i], posRhsArray[i], negRhsArray[i], dblRhsArray[i])) {
       throw new ApiException("LHS is already defined");
@@ -718,6 +793,19 @@ void Problem::outputTypeDefinitions(ostream& out)
   unsigned preds = env.signature->predicates();
   for(unsigned i=1; i<preds; i++) {
     outputSymbolTypeDefinitions(out, i, false);
+  }
+}
+
+void Problem::output(ostream& out, bool outputTypeDefs)
+{
+  CALL("Problem::output");
+
+  if(outputTypeDefs) {
+    outputTypeDefinitions(out);
+  }
+  AnnotatedFormulaIterator afit = formulas();
+  while(afit.hasNext()) {
+    out<<afit.next()<<endl;
   }
 }
 

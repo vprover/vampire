@@ -98,6 +98,57 @@ struct PDInliner::PDef
     return static_cast<FormulaUnit*>(u);
   }
 
+  void traceUnitApplyBegin(Unit* unit)
+  {
+    CALL("PDInliner::PDef::traceUnitApply");
+
+    if(!_parent->_trace) {
+      return;
+    }
+    if(_defUnit) {
+      cerr<<"Inlining "<<_defUnit->toString()<<" into "<<unit->toString()<<endl;
+    }
+    else {
+      cerr<<"Inlining definition of "<<env.signature->predicateName(_pred)<<" into "<<unit->toString()<<endl;
+    }
+  }
+
+  void traceUnitApplyEnd(Unit* result)
+  {
+    CALL("PDInliner::PDef::traceUnitEnd");
+
+    if(!_parent->_trace) {
+      return;
+    }
+    cerr<<" - finished with result "<<result->toString()<<endl;
+  }
+
+  /**
+   * If tgtLit, tgtForm are zero and constantTrue is false, it means that the result was a constant false.
+   */
+  void traceLiteralApply(Literal* orig, Literal* tgtLit, Formula* tgtForm, bool constantTrue)
+  {
+    CALL("PDInliner::PDef::traceUnitEnd");
+
+    if(!_parent->_trace) {
+      return;
+    }
+    cerr<<" - replacing "<<orig->toString()<<" by ";
+    if(tgtLit) {
+      cerr<<tgtLit->toString();
+    }
+    else if(tgtForm) {
+      cerr<<tgtForm->toString();
+    }
+    else if(constantTrue) {
+      cerr<<"$true";
+    }
+    else {
+      cerr<<"$false";
+    }
+    cerr<<endl;
+  }
+
   /**
    * Perform inlining and return the result. If the resulting clause is a tautology,
    * return zero.
@@ -105,6 +156,8 @@ struct PDInliner::PDef
   Unit* apply(Clause* cl)
   {
     CALL("PDInliner::PDef::apply(Clause*)");
+
+    traceUnitApplyBegin(cl);
 
     static LiteralStack lits;
     lits.reset();
@@ -157,27 +210,35 @@ struct PDInliner::PDef
       inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, cl);
     }
     if(forms.isEmpty()) {
-      return Clause::fromIterator(LiteralStack::Iterator(lits), inp, inf);
+      Clause* res = Clause::fromIterator(LiteralStack::Iterator(lits), inp, inf);
+      traceUnitApplyEnd(res);
+      return res;
     }
+    FormulaUnit* res;
     if(lits.isEmpty() && forms.size()==1) {
-      return new FormulaUnit(forms.top(), inf, inp);
+      res = new FormulaUnit(forms.top(), inf, inp);
     }
-
-    //build a disjunction of all we have (both formulas and literals)
-    FormulaList* disj = 0;
-    FormulaList::pushFromIterator(Stack<Formula*>::Iterator(forms), disj);
-    LiteralStack::Iterator litIt(lits);
-    while(litIt.hasNext()) {
-      FormulaList::push(new AtomicFormula(litIt.next()), disj);
+    else {
+      //build a disjunction of all we have (both formulas and literals)
+      FormulaList* disj = 0;
+      FormulaList::pushFromIterator(Stack<Formula*>::Iterator(forms), disj);
+      LiteralStack::Iterator litIt(lits);
+      while(litIt.hasNext()) {
+	FormulaList::push(new AtomicFormula(litIt.next()), disj);
+      }
+      Formula* form = new JunctionFormula(OR, disj);
+      res = new FormulaUnit(form, inf, inp);
     }
-    Formula* form = new JunctionFormula(OR, disj);
-    FormulaUnit* res = new FormulaUnit(form, inf, inp);
-    return fixFormula(res);
+    res = fixFormula(res);
+    traceUnitApplyEnd(res);
+    return res;
   }
 
   FormulaUnit* apply(FormulaUnit* unit)
   {
     CALL("PDInliner::PDef::apply(FormulaUnit*)");
+
+    traceUnitApplyBegin(unit);
 
     Formula* form = apply(1,unit->formula());
     if(form==unit->formula()) {
@@ -198,7 +259,9 @@ struct PDInliner::PDef
     }
 
     FormulaUnit* res = new FormulaUnit(form, inf, inp);
-    return fixFormula(res);
+    res = fixFormula(res);
+    traceUnitApplyEnd(res);
+    return res;
   }
 
   Formula* apply(int polarity, Formula* form);
@@ -234,6 +297,7 @@ struct PDInliner::PDef
     if(l->isPositive() != _lhs->isPositive()) {
       res = Literal::oppositeLiteral(res);
     }
+    traceLiteralApply(l, res, 0, false);
     return res;
   }
 
@@ -246,7 +310,9 @@ struct PDInliner::PDef
     ASS(constantBody(polarity,l));
 
     bool negate = l->isPositive()!=_lhs->isPositive();
-    return negate ^ (getBody(polarity,l)->connective()==TRUE);
+    bool res = negate ^ (getBody(polarity,l)->connective()==TRUE);
+    traceLiteralApply(l, 0, 0, res);
+    return res;
   }
 
   Formula* apply(int polarity, Literal* l)
@@ -264,6 +330,7 @@ struct PDInliner::PDef
     if(l->isPositive() != _lhs->isPositive()) {
       res = new NegatedFormula(res);
     }
+    traceLiteralApply(l, 0, res, false);
     return res;
   }
 
@@ -559,8 +626,8 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
   }
 }
 
-PDInliner::PDInliner(bool axiomsOnly)
- : _axiomsOnly(axiomsOnly)
+PDInliner::PDInliner(bool axiomsOnly, bool trace)
+ : _axiomsOnly(axiomsOnly), _trace(trace)
 {
   CALL("PDInliner::PDInliner");
 

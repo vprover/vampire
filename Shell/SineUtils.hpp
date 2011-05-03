@@ -58,9 +58,11 @@ class SineSelector
 {
 public:
   SineSelector();
+  SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold=0);
 
   void perform(UnitList*& units);
 private:
+  void init();
 
   void updateDefRelation(Unit* u);
 
@@ -68,6 +70,7 @@ private:
   bool _strict;
   unsigned _genThreshold;
   float _tolerance;
+  unsigned _depthLimit;
 
   /** Stored the D-relation */
   DArray<UnitList*> _def;

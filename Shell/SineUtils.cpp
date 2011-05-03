@@ -190,9 +190,28 @@ void SineBase::initGeneralityFunction(UnitList* units)
 SineSelector::SineSelector()
 : _onIncluded(env.options->sineSelection()==Options::SS_INCLUDED),
   _genThreshold(env.options->sineGeneralityThreshold()),
-  _tolerance(env.options->sineTolerance())
+  _tolerance(env.options->sineTolerance()),
+  _depthLimit(env.options->sineDepth())
 {
-  CALL("SineSelector::SineSelector");
+  CALL("SineSelector::SineSelector/0");
+
+  init();
+}
+
+SineSelector::SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold)
+: _onIncluded(onIncluded),
+  _genThreshold(genThreshold),
+  _tolerance(tolerance),
+  _depthLimit(depthLimit)
+{
+  CALL("SineSelector::SineSelector/4");
+
+  init();
+}
+
+void SineSelector::init()
+{
+  CALL("SineSelector::init");
   ASS_GE(_tolerance, 1.0f);
 
   _strict=_tolerance==1.0f;
@@ -274,7 +293,6 @@ void SineSelector::updateDefRelation(Unit* u)
 void SineSelector::perform(UnitList*& units)
 {
   CALL("SineSelector::perform");
-  ASS_NEQ(env.options->sineSelection(),Options::SS_OFF);
 
   TimeCounter tc(TC_SINE_SELECTION);
 
@@ -302,7 +320,6 @@ void SineSelector::perform(UnitList*& units)
     }
   }
 
-  unsigned depthLimit=env.options->sineDepth();
   unsigned depth=0;
   newlySelected.push_back(0);
 
@@ -313,10 +330,10 @@ void SineSelector::perform(UnitList*& units)
     if(!u) {
       //next selected formulas will be one step further from the original formulas
       depth++;
-      if(depthLimit && depth==depthLimit) {
+      if(_depthLimit && depth==_depthLimit) {
 	break;
       }
-      ASS(!depthLimit || depth<depthLimit);
+      ASS(!_depthLimit || depth<_depthLimit);
 
       if(newlySelected.isNonEmpty()) {
 	//we must push another mark if we're not done yet
