@@ -84,6 +84,7 @@ void LoopAnalyzer::analyze()
   generateLoopConditionProperty();
   cout << "\nCollected first-order loop properties...\n";
   cout << "---------------------\n";
+  generateIterationDefinition();
   UnitList::Iterator units(_units);
   while (units.hasNext()) {
     cout << units.next()->toString() << "\n";
@@ -1302,7 +1303,7 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
 {
    CALL("LoopAnalyzer::generateValueFunctionRelationsOfVariables");
    //create loop counter n and position x2
-   TermList n(Term::createConstant("n"));  //name + Int::toString(0))); 
+   TermList n(Term::createConstant("n")); 
    TermList x2;
    x2.makeVar(2);
    Theory* theory = Theory::instance();
@@ -1392,6 +1393,36 @@ void LoopAnalyzer::generateLoopConditionProperty()
 					new Inference(Inference::PROGRAM_ANALYSIS),
 					Unit::ASSUMPTION));	
 }
+
+/**
+ *Generate the definition of iteration:
+ * iter(X) <=> geq(X,0) && greater(n,X)
+ */
+void LoopAnalyzer::generateIterationDefinition()
+{
+  CALL("LoopAnalyzer::generateIterationDefinition");
+  //iter(X0)
+  TermList x0;
+  x0.makeVar(0);
+  unsigned iter = env.signature->addPredicate("iter",1);
+  Literal* iterPred = Literal::create1(iter,true,x0);
+  Theory* theory = Theory::instance();
+  TermList zero(theory->zero());
+  //0<= X0
+  Formula* ineqXZero = new AtomicFormula(theory->pred2(Theory::INT_LESS_EQUAL,true,zero,x0));
+  //X0<n
+  TermList n(Term::createConstant("n")); 
+  Formula* ineqXn = new AtomicFormula(theory->pred2(Theory::INT_LESS,true,x0,n));
+  //0<= X0 && X0<n
+  Formula* iterDef =  new JunctionFormula(AND, ((new FormulaList(ineqXn)) -> cons(ineqXZero)));
+  //generate the prop: iter <=> ...
+  Formula* iterProp = new BinaryFormula(IFF, new AtomicFormula(iterPred), iterDef);
+ _units = _units->cons(new FormulaUnit(iterProp,
+					new Inference(Inference::PROGRAM_ANALYSIS),
+					Unit::ASSUMPTION));	
+  
+}
+
 
 /**
  * Generate axioms for counters.

@@ -88,6 +88,7 @@ private:
   Formula* stabilityProperty(Literal* updPred, string array, TermList position, TermList iteration);
   void generateValueFunctionRelationsOfVariables();
   void generateLoopConditionProperty();
+  void generateIterationDefinition();
   /** the loop being analyzed */
   WhileDo* _loop;
   /** all variables updated by this loop */
