@@ -313,8 +313,16 @@ public:
    */
   static bool sortedEquality() { return _sortedEquality; }
   static void setSortedEquality(bool newVal) { _sortedEquality = newVal; }
+
+  /**
+   * If true, clauses and formulas are output as tff with all quantified variables.
+   * The default value is false.
+   */
+  static bool tffFormulas() { return _tffFormulas; }
+  static void setTffFormulas(bool newVal) { _tffFormulas = newVal; }
 private:
   static bool _sortedEquality;
+  static bool _tffFormulas;
 };
 
 /**

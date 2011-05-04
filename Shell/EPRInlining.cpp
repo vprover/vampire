@@ -30,7 +30,11 @@
 
 namespace Shell
 {
-
+/**
+ * @warning The units must not contain formulas with predicate equivalences
+ * (these are formulas which can be interpreted as predicate
+ * definitions in two ways).
+ */
 void EPRInlining::scan(UnitList* units)
 {
   CALL("EPRInlining::scan");

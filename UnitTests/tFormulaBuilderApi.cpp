@@ -453,6 +453,8 @@ TEST_FUN(fbapiPDInlining)
     prb.addFormula(afDef);
     prb.addFormula(afpy);
 
+    OutputOptions::setTffFormulas(true);
+
     Problem sprb=prb.skolemize(0, true, Problem::INL_ON, false);
     cout<<"Skolemized:"<<endl;
     AnnotatedFormulaIterator afit=sprb.formulas();
@@ -466,6 +468,7 @@ TEST_FUN(fbapiPDInlining)
     while(afit.hasNext()) {
       cout<<afit.next()<<endl;
     }
+    OutputOptions::setTffFormulas(false);
   } catch (ApiException e) {
     cout<<"Exception: "<<e.msg()<<endl;
     throw;
@@ -522,6 +525,8 @@ TEST_FUN(fbapiPDInlining2)
 TEST_FUN(fbapiEPRRestoringInlining)
 {
   try {
+    OutputOptions::setTffFormulas(true);
+
     Problem prb;
     stringstream stm(
 	"fof(a,axiom, p <=> (r(a)|q)). fof(b,hypothesis, p). fof(c,hypothesis, ~p). fof(d,axiom, r(X) <=> ![Y] : z(Y,a))."
@@ -542,6 +547,7 @@ TEST_FUN(fbapiEPRRestoringInlining)
     iprb = prb.preprocess(opts);
     cout<<"Skolemized:"<<endl;
     iprb.output(cout);
+    OutputOptions::setTffFormulas(false);
   } catch (ApiException e) {
     cout<<"Exception: "<<e.msg()<<endl;
     throw;
@@ -751,6 +757,7 @@ TEST_FUN(fbapiSorts)
     cout<<"Orig:"<<endl<<af<<af2<<endl;
     prb.outputTypeDefinitions(cout);
 
+    OutputOptions::setTffFormulas(true);
     cout<<"Clausified:"<<endl;
     Problem cprb = prb.clausify(4,true,Problem::INL_OFF,false);
     AnnotatedFormulaIterator afit=cprb.formulas();
@@ -758,6 +765,7 @@ TEST_FUN(fbapiSorts)
       cout<<afit.next()<<endl;
     }
     prb.outputTypeDefinitions(cout, true);
+    OutputOptions::setTffFormulas(false);
 
     try{
       api.equality(x,y);

@@ -161,9 +161,11 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
   return res;
 }
 
-string DefaultHelperCore::toString(const Kernel::Formula* f) const
+string DefaultHelperCore::toString(const Kernel::Formula* f0) const
 {
   CALL("DefaultHelperCore::toString(const Kernel::Formula*)");
+
+  Kernel::Formula* f = const_cast<Kernel::Formula*>(f0);
 
   static string names [] =
   { "", " & ", " | ", " => ", " <=> ", " <~> ",
@@ -203,7 +205,21 @@ string DefaultHelperCore::toString(const Kernel::Formula* f) const
     Kernel::Formula::VarList::Iterator vit(f->vars());
     ASS(vit.hasNext());
     while (vit.hasNext()) {
-      result += getVarName(vit.next());
+      unsigned var = vit.next();
+      result += getVarName(var);
+      if(OutputOptions::tffFormulas()) {
+	result += " : ";
+	unsigned sort;
+	if(isFBHelper()) {
+	  sort = static_cast<const FBHelperCore*>(this)->getVarSort(var);
+	}
+	else {
+	  if(!SortHelper::tryGetVariableSort(var, f->qarg(), sort)) {
+	    sort = Sorts::SRT_DEFAULT;
+	  }
+	}
+	result += env.sorts->sortName(sort);
+      }
       if(vit.hasNext()) {
 	result += ',';
       }
@@ -262,10 +278,11 @@ string DefaultHelperCore::toString(const Kernel::Clause* clause) const
  * TPTP role conjecture. If it is a clause, just output it as
  * is, with the role negated_conjecture.
  */
-string DefaultHelperCore::toString (const Kernel::Unit* unit) const
+string DefaultHelperCore::toString (const Kernel::Unit* unit0) const
 {
   CALL("DefaultHelperCore::toString(const Kernel::Unit*)");
 
+  Kernel::Unit* unit = const_cast<Kernel::Unit*>(unit0);
   string prefix;
   string main = "";
 
@@ -291,12 +308,27 @@ string DefaultHelperCore::toString (const Kernel::Unit* unit) const
     break;
   }
 
+  string unitName;
+  if(!Parser::findAxiomName(unit, unitName)) {
+    unitName="u" + Int::toString(unit->number());
+  }
+
   if (unit->isClause()) {
-    prefix = "cnf";
-    main = toString(static_cast<const Kernel::Clause*>(unit));
+    if(OutputOptions::tffFormulas()) {
+      prefix = "tff";
+      //we convert clause into a formula in order to print the
+      //variables quantified with types
+      Kernel::Formula* f = Kernel::Formula::fromClause(static_cast<const Kernel::Clause*>(unit));
+      main = toString(f);
+      //here we have a memory leak (of f), but we probably don't worry about it
+    }
+    else {
+      prefix = "cnf";
+      main = toString(static_cast<const Kernel::Clause*>(unit));
+    }
   }
   else {
-    prefix = "fof";
+    prefix = OutputOptions::tffFormulas() ? "tff" : "fof";
     const Kernel::Formula* f = static_cast<const Kernel::FormulaUnit*>(unit)->formula();
     if(negate_formula) {
       Kernel::Formula* quant=Kernel::Formula::quantify(const_cast<Kernel::Formula*>(f));
@@ -320,10 +352,6 @@ string DefaultHelperCore::toString (const Kernel::Unit* unit) const
     }
   }
 
-  string unitName;
-  if(!Parser::findAxiomName(unit, unitName)) {
-    unitName="u" + Int::toString(unit->number());
-  }
 
 
   return prefix + "(" + unitName + "," + kind + ",\n"

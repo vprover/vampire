@@ -966,6 +966,7 @@ Formula AnnotatedFormula::formula()
 //
 
 bool OutputOptions::_sortedEquality = false;
+bool OutputOptions::_tffFormulas = false;
 
 //////////////////////////////
 // StringIterator implementation
