@@ -97,6 +97,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "empty_clause_subsumption",
   "epr_preserving_naming",
+  "epr_restoring_inlining",
   "equality_proxy",
   "equality_resolution_with_deletion",
 
@@ -470,6 +471,7 @@ Options::Options ()
 
   _emptyClauseSubsumption(false),
   _eprPreservingNaming(false),
+  _eprRestoringInlining(false),
   _equalityProxy(EP_OFF),
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
 
@@ -666,6 +668,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case EPR_PRESERVING_NAMING:
       _eprPreservingNaming = onOffToBool(value,name);
+      return;
+    case EPR_RESTORING_INLINING:
+      _eprRestoringInlining = onOffToBool(value,name);
       return;
     case EQUALITY_PROXY:
       _equalityProxy = (EqualityProxy)Constants::equalityProxyValues.find(value);
@@ -1272,6 +1277,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case EPR_PRESERVING_NAMING:
     str << boolToOnOff(_eprPreservingNaming);
+    return;
+  case EPR_RESTORING_INLINING:
+    str << boolToOnOff(_eprRestoringInlining);
     return;
   case EQUALITY_PROXY:
     str << Constants::equalityProxyValues[_equalityProxy];

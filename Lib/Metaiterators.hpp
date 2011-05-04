@@ -808,6 +808,20 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIteratorFromPtr(Inner* i
 }
 
 /**
+ * Remove duplicate elements from the container @c cont
+ */
+template<class Container>
+void makeUnique(Container& cont)
+{
+  CALL("makeUnique");
+
+  VirtualIterator<ELEMENT_TYPE(Container)> uniqueIt = pvi(
+      getUniquePersistentIterator(ITERATOR_TYPE(Container)(cont)) );
+  cont.reset();
+  cont.loadFromIterator(uniqueIt);
+}
+
+/**
  * Iterator that goes from object @b from to the object @b to using the
  * postfix @b operator++. (The objects are passed in the constructor.)
  * The object @b to is not returned.

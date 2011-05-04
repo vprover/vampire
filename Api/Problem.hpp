@@ -52,11 +52,18 @@ public:
     INL_ON = 1,
     INL_AXIOMS_ONLY = 2,
     /**
+     * Performs only the inlining that is necessary to avoid introducing non-constant
+     * skolem functions (if possible).
+     * This inlining needs to be followed by the unused predicate definition removal
+     * to achieve the desired effect.
+     */
+    INL_EPR_RESTORING = 3,
+    /**
      * This options disables scanning of the problem for definitions.
-     * The definitions need to be supplied by other meand. This mode
+     * The definitions need to be supplied by other means. This mode
      * makes sense only for certaing APIs that perform definition inlining.
      */
-    INL_NO_DISCOVERED_DEFS = 3
+    INL_NO_DISCOVERED_DEFS = 4
   };
 
   enum PreprocessingMode {
@@ -239,19 +246,20 @@ public:
    * Output tff type definitions for non-standard types and for all
    * functions and predicates, whose type contains some non-default sort.
    */
-  void outputTypeDefinitions(ostream& out);
+  void outputTypeDefinitions(ostream& out, bool outputAllTypeDefs=false);
 
   /**
    * Output the problem in TPTP format.
    * If @c outputTypeDefs is true, type definitions will be output
    * using he @c outputTypeDefinitions() function.
    */
-  void output(ostream& out, bool outputTypeDefs=false);
+  void output(ostream& out, bool outputTypeDefs=false, bool outputAllTypeDefs=false);
 private:
   class PData;
   class ProblemTransformer;
 
   class Preprocessor1;
+  class EPRRestoringInliner;
   class PredicateDefinitionInliner;
   class UnusedPredicateDefinitionRemover;
   class Clausifier;

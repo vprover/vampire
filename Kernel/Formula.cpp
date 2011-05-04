@@ -514,6 +514,61 @@ void Formula::collectPredicates(Stack<unsigned>& acc)
   }
 }
 
+void Formula::collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int polarity)
+{
+  CALL("Formula::collectPredicatesWithPolarity");
+
+  switch (connective()) {
+    case LITERAL:
+    {
+      Literal* l=literal();
+      int pred = l->functor();
+      acc.push(make_pair(pred, l->isPositive() ? polarity : -polarity));
+      return;
+    }
+
+    case AND:
+    case OR: {
+      FormulaList::Iterator fs(args());
+      while (fs.hasNext()) {
+	fs.next()->collectPredicatesWithPolarity(acc,polarity);
+      }
+      return;
+    }
+
+    case IMP:
+      left()->collectPredicatesWithPolarity(acc,-polarity);
+      right()->collectPredicatesWithPolarity(acc,polarity);
+      return;
+
+    case NOT:
+      uarg()->collectPredicatesWithPolarity(acc,-polarity);
+      return;
+
+    case IFF:
+    case XOR:
+      left()->collectPredicatesWithPolarity(acc,0);
+      right()->collectPredicatesWithPolarity(acc,0);
+      return;
+
+    case FORALL:
+    case EXISTS:
+      qarg()->collectPredicatesWithPolarity(acc,polarity);
+      return;
+
+    case TRUE:
+    case FALSE:
+      return;
+
+#if VDEBUG
+    default:
+      ASSERTION_VIOLATION;
+      return;
+#endif
+  }
+}
+
+
 /**
  * Compute the weight of the formula: the number of connectives plus the
  * weight of all atoms.

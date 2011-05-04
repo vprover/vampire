@@ -289,6 +289,8 @@ class Statistics;
 class TPTPLexer;
 class TPTPParser;
 
+class EPRInlining;
+
 namespace LTB
 {
 class Storage;

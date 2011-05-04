@@ -43,6 +43,7 @@ public:
 
     EMPTY_CLAUSE_SUBSUMPTION,
     EPR_PRESERVING_NAMING,
+    EPR_RESTORING_INLINING,
     EQUALITY_PROXY,
     EQUALITY_RESOLUTION_WITH_DELETION,
 
@@ -307,6 +308,7 @@ public:
   bool setNaming(int newVal);
   bool eprPreservingNaming() const { return _eprPreservingNaming; }
   void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
+  bool eprRestoringInlining() const { return _eprRestoringInlining; }
   InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining; }
   void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
   Mode mode() const { return _mode; }
@@ -465,6 +467,7 @@ private:
 
   bool _emptyClauseSubsumption;
   bool _eprPreservingNaming;
+  bool _eprRestoringInlining;
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
 

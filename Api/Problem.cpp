@@ -23,6 +23,7 @@
 #include "Kernel/Unit.hpp"
 
 #include "Shell/CNF.hpp"
+#include "Shell/EPRInlining.hpp"
 #include "Shell/Flattening.hpp"
 #include "Shell/FormulaIteExpander.hpp"
 #include "Shell/LispLexer.hpp"
@@ -381,6 +382,49 @@ protected:
   }
 };
 
+class Problem::EPRRestoringInliner : public ProblemTransformer
+{
+public:
+  EPRRestoringInliner(bool trace)
+      : _erInliner(trace)
+  {
+  }
+
+protected:
+  virtual void transformImpl(Problem p)
+  {
+    CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+    _erInliner.scan(units);
+    units->destroy();
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      transform(f);
+    }
+  }
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::EPRRestoringInliner::transformImpl");
+
+    Kernel::Unit* res = _erInliner.apply(unit);
+    if(res) {
+      addUnit(res);
+    }
+  }
+
+  Shell::EPRInlining _erInliner;
+};
+
 class Problem::PredicateDefinitionInliner : public ProblemTransformer
 {
 public:
@@ -690,15 +734,22 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
 
   Problem res = *this;
 
+  res = Preprocessor1().transform(res);
+
   if(options.sineSelection) {
     res = SineSelector(options.sineTolerance, options.sineDepthLimit).transform(res);
   }
   if(options.mode==PM_SELECTION_ONLY) {
     return res;
   }
-  res = Preprocessor1().transform(res);
+
   if(options.predicateDefinitionInlining!=INL_OFF) {
-    res = PredicateDefinitionInliner(options.predicateDefinitionInlining,options.traceInlining).transform(res);
+    if(options.predicateDefinitionInlining==INL_EPR_RESTORING) {
+      res = EPRRestoringInliner(options.traceInlining).transform(res);
+    }
+    else {
+      res = PredicateDefinitionInliner(options.predicateDefinitionInlining,options.traceInlining).transform(res);
+    }
   }
   if(options.unusedPredicateDefinitionRemoval) {
     res = UnusedPredicateDefinitionRemover().transform(res);
@@ -740,7 +791,7 @@ Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formul
   return res;
 }
 
-void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function)
+void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs)
 {
   CALL("outputSymbolTypeDefinitions");
 
@@ -748,7 +799,7 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
   BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
 
-  if(type->isAllDefault()) {
+  if(!outputAllTypeDefs && type->isAllDefault()) {
     return;
   }
 
@@ -776,7 +827,7 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
 
 }
 
-void Problem::outputTypeDefinitions(ostream& out)
+void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
 {
   CALL("Problem::outputTypeDefinitions");
 
@@ -788,20 +839,20 @@ void Problem::outputTypeDefinitions(ostream& out)
 
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    outputSymbolTypeDefinitions(out, i, true);
+    outputSymbolTypeDefinitions(out, i, true, outputAllTypeDefs);
   }
   unsigned preds = env.signature->predicates();
   for(unsigned i=1; i<preds; i++) {
-    outputSymbolTypeDefinitions(out, i, false);
+    outputSymbolTypeDefinitions(out, i, false, outputAllTypeDefs);
   }
 }
 
-void Problem::output(ostream& out, bool outputTypeDefs)
+void Problem::output(ostream& out, bool outputTypeDefs, bool outputAllTypeDefs)
 {
   CALL("Problem::output");
 
   if(outputTypeDefs) {
-    outputTypeDefinitions(out);
+    outputTypeDefinitions(out, outputAllTypeDefs);
   }
   AnnotatedFormulaIterator afit = formulas();
   while(afit.hasNext()) {

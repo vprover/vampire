@@ -35,7 +35,7 @@ public:
    *
    * The rule preserves flattening and true/false simplifiedness of formulas.
    */
-  void apply(UnitList*& units);
+  void apply(UnitList*& units, bool inlineOnlyEquivalences=false);
   Unit* apply(Unit* u);
 
   /**
@@ -46,17 +46,21 @@ public:
 
   bool tryGetPredicateEquivalence(FormulaUnit* unit);
 
-  bool addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* negBody, Formula* dblBody);
+  bool addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* negBody, Formula* dblBody,
+      FormulaUnit* premise=0);
 private:
+
+  friend class EPRInlining;
 
   struct Applicator;
   struct PDef;
 
   bool isEligible(FormulaUnit* u);
 
-  void scanAndRemoveDefinitions(UnitList*& units);
+  void scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly);
   bool tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs);
 
+  static bool isPredicateEquivalence(FormulaUnit* u);
   static bool isPredicateEquivalence(FormulaUnit* u, unsigned& pred1, unsigned& pred2);
   static bool isDefinitionHead(Literal* l);
 

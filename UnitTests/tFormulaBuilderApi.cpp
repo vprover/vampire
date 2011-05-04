@@ -519,6 +519,35 @@ TEST_FUN(fbapiPDInlining2)
   }
 }
 
+TEST_FUN(fbapiEPRRestoringInlining)
+{
+  try {
+    Problem prb;
+    stringstream stm(
+	"fof(a,axiom, p <=> (r(a)|q)). fof(b,hypothesis, p). fof(c,hypothesis, ~p). fof(d,axiom, r(X) <=> ![Y] : z(Y,a))."
+	"fof(e,axiom, q <=> (s|t)).");
+    prb.addFromStream(stm);
+
+    cout<<endl<<"FOF:"<<endl;
+    prb.output(cout);
+
+    Problem iprb=prb.inlinePredicateDefinitions(Problem::INL_EPR_RESTORING).removeUnusedPredicateDefinitions();
+    cout<<"Inlined:"<<endl;
+    iprb.output(cout);
+
+    Problem::PreprocessingOptions opts;
+    opts.mode = Problem::PM_SKOLEMIZE;
+    opts.predicateDefinitionInlining = Problem::INL_EPR_RESTORING;
+    opts.traceInlining = true;
+    iprb = prb.preprocess(opts);
+    cout<<"Skolemized:"<<endl;
+    iprb.output(cout);
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
 TEST_FUN(fbapiAsymReplacement)
 {
   try {
@@ -728,7 +757,7 @@ TEST_FUN(fbapiSorts)
     while(afit.hasNext()) {
       cout<<afit.next()<<endl;
     }
-    prb.outputTypeDefinitions(cout);
+    prb.outputTypeDefinitions(cout, true);
 
     try{
       api.equality(x,y);

@@ -11,6 +11,7 @@
 #include "Kernel/Clause.hpp"
 
 #include "CNF.hpp"
+#include "EPRInlining.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
 #include "Flattening.hpp"
@@ -127,6 +128,11 @@ void Preprocess::preprocess (UnitList*& units)
 
   {
     FormulaIteExpander().apply(units);
+  }
+
+  if (_options.eprRestoringInlining()) {
+    env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
+    EPRInlining().apply(units);
   }
 
   if (_options.predicateDefinitionInlining()!=Options::INL_OFF) {
