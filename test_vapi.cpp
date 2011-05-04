@@ -46,10 +46,11 @@ void inlineTest(const char* fname)
   Problem p;
   p.addFromStream(fs);
 
-  Problem p2=p.inlinePredicateDefinitions();
+  Problem p2=p.inlinePredicateDefinitions(Problem::INL_EPR_RESTORING);
   Problem p3=p2.removeUnusedPredicateDefinitions();
 
   printProblem(p3);
+  printProblem(p3.clausify(8,true));
 }
 
 void testSubst()

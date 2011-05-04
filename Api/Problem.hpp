@@ -59,11 +59,15 @@ public:
      */
     INL_EPR_RESTORING = 3,
     /**
+     * Inline only symetric equivalences between two predicates.
+     */
+    INL_PREDICATE_EQUIVALENCES_ONLY = 4,
+    /**
      * This options disables scanning of the problem for definitions.
      * The definitions need to be supplied by other means. This mode
      * makes sense only for certaing APIs that perform definition inlining.
      */
-    INL_NO_DISCOVERED_DEFS = 4
+    INL_NO_DISCOVERED_DEFS = 5
   };
 
   enum PreprocessingMode {

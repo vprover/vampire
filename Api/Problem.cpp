@@ -382,49 +382,6 @@ protected:
   }
 };
 
-class Problem::EPRRestoringInliner : public ProblemTransformer
-{
-public:
-  EPRRestoringInliner(bool trace)
-      : _erInliner(trace)
-  {
-  }
-
-protected:
-  virtual void transformImpl(Problem p)
-  {
-    CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
-
-    Kernel::UnitList* units = 0;
-
-    AnnotatedFormulaIterator fit=p.formulas();
-    while(fit.hasNext()) {
-      AnnotatedFormula f=fit.next();
-      Kernel::UnitList::push(f.unit, units);
-    }
-    _erInliner.scan(units);
-    units->destroy();
-
-    fit=p.formulas();
-    while(fit.hasNext()) {
-      AnnotatedFormula f=fit.next();
-      transform(f);
-    }
-  }
-
-  void transformImpl(Kernel::Unit* unit)
-  {
-    CALL("Problem::EPRRestoringInliner::transformImpl");
-
-    Kernel::Unit* res = _erInliner.apply(unit);
-    if(res) {
-      addUnit(res);
-    }
-  }
-
-  Shell::EPRInlining _erInliner;
-};
-
 class Problem::PredicateDefinitionInliner : public ProblemTransformer
 {
 public:
@@ -481,15 +438,17 @@ protected:
 	}
       }
 
-      fit=p.formulas();
-      while(fit.hasNext()) {
-	AnnotatedFormula f=fit.next();
-	if(f.unit->isClause() || defs.contains(f.unit)) {
-	  continue;
-	}
-	FormulaUnit* fu = static_cast<FormulaUnit*>(f.unit);
-	if(_pdInliner.tryGetDef(fu)) {
-	  defs.insert(fu);
+      if(_mode!=INL_PREDICATE_EQUIVALENCES_ONLY) {
+	fit=p.formulas();
+	while(fit.hasNext()) {
+	  AnnotatedFormula f=fit.next();
+	  if(f.unit->isClause() || defs.contains(f.unit)) {
+	    continue;
+	  }
+	  FormulaUnit* fu = static_cast<FormulaUnit*>(f.unit);
+	  if(_pdInliner.tryGetDef(fu)) {
+	    defs.insert(fu);
+	  }
 	}
       }
     }
@@ -517,6 +476,53 @@ protected:
   InliningMode _mode;
   Shell::PDInliner _pdInliner;
 };
+
+class Problem::EPRRestoringInliner : public ProblemTransformer
+{
+public:
+  EPRRestoringInliner(bool trace)
+      : _trace(trace), _erInliner(trace)
+  {
+  }
+
+protected:
+  virtual void transformImpl(Problem p)
+  {
+    CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
+
+    p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY, _trace).transform(p);
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+    _erInliner.scan(units);
+    units->destroy();
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      transform(f);
+    }
+  }
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::EPRRestoringInliner::transformImpl");
+
+    Kernel::Unit* res = _erInliner.apply(unit);
+    if(res) {
+      addUnit(res);
+    }
+  }
+
+  bool _trace;
+  Shell::EPRInlining _erInliner;
+};
+
 
 class Problem::UnusedPredicateDefinitionRemover : public ProblemTransformer
 {
