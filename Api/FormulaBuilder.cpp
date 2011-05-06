@@ -180,6 +180,37 @@ Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort
   return Predicate(res);
 }
 
+void FormulaBuilder::addAttribute(Predicate p, string name, string value)
+{
+  CALL("FormulaBuilder::addAttribute(Predicate,string,string)");
+  NOT_IMPLEMENTED;
+}
+
+unsigned FormulaBuilder::attributeCount(Predicate p)
+{
+  CALL("FormulaBuilder::attributeCount(Predicate)");
+  NOT_IMPLEMENTED;
+}
+
+string FormulaBuilder::getAttributeName(Predicate p, unsigned index)
+{
+  CALL("FormulaBuilder::getAttributeName(Predicate,unsigned)");
+  NOT_IMPLEMENTED;
+}
+
+string FormulaBuilder::getAttributeValue(Predicate p, unsigned index)
+{
+  CALL("FormulaBuilder::getAttributeValue(Predicate,unsigned)");
+  NOT_IMPLEMENTED;
+}
+
+string FormulaBuilder::getAttributeValue(Predicate p, string attributeName)
+{
+  CALL("FormulaBuilder::getAttributeValue(Predicate,string)");
+  NOT_IMPLEMENTED;
+}
+
+
 Term FormulaBuilder::varTerm(const Var& v)
 {
   CALL("FormulaBuilder::varTerm");

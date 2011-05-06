@@ -188,6 +188,25 @@ public:
    * FormulaBuilder class. */
   Predicate predicate(const string& predName, unsigned arity, Sort* domainSorts);
 
+
+  void addAttribute(Predicate p, string name, string value);
+  unsigned attributeCount(Predicate p);
+  string getAttributeName(Predicate p, unsigned index);
+  string getAttributeValue(Predicate p, unsigned index);
+  string getAttributeValue(Predicate p, string attributeName);
+
+  void addAttribute(Function fn, string name, string value);
+  unsigned attributeCount(Function fn);
+  string getAttributeName(Function fn, unsigned index);
+  string getAttributeValue(Function fn, unsigned index);
+  string getAttributeValue(Function fn, string attributeName);
+
+  void addAttribute(Sort s, string name, string value);
+  unsigned attributeCount(Sort s);
+  string getAttributeName(Sort s, unsigned index);
+  string getAttributeValue(Sort s, unsigned index);
+  string getAttributeValue(Sort s, string attributeName);
+
   /** build a variable term */
   Term varTerm(const Var& v);
 
