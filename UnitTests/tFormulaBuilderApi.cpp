@@ -197,8 +197,8 @@ TEST_FUN(fbapiStrConv)
   try {
     FormulaBuilder api(true, true);
 
-    Function xv = api.var("X");
-    Function yv = api.var("Y");
+    Var xv = api.var("X");
+    Var yv = api.var("Y");
     Function ct = api.function("c",0);
     Function f = api.function("f",1);
     Function g = api.function("g",2);
@@ -277,7 +277,7 @@ TEST_FUN(fbapiErrors)
 
   Var x = api.var("X");
   Term xt = api.varTerm(x);
-  Predicate f = api.function("e_f",4);
+  Function f = api.function("e_f",4);
   Predicate p = api.predicate("e_p",4);
   Predicate q = api.predicate("e_q",1);
 
@@ -427,7 +427,7 @@ TEST_FUN(fbapiPDInlining)
 
     Var xv = api.var("Var");
     Var yv = api.var("Var2");
-    Predicate cSym=api.function("c",0);
+    Function cSym=api.function("c",0);
     Term x = api.varTerm(xv);
     Term y = api.varTerm(yv);
     Term c = api.term(cSym);
@@ -571,8 +571,8 @@ TEST_FUN(fbapiAsymReplacement)
     FormulaBuilder api;
 
     Var xv = api.var("Var");
-    Predicate cSym=api.function("c",0);
-    Predicate dSym=api.function("d",0);
+    Function cSym=api.function("c",0);
+    Function dSym=api.function("d",0);
     Term x = api.varTerm(xv);
     Term c = api.term(cSym);
     Term d = api.term(dSym);
@@ -674,7 +674,7 @@ TEST_FUN(fbapiIds)
 
   Var xv = api.var("X");
   Term x = api.varTerm(xv);
-  Predicate f = api.function("f",1);
+  Function f = api.function("f",1);
   Term t=x;
   for(int i=0;i<5;i++) {
     cout<<t.toString()<<" "<<getId(t)<<endl;
@@ -698,8 +698,8 @@ TEST_FUN(fbapiSorts)
     Var xv = api.var("VarS1", s1);
     Var yv = api.var("VarS2", s2);
     Var zv = api.var("VarDef");
-    Predicate cSym=api.function("c_s1",0,s1,0);
-    Predicate dSym=api.function("d_s2",0,s2,0);
+    Function cSym=api.function("c_s1",0,s1,0);
+    Function dSym=api.function("d_s2",0,s2,0);
     Term x = api.varTerm(xv);
     Term y = api.varTerm(yv);
     Term z = api.varTerm(zv);

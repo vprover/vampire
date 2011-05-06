@@ -75,9 +75,9 @@ private:
 };
 
 typedef unsigned Var;
-typedef unsigned Function;
-typedef unsigned Predicate;
 class Sort;
+class Function;
+class Predicate;
 class Term;
 class Formula;
 class AnnotatedFormula;
@@ -360,6 +360,26 @@ class Sort
 public:
   Sort() {}
   explicit Sort(unsigned num) : _num(num) {}
+  operator unsigned() const { return _num; }
+private:
+  unsigned _num;
+};
+
+class Function
+{
+public:
+  Function() {}
+  explicit Function(unsigned num) : _num(num) {}
+  operator unsigned() const { return _num; }
+private:
+  unsigned _num;
+};
+
+class Predicate
+{
+public:
+  Predicate() {}
+  explicit Predicate(unsigned num) : _num(num) {}
   operator unsigned() const { return _num; }
 private:
   unsigned _num;

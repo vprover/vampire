@@ -135,10 +135,10 @@ Function FormulaBuilder::function(const string& funName, unsigned arity, Sort ra
     }
     delete fnType;
   }
-  return res;
+  return Function(res);
 }
 
-Function FormulaBuilder::predicate(const string& predName,unsigned arity)
+Predicate FormulaBuilder::predicate(const string& predName,unsigned arity)
 {
   CALL("FormulaBuilder::predicate/2");
 
@@ -177,7 +177,7 @@ Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort
     }
     delete predType;
   }
-  return res;
+  return Predicate(res);
 }
 
 Term FormulaBuilder::varTerm(const Var& v)
@@ -635,10 +635,10 @@ Function Term::functor() const
   if(isVar()) {
     throw ApiException("Functor cannot be retrieved for a variable term");
   }
-  return static_cast<Kernel::TermList>(*this).term()->functor();
+  return Function(static_cast<Kernel::TermList>(*this).term()->functor());
 }
 
-Function Term::arity() const
+unsigned Term::arity() const
 {
   CALL("Term::arity");
 
@@ -742,7 +742,7 @@ Predicate Formula::predicate() const
   if(form->connective()!=Kernel::LITERAL) {
     throw ApiException("Predicate symbol can be retrieved only from atoms");
   }
-  return form->literal()->functor();
+  return Predicate(form->literal()->functor());
 }
 
 bool Formula::atomPolarity() const
