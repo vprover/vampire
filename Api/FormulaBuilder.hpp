@@ -74,10 +74,10 @@ private:
   string _name;
 };
 
-typedef unsigned Sort;
 typedef unsigned Var;
 typedef unsigned Function;
 typedef unsigned Predicate;
+class Sort;
 class Term;
 class Formula;
 class AnnotatedFormula;
@@ -293,6 +293,7 @@ private:
 
 }
 
+std::ostream& operator<< (std::ostream& str,const Api::Sort& sort);
 std::ostream& operator<< (std::ostream& str,const Api::Formula& f);
 std::ostream& operator<< (std::ostream& str,const Api::AnnotatedFormula& f);
 
@@ -352,6 +353,16 @@ public:
 
 private:
   VirtualIterator<string>* _impl;
+};
+
+class Sort
+{
+public:
+  Sort() {}
+  explicit Sort(unsigned num) : _num(num) {}
+  operator unsigned() const { return _num; }
+private:
+  unsigned _num;
 };
 
 class Term

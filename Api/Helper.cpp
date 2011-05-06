@@ -463,7 +463,7 @@ Sort FBHelperCore::getSort(const Api::Term t)
   }
   else {
     unsigned fun = t.functor();
-    return env.signature->getFunction(fun)->fnType()->result();
+    return Sort(env.signature->getFunction(fun)->fnType()->result());
   }
 }
 

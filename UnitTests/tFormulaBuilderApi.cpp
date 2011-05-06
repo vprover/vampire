@@ -694,6 +694,7 @@ TEST_FUN(fbapiSorts)
 
     Sort s1 = api.sort("sort1");
     Sort s2 = api.sort("sort2");
+    cout<<s1<<" "<<s2<<" "<<api.defaultSort()<<endl;
     Var xv = api.var("VarS1", s1);
     Var yv = api.var("VarS2", s2);
     Var zv = api.var("VarDef");

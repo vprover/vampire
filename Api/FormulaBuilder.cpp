@@ -59,14 +59,14 @@ Sort FormulaBuilder::sort(const string& sortName)
   if(!added) {
     throw ApiException("Sort name must be unique");
   }
-  return res;
+  return Sort(res);
 }
 
 Sort FormulaBuilder::defaultSort()
 {
   CALL("FormulaBuilder::defaultSort");
 
-  return Sorts::SRT_DEFAULT;
+  return Sort(Sorts::SRT_DEFAULT);
 }
 
 string FormulaBuilder::getSortName(Sort s)
@@ -119,7 +119,11 @@ Function FormulaBuilder::function(const string& funName, unsigned arity, Sort ra
   bool added;
   unsigned res = env.signature->addFunction(funName, arity, added);
   Kernel::Signature::Symbol* sym = env.signature->getFunction(res);
-  FunctionType* fnType = new FunctionType(arity, domainSorts, rangeSort);
+
+  static DArray<unsigned> nativeSorts;
+  nativeSorts.initFromArray(arity, domainSorts);
+
+  FunctionType* fnType = new FunctionType(arity, nativeSorts.array(), rangeSort);
 
   if(added) {
     sym->setType(fnType);
@@ -158,7 +162,11 @@ Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort
   unsigned res = env.signature->addPredicate(predName, arity, added);
 
   Kernel::Signature::Symbol* sym = env.signature->getPredicate(res);
-  PredicateType* predType = new PredicateType(arity, domainSorts);
+
+  static DArray<unsigned> nativeSorts;
+  nativeSorts.initFromArray(arity, domainSorts);
+
+  PredicateType* predType = new PredicateType(arity, nativeSorts.array());
   if(added) {
     sym->setType(predType);
   }
@@ -1046,6 +1054,12 @@ string StringIterator::next()
 
 //////////////////////////////
 // Output implementation
+
+std::ostream& operator<< (std::ostream& str,const Api::Sort& sort)
+{
+  CALL("operator<< (ostream&,const Api::Sort&)");
+  return str<<env.sorts->sortName(sort);
+}
 
 ostream& operator<< (ostream& str,const Api::Formula& f)
 {
