@@ -830,5 +830,55 @@ TEST_FUN(fbapiSine)
   }
 }
 
+TEST_FUN(fbapiAttributes)
+{
+  try {
+    FormulaBuilder api;
+
+    Function c=api.function("c",0);
+    Predicate p=api.predicate("p",1);
+
+    api.addAttribute(p, "a1", "v1");
+    api.addAttribute(p, "a2", "v2");
+    api.addAttribute(p, "a3", "v3");
+
+    ASS_EQ(api.attributeCount(p),3);
+    ASS_EQ(api.getAttributeName(p,0),"a1");
+    ASS_EQ(api.getAttributeName(p,1),"a2");
+    ASS_EQ(api.getAttributeName(p,2),"a3");
+    ASS_EQ(api.getAttributeValue(p,"a2"),"v2");
+
+    try{
+      api.getAttributeValue(p,"a4");
+      ASSERTION_VIOLATION;
+    } catch (FormulaBuilderException e)
+    {}
+
+    try{
+      api.getAttributeValue(p,4);
+      ASSERTION_VIOLATION;
+    } catch (FormulaBuilderException e)
+    {}
+
+    api.addAttribute(c, "b1", "v1");
+    ASS_EQ(api.getAttributeValue(c,"b1"),"v1");
+
+    Sort s = api.sort("srt");
+    api.addAttribute(s, "strAttr", "val");
+    api.addAttribute(s, "strAttr2", "val2");
+
+    Problem prb;
+    Term ctrm = api.term(c);
+    Formula f=api.formula(p, ctrm);
+    AnnotatedFormula af = api.annotatedFormula(f, FormulaBuilder::AXIOM, "ax1");
+    prb.addFormula(af);
+    prb.output(cout,true, true);
+
+
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
 
 

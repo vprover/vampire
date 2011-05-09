@@ -33,10 +33,6 @@ struct Relocator<Stack<C> >;
 template<class C>
 class Stack
 {
-private:
-  //private and undefined operator= and copy constructor to avoid implicitly generated ones
-  Stack(const Stack&);
-  Stack& operator=(const Stack&);
 public:
   class Iterator;
 
@@ -64,6 +60,20 @@ public:
     _end = _stack+_capacity;
   }
 
+  Stack(const Stack& s)
+   : _capacity(s._capacity)
+  {
+    CALL("Stack::Stack(const Stack&)");
+
+    void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Stack<>");
+    _stack = static_cast<C*>(mem);
+    _cursor = _stack;
+    _end = _stack+_capacity;
+
+    loadFromIterator(BottomFirstIterator(const_cast<Stack&>(s)));
+  }
+
+
   /** De-allocate the stack
    * @since 13/01/2008 Manchester
    */
@@ -80,6 +90,16 @@ public:
     }
     DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");
   }
+
+  Stack& operator=(const Stack& s)
+  {
+    CALL("Stack::operator=");
+
+    reset();
+    loadFromIterator(BottomFirstIterator(const_cast<Stack&>(s)));
+    return *this;
+  }
+
 
   /**
    * Put all elements of an iterator onto the stack.

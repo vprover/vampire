@@ -118,7 +118,39 @@ public:
   Sort getSort(const Api::Term t);
   void ensureArgumentsSortsMatch(BaseType* type, const Api::Term* args);
   void ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const Api::Term arg2);
+
+  typedef pair<string,string> AttribPair;
+  typedef Stack<AttribPair> AttribStack;
+
+  AttribStack& getSortAttributes(unsigned srt)
+  {
+    CALL("ApiHelperCore::getSortAttributes");
+    AttribStack* res;
+    _sortAttributes.getValuePtr(srt, res);
+    return *res;
+  }
+
+  AttribStack& getPredicateAttributes(unsigned pred)
+  {
+    CALL("ApiHelperCore::getPredicateAttributes");
+    AttribStack* res;
+    _predicateAttributes.getValuePtr(pred, res);
+    return *res;
+  }
+
+  AttribStack& getFunctionAttributes(unsigned func)
+  {
+    CALL("ApiHelperCore::getFunctionAttributes");
+    AttribStack* res;
+    _functionAttributes.getValuePtr(func, res);
+    return *res;
+  }
+
 private:
+
+  DHMap<unsigned,AttribStack > _sortAttributes;
+  DHMap<unsigned,AttribStack > _predicateAttributes;
+  DHMap<unsigned,AttribStack > _functionAttributes;
 
   struct FBVarFactory : public VarManager::VarFactory
   {

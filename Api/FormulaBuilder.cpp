@@ -180,34 +180,148 @@ Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort
   return Predicate(res);
 }
 
+void FormulaBuilder::addAttribute(Sort p, string name, string value)
+{
+  CALL("FormulaBuilder::addAttribute(Sort,string,string)");
+
+  _aux->getSortAttributes(p).push(make_pair(name, value));
+}
+
+unsigned FormulaBuilder::attributeCount(Sort p)
+{
+  CALL("FormulaBuilder::attributeCount(Sort)");
+
+  return _aux->getSortAttributes(p).size();
+}
+
+string FormulaBuilder::getAttributeName(Sort p, unsigned index)
+{
+  CALL("FormulaBuilder::getAttributeName(Sort,unsigned)");
+
+  if(index>attributeCount(p)) {
+    throw FormulaBuilderException("Attribute index out of bounds");
+  }
+  return _aux->getSortAttributes(p)[index].first;
+}
+
+string FormulaBuilder::getAttributeValue(Sort p, unsigned index)
+{
+  CALL("FormulaBuilder::getAttributeValue(Sort,unsigned)");
+
+  if(index>attributeCount(p)) {
+    throw FormulaBuilderException("Attribute index out of bounds");
+  }
+  return _aux->getSortAttributes(p)[index].second;
+}
+
+string FormulaBuilder::getAttributeValue(Sort p, string attributeName)
+{
+  CALL("FormulaBuilder::getAttributeValue(Sort,string)");
+
+  FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getSortAttributes(p));
+  while(it.hasNext()) {
+    pair<string,string> curr = it.next();
+    if(curr.first==attributeName) {
+      return curr.second;
+    }
+  }
+  throw FormulaBuilderException("Requested attribute does not exist");
+}
+
 void FormulaBuilder::addAttribute(Predicate p, string name, string value)
 {
   CALL("FormulaBuilder::addAttribute(Predicate,string,string)");
-  NOT_IMPLEMENTED;
+
+  _aux->getPredicateAttributes(p).push(make_pair(name, value));
 }
 
 unsigned FormulaBuilder::attributeCount(Predicate p)
 {
   CALL("FormulaBuilder::attributeCount(Predicate)");
-  NOT_IMPLEMENTED;
+
+  return _aux->getPredicateAttributes(p).size();
 }
 
 string FormulaBuilder::getAttributeName(Predicate p, unsigned index)
 {
   CALL("FormulaBuilder::getAttributeName(Predicate,unsigned)");
-  NOT_IMPLEMENTED;
+
+  if(index>attributeCount(p)) {
+    throw FormulaBuilderException("Attribute index out of bounds");
+  }
+  return _aux->getPredicateAttributes(p)[index].first;
 }
 
 string FormulaBuilder::getAttributeValue(Predicate p, unsigned index)
 {
   CALL("FormulaBuilder::getAttributeValue(Predicate,unsigned)");
-  NOT_IMPLEMENTED;
+
+  if(index>attributeCount(p)) {
+    throw FormulaBuilderException("Attribute index out of bounds");
+  }
+  return _aux->getPredicateAttributes(p)[index].second;
 }
 
 string FormulaBuilder::getAttributeValue(Predicate p, string attributeName)
 {
   CALL("FormulaBuilder::getAttributeValue(Predicate,string)");
-  NOT_IMPLEMENTED;
+
+  FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getPredicateAttributes(p));
+  while(it.hasNext()) {
+    pair<string,string> curr = it.next();
+    if(curr.first==attributeName) {
+      return curr.second;
+    }
+  }
+  throw FormulaBuilderException("Requested attribute does not exist");
+}
+
+void FormulaBuilder::addAttribute(Function p, string name, string value)
+{
+  CALL("FormulaBuilder::addAttribute(Function,string,string)");
+
+  _aux->getFunctionAttributes(p).push(make_pair(name, value));
+}
+
+unsigned FormulaBuilder::attributeCount(Function p)
+{
+  CALL("FormulaBuilder::attributeCount(Function)");
+
+  return _aux->getFunctionAttributes(p).size();
+}
+
+string FormulaBuilder::getAttributeName(Function p, unsigned index)
+{
+  CALL("FormulaBuilder::getAttributeName(Function,unsigned)");
+
+  if(index>attributeCount(p)) {
+    throw FormulaBuilderException("Attribute index out of bounds");
+  }
+  return _aux->getFunctionAttributes(p)[index].first;
+}
+
+string FormulaBuilder::getAttributeValue(Function p, unsigned index)
+{
+  CALL("FormulaBuilder::getAttributeValue(Function,unsigned)");
+
+  if(index>attributeCount(p)) {
+    throw FormulaBuilderException("Attribute index out of bounds");
+  }
+  return _aux->getFunctionAttributes(p)[index].second;
+}
+
+string FormulaBuilder::getAttributeValue(Function p, string attributeName)
+{
+  CALL("FormulaBuilder::getAttributeValue(Function,string)");
+
+  FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getFunctionAttributes(p));
+  while(it.hasNext()) {
+    pair<string,string> curr = it.next();
+    if(curr.first==attributeName) {
+      return curr.second;
+    }
+  }
+  throw FormulaBuilderException("Requested attribute does not exist");
 }
 
 

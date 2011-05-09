@@ -120,6 +120,12 @@ public:
 
   AFList*& forms() { return _forms; }
 
+  DefaultHelperCore* getCore() {
+    CALL("Problem::PData::getCore");
+    if(!_forms) { return 0; }
+    return *_forms->head()._aux;
+  }
+
 private:
   size_t _size;
   AFList* _forms;
@@ -797,7 +803,22 @@ Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formul
   return res;
 }
 
-void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs)
+void outputAttributes(ostream& out, FBHelperCore::AttribStack* attribs)
+{
+  CALL("outputAttributes");
+
+  if(!attribs) {
+    return;
+  }
+  FBHelperCore::AttribStack::BottomFirstIterator it(*attribs);
+  while(it.hasNext()) {
+    FBHelperCore::AttribPair attr = it.next();
+    out << " | $attr(" << attr.first << ", " << attr.second <<")";
+  }
+}
+
+void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs,
+    FBHelperCore::AttribStack* attribs)
 {
   CALL("outputSymbolTypeDefinitions");
 
@@ -829,6 +850,7 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
   else {
     out << "$o";
   }
+  outputAttributes(out, attribs);
   out << " )." << endl;
 
 }
@@ -837,19 +859,25 @@ void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
 {
   CALL("Problem::outputTypeDefinitions");
 
+  DefaultHelperCore* core0 = _data->getCore();
+  FBHelperCore* core = (core0 && core0->isFBHelper()) ? static_cast<FBHelperCore*>(core0) : 0;
   unsigned sorts = env.sorts->sorts();
   for(unsigned i=Sorts::FIRST_USER_SORT; i<sorts; i++) {
-    out << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i) << ": $tType )." << endl;
+    out << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i) << ": $tType";
+    if(core) { outputAttributes(out, &core->getSortAttributes(i)); }
+    out << " )." << endl;
   }
 
 
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    outputSymbolTypeDefinitions(out, i, true, outputAllTypeDefs);
+    outputSymbolTypeDefinitions(out, i, true, outputAllTypeDefs,
+	core ? &core->getFunctionAttributes(i) : 0);
   }
   unsigned preds = env.signature->predicates();
   for(unsigned i=1; i<preds; i++) {
-    outputSymbolTypeDefinitions(out, i, false, outputAllTypeDefs);
+    outputSymbolTypeDefinitions(out, i, false, outputAllTypeDefs,
+	core ? &core->getPredicateAttributes(i) : 0);
   }
 }
 
