@@ -28,9 +28,11 @@ public:
 
   bool hasNext ();
   Formula* next ();
+  Formula* next (int& polarity);
 private:
   class Element;
   Formula* _current;
+  int _currentPolarity;
   Element* _reserve;
 }; // class SubformulaIterator
 

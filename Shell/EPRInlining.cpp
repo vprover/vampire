@@ -8,7 +8,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/MultiCounter.hpp"
-#include "Lib/Timer.hpp"
+#include "Lib/SCCAnalyzer.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -72,7 +72,9 @@ void EPRInlining::performClosure()
     }
   }
 
-  ZIArray<unsigned> dependencyCnt; // for each NE predicate contains number of NE predicates on which it depends
+  // for each NE predicate contains number of NE predicates on which it depends
+  // for predicates which were removing in order to break cycles, contains negative value
+  ZIArray<int> dependencyCnt;
   MapToLIFO<unsigned,unsigned> dependencies;
   static Stack<unsigned> zeroPreds;
   static Stack<unsigned> deps;
@@ -103,6 +105,37 @@ void EPRInlining::performClosure()
     }
   }
 
+  {
+    MapToLIFOGraph<unsigned> gr(dependencies);
+    SCCAnalyzer<MapToLIFOGraph<unsigned> > scca(gr);
+    if(scca.breakingNodes().isNonEmpty()) {
+      if(_trace) {
+        cerr << "Cycle among definitions detected" << endl;
+      }
+      Stack<unsigned>::Iterator bpIt1(scca.breakingNodes());
+      while(bpIt1.hasNext()) {
+	unsigned breakingPred = bpIt1.next();
+	dependencyCnt[breakingPred] = -1;
+      }
+      Stack<unsigned>::Iterator bpIt(scca.breakingNodes());
+      while(bpIt.hasNext()) {
+	unsigned breakingPred = bpIt.next(); //cycle-breaking predicate (will be removed to break cycle)
+	if(_trace) {
+	  cerr << " - breaking cycle by ignoring definition "<< _nonEprDefs[breakingPred]->toString() << endl;
+	}
+
+	MapToLIFO<unsigned,unsigned>::ValList::Iterator depIt=dependencies.keyIterator(breakingPred);
+	while(depIt.hasNext()) {
+	  unsigned dep = depIt.next();
+	  dependencyCnt[dep]--;
+	  if(dependencyCnt[dep]==0) {
+	    zeroPreds.push(dep);
+	  }
+	}
+      }
+    }
+  }
+
   Stack<unsigned> activePreds;
   PDInliner defInliner(false, _trace);
 
@@ -123,7 +156,6 @@ void EPRInlining::performClosure()
     MapToLIFO<unsigned,unsigned>::ValList::Iterator depIt=dependencies.keyIterator(p);
     while(depIt.hasNext()) {
       unsigned dep = depIt.next();
-      ASS_G(dependencyCnt[dep],0);
       dependencyCnt[dep]--;
       if(dependencyCnt[dep]==0) {
 	zeroPreds.push(dep);
@@ -360,22 +392,26 @@ bool EPRInlining::isNonEPRDef(Literal* lhs, Formula* rhs, int& polarity)
   bool haveExistential = false;
   SubformulaIterator sfit(rhs);
   while(sfit.hasNext()) {
-    Formula* sf = sfit.next();
-    if(sf->connective()==FORALL) {
+    int sfPol;
+    Formula* sf = sfit.next(sfPol);
+    if(sf->connective()!=FORALL && sf->connective()!=EXISTS) {
+      continue;
+    }
+    if(sfPol==0) {
+      polarity = 0;
+      return true;
+    }
+    if( (sf->connective()==FORALL) == (sfPol==1) ) {
       haveUniversal = true;
     }
-    if(sf->connective()==EXISTS) {
+    else {
       haveExistential = true;
     }
   }
   if(!haveUniversal && !haveExistential) {
     return false;
   }
-  if(haveExistential) {
-    USER_ERROR("Existential quantifiers not supported in EPRInlining");
-  }
-//  polarity = (!haveExistential) ? -1 : (!haveUniversal) ? 1 : 0;
-  polarity = -1; //TODO: correctly determine which quentifiers become existential and which universal in ENNF
+  polarity = (!haveExistential) ? -1 : (!haveUniversal) ? 1 : 0;
   return true;
 }
 
