@@ -25,6 +25,7 @@ public:
 
   static bool varNamePreserving() { return _fact; }
   static void setVarNamePreserving(VarFactory* f) { _fact = f; }
+  static VarFactory* varNamePreservingFactory() { return _fact; }
 
   static unsigned getVarAlias(unsigned var);
   static string getVarName(unsigned var);

@@ -240,6 +240,8 @@ public:
   {
     CALL("ProblemTransformer::transform(Problem)");
 
+    VarManager::VarFactory* oldFactory = VarManager::varNamePreservingFactory();
+
     if(p.size()>0) {
       AnnotatedFormulaIterator fit=p.formulas();
       ALWAYS(fit.hasNext());
@@ -254,7 +256,7 @@ public:
 
     transformImpl(p);
 
-    VarManager::setVarNamePreserving(0);
+    VarManager::setVarNamePreserving(oldFactory);
     _res = 0;
     return res;
   }
