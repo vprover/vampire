@@ -294,6 +294,8 @@ string Inference::ruleName(Rule rule)
     return "predicate definition unfolding";
   case REDUCE_FALSE_TRUE:
     return "true and false elimination";
+  case EQUALITY_PROPAGATION:
+    return "equality propagation";
   case TRIVIAL_INEQUALITY_REMOVAL:
     return "trivial inequality removal";
   case FACTORING:

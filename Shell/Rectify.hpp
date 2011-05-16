@@ -36,7 +36,7 @@ public:
   Rectify()
     : _free(0)
   {}
-  static Unit* rectify(Unit*);
+  static FormulaUnit* rectify(FormulaUnit*);
   static void rectify(UnitList*& units);
 private:
   typedef List<int> VarList;

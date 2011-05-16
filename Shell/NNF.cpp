@@ -24,7 +24,7 @@ using namespace Shell;
  * @warning the unit must contain a formula
  * @since 27/06/2007 Flight Frankfurt-Paris, changed to use new data structures
  */
-Unit* NNF::ennf(Unit* unit)
+FormulaUnit* NNF::ennf(FormulaUnit* unit)
 {
   CALL("NNF::ennf(Unit* u)");
   ASS(! unit->isClause());
@@ -47,7 +47,7 @@ Unit* NNF::ennf(Unit* unit)
  * @warning the unit must contain a formula
  * @since 27/06/2007 Flight Frankfurt-Paris, changed to use new data structures
  */
-Unit* NNF::nnf(Unit* unit)
+FormulaUnit* NNF::nnf(FormulaUnit* unit)
 {
   CALL("NNF::nnf(Unit*)");
   ASS(! unit->isClause());

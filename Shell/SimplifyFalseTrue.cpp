@@ -29,12 +29,12 @@ using namespace Lib;
  * @warning the unit must contain a formula
  * @since 09/06/2007 Manchester, changed to new datastructures
  */
-Unit* SimplifyFalseTrue::simplify (Unit* unit)
+FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
 {
   CALL("SimplifyFalseTrue::simplify(Unit*)");
   ASS(! unit->isClause());
 
-  Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+  Formula* f = unit->formula();
   Formula* g = simplify(f);
   if (f == g) { // not simplified
     return unit;

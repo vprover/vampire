@@ -95,7 +95,9 @@ public:
 	bool traceInlining=false,
 	bool sineSelection=false,
 	float sineTolerance=1.0f,
-	unsigned sineDepthLimit=0);
+	unsigned sineDepthLimit=0,
+	bool variableEqualityPropagation=false,
+	bool traceVariableEqualityPropagation=false);
     PreprocessingMode mode;
     /**
      * When the number of clauses generated from one formula
@@ -135,6 +137,24 @@ public:
      * Value has effect only when @c sineSelection is true.
      */
     unsigned sineDepthLimit;
+    /**
+     * Propagate variable equalities in formulas, for example
+     * X=Y => X=f(Y) ---> X=f(X)
+     *
+     * Only equalities with a variable on one side and variable or constant
+     * on the other side are propagated. This is to avoid possible exponential
+     * growth in the size of terms.
+     *
+     * We propagate positive equalities in conjunctions (e.g. X=Y & p(X,Y) ---> p(X,X))
+     * and negative in disjunctions (e.g. X!=Y | p(X,Y) ---> p(X,X)).
+     * Implication F=>G is treated as disjunction ~F | G.
+     *
+     * In certain cases we propagate the equality, but do not remove it.
+     * For example ![X]: ?[Y]: (X!=Y | p(X,Y)) ---> ![X]: ?[Y]: (X!=Y | p(X,X))
+     * This formula is true in any model of size at least two, while ![X]: p(X,X) is not.
+     */
+    bool variableEqualityPropagation;
+    bool traceVariableEqualityPropagation;
   private:
     friend class Problem;
     void validate() const;
@@ -263,6 +283,7 @@ private:
   class ProblemTransformer;
 
   class Preprocessor1;
+  class VariableEqualityPropagator;
   class EPRRestoringInliner;
   class PredicateDefinitionInliner;
   class UnusedPredicateDefinitionRemover;

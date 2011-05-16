@@ -24,8 +24,8 @@ namespace Shell {
 class NNF
 {
 public:
-  static Unit* ennf(Unit* unit);
-  static Unit* nnf(Unit* unit);
+  static FormulaUnit* ennf(FormulaUnit* unit);
+  static FormulaUnit* nnf(FormulaUnit* unit);
 private:
   static Formula* ennf(Formula*, bool polarity);
   static FormulaList* ennf(FormulaList*, bool polarity);

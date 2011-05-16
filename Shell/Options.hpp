@@ -44,6 +44,7 @@ public:
     EMPTY_CLAUSE_SUBSUMPTION,
     EPR_PRESERVING_NAMING,
     EPR_RESTORING_INLINING,
+    EQUALITY_PROPAGATION,
     EQUALITY_PROXY,
     EQUALITY_RESOLUTION_WITH_DELETION,
 
@@ -382,6 +383,7 @@ public:
   int ageRatio() const { return _ageRatio; }
   int weightRatio() const { return _weightRatio; }
   bool superpositionFromVariables() const { return _superpositionFromVariables; }
+  bool equalityPropagation() const { return _equalityPropagation; }
   EqualityProxy equalityProxy() const { return _equalityProxy; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion; }
   float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient; }
@@ -468,6 +470,7 @@ private:
   bool _emptyClauseSubsumption;
   bool _eprPreservingNaming;
   bool _eprRestoringInlining;
+  bool _equalityPropagation;
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
 

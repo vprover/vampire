@@ -228,6 +228,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/CParser.o\
          Shell/EPRInlining.o\
          Shell/EqResWithDeletion.o\
+         Shell/EqualityPropagator.o\
          Shell/EqualityProxy.o\
          Shell/Flattening.o\
          Shell/FormulaIteExpander.o\
@@ -400,6 +401,7 @@ OTHER_API_DEP = \
 	   Shell/CNF.o\
 	   Shell/EPRInlining.o\
 	   Shell/EqualityProxy.o\
+           Shell/EqualityPropagator.o\
 	   Shell/Flattening.o\
 	   Shell/FormulaIteExpander.o\
 	   Shell/Lexer.o\

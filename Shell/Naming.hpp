@@ -23,7 +23,7 @@ class Naming
 {
 public:
   Naming (int threshold, bool preserveEpr);
-  Unit* apply(Unit* unit,UnitList*& defs);
+  FormulaUnit* apply(FormulaUnit* unit,UnitList*& defs);
 private:
   /** Encodes information about the position of the sub formula */
   enum Where {

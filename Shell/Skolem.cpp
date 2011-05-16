@@ -32,14 +32,13 @@ using namespace Shell;
  * @since 31/01/2004 Manchester. Rectify inference has been added
  * (otherwise proof-checking had been very difficult).
  */
-Unit* Skolem::skolemise (Unit* unit)
+FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
 {
   CALL("Skolem::skolemise(Unit*)");
   ASS(! unit->isClause());
 
   unit = Rectify::rectify(unit);
-  FormulaUnit* fu = static_cast<FormulaUnit*>(unit);
-  Formula* f = fu->formula();
+  Formula* f = unit->formula();
   switch (f->connective()) {
   case FALSE:
   case TRUE:
@@ -50,7 +49,7 @@ Unit* Skolem::skolemise (Unit* unit)
 
   static Skolem skol;
   skol.reset();
-  return skol.skolemiseImpl(fu);
+  return skol.skolemiseImpl(unit);
 } // Skolem::skolemise
 
 FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)

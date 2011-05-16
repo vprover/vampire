@@ -24,7 +24,7 @@ namespace Shell {
 class Flattening
 {
 public:
-  static Unit* flatten (Unit*);
+  static FormulaUnit* flatten (FormulaUnit*);
 private:
   static Formula* flatten (Formula*);
   static FormulaList* flatten (FormulaList*,Connective con);

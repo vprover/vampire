@@ -33,7 +33,7 @@ namespace Shell {
 class Skolem
 {
 public:
-  static Unit* skolemise(Unit*);
+  static FormulaUnit* skolemise(FormulaUnit*);
 private:
   /** Initialise a Skolem object */
   Skolem ()

@@ -24,6 +24,7 @@
 
 #include "Shell/CNF.hpp"
 #include "Shell/EPRInlining.hpp"
+#include "Shell/EqualityPropagator.hpp"
 #include "Shell/Flattening.hpp"
 #include "Shell/FormulaIteExpander.hpp"
 #include "Shell/LispLexer.hpp"
@@ -53,13 +54,16 @@ Problem::PreprocessingOptions::PreprocessingOptions(
     PreprocessingMode mode,
     int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
     bool unusedPredicateDefinitionRemoval, bool showNonConstantSkolemFunctionTrace,
-    bool traceInlining, bool sineSelection, float sineTolerance, unsigned sineDepthLimit)
+    bool traceInlining, bool sineSelection, float sineTolerance, unsigned sineDepthLimit,
+    bool variableEqualityPropagation, bool traceVariableEqualityPropagation)
 : mode(mode), namingThreshold(namingThreshold), preserveEpr(preserveEpr),
   predicateDefinitionInlining(predicateDefinitionInlining),
   unusedPredicateDefinitionRemoval(unusedPredicateDefinitionRemoval),
   showNonConstantSkolemFunctionTrace(showNonConstantSkolemFunctionTrace),
   traceInlining(traceInlining), sineSelection(sineSelection),
-  sineTolerance(sineTolerance), sineDepthLimit(sineDepthLimit)
+  sineTolerance(sineTolerance), sineDepthLimit(sineDepthLimit),
+  variableEqualityPropagation(variableEqualityPropagation),
+  traceVariableEqualityPropagation(traceVariableEqualityPropagation)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions");
 }
@@ -373,21 +377,34 @@ protected:
       return;
     }
 
+    Kernel::FormulaUnit* fu = static_cast<Kernel::FormulaUnit*>(unit);
     Kernel::UnitList* newDefs=0;
-    unit = SpecialTermElimination().apply(static_cast<Kernel::FormulaUnit*>(unit), newDefs);
+    fu = SpecialTermElimination().apply(fu, newDefs);
     handleDefs(newDefs);
 
-    unit = Rectify::rectify(unit);
-    unit = SimplifyFalseTrue::simplify(unit);
-    unit = Flattening::flatten(unit);
+    fu = Rectify::rectify(fu);
+    fu = SimplifyFalseTrue::simplify(fu);
+    fu = Flattening::flatten(fu);
 
-    {
-      unit = FormulaIteExpander().apply(unit, newDefs);
-      handleDefs(newDefs);
-    }
+    fu = FormulaIteExpander().apply(fu, newDefs);
+    handleDefs(newDefs);
 
-    addUnit(unit);
+    addUnit(fu);
   }
+};
+
+class Problem::VariableEqualityPropagator : public ProblemTransformer
+{
+public:
+  VariableEqualityPropagator(bool trace) : _eqProp(trace) {}
+protected:
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::VariableEqualityPropagator::transformImpl");
+
+    addUnit(_eqProp.apply(unit));
+  }
+  EqualityPropagator _eqProp;
 };
 
 class Problem::PredicateDefinitionInliner : public ProblemTransformer
@@ -643,33 +660,34 @@ protected:
       addUnit(unit);
       return;
     }
+    Kernel::FormulaUnit* fu = static_cast<Kernel::FormulaUnit*>(unit);
 
-    unit = NNF::ennf(unit);
-    unit = Flattening::flatten(unit);
+    fu = NNF::ennf(fu);
+    fu = Flattening::flatten(fu);
 
     if(!_transformingDef && namingThreshold) {
       Kernel::UnitList* newDefs=0;
-      unit = naming.apply(unit,newDefs);
+      fu = naming.apply(fu,newDefs);
       handleDefs(newDefs);
     }
 
-    unit = NNF::nnf(unit);
-    unit = Flattening::flatten(unit);
-    unit = Skolem::skolemise(unit);
+    fu = NNF::nnf(fu);
+    fu = Flattening::flatten(fu);
+    fu = Skolem::skolemise(fu);
     if(onlySkolemize) {
-      addUnit(unit);
+      addUnit(fu);
     }
     else {
       if(!_transformingDef && namingThreshold && preserveEpr) {
 	Kernel::UnitList* newDefs=0;
-	unit = naming.apply(unit,newDefs);
+	fu = naming.apply(fu,newDefs);
 	handleDefs(newDefs);
       }
 
-      cnf.clausify(unit,auxClauseStack);
+      cnf.clausify(fu,auxClauseStack);
       while (! auxClauseStack.isEmpty()) {
-	Unit* u = auxClauseStack.pop();
-	addUnit(u);
+	Unit* cl = auxClauseStack.pop();
+	addUnit(cl);
       }
     }
   }
@@ -755,6 +773,10 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
   }
   if(options.mode==PM_SELECTION_ONLY) {
     return res;
+  }
+
+  if(options.variableEqualityPropagation) {
+    res = VariableEqualityPropagator(options.traceVariableEqualityPropagation).transform(res);
   }
 
   if(options.predicateDefinitionInlining!=INL_OFF) {

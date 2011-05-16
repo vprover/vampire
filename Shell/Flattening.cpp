@@ -24,12 +24,12 @@ using namespace Shell;
  * @since 08/06/2007 Manchester changed to new data structures
  * @warning the unit must contain a formula
  */
-Unit* Flattening::flatten (Unit* unit)
+FormulaUnit* Flattening::flatten (FormulaUnit* unit)
 {
   CALL("Flattening::flatten (Unit*)");
   ASS(! unit->isClause());
 
-  Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+  Formula* f = unit->formula();
   Formula* g = flatten(f);
   if (f == g) { // not changed
     return unit;

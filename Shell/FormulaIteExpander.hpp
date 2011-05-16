@@ -18,8 +18,9 @@ public:
 
   void apply(UnitList*& units);
   Unit* apply(Unit* unit, UnitList*& defs);
+  FormulaUnit* apply(FormulaUnit* unit, UnitList*& defs);
 private:
-  Unit* apply(Unit* unit);
+  FormulaUnit* apply(FormulaUnit* unit);
   Formula* apply(Formula* f);
   FormulaList* apply(FormulaList* fs);
   Formula* makeBinaryJunction(Connective con, Formula* f1, Formula* f2);

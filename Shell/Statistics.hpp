@@ -47,6 +47,10 @@ public:
   unsigned initialClauses;
   /** number of inequality splittings performed */
   unsigned splittedInequalities;
+  /** number of formulas with propagated variable equalities */
+  unsigned propagatedEqualities;
+  /** number of formulas with removed variables which occurred only once and that was in equality */
+  unsigned removedSingletonVariables;
   /** number of pure predicates */
   unsigned purePredicates;
   /** number of inlined predicate definitions */
@@ -204,6 +208,7 @@ public:
     SINE_SELECTION,
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,
+    EQUALITY_PROPAGATION,
     PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     PREPROCESS_2,

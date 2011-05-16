@@ -136,6 +136,9 @@ public:
     /** reduce a formula containing false or true, for example
      *  false & A ---> false */
     REDUCE_FALSE_TRUE,
+    /** propagate equalities in formulas, for example
+     * X=Y => X=f(Y) ---> X=f(X) */
+    EQUALITY_PROPAGATION,
     /** remove from clause one or more inequalities <i>s != s</i> */
     TRIVIAL_INEQUALITY_REMOVAL,
     /** factoring inference */

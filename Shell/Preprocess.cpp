@@ -13,6 +13,7 @@
 #include "CNF.hpp"
 #include "EPRInlining.hpp"
 #include "EqResWithDeletion.hpp"
+#include "EqualityPropagator.hpp"
 #include "EqualityProxy.hpp"
 #include "Flattening.hpp"
 #include "FormulaIteExpander.hpp"
@@ -130,6 +131,15 @@ void Preprocess::preprocess (UnitList*& units)
     FormulaIteExpander().apply(units);
   }
 
+  if (_options.equalityPropagation()) {
+    //Another equality propagation is between preprocess2 and preprocess3.
+    //the ENNF form there allows us to propagate more equalities.
+    //Here we're trying to propagate equalities as well because that might
+    //reveal some more formulas to be definitions.
+    env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
+    EqualityPropagator().apply(units);
+  }
+
   if (_options.eprRestoringInlining()) {
     env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
     EPRInlining().apply(units);
@@ -155,11 +165,16 @@ void Preprocess::preprocess (UnitList*& units)
       if(u->isClause()) {
 	continue;
       }
-      Unit* v = preprocess2(u);
+      Unit* v = preprocess2(static_cast<FormulaUnit*>(u));
       if (v != u) {
 	us.replace(v);
       }
     }
+  }
+
+  if (_options.equalityPropagation()) {
+    env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
+    EqualityPropagator().apply(units);
   }
 
   if (_property.hasFormulas() && _options.naming()) {
@@ -172,8 +187,9 @@ void Preprocess::preprocess (UnitList*& units)
 	continue;
       }
       UnitList* defs;
-      Unit* v = naming.apply(u,defs);
-      if (v != u) {
+      FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+      FormulaUnit* v = naming.apply(fu,defs);
+      if (v != fu) {
 	ASS(defs);
  	us.insert(defs);
 	us.replace(v);
@@ -204,8 +220,9 @@ void Preprocess::preprocess (UnitList*& units)
 	continue;
       }
       UnitList* defs;
-      Unit* v = naming.apply(u,defs);
-      if (v != u) {
+      FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+      FormulaUnit* v = naming.apply(fu,defs);
+      if (v != fu) {
 	ASS(defs);
 	while(defs) {
 	  Unit* d=preprocess3(UnitList::pop(defs));
@@ -324,12 +341,13 @@ Unit* Preprocess::preprocess1 (Unit* unit)
   }
 
   // formula unit
+  FormulaUnit* fu = static_cast<FormulaUnit*>(unit);
   // Rectify the formula and memorise the answer atom, if necessary
-  unit = Rectify::rectify(unit);
+  fu = Rectify::rectify(fu);
   // Simplify the formula if it contains true or false
-  unit = SimplifyFalseTrue::simplify(unit);
-  unit = Flattening::flatten(unit);
-  return unit;
+  fu = SimplifyFalseTrue::simplify(fu);
+  fu = Flattening::flatten(fu);
+  return fu;
 } // Preprocess::preprocess1
 
 
@@ -343,7 +361,7 @@ Unit* Preprocess::preprocess1 (Unit* unit)
  * </ol>
  * @since 14/07/2005 flight Tel-Aviv-Barcelona changed to stop before naming
  */
-Unit* Preprocess::preprocess2 (Unit* unit)
+FormulaUnit* Preprocess::preprocess2 (FormulaUnit* unit)
 {
   CALL("Preprocess::preprocess2");
   ASS (! unit->isClause());
@@ -371,16 +389,17 @@ Unit* Preprocess::preprocess3 (Unit* unit)
   if (unit->isClause()) {
     return unit;
   }
+  FormulaUnit* fu = static_cast<FormulaUnit*>(unit);
   // Transform the formula to NNF
-  unit = NNF::nnf(unit);
+  fu = NNF::nnf(fu);
   // flatten it
-  unit = Flattening::flatten(unit);
+  fu = Flattening::flatten(fu);
   // (Optional) miniscope the formula
 //     if (_options.miniscope()) {
-//       Miniscope::miniscope(unit);
+//       Miniscope::miniscope(fu);
 //     }
 //   return unit;
-  return Skolem::skolemise(unit);
+  return Skolem::skolemise(fu);
 } // Peprocess::preprocess3
 
 

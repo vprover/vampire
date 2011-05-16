@@ -31,7 +31,7 @@ public:
   void preprocess(UnitList*& units);
 private:
   Unit* preprocess1(Unit*);
-  Unit* preprocess2(Unit*);
+  FormulaUnit* preprocess2(FormulaUnit*);
   Unit* preprocess3(Unit*);
   UnitList* normalise(UnitList*);
 

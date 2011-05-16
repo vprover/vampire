@@ -48,12 +48,12 @@ bool Rectify::Renaming::bound (int var,int& boundTo) const
  * @since 23/01/2004 Manchester, changed to use non-static objects
  * @since 06/06/2007 Manchester, changed to use new datastructures
  */
-Unit* Rectify::rectify (Unit* unit)
+FormulaUnit* Rectify::rectify (FormulaUnit* unit)
 {
   CALL("Rectify::rectify (Unit*...)");
   ASS(!unit->isClause());
 
-  Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+  Formula* f = unit->formula();
   Rectify rect;
   Formula* g = rect.rectify(f);
 
@@ -86,8 +86,9 @@ void Rectify::rectify(UnitList*& units)
     if(u->isClause()) {
       continue;
     }
-    Unit* v = rectify(u);
-    if (v != u) {
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    FormulaUnit* v = rectify(fu);
+    if (v != fu) {
 	us.replace(v);
     }
   }

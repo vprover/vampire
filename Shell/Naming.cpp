@@ -50,14 +50,14 @@ Naming::Naming (int threshold, bool preserveEpr)
  * @since 13/07/2005 Haifa
  * @since 14/07/2005 Tel-Aviv airport, changed to replace the unit
  */
-Unit* Naming::apply (Unit* unit,UnitList*& defs)
+FormulaUnit* Naming::apply (FormulaUnit* unit,UnitList*& defs)
 {
   CALL("Naming::apply(Unit*)");
   ASS(! unit->isClause());
-  ASS(static_cast<FormulaUnit*>(unit)->formula()->freeVariables()==0);
+  ASS(unit->formula()->freeVariables()==0);
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
 
-  Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+  Formula* f = unit->formula();
   switch (f->connective()) {
   case TRUE:
   case FALSE:

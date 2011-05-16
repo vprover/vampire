@@ -28,7 +28,7 @@ namespace Shell {
 class SimplifyFalseTrue
 {
 public:
-  static Unit* simplify(Unit*);
+  static FormulaUnit* simplify(FormulaUnit*);
   static Formula* simplify(Formula*);
 }; // class SimplifyFalseTrue
 

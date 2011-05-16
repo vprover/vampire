@@ -90,12 +90,10 @@ struct PDInliner::PDef
   PDef(PDInliner* parent, unsigned pred) : _parent(parent), _pred(pred), _asymDef(false) {}
 
   static FormulaUnit* fixFormula(FormulaUnit* fu) {
-    Unit* u = fu;
-    u = Rectify::rectify(u);
-    u = SimplifyFalseTrue::simplify(u);
-    u = Flattening::flatten(u);
-    ASS(!u->isClause());
-    return static_cast<FormulaUnit*>(u);
+    fu = Rectify::rectify(fu);
+    fu = SimplifyFalseTrue::simplify(fu);
+    fu = Flattening::flatten(fu);
+    return fu;
   }
 
   void traceUnitApplyBegin(Unit* unit)

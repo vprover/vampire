@@ -34,8 +34,9 @@ void FormulaIteExpander::apply(UnitList*& units)
     if(u->isClause()) {
       continue;
     }
-    Unit* v = apply(u);
-    if(v != u) {
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    FormulaUnit* v = apply(fu);
+    if(v != fu) {
       us.replace(v);
     }
   }
@@ -47,28 +48,25 @@ void FormulaIteExpander::apply(UnitList*& units)
  * Return result of if-then-else expansion in @b unit. Into @b defs assign
  * list of introduced definitions.
  */
-Unit* FormulaIteExpander::apply(Unit* unit, UnitList*& defs)
+FormulaUnit* FormulaIteExpander::apply(FormulaUnit* unit, UnitList*& defs)
 {
   CALL("FormulaIteExpander::apply(Unit*,UnitList*&)");
   ASS(!_defs);
+  ASS(!unit->isClause());
 
-  if(unit->isClause()) {
-    return unit;
-  }
-
-  Unit* res=apply(unit);
+  FormulaUnit* res=apply(unit);
 
   defs=_defs;
   _defs=0;
   return res;
 }
 
-Unit* FormulaIteExpander::apply(Unit* unit)
+FormulaUnit* FormulaIteExpander::apply(FormulaUnit* unit)
 {
   CALL("FormulaIteExpander::apply(Unit*)");
   ASS(! unit->isClause());
 
-  Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+  Formula* f = unit->formula();
   Formula* g = apply(f);
   if (f == g) { // not changed
     return unit;

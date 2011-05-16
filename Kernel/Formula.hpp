@@ -253,6 +253,7 @@ class JunctionFormula
       _args(args)
   {
     ASS(con == AND || con == OR);
+    ASS_GE(args->length(),2);
   }
 
   /** set arguments to args */

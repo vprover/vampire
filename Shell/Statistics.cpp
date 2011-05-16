@@ -35,6 +35,8 @@ Statistics::Statistics()
     formulaNames(0),
     initialClauses(0),
     splittedInequalities(0),
+    propagatedEqualities(0),
+    removedSingletonVariables(0),
     purePredicates(0),
     inlinedPredicateDefinitions(0),
     unusedPredicateDefinitions(0),
@@ -175,6 +177,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Selected by SInE selection", selectedBySine);
   COND_OUT("SInE iterations", sineIterations);
   COND_OUT("Splitted inequalities", splittedInequalities);
+  COND_OUT("Propagated equalities", propagatedEqualities);
+  COND_OUT("Removed singleton variables", removedSingletonVariables);
   SEPARATOR;
 
   COND_OUT("Duplicate literals", duplicateLiterals);
@@ -272,6 +276,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Including theory axioms";
   case PREPROCESS_1:
     return "Preprocessing 1";
+  case EQUALITY_PROPAGATION:
+    return "Equality propagation";
   case PREDICATE_DEFINITION_INLINING:
     return "Predicate definition inlining";
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
