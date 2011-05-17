@@ -42,7 +42,7 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
 
 
 /**
- * Transform the unit into ENNF.
+ * Transform the unit into NNF.
  * @since 29/12/2003 Manchester
  * @warning the unit must contain a formula
  * @since 27/06/2007 Flight Frankfurt-Paris, changed to use new data structures

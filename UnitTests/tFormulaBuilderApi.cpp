@@ -585,6 +585,32 @@ TEST_FUN(fbapiEPRRestoringInliningCycles)
   }
 }
 
+TEST_FUN(fbapiEqPropagation)
+{
+  try {
+    Problem prb;
+    stringstream stm(
+	"fof(d,axiom, X!=Y | p(X,Y)).");
+    prb.addFromStream(stm);
+
+    cout<<endl<<"FOF:"<<endl;
+    prb.output(cout);
+
+    Problem::PreprocessingOptions opts;
+    opts.mode = Problem::PM_EARLY_PREPROCESSING;
+    opts.predicateDefinitionInlining = Problem::INL_OFF;
+    opts.unusedPredicateDefinitionRemoval = false;
+    opts.variableEqualityPropagation = true;
+    opts.traceVariableEqualityPropagation = true;
+    Problem iprb = prb.preprocess(opts);
+    cout<<"Propagated:"<<endl;
+    iprb.output(cout);
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
 TEST_FUN(fbapiAsymReplacement)
 {
   try {
