@@ -593,6 +593,11 @@ void EPRSkolem::processActiveDefinitions(UnitList* units)
 
 }
 
+FormulaUnit* EPRSkolem::applyToDefinition(FormulaUnit* fu)
+{
+  CALL("EPRSkolem::applyToDefinition");
+}
+
 Unit* EPRSkolem::apply(Unit* unit)
 {
   CALL("EPRSkolem::apply");

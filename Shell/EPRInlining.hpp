@@ -121,6 +121,8 @@ private:
 
   void processDefinition(unsigned header);
 
+  FormulaUnit* applyToDefinition(FormulaUnit* fu);
+
   typedef MapToLIFO<unsigned,Literal*> InstMap;
 
   /**
