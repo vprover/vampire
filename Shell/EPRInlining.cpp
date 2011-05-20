@@ -35,9 +35,9 @@ namespace Shell
  * (these are formulas which can be interpreted as predicate
  * definitions in two ways).
  */
-void EPRInlining::scan(UnitList* units)
+void EPRRestoring::scan(UnitList* units)
 {
-  CALL("EPRInlining::scan");
+  CALL("EPRRestoring::scan");
 
   UnitList::Iterator it(units);
   while(it.hasNext()) {
@@ -54,11 +54,12 @@ void EPRInlining::scan(UnitList* units)
   }
 
   performClosure();
+  processActiveDefinitions(units);
 }
 
-void EPRInlining::performClosure()
+void EPRRestoring::performClosure()
 {
-  CALL("EPRInlining::performClosure");
+  CALL("EPRRestoring::performClosure");
 
   while(_newNEPreds.isNonEmpty()) {
     unsigned p = _newNEPreds.pop_front();
@@ -136,22 +137,15 @@ void EPRInlining::performClosure()
     }
   }
 
-  Stack<unsigned> activePreds;
-  PDInliner defInliner(false, _trace);
-
   while(zeroPreds.isNonEmpty()) {
     unsigned p = zeroPreds.pop();
-    FormulaUnit* u0 = _nonEprDefs[p];
-    FormulaUnit* u = static_cast<FormulaUnit*>(defInliner.apply(u0));
-    ASS(!u->isClause());
-    ALWAYS(defInliner.tryGetDef(u));
-    _nonEprDefs[p] = u;
+    FormulaUnit* u = _nonEprDefs[p];
+    _activeUnits.insert(u);
+    _activePreds.push(p);
 
     if(_trace) {
-      cerr<<"Unit "<<u0->toString()<<" activated"<<endl;
+      cerr<<"Unit "<<u->toString()<<" activated"<<endl;
     }
-    _activeUnits.insert(u0);
-    activePreds.push(p);
 
     MapToLIFO<unsigned,unsigned>::ValList::Iterator depIt=dependencies.keyIterator(p);
     while(depIt.hasNext()) {
@@ -162,35 +156,11 @@ void EPRInlining::performClosure()
       }
     }
   }
-  //TODO: If there is a cycle, we stop inlining entirely. We might rather
-  //want to remove one definition from the cycle and carry on.
-
-  while(activePreds.isNonEmpty()) {
-    unsigned p = activePreds.pop();
-    FormulaUnit* u = _nonEprDefs[p];
-    int polarity = _nonEprDefPolarities[p];
-    Literal* lhs;
-    Formula* rhs;
-    splitDefinition(u, lhs, rhs);
-    switch(polarity) {
-    case 1:
-      _inliner.addAsymetricDefinition(lhs, rhs, 0, rhs, u);
-      break;
-    case -1:
-      _inliner.addAsymetricDefinition(lhs, 0, rhs, rhs, u);
-      break;
-    case 0:
-      _inliner.addAsymetricDefinition(lhs, rhs, rhs, rhs, u);
-      break;
-    default:
-      ASSERTION_VIOLATION;
-    }
-  }
 }
 
-bool EPRInlining::addNEDef(FormulaUnit* unit, unsigned pred, int polarity)
+bool EPRRestoring::addNEDef(FormulaUnit* unit, unsigned pred, int polarity)
 {
-  CALL("EPRInlining::addNEDef");
+  CALL("EPRRestoring::addNEDef");
 
   if(_nonEprDefs[pred]) {
     if(_nonEprDefs[pred]!=unit) {
@@ -219,9 +189,9 @@ bool EPRInlining::addNEDef(FormulaUnit* unit, unsigned pred, int polarity)
   return true;
 }
 
-bool EPRInlining::scanDefinition(FormulaUnit* unit)
+bool EPRRestoring::scanDefinition(FormulaUnit* unit)
 {
-  CALL("EPRInlining::scanDefinition");
+  CALL("EPRRestoring::scanDefinition");
   ASS(!PDInliner::isPredicateEquivalence(unit)); //predicate equivalences must be removed before applying this rule
 
   Literal* lhs;
@@ -252,28 +222,9 @@ bool EPRInlining::scanDefinition(FormulaUnit* unit)
   return true;
 }
 
-Unit* EPRInlining::apply(Unit* unit)
+void EPRRestoring::splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& rhs)
 {
-  CALL("EPRInlining::apply");
-
-  if(_activeUnits.find(unit)) {
-    unsigned pred = _defPreds.get(unit);
-    if(_nonEprDefPolarities[pred]==0) {
-      //we are inlining all occurences, so we may delete the definition
-      return 0;
-    }
-    else {
-      //we are inlining just one polarity, the UPDR will take care of simplifying
-      //this definition
-      return unit;
-    }
-  }
-  return _inliner.apply(unit);
-}
-
-void EPRInlining::splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& rhs)
-{
-  CALL("EPRInlining::splitDefinition");
+  CALL("EPRRestoring::splitDefinition");
 
   Formula* f = unit->formula();
   if(f->connective()==FORALL) {
@@ -299,9 +250,9 @@ void EPRInlining::splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& rh
 /**
  * Perform local checks whether givan formula can be a definition.
  */
-bool EPRInlining::hasDefinitionShape(FormulaUnit* unit)
+bool EPRRestoring::hasDefinitionShape(FormulaUnit* unit)
 {
-  CALL("EPRInlining::hasDefinitionShape/1");
+  CALL("EPRRestoring::hasDefinitionShape/1");
 
   Formula* f = unit->formula();
   if(f->connective()==FORALL) {
@@ -329,9 +280,9 @@ bool EPRInlining::hasDefinitionShape(FormulaUnit* unit)
  * that wouldn't occur in the lhs, and that the lhs predicate doesn't occur
  * in the body.
  */
-bool EPRInlining::hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* rhs)
+bool EPRRestoring::hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 {
-  CALL("EPRInlining::hasDefinitionShape/3");
+  CALL("EPRRestoring::hasDefinitionShape/3");
 
   if(lhs->isEquality()) {
     return false;
@@ -381,9 +332,9 @@ bool EPRInlining::hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* r
  * Return true if clausification of definition @c lhs<=>rhs will lead
  * to introduction of non-constant skolem functions
  */
-bool EPRInlining::isNonEPRDef(Literal* lhs, Formula* rhs, int& polarity)
+bool EPRRestoring::isNonEPRDef(Literal* lhs, Formula* rhs, int& polarity)
 {
-  CALL("EPRInlining::isNonEPRDef/3");
+  CALL("EPRRestoring::isNonEPRDef/3");
 
   if(lhs->arity()==0) {
     return false;
@@ -415,16 +366,16 @@ bool EPRInlining::isNonEPRDef(Literal* lhs, Formula* rhs, int& polarity)
   return true;
 }
 
-int EPRInlining::combinePolarities(int p1, int p2)
+int EPRRestoring::combinePolarities(int p1, int p2)
 {
-  CALL("EPRInlining::combinePolarities");
+  CALL("EPRRestoring::combinePolarities");
 
   return (p1==p2) ? p1 : 0;
 }
 
-void EPRInlining::apply(UnitList*& units)
+void EPRRestoring::apply(UnitList*& units)
 {
-  CALL("EPRInlining::apply");
+  CALL("EPRRestoring::apply");
 
   {
     //remove predicate equivalences
@@ -449,5 +400,205 @@ void EPRInlining::apply(UnitList*& units)
     }
   }
 }
+
+///////////////////////
+// EPRInlining
+//
+
+void EPRInlining::processActiveDefinitions(UnitList* units)
+{
+  CALL("EPRInlining::processActiveDefinitions");
+
+  PDInliner defInliner(false, _trace);
+
+  Stack<unsigned>::BottomFirstIterator apit(_activePreds);
+  while(apit.hasNext()) {
+    unsigned p = apit.next();
+    FormulaUnit* u = _nonEprDefs[p];
+    u = static_cast<FormulaUnit*>(defInliner.apply(u));
+    ASS(!u->isClause());
+    ALWAYS(defInliner.tryGetDef(u));
+    _nonEprDefs[p] = u;
+
+    int polarity = _nonEprDefPolarities[p];
+    Literal* lhs;
+    Formula* rhs;
+    splitDefinition(u, lhs, rhs);
+    switch(polarity) {
+    case 1:
+      _inliner.addAsymetricDefinition(lhs, rhs, 0, rhs, u);
+      break;
+    case -1:
+      _inliner.addAsymetricDefinition(lhs, 0, rhs, rhs, u);
+      break;
+    case 0:
+      _inliner.addAsymetricDefinition(lhs, rhs, rhs, rhs, u);
+      break;
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+}
+
+Unit* EPRInlining::apply(Unit* unit)
+{
+  CALL("EPRInlining::apply");
+
+  if(_activeUnits.find(unit)) {
+    unsigned pred = _defPreds.get(unit);
+    if(_nonEprDefPolarities[pred]==0) {
+      //we are inlining all occurences, so we may delete the definition
+      return 0;
+    }
+    else {
+      //we are inlining just one polarity, the UPDR will take care of simplifying
+      //this definition
+      return unit;
+    }
+  }
+  return _inliner.apply(unit);
+}
+
+
+///////////////////////
+// EPRSkolem
+//
+
+void EPRSkolem::processLiteralHeader(Literal* lit, unsigned header)
+{
+  CALL("EPRSkolem::processLiteralHeader");
+
+  if(!_inlinedHeaders.find(header)) {
+    return;
+  }
+  _insts.pushToKey(header, lit);
+  if(!lit->ground()) {
+    _inlinedHeaders.remove(header);
+  }
+}
+
+void EPRSkolem::processProblemLiteral(Literal* lit, int polarity)
+{
+  CALL("EPRSkolem::processProblemLiteral");
+
+  if(lit->isNegative()) {
+    polarity = -polarity;
+  }
+
+  unsigned negHdr = lit->functor()*2;
+  unsigned posHdr = negHdr + 1;
+  switch(polarity) {
+  case -1:
+    processLiteralHeader(lit, negHdr);
+    break;
+  case 1:
+    processLiteralHeader(lit, posHdr);
+    break;
+  case 0:
+    processLiteralHeader(lit, posHdr);
+    processLiteralHeader(lit, negHdr);
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+void EPRSkolem::processProblemClause(Clause* cl)
+{
+  CALL("EPRSkolem::processProblemClause");
+
+  Clause::Iterator cit(*cl);
+  while(cit.hasNext()) {
+    Literal* l = cit.next();
+    processProblemLiteral(l,1);
+  }
+}
+
+void EPRSkolem::processProblemFormula(FormulaUnit* fu)
+{
+  CALL("EPRSkolem::processProblemFormula");
+
+  SubformulaIterator sfit(fu->formula());
+  while(sfit.hasNext()) {
+    int polarity;
+    Formula* sf = sfit.next(polarity);
+    if(sf->connective()!=LITERAL) {
+      continue;
+    }
+    processProblemLiteral(sf->literal(), polarity);
+  }
+}
+
+void EPRSkolem::processDefinition(unsigned header)
+{
+  CALL("EPRSkolem::processDefinition");
+
+  LiteralList* insts = _insts.keyVals(header);
+
+  unsigned pred = header/2;
+  int polarity = ((header&1)==1) ? 1 : -1;
+
+  FormulaUnit* def = _nonEprDefs[pred];
+  Literal* lhs;
+  Formula* rhs;
+  splitDefinition(def, lhs, rhs);
+
+  if(lhs->isNegative()) { polarity*=-1; }
+
+}
+
+
+void EPRSkolem::processActiveDefinitions(UnitList* units)
+{
+  CALL("EPRSkolem::processActiveDefinitions");
+
+  Stack<unsigned>::Iterator apit(_activePreds);
+  while(apit.hasNext()) {
+    unsigned pred = apit.next();
+    int pol = _nonEprDefPolarities[pred];
+    if(_nonEprReversedPolarity[pred]) {
+      pol *= -1;
+    }
+    unsigned negHdr = pred*2;
+    unsigned posHdr = negHdr + 1;
+    switch(pol) {
+    case -1:
+      _inlinedHeaders.insert(negHdr);
+      break;
+    case 1:
+      _inlinedHeaders.insert(posHdr);
+      break;
+    case 0:
+      _inlinedHeaders.insert(negHdr);
+      _inlinedHeaders.insert(posHdr);
+      break;
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* unit = uit.next();
+    if(_activeUnits.find(unit)) {
+      continue;
+    }
+    if(unit->isClause()) {
+      processProblemClause(static_cast<Clause*>(unit));
+    }
+    else {
+      processProblemFormula(static_cast<FormulaUnit*>(unit));
+    }
+  }
+
+}
+
+Unit* EPRSkolem::apply(Unit* unit)
+{
+  CALL("EPRSkolem::apply");
+
+  NOT_IMPLEMENTED;
+}
+
 
 }

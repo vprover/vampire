@@ -111,6 +111,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/EqHelper.o\
         Kernel/FlatTerm.o\
         Kernel/Formula.o\
+	Kernel/FormulaTransformer.o\
         Kernel/FormulaUnit.o\
         Kernel/FormulaVarIterator.o\
         Kernel/Grounder.o\
@@ -347,6 +348,7 @@ LIB_DEP = Indexing/TermSharing.o\
 OTHER_CL_DEP = Inferences/InferenceEngine.o\
 	       Inferences/TautologyDeletionISE.o\
 	       Kernel/EqHelper.o\
+	       Kernel/FormulaTransformer.o\
 	       Kernel/InferenceStore.o\
 	       Kernel/Matcher.o\
 	       SAT/SATClause.o\
@@ -361,6 +363,7 @@ OTHER_API_DEP = \
 	   Kernel/Clause.o\
 	   Kernel/EqHelper.o\
 	   Kernel/Formula.o\
+	   Kernel/FormulaTransformer.o\
 	   Kernel/FormulaUnit.o\
 	   Kernel/FormulaVarIterator.o\
 	   Kernel/Inference.o\

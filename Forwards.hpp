@@ -289,6 +289,7 @@ class Statistics;
 class TPTPLexer;
 class TPTPParser;
 
+class EPRRestoring;
 class EPRInlining;
 
 namespace LTB

@@ -50,6 +50,7 @@ public:
       FormulaUnit* premise=0);
 private:
 
+  friend class EPRRestoring;
   friend class EPRInlining;
 
   struct Applicator;
