@@ -9,12 +9,15 @@
 #include "Lib/Environment.hpp"
 #include "Lib/MultiCounter.hpp"
 #include "Lib/SCCAnalyzer.hpp"
+#include "Lib/ScopedLet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
+#include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -464,6 +467,245 @@ Unit* EPRInlining::apply(Unit* unit)
 // EPRSkolem
 //
 
+class EPRSkolem::Applicator : private PolarityAwareFormulaTransformer
+{
+public:
+  Applicator(EPRSkolem& parent, Literal* lhs, int topPolarity)
+  : _lhs(lhs), _topPolarity(topPolarity), _skUnits(0), _parent(parent)
+  {
+    ASS(topPolarity==1 || topPolarity==-1);
+
+    unsigned hdr = _lhs->header();
+    if(_topPolarity==-1) {
+      hdr ^= 1;
+    }
+    LiteralList* instList = _parent._insts.keyVals(hdr);
+    _lhsInstances.loadFromIterator(LiteralList::Iterator(instList));
+    makeUnique(_lhsInstances);
+
+    unsigned lhsArity = _lhs->arity();
+    for(unsigned i=0; i<lhsArity; i++) {
+      unsigned var = _lhs->nthArgument(i)->var();
+      ALWAYS(_varLhsIndexes.insert(var, i));
+    }
+
+  }
+
+  Formula* transform(Formula* f)
+  {
+    CALL("EPRSkolem::Applicator::transform");
+    _extraQuantifiers = false;
+
+    _varSorts.reset();
+    SortHelper::collectVariableSorts(f, _varSorts);
+
+    return PolarityAwareFormulaTransformer::transform(f, _topPolarity);
+  }
+
+protected:
+  virtual Formula* applyLiteral(Formula* f);
+  virtual Formula* applyQuantified(Formula* f);
+
+private:
+  Literal* getSkolemLiteral(unsigned var);
+
+  void generateSKUnit(Literal* inst, unsigned pred, unsigned var, string nameSuffix);
+
+  void propagateInstancesToLiteral(Literal* lit, bool negated);
+
+  Literal* _lhs;
+  /** 1 means we're handling implication (lhs => f) */
+  int _topPolarity;
+
+  Stack<Literal*> _lhsInstances;
+
+  UnitList* _skUnits;
+  DHMap<pair<Literal*,unsigned>,TermList> _skolemFns;
+
+  DHMap<unsigned,unsigned> _varSorts;
+  DHMap<unsigned,unsigned> _varLhsIndexes;
+
+  bool _extraQuantifiers;
+  EPRSkolem& _parent;
+};
+
+/**
+ * Here we don't modify the formula, just ensure we keep track of instances
+ * of dependent EPR violating predicates that appear in the transformed formula
+ */
+Formula* EPRSkolem::Applicator::applyLiteral(Formula* f)
+{
+  CALL("EPRSkolem::Applicator::applyLiteral");
+
+  Literal* l = f->literal();
+  switch(_polarity) {
+  case 1:
+    propagateInstancesToLiteral(l, false);
+    break;
+  case -1:
+    propagateInstancesToLiteral(l, true);
+    break;
+  case 0:
+    propagateInstancesToLiteral(l, false);
+    propagateInstancesToLiteral(l, true);
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+
+  return f;
+}
+
+void EPRSkolem::Applicator::propagateInstancesToLiteral(Literal* lit, bool negated)
+{
+  CALL("EPRSkolem::Applicator::propagateInstancesToLiteral");
+
+  unsigned hdr = lit->header() ^ (negated ? 1 : 0);
+  if(!_parent._inlinedHeaders.find(hdr)) {
+    return;
+  }
+
+  if(lit->ground()) {
+    _parent.processLiteralHeader(lit, hdr);
+    return;
+  }
+
+  static Stack<TermList> args;
+  LiteralStack::Iterator instIt(_lhsInstances);
+  while(instIt.hasNext()) {
+    Literal* inst = instIt.next();
+
+    args.reset();
+    TermList* lArg = lit->args();
+    while(!lArg->isEmpty()) {
+      if(lArg->isTerm()) {
+	if(!lArg->term()->ground()) {
+	  //we have a non-constant function, so the problem isn't EPR.
+	  //this means we actually don't need to bother so much and we
+	  //just disable the definition of lit by passing a non-ground
+	  //instance
+	  _parent.processLiteralHeader(lit, hdr);
+	  return;
+	}
+	args.push(*lArg);
+	continue;
+      }
+      unsigned lVar = lArg->var();
+      unsigned lhsIdx;
+      TermList argInst;
+      if(_varLhsIndexes.find(lVar, lhsIdx)) {
+	argInst = *inst->nthArgument(lhsIdx);
+      }
+      else {
+	argInst = _skolemFns.get(make_pair(inst, lVar));
+      }
+      args.push(argInst);
+    }
+    ASS_EQ(args.size(), lit->arity());
+
+    Literal* litInst = Literal::create(lit, args.begin());
+    ASS(litInst->ground());
+    _parent.processLiteralHeader(litInst, hdr);
+  }
+}
+
+void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigned var, string nameSuffix)
+{
+  CALL("EPRSkolem::Applicator::generateSKUnit");
+  ASS_EQ(inst->functor(), _lhs->functor());
+
+  unsigned skFunSort = _varSorts.get(var);
+  unsigned skFun = env.signature->addSkolemFunction(0, nameSuffix.c_str());
+  Signature::Symbol* fnSym = env.signature->getFunction(skFun);
+  fnSym->setType(new FunctionType(0, 0, skFunSort));
+
+  TermList skTerm = TermList(Term::create(skFun, 0, 0));
+
+  ALWAYS(_skolemFns.insert(make_pair(inst,var), skTerm)); //formula should be rectified and instances unique
+
+  static Stack<TermList> args;
+  args.reset();
+  SubtermIterator vit(inst);
+  while(vit.hasNext()) {
+    TermList t = vit.next();
+    args.push(t);
+  }
+  args.push(TermList(var,false));
+  ASS_EQ(args.size(), _lhs->arity()+1);
+
+  Literal* skLit = Literal::create(pred, args.size(), true, false, args.begin());
+  Formula* skForm = new AtomicFormula(skLit);
+  Inference* inf = new Inference(Inference::SKOLEM_PREDICATE_INTRODUCTION);
+  FormulaUnit* skUnit = new FormulaUnit(skForm, inf, Unit::AXIOM);
+
+  UnitList::push(skUnit, _skUnits);
+}
+
+
+Literal* EPRSkolem::Applicator::getSkolemLiteral(unsigned var)
+{
+  CALL("EPRSkolem::Applicator::getSkolemLiteral");
+  ASS(!_lhs->containsSubterm(TermList(var,false)));
+
+  string nameSuffix = _lhs->predicateName();
+  if(VarManager::varNamePreserving()) {
+    nameSuffix += VarManager::getVarName(var);
+  }
+  unsigned arity = _lhs->arity()+1;
+  unsigned pred = env.signature->addNamePredicate(arity, nameSuffix.c_str());
+
+  LiteralStack::Iterator instIt(_lhsInstances);
+  while(instIt.hasNext()) {
+    Literal* inst = instIt.next();
+    generateSKUnit(inst, pred, var, nameSuffix);
+  }
+
+  static Stack<TermList> args;
+  args.reset();
+  SubtermIterator vit(_lhs);
+  while(vit.hasNext()) {
+    TermList t = vit.next();
+    ASS(t.isVar());
+    args.push(t);
+  }
+  args.push(TermList(var,false));
+
+  Literal* res = Literal::create(pred, arity, true, false, args.begin());
+  return res;
+}
+
+Formula* EPRSkolem::Applicator::applyQuantified(Formula* f)
+{
+  CALL("EPRSkolem::Applicator::applyQuantified");
+  ASS(f->connective()==FORALL || f->connective()==EXISTS);
+  ASS(f->vars());
+
+  if(_polarity==0) {
+    throw CannotEPRSkolemize();
+  }
+
+  bool toBeSkolemized = (f->connective()==EXISTS) == (_polarity==1);
+  if(!toBeSkolemized) {
+    ScopedLet<bool> eqLet(_extraQuantifiers, true);
+    return PolarityAwareFormulaTransformer::applyQuantified(f);
+  }
+
+  if(_extraQuantifiers) {
+    throw CannotEPRSkolemize();
+  }
+
+  Formula* inner = apply(f->qarg());
+  Formula::VarList::Iterator vit(f->vars());
+  while(vit.hasNext()) {
+    unsigned var = vit.next();
+    Literal* skLit = getSkolemLiteral(var);
+    inner = new BinaryFormula(IMP, new AtomicFormula(skLit), inner);
+  }
+  Connective resCon = (f->connective()==FORALL) ? EXISTS : FORALL;
+  return new QuantifiedFormula(resCon, f->vars(), inner);
+}
+
+
 void EPRSkolem::processLiteralHeader(Literal* lit, unsigned header)
 {
   CALL("EPRSkolem::processLiteralHeader");
@@ -533,8 +775,6 @@ void EPRSkolem::processDefinition(unsigned header)
 {
   CALL("EPRSkolem::processDefinition");
 
-  LiteralList* insts = _insts.keyVals(header);
-
   unsigned pred = header/2;
   int polarity = ((header&1)==1) ? 1 : -1;
 
@@ -596,6 +836,8 @@ void EPRSkolem::processActiveDefinitions(UnitList* units)
 FormulaUnit* EPRSkolem::applyToDefinition(FormulaUnit* fu)
 {
   CALL("EPRSkolem::applyToDefinition");
+
+  NOT_IMPLEMENTED;
 }
 
 Unit* EPRSkolem::apply(Unit* unit)

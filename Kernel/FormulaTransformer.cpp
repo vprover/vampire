@@ -3,6 +3,8 @@
  * Implements class FormulaTransformer.
  */
 
+#include "Lib/ScopedLet.hpp"
+
 #include "Formula.hpp"
 
 #include "FormulaTransformer.hpp"
@@ -10,33 +12,33 @@
 namespace Kernel
 {
 
-Formula* FormulaTransformer::apply(Formula* form)
+Formula* FormulaTransformer::apply(Formula* f)
 {
   CALL("FormulaTransformer::apply");
 
-  switch (form->connective()) {
+  switch (f->connective()) {
   case LITERAL:
-    return applyLiteral(form);
+    return applyLiteral(f);
   case AND:
-    return applyAnd(form);
+    return applyAnd(f);
   case OR:
-    return applyOr(form);
+    return applyOr(f);
   case IMP:
-    return applyImp(form);
+    return applyImp(f);
   case NOT:
-    return applyNot(form);
+    return applyNot(f);
   case IFF:
-    return applyIff(form);
+    return applyIff(f);
   case XOR:
-    return applyXor(form);
+    return applyXor(f);
   case FORALL:
-    return applyForAll(form);
+    return applyForAll(f);
   case EXISTS:
-    return applyExists(form);
+    return applyExists(f);
 
   case TRUE:
   case FALSE:
-    return applyTrueFalse(form);
+    return applyTrueFalse(f);
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;
@@ -45,13 +47,13 @@ Formula* FormulaTransformer::apply(Formula* form)
   }
 }
 
-Formula* FormulaTransformer::applyJunction(Formula* form)
+Formula* FormulaTransformer::applyJunction(Formula* f)
 {
   CALL("FormulaTransformer::applyJunction");
 
   FormulaList* resArgs = 0;
   bool modified = false;
-  FormulaList::Iterator fs(form->args());
+  FormulaList::Iterator fs(f->args());
   while (fs.hasNext()) {
     Formula* arg = fs.next();
     Formula* newArg = apply(arg);
@@ -62,43 +64,103 @@ Formula* FormulaTransformer::applyJunction(Formula* form)
   }
   if(!modified) {
     resArgs->destroy();
-    return form;
+    return f;
   }
-  return new JunctionFormula(form->connective(), resArgs);
+  return new JunctionFormula(f->connective(), resArgs);
 }
 
-Formula* FormulaTransformer::applyNot(Formula* form)
+Formula* FormulaTransformer::applyNot(Formula* f)
 {
   CALL("FormulaTransformer::applyNot");
 
-  Formula* newArg = apply(form->uarg());
-  if(newArg==form->uarg()) {
-    return form;
+  Formula* newArg = apply(f->uarg());
+  if(newArg==f->uarg()) {
+    return f;
   }
   return new NegatedFormula(newArg);
 }
 
-Formula* FormulaTransformer::applyBinary(Formula* form)
+Formula* FormulaTransformer::applyBinary(Formula* f)
 {
   CALL("FormulaTransformer::applyBinary");
 
-  Formula* newLeft = apply(form->left());
-  Formula* newRight = apply(form->right());
-  if(newLeft==form->left() && newRight==form->right()) {
-    return form;
+  Formula* newLeft = apply(f->left());
+  Formula* newRight = apply(f->right());
+  if(newLeft==f->left() && newRight==f->right()) {
+    return f;
   }
-  return new BinaryFormula(form->connective(), newLeft, newRight);
+  return new BinaryFormula(f->connective(), newLeft, newRight);
 }
 
-Formula* FormulaTransformer::applyQuantified(Formula* form)
+Formula* FormulaTransformer::applyQuantified(Formula* f)
 {
   CALL("FormulaTransformer::applyQuantified");
 
-  Formula* newArg = apply(form->qarg());
-  if(newArg==form->qarg()) {
-    return form;
+  Formula* newArg = apply(f->qarg());
+  if(newArg==f->qarg()) {
+    return f;
   }
-  return new QuantifiedFormula(form->connective(), form->vars(), newArg);
+  return new QuantifiedFormula(f->connective(), f->vars(), newArg);
 }
+
+///////////////////////
+// PolarityAwareFormulaTransformer
+//
+
+//Formula* PolarityAwareFormulaTransformer::transform(Formula* f)
+//{
+//  CALL("PolarityAwareFormulaTransformer::transform");
+//
+//  _polarity = 1;
+//  return FormulaTransformer::transform(f);
+//}
+
+Formula* PolarityAwareFormulaTransformer::transform(Formula* f, int polarity)
+{
+  CALL("PolarityAwareFormulaTransformer::transform");
+  ASS_REP(polarity==0 || polarity==1 || polarity==-1, polarity);
+
+  _polarity = polarity;
+  return FormulaTransformer::transform(f);
+}
+
+Formula* PolarityAwareFormulaTransformer::applyNot(Formula* f)
+{
+  CALL("PolarityAwareFormulaTransformer::applyNot");
+
+  ScopedLet<int> plet(_polarity, -_polarity);
+  return FormulaTransformer::applyNot(f);
+}
+
+Formula* PolarityAwareFormulaTransformer::applyImp(Formula* f)
+{
+  CALL("PolarityAwareFormulaTransformer::applyImp");
+  ASS_EQ(f->connective(),IMP);
+
+  Formula* newLeft;
+  {
+    ScopedLet<int> plet(_polarity, -_polarity);
+    newLeft = apply(f->left());
+  }
+  Formula* newRight = apply(f->right());
+  if(newLeft==f->left() && newRight==f->right()) {
+    return f;
+  }
+  return new BinaryFormula(f->connective(), newLeft, newRight);
+}
+
+/**
+ * This function is called by the default implementation of
+ * applyIff() and applyXor().
+ */
+Formula* PolarityAwareFormulaTransformer::applyBinary(Formula* f)
+{
+  CALL("PolarityAwareFormulaTransformer::applyBinary");
+  ASS(f->connective()==IFF || f->connective()==XOR);
+
+  ScopedLet<int> plet(_polarity, -_polarity);
+  return FormulaTransformer::applyBinary(f);
+}
+
 
 }

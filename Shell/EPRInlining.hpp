@@ -123,6 +123,10 @@ private:
 
   FormulaUnit* applyToDefinition(FormulaUnit* fu);
 
+  class Applicator;
+  class CannotEPRSkolemize : public Exception {};
+
+
   typedef MapToLIFO<unsigned,Literal*> InstMap;
 
   /**

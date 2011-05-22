@@ -10,9 +10,16 @@ namespace Kernel {
 
 class FormulaTransformer {
 public:
-  Formula* apply(Formula* f);
+  /**
+   * This function is to be called from outside of the class to
+   * transform formulas.
+   */
+  virtual Formula* transform(Formula* f) { return apply(f); }
+
 protected:
   FormulaTransformer() {}
+
+  Formula* apply(Formula* f);
 
   virtual Formula* applyLiteral(Formula* f) { return f; }
 
@@ -43,6 +50,22 @@ protected:
 
   virtual Formula* applyTrueFalse(Formula* f) { return f; }
 };
+
+class PolarityAwareFormulaTransformer : protected FormulaTransformer {
+public:
+  virtual Formula* transform(Formula* f, int polarity=1);
+protected:
+  PolarityAwareFormulaTransformer() {}
+
+  virtual Formula* applyNot(Formula* f);
+
+  virtual Formula* applyImp(Formula* f);
+
+  virtual Formula* applyBinary(Formula* f);
+
+  int _polarity;
+};
+
 
 }
 

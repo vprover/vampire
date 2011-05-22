@@ -574,14 +574,15 @@ unsigned Signature::addPredicate (const string& name,
  *
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addNamePredicate (unsigned arity)
+unsigned Signature::addNamePredicate (unsigned arity, const char* suffix)
 {
   CALL("Signature::addNamePredicate");
 
+  string suffixStr = suffix ? ("_" + string(suffix)) : "";
   string prefix("sP");
   prefix+=env.options->namePrefix();
   for (;;) {
-    string name = prefix + Int::toString(_lastName++);
+    string name = prefix + Int::toString(_lastName++) + suffixStr;
     bool added;
     unsigned result = addPredicate(name,arity,added);
     if (added) {

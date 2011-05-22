@@ -291,7 +291,7 @@ class Signature
    * The added constant is of sort Sorts::SRT_DEFAULT.
    */
   unsigned addStringConstant(const string& name);
-  unsigned addNamePredicate(unsigned arity);
+  unsigned addNamePredicate(unsigned arity, const char* suffix = 0);
 
   /** return the name of a function with a given number */
   const string& functionName(int number)

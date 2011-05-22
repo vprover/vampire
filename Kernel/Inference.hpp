@@ -127,6 +127,10 @@ public:
     DEFINITION_UNFOLDING,
     /** any kind of definition folding */
     DEFINITION_FOLDING,
+    /** introduction of auxiliady predicate for EPR-preserving skolemization */
+    SKOLEM_PREDICATE_INTRODUCTION,
+    /** EPR-preserving skolemization */
+    PREDICATE_SKOLEMIZE,
 //     /** expansion of row variable, KIF-specific */
 //     ROW_VARIABLE_EXPANSION,
     /** introduction of new name p, p <=> C */

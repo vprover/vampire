@@ -287,6 +287,10 @@ string Inference::ruleName(Rule rule)
     return "definition unfolding";
   case DEFINITION_FOLDING:
     return "definition folding";
+  case SKOLEM_PREDICATE_INTRODUCTION:
+  return "skolem predicate introduction";
+  case PREDICATE_SKOLEMIZE:
+    return "predicate skolemization";
 //  case ROW_VARIABLE_EXPANSION:
   case PREDICATE_DEFINITION:
     return "predicate definition introduction";
