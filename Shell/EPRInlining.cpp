@@ -376,9 +376,13 @@ int EPRRestoring::combinePolarities(int p1, int p2)
   return (p1==p2) ? p1 : 0;
 }
 
-void EPRRestoring::apply(UnitList*& units)
+///////////////////////
+// EPRInlining
+//
+
+void EPRInlining::apply(UnitList*& units)
 {
-  CALL("EPRRestoring::apply");
+  CALL("EPRInlining::apply");
 
   {
     //remove predicate equivalences
@@ -403,10 +407,6 @@ void EPRRestoring::apply(UnitList*& units)
     }
   }
 }
-
-///////////////////////
-// EPRInlining
-//
 
 void EPRInlining::processActiveDefinitions(UnitList* units)
 {
@@ -471,7 +471,7 @@ class EPRSkolem::Applicator : private PolarityAwareFormulaTransformer
 {
 public:
   Applicator(EPRSkolem& parent, Literal* lhs, int topPolarity)
-  : _lhs(lhs), _topPolarity(topPolarity), _skUnits(0), _parent(parent)
+  : _skUnits(0), _lhs(lhs), _topPolarity(topPolarity), _parent(parent)
   {
     ASS(topPolarity==1 || topPolarity==-1);
 
@@ -502,6 +502,7 @@ public:
     return PolarityAwareFormulaTransformer::transform(f, _topPolarity);
   }
 
+  UnitList* _skUnits;
 protected:
   virtual Formula* applyLiteral(Formula* f);
   virtual Formula* applyQuantified(Formula* f);
@@ -519,7 +520,6 @@ private:
 
   Stack<Literal*> _lhsInstances;
 
-  UnitList* _skUnits;
   DHMap<pair<Literal*,unsigned>,TermList> _skolemFns;
 
   DHMap<unsigned,unsigned> _varSorts;
@@ -576,8 +576,8 @@ void EPRSkolem::Applicator::propagateInstancesToLiteral(Literal* lit, bool negat
     Literal* inst = instIt.next();
 
     args.reset();
-    TermList* lArg = lit->args();
-    while(!lArg->isEmpty()) {
+
+    for(TermList* lArg = lit->args(); !lArg->isEmpty(); lArg = lArg->next()) {
       if(lArg->isTerm()) {
 	if(!lArg->term()->ground()) {
 	  //we have a non-constant function, so the problem isn't EPR.
@@ -614,14 +614,7 @@ void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigne
   CALL("EPRSkolem::Applicator::generateSKUnit");
   ASS_EQ(inst->functor(), _lhs->functor());
 
-  unsigned skFunSort = _varSorts.get(var);
-  unsigned skFun = env.signature->addSkolemFunction(0, nameSuffix.c_str());
-  Signature::Symbol* fnSym = env.signature->getFunction(skFun);
-  fnSym->setType(new FunctionType(0, 0, skFunSort));
-
-  TermList skTerm = TermList(Term::create(skFun, 0, 0));
-
-  ALWAYS(_skolemFns.insert(make_pair(inst,var), skTerm)); //formula should be rectified and instances unique
+  string argsStr;
 
   static Stack<TermList> args;
   args.reset();
@@ -629,8 +622,28 @@ void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigne
   while(vit.hasNext()) {
     TermList t = vit.next();
     args.push(t);
+    if(!argsStr.empty()) {
+      argsStr += "_";
+    }
+    argsStr += t.toString();
   }
-  args.push(TermList(var,false));
+
+  string suffix = nameSuffix;
+  if(!argsStr.empty() && argsStr.find_first_of("('")==string::npos) {
+    suffix += "_" + argsStr;
+  }
+
+
+  unsigned skFunSort = _varSorts.get(var);
+  unsigned skFun = env.signature->addSkolemFunction(0, suffix.c_str());
+  Signature::Symbol* fnSym = env.signature->getFunction(skFun);
+  fnSym->setType(new FunctionType(0, 0, skFunSort));
+
+  TermList skTerm = TermList(Term::create(skFun, 0, 0));
+
+  ALWAYS(_skolemFns.insert(make_pair(inst,var), skTerm)); //formula should be rectified and instances unique
+
+  args.push(skTerm);
   ASS_EQ(args.size(), _lhs->arity()+1);
 
   Literal* skLit = Literal::create(pred, args.size(), true, false, args.begin());
@@ -638,6 +651,9 @@ void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigne
   Inference* inf = new Inference(Inference::SKOLEM_PREDICATE_INTRODUCTION);
   FormulaUnit* skUnit = new FormulaUnit(skForm, inf, Unit::AXIOM);
 
+  if(_parent._trace) {
+    cerr << "New Skolem unit: " << skUnit->toString() << endl;
+  }
   UnitList::push(skUnit, _skUnits);
 }
 
@@ -716,6 +732,9 @@ void EPRSkolem::processLiteralHeader(Literal* lit, unsigned header)
   _insts.pushToKey(header, lit);
   if(!lit->ground()) {
     _inlinedHeaders.remove(header);
+    if(_trace) {
+      cerr << "Disabled header " << headerToString(header) << endl;
+    }
   }
 }
 
@@ -788,6 +807,14 @@ void EPRSkolem::processDefinition(unsigned header)
 }
 
 
+void EPRSkolem::enableLiteralHeader(unsigned header)
+{
+  _inlinedHeaders.insert(header);
+  if(_trace) {
+    cerr << "Enabled header " << headerToString(header) << endl;
+  }
+}
+
 void EPRSkolem::processActiveDefinitions(UnitList* units)
 {
   CALL("EPRSkolem::processActiveDefinitions");
@@ -803,14 +830,14 @@ void EPRSkolem::processActiveDefinitions(UnitList* units)
     unsigned posHdr = negHdr + 1;
     switch(pol) {
     case -1:
-      _inlinedHeaders.insert(negHdr);
+      enableLiteralHeader(negHdr);
       break;
     case 1:
-      _inlinedHeaders.insert(posHdr);
+      enableLiteralHeader(posHdr);
       break;
     case 0:
-      _inlinedHeaders.insert(negHdr);
-      _inlinedHeaders.insert(posHdr);
+      enableLiteralHeader(negHdr);
+      enableLiteralHeader(posHdr);
       break;
     default:
       ASSERTION_VIOLATION;
@@ -831,21 +858,160 @@ void EPRSkolem::processActiveDefinitions(UnitList* units)
     }
   }
 
+  Stack<unsigned>::Iterator apit2(_activePreds);
+  while(apit2.hasNext()) {
+    unsigned pred = apit2.next();
+    FormulaUnit* def = _nonEprDefs[pred];
+    processDefinition(def);
+  }
 }
 
-FormulaUnit* EPRSkolem::applyToDefinition(FormulaUnit* fu)
+FormulaUnit* EPRSkolem::definitionToImplication(FormulaUnit* premise, Literal* lhs,
+    Formula* rhs, int topPolarity)
 {
-  CALL("EPRSkolem::applyToDefinition");
+  CALL("EPRSkolem::definitionToImplication");
 
-  NOT_IMPLEMENTED;
+  Formula* lhsForm = new AtomicFormula(lhs);
+
+  Formula* body;
+  if(topPolarity==1) {
+    body = new BinaryFormula(IMP, lhsForm, rhs);
+  }
+  else {
+    ASS_EQ(topPolarity,-1);
+    body = new BinaryFormula(IMP, rhs, lhsForm);
+  }
+  Formula::VarList* freeVars = body->freeVariables();
+  if(freeVars) {
+    body = new QuantifiedFormula(FORALL, freeVars, body);
+  }
+  Inference* inf = new Inference1(Inference::PREDICATE_SKOLEMIZE, premise);
+  return new FormulaUnit(body, inf, premise->inputType());
 }
 
-Unit* EPRSkolem::apply(Unit* unit)
+bool EPRSkolem::applyToDefinitionHalf(FormulaUnit* fu, Literal* lhs, Formula* rhs,
+    int topPolarity, UnitList*& res)
 {
-  CALL("EPRSkolem::apply");
+  CALL("EPRSkolem::applyToDefinitionHalf");
 
-  NOT_IMPLEMENTED;
+  if(_trace) {
+    cerr << "Applying to " << ((topPolarity==1) ? "=>" : "<=") << " of "<< fu->toString() << endl;
+  }
+
+  Applicator apl(*this, lhs, topPolarity);
+  Formula* newRhs;
+  try {
+    newRhs = apl.transform(rhs);
+  }
+  catch (CannotEPRSkolemize) {
+    apl._skUnits->destroy();
+    if(_trace) {
+      cerr << "Cannot skolemize" << endl;
+    }
+    return false;
+  }
+
+  FormulaUnit* resDef = definitionToImplication(fu, lhs, newRhs, topPolarity);
+  res = UnitList::concat(res, apl._skUnits);
+  apl._skUnits = 0;
+  UnitList::push(resDef, res);
+  if(_trace) {
+    cerr << "New half-definition: " << resDef->toString() << endl;
+  }
+  return true;
 }
 
+void EPRSkolem::processDefinition(FormulaUnit* unit)
+{
+  CALL("EPRSkolem::processDefinition");
+
+  Literal* lhs;
+  Formula* rhs;
+  splitDefinition(unit, lhs, rhs);
+
+  unsigned pred = lhs->functor();
+  unsigned negHdr = pred<<1;
+  unsigned posHdr = negHdr+1;
+
+  bool inlineNeg = _inlinedHeaders.find(negHdr);
+  bool inlinePos = _inlinedHeaders.find(posHdr);
+  if(!inlineNeg && !inlinePos) {
+    if(_trace) {
+      cerr << "Skipping definition because both polarities are disabled: " << unit->toString() << endl;
+    }
+    processProblemFormula(unit);
+    return;
+  }
+
+  unsigned negPolarity = lhs->isPositive() ? -1 : 1;
+  unsigned posPolarity = -negPolarity;
+
+  UnitList* res = 0;
+  if(!inlineNeg || !applyToDefinitionHalf(unit, lhs, rhs, negPolarity, res)) {
+    FormulaUnit* impl = definitionToImplication(unit, lhs, rhs, negPolarity);
+    UnitList::push(impl, res);
+    processProblemFormula(impl);
+    inlineNeg = false;
+  }
+
+  if(!inlinePos || !applyToDefinitionHalf(unit, lhs, rhs, posPolarity, res)) {
+    FormulaUnit* impl = definitionToImplication(unit, lhs, rhs, posPolarity);
+    UnitList::push(impl, res);
+    processProblemFormula(impl);
+    inlinePos = false;
+  }
+
+  if(!inlinePos && !inlineNeg) {
+    res->destroy();
+    return;
+  }
+
+  _replacements.insert(unit, res);
+}
+
+void EPRSkolem::apply(UnitList*& units)
+{
+  CALL("EPRSkolem::apply(UnitList*&)");
+
+  {
+    //remove predicate equivalences
+    PDInliner pdi(false);
+    pdi.apply(units, true);
+  }
+
+  scan(units);
+
+  UnitList::DelIterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    UnitList* newUnits = 0;
+    if(!apply(u, newUnits)) {
+      continue;
+    }
+    uit.insert(newUnits);
+    uit.del();
+  }
+}
+
+
+bool EPRSkolem::apply(Unit* unit, UnitList*& acc)
+{
+  CALL("EPRSkolem::apply(Unit*,UnitList*&)");
+
+  UnitList* res;
+  if(!_replacements.find(unit, res)) {
+    return false;
+  }
+
+  acc = UnitList::concat(res,acc);
+  return true;
+}
+
+string EPRSkolem::headerToString(unsigned header)
+{
+  CALL("EPRSkolem::headerToString");
+
+  return ((header&1) ? "" : "~") + env.signature->predicateName(header>>1);
+}
 
 }

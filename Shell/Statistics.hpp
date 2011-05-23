@@ -53,6 +53,8 @@ public:
   unsigned removedSingletonVariables;
   /** number of pure predicates */
   unsigned purePredicates;
+  /** number of definitions transformed by EPR preserving skolemization*/
+  unsigned eprPreservingSkolemizations;
   /** number of inlined predicate definitions */
   unsigned inlinedPredicateDefinitions;
   /** number of unused predicate definitions */
@@ -209,6 +211,7 @@ public:
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,
     EQUALITY_PROPAGATION,
+    EPR_PRESERVING_SKOLEMIZATION,
     PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     PREPROCESS_2,

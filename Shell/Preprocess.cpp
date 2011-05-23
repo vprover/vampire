@@ -140,6 +140,11 @@ void Preprocess::preprocess (UnitList*& units)
     EqualityPropagator().apply(units);
   }
 
+  if (_options.eprPreservingSkolemization()) {
+    env.statistics->phase=Statistics::EPR_PRESERVING_SKOLEMIZATION;
+    EPRSkolem().apply(units);
+  }
+
   if (_options.eprRestoringInlining()) {
     env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
     EPRInlining().apply(units);

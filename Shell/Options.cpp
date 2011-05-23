@@ -97,6 +97,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "empty_clause_subsumption",
   "epr_preserving_naming",
+  "epr_preserving_skolemization",
   "epr_restoring_inlining",
   "equality_propagation",
   "equality_proxy",
@@ -472,6 +473,7 @@ Options::Options ()
 
   _emptyClauseSubsumption(false),
   _eprPreservingNaming(false),
+  _eprPreservingSkolemization(false),
   _eprRestoringInlining(false),
   _equalityPropagation(false),
   _equalityProxy(EP_OFF),
@@ -670,6 +672,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case EPR_PRESERVING_NAMING:
       _eprPreservingNaming = onOffToBool(value,name);
+      return;
+    case EPR_PRESERVING_SKOLEMIZATION:
+      _eprPreservingSkolemization = onOffToBool(value,name);
       return;
     case EPR_RESTORING_INLINING:
       _eprRestoringInlining = onOffToBool(value,name);
@@ -1282,6 +1287,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case EPR_PRESERVING_NAMING:
     str << boolToOnOff(_eprPreservingNaming);
+    return;
+  case EPR_PRESERVING_SKOLEMIZATION:
+    str << boolToOnOff(_eprPreservingSkolemization);
     return;
   case EPR_RESTORING_INLINING:
     str << boolToOnOff(_eprRestoringInlining);

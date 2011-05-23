@@ -24,10 +24,7 @@ namespace Shell {
 
 class EPRRestoring {
 public:
-  void apply(UnitList*& units);
-
   void scan(UnitList* units);
-  virtual Unit* apply(Unit* unit) = 0;
 
 protected:
   EPRRestoring(bool trace) : _trace(trace) {}
@@ -95,9 +92,8 @@ class EPRInlining : public EPRRestoring {
 public:
   EPRInlining(bool trace=false) : EPRRestoring(trace), _inliner(false, trace) {}
 
-  using EPRRestoring::apply;
-
-  virtual Unit* apply(Unit* unit);
+  Unit* apply(Unit* unit);
+  void apply(UnitList*& units);
 protected:
   virtual void processActiveDefinitions(UnitList* units);
 private:
@@ -108,12 +104,12 @@ class EPRSkolem : public EPRRestoring {
 public:
   EPRSkolem(bool trace=false) : EPRRestoring(trace), _defs(0) {}
 
-  using EPRRestoring::apply;
-
-  virtual Unit* apply(Unit* unit);
+  void apply(UnitList*& units);
+  bool apply(Unit* unit, UnitList*& res);
 protected:
   virtual void processActiveDefinitions(UnitList* units);
 private:
+  void enableLiteralHeader(unsigned header);
   void processLiteralHeader(Literal* lit, unsigned header);
   void processProblemLiteral(Literal* lit, int polarity);
   void processProblemClause(Clause* cl);
@@ -121,7 +117,14 @@ private:
 
   void processDefinition(unsigned header);
 
-  FormulaUnit* applyToDefinition(FormulaUnit* fu);
+  bool applyToDefinitionHalf(FormulaUnit* fu, Literal* lhs, Formula* rhs,
+      int topPolarity, UnitList*& res);
+  void processDefinition(FormulaUnit* unit);
+
+  FormulaUnit* definitionToImplication(FormulaUnit* premise, Literal* lhs,
+      Formula* rhs, int topPolarity);
+
+  static string headerToString(unsigned hdr);
 
   class Applicator;
   class CannotEPRSkolemize : public Exception {};
@@ -142,9 +145,9 @@ private:
    * instances among formulas which aren't active definitions. */
   DHSet<unsigned> _haveNonground;
 
-  typedef MapToLIFO<unsigned,Unit*> ReplacementMap;
+  typedef DHMap<Unit*,UnitList*> ReplacementMap;
 
-  /** Map from predicates to the replacements of their definitions */
+  /** Map from definitions to their replacements */
   ReplacementMap _replacements;
 
   UnitList* _defs;
