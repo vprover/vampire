@@ -6,6 +6,10 @@
 #ifndef __FormulaTransformer__
 #define __FormulaTransformer__
 
+#include "Forwards.hpp"
+
+#include "Sorts.hpp"
+
 namespace Kernel {
 
 class FormulaTransformer {
@@ -53,9 +57,11 @@ protected:
 
 class PolarityAwareFormulaTransformer : protected FormulaTransformer {
 public:
+  ~PolarityAwareFormulaTransformer();
+
   virtual Formula* transform(Formula* f, int polarity=1);
 protected:
-  PolarityAwareFormulaTransformer() {}
+  PolarityAwareFormulaTransformer();
 
   virtual Formula* applyNot(Formula* f);
 
@@ -63,6 +69,12 @@ protected:
 
   virtual Formula* applyBinary(Formula* f);
 
+  int polarity() const { return _polarity; }
+
+  unsigned getVarSort(unsigned var) const;
+
+private:
+  DHMap<unsigned,unsigned>* _varSorts;
   int _polarity;
 };
 

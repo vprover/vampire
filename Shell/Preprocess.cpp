@@ -12,6 +12,7 @@
 
 #include "CNF.hpp"
 #include "EPRInlining.hpp"
+#include "EPRSkolem.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityPropagator.hpp"
 #include "EqualityProxy.hpp"

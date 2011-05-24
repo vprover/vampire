@@ -24,6 +24,7 @@
 
 #include "Shell/CNF.hpp"
 #include "Shell/EPRInlining.hpp"
+#include "Shell/EPRSkolem.hpp"
 #include "Shell/EqualityPropagator.hpp"
 #include "Shell/Flattening.hpp"
 #include "Shell/FormulaIteExpander.hpp"
@@ -55,7 +56,8 @@ Problem::PreprocessingOptions::PreprocessingOptions(
     int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
     bool unusedPredicateDefinitionRemoval, bool showNonConstantSkolemFunctionTrace,
     bool traceInlining, bool sineSelection, float sineTolerance, unsigned sineDepthLimit,
-    bool variableEqualityPropagation, bool traceVariableEqualityPropagation)
+    bool variableEqualityPropagation, bool traceVariableEqualityPropagation,
+    bool eprSkolemization, bool traceEPRSkolemization)
 : mode(mode), namingThreshold(namingThreshold), preserveEpr(preserveEpr),
   predicateDefinitionInlining(predicateDefinitionInlining),
   unusedPredicateDefinitionRemoval(unusedPredicateDefinitionRemoval),
@@ -63,7 +65,9 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   traceInlining(traceInlining), sineSelection(sineSelection),
   sineTolerance(sineTolerance), sineDepthLimit(sineDepthLimit),
   variableEqualityPropagation(variableEqualityPropagation),
-  traceVariableEqualityPropagation(traceVariableEqualityPropagation)
+  traceVariableEqualityPropagation(traceVariableEqualityPropagation),
+  eprSkolemization(eprSkolemization),
+  traceEPRSkolemization(traceEPRSkolemization)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions");
 }
@@ -506,7 +510,7 @@ class Problem::EPRRestoringInliner : public ProblemTransformer
 {
 public:
   EPRRestoringInliner(bool trace)
-      : _trace(trace), _erInliner(trace)
+      : _trace(trace), _eprInliner(trace)
   {
   }
 
@@ -524,7 +528,7 @@ protected:
       AnnotatedFormula f=fit.next();
       Kernel::UnitList::push(f.unit, units);
     }
-    _erInliner.scan(units);
+    _eprInliner.scan(units);
     units->destroy();
 
     fit=p.formulas();
@@ -538,14 +542,82 @@ protected:
   {
     CALL("Problem::EPRRestoringInliner::transformImpl");
 
-    Kernel::Unit* res = _erInliner.apply(unit);
+    Kernel::Unit* res = _eprInliner.apply(unit);
     if(res) {
       addUnit(res);
     }
   }
 
   bool _trace;
-  Shell::EPRInlining _erInliner;
+  Shell::EPRInlining _eprInliner;
+};
+
+class Problem::ConstantSkolemizer : public ProblemTransformer
+{
+protected:
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::ConstantSkolemizer::transformImpl");
+
+    if(unit->isClause()) {
+      addUnit(unit);
+      return;
+    }
+    FormulaUnit* newUnit = EPRSkolem::constantSkolemize(static_cast<FormulaUnit*>(unit));
+    addUnit(newUnit);
+  }
+};
+
+class Problem::EPRSkolemizer : public ProblemTransformer
+{
+public:
+  EPRSkolemizer(bool trace)
+      : _trace(trace), _eprSkolem(trace)
+  {
+  }
+
+protected:
+  virtual void transformImpl(Problem p)
+  {
+    CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
+
+    p = ConstantSkolemizer().transform(p);
+    p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY, _trace).transform(p);
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+    _eprSkolem.scan(units);
+    units->destroy();
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      transform(f);
+    }
+  }
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::EPRRestoringInliner::transformImpl");
+
+    UnitList* res = 0;
+    if(!_eprSkolem.apply(unit, res)) {
+      addUnit(unit);
+      return;
+    }
+    while(res) {
+      Unit* ru = UnitList::pop(res);
+      addUnit(ru);
+    }
+  }
+
+  bool _trace;
+  Shell::EPRSkolem _eprSkolem;
 };
 
 
@@ -777,6 +849,10 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
 
   if(options.variableEqualityPropagation) {
     res = VariableEqualityPropagator(options.traceVariableEqualityPropagation).transform(res);
+  }
+
+  if(options.eprSkolemization) {
+    res = EPRSkolemizer(options.traceEPRSkolemization).transform(res);
   }
 
   if(options.predicateDefinitionInlining!=INL_OFF) {

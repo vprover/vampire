@@ -3,9 +3,12 @@
  * Implements class FormulaTransformer.
  */
 
+#include "Lib/DHMap.hpp"
+#include "Lib/Recycler.hpp"
 #include "Lib/ScopedLet.hpp"
 
 #include "Formula.hpp"
+#include "SortHelper.hpp"
 
 #include "FormulaTransformer.hpp"
 
@@ -103,22 +106,38 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
   return new QuantifiedFormula(f->connective(), f->vars(), newArg);
 }
 
-///////////////////////
+////////////////////////////////////
 // PolarityAwareFormulaTransformer
 //
 
-//Formula* PolarityAwareFormulaTransformer::transform(Formula* f)
-//{
-//  CALL("PolarityAwareFormulaTransformer::transform");
-//
-//  _polarity = 1;
-//  return FormulaTransformer::transform(f);
-//}
+PolarityAwareFormulaTransformer::PolarityAwareFormulaTransformer()
+{
+  CALL("PolarityAwareFormulaTransformer::PolarityAwareFormulaTransformer");
+
+  Recycler::get(_varSorts); //_varSorts is reset in the transform() function
+}
+
+PolarityAwareFormulaTransformer::~PolarityAwareFormulaTransformer()
+{
+  CALL("PolarityAwareFormulaTransformer::~PolarityAwareFormulaTransformer");
+
+  Recycler::release(_varSorts);
+}
+
+unsigned PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
+{
+  CALL("PolarityAwareFormulaTransformer::getVarSort");
+
+  return _varSorts->get(var, Sorts::SRT_DEFAULT);
+}
 
 Formula* PolarityAwareFormulaTransformer::transform(Formula* f, int polarity)
 {
   CALL("PolarityAwareFormulaTransformer::transform");
   ASS_REP(polarity==0 || polarity==1 || polarity==-1, polarity);
+
+  _varSorts->reset();
+  SortHelper::collectVariableSorts(f, *_varSorts);
 
   _polarity = polarity;
   return FormulaTransformer::transform(f);

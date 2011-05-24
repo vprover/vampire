@@ -228,6 +228,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/CNF.o\
          Shell/CParser.o\
          Shell/EPRInlining.o\
+         Shell/EPRSkolem.o\
          Shell/EqResWithDeletion.o\
          Shell/EqualityPropagator.o\
          Shell/EqualityProxy.o\
@@ -302,6 +303,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/UnitTesting.o
 
 VUT_OBJ = UnitTests/tBinaryHeap.o\
+	  UnitTests/tEPRRestoringApi.o\
 	  UnitTests/tDHMap.o\
 	  UnitTests/tDHMultiset.o\
 	  UnitTests/tDynamicHeap.o\
@@ -403,6 +405,7 @@ OTHER_API_DEP = \
 	   Saturation/ClauseContainer.o\
 	   Shell/CNF.o\
 	   Shell/EPRInlining.o\
+	   Shell/EPRSkolem.o\
 	   Shell/EqualityProxy.o\
            Shell/EqualityPropagator.o\
 	   Shell/Flattening.o\

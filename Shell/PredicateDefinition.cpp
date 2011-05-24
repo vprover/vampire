@@ -134,7 +134,9 @@ PredicateDefinition::PredicateDefinition()
   _preds = new PredData[predCnt];
   for(int i=0;i<predCnt;i++) {
     _preds[i].pred=i;
-    _preds[i].interpreted=env.signature->getPredicate(i)->interpreted();
+    _preds[i].interpreted =
+	env.signature->getPredicate(i)->interpreted() ||
+	env.signature->predicateName(i) == "'$distinct'";
   }
 }
 

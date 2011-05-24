@@ -100,59 +100,6 @@ private:
   PDInliner _inliner;
 };
 
-class EPRSkolem : public EPRRestoring {
-public:
-  EPRSkolem(bool trace=false) : EPRRestoring(trace), _defs(0) {}
-
-  void apply(UnitList*& units);
-  bool apply(Unit* unit, UnitList*& res);
-protected:
-  virtual void processActiveDefinitions(UnitList* units);
-private:
-  void enableLiteralHeader(unsigned header);
-  void processLiteralHeader(Literal* lit, unsigned header);
-  void processProblemLiteral(Literal* lit, int polarity);
-  void processProblemClause(Clause* cl);
-  void processProblemFormula(FormulaUnit* fu);
-
-  void processDefinition(unsigned header);
-
-  bool applyToDefinitionHalf(FormulaUnit* fu, Literal* lhs, Formula* rhs,
-      int topPolarity, UnitList*& res);
-  void processDefinition(FormulaUnit* unit);
-
-  FormulaUnit* definitionToImplication(FormulaUnit* premise, Literal* lhs,
-      Formula* rhs, int topPolarity);
-
-  static string headerToString(unsigned hdr);
-
-  class Applicator;
-  class CannotEPRSkolemize : public Exception {};
-
-
-  typedef MapToLIFO<unsigned,Literal*> InstMap;
-
-  /**
-   * Map from literal headers that should have EPR violating
-   * definition inlined, to the list of their instances among
-   * formulas which aren't active definitions.
-   */
-  InstMap _insts;
-
-  DHSet<unsigned> _inlinedHeaders;
-
-  /** Set of (EPR inlineable) literal headers that have non-ground
-   * instances among formulas which aren't active definitions. */
-  DHSet<unsigned> _haveNonground;
-
-  typedef DHMap<Unit*,UnitList*> ReplacementMap;
-
-  /** Map from definitions to their replacements */
-  ReplacementMap _replacements;
-
-  UnitList* _defs;
-};
-
 }
 
 #endif // __EPRInlining__

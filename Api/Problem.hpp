@@ -97,7 +97,9 @@ public:
 	float sineTolerance=1.0f,
 	unsigned sineDepthLimit=0,
 	bool variableEqualityPropagation=false,
-	bool traceVariableEqualityPropagation=false);
+	bool traceVariableEqualityPropagation=false,
+	bool eprSkolemization=false,
+	bool traceEPRSkolemization=false);
     PreprocessingMode mode;
     /**
      * When the number of clauses generated from one formula
@@ -155,6 +157,14 @@ public:
      */
     bool variableEqualityPropagation;
     bool traceVariableEqualityPropagation;
+
+    /**
+     * Where possible, perform EPR preserving skolemization of predicate
+     * definitions whose clausification would otherwise violate the EPR
+     * property.
+     */
+    bool eprSkolemization;
+    bool traceEPRSkolemization;
   private:
     friend class Problem;
     void validate() const;
@@ -284,8 +294,10 @@ private:
 
   class Preprocessor1;
   class VariableEqualityPropagator;
-  class EPRRestoringInliner;
   class PredicateDefinitionInliner;
+  class EPRRestoringInliner;
+  class ConstantSkolemizer;
+  class EPRSkolemizer;
   class UnusedPredicateDefinitionRemover;
   class Clausifier;
   class SineSelector;

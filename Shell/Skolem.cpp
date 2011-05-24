@@ -80,21 +80,37 @@ void Skolem::reset()
   _subst.reset();
 }
 
+unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
+    unsigned rangeSort, unsigned var)
+{
+  CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,unsigned)");
+
+  if(VarManager::varNamePreserving()) {
+    string varName=VarManager::getVarName(var);
+    return addSkolemFunction(arity, domainSorts, rangeSort, varName.c_str());
+  }
+  else {
+    return addSkolemFunction(arity, domainSorts, rangeSort);
+  }
+}
+
+unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
+    unsigned rangeSort, const char* suffix)
+{
+  CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,const char*)");
+  ASS(arity==0 || domainSorts!=0);
+
+  unsigned fun = env.signature->addSkolemFunction(arity, suffix);
+  Signature::Symbol* fnSym = env.signature->getFunction(fun);
+  fnSym->setType(new FunctionType(arity, domainSorts, rangeSort));
+  return fun;
+}
 
 Term* Skolem::createSkolemTerm(unsigned var)
 {
   CALL("Skolem::createSkolemFunction");
 
   int arity = _vars.length();
-
-  unsigned fun;
-  if(VarManager::varNamePreserving()) {
-    string varName=VarManager::getVarName(var);
-    fun = env.signature->addSkolemFunction(arity, varName.c_str());
-  }
-  else {
-    fun = env.signature->addSkolemFunction(arity);
-  }
 
   unsigned rangeSort=_varSorts.get(var, Sorts::SRT_DEFAULT);
   static Stack<unsigned> domainSorts;
@@ -109,8 +125,7 @@ Term* Skolem::createSkolemTerm(unsigned var)
     fnArgs.push(TermList(uvar, false));
   }
 
-  Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->setType(new FunctionType(arity, domainSorts.begin(), rangeSort));
+  unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
 
   return Term::create(fun, arity, fnArgs.begin());
 }
