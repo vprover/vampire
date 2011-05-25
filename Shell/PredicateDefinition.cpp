@@ -136,7 +136,8 @@ PredicateDefinition::PredicateDefinition()
     _preds[i].pred=i;
     _preds[i].interpreted =
 	env.signature->getPredicate(i)->interpreted() ||
-	env.signature->predicateName(i) == "'$distinct'";
+	env.signature->predicateName(i) == "$distinct";
+    //TODO: remove this hack once we properly support the $distinct predicate
   }
 }
 

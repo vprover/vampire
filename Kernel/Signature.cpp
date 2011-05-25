@@ -46,6 +46,10 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
       }
       c++;
     }
+    if(quote && _name=="$distinct") {
+      //TODO: remove this hack once we properly support the $distinct predicate
+      quote=false;
+    }
     if(quote) {
       _name="'"+_name+"'";
     }

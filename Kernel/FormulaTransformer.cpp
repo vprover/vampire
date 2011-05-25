@@ -177,7 +177,7 @@ Formula* PolarityAwareFormulaTransformer::applyBinary(Formula* f)
   CALL("PolarityAwareFormulaTransformer::applyBinary");
   ASS(f->connective()==IFF || f->connective()==XOR);
 
-  ScopedLet<int> plet(_polarity, -_polarity);
+  ScopedLet<int> plet(_polarity, 0);
   return FormulaTransformer::applyBinary(f);
 }
 

@@ -37,7 +37,7 @@ namespace Shell
 class EPRSkolem::ConstantSkolemizer : private PolarityAwareFormulaTransformer
 {
 public:
-  ConstantSkolemizer() {}
+  ConstantSkolemizer(bool trace=false) : _trace(trace) {}
 
   FormulaUnit* transform(FormulaUnit* f);
   void transform(UnitList*& units);
@@ -63,6 +63,8 @@ protected:
   Formula* applyLiteral(Formula* f);
   Formula* applyQuantified(Formula* f);
 private:
+  bool _trace;
+
   bool _extraQuantifiers;
 
   typedef DHMap<unsigned,TermList> BindingMap;
@@ -98,7 +100,13 @@ FormulaUnit* EPRSkolem::ConstantSkolemizer::transform(FormulaUnit* fu)
     return fu;
   }
   Inference* inf = new Inference1(Inference::SKOLEMIZE, fu);
-  return new FormulaUnit(newForm, inf, fu->inputType());
+  FormulaUnit* res = new FormulaUnit(newForm, inf, fu->inputType());
+
+  if(_trace) {
+    cout<<"Constant skolemizer:\n  from: " << fu->toString() << "\n  to:   " << res->toString() << endl;
+  }
+
+  return res;
 }
 
 Formula* EPRSkolem::ConstantSkolemizer::applyLiteral(Formula* f)
@@ -701,7 +709,7 @@ void EPRSkolem::apply(UnitList*& units)
   }
 
   {
-    ConstantSkolemizer skol;
+    ConstantSkolemizer skol(_trace);
     skol.transform(units);
   }
 
