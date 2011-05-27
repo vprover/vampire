@@ -605,6 +605,8 @@ TEST_FUN(fbapiAttributes)
     api.addAttribute(p, "a1", "v1");
     api.addAttribute(p, "a2", "v2");
     api.addAttribute(p, "a3", "v3");
+    api.addAttribute(p, "a3", "v3");
+    api.addAttribute(p, "a3", "v3");
 
     ASS_EQ(api.attributeCount(p),3);
     ASS_EQ(api.getAttributeName(p,0),"a1");

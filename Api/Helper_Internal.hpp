@@ -146,6 +146,7 @@ public:
     return *res;
   }
 
+  static void addAttribute(AttribStack& stack, string name, string value);
 private:
 
   DHMap<unsigned,AttribStack > _sortAttributes;

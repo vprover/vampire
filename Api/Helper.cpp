@@ -548,6 +548,19 @@ unsigned FBHelperCore::getVar(string varName, Sort varSort)
   return res;
 }
 
+void FBHelperCore::addAttribute(AttribStack& stack, string name, string value)
+{
+  CALL("FBHelperCore::addAttribute");
+
+  AttribPair attr(name,value);
+  //TODO: This causes quadratic complexity in the number of attributes
+  if(stack.find(attr)) {
+    return;
+  }
+  stack.push(attr);
+}
+
+
 /**
  * Return an alias variable for variable number @b var
  */

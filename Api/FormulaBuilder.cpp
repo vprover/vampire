@@ -184,7 +184,7 @@ void FormulaBuilder::addAttribute(Sort p, string name, string value)
 {
   CALL("FormulaBuilder::addAttribute(Sort,string,string)");
 
-  _aux->getSortAttributes(p).push(make_pair(name, value));
+  FBHelperCore::addAttribute(_aux->getSortAttributes(p), name, value);
 }
 
 unsigned FormulaBuilder::attributeCount(Sort p)
@@ -232,7 +232,7 @@ void FormulaBuilder::addAttribute(Predicate p, string name, string value)
 {
   CALL("FormulaBuilder::addAttribute(Predicate,string,string)");
 
-  _aux->getPredicateAttributes(p).push(make_pair(name, value));
+  FBHelperCore::addAttribute(_aux->getPredicateAttributes(p), name, value);
 }
 
 unsigned FormulaBuilder::attributeCount(Predicate p)
@@ -280,7 +280,7 @@ void FormulaBuilder::addAttribute(Function p, string name, string value)
 {
   CALL("FormulaBuilder::addAttribute(Function,string,string)");
 
-  _aux->getFunctionAttributes(p).push(make_pair(name, value));
+  FBHelperCore::addAttribute(_aux->getFunctionAttributes(p), name, value);
 }
 
 unsigned FormulaBuilder::attributeCount(Function p)
