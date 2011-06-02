@@ -296,8 +296,12 @@ string Inference::ruleName(Rule rule)
     return "predicate definition introduction";
   case PREDICATE_DEFINITION_UNFOLDING:
     return "predicate definition unfolding";
+  case PREDICATE_DEFINITION_MERGING:
+    return "predicate definition merging";
   case REDUCE_FALSE_TRUE:
     return "true and false elimination";
+  case NORMALIZATION:
+    return "normalization";
   case EQUALITY_PROPAGATION:
     return "equality propagation";
   case TRIVIAL_INEQUALITY_REMOVAL:

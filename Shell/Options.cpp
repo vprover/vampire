@@ -144,6 +144,7 @@ const char* Options::Constants::_optionNames[] = {
   "output_axiom_names",
 
   "predicate_definition_inlining",
+  "predicate_definition_merging",
   "problem_name",
   "proof",
   "proof_checking",
@@ -524,6 +525,7 @@ Options::Options ()
   _outputAxiomNames(false),
 
   _predicateDefinitionInlining(INL_OFF),
+  _predicateDefinitionMerging(false),
   _problemName("unknown"),
   _proof(PROOF_ON),
   _proofChecking(false),
@@ -837,6 +839,9 @@ void Options::set (const char* name,const char* value, int index)
 
     case PREDICATE_DEFINITION_INLINING:
       _predicateDefinitionInlining = (InliningMode)Constants::inliningModeValues.find(value);
+      return;
+    case PREDICATE_DEFINITION_MERGING:
+      _predicateDefinitionMerging = onOffToBool(value,name);
       return;
     case PROOF:
       _proof = (Proof)Constants::proofValues.find(value);
@@ -1409,6 +1414,9 @@ void Options::outputValue (ostream& str,int optionTag) const
 
   case PREDICATE_DEFINITION_INLINING:
     str << Constants::inliningModeValues[_predicateDefinitionInlining];
+    return;
+  case PREDICATE_DEFINITION_MERGING:
+    str << boolToOnOff(_predicateDefinitionMerging);
     return;
   case PROBLEM_NAME:
     str << _problemName;

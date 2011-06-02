@@ -402,6 +402,8 @@ bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& 
     if(!insertedOp.isCheckGroundTerm()) { return false; }
     tgt=&static_cast<GroundTermSearchStruct*>(this)->targetOp(insertedOp.getTargetTerm());
     return true;
+  default:
+    ASSERTION_VIOLATION;
   }
 }
 
@@ -417,6 +419,8 @@ CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftP
     ftPos++;
     ASS_EQ(ftPos->tag(), FlatTerm::FUN_TERM_PTR);
     return static_cast<GroundTermSearchStruct*>(this)->targetOp(ftPos->ptr());
+  default:
+    ASSERTION_VIOLATION;
   }
 }
 

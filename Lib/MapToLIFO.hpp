@@ -76,6 +76,35 @@ public:
     return res;
   }
 
+  /**
+   * If @c val is stored under @c key, remove it and return true;
+   * otherwise return false.
+   *
+   * The complexity is linar with the size of the list stored under
+   * @c key.
+   */
+  bool removeFromKey(K key, V val)
+  {
+    CALL("MapToLIFO::removeFromKey");
+
+    if(!_data.find(key)) {
+      return false;
+    }
+
+    ValList** pLst;
+    _data.getValuePtr(key, pLst);
+
+    if(!(*pLst)->member(val)) {
+      return false;
+    }
+
+    *pLst = (*pLst)->remove(val);
+    if(!*pLst) {
+      _data.remove(key);
+    }
+    return true;
+  }
+
   bool isKeyEmpty(K key)
   {
     CALL("MapToLIFO::isKeyEmpty");

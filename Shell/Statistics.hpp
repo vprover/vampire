@@ -57,6 +57,8 @@ public:
   unsigned eprPreservingSkolemizations;
   /** number of inlined predicate definitions */
   unsigned inlinedPredicateDefinitions;
+  /** number of merged predicate definitions */
+  unsigned mergedPredicateDefinitions;
   /** number of unused predicate definitions */
   unsigned unusedPredicateDefinitions;
   /** number of eliminated function definitions */
@@ -211,6 +213,7 @@ public:
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,
     EQUALITY_PROPAGATION,
+    PREDIACTE_DEFINITION_MERGING,
     EPR_PRESERVING_SKOLEMIZATION,
     PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,

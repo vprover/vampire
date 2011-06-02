@@ -111,6 +111,8 @@ class IdentitySubstitution
 : public ResultSubstitution
 {
 public:
+  static ResultSubstitutionSP instance();
+
   TermList applyToQuery(TermList t) { return t; }
   Literal* applyToQuery(Literal* l) { return l; }
   TermList applyToResult(TermList t) { return t; }

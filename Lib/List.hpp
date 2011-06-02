@@ -252,7 +252,11 @@ public:
     lst = lst->cons(elem);
   } // List::push
 
-  /** push all elements from @b it iterator to the list */
+  /**
+   * Push all elements from @b it iterator to the list.
+   *
+   * The first element in the iterator will end up as last in the list
+   */
   template<class It>
   static void pushFromIterator(It it, List* &lst)
   {

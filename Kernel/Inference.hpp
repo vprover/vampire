@@ -137,9 +137,13 @@ public:
     PREDICATE_DEFINITION,
     /** unfolding predicate definitions */
     PREDICATE_DEFINITION_UNFOLDING,
+    /** merging predicate definitions */
+    PREDICATE_DEFINITION_MERGING,
     /** reduce a formula containing false or true, for example
      *  false & A ---> false */
     REDUCE_FALSE_TRUE,
+    /** Normalization of formulas */
+    NORMALIZATION,
     /** propagate equalities in formulas, for example
      * X=Y => X=f(Y) ---> X=f(X) */
     EQUALITY_PROPAGATION,

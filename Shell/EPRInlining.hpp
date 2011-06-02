@@ -26,12 +26,14 @@ class EPRRestoring {
 public:
   void scan(UnitList* units);
 
+  //these two are useful functions that are being used in other classes as well
+  static void splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& rhs);
+  static bool hasDefinitionShape(FormulaUnit* unit);
 protected:
   EPRRestoring(bool trace) : _trace(trace) {}
 
   virtual void processActiveDefinitions(UnitList* units) {}
 
-  static void splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& rhs);
 
   /** for a definition stores predicate defined by it */
   DHMap<Unit*, unsigned> _defPreds;
@@ -73,7 +75,6 @@ private:
 
   static bool isNonEPRDef(Literal* lhs, Formula* body, int& polarity);
   static bool hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* rhs);
-  static bool hasDefinitionShape(FormulaUnit* unit);
   static int combinePolarities(int p1, int p2);
 
   bool addNEDef(FormulaUnit* unit, unsigned functor, int polarity);

@@ -26,6 +26,7 @@
 #include "NNF.hpp"
 #include "Options.hpp"
 #include "PDInliner.hpp"
+#include "PDMerger.hpp"
 #include "PredicateDefinition.hpp"
 #include "Preprocess.hpp"
 #include "Property.hpp"
@@ -139,6 +140,11 @@ void Preprocess::preprocess (UnitList*& units)
     //reveal some more formulas to be definitions.
     env.statistics->phase=Statistics::EQUALITY_PROPAGATION;
     EqualityPropagator().apply(units);
+  }
+
+  if (_options.predicateDefinitionMerging()) {
+    env.statistics->phase=Statistics::PREDIACTE_DEFINITION_MERGING;
+    PDMerger().apply(units);
   }
 
   if (_options.eprPreservingSkolemization()) {

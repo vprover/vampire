@@ -25,7 +25,6 @@
 #include "RobSubstitution.hpp"
 
 #if VDEBUG
-#include "Test/Output.hpp"
 #include "Lib/Int.hpp"
 #include "Debug/Tracer.hpp"
 #include <string>
@@ -101,7 +100,6 @@ bool RobSubstitution::matchArgs(Term* base,int baseIndex,
 void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex)
 {
   CALL("RobSubstitution::denormalize");
-  ASSERT_VALID(normalizer);
 
   VirtualIterator<Renaming::Item> nit=normalizer.items();
   while(nit.hasNext()) {
@@ -904,9 +902,9 @@ string RobSubstitution::toString(bool deref) const
     }
     if(deref) {
       tl=apply(tl, v.index);
-      res+=Test::Output::singleTermListToString(tl)+"\n";
+      res+=tl.toString()+"\n";
     } else {
-      res+=Test::Output::singleTermListToString(binding.term)+"/"+Int::toString(binding.index)+"\n";
+      res+=binding.term.toString()+"/"+Int::toString(binding.index)+"\n";
     }
 
   }
@@ -924,7 +922,7 @@ std::string RobSubstitution::VarSpec::toString() const
 
 string RobSubstitution::TermSpec::toString() const
 {
-  return Test::Output::singleTermListToString(term)+"/"+Int::toString(index);
+  return term.toString()+"/"+Int::toString(index);
 }
 
 ostream& operator<< (ostream& out, RobSubstitution::VarSpec vs )

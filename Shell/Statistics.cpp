@@ -40,6 +40,7 @@ Statistics::Statistics()
     purePredicates(0),
     eprPreservingSkolemizations(0),
     inlinedPredicateDefinitions(0),
+    mergedPredicateDefinitions(0),
     unusedPredicateDefinitions(0),
     functionDefinitions(0),
     selectedBySine(0),
@@ -174,6 +175,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("EPR preserving skolemizations", eprPreservingSkolemizations);
   COND_OUT("Inlined predicate definitions", inlinedPredicateDefinitions);
+  COND_OUT("Merged predicate definitions", mergedPredicateDefinitions);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
   COND_OUT("Function definitions", functionDefinitions);
   COND_OUT("Selected by SInE selection", selectedBySine);
@@ -280,6 +282,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Preprocessing 1";
   case EQUALITY_PROPAGATION:
     return "Equality propagation";
+  case PREDIACTE_DEFINITION_MERGING:
+    return "Predicate definition merging";
   case EPR_PRESERVING_SKOLEMIZATION:
     return "EPR preserving skolemization";
   case PREDICATE_DEFINITION_INLINING:

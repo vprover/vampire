@@ -77,9 +77,21 @@ struct ClauseSResQueryResult
   unsigned resolvedQueryLiteralIndex;
 };
 
+struct FormulaQueryResult
+{
+  FormulaQueryResult() {}
+  FormulaQueryResult(FormulaUnit* unit, Formula* f, ResultSubstitutionSP s=ResultSubstitutionSP())
+  : unit(unit), formula(f), substitution(s) {}
+
+  FormulaUnit* unit;
+  Formula* formula;
+  ResultSubstitutionSP substitution;
+};
+
 typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
 typedef VirtualIterator<TermQueryResult> TermQueryResultIterator;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
+typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 
 class Index
 {

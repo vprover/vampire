@@ -8,6 +8,7 @@
 
 #include "Forwards.hpp"
 
+#include "Inference.hpp"
 #include "Sorts.hpp"
 
 namespace Kernel {
@@ -78,6 +79,51 @@ private:
   int _polarity;
 };
 
+class FormulaUnitTransformer
+{
+public:
+  virtual ~FormulaUnitTransformer() {}
+
+  virtual FormulaUnit* transform(FormulaUnit* unit) = 0;
+
+  void transform(UnitList*& units);
+};
+
+
+class LocalFormulaUnitTransformer : public FormulaUnitTransformer
+{
+public:
+  LocalFormulaUnitTransformer(Inference::Rule rule)
+  : _rule(rule) {}
+
+  using FormulaUnitTransformer::transform;
+
+  virtual Formula* transform(Formula* f) = 0;
+
+  virtual FormulaUnit* transform(FormulaUnit* unit);
+
+private:
+  Inference::Rule _rule;
+};
+
+template<class FT>
+class FTFormulaUnitTransformer : public LocalFormulaUnitTransformer
+{
+public:
+  FTFormulaUnitTransformer(Inference::Rule rule, FT& formulaTransformer)
+  : LocalFormulaUnitTransformer(rule), _formulaTransformer(formulaTransformer) {}
+
+  using LocalFormulaUnitTransformer::transform;
+
+  virtual Formula* transform(Formula* f)
+  {
+    CALL("FTFormulaUnitTransformer::transform(Formula*)");
+    return _formulaTransformer.transform(f);
+  }
+
+private:
+  FT& _formulaTransformer;
+};
 
 }
 

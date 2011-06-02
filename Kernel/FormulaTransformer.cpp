@@ -8,6 +8,7 @@
 #include "Lib/ScopedLet.hpp"
 
 #include "Formula.hpp"
+#include "FormulaUnit.hpp"
 #include "SortHelper.hpp"
 
 #include "FormulaTransformer.hpp"
@@ -182,4 +183,50 @@ Formula* PolarityAwareFormulaTransformer::applyBinary(Formula* f)
 }
 
 
+///////////////////////////
+// FormulaUnitTransformer
+//
+
+void FormulaUnitTransformer::transform(UnitList*& units)
+{
+  CALL("FormulaUnitTransformer::transform(UnitList*&)");
+
+  UnitList::DelIterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    if(u->isClause()) {
+	continue;
+    }
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    FormulaUnit* newUnit = transform(fu);
+    if(fu==newUnit) {
+      continue;
+    }
+    if(newUnit) {
+	uit.replace(newUnit);
+    }
+    else {
+	uit.del();
+    }
+  }
 }
+
+////////////////////////////////
+// LocalFormulaUnitTransformer
+//
+
+FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
+{
+  CALL("LocalFormulaUnitTransformer::transform(FormulaUnit*)");
+
+  Formula* f = unit->formula();
+  Formula* newForm = transform(f);
+  if(f==newForm) {
+    return unit;
+  }
+  Inference* inf = new Inference1(_rule, unit);
+  return new FormulaUnit(newForm, inf, unit->inputType());
+}
+
+}
+

@@ -90,6 +90,7 @@ public:
     OUTPUT_AXIOM_NAMES,
 
     PREDICATE_DEFINITION_INLINING,
+    PREDICATE_DEFINITION_MERGING,
     PROBLEM_NAME,
     PROOF,
     PROOF_CHECKING,
@@ -314,6 +315,7 @@ public:
   bool eprRestoringInlining() const { return _eprRestoringInlining; }
   InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining; }
   void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
+  bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }
   Mode mode() const { return _mode; }
   void setMode(Mode newVal) { _mode = newVal; }
   InputSyntax inputSyntax() { return _inputSyntax; }
@@ -523,6 +525,7 @@ private:
   bool _outputAxiomNames;
 
   InliningMode _predicateDefinitionInlining;
+  bool _predicateDefinitionMerging;
   string _problemName;
   Proof _proof;
   bool _proofChecking;

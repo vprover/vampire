@@ -24,7 +24,7 @@ using namespace Kernel;
  */
 class PDInliner {
 public:
-  PDInliner(bool axiomsOnly, bool trace=false);
+  PDInliner(bool axiomsOnly=false, bool trace=false);
   ~PDInliner();
 
   /**
@@ -37,17 +37,30 @@ public:
    */
   void apply(UnitList*& units, bool inlineOnlyEquivalences=false);
   Unit* apply(Unit* u);
+  FormulaUnit* apply(FormulaUnit* u);
 
   /**
    * Attempt to extract definition from formula @c unit, and return true iff
    * successful.
+   *
+   * If @c isEligible() returns false on @c unit, false is returned without
+   * attempts to extract definition.
    */
   bool tryGetDef(FormulaUnit* unit);
+  /**
+   * Extract definition from @c unit, specifying wat is LHS and what RHS.
+   */
+  bool tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs);
 
   bool tryGetPredicateEquivalence(FormulaUnit* unit);
+  void scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly);
 
   bool addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* negBody, Formula* dblBody,
       FormulaUnit* premise=0);
+
+  //these two functions are useful also elsewhere
+  static bool isPredicateEquivalence(FormulaUnit* u);
+  static bool isPredicateEquivalence(FormulaUnit* u, unsigned& pred1, unsigned& pred2);
 private:
 
   friend class EPRRestoring;
@@ -58,11 +71,7 @@ private:
 
   bool isEligible(FormulaUnit* u);
 
-  void scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly);
-  bool tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs);
 
-  static bool isPredicateEquivalence(FormulaUnit* u);
-  static bool isPredicateEquivalence(FormulaUnit* u, unsigned& pred1, unsigned& pred2);
   static bool isDefinitionHead(Literal* l);
 
   ZIArray<PDef*> _defs;

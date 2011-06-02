@@ -223,6 +223,13 @@ bool EPRRestoring::scanDefinition(FormulaUnit* unit)
   return true;
 }
 
+/**
+ * Split a definition which isn't an equivalence between predicates into
+ * lhs and rhs.
+ *
+ * We don't allow equivalences between predicates in order to make the
+ * split deterministic.
+ */
 void EPRRestoring::splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& rhs)
 {
   CALL("EPRRestoring::splitDefinition");
@@ -250,6 +257,8 @@ void EPRRestoring::splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& r
 
 /**
  * Perform local checks whether givan formula can be a definition.
+ *
+ * True is returned also for predicate equivalences.
  */
 bool EPRRestoring::hasDefinitionShape(FormulaUnit* unit)
 {

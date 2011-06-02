@@ -427,7 +427,7 @@ public:
 		  ValueComparator::compare(key,found->nodes[0]->value)==EQUAL) {
 	    //The next element exists, contains the same value,
 	    //and its height is lower that the height of this one.
-	    //We'll rather delete that one, tha the one we've found,
+	    //We'll rather delete that one, than the one we've found,
 	    //because otherwise there'd be only low elements after a few
 	    //deletions, which would degrade the skip list to linked list.
 	    h=0;

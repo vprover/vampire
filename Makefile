@@ -150,6 +150,7 @@ VI_OBJ = Indexing/ArithmeticIndex.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
+         Indexing/FormulaIndex.o\
          Indexing/GroundingIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
@@ -249,6 +250,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/Options.o\
          Shell/Parser.o\
          Shell/PDInliner.o\
+         Shell/PDMerger.o\
          Shell/PredicateDefinition.o\
          Shell/Preprocess.o\
          Shell/Property.o\
@@ -347,18 +349,24 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Statistics.o\
 	  ClausifierDependencyFix.o
 
-OTHER_CL_DEP = Inferences/InferenceEngine.o\
+OTHER_CL_DEP = Indexing/FormulaIndex.o\
+	       Indexing/ResultSubstitution.o\
+               Inferences/InferenceEngine.o\
 	       Inferences/TautologyDeletionISE.o\
 	       Kernel/EqHelper.o\
 	       Kernel/FormulaTransformer.o\
 	       Kernel/InferenceStore.o\
 	       Kernel/Matcher.o\
+	       Kernel/RobSubstitution.o\
 	       SAT/SATClause.o\
 	       SAT/SATLiteral.o
 
 OTHER_API_DEP = \
 	   Debug/Assertion.o\
 	   Debug/Tracer.o\
+	   Indexing/FormulaIndex.o\
+	   Indexing/Index.o\
+	   Indexing/ResultSubstitution.o\
 	   Indexing/TermSharing.o\
 	   Kernel/BDD.o\
 	   Kernel/BDDClausifier.o\
@@ -374,6 +382,7 @@ OTHER_API_DEP = \
 	   Kernel/Matcher.o\
 	   Kernel/Ordering.o\
 	   Kernel/Ordering_Equality.o\
+	   Kernel/RobSubstitution.o\
 	   Kernel/SortHelper.o\
 	   Kernel/Sorts.o\
 	   Kernel/Signature.o\
@@ -419,6 +428,7 @@ OTHER_API_DEP = \
 	   Shell/Parser.o\
 	   Shell/PredicateDefinition.o\
 	   Shell/PDInliner.o\
+	   Shell/PDMerger.o\
 	   Shell/Rectify.o\
 	   Shell/Refutation.o\
 	   Shell/SimplifyFalseTrue.o\

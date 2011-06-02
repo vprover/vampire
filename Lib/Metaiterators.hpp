@@ -1086,6 +1086,24 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getTimeCountedIterator(Inner it, TimeCounte
   return vi( new TimeCountedIterator<Inner>(it, tcu) );
 }
 
+/**
+ * Return true iff @c it1 and it2 contain the same values in the same order
+ */
+template<class It1, class It2>
+bool iteratorsEqual(It1 it1, It2 it2)
+{
+  CALL("iteratorsEqual");
+
+  while(it1.hasNext()) {
+    if(!it2.hasNext()) {
+      return false;
+    }
+    if(it1.next()!=it2.next()) {
+      return false;
+    }
+  }
+  return !it2.hasNext();
+}
 
 ///@}
 

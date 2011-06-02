@@ -672,7 +672,7 @@ void PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
 
 Unit* PDInliner::apply(Unit* u)
 {
-  CALL("PDInliner::apply");
+  CALL("PDInliner::apply(Unit*)");
 
   Stack<unsigned> preds;
   u->collectPredicates(preds);
@@ -702,6 +702,15 @@ Unit* PDInliner::apply(Unit* u)
   RSTAT_MCTR_INC("inl steps", steps);
   RSTAT_MST_INC("inl grow", u->toString().size(), res ? res->toString().size() : 0);
   return res;
+}
+
+FormulaUnit* PDInliner::apply(FormulaUnit* u)
+{
+  CALL("PDInliner::apply(FormulaUnit*)");
+
+  Unit* res = apply(static_cast<Unit*>(u));
+  ASS(!res->isClause());
+  return static_cast<FormulaUnit*>(res);
 }
 
 void PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly)
