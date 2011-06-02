@@ -34,6 +34,7 @@
 #include "Shell/NNF.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/PDInliner.hpp"
+#include "Shell/PDMerger.hpp"
 #include "Shell/PredicateDefinition.hpp"
 #include "Shell/Rectify.hpp"
 #include "Shell/Skolem.hpp"
@@ -41,6 +42,7 @@
 #include "Shell/SimplifyProver.hpp"
 #include "Shell/SineUtils.hpp"
 #include "Shell/SpecialTermElimination.hpp"
+#include "Shell/Statistics.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
 #include "Shell/VarManager.hpp"
@@ -51,13 +53,56 @@ namespace Api
 
 using namespace Lib;
 
+Problem::PreprocessingOptions::ARRStore::ARRStore()
+{
+  CALL("Problem::PreprocessingOptions::ARRStore::ARRStore()");
+
+  lhs = new Stack<Formula>();
+  posRhs = new Stack<Formula>();
+  negRhs = new Stack<Formula>();
+  dblRhs = new Stack<Formula>();
+}
+
+Problem::PreprocessingOptions::ARRStore::ARRStore(const ARRStore& o)
+{
+  CALL("Problem::PreprocessingOptions::ARRStore::ARRStore(const ARRStore&)");
+
+  lhs = new Stack<Formula>(*o.lhs);
+  posRhs = new Stack<Formula>(*o.posRhs);
+  negRhs = new Stack<Formula>(*o.negRhs);
+  dblRhs = new Stack<Formula>(*o.dblRhs);
+}
+
+Problem::PreprocessingOptions::ARRStore& Problem::PreprocessingOptions::ARRStore::operator=(const ARRStore& o)
+{
+  CALL("Problem::PreprocessingOptions::ARRStore::operator=");
+
+  *lhs = *o.lhs;
+  *posRhs = *o.posRhs;
+  *negRhs = *o.negRhs;
+  *dblRhs = *o.dblRhs;
+  return *this;
+}
+
+Problem::PreprocessingOptions::ARRStore::~ARRStore()
+{
+  CALL("Problem::PreprocessingOptions::ARRStore::~ARRStore");
+
+  delete lhs;
+  delete posRhs;
+  delete negRhs;
+  delete dblRhs;
+}
+
+
 Problem::PreprocessingOptions::PreprocessingOptions(
     PreprocessingMode mode,
     int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
     bool unusedPredicateDefinitionRemoval, bool showNonConstantSkolemFunctionTrace,
     bool traceInlining, bool sineSelection, float sineTolerance, unsigned sineDepthLimit,
     bool variableEqualityPropagation, bool traceVariableEqualityPropagation,
-    bool eprSkolemization, bool traceEPRSkolemization)
+    bool eprSkolemization, bool traceEPRSkolemization,
+    bool predicateDefinitionMerging, bool tracePredicateDefinitionMerging)
 : mode(mode), namingThreshold(namingThreshold), preserveEpr(preserveEpr),
   predicateDefinitionInlining(predicateDefinitionInlining),
   unusedPredicateDefinitionRemoval(unusedPredicateDefinitionRemoval),
@@ -67,10 +112,27 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   variableEqualityPropagation(variableEqualityPropagation),
   traceVariableEqualityPropagation(traceVariableEqualityPropagation),
   eprSkolemization(eprSkolemization),
-  traceEPRSkolemization(traceEPRSkolemization)
+  traceEPRSkolemization(traceEPRSkolemization),
+  predicateDefinitionMerging(predicateDefinitionMerging),
+  tracePredicateDefinitionMerging(tracePredicateDefinitionMerging)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions");
 }
+
+void Problem::PreprocessingOptions::addAsymmetricRewritingRule(Formula lhs,
+    Formula posRhs, Formula negRhs, Formula dblRhs)
+{
+  CALL("Problem::PreprocessingOptions::addAsymmetricRewritingRule");
+  ASS_EQ(_ar.lhs->size(),_ar.posRhs->size());
+  ASS_EQ(_ar.lhs->size(),_ar.negRhs->size());
+  ASS_EQ(_ar.lhs->size(),_ar.dblRhs->size());
+
+  _ar.lhs->push(lhs);
+  _ar.posRhs->push(posRhs);
+  _ar.negRhs->push(negRhs);
+  _ar.dblRhs->push(dblRhs);
+}
+
 
 void Problem::PreprocessingOptions::validate() const
 {
@@ -409,6 +471,50 @@ protected:
     addUnit(_eqProp.apply(unit));
   }
   EqualityPropagator _eqProp;
+};
+
+class Problem::PredicateDefinitionMerger : public ProblemTransformer
+{
+public:
+  PredicateDefinitionMerger(bool trace)
+      : _trace(trace), _merger(trace)
+  {
+  }
+
+protected:
+  virtual void transformImpl(Problem p)
+  {
+    CALL("Problem::PredicateDefinitionMerger::transformImpl(Problem)");
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+    _merger.scan(units);
+    units->destroy();
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      transform(f);
+    }
+  }
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::PredicateDefinitionMerger::transformImpl");
+
+    Kernel::Unit* res = _merger.apply(unit);
+    if(res) {
+      addUnit(res);
+    }
+  }
+
+  bool _trace;
+  Shell::PDMerger _merger;
 };
 
 class Problem::PredicateDefinitionInliner : public ProblemTransformer
@@ -851,6 +957,10 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
     res = VariableEqualityPropagator(options.traceVariableEqualityPropagation).transform(res);
   }
 
+  if(options.predicateDefinitionMerging) {
+    res = PredicateDefinitionMerger(options.tracePredicateDefinitionMerging).transform(res);
+  }
+
   if(options.eprSkolemization) {
     res = EPRSkolemizer(options.traceEPRSkolemization).transform(res);
   }
@@ -863,9 +973,17 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
       res = PredicateDefinitionInliner(options.predicateDefinitionInlining,options.traceInlining).transform(res);
     }
   }
+
   if(options.unusedPredicateDefinitionRemoval) {
     res = UnusedPredicateDefinitionRemover().transform(res);
   }
+
+  unsigned arCnt = options._ar.lhs->size();
+  if(arCnt>0) {
+    res = res.performAsymetricRewriting(arCnt, options._ar.lhs->begin(), options._ar.posRhs->begin(),
+	options._ar.negRhs->begin(), options._ar.dblRhs->begin());
+  }
+
   if(options.mode==PM_EARLY_PREPROCESSING) {
     return res;
   }
@@ -992,6 +1110,13 @@ void Problem::output(ostream& out, bool outputTypeDefs, bool outputAllTypeDefs)
   while(afit.hasNext()) {
     out<<afit.next()<<endl;
   }
+}
+
+void Problem::outputStatistics(ostream& out)
+{
+  CALL("Problem::outputStatictics");
+
+  env.statistics->print(out);
 }
 
 ///////////////////////////////////////

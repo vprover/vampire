@@ -220,10 +220,7 @@ TEST_FUN(eprAsymReplacement)
     prb.addFromStream(stm);
 
     cout<<endl<<"FOF:"<<endl;
-    AnnotatedFormulaIterator afit=prb.formulas();
-    while(afit.hasNext()) {
-      cout<<afit.next()<<endl;
-    }
+    prb.output(cout);
 
     FormulaBuilder api;
 
@@ -249,17 +246,11 @@ TEST_FUN(eprAsymReplacement)
 
     Problem iprb=prb.performAsymetricRewriting(fpx, fOr, ft);
     cout<<"Inlined (px, pxOpc, $true, 0):"<<endl;
-    afit=iprb.formulas();
-    while(afit.hasNext()) {
-      cout<<afit.next()<<endl;
-    }
+    iprb.output(cout);
 
     iprb=prb.performAsymetricRewriting(fpx, fpc, fqxx, fqcx);
     cout<<"Inlined (px, pc, qxx, qcx):"<<endl;
-    afit=iprb.formulas();
-    while(afit.hasNext()) {
-      cout<<afit.next()<<endl;
-    }
+    iprb.output(cout);
 
     Formula lhsA[] = {fpx,api.negation(fr)};
     Formula rhsPosA[] = {fOr,fqdd};
@@ -267,11 +258,21 @@ TEST_FUN(eprAsymReplacement)
     Formula rhsDblA[] = {fqxx,fqdd};
     iprb=prb.performAsymetricRewriting(2, lhsA, rhsPosA, rhsNegA, rhsDblA);
     cout<<"Inlined arr:"<<endl;
-    afit=iprb.formulas();
-    while(afit.hasNext()) {
-      cout<<afit.next()<<endl;
-    }
+    iprb.output(cout);
 
+    Problem::PreprocessingOptions opts;
+    opts.mode = Problem::PM_EARLY_PREPROCESSING;
+    opts.unusedPredicateDefinitionRemoval = false;
+    opts.addAsymmetricRewritingRule(fpx, fOr, ft, fqxx);
+    opts.addAsymmetricRewritingRule(api.negation(fr), fqdd, fqdd, fqdd);
+
+    //test the copy constructor and assignment of PreprocessingOptions
+    Problem::PreprocessingOptions opts1(opts);
+    opts = opts1;
+
+    iprb=prb.preprocess(opts);
+    cout<<"Inlined by preprocess:"<<endl;
+    iprb.output(cout);
 
   } catch (ApiException e) {
     cout<<"Exception: "<<e.msg()<<endl;
@@ -365,6 +366,32 @@ TEST_FUN(eprEPRSkolem)
     sprb.output(cout);
 
 
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
+TEST_FUN(eprPDMerging)
+{
+  try {
+    Problem prb;
+    stringstream stm(
+	"fof(a1,axiom, p(X) <=> (q(a) | q(X)) ). fof(a2,axiom, r(X) <=> (q(a) | q(X)) )."
+	"fof(a,axiom, r(a) | p(a)).");
+    prb.addFromStream(stm);
+
+    cout<<endl<<"FOF:"<<endl;
+    prb.output(cout);
+
+    Problem::PreprocessingOptions opts;
+    opts.mode = Problem::PM_EARLY_PREPROCESSING;
+    opts.unusedPredicateDefinitionRemoval = false;
+    opts.tracePredicateDefinitionMerging = true;
+    opts.predicateDefinitionMerging = true;
+    Problem iprb=prb.preprocess(opts);
+    cout<<"Merged:"<<endl;
+    iprb.output(cout);
   } catch (ApiException e) {
     cout<<"Exception: "<<e.msg()<<endl;
     throw;

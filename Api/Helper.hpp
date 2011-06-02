@@ -9,6 +9,7 @@
 namespace Lib
 {
 template<typename T> class VirtualIterator;
+template<class C> class Stack;
 }
 
 namespace Kernel
