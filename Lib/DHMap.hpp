@@ -200,6 +200,18 @@ public:
   }
 
   /**
+   *  Return value associated with given key. A pair with
+   *  this key has to be present.
+   */
+  inline
+  Val& get(Key key)
+  {
+    Entry* e=findEntry(key);
+    ASS(e);
+    return e->_val;
+  }
+
+  /**
    *  If @b key is present in the map, return value associated
    *  with it; otherwise return @b def
    */

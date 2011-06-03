@@ -111,7 +111,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/EqHelper.o\
         Kernel/FlatTerm.o\
         Kernel/Formula.o\
-	Kernel/FormulaTransformer.o\
+        Kernel/FormulaTransformer.o\
         Kernel/FormulaUnit.o\
         Kernel/FormulaVarIterator.o\
         Kernel/Grounder.o\
@@ -196,7 +196,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/URResolution.o
 
 VSAT_OBJ=SAT/ClauseDisposer.o\
-	 SAT/DIMACS.o\
+         SAT/DIMACS.o\
          SAT/Preprocess.o\
          SAT/RestartStrategy.o\
          SAT/SATClause.o\
@@ -239,6 +239,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/GeneralSplitting.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
+         Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/LaTeX.o\
          Shell/Lexer.o\
@@ -262,7 +263,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/SineUtils.o\
          Shell/SMTLexer.o\
          Shell/SMTParser.o\
-	 Shell/SpecialTermElimination.o\
+         Shell/SpecialTermElimination.o\
          Shell/Statistics.o\
          Shell/SymCounter.o\
          Shell/TheoryAxioms.o\
@@ -344,14 +345,14 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/Theory.o\
 	  Kernel/Unit.o\
 	  Saturation/ClauseContainer.o\
-          Shell/EqualityProxy.o\
+	  Shell/EqualityProxy.o\
 	  Shell/Options.o\
 	  Shell/Statistics.o\
 	  ClausifierDependencyFix.o
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Indexing/ResultSubstitution.o\
-               Inferences/InferenceEngine.o\
+	       Inferences/InferenceEngine.o\
 	       Inferences/TautologyDeletionISE.o\
 	       Kernel/EqHelper.o\
 	       Kernel/FormulaTransformer.o\
@@ -416,7 +417,7 @@ OTHER_API_DEP = \
 	   Shell/EPRInlining.o\
 	   Shell/EPRSkolem.o\
 	   Shell/EqualityProxy.o\
-           Shell/EqualityPropagator.o\
+	   Shell/EqualityPropagator.o\
 	   Shell/Flattening.o\
 	   Shell/FormulaIteExpander.o\
 	   Shell/Lexer.o\
