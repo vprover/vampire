@@ -17,6 +17,16 @@
 #define UNIX_USE_SIGALRM !VDEBUG
 #endif
 
+//we don't need SIGALRM in Api, and it causes problems debugging
+#ifdef VAPI_LIBRARY
+#if VAPI_LIBRARY
+
+#undef UNIX_USE_SIGALRM
+#define UNIX_USE_SIGALRM 0
+
+#endif
+#endif
+
 namespace Lib
 {
 
