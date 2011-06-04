@@ -695,7 +695,7 @@ Unit* PDInliner::apply(Unit* u)
     }
     ASS_NEQ(pred, 0); //equality is never defined
 
-    //if the unit becomes a tautology, u can be assigned zero here
+    //if the unit becomes a tautology, it can be assigned zero here
     res = _defs[pred]->apply(res);
     steps++;
   }

@@ -91,7 +91,7 @@ public:
 
   /** Return mumber of entries stored in this DHMap */
   inline
-  int size() const
+  unsigned size() const
   {
     return _map.size();
   }

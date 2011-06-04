@@ -97,12 +97,42 @@ void testSubst()
   }
 }
 
+void asymRewritingTest()
+{
+  FormulaBuilder api(true);
+  Predicate lf4 = api.predicate("lessFull_4", 1);
+  Predicate l4 = api.predicate("less_4", 1);
+  Var bv = api.var("B");
+  Term b = api.varTerm(bv);
+  Formula lf4b = api.formula(lf4, b);
+  Formula l4b = api.formula(l4, b);
+
+  Problem prb;
+  prb.addFromStream(cin);
+
+//  {
+//    Problem::PreprocessingOptions opts;
+//    opts.addAsymmetricRewritingRule(l4b, lf4b, lf4b, lf4b);
+//    opts.mode = Problem::PM_EARLY_PREPROCESSING;
+//    prb = prb.preprocess(opts);
+//  }
+  Problem::PreprocessingOptions opts;
+  opts.addAsymmetricRewritingRule(lf4b, api.trueFormula(), l4b, l4b);
+  opts.mode = Problem::PM_EARLY_PREPROCESSING;
+
+  prb = prb.preprocess(opts);
+  prb.output(cout);
+}
+
 int main(int argc, char* argv [])
 {
   if(argc==2) {
     inlineTest(argv[1]);
     return 0;
   }
+
+  asymRewritingTest();
+  return 0;
 
   testSubst();
 

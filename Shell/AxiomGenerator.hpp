@@ -88,7 +88,7 @@ FormBlock operator|(const FormBlock& l, const FormBlock& r);
 FormBlock operator&(const FormBlock& l, const FormBlock& r);
 
 
-//the followint is to allow having --> stand for an implication
+//the following is to allow having --> stand for an implication
 struct HalfImpl {
   HalfImpl(const FormBlock& fb) : fb(fb) {}
   FormBlock fb;
@@ -97,7 +97,7 @@ struct HalfImpl {
 HalfImpl operator--(const FormBlock& l, int);
 FormBlock operator>(const HalfImpl& l, const FormBlock& r);
 
-//the followint is to allow having --> stand for an implication
+//the following is to allow having -=- stand for an equivalence
 struct HalfEquiv {
   HalfEquiv(const FormBlock& fb) : fb(fb) {}
   FormBlock fb;
