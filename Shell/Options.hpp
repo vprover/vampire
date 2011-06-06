@@ -64,6 +64,7 @@ public:
     INEQUALITY_SPLITTING,
     INPUT_FILE,
     INPUT_SYNTAX,
+    INTERPOLANT_MINIMIZER_OUTPUT,
     INTERPRETED_EVALUATION,
     INTERPRETED_SIMPLIFICATION,
 
@@ -318,8 +319,9 @@ public:
   bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }
   Mode mode() const { return _mode; }
   void setMode(Mode newVal) { _mode = newVal; }
-  InputSyntax inputSyntax() { return _inputSyntax; }
+  InputSyntax inputSyntax() const { return _inputSyntax; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
+  string interpolantMinimizerOutput() const { return _interpolantMinimizerOutput; }
   bool normalize() const { return _normalize; }
   void setNormalize(bool normalize) { _normalize = normalize; }
   string include() const { return _include; }
@@ -499,6 +501,7 @@ private:
   int _inequalitySplitting;
   string _inputFile;
   InputSyntax _inputSyntax;
+  string _interpolantMinimizerOutput;
   bool _interpretedEvaluation;
   bool _interpretedSimplification;
 

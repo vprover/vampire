@@ -118,6 +118,7 @@ const char* Options::Constants::_optionNames[] = {
   "inequality_splitting",
   "input_file",
   "input_syntax",
+  "interpolant_minimizer_output",
   "interpreted_evaluation",
   "interpreted_simplification",
 
@@ -494,6 +495,7 @@ Options::Options ()
   _inequalitySplitting(3),
   _inputFile(""),
   _inputSyntax(IS_TPTP),
+  _interpolantMinimizerOutput(""),
   _interpretedEvaluation(false),
   _interpretedSimplification(false),
 
@@ -742,6 +744,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case INPUT_SYNTAX:
       _inputSyntax = (InputSyntax)Constants::inputSyntaxValues.find(value);
+      return;
+    case INTERPOLANT_MINIMIZER_OUTPUT:
+      _interpolantMinimizerOutput = value;
       return;
     case INTERPRETED_EVALUATION:
       _interpretedEvaluation = onOffToBool(value,name);
@@ -1346,6 +1351,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case INPUT_SYNTAX:
     str << Constants::inputSyntaxValues[_inputSyntax];
+    return;
+  case INTERPOLANT_MINIMIZER_OUTPUT:
+    str << _interpolantMinimizerOutput;
     return;
   case INTERPRETED_EVALUATION:
     str << boolToOnOff(_interpretedEvaluation);

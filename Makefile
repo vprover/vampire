@@ -261,6 +261,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SimplifyProver.o\
          Shell/SineUtils.o\
+         Shell/SMTFormula.o\
          Shell/SMTLexer.o\
          Shell/SMTParser.o\
          Shell/SpecialTermElimination.o\

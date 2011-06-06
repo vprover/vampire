@@ -13,6 +13,7 @@
 
 #include "Kernel/InferenceStore.hpp"
 
+#include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
 #include "LaTeX.hpp"
 #include "LispLexer.hpp"
@@ -127,6 +128,10 @@ void UIHelper::outputResult(ostream& out)
       ASS(env.statistics->refutation->isClause());
       Formula* interpolant=Interpolants::getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       out << "Interpolant: " << interpolant->toString() << endl;
+    }
+    if(env.options->interpolantMinimizerOutput()!="") {
+      ASS(env.statistics->refutation->isClause());
+      InterpolantMinimizer().process(static_cast<Clause*>(env.statistics->refutation));
     }
     if(env.options->latexOutput()!="off") {
       ofstream latexOut(env.options->latexOutput().c_str());

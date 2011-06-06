@@ -3,14 +3,200 @@
  * Implements class InterpolantMinimizer.
  */
 
+#include <fstream>
+#include <sstream>
+
+#include "Lib/Environment.hpp"
+
+#include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Term.hpp"
+
+#include "Options.hpp"
 
 #include "InterpolantMinimizer.hpp"
 
 namespace Shell
 {
 
-PropFormula InterpolantMinimizer::pred(PredType t, string node)
+void InterpolantMinimizer::process(Clause* refutation)
+{
+  CALL("InterpolantMinimizer::process");
+
+  _noSlicing = false;
+//  _noSlicing = true;
+
+  traverse(refutation);
+  addAllFormulas();
+
+  ofstream out(env.options->interpolantMinimizerOutput().c_str());
+  _resBenchmark.output(out);
+}
+
+void InterpolantMinimizer::addAllFormulas()
+{
+  CALL("InterpolantMinimizer::getWholeFormula");
+
+  InfoMap::Iterator uit(_infos);
+  while(uit.hasNext()) {
+    UnitSpec unit;
+    UnitInfo info;
+    uit.next(unit, info);
+
+    if(info.color==COLOR_TRANSPARENT && info.leadsToColor) {
+      addNodeFormulas(unit);
+    }
+  }
+
+  addCostFormula();
+}
+
+void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
+{
+  CALL("InterpolantMinimizer::getNodeFormula");
+
+  static ParentSummary psum;
+  psum.reset();
+
+  VirtualIterator<UnitSpec> pit = InferenceStore::instance()->getParents(u);
+  while(pit.hasNext()) {
+    UnitSpec par = pit.next();
+    UnitInfo& info = _infos.get(par);
+    if(!info.leadsToColor) {
+      continue;
+    }
+    string parId = getUnitId(par);
+    switch(info.color) {
+    case COLOR_LEFT: psum.rParents.push(parId); break;
+    case COLOR_RIGHT: psum.bParents.push(parId); break;
+    case COLOR_TRANSPARENT: psum.gParents.push(parId); break;
+    default: ASSERTION_VIOLATION;
+    }
+  }
+
+  string uId = getUnitId(u);
+  addNodeFormulas(uId, psum);
+
+  UnitInfo& uinfo = _infos.get(u);
+
+  if(_noSlicing || uinfo.isRefutation) {
+    string comment;
+    if(uinfo.isRefutation) {
+      comment += "refutation";
+    }
+    _resBenchmark.addFormula(!pred(S,uId), comment);
+  }
+
+  //if formula is a parent of colored formula, we do not allow to slice it,
+  //if it would have opposite color in the digest.
+  if(uinfo.isParentOfLeft) {
+    _resBenchmark.addFormula(pred(B,uId) --> !pred(S,uId), "parent_of_left");
+  }
+  if(uinfo.isParentOfRight) {
+    _resBenchmark.addFormula(pred(R,uId) --> !pred(S,uId), "parent_of_right");
+  }
+
+  addAtomImplicationFormula(u);
+}
+
+
+/////////////////////////////////////////////////////////
+// Generating the weight-minimizing part of the problem
+//
+
+void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
+{
+  CALL("InterpolantMinimizer::collectAtoms(FormulaUnit*...)");
+
+  string key = f->formula()->toString();
+  string id;
+  if(!_formulaAtomIds.find(key, id)) {
+    id = "f" + Int::toString(_formulaAtomIds.size());
+    _formulaAtomIds.insert(key, id);
+    unsigned weight = key.size();
+    _atomWeights.insert(id, weight);
+  }
+  atoms.push(id);
+}
+
+string InterpolantMinimizer::getLiteralId(Literal* l)
+{
+  CALL("InterpolantMinimizer::getLiteralId");
+
+  Literal* key = l->isNegative() ? Literal::oppositeLiteral(l) : l;
+  string id;
+  if(!_atomIds.find(key, id)) {
+    id = "l" + Int::toString(_atomIds.size());
+    _atomIds.insert(key, id);
+    unsigned weight = key->weight();
+    _atomWeights.insert(id, weight);
+  }
+ return id;
+}
+
+void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<string>& atoms)
+{
+  CALL("InterpolantMinimizer::collectAtoms(UnitSpec...)");
+
+  if(!u.isClause()) {
+    collectAtoms(static_cast<FormulaUnit*>(u.unit()), atoms);
+    return;
+  }
+
+  Clause* cl = u.cl();
+  Clause::Iterator cit(*cl);
+  while(cit.hasNext()) {
+    Literal* lit = cit.next();
+    atoms.push(getLiteralId(lit));
+  }
+}
+
+void InterpolantMinimizer::addAtomImplicationFormula(UnitSpec u)
+{
+  CALL("InterpolantMinimizer::getAtomImplicationFormula");
+
+  static Stack<string> atoms;
+  atoms.reset();
+  collectAtoms(u, atoms);
+
+  string uId = getUnitId(u);
+
+  SMTFormula cConj = SMTFormula::getTrue();
+  Stack<string>::Iterator ait(atoms);
+  while(ait.hasNext()) {
+    string atom = ait.next();
+    cConj = cConj & pred(V, atom);
+  }
+
+  string comment = "atom implications for " + u.unit()->toString();
+  _resBenchmark.addFormula(pred(D, uId) --> cConj, comment);
+}
+
+void InterpolantMinimizer::addCostFormula()
+{
+  CALL("InterpolantMinimizer::getCostFormula");
+
+  SMTFormula costSum = SMTFormula::unsignedValue(0);
+
+  WeightMap::Iterator wit(_atomWeights);
+  while(wit.hasNext()) {
+    string atom;
+    unsigned weight;
+    wit.next(atom, weight);
+
+    SMTFormula atomExpr = SMTFormula::condNumber(pred(V, atom), weight);
+    costSum = SMTFormula::add(costSum, atomExpr);
+  }
+  _resBenchmark.addFormula(SMTFormula::equals(costFunction(), costSum));
+}
+
+///////////////////////////////////////////
+// Generating the SAT part of the problem
+//
+
+SMTFormula InterpolantMinimizer::pred(PredType t, string node)
 {
   CALL("InterpolantMinimizer::pred");
 
@@ -21,35 +207,47 @@ PropFormula InterpolantMinimizer::pred(PredType t, string node)
   case G: n1 = "g"; break;
   case S: n1 = "s"; break;
   case D: n1 = "d"; break;
+  case V: n1 = "v"; break;
   default: ASSERTION_VIOLATION;
   }
-  return PropFormula::name(n1, node);
-}
-
-PropFormula InterpolantMinimizer::distinctColorsFormula(string n)
-{
-  CALL("InterpolantMinimizer::distinctColorsFormula");
-
-  PropFormula rN = pred(R, n);
-  PropFormula bN = pred(B, n);
-  PropFormula gN = pred(G, n);
-
-  PropFormula res = bN | rN | gN;
-  res = res & ( rN --> ((!bN) & (!gN)) );
-  res = res & ( bN --> ((!rN) & (!gN)) );
-  res = res & ( gN --> ((!rN) & (!bN)) );
+  SMTConstant res = SMTFormula::name(n1, node);
+  _resBenchmark.declarePropositionalConstant(res);
   return res;
 }
 
-PropFormula InterpolantMinimizer::gNodePropertiesFormula(string n, ParentSummary& parents)
+SMTFormula InterpolantMinimizer::costFunction()
+{
+  SMTConstant res = SMTFormula::name("cost");
+  _resBenchmark.declareRealConstant(res);
+  return res;
+}
+
+
+void InterpolantMinimizer::addDistinctColorsFormula(string n)
+{
+  CALL("InterpolantMinimizer::distinctColorsFormula");
+
+  SMTFormula rN = pred(R, n);
+  SMTFormula bN = pred(B, n);
+  SMTFormula gN = pred(G, n);
+
+  SMTFormula res = bN | rN | gN;
+  res = res & ( rN --> ((!bN) & (!gN)) );
+  res = res & ( bN --> ((!rN) & (!gN)) );
+  res = res & ( gN --> ((!rN) & (!bN)) );
+
+  _resBenchmark.addFormula(res);
+}
+
+void InterpolantMinimizer::addGreyNodePropertiesFormula(string n, ParentSummary& parents)
 {
   CALL("InterpolantMinimizer::gNodePropertiesFormula");
   ASS(parents.rParents.isEmpty());
   ASS(parents.bParents.isEmpty());
 
-  PropFormula rParDisj = PropFormula::getFalse();
-  PropFormula bParDisj = PropFormula::getFalse();
-  PropFormula gParConj = PropFormula::getTrue();
+  SMTFormula rParDisj = SMTFormula::getFalse();
+  SMTFormula bParDisj = SMTFormula::getFalse();
+  SMTFormula gParConj = SMTFormula::getTrue();
 
   Stack<string>::Iterator pit(parents.gParents);
   while(pit.hasNext()) {
@@ -59,46 +257,58 @@ PropFormula InterpolantMinimizer::gNodePropertiesFormula(string n, ParentSummary
     gParConj = gParConj & pred(G, par);
   }
 
-  PropFormula rN = pred(R, n);
-  PropFormula bN = pred(B, n);
-  PropFormula gN = pred(G, n);
-  PropFormula sN = pred(S, n);
-  PropFormula dN = pred(D, n);
+  SMTFormula rN = pred(R, n);
+  SMTFormula bN = pred(B, n);
+  SMTFormula gN = pred(G, n);
+  SMTFormula sN = pred(S, n);
+  SMTFormula dN = pred(D, n);
 
-  PropFormula res = (sN & rParDisj)-->rN;
-  res = res & ((sN & bParDisj)-->bN);
-  res = res & ((sN & gParConj)-->gN);
-  res = res & ( (!sN)-->gN );
-  res = res & ( dN -=- ( (!sN) & !gParConj ) );
-  return res;
+  _resBenchmark.addFormula((sN & rParDisj)-->rN);
+  _resBenchmark.addFormula((sN & bParDisj)-->bN);
+  _resBenchmark.addFormula((sN & gParConj)-->gN);
+  _resBenchmark.addFormula( (!sN)-->gN );
+  _resBenchmark.addFormula( dN -=- ( (!sN) & !gParConj ) );
 }
 
-PropFormula InterpolantMinimizer::coloredParentPropertiesFormula(string n, ParentSummary& parents)
+void InterpolantMinimizer::addColoredParentPropertiesFormulas(string n, ParentSummary& parents)
 {
   CALL("InterpolantMinimizer::coloredParentPropertiesFormula");
-  ASS(parents.rParents.isNonEmpty()^parents.bParents.isNonEmpty());
+  ASS_NEQ(parents.rParents.isNonEmpty(),parents.bParents.isNonEmpty());
 
   PredType parentType = parents.rParents.isNonEmpty() ? R : B;
   PredType oppositeType = (parentType==R) ? B : R;
 
   Stack<string>::Iterator gParIt(parents.gParents);
 
-  PropFormula gParNegConj = PropFormula::getTrue();
+  SMTFormula gParNegConj = SMTFormula::getTrue();
   while(gParIt.hasNext()) {
     string par = gParIt.next();
     gParNegConj = gParNegConj & !pred(oppositeType, par);
   }
 
-  PropFormula parN = pred(parentType, n);
-  PropFormula gN = pred(G, n);
-  PropFormula sN = pred(S, n);
-  PropFormula dN = pred(D, n);
+  SMTFormula parN = pred(parentType, n);
+  SMTFormula gN = pred(G, n);
+  SMTFormula sN = pred(S, n);
+  SMTFormula dN = pred(D, n);
 
-  PropFormula res = gParNegConj;
-  res = res & (sN --> parN);
-  res = res & ((!sN) --> gN);
-  res = res & (dN -=- !sN);
-  return res;
+  _resBenchmark.addFormula(gParNegConj);
+  _resBenchmark.addFormula(sN --> parN);
+  _resBenchmark.addFormula((!sN) --> gN);
+  _resBenchmark.addFormula(dN -=- !sN);
+}
+
+void InterpolantMinimizer::addNodeFormulas(string n, ParentSummary& parents)
+{
+  CALL("InterpolantMinimizer::propertiesFormula");
+
+  addDistinctColorsFormula(n);
+
+  if(parents.rParents.isEmpty() && parents.bParents.isEmpty()) {
+    addGreyNodePropertiesFormula(n, parents);
+  }
+  else {
+    addColoredParentPropertiesFormulas(n, parents);
+  }
 }
 
 /////////////////////////

@@ -7,84 +7,28 @@
 #define __InterpolantMinimizer__
 
 #include "Lib/DHSet.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/MapToLIFO.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/InferenceStore.hpp"
+
+#include "SMTFormula.hpp"
 
 namespace Shell {
 
 using namespace Lib;
 using namespace Kernel;
 
-struct PropFormula__HalfImpl;
-struct PropFormula__HalfEquiv;
-
-class PropFormula
-{
-  PropFormula(string val) : _val(val) {}
-public:
-  static PropFormula getTrue() { return PropFormula("true"); }
-  static PropFormula getFalse() { return PropFormula("false"); }
-  static PropFormula name(string name) { return PropFormula(name); }
-  static PropFormula name(string n1, string n2) { return PropFormula(n1 + "_" + n2); }
-
-  operator string() const { return _val; }
-
-  PropFormula operator!() const
-  { return PropFormula("(not " + _val + ")"); }
-
-  PropFormula operator&(const PropFormula& f) const
-  { return PropFormula("(and " + _val + ", " + f._val + ")"); }
-
-  PropFormula operator|(const PropFormula& f) const
-  { return PropFormula("(or " + _val + ", " + f._val + ")"); }
-
-
-  PropFormula__HalfImpl operator--(int) const;
-
-  PropFormula__HalfEquiv operator-() const;
-  PropFormula operator-=(const PropFormula__HalfEquiv& r) const;
-
-private:
-  friend class PropFormula__HalfImpl;
-  friend class PropFormula__HalfEquiv;
-
-  string _val;
-};
-
-//the following is to allow having --> stand for an implication
-struct PropFormula__HalfImpl {
-  PropFormula operator>(const PropFormula& r) const
-  { return PropFormula("(=> " + pf._val + ", " + r._val + ")"); }
-private:
-  friend class PropFormula;
-  PropFormula__HalfImpl(const PropFormula& pf) : pf(pf) {}
-  PropFormula pf;
-};
-PropFormula__HalfImpl PropFormula::operator--(int) const { return PropFormula__HalfImpl(*this); }
-
-//the following is to allow having -=- stand for an equivalence
-struct PropFormula__HalfEquiv {
-private:
-  friend class PropFormula;
-  PropFormula__HalfEquiv(const PropFormula& pf) : pf(pf) {}
-  PropFormula pf;
-};
-
-PropFormula__HalfEquiv PropFormula::operator-() const { return PropFormula__HalfEquiv(*this); }
-PropFormula PropFormula::operator-=(const PropFormula__HalfEquiv& r) const
-{ return PropFormula("(= " + _val + ", " + r.pf._val + ")"); }
-
-
-
 class InterpolantMinimizer
 {
 public:
   typedef InferenceStore::UnitSpec UnitSpec;
 
+  void process(Clause* refutation);
 
 private:
+  //proof tree traversing
 
   void traverse(Clause* refutation);
 
@@ -113,21 +57,21 @@ private:
     bool leadsToColor;
   };
 
-//  PropFormula
+  typedef DHMap<UnitSpec,UnitInfo> InfoMap;
 
-//  Unit* _refutation;
-//
-//  /** Either the refutation, or transparent units used as premise for a non */
-//  Stack<Unit*> redSeeds;
-
-//  MapToLIFO<UnitSpec,UnitSpec> _parents;
-  DHMap<UnitSpec,UnitInfo> _infos;
+  InfoMap _infos;
 
 private:
   //here is the code related to generating the SMT problem
 
   struct ParentSummary
   {
+    void reset() {
+      rParents.reset();
+      bParents.reset();
+      gParents.reset();
+    }
+
     Stack<string> rParents;
     Stack<string> bParents;
     Stack<string> gParents;
@@ -135,15 +79,55 @@ private:
 
   enum PredType
   {
-    R, B, G, S, D
+    /** Formula has red (i.e. left) color in its trace */
+    R,
+    /** Formula has blue (i.e. right) color in its trace */
+    B,
+    /** The trace of a formula is gray (i.e. transparent) */
+    G,
+    /** Formula is sliced off */
+    S,
+    /** Formula is in the digest */
+    D,
+    /** Atom appears is in the digest */
+    V
   };
 
-  static PropFormula pred(PredType t, string node);
+  SMTFormula pred(PredType t, string node);
+  SMTFormula costFunction();
 
-  PropFormula distinctColorsFormula(string n);
+  void addDistinctColorsFormula(string n);
 
-  PropFormula gNodePropertiesFormula(string n, ParentSummary& parents);
-  PropFormula coloredParentPropertiesFormula(string n, ParentSummary& parents);
+  void addGreyNodePropertiesFormula(string n, ParentSummary& parents);
+  void addColoredParentPropertiesFormulas(string n, ParentSummary& parents);
+  void addNodeFormulas(string n, ParentSummary& parents);
+
+private:
+  //generating the weight-minimizing part of the problem
+
+  void addAtomImplicationFormula(UnitSpec u);
+  void addCostFormula();
+
+  void collectAtoms(FormulaUnit* f, Stack<string>& atoms);
+  string getLiteralId(Literal* l);
+  void collectAtoms(UnitSpec u, Stack<string>& atoms);
+
+  DHMap<Literal*, string> _atomIds;
+  DHMap<string, string> _formulaAtomIds;
+
+  typedef DHMap<string, unsigned> WeightMap;
+  WeightMap _atomWeights;
+private:
+  //and here is the glue
+
+  static string getUnitId(UnitSpec u) { return InferenceStore::instance()->getUnitIdStr(u); }
+
+  void addNodeFormulas(UnitSpec u);
+
+  void addAllFormulas();
+
+  bool _noSlicing;
+  SMTBenchmark _resBenchmark;
 };
 
 }
