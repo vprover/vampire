@@ -20,16 +20,20 @@
 #include <cerrno>
 #include <string>
 #include <csignal>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
 
 #include "Debug/Tracer.hpp"
 
-#include "Lib/Environment.hpp"
-#include "Lib/Exception.hpp"
-#include "Lib/Timer.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+
+#include "Environment.hpp"
+#include "Exception.hpp"
+#include "Int.hpp"
+#include "Timer.hpp"
 
 #include "System.hpp"
 
@@ -408,6 +412,61 @@ bool System::fileExists(string fname)
 
   ifstream ifile(fname.c_str());
   return ifile;
+}
+
+pid_t System::getPID()
+{
+  CALL("System::getPID");
+
+#if !COMPILER_MSVC
+  return getpid();
+#else
+  //TODO: Implement pid retrieval for windows
+  return 0;
+#endif
+}
+
+/**
+ * Execute command @c command, pass content of @c input as standard input
+ * and return the output of the command in @c output.
+ */
+int System::executeCommand(string command, string input, string& output)
+{
+  CALL("System::executeCommand");
+
+#if COMPILER_MSVC
+  NOT_IMPLEMENTED;
+#else
+  string pidStr = Int::toString(getPID());
+  string inFile  = "/tmp/vampire_executeCommand_"+pidStr+"_in";
+  string outFile = "/tmp/vampire_executeCommand_"+pidStr+"_out";
+
+  string cmdLine = command + " <" + inFile + " >" + outFile;
+
+  int resStatus=system(cmdLine.c_str());
+
+  NOT_IMPLEMENTED;
+
+//  if(WIFSIGNALED(resStatus) && WTERMSIG(resStatus)==SIGINT) {
+//    //if child Vampire was terminated by SIGINT (Ctrl+C), we also terminate
+//    //(3 is the return value for this case; see documentation for the
+//    //@b vampireReturnValue global variable)
+//    handleSIGINT();
+//  }
+
+  if(WIFEXITED(resStatus)) {
+    return WEXITSTATUS(resStatus);
+  }
+  else if(WIFSIGNALED(resStatus)) {
+    return -WTERMSIG(resStatus);
+  }
+  else {
+    return -0xffff;
+  }
+
+  remove(inFile.c_str());
+  remove(outFile.c_str());
+#endif
 }
 
 };

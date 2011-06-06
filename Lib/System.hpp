@@ -58,6 +58,10 @@ public:
 
   static bool fileExists(string fname);
 
+  static pid_t getPID();
+
+  static int executeCommand(string command, string input, string& output);
+
 private:
 
   static ZIArray<List<VoidFunc>*>& initializationHandlersArray();
