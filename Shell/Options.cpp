@@ -2048,7 +2048,7 @@ void Options::checkGlobalOptionConstraints() const
   if(interpretedSimplification() && !interpretedEvaluation()) {
     USER_ERROR("Interpreted simplification can only be used together with interpreted evaluation");
   }
-  if(showInterpolant() && splitting()==SM_BACKTRACKING) {
+  if(showInterpolant()!=INTERP_OFF && splitting()==SM_BACKTRACKING) {
     USER_ERROR("Cannot output interpolant with backtracking splitting");
   }
 }

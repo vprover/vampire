@@ -145,7 +145,7 @@ void outputResult()
 //	refutation.output(env.out);
       InferenceStore::instance()->outputProof(env.out, env.statistics->refutation);
     }
-    if(env.options->showInterpolant()) {
+    if(env.options->showInterpolant()!=Options::INTERP_OFF) {
       ASS(env.statistics->refutation->isClause());
       Formula* interpolant=Interpolants::getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       env.out << "Interpolant: " << interpolant->toString() << endl;
