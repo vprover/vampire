@@ -32,6 +32,9 @@ public:
 //  static void gethostname(char* hostname,int maxlength);
   static void setSignalHandlers();
   static string extractFileNameFromPath(string str);
+  static bool extractDirNameFromPath(string path, string& dir);
+
+  static string guessExecutableDirectory();
 
   static void ignoreSIGINT() { s_shouldIgnoreSIGINT=true; }
   static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }
@@ -47,6 +50,12 @@ public:
   static void registerForSIGHUPOnParentDeath();
 
   /**
+   * Register the value of the argv[0] argument of the main function, so that
+   * it can be later used to determine the executable directory
+   */
+  static void registerArgv0(const char* argv0) { s_argv0 = argv0; }
+
+  /**
    * Return the size of system physical memory in bytes
    */
   static long long getSystemMemory();
@@ -60,7 +69,7 @@ public:
 
   static pid_t getPID();
 
-  static int executeCommand(string command, string input, string& output);
+  static int executeCommand(string command, string input, Stack<string>& outputLines);
 
 private:
 
@@ -85,6 +94,8 @@ private:
   static ZIArray<List<VoidFunc>*> s_terminationHandlers;
 
   static bool s_shouldIgnoreSIGINT;
+
+  static const char* s_argv0;
 };
 
 }

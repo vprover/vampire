@@ -4,10 +4,12 @@
  */
 
 #include <ostream>
+#include <sstream>
 
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Sort.hpp"
+#include "Lib/System.hpp"
 
 #include "SMTFormula.hpp"
 
@@ -90,6 +92,18 @@ void SMTBenchmark::addFormula(const SMTFormula& f, string comment)
   _formulaComments.push(comment);
 }
 
+/**
+ * Remove the most recently added formula
+ */
+void SMTBenchmark::popFormula()
+{
+  CALL("SMTBenchmark::popFormula");
+  ASS_EQ(_formulas.size(), _formulaComments.size());
+
+  _formulas.pop();
+  _formulaComments.pop();
+}
+
 void SMTBenchmark::declarePropositionalConstant(SMTConstant pred)
 {
   CALL("SMTBenchmark::declarePropositionalConstant");
@@ -152,5 +166,98 @@ void SMTBenchmark::output(ostream& out)
   out << ") )" << endl;
   out << ")" << endl;
 }
+
+///////////////////////
+// SMTSolver
+//
+
+void SMTSolver::minimize(SMTBenchmark& problem, SMTConstant costFn, SMTSolverResult& res)
+{
+  CALL("SMTSolver::minimize");
+
+  unsigned left = 1;
+  unsigned guess = left;
+  while(!tryUpperBound(problem, costFn, guess, res)) {
+    unsigned newGuess = guess*2;
+    if(newGuess<=guess) {
+      //we had an overflow
+      return;
+    }
+    left = guess;
+    guess = newGuess;
+  }
+  unsigned right = guess;
+
+  while(left!=right) {
+    unsigned middle = left + (right-left)/2;
+    if(tryUpperBound(problem, costFn, middle, res)) {
+      right = middle;
+    }
+    else {
+      left = middle+1;
+    }
+  }
+  tryUpperBound(problem, costFn, left, res);
+}
+
+bool SMTSolver::tryUpperBound(SMTBenchmark& problem, SMTConstant costFn, unsigned val, SMTSolverResult& res)
+{
+  CALL("SMTSolver::tryUpperBound");
+
+  SMTFormula valFormula = SMTFormula::unsignedValue(val);
+  SMTFormula bound = SMTFormula::less(costFn, valFormula);
+
+  problem.addFormula(bound);
+
+  run(problem, res);
+
+  problem.popFormula();
+
+  return res.status==SMTSolverResult::SAT;
+}
+
+///////////////////////
+// YicesSolver
+//
+
+void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res)
+{
+  CALL("YicesSolver::run");
+
+  stringstream problemStm;
+  problem.output(problemStm);
+
+  static Stack<string> proverOut;
+  proverOut.reset();
+
+  string execName = System::guessExecutableDirectory()+"/yices";
+  if(!System::fileExists(execName)) {
+    USER_ERROR("Executable "+execName+" does not exist");
+  }
+
+  System::executeCommand(execName+" -smt -e", problemStm.str(), proverOut);
+
+  res.reset();
+
+  Stack<string>::Iterator oit(proverOut);
+  while(oit.hasNext()) {
+    string line = oit.next();
+    if(line=="") { continue; }
+    if(line=="sat") { res.status = SMTSolverResult::SAT; continue; }
+    if(line=="unsat") { res.status = SMTSolverResult::UNSAT; continue; }
+
+    if(line.substr(0,3)!="(= " || line.substr(line.size()-1,1)!=")") {
+      LOG("unrecognized Yices output line: \"" << line << "\"");
+      continue;
+    }
+    string lineCore = line.substr(3, line.size()-4);
+    size_t sep = lineCore.find(' ');
+    string element = lineCore.substr(0, sep);
+    string value = lineCore.substr(sep+1);
+
+    res.assignment.insert(element, value);
+  }
+}
+
 
 }

@@ -25,7 +25,7 @@ class InterpolantMinimizer
 public:
   typedef InferenceStore::UnitSpec UnitSpec;
 
-  void process(Clause* refutation);
+  Formula* getInterpolant(Clause* refutation);
 
 private:
   //proof tree traversing
@@ -93,8 +93,8 @@ private:
     V
   };
 
-  SMTFormula pred(PredType t, string node);
-  SMTFormula costFunction();
+  SMTConstant pred(PredType t, string node);
+  SMTConstant costFunction();
 
   void addDistinctColorsFormula(string n);
 
@@ -117,10 +117,13 @@ private:
 
   typedef DHMap<string, unsigned> WeightMap;
   WeightMap _atomWeights;
+
 private:
   //and here is the glue
 
-  static string getUnitId(UnitSpec u) { return InferenceStore::instance()->getUnitIdStr(u); }
+  void collectSlicedOffNodes(SMTSolverResult& solverResult, DHSet<UnitSpec>& acc);
+
+  string getUnitId(UnitSpec u);
 
   void addNodeFormulas(UnitSpec u);
 

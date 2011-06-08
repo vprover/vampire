@@ -49,6 +49,7 @@ public:
   static const char* _modeValues[];
   static const char* _ruleActivityValues[];
   static const char* _inliningModeValues[];
+  static const char* _interpolantModeValues[];
   static const char* _symbolPrecedenceValues[];
   static const char* _tcValues[];
   static const char* _sineSelectionValues[];
@@ -71,6 +72,7 @@ public:
   static NameArray modeValues;
   static NameArray ruleActivityValues;
   static NameArray inliningModeValues;
+  static NameArray interpolantModeValues;
   static NameArray symbolPrecedenceValues;
   static NameArray tcValues;
   static NameArray sineSelectionValues;
@@ -118,7 +120,6 @@ const char* Options::Constants::_optionNames[] = {
   "inequality_splitting",
   "input_file",
   "input_syntax",
-  "interpolant_minimizer_output",
   "interpreted_evaluation",
   "interpreted_simplification",
 
@@ -395,6 +396,13 @@ const char* Options::Constants::_inliningModeValues[] = {
 NameArray Options::Constants::inliningModeValues(_inliningModeValues,
 					      sizeof(_inliningModeValues)/sizeof(char*));
 
+const char* Options::Constants::_interpolantModeValues[] = {
+  "minimized",
+  "off",
+  "on"};
+NameArray Options::Constants::interpolantModeValues(_interpolantModeValues,
+					      sizeof(_interpolantModeValues)/sizeof(char*));
+
 const char* Options::Constants::_symbolPrecedenceValues[] = {
   "arity",
   "occurrence",
@@ -495,7 +503,6 @@ Options::Options ()
   _inequalitySplitting(3),
   _inputFile(""),
   _inputSyntax(IS_TPTP),
-  _interpolantMinimizerOutput(""),
   _interpretedEvaluation(false),
   _interpretedSimplification(false),
 
@@ -544,7 +551,7 @@ Options::Options ()
   _showActive(false),
   _showBlocked(false),
   _showDefinitions(false),
-  _showInterpolant(false),
+  _showInterpolant(INTERP_OFF),
   _showNew(false),
   _showNewPropositional(false),
   _showNonconstantSkolemFunctionTrace(false),
@@ -745,9 +752,6 @@ void Options::set (const char* name,const char* value, int index)
     case INPUT_SYNTAX:
       _inputSyntax = (InputSyntax)Constants::inputSyntaxValues.find(value);
       return;
-    case INTERPOLANT_MINIMIZER_OUTPUT:
-      _interpolantMinimizerOutput = value;
-      return;
     case INTERPRETED_EVALUATION:
       _interpretedEvaluation = onOffToBool(value,name);
       return;
@@ -899,7 +903,7 @@ void Options::set (const char* name,const char* value, int index)
       _showDefinitions = onOffToBool(value,name);
       return;
     case SHOW_INTERPOLANT:
-      _showInterpolant = onOffToBool(value,name);
+      _showInterpolant = (InterpolantMode)Constants::interpolantModeValues.find(value);
       return;
     case SHOW_NEW:
       _showNew = onOffToBool(value,name);
@@ -1352,9 +1356,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   case INPUT_SYNTAX:
     str << Constants::inputSyntaxValues[_inputSyntax];
     return;
-  case INTERPOLANT_MINIMIZER_OUTPUT:
-    str << _interpolantMinimizerOutput;
-    return;
   case INTERPRETED_EVALUATION:
     str << boolToOnOff(_interpretedEvaluation);
     return;
@@ -1471,7 +1472,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_showDefinitions);
     return;
   case SHOW_INTERPOLANT:
-    str << boolToOnOff(_showInterpolant);
+    str << Constants::interpolantModeValues[_showInterpolant];
     return;
   case SHOW_NEW:
     str << boolToOnOff(_showNew);

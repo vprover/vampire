@@ -52,6 +52,7 @@ int main(int argc, char* argv [])
   srand(1); //this is for the reproducibility
 
   Api::ResourceLimits::disableLimits();
+  System::registerArgv0(argv[0]);
   System::setSignalHandlers();
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);

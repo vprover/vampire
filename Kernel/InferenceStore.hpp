@@ -65,6 +65,17 @@ public:
     Unit* unit() const { return _unit; }
     BDDNode* prop() const { return _prop; }
 
+    string toString() const
+    {
+      if(isClause()) {
+	return cl()->toString(prop());
+      }
+      else {
+	ASS(BDD::instance()->isFalse(prop()));
+	return unit()->toString();
+      }
+    }
+
   private:
     Unit* _unit;
     BDDNode* _prop;

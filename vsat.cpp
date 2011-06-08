@@ -178,6 +178,7 @@ int main(int argc, char* argv [])
 {
   CALL("main");
 
+  System::registerArgv0(argv[0]);
   Random::setSeed(1);
   Options options;
   Allocator::setMemoryLimit(env.options->memoryLimit()*1048576);

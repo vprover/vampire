@@ -39,6 +39,9 @@ public:
   static SMTFormula equals(SMTFormula f1, SMTFormula f2)
   { return SMTFormula("(= " + f1._val + " " + f2._val + ")"); }
 
+  static SMTFormula less(SMTFormula f1, SMTFormula f2)
+  { return SMTFormula("(< " + f1._val + " " + f2._val + ")"); }
+
   static SMTFormula condNumber(SMTFormula condition, unsigned value);
 
   static SMTFormula multiply(SMTFormula f1, SMTFormula f2)
@@ -117,6 +120,7 @@ public:
   void declareRealConstant(SMTConstant pred);
 
   void addFormula(const SMTFormula& f, string comment="");
+  void popFormula();
 
   void output(ostream& out);
 private:
@@ -130,7 +134,40 @@ private:
   Stack<string> _formulaComments;
 };
 
+class SMTSolverResult
+{
+public:
+  enum Status
+  {
+    SAT, UNSAT, UNKNOWN
+  };
 
+  Status status;
+  DHMap<string,string> assignment;
+
+  void reset()
+  {
+    status = UNKNOWN;
+    assignment.reset();
+  }
+};
+
+class SMTSolver
+{
+public:
+  virtual void run(SMTBenchmark& problem, SMTSolverResult& res) = 0;
+
+  void minimize(SMTBenchmark& problem, SMTConstant costFn, SMTSolverResult& res);
+
+private:
+  bool tryUpperBound(SMTBenchmark& problem, SMTConstant costFn, unsigned val, SMTSolverResult& res);
+};
+
+class YicesSolver : public SMTSolver
+{
+public:
+  virtual void run(SMTBenchmark& problem, SMTSolverResult& res);
+};
 
 }
 

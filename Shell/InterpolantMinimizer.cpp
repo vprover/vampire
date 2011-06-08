@@ -14,6 +14,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Interpolants.hpp"
 #include "Options.hpp"
 
 #include "InterpolantMinimizer.hpp"
@@ -21,9 +22,9 @@
 namespace Shell
 {
 
-void InterpolantMinimizer::process(Clause* refutation)
+Formula* InterpolantMinimizer::getInterpolant(Clause* refutation)
 {
-  CALL("InterpolantMinimizer::process");
+  CALL("InterpolantMinimizer::getInterpolant");
 
   _noSlicing = false;
 //  _noSlicing = true;
@@ -31,8 +32,42 @@ void InterpolantMinimizer::process(Clause* refutation)
   traverse(refutation);
   addAllFormulas();
 
-  ofstream out(env.options->interpolantMinimizerOutput().c_str());
-  _resBenchmark.output(out);
+  SMTSolverResult res;
+  YicesSolver solver;
+  solver.minimize(_resBenchmark, costFunction(), res);
+//  LOGV(res.assignment.get(costFunction()));
+
+  DHSet<UnitSpec> slicedOff;
+  collectSlicedOffNodes(res, slicedOff);
+
+  Formula* interpolant = Interpolants(&slicedOff).getInterpolant(refutation);
+  return interpolant;
+}
+
+void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, DHSet<UnitSpec>& acc)
+{
+  CALL("InterpolantMinimizer::collectSlicedOffNodes");
+
+  InfoMap::Iterator uit(_infos);
+  while(uit.hasNext()) {
+    UnitSpec unit;
+    UnitInfo info;
+    uit.next(unit, info);
+
+    if(info.color!=COLOR_TRANSPARENT || !info.leadsToColor) {
+      continue;
+    }
+
+    string uid = getUnitId(unit);
+    SMTConstant sU = pred(S, uid);
+    string val = solverResult.assignment.get(sU);
+    if(val=="false") {
+      continue;
+    }
+    ASS_EQ(val,"true");
+    acc.insert(unit);
+//    LOGV(unit.toString());
+  }
 }
 
 void InterpolantMinimizer::addAllFormulas()
@@ -92,10 +127,10 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
   //if formula is a parent of colored formula, we do not allow to slice it,
   //if it would have opposite color in the digest.
   if(uinfo.isParentOfLeft) {
-    _resBenchmark.addFormula(pred(B,uId) --> !pred(S,uId), "parent_of_left");
+    _resBenchmark.addFormula(!pred(B,uId), "parent_of_left");
   }
   if(uinfo.isParentOfRight) {
-    _resBenchmark.addFormula(pred(R,uId) --> !pred(S,uId), "parent_of_right");
+    _resBenchmark.addFormula(!pred(R,uId), "parent_of_right");
   }
 
   addAtomImplicationFormula(u);
@@ -170,7 +205,7 @@ void InterpolantMinimizer::addAtomImplicationFormula(UnitSpec u)
     cConj = cConj & pred(V, atom);
   }
 
-  string comment = "atom implications for " + u.unit()->toString();
+  string comment = "atom implications for " + u.toString();
   _resBenchmark.addFormula(pred(D, uId) --> cConj, comment);
 }
 
@@ -196,7 +231,7 @@ void InterpolantMinimizer::addCostFormula()
 // Generating the SAT part of the problem
 //
 
-SMTFormula InterpolantMinimizer::pred(PredType t, string node)
+SMTConstant InterpolantMinimizer::pred(PredType t, string node)
 {
   CALL("InterpolantMinimizer::pred");
 
@@ -215,13 +250,21 @@ SMTFormula InterpolantMinimizer::pred(PredType t, string node)
   return res;
 }
 
-SMTFormula InterpolantMinimizer::costFunction()
+SMTConstant InterpolantMinimizer::costFunction()
 {
   SMTConstant res = SMTFormula::name("cost");
   _resBenchmark.declareRealConstant(res);
   return res;
 }
 
+string InterpolantMinimizer::getUnitId(UnitSpec u)
+{
+  CALL("InterpolantMinimizer::getUnitId");
+
+  string id = InferenceStore::instance()->getUnitIdStr(u);
+//  _idToFormulas.insert(is, u); //the item might be already there from previous call to getUnitId
+  return id;
+}
 
 void InterpolantMinimizer::addDistinctColorsFormula(string n)
 {
@@ -263,6 +306,8 @@ void InterpolantMinimizer::addGreyNodePropertiesFormula(string n, ParentSummary&
   SMTFormula sN = pred(S, n);
   SMTFormula dN = pred(D, n);
 
+  _resBenchmark.addFormula(rParDisj-->!bParDisj);
+  _resBenchmark.addFormula(bParDisj-->!rParDisj);
   _resBenchmark.addFormula((sN & rParDisj)-->rN);
   _resBenchmark.addFormula((sN & bParDisj)-->bN);
   _resBenchmark.addFormula((sN & gParConj)-->gN);

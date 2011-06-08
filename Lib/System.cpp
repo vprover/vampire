@@ -33,6 +33,7 @@
 #include "Environment.hpp"
 #include "Exception.hpp"
 #include "Int.hpp"
+#include "Stack.hpp"
 #include "Timer.hpp"
 
 #include "System.hpp"
@@ -126,6 +127,7 @@ using namespace Shell;
 
 bool System::s_initialized = false;
 bool System::s_shouldIgnoreSIGINT = false;
+const char* System::s_argv0 = 0;
 
 ///**
 // * Reimplements the system gethostname function.
@@ -406,12 +408,48 @@ string System::extractFileNameFromPath(string str)
   return string(str, index);
 }
 
+/**
+ * If directory name can be extracted from @c path, assign it into
+ * @c dir and return true; otherwise return false.
+ *
+ * The directory name is extracted without the final '/'.
+ */
+bool System::extractDirNameFromPath(string path, string& dir)
+{
+  CALL("System::extractDirNameFromPath");
+
+  size_t index=path.find_last_of("\\/");
+  if(index==string::npos) {
+    return false;
+  }
+  dir = path.substr(0, index);
+  return true;
+}
+
 bool System::fileExists(string fname)
 {
   CALL("System::fileExists");
 
   ifstream ifile(fname.c_str());
   return ifile;
+}
+
+/**
+ * Guess path to the current executable.
+ *
+ * Guessing means that the returned path might not be correct.
+ */
+string System::guessExecutableDirectory()
+{
+  CALL("System::guessExecutableDirectory");
+
+  string res;
+
+  if(s_argv0 && extractDirNameFromPath(s_argv0, res)) {
+    return res;
+  }
+
+  return ".";
 }
 
 pid_t System::getPID()
@@ -430,7 +468,7 @@ pid_t System::getPID()
  * Execute command @c command, pass content of @c input as standard input
  * and return the output of the command in @c output.
  */
-int System::executeCommand(string command, string input, string& output)
+int System::executeCommand(string command, string input, Stack<string>& outputLines)
 {
   CALL("System::executeCommand");
 
@@ -443,9 +481,23 @@ int System::executeCommand(string command, string input, string& output)
 
   string cmdLine = command + " <" + inFile + " >" + outFile;
 
+  {
+    ofstream inpFile(inFile.c_str());
+    inpFile << input;
+    inpFile.close();
+  }
+
   int resStatus=system(cmdLine.c_str());
 
-  NOT_IMPLEMENTED;
+  {
+    outputLines.reset();
+    string line;
+    ifstream outpFile(outFile.c_str());
+    while (getline(outpFile, line)) {
+      outputLines.push(line);
+    }
+    outpFile.close();
+  }
 
 //  if(WIFSIGNALED(resStatus) && WTERMSIG(resStatus)==SIGINT) {
 //    //if child Vampire was terminated by SIGINT (Ctrl+C), we also terminate
@@ -453,6 +505,9 @@ int System::executeCommand(string command, string input, string& output)
 //    //@b vampireReturnValue global variable)
 //    handleSIGINT();
 //  }
+
+  remove(inFile.c_str());
+  remove(outFile.c_str());
 
   if(WIFEXITED(resStatus)) {
     return WEXITSTATUS(resStatus);
@@ -464,8 +519,6 @@ int System::executeCommand(string command, string input, string& output)
     return -0xffff;
   }
 
-  remove(inFile.c_str());
-  remove(outFile.c_str());
 #endif
 }
 

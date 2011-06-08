@@ -21,6 +21,7 @@
 #include "Options.hpp"
 #include "SimplifyProver.hpp"
 #include "Statistics.hpp"
+#include "TPTP.hpp"
 #include "TPTPLexer.hpp"
 #include "TPTPParser.hpp"
 
@@ -124,14 +125,20 @@ void UIHelper::outputResult(ostream& out)
 	out<<"% SZS output end Proof for "<<env.options->problemName()<<endl;
       }
     }
-    if(env.options->showInterpolant()) {
+    if(env.options->showInterpolant()==Options::INTERP_ON) {
       ASS(env.statistics->refutation->isClause());
-      Formula* interpolant=Interpolants::getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      Formula* interpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       out << "Interpolant: " << interpolant->toString() << endl;
     }
-    if(env.options->interpolantMinimizerOutput()!="") {
+    if(env.options->showInterpolant()==Options::INTERP_MINIMIZED) {
       ASS(env.statistics->refutation->isClause());
-      InterpolantMinimizer().process(static_cast<Clause*>(env.statistics->refutation));
+      {
+	Formula* oldInterpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+	out << "Old interpolant: " << oldInterpolant->toString() << endl;
+      }
+      Formula* interpolant=InterpolantMinimizer().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+//      out << "Interpolant: " << interpolant->toString() << endl;
+      out << "Interpolant: " << TPTP::toString(interpolant) << endl;
     }
     if(env.options->latexOutput()!="off") {
       ofstream latexOut(env.options->latexOutput().c_str());

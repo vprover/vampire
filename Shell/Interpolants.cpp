@@ -28,6 +28,40 @@ typedef InferenceStore::UnitSpec UnitSpec;
 typedef pair<Formula*, Formula*> UIPair; //pair of unit U and the U-interpolant
 typedef List<UIPair> UIPairList;
 
+VirtualIterator<UnitSpec> Interpolants::getParents(UnitSpec u)
+{
+  CALL("Interpolants::getParents");
+
+  if(!_slicedOff) {
+    return InferenceStore::instance()->getParents(u);
+  }
+
+  static Stack<UnitSpec> toDo;
+  static Stack<UnitSpec> parents;
+
+  toDo.reset();
+  parents.reset();
+
+  for(;;) {
+    VirtualIterator<UnitSpec> pit = InferenceStore::instance()->getParents(u);
+    while(pit.hasNext()) {
+      UnitSpec par = pit.next();
+      if(_slicedOff->find(par)) {
+	toDo.push(par);
+      }
+      else {
+	parents.push(par);
+      }
+    }
+    if(toDo.isEmpty()) {
+      break;
+    }
+    u = toDo.pop();
+  }
+
+  return getPersistentIterator(Stack<UnitSpec>::BottomFirstIterator(parents));
+}
+
 struct ItemState
 {
   ItemState() : parCnt(0), inheritedColor(COLOR_TRANSPARENT), interpolant(0),
@@ -136,7 +170,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
     }
     else {
       st.us = curr;
-      st.pars=InferenceStore::instance()->getParents(curr);
+      st.pars = getParents(curr);
     }
 
     if(curr.unit()->inheritedColor()!=COLOR_INVALID) {
@@ -155,7 +189,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
 #if VDEBUG
       else {
         Color clr=curr.unit()->getColor();
-        ASS(pst.inheritedColor==clr || clr==COLOR_TRANSPARENT);
+        ASS_REP2(pst.inheritedColor==clr || clr==COLOR_TRANSPARENT, pst.us.toString(), curr.toString());
       }
 #endif
     }

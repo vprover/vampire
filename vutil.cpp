@@ -41,6 +41,7 @@ int main(int argc, char* argv [])
 
   int resultValue=2;
 
+  System::registerArgv0(argv[0]);
   System::setSignalHandlers();
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);

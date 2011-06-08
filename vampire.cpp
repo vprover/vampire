@@ -90,6 +90,8 @@ UnitList* globUnitList=0;
  * and in case of other signal we return 2. For implementation
  * of these return values see Lib/System.hpp.
  *
+ * In case of an user error, we return value 4.
+ *
  * In case Vampire was terminated by the timer, return value is
  * uncertain (but definitely not zero), probably it will be 134
  * (we terminate by a call to the @b abort() function in this case).
@@ -462,6 +464,7 @@ int main(int argc, char* argv [])
 {
   CALL ("main");
 
+  System::registerArgv0(argv[0]);
   System::setSignalHandlers();
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);
@@ -540,6 +543,7 @@ int main(int argc, char* argv [])
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {
+    vampireReturnValue = 4;
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
@@ -547,6 +551,7 @@ int main(int argc, char* argv [])
   }
 #endif
   catch (UserErrorException& exception) {
+    vampireReturnValue = 4;
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
@@ -554,6 +559,7 @@ int main(int argc, char* argv [])
     explainException(exception);
   }
   catch (Exception& exception) {
+    vampireReturnValue = 4;
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
@@ -564,6 +570,7 @@ int main(int argc, char* argv [])
     env.endOutput();
   }
   catch (std::bad_alloc& _) {
+    vampireReturnValue = 4;
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();

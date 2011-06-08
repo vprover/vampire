@@ -64,7 +64,6 @@ public:
     INEQUALITY_SPLITTING,
     INPUT_FILE,
     INPUT_SYNTAX,
-    INTERPOLANT_MINIMIZER_OUTPUT,
     INTERPRETED_EVALUATION,
     INTERPRETED_SIMPLIFICATION,
 
@@ -227,6 +226,12 @@ public:
     INL_ON = 2
   };
 
+  enum InterpolantMode {
+    INTERP_MINIMIZED = 0,
+    INTERP_OFF = 1,
+    INTERP_ON = 2
+  };
+
   /** Possible values for splitting */
   enum SplittingMode {
     SM_BACKTRACKING = 0,
@@ -321,7 +326,6 @@ public:
   void setMode(Mode newVal) { _mode = newVal; }
   InputSyntax inputSyntax() const { return _inputSyntax; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
-  string interpolantMinimizerOutput() const { return _interpolantMinimizerOutput; }
   bool normalize() const { return _normalize; }
   void setNormalize(bool normalize) { _normalize = normalize; }
   string include() const { return _include; }
@@ -335,7 +339,7 @@ public:
   bool showActive() const { return _showActive; }
   bool showBlocked() const { return _showBlocked; }
   bool showDefinitions() const { return _showDefinitions; }
-  bool showInterpolant() const { return _showInterpolant; }
+  InterpolantMode showInterpolant() const { return _showInterpolant; }
   bool showNew() const { return _showNew; }
   bool showNewPropositional() const { return _showNewPropositional; }
   bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace; }
@@ -501,7 +505,6 @@ private:
   int _inequalitySplitting;
   string _inputFile;
   InputSyntax _inputSyntax;
-  string _interpolantMinimizerOutput;
   bool _interpretedEvaluation;
   bool _interpretedSimplification;
 
@@ -545,7 +548,7 @@ private:
   bool _showActive;
   bool _showBlocked;
   bool _showDefinitions;
-  bool _showInterpolant;
+  InterpolantMode _showInterpolant;
   bool _showNew;
   bool _showNewPropositional;
   bool _showNonconstantSkolemFunctionTrace;

@@ -9,6 +9,7 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Term.hpp"
 
 namespace Shell {
@@ -19,8 +20,15 @@ using namespace Kernel;
 class Interpolants
 {
 public:
-  static Formula* getInterpolant(Clause* refutation);
+  typedef InferenceStore::UnitSpec UnitSpec;
+
+  Interpolants(DHSet<UnitSpec>* slicedOff=0) : _slicedOff(slicedOff) {}
+  Formula* getInterpolant(Clause* refutation);
 private:
+
+  VirtualIterator<UnitSpec> getParents(UnitSpec u);
+
+  DHSet<UnitSpec>* _slicedOff;
 };
 
 };
