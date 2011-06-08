@@ -18,6 +18,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
+#include "VUtils/AnnotationColoring.hpp"
 #include "VUtils/ProblemColoring.hpp"
 
 using namespace Lib;
@@ -58,6 +59,9 @@ int main(int argc, char* argv [])
     string module=argv[1];
     if(module=="problem_coloring") {
       resultValue=ProblemColoring().perform(argc, argv);
+    }
+    else if(module=="conjecture_coloring" || module=="axiom_coloring") {
+      resultValue=AnnotationColoring().perform(argc, argv);
     }
     else {
       USER_ERROR("unknown vutil module name: "+module);

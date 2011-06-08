@@ -321,7 +321,8 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 	  UnitTests/tStack.o\
 	  UnitTests/tTwoVampires.o
 
-VUTIL_OBJ = VUtils/ProblemColoring.o
+VUTIL_OBJ = VUtils/AnnotationColoring.o\
+            VUtils/ProblemColoring.o
 
 
 LIB_DEP = Indexing/TermSharing.o\
