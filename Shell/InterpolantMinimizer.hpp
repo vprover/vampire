@@ -23,6 +23,15 @@ using namespace Kernel;
 class InterpolantMinimizer
 {
 public:
+  /**
+   * If minimizeComponentCount is true, we minimize the number of distinct
+   * components in the interpolant, otherwise we minimize the sum of the weight
+   * of the distinct components.
+   */
+  InterpolantMinimizer(bool minimizeComponentCount=false, bool noSlicing=false,
+      bool showStats=false, string statsPrefix="");
+  ~InterpolantMinimizer();
+
   typedef InferenceStore::UnitSpec UnitSpec;
 
   Formula* getInterpolant(Clause* refutation);
@@ -46,6 +55,7 @@ private:
 	isParentOfLeft(false), isParentOfRight(false), leadsToColor(false) {}
 
     Color color;
+    Color inputInheritedColor;
 
     UnitState state;
 
@@ -98,6 +108,7 @@ private:
 
   void addDistinctColorsFormula(string n);
 
+  void addLeafNodePropertiesFormula(string n);
   void addGreyNodePropertiesFormula(string n, ParentSummary& parents);
   void addColoredParentPropertiesFormulas(string n, ParentSummary& parents);
   void addNodeFormulas(string n, ParentSummary& parents);
@@ -109,15 +120,18 @@ private:
   void addCostFormula();
 
   void collectAtoms(FormulaUnit* f, Stack<string>& atoms);
-  string getLiteralId(Literal* l);
+  string getComponentId(Clause* cl);
   void collectAtoms(UnitSpec u, Stack<string>& atoms);
 
-  DHMap<Literal*, string> _atomIds;
+  class ClauseSplitter;
+
+  DHMap<Clause*, string> _atomIds;
   DHMap<string, string> _formulaAtomIds;
 
   typedef DHMap<string, unsigned> WeightMap;
   WeightMap _atomWeights;
 
+  ClauseSplitter* _splitter;
 private:
   //and here is the glue
 
@@ -129,7 +143,10 @@ private:
 
   void addAllFormulas();
 
+  bool _minimizeComponentCount;
   bool _noSlicing;
+  bool _showStats;
+  string _statsPrefix;
   SMTBenchmark _resBenchmark;
 };
 

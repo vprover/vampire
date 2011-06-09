@@ -14,6 +14,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Flattening.hpp"
 #include "SimplifyFalseTrue.hpp"
 
 #include "Interpolants.hpp"
@@ -242,7 +243,7 @@ fin:
   }
 
   //simplify the interpolant and exit
-  return SimplifyFalseTrue::simplify(resultInterpolant);
+  return Flattening::flatten(SimplifyFalseTrue::simplify(resultInterpolant));
 }
 
 void generateInterpolant(ItemState& st)

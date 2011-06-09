@@ -132,13 +132,19 @@ void UIHelper::outputResult(ostream& out)
     }
     if(env.options->showInterpolant()==Options::INTERP_MINIMIZED) {
       ASS(env.statistics->refutation->isClause());
-      {
-	Formula* oldInterpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-	out << "Old interpolant: " << oldInterpolant->toString() << endl;
-      }
-      Formula* interpolant=InterpolantMinimizer().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+//      {
+//	Formula* oldInterpolant=Interpolants().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+//      }
+//      Formula* interpolant=InterpolantMinimizer().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
 //      out << "Interpolant: " << interpolant->toString() << endl;
+
+      Formula* oldInterpolant = InterpolantMinimizer(false, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      Formula* interpolant = InterpolantMinimizer(false, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      InterpolantMinimizer(true, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      Formula* cntInterpolant = InterpolantMinimizer(true, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      out << "Old interpolant: " << TPTP::toString(oldInterpolant) << endl;
       out << "Interpolant: " << TPTP::toString(interpolant) << endl;
+      out << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;
     }
     if(env.options->latexOutput()!="off") {
       ofstream latexOut(env.options->latexOutput().c_str());

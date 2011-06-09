@@ -12,7 +12,12 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Kernel/Term.hpp"
+
+#include "Indexing/ClauseVariantIndex.hpp"
+
+#include "Saturation/SWBSplitter.hpp"
 
 #include "Interpolants.hpp"
 #include "Options.hpp"
@@ -22,12 +27,11 @@
 namespace Shell
 {
 
+using namespace Indexing;
+
 Formula* InterpolantMinimizer::getInterpolant(Clause* refutation)
 {
   CALL("InterpolantMinimizer::getInterpolant");
-
-  _noSlicing = false;
-//  _noSlicing = true;
 
   traverse(refutation);
   addAllFormulas();
@@ -35,7 +39,12 @@ Formula* InterpolantMinimizer::getInterpolant(Clause* refutation)
   SMTSolverResult res;
   YicesSolver solver;
   solver.minimize(_resBenchmark, costFunction(), res);
-//  LOGV(res.assignment.get(costFunction()));
+
+  if(_showStats) {
+    env.beginOutput();
+    env.out() << _statsPrefix << " cost: " <<res.assignment.get(costFunction()) << endl;
+    env.endOutput();
+  }
 
   DHSet<UnitSpec> slicedOff;
   collectSlicedOffNodes(res, slicedOff);
@@ -62,11 +71,12 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
     SMTConstant sU = pred(S, uid);
     string val = solverResult.assignment.get(sU);
     if(val=="false") {
+//      LOG("Non-sliced: " << unit.toString());
       continue;
     }
     ASS_EQ(val,"true");
     acc.insert(unit);
-//    LOGV(unit.toString());
+//    LOG("Sliced: " << unit.toString());
   }
 }
 
@@ -111,10 +121,25 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
     }
   }
 
-  string uId = getUnitId(u);
-  addNodeFormulas(uId, psum);
-
   UnitInfo& uinfo = _infos.get(u);
+  ASS_EQ(uinfo.color, COLOR_TRANSPARENT);
+
+  string uId = getUnitId(u);
+
+  if(uinfo.inputInheritedColor!=COLOR_TRANSPARENT) {
+    //if unit has an inherited color, it must be input unit and therefore
+    //cannot have any parents
+    ASS(psum.rParents.isEmpty());
+    ASS(psum.bParents.isEmpty());
+    ASS(psum.gParents.isEmpty());
+
+    addLeafNodePropertiesFormula(uId);
+  }
+  else {
+    addNodeFormulas(uId, psum);
+  }
+
+
 
   if(_noSlicing || uinfo.isRefutation) {
     string comment;
@@ -124,8 +149,8 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
     _resBenchmark.addFormula(!pred(S,uId), comment);
   }
 
-  //if formula is a parent of colored formula, we do not allow to slice it,
-  //if it would have opposite color in the digest.
+  //if formula is a parent of colored formula, we do not allow to have
+  //opposite color in the trace.
   if(uinfo.isParentOfLeft) {
     _resBenchmark.addFormula(!pred(B,uId), "parent_of_left");
   }
@@ -141,6 +166,118 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
 // Generating the weight-minimizing part of the problem
 //
 
+class InterpolantMinimizer::ClauseSplitter : protected Saturation::SWBSplitter
+{
+public:
+  ClauseSplitter() : _acc(0) {}
+  void getComponents(Clause* cl, ClauseStack& acc)
+  {
+    CALL("InterpolantMinimizer::ClauseSplitter::getComponents");
+    ASS(!_acc);
+
+    _acc = &acc;
+    if(cl->length()==0) {
+      handleNoSplit(cl);
+    }
+    else {
+//      LOGV(cl->toString());
+      ALWAYS(doSplitting(cl));
+    }
+    _acc = 0;
+  }
+protected:
+
+  virtual void buildAndInsertComponents(Clause* cl, CompRec* comps,
+      unsigned compCnt, bool firstIsMaster)
+  {
+    CALL("InterpolantMinimizer::ClauseSplitter::buildAndInsertComponents");
+
+    for(unsigned i=0; i<compCnt; i++) {
+      Clause* compCl = getComponent(comps[i].lits, comps[i].len);
+      _acc->push(compCl);
+    }
+  }
+
+  virtual bool handleNoSplit(Clause* cl)
+  {
+    CALL("InterpolantMinimizer::ClauseSplitter::handleNoSplit");
+
+    _acc->push(getComponent(cl));
+    return true;
+  }
+
+  virtual bool canSplitOut(Literal* lit) { return true; }
+  virtual bool standAloneObligations() { return false; }
+  virtual bool splittingAllowed(Clause* cl) { return true; }
+private:
+
+  Clause* getComponent(Literal** lits, unsigned len)
+  {
+    CALL("InterpolantMinimizer::ClauseSplitter::getComponent/2");
+
+    if(len==1) {
+      return getAtomComponent(lits[0], 0);
+    }
+    ClauseIterator cit = _index.retrieveVariants(lits, len);
+    if(cit.hasNext()) {
+      Clause* res = cit.next();
+      ASS(!cit.hasNext());
+      return res;
+    }
+    //here the input type and inference are just arbitrary, they'll never be used
+    Clause* res = Clause::fromIterator(ArrayishObjectIterator<Literal**>(lits, len),
+	Unit::AXIOM, new Inference(Inference::INPUT));
+    res->incRefCnt();
+    _index.insert(res);
+    return res;
+  }
+
+  Clause* getComponent(Clause* cl)
+  {
+    CALL("InterpolantMinimizer::ClauseSplitter::getComponent/1");
+
+    if(cl->length()==1) {
+      return getAtomComponent((*cl)[0], cl);
+    }
+
+    ClauseIterator cit = _index.retrieveVariants(cl);
+    if(cit.hasNext()) {
+      Clause* res = cit.next();
+      ASS(!cit.hasNext());
+      return res;
+    }
+    _index.insert(cl);
+    return cl;
+  }
+
+  /** cl can be 0 */
+  Clause* getAtomComponent(Literal* lit, Clause* cl)
+  {
+    CALL("InterpolantMinimizer::ClauseSplitter::getAtomComponent");
+
+    Literal* norm = lit->isNegative() ? Literal::oppositeLiteral(lit) : lit;
+    norm = Renaming::normalize(norm);
+
+
+    Clause* res;
+    if(_atomIndex.find(norm, res)) {
+      return res;
+    }
+    res = cl;
+    if(!res) {
+      res = Clause::fromIterator(getSingletonIterator(norm),
+  	Unit::AXIOM, new Inference(Inference::INPUT));
+    }
+    ALWAYS(_atomIndex.insert(norm, res));
+    return res;
+  }
+
+  ClauseVariantIndex _index;
+  DHMap<Literal*,Clause*> _atomIndex;
+
+  ClauseStack* _acc;
+};
+
 void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
 {
   CALL("InterpolantMinimizer::collectAtoms(FormulaUnit*...)");
@@ -150,23 +287,23 @@ void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
   if(!_formulaAtomIds.find(key, id)) {
     id = "f" + Int::toString(_formulaAtomIds.size());
     _formulaAtomIds.insert(key, id);
-    unsigned weight = key.size();
+    unsigned weight = f->formula()->weight();
     _atomWeights.insert(id, weight);
   }
   atoms.push(id);
 }
 
-string InterpolantMinimizer::getLiteralId(Literal* l)
+string InterpolantMinimizer::getComponentId(Clause* cl)
 {
-  CALL("InterpolantMinimizer::getLiteralId");
+  CALL("InterpolantMinimizer::getComponentId");
 
-  Literal* key = l->isNegative() ? Literal::oppositeLiteral(l) : l;
   string id;
-  if(!_atomIds.find(key, id)) {
-    id = "l" + Int::toString(_atomIds.size());
-    _atomIds.insert(key, id);
-    unsigned weight = key->weight();
+  if(!_atomIds.find(cl, id)) {
+    id = "c" + Int::toString(_atomIds.size());
+    _atomIds.insert(cl, id);
+    unsigned weight = cl->weight();
     _atomWeights.insert(id, weight);
+//    LOG(id<<" "<<weight<<"\t"<<cl->toString());
   }
  return id;
 }
@@ -181,10 +318,14 @@ void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<string>& atoms)
   }
 
   Clause* cl = u.cl();
-  Clause::Iterator cit(*cl);
+  static ClauseStack components;
+  components.reset();
+  _splitter->getComponents(cl, components);
+  ASS(components.isNonEmpty());
+  ClauseStack::Iterator cit(components);
   while(cit.hasNext()) {
-    Literal* lit = cit.next();
-    atoms.push(getLiteralId(lit));
+    Clause* comp = cit.next();
+    atoms.push(getComponentId(comp));
   }
 }
 
@@ -221,6 +362,10 @@ void InterpolantMinimizer::addCostFormula()
     unsigned weight;
     wit.next(atom, weight);
 
+    if(_minimizeComponentCount) {
+      weight = 1;
+    }
+
     SMTFormula atomExpr = SMTFormula::condNumber(pred(V, atom), weight);
     costSum = SMTFormula::add(costSum, atomExpr);
   }
@@ -234,6 +379,9 @@ void InterpolantMinimizer::addCostFormula()
 SMTConstant InterpolantMinimizer::pred(PredType t, string node)
 {
   CALL("InterpolantMinimizer::pred");
+  //Fake node is fictitious parent of gray nodes marked as colored in the TPTP.
+  //We should never create predicates for these.
+  ASS_NEQ(node, "fake_node");
 
   string n1;
   switch(t) {
@@ -315,6 +463,23 @@ void InterpolantMinimizer::addGreyNodePropertiesFormula(string n, ParentSummary&
   _resBenchmark.addFormula( dN -=- ( (!sN) & !gParConj ) );
 }
 
+/**
+ * Add properties for a leaf node which was marked as colored in the TPTP problem,
+ * but doesn't contain any colored symbols
+ */
+void InterpolantMinimizer::addLeafNodePropertiesFormula(string n)
+{
+  CALL("InterpolantMinimizer::addLeafNodePropertiesFormula");
+
+  SMTFormula gN = pred(G, n);
+  SMTFormula sN = pred(S, n);
+  SMTFormula dN = pred(D, n);
+
+  _resBenchmark.addFormula(!sN);
+  _resBenchmark.addFormula(gN);
+  _resBenchmark.addFormula(dN);
+}
+
 void InterpolantMinimizer::addColoredParentPropertiesFormulas(string n, ParentSummary& parents)
 {
   CALL("InterpolantMinimizer::coloredParentPropertiesFormula");
@@ -374,7 +539,12 @@ struct InterpolantMinimizer::TraverseStackEntry
     UnitInfo& info = getInfo();
 
     info.color = u.unit()->getColor();
-    info.leadsToColor = info.color!=COLOR_TRANSPARENT;
+    info.inputInheritedColor = u.unit()->inheritedColor();
+    if(info.inputInheritedColor==COLOR_INVALID) {
+      info.inputInheritedColor = COLOR_TRANSPARENT;
+    }
+
+    info.leadsToColor = info.color!=COLOR_TRANSPARENT || info.inputInheritedColor!=COLOR_TRANSPARENT;
   }
 
   void processParent(UnitSpec parent)
@@ -453,6 +623,26 @@ void InterpolantMinimizer::traverse(Clause* refutationClause)
 
 }
 
+///////////////////////////////
+// Construction & destruction
+//
+
+InterpolantMinimizer::InterpolantMinimizer(bool minimizeComponentCount, bool noSlicing,
+    bool showStats, string statsPrefix)
+: _minimizeComponentCount(minimizeComponentCount), _noSlicing(noSlicing),
+  _showStats(showStats), _statsPrefix(statsPrefix)
+{
+  CALL("InterpolantMinimizer::InterpolantMinimizer");
+
+  _splitter = new ClauseSplitter();
+}
+
+InterpolantMinimizer::~InterpolantMinimizer()
+{
+  CALL("InterpolantMinimizer::~InterpolantMinimizer");
+
+  delete _splitter;
+}
 
 
 }

@@ -30,7 +30,7 @@ void AnnotationColoring::outputColorInfo(ostream& out, SymId sym, string color)
   unsigned functor;
   symEx.decodeSymId(sym, pred, functor);
   if(pred) {
-    if(pred==0) {
+    if(functor==0) {
       return;  //we do not color equality
     }
     out<<"vampire(symbol,predicate,"

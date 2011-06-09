@@ -59,7 +59,7 @@ protected:
    */
   virtual bool handleNoSplit(Clause* cl) { return false; }
 
-  bool canSplitOut(Literal* lit);
+  virtual bool canSplitOut(Literal* lit);
   virtual bool canStandAlone(Literal* lit);
   virtual bool standAloneObligations();
 };
