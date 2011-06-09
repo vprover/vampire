@@ -362,7 +362,7 @@ void InterpolantMinimizer::addCostFormula()
     unsigned weight;
     wit.next(atom, weight);
 
-    if(_minimizeComponentCount) {
+    if(_minimizeComponentCount && weight>0) {
       weight = 1;
     }
 
