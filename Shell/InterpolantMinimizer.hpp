@@ -28,6 +28,7 @@ public:
   ~InterpolantMinimizer();
 
   typedef InferenceStore::UnitSpec UnitSpec;
+  typedef List<UnitSpec> USList;
 
   Formula* getInterpolant(Clause* refutation);
 
@@ -47,7 +48,8 @@ private:
   struct UnitInfo
   {
     UnitInfo() : state(TRANSPARENT_PARENTS), isRefutation(false),
-	isParentOfLeft(false), isParentOfRight(false), leadsToColor(false) {}
+	isParentOfLeft(false), isParentOfRight(false), leadsToColor(false),
+	leftSuccessors(0), rightSuccessors(0), transparentSuccessors(0) {}
 
     Color color;
     Color inputInheritedColor;
@@ -60,6 +62,11 @@ private:
 
     /** True if unit has some non-transparent ancestor (doesn't need to be immediate) */
     bool leadsToColor;
+
+    //TODO: fix memory leak caused by these lists
+    List<UnitSpec>* leftSuccessors;
+    List<UnitSpec>* rightSuccessors;
+    List<UnitSpec>* transparentSuccessors;
   };
 
   typedef DHMap<UnitSpec,UnitInfo> InfoMap;
@@ -92,6 +99,14 @@ private:
     G,
     /** Formula is sliced off */
     S,
+    /** Formula is a consequence of red symbol elimination */
+    RC,
+    /** Formula is a consequence of blue symbol elimination */
+    BC,
+    /** Red fringe */
+    RF,
+    /** Blue fringe */
+    BF,
     /** Formula is in the digest */
     D,
     /** Atom appears is in the digest */
@@ -108,6 +123,7 @@ private:
   void addColoredParentPropertiesFormulas(string n, ParentSummary& parents);
   void addNodeFormulas(string n, ParentSummary& parents);
 
+  void addFringeFormulas(UnitSpec u);
 private:
   //generating the weight-minimizing part of the problem
 

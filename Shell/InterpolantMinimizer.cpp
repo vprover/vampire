@@ -154,6 +154,7 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
   }
   else {
     addNodeFormulas(uId, psum);
+    addFringeFormulas(u);
   }
 
 
@@ -178,6 +179,65 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
   addAtomImplicationFormula(u);
 }
 
+/**
+ * Add formulas related tot he fringe of the node and to the digest
+ *
+ * These formulas aren't generated for leaves
+ */
+void InterpolantMinimizer::addFringeFormulas(UnitSpec u)
+{
+  CALL("InterpolantMinimizer::addFringeFormulas");
+
+  string n = getUnitId(u);
+
+  SMTFormula rcN = pred(RC, n);
+  SMTFormula bcN = pred(BC, n);
+  SMTFormula rfN = pred(RF, n);
+  SMTFormula bfN = pred(BF, n);
+  SMTFormula dN = pred(D, n);
+
+  _resBenchmark.addFormula(dN -=- ((rcN & !rfN) | (bcN & !bfN)));
+
+  UnitInfo& uinfo = _infos.get(u);
+
+  if(uinfo.isRefutation) {
+    _resBenchmark.addFormula(!rfN);
+    _resBenchmark.addFormula(bfN);
+    return;
+  }
+
+  SMTFormula rfRhs = SMTFormula::getTrue();
+  SMTFormula bfRhs = SMTFormula::getTrue();
+  USList::Iterator gsit(uinfo.transparentSuccessors);
+  while(gsit.hasNext()) {
+    UnitSpec succ = gsit.next();
+    string succId = getUnitId(succ);
+
+    SMTFormula rcS = pred(RC, succId);
+    SMTFormula bcS = pred(BC, succId);
+    SMTFormula rfS = pred(RF, succId);
+    SMTFormula bfS = pred(BF, succId);
+
+    rfRhs = rfRhs & ( rfS | rcS ) & !bcS;
+    bfRhs = bfRhs & ( bfS | bcS ) & !rcS;
+  }
+
+
+  if(uinfo.rightSuccessors) {
+    _resBenchmark.addFormula(!rfN);
+  }
+  else {
+    _resBenchmark.addFormula(rfN -=- rfRhs);
+  }
+
+  if(uinfo.leftSuccessors) {
+    _resBenchmark.addFormula(!bfN);
+  }
+  else {
+    _resBenchmark.addFormula(bfN -=- bfRhs);
+  }
+
+}
 
 /////////////////////////////////////////////////////////
 // Generating the weight-minimizing part of the problem
@@ -435,6 +495,10 @@ SMTConstant InterpolantMinimizer::pred(PredType t, string node)
   case B: n1 = "b"; break;
   case G: n1 = "g"; break;
   case S: n1 = "s"; break;
+  case RC: n1 = "rc"; break;
+  case BC: n1 = "bc"; break;
+  case RF: n1 = "rf"; break;
+  case BF: n1 = "bf"; break;
   case D: n1 = "d"; break;
   case V: n1 = "v"; break;
   default: ASSERTION_VIOLATION;
@@ -506,7 +570,13 @@ void InterpolantMinimizer::addGreyNodePropertiesFormula(string n, ParentSummary&
   SMTFormula bN = pred(B, n);
   SMTFormula gN = pred(G, n);
   SMTFormula sN = pred(S, n);
-  SMTFormula dN = pred(D, n);
+  SMTFormula rcN = pred(RC, n);
+  SMTFormula bcN = pred(BC, n);
+//  SMTFormula dN = pred(D, n);
+
+
+  _resBenchmark.addFormula(rcN -=- ((!sN) & rParDisj));
+  _resBenchmark.addFormula(bcN -=- ((!sN) & bParDisj));
 
   _resBenchmark.addFormula(rParDisj-->!bParDisj);
   _resBenchmark.addFormula(bParDisj-->!rParDisj);
@@ -514,7 +584,7 @@ void InterpolantMinimizer::addGreyNodePropertiesFormula(string n, ParentSummary&
   _resBenchmark.addFormula((sN & bParDisj)-->bN);
   _resBenchmark.addFormula((sN & gParConj)-->gN);
   _resBenchmark.addFormula( (!sN)-->gN );
-  _resBenchmark.addFormula( dN -=- ( (!sN) & !gParConj ) );
+//  _resBenchmark.addFormula( dN -=- ( (!sN) & !gParConj ) );
 }
 
 /**
@@ -557,12 +627,24 @@ void InterpolantMinimizer::addColoredParentPropertiesFormulas(string n, ParentSu
   SMTFormula parN = pred(parentType, n);
   SMTFormula gN = pred(G, n);
   SMTFormula sN = pred(S, n);
-  SMTFormula dN = pred(D, n);
+  SMTFormula rcN = pred(RC, n);
+  SMTFormula bcN = pred(BC, n);
+//  SMTFormula dN = pred(D, n);
+
+  if(parentType==R) {
+    _resBenchmark.addFormula(rcN -=- !sN);
+    _resBenchmark.addFormula(!bcN);
+  }
+  else {
+    ASS_EQ(parentType,B);
+    _resBenchmark.addFormula(bcN -=- !sN);
+    _resBenchmark.addFormula(!rcN);
+  }
 
   _resBenchmark.addFormula(gParNegConj);
   _resBenchmark.addFormula(sN --> parN);
   _resBenchmark.addFormula((!sN) --> gN);
-  _resBenchmark.addFormula(dN -=- !sN);
+//  _resBenchmark.addFormula(dN -=- !sN);
 }
 
 /**
@@ -636,9 +718,15 @@ struct InterpolantMinimizer::TraverseStackEntry
 
     if(info.color==COLOR_LEFT) {
       parInfo.isParentOfLeft = true;
+      USList::push(unit, parInfo.leftSuccessors);
     }
-    if(info.color==COLOR_RIGHT) {
+    else if(info.color==COLOR_RIGHT) {
       parInfo.isParentOfRight = true;
+      USList::push(unit, parInfo.rightSuccessors);
+    }
+    else {
+      ASS_EQ(info.color, COLOR_TRANSPARENT);
+      USList::push(unit, parInfo.transparentSuccessors);
     }
   }
 

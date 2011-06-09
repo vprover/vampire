@@ -244,6 +244,7 @@ fin:
 
   //simplify the interpolant and exit
   return Flattening::flatten(SimplifyFalseTrue::simplify(resultInterpolant));
+//  return resultInterpolant;
 }
 
 void generateInterpolant(ItemState& st)
