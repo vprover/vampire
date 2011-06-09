@@ -23,11 +23,6 @@ using namespace Kernel;
 class InterpolantMinimizer
 {
 public:
-  /**
-   * If minimizeComponentCount is true, we minimize the number of distinct
-   * components in the interpolant, otherwise we minimize the sum of the weight
-   * of the distinct components.
-   */
   InterpolantMinimizer(bool minimizeComponentCount=false, bool noSlicing=false,
       bool showStats=false, string statsPrefix="");
   ~InterpolantMinimizer();

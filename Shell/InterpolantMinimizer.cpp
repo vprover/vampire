@@ -29,6 +29,9 @@ namespace Shell
 
 using namespace Indexing;
 
+/**
+ * Return minimized interpolant of @c refutation
+ */
 Formula* InterpolantMinimizer::getInterpolant(Clause* refutation)
 {
   CALL("InterpolantMinimizer::getInterpolant");
@@ -53,6 +56,10 @@ Formula* InterpolantMinimizer::getInterpolant(Clause* refutation)
   return interpolant;
 }
 
+/**
+ * Into @c acc add all units that are sliced off in the model given
+ * by SMT solver in @c solverResult.
+ */
 void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, DHSet<UnitSpec>& acc)
 {
   CALL("InterpolantMinimizer::collectSlicedOffNodes");
@@ -68,6 +75,9 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
     }
 
     string uid = getUnitId(unit);
+
+//    if(solverResult.assignment.get(pred(D, uid))=="true") LOG("Digest: " << unit.toString());
+
     SMTConstant sU = pred(S, uid);
     string val = solverResult.assignment.get(sU);
     if(val=="false") {
@@ -80,6 +90,9 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
   }
 }
 
+/**
+ * Add into @c _resBenchmark all formulas needed for interpolant minimization
+ */
 void InterpolantMinimizer::addAllFormulas()
 {
   CALL("InterpolantMinimizer::getWholeFormula");
@@ -98,6 +111,10 @@ void InterpolantMinimizer::addAllFormulas()
   addCostFormula();
 }
 
+/**
+ * Add into @c _resBenchmark formulas related to @c u and to it's relation to
+ * its parents.
+ */
 void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
 {
   CALL("InterpolantMinimizer::getNodeFormula");
@@ -166,10 +183,21 @@ void InterpolantMinimizer::addNodeFormulas(UnitSpec u)
 // Generating the weight-minimizing part of the problem
 //
 
+/**
+ * Class that splits a clause into components, faciliating also
+ * sharing of the components
+ */
 class InterpolantMinimizer::ClauseSplitter : protected Saturation::SWBSplitter
 {
 public:
   ClauseSplitter() : _acc(0) {}
+
+  /**
+   * Into @c acc push clauses that correspond to components of @c cl.
+   * The components are shared among calls to the function, so for
+   * components that are variants of each other, the same result is
+   * returned.
+   */
   void getComponents(Clause* cl, ClauseStack& acc)
   {
     CALL("InterpolantMinimizer::ClauseSplitter::getComponents");
@@ -278,6 +306,11 @@ private:
   ClauseStack* _acc;
 };
 
+/**
+ * Into @c atoms add IDs of components that appear in FormulaUnit @c u
+ *
+ * Currently we consider formulas to be one big component.
+ */
 void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
 {
   CALL("InterpolantMinimizer::collectAtoms(FormulaUnit*...)");
@@ -293,6 +326,9 @@ void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
   atoms.push(id);
 }
 
+/**
+ * Get ID of component @c cl
+ */
 string InterpolantMinimizer::getComponentId(Clause* cl)
 {
   CALL("InterpolantMinimizer::getComponentId");
@@ -308,6 +344,9 @@ string InterpolantMinimizer::getComponentId(Clause* cl)
  return id;
 }
 
+/**
+ * Into @c atoms add IDs of components that appear in @c u
+ */
 void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<string>& atoms)
 {
   CALL("InterpolantMinimizer::collectAtoms(UnitSpec...)");
@@ -329,6 +368,10 @@ void InterpolantMinimizer::collectAtoms(UnitSpec u, Stack<string>& atoms)
   }
 }
 
+/**
+ * Add formula implying the presence of components of @c u if
+ * it appears in the digest into @c _resBenchmark
+ */
 void InterpolantMinimizer::addAtomImplicationFormula(UnitSpec u)
 {
   CALL("InterpolantMinimizer::getAtomImplicationFormula");
@@ -350,6 +393,9 @@ void InterpolantMinimizer::addAtomImplicationFormula(UnitSpec u)
   _resBenchmark.addFormula(pred(D, uId) --> cConj, comment);
 }
 
+/**
+ * Add formula defining the cost function into @c _resBenchmark
+ */
 void InterpolantMinimizer::addCostFormula()
 {
   CALL("InterpolantMinimizer::getCostFormula");
@@ -414,6 +460,10 @@ string InterpolantMinimizer::getUnitId(UnitSpec u)
   return id;
 }
 
+/**
+ * Add into @c _resBenchmark formulas stating uniqueness of trace colours
+ * of node @c n.
+ */
 void InterpolantMinimizer::addDistinctColorsFormula(string n)
 {
   CALL("InterpolantMinimizer::distinctColorsFormula");
@@ -430,6 +480,10 @@ void InterpolantMinimizer::addDistinctColorsFormula(string n)
   _resBenchmark.addFormula(res);
 }
 
+/**
+ * Add into @c _resBenchmark formulas related to digest and trace of node @c n
+ * that are specific to a node which is parent of only gray formulas.
+ */
 void InterpolantMinimizer::addGreyNodePropertiesFormula(string n, ParentSummary& parents)
 {
   CALL("InterpolantMinimizer::gNodePropertiesFormula");
@@ -480,6 +534,10 @@ void InterpolantMinimizer::addLeafNodePropertiesFormula(string n)
   _resBenchmark.addFormula(dN);
 }
 
+/**
+ * Add into @c _resBenchmark formulas related to digest and trace of node @c n
+ * that are specific to a node which is parent of a colored formula.
+ */
 void InterpolantMinimizer::addColoredParentPropertiesFormulas(string n, ParentSummary& parents)
 {
   CALL("InterpolantMinimizer::coloredParentPropertiesFormula");
@@ -507,6 +565,12 @@ void InterpolantMinimizer::addColoredParentPropertiesFormulas(string n, ParentSu
   _resBenchmark.addFormula(dN -=- !sN);
 }
 
+/**
+ * Add into @c _resBenchmark formulas related to digest and trace of node @c n, provided
+ * @c n is not a leaf node.
+ *
+ * Formulas related to the cost function are added elsewhere.
+ */
 void InterpolantMinimizer::addNodeFormulas(string n, ParentSummary& parents)
 {
   CALL("InterpolantMinimizer::propertiesFormula");
@@ -547,6 +611,10 @@ struct InterpolantMinimizer::TraverseStackEntry
     info.leadsToColor = info.color!=COLOR_TRANSPARENT || info.inputInheritedColor!=COLOR_TRANSPARENT;
   }
 
+  /**
+   * Extract the needed information on the relation between the current unit
+   * and its premise @c parent
+   */
   void processParent(UnitSpec parent)
   {
     CALL("InterpolantMinimizer::TraverseStackEntry::processParent");
@@ -584,11 +652,17 @@ struct InterpolantMinimizer::TraverseStackEntry
   }
 
   UnitSpec unit;
+  /** Premises that are yet to be traversed */
   VirtualIterator<UnitSpec> parentIterator;
 
   InterpolantMinimizer& _im;
 };
 
+/**
+ * Traverse through the proof graph of @c refutationClause and
+ * record everything that is necessary for generating the
+ * minimization problem
+ */
 void InterpolantMinimizer::traverse(Clause* refutationClause)
 {
   CALL("InterpolantMinimizer::traverse");
@@ -627,6 +701,21 @@ void InterpolantMinimizer::traverse(Clause* refutationClause)
 // Construction & destruction
 //
 
+/**
+ * Create InterpolantMinimizer object
+ *
+ * @param minimizeComponentCount If true, we minimize the number of distinct
+ * components in the interpolant, otherwise we minimize the sum of the weight
+ * of the distinct components.
+ *
+ * @param noSlicing If true, we forbid all slicing of proof nodes. This simulates
+ * the original algorithm which didn't use minimization.
+ *
+ * @param showStats Value of the cost function is output
+ *
+ * @param starsPrefix The value of the cost function is output on line starting
+ * with statsPrefix + " cost: "
+ */
 InterpolantMinimizer::InterpolantMinimizer(bool minimizeComponentCount, bool noSlicing,
     bool showStats, string statsPrefix)
 : _minimizeComponentCount(minimizeComponentCount), _noSlicing(noSlicing),
