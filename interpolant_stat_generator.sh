@@ -24,7 +24,7 @@ for F in $*; do
 		else
 			continue #the coloring wasn't successful, so we skip this instance
 		fi
-		$VAMP $V_OPTS $COLPRB | grep '^[^.]*nterpolant.*:' >$AUX
+		(ulimit -St 20; $VAMP $V_OPTS $COLPRB) | grep '^[^.]*nterpolant.*:' >$AUX
 		if grep Interpolant $AUX >/dev/null; then
 			echo $F $MODE
 			cat $AUX
