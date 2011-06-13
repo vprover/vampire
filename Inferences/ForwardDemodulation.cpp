@@ -96,9 +96,11 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	TermQueryResult qr=git.next();
 	ASS_EQ(qr.clause->length(),1);
 
+	if(!simplPerformer->willPerform(qr.clause)) {
+	  continue;
+	}
+
 	TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-
-
 	TermList rhsS;
 	if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
 	  //When we apply substitution to the rhs, we get a term, that is
@@ -162,9 +164,6 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	  }
 	}
 
-	if(!simplPerformer->willPerform(qr.clause)) {
-	  continue;
-	}
 	Literal* resLit = EqHelper::replace(lit,trm,rhsS);
 	if(EqHelper::isEqTautology(resLit)) {
 	  env.statistics->forwardDemodulationsToEqTaut++;

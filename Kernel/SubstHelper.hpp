@@ -34,6 +34,7 @@ public:
   template<class Applicator>
   static TermList apply(TermList t, Applicator& applicator, bool noSharing=false)
   {
+    CALL("SubstHelper::apply(TermList...)");
     return applyImpl<false,Applicator>(t, applicator, noSharing);
   }
 
@@ -51,6 +52,7 @@ public:
   template<class Applicator>
   static Term* apply(Term* t, Applicator& applicator, bool noSharing=false)
   {
+    CALL("SubstHelper::apply(Term*...)");
     return applyImpl<false,Applicator>(t, applicator, noSharing);
   }
 
@@ -68,6 +70,7 @@ public:
   template<class Applicator>
   static Literal* apply(Literal* lit, Applicator& applicator)
   {
+    CALL("SubstHelper::apply(Literal*...)");
     return static_cast<Literal*>(apply(static_cast<Term*>(lit),applicator));
   }
 
@@ -86,6 +89,7 @@ public:
   template<class Applicator>
   static Formula* apply(Formula* f, Applicator& applicator)
   {
+    CALL("SubstHelper::apply(Formula*...)");
     return applyImpl<false>(f, applicator, false);
   }
 

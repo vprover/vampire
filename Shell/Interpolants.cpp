@@ -179,6 +179,12 @@ Formula* Interpolants::getInterpolant(Clause* cl)
       st.inheritedColor=static_cast<Color>(curr.unit()->inheritedColor()|curr.unit()->getColor());
       ASS_NEQ(st.inheritedColor, COLOR_INVALID);
     }
+    else if(!st.processed && !st.pars.hasNext()) {
+      //we have unit without any parents. This case is reserved for
+      //units introduced by some naming. In this case we need to set
+      //the inherited color to the color of the unit.
+      st.inheritedColor=curr.unit()->getColor();
+    }
 
     if(sts.isNonEmpty()) {
       //update premise color information in the level above
@@ -210,7 +216,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
       if(!st.processed) {
 	if(st.inheritedColor!=color || sts.isEmpty()) {
 	  //we either have a transparent clause justified by A or B, or the refutation
-	  ASS_EQ(color, COLOR_TRANSPARENT);
+	  ASS_EQ(color,COLOR_TRANSPARENT);
 	  generateInterpolant(st);
 	}
 	st.processed = true;

@@ -43,10 +43,16 @@ public:
   USE_ALLOCATOR(CodeTreeSubstitution);
 
   TermList applyToBoundResult(TermList t)
-  { return SubstHelper::apply(t, *getApplicator()); }
+  {
+    CALL("CodeTreeSubstitution::applyToBoundResult(TermList)");
+    return SubstHelper::apply(t, *getApplicator());
+  }
 
   Literal* applyToBoundResult(Literal* lit)
-  { return SubstHelper::apply(lit, *getApplicator()); }
+  {
+    CALL("CodeTreeSubstitution::applyToBoundResult(Literal*)");
+    return SubstHelper::apply(lit, *getApplicator());
+  }
 
   bool isIdentityOnQueryWhenResultBound() {return true;}
 private:
