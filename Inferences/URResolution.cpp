@@ -224,6 +224,10 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
     while(unifs.hasNext()) {
       SLQueryResult unif = unifs.next();
 
+      if( !ColorHelper::compatible(itm->_orig->color(), unif.clause->color()) ) {
+        continue;
+      }
+
       Item* itm2 = new Item(*itm);
       itm2->resolveLiteral(idx, unif, unif.clause, true);
       iit.insert(itm2);
@@ -284,8 +288,12 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
   SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();
-
     Clause* ucl = unif.clause;
+
+    if( !ColorHelper::compatible(cl->color(), ucl->color()) ) {
+      continue;
+    }
+
     Item* itm = new Item(ucl);
     unsigned pos = ucl->getLiteralPosition(unif.literal);
     swap(itm->_lits[0], itm->_lits[pos]);

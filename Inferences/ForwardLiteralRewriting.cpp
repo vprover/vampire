@@ -51,6 +51,10 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       SLQueryResult qr=git.next();
       Clause* counterpart=_index->getCounterpart(qr.clause);
 
+      if(!simplPerformer->willPerform(qr.clause) || !simplPerformer->willPerform(counterpart)) {
+	continue;
+      }
+
       if(cl==qr.clause || cl==counterpart) {
 	continue;
       }
@@ -66,10 +70,6 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       Literal* rhsS=qr.substitution->applyToBoundResult(rhs);
 
       if(ordering->compare(lit, rhsS)!=Ordering::GREATER) {
-	continue;
-      }
-
-      if(!simplPerformer->willPerform(qr.clause) || !simplPerformer->willPerform(counterpart)) {
 	continue;
       }
 
