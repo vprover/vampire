@@ -687,7 +687,13 @@ struct InterpolantMinimizer::TraverseStackEntry
     info.color = u.unit()->getColor();
     info.inputInheritedColor = u.unit()->inheritedColor();
     if(info.inputInheritedColor==COLOR_INVALID) {
-      info.inputInheritedColor = COLOR_TRANSPARENT;
+      if(!parentIterator.hasNext()) {
+	//this covers introduced name definitions
+	info.inputInheritedColor = info.color;
+      }
+      else {
+	info.inputInheritedColor = COLOR_TRANSPARENT;
+      }
     }
 
     info.leadsToColor = info.color!=COLOR_TRANSPARENT || info.inputInheritedColor!=COLOR_TRANSPARENT;
