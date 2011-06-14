@@ -5,6 +5,7 @@ BEGIN {
 FS=" "
 cnt = 0;
 succ = 0;
+yicesTimeouts = 0;
 
 maxMul=10
 }
@@ -14,32 +15,35 @@ maxMul=10
 /^Original interpolant count cost/ { occ = $5 }
 /^Minimized interpolant count cost/ { mcc = $5 }
 /^Problems/ { prob=$0 }
-
+/CPU time/ { yicesTimeout=1 }
 /^------/ {
-cnt++;
-if(owc!=mwc || occ!=mcc) {
-	print owc "\t" mwc "\t" occ "\t" mcc "\t" prob
-	succ++
-}
-
-for(i=1; i<=maxMul; i++) {
-	if(owc>0 && owc>i*mwc) {
-		succWCnt[i]++
+if(yicesTimeout==0) {
+	cnt++;
+	if(owc!=mwc || occ!=mcc) {
+	#	print owc "\t" mwc "\t" occ "\t" mcc "\t" prob
+		succ++
 	}
-	if(occ>0 && occ>i*mcc) {
-		succCCnt[i]++
+	
+	for(i=1; i<=maxMul; i++) {
+		if(owc>0 && owc>i*mwc) {
+			succWCnt[i]++
+		}
+		if(occ>0 && occ>i*mcc) {
+			succCCnt[i]++
+		}
+	}
+	
+	if(owc>0 && mwc==0) {
+		succWCnt[maxMul+1]++
+	}
+	if(occ>0 && mcc==0) {
+		succCCnt[maxMul+1]++
 	}
 }
-
-if(owc>0 && mwc==0) {
-	succWCnt[maxMul+1]++
+if(yicesTimeout==1) {
+	yicesTimeouts++
 }
-if(occ>0 && mcc==0) {
-	succCCnt[maxMul+1]++
-}
-
-
-owc=0; mwc=0; occ=0; mcc=0;
+owc=0; mwc=0; occ=0; mcc=0; yicesTimeout=0;
 }
 
 END {
@@ -63,6 +67,10 @@ END {
 	}
 	print "Count minimized more than 10 times but to non-zero: " (succCCnt[i]-succCCnt[i+1])
 	print "Count minimized to zero: " succCCnt[maxMul+1]
+	
+	print ""
+	print "Problems with Yices timeouts: " yicesTimeouts
+	
 }
 
 ' $*
