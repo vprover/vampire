@@ -121,6 +121,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
+        Kernel/MainLoop.o\
         Kernel/MatchTag.o\
         Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\
@@ -217,7 +218,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ProvingHelper.o\
          Saturation/SaturationAlgorithm_Construction.o\
          Saturation/SaturationAlgorithm.o\
-         Saturation/SaturationResult.o\
          Saturation/Splitter.o\
          Saturation/SWBSplitter.o\
          Saturation/SWBSplitterWithBDDs.o\
@@ -298,6 +298,9 @@ VPROG_OBJ = Program/Type.o\
            Program/Expression.o\
            Program/Statement.o\
            Program/Variable.o
+
+VTAB_OBJ = Tabulation/TabulationAlgorithm.o\
+           Tabulation/TabulationContainers.o
 
 # testing procedures
 VT_OBJ = Test/CheckedFwSimplifier.o\
@@ -447,8 +450,9 @@ OTHER_API_DEP = \
 	   Shell/VarManager.o\
 	   ClausifierDependencyFix.o
 
+VAMP_DIRS := Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB Rule SAT Saturation Tabulation Test UnitTests VUtils Program
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ) $(VPROG_OBJ)  
+VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VTAB_OBJ) $(VT_OBJ) $(VPROG_OBJ)  
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VS_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(VT_OBJ) $(LIB_DEP)
@@ -482,7 +486,7 @@ obj:
 	-mkdir obj
 obj/%X: | obj
 	-mkdir $@
-	-cd $@ ; mkdir Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB Rule SAT Saturation Test UnitTests VUtils Program; cd .. 
+	-cd $@ ; mkdir $(VAMP_DIRS); cd .. 
 
 #cancel the implicit rule
 %.o : %.cpp
@@ -548,7 +552,7 @@ test_vapi: $(CONF_ID)/test_vapi.o $(EXEC_DEF_PREREQ)
 clausify_src:
 	rm -rf $@
 	mkdir $@
-	mkdir $@/Api $@/Debug $@/Indexing $@/Inferences $@/Kernel $@/Lib $@/Lib/Sys $@/SAT $@/Saturation $@/Shell $@/Test
+	mkdir $(patsubst %, $@/%, $(VAMP_DIRS))
 	tar cf - $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) | (cd $@ ; tar xvf -) 2>/dev/null
 	cp Makefile Makefile_depend $@
 	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
@@ -556,7 +560,7 @@ clausify_src:
 api_src:
 	rm -rf $@
 	mkdir $@
-	mkdir $@/Api $@/Debug $@/Indexing $@/Inferences $@/Kernel $@/Lib $@/Lib/Sys $@/SAT $@/Saturation $@/Shell $@/Test
+	mkdir $(patsubst %, $@/%, $(VAMP_DIRS))
 	tar cf - $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) | (cd $@ ; tar xvf -) 2>/dev/null
 	cp Makefile Makefile_depend test_vapi.cpp $@
 	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
@@ -598,22 +602,9 @@ api_src:
 #	$(CXX) $(CXXFLAGS) $^ -o $@
 
 clean:
-	cd Api ; rm -f *.o *~ *.bak ; cd ..
-	cd Debug ; rm -f *.o *~ *.bak ; cd ..
-	cd Lib ; rm -f *.o *~ *.bak ; cd ..
-	cd Kernel ; rm -f *.o *~ *.bak ; cd ..
-	cd Indexing ; rm -f *.o *~ *.bak ; cd ..
-	cd Inferences ; rm -f *.o *~ *.bak ; cd ..
-	cd InstGen ; rm -f *.o *~ *.bak ; cd ..
-	cd Shell ; rm -f *.o *~ *.bak ; cd ..
-	cd Rule ; rm -f *.o *~ *.bak ; cd ..
-	cd SAT ; rm -f *.o *~ *.bak ; cd ..
-	cd Saturation ; rm -f *.o *~ *.bak ; cd ..
-	cd Test ; rm -f *.o *~ *.bak ; cd ..
-	rm -f *.o *~ *.bak
 	rm -rf obj
 
-DEPEND_CMD = makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 Api/*.cpp Debug/*.cpp Lib/*.cpp Lib/Sys/*.cpp Shell/*.cpp Shell/LTB/*.cpp  Shell/CASC/*.cpp Kernel/*.cpp Kernel/Algebra/*.cpp Indexing/*.cpp Inferences/*.cpp InstGen/*.cpp Rule/*.cpp SAT/*.cpp Saturation/*.cpp Test/*.cpp UnitTests/*.cpp Program/*.cpp *.cpp
+DEPEND_CMD = makedepend -p'$$(CONF_ID)/' -fMakefile_depend -Y -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 -DUNIX_USE_SIGALRM=1 $(patsubst %, %/*.cpp, $(VAMP_DIRS)) *.cpp
 
 depend:
 	$(DEPEND_CMD)

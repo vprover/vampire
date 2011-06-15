@@ -173,6 +173,10 @@ enum Color {
   COLOR_INVALID = 3u
 };
 
+class MainLoop;
+typedef Lib::SmartPtr<MainLoop> MainLoopSP;
+
+
 namespace Algebra
 {
 class ArithmeticKB;
@@ -195,6 +199,9 @@ class TermSharing;
 
 class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
+
+class SLQueryResult;
+class TermQueryResult;
 
 class GeneratingLiteralIndex;
 class SimplifyingLiteralIndex;
@@ -229,6 +236,7 @@ typedef Lib::SmartPtr<PassiveClauseContainer> PassiveClauseContainerSP;
 
 class ActiveClauseContainer;
 
+class Limits;
 class Splitter;
 class ConsequenceFinder;
 class SymElOutput;

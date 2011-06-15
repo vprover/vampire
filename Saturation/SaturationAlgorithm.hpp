@@ -10,6 +10,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/MainLoop.hpp"
 #include "Kernel/RCClauseStack.hpp"
 
 #include "Lib/DHMap.hpp"
@@ -23,7 +24,6 @@
 #include "Inferences/PropositionalToBDDISE.hpp"
 
 #include "Limits.hpp"
-#include "SaturationResult.hpp"
 
 #if VDEBUG
 #include<iostream>
@@ -37,8 +37,12 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Inferences;
 
-class SaturationAlgorithm
+class SaturationAlgorithm : public MainLoop
 {
+private:
+  friend class MainLoop;
+
+  static SaturationAlgorithmSP createFromOptions();
 public:
   SaturationAlgorithm(PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
   virtual ~SaturationAlgorithm();
@@ -50,9 +54,9 @@ public:
   void addForwardSimplifierToFront(ForwardSimplificationEngineSP fwSimplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngineSP bwSimplifier);
 
-  SaturationResult saturate();
+  virtual MainLoopResult run();
 
-  void addInputClauses(ClauseIterator cit);
+  virtual void addInputClauses(ClauseIterator cit);
 
   void addNewClause(Clause* cl);
   bool clausesFlushed();
@@ -77,8 +81,6 @@ public:
   Limits* getLimits() { return &_limits; }
   IndexManager* getIndexManager() { return &_imgr; }
   ClauseSharing* getSharing() { return &_sharing; }
-
-  static SaturationAlgorithmSP createFromOptions();
 
   /**
    * If the saturation algorithm run is in progress, return pointer
@@ -115,7 +117,6 @@ protected:
 
   void addUnprocessedClause(Clause* cl);
 
-  static bool isRefutation(Clause* c);
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
@@ -164,7 +165,7 @@ private:
 
   Clause* doImmediateSimplification(Clause* cl);
 
-  SaturationResult saturateImpl();
+  MainLoopResult saturateImpl();
 
   Limits _limits;
   IndexManager _imgr;

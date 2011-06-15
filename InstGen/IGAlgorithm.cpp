@@ -35,8 +35,8 @@ IGAlgorithm::IGAlgorithm()
 
   _satSolver = new TWLSolver();
 
-  _dummy = SaturationAlgorithm::createFromOptions();
-  _dlr.attach(_dummy.ptr());
+//  _dummy = SaturationAlgorithm::createFromOptions();
+//  _dlr.attach(_dummy.ptr());
 }
 
 IGAlgorithm::~IGAlgorithm()

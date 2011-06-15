@@ -242,10 +242,10 @@ void ltbSolveMode()
     Unit::onPreprocessingEnd();
 
     env.statistics->phase=Statistics::SATURATION;
-    SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
+    MainLoopSP salg=MainLoop::createFromOptions();
     salg->addInputClauses(clauses);
 
-    SaturationResult sres(salg->saturate());
+    MainLoopResult sres(salg->saturate());
     env.statistics->phase=Statistics::FINALIZATION;
     sres.updateStatistics();
   }

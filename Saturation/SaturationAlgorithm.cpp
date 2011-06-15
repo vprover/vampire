@@ -672,22 +672,6 @@ void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
 }
 
 /**
- * Return true iff clause @b c is refutation clause.
- *
- * Deriving a refutation clause means that the saturation algorithm can
- * terminate with success.
- */
-bool SaturationAlgorithm::isRefutation(Clause* c)
-{
-  CALL("SaturationAlgorithm::isRefutation");
-  ASS(c->prop());
-
-  BDD* bdd=BDD::instance();
-  return c->isEmpty() && bdd->isFalse(c->prop()) && c->noSplits();
-}
-
-
-/**
  * Class of @b ForwardSimplificationPerformer objects that
  * perform the forward simplification only if it leads to
  * deletion of the clause being simplified. (Other
@@ -1401,11 +1385,11 @@ bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
  * Perform saturation on clauses that were added through
  * @b addInputClauses function
  */
-SaturationResult SaturationAlgorithm::saturate()
+MainLoopResult SaturationAlgorithm::run()
 {
-  CALL("SaturationAlgorithm::saturate");
+  CALL("SaturationAlgorithm::run");
 
-  SaturationResult res=saturateImpl();
+  MainLoopResult res=saturateImpl();
 
   tryUpdateFinalClauseCount();
   return res;
@@ -1414,7 +1398,7 @@ SaturationResult SaturationAlgorithm::saturate()
 /**
  * Private implementation function for the @b saturate function
  */
-SaturationResult SaturationAlgorithm::saturateImpl()
+MainLoopResult SaturationAlgorithm::saturateImpl()
 {
   CALL("SaturationAlgorithm::saturateImpl");
 
@@ -1440,7 +1424,7 @@ SaturationResult SaturationAlgorithm::saturateImpl()
       doUnprocessedLoop();
 
       if(_passive->isEmpty()) {
-        return SaturationResult(isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND);
+        return MainLoopResult(isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND);
       }
 
       Clause* cl = _passive->popSelected();
@@ -1464,17 +1448,17 @@ SaturationResult SaturationAlgorithm::saturateImpl()
 
       Timer::syncClock();
       if(env.timeLimitReached()) {
-        return SaturationResult(Statistics::TIME_LIMIT);
+        return MainLoopResult(Statistics::TIME_LIMIT);
       }
     }
   }
   catch(RefutationFoundException rs)
   {
-    return SaturationResult(Statistics::REFUTATION, rs.refutation);
+    return MainLoopResult(Statistics::REFUTATION, rs.refutation);
   }
   catch(TimeLimitExceededException)
   {
-    return SaturationResult(Statistics::TIME_LIMIT);
+    return MainLoopResult(Statistics::TIME_LIMIT);
   }
 }
 

@@ -129,6 +129,8 @@ protected:
   unsigned _kept : 1;
 //  unsigned _genCounter;
 
+
+
   /** Array of literals of this unit */
   SATLiteral _literals[1];
 }; // class SATClause

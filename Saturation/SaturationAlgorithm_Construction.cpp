@@ -16,24 +16,19 @@
 #include "Inferences/BackwardSubsumptionResolution.hpp"
 #include "Inferences/BDDMarkingSubsumption.hpp"
 #include "Inferences/BinaryResolution.hpp"
-#include "Inferences/Condensation.hpp"
 #include "Inferences/CTFwSubsAndRes.hpp"
-#include "Inferences/DistinctEqualitySimplifier.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
-#include "Inferences/FastCondensation.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/InterpretedSimplifier.hpp"
 #include "Inferences/RefutationSeekerFSE.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
-#include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/URResolution.hpp"
 
 #include "Test/CheckedFwSimplifier.hpp"
@@ -84,33 +79,6 @@ GeneratingInferenceEngineSP createGIE()
   return GeneratingInferenceEngineSP(res);
 }
 
-ImmediateSimplificationEngineSP createImmediateSE()
-{
-  CALL("Saturation::Construction::createImmediateSE");
-
-  CompositeISE* res=new CompositeISE();
-
-  switch(env.options->condensation()) {
-  case Options::CONDENSATION_ON:
-    res->addFront(ImmediateSimplificationEngineSP(new Condensation()));
-    break;
-  case Options::CONDENSATION_FAST:
-    res->addFront(ImmediateSimplificationEngineSP(new FastCondensation()));
-    break;
-  case Options::CONDENSATION_OFF:
-    break;
-  }
-
-  res->addFront(ImmediateSimplificationEngineSP(new DistinctEqualitySimplifier()));
-  if(env.options->interpretedEvaluation()) {
-    res->addFront(ImmediateSimplificationEngineSP(new InterpretedEvaluation()));
-  }
-  res->addFront(ImmediateSimplificationEngineSP(new TrivialInequalitiesRemovalISE()));
-  res->addFront(ImmediateSimplificationEngineSP(new TautologyDeletionISE()));
-  res->addFront(ImmediateSimplificationEngineSP(new DuplicateLiteralRemovalISE()));
-
-  return ImmediateSimplificationEngineSP(res);
-}
 
 void addFSEs(SaturationAlgorithm* alg)
 {
@@ -242,7 +210,7 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
   }
 
   res->setGeneratingInferenceEngine(createGIE());
-  res->setImmediateSimplificationEngine(createImmediateSE());
+  res->setImmediateSimplificationEngine(createISE());
   addFSEs(res);
   addBSEs(res);
 

@@ -36,6 +36,7 @@ using namespace Saturation;
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
   CALL("BinaryResolution::attach");
+  ASS(!_index);
 
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<GeneratingLiteralIndex*> (
@@ -45,6 +46,7 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
 void BinaryResolution::detach()
 {
   CALL("BinaryResolution::detach");
+  ASS(_salg);
 
   _index=0;
   _salg->getIndexManager()->release(GENERATING_SUBST_TREE);
@@ -81,110 +83,117 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    if(!ColorHelper::compatible(_cl->color(),qr.clause->color()) ) {
-      env.statistics->inferencesSkippedDueToColors++;
-      if(env.options->showBlocked()) {
-        env.beginOutput();
-        env.out()<<"Blocked resolution of "<<_cl->toString()<<" and "<<qr.clause->toString()<<endl;
-        env.endOutput();
-      }
-      if(env.options->colorUnblocking()) {
-	SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
-	ASS(salg);
-	ColorHelper::tryUnblock(_cl, salg);
-	ColorHelper::tryUnblock(qr.clause, salg);
-      }
-      return 0;
-    }
-
-    unsigned clength = _cl->length();
-    unsigned dlength = qr.clause->length();
-    int newAge=Int::max(_cl->age(),qr.clause->age())+1;
-    bool shouldLimitWeight=_limits->ageLimited() && newAge > _limits->ageLimit()
-	&& _limits->weightLimited();
-    unsigned weightLimit;
-    if(shouldLimitWeight) {
-      bool isNonGoal=_cl->inputType()==0 && qr.clause->inputType()==0;
-      if(isNonGoal) {
-        weightLimit=_limits->nonGoalWeightLimit();
-      } else {
-        weightLimit=_limits->weightLimit();
-      }
-    }
-
-
-    unsigned wlb=0;//weight lower bound
-    if(shouldLimitWeight) {
-      for(unsigned i=0;i<clength;i++) {
-        Literal* curr=(*_cl)[i];
-        if(curr!=resLit) {
-          wlb+=curr->weight();
-        }
-      }
-      for(unsigned i=0;i<dlength;i++) {
-        Literal* curr=(*qr.clause)[i];
-        if(curr!=qr.literal) {
-          wlb+=curr->weight();
-        }
-      }
-      if(wlb > weightLimit) {
-	env.statistics->discardedNonRedundantClauses++;
-        return 0;
-      }
-    }
-
-    unsigned newLength = clength+dlength-2;
-
-    Inference* inf = new Inference2(Inference::RESOLUTION, _cl, qr.clause);
-    Unit::InputType inpType = (Unit::InputType)
-    	Int::max(_cl->inputType(), qr.clause->inputType());
-
-    Clause* res = new(newLength) Clause(newLength, inpType, inf);
-
-    unsigned next = 0;
-    for(unsigned i=0;i<clength;i++) {
-      Literal* curr=(*_cl)[i];
-      if(curr!=resLit) {
-	Literal* newLit=qr.substitution->applyToQuery(curr);
-	if(shouldLimitWeight) {
-	  wlb+=newLit->weight() - curr->weight();
-	  if(wlb > weightLimit) {
-	    env.statistics->discardedNonRedundantClauses++;
-	    res->destroy();
-	    return 0;
-	  }
-	}
-	(*res)[next] = newLit;
-	next++;
-      }
-    }
-    for(unsigned i=0;i<dlength;i++) {
-      Literal* curr=(*qr.clause)[i];
-      if(curr!=qr.literal) {
-	Literal* newLit = qr.substitution->applyToResult(curr);
-	if(shouldLimitWeight) {
-	  wlb+=newLit->weight() - curr->weight();
-	  if(wlb > weightLimit) {
-	    env.statistics->discardedNonRedundantClauses++;
-	    res->destroy();
-	    return 0;
-	  }
-	}
-	(*res)[next] = newLit;
-	next++;
-      }
-    }
-
-    res->setAge(newAge);
-    env.statistics->resolution++;
-
-    return res;
+    return generateClause(_cl, resLit, qr, _limits);
   }
 private:
   Clause* _cl;
   Limits* _limits;
 };
 
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, Limits* limits)
+{
+  CALL("BinaryResolution::generateClause");
+
+  if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
+    env.statistics->inferencesSkippedDueToColors++;
+    if(env.options->showBlocked()) {
+      env.beginOutput();
+      env.out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<qr.clause->toString()<<endl;
+      env.endOutput();
+    }
+    if(env.options->colorUnblocking()) {
+      SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
+      if(salg) {
+	ColorHelper::tryUnblock(queryCl, salg);
+	ColorHelper::tryUnblock(qr.clause, salg);
+      }
+    }
+    return 0;
+  }
+
+  unsigned clength = queryCl->length();
+  unsigned dlength = qr.clause->length();
+  int newAge=Int::max(queryCl->age(),qr.clause->age())+1;
+  bool shouldLimitWeight=limits && limits->ageLimited() && newAge > limits->ageLimit()
+	&& limits->weightLimited();
+  unsigned weightLimit;
+  if(shouldLimitWeight) {
+    bool isNonGoal=queryCl->inputType()==0 && qr.clause->inputType()==0;
+    if(isNonGoal) {
+      weightLimit=limits->nonGoalWeightLimit();
+    } else {
+      weightLimit=limits->weightLimit();
+    }
+  }
+
+
+  unsigned wlb=0;//weight lower bound
+  if(shouldLimitWeight) {
+    for(unsigned i=0;i<clength;i++) {
+      Literal* curr=(*queryCl)[i];
+      if(curr!=queryLit) {
+        wlb+=curr->weight();
+      }
+    }
+    for(unsigned i=0;i<dlength;i++) {
+      Literal* curr=(*qr.clause)[i];
+      if(curr!=qr.literal) {
+        wlb+=curr->weight();
+      }
+    }
+    if(wlb > weightLimit) {
+	env.statistics->discardedNonRedundantClauses++;
+      return 0;
+    }
+  }
+
+  unsigned newLength = clength+dlength-2;
+
+  Inference* inf = new Inference2(Inference::RESOLUTION, queryCl, qr.clause);
+  Unit::InputType inpType = (Unit::InputType)
+  	Int::max(queryCl->inputType(), qr.clause->inputType());
+
+  Clause* res = new(newLength) Clause(newLength, inpType, inf);
+
+  unsigned next = 0;
+  for(unsigned i=0;i<clength;i++) {
+    Literal* curr=(*queryCl)[i];
+    if(curr!=queryLit) {
+      Literal* newLit=qr.substitution->applyToQuery(curr);
+      if(shouldLimitWeight) {
+	wlb+=newLit->weight() - curr->weight();
+	if(wlb > weightLimit) {
+	  env.statistics->discardedNonRedundantClauses++;
+	  res->destroy();
+	  return 0;
+	}
+      }
+      (*res)[next] = newLit;
+      next++;
+    }
+  }
+  for(unsigned i=0;i<dlength;i++) {
+    Literal* curr=(*qr.clause)[i];
+    if(curr!=qr.literal) {
+      Literal* newLit = qr.substitution->applyToResult(curr);
+      if(shouldLimitWeight) {
+	wlb+=newLit->weight() - curr->weight();
+	if(wlb > weightLimit) {
+	  env.statistics->discardedNonRedundantClauses++;
+	  res->destroy();
+	  return 0;
+	}
+      }
+      (*res)[next] = newLit;
+      next++;
+    }
+  }
+
+  res->setAge(newAge);
+  env.statistics->resolution++;
+
+  return res;
+}
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {

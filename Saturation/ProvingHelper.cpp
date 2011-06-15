@@ -114,10 +114,10 @@ void ProvingHelper::runVampireSaturationImpl(ClauseIterator clauses)
 
   Unit::onPreprocessingEnd();
   env.statistics->phase=Statistics::SATURATION;
-  SaturationAlgorithmSP salg=SaturationAlgorithm::createFromOptions();
+  MainLoopSP salg=MainLoop::createFromOptions();
   salg->addInputClauses(clauses);
 
-  SaturationResult sres(salg->saturate());
+  MainLoopResult sres(salg->run());
   env.statistics->phase=Statistics::FINALIZATION;
   Timer::setTimeLimitEnforcement(false);
   sres.updateStatistics();

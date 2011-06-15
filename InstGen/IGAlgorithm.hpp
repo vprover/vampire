@@ -72,7 +72,7 @@ private:
 
   DuplicateLiteralRemovalISE _dlr;
 
-  SaturationAlgorithmSP _dummy;
+//  SaturationAlgorithmSP _dummy;
 };
 
 }
