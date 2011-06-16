@@ -17,10 +17,17 @@ namespace Lib {
 using namespace std;
 
 /**
+ * Base for every class that is to be thrown
+ */
+class ThrowableBase
+{
+};
+
+/**
  * Abstract class Exception. It is the base class for
  * several concrete classes.
  */
-class Exception
+class Exception : public ThrowableBase
 {
 public:
   /** Create an exception with a given error message */

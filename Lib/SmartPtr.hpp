@@ -85,6 +85,9 @@ public:
   T* ptr() { return _obj; }
 
   inline
+  T& ref() { return *_obj; }
+
+  inline
   bool isEmpty() { return !_obj; }
 
   template<class Target>

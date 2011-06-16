@@ -15,6 +15,7 @@ namespace Tabulation
 {
 
 TabulationAlgorithm::TabulationAlgorithm()
+: _gp(*this), _producer(*this)
 {
   CALL("TabulationAlgorithm::TabulationAlgorithm");
 
@@ -52,6 +53,15 @@ void TabulationAlgorithm::addGoal(Clause* cl)
   CALL("TabulationAlgorithm::addGoal");
 
   _goalContainer.add(cl);
+}
+
+void TabulationAlgorithm::addLemma(Clause* cl)
+{
+  CALL("TabulationAlgorithm::addLemma");
+  ASS_EQ(cl->length(), 1);
+
+  _producer.onLemma(cl);
+  _gp.onLemma(cl);
 }
 
 void TabulationAlgorithm::selectGoalLiteral(Clause* cl)
@@ -118,8 +128,7 @@ void TabulationAlgorithm::addProducingRule(Clause* cl0, Literal* head)
     }
   }
 
-  //add producing rule to a structure
-  NOT_IMPLEMENTED;
+  _producer.addRule(cl);
 }
 
 void TabulationAlgorithm::addGoalProducingRule(Clause* oldGoal)
@@ -131,11 +140,10 @@ void TabulationAlgorithm::addGoalProducingRule(Clause* oldGoal)
     return;
   }
 
-  Literal* activator = (*oldGoal)[0];
+  Literal* activator = Literal::oppositeLiteral((*oldGoal)[0]);
   Clause* newGoal = generateGoal(oldGoal, activator);
 
-  //add producing rule to a structure
-  NOT_IMPLEMENTED;
+  _gp.addRule(newGoal, activator);
 }
 
 void TabulationAlgorithm::processGoal(Clause* cl)
@@ -160,7 +168,7 @@ void TabulationAlgorithm::processGoal(Clause* cl)
     SLQueryResult qres = qrit.next();
 
     if(qres.clause->length()==1) {
-      _unprocLemmaContainer.add(qres.clause);
+      addLemma(qres.clause);
       continue;
     }
     Clause* newGoal = generateGoal(qres.clause, qres.literal, cl->age());
@@ -178,9 +186,17 @@ MainLoopResult TabulationAlgorithm::run()
     return MainLoopResult(Statistics::REFUTATION, _refutation);
   }
 
+  while(_producer.hasLemma() || !_goalContainer.isEmpty()) {
+    if(_producer.hasLemma()) {
+      _producer.processLemma();
+    }
+    if(!_goalContainer.isEmpty()) {
+      Clause* goal = _goalContainer.popSelected();
+      processGoal(goal);
+    }
+  }
 
-
-  return MainLoopResult(Statistics::UNKNOWN);
+  return MainLoopResult(Statistics::SATISFIABLE);
 }
 
 

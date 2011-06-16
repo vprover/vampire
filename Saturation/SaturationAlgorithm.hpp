@@ -54,8 +54,6 @@ public:
   void addForwardSimplifierToFront(ForwardSimplificationEngineSP fwSimplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngineSP bwSimplifier);
 
-  virtual MainLoopResult run();
-
   virtual void addInputClauses(ClauseIterator cit);
 
   void addNewClause(Clause* cl);
@@ -90,22 +88,10 @@ public:
 
   static void tryUpdateFinalClauseCount();
 
-  /**
-   * A struct that is thrown as an exception when a refutation is found
-   * during the saturation process.
-   */
-  struct RefutationFoundException
-  {
-    RefutationFoundException(Clause* ref) : refutation(ref)
-    {
-      CALL("SaturationAlgorithm::RefutationFoundException::RefutationFoundException");
-      ASS(isRefutation(ref));
-    }
-
-    Clause* refutation;
-  };
-
 protected:
+
+  virtual MainLoopResult runImpl();
+
   void doUnprocessedLoop();
   virtual void handleUnsuccessfulActivation(Clause* c);
 

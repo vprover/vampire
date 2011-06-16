@@ -82,10 +82,12 @@ class NonUnitClauseLiteralIndex
 : public LiteralIndex
 {
 public:
-  NonUnitClauseLiteralIndex(LiteralIndexingStructure* is)
-  : LiteralIndex(is) {};
+  NonUnitClauseLiteralIndex(LiteralIndexingStructure* is, bool selectedOnly=false)
+  : LiteralIndex(is), _selectedOnly(selectedOnly) {};
 protected:
   void handleClause(Clause* c, bool adding);
+private:
+  bool _selectedOnly;
 };
 
 class RewriteRuleIndex

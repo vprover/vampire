@@ -15,6 +15,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 
+#include "Producer.hpp"
 #include "TabulationContainers.hpp"
 
 namespace Tabulation {
@@ -31,6 +32,8 @@ public:
   virtual void addInputClauses(ClauseIterator cit);
   virtual MainLoopResult run();
 
+  void addGoal(Clause* cl);
+  void addLemma(Clause* cl);
 private:
   void selectGoalLiteral(Clause* cl);
   void processGoal(Clause* cl);
@@ -39,16 +42,17 @@ private:
 
   void addGoalProducingRule(Clause* oldGoal);
   void addProducingRule(Clause* cl, Literal* head=0);
-  void addGoal(Clause* cl);
 
   Clause* simplifyClause(Clause* cl);
 
   GIContainer _theoryContainer;
   GoalContainer _goalContainer;
   GoalLiteralContainer _glContainer;
-  UnprocessedLemmaContainer _unprocLemmaContainer;
 
   ImmediateSimplificationEngineSP _ise;
+
+  GoalProducer _gp;
+  Producer _producer;
 
   Clause* _refutation;
 };

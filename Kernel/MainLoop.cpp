@@ -34,6 +34,28 @@ void MainLoopResult::updateStatistics()
   env.statistics->refutation=refutation;
 }
 
+
+///////////////////////
+// MainLoop
+//
+
+MainLoopResult MainLoop::run()
+{
+  CALL("MainLoop::run");
+
+  try {
+    return runImpl();
+  }
+  catch(RefutationFoundException rs)
+  {
+    return MainLoopResult(Statistics::REFUTATION, rs.refutation);
+  }
+  catch(TimeLimitExceededException)
+  {
+    return MainLoopResult(Statistics::TIME_LIMIT);
+  }
+}
+
 /**
  * Return true iff clause @b c is refutation clause.
  *

@@ -309,6 +309,11 @@ class Selector;
 }
 }
 
+namespace Tabulation
+{
+class TabulationAlgorithm;
+class Producer;
+}
 
 /**
  * Deletion of incomplete class types causes memory leaks. Using this

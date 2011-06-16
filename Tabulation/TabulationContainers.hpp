@@ -8,6 +8,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/MapToLIFO.hpp"
 #include "Lib/ScopedPtr.hpp"
 
 #include "Indexing/LiteralIndex.hpp"
@@ -62,7 +63,22 @@ private:
   ScopedPtr<LiteralIndexingStructure> _index;
 };
 
-typedef AWPassiveClauseContainer UnprocessedLemmaContainer;
+class GoalProducer
+{
+public:
+  GoalProducer(TabulationAlgorithm& alg);
+
+  void addRule(Clause* goal, Literal* activator);
+
+  void onLemma(Clause* lemma);
+private:
+
+  static Clause* makeResultInstance(Clause* resCl, ResultSubstitution& subst);
+
+  ScopedPtr<LiteralIndexingStructure> _index;
+
+  TabulationAlgorithm& _alg;
+};
 
 }
 

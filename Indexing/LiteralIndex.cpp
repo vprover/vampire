@@ -125,7 +125,8 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
     return;
   }
   TimeCounter tc(TC_NON_UNIT_LITERAL_INDEX_MAINTENANCE);
-  for(unsigned i=0; i<clen; i++) {
+  unsigned activeLen = _selectedOnly ? c->selected() : clen;
+  for(unsigned i=0; i<activeLen; i++) {
     handleLiteral((*c)[i], c, adding);
   }
 }

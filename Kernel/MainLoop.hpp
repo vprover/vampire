@@ -9,6 +9,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/Exception.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -34,15 +35,34 @@ struct MainLoopResult
 };
 
 
+
 class MainLoop {
 public:
   virtual ~MainLoop() {}
   virtual void addInputClauses(ClauseIterator cit) = 0;
-  virtual MainLoopResult run() = 0;
+
+  MainLoopResult run();
 
   static MainLoopSP createFromOptions();
 
+  /**
+   * A struct that is thrown as an exception when a refutation is found
+   * during the main loop.
+   */
+  struct RefutationFoundException : public ThrowableBase
+  {
+    RefutationFoundException(Clause* ref) : refutation(ref)
+    {
+      CALL("SaturationAlgorithm::RefutationFoundException::RefutationFoundException");
+      ASS(isRefutation(ref));
+    }
+
+    Clause* refutation;
+  };
+
 protected:
+  virtual MainLoopResult runImpl() = 0;
+
   static bool isRefutation(Clause* cl);
   static ImmediateSimplificationEngineSP createISE();
 };

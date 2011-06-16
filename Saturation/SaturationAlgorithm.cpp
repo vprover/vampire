@@ -1385,22 +1385,9 @@ bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
  * Perform saturation on clauses that were added through
  * @b addInputClauses function
  */
-MainLoopResult SaturationAlgorithm::run()
+MainLoopResult SaturationAlgorithm::runImpl()
 {
-  CALL("SaturationAlgorithm::run");
-
-  MainLoopResult res=saturateImpl();
-
-  tryUpdateFinalClauseCount();
-  return res;
-}
-
-/**
- * Private implementation function for the @b saturate function
- */
-MainLoopResult SaturationAlgorithm::saturateImpl()
-{
-  CALL("SaturationAlgorithm::saturateImpl");
+  CALL("SaturationAlgorithm::runImpl");
 
   _sharing.init(this);
   if(_splitter) {
@@ -1452,14 +1439,12 @@ MainLoopResult SaturationAlgorithm::saturateImpl()
       }
     }
   }
-  catch(RefutationFoundException rs)
+  catch(ThrowableBase)
   {
-    return MainLoopResult(Statistics::REFUTATION, rs.refutation);
+    tryUpdateFinalClauseCount();
+    throw;
   }
-  catch(TimeLimitExceededException)
-  {
-    return MainLoopResult(Statistics::TIME_LIMIT);
-  }
+
 }
 
 /**

@@ -34,9 +34,25 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+URResolution::URResolution()
+: _selectedOnly(false), _unitIndex(0), _nonUnitIndex(0) {}
+
+/**
+ * Creates URResolution object with explicitely supplied
+ * settings and indexes
+ *
+ * For objects created using this constructor it is not allowed
+ * to call the @c attach() function.
+ */
+URResolution::URResolution(bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
+    NonUnitClauseLiteralIndex* nonUnitIndex)
+: _selectedOnly(selectedOnly), _unitIndex(unitIndex), _nonUnitIndex(nonUnitIndex) {}
+
 void URResolution::attach(SaturationAlgorithm* salg)
 {
   CALL("URResolution::attach");
+  ASS(!_unitIndex);
+  ASS(!_nonUnitIndex);
 
   GeneratingInferenceEngine::attach(salg);
 
@@ -59,8 +75,8 @@ void URResolution::detach()
 
 struct URResolution::Item
 {
-  Item(Clause* cl)
-  : _mustResolveAll(cl->length() < 2), _orig(cl)
+  Item(Clause* cl, bool selectedOnly)
+  : _mustResolveAll(selectedOnly ? true : (cl->length() < 2)), _orig(cl), _color(cl->color())
   {
     CALL("URResolution::Item::Item");
 
@@ -75,6 +91,9 @@ struct URResolution::Item
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
+
+    _activeLength = selectedOnly ? cl->selected() : clen;
+    ASS_GE(_activeLength, clen-1);
   }
 
   /**
@@ -90,6 +109,8 @@ struct URResolution::Item
 
     _lits[idx] = 0;
     _premises[idx] = premise;
+    _color = static_cast<Color>(_color | premise->color());
+    ASS_NEQ(_color, COLOR_INVALID)
 
     if(_atMostOneNonGround) {
       return;
@@ -158,14 +179,13 @@ struct URResolution::Item
   {
     CALL("URResolution::Item::getBestLiteralReady");
 
-    unsigned clen = _lits.size();
-    ASS_L(idx, clen);
+    ASS_L(idx, _activeLength);
 
     unsigned bestIdx = idx;
     ASS(_lits[bestIdx]);
     int bestVal = getGoodness(_lits[bestIdx]);
 
-    for(unsigned i=idx+1; i<clen; i++) {
+    for(unsigned i=idx+1; i<_activeLength; i++) {
       ASS(_lits[i]);
       int val = getGoodness(_lits[i]);
       if(val>bestVal) {
@@ -187,6 +207,8 @@ struct URResolution::Item
   /** The original clause we are resolving */
   Clause* _orig;
 
+  Color _color;
+
   /** Premises used to resolve away particular literals */
   DArray<Clause*> _premises;
 
@@ -195,6 +217,8 @@ struct URResolution::Item
    * The unresolved literals have the substitutions from other resolutions
    * applied to themselves */
   DArray<Literal*> _lits;
+
+  unsigned _activeLength;
 };
 
 /**
@@ -224,7 +248,7 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
     while(unifs.hasNext()) {
       SLQueryResult unif = unifs.next();
 
-      if( !ColorHelper::compatible(itm->_orig->color(), unif.clause->color()) ) {
+      if( !ColorHelper::compatible(itm->_color, unif.clause->color()) ) {
         continue;
       }
 
@@ -259,11 +283,11 @@ void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList
 {
   CALL("URResolution::processAndGetClauses");
 
-  unsigned clen = itm->_lits.size();
+  unsigned activeLen = itm->_activeLength;
 
   ItemList* itms = 0;
   ItemList::push(itm, itms);
-  for(unsigned i = startIdx; itms && i<clen; i++) {
+  for(unsigned i = startIdx; itms && i<activeLen; i++) {
     processLiteral(itms, i);
   }
 
@@ -294,8 +318,9 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
       continue;
     }
 
-    Item* itm = new Item(ucl);
+    Item* itm = new Item(ucl, _selectedOnly);
     unsigned pos = ucl->getLiteralPosition(unif.literal);
+    ASS(!_selectedOnly || pos<ucl->selected());
     swap(itm->_lits[0], itm->_lits[pos]);
     itm->resolveLiteral(0, unif, cl, false);
 
@@ -315,7 +340,7 @@ ClauseIterator URResolution::generateClauses(Clause* cl)
   TimeCounter tc(TC_UR_RESOLUTION);
 
   ClauseList* res = 0;
-  processAndGetClauses(new Item(cl), 0, res);
+  processAndGetClauses(new Item(cl, _selectedOnly), 0, res);
 
   if(clen==1) {
     doBackwardInferences(cl, res);

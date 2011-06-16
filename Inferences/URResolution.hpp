@@ -21,6 +21,10 @@ class URResolution
 : public GeneratingInferenceEngine
 {
 public:
+  URResolution();
+  URResolution(bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
+      NonUnitClauseLiteralIndex* nonUnitIndex);
+
   void attach(SaturationAlgorithm* salg);
   void detach();
 
@@ -36,6 +40,8 @@ private:
 
   void doBackwardInferences(Clause* cl, ClauseList*& acc);
 
+
+  bool _selectedOnly;
   UnitClauseLiteralIndex* _unitIndex;
   NonUnitClauseLiteralIndex* _nonUnitIndex;
 };

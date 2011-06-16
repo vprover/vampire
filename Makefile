@@ -299,7 +299,8 @@ VPROG_OBJ = Program/Type.o\
            Program/Statement.o\
            Program/Variable.o
 
-VTAB_OBJ = Tabulation/TabulationAlgorithm.o\
+VTAB_OBJ = Tabulation/Producer.o\
+           Tabulation/TabulationAlgorithm.o\
            Tabulation/TabulationContainers.o
 
 # testing procedures
