@@ -5,7 +5,7 @@
 
 #include "Indexing/LiteralSubstitutionTree.hpp"
 
-#include "TabulationALgorithm.hpp"
+#include "TabulationAlgorithm.hpp"
 
 #include "Producer.hpp"
 
