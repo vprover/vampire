@@ -137,6 +137,7 @@ struct URResolution::Item
 
     UnitList* premLst = 0;
     UnitList::push(_orig, premLst);
+    int premisesAge = _orig->age();
     Literal* single = 0;
     unsigned clen = _lits.size();
     for(unsigned i=0; i<clen; i++) {
@@ -146,8 +147,10 @@ struct URResolution::Item
 	single = _lits[i];
       }
       else {
-	ASS(_premises[i]);
-	UnitList::push(_premises[i], premLst);
+	Clause* premise = _premises[i];
+	ASS(premise);
+	premisesAge = max(premisesAge, premise->age());
+	UnitList::push(premise, premLst);
       }
     }
     Unit::InputType inpType = Unit::getInputType(premLst);
@@ -159,6 +162,7 @@ struct URResolution::Item
     else {
       res = Clause::fromIterator(LiteralIterator::getEmpty(), inpType, inf);
     }
+    res->setAge(premisesAge+1);
     return res;
   }
 

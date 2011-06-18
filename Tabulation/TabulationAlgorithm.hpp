@@ -6,8 +6,11 @@
 #ifndef __TabulationAlgorithm__
 #define __TabulationAlgorithm__
 
+#include <utility>
+
 #include "Forwards.hpp"
 
+#include "Lib/DHSet.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/SmartPtr.hpp"
 
@@ -30,20 +33,28 @@ public:
   TabulationAlgorithm();
 
   virtual void addInputClauses(ClauseIterator cit);
-  virtual MainLoopResult run();
 
   void addGoal(Clause* cl);
   void addLemma(Clause* cl);
 private:
-  void selectGoalLiteral(Clause* cl);
+  friend class Producer;
+  friend class GoalProducer;
+
+  virtual MainLoopResult runImpl();
+
+  void selectGoalLiteral(Clause*& cl);
   void processGoal(Clause* cl);
 
-  Clause* generateGoal(Clause* cl, Literal* resolved, int parentGoalAge=0);
+  Clause* generateGoal(Clause* cl, Literal* resolved, int parentGoalAge=0, ResultSubstitution* subst=0, bool result=false);
 
   void addGoalProducingRule(Clause* oldGoal);
   void addProducingRule(Clause* cl, Literal* head=0);
 
   Clause* simplifyClause(Clause* cl);
+  static Clause* removeDuplicateLiterals(Clause* cl);
+
+  typedef pair<Clause*, Literal*> RuleSpec;
+  DHSet<RuleSpec> _addedProducingRules;
 
   GIContainer _theoryContainer;
   GoalContainer _goalContainer;

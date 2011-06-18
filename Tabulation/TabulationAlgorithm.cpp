@@ -7,9 +7,14 @@
 
 #include "Kernel/Inference.hpp"
 
+#include "Shell/Refutation.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "TabulationAlgorithm.hpp"
+
+#undef LOGGING
+#define LOGGING 0
+
 
 namespace Tabulation
 {
@@ -20,6 +25,8 @@ TabulationAlgorithm::TabulationAlgorithm()
   CALL("TabulationAlgorithm::TabulationAlgorithm");
 
   _ise = createISE();
+
+  _goalContainer.setAgeWeightRatio(1,1);
 
   _refutation = 0;
 }
@@ -37,12 +44,19 @@ void TabulationAlgorithm::addInputClauses(ClauseIterator cit)
       _refutation = cl;
       return;
     }
+    cl->incRefCnt();
+    cl->setSelected(cl->length());
+    _theoryContainer.add(cl);
+    //LOG("A added theory"<<cl->toString());
     if(cl->inputType()==Unit::AXIOM) {
-      cl->setSelected(cl->length());
-      _theoryContainer.add(cl);
     }
     else {
-      addProducingRule(cl); //this is what will make us successfully terminate
+      if(cl->length()==1) {
+	addLemma(cl);
+      }
+      else {
+	addProducingRule(cl); //this is what will make us successfully terminate
+      }
       addGoal(cl);
     }
   }
@@ -52,7 +66,9 @@ void TabulationAlgorithm::addGoal(Clause* cl)
 {
   CALL("TabulationAlgorithm::addGoal");
 
+  cl->setStore(Clause::PASSIVE);
   _goalContainer.add(cl);
+  LOG("A added goal "<<cl->toString());
 }
 
 void TabulationAlgorithm::addLemma(Clause* cl)
@@ -60,17 +76,72 @@ void TabulationAlgorithm::addLemma(Clause* cl)
   CALL("TabulationAlgorithm::addLemma");
   ASS_EQ(cl->length(), 1);
 
+  LOG("A added lemma "<<cl->toString());
+  if(cl->selected()==0) {
+    Clause* cl0 = cl;
+    cl = Clause::fromIterator(Clause::Iterator(*cl0), cl0->inputType(),
+	new Inference1(Inference::REORDER_LITERALS, cl0));
+    cl->setSelected(1);
+    cl->setAge(cl0->age());
+  }
+
+  cl->incRefCnt();
+
   _producer.onLemma(cl);
   _gp.onLemma(cl);
 }
 
-void TabulationAlgorithm::selectGoalLiteral(Clause* cl)
+void TabulationAlgorithm::selectGoalLiteral(Clause*& cl)
 {
   CALL("TabulationAlgorithm::selectGoalLiteral");
-  ASS_G(cl->length(),0);
 
-  //TODO: proper selection
-  cl->setSelected(1);
+  unsigned clen = cl->length();
+  ASS_G(clen,0);
+
+  Literal* selected = 0;
+  if(clen==1) {
+    selected = (*cl)[0];
+  }
+  else {
+    Clause::Iterator cit(*cl);
+    while(cit.hasNext()) {
+      Literal* lit = cit.next();
+      if(_glContainer.isSubsumed(lit)) {
+	selected = lit;
+	break;
+      }
+    }
+  }
+  if(!selected) {
+    Clause::Iterator cit(*cl);
+    ALWAYS(cit.hasNext());
+    selected = cit.next();
+    unsigned selUnifCnt = _theoryContainer.getIndex()->getUnificationCount(selected, true);
+
+    while(cit.hasNext()) {
+      Literal* lit = cit.next();
+      unsigned litUnifCnt = _theoryContainer.getIndex()->getUnificationCount(lit, true);
+      if(litUnifCnt<selUnifCnt) {
+	selected = lit;
+      }
+    }
+  }
+
+
+
+  if(cl->selected()!=1 || (*cl)[0]!=selected) {
+    Clause* cl2 = Clause::fromIterator(Clause::Iterator(*cl), cl->inputType(),
+	new Inference1(Inference::REORDER_LITERALS, cl));
+    unsigned selIdx = cl->getLiteralPosition(selected);
+    if(selIdx!=0) {
+      swap((*cl2)[0], (*cl2)[selIdx]);
+      cl2->notifyLiteralReorder();
+    }
+    cl2->setSelected(1);
+    cl2->setAge(cl->age());
+    cl = cl2;
+  }
+  ASS_EQ((*cl)[0],selected);
 }
 
 Clause* TabulationAlgorithm::simplifyClause(Clause* cl)
@@ -80,15 +151,40 @@ Clause* TabulationAlgorithm::simplifyClause(Clause* cl)
   return _ise->simplify(cl);
 }
 
-Clause* TabulationAlgorithm::generateGoal(Clause* cl, Literal* resolved, int parentGoalAge)
+Clause* TabulationAlgorithm::removeDuplicateLiterals(Clause* cl)
+{
+  CALL("TabulationAlgorithm::removeDuplicateLiterals");
+
+  static DuplicateLiteralRemovalISE dupLitRemover;
+
+  Clause* res = dupLitRemover.simplify(cl);
+  ASS(res);
+  ASS(cl->isEmpty() || !res->isEmpty());
+  return res;
+}
+
+Clause* TabulationAlgorithm::generateGoal(Clause* cl, Literal* resolved, int parentGoalAge, ResultSubstitution* subst, bool result)
 {
   CALL("TabulationAlgorithm::generateGoal");
 
   static LiteralStack lits;
   lits.reset();
-  lits.loadFromIterator(Clause::Iterator(*cl));
-  lits.remove(resolved);
-  ASS_EQ(lits.size(), cl->length()-1);
+  Clause::Iterator cit(*cl);
+  while(cit.hasNext()) {
+    Literal* lit = cit.next();
+    if(lit==resolved) {
+      continue;
+    }
+    if(subst) {
+      lit = subst->apply(lit, result);
+    }
+    lits.push(lit);
+  }
+  if(lits.size()!=cl->length()-1) {
+    Refutation r(cl, true);
+    r.output(cout);
+  }
+  ASS_REP2(lits.size()==cl->length()-1, cl->toString(), resolved->toString());
 
   //TODO: create proper inference
   Clause* res = Clause::fromStack(lits, Unit::CONJECTURE,
@@ -96,6 +192,9 @@ Clause* TabulationAlgorithm::generateGoal(Clause* cl, Literal* resolved, int par
 
   int newAge = max(cl->age(), parentGoalAge)+1;
   res->setAge(newAge);
+
+  res = removeDuplicateLiterals(res);
+
   return res;
 }
 
@@ -103,6 +202,13 @@ Clause* TabulationAlgorithm::generateGoal(Clause* cl, Literal* resolved, int par
 void TabulationAlgorithm::addProducingRule(Clause* cl0, Literal* head)
 {
   CALL("TabulationAlgorithm::addProducingRule");
+
+  RuleSpec spec(cl0, head); //head may be zero
+
+  if(!_addedProducingRules.insert(spec)) {
+    return;
+  }
+
 
   unsigned clen = cl0->length();
   ASS_G(clen,0);
@@ -128,6 +234,7 @@ void TabulationAlgorithm::addProducingRule(Clause* cl0, Literal* head)
     }
   }
 
+  cl->incRefCnt();
   _producer.addRule(cl);
 }
 
@@ -140,8 +247,9 @@ void TabulationAlgorithm::addGoalProducingRule(Clause* oldGoal)
     return;
   }
 
-  Literal* activator = Literal::oppositeLiteral((*oldGoal)[0]);
-  Clause* newGoal = generateGoal(oldGoal, activator);
+  Literal* selected = (*oldGoal)[0];
+  Literal* activator = Literal::oppositeLiteral(selected);
+  Clause* newGoal = generateGoal(oldGoal, selected);
 
   _gp.addRule(newGoal, activator);
 }
@@ -150,6 +258,9 @@ void TabulationAlgorithm::processGoal(Clause* cl)
 {
   CALL("TabulationAlgorithm::processGoal");
   ASS_G(cl->length(),0);
+  ASS_EQ(cl->store(), Clause::PASSIVE);
+
+  LOG("A processing goal "<<cl->toString());
 
   selectGoalLiteral(cl);
   ASS_EQ(cl->selected(),1);
@@ -171,16 +282,20 @@ void TabulationAlgorithm::processGoal(Clause* cl)
       addLemma(qres.clause);
       continue;
     }
-    Clause* newGoal = generateGoal(qres.clause, qres.literal, cl->age());
+    LOG("A generating goal from: "<<qres.clause->toString());
+    Clause* newGoal = generateGoal(qres.clause, qres.literal, cl->age(), qres.substitution.ptr(), true);
     addGoal(newGoal);
     addProducingRule(qres.clause, qres.literal);
   }
+  LOG("A goal processed: "<<cl->toString());
+  cl->setStore(Clause::NONE);
+  //here cl may be deleted
 }
 
 
-MainLoopResult TabulationAlgorithm::run()
+MainLoopResult TabulationAlgorithm::runImpl()
 {
-  CALL("TabulationAlgorithm::run");
+  CALL("TabulationAlgorithm::runImpl");
 
   if(_refutation) {
     return MainLoopResult(Statistics::REFUTATION, _refutation);
@@ -194,6 +309,7 @@ MainLoopResult TabulationAlgorithm::run()
       Clause* goal = _goalContainer.popSelected();
       processGoal(goal);
     }
+    _producer.onSafePoint();
   }
 
   return MainLoopResult(Statistics::SATISFIABLE);

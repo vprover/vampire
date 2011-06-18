@@ -821,6 +821,20 @@ void makeUnique(Container& cont)
   cont.loadFromIterator(uniqueIt);
 }
 
+template<class It>
+size_t countIteratorElements(It it)
+{
+  CALL("countIteratorElements");
+
+  size_t res = 0;
+  while(it.hasNext()) {
+    it.next();
+    res++;
+  }
+  return res;
+}
+
+
 /**
  * Iterator that goes from object @b from to the object @b to using the
  * postfix @b operator++. (The objects are passed in the constructor.)

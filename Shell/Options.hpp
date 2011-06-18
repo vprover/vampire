@@ -210,7 +210,8 @@ public:
   enum SaturationAlgorithm {
      DISCOUNT = 0,
      LRS = 1,
-     OTTER = 2
+     OTTER = 2,
+     TABULATION = 3
    };
 
   /** Possible values for activity of some inference rules */

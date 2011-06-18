@@ -368,7 +368,8 @@ NameArray Options::Constants::lcmValues(_lcmValues,
 const char* Options::Constants::_satAlgValues[] = {
   "discount",
   "lrs",
-  "otter"};
+  "otter",
+  "tabulation"};
 NameArray Options::Constants::satAlgValues(_satAlgValues,
 					   sizeof(_satAlgValues)/sizeof(char*));
 

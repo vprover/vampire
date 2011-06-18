@@ -3,14 +3,22 @@
  * Implements class TabulationContainers.
  */
 
+#include "Lib/Environment.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 
 #include "Indexing/LiteralSubstitutionTree.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "TabulationAlgorithm.hpp"
 
 #include "TabulationContainers.hpp"
+
+#undef LOGGING
+#define LOGGING 0
+
 
 namespace Tabulation
 {
@@ -35,16 +43,96 @@ void GIContainer::add(Clause* c)
   addedEvent.fire(c);
 }
 
-/////////////////////////
-//// LTContainer
-////
+
+///////////////////////
+// AWClauseContainer
 //
-//LTContainer::LTContainer()
-//{
-//  CALL("LTContainer::LTContainer");
-//
-//  _resolution = new BinaryResolution(getIndex());
-//}
+
+AWClauseContainer::AWClauseContainer()
+: _ageRatio(1), _weightRatio(1), _balance(0), _size(0)
+{
+}
+
+/**
+ * Add @b c clause in the queue.
+ * @since 31/12/2007 Manchester
+ */
+void AWClauseContainer::add(Clause* cl)
+{
+  CALL("AWClauseContainer::add");
+  ASS(_ageRatio > 0 || _weightRatio > 0);
+
+  if (_ageRatio) {
+    _ageQueue.insert(cl);
+  }
+  if (_weightRatio) {
+    _weightQueue.insert(cl);
+  }
+  _size++;
+  addedEvent.fire(cl);
+}
+
+/**
+ * Remove Clause from the container.
+ */
+void AWClauseContainer::remove(Clause* cl)
+{
+  CALL("AWClauseContainer::remove");
+
+  if(_ageRatio) {
+    ALWAYS(_ageQueue.remove(cl));
+  }
+  if(_weightRatio) {
+    ALWAYS(_weightQueue.remove(cl));
+  }
+  _size--;
+
+  removedEvent.fire(cl);
+}
+
+
+/**
+ * Return the next selected clause and remove it from the queue.
+ */
+Clause* AWClauseContainer::popSelected()
+{
+  CALL("AWClauseContainer::popSelected");
+  ASS( ! isEmpty());
+
+  _size--;
+
+  bool byWeight;
+  if (! _ageRatio) {
+    byWeight = true;
+  }
+  else if (! _weightRatio) {
+    byWeight = false;
+  }
+  else if (_balance > 0) {
+    byWeight = true;
+  }
+  else if (_balance < 0) {
+    byWeight = false;
+  }
+  else {
+    byWeight = (_ageRatio <= _weightRatio);
+  }
+
+  Clause* cl;
+  if (byWeight) {
+    _balance -= _ageRatio;
+    cl = _weightQueue.pop();
+    _ageQueue.remove(cl);
+  }
+  else {
+    _balance += _weightRatio;
+    cl = _ageQueue.pop();
+    _weightQueue.remove(cl);
+  }
+  selectedEvent.fire(cl);
+  return cl;
+}
+
 
 /////////////////////////
 // GoalLiteralContainer
@@ -82,7 +170,8 @@ GoalProducer::GoalProducer(TabulationAlgorithm& alg)
 {
   CALL("GoalProducer::GoalProducer");
 
-  _index = new LiteralSubstitutionTree();
+  _lemmaIndex = new LiteralSubstitutionTree();
+  _activatorIndex = new LiteralSubstitutionTree();
 }
 
 /**
@@ -94,10 +183,23 @@ void GoalProducer::addRule(Clause* goal, Literal* activator)
 {
   CALL("GoalProducer::addRule");
 
-  _index->insert(activator, goal);
+  LOG("G added rule "<<activator->toString()<<" --> "<<goal->toString());
+
+  if(_lemmaIndex->getGeneralizations(activator, false, false).hasNext()) {
+    _alg.addGoal(goal);
+    return;
+  }
+
+  SLQueryResultIterator qrit = _lemmaIndex->getUnifications(activator, false, true);
+  while(qrit.hasNext()) {
+    SLQueryResult qr = qrit.next();
+    _alg.addGoal(makeInstance(goal, qr.substitution.ref(), false));
+  }
+
+  _activatorIndex->insert(activator, goal);
 }
 
-Clause* GoalProducer::makeResultInstance(Clause* resCl, ResultSubstitution& subst)
+Clause* GoalProducer::makeInstance(Clause* resCl, ResultSubstitution& subst, bool clIsResult)
 {
   CALL("GoalProducer::makeResultInstance");
 
@@ -107,13 +209,16 @@ Clause* GoalProducer::makeResultInstance(Clause* resCl, ResultSubstitution& subs
   Clause::Iterator cit(*resCl);
   while(cit.hasNext()) {
     Literal* l0 = cit.next();
-    Literal* lInst = subst.applyToResult(l0);
+    Literal* lInst = subst.apply(l0, clIsResult);
     lits.push(lInst);
   }
 
   Clause* res = Clause::fromStack(lits, resCl->inputType(),
       new Inference1(Inference::INSTANCE_GENERATION, resCl));
   res->setAge(resCl->age());
+
+  res = TabulationAlgorithm::removeDuplicateLiterals(res);
+
   return res;
 }
 
@@ -130,7 +235,7 @@ void GoalProducer::onLemma(Clause* lemma)
 
   //First get instances, these can be removed from the set of rules
   {
-    SLQueryResultIterator qrit = _index->getInstances(lemmaLit, false, false);
+    SLQueryResultIterator qrit = _activatorIndex->getInstances(lemmaLit, false, false);
     while(qrit.hasNext()) {
       SLQueryResult qr = qrit.next();
       _alg.addGoal(qr.clause);
@@ -139,15 +244,17 @@ void GoalProducer::onLemma(Clause* lemma)
   }
   while(toRemove.isNonEmpty()) {
     LCPair p = toRemove.pop();
-    _index->remove(p.first, p.second);
+    _activatorIndex->remove(p.first, p.second);
   }
 
 
-  SLQueryResultIterator qrit = _index->getUnifications(lemmaLit, false, true);
+  SLQueryResultIterator qrit = _activatorIndex->getUnifications(lemmaLit, false, true);
   while(qrit.hasNext()) {
     SLQueryResult qr = qrit.next();
-    _alg.addGoal(makeResultInstance(qr.clause, qr.substitution.ref()));
+    _alg.addGoal(makeInstance(qr.clause, qr.substitution.ref(), true));
   }
+
+  _lemmaIndex->insert(lemmaLit, lemma);
 }
 
 }

@@ -29,6 +29,12 @@ public:
   virtual SLQueryResultIterator getVariants(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
+  virtual size_t getUnificationCount(Literal* lit, bool complementary)
+  {
+    CALL("LiteralIndexingStructure::getUnificationCount");
+    return countIteratorElements(getUnifications(lit, complementary, false));
+  }
+
 #if VDEBUG
   virtual string toString() { return "<not supported>"; }
 #endif

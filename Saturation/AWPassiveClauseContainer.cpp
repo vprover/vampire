@@ -52,8 +52,7 @@ ClauseIterator AWPassiveClauseContainer::iterator()
  */
 Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
 {
-  ASS_G(s_nwcDenominator,0);
-  ASS_G(s_nwcNumerator,0);
+  CALL("AWPassiveClauseContainer::compareWeight");
 
   unsigned cl1Weight=cl1->weight();
   unsigned cl2Weight=cl2->weight();
@@ -68,10 +67,12 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
     cl2Weight=cl2Weight*2+cl2->getNumeralWeight();
   }
 
-  if(cl1->inputType()==0 && cl2->inputType()!=0) {
-    return Int::compare(cl1Weight*s_nwcNumerator, cl2Weight*s_nwcDenominator);
-  } else if(cl1->inputType()!=0 && cl2->inputType()==0) {
-    return Int::compare(cl1Weight*s_nwcDenominator, cl2Weight*s_nwcNumerator);
+  if(s_nwcDenominator && s_nwcNumerator) {
+    if(cl1->inputType()==0 && cl2->inputType()!=0) {
+      return Int::compare(cl1Weight*s_nwcNumerator, cl2Weight*s_nwcDenominator);
+    } else if(cl1->inputType()!=0 && cl2->inputType()==0) {
+      return Int::compare(cl1Weight*s_nwcDenominator, cl2Weight*s_nwcNumerator);
+    }
   }
   return Int::compare(cl1Weight, cl2Weight);
 }

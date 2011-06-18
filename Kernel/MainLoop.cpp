@@ -16,6 +16,8 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Tabulation/TabulationAlgorithm.hpp"
+
 #include "Shell/Options.hpp"
 
 #include "BDD.hpp"
@@ -27,6 +29,7 @@ namespace Kernel
 {
 
 using namespace Saturation;
+using namespace Tabulation;
 
 void MainLoopResult::updateStatistics()
 {
@@ -101,7 +104,14 @@ ImmediateSimplificationEngineSP MainLoop::createISE()
 
 MainLoopSP MainLoop::createFromOptions()
 {
-  return SaturationAlgorithm::createFromOptions().spcast<MainLoop>();
+  CALL("MainLoop::createFromOptions");
+
+  if(env.options->saturationAlgorithm()==Options::TABULATION) {
+    return MainLoopSP(new TabulationAlgorithm());
+  }
+  else {
+    return SaturationAlgorithm::createFromOptions().spcast<MainLoop>();
+  }
 }
 
 }
