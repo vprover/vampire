@@ -54,10 +54,10 @@ void TabulationAlgorithm::addInputClauses(ClauseIterator cit)
     }
     else {
       if(cl->length()==1) {
-	addLemma(cl);
+        addLemma(cl);
       }
       else {
-	addProducingRule(cl); //this is what will make us successfully terminate
+        addProducingRule(cl); //this is what will make us successfully terminate
       }
       addGoal(cl);
     }
@@ -71,6 +71,7 @@ void TabulationAlgorithm::addGoal(Clause* cl)
   cl->setStore(Clause::PASSIVE);
   _goalContainer.add(cl);
   LOG("A added goal "<<cl->toString());
+  RSTAT_CTR_INC("goal cnt");
 }
 
 void TabulationAlgorithm::addLemma(Clause* cl)
@@ -82,12 +83,14 @@ void TabulationAlgorithm::addLemma(Clause* cl)
   if(cl->selected()==0) {
     Clause* cl0 = cl;
     cl = Clause::fromIterator(Clause::Iterator(*cl0), cl0->inputType(),
-	new Inference1(Inference::REORDER_LITERALS, cl0));
+                              new Inference1(Inference::REORDER_LITERALS, cl0));
     cl->setSelected(1);
     cl->setAge(cl0->age());
   }
 
   cl->incRefCnt();
+
+  RSTAT_CTR_INC("lemma cnt");
 
   _producer.onLemma(cl);
   _gp.onLemma(cl);
@@ -124,9 +127,11 @@ void TabulationAlgorithm::selectGoalLiteral(Clause*& cl)
       Literal* lit = cit.next();
       unsigned litUnifCnt = _theoryContainer.getIndex()->getUnificationCount(lit, true);
       if(litUnifCnt<selUnifCnt) {
-	selected = lit;
+        selUnifCnt = litUnifCnt;
+        selected = lit;
       }
     }
+    RSTAT_MCTR_INC("selected literal unifier count", selUnifCnt);
   }
 
 
@@ -180,6 +185,7 @@ Clause* TabulationAlgorithm::processSubsumedGoalLiterals(Clause* goal)
     Literal* lit = cit.next();
     if(_glContainer.isSubsumed(lit)) {
       LOG("A subsumed goal literal "<<lit->toString()<<" in goal "<<goal->toString());
+      RSTAT_CTR_INC("subsumed goal literals removed");
       continue;
     }
     lits.push(lit);
@@ -197,8 +203,8 @@ Clause* TabulationAlgorithm::processSubsumedGoalLiterals(Clause* goal)
   Clause* res = Clause::fromStack(lits, Unit::CONJECTURE,
       new Inference(Inference::NEGATED_CONJECTURE));
 
-//  int newAge = goal->age() + removedCnt;
-  int newAge = goal->age();
+  int newAge = goal->age() + removedCnt;
+//  int newAge = goal->age();
   res->setAge(newAge);
   return res;
 }
@@ -246,6 +252,7 @@ void TabulationAlgorithm::addProducingRule(Clause* cl0, Literal* head)
   RuleSpec spec(cl0, head); //head may be zero
 
   if(!_addedProducingRules.insert(spec)) {
+    RSTAT_CTR_INC("producing rules repeated");
     return;
   }
 
@@ -264,8 +271,8 @@ void TabulationAlgorithm::addProducingRule(Clause* cl0, Literal* head)
     if(head) {
       unsigned headIdx = cl->getLiteralPosition(head);
       if(headIdx!=clen-1) {
-	swap((*cl)[headIdx], (*cl)[clen-1]);
-	cl->notifyLiteralReorder();
+        swap((*cl)[headIdx], (*cl)[clen-1]);
+        cl->notifyLiteralReorder();
       }
       cl->setSelected(clen-1);
     }
@@ -275,6 +282,7 @@ void TabulationAlgorithm::addProducingRule(Clause* cl0, Literal* head)
   }
 
   cl->incRefCnt();
+  RSTAT_CTR_INC("producing rules added");
   _producer.addRule(cl);
 }
 
@@ -294,6 +302,10 @@ void TabulationAlgorithm::addGoalProducingRule(Clause* oldGoal)
   newGoal = processSubsumedGoalLiterals(newGoal);
   if(newGoal) {
     _gp.addRule(newGoal, activator);
+    RSTAT_CTR_INC("goal producing rules");
+  }
+  else {
+    RSTAT_CTR_INC("goal producing rules skipped due to subsumption");
   }
 }
 
@@ -312,20 +324,25 @@ void TabulationAlgorithm::processGoal(Clause* cl)
 
   Literal* selLit = (*cl)[0];
   if(_glContainer.isSubsumed(selLit)) {
+    RSTAT_CTR_INC("goals with subsumed selected literals");
     cl->setStore(Clause::NONE);
     return;
   }
 
   _glContainer.add(selLit);
 
+  RSTAT_CTR_INC("goals triggering theory unifications");
   SLQueryResultIterator qrit = _theoryContainer.getIndex()->getUnifications(selLit, true, true);
   while(qrit.hasNext()) {
+    RSTAT_CTR_INC("goals triggering theory unifications - found");
     SLQueryResult qres = qrit.next();
 
     if(qres.clause->length()==1) {
+      RSTAT_CTR_INC("goals triggering theory unifications - found lemmas");
       addLemma(qres.clause);
       continue;
     }
+    RSTAT_CTR_INC("goals triggering theory unifications - found rules");
     LOG("A generating goal from: "<<qres.clause->toString());
     Clause* newGoal = generateGoal(qres.clause, qres.literal, cl->age(), qres.substitution.ptr(), true);
     addGoal(newGoal);
@@ -347,9 +364,11 @@ MainLoopResult TabulationAlgorithm::runImpl()
 
   while(_producer.hasLemma() || !_goalContainer.isEmpty()) {
     if(_producer.hasLemma()) {
+      RSTAT_CTR_INC("processed lemmas");
       _producer.processLemma();
     }
     if(!_goalContainer.isEmpty()) {
+      RSTAT_CTR_INC("processed goals");
       Clause* goal = _goalContainer.popSelected();
       processGoal(goal);
     }
