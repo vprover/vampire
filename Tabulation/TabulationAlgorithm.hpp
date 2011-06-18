@@ -45,6 +45,8 @@ private:
   void selectGoalLiteral(Clause*& cl);
   void processGoal(Clause* cl);
 
+  Clause* processSubsumedGoalLiterals(Clause* goal);
+
   Clause* generateGoal(Clause* cl, Literal* resolved, int parentGoalAge=0, ResultSubstitution* subst=0, bool result=false);
 
   void addGoalProducingRule(Clause* oldGoal);

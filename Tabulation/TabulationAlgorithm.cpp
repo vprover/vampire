@@ -3,6 +3,8 @@
  * Implements class TabulationAlgorithm.
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Inference.hpp"
@@ -163,6 +165,44 @@ Clause* TabulationAlgorithm::removeDuplicateLiterals(Clause* cl)
   return res;
 }
 
+/**
+ * Return a goal with the literals subsumed by other goal literals removed,
+ * or 0 if all are subsumed.
+ */
+Clause* TabulationAlgorithm::processSubsumedGoalLiterals(Clause* goal)
+{
+  CALL("TabulationAlgorithm::processSubsumedGoalLiterals");
+
+  static LiteralStack lits;
+  lits.reset();
+  Clause::Iterator cit(*goal);
+  while(cit.hasNext()) {
+    Literal* lit = cit.next();
+    if(_glContainer.isSubsumed(lit)) {
+      LOG("A subsumed goal literal "<<lit->toString()<<" in goal "<<goal->toString());
+      continue;
+    }
+    lits.push(lit);
+  }
+  unsigned  removedCnt = goal->length() - lits.size();
+  if(removedCnt==0) {
+    return goal;
+  }
+
+  if(lits.size()==0) {
+    return 0;
+  }
+
+  //TODO: create proper inference
+  Clause* res = Clause::fromStack(lits, Unit::CONJECTURE,
+      new Inference(Inference::NEGATED_CONJECTURE));
+
+//  int newAge = goal->age() + removedCnt;
+  int newAge = goal->age();
+  res->setAge(newAge);
+  return res;
+}
+
 Clause* TabulationAlgorithm::generateGoal(Clause* cl, Literal* resolved, int parentGoalAge, ResultSubstitution* subst, bool result)
 {
   CALL("TabulationAlgorithm::generateGoal");
@@ -251,7 +291,10 @@ void TabulationAlgorithm::addGoalProducingRule(Clause* oldGoal)
   Literal* activator = Literal::oppositeLiteral(selected);
   Clause* newGoal = generateGoal(oldGoal, selected);
 
-  _gp.addRule(newGoal, activator);
+  newGoal = processSubsumedGoalLiterals(newGoal);
+  if(newGoal) {
+    _gp.addRule(newGoal, activator);
+  }
 }
 
 void TabulationAlgorithm::processGoal(Clause* cl)
@@ -269,6 +312,7 @@ void TabulationAlgorithm::processGoal(Clause* cl)
 
   Literal* selLit = (*cl)[0];
   if(_glContainer.isSubsumed(selLit)) {
+    cl->setStore(Clause::NONE);
     return;
   }
 
