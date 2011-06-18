@@ -363,14 +363,22 @@ MainLoopResult TabulationAlgorithm::runImpl()
   }
 
   while(_producer.hasLemma() || !_goalContainer.isEmpty()) {
-    if(_producer.hasLemma()) {
-      RSTAT_CTR_INC("processed lemmas");
-      _producer.processLemma();
+    for(unsigned i=0; i<100; i++) {
+      if(_producer.hasLemma()) {
+	RSTAT_CTR_INC("processed lemmas");
+	_producer.processLemma();
+      }
+      else {
+	break;
+      }
     }
-    if(!_goalContainer.isEmpty()) {
-      RSTAT_CTR_INC("processed goals");
-      Clause* goal = _goalContainer.popSelected();
-      processGoal(goal);
+
+    for(unsigned i=0; i<1; i++) {
+      if(!_goalContainer.isEmpty()) {
+	RSTAT_CTR_INC("processed goals");
+	Clause* goal = _goalContainer.popSelected();
+	processGoal(goal);
+      }
     }
     _producer.onSafePoint();
   }

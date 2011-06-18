@@ -34,6 +34,7 @@ public:
   void addRule(Clause* rule);
   void removeRule(Clause* rule);
   void onLemma(Clause* lemma);
+  void removeLemma(Clause* lemma);
 
   bool hasLemma() { return !_unprocLemmaCont.isEmpty(); }
   void processLemma();
@@ -55,7 +56,10 @@ private:
     virtual void remove(Clause* c);
   };
 
+  DHSet<Clause*> _toRemove;
+
   ClauseStack _rulesToRemove;
+  ClauseStack _lemmasToRemove;
 
   UnprocessedLemmaContainer _unprocLemmaCont;
 
@@ -64,7 +68,7 @@ private:
 
   ScopedPtr<UnitClauseLiteralIndex> _unprocLemmaIndex;
   ScopedPtr<UnitClauseLiteralIndex> _lemmaIndex;
-  ScopedPtr<NonUnitClauseLiteralIndex> _ruleIndex;
+  ScopedPtr<NonUnitClauseLiteralIndex> _ruleTailIndex;
 
   ScopedPtr<LiteralSubstitutionTree> _ruleHeadIndex;
 

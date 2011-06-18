@@ -47,7 +47,7 @@ public:
   AWClauseContainer();
 
   void add(Clause* cl);
-  void remove(Clause* cl);
+  bool remove(Clause* cl);
 
   /**
    * Set age-weight ratio
@@ -65,8 +65,7 @@ public:
 
   Clause* popSelected();
   /** True if there are no passive clauses */
-  bool isEmpty() const
-  { return _ageQueue.isEmpty() && _weightQueue.isEmpty(); }
+  bool isEmpty() const;
 
   unsigned size() const { return _size; }
 

@@ -67,7 +67,8 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
     cl2Weight=cl2Weight*2+cl2->getNumeralWeight();
   }
 
-  if(s_nwcDenominator && s_nwcNumerator) {
+  if(s_nwcDenominator!=-1) {
+    ASS_NEQ(s_nwcNumerator,-1);
     if(cl1->inputType()==0 && cl2->inputType()!=0) {
       return Int::compare(cl1Weight*s_nwcNumerator, cl2Weight*s_nwcDenominator);
     } else if(cl1->inputType()!=0 && cl2->inputType()==0) {

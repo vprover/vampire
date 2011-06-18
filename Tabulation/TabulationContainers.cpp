@@ -53,6 +53,22 @@ AWClauseContainer::AWClauseContainer()
 {
 }
 
+bool AWClauseContainer::isEmpty() const
+{
+  CALL("AWClauseContainer::isEmpty");
+//  if(_ageRatio && _weightRatio && _ageQueue.isEmpty()!=_weightQueue.isEmpty())
+//  {
+//    cout<<" ----  age   ----"<<endl;
+//    _ageQueue.output(cout);
+//    cout<<" ---- weight ----"<<endl;
+//    _weightQueue.output(cout);
+//  }
+
+  ASS(!_ageRatio || !_weightRatio || _ageQueue.isEmpty()==_weightQueue.isEmpty());
+  return _ageQueue.isEmpty() && _weightQueue.isEmpty();
+}
+
+
 /**
  * Add @b c clause in the queue.
  * @since 31/12/2007 Manchester
@@ -75,19 +91,27 @@ void AWClauseContainer::add(Clause* cl)
 /**
  * Remove Clause from the container.
  */
-void AWClauseContainer::remove(Clause* cl)
+bool AWClauseContainer::remove(Clause* cl)
 {
   CALL("AWClauseContainer::remove");
 
+  bool removed;
   if(_ageRatio) {
-    ALWAYS(_ageQueue.remove(cl));
+    removed = _ageQueue.remove(cl);
+    if(_weightRatio) {
+      ALWAYS(_weightQueue.remove(cl)==removed);
+    }
   }
-  if(_weightRatio) {
-    ALWAYS(_weightQueue.remove(cl));
+  else {
+    ASS(_weightRatio);
+    removed = _weightQueue.remove(cl);
   }
-  _size--;
 
-  removedEvent.fire(cl);
+  if(removed) {
+    _size--;
+    removedEvent.fire(cl);
+  }
+  return removed;
 }
 
 
@@ -122,12 +146,12 @@ Clause* AWClauseContainer::popSelected()
   if (byWeight) {
     _balance -= _ageRatio;
     cl = _weightQueue.pop();
-    _ageQueue.remove(cl);
+    ALWAYS(_ageQueue.remove(cl));
   }
   else {
     _balance += _weightRatio;
     cl = _ageQueue.pop();
-    _weightQueue.remove(cl);
+    ALWAYS(_weightQueue.remove(cl));
   }
   selectedEvent.fire(cl);
   return cl;
@@ -199,23 +223,23 @@ void GoalProducer::addRule(Clause* goal, Literal* activator)
   _activatorIndex->insert(activator, goal);
 }
 
-Clause* GoalProducer::makeInstance(Clause* resCl, ResultSubstitution& subst, bool clIsResult)
+Clause* GoalProducer::makeInstance(Clause* cl, ResultSubstitution& subst, bool clIsResult)
 {
   CALL("GoalProducer::makeResultInstance");
 
   static LiteralStack lits;
   lits.reset();
 
-  Clause::Iterator cit(*resCl);
+  Clause::Iterator cit(*cl);
   while(cit.hasNext()) {
     Literal* l0 = cit.next();
     Literal* lInst = subst.apply(l0, clIsResult);
     lits.push(lInst);
   }
 
-  Clause* res = Clause::fromStack(lits, resCl->inputType(),
-      new Inference1(Inference::INSTANCE_GENERATION, resCl));
-  res->setAge(resCl->age());
+  Clause* res = Clause::fromStack(lits, cl->inputType(),
+      new Inference1(Inference::INSTANCE_GENERATION, cl));
+  res->setAge(cl->age());
 
   res = TabulationAlgorithm::removeDuplicateLiterals(res);
 
