@@ -186,24 +186,27 @@ public:
      * @c Problem::performAsymetricRewriting() function.
      */
     void addAsymmetricRewritingRule(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs=Formula());
+    void addBuiltInPredicate(Predicate pred);
   private:
     friend class Problem;
     void validate() const;
 
-    struct ARRStore {
-      ARRStore();
-      ARRStore(const ARRStore& o);
-      ARRStore& operator=(const ARRStore& o);
-      ~ARRStore();
+    struct OptDataStore {
+      OptDataStore();
+      OptDataStore(const OptDataStore& o);
+      OptDataStore& operator=(const OptDataStore& o);
+      ~OptDataStore();
 
       //pointers in order to avoid dependency on the Stack class definition here
       Stack<Formula>* lhs;
       Stack<Formula>* posRhs;
       Stack<Formula>* negRhs;
       Stack<Formula>* dblRhs;
+
+      Stack<unsigned>* builtInPreds;
     };
 
-    ARRStore _ar;
+    OptDataStore _ods;
   };
 
   /**

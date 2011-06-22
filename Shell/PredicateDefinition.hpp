@@ -38,6 +38,8 @@ public:
 
   void removeUnusedDefinitionsAndPurePredicates(UnitList*& units);
 
+  void addBuiltInPredicate(unsigned pred);
+
 private:
   struct Def;
   struct PredData;

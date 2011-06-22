@@ -363,7 +363,7 @@ MainLoopResult TabulationAlgorithm::runImpl()
   }
 
   while(_producer.hasLemma() || !_goalContainer.isEmpty()) {
-    for(unsigned i=0; i<100; i++) {
+    for(unsigned i=0; i<1; i++) {
       if(_producer.hasLemma()) {
 	RSTAT_CTR_INC("processed lemmas");
 	_producer.processLemma();

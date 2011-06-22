@@ -6,8 +6,10 @@
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/DHSet.hpp"
 
+#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Test/UnitTesting.hpp"
@@ -303,6 +305,40 @@ TEST_FUN(eprUPDR)
     }
 
     Problem iprb=prb.removeUnusedPredicateDefinitions();
+    cout<<"After updr:"<<endl;
+    afit=iprb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
+TEST_FUN(eprUPDRBuiltInPreds)
+{
+  try {
+    Problem prb;
+    stringstream stm(
+	"fof(a,axiom, p <=> (r|s&t)). fof(a,hypothesis, p). fof(a,axiom, r => ~s). fof(a,axiom, a). fof(a,axiom, b)."
+	);
+    prb.addFromStream(stm);
+
+    cout<<endl<<"FOF:"<<endl;
+    AnnotatedFormulaIterator afit=prb.formulas();
+    while(afit.hasNext()) {
+      cout<<afit.next()<<endl;
+    }
+
+    Predicate bPred = Predicate(env.signature->addPredicate("b", 0));
+
+    Problem::PreprocessingOptions opts;
+    opts.mode = Problem::PM_EARLY_PREPROCESSING;
+    opts.unusedPredicateDefinitionRemoval = true;
+    opts.addBuiltInPredicate(bPred);
+
+    Problem iprb=prb.preprocess(opts);
     cout<<"After updr:"<<endl;
     afit=iprb.formulas();
     while(afit.hasNext()) {

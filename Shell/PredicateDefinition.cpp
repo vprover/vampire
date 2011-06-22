@@ -40,7 +40,7 @@ struct PredicateDefinition::PredData
   /** Units that contain the predicate. */
   Set<Unit*> containingUnits;
 
-  bool interpreted;
+  bool builtIn;
   int pred;
 
   int pocc;
@@ -93,7 +93,7 @@ struct PredicateDefinition::PredData
     CALL("PredicateDefinition::PredData::check");
 
     //we don't remove anything that concerns interpreted predicates
-    if(interpreted) {
+    if(builtIn) {
       return;
     }
     
@@ -134,7 +134,7 @@ PredicateDefinition::PredicateDefinition()
   _preds = new PredData[predCnt];
   for(int i=0;i<predCnt;i++) {
     _preds[i].pred=i;
-    _preds[i].interpreted =
+    _preds[i].builtIn =
 	env.signature->getPredicate(i)->interpreted() ||
 	env.signature->predicateName(i) == "$distinct";
     //TODO: remove this hack once we properly support the $distinct predicate
@@ -144,6 +144,17 @@ PredicateDefinition::PredicateDefinition()
 PredicateDefinition::~PredicateDefinition()
 {
   delete[] _preds;
+}
+
+/**
+ * Mark predicate @c pred not to be eliminated by the rule.
+ */
+void PredicateDefinition::addBuiltInPredicate(unsigned pred)
+{
+  CALL("PredicateDefinition::addBuiltInPredicate");
+  ASS_L(pred, _predCnt);
+
+  _preds[pred].builtIn = true;
 }
 
 /**

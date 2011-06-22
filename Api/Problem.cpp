@@ -53,7 +53,7 @@ namespace Api
 
 using namespace Lib;
 
-Problem::PreprocessingOptions::ARRStore::ARRStore()
+Problem::PreprocessingOptions::OptDataStore::OptDataStore()
 {
   CALL("Problem::PreprocessingOptions::ARRStore::ARRStore()");
 
@@ -61,9 +61,10 @@ Problem::PreprocessingOptions::ARRStore::ARRStore()
   posRhs = new Stack<Formula>();
   negRhs = new Stack<Formula>();
   dblRhs = new Stack<Formula>();
+  builtInPreds = new Stack<unsigned>();
 }
 
-Problem::PreprocessingOptions::ARRStore::ARRStore(const ARRStore& o)
+Problem::PreprocessingOptions::OptDataStore::OptDataStore(const OptDataStore& o)
 {
   CALL("Problem::PreprocessingOptions::ARRStore::ARRStore(const ARRStore&)");
 
@@ -71,9 +72,10 @@ Problem::PreprocessingOptions::ARRStore::ARRStore(const ARRStore& o)
   posRhs = new Stack<Formula>(*o.posRhs);
   negRhs = new Stack<Formula>(*o.negRhs);
   dblRhs = new Stack<Formula>(*o.dblRhs);
+  builtInPreds = new Stack<unsigned>(*o.builtInPreds);
 }
 
-Problem::PreprocessingOptions::ARRStore& Problem::PreprocessingOptions::ARRStore::operator=(const ARRStore& o)
+Problem::PreprocessingOptions::OptDataStore& Problem::PreprocessingOptions::OptDataStore::operator=(const OptDataStore& o)
 {
   CALL("Problem::PreprocessingOptions::ARRStore::operator=");
 
@@ -81,10 +83,11 @@ Problem::PreprocessingOptions::ARRStore& Problem::PreprocessingOptions::ARRStore
   *posRhs = *o.posRhs;
   *negRhs = *o.negRhs;
   *dblRhs = *o.dblRhs;
+  *builtInPreds = *o.builtInPreds;
   return *this;
 }
 
-Problem::PreprocessingOptions::ARRStore::~ARRStore()
+Problem::PreprocessingOptions::OptDataStore::~OptDataStore()
 {
   CALL("Problem::PreprocessingOptions::ARRStore::~ARRStore");
 
@@ -92,6 +95,7 @@ Problem::PreprocessingOptions::ARRStore::~ARRStore()
   delete posRhs;
   delete negRhs;
   delete dblRhs;
+  delete builtInPreds;
 }
 
 
@@ -123,16 +127,22 @@ void Problem::PreprocessingOptions::addAsymmetricRewritingRule(Formula lhs,
     Formula posRhs, Formula negRhs, Formula dblRhs)
 {
   CALL("Problem::PreprocessingOptions::addAsymmetricRewritingRule");
-  ASS_EQ(_ar.lhs->size(),_ar.posRhs->size());
-  ASS_EQ(_ar.lhs->size(),_ar.negRhs->size());
-  ASS_EQ(_ar.lhs->size(),_ar.dblRhs->size());
+  ASS_EQ(_ods.lhs->size(),_ods.posRhs->size());
+  ASS_EQ(_ods.lhs->size(),_ods.negRhs->size());
+  ASS_EQ(_ods.lhs->size(),_ods.dblRhs->size());
 
-  _ar.lhs->push(lhs);
-  _ar.posRhs->push(posRhs);
-  _ar.negRhs->push(negRhs);
-  _ar.dblRhs->push(dblRhs);
+  _ods.lhs->push(lhs);
+  _ods.posRhs->push(posRhs);
+  _ods.negRhs->push(negRhs);
+  _ods.dblRhs->push(dblRhs);
 }
 
+void Problem::PreprocessingOptions::addBuiltInPredicate(Predicate pred)
+{
+  CALL("Problem::PreprocessingOptions::addBuiltInPredicate");
+
+  _ods.builtInPreds->push(pred);
+}
 
 void Problem::PreprocessingOptions::validate() const
 {
@@ -729,6 +739,19 @@ protected:
 
 class Problem::UnusedPredicateDefinitionRemover : public ProblemTransformer
 {
+public:
+  UnusedPredicateDefinitionRemover(Stack<unsigned>* builtInPreds=0)
+  {
+    CALL("Problem::UnusedPredicateDefinitionRemover");
+    if(builtInPreds) {
+      Stack<unsigned>::Iterator bipIt(*builtInPreds);
+      while(bipIt.hasNext()) {
+	unsigned pred = bipIt.next();
+	pd.addBuiltInPredicate(pred);
+      }
+    }
+  }
+
 protected:
   virtual void transformImpl(Problem p)
   {
@@ -975,13 +998,13 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
   }
 
   if(options.unusedPredicateDefinitionRemoval) {
-    res = UnusedPredicateDefinitionRemover().transform(res);
+    res = UnusedPredicateDefinitionRemover(options._ods.builtInPreds).transform(res);
   }
 
-  unsigned arCnt = options._ar.lhs->size();
+  unsigned arCnt = options._ods.lhs->size();
   if(arCnt>0) {
-    res = res.performAsymetricRewriting(arCnt, options._ar.lhs->begin(), options._ar.posRhs->begin(),
-	options._ar.negRhs->begin(), options._ar.dblRhs->begin());
+    res = res.performAsymetricRewriting(arCnt, options._ods.lhs->begin(), options._ods.posRhs->begin(),
+	options._ods.negRhs->begin(), options._ods.dblRhs->begin());
   }
 
   if(options.mode==PM_EARLY_PREPROCESSING) {
