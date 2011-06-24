@@ -108,9 +108,10 @@ public:
   void addRule(Clause* goal, Literal* activator);
 
   void onLemma(Clause* lemma);
-private:
 
   static Clause* makeInstance(Clause* resCl, ResultSubstitution& subst, bool clIsResult);
+private:
+
 
   ScopedPtr<LiteralIndexingStructure> _lemmaIndex;
   ScopedPtr<LiteralIndexingStructure> _activatorIndex;

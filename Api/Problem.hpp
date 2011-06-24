@@ -186,6 +186,14 @@ public:
      * @c Problem::performAsymetricRewriting() function.
      */
     void addAsymmetricRewritingRule(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs=Formula());
+
+    /**
+     * Mark a predicate as built-in.
+     *
+     * This means that the predicate will not be emilinated by the unused
+     * predicate definition removal rule (which, among other, removes predicates
+     * occurring with only one polarity).
+     */
     void addBuiltInPredicate(Predicate pred);
   private:
     friend class Problem;

@@ -22,7 +22,7 @@ namespace Tabulation
 {
 
 TabulationAlgorithm::TabulationAlgorithm()
-: _gp(*this), _producer(*this)
+: _gp(*this), _producer(*this), _instatiateProducingRules(true)
 {
   CALL("TabulationAlgorithm::TabulationAlgorithm");
 
@@ -245,11 +245,19 @@ Clause* TabulationAlgorithm::generateGoal(Clause* cl, Literal* resolved, int par
 }
 
 
-void TabulationAlgorithm::addProducingRule(Clause* cl0, Literal* head)
+void TabulationAlgorithm::addProducingRule(Clause* cl, Literal* head, ResultSubstitution* subst, bool result)
 {
   CALL("TabulationAlgorithm::addProducingRule");
 
-  RuleSpec spec(cl0, head); //head may be zero
+
+  bool freshClause = false;
+
+  if(subst && _instatiateProducingRules) {
+    cl = GoalProducer::makeInstance(cl, *subst, result);
+    head = subst->apply(head, result);
+  }
+
+  RuleSpec spec(cl, head); //head may be zero
 
   if(!_addedProducingRules.insert(spec)) {
     RSTAT_CTR_INC("producing rules repeated");
@@ -257,22 +265,25 @@ void TabulationAlgorithm::addProducingRule(Clause* cl0, Literal* head)
   }
 
 
-  unsigned clen = cl0->length();
+  unsigned clen = cl->length();
   ASS_G(clen,0);
   ASS(!head || clen>1);
 
-  Clause* cl = cl0;
-  bool canReuse = (!head && cl->selected()==clen)
+  bool wellSet = (!head && cl->selected()==clen)
       || (head && cl->selected()==clen-1 && (*cl)[clen-1]==head);
-  if(!canReuse) {
+  if(!wellSet && !freshClause) {
+    Clause* cl0 = cl;
     cl = Clause::fromIterator(Clause::Iterator(*cl), Unit::ASSUMPTION,
-	new Inference1(Inference::REORDER_LITERALS, cl));
+	  new Inference1(Inference::REORDER_LITERALS, cl));
     cl->setAge(cl0->age());
+  }
+
+  if(!wellSet) {
     if(head) {
       unsigned headIdx = cl->getLiteralPosition(head);
       if(headIdx!=clen-1) {
-        swap((*cl)[headIdx], (*cl)[clen-1]);
-        cl->notifyLiteralReorder();
+	swap((*cl)[headIdx], (*cl)[clen-1]);
+	cl->notifyLiteralReorder();
       }
       cl->setSelected(clen-1);
     }
@@ -346,7 +357,7 @@ void TabulationAlgorithm::processGoal(Clause* cl)
     LOG("A generating goal from: "<<qres.clause->toString());
     Clause* newGoal = generateGoal(qres.clause, qres.literal, cl->age(), qres.substitution.ptr(), true);
     addGoal(newGoal);
-    addProducingRule(qres.clause, qres.literal);
+    addProducingRule(qres.clause, qres.literal, qres.substitution.ptr(), true);
   }
   LOG("A goal processed: "<<cl->toString());
   cl->setStore(Clause::NONE);
@@ -363,7 +374,7 @@ MainLoopResult TabulationAlgorithm::runImpl()
   }
 
   while(_producer.hasLemma() || !_goalContainer.isEmpty()) {
-    for(unsigned i=0; i<1; i++) {
+    for(unsigned i=0; i<100; i++) {
       if(_producer.hasLemma()) {
 	RSTAT_CTR_INC("processed lemmas");
 	_producer.processLemma();

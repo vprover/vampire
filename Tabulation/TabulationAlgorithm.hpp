@@ -50,7 +50,7 @@ private:
   Clause* generateGoal(Clause* cl, Literal* resolved, int parentGoalAge=0, ResultSubstitution* subst=0, bool result=false);
 
   void addGoalProducingRule(Clause* oldGoal);
-  void addProducingRule(Clause* cl, Literal* head=0);
+  void addProducingRule(Clause* cl, Literal* head=0, ResultSubstitution* subst=0, bool result=false);
 
   Clause* simplifyClause(Clause* cl);
   static Clause* removeDuplicateLiterals(Clause* cl);
@@ -68,6 +68,8 @@ private:
   Producer _producer;
 
   Clause* _refutation;
+
+  bool _instatiateProducingRules;
 };
 
 }
