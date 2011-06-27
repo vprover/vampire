@@ -316,6 +316,8 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
 class Problem::ProblemTransformer
 {
 public:
+  virtual ~ProblemTransformer() {}
+
   Problem transform(Problem p)
   {
     CALL("ProblemTransformer::transform(Problem)");
@@ -343,7 +345,7 @@ public:
 
 protected:
   ProblemTransformer() :
-    _transforming(false), _nextDefNum(1), _res(0) {}
+    _transforming(false), _res(0) {}
 
   /**
    * Transform @c unit and call @c addUnit() on the results of the transformation.
@@ -371,7 +373,6 @@ protected:
     ASS(_defs.isEmpty());
 
     _transforming = true;
-    _nextResNum = 1;
     _origName = f.name();
     _origUnit = f;
     _origAF = f;
@@ -397,22 +398,21 @@ protected:
 
     AnnotatedFormula af = AnnotatedFormula(unit, _origAF._aux);
     _res->addFormula(af);
-
     if(unit==_origUnit) {
-      //if added formula is the original one, we don't proceed
-      //creating a new name for it
+      //if added formula is the original one, we don't assign name to it
       return;
     }
+
     string unitName;
+    //we don't worry about making the names unique, that's the business of
+    //the AnnotatedFormula::assignName() function
     if(_transformingDef) {
-      unitName="def_"+Int::toString(_nextDefNum);
-      _nextDefNum++;
+      unitName="def";
     }
     else {
-      unitName=_origName+"_"+Int::toString(_nextResNum);
-      _nextResNum++;
+      unitName=_origName;
     }
-    Parser::assignAxiomName(unit, unitName);
+    AnnotatedFormula::assignName(af, unitName);
   }
 
   void handleDefs(Kernel::UnitList*& defLst)
@@ -428,14 +428,12 @@ protected:
 
   bool _transforming;
   bool _transformingDef;
-  unsigned _nextResNum;
   string _origName;
   Kernel::Unit* _origUnit;
   AnnotatedFormula _origAF;
 
   Deque<Kernel::Unit*> _defs;
 
-  unsigned _nextDefNum;
   Problem* _res;
 };
 

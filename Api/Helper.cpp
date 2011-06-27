@@ -318,7 +318,7 @@ string DefaultHelperCore::toString (const Kernel::Unit* unit0) const
       prefix = "tff";
       //we convert clause into a formula in order to print the
       //variables quantified with types
-      Kernel::Formula* f = Kernel::Formula::fromClause(static_cast<const Kernel::Clause*>(unit));
+      Kernel::Formula* f = Kernel::Formula::fromClause(const_cast<Kernel::Clause*>(static_cast<const Kernel::Clause*>(unit)));
       main = toString(f);
       //here we have a memory leak (of f), but we probably don't worry about it
     }
@@ -329,26 +329,31 @@ string DefaultHelperCore::toString (const Kernel::Unit* unit0) const
   }
   else {
     prefix = OutputOptions::tffFormulas() ? "tff" : "fof";
-    const Kernel::Formula* f = static_cast<const Kernel::FormulaUnit*>(unit)->formula();
+    const Kernel::Formula* f0 = static_cast<const Kernel::FormulaUnit*>(unit)->formula();
+    Kernel::Formula* f = const_cast<Kernel::Formula*>(f0);
     if(negate_formula) {
-      Kernel::Formula* quant=Kernel::Formula::quantify(const_cast<Kernel::Formula*>(f));
-      if(quant->connective()==NOT) {
-	ASS_EQ(quant,f);
-	main = toString(quant->uarg());
+      f=Kernel::Formula::quantify(f);
+      if(f->connective()==NOT) {
+	ASS_EQ(f,f0);
+	main = toString(f->uarg());
       }
       else {
-	Kernel::Formula* neg=new Kernel::NegatedFormula(quant);
+	Kernel::Formula* neg=new Kernel::NegatedFormula(f);
 	main = toString(neg);
 	neg->destroy();
       }
-      if(quant!=f) {
-	ASS_EQ(quant->connective(),FORALL);
-	static_cast<Kernel::QuantifiedFormula*>(quant)->vars()->destroy();
-	quant->destroy();
-      }
     }
     else {
+      if(OutputOptions::tffFormulas()) {
+	f=Kernel::Formula::quantify(f);
+      }
       main = toString(f);
+    }
+    if(f0!=f) {
+      ASS_EQ(f->connective(),FORALL);
+      ASS_EQ(f->qarg(),f0);
+      static_cast<Kernel::QuantifiedFormula*>(f)->vars()->destroy();
+      f->destroy();
     }
   }
 

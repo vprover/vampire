@@ -26,6 +26,8 @@ class VariableIterator
 {
 public:
   DECL_ELEMENT_TYPE(TermList);
+  VariableIterator() : _stack(8), _used(false) {}
+
   VariableIterator(const Term* term) : _stack(8), _used(false)
   {
     if(!term->shared() || !term->ground()) {
@@ -47,6 +49,16 @@ public:
       }
     }
   }
+
+  void reset(const Term* term)
+  {
+    _stack.reset();
+    _used = false;
+    if(!term->shared() || !term->ground()) {
+      _stack.push(term->args());
+    }
+  }
+
 
   bool hasNext();
   /** Return the next variable

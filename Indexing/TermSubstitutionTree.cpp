@@ -56,9 +56,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     ASS(t.isTerm());
     Term* term=t.term();
 
-    Renaming normalizer;
-    normalizer.normalizeVariables(term);
-    Term* normTerm=normalizer.apply(term);
+    Term* normTerm=Renaming::normalize(term);
 
     BindingMap svBindings;
     getBindings(normTerm, svBindings);

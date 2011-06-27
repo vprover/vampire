@@ -608,6 +608,8 @@ public:
     return toString()==o.toString();
   }
 private:
+  static void assignName(AnnotatedFormula& form, string name);
+
   Kernel::Unit* unit;
   ApiHelper _aux;
 

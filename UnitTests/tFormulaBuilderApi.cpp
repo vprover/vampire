@@ -647,4 +647,14 @@ TEST_FUN(fbapiAttributes)
   }
 }
 
+TEST_FUN(fbapiTff)
+{
+  Problem prb;
+  stringstream stm("fof(a,axiom,p(X) | q(Y) | q(X)).");
+  prb.addFromStream(stm);
+
+  OutputOptions::setTffFormulas(true);
+  prb.output(cout);
+  OutputOptions::setTffFormulas(false);
+}
 

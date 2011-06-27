@@ -12,6 +12,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 
@@ -159,6 +160,7 @@ struct URResolution::Item
     Inference* inf = new InferenceMany(Inference::UNIT_RESULTING_RESOLUTION, premLst);
     Clause* res;
     if(single) {
+      single = Renaming::normalize(single);
       res = Clause::fromIterator(getSingletonIterator(single), inpType, inf);
     }
     else {

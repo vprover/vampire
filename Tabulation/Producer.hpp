@@ -8,7 +8,9 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Deque.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
@@ -75,8 +77,8 @@ private:
 
   ClauseStack _rulesToRemove;
   ClauseStack _lemmasToRemove;
-  ClauseStack _rulesToAdd;
-  ClauseStack _lemmasToAdd;
+  Deque<Clause*> _rulesToAdd;
+  Deque<Clause*> _lemmasToAdd;
 
   UnprocessedLemmaContainer _unprocLemmaCont;
 

@@ -256,7 +256,7 @@ void Producer::addRule(Clause* rule)
 {
   CALL("Producer::addRule");
 
-  _rulesToAdd.push(rule);
+  _rulesToAdd.push_back(rule);
 }
 
 void Producer::performRuleRemoval(Clause* rule)
@@ -284,7 +284,7 @@ void Producer::newLemma(Clause* lemma)
 {
   CALL("Producer::newLemma");
 
-  _lemmasToAdd.push(lemma);
+  _lemmasToAdd.push_back(lemma);
 }
 
 void Producer::removeLemma(Clause* lemma)
@@ -315,13 +315,17 @@ void Producer::onSafePoint()
     _toRemove.reset();
   }
 
-  while(_lemmasToAdd.isNonEmpty()) {
-    Clause* lemma = _lemmasToAdd.pop();
+  _lemmasToAdd.push_back(0); //we put a stopper into the queue to avoid cycles due to pending removals
+  for(;;){
+    Clause* lemma = _lemmasToAdd.pop_front();
+    if(lemma==0) {
+      break;
+    }
     _alg.addLemma(lemma);
   }
 
   while(_rulesToAdd.isNonEmpty()) {
-    Clause* rule = _rulesToAdd.pop();
+    Clause* rule = _rulesToAdd.pop_front();
     performRuleAddition(rule);
   }
 }
@@ -330,6 +334,12 @@ void Producer::onLemma(Clause* lemma)
 {
   CALL("Producer::onLemma");
   ASS_EQ(lemma->length(), 1);
+
+  if(subsumedByLemma((*lemma)[0])) {
+    RSTAT_CTR_INC("late forward subsumed lemmas");
+    return;
+  }
+
 
   _unprocLemmaCont.add(lemma);
 

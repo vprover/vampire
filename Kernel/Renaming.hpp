@@ -24,13 +24,14 @@ using namespace Lib;
 class Renaming {
 public:
   Renaming() :
-    _nextVar(0) {
+    _nextVar(0), _identity(true) {
   }
 
   void reset()
   {
     _data.reset();
-    _nextVar=0;
+    _nextVar = 0;
+    _identity = true;
   }
 
   unsigned getOrBind(unsigned v)
@@ -38,6 +39,9 @@ public:
     unsigned res;
     if (_data.findOrInsert(v, res, _nextVar)) {
       _nextVar++;
+      if(v!=res) {
+	_identity = false;
+      }
     }
     return res;
   }
@@ -76,6 +80,7 @@ private:
   typedef DHMap<unsigned, unsigned, IdentityHash> VariableMap;
   VariableMap _data;
   unsigned _nextVar;
+  bool _identity;
 public:
   typedef VariableMap::Item Item;
   VirtualIterator<Item> items() const { return _data.items(); }

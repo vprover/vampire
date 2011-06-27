@@ -545,12 +545,13 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, strin
 
   FormulaUnit* fures=new Kernel::FormulaUnit(f, new Kernel::Inference(Kernel::Inference::INPUT), inputType);
 
-  if(name!="") {
-    Parser::assignAxiomName(fures, name);
-  }
-
   AnnotatedFormula res(fures);
   res._aux=_aux; //assign the correct helper object
+
+  if(name!="") {
+    AnnotatedFormula::assignName(res, name);
+  }
+
   return res;
 }
 
@@ -1112,6 +1113,24 @@ Formula AnnotatedFormula::formula()
 
   Kernel::Formula* negated = new Kernel::NegatedFormula(Kernel::Formula::quantify(form));
   return Formula(negated, _aux);
+}
+
+void AnnotatedFormula::assignName(AnnotatedFormula& form, string name)
+{
+  CALL("AnnotatedFormula::assignName");
+
+  static DHSet<string> usedNames;
+
+  if(!usedNames.insert(name)) {
+    string name0 = name;
+    unsigned idx = 0;
+    do {
+      idx++;
+      name = name0 + "_" + Int::toString(idx);
+    } while(!usedNames.insert(name));
+  }
+
+  Parser::assignAxiomName(form.unit, name);
 }
 
 ///////////////////////

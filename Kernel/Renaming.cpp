@@ -26,7 +26,10 @@ using namespace Indexing;
 Literal* Renaming::apply(Literal* lit)
 {
   CALL("Renaming::apply(Literal*...)");
-  RSTAT_CTR_INC("rename");
+
+  if(identity()) {
+    return lit;
+  }
   Applicator a(this);
   return SubstHelper::apply(lit, a);
 }
@@ -34,6 +37,10 @@ Literal* Renaming::apply(Literal* lit)
 Term* Renaming::apply(Term* trm)
 {
   CALL("Renaming::apply(Term*...)");
+
+  if(identity()) {
+    return trm;
+  }
   Applicator a(this);
   return SubstHelper::apply(trm, a);
 }
@@ -41,21 +48,29 @@ Term* Renaming::apply(Term* trm)
 TermList Renaming::apply(TermList trm)
 {
   CALL("Renaming::apply(TermList...)");
+
+  if(identity()) {
+    return trm;
+  }
   Applicator a(this);
   return SubstHelper::apply(trm, a);
 }
 
 bool Renaming::identity() const
 {
+#if VDEBUG
   VariableMap::Iterator mit(_data);
+  bool shouldBeIdentity = true;
   while(mit.hasNext()) {
     unsigned from, to;
     mit.next(from, to);
     if(from!=to) {
-      return false;
+      shouldBeIdentity = false;
     }
   }
-  return true;
+  ASS_EQ(_identity, shouldBeIdentity);
+#endif
+  return _identity;
 }
 
 /**
@@ -63,7 +78,8 @@ bool Renaming::identity() const
  */
 void Renaming::normalizeVariables(const Term* t)
 {
-  VariableIterator vit(t);
+  static VariableIterator vit;
+  vit.reset(t);
   while(vit.hasNext()) {
     TermList var=vit.next();
     if(var.isOrdinaryVar()) {
@@ -93,24 +109,27 @@ void Renaming::makeInverse(const Renaming& orig)
       _nextVar=from+1;
     }
   }
+  _identity = orig.identity();
 }
 
 Literal* Renaming::normalize(Literal* l)
 {
   CALL("Renaming::normalize(Literal*)");
 
-  Renaming n;
+  static Renaming n;
+  n.reset();
   n.normalizeVariables(l);
   return n.apply(l);
 }
 
-Term* Renaming::normalize(Term* l)
+Term* Renaming::normalize(Term* trm)
 {
   CALL("Renaming::normalize(Term*)");
 
-  Renaming n;
-  n.normalizeVariables(l);
-  return n.apply(l);
+  static Renaming n;
+  n.reset();
+  n.normalizeVariables(trm);
+  return n.apply(trm);
 }
 
 

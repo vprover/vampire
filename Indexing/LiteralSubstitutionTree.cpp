@@ -37,9 +37,7 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
 {
   CALL("LiteralSubstitutionTree::handleLiteral");
 
-  Renaming normalizer;
-  normalizer.normalizeVariables(lit);
-  Literal* normLit=normalizer.apply(lit);
+  Literal* normLit=Renaming::normalize(lit);
 
   BindingMap svBindings;
   getBindings(normLit, svBindings);
@@ -202,9 +200,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
     }
   }
 
-  Renaming normalizer;
-  normalizer.normalizeVariables(lit);
-  Literal* normLit=normalizer.apply(lit);
+  Literal* normLit=Renaming::normalize(lit);
 
   BindingMap svBindings;
   getBindings(normLit, svBindings);
