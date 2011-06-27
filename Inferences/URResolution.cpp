@@ -94,7 +94,8 @@ struct URResolution::Item
     _atMostOneNonGround = nonGroundCnt<=1;
 
     _activeLength = selectedOnly ? cl->selected() : clen;
-    ASS_GE(_activeLength, clen-1);
+//    ASS_GE(_activeLength, clen-1);
+    ASS_REP2(_activeLength>=clen-1, cl->toString(), cl->selected());
   }
 
   /**

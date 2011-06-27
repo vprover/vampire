@@ -242,7 +242,9 @@ void Producer::performRuleAddition(Clause* rule)
   performRuleBackwardSubsumption(rule);
 
 
+  rule->incRefCnt();
   performURR(rule);
+  ASS_G(rule->selected(),0);
   _activeCont.add(rule);
 
   if(head) {
@@ -266,6 +268,7 @@ void Producer::performRuleRemoval(Clause* rule)
     Literal* head = (*rule)[rule->length()-1];
     _ruleHeadIndex->remove(head, rule);
   }
+  rule->decRefCnt();
 }
 
 void Producer::removeRule(Clause* rule)
