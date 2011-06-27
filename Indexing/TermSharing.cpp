@@ -78,7 +78,6 @@ Term* TermSharing::insert(Term* t)
 
   _termInsertions++;
   Term* s = _terms.insert(t);
-  string n = "";
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;

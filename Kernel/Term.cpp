@@ -642,12 +642,16 @@ Term* Term::create(unsigned function, unsigned arity, TermList* args)
 
   bool share = true;
   TermList* ss = s->args();
-  for (unsigned i = 0;i < arity;i++) {
-    ASS(!args[i].isEmpty());
-    *ss-- = args[i];
-    if(!args[i].isSafe()) {
+
+  TermList* curArg = args;
+  TermList* argStopper = args+arity;
+  while(curArg!=argStopper) {
+    *ss = *curArg;
+    --ss;
+    if(!curArg->isSafe()) {
       share = false;
     }
+    ++curArg;
   }
   if(share) {
     s = env.sharing->insert(s);

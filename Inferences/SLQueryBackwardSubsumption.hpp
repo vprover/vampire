@@ -17,7 +17,16 @@ class SLQueryBackwardSubsumption
 : public BackwardSimplificationEngine
 {
 public:
-  SLQueryBackwardSubsumption(bool byUnitsOnly) : _byUnitsOnly(byUnitsOnly) {}
+  SLQueryBackwardSubsumption(bool byUnitsOnly) : _byUnitsOnly(byUnitsOnly), _index(0) {}
+
+  /**
+   * Create SLQueryBackwardSubsumption rule with explicitely provided index,
+   * independent of an SaturationAlgorithm.
+   *
+   * For objects created by this constructor, methods  @c attach()
+   * and @c detach() must not be called.
+   */
+  SLQueryBackwardSubsumption(SimplifyingLiteralIndex* index, bool byUnitsOnly=false) : _byUnitsOnly(byUnitsOnly), _index(index) {}
 
   void attach(SaturationAlgorithm* salg);
   void detach();

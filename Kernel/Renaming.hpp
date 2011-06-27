@@ -35,10 +35,11 @@ public:
 
   unsigned getOrBind(unsigned v)
   {
-    if (_data.insert(v, _nextVar)) {
-      return _nextVar++;
+    unsigned res;
+    if (_data.findOrInsert(v, res, _nextVar)) {
+      _nextVar++;
     }
-    return _data.get(v);
+    return res;
   }
   unsigned get(unsigned v) const
   { return _data.get(v); }

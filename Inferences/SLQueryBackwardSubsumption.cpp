@@ -44,6 +44,8 @@ using namespace Saturation;
 void SLQueryBackwardSubsumption::attach(SaturationAlgorithm* salg)
 {
   CALL("SLQueryBackwardSubsumption::attach");
+  ASS(!_index);
+
   BackwardSimplificationEngine::attach(salg);
   _index=static_cast<SimplifyingLiteralIndex*>(
 	  _salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE) );

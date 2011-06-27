@@ -188,6 +188,12 @@ const char* Options::Constants::_optionNames[] = {
   "superposition_from_variables",
   "symbol_precedence",
 
+  "tabulation_bw_rule_subsumption_resolution_by_lemmas",
+  "tabulation_fw_rule_subsumption_resolution_by_lemmas",
+  "tabulation_goal_awr",
+  "tabulation_goal_lemma_ratio",
+  "tabulation_instantiate_producing_rules",
+  "tabulation_lemma_awr",
   "test_id",
   "thanks",
   "theory_axioms",
@@ -577,6 +583,15 @@ Options::Options ()
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
 
+  _tabulationBwRuleSubsumptionResolutionByLemmas(true),
+  _tabulationFwRuleSubsumptionResolutionByLemmas(true),
+  _tabulationGoalAgeRatio(1),
+  _tabulationGoalWeightRatio(1),
+  _tabulationGoalRatio(1),
+  _tabulationLemmaRatio(100),
+  _tabulationInstantiateProducingRules(true),
+  _tabulationLemmaAgeRatio(1),
+  _tabulationLemmaWeightRatio(1),
   _testId ("unspecified_test"),
   _thanks("Tanya"),
   _theoryAxioms(true),
@@ -642,7 +657,7 @@ void Options::set (const char* name,const char* value, int index)
   try {
     switch (index) {
     case AGE_WEIGHT_RATIO:
-      readAgeWeightRatio(value);
+      readAgeWeightRatio(value, _ageRatio, _weightRatio);
       return;
     case ARITY_CHECK:
       _arityCheck = onOffToBool(value,name);
@@ -987,6 +1002,24 @@ void Options::set (const char* name,const char* value, int index)
 	(SymbolPrecedence)Constants::symbolPrecedenceValues.find(value);
       return;
 
+    case TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS:
+      _tabulationBwRuleSubsumptionResolutionByLemmas = onOffToBool(value,name);
+      return;
+    case TABULATION_FW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS:
+      _tabulationFwRuleSubsumptionResolutionByLemmas = onOffToBool(value,name);
+      return;
+    case TABULATION_GOAL_AWR:
+      readAgeWeightRatio(value, _tabulationGoalAgeRatio, _tabulationGoalWeightRatio);
+      return;
+    case TABULATION_GOAL_LEMMA_RATIO:
+      readAgeWeightRatio(value, _tabulationGoalRatio, _tabulationLemmaRatio);
+      return;
+    case TABULATION_INSTANTIATE_PRODUCING_RULES:
+      _tabulationInstantiateProducingRules = onOffToBool(value,name);
+      return;
+    case TABULATION_LEMMA_AWR:
+      readAgeWeightRatio(value, _tabulationLemmaAgeRatio, _tabulationLemmaWeightRatio);
+      return;
     case TEST_ID:
       _testId = value;
       return;
@@ -1548,6 +1581,24 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << Constants::symbolPrecedenceValues[_symbolPrecedence];
     return;
 
+  case TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS:
+    str << boolToOnOff(_tabulationBwRuleSubsumptionResolutionByLemmas);
+    return;
+  case TABULATION_FW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS:
+    str << boolToOnOff(_tabulationFwRuleSubsumptionResolutionByLemmas);
+    return;
+  case TABULATION_GOAL_AWR:
+    str << _tabulationGoalAgeRatio << ":" << _tabulationGoalWeightRatio;
+    return;
+  case TABULATION_GOAL_LEMMA_RATIO:
+    str << _tabulationGoalRatio << ":" << _tabulationLemmaRatio;
+    return;
+  case TABULATION_INSTANTIATE_PRODUCING_RULES:
+    str << boolToOnOff(_tabulationInstantiateProducingRules);
+    return;
+  case TABULATION_LEMMA_AWR:
+    str << _tabulationLemmaAgeRatio << ":" << _tabulationLemmaWeightRatio;
+    return;
   case TEST_ID:
     str << _testId;
     return;
@@ -1672,7 +1723,7 @@ void Options::setInputFile(const string& inputFile)
  *
  * @since 25/05/2004 Manchester
  */
-void Options::readAgeWeightRatio(const char* val)
+void Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio)
 {
   CALL("Options::readAgeWeightRatio");
 
@@ -1698,21 +1749,21 @@ void Options::readAgeWeightRatio(const char* val)
     if (! Int::stringToInt(copy,age)) {
       USER_ERROR((string)"wrong value for age-weight ratio: " + val);
     }
-    _ageRatio = age;
+    ageRatio = age;
     int weight;
     if (! Int::stringToInt(copy+colonIndex+1,weight)) {
       USER_ERROR((string)"wrong value for age-weight ratio: " + val);
     }
-    _weightRatio = weight;
+    weightRatio = weight;
     return;
   }
-  _ageRatio = 1;
+  ageRatio = 1;
   int weight;
   if (! Int::stringToInt(val,weight)) {
     USER_ERROR((string)"wrong value for age-weight ratio: " + val);
   }
-  _weightRatio = weight;
-} // Options::readAgeWeightRatio(const char* val)
+  weightRatio = weight;
+} // Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio)
 
 
 /**
@@ -1870,7 +1921,7 @@ void Options::readFromTestId (string testId)
 
   index = testId.find('_');
   string awr = testId.substr(0,index);
-  readAgeWeightRatio(awr.c_str());
+  readAgeWeightRatio(awr.c_str(), _ageRatio, _weightRatio);
   if(index==string::npos) {
     //there are no extra options
     return;
@@ -2019,6 +2070,7 @@ bool Options::complete () const
          ! _forwardLiteralRewriting &&
          ! _interpretedEvaluation &&
          _sineSelection==SS_OFF &&
+         _saturationAlgorithm!=TABULATION &&
          ! _forceIncompleteness;
 } // Options::complete
 

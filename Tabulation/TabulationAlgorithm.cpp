@@ -5,10 +5,14 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Inference.hpp"
 
+#include "Inferences/TautologyDeletionISE.hpp"
+
+#include "Shell/Options.hpp"
 #include "Shell/Refutation.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -22,13 +26,15 @@ namespace Tabulation
 {
 
 TabulationAlgorithm::TabulationAlgorithm()
-: _gp(*this), _producer(*this), _instatiateProducingRules(true)
+: _gp(*this), _producer(*this),
+  _instatiateProducingRules(env.options->tabulationInstantiateProducingRules())
 {
   CALL("TabulationAlgorithm::TabulationAlgorithm");
 
   _ise = createISE();
 
-  _goalContainer.setAgeWeightRatio(1,1);
+  _goalContainer.setAgeWeightRatio(
+      env.options->tabulationGoalAgeRatio(),env.options->tabulationGoalWeightRatio());
 
   _refutation = 0;
 }
@@ -170,6 +176,15 @@ Clause* TabulationAlgorithm::removeDuplicateLiterals(Clause* cl)
   return res;
 }
 
+bool TabulationAlgorithm::isSimpleTautology(Clause* cl)
+{
+  CALL("TabulationAlgorithm::isSimpleTautology");
+
+  static TautologyDeletionISE tautDeletion(false);
+
+  return tautDeletion.simplify(cl)==0;
+}
+
 /**
  * Return a goal with the literals subsumed by other goal literals removed,
  * or 0 if all are subsumed.
@@ -254,6 +269,7 @@ void TabulationAlgorithm::addProducingRule(Clause* cl, Literal* head, ResultSubs
 
   if(subst && _instatiateProducingRules) {
     cl = GoalProducer::makeInstance(cl, *subst, result);
+    cl = removeDuplicateLiterals(cl);
     head = subst->apply(head, result);
   }
 
@@ -264,10 +280,19 @@ void TabulationAlgorithm::addProducingRule(Clause* cl, Literal* head, ResultSubs
     return;
   }
 
+  if(isSimpleTautology(cl)) {
+    RSTAT_CTR_INC("producing rule simple tautologies");
+    return;
+  }
+
 
   unsigned clen = cl->length();
   ASS_G(clen,0);
-  ASS(!head || clen>1);
+  if(head && clen==1) {
+    ASS((*cl)[0]==head);
+    addLemma(cl);
+    return;
+  }
 
   bool wellSet = (!head && cl->selected()==clen)
       || (head && cl->selected()==clen-1 && (*cl)[clen-1]==head);
@@ -291,6 +316,7 @@ void TabulationAlgorithm::addProducingRule(Clause* cl, Literal* head, ResultSubs
       cl->setSelected(clen);
     }
   }
+  ASS(!head || (*cl)[clen-1]==head);
 
   cl->incRefCnt();
   RSTAT_CTR_INC("producing rules added");
@@ -373,28 +399,33 @@ MainLoopResult TabulationAlgorithm::runImpl()
     return MainLoopResult(Statistics::REFUTATION, _refutation);
   }
 
+  int lemmaRatio = env.options->tabulationLemmaRatio();
+  int goalRatio = env.options->tabulationGoalRatio();
+  int balance = 0;
+
   while(_producer.hasLemma() || !_goalContainer.isEmpty()) {
-    for(unsigned i=0; i<100; i++) {
+    if(balance>0) {
+      balance-=goalRatio;
       if(_producer.hasLemma()) {
 	RSTAT_CTR_INC("processed lemmas");
 	_producer.processLemma();
       }
-      else {
-	break;
-      }
     }
-
-    for(unsigned i=0; i<1; i++) {
+    else {
+      balance+=lemmaRatio;
       if(!_goalContainer.isEmpty()) {
 	RSTAT_CTR_INC("processed goals");
 	Clause* goal = _goalContainer.popSelected();
 	processGoal(goal);
       }
     }
+
     _producer.onSafePoint();
+
+    env.checkTimeSometime<20>();
   }
 
-  return MainLoopResult(Statistics::SATISFIABLE);
+  return MainLoopResult(Statistics::UNKNOWN);
 }
 
 

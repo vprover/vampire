@@ -133,6 +133,12 @@ public:
     SUPERPOSITION_FROM_VARIABLES,
     SYMBOL_PRECEDENCE,
 
+    TABULATION_BW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
+    TABULATION_FW_RULE_SUBSUMPTION_RESOLUTION_BY_LEMMAS,
+    TABULATION_GOAL_AWR,
+    TABULATION_GOAL_LEMMA_RATIO,
+    TABULATION_INSTANTIATE_PRODUCING_RULES,
+    TABULATION_LEMMA_AWR,
     TEST_ID,
     THANKS,
     THEORY_AXIOMS,
@@ -441,6 +447,17 @@ public:
 
   bool colorUnblocking() const { return _colorUnblocking; }
 
+  bool tabulationBwRuleSubsumptionResolutionByLemmas() const { return _tabulationBwRuleSubsumptionResolutionByLemmas; }
+  bool tabulationFwRuleSubsumptionResolutionByLemmas() const { return _tabulationFwRuleSubsumptionResolutionByLemmas; }
+  int tabulationGoalAgeRatio() const { return _tabulationGoalAgeRatio; }
+  int tabulationGoalWeightRatio() const { return _tabulationGoalWeightRatio; }
+  int tabulationGoalRatio() const { return _tabulationGoalRatio; }
+  int tabulationLemmaRatio() const { return _tabulationLemmaRatio; }
+  bool tabulationInstantiateProducingRules() const { return _tabulationInstantiateProducingRules; }
+  int tabulationLemmaAgeRatio() const { return _tabulationLemmaAgeRatio; }
+  int tabulationLemmaWeightRatio() const { return _tabulationLemmaWeightRatio; }
+
+
   void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal);
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
@@ -574,6 +591,16 @@ private:
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;
 
+
+  int _tabulationBwRuleSubsumptionResolutionByLemmas;
+  int _tabulationFwRuleSubsumptionResolutionByLemmas;
+  int _tabulationGoalAgeRatio;
+  int _tabulationGoalWeightRatio;
+  int _tabulationGoalRatio;
+  int _tabulationLemmaRatio;
+  bool _tabulationInstantiateProducingRules;
+  int _tabulationLemmaAgeRatio;
+  int _tabulationLemmaWeightRatio;
   string _testId;
   string _thanks;
   bool _theoryAxioms;
@@ -592,7 +619,7 @@ private:
   bool _forceIncompleteness;
 
   // various read-from-string-write options
-  void readAgeWeightRatio(const char* val);
+  static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio);
   static string boolToOnOff(bool);
   void outputValue(ostream& str,int optionTag) const;
 

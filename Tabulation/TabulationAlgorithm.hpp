@@ -54,6 +54,7 @@ private:
 
   Clause* simplifyClause(Clause* cl);
   static Clause* removeDuplicateLiterals(Clause* cl);
+  static bool isSimpleTautology(Clause* cl);
 
   typedef pair<Clause*, Literal*> RuleSpec;
   DHSet<RuleSpec> _addedProducingRules;

@@ -75,8 +75,9 @@ void URResolution::detach()
 
 struct URResolution::Item
 {
-  Item(Clause* cl, bool selectedOnly)
-  : _mustResolveAll(selectedOnly ? true : (cl->length() < 2)), _orig(cl), _color(cl->color())
+  Item(Clause* cl, bool selectedOnly, URResolution& parent)
+  : _mustResolveAll(selectedOnly ? true : (cl->length() < 2)), _orig(cl), _color(cl->color()),
+    _parent(parent)
   {
     CALL("URResolution::Item::Item");
 
@@ -185,6 +186,11 @@ struct URResolution::Item
 
     ASS_L(idx, _activeLength);
 
+    unsigned choiceSize = _activeLength - idx;
+    if(choiceSize==1) {
+      return;
+    }
+
     unsigned bestIdx = idx;
     ASS(_lits[bestIdx]);
     int bestVal = getGoodness(_lits[bestIdx]);
@@ -223,6 +229,7 @@ struct URResolution::Item
   DArray<Literal*> _lits;
 
   unsigned _activeLength;
+  URResolution& _parent;
 };
 
 /**
@@ -322,7 +329,7 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
       continue;
     }
 
-    Item* itm = new Item(ucl, _selectedOnly);
+    Item* itm = new Item(ucl, _selectedOnly, *this);
     unsigned pos = ucl->getLiteralPosition(unif.literal);
     ASS(!_selectedOnly || pos<ucl->selected());
     swap(itm->_lits[0], itm->_lits[pos]);
@@ -344,7 +351,7 @@ ClauseIterator URResolution::generateClauses(Clause* cl)
   TimeCounter tc(TC_UR_RESOLUTION);
 
   ClauseList* res = 0;
-  processAndGetClauses(new Item(cl, _selectedOnly), 0, res);
+  processAndGetClauses(new Item(cl, _selectedOnly, *this), 0, res);
 
   if(clen==1) {
     doBackwardInferences(cl, res);

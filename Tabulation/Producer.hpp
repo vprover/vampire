@@ -14,6 +14,7 @@
 #include "Indexing/LiteralSubstitutionTree.hpp"
 
 #include "Inferences/URResolution.hpp"
+#include "Inferences/SLQueryBackwardSubsumption.hpp"
 
 #include "Saturation/ClauseContainer.hpp"
 
@@ -44,9 +45,23 @@ public:
   /** To be called form the top level of the loop */
   void onSafePoint();
 
+
+  bool isRuleForwardSubsumed(Clause* rule);
+  bool isRuleSubsumedBy(Clause* queryRule, Clause* subsumingRule);
+
+  void performRuleBackwardSubsumption(Clause* rule);
+
+  Clause* performLemmaSubsumptionResolution(Clause* tgtRule, Clause* lemma);
+  void doBackwardLemmaSubsumptionResolution(Clause* lemma);
+  Clause* doForwardLemmaSubsumptionResolution(Clause* rule);
 private:
 
+  void performRuleAddition(Clause* rule);
+  void performRuleRemoval(Clause* rule);
+
   void performURR(Clause* cl);
+
+  void newLemma(Clause* lemma);
 
   typedef AWClauseContainer UnprocessedLemmaContainer;
 
@@ -60,6 +75,8 @@ private:
 
   ClauseStack _rulesToRemove;
   ClauseStack _lemmasToRemove;
+  ClauseStack _rulesToAdd;
+  ClauseStack _lemmasToAdd;
 
   UnprocessedLemmaContainer _unprocLemmaCont;
 
@@ -71,6 +88,11 @@ private:
   ScopedPtr<NonUnitClauseLiteralIndex> _ruleTailIndex;
 
   ScopedPtr<LiteralSubstitutionTree> _ruleHeadIndex;
+
+  ScopedPtr<ClauseSubsumptionIndex> _ruleSubsumptionIndex;
+  ScopedPtr<SimplifyingLiteralIndex> _ruleBwSubsumptionIndex;
+
+  ScopedPtr<SLQueryBackwardSubsumption> _bwSubsumptionRule;
 
   ScopedPtr<URResolution> _urr;
   TabulationAlgorithm& _alg;

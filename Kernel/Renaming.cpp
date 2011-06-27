@@ -3,6 +3,8 @@
  * Implements class Renaming
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/DArray.hpp"
 #include "Indexing/TermSharing.hpp"
 
@@ -24,6 +26,7 @@ using namespace Indexing;
 Literal* Renaming::apply(Literal* lit)
 {
   CALL("Renaming::apply(Literal*...)");
+  RSTAT_CTR_INC("rename");
   Applicator a(this);
   return SubstHelper::apply(lit, a);
 }
