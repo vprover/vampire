@@ -308,6 +308,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Equality proxy";
   case GENERAL_SPLITTING:
     return "General splitting";
+  case HORN_REVEALING:
+    return "Horn revealing";
   case SATURATION:
     return "Saturation";
   case FINALIZATION:

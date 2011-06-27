@@ -238,6 +238,7 @@ VS_OBJ = Shell/AxiomGenerator.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
          Shell/Grounding.o\
+         Shell/HornRevealer.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
@@ -365,8 +366,12 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Kernel/InferenceStore.o\
 	       Kernel/Matcher.o\
 	       Kernel/RobSubstitution.o\
+	       SAT/ClauseDisposer.o\
+	       SAT/RestartStrategy.o\
 	       SAT/SATClause.o\
-	       SAT/SATLiteral.o
+	       SAT/SATLiteral.o\
+	       SAT/TWLSolver.o\
+	       SAT/VariableSelector.o
 
 OTHER_API_DEP = \
 	   Debug/Assertion.o\

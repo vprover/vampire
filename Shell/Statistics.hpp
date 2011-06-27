@@ -226,6 +226,7 @@ public:
     EQUALITY_RESOLUTION_WITH_DELETION,
     EQUALITY_PROXY,
     GENERAL_SPLITTING,
+    HORN_REVEALING,
     /** The actual run of the saturation algorithm */
     SATURATION,
     /** Whatever happens after the saturation algorithm finishes */

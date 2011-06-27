@@ -115,6 +115,8 @@ const char* Options::Constants::_optionNames[] = {
   "general_splitting",
   "global_subsumption",
 
+  "horn_revealing",
+
   "include",
   "increased_numeral_weight",
   "inequality_splitting",
@@ -505,6 +507,8 @@ Options::Options ()
   _generalSplitting(RA_OFF),
   _globalSubsumption(false),
 
+  _hornRevealing(false),
+
   _include(""),
   _increasedNumeralWeight(false),
   _inequalitySplitting(3),
@@ -748,6 +752,10 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case GLOBAL_SUBSUMPTION:
       _globalSubsumption = onOffToBool(value,name);
+      return;
+
+    case HORN_REVEALING:
+      _hornRevealing = onOffToBool(value,name);
       return;
 
     case INCLUDE:
@@ -1373,6 +1381,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case GLOBAL_SUBSUMPTION:
     str << boolToOnOff(_globalSubsumption);
+    return;
+
+  case HORN_REVEALING:
+    str << boolToOnOff(_hornRevealing);
     return;
 
   case INCLUDE:

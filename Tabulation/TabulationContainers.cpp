@@ -3,6 +3,8 @@
  * Implements class TabulationContainers.
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -262,6 +264,7 @@ void GoalProducer::onLemma(Clause* lemma)
     SLQueryResultIterator qrit = _activatorIndex->getInstances(lemmaLit, false, false);
     while(qrit.hasNext()) {
       SLQueryResult qr = qrit.next();
+      RSTAT_CTR_INC("goal produced (gp rule finished)");
       _alg.addGoal(qr.clause);
       toRemove.push(make_pair(qr.literal, qr.clause));
     }
@@ -275,7 +278,11 @@ void GoalProducer::onLemma(Clause* lemma)
   SLQueryResultIterator qrit = _activatorIndex->getUnifications(lemmaLit, false, true);
   while(qrit.hasNext()) {
     SLQueryResult qr = qrit.next();
-    _alg.addGoal(makeInstance(qr.clause, qr.substitution.ref(), true));
+    RSTAT_CTR_INC("goal produced (instance of gp rule)");
+    Clause* goal = makeInstance(qr.clause, qr.substitution.ref(), true);
+    _alg.addGoal(goal);
+//    cout<<"l: "<<lemma->toString()<<endl;
+//    cout<<"g: "<<goal->toString()<<endl;
   }
 
   _lemmaIndex->insert(lemmaLit, lemma);

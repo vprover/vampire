@@ -59,6 +59,8 @@ public:
     GENERAL_SPLITTING,
     GLOBAL_SUBSUMPTION,
 
+    HORN_REVEALING,
+
     INCLUDE,
     INCREASED_NUMERAL_WEIGHT,
     INEQUALITY_SPLITTING,
@@ -447,6 +449,8 @@ public:
 
   bool colorUnblocking() const { return _colorUnblocking; }
 
+  bool hornRevealing() const { return _hornRevealing; }
+
   bool tabulationBwRuleSubsumptionResolutionByLemmas() const { return _tabulationBwRuleSubsumptionResolutionByLemmas; }
   bool tabulationFwRuleSubsumptionResolutionByLemmas() const { return _tabulationFwRuleSubsumptionResolutionByLemmas; }
   int tabulationGoalAgeRatio() const { return _tabulationGoalAgeRatio; }
@@ -512,6 +516,8 @@ private:
 
   RuleActivity _generalSplitting;
   bool _globalSubsumption;
+
+  bool _hornRevealing;
 
   string _include;
   /** if this option is true, Vampire will add the numeral weight of a clause

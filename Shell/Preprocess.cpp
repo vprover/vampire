@@ -20,6 +20,7 @@
 #include "FormulaIteExpander.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
+#include "HornRevealer.hpp"
 #include "InequalitySplitting.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
@@ -330,6 +331,11 @@ void Preprocess::preprocess (UnitList*& units)
      gs.apply(units);
    }
 
+   if(_options.hornRevealing()) {
+     env.statistics->phase=Statistics::HORN_REVEALING;
+     HornRevealer hr;
+     hr.apply(units);
+   }
 } // Preprocess::preprocess ()
 
 
