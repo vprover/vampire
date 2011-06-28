@@ -45,7 +45,7 @@ class TWLSolver : public SATSolver {
   friend class VariableSelector;
   friend class RLCVariableSelector;
 public:
-  TWLSolver();
+  TWLSolver(bool generateProofs=false);
   ~TWLSolver();
 
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
@@ -55,6 +55,8 @@ public:
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
   virtual void retractAllAssumptions();
+
+  virtual SATClause* getRefutation() { return _refutation; }
 
   void assertValid();
   void printAssignment();
@@ -98,6 +100,9 @@ private:
   void addClause(SATClause* cl);
   void addUnitClause(SATClause* cl);
 
+  void handleTopLevelConflict(SATClause* cl);
+  void handleConflictingAssumption(SATLiteral assumpt);
+
   void backtrack(unsigned tgtLevel);
 
   void doBaseLevelPropagation();
@@ -127,10 +132,10 @@ private:
 
   unsigned getBacktrackLevel(SATClause* conflictClause);
 
-  void doSubsumptionResolution(SATLiteralStack& lits);
+  void doSubsumptionResolution(SATLiteralStack& lits, SATClauseList*& premises);
   void doShallowMinimize(SATLiteralStack& lits, ArraySet& seenVars);
-  void doDeepMinimize(SATLiteralStack& lits, ArraySet& seenVars);
-  bool isRedundant(SATLiteral lit, ArraySet& seenVars);
+  void doDeepMinimize(SATLiteralStack& lits, ArraySet& seenVars, SATClauseList*& premises);
+  bool isRedundant(SATLiteral lit, ArraySet& seenVars, SATClauseList*& premises);
   SATClause* getLearntClause(SATClause* conflictClause);
 
   void insertIntoWatchIndex(SATClause* cl);
@@ -162,6 +167,8 @@ private:
 
   };
 
+  bool _generateProofs;
+  SATClause* _refutation;
 
   Status _status;
 //  DArray<AsgnVal> _assignment;
@@ -219,8 +226,11 @@ private:
   RestartStrategySCP _restartStrategy;
   ClauseDisposerSCP _clauseDisposer;
 
-  class UnsatException : public Exception
-  {};
+  struct UnsatException : public Exception
+  {
+    UnsatException(SATClause* refutation=0) : refutation(refutation) {}
+    SATClause* refutation;
+  };
 
 };
 

@@ -110,6 +110,7 @@ const char* Options::Constants::_optionNames[] = {
   "forward_literal_rewriting",
   "forward_subsumption",
   "forward_subsumption_resolution",
+  "full_selection_for_sos",
   "function_definition_elimination",
 
   "general_splitting",
@@ -502,6 +503,7 @@ Options::Options ()
   _forwardLiteralRewriting(false),
   _forwardSubsumption(true),
   _forwardSubsumptionResolution(true),
+  _fullSelectionForSOS(false),
   _functionDefinitionElimination(FDE_ALL),
 
   _generalSplitting(RA_OFF),
@@ -592,7 +594,7 @@ Options::Options ()
   _tabulationGoalAgeRatio(1),
   _tabulationGoalWeightRatio(1),
   _tabulationGoalRatio(1),
-  _tabulationLemmaRatio(100),
+  _tabulationLemmaRatio(1),
   _tabulationInstantiateProducingRules(true),
   _tabulationLemmaAgeRatio(1),
   _tabulationLemmaWeightRatio(1),
@@ -738,6 +740,9 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case FORWARD_SUBSUMPTION_RESOLUTION:
       _forwardSubsumptionResolution = onOffToBool(value,name);
+      return;
+    case FULL_SELECTION_FOR_SOS:
+      _fullSelectionForSOS = onOffToBool(value,name);
       return;
     case FUNCTION_DEFINITION_ELIMINATION:
       _functionDefinitionElimination =
@@ -1371,6 +1376,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case FORWARD_SUBSUMPTION_RESOLUTION:
     str << boolToOnOff(_forwardSubsumptionResolution);
+    return;
+  case FULL_SELECTION_FOR_SOS:
+    str << boolToOnOff(_fullSelectionForSOS);
     return;
   case FUNCTION_DEFINITION_ELIMINATION:
     str << Constants::fdeValues[_functionDefinitionElimination];

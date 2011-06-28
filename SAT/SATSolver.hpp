@@ -39,6 +39,8 @@ public:
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate=false) = 0;
   virtual void retractAllAssumptions() = 0;
 
+  virtual SATClause* getRefutation() = 0;
+
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */

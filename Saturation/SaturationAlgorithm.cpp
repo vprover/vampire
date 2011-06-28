@@ -641,7 +641,13 @@ simpl_start:
   }
 
   ASS(!cl->selected());
-  _selector->select(cl);
+  if(env.options->fullSelectionForSOS()) {
+    static TotalLiteralSelector totalSelector;
+    totalSelector.select(cl);
+  }
+  else {
+    _selector->select(cl);
+  }
 
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;

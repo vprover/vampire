@@ -54,6 +54,7 @@ public:
     FORWARD_LITERAL_REWRITING,
     FORWARD_SUBSUMPTION,
     FORWARD_SUBSUMPTION_RESOLUTION,
+    FULL_SELECTION_FOR_SOS,
     FUNCTION_DEFINITION_ELIMINATION,
 
     GENERAL_SPLITTING,
@@ -409,6 +410,7 @@ public:
   bool setNongoalWeightCoefficient(float newVal);
   bool sos() const { return _sos; }
   void setSos(bool newVal) { _sos = newVal; }
+  bool fullSelectionForSOS() const { return _fullSelectionForSOS; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination; }
   bool outputAxiomNames() const { return _outputAxiomNames; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
@@ -512,6 +514,7 @@ private:
   bool _forwardLiteralRewriting;
   bool _forwardSubsumption;
   bool _forwardSubsumptionResolution;
+  bool _fullSelectionForSOS;
   FunctionDefinitionElimination _functionDefinitionElimination;
 
   RuleActivity _generalSplitting;

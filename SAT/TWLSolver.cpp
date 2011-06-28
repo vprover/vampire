@@ -31,8 +31,8 @@ namespace SAT
 
 using namespace Lib;
 
-TWLSolver::TWLSolver()
-: _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
+TWLSolver::TWLSolver(bool generateProofs)
+: _generateProofs(generateProofs), _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
 _windex(0), _varCnt(0), _level(1), _assumptionCnt(0), _unsatisfiableAssumptions(false)
 {
   _variableSelector = new ActiveVariableSelector(*this);
@@ -120,6 +120,8 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   } catch (UnsatException e)
   {
     _status=UNSATISFIABLE;
+    _refutation = e.refutation;
+    ASS(!_generateProofs || _refutation);
   }
 }
 
@@ -142,7 +144,7 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
     backtrack(1);
     if(isFalse(lit)) {
       LOG("## unsat");
-      throw UnsatException();
+      handleConflictingAssumption(lit);
     }
     if(isTrue(lit)) {
       //the assumption follows from unit propagation
@@ -159,7 +161,9 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
   } catch (UnsatException e)
   {
     _unsatisfiableAssumptions = true;
-    _status=UNSATISFIABLE;
+    _status = UNSATISFIABLE;
+    _refutation = e.refutation;
+    ASS(!_generateProofs || _refutation);
   }
 }
 
@@ -206,16 +210,13 @@ void TWLSolver::backtrack(unsigned tgtLevel)
 {
   CALL("TWLSolver::backtrack");
   ASSERT_VALID(*this);
+  ASS_G(tgtLevel,0);
 
   if(tgtLevel==_level) {
     return;
   }
 
   resetPropagation();
-
-  if(tgtLevel==0) {
-    throw UnsatException();
-  }
 
   USRec rec;
   for(;;) {
@@ -282,7 +283,7 @@ unsigned TWLSolver::getBacktrackLevel(SATClause* conflictClause)
   return btLev;
 }
 
-void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits)
+void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits, SATClauseList*& premises)
 {
   CALL("TWLSolver::doSubsumptionResolution");
 
@@ -302,6 +303,7 @@ void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits)
     SATLiteral rLitOp = rLit.opposite();
 
     bool resolved = false;
+    SATClause* resolvingClause = 0;
     WatchStack::Iterator wit(getWatchStack(rLitOp));
     while(wit.hasNext()) {
       SATClause* cl = wit.next().cl;
@@ -313,6 +315,7 @@ void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits)
       ASS(other!=rLitOp);
       ASS((*cl)[0]==rLitOp || (*cl)[1]==rLitOp);
       if(litSet.find(other.content())) {
+	resolvingClause = cl;
 	resolved = true;
 	break;
       }
@@ -320,6 +323,9 @@ void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits)
     if(resolved) {
       litSet.remove(rLit.content());
       litIt.del();
+      if(_generateProofs) {
+	SATClauseList::push(resolvingClause, premises);
+      }
     }
   }
 }
@@ -327,6 +333,8 @@ void TWLSolver::doSubsumptionResolution(SATLiteralStack& lits)
 void TWLSolver::doShallowMinimize(SATLiteralStack& lits, ArraySet& seenVars)
 {
   CALL("TWLSolver::doShallowMinimize");
+
+  NOT_IMPLEMENTED;//need to implement proof tracking
 
   SATLiteralStack::Iterator rit(lits);
   while(rit.hasNext()) {
@@ -351,20 +359,20 @@ void TWLSolver::doShallowMinimize(SATLiteralStack& lits, ArraySet& seenVars)
   }
 }
 
-void TWLSolver::doDeepMinimize(SATLiteralStack& lits, ArraySet& seenVars)
+void TWLSolver::doDeepMinimize(SATLiteralStack& lits, ArraySet& seenVars, SATClauseList*& premises)
 {
   CALL("TWLSolver::doDeepMinimize");
 
   SATLiteralStack::Iterator rit(lits);
   while(rit.hasNext()) {
     SATLiteral resLit = rit.next();
-    if(isRedundant(resLit, seenVars)) {
+    if(isRedundant(resLit, seenVars, premises)) {
       rit.del();
     }
   }
 }
 
-bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars)
+bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars, SATClauseList*& premises)
 {
   CALL("TWLSolver::isRedundant");
 
@@ -373,6 +381,8 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars)
   varsSeenHere.reset();
   static Stack<unsigned> toDo;
   toDo.reset();
+
+  SATClauseList* redundancyPremises = 0;
 
   unsigned litVar = lit.var();
 
@@ -386,7 +396,13 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars)
     varsSeenHere.insert(clVar);
     SATClause* cl = _assignmentPremises[clVar];
     if(!cl) {
+      if(redundancyPremises) {
+	redundancyPremises->destroy();
+      }
       return false;
+    }
+    if(_generateProofs) {
+      SATClauseList::push(cl, redundancyPremises);
     }
     SATClause::Iterator premLitIt(*cl);
     while(premLitIt.hasNext()) {
@@ -398,6 +414,7 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars)
       toDo.push(premVar);
     }
   }
+  premises = SATClauseList::concat(redundancyPremises, premises);
   return true;
 }
 
@@ -412,6 +429,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
 
   static SATLiteralStack resLits;
   static SATClauseStack toDo;
+  SATClauseList* premises = 0;
   resLits.reset();
   toDo.reset();
 
@@ -419,6 +437,9 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   toDo.push(conflictClause);
   while(toDo.isNonEmpty()) {
     SATClause* cl=toDo.pop();
+    if(_generateProofs) {
+      SATClauseList::push(cl, premises);
+    }
     LOG(cl->toString());
     recordClauseActivity(cl);
     SATClause::Iterator cit(*cl);
@@ -447,12 +468,17 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
 
 //  cout<<resLits.size()<<" ";
 //  doShallowMinimize(resLits, seenVars);
-  doDeepMinimize(resLits, seenVars);
+  doDeepMinimize(resLits, seenVars, premises);
 //  cout<<resLits.size()<<" ";
-  doSubsumptionResolution(resLits);
+  doSubsumptionResolution(resLits, premises);
 //  cout<<resLits.size()<<" ";
 
-  SATClause* res = SATClause:: fromStack(resLits);
+  SATClause* res = SATClause::fromStack(resLits);
+  if(_generateProofs) {
+    ASS(premises);
+    SATInference* inf = new PropInference(premises);
+    res->setInference(inf);
+  }
 
 #if VDEBUG
   if(_level!=1) {
@@ -665,11 +691,45 @@ void TWLSolver::addUnitClause(SATClause* cl)
 
   backtrack(1);
   if(isFalse(lit)) {
-    throw UnsatException();
+    handleTopLevelConflict(cl);
   }
   if(isUndefined(lit)) {
     makeForcedAssignment(lit, cl);
   }
+}
+
+void TWLSolver::handleTopLevelConflict(SATClause* cl)
+{
+  CALL("TWLSolver::handleTopLevelConflict");
+
+  if(_level!=1) {
+    backtrack(1);
+  }
+  ASS(isFalse(cl));
+
+  SATClause* refutation = 0;
+  if(_generateProofs) {
+    refutation = getLearntClause(cl);
+  }
+  throw UnsatException(refutation);
+}
+
+void TWLSolver::handleConflictingAssumption(SATLiteral assumpt)
+{
+  CALL("TWLSolver::handleConflictingAssumption");
+  ASS_EQ(_level, 1);
+  ASS(isFalse(assumpt));
+
+  if(!_generateProofs) {
+    throw UnsatException();
+  }
+  static SATLiteralStack litStack;
+  litStack.reset();
+  litStack.push(assumpt);
+  SATClause* confl = SATClause::fromStack(litStack);
+  confl->setInference(new AssumptionInference());
+
+  handleTopLevelConflict(confl);
 }
 
 /**
@@ -749,6 +809,9 @@ void TWLSolver::addClause(SATClause* cl)
     //to fix the assignment
 
     unsigned btLev=getBacktrackLevel(cl);
+    if(btLev==0) {
+      handleTopLevelConflict(cl);
+    }
     ASS_NEQ(btLev, _level);
     backtrack(btLev);
     ASS(isUndefined((*cl)[0]));
@@ -993,7 +1056,7 @@ void TWLSolver::doBaseLevelPropagation()
     unsigned propagatedVar = pickForPropagation();
     SATClause* conflict = propagate(propagatedVar);
     if(conflict) {
-      throw UnsatException();
+      handleTopLevelConflict(conflict);
     }
   }
 }
@@ -1055,7 +1118,7 @@ void TWLSolver::runSatLoop()
 	unsigned lvar = lit.var();
 	backtrack(1);
 	if(isFalse(lit)) {
-	  throw UnsatException();
+	  handleTopLevelConflict(learnt);
 	}
 	ASS(isUndefined(lit));
 	makeForcedAssignment(lit, learnt);
@@ -1066,6 +1129,9 @@ void TWLSolver::runSatLoop()
       unsigned nonFalseLitCnt;
       do {
 	unsigned propBtLev = getBacktrackLevel(learnt);
+	if(propBtLev==0) {
+	  handleTopLevelConflict(learnt);
+	}
 	backtrack(propBtLev);
 	nonFalseLitCnt = selectTwoNonFalseLiterals(learnt);
       } while(nonFalseLitCnt==0);

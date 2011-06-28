@@ -8,6 +8,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/System.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -148,7 +149,7 @@ void satSolverMode(const char* fname)
 
   cout<<"-start varcnt "<<varCnt<<"\n";
 
-  TWLSolver ts;
+  TWLSolver ts(true);
 
   SATSolver::Status res;
   bool incremental = 1;
