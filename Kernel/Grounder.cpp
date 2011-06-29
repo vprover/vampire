@@ -44,7 +44,7 @@ SATClauseIterator Grounder::ground(Clause* cl)
 
   SATClause* gndNonProp = groundNonProp(cl);
 
-  SATInference* inf = new FOConversionInference(InferenceStore::UnitSpec(cl, false));
+  SATInference* inf = new FOConversionInference(InferenceStore::UnitSpec(cl));
   gndNonProp->setInference(inf);
   return pvi( getSingletonIterator(gndNonProp) );
 }

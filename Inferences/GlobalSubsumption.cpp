@@ -12,6 +12,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Grounder.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -54,10 +55,11 @@ void GlobalSubsumption::detach()
 }
 
 /**
- * Add clause to the SATSolver in the index. Return true iff the
- * resulting set is satisfiable.
+ * Add clause to the SATSolver in the index. If the resuting set is
+ * unsatisfiable, it means we have a refutation and
+ * @c MainLoop::RefutationFoundException is thrown.
  */
-bool GlobalSubsumption::addClauseToIndex(Clause* cl)
+void GlobalSubsumption::addClauseToIndex(Clause* cl)
 {
   CALL("GlobalSubsumption::addClauseToIndex");
 
@@ -71,10 +73,72 @@ bool GlobalSubsumption::addClauseToIndex(Clause* cl)
   solver.addClauses(sclIt, true);
 
   if(solver.getStatus()==SATSolver::UNSATISFIABLE) {
-    return false;
+    //just a dummy inference, the correct one will be in the InferenceStore
+    Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
+    Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, inf);
+    refutation->setAge(cl->age());
+
+    recordInference(cl, solver.getRefutation(), refutation);
+
+    env.statistics->globalSubsumption++;
+    throw MainLoop::RefutationFoundException(refutation);
   }
   ASS_EQ(solver.getStatus(),SATSolver::SATISFIABLE);
-  return true;
+}
+
+void GlobalSubsumption::recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause)
+{
+  CALL("GlobalSubsumption::recordInference");
+  ASS(refutation);
+
+  typedef InferenceStore::UnitSpec UnitSpec;
+
+  static Stack<UnitSpec> prems;
+  static Stack<SATClause*> toDo;
+  static DHSet<SATClause*> seen;
+  prems.reset();
+  toDo.reset();
+  seen.reset();
+
+  prems.push(UnitSpec(origClause));
+
+  toDo.push(refutation);
+  while(toDo.isNonEmpty()) {
+    SATClause* cur = toDo.pop();
+    if(!seen.insert(cur)) {
+      continue;
+    }
+    SATInference* sinf = cur->inference();
+    ASS(sinf);
+    switch(sinf->getType()) {
+    case SATInference::FO_CONVERSION:
+      prems.push(static_cast<FOConversionInference*>(sinf)->getOrigin());
+      break;
+    case SATInference::ASSUMPTION:
+      break;
+    case SATInference::PROP_INF:
+    {
+      PropInference* pinf = static_cast<PropInference*>(sinf);
+      toDo.loadFromIterator(SATClauseList::Iterator(pinf->getPremises()));
+      break;
+    }
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+
+  makeUnique(prems);
+  unsigned premCnt = prems.size();
+
+  InferenceStore::FullInference* inf = new(premCnt) InferenceStore::FullInference(premCnt);
+  inf->rule = Inference::GLOBAL_SUBSUMPTION;
+
+  for(unsigned i=0; i<premCnt; i++) {
+    LOGV(prems[i].toString());
+    inf->premises[i] = prems[i];
+  }
+
+  InferenceStore::instance()->recordInference(UnitSpec(resultClause), inf);
 }
 
 void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
@@ -94,16 +158,7 @@ void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simp
     return;
   }
 
-  if(!addClauseToIndex(cl)) {
-    //TODO: extract proofs from SAT solver
-    Inference* inf = new Inference1(Inference::GLOBAL_SUBSUMPTION, cl);
-    Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, inf);
-
-    env.statistics->globalSubsumption++;
-    ALWAYS(simplPerformer->willPerform(0));
-    simplPerformer->perform(0, refutation);
-    ALWAYS(!simplPerformer->clauseKept());
-  }
+  addClauseToIndex(cl);
 
   static SATLiteralStack slits;
   slits.reset();
@@ -133,10 +188,13 @@ void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simp
 	  survivors.push((*cl)[j]);
 	}
 
-	//TODO: extract proofs from SAT solver
-	Inference* inf = new Inference1(Inference::GLOBAL_SUBSUMPTION, cl);
+	//just a dummy inference, the correct one will be in the InferenceStore
+	Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
 	Clause* replacement = Clause::fromIterator(LiteralStack::Iterator(survivors),
 	    cl->inputType(), inf);
+	replacement->setAge(cl->age());
+
+	recordInference(cl, solver.getRefutation(), replacement);
 	LOGV(cl->toString());
 	LOGV(replacement->toString());
 	env.statistics->globalSubsumption++;

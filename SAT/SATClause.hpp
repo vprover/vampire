@@ -69,7 +69,7 @@ public:
   typedef InferenceStore::UnitSpec UnitSpec;
   FOConversionInference(UnitSpec origin) : _origin(origin) {}
 
-  virtual InfType getType() const { return PROP_INF; }
+  virtual InfType getType() const { return FO_CONVERSION; }
   UnitSpec getOrigin() const { return _origin; }
 private:
   UnitSpec _origin;

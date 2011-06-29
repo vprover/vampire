@@ -40,7 +40,9 @@ void InferenceStore::FullInference::increasePremiseRefCounters()
   CALL("InferenceStore::FullInference::increasePremiseRefCounters");
 
   for(unsigned i=0;i<premCnt;i++) {
-    premises[i].cl()->incRefCnt();
+    if(premises[i].isClause()) {
+      premises[i].cl()->incRefCnt();
+    }
   }
 }
 
@@ -121,6 +123,18 @@ void InferenceStore::recordNonPropInference(Clause* cl)
 
 }
 
+/**
+ * Increase the reference counter on premise clauses and store @c inf as inference
+ * of @c unit.
+ */
+void InferenceStore::recordInference(UnitSpec unit, FullInference* inf)
+{
+  CALL("InferenceStore::recordInference");
+
+  inf->increasePremiseRefCounters();
+  _data.set(unit, inf);
+}
+
 void InferenceStore::recordNonPropInference(Clause* cl, Inference* cinf)
 {
   CALL("InferenceStore::recordNonPropInference/2");
@@ -142,8 +156,8 @@ void InferenceStore::recordNonPropInference(Clause* cl, Inference* cinf)
     finf->premises[i]=getUnitSpec(prems[i]);
   }
   finf->rule=cinf->rule();
-  finf->increasePremiseRefCounters();
-  _data.set(getUnitSpec(cl), finf);
+
+  recordInference(getUnitSpec(cl), finf);
 }
 
 void InferenceStore::recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp)
@@ -165,9 +179,8 @@ void InferenceStore::recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newP
   FullInference* finf=new (1) FullInference(1);
   finf->premises[0]=getUnitSpec(cl, oldProp);
   finf->rule=rule;
-  finf->increasePremiseRefCounters();
 
-  _data.set(getUnitSpec(cl, newProp), finf);
+  recordInference(getUnitSpec(cl, newProp), finf);
 }
 
 void InferenceStore::recordIntroduction(Clause* cl, BDDNode* prop, Inference::Rule rule)
@@ -177,9 +190,8 @@ void InferenceStore::recordIntroduction(Clause* cl, BDDNode* prop, Inference::Ru
 
   FullInference* finf=new (0) FullInference(0);
   finf->rule=rule;
-  finf->increasePremiseRefCounters();
 
-  _data.set(getUnitSpec(cl, prop), finf);
+  recordInference(getUnitSpec(cl, prop), finf);
 }
 
 
@@ -193,9 +205,8 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl
   finf->premises[0]=getUnitSpec(cl, oldClProp);
   finf->premises[1]=getUnitSpec(addedCl);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
-  finf->increasePremiseRefCounters();
 
-  _data.set(getUnitSpec(cl, resultProp), finf);
+  recordInference(getUnitSpec(cl, resultProp), finf);
 }
 
 void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedProp, BDDNode* resultProp)
@@ -207,9 +218,8 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedPro
   finf->premises[0]=getUnitSpec(cl, oldProp);
   finf->premises[1]=getUnitSpec(cl, addedProp);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
-  finf->increasePremiseRefCounters();
 
-  _data.set(getUnitSpec(cl, resultProp), finf);
+  recordInference(getUnitSpec(cl, resultProp), finf);
 }
 
 
@@ -225,9 +235,8 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, UnitSpec* added
   }
   finf->premises[addedClsCnt]=getUnitSpec(cl, oldClProp);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
-  finf->increasePremiseRefCounters();
 
-  _data.set(getUnitSpec(cl, resultProp), finf);
+  recordInference(getUnitSpec(cl, resultProp), finf);
 }
 
 /**
@@ -257,9 +266,8 @@ void InferenceStore::recordSplitting(SplittingRecord* srec, unsigned premCnt, Un
   }
 
   finf->rule=Inference::SPLITTING;
-  finf->increasePremiseRefCounters();
 
-  _data.set(srec->result, finf);
+  recordInference(srec->result, finf);
 
   //There is no need to increase reference counters in splitting premises,
   //as they're stored in the variant index of Splitter object, so won't get

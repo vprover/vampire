@@ -36,7 +36,7 @@ public:
   struct UnitSpec
   {
     UnitSpec() {}
-    UnitSpec(Unit* u, bool ignoreProp) : _unit(u)
+    explicit UnitSpec(Unit* u, bool ignoreProp=false) : _unit(u)
     {
       if(!ignoreProp && u->isClause() && static_cast<Clause*>(u)->prop()) {
 	_prop=static_cast<Clause*>(u)->prop();
@@ -131,6 +131,7 @@ public:
   static UnitSpec getUnitSpec(Clause* cl);
   static UnitSpec getUnitSpec(Clause* cl, BDDNode* prop);
 
+  void recordInference(UnitSpec unit, FullInference* inf);
   void recordNonPropInference(Clause* cl);
   void recordNonPropInference(Clause* cl, Inference* inf);
   void recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp);

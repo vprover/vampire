@@ -22,7 +22,7 @@ GroundingIndex::GroundingIndex(Grounder* gnd)
 {
   CALL("GroundingIndex::GroundingIndex");
 
-  _solver = new TWLSolver();
+  _solver = new TWLSolver(true);
 }
 
 void GroundingIndex::handleClause(Clause* c, bool adding)

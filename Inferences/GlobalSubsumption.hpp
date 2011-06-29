@@ -17,6 +17,7 @@ namespace Inferences
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using namespace SAT;
 
 class GlobalSubsumption
 : public ForwardSimplificationEngine
@@ -26,7 +27,9 @@ public:
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
 private:
-  bool addClauseToIndex(Clause* cl);
+  void addClauseToIndex(Clause* cl);
+
+  void recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause);
 
   GroundingIndex* _index;
 };
