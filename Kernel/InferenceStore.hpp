@@ -56,6 +56,7 @@ public:
 
     bool isClause() const { return _unit->isClause(); }
     bool isPropTautology() const { return BDD::instance()->isTrue(_prop); }
+    bool withoutProp() const { return BDD::instance()->isFalse(_prop); }
 
     Clause* cl() const
     {

@@ -13,6 +13,7 @@
 
 #include "Kernel/InferenceStore.hpp"
 
+#include "AnswerExtractor.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
 #include "LaTeX.hpp"
@@ -124,6 +125,10 @@ void UIHelper::outputResult(ostream& out)
       if(cascMode) {
 	out<<"% SZS output end Proof for "<<env.options->problemName()<<endl;
       }
+    }
+    if(env.options->outputAnswer()) {
+      ASS(env.statistics->refutation->isClause());
+      AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }
     if(env.options->showInterpolant()==Options::INTERP_ON) {
       ASS(env.statistics->refutation->isClause());

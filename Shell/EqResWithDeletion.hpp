@@ -24,8 +24,8 @@ public:
   void apply(UnitList*& units);
 
   TermList apply(unsigned var);
-private:
   Clause* apply(Clause* cl);
+private:
   bool scan(Literal* lit);
 
 

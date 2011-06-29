@@ -224,7 +224,8 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SWBSplitterWithoutBDDs.o\
          Saturation/SymElOutput.o
 
-VS_OBJ = Shell/AxiomGenerator.o\
+VS_OBJ = Shell/AnswerExtractor.o\
+         Shell/AxiomGenerator.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/CParser.o\
@@ -460,7 +461,7 @@ VAMP_DIRS := Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences Ins
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VTAB_OBJ) $(VT_OBJ) $(VPROG_OBJ)  
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
-VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o, $(VS_OBJ)) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
+VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o, $(VS_OBJ)) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(VT_OBJ) $(LIB_DEP)
 #VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 

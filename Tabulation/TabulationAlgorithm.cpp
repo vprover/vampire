@@ -12,6 +12,7 @@
 
 #include "Inferences/TautologyDeletionISE.hpp"
 
+#include "Shell/EqResWithDeletion.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Refutation.hpp"
 #include "Shell/Statistics.hpp"
@@ -44,7 +45,7 @@ void TabulationAlgorithm::addInputClauses(ClauseIterator cit)
   CALL("TabulationAlgorithm::addInputClauses");
 
   while(cit.hasNext()) {
-    Clause* cl = simplifyClause(cit.next());
+    Clause* cl = simplifyInputClause(cit.next());
     if(!cl) {
       continue;
     }
@@ -69,6 +70,17 @@ void TabulationAlgorithm::addInputClauses(ClauseIterator cit)
     }
   }
 }
+
+Clause* TabulationAlgorithm::simplifyInputClause(Clause* cl)
+{
+  CALL("TabulationAlgorithm::simplifyInputClause");
+
+  static EqResWithDeletion erwd;
+
+  cl = erwd.apply(cl);
+  return _ise->simplify(cl);
+}
+
 
 void TabulationAlgorithm::addGoal(Clause* cl)
 {
@@ -155,13 +167,6 @@ void TabulationAlgorithm::selectGoalLiteral(Clause*& cl)
     cl = cl2;
   }
   ASS_EQ((*cl)[0],selected);
-}
-
-Clause* TabulationAlgorithm::simplifyClause(Clause* cl)
-{
-  CALL("TabulationAlgorithm::simplifyClause");
-
-  return _ise->simplify(cl);
 }
 
 Clause* TabulationAlgorithm::removeDuplicateLiterals(Clause* cl)

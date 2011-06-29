@@ -536,7 +536,7 @@ void Clause::computeWeight() const
  */
 unsigned Clause::propWeight() const
 {
-  return prop()->depth();
+  return prop() ? prop()->depth() : 0;
 }
 
 /**

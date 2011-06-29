@@ -34,8 +34,11 @@ public:
 
   virtual void addInputClauses(ClauseIterator cit);
 
+  LiteralIndexingStructure& getLemmaIndex() { return _gp.getLemmaIndex(); }
+
   void addGoal(Clause* cl);
   void addLemma(Clause* cl);
+
 private:
   friend class Producer;
   friend class GoalProducer;
@@ -52,7 +55,7 @@ private:
   void addGoalProducingRule(Clause* oldGoal);
   void addProducingRule(Clause* cl, Literal* head=0, ResultSubstitution* subst=0, bool result=false);
 
-  Clause* simplifyClause(Clause* cl);
+  Clause* simplifyInputClause(Clause* cl);
   static Clause* removeDuplicateLiterals(Clause* cl);
   static bool isSimpleTautology(Clause* cl);
 

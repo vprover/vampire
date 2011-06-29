@@ -90,6 +90,7 @@ public:
     NONLITERALS_IN_CLAUSE_WEIGHT,
     NORMALIZE,
 
+    OUTPUT_ANSWER,
     OUTPUT_AXIOM_NAMES,
 
     PREDICATE_DEFINITION_INLINING,
@@ -414,6 +415,8 @@ public:
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination; }
   bool outputAxiomNames() const { return _outputAxiomNames; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
+  bool outputAnswer() const { return _outputAnswer; }
+  void setOutputAnswer(bool newVal) { _outputAnswer = newVal; }
   string xmlOutput() const { return _xmlOutput; }
   string thanks() const { return _thanks; }
 
@@ -555,6 +558,7 @@ private:
   bool _nonliteralsInClauseWeight;
   bool _normalize;
 
+  bool _outputAnswer;
   bool _outputAxiomNames;
 
   InliningMode _predicateDefinitionInlining;

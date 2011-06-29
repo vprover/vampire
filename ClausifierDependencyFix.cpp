@@ -10,6 +10,7 @@
 #include "Lib/Exception.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/InterpolantMinimizer.hpp"
 
 void Saturation::SaturationAlgorithm::tryUpdateFinalClauseCount()
@@ -23,6 +24,11 @@ Shell::InterpolantMinimizer::~InterpolantMinimizer()
 {
 }
 Kernel::Formula* Shell::InterpolantMinimizer::getInterpolant(Kernel::Clause*)
+{
+  INVALID_OPERATION("not supported in clausifier");
+}
+
+void AnswerExtractor::tryOutputAnswer(Clause* refutation)
 {
   INVALID_OPERATION("not supported in clausifier");
 }

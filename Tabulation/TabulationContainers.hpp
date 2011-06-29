@@ -109,6 +109,8 @@ public:
 
   void onLemma(Clause* lemma);
 
+  LiteralIndexingStructure& getLemmaIndex() { return *_lemmaIndex; }
+
   static Clause* makeInstance(Clause* resCl, ResultSubstitution& subst, bool clIsResult);
 private:
 
