@@ -9,6 +9,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/Stack.hpp"
@@ -52,14 +53,25 @@ protected:
   virtual MainLoopResult runImpl();
 private:
 
-  void addClauses(ClauseIterator it);
   void addClause(Clause* cl);
 
-  void processUnprocessed();
+  void restartWithCurrentClauses();
+  void restartFromBeginning();
 
-  void collectSelected(LiteralSubstitutionTree& acc);
-  void tryGeneratingInstances(Clause* cl, unsigned litIdx, LiteralSubstitutionTree& selected);
-  void tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery);
+
+  void wipeIndexes();
+
+  void processUnprocessed();
+  void activate(Clause* cl, bool wasDeactivated=false);
+
+  void deactivate(Clause* cl);
+  void doReactivation();
+
+  void selectAndAddToIndex(Clause* cl);
+  void removeFromIndex(Clause* cl);
+
+  void tryGeneratingInstances(Clause* cl, unsigned litIdx);
+  void tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl);
   void generateInstances();
 
   bool isSelected(Literal* lit);
@@ -80,7 +92,15 @@ private:
   /** Clauses inside the SATSolver and used for instantiation */
   RCClauseStack _active;
 
-  ClauseVariantIndex _variantIdx;
+  /** Clauses that need to be activated again because of the change in selection */
+  ClauseStack _deactivated;
+  DHSet<Clause*> _deactivatedSet;
+
+  RCClauseStack _inputClauses;
+
+  ClauseVariantIndex* _variantIdx;
+
+  LiteralSubstitutionTree* _selected;
 
   DuplicateLiteralRemovalISE _duplicateLiteralRemoval;
   TautologyDeletionISE _tautologyDeletion;
