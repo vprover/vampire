@@ -77,7 +77,6 @@ void IGAlgorithm::addInputClauses(ClauseIterator it)
     Clause* cl = static_cast<Clause*>(UnitList::pop(units));
     ASS(cl->isClause());
     _inputClauses.push(cl);
-    addClause(cl);
   }
 }
 
@@ -416,6 +415,13 @@ MainLoopResult IGAlgorithm::runImpl()
 {
   CALL("IGAlgorithm::runImpl");
   LOG("IGA started");
+
+  RCClauseStack::Iterator icit(_inputClauses);
+  while(icit.hasNext()) {
+    Clause* cl = icit.next();
+    addClause(cl);
+  }
+
 
   unsigned loopIterBeforeRestart = 50;
 
