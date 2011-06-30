@@ -196,7 +196,6 @@ public:
     MODE_CLAUSIFY,
     MODE_CONSEQUENCE_ELIMINATION,
     MODE_GROUNDING,
-    MODE_INST_GEN,
     MODE_LTB_BUILD,
     MODE_LTB_SOLVE,
     MODE_PROFILE,
@@ -219,9 +218,10 @@ public:
   /** Possible values for saturation_algorithm */
   enum SaturationAlgorithm {
      DISCOUNT = 0,
-     LRS = 1,
-     OTTER = 2,
-     TABULATION = 3
+     INST_GEN = 1,
+     LRS = 2,
+     OTTER = 3,
+     TABULATION = 4
    };
 
   /** Possible values for activity of some inference rules */

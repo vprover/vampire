@@ -13,13 +13,18 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Kernel/MainLoop.hpp"
 #include "Kernel/RCClauseStack.hpp"
 
 #include "Indexing/ClauseVariantIndex.hpp"
 
+#include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InferenceEngine.hpp"
+#include "Inferences/TautologyDeletionISE.hpp"
 
 #include "SAT/SATSolver.hpp"
+
+#include "Saturation/AWPassiveClauseContainer.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -31,20 +36,20 @@ using namespace Kernel;
 using namespace Inferences;
 using namespace Indexing;
 using namespace SAT;
+using namespace Saturation;
 using namespace Shell;
 
-class IGAlgorithm {
+class IGAlgorithm : public MainLoop {
 public:
   typedef Statistics::TerminationReason TerminationReason;
 
   IGAlgorithm();
   ~IGAlgorithm();
 
-  void addInputClauses(ClauseIterator it) {
-    addClauses(it);
-  }
+  virtual void addInputClauses(ClauseIterator it);
 
-  TerminationReason run();
+protected:
+  virtual MainLoopResult runImpl();
 private:
 
   void addClauses(ClauseIterator it);
@@ -59,20 +64,26 @@ private:
 
   bool isSelected(Literal* lit);
 
+  Clause* getFORefutation(SATClause* satRefutation);
 
   IGGrounder _gnd;
   SATSolverSCP _satSolver;
 
+  /** Used by global subsumption */
+  ScopedPtr<GroundingIndex> _groundingIndex;
+  ScopedPtr<GlobalSubsumption> _globalSubsumption;
+
   /** Clauses that weren't yet added into the SATSolver */
   RCClauseStack _unprocessed;
-  /** Clauses that are inside the SATSolver */
+  /** Clauses that are inside the SATSolver but not used for instantiation */
+  AWClauseContainer _passive;
+  /** Clauses inside the SATSolver and used for instantiation */
   RCClauseStack _active;
 
   ClauseVariantIndex _variantIdx;
 
-  DuplicateLiteralRemovalISE _dlr;
-
-//  SaturationAlgorithmSP _dummy;
+  DuplicateLiteralRemovalISE _duplicateLiteralRemoval;
+  TautologyDeletionISE _tautologyDeletion;
 };
 
 }

@@ -23,13 +23,18 @@ class GlobalSubsumption
 : public ForwardSimplificationEngine
 {
 public:
+  GlobalSubsumption() : _index(0) {}
+  /**
+   * The attach function must not be called when the constructor is used
+   */
+  GlobalSubsumption(GroundingIndex* idx) : _index(idx) {}
+
   void attach(SaturationAlgorithm* salg);
   void detach();
   void perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
+  Clause* perform(Clause* cl);
 private:
   void addClauseToIndex(Clause* cl);
-
-  void recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause);
 
   GroundingIndex* _index;
 };

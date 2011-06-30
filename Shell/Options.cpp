@@ -377,6 +377,7 @@ NameArray Options::Constants::lcmValues(_lcmValues,
 
 const char* Options::Constants::_satAlgValues[] = {
   "discount",
+  "inst_gen",
   "lrs",
   "otter",
   "tabulation"};
@@ -442,7 +443,6 @@ const char* Options::Constants::_modeValues[] = {
   "clausify",
   "consequence_elimination",
   "grounding",
-  "inst_gen",
   "ltb_build",
   "ltb_solve",
   "profile",

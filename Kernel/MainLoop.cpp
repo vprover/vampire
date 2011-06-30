@@ -14,6 +14,8 @@
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
+#include "InstGen/IGAlgorithm.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Tabulation/TabulationAlgorithm.hpp"
@@ -28,6 +30,7 @@
 namespace Kernel
 {
 
+using namespace InstGen;
 using namespace Saturation;
 using namespace Tabulation;
 
@@ -108,6 +111,9 @@ MainLoopSP MainLoop::createFromOptions()
 
   if(env.options->saturationAlgorithm()==Options::TABULATION) {
     return MainLoopSP(new TabulationAlgorithm());
+  }
+  else if(env.options->saturationAlgorithm()==Options::INST_GEN) {
+    return MainLoopSP(new IGAlgorithm());
   }
   else {
     return SaturationAlgorithm::createFromOptions().spcast<MainLoop>();

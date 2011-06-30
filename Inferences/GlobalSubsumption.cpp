@@ -12,7 +12,6 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Grounder.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/InferenceStore.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -41,6 +40,8 @@ using namespace Saturation;
 void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 {
   CALL("GlobalSubsumption::attach");
+  ASS(!_index);
+
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<GroundingIndex*>(
 	  _salg->getIndexManager()->request(GLOBAL_SUBSUMPTION_INDEX) );
@@ -49,6 +50,7 @@ void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 void GlobalSubsumption::detach()
 {
   CALL("GlobalSubsumption::detach");
+
   _index=0;
   _salg->getIndexManager()->release(GLOBAL_SUBSUMPTION_INDEX);
   ForwardSimplificationEngine::detach();
@@ -78,7 +80,7 @@ void GlobalSubsumption::addClauseToIndex(Clause* cl)
     Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, inf);
     refutation->setAge(cl->age());
 
-    recordInference(cl, solver.getRefutation(), refutation);
+    Grounder::recordInference(cl, solver.getRefutation(), refutation);
 
     env.statistics->globalSubsumption++;
     throw MainLoop::RefutationFoundException(refutation);
@@ -86,76 +88,21 @@ void GlobalSubsumption::addClauseToIndex(Clause* cl)
   ASS_EQ(solver.getStatus(),SATSolver::SATISFIABLE);
 }
 
-void GlobalSubsumption::recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause)
+Clause* GlobalSubsumption::perform(Clause* cl)
 {
-  CALL("GlobalSubsumption::recordInference");
-  ASS(refutation);
-
-  typedef InferenceStore::UnitSpec UnitSpec;
-
-  static Stack<UnitSpec> prems;
-  static Stack<SATClause*> toDo;
-  static DHSet<SATClause*> seen;
-  prems.reset();
-  toDo.reset();
-  seen.reset();
-
-  prems.push(UnitSpec(origClause));
-
-  toDo.push(refutation);
-  while(toDo.isNonEmpty()) {
-    SATClause* cur = toDo.pop();
-    if(!seen.insert(cur)) {
-      continue;
-    }
-    SATInference* sinf = cur->inference();
-    ASS(sinf);
-    switch(sinf->getType()) {
-    case SATInference::FO_CONVERSION:
-      prems.push(static_cast<FOConversionInference*>(sinf)->getOrigin());
-      break;
-    case SATInference::ASSUMPTION:
-      break;
-    case SATInference::PROP_INF:
-    {
-      PropInference* pinf = static_cast<PropInference*>(sinf);
-      toDo.loadFromIterator(SATClauseList::Iterator(pinf->getPremises()));
-      break;
-    }
-    default:
-      ASSERTION_VIOLATION;
-    }
-  }
-
-  makeUnique(prems);
-  unsigned premCnt = prems.size();
-
-  InferenceStore::FullInference* inf = new(premCnt) InferenceStore::FullInference(premCnt);
-  inf->rule = Inference::GLOBAL_SUBSUMPTION;
-
-  for(unsigned i=0; i<premCnt; i++) {
-    LOGV(prems[i].toString());
-    inf->premises[i] = prems[i];
-  }
-
-  InferenceStore::instance()->recordInference(UnitSpec(resultClause), inf);
-}
-
-void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
-{
-  CALL("GlobalSubsumption::perform");
+  CALL("GlobalSubsumption::perform/1");
 
   TimeCounter tc(TC_GLOBAL_SUBSUMPTION);
 
   if(cl->splits() && cl->splits()->size()!=0) {
     //Since we don't remove clauses, we must ignore clauses with splitting
     //history, because it wouldn't be possible to backtrack them
-    return;
+    return cl;
   }
 
   if(cl->prop() && !BDD::instance()->isFalse(cl->prop())) {
     //we don't have clausification of BDDs in the grounder yet
-    return;
+    return cl;
   }
 
   addClauseToIndex(cl);
@@ -187,27 +134,40 @@ void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simp
 	  }
 	  survivors.push((*cl)[j]);
 	}
+//	cout<<cl->length()<<" --> "<<survivors.length()<<"  mi: "<<maskedIdx<<endl;
 
 	//just a dummy inference, the correct one will be in the InferenceStore
 	Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
-	Clause* replacement = Clause::fromIterator(LiteralStack::Iterator(survivors),
+	Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),
 	    cl->inputType(), inf);
 	replacement->setAge(cl->age());
 
-	recordInference(cl, solver.getRefutation(), replacement);
+	Grounder::recordInference(cl, solver.getRefutation(), replacement);
 	LOGV(cl->toString());
 	LOGV(replacement->toString());
 	env.statistics->globalSubsumption++;
-	ALWAYS(simplPerformer->willPerform(0));
-	simplPerformer->perform(0, replacement);
-	ALWAYS(!simplPerformer->clauseKept());
 
 	solver.retractAllAssumptions();
-	return;
+	return replacement;
       }
     }
     solver.retractAllAssumptions();
   }
+  return cl;
+}
+
+void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+{
+  CALL("GlobalSubsumption::perform/2");
+
+  Clause* newCl = perform(cl);
+  if(newCl==cl) {
+    return;
+  }
+
+  ALWAYS(simplPerformer->willPerform(0));
+  simplPerformer->perform(0, newCl);
+  ALWAYS(!simplPerformer->clauseKept());
 }
 
 }

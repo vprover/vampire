@@ -17,12 +17,15 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/EqualityProxy.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "IGAlgorithm.hpp"
 
 #undef LOGGING
-#define LOGGING 1
+#define LOGGING 0
 
 namespace InstGen
 {
@@ -33,26 +36,37 @@ IGAlgorithm::IGAlgorithm()
 {
   CALL("IGAlgorithm::IGAlgorithm");
 
-  _satSolver = new TWLSolver();
+  _satSolver = new TWLSolver(true);
 
-//  _dummy = SaturationAlgorithm::createFromOptions();
-//  _dlr.attach(_dummy.ptr());
+  if(env.options->globalSubsumption()) {
+    _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder());
+    _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr());
+  }
 }
 
 IGAlgorithm::~IGAlgorithm()
 {
-  _dlr.detach();
+  CALL("IGAlgorithm::~IGAlgorithm");
 }
 
-/**
- * Add clauses from @c it among unprocessed
- */
-void IGAlgorithm::addClauses(ClauseIterator it)
+void IGAlgorithm::addInputClauses(ClauseIterator it)
 {
-  CALL("IGAlgorithm::addClauses");
+  CALL("IGAlgorithm::addInputClauses");
 
-  while(it.hasNext()) {
-    addClause(it.next());
+  UnitList* units = 0;
+  UnitList::pushFromIterator(it, units);
+
+  Property property;
+  property.scan(units);
+  if(property.equalityAtoms()) {
+    EqualityProxy ep(Options::EP_RSTC);
+    ep.apply(units);
+  }
+
+  while(units) {
+    Clause* cl = static_cast<Clause*>(UnitList::pop(units));
+    ASS(cl->isClause());
+    addClause(cl);
   }
 }
 
@@ -60,15 +74,36 @@ void IGAlgorithm::addClause(Clause* cl)
 {
   CALL("IGAlgorithm::addClause");
 
-
-  cl = _dlr.simplify(cl);
-  if(_variantIdx.retrieveVariants(cl).hasNext()) {
-    cl->incRefCnt();
-    cl->decRefCnt();//this will lead to clause deletion if it isn't referenced from anywhere else
-    env.statistics->instGenRedundantClauses++;
+  cl = _duplicateLiteralRemoval.simplify(cl);
+  cl = _tautologyDeletion.simplify(cl);
+  if(!cl) {
     return;
   }
+//  cout<<endl<<endl<<"---------"<<endl;
+//  cout<<"init: "<<cl->toString()<<endl;
+
+redundancy_check:
+  if(_variantIdx.retrieveVariants(cl).hasNext()) {
+    cl->destroyIfUnnecessary();
+    env.statistics->instGenRedundantClauses++;
+//    cout<<endl<<endl<<"## is variant ##"<<endl;
+    return;
+  }
+  cl->incRefCnt();
   _variantIdx.insert(cl);
+  if(_globalSubsumption) {
+    Clause* newCl = _globalSubsumption->perform(cl);
+    if(newCl!=cl) {
+      ASS_L(newCl->length(), cl->length());
+      ASS_G(newCl->length(), 0);
+
+//      cout<<"gs:   "<<newCl->toString()<<endl;
+
+      cl = newCl;
+      goto redundancy_check;
+    }
+  }
+//  cout<<endl<<endl<<"## survived ##"<<endl;
 
   _unprocessed.push(cl);
   env.statistics->instGenKeptClauses++;
@@ -87,7 +122,6 @@ void IGAlgorithm::processUnprocessed()
     _active.push(cl);
     cl->decRefCnt(); //corresponds to _unprocessed.popWithoutDec();
 
-//    LOG("Added clause "<<cl->toString());
     SATClauseIterator sc = _gnd.ground(cl);
     satClauses.loadFromIterator(sc);
   }
@@ -99,6 +133,11 @@ void IGAlgorithm::processUnprocessed()
   LOG("Solver started");
   _satSolver->addClauses(scit);
   LOG("Solver finished");
+
+  if(_satSolver->getStatus()==SATSolver::UNSATISFIABLE) {
+    Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
+    throw RefutationFoundException(foRefutation);
+  }
 }
 
 bool IGAlgorithm::isSelected(Literal* lit)
@@ -155,6 +194,7 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   }
   Inference* inf = new Inference1(Inference::INSTANCE_GENERATION, orig);
   Clause* res = Clause::fromStack(genLits, orig->inputType(), inf);
+  res->setAge(orig->age()+1);
 
   env.statistics->instGenGeneratedClauses++;
   addClause(res);
@@ -208,24 +248,33 @@ void IGAlgorithm::generateInstances()
   }
 }
 
-IGAlgorithm::TerminationReason IGAlgorithm::run()
+Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation)
 {
-  CALL("IGAlgorithm::process");
+  CALL("IGAlgorithm::getFORefutation");
+  ASS(satRefutation);
+
+  //just a dummy inference, the correct one will be in the inference store
+  Inference* inf = new Inference(Inference::TAUTOLOGY_INTRODUCTION);
+  Clause* res = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, inf);
+  Grounder::recordInference(0, satRefutation, res);
+  return res;
+}
+
+MainLoopResult IGAlgorithm::runImpl()
+{
+  CALL("IGAlgorithm::runImpl");
   LOG("IGA started");
 
-  while(_unprocessed.isNonEmpty()) {
+  while(_unprocessed.isNonEmpty() || !_passive.isEmpty()) {
     env.statistics->instGenIterations++;
     processUnprocessed();
 
-    if(_satSolver->getStatus()==SATSolver::UNSATISFIABLE) {
-      return Statistics::REFUTATION;
-    }
     ASS_EQ(_satSolver->getStatus(), SATSolver::SATISFIABLE);
     generateInstances();
     LOG("IGA loop finished");
   }
 
-  return Statistics::SATISFIABLE;
+  return MainLoopResult(Statistics::SATISFIABLE);
 }
 
 }

@@ -26,6 +26,8 @@ public:
 
   unsigned satVarCnt() const { return _nextSatVar; }
 
+  static void recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause);
+
 protected:
   /**
    * Normalize literals before grounding.

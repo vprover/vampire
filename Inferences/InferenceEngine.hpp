@@ -39,11 +39,13 @@ public:
   }
   virtual void attach(SaturationAlgorithm* salg)
   {
+    CALL("InferenceEngine::attach");
     ASS(!_salg);
     _salg=salg;
   }
   virtual void detach()
   {
+    CALL("InferenceEngine::detach");
     ASS(_salg);
     _salg=0;
   }

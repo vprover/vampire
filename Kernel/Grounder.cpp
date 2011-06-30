@@ -7,6 +7,7 @@
 
 #include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
@@ -15,6 +16,9 @@
 #include "SAT/SATLiteral.hpp"
 
 #include "Grounder.hpp"
+
+#undef LOGGING
+#define LOGGING 0
 
 namespace Kernel
 {
@@ -43,6 +47,7 @@ SATClauseIterator Grounder::ground(Clause* cl)
   }
 
   SATClause* gndNonProp = groundNonProp(cl);
+//  cout<<gndNonProp->toString()<<endl;
 
   SATInference* inf = new FOConversionInference(InferenceStore::UnitSpec(cl));
   gndNonProp->setInference(inf);
@@ -117,6 +122,64 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
     *pvar = _nextSatVar++;
   }
   return SATLiteral(*pvar, isPos);
+}
+
+void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause)
+{
+  CALL("Grounder::recordInference");
+  ASS(refutation);
+
+  typedef InferenceStore::UnitSpec UnitSpec;
+
+  static Stack<UnitSpec> prems;
+  static Stack<SATClause*> toDo;
+  static DHSet<SATClause*> seen;
+  prems.reset();
+  toDo.reset();
+  seen.reset();
+
+  if(origClause) {
+    prems.push(UnitSpec(origClause));
+  }
+
+  toDo.push(refutation);
+  while(toDo.isNonEmpty()) {
+    SATClause* cur = toDo.pop();
+    if(!seen.insert(cur)) {
+      continue;
+    }
+    SATInference* sinf = cur->inference();
+    ASS(sinf);
+    switch(sinf->getType()) {
+    case SATInference::FO_CONVERSION:
+      prems.push(static_cast<FOConversionInference*>(sinf)->getOrigin());
+//      cout<<prems.top().unit()->number()<<" ";
+      break;
+    case SATInference::ASSUMPTION:
+      break;
+    case SATInference::PROP_INF:
+    {
+      PropInference* pinf = static_cast<PropInference*>(sinf);
+      toDo.loadFromIterator(SATClauseList::Iterator(pinf->getPremises()));
+      break;
+    }
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+
+  makeUnique(prems);
+  unsigned premCnt = prems.size();
+
+  InferenceStore::FullInference* inf = new(premCnt) InferenceStore::FullInference(premCnt);
+  inf->rule = Inference::GLOBAL_SUBSUMPTION;
+
+  for(unsigned i=0; i<premCnt; i++) {
+    LOGV(prems[i].toString());
+    inf->premises[i] = prems[i];
+  }
+
+  InferenceStore::instance()->recordInference(UnitSpec(resultClause), inf);
 }
 
 

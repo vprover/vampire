@@ -323,53 +323,6 @@ void axiomSelectionMode()
   vampireReturnValue=0;
 }
 
-void instGenMode()
-{
-  CALL("instGenMode()");
-
-  env.beginOutput();
-  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
-  env.endOutput();
-
-  ClauseIterator clauses=getProblemClauses();
-
-  UnitList* units = 0;
-  UnitList::pushFromIterator(clauses, units);
-
-  Property property;
-  property.scan(units);
-  if(property.equalityAtoms()) {
-    EqualityProxy ep(Options::EP_RSTC);
-    ep.apply(units);
-  }
-  clauses = pvi( getStaticCastIterator<Clause*>(UnitList::DestructiveIterator(units)) );
-
-  env.statistics->phase=Statistics::SATURATION;
-
-  IGAlgorithm iga;
-  iga.addInputClauses(clauses);
-
-  Statistics::TerminationReason res = iga.run();
-
-  env.statistics->phase=Statistics::FINALIZATION;
-
-  env.beginOutput();
-  switch(res) {
-  case Statistics::SATISFIABLE:
-    env.out()<<"SAT"<<endl;
-    break;
-  case Statistics::REFUTATION:
-    env.out()<<"UNSAT"<<endl;
-    break;
-  default:
-    env.out()<<"ERROR"<<endl;
-    break;
-  }
-  env.endOutput();
-
-  vampireReturnValue=0;
-}
-
 void groundingMode()
 {
   CALL("groundingMode()");
@@ -484,9 +437,6 @@ int main(int argc, char* argv [])
       break;
     case Options::MODE_GROUNDING:
       groundingMode();
-      break;
-    case Options::MODE_INST_GEN:
-      instGenMode();
       break;
     case Options::MODE_SPIDER:
       spiderMode();
