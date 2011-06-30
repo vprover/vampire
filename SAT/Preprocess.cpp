@@ -475,6 +475,10 @@ SATClauseIterator Preprocess::removeDuplicateLiterals(SATClauseIterator clauses)
         (*cl2)[i]=(*cl)[duplicate+i];
       }
       cl2->sort();
+      if(cl->inference()) {
+	SATInference* cl2Inf = new PropInference(cl);
+	cl2->setInference(cl2Inf);
+      }
       cl=cl2;
     }
 

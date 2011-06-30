@@ -48,6 +48,10 @@ public:
   USE_ALLOCATOR(PropInference);
 
   PropInference(SATClauseList* premises) : _premises(premises) {}
+  PropInference(SATClause* prem) : _premises(0)
+  {
+    SATClauseList::push(prem, _premises);
+  }
   PropInference(SATClause* prem1, SATClause* prem2) : _premises(0)
   {
     SATClauseList::push(prem1, _premises);
