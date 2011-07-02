@@ -28,6 +28,8 @@ public:
 
   static void recordInference(Clause* origClause, SATClause* refutation, Clause* resultClause);
 
+  LiteralIterator groundedLits();
+
 protected:
   /**
    * Normalize literals before grounding.

@@ -9,6 +9,7 @@
 
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
 #include "LiteralSubstitutionTree.hpp"
@@ -232,6 +233,26 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
       LDToSLQueryResultFn()) ) ;
 }
 
+
+struct LiteralSubstitutionTree::EqualitySortFilter
+{
+  DECL_RETURN_TYPE(bool);
+
+  EqualitySortFilter(Literal* queryLit)
+  : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)) {}
+
+  bool operator()(const SLQueryResult& res)
+  {
+    CALL("LiteralSubstitutionTree::EqualitySortFilter::operator()");
+    ASS(res.literal->isEquality());
+
+    unsigned resSort = SortHelper::getEqualityArgumentSort(res.literal);
+    return resSort==_queryEqSort;
+  }
+private:
+  unsigned _queryEqSort;
+};
+
 template<class Iterator>
 SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
@@ -257,8 +278,13 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
   	    new Iterator(this, root, lit, retrieveSubstitutions) );
     VirtualIterator<QueryResult> qrit2=vi(
   	    new Iterator(this, root, lit, retrieveSubstitutions, true) );
-    return pvi( getMappingIterator(
-	    getConcatenatedIterator(qrit1,qrit2), SLQueryResultFunctor()) );
+    ASS(lit->isEquality());
+    return pvi(
+	getFilteredIterator(
+	    getMappingIterator(
+		getConcatenatedIterator(qrit1,qrit2), SLQueryResultFunctor()),
+	    EqualitySortFilter(lit))
+	);
   } else {
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
   	    new Iterator(this, root, lit, retrieveSubstitutions) );

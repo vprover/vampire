@@ -168,7 +168,8 @@ VI_OBJ = Indexing/ArithmeticIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o
 
-VIG_OBJ = InstGen/IGAlgorithm.o
+VIG_OBJ = InstGen/IGAlgorithm.o\
+          InstGen/ModelPrinter.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\

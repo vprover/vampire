@@ -10,6 +10,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Indexing/LiteralSubstitutionTree.hpp"
 
@@ -57,6 +58,13 @@ IGAlgorithm::~IGAlgorithm()
 
   delete _selected;
   delete _variantIdx;
+}
+
+ClauseIterator IGAlgorithm::getActive()
+{
+  CALL("IGAlgorithm::getActive");
+
+  return pvi( RCClauseStack::Iterator(_active) );
 }
 
 void IGAlgorithm::addInputClauses(ClauseIterator it)

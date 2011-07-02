@@ -103,6 +103,7 @@ class PredicateType;
 
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
+typedef Stack<TermList> TermStack;
 class Term;
 class Literal;
 typedef List<Literal*> LiteralList;
@@ -308,6 +309,12 @@ class Storage;
 class Builder;
 class Selector;
 }
+}
+
+namespace InstGen
+{
+class IGAlgorithm;
+class ModelPrinter;
 }
 
 namespace Tabulation

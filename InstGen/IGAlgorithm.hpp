@@ -49,6 +49,10 @@ public:
 
   virtual void addInputClauses(ClauseIterator it);
 
+  GroundingIndex& getGroundingIndex() { return *_groundingIndex.ptr(); }
+
+  ClauseIterator getActive();
+
 protected:
   virtual MainLoopResult runImpl();
 private:

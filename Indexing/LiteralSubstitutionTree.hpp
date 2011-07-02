@@ -48,6 +48,8 @@ private:
   struct PropositionalLDToSLQueryResultWithSubstFn;
   struct LeafToLDIteratorFn;
 
+  struct EqualitySortFilter;
+
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);

@@ -331,8 +331,8 @@ string DefaultHelperCore::toString (const Kernel::Unit* unit0) const
     prefix = OutputOptions::tffFormulas() ? "tff" : "fof";
     const Kernel::Formula* f0 = static_cast<const Kernel::FormulaUnit*>(unit)->formula();
     Kernel::Formula* f = const_cast<Kernel::Formula*>(f0);
+    f=Kernel::Formula::quantify(f);
     if(negate_formula) {
-      f=Kernel::Formula::quantify(f);
       if(f->connective()==NOT) {
 	ASS_EQ(f,f0);
 	main = toString(f->uarg());
@@ -344,9 +344,6 @@ string DefaultHelperCore::toString (const Kernel::Unit* unit0) const
       }
     }
     else {
-      if(OutputOptions::tffFormulas()) {
-	f=Kernel::Formula::quantify(f);
-      }
       main = toString(f);
     }
     if(f0!=f) {
