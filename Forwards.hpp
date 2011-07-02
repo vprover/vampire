@@ -291,6 +291,7 @@ typedef Stack<SATLiteral> SATLiteralStack;
 
 namespace Shell
 {
+class AnswerLiteralManager;
 class LaTeX;
 class Options;
 class Property;

@@ -10,6 +10,7 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Clause.hpp"
 
+#include "AnswerExtractor.hpp"
 #include "CNF.hpp"
 #include "EPRInlining.hpp"
 #include "EPRSkolem.hpp"
@@ -104,12 +105,17 @@ void Preprocess::preprocess (UnitList*& units)
     units = norm.normalise(units);
   }
 
-  if(env.options->sineSelection()!=Options::SS_OFF) {
+  if(_options.sineSelection()!=Options::SS_OFF) {
     env.statistics->phase=Statistics::SINE_SELECTION;
     SineSelector().perform(units);
   }
 
-  if(env.options->theoryAxioms()) {
+  if(_options.questionAnswering()==Options::QA_ANSWER_LITERAL) {
+    env.statistics->phase=Statistics::UNKNOWN_PHASE;
+    AnswerLiteralManager::getInstance()->addAnswerLiterals(units);
+  }
+
+  if(_options.theoryAxioms()) {
     env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
     TheoryAxioms().apply(units, &_property);
   }

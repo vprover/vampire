@@ -38,7 +38,6 @@ BSplitter::BSplitter()
   _addGroundNegation=env.options->splitAddGroundNegation();
 }
 
-
 /**
  * Attempt to split clause @b cl, and return true if successful
  *
@@ -218,31 +217,34 @@ Clause* BSplitter::getComponent(Clause* cl)
 
   IntUnionFind::ComponentIterator cit(components);
 
+
+  for(;;) {
   compAssemblyStart:
-  lits.reset();
-
-  ALWAYS(cit.hasNext());
-  IntUnionFind::ElementIterator elit=cit.next();
-
-  unsigned compPosLits=0;
-  while(elit.hasNext()) {
-    int litIndex=elit.next();
-    Literal* lit=(*cl)[litIndex];
-    lits.push(lit);
-    if(lit->isPositive()) {
-      compPosLits++;
-    }
-  }
-  if(splitPositive()) {
-    if(compPosLits==posLits) {
+    if(!cit.hasNext()) {
       return 0;
     }
-    if(compPosLits==0) {
-      if(cit.hasNext()) {
-	goto compAssemblyStart;
+    lits.reset();
+
+    IntUnionFind::ElementIterator elit=cit.next();
+
+    unsigned compPosLits=0;
+    while(elit.hasNext()) {
+      int litIndex=elit.next();
+      Literal* lit=(*cl)[litIndex];
+      lits.push(lit);
+      if(lit->isPositive()) {
+	compPosLits++;
       }
-      else {
+      if(isAnswerLiteral(lit)) {
+	goto compAssemblyStart; //we don't split out answer literals, so next component has to be attempted
+      }
+    }
+    if(splitPositive()) {
+      if(compPosLits==posLits) {
 	return 0;
+      }
+      if(compPosLits==0) {
+	continue; //try next component
       }
     }
   }

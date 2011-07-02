@@ -134,8 +134,9 @@ PredicateDefinition::PredicateDefinition()
   _preds = new PredData[predCnt];
   for(int i=0;i<predCnt;i++) {
     _preds[i].pred=i;
-    _preds[i].builtIn =
-	env.signature->getPredicate(i)->interpreted() ||
+
+    Signature::Symbol *predSym = env.signature->getPredicate(i);
+    _preds[i].builtIn = predSym->interpreted() || predSym->answerPredicate() ||
 	env.signature->predicateName(i) == "$distinct";
     //TODO: remove this hack once we properly support the $distinct predicate
   }

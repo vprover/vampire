@@ -55,8 +55,8 @@ int LiteralSelector::getSelectionPriority(Literal* l)
     }
     return -1;
   }
-  if(psym->cfName()) {
-    return -1;
+  if(psym->cfName() || psym->answerPredicate()) {
+    return -2;
   }
   return 0;
 }

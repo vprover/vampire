@@ -14,13 +14,14 @@ namespace Saturation {
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
+using namespace Shell;
 
 class Splitter
 {
 public:
   virtual ~Splitter() {}
 
-  void init(SaturationAlgorithm* sa);
+  virtual void init(SaturationAlgorithm* sa);
 
   virtual bool doSplitting(Clause* cl) = 0;
 
@@ -41,7 +42,10 @@ protected:
 
   virtual bool splittingAllowed(Clause* cl);
 
+  bool isAnswerLiteral(Literal* lit);
+
   SaturationAlgorithm* _sa;
+  AnswerLiteralManager* _ansLitMgr;
 };
 
 };

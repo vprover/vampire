@@ -126,7 +126,7 @@ void UIHelper::outputResult(ostream& out)
 	out<<"% SZS output end Proof for "<<env.options->problemName()<<endl;
       }
     }
-    if(env.options->outputAnswer()) {
+    if(env.options->questionAnswering()!=Options::QA_OFF) {
       ASS(env.statistics->refutation->isClause());
       AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }

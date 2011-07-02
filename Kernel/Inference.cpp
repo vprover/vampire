@@ -227,6 +227,8 @@ string Inference::ruleName(Rule rule)
     return "input";
   case NEGATED_CONJECTURE:
     return "negated conjecture";
+  case ANSWER_LITERAL:
+    return "answer literal";
   case RECTIFY:
     return "rectify";
   case CLOSURE:

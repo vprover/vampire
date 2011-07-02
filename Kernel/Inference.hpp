@@ -33,6 +33,9 @@ public:
     INPUT,
     /** negated conjecture from the input */
     NEGATED_CONJECTURE,
+    /** introduction of answer literal into the conjecture,
+     * or the unit negation of answer literal used to obtain refutation */
+    ANSWER_LITERAL,
 //     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
 //     CHOICE_AXIOM,
 //     /** (Ax)(F(x)->F'(x)), G[F(t)] / G[F'(t)] */

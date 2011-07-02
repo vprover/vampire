@@ -27,6 +27,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -63,7 +64,7 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContaine
 	LiteralSelector* selector)
 : _imgr(this), _clauseActivationInProgress(false), _passive(passiveContainer),
   _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _splitter(0),
-  _consFinder(0), _symEl(0), _bddMarkingSubsumption(0)
+  _consFinder(0), _symEl(0), _bddMarkingSubsumption(0), _answerLiteralManager(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
@@ -418,6 +419,10 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 
   if(!_propToBDD && cl->isPropositional()) {
     onNewUsefulPropositionalClause(cl);
+  }
+
+  if(_answerLiteralManager) {
+    _answerLiteralManager->onNewClause(cl);
   }
 }
 

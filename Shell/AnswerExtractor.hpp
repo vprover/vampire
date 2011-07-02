@@ -8,7 +8,11 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/DHMap.hpp"
+
+#include "Kernel/Formula.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/RCClauseStack.hpp"
 
 
 
@@ -39,6 +43,30 @@ private:
 };
 
 
+class AnswerLiteralManager : public AnswerExtractor
+{
+public:
+  static AnswerLiteralManager* getInstance();
+
+  virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer);
+
+  void addAnswerLiterals(UnitList*& units);
+
+  bool isAnswerLiteral(Literal* lit);
+
+  void onNewClause(Clause* cl);
+
+private:
+  Literal* getAnswerLiteral(Formula::VarList* vars);
+  Unit* tryAddingAnswerLiteral(Unit* unit);
+
+  Clause* getResolverClause(unsigned pred);
+  Clause* getRefutation(Clause* answer);
+
+  RCClauseStack _answers;
+
+  DHMap<unsigned, Clause*> _resolverClauses;
+};
 
 }
 

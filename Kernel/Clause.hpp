@@ -228,6 +228,8 @@ public:
   BDDNode* prop() const { return _prop; }
   void initProp(BDDNode* prop);
   void setProp(BDDNode* prop);
+  /** Return true if clause has either no propositional part, or one which is false */
+  bool noProp() const;
 
   SplitSet* splits() const { return _splits; }
   bool noSplits() const;

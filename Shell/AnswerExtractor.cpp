@@ -7,8 +7,11 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Kernel/BDD.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/MainLoop.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Tabulation/TabulationAlgorithm.hpp"
@@ -31,9 +34,11 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
 
   Stack<TermList> answer;
 
-  ConjunctionGoalAnswerExractor ae1;
-  if(!ae1.tryGetAnswer(refutation, answer)) {
-    return;
+  if(!AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer)) {
+    ConjunctionGoalAnswerExractor cge;
+    if(!cge.tryGetAnswer(refutation, answer)) {
+      return;
+    }
   }
   env.beginOutput();
   env.out() << "% SZS answers Tuple [[";
@@ -255,4 +260,196 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 }
 
 
+///////////////////////
+// AnswerLiteralManager
+//
+
+AnswerLiteralManager* AnswerLiteralManager::getInstance()
+{
+  CALL("AnswerLiteralManager::getInstance");
+
+  static AnswerLiteralManager instance;
+
+  return &instance;
 }
+
+bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
+{
+  CALL("AnswerLiteralManager::tryGetAnswer");
+
+  RCClauseStack::Iterator cit(_answers);
+  while(cit.hasNext()) {
+    Clause* ansCl = cit.next();
+    if(ansCl->length()!=1) {
+      continue;
+    }
+    Literal* lit = (*ansCl)[0];
+    unsigned arity = lit->arity();
+    for(unsigned i=0; i<arity; i++) {
+      answer.push(*lit->nthArgument(i));
+    }
+    return true;
+  }
+  return false;
+}
+
+Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars)
+{
+  CALL("AnswerLiteralManager::getAnswerLiteral");
+
+  static Stack<TermList> litArgs;
+  litArgs.reset();
+  Formula::VarList::Iterator vit(vars);
+  while(vit.hasNext()) {
+    unsigned var = vit.next();
+    litArgs.push(TermList(var, false));
+  }
+
+  unsigned vcnt = litArgs.size();
+  unsigned pred = env.signature->addNamePredicate(vcnt, "ans");
+  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  predSym->markAswerPredicate();
+  return Literal::create(pred, vcnt, true, false, litArgs.begin());
+}
+
+Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
+{
+  CALL("AnswerLiteralManager::tryAddingAnswerLiteral");
+
+  if(unit->isClause() || unit->inputType()!=Unit::CONJECTURE) {
+    return unit;
+  }
+
+  FormulaUnit* fu = static_cast<FormulaUnit*>(unit);
+  Formula* form = fu->formula();
+
+  if(form->connective()!=NOT || form->uarg()->connective()!=EXISTS) {
+    return unit;
+  }
+
+  Formula* quant =form->uarg();
+  Formula::VarList* vars = quant->vars();
+  ASS(vars);
+
+  FormulaList* conjArgs = 0;
+  FormulaList::push(quant->qarg(), conjArgs);
+  Literal* ansLit = getAnswerLiteral(vars);
+  FormulaList::push(new AtomicFormula(ansLit), conjArgs);
+
+  Formula* conj = new JunctionFormula(AND, conjArgs);
+  Formula* newQuant = new QuantifiedFormula(EXISTS, vars, conj);
+  Formula* newForm = new NegatedFormula(newQuant);
+
+  newForm = Flattening::flatten(newForm);
+
+  Inference* inf = new Inference1(Inference::ANSWER_LITERAL, unit);
+  Unit* res = new FormulaUnit(newForm, inf, unit->inputType());
+
+  return res;
+}
+
+void AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
+{
+  CALL("AnswerLiteralManager::addAnswerLiterals");
+
+  UnitList::DelIterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    Unit* newU = tryAddingAnswerLiteral(u);
+    if(u!=newU) {
+      uit.replace(newU);
+    }
+  }
+}
+
+bool AnswerLiteralManager::isAnswerLiteral(Literal* lit)
+{
+  CALL("AnswerLiteralManager::isAnswerLiteral");
+
+  unsigned pred = lit->functor();
+  Signature::Symbol* sym = env.signature->getPredicate(pred);
+  return sym->answerPredicate();
+}
+
+void AnswerLiteralManager::onNewClause(Clause* cl)
+{
+  CALL("AnswerLiteralManager::onNewClause");
+
+  if(!cl->noProp() || !cl->noSplits()) {
+    return;
+  }
+
+  unsigned clen = cl->length();
+  for(unsigned i=0; i<clen; i++) {
+    if(!isAnswerLiteral((*cl)[i])) {
+      return;
+    }
+  }
+
+  _answers.push(cl);
+
+  Clause* refutation = getRefutation(cl);
+
+  throw MainLoop::RefutationFoundException(refutation);
+
+//  env.beginOutput();
+//  env.out()<<cl->toString()<<endl;
+//  env.endOutput();
+}
+
+Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
+{
+  CALL("AnswerLiteralManager::getResolverClause");
+
+  Clause* res;
+  if(_resolverClauses.find(pred, res)) {
+    return res;
+  }
+
+  static Stack<TermList> args;
+  args.reset();
+
+  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  ASS(predSym->answerPredicate());
+  unsigned arity = predSym->arity();
+
+  for(unsigned i=0; i<arity; i++) {
+    args.push(TermList(i, false));
+  }
+  Literal* lit = Literal::create(pred, arity, true, false, args.begin());
+  res = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM,
+      new Inference(Inference::ANSWER_LITERAL));
+
+  _resolverClauses.insert(pred, res);
+  return res;
+}
+
+Clause* AnswerLiteralManager::getRefutation(Clause* answer)
+{
+  CALL("AnswerLiteralManager::getRefutation");
+
+  unsigned clen = answer->length();
+  UnitList* premises = 0;
+  UnitList::push(answer, premises);
+
+  for(unsigned i=0; i<clen; i++) {
+    Clause* resolvingPrem = getResolverClause((*answer)[i]->functor());
+    UnitList::push(resolvingPrem, premises);
+  }
+
+  Inference* inf = new InferenceMany(Inference::UNIT_RESULTING_RESOLUTION, premises);
+  Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(), answer->inputType(), inf);
+  return refutation;
+}
+
+}
+
+
+
+
+
+
+
+
+
+

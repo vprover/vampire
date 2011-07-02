@@ -170,6 +170,13 @@ void Clause::setProp(BDDNode* prop)
   }
 }
 
+bool Clause::noProp() const
+{
+  CALL("Clause::hasProp");
+
+  return !prop() || BDD::instance()->isFalse(prop());
+}
+
 bool Clause::shouldBeDestroyed()
 {
 //  return false;

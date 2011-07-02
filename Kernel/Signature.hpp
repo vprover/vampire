@@ -40,7 +40,7 @@ class Signature
     /** print name */
     string _name;
     /** arity */
-    unsigned _arity : 25;
+    unsigned _arity : 24;
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
     /** clauses with only skipped symbols will not be output as symbol eliminating */
@@ -56,6 +56,8 @@ class Signature
     unsigned _color : 2;
     /** marks distinct string constants */
     unsigned _stringConstant : 1;
+    /** predicate introduced for query answering */
+    unsigned _answerPredicate : 1;
     /** Either a FunctionType of a PredicateType object */
     mutable BaseType* _type;
     /** List of distinct groups the constant is a member of */
@@ -77,6 +79,8 @@ class Signature
     void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
     /** mark symbol to be a distinct string constant */
     void markStringConstant() { ASS_EQ(arity(), 0); _stringConstant=1; }
+    /** mark symbol to be an answer predicate */
+    void markAswerPredicate() { _answerPredicate=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
@@ -95,6 +99,8 @@ class Signature
     inline bool interpreted() const { return _interpreted; }
     /** Return true iff symbol is a distinct string constant */
     inline bool stringConstant() const { return _stringConstant; }
+    /** Return true iff symbol is an answer predicate */
+    inline bool answerPredicate() const { return _answerPredicate; }
 
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const

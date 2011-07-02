@@ -7,6 +7,7 @@
 
 #include "Kernel/Clause.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -21,7 +22,8 @@ void Splitter::init(SaturationAlgorithm* sa)
 {
   CALL("Splitter::init");
 
-  _sa=sa;
+  _sa = sa;
+  _ansLitMgr = _sa->getAnswerLiteralManager();
 }
 
 /**
@@ -66,6 +68,13 @@ bool Splitter::splittingAllowed(Clause* cl)
   }
 
   return true;
+}
+
+bool Splitter::isAnswerLiteral(Literal* lit)
+{
+  CALL("Splitter::isAnswerLiteral");
+
+  return _ansLitMgr && _ansLitMgr->isAnswerLiteral(lit);
 }
 
 }

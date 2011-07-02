@@ -48,6 +48,7 @@ public:
   static const char* _inputSyntaxValues[];
   static const char* _modeValues[];
   static const char* _ruleActivityValues[];
+  static const char* _questionAnsweringValues[];
   static const char* _inliningModeValues[];
   static const char* _interpolantModeValues[];
   static const char* _symbolPrecedenceValues[];
@@ -71,6 +72,7 @@ public:
   static NameArray inputSyntaxValues;
   static NameArray modeValues;
   static NameArray ruleActivityValues;
+  static NameArray questionAnsweringValues;
   static NameArray inliningModeValues;
   static NameArray interpolantModeValues;
   static NameArray symbolPrecedenceValues;
@@ -146,7 +148,6 @@ const char* Options::Constants::_optionNames[] = {
   "nonliterals_in_clause_weight",
   "normalize",
 
-  "output_answer",
   "output_axiom_names",
 
   "predicate_definition_inlining",
@@ -155,6 +156,8 @@ const char* Options::Constants::_optionNames[] = {
   "proof",
   "proof_checking",
   "propositional_to_bdd",
+
+  "question_answering",
 
   "random_seed",
   "row_variable_max_length",
@@ -401,6 +404,13 @@ const char* Options::Constants::_ruleActivityValues[] = {
 NameArray Options::Constants::ruleActivityValues(_ruleActivityValues,
 					      sizeof(_ruleActivityValues)/sizeof(char*));
 
+const char* Options::Constants::_questionAnsweringValues[] = {
+  "answer_literal",
+  "from_proof",
+  "off"};
+NameArray Options::Constants::questionAnsweringValues(_questionAnsweringValues,
+					      sizeof(_questionAnsweringValues)/sizeof(char*));
+
 const char* Options::Constants::_inliningModeValues[] = {
   "axioms_only",
   "off",
@@ -545,7 +555,6 @@ Options::Options ()
   _nonliteralsInClauseWeight(false),
   _normalize(false),
 
-  _outputAnswer(false),
   _outputAxiomNames(false),
 
   _predicateDefinitionInlining(INL_OFF),
@@ -554,6 +563,8 @@ Options::Options ()
   _proof(PROOF_ON),
   _proofChecking(false),
   _propositionalToBDD(true),
+
+  _questionAnswering(QA_OFF),
 
   _randomSeed(Random::seed()),
   _rowVariableMaxLength(2),
@@ -873,9 +884,6 @@ void Options::set (const char* name,const char* value, int index)
       _normalize = onOffToBool(value,name);
       return;
 
-    case OUTPUT_ANSWER:
-      _outputAnswer = onOffToBool(value,name);
-      return;
     case OUTPUT_AXIOM_NAMES:
       _outputAxiomNames = onOffToBool(value,name);
       return;
@@ -894,6 +902,10 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case PROPOSITIONAL_TO_BDD:
       _propositionalToBDD = onOffToBool(value,name);
+      return;
+
+    case QUESTION_ANSWERING:
+      _questionAnswering = (QuestionAnsweringMode)Constants::questionAnsweringValues.find(value);
       return;
 
     case RANDOM_SEED:
@@ -1476,9 +1488,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_normalize);
     return;
 
-  case OUTPUT_ANSWER:
-    str << boolToOnOff(_outputAnswer);
-    return;
   case OUTPUT_AXIOM_NAMES:
     str << boolToOnOff(_outputAxiomNames);
     return;
@@ -1500,6 +1509,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case PROPOSITIONAL_TO_BDD:
     str << boolToOnOff(_propositionalToBDD);
+    return;
+
+  case QUESTION_ANSWERING:
+    str << Constants::questionAnsweringValues[_questionAnswering];
     return;
 
   case RANDOM_SEED:

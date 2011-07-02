@@ -9,6 +9,7 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
@@ -236,6 +237,10 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
 
   if(env.options->bddMarkingSubsumption()) {
     res->_bddMarkingSubsumption=new BDDMarkingSubsumption();
+  }
+
+  if(env.options->questionAnswering()==Options::QA_ANSWER_LITERAL) {
+    res->_answerLiteralManager = AnswerLiteralManager::getInstance();
   }
 
   return SaturationAlgorithmSP(res);

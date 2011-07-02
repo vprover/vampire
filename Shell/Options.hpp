@@ -90,7 +90,6 @@ public:
     NONLITERALS_IN_CLAUSE_WEIGHT,
     NORMALIZE,
 
-    OUTPUT_ANSWER,
     OUTPUT_AXIOM_NAMES,
 
     PREDICATE_DEFINITION_INLINING,
@@ -99,6 +98,8 @@ public:
     PROOF,
     PROOF_CHECKING,
     PROPOSITIONAL_TO_BDD,
+
+    QUESTION_ANSWERING,
 
     RANDOM_SEED,
     ROW_VARIABLE_MAX_LENGTH,
@@ -229,6 +230,12 @@ public:
     RA_INPUT_ONLY = 0,
     RA_OFF = 1,
     RA_ON = 2
+  };
+
+  enum QuestionAnsweringMode {
+    QA_ANSWER_LITERAL = 0,
+    QA_FROM_PROOF = 1,
+    QA_OFF = 2
   };
 
   enum InliningMode {
@@ -415,8 +422,8 @@ public:
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination; }
   bool outputAxiomNames() const { return _outputAxiomNames; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
-  bool outputAnswer() const { return _outputAnswer; }
-  void setOutputAnswer(bool newVal) { _outputAnswer = newVal; }
+  QuestionAnsweringMode questionAnswering() const { return _questionAnswering; }
+  void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering = newVal; }
   string xmlOutput() const { return _xmlOutput; }
   string thanks() const { return _thanks; }
 
@@ -558,7 +565,6 @@ private:
   bool _nonliteralsInClauseWeight;
   bool _normalize;
 
-  bool _outputAnswer;
   bool _outputAxiomNames;
 
   InliningMode _predicateDefinitionInlining;
@@ -567,6 +573,8 @@ private:
   Proof _proof;
   bool _proofChecking;
   bool _propositionalToBDD;
+
+  QuestionAnsweringMode _questionAnswering;
 
   int _randomSeed;
   int _rowVariableMaxLength;

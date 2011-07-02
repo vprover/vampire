@@ -79,6 +79,7 @@ public:
   Limits* getLimits() { return &_limits; }
   IndexManager* getIndexManager() { return &_imgr; }
   ClauseSharing* getSharing() { return &_sharing; }
+  AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
 
   /**
    * If the saturation algorithm run is in progress, return pointer
@@ -193,6 +194,8 @@ protected:
   SymElOutput* _symEl;
 
   BDDMarkingSubsumption* _bddMarkingSubsumption;
+
+  AnswerLiteralManager* _answerLiteralManager;
 
   /** Index that takes care of the sharing and merging of clauses */
   ClauseSharing _sharing;
