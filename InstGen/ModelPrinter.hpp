@@ -28,6 +28,7 @@ public:
 private:
 
   struct InstLitComparator;
+  struct PredNumComparator;
 
   static bool isEprProblem();
   static bool isEquality(Literal* lit);
@@ -35,13 +36,19 @@ private:
   void collectTrueLits();
   void getInstances(LiteralStack& trueLits, TermStack& domain, LiteralStack& instanceAcc);
   void generateNewInstances(Literal* base, TermStack& domain, DHSet<Literal*>& instSet, LiteralStack& instAcc);
-  void analyzeEquality();
-  void populateDomain();
+  void analyzeEqualityAndPopulateDomain();
+  void rewriteLits(LiteralStack& lits);
+
+  void outputDomainSpec(ostream& out);
+  void outputFunInterpretations(ostream& out);
+  void outputPredInterpretations(ostream& out);
 
   Stack<TermList> _domain;
 
+
+  typedef DHMap<TermList,TermList> EqMap;
   /** Maps terms to representants of their equivalence classes */
-  DHMap<TermList,TermList> _rewrites;
+  EqMap _rewrites;
 
   LiteralStack _trueLits;
   LiteralStack _trueEqs;

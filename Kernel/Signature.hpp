@@ -66,7 +66,7 @@ class Signature
     ~Symbol();
   public:
     /** standard constructor */
-    Symbol(const string& nm,unsigned arity, bool interpreted=false);
+    Symbol(const string& nm,unsigned arity, bool interpreted=false, bool stringConstant=false);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -77,8 +77,6 @@ class Signature
     void markCFName() { ASS_EQ(arity(), 0); _cfName=1; }
     /** mark the symbol as name for splitting without backtracking */
     void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
-    /** mark symbol to be a distinct string constant */
-    void markStringConstant() { ASS_EQ(arity(), 0); _stringConstant=1; }
     /** mark symbol to be an answer predicate */
     void markAswerPredicate() { _answerPredicate=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */

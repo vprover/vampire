@@ -26,6 +26,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "IGAlgorithm.hpp"
+#include "ModelPrinter.hpp"
 
 #undef LOGGING
 #define LOGGING 0
@@ -468,6 +469,10 @@ MainLoopResult IGAlgorithm::runImpl()
       activate(given);
     }
     if(_unprocessed.isEmpty()) {
+      //TODO: add model printing to proper place
+//      env.beginOutput();
+//      ModelPrinter(*this).tryOutput(env.out());
+//      env.endOutput();
       return MainLoopResult(Statistics::SATISFIABLE);
     }
   }

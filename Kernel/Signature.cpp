@@ -17,7 +17,7 @@ const unsigned Signature::RATIONAL_DISTINCT_GROUP = 2;
 const unsigned Signature::REAL_DISTINCT_GROUP = 3;
 
 /** standard constructor */
-Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
+Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, bool stringConstant)
   : _name(nm),
     _arity(arity),
     _interpreted(interpreted ? 1 : 0),
@@ -25,11 +25,13 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
     _cfName(0),
     _swbName(0),
     _color(COLOR_TRANSPARENT),
-    _stringConstant(0),
+    _stringConstant(stringConstant ? 1: 0),
     _answerPredicate(0),
     _type(0),
     _distinctGroups(0)
 {
+  CALL("Signature::Symbol::Symbol");
+  ASS(!stringConstant || arity==0);
 
   //handle quoting
   const char* c=_name.c_str();
@@ -37,7 +39,7 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted)
   //atomic_word (in the sense of the TPTP syntax)
   //Also numbers are not quoted. However names that just look like numbers
   //(the distinction here is that they are not interpreted) are quoted.
-  if((!interpreted || (_name!="=" && arity!=0)) && *c) {
+  if(!stringConstant && (!interpreted || (_name!="=" && arity!=0)) && *c) {
     bool quote=needsQuoting(*c, true);
     c++;
     while(*c) {
@@ -517,9 +519,10 @@ unsigned Signature::addStringConstant(const string& name)
     return result;
   }
 
+  string quotedName = "\"" + name + "\"";
+
   result = _funs.length();
-  Symbol* sym = new Symbol(name,0);
-  sym->markStringConstant();
+  Symbol* sym = new Symbol(quotedName,0,false,true);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);

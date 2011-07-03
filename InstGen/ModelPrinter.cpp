@@ -10,6 +10,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
@@ -53,9 +54,14 @@ bool ModelPrinter::tryOutput(ostream& stm)
   }
 
   collectTrueLits();
-  populateDomain();
+  analyzeEqualityAndPopulateDomain();
+  rewriteLits(_trueLits);
 
-  return false;
+  outputDomainSpec(stm);
+  outputFunInterpretations(stm);
+  outputPredInterpretations(stm);
+
+  return true;
 }
 
 bool ModelPrinter::isEquality(Literal* lit)
@@ -96,13 +102,15 @@ struct ModelPrinter::InstLitComparator
     if(l1->weight()!=l2->weight()) {
       return l1->weight()>l2->weight();
     }
-    return l1->vars()>l2->vars();
+    return l1->getDistinctVars()<l2->getDistinctVars();
   }
 };
 
 void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<Literal*>& instSet, LiteralStack& instAcc)
 {
   CALL("ModelPrinter::generateNewInstances");
+
+  //TODO: Add a smarted way of handling variables occurring multiple times!!! (now it's by MatchingUtils::match)
 
   unsigned arity = base->arity();
   unsigned domSz= domain.size();
@@ -121,16 +129,16 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
     bool isVar = baseArg.isVar();
     variables[i] = isVar;
     if(isVar) {
-      args[i] = baseArg;
+      nextIndexes[i] = 0;
     }
     else {
-      nextIndexes[i] = 0;
+      args[i] = baseArg;
     }
   }
 
   unsigned depth = 0;
   for(;;) {
-    while(!variables[depth] && depth<arity) {
+    while(depth<arity && !variables[depth]) {
       depth++;
     }
     bool goingDown;
@@ -143,12 +151,16 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
       else {
 	inst = Literal::create(base, args.array());
       }
-      bool isNew = !instSet.contains(inst);
-      if(isNew) {
+      bool shouldAdd = !instSet.contains(inst);
+      if(shouldAdd) {
 	Literal* opInst = Literal::oppositeLiteral(inst);
-	isNew = !instSet.contains(opInst);
+	shouldAdd = !instSet.contains(opInst);
       }
-      if(isNew) {
+      if(shouldAdd) {
+	shouldAdd = MatchingUtils::match(base, inst, false);
+      }
+      if(shouldAdd) {
+	LOG(base->toString()<<" => "<<inst->toString());
 	instSet.insert(inst);
 	instAcc.push(inst);
       }
@@ -202,9 +214,9 @@ void ModelPrinter::getInstances(LiteralStack& trueLits, TermStack& domain, Liter
   }
 }
 
-void ModelPrinter::analyzeEquality()
+void ModelPrinter::analyzeEqualityAndPopulateDomain()
 {
-  CALL("ModelPrinter::analyzeEquality");
+  CALL("ModelPrinter::analyzeEqualityAndPopulateDomain");
 
   TermStack eqInstDomain;
   unsigned funCnt = env.signature->functions();
@@ -239,21 +251,149 @@ void ModelPrinter::analyzeEquality()
     unsigned firstFunc = ecElIt.next();
     TermList firstTerm = TermList(Term::create(firstFunc, 0, 0));
     string firstTermStr = firstTerm.toString();
+    unsigned eqClassSort = SortHelper::getResultSort(firstTerm.term());
     unsigned reprFunc = env.signature->addStringConstant(firstTermStr);
+    FunctionType* reprType = new FunctionType(0,0,eqClassSort);
+    env.signature->getFunction(reprFunc)->setType(reprType);
     TermList reprTerm = TermList(Term::create(reprFunc, 0, 0));
     _rewrites.insert(firstTerm, reprTerm);
+
+    _domain.push(reprTerm);
 
     while(ecElIt.hasNext()) {
       unsigned elFunc = ecElIt.next();
       TermList elTerm = TermList(Term::create(elFunc, 0, 0));
+      ASS_EQ(eqClassSort, SortHelper::getResultSort(elTerm.term()));
       _rewrites.insert(elTerm, reprTerm);
     }
   }
 }
 
-void ModelPrinter::populateDomain()
+void ModelPrinter::rewriteLits(LiteralStack& lits)
 {
-  CALL("ModelPrinter::populateDomain");
+  CALL("ModelPrinter::rewriteLits");
+
+  static TermStack args;
+
+  LiteralStack::Iterator iter(lits);
+  while(iter.hasNext()) {
+    Literal* lit = iter.next();
+    ASS(!isEquality(lit)); //we don't have equalities anymore at the point where this function is called
+    unsigned arity = lit->arity();
+    args.reset();
+    bool modified = false;
+    for(unsigned i=0; i<arity; i++) {
+      TermList origArg = *lit->nthArgument(i);
+      TermList tgt;
+      if(origArg.isTerm() && _rewrites.find(origArg, tgt)) {
+	args.push(tgt);
+	modified = true;
+      }
+      else {
+	args.push(origArg);
+      }
+    }
+    ASS_EQ(args.size(), arity);
+    if(!modified) {
+      continue;
+    }
+    Literal* newLit = Literal::create(lit, args.begin());
+    iter.replace(newLit);
+  }
+}
+
+void ModelPrinter::outputDomainSpec(ostream& out)
+{
+  CALL("ModelPrinter::outputDomainSpec");
+  ASS(_domain.isNonEmpty());
+
+  out << "fof(fi_name,interpretation_domain," << endl
+      << "    ! [X] : ( ";
+
+  TermStack::BottomFirstIterator dit(_domain);
+  while(dit.hasNext()) {
+    TermList dt = dit.next();
+    out << "X = " << dt.toString();
+    if(dit.hasNext()) {
+      out << " | ";
+    }
+  }
+
+  out << " ) )." << endl;
+}
+
+void ModelPrinter::outputFunInterpretations(ostream& out)
+{
+  CALL("ModelPrinter::outputFunInterpretations");
+
+  if(_rewrites.isEmpty()) { return; }
+
+  out << "fof(fi_name ,interpretation_terms," << endl
+      << "    ( ";
+
+  EqMap::Iterator eit(_rewrites);
+  while(eit.hasNext()) {
+    TermList trm, repr;
+    eit.next(trm, repr);
+    out << trm.toString() << " = " << repr.toString();
+    if(eit.hasNext()) {
+      out << " & ";
+    }
+  }
+
+  out << ") )." << endl;
+}
+
+
+/**
+ * Comparator that sorts instance literals by their predicate for the output
+ */
+struct ModelPrinter::PredNumComparator
+{
+  bool operator()(Literal* l1, Literal* l2)
+  {
+    return l1->functor()<l2->functor();
+  }
+};
+
+void ModelPrinter::outputPredInterpretations(ostream& out)
+{
+  CALL("ModelPrinter::outputPredInterpretations");
+
+  LiteralStack model;
+  getInstances(_trueLits, _domain, model);
+
+  std::sort(model.begin(), model.end(), PredNumComparator());
+
+  if(model.isEmpty()) { return; }
+
+  out << "fof(equality_lost,interpretation_atoms," << endl
+      << "    ( ";
+
+  LiteralStack::BottomFirstIterator mit(model);
+  while(mit.hasNext()) {
+    Literal* lit = mit.next();
+    out << lit->toString();
+    if(mit.hasNext()) {
+      out << " & " << endl << "      ";
+    }
+  }
+  out << " ) )." << endl;
 }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
