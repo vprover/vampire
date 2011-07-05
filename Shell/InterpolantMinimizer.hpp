@@ -23,7 +23,14 @@ using namespace Kernel;
 class InterpolantMinimizer
 {
 public:
-  InterpolantMinimizer(bool minimizeComponentCount=false, bool noSlicing=false,
+  enum OptimizationTarget
+  {
+    OT_WEIGHT,
+    OT_COUNT,
+    OT_QUANTIFIERS
+  };
+
+  InterpolantMinimizer(OptimizationTarget target=OT_WEIGHT, bool noSlicing=false,
       bool showStats=false, string statsPrefix="");
   ~InterpolantMinimizer();
 
@@ -156,9 +163,8 @@ private:
 
   void addAllFormulas();
 
-  bool _minimizeComponentCount;
+  OptimizationTarget _optTarget;
   bool _noSlicing;
-  bool _quantifiersCount;
   bool _showStats;
   string _statsPrefix;
   SMTBenchmark _resBenchmark;

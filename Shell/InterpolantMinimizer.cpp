@@ -473,11 +473,11 @@ void InterpolantMinimizer::addCostFormula()
     Unit* unit = _unitsById.get(atom).unit();
     unsigned varCnt = unit->varCnt();
 
-    if(_minimizeComponentCount && weight>0) {
+    if(_optTarget==OT_COUNT && weight>0) {
       weight = 1;
     }
     //**minimize the interpolant wrt the number of quantifiers
-    if(_quantifiersCount){
+    if(_optTarget==OT_QUANTIFIERS){
       weight = varCnt;
     }
 
@@ -819,9 +819,9 @@ void InterpolantMinimizer::traverse(Clause* refutationClause)
  * @param starsPrefix The value of the cost function is output on line starting
  * with statsPrefix + " cost: "
  */
-InterpolantMinimizer::InterpolantMinimizer(bool minimizeComponentCount, bool noSlicing,
+InterpolantMinimizer::InterpolantMinimizer(OptimizationTarget target, bool noSlicing,
     bool showStats, string statsPrefix)
-: _minimizeComponentCount(minimizeComponentCount), _noSlicing(noSlicing),
+: _optTarget(target), _noSlicing(noSlicing),
   _showStats(showStats), _statsPrefix(statsPrefix)
 {
   CALL("InterpolantMinimizer::InterpolantMinimizer");

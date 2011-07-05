@@ -143,11 +143,11 @@ void UIHelper::outputResult(ostream& out)
 //      Formula* interpolant=InterpolantMinimizer().getInterpolant(static_cast<Clause*>(env.statistics->refutation));
 //      out << "Interpolant: " << interpolant->toString() << endl;
 
-      Formula* oldInterpolant = InterpolantMinimizer(false, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      Formula* interpolant = InterpolantMinimizer(false, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      InterpolantMinimizer(true, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      Formula* cntInterpolant = InterpolantMinimizer(true, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-      Formula* quantInterpolant =  InterpolantMinimizer(false, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation)); 
+      Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       out << "Old interpolant: " << TPTP::toString(oldInterpolant) << endl;
       out << "Interpolant: " << TPTP::toString(interpolant) << endl;
       out << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;
