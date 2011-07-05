@@ -158,6 +158,7 @@ private:
 
   bool _minimizeComponentCount;
   bool _noSlicing;
+  bool _quantifiersCount;
   bool _showStats;
   string _statsPrefix;
   SMTBenchmark _resBenchmark;

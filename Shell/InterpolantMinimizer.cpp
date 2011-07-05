@@ -471,11 +471,14 @@ void InterpolantMinimizer::addCostFormula()
     wit.next(atom, weight);
 
     Unit* unit = _unitsById.get(atom).unit();
-
     unsigned varCnt = unit->varCnt();
 
     if(_minimizeComponentCount && weight>0) {
       weight = 1;
+    }
+    //**minimize the interpolant wrt the number of quantifiers
+    if(_quantifiersCount){
+      weight = varCnt;
     }
 
     SMTFormula atomExpr = SMTFormula::condNumber(pred(V, atom), weight);

@@ -147,9 +147,11 @@ void UIHelper::outputResult(ostream& out)
       Formula* interpolant = InterpolantMinimizer(false, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       InterpolantMinimizer(true, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
       Formula* cntInterpolant = InterpolantMinimizer(true, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+      Formula* quantInterpolant =  InterpolantMinimizer(false, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation)); 
       out << "Old interpolant: " << TPTP::toString(oldInterpolant) << endl;
       out << "Interpolant: " << TPTP::toString(interpolant) << endl;
       out << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;
+      out << "Quantifiers minimized interpolant: " << TPTP::toString(quantInterpolant) << endl;
     }
     if(env.options->latexOutput()!="off") {
       ofstream latexOut(env.options->latexOutput().c_str());

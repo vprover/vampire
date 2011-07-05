@@ -459,7 +459,7 @@ Formula* LoopAnalyzer::expressionToPred(Expression* exp)
     Formula* predTerm= new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,e1Term,e2Term));
     return predTerm;
    }
-   if ( app->function() == ConstantFunctionExpression::integerGreaterEq() )
+   if ( app->function() == ConstantFunctionExpression::integerGreaterEq() ) 
    {
      Expression* e1 = app->getArgument(0);
      Expression* e2 = app->getArgument(1);
