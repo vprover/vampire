@@ -149,7 +149,7 @@ void EqualityProxy::getVariableEqualityLiterals(unsigned cnt, LiteralStack& lits
 void EqualityProxy::addCongruenceAxioms(UnitList*& units)
 {
   CALL("EqualityProxy::addCongruenceAxioms");
-
+  //TODO: skip UPDR predicates!!!
   Stack<TermList> vars1;
   Stack<TermList> vars2;
   LiteralStack lits;

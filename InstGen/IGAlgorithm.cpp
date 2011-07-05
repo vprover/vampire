@@ -3,6 +3,8 @@
  * Implements class IGAlgorithm.
  */
 
+#include <sstream>
+
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
@@ -469,11 +471,17 @@ MainLoopResult IGAlgorithm::runImpl()
       activate(given);
     }
     if(_unprocessed.isEmpty()) {
-      //TODO: add model printing to proper place
-//      env.beginOutput();
-//      ModelPrinter(*this).tryOutput(env.out());
-//      env.endOutput();
-      return MainLoopResult(Statistics::SATISFIABLE);
+      if(env.options->complete()) {
+	if(env.options->proof()!=Options::PROOF_OFF) {
+	  stringstream modelStm;
+	  ModelPrinter(*this).tryOutput(modelStm);
+	  env.statistics->model = modelStm.str();
+	}
+	return MainLoopResult(Statistics::SATISFIABLE);
+      }
+      else {
+	return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
+      }
     }
   }
 }

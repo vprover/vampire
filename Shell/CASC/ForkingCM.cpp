@@ -137,7 +137,12 @@ void ForkingCM::childRun(Options& opt)
   ProvingHelper::runVampire(_units, &_property);
 
   //set return value to zero if we were successful
+#if SATISFIABLE_IS_SUCCESS
+  if(env.statistics->terminationReason==Statistics::REFUTATION ||
+      env.statistics->terminationReason==Statistics::SATISFIABLE) {
+#else
   if(env.statistics->terminationReason==Statistics::REFUTATION) {
+#endif
     resultValue=0;
   }
 

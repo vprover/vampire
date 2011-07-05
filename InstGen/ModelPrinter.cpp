@@ -20,6 +20,8 @@
 
 #include "IGAlgorithm.hpp"
 
+#undef LOGGING
+#define LOGGING 0
 
 namespace InstGen
 {
@@ -50,6 +52,11 @@ bool ModelPrinter::tryOutput(ostream& stm)
   CALL("ModelPrinter::tryOutput");
 
   if(!isEprProblem()) {
+    return false;
+  }
+
+  //TODO: Handle UPDR!!!
+  if(env.options->unusedPredicateDefinitionRemoval()) {
     return false;
   }
 
@@ -88,6 +95,7 @@ void ModelPrinter::collectTrueLits()
       else {
 	_trueLits.push(lit);
       }
+      LOG(lit->toString() << "  <---  " << cl->toString());
     }
   }
 }
@@ -99,6 +107,9 @@ struct ModelPrinter::InstLitComparator
 {
   bool operator()(Literal* l1, Literal* l2)
   {
+    if(l1->functor()!=l2->functor()) {
+      return l1->functor()<l2->functor();
+    }
     if(l1->weight()!=l2->weight()) {
       return l1->weight()>l2->weight();
     }
@@ -233,6 +244,9 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
   LiteralStack::Iterator eqit(eqInsts);
   while(eqit.hasNext()) {
     Literal* lit = eqit.next();
+    if(!lit->isPositive()) {
+      continue;
+    }
     TermList arg1 = *lit->nthArgument(0);
     TermList arg2 = *lit->nthArgument(1);
     ASS(arg1.isTerm());
@@ -307,7 +321,7 @@ void ModelPrinter::outputDomainSpec(ostream& out)
   CALL("ModelPrinter::outputDomainSpec");
   ASS(_domain.isNonEmpty());
 
-  out << "fof(fi_name,interpretation_domain," << endl
+  out << "fof(model1,interpretation_domain," << endl
       << "    ! [X] : ( ";
 
   TermStack::BottomFirstIterator dit(_domain);
@@ -328,7 +342,7 @@ void ModelPrinter::outputFunInterpretations(ostream& out)
 
   if(_rewrites.isEmpty()) { return; }
 
-  out << "fof(fi_name ,interpretation_terms," << endl
+  out << "fof(model2,interpretation_terms," << endl
       << "    ( ";
 
   EqMap::Iterator eit(_rewrites);
@@ -367,7 +381,7 @@ void ModelPrinter::outputPredInterpretations(ostream& out)
 
   if(model.isEmpty()) { return; }
 
-  out << "fof(equality_lost,interpretation_atoms," << endl
+  out << "fof(model3,interpretation_atoms," << endl
       << "    ( ";
 
   LiteralStack::BottomFirstIterator mit(model);

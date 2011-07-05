@@ -81,6 +81,13 @@ void HornRevealer::buildSatProblem(UnitList* units)
   CALL("HornRevealer::buildSatProblem");
   ASS(_satPrb.isEmpty());
 
+  //we ensure that the polarity of equality doesn't change
+  static SATLiteralStack slits;
+  slits.reset();
+  slits.push(SATLiteral(pred2var(0), true));
+  SATClause* scl = SATClause::fromStack(slits);
+  _satPrb.push(scl);
+
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
     Clause* cl = static_cast<Clause*>(uit.next());

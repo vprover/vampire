@@ -201,6 +201,9 @@ public:
   TerminationReason terminationReason;
   /** refutation, if any */
   Kernel::Unit* refutation;
+  /** if problem is satisfiable and we obtained a model, contains its
+   * representation; otherwise it is an empty string */
+  string model;
 
   enum ExecutionPhase {
     /** Whatever happens before we start parsing the problem */

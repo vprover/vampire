@@ -220,7 +220,12 @@ void vampireMode()
   UIHelper::outputResult(env.out());
   env.endOutput();
 
-  if(env.statistics->terminationReason==Statistics::REFUTATION) {
+#if SATISFIABLE_IS_SUCCESS
+  if(env.statistics->terminationReason==Statistics::REFUTATION ||
+      env.statistics->terminationReason==Statistics::SATISFIABLE) {
+#else
+    if(env.statistics->terminationReason==Statistics::REFUTATION) {
+#endif
     vampireReturnValue=0;
   }
 } // vampireMode
@@ -252,6 +257,9 @@ void spiderMode()
       break;
     case Statistics::SATISFIABLE:
       reportSpiderStatus('-');
+#if SATISFIABLE_IS_SUCCESS
+      vampireReturnValue=0;
+#endif
       break;
     default:
       ASSERTION_VIOLATION;

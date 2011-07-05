@@ -177,10 +177,21 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::SATISFIABLE:
     out << "Refutation not found!\n";
-//    if(cascMode) {
-//      out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-//	  <<" for "<<env.options->problemName()<<endl;
-//    }
+#if SATISFIABLE_IS_SUCCESS
+    if(cascMode) {
+      out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+	  <<" for "<<env.options->problemName()<<endl;
+    }
+    if(!env.statistics->model.empty()) {
+      if(cascMode) {
+	out<<"% SZS output start FiniteModel for "<<env.options->problemName()<<endl;
+      }
+      out << env.statistics->model;
+      if(cascMode) {
+	out<<"% SZS output end FiniteModel for "<<env.options->problemName()<<endl;
+      }
+    }
+#endif
     break;
   case Statistics::UNKNOWN:
     out << "Unknown reason of termination!\n";

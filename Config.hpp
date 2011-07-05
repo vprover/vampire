@@ -8,6 +8,8 @@
 #define __Config__
 
 
+#define SATISFIABLE_IS_SUCCESS 1
+
 /**
  * Determines, whether COMPIT unification benchmarks are
  * being recorded. If 0, they're not, if 1, rewritable

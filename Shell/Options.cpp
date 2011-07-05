@@ -2099,7 +2099,7 @@ bool Options::complete () const
 {
   CALL("Options::complete");
 
-  return (_equalityProxy==EP_OFF || _equalityProxy==EP_ON) &&
+  return (_equalityProxy==EP_OFF || _equalityProxy==EP_ON || _equalityProxy==EP_RSTC) &&
          (_equalityResolutionWithDeletion != RA_ON ) &&
          (_literalComparisonMode != LCM_REVERSE) &&
          _selection < 20 &&
