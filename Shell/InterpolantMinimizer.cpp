@@ -472,6 +472,8 @@ void InterpolantMinimizer::addCostFormula()
 
     Unit* unit = _unitsById.get(atom).unit();
 
+    unsigned varCnt = unit->varCnt();
+
     if(_minimizeComponentCount && weight>0) {
       weight = 1;
     }
