@@ -39,6 +39,20 @@ string FormulaUnit::toString() const
          ' ' + inferenceAsString();
 } // FormulaUnit::toString
 
+unsigned FormulaUnit::varCnt()
+{
+  CALL("FormulaUnit::varCnt");
+
+  Formula* frm = formula();
+  Formula::VarList* fv = frm->freeVariables();
+  Formula::VarList* bv = frm->boundVariables();
+
+  unsigned res = fv->length() + bv->length();
+  fv->destroy();
+  bv->destroy();
+  return res;
+}
+
 /**
  * Return color of the formula
  *

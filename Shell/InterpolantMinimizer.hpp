@@ -142,6 +142,8 @@ private:
   typedef DHMap<string, unsigned> WeightMap;
   WeightMap _atomWeights;
 
+  DHMap<string,UnitSpec> _unitsById;
+
   ClauseSplitter* _splitter;
 private:
   //and here is the glue

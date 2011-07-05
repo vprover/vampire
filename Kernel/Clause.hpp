@@ -305,6 +305,9 @@ public:
   unsigned splitWeight() const;
   unsigned getNumeralWeight();
   float getEffectiveWeight();
+
+  virtual unsigned varCnt();
+
 protected:
   /** number of literals */
   unsigned _length : 29;

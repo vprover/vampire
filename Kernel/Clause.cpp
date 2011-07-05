@@ -601,6 +601,8 @@ unsigned Clause::getNumeralWeight()
  */
 float Clause::getEffectiveWeight()
 {
+  CALL("Clause::getEffectiveWeight");
+
   static float nongoalWeightCoef=-1;
   if(nongoalWeightCoef<0) {
     nongoalWeightCoef=env.options->nongoalWeightCoefficient();
@@ -615,6 +617,29 @@ float Clause::getEffectiveWeight()
   else {
     return w * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
   }
+}
+
+unsigned Clause::varCnt()
+{
+  CALL("Clause::varCnt");
+
+  static DHSet<TermList> vars;
+  vars.reset();
+
+  unsigned res = 0;
+
+  Iterator it(*this);
+  while(it.hasNext()) {
+    Literal* lit = it.next();
+    VariableIterator vit(lit);
+    while(vit.hasNext()) {
+      TermList var = vit.next();
+      if(vars.insert(var)) {
+	res++;
+      }
+    }
+  }
+  return res;
 }
 
 /**

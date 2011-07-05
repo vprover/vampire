@@ -56,6 +56,7 @@ public:
 
   virtual void destroy() = 0;
   virtual string toString() const = 0;
+  virtual unsigned varCnt() = 0;
 
   string inferenceAsString() const;
 

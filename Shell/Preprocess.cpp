@@ -39,6 +39,7 @@
 #include "Statistics.hpp"
 #include "SpecialTermElimination.hpp"
 #include "TheoryAxioms.hpp"
+#include "TrivialPredicateRemover.hpp"
 
 // #include "Lib/Sort.hpp"
 // #include "ClausalDefinition.hpp"
@@ -329,6 +330,11 @@ void Preprocess::preprocess (UnitList*& units)
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      EqualityProxy proxy;
      proxy.apply(units);
+   }
+
+   if(_options.trivialPredicateRemoval()) {
+     env.statistics->phase=Statistics::UNKNOWN_PHASE;
+     TrivialPredicateRemover().apply(units);
    }
 
    if (_options.generalSplitting()!=Options::RA_OFF) {

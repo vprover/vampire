@@ -38,6 +38,7 @@ Statistics::Statistics()
     propagatedEqualities(0),
     removedSingletonVariables(0),
     purePredicates(0),
+    trivialPredicates(0),
     eprPreservingSkolemizations(0),
     inlinedPredicateDefinitions(0),
     mergedPredicateDefinitions(0),
@@ -173,6 +174,7 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   COND_OUT("Pure predicates", purePredicates);
+  COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("EPR preserving skolemizations", eprPreservingSkolemizations);
   COND_OUT("Inlined predicate definitions", inlinedPredicateDefinitions);
   COND_OUT("Merged predicate definitions", mergedPredicateDefinitions);

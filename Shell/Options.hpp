@@ -149,6 +149,7 @@ public:
     THEORY_AXIOMS,
     TIME_LIMIT,
     TIME_STATISTICS,
+    TRIVIAL_PREDICATE_REMOVAL,
 
     UNIT_RESULTING_RESOLUTION,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
@@ -462,6 +463,7 @@ public:
   bool colorUnblocking() const { return _colorUnblocking; }
 
   bool hornRevealing() const { return _hornRevealing; }
+  bool trivialPredicateRemoval() const { return _trivialPredicateRemoval; }
 
   bool tabulationBwRuleSubsumptionResolutionByLemmas() const { return _tabulationBwRuleSubsumptionResolutionByLemmas; }
   bool tabulationFwRuleSubsumptionResolutionByLemmas() const { return _tabulationFwRuleSubsumptionResolutionByLemmas; }
@@ -628,6 +630,7 @@ private:
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
   bool _timeStatistics;
+  bool _trivialPredicateRemoval;
 
   bool _unitResultingResolution;
   bool _unusedPredicateDefinitionRemoval;

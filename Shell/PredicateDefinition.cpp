@@ -127,6 +127,16 @@ struct PredicateDefinition::PredData
   USE_ALLOCATOR(PredData);
 };
 
+bool PredicateDefinition::isBuiltIn(unsigned pred)
+{
+  CALL("PredicateDefinition::isBuiltIn");
+
+  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  return predSym->interpreted() || predSym->answerPredicate() ||
+	predSym->name() == "$distinct";
+  //TODO: remove this hack once we properly support the $distinct predicate
+}
+
 PredicateDefinition::PredicateDefinition()
 : _predCnt(env.signature->predicates())
 {
@@ -135,10 +145,7 @@ PredicateDefinition::PredicateDefinition()
   for(int i=0;i<predCnt;i++) {
     _preds[i].pred=i;
 
-    Signature::Symbol *predSym = env.signature->getPredicate(i);
-    _preds[i].builtIn = predSym->interpreted() || predSym->answerPredicate() ||
-	env.signature->predicateName(i) == "$distinct";
-    //TODO: remove this hack once we properly support the $distinct predicate
+    _preds[i].builtIn = isBuiltIn(i);
   }
 }
 

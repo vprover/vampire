@@ -276,6 +276,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/TPTPLexer.o\
          Shell/TPTP.o\
          Shell/TPTPParser.o\
+         Shell/TrivialPredicateRemover.o\
          Shell/UIHelper.o\
          Shell/VarManager.o
 

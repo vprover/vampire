@@ -382,6 +382,7 @@ void InterpolantMinimizer::collectAtoms(FormulaUnit* f, Stack<string>& atoms)
     _formulaAtomIds.insert(key, id);
     unsigned weight = f->formula()->weight();
     _atomWeights.insert(id, weight);
+    _unitsById.insert(id, UnitSpec(f));
   }
   atoms.push(id);
 }
@@ -399,6 +400,7 @@ string InterpolantMinimizer::getComponentId(Clause* cl)
     _atomIds.insert(cl, id);
     unsigned weight = cl->weight();
     _atomWeights.insert(id, weight);
+    _unitsById.insert(id, UnitSpec(cl));
 //    LOG(id<<" "<<weight<<"\t"<<cl->toString());
   }
  return id;
@@ -467,6 +469,8 @@ void InterpolantMinimizer::addCostFormula()
     string atom;
     unsigned weight;
     wit.next(atom, weight);
+
+    Unit* unit = _unitsById.get(atom).unit();
 
     if(_minimizeComponentCount && weight>0) {
       weight = 1;

@@ -259,6 +259,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_TERM_SHARING:
     out<<"term sharing";
     break;
+  case TC_TRIVIAL_PREDICATE_REMOVAL:
+    out<<"trivial predicate removal";
+    break;
   default:
     ASSERTION_VIOLATION;
   }

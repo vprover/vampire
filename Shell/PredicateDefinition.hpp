@@ -40,6 +40,8 @@ public:
 
   void addBuiltInPredicate(unsigned pred);
 
+  static bool isBuiltIn(unsigned pred);
+
 private:
   struct Def;
   struct PredData;

@@ -53,6 +53,8 @@ public:
   unsigned removedSingletonVariables;
   /** number of pure predicates */
   unsigned purePredicates;
+  /** number of trivial predicates */
+  unsigned trivialPredicates;
   /** number of definitions transformed by EPR preserving skolemization*/
   unsigned eprPreservingSkolemizations;
   /** number of inlined predicate definitions */
