@@ -9,6 +9,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Array.hpp"
 #include "Term.hpp"
 
 namespace Kernel {
@@ -47,15 +48,10 @@ public:
    * consider all literals except for equality to be of
    * opposite polarity.
    */
-  static bool isPositiveForSelection(Literal* l)
-  {
-    if(_reversePolarity) {
-      return l->isNegative()^l->isEquality(); //we don't change polarity for equality
-    }
-    else {
-      return l->isPositive();
-    }
-  }
+  static bool isPositiveForSelection(Literal* l);
+
+  static void reversePredicatePolarity(unsigned pred, bool reverse);
+
   /**
    * Return true if literal @b l is negative for the purpose of
    * literal selection
@@ -88,6 +84,8 @@ private:
    * @see isPositiveForSelection
    */
   static bool _reversePolarity;
+
+  static ZIArray<bool> _reversePredicate;
 #if VDEBUG
   /**
    * Counter of instances of LiteralSelector object

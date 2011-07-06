@@ -7,10 +7,16 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/LiteralSelector.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Statistics.hpp"
+
 #include "HornRevealer.hpp"
+
+#undef LOGGING
+#define LOGGING 0
 
 namespace Shell
 {
@@ -25,8 +31,18 @@ void HornRevealer::apply(UnitList*& units)
   _solver.addClauses(pvi( SATClauseStack::Iterator(_satPrb) ), false);
 
   if(_solver.getStatus()==SATSolver::SATISFIABLE) {
-//    LOG("Horn discovered");
+    LOG("Horn discovered");
     discoverGoals(units);
+
+    unsigned preds = env.signature->predicates();
+    for(unsigned i=0; i<preds; i++) {
+      bool reversed = isReversed(i);
+      if(reversed) {
+	LOG("reversed: " << env.signature->predicateName(i));
+	LiteralSelector::reversePredicatePolarity(i, true);
+	env.statistics->hornReversedPredicates++;
+      }
+    }
   }
 }
 
@@ -48,8 +64,17 @@ void HornRevealer::discoverGoals(UnitList*& units)
     Unit::InputType inpType = shouldBeGoal ? Unit::CONJECTURE : Unit::AXIOM;
     Clause* newCl = Clause::fromIterator(Clause::Iterator(*cl), inpType, inf);
     uit.replace(newCl);
-//    LOG("Horn revealer changed inp type: " << inpType <<"\n  "<< newCl->toString());
+    LOG("Horn revealer changed inp type: " << inpType <<"\n  "<< newCl->toString());
   }
+}
+
+bool HornRevealer::isReversed(unsigned pred)
+{
+  CALL("HornRevealer::isReversed");
+  ASS_EQ(_solver.getStatus(),SATSolver::SATISFIABLE);
+
+  //if prop variable is true, we don't reverse the predicate
+  return !_solver.getAssignment(pred2var(pred));
 }
 
 bool HornRevealer::isGoal(Clause* cl)
@@ -65,7 +90,7 @@ bool HornRevealer::isGoal(Clause* cl)
     unsigned pred = l->functor();
     bool polarity = l->isPositive();
 
-    bool posPolarity = _solver.getAssignment(pred2var(pred));
+    bool posPolarity = !isReversed(pred);
 
     if(polarity==posPolarity) {
 //      LOG("pos:"<<l->toString());

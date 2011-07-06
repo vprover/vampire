@@ -30,6 +30,13 @@ namespace Kernel
  */
 bool LiteralSelector::_reversePolarity=false;
 
+/**
+ * Array that for each predicate contains bol value determining whether
+ * the polarituy of the predicate should be reversed for the purposes of
+ * literal selection
+ */
+ZIArray<bool> LiteralSelector::_reversePredicate;
+
 #if VDEBUG
 
 /**
@@ -41,6 +48,33 @@ bool LiteralSelector::_reversePolarity=false;
 int LiteralSelector::_instCtr=0;
 
 #endif
+
+
+/**
+ * Return true if literal @b l is positive for the purpose of
+ * literal selection
+ *
+ * This function is to allow for easy implementation of
+ * selection functions with negative numbers. Those functions
+ * consider all literals except for equality to be of
+ * opposite polarity.
+ */
+bool LiteralSelector::isPositiveForSelection(Literal* l)
+{
+  if(l->isEquality()) {
+    return l->isPositive(); //we don't change polarity for equality
+  }
+  unsigned pred = l->functor();
+  return l->isPositive() ^ _reversePolarity ^ _reversePredicate[pred];
+}
+
+void LiteralSelector::reversePredicatePolarity(unsigned pred, bool reverse)
+{
+  CALL("reversePredicatePolarity");
+  ASS(pred!=0 || !reverse); //we never reverse polarity of equality
+
+  _reversePredicate[pred] = reverse;
+}
 
 /**
  * The selection will be performed among the literals with the

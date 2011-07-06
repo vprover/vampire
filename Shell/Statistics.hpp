@@ -55,6 +55,8 @@ public:
   unsigned purePredicates;
   /** number of trivial predicates */
   unsigned trivialPredicates;
+  /** predicates reversed in order to make problem Horn */
+  unsigned hornReversedPredicates;
   /** number of definitions transformed by EPR preserving skolemization*/
   unsigned eprPreservingSkolemizations;
   /** number of inlined predicate definitions */

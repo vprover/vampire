@@ -26,6 +26,7 @@ public:
 private:
   void buildSatProblem(UnitList* clist);
   void discoverGoals(UnitList*& clist);
+  bool isReversed(unsigned pred);
   bool isGoal(Clause* cl);
   void addToSatProblem(Clause* cl);
 

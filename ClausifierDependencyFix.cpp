@@ -9,9 +9,15 @@
 
 #include "Lib/Exception.hpp"
 
+#include "Kernel/LiteralSelector.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/InterpolantMinimizer.hpp"
+
+void LiteralSelector::reversePredicatePolarity(unsigned pred, bool reverse)
+{
+}
 
 void Saturation::SaturationAlgorithm::tryUpdateFinalClauseCount()
 {
