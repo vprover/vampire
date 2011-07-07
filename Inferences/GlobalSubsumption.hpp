@@ -37,6 +37,7 @@ public:
 private:
   void addClauseToIndex(Clause* cl);
 
+  Clause* tryResolvingAway(Clause* cl, unsigned litIdx, SATLiteralStack& slits);
 
   GroundingIndex* _index;
   /**

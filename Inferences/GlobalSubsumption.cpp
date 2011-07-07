@@ -3,6 +3,8 @@
  * Implements class GlobalSubsumption.
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/TimeCounter.hpp"
@@ -113,31 +115,54 @@ Clause* GlobalSubsumption::perform(Clause* cl)
     return cl;
   }
 
-  addClauseToIndex(cl);
-
-  static SATLiteralStack slits;
-  slits.reset();
-  static LiteralStack survivors;
-  survivors.reset();
+  if(cl->length()==1) {
+    addClauseToIndex(cl);
+    return cl;
+  }
 
   SATSolver& solver = _index->getSolver();
   Grounder& grounder = _index->getGrounder();
 
+  static SATLiteralStack slits;
+  slits.reset();
+
   grounder.groundNonProp(cl, slits);
+
+  addClauseToIndex(cl);
+
+  unsigned clen = slits.size();
+
+
+  for(unsigned resolvedIdx = 0; resolvedIdx<clen; resolvedIdx++) {
+    Clause* replacement = tryResolvingAway(cl, resolvedIdx, slits);
+    if(replacement!=0) {
+      return replacement;
+    }
+  }
+  return cl;
+}
+
+Clause* GlobalSubsumption::tryResolvingAway(Clause* cl, unsigned litIdx, SATLiteralStack& slits)
+{
+  CALL("GlobalSubsumption::tryResolvingAway");
 
   bool uprOnly = true;
 
-  unsigned clen = slits.size();
-  for(unsigned maskedIdx = 0; maskedIdx<clen; maskedIdx++) {
-    for(unsigned i = 0; i<clen; i++) {
-      if(i==maskedIdx) {
-	continue;
-      }
-      solver.addAssumption(slits[i].opposite(), uprOnly);
+  unsigned clen = cl->length();
+  SATSolver& solver = _index->getSolver();
 
-      if(solver.getStatus()==SATSolver::UNSATISFIABLE) {
+  for(unsigned i = 0; i<clen; i++) {
+    if(i==litIdx) {
+	continue;
+    }
+    solver.addAssumption(slits[i].opposite(), uprOnly);
+
+    if(solver.getStatus()==SATSolver::UNSATISFIABLE) {
+	static LiteralStack survivors;
+	survivors.reset();
+
 	for(unsigned j=0; j<=i; j++) {
-	  if(j==maskedIdx) {
+	  if(j==litIdx) {
 	    continue;
 	  }
 	  survivors.push((*cl)[j]);
@@ -154,14 +179,14 @@ Clause* GlobalSubsumption::perform(Clause* cl)
 	LOGV(cl->toString());
 	LOGV(replacement->toString());
 	env.statistics->globalSubsumption++;
+        ASS_L(replacement->length(), clen);
 
 	solver.retractAllAssumptions();
 	return replacement;
-      }
     }
-    solver.retractAllAssumptions();
   }
-  return cl;
+  solver.retractAllAssumptions();
+  return 0;
 }
 
 void GlobalSubsumption::perform(Clause* cl, ForwardSimplificationPerformer* simplPerformer)

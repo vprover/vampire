@@ -210,12 +210,12 @@ void TWLSolver::retractAllAssumptions()
 void TWLSolver::backtrack(unsigned tgtLevel)
 {
   CALL("TWLSolver::backtrack");
-  ASSERT_VALID(*this);
   ASS_G(tgtLevel,0);
 
   if(tgtLevel==_level) {
     return;
   }
+  ASSERT_VALID(*this);
 
   resetPropagation();
 

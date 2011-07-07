@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <ostream>
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Allocator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"

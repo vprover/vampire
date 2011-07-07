@@ -121,15 +121,17 @@ public:
       return true;
     }
 
-    void* mem = ALLOC_KNOWN(sizeof(C)*s,"DArray<>");
-    C* newArray=array_new<C>(mem, s);
+    size_t newCapacity = max(s, _capacity*2);
+
+    void* mem = ALLOC_KNOWN(sizeof(C)*newCapacity,"DArray<>");
+    C* newArray=array_new<C>(mem, newCapacity);
 
     if(_array) {
       array_delete(_array, _capacity);
       DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
     }
     _size = s;
-    _capacity = _size;
+    _capacity = newCapacity;
     _array = newArray;
     return false;
   } // ensure
