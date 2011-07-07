@@ -527,6 +527,9 @@ MainLoopResult IGAlgorithm::runImpl()
   RCClauseStack::Iterator icit(_inputClauses);
   while(icit.hasNext()) {
     Clause* cl = icit.next();
+    if(isRefutation(cl)) {
+      throw RefutationFoundException(cl);
+    }
     addClause(cl);
   }
 
