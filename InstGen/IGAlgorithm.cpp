@@ -70,7 +70,7 @@ IGAlgorithm::IGAlgorithm()
       _saturationIndexManager->provideIndex(GLOBAL_SUBSUMPTION_INDEX, _groundingIndex.ptr());
     }
     Options saOptions = *env.options;
-    saOptions.setSaturationAlgorithm(Options::LRS);
+    saOptions.setSaturationAlgorithm(Options::OTTER);
     saOptions.setPropositionalToBDD(false);
     saOptions.setSplitting(Options::SM_OFF);
     ScopedLet<Options> slet(*env.options, saOptions);
@@ -110,8 +110,14 @@ void IGAlgorithm::addInputClauses(ClauseIterator it)
   UnitList::pushFromIterator(it, units);
 
   if(_saturationAlgorithm) {
-    _saturationAlgorithm->addInputClauses(pvi(
-	getStaticCastIterator<Clause*>(UnitList::Iterator(units)) ));
+    ClauseStack copies;
+    UnitList::Iterator uit(units);
+    while(uit.hasNext()) {
+      Clause* cl = static_cast<Clause*>(uit.next());
+      Clause* copyCl = Clause::fromIterator(Clause::Iterator(*cl), cl->inputType(), new Inference1(Inference::REORDER_LITERALS, cl));
+      copies.push(copyCl);
+    }
+    _saturationAlgorithm->addInputClauses(pvi( ClauseStack::Iterator(copies) ));
     _saturationAlgorithm->init();
   }
 

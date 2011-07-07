@@ -38,11 +38,11 @@ SATClauseIterator Grounder::ground(Clause* cl)
 {
   CALL("Grounder::ground(Clause*)");
 
-  if(cl->splits() && cl->splits()->size()!=0) {
+  if(!cl->noSplits()) {
     NOT_IMPLEMENTED;
   }
 
-  if(cl->prop() && !BDD::instance()->isFalse(cl->prop())) {
+  if(!cl->noProp()) {
     NOT_IMPLEMENTED;
   }
 

@@ -165,6 +165,7 @@ private:
   static SaturationAlgorithm* s_instance;
 protected:
 
+  bool _completeOptionSettings;
   int _startTime;
   bool _propToBDD;
   bool _clauseActivationInProgress;

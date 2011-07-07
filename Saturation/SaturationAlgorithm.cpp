@@ -69,7 +69,8 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContaine
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
-  _propToBDD= env.options->propositionalToBDD();
+  _propToBDD = env.options->propositionalToBDD();
+  _completeOptionSettings = env.options->complete();
 
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
@@ -163,7 +164,7 @@ bool SaturationAlgorithm::isComplete()
 {
   CALL("SaturationAlgorithm::isComplete");
 
-  return env.options->complete();
+  return _completeOptionSettings;
 }
 
 ClauseIterator SaturationAlgorithm::activeClauses()
