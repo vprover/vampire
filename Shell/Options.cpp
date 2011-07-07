@@ -125,6 +125,11 @@ const char* Options::Constants::_optionNames[] = {
   "inequality_splitting",
   "input_file",
   "input_syntax",
+  "inst_gen_big_restart_ratio",
+  "inst_gen_resolution_ratio",
+  "inst_gen_restart_period",
+  "inst_gen_restart_period_quotient",
+  "inst_gen_with_resolution",
   "interpreted_evaluation",
   "interpreted_simplification",
 
@@ -528,6 +533,12 @@ Options::Options ()
   _inequalitySplitting(3),
   _inputFile(""),
   _inputSyntax(IS_TPTP),
+  _instGenResolutionRatioInstGen(1),
+  _instGenResolutionRatioResolution(1),
+  _instGenBigRestartRatio(0.0f),
+  _instGenRestartPeriod(1000),
+  _instGenRestartPeriodQuotient(1.0f),
+  _instGenWithResolution(false),
   _interpretedEvaluation(false),
   _interpretedSimplification(false),
 
@@ -795,6 +806,36 @@ void Options::set (const char* name,const char* value, int index)
       return;
     case INPUT_SYNTAX:
       _inputSyntax = (InputSyntax)Constants::inputSyntaxValues.find(value);
+      return;
+    case INST_GEN_BIG_RESTART_RATIO:
+      if (Int::stringToFloat(value,floatValue)) {
+	if(floatValue<0.0f || floatValue>1.0f) {
+	  USER_ERROR("inst_gen_big_restart_ratio must be a number between 0 and 1 (inclusive)");
+	}
+	_instGenBigRestartRatio = floatValue;
+	return;
+      }
+      break;
+    case INST_GEN_RESOLUTION_RATIO:
+      readAgeWeightRatio(value, _instGenResolutionRatioInstGen, _instGenResolutionRatioResolution);
+      return;
+    case INST_GEN_RESTART_PERIOD:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_instGenRestartPeriod = unsignedValue;
+	return;
+      }
+      break;
+    case INST_GEN_RESTART_PERIOD_QUOTIENT:
+      if (Int::stringToFloat(value,floatValue)) {
+	if(floatValue<1.0f) {
+	  USER_ERROR("inst_gen_restart_period_quotient must be a number at least 1");
+	}
+	_instGenRestartPeriodQuotient = floatValue;
+	return;
+      }
+      break;
+    case INST_GEN_WITH_RESOLUTION:
+      _instGenWithResolution = onOffToBool(value,name);
       return;
     case INTERPRETED_EVALUATION:
       _interpretedEvaluation = onOffToBool(value,name);
@@ -1431,6 +1472,21 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case INPUT_SYNTAX:
     str << Constants::inputSyntaxValues[_inputSyntax];
+    return;
+  case INST_GEN_BIG_RESTART_RATIO:
+    str << _instGenBigRestartRatio;
+    return;
+  case INST_GEN_RESOLUTION_RATIO:
+    str << _instGenResolutionRatioInstGen << ':' << _instGenResolutionRatioResolution;
+    return;
+  case INST_GEN_RESTART_PERIOD:
+    str << _instGenRestartPeriod;
+    return;
+  case INST_GEN_RESTART_PERIOD_QUOTIENT:
+    str << _instGenRestartPeriodQuotient;
+    return;
+  case INST_GEN_WITH_RESOLUTION:
+    str << boolToOnOff(_instGenWithResolution);
     return;
   case INTERPRETED_EVALUATION:
     str << boolToOnOff(_interpretedEvaluation);

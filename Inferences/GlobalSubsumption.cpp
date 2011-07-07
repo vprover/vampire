@@ -40,6 +40,10 @@ using namespace Saturation;
 void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 {
   CALL("GlobalSubsumption::attach");
+
+  if(_allowExtraAttachment) {
+    return;
+  }
   ASS(!_index);
 
   ForwardSimplificationEngine::attach(salg);
@@ -50,6 +54,10 @@ void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 void GlobalSubsumption::detach()
 {
   CALL("GlobalSubsumption::detach");
+
+  if(_allowExtraAttachment) {
+    return;
+  }
 
   _index=0;
   _salg->getIndexManager()->release(GLOBAL_SUBSUMPTION_INDEX);

@@ -71,6 +71,23 @@ Index* IndexManager::get(IndexType t)
   return _store.get(t).index;
 }
 
+/**
+ * Provide index form the outside
+ *
+ * There must not be index of the same type from before.
+ * The provided index is never deleted by the IndexManager.
+ */
+void IndexManager::provideIndex(IndexType t, Index* index)
+{
+  CALL("IndexManager::provideIndex");
+  ASS(!_store.find(t));
+
+  Entry e;
+  e.index = index;
+  e.refCnt = 1; //reference to 1, so that we never delete the provided index
+  _store.set(t,e);
+}
+
 Index* IndexManager::create(IndexType t)
 {
   CALL("IndexManager::create");
@@ -78,6 +95,8 @@ Index* IndexManager::create(IndexType t)
   Index* res;
   LiteralIndexingStructure* is;
   TermIndexingStructure* tis;
+
+  bool isGenerating;
   switch(t) {
   case GENERATING_SUBST_TREE:
 #if COMPIT_GENERATOR==2
@@ -87,28 +106,28 @@ Index* IndexManager::create(IndexType t)
 #endif
     _genLitIndex=is;
     res=new GeneratingLiteralIndex(is);
-    res->attachContainer(_alg->getGeneratingClauseContainer());
+    isGenerating = true;
     break;
   case SIMPLIFYING_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new SimplifyingLiteralIndex(is);
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    isGenerating = false;
     break;
 
   case SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new UnitClauseLiteralIndex(is);
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    isGenerating = false;
     break;
   case GENERATING_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new UnitClauseLiteralIndex(is);
-    res->attachContainer(_alg->getGeneratingClauseContainer());
+    isGenerating = true;
     break;
   case GENERATING_NON_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new NonUnitClauseLiteralIndex(is);
-    res->attachContainer(_alg->getGeneratingClauseContainer());
+    isGenerating = true;
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
@@ -118,59 +137,65 @@ Index* IndexManager::create(IndexType t)
     tis=new TermSubstitutionTree();
 #endif
     res=new SuperpositionSubtermIndex(tis);
-    res->attachContainer(_alg->getGeneratingClauseContainer());
+    isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
     tis=new TermSubstitutionTree();
     res=new SuperpositionLHSIndex(tis);
-    res->attachContainer(_alg->getGeneratingClauseContainer());
+    isGenerating = true;
     break;
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree();
     res=new DemodulationSubtermIndex(tis);
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    isGenerating = false;
     break;
   case DEMODULATION_LHS_SUBST_TREE:
 //    tis=new TermSubstitutionTree();
     tis=new CodeTreeTIS();
     res=new DemodulationLHSIndex(tis);
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    isGenerating = false;
     break;
 
   case FW_SUBSUMPTION_CODE_TREE:
     res=new CodeTreeSubsumptionIndex();
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    isGenerating = false;
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
     is=new LiteralSubstitutionTree();
 //    is=new CodeTreeLIS();
     res=new FwSubsSimplifyingLiteralIndex(is);
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    isGenerating = false;
     break;
 
   case REWRITE_RULE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new RewriteRuleIndex(is);
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    isGenerating = false;
     break;
 
   case GLOBAL_SUBSUMPTION_INDEX:
   {
     Grounder* gnd = new GlobalSubsumptionGrounder();
     res = new GroundingIndex(gnd);
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    isGenerating = false;
     break;
   }
 
   case ARITHMETIC_INDEX:
     res=new ArithmeticIndex();
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    isGenerating = false;
     break;
 
   default:
     INVALID_OPERATION("Unsupported IndexType.");
+  }
+  if(isGenerating) {
+    res->attachContainer(_alg->getGeneratingClauseContainer());
+  }
+  else {
+    res->attachContainer(_alg->getSimplifyingClauseContainer());
   }
   return res;
 }

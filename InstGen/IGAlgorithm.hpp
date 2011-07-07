@@ -10,6 +10,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
+#include "Lib/RatioKeeper.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/Stack.hpp"
@@ -18,10 +19,13 @@
 #include "Kernel/RCClauseStack.hpp"
 
 #include "Indexing/ClauseVariantIndex.hpp"
+#include "Indexing/IndexManager.hpp"
+#include "Indexing/LiteralIndex.hpp"
 
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
+#include "Inferences/URResolution.hpp"
 
 #include "SAT/SATSolver.hpp"
 
@@ -76,11 +80,18 @@ private:
 
   void tryGeneratingInstances(Clause* cl, unsigned litIdx);
   void tryGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl);
-  void generateInstances();
 
   bool isSelected(Literal* lit);
 
   Clause* getFORefutation(SATClause* satRefutation);
+
+
+  void onResolutionClauseDerived(Clause* cl);
+  void doResolutionStep();
+
+
+  RatioKeeper _instGenResolutionRatio;
+
 
   IGGrounder _gnd;
   SATSolverSCP _satSolver;
@@ -88,6 +99,14 @@ private:
   /** Used by global subsumption */
   ScopedPtr<GroundingIndex> _groundingIndex;
   ScopedPtr<GlobalSubsumption> _globalSubsumption;
+
+  ScopedPtr<IndexManager> _saturationIndexManager;
+  SaturationAlgorithmSP _saturationAlgorithm;
+
+//  ScopedPtr<UnitClauseLiteralIndex> _unitLitIndex;
+//  ScopedPtr<NonUnitClauseLiteralIndex> _nonUnitLitIndex;
+//  ScopedPtr<URResolution> _urResolution;
+//  PlainClauseContainer _resolutionContainer;
 
   /** Clauses that weren't yet added into the SATSolver */
   RCClauseStack _unprocessed;

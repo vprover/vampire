@@ -67,6 +67,11 @@ public:
     INEQUALITY_SPLITTING,
     INPUT_FILE,
     INPUT_SYNTAX,
+    INST_GEN_BIG_RESTART_RATIO,
+    INST_GEN_RESOLUTION_RATIO,
+    INST_GEN_RESTART_PERIOD,
+    INST_GEN_RESTART_PERIOD_QUOTIENT,
+    INST_GEN_WITH_RESOLUTION,
     INTERPRETED_EVALUATION,
     INTERPRETED_SIMPLIFICATION,
 
@@ -371,6 +376,7 @@ public:
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval = newVal; }
   bool weightIncrement() const { return _weightIncrement; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm; }
+  void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm = newVal; }
   int selection() const { return _selection; }
   bool setSelection(int newValue);
   string latexOutput() const { return _latexOutput; }
@@ -451,6 +457,7 @@ public:
   bool splitInputOnly() const { return _splitInputOnly; }
   bool splitPositive() const { return _splitPositive; }
   SplittingMode splitting() const { return _splitting; }
+  void setSplitting(SplittingMode newVal) { _splitting = newVal; }
   bool splittingWithBlocking() const { return _splittingWithBlocking; }
   bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
@@ -475,6 +482,12 @@ public:
   int tabulationLemmaAgeRatio() const { return _tabulationLemmaAgeRatio; }
   int tabulationLemmaWeightRatio() const { return _tabulationLemmaWeightRatio; }
 
+  float instGenBigRestartRatio() const { return _instGenBigRestartRatio; }
+  int instGenResolutionRatioInstGen() const { return _instGenResolutionRatioInstGen; }
+  int instGenResolutionRatioResolution() const { return _instGenResolutionRatioResolution; }
+  int instGenRestartPeriod() const { return _instGenRestartPeriod; }
+  float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient; }
+  bool instGenWithResolution() const { return _instGenWithResolution; }
 
   void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal);
@@ -544,6 +557,12 @@ private:
   int _inequalitySplitting;
   string _inputFile;
   InputSyntax _inputSyntax;
+  float _instGenBigRestartRatio;
+  int _instGenResolutionRatioInstGen;
+  int _instGenResolutionRatioResolution;
+  int _instGenRestartPeriod;
+  float _instGenRestartPeriodQuotient;
+  bool _instGenWithResolution;
   bool _interpretedEvaluation;
   bool _interpretedSimplification;
 

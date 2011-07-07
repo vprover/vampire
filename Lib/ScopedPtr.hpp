@@ -43,7 +43,7 @@ public:
   {
     CALL("SmartPtr::operator=");
 
-    if(!obj) {
+    if(_obj) {
       checked_delete(_obj);
     }
     _obj = obj;

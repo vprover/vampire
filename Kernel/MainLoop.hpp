@@ -53,11 +53,24 @@ public:
   {
     RefutationFoundException(Clause* ref) : refutation(ref)
     {
-      CALL("SaturationAlgorithm::RefutationFoundException::RefutationFoundException");
+      CALL("MainLoop::RefutationFoundException::RefutationFoundException");
       ASS(isRefutation(ref));
     }
 
     Clause* refutation;
+  };
+
+  /**
+   * A struct that is thrown as an exception when a refutation is found
+   * during the main loop.
+   */
+  struct MainLoopFinishedException : public ThrowableBase
+  {
+    MainLoopFinishedException(const MainLoopResult& res) : result(res)
+    {
+    }
+
+    MainLoopResult result;
   };
 
 protected:

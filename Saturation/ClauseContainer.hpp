@@ -68,6 +68,15 @@ private:
   SubscriptionData _limitChangeSData;
 };
 
+class PlainClauseContainer : public ClauseContainer {
+public:
+  virtual void add(Clause* c)
+  {
+    addedEvent.fire(c);
+  }
+};
+
+
 class UnprocessedClauseContainer
 : public ClauseContainer
 {

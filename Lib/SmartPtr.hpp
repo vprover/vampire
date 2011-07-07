@@ -109,7 +109,6 @@ public:
     }
     return res;
   }
-
 private:
   template<typename U> friend class SmartPtr;
 

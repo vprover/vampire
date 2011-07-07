@@ -178,7 +178,7 @@ PassiveClauseContainer* createPassiveContainer()
 
 using namespace Construction;
 
-SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
+SaturationAlgorithmSP SaturationAlgorithm::createFromOptions(IndexManager* indexMgr)
 {
   CALL("SaturationAlgorithm::createFromOptions");
 
@@ -208,6 +208,14 @@ SaturationAlgorithmSP SaturationAlgorithm::createFromOptions()
     break;
   default:
     NOT_IMPLEMENTED;
+  }
+  if(indexMgr) {
+    res->_imgr = SmartPtr<IndexManager>(indexMgr, true);
+    indexMgr->setSaturationAlgorithm(res);
+
+  }
+  else {
+    res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }
 
   res->setGeneratingInferenceEngine(createGIE());

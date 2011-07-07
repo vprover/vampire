@@ -42,11 +42,15 @@ enum IndexType {
 class IndexManager
 {
 public:
+  /** alg can be zero, then it must be set by setSaturationAlgorithm */
   explicit IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0) {}
+  void setSaturationAlgorithm(SaturationAlgorithm* alg) { ASS(!_alg); ASS(alg); _alg = alg; }
   Index* request(IndexType t);
   void release(IndexType t);
   bool contains(IndexType t);
   Index* get(IndexType t);
+
+  void provideIndex(IndexType t, Index* index);
 
   LiteralIndexingStructure* getGeneratingLiteralIndexingStructure() { return _genLitIndex; };
 private:

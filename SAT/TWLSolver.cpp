@@ -111,6 +111,7 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
       _clauseDisposer->onNewInputClause(cl);
     }
     if(onlyPropagate) {
+      backtrack(1);
       doBaseLevelPropagation();
     }
     else {

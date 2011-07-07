@@ -62,7 +62,7 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
  */
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContainer,
 	LiteralSelector* selector)
-: _imgr(this), _clauseActivationInProgress(false), _passive(passiveContainer),
+: _clauseActivationInProgress(false), _passive(passiveContainer),
   _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _splitter(0),
   _consFinder(0), _symEl(0), _bddMarkingSubsumption(0), _answerLiteralManager(0)
 {
@@ -1392,13 +1392,9 @@ bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
   return true;
 }
 
-/**
- * Perform saturation on clauses that were added through
- * @b addInputClauses function
- */
-MainLoopResult SaturationAlgorithm::runImpl()
+void SaturationAlgorithm::init()
 {
-  CALL("SaturationAlgorithm::runImpl");
+  CALL("SaturationAlgorithm::init");
 
   _sharing.init(this);
   if(_splitter) {
@@ -1415,38 +1411,63 @@ MainLoopResult SaturationAlgorithm::runImpl()
   }
 
   _startTime=env.timer->elapsedMilliseconds();
+}
+
+/**
+ *
+ * This function may throw RefutationFoundException and TimeLimitExceededException.
+ */
+void SaturationAlgorithm::doOneAlgorithmStep()
+{
+  CALL("SaturationAlgorithm::doOneAlgorithmStep");
+
+  doUnprocessedLoop();
+
+  if(_passive->isEmpty()) {
+    MainLoopResult::TerminationReason termReason =
+	isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND;
+    throw MainLoopFinishedException(MainLoopResult(termReason));
+  }
+
+  Clause* cl = _passive->popSelected();
+
+  if(cl->store()==Clause::REACTIVATED) {
+    cl->setStore(Clause::SELECTED_REACTIVATED);
+  }
+  else {
+    ASS_EQ(cl->store(),Clause::PASSIVE);
+    cl->setStore(Clause::SELECTED);
+  }
+
+  if(!handleClauseBeforeActivation(cl)) {
+    return;
+  }
+
+  bool isActivated=activate(cl);
+  if(!isActivated) {
+    handleUnsuccessfulActivation(cl);
+  }
+}
+
+
+/**
+ * Perform saturation on clauses that were added through
+ * @b addInputClauses function
+ */
+MainLoopResult SaturationAlgorithm::runImpl()
+{
+  CALL("SaturationAlgorithm::runImpl");
+
+  init();
 
   try
   {
     for (;;) {
-      doUnprocessedLoop();
-
-      if(_passive->isEmpty()) {
-        return MainLoopResult(isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND);
-      }
-
-      Clause* cl = _passive->popSelected();
-
-      if(cl->store()==Clause::REACTIVATED) {
-	cl->setStore(Clause::SELECTED_REACTIVATED);
-      }
-      else {
-	ASS_EQ(cl->store(),Clause::PASSIVE);
-	cl->setStore(Clause::SELECTED);
-      }
-
-      if(!handleClauseBeforeActivation(cl)) {
-        continue;
-      }
-
-      bool isActivated=activate(cl);
-      if(!isActivated) {
-        handleUnsuccessfulActivation(cl);
-      }
+      doOneAlgorithmStep();
 
       Timer::syncClock();
       if(env.timeLimitReached()) {
-        return MainLoopResult(Statistics::TIME_LIMIT);
+        throw TimeLimitExceededException();
       }
     }
   }

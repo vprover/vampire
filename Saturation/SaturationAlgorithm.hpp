@@ -39,13 +39,15 @@ using namespace Inferences;
 
 class SaturationAlgorithm : public MainLoop
 {
-private:
-  friend class MainLoop;
-
-  static SaturationAlgorithmSP createFromOptions();
 public:
+  static SaturationAlgorithmSP createFromOptions(IndexManager* indexMgr=0);
+
   SaturationAlgorithm(PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
   virtual ~SaturationAlgorithm();
+
+  //the following two functions allow to run the saturation algorithm step by step.
+  void init();
+  void doOneAlgorithmStep();
 
   void setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngineSP immediateSimplifier);
@@ -77,7 +79,7 @@ public:
   size_t passiveClauseCount();
 
   Limits* getLimits() { return &_limits; }
-  IndexManager* getIndexManager() { return &_imgr; }
+  IndexManager* getIndexManager() { return _imgr.ptr(); }
   ClauseSharing* getSharing() { return &_sharing; }
   AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
 
@@ -155,7 +157,7 @@ private:
   MainLoopResult saturateImpl();
 
   Limits _limits;
-  IndexManager _imgr;
+  SmartPtr<IndexManager> _imgr;
 
   class TotalSimplificationPerformer;
   class PartialSimplificationPerformer;

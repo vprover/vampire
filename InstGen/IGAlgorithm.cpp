@@ -3,11 +3,13 @@
  * Implements class IGAlgorithm.
  */
 
+#include <cmath>
 #include <sstream>
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
+#include "Lib/ScopedLet.hpp"
 #include "Lib/TimeCounter.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -37,8 +39,11 @@ namespace InstGen
 {
 
 using namespace Indexing;
+using namespace Saturation;
 
 IGAlgorithm::IGAlgorithm()
+: _instGenResolutionRatio(env.options->instGenResolutionRatioInstGen(),
+    env.options->instGenResolutionRatioResolution(), 50)
 {
   CALL("IGAlgorithm::IGAlgorithm");
 
@@ -49,6 +54,33 @@ IGAlgorithm::IGAlgorithm()
   if(env.options->globalSubsumption()) {
     _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder());
     _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr());
+  }
+
+//  if(env.options->unitResultingResolution()) {
+//    _unitLitIndex = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
+//    _unitLitIndex->attachContainer(&_resolutionContainer);
+//    _nonUnitLitIndex = new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree());
+//    _nonUnitLitIndex->attachContainer(&_resolutionContainer);
+//    _urResolution = new URResolution(false, _unitLitIndex.ptr(), _nonUnitLitIndex.ptr());
+//  }
+
+  if(env.options->instGenWithResolution()) {
+    _saturationIndexManager = new IndexManager(0);
+    if(env.options->globalSubsumption()) {
+      _saturationIndexManager->provideIndex(GLOBAL_SUBSUMPTION_INDEX, _groundingIndex.ptr());
+    }
+    Options saOptions = *env.options;
+    saOptions.setSaturationAlgorithm(Options::LRS);
+    saOptions.setPropositionalToBDD(false);
+    saOptions.setSplitting(Options::SM_OFF);
+    ScopedLet<Options> slet(*env.options, saOptions);
+
+    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(_saturationIndexManager.ptr());
+    _saturationAlgorithm->getSimplifyingClauseContainer()->addedEvent.subscribe(this, &IGAlgorithm::onResolutionClauseDerived);
+  }
+  else {
+    //if there's no resolution, we always do instGen
+    _instGenResolutionRatio.alwaysDoFirst();
   }
 
   _variantIdx = new ClauseVariantIndex();
@@ -76,6 +108,12 @@ void IGAlgorithm::addInputClauses(ClauseIterator it)
 
   UnitList* units = 0;
   UnitList::pushFromIterator(it, units);
+
+  if(_saturationAlgorithm) {
+    _saturationAlgorithm->addInputClauses(pvi(
+	getStaticCastIterator<Clause*>(UnitList::Iterator(units)) ));
+    _saturationAlgorithm->init();
+  }
 
   Property property;
   property.scan(units);
@@ -237,8 +275,16 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
       continue;//literal is no longer selected
     }
 
-    tryGeneratingClause(cl, *unif.substitution, true, unif.clause);
-    tryGeneratingClause(unif.clause, *unif.substitution, false, cl);
+    if(unif.clause->length()==1) {
+      //we make sure the unit is added first, so that it can be used to shorten the
+      //second clause by global subsumption
+      tryGeneratingClause(unif.clause, *unif.substitution, false, cl);
+      tryGeneratingClause(cl, *unif.substitution, true, unif.clause);
+    }
+    else {
+      tryGeneratingClause(cl, *unif.substitution, true, unif.clause);
+      tryGeneratingClause(unif.clause, *unif.substitution, false, cl);
+    }
   }
 }
 
@@ -302,6 +348,57 @@ void IGAlgorithm::removeFromIndex(Clause* cl)
   unsigned selCnt = cl->selected();
   for(unsigned i=0; i<selCnt; i++) {
     _selected->remove((*cl)[i], cl);
+  }
+}
+
+void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
+{
+  CALL("IGAlgorithm::onResolutionClauseDerived");
+
+  if(!cl->noProp() || cl->noSplits()) {
+    return;
+  }
+
+  SATClauseIterator scit = _gnd.ground(cl);
+  scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
+
+  LOG("Solver res clause propagation started");
+  _satSolver->ensureVarCnt(_gnd.satVarCnt());
+  _satSolver->addClauses(scit, true);
+  LOG("Solver res clause propagation finished");
+
+  if(_satSolver->getStatus()==SATSolver::UNSATISFIABLE) {
+    Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
+    throw RefutationFoundException(foRefutation);
+  }
+}
+
+void IGAlgorithm::doResolutionStep()
+{
+  CALL("IGAlgorithm::doResolutionStep");
+
+  if(!_saturationAlgorithm) {
+    return;
+  }
+
+  try {
+    _saturationAlgorithm->doOneAlgorithmStep();
+  }
+  catch(MainLoopFinishedException e)
+  {
+    switch(e.result.terminationReason) {
+    case Statistics::REFUTATION:
+    case Statistics::SATISFIABLE:
+      throw;
+    case Statistics::REFUTATION_NOT_FOUND:
+    case Statistics::UNKNOWN:
+    case Statistics::TIME_LIMIT:
+    case Statistics::MEMORY_LIMIT:
+      //refutation algorithm finished, we just get rid of it
+      _saturationAlgorithm = SaturationAlgorithmSP();
+      _instGenResolutionRatio.alwaysDoFirst();
+      break;
+    }
   }
 }
 
@@ -433,10 +530,16 @@ MainLoopResult IGAlgorithm::runImpl()
     addClause(cl);
   }
 
+  int restartRatioMultiplier = 100;
+  int bigRestartRatio = static_cast<int>(restartRatioMultiplier * env.options->instGenBigRestartRatio());
+  int smallRestartRatio = restartRatioMultiplier - bigRestartRatio;
 
-  unsigned loopIterBeforeRestart = 50;
+  int restartKindRatio = 0;
+
+  unsigned loopIterBeforeRestart = env.options->instGenRestartPeriod();
 
   for(;;) {
+    bool restarting = false;
     unsigned loopIterCnt = 0;
     while(_unprocessed.isNonEmpty() || !_passive.isEmpty()) {
       env.statistics->instGenIterations++;
@@ -444,27 +547,46 @@ MainLoopResult IGAlgorithm::runImpl()
       ASS_EQ(_satSolver->getStatus(), SATSolver::SATISFIABLE);
 
       unsigned activatedCnt = max(10u, _passive.size()/4);
-      for(unsigned i=0; i<activatedCnt && !_passive.isEmpty(); i++) {
+      for(unsigned i=0; i<activatedCnt && !_passive.isEmpty() && _instGenResolutionRatio.shouldDoFirst(); i++) {
 	Clause* given = _passive.popSelected();
 	activate(given);
+	_instGenResolutionRatio.doFirst();
+	if(loopIterBeforeRestart && ++loopIterCnt > loopIterBeforeRestart) {
+	  restarting = true;
+	  break;
+	}
       }
 
       doReactivation();
 
-      if(++loopIterCnt == loopIterBeforeRestart) {
+      if(restarting) {
 	break;
       }
 
+      while(_instGenResolutionRatio.shouldDoSecond()) {
+	doResolutionStep();
+	_instGenResolutionRatio.doSecond();
+      }
       env.checkTimeSometime<100>();
     }
-//    if(loopIterCnt == loopIterBeforeRestart && Random::getInteger()%2==0) {
-//      restartFromBeginning();
-//      loopIterBeforeRestart *= 2;
-//    }
-//    else {
-      //if we ran out of clauses, we need this kind of restart to check for satisfiability
+    if(restarting) {
+      if(restartKindRatio>0) {
+	restartFromBeginning();
+	restartKindRatio -= smallRestartRatio;
+      }
+      else {
+	//if we ran out of clauses, we need this kind of restart to check for satisfiability
+	restartWithCurrentClauses();
+	restartKindRatio += bigRestartRatio;
+      }
+      loopIterBeforeRestart = static_cast<int>(ceilf(
+	  loopIterBeforeRestart*env.options->instGenRestartPeriodQuotient()));
+
+    }
+    else {
+      //we're here because there were no more clauses to activate
       restartWithCurrentClauses();
-//    }
+    }
     processUnprocessed();
     while(!_passive.isEmpty()) {
       Clause* given = _passive.popSelected();

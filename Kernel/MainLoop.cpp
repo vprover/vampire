@@ -60,6 +60,10 @@ MainLoopResult MainLoop::run()
   {
     return MainLoopResult(Statistics::TIME_LIMIT);
   }
+  catch(MainLoopFinishedException e)
+  {
+    return e.result;
+  }
 }
 
 /**
