@@ -54,6 +54,11 @@ void SineSymbolExtractor::addSymIds(Literal* lit, int polarity, Stack<SymId>& id
   SymId predId=lit->functor()*2;
   ids.push(predId);
 
+  if(!lit->shared()) {
+    //TODO: add handling of special terms
+    return;
+  }
+
   NonVariableIterator nvi(lit);
   while(nvi.hasNext()) {
     Term* t=nvi.next().term();
@@ -131,6 +136,15 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,int polarity,Stack<Sy
       extractFormulaSymbols (f->condArg(), 0, itms);
       extractFormulaSymbols (f->thenArg(), polarity, itms);
       extractFormulaSymbols (f->elseArg(), polarity, itms);
+      return;
+    case TERM_LET:
+      //TODO: add handling of terms in TERM_LET
+      extractFormulaSymbols (f->letBody(), polarity, itms);
+      return;
+    case FORMULA_LET:
+      extractFormulaSymbols (f->letBody(), polarity, itms);
+      addSymIds(f->formulaLetLhs(), 0, itms);
+      extractFormulaSymbols (f->formulaLetRhs(), 0, itms);
       return;
 
     case TRUE:

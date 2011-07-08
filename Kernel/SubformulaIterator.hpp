@@ -16,7 +16,7 @@
 namespace Kernel {
 
 /**
- * Implements an iterator over variables of a formula formula list, or atom.
+ * Implements an iterator over subformulas of a formula or formula list.
  */
 class SubformulaIterator
 : public IteratorCore<Formula*>

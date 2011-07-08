@@ -11,6 +11,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -28,6 +29,30 @@ SpecialTermElimination::SpecialTermElimination()
 : _defs(0)
 {
 
+}
+
+bool SpecialTermElimination::hasSpecials(FormulaUnit* fu)
+{
+  CALL("SpecialTermElimination::hasSpecials");
+
+  SubformulaIterator sfit(fu->formula());
+  while(sfit.hasNext()) {
+    Formula* f = sfit.next();
+    switch(f->connective()) {
+    case LITERAL:
+      if(!f->literal()->shared()) {
+	return true;
+      }
+      break;
+    case ITE:
+    case TERM_LET:
+    case FORMULA_LET:
+      return true;
+    default:
+      break;
+    }
+  }
+  return false;
 }
 
 void SpecialTermElimination::apply(UnitList*& units)
@@ -76,15 +101,22 @@ FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu0)
   CALL("SpecialTermElimination::apply(FormulaUnit*)");
   ASS(_letStack.isEmpty())
 
-  FormulaUnit* fu = static_cast<FormulaUnit*>(Rectify::rectify(fu0));
-  ASS(!fu->isClause());
+  if(!hasSpecials(fu0)) {
+    return fu0;
+  }
+
+  FormulaUnit* fu = Rectify::rectify(fu0);
 
   Formula* f = fu->formula();
   Formula* g = process(f);
   if(f==g) {
     return fu;
   }
-  return new FormulaUnit(g, new Inference1(Inference::SPECIAL_TERM_ELIMINATION,fu), fu->inputType());
+  FormulaUnit* res = new FormulaUnit(g, new Inference1(Inference::SPECIAL_TERM_ELIMINATION,fu), fu->inputType());
+  if(fu0->included()) {
+    fu0->markIncluded();
+  }
+  return res;
 }
 
 bool SpecialTermElimination::checkForTermLetReplacement(TermList t, TermList& res)

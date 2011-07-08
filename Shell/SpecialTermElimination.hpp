@@ -26,6 +26,7 @@ public:
 
   void apply(UnitList*& units);
   FormulaUnit* apply(FormulaUnit* fu, UnitList*& defs);
+  static bool hasSpecials(FormulaUnit* fu);
 private:
   class LetSpec
   {

@@ -48,10 +48,12 @@ bool Rectify::Renaming::bound (int var,int& boundTo) const
  * @since 23/01/2004 Manchester, changed to use non-static objects
  * @since 06/06/2007 Manchester, changed to use new datastructures
  */
-FormulaUnit* Rectify::rectify (FormulaUnit* unit)
+FormulaUnit* Rectify::rectify (FormulaUnit* unit0)
 {
   CALL("Rectify::rectify (Unit*...)");
-  ASS(!unit->isClause());
+  ASS(!unit0->isClause());
+
+  FormulaUnit* unit = unit0;
 
   Formula* f = unit->formula();
   Rectify rect;
@@ -63,12 +65,18 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit)
     unit = new FormulaUnit(g,
 			   new Inference1(Inference::RECTIFY,unit),
 			   unit->inputType());
+    if(unit0->included()) {
+      unit->markIncluded();
+    }
   }
 
   if (vars->isNonEmpty()) {
     unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,g),
 			   new Inference1(Inference::CLOSURE,unit),
 			   unit->inputType());
+    if(unit0->included()) {
+      unit->markIncluded();
+    }
   }
   return unit;
 } // Rectify::rectify (Unit& unit)
