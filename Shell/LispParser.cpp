@@ -107,3 +107,104 @@ string LispParser::Expression::toString() const
     }
   }
 } // LispParser::Expression::toString
+
+/**
+ * If expression corresponds to a unary function named @c funcionName,
+ * return true and assign its argument to @c arg. Otherwise return false.
+ */
+bool LispParser::Expression::get1Arg(string functionName, Expression*& arg)
+{
+  CALL("LispParser::Expression::get1Arg");
+
+  if(!isList()) {
+    return false;
+  }
+
+  List::Iterator args(list);
+  if(!args.hasNext()) { return false; }
+  string name = args.next()->str;
+  if(name!=functionName) { return false; }
+
+  if(!args.hasNext()) { return false; }
+  Expression* tmpArg = args.next();
+
+  if(args.hasNext()) { return false; }
+
+  arg = tmpArg;
+  return true;
+}
+
+/**
+ * If expression corresponds to a binary function named @c funcionName,
+ * return true and assign its arguments to @c arg1 and @c arg2. Otherwise
+ * return false.
+ */
+bool LispParser::Expression::get2Args(string functionName, Expression*& arg1, Expression*& arg2)
+{
+  CALL("LispParser::Expression::get2Args");
+
+  if(!isList()) {
+    return false;
+  }
+
+  List::Iterator args(list);
+  if(!args.hasNext()) { return false; }
+  string name = args.next()->str;
+  if(name!=functionName) { return false; }
+
+  if(!args.hasNext()) { return false; }
+  Expression* tmpArg1 = args.next();
+
+  if(!args.hasNext()) { return false; }
+  Expression* tmpArg2 = args.next();
+
+  if(args.hasNext()) { return false; }
+
+  arg1 = tmpArg1;
+  arg2 = tmpArg2;
+  return true;
+}
+
+/**
+ * If expression is a list of two elements, return true and assign them
+ * into @c el1 and @c el2.
+ */
+bool LispParser::Expression::getPair(Expression*& el1, Expression*& el2)
+{
+  CALL("LispParser::Expression::getPair");
+
+  if(!isList()) {
+    return false;
+  }
+
+  List::Iterator args(list);
+  if(!args.hasNext()) { return false; }
+  Expression* tmpEl1 = args.next();
+
+  if(!args.hasNext()) { return false; }
+  Expression* tmpEl2 = args.next();
+
+  if(args.hasNext()) { return false; }
+
+  el1 = tmpEl1;
+  el2 = tmpEl2;
+  return true;
+}
+
+bool LispParser::Expression::getSingleton(Expression*& el)
+{
+  CALL("LispParser::Expression::getSingleton");
+
+  if(!isList()) {
+    return false;
+  }
+
+  List::Iterator args(list);
+  if(!args.hasNext()) { return false; }
+  Expression* tmpEl = args.next();
+
+  if(args.hasNext()) { return false; }
+
+  el = tmpEl;
+  return true;
+}

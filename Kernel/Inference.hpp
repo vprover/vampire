@@ -230,7 +230,9 @@ public:
     /** global subsumption */
     GLOBAL_SUBSUMPTION,
     /** distinct equality removal */
-    DISTINCT_EQUALITY_REMOVAL
+    DISTINCT_EQUALITY_REMOVAL,
+    /** inference coming from outside of Vampire */
+    EXTERNAL
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

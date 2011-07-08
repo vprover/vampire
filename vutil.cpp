@@ -20,6 +20,7 @@
 
 #include "VUtils/AnnotationColoring.hpp"
 #include "VUtils/ProblemColoring.hpp"
+#include "VUtils/Z3InterpolantExtractor.hpp"
 
 using namespace Lib;
 using namespace Shell;
@@ -62,6 +63,9 @@ int main(int argc, char* argv [])
     }
     else if(module=="conjecture_coloring" || module=="axiom_coloring") {
       resultValue=AnnotationColoring().perform(argc, argv);
+    }
+    else if(module=="zie") {
+      resultValue=ZIE().perform(argc, argv);
     }
     else {
       USER_ERROR("unknown vutil module name: "+module);

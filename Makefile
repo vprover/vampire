@@ -330,8 +330,8 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 	  UnitTests/tTwoVampires.o
 
 VUTIL_OBJ = VUtils/AnnotationColoring.o\
-            VUtils/ProblemColoring.o
-
+            VUtils/ProblemColoring.o\
+            VUtils/Z3InterpolantExtractor.o
 
 LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/BDD.o\

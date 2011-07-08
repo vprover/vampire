@@ -58,6 +58,15 @@ public:
 	list(0)
     {}
     string toString() const;
+
+    bool isList() const { return tag==LIST; }
+    bool isAtom() const { return tag==ATOM; }
+
+    bool get2Args(string functionName, Expression*& arg1, Expression*& arg2);
+    bool get1Arg(string functionName, Expression*& arg);
+    bool getPair(Expression*& el1, Expression*& el2);
+    bool getSingleton(Expression*& el);
+//    bool getFirstAtom(string atom);
   };
 
   typedef Lib::List<Expression*> List;

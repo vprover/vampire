@@ -380,6 +380,8 @@ string Inference::ruleName(Rule rule)
     return "global subsumption";
   case DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
+  case EXTERNAL:
+    return "external";
 
   default:
     ASSERTION_VIOLATION;
