@@ -71,7 +71,7 @@ void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseCla
       continue;
     }
     Inference::Rule infRule;
-    InferenceStore::UnitSpecIterator parents = is.getParents(curr, infRule);
+    UnitSpecIterator parents = is.getParents(curr, infRule);
     if(infRule==Inference::NEGATED_CONJECTURE) {
       ASS(curr.withoutProp());
       conjectures.push(curr.unit());

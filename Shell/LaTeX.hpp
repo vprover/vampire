@@ -63,11 +63,11 @@ private:
   string toString(Formula*) const;
   string toString(Formula*, Connective c) const;
 
-  string getClauseLatexId(InferenceStore::UnitSpec cs);
+  string getClauseLatexId(UnitSpec cs);
 
   string splittingToString(InferenceStore::SplittingRecord*);
   string toStringAsInference(Unit*);
-  string toStringAsInference(InferenceStore::UnitSpec cs, InferenceStore::FullInference* inf);
+  string toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf);
 
   string symbolToString (unsigned num, bool pred) const;
 

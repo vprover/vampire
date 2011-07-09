@@ -49,7 +49,7 @@ SATClauseIterator Grounder::ground(Clause* cl)
   SATClause* gndNonProp = groundNonProp(cl);
 //  cout<<gndNonProp->toString()<<endl;
 
-  SATInference* inf = new FOConversionInference(InferenceStore::UnitSpec(cl));
+  SATInference* inf = new FOConversionInference(UnitSpec(cl));
   gndNonProp->setInference(inf);
   return pvi( getSingletonIterator(gndNonProp) );
 }
@@ -135,8 +135,6 @@ void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause
 {
   CALL("Grounder::recordInference");
   ASS(refutation);
-
-  typedef InferenceStore::UnitSpec UnitSpec;
 
   static Stack<UnitSpec> prems;
   static Stack<SATClause*> toDo;

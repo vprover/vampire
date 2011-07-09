@@ -30,7 +30,6 @@ public:
 
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) = 0;
 protected:
-  typedef InferenceStore::UnitSpec UnitSpec;
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures);
 };
 

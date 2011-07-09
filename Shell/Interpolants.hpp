@@ -20,13 +20,11 @@ using namespace Kernel;
 class Interpolants
 {
 public:
-  typedef InferenceStore::UnitSpec UnitSpec;
-
   Interpolants(DHSet<UnitSpec>* slicedOff=0) : _slicedOff(slicedOff) {}
-  Formula* getInterpolant(Clause* refutation);
+  Formula* getInterpolant(Unit* refutation);
 private:
 
-  VirtualIterator<UnitSpec> getParents(UnitSpec u);
+  UnitSpecIterator getParents(UnitSpec u);
 
   DHSet<UnitSpec>* _slicedOff;
 };

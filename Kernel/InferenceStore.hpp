@@ -28,61 +28,63 @@ using namespace Lib;
 
 class SplittingRecord;
 
+struct UnitSpec
+{
+  UnitSpec() {}
+  explicit UnitSpec(Unit* u, bool ignoreProp=false) : _unit(u)
+  {
+    if(!ignoreProp && u->isClause() && static_cast<Clause*>(u)->prop()) {
+	_prop=static_cast<Clause*>(u)->prop();
+    }
+    else {
+	_prop=BDD::instance()->getFalse();
+    }
+  }
+  UnitSpec(Unit* u, BDDNode* prop) : _unit(u), _prop(prop) { ASS(prop); }
+  bool operator==(UnitSpec& o) { return _unit==o._unit && _prop==o._prop; }
+  bool operator!=(UnitSpec& o) { return !(*this==o); }
+
+  static unsigned hash(const UnitSpec& o)
+  {
+    return PtrPairSimpleHash::hash(make_pair(o._unit, o._prop));
+  }
+
+  bool isClause() const { return _unit->isClause(); }
+  bool isPropTautology() const { return BDD::instance()->isTrue(_prop); }
+  bool withoutProp() const { return BDD::instance()->isFalse(_prop); }
+
+  Clause* cl() const
+  {
+    ASS(_unit->isClause());
+    return static_cast<Clause*>(_unit);
+  }
+  Unit* unit() const { return _unit; }
+  BDDNode* prop() const { return _prop; }
+
+  string toString() const
+  {
+    if(isClause()) {
+	return cl()->toString(prop());
+    }
+    else {
+	ASS(BDD::instance()->isFalse(prop()));
+	return unit()->toString();
+    }
+  }
+
+private:
+  Unit* _unit;
+  BDDNode* _prop;
+};
+
+typedef VirtualIterator<UnitSpec> UnitSpecIterator;
+
+
 class InferenceStore
 {
 public:
   static InferenceStore* instance();
 
-  struct UnitSpec
-  {
-    UnitSpec() {}
-    explicit UnitSpec(Unit* u, bool ignoreProp=false) : _unit(u)
-    {
-      if(!ignoreProp && u->isClause() && static_cast<Clause*>(u)->prop()) {
-	_prop=static_cast<Clause*>(u)->prop();
-      }
-      else {
-	_prop=BDD::instance()->getFalse();
-      }
-    }
-    UnitSpec(Unit* u, BDDNode* prop) : _unit(u), _prop(prop) { ASS(prop); }
-    bool operator==(UnitSpec& o) { return _unit==o._unit && _prop==o._prop; }
-    bool operator!=(UnitSpec& o) { return !(*this==o); }
-
-    static unsigned hash(const UnitSpec& o)
-    {
-      return PtrPairSimpleHash::hash(make_pair(o._unit, o._prop));
-    }
-
-    bool isClause() const { return _unit->isClause(); }
-    bool isPropTautology() const { return BDD::instance()->isTrue(_prop); }
-    bool withoutProp() const { return BDD::instance()->isFalse(_prop); }
-
-    Clause* cl() const
-    {
-      ASS(_unit->isClause());
-      return static_cast<Clause*>(_unit);
-    }
-    Unit* unit() const { return _unit; }
-    BDDNode* prop() const { return _prop; }
-
-    string toString() const
-    {
-      if(isClause()) {
-	return cl()->toString(prop());
-      }
-      else {
-	ASS(BDD::instance()->isFalse(prop()));
-	return unit()->toString();
-      }
-    }
-
-  private:
-    Unit* _unit;
-    BDDNode* _prop;
-  };
-
-  typedef VirtualIterator<UnitSpec> UnitSpecIterator;
   typedef List<int> IntList;
 
   struct FullInference

@@ -112,7 +112,7 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
 
   InferenceStore::SplittingRecord* srec=new InferenceStore::SplittingRecord(cl);
 
-  static Stack<InferenceStore::UnitSpec> masterPremises;
+  static Stack<UnitSpec> masterPremises;
   masterPremises.reset();
   masterPremises.push(InferenceStore::getUnitSpec(cl));
 
@@ -136,12 +136,12 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
     //the component with atomic bdd as propositional part was put
     //into the inference store during component naming, so we can
     //use it now as a premise
-    InferenceStore::UnitSpec compDefPremise=InferenceStore::getUnitSpec(comp, getNameProp(-compName));
+    UnitSpec compDefPremise=InferenceStore::getUnitSpec(comp, getNameProp(-compName));
     masterPremises.push(compDefPremise);
     srec->namedComps.push(make_pair(compName, comp));
   }
 
-  InferenceStore::UnitSpec splittedMCompCS(masterComp, newMasterProp);
+  UnitSpec splittedMCompCS(masterComp, newMasterProp);
 
   srec->result=splittedMCompCS;
   InferenceStore::instance()->recordSplitting(srec, masterPremises.size(),

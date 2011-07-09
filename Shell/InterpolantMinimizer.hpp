@@ -34,15 +34,14 @@ public:
       bool showStats=false, string statsPrefix="");
   ~InterpolantMinimizer();
 
-  typedef InferenceStore::UnitSpec UnitSpec;
   typedef List<UnitSpec> USList;
 
-  Formula* getInterpolant(Clause* refutation);
+  Formula* getInterpolant(Unit* refutation);
 
 private:
   //proof tree traversing
 
-  void traverse(Clause* refutation);
+  void traverse(Unit* refutationUnit);
 
   struct TraverseStackEntry;
 

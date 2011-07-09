@@ -94,15 +94,15 @@ string LaTeX::refutationToString(Unit* ref)
   BDD* bdd=BDD::instance();
   InferenceStore* is=InferenceStore::instance();
 
-  Stack<InferenceStore::UnitSpec> outKernel;
-  Set<InferenceStore::UnitSpec> handledKernel;
+  Stack<UnitSpec> outKernel;
+  Set<UnitSpec> handledKernel;
   Stack<Unit*> outShell;
   Set<Unit*> handledShell;
 
   if( ref->isClause() && static_cast<Clause*>(ref)->prop() ) {
     Clause* refCl=static_cast<Clause*>(ref);
     ASS( bdd->isFalse(refCl->prop()) );
-    InferenceStore::UnitSpec cs=InferenceStore::getUnitSpec(refCl);
+    UnitSpec cs=InferenceStore::getUnitSpec(refCl);
     outKernel.push(cs);
     handledKernel.insert(cs);
   } else {
@@ -111,7 +111,7 @@ string LaTeX::refutationToString(Unit* ref)
   }
 
   while(outKernel.isNonEmpty()) {
-    InferenceStore::UnitSpec cs=outKernel.pop();
+    UnitSpec cs=outKernel.pop();
     InferenceStore::FullInference* finf;
     if(bdd->isTrue(cs.prop())) {
       //tautologies should not be printed out
@@ -130,7 +130,7 @@ string LaTeX::refutationToString(Unit* ref)
       res+=toStringAsInference(cs, finf);
 
       for(unsigned i=0;i<finf->premCnt;i++) {
-	InferenceStore::UnitSpec prem=finf->premises[i];
+	UnitSpec prem=finf->premises[i];
 	ASS(prem!=cs);
 	Clause* premCl=prem.cl();
 	ASS(premCl->prop());
@@ -153,7 +153,7 @@ string LaTeX::refutationToString(Unit* ref)
 	first=false;
 	if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
 	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
-	  InferenceStore::UnitSpec premCS=InferenceStore::getUnitSpec(static_cast<Clause*>(prem), bdd->getFalse());
+	  UnitSpec premCS=InferenceStore::getUnitSpec(static_cast<Clause*>(prem), bdd->getFalse());
 
 	  if(!handledKernel.contains(premCS)) {
 	    handledKernel.insert(premCS);
@@ -527,12 +527,12 @@ string LaTeX::toString (TermList* terms) const
 //   }
 // } // LaTeX::toString (const Unit& u)
 
-string LaTeX::getClauseLatexId(InferenceStore::UnitSpec cs)
+string LaTeX::getClauseLatexId(UnitSpec cs)
 {
   return Int::toString(cs.cl()->number())+"_{"+InferenceStore::instance()->getClauseIdSuffix(cs)+"}";
 }
 
-string LaTeX::toStringAsInference(InferenceStore::UnitSpec cs, InferenceStore::FullInference* inf)
+string LaTeX::toStringAsInference(UnitSpec cs, InferenceStore::FullInference* inf)
 {
   CALL("LaTeX::toStringAsInference(ClauseSpec,FullInference*)");
 
@@ -540,7 +540,7 @@ string LaTeX::toStringAsInference(InferenceStore::UnitSpec cs, InferenceStore::F
 
   bool hasParents=inf->premCnt;
   for(unsigned i=0;i<inf->premCnt;i++) {
-    InferenceStore::UnitSpec prem=inf->premises[i];
+    UnitSpec prem=inf->premises[i];
     res += getClauseLatexId(prem);
     if(i+1<inf->premCnt) {
 	res += ",";
@@ -556,7 +556,7 @@ string LaTeX::toStringAsInference(InferenceStore::UnitSpec cs, InferenceStore::F
 
   if(hasParents) {
     for(unsigned i=0;i<inf->premCnt;i++) {
-      InferenceStore::UnitSpec prem=inf->premises[i];
+      UnitSpec prem=inf->premises[i];
       res += "\\begin{VampirePremise}%\n~~";
       res += toString(prem.cl(),prem.prop());
       res += "\n\\end{VampirePremise}\n";

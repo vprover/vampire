@@ -14,13 +14,22 @@
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Shell/InterpolantMinimizer.hpp"
 #include "Shell/LispLexer.hpp"
+#include "Shell/TPTP.hpp"
 
+
+#include "LocalityRestoring.hpp"
+#include "RangeColoring.hpp"
 
 #include "Z3InterpolantExtractor.hpp"
 
 namespace VUtils
 {
+
+///////////////////////
+// proof extraction
+//
 
 string ZIE::hypothesesToString(List<TermList>* hypotheses)
 {
@@ -95,7 +104,7 @@ bool ZIE::readLet(LExpr* expr, LExpr*& tail)
     string name = nameE->str;
     _letRecords.push(LetRecord(name, value));
 
-    LOG("let: " << name << " --> " << value->toString());
+//    LOG("let: " << name << " --> " << value->toString());
   }
   return true;
 }
@@ -206,8 +215,9 @@ TermList ZIE::readTerm(LExpr* term)
   unsigned arity = argStack.size();
   unsigned func = env.signature->addFunction(name, arity);
   Term* trm = Term::create(func, arity, argStack.begin());
-
-  return TermList(trm);
+  TermList res(trm);
+  onFunctionApplication(res);
+  return res;
 }
 
 Formula* ZIE::termToFormula(TermList trm)
@@ -329,14 +339,14 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
     Formula* lemma = termToFormula(lemmaTrm, remainingHyp);
     FormulaUnit* lemmaUnit = new FormulaUnit(lemma, inf, Unit::AXIOM);
 
+    _allUnits.push(lemmaUnit);
     return ProofObject(lemmaUnit, remainingHyp);
   }
 
   LExprList::Iterator args(expr->list);
   if(!args.hasNext()) { LISP_ERROR("invalid proof object", expr); }
   LExpr* nameE = args.next();
-  if(!nameE->isAtom()) { LISP_ERROR("invalid inference rule name", nameE); }
-  string name = nameE->str;
+  string name = nameE->toString();
 
   Stack<LExpr*> argStack;
   argStack.reset();
@@ -388,6 +398,8 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
   if(input) {
     _inputUnits.push(resUnit);
   }
+  _allUnits.push(resUnit);
+
   return ProofObject(resUnit, hypotheseTerms);
 }
 
@@ -402,14 +414,14 @@ void ZIE::processLets()
     LExpr* expr = lrec.second;
     if(isTermVariable(varName)) {
       TermList trm = readTerm(expr);
-      LOG(varName << " = " << trm.toString());
+//      LOG(varName << " = " << trm.toString());
       if(!_termAssignments.insert(varName, trm)) {
 	USER_ERROR("duplicate variable: " + varName);
       }
     }
     else if(isProofVariable(varName)) {
       ProofObject po = readProofObject(expr);
-      LOG(varName << " = " << (po.unit ? po.unit->toString() : "<hypothesis>"));
+//      LOG(varName << " = " << (po.unit ? po.unit->toString() : "<hypothesis>"));
       if(!_proofAssignments.insert(varName, po)) {
 	USER_ERROR("duplicate variable: " + varName);
       }
@@ -421,9 +433,108 @@ void ZIE::processLets()
   }
 }
 
+///////////////////////
+// coloring
+//
+
+ZIE::UnaryFunctionInfo::UnaryFunctionInfo(TermList firstArg)
+{
+  CALL("ZIE::UnaryFunctionInfo::UnaryFunctionInfo");
+
+  numericArgsOnly = theory->isInterpretedConstant(firstArg);
+
+  if(numericArgsOnly) {
+    InterpretedType argVal = theory->interpretConstant(firstArg);
+    minArg = maxArg = argVal;
+  }
+}
+
+void ZIE::UnaryFunctionInfo::onNewArg(TermList firstArg)
+{
+  CALL("ZIE::UnaryFunctionInfo::onNewArg");
+
+  if(!numericArgsOnly) {
+    return;
+  }
+
+  bool isNumeric = theory->isInterpretedConstant(firstArg);
+  if(isNumeric) {
+    InterpretedType argVal = theory->interpretConstant(firstArg);
+    if(argVal>maxArg) { maxArg = argVal; }
+    if(argVal<minArg) { minArg = argVal; }
+  }
+  else {
+    numericArgsOnly = false;
+  }
+}
+
+void ZIE::onFunctionApplication(TermList fn)
+{
+  CALL("ZIE::onFunctionApplication");
+  ASS(fn.isTerm());
+
+  Term* t = fn.term();
+  if(t->arity()!=1) { return; }
+  unsigned func = t->functor();
+  TermList arg = *t->nthArgument(0);
+  UnaryFunctionInfo* pInfo;
+  if(_unaryFnInfos.getValuePtr(func, pInfo)) {
+    *pInfo = UnaryFunctionInfo(arg);
+  }
+  else {
+    pInfo->onNewArg(arg);
+  }
+}
+
+bool ZIE::colorProof(Stack<Unit*>& derivation, Stack<Unit*>& coloredDerivationTgt)
+{
+  CALL("ZIE::colorProof");
+
+  bool first = true;
+
+  RangeColoring rcol;
+
+  InterpretedType globalMin;
+  InterpretedType globalMax;
+
+  UnaryInfoMap::Iterator uiit(_unaryFnInfos);
+  while(uiit.hasNext()) {
+    UnaryFunctionInfo uinfo;
+    unsigned func;
+    uiit.next(func, uinfo);
+    if(!uinfo.numericArgsOnly) { continue; }
+
+    if(first || globalMin>uinfo.minArg) {
+      globalMin = uinfo.minArg;
+    }
+    if(first || globalMax<uinfo.maxArg) {
+      globalMax = uinfo.maxArg;
+    }
+    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
+    rcol.addFunction(func);
+  }
+  InterpretedType midpoint = (globalMax+globalMin)/2;
+  rcol.setMiddleValue(midpoint);
+
+  if(!rcol.areUnitsLocal(_inputUnits)) {
+    return false;
+  }
+
+  rcol.applyToDerivation(derivation, coloredDerivationTgt);
+
+  return true;
+}
+
+
+///////////////////////
+// main
+//
+
 Unit* ZIE::getZ3Refutation()
 {
   CALL("ZIE::getZ3Refutation");
+
+  env.colorUsed = true;
 
   LExpr* inp = getInput();
 
@@ -441,13 +552,46 @@ Unit* ZIE::getZ3Refutation()
   return pobj.unit;
 }
 
+void ZIE::outputInterpolantStats(Unit* refutation)
+{
+  CALL("ZIE::outputInterpolantStats");
+
+  Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(refutation);
+  Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(refutation);
+  InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(refutation);
+  Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(refutation);
+  Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(refutation);
+
+  cout << "Old interpolant: " << TPTP::toString(oldInterpolant) << endl;
+  cout << "Interpolant: " << TPTP::toString(interpolant) << endl;
+  cout << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;
+  cout << "Quantifiers minimized interpolant: " << TPTP::toString(quantInterpolant) << endl;
+}
+
 int ZIE::perform(int argc, char** argv)
 {
   CALL("ZIE::perform");
 
 
   Unit* z3Refutation = getZ3Refutation();
-  InferenceStore::instance()->outputProof(cout, z3Refutation);
+//  InferenceStore::instance()->outputProof(cout, z3Refutation);
+
+  if(!colorProof(_allUnits, _allUnitsColored)) {
+    cout << "Cannot color the refutation" << endl;
+    return 1;
+  }
+  LocalityRestoring locRes(_allUnitsColored, _allUnitsLocal);
+
+  if(!locRes.perform()) {
+    cout << "Cannot make the colored proof local";
+    return 1;
+  }
+
+  Unit* localRef = _allUnitsLocal.top();
+
+//  InferenceStore::instance()->outputProof(cout, coloredRef);
+
+  outputInterpolantStats(localRef);
 
   return 0;
 }

@@ -25,7 +25,6 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
-typedef InferenceStore::UnitSpec UnitSpec;
 typedef pair<Formula*, Formula*> UIPair; //pair of unit U and the U-interpolant
 typedef List<UIPair> UIPairList;
 
@@ -145,7 +144,7 @@ void mergeCopy(UIPairList*& tgt, UIPairList* src)
 
 void generateInterpolant(ItemState& st);
 
-Formula* Interpolants::getInterpolant(Clause* cl)
+Formula* Interpolants::getInterpolant(Unit* unit)
 {
   CALL("Interpolants::getInterpolant");
 
@@ -154,7 +153,7 @@ Formula* Interpolants::getInterpolant(Clause* cl)
 
   Stack<ItemState> sts;
 
-  UnitSpec curr=UnitSpec(cl, cl->prop());
+  UnitSpec curr=UnitSpec(unit);
 
   Formula* resultInterpolant = 0;
 
@@ -216,7 +215,8 @@ Formula* Interpolants::getInterpolant(Clause* cl)
       if(!st.processed) {
 	if(st.inheritedColor!=color || sts.isEmpty()) {
 	  //we either have a transparent clause justified by A or B, or the refutation
-	  ASS_EQ(color,COLOR_TRANSPARENT);
+//	  ASS_EQ(color,COLOR_TRANSPARENT);
+	  ASS_REP2(color==COLOR_TRANSPARENT, st.us.toString(), st.inheritedColor);
 	  generateInterpolant(st);
 	}
 	st.processed = true;

@@ -939,7 +939,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 
   if(env.options->satSolverForEmptyClause()) {
     static BDDConjunction ecProp;
-    static Stack<InferenceStore::UnitSpec> emptyClauses;
+    static Stack<UnitSpec> emptyClauses;
 
     onNonRedundantClause(cl);
     onNewUsefulPropositionalClause(cl);
@@ -1016,8 +1016,8 @@ void SaturationAlgorithm::performEmptyClauseParentSubsumption(Clause* cl0, BDDNo
 
   Clause* cl=cl0;
   for(;;) {
-    VirtualIterator<InferenceStore::UnitSpec> parents=
-	InferenceStore::instance()->getParents(InferenceStore::UnitSpec(cl, false));
+    UnitSpecIterator parents=
+	InferenceStore::instance()->getParents(UnitSpec(cl, false));
 
     while(parents.hasNext()) {
       Clause* par=parents.next().cl();

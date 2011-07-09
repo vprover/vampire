@@ -32,7 +32,7 @@ using namespace Indexing;
 /**
  * Return minimized interpolant of @c refutation
  */
-Formula* InterpolantMinimizer::getInterpolant(Clause* refutation)
+Formula* InterpolantMinimizer::getInterpolant(Unit* refutation)
 {
   CALL("InterpolantMinimizer::getInterpolant");
 
@@ -766,11 +766,11 @@ struct InterpolantMinimizer::TraverseStackEntry
  * record everything that is necessary for generating the
  * minimization problem
  */
-void InterpolantMinimizer::traverse(Clause* refutationClause)
+void InterpolantMinimizer::traverse(Unit* refutationUnit)
 {
   CALL("InterpolantMinimizer::traverse");
 
-  UnitSpec refutation=UnitSpec(refutationClause, refutationClause->prop());
+  UnitSpec refutation=UnitSpec(refutationUnit);
 
   static Stack<TraverseStackEntry> stack;
   stack.reset();

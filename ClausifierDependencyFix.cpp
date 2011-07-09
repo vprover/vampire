@@ -29,7 +29,7 @@ Shell::InterpolantMinimizer::InterpolantMinimizer(OptimizationTarget, bool, bool
 Shell::InterpolantMinimizer::~InterpolantMinimizer()
 {
 }
-Kernel::Formula* Shell::InterpolantMinimizer::getInterpolant(Kernel::Clause*)
+Kernel::Formula* Shell::InterpolantMinimizer::getInterpolant(Kernel::Unit*)
 {
   INVALID_OPERATION("not supported in clausifier");
 }

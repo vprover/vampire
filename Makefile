@@ -138,6 +138,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
         Kernel/TermIterators.o\
+        Kernel/TermTransformer.o\
         Kernel/Theory.o\
         Kernel/Unit.o
 
@@ -330,7 +331,9 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 	  UnitTests/tTwoVampires.o
 
 VUTIL_OBJ = VUtils/AnnotationColoring.o\
+            VUtils/LocalityRestoring.o\
             VUtils/ProblemColoring.o\
+            VUtils/RangeColoring.o\
             VUtils/Z3InterpolantExtractor.o
 
 LIB_DEP = Indexing/TermSharing.o\

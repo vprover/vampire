@@ -15,6 +15,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Term.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "Shell/LispParser.hpp"
 
@@ -77,8 +78,41 @@ private:
   DHMap<string, TermList> _termAssignments;
   DHMap<string, ProofObject> _proofAssignments;
 
-  Stack<Unit*> _inputUnits;
+  /**
+   * All units in the proof.
+   *
+   * Consequences are closer to the top of the stack than their
+   * premises.
+   */
+  Stack<Unit*> _allUnits;
+  Stack<Unit*> _allUnitsColored;
+  Stack<Unit*> _allUnitsLocal;
 
+
+  Stack<Unit*> _inputUnits;
+private:
+
+  struct UnaryFunctionInfo
+  {
+    UnaryFunctionInfo() {}
+    UnaryFunctionInfo(TermList firstArg);
+
+    void onNewArg(TermList firstArg);
+
+    bool numericArgsOnly;
+
+    InterpretedType minArg;
+    InterpretedType maxArg;
+  };
+
+  void onFunctionApplication(TermList fn);
+  bool colorProof(Stack<Unit*>& derivation, Stack<Unit*>& coloredDerivationTgt);
+
+  typedef DHMap<unsigned, UnaryFunctionInfo> UnaryInfoMap;
+  UnaryInfoMap _unaryFnInfos;
+
+private:
+  void outputInterpolantStats(Unit* refutation);
 };
 
 }

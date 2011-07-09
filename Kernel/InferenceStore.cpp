@@ -54,11 +54,11 @@ InferenceStore::InferenceStore()
 }
 
 
-InferenceStore::UnitSpec InferenceStore::getUnitSpec(Clause* cl)
+UnitSpec InferenceStore::getUnitSpec(Clause* cl)
 {
   return UnitSpec(cl, false);
 }
-InferenceStore::UnitSpec InferenceStore::getUnitSpec(Clause* cl, BDDNode* prop)
+UnitSpec InferenceStore::getUnitSpec(Clause* cl, BDDNode* prop)
 {
   return UnitSpec(cl, prop);
 }
@@ -304,13 +304,13 @@ void InferenceStore::deleteClauseRecords(Clause* cl)
   }
 }
 
-InferenceStore::UnitSpecIterator InferenceStore::getParents(UnitSpec us, Inference::Rule& rule)
+UnitSpecIterator InferenceStore::getParents(UnitSpec us, Inference::Rule& rule)
 {
   CALL("InferenceStore::getParents/2");
 
   if(us.isPropTautology()) {
     rule=Inference::TAUTOLOGY_INTRODUCTION;
-    return VirtualIterator<InferenceStore::UnitSpec>::getEmpty();
+    return VirtualIterator<UnitSpec>::getEmpty();
   }
   if(us.isClause()) {
     FullInference* finf;
@@ -332,7 +332,7 @@ InferenceStore::UnitSpecIterator InferenceStore::getParents(UnitSpec us, Inferen
   return pvi( List<UnitSpec>::DestructiveIterator(res) );
 }
 
-InferenceStore::UnitSpecIterator InferenceStore::getParents(UnitSpec us)
+UnitSpecIterator InferenceStore::getParents(UnitSpec us)
 {
   CALL("InferenceStore::getParents/1");
 

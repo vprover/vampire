@@ -1,0 +1,56 @@
+/**
+ * @file RangeColoring.hpp
+ * Defines class RangeColoring.
+ */
+
+#ifndef __RangeColoring__
+#define __RangeColoring__
+
+#include "Forwards.hpp"
+
+#include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
+
+#include "Kernel/Theory.hpp"
+
+namespace VUtils {
+
+using namespace Lib;
+using namespace Kernel;
+
+class TermColoring {
+public:
+  Formula* applyToFormula(Formula* f);
+  void applyToDerivation(Stack<Unit*>& inp, Stack<Unit*>& out);
+
+  bool isLocal(Unit* u);
+  bool areUnitsLocal(Stack<Unit*>& units);
+protected:
+  virtual bool isColoredFunction(unsigned func) = 0;
+  virtual Color getColor(TermList term) = 0;
+
+private:
+  class ColoringTermTransformer;
+  class ColoringFormulaTransformer;
+
+  TermList applyToTerm(TermList trm);
+
+  DHMap<TermList,TermList> _cache;
+};
+
+class RangeColoring : public TermColoring
+{
+public:
+  void addFunction(unsigned func);
+  void setMiddleValue(InterpretedType val);
+protected:
+  virtual bool isColoredFunction(unsigned func);
+  virtual Color getColor(TermList term);
+private:
+  InterpretedType _middle;
+  DHSet<unsigned> _funcs;
+};
+
+}
+
+#endif // __RangeColoring__
