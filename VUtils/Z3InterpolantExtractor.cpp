@@ -7,6 +7,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
+#include "Lib/Int.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -20,6 +21,20 @@
 
 namespace VUtils
 {
+
+string ZIE::hypothesesToString(List<TermList>* hypotheses)
+{
+  string res;
+  List<TermList>::Iterator hit(hypotheses);
+  while(hit.hasNext()) {
+    TermList hyp = hit.next();
+    res += hyp.toString();
+    if(hit.hasNext()) {
+	res += ", ";
+    }
+  }
+  return res;
+}
 
 LExpr* ZIE::getInput()
 {
@@ -118,9 +133,41 @@ TermList ZIE::negate(TermList term)
   return TermList(negTrm);
 }
 
+bool ZIE::tryReadNumber(LExpr* expr, TermList& res)
+{
+  CALL("ZIE::tryReadNumber");
+
+  InterpretedType num;
+
+  if(expr->isAtom() && Int::stringToInt(expr->str, num)) {
+    unsigned func = env.signature->addInterpretedConstant(num);
+    res = TermList(Term::create(func, 0, 0));
+    return true;
+  }
+
+  LExpr* uminusArg;
+  if(expr->get1Arg("-", uminusArg) || expr->get1Arg("~", uminusArg)) {
+    if(uminusArg->isAtom() && Int::stringToInt(uminusArg->str, num) && Int::safeUnaryMinus(num, num)) {
+      unsigned func = env.signature->addInterpretedConstant(num);
+      res = TermList(Term::create(func, 0, 0));
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
 TermList ZIE::readTerm(LExpr* term)
 {
   CALL("ZIE::readTerm");
+
+  {
+    TermList numRes;
+    if(tryReadNumber(term, numRes)) {
+      return numRes;
+    }
+  }
 
   if(term->isAtom()) {
     //we have a constant or a let variable
@@ -165,12 +212,80 @@ TermList ZIE::readTerm(LExpr* term)
 
 Formula* ZIE::termToFormula(TermList trm)
 {
-  CALL("ZIE::termToFormula");
+  CALL("ZIE::termToFormula/1");
 
   static unsigned pred = env.signature->addPredicate("e", 1);
 
   Literal* resLit = Literal::create(pred, 1, true, false, &trm);
   return new AtomicFormula(resLit);
+}
+
+Formula* ZIE::termToFormula(TermList trm, List<TermList>* hypotheses)
+{
+  CALL("ZIE::termToFormula/2");
+
+  Formula* res = termToFormula(trm);
+
+  if(hypotheses) {
+    FormulaList* hypotheseForms = 0;
+    List<TermList>::Iterator hit(hypotheses);
+    while(hit.hasNext()) {
+      TermList hypTrm = hit.next();
+      Formula* hypForm = termToFormula(hypTrm);
+      FormulaList::push(hypForm, hypotheseForms);
+    }
+
+    Formula* hypotheseForm;
+    if(hypotheses->tail()) {
+      hypotheseForm = new JunctionFormula(AND, hypotheseForms);
+    }
+    else {
+      hypotheseForm = FormulaList::pop(hypotheseForms);
+      ASS(!hypotheseForms);
+    }
+    res = new BinaryFormula(IMP, hypotheseForm, res);
+  }
+  return res;
+}
+
+void ZIE::resolveHypotheses(List<TermList>*& hypotheses, TermList lemma)
+{
+  CALL("ZIE::resolveHypotheses");
+
+  {
+    TermList hyp = negate(lemma);
+    if(hypotheses->member(hyp)) {
+      //this is the easy case when he have just one hypothesis to resolve
+      hypotheses = hypotheses->remove(hyp);
+      return;
+    }
+  }
+
+  if(lemma.isTerm() && lemma.term()->functionName()=="or") {
+    bool anyMissing = false;
+    Term* lemmaT = lemma.term();
+    unsigned disjArity = lemmaT->arity();
+    for(unsigned i=0; i<disjArity; i++) {
+      TermList subLemma = *lemmaT->nthArgument(i);
+      TermList hyp = negate(subLemma);
+      if(!hypotheses->member(hyp)) {
+	anyMissing = true;
+      }
+    }
+    if(!anyMissing) {
+      for(unsigned i=0; i<disjArity; i++) {
+        TermList subLemma = *lemmaT->nthArgument(i);
+        TermList hyp = negate(subLemma);
+        hypotheses = hypotheses->remove(hyp);
+      }
+      return;
+    }
+  }
+
+  USER_ERROR("unable to resolve lemma with hypotheses\n"
+	"hypotheses are "+hypothesesToString(hypotheses)+"\n"
+	"we want to resolve "+lemma.toString());
+
 }
 
 ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
@@ -202,20 +317,16 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
   if(expr->get2Args("lemma", lemmaPrem, lemmaHypNeg)) {
     ProofObject prem = readProofObject(lemmaPrem);
     TermList lemmaTrm = readTerm(lemmaHypNeg);
-    TermList hyp = negate(lemmaTrm);
 
-    if(!prem.hypotheses->member(hyp)) {
-      LISP_ERROR("lemma with non-existing hypothesis", expr);
-    }
     if(!prem.unit) {
       LISP_ERROR("invalid lemma premise", expr);
     }
 
     List<TermList>* remainingHyp = prem.hypotheses->copy();
-    remainingHyp = remainingHyp->remove(hyp);
+    resolveHypotheses(remainingHyp, lemmaTrm);
 
     Inference* inf = new Inference1(Inference::EXTERNAL, prem.unit);
-    Formula* lemma = termToFormula(lemmaTrm);
+    Formula* lemma = termToFormula(lemmaTrm, remainingHyp);
     FormulaUnit* lemmaUnit = new FormulaUnit(lemma, inf, Unit::AXIOM);
 
     return ProofObject(lemmaUnit, remainingHyp);
@@ -236,13 +347,11 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
 
   LExpr* conclusionExp = argStack.pop();
   TermList conclusionTrm = readTerm(conclusionExp);
-  Formula* conclusion = termToFormula(conclusionTrm);
 
 
   DHSet<TermList> hypotheseSet;
   hypotheseSet.reset();
   List<TermList>* hypotheseTerms = 0;
-  FormulaList* hypotheses = 0;
   UnitList* premises = 0;
 
   Stack<LExpr*>::BottomFirstIterator premExprIt(argStack);
@@ -260,32 +369,25 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
 	continue;
       }
       List<TermList>::push(hypTrm, hypotheseTerms);
-      Formula* hypothese = termToFormula(hypTrm);
-      FormulaList::push(hypothese, hypotheses);
     }
   }
 
-  if(hypotheses) {
-    Formula* hypotheseForm;
-    if(hypotheses->tail()) {
-      hypotheseForm = new JunctionFormula(AND, hypotheses);
-    }
-    else {
-      hypotheseForm = FormulaList::pop(hypotheses);
-      ASS(!hypotheses);
-    }
-    conclusion = new BinaryFormula(IMP, hypotheseForm, conclusion);
-  }
+  Formula* conclusion = termToFormula(conclusionTrm, hypotheseTerms);
 
+  bool input = false;
   Inference* inf;
   if(name=="asserted") {
     if(premises) { LISP_ERROR("asserted cannot have any premises", expr); }
     inf = new Inference(Inference::INPUT);
+    input = true;
   }
   else {
     inf = new InferenceMany(Inference::EXTERNAL, premises);
   }
   FormulaUnit* resUnit = new FormulaUnit(conclusion, inf, Unit::AXIOM);
+  if(input) {
+    _inputUnits.push(resUnit);
+  }
   return ProofObject(resUnit, hypotheseTerms);
 }
 
@@ -319,12 +421,11 @@ void ZIE::processLets()
   }
 }
 
-int ZIE::perform(int argc, char** argv)
+Unit* ZIE::getZ3Refutation()
 {
-  CALL("ZIE::perform");
+  CALL("ZIE::getZ3Refutation");
 
   LExpr* inp = getInput();
-  print(inp);
 
   LExpr* proofExpr;
   if(!inp->getSingleton(proofExpr)) { LISP_ERROR("invalid proof", inp); }
@@ -335,19 +436,18 @@ int ZIE::perform(int argc, char** argv)
 
   ProofObject pobj = readProofObject(proofExpr);
   if(pobj.hypotheses) {
-    List<TermList>::Iterator hit(pobj.hypotheses);
-    string hypStr;
-    while(hit.hasNext()) {
-      TermList hyp = hit.next();
-      hypStr += hyp.toString();
-      if(hit.hasNext()) {
-	hypStr += ", ";
-      }
-    }
-    USER_ERROR("unresolved hypotheses: " + hypStr);
+    USER_ERROR("unresolved hypotheses: " + pobj.hypothesesToString());
   }
+  return pobj.unit;
+}
 
-  InferenceStore::instance()->outputProof(cout, pobj.unit);
+int ZIE::perform(int argc, char** argv)
+{
+  CALL("ZIE::perform");
+
+
+  Unit* z3Refutation = getZ3Refutation();
+  InferenceStore::instance()->outputProof(cout, z3Refutation);
 
   return 0;
 }
