@@ -31,19 +31,42 @@ private:
     List<unsigned>* members;
   };
 
-  void discoverColors();
-  bool isLocal(Unit* u);
+  static Unit* getUnitWithMappedInference(Unit* u, DHMap<Unit*,Unit*>& map, UnitList* premisesToAdd);
+
+  static void collectColoredTerms(Unit* u, TermStack& acc);
+  static void collectSCTerms(Unit* u, TermStack& acc);
+  static Unit* makeNSCPremise(TermList trm);
+
+  //top level functions
+  void buildNSC();
+  void collectColorsAndLocality();
+
 
   Color getColor(Unit* u);
+  bool isLocal(Unit* u);
+
+  bool shouldProcess(Unit* u);
+
   void extractComponents();
+
+  Color _quantifiedColor;
+
+  /** Units that will be members of some processing component */
+  DHSet<Unit*> _toBeProcessed;
 
   bool _allLocal;
 
   DHMap<Unit*, unsigned> _unitIndexes;
-  Stack<Color> _colors;
-  Stack<bool> _nonLocal;
+
+  DHMap<Unit*, Color>  _unitColors;
+  DHMap<Unit*, bool>  _unitLocality;
+
+  DHMap<Unit*,Unit*> _nscConversionMap;
 
   Stack<Unit*>& _der;
+  /** nsc ~ no surprising colors. Derivation where colored formulas
+   * have at least one premise of the same color*/
+  Stack<Unit*> _nscDer;
   Stack<Unit*>& _tgt;
   Stack<CompRecord> _comps;
 };

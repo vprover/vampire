@@ -319,13 +319,6 @@ void generateInterpolant(ItemState& st)
     st.rightInts=0;
     List<UIPair>::push(uip,st.rightInts);
   }
-#if VDEBUG
-  else {
-    //we create interpolants either for A/B justified units, or for the refutation
-    ASS(u->isClause() && static_cast<Clause*>(u)->isEmpty());
-  }
-#endif
-
 }
 
 }

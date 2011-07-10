@@ -1,6 +1,6 @@
 #!/bin/bash
 
-Z3='/work/Dracula/z3 /smt2'
+Z3='/work/Dracula/z3 -smt2'
 
 AUX=`mktemp -d -t ezpXXXXX`
 
