@@ -1,5 +1,5 @@
 /**
- * @file TPTP.hpp
+ * @file Shell/TPTP.hpp
  * Defines class TPTP for printing various objects in the TPTP syntax.
  *
  * @since 12/04/2008 Manchester

@@ -1313,7 +1313,7 @@ string Options::includeFileName (const string& relativeName)
   // truncatedRelativeName is relative.
   // Use the conventions of Vampire:
   // (a) first search the value of "include"
-  string dir = include ();
+  string dir = include();
   if (dir == "") { // include undefined
     // (b) search the value of the environment variable TPTP_DIR
     char* env = getenv("TPTP");

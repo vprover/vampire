@@ -523,7 +523,6 @@ Formula* TPTPParser::orFormula ()
   return makeJunction(OR,lhs,orFormula());
 } // TPTPParser::orFormula
 
-
 Formula* TPTPParser::makeJunction (int connective,Formula* lhs,Formula* rhs)
 {
   Connective c = (Connective)connective;

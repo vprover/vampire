@@ -382,6 +382,8 @@ string Inference::ruleName(Rule rule)
     return "distinct equality removal";
   case EXTERNAL:
     return "external";
+  case CLAIM_DEFINITION:
+    return "claim definition";
 
   default:
     ASSERTION_VIOLATION;

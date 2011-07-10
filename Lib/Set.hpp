@@ -62,6 +62,10 @@ protected:
   }; // class Set::Cell
 
 public:
+  // use allocator to (de)allocate objects of this class
+  CLASS_NAME("Set");
+  USE_ALLOCATOR(Set);
+
   /** Create a new Set */
   Set()
     : _capacity(0),
@@ -268,11 +272,7 @@ public:
   }
 
 private:
-  // declared but not defined, to prevent on-heap allocation
-  void* operator new (size_t);
-
   Set(const Set&); //private non-defined copy constructor to prevent copying
-
 
   /** the current capacity */
   int _capacity;

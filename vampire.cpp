@@ -55,6 +55,7 @@
 #include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/TPTP.hpp"
+#include "Parse/TPTP.hpp"
 #include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTPParser.hpp"
 #include "Shell/SpecialTermElimination.hpp"
@@ -210,9 +211,28 @@ void vampireMode()
     env.options->setPropositionalToBDD(false);
   }
 
-  // env.beginOutput();
-  // env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
-  // env.endOutput();
+  // doProving();
+
+  string inputFile = env.options->inputFile();
+  istream* input;
+  if(inputFile=="") {
+    input=&cin;
+  }
+  else {
+    input=new ifstream(inputFile.c_str());
+    if(input->fail()) {
+      USER_ERROR("Cannot open problem file: "+inputFile);
+    }
+  }
+
+  // Parse::TPTP parser(*input);
+  // parser.parse();
+
+  // UnitList* units=UIHelper::getInputUnits();
+
+  env.beginOutput();
+  UIHelper::outputResult(env.out());
+  env.endOutput();
 
   doProving();
 

@@ -46,7 +46,11 @@ public:
     /** Derived from lemma */
     LEMMA = 2,
     /** derives from the goal */
-    CONJECTURE = 3
+    CONJECTURE = 3,
+    /** negated conjecture */
+    NEGATED_CONJECTURE = 4,
+    /** Vampire-only, for the consequence-finding mode */
+    CLAIM = 5,
   };
 
   static InputType getInputType(UnitList* units);

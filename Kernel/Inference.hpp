@@ -232,7 +232,9 @@ public:
     /** distinct equality removal */
     DISTINCT_EQUALITY_REMOVAL,
     /** inference coming from outside of Vampire */
-    EXTERNAL
+    EXTERNAL,
+    /** claim definition, definition introduced by a claim in the input */
+    CLAIM_DEFINITION,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);
