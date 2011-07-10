@@ -21,17 +21,16 @@ using namespace Kernel;
 class TermColoring {
 public:
   Formula* applyToFormula(Formula* f);
-  void applyToDerivation(Stack<Unit*>& inp, Stack<Unit*>& out);
+  void applyToDerivation(UnitStack& inp, UnitStack& out);
 
   bool isLocal(Unit* u);
-  bool areUnitsLocal(Stack<Unit*>& units);
+  bool areUnitsLocal(UnitStack& units);
 protected:
   virtual bool isColoredFunction(unsigned func) = 0;
   virtual Color getColor(TermList term) = 0;
 
 private:
   class ColoringTermTransformer;
-  class ColoringFormulaTransformer;
 
   TermList applyToTerm(TermList trm);
 

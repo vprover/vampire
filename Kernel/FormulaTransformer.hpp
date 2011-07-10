@@ -56,6 +56,16 @@ protected:
   virtual Formula* applyTrueFalse(Formula* f) { return f; }
 };
 
+class TermTransformingFormulaTransformer : public FormulaTransformer
+{
+public:
+  TermTransformingFormulaTransformer(TermTransformer& termTransformer) : _termTransformer(termTransformer) {}
+protected:
+  virtual Formula* applyLiteral(Formula* f);
+
+  TermTransformer& _termTransformer;
+};
+
 class PolarityAwareFormulaTransformer : protected FormulaTransformer {
 public:
   ~PolarityAwareFormulaTransformer();

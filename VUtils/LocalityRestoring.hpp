@@ -8,8 +8,9 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Stack.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/IntUnionFind.hpp"
+#include "Lib/Stack.hpp"
 
 
 
@@ -20,55 +21,82 @@ using namespace Kernel;
 
 class LocalityRestoring {
 public:
-  LocalityRestoring(Stack<Unit*>& derivation, Stack<Unit*>& target);
+  LocalityRestoring(UnitStack& derivation, UnitStack& target);
 
   bool perform();
 private:
 
   struct CompRecord
   {
-    UnitList* fringe;
-    List<unsigned>* members;
+    UnitStack fringe;
+    UnitStack members;
   };
 
-  static Unit* getUnitWithMappedInference(Unit* u, DHMap<Unit*,Unit*>& map, UnitList* premisesToAdd);
+  static Unit* getUnitWithMappedInference(Unit* u, DHMap<Unit*,Unit*>& map, UnitList* premisesToAdd=0);
 
-  static void collectColoredTerms(Unit* u, TermStack& acc);
-  static void collectSCTerms(Unit* u, TermStack& acc);
-  static Unit* makeNSCPremise(TermList trm);
 
   //top level functions
   void buildNSC();
   void collectColorsAndLocality();
+  void processComponents();
+
+  //helpers for buildNSC()
+  static void collectColoredTerms(Unit* u, TermStack& acc);
+  static void collectSCTerms(Unit* u, TermStack& acc);
+  static Unit* makeNSCPremise(TermList trm);
 
 
-  Color getColor(Unit* u);
+  //helpers for collectColorsAndLocality()
+  static Color getColor(Unit* u);
   bool isLocal(Unit* u);
-
   bool shouldProcess(Unit* u);
+  void scanForProcessing(Unit* u, IntUnionFind& procComponentUF);
+  void addComponent(UnitStack& units);
 
-  void extractComponents();
+  //helpers for processComponents()
+  class QuantifyingTermTransformer;
+  FormulaUnit* generateQuantifiedFormula(FormulaIterator forms, UnitIterator premises);
+  void collectPremises(Unit* u, DHSet<Unit*>& skippedPremises, UnitStack& acc);
+  void processComponent(CompRecord& comp);
+
+
 
   Color _quantifiedColor;
+  Color _nonQuantifiedColor;
 
-  /** Units that will be members of some processing component */
-  DHSet<Unit*> _toBeProcessed;
 
-  bool _allLocal;
-
-  DHMap<Unit*, unsigned> _unitIndexes;
-
-  DHMap<Unit*, Color>  _unitColors;
-  DHMap<Unit*, bool>  _unitLocality;
 
   DHMap<Unit*,Unit*> _nscConversionMap;
 
-  Stack<Unit*>& _der;
+  /** initialized in collectColorsAndLocality() */
+  DHMap<Unit*, Color>  _unitColors;
+
+  /** initialized in collectColorsAndLocality() */
+  bool _allLocal;
+  /** initialized in collectColorsAndLocality() */
+  DHMap<Unit*, bool>  _unitLocality;
+
+  /**
+   * Units that will be members of some processing component
+   *
+   * initialized in collectColorsAndLocality()
+   */
+  DHSet<Unit*> _toBeProcessed;
+
+  Stack<CompRecord*> _comps;
+
+  DHMap<Unit*,Unit*> _processingResultMap;
+  DHMap<Unit*,Unit*> _initialFringeTriggerringMap;
+  DHMap<Unit*,Unit*> _fringePremiseTriggerringMap;
+  DHMap<Unit*,Unit*> _localConversionMap;
+
+
+  UnitStack& _der;
   /** nsc ~ no surprising colors. Derivation where colored formulas
    * have at least one premise of the same color*/
-  Stack<Unit*> _nscDer;
-  Stack<Unit*>& _tgt;
-  Stack<CompRecord> _comps;
+  UnitStack _nscDer;
+  UnitStack _locDer;
+  UnitStack& _tgt;
 };
 
 }

@@ -28,7 +28,10 @@ IntegerConstantType::IntegerConstantType(const string& str)
 {
   CALL("IntegerConstantType::IntegerConstantType(string)");
 
-  ALWAYS(Int::stringToInt(str, _val));
+  if(!Int::stringToInt(str, _val)) {
+    //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
+    throw ArithmeticException();
+  }
 
   //we want the string representation to be cannonical
   ASS_EQ(str, toString());
@@ -240,7 +243,10 @@ RealConstantType::RealConstantType(const string& number)
   CALL("RealConstantType::RealConstantType");
 
   double numDbl;
-  ALWAYS(Int::stringToDouble(number, numDbl));
+  if(!Int::stringToDouble(number, numDbl)) {
+    //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
+    throw ArithmeticException();
+  }
   InnerType denominator = 1;
   while(floor(numDbl)!=numDbl) {
     denominator = denominator*10;

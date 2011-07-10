@@ -314,34 +314,48 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
     LISP_ERROR("invalid proof object (neither list nor variable)", expr);
   }
 
-  LExpr* unaryArg;
-  if(expr->get1Arg("hypothesis", unaryArg)) {
-    TermList hyp = readTerm(unaryArg);
-    List<TermList>* hypLst = 0;
-    List<TermList>::push(hyp, hypLst);
-    return ProofObject(0, hypLst);
-  }
-
-  LExpr* lemmaPrem;
-  LExpr* lemmaHypNeg;
-  if(expr->get2Args("lemma", lemmaPrem, lemmaHypNeg)) {
-    ProofObject prem = readProofObject(lemmaPrem);
-    TermList lemmaTrm = readTerm(lemmaHypNeg);
-
-    if(!prem.unit) {
-      LISP_ERROR("invalid lemma premise", expr);
+  {
+    LExpr* unaryArg;
+    if(expr->get1Arg("hypothesis", unaryArg)) {
+      TermList hyp = readTerm(unaryArg);
+      List<TermList>* hypLst = 0;
+      List<TermList>::push(hyp, hypLst);
+      return ProofObject(0, hypLst);
     }
-
-    List<TermList>* remainingHyp = prem.hypotheses->copy();
-    resolveHypotheses(remainingHyp, lemmaTrm);
-
-    Inference* inf = new Inference1(Inference::EXTERNAL, prem.unit);
-    Formula* lemma = termToFormula(lemmaTrm, remainingHyp);
-    FormulaUnit* lemmaUnit = new FormulaUnit(lemma, inf, Unit::AXIOM);
-
-    _allUnits.push(lemmaUnit);
-    return ProofObject(lemmaUnit, remainingHyp);
   }
+
+  {
+    LExpr* lemmaPrem;
+    LExpr* lemmaHypNeg;
+    if(expr->get2Args("lemma", lemmaPrem, lemmaHypNeg)) {
+      ProofObject prem = readProofObject(lemmaPrem);
+      TermList lemmaTrm = readTerm(lemmaHypNeg);
+
+      if(!prem.unit) {
+	LISP_ERROR("invalid lemma premise", expr);
+      }
+
+      List<TermList>* remainingHyp = prem.hypotheses->copy();
+      resolveHypotheses(remainingHyp, lemmaTrm);
+
+      Inference* inf = new Inference1(Inference::EXTERNAL, prem.unit);
+      Formula* lemma = termToFormula(lemmaTrm, remainingHyp);
+      FormulaUnit* lemmaUnit = new FormulaUnit(lemma, inf, Unit::AXIOM);
+
+      _allUnits.push(lemmaUnit);
+      return ProofObject(lemmaUnit, remainingHyp);
+    }
+  }
+
+  {
+    LExpr* monPremise;
+    LExpr* monConclusion;
+    if(expr->get2Args("monotonicity", monPremise, monConclusion)) {
+      //we skip monotonicity inferences;
+      return readProofObject(monPremise);
+    }
+  }
+
 
   LExprList::Iterator args(expr->list);
   if(!args.hasNext()) { LISP_ERROR("invalid proof object", expr); }
@@ -486,7 +500,7 @@ void ZIE::onFunctionApplication(TermList fn)
   }
 }
 
-bool ZIE::colorProof(Stack<Unit*>& derivation, Stack<Unit*>& coloredDerivationTgt)
+bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
 {
   CALL("ZIE::colorProof");
 
@@ -510,10 +524,11 @@ bool ZIE::colorProof(Stack<Unit*>& derivation, Stack<Unit*>& coloredDerivationTg
     if(first || globalMax<uinfo.maxArg) {
       globalMax = uinfo.maxArg;
     }
-    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
+//    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
     rcol.addFunction(func);
   }
   InterpretedType midpoint = (globalMax+globalMin)/2;
+  LOGV(midpoint);
   rcol.setMiddleValue(midpoint);
 
   if(!rcol.areUnitsLocal(_inputUnits)) {
@@ -560,6 +575,7 @@ void ZIE::outputInterpolantStats(Unit* refutation)
   Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(refutation);
   InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(refutation);
   Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(refutation);
+  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, true, true, "Original interpolant quantifiers").getInterpolant(refutation);
   Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(refutation);
 
   cout << "Old interpolant: " << TPTP::toString(oldInterpolant) << endl;
@@ -583,7 +599,7 @@ int ZIE::perform(int argc, char** argv)
   LocalityRestoring locRes(_allUnitsColored, _allUnitsLocal);
 
   if(!locRes.perform()) {
-    cout << "Cannot make the colored proof local";
+    cout << "Cannot make the colored proof local" << endl;
     return 1;
   }
 

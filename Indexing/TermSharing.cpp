@@ -97,7 +97,6 @@ Term* TermSharing::insert(Term* t)
 	vars += r->vars();
 	weight += r->weight();
 	if (env.colorUsed) {
-	  ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
 	  color = static_cast<Color>(color | r->color());
 	}
 	if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
@@ -109,15 +108,8 @@ Term* TermSharing::insert(Term* t)
     t->setVars(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
-      if (color == COLOR_TRANSPARENT) {
-	color = env.signature->getFunction(t->functor())->color();
-      }
-#if VDEBUG
-      else {
-	Color fcolor = env.signature->getFunction(t->functor())->color();
-	ASS(! fcolor || color == fcolor);
-      }
-#endif
+      Color fcolor = env.signature->getFunction(t->functor())->color();
+      color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
@@ -201,15 +193,8 @@ Literal* TermSharing::insert(Literal* t)
     t->setVars(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
-      if (color == COLOR_TRANSPARENT) {
-	color = env.signature->getPredicate(t->functor())->color();
-      }
-#if VDEBUG
-      else {
-	Color fcolor = env.signature->getPredicate(t->functor())->color();
-	ASS(! fcolor || color == fcolor);
-      }
-#endif
+      Color fcolor = env.signature->getPredicate(t->functor())->color();
+      color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
     t->setInterpretedConstantsPresence(hasInterpretedConstants);

@@ -7,8 +7,10 @@
 
 #include <fstream>
 
-#include "Lib/List.hpp"
+#include "Lib/Stack.hpp"
+
 #include "LispLexer.hpp"
+
 #include "LispParser.hpp"
 
 using namespace Lib;
@@ -32,54 +34,121 @@ LispParser::Expression* LispParser::parse()
   return result;
 } // parse()
 
+///**
+// * @since 26/08/2009 Redmond
+// */
+//void LispParser::parse(List** expr)
+//{
+//  CALL("LispParser::parse/1");
+//
+//  Token t;
+//  for (;;) {
+//    _lexer.readToken(t);
+//    switch (t.tag) {
+//    case TT_RPAR:
+//      if (_balance == 0) {
+//	throw ParserException("unmatched right parenthesis",t);
+//      }
+//      _balance--;
+//      return;
+//    case TT_LPAR:
+//      _balance++;
+//      {
+//	Expression* subexpr = new Expression(LIST);
+//	parse(&subexpr->list);
+//	List* sub = new List(subexpr);
+//	*expr = sub;
+//	expr = sub->tailPtr();
+//      }
+//      break;
+//    case TT_NAME:
+//    case TT_INTEGER:
+//    case TT_REAL:
+//    {
+//      Expression* subexpr = new Expression(ATOM,t.text);
+//      List* sub = new List(subexpr);
+//      *expr = sub;
+//      expr = sub->tailPtr();
+//      break;
+//    }
+//    case TT_EOF:
+//      if (_balance == 0) {
+//	return;
+//      }
+//      throw ParserException("unmatched left parenthesis",t);
+//#if VDEBUG
+//    default:
+//      ASS(false);
+//#endif
+//    }
+//  }
+//} // parse()
+
 /**
  * @since 26/08/2009 Redmond
  */
-void LispParser::parse(List** expr)
+void LispParser::parse(List** expr0)
 {
   CALL("LispParser::parse/1");
 
+  static Stack<List**> stack;
+  stack.reset();
+
+  stack.push(expr0);
+
   Token t;
-  for (;;) {
-    _lexer.readToken(t);
-    switch (t.tag) {
-    case TT_RPAR:
-      if (_balance == 0) {
-	throw ParserException("unmatched right parenthesis",t);
-      }
-      _balance--;
-      return;
-    case TT_LPAR:
-      _balance++;
+
+  List** expr = expr0;
+  for(;;) {
+  new_parsing_level:
+    for (;;) {
+      _lexer.readToken(t);
+      switch (t.tag) {
+      case TT_RPAR:
+        if (_balance == 0) {
+          throw ParserException("unmatched right parenthesis",t);
+        }
+        _balance--;
+        goto parsing_level_done;
+      case TT_LPAR:
+        _balance++;
+        {
+	  Expression* subexpr = new Expression(LIST);
+	  List* sub = new List(subexpr);
+	  *expr = sub;
+	  expr = sub->tailPtr();
+	  stack.push(expr);
+	  expr = &subexpr->list;
+	  goto new_parsing_level;
+        }
+        break;
+      case TT_NAME:
+      case TT_INTEGER:
+      case TT_REAL:
       {
-	Expression* subexpr = new Expression(LIST);
-	parse(&subexpr->list);
-	List* sub = new List(subexpr);
-	*expr = sub;
-	expr = sub->tailPtr();
+        Expression* subexpr = new Expression(ATOM,t.text);
+        List* sub = new List(subexpr);
+        *expr = sub;
+        expr = sub->tailPtr();
+        break;
       }
-      break;
-    case TT_NAME:
-    case TT_INTEGER:
-    case TT_REAL:
-    {
-      Expression* subexpr = new Expression(ATOM,t.text);
-      List* sub = new List(subexpr);
-      *expr = sub;
-      expr = sub->tailPtr();
-      break;
-    }
-    case TT_EOF:
-      if (_balance == 0) {
-	return;
+      case TT_EOF:
+        if (_balance == 0) {
+          return;
+        }
+        throw ParserException("unmatched left parenthesis",t);
+  #if VDEBUG
+      default:
+        ASSERTION_VIOLATION;
+  #endif
       }
-      throw ParserException("unmatched left parenthesis",t);
-#if VDEBUG
-    default:
-      ASS(false);
-#endif
     }
+
+  parsing_level_done:
+    ASS(stack.isNonEmpty());
+    expr = stack.pop();
   }
+
 } // parse()
 
 /**

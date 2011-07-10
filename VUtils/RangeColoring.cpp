@@ -36,27 +36,6 @@ private:
   TermColoring& _parent;
 };
 
-class TermColoring::ColoringFormulaTransformer : public FormulaTransformer
-{
-public:
-  ColoringFormulaTransformer(ColoringTermTransformer& termTransformer)
-  : _termTransformer(termTransformer) {}
-
-protected:
-  virtual Formula* applyLiteral(Formula* f)
-  {
-    CALL("TermColoring::applyLiteral(Formula*)");
-
-    Literal* lit = f->literal();
-    Literal* res = _termTransformer.transform(lit);
-    if(lit==res) { return f; }
-    return new AtomicFormula(res);
-  }
-
-private:
-  ColoringTermTransformer& _termTransformer;
-};
-
 TermList TermColoring::applyToTerm(TermList trm)
 {
   CALL("TermColoring::applyToTerm");
@@ -103,7 +82,7 @@ Formula* TermColoring::applyToFormula(Formula* f)
   CALL("TermColoring::applyToFormula");
 
   ColoringTermTransformer ttrans(*this);
-  ColoringFormulaTransformer ftrans(ttrans);
+  TermTransformingFormulaTransformer ftrans(ttrans);
 
   Formula* res = ftrans.transform(f);
   return res;
@@ -115,12 +94,12 @@ Formula* TermColoring::applyToFormula(Formula* f)
  *
  * The order will be preserved inside @c out
  */
-void TermColoring::applyToDerivation(Stack<Unit*>& inp, Stack<Unit*>& out)
+void TermColoring::applyToDerivation(UnitStack& inp, UnitStack& out)
 {
   CALL("TermColoring::applyToDerivation");
 
   DHMap<Unit*,Unit*> translated;
-  Stack<Unit*>::BottomFirstIterator uit(inp);
+  UnitStack::BottomFirstIterator uit(inp);
   while(uit.hasNext()){
     FormulaUnit* fu = static_cast<FormulaUnit*>(uit.next());
     ASS(!fu->isClause());
@@ -201,11 +180,11 @@ bool TermColoring::isLocal(Unit* u)
   return true;
 }
 
-bool TermColoring::areUnitsLocal(Stack<Unit*>& units)
+bool TermColoring::areUnitsLocal(UnitStack& units)
 {
   CALL("TermColoring::areUnitsLocal");
 
-  Stack<Unit*>::Iterator uit(units);
+  UnitStack::Iterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
     if(!isLocal(u)) {

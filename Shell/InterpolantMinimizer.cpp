@@ -720,6 +720,10 @@ struct InterpolantMinimizer::TraverseStackEntry
 
     Color pcol = parent.unit()->getColor();
     if(pcol==COLOR_LEFT) {
+//      if(info.state==HAS_RIGHT_PARENT) {
+//	LOGV(parent.toString());
+//	InferenceStore::instance()->outputProof(cout, unit.unit());
+//      }
       ASS_NEQ(info.state, HAS_RIGHT_PARENT);
       info.state = HAS_LEFT_PARENT;
     }

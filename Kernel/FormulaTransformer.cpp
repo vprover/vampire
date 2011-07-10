@@ -10,6 +10,7 @@
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
 #include "SortHelper.hpp"
+#include "TermTransformer.hpp"
 
 #include "FormulaTransformer.hpp"
 
@@ -105,6 +106,20 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
     return f;
   }
   return new QuantifiedFormula(f->connective(), f->vars(), newArg);
+}
+
+///////////////////////////////////////
+// TermTransformingFormulaTransformer
+//
+
+Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
+{
+  CALL("TermTransformingFormulaTransformer::applyLiteral");
+
+  Literal* lit = f->literal();
+  Literal* res = _termTransformer.transform(lit);
+  if(lit==res) { return f; }
+  return new AtomicFormula(res);
 }
 
 ////////////////////////////////////

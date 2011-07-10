@@ -113,10 +113,14 @@ typedef VirtualIterator<Literal*> LiteralIterator;
 class Inference;
 
 class Unit;
+typedef List<Unit*> UnitList;
+typedef Stack<Unit*> UnitStack;
+typedef VirtualIterator<Unit*> UnitIterator;
+
 class FormulaUnit;
 class Formula;
-typedef List<Unit*> UnitList;
-typedef VirtualIterator<Unit*> UnitIterator;
+typedef VirtualIterator<Formula*> FormulaIterator;
+typedef Stack<Formula*> FormulaStack;
 
 class Clause;
 /** Defined as VirtualIterator<Clause*> */
@@ -139,6 +143,11 @@ typedef Lib::SmartPtr<EGSubstitution> EGSubstitutionSP;
 
 class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
+
+class TermTransformer;
+class FormulaTransformer;
+class FormulaUnitTransformer;
+
 
 class LiteralSelector;
 typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;

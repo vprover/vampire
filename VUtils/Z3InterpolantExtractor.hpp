@@ -84,12 +84,12 @@ private:
    * Consequences are closer to the top of the stack than their
    * premises.
    */
-  Stack<Unit*> _allUnits;
-  Stack<Unit*> _allUnitsColored;
-  Stack<Unit*> _allUnitsLocal;
+  UnitStack _allUnits;
+  UnitStack _allUnitsColored;
+  UnitStack _allUnitsLocal;
 
 
-  Stack<Unit*> _inputUnits;
+  UnitStack _inputUnits;
 private:
 
   struct UnaryFunctionInfo
@@ -106,7 +106,7 @@ private:
   };
 
   void onFunctionApplication(TermList fn);
-  bool colorProof(Stack<Unit*>& derivation, Stack<Unit*>& coloredDerivationTgt);
+  bool colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt);
 
   typedef DHMap<unsigned, UnaryFunctionInfo> UnaryInfoMap;
   UnaryInfoMap _unaryFnInfos;
