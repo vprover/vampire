@@ -9,6 +9,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/Exception.hpp"
 
 #include "Term.hpp"
 
@@ -18,7 +19,7 @@ namespace Kernel {
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
  */
-class ArithmeticException {};
+class ArithmeticException : public ThrowableBase {};
 
 #if 1
 

@@ -369,7 +369,7 @@ void LocalityRestoring::collectColorsAndLocality()
   _allLocal = true;
 
   unsigned maxUnitNumber = _nscDer.top()->number();
-  IntUnionFind procComponentUF(maxUnitNumber);
+  IntUnionFind procComponentUF(maxUnitNumber+1);
 
   DHMap<unsigned,Unit*> unitsByNumbers;
 

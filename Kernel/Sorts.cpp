@@ -11,10 +11,11 @@ namespace Kernel
 {
 
 const unsigned Sorts::SRT_DEFAULT = 0;
-const unsigned Sorts::SRT_INTEGER = 1;
-const unsigned Sorts::SRT_RATIONAL = 2;
-const unsigned Sorts::SRT_REAL = 3;
-const unsigned Sorts::FIRST_USER_SORT = 4;
+const unsigned Sorts::SRT_BOOL = 1;
+const unsigned Sorts::SRT_INTEGER = 2;
+const unsigned Sorts::SRT_RATIONAL = 3;
+const unsigned Sorts::SRT_REAL = 4;
+const unsigned Sorts::FIRST_USER_SORT = 5;
 
 
 Sorts::Sorts()
@@ -25,6 +26,9 @@ Sorts::Sorts()
 
   aux = addSort("$i");
   ASS_EQ(aux, SRT_DEFAULT);
+
+  aux = addSort("$bool");
+  ASS_EQ(aux, SRT_BOOL);
 
   aux = addSort("$int");
   ASS_EQ(aux, SRT_INTEGER);
@@ -65,7 +69,39 @@ unsigned Sorts::addSort(const string& name, bool& added)
     return result;
   }
   result = _sorts.length();
-  _sorts.push(new SortInfo(name));
+  _sorts.push(new SortInfo(ATOMIC, name));
+  _sortNames.insert(name,result);
+  added = true;
+  return result;
+}
+
+unsigned Sorts::addProductSort(const string& name, unsigned arity, unsigned* children, bool& added)
+{
+  CALL("Sorts::addProductSort");
+
+  unsigned result;
+  if (_sortNames.find(name,result)) {
+    added = false;
+    return result;
+  }
+  result = _sorts.length();
+  _sorts.push(new ProductSortInfo(name, arity, children));
+  _sortNames.insert(name,result);
+  added = true;
+  return result;
+}
+
+unsigned Sorts::addArrowSort(const string& name, unsigned leftSort, unsigned rightSort, bool& added)
+{
+  CALL("Sorts::addArrowSort");
+
+  unsigned result;
+  if (_sortNames.find(name,result)) {
+    added = false;
+    return result;
+  }
+  result = _sorts.length();
+  _sorts.push(new ArrowSortInfo(name, leftSort, rightSort));
   _sortNames.insert(name,result);
   added = true;
   return result;
