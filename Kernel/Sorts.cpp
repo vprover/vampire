@@ -69,39 +69,7 @@ unsigned Sorts::addSort(const string& name, bool& added)
     return result;
   }
   result = _sorts.length();
-  _sorts.push(new SortInfo(ATOMIC, name));
-  _sortNames.insert(name,result);
-  added = true;
-  return result;
-}
-
-unsigned Sorts::addProductSort(const string& name, unsigned arity, unsigned* children, bool& added)
-{
-  CALL("Sorts::addProductSort");
-
-  unsigned result;
-  if (_sortNames.find(name,result)) {
-    added = false;
-    return result;
-  }
-  result = _sorts.length();
-  _sorts.push(new ProductSortInfo(name, arity, children));
-  _sortNames.insert(name,result);
-  added = true;
-  return result;
-}
-
-unsigned Sorts::addArrowSort(const string& name, unsigned leftSort, unsigned rightSort, bool& added)
-{
-  CALL("Sorts::addArrowSort");
-
-  unsigned result;
-  if (_sortNames.find(name,result)) {
-    added = false;
-    return result;
-  }
-  result = _sorts.length();
-  _sorts.push(new ArrowSortInfo(name, leftSort, rightSort));
+  _sorts.push(new SortInfo(name));
   _sortNames.insert(name,result);
   added = true;
   return result;
@@ -111,6 +79,18 @@ unsigned Sorts::addArrowSort(const string& name, unsigned leftSort, unsigned rig
 //////////////////////
 // BaseType
 //
+
+BaseType* BaseType::makeType(unsigned arity, unsigned* domainSorts, unsigned rangeSort)
+{
+  CALL("BaseType::makeType");
+
+  if(rangeSort==Sorts::SRT_BOOL) {
+    return new PredicateType(arity, domainSorts);
+  }
+  else {
+    return new FunctionType(arity, domainSorts, rangeSort);
+  }
+}
 
 BaseType::BaseType(unsigned arity, unsigned* sorts)
 {
