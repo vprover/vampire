@@ -189,7 +189,7 @@ bool TermColoring::areUnitsLocal(UnitStack& units)
   while(uit.hasNext()) {
     Unit* u = uit.next();
     if(!isLocal(u)) {
-      LOGV(u->toString());
+      cerr<<"Non-local unit: "<<u->toString()<<endl;
       return false;
     }
   }
