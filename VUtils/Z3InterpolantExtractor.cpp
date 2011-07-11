@@ -3,6 +3,7 @@
  * Implements class Z3InterpolantExtractor.
  */
 
+#include <fstream>
 #include <iostream>
 
 #include "Lib/Environment.hpp"
@@ -50,6 +51,8 @@ LExpr* ZIE::getInput()
   CALL("ZIE::getInput");
 
   LispLexer lex(cin);
+//  ifstream fin("/work/smt/ticket3i_1_e7_1669.ec.smt2.24");
+//  LispLexer lex(fin);
   LispParser parser(lex);
   return parser.parse();
 }

@@ -4,6 +4,7 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/FormulaTransformer.hpp"
