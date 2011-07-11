@@ -236,8 +236,8 @@ Color RangeColoring::getColor(TermList term)
 
 //  if(val==0 || val==_middle) { return COLOR_TRANSPARENT; }
   if(val==_middle) { return COLOR_TRANSPARENT; }
-  if(val>_middle) { return COLOR_LEFT; }
-  ASS_L(val,_middle);
+  if(val<_middle) { return COLOR_LEFT; }
+  ASS_G(val,_middle);
   return COLOR_RIGHT;
 }
 
