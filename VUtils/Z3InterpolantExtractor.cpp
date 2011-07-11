@@ -531,7 +531,7 @@ bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
       globalMax = uinfo.maxArg;
     }
     first = false;
-    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
+//    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
     rcol.addFunction(func);
   }
   InterpretedType midpoint = (globalMax+globalMin)/2;

@@ -24,11 +24,14 @@ public:
   LocalityRestoring(UnitStack& derivation, UnitStack& target);
 
   bool perform();
+
+  static bool isLocalDerivation(Unit* refutation);
 private:
 
   struct CompRecord;
 
-  static Unit* getUnitWithMappedInference(Unit* u, DHMap<Unit*,Unit*>& map, UnitList* premisesToAdd=0);
+  static Unit* getUnitWithMappedInference(Unit* u, DHMap<Unit*,Unit*>& map, UnitList* premisesToAdd=0,
+      DHSet<Unit*>* allowedPremises=0);
 
 
   //top level functions
@@ -52,10 +55,8 @@ private:
   //helpers for processComponents()
   class QuantifyingTermTransformer;
   class FormulaSimplifier;
-  FormulaUnit* generateQuantifiedFormula(FormulaIterator forms, UnitIterator premises);
-  void collectPremises(Unit* u, DHSet<Unit*>& skippedPremises, UnitStack& acc);
-  void retireFringeFormulas(CompRecord& comp, Unit* processedUnit, FormulaStack& fringeArgs,
-      DHMap<Formula*, Unit*>& fringeFormulaOrigins);
+  class FringeKeeper;
+  static Unit* copyWithNewInference(Unit* u, Inference* inf);
   void processComponent(CompRecord& comp);
 
 
