@@ -26,11 +26,7 @@ public:
   bool perform();
 private:
 
-  struct CompRecord
-  {
-    UnitStack fringe;
-    UnitStack members;
-  };
+  struct CompRecord;
 
   static Unit* getUnitWithMappedInference(Unit* u, DHMap<Unit*,Unit*>& map, UnitList* premisesToAdd=0);
 
@@ -55,8 +51,11 @@ private:
 
   //helpers for processComponents()
   class QuantifyingTermTransformer;
+  class FormulaSimplifier;
   FormulaUnit* generateQuantifiedFormula(FormulaIterator forms, UnitIterator premises);
   void collectPremises(Unit* u, DHSet<Unit*>& skippedPremises, UnitStack& acc);
+  void retireFringeFormulas(CompRecord& comp, Unit* processedUnit, FormulaStack& fringeArgs,
+      DHMap<Formula*, Unit*>& fringeFormulaOrigins);
   void processComponent(CompRecord& comp);
 
 

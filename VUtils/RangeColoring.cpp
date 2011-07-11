@@ -188,6 +188,7 @@ bool TermColoring::areUnitsLocal(UnitStack& units)
   while(uit.hasNext()) {
     Unit* u = uit.next();
     if(!isLocal(u)) {
+      LOGV(u->toString());
       return false;
     }
   }
@@ -232,7 +233,8 @@ Color RangeColoring::getColor(TermList term)
 
   InterpretedType val = theory->interpretConstant(arg);
 
-  if(val==0 || val==_middle) { return COLOR_TRANSPARENT; }
+//  if(val==0 || val==_middle) { return COLOR_TRANSPARENT; }
+  if(val==_middle) { return COLOR_TRANSPARENT; }
   if(val>_middle) { return COLOR_LEFT; }
   ASS_L(val,_middle);
   return COLOR_RIGHT;

@@ -155,18 +155,33 @@ public:
 class SMTSolver
 {
 public:
-  virtual void run(SMTBenchmark& problem, SMTSolverResult& res) = 0;
+  void run(SMTBenchmark& problem, SMTSolverResult& res)
+  {
+    run(problem, res, 0);
+  }
 
-  void minimize(SMTBenchmark& problem, SMTConstant costFn, SMTSolverResult& res);
+  enum MinimizationResult
+  {
+    EXACT,
+    APPROXIMATE,
+    FAIL
+  };
+
+  /**
+   * timeout equal to 0 means unlimited
+   */
+  virtual void run(SMTBenchmark& problem, SMTSolverResult& res, unsigned timeout) = 0;
+
+  MinimizationResult minimize(SMTBenchmark& problem, SMTConstant costFn, SMTSolverResult& res);
 
 private:
-  bool tryUpperBound(SMTBenchmark& problem, SMTConstant costFn, unsigned val, SMTSolverResult& res);
+  SMTSolverResult::Status tryUpperBound(SMTBenchmark& problem, SMTConstant costFn, unsigned val, SMTSolverResult& res);
 };
 
 class YicesSolver : public SMTSolver
 {
 public:
-  virtual void run(SMTBenchmark& problem, SMTSolverResult& res);
+  virtual void run(SMTBenchmark& problem, SMTSolverResult& res, unsigned timeout);
 };
 
 }

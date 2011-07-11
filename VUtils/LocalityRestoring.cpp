@@ -242,6 +242,55 @@ void LocalityRestoring::buildNSC()
 // Component collection
 //
 
+struct LocalityRestoring::CompRecord
+{
+  UnitStack fringe;
+
+  /** In preprocessComponent() the stack gets sorted so that premises
+   * go before their consequences */
+  UnitStack members;
+
+  //the below members are populated by preprocessing
+  /** set of fringe and member units */
+  DHSet<Unit*> involvedUnits;
+
+  /**
+   * for involved units contains number of the latest unit refering to it
+   */
+  DHMap<Unit*, Unit*> lastReferringUnits;
+
+  static bool unitNumberComparator(Unit* u1, Unit* u2)
+  {
+    CALL("LocalityRestoring::CompRecord::unitNumberComparator");
+
+    return u1->number() < u2->number();
+  }
+
+  void preprocessComponent()
+  {
+    CALL("LocalityRestoring::CompRecord::preprocessComponent");
+
+    std::sort(members.begin(), members.end(), unitNumberComparator);
+
+    involvedUnits.loadFromIterator(UnitStack::Iterator(fringe));
+    involvedUnits.loadFromIterator(UnitStack::Iterator(members));
+
+    UnitStack::BottomFirstIterator mit(members);
+    while(mit.hasNext()) {
+      Unit* u = mit.next();
+      UnitSpecIterator pars = InferenceStore::instance()->getParents(UnitSpec(u));
+      while(pars.hasNext()) {
+	Unit* par = pars.next().unit();
+	if(!involvedUnits.contains(par)) {
+	  continue;
+	}
+	lastReferringUnits.set(par, u);
+      }
+    }
+  }
+};
+
+
 bool LocalityRestoring::isLocal(Unit* u)
 {
   CALL("LocalityRestoring::isLocal");
@@ -359,6 +408,7 @@ void LocalityRestoring::addComponent(UnitStack& units)
   }
 //  LOGV(rec->fringe.size());
 
+  rec->preprocessComponent();
   _comps.push(rec);
 }
 
@@ -430,12 +480,20 @@ void LocalityRestoring::collectColorsAndLocality()
 // Component processing
 //
 
-bool unitNumberComparator(Unit* u1, Unit* u2)
+class LocalityRestoring::FormulaSimplifier : public FormulaTransformer
 {
-  CALL("unitNumberComparator");
+protected:
+  virtual Formula* applyLiteral(Formula* form)
+  {
+    CALL("LocalityRestoring::FormulaSimplifier::applyLiteral");
 
-  return u1->number() < u2->number();
-}
+    Literal* lit = form->literal();
+    if(lit->isEquality() && *lit->nthArgument(0)==*lit->nthArgument(1)) {
+      return new Formula(lit->isPositive());
+    }
+    return form;
+  }
+};
 
 class LocalityRestoring::QuantifyingTermTransformer : public TermTransformer
 {
@@ -514,6 +572,8 @@ FormulaUnit* LocalityRestoring::generateQuantifiedFormula(FormulaIterator forms,
   Formula* qformBody = ftransf.transform(form);
   Formula* qform = new QuantifiedFormula(EXISTS, ttransf.getIntroducedVars(), qformBody);
 
+  qform = FormulaSimplifier().transform(qform);
+
   UnitList* premiseList = 0;
   UnitList::pushFromIterator(premises, premiseList);
 
@@ -547,15 +607,34 @@ void LocalityRestoring::collectPremises(Unit* u, DHSet<Unit*>& skippedPremises, 
   }
 }
 
+void LocalityRestoring::retireFringeFormulas(CompRecord& comp, Unit* processedUnit,
+    FormulaStack& fringeArgs, DHMap<Formula*, Unit*>& fringeFormulaOrigins)
+{
+  CALL("LocalityRestoring::retireFringeFormulas");
+
+  FormulaStack::StableDelIterator fit(fringeArgs);
+  while(fit.hasNext()) {
+    Formula* form = fit.next();
+    Unit* fOrigin = fringeFormulaOrigins.get(form);
+
+    Unit* lastReferring;
+    if(comp.lastReferringUnits.find(fOrigin, lastReferring) && lastReferring==processedUnit) {
+//      LOG("Retired "<<form->toString()<<" coming from "<<fOrigin->toString()<<" due to "<<processedUnit->toString());
+      fit.del();
+    }
+  }
+}
+
 void LocalityRestoring::processComponent(CompRecord& comp)
 {
   CALL("LocalityRestoring::processComponent");
   ASS(comp.fringe.isNonEmpty());
   ASS(comp.members.isNonEmpty());
 
-  std::sort(comp.members.begin(), comp.members.end(), unitNumberComparator);
-
   FormulaStack fringeArgs;
+
+  static DHMap<Formula*, Unit*> fringeFormulaOrigins;
+  fringeFormulaOrigins.reset();
 
   UnitStack::Iterator fit(comp.fringe);
   while(fit.hasNext()) {
@@ -564,6 +643,7 @@ void LocalityRestoring::processComponent(CompRecord& comp)
     if(frUnit->isClause()) { NOT_IMPLEMENTED; }
     FormulaUnit* fu = static_cast<FormulaUnit*>(frUnit);
     Formula* form = fu->formula();
+    fringeFormulaOrigins.insert(form, fu);
     fringeArgs.push(form);
   }
 
@@ -576,10 +656,6 @@ void LocalityRestoring::processComponent(CompRecord& comp)
     _initialFringeTriggerringMap.insert(firstUnit, fringe);
   }
 
-  DHSet<Unit*> skippedPremises;
-  skippedPremises.loadFromIterator(UnitStack::Iterator(comp.fringe));
-  skippedPremises.loadFromIterator(UnitStack::Iterator(comp.members));
-
   static UnitStack fringePremises;
 
   UnitStack::BottomFirstIterator mit(comp.members);
@@ -588,10 +664,13 @@ void LocalityRestoring::processComponent(CompRecord& comp)
     if(member->isClause()) { NOT_IMPLEMENTED; }
     FormulaUnit* fu = static_cast<FormulaUnit*>(member);
     Formula* form = fu->formula();
+    fringeFormulaOrigins.insert(form, fu);
     fringeArgs.push(form);
+    retireFringeFormulas(comp, fu, fringeArgs, fringeFormulaOrigins);
+//    LOGV(fringe->toString());
 
     fringePremises.reset();
-    collectPremises(fu, skippedPremises, fringePremises);
+    collectPremises(fu, comp.involvedUnits, fringePremises);
     fringePremises.push(fringe);
 
     FormulaUnit* newFringe=generateQuantifiedFormula(pvi( FormulaStack::Iterator(fringeArgs) ),

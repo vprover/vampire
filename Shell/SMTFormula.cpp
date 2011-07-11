@@ -171,17 +171,21 @@ void SMTBenchmark::output(ostream& out)
 // SMTSolver
 //
 
-void SMTSolver::minimize(SMTBenchmark& problem, SMTConstant costFn, SMTSolverResult& res)
+SMTSolver::MinimizationResult SMTSolver::minimize(SMTBenchmark& problem, SMTConstant costFn, SMTSolverResult& res)
 {
   CALL("SMTSolver::minimize");
 
+  bool approx = false;
+
   unsigned left = 1;
   unsigned guess = left;
-  while(!tryUpperBound(problem, costFn, guess, res)) {
+  while(tryUpperBound(problem, costFn, guess, res)!=SMTSolverResult::SAT) {
+    approx |= res.status==SMTSolverResult::UNKNOWN;
     unsigned newGuess = guess*2;
     if(newGuess<=guess) {
       //we had an overflow
-      return;
+      cerr << "cost overflow durint SMT minimization" << endl;
+      return FAIL;
     }
     left = guess;
     guess = newGuess;
@@ -190,17 +194,23 @@ void SMTSolver::minimize(SMTBenchmark& problem, SMTConstant costFn, SMTSolverRes
 
   while(left!=right) {
     unsigned middle = left + (right-left)/2;
-    if(tryUpperBound(problem, costFn, middle, res)) {
+    if(tryUpperBound(problem, costFn, middle, res)==SMTSolverResult::SAT) {
       right = middle;
     }
     else {
+      approx |= res.status==SMTSolverResult::UNKNOWN;
       left = middle+1;
     }
   }
   tryUpperBound(problem, costFn, left, res);
+  if(res.status==SMTSolverResult::UNKNOWN) {
+    //we don't even have a satisfying assignment
+    return FAIL;
+  }
+  return approx ? APPROXIMATE : EXACT;
 }
 
-bool SMTSolver::tryUpperBound(SMTBenchmark& problem, SMTConstant costFn, unsigned val, SMTSolverResult& res)
+SMTSolverResult::Status SMTSolver::tryUpperBound(SMTBenchmark& problem, SMTConstant costFn, unsigned val, SMTSolverResult& res)
 {
   CALL("SMTSolver::tryUpperBound");
 
@@ -209,18 +219,22 @@ bool SMTSolver::tryUpperBound(SMTBenchmark& problem, SMTConstant costFn, unsigne
 
   problem.addFormula(bound);
 
-  run(problem, res);
+  run(problem, res, 5);
 
   problem.popFormula();
 
-  return res.status==SMTSolverResult::SAT;
+  if(res.status==SMTSolverResult::UNKNOWN) {
+    cerr << "SMT solver gave \"unknown\" for cost value "<< val << "(possibly due to time limit)" << endl;
+  }
+
+  return res.status;
 }
 
 ///////////////////////
 // YicesSolver
 //
 
-void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res)
+void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res, unsigned timeout)
 {
   CALL("YicesSolver::run");
 
@@ -235,7 +249,12 @@ void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res)
     USER_ERROR("Executable "+execName+" does not exist");
   }
 
-  System::executeCommand(execName+" -smt -e", problemStm.str(), proverOut);
+  string cmdLine = execName+" -smt -e";
+  if(timeout!=0) {
+    cmdLine += " --timeout="+Int::toString(timeout);
+  }
+
+  System::executeCommand(cmdLine, problemStm.str(), proverOut);
 
   res.reset();
 
@@ -245,6 +264,7 @@ void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res)
     if(line=="") { continue; }
     if(line=="sat") { res.status = SMTSolverResult::SAT; continue; }
     if(line=="unsat") { res.status = SMTSolverResult::UNSAT; continue; }
+    if(line=="unknown") { res.status = SMTSolverResult::UNKNOWN; continue; }
 
     if(line.substr(0,3)!="(= " || line.substr(line.size()-1,1)!=")") {
       LOG("unrecognized Yices output line: \"" << line << "\"");

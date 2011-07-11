@@ -41,7 +41,17 @@ Formula* InterpolantMinimizer::getInterpolant(Unit* refutation)
 
   SMTSolverResult res;
   YicesSolver solver;
-  solver.minimize(_resBenchmark, costFunction(), res);
+  YicesSolver::MinimizationResult mres = solver.minimize(_resBenchmark, costFunction(), res);
+
+  DHSet<UnitSpec> slicedOff;
+
+  if(mres==SMTSolver::FAIL) {
+    cerr << "Minimization timed failed to find a satisfiable assignment, generating basic interpolant" << endl;
+    goto just_generate_interpolant;
+  }
+  if(mres==SMTSolver::APPROXIMATE) {
+    cerr << "Minimization gave approximate result" << endl;
+  }
 
   if(_showStats) {
     env.beginOutput();
@@ -49,9 +59,9 @@ Formula* InterpolantMinimizer::getInterpolant(Unit* refutation)
     env.endOutput();
   }
 
-  DHSet<UnitSpec> slicedOff;
   collectSlicedOffNodes(res, slicedOff);
 
+just_generate_interpolant:
   Formula* interpolant = Interpolants(&slicedOff).getInterpolant(refutation);
   return interpolant;
 }
