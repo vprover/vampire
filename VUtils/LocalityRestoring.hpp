@@ -52,10 +52,8 @@ private:
   //helpers for processComponents()
   class QuantifyingTermTransformer;
   class FormulaSimplifier;
-  FormulaUnit* generateQuantifiedFormula(FormulaIterator forms, UnitIterator premises);
-  void collectPremises(Unit* u, DHSet<Unit*>& skippedPremises, UnitStack& acc);
-  void retireFringeFormulas(CompRecord& comp, Unit* processedUnit, FormulaStack& fringeArgs,
-      DHMap<Formula*, Unit*>& fringeFormulaOrigins);
+  class FringeKeeper;
+  static Unit* copyWithNewInference(Unit* u, Inference* inf);
   void processComponent(CompRecord& comp);
 
 

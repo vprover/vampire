@@ -527,6 +527,7 @@ bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
     if(first || globalMax<uinfo.maxArg) {
       globalMax = uinfo.maxArg;
     }
+    first = false;
 //    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
     rcol.addFunction(func);
   }
