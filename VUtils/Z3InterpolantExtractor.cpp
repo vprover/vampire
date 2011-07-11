@@ -519,7 +519,10 @@ bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
     UnaryFunctionInfo uinfo;
     unsigned func;
     uiit.next(func, uinfo);
-    if(!uinfo.numericArgsOnly) { continue; }
+    if(!uinfo.numericArgsOnly) {
+      LOG(env.signature->functionName(func) << "skipped");
+      continue;
+    }
 
     if(first || globalMin>uinfo.minArg) {
       globalMin = uinfo.minArg;
@@ -528,7 +531,7 @@ bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
       globalMax = uinfo.maxArg;
     }
     first = false;
-//    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
+    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
     rcol.addFunction(func);
   }
   InterpretedType midpoint = (globalMax+globalMin)/2;

@@ -728,12 +728,14 @@ struct InterpolantMinimizer::TraverseStackEntry
 
     UnitInfo& info = getInfo();
 
-    Color pcol = parent.unit()->getColor();
+    UnitInfo& parInfo = _im._infos.get(parent);
+//    Color pcol = parent.unit()->getColor();
+    Color pcol = parInfo.color;
     if(pcol==COLOR_LEFT) {
-//      if(info.state==HAS_RIGHT_PARENT) {
-//	LOGV(parent.toString());
-//	InferenceStore::instance()->outputProof(cout, unit.unit());
-//      }
+      if(info.state==HAS_RIGHT_PARENT) {
+	LOGV(parent.toString());
+	InferenceStore::instance()->outputProof(cout, unit.unit());
+      }
       ASS_NEQ(info.state, HAS_RIGHT_PARENT);
       info.state = HAS_LEFT_PARENT;
     }
@@ -742,7 +744,6 @@ struct InterpolantMinimizer::TraverseStackEntry
       info.state = HAS_RIGHT_PARENT;
     }
 
-    UnitInfo& parInfo = _im._infos.get(parent);
     info.leadsToColor |= parInfo.leadsToColor;
 
     if(info.color==COLOR_LEFT) {

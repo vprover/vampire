@@ -501,12 +501,6 @@ public:
   QuantifyingTermTransformer(LocalityRestoring& parent, unsigned firstAvailableVar)
   : _parent(parent), _nextVar(firstAvailableVar), _introducedVars(0) {}
 
-  void reset(unsigned firstAvailableVar) {
-    _nextVar = firstAvailableVar;
-    _cache.reset();
-    _introducedVars = 0;
-  }
-
   virtual TermList transform(TermList trm)
   {
     CALL("LocalityRestoring::QuantifyingTermTransformer::transform");
@@ -531,204 +525,11 @@ public:
     return res;
   }
 
-  /**
-   * The variable list returned by this function is never destroyed, so it can be used
-   * e.g. by quantifiers
-   */
   Formula::VarList* getIntroducedVars() { return _introducedVars; }
-
-private:
-  LocalityRestoring& _parent;
-  unsigned _nextVar;
-  DHMap<TermList,TermList> _cache;
-  Formula::VarList* _introducedVars;
-};
-
-class LocalityRestoring::FringeKeeper
-{
-public:
-
-  FringeKeeper(LocalityRestoring& parent, CompRecord& comp) :
-    _parent(parent), _comp(comp), _qttransf(parent, 0), _qftransf(_qttransf),
-    _currFringeUnit(0)
-  {
-    CALL("LocalityRestoring::FringeKeeper::FringeKeeper");
-
-    UnitStack::Iterator fit(comp.fringe);
-    while(fit.hasNext()) {
-      Unit* frUnit = fit.next();
-      ASS(getColor(frUnit)==_parent._quantifiedColor);
-      Formula* form = getBaseFormula(frUnit);
-      _baseForms.push(form);
-    }
-    _fringePremises = comp.fringe;
-
-
-    _firstAvailableVar = getFirstAvailableVar(_baseForms);
-    _qttransf.reset(_firstAvailableVar);
-    requantify();
-  }
-
-  FormulaUnit* getFringeUnit()
-  {
-    CALL("LocalityRestoring::FringeKeeper::getFringeUnit");
-    ASS(_fringePremises.isNonEmpty());
-
-    if(_currFringeUnit) { return _currFringeUnit; }
-
-    Formula* form = getFringeFormula();
-
-    UnitList* premiseList = 0;
-    UnitList::pushFromIterator(UnitStack::Iterator(_fringePremises), premiseList);
-
-    Inference* inf = new InferenceMany(Inference::COLOR_UNBLOCKING, premiseList);
-
-    FormulaUnit* res = new FormulaUnit(form, inf, Unit::AXIOM);
-    return res;
-  }
-
-  void nextFringe(Unit* unit)
-  {
-    CALL("LocalityRestoring::FringeKeeper::getBaseFormula");
-
-    FormulaUnit* oldFringe = getFringeUnit();
-
-    _currFringeUnit = 0;
-
-    _fringePremises.reset();
-    collectOutsidePremises(unit, _fringePremises);
-    _fringePremises.push(oldFringe);
-
-    retireFringeFormulas(unit);
-
-    Formula* baseForm = getBaseFormula(unit);
-    _baseForms.push(baseForm);
-
-    unsigned newFormFirstAvailVar = getFirstAvailableVar(baseForm);
-    if(newFormFirstAvailVar>_firstAvailableVar) {
-      _firstAvailableVar = newFormFirstAvailVar;
-      _qttransf.reset(_firstAvailableVar);
-      requantify();
-    }
-    else {
-      Formula* qform = quantifyForm(baseForm);
-      _quantifiedForms.push(qform);
-    }
-
-  }
-
-private:
-
-  Formula* getBaseFormula(Unit* u)
-  {
-    CALL("LocalityRestoring::FringeKeeper::getBaseFormula");
-
-    if(u->isClause()) { NOT_IMPLEMENTED; }
-    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    Formula* form = fu->formula();
-    Formula* res = Formula::quantify(form);
-    _baseFormulaOrigins.insert(res, u);
-    return res;
-  }
-
-  Formula* getFringeFormula()
-  {
-    CALL("LocalityRestoring::FringeKeeper::getFringeFormula");
-    ASS(_quantifiedForms.isNonEmpty());
-
-    Formula* form;
-    if(_quantifiedForms.size()==1) {
-      form = _quantifiedForms.top();
-    }
-    else {
-      FormulaList* formList = 0;
-      FormulaList::pushFromIterator(FormulaStack::Iterator(_quantifiedForms), formList);
-      form = new JunctionFormula(AND, formList);
-    }
-
-    Formula* res = new QuantifiedFormula(EXISTS, _qttransf.getIntroducedVars(), form);
-    return res;
-  }
-
-
-  Formula* quantifyForm(Formula* form)
-  {
-    CALL("LocalityRestoring::FringeKeeper::requantify");
-
-    Formula* qform = _qftransf.transform(form);
-    qform = FormulaSimplifier().transform(qform);
-    return qform;
-  }
-
-  void requantify()
-  {
-    CALL("LocalityRestoring::FringeKeeper::requantify");
-
-    _quantifiedForms.reset();
-    FormulaStack::BottomFirstIterator bfit(_baseForms);
-    while(bfit.hasNext()) {
-      Formula* baseForm = bfit.next();
-      Formula* qform = quantifyForm(baseForm);
-      _quantifiedForms.push(qform);
-    }
-  }
-
-  void collectOutsidePremises(Unit* u, UnitStack& acc)
-  {
-    CALL("LocalityRestoring::FringeKeeper::collectPremises");
-
-    UnitSpecIterator pars = InferenceStore::instance()->getParents(UnitSpec(u));
-    while(pars.hasNext()) {
-      Unit* par = pars.next().unit();
-      if(!_comp.involvedUnits.contains(par)) {
-        acc.push(par);
-      }
-    }
-  }
-
-  void retireFringeFormulas(Unit* processedUnit)
-  {
-    CALL("LocalityRestoring::FringeKeeper::retireFringeFormulas");
-    ASS_EQ(_baseForms.size(), _quantifiedForms.size());
-
-    FormulaStack::StableDelIterator bfit(_baseForms);
-    FormulaStack::StableDelIterator qfit(_quantifiedForms);
-    while(bfit.hasNext()) {
-      ALWAYS(qfit.hasNext());
-      Formula* form = bfit.next();
-      ALWAYS(qfit.next());
-
-      Unit* fOrigin = _baseFormulaOrigins.get(form);
-
-      Unit* lastReferring;
-      if(_comp.lastReferringUnits.find(fOrigin, lastReferring) && lastReferring==processedUnit) {
-//        LOG("Retired "<<form->toString()<<" coming from "<<fOrigin->toString()<<" due to "<<processedUnit->toString());
-//        LOGV(qform->toString());
-        bfit.del();
-        qfit.del();
-      }
-    }
-    ASS(!qfit.hasNext());
-  }
-
-
-  static unsigned getFirstAvailableVar(FormulaStack& forms)
-  {
-    CALL("LocalityRestoring::FringeKeeper::getFirstAvailableVar(FormulaStack&)");
-
-    unsigned res = 0;
-    FormulaStack::Iterator fit(forms);
-    while(fit.hasNext()) {
-      Formula* f = fit.next();
-      unsigned fav = getFirstAvailableVar(f);
-      if(fav>res) { res = fav; }
-    }
-    return res;
-  }
 
   static unsigned getFirstAvailableVar(Formula* form)
   {
-    CALL("LocalityRestoring::FringeKeeper::getFirstAvailableVar(Formula*)");
+    CALL("LocalityRestoring::QuantifyingTermTransformer::getFirstAvailableVar");
 
     Formula::VarList* fv = form->freeVariables();
     Formula::VarList* bv = form->boundVariables();
@@ -741,36 +542,87 @@ private:
     }
     return res;
   }
-
-
 private:
   LocalityRestoring& _parent;
-  CompRecord& _comp;
-
-  unsigned _firstAvailableVar;
-
-  QuantifyingTermTransformer _qttransf;
-  TermTransformingFormulaTransformer _qftransf;
-
-  FormulaStack _baseForms;
-  FormulaStack _quantifiedForms;
-  UnitStack _fringePremises;
-
-  FormulaUnit* _currFringeUnit;
-
-  DHMap<Formula*, Unit*> _baseFormulaOrigins;
+  unsigned _nextVar;
+  DHMap<TermList,TermList> _cache;
+  Formula::VarList* _introducedVars;
 };
 
-Unit* LocalityRestoring::copyWithNewInference(Unit* u, Inference* inf)
+FormulaUnit* LocalityRestoring::generateQuantifiedFormula(FormulaIterator forms, UnitIterator premises)
 {
-  CALL("LocalityRestoring::copyWithNewInference");
+  CALL("LocalityRestoring::generateQuantifiedFormula");
+  ASS(forms.hasNext());
 
-  if(u->isClause()) { NOT_IMPLEMENTED; }
+  FormulaList* formList = 0;
+  FormulaList::pushFromIterator(forms, formList);
 
-  FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-  Formula* form = fu->formula();
-  FormulaUnit* res = new FormulaUnit(form, inf, u->inputType());
+  Formula* form;
+  if(formList->tail()) {
+    form = new JunctionFormula(AND, formList);
+  }
+  else {
+    form = FormulaList::pop(formList);
+  }
+
+  unsigned firstAvVar = QuantifyingTermTransformer::getFirstAvailableVar(form);
+  QuantifyingTermTransformer ttransf(*this, firstAvVar);
+  TermTransformingFormulaTransformer ftransf(ttransf);
+
+  Formula* qformBody = ftransf.transform(form);
+  Formula* qform = new QuantifiedFormula(EXISTS, ttransf.getIntroducedVars(), qformBody);
+
+  qform = FormulaSimplifier().transform(qform);
+
+  UnitList* premiseList = 0;
+  UnitList::pushFromIterator(premises, premiseList);
+
+#if VDEBUG
+  {
+    UnitList::Iterator pit(premiseList);
+    while(pit.hasNext()) {
+      Unit* premise = pit.next();
+      Color pclr = getColor(premise);
+      ASS_REP(pclr!=COLOR_INVALID, premise->toString());
+    }
+  }
+#endif
+
+  Inference* inf = new InferenceMany(Inference::COLOR_UNBLOCKING, premiseList);
+
+  FormulaUnit* res = new FormulaUnit(qform, inf, Unit::AXIOM);
   return res;
+}
+
+void LocalityRestoring::collectPremises(Unit* u, DHSet<Unit*>& skippedPremises, UnitStack& acc)
+{
+  CALL("LocalityRestoring::collectPremises");
+
+  UnitSpecIterator pars = InferenceStore::instance()->getParents(UnitSpec(u));
+  while(pars.hasNext()) {
+    Unit* par = pars.next().unit();
+    if(!skippedPremises.contains(par)) {
+      acc.push(par);
+    }
+  }
+}
+
+void LocalityRestoring::retireFringeFormulas(CompRecord& comp, Unit* processedUnit,
+    FormulaStack& fringeArgs, DHMap<Formula*, Unit*>& fringeFormulaOrigins)
+{
+  CALL("LocalityRestoring::retireFringeFormulas");
+
+  FormulaStack::StableDelIterator fit(fringeArgs);
+  while(fit.hasNext()) {
+    Formula* form = fit.next();
+    Unit* fOrigin = fringeFormulaOrigins.get(form);
+
+    Unit* lastReferring;
+    if(comp.lastReferringUnits.find(fOrigin, lastReferring) && lastReferring==processedUnit) {
+//      LOG("Retired "<<form->toString()<<" coming from "<<fOrigin->toString()<<" due to "<<processedUnit->toString());
+      fit.del();
+    }
+  }
 }
 
 void LocalityRestoring::processComponent(CompRecord& comp)
@@ -779,9 +631,24 @@ void LocalityRestoring::processComponent(CompRecord& comp)
   ASS(comp.fringe.isNonEmpty());
   ASS(comp.members.isNonEmpty());
 
-  FringeKeeper fringeKeeper(*this, comp);
+  FormulaStack fringeArgs;
 
-  FormulaUnit* fringe = fringeKeeper.getFringeUnit();
+  static DHMap<Formula*, Unit*> fringeFormulaOrigins;
+  fringeFormulaOrigins.reset();
+
+  UnitStack::Iterator fit(comp.fringe);
+  while(fit.hasNext()) {
+    Unit* frUnit = fit.next();
+    ASS(_unitColors.get(frUnit)==_quantifiedColor);
+    if(frUnit->isClause()) { NOT_IMPLEMENTED; }
+    FormulaUnit* fu = static_cast<FormulaUnit*>(frUnit);
+    Formula* form = fu->formula();
+    fringeFormulaOrigins.insert(form, fu);
+    fringeArgs.push(form);
+  }
+
+  FormulaUnit* fringe = generateQuantifiedFormula(pvi( FormulaStack::Iterator(fringeArgs) ),
+      pvi( UnitStack::Iterator(comp.fringe) ));
 
   {
     //ensure the initial fringe to be added among the formulas
@@ -794,25 +661,34 @@ void LocalityRestoring::processComponent(CompRecord& comp)
   UnitStack::BottomFirstIterator mit(comp.members);
   while(mit.hasNext()) {
     Unit* member = mit.next();
-    fringeKeeper.nextFringe(member);
+    if(member->isClause()) { NOT_IMPLEMENTED; }
+    FormulaUnit* fu = static_cast<FormulaUnit*>(member);
+    Formula* form = fu->formula();
+    fringeFormulaOrigins.insert(form, fu);
+    fringeArgs.push(form);
+    retireFringeFormulas(comp, fu, fringeArgs, fringeFormulaOrigins);
+//    LOGV(fringe->toString());
 
-    FormulaUnit* newFringe=fringeKeeper.getFringeUnit();
+    fringePremises.reset();
+    collectPremises(fu, comp.involvedUnits, fringePremises);
+    fringePremises.push(fringe);
 
-    Color fuColor = _unitColors.get(member);
+    FormulaUnit* newFringe=generateQuantifiedFormula(pvi( FormulaStack::Iterator(fringeArgs) ),
+	pvi( UnitStack::Iterator(fringePremises) ));
+
+    Color fuColor = _unitColors.get(fu);
 
 //    LOGV(fu->toString());
 //    LOG("");
 //    LOGV(newFringe->toString());
 
     if(fuColor!=COLOR_TRANSPARENT && fuColor!=_nonQuantifiedColor) {
-      _processingResultMap.insert(member, newFringe);
+      _processingResultMap.insert(fu, newFringe);
     }
     else {
-      _fringePremiseTriggerringMap.insert(member, newFringe);
-
-      Unit* transpWithFringePremise =
-	  copyWithNewInference(member, new Inference1(Inference::COLOR_UNBLOCKING, newFringe));
-      _processingResultMap.insert(member, transpWithFringePremise);
+      _fringePremiseTriggerringMap.insert(fu, newFringe);
+      FormulaUnit* transpWithFringePremise = new FormulaUnit(form, new Inference1(Inference::COLOR_UNBLOCKING, newFringe), fu->inputType());
+      _processingResultMap.insert(fu, transpWithFringePremise);
 //      LOGV(transpWithFringePremise->toString());
     }
 

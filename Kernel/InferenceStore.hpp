@@ -41,8 +41,8 @@ struct UnitSpec
     }
   }
   UnitSpec(Unit* u, BDDNode* prop) : _unit(u), _prop(prop) { ASS(prop); }
-  bool operator==(UnitSpec& o) { return _unit==o._unit && _prop==o._prop; }
-  bool operator!=(UnitSpec& o) { return !(*this==o); }
+  bool operator==(const UnitSpec& o) const { return _unit==o._unit && _prop==o._prop; }
+  bool operator!=(const UnitSpec& o) const { return !(*this==o); }
 
   static unsigned hash(const UnitSpec& o)
   {
