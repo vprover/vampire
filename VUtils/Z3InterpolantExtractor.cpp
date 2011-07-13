@@ -520,7 +520,6 @@ bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
     unsigned func;
     uiit.next(func, uinfo);
     if(!uinfo.numericArgsOnly) {
-      LOG(env.signature->functionName(func) << "skipped");
       continue;
     }
 
