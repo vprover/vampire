@@ -399,6 +399,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
     break;
   case Theory::LESS_EQUAL:
     name="$leq";
+    break;
   case Theory::INT_GREATER:
     name=">";
     break;
