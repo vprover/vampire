@@ -298,24 +298,47 @@ unsigned Theory::getArity(Interpretation i)
   ASS_L(i,(int)interpretationElementCount);
 
   switch(i) {
-  case SUCCESSOR:
-  case UNARY_MINUS:
+  case INT_SUCCESSOR:
+  case INT_UNARY_MINUS:
+  case RAT_UNARY_MINUS:
+  case REAL_UNARY_MINUS:
     return 1;
 
-  case PLUS:
-  case MINUS:
-  case MULTIPLY:
-  case DIVIDE:
-  case INT_DIVIDE:
   case EQUAL:
-  case GREATER:
-  case GREATER_EQUAL:
-  case LESS:
-  case LESS_EQUAL:
+
   case INT_GREATER:
   case INT_GREATER_EQUAL:
   case INT_LESS:
   case INT_LESS_EQUAL:
+  case INT_DIVIDES:
+
+  case RAT_GREATER:
+  case RAT_GREATER_EQUAL:
+  case RAT_LESS:
+  case RAT_LESS_EQUAL:
+  case RAT_DIVIDES:
+
+  case REAL_GREATER:
+  case REAL_GREATER_EQUAL:
+  case REAL_LESS:
+  case REAL_LESS_EQUAL:
+  case REAL_DIVIDES:
+
+  case INT_PLUS:
+  case INT_MINUS:
+  case INT_MULTIPLY:
+  case INT_DIVIDE:
+  case INT_MODULO:
+
+  case RAT_PLUS:
+  case RAT_MINUS:
+  case RAT_MULTIPLY:
+  case RAT_DIVIDE:
+
+  case REAL_PLUS:
+  case REAL_MINUS:
+  case REAL_MULTIPLY:
+  case REAL_DIVIDE:
     return 2;
   }
   ASSERTION_VIOLATION;
@@ -331,24 +354,45 @@ bool Theory::isFunction(Interpretation i)
   ASS_L(i,(int)interpretationElementCount);
 
   switch(i) {
-  case SUCCESSOR:
-  case UNARY_MINUS:
-  case PLUS:
-  case MINUS:
-  case MULTIPLY:
-  case DIVIDE:
+  case INT_SUCCESSOR:
+  case INT_UNARY_MINUS:
+  case RAT_UNARY_MINUS:
+  case REAL_UNARY_MINUS:
+
+  case INT_PLUS:
+  case INT_MINUS:
+  case INT_MULTIPLY:
   case INT_DIVIDE:
+  case INT_MODULO:
+
+  case RAT_PLUS:
+  case RAT_MINUS:
+  case RAT_MULTIPLY:
+  case RAT_DIVIDE:
+
+  case REAL_PLUS:
+  case REAL_MINUS:
+  case REAL_MULTIPLY:
+  case REAL_DIVIDE:
     return true;
 
-  case EQUAL:
-  case GREATER:
-  case GREATER_EQUAL:
-  case LESS:
-  case LESS_EQUAL:
   case INT_GREATER:
   case INT_GREATER_EQUAL:
   case INT_LESS:
   case INT_LESS_EQUAL:
+  case INT_DIVIDES:
+
+  case RAT_GREATER:
+  case RAT_GREATER_EQUAL:
+  case RAT_LESS:
+  case RAT_LESS_EQUAL:
+  case RAT_DIVIDES:
+
+  case REAL_GREATER:
+  case REAL_GREATER_EQUAL:
+  case REAL_LESS:
+  case REAL_LESS_EQUAL:
+  case REAL_DIVIDES:
     return false;
   }
   ASSERTION_VIOLATION;
@@ -364,14 +408,18 @@ bool Theory::isInequality(Interpretation i)
   ASS_L(i,(int)interpretationElementCount);
 
   switch(i) {
-  case GREATER:
-  case GREATER_EQUAL:
-  case LESS:
-  case LESS_EQUAL:
   case INT_GREATER:
   case INT_GREATER_EQUAL:
   case INT_LESS:
   case INT_LESS_EQUAL:
+  case RAT_GREATER:
+  case RAT_GREATER_EQUAL:
+  case RAT_LESS:
+  case RAT_LESS_EQUAL:
+  case REAL_GREATER:
+  case REAL_GREATER_EQUAL:
+  case REAL_LESS:
+  case REAL_LESS_EQUAL:
     return true;
   default:
     return false;

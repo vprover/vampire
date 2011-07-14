@@ -137,24 +137,59 @@ public:
     //predicates
 
     EQUAL,
-    GREATER,
-    GREATER_EQUAL,
-    LESS,
-    LESS_EQUAL,
+
     INT_GREATER,
     INT_GREATER_EQUAL,
     INT_LESS,
     INT_LESS_EQUAL,
+    INT_DIVIDES,
+
+    RAT_GREATER,
+    RAT_GREATER_EQUAL,
+    RAT_LESS,
+    RAT_LESS_EQUAL,
+    RAT_DIVIDES,
+
+    REAL_GREATER,
+    REAL_GREATER_EQUAL,
+    REAL_LESS,
+    REAL_LESS_EQUAL,
+    REAL_DIVIDES,
+
 
     //functions
 
+    INT_SUCCESSOR,
+    INT_UNARY_MINUS,
+    INT_PLUS,
+    INT_MINUS,
+    INT_MULTIPLY,
+    INT_DIVIDE,
+    INT_MODULO,
+
+    RAT_UNARY_MINUS,
+    RAT_PLUS,
+    RAT_MINUS,
+    RAT_MULTIPLY,
+    RAT_DIVIDE,
+
+    REAL_UNARY_MINUS,
+    REAL_PLUS,
+    REAL_MINUS,
+    REAL_MULTIPLY,
+    REAL_DIVIDE,
+
+    //these are deprecated, left just so that the code compiles before references to them are removed
+    GREATER,
+    GREATER_EQUAL,
+    LESS,
+    LESS_EQUAL,
     SUCCESSOR,
     UNARY_MINUS,
     PLUS,
     MINUS,
     MULTIPLY,
     DIVIDE,
-    INT_DIVIDE
   };
   /**
    * Number of elements in the enum Interpretation

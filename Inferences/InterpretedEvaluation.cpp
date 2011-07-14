@@ -27,10 +27,85 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 
-class InterpretedEvaluation::LiteralSimplifier
+class InterpretedEvaluation::Evaluator
 {
 public:
+  virtual ~Evaluator() {}
 
+  virtual bool canEvaluateFunc(unsigned func) = 0;
+  virtual bool canEvaluatePred(unsigned pred) = 0;
+  virtual bool tryEvaluateFunc(Term* trm, Term*& res) = 0;
+  virtual bool tryEvaluatePred(Literal* trm, bool& res) = 0;
+};
+
+class InterpretedEvaluation::LiteralSimplifier :  private TermTransformer
+{
+public:
+  LiteralSimplifier()
+  {
+
+  }
+
+  ~LiteralSimplifier()
+  {
+    CALL("InterpretedEvaluation::LiteralSimplifier::~LiteralSimplifier");
+
+    while(_evals.isNonEmpty()) {
+      delete _evals.pop();
+    }
+  }
+
+  bool evaluate(Literal* lit, bool& isConstant, Literal* resLit, bool& resConst)
+  {
+    CALL("InterpretedEvaluation::LiteralSimplifier::evaluate");
+
+    resLit = TermTransformer::transform(lit);
+    unsigned pred = resLit->functor();
+
+    EvalStack::Iterator evit(_evals);
+    while(evit.hasNext()) {
+      Evaluator* ev = evit.next();
+      if(!ev->canEvaluatePred(pred)) {
+	continue;
+      }
+      if(ev->tryEvaluatePred(resLit, resConst)) {
+	isConstant = true;
+	return true;
+      }
+    }
+    if(resLit!=lit) {
+      isConstant = false;
+      return true;
+    }
+    return false;
+  }
+
+protected:
+  typedef Stack<Evaluator*> EvalStack;
+
+  virtual TermList transform(TermList trm)
+  {
+    CALL("InterpretedEvaluation::LiteralSimplifier::transform");
+
+    if(!trm.isTerm()) { return trm; }
+    Term* t = trm.term();
+    unsigned func = t->functor();
+
+    EvalStack::Iterator evit(_evals);
+    while(evit.hasNext()) {
+      Evaluator* ev = evit.next();
+      if(!ev->canEvaluateFunc(func)) {
+	continue;
+      }
+      Term* res;
+      if(ev->tryEvaluateFunc(t, res)) {
+	return TermList(res);
+      }
+    }
+    return trm;
+  }
+
+  EvalStack _evals;
 };
 
 /**
