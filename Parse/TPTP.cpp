@@ -32,7 +32,7 @@ using namespace Parse;
 #define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_TERMS 0
 #define DEBUG_SHOW_FORMULAS 0
-#define DEBUG_SHOW_UNITS 1
+#define DEBUG_SHOW_UNITS 0
 
 /**
  * Create a parser, parse the input and return the parsed list of units.

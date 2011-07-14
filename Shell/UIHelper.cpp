@@ -79,7 +79,6 @@ UnitList* UIHelper::getInputUnits()
     Parse::TPTP parser(*input);
     parser.parse();
     units = parser.units();
-    cout << units->length() << "\n";
     s_haveConjecture=parser.containsConjecture();
   }
   break;
