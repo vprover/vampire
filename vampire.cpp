@@ -218,7 +218,6 @@ void vampireMode()
     }
   }
 
-  UnitList* units=UIHelper::getInputUnits();
   doProving();
 
   env.beginOutput();
