@@ -274,12 +274,12 @@ public:
     _cursor = _stack+len;
   } // truncate
 
-  /** Return the number of elements in the stack */
+  /** Return the number of elements in the stack, same as size() */
   inline
   size_t length() const
   { return _cursor - _stack; }
 
-  /** Return the number of elements in the stack */
+  /** Return the number of elements in the stack, same as length() */
   inline
   size_t size() const
   { return _cursor - _stack; }

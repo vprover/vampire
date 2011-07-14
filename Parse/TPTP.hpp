@@ -126,8 +126,10 @@ public:
     T_TRUE,
     /** $false */
     T_FALSE,
-    /** tType */
+    /** $tType */
     T_TTYPE,
+    /** $o */
+    T_OBJ_TYPE,
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -170,8 +172,12 @@ public:
     TFF = 18,
     /** read type declaration */
     TYPE = 19,
-    /** after a type declaration */
+    /** after a top-level type declaration */
     END_TFF = 20,
+    /** after a type declaration */
+    END_TYPE = 21,
+    /** simple type */
+    SIMPLE_TYPE = 22,
   };
 
   /** token */
@@ -219,6 +225,83 @@ public:
 private:
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
+
+  enum TypeTag {
+    TT_ATOMIC,
+    TT_PRODUCT,
+    TT_ARROW
+  };
+
+  /**
+   * Class of types. Should be removed when the Vampire type system is
+   * improved.
+   * @since 14/07/2011 Manchester
+   */
+  class Type {
+  public:
+    explicit Type(TypeTag tag) : _tag(tag) {}
+    /** return the kind of this sort */
+    TypeTag tag() const {return _tag;}
+  protected:
+    /** kind of this type */
+    TypeTag _tag;
+  };
+
+  /** An atomic type is simply a sort */
+  class AtomicType
+    : public Type
+  {
+  public:
+    explicit AtomicType(unsigned sortNumber)
+      : Type(TT_ATOMIC), _sortNumber(sortNumber)
+    {}
+    /** return the sort number */
+    unsigned sortNumber() const {return _sortNumber;}
+  private:
+    /** the sort identified by its number in the signature */
+    unsigned _sortNumber;
+  }; // AtomicType
+
+  /** Arrow type */
+  class ArrowType
+    : public Type
+  {
+  public:
+    ArrowType(Type* lhs,Type* rhs)
+      : Type(TT_ARROW), _lhs(lhs), _rhs(rhs)
+    {}
+    /** the argument type */
+    Type* argumentType() const {return _lhs;}
+    /** the return type */
+    Type* returnType() const {return _rhs;}
+  private:
+    /** the argument type */
+    Type* _lhs;
+    /** the return type */
+    Type* _rhs;
+  }; // ArrowType
+
+  /** Product type. It now only uses a product of two types, which might be
+   * wrong for higher-order logic, yet appropriate for parsing first-order
+   * types.
+   */
+  class ProductType
+    : public Type
+  {
+  public:
+    ProductType(Type* lhs,Type* rhs)
+      : Type(TT_PRODUCT), _lhs(lhs), _rhs(rhs)
+    {}
+    /** the left hand side type */
+    Type* lhs() const {return _lhs;}
+    /** the right hand side type */
+    Type* rhs() const {return _rhs;}
+  private:
+    /** the argument type */
+    Type* _lhs;
+    /** the return type */
+    Type* _rhs;
+  }; // ProductType
 
   /**
    * Class that allows to create a list initially by pushing elements
@@ -305,6 +388,10 @@ private:
   Stack<TermList> _termLists;
   /** name table for variable names */
   IntNameTable _vars;
+  /** parsed types */
+  Stack<Type*> _types;
+  /** various type tags saved during parsing */
+  Stack<TypeTag> _typeTags;
 
   // various next character and next token reading commands
 
@@ -410,6 +497,7 @@ private:
   void formula();
   void atom();
   void simpleFormula();
+  void simpleType();
   void args();
   void varList();
   void term();
@@ -419,9 +507,11 @@ private:
   void midAtom();
   void endEquality();
   void endFormula();
+  void endType();
   void endSimpleFormula();
   void tag();
   void endFof();
+  void endTff();
   void include();
   void type();
 

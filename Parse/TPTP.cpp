@@ -23,7 +23,7 @@
 
 #include "Indexing/TermSharing.hpp"
 
-#include "TPTP.hpp"
+#include "Parse/TPTP.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -156,8 +156,17 @@ void TPTP::parse()
     case TYPE:
       type();
       break;
+    case SIMPLE_TYPE:
+      simpleType();
+      break;
+    case END_TYPE:
+      endType();
+      break;
+    case END_TFF:
+      endTff();
+      break;
     default:
-      cout << "Don't know how to process state " << s << "\n";
+      cout << "Don't know how to process state " << toString(s) << "\n";
       throw ::Exception("");
     }
   }
@@ -257,6 +266,8 @@ string TPTP::toString(Tag tag)
     return "$false";
   case T_TTYPE:
     return "$tType";
+  case T_OBJ_TYPE:
+    return "$o";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -675,12 +686,8 @@ void TPTP::readName(Token& tok)
     case '9':
       break;
     default:
+      ASS(_chars.content()[0] != '$');
       tok.content.assign(_chars.content(),n);
-      if (_chars.content()[0] == '$') {
-	if (tok.content != "$true" && tok.content != "$false") {
-	  throw Exception((string)"I do not know how to handle " + tok.content,tok);
-	}
-      }
       shiftChars(n);
       return;
     }
@@ -765,21 +772,27 @@ void TPTP::readReserved(Token& tok)
     default:
       tok.content.assign(_chars.content(),n);
       shiftChars(n);
-      if (tok.content == "$true") {
-	tok.tag = T_TRUE;
-	return;
-      }
-      if (tok.content == "$false") {
-	tok.tag = T_FALSE;
-	return;
-      }
-      if (tok.content == "$tType") {
-	tok.tag = T_TTYPE;
-	return;
-      }
-      throw Exception((string)"I do not know how to handle " + tok.content,tok);
+      goto out;
     }
   }
+ out:
+  if (tok.content == "$true") {
+    tok.tag = T_TRUE;
+    return;
+  }
+  if (tok.content == "$false") {
+    tok.tag = T_FALSE;
+    return;
+  }
+  if (tok.content == "$tType") {
+    tok.tag = T_TTYPE;
+    return;
+  }
+  if (tok.content == "$o") {
+    tok.tag = T_OBJ_TYPE;
+    return;
+  }
+  throw Exception((string)"I do not know how to handle " + tok.content,tok);
 } // readReserved
 
 /**
@@ -1322,9 +1335,9 @@ void TPTP::type()
 {
   CALL("TPTP::type");
 
-  _connectives.push((Connective)-1);
-  _states.push(END_FORMULA);
-  _states.push(SIMPLE_FORMULA);
+  _typeTags.push(TT_ATOMIC);
+  _states.push(END_TYPE);
+  _states.push(SIMPLE_TYPE);
 } // type
 
 /**
@@ -1741,6 +1754,49 @@ void TPTP::endFormula()
 } // endFormula
 
 /**
+ * Build a type from previousy built types
+ * @since 14/07/2011 Manchester
+ */
+void TPTP::endType()
+{
+  CALL("TPTP::endType");
+
+  TypeTag tt = _typeTags.pop();
+  Type* t = _types.pop();
+  switch (tt) {
+  case TT_ATOMIC:
+    break;
+  case TT_PRODUCT:
+    t = new ProductType(_types.pop(),t);
+    tt = _typeTags.pop();
+    break;
+  case TT_ARROW:
+    t = new ArrowType(_types.pop(),t);
+    tt = _typeTags.pop();
+    break;
+  }
+  ASS(tt == TT_ATOMIC);
+  _types.push(t);
+
+  Token tok = getTok(0);
+  switch (tok.tag) {
+  case T_STAR:
+    _typeTags.push(tt);
+    _typeTags.push(TT_PRODUCT);
+    break;
+  case T_ARROW:
+    _typeTags.push(tt);
+    _typeTags.push(TT_ARROW);
+    break;
+  default:
+    return;
+  }
+  resetToks();
+  _states.push(END_TYPE);
+  _states.push(SIMPLE_TYPE);
+} // endType
+
+/**
  * Skip a tag.
  * @since 10/04/2011 Manchester
  */
@@ -1818,6 +1874,100 @@ void TPTP::endFof()
   }
   _units.push(unit);
 } // tag
+
+/**
+ * Process the end of the tff() definition and build the corresponding unit.
+ * @since 14/07/2011 Manchester
+ */
+void TPTP::endTff()
+{
+  CALL("TPTP::endTff");
+
+  int rpars= _ints.pop() + 1;
+  while (rpars--) {
+    consumeToken(T_RPAR);
+  }
+  consumeToken(T_DOT);
+
+  // build a TPTP out of the parse type
+  ASS(_typeTags.isEmpty());
+  Type* t = _types.pop();
+  ASS(_types.isEmpty());
+  string name = _strings.pop();
+
+  if (t->tag() == TT_PRODUCT) {
+    USER_ERROR("product types are not supported");
+  }
+
+  if (t->tag() == TT_ATOMIC) {
+    unsigned sortNumber = static_cast<AtomicType*>(t)->sortNumber();
+    bool added;
+    if (sortNumber == Sorts::SRT_BOOL) {
+      env.signature->addPredicate(name,0,added);
+      if(!added) {
+	USER_ERROR("Predicate symbol type is declared after its use: " + name);
+      }
+      return;
+    }
+    // a constant
+    unsigned fun = env.signature->addFunction(name,0,added);
+    if(!added) {
+      USER_ERROR("Function symbol type is declared after its use: " + name);
+    }
+    env.signature->getFunction(fun)->setType(BaseType::makeType(0,0,sortNumber));
+    return;
+  }
+
+  ASS(t->tag() == TT_ARROW);
+  ArrowType* at = static_cast<ArrowType*>(t);
+  Type* rhs = at->returnType();
+  if (rhs->tag() != TT_ATOMIC) {
+    USER_ERROR("complex return types are not supported");
+  }
+  unsigned returnSortNumber = static_cast<AtomicType*>(rhs)->sortNumber();
+  Stack<unsigned> sorts;
+  Stack<Type*> types;
+  types.push(at->argumentType());
+  while (!types.isEmpty()) {
+    Type* tp = types.pop();
+    switch (tp->tag()) {
+    case TT_ARROW:
+      USER_ERROR("higher-order types are not supported");
+    case TT_ATOMIC:
+      sorts.push(static_cast<AtomicType*>(tp)->sortNumber());
+      break;
+    case TT_PRODUCT:
+      {
+	ProductType* pt = static_cast<ProductType*>(tp);
+	types.push(pt->rhs());
+	types.push(pt->lhs());
+      }
+      break;
+#if VDEBUG
+    default:
+      ASSERTION_VIOLATION;
+#endif
+    }
+  }
+  unsigned args = sorts.size();
+  bool added;
+  Signature::Symbol* symbol;
+  if (returnSortNumber == Sorts::SRT_BOOL) {
+    unsigned pred = env.signature->addPredicate(name,args,added);
+    if(!added) {
+      USER_ERROR("Predicate symbol type is declared after its use: " + name);
+    }
+    symbol = env.signature->getPredicate(pred);
+  }
+  else {
+    unsigned fun = env.signature->addFunction(name,args,added);
+    if(!added) {
+      USER_ERROR("Function symbol type is declared after its use: " + name);
+    }
+    symbol = env.signature->getFunction(fun);
+  }
+  symbol->setType(BaseType::makeType(args,sorts.begin(),returnSortNumber));
+} // endTff
 
 /**
  * Read a simple formula (quantified formula, negation,
@@ -1899,6 +2049,46 @@ void TPTP::simpleFormula()
     throw Exception("formula expected",tok);
   }
 } // simpleFormula
+
+/**
+ * Read a simple type: name or type in parentheses
+ * @since 14/07/2011 Manchester
+ */
+void TPTP::simpleType()
+{
+  CALL("TPTP::simpleType");
+
+  Token& tok = getTok(0);
+  Tag tag = tok.tag;
+  switch (tag) {
+  case T_LPAR:
+    resetToks();
+    _states.push(TAG);
+    _tags.push(T_RPAR);
+    _states.push(TYPE);
+    return;
+
+  case T_NAME:
+    {
+      resetToks();
+      bool added;
+      unsigned sortNumber = env.sorts->addSort(tok.content,added);
+      if (added) {
+	throw Exception("udeclared sort",tok);
+      }
+      _types.push(new AtomicType(sortNumber));
+    }
+    return;
+
+  case T_OBJ_TYPE:
+    resetToks();
+    _types.push(new AtomicType(Sorts::SRT_DEFAULT));
+    return;
+
+  default:
+    throw Exception("type declaration expected",tok);
+  }
+} // simpleType
 
 /**
  * Make a non-compound term, that is, a string constant, a variable,
@@ -2053,6 +2243,10 @@ const char* TPTP::toString(State s)
     return "TYPE";
   case END_TFF:
     return "END_TFF";
+  case END_TYPE:
+    return "END_TYPE";
+  case SIMPLE_TYPE:
+    return "SIMPLE_TYPE";
   default:
     cout << (int)s << "\n";
     ASS(false);
