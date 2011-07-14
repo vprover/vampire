@@ -1403,10 +1403,26 @@ void TPTP::varList()
     if (tok.tag != T_VAR) {
       throw Exception("variable expected",tok);
     }
-    vars.push(_vars.insert(tok.content));
+    int var = _vars.insert(tok.content);
+    vars.push(var);
     resetToks();
+    bool sortDeclared = false;
+  afterVar:
     tok = getTok(0);
     switch (tok.tag) {
+    case T_COLON: // v: type
+      {
+	if (sortDeclared) {
+	  throw Exception("two declarations of variable sort",tok);
+	}
+	resetToks();
+	unsigned sortNumber = readSort(false);
+	List<VariableSort>* vs = _variableSorts.pop();
+	_variableSorts.push(new List<VariableSort>(VariableSort(var,sortNumber),vs));
+	sortDeclared = true;
+	goto afterVar;
+      }
+
     case T_COMMA:
       resetToks();
       break;
@@ -1992,9 +2008,11 @@ void TPTP::simpleFormula()
     resetToks();
     consumeToken(T_LBRA);
     _connectives.push(tag == T_FORALL ? FORALL : EXISTS);
+    _states.push(UNBIND_VARIABLES);
     _states.push(SIMPLE_FORMULA);
     _states.push(TAG);
     _tags.push(T_COLON);
+    _variableSorts.push(0);
     _states.push(VAR_LIST); 
     return;
 
@@ -2059,36 +2077,50 @@ void TPTP::simpleType()
   CALL("TPTP::simpleType");
 
   Token& tok = getTok(0);
-  Tag tag = tok.tag;
-  switch (tag) {
-  case T_LPAR:
+  if (tok.tag == T_LPAR) {
     resetToks();
     _states.push(TAG);
     _tags.push(T_RPAR);
     _states.push(TYPE);
     return;
+  }
+  _types.push(new AtomicType(readSort(true)));
+} // simpleType
 
+/**
+ * Read a sort and return its number. If a sort is not built-in, then raise an
+ * exception if it has been declared and newSortExpected, or it has not been
+ * declared and newSortExpected is false.
+ * @since 14/07/2011 Manchester
+ */
+unsigned TPTP::readSort(bool newSortExpected)
+{
+  CALL("TPTP::readSort");
+
+  Token tok = getTok(0);
+  switch (tok.tag) {
   case T_NAME:
     {
       resetToks();
       bool added;
       unsigned sortNumber = env.sorts->addSort(tok.content,added);
-      if (added) {
-	throw Exception("udeclared sort",tok);
+      if (added && !newSortExpected) {
+	throw Exception("undeclared sort",tok);
       }
-      _types.push(new AtomicType(sortNumber));
+      if (!added && newSortExpected) {
+	throw Exception(string("sort ") + tok.content + " was been declared previously",tok);
+      }
+      return sortNumber;
     }
-    return;
 
   case T_OBJ_TYPE:
     resetToks();
-    _types.push(new AtomicType(Sorts::SRT_DEFAULT));
-    return;
+    return Sorts::SRT_DEFAULT;
 
   default:
-    throw Exception("type declaration expected",tok);
+    throw Exception("sort expected",tok);
   }
-} // simpleType
+} // readSort
 
 /**
  * Make a non-compound term, that is, a string constant, a variable,

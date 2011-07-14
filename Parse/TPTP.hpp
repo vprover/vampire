@@ -178,6 +178,15 @@ public:
     END_TYPE = 21,
     /** simple type */
     SIMPLE_TYPE = 22,
+    /** unbinding previously quantified variables */
+    UNBIND_VARIABLES = 23,
+  };
+
+  /** pair variable-sort */
+  struct VariableSort {
+    VariableSort(int v,unsigned s) : var(v),sort(s) {}
+    int var;
+    unsigned sort;
   };
 
   /** token */
@@ -392,8 +401,8 @@ private:
   Stack<Type*> _types;
   /** various type tags saved during parsing */
   Stack<TypeTag> _typeTags;
-
-  // various next character and next token reading commands
+  /** bindings of variables to sorts */
+  Stack<List<VariableSort>*> _variableSorts;
 
   /**
    * Get the next characters at the position pos.
@@ -404,7 +413,7 @@ private:
 
     while (_cend <= pos) {
       int c = _in->get();
-      // if (c == -1) { cout << "<EOF>"; } else {cout << char(c);}
+      if (c == -1) { cout << "<EOF>"; } else {cout << char(c);}
       _chars[_cend++] = c == -1 ? 0 : c;
     }
     return _chars[pos];
@@ -514,6 +523,7 @@ private:
   void endTff();
   void include();
   void type();
+  unsigned readSort(bool newSortExpected);
 
   static bool higherPrecedence(Connective c1,Connective c2);
 
