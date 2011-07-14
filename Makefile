@@ -471,7 +471,7 @@ VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VI
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o, $(VS_OBJ)) $(PARSE_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(VT_OBJ) $(LIB_DEP)
-#VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
+VGROUND_BASIC = $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) Global.o vampire.o
 VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
@@ -483,7 +483,7 @@ VTEST_DEP = $(VAMP_BASIC) $(API_OBJ) $(VUT_OBJ) Global.o vtest.o
 VAPI_DEP = $(API_OBJ) $(OTHER_API_DEP) Global.o test_vapi.o
 LIBVAPI_DEP = $(API_OBJ) $(OTHER_API_DEP) Global.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
-#VGROUND_OBJ = $(VGROUND_BASIC) Global.o vground.o
+VGROUND_DEP = $(VGROUND_BASIC) Global.o vground.o
 
 all:#default make disabled
 
@@ -521,6 +521,7 @@ VUTIL_OBJ := $(addprefix $(CONF_ID)/, $(VUTIL_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
 LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
+VGROUND_OBJ := $(addprefix $(CONF_ID)/, $(VGROUND_DEP))
 
 define COMPILE_CMD
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
@@ -583,9 +584,9 @@ api_src:
 	tar -czf $@.tgz $@
 
 
-#vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
-##	$(CXX) -static $(CXXFLAGS) $^ -o vground
-#	$(CXX) $(CXXFLAGS) $^ -o $@
+vground: $(VGROUND_OBJ) $(EXEC_DEF_PREREQ)
+	$(COMPILE_CMD)
+
 #
 #ucompit: $(UCOMPIT_OBJ) $(EXEC_DEF_PREREQ)
 #	$(CXX) $(CXXFLAGS) $^ -o $@

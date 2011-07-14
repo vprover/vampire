@@ -26,6 +26,12 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 
+class InterpretedEvaluation::LiteralSimplifier
+{
+public:
+
+};
+
 /**
  * Return number of internal interpreting function that
  * interprets the top function of @b t. It the top function

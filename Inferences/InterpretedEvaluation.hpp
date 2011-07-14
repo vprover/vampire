@@ -23,6 +23,8 @@ class InterpretedEvaluation
 public:
   Clause* simplify(Clause* cl);
 private:
+  class LiteralSimplifier;
+
   int getInterpretedFunction(Term* t);
   int getInterpretedPredicate(Literal* lit);
 

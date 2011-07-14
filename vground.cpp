@@ -115,19 +115,27 @@ void groundingMode()
       }
       insts.pushManyToKey(cl, sGrounded);
     }
-    DIMACS::outputGroundedProblem(insts, nameCtx, env.out);
+    env.beginOutput();
+    DIMACS::outputGroundedProblem(insts, nameCtx, env.out());
+    env.endOutput();
 
   } catch(MemoryLimitExceededException) {
-    env.out<<"Memory limit exceeded\n";
+    env.beginOutput();
+    env.out()<<"Memory limit exceeded\n";
+    env.endOutput();
   } catch(TimeLimitExceededException) {
-    env.out<<"Time limit exceeded\n";
+    env.beginOutput();
+    env.out()<<"Time limit exceeded\n";
+    env.endOutput();
   }
 } // groundingMode
 
 
 void explainException (Exception& exception)
 {
-  exception.cry(env.out);
+  env.beginOutput();
+  exception.cry(env.out());
+  env.endOutput();
 } // explainException
 
 /**
@@ -194,14 +202,18 @@ int main(int argc, char* argv [])
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
+    env.beginOutput();
     explainException(exception);
-    env.statistics->print();
+    env.statistics->print(env.out());
+    env.endOutput();
   }
   catch (std::bad_alloc& _) {
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
-    env.out << "Insufficient system memory" << '\n';
+    env.beginOutput();
+    env.out() << "Insufficient system memory" << '\n';
+    env.endOutput();
   }
 //   delete env.allocator;
 

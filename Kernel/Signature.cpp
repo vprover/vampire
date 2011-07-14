@@ -280,6 +280,7 @@ unsigned Signature::addIntegerConstant(const string& number)
   }
   result = _funs.length();
   _funs.push(new IntegerSymbol(number));
+  _funNames.insert(key, result);
   return result;
 }
 
@@ -298,6 +299,7 @@ unsigned Signature::addRationalConstant(const string& numerator, const string& d
   }
   result = _funs.length();
   _funs.push(new RationalSymbol(value));
+  _funNames.insert(key, result);
   return result;
 }
 
@@ -316,6 +318,7 @@ unsigned Signature::addRealConstant(const string& number)
   }
   result = _funs.length();
   _funs.push(new RealSymbol(value));
+  _funNames.insert(key, result);
   return result;
 }
 
