@@ -35,6 +35,17 @@ using namespace Parse;
 #define DEBUG_SHOW_UNITS 1
 
 /**
+ * Create a parser, parse the input and return the parsed list of units.
+ * @since 13/07/2011 Manchester
+ */
+UnitList* TPTP::parse(istream& input)
+{
+  Parse::TPTP parser(input);
+  parser.parse();
+  return parser.units();
+}
+
+/**
  * Initialise a lexer.
  * @since 27/07/2004 Torrevieja
  */
@@ -1067,9 +1078,11 @@ void TPTP::fof(bool fo)
     _lastInputType = Unit::AXIOM;
   }
   else if (tp == "conjecture") {
+    _containsConjecture = true;
     _lastInputType = Unit::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
+    _containsConjecture = true;
     _lastInputType = Unit::NEGATED_CONJECTURE;
   }
   else if (tp == "hypothesis") {
@@ -1170,9 +1183,11 @@ void TPTP::tff()
     _lastInputType = Unit::AXIOM;
   }
   else if (tp == "conjecture") {
+    _containsConjecture = true;
     _lastInputType = Unit::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
+    _containsConjecture = true;
     _lastInputType = Unit::NEGATED_CONJECTURE;
   }
   else if (tp == "hypothesis") {
@@ -1763,7 +1778,6 @@ void TPTP::endFof()
   switch (_lastInputType) {
   case Unit::CONJECTURE:
     {
-      _containsConjecture=true;
       Formula::VarList* vs = f->freeVariables();
       if (vs->isEmpty()) {
 	f = new NegatedFormula(f);
@@ -1802,7 +1816,7 @@ void TPTP::endFof()
   default:
     break;
   }
-  // _units.push(unit);
+  _units.push(unit);
 } // tag
 
 /**

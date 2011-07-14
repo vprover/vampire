@@ -3,8 +3,8 @@
  * Defines class UIHelper.
  */
 
-#ifndef __InputReader__
-#define __InputReader__
+#ifndef __UIHelper__
+#define __UIHelper__
 
 #include <ostream>
 
@@ -41,10 +41,9 @@ public:
    */
   static bool cascModeChild;
 private:
-
   static bool s_haveConjecture;
 };
 
 }
 
-#endif // __InputReader__
+#endif // __UIHelper__

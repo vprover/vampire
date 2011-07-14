@@ -32,6 +32,8 @@
 #include "Indexing/SubstitutionTree.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "Shell/CommandLine.hpp"
 #include "Shell/GeneralSplitting.hpp"
 #include "Shell/Grounding.hpp"
@@ -40,9 +42,7 @@
 #include "Shell/Preprocess.hpp"
 #include "Shell/Refutation.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTP.hpp"
-#include "Shell/TPTPParser.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -71,30 +71,20 @@ void groundingMode()
   try {
     Property property;
 
-    UnitList* units;
-    {
-      string inputFile = env.options->inputFile();
-
-      istream* input;
-      if(inputFile=="") {
-        input=&cin;
-      } else {
-        input=new ifstream(inputFile.c_str());
-      }
-      TPTPLexer lexer(*input);
-
-      if(inputFile!="") {
-        delete static_cast<ifstream*>(input);
-        input=0;
-      }
-
-
-      TPTPParser parser(lexer);
-      units = parser.units();
+    string inputFile = env.options->inputFile();
+    istream* input;
+    if(inputFile=="") {
+      input=&cin;
+    } else {
+      input=new ifstream(inputFile.c_str());
+    }
+    UnitList* units = Parse::TPTP::parse(*input);
+    if(inputFile!="") {
+      delete static_cast<ifstream*>(input);
+      input=0;
     }
 
     property.scan(units);
-
     Preprocess prepro(property,*env.options);
     prepro.preprocess(units);
 
@@ -104,7 +94,6 @@ void groundingMode()
     globUnitList=units;
 
     ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
-
 
     if(newProperty.equalityAtoms()) {
       ClauseList* eqAxioms=Grounding::getEqualityAxioms(newProperty.positiveEqualityAtoms()!=0);

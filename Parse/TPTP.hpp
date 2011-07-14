@@ -204,10 +204,53 @@ public:
   TPTP(istream& in);
   ~TPTP();
   void parse();
+  static UnitList* parse(istream& str);
+  /** Return the list of parsed units */
+  inline UnitList* units() { return _units.list(); }
+  /**
+   * Return true if there was a conjecture formula among the parsed units
+   *
+   * The purpose of this information is that when we report success in the
+   * SZS ontology, we decide whether to output "Theorem" or "Unsatisfiable"
+   * based on this value.
+   */
+  bool containsConjecture() const { return _containsConjecture; }
+
+private:
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
 
-private:
+  /**
+   * Class that allows to create a list initially by pushing elements
+   * at the end of it.
+   * @since 10/05/2007 Manchester, updated from List::FIFO
+   */
+  class UnitStack {
+  public:
+    /** constructor */
+    inline explicit UnitStack()
+      : _initial(0),
+	_last(&_initial)
+    {}
+
+    /** add element at the end of the original list */
+    inline void push(Unit* u)
+    {
+      UnitList* newList = new UnitList(u);
+      *_last = newList;
+      _last = reinterpret_cast<UnitList**>(&newList->tailReference());
+    }
+
+    /** Return the collected list */
+    UnitList* list() { return _initial; }
+
+  private:
+    /** reference to the initial element */
+    UnitList* _initial;
+    /** last element */
+    UnitList** _last;
+  }; // class UnitStack
+
   /** depth of include directives */
   int _includeDepth;
   /** true if the input contains a conjecture */
@@ -237,7 +280,7 @@ private:
   /** the position beyond the last processed token */
   int _tend;
   /** The stack of units read */
-  Stack<Unit*> _units;
+  UnitStack _units;
   /** stack of unprocessed states */
   Stack<State> _states;
   /** input type of the last read unit */
@@ -274,7 +317,7 @@ private:
 
     while (_cend <= pos) {
       int c = _in->get();
-      if (c == -1) { cout << "<EOF>"; } else {cout << char(c);}
+      // if (c == -1) { cout << "<EOF>"; } else {cout << char(c);}
       _chars[_cend++] = c == -1 ? 0 : c;
     }
     return _chars[pos];

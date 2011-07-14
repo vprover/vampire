@@ -13,6 +13,8 @@
 
 #include "Kernel/InferenceStore.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "AnswerExtractor.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
@@ -23,9 +25,6 @@
 #include "SimplifyProver.hpp"
 #include "Statistics.hpp"
 #include "TPTP.hpp"
-#include "TPTPLexer.hpp"
-#include "TPTPParser.hpp"
-
 #include "UIHelper.hpp"
 
 namespace Shell
@@ -77,10 +76,11 @@ UnitList* UIHelper::getInputUnits()
   break;
   case Options::IS_TPTP:
   {
-    TPTPLexer lexer(*input);
-    TPTPParser parser(lexer);
+    Parse::TPTP parser(*input);
+    parser.parse();
     units = parser.units();
-    s_haveConjecture=parser.haveConjecture();
+    cout << units->length() << "\n";
+    s_haveConjecture=parser.containsConjecture();
   }
   break;
   }

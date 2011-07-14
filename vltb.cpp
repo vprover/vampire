@@ -46,13 +46,12 @@
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/SimplifyProver.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTP.hpp"
-#include "Shell/TPTPParser.hpp"
 
 #include "Shell/LTB/Builder.hpp"
 #include "Shell/LTB/Selector.hpp"
 
+#include "Parse/TPTP.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -106,7 +105,6 @@ ClauseIterator getProblemClauses()
       TPTPLexer lexer(*input);
       TPTPParser parser(lexer);
       parser.setForbiddenIncludes(selector.theoryFileNames());
-
       units = parser.units();
     }
 

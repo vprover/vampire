@@ -56,8 +56,6 @@
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/TPTP.hpp"
 #include "Parse/TPTP.hpp"
-#include "Shell/TPTPLexer.hpp"
-#include "Shell/TPTPParser.hpp"
 #include "Shell/SpecialTermElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -136,7 +134,6 @@ void profileMode()
   CALL("profileMode()");
 
   Property property;
-  UnitList* units;
   string inputFile = env.options->inputFile();
   istream* input;
   if(inputFile=="") {
@@ -149,9 +146,7 @@ void profileMode()
     }
   }
 
-  TPTPLexer lexer(*input);
-  TPTPParser parser(lexer);
-  units = parser.units();
+  UnitList* units = Parse::TPTP::parse(*input);
   if(inputFile!="") {
     delete static_cast<ifstream*>(input);
     input=0;
@@ -211,8 +206,6 @@ void vampireMode()
     env.options->setPropositionalToBDD(false);
   }
 
-  // doProving();
-
   string inputFile = env.options->inputFile();
   istream* input;
   if(inputFile=="") {
@@ -225,15 +218,7 @@ void vampireMode()
     }
   }
 
-  // Parse::TPTP parser(*input);
-  // parser.parse();
-
-  // UnitList* units=UIHelper::getInputUnits();
-
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
-
+  UnitList* units=UIHelper::getInputUnits();
   doProving();
 
   env.beginOutput();
@@ -358,26 +343,17 @@ void groundingMode()
   try {
     Property property;
 
-    UnitList* units;
-    {
-      string inputFile = env.options->inputFile();
-
-      istream* input;
-      if(inputFile=="") {
-        input=&cin;
-      } else {
-        input=new ifstream(inputFile.c_str());
-      }
-      TPTPLexer lexer(*input);
-
-      if(inputFile!="") {
-        delete static_cast<ifstream*>(input);
-        input=0;
-      }
-
-
-      TPTPParser parser(lexer);
-      units = parser.units();
+    string inputFile = env.options->inputFile();
+    istream* input;
+    if(inputFile=="") {
+      input=&cin;
+    } else {
+      input=new ifstream(inputFile.c_str());
+    }
+    UnitList* units = Parse::TPTP::parse(*input);
+    if(inputFile!="") {
+      delete static_cast<ifstream*>(input);
+      input=0;
     }
 
     property.scan(units);
@@ -389,7 +365,6 @@ void groundingMode()
     newProperty.scan(units);
 
     globUnitList=units;
-
     ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
 
 
