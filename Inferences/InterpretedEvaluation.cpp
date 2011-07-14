@@ -10,10 +10,11 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Int.hpp"
 
-#include "Kernel/Signature.hpp"
-#include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermTransformer.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
