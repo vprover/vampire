@@ -202,6 +202,8 @@ public:
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
+  static BaseType* getOperationType(Interpretation i);
+  static unsigned getOperationSort(Interpretation i);
 
 
   static Theory* instance();

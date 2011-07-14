@@ -234,12 +234,16 @@ void Signature::registerInterpretedFunction(const string& name, Interpretation i
   }
 
   unsigned fnNum = _funs.length();
-  _funs.push(new InterpretedSymbol(name, interpretation));
+  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
+  _funs.push(sym);
   _funNames.insert(symbolKey, fnNum);
   if(!_iSymbols.insert(interpretation, fnNum)) {
     USER_ERROR("One theory function cannot correspond to multiple signature functions: "+
 	functionName(_iSymbols.get(interpretation))+", "+name);
   }
+  BaseType* fnType = Theory::getOperationType(interpretation);
+  ASS(!fnType->isFunctionType());
+  sym->setType(fnType);
 }
 
 /**
@@ -261,12 +265,16 @@ void Signature::registerInterpretedPredicate(const string& name, Interpretation 
   }
 
   unsigned predNum = _preds.length();
-  _preds.push(new InterpretedSymbol(name,interpretation));
+  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
+  _preds.push(sym);
   _predNames.insert(symbolKey,predNum);
   if(!_iSymbols.insert(interpretation, predNum)) {
     USER_ERROR("One theory predicate cannot correspond to multiple signature predicates: "+
 	predicateName(_iSymbols.get(interpretation))+", "+name);
   }
+  BaseType* predType = Theory::getOperationType(interpretation);
+  ASS(!predType->isFunctionType());
+  sym->setType(predType);
 }
 
 unsigned Signature::addIntegerConstant(const string& number)

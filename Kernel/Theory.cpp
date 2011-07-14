@@ -11,7 +11,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
-#include "Kernel/Signature.hpp"
+#include "Signature.hpp"
+#include "Sorts.hpp"
 
 #include "Theory.hpp"
 
@@ -425,6 +426,73 @@ bool Theory::isInequality(Interpretation i)
     return false;
   }
   ASSERTION_VIOLATION;
+}
+
+unsigned Theory::getOperationSort(Interpretation i)
+{
+  CALL("Theory::getOperationSort");
+
+  CALL("Signature::InterpretedSymbol::isInequality");
+  ASS_L(i,(int)interpretationElementCount);
+
+  switch(i) {
+  case INT_GREATER:
+  case INT_GREATER_EQUAL:
+  case INT_LESS:
+  case INT_LESS_EQUAL:
+  case INT_DIVIDES:
+  case INT_SUCCESSOR:
+  case INT_UNARY_MINUS:
+  case INT_PLUS:
+  case INT_MINUS:
+  case INT_MULTIPLY:
+  case INT_DIVIDE:
+  case INT_MODULO:
+    return Sorts::SRT_INTEGER;
+
+  case RAT_UNARY_MINUS:
+  case RAT_PLUS:
+  case RAT_MINUS:
+  case RAT_MULTIPLY:
+  case RAT_DIVIDE:
+  case RAT_GREATER:
+  case RAT_GREATER_EQUAL:
+  case RAT_LESS:
+  case RAT_LESS_EQUAL:
+  case RAT_DIVIDES:
+    return Sorts::SRT_RATIONAL;
+
+  case REAL_UNARY_MINUS:
+  case REAL_PLUS:
+  case REAL_MINUS:
+  case REAL_MULTIPLY:
+  case REAL_DIVIDE:
+  case REAL_GREATER:
+  case REAL_GREATER_EQUAL:
+  case REAL_LESS:
+  case REAL_LESS_EQUAL:
+  case REAL_DIVIDES:
+    return Sorts::SRT_REAL;
+  }
+  ASSERTION_VIOLATION;
+}
+
+/**
+ * Return type of the function representing interpreted function/predicate @c i.
+ */
+BaseType* Theory::getOperationType(Interpretation i)
+{
+  CALL("Theory::getOperationType");
+
+  unsigned sort = getOperationSort(i);
+  unsigned arity = getArity(i);
+
+  static DArray<unsigned> domainSorts;
+  domainSorts.init(arity, sort);
+
+  unsigned resSort = isFunction(i) ? sort : Sorts::SRT_BOOL;
+
+  return BaseType::makeType(arity, domainSorts.array(), resSort);
 }
 
 /**
