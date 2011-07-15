@@ -11,6 +11,9 @@
 
 #include "DistinctEqualitySimplifier.hpp"
 
+#undef LOGGING
+#define LOGGING 0
+
 namespace Inferences
 {
 
@@ -18,9 +21,11 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
 {
   CALL("DistinctEqualitySimplifier::simplify");
 
+  LOGV(cl->toString());
   if(!canSimplify(cl)) {
     return cl;
   }
+  LOGV(cl->toString());
   static LiteralStack lits;
   static Stack<Unit*> prems;
   lits.reset();
@@ -83,7 +88,11 @@ bool DistinctEqualitySimplifier::mustBeDistinct(TermList t1, TermList t2, unsign
   List<unsigned>::Iterator dl1it(dlst1);
   while(dl1it.hasNext()) {
     unsigned candGrp = dl1it.next(); //candidate group
-    if(dlst2->member(grp)) {
+    LOGV(candGrp);
+    LOGV(dlst2->head());
+
+    if(dlst2->member(candGrp)) {
+      LOGV(1);
       grp = candGrp;
       return true;
     }
