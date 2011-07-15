@@ -129,9 +129,15 @@ public:
     /** $tType */
     T_TTYPE,
     /** $o */
-    T_OBJ_TYPE,
+    T_BOOL_TYPE,
     /** $i */
-    T_INT_TYPE,
+    T_DEFAULT_TYPE,
+    /** $int */
+    T_INTEGER_TYPE,
+    /** $rat */
+    T_RATIONAL_TYPE,
+    /** $real */
+    T_REAL_TYPE,
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -345,8 +351,6 @@ private:
     UnitList** _last;
   }; // class UnitStack
 
-  /** depth of include directives */
-  int _includeDepth;
   /** true if the input contains a conjecture */
   bool _containsConjecture;
   /** Allowed names of formulas.

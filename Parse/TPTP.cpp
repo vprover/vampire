@@ -50,8 +50,7 @@ UnitList* TPTP::parse(istream& input)
  * @since 27/07/2004 Torrevieja
  */
 TPTP::TPTP(istream& in)
-  : _includeDepth(0),
-    _containsConjecture(false),
+  : _containsConjecture(false),
     _allowedNames(0),
     _in(&in)
 {
@@ -255,10 +254,16 @@ string TPTP::toString(Tag tag)
     return "$false";
   case T_TTYPE:
     return "$tType";
-  case T_OBJ_TYPE:
+  case T_BOOL_TYPE:
     return "$o";
-  case T_INT_TYPE:
+  case T_DEFAULT_TYPE:
     return "$i";
+  case T_RATIONAL_TYPE:
+    return "$rat";
+  case T_REAL_TYPE:
+    return "$real";
+  case T_INTEGER_TYPE:
+    return "$int";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -780,11 +785,23 @@ void TPTP::readReserved(Token& tok)
     return;
   }
   if (tok.content == "$o" || tok.content == "$oType") {
-    tok.tag = T_OBJ_TYPE;
+    tok.tag = T_BOOL_TYPE;
     return;
   }
   if (tok.content == "$i" || tok.content == "$iType") {
-    tok.tag = T_INT_TYPE;
+    tok.tag = T_DEFAULT_TYPE;
+    return;
+  }
+  if (tok.content == "$int") {
+    tok.tag = T_INTEGER_TYPE;
+    return;
+  }
+  if (tok.content == "$rat") {
+    tok.tag = T_RATIONAL_TYPE;
+    return;
+  }
+  if (tok.content == "$real") {
+    tok.tag = T_REAL_TYPE;
     return;
   }
   throw Exception((string)"I do not know how to handle " + tok.content,tok);
@@ -1096,7 +1113,7 @@ void TPTP::fof(bool fo)
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
     _lastInputType = Unit::ASSUMPTION;
   }
-  else if (tp == "assumption") {
+  else if (tp == "assumption" || tp == "unknown") {
     // assumptions are not used, so we assign them a non-existing input type and then
     // not include them in the input
     _lastInputType = (Unit::InputType)-1;
@@ -1204,7 +1221,7 @@ void TPTP::tff()
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
     _lastInputType = Unit::ASSUMPTION;
   }
-  else if (tp == "assumption") {
+  else if (tp == "assumption" || tp == "unknown") {
     // assumptions are not used, so we assign them a non-existing input type and then
     // not include them in the input
     _lastInputType = (Unit::InputType)-1;
@@ -1870,7 +1887,7 @@ void TPTP::endFof()
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
-  if (_includeDepth) {
+  if (!_inputs.isEmpty()) {
     unit->markIncluded();
   }
 
@@ -2152,13 +2169,25 @@ unsigned TPTP::readSort(bool newSortExpected)
       return sortNumber;
     }
 
-  case T_OBJ_TYPE:
+  case T_DEFAULT_TYPE:
     resetToks();
     return Sorts::SRT_DEFAULT;
 
-  case T_INT_TYPE:
+  case T_BOOL_TYPE:
+    resetToks();
+    return Sorts::SRT_BOOL;
+
+  case T_INTEGER_TYPE:
     resetToks();
     return Sorts::SRT_INTEGER;
+
+  case T_RATIONAL_TYPE:
+    resetToks();
+    return Sorts::SRT_RATIONAL;
+
+  case T_REAL_TYPE:
+    resetToks();
+    return Sorts::SRT_REAL;
 
   default:
     throw Exception("sort expected",tok);
@@ -2332,11 +2361,7 @@ const char* TPTP::toString(State s)
 /*
 $let
 $itef
-$real
-$rat
-$int
 $
-$tType
 $$
 $equal
 $distinct
@@ -2357,8 +2382,5 @@ $to_int
 $to_rat
 $to_real
 $thf
-$tff
-$fof
-$cnf
 $fot
 */
