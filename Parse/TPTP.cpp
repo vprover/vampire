@@ -165,8 +165,15 @@ void TPTP::parse()
     case END_TFF:
       endTff();
       break;
+    case UNBIND_VARIABLES:
+      unbindVariables();
+      break;
     default:
+#if VDEBUG
       cout << "Don't know how to process state " << toString(s) << "\n";
+#else
+      cout << "Don't know how to process state " << s << "\n";
+#endif
       throw ::Exception("");
     }
   }
@@ -1189,6 +1196,7 @@ void TPTP::tff()
     return;
   }
 
+  _bools.push(true); // to denote that it is an FOF formula
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
   }
@@ -2069,6 +2077,18 @@ void TPTP::simpleFormula()
 } // simpleFormula
 
 /**
+ * Unbind variable sort binding.
+ * @since 14/07/2011 Manchester
+ */
+void TPTP::unbindVariables()
+{
+  CALL("TPTP::unbindVariables");
+
+  List<VariableSort>* vs = _variableSorts.pop();
+  vs->destroy();
+} // unbindVariables
+
+/**
  * Read a simple type: name or type in parentheses
  * @since 14/07/2011 Manchester
  */
@@ -2104,12 +2124,12 @@ unsigned TPTP::readSort(bool newSortExpected)
       resetToks();
       bool added;
       unsigned sortNumber = env.sorts->addSort(tok.content,added);
-      if (added && !newSortExpected) {
-	throw Exception("undeclared sort",tok);
-      }
-      if (!added && newSortExpected) {
-	throw Exception(string("sort ") + tok.content + " was been declared previously",tok);
-      }
+      // if (added && !newSortExpected) {
+      // 	throw Exception("undeclared sort",tok);
+      // }
+      // if (!added && newSortExpected) {
+      // 	throw Exception(string("sort ") + tok.content + " was been declared previously",tok);
+      // }
       return sortNumber;
     }
 
