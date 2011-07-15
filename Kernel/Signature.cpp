@@ -402,38 +402,8 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   }
   string name;
   switch(interp) {
-  case Theory::SUCCESSOR:
-    name="++";
-    break;
-  case Theory::UNARY_MINUS:
-    name="-";
-    break;
-  case Theory::PLUS:
-    name="+";
-    break;
-  case Theory::MINUS:
-    name="-";
-    break;
-  case Theory::MULTIPLY:
-    name="*";
-    break;
-  case Theory::DIVIDE:
-    name="$div";
-    break;
   case Theory::INT_DIVIDE:
     name="/";
-    break;
-  case Theory::GREATER:
-    name="$greater";
-    break;
-  case Theory::GREATER_EQUAL:
-    name="$geq";
-    break;
-  case Theory::LESS:
-    name="$less";
-    break;
-  case Theory::LESS_EQUAL:
-    name="$leq";
     break;
   case Theory::INT_GREATER:
     name=">";

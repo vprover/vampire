@@ -270,6 +270,8 @@ string TPTP::toString(Tag tag)
     return "$fof";
   case T_TFF:
     return "$tff";
+  case T_THF:
+    return "$thf";
   case T_LESS:
     return "$less";
   case T_LESSEQ:
@@ -278,11 +280,16 @@ string TPTP::toString(Tag tag)
     return "$greater";
   case T_GREATEREQ:
     return "$greatereq";
+  case T_IS_INT:
+    return "$is_int";
+  case T_IS_RAT:
+    return "$is_rat";
   case T_NAME:
   case T_REAL:
   case T_RAT:
   case T_INT:
   case T_VAR:
+  case T_DOLLARS:
   case T_STRING:
     return "";
 #if VDEBUG
@@ -834,6 +841,14 @@ void TPTP::readReserved(Token& tok)
     tok.tag = T_GREATEREQ;
     return;
   }
+  if (tok.content == "$is_int") {
+    tok.tag = T_IS_INT;
+    return;
+  }
+  if (tok.content == "$is_rat") {
+    tok.tag = T_IS_RAT;
+    return;
+  }
   if (tok.content == "$fot") {
     tok.tag = T_FOT;
     return;
@@ -844,6 +859,22 @@ void TPTP::readReserved(Token& tok)
   }
   if (tok.content == "$tff") {
     tok.tag = T_TFF;
+    return;
+  }
+  if (tok.content == "$thf") {
+    tok.tag = T_THF;
+    return;
+  }
+  if (tok.content == "$equal") {
+    tok.tag = T_EQUAL;
+    return;
+  }
+  if (tok.content == "$evaleq") {
+    tok.tag = T_EQUAL;
+    return;
+  }
+  if (tok.content.substr(0,2) == "$$") {
+    tok.tag = T_DOLLARS;
     return;
   }
   throw Exception((string)"I do not know how to handle " + tok.content,tok);
@@ -1421,6 +1452,8 @@ void TPTP::atom()
   case T_LESSEQ:
   case T_GREATER:
   case T_GREATEREQ:
+  case T_IS_INT:
+  case T_IS_RAT:
     _tags1.push(tok.tag);
     _strings.push(tok.content);
     _states.push(MID_ATOM);
@@ -1666,6 +1699,12 @@ void TPTP::midAtom()
       case T_GREATEREQ:
 	env.signature->registerInterpretedPredicate(name,Theory::INT_GREATER_EQUAL);
 	break;
+      // case T_IS_INT:
+      // 	env.signature->registerInterpretedPredicate(name,Theory::IS_INT);
+      // 	break;
+      // case T_IS_RAT:
+      // 	env.signature->registerInterpretedPredicate(name,Theory::IS_RAT);
+      // 	break;
       case T_NAME:
 	break;
 #if VDEBUG
@@ -2218,6 +2257,8 @@ void TPTP::simpleFormula()
   case T_LESSEQ:
   case T_GREATER:
   case T_GREATEREQ:
+  case T_IS_INT:
+  case T_IS_RAT:
     _states.push(ATOM);
     return;
 
@@ -2475,15 +2516,14 @@ const char* TPTP::toString(State s)
 /*
 $let
 $itef
-$
-$$
-$equal
-$distinct
-$evaleq
-$is_int
-$is_rat
 $itett
 $itetf
+
+$distinct
+
+$is_int
+$is_rat
+
 $uminus
 $sum
 $difference
@@ -2491,5 +2531,4 @@ $product
 $to_int
 $to_rat
 $to_real
-$thf
 */

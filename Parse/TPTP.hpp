@@ -144,6 +144,8 @@ public:
     T_FOF,
     /** $tff, probably useless */
     T_TFF,
+    /** $thf, probably useless */
+    T_THF,
     /** $less */
     T_LESS,
     /** $lesseq */
@@ -152,6 +154,12 @@ public:
     T_GREATER,
     /** $greatereq */
     T_GREATEREQ,
+    /** anything that begins with $$ */
+    T_DOLLARS,
+    /** $is_int */
+    T_IS_INT,
+    /** $is_rat */
+    T_IS_RAT,
   };
 
   /** parser state, numbers are just temporarily for debugging */

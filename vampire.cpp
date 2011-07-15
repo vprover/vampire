@@ -122,7 +122,7 @@ void doProving()
   CALL("doProving()");
   ClauseIterator clauses=getProblemClauses();
 
-  ProvingHelper::runVampireSaturation(clauses);
+  //  ProvingHelper::runVampireSaturation(clauses);
 }
 
 /**
