@@ -586,9 +586,8 @@ bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
 bool Theory::isInterpretedFunction(unsigned func)
 {
   CALL("Theory::isInterpretedFunction(unsigned)");
-  ASS(!env.signature->getFunction(func)->interpreted() || env.signature->functionArity(func)!=0);
 
-  return env.signature->getFunction(func)->interpreted();
+  return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)!=0;
 }
 
 
