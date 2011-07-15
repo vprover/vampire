@@ -27,17 +27,101 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
+void TheoryAxioms::addTheoryUnit(Literal* lit, UnitList*& units)
+{
+  CALL("TheoryAxioms::addTheoryUnit");
+
+  Clause* unit = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM, new Inference(Inference::THEORY));
+  UnitList::push(unit, units);
+}
+
+
+void TheoryAxioms::addCommutativity(Interpretation op, UnitList*& units)
+{
+  CALL("TheoryAxioms::addCommutativity");
+  ASS(theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+
+  unsigned func = env.signature->getInterpretingSymbol(op);
+  TermList v1(0,false);
+  TermList v2(1,false);
+  TermList f12 = TermList(Term::create2(func, v1, v2));
+  TermList f21 = TermList(Term::create2(func, v2, v1));
+  Literal* eq = Literal::createEquality(true, f12, f21);
+
+  addTheoryUnit(eq, units);
+}
+
+void TheoryAxioms::addAssociativity(Interpretation op, UnitList*& units)
+{
+  CALL("TheoryAxioms::addCommutativity");
+  ASS(theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+
+  unsigned func = env.signature->getInterpretingSymbol(op);
+  TermList v1(0,false);
+  TermList v2(1,false);
+  TermList v3(2,false);
+  TermList f12 = TermList(Term::create2(func, v1, v2));
+  TermList f23 = TermList(Term::create2(func, v2, v3));
+  TermList f1f23 = TermList(Term::create2(func, v1, f23));
+  TermList ff12_3 = TermList(Term::create2(func, f12, v3));
+  Literal* eq = Literal::createEquality(true, f1f23, ff12_3);
+
+  addTheoryUnit(eq, units);
+}
+
+void TheoryAxioms::addIdentity(Interpretation op, TermList idElement, UnitList*& units)
+{
+  CALL("TheoryAxioms::addIdentity");
+  ASS(theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+
+  unsigned func = env.signature->getInterpretingSymbol(op);
+  TermList v1(0,false);
+  TermList f1I = TermList(Term::create2(func, v1, idElement));
+  Literal* eq = Literal::createEquality(true, f1I, idElement);
+
+  addTheoryUnit(eq, units);
+}
+
+void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation inverse, TermList idElement, UnitList*& units)
+{
+  CALL("TheoryAxioms::addCommutativeGroupAxioms");
+  ASS(theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+  ASS(theory->isFunction(inverse));
+  ASS_EQ(theory->getArity(inverse),1);
+
+  addCommutativity(op, units);
+  addAssociativity(op, units);
+  addIdentity(op, idElement, units);
+
+  //-(X0+X1)==(-X0)+(-X1)
+
+  unsigned opFunc = env.signature->getInterpretingSymbol(op);
+  unsigned invFunc = env.signature->getInterpretingSymbol(inverse);
+  TermList v1(0,false);
+  TermList v2(1,false);
+  TermList f12 = TermList(Term::create2(opFunc, v1, v2));
+#if 0
+  TermList fn1n2 = TermList(Term::create2(opFunc, nv2, nv1));
+  Literal* eq = Literal::createEquality(true, f12, f21);
+
+  addTheoryUnit(eq, units);
+#endif
+
+  //X0+(-X0)==idElement
+}
+
+
+#if 0
+
 struct TheoryAxioms::Arithmetic
 : public AxiomGenerator
 {
   void inclusionImplications()
   {
-//    if(has(Theory::LESS_EQUAL)) {
-//      include(Theory::PLUS);
-//    }
-//    if(has(Theory::GREATER_EQUAL) || has(Theory::LESS) || has(Theory::GREATER)) {
-//      include(Theory::LESS_EQUAL);
-//    }
     if(has(Theory::INT_GREATER_EQUAL) || has(Theory::INT_LESS) || has(Theory::INT_GREATER)) {
       include(Theory::INT_LESS_EQUAL);
     }
@@ -157,6 +241,8 @@ struct TheoryAxioms::Arithmetic
   }
 };
 
+#endif
+
 /**
  * Add theory axioms to the @b units list that are relevant to
  * units present in the list. Update the property object @b prop.
@@ -173,12 +259,12 @@ void TheoryAxioms::apply(UnitList*& units, Property* prop)
     return;
   }
 
+#if 0
   Arithmetic axGen;
-
   //find out which symbols are used in the problem
   SymCounter sctr(*env.signature);
   sctr.count(units,1);
-  for(unsigned i=0;i<Theory::interpretationElementCount; i++) {
+  for(unsigned i=0;i<Theory::MAX_INTERPRETED_ELEMENT; i++) {
     Interpretation interp=static_cast<Interpretation>(i);
     if(!env.signature->haveInterpretingSymbol(interp)) {
       continue;
@@ -199,7 +285,6 @@ void TheoryAxioms::apply(UnitList*& units, Property* prop)
   }
 
   UnitList* newAxioms=axGen.getAxioms();
-
   if(newAxioms) {
     prop->scan(newAxioms);
   }
@@ -220,6 +305,7 @@ void TheoryAxioms::apply(UnitList*& units, Property* prop)
     }
   }
 
+#endif
 }
 
 /**

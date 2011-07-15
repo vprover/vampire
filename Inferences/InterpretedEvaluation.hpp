@@ -21,19 +21,21 @@ class InterpretedEvaluation
 : public ImmediateSimplificationEngine
 {
 public:
+  InterpretedEvaluation();
+  virtual ~InterpretedEvaluation();
+
   Clause* simplify(Clause* cl);
 private:
   class Evaluator;
+  template<class T> class TypedEvaluator;
+  class IntEvaluator;
+  class RatEvaluator;
+  class RealEvaluator;
   class LiteralSimplifier;
 
-  int getInterpretedFunction(Term* t);
-  int getInterpretedPredicate(Literal* lit);
-
-  Term* evaluateFunction(int fnIndex, TermList* args);
-
-  bool evaluatePredicate(int predIndex, TermList* args);
-
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
+
+  LiteralSimplifier* _simpl;
 };
 
 };

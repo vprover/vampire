@@ -23,6 +23,10 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
+#if 1
+
+#else
+
 namespace AxGen
 {
 
@@ -293,6 +297,10 @@ UnitList* AxiomGenerator::getAxioms()
   enumerate();
   return _acc;
 }
+
+
+
+#endif
 
 };
 

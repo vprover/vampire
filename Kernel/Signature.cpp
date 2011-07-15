@@ -272,34 +272,48 @@ void Signature::registerInterpretedPredicate(const string& name, Interpretation 
     USER_ERROR("One theory predicate cannot correspond to multiple signature predicates: "+
 	predicateName(_iSymbols.get(interpretation))+", "+name);
   }
-  BaseType* predType = Theory::getOperationType(interpretation);
-  ASS(!predType->isFunctionType());
-  sym->setType(predType);
+  if(predNum!=0) {
+    BaseType* predType = Theory::getOperationType(interpretation);
+    ASS(!predType->isFunctionType());
+    sym->setType(predType);
+  }
 }
 
 unsigned Signature::addIntegerConstant(const string& number)
 {
+  CALL("Signature::addIntegerConstant(string)");
+
+  IntegerConstantType value(number);
+  return addIntegerConstant(value);
+}
+
+unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
+{
   CALL("Signature::addIntegerConstant");
 
-  string key = number + "_n";
+  //TODO: something smarter, so that we don't need to convert all values to string
+  string key = value.toString() + "_n";
   unsigned result;
   if(_funNames.find(key, result)) {
     return result;
   }
   result = _funs.length();
-  _funs.push(new IntegerSymbol(number));
+  _funs.push(new IntegerSymbol(value));
   _funNames.insert(key, result);
   return result;
 }
 
 unsigned Signature::addRationalConstant(const string& numerator, const string& denominator)
 {
-  CALL("Signature::addRationalConstant");
+  CALL("Signature::addRationalConstant(string,string)");
 
   RationalConstantType value(numerator, denominator);
+}
 
-  //we need to use the value to compute the key because we need to use
-  //th rational number in the cannonical form
+unsigned Signature::addRationalConstant(const RationalConstantType& value)
+{
+  CALL("Signature::addRationalConstant");
+
   string key = value.toString() + "_q";
   unsigned result;
   if(_funNames.find(key, result)) {
@@ -313,12 +327,15 @@ unsigned Signature::addRationalConstant(const string& numerator, const string& d
 
 unsigned Signature::addRealConstant(const string& number)
 {
-  CALL("Signature::addRealConstant");
+  CALL("Signature::addRealConstant(string)");
 
   RealConstantType value(number);
+}
 
-  //we need to use the value to compute the key because we need to use
-  //the real number in the cannonical form
+unsigned Signature::addRealConstant(const RealConstantType& value)
+{
+  CALL("Signature::addRealConstant");
+
   string key = value.toString() + "_r";
   unsigned result;
   if(_funNames.find(key, result)) {

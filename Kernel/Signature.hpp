@@ -149,12 +149,14 @@ class Signature
     {
       CALL("InterpretedSymbol");
     }
-    /** OBSOLETE */
+
+    /** deprecated */
     InterpretedSymbol(const string& nm,InterpretedType value)
     : Symbol(nm, 0, true), _intValue(value)
     {
       CALL("InterpretedSymbol");
     }
+
     InterpretedSymbol(const string& nm)
     : Symbol(nm, 0, true)
     {
@@ -163,8 +165,10 @@ class Signature
     CLASS_NAME("Signature::InterpretedSymbol");
     USE_ALLOCATOR(InterpretedSymbol);
 
-    /** OBSOLETE */
+    /** deprecated */
     inline InterpretedType getValue() const { ASS(interpreted()); ASS_EQ(arity(),0); return _intValue; }
+
+
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(arity(),0); return _interp; }
   };
@@ -178,8 +182,8 @@ class Signature
     IntegerConstantType _intValue;
 
   public:
-    IntegerSymbol(const string& nm)
-    : Symbol(nm, 0, true), _intValue(nm)
+    IntegerSymbol(const IntegerConstantType& val)
+    : Symbol(val.toString(), 0, true), _intValue(val)
     {
       CALL("IntegerSymbol");
 
@@ -235,11 +239,16 @@ class Signature
   void registerInterpretedFunction(const string& name, Interpretation interpretation);
   void registerInterpretedPredicate(const string& name, Interpretation interpretation);
 
+  //deprecated
   unsigned addInterpretedConstant(InterpretedType value);
 
   unsigned addIntegerConstant(const string& number);
   unsigned addRationalConstant(const string& numerator, const string& denominator);
   unsigned addRealConstant(const string& number);
+
+  unsigned addIntegerConstant(const IntegerConstantType& number);
+  unsigned addRationalConstant(const RationalConstantType& number);
+  unsigned addRealConstant(const RealConstantType& number);
 
   unsigned getInterpretingSymbol(Interpretation interp);
 

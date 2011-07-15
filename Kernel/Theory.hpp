@@ -11,6 +11,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
 
+#include "Sorts.hpp"
 #include "Term.hpp"
 
 namespace Kernel {
@@ -26,6 +27,9 @@ class ArithmeticException : public ThrowableBase {};
 class IntegerConstantType
 {
 public:
+  static unsigned getSort() { return Sorts::SRT_INTEGER; }
+
+
   typedef int InnerType;
 
   IntegerConstantType() {}
@@ -72,6 +76,8 @@ typedef int IntegerConstantType;
 struct RationalConstantType {
   typedef IntegerConstantType InnerType;
 
+  static unsigned getSort() { return Sorts::SRT_RATIONAL; }
+
   RationalConstantType() {}
 
   RationalConstantType(InnerType num, InnerType den);
@@ -94,6 +100,9 @@ struct RationalConstantType {
 
   string toString() const;
 
+  const InnerType& numerator() const { return _num; }
+  const InnerType& denominator() const { return _den; }
+
 protected:
   void init(InnerType num, InnerType den);
 
@@ -107,9 +116,24 @@ private:
 class RealConstantType : public RationalConstantType
 {
 public:
-  RealConstantType() {}
+  static unsigned getSort() { return Sorts::SRT_REAL; }
 
-  RealConstantType(const string& number);
+  RealConstantType() {}
+  explicit RealConstantType(const string& number);
+  explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+
+  RealConstantType operator+(const RealConstantType& num) const
+  { return RealConstantType(RationalConstantType::operator+(num)); }
+  RealConstantType operator-(const RealConstantType& num) const
+  { return RealConstantType(RationalConstantType::operator-(num)); }
+  RealConstantType operator-() const
+  { return RealConstantType(RationalConstantType::operator-()); }
+  RealConstantType operator*(const RealConstantType& num) const
+  { return RealConstantType(RationalConstantType::operator*(num)); }
+  RealConstantType operator/(const RealConstantType& num) const
+  { return RealConstantType(RationalConstantType::operator/(num)); }
+private:
+
 
 };
 
@@ -179,6 +203,14 @@ public:
     REAL_MULTIPLY,
     REAL_DIVIDE,
 
+    /**
+     * Maximal element number in the enum Interpretation
+     *
+     * At some points we make use of the fact that we can iterate through all
+     * interpretations by going through the set {0,...,MAX_INTERPRETED_ELEMENT}.
+     */
+    MAX_INTERPRETED_ELEMENT = REAL_DIVIDE,
+
     //these are deprecated, left just so that the code compiles before references to them are removed
     GREATER,
     GREATER_EQUAL,
@@ -190,15 +222,8 @@ public:
     MINUS,
     MULTIPLY,
     DIVIDE,
-  };
-  /**
-   * Number of elements in the enum Interpretation
-   *
-   * At some points we make use of the fact that we can iterate through all
-   * interpretations by going through the set {0,...,interpretationElementCount-1}.
-   */
-  static const unsigned interpretationElementCount=16;
 
+  };
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
@@ -210,35 +235,52 @@ public:
 
   bool isInterpretedConstant(Term* t);
   bool isInterpretedConstant(TermList t);
+
+  bool isInterpretedPredicate(unsigned pred);
   bool isInterpretedPredicate(Literal* lit);
   bool isInterpretedPredicate(Literal* lit, Interpretation itp);
+
+  bool isInterpretedFunction(unsigned func);
   bool isInterpretedFunction(Term* t);
   bool isInterpretedFunction(TermList t);
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 
+  Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);
   Interpretation interpretFunction(TermList t);
+  Interpretation interpretPredicate(unsigned pred);
   Interpretation interpretPredicate(Literal* t);
 
-  InterpretedType interpretConstant(Term* t);
-  InterpretedType interpretConstant(TermList t);
   unsigned getFnNum(Interpretation itp);
   unsigned getPredNum(Interpretation itp);
 
-  Term* getRepresentation(InterpretedType val);
   Term* fun1(Interpretation itp, TermList arg);
   Term* fun2(Interpretation itp, TermList arg1, TermList arg2);
 
   Literal* pred2(Interpretation itp, bool polarity, TermList arg1, TermList arg2);
 
+
+  bool tryInterpretConstant(TermList trm, IntegerConstantType& res);
+  bool tryInterpretConstant(TermList trm, RationalConstantType& res);
+  bool tryInterpretConstant(TermList trm, RealConstantType& res);
+
+  Term* representConstant(const IntegerConstantType& num);
+  Term* representConstant(const RationalConstantType& num);
+  Term* representConstant(const RealConstantType& num);
+
+  //deprecated
+  Term* getRepresentation(InterpretedType val);
   TermList zero();
   TermList one();
   TermList minusOne();
+  InterpretedType interpretConstant(Term* t);
+  InterpretedType interpretConstant(TermList t);
 
 private:
   Theory();
 
+  //deprecated
   Term* _zero;
   Term* _one;
   Term* _minusOne;

@@ -30,12 +30,319 @@ using namespace Kernel;
 class InterpretedEvaluation::Evaluator
 {
 public:
+  Evaluator(unsigned sort) : _sort(sort) {}
   virtual ~Evaluator() {}
 
-  virtual bool canEvaluateFunc(unsigned func) = 0;
-  virtual bool canEvaluatePred(unsigned pred) = 0;
+  bool canEvaluateFunc(unsigned func)
+  {
+    CALL("InterpretedEvaluation::Evaluator::canEvaluateFunc");
+
+    if(!theory->isInterpretedFunction(func)) {
+      return false;
+    }
+    Interpretation interp = theory->interpretFunction(func);
+    return canEvaluate(interp);
+  }
+
+  bool canEvaluatePred(unsigned pred)
+  {
+    CALL("InterpretedEvaluation::Evaluator::canEvaluatePred");
+
+    if(!theory->isInterpretedPredicate(pred)) {
+      return false;
+    }
+    Interpretation interp = theory->interpretPredicate(pred);
+    return canEvaluate(interp);
+  }
+
+  bool canEvaluate(Interpretation interp)
+  {
+    CALL("InterpretedEvaluation::Evaluator::canEvaluateFunc");
+
+    if(interp==Theory::EQUAL) { return false; } //there are other rules to evaluate equality
+
+    unsigned opSort = theory->getOperationSort(interp);
+    return opSort==_sort;
+  }
+
   virtual bool tryEvaluateFunc(Term* trm, Term*& res) = 0;
   virtual bool tryEvaluatePred(Literal* trm, bool& res) = 0;
+
+protected:
+  unsigned _sort;
+};
+
+/**
+ * Evaluates constant theory expressions
+ */
+template<class T>
+class InterpretedEvaluation::TypedEvaluator : public Evaluator
+{
+public:
+  typedef T Value;
+
+  TypedEvaluator() : Evaluator(T::getSort()) {}
+
+  virtual bool tryEvaluateFunc(Term* trm, Term*& res)
+  {
+    CALL("InterpretedEvaluation::tryEvaluateFunc");
+    ASS(theory->isInterpretedFunction(trm));
+
+    Interpretation itp = theory->interpretFunction(trm);
+    ASS(theory->isFunction(itp));
+    unsigned arity = theory->getArity(itp);
+
+    if(arity!=1 && arity!=2) {
+      INVALID_OPERATION("unsupported arity of interpreted operation: "+Int::toString(arity));
+    }
+    T resNum;
+    TermList arg1Trm = *trm->nthArgument(0);
+    T arg1;
+    if(!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
+    if(arity==1) {
+      if(!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
+    }
+    else if(arity==2) {
+      TermList arg2Trm = *trm->nthArgument(1);
+      T arg2;
+      if(!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
+      if(!tryEvaluateBinaryFunc(itp, arg1, arg2, resNum)) { return false;}
+    }
+    res = theory->representConstant(resNum);
+    return true;
+  }
+
+  virtual bool tryEvaluatePred(Literal* lit, bool& res)
+  {
+    ASS(theory->isInterpretedPredicate(lit));
+
+    Interpretation itp = theory->interpretPredicate(lit);
+    ASS(!theory->isFunction(itp));
+    unsigned arity = theory->getArity(itp);
+
+    if(arity!=1 && arity!=2) {
+      INVALID_OPERATION("unsupported arity of interpreted operation: "+Int::toString(arity));
+    }
+    TermList arg1Trm = *lit->nthArgument(0);
+    TermList arg2Trm = *lit->nthArgument(1);
+    T arg1;
+    T arg2;
+    if(!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
+    if(!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
+    if(!tryEvaluateBinaryPred(itp, arg1, arg2, res)) { return false;}
+    if(lit->isNegative()) {
+      res = !res;
+    }
+    return true;
+  }
+protected:
+
+  virtual bool tryEvaluateUnaryFunc(Interpretation op, const T& arg, T& res)
+  { return false; }
+
+  virtual bool tryEvaluateBinaryFunc(Interpretation op, const T& arg1, const T& arg2, T& res)
+  { return false; }
+
+  virtual bool tryEvaluateBinaryPred(Interpretation op, const T& arg1, const T& arg2, bool& res)
+  { return false; }
+};
+
+class InterpretedEvaluation::IntEvaluator : public TypedEvaluator<IntegerConstantType>
+{
+protected:
+  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  {
+    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateUnaryFunc");
+
+    switch(op) {
+    case Theory::INT_UNARY_MINUS:
+      res = -arg;
+      return true;
+    case Theory::INT_SUCCESSOR:
+      res = arg+1;
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
+      const Value& arg2, Value& res)
+  {
+    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateBinaryFunc");
+
+    switch(op) {
+    case Theory::INT_PLUS:
+      res = arg1+arg2;
+      return true;
+    case Theory::INT_MINUS:
+      res = arg1-arg2;
+      return true;
+    case Theory::INT_MULTIPLY:
+      res = arg1*arg2;
+      return true;
+    case Theory::INT_DIVIDE:
+      res = arg1/arg2;
+      return true;
+    case Theory::INT_MODULO:
+      res = arg1%arg2;
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
+      const Value& arg2, bool& res)
+  {
+    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateBinaryPred");
+
+    switch(op) {
+    case Theory::INT_GREATER:
+      res = arg1>arg2;
+      return true;
+    case Theory::INT_GREATER_EQUAL:
+      res = arg1>=arg2;
+      return true;
+    case Theory::INT_LESS:
+      res = arg1<arg2;
+      return true;
+    case Theory::INT_LESS_EQUAL:
+      res = arg1<=arg2;
+      return true;
+    case Theory::INT_DIVIDES:
+      res = (arg1%arg2)==0;
+      return true;
+    default:
+      return false;
+    }
+  }
+};
+
+class InterpretedEvaluation::RatEvaluator : public TypedEvaluator<RationalConstantType>
+{
+protected:
+  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  {
+    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateUnaryFunc");
+
+    switch(op) {
+    case Theory::RAT_UNARY_MINUS:
+      res = -arg;
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
+      const Value& arg2, Value& res)
+  {
+    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateBinaryFunc");
+
+    switch(op) {
+    case Theory::RAT_PLUS:
+      res = arg1+arg2;
+      return true;
+    case Theory::RAT_MINUS:
+      res = arg1-arg2;
+      return true;
+    case Theory::RAT_MULTIPLY:
+      res = arg1*arg2;
+      return true;
+    case Theory::RAT_DIVIDE:
+      res = arg1/arg2;
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
+      const Value& arg2, bool& res)
+  {
+    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateBinaryPred");
+
+    switch(op) {
+    case Theory::RAT_GREATER:
+      res = arg1>arg2;
+      return true;
+    case Theory::RAT_GREATER_EQUAL:
+      res = arg1>=arg2;
+      return true;
+    case Theory::RAT_LESS:
+      res = arg1<arg2;
+      return true;
+    case Theory::RAT_LESS_EQUAL:
+      res = arg1<=arg2;
+      return true;
+    default:
+      return false;
+    }
+  }
+};
+
+class InterpretedEvaluation::RealEvaluator : public TypedEvaluator<RealConstantType>
+{
+protected:
+  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  {
+    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateUnaryFunc");
+
+    switch(op) {
+    case Theory::REAL_UNARY_MINUS:
+      res = -arg;
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
+      const Value& arg2, Value& res)
+  {
+    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateBinaryFunc");
+
+    switch(op) {
+    case Theory::REAL_PLUS:
+      res = arg1+arg2;
+      return true;
+    case Theory::REAL_MINUS:
+      res = arg1-arg2;
+      return true;
+    case Theory::REAL_MULTIPLY:
+      res = arg1*arg2;
+      return true;
+    case Theory::REAL_DIVIDE:
+      res = arg1/arg2;
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
+      const Value& arg2, bool& res)
+  {
+    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateBinaryPred");
+
+    switch(op) {
+    case Theory::REAL_GREATER:
+      res = arg1>arg2;
+      return true;
+    case Theory::REAL_GREATER_EQUAL:
+      res = arg1>=arg2;
+      return true;
+    case Theory::REAL_LESS:
+      res = arg1<arg2;
+      return true;
+    case Theory::REAL_LESS_EQUAL:
+      res = arg1<=arg2;
+      return true;
+    default:
+      return false;
+    }
+  }
 };
 
 class InterpretedEvaluation::LiteralSimplifier :  private TermTransformer
@@ -43,7 +350,9 @@ class InterpretedEvaluation::LiteralSimplifier :  private TermTransformer
 public:
   LiteralSimplifier()
   {
-
+    _evals.push(new IntEvaluator());
+    _evals.push(new RatEvaluator());
+    _evals.push(new RealEvaluator());
   }
 
   ~LiteralSimplifier()
@@ -108,153 +417,21 @@ protected:
   EvalStack _evals;
 };
 
-/**
- * Return number of internal interpreting function that
- * interprets the top function of @b t. It the top function
- * of @b t is not interpreted, return -1.
- */
-int InterpretedEvaluation::getInterpretedFunction(Term* t)
+InterpretedEvaluation::InterpretedEvaluation()
 {
-  CALL("InterpretedEvaluation::getInterpretedFunction");
+  CALL("InterpretedEvaluation::InterpretedEvaluation");
 
-  Signature::Symbol* sym =env.signature->getFunction(t->functor());
-  if(!sym->interpreted() || sym->arity()==0) {
-    return -1;
-  }
-  Signature::InterpretedSymbol* isym =
-      static_cast<Signature::InterpretedSymbol*>(sym);
-  return isym->getInterpretation();
+  _simpl = new LiteralSimplifier();
 }
 
-/**
- * Return number of internal interpreting predicate that
- * interprets the predicate symbol of @b lit. It the predicate symbol
- * of @b lit is not interpreted, return -1.
- */
-int InterpretedEvaluation::getInterpretedPredicate(Literal* lit)
+InterpretedEvaluation::~InterpretedEvaluation()
 {
-  CALL("InterpretedEvaluation::getInterpretedPredicate");
+  CALL("InterpretedEvaluation::~InterpretedEvaluation");
 
-  Signature::Symbol* sym =env.signature->getPredicate(lit->functor());
-  if(!sym->interpreted()) {
-    return -1;
-  }
-  Signature::InterpretedSymbol* isym =
-      static_cast<Signature::InterpretedSymbol*>(sym);
-  return isym->getInterpretation();
+  delete _simpl;
 }
 
-/**
- * Evaluate internal interpreted function number @b fnIndex on arguments
- * @b args and return resulting interpreted constant. If the evaluation
- * cannot be performed, return 0 and no simplification will occur.
- */
-Term* InterpretedEvaluation::evaluateFunction(int fnIndex, TermList* args)
-{
-  CALL("InterpretedEvaluation::interpretFunction");
-  ASS_GE(fnIndex, 0);
 
-  Interpretation interp = static_cast<Interpretation>(fnIndex);
-  ASS(Theory::isFunction(interp));
-
-  InterpretedType arg1, arg2, arg3;
-
-  switch(Theory::getArity(interp)) {
-  case 3:
-    arg3=theory->interpretConstant(args[2]);
-  case 2:
-    arg2=theory->interpretConstant(args[1]);
-  case 1:
-    arg1=theory->interpretConstant(args[0]);
-  }
-
-  InterpretedType res;
-
-  //we do owerflow checking based on the fact that InterpretedType is int
-  ASS_STATIC(sizeof(InterpretedType)==4);
-
-  switch(interp) {
-  case Theory::SUCCESSOR:
-    if(arg1==INT_MAX) {
-      return 0;
-    }
-    res=arg1+1;
-    break;
-  case Theory::UNARY_MINUS:
-    if(!Int::safeUnaryMinus(arg1, res)) {
-      return 0;
-    }
-    break;
-  case Theory::PLUS:
-    if(!Int::safePlus(arg1, arg2, res)) {
-      return 0;
-    }
-    break;
-  case Theory::MINUS:
-    if(!Int::safeMinus(arg1, arg2, res)) {
-      return 0;
-    }
-    break;
-  case Theory::MULTIPLY:
-  {
-    if(!Int::safeMultiply(arg1, arg2, res)) {
-      return 0;
-    }
-    break;
-  }
-  case Theory::DIVIDE:
-    if(arg2==0 || arg1%arg2!=0) {
-      return 0;
-    }
-    res=arg1/arg2;
-    break;
-  case Theory::INT_DIVIDE:
-    if(arg2==0) {
-      return 0;
-    }
-    res=arg1/arg2;
-    break;
-
-  default:
-    ASSERTION_VIOLATION;
-  }
-
-  return theory->getRepresentation(res);
-}
-
-bool InterpretedEvaluation::evaluatePredicate(int predIndex, TermList* args)
-{
-  CALL("InterpretedEvaluation::interpretPredicate");
-  ASS_GE(predIndex, 0);
-
-  Interpretation interp = static_cast<Interpretation>(predIndex);
-  ASS(!Theory::isFunction(interp));
-
-
-  //all interpreted predicates are binary
-  ASS_EQ(Theory::getArity(interp), 2);
-  InterpretedType arg1=theory->interpretConstant(args[0]);
-  InterpretedType arg2=theory->interpretConstant(args[1]);
-
-  switch(interp) {
-  case Theory::EQUAL:
-    return arg1==arg2;
-  case Theory::GREATER:
-  case Theory::INT_GREATER:
-    return arg1>arg2;
-  case Theory::GREATER_EQUAL:
-  case Theory::INT_GREATER_EQUAL:
-    return arg1>=arg2;
-  case Theory::LESS:
-  case Theory::INT_LESS:
-    return arg1<arg2;
-  case Theory::LESS_EQUAL:
-  case Theory::INT_LESS_EQUAL:
-    return arg1<=arg2;
-  default:
-    ASSERTION_VIOLATION;
-  }
-}
 
 bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 	bool& constant, Literal*& res, bool& constantTrue)
@@ -266,145 +443,7 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
     return false;
   }
 
-  static Stack<TermList*> toDo(8);
-  static Stack<Term*> terms(8);
-  static Stack<bool> modified(8);
-  static Stack<bool> allItpConsts(8);
-  static Stack<TermList> args(8);
-  ASS(toDo.isEmpty());
-  ASS(terms.isEmpty());
-  modified.reset();
-  args.reset();
-
-  modified.push(false);
-  allItpConsts.push(true);
-  toDo.push(lit->args());
-
-  for(;;) {
-    TermList* tt=toDo.pop();
-    if(tt->isEmpty()) {
-      if(terms.isEmpty()) {
-	//we're done, args stack contains modified arguments
-	//of the literal.
-	ASS(toDo.isEmpty());
-	break;
-      }
-      Term* orig=terms.pop();
-      bool childrenModified=modified.pop();
-      bool allChildrenInterpreted=allItpConsts.pop();
-      int itpFn=getInterpretedFunction(orig);
-
-      if(!childrenModified && itpFn<0) {
-	args.truncate(args.length() - orig->arity());
-	args.push(TermList(orig));
-	allItpConsts.setTop(false);
-	continue;
-      }
-
-      //here we assume, that stack is an array with
-      //second topmost element as &top()-1, third at
-      //&top()-2, etc...
-      TermList* argLst=&args.top() - (orig->arity()-1);
-      Term* newTrm=0;
-      if(itpFn>=0 && allChildrenInterpreted) {
-	newTrm=evaluateFunction(itpFn, argLst);
-      }
-      if(!newTrm && childrenModified) {
-	newTrm=Term::create(orig,argLst);
-	allItpConsts.setTop(false);
-      }
-      args.truncate(args.length() - orig->arity());
-      if(newTrm) {
-	args.push(TermList(newTrm));
-	modified.setTop(true);
-      }
-      else {
-	//we weren't able to simplify the term
-	args.push(TermList(orig));
-	allItpConsts.setTop(false);
-      }
-      continue;
-    }
-
-    toDo.push(tt->next());
-
-    TermList tl=*tt;
-    if(tl.isVar()) {
-      args.push(tl);
-      allItpConsts.setTop(false);
-      continue;
-    }
-    ASS(tl.isTerm());
-    Term* t=tl.term();
-    if(theory->isInterpretedConstant(t)) {
-      args.push(tl);
-      continue;
-    }
-
-    terms.push(t);
-    modified.push(false);
-    allItpConsts.push(true);
-    toDo.push(t->args());
-  }
-  ASS(toDo.isEmpty());
-  ASS(terms.isEmpty());
-  ASS_EQ(modified.length(),1);
-  ASS_EQ(args.length(),lit->arity());
-
-  bool childrenModified=modified.pop();
-  bool allChildrenInterpreted=allItpConsts.pop();
-  int itpPred=getInterpretedPredicate(lit);
-
-
-  //here we assume, that stack is an array with
-  //second topmost element as &top()-1, third at
-  //&top()-2, etc...
-  TermList* argLst=&args.top() - (lit->arity()-1);
-
-  if(itpPred>=0 && allChildrenInterpreted) {
-    constant=true;
-    constantTrue=lit->isNegative() ^ evaluatePredicate(itpPred, argLst);
-    return true;
-  }
-
-  if(itpPred==Theory::GREATER || itpPred==Theory::GREATER_EQUAL || itpPred==Theory::LESS) {
-    //we want to transform all inequalities to LESS_EQUAL
-    //TODO: create a preprocessing rule for this
-    bool polarity=lit->polarity();
-    if(itpPred==Theory::LESS_EQUAL || itpPred==Theory::GREATER_EQUAL) {
-      polarity^=1;
-    }
-    if(itpPred==Theory::LESS || itpPred==Theory::GREATER_EQUAL) {
-      swap(argLst[0], argLst[1]);
-    }
-    constant=false;
-    res=theory->pred2(Theory::LESS_EQUAL, polarity, argLst[0], argLst[1]);
-    return true;
-  }
-  if(itpPred==Theory::INT_GREATER || itpPred==Theory::INT_GREATER_EQUAL || itpPred==Theory::INT_LESS) {
-    //we want to transform all integer inequalities to INT_LESS_EQUAL
-    //TODO: create a preprocessing rule for this
-    bool polarity=lit->polarity();
-    if(itpPred==Theory::INT_LESS || itpPred==Theory::INT_GREATER) {
-      polarity^=1;
-    }
-    if(itpPred==Theory::INT_LESS || itpPred==Theory::INT_GREATER_EQUAL) {
-      swap(argLst[0], argLst[1]);
-    }
-    constant=false;
-    res=theory->pred2(Theory::INT_LESS_EQUAL, polarity, argLst[0], argLst[1]);
-    return true;
-  }
-
-  if(!childrenModified) {
-    res=lit;
-    return false;
-  }
-
-  constant=false;
-
-  res=Literal::create(lit,argLst);
-  return true;
+  return _simpl->evaluate(lit, constant, res, constantTrue);
 }
 
 Clause* InterpretedEvaluation::simplify(Clause* cl)

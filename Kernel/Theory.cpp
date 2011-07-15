@@ -12,7 +12,6 @@
 #include "Lib/Int.hpp"
 
 #include "Signature.hpp"
-#include "Sorts.hpp"
 
 #include "Theory.hpp"
 
@@ -296,7 +295,7 @@ Theory::Theory()
 unsigned Theory::getArity(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::getArity");
-  ASS_L(i,(int)interpretationElementCount);
+  ASS_LE(i,MAX_INTERPRETED_ELEMENT);
 
   switch(i) {
   case INT_SUCCESSOR:
@@ -352,7 +351,7 @@ unsigned Theory::getArity(Interpretation i)
 bool Theory::isFunction(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isFunction");
-  ASS_L(i,(int)interpretationElementCount);
+  ASS_LE(i,MAX_INTERPRETED_ELEMENT);
 
   switch(i) {
   case INT_SUCCESSOR:
@@ -376,6 +375,8 @@ bool Theory::isFunction(Interpretation i)
   case REAL_MULTIPLY:
   case REAL_DIVIDE:
     return true;
+
+  case EQUAL:
 
   case INT_GREATER:
   case INT_GREATER_EQUAL:
@@ -406,7 +407,7 @@ bool Theory::isFunction(Interpretation i)
 bool Theory::isInequality(Interpretation i)
 {
   CALL("Signature::InterpretedSymbol::isInequality");
-  ASS_L(i,(int)interpretationElementCount);
+  ASS_LE(i,MAX_INTERPRETED_ELEMENT);
 
   switch(i) {
   case INT_GREATER:
@@ -428,12 +429,14 @@ bool Theory::isInequality(Interpretation i)
   ASSERTION_VIOLATION;
 }
 
+/**
+ * This function cannot be called for the EQUAL value, because
+ * equality is polymorphic and therefore does not have a sort.
+ */
 unsigned Theory::getOperationSort(Interpretation i)
 {
   CALL("Theory::getOperationSort");
-
-  CALL("Signature::InterpretedSymbol::isInequality");
-  ASS_L(i,(int)interpretationElementCount);
+  ASS_LE(i,MAX_INTERPRETED_ELEMENT);
 
   switch(i) {
   case INT_GREATER:
@@ -549,13 +552,23 @@ bool Theory::isInterpretedConstant(TermList t)
 }
 
 /**
+ * Return true iff @b pred is an interpreted predicate
+ */
+bool Theory::isInterpretedPredicate(unsigned pred)
+{
+  CALL("Theory::isInterpretedPredicate(unsigned)");
+
+  return env.signature->getPredicate(pred)->interpreted();
+}
+
+/**
  * Return true iff @b lit has an interpreted predicate
  */
 bool Theory::isInterpretedPredicate(Literal* lit)
 {
   CALL("Theory::isInterpretedPredicate");
 
-  return env.signature->getPredicate(lit->functor())->interpreted();
+  return isInterpretedPredicate(lit->functor());
 }
 
 /**
@@ -570,6 +583,15 @@ bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
       interpretPredicate(lit)==itp;
 }
 
+bool Theory::isInterpretedFunction(unsigned func)
+{
+  CALL("Theory::isInterpretedFunction(unsigned)");
+  ASS(!env.signature->getFunction(func)->interpreted() || env.signature->functionArity(func)!=0);
+
+  return env.signature->getFunction(func)->interpreted();
+}
+
+
 /**
  * Return true iff @b t is an interpreted function
  */
@@ -577,7 +599,7 @@ bool Theory::isInterpretedFunction(Term* t)
 {
   CALL("Theory::isInterpretedFunction(Term*)");
 
-  return t->arity()!=0 && env.signature->getFunction(t->functor())->interpreted();
+  return isInterpretedFunction(t->functor());
 }
 
 /**
@@ -598,7 +620,7 @@ bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
 {
   CALL("Theory::isInterpretedFunction(Term*,Interpretation)");
 
-  return t->arity()!=0 && env.signature->getFunction(t->functor())->interpreted() &&
+  return isInterpretedFunction(t->functor()) &&
       interpretFunction(t)==itp;
 }
 
@@ -613,6 +635,18 @@ bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
   return t.isTerm() && isInterpretedFunction(t.term(), itp);
 }
 
+
+Interpretation Theory::interpretFunction(unsigned func)
+{
+  CALL("Theory::interpretFunction");
+  ASS(isInterpretedFunction(func));
+
+  Signature::InterpretedSymbol* sym =
+      static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(func));
+
+  return sym->getInterpretation();
+}
+
 /**
  * Assuming @b t is an interpreted function, return its interpretation
  */
@@ -621,8 +655,7 @@ Interpretation Theory::interpretFunction(Term* t)
   CALL("Theory::interpretFunction");
   ASS(isInterpretedFunction(t));
 
-  return static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(t->functor()))
-      ->getInterpretation();
+  return interpretFunction(t->functor());
 }
 
 /**
@@ -636,6 +669,17 @@ Interpretation Theory::interpretFunction(TermList t)
   return interpretFunction(t.term());
 }
 
+Interpretation Theory::interpretPredicate(unsigned pred)
+{
+  CALL("Theory::interpretPredicate");
+  ASS(isInterpretedPredicate(pred));
+
+  Signature::InterpretedSymbol* sym =
+      static_cast<Signature::InterpretedSymbol*>(env.signature->getPredicate(pred));
+
+  return sym->getInterpretation();
+}
+
 /**
  * Assuming @b lit has an interpreted predicate, return its interpretation
  */
@@ -644,8 +688,7 @@ Interpretation Theory::interpretPredicate(Literal* lit)
   CALL("Theory::interpretFunction");
   ASS(isInterpretedPredicate(lit));
 
-  return static_cast<Signature::InterpretedSymbol*>(env.signature->getPredicate(lit->functor()))
-      ->getInterpretation();
+  return interpretPredicate(lit->functor());
 }
 
 /**
@@ -672,6 +715,68 @@ InterpretedType Theory::interpretConstant(TermList t)
 
   return interpretConstant(t.term());
 }
+
+bool Theory::tryInterpretConstant(TermList trm, IntegerConstantType& res)
+{
+  CALL("Theory::tryInterpretConstant(TermList,IntegerConstantType)");
+
+  if(!trm.isTerm() || trm.term()->arity()!=0) { return false; }
+  unsigned func = trm.term()->functor();
+  Signature::Symbol* sym = env.signature->getFunction(func);
+  if(!sym->integerConstant()) { return false; }
+  res = sym->integerValue();
+  return true;
+}
+
+bool Theory::tryInterpretConstant(TermList trm, RationalConstantType& res)
+{
+  CALL("Theory::tryInterpretConstant(TermList,RationalConstantType)");
+
+  if(!trm.isTerm() || trm.term()->arity()!=0) { return false; }
+  unsigned func = trm.term()->functor();
+  Signature::Symbol* sym = env.signature->getFunction(func);
+  if(!sym->rationalConstant()) { return false; }
+  res = sym->rationalValue();
+  return true;
+}
+
+bool Theory::tryInterpretConstant(TermList trm, RealConstantType& res)
+{
+  CALL("Theory::tryInterpretConstant(TermList,RealConstantType)");
+
+  if(!trm.isTerm() || trm.term()->arity()!=0) { return false; }
+  unsigned func = trm.term()->functor();
+  Signature::Symbol* sym = env.signature->getFunction(func);
+  if(!sym->realConstant()) { return false; }
+  res = sym->realValue();
+  return true;
+}
+
+Term* Theory::representConstant(const IntegerConstantType& num)
+{
+  CALL("Theory::representConstant(const IntegerConstantType&)");
+
+  unsigned func = env.signature->addIntegerConstant(num);
+  return Term::create(func, 0, 0);
+}
+
+Term* Theory::representConstant(const RationalConstantType& num)
+{
+  CALL("Theory::representConstant(const RationalConstantType&)");
+
+  unsigned func = env.signature->addRationalConstant(num);
+  return Term::create(func, 0, 0);
+}
+
+Term* Theory::representConstant(const RealConstantType& num)
+{
+  CALL("Theory::representConstant(const RealConstantType&)");
+
+  unsigned func = env.signature->addRealConstant(num);
+  return Term::create(func, 0, 0);
+}
+
+
 
 /**
  * Return term containing the constant of value @b val

@@ -18,6 +18,9 @@
 
 namespace Shell
 {
+#if 1
+
+#else
 
 using namespace Kernel;
 
@@ -154,6 +157,8 @@ private:
 
   DHSet<Interpretation> _presentElements;
 };
+
+#endif
 
 };
 
