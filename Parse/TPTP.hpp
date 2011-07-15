@@ -138,6 +138,20 @@ public:
     T_RATIONAL_TYPE,
     /** $real */
     T_REAL_TYPE,
+    /** $fot, probably useless */
+    T_FOT,
+    /** $fof, probably useless */
+    T_FOF,
+    /** $tff, probably useless */
+    T_TFF,
+    /** $less */
+    T_LESS,
+    /** $lesseq */
+    T_LESSEQ,
+    /** $greater */
+    T_GREATER,
+    /** $greatereq */
+    T_GREATEREQ,
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -530,6 +544,7 @@ private:
   void type();
   unsigned readSort(bool newSortExpected);
   void unbindVariables();
+  void skipToRPAR();
 
   static bool higherPrecedence(Connective c1,Connective c2);
 

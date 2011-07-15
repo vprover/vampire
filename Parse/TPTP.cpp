@@ -264,6 +264,20 @@ string TPTP::toString(Tag tag)
     return "$real";
   case T_INTEGER_TYPE:
     return "$int";
+  case T_FOT:
+    return "$fot";
+  case T_FOF:
+    return "$fof";
+  case T_TFF:
+    return "$tff";
+  case T_LESS:
+    return "$less";
+  case T_LESSEQ:
+    return "$lesseq";
+  case T_GREATER:
+    return "$greater";
+  case T_GREATEREQ:
+    return "$greatereq";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -804,6 +818,34 @@ void TPTP::readReserved(Token& tok)
     tok.tag = T_REAL_TYPE;
     return;
   }
+  if (tok.content == "$less") {
+    tok.tag = T_LESS;
+    return;
+  }
+  if (tok.content == "$lesseq") {
+    tok.tag = T_LESSEQ;
+    return;
+  }
+  if (tok.content == "$greater") {
+    tok.tag = T_GREATER;
+    return;
+  }
+  if (tok.content == "$greatereq") {
+    tok.tag = T_GREATEREQ;
+    return;
+  }
+  if (tok.content == "$fot") {
+    tok.tag = T_FOT;
+    return;
+  }
+  if (tok.content == "$fof") {
+    tok.tag = T_FOF;
+    return;
+  }
+  if (tok.content == "$tff") {
+    tok.tag = T_TFF;
+    return;
+  }
   throw Exception((string)"I do not know how to handle " + tok.content,tok);
 } // readReserved
 
@@ -917,11 +959,18 @@ TPTP::Tag TPTP::readNumber(Token& tok)
       }
       while (c >= '0' && c <= '9');
       if (pos == p+1) {
+	// something like 12.
 	throw Exception("wrong number format",_gpos);
       }
-      pos = decimal((c == 'e' || c == 'E') ? pos+1 : pos);
-      tok.content.assign(_chars.content(),pos-1);
-      shiftChars(pos-1);
+      if (c == 'e' || c == 'E') {
+	pos = decimal(pos+1);
+	tok.content.assign(_chars.content(),pos-1);
+	shiftChars(pos-1);
+      }
+      else {
+	tok.content.assign(_chars.content(),pos);
+	shiftChars(pos);
+      }
     }
     return T_REAL;
   default:
@@ -1269,10 +1318,6 @@ void TPTP::include()
     consumeToken(T_LBRA);
     for(;;) {
       tok = getTok(0);
-      if (tok.tag == T_RBRA) {
-	resetToks();
-	break;
-      }
       if (tok.tag != T_NAME) {
 	throw Exception((string)"formula name expected",tok);
       }
@@ -1280,6 +1325,11 @@ void TPTP::include()
       resetToks();
       if (!ignore) {
 	_allowedNames->insert(axName);
+      }
+      tok = getTok(0);
+      if (tok.tag == T_RBRA) {
+	resetToks();
+	break;
       }
       consumeToken(T_COMMA);
     }
@@ -1383,7 +1433,6 @@ void TPTP::atom()
 
   case T_REAL:
     throw Exception("reading reals is not supported",tok);
-    
   case T_INT:
     throw Exception("reading integers is not supported",tok);
   default:
@@ -1499,7 +1548,10 @@ void TPTP::term()
     resetToks();
     return;
   case T_REAL:
-    throw Exception("reading reals is not supported",tok);
+    _ints.push(env.signature->addRealConstant(tok.content));
+    _ints.push(-2); // this term is a constant
+    resetToks();
+    return;
   default:
     throw Exception("term expected",tok);
   }
@@ -1869,7 +1921,7 @@ void TPTP::tag()
 void TPTP::endFof()
 {
   CALL("TPTP::endFof");
-  consumeToken(T_RPAR);
+  skipToRPAR();
   consumeToken(T_DOT);
 
   _bools.pop(); // ignoring whether the input was cnf() or fof()
@@ -1943,10 +1995,11 @@ void TPTP::endTff()
 {
   CALL("TPTP::endTff");
 
-  int rpars= _ints.pop() + 1;
+  int rpars= _ints.pop();
   while (rpars--) {
     consumeToken(T_RPAR);
   }
+  skipToRPAR();
   consumeToken(T_DOT);
 
   // build a TPTP out of the parse type
@@ -2030,6 +2083,38 @@ void TPTP::endTff()
 } // endTff
 
 /**
+ * Skip any sequence tokens, including matching pairs of left parentheses,
+ * until an unmatched right parenthesis is found. Consume this right parenthesis
+ * and terminate.
+ * @since 15/07/2011 Manchester
+ */
+void TPTP::skipToRPAR()
+{
+  int balance = 0;
+  for (;;) {
+    Token tok = getTok(0);
+    switch (tok.tag) {
+    case T_EOF:
+      throw Exception(") not found",tok);
+    case T_LPAR:
+      resetToks();
+      balance++;
+      break;
+    case T_RPAR:
+      resetToks();
+      balance--;
+      if (balance == -1) {
+	return;
+      }
+      break;
+    default:
+      resetToks();
+      break;
+    }
+  }
+} // skipToRPAR
+
+/**
  * Read a simple formula (quantified formula, negation,
  * formula in parentheses, true or false).
  * @since 10/04/2011 Manchester
@@ -2104,6 +2189,10 @@ void TPTP::simpleFormula()
     return;
 
   case T_NAME:
+  case T_LESS:
+  case T_LESSEQ:
+  case T_GREATER:
+  case T_GREATEREQ:
     _states.push(ATOM);
     return;
 
@@ -2365,10 +2454,6 @@ $
 $$
 $equal
 $distinct
-$less
-$lesseq
-$greater
-$greatereq
 $evaleq
 $is_int
 $is_rat
@@ -2382,5 +2467,4 @@ $to_int
 $to_rat
 $to_real
 $thf
-$fot
 */
