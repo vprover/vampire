@@ -756,6 +756,9 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   if(env.signature->getFunction(f)->interpreted()) {
     return 0;
   }
+  if(env.signature->getFunction(f)->distinctGroups()!=0) {
+    return 0;
+  }
   if(lhs->color()==COLOR_TRANSPARENT && rhs->color()!=COLOR_TRANSPARENT) {
     return 0;
   }
