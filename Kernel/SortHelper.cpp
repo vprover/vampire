@@ -14,6 +14,9 @@
 
 #include "SortHelper.hpp"
 
+#undef LOGGING
+#define LOGGING 0
+
 namespace Kernel
 {
 
@@ -23,7 +26,10 @@ namespace Kernel
 BaseType& SortHelper::getType(Term* t)
 {
   if(t->isLiteral()) {
-    return *env.signature->getPredicate(t->functor())->predType();
+    Signature::Symbol* sym = env.signature->getPredicate(t->functor());
+    LOGV(sym->name());
+    LOGV(sym->predType()->toString());
+    return *sym->predType();
   }
   else {
     return *env.signature->getFunction(t->functor())->fnType();
@@ -48,6 +54,7 @@ unsigned SortHelper::getArgSort(Term* t, unsigned argIndex)
   ASS_L(argIndex, t->arity());
 
   if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    LOG("getting eq sort");
     return getEqualityArgumentSort(static_cast<Literal*>(t));
   }
 
@@ -154,6 +161,9 @@ void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
       if(args->isOrdinaryVar()) {
 	unsigned varNum = args->var();
 	unsigned varSort = getArgSort(t, idx);
+	LOGV(t->toString());
+	LOGV(varNum);
+	LOGV(varSort);
 	if(!map.insert(varNum, varSort)) {
 	  ASS_EQ(varSort, map.get(varNum));
 	}
@@ -186,12 +196,14 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
 {
   CALL("SortHelper::collectVariableSorts(Formula*,...)");
 
+  LOGV(f->toString());
   SubformulaIterator sfit(f);
   while(sfit.hasNext()) {
     Formula* sf = sfit.next();
     if(sf->connective()!=LITERAL) {
       continue;
     }
+    LOGV(sf->toString());
     Literal* lit = sf->literal();
 
     collectVariableSorts(lit, map);

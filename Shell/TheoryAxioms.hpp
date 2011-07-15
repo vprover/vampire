@@ -29,7 +29,21 @@ private:
   void addIdentity(Interpretation op, TermList idElement, UnitList*& units);
   void addCommutativeGroupAxioms(Interpretation op, Interpretation inverse, TermList idElement, UnitList*& units);
 
+  void addReflexivity(Interpretation op, UnitList*& units);
+  void addTransitivity(Interpretation op, UnitList*& units);
+  void addOrderingTotality(Interpretation lessEqual, UnitList*& units);
+  void addTotalOrderAxioms(Interpretation lessEqual, UnitList*& units);
+
+  void addMonotonicity(Interpretation lessEqual, Interpretation addition, UnitList*& units);
+
+  void addAdditionAndOrderingAxioms(Interpretation plus, Interpretation unaryMinus,
+      TermList zeroElement, TermList oneElement, Interpretation lessEqual, UnitList*& units);
+  void addAdditionOrderingAndMultiplicationAxioms(Interpretation plus, Interpretation unaryMinus,
+      TermList zeroElement, TermList oneElement, Interpretation lessEqual, Interpretation multiply,
+      UnitList*& units);
+
   void addTheoryUnit(Literal* lit, UnitList*& units);
+  void addTheoryClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3=0);
 
   Unit* replaceFunctions(Unit* u);
   Formula* replaceFunctions(Formula* f);

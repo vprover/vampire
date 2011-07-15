@@ -35,6 +35,24 @@ void TheoryAxioms::addTheoryUnit(Literal* lit, UnitList*& units)
   UnitList::push(unit, units);
 }
 
+void TheoryAxioms::addTheoryClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3)
+{
+  CALL("TheoryAxioms::addTheoryClause");
+
+  static LiteralStack lits;
+  lits.reset();
+  ASS(lit1);
+  lits.push(lit1);
+  ASS(lit2);
+  lits.push(lit2);
+  if(lit3) {
+    lits.push(lit3);
+  }
+
+  Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
+  UnitList::push(cl, units);
+}
+
 
 void TheoryAxioms::addCommutativity(Interpretation op, UnitList*& units)
 {
@@ -45,8 +63,8 @@ void TheoryAxioms::addCommutativity(Interpretation op, UnitList*& units)
   unsigned func = env.signature->getInterpretingSymbol(op);
   TermList v1(0,false);
   TermList v2(1,false);
-  TermList f12 = TermList(Term::create2(func, v1, v2));
-  TermList f21 = TermList(Term::create2(func, v2, v1));
+  TermList f12(Term::create2(func, v1, v2));
+  TermList f21(Term::create2(func, v2, v1));
   Literal* eq = Literal::createEquality(true, f12, f21);
 
   addTheoryUnit(eq, units);
@@ -62,10 +80,10 @@ void TheoryAxioms::addAssociativity(Interpretation op, UnitList*& units)
   TermList v1(0,false);
   TermList v2(1,false);
   TermList v3(2,false);
-  TermList f12 = TermList(Term::create2(func, v1, v2));
-  TermList f23 = TermList(Term::create2(func, v2, v3));
-  TermList f1f23 = TermList(Term::create2(func, v1, f23));
-  TermList ff12_3 = TermList(Term::create2(func, f12, v3));
+  TermList f12(Term::create2(func, v1, v2));
+  TermList f23(Term::create2(func, v2, v3));
+  TermList f1f23(Term::create2(func, v1, f23));
+  TermList ff12_3(Term::create2(func, f12, v3));
   Literal* eq = Literal::createEquality(true, f1f23, ff12_3);
 
   addTheoryUnit(eq, units);
@@ -79,7 +97,7 @@ void TheoryAxioms::addIdentity(Interpretation op, TermList idElement, UnitList*&
 
   unsigned func = env.signature->getInterpretingSymbol(op);
   TermList v1(0,false);
-  TermList f1I = TermList(Term::create2(func, v1, idElement));
+  TermList f1I(Term::create2(func, v1, idElement));
   Literal* eq = Literal::createEquality(true, f1I, idElement);
 
   addTheoryUnit(eq, units);
@@ -103,15 +121,176 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
   unsigned invFunc = env.signature->getInterpretingSymbol(inverse);
   TermList v1(0,false);
   TermList v2(1,false);
-  TermList f12 = TermList(Term::create2(opFunc, v1, v2));
-#if 0
-  TermList fn1n2 = TermList(Term::create2(opFunc, nv2, nv1));
-  Literal* eq = Literal::createEquality(true, f12, f21);
-
-  addTheoryUnit(eq, units);
-#endif
+  TermList f12(Term::create2(opFunc, v1, v2));
+  TermList nv1(Term::create1(invFunc, v1));
+  TermList nv2(Term::create1(invFunc, v2));
+  TermList nf12(Term::create1(invFunc, f12));
+  TermList fn1n2(Term::create2(opFunc, nv2, nv1));
+  Literal* eq1 = Literal::createEquality(true, nf12, fn1n2);
+  addTheoryUnit(eq1, units);
 
   //X0+(-X0)==idElement
+  TermList f1n1(Term::create2(opFunc, v1, nv1));
+  Literal* eq2 = Literal::createEquality(true, f1n1, idElement);
+  addTheoryUnit(eq2, units);
+}
+
+void TheoryAxioms::addReflexivity(Interpretation op, UnitList*& units)
+{
+  CALL("TheoryAxioms::addReflexivity");
+
+  ASS(!theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+
+  unsigned opPred = env.signature->getInterpretingSymbol(op);
+  TermList v1(0,false);
+  Literal* l11 = Literal::create2(opPred, true, v1, v1);
+  addTheoryUnit(l11, units);
+}
+
+
+void TheoryAxioms::addTransitivity(Interpretation op, UnitList*& units)
+{
+  CALL("TheoryAxioms::addTransitivity");
+  ASS(!theory->isFunction(op));
+  ASS_EQ(theory->getArity(op),2);
+
+  unsigned opPred = env.signature->getInterpretingSymbol(op);
+  TermList v1(0,false);
+  TermList v2(1,false);
+  TermList v3(2,false);
+
+  Literal* nonL12 = Literal::create2(opPred, false, v1, v2);
+  Literal* nonL23 = Literal::create2(opPred, false, v2, v3);
+  Literal* l13 = Literal::create2(opPred, true, v1, v3);
+
+  addTheoryClause(units, nonL12, nonL23, l13);
+}
+
+void TheoryAxioms::addOrderingTotality(Interpretation lessEqual, UnitList*& units)
+{
+  CALL("TheoryAxioms::addOrderingTotality");
+  ASS(!theory->isFunction(lessEqual));
+  ASS_EQ(theory->getArity(lessEqual),2);
+
+  unsigned opPred = env.signature->getInterpretingSymbol(lessEqual);
+  TermList v1(0,false);
+  TermList v2(1,false);
+
+  Literal* l12 = Literal::create2(opPred, true, v1, v2);
+  Literal* l21 = Literal::create2(opPred, true, v2, v1);
+
+  addTheoryClause(units, l12, l21);
+}
+
+void TheoryAxioms::addTotalOrderAxioms(Interpretation lessEqual, UnitList*& units)
+{
+  CALL("TheoryAxioms::addTotalOrderAxioms");
+
+  addReflexivity(lessEqual, units);
+  addTransitivity(lessEqual, units);
+  addOrderingTotality(lessEqual, units);
+}
+
+void TheoryAxioms::addMonotonicity(Interpretation lessEqual, Interpretation addition, UnitList*& units)
+{
+  CALL("TheoryAxioms::addMonotonicity");
+  ASS(!theory->isFunction(lessEqual));
+  ASS_EQ(theory->getArity(lessEqual),2);
+  ASS(theory->isFunction(addition));
+  ASS_EQ(theory->getArity(addition),2);
+
+  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
+  unsigned addFun = env.signature->getInterpretingSymbol(addition);
+  TermList v1(0,false);
+  TermList v2(1,false);
+  TermList v3(2,false);
+  TermList v1Pv3(Term::create2(addFun, v1,v3));
+  TermList v2Pv3(Term::create2(addFun, v2,v3));
+  Literal* nonLe = Literal::create2(lePred, false, v1, v2);
+  Literal* leAdded = Literal::create2(lePred, true, v1Pv3, v2Pv3);
+
+  addTheoryClause(units, nonLe, leAdded);
+}
+
+
+void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretation unaryMinus,
+    TermList zeroElement, TermList oneElement, Interpretation lessEqual, UnitList*& units)
+{
+  CALL("TheoryAxioms::addAdditionAndOrderingAxioms");
+
+  addCommutativeGroupAxioms(plus, unaryMinus, zeroElement, units);
+  addTotalOrderAxioms(lessEqual, units);
+  addMonotonicity(lessEqual, plus, units);
+
+  //axiom( ile(zero,one) );
+  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
+  Literal* nonLeOneZero = Literal::create2(lePred, false, oneElement, zeroElement);
+  addTheoryUnit(nonLeOneZero, units);
+
+  //axiom( ilt(X0,X1) --> ile(X0+one,X1) );
+  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  TermList v1(0,false);
+  TermList v2(1,false);
+  Literal* le21 = Literal::create2(lePred, true, v2, v1);
+  TermList v1POne(Term::create2(plusFun, v1, oneElement));
+  Literal* lt1POne2 = Literal::create2(lePred, true, v1POne, v2);
+  addTheoryClause(units, le21, lt1POne2);
+
+  //connect strict and non-strict inequality
+  //axiom( (ile(X0,X1)) --> ((X0==X1) | ilt(X0,X1)) );
+
+  Literal* nonLe21 = Literal::create2(lePred, false, v2, v1);
+  unsigned varSort = theory->getOperationSort(lessEqual);
+  Literal* v1EqV2 = Literal::createVariableEquality(true, v1, v2, varSort);
+  Literal* nonLe12 = Literal::create2(lePred, false, v1, v2);
+  addTheoryClause(units, nonLe21, nonLe12, v1EqV2);
+}
+
+void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plus, Interpretation unaryMinus,
+    TermList zeroElement, TermList oneElement, Interpretation lessEqual, Interpretation multiply,
+    UnitList*& units)
+{
+  CALL("TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms");
+
+  addAdditionAndOrderingAxioms(plus, unaryMinus, zeroElement, oneElement, lessEqual, units);
+
+  addCommutativity(multiply, units);
+  addAssociativity(multiply, units);
+  addIdentity(multiply, oneElement, units);
+
+  //axiom( X0*zero==zero );
+  unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
+  TermList v1(0,false);
+  TermList v1MulZero(0,false);
+  Literal* v1EqV1MulZero = Literal::createEquality(true, v1MulZero, zeroElement);
+  addTheoryUnit(v1EqV1MulZero, units);
+
+  //axiom( X0*(X1++)==(X0*X1)+X0 );
+  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  TermList v2(1,false);
+  TermList v2POne(Term::create2(plusFun, v2, oneElement));
+  TermList v1MulV2POne(Term::create2(mulFun, v1, v2POne));
+  TermList v1MulV2(Term::create2(mulFun, v1, v2));
+  TermList v1MulV2PV1(Term::create2(plusFun, v1MulV2, v1));
+  Literal* succDistrEq = Literal::createEquality(true, v1MulV2POne, v1MulV2PV1);
+  addTheoryUnit(succDistrEq, units);
+
+  //axiom( (X0+X1)*(X2+X3) == (X0*X2 + X0*X3 + X1*X2 + X1*X3) );
+  TermList v3(2,false);
+  TermList v4(3,false);
+  TermList v1Pv2(Term::create2(plusFun, v1, v2));
+  TermList v3Pv4(Term::create2(plusFun, v3, v4));
+  TermList distrLhs(Term::create2(mulFun, v1Pv2, v3Pv4));
+  TermList v1Mv3(Term::create2(mulFun, v1, v3));
+  TermList v1Mv4(Term::create2(mulFun, v1, v4));
+  TermList v2Mv3(Term::create2(mulFun, v2, v3));
+  TermList v2Mv4(Term::create2(mulFun, v2, v4));
+  TermList add1(Term::create2(plusFun, v1Mv3, v1Mv4));
+  TermList add2(Term::create2(plusFun, v2Mv3, v2Mv4));
+  TermList distrRhs(Term::create2(plusFun, add1, add2));
+  Literal* distrEq = Literal::createEquality(true, distrLhs, distrRhs);
+  addTheoryUnit(distrEq, units);
 }
 
 
