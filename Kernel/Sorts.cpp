@@ -27,7 +27,7 @@ Sorts::Sorts()
   aux = addSort("$i");
   ASS_EQ(aux, SRT_DEFAULT);
 
-  aux = addSort("$bool");
+  aux = addSort("$o");
   ASS_EQ(aux, SRT_BOOL);
 
   aux = addSort("$int");
@@ -155,6 +155,37 @@ bool BaseType::operator==(const BaseType& o) const
     }
   }
   return true;
+}
+
+string BaseType::argsToString() const
+{
+  CALL("BaseType::argsToString");
+
+  string res = "(";
+  unsigned ar = arity();
+  for(unsigned i=0; i<ar; i++) {
+    res+=env.sorts->sortName(arg(i));
+    if(i!=ar-1) {
+      res+=',';
+    }
+  }
+  res+=')';
+  return res;
+}
+
+
+string PredicateType::toString() const
+{
+  CALL("PredicateType::toString");
+
+  return argsToString() + " > $bool";
+}
+
+string FunctionType::toString() const
+{
+  CALL("FunctionType::toString");
+
+  return argsToString() + " > " + env.sorts->sortName(result());
 }
 
 FunctionType::FunctionType(unsigned arity)

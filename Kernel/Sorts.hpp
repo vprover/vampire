@@ -78,9 +78,13 @@ public:
   bool operator==(const BaseType& o) const;
   bool operator!=(const BaseType& o) const { return !(*this==o); }
 
+  virtual string toString() const = 0;
+
   static BaseType* makeType(unsigned arity, unsigned* domainSorts, unsigned rangeSort);
 protected:
   BaseType(unsigned arity, unsigned* sorts=0);
+
+  string argsToString() const;
 private:
   typedef Vector<unsigned> SortVector;
   SortVector* _args;
@@ -91,6 +95,8 @@ class PredicateType : public BaseType
 public:
   PredicateType(unsigned arity, unsigned* argumentSorts = 0)
    : BaseType(arity, argumentSorts) {}
+
+  virtual string toString() const;
 };
 
 class FunctionType : public BaseType
@@ -104,6 +110,8 @@ public:
 
   virtual bool isAllDefault() const;
   virtual bool isFunctionType() const { return true; }
+
+  virtual string toString() const;
 private:
   unsigned _result;
 };

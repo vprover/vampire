@@ -528,9 +528,6 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Formula f, Annotation a, strin
   case ASSUMPTION:
     inputType=Kernel::Unit::ASSUMPTION;
     break;
-  case LEMMA:
-    inputType=Kernel::Unit::LEMMA;
-    break;
   case CONJECTURE:
     inputType=Kernel::Unit::CONJECTURE;
     negate=true;
@@ -1083,8 +1080,6 @@ FormulaBuilder::Annotation AnnotatedFormula::annotation() const
     return FormulaBuilder::AXIOM;
   case Kernel::Unit::ASSUMPTION:
     return FormulaBuilder::ASSUMPTION;
-  case Kernel::Unit::LEMMA:
-    return FormulaBuilder::LEMMA;
   case Kernel::Unit::CONJECTURE:
     return FormulaBuilder::CONJECTURE;
   default:

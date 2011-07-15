@@ -308,6 +308,7 @@ unsigned Signature::addRationalConstant(const string& numerator, const string& d
   CALL("Signature::addRationalConstant(string,string)");
 
   RationalConstantType value(numerator, denominator);
+  return addRationalConstant(value);
 }
 
 unsigned Signature::addRationalConstant(const RationalConstantType& value)
@@ -330,6 +331,7 @@ unsigned Signature::addRealConstant(const string& number)
   CALL("Signature::addRealConstant(string)");
 
   RealConstantType value(number);
+  return addRealConstant(value);
 }
 
 unsigned Signature::addRealConstant(const RealConstantType& value)

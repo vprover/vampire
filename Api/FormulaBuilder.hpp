@@ -123,8 +123,6 @@ public:
     AXIOM,
     /** Assumption or derives from axioms and assumptions */
     ASSUMPTION,
-    /** Lemma or derives from lemmas */
-    LEMMA,
     /** Goal or derives from the goal */
     CONJECTURE
   };
