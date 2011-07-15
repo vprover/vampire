@@ -437,8 +437,9 @@ public:
   bool globalSubsumption() const { return _globalSubsumption; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight; }
   bool interpretedEvaluation() const { return _interpretedEvaluation; }
-  bool interpretedSimplification() const { return _interpretedSimplification; }
   void setInterpretedEvaluation(bool val) { _interpretedEvaluation = val; }
+  bool interpretedSimplification() const { return _interpretedSimplification; }
+  void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
   bool theoryAxioms() const { return _theoryAxioms; }
   void setTheoryAxioms(bool val) { _theoryAxioms = val; }
   Condensation condensation() const { return _condensation; }

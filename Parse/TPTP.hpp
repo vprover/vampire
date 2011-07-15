@@ -423,6 +423,8 @@ private:
   Stack<TypeTag> _typeTags;
   /** bindings of variables to sorts */
   Stack<List<VariableSort>*> _variableSorts;
+  /** Stack used to recognize built-in functions and predicates */
+  Stack<Tag> _tags1;
 
   /**
    * Get the next characters at the position pos.

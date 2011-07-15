@@ -224,8 +224,12 @@ void Signature::registerInterpretedFunction(const string& name, Interpretation i
   CALL("Signature::registerInterpretedFunction");
   ASS(Theory::isFunction(interpretation));
   
-  unsigned arity = Theory::getArity(interpretation);
+  unsigned res;
+  if(_iSymbols.find(interpretation,res)) { // already declared
+    return;
+  }
 
+  unsigned arity = Theory::getArity(interpretation);
   string symbolKey = key(name,arity);
 
   if (_funNames.find(symbolKey)) {
@@ -256,8 +260,12 @@ void Signature::registerInterpretedPredicate(const string& name, Interpretation 
   CALL("Signature::registerInterpretedPredicate");
   ASS(!Theory::isFunction(interpretation));
 
-  unsigned arity = Theory::getArity(interpretation);
+  unsigned res;
+  if(_iSymbols.find(interpretation,res)) { // already declared
+    return;
+  }
 
+  unsigned arity = Theory::getArity(interpretation);
   string symbolKey = key(name,arity);
 
   if (_predNames.find(symbolKey)) {

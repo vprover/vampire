@@ -1417,6 +1417,11 @@ void TPTP::atom()
   Token& tok = getTok(0);
   switch (tok.tag) {
   case T_NAME:
+  case T_LESS:
+  case T_LESSEQ:
+  case T_GREATER:
+  case T_GREATEREQ:
+    _tags1.push(tok.tag);
     _strings.push(tok.content);
     _states.push(MID_ATOM);
     resetToks();
@@ -1431,14 +1436,9 @@ void TPTP::atom()
     _ints.push(1); // number of next argument
     return;
 
-  case T_REAL:
-    throw Exception("reading reals is not supported",tok);
-  case T_INT:
-    throw Exception("reading integers is not supported",tok);
   default:
     throw Exception("atom expected",tok);
   }
-  // throw Exception(*this,"atom() is undefined");
 } // atom()
 
 /**
@@ -1649,7 +1649,32 @@ void TPTP::midAtom()
   default:
     {
       int arity = _ints.pop();
-      unsigned pred = env.signature->addPredicate(_strings.pop(),arity);
+      string name = _strings.pop();
+      Tag t = _tags1.pop();
+      switch(t) {
+      case T_LESS:
+	env.signature->registerInterpretedPredicate(name,Theory::INT_LESS);
+	env.options->setInterpretedEvaluation(true);
+	env.options->setInterpretedSimplification(true);
+	break;
+      case T_LESSEQ:
+	env.signature->registerInterpretedPredicate(name,Theory::INT_LESS_EQUAL);
+	break;
+      case T_GREATER:
+	env.signature->registerInterpretedPredicate(name,Theory::INT_GREATER);
+	break;
+      case T_GREATEREQ:
+	env.signature->registerInterpretedPredicate(name,Theory::INT_GREATER_EQUAL);
+	break;
+      case T_NAME:
+	break;
+#if VDEBUG
+      default:
+	cout << toString(t) << "\n";
+	ASSERTION_VIOLATION;
+#endif
+      }
+      unsigned pred = env.signature->addPredicate(name,arity);
       Literal* a = new(arity) Literal(pred,arity,true,false);
       bool safe = true;
       for (int i = arity-1;i >= 0;i--) {
