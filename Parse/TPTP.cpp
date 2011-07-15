@@ -275,6 +275,8 @@ string TPTP::toString(Tag tag)
     return "$tType";
   case T_OBJ_TYPE:
     return "$o";
+  case T_INT_TYPE:
+    return "$i";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -795,8 +797,12 @@ void TPTP::readReserved(Token& tok)
     tok.tag = T_TTYPE;
     return;
   }
-  if (tok.content == "$o") {
+  if (tok.content == "$o" || tok.content == "$oType") {
     tok.tag = T_OBJ_TYPE;
+    return;
+  }
+  if (tok.content == "$i" || tok.content == "$iType") {
+    tok.tag = T_INT_TYPE;
     return;
   }
   throw Exception((string)"I do not know how to handle " + tok.content,tok);
@@ -1619,14 +1625,24 @@ void TPTP::endEquality()
   buildTerm();
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
-
-  Literal* l = Literal::equality(_bools.pop());
-  TermList* args = l->args();
-  *args = lhs;
-  args = args->next();
-  *args = rhs;
-  if (lhs.isSafe() && rhs.isSafe()) {
-    l = env.sharing->insert(l);
+  bool polarity = _bools.pop();
+  Literal* l;
+  if (lhs.isVar() && rhs.isVar()) {
+    unsigned sort = Sorts::SRT_DEFAULT;
+    int var1 = lhs.var();
+    int var2 = rhs.var();
+    List<VariableSort>::Iterator vs(_variableSorts.top());
+    while (vs.hasNext()) {
+      VariableSort v = vs.next();
+      if (v.var == var1 || v.var == var2) {
+	sort = v.sort;
+	break;
+      }
+    }
+    l = Literal::createVariableEquality(polarity,lhs,rhs,sort);
+  }
+  else {
+    l = Literal::createEquality(polarity,lhs,rhs);
   }
   _formulas.push(new AtomicFormula(l));
 } // endEquality
@@ -2137,6 +2153,10 @@ unsigned TPTP::readSort(bool newSortExpected)
     resetToks();
     return Sorts::SRT_DEFAULT;
 
+  case T_INT_TYPE:
+    resetToks();
+    return Sorts::SRT_INTEGER;
+
   default:
     throw Exception("sort expected",tok);
   }
@@ -2313,10 +2333,6 @@ $real
 $rat
 $int
 $
-$oType
-$o
-$iType
-$i
 $tType
 $$
 $equal

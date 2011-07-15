@@ -130,6 +130,8 @@ public:
     T_TTYPE,
     /** $o */
     T_OBJ_TYPE,
+    /** $i */
+    T_INT_TYPE,
   };
 
   /** parser state, numbers are just temporarily for debugging */
