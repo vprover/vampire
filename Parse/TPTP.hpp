@@ -519,7 +519,6 @@ private:
   void endEquality();
   void endFormula();
   void endType();
-  void endSimpleFormula();
   void tag();
   void endFof();
   void endTff();

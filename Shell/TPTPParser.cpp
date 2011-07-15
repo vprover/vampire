@@ -290,7 +290,7 @@ Unit* TPTPParser::unit()
     it = Unit::ASSUMPTION;
   }
   else if (tp == "lemma") {
-    it = Unit::LEMMA;
+    it = Unit::ASSUMPTION;
   }
   else {
     throw ParserException("axiom, conjecture or hypothesis expected",

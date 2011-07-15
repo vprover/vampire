@@ -43,14 +43,12 @@ public:
     AXIOM = 0,
     /** Assumption or derives from axioms and assumptions */
     ASSUMPTION = 1,
-    /** Derived from lemma */
-    LEMMA = 2,
     /** derives from the goal */
-    CONJECTURE = 3,
+    CONJECTURE = 2,
     /** negated conjecture */
-    NEGATED_CONJECTURE = 4,
+    NEGATED_CONJECTURE = 3,
     /** Vampire-only, for the consequence-finding mode */
-    CLAIM = 5,
+    CLAIM = 4,
   };
 
   static InputType getInputType(UnitList* units);

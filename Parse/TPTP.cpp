@@ -63,24 +63,6 @@ TPTP::TPTP(istream& in)
  */
 TPTP::~TPTP()
 {
-#if VDEBUG
-  ASS(_allowedNamesStack.isEmpty());
-  ASS(_inputs.isEmpty());
-  while (!_states.isEmpty()) {
-    cout << toString(_states.pop()) << "\n";
-  }
-  while (!_strings.isEmpty()) {
-    cout << _strings.pop() << "\n";
-  }
-  // ASS(_connectives.isEmpty());
-  // ASS(_bools.isEmpty());
-  // ASS(_ints.isEmpty());
-  // ASS(_varLists.isEmpty());
-  // ASS(_tags.isEmpty());
-  // ASS(_formulas.isEmpty());
-  // ASS(_termLists.isEmpty());
-  // ASS(_literals.isEmpty());
-#endif
 } // TPTP::~TPTP
 
 /**
@@ -1111,14 +1093,16 @@ void TPTP::fof(bool fo)
     _containsConjecture = true;
     _lastInputType = Unit::NEGATED_CONJECTURE;
   }
-  else if (tp == "hypothesis") {
+  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
     _lastInputType = Unit::ASSUMPTION;
+  }
+  else if (tp == "assumption") {
+    // assumptions are not used, so we assign them a non-existing input type and then
+    // not include them in the input
+    _lastInputType = (Unit::InputType)-1;
   }
   else if (tp == "claim") {
     _lastInputType = Unit::CLAIM;
-  }
-  else if (tp == "lemma") {
-    _lastInputType = Unit::LEMMA;
   }
   else {
     throw Exception((string)"unit type, such as axiom or definition expected but " + tp + " found",
@@ -1217,14 +1201,16 @@ void TPTP::tff()
     _containsConjecture = true;
     _lastInputType = Unit::NEGATED_CONJECTURE;
   }
-  else if (tp == "hypothesis") {
+  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
     _lastInputType = Unit::ASSUMPTION;
+  }
+  else if (tp == "assumption") {
+    // assumptions are not used, so we assign them a non-existing input type and then
+    // not include them in the input
+    _lastInputType = (Unit::InputType)-1;
   }
   else if (tp == "claim") {
     _lastInputType = Unit::CLAIM;
-  }
-  else if (tp == "lemma") {
-    _lastInputType = Unit::LEMMA;
   }
   else {
     throw Exception((string)"unit type, such as axiom or definition expected but " + tp + " found",
@@ -1660,10 +1646,10 @@ void TPTP::endFormula()
   bool conReverse;
   switch (con) {
   case IMP:
-    conReverse = _bools.pop();
-    break;
   case AND:
   case OR:
+    conReverse = _bools.pop();
+    break;
   case IFF:
   case XOR:
   case (Connective)-1:
@@ -1687,10 +1673,18 @@ void TPTP::endFormula()
   Token& tok = getTok(0);
   Tag tag = tok.tag;
   Connective c;
-  bool cReverse;
+  bool cReverse = false;
   switch (tag) {
   case T_AND:
     c = AND;
+    break;
+  case T_NOT_AND:
+    cReverse = true;
+    c = AND;
+    break;
+  case T_NOT_OR:
+    cReverse = true;
+    c = OR;
     break;
   case T_OR:
     c = OR;
@@ -1702,7 +1696,6 @@ void TPTP::endFormula()
     c = IFF;
     break;
   case T_IMPLY:
-    cReverse = false;
     c = IMP;
     break;
   case T_REVERSE_IMP:
@@ -1742,6 +1735,9 @@ void TPTP::endFormula()
     case OR:
       f = _formulas.pop();
       f = makeJunction(con,_formulas.pop(),f);
+      if (conReverse) {
+	f = new NegatedFormula(f);
+      }
 #if DEBUG_SHOW_FORMULAS
       cout << f->toString() << "\n";
 #endif
@@ -1764,6 +1760,9 @@ void TPTP::endFormula()
     Formula* g = _formulas.pop();
     if (con == AND || c == OR) {
       f = makeJunction(con,g,f);
+      if (conReverse) {
+	f = new NegatedFormula(f);
+      }
     }
     else if (con == IMP && conReverse) {
       f = new BinaryFormula(con,f,g);
@@ -1781,11 +1780,11 @@ void TPTP::endFormula()
 
   // c is a binary connective
   _connectives.push(con);
-  if (con == IMP) {
+  if (con == IMP || con == AND || con == OR) {
     _bools.push(conReverse);
   }
   _connectives.push(c);
-  if (c == IMP) {
+  if (c == IMP || c == AND || c == OR) {
     _bools.push(cReverse);
   }
   resetToks();
@@ -1859,6 +1858,10 @@ void TPTP::endFof()
   _bools.pop(); // ignoring whether the input was cnf() or fof()
   Formula* f = _formulas.pop();
   string nm = _strings.pop(); // unit name
+  if (_lastInputType == (Unit::InputType)-1) {
+    // assumption, they are not used
+    return;
+  }
   if (_allowedNames && !_allowedNames->contains(nm)) {
     return;
   }
