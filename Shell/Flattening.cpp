@@ -91,7 +91,7 @@ Formula* Flattening::flatten (Formula* f)
 	return arg->uarg();
       }
       if(arg->connective()==LITERAL) {
-	return new AtomicFormula(Literal::oppositeLiteral(arg->literal()));
+	return new AtomicFormula(Literal::complementaryLiteral(arg->literal()));
       }
       if (arg == f->uarg()) {
 	return f;

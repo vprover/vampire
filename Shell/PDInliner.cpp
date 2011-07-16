@@ -298,7 +298,7 @@ struct PDInliner::PDef
     Literal* res = SubstHelper::apply(body, apl);
 
     if(l->isPositive() != _lhs->isPositive()) {
-      res = Literal::oppositeLiteral(res);
+      res = Literal::complementaryLiteral(res);
     }
     traceLiteralApply(l, res, 0, false);
     return res;

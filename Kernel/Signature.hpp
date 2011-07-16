@@ -382,6 +382,15 @@ class Signature
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
 
   static string key(const string& name,int arity);
+
+  /** the number of string constants */
+  bool strings() const {return _strings;}
+  /** the number of integer constants */
+  bool integers() const {return _integers;}
+  /** the number of rational constants */
+  bool rationals() const {return _rationals;}
+  /** the number of real constants */
+  bool reals() const {return _reals;}
 private:
 
   static const unsigned STRING_DISTINCT_GROUP;
@@ -427,6 +436,14 @@ private:
    * or a predicate.
    */
   DHMap<Interpretation, unsigned> _iSymbols;
+  /** the number of string constants */
+  bool _strings;
+  /** the number of integer constants */
+  bool _integers;
+  /** the number of rational constants */
+  bool _rationals;
+  /** the number of real constants */
+  bool _reals;
 }; // class Signature
 
 }

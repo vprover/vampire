@@ -52,10 +52,14 @@ public:
    * Return the number of sorts
    */
   unsigned sorts() const { return _sorts.length(); }
+  /** true if there is a sort different from built-ins */
+  bool hasSort() const {return _hasSort;}
 
 private:
   SymbolMap _sortNames;
   Stack<SortInfo*> _sorts;
+  /** true if there is a sort different from built-ins */
+  bool _hasSort;
 };
 
 

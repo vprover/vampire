@@ -38,6 +38,8 @@ Sorts::Sorts()
 
   aux = addSort("$real");
   ASS_EQ(aux, SRT_REAL);
+
+  _hasSort = false;
 }
 
 Sorts::~Sorts()
@@ -68,6 +70,7 @@ unsigned Sorts::addSort(const string& name, bool& added)
     added = false;
     return result;
   }
+  _hasSort = true;
   result = _sorts.length();
   _sorts.push(new SortInfo(name));
   _sortNames.insert(name,result);

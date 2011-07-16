@@ -30,8 +30,6 @@ using namespace Kernel;
 using namespace Parse;
 
 #define DEBUG_SHOW_TOKENS 0
-#define DEBUG_SHOW_TERMS 0
-#define DEBUG_SHOW_FORMULAS 0
 #define DEBUG_SHOW_UNITS 0
 
 /**
@@ -1724,9 +1722,6 @@ void TPTP::midAtom()
       if (safe) {
 	a = env.sharing->insert(a);
       }
-#if DEBUG_SHOW_TERMS
-      cout << "Atom: " << a->toString() << "\n";
-#endif
       _formulas.push(new AtomicFormula(a));
       return;
     }
@@ -1848,9 +1843,6 @@ void TPTP::endFormula()
       else {
 	f = new BinaryFormula((Connective)con,_formulas.pop(),f);
       }
-#if DEBUG_SHOW_FORMULAS
-      cout << f->toString() << "\n";
-#endif
       _formulas.push(f);
       _states.push(END_FORMULA);
       return;
@@ -1859,9 +1851,6 @@ void TPTP::endFormula()
     case XOR:
       f = _formulas.pop();
       f = new BinaryFormula((Connective)con,_formulas.pop(),f);
-#if DEBUG_SHOW_FORMULAS
-      cout << f->toString() << "\n";
-#endif
       _formulas.push(f);
       _states.push(END_FORMULA);
       return;
@@ -1873,9 +1862,6 @@ void TPTP::endFormula()
       if (conReverse) {
 	f = new NegatedFormula(f);
       }
-#if DEBUG_SHOW_FORMULAS
-      cout << f->toString() << "\n";
-#endif
       _formulas.push(f);
       _states.push(END_FORMULA);
       return;
@@ -1905,9 +1891,6 @@ void TPTP::endFormula()
     else {
       f = new BinaryFormula((Connective)con,g,f);
     }
-#if DEBUG_SHOW_FORMULAS
-    cout << f->toString() << "\n";
-#endif
     _formulas.push(f);
     _states.push(END_FORMULA);
     return;
@@ -1990,7 +1973,7 @@ void TPTP::endFof()
   skipToRPAR();
   consumeToken(T_DOT);
 
-  _bools.pop(); // ignoring whether the input was cnf() or fof()
+  bool isFof = _bools.pop();
   Formula* f = _formulas.pop();
   string nm = _strings.pop(); // unit name
   if (_lastInputType == -1) {
@@ -2000,8 +1983,58 @@ void TPTP::endFof()
   if (_allowedNames && !_allowedNames->contains(nm)) {
     return;
   }
-  env.statistics->inputFormulas++;
-  Unit* unit = new FormulaUnit(f,new Inference(Inference::INPUT),(Unit::InputType)_lastInputType);
+
+  Unit* unit;
+  if (isFof) { // fof() or tff()
+    env.statistics->inputFormulas++;
+    unit = new FormulaUnit(f,new Inference(Inference::INPUT),(Unit::InputType)_lastInputType);
+  }
+  else { // cnf()
+    env.statistics->inputClauses++;
+    // convert the input formula f to a clause
+    Stack<Formula*> forms;
+    Stack<Literal*> lits;
+    Formula* g = f;
+    forms.push(f);
+    while (! forms.isEmpty()) {
+      f = forms.pop();
+      switch (f->connective()) {
+      case OR:
+	{
+	  FormulaList::Iterator fs(static_cast<JunctionFormula*>(f)->getArgs());
+	  while (fs.hasNext()) {
+	    forms.push(fs.next());
+	  }
+	}
+	break;
+
+      case LITERAL:
+      case NOT:
+	{
+	  bool positive = true;
+	  while (f->connective() == NOT) {
+	    f = static_cast<NegatedFormula*>(f)->subformula();
+	    positive = !positive;
+	  }
+	  if (f->connective() != LITERAL) {
+	    USER_ERROR((string)"input formula not in CNF: " + g->toString());
+	  }
+	  Literal* l = static_cast<AtomicFormula*>(f)->literal();
+	  lits.push(positive ? l : Literal::complementaryLiteral(l));
+	}
+	break;
+
+      case TRUE:
+	return;
+      case FALSE:
+	break;
+      default:
+	USER_ERROR((string)"input formula not in CNF: " + g->toString());
+      }
+    }
+    unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference(Inference::INPUT));
+  }
+
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif

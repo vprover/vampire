@@ -164,7 +164,7 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
       }
       bool shouldAdd = !instSet.contains(inst);
       if(shouldAdd) {
-	Literal* opInst = Literal::oppositeLiteral(inst);
+	Literal* opInst = Literal::complementaryLiteral(inst);
 	shouldAdd = !instSet.contains(opInst);
       }
       if(shouldAdd) {

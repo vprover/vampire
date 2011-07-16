@@ -97,7 +97,7 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::getNamedComponent(Cl
     if(_groundNames.find(lit, res)) {
       return res;
     }
-    if(_groundNames.find(Literal::oppositeLiteral(lit), res)) {
+    if(_groundNames.find(Literal::complementaryLiteral(lit), res)) {
       int name=-res.name;
       res=createNamedComponent(cl, cr, name);
     }

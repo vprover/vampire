@@ -9,11 +9,13 @@
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Int.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
@@ -27,30 +29,30 @@ using namespace Shell;
  *
  * @since 29/06/2002, Manchester
  */
-Property::Property ()
-  : _goalClauses (0),
-    _axiomClauses (0),
-    _positiveEqualityAtoms (0),
-    _equalityAtoms (0),
-    _atoms (0),
-    _goalFormulas (0),
-    _axiomFormulas (0),
-    _subformulas (0),
-    _terms (0),
-    _unitGoals (0),
-    _unitAxioms (0),
-    _hornGoals (0),
-    _hornAxioms (0),
-    _equationalClauses (0),
-    _pureEquationalClauses (0),
-    _groundUnitAxioms (0),
-    _positiveAxioms (0),
-    _groundPositiveAxioms (0),
-    _groundGoals (0),
-    _maxFunArity (0),
-    _maxPredArity (0),
-    _totalNumberOfVariables (0),
-    _maxVariablesInClause (0),
+Property::Property()
+  : _goalClauses(0),
+    _axiomClauses(0),
+    _positiveEqualityAtoms(0),
+    _equalityAtoms(0),
+    _atoms(0),
+    _goalFormulas(0),
+    _axiomFormulas(0),
+    _subformulas(0),
+    _terms(0),
+    _unitGoals(0),
+    _unitAxioms(0),
+    _hornGoals(0),
+    _hornAxioms(0),
+    _equationalClauses(0),
+    _pureEquationalClauses(0),
+    _groundUnitAxioms(0),
+    _positiveAxioms(0),
+    _groundPositiveAxioms(0),
+    _groundGoals(0),
+    _maxFunArity(0),
+    _maxPredArity(0),
+    _totalNumberOfVariables(0),
+    _maxVariablesInClause(0),
     _props(0)
 {
 } // Property::Property
@@ -63,6 +65,24 @@ Property::Property ()
 void Property::scan(UnitList* units)
 {
   CALL("Property::scan(UnitList*)");
+
+  // information about sorts is read from the environment, not from the problem
+  if (env.sorts->hasSort()) {
+    addProp(PR_SORTS);
+  }
+  // information about interpreted constant is read from the signature
+  if (env.signature->strings()) {
+    addProp(PR_HAS_STRINGS);
+  }
+  if (env.signature->integers()) {
+    addProp(PR_HAS_INTEGERS);
+  }
+  if (env.signature->rationals()) {
+    addProp(PR_HAS_RATS);
+  }
+  if (env.signature->reals()) {
+    addProp(PR_HAS_REALS);
+  }
 
   UnitList::Iterator us(units);
   while (us.hasNext()) {
@@ -127,7 +147,7 @@ void Property::scan(UnitList* units)
  *        formula scanning added
  * @since 26/05/2007 Manchester, changed to use new datastructures
  */
-void Property::scan (Unit* unit)
+void Property::scan(Unit* unit)
 {
   CALL("Property::scan(const Unit*)");
 
@@ -145,7 +165,7 @@ void Property::scan (Unit* unit)
       FunctionDefinition::deleteDef(def);
     }
   }
-} // Property::scan (const Unit* unit)
+} // Property::scan(const Unit* unit)
 
 /**
  * Scan a clause.
@@ -156,9 +176,9 @@ void Property::scan (Unit* unit)
  * @since 27/08/2003 Vienna, changed to count variables
  * @since 26/05/2007 Manchester, changed to use new datastructures
  */
-void Property::scan (Clause* clause)
+void Property::scan(Clause* clause)
 {
-  CALL("Property::scan (const Clause*)");
+  CALL("Property::scan(const Clause*)");
 
   int positiveLiterals = 0;
   int negativeLiterals = 0;
@@ -247,9 +267,9 @@ void Property::scan (Clause* clause)
  * Scan a formula unit.
  * @since 27/05/2007 flight Manchester-Frankfurt
  */
-void Property::scan (FormulaUnit* unit)
+void Property::scan(FormulaUnit* unit)
 {
-  CALL("Property::scan (const FormulaUnit*)");
+  CALL("Property::scan(const FormulaUnit*)");
 
   if (unit->inputType() == Unit::AXIOM) {
     _axiomFormulas ++;
@@ -274,9 +294,9 @@ void Property::scan (FormulaUnit* unit)
  * @since 17/07/2003 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-void Property::scan (Formula* formula)
+void Property::scan(Formula* formula)
 {
-  CALL("void Property::scan (const Formula&)");
+  CALL("void Property::scan(const Formula&)");
 
   SubformulaIterator fs(formula);
   while (fs.hasNext()) {
@@ -295,7 +315,7 @@ void Property::scan (Formula* formula)
       scan(lit,dummy);
     }
   }
-} // Property::scan (const Formula&)
+} // Property::scan(const Formula&)
 
 
 /**
@@ -307,9 +327,9 @@ void Property::scan (Formula* formula)
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
  */
-void Property::scan (Literal* lit, bool& isGround)
+void Property::scan(Literal* lit, bool& isGround)
 {
-  CALL("Property::scan (const Literal*...)");
+  CALL("Property::scan(const Literal*...)");
 
   if (! lit->isEquality()) {
     int arity = lit->arity();
@@ -321,15 +341,14 @@ void Property::scan (Literal* lit, bool& isGround)
   scan(lit->args(),isGround);
 
   if(!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality()
-	  && lit->isNegative() && !isGround) {
-    if( ( lit->nthArgument(0)->isVar() &&
-	    !lit->nthArgument(1)->containsSubterm(*lit->nthArgument(0)) ) ||
-	( lit->nthArgument(1)->isVar() &&
-    	    !lit->nthArgument(0)->containsSubterm(*lit->nthArgument(1)) )) {
-      addProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION);
-    }
+     && lit->isNegative() && !isGround &&
+     ( ( lit->nthArgument(0)->isVar() &&
+	 !lit->nthArgument(1)->containsSubterm(*lit->nthArgument(0)) ) ||
+       ( lit->nthArgument(1)->isVar() &&
+	 !lit->nthArgument(0)->containsSubterm(*lit->nthArgument(1)) ))) {
+    addProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION);
   }
-} // Property::scan (const Atom& term, bool& isGround)
+} // Property::scan(const Atom& term, bool& isGround)
 
 
 /**
@@ -368,14 +387,13 @@ void Property::scan(TermList* ts, bool& isGround)
       if (arity > _maxFunArity) {
 	_maxFunArity = arity;
       }
-      TermList* ss = t->args();
-      if (! ss->isEmpty()) {
-	stack.push(ss);
+      if (arity) {
+	stack.push(t->args());
       }
     }
     ts = ts->next();
   }
-} // Property::scan (const Term& term, bool& isGround)
+} // Property::scan(const Term& term, bool& isGround)
 
 
 /**
@@ -419,7 +437,7 @@ string Property::categoryString() const
  * ARE CURRENTLY OUTPUT.
  * @since 27/08/2003 Vienna
  */
-string Property::toString () const
+string Property::toString() const
 {
   string result("TPTP class: ");
   result += categoryString() + "\n";
@@ -468,7 +486,7 @@ string Property::toString () const
  * @since 04/06/2004 Manchester
  * @since 27/05/2007 Frankfurt airport, changed to new datastructures
  */
-bool Property::hasXEqualsY (const Clause* c)
+bool Property::hasXEqualsY(const Clause* c)
 {
   CALL("Property::hasXEqualsY (const Clause*)");
 
@@ -478,7 +496,7 @@ bool Property::hasXEqualsY (const Clause* c)
     }
   }
   return  false;
-} // Property::hasXEqualsY (const Clause*)
+} // Property::hasXEqualsY(const Clause*)
 
 
 /**
@@ -486,7 +504,7 @@ bool Property::hasXEqualsY (const Clause* c)
  * @since 22/05/2004 Manchester.
  * @since 27/05/2007 Frankfurt airport, changed to new datastructures
  */
-bool Property::isXEqualsY (const Literal* lit,bool polarity)
+bool Property::isXEqualsY(const Literal* lit,bool polarity)
 {
   CALL("Property::isXEqualsY");
 
@@ -525,7 +543,7 @@ bool Property::isXEqualsY (const Literal* lit,bool polarity)
  * @since 11/12/2004 Manchester, true and false added
  * @since 27/05/2007 flight Frankfurt-Lisbon, changed to new datastructures
  */
-bool Property::hasXEqualsY (const Formula* f, MultiCounter& vc, int polarity)
+bool Property::hasXEqualsY(const Formula* f, MultiCounter& vc, int polarity)
 {
   switch (f->connective()) {
   case LITERAL:
@@ -594,7 +612,7 @@ bool Property::hasXEqualsY (const Formula* f, MultiCounter& vc, int polarity)
     ASSERTION_VIOLATION;
 #endif
   }
-} // Property::hasXEqualsY (const Formula& f,...)
+} // Property::hasXEqualsY(const Formula& f,...)
 
 
 /**
@@ -604,7 +622,7 @@ bool Property::hasXEqualsY (const Formula* f, MultiCounter& vc, int polarity)
  *
  * @since 04/05/2005 Manchester
  */
-string Property::toSpider (const string& problemName) const
+string Property::toSpider(const string& problemName) const
 {
   return (string)"UPDATE problem SET property="
     + Int::toString((int)_props)

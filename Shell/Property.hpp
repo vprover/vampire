@@ -55,7 +55,7 @@ public:
     UEQ
   };
 
-  // Various boolean properties. Every Property
+  // Various boolean properties.
   /** CNF of the problem has a positive literal x=y */
   static const unsigned PR_HAS_X_EQUALS_Y = 1u; // 2^0
   /** Problem has function definitions f(X) = t[X] */

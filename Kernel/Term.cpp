@@ -592,11 +592,11 @@ unsigned Literal::oppositeHash() const
 /**
  * Return literal opposite to @b l.
  */
-Literal* Literal::oppositeLiteral(Literal* l)
+Literal* Literal::complementaryLiteral(Literal* l)
 {
   Literal* res=env.sharing->tryGetOpposite(l);
   if(!res) {
-    res=create(l, !l->polarity());
+    res=create(l,!l->polarity());
   }
   return res;
 }

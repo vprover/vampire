@@ -924,7 +924,7 @@ struct InferenceStore::TPTPProofPrinter
     compStr=getQuantifiedStr(compOnlyVars, compStr, multiple);
     compOnlyVars->destroy();
 
-    string defStr=compStr+" <=> "+Literal::oppositeLiteral(nameLit)->toString();
+    string defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
     defStr=getQuantifiedStr(nameVars, defStr);
     nameVars->destroy();
 

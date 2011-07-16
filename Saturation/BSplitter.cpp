@@ -588,7 +588,7 @@ void BSplitter::getAlternativeClauses(Clause* base, Clause* firstComp, Clause* r
     while(fcit.hasNext()) {
       Literal* glit=fcit.next();
       Inference* ginf=getAlternativeClauseInference(base, firstComp, refutation);
-      Clause* gcl=Clause::fromIterator(getSingletonIterator(Literal::oppositeLiteral(glit)), inp, ginf);
+      Clause* gcl=Clause::fromIterator(getSingletonIterator(Literal::complementaryLiteral(glit)), inp, ginf);
       gcl->setAge(resAge);
       gcl->initProp(resProp);
       assignClauseSplitSet(gcl, gndResSplits);

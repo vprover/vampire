@@ -180,7 +180,11 @@ Signature::Signature ()
     _preds(32),
     _lastName(0),
     _lastIntroducedFunctionNumber(0),
-    _lastSG(0)
+    _lastSG(0),
+    _strings(0),
+    _integers(0),
+    _rationals(0),
+    _reals(0)
 {
   CALL("Signature::Signature");
 
@@ -305,6 +309,7 @@ unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
   if(_funNames.find(key, result)) {
     return result;
   }
+  _integers++;
   result = _funs.length();
   _funs.push(new IntegerSymbol(value));
   _funNames.insert(key, result);
@@ -328,6 +333,7 @@ unsigned Signature::addRationalConstant(const RationalConstantType& value)
   if(_funNames.find(key, result)) {
     return result;
   }
+  _rationals++;
   result = _funs.length();
   _funs.push(new RationalSymbol(value));
   _funNames.insert(key, result);
@@ -351,6 +357,7 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
   if(_funNames.find(key, result)) {
     return result;
   }
+  _reals++;
   result = _funs.length();
   _funs.push(new RealSymbol(value));
   _funNames.insert(key, result);
@@ -528,8 +535,8 @@ unsigned Signature::addStringConstant(const string& name)
     return result;
   }
 
+  _strings++;
   string quotedName = "\"" + name + "\"";
-
   result = _funs.length();
   Symbol* sym = new Symbol(quotedName,0,false,true);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP);

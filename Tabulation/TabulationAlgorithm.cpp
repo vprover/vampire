@@ -338,7 +338,7 @@ void TabulationAlgorithm::addGoalProducingRule(Clause* oldGoal)
   }
 
   Literal* selected = (*oldGoal)[0];
-  Literal* activator = Literal::oppositeLiteral(selected);
+  Literal* activator = Literal::complementaryLiteral(selected);
   Clause* newGoal = generateGoal(oldGoal, selected);
 
   newGoal = processSubsumedGoalLiterals(newGoal);

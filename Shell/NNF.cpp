@@ -88,7 +88,7 @@ Formula* NNF::ennf (Formula* f, bool polarity)
   case LITERAL:
     if (! polarity) {
       Literal* lit = f->literal();
-      Literal* newLit = Literal::oppositeLiteral(lit);
+      Literal* newLit = Literal::complementaryLiteral(lit);
       return new AtomicFormula(newLit);
     }
     return f;
@@ -225,7 +225,7 @@ Formula* NNF::nnf (Formula* f, bool polarity)
   case LITERAL:
     if (! polarity) {
       Literal* lit = f->literal();
-      Literal* newLit = Literal::oppositeLiteral(lit);
+      Literal* newLit = Literal::complementaryLiteral(lit);
       return new AtomicFormula(newLit);
     }
     return f;

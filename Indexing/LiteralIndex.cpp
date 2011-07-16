@@ -257,12 +257,12 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
   //we want to always pass the greater literal as positive in order to get consistent results
   //when using the LCM_REVERSE literal comparison mode.
   if(cgr->isPositive()) {
-    //we use Literal::oppositeLiteral(csm) instead of dsm (which is a variant with
+    //we use Literal::complementaryLiteral(csm) instead of dsm (which is a variant with
     //opposite polarity), so that the literals share variables
-    cmpRes=Ordering::instance()->compare(cgr,Literal::oppositeLiteral(csm));
+    cmpRes=Ordering::instance()->compare(cgr,Literal::complementaryLiteral(csm));
   }
   else {
-    cmpRes=Ordering::instance()->compare(Literal::oppositeLiteral(cgr),csm);
+    cmpRes=Ordering::instance()->compare(Literal::complementaryLiteral(cgr),csm);
   }
   switch(cmpRes) {
   case Ordering::GREATER:
