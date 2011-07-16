@@ -1196,7 +1196,7 @@ void TPTP::fof(bool fo)
   else if (tp == "assumption" || tp == "unknown") {
     // assumptions are not used, so we assign them a non-existing input type and then
     // not include them in the input
-    _lastInputType = (Unit::InputType)-1;
+    _lastInputType = -1;
   }
   else if (tp == "claim") {
     _lastInputType = Unit::CLAIM;
@@ -1304,7 +1304,7 @@ void TPTP::tff()
   else if (tp == "assumption" || tp == "unknown") {
     // assumptions are not used, so we assign them a non-existing input type and then
     // not include them in the input
-    _lastInputType = (Unit::InputType)-1;
+    _lastInputType = -1;
   }
   else if (tp == "claim") {
     _lastInputType = Unit::CLAIM;
@@ -1419,7 +1419,7 @@ void TPTP::formula()
 {
   CALL("TPTP::formula");
 
-  _connectives.push((Connective)-1);
+  _connectives.push(-1);
   _states.push(END_FORMULA);
   _states.push(SIMPLE_FORMULA);
 } // formula
@@ -1776,7 +1776,7 @@ void TPTP::endFormula()
 {
   CALL("TPTP::endFormula");
 
-  Connective con = _connectives.pop();
+  int con = _connectives.pop();
   Formula* f;
   bool conReverse;
   switch (con) {
@@ -1787,7 +1787,7 @@ void TPTP::endFormula()
     break;
   case IFF:
   case XOR:
-  case (Connective)-1:
+  case -1:
     break;
   case NOT:
     f = _formulas.pop();
@@ -1797,7 +1797,7 @@ void TPTP::endFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula(con,_varLists.pop(),f));
+    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),f));
     _states.push(END_FORMULA);
     return;
   case LITERAL:
@@ -1843,10 +1843,10 @@ void TPTP::endFormula()
     case IMP:
       f = _formulas.pop();
       if (conReverse) {
-	f = new BinaryFormula(con,f,_formulas.pop());
+	f = new BinaryFormula((Connective)con,f,_formulas.pop());
       }
       else {
-	f = new BinaryFormula(con,_formulas.pop(),f);
+	f = new BinaryFormula((Connective)con,_formulas.pop(),f);
       }
 #if DEBUG_SHOW_FORMULAS
       cout << f->toString() << "\n";
@@ -1858,7 +1858,7 @@ void TPTP::endFormula()
     case IFF:
     case XOR:
       f = _formulas.pop();
-      f = new BinaryFormula(con,_formulas.pop(),f);
+      f = new BinaryFormula((Connective)con,_formulas.pop(),f);
 #if DEBUG_SHOW_FORMULAS
       cout << f->toString() << "\n";
 #endif
@@ -1869,7 +1869,7 @@ void TPTP::endFormula()
     case AND:
     case OR:
       f = _formulas.pop();
-      f = makeJunction(con,_formulas.pop(),f);
+      f = makeJunction((Connective)con,_formulas.pop(),f);
       if (conReverse) {
 	f = new NegatedFormula(f);
       }
@@ -1880,7 +1880,7 @@ void TPTP::endFormula()
       _states.push(END_FORMULA);
       return;
 
-    case (Connective)-1:
+    case -1:
       return;
 #if VDEBUG
     default:
@@ -1894,16 +1894,16 @@ void TPTP::endFormula()
     f = _formulas.pop();
     Formula* g = _formulas.pop();
     if (con == AND || c == OR) {
-      f = makeJunction(con,g,f);
+      f = makeJunction((Connective)con,g,f);
       if (conReverse) {
 	f = new NegatedFormula(f);
       }
     }
     else if (con == IMP && conReverse) {
-      f = new BinaryFormula(con,f,g);
+      f = new BinaryFormula((Connective)con,f,g);
     }
     else {
-      f = new BinaryFormula(con,g,f);
+      f = new BinaryFormula((Connective)con,g,f);
     }
 #if DEBUG_SHOW_FORMULAS
     cout << f->toString() << "\n";
@@ -1993,7 +1993,7 @@ void TPTP::endFof()
   _bools.pop(); // ignoring whether the input was cnf() or fof()
   Formula* f = _formulas.pop();
   string nm = _strings.pop(); // unit name
-  if (_lastInputType == (Unit::InputType)-1) {
+  if (_lastInputType == -1) {
     // assumption, they are not used
     return;
   }
@@ -2001,7 +2001,7 @@ void TPTP::endFof()
     return;
   }
   env.statistics->inputFormulas++;
-  Unit* unit = new FormulaUnit(f,new Inference(Inference::INPUT),_lastInputType);
+  Unit* unit = new FormulaUnit(f,new Inference(Inference::INPUT),(Unit::InputType)_lastInputType);
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
@@ -2392,10 +2392,10 @@ void TPTP::makeTerm(TermList& ts,Token& tok)
  * True if c1 has a strictly higher priority than c2.
  * @since 07/07/2011 Manchester
  */
-bool TPTP::higherPrecedence(Connective c1,Connective c2)
+bool TPTP::higherPrecedence(int c1,int c2)
 {
   if (c1 == c2) return false;
-  if (c1 == (Connective)-1) return false;
+  if (c1 == -1) return false;
   if (c2 == IFF) return true;
   if (c1 == IFF) return false;
   if (c2 == XOR) return true;
@@ -2421,19 +2421,16 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
       delete static_cast<JunctionFormula*>(rhs);
       return lhs;
     }
-
     // only lhs has c as the main connective
     FormulaList::concat(largs,new FormulaList(rhs));
     return lhs;
   }
-
   // lhs' connective is not c
   if (rhs->connective() == c) {
     static_cast<JunctionFormula*>(rhs)->setArgs(new FormulaList(lhs,
 								rhs->args()));
     return rhs;
   }
-
   // both connectives are not c
   return new JunctionFormula(c,
 			     new FormulaList(lhs,

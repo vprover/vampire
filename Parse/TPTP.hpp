@@ -403,12 +403,12 @@ private:
   UnitStack _units;
   /** stack of unprocessed states */
   Stack<State> _states;
-  /** input type of the last read unit */
-  Unit::InputType _lastInputType;
+  /** input type of the last read unit */ // it must be int since -1 can be used as a value
+  int _lastInputType;
   /** various strings saved during parsing */
   Stack<string> _strings;
-  /** various connectives saved during parsing */
-  Stack<Connective> _connectives;
+  /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used
+  Stack<int> _connectives;
   /** various boolean values saved during parsing */
   Stack<bool> _bools;
   /** various integer values saved during parsing */
@@ -556,7 +556,7 @@ private:
   void unbindVariables();
   void skipToRPAR();
 
-  static bool higherPrecedence(Connective c1,Connective c2);
+  static bool higherPrecedence(int c1,int c2);
 
 #if VDEBUG
   void printStates(string extra);
