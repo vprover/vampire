@@ -1750,12 +1750,14 @@ void TPTP::endEquality()
     unsigned sort = Sorts::SRT_DEFAULT;
     int var1 = lhs.var();
     int var2 = rhs.var();
-    List<VariableSort>::Iterator vs(_variableSorts.top());
-    while (vs.hasNext()) {
-      VariableSort v = vs.next();
-      if (v.var == var1 || v.var == var2) {
-	sort = v.sort;
-	break;
+    if (!_variableSorts.isEmpty()) { // may be empty when the formula has free variables
+      List<VariableSort>::Iterator vs(_variableSorts.top());
+      while (vs.hasNext()) {
+	VariableSort v = vs.next();
+	if (v.var == var1 || v.var == var2) {
+	  sort = v.sort;
+	  break;
+	}
       }
     }
     l = Literal::createVariableEquality(polarity,lhs,rhs,sort);

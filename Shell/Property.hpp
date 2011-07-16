@@ -55,48 +55,64 @@ public:
     UEQ
   };
 
-  /**
-   * Represents various boolean properties. Every Property
-   * has an integer _props that is a bitwise OR of all Prop's.
-   */
-  enum Prop {
-    /** CNF of the problem has a positive literal x=y */
-    PR_HAS_X_EQUALS_Y = 1u,
-    /** Problem has function definitions f(X) = t[X] */
-    PR_HAS_FUNCTION_DEFINITIONS = 2u,
-    /** Problem contains a subset axiom */
-    PR_HAS_SUBSET = 4u,
-    /** Problem contains extensionality axiom */
-    PR_HAS_EXTENSIONALITY = 8u,
-    /** Problem contains an axiomatisation of group theory */
-    PR_GROUP = 16u,
-    /** Problem contains an axiomatisation of ring theory */
-    PR_RING = 32u,
-    /** Problem contains an axiomatisation of robbins algebras */
-    PR_ROBBINS_ALGEBRA = 64u,
-    /** Problem contains an axiomatisation of non-associative rings */
-    PR_NA_RING = 128u,
-    /** Problem contains an axiomatisation of boolean algebras */
-    PR_BOOLEAN_ALGEBRA = 256u,
-    /** Problem contains an axiomatisation of lattice theory */
-    PR_LATTICE = 512u,
-    /** Problem contains an axiomatisation of lattice-ordered groups */
-    PR_LO_GROUP = 1024u,
-    /** Problem contains an axiomatisation of the B combinator */
-    PR_COMBINATOR_B = 2048u,
-    /** Problem contains an axiomatisation of a combinator S,T,O or Q */
-    PR_COMBINATOR = 4096u,
-    /** Problem contains the condensed detachment axiom
-     *  ~theorem(X) \/ ~theorem(imply(X,Y)) \/ theorem(Y) */
-    PR_HAS_CONDENSED_DETACHMENT1 = 8192u,
-    /** Problem contains the condensed detachment axiom
-     *  ~theorem(X) \/ ~theorem(or(not(X),Y)) \/ theorem(Y) */
-    PR_HAS_CONDENSED_DETACHMENT2 = 16384u,
-    PR_HAS_FLD1                  = 32768u,
-    PR_HAS_FLD2                  = 65536u,
-    /** Problem contains literal X=t with t non-containing X */
-    PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION = 131072u
-  };
+  // Various boolean properties. Every Property
+  /** CNF of the problem has a positive literal x=y */
+  static const unsigned PR_HAS_X_EQUALS_Y = 1u; // 2^0
+  /** Problem has function definitions f(X) = t[X] */
+  static const unsigned PR_HAS_FUNCTION_DEFINITIONS = 2u; // 2^1
+  /** Problem contains a subset axiom */
+  static const unsigned PR_HAS_SUBSET = 4u; // 2^2
+  /** Problem contains extensionality axiom */
+  static const unsigned PR_HAS_EXTENSIONALITY = 8u; // 2^3
+  /** Problem contains an axiomatisation of group theory */
+  static const unsigned PR_GROUP = 16u; // 2^4
+  /** Problem contains an axiomatisation of ring theory */
+  static const unsigned PR_RING = 32u; // 2^5
+  /** Problem contains an axiomatisation of robbins algebras */
+  static const unsigned PR_ROBBINS_ALGEBRA = 64u; // 2^6
+  /** Problem contains an axiomatisation of non-associative rings */
+  static const unsigned PR_NA_RING = 128u; // 2^7
+  /** Problem contains an axiomatisation of boolean algebras */
+  static const unsigned PR_BOOLEAN_ALGEBRA = 256u; // 2^8
+  /** Problem contains an axiomatisation of lattice theory */
+  static const unsigned PR_LATTICE = 512u; // 2^9
+  /** Problem contains an axiomatisation of lattice-ordered groups */
+  static const unsigned PR_LO_GROUP = 1024u; // 2^10
+  /** Problem contains an axiomatisation of the B combinator */
+  static const unsigned PR_COMBINATOR_B = 2048u; // 2^11
+  /** Problem contains an axiomatisation of a combinator S,T,O or Q */
+  static const unsigned PR_COMBINATOR = 4096u; // 2^12
+  /** Problem contains the condensed detachment axiom
+   *  ~theorem(X) \/ ~theorem(imply(X,Y)) \/ theorem(Y) */
+  static const unsigned PR_HAS_CONDENSED_DETACHMENT1 = 8192u; // 2^13
+  /** Problem contains the condensed detachment axiom
+   *  ~theorem(X) \/ ~theorem(or(not(X),Y)) \/ theorem(Y) */
+  static const unsigned PR_HAS_CONDENSED_DETACHMENT2 = 16384u; // 2^14
+  /** field axioms from TPTP */
+  static const unsigned PR_HAS_FLD1 = 32768u; // 2^15
+  /** other field axioms from TPTP */
+  static const unsigned PR_HAS_FLD2 = 65536u; // 2^16
+  /** Problem contains literal X=t with t non-containing X */
+  static const unsigned PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION = 131072u; // 2^17
+  /** Has strings */
+  static const unsigned PR_HAS_STRINGS = 262144u; // 2^18
+  /** Has integer sort */
+  static const unsigned PR_HAS_INTEGERS = 524288u; // 2^19
+  /** Has rational sort */
+  static const unsigned PR_HAS_RATS = 1048576u; // 2^20
+  /** Has real sort */
+  static const unsigned PR_HAS_REALS = 2097152u; // 2^21
+  /** Has sort declarations */
+  static const unsigned PR_SORTS = 4194304u; // 2^22
+
+// 8388608u; // 2^23
+// 16777216u; // 2^24
+// 33554432u; // 2^25
+// 67108864u; // 2^26
+// 134217728u; // 2^27
+// 268435456u; // 2^28
+// 536870912u; // 2^29
+// 1073741824u; // 2^30
 
  public:
   // constructor
@@ -128,9 +144,9 @@ public:
   bool hasFormulas () const { return _axiomFormulas || _goalFormulas; }
 
   /** The problem has property p */
-  bool hasProp (Prop p) const { return _props & p; }
+  bool hasProp (unsigned p) const { return _props & p; }
   /** Add property p to the list of properties */
-  void addProp (Prop p) { _props |= p; }
+  void addProp (unsigned p) { _props |= p; }
   /** Return props as an integer, mainly for debugging */
   unsigned int props () const { return _props; }
 

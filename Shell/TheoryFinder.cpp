@@ -162,7 +162,7 @@ public:
  */
 bool TheoryFinder::matchCode(const void* obj,
 			     const unsigned char* code,
-			     int prop)
+			     unsigned prop)
 {
   CALL("TheoryFinder::matchCode");
 
@@ -176,10 +176,8 @@ bool TheoryFinder::matchCode(const void* obj,
 
   // variable numbers
   unsigned vars[20];
-
   // function symbol numbers
   unsigned funs[20];
-
   unsigned cp = 0; // code pointer
 
   // the clause, if any
@@ -196,7 +194,7 @@ bool TheoryFinder::matchCode(const void* obj,
   switch (code[cp]) {
   case END:
     if (prop) {
-      _property->addProp((Property::Prop)prop);
+      _property->addProp(prop);
     }
     return true;
 

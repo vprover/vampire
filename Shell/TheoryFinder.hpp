@@ -38,7 +38,7 @@ private:
   bool matchAll(const Clause* clause);
   bool matchAll(const Formula* formula);
   bool matchAll(const Literal* literal);
-  bool matchCode(const void* obj,const unsigned char* code,int prop);
+  bool matchCode(const void* obj,const unsigned char* code,unsigned prop);
 
 //   bool match(const unsigned char* code,const Formula* formula); 
 //   bool match(const unsigned char* code,const Clause* clause); 
