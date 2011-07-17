@@ -23,7 +23,7 @@
 
 #include "PredicateDefinition.hpp"
 
-#define REPORT_PRED_DEF_SIMPL 1
+#define REPORT_PRED_DEF_SIMPL 0
 
 namespace Shell
 {
