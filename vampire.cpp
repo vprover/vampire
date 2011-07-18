@@ -462,8 +462,7 @@ int main(int argc, char* argv [])
     }
     case Options::MODE_CASC_LTB:
     {
-      Shell::CASC::CLTBMode ltbm;
-      ltbm.perform();
+      Shell::CASC::CLTBMode::perform();
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue=0;
       break;

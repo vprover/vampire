@@ -41,9 +41,10 @@ class CLTBProblem;
 class CLTBMode
 {
 public:
-  void perform();
+  static void perform();
 private:
-  void readInput();
+  void perform(istream& batchFile);
+  void readInput(istream& batchFile);
 
   void loadIncludes();
 

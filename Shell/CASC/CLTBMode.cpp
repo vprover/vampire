@@ -6,6 +6,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <csignal>
+#include <sstream>
 
 #include "Lib/Portability.hpp"
 
@@ -45,6 +46,38 @@ using namespace Lib;
 using namespace Lib::Sys;
 using namespace Saturation;
 
+void CLTBMode::perform()
+{
+  CALL("CLTBMode::perform");
+
+  if(env.options->inputFile()=="") {
+    USER_ERROR("Input file must be specified for cltb mode");
+  }
+
+  string line;
+  ifstream in(env.options->inputFile().c_str());
+  if(in.fail()) {
+    USER_ERROR("Cannot open input file: "+env.options->inputFile());
+  }
+
+  while(!in.eof()) {
+    stringstream singleInst;
+    bool ready = false;
+    while(!in.eof()) {
+      std::getline(in, line);
+      singleInst<<line;
+      if(line=="% SZS end BatchProblems") {
+	ready = true;
+	break;
+      }
+    }
+    if(!ready) { break; }
+    Shell::CASC::CLTBMode ltbm;
+    stringstream childInp(singleInst.str());
+    ltbm.perform(childInp);
+  }
+}
+
 /**
  * This function runs the batch master process and spawns the child master processes
  *
@@ -53,11 +86,11 @@ using namespace Saturation;
  * 2) load the common axioms and put them into a SInE selector
  * 3) run a child master process for each problem (sequentially)
  */
-void CLTBMode::perform()
+void CLTBMode::perform(istream& batchFile)
 {
   CALL("CLTBMode::perform");
 
-  readInput();
+  readInput(batchFile);
 //  env.options->setTimeLimitInSeconds(overallTimeLimit);
   env.options->setTimeLimitInSeconds(0);
 
@@ -153,19 +186,11 @@ void CLTBMode::loadIncludes()
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 }
 
-void CLTBMode::readInput()
+void CLTBMode::readInput(istream& in)
 {
   CALL("CLTBMode::readInput");
 
-  if(env.options->inputFile()=="") {
-    USER_ERROR("Input file must be specified for cltb mode");
-  }
-
   string line, word;
-  ifstream in(env.options->inputFile().c_str());
-  if(in.fail()) {
-    USER_ERROR("Cannot open input file: "+env.options->inputFile());
-  }
 
   std::getline(in, line);
   if(line!="% SZS start BatchConfiguration") {
