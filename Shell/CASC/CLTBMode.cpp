@@ -674,7 +674,19 @@ bool CLTBProblem::runSchedule(const char** sliceCodes)
 {
   CALL("CLTBProblem::runSchedule");
 
-  int parallelProcesses=max(1u,System::getNumberOfCores()-1);
+  int parallelProcesses;
+
+  unsigned coreNumber = System::getNumberOfCores();
+  if(coreNumber<=1) {
+    parallelProcesses = 1;
+  }
+  else if(coreNumber>=8) {
+    parallelProcesses = coreNumber-2;
+  }
+  else {
+    parallelProcesses = coreNumber-1;
+  }
+
   int processesLeft=parallelProcesses;
 
   const char** nextSlice=sliceCodes;
