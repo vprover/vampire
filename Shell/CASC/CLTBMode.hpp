@@ -54,7 +54,8 @@ private:
 
   string category;
   int problemTimeLimit;
-  int overallTimeLimit;
+//  int overallTimeLimit;
+  bool questionAnswering;
 
   StringList* theoryIncludes;
   /** The first string in the pair is problem file, the second

@@ -58,7 +58,8 @@ void CLTBMode::perform()
   CALL("CLTBMode::perform");
 
   readInput();
-  env.options->setTimeLimitInSeconds(overallTimeLimit);
+//  env.options->setTimeLimitInSeconds(overallTimeLimit);
+  env.options->setTimeLimitInSeconds(0);
 
   loadIncludes();
 
@@ -178,16 +179,32 @@ void CLTBMode::readInput()
   in>>category;
 
   in>>word;
+  if(word!="output.required") {
+    USER_ERROR("\"output.required\" expected, \""+word+"\" found.");
+  }
+  for(in>>word; word!="output.desired"; in>>word) {}
+
+  if(word!="output.desired") {
+    USER_ERROR("\"output.desired\" expected.");
+  }
+  questionAnswering = false;
+  for(in>>word; word!="limit.time.problem.wc"; in>>word) {
+    if(word=="Answer") {
+      questionAnswering = true;
+      env.options->setQuestionAnswering(Options::QA_ANSWER_LITERAL);
+    }
+  }
+
   if(word!="limit.time.problem.wc") {
-    USER_ERROR("\"limit.time.problem.wc\" expected, \""+word+"\" found.");
+    USER_ERROR("\"limit.time.problem.wc\" expected.");
   }
   in>>problemTimeLimit;
 
-  in>>word;
-  if(word!="limit.time.overall.wc") {
-    USER_ERROR("\"limit.time.overall.wc\" expected, \""+word+"\" found.");
-  }
-  in>>overallTimeLimit;
+//  in>>word;
+//  if(word!="limit.time.overall.wc") {
+//    USER_ERROR("\"limit.time.overall.wc\" expected, \""+word+"\" found.");
+//  }
+//  in>>overallTimeLimit;
 
   std::getline(in, line);
   while(!in.eof() && line=="") { std::getline(in, line); }
