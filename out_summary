@@ -1,0 +1,29 @@
+#!/bin/bash
+
+AUX=`mktemp -t giXXXXX`
+
+
+
+if [ $# -eq 2 ]; then
+  grep '^[-+?!] ' $1 |head -n $2 > $AUX
+else
+  grep '^[-+?!] ' $1 > $AUX
+fi
+
+ATTEMPT=`grep '^[-+?!] ' $AUX|wc -l`
+SOLVED=`grep '^+' $AUX|wc -l`
+NOTFOUND=`grep '^-[^-]' $AUX|wc -l`
+UNKNOWN=`grep '^\?' $AUX|wc -l`
+FAIL=`grep '^! ' $AUX|wc -l`
+
+
+echo "Attempted:                $ATTEMPT"
+echo "Solved:                   $SOLVED"
+echo "Not solved:               $(($NOTFOUND+$UNKNOWN))"
+echo "- Ref. not found:         $NOTFOUND"
+echo "- Unknown:                $UNKNOWN"
+echo "Failures:                 $FAIL"
+echo "Success rate:             $(( (100*$SOLVED)/$ATTEMPT ))%"
+echo "Complete success rate:    $(( (100*($SOLVED+$NOTFOUND))/$ATTEMPT ))%"
+
+rm -f $AUX
