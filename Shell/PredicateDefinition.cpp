@@ -231,7 +231,12 @@ void PredicateDefinition::collectReplacements(UnitList* units, DHMap<Unit*, Unit
 	ASS_NEQ(u,v);
 #if REPORT_PRED_DEF_SIMPL
 	cout<<"PP from: "<<u->toString()<<endl;
-	cout<<"PP to: "<<v->toString()<<endl;
+	if(v!=0) {
+	  cout<<"PP to: "<<v->toString()<<endl;
+	}
+	else {
+	  cout<<"PP led to clause removal"<<endl;
+	}
 #endif
 	if(u->isClause()) {
 	  if(v!=0) {
