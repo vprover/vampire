@@ -160,6 +160,9 @@ public:
     T_IS_INT,
     /** $is_rat */
     T_IS_RAT,
+    /** $sum */
+    T_SUM,
+    /**  */
   };
 
   /** parser state, numbers are just temporarily for debugging */

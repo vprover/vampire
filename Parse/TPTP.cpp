@@ -282,6 +282,8 @@ string TPTP::toString(Tag tag)
     return "$is_int";
   case T_IS_RAT:
     return "$is_rat";
+  case T_SUM:
+    return "$sum";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -823,6 +825,10 @@ void TPTP::readReserved(Token& tok)
     tok.tag = T_REAL_TYPE;
     return;
   }
+  if (tok.content == "$sum") {
+    tok.tag = T_SUM;
+    return;
+  }
   if (tok.content == "$less") {
     tok.tag = T_LESS;
     return;
@@ -1180,7 +1186,7 @@ void TPTP::fof(bool fo)
   else if (tp == "definition") {
     _lastInputType = Unit::AXIOM;
   }
-  else if (tp == "conjecture") {
+  else if (tp == "conjecture" || tp == "question") {
     _containsConjecture = true;
     _lastInputType = Unit::CONJECTURE;
   }
@@ -1452,6 +1458,7 @@ void TPTP::atom()
   case T_GREATEREQ:
   case T_IS_INT:
   case T_IS_RAT:
+  case T_SUM:
     _tags1.push(tok.tag);
     _strings.push(tok.content);
     _states.push(MID_ATOM);
@@ -2294,6 +2301,7 @@ void TPTP::simpleFormula()
   case T_GREATEREQ:
   case T_IS_INT:
   case T_IS_RAT:
+  case T_SUM:
     _states.push(ATOM);
     return;
 
