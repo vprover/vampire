@@ -84,6 +84,7 @@ public:
 
 /** Names for all options */
 const char* Options::Constants::_optionNames[] = {
+  "abstraction",
   "age_weight_ratio",
   "arity_check",
 
@@ -567,6 +568,7 @@ Options::Options ()
   _nonliteralsInClauseWeight(false),
   _normalize(false),
 
+  _abstraction(true),
   _outputAxiomNames(false),
 
   _predicateDefinitionInlining(INL_OFF),
@@ -688,6 +690,9 @@ void Options::set (const char* name,const char* value, int index)
 
   try {
     switch (index) {
+    case ABSTRACTION:
+      _abstraction = onOffToBool(value,name);
+      return;
     case AGE_WEIGHT_RATIO:
       readAgeWeightRatio(value, _ageRatio, _weightRatio);
       return;
@@ -1370,6 +1375,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   CALL("Options::outputValue");
 
   switch (optionTag) {
+  case ABSTRACTION:
+    str << boolToOnOff(_abstraction);
+    return;
   case AGE_WEIGHT_RATIO:
     str << _ageRatio << ':' << _weightRatio;
     return;

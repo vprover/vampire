@@ -25,6 +25,7 @@ class Options
 {
 public:
   enum Tag {
+    ABSTRACTION,
     AGE_WEIGHT_RATIO,
     ARITY_CHECK,
 
@@ -502,6 +503,7 @@ public:
   void set(const char* name, const char* value);
   void setShort(const char* name, const char* value);
 
+  bool abstraction() const { return _abstraction; }
 
   CLASS_NAME("Options");
   USE_ALLOCATOR(Options);
@@ -512,6 +514,7 @@ private:
 private:
   class Constants;
 
+  bool _abstraction;
   int _ageRatio;
   int _weightRatio;
   bool _arityCheck;
