@@ -216,8 +216,13 @@ void CLTBMode::readInput(istream& in)
   for(in>>word; word!="limit.time.problem.wc"; in>>word) {
     if(word=="Answer") {
       questionAnswering = true;
-      env.options->setQuestionAnswering(Options::QA_ANSWER_LITERAL);
     }
+  }
+  if(questionAnswering) {
+    env.options->setQuestionAnswering(Options::QA_ANSWER_LITERAL);
+  }
+  else {
+    env.options->setQuestionAnswering(Options::QA_OFF);
   }
 
   if(word!="limit.time.problem.wc") {
