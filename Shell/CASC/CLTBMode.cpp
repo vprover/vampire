@@ -65,7 +65,7 @@ void CLTBMode::perform()
     bool ready = false;
     while(!in.eof()) {
       std::getline(in, line);
-      singleInst<<line;
+      singleInst<<line<<endl;
       if(line=="% SZS end BatchProblems") {
 	ready = true;
 	break;
