@@ -809,7 +809,7 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   //so we'd better not assume on what's happening out there)
   cl->incRefCnt();
 
-  if(env.options->abstraction() && cl->number()%100==0) {
+  if(env.options->abstraction() && cl->number()%100000==(24788+(env.statistics->inputClauses%50000)) && env.statistics->inputClauses%3==0) {
     Clause* newCl = 0;
     if(cl->length()>1) {
       LiteralStack lits;
