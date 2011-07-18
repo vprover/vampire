@@ -26,9 +26,9 @@
 #include "Shell/Normalisation.hpp"
 #include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TPTPLexer.hpp"
-#include "Shell/TPTPParser.hpp"
 #include "Shell/UIHelper.hpp"
+
+#include "Parse/TPTP.hpp"
 
 #include "CASCMode.hpp"
 
@@ -155,10 +155,10 @@ void CLTBMode::loadIncludes()
       if(inp.fail()) {
         USER_ERROR("Cannot open included file: "+fname);
       }
-      TPTPLexer lexer(inp);
-      TPTPParser parser(lexer);
+      Parse::TPTP parser(inp);
+      parser.parse();
       UnitList* funits = parser.units();
-      if(parser.haveConjecture()) {
+      if(parser.containsConjecture()) {
 	USER_ERROR("Axiom file "+fname+" contains a conjecture.");
       }
 
@@ -598,12 +598,14 @@ void CLTBProblem::perform()
     if(inp.fail()) {
       USER_ERROR("Cannot open problem file: "+problemFile);
     }
-    TPTPLexer lexer(inp);
-    TPTPParser parser(lexer);
-    parser.setForbiddenIncludes(parent->theoryIncludes);
-
+    Parse::TPTP parser(inp);
+    List<string>::Iterator iit(parent->theoryIncludes);
+    while (iit.hasNext()) {
+      parser.addForbiddenInclude(iit.next());
+    }
+    parser.parse();
     probUnits = parser.units();
-    UIHelper::setConjecturePresence(parser.haveConjecture());
+    UIHelper::setConjecturePresence(parser.containsConjecture());
   }
 
   {

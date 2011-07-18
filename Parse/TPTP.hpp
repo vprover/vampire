@@ -263,6 +263,7 @@ public:
    * based on this value.
    */
   bool containsConjecture() const { return _containsConjecture; }
+  void addForbiddenInclude(string file);
 
 private:
   /** Return the input string of characters */

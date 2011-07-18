@@ -1382,6 +1382,13 @@ void TPTP::include()
   }
 } // include
 
+/** add a file name to the list of forbidden includes */
+void TPTP::addForbiddenInclude(string file)
+{
+  CALL("TPTP::addForbiddenInclude");
+  _forbiddenIncludes.insert(file);
+}
+
 /**
  * Read the next token that must be a name.
  * @since 10/04/2011 Manchester
