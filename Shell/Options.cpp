@@ -500,6 +500,7 @@ NameArray Options::Constants::proofValues(_proofValues,
  */
 Options::Options ()
   :
+  _abstraction(false),
   _ageRatio(1),
   _weightRatio(1),
   _arityCheck(false),
@@ -540,9 +541,9 @@ Options::Options ()
   _inequalitySplitting(3),
   _inputFile(""),
   _inputSyntax(IS_TPTP),
+  _instGenBigRestartRatio(0.0f),
   _instGenResolutionRatioInstGen(1),
   _instGenResolutionRatioResolution(1),
-  _instGenBigRestartRatio(0.0f),
   _instGenRestartPeriod(1000),
   _instGenRestartPeriodQuotient(1.0f),
   _instGenWithResolution(false),
@@ -574,7 +575,6 @@ Options::Options ()
   _nonliteralsInClauseWeight(false),
   _normalize(false),
 
-  _abstraction(false),
   _outputAxiomNames(false),
 
   _predicateDefinitionInlining(INL_OFF),
