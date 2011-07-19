@@ -43,8 +43,9 @@ class IndexManager
 {
 public:
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
-  explicit IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0) {}
-  void setSaturationAlgorithm(SaturationAlgorithm* alg) { ASS(!_alg); ASS(alg); _alg = alg; }
+  explicit IndexManager(SaturationAlgorithm* alg);
+  ~IndexManager();
+  void setSaturationAlgorithm(SaturationAlgorithm* alg);
   Index* request(IndexType t);
   void release(IndexType t);
   bool contains(IndexType t);
@@ -52,8 +53,11 @@ public:
 
   void provideIndex(IndexType t, Index* index);
 
-  LiteralIndexingStructure* getGeneratingLiteralIndexingStructure() { return _genLitIndex; };
+  LiteralIndexingStructure* getGeneratingLiteralIndexingStructure() { ASS(_genLitIndex); return _genLitIndex; };
 private:
+
+  void attach(SaturationAlgorithm* salg);
+
   struct Entry {
     Index* index;
     int refCnt;

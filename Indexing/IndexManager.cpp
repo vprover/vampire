@@ -22,6 +22,41 @@
 using namespace Lib;
 using namespace Indexing;
 
+IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0)
+{
+  CALL("IndexManager::IndexManager");
+
+  if(alg) {
+    attach(alg);
+  }
+}
+
+IndexManager::~IndexManager()
+{
+  CALL("IndexManager::~IndexManager");
+
+  if(_alg) {
+    release(GENERATING_SUBST_TREE);
+  }
+}
+
+void IndexManager::setSaturationAlgorithm(SaturationAlgorithm* alg)
+{
+  CALL("IndexManager::setSaturationAlgorithm");
+  ASS(!_alg);
+  ASS(alg);
+
+  _alg = alg;
+  attach(alg);
+}
+
+void IndexManager::attach(SaturationAlgorithm* salg)
+{
+  CALL("IndexManager::attach");
+
+  request(GENERATING_SUBST_TREE);
+}
+
 Index* IndexManager::request(IndexType t)
 {
   CALL("IndexManager::request");
