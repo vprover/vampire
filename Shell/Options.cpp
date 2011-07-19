@@ -229,6 +229,7 @@ const char* Options::Constants::_shortNames[] = {
   "awr",
   "bd",
   "bms",
+  "br",
   "bs",
   "bsr",
   "cond",
@@ -276,6 +277,7 @@ const char* Options::Constants::_shortNames[] = {
   "swb",
   "t",
   "updr",
+  "urr",
   "wi"};
 
 /** Short names for all options */
@@ -286,6 +288,7 @@ int Options::Constants::shortNameIndexes[] = {
   AGE_WEIGHT_RATIO,
   BACKWARD_DEMODULATION,
   BDD_MARKING_SUBSUMPTION,
+  BINARY_RESOLUTION,
   BACKWARD_SUBSUMPTION,
   BACKWARD_SUBSUMPTION_RESOLUTION,
   CONDENSATION,
@@ -333,6 +336,7 @@ int Options::Constants::shortNameIndexes[] = {
   SPLITTING_WITH_BLOCKING,
   TIME_LIMIT,
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
+  UNIT_RESULTING_RESOLUTION,
   WEIGHT_INCREMENT};
 
 const char* Options::Constants::_statisticsValues[] = {
@@ -568,7 +572,7 @@ Options::Options ()
   _nonliteralsInClauseWeight(false),
   _normalize(false),
 
-  _abstraction(true),
+  _abstraction(false),
   _outputAxiomNames(false),
 
   _predicateDefinitionInlining(INL_OFF),
@@ -649,7 +653,7 @@ Options::Options ()
  * Set option by its name and value.
  * @since 13/11/2004 Manchester
  */
-void Options::set (const char* name,const char* value)
+void Options::set(const char* name,const char* value)
 {
   CALL ("Options::set/2");
 
@@ -666,7 +670,7 @@ void Options::set (const char* name,const char* value)
  * Set option by its name and value.
  * @since 06/04/2005 Torrevieja
  */
-void Options::set (const string& name,const string& value)
+void Options::set(const string& name,const string& value)
 {
   CALL ("Options::set/3");
 
@@ -680,7 +684,7 @@ void Options::set (const string& name,const string& value)
  *
  * @since 13/11/2004 Manchester
  */
-void Options::set (const char* name,const char* value, int index)
+void Options::set(const char* name,const char* value, int index)
 {
   CALL("Options::set/3");
 
@@ -1152,7 +1156,7 @@ void Options::set (const char* name,const char* value, int index)
  *
  * @since 21/11/2004 Manchester
  */
-void Options::setShort (const char* name,const char* value)
+void Options::setShort(const char* name,const char* value)
 {
   CALL ("Options::setShort");
 
