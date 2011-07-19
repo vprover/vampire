@@ -799,6 +799,8 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
   cout.flush();
 }
 
+ofstream* CLTBProblem::writerFileStream = 0;
+
 /**
  * Read everything from the pipe and write it into the output file.
  * Terminate after all writing ends of the pipe are closed.
@@ -818,6 +820,8 @@ void CLTBProblem::runWriterChild()
 
   ofstream out(outFile.c_str());
 
+  writerFileStream = &out;
+
   childOutputPipe.acquireRead();
 
   while(!childOutputPipe.in().eof()) {
@@ -826,6 +830,7 @@ void CLTBProblem::runWriterChild()
     out<<line<<endl<<flush;
   }
   out.close();
+  writerFileStream = 0;
 
   childOutputPipe.releaseRead();
 

@@ -89,6 +89,7 @@ private:
 
   bool runSchedule(const char** sliceCodes);
 
+  static ofstream* writerFileStream;
   static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
   void runWriterChild() __attribute__((noreturn));
 
