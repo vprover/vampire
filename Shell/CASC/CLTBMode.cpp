@@ -823,7 +823,7 @@ void CLTBProblem::runWriterChild()
   while(!childOutputPipe.in().eof()) {
     string line;
     getline(childOutputPipe.in(), line);
-    out<<line<<endl;
+    out<<line<<endl<<flush;
   }
   out.close();
 
