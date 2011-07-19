@@ -113,6 +113,10 @@ void UIHelper::outputResult(ostream& out)
       out<<"% SZS status "<<( UIHelper::haveConjecture() ? "Theorem" : "Unsatisfiable" )
 	  <<" for "<<env.options->problemName()<<endl;
     }
+    if(env.options->questionAnswering()!=Options::QA_OFF) {
+      ASS(env.statistics->refutation->isClause());
+      AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
+    }
     if (env.options->proof() != Options::PROOF_OFF) {
 //	Shell::Refutation refutation(env.statistics->refutation,
 //		env.options->proof() == Options::PROOF_ON);
@@ -122,12 +126,8 @@ void UIHelper::outputResult(ostream& out)
       }
       InferenceStore::instance()->outputProof(out, env.statistics->refutation);
       if(cascMode) {
-	out<<"% SZS output end Proof for "<<env.options->problemName()<<endl;
+	out<<"% SZS output end Proof for "<<env.options->problemName()<<endl<<flush;
       }
-    }
-    if(env.options->questionAnswering()!=Options::QA_OFF) {
-      ASS(env.statistics->refutation->isClause());
-      AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }
     if(env.options->showInterpolant()==Options::INTERP_ON) {
       ASS(env.statistics->refutation->isClause());
