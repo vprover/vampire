@@ -839,6 +839,9 @@ void CLTBProblem::runWriterChild()
 
 void CLTBProblem::terminatingSignalHandler(int sigNum)
 {
+  if(writerFileStream) {
+    writerFileStream->close();
+  }
   System::terminateImmediately(0);
 }
 
