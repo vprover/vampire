@@ -1944,26 +1944,6 @@ void TPTP::endFof()
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
     unit = new FormulaUnit(f,new Inference(Inference::INPUT),(Unit::InputType)_lastInputType);
-    if (_isQuestion && env.options->mode() == Options::MODE_CLAUSIFY && f->connective() == EXISTS) {
-      // create an answer predicate
-      QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
-      int arity = g->vars()->length();
-      unsigned pred = env.signature->addPredicate("$$answer",arity);
-      env.signature->getPredicate(pred)->markAnswerPredicate();
-      Literal* a = new(arity) Literal(pred,arity,true,false);
-      List<int>::Iterator vs(g->vars());
-      int i = 0;
-      while (vs.hasNext()) {
-	a->nthArgument(i)->makeVar(vs.next());
-      }
-      a = env.sharing->insert(a);
-      f = new QuantifiedFormula(EXISTS,
-				g->vars(),
-				new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
-      unit = new FormulaUnit(f,
-			     new Inference1(Inference::ANSWER_LITERAL,unit),
-			     Unit::NEGATED_CONJECTURE);
-    }
   }
   else { // cnf()
     env.statistics->inputClauses++;
@@ -2020,7 +2000,27 @@ void TPTP::endFof()
 
   switch (_lastInputType) {
   case Unit::CONJECTURE:
-    {
+    if (_isQuestion && env.options->mode() == Options::MODE_CLAUSIFY && f->connective() == EXISTS) {
+      // create an answer predicate
+      QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
+      int arity = g->vars()->length();
+      unsigned pred = env.signature->addPredicate("$$answer",arity);
+      env.signature->getPredicate(pred)->markAnswerPredicate();
+      Literal* a = new(arity) Literal(pred,arity,true,false);
+      List<int>::Iterator vs(g->vars());
+      int i = 0;
+      while (vs.hasNext()) {
+	a->nthArgument(i)->makeVar(vs.next());
+      }
+      a = env.sharing->insert(a);
+      f = new QuantifiedFormula(FORALL,
+				g->vars(),
+				new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
+      unit = new FormulaUnit(f,
+			     new Inference1(Inference::ANSWER_LITERAL,unit),
+			     Unit::CONJECTURE);
+    }
+    else {
       Formula::VarList* vs = f->freeVariables();
       if (vs->isEmpty()) {
 	f = new NegatedFormula(f);
