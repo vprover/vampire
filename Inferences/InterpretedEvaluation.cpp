@@ -77,6 +77,7 @@ public:
   {
     CALL("InterpretedEvaluation::ConversionEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
+    LOG("conv eval trying "<<trm->toString());
 
     try {
       Interpretation itp = theory->interpretFunction(trm);
@@ -85,7 +86,6 @@ public:
       ASS_EQ(theory->getArity(itp), 1);
 
       TermList argTrm = *trm->nthArgument(0);
-      bool success = false;
       switch(itp) {
       case Theory::INT_TO_RAT:
       {
@@ -121,7 +121,7 @@ public:
       }
       case Theory::REAL_TO_INT:
       {
-	RationalConstantType arg;
+	RealConstantType arg;
 	if(!theory->tryInterpretConstant(argTrm, arg)) { return false; }
 	IntegerConstantType resNum = IntegerConstantType::floor(RationalConstantType(arg));
 	res = theory->representConstant(resNum);

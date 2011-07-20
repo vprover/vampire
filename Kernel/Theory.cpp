@@ -126,11 +126,11 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
   ASS_REP(denom>0, denom.toString());
 
   if(numer>0) {
-    return (numer/denom)*denom;
+    return numer/denom;
   }
 
   IntegerConstantType numerAbs = (numer>=0) ? numer : -numer;
-  IntegerConstantType absRes = (numerAbs/denom)*denom;
+  IntegerConstantType absRes = numerAbs/denom;
   if(numer%denom!=0) {
     absRes = absRes+1;
   }
@@ -570,9 +570,9 @@ bool Theory::isConversionOperation(Interpretation i)
   case RAT_TO_REAL:
   case REAL_TO_INT:
   case REAL_TO_RAT:
-    return false;
-  default:
     return true;
+  default:
+    return false;
   }
 }
 
