@@ -219,7 +219,8 @@ string RationalConstantType::toString() const
   string numStr = _num.toString();
   string denStr = _den.toString();
 
-  return "("+numStr+"/"+denStr+")";
+//  return "("+numStr+"/"+denStr+")";
+  return numStr+"/"+denStr;
 }
 
 /**

@@ -53,6 +53,9 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, boo
       //TODO: remove this hack once we properly support the $distinct predicate
       quote=false;
     }
+    if(quote && _name[0]=='$' && _interpreted) {
+      quote=false;
+    }
     if(quote) {
       _name="'"+_name+"'";
     }
