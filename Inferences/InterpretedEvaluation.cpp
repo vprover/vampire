@@ -22,6 +22,9 @@
 
 #include "InterpretedEvaluation.hpp"
 
+#undef LOGGING
+#define LOGGING 0
+
 namespace Inferences
 {
 using namespace Lib;
@@ -415,7 +418,7 @@ public:
     }
   }
 
-  bool evaluate(Literal* lit, bool& isConstant, Literal* resLit, bool& resConst)
+  bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst)
   {
     CALL("InterpretedEvaluation::LiteralSimplifier::evaluate");
 
@@ -435,6 +438,8 @@ public:
     }
     if(resLit!=lit) {
       isConstant = false;
+      LOGV(*lit);
+      LOGV(*resLit);
       return true;
     }
     return false;
@@ -502,6 +507,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   CALL("InterpretedEvaluation::perform");
 
   TimeCounter tc(TC_INTERPRETED_EVALUATION);
+  LOG("Simplifying "<<cl->toString());
 
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();
@@ -544,9 +550,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   res->setAge(cl->age());
   env.statistics->evaluations++;
 
-//  LOG("orig: "<<(*cl));
-//  LOG("res:  "<<(*res));
-
+  LOG("Result: "<<res->toString());
   return res;
 }
 

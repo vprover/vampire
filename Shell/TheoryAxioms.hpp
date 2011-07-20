@@ -42,6 +42,9 @@ private:
       TermList zeroElement, TermList oneElement, Interpretation lessEqual, Interpretation multiply,
       UnitList*& units);
 
+  void addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation lessEqual,
+      UnitList*& units);
+
   void addTheoryUnit(Literal* lit, UnitList*& units);
   void addTheoryClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3=0);
 

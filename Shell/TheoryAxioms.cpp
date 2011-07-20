@@ -228,19 +228,18 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   Literal* nonLeOneZero = Literal::create2(lePred, false, oneElement, zeroElement);
   addTheoryUnit(nonLeOneZero, units);
 
-  //axiom( ilt(X0,X1) --> ile(X0+one,X1) );
+  //axiom( (X0+one)<=X1 --> ~(X1<=X0) );
   unsigned plusFun = env.signature->getInterpretingSymbol(plus);
   TermList v1(0,false);
   TermList v2(1,false);
-  Literal* le21 = Literal::create2(lePred, true, v2, v1);
+  Literal* nonLe21 = Literal::create2(lePred, false, v2, v1);
   TermList v1POne(Term::create2(plusFun, v1, oneElement));
-  Literal* lt1POne2 = Literal::create2(lePred, true, v1POne, v2);
-  addTheoryClause(units, le21, lt1POne2);
+  Literal* nonLt1POne2 = Literal::create2(lePred, false, v1POne, v2);
+  addTheoryClause(units, nonLe21, nonLt1POne2);
 
   //connect strict and non-strict inequality
   //axiom( (ile(X0,X1)) --> ((X0==X1) | ilt(X0,X1)) );
 
-  Literal* nonLe21 = Literal::create2(lePred, false, v2, v1);
   unsigned varSort = theory->getOperationSort(lessEqual);
   Literal* v1EqV2 = Literal::createVariableEquality(true, v1, v2, varSort);
   Literal* nonLe12 = Literal::create2(lePred, false, v1, v2);
@@ -291,6 +290,22 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   TermList distrRhs(Term::create2(plusFun, add1, add2));
   Literal* distrEq = Literal::createEquality(true, distrLhs, distrRhs);
   addTheoryUnit(distrEq, units);
+}
+
+void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement, Interpretation lessEqual,
+    UnitList*& units)
+{
+  CALL("TheoryAxioms::addExtraIntegerOrderingAxiom");
+
+  //axiom( ~(X1<=X0) --> (X0+one)<=X1 );
+  unsigned lePred = env.signature->getInterpretingSymbol(lessEqual);
+  unsigned plusFun = env.signature->getInterpretingSymbol(plus);
+  TermList v1(0,false);
+  TermList v2(1,false);
+  Literal* le21 = Literal::create2(lePred, true, v2, v1);
+  TermList v1POne(Term::create2(plusFun, v1, oneElement));
+  Literal* lt1POne2 = Literal::create2(lePred, true, v1POne, v2);
+  addTheoryClause(units, le21, lt1POne2);
 }
 
 
