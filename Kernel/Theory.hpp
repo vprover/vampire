@@ -208,13 +208,22 @@ public:
     REAL_MULTIPLY,
     REAL_DIVIDE,
 
+
+    //conversion functions
+    INT_TO_RAT,
+    INT_TO_REAL,
+    RAT_TO_INT,
+    RAT_TO_REAL,
+    REAL_TO_INT,
+    REAL_TO_RAT,
+
     /**
      * Maximal element number in the enum Interpretation
      *
      * At some points we make use of the fact that we can iterate through all
      * interpretations by going through the set {0,...,MAX_INTERPRETED_ELEMENT}.
      */
-    MAX_INTERPRETED_ELEMENT = REAL_DIVIDE,
+    MAX_INTERPRETED_ELEMENT = REAL_TO_RAT,
 
     //these are deprecated, left just so that the code compiles before references to them are removed
     GREATER,
@@ -233,7 +242,9 @@ public:
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
   static BaseType* getOperationType(Interpretation i);
+  static bool hasSingleSort(Interpretation i);
   static unsigned getOperationSort(Interpretation i);
+  static bool isConversionOperation(Interpretation i);
 
 
   static Theory* instance();
@@ -284,6 +295,8 @@ public:
 
 private:
   Theory();
+
+  static FunctionType* getConversionOperationType(Interpretation i);
 
   //deprecated
   Term* _zero;

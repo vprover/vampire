@@ -27,6 +27,7 @@ public:
   Clause* simplify(Clause* cl);
 private:
   class Evaluator;
+  class ConversionEvaluator;
   template<class T> class TypedEvaluator;
   class IntEvaluator;
   class RatEvaluator;

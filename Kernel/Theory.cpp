@@ -310,6 +310,13 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_IS_INT:
   case REAL_IS_RAT:
 
+  case INT_TO_RAT:
+  case INT_TO_REAL:
+  case RAT_TO_INT:
+  case RAT_TO_REAL:
+  case REAL_TO_INT:
+  case REAL_TO_RAT:
+
   case INT_SUCCESSOR:
   case INT_UNARY_MINUS:
   case RAT_UNARY_MINUS:
@@ -366,6 +373,13 @@ bool Theory::isFunction(Interpretation i)
   ASS_LE(i,MAX_INTERPRETED_ELEMENT);
 
   switch(i) {
+  case INT_TO_RAT:
+  case INT_TO_REAL:
+  case RAT_TO_INT:
+  case RAT_TO_REAL:
+  case REAL_TO_INT:
+  case REAL_TO_RAT:
+
   case INT_SUCCESSOR:
   case INT_UNARY_MINUS:
   case RAT_UNARY_MINUS:
@@ -446,12 +460,37 @@ bool Theory::isInequality(Interpretation i)
 }
 
 /**
- * This function cannot be called for the EQUAL value, because
- * equality is polymorphic and therefore does not have a sort.
+ * Return true if interpreted operation @c i has all arguments and
+ * (in case of a function) the result type of the same sort.
+ * For such operation the @c getOperationSort() function can be
+ * called.
+ */
+bool Theory::hasSingleSort(Interpretation i)
+{
+  CALL("Theory::hasSingleSort");
+
+  switch(i) {
+  case EQUAL:
+  case INT_TO_RAT:
+  case INT_TO_REAL:
+  case RAT_TO_INT:
+  case RAT_TO_REAL:
+  case REAL_TO_INT:
+  case REAL_TO_RAT:
+    return false;
+  default:
+    return true;
+  }
+}
+
+/**
+ * This function can be called for operations for which  the
+ * function @c hasSingleSort returns true
  */
 unsigned Theory::getOperationSort(Interpretation i)
 {
   CALL("Theory::getOperationSort");
+  ASS(hasSingleSort(i));
   ASS_LE(i,MAX_INTERPRETED_ELEMENT);
 
   switch(i) {
@@ -495,8 +534,34 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_LESS_EQUAL:
   case REAL_DIVIDES:
     return Sorts::SRT_REAL;
+
+  default:
+    ASSERTION_VIOLATION;
   }
-  ASSERTION_VIOLATION;
+}
+
+bool Theory::isConversionOperation(Interpretation i)
+{
+  CALL("Theory::isConversionOperation");
+
+  switch(i) {
+  case INT_TO_RAT:
+  case INT_TO_REAL:
+  case RAT_TO_INT:
+  case RAT_TO_REAL:
+  case REAL_TO_INT:
+  case REAL_TO_RAT:
+    return false;
+  default:
+    return true;
+  }
+}
+
+FunctionType* Theory::getConversionOperationType(Interpretation i)
+{
+  CALL("Theory::getConversionOperationType");
+
+
 }
 
 /**
@@ -505,6 +570,12 @@ unsigned Theory::getOperationSort(Interpretation i)
 BaseType* Theory::getOperationType(Interpretation i)
 {
   CALL("Theory::getOperationType");
+  ASS_NEQ(i, EQUAL);
+
+  if(isConversionOperation(i)) {
+    return getConversionOperationType(i);
+  }
+  ASS(hasSingleSort(i));
 
   unsigned sort = getOperationSort(i);
   unsigned arity = getArity(i);
