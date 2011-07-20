@@ -18,6 +18,7 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/Theory.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -146,20 +147,8 @@ public:
     T_TFF,
     /** $thf, probably useless */
     T_THF,
-    /** $less */
-    T_LESS,
-    /** $lesseq */
-    T_LESSEQ,
-    /** $greater */
-    T_GREATER,
-    /** $greatereq */
-    T_GREATEREQ,
     /** anything that begins with $$ */
     T_DOLLARS,
-    /** $is_int */
-    T_IS_INT,
-    /** $is_rat */
-    T_IS_RAT,
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -432,8 +421,6 @@ private:
   Stack<TypeTag> _typeTags;
   /** bindings of variables to sorts */
   Stack<List<VariableSort>*> _variableSorts;
-  /** Stack used to recognize built-in functions and predicates */
-  Stack<Tag> _tags1;
 
   /**
    * Get the next characters at the position pos.
@@ -558,6 +545,12 @@ private:
   void skipToRPAR();
   unsigned addFunction(string name,int arity,bool& added,TermList& someArgument);
   unsigned addPredicate(string name,int arity,bool& added,TermList& someArgument);
+  unsigned addOverloadedFunction(string name,int arity,int symbolArity,bool& added,TermList& arg,
+				 Theory::Interpretation integer,Theory::Interpretation rational,
+				 Theory::Interpretation real);
+  unsigned addOverloadedPredicate(string name,int arity,int symbolArity,bool& added,TermList& arg,
+				  Theory::Interpretation integer,Theory::Interpretation rational,
+				  Theory::Interpretation real);
   unsigned sortOf(TermList& term);
   static bool higherPrecedence(int c1,int c2);
 

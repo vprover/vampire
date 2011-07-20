@@ -271,18 +271,6 @@ string TPTP::toString(Tag tag)
     return "$tff";
   case T_THF:
     return "$thf";
-  case T_LESS:
-    return "$less";
-  case T_LESSEQ:
-    return "$lesseq";
-  case T_GREATER:
-    return "$greater";
-  case T_GREATEREQ:
-    return "$greatereq";
-  case T_IS_INT:
-    return "$is_int";
-  case T_IS_RAT:
-    return "$is_rat";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -931,8 +919,8 @@ TPTP::Tag TPTP::readNumber(Token& tok)
   switch (getChar(pos)) {
   case '/':
     pos = positiveDecimal(pos+1);
-    tok.content.assign(_chars.content(),pos-1);
-    shiftChars(pos-1);
+    tok.content.assign(_chars.content(),pos);
+    shiftChars(pos);
     return T_RAT;
   case 'E':
   case 'e':
@@ -1417,13 +1405,6 @@ void TPTP::atom()
   Token& tok = getTok(0);
   switch (tok.tag) {
   case T_NAME:
-  case T_LESS:
-  case T_LESSEQ:
-  case T_GREATER:
-  case T_GREATEREQ:
-  case T_IS_INT:
-  case T_IS_RAT:
-    _tags1.push(tok.tag);
     _strings.push(tok.content);
     _states.push(MID_ATOM);
     resetToks();
@@ -1555,6 +1536,16 @@ void TPTP::term()
     _ints.push(-2); // this term is a constant
     resetToks();
     return;
+  case T_RAT:
+    {
+      size_t i = tok.content.find_first_of("/");
+      ASS(i != string::npos);
+      _ints.push(env.signature->addRationalConstant(tok.content.substr(0,i),
+						    tok.content.substr(i+1)));
+      _ints.push(-2); // this term is a constant
+      resetToks();
+    }
+    return;
   default:
     throw Exception("term expected",tok);
   }
@@ -1655,43 +1646,12 @@ void TPTP::midAtom()
       int arity = _ints.pop();
       ASS(arity > 0);
       string name = _strings.pop();
-      Tag t = _tags1.pop();
-      switch(t) {
-      case T_LESS:
-	env.signature->registerInterpretedPredicate(name,Theory::INT_LESS);
-	env.options->setInterpretedEvaluation(true);
-	env.options->setInterpretedSimplification(true);
-	break;
-      case T_LESSEQ:
-	env.signature->registerInterpretedPredicate(name,Theory::INT_LESS_EQUAL);
-	break;
-      case T_GREATER:
-	env.signature->registerInterpretedPredicate(name,Theory::INT_GREATER);
-	break;
-      case T_GREATEREQ:
-	env.signature->registerInterpretedPredicate(name,Theory::INT_GREATER_EQUAL);
-	break;
-      // case T_IS_INT:
-      // 	env.signature->registerInterpretedPredicate(name,Theory::IS_INT);
-      // 	break;
-      // case T_IS_RAT:
-      // 	env.signature->registerInterpretedPredicate(name,Theory::IS_RAT);
-      // 	break;
-      case T_NAME:
-	break;
-#if VDEBUG
-      default:
-	cout << toString(t) << "\n";
-	ASSERTION_VIOLATION;
-#endif
-      }
       bool dummy;
       unsigned pred = addPredicate(name,arity,dummy,_termLists.top());
       Literal* a = new(arity) Literal(pred,arity,true,false);
       bool safe = true;
       for (int i = arity-1;i >= 0;i--) {
 	TermList ts = _termLists.pop();
-	ASS(ts.isSafe());
 	safe = safe && ts.isSafe();
 	*(a->nthArgument(i)) = ts;
       }
@@ -2264,12 +2224,6 @@ void TPTP::simpleFormula()
     return;
 
   case T_NAME:
-  case T_LESS:
-  case T_LESSEQ:
-  case T_GREATER:
-  case T_GREATEREQ:
-  case T_IS_INT:
-  case T_IS_RAT:
     _states.push(ATOM);
     return;
 
@@ -2461,27 +2415,18 @@ unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
     return env.signature->addFunction(name,arity,added);
   }
   if (name == "$sum") {
-    if (arity != 2) {
-      USER_ERROR("$sum is used with " + Int::toString(arity) + "argument(s)");
-    }
-    unsigned srt = sortOf(arg);
-    if (srt == Sorts::SRT_INTEGER) {
-      env.signature->registerInterpretedFunction(name,Theory::INT_PLUS);
-    }
-    else if (srt == Sorts::SRT_RATIONAL) {
-      env.signature->registerInterpretedFunction(name,Theory::RAT_PLUS);
-    }
-    else if (srt == Sorts::SRT_REAL) {
-      env.signature->registerInterpretedFunction(name,Theory::REAL_PLUS);
-    }
-    else {
-      USER_ERROR("The symbol $sum is used with a non-numeric type");
-    }
+    return addOverloadedFunction(name,arity,2,added,arg,Theory::INT_PLUS,Theory::RAT_PLUS,Theory::REAL_PLUS);
   }
-  else {
-    USER_ERROR((string)"Invalid function name: " + name);
+  if (name == "$product") {
+    return addOverloadedFunction(name,arity,2,added,arg,Theory::INT_MULTIPLY,Theory::RAT_MULTIPLY,Theory::REAL_MULTIPLY);
   }
-  return env.signature->addFunction(name,arity,added);
+  if (name == "$difference") {
+    return addOverloadedFunction(name,arity,2,added,arg,Theory::INT_MINUS,Theory::RAT_MINUS,Theory::REAL_MINUS);
+  }
+  if (name == "$uminus") {
+    return addOverloadedFunction(name,arity,1,added,arg,Theory::INT_UNARY_MINUS,Theory::RAT_UNARY_MINUS,Theory::REAL_UNARY_MINUS);
+  }
+  USER_ERROR((string)"Invalid function name: " + name);
 } // addFunction
 
 /** Add a predicate to the signature
@@ -2498,8 +2443,81 @@ unsigned TPTP::addPredicate(string name,int arity,bool& added,TermList& arg)
   if (name[0] != '$') {
     return env.signature->addPredicate(name,arity,added);
   }
+  if (name == "$less") {
+    return addOverloadedPredicate(name,arity,2,added,arg,Theory::INT_LESS,Theory::RAT_LESS,Theory::REAL_LESS);
+  }
   USER_ERROR((string)"Invalid predicate name: " + name);
 } // addPredicate
+
+
+/*
+$let
+$itef
+$itett
+$itetf
+
+$distinct
+
+$to_int
+$to_rat
+$to_real
+
+$lesseq
+$greater
+$greatereq
+$is_int
+$is_rat
+*/
+
+unsigned TPTP::addOverloadedFunction(string name,int arity,int symbolArity,bool& added,TermList& arg,
+				     Theory::Interpretation integer,Theory::Interpretation rational,
+				     Theory::Interpretation real)
+{
+  CALL("TPTP::addOverloadedFunction");
+
+  if (arity != symbolArity) {
+    USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
+  }
+  unsigned srt = sortOf(arg);
+  if (srt == Sorts::SRT_INTEGER) {
+    env.signature->registerInterpretedFunction(name,integer);
+  }
+  else if (srt == Sorts::SRT_RATIONAL) {
+    env.signature->registerInterpretedFunction(name,rational);
+  }
+  else if (srt == Sorts::SRT_REAL) {
+    env.signature->registerInterpretedFunction(name,real);
+  }
+  else {
+    USER_ERROR((string)"The symbol " + name + " is used with a non-numeric type");
+  }
+  return env.signature->addFunction(name,arity,added);
+} // addOverloadedFunction
+
+unsigned TPTP::addOverloadedPredicate(string name,int arity,int symbolArity,bool& added,TermList& arg,
+				     Theory::Interpretation integer,Theory::Interpretation rational,
+				     Theory::Interpretation real)
+{
+  CALL("TPTP::addOverloadedPredicate");
+
+  if (arity != symbolArity) {
+    USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
+  }
+  unsigned srt = sortOf(arg);
+  if (srt == Sorts::SRT_INTEGER) {
+    env.signature->registerInterpretedPredicate(name,integer);
+  }
+  else if (srt == Sorts::SRT_RATIONAL) {
+    env.signature->registerInterpretedPredicate(name,rational);
+  }
+  else if (srt == Sorts::SRT_REAL) {
+    env.signature->registerInterpretedPredicate(name,real);
+  }
+  else {
+    USER_ERROR((string)"The symbol " + name + " is used with a non-numeric type");
+  }
+  return env.signature->addPredicate(name,arity,added);
+} // addOverloadedPredicate
 
 /**
  * Return the sort of the term.
@@ -2599,25 +2617,3 @@ const char* TPTP::toString(State s)
   }
 }
 #endif
-
-/*
-$let
-$itef
-$itett
-$itetf
-
-$distinct
-
-$uminus
-$difference
-$product
-$to_int
-$to_rat
-$to_real
-$less
-$lesseq
-$greater
-$greatereq
-$is_int
-$is_rat
-*/
