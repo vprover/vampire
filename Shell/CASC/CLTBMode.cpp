@@ -289,6 +289,8 @@ void CLTBMode::readInput(istream& in)
 // CLTBProblem
 //////////////////////////////////////////
 
+string CLTBProblem::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
+
 CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
 : parent(parent), problemFile(problemFile), outFile(outFile), property(parent->property)
 {
@@ -793,6 +795,8 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
     //so we can just terminate
     cout<<"terminated slice pid "<<finishedChild<<" (success)"<<endl;
     cout.flush();
+    int writerResult;
+    Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
     System::terminateImmediately(0);
   }
   cout<<"terminated slice pid "<<finishedChild<<" (fail)"<<endl;
@@ -827,6 +831,9 @@ void CLTBProblem::runWriterChild()
   while(!childOutputPipe.in().eof()) {
     string line;
     getline(childOutputPipe.in(), line);
+    if(line==problemFinishedString) {
+      break;
+    }
     out<<line<<endl<<flush;
   }
   out.close();
@@ -908,6 +915,9 @@ void CLTBProblem::runChild(Options& opt)
 
   env.beginOutput();
   UIHelper::outputResult(env.out());
+  if(resultValue==0) {
+    env.out()<<problemFinishedString<<endl;
+  }
   env.endOutput();
 
   exit(resultValue);

@@ -98,6 +98,8 @@ private:
 
   unsigned getSliceTime(string sliceCode);
 
+  static string problemFinishedString;
+
 #if VDEBUG
   DHSet<pid_t> childIds;
 #endif
@@ -110,7 +112,7 @@ private:
   Property property;
 
   pid_t writerChildPid;
-  //pipe for collecting the output from children
+  /** pipe for collecting the output from children */
   SyncPipe childOutputPipe;
 };
 

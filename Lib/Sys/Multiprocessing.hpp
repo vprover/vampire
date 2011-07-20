@@ -16,6 +16,7 @@ public:
   static Multiprocessing* instance();
 
   pid_t waitForChildTermination(int& resValue);
+  void waitForParticularChildTermination(pid_t child, int& resValue);
 
   pid_t fork();
   void registerForkHandlers(VoidFunc before, VoidFunc afterParent, VoidFunc afterChild);

@@ -124,6 +124,37 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
 #endif
 }
 
+/**
+ * Wait for a first child process to terminate, return its pid and assign
+ * its exit status into @b resValue. If the child was terminated by a signal,
+ * assign into @b resValue the signal number increased by 256.
+ */
+void Multiprocessing::waitForParticularChildTermination(pid_t child, int& resValue)
+{
+  CALL("Multiprocessing::waitForChildTermination");
+
+#if COMPILER_MSVC
+  INVALID_OPERATION("waitid() is not supported on Windows");
+#else
+
+  siginfo_t si;
+
+  errno=0;
+  int res=waitid(P_PID, child, &si, WEXITED);
+  if(res==-1) {
+    SYSTEM_FAIL("Call to waitid() function failed.", errno);
+  }
+
+  if(si.si_code) {
+    resValue=si.si_status;
+  }
+  else {
+    resValue=si.si_status+256;
+  }
+#endif
+}
+
+
 }
 }
 
