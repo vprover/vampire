@@ -94,6 +94,10 @@ namespace Kernel
 {
 using namespace Lib;
 
+class IntegerConstantType;
+class RationalConstantType;
+class RealConstantType;
+
 class Sorts;
 class Signature;
 

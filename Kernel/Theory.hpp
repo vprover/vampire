@@ -53,6 +53,8 @@ public:
 
   int toInt() const { return _val; }
 
+  static IntegerConstantType floor(RationalConstantType rat);
+
   string toString() const;
 private:
   InnerType _val;

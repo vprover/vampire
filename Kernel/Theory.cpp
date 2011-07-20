@@ -117,6 +117,25 @@ bool IntegerConstantType::operator>(const IntegerConstantType& num) const
   return _val>num._val;
 }
 
+IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
+{
+  CALL("IntegerConstantType::floor");
+
+  IntegerConstantType numer = rat.numerator();
+  IntegerConstantType denom = rat.denominator();
+  ASS_REP(denom>0, denom.toString());
+
+  if(numer>0) {
+    return (numer/denom)*denom;
+  }
+
+  IntegerConstantType numerAbs = (numer>=0) ? numer : -numer;
+  IntegerConstantType absRes = (numerAbs/denom)*denom;
+  if(numer%denom!=0) {
+    absRes = absRes+1;
+  }
+  return -absRes;
+}
 
 string IntegerConstantType::toString() const
 {

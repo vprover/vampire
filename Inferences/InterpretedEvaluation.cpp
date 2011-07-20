@@ -59,110 +59,94 @@ public:
 
   virtual bool canEvaluate(Interpretation interp) = 0;
 
-  virtual bool tryEvaluateFunc(Term* trm, Term*& res) = 0;
-  virtual bool tryEvaluatePred(Literal* trm, bool& res) = 0;
+  virtual bool tryEvaluateFunc(Term* trm, Term*& res) { return false; }
+  virtual bool tryEvaluatePred(Literal* trm, bool& res)  { return false; }
 };
 
-#if 0
 class InterpretedEvaluation::ConversionEvaluator : public Evaluator
 {
 public:
-
-  TypedEvaluator() {}
-
   virtual bool canEvaluate(Interpretation interp)
   {
-    CALL("InterpretedEvaluation::TypedEvaluator::canEvaluate");
+    CALL("InterpretedEvaluation::ConversionEvaluator::canEvaluate");
 
-    if(!theory->hasSingleSort(interp)) { return false; } //there are other rules to evaluate equality
-
-    unsigned opSort = theory->getOperationSort(interp);
-    return opSort==T::getSort();
+    return theory->isConversionOperation(interp);
   }
 
   virtual bool tryEvaluateFunc(Term* trm, Term*& res)
   {
-    CALL("InterpretedEvaluation::tryEvaluateFunc");
+    CALL("InterpretedEvaluation::ConversionEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
 
     try {
       Interpretation itp = theory->interpretFunction(trm);
       ASS(theory->isFunction(itp));
-      unsigned arity = theory->getArity(itp);
+      ASS(theory->isConversionOperation(itp));
+      ASS_EQ(theory->getArity(itp), 1);
 
-      if(arity!=1 && arity!=2) {
-	INVALID_OPERATION("unsupported arity of interpreted operation: "+Int::toString(arity));
+      TermList argTrm = *trm->nthArgument(0);
+      bool success = false;
+      switch(itp) {
+      case Theory::INT_TO_RAT:
+      {
+	IntegerConstantType arg;
+	if(!theory->tryInterpretConstant(argTrm, arg)) { return false; }
+	RationalConstantType resNum(arg,1);
+	res = theory->representConstant(resNum);
+	return true;
       }
-      T resNum;
-      TermList arg1Trm = *trm->nthArgument(0);
-      T arg1;
-      if(!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
-      if(arity==1) {
-	if(!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
+      case Theory::INT_TO_REAL:
+      {
+	IntegerConstantType arg;
+	if(!theory->tryInterpretConstant(argTrm, arg)) { return false; }
+	RealConstantType resNum(RationalConstantType(arg,1));
+	res = theory->representConstant(resNum);
+	return true;
       }
-      else if(arity==2) {
-	TermList arg2Trm = *trm->nthArgument(1);
-	T arg2;
-	if(!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
-	if(!tryEvaluateBinaryFunc(itp, arg1, arg2, resNum)) { return false;}
+      case Theory::RAT_TO_INT:
+      {
+	RationalConstantType arg;
+	if(!theory->tryInterpretConstant(argTrm, arg)) { return false; }
+	IntegerConstantType resNum = IntegerConstantType::floor(arg);
+	res = theory->representConstant(resNum);
+	return true;
       }
-      res = theory->representConstant(resNum);
-      return true;
+      case Theory::RAT_TO_REAL:
+      {
+	RationalConstantType arg;
+	if(!theory->tryInterpretConstant(argTrm, arg)) { return false; }
+	RealConstantType resNum(arg);
+	res = theory->representConstant(resNum);
+	return true;
+      }
+      case Theory::REAL_TO_INT:
+      {
+	RationalConstantType arg;
+	if(!theory->tryInterpretConstant(argTrm, arg)) { return false; }
+	IntegerConstantType resNum = IntegerConstantType::floor(RationalConstantType(arg));
+	res = theory->representConstant(resNum);
+	return true;
+      }
+      case Theory::REAL_TO_RAT:
+      {
+	//this is correct only as long as we only represent rational real numbers
+	RealConstantType arg;
+	if(!theory->tryInterpretConstant(argTrm, arg)) { return false; }
+	RationalConstantType resNum(arg);
+	res = theory->representConstant(resNum);
+	return true;
+      }
+
+      default:
+	ASSERTION_VIOLATION;
+      }
     }
     catch(ArithmeticException)
     {
       return false;
     }
   }
-
-  virtual bool tryEvaluatePred(Literal* lit, bool& res)
-  {
-    ASS(theory->isInterpretedPredicate(lit));
-
-    try {
-      Interpretation itp = theory->interpretPredicate(lit);
-      ASS(!theory->isFunction(itp));
-      unsigned arity = theory->getArity(itp);
-
-      if(arity!=1 && arity!=2) {
-	INVALID_OPERATION("unsupported arity of interpreted operation: "+Int::toString(arity));
-      }
-      TermList arg1Trm = *lit->nthArgument(0);
-      T arg1;
-      if(!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
-      if(arity==1) {
-	if(!tryEvaluateUnaryPred(itp, arg1, res)) { return false;}
-      }
-      else {
-	TermList arg2Trm = *lit->nthArgument(1);
-	T arg2;
-	if(!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
-	if(!tryEvaluateBinaryPred(itp, arg1, arg2, res)) { return false;}
-      }
-      if(lit->isNegative()) {
-	res = !res;
-      }
-      return true;
-    }
-    catch(ArithmeticException)
-    {
-      return false;
-    }
-
-  }
-protected:
-
-  virtual bool tryEvaluateUnaryFunc(Interpretation op, const T& arg, T& res)
-  { return false; }
-  virtual bool tryEvaluateBinaryFunc(Interpretation op, const T& arg1, const T& arg2, T& res)
-  { return false; }
-
-  virtual bool tryEvaluateUnaryPred(Interpretation op, const T& arg1, bool& res)
-  { return false; }
-  virtual bool tryEvaluateBinaryPred(Interpretation op, const T& arg1, const T& arg2, bool& res)
-  { return false; }
 };
-#endif
 
 /**
  * Evaluates constant theory expressions
@@ -507,6 +491,7 @@ public:
     _evals.push(new IntEvaluator());
     _evals.push(new RatEvaluator());
     _evals.push(new RealEvaluator());
+    _evals.push(new ConversionEvaluator());
   }
 
   ~LiteralSimplifier()
