@@ -250,7 +250,7 @@ void Signature::registerInterpretedFunction(const string& name, Interpretation i
 	functionName(_iSymbols.get(interpretation))+", "+name);
   }
   BaseType* fnType = Theory::getOperationType(interpretation);
-  ASS(!fnType->isFunctionType());
+  ASS(fnType->isFunctionType());
   sym->setType(fnType);
 }
 
