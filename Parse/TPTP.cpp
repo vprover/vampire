@@ -17,6 +17,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -282,8 +283,6 @@ string TPTP::toString(Tag tag)
     return "$is_int";
   case T_IS_RAT:
     return "$is_rat";
-  case T_SUM:
-    return "$sum";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -795,93 +794,52 @@ void TPTP::readReserved(Token& tok)
  out:
   if (tok.content == "$true") {
     tok.tag = T_TRUE;
-    return;
   }
-  if (tok.content == "$false") {
+  else if (tok.content == "$false") {
     tok.tag = T_FALSE;
-    return;
   }
-  if (tok.content == "$tType") {
+  else if (tok.content == "$tType") {
     tok.tag = T_TTYPE;
-    return;
   }
-  if (tok.content == "$o" || tok.content == "$oType") {
+  else if (tok.content == "$o" || tok.content == "$oType") {
     tok.tag = T_BOOL_TYPE;
-    return;
   }
-  if (tok.content == "$i" || tok.content == "$iType") {
+  else if (tok.content == "$i" || tok.content == "$iType") {
     tok.tag = T_DEFAULT_TYPE;
-    return;
   }
-  if (tok.content == "$int") {
+  else if (tok.content == "$int") {
     tok.tag = T_INTEGER_TYPE;
-    return;
   }
-  if (tok.content == "$rat") {
+  else if (tok.content == "$rat") {
     tok.tag = T_RATIONAL_TYPE;
-    return;
   }
-  if (tok.content == "$real") {
+  else if (tok.content == "$real") {
     tok.tag = T_REAL_TYPE;
-    return;
   }
-  if (tok.content == "$sum") {
-    tok.tag = T_SUM;
-    return;
-  }
-  if (tok.content == "$less") {
-    tok.tag = T_LESS;
-    return;
-  }
-  if (tok.content == "$lesseq") {
-    tok.tag = T_LESSEQ;
-    return;
-  }
-  if (tok.content == "$greater") {
-    tok.tag = T_GREATER;
-    return;
-  }
-  if (tok.content == "$greatereq") {
-    tok.tag = T_GREATEREQ;
-    return;
-  }
-  if (tok.content == "$is_int") {
-    tok.tag = T_IS_INT;
-    return;
-  }
-  if (tok.content == "$is_rat") {
-    tok.tag = T_IS_RAT;
-    return;
-  }
-  if (tok.content == "$fot") {
+  else if (tok.content == "$fot") {
     tok.tag = T_FOT;
-    return;
   }
-  if (tok.content == "$fof") {
+  else if (tok.content == "$fof") {
     tok.tag = T_FOF;
-    return;
   }
-  if (tok.content == "$tff") {
+  else if (tok.content == "$tff") {
     tok.tag = T_TFF;
-    return;
   }
-  if (tok.content == "$thf") {
+  else if (tok.content == "$thf") {
     tok.tag = T_THF;
-    return;
   }
-  if (tok.content == "$equal") {
+  else if (tok.content == "$equal") {
     tok.tag = T_EQUAL;
-    return;
   }
-  if (tok.content == "$evaleq") {
+  else if (tok.content == "$evaleq") {
     tok.tag = T_EQUAL;
-    return;
   }
-  if (tok.content.substr(0,2) == "$$") {
+  else if (tok.content.substr(0,2) == "$$") {
     tok.tag = T_DOLLARS;
-    return;
   }
-  throw Exception((string)"I do not know how to handle " + tok.content,tok);
+  else {
+    tok.tag = T_NAME;
+  }
 } // readReserved
 
 /**
@@ -1465,7 +1423,6 @@ void TPTP::atom()
   case T_GREATEREQ:
   case T_IS_INT:
   case T_IS_RAT:
-  case T_SUM:
     _tags1.push(tok.tag);
     _strings.push(tok.content);
     _states.push(MID_ATOM);
@@ -1563,7 +1520,8 @@ void TPTP::term()
   CALL("TPTP::term");
 
   Token& tok = getTok(0);
-  switch (tok.tag) {
+  Tag tag = tok.tag;
+  switch (tag) {
   case T_NAME:
     _strings.push(tok.content);
     resetToks();
@@ -1627,7 +1585,8 @@ void TPTP::buildTerm()
   default: // compound term
     {
       ASS(arity >= 0);
-      unsigned fun = env.signature->addFunction(_strings.pop(),arity);
+      bool dummy;
+      unsigned fun = addFunction(_strings.pop(),arity,dummy,_termLists.top());
       Term* t = new(arity) Term;
       t->makeSymbol(fun,arity);
       bool safe = true;
@@ -1694,6 +1653,7 @@ void TPTP::midAtom()
   default:
     {
       int arity = _ints.pop();
+      ASS(arity > 0);
       string name = _strings.pop();
       Tag t = _tags1.pop();
       switch(t) {
@@ -1725,11 +1685,13 @@ void TPTP::midAtom()
 	ASSERTION_VIOLATION;
 #endif
       }
-      unsigned pred = env.signature->addPredicate(name,arity);
+      bool dummy;
+      unsigned pred = addPredicate(name,arity,dummy,_termLists.top());
       Literal* a = new(arity) Literal(pred,arity,true,false);
       bool safe = true;
       for (int i = arity-1;i >= 0;i--) {
 	TermList ts = _termLists.pop();
+	ASS(ts.isSafe());
 	safe = safe && ts.isSafe();
 	*(a->nthArgument(i)) = ts;
       }
@@ -2175,24 +2137,24 @@ void TPTP::endTff()
 #endif
     }
   }
-  unsigned args = sorts.size();
+  unsigned arity = sorts.size();
   bool added;
   Signature::Symbol* symbol;
   if (returnSortNumber == Sorts::SRT_BOOL) {
-    unsigned pred = env.signature->addPredicate(name,args,added);
+    unsigned pred = env.signature->addPredicate(name,arity,added);
     if(!added) {
       USER_ERROR("Predicate symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getPredicate(pred);
   }
   else {
-    unsigned fun = env.signature->addFunction(name,args,added);
+    unsigned fun = env.signature->addFunction(name,arity,added);
     if(!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
     symbol = env.signature->getFunction(fun);
   }
-  symbol->setType(BaseType::makeType(args,sorts.begin(),returnSortNumber));
+  symbol->setType(BaseType::makeType(arity,sorts.begin(),returnSortNumber));
 } // endTff
 
 /**
@@ -2308,7 +2270,6 @@ void TPTP::simpleFormula()
   case T_GREATEREQ:
   case T_IS_INT:
   case T_IS_RAT:
-  case T_SUM:
     _states.push(ATOM);
     return;
 
@@ -2485,6 +2446,85 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
 					     new FormulaList(rhs)));
 } // makeJunction
 
+/** Add a function to the signature
+ * @param name the function name
+ * @param arity the function arity
+ * @param added if the function is new, will be assigned true, otherwise false
+ * @param arg some argument of the function, require to resolve its type for overloaded
+ *        built-in functions
+ */
+unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
+{
+  CALL("TPTP::addFunction");
+
+  if (name[0] != '$') {
+    return env.signature->addFunction(name,arity,added);
+  }
+  if (name == "$sum") {
+    if (arity != 2) {
+      USER_ERROR("$sum is used with " + Int::toString(arity) + "argument(s)");
+    }
+    unsigned srt = sortOf(arg);
+    if (srt == Sorts::SRT_INTEGER) {
+      env.signature->registerInterpretedFunction(name,Theory::INT_PLUS);
+    }
+    else if (srt == Sorts::SRT_RATIONAL) {
+      env.signature->registerInterpretedFunction(name,Theory::RAT_PLUS);
+    }
+    else if (srt == Sorts::SRT_REAL) {
+      env.signature->registerInterpretedFunction(name,Theory::REAL_PLUS);
+    }
+    else {
+      USER_ERROR("The symbol $sum is used with a non-numeric type");
+    }
+  }
+  else {
+    USER_ERROR((string)"Invalid function name: " + name);
+  }
+  return env.signature->addFunction(name,arity,added);
+} // addFunction
+
+/** Add a predicate to the signature
+ * @param name the predicate name
+ * @param arity the predicate arity
+ * @param added if the predicate is new, will be assigned true, otherwise false
+ * @param arg some argument of the predicate, require to resolve its type for overloaded
+ *        built-in predicates
+ */
+unsigned TPTP::addPredicate(string name,int arity,bool& added,TermList& arg)
+{
+  CALL("TPTP::addPredicate");
+
+  if (name[0] != '$') {
+    return env.signature->addPredicate(name,arity,added);
+  }
+  USER_ERROR((string)"Invalid predicate name: " + name);
+} // addPredicate
+
+/**
+ * Return the sort of the term.
+ */
+unsigned TPTP::sortOf(TermList& t)
+{
+  CALL("TPTP::sortOf");
+  if (t.isVar()) {
+    if (_variableSorts.isEmpty()) { // may be empty when the formula has free variables
+      return Sorts::SRT_DEFAULT;
+    }
+    int var = t.var();
+    List<VariableSort>::Iterator vs(_variableSorts.top());
+    while (vs.hasNext()) {
+      VariableSort v = vs.next();
+      if (v.var == var) {
+	return v.sort;
+      }
+    }
+    return Sorts::SRT_DEFAULT;
+  }
+  // t is not a variable
+  return SortHelper::getResultSort(t.term());
+}
+
 #if VDEBUG
 // void TPTP::printStates(string extra)
 // {
@@ -2568,14 +2608,16 @@ $itetf
 
 $distinct
 
-$is_int
-$is_rat
-
 $uminus
-$sum
 $difference
 $product
 $to_int
 $to_rat
 $to_real
+$less
+$lesseq
+$greater
+$greatereq
+$is_int
+$is_rat
 */

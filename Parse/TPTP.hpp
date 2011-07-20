@@ -160,9 +160,6 @@ public:
     T_IS_INT,
     /** $is_rat */
     T_IS_RAT,
-    /** $sum */
-    T_SUM,
-    /**  */
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -559,7 +556,9 @@ private:
   unsigned readSort(bool newSortExpected);
   void unbindVariables();
   void skipToRPAR();
-
+  unsigned addFunction(string name,int arity,bool& added,TermList& someArgument);
+  unsigned addPredicate(string name,int arity,bool& added,TermList& someArgument);
+  unsigned sortOf(TermList& term);
   static bool higherPrecedence(int c1,int c2);
 
 #if VDEBUG
