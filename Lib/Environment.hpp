@@ -72,6 +72,8 @@ public:
   Kernel::Ordering* ordering;
   /** set to true when coloring is used for symbol elimination or interpolation */
   bool colorUsed;
+  /** set to true when there are some interpreted operations */
+  bool interpretedOperationsUsed;
 
 private:
   int _outputDepth;

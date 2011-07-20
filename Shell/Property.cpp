@@ -53,8 +53,10 @@ Property::Property()
     _maxPredArity(0),
     _totalNumberOfVariables(0),
     _maxVariablesInClause(0),
-    _props(0)
+    _props(0),
+    _hasInterpreted(false)
 {
+  _interpretationPresence.init(Theory::MAX_INTERPRETED_ELEMENT+1, false);
 } // Property::Property
 
 
@@ -338,6 +340,7 @@ void Property::scan(Literal* lit, bool& isGround)
     }
   }
 
+  scanInterpretation(lit);
   scan(lit->args(),isGround);
 
   if(!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality()
@@ -383,6 +386,7 @@ void Property::scan(TermList* ts, bool& isGround)
     }
     else { // ts is a reference to a complex term
       Term* t = ts->term();
+      scanInterpretation(t);
       int arity = t->arity();
       if (arity > _maxFunArity) {
 	_maxFunArity = arity;
@@ -395,6 +399,23 @@ void Property::scan(TermList* ts, bool& isGround)
   }
 } // Property::scan(const Term& term, bool& isGround)
 
+void Property::scanInterpretation(Term* t)
+{
+  CALL("Property::scanInterpretation");
+
+  Interpretation itp;
+  if(t->isLiteral()) {
+    Literal* lit = static_cast<Literal*>(t);
+    if(!theory->isInterpretedPredicate(lit)) { return; }
+    itp = theory->interpretPredicate(lit);
+  }
+  else {
+    if(!theory->isInterpretedFunction(t)) { return; }
+    itp = theory->interpretFunction(t);
+  }
+  _interpretationPresence[itp] = true;
+  _hasInterpreted = true;
+}
 
 /**
  * Return the string representation of the CASC category.

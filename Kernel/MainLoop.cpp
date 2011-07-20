@@ -98,7 +98,7 @@ ImmediateSimplificationEngineSP MainLoop::createISE()
   }
 
   res->addFront(ImmediateSimplificationEngineSP(new DistinctEqualitySimplifier()));
-  if(env.options->interpretedEvaluation()) {
+  if(env.interpretedOperationsUsed) {
     res->addFront(ImmediateSimplificationEngineSP(new InterpretedEvaluation()));
   }
   res->addFront(ImmediateSimplificationEngineSP(new TrivialInequalitiesRemovalISE()));

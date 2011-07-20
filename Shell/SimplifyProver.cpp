@@ -99,7 +99,6 @@ UnitList* SimplifyProver::units(const Expression* expr)
 {
   CALL("SimplifyProver::units");
 
-	env.options->setInterpretedEvaluation(true);
   List::Iterator it(expr->list);
   while (it.hasNext()) {
     Expression* exp = it.next();

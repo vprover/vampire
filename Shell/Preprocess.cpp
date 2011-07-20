@@ -97,6 +97,10 @@ void Preprocess::preprocess (UnitList*& units)
 //     }
 //   }
 
+  if(_property.hasInterpretedOperations()) {
+    env.interpretedOperationsUsed = true;
+  }
+
   SpecialTermElimination().apply(units);
 
   // reorder units
@@ -116,7 +120,7 @@ void Preprocess::preprocess (UnitList*& units)
     AnswerLiteralManager::getInstance()->addAnswerLiterals(units);
   }
 
-  if(_options.theoryAxioms()) {
+  if(_options.theoryAxioms() && _property.hasInterpretedOperations()) {
     env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
     TheoryAxioms().apply(units, &_property);
   }

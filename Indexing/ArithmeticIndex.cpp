@@ -221,7 +221,7 @@ ArithmeticIndex::ArithmeticIndex()
 void ArithmeticIndex::handleClause(Clause* c, bool adding)
 {
   CALL("ArithmeticIndex::handleClause");
-  ASS(env.options->interpretedEvaluation()); //this index should be used only when we interpret symbols
+//  ASS(env.options->interpretedEvaluation()); //this index should be used only when we interpret symbols
 
   if(c->length()!=1 || !BDD::instance()->isFalse(c->prop())) {
     return;

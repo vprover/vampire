@@ -13,7 +13,9 @@
 
 #include <string>
 
+#include "Lib/DArray.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/Theory.hpp"
 
 namespace Lib {
   class MultiCounter;
@@ -150,6 +152,9 @@ public:
   /** Return props as an integer, mainly for debugging */
   unsigned int props () const { return _props; }
 
+
+  bool hasInterpretedOperation(Interpretation i) const { return _interpretationPresence[i]; }
+  bool hasInterpretedOperations() const { return _hasInterpreted; }
  private:
   static bool hasXEqualsY (const Clause* c);
   static bool isXEqualsY (const Literal*,bool polarity);
@@ -162,6 +167,8 @@ public:
   void scan(Formula*);
   void scan(TermList* ts,bool& isGround);
   void scan(Literal* lit,bool& isGround);
+
+  void scanInterpretation(Term* t);
 
   char axiomTypes () const;
   char goalTypes () const;
@@ -213,6 +220,9 @@ public:
 
   /** CASC category of the problem, computed by read() */
   Category _category;
+
+  bool _hasInterpreted;
+  DArray<bool> _interpretationPresence;
 }; // class Property
 
 }

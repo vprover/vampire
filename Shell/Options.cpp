@@ -15,6 +15,7 @@
 #include "Debug/Tracer.hpp"
 #include "Debug/Assertion.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/NameArray.hpp"
@@ -131,7 +132,6 @@ const char* Options::Constants::_optionNames[] = {
   "inst_gen_restart_period",
   "inst_gen_restart_period_quotient",
   "inst_gen_with_resolution",
-  "interpreted_evaluation",
   "interpreted_simplification",
 
   "latex_output",
@@ -547,7 +547,6 @@ Options::Options ()
   _instGenRestartPeriod(1000),
   _instGenRestartPeriodQuotient(1.0f),
   _instGenWithResolution(false),
-  _interpretedEvaluation(false),
   _interpretedSimplification(false),
 
   _latexOutput("off"),
@@ -847,9 +846,6 @@ void Options::set(const char* name,const char* value, int index)
       break;
     case INST_GEN_WITH_RESOLUTION:
       _instGenWithResolution = onOffToBool(value,name);
-      return;
-    case INTERPRETED_EVALUATION:
-      _interpretedEvaluation = onOffToBool(value,name);
       return;
     case INTERPRETED_SIMPLIFICATION:
       _interpretedSimplification = onOffToBool(value,name);
@@ -1504,9 +1500,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case INST_GEN_WITH_RESOLUTION:
     str << boolToOnOff(_instGenWithResolution);
-    return;
-  case INTERPRETED_EVALUATION:
-    str << boolToOnOff(_interpretedEvaluation);
     return;
   case INTERPRETED_SIMPLIFICATION:
     str << boolToOnOff(_interpretedSimplification);
@@ -2190,7 +2183,7 @@ bool Options::complete () const
          ! _maxWeight &&
          _binaryResolution &&
          ! _forwardLiteralRewriting &&
-         ! _interpretedEvaluation &&
+         ! env.interpretedOperationsUsed &&
          _sineSelection==SS_OFF &&
          _saturationAlgorithm!=TABULATION &&
          ! _forceIncompleteness;
@@ -2219,9 +2212,6 @@ void Options::checkGlobalOptionConstraints() const
   }
   if(splitting()==SM_BACKTRACKING && propositionalToBDD()) {
     USER_ERROR("Backtracking splitting cannot be used unless all BDD related options are disabled");
-  }
-  if(interpretedSimplification() && !interpretedEvaluation()) {
-    USER_ERROR("Interpreted simplification can only be used together with interpreted evaluation");
   }
   if(showInterpolant()!=INTERP_OFF && splitting()==SM_BACKTRACKING) {
     USER_ERROR("Cannot output interpolant with backtracking splitting");
