@@ -63,9 +63,10 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   _beingSkolemised=unit;
 
   Formula* f = unit->formula();
-  SortHelper::collectVariableSorts(f, _varSorts);
-
   Formula* g = skolemise(f);
+
+  _beingSkolemised = 0;
+
   if (f == g) { // not changed
     return unit;
   }
@@ -110,12 +111,21 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
   return fun;
 }
 
+void Skolem::ensureHavingVarSorts()
+{
+  CALL("Skolem::ensureHavingVarSorts");
+
+  Formula* f = _beingSkolemised->formula();
+  SortHelper::collectVariableSorts(f, _varSorts);
+}
+
 Term* Skolem::createSkolemTerm(unsigned var)
 {
   CALL("Skolem::createSkolemFunction");
 
   int arity = _vars.length();
 
+  ensureHavingVarSorts();
   unsigned rangeSort=_varSorts.get(var, Sorts::SRT_DEFAULT);
   static Stack<unsigned> domainSorts;
   static Stack<TermList> fnArgs;

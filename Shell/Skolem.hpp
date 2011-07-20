@@ -50,6 +50,8 @@ private:
   void reset();
   Term* createSkolemTerm(unsigned var);
 
+  void ensureHavingVarSorts();
+
   typedef Stack<int> VarStack;
 
   /** collected substitution */
@@ -60,7 +62,7 @@ private:
   /** map var --> sort */
   DHMap<unsigned,unsigned> _varSorts;
 
-  Unit* _beingSkolemised;
+  FormulaUnit* _beingSkolemised;
 }; // class Skolem
 
 }
