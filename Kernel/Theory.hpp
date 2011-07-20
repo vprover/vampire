@@ -89,6 +89,8 @@ struct RationalConstantType {
   RationalConstantType operator*(const RationalConstantType& num) const;
   RationalConstantType operator/(const RationalConstantType& num) const;
 
+  bool isInt() const;
+
   bool operator==(const RationalConstantType& num) const;
   bool operator>(const RationalConstantType& num) const;
 
@@ -168,12 +170,15 @@ public:
     INT_LESS_EQUAL,
     INT_DIVIDES,
 
+    RAT_IS_INT,
     RAT_GREATER,
     RAT_GREATER_EQUAL,
     RAT_LESS,
     RAT_LESS_EQUAL,
     RAT_DIVIDES,
 
+    REAL_IS_INT,
+    REAL_IS_RAT,
     REAL_GREATER,
     REAL_GREATER_EQUAL,
     REAL_LESS,

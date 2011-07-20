@@ -88,61 +88,79 @@ public:
     CALL("InterpretedEvaluation::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
 
-    Interpretation itp = theory->interpretFunction(trm);
-    ASS(theory->isFunction(itp));
-    unsigned arity = theory->getArity(itp);
+    try {
+      Interpretation itp = theory->interpretFunction(trm);
+      ASS(theory->isFunction(itp));
+      unsigned arity = theory->getArity(itp);
 
-    if(arity!=1 && arity!=2) {
-      INVALID_OPERATION("unsupported arity of interpreted operation: "+Int::toString(arity));
+      if(arity!=1 && arity!=2) {
+	INVALID_OPERATION("unsupported arity of interpreted operation: "+Int::toString(arity));
+      }
+      T resNum;
+      TermList arg1Trm = *trm->nthArgument(0);
+      T arg1;
+      if(!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
+      if(arity==1) {
+	if(!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
+      }
+      else if(arity==2) {
+	TermList arg2Trm = *trm->nthArgument(1);
+	T arg2;
+	if(!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
+	if(!tryEvaluateBinaryFunc(itp, arg1, arg2, resNum)) { return false;}
+      }
+      res = theory->representConstant(resNum);
+      return true;
     }
-    T resNum;
-    TermList arg1Trm = *trm->nthArgument(0);
-    T arg1;
-    if(!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
-    if(arity==1) {
-      if(!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
+    catch(ArithmeticException)
+    {
+      return false;
     }
-    else if(arity==2) {
-      TermList arg2Trm = *trm->nthArgument(1);
-      T arg2;
-      if(!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
-      if(!tryEvaluateBinaryFunc(itp, arg1, arg2, resNum)) { return false;}
-    }
-    res = theory->representConstant(resNum);
-    return true;
   }
 
   virtual bool tryEvaluatePred(Literal* lit, bool& res)
   {
     ASS(theory->isInterpretedPredicate(lit));
 
-    Interpretation itp = theory->interpretPredicate(lit);
-    ASS(!theory->isFunction(itp));
-    unsigned arity = theory->getArity(itp);
+    try {
+      Interpretation itp = theory->interpretPredicate(lit);
+      ASS(!theory->isFunction(itp));
+      unsigned arity = theory->getArity(itp);
 
-    if(arity!=1 && arity!=2) {
-      INVALID_OPERATION("unsupported arity of interpreted operation: "+Int::toString(arity));
+      if(arity!=1 && arity!=2) {
+	INVALID_OPERATION("unsupported arity of interpreted operation: "+Int::toString(arity));
+      }
+      TermList arg1Trm = *lit->nthArgument(0);
+      T arg1;
+      if(!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
+      if(arity==1) {
+	if(!tryEvaluateUnaryPred(itp, arg1, res)) { return false;}
+      }
+      else {
+	TermList arg2Trm = *lit->nthArgument(1);
+	T arg2;
+	if(!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
+      }
+      if(lit->isNegative()) {
+	res = !res;
+      }
+      return true;
     }
-    TermList arg1Trm = *lit->nthArgument(0);
-    TermList arg2Trm = *lit->nthArgument(1);
-    T arg1;
-    T arg2;
-    if(!theory->tryInterpretConstant(arg1Trm, arg1)) { return false; }
-    if(!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
-    if(!tryEvaluateBinaryPred(itp, arg1, arg2, res)) { return false;}
-    if(lit->isNegative()) {
-      res = !res;
+    catch(ArithmeticException)
+    {
+      return false;
     }
-    return true;
+
   }
 protected:
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const T& arg, T& res)
   { return false; }
-
   virtual bool tryEvaluateBinaryFunc(Interpretation op, const T& arg1, const T& arg2, T& res)
   { return false; }
 
+  virtual bool tryEvaluateUnaryPred(Interpretation op, const T& arg1, bool& res)
+  { return false; }
   virtual bool tryEvaluateBinaryPred(Interpretation op, const T& arg1, const T& arg2, bool& res)
   { return false; }
 };
@@ -224,7 +242,7 @@ class InterpretedEvaluation::RatEvaluator : public TypedEvaluator<RationalConsta
 protected:
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
-    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateUnaryFunc");
+    CALL("InterpretedEvaluation::RatEvaluator::tryEvaluateUnaryFunc");
 
     switch(op) {
     case Theory::RAT_UNARY_MINUS:
@@ -238,7 +256,7 @@ protected:
   virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
       const Value& arg2, Value& res)
   {
-    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateBinaryFunc");
+    CALL("InterpretedEvaluation::RatEvaluator::tryEvaluateBinaryFunc");
 
     switch(op) {
     case Theory::RAT_PLUS:
@@ -261,7 +279,7 @@ protected:
   virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
       const Value& arg2, bool& res)
   {
-    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateBinaryPred");
+    CALL("InterpretedEvaluation::RatEvaluator::tryEvaluateBinaryPred");
 
     switch(op) {
     case Theory::RAT_GREATER:
@@ -280,6 +298,20 @@ protected:
       return false;
     }
   }
+
+  virtual bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
+      bool& res)
+  {
+    CALL("InterpretedEvaluation::RatEvaluator::tryEvaluateBinaryPred");
+
+    switch(op) {
+    case Theory::RAT_IS_INT:
+      res = arg1.isInt();
+      return true;
+    default:
+      return false;
+    }
+  }
 };
 
 class InterpretedEvaluation::RealEvaluator : public TypedEvaluator<RealConstantType>
@@ -287,7 +319,7 @@ class InterpretedEvaluation::RealEvaluator : public TypedEvaluator<RealConstantT
 protected:
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
-    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateUnaryFunc");
+    CALL("InterpretedEvaluation::RealEvaluator::tryEvaluateUnaryFunc");
 
     switch(op) {
     case Theory::REAL_UNARY_MINUS:
@@ -301,7 +333,7 @@ protected:
   virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
       const Value& arg2, Value& res)
   {
-    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateBinaryFunc");
+    CALL("InterpretedEvaluation::RealEvaluator::tryEvaluateBinaryFunc");
 
     switch(op) {
     case Theory::REAL_PLUS:
@@ -324,7 +356,7 @@ protected:
   virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
       const Value& arg2, bool& res)
   {
-    CALL("InterpretedEvaluation::IntEvaluator::tryEvaluateBinaryPred");
+    CALL("InterpretedEvaluation::RealEvaluator::tryEvaluateBinaryPred");
 
     switch(op) {
     case Theory::REAL_GREATER:
@@ -343,6 +375,25 @@ protected:
       return false;
     }
   }
+
+  virtual bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
+      bool& res)
+  {
+    CALL("InterpretedEvaluation::RealEvaluator::tryEvaluateBinaryPred");
+
+    switch(op) {
+    case Theory::REAL_IS_INT:
+      res = arg1.isInt();
+      return true;
+    case Theory::REAL_IS_RAT:
+      //this is true as long as we can evaluate only rational reals.
+      res = true;
+      return true;
+    default:
+      return false;
+    }
+  }
+
 };
 
 class InterpretedEvaluation::LiteralSimplifier :  private TermTransformer

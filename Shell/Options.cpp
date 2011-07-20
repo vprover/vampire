@@ -1442,6 +1442,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << Constants::ruleActivityValues[_equalityResolutionWithDeletion];
     return;
 
+  case FORCED_OPTIONS:
+    str << forcedOptions();
+    return;
   case FORWARD_DEMODULATION:
     str << Constants::demodulationValues[_forwardDemodulation];
     return;
@@ -1754,7 +1757,7 @@ void Options::outputValue (ostream& str,int optionTag) const
 
 #if VDEBUG
   default:
-    ASSERTION_VIOLATION;
+    ASS_REP(false, Constants::optionNames[optionTag]);
 #endif
   }
 } // Options::outputValue

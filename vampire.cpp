@@ -428,6 +428,12 @@ int main(int argc, char* argv [])
     Shell::CommandLine cl(argc,argv);
     cl.interpret(*env.options);
 
+    if(env.options->showOptions()) {
+      env.beginOutput();
+      env.options->output(env.out());
+      env.endOutput();
+    }
+
     Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
