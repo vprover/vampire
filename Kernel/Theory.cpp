@@ -557,11 +557,47 @@ bool Theory::isConversionOperation(Interpretation i)
   }
 }
 
+/**
+ * This function creates a type for converion function @c i.
+ *
+ * @c i must be a type conversion operation.
+ */
 FunctionType* Theory::getConversionOperationType(Interpretation i)
 {
   CALL("Theory::getConversionOperationType");
 
-
+  unsigned from, to;
+  switch(i) {
+  case INT_TO_RAT:
+    from = Sorts::SRT_INTEGER;
+    to = Sorts::SRT_RATIONAL;
+    break;
+  case INT_TO_REAL:
+    from = Sorts::SRT_INTEGER;
+    to = Sorts::SRT_REAL;
+    break;
+  case RAT_TO_INT:
+    from = Sorts::SRT_RATIONAL;
+    to = Sorts::SRT_INTEGER;
+    break;
+  case RAT_TO_REAL:
+    from = Sorts::SRT_RATIONAL;
+    to = Sorts::SRT_REAL;
+    break;
+  case REAL_TO_INT:
+    from = Sorts::SRT_REAL;
+    to = Sorts::SRT_INTEGER;
+    break;
+  case REAL_TO_RAT:
+    from = Sorts::SRT_REAL;
+    to = Sorts::SRT_RATIONAL;
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+  BaseType* res = BaseType::makeType(1, &from, to);
+  ASS(res->isFunctionType());
+  return static_cast<FunctionType*>(res);
 }
 
 /**
