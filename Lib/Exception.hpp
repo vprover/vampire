@@ -151,6 +151,8 @@ class SystemFailException
 public:
   SystemFailException (const string msg, int err);
   void cry (ostream&);
+
+  int err;
 }; // InvalidOperationException
 
 /**

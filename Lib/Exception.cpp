@@ -46,7 +46,7 @@ void InvalidOperationException::cry (ostream& str)
 
 
 SystemFailException::SystemFailException(const string msg, int err)
-: Exception(msg+" error "+Int::toString(err)+": "+strerror(err))
+: Exception(msg+" error "+Int::toString(err)+": "+strerror(err)), err(err)
 {}
 /**
  * Write a description of the exception to a stream.

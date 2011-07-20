@@ -14,6 +14,7 @@
 
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/System.hpp"
 #include "Lib/TimeCounter.hpp"
@@ -796,7 +797,14 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
     cout<<"terminated slice pid "<<finishedChild<<" (success)"<<endl;
     cout.flush();
     int writerResult;
+    try {
     Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
+    } catch(SystemFailException& ex) {
+      //it may happen that the writer process has already exitted
+      if(ex.err!=ECHILD) {
+	throw;
+      }
+    }
     System::terminateImmediately(0);
   }
   cout<<"terminated slice pid "<<finishedChild<<" (fail)"<<endl;
