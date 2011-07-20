@@ -143,6 +143,7 @@ public:
 	TermList arg2Trm = *lit->nthArgument(1);
 	T arg2;
 	if(!theory->tryInterpretConstant(arg2Trm, arg2)) { return false; }
+	if(!tryEvaluateBinaryPred(itp, arg1, arg2, res)) { return false;}
       }
       if(lit->isNegative()) {
 	res = !res;
@@ -431,7 +432,9 @@ public:
       if(!ev->canEvaluatePred(pred)) {
 	continue;
       }
+      LOGV(resLit->toString());
       if(ev->tryEvaluatePred(resLit, resConst)) {
+	LOGV(resConst);
 	isConstant = true;
 	return true;
       }
