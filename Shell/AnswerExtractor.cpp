@@ -308,7 +308,7 @@ Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars)
   unsigned vcnt = litArgs.size();
   unsigned pred = env.signature->addNamePredicate(vcnt, "ans");
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
-  predSym->markAswerPredicate();
+  predSym->markAnswerPredicate();
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
 }
 

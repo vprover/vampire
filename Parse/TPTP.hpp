@@ -395,6 +395,8 @@ private:
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
   int _lastInputType;
+  /** true if the last read unit is a question */ 
+  int _isQuestion;
   /** various strings saved during parsing */
   Stack<string> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used

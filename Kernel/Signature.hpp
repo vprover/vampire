@@ -78,7 +78,7 @@ class Signature
     /** mark the symbol as name for splitting without backtracking */
     void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
     /** mark symbol to be an answer predicate */
-    void markAswerPredicate() { _answerPredicate=1; }
+    void markAnswerPredicate() { _answerPredicate=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate

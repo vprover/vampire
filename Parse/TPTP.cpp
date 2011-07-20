@@ -28,6 +28,7 @@
 
 using namespace Lib;
 using namespace Kernel;
+using namespace Shell;
 using namespace Parse;
 
 #define DEBUG_SHOW_TOKENS 0
@@ -1126,13 +1127,19 @@ void TPTP::fof(bool fo)
   tok = getTok(0);
   int start = tok.start;
   string tp = name();
+  _isQuestion = false;
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
   }
   else if (tp == "definition") {
     _lastInputType = Unit::AXIOM;
   }
-  else if (tp == "conjecture" || tp == "question") {
+  else if (tp == "conjecture") {
+    _containsConjecture = true;
+    _lastInputType = Unit::CONJECTURE;
+  }
+  else if (tp == "question") {
+    _isQuestion = true;
     _containsConjecture = true;
     _lastInputType = Unit::CONJECTURE;
   }
@@ -1180,9 +1187,6 @@ void TPTP::tff()
   Token& tok = getTok(0);
   switch(tok.tag) {
   case T_NAME:
-    _strings.push(tok.content);
-    resetToks();
-    break;
   case T_INT:
     _strings.push(tok.content);
     resetToks();
@@ -1234,6 +1238,7 @@ void TPTP::tff()
   }
 
   _bools.push(true); // to denote that it is an FOF formula
+  _isQuestion = false;
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = Unit::AXIOM;
   }
@@ -1241,6 +1246,11 @@ void TPTP::tff()
     _lastInputType = Unit::AXIOM;
   }
   else if (tp == "conjecture") {
+    _containsConjecture = true;
+    _lastInputType = Unit::CONJECTURE;
+  }
+  else if (tp == "question") {
+    _isQuestion = true;
     _containsConjecture = true;
     _lastInputType = Unit::CONJECTURE;
   }
@@ -1575,9 +1585,14 @@ void TPTP::buildTerm()
     break;
   default: // compound term
     {
-      ASS(arity >= 0);
       bool dummy;
-      unsigned fun = addFunction(_strings.pop(),arity,dummy,_termLists.top());
+      unsigned fun;
+      if (arity > 0) {
+	fun = addFunction(_strings.pop(),arity,dummy,_termLists.top());
+      }
+      else {
+	fun = env.signature->addFunction(_strings.pop(),0);
+      }
       Term* t = new(arity) Term;
       t->makeSymbol(fun,arity);
       bool safe = true;
@@ -1644,10 +1659,15 @@ void TPTP::midAtom()
   default:
     {
       int arity = _ints.pop();
-      ASS(arity > 0);
       string name = _strings.pop();
-      bool dummy;
-      unsigned pred = addPredicate(name,arity,dummy,_termLists.top());
+      unsigned pred;
+      if (arity > 0) {
+	bool dummy;
+	pred = addPredicate(name,arity,dummy,_termLists.top());
+      }
+      else {
+	pred = env.signature->addPredicate(name,0);
+      }
       Literal* a = new(arity) Literal(pred,arity,true,false);
       bool safe = true;
       for (int i = arity-1;i >= 0;i--) {
@@ -1924,6 +1944,26 @@ void TPTP::endFof()
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
     unit = new FormulaUnit(f,new Inference(Inference::INPUT),(Unit::InputType)_lastInputType);
+    if (_isQuestion && env.options->mode() == Options::MODE_CLAUSIFY && f->connective() == EXISTS) {
+      // create an answer predicate
+      QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
+      int arity = g->vars()->length();
+      unsigned pred = env.signature->addPredicate("$$answer",arity);
+      env.signature->getPredicate(pred)->markAnswerPredicate();
+      Literal* a = new(arity) Literal(pred,arity,true,false);
+      List<int>::Iterator vs(g->vars());
+      int i = 0;
+      while (vs.hasNext()) {
+	a->nthArgument(i)->makeVar(vs.next());
+      }
+      a = env.sharing->insert(a);
+      f = new QuantifiedFormula(EXISTS,
+				g->vars(),
+				new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
+      unit = new FormulaUnit(f,
+			     new Inference1(Inference::ANSWER_LITERAL,unit),
+			     Unit::NEGATED_CONJECTURE);
+    }
   }
   else { // cnf()
     env.statistics->inputClauses++;
@@ -2411,7 +2451,7 @@ unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
 {
   CALL("TPTP::addFunction");
 
-  if (name[0] != '$') {
+  if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
     return env.signature->addFunction(name,arity,added);
   }
   if (name == "$sum") {
@@ -2471,7 +2511,7 @@ unsigned TPTP::addPredicate(string name,int arity,bool& added,TermList& arg)
 {
   CALL("TPTP::addPredicate");
 
-  if (name[0] != '$') {
+  if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
     return env.signature->addPredicate(name,arity,added);
   }
   if (name == "$less") {
