@@ -576,7 +576,8 @@ unsigned Clause::getNumeralWeight()
     }
     NonVariableIterator nvi(lit);
     while(nvi.hasNext()) {
-      Term* t=nvi.next().term();
+      TermList tl=nvi.next();
+      Term* t=tl.term();
       if(!t->hasInterpretedConstants()) {
 	nvi.right();
 	continue;
@@ -584,11 +585,31 @@ unsigned Clause::getNumeralWeight()
       if(t->arity()!=0) {
 	continue;
       }
-      ASS(theory->isInterpretedConstant(t));
-      InterpretedType val=theory->interpretConstant(t);
-      int w=BitUtils::log2(abs(val))-1;
-      if(w>0) {
-	res+=w;
+      IntegerConstantType intVal;
+      if(theory->tryInterpretConstant(tl, intVal)) {
+	int w=BitUtils::log2(abs(intVal.toInt()))-1;
+	if(w>0) {
+	  res+=w;
+	}
+      }
+      else {
+	RationalConstantType ratVal;
+	RealConstantType realVal;
+	bool haveRat = false;
+	if(theory->tryInterpretConstant(tl, ratVal)) {
+	  haveRat = true;
+	} else if(theory->tryInterpretConstant(tl, realVal)) {
+	  ratVal = RationalConstantType(realVal);
+	  haveRat = true;
+	}
+	if(haveRat) {
+	  int wN=BitUtils::log2(abs(ratVal.numerator().toInt()))-1;
+	  int wD=BitUtils::log2(abs(ratVal.denominator().toInt()))-1;
+	  int w = wN+wD;
+	  if(w>0) {
+	    res+=w;
+	  }
+	}
       }
     }
   }

@@ -549,7 +549,7 @@ public:
     }
     Kernel::Literal* lhsLit = lhsF->literal();
     if(negate) {
-      lhsLit = Kernel::Literal::oppositeLiteral(lhsLit);
+      lhsLit = Kernel::Literal::complementaryLiteral(lhsLit);
     }
 
     Kernel::Formula* posForm = posRhs;

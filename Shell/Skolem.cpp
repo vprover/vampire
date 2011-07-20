@@ -20,6 +20,9 @@
 #include "Skolem.hpp"
 #include "VarManager.hpp"
 
+#undef LOGGING
+#define LOGGING 0
+
 using namespace Kernel;
 using namespace Shell;
 
@@ -55,6 +58,7 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
 FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
 {
   CALL("Skolem::skolemiseImpl(FormulaUnit*)");
+  LOG("Skolemizing: "<<unit->toString());
 
   _beingSkolemised=unit;
 
