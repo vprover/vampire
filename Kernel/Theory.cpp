@@ -285,7 +285,12 @@ bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
 	haveDecimal = true;
       }
       else if((i==0 && num[i]=='-') || (num[i]>='0' && num[i]<='9')) {
-	newNum += num[i];
+	if(newNum=="0") {
+	  newNum = num[i];
+	}
+	else {
+	  newNum += num[i];
+	}
 	if(haveDecimal) {
 	  denominator = denominator * 10;
 	}
