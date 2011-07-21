@@ -817,12 +817,6 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$thf") {
     tok.tag = T_THF;
   }
-  else if (tok.content == "$equal") {
-    tok.tag = T_EQUAL;
-  }
-  else if (tok.content == "$evaleq") {
-    tok.tag = T_EQUAL;
-  }
   else if (tok.content.substr(0,2) == "$$") {
     tok.tag = T_DOLLARS;
   }
@@ -1660,7 +1654,7 @@ void TPTP::midAtom()
     {
       int arity = _ints.pop();
       string name = _strings.pop();
-      unsigned pred;
+      int pred;
       if (arity > 0) {
 	bool dummy;
 	pred = addPredicate(name,arity,dummy,_termLists.top());
@@ -1668,17 +1662,24 @@ void TPTP::midAtom()
       else {
 	pred = env.signature->addPredicate(name,0);
       }
-      Literal* a = new(arity) Literal(pred,arity,true,false);
+      if (pred == -1) { // equality
+	TermList rhs = _termLists.pop();
+	TermList lhs = _termLists.pop();
+	_formulas.push(new AtomicFormula(createEquality(true,lhs,rhs)));
+	return;
+      }
+      // not equality
+      Literal* lit = new(arity) Literal(pred,arity,true,false);
       bool safe = true;
       for (int i = arity-1;i >= 0;i--) {
 	TermList ts = _termLists.pop();
 	safe = safe && ts.isSafe();
-	*(a->nthArgument(i)) = ts;
+	*(lit->nthArgument(i)) = ts;
       }
       if (safe) {
-	a = env.sharing->insert(a);
+	lit = env.sharing->insert(lit);
       }
-      _formulas.push(new AtomicFormula(a));
+      _formulas.push(new AtomicFormula(lit));
       return;
     }
   }
@@ -1695,29 +1696,35 @@ void TPTP::endEquality()
   buildTerm();
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
-  bool polarity = _bools.pop();
-  Literal* l;
-  if (lhs.isVar() && rhs.isVar()) {
-    unsigned sort = Sorts::SRT_DEFAULT;
-    int var1 = lhs.var();
-    int var2 = rhs.var();
-    if (!_variableSorts.isEmpty()) { // may be empty when the formula has free variables
-      List<VariableSort>::Iterator vs(_variableSorts.top());
-      while (vs.hasNext()) {
-	VariableSort v = vs.next();
-	if (v.var == var1 || v.var == var2) {
-	  sort = v.sort;
-	  break;
-	}
-      }
-    }
-    l = Literal::createVariableEquality(polarity,lhs,rhs,sort);
-  }
-  else {
-    l = Literal::createEquality(polarity,lhs,rhs);
-  }
+  Literal* l = createEquality(_bools.pop(),lhs,rhs);
   _formulas.push(new AtomicFormula(l));
 } // endEquality
+
+/**
+ * Creates an equality literal and takes care of its sort when it
+ * is an equality between two variables.
+ * @since 21/07/2011 Manchester
+ */
+Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
+{
+  if (!lhs.isVar() || !rhs.isVar()) {
+    return Literal::createEquality(polarity,lhs,rhs);
+  }
+  unsigned sort = Sorts::SRT_DEFAULT;
+  int var1 = lhs.var();
+  int var2 = rhs.var();
+  if (!_variableSorts.isEmpty()) { // may be empty when the formula has free variables
+    List<VariableSort>::Iterator vs(_variableSorts.top());
+    while (vs.hasNext()) {
+      VariableSort v = vs.next();
+      if (v.var == var1 || v.var == var2) {
+	sort = v.sort;
+	break;
+      }
+    }
+  }
+  return Literal::createVariableEquality(polarity,lhs,rhs,sort);
+} // TPTP::createEquality
 
 /**
  * Build a formula from previousy built subformulas
@@ -2506,13 +2513,18 @@ unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
  * @param added if the predicate is new, will be assigned true, otherwise false
  * @param arg some argument of the predicate, require to resolve its type for overloaded
  *        built-in predicates
+ * @return the predicate number in the signature, or -1 if it is a different name for an equality
+ *         predicate
  */
-unsigned TPTP::addPredicate(string name,int arity,bool& added,TermList& arg)
+int TPTP::addPredicate(string name,int arity,bool& added,TermList& arg)
 {
   CALL("TPTP::addPredicate");
 
   if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
     return env.signature->addPredicate(name,arity,added);
+  }
+  if (name == "$evaleq" || name == "$equal") {
+    return -1;
   }
   if (name == "$less") {
     return addOverloadedPredicate(name,arity,2,added,arg,

@@ -532,6 +532,7 @@ private:
   void term();
   void endTerm();
   void buildTerm();
+  Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
   void makeTerm(TermList& ts,Token& tok);
   void midAtom();
   void endEquality();
@@ -546,7 +547,7 @@ private:
   void unbindVariables();
   void skipToRPAR();
   unsigned addFunction(string name,int arity,bool& added,TermList& someArgument);
-  unsigned addPredicate(string name,int arity,bool& added,TermList& someArgument);
+  int addPredicate(string name,int arity,bool& added,TermList& someArgument);
   unsigned addOverloadedFunction(string name,int arity,int symbolArity,bool& added,TermList& arg,
 				 Theory::Interpretation integer,Theory::Interpretation rational,
 				 Theory::Interpretation real);
