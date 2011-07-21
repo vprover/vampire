@@ -2512,21 +2512,21 @@ unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
   }
   if (name == "$to_int") {
     return addOverloadedFunction(name,arity,1,added,arg,
-				 Theory::Interpretation(-1),
+				 Theory::INT_TO_INT,
 				 Theory::RAT_TO_INT,
 				 Theory::REAL_TO_INT);
   }
   if (name == "$to_rat") {
     return addOverloadedFunction(name,arity,1,added,arg,
 				 Theory::INT_TO_RAT,
-				 Theory::Interpretation(-1),
+				 Theory::RAT_TO_RAT,
 				 Theory::REAL_TO_RAT);
   }
   if (name == "$to_real") {
     return addOverloadedFunction(name,arity,1,added,arg,
 				 Theory::INT_TO_REAL,
 				 Theory::RAT_TO_REAL,
-				 Theory::Interpretation(-1));
+				 Theory::REAL_TO_REAL);
   }
 
   USER_ERROR((string)"Invalid function name: " + name);
@@ -2577,14 +2577,14 @@ int TPTP::addPredicate(string name,int arity,bool& added,TermList& arg)
   }
   if (name == "$is_int") {
     return addOverloadedPredicate(name,arity,1,added,arg,
-				  (Theory::Interpretation)-1,
+				  Theory::INT_IS_INT,
 				  Theory::RAT_IS_INT,
 				  Theory::REAL_IS_INT);
   }
   if (name == "$is_rat") {
     return addOverloadedPredicate(name,arity,1,added,arg,
-				  (Theory::Interpretation)-1,
-				  (Theory::Interpretation)-1,
+				  Theory::INT_IS_RAT,
+				  Theory::RAT_IS_RAT,
 				  Theory::REAL_IS_RAT);
   }
   USER_ERROR((string)"Invalid predicate name: " + name);
@@ -2601,21 +2601,12 @@ unsigned TPTP::addOverloadedFunction(string name,int arity,int symbolArity,bool&
   }
   unsigned srt = sortOf(arg);
   if (srt == Sorts::SRT_INTEGER) {
-    if (integer == (Theory::Interpretation)-1) {
-      USER_ERROR(name + " is used with integer argument(s)");
-    }
     env.signature->registerInterpretedFunction(name,integer);
   }
   else if (srt == Sorts::SRT_RATIONAL) {
-    if (rational == (Theory::Interpretation)-1) {
-      USER_ERROR(name + " is used with rational argument(s)");
-    }
     env.signature->registerInterpretedFunction(name,rational);
   }
   else if (srt == Sorts::SRT_REAL) {
-    if (real == (Theory::Interpretation)-1) {
-      USER_ERROR(name + " is used with real argument(s)");
-    }
     env.signature->registerInterpretedFunction(name,real);
   }
   else {
@@ -2635,15 +2626,9 @@ unsigned TPTP::addOverloadedPredicate(string name,int arity,int symbolArity,bool
   }
   unsigned srt = sortOf(arg);
   if (srt == Sorts::SRT_INTEGER) {
-    if (integer == (Theory::Interpretation)-1) {
-      USER_ERROR(name + " is used with integer argument(s)");
-    }
     env.signature->registerInterpretedPredicate(name,integer);
   }
   else if (srt == Sorts::SRT_RATIONAL) {
-    if (rational == (Theory::Interpretation)-1) {
-      USER_ERROR(name + " is used with rational argument(s)");
-    }
     env.signature->registerInterpretedPredicate(name,rational);
   }
   else if (srt == Sorts::SRT_REAL) {

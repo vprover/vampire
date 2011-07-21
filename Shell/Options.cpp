@@ -2022,6 +2022,12 @@ void Options::readFromTestId (string testId)
   else if (ma == "ott") {
     _saturationAlgorithm = OTTER;
   }
+  else if (ma == "tab") {
+    _saturationAlgorithm = TABULATION;
+  }
+  else if (ma == "ins") {
+    _saturationAlgorithm = INST_GEN;
+  }
   else {
   error: USER_ERROR("bad test id " + _testId);
   }
