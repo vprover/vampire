@@ -618,7 +618,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   case RAT_LESS_EQUAL:
   case RAT_DIVIDES:
 
-  case RAT_TO_INT:
+  case RAT_TO_RAT:
   case RAT_IS_INT:
   case RAT_IS_RAT:
   case RAT_IS_REAL:
@@ -635,7 +635,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_LESS_EQUAL:
   case REAL_DIVIDES:
 
-  case REAL_TO_INT:
+  case REAL_TO_REAL:
   case REAL_IS_INT:
   case REAL_IS_RAT:
   case REAL_IS_REAL:
