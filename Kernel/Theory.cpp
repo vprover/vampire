@@ -276,6 +276,7 @@ bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
     string newNum;
     IntegerConstantType denominator = 1;
     bool haveDecimal = false;
+    bool neg = false;
     size_t nlen = num.size();
     for(size_t i=0; i<nlen; i++) {
       if(num[i]=='.') {
@@ -284,7 +285,10 @@ bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
 	}
 	haveDecimal = true;
       }
-      else if((i==0 && num[i]=='-') || (num[i]>='0' && num[i]<='9')) {
+      else if(i==0 && num[i]=='-') {
+	neg = true;
+      }
+      else if(num[i]>='0' && num[i]<='9') {
 	if(newNum=="0") {
 	  newNum = num[i];
 	}
@@ -298,6 +302,9 @@ bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
       else {
 	return false;
       }
+    }
+    if(neg) {
+      newNum = '-'+newNum;
     }
     IntegerConstantType numerator(newNum);
     res = RationalConstantType(numerator, denominator);
