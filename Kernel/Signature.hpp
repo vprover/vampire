@@ -238,6 +238,9 @@ class Signature
 
   void registerInterpretedFunction(const string& name, Interpretation interpretation);
   void registerInterpretedPredicate(const string& name, Interpretation interpretation);
+  unsigned addInterpretedFunction(Interpretation itp, const string& name);
+  unsigned addInterpretedPredicate(Interpretation itp, const string& name);
+
 
   //deprecated
   unsigned addInterpretedConstant(InterpretedType value);

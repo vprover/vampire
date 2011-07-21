@@ -245,6 +245,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
+         Shell/InterpretedNormalizer.o\
          Shell/LaTeX.o\
          Shell/Lexer.o\
          Shell/LispLexer.o\

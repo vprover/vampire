@@ -192,7 +192,7 @@ Signature::Signature ()
   CALL("Signature::Signature");
 
   // initialize equality
-  registerInterpretedPredicate("=", Theory::EQUAL);
+  addInterpretedPredicate(Theory::EQUAL, "=");
   ASS_EQ(predicateName(0), "="); //equality must have number 0
   getPredicate(0)->markSkip();
 
@@ -229,32 +229,8 @@ Signature::~Signature ()
 void Signature::registerInterpretedFunction(const string& name, Interpretation interpretation)
 {
   CALL("Signature::registerInterpretedFunction");
-  ASS(Theory::isFunction(interpretation));
   
-  unsigned res;
-  if(_iSymbols.find(interpretation,res)) { // already declared
-    return;
-  }
-
-  unsigned arity = Theory::getArity(interpretation);
-  string symbolKey = key(name,arity);
-
-  if (_funNames.find(symbolKey)) {
-    ASSERTION_VIOLATION;
-    USER_ERROR("Interpreted function '"+name+"' must be declared before it is used for the first time");
-  }
-
-  unsigned fnNum = _funs.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
-  _funs.push(sym);
-  _funNames.insert(symbolKey, fnNum);
-  if(!_iSymbols.insert(interpretation, fnNum)) {
-    USER_ERROR("One theory function cannot correspond to multiple signature functions: "+
-	functionName(_iSymbols.get(interpretation))+", "+name);
-  }
-  BaseType* fnType = Theory::getOperationType(interpretation);
-  ASS(fnType->isFunctionType());
-  sym->setType(fnType);
+  addInterpretedFunction(interpretation, name);
 }
 
 /**
@@ -265,34 +241,72 @@ void Signature::registerInterpretedFunction(const string& name, Interpretation i
 void Signature::registerInterpretedPredicate(const string& name, Interpretation interpretation)
 {
   CALL("Signature::registerInterpretedPredicate");
+
+  addInterpretedPredicate(interpretation, name);
+}
+
+unsigned Signature::addInterpretedFunction(Interpretation interpretation, const string& name)
+{
+  CALL("Signature::addInterpretedFunction");
+  ASS(Theory::isFunction(interpretation));
+
+  unsigned res;
+  if(_iSymbols.find(interpretation,res)) { // already declared
+    if(name!=functionName(res)) {
+      USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
+    }
+    return res;
+  }
+
+  unsigned arity = Theory::getArity(interpretation);
+  string symbolKey = name+"_i"+Int::toString(interpretation);
+
+  ASS(!_funNames.find(symbolKey));
+
+  unsigned fnNum = _funs.length();
+  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
+  _funs.push(sym);
+  _funNames.insert(symbolKey, fnNum);
+  ALWAYS(_iSymbols.insert(interpretation, fnNum));
+  BaseType* fnType = Theory::getOperationType(interpretation);
+  ASS(fnType->isFunctionType());
+  sym->setType(fnType);
+
+  return fnNum;
+}
+
+unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const string& name)
+{
+  CALL("Signature::addInterpretedPredicate");
   ASS(!Theory::isFunction(interpretation));
 
   unsigned res;
   if(_iSymbols.find(interpretation,res)) { // already declared
-    return;
+    if(name!=predicateName(res)) {
+      USER_ERROR("Interpreted predicate '"+predicateName(res)+"' has the same interpretation as '"+name+"' should have");
+    }
+    return res;
   }
 
   unsigned arity = Theory::getArity(interpretation);
-  string symbolKey = key(name,arity);
+  string symbolKey = name+"_i"+Int::toString(interpretation);
 
-  if (_predNames.find(symbolKey)) {
-    USER_ERROR("Interpreted predicate '"+name+"' must be declared before it is used for the first time");
-  }
+  ASS(!_predNames.find(symbolKey));
 
   unsigned predNum = _preds.length();
   InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
   _preds.push(sym);
   _predNames.insert(symbolKey,predNum);
-  if(!_iSymbols.insert(interpretation, predNum)) {
-    USER_ERROR("One theory predicate cannot correspond to multiple signature predicates: "+
-	predicateName(_iSymbols.get(interpretation))+", "+name);
-  }
+  ALWAYS(_iSymbols.insert(interpretation, predNum));
   if(predNum!=0) {
     BaseType* predType = Theory::getOperationType(interpretation);
     ASS(!predType->isFunctionType());
     sym->setType(predType);
   }
+  return predNum;
 }
+
+
 
 unsigned Signature::addIntegerConstant(const string& number)
 {
