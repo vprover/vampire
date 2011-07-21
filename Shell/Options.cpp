@@ -839,7 +839,7 @@ void Options::set(const char* name,const char* value, int index)
       }
       break;
     case INST_GEN_RESOLUTION_RATIO:
-      readAgeWeightRatio(value, _instGenResolutionRatioInstGen, _instGenResolutionRatioResolution);
+      readAgeWeightRatio(value, _instGenResolutionRatioInstGen, _instGenResolutionRatioResolution, '/');
       return;
     case INST_GEN_RESTART_PERIOD:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
@@ -1101,16 +1101,16 @@ void Options::set(const char* name,const char* value, int index)
       _tabulationFwRuleSubsumptionResolutionByLemmas = onOffToBool(value,name);
       return;
     case TABULATION_GOAL_AWR:
-      readAgeWeightRatio(value, _tabulationGoalAgeRatio, _tabulationGoalWeightRatio);
+      readAgeWeightRatio(value, _tabulationGoalAgeRatio, _tabulationGoalWeightRatio, '/');
       return;
     case TABULATION_GOAL_LEMMA_RATIO:
-      readAgeWeightRatio(value, _tabulationGoalRatio, _tabulationLemmaRatio);
+      readAgeWeightRatio(value, _tabulationGoalRatio, _tabulationLemmaRatio, '/');
       return;
     case TABULATION_INSTANTIATE_PRODUCING_RULES:
       _tabulationInstantiateProducingRules = onOffToBool(value,name);
       return;
     case TABULATION_LEMMA_AWR:
-      readAgeWeightRatio(value, _tabulationLemmaAgeRatio, _tabulationLemmaWeightRatio);
+      readAgeWeightRatio(value, _tabulationLemmaAgeRatio, _tabulationLemmaWeightRatio, '/');
       return;
     case TEST_ID:
       _testId = value;
@@ -1850,7 +1850,7 @@ void Options::setInputFile(const string& inputFile)
  *
  * @since 25/05/2004 Manchester
  */
-void Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio)
+void Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio, char separator)
 {
   CALL("Options::readAgeWeightRatio");
 
@@ -1858,7 +1858,7 @@ void Options::readAgeWeightRatio(const char* val, int& ageRatio, int& weightRati
   bool found = false;
   int colonIndex = 0;
   while (val[colonIndex]) {
-    if (val[colonIndex] == ':') {
+    if (val[colonIndex] == separator) {
       found = true;
       break;
     }

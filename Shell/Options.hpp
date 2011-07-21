@@ -675,7 +675,7 @@ private:
   bool _forceIncompleteness;
 
   // various read-from-string-write options
-  static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio);
+  static void readAgeWeightRatio(const char* val, int& ageRatio, int& weightRatio, char separator=':');
   static string boolToOnOff(bool);
   void outputValue(ostream& str,int optionTag) const;
 
