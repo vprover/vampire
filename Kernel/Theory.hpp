@@ -166,6 +166,9 @@ public:
 
     EQUAL,
 
+    INT_IS_INT,
+    INT_IS_RAT,
+    INT_IS_REAL,
     INT_GREATER,
     INT_GREATER_EQUAL,
     INT_LESS,
@@ -173,6 +176,8 @@ public:
     INT_DIVIDES,
 
     RAT_IS_INT,
+    RAT_IS_RAT,
+    RAT_IS_REAL,
     RAT_GREATER,
     RAT_GREATER_EQUAL,
     RAT_LESS,
@@ -181,6 +186,7 @@ public:
 
     REAL_IS_INT,
     REAL_IS_RAT,
+    REAL_IS_REAL,
     REAL_GREATER,
     REAL_GREATER_EQUAL,
     REAL_LESS,
@@ -212,12 +218,15 @@ public:
 
 
     //conversion functions
+    INT_TO_INT,
     INT_TO_RAT,
     INT_TO_REAL,
     RAT_TO_INT,
+    RAT_TO_RAT,
     RAT_TO_REAL,
     REAL_TO_INT,
     REAL_TO_RAT,
+    REAL_TO_REAL,
 
     /**
      * Maximal element number in the enum Interpretation
@@ -225,7 +234,7 @@ public:
      * At some points we make use of the fact that we can iterate through all
      * interpretations by going through the set {0,...,MAX_INTERPRETED_ELEMENT}.
      */
-    MAX_INTERPRETED_ELEMENT = REAL_TO_RAT,
+    MAX_INTERPRETED_ELEMENT = REAL_TO_REAL,
 
     //these are deprecated, left just so that the code compiles before references to them are removed
     GREATER,

@@ -605,8 +605,10 @@ MainLoopResult IGAlgorithm::runImpl()
       if(env.options->complete()) {
 	if(env.options->proof()!=Options::PROOF_OFF) {
 	  stringstream modelStm;
-	  ModelPrinter(*this).tryOutput(modelStm);
-	  env.statistics->model = modelStm.str();
+	  bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
+	  if(modelAvailable) {
+	    env.statistics->model = modelStm.str();
+	  }
 	}
 	return MainLoopResult(Statistics::SATISFIABLE);
       }

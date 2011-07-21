@@ -382,16 +382,25 @@ unsigned Theory::getArity(Interpretation i)
   ASS_LE(i,MAX_INTERPRETED_ELEMENT);
 
   switch(i) {
+  case INT_IS_INT:
+  case INT_IS_RAT:
+  case INT_IS_REAL:
   case RAT_IS_INT:
+  case RAT_IS_RAT:
+  case RAT_IS_REAL:
   case REAL_IS_INT:
   case REAL_IS_RAT:
+  case REAL_IS_REAL:
 
+  case INT_TO_INT:
   case INT_TO_RAT:
   case INT_TO_REAL:
   case RAT_TO_INT:
+  case RAT_TO_RAT:
   case RAT_TO_REAL:
   case REAL_TO_INT:
   case REAL_TO_RAT:
+  case REAL_TO_REAL:
 
   case INT_SUCCESSOR:
   case INT_UNARY_MINUS:
@@ -449,12 +458,15 @@ bool Theory::isFunction(Interpretation i)
   ASS_LE(i,MAX_INTERPRETED_ELEMENT);
 
   switch(i) {
+  case INT_TO_INT:
   case INT_TO_RAT:
   case INT_TO_REAL:
   case RAT_TO_INT:
+  case RAT_TO_RAT:
   case RAT_TO_REAL:
   case REAL_TO_INT:
   case REAL_TO_RAT:
+  case REAL_TO_REAL:
 
   case INT_SUCCESSOR:
   case INT_UNARY_MINUS:
@@ -498,9 +510,15 @@ bool Theory::isFunction(Interpretation i)
   case REAL_LESS_EQUAL:
   case REAL_DIVIDES:
 
+  case INT_IS_INT:
+  case INT_IS_RAT:
+  case INT_IS_REAL:
   case RAT_IS_INT:
+  case RAT_IS_RAT:
+  case RAT_IS_REAL:
   case REAL_IS_INT:
   case REAL_IS_RAT:
+  case REAL_IS_REAL:
     return false;
   }
   ASSERTION_VIOLATION;
@@ -582,6 +600,11 @@ unsigned Theory::getOperationSort(Interpretation i)
   case INT_MULTIPLY:
   case INT_DIVIDE:
   case INT_MODULO:
+
+  case INT_TO_INT:
+  case INT_IS_INT:
+  case INT_IS_RAT:
+  case INT_IS_REAL:
     return Sorts::SRT_INTEGER;
 
   case RAT_UNARY_MINUS:
@@ -589,12 +612,16 @@ unsigned Theory::getOperationSort(Interpretation i)
   case RAT_MINUS:
   case RAT_MULTIPLY:
   case RAT_DIVIDE:
-  case RAT_IS_INT:
   case RAT_GREATER:
   case RAT_GREATER_EQUAL:
   case RAT_LESS:
   case RAT_LESS_EQUAL:
   case RAT_DIVIDES:
+
+  case RAT_TO_INT:
+  case RAT_IS_INT:
+  case RAT_IS_RAT:
+  case RAT_IS_REAL:
     return Sorts::SRT_RATIONAL;
 
   case REAL_UNARY_MINUS:
@@ -602,13 +629,16 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_MINUS:
   case REAL_MULTIPLY:
   case REAL_DIVIDE:
-  case REAL_IS_INT:
-  case REAL_IS_RAT:
   case REAL_GREATER:
   case REAL_GREATER_EQUAL:
   case REAL_LESS:
   case REAL_LESS_EQUAL:
   case REAL_DIVIDES:
+
+  case REAL_TO_INT:
+  case REAL_IS_INT:
+  case REAL_IS_RAT:
+  case REAL_IS_REAL:
     return Sorts::SRT_REAL;
 
   default:
@@ -620,6 +650,8 @@ bool Theory::isConversionOperation(Interpretation i)
 {
   CALL("Theory::isConversionOperation");
 
+  //we do not include operations as INT_TO_INT here because they actually
+  //don't convert anything (they're identities)
   switch(i) {
   case INT_TO_RAT:
   case INT_TO_REAL:
