@@ -998,6 +998,7 @@ int TPTP::decimal(int pos)
 int TPTP::positiveDecimal(int pos)
 {
   CALL("TPTP::positiveDecimal");
+
   switch (getChar(pos)) {
   case '1':
   case '2':
@@ -1406,6 +1407,7 @@ void TPTP::type()
 void TPTP::atom()
 {
   CALL("TPTP::atom");
+
   Token& tok = getTok(0);
   switch (tok.tag) {
   case T_NAME:
@@ -2236,6 +2238,8 @@ void TPTP::simpleFormula()
 
   case T_STRING:
   case T_INT:
+  case T_RAT:
+  case T_REAL:
   case T_VAR:
     {
       Token after = getTok(1);
@@ -2385,6 +2389,27 @@ void TPTP::makeTerm(TermList& ts,Token& tok)
   case T_INT:
     {
       unsigned fun = env.signature->addIntegerConstant(tok.content);
+      Term* t = new(0) Term;
+      t->makeSymbol(fun,0);
+      t = env.sharing->insert(t);
+      ts.setTerm(t);
+    }
+    return;
+  case T_REAL:
+    {
+      unsigned fun = env.signature->addRealConstant(tok.content);
+      Term* t = new(0) Term;
+      t->makeSymbol(fun,0);
+      t = env.sharing->insert(t);
+      ts.setTerm(t);
+    }
+    return;
+  case T_RAT:
+    {
+      size_t i = tok.content.find_first_of("/");
+      ASS(i != string::npos);
+      unsigned fun = env.signature->addRationalConstant(tok.content.substr(0,i),
+							tok.content.substr(i+1));
       Term* t = new(0) Term;
       t->makeSymbol(fun,0);
       t = env.sharing->insert(t);
@@ -2728,6 +2753,7 @@ const char* TPTP::toString(State s)
   }
 }
 #endif
+
 /*
 $let
 $itef
