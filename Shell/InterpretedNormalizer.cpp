@@ -88,7 +88,12 @@ void InterpretedNormalizer::apply(UnitList*& units)
       Clause* cl = static_cast<Clause*>(u);
       Clause* cl1 = apply(cl);
       if(cl!=cl1) {
-	uit.replace(cl1);
+	if(cl1) {
+	  uit.replace(cl1);
+	}
+	else {
+	  uit.del();
+	}
       }
     }
     else {
@@ -105,10 +110,40 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
 {
   CALL("InterpretedNormalizer::isTrivialInterpretation");
 
+  static NLiteralTransformer litTransf;
+
   static LiteralStack lits;
   lits.reset();
   unsigned clen = cl->length();
-  NOT_IMPLEMENTED;
+  bool modified = false;
+
+  for(unsigned i=0; i<clen; i++) {
+    Literal* lit = (*cl)[i];
+
+    bool isConst;
+    Literal* newLit;
+    bool newConst;
+    litTransf.apply(lit, isConst, newLit, newConst);
+
+    if(isConst) {
+      modified = true;
+      if(newConst) {
+	return 0;
+      }
+      continue;
+    }
+    if(newLit!=lit) {
+      modified = true;
+    }
+    lits.push(newLit);
+  }
+  if(!modified) {
+    return cl;
+  }
+
+  Clause* res = Clause::fromStack(lits, cl->inputType(),
+      new Inference1(Inference::EVALUATION, cl));
+  return res;
 }
 
 bool InterpretedNormalizer::isTrivialInterpretation(Interpretation itp)

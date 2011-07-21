@@ -222,29 +222,8 @@ Signature::~Signature ()
 } // Signature::~Signature
 
 /**
- * Marks a function as interpreted.
- *
- * Must be called before the function appears in the problem for the first time.
+ * Add interpreted function
  */
-void Signature::registerInterpretedFunction(const string& name, Interpretation interpretation)
-{
-  CALL("Signature::registerInterpretedFunction");
-  
-  addInterpretedFunction(interpretation, name);
-}
-
-/**
- * Marks a predicate as interpreted.
- *
- * Must be called before the predicate appears in the problem for the first time.
- */
-void Signature::registerInterpretedPredicate(const string& name, Interpretation interpretation)
-{
-  CALL("Signature::registerInterpretedPredicate");
-
-  addInterpretedPredicate(interpretation, name);
-}
-
 unsigned Signature::addInterpretedFunction(Interpretation interpretation, const string& name)
 {
   CALL("Signature::addInterpretedFunction");
@@ -258,7 +237,6 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
     return res;
   }
 
-  unsigned arity = Theory::getArity(interpretation);
   string symbolKey = name+"_i"+Int::toString(interpretation);
 
   ASS(!_funNames.find(symbolKey));
@@ -275,6 +253,9 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   return fnNum;
 }
 
+/**
+ * Add interpreted predicate
+ */
 unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const string& name)
 {
   CALL("Signature::addInterpretedPredicate");
@@ -288,7 +269,6 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
     return res;
   }
 
-  unsigned arity = Theory::getArity(interpretation);
   string symbolKey = name+"_i"+Int::toString(interpretation);
 
   ASS(!_predNames.find(symbolKey));
@@ -455,7 +435,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
       }
       name=name+Int::toString(i);
     }
-    registerInterpretedFunction(name, interp);
+    addInterpretedFunction(interp, name);
   }
   else {
     if(predicateExists(name, arity)) {
@@ -465,7 +445,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
       }
       name=name+Int::toString(i);
     }
-    registerInterpretedPredicate(name, interp);
+    addInterpretedPredicate(interp, name);
   }
 
   //we have now registered a new function, so it should be present in the map

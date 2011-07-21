@@ -23,6 +23,7 @@
 #include "GeneralSplitting.hpp"
 #include "HornRevealer.hpp"
 #include "InequalitySplitting.hpp"
+#include "InterpretedNormalizer.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "NNF.hpp"
@@ -121,6 +122,7 @@ void Preprocess::preprocess (UnitList*& units)
   }
 
   if(_options.theoryAxioms() && _property.hasInterpretedOperations()) {
+    InterpretedNormalizer().apply(units);
     env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
     TheoryAxioms().apply(units, &_property);
   }

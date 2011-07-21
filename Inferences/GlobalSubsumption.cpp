@@ -120,7 +120,6 @@ Clause* GlobalSubsumption::perform(Clause* cl)
     return cl;
   }
 
-  SATSolver& solver = _index->getSolver();
   Grounder& grounder = _index->getGrounder();
 
   static SATLiteralStack slits;

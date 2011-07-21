@@ -1211,6 +1211,8 @@ void TPTPParser::vampire()
     string sname = name();
     consumeToken(TT_COMMA);
     string symb = name();
+#if 0
+    //old and useless code
     if (symb == "integer_greater") {
       env.signature->registerInterpretedPredicate(sname,Theory::INT_GREATER);
     }
@@ -1262,6 +1264,7 @@ void TPTPParser::vampire()
       throw ParserException("unrecognised interpreted symbol",
                             currentToken());
     }
+#endif
   }
   else {
     throw ParserException("unrecognised Vampire command",

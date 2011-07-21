@@ -860,6 +860,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const string& symb,
   CALL("SimplifyProver::builtInPredicate");
 
   bool isEquality = false;
+#if 0
   if (symb == ">=") {
     if (arity != 2) return 0;
     env.options->setTheoryAxioms(true);
@@ -880,9 +881,11 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInPredicate(const string& symb,
     env.options->setTheoryAxioms(true);
     env.signature->registerInterpretedPredicate(symb,Theory::INT_LESS);
   }
-  else if (symb == "EQ") {
-    if (arity != 2) return 0;
-    isEquality = true;
+  else
+#endif
+  if (symb == "EQ") {
+      if (arity != 2) return 0;
+      isEquality = true;
   }
 
   SymbolInfo* sinfo = new(arity) SymbolInfo(arity);
@@ -904,6 +907,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInFunction(const string& symb,i
 {
   CALL("SimplifyProver::builtInFunction");
 
+#if 0
   if (symb == "+") {
     if (arity != 2) return 0;
     env.options->setTheoryAxioms(true);
@@ -919,6 +923,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::builtInFunction(const string& symb,i
     env.options->setTheoryAxioms(true);
     env.signature->registerInterpretedFunction(symb,Theory::MULTIPLY);
   }
+#endif
   SymbolInfo* sinfo = new(arity) SymbolInfo(arity);
   sinfo->returnType = BIT_INT;
   sinfo->number = env.signature->addFunction(symb,arity);
