@@ -2601,13 +2601,13 @@ unsigned TPTP::addOverloadedFunction(string name,int arity,int symbolArity,bool&
   }
   unsigned srt = sortOf(arg);
   if (srt == Sorts::SRT_INTEGER) {
-    env.signature->registerInterpretedFunction(name,integer);
+    env.signature->addInterpretedFunction(integer,name);
   }
   else if (srt == Sorts::SRT_RATIONAL) {
-    env.signature->registerInterpretedFunction(name,rational);
+    env.signature->addInterpretedFunction(rational,name);
   }
   else if (srt == Sorts::SRT_REAL) {
-    env.signature->registerInterpretedFunction(name,real);
+    env.signature->addInterpretedFunction(real,name);
   }
   else {
     USER_ERROR((string)"The symbol " + name + " is used with a non-numeric type");
@@ -2626,13 +2626,13 @@ unsigned TPTP::addOverloadedPredicate(string name,int arity,int symbolArity,bool
   }
   unsigned srt = sortOf(arg);
   if (srt == Sorts::SRT_INTEGER) {
-    env.signature->registerInterpretedPredicate(name,integer);
+    env.signature->addInterpretedPredicate(integer,name);
   }
   else if (srt == Sorts::SRT_RATIONAL) {
-    env.signature->registerInterpretedPredicate(name,rational);
+    env.signature->addInterpretedPredicate(rational,name);
   }
   else if (srt == Sorts::SRT_REAL) {
-    env.signature->registerInterpretedPredicate(name,real);
+    env.signature->addInterpretedPredicate(real,name);
   }
   else {
     USER_ERROR((string)"The symbol " + name + " is used with a non-numeric type");
