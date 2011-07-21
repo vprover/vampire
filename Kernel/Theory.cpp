@@ -15,6 +15,9 @@
 
 #include "Theory.hpp"
 
+#undef LOGGING
+#define LOGGING 0
+
 namespace Kernel
 {
 
@@ -265,9 +268,50 @@ void RationalConstantType::cannonize()
 // RealConstantType
 //
 
+bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
+{
+  CALL("RealConstantType::parseDouble");
+
+  try {
+    string newNum;
+    IntegerConstantType denominator = 1;
+    bool haveDecimal = false;
+    size_t nlen = num.size();
+    for(size_t i=0; i<nlen; i++) {
+      if(num[i]=='.') {
+	if(haveDecimal) {
+	  return false;
+	}
+	haveDecimal = true;
+      }
+      else if((i==0 && num[i]=='-') || (num[i]>='0' && num[i]<='9')) {
+	newNum += num[i];
+	if(haveDecimal) {
+	  denominator = denominator * 10;
+	}
+      }
+      else {
+	return false;
+      }
+    }
+    IntegerConstantType numerator(newNum);
+    res = RationalConstantType(numerator, denominator);
+  } catch(ArithmeticException) {
+    return false;
+  }
+  LOG("Real parsing: \""<<num<<"\" --> "<<res.toString());
+  return true;
+}
+
 RealConstantType::RealConstantType(const string& number)
 {
   CALL("RealConstantType::RealConstantType");
+
+  RationalConstantType value;
+  if(parseDouble(number, value)) {
+    init(value.numerator(), value.denominator());
+    return;
+  }
 
   double numDbl;
   if(!Int::stringToDouble(number, numDbl)) {
@@ -278,6 +322,7 @@ RealConstantType::RealConstantType(const string& number)
   while(floor(numDbl)!=numDbl) {
     denominator = denominator*10;
     numDbl *= 10;
+    LOGV(numDbl);
   }
 
   InnerType::InnerType numerator = static_cast<InnerType::InnerType>(numDbl);

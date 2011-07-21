@@ -137,7 +137,7 @@ public:
   RealConstantType operator/(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator/(num)); }
 private:
-
+  static bool parseDouble(const string& num, RationalConstantType& res);
 
 };
 
