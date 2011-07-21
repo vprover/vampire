@@ -2601,18 +2601,15 @@ unsigned TPTP::addOverloadedFunction(string name,int arity,int symbolArity,bool&
   }
   unsigned srt = sortOf(arg);
   if (srt == Sorts::SRT_INTEGER) {
-    env.signature->addInterpretedFunction(integer,name);
+    return env.signature->addInterpretedFunction(integer,name);
   }
-  else if (srt == Sorts::SRT_RATIONAL) {
-    env.signature->addInterpretedFunction(rational,name);
+  if (srt == Sorts::SRT_RATIONAL) {
+    return env.signature->addInterpretedFunction(rational,name);
   }
-  else if (srt == Sorts::SRT_REAL) {
-    env.signature->addInterpretedFunction(real,name);
+  if (srt == Sorts::SRT_REAL) {
+    return env.signature->addInterpretedFunction(real,name);
   }
-  else {
-    USER_ERROR((string)"The symbol " + name + " is used with a non-numeric type");
-  }
-  return env.signature->addFunction(name,arity,added);
+  USER_ERROR((string)"The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedFunction
 
 unsigned TPTP::addOverloadedPredicate(string name,int arity,int symbolArity,bool& added,TermList& arg,
@@ -2626,18 +2623,15 @@ unsigned TPTP::addOverloadedPredicate(string name,int arity,int symbolArity,bool
   }
   unsigned srt = sortOf(arg);
   if (srt == Sorts::SRT_INTEGER) {
-    env.signature->addInterpretedPredicate(integer,name);
+    return env.signature->addInterpretedPredicate(integer,name);
   }
-  else if (srt == Sorts::SRT_RATIONAL) {
-    env.signature->addInterpretedPredicate(rational,name);
+  if (srt == Sorts::SRT_RATIONAL) {
+    return env.signature->addInterpretedPredicate(rational,name);
   }
-  else if (srt == Sorts::SRT_REAL) {
-    env.signature->addInterpretedPredicate(real,name);
+  if (srt == Sorts::SRT_REAL) {
+    return env.signature->addInterpretedPredicate(real,name);
   }
-  else {
-    USER_ERROR((string)"The symbol " + name + " is used with a non-numeric type");
-  }
-  return env.signature->addPredicate(name,arity,added);
+  USER_ERROR((string)"The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedPredicate
 
 /**
