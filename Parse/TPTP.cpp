@@ -2022,7 +2022,7 @@ void TPTP::endFof()
       List<int>::Iterator vs(g->vars());
       int i = 0;
       while (vs.hasNext()) {
-	a->nthArgument(i)->makeVar(vs.next());
+	a->nthArgument(i++)->makeVar(vs.next());
       }
       a = env.sharing->insert(a);
       f = new QuantifiedFormula(FORALL,
