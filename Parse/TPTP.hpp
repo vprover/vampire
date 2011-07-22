@@ -201,13 +201,6 @@ public:
     UNBIND_VARIABLES = 23,
   };
 
-  /** pair variable-sort */
-  struct VariableSort {
-    VariableSort(int v,unsigned s) : var(v),sort(s) {}
-    int var;
-    unsigned sort;
-  };
-
   /** token */
   struct Token {
     /** token type */
@@ -405,8 +398,10 @@ private:
   Stack<bool> _bools;
   /** various integer values saved during parsing */
   Stack<int> _ints;
-  /** various variable lists */
+  /** variable lists for building formulas */
   Stack<Formula::VarList*> _varLists;
+  /** variable lists for binding variables */
+  Stack<Formula::VarList*> _bindLists;
   /** various tokens to consume */
   Stack<Tag> _tags;
   /** various formulas */
@@ -421,8 +416,11 @@ private:
   Stack<Type*> _types;
   /** various type tags saved during parsing */
   Stack<TypeTag> _typeTags;
+  typedef List<unsigned> SortList;
   /** bindings of variables to sorts */
-  Stack<List<VariableSort>*> _variableSorts;
+  Map<int,SortList*> _variableSorts;
+  /** overflown arithmetical constants for which uninterpreted constants are introduced */
+  Set<string> _overflow;
 
   /**
    * Get the next characters at the position pos.
@@ -544,6 +542,7 @@ private:
   void include();
   void type();
   unsigned readSort(bool newSortExpected);
+  void bindVariable(int var,unsigned sortNumber);
   void unbindVariables();
   void skipToRPAR();
   unsigned addFunction(string name,int arity,bool& added,TermList& someArgument);
@@ -554,6 +553,9 @@ private:
   unsigned addOverloadedPredicate(string name,int arity,int symbolArity,bool& added,TermList& arg,
 				  Theory::Interpretation integer,Theory::Interpretation rational,
 				  Theory::Interpretation real);
+  unsigned addIntegerConstant(const string&);
+  unsigned addRationalConstant(const string&);
+  unsigned addRealConstant(const string&);
   unsigned sortOf(TermList& term);
   static bool higherPrecedence(int c1,int c2);
 

@@ -921,32 +921,29 @@ TPTP::Tag TPTP::readNumber(Token& tok)
   case 'e':
     {
       char c = getChar(pos+1);
-      pos = decimal((c == '+' || c == '-') ? pos+1 : pos);
-      tok.content.assign(_chars.content(),pos-1);
-      shiftChars(pos-1);
+      pos = decimal((c == '+' || c == '-') ? pos+2 : pos+1);
+      tok.content.assign(_chars.content(),pos);
+      shiftChars(pos);
     }
     return T_REAL;
   case '.': 
     {
-      int c;
       int p = pos;
       do {
-	c = getChar(++pos);
+        c = getChar(++pos);
       }
       while (c >= '0' && c <= '9');
       if (pos == p+1) {
-	// something like 12.
-	throw Exception("wrong number format",_gpos);
+        // something like 12.
+        throw Exception("wrong number format",_gpos);
       }
+      c = getChar(pos);
       if (c == 'e' || c == 'E') {
-	pos = decimal(pos+1);
-	tok.content.assign(_chars.content(),pos-1);
-	shiftChars(pos-1);
+	c = getChar(pos+1);
+	pos = decimal((c == '+' || c == '-') ? pos+2 : pos+1);
       }
-      else {
-	tok.content.assign(_chars.content(),pos);
-	shiftChars(pos);
-      }
+      tok.content.assign(_chars.content(),pos);
+      shiftChars(pos);
     }
     return T_REAL;
   default:
@@ -1444,6 +1441,23 @@ void TPTP::args()
 } // args
 
 /**
+ * Bind a variable to a sort
+ * @since 22/04/2011 Manchester
+ */
+void TPTP::bindVariable(int var,unsigned sortNumber)
+{
+  CALL("TPTP::bindVariable");
+
+  SortList* bindings;
+  if (_variableSorts.find(var,bindings)) {
+    _variableSorts.replace(var,new SortList(sortNumber,bindings));
+  }
+  else {
+    _variableSorts.insert(var,new SortList(sortNumber));
+  }
+} // bindVariable
+
+/**
  * Read a non-empty sequence of variable, including the right bracket
  * and save the resulting sequence of TermList and their number
  * @since 07/07/2011 Manchester
@@ -1466,29 +1480,33 @@ void TPTP::varList()
     tok = getTok(0);
     switch (tok.tag) {
     case T_COLON: // v: type
-      {
-	if (sortDeclared) {
-	  throw Exception("two declarations of variable sort",tok);
-	}
-	resetToks();
-	unsigned sortNumber = readSort(false);
-	List<VariableSort>* vs = _variableSorts.pop();
-	_variableSorts.push(new List<VariableSort>(VariableSort(var,sortNumber),vs));
-	sortDeclared = true;
-	goto afterVar;
+      if (sortDeclared) {
+	throw Exception("two declarations of variable sort",tok);
       }
+      resetToks();
+      bindVariable(var,readSort(false));
+      sortDeclared = true;
+      goto afterVar;
 
     case T_COMMA:
+      if (!sortDeclared) {
+	bindVariable(var,Sorts::SRT_DEFAULT);
+      }
       resetToks();
       break;
+
     case T_RBRA:
       {
+	if (!sortDeclared) {
+	  bindVariable(var,Sorts::SRT_DEFAULT);
+	}
 	resetToks();
 	Formula::VarList* vs = Formula::VarList::empty();
 	while (!vars.isEmpty()) {
 	  vs = new Formula::VarList(vars.pop(),vs);
 	}
 	_varLists.push(vs);
+	_bindLists.push(vs);
 	return;
       }
 
@@ -1533,24 +1551,19 @@ void TPTP::term()
     resetToks();
     return;
   case T_INT:
-    _ints.push(env.signature->addIntegerConstant(tok.content));
+    _ints.push(addIntegerConstant(tok.content));
     _ints.push(-2); // this term is a constant
     resetToks();
     return;
   case T_REAL:
-    _ints.push(env.signature->addRealConstant(tok.content));
+    _ints.push(addRealConstant(tok.content));
     _ints.push(-2); // this term is a constant
     resetToks();
     return;
   case T_RAT:
-    {
-      size_t i = tok.content.find_first_of("/");
-      ASS(i != string::npos);
-      _ints.push(env.signature->addRationalConstant(tok.content.substr(0,i),
-						    tok.content.substr(i+1)));
-      _ints.push(-2); // this term is a constant
-      resetToks();
-    }
+    _ints.push(addRationalConstant(tok.content));
+    _ints.push(-2); // this term is a constant
+    resetToks();
     return;
   default:
     throw Exception("term expected",tok);
@@ -1712,20 +1725,10 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
   if (!lhs.isVar() || !rhs.isVar()) {
     return Literal::createEquality(polarity,lhs,rhs);
   }
-  unsigned sort = Sorts::SRT_DEFAULT;
-  int var1 = lhs.var();
-  int var2 = rhs.var();
-  if (!_variableSorts.isEmpty()) { // may be empty when the formula has free variables
-    List<VariableSort>::Iterator vs(_variableSorts.top());
-    while (vs.hasNext()) {
-      VariableSort v = vs.next();
-      if (v.var == var1 || v.var == var2) {
-	sort = v.sort;
-	break;
-      }
-    }
-  }
-  return Literal::createVariableEquality(polarity,lhs,rhs,sort);
+  SortList* vs;
+  ALWAYS(_variableSorts.find(lhs.var(),vs));
+  ASS(!vs->isEmpty());
+  return Literal::createVariableEquality(polarity,lhs,rhs,vs->head());
 } // TPTP::createEquality
 
 /**
@@ -2225,7 +2228,6 @@ void TPTP::simpleFormula()
     _states.push(SIMPLE_FORMULA);
     _states.push(TAG);
     _tags.push(T_COLON);
-    _variableSorts.push(0);
     _states.push(VAR_LIST); 
     return;
 
@@ -2291,8 +2293,13 @@ void TPTP::unbindVariables()
 {
   CALL("TPTP::unbindVariables");
 
-  List<VariableSort>* vs = _variableSorts.pop();
-  vs->destroy();
+  Formula::VarList::Iterator vs(_bindLists.pop());
+  while (vs.hasNext()) {
+    int var = vs.next();
+    SortList* sorts;
+    ALWAYS(_variableSorts.find(var,sorts));
+    _variableSorts.replace(var,sorts->tail());
+  }
 } // unbindVariables
 
 /**
@@ -2388,7 +2395,7 @@ void TPTP::makeTerm(TermList& ts,Token& tok)
     return;
   case T_INT:
     {
-      unsigned fun = env.signature->addIntegerConstant(tok.content);
+      unsigned fun = addIntegerConstant(tok.content);
       Term* t = new(0) Term;
       t->makeSymbol(fun,0);
       t = env.sharing->insert(t);
@@ -2397,7 +2404,7 @@ void TPTP::makeTerm(TermList& ts,Token& tok)
     return;
   case T_REAL:
     {
-      unsigned fun = env.signature->addRealConstant(tok.content);
+      unsigned fun = addRealConstant(tok.content);
       Term* t = new(0) Term;
       t->makeSymbol(fun,0);
       t = env.sharing->insert(t);
@@ -2406,10 +2413,7 @@ void TPTP::makeTerm(TermList& ts,Token& tok)
     return;
   case T_RAT:
     {
-      size_t i = tok.content.find_first_of("/");
-      ASS(i != string::npos);
-      unsigned fun = env.signature->addRationalConstant(tok.content.substr(0,i),
-							tok.content.substr(i+1));
+      unsigned fun = addRationalConstant(tok.content);
       Term* t = new(0) Term;
       t->makeSymbol(fun,0);
       t = env.sharing->insert(t);
@@ -2641,44 +2645,107 @@ unsigned TPTP::sortOf(TermList& t)
 {
   CALL("TPTP::sortOf");
   if (t.isVar()) {
-    if (_variableSorts.isEmpty()) { // may be empty when the formula has free variables
-      return Sorts::SRT_DEFAULT;
-    }
-    int var = t.var();
-    List<VariableSort>::Iterator vs(_variableSorts.top());
-    while (vs.hasNext()) {
-      VariableSort v = vs.next();
-      if (v.var == var) {
-	return v.sort;
-      }
-    }
-    return Sorts::SRT_DEFAULT;
+    SortList* sorts;
+    ALWAYS(_variableSorts.find(t.var(),sorts));
+    ASS(sorts);
+    return sorts->head();
   }
   // t is not a variable
   return SortHelper::getResultSort(t.term());
-}
+} // sortOf
+
+/**
+ * Add an integer constant by reading it from the string name.
+ * If it overflows, create an uninterpreted constant of the
+ * integer type and the name 'name'. Check that the name of the constant
+ * does not collide with user-introduced names of uninterpreted constants.
+ * @since 22/07/2011 Manchester
+ */
+unsigned TPTP::addIntegerConstant(const string& name)
+{
+  CALL("TPTP::addIntegerConstant");
+
+  try {
+    return env.signature->addIntegerConstant(name);
+  }
+  catch(Kernel::ArithmeticException&) {
+    bool added;
+    unsigned fun = env.signature->addFunction(name,0,added);
+    if (added) {
+      _overflow.insert(name);
+    }
+    else if (!_overflow.contains(name)) {
+      USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
+    }
+    Signature::Symbol* symbol = env.signature->getFunction(fun);
+    symbol->setType(BaseType::makeType(0,0,Sorts::SRT_INTEGER));
+    return fun;
+  }
+} // TPTP::addIntegerConstant
+
+/**
+ * Add an rational constant by reading it from the string name.
+ * If it overflows, create an uninterpreted constant of the
+ * rational type and the name 'name'. Check that the name of the constant
+ * does not collide with user-introduced names of uninterpreted constants.
+ * @since 22/07/2011 Manchester
+ */
+unsigned TPTP::addRationalConstant(const string& name)
+{
+  CALL("TPTP::addRationalConstant");
+
+  size_t i = name.find_first_of("/");
+  ASS(i != string::npos);
+  try {
+    return env.signature->addRationalConstant(name.substr(0,i),
+					      name.substr(i+1));
+  }
+  catch(Kernel::ArithmeticException&) {
+    bool added;
+    unsigned fun = env.signature->addFunction(name,0,added);
+    if (added) {
+      _overflow.insert(name);
+    }
+    else if (!_overflow.contains(name)) {
+      USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
+    }
+    Signature::Symbol* symbol = env.signature->getFunction(fun);
+    symbol->setType(BaseType::makeType(0,0,Sorts::SRT_RATIONAL));
+    return fun;
+  }
+} // TPTP::addRationalConstant
+
+/**
+ * Add an real constant by reading it from the string name.
+ * If it overflows, create an uninterpreted constant of the
+ * real type and the name 'name'. Check that the name of the constant
+ * does not collide with user-introduced names of uninterpreted constants.
+ * @since 22/07/2011 Manchester
+ */
+unsigned TPTP::addRealConstant(const string& name)
+{
+  CALL("TPTP::addRealConstant");
+
+  try {
+    return env.signature->addRealConstant(name);
+  }
+  catch(Kernel::ArithmeticException&) {
+    bool added;
+    unsigned fun = env.signature->addFunction(name,0,added);
+    if (added) {
+      _overflow.insert(name);
+    }
+    else if (!_overflow.contains(name)) {
+      USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an real number");
+    }
+    Signature::Symbol* symbol = env.signature->getFunction(fun);
+    symbol->setType(BaseType::makeType(0,0,Sorts::SRT_REAL));
+    return fun;
+  }
+} // TPTP::addRealConstant
+
 
 #if VDEBUG
-// void TPTP::printStates(string extra)
-// {
-//   CALL("TPTP::printStates");
-//   cout << ">>>>> states\n" << extra;
-//   for (unsigned i = 0;i < _states.length(); i++) {
-//     cout << ' ' << toString(_states[i]) << "\n";
-//   }
-//   cout << "<<<<< states\n";
-// } // printStates
-
-// void TPTP::printInts(string extra)
-// {
-//   CALL("TPTP::printInts");
-//   cout << ">>>>> ints\n" << extra;
-//   for (unsigned i = 0;i < _ints.length(); i++) {
-//     cout << ' ' << _ints[i] << "\n";
-//   }
-//   cout << "<<<<< ints\n";
-// } // printInts
-
 const char* TPTP::toString(State s)
 {
   switch (s) {
