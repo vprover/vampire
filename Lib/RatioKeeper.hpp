@@ -30,7 +30,7 @@ public:
   {
     CALL("RatioKeeper::doFirst");
     ASS(shouldDoFirst());
-    _balance -= cost*_firstRatio;
+    _balance -= cost*_secondRatio;
     _lastWasFirst = true;
   }
 
@@ -38,7 +38,7 @@ public:
   {
     CALL("RatioKeeper::doSecond");
     ASS(shouldDoSecond());
-    _balance += cost*_secondRatio;
+    _balance += cost*_firstRatio;
     _lastWasFirst = false;
   }
 

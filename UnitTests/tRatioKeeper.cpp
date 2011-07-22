@@ -13,8 +13,8 @@ using namespace Lib;
 TEST_FUN(rkeeper1)
 {
 
-//  RatioKeeper rkeeper(1,2,5);
-  RatioKeeper rkeeper(2,1,5); //the two ratios are reversed, when it's fixed, use the above line instead of this
+  RatioKeeper rkeeper(1,2,5);
+//  RatioKeeper rkeeper(2,1,5); //the two ratios are reversed, when it's fixed, use the above line instead of this
 
   int ones = 0;
   int twos = 0;
