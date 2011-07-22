@@ -152,6 +152,13 @@ public:
   /** Return props as an integer, mainly for debugging */
   unsigned int props () const { return _props; }
 
+  /**
+   * To be used from outside of the Property class when a preprocessing
+   * rule may add into problem new operation
+   *
+   * @c t may be either a term or a literal
+   */
+  void scanForInterpreted(Term* t);
 
   bool hasInterpretedOperation(Interpretation i) const { return _interpretationPresence[i]; }
   bool hasInterpretedOperations() const { return _hasInterpreted; }
@@ -168,7 +175,6 @@ public:
   void scan(TermList* ts,bool& isGround);
   void scan(Literal* lit,bool& isGround);
 
-  void scanInterpretation(Term* t);
 
   char axiomTypes () const;
   char goalTypes () const;

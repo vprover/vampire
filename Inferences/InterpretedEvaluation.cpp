@@ -30,6 +30,11 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 
+/**
+ * We use descendants of this class to evaluate various functions.
+ *
+ * One function can be evaluated only by one Evaluator object.
+ */
 class InterpretedEvaluation::Evaluator
 {
 public:
@@ -488,10 +493,18 @@ class InterpretedEvaluation::LiteralSimplifier :  private TermTransformer
 public:
   LiteralSimplifier()
   {
+    CALL("InterpretedEvaluation::LiteralSimplifier::LiteralSimplifier");
     _evals.push(new IntEvaluator());
     _evals.push(new RatEvaluator());
     _evals.push(new RealEvaluator());
     _evals.push(new ConversionEvaluator());
+
+    unsigned funs = env.signature->predicates();
+    unsigned preds = env.signature->predicates();
+
+    _funEvaluators.ensure(0);
+    _predEvaluators.ensure(0);
+
   }
 
   ~LiteralSimplifier()
@@ -510,14 +523,9 @@ public:
     resLit = TermTransformer::transform(lit);
     unsigned pred = resLit->functor();
 
-    EvalStack::Iterator evit(_evals);
-    while(evit.hasNext()) {
-      Evaluator* ev = evit.next();
-      if(!ev->canEvaluatePred(pred)) {
-	continue;
-      }
-      LOGV(resLit->toString());
-      if(ev->tryEvaluatePred(resLit, resConst)) {
+    Evaluator* predEv = getPredEvaluator(pred);
+    if(predEv) {
+      if(predEv->tryEvaluatePred(resLit, resConst)) {
 	LOGV(resConst);
 	isConstant = true;
 	return true;
@@ -543,21 +551,63 @@ protected:
     Term* t = trm.term();
     unsigned func = t->functor();
 
-    EvalStack::Iterator evit(_evals);
-    while(evit.hasNext()) {
-      Evaluator* ev = evit.next();
-      if(!ev->canEvaluateFunc(func)) {
-	continue;
-      }
+    Evaluator* funcEv = getFuncEvaluator(func);
+    if(funcEv) {
       Term* res;
-      if(ev->tryEvaluateFunc(t, res)) {
+      if(funcEv->tryEvaluateFunc(t, res)) {
 	return TermList(res);
       }
     }
     return trm;
   }
 
+  Evaluator* getFuncEvaluator(unsigned func)
+  {
+    CALL("InterpretedEvaluation::getFuncEvaluator");
+
+    if(func>=_funEvaluators.size()) {
+      unsigned oldSz = _funEvaluators.size();
+      unsigned newSz = func+1;
+      _funEvaluators.expand(newSz);
+      for(unsigned i=oldSz; i<newSz; i++) {
+	EvalStack::Iterator evit(_evals);
+	while(evit.hasNext()) {
+	  Evaluator* ev = evit.next();
+	  if(ev->canEvaluateFunc(i)) {
+	    ASS_EQ(_funEvaluators[i], 0); //we should have only one evaluator for each function
+	    _funEvaluators[i] = ev;
+	  }
+	}
+      }
+    }
+    return _funEvaluators[func];
+  }
+
+  Evaluator* getPredEvaluator(unsigned pred)
+  {
+    CALL("InterpretedEvaluation::getPredEvaluator");
+
+    if(pred>=_predEvaluators.size()) {
+      unsigned oldSz = _predEvaluators.size();
+      unsigned newSz = pred+1;
+      _predEvaluators.expand(newSz);
+      for(unsigned i=oldSz; i<newSz; i++) {
+	EvalStack::Iterator evit(_evals);
+	while(evit.hasNext()) {
+	  Evaluator* ev = evit.next();
+	  if(ev->canEvaluatePred(i)) {
+	    ASS_EQ(_predEvaluators[i], 0); //we should have only one evaluator for each predicate
+	    _predEvaluators[i] = ev;
+	  }
+	}
+      }
+    }
+    return _predEvaluators[pred];
+  }
+
   EvalStack _evals;
+  DArray<Evaluator*> _funEvaluators;
+  DArray<Evaluator*> _predEvaluators;
 };
 
 InterpretedEvaluation::InterpretedEvaluation()

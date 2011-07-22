@@ -3,23 +3,144 @@
  * Implements class InterpretedNormalizer.
  */
 
+#include "Lib/Environment.hpp"
+#include "Lib/ScopedPtr.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermTransformer.hpp"
+
+#include "Property.hpp"
 
 #include "InterpretedNormalizer.hpp"
 
 namespace Shell
 {
 
+/**
+ * Base term transforming class
+ */
+class InterpretedNormalizer::FunctionTranslator
+{
+public:
+  virtual ~FunctionTranslator() {}
+
+  virtual TermList translate(Term* trm) = 0;
+};
+
+/**
+ * Class for transforming terms (t-u) into (t+(-u))
+ */
+class InterpretedNormalizer::BinaryMinusTranslator : public FunctionTranslator
+{
+public:
+  BinaryMinusTranslator(Interpretation bMinus, Interpretation plus, Interpretation uMinus)
+  {
+    CALL("InterpretedNormalizer::BinaryMinusTranslator::BinaryMinusTranslator");
+
+    _bMinusFun = env.signature->getInterpretingSymbol(bMinus);
+    _plusFun = env.signature->getInterpretingSymbol(plus);
+    _uMinusFun = env.signature->getInterpretingSymbol(uMinus);
+  }
+
+  virtual TermList translate(Term* trm)
+  {
+    CALL("InterpretedNormalizer::BinaryMinusTranslator::translate");
+    ASS_EQ(trm->functor(), _bMinusFun);
+
+    TermList arg1 = *trm->nthArgument(0);
+    TermList arg2 = *trm->nthArgument(1);
+    TermList negArg2(Term::create1(_uMinusFun, arg2));
+    TermList res(Term::create2(_plusFun, arg1, negArg2));
+    return res;
+  }
+
+  /** Function that is being rewritten by this object */
+  unsigned srcFunc() const { return _bMinusFun; }
+private:
+
+  unsigned _bMinusFun;
+  unsigned _plusFun;
+  unsigned _uMinusFun;
+};
+
+/**
+ * Class whose instances are to be used for translating one type of inequality to enother
+ */
+class InterpretedNormalizer::IneqTranslator
+{
+public:
+  IneqTranslator(Interpretation src, Interpretation tgt, bool swapArguments, bool reversePolarity)
+   : _swapArguments(swapArguments), _reversePolarity(reversePolarity)
+  {
+    CALL("InterpretedNormalizer::IneqTranslator::IneqTranslator");
+    _srcPred = env.signature->getInterpretingSymbol(src);
+    _tgtPred = env.signature->getInterpretingSymbol(tgt);
+    ASS_EQ(env.signature->predicateArity(_srcPred), 2);
+    ASS_EQ(env.signature->predicateArity(_tgtPred), 2);
+
+  }
+
+  /** Predicate that is being rewritten by this object */
+  unsigned srcPred() const { return _srcPred; }
+
+  Literal* apply(Literal* lit)
+  {
+    CALL("InterpretedNormalizer::IneqTranslator::apply");
+    ASS_EQ(lit->functor(), _srcPred);
+
+    TermList args[2] = { *lit->nthArgument(0), *lit->nthArgument(1) };
+    if(_swapArguments) { swap(args[0], args[1]); }
+    bool polarity = lit->isPositive() ^ _reversePolarity;
+
+    return Literal::create(_tgtPred, 2, polarity, false, args);
+  }
+
+private:
+  unsigned _srcPred;
+  unsigned _tgtPred;
+  bool _swapArguments;
+  bool _reversePolarity;
+};
+
+/**
+ * Class that performs literal transformations
+ */
 class InterpretedNormalizer::NLiteralTransformer : private TermTransformer
 {
 public:
+  NLiteralTransformer(Property& prop)
+  : _ineqTransls(env.signature->predicates()),
+    _fnTransfs(env.signature->functions()),
+    _prop(prop)
+  {
+    CALL("InterpretedNormalizer::NLiteralTransformer::NLiteralTransformer");
+
+    addIneqTransformer(Theory::INT_LESS, 	  Theory::INT_LESS_EQUAL, true, true);
+    addIneqTransformer(Theory::INT_GREATER, 	  Theory::INT_LESS_EQUAL, false, true);
+    addIneqTransformer(Theory::INT_GREATER_EQUAL, Theory::INT_LESS_EQUAL, true, false);
+
+    addIneqTransformer(Theory::RAT_LESS, 	  Theory::RAT_LESS_EQUAL, true, true);
+    addIneqTransformer(Theory::RAT_GREATER,	  Theory::RAT_LESS_EQUAL, false, true);
+    addIneqTransformer(Theory::RAT_GREATER_EQUAL, Theory::RAT_LESS_EQUAL, true, false);
+
+    addIneqTransformer(Theory::REAL_LESS,	  Theory::REAL_LESS_EQUAL, true, true);
+    addIneqTransformer(Theory::REAL_GREATER,	  Theory::REAL_LESS_EQUAL, false, true);
+    addIneqTransformer(Theory::REAL_GREATER_EQUAL,Theory::REAL_LESS_EQUAL, true, false);
+
+    addMinusTransformer(Theory::INT_MINUS, Theory::INT_PLUS, Theory::INT_UNARY_MINUS);
+    addMinusTransformer(Theory::RAT_MINUS, Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS);
+    addMinusTransformer(Theory::REAL_MINUS, Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS);
+  }
+
   void apply(Literal* lit, bool& constantRes, Literal*& litRes, bool& boolRes)
   {
+    CALL("InterpretedNormalizer::NLiteralTransformer::apply");
+
     if(theory->isInterpretedPredicate(lit)) {
       Interpretation itp = theory->interpretPredicate(lit);
       if(isTrivialInterpretation(itp)) {
@@ -30,6 +151,13 @@ public:
     }
     constantRes = false;
     litRes = transform(lit);
+
+    unsigned pred = litRes->functor();
+    IneqTranslator* transl = getIneqTranslator(pred);
+    if(transl) {
+      litRes = transl->apply(litRes);
+    }
+    _prop.scanForInterpreted(litRes);
   }
 protected:
   using TermTransformer::transform;
@@ -38,18 +166,109 @@ protected:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::transform");
 
-    if(!theory->isInterpretedFunction(trm)) { return trm; }
-    Interpretation itp = theory->interpretFunction(trm);
-    if(!isTrivialInterpretation(itp)) { return trm; }
-    Term* t = trm.term();
-    ASS_EQ(t->arity(),1);
-    return *t->nthArgument(0);
+  start:
+    if(theory->isInterpretedFunction(trm)) {
+      Interpretation itp = theory->interpretFunction(trm);
+      if(isTrivialInterpretation(itp)) {
+	Term* t = trm.term();
+	ASS_EQ(t->arity(),1);
+	return *t->nthArgument(0);
+      }
+    }
+    if(trm.isTerm()) {
+      Term* t = trm.term();
+      unsigned func = t->functor();
+      FunctionTranslator* transl = getFnTranslator(func);
+      if(transl) {
+	trm = transl->translate(t);
+	goto start;
+      }
+    }
+    return trm;
   }
+
+private:
+
+  /**
+   * Ensure that binary minus @c bMinus will be replaced by combination of
+   * plus operation @c plus and unary minus @c uMinus
+   */
+  void addMinusTransformer(Interpretation bMinus, Interpretation plus, Interpretation uMinus)
+  {
+    CALL("InterpretedNormalizer::NLiteralTransformer::addMinusTransformer");
+
+    if(!env.signature->haveInterpretingSymbol(bMinus)) {
+      return; //the symbol to be transformed doesn't exist, so we don't need to worry
+    }
+    BinaryMinusTranslator* transl = new BinaryMinusTranslator(bMinus, plus, uMinus);
+    unsigned func = transl->srcFunc();
+    ASS(!_fnTransfs[func])
+    _fnTransfs[func] = transl;
+  }
+
+  /**
+   * Ensure that inequality @c from will be replaced by inequality @c to.
+   * The arguments @c swapArguments and @c reversePolarity specify how the
+   * replacement should be done.
+   */
+  void addIneqTransformer(Interpretation from, Interpretation to, bool swapArguments, bool reversePolarity)
+  {
+    CALL("InterpretedNormalizer::NLiteralTransformer::addIneqTransformer");
+
+    if(!env.signature->haveInterpretingSymbol(from)) {
+      return; //the symbol to be transformed doesn't exist, so we don't need to worry
+    }
+    IneqTranslator* transl = new IneqTranslator(from, to, swapArguments, reversePolarity);
+    unsigned pred = transl->srcPred();
+    ASS(!_ineqTransls[pred])
+    _ineqTransls[pred] = transl;
+  }
+
+  /**
+   * Return object that translates occurrences of function @c func, or zero
+   * if there isn't any.
+   */
+  FunctionTranslator* getFnTranslator(unsigned func)
+  {
+    CALL("InterpretedNormalizer::NLiteralTransformer::addIneqTransformer");
+    if(_fnTransfs.size()<=func) { return 0; }
+    return _fnTransfs[func].ptr();
+  }
+
+  /**
+   * Return object that translates occurrences of inequalities with predicate @c pred,
+   * or zero if there isn't any.
+   */
+  IneqTranslator* getIneqTranslator(unsigned ineq)
+  {
+    CALL("InterpretedNormalizer::NLiteralTransformer::getIneqTranslator");
+    if(_ineqTransls.size()<=ineq) { return 0; }
+    return _ineqTransls[ineq].ptr();
+  }
+
+  /** inequality translators at positions of their predicate numbers */
+  DArray<ScopedPtr<IneqTranslator> > _ineqTransls;
+  /** inequality translators at positions of their predicate numbers */
+  DArray<ScopedPtr<FunctionTranslator> > _fnTransfs;
+
+  /** Problem property to be updated with newly added interpreted symbols */
+  Property& _prop;
 };
 
+/**
+ * Class that uses @c NLiteralTransformer to perform transformations on formulas
+ */
 class InterpretedNormalizer::NFormulaTransformer : public FormulaTransformer
 {
+public:
+  NFormulaTransformer(NLiteralTransformer* litTransf) : _litTransf(litTransf) {}
+
 protected:
+  /**
+   * Transfor atomic formula
+   *
+   * The rest of transformations is done by the @c FormulaTransformer ancestor.
+   */
   virtual Formula* applyLiteral(Formula* f)
   {
     CALL("applyLiteral");
@@ -58,7 +277,7 @@ protected:
     bool isConst;
     Literal* newLit;
     bool newConst;
-    _litTransf.apply(lit, isConst, newLit, newConst);
+    _litTransf->apply(lit, isConst, newLit, newConst);
     if(isConst) {
       return new Formula(newConst);
     }
@@ -67,18 +286,33 @@ protected:
   }
 
 private:
-  NLiteralTransformer _litTransf;
+  NLiteralTransformer* _litTransf;
 };
 
 //////////////////////////
 // InterpretedNormalizer
 //
 
+InterpretedNormalizer::InterpretedNormalizer(Property& prop)
+{
+  CALL("InterpretedNormalizer::InterpretedNormalizer");
+
+  _litTransf = new NLiteralTransformer(prop);
+}
+
+InterpretedNormalizer::~InterpretedNormalizer()
+{
+  CALL("InterpretedNormalizer::~InterpretedNormalizer");
+
+  delete _litTransf;
+}
+
+
 void InterpretedNormalizer::apply(UnitList*& units)
 {
   CALL("InterpretedNormalizer::apply");
 
-  NFormulaTransformer ftransf;
+  NFormulaTransformer ftransf(_litTransf);
   FTFormulaUnitTransformer<NFormulaTransformer> futransf(Inference::EVALUATION, ftransf);
 
   UnitList::DelIterator uit(units);
@@ -110,8 +344,6 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
 {
   CALL("InterpretedNormalizer::isTrivialInterpretation");
 
-  static NLiteralTransformer litTransf;
-
   static LiteralStack lits;
   lits.reset();
   unsigned clen = cl->length();
@@ -123,7 +355,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
     bool isConst;
     Literal* newLit;
     bool newConst;
-    litTransf.apply(lit, isConst, newLit, newConst);
+    _litTransf->apply(lit, isConst, newLit, newConst);
 
     if(isConst) {
       modified = true;
@@ -146,6 +378,11 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
   return res;
 }
 
+/**
+ * Return true if interpretatioin @c itp is trivial and shold just be
+ * removed as an identity (in case of functions), or replaced by $true
+ * (in case of predicates)
+ */
 bool InterpretedNormalizer::isTrivialInterpretation(Interpretation itp)
 {
   CALL("InterpretedNormalizer::isTrivialInterpretation");

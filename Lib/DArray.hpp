@@ -206,7 +206,7 @@ public:
 
   /** Ensure that the array's size is at least @b count and
    * initialize first @b count elements of the array to @b value. */
-  void init(size_t count, const C& value) {
+  void init(size_t count, const C& value=C()) {
     CALL("DArray::init");
 
     ensure(count);

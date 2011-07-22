@@ -340,7 +340,7 @@ void Property::scan(Literal* lit, bool& isGround)
     }
   }
 
-  scanInterpretation(lit);
+  scanForInterpreted(lit);
   scan(lit->args(),isGround);
 
   if(!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality()
@@ -386,7 +386,7 @@ void Property::scan(TermList* ts, bool& isGround)
     }
     else { // ts is a reference to a complex term
       Term* t = ts->term();
-      scanInterpretation(t);
+      scanForInterpreted(t);
       int arity = t->arity();
       if (arity > _maxFunArity) {
 	_maxFunArity = arity;
@@ -399,7 +399,7 @@ void Property::scan(TermList* ts, bool& isGround)
   }
 } // Property::scan(const Term& term, bool& isGround)
 
-void Property::scanInterpretation(Term* t)
+void Property::scanForInterpreted(Term* t)
 {
   CALL("Property::scanInterpretation");
 

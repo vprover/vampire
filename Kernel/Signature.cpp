@@ -379,17 +379,75 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   case Theory::INT_DIVIDE:
     name="/";
     break;
+  case Theory::INT_UNARY_MINUS:
+  case Theory::RAT_UNARY_MINUS:
+  case Theory::REAL_UNARY_MINUS:
+    name="$uminus";
+    break;
+  case Theory::INT_PLUS:
+  case Theory::RAT_PLUS:
+  case Theory::REAL_PLUS:
+    name="$sum";
+    break;
+  case Theory::INT_MINUS:
+  case Theory::RAT_MINUS:
+  case Theory::REAL_MINUS:
+    name="$difference";
+    break;
+  case Theory::INT_MULTIPLY:
+  case Theory::RAT_MULTIPLY:
+  case Theory::REAL_MULTIPLY:
+    name="$product";
+    break;
   case Theory::INT_GREATER:
-    name=">";
+  case Theory::RAT_GREATER:
+  case Theory::REAL_GREATER:
+    name="$greater";
     break;
   case Theory::INT_GREATER_EQUAL:
-    name=">=";
+  case Theory::RAT_GREATER_EQUAL:
+  case Theory::REAL_GREATER_EQUAL:
+    name="$greatereq";
     break;
   case Theory::INT_LESS:
-    name="<";
+  case Theory::RAT_LESS:
+  case Theory::REAL_LESS:
+    name="$less";
     break;
   case Theory::INT_LESS_EQUAL:
-    name="<=";
+  case Theory::RAT_LESS_EQUAL:
+  case Theory::REAL_LESS_EQUAL:
+    name="$lesseq";
+    break;
+  case Theory::INT_IS_INT:
+  case Theory::RAT_IS_INT:
+  case Theory::REAL_IS_INT:
+    name="$is_int";
+    break;
+  case Theory::INT_IS_RAT:
+  case Theory::RAT_IS_RAT:
+  case Theory::REAL_IS_RAT:
+    name="$is_rat";
+    break;
+  case Theory::INT_IS_REAL:
+  case Theory::RAT_IS_REAL:
+  case Theory::REAL_IS_REAL:
+    name="$is_real";
+    break;
+  case Theory::INT_TO_INT:
+  case Theory::RAT_TO_INT:
+  case Theory::REAL_TO_INT:
+    name="$to_int";
+    break;
+  case Theory::INT_TO_RAT:
+  case Theory::RAT_TO_RAT:
+  case Theory::REAL_TO_RAT:
+    name="$to_rat";
+    break;
+  case Theory::INT_TO_REAL:
+  case Theory::RAT_TO_REAL:
+  case Theory::REAL_TO_REAL:
+    name="$to_real";
     break;
   default:
     ASSERTION_VIOLATION;

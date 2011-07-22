@@ -18,15 +18,24 @@ using namespace Kernel;
 
 class InterpretedNormalizer {
 public:
+  InterpretedNormalizer(Property& prop);
+  ~InterpretedNormalizer();
+
   Clause* apply(Clause* cl);
   void apply(UnitList*& units);
 
 private:
+  class FunctionTranslator;
+  class BinaryMinusTranslator;
+
+  class IneqTranslator;
   class NLiteralTransformer;
   class NFormulaTransformer;
   class NFormulaUnitTransformer;
 
   static bool isTrivialInterpretation(Interpretation itp);
+
+  NLiteralTransformer* _litTransf;
 };
 
 }

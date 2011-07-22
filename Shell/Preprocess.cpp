@@ -121,8 +121,8 @@ void Preprocess::preprocess (UnitList*& units)
     AnswerLiteralManager::getInstance()->addAnswerLiterals(units);
   }
 
-  if(_options.theoryAxioms() && _property.hasInterpretedOperations()) {
-    InterpretedNormalizer().apply(units);
+  if(_property.hasInterpretedOperations()) {
+    InterpretedNormalizer(_property).apply(units);
     env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
     TheoryAxioms().apply(units, &_property);
   }

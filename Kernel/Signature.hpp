@@ -237,7 +237,7 @@ class Signature
   unsigned getInterpretingSymbol(Interpretation interp);
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
-  unsigned haveInterpretingSymbol(Interpretation interp) const { return _iSymbols.find(interp); }
+  bool haveInterpretingSymbol(Interpretation interp) const { return _iSymbols.find(interp); }
 
   /**
    * Return true iff we have any declared interpreted symbols

@@ -157,7 +157,6 @@ public:
     TABULATION_LEMMA_AWR,
     TEST_ID,
     THANKS,
-    THEORY_AXIOMS,
     TIME_LIMIT,
     TIME_STATISTICS,
     TRIVIAL_PREDICATE_REMOVAL,
@@ -444,8 +443,6 @@ public:
   bool increasedNumeralWeight() const { return _increasedNumeralWeight; }
   bool interpretedSimplification() const { return _interpretedSimplification; }
   void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
-  bool theoryAxioms() const { return _theoryAxioms; }
-  void setTheoryAxioms(bool val) { _theoryAxioms = val; }
   Condensation condensation() const { return _condensation; }
   RuleActivity generalSplitting() const { return _generalSplitting; }
   string namePrefix() const { return _namePrefix; }
@@ -651,7 +648,6 @@ private:
   int _tabulationLemmaWeightRatio;
   string _testId;
   string _thanks;
-  bool _theoryAxioms;
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
   bool _timeStatistics;

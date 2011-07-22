@@ -209,7 +209,6 @@ const char* Options::Constants::_optionNames[] = {
   "tabulation_lemma_awr",
   "test_id",
   "thanks",
-  "theory_axioms",
   "time_limit",
   "time_statistics",
   "trivial_predicate_removal",
@@ -654,7 +653,6 @@ Options::Options ()
   _tabulationLemmaWeightRatio(1),
   _testId ("unspecified_test"),
   _thanks("Tanya"),
-  _theoryAxioms(true),
   _timeLimitInDeciseconds(600),
   _timeStatistics(false),
   _trivialPredicateRemoval(false),
@@ -1127,9 +1125,6 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case THANKS:
       _thanks = value;
-      return;
-    case THEORY_AXIOMS:
-      _theoryAxioms = onOffToBool(value,name);
       return;
     case TIME_LIMIT:
       _timeLimitInDeciseconds = readTimeLimit(value);
@@ -1738,9 +1733,6 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case THANKS:
     str << _thanks;
-    return;
-  case THEORY_AXIOMS:
-    str << boolToOnOff(_theoryAxioms);
     return;
   case TIME_LIMIT:
     str << _timeLimitInDeciseconds/10;
