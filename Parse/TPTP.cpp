@@ -1600,7 +1600,7 @@ void TPTP::buildTerm()
 	fun = addFunction(_strings.pop(),arity,dummy,_termLists.top());
       }
       else {
-	fun = env.signature->addFunction(_strings.pop(),0);
+	fun = addUninterpretedConstant(_strings.pop(),dummy);
       }
       Term* t = new(arity) Term;
       t->makeSymbol(fun,arity);
@@ -2110,7 +2110,7 @@ void TPTP::endTff()
       return;
     }
     // a constant
-    unsigned fun = env.signature->addFunction(name,0,added);
+    unsigned fun = addUninterpretedConstant(name,added);
     if(!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
@@ -2160,7 +2160,9 @@ void TPTP::endTff()
     symbol = env.signature->getPredicate(pred);
   }
   else {
-    unsigned fun = env.signature->addFunction(name,arity,added);
+    unsigned fun = arity == 0
+                   ? addUninterpretedConstant(name,added)
+                   : env.signature->addFunction(name,arity,added);
     if(!added) {
       USER_ERROR("Function symbol type is declared after its use: " + name);
     }
@@ -2488,7 +2490,10 @@ unsigned TPTP::addFunction(string name,int arity,bool& added,TermList& arg)
   CALL("TPTP::addFunction");
 
   if (name[0] != '$' || (name.length() > 1 && name[1] == '$')) {
-    return env.signature->addFunction(name,arity,added);
+    if (arity > 0) {
+      return env.signature->addFunction(name,arity,added);
+    }
+    return addUninterpretedConstant(name,added);
   }
   if (name == "$sum") {
     return addOverloadedFunction(name,arity,2,added,arg,
@@ -2673,12 +2678,12 @@ unsigned TPTP::addIntegerConstant(const string& name)
     unsigned fun = env.signature->addFunction(name,0,added);
     if (added) {
       _overflow.insert(name);
+      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      symbol->setType(BaseType::makeType(0,0,Sorts::SRT_INTEGER));
     }
     else if (!_overflow.contains(name)) {
       USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
     }
-    Signature::Symbol* symbol = env.signature->getFunction(fun);
-    symbol->setType(BaseType::makeType(0,0,Sorts::SRT_INTEGER));
     return fun;
   }
 } // TPTP::addIntegerConstant
@@ -2705,12 +2710,12 @@ unsigned TPTP::addRationalConstant(const string& name)
     unsigned fun = env.signature->addFunction(name,0,added);
     if (added) {
       _overflow.insert(name);
+      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      symbol->setType(BaseType::makeType(0,0,Sorts::SRT_RATIONAL));
     }
     else if (!_overflow.contains(name)) {
       USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
     }
-    Signature::Symbol* symbol = env.signature->getFunction(fun);
-    symbol->setType(BaseType::makeType(0,0,Sorts::SRT_RATIONAL));
     return fun;
   }
 } // TPTP::addRationalConstant
@@ -2734,16 +2739,31 @@ unsigned TPTP::addRealConstant(const string& name)
     unsigned fun = env.signature->addFunction(name,0,added);
     if (added) {
       _overflow.insert(name);
+      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      symbol->setType(BaseType::makeType(0,0,Sorts::SRT_REAL));
     }
     else if (!_overflow.contains(name)) {
       USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an real number");
     }
-    Signature::Symbol* symbol = env.signature->getFunction(fun);
-    symbol->setType(BaseType::makeType(0,0,Sorts::SRT_REAL));
     return fun;
   }
 } // TPTP::addRealConstant
 
+/**
+ * Add an uninterpreted constant by reading it from the string name.
+ * Check that the name of the constant does not collide with uninterpreted constants
+ * created by the parser from overflown input numbers.
+ * @since 22/07/2011 Manchester
+ */
+unsigned TPTP::addUninterpretedConstant(const string& name,bool& added)
+{
+  CALL("TPTP::addUninterpretedConstant");
+
+  if (_overflow.contains(name)) {
+    USER_ERROR((string)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
+  }
+  return env.signature->addFunction(name,0,added);
+} // TPTP::addUninterpretedConstant
 
 #if VDEBUG
 const char* TPTP::toString(State s)

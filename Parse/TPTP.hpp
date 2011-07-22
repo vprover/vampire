@@ -556,6 +556,7 @@ private:
   unsigned addIntegerConstant(const string&);
   unsigned addRationalConstant(const string&);
   unsigned addRealConstant(const string&);
+  unsigned addUninterpretedConstant(const string& name,bool& added);
   unsigned sortOf(TermList& term);
   static bool higherPrecedence(int c1,int c2);
 
