@@ -15,12 +15,14 @@
 namespace Kernel {
 namespace Algebra {
 
+#if 0
 class ArithmeticKB {
 public:
   virtual bool isNonEqual(TermList t, InterpretedType val, Clause*& premise);
   virtual bool isGreater(TermList t, InterpretedType val, Clause*& premise);
   virtual bool isLess(TermList t, InterpretedType val, Clause*& premise);
 };
+#endif
 
 }
 }

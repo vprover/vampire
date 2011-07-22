@@ -48,10 +48,10 @@ private:
   void addTheoryUnit(Literal* lit, UnitList*& units);
   void addTheoryClause(UnitList*& units, Literal* lit1, Literal* lit2, Literal* lit3=0);
 
-  Unit* replaceFunctions(Unit* u);
-  Formula* replaceFunctions(Formula* f);
-  FormulaList* replaceFunctions(FormulaList* fs);
-  Literal* replaceFunctions(Literal* l);
+//  Unit* replaceFunctions(Unit* u);
+//  Formula* replaceFunctions(Formula* f);
+//  FormulaList* replaceFunctions(FormulaList* fs);
+//  Literal* replaceFunctions(Literal* l);
 };
 
 }

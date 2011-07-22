@@ -91,9 +91,9 @@ void addFSEs(SaturationAlgorithm* alg)
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new GlobalSubsumption()));
   }
 
-  if(env.options->interpretedSimplification()) {
-    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new InterpretedSimplifier()));
-  }
+//  if(env.options->interpretedSimplification()) {
+//    alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new InterpretedSimplifier()));
+//  }
 
   if(env.options->forwardLiteralRewriting()) {
     alg->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardLiteralRewriting()));

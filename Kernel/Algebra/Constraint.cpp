@@ -11,7 +11,7 @@ namespace Kernel
 {
 namespace Algebra
 {
-
+#if 0
 /**
  * Return true iff @b lit represents a constraint
  */
@@ -96,6 +96,6 @@ bool Constraint::doSimplifications(ArithmeticKB* kb)
 
   return false;
 }
-
+#endif
 }
 }

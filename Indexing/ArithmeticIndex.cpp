@@ -18,7 +18,7 @@
 
 namespace Indexing
 {
-
+#if 0
 using namespace Kernel;
 
 struct ConstraintDatabase::ConstraintInfo {
@@ -230,5 +230,5 @@ void ArithmeticIndex::handleClause(Clause* c, bool adding)
   Literal* lit=(*c)[0];
   _db.handleLiteral(lit, adding, c);
 }
-
+#endif
 }

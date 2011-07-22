@@ -814,6 +814,7 @@ Term* TPTPParser::term(int& v)
 
   case TT_INTEGER:
     {
+#if 0
       string intStr = token.text;
       consumeToken();
       InterpretedType val;
@@ -821,6 +822,9 @@ Term* TPTPParser::term(int& v)
         throw ParserException("unsupported integer value",token);
       }
       return theory->getRepresentation(val);
+#else
+      INVALID_OPERATION("ints not supported now in the old parser.");
+#endif
     }
   case TT_REAL:
     throw ParserException("reading reals is not supported",token);

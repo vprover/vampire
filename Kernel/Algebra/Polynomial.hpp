@@ -18,6 +18,8 @@
 namespace Kernel {
 namespace Algebra {
 
+#if 0
+
 using namespace Lib;
 
 class Polynomial
@@ -69,6 +71,8 @@ private:
   typedef Stack<Summand> SummandStack;
   SummandStack _data;
 };
+
+#endif
 
 }
 }

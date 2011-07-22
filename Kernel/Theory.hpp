@@ -55,6 +55,8 @@ public:
 
   static IntegerConstantType floor(RationalConstantType rat);
 
+  static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
+
   string toString() const;
 private:
   InnerType _val;
@@ -107,6 +109,8 @@ struct RationalConstantType {
   const InnerType& numerator() const { return _num; }
   const InnerType& denominator() const { return _den; }
 
+  static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
+
 protected:
   void init(InnerType num, InnerType den);
 
@@ -136,15 +140,13 @@ public:
   { return RealConstantType(RationalConstantType::operator*(num)); }
   RealConstantType operator/(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator/(num)); }
+
+  static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
 private:
   static bool parseDouble(const string& num, RationalConstantType& res);
 
 };
 
-//typedef double RealConstantType;
-
-/** Obsolete */
-typedef int InterpretedType;
 
 /**
  * A singleton class handling tasks related to theory symbols in Vampire
@@ -235,19 +237,6 @@ public:
      * interpretations by going through the set {0,...,MAX_INTERPRETED_ELEMENT}.
      */
     MAX_INTERPRETED_ELEMENT = REAL_TO_REAL,
-
-    //these are deprecated, left just so that the code compiles before references to them are removed
-    GREATER,
-    GREATER_EQUAL,
-    LESS,
-    LESS_EQUAL,
-    SUCCESSOR,
-    UNARY_MINUS,
-    PLUS,
-    MINUS,
-    MULTIPLY,
-    DIVIDE,
-
   };
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
@@ -296,24 +285,10 @@ public:
   Term* representConstant(const RationalConstantType& num);
   Term* representConstant(const RealConstantType& num);
 
-  //deprecated
-  Term* getRepresentation(InterpretedType val);
-  TermList zero();
-  TermList one();
-  TermList minusOne();
-  InterpretedType interpretConstant(Term* t);
-  InterpretedType interpretConstant(TermList t);
-
 private:
   Theory();
 
   static FunctionType* getConversionOperationType(Interpretation i);
-
-  //deprecated
-  Term* _zero;
-  Term* _one;
-  Term* _minusOne;
-  DHMap<InterpretedType, Term*> _constants;
 
 };
 

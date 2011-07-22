@@ -12,6 +12,7 @@ namespace Kernel
 namespace Algebra
 {
 
+#if 0
 /**
  * Return true iff @b t has to be non-equal to @b val.
  * If the fact is a tautology, assign 0 to @b premise, otherwise
@@ -41,7 +42,7 @@ bool ArithmeticKB::isLess(TermList t, InterpretedType val, Clause*& premise)
 {
   return false;
 }
-
+#endif
 
 }
 }

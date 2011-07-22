@@ -362,36 +362,6 @@ unsigned Signature::addRealConstant(const RealConstantType& value)
 }
 
 /**
- * If an interpreted constant of given value exists, return its
- * number. Otherwise add a new one and return its number.
- */
-unsigned Signature::addInterpretedConstant(InterpretedType value)
-{
-  CALL("Signature::addInterpretedConstant");
-
-  unsigned result;
-  if(_iConstants.find(value, result)) {
-    return result;
-  }
-
-  string name=Int::toString(value);
-//  string name= (value>=0) ? Int::toString(value) : ("uminus("+Int::toString(abs(value))+")");
-
-  //we do not insert the constant into the _funNames map, as we will always
-  //access them through the _iConstants map. There cannot be a name clash as
-  //non-interpreted constants that appear like numbers must be in quotation
-  //marks ('1' instead of 1 -- the later is a number)
-
-  string symbolKey = key(name,0);
-  //all integer constants must be registered in _iConstants
-
-  result = _funs.length();
-  _funs.push(new InterpretedSymbol(name,value));
-  _iConstants.insert(value, result);
-  return result;
-}
-
-/**
  * Return number of symbol that is interpreted by Interpretation @b interp.
  *
  * If no such symbol exists, it is created.

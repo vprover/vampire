@@ -953,6 +953,7 @@ void SimplifyProver::parseTerm()
       error((string)"term expected: " + expr->toString());
     }
     if (Int::isInteger(symb)) {
+#if 0
       InterpretedType val;
       if(!Int::stringToInt(symb,val)) {
         error((string)"unsupported integer value: " + symb);
@@ -962,6 +963,9 @@ void SimplifyProver::parseTerm()
       Term* t = theory->getRepresentation(val);
       ts.setTerm(t);
       _tsaved.push(ts);
+#else
+      INVALID_OPERATION("Integers not supported by the Simplify parser currently");
+#endif
 #if TRACE
       cout << "INTEGER: " << symb << '\n';
 #endif

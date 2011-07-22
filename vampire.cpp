@@ -170,6 +170,7 @@ void programAnalysisMode()
 {
   CALL("programAnalysisMode()");
 
+#if 0
   string inputFile = env.options->inputFile();
   istream* input;
   if(inputFile=="") {
@@ -192,7 +193,9 @@ void programAnalysisMode()
   CParser parser(progString.c_str());
   parser.tokenize();
   //  parser.output(cout);
-
+#else
+  INVALID_OPERATION("program analysis currently not supported");
+#endif
   vampireReturnValue=0;
 } // programAnalysisMode
 

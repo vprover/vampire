@@ -13,7 +13,7 @@
 namespace Inferences {
 
 using namespace Indexing;
-
+#if 0
 class InterpretedSimplifier
 : public ForwardSimplificationEngine
 {
@@ -31,7 +31,7 @@ private:
   ClauseSimplifier* _simpl;
   ArithmeticIndex* _ai;
 };
-
+#endif
 }
 
 #endif // __InterpretedSimplifier__

@@ -502,6 +502,7 @@ void TheoryAxioms::apply(UnitList*& units, Property* prop)
 #endif
 }
 
+#if 0
 /**
  * Replace some functions and predicates by their definitions
  */
@@ -688,5 +689,5 @@ Literal* TheoryAxioms::replaceFunctions(Literal* l)
 
   return l;
 }
-
+#endif
 }

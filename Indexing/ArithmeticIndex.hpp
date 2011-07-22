@@ -18,6 +18,8 @@
 
 namespace Indexing {
 
+#if 0
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Kernel::Algebra;
@@ -68,7 +70,7 @@ public:
 private:
   ConstraintDatabase _db;
 };
-
+#endif
 }
 
 #endif // __ArithmeticIndex__

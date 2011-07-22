@@ -538,14 +538,38 @@ Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun
     return LESS;
   }
   //two interpreted constants
-  Signature::InterpretedSymbol* is1=static_cast<Signature::InterpretedSymbol*>(s1);
-  Signature::InterpretedSymbol* is2=static_cast<Signature::InterpretedSymbol*>(s2);
-  InterpretedType val1=is1->getValue();
-  InterpretedType val2=is2->getValue();
-  if(val1==-val2) {
-    return (val1>0) ? LESS : GREATER;
+
+  Comparison cmpRes;
+  if(s1->integerConstant() && s2->integerConstant()) {
+    cmpRes = IntegerConstantType::comparePrecedence(s1->integerValue(), s2->integerValue());
   }
-  return fromComparison(Int::compare(abs(val1), abs(is2->getValue())));
+  else if(s1->rationalConstant() && s2->rationalConstant()) {
+    cmpRes = RationalConstantType::comparePrecedence(s1->rationalValue(), s2->rationalValue());
+  }
+  else if(s1->realConstant() && s2->realConstant()) {
+    cmpRes = RealConstantType::comparePrecedence(s1->realValue(), s2->realValue());
+  }
+  else if(s1->integerConstant()) {
+    ASS(s2->rationalConstant() || s2->realConstant());
+    cmpRes = Lib::LESS;
+  }
+  else if(s2->integerConstant()) {
+    ASS(s1->rationalConstant() || s1->realConstant());
+    cmpRes = Lib::GREATER;
+  }
+  else if(s1->rationalConstant()) {
+    ASS(s2->realConstant());
+    cmpRes = Lib::LESS;
+  }
+  else if(s2->rationalConstant()) {
+    ASS(s1->realConstant());
+    cmpRes = Lib::GREATER;
+  }
+  else {
+    ASSERTION_VIOLATION;
+    cmpRes = Int::compare(fun1, fun2);
+  }
+  return fromComparison(cmpRes);
 }
 
 struct FnArityComparator

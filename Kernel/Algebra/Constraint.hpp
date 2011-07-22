@@ -15,6 +15,7 @@
 namespace Kernel {
 namespace Algebra {
 
+#if 0
 using namespace Lib;
 
 /**
@@ -64,6 +65,7 @@ private:
 
   Polynomial _pol;
 };
+#endif
 
 }
 }

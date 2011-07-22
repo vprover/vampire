@@ -140,6 +140,47 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
   return -absRes;
 }
 
+Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
+{
+  CALL("IntegerConstantType::comparePrecedence");
+  try {
+    bool invert = false;
+    Comparison res;
+    if(n1<0 && n2>=0) {
+      swap(n1, n2);
+      invert = true;
+    }
+
+    if(n1>=0) {
+      if(n2>=0) {
+	return Int::compare(n1.toInt(), n2.toInt());
+      }
+      else {
+	//we invert numbers to become negative, because this prevents overflows
+	IntegerConstantType negN1 = -n1;
+	if(negN1==n2) {
+	  res = LESS;
+	}
+	else {
+	  res = Int::compare(n2.toInt(), negN1.toInt());
+	}
+      }
+    }
+    else {
+      ASS(n2<0);
+      invert = !invert;
+      res = Int::compare(n2.toInt(), n1.toInt());
+    }
+
+    if(invert) { res = static_cast<Comparison>(-res); }
+    return res;
+  }
+  catch(ArithmeticException) {
+    ASSERTION_VIOLATION;
+    throw;
+  }
+}
+
 string IntegerConstantType::toString() const
 {
   CALL("IntegerConstantType::toString");
@@ -264,9 +305,72 @@ void RationalConstantType::cannonize()
   }
 }
 
+Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
+{
+  CALL("RationalConstantType::comparePrecedence");
+  try {
+
+    if(n1==n2) { return EQUAL; }
+
+    bool haveRepr1 = true;
+    bool haveRepr2 = true;
+
+    IntegerConstantType repr1, repr2;
+
+    try {
+      repr1 = n1.numerator()+n1.denominator();
+    } catch(ArithmeticException) {
+      haveRepr1 = false;
+    }
+
+    try {
+      repr2 = n2.numerator()+n2.denominator();
+    } catch(ArithmeticException) {
+      haveRepr2 = false;
+    }
+
+    if(haveRepr1 && haveRepr2) {
+      Comparison res = IntegerConstantType::comparePrecedence(repr1, repr2);
+      if(res==EQUAL) {
+	res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
+      }
+      ASS_NEQ(res, EQUAL);
+      return res;
+    }
+    if(haveRepr1 && !haveRepr2) {
+      return LESS;
+    }
+    if(!haveRepr1 && haveRepr2) {
+      return GREATER;
+    }
+
+    ASS(!haveRepr1);
+    ASS(!haveRepr2);
+
+    Comparison res = IntegerConstantType::comparePrecedence(n1.denominator(), n2.denominator());
+    if(res==EQUAL) {
+      res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
+    }
+    ASS_NEQ(res, EQUAL);
+    return res;
+  }
+  catch(ArithmeticException) {
+    ASSERTION_VIOLATION;
+    throw;
+  }
+}
+
+
 ///////////////////////
 // RealConstantType
 //
+
+Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstantType n2)
+{
+  CALL("RealConstantType::comparePrecedence");
+
+  return RationalConstantType::comparePrecedence(n1, n2);
+}
 
 bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
 {
@@ -367,7 +471,6 @@ Theory* Theory::instance()
  * The constructor is private, since Theory is a singleton class.
  */
 Theory::Theory()
-: _zero(0), _one(0), _minusOne(0)
 {
 
 }
@@ -733,39 +836,6 @@ BaseType* Theory::getOperationType(Interpretation i)
 }
 
 /**
- * Return term with constant representing number 0
- */
-TermList Theory::zero()
-{
-  if(!_zero) {
-    _zero=getRepresentation(0);
-  }
-  return TermList(_zero);
-}
-
-/**
- * Return term with constant representing number 1
- */
-TermList Theory::one()
-{
-  if(!_one) {
-    _one=getRepresentation(1);
-  }
-  return TermList(_one);
-}
-
-/**
- * Return term with constant representing number -1
- */
-TermList Theory::minusOne()
-{
-  if(!_minusOne) {
-    _minusOne=getRepresentation(-1);
-  }
-  return TermList(_minusOne);
-}
-
-/**
  * Return true iff @b t is an interpreted constant
  */
 bool Theory::isInterpretedConstant(Term* t)
@@ -924,31 +994,6 @@ Interpretation Theory::interpretPredicate(Literal* lit)
   return interpretPredicate(lit->functor());
 }
 
-/**
- * Assuming @b t is an interpreted constant, return value of this constant
- */
-InterpretedType Theory::interpretConstant(Term* t)
-{
-  CALL("Theory::interpretConstant");
-  ASS(isInterpretedConstant(t));
-
-  Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(t->functor()));
-
-  return sym->getValue();
-}
-
-/**
- * Assuming @b t is an interpreted constant, return value of this constant
- */
-InterpretedType Theory::interpretConstant(TermList t)
-{
-  CALL("Theory::interpretConstant(TermList)");
-  ASS(t.isTerm());
-
-  return interpretConstant(t.term());
-}
-
 bool Theory::tryInterpretConstant(TermList trm, IntegerConstantType& res)
 {
   CALL("Theory::tryInterpretConstant(TermList,IntegerConstantType)");
@@ -1007,27 +1052,6 @@ Term* Theory::representConstant(const RealConstantType& num)
 
   unsigned func = env.signature->addRealConstant(num);
   return Term::create(func, 0, 0);
-}
-
-
-
-/**
- * Return term containing the constant of value @b val
- */
-Term* Theory::getRepresentation(InterpretedType val)
-{
-  CALL("Theory::getRepresentation");
-
-  Term** pRes;
-
-  if(!_constants.getValuePtr(val, pRes)) {
-    return *pRes;
-  }
-
-  int functor=env.signature->addInterpretedConstant(val);
-
-  *pRes=Term::create(functor, 0, 0);
-  return *pRes;
 }
 
 /**

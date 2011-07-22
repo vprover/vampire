@@ -137,22 +137,12 @@ class Signature
     friend class Signature;
     friend class Symbol;
   protected:
-    union {
-      int _intValue;
-      Interpretation _interp;
-    };
+    Interpretation _interp;
 
   public:
 
     InterpretedSymbol(const string& nm, Interpretation interp)
     : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
-    {
-      CALL("InterpretedSymbol");
-    }
-
-    /** deprecated */
-    InterpretedSymbol(const string& nm,InterpretedType value)
-    : Symbol(nm, 0, true), _intValue(value)
     {
       CALL("InterpretedSymbol");
     }
@@ -164,10 +154,6 @@ class Signature
     }
     CLASS_NAME("Signature::InterpretedSymbol");
     USE_ALLOCATOR(InterpretedSymbol);
-
-    /** deprecated */
-    inline InterpretedType getValue() const { ASS(interpreted()); ASS_EQ(arity(),0); return _intValue; }
-
 
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS(interpreted()); ASS_NEQ(arity(),0); return _interp; }
@@ -239,9 +225,6 @@ class Signature
   unsigned addInterpretedFunction(Interpretation itp, const string& name);
   unsigned addInterpretedPredicate(Interpretation itp, const string& name);
 
-
-  //deprecated
-  unsigned addInterpretedConstant(InterpretedType value);
 
   unsigned addIntegerConstant(const string& number);
   unsigned addRationalConstant(const string& numerator, const string& denominator);
@@ -425,9 +408,6 @@ private:
   int _lastSG;
 
   Stack<Unit*> _distinctGroupPremises;
-
-  /** Map from InterpretedType values to constant symbols representing them */
-  DHMap<InterpretedType, unsigned> _iConstants;
 
   /**
    * Map from Interpretation values to function and predicate symbols representing them

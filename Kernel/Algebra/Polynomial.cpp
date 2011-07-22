@@ -16,6 +16,8 @@ namespace Kernel
 namespace Algebra
 {
 
+#if 0
+
 Polynomial::Polynomial(TermList t)
 {
   CALL("Polynomial::Polynomian(TermList)");
@@ -385,6 +387,7 @@ Comparison Polynomial::Summand::compare(const Summand& s1, const Summand& s2)
 
 }
 
+#endif
 
 }
 }

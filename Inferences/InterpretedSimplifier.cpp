@@ -36,6 +36,8 @@
 namespace Inferences
 {
 
+#if 0
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Kernel::Algebra;
@@ -1104,6 +1106,8 @@ void InterpretedSimplifier::perform(Clause* cl, ForwardSimplificationPerformer* 
     simplPerformer->perform(premises, res);
   }
 }
+
+#endif
 
 }
 

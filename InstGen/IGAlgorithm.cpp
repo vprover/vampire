@@ -114,6 +114,7 @@ void IGAlgorithm::addInputClauses(ClauseIterator it)
     UnitList::Iterator uit(units);
     while(uit.hasNext()) {
       Clause* cl = static_cast<Clause*>(uit.next());
+      cl->incRefCnt();
       Clause* copyCl = Clause::fromIterator(Clause::Iterator(*cl), cl->inputType(), new Inference1(Inference::REORDER_LITERALS, cl));
       copies.push(copyCl);
     }
