@@ -15,7 +15,7 @@ namespace Lib {
 class RatioKeeper {
 public:
   RatioKeeper(int firstRatio, int secondRatio, unsigned buffer=0)
-  : _firstRatio(firstRatio), _secondRatio(secondRatio), _lastWasFirst(true), _balance(0) {}
+  : _firstRatio(firstRatio), _secondRatio(secondRatio), _buffer(buffer), _lastWasFirst(true), _balance(0) {}
 
   bool shouldDoFirst() const
   {
