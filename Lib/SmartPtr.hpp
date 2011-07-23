@@ -93,22 +93,6 @@ public:
   template<class Target>
   inline
   Target* pcast() { return static_cast<Target*>(_obj); }
-
-  template<class Target>
-  SmartPtr<Target> spcast()
-  {
-    CALL("SmartPtr::spcast");
-
-    SmartPtr<Target> res;
-    if(_obj) {
-      res._obj = static_cast<Target*>(_obj);
-      if(_refCnt) {
-	(*_refCnt)++;
-	res._refCnt = _refCnt;
-      }
-    }
-    return res;
-  }
 private:
   template<typename U> friend class SmartPtr;
 

@@ -27,18 +27,43 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SubformulaIterator.hpp"
+#include "Kernel/KBO.hpp"
+
+#include "Inferences/InferenceEngine.hpp"
+#include "Inferences/BackwardDemodulation.hpp"
+#include "Inferences/BackwardSubsumptionResolution.hpp"
+#include "Inferences/BDDMarkingSubsumption.hpp"
+#include "Inferences/BinaryResolution.hpp"
+#include "Inferences/CTFwSubsAndRes.hpp"
+#include "Inferences/EqualityFactoring.hpp"
+#include "Inferences/EqualityResolution.hpp"
+#include "Inferences/Factoring.hpp"
+#include "Inferences/ForwardDemodulation.hpp"
+#include "Inferences/ForwardLiteralRewriting.hpp"
+#include "Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "Inferences/GlobalSubsumption.hpp"
+#include "Inferences/InterpretedSimplifier.hpp"
+#include "Inferences/RefutationSeekerFSE.hpp"
+#include "Inferences/SLQueryForwardSubsumption.hpp"
+#include "Inferences/SLQueryBackwardSubsumption.hpp"
+#include "Inferences/Superposition.hpp"
+#include "Inferences/URResolution.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
+#include "BSplitter.hpp"
+#include "SWBSplitterWithBDDs.hpp"
+#include "SWBSplitterWithoutBDDs.hpp"
 #include "ConsequenceFinder.hpp"
 #include "Splitter.hpp"
 #include "SymElOutput.hpp"
-
 #include "SaturationAlgorithm.hpp"
-
-
+#include "AWPassiveClauseContainer.hpp"
+#include "Discount.hpp"
+#include "LRS.hpp"
+#include "Otter.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -62,10 +87,10 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
  * @b selector object to select literals before clauses are activated.
  */
 SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContainer,
-	LiteralSelector* selector)
-: _clauseActivationInProgress(false), _passive(passiveContainer),
-  _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _splitter(0),
-  _consFinder(0), _symEl(0), _bddMarkingSubsumption(0), _answerLiteralManager(0)
+					 LiteralSelector* selector)
+  : _clauseActivationInProgress(false), _passive(passiveContainer),
+    _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _splitter(0),
+    _consFinder(0), _symEl(0), _bddMarkingSubsumption(0), _answerLiteralManager(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
@@ -163,8 +188,6 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
  */
 bool SaturationAlgorithm::isComplete()
 {
-  CALL("SaturationAlgorithm::isComplete");
-
   return _completeOptionSettings;
 }
 
@@ -173,14 +196,11 @@ ClauseIterator SaturationAlgorithm::activeClauses()
   CALL("SaturationAlgorithm::activeClauses");
 
   LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
-
   return pvi( getMappingIterator(gis->getAll(), SLQueryResult::ClauseExtractFn()) );
 }
 
 ClauseIterator SaturationAlgorithm::passiveClauses()
 {
-  CALL("SaturationAlgorithm::passiveClauses");
-
   return _passive->iterator();
 }
 
@@ -1555,3 +1575,145 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
   BwSimplList::push(bwSimplifier, _bwSimplifiers);
   bwSimplifier->attach(this);
 }
+
+SaturationAlgorithm* SaturationAlgorithm::createFromOptions(IndexManager* indexMgr)
+{
+  CALL("SaturationAlgorithm::createFromOptions");
+
+  bool epr=true;
+  unsigned func=env.signature->functions();
+  for(unsigned fi=0;fi<func;fi++) {
+    if(env.signature->functionArity(fi)) {
+      epr=false;
+      break;
+    }
+  }
+  Ordering::create(epr);
+
+  // create passive clauses container
+  AWPassiveClauseContainer* passive = new AWPassiveClauseContainer();
+  passive->setAgeWeightRatio(env.options->ageRatio(),env.options->weightRatio());
+
+  LiteralSelector* selector=LiteralSelector::getSelector(env.options->selection());
+
+  SaturationAlgorithm* res;
+  switch(env.options->saturationAlgorithm()) {
+  case Shell::Options::DISCOUNT:
+    res=new Discount(passive, selector);
+    break;
+  case Shell::Options::LRS:
+    res=new LRS(passive, selector);
+    break;
+  case Shell::Options::OTTER:
+    res=new Otter(passive, selector);
+    break;
+  default:
+    NOT_IMPLEMENTED;
+  }
+  if(indexMgr) {
+    res->_imgr = SmartPtr<IndexManager>(indexMgr, true);
+    indexMgr->setSaturationAlgorithm(res);
+
+  }
+  else {
+    res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
+  }
+
+  // create generating inference engine
+  CompositeGIE* gie=new CompositeGIE();
+  gie->addFront(GeneratingInferenceEngineSP(new EqualityFactoring()));
+  gie->addFront(GeneratingInferenceEngineSP(new EqualityResolution()));
+  gie->addFront(GeneratingInferenceEngineSP(new Superposition()));
+  gie->addFront(GeneratingInferenceEngineSP(new Factoring()));
+  if(env.options->binaryResolution()) {
+    gie->addFront(GeneratingInferenceEngineSP(new BinaryResolution()));
+  }
+  if(env.options->unitResultingResolution()) {
+    gie->addFront(GeneratingInferenceEngineSP(new URResolution()));
+  }
+  res->setGeneratingInferenceEngine(GeneratingInferenceEngineSP(gie));
+
+  res->setImmediateSimplificationEngine(createISE());
+
+  // create forward simplification engine
+  if(env.options->globalSubsumption()) {
+    res->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new GlobalSubsumption()));
+  }
+  if(env.options->forwardLiteralRewriting()) {
+    res->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardLiteralRewriting()));
+  }
+  switch(env.options->forwardDemodulation()) {
+  case Options::DEMODULATION_ALL:
+  case Options::DEMODULATION_PREORDERED:
+    res->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardDemodulation()));
+    break;
+  case Options::DEMODULATION_OFF:
+    break;
+#if VDEBUG
+  default:
+    ASSERTION_VIOLATION;
+#endif
+  }
+  if (env.options->forwardSubsumption()) {
+    if(env.options->forwardSubsumptionResolution()) {
+      res->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new CTFwSubsAndRes(true)));
+    }
+    else {
+      res->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new CTFwSubsAndRes(false)));
+    }
+  }
+  else if (env.options->forwardSubsumptionResolution()) {
+    USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
+  }
+
+  // create backward simplification engine
+  switch(env.options->backwardDemodulation()) {
+  case Options::DEMODULATION_ALL:
+  case Options::DEMODULATION_PREORDERED:
+    res->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardDemodulation()));
+    break;
+  case Options::DEMODULATION_OFF:
+    break;
+#if VDEBUG
+  default:
+    ASSERTION_VIOLATION;
+#endif
+  }
+  if(env.options->backwardSubsumption()!=Options::SUBSUMPTION_OFF) {
+    bool byUnitsOnly=env.options->backwardSubsumption()==Options::SUBSUMPTION_UNIT_ONLY;
+    res->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption(byUnitsOnly)));
+  }
+  if(env.options->backwardSubsumptionResolution()!=Options::SUBSUMPTION_OFF) {
+    bool byUnitsOnly=env.options->backwardSubsumptionResolution()==Options::SUBSUMPTION_UNIT_ONLY;
+    res->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardSubsumptionResolution(byUnitsOnly)));
+  }
+
+  if(env.options->mode()==Options::MODE_CONSEQUENCE_ELIMINATION) {
+    res->_consFinder=new ConsequenceFinder();
+  }
+  if(env.options->showSymbolElimination()) {
+    res->_symEl=new SymElOutput();
+  }
+
+  if(env.options->splitting()==Options::SM_BACKTRACKING) {
+    res->_splitter=new BSplitter();
+  }
+  else if(env.options->splitting()==Options::SM_NOBACKTRACKING) {
+    if(env.options->propositionalToBDD()) {
+      res->_splitter=new SWBSplitterWithBDDs();
+    }
+    else {
+      res->_splitter=new SWBSplitterWithoutBDDs();
+    }
+  }
+
+
+  if(env.options->bddMarkingSubsumption()) {
+    res->_bddMarkingSubsumption=new BDDMarkingSubsumption();
+  }
+
+  if(env.options->questionAnswering()==Options::QA_ANSWER_LITERAL) {
+    res->_answerLiteralManager = AnswerLiteralManager::getInstance();
+  }
+  return res;
+} // SaturationAlgorithm::createFromOptions

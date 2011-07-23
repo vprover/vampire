@@ -48,7 +48,6 @@ IGAlgorithm::IGAlgorithm()
   CALL("IGAlgorithm::IGAlgorithm");
 
   _passive.setAgeWeightRatio(env.options->ageRatio(), env.options->weightRatio());
-
   _satSolver = new TWLSolver(true);
 
   if(env.options->globalSubsumption()) {
@@ -75,14 +74,13 @@ IGAlgorithm::IGAlgorithm()
     saOptions.setSplitting(Options::SM_OFF);
     ScopedLet<Options> slet(*env.options, saOptions);
 
-    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(_saturationIndexManager.ptr());
+    _saturationAlgorithm = SaturationAlgorithmSP(SaturationAlgorithm::createFromOptions(_saturationIndexManager.ptr()));
     _saturationAlgorithm->getSimplifyingClauseContainer()->addedEvent.subscribe(this, &IGAlgorithm::onResolutionClauseDerived);
   }
   else {
     //if there's no resolution, we always do instGen
     _instGenResolutionRatio.alwaysDoFirst();
   }
-
   _variantIdx = new ClauseVariantIndex();
   _selected = new LiteralSubstitutionTree();
 }

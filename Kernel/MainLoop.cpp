@@ -27,9 +27,7 @@
 
 #include "MainLoop.hpp"
 
-namespace Kernel
-{
-
+using namespace Kernel;
 using namespace InstGen;
 using namespace Saturation;
 using namespace Tabulation;
@@ -39,11 +37,6 @@ void MainLoopResult::updateStatistics()
   env.statistics->terminationReason=terminationReason;
   env.statistics->refutation=refutation;
 }
-
-
-///////////////////////
-// MainLoop
-//
 
 MainLoopResult MainLoop::run()
 {
@@ -108,20 +101,17 @@ ImmediateSimplificationEngineSP MainLoop::createISE()
   return ImmediateSimplificationEngineSP(res);
 }
 
-
 MainLoopSP MainLoop::createFromOptions()
 {
   CALL("MainLoop::createFromOptions");
 
-  if(env.options->saturationAlgorithm()==Options::TABULATION) {
+  switch (env.options->saturationAlgorithm()) {
+  case Options::TABULATION:
     return MainLoopSP(new TabulationAlgorithm());
-  }
-  else if(env.options->saturationAlgorithm()==Options::INST_GEN) {
+  case Options::INST_GEN:
     return MainLoopSP(new IGAlgorithm());
-  }
-  else {
-    return SaturationAlgorithm::createFromOptions().spcast<MainLoop>();
+  default:
+    return MainLoopSP(SaturationAlgorithm::createFromOptions());
   }
 }
 
-}

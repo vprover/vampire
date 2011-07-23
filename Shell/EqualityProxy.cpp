@@ -41,7 +41,6 @@ EqualityProxy::EqualityProxy(Options::EqualityProxy opt)
   init();
 }
 
-
 void EqualityProxy::init()
 {
   CALL("EqualityProxy::init");
@@ -73,7 +72,6 @@ void EqualityProxy::init()
     s_proxyPredicate=predNum;
   }
 }
-
 
 void EqualityProxy::apply(UnitList*& units)
 {

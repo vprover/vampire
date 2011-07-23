@@ -218,7 +218,6 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/LRS.o\
          Saturation/Otter.o\
          Saturation/ProvingHelper.o\
-         Saturation/SaturationAlgorithm_Construction.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
          Saturation/SWBSplitter.o\

@@ -57,6 +57,7 @@ Property::Property()
     _hasInterpreted(false)
 {
   _interpretationPresence.init(Theory::MAX_INTERPRETED_ELEMENT+1, false);
+  env.property = this;
 } // Property::Property
 
 /**

@@ -54,15 +54,11 @@ private:
   void init();
   void addAxioms(UnitList*& units);
   void addCongruenceAxioms(UnitList*& units);
-
   void getVariableEqualityLiterals(unsigned cnt, LiteralStack& lits,
-      Stack<TermList>& vars1, Stack<TermList>& vars2);
-
+				   Stack<TermList>& vars1, Stack<TermList>& vars2);
   Clause* apply(Clause* cl);
   Literal* apply(Literal* lit);
-
   Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1);
-
 
   Options::EqualityProxy _opt;
   bool _rst;

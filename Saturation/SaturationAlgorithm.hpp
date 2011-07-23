@@ -40,7 +40,7 @@ using namespace Inferences;
 class SaturationAlgorithm : public MainLoop
 {
 public:
-  static SaturationAlgorithmSP createFromOptions(IndexManager* indexMgr=0);
+  static SaturationAlgorithm* createFromOptions(IndexManager* indexMgr=0);
 
   SaturationAlgorithm(PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
   virtual ~SaturationAlgorithm();
