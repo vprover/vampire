@@ -46,6 +46,7 @@ nullstream nullStream;
 Environment::Environment()
   : signature(0),
     sharing(0),
+    property(0),
     ordering(0),
     colorUsed(false),
     _outputDepth(0),

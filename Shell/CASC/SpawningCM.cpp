@@ -38,7 +38,7 @@ SpawningCM::SpawningCM(string executable)
   _inputFile=env.options->inputFile();
 
   UnitList* units=UIHelper::getInputUnits();
-  _property.scan(units);
+  _property = Property::scan(units);
   while(units) {
     Unit* u=UnitList::pop(units);
     //this won't cause destruction of the Formula objects but better than nothing...

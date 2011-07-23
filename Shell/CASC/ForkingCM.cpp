@@ -50,7 +50,7 @@ ForkingCM::ForkingCM()
 
   _units=UIHelper::getInputUnits();
 //  _units=0;
-  _property.scan(_units);
+  _property = Property::scan(_units);
 
   {
     TimeCounter tc(TC_PREPROCESSING);
@@ -134,7 +134,7 @@ void ForkingCM::childRun(Options& opt)
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
 
-  ProvingHelper::runVampire(_units, &_property);
+  ProvingHelper::runVampire(_units,_property);
 
   //set return value to zero if we were successful
 #if SATISFIABLE_IS_SUCCESS

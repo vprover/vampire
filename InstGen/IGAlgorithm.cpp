@@ -122,9 +122,8 @@ void IGAlgorithm::addInputClauses(ClauseIterator it)
     _saturationAlgorithm->init();
   }
 
-  Property property;
-  property.scan(units);
-  if(property.equalityAtoms()) {
+  Property* property = Property::scan(units);
+  if(property->equalityAtoms()) {
     EqualityProxy ep(Options::EP_RSTC);
     ep.apply(units);
   }
@@ -603,7 +602,7 @@ MainLoopResult IGAlgorithm::runImpl()
       activate(given);
     }
     if(_unprocessed.isEmpty()) {
-      if(env.options->complete()) {
+      if(env.options->complete(*env.property)) {
 	if(env.options->proof()!=Options::PROOF_OFF) {
 	  stringstream modelStm;
 	  bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);

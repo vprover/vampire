@@ -102,9 +102,12 @@ ClauseIterator getProblemClauses()
     }
 
     {
-      TPTPLexer lexer(*input);
-      TPTPParser parser(lexer);
-      parser.setForbiddenIncludes(selector.theoryFileNames());
+      Parse::TPTP parser(*input);
+      StringList::Iterator names(selector.theoryFileNames());
+      while (names.hasNext()) {
+	parser.addForbiddenInclude(names.next());
+      }
+      parser.parse()
       units = parser.units();
     }
 

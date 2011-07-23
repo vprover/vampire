@@ -11,7 +11,6 @@
 #include <iostream>
 
 #include "Forwards.hpp"
-
 #include "Exception.hpp"
 
 namespace Lib {
@@ -41,6 +40,8 @@ public:
   Indexing::TermSharing* sharing;
   /** Currently used statistics */
   Shell::Statistics* statistics;
+  /** Last read properties */
+  Shell::Property* property;
   /** Currently used timer */
   Timer* timer;
 

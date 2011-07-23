@@ -27,9 +27,9 @@ UT_CREATE;
 #include "Shell/Options.hpp"
 #include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TPTPLexer.hpp"
-#include "Shell/TPTPParser.hpp"
 #include "Shell/UIHelper.hpp"
+
+#include "Parse/TPTP.hpp"
 
 using namespace Lib;
 using namespace Lib::Sys;
@@ -90,9 +90,7 @@ TEST_FUN(two_vampires1)
 
   //get the problem we'll be solving
   stringstream inp(prob);
-  TPTPLexer lex(inp);
-  TPTPParser par(lex);
-  UnitList* units=par.units();
+  UnitList* units=Parse::TPTP::parse(inp);
 
   //pipe for collecting the output from children
   SyncPipe childOutputPipe;

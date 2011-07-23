@@ -25,12 +25,11 @@
 #include "Shell/Normalisation.hpp"
 #include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TPTPLexer.hpp"
-#include "Shell/TPTPParser.hpp"
 #include "Shell/UIHelper.hpp"
 
-#include "CASCMode.hpp"
+#include "Parse/TPTP.hpp"
 
+#include "CASCMode.hpp"
 #include "SimpleLTBMode.hpp"
 
 #define SLOWNESS 1.15
@@ -186,7 +185,10 @@ void SimpleLTBMode::readInput()
 //////////////////////////////////////////
 
 SLTBProblem::SLTBProblem(SimpleLTBMode* parent, string problemFile, string outFile)
-: parent(parent), problemFile(problemFile), outFile(outFile)
+: parent(parent),
+  problemFile(problemFile),
+  outFile(outFile),
+  property(0)
 {
 }
 
@@ -234,9 +236,9 @@ void SLTBProblem::performStrategy()
 {
   CALL("SLTBProblem::performStrategy");
 
-  Property::Category cat = property.category();
-  unsigned prop = property.props();
-  unsigned atoms = property.atoms();
+  Property::Category cat = property->category();
+  unsigned prop = property->props();
+  unsigned atoms = property->atoms();
 
   cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
@@ -518,19 +520,16 @@ void SLTBProblem::perform()
     if(inp.fail()) {
       USER_ERROR("Cannot open problem file: "+problemFile);
     }
-    TPTPLexer lexer(inp);
-    TPTPParser parser(lexer);
-
+    Parse::TPTP parser(inp);
+    parser.parse();
     probUnits = parser.units();
-    UIHelper::setConjecturePresence(parser.haveConjecture());
+    UIHelper::setConjecturePresence(parser.containsConjecture());
   }
 
   {
     TimeCounter tc(TC_PREPROCESSING);
     env.statistics->phase=Statistics::PROPERTY_SCANNING;
-
-    property.scan(probUnits);
-
+    property = Property::scan(probUnits);
     env.statistics->phase=Statistics::NORMALIZATION;
 
     Normalisation norm;
@@ -772,7 +771,7 @@ void SLTBProblem::runChild(Options& opt)
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
 
-  ProvingHelper::runVampire(probUnits, &property);
+  ProvingHelper::runVampire(probUnits,property);
 
   //set return value to zero if we were successful
   if(env.statistics->terminationReason==Statistics::REFUTATION) {

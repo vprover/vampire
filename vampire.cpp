@@ -106,12 +106,10 @@ ClauseIterator getProblemClauses()
   TimeCounter tc2(TC_PREPROCESSING);
 
   env.statistics->phase=Statistics::PROPERTY_SCANNING;
-  Property property;
-  property.scan(units);
-  Preprocess prepro(property,*env.options);
+  Property* property = Property::scan(units);
+  Preprocess prepro(*property,*env.options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(units);
-
   globUnitList=units;
 
   return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
@@ -132,7 +130,6 @@ void profileMode()
 {
   CALL("profileMode()");
 
-  Property property;
   string inputFile = env.options->inputFile();
   istream* input;
   if(inputFile=="") {
@@ -151,19 +148,20 @@ void profileMode()
     input=0;
   }
 
-  property.scan(units);
-  TheoryFinder tf(units,&property);
-  Preprocess prepro(property,*env.options);
+  Property* property = Property::scan(units);
+  TheoryFinder tf(units,property);
+  Preprocess prepro(*property,*env.options);
   tf.search();
 
   env.beginOutput();
-  env.out() << property.categoryString() << ' '
-       << property.props() << ' '
-       << property.atoms() << "\n";
+  env.out() << property->categoryString() << ' '
+       << property->props() << ' '
+       << property->atoms() << "\n";
   env.endOutput();
 
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue=0;
+  delete property;
 } // profileMode
 
 void programAnalysisMode()
@@ -342,7 +340,6 @@ void groundingMode()
   CALL("groundingMode()");
 
   try {
-    Property property;
 
     string inputFile = env.options->inputFile();
     istream* input;
@@ -357,25 +354,21 @@ void groundingMode()
       input=0;
     }
 
-    property.scan(units);
-
-    Preprocess prepro(property,*env.options);
+    Property* property = Property::scan(units);
+    Preprocess prepro(*property,*env.options);
     prepro.preprocess(units);
+    delete property;
 
-    Property newProperty;
-    newProperty.scan(units);
-
+    property->scan(units);
     globUnitList=units;
     ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
 
-
-    if(newProperty.equalityAtoms()) {
-      ClauseList* eqAxioms=Grounding::getEqualityAxioms(newProperty.positiveEqualityAtoms()!=0);
-      clauses=pvi( getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms), clauses) );
+    if(property->equalityAtoms()) {
+      ClauseList* eqAxioms=Grounding::getEqualityAxioms(property->positiveEqualityAtoms()!=0);
+      clauses=pvi(getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms),clauses));
     }
 
     MapToLIFO<Clause*, SATClause*> insts;
-
     Grounding gnd;
     SATClause::NamingContext nameCtx;
 

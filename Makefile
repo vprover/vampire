@@ -275,9 +275,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/Token.o\
-         Shell/TPTPLexer.o\
          Shell/TPTP.o\
-         Shell/TPTPParser.o\
          Shell/TrivialPredicateRemover.o\
          Shell/UIHelper.o\
          Shell/VarManager.o
@@ -462,8 +460,6 @@ OTHER_API_DEP = \
 	   Shell/Statistics.o\
 	   Shell/Token.o\
 	   Shell/TPTP.o\
-	   Shell/TPTPLexer.o\
-	   Shell/TPTPParser.o\
 	   Shell/VarManager.o\
 	   Parse/TPTP.o\
 	   ClausifierDependencyFix.o

@@ -139,7 +139,7 @@ void Statistics::print(ostream& out)
     out << "Memory limit";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
-    if(env.options->complete()) {
+    if(env.options->complete(*env.property)) {
       ASS_G(env.statistics->discardedNonRedundantClauses, 0);
       out << "Refutation not found, non-redundant clauses discarded";
     } else {

@@ -22,11 +22,10 @@
 #include "Shell/Preprocess.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/SineUtils.hpp"
-#include "Shell/TPTPLexer.hpp"
-#include "Shell/TPTPParser.hpp"
+
+#include "Parse/TPTP.hpp"
 
 #include "Storage.hpp"
-
 #include "Builder.hpp"
 
 namespace Shell
@@ -98,11 +97,7 @@ void Builder::build(VirtualIterator<string> fnameIterator)
     if(input.fail()) {
       USER_ERROR("Cannot open included file: "+env.options->includeFileName(fname));
     }
-
-    TPTPLexer lexer(input);
-    TPTPParser parser(lexer);
-    UnitList* newUnits = parser.units();
-
+    UnitList* newUnits = Parse::TPTP::parse(input);
     units=UnitList::concat(newUnits, units);
   }
 
@@ -121,7 +116,6 @@ void Builder::build(VirtualIterator<string> fnameIterator)
   Options clausifyOptions(*env.options);
   clausifyOptions._normalize=false;
   clausifyOptions._sineSelection=Options::SS_OFF;
-  clausifyOptions._theoryAxioms=false;
   clausifyOptions._unusedPredicateDefinitionRemoval=false;
   clausifyOptions._functionDefinitionElimination=Options::FDE_NONE;
   clausifyOptions._inequalitySplitting=0;
@@ -139,10 +133,10 @@ void Builder::build(VirtualIterator<string> fnameIterator)
     UnitList* localUnits=0;
     UnitList::push(u, localUnits);
 
-    Property prop;
-    prop.scan(localUnits);
-    Preprocess preproc(prop, clausifyOptions);
+    Property* prop = Property::scan(localUnits);
+    Preprocess preproc(*prop,clausifyOptions);
     preproc.preprocess(localUnits);
+    delete prop;
 
     //here we go through generated clauses and we check whether there isn't an empty clause
     //(as storage.storeCNFOfUnit doesn't allow storing them)

@@ -117,40 +117,43 @@ public:
 // 1073741824u; // 2^30
 
  public:
-  // constructor
-  explicit Property ();
-  void scan(UnitList*);
+  CLASS_NAME("Property");
+  USE_ALLOCATOR(Property);
+
+  static Property* scan(UnitList*);
+  ~Property();
 
   /** Return the CASC category of the problem */
   Category category() const { return _category;}
   string categoryString() const;
 
-  string toString () const;
-  string toSpider (const string& problemName) const;
+  string toString() const;
+  string toSpider(const string& problemName) const;
 
   /** Total number of clauses in the problem. */
-  int clauses () const { return _goalClauses + _axiomClauses; }
+  int clauses() const { return _goalClauses + _axiomClauses; }
   /** Total number of formulas in the problem */
-  int formulas () const { return _goalFormulas + _axiomFormulas; }
+  int formulas() const { return _goalFormulas + _axiomFormulas; }
   /** Total number of unit clauses in the problem */
-  int unitClauses () const { return _unitGoals + _unitAxioms; }
+  int unitClauses() const { return _unitGoals + _unitAxioms; }
   /** Total number of Horn clauses in the problem */
-  int hornClauses () const { return _hornGoals + _hornAxioms; }
+  int hornClauses() const { return _hornGoals + _hornAxioms; }
   /** Total number of atoms in the problem */
   int atoms() const { return _atoms; }
   /** Total number of equality atoms in the problem */
   int equalityAtoms() const { return _equalityAtoms; }
-  /** Total number of positive equality atoms in the problem */
+  /** Total number of positive equality atoms in the problem, does not work correctly
+      with formulas since polarity is not taken into account */
   int positiveEqualityAtoms() const { return _positiveEqualityAtoms; }
   /** True if has formulas */
-  bool hasFormulas () const { return _axiomFormulas || _goalFormulas; }
+  bool hasFormulas() const { return _axiomFormulas || _goalFormulas; }
 
   /** The problem has property p */
-  bool hasProp (unsigned p) const { return _props & p; }
+  bool hasProp(unsigned p) const { return _props & p; }
   /** Add property p to the list of properties */
-  void addProp (unsigned p) { _props |= p; }
+  void addProp(unsigned p) { _props |= p; }
   /** Return props as an integer, mainly for debugging */
-  unsigned int props () const { return _props; }
+  unsigned int props() const { return _props; }
 
   /**
    * To be used from outside of the Property class when a preprocessing
@@ -163,9 +166,13 @@ public:
   bool hasInterpretedOperation(Interpretation i) const { return _interpretationPresence[i]; }
   bool hasInterpretedOperations() const { return _hasInterpreted; }
  private:
-  static bool hasXEqualsY (const Clause* c);
-  static bool isXEqualsY (const Literal*,bool polarity);
-  static bool hasXEqualsY (const Formula*, MultiCounter&, int polarity);
+  // constructor, operators new and delete
+  explicit Property();
+  void scan1(UnitList*);
+
+  static bool hasXEqualsY(const Clause* c);
+  static bool isXEqualsY(const Literal*,bool polarity);
+  static bool hasXEqualsY(const Formula*, MultiCounter&, int polarity);
 
   // reading in properties of problems
   void scan(Unit*);
@@ -176,17 +183,17 @@ public:
   void scan(Literal* lit,bool& isGround);
 
 
-  char axiomTypes () const;
-  char goalTypes () const;
-  char equalityContent () const;
-  char nonGroundUnitContent () const;
-  char groundPositiveContent () const;
-  char goalsAreGround () const;
-  char setClauseSize () const;
-  char setLiteralSize () const;
-  char setTermSize () const;
-  char maxFunArity () const;
-  char maxPredArity () const;
+  char axiomTypes() const;
+  char goalTypes() const;
+  char equalityContent() const;
+  char nonGroundUnitContent() const;
+  char groundPositiveContent() const;
+  char goalsAreGround() const;
+  char setClauseSize() const;
+  char setLiteralSize() const;
+  char setTermSize() const;
+  char maxFunArity() const;
+  char maxPredArity() const;
 
   // structure
   int _goalClauses;

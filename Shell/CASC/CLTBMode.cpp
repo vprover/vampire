@@ -175,7 +175,7 @@ void CLTBMode::loadIncludes()
     TimeCounter tc(TC_PREPROCESSING);
     env.statistics->phase=Statistics::PROPERTY_SCANNING;
 
-    property.scan(theoryAxioms);
+    property = Property::scan(theoryAxioms);
   }
 
 //  {
@@ -317,9 +317,8 @@ void CLTBProblem::performStrategy()
 {
   CALL("CLTBProblem::performStrategy");
 
-  Property::Category cat = property.category();
-  unsigned prop = property.props();
-  unsigned atoms = property.atoms();
+  Property::Category cat = property->category();
+  unsigned atoms = property->atoms();
 
   cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
@@ -615,18 +614,13 @@ void CLTBProblem::perform()
     TimeCounter tc(TC_PREPROCESSING);
     env.statistics->phase=Statistics::PROPERTY_SCANNING;
 
-    property.scan(probUnits);
-
-
+    property = Property::scan(probUnits);
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
-
     //concat with theory axioms
     probUnits=UnitList::concat(probUnits, parent->theoryAxioms);
 
-
-    if(property.atoms()<=1000000) {
+    if(property->atoms()<=1000000) {
       env.statistics->phase=Statistics::NORMALIZATION;
-
       Normalisation norm;
       probUnits = norm.normalise(probUnits);
     }
@@ -914,7 +908,7 @@ void CLTBProblem::runChild(Options& opt)
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
 
-  ProvingHelper::runVampire(probUnits, &property);
+  ProvingHelper::runVampire(probUnits,property);
 
   //set return value to zero if we were successful
   if(env.statistics->terminationReason==Statistics::REFUTATION) {

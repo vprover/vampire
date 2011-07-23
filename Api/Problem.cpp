@@ -43,10 +43,9 @@
 #include "Shell/SineUtils.hpp"
 #include "Shell/SpecialTermElimination.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TPTPLexer.hpp"
-#include "Shell/TPTPParser.hpp"
 #include "Shell/VarManager.hpp"
 
+#include "Parse/TPTP.hpp"
 
 namespace Api
 {
@@ -296,13 +295,10 @@ void Problem::addFromStream(istream& s, string includeDirectory, bool simplifySy
     units = simplify.units(expr);
   }
   else {
-    TPTPLexer lexer(s);
-    TPTPParser parser(lexer);
-    units = parser.units();
+    units = Parse::TPTP::parse(s);
   }
 
   env.options->setInclude(originalInclude);
-
   while(units) {
     Kernel::Unit* u=Kernel::UnitList::pop(units);
     addFormula(AnnotatedFormula(u));

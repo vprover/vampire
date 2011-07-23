@@ -84,9 +84,9 @@ bool CASCMode::perform()
 {
   CALL("CASCMode::perform/0");
 
-  Property::Category cat = _property.category();
-  unsigned prop = _property.props();
-  unsigned atoms = _property.atoms();
+  Property::Category cat = _property->category();
+  unsigned prop = _property->props();
+  unsigned atoms = _property->atoms();
 
   cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 

@@ -24,6 +24,7 @@
 #include "Lib/System.hpp"
 
 #include "Options.hpp"
+#include "Property.hpp"
 
 using namespace Lib;
 
@@ -2177,7 +2178,7 @@ string Options::generateTestId() const
  * output is directed to cout.
  * @since 05/07/2004 Cork
  */
-bool Options::outputSuppressed () const
+bool Options::outputSuppressed() const
 {
   CALL("Options::setLrsFirstTimeCheck");
 
@@ -2185,30 +2186,83 @@ bool Options::outputSuppressed () const
          _latexOutput == "on";
 } // Output::outputSuppressed
 
+// /**
+//  * True if the options are complete.
+//  * @since 28/07/2005 Manchester
+//  */
+// bool Options::complete() const
+// {
+//   CALL("Options::complete");
+
+//   return (_equalityProxy==EP_OFF || _equalityProxy==EP_ON || _equalityProxy==EP_RSTC) &&
+//          (_equalityResolutionWithDeletion != RA_ON ) &&
+//          (_literalComparisonMode != LCM_REVERSE) &&
+//          _selection < 20 &&
+//          _selection > -20 &&
+//          ! _sos &&
+//          _superpositionFromVariables &&
+//          ! _maxWeight &&
+//          _binaryResolution &&
+//          ! _forwardLiteralRewriting &&
+//          ! env.interpretedOperationsUsed &&
+//          _sineSelection==SS_OFF &&
+//          _saturationAlgorithm!=TABULATION &&
+//          ! _forceIncompleteness;
+// } // Options::complete
+
 /**
  * True if the options are complete.
- * @since 28/07/2005 Manchester
+ * @since 23/07/2011 Manchester
  */
-bool Options::complete () const
+bool Options::complete(const Property& prop) const
 {
   CALL("Options::complete");
 
-  return (_equalityProxy==EP_OFF || _equalityProxy==EP_ON || _equalityProxy==EP_RSTC) &&
-         (_equalityResolutionWithDeletion != RA_ON ) &&
-         (_literalComparisonMode != LCM_REVERSE) &&
-         _selection < 20 &&
-         _selection > -20 &&
-         ! _sos &&
-         _superpositionFromVariables &&
-         ! _maxWeight &&
-         _binaryResolution &&
-         ! _forwardLiteralRewriting &&
-         ! env.interpretedOperationsUsed &&
-         _sineSelection==SS_OFF &&
-         _saturationAlgorithm!=TABULATION &&
-         ! _forceIncompleteness;
-} // Options::complete
+  ASS(&prop);
 
+  // general properties causing incompleteness
+  // if (prop.usesIntegers()) return false;
+
+  // preprocessing
+  if (_sineSelection != SS_OFF) return false;
+
+  switch (_saturationAlgorithm) {
+  case TABULATION: return false;
+  case INST_GEN: return true; // !!!
+  default: break;
+  }
+
+  // preprocessing for resolution-based algorithms
+  if (_sos) return false;
+  
+  bool unitEquality = prop.category() == Property::UEQ;
+  bool hasEquality = (prop.equalityAtoms() != 0);
+
+  if ((_selection <= -100 || _selection >= 100) && !unitEquality) return false;
+
+  if (!hasEquality) {
+    if (_binaryResolution) return true;
+    if (!_unitResultingResolution) return false;
+    // binary resolution is off
+    return prop.category() == Property::HNE; // URR is complete for Horn problems
+  }
+
+  // equality problems
+  switch (_equalityProxy) {
+  case EP_R: return false;
+  case EP_RS: return false;
+  case EP_RST: return false;
+  default: break;
+  }
+  if (!_demodulationRedundancyCheck) return false;
+  if (_equalityResolutionWithDeletion) return false;
+  if (!_superpositionFromVariables) return false;
+
+  // only checking resolution rules remain
+  bool pureEquality = (prop.atoms() == prop.equalityAtoms());
+  if (pureEquality) return true;
+  return _binaryResolution;
+} // Options::complete
 
 /**
  * Check constraints necessary for options to make sense, and

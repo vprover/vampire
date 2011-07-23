@@ -67,7 +67,7 @@ private:
 //  SineTheorySelector theorySelector;
   UnitList* theoryAxioms;
 
-  Property property;
+  Property* property;
 
   friend class CLTBProblem;
 };
@@ -109,7 +109,7 @@ private:
   string outFile;
 
   UnitList* probUnits;
-  Property property;
+  Property* property;
 
   pid_t writerChildPid;
   /** pipe for collecting the output from children */

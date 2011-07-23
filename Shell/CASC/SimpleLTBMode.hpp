@@ -62,7 +62,6 @@ private:
   friend class SLTBProblem;
 };
 
-
 class SLTBProblem
 {
 public:
@@ -70,21 +69,14 @@ public:
 
   void perform() __attribute__((noreturn));
 private:
-
   void performStrategy();
-
   void waitForChildAndExitWhenProofFound();
-
   void exitOnNoSuccess() __attribute__((noreturn));
-
   bool runSchedule(const char** sliceCodes);
-
   static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
   void runWriterChild() __attribute__((noreturn));
-
   void runChild(string slice, unsigned ds) __attribute__((noreturn));
   void runChild(Options& opt) __attribute__((noreturn));
-
   unsigned getSliceTime(string sliceCode);
 
 #if VDEBUG
@@ -96,7 +88,7 @@ private:
   string outFile;
 
   UnitList* probUnits;
-  Property property;
+  Property* property;
 
   pid_t writerChildPid;
   //pipe for collecting the output from children

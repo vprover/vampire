@@ -59,14 +59,37 @@ Property::Property()
   _interpretationPresence.init(Theory::MAX_INTERPRETED_ELEMENT+1, false);
 } // Property::Property
 
+/**
+ * Create a new property, scan the units with it and return the property.
+ * @since 22/07/2011 Manchester
+ */
+Property* Property::scan(UnitList* units)
+{
+  CALL("Property::scan");
+  Property* prop = new Property;
+  prop->scan1(units);
+  return prop;
+} // Property::scan
+
+/**
+ * Destroy the property. If this property is used as env.property, set env.property to null.
+ * @since 22/07/2011 Manchester
+ */
+Property::~Property()
+{
+  CALL("Property::~Property");
+  if (this == env.property) {
+    env.property = 0;
+  }
+}
 
 /**
  * Scan property from a problem.
  * @since 29/06/2002 Manchester
  */
-void Property::scan(UnitList* units)
+void Property::scan1(UnitList* units)
 {
-  CALL("Property::scan(UnitList*)");
+  CALL("Property::scan1(UnitList*)");
 
   // information about sorts is read from the environment, not from the problem
   if (env.sorts->hasSort()) {

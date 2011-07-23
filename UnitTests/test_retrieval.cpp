@@ -35,14 +35,14 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/CommandLine.hpp"
-#include "Shell/TPTPLexer.hpp"
 #include "Shell/TPTP.hpp"
-#include "Shell/TPTPParser.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Preprocess.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
+
+#include "Parse/TPTP.hpp"
 
 //#include "Resolution/ProofAttempt.hpp"
 
@@ -97,18 +97,12 @@ void doTest()
   cout<<env.options->inputFile()<<":"<<endl;
 
   ifstream input(env.options->inputFile().c_str());
-  TPTPLexer lexer(input);
-  TPTPParser parser(lexer);
-  UnitList* units = parser.units();
+  UnitList* units=Parse::TPTP::parse(input);
+  Property* property = Property::scan(units);
 
-  Property property;
-  property.scan(units);
-
-  Preprocess prepro(property,*env.options);
+  Preprocess prepro(*property,*env.options);
   prepro.preprocess(units);
-
   cout<<"Unit count: "<<units->length()<<endl;
-
 
   Array<LCPair> literals;
 

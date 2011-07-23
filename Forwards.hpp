@@ -310,8 +310,6 @@ class LaTeX;
 class Options;
 class Property;
 class Statistics;
-class TPTPLexer;
-class TPTPParser;
 
 class EPRRestoring;
 class EPRInlining;

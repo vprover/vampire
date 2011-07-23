@@ -169,7 +169,7 @@ void UIHelper::outputResult(ostream& out)
     out << "Memory limit exceeded!\n";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
-    if(env.options->complete()) {
+    if(env.options->complete(*env.property)) {
       ASS_EQ(env.options->saturationAlgorithm(), Options::LRS);
       out << "Refutation not found, LRS age and weight limit was active for some time!\n";
     } else {

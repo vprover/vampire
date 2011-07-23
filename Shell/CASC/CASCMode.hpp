@@ -32,7 +32,7 @@ protected:
 
   void handleSIGINT() __attribute__((noreturn));
   /** The problem property, computed only once */
-  Property _property;
+  Property* _property;
 
 private:
   bool perform();

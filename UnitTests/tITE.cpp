@@ -139,10 +139,9 @@ TEST_FUN(iteTerm)
     cout << uit0.next()->toString() <<endl;
   }
 
-  Property property;
-  property.scan(prob);
+  Property* property = Property::scan(prob);
   env.options->setUnusedPredicateDefinitionRemoval(false);
-  Preprocess prep(property, *env.options);
+  Preprocess prep(*property,*env.options);
 
   prep.preprocess(prob);
 

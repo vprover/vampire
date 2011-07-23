@@ -71,7 +71,7 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContaine
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
   _propToBDD = env.options->propositionalToBDD();
-  _completeOptionSettings = env.options->complete();
+  _completeOptionSettings = env.options->complete(*env.property);
 
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();

@@ -75,12 +75,9 @@ void ProvingHelper::runVampire(UnitList* units, Property* prop)
     {
       TimeCounter tc2(TC_PREPROCESSING);
 
-      Property prop1;
       if(prop==0) {
 	env.statistics->phase=Statistics::PROPERTY_SCANNING;
-	prop1.scan(units);
-
-	prop=&prop1;
+	prop = Property::scan(units);
       }
 
       Preprocess prepro(*prop,*env.options);

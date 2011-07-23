@@ -17,6 +17,8 @@ using namespace Lib;
 
 namespace Shell {
 
+class Property;
+
 /**
  * Class that represents Vampire's options.
  * 11/11/2004 Shrigley Hall, completely reimplemented
@@ -329,7 +331,8 @@ public:
   void readFromTestId (string testId);
   void readOptionsString (string testId);
   string generateTestId() const;
-  bool complete() const;
+  // bool complete() const;
+  bool complete(const Property&) const;
   void setForcedOptionValues();
   void checkGlobalOptionConstraints() const;
 
