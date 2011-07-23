@@ -1725,10 +1725,16 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
   if (!lhs.isVar() || !rhs.isVar()) {
     return Literal::createEquality(polarity,lhs,rhs);
   }
+  unsigned sortNumber;
   SortList* vs;
-  ALWAYS(_variableSorts.find(lhs.var(),vs));
-  ASS(!vs->isEmpty());
-  return Literal::createVariableEquality(polarity,lhs,rhs,vs->head());
+  if (_variableSorts.find(lhs.var(),vs)) {
+    ASS(!vs->isEmpty());
+    sortNumber = vs->head();
+  }
+  else { // this may happen when free variables appear in the formula (or clause)
+    sortNumber = Sorts::SRT_DEFAULT;
+  }
+  return Literal::createVariableEquality(polarity,lhs,rhs,sortNumber);
 } // TPTP::createEquality
 
 /**
