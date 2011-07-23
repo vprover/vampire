@@ -177,7 +177,7 @@ void UIHelper::outputResult(ostream& out)
     }
     break;
   case Statistics::SATISFIABLE:
-    out << "Refutation not found!\n";
+    out << "Satisfiable!\n";
 #if SATISFIABLE_IS_SUCCESS
     if(cascMode) {
       out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )

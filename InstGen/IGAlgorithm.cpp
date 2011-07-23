@@ -144,14 +144,11 @@ void IGAlgorithm::addClause(Clause* cl)
   if(!cl) {
     return;
   }
-//  cout<<endl<<endl<<"---------"<<endl;
-//  cout<<"init: "<<cl->toString()<<endl;
 
 redundancy_check:
   if(_variantIdx->retrieveVariants(cl).hasNext()) {
     cl->destroyIfUnnecessary();
     env.statistics->instGenRedundantClauses++;
-//    cout<<endl<<endl<<"## is variant ##"<<endl;
     return;
   }
   cl->incRefCnt();
@@ -162,13 +159,10 @@ redundancy_check:
       ASS_L(newCl->length(), cl->length());
       ASS_G(newCl->length(), 0);
 
-//      cout<<"gs:   "<<newCl->toString()<<endl;
-
       cl = newCl;
       goto redundancy_check;
     }
   }
-//  cout<<endl<<endl<<"## survived ##"<<endl;
 
   _unprocessed.push(cl);
   env.statistics->instGenKeptClauses++;
@@ -432,7 +426,6 @@ void IGAlgorithm::deactivate(Clause* cl)
   CALL("IGAlgorithm::deactivate");
 
   if(_deactivatedSet.insert(cl)) {
-//    cout<<"Deactivated: "<<cl->toString()<<endl;
     _deactivated.push(cl);
   }
 }
@@ -447,7 +440,6 @@ void IGAlgorithm::doReactivation()
   ClauseStack::Iterator dit(_deactivated);
   while(dit.hasNext()) {
     Clause* cl = dit.next();
-//    cout<<"Reactivating: "<<cl->toString()<<endl;
     removeFromIndex(cl);
     selectAndAddToIndex(cl);
     toActivate.push(cl);
@@ -601,13 +593,13 @@ MainLoopResult IGAlgorithm::runImpl()
     }
     if(_unprocessed.isEmpty()) {
       if(env.options->complete(*env.property)) {
-	if(env.options->proof()!=Options::PROOF_OFF) {
-	  stringstream modelStm;
-	  bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
-	  if(modelAvailable) {
-	    env.statistics->model = modelStm.str();
-	  }
-	}
+	// if(env.options->proof()!=Options::PROOF_OFF) {
+	//   stringstream modelStm;
+	//   bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
+	//   if(modelAvailable) {
+	//     env.statistics->model = modelStm.str();
+	//   }
+	// }
 	return MainLoopResult(Statistics::SATISFIABLE);
       }
       else {
