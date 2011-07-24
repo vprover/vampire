@@ -41,7 +41,7 @@ void DIMACS::outputGroundedProblem(MapToLIFO<Clause*, SATClause*>& insts,
   MapToLIFO<Clause*, SATClause*>::KeyIterator cls(insts);
   while(cls.hasNext()) {
     Clause* cl=cls.next();
-    ASS(vnums.isEmpty());
+    // ASS(vnums.isEmpty());
 
     //we put all used prop. variables into vnums...
     SATClauseList* gcls=insts.keyVals(cl);
@@ -56,17 +56,17 @@ void DIMACS::outputGroundedProblem(MapToLIFO<Clause*, SATClause*>& insts,
     //...and print them ordered.
     while(!vnums.isEmpty()) {
       int vnum=vnums.popWithAllEqual();
-      out<<"% "<<vnum<<": "<<(vasgn.get(vnum)->toString())<<endl;
+      //   out<<"% "<<vnum<<": "<<(vasgn.get(vnum)->toString())<<endl;
     }
 
-    out<<"% Grounding "<<cl->nonPropToString()<<endl;
+    // out<<"% Grounding "<<cl->nonPropToString()<<endl;
     SATClauseList::Iterator git2(gcls);
     while(git2.hasNext()) {
       SATClause* gcl=git2.next();
       out<<gcl->toDIMACSString()<<endl;
     }
   }
-  out<<"%"<<endl<<"0"<<endl;
+  // out<<"%"<<endl<<"0"<<endl;
 }
 
 void DIMACS::getStats(SATClauseIterator clauses, unsigned& clauseCnt, unsigned& maxVar)
