@@ -19,7 +19,7 @@
 
 #include "CASCMode.hpp"
 
-#define SLOWNESS 1.35
+#define SLOWNESS 1.1
 
 namespace Shell
 {

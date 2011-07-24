@@ -2225,7 +2225,6 @@ bool Options::complete(const Property& prop) const
 
   // preprocessing
   if (_sineSelection != SS_OFF) return false;
-  if (_forwardLiteralRewriting) return false;
 
   switch (_saturationAlgorithm) {
   case TABULATION: return false;
@@ -2235,6 +2234,8 @@ bool Options::complete(const Property& prop) const
 
   // preprocessing for resolution-based algorithms
   if (_sos) return false;
+  // run-time rule causing incompleteness
+  if (_forwardLiteralRewriting) return false;
   
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
