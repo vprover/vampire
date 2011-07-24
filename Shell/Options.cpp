@@ -2225,6 +2225,7 @@ bool Options::complete(const Property& prop) const
 
   // preprocessing
   if (_sineSelection != SS_OFF) return false;
+  if (_forwardLiteralRewriting) return false;
 
   switch (_saturationAlgorithm) {
   case TABULATION: return false;
