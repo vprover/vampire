@@ -2263,7 +2263,9 @@ bool Options::complete(const Property& prop) const
   // only checking resolution rules remain
   bool pureEquality = (prop.atoms() == prop.equalityAtoms());
   if (pureEquality) return true;
-  return _binaryResolution;
+  if (_binaryResolution) return true;
+  if (!_unitResultingResolution) return false;
+  return prop.category() == Property::HEQ;
 } // Options::complete
 
 /**
