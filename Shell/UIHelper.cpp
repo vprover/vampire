@@ -179,7 +179,7 @@ void UIHelper::outputResult(ostream& out)
   case Statistics::SATISFIABLE:
     out << "Satisfiable!\n";
 #if SATISFIABLE_IS_SUCCESS
-    if(cascMode) {
+    if(cascMode && !satisfiableStatusWasAlreadyOutput) {
       out << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for "<<env.options->problemName()<<endl;
     }

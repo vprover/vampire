@@ -27,6 +27,7 @@ Lib::Enumerator Lib::Enumerator::unitEnumerator;
 unsigned Kernel::Unit::_lastNumber = 0;
 bool Shell::UIHelper::cascMode=false;
 bool Shell::UIHelper::cascModeChild=false;
+bool Shell::UIHelper::satisfiableStatusWasAlreadyOutput=false;
 
 /**
  * String names of connectives. Used in the function toXML().

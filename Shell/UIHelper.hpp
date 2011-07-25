@@ -40,6 +40,12 @@ public:
    * True if we are running in the CASC mode and we are the child process
    */
   static bool cascModeChild;
+
+  /**
+   * Hack not to output satisfiable status twice (we may output it earlier in
+   * IGAlgorithm, before we start generating model)
+   */
+  static bool satisfiableStatusWasAlreadyOutput;
 private:
   static bool s_haveConjecture;
 };

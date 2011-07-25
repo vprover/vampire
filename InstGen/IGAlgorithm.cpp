@@ -28,6 +28,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "IGAlgorithm.hpp"
 #include "ModelPrinter.hpp"
@@ -594,11 +595,20 @@ MainLoopResult IGAlgorithm::runImpl()
     if(_unprocessed.isEmpty()) {
       if(env.options->complete(*env.property)) {
 	if(env.options->proof()!=Options::PROOF_OFF) {
-	 stringstream modelStm;
-	 bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
-	 if(modelAvailable) {
+	  if(UIHelper::cascMode) {
+	    env.beginOutput();
+	    env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+		<< " for " << env.options->problemName() << endl << flush;
+	    env.endOutput();
+	    UIHelper::satisfiableStatusWasAlreadyOutput = true;
+	  }
+
+
+	  stringstream modelStm;
+	  bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
+	  if(modelAvailable) {
 	   env.statistics->model = modelStm.str();
-	 }
+	  }
 	}
 	return MainLoopResult(Statistics::SATISFIABLE);
       }
