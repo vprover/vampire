@@ -61,11 +61,13 @@ bool ModelPrinter::tryOutput(ostream& stm)
   }
 
   collectTrueLits();
-  analyzeEqualityAndPopulateDomain();
-  rewriteLits(_trueLits);
+  if(env.signature->functions()!=0) {
+    analyzeEqualityAndPopulateDomain();
+    rewriteLits(_trueLits);
 
-  outputDomainSpec(stm);
-  outputFunInterpretations(stm);
+    outputDomainSpec(stm);
+    outputFunInterpretations(stm);
+  }
   outputPredInterpretations(stm);
 
   return true;
