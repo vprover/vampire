@@ -79,6 +79,12 @@ void TrivialPredicateRemover::scan(UnitList* units)
 
   while(toDo.isNonEmpty()) {
     unsigned removedPred = toDo.pop();
+    if(_predClauses[removedPred].size()==0) {
+      ASS_EQ(_posOcc[removedPred],0);
+      ASS_EQ(_negOcc[removedPred],0);
+      continue;
+    }
+    PredicateDefinition::addRemovedPredAssignment(removedPred, _negOcc[removedPred]==0);
     ClauseSet::Iterator cit(_predClauses[removedPred]);
     while(cit.hasNext()) {
       Clause* cl = cit.next();

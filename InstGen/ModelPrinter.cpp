@@ -17,6 +17,7 @@
 #include "Indexing/GroundingIndex.hpp"
 
 #include "Shell/EqualityProxy.hpp"
+#include "Shell/PredicateDefinition.hpp"
 
 #include "IGAlgorithm.hpp"
 
@@ -55,10 +56,24 @@ bool ModelPrinter::tryOutput(ostream& stm)
     return false;
   }
 
-  //TODO: Handle UPDR!!!
-  if(env.options->unusedPredicateDefinitionRemoval() || env.options->trivialPredicateRemoval()) {
-    return false;
+  Stack<TermList> args;
+  VirtualIterator<unsigned> removedPreds = PredicateDefinition::removedPreds();
+  while(removedPreds.hasNext()) {
+    unsigned pred = removedPreds.next();
+    ASS_NEQ(pred,0);
+    unsigned arity = env.signature->predicateArity(pred);
+    bool polarity = PredicateDefinition::getRemovedPredAssignment(pred);
+    args.reset();
+    for(unsigned i=0; i<arity; i++) {
+      args.push(TermList(i, false));
+    }
+    Literal* lit = Literal::create(pred, arity, polarity, false, args.begin());
+    _trueLits.push(lit);
   }
+
+//  if(env.options->unusedPredicateDefinitionRemoval() || env.options->trivialPredicateRemoval()) {
+//    return false;
+//  }
 
   collectTrueLits();
   if(env.signature->functions()!=0) {

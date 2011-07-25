@@ -11,6 +11,7 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/VirtualIterator.hpp"
 #include "Kernel/FormulaUnit.hpp"
 
 #include "SymCounter.hpp"
@@ -42,6 +43,13 @@ public:
 
   static bool isBuiltIn(unsigned pred);
 
+  static void addRemovedPredAssignment(unsigned pred, bool assignment)
+  { ALWAYS(_removedPredAssignments.insert(pred, assignment)); }
+  static VirtualIterator<unsigned> removedPreds()
+  { return _removedPredAssignments.domain(); }
+  static bool getRemovedPredAssignment(unsigned pred)
+  { return _removedPredAssignments.get(pred); }
+
 private:
   struct Def;
   struct PredData;
@@ -68,6 +76,8 @@ private:
   DHMap<unsigned, bool> _purePreds;
   Stack<int> _eliminable;
   Stack<int> _pureToReplace;
+
+  static DHMap<unsigned, bool> _removedPredAssignments;
 };
 
 };

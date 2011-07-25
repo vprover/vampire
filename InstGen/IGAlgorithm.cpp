@@ -593,13 +593,13 @@ MainLoopResult IGAlgorithm::runImpl()
     }
     if(_unprocessed.isEmpty()) {
       if(env.options->complete(*env.property)) {
-	// if(env.options->proof()!=Options::PROOF_OFF) {
-	//   stringstream modelStm;
-	//   bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
-	//   if(modelAvailable) {
-	//     env.statistics->model = modelStm.str();
-	//   }
-	// }
+	if(env.options->proof()!=Options::PROOF_OFF) {
+	 stringstream modelStm;
+	 bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
+	 if(modelAvailable) {
+	   env.statistics->model = modelStm.str();
+	 }
+	}
 	return MainLoopResult(Statistics::SATISFIABLE);
       }
       else {

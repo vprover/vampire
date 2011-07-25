@@ -31,6 +31,8 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
+DHMap<unsigned, bool> PredicateDefinition::_removedPredAssignments;
+
 /**
  * Contains details about predicate presence in the problem and state
  * of definition elimination or predicate removal.
@@ -219,6 +221,7 @@ void PredicateDefinition::collectReplacements(UnitList* units, DHMap<Unit*, Unit
       ASS(pd.pocc==0 || pd.nocc==0);
 
       _purePreds.insert(pred, pd.nocc==0);
+      addRemovedPredAssignment(pred, pd.nocc==0);
       Set<Unit*>::Iterator uit(pd.containingUnits);
       while(uit.hasNext()) {
 	Unit* u=uit.next();
