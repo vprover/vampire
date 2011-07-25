@@ -1136,7 +1136,6 @@ void TPTP::fof(bool fo)
     _lastInputType = Unit::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
-    _containsConjecture = true;
     _lastInputType = Unit::NEGATED_CONJECTURE;
   }
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
@@ -1247,7 +1246,6 @@ void TPTP::tff()
     _lastInputType = Unit::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
-    _containsConjecture = true;
     _lastInputType = Unit::NEGATED_CONJECTURE;
   }
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
