@@ -56,7 +56,7 @@ bool ModelPrinter::tryOutput(ostream& stm)
   }
 
   //TODO: Handle UPDR!!!
-  if(env.options->unusedPredicateDefinitionRemoval()) {
+  if(env.options->unusedPredicateDefinitionRemoval() || env.options->trivialPredicateRemoval()) {
     return false;
   }
 
