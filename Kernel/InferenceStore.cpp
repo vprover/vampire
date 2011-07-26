@@ -13,7 +13,8 @@
 
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Parser.hpp"
+
+#include "Parse/TPTP.hpp"
 
 #include "BDD.hpp"
 #include "Clause.hpp"
@@ -515,7 +516,7 @@ struct InferenceStore::ProofPrinter
     if(outputAxiomNames && rule==Inference::INPUT) {
       ASS(!parents.hasNext()); //input clauses don't have parents
       string name;
-      if(Parser::findAxiomName(cs.unit(), name)) {
+      if(Parse::TPTP::findAxiomName(cs.unit(), name)) {
 	out << " " << name;
       }
     }
@@ -743,7 +744,7 @@ struct InferenceStore::TPTPProofPrinter
     //get inference string
 
     string inferenceStr;
-    if(rule==Inference::INPUT || rule==Inference::NEGATED_CONJECTURE) {
+    if(rule==Inference::INPUT) {
       string fileName;
       if(env.options->inputFile()=="") {
 	fileName="unknown";
@@ -752,7 +753,7 @@ struct InferenceStore::TPTPProofPrinter
 	fileName="'"+env.options->inputFile()+"'";
       }
       string axiomName;
-      if(!outputAxiomNames || !Parser::findAxiomName(us.unit(), axiomName)) {
+      if(!outputAxiomNames || !Parse::TPTP::findAxiomName(us.unit(), axiomName)) {
 	axiomName="unknown";
       }
       inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
@@ -1114,7 +1115,6 @@ struct InferenceStore::ProofCheckPrinter
   {
     switch(rule) {
     case Inference::INPUT:
-    case Inference::NEGATED_CONJECTURE:
     case Inference::CLAUSE_NAMING:
     case Inference::SPLITTING_COMPONENT:
     case Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION:

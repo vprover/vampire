@@ -11,11 +11,10 @@
 #include <string>
 
 #include "Forwards.hpp"
+#include "Token.hpp"
 
 #include "Lib/Exception.hpp"
 #include "Lib/List.hpp"
-
-#include "Parser.hpp"
 
 namespace Shell {
 
@@ -28,7 +27,6 @@ class LispLexer;
  * @since 26/08/2009 Redmond
  */
 class LispParser
-  : public Parser
 {
 public:
   /** Tags of Lisp expressions */
@@ -68,7 +66,6 @@ public:
     bool get1Arg(string functionName, Expression*& arg);
     bool getPair(Expression*& el1, Expression*& el2);
     bool getSingleton(Expression*& el);
-//    bool getFirstAtom(string atom);
   };
 
   typedef Lib::List<Expression*> List;
@@ -76,7 +73,25 @@ public:
   explicit LispParser(LispLexer& lexer);
   Expression* parse();
   void parse(List**);
+
+  /**
+   * Class Exception. Implements parser exceptions.
+   * @since 17/07/2004 Helsinki airport
+   */
+  class Exception 
+    : public Lib::Exception
+  {
+  public:                                
+    Exception (string message,const Token&);
+    void cry (ostream&);
+    ~Exception () {}
+  protected:
+    string _message;
+  }; // Exception
+
 private:
+  /** lexer supplying tokens */
+  LispLexer& _lexer;
   /** balance of parenthesis */
   int _balance;
 }; // class LispParser

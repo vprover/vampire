@@ -355,7 +355,7 @@ public:
   void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
   bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }
   Mode mode() const { return _mode; }
-  void setMode(Mode newVal) { _mode = newVal; }
+  void setMode(Mode newVal);
   InputSyntax inputSyntax() const { return _inputSyntax; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax = newVal; }
   bool normalize() const { return _normalize; }

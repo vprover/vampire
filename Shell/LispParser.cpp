@@ -8,9 +8,9 @@
 #include <fstream>
 
 #include "Lib/Stack.hpp"
+#include "Lib/Int.hpp"
 
 #include "LispLexer.hpp"
-
 #include "LispParser.hpp"
 
 using namespace Lib;
@@ -18,7 +18,7 @@ using namespace Kernel;
 using namespace Shell;
 
 LispParser::LispParser(LispLexer& lexer)
-  : Parser(lexer),
+  : _lexer(lexer),
     _balance(0)
 {}
 
@@ -106,7 +106,7 @@ void LispParser::parse(List** expr0)
       switch (t.tag) {
       case TT_RPAR:
         if (_balance == 0) {
-          throw ParserException("unmatched right parenthesis",t);
+          throw Exception("unmatched right parenthesis",t);
         }
         _balance--;
         goto parsing_level_done;
@@ -136,7 +136,7 @@ void LispParser::parse(List** expr0)
         if (_balance == 0) {
           return;
         }
-        throw ParserException("unmatched left parenthesis",t);
+        throw Exception("unmatched left parenthesis",t);
   #if VDEBUG
       default:
         ASSERTION_VIOLATION;
@@ -277,3 +277,26 @@ bool LispParser::Expression::getSingleton(Expression*& el)
   el = tmpEl;
   return true;
 }
+
+/**
+ * Create a new parser exception.
+ * @since 17/07/2004 Turku
+ */
+LispParser::Exception::Exception(string message,const Token& token)
+  : _message (message)
+{
+  _message += " in line ";
+  _message += Int::toString(token.line);
+  _message += " at ";
+  _message += token.text;
+} // LispParser::Exception::Exception
+
+/**
+ * Write itself to an ostream.
+ * @since 17/07/2004 Helsinki Airport
+ */
+void LispParser::Exception::cry(ostream& out)
+{
+  out << "Parser exception: " << _message << '\n';
+} // Exception::cry
+

@@ -34,6 +34,8 @@ using namespace Parse;
 #define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_UNITS 0
 
+DHMap<unsigned, string> TPTP::_axiomNames;
+
 /**
  * Create a parser, parse the input and return the parsed list of units.
  * @since 13/07/2011 Manchester
@@ -2007,6 +2009,9 @@ void TPTP::endFof()
     unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference(Inference::INPUT));
   }
 
+  if (env.options->outputAxiomNames()) {
+    assignAxiomName(unit,nm);
+  }
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
@@ -2768,6 +2773,26 @@ unsigned TPTP::addUninterpretedConstant(const string& name,bool& added)
   }
   return env.signature->addFunction(name,0,added);
 } // TPTP::addUninterpretedConstant
+
+/**
+ * Associate name @b name with unit @b unit
+ * Each formula can have its name assigned at most once
+ */
+void TPTP::assignAxiomName(const Unit* unit, string& name)
+{
+  CALL("Parser::assignAxiomName");
+  ALWAYS(_axiomNames.insert(unit->number(), name));
+}
+
+/**
+ * If @b unit has a name associated, assign it into @b result,
+ * and return true; otherwise return false
+ */
+bool TPTP::findAxiomName(const Unit* unit, string& result)
+{
+  CALL("Parser::findAxiomName");
+  return _axiomNames.find(unit->number(), result);
+}
 
 #if VDEBUG
 const char* TPTP::toString(State s)

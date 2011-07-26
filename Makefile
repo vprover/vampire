@@ -253,7 +253,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
          Shell/Options.o\
-         Shell/Parser.o\
          Shell/PDInliner.o\
          Shell/PDMerger.o\
          Shell/PredicateDefinition.o\
@@ -266,8 +265,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SimplifyProver.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
-         Shell/SMTLexer.o\
-         Shell/SMTParser.o\
          Shell/SpecialTermElimination.o\
          Shell/Statistics.o\
          Shell/SymCounter.o\

@@ -27,8 +27,7 @@
 #include "Property.hpp"
 
 using namespace Lib;
-
-namespace Shell {
+using namespace Shell;
 
 /**
  * Class to hide various data used by class Options, mostly name arrays.
@@ -2296,4 +2295,15 @@ void Options::checkGlobalOptionConstraints() const
   }
 }
 
+void Options::setMode(Mode newVal) {
+  _mode = newVal;
+  switch (newVal) {
+  case MODE_CASC:
+  case MODE_CASC_LTB:
+    _outputAxiomNames = true;
+    _proof = PROOF_TPTP;
+    break;
+  default:
+    break;
+  }
 }

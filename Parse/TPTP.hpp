@@ -243,6 +243,7 @@ public:
    */
   bool containsConjecture() const { return _containsConjecture; }
   void addForbiddenInclude(string file);
+  static bool findAxiomName(const Unit* unit, string& result);
 
 private:
   /** Return the input string of characters */
@@ -559,6 +560,12 @@ private:
   unsigned addUninterpretedConstant(const string& name,bool& added);
   unsigned sortOf(TermList& term);
   static bool higherPrecedence(int c1,int c2);
+
+private:
+  /** This field stores names of input units if the
+   * output_axiom_names option is enabled */
+  static DHMap<unsigned, string> _axiomNames;
+  static void assignAxiomName(const Unit* unit, string& name);
 
 #if VDEBUG
   void printStates(string extra);

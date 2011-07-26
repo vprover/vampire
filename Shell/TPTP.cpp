@@ -14,7 +14,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
 
-#include "Parser.hpp"
+#include "Parse/TPTP.hpp"
 
 #include "TPTP.hpp"
 
@@ -150,10 +150,9 @@ string TPTP::toString (const Unit* unit)
   }
 
   string unitName;
-  if(!Parser::findAxiomName(unit, unitName)) {
+  if(!Parse::TPTP::findAxiomName(unit, unitName)) {
     unitName="u" + Int::toString(unit->number());
   }
-
 
   return prefix + "(" + unitName + "," + kind + ",\n"
     + "    " + main + ").\n";
