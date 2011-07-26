@@ -342,6 +342,36 @@ TEST_FUN(fbapiProblem)
 
 }
 
+TEST_FUN(fbapiClausifySmall)
+{
+  try {
+    FormulaBuilder api;
+
+    Var xv = api.var("Var");
+    Term x = api.varTerm(xv);
+    Predicate p=api.predicate("p",1);
+    Predicate q=api.predicate("q",0);
+
+    Formula fpx=api.formula(p,x);
+    Formula fq=api.formula(q);
+    Formula fpxOq=api.formula(FormulaBuilder::OR, fpx, fq);
+    Formula fFpxOq=api.formula(FormulaBuilder::FORALL, xv, fpxOq);
+
+    AnnotatedFormula af=api.annotatedFormula(fFpxOq,FormulaBuilder::CONJECTURE, "abc123");
+    Problem prb;
+    prb.addFormula(af);
+    prb.output(cout);
+
+    Problem cprb=prb.clausify(0,false,Problem::INL_OFF,false);
+    cprb.output(cout);
+
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}
+
+
 TEST_FUN(fbapiClausify)
 {
   try {

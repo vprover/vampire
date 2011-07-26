@@ -528,10 +528,10 @@ void CLTBProblem::perform()
     TimeCounter tc(TC_PREPROCESSING);
     env.statistics->phase=Statistics::PROPERTY_SCANNING;
 
-    property = Property::scan(probUnits);
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
     //concat with theory axioms
     probUnits=UnitList::concat(probUnits, parent->theoryAxioms);
+    property = Property::scan(probUnits);
 
     if(property->atoms()<=1000000) {
       env.statistics->phase=Statistics::NORMALIZATION;
