@@ -293,7 +293,7 @@ void CLTBMode::readInput(istream& in)
 string CLTBProblem::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
 
 CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
-: parent(parent), problemFile(problemFile), outFile(outFile), property(parent->property)
+: parent(parent), problemFile(problemFile), outFile(outFile), property(*parent->property)
 {
 }
 
@@ -317,8 +317,8 @@ void CLTBProblem::performStrategy()
 {
   CALL("CLTBProblem::performStrategy");
 
-  unsigned atoms = property->atoms();
-  unsigned prop = property->props();
+  unsigned atoms = property.atoms();
+  unsigned prop = property.props();
   cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
   const char* backupSlices[] = {
@@ -528,12 +528,12 @@ void CLTBProblem::perform()
     TimeCounter tc(TC_PREPROCESSING);
     env.statistics->phase=Statistics::PROPERTY_SCANNING;
 
+    property.add(probUnits);
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
     //concat with theory axioms
     probUnits=UnitList::concat(probUnits, parent->theoryAxioms);
-    property = Property::scan(probUnits);
 
-    if(property->atoms()<=1000000) {
+    if(property.atoms()<=1000000) {
       env.statistics->phase=Statistics::NORMALIZATION;
       Normalisation norm;
       probUnits = norm.normalise(probUnits);
@@ -822,7 +822,7 @@ void CLTBProblem::runChild(Options& opt)
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
 
-  ProvingHelper::runVampire(probUnits,property);
+  ProvingHelper::runVampire(probUnits,&property);
 
   //set return value to zero if we were successful
   if(env.statistics->terminationReason==Statistics::REFUTATION) {

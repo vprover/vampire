@@ -109,7 +109,7 @@ private:
   string outFile;
 
   UnitList* probUnits;
-  Property* property;
+  Property property;
 
   pid_t writerChildPid;
   /** pipe for collecting the output from children */
