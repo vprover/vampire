@@ -12,6 +12,7 @@
 
 #include "Lib/Portability.hpp"
 #include "Shell/Property.hpp"
+#include "Lib/Set.hpp"
 
 namespace Shell {
 namespace CASC
@@ -22,7 +23,7 @@ using namespace std;
 class CASCMode {
 public:
 
-  static bool perform(int argc, char* argv []);
+  static bool perform(int argc,char* argv []);
 protected:
   /**
    * Run a slice correponding to the options.
@@ -35,12 +36,12 @@ protected:
   Property* _property;
 
 private:
+  typedef Set<string> StrategySet;
   bool perform();
-
-  bool runSchedule(const char** sliceCodes, unsigned ds);
+  bool runSchedule(const char** sliceCodes,unsigned ds,StrategySet& remember);
+  bool runFallbackSchedule(const char** sliceCodes,unsigned ds,StrategySet& avoid);
   bool runSlice(string sliceCode, unsigned ds);
-
-  unsigned getSliceTime(string sliceCode);
+  unsigned getSliceTime(string sliceCode,string& chopped);
 };
 
 }
