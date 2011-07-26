@@ -90,127 +90,127 @@ bool CASCMode::perform()
 
   cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
-  const char* empty[] = {0};
-  const char** quickSlices = empty;
-  const char** fallbackSlices = empty;
+  const char** quickSlices;
+  const char** fallbackSlices;
 
   switch (cat) {
-  case Property::NEQ: {
-    if (prop == 131079) {
-      const char* quick[] = {
-	"ott+1011_2:3_bs=off:bsr=unit_only:ep=on:gsp=input_only:nwc=3:sac=on:sgo=on:spo=on:sfv=off_35",
-	"ott+11_2_bd=off:bs=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=5:nicw=on:ptb=off:ssec=off:sac=on:sgo=on:spo=on:spl=backtracking:sp=reverse_arity_53",
-	"dis+11_40_bsr=unit_only:cond=fast:ep=on:nwc=1.3:nicw=on:ptb=off:ssec=off:sac=on:spl=backtracking:sfv=off_243",
-	"dis+1011_14_bd=off:bs=off:bsr=on:cond=fast:ep=on:gsp=input_only:lcm=reverse:nwc=2:sswn=on:sswsr=on:sac=on:sgo=on:spo=on:sfv=off:sp=reverse_arity:updr=off_111",
-	"ott+11_28_bs=off:cond=on:drc=off:ecs=on:fde=none:gs=on:nwc=1.7:ssec=off:sgo=on:sio=off:sp=reverse_arity_1",
-	"dis+11_1_bsr=unit_only:ep=on:flr=on:fde=none:gsp=input_only:lcm=reverse:nwc=1.5:nicw=on:ptb=off:ssec=off:sswsr=on:sac=on:sio=off:spo=on:spl=backtracking:sfv=off:sp=occurrence:updr=off_24",
-	"dis+11_12_bs=unit_only:cond=on:flr=on:fde=none:lcm=reverse:nwc=1.5:sswn=on:sswsr=on:sgo=on:sfv=off:sp=reverse_arity_115",
-	"lrs+1002_2:1_bd=off:bs=unit_only:bsr=on:cond=on:drc=off:flr=on:fde=none:gsp=input_only:lcm=predicate:nwc=4:ptb=off:ssec=off:stl=60:sac=on:sio=off:sp=occurrence_8",
-	"ott+11_3_bd=off:bs=unit_only:bsr=unit_only:cond=fast:ep=on:fde=none:nwc=10:ptb=off:ssec=off:sac=on:spo=on:spl=backtracking:sfv=off:updr=off_105",
-	"dis+1011_10_bd=off:bs=unit_only:bsr=on:bms=on:cond=fast:ep=on:lcm=predicate:nwc=1:nicw=on:ssec=off:sac=on:sgo=on:sio=off:spo=on:sfv=off:sp=occurrence:updr=off_82",
-	"ott+11_3_bs=unit_only:bsr=unit_only:cond=on:flr=on:fde=none:gsp=input_only:lcm=reverse:nwc=1.1:ptb=off:ssec=off:sac=on:sgo=on:spo=on:spl=backtracking:sfv=off:sp=occurrence:updr=off_57",
-	"dis+1_50_cond=fast:lcm=predicate:nwc=3.0_177",
-	"ott+11_5:1_bs=off:cond=fast:drc=off:ep=on:fsr=off:gsp=input_only:nwc=4:nicw=on:sswn=on:sac=on:sgo=on:sp=occurrence_860",
-	"dis+11_6_bd=off:bsr=unit_only:cond=fast:drc=off:ep=on:fde=none:gsp=input_only:lcm=reverse:nwc=1:ptb=off:ssec=off:sos=on:sgo=on:sio=off:swb=on:sp=occurrence:updr=off_60",
-	"lrs+4_4_bd=off:cond=on:ep=on:nwc=1.3:nicw=on:ptb=off:ssec=off:stl=30:sos=on:spl=backtracking:sp=reverse_arity_144",
-	"dis+3_8_bd=off:bs=off:flr=on:gsp=input_only:lcm=predicate:nwc=2.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=occurrence_144",
-	0
-      };
-      quickSlices = quick;
-    }
-    else if (prop == 3) {
-      const char* quick[] = {
-	"dis+11_6_bd=off:bsr=unit_only:cond=fast:drc=off:ep=on:fde=none:gsp=input_only:lcm=reverse:nwc=1:ptb=off:ssec=off:sos=on:sgo=on:sio=off:swb=on:sp=occurrence:updr=off_10",
-	"dis+1010_4:1_bs=off:bsr=unit_only:cond=on:ep=RS:gs=on:lcm=reverse:nwc=4:sswn=on:sos=on:spo=on:sp=occurrence_1",
-	"dis-1002_3:2_bs=off:cond=on:drc=off:ep=RS:flr=on:lcm=predicate:nwc=10:ssec=off:sgo=on:sio=off:spo=on:sp=reverse_arity_4",
-	"ott+1011_3_bs=off:drc=off:ep=on:fde=none:gsp=input_only:nwc=1:sgo=on:sio=off:spo=on:updr=off_84",
-	"ott-1010_5:4_bd=off:bs=off:bms=on:cond=on:drc=off:ep=on:lcm=predicate:nwc=1:nicw=on:ssec=off:sd=3:ss=axioms:sos=on:sio=off:sp=reverse_arity:urr=on_6",
-	"lrs-4_1_bd=off:bs=off:bms=on:ecs=on:gsp=input_only:nicw=on:ssec=off:stl=60:sos=on:sio=off:spl=off_47",
-	"dis+2_28_bs=off:br=off:cond=fast:drc=off:ecs=on:ep=on:gsp=input_only:lcm=reverse:nwc=2.5:nicw=on:ssec=off:sd=1:ss=axioms:st=3.0:sos=on:sac=on:spo=on:sp=reverse_arity:urr=on_3",
-	"dis+11_5:1_cond=fast:ep=on:gsp=input_only:nwc=10:sswn=on:sswsr=on_8",
-	"lrs+4_4_bd=off:cond=on:ep=on:nwc=1.3:nicw=on:ptb=off:ssec=off:stl=30:sos=on:spl=backtracking:sp=reverse_arity_43",
-	"lrs-1010_64_bd=off:bs=off:drc=off:nwc=2:ssec=off:stl=30:sac=on:sgo=on:spo=on_18",
-	"dis-1_64_bsr=on:cond=fast:ecs=on:flr=on:fsr=off:lcm=reverse:nwc=1.7:ssec=off:sos=on:sagn=off:sac=on:sgo=on:sio=off:spo=on:sfv=off:sp=reverse_arity_1",
-	"dis+1_5:1_bd=off:bs=unit_only:cond=fast:drc=off:flr=on:fde=none:lcm=reverse:nwc=10:ptb=off:ssec=off:sio=off:spo=on:swb=on_4",
-	"ott+1_2:1_bd=off:bs=off:bms=on:cond=fast:ep=on:flr=on:fsr=off:nwc=5:spo=on:sfv=off:sp=reverse_arity:updr=off_1",
-	"dis-1010_5:1_bs=off:cond=fast:ep=R:lcm=reverse:nwc=1.2:nicw=on:ptb=off:ssec=off:sos=on:sac=on:sio=off:spo=on:sfv=off:sp=occurrence_29",
-	"dis-1002_8:1_bs=off:br=off:drc=off:ecs=on:ep=on:fde=none:gs=on:nwc=1.2:nicw=on:ssec=off:sd=5:ss=axioms:st=1.2:sos=on:sac=on:sio=off:sp=reverse_arity:urr=on_2",
-	"dis+10_5_bs=off:cond=on:flr=on:fde=none:nwc=2.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=backtracking:sp=occurrence_138",
-	"dis+1010_6_bd=off:nwc=10.0:ssec=off:sac=on:sp=occurrence_21",
-	"dis+1011_10_bd=off:bs=unit_only:bsr=on:bms=on:cond=fast:ep=on:lcm=predicate:nwc=1:nicw=on:ssec=off:sac=on:sgo=on:sio=off:spo=on:sfv=off:sp=occurrence:updr=off_232",
-	"ott+11_2_bd=off:bs=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=5:nicw=on:ptb=off:ssec=off:sac=on:sgo=on:spo=on:spl=backtracking:sp=reverse_arity_247",
-	"ott+11_5:1_bs=off:cond=fast:drc=off:ep=on:fsr=off:gsp=input_only:nwc=4:nicw=on:sswn=on:sac=on:sgo=on:sp=occurrence_107",
-	"dis-1004_8:1_bs=off:drc=off:fde=none:gsp=input_only:lcm=reverse:nwc=10:nicw=on:ssec=off:sp=reverse_arity_222",
-	"dis+11_40_bd=off:bs=off:cond=fast:ep=on:flr=on:gsp=input_only:gs=on:lcm=reverse:nwc=5:ptb=off:ssec=off:sac=on:sio=off:swb=on:sfv=off_147",
-	"lrs+1_4:1_bd=off:bs=off:cond=on:fde=none:lcm=predicate:stl=60:sos=on_580",
-	"lrs+2_2_bd=off:bs=unit_only:bsr=unit_only:cond=fast:drc=off:flr=on:lcm=predicate:nwc=1.5:ptb=off:ssec=off:stl=60:sac=on:sgo=on:sio=off:swb=on_153",
-	"dis+2_8:1_bs=off:br=off:cond=fast:drc=off:ep=RST:flr=on:fsr=off:fde=none:gsp=input_only:nwc=1.1:ssec=off:sac=on:spo=on:sp=reverse_arity:urr=on_167",
-	"dis+10_8_bs=off:cond=on:gsp=input_only:lcm=predicate:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sgo=on:sio=off:spl=backtracking:sp=occurrence_379",
-	"dis+1010_8:1_bs=off:cond=fast:drc=off:ep=on:fde=none:lcm=reverse:nwc=2:sos=on:sac=on:sp=reverse_arity_1",
-	"dis+3_14_bs=off:drc=off:ecs=on:fde=none:gsp=input_only:nwc=1.2:nicw=on:ssec=off:sac=on:sio=off:sp=occurrence:urr=on_17",
-	"lrs+1002_2:1_bd=off:bs=unit_only:bsr=on:cond=on:drc=off:flr=on:fde=none:gsp=input_only:lcm=predicate:nwc=4:ptb=off:ssec=off:stl=60:sac=on:sio=off:sp=occurrence_21",
-	0
-      };
-      quickSlices = quick;
-    }
-    else if (prop == 1) {
-      const char* quick[] = {
-	"dis+11_40_bd=off:bs=off:cond=fast:ep=on:flr=on:gsp=input_only:gs=on:lcm=reverse:nwc=5:ptb=off:ssec=off:sac=on:sio=off:swb=on:sfv=off_2",
-	"ott+1011_2:3_bs=off:bsr=unit_only:ep=on:gsp=input_only:nwc=3:sac=on:sgo=on:spo=on:sfv=off_1",
-	"dis-1002_8:1_bs=off:br=off:drc=off:ecs=on:ep=on:fde=none:gs=on:nwc=1.2:nicw=on:ssec=off:sd=5:ss=axioms:st=1.2:sos=on:sac=on:sio=off:sp=reverse_arity:urr=on_13",
-	"ott+11_28_bs=off:cond=on:drc=off:ecs=on:fde=none:gs=on:nwc=1.7:ssec=off:sgo=on:sio=off:sp=reverse_arity_27",
-	"lrs+1011_20_bd=off:bs=off:bsr=on:cond=on:drc=off:fsr=off:gs=on:lcm=reverse:nwc=3:ssec=off:stl=30:sos=on:sagn=off:sio=off:spl=off_2",
-	"lrs+1002_2:3_bs=off:cond=on:drc=off:ep=on:nwc=1.7:nicw=on:ptb=off:ssec=off:stl=30:sagn=off:sio=off:spo=on:spl=backtracking:sfv=off:sp=occurrence_20",
-	"ott+1011_3_bs=off:drc=off:ep=on:fde=none:gsp=input_only:nwc=1:sgo=on:sio=off:spo=on:updr=off_21",
-	"dis+11_6_bd=off:bsr=unit_only:cond=fast:drc=off:ep=on:fde=none:gsp=input_only:lcm=reverse:nwc=1:ptb=off:ssec=off:sos=on:sgo=on:sio=off:swb=on:sp=occurrence:updr=off_4",
-	"dis-1002_3:2_bs=off:cond=on:drc=off:ep=RS:flr=on:lcm=predicate:nwc=10:ssec=off:sgo=on:sio=off:spo=on:sp=reverse_arity_4",
-	"dis+10_128_bs=off:cond=on:drc=off:flr=on:fsr=off:fde=none:lcm=predicate:nwc=2:ptb=off:ssec=off:sac=on:swb=on_112",
-	"ott+11_2_bd=off:bs=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=5:nicw=on:ptb=off:ssec=off:sac=on:sgo=on:spo=on:spl=backtracking:sp=reverse_arity_140",
-	"dis+2_4_bs=off:cond=fast:drc=off:ep=RST:fsr=off:fde=none:lcm=reverse:nwc=2:ssec=off:sac=on:sio=off:spo=on:sp=reverse_arity:urr=on_81",
-	"lrs+1003_8:1_bd=off:drc=off:fde=none:gsp=input_only:nwc=5:ptb=off:ssec=off:stl=180:swb=on:sfv=off:sp=reverse_arity_2",
-	"dis+1011_10_bd=off:bs=unit_only:bsr=on:bms=on:cond=fast:ep=on:lcm=predicate:nwc=1:nicw=on:ssec=off:sac=on:sgo=on:sio=off:spo=on:sfv=off:sp=occurrence:updr=off_48",
-	"ott+10_64_bd=off:bsr=unit_only:bms=on:fde=none:nwc=1.5:sswn=on:sswsr=on:sac=on:sgo=on:sio=off:spo=on:sfv=off:updr=off_121",
-	"lrs-1010_64_bd=off:bs=off:drc=off:nwc=2:ssec=off:stl=30:sac=on:sgo=on:spo=on_162",
-	"lrs+11_20_bs=off:cond=on:drc=off:flr=on:fsr=off:gs=on:nwc=2.5:ssec=off:stl=60:sgo=on:spo=on:sp=reverse_arity:urr=on:updr=off_267",
-	"dis+11_40_bsr=unit_only:cond=fast:ep=on:nwc=1.3:nicw=on:ptb=off:ssec=off:sac=on:spl=backtracking:sfv=off_590",
-	"dis+1_2:1_drc=off:ep=on:fde=none:gsp=input_only:lcm=predicate:nwc=1.7:ptb=off:ssec=off:sio=off:spl=backtracking:sp=reverse_arity:updr=off_575",
-	"dis-1010_3:1_bd=off:ep=R:flr=on:gsp=input_only:lcm=predicate:nwc=4.0:sswn=on:sswsr=on:sio=off_3",
-	"dis+3_14_bs=off:drc=off:ecs=on:fde=none:gsp=input_only:nwc=1.2:nicw=on:ssec=off:sac=on:sio=off:sp=occurrence:urr=on_93",
-	0
-      };
-      quickSlices = quick;
-    }
-    else {
-      const char* quick[] = {
-	"dis+1010_6_bd=off:nwc=10.0:ssec=off:sac=on:sp=occurrence_1",
-	"ott+1011_2:3_bs=off:bsr=unit_only:ep=on:gsp=input_only:nwc=3:sac=on:sgo=on:spo=on:sfv=off_2",
-	"dis-1010_5:1_bs=off:cond=fast:ep=R:lcm=reverse:nwc=1.2:nicw=on:ptb=off:ssec=off:sos=on:sac=on:sio=off:spo=on:sfv=off:sp=occurrence_8",
-	"ott-1010_128_bd=off:bs=off:drc=off:ep=on:fsr=off:fde=none:gsp=input_only:gs=on:lcm=reverse:nwc=1:nicw=on:sswn=on:sswsr=on:sos=on:sac=on:sfv=off:sp=reverse_arity:updr=off_4",
-	"lrs+1011_20_bd=off:bs=off:bsr=on:cond=on:drc=off:fsr=off:gs=on:lcm=reverse:nwc=3:ssec=off:stl=30:sos=on:sagn=off:sio=off:spl=off_14",
-	"ott+1_2:1_bd=off:bs=off:bms=on:cond=fast:ep=on:flr=on:fsr=off:nwc=5:spo=on:sfv=off:sp=reverse_arity:updr=off_1",
-	"ott+10_50_bd=off:bms=on:cond=on:drc=off:flr=on:fde=none:gs=on:lcm=predicate:nwc=2.5:nicw=on:sswn=on:sos=on:sac=on:sio=off:spo=on:sp=occurrence:updr=off_1",
-	"dis+3_14_bs=off:drc=off:ecs=on:fde=none:gsp=input_only:nwc=1.2:nicw=on:ssec=off:sac=on:sio=off:sp=occurrence:urr=on_5",
-	"dis+1010_2:3_bs=off:drc=off:ep=on:nwc=10:ssec=off:sos=on:sgo=on:sio=off:sp=occurrence_50",
-	"dis+11_12_bs=unit_only:cond=on:flr=on:fde=none:lcm=reverse:nwc=1.5:sswn=on:sswsr=on:sgo=on:sfv=off:sp=reverse_arity_16",
-	"ott+1011_3_bs=off:drc=off:ep=on:fde=none:gsp=input_only:nwc=1:sgo=on:sio=off:spo=on:updr=off_12",
-	"dis+1011_7_cond=on:drc=off:ecs=on:ep=on:gs=on:lcm=predicate:nwc=1.7:ssec=off:sos=on:sac=on:sgo=on:sp=reverse_arity_198",
-	"lrs-1010_12_bd=off:gsp=input_only:nwc=3.0:ptb=off:ssec=off:stl=60:sos=on:sagn=off:sac=on:spl=backtracking:sp=reverse_arity:updr=off_91",
-	"dis+1010_2:1_bs=off:drc=off:ep=RS:fsr=off:fde=none:gsp=input_only:nwc=10:ssec=off:sio=off:sp=reverse_arity_33",
-	"dis-1_64_bsr=on:cond=fast:ecs=on:flr=on:fsr=off:lcm=reverse:nwc=1.7:ssec=off:sos=on:sagn=off:sac=on:sgo=on:sio=off:spo=on:sfv=off:sp=reverse_arity_4",
-	"lrs+4_4_bd=off:cond=on:ep=on:nwc=1.3:nicw=on:ptb=off:ssec=off:stl=30:sos=on:spl=backtracking:sp=reverse_arity_28",
-	"dis+1002_10_bs=off:ep=on:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking_35",
-	"dis-1002_3:2_bs=off:cond=on:drc=off:ep=RS:flr=on:lcm=predicate:nwc=10:ssec=off:sgo=on:sio=off:spo=on:sp=reverse_arity_18",
-	"dis+4_10_bd=off:bs=off:cond=fast:fde=none:nwc=10.0:ptb=off:ssec=off:sgo=on:spl=backtracking:sp=reverse_arity_146",
-	"dis+11_6_bd=off:bsr=unit_only:cond=fast:drc=off:ep=on:fde=none:gsp=input_only:lcm=reverse:nwc=1:ptb=off:ssec=off:sos=on:sgo=on:sio=off:swb=on:sp=occurrence:updr=off_507",
-	"lrs+1004_14_bd=off:cond=on:drc=off:ep=on:flr=on:fsr=off:fde=none:gsp=input_only:lcm=predicate:nwc=3:sswsr=on:stl=30:sio=off:spl=off:updr=off_230",
-	"dis+11_1_bsr=unit_only:ep=on:flr=on:fde=none:gsp=input_only:lcm=reverse:nwc=1.5:nicw=on:ptb=off:ssec=off:sswsr=on:sac=on:sio=off:spo=on:spl=backtracking:sfv=off:sp=occurrence:updr=off_4",
-	"dis+1011_50_bs=unit_only:gsp=input_only:lcm=reverse:nwc=1.7:ptb=off:ssec=off:sac=on:spo=on:spl=backtracking:updr=off_67",
-	0
-      };
-      quickSlices = quick;
+  case Property::NEQ:
+    {
+      if (prop == 131079) {
+	const char* quick[] = {
+	  "ott+1011_2:3_bs=off:bsr=unit_only:ep=on:gsp=input_only:nwc=3:sac=on:sgo=on:spo=on:sfv=off_35",
+	  "ott+11_2_bd=off:bs=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=5:nicw=on:ptb=off:ssec=off:sac=on:sgo=on:spo=on:spl=backtracking:sp=reverse_arity_53",
+	  "dis+11_40_bsr=unit_only:cond=fast:ep=on:nwc=1.3:nicw=on:ptb=off:ssec=off:sac=on:spl=backtracking:sfv=off_243",
+	  "dis+1011_14_bd=off:bs=off:bsr=on:cond=fast:ep=on:gsp=input_only:lcm=reverse:nwc=2:sswn=on:sswsr=on:sac=on:sgo=on:spo=on:sfv=off:sp=reverse_arity:updr=off_111",
+	  "ott+11_28_bs=off:cond=on:drc=off:ecs=on:fde=none:gs=on:nwc=1.7:ssec=off:sgo=on:sio=off:sp=reverse_arity_1",
+	  "dis+11_1_bsr=unit_only:ep=on:flr=on:fde=none:gsp=input_only:lcm=reverse:nwc=1.5:nicw=on:ptb=off:ssec=off:sswsr=on:sac=on:sio=off:spo=on:spl=backtracking:sfv=off:sp=occurrence:updr=off_24",
+	  "dis+11_12_bs=unit_only:cond=on:flr=on:fde=none:lcm=reverse:nwc=1.5:sswn=on:sswsr=on:sgo=on:sfv=off:sp=reverse_arity_115",
+	  "lrs+1002_2:1_bd=off:bs=unit_only:bsr=on:cond=on:drc=off:flr=on:fde=none:gsp=input_only:lcm=predicate:nwc=4:ptb=off:ssec=off:stl=60:sac=on:sio=off:sp=occurrence_8",
+	  "ott+11_3_bd=off:bs=unit_only:bsr=unit_only:cond=fast:ep=on:fde=none:nwc=10:ptb=off:ssec=off:sac=on:spo=on:spl=backtracking:sfv=off:updr=off_105",
+	  "dis+1011_10_bd=off:bs=unit_only:bsr=on:bms=on:cond=fast:ep=on:lcm=predicate:nwc=1:nicw=on:ssec=off:sac=on:sgo=on:sio=off:spo=on:sfv=off:sp=occurrence:updr=off_82",
+	  "ott+11_3_bs=unit_only:bsr=unit_only:cond=on:flr=on:fde=none:gsp=input_only:lcm=reverse:nwc=1.1:ptb=off:ssec=off:sac=on:sgo=on:spo=on:spl=backtracking:sfv=off:sp=occurrence:updr=off_57",
+	  "dis+1_50_cond=fast:lcm=predicate:nwc=3.0_177",
+	  "ott+11_5:1_bs=off:cond=fast:drc=off:ep=on:fsr=off:gsp=input_only:nwc=4:nicw=on:sswn=on:sac=on:sgo=on:sp=occurrence_860",
+	  "dis+11_6_bd=off:bsr=unit_only:cond=fast:drc=off:ep=on:fde=none:gsp=input_only:lcm=reverse:nwc=1:ptb=off:ssec=off:sos=on:sgo=on:sio=off:swb=on:sp=occurrence:updr=off_60",
+	  "lrs+4_4_bd=off:cond=on:ep=on:nwc=1.3:nicw=on:ptb=off:ssec=off:stl=30:sos=on:spl=backtracking:sp=reverse_arity_144",
+	  "dis+3_8_bd=off:bs=off:flr=on:gsp=input_only:lcm=predicate:nwc=2.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking:sp=occurrence_144",
+	  0
+	};
+	quickSlices = quick;
+      }
+      else if (prop == 3) {
+	const char* quick[] = {
+	  "dis+11_6_bd=off:bsr=unit_only:cond=fast:drc=off:ep=on:fde=none:gsp=input_only:lcm=reverse:nwc=1:ptb=off:ssec=off:sos=on:sgo=on:sio=off:swb=on:sp=occurrence:updr=off_10",
+	  "dis+1010_4:1_bs=off:bsr=unit_only:cond=on:ep=RS:gs=on:lcm=reverse:nwc=4:sswn=on:sos=on:spo=on:sp=occurrence_1",
+	  "dis-1002_3:2_bs=off:cond=on:drc=off:ep=RS:flr=on:lcm=predicate:nwc=10:ssec=off:sgo=on:sio=off:spo=on:sp=reverse_arity_4",
+	  "ott+1011_3_bs=off:drc=off:ep=on:fde=none:gsp=input_only:nwc=1:sgo=on:sio=off:spo=on:updr=off_84",
+	  "ott-1010_5:4_bd=off:bs=off:bms=on:cond=on:drc=off:ep=on:lcm=predicate:nwc=1:nicw=on:ssec=off:sd=3:ss=axioms:sos=on:sio=off:sp=reverse_arity:urr=on_6",
+	  "lrs-4_1_bd=off:bs=off:bms=on:ecs=on:gsp=input_only:nicw=on:ssec=off:stl=60:sos=on:sio=off:spl=off_47",
+	  "dis+2_28_bs=off:br=off:cond=fast:drc=off:ecs=on:ep=on:gsp=input_only:lcm=reverse:nwc=2.5:nicw=on:ssec=off:sd=1:ss=axioms:st=3.0:sos=on:sac=on:spo=on:sp=reverse_arity:urr=on_3",
+	  "dis+11_5:1_cond=fast:ep=on:gsp=input_only:nwc=10:sswn=on:sswsr=on_8",
+	  "lrs+4_4_bd=off:cond=on:ep=on:nwc=1.3:nicw=on:ptb=off:ssec=off:stl=30:sos=on:spl=backtracking:sp=reverse_arity_43",
+	  "lrs-1010_64_bd=off:bs=off:drc=off:nwc=2:ssec=off:stl=30:sac=on:sgo=on:spo=on_18",
+	  "dis-1_64_bsr=on:cond=fast:ecs=on:flr=on:fsr=off:lcm=reverse:nwc=1.7:ssec=off:sos=on:sagn=off:sac=on:sgo=on:sio=off:spo=on:sfv=off:sp=reverse_arity_1",
+	  "dis+1_5:1_bd=off:bs=unit_only:cond=fast:drc=off:flr=on:fde=none:lcm=reverse:nwc=10:ptb=off:ssec=off:sio=off:spo=on:swb=on_4",
+	  "ott+1_2:1_bd=off:bs=off:bms=on:cond=fast:ep=on:flr=on:fsr=off:nwc=5:spo=on:sfv=off:sp=reverse_arity:updr=off_1",
+	  "dis-1010_5:1_bs=off:cond=fast:ep=R:lcm=reverse:nwc=1.2:nicw=on:ptb=off:ssec=off:sos=on:sac=on:sio=off:spo=on:sfv=off:sp=occurrence_29",
+	  "dis-1002_8:1_bs=off:br=off:drc=off:ecs=on:ep=on:fde=none:gs=on:nwc=1.2:nicw=on:ssec=off:sd=5:ss=axioms:st=1.2:sos=on:sac=on:sio=off:sp=reverse_arity:urr=on_2",
+	  "dis+10_5_bs=off:cond=on:flr=on:fde=none:nwc=2.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spo=on:spl=backtracking:sp=occurrence_138",
+	  "dis+1010_6_bd=off:nwc=10.0:ssec=off:sac=on:sp=occurrence_21",
+	  "dis+1011_10_bd=off:bs=unit_only:bsr=on:bms=on:cond=fast:ep=on:lcm=predicate:nwc=1:nicw=on:ssec=off:sac=on:sgo=on:sio=off:spo=on:sfv=off:sp=occurrence:updr=off_232",
+	  "ott+11_2_bd=off:bs=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=5:nicw=on:ptb=off:ssec=off:sac=on:sgo=on:spo=on:spl=backtracking:sp=reverse_arity_247",
+	  "ott+11_5:1_bs=off:cond=fast:drc=off:ep=on:fsr=off:gsp=input_only:nwc=4:nicw=on:sswn=on:sac=on:sgo=on:sp=occurrence_107",
+	  "dis-1004_8:1_bs=off:drc=off:fde=none:gsp=input_only:lcm=reverse:nwc=10:nicw=on:ssec=off:sp=reverse_arity_222",
+	  "dis+11_40_bd=off:bs=off:cond=fast:ep=on:flr=on:gsp=input_only:gs=on:lcm=reverse:nwc=5:ptb=off:ssec=off:sac=on:sio=off:swb=on:sfv=off_147",
+	  "lrs+1_4:1_bd=off:bs=off:cond=on:fde=none:lcm=predicate:stl=60:sos=on_580",
+	  "lrs+2_2_bd=off:bs=unit_only:bsr=unit_only:cond=fast:drc=off:flr=on:lcm=predicate:nwc=1.5:ptb=off:ssec=off:stl=60:sac=on:sgo=on:sio=off:swb=on_153",
+	  "dis+2_8:1_bs=off:br=off:cond=fast:drc=off:ep=RST:flr=on:fsr=off:fde=none:gsp=input_only:nwc=1.1:ssec=off:sac=on:spo=on:sp=reverse_arity:urr=on_167",
+	  "dis+10_8_bs=off:cond=on:gsp=input_only:lcm=predicate:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sgo=on:sio=off:spl=backtracking:sp=occurrence_379",
+	  "dis+1010_8:1_bs=off:cond=fast:drc=off:ep=on:fde=none:lcm=reverse:nwc=2:sos=on:sac=on:sp=reverse_arity_1",
+	  "dis+3_14_bs=off:drc=off:ecs=on:fde=none:gsp=input_only:nwc=1.2:nicw=on:ssec=off:sac=on:sio=off:sp=occurrence:urr=on_17",
+	  "lrs+1002_2:1_bd=off:bs=unit_only:bsr=on:cond=on:drc=off:flr=on:fde=none:gsp=input_only:lcm=predicate:nwc=4:ptb=off:ssec=off:stl=60:sac=on:sio=off:sp=occurrence_21",
+	  0
+	};
+	quickSlices = quick;
+      }
+      else if (prop == 1) {
+	const char* quick[] = {
+	  "dis+11_40_bd=off:bs=off:cond=fast:ep=on:flr=on:gsp=input_only:gs=on:lcm=reverse:nwc=5:ptb=off:ssec=off:sac=on:sio=off:swb=on:sfv=off_2",
+	  "ott+1011_2:3_bs=off:bsr=unit_only:ep=on:gsp=input_only:nwc=3:sac=on:sgo=on:spo=on:sfv=off_1",
+	  "dis-1002_8:1_bs=off:br=off:drc=off:ecs=on:ep=on:fde=none:gs=on:nwc=1.2:nicw=on:ssec=off:sd=5:ss=axioms:st=1.2:sos=on:sac=on:sio=off:sp=reverse_arity:urr=on_13",
+	  "ott+11_28_bs=off:cond=on:drc=off:ecs=on:fde=none:gs=on:nwc=1.7:ssec=off:sgo=on:sio=off:sp=reverse_arity_27",
+	  "lrs+1011_20_bd=off:bs=off:bsr=on:cond=on:drc=off:fsr=off:gs=on:lcm=reverse:nwc=3:ssec=off:stl=30:sos=on:sagn=off:sio=off:spl=off_2",
+	  "lrs+1002_2:3_bs=off:cond=on:drc=off:ep=on:nwc=1.7:nicw=on:ptb=off:ssec=off:stl=30:sagn=off:sio=off:spo=on:spl=backtracking:sfv=off:sp=occurrence_20",
+	  "ott+1011_3_bs=off:drc=off:ep=on:fde=none:gsp=input_only:nwc=1:sgo=on:sio=off:spo=on:updr=off_21",
+	  "dis+11_6_bd=off:bsr=unit_only:cond=fast:drc=off:ep=on:fde=none:gsp=input_only:lcm=reverse:nwc=1:ptb=off:ssec=off:sos=on:sgo=on:sio=off:swb=on:sp=occurrence:updr=off_4",
+	  "dis-1002_3:2_bs=off:cond=on:drc=off:ep=RS:flr=on:lcm=predicate:nwc=10:ssec=off:sgo=on:sio=off:spo=on:sp=reverse_arity_4",
+	  "dis+10_128_bs=off:cond=on:drc=off:flr=on:fsr=off:fde=none:lcm=predicate:nwc=2:ptb=off:ssec=off:sac=on:swb=on_112",
+	  "ott+11_2_bd=off:bs=off:cond=fast:drc=off:fde=none:gsp=input_only:lcm=predicate:nwc=5:nicw=on:ptb=off:ssec=off:sac=on:sgo=on:spo=on:spl=backtracking:sp=reverse_arity_140",
+	  "dis+2_4_bs=off:cond=fast:drc=off:ep=RST:fsr=off:fde=none:lcm=reverse:nwc=2:ssec=off:sac=on:sio=off:spo=on:sp=reverse_arity:urr=on_81",
+	  "lrs+1003_8:1_bd=off:drc=off:fde=none:gsp=input_only:nwc=5:ptb=off:ssec=off:stl=180:swb=on:sfv=off:sp=reverse_arity_2",
+	  "dis+1011_10_bd=off:bs=unit_only:bsr=on:bms=on:cond=fast:ep=on:lcm=predicate:nwc=1:nicw=on:ssec=off:sac=on:sgo=on:sio=off:spo=on:sfv=off:sp=occurrence:updr=off_48",
+	  "ott+10_64_bd=off:bsr=unit_only:bms=on:fde=none:nwc=1.5:sswn=on:sswsr=on:sac=on:sgo=on:sio=off:spo=on:sfv=off:updr=off_121",
+	  "lrs-1010_64_bd=off:bs=off:drc=off:nwc=2:ssec=off:stl=30:sac=on:sgo=on:spo=on_162",
+	  "lrs+11_20_bs=off:cond=on:drc=off:flr=on:fsr=off:gs=on:nwc=2.5:ssec=off:stl=60:sgo=on:spo=on:sp=reverse_arity:urr=on:updr=off_267",
+	  "dis+11_40_bsr=unit_only:cond=fast:ep=on:nwc=1.3:nicw=on:ptb=off:ssec=off:sac=on:spl=backtracking:sfv=off_590",
+	  "dis+1_2:1_drc=off:ep=on:fde=none:gsp=input_only:lcm=predicate:nwc=1.7:ptb=off:ssec=off:sio=off:spl=backtracking:sp=reverse_arity:updr=off_575",
+	  "dis-1010_3:1_bd=off:ep=R:flr=on:gsp=input_only:lcm=predicate:nwc=4.0:sswn=on:sswsr=on:sio=off_3",
+	  "dis+3_14_bs=off:drc=off:ecs=on:fde=none:gsp=input_only:nwc=1.2:nicw=on:ssec=off:sac=on:sio=off:sp=occurrence:urr=on_93",
+	  0
+	};
+	quickSlices = quick;
+      }
+      else {
+	const char* quick[] = {
+	  "dis+1010_6_bd=off:nwc=10.0:ssec=off:sac=on:sp=occurrence_1",
+	  "ott+1011_2:3_bs=off:bsr=unit_only:ep=on:gsp=input_only:nwc=3:sac=on:sgo=on:spo=on:sfv=off_2",
+	  "dis-1010_5:1_bs=off:cond=fast:ep=R:lcm=reverse:nwc=1.2:nicw=on:ptb=off:ssec=off:sos=on:sac=on:sio=off:spo=on:sfv=off:sp=occurrence_8",
+	  "ott-1010_128_bd=off:bs=off:drc=off:ep=on:fsr=off:fde=none:gsp=input_only:gs=on:lcm=reverse:nwc=1:nicw=on:sswn=on:sswsr=on:sos=on:sac=on:sfv=off:sp=reverse_arity:updr=off_4",
+	  "lrs+1011_20_bd=off:bs=off:bsr=on:cond=on:drc=off:fsr=off:gs=on:lcm=reverse:nwc=3:ssec=off:stl=30:sos=on:sagn=off:sio=off:spl=off_14",
+	  "ott+1_2:1_bd=off:bs=off:bms=on:cond=fast:ep=on:flr=on:fsr=off:nwc=5:spo=on:sfv=off:sp=reverse_arity:updr=off_1",
+	  "ott+10_50_bd=off:bms=on:cond=on:drc=off:flr=on:fde=none:gs=on:lcm=predicate:nwc=2.5:nicw=on:sswn=on:sos=on:sac=on:sio=off:spo=on:sp=occurrence:updr=off_1",
+	  "dis+3_14_bs=off:drc=off:ecs=on:fde=none:gsp=input_only:nwc=1.2:nicw=on:ssec=off:sac=on:sio=off:sp=occurrence:urr=on_5",
+	  "dis+1010_2:3_bs=off:drc=off:ep=on:nwc=10:ssec=off:sos=on:sgo=on:sio=off:sp=occurrence_50",
+	  "dis+11_12_bs=unit_only:cond=on:flr=on:fde=none:lcm=reverse:nwc=1.5:sswn=on:sswsr=on:sgo=on:sfv=off:sp=reverse_arity_16",
+	  "ott+1011_3_bs=off:drc=off:ep=on:fde=none:gsp=input_only:nwc=1:sgo=on:sio=off:spo=on:updr=off_12",
+	  "dis+1011_7_cond=on:drc=off:ecs=on:ep=on:gs=on:lcm=predicate:nwc=1.7:ssec=off:sos=on:sac=on:sgo=on:sp=reverse_arity_198",
+	  "lrs-1010_12_bd=off:gsp=input_only:nwc=3.0:ptb=off:ssec=off:stl=60:sos=on:sagn=off:sac=on:spl=backtracking:sp=reverse_arity:updr=off_91",
+	  "dis+1010_2:1_bs=off:drc=off:ep=RS:fsr=off:fde=none:gsp=input_only:nwc=10:ssec=off:sio=off:sp=reverse_arity_33",
+	  "dis-1_64_bsr=on:cond=fast:ecs=on:flr=on:fsr=off:lcm=reverse:nwc=1.7:ssec=off:sos=on:sagn=off:sac=on:sgo=on:sio=off:spo=on:sfv=off:sp=reverse_arity_4",
+	  "lrs+4_4_bd=off:cond=on:ep=on:nwc=1.3:nicw=on:ptb=off:ssec=off:stl=30:sos=on:spl=backtracking:sp=reverse_arity_28",
+	  "dis+1002_10_bs=off:ep=on:nwc=1.5:nicw=on:ptb=off:ssec=off:sac=on:sio=off:spl=backtracking_35",
+	  "dis-1002_3:2_bs=off:cond=on:drc=off:ep=RS:flr=on:lcm=predicate:nwc=10:ssec=off:sgo=on:sio=off:spo=on:sp=reverse_arity_18",
+	  "dis+4_10_bd=off:bs=off:cond=fast:fde=none:nwc=10.0:ptb=off:ssec=off:sgo=on:spl=backtracking:sp=reverse_arity_146",
+	  "dis+11_6_bd=off:bsr=unit_only:cond=fast:drc=off:ep=on:fde=none:gsp=input_only:lcm=reverse:nwc=1:ptb=off:ssec=off:sos=on:sgo=on:sio=off:swb=on:sp=occurrence:updr=off_507",
+	  "lrs+1004_14_bd=off:cond=on:drc=off:ep=on:flr=on:fsr=off:fde=none:gsp=input_only:lcm=predicate:nwc=3:sswsr=on:stl=30:sio=off:spl=off:updr=off_230",
+	  "dis+11_1_bsr=unit_only:ep=on:flr=on:fde=none:gsp=input_only:lcm=reverse:nwc=1.5:nicw=on:ptb=off:ssec=off:sswsr=on:sac=on:sio=off:spo=on:spl=backtracking:sfv=off:sp=occurrence:updr=off_4",
+	  "dis+1011_50_bs=unit_only:gsp=input_only:lcm=reverse:nwc=1.7:ptb=off:ssec=off:sac=on:spo=on:spl=backtracking:updr=off_67",
+	  0
+	};
+	quickSlices = quick;
+      }
     }
     break;
-  }
 
   case Property::HEQ: {
     if (prop == 2) {
@@ -1012,8 +1012,6 @@ bool CASCMode::perform()
   }
   }
 
-
-
   switch (cat) {
   case Property::NEQ:
     {
@@ -1318,23 +1316,7 @@ bool CASCMode::perform()
     }
     break;
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  fallbackSlices = 0;
 
   int remainingTime=env.remainingTime()/100;
   if(remainingTime<=0) {
@@ -1386,8 +1368,10 @@ bool CASCMode::runSchedule(const char** schedule,unsigned ds,StrategySet& ss)
 {
   CALL("CASCMode::runSchedule");
 
+  cout << "Cool!\n"; 
   for (const char** ptr=schedule; *ptr; ptr++) {
     string sliceCode(*ptr);
+    cout << sliceCode << "\n";
     string chopped;
     unsigned sliceTime = getSliceTime(sliceCode,chopped);
     ss.insert(chopped);
@@ -1395,7 +1379,6 @@ bool CASCMode::runSchedule(const char** schedule,unsigned ds,StrategySet& ss)
     if(remainingTime<=0) {
       return false;
     }
-
     // cast to unsigned is OK since realTimeRemaining is positive
     if(sliceTime > (unsigned)remainingTime) {
       sliceTime = remainingTime;
