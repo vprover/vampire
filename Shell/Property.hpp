@@ -121,6 +121,7 @@ public:
   USE_ALLOCATOR(Property);
 
   static Property* scan(UnitList*);
+  void add(UnitList*);
   ~Property();
 
   /** Return the CASC category of the problem */
@@ -168,7 +169,6 @@ public:
  private:
   // constructor, operators new and delete
   explicit Property();
-  void scan1(UnitList*);
 
   static bool hasXEqualsY(const Clause* c);
   static bool isXEqualsY(const Literal*,bool polarity);

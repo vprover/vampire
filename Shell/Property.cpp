@@ -67,8 +67,9 @@ Property::Property()
 Property* Property::scan(UnitList* units)
 {
   CALL("Property::scan");
+
   Property* prop = new Property;
-  prop->scan1(units);
+  prop->add(units);
   return prop;
 } // Property::scan
 
@@ -85,12 +86,17 @@ Property::~Property()
 }
 
 /**
- * Scan property from a problem.
+ * Add units and modify an existing property.
  * @since 29/06/2002 Manchester
  */
-void Property::scan1(UnitList* units)
+void Property::add(UnitList* units)
 {
-  CALL("Property::scan1(UnitList*)");
+  CALL("Property::add(UnitList*)");
+
+  UnitList::Iterator us(units);
+  while (us.hasNext()) {
+    scan(us.next());
+  }
 
   // information about sorts is read from the environment, not from the problem
   if (env.sorts->hasSort()) {
@@ -110,11 +116,7 @@ void Property::scan1(UnitList* units)
     addProp(PR_HAS_REALS);
   }
 
-  UnitList::Iterator us(units);
-  while (us.hasNext()) {
-    scan(us.next());
-  }
-  // determine the category
+  // determine the category after adding
   if (formulas() > 0) { // FOF, either FEQ or FNE
     if (_equalityAtoms == 0) {
       _category = FNE;
@@ -162,8 +164,7 @@ void Property::scan1(UnitList* units)
   else {
     _category = NEQ;
   }
-} // Property::scan(const UnitList* units)
-
+} // Property::add(const UnitList* units)
 
 /**
  * Scan property from a unit.
