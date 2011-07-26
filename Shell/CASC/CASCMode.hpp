@@ -11,8 +11,10 @@
 #include "Forwards.hpp"
 
 #include "Lib/Portability.hpp"
-#include "Shell/Property.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/Stack.hpp"
+
+#include "Shell/Property.hpp"
 
 namespace Shell {
 namespace CASC
@@ -37,9 +39,9 @@ protected:
 
 private:
   typedef Set<string> StrategySet;
+  typedef Stack<string> Schedule;
   bool perform();
-  bool runSchedule(const char** sliceCodes,unsigned ds,StrategySet& remember);
-  bool runFallbackSchedule(const char** sliceCodes,unsigned ds,StrategySet& avoid);
+  bool runSchedule(Schedule&,unsigned ds,StrategySet& remember,bool fallback);
   bool runSlice(string sliceCode, unsigned ds);
   unsigned getSliceTime(string sliceCode,string& chopped);
 };
