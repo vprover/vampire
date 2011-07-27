@@ -620,10 +620,16 @@ void CLTBProblem::exitOnNoSuccess()
   //This should make the writer child terminate.
   childOutputPipe.neverWrite();
 
-  int resValue;
-  pid_t lastChild=Multiprocessing::instance()->waitForChildTermination(resValue);
-  ASS_EQ(lastChild, writerChildPid);
-  ASS_EQ(resValue,0);
+  try {
+    int writerResult;
+    Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
+    ASS_EQ(writerResult,0);
+  } catch(SystemFailException& ex) {
+    //it may happen that the writer process has already exitted
+    if(ex.err!=ECHILD) {
+	throw;
+    }
+  }
 
 
   cout<<"terminated solver pid "<<getpid()<<" (fail)"<<endl;
@@ -726,7 +732,7 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
     cout.flush();
     int writerResult;
     try {
-    Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
+      Multiprocessing::instance()->waitForParticularChildTermination(writerChildPid, writerResult);
     } catch(SystemFailException& ex) {
       //it may happen that the writer process has already exitted
       if(ex.err!=ECHILD) {
