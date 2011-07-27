@@ -423,6 +423,8 @@ private:
   Map<int,SortList*> _variableSorts;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
   Set<string> _overflow;
+  /** current color, if the input contains colors */
+  Color _currentColor;
 
   /**
    * Get the next characters at the position pos.
@@ -433,7 +435,7 @@ private:
 
     while (_cend <= pos) {
       int c = _in->get();
-      // if (c == -1) { cout << "<EOF>"; } else {cout << char(c);}
+      if (c == -1) { cout << "<EOF>"; } else {cout << char(c);}
       _chars[_cend++] = c == -1 ? 0 : c;
     }
     return _chars[pos];
@@ -521,6 +523,7 @@ private:
   void unitList();
   void fof(bool fo);
   void tff();
+  void vampire();
   void consumeToken(Tag);
   string name();
   void formula();

@@ -54,9 +54,10 @@ UnitList* TPTP::parse(istream& input)
 TPTP::TPTP(istream& in)
   : _containsConjecture(false),
     _allowedNames(0),
-    _in(&in)
+    _in(&in),
+    _currentColor(COLOR_TRANSPARENT)
 {
-} // Lexer::Lexer
+} // TPTP::TPTP
 
 /**
  * The destructor, does nothing.
@@ -150,6 +151,9 @@ void TPTP::parse()
       break;
     case UNBIND_VARIABLES:
       unbindVariables();
+      break;
+    case VAMPIRE:
+      vampire();
       break;
     default:
 #if VDEBUG
@@ -1962,6 +1966,7 @@ void TPTP::endFof()
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
     unit = new FormulaUnit(f,new Inference(Inference::INPUT),(Unit::InputType)_lastInputType);
+    unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
     env.statistics->inputClauses++;
@@ -2007,6 +2012,7 @@ void TPTP::endFof()
       }
     }
     unit = Clause::fromStack(lits,(Unit::InputType)_lastInputType,new Inference(Inference::INPUT));
+    unit->setInheritedColor(_currentColor);
   }
 
   if (env.options->outputAxiomNames()) {
@@ -2782,7 +2788,7 @@ void TPTP::assignAxiomName(const Unit* unit, string& name)
 {
   CALL("Parser::assignAxiomName");
   ALWAYS(_axiomNames.insert(unit->number(), name));
-}
+} // TPTP::assignAxiomName
 
 /**
  * If @b unit has a name associated, assign it into @b result,
@@ -2792,7 +2798,93 @@ bool TPTP::findAxiomName(const Unit* unit, string& result)
 {
   CALL("Parser::findAxiomName");
   return _axiomNames.find(unit->number(), result);
-}
+} // TPTP::findAxiomName
+
+/**
+ * Process vampire() declaration
+ * @since 25/08/2009 Redmond
+ */
+void TPTP::vampire()
+{
+  CALL("TPTP::vampire");
+
+  consumeToken(T_LPAR);
+  string nm = name();
+
+  if (nm == "option") { // vampire(option,age_weight_ratio,3)
+    consumeToken(T_COMMA);
+    string opt = name();
+    consumeToken(T_COMMA);
+    string val = name();
+    env.options->set(opt,val);
+  }
+  else if (nm == "symbol") {
+    consumeToken(T_COMMA);
+    string kind = name();
+    bool pred;
+    if (kind == "predicate") {
+      pred = true;
+    }
+    else if (kind == "function") {
+      pred = false;
+    }
+    else {
+      throw Exception("either 'predicate' or 'function' expected",getTok(0));
+    }
+    consumeToken(T_COMMA);
+    string symb = name();
+    consumeToken(T_COMMA);
+    Token tok = getTok(0);
+    if (tok.tag != T_INT) {
+      throw Exception("a non-negative integer (denoting arity) expected",tok);
+    }
+    unsigned arity;
+    if (!Int::stringToUnsignedInt(tok.content,arity)) {
+      throw Exception("a number denoting arity expected",tok);
+    }
+    resetToks();
+    consumeToken(T_COMMA);
+    Color color;
+    bool skip = false;
+    string lr = name();
+    if (lr == "left") {
+      color=COLOR_LEFT;
+    }
+    else if (lr == "right") {
+      color=COLOR_RIGHT;
+    }
+    else if (lr == "skip") {
+      skip = true;
+    }
+    else {
+      throw Exception("'left', 'right' or 'skip' expected",getTok(0));
+    }
+    env.colorUsed = true;
+    Signature::Symbol* sym = pred
+                             ? env.signature->getPredicate(env.signature->addPredicate(symb,arity))
+                             : env.signature->getFunction(env.signature->addFunction(symb,arity));
+    if (skip) {
+      sym->markSkip();
+    }
+    else {
+      sym->addColor(color);
+    }
+  }
+  else if (nm == "left_formula") { // e.g. vampire(left_formula)
+    _currentColor = COLOR_LEFT;
+  }
+  else if (nm == "right_formula") { // e.g. vampire(left_formula)
+    _currentColor = COLOR_RIGHT;
+  }
+  else if (nm == "end_formula") { // e.g. vampire(left_formula)
+    _currentColor = COLOR_TRANSPARENT;
+  }
+  else {
+    USER_ERROR((string)"Unknown vampire directive: "+nm);
+  }
+  consumeToken(T_RPAR);
+  consumeToken(T_DOT);
+} // vampire
 
 #if VDEBUG
 const char* TPTP::toString(State s)
