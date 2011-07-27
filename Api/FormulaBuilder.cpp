@@ -28,9 +28,11 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
-#include "Shell/Parser.hpp"
+#include "Parse/TPTP.hpp"
+
 #include "Shell/SpecialTermElimination.hpp"
 #include "Shell/TPTP.hpp"
+
 
 
 using namespace std;
@@ -1037,7 +1039,7 @@ string AnnotatedFormula::name() const
   CALL("AnnotatedFormula::toString");
 
   string unitName;
-  if(!Parser::findAxiomName(unit, unitName)) {
+  if(!Parse::TPTP::findAxiomName(unit, unitName)) {
     unitName="u" + Int::toString(unit->number());
   }
   return unitName;
@@ -1125,7 +1127,7 @@ void AnnotatedFormula::assignName(AnnotatedFormula& form, string name)
     } while(!usedNames.insert(name));
   }
 
-  Parser::assignAxiomName(form.unit, name);
+  Parse::TPTP::assignAxiomName(form.unit, name);
 }
 
 ///////////////////////

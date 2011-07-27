@@ -244,7 +244,8 @@ public:
   bool containsConjecture() const { return _containsConjecture; }
   void addForbiddenInclude(string file);
   static bool findAxiomName(const Unit* unit, string& result);
-
+  //this function is used also by the API
+  static void assignAxiomName(const Unit* unit, string& name);
 private:
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
@@ -565,7 +566,6 @@ private:
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
   static DHMap<unsigned, string> _axiomNames;
-  static void assignAxiomName(const Unit* unit, string& name);
 
 #if VDEBUG
   void printStates(string extra);

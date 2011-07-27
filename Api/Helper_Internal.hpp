@@ -25,7 +25,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
-#include "Shell/Parser.hpp"
 #include "Shell/TPTP.hpp"
 #include "Shell/VarManager.hpp"
 

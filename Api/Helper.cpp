@@ -5,6 +5,8 @@
 
 #include "Kernel/SortHelper.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "Helper_Internal.hpp"
 
 namespace Api
@@ -309,7 +311,7 @@ string DefaultHelperCore::toString (const Kernel::Unit* unit0) const
   }
 
   string unitName;
-  if(!Parser::findAxiomName(unit, unitName)) {
+  if(!Parse::TPTP::findAxiomName(unit, unitName)) {
     unitName="u" + Int::toString(unit->number());
   }
 

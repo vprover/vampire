@@ -321,13 +321,12 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 	  UnitTests/tFormulaBuilderApi.o\
 	  UnitTests/tITE.o\
 	  UnitTests/tList.o\
+	  UnitTests/tProgramAnalysis.o\
 	  UnitTests/tRatioKeeper.o\
 	  UnitTests/tSCCAnalyzer.o\
 	  UnitTests/tSkipList.o\
 	  UnitTests/tStack.o\
 	  UnitTests/tTwoVampires.o
-#removed just temporarily, until we fix the number representation in analyzer
-#	  UnitTests/tProgramAnalysis.o\
 
 VUTIL_OBJ = VUtils/AnnotationColoring.o\
             VUtils/LocalityRestoring.o\
@@ -462,8 +461,7 @@ OTHER_API_DEP = \
 
 VAMP_DIRS := Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB Rule SAT Saturation Tabulation Test UnitTests VUtils Program Parse
 
-#VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VT_OBJ) $(VPROG_OBJ)  
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VT_OBJ)  
+VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VT_OBJ) $(VPROG_OBJ)  
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o, $(VS_OBJ)) $(PARSE_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(VT_OBJ) $(LIB_DEP)

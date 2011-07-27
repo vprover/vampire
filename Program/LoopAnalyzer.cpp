@@ -303,7 +303,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
    {
     int val = static_cast<ConstantIntegerExpression*>(exp)->value();
     Theory* theory = Theory::instance();
-    TermList var(theory->getRepresentation(val)); 
+    TermList var(theory->representConstant(IntegerConstantType(val)));
     // x01(theory->fun1(Theory::SUCCESSOR,x0));
     return var;
    }
@@ -347,7 +347,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 	   TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
 	   TermList e2Term=expressionToTerm(e2);
 	   Theory* theory = Theory::instance();
-	   TermList fctTerm(theory->fun2(Theory::PLUS,e1Term,e2Term));
+	   TermList fctTerm(theory->fun2(Theory::INT_PLUS,e1Term,e2Term));
 	   return fctTerm;
 	}
       else 
@@ -359,7 +359,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 	      TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
 	      TermList e2Term=expressionToTerm(e2);	   
  	      Theory* theory = Theory::instance();
-	      TermList fctTerm(theory->fun2(Theory::MINUS,e1Term,e2Term)); 
+	      TermList fctTerm(theory->fun2(Theory::INT_MINUS,e1Term,e2Term));
 	      return fctTerm;
 	    }
 	  else 
@@ -371,7 +371,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 		   TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
 		   TermList e2Term=expressionToTerm(e2);		
 		   Theory* theory = Theory::instance();
-		   TermList fctTerm(theory->fun2(Theory::MULTIPLY,e1Term,e2Term));
+		   TermList fctTerm(theory->fun2(Theory::INT_MULTIPLY,e1Term,e2Term));
 		   return fctTerm;
 		 }
 	       else
@@ -381,7 +381,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 		        Expression* e1 = app->getArgument(0);
 			TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
 			Theory* theory = Theory::instance();
-			TermList fctTerm(theory->fun1(Theory::UNARY_MINUS,e1Term));
+			TermList fctTerm(theory->fun1(Theory::INT_UNARY_MINUS,e1Term));
 			return fctTerm;
 		     }
    		  else //undefined/not treated theory function. Extend it to later for uninterpreted fct. 
@@ -727,7 +727,7 @@ void LoopAnalyzer::generateLetExpressions()
 	 TermList x0;
 	 x0.makeVar(0);
 	 // term x0+1 for next iteration
-	 TermList x01(theory->fun1(Theory::SUCCESSOR,x0));
+	 TermList x01(theory->fun1(Theory::INT_SUCCESSOR,x0));
 	 //build term representation for scalars and arrays
 	 if (scalar){
 	   TermList scalarVar(Term::createConstant(varName));
@@ -753,7 +753,7 @@ void LoopAnalyzer::generateLetExpressions()
 	      var = arrayX1;
 	      // term V(x0+1,x1)
 	      Theory* theory = Theory::instance();
-	      TermList x01(theory->fun1(Theory::SUCCESSOR,x0));
+	      TermList x01(theory->fun1(Theory::INT_SUCCESSOR,x0));
 	      TermList arrayX01(Term::create2(varFun2,x01,x1));
 	      varX01=arrayX01;
 	   }
@@ -1307,7 +1307,7 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
    TermList x2;
    x2.makeVar(2);
    Theory* theory = Theory::instance();
-   TermList zero(theory->zero());
+   TermList zero(theory->representConstant(IntegerConstantType(0)));
    // iterate over variables
    Map<Variable*,bool>::Iterator vars(*_loop->variables());
    while (vars.hasNext()) {
@@ -1407,7 +1407,7 @@ void LoopAnalyzer::generateIterationDefinition()
   unsigned iter = env.signature->addPredicate("iter",1);
   Literal* iterPred = Literal::create1(iter,true,x0);
   Theory* theory = Theory::instance();
-  TermList zero(theory->zero());
+  TermList zero(theory->representConstant(IntegerConstantType(0)));
   //0<= X0
   Formula* ineqXZero = new AtomicFormula(theory->pred2(Theory::INT_LESS_EQUAL,true,zero,x0));
   //X0<n
@@ -1511,17 +1511,17 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     Literal* eq;
     if (gcd == 1 || gcd == -1) {
       // c +- x0
-      TermList sum(theory->fun2(gcd == 1 ? Theory::PLUS : Theory::MINUS,c,x0));
+      TermList sum(theory->fun2(gcd == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,c,x0));
       // create c(x0) = c + x_0
       eq = Literal::createEquality(true,cx0,sum);
     }
     else {
       // gcd != 1
       // term gcd*x0
-      TermList c_gcd(theory->getRepresentation(gcd));
-      TermList gcd_x0(theory->fun2(Theory::MULTIPLY,c_gcd,x0));
+      TermList c_gcd(theory->representConstant(IntegerConstantType(gcd)));
+      TermList gcd_x0(theory->fun2(Theory::INT_MULTIPLY,c_gcd,x0));
       // c +- gcd*x0
-      TermList sum(theory->fun2(gcd > 0 ? Theory::PLUS : Theory::MINUS,c,gcd_x0));
+      TermList sum(theory->fun2(gcd > 0 ? Theory::INT_PLUS : Theory::INT_MINUS,c,gcd_x0));
       // create c(x0) = c + gcd*x_0
       eq = Literal::createEquality(true,cx0,sum);
     }
@@ -1539,17 +1539,17 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     _units = _units->cons(cls);
   }
   else if (max == 1 || max == -1) { // c(x0) <= c +- x_0
-    TermList sum(theory->fun2(max == 1 ? Theory::PLUS : Theory::MINUS,c,x0));
+    TermList sum(theory->fun2(max == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,c,x0));
     Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL,true,cx0,sum);
     Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
     _units = _units->cons(cls);
   }
   else {
-    TermList c_max(theory->getRepresentation(max));
-    TermList max_x0(theory->fun2(Theory::MULTIPLY,c_max,x0));
+    TermList c_max(theory->representConstant(IntegerConstantType(max)));
+    TermList max_x0(theory->fun2(Theory::INT_MULTIPLY,c_max,x0));
     // c +- max*x0
-    TermList sum(theory->fun2(max > 0 ? Theory::PLUS : Theory::MINUS,c,max_x0));
+    TermList sum(theory->fun2(max > 0 ? Theory::INT_PLUS : Theory::INT_MINUS,c,max_x0));
     Literal* ineq = theory->pred2(Theory::INT_LESS_EQUAL,true,cx0,sum);
     Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
@@ -1564,17 +1564,17 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     _units = _units->cons(cls);
   }
   else if (min == 1 || min == -1) { // c(x0) >= c +- x_0
-    TermList sum(theory->fun2(min == 1 ? Theory::PLUS : Theory::MINUS,c,x0));
+    TermList sum(theory->fun2(min == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,c,x0));
     Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL,true,cx0,sum);
     Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
     _units = _units->cons(cls);
   }
   else {
-    TermList c_min(theory->getRepresentation(min));
-    TermList min_x0(theory->fun2(Theory::MULTIPLY,c_min,x0));
+    TermList c_min(theory->representConstant(IntegerConstantType(min)));
+    TermList min_x0(theory->fun2(Theory::INT_MULTIPLY,c_min,x0));
     // c +- min*x0
-    TermList sum(theory->fun2(min > 0 ? Theory::PLUS : Theory::MINUS,c,min_x0));
+    TermList sum(theory->fun2(min > 0 ? Theory::INT_PLUS : Theory::INT_MINUS,c,min_x0));
     Literal* ineq = theory->pred2(Theory::INT_GREATER_EQUAL,true,cx0,sum);
     Clause* cls = new(1) Clause(1,Unit::ASSUMPTION,new Inference(Inference::PROGRAM_ANALYSIS));
     (*cls)[0] = ineq;
@@ -1661,7 +1661,7 @@ Term* LoopAnalyzer::relativize(Expression* expr)
     {
       int val = static_cast<ConstantIntegerExpression*>(expr)->value();
       Theory* theory = Theory::instance();
-      return theory->getRepresentation(val);
+      return theory->representConstant(IntegerConstantType(val));
     }
   
   case Expression::VARIABLE:
