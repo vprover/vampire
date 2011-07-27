@@ -289,7 +289,7 @@ void CLTBMode::readInput(istream& in)
 string CLTBProblem::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
 
 CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
-: parent(parent), problemFile(problemFile), outFile(outFile), property(parent->property)
+: parent(parent), problemFile(problemFile), outFile(outFile), property(new Property(*parent->property))
 {
 }
 
@@ -546,7 +546,7 @@ void CLTBProblem::perform()
     TimeCounter tc(TC_PREPROCESSING);
     env.statistics->phase=Statistics::PROPERTY_SCANNING;
 
-    property = Property::scan(probUnits);
+    property->add(probUnits);
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
     //concat with theory axioms
     probUnits=UnitList::concat(probUnits, parent->theoryAxioms);

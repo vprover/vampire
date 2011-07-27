@@ -311,7 +311,18 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
 	  << "\n- " << unit->toString() << "\n- resulting into " << premise->toString() << endl;
     }
 
+#if 1
+    if(!_inliner.tryGetDef(premise, substLhs, resRhs)) {
+      cerr<<"cannot process definition "<<premise->toString()<<endl;
+      cerr<<"coming from "<<unit->toString()<<endl;
+      cerr<<"the original formula was "<<unit->toString()<<endl;
+      cerr<<"definition lhs: "<<substLhs->toString()<<endl;
+      cerr<<"definition rhs: "<<resRhs->toString()<<endl;
+      ASSERTION_VIOLATION;
+    }
+#else
     ALWAYS(_inliner.tryGetDef(premise, substLhs, resRhs));
+#endif
 
     ALWAYS(_replacements.insert(unit0, 0));
     triggerNewDefinitions(substLhs->functor());
