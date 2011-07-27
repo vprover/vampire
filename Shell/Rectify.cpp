@@ -423,7 +423,7 @@ Formula* Rectify::rectify (Formula* f)
     if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
       return f;
     }
-    return new IteFormula(f->connective(), c, t, e);
+    return new IteFormula(c,t,e);
   }
 
   case TERM_LET:
@@ -435,7 +435,7 @@ Formula* Rectify::rectify (Formula* f)
     if(o==f->termLetLhs() && t==f->termLetRhs() && b==f->letBody()) {
       return f;
     }
-    return new TermLetFormula(o, t, b);
+    return new TermLetFormula(o,t,b);
   }
 
   case FORMULA_LET:

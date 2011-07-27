@@ -149,6 +149,10 @@ public:
     T_THF,
     /** anything that begins with $$ */
     T_DOLLARS,
+    /** $itef: if-then-else on formulas */
+    T_ITEF,
+    /** $itet: if-then-else on terms */
+    T_ITET,
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -199,6 +203,14 @@ public:
     SIMPLE_TYPE = 22,
     /** unbinding previously quantified variables */
     UNBIND_VARIABLES = 23,
+    /** if-then-else on formulas */
+    ITEF = 24,
+    /** end of if-then-else on formulas */
+    END_ITEF = 25,
+    /** if-then-else on terms */
+    ITET = 26,
+    /** end of if-then-else on terms */
+    END_ITET = 27,
   };
 
   /** token */
@@ -546,6 +558,11 @@ private:
   void endTff();
   void include();
   void type();
+  void itef();
+  void itet();
+  void endItef();
+  void endItet();
+
   unsigned readSort(bool newSortExpected);
   void bindVariable(int var,unsigned sortNumber);
   void unbindVariables();

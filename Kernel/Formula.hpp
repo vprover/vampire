@@ -283,13 +283,12 @@ class IteFormula
   : public Formula
 {
  public:
-  IteFormula (Connective con, Formula* condarg, Formula* thenarg, Formula* elsearg)
-    : Formula(con),
+  IteFormula(Formula* condarg, Formula* thenarg, Formula* elsearg)
+    : Formula(ITE),
       _condarg(condarg),
       _thenarg(thenarg),
       _elsearg(elsearg)
   {
-    ASS(con == ITE);
   }
 
   /** Return the subformula serving as the condition */

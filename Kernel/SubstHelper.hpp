@@ -508,7 +508,7 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
     if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
       return f;
     }
-    return new IteFormula(f->connective(), c, t, e);
+    return new IteFormula(c,t,e);
   }
 
   case TERM_LET:

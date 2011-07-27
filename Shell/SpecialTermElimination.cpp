@@ -373,7 +373,7 @@ Formula* SpecialTermElimination::process(Formula* f)
     if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
       return f;
     }
-    return new IteFormula(f->connective(), c, t, e);
+    return new IteFormula(c,t,e);
   }
 
   case TERM_LET:
@@ -461,7 +461,7 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
   Literal* eqThen = Literal::createEquality(true, func, z1);
   Literal* eqElse = Literal::createEquality(true, func, z2);
 
-  Formula* def = new IteFormula(ITE, condition, new AtomicFormula(eqThen), new AtomicFormula(eqElse));
+  Formula* def = new IteFormula(condition, new AtomicFormula(eqThen), new AtomicFormula(eqElse));
   FormulaUnit* defUnit = new FormulaUnit(def, new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION), Unit::AXIOM);
   UnitList::push(defUnit, _defs);
 

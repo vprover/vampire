@@ -162,7 +162,7 @@ PredicateDefinition::~PredicateDefinition()
 void PredicateDefinition::addBuiltInPredicate(unsigned pred)
 {
   CALL("PredicateDefinition::addBuiltInPredicate");
-  ASS_L(pred, _predCnt);
+  ASS_L((int)pred,_predCnt);
 
   _preds[pred].builtIn = true;
 }

@@ -155,6 +155,18 @@ void TPTP::parse()
     case VAMPIRE:
       vampire();
       break;
+    case ITEF:
+      itef();
+      break;
+    // case ITET:
+    //   itet();
+    //   break;
+    case END_ITEF:
+      endItef();
+      break;
+    // case END_ITET:
+    //   endItet();
+    //   break;
     default:
 #if VDEBUG
       cout << "Don't know how to process state " << toString(s) << "\n";
@@ -278,6 +290,10 @@ string TPTP::toString(Tag tag)
     return "$tff";
   case T_THF:
     return "$thf";
+  case T_ITET:
+    return "$itet";
+  case T_ITEF:
+    return "$itef";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -793,6 +809,12 @@ void TPTP::readReserved(Token& tok)
   else if (tok.content == "$false") {
     tok.tag = T_FALSE;
   }
+  else if (tok.content == "$itef") {
+    tok.tag = T_ITEF;
+  }
+  else if (tok.content == "$itet" || tok.content == "$itetf" || tok.content == "$itett") {
+    tok.tag = T_ITET;
+  }
   else if (tok.content == "$tType") {
     tok.tag = T_TTYPE;
   }
@@ -1272,7 +1294,44 @@ void TPTP::tff()
   consumeToken(T_COMMA);
   _states.push(END_FOF);
   _states.push(FORMULA);
-} // fof()
+} // tff()
+
+/**
+ * Process $itef declaration
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::itef()
+{
+  CALL("TPTP::itef");
+
+  resetToks();
+  consumeToken(T_LPAR);
+
+  _states.push(END_ITEF);
+  _states.push(FORMULA);
+  _states.push(TAG);
+  _tags.push(T_COMMA);
+  _states.push(FORMULA);
+  _states.push(TAG);
+  _tags.push(T_COMMA);
+  _states.push(FORMULA);
+} // itef()
+
+/**
+ * Process the end of the itef() formula
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::endItef()
+{
+  CALL("TPTP::endItef");
+
+  consumeToken(T_RPAR);
+  Formula* f3 = _formulas.pop();
+  Formula* f2 = _formulas.pop();
+  Formula* f1 = _formulas.pop();
+
+  _formulas.push(new IteFormula(f1,f2,f3));
+} // endItef
 
 /**
  * Process include() declaration
@@ -2297,6 +2356,10 @@ void TPTP::simpleFormula()
     _states.push(ATOM);
     return;
 
+  case T_ITEF:
+    _states.push(ITEF);
+    return;
+
   default:
     throw Exception("formula expected",tok);
   }
@@ -2934,6 +2997,14 @@ const char* TPTP::toString(State s)
     return "END_TYPE";
   case SIMPLE_TYPE:
     return "SIMPLE_TYPE";
+  case ITEF:
+    return "ITEF";
+  case ITET:
+    return "ITET";
+  case END_ITEF:
+    return "END_ITEF";
+  case END_ITET:
+    return "END_ITET";
   default:
     cout << (int)s << "\n";
     ASS(false);

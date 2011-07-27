@@ -124,7 +124,7 @@ Formula* Flattening::flatten (Formula* f)
       if (c == f->condArg() && t == f->thenArg() && e == f->elseArg()) {
 	return f;
       }
-      return new IteFormula(con,c,t,e);
+      return new IteFormula(c,t,e);
     }
 
 #if VDEBUG
