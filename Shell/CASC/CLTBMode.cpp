@@ -722,6 +722,9 @@ void CLTBProblem::waitForChildAndExitWhenProofFound()
 
   int resValue;
   pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+  if(finishedChild==writerChildPid) {
+    finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+  }
 #if VDEBUG
   ALWAYS(childIds.remove(finishedChild));
 #endif
