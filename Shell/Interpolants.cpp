@@ -275,7 +275,7 @@ void generateInterpolant(ItemState& st)
   Formula* interpolant;
   Formula* unitFormula=u->getFormula(st.us().prop());
 
-  cout	<<"\n unitFormula: "<<unitFormula->toString();
+  // cout	<<"\n unitFormula: "<<unitFormula->toString();
 
   if(st.parCnt) {
     //interpolants from refutation proof with at least one inference (there are premises, i.e. parents)
