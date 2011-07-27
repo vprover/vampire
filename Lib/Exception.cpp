@@ -6,6 +6,8 @@
 
 #include <string.h>
 
+#include "Debug/Log.hpp"
+
 #include "Int.hpp"
 
 #include "Exception.hpp"
@@ -47,7 +49,11 @@ void InvalidOperationException::cry (ostream& str)
 
 SystemFailException::SystemFailException(const string msg, int err)
 : Exception(msg+" error "+Int::toString(err)+": "+strerror(err)), err(err)
-{}
+{
+#if VDEBUG
+  LOGS("system fail exception thrown");
+#endif
+}
 /**
  * Write a description of the exception to a stream.
  */
