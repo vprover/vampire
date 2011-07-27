@@ -115,8 +115,13 @@ void CLTBMode::perform(istream& batchFile)
     env.out()<<"solver pid "<<child<<endl;
     env.endOutput();
     int resValue;
-    pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
-    ASS_EQ(finishedChild, child);
+    try {
+      pid_t finishedChild=Multiprocessing::instance()->waitForChildTermination(resValue);
+      ASS_EQ(finishedChild, child);
+    } catch(SystemFailException& ex) {
+      cerr << "SystemFailException at batch level" << endl;
+      ex.cry(cerr);
+    }
 
     env.beginOutput();
     if(!resValue) {
