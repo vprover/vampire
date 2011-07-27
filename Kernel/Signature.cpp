@@ -376,8 +376,15 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   }
   string name;
   switch(interp) {
+  case Theory::INT_SUCCESSOR:
+    //this one is not according the TPTP arithmetic (it doesn't have successor)
+    name="$successor";
+    break;
   case Theory::INT_DIVIDE:
-    name="/";
+  case Theory::RAT_DIVIDE:
+  case Theory::REAL_DIVIDE:
+    //this one is not according the TPTP arithmetic (it doesn't have division)
+    name="$divide";
     break;
   case Theory::INT_UNARY_MINUS:
   case Theory::RAT_UNARY_MINUS:
