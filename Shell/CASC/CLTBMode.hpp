@@ -80,23 +80,20 @@ public:
 
   void perform() __attribute__((noreturn));
 private:
+  typedef Set<string> StrategySet;
+  typedef Stack<string> Schedule;
+  bool runSchedule(Schedule&,StrategySet& remember,bool fallback);
+  unsigned getSliceTime(string sliceCode,string& chopped);
 
   void performStrategy();
-
   void waitForChildAndExitWhenProofFound();
-
   void exitOnNoSuccess() __attribute__((noreturn));
-
-  bool runSchedule(const char** sliceCodes);
 
   static ofstream* writerFileStream;
   static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
   void runWriterChild() __attribute__((noreturn));
-
   void runChild(string slice, unsigned ds) __attribute__((noreturn));
   void runChild(Options& opt) __attribute__((noreturn));
-
-  unsigned getSliceTime(string sliceCode);
 
   static string problemFinishedString;
 
@@ -109,7 +106,7 @@ private:
   string outFile;
 
   UnitList* probUnits;
-  Property property;
+  Property* property;
 
   pid_t writerChildPid;
   /** pipe for collecting the output from children */
