@@ -213,7 +213,7 @@ Formula* Interpolants::getInterpolant(Unit* unit)
     sts.push(st);
 
     for(;;) {
-      if(sts.top().pars.hasNext()) {
+     if(sts.top().pars.hasNext()) {
         curr=sts.top().pars.next();
         break;
       }
@@ -242,6 +242,8 @@ Formula* Interpolants::getInterpolant(Unit* unit)
         }
       } 
       else {
+	//empty sts (so refutation) with clause st justified by A or B (st is false). 
+	//interpolant was already generated in st.interpolant
 	//we have now the interpolant for refutation
         resultInterpolant = st.interpolant;
         goto fin;
@@ -273,7 +275,10 @@ void generateInterpolant(ItemState& st)
   Formula* interpolant;
   Formula* unitFormula=u->getFormula(st.us().prop());
 
+  cout	<<"\n unitFormula: "<<unitFormula->toString();
+
   if(st.parCnt) {
+    //interpolants from refutation proof with at least one inference (there are premises, i.e. parents)
     FormulaList* conj=0;
     List<UIPair>* src= (st.inheritedColor==COLOR_LEFT) //source of relevant parent interpolants
         ? st.rightInts
@@ -306,11 +311,11 @@ void generateInterpolant(ItemState& st)
   else {
     //trivial interpolants (when there are no premises)
     if(st.inheritedColor==COLOR_RIGHT) {
-      interpolant=new NegatedFormula(unitFormula);
+      interpolant=new NegatedFormula(unitFormula); //this is for TRUE interpolant if the unitFormula is False
     }
     else {
       //a formula coming from left or a refutation
-      interpolant=unitFormula;
+      interpolant=unitFormula; //this is for FALSE interpolant if the unitFormula is False
     }
   }
   st.interpolant=interpolant;

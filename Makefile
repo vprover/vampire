@@ -322,6 +322,7 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 	  UnitTests/tITE.o\
 	  UnitTests/tList.o\
 	  UnitTests/tProgramAnalysis.o\
+	  UnitTests/tProgramAnalysisCopy.o\
 	  UnitTests/tRatioKeeper.o\
 	  UnitTests/tSCCAnalyzer.o\
 	  UnitTests/tSkipList.o\
