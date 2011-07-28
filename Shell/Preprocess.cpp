@@ -122,7 +122,7 @@ void Preprocess::preprocess (UnitList*& units)
   }
 
   if(_property.hasInterpretedOperations()) {
-    InterpretedNormalizer(_property).apply(units);
+    InterpretedNormalizer(&_property).apply(units);
     env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
     TheoryAxioms().apply(units, &_property);
   }

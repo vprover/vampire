@@ -18,7 +18,7 @@ using namespace Kernel;
 
 class InterpretedNormalizer {
 public:
-  InterpretedNormalizer(Property& prop);
+  InterpretedNormalizer(Property* prop=0);
   ~InterpretedNormalizer();
 
   Clause* apply(Clause* cl);
@@ -26,6 +26,7 @@ public:
 
 private:
   class FunctionTranslator;
+  class SuccessorTranslator;
   class BinaryMinusTranslator;
 
   class IneqTranslator;

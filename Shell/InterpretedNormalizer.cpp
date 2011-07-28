@@ -35,6 +35,40 @@ public:
 /**
  * Class for transforming terms (t-u) into (t+(-u))
  */
+class InterpretedNormalizer::SuccessorTranslator : public FunctionTranslator
+{
+public:
+  SuccessorTranslator()
+  {
+    CALL("InterpretedNormalizer::BinaryMinusTranslator::BinaryMinusTranslator");
+
+    _succFun = env.signature->getInterpretingSymbol(Theory::INT_SUCCESSOR);
+    _plusFun = env.signature->getInterpretingSymbol(Theory::INT_PLUS);
+    _one = TermList(theory->representConstant(IntegerConstantType(1)));
+  }
+
+  virtual TermList translate(Term* trm)
+  {
+    CALL("InterpretedNormalizer::BinaryMinusTranslator::translate");
+    ASS_EQ(trm->functor(), _succFun);
+
+    TermList arg = *trm->nthArgument(0);
+    TermList res(Term::create2(_plusFun, arg, _one));
+    return res;
+  }
+
+  /** Function that is being rewritten by this object */
+  unsigned srcFunc() const { return _succFun; }
+private:
+
+  unsigned _succFun;
+  unsigned _plusFun;
+  TermList _one;
+};
+
+/**
+ * Class for transforming terms (t-u) into (t+(-u))
+ */
 class InterpretedNormalizer::BinaryMinusTranslator : public FunctionTranslator
 {
 public:
@@ -113,7 +147,7 @@ private:
 class InterpretedNormalizer::NLiteralTransformer : private TermTransformer
 {
 public:
-  NLiteralTransformer(Property& prop)
+  NLiteralTransformer(Property* prop)
   : _ineqTransls(env.signature->predicates()),
     _fnTransfs(env.signature->functions()),
     _prop(prop)
@@ -135,6 +169,8 @@ public:
     addMinusTransformer(Theory::INT_MINUS, Theory::INT_PLUS, Theory::INT_UNARY_MINUS);
     addMinusTransformer(Theory::RAT_MINUS, Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS);
     addMinusTransformer(Theory::REAL_MINUS, Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS);
+
+    addSuccessorTransformer();
   }
 
   void apply(Literal* lit, bool& constantRes, Literal*& litRes, bool& boolRes)
@@ -157,7 +193,9 @@ public:
     if(transl) {
       litRes = transl->apply(litRes);
     }
-    _prop.scanForInterpreted(litRes);
+    if(_prop) {
+      _prop->scanForInterpreted(litRes);
+    }
   }
 protected:
   using TermTransformer::transform;
@@ -201,6 +239,22 @@ private:
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     BinaryMinusTranslator* transl = new BinaryMinusTranslator(bMinus, plus, uMinus);
+    unsigned func = transl->srcFunc();
+    ASS(!_fnTransfs[func])
+    _fnTransfs[func] = transl;
+  }
+
+  /**
+   * Ensure the INT_SUCCESSOR operation is rewritten to X+1
+   */
+  void addSuccessorTransformer()
+  {
+    CALL("InterpretedNormalizer::NLiteralTransformer::addMinusTransformer");
+
+    if(!env.signature->haveInterpretingSymbol(Theory::INT_SUCCESSOR)) {
+      return; //the symbol to be transformed doesn't exist, so we don't need to worry
+    }
+    SuccessorTranslator* transl = new SuccessorTranslator();
     unsigned func = transl->srcFunc();
     ASS(!_fnTransfs[func])
     _fnTransfs[func] = transl;
@@ -251,8 +305,9 @@ private:
   /** inequality translators at positions of their predicate numbers */
   DArray<ScopedPtr<FunctionTranslator> > _fnTransfs;
 
-  /** Problem property to be updated with newly added interpreted symbols */
-  Property& _prop;
+  /** Problem property to be updated with newly added interpreted symbols
+   * Can be zero, in that case nothing is updated*/
+  Property* _prop;
 };
 
 /**
@@ -293,7 +348,7 @@ private:
 // InterpretedNormalizer
 //
 
-InterpretedNormalizer::InterpretedNormalizer(Property& prop)
+InterpretedNormalizer::InterpretedNormalizer(Property* prop)
 {
   CALL("InterpretedNormalizer::InterpretedNormalizer");
 

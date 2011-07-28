@@ -40,6 +40,12 @@ Formula* FormulaTransformer::apply(Formula* f)
     return applyForAll(f);
   case EXISTS:
     return applyExists(f);
+  case ITE:
+    return applyIte(f);
+  case TERM_LET:
+    return applyTermLet(f);
+  case FORMULA_LET:
+    return applyFormulaLet(f);
 
   case TRUE:
   case FALSE:
@@ -107,6 +113,47 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
   }
   return new QuantifiedFormula(f->connective(), f->vars(), newArg);
 }
+
+
+Formula* FormulaTransformer::applyIte(Formula* f)
+{
+  CALL("FormulaTransformer::applyIte");
+  ASS_EQ(f->connective(), ITE);
+
+  Formula* newCond = apply(f->condArg());
+  Formula* newThen = apply(f->thenArg());
+  Formula* newElse = apply(f->elseArg());
+  if(newCond==f->condArg() && newThen==f->thenArg() && newElse==f->elseArg()) {
+    return f;
+  }
+  return new IteFormula(newCond, newThen, newElse);
+}
+
+Formula* FormulaTransformer::applyTermLet(Formula* f)
+{
+  CALL("FormulaTransformer::applyTermLet");
+  ASS_EQ(f->connective(), TERM_LET);
+
+  Formula* newBody = apply(f->letBody());
+  if(newBody==f->letBody()) {
+    return f;
+  }
+  return new TermLetFormula(f->termLetLhs(), f->termLetRhs(), newBody);
+}
+
+Formula* FormulaTransformer::applyFormulaLet(Formula* f)
+{
+  CALL("FormulaTransformer::applyFormulaLet");
+  ASS_EQ(f->connective(), FORMULA_LET);
+
+  Formula* newBody = apply(f->letBody());
+  Formula* newRhs = apply(f->formulaLetRhs());
+  if(newBody==f->letBody() && newRhs==f->formulaLetRhs()) {
+    return f;
+  }
+  return new FormulaLetFormula(f->formulaLetLhs(), newRhs, newBody);
+}
+
 
 ///////////////////////////////////////
 // TermTransformingFormulaTransformer
@@ -197,6 +244,39 @@ Formula* PolarityAwareFormulaTransformer::applyBinary(Formula* f)
   return FormulaTransformer::applyBinary(f);
 }
 
+Formula* PolarityAwareFormulaTransformer::applyIte(Formula* f)
+{
+  CALL("PolarityAwareFormulaTransformer::applyIte");
+  ASS_EQ(f->connective(), ITE);
+
+  Formula* newCond;
+  {
+    ScopedLet<int> plet(_polarity, 0);
+    newCond = apply(f->condArg());
+  }
+  Formula* newThen = apply(f->thenArg());
+  Formula* newElse = apply(f->elseArg());
+  if(newCond==f->condArg() && newThen==f->thenArg() && newElse==f->elseArg()) {
+    return f;
+  }
+  return new IteFormula(newCond, newThen, newElse);
+}
+
+Formula* PolarityAwareFormulaTransformer::applyFormulaLet(Formula* f)
+{
+  CALL("PolarityAwareFormulaTransformer::applyFormulaLet");
+
+  Formula* newBody = apply(f->letBody());
+  Formula* newRhs;
+  {
+    ScopedLet<int> plet(_polarity, 0);
+    newRhs = apply(f->formulaLetRhs());
+  }
+  if(newBody==f->letBody() && newRhs==f->formulaLetRhs()) {
+    return f;
+  }
+  return new FormulaLetFormula(f->formulaLetLhs(), newRhs, newBody);
+}
 
 ///////////////////////////
 // FormulaUnitTransformer

@@ -319,6 +319,7 @@ VUT_OBJ = UnitTests/tBinaryHeap.o\
 	  UnitTests/tDynamicHeap.o\
 	  UnitTests/tfork.o\
 	  UnitTests/tFormulaBuilderApi.o\
+	  UnitTests/tInterpretedNormalizer.o\
 	  UnitTests/tITE.o\
 	  UnitTests/tList.o\
 	  UnitTests/tProgramAnalysis.o\

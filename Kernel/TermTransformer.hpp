@@ -12,6 +12,16 @@
 
 namespace Kernel {
 
+/**
+ * Class to allow for easy transformations of subterms in shared literals.
+ *
+ * The inheriting class implemets function transform(TermList)
+ * and then the function transform(Literal*) uses it to transform subterms
+ * of the given literal.
+ *
+ * The literal and subterms returned by the transform(TermList) function have
+ * to be shared.
+ */
 class TermTransformer {
 public:
   Literal* transform(Literal* lit);
