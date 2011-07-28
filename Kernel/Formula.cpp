@@ -299,8 +299,8 @@ string Formula::toString () const
     }
 
   case ITE:
-    return condArg()->toStringInScopeOf(c) + " ? " + thenArg()->toStringInScopeOf(c) + " : " +
-           elseArg()->toStringInScopeOf(c);
+    return "$itef(" + condArg()->toStringInScopeOf(c) + "," + thenArg()->toStringInScopeOf(c) + "," +
+           elseArg()->toStringInScopeOf(c) + ")";
 
   case FORMULA_LET:
     return "let "+formulaLetLhs()->toString() + " := " + formulaLetRhs()->toStringInScopeOf(c) +

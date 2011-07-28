@@ -353,10 +353,10 @@ string Term::specialTermToString() const
   case SF_TERM_ITE:
   {
     ASS_EQ(arity(),2);
-    string s = "( " + getSpecialData()->getCondition()->toString();
-    s += " ? " + nthArgument(0)->toString();
-    s += " : " + nthArgument(1)->toString();
-    s += " )";
+    string s = "$itet(" + getSpecialData()->getCondition()->toString();
+    s += "," + nthArgument(0)->toString();
+    s += "," + nthArgument(1)->toString();
+    s += ")";
     return s;
   }
   }
