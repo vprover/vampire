@@ -279,11 +279,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
 
 PARSE_OBJ = Parse/TPTP.o
 
-VRULE_OBJ = Rule/Index.o\
-            Rule/CASC.o\
-            Rule/Prolog.o\
-            Rule/ProofAttempt.o
-
 LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Selector.o\
           Shell/LTB/Storage.o
@@ -463,7 +458,7 @@ OTHER_API_DEP = \
 	   Parse/TPTP.o\
 	   ClausifierDependencyFix.o
 
-VAMP_DIRS := Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB Rule SAT Saturation Tabulation Test UnitTests VUtils Program Parse
+VAMP_DIRS := Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test UnitTests VUtils Program Parse
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VT_OBJ) $(VPROG_OBJ)  
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
