@@ -585,10 +585,12 @@ private:
   void itet();
   void endItef();
   void endItet();
-  void endLettt();
   void letff();
+  void lettf();
   void endLetff();
   void endLetft();
+  void endLettf();
+  void endLettt();
   void addTagState(Tag);
   static void checkFlat(const TermList& t);
   static void checkFlat(const Term* t);

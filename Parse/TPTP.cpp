@@ -170,17 +170,23 @@ void TPTP::parse()
     case END_ITET:
       endItet();
       break;
-    case END_LETTT:
-      endLettt();
-      break;
     case LETFF:
       letff();
       break;
-    case END_LETFF:
-      endLetff();
+    case LETTF:
+      lettf();
+      break;
+    case END_LETTT:
+      endLettt();
       break;
     case END_LETFT:
       endLetft();
+      break;
+    case END_LETTF:
+      endLettf();
+      break;
+    case END_LETFF:
+      endLetff();
       break;
     default:
 #if VDEBUG
@@ -1372,6 +1378,26 @@ void TPTP::letff()
 } // letff()
 
 /**
+ * Process $lettf declaration
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::lettf()
+{
+  CALL("TPTP::lettf");
+
+  resetToks();
+  consumeToken(T_LPAR);
+
+  _states.push(END_LETTF);
+  addTagState(T_RPAR);
+  _states.push(FORMULA);
+  addTagState(T_COMMA);
+  _states.push(TERM);
+  addTagState(T_COMMA);
+  _states.push(TERM);
+} // lettf()
+
+/**
  * Process the end of the itef() formula
  * @since 27/07/2011 Manchester
  */
@@ -1403,6 +1429,22 @@ void TPTP::endLetff()
   checkFlat(f1->literal());
   _formulas.push(new FormulaLetFormula(f1->literal(),f2,f3));
 } // endLetff
+
+/**
+ * Process the end of the lettf() formula
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::endLettf()
+{
+  CALL("TPTP::endLettf");
+
+  Formula* f = _formulas.pop();
+  TermList t2 = _termLists.pop();
+  TermList t1 = _termLists.pop();
+
+  checkFlat(t1);
+  _formulas.push(new TermLetFormula(t1,t2,f));
+} // endLettf
 
 /**
  * Process the end of the letft() formula
