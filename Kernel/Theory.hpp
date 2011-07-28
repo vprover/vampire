@@ -249,6 +249,7 @@ public:
 
   static Theory* instance();
 
+  bool isInterpretedConstant(unsigned func);
   bool isInterpretedConstant(Term* t);
   bool isInterpretedConstant(TermList t);
 

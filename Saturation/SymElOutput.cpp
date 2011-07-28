@@ -142,18 +142,14 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
   }
   env.out()<<" symbol elimination"<<endl;
 
-  string cname="inv"+_symElNextClauseNumber;
+  string cname = "inv"+Int::toString(_symElNextClauseNumber);
   while(env.signature->isPredicateName(cname, 0)) {
     _symElNextClauseNumber++;
-    cname="inv"+_symElNextClauseNumber;
+    cname = "inv"+Int::toString(_symElNextClauseNumber);
   }
 
-  env.out()<<"fof(inv"<<_symElNextClauseNumber<<", claim, ( ";
-  env.out()<<c->nonPropToString();
-  if(c->prop() && !BDD::instance()->isFalse(c->prop())) {
-    env.out()<<" | "<<BDD::instance()->toTPTPString(c->prop());
-  }
-  env.out()<<" ) )."<<endl;
+  _printer.printAsClaim(cname, c);
+
   BDD::instance()->allowDefinitionOutput(true);
   _symElNextClauseNumber++;
 

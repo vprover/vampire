@@ -28,6 +28,7 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
   LOGV(cl->toString());
   static LiteralStack lits;
   static Stack<Unit*> prems;
+  prems.reset();
   lits.reset();
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
@@ -55,7 +56,13 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
   prems.push(cl);
   UnitList* premLst = 0;
   UnitList::pushFromIterator(Stack<Unit*>::Iterator(prems), premLst);
-  Inference* inf = new InferenceMany(Inference::DISTINCT_EQUALITY_REMOVAL, premLst);
+  Inference* inf;
+  if(premLst) {
+    inf = new InferenceMany(Inference::DISTINCT_EQUALITY_REMOVAL, premLst);
+  }
+  else {
+    inf = new Inference(Inference::DISTINCT_EQUALITY_REMOVAL);
+  }
   Unit::InputType inpType = cl->inputType();
   return Clause::fromStack(lits, inpType, inf);
 }

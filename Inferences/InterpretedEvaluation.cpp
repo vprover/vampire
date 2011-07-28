@@ -499,9 +499,6 @@ public:
     _evals.push(new RealEvaluator());
     _evals.push(new ConversionEvaluator());
 
-    unsigned funs = env.signature->predicates();
-    unsigned preds = env.signature->predicates();
-
     _funEvaluators.ensure(0);
     _predEvaluators.ensure(0);
 

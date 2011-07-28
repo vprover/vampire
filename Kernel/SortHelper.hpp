@@ -25,6 +25,7 @@ public:
   static unsigned getVariableSort(TermList var, Term* t);
   static unsigned getTermSort(TermList trm, Literal* lit);
 
+  static void collectVariableSorts(Unit* u, DHMap<unsigned,unsigned>& map);
   static void collectVariableSorts(Term* t, DHMap<unsigned,unsigned>& map);
   static void collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map);
 

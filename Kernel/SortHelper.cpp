@@ -6,6 +6,7 @@
 #include "Lib/Environment.hpp"
 
 #include "Clause.hpp"
+#include "FormulaUnit.hpp"
 #include "Signature.hpp"
 #include "Sorts.hpp"
 #include "SubformulaIterator.hpp"
@@ -140,6 +141,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, unsigned& res)
  * Insert variable sorts from @c t0 into @c map. If a variable
  * is in map already (or appears multiple times), assert that
  * the sorts are equal.
+ * @c t0 can be either term or literal.
  */
 void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
 {
@@ -195,6 +197,7 @@ void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,unsigned>& map)
 void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
 {
   CALL("SortHelper::collectVariableSorts(Formula*,...)");
+  LOG("collection variable sorts for formula " << f->toString());
 
   LOGV(f->toString());
   SubformulaIterator sfit(f);
@@ -207,6 +210,31 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map)
     Literal* lit = sf->literal();
 
     collectVariableSorts(lit, map);
+  }
+}
+
+/**
+ * Insert variable sorts from @c u into @c map. If a variable
+ * is in map already (or appears multiple times), assert that
+ * the sorts are equal.
+ */
+void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,unsigned>& map)
+{
+  CALL("SortHelper::collectVariableSorts(Unit*,...)");
+
+  LOG("collection variable sorts for unit " << u->toString());
+
+  if(!u->isClause()) {
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    collectVariableSorts(fu->formula(), map);
+    return;
+  }
+
+  Clause* cl = static_cast<Clause*>(u);
+  Clause::Iterator cit(*cl);
+  while(cit.hasNext()) {
+    Literal* l = cit.next();
+    collectVariableSorts(l, map);
   }
 }
 

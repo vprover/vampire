@@ -835,6 +835,17 @@ BaseType* Theory::getOperationType(Interpretation i)
   return BaseType::makeType(arity, domainSorts.array(), resSort);
 }
 
+bool Theory::isInterpretedConstant(unsigned func)
+{
+  CALL("Theory::isInterpretedConstant");
+
+  if(func>=Term::SPECIAL_FUNCTOR_LOWER_BOUND) {
+    return false;
+  }
+
+  return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)==0;
+}
+
 /**
  * Return true iff @b t is an interpreted constant
  */

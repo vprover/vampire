@@ -10,10 +10,13 @@
 
 #include "Lib/DHMap.hpp"
 
+#include "Shell/TPTPPrinter.hpp"
+
 namespace Saturation {
 
 using namespace Lib;
 using namespace Kernel;
+using namespace Shell;
 
 /**
  * The @b SymElOutput object takes care of the output of
@@ -63,6 +66,8 @@ private:
 
 
   SaturationAlgorithm* _sa;
+
+  TPTPPrinter _printer;
 };
 
 }
