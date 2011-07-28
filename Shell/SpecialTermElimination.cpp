@@ -116,6 +116,8 @@ FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu0)
   if(fu0->included()) {
     res->markIncluded();
   }
+//  LOGV(fu0->toString());
+//  LOGV(res->toString());
   return res;
 }
 

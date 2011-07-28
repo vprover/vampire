@@ -39,14 +39,21 @@ public:
   int next();
 
 private:
+  void countFormulaLetLhsVars(const Formula* f, bool inc);
+  void countTermLetLhsVars(const Term* t, bool inc);
+  bool suggestNextVar(unsigned var);
+  bool processSpecialTerm(const TermList* t);
+
   /** instruction of what to process next */
   enum Instruction {
     /** process formula */
     FVI_FORMULA,
     /** process term */
     FVI_TERM,
-    /** unbind variables bound by the quantifier in a quantified formula */
-    FVI_UNBIND
+    /** unbind variables bound by quantifier or formula let*/
+    FVI_UNBIND,
+    /** unbind variables bound by term let */
+    FVI_UNBIND_TERM_LET
   }; //
 
   /** If true then _nextVar contains the next variable   */

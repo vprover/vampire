@@ -13,6 +13,7 @@
 #include "FormulaVarIterator.hpp"
 #include "Formula.hpp"
 #include "Term.hpp"
+#include "TermIterators.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -117,8 +118,29 @@ bool FormulaVarIterator::hasNext()
 
 	case FORMULA_LET:
 	case TERM_LET:
-	  //these connectives should be eliminated before we get to this code
-	  ASSERTION_VIOLATION;
+	{
+	  _instructions.push(FVI_FORMULA);
+	  _formulas.push(f->letBody());
+	  _instructions.push(FVI_UNBIND);
+	  _formulas.push(f);
+	  countFormulaLetLhsVars(f, true);
+	  if(f->connective()==FORMULA_LET) {
+	    _instructions.push(FVI_FORMULA);
+	    _formulas.push(f->formulaLetRhs());
+	  }
+	  else {
+	    TermList rhs = f->termLetRhs();
+	    if(rhs.isTerm()) {
+	      _instructions.push(FVI_TERM);
+	      _terms.push(rhs.term()->args());
+	    }
+	    else {
+	      if(suggestNextVar(rhs.var())) {
+		return true;
+	      }
+	    }
+	  }
+	}
 	}
       }
       break;
@@ -130,24 +152,44 @@ bool FormulaVarIterator::hasNext()
 	_terms.push(ts->next());
 	if (ts->isVar()) {
 	  unsigned v = ts->var();
-	  if (_free.get(v)) continue;
-	  if (_bound.get(v)) continue;
-	  _nextVar = v;
-	  _found = true;
-	  _free.inc(v);
-	  return true;
+	  if(suggestNextVar(v)) {
+	    return true;
+	  }
 	}
-	_instructions.push(FVI_TERM);
-	_terms.push(ts->term()->args());
+	else {
+	  const Term* trm = ts->term();
+	  if(trm->isSpecial()) {
+	    if(processSpecialTerm(ts)) {
+	      return true;
+	    }
+	  }
+	  else {
+	    _instructions.push(FVI_TERM);
+	    _terms.push(trm->args());
+	  }
+	}
       }
       break;
     case FVI_UNBIND:
       {
 	const Formula* f = _formulas.pop();
-	IntList::Iterator vs(f->vars());
-	while (vs.hasNext()) {
-	  _bound.dec(vs.next());
+	Connective con = f->connective();
+	if(con==FORMULA_LET || con==TERM_LET) {
+	  countFormulaLetLhsVars(f, false);
 	}
+	else {
+	  ASS(con==EXISTS || con==FORALL)
+	  IntList::Iterator vs(f->vars());
+	  while (vs.hasNext()) {
+	    _bound.dec(vs.next());
+	  }
+	}
+      }
+      break;
+    case FVI_UNBIND_TERM_LET:
+      {
+	const TermList* t = _terms.pop();
+	countTermLetLhsVars(t->term(), false);
       }
       break;
     }
@@ -155,5 +197,128 @@ bool FormulaVarIterator::hasNext()
   return false;
 } // FormulaVarIterator::hasNext
 
+/**
+ * Process special term @c ts. If variable acceptable as the next variable
+ * returned by the iterator is found, make it the next variable and return
+ * true. Otherwise return false.
+ */
+bool FormulaVarIterator::processSpecialTerm(const TermList* ts)
+{
+  CALL("FormulaVarIterator::processSpecialTerm");
 
+  const Term* t = ts->term();
+  ASS(t->isSpecial())
 
+  const Term::SpecialTermData* sd = t->getSpecialData();
+  if(t->functor()==Term::SF_TERM_ITE) {
+    _instructions.push(FVI_FORMULA);
+    _formulas.push(sd->getCondition());
+    _instructions.push(FVI_TERM);
+    _terms.push(t->args());
+  }
+  else {
+    _instructions.push(FVI_TERM);
+    _terms.push(t->args());
+    _instructions.push(FVI_UNBIND_TERM_LET);
+    _terms.push(ts);
+    countTermLetLhsVars(t, true);
+    if(t->functor()==Term::SF_LET_FORMULA_IN_TERM) {
+      _instructions.push(FVI_FORMULA);
+      _formulas.push(sd->getRhsFormula());
+    }
+    else {
+      TermList rhs = sd->getRhsTerm();
+      if(rhs.isTerm()) {
+	_instructions.push(FVI_TERM);
+	_terms.push(rhs.term()->args());
+      }
+      else {
+	if(suggestNextVar(rhs.var())) {
+	  return true;
+	}
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * If variable @c v is acceptable as the next variable returned by the iterator,
+ * make it the next variable and return true. Otherwise return false.
+ */
+bool FormulaVarIterator::suggestNextVar(unsigned v)
+{
+  CALL("FormulaVarIterator::suggestNextVar");
+
+  if (_free.get(v)) return false;
+  if (_bound.get(v)) return false;
+  _nextVar = v;
+  _found = true;
+  _free.inc(v);
+  return true;
+}
+
+/**
+ * Add or remove (based on the last arg) variables of LHS of
+ * let formula @c f.
+ */
+void FormulaVarIterator::countFormulaLetLhsVars(const Formula* f, bool inc)
+{
+  CALL("FormulaVarIterator::countFormulaLetLhsVars");
+
+  static VariableIterator vit;
+  if(f->connective()==FORMULA_LET) {
+    vit.reset(f->formulaLetLhs());
+  }
+  else {
+    ASS_EQ(f->connective(), TERM_LET);
+    if(f->termLetLhs().isTerm()) {
+      vit.reset(f->termLetLhs().term());
+    }
+    else {
+      INVALID_OPERATION("Let expressions with variable lhs are currently not handled");
+    }
+  }
+  while(vit.hasNext()) {
+    TermList var = vit.next();
+    if(inc) {
+      _bound.inc(var.var());
+    }
+    else {
+      _bound.dec(var.var());
+    }
+  }
+}
+
+/**
+ * Add or remove (based on the last arg) variables of LHS of
+ * let term @c t.
+ */
+void FormulaVarIterator::countTermLetLhsVars(const Term* t, bool inc)
+{
+  CALL("FormulaVarIterator::countTermLetLhsVars");
+
+  static VariableIterator vit;
+  const Term::SpecialTermData* sd = t->getSpecialData();
+  if(t->functor()==Term::SF_LET_FORMULA_IN_TERM) {
+    vit.reset(sd->getLhsLiteral());
+  }
+  else {
+    ASS_EQ(t->functor(),Term::SF_LET_TERM_IN_TERM);
+    if(sd->getLhsTerm().isTerm()) {
+      vit.reset(sd->getLhsTerm().term());
+    }
+    else {
+      INVALID_OPERATION("Let expressions with variable lhs are currently not handled");
+    }
+  }
+  while(vit.hasNext()) {
+    TermList var = vit.next();
+    if(inc) {
+      _bound.inc(var.var());
+    }
+    else {
+      _bound.dec(var.var());
+    }
+  }
+}
