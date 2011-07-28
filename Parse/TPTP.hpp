@@ -588,8 +588,12 @@ private:
   void endLettt();
   void letff();
   void endLetff();
+  void endLetft();
   void addTagState(Tag);
   static void checkFlat(const TermList& t);
+  static void checkFlat(const Term* t);
+  static void checkFlat(const Literal* t);
+  static void reportNonFlat(string);
 
   unsigned readSort(bool newSortExpected);
   void bindVariable(int var,unsigned sortNumber);

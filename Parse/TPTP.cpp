@@ -32,7 +32,7 @@ using namespace Shell;
 using namespace Parse;
 
 #define DEBUG_SHOW_TOKENS 0
-#define DEBUG_SHOW_UNITS 1
+#define DEBUG_SHOW_UNITS 0
 
 DHMap<unsigned, string> TPTP::_axiomNames;
 
@@ -178,6 +178,9 @@ void TPTP::parse()
       break;
     case END_LETFF:
       endLetff();
+      break;
+    case END_LETFT:
+      endLetft();
       break;
     default:
 #if VDEBUG
@@ -1397,8 +1400,28 @@ void TPTP::endLetff()
   ASS(f1->connective() == LITERAL);
   ASS(f1->literal()->polarity());
 
+  checkFlat(f1->literal());
   _formulas.push(new FormulaLetFormula(f1->literal(),f2,f3));
 } // endLetff
+
+/**
+ * Process the end of the letft() formula
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::endLetft()
+{
+  CALL("TPTP::endLetft");
+
+  TermList t = _termLists.pop();
+  Formula* f2 = _formulas.pop();
+  AtomicFormula* f1 = static_cast<AtomicFormula*>(_formulas.pop());
+  ASS(f1->connective() == LITERAL);
+  ASS(f1->literal()->polarity());
+
+  checkFlat(f1->literal());
+  TermList ts(Term::createFormulaLet(f1->literal(),f2,t));
+  _termLists.push(ts);
+} // endLetft
 
 /**
  * Process the end of the itet() term
@@ -1440,21 +1463,58 @@ void TPTP::endLettt()
  */
 void TPTP::checkFlat(const TermList& ts)
 {
-  CALL("TPTP::endLettt");
+  CALL("TPTP::checkFlat(TermList&)");
 
-  if (ts.isTerm()) {
-    Set<int> vs;
-    for (const TermList* t = ts.term()->args(); !t->isEmpty(); t = t->next()) {
-      if (!t->isVar() || vs.contains(t->var())) {
-	goto error;
-      }
-      vs.insert(t->var());
-    }
-    return;
+  if (!ts.isTerm()) {
+    reportNonFlat(ts.toString());
   }
- error:
-  USER_ERROR((string)"The left-hand-side of a let-expression is not flat: " + ts.toString());
-} // endLettt
+  checkFlat(ts.term());
+} // TPTP::checkFlat
+
+/**
+ * Check that a sequence of arguments to a term t is a sequence of distinct variables. 
+ * If not, raise an exception.
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::checkFlat(const Term* t)
+{
+  CALL("TPTP::checkFlat(Term*)");
+
+  Set<int> vs;
+  for (const TermList* ts = t->args(); !ts->isEmpty(); ts = ts->next()) {
+    if (!ts->isVar() || vs.contains(ts->var())) {
+      reportNonFlat(t->toString());
+    }
+    vs.insert(ts->var());
+  }
+} // TPTP::checkFlat
+
+/**
+ * Check that a sequence of arguments to a literal t is a sequence of distinct variables. 
+ * If not, raise an exception.
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::checkFlat(const Literal* l)
+{
+  CALL("TPTP::checkFlat(Literal*)");
+
+  Set<int> vs;
+  for (const TermList* ts = l->args(); !ts->isEmpty(); ts = ts->next()) {
+    if (!ts->isVar() || vs.contains(ts->var())) {
+      reportNonFlat(l->toString());
+    }
+    vs.insert(ts->var());
+  }
+} // TPTP::checkFlat
+
+/**
+ * Report that a term is non-flat
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::reportNonFlat(string expr)
+{
+  USER_ERROR((string)"The left-hand-side of a let-expression is not flat: " + expr);
+} // TPTP::reportNonFlat
 
 /**
  * Process include() declaration
