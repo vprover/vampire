@@ -713,6 +713,9 @@ Term* Term::createTermITE(Formula * condition, TermList thenBranch, TermList els
 Term* Term::createTermLet(TermList lhs, TermList rhs, TermList t)
 {
   CALL("Term::createTermLet");
+  ASS(lhs.isSafe());
+  ASS(lhs.isVar() || lhs.term()->hasOnlyDistinctVariableArgs());
+
   Term* s = new(1,sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_LET_TERM_IN_TERM, 1);
   TermList* ss = s->args();
@@ -730,6 +733,9 @@ Term* Term::createTermLet(TermList lhs, TermList rhs, TermList t)
 Term* Term::createFormulaLet(Literal* lhs, Formula* rhs, TermList t)
 {
   CALL("Term::createFormulaLet");
+  ASS(lhs->shared());
+  ASS(lhs->hasOnlyDistinctVariableArgs());
+
   Term* s = new(1,sizeof(SpecialTermData)) Term;
   s->makeSymbol(SF_LET_FORMULA_IN_TERM, 1);
   TermList* ss = s->args();
@@ -795,6 +801,22 @@ unsigned Term::computeDistinctVars() const
     vars.insert(vit.next().var());
   }
   return vars.size();
+}
+
+/**
+ * Return true if term/literal has only variable subterms and they all are distinct
+ */
+bool Term::hasOnlyDistinctVariableArgs() const
+{
+  CALL("Term::hasOnlyDistinctVariableArgs");
+
+  if(getDistinctVars()!=arity()) {
+    return false;
+  }
+  if(weight()!=arity()+1) {
+    return false;
+  }
+  return true;
 }
 
 bool Term::skip() const

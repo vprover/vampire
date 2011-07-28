@@ -114,7 +114,7 @@ FormulaUnit* SpecialTermElimination::apply(FormulaUnit* fu0)
   }
   FormulaUnit* res = new FormulaUnit(g, new Inference1(Inference::SPECIAL_TERM_ELIMINATION,fu), fu->inputType());
   if(fu0->included()) {
-    fu0->markIncluded();
+    res->markIncluded();
   }
   return res;
 }
@@ -129,6 +129,7 @@ bool SpecialTermElimination::checkForTermLetReplacement(TermList t, TermList& re
   //we are replacing an occurrence of a term let lhs
   //instance by an instance of term let rhs
   res = MatchingUtils::getInstanceFromMatch(_letStack.top().tLhs(), t, _letStack.top().tRhs());
+//  LOGS("Term replacement for "<<t.toString()<<" found: "<<res.toString());
   return true;
 }
 
@@ -185,16 +186,22 @@ TermList SpecialTermElimination::process(TermList t)
 {
   CALL("SpecialTermElimination::process(TermList)");
 
-  TermList repRes;
-  if(checkForTermLetReplacement(t, repRes)) {
-    t = repRes;
+  if(t.isVar()) {
+    TermList repRes;
+    if(checkForTermLetReplacement(t, repRes)) {
+      t = repRes;
+    }
   }
-  if(t.isTerm()) {
+  else if(t.isTerm()) {
     if(t.term()->isSpecial()) {
       t = processSpecialTerm(t.term());
     }
     else {
       t = TermList(process(t.term()));
+      TermList repRes;
+      if(checkForTermLetReplacement(t, repRes)) {
+        t = repRes;
+      }
     }
   }
   return t;
@@ -224,42 +231,49 @@ Term* SpecialTermElimination::process(Term* t0)
     if(tt->isEmpty()) {
       if(terms.isEmpty()) {
 	//we're done, args stack contains modified arguments
-	//of the literal.
+	//of the original term/literal.
 	ASS(toDo.isEmpty());
 	break;
       }
       Term* orig=terms.pop();
       ASS(!orig->isSpecial());
-
+      TermList tgt;
       if(!modified.pop()) {
-	args.truncate(args.length() - orig->arity());
-	args.push(TermList(orig));
-	continue;
+	tgt = TermList(orig);
+      }
+      else {
+	//here we assume, that stack is an array with
+	//second topmost element as &top()-1, third at
+	//&top()-2, etc...
+	TermList* argLst=&args.top() - (orig->arity()-1);
+
+	Term* newTerm;
+	newTerm = Term::create(orig,argLst);
+
+	modified.setTop(true);
+	tgt = TermList(newTerm);
+      }
+      args.truncate(args.length() - orig->arity());
+
+      TermList replacement;
+      if(checkForTermLetReplacement(tgt, replacement)) {
+        tgt = replacement;
+        modified.setTop(true);
       }
 
-      //here we assume, that stack is an array with
-      //second topmost element as &top()-1, third at
-      //&top()-2, etc...
-      TermList* argLst=&args.top() - (orig->arity()-1);
-
-      Term* newTerm;
-      newTerm = Term::create(orig,argLst);
-
-      args.truncate(args.length() - orig->arity());
-      args.push(TermList(newTerm));
-      modified.setTop(true);
+      args.push(tgt);
       continue;
     } else {
       toDo.push(tt->next());
     }
 
     TermList tl=*tt;
-    TermList replacement;
-    if(checkForTermLetReplacement(tl, replacement)) {
-      tl = replacement;
-      modified.setTop(true);
-    }
     if(tl.isVar()) {
+      TermList replacement;
+      if(checkForTermLetReplacement(tl, replacement)) {
+        tl = replacement;
+        modified.setTop(true);
+      }
       args.push(tl);
       continue;
     }

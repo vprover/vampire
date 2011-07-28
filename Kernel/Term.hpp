@@ -170,7 +170,7 @@ private:
       /** Number of distincs variables in the term, equal
        * to TERM_DIST_VAR_UNKNOWN if the number has not been
        * computed yet. */
-      unsigned distinctVars : 23;
+      mutable unsigned distinctVars : 23;
       /** reserved for whatever */
 #if ARCH_X64
 # if USE_MATCH_TAG
@@ -440,7 +440,7 @@ public:
     res=_args[0]._info.distinctVars;
     return true;
   }
-  unsigned getDistinctVars()
+  unsigned getDistinctVars() const
   {
     if(_args[0]._info.distinctVars==TERM_DIST_VAR_UNKNOWN) {
       unsigned res=computeDistinctVars();
@@ -474,6 +474,8 @@ public:
     return true;
 #endif
   }
+
+  bool hasOnlyDistinctVariableArgs() const;
 
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(Term* t);

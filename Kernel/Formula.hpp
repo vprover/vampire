@@ -323,6 +323,8 @@ class FormulaLetFormula
       _rhs(rhs),
       _body(body)
   {
+    ASS(lhs->hasOnlyDistinctVariableArgs());
+    ASS(lhs->shared());
   }
 
   /** Return the literal that should be replaced */
@@ -358,7 +360,7 @@ class TermLetFormula
       _body(body)
   {
     ASS(lhs.isSafe());
-    ASS(rhs.isSafe());
+    ASS(lhs.isVar() || lhs.term()->hasOnlyDistinctVariableArgs());
   }
 
   /** Return the term that should be replaced */

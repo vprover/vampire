@@ -706,7 +706,8 @@ FunctionDefinition::isFunctionDefinition (Literal* lit)
   CALL("FunctionDefinition::isFunctionDefinition(const Literal*)");
 
   if (! lit->isPositive() ||
-      ! lit->isEquality()) {
+      ! lit->isEquality() ||
+      ! lit->shared()) {
     return 0;
   }
 
@@ -752,6 +753,9 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
 {
   CALL("FunctionDefinition::defines");
 
+  if(!lhs->shared() || !rhs->shared()) {
+    return 0;
+  }
   unsigned f = lhs->functor();
   if(env.signature->getFunction(f)->interpreted()) {
     return 0;
