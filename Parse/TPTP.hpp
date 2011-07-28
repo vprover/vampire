@@ -586,6 +586,8 @@ private:
   void endItef();
   void endItet();
   void endLettt();
+  void letff();
+  void endLetff();
   void addTagState(Tag);
   static void checkFlat(const TermList& t);
 

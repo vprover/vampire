@@ -32,7 +32,7 @@ using namespace Shell;
 using namespace Parse;
 
 #define DEBUG_SHOW_TOKENS 0
-#define DEBUG_SHOW_UNITS 0
+#define DEBUG_SHOW_UNITS 1
 
 DHMap<unsigned, string> TPTP::_axiomNames;
 
@@ -172,6 +172,12 @@ void TPTP::parse()
       break;
     case END_LETTT:
       endLettt();
+      break;
+    case LETFF:
+      letff();
+      break;
+    case END_LETFF:
+      endLetff();
       break;
     default:
 #if VDEBUG
@@ -1343,6 +1349,26 @@ void TPTP::itef()
 } // itef()
 
 /**
+ * Process $letff declaration
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::letff()
+{
+  CALL("TPTP::letff");
+
+  resetToks();
+  consumeToken(T_LPAR);
+
+  _states.push(END_LETFF);
+  addTagState(T_RPAR);
+  _states.push(FORMULA);
+  addTagState(T_COMMA);
+  _states.push(FORMULA);
+  addTagState(T_COMMA);
+  _states.push(ATOM);
+} // letff()
+
+/**
  * Process the end of the itef() formula
  * @since 27/07/2011 Manchester
  */
@@ -1356,6 +1382,23 @@ void TPTP::endItef()
 
   _formulas.push(new IteFormula(f1,f2,f3));
 } // endItef
+
+/**
+ * Process the end of the letff() formula
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::endLetff()
+{
+  CALL("TPTP::endLetff");
+
+  Formula* f3 = _formulas.pop();
+  Formula* f2 = _formulas.pop();
+  AtomicFormula* f1 = static_cast<AtomicFormula*>(_formulas.pop());
+  ASS(f1->connective() == LITERAL);
+  ASS(f1->literal()->polarity());
+
+  _formulas.push(new FormulaLetFormula(f1->literal(),f2,f3));
+} // endLetff
 
 /**
  * Process the end of the itet() term
