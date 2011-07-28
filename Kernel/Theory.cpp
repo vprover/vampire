@@ -842,6 +842,8 @@ bool Theory::isInterpretedConstant(Term* t)
 {
   CALL("Theory::isInterpretedConstant(Term*)");
 
+  if(t->isSpecial()) { return false; }
+
   return t->arity()==0 && env.signature->getFunction(t->functor())->interpreted();
 }
 
@@ -890,6 +892,10 @@ bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
 bool Theory::isInterpretedFunction(unsigned func)
 {
   CALL("Theory::isInterpretedFunction(unsigned)");
+
+  if(func>=Term::SPECIAL_FUNCTOR_LOWER_BOUND) {
+    return false;
+  }
 
   return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)!=0;
 }
@@ -998,8 +1004,10 @@ bool Theory::tryInterpretConstant(TermList trm, IntegerConstantType& res)
 {
   CALL("Theory::tryInterpretConstant(TermList,IntegerConstantType)");
 
-  if(!trm.isTerm() || trm.term()->arity()!=0) { return false; }
-  unsigned func = trm.term()->functor();
+  if(!trm.isTerm()) { return false; }
+  Term* t = trm.term();
+  if(trm.term()->arity()!=0 || t->isSpecial()) { return false; }
+  unsigned func = t->functor();
   Signature::Symbol* sym = env.signature->getFunction(func);
   if(!sym->integerConstant()) { return false; }
   res = sym->integerValue();
@@ -1010,8 +1018,10 @@ bool Theory::tryInterpretConstant(TermList trm, RationalConstantType& res)
 {
   CALL("Theory::tryInterpretConstant(TermList,RationalConstantType)");
 
-  if(!trm.isTerm() || trm.term()->arity()!=0) { return false; }
-  unsigned func = trm.term()->functor();
+  if(!trm.isTerm()) { return false; }
+  Term* t = trm.term();
+  if(trm.term()->arity()!=0 || t->isSpecial()) { return false; }
+  unsigned func = t->functor();
   Signature::Symbol* sym = env.signature->getFunction(func);
   if(!sym->rationalConstant()) { return false; }
   res = sym->rationalValue();
@@ -1022,8 +1032,10 @@ bool Theory::tryInterpretConstant(TermList trm, RealConstantType& res)
 {
   CALL("Theory::tryInterpretConstant(TermList,RealConstantType)");
 
-  if(!trm.isTerm() || trm.term()->arity()!=0) { return false; }
-  unsigned func = trm.term()->functor();
+  if(!trm.isTerm()) { return false; }
+  Term* t = trm.term();
+  if(trm.term()->arity()!=0 || t->isSpecial()) { return false; }
+  unsigned func = t->functor();
   Signature::Symbol* sym = env.signature->getFunction(func);
   if(!sym->realConstant()) { return false; }
   res = sym->realValue();
