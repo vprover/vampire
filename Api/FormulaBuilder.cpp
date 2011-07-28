@@ -508,7 +508,7 @@ Formula FormulaBuilder::formula(Connective c,const Formula& cond,const Formula& 
     throw FormulaBuilderException("Invalid if-then-else connective");
   }
 
-  Formula res(new IteFormula(Kernel::ITE, cond.form, thenBranch.form, elseBranch.form));
+  Formula res(new IteFormula(cond.form, thenBranch.form, elseBranch.form));
   res._aux=_aux;
   return res;
 }
