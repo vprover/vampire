@@ -158,59 +158,61 @@ public:
   /** parser state, numbers are just temporarily for debugging */
   enum State {
     /** list of units */
-    UNIT_LIST = 1,
+    UNIT_LIST,
     /** cnf() declaration */
-    CNF = 2,
+    CNF,
     /** fof() declaration */
-    FOF = 3,
+    FOF,
     /** vampire() declaration */
-    VAMPIRE = 4,
+    VAMPIRE,
     /** read formula */
-    FORMULA = 5,
+    FORMULA,
     /** process end of fof() declaration */
-    END_FOF = 6,
+    END_FOF,
     /** read a simple formula */
-    SIMPLE_FORMULA = 7,
+    SIMPLE_FORMULA,
     /** build formula from a connective and one or more formulas */
-    END_FORMULA = 8,
+    END_FORMULA,
     /** read a variable list (for a quantifier) */
-    VAR_LIST = 9,
+    VAR_LIST,
     /** read an atom */
-    ATOM = 10,
+    ATOM,
     /** process mid-atom: either end of atom or = or != */
-    MID_ATOM = 11,
+    MID_ATOM,
     /** read arguments */
-    ARGS = 12,
+    ARGS,
     /** read term */
-    TERM = 13,
+    TERM,
     /** read arguments after a term */
-    END_TERM = 14,
+    END_TERM,
     /** read a single token and do nothing */
-    TAG = 15,
+    TAG,
     /** include directive */
-    INCLUDE = 16,
+    INCLUDE,
     /** after the equality */
-    END_EQ = 17,
+    END_EQ,
     /** tff declaration */
-    TFF = 18,
+    TFF,
     /** read type declaration */
-    TYPE = 19,
+    TYPE,
     /** after a top-level type declaration */
-    END_TFF = 20,
+    END_TFF,
     /** after a type declaration */
-    END_TYPE = 21,
+    END_TYPE,
     /** simple type */
-    SIMPLE_TYPE = 22,
+    SIMPLE_TYPE,
     /** unbinding previously quantified variables */
-    UNBIND_VARIABLES = 23,
+    UNBIND_VARIABLES,
     /** if-then-else on formulas */
-    ITEF = 24,
+    ITEF,
     /** end of if-then-else on formulas */
-    END_ITEF = 25,
-    /** if-then-else on terms */
-    ITET = 26,
+    END_ITEF,
     /** end of if-then-else on terms */
-    END_ITET = 27,
+    END_ITET,
+    /** check the end of arguments */
+    END_ARGS,
+    /** middle of equality */
+    MID_EQ,
   };
 
   /** token */
@@ -546,11 +548,12 @@ private:
   void varList();
   void term();
   void endTerm();
-  void buildTerm();
+  void endArgs();
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
   void makeTerm(TermList& ts,Token& tok);
   void midAtom();
   void endEquality();
+  void midEquality();
   void endFormula();
   void endType();
   void tag();
@@ -562,6 +565,7 @@ private:
   void itet();
   void endItef();
   void endItet();
+  void addTagState(Tag);
 
   unsigned readSort(bool newSortExpected);
   void bindVariable(int var,unsigned sortNumber);

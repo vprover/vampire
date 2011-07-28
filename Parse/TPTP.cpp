@@ -113,11 +113,17 @@ void TPTP::parse()
     case END_TERM:
       endTerm();
       break;
+    case END_ARGS:
+      endArgs();
+      break;
     case MID_ATOM:
       midAtom();
       break;
     case END_EQ:
       endEquality();
+      break;
+    case MID_EQ:
+      midEquality();
       break;
     case VAR_LIST:
       varList();
@@ -158,15 +164,12 @@ void TPTP::parse()
     case ITEF:
       itef();
       break;
-    // case ITET:
-    //   itet();
-    //   break;
     case END_ITEF:
       endItef();
       break;
-    // case END_ITET:
-    //   endItet();
-    //   break;
+    case END_ITET:
+      endItet();
+      break;
     default:
 #if VDEBUG
       cout << "Don't know how to process state " << toString(s) << "\n";
@@ -1308,12 +1311,11 @@ void TPTP::itef()
   consumeToken(T_LPAR);
 
   _states.push(END_ITEF);
+  addTagState(T_RPAR);
   _states.push(FORMULA);
-  _states.push(TAG);
-  _tags.push(T_COMMA);
+  addTagState(T_COMMA);
   _states.push(FORMULA);
-  _states.push(TAG);
-  _tags.push(T_COMMA);
+  addTagState(T_COMMA);
   _states.push(FORMULA);
 } // itef()
 
@@ -1325,13 +1327,28 @@ void TPTP::endItef()
 {
   CALL("TPTP::endItef");
 
-  consumeToken(T_RPAR);
   Formula* f3 = _formulas.pop();
   Formula* f2 = _formulas.pop();
   Formula* f1 = _formulas.pop();
 
   _formulas.push(new IteFormula(f1,f2,f3));
 } // endItef
+
+/**
+ * Process the end of the itet() term
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::endItet()
+{
+  CALL("TPTP::endItet");
+
+  TermList t2 = _termLists.pop();
+  TermList t1 = _termLists.pop();
+  Formula* c = _formulas.pop();
+
+  TermList ts(Term::createTermITE(c,t1,t2));
+  _termLists.push(ts);
+} // endItet
 
 /**
  * Process include() declaration
@@ -1468,27 +1485,23 @@ void TPTP::atom()
 {
   CALL("TPTP::atom");
 
+  // remember the name
   Token& tok = getTok(0);
-  switch (tok.tag) {
-  case T_NAME:
-    _strings.push(tok.content);
-    _states.push(MID_ATOM);
-    resetToks();
-    tok = getTok(0);
-    if (tok.tag != T_LPAR) {
-      // this is just a constant or a propositional atom
-      _ints.push(0); // 0 arguments read;
-      return;
-    }
+  ASS(tok.tag == T_NAME);
+  _strings.push(tok.content);
+  resetToks();
+  _states.push(MID_ATOM);
+
+  tok = getTok(0);
+  if (tok.tag == T_LPAR) {
     resetToks();
     _states.push(ARGS);
     _ints.push(1); // number of next argument
-    return;
-
-  default:
-    throw Exception("atom expected",tok);
   }
-} // atom()
+  else {
+    _ints.push(0); // arity
+  }
+} // TPTP::atom
 
 /**
  * Read a non-empty sequence of arguments, including the right parentheses
@@ -1499,9 +1512,34 @@ void TPTP::args()
 {
   CALL("TPTP::args");
 
-  _states.push(END_TERM);
+  _states.push(END_ARGS);
   _states.push(TERM);
 } // args
+
+/**
+ * Read a list of arguments after a term
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::endArgs()
+{
+  CALL("TPTP::endArgs");
+
+  // check if there is any other term in the argument list
+  Token tok = getTok(0);
+  switch (tok.tag) {
+  case T_COMMA:
+    resetToks();
+    _ints.push(_ints.pop()+1);
+    _states.push(END_ARGS);
+    _states.push(TERM);
+    return;
+  case T_RPAR:
+    resetToks();
+    return;
+  default:
+    throw Exception(", or ) expected after an end of a term",tok);
+  }
+} // endArgs
 
 /**
  * Bind a variable to a sort
@@ -1591,43 +1629,95 @@ void TPTP::term()
   Tag tag = tok.tag;
   switch (tag) {
   case T_NAME:
-    _strings.push(tok.content);
-    resetToks();
-    tok = getTok(0);
-    if (tok.tag == T_LPAR) {
+    {
+      string nm = tok.content;
       resetToks();
-      _states.push(ARGS);
-      _ints.push(1); // number of next argument
-      return;
+      tok = getTok(0);
+      if (tok.tag != T_LPAR) {
+	// this is just a constant
+	TermList ts;
+	Term* t = new(0) Term;
+	bool dummy;
+	t->makeSymbol(addUninterpretedConstant(nm,dummy),0);
+	t = env.sharing->insert(t);
+	ts.setTerm(t);
+	_termLists.push(ts);
+	return;
+      }
+      else {
+	_strings.push(nm);
+	resetToks();
+	_states.push(END_TERM);
+	_states.push(ARGS);
+	_ints.push(1); // number of next argument
+      }
     }
-    // this is just a constant or a propositional atom
-    _ints.push(0); // this term has 0 arguments
     return;
   case T_VAR:
-    _ints.push(_vars.insert(tok.content));
-    _ints.push(-1); // this term is a variable
-    resetToks();
+    {
+      TermList ts;
+      ts.makeVar(_vars.insert(tok.content));
+      _termLists.push(ts);
+      resetToks();
+    }
     return;
   case T_STRING:
-    _ints.push(env.signature->addStringConstant(tok.content));
-    _ints.push(-2); // this term is a constant
-    resetToks();
+    {
+      TermList ts;
+      Term* t = new(0) Term;
+      t->makeSymbol(env.signature->addStringConstant(tok.content),0);
+      t = env.sharing->insert(t);
+      ts.setTerm(t);
+      _termLists.push(ts);
+      resetToks();
+    }
     return;
   case T_INT:
-    _ints.push(addIntegerConstant(tok.content));
-    _ints.push(-2); // this term is a constant
-    resetToks();
+    {
+      TermList ts;
+      Term* t = new(0) Term;
+      t->makeSymbol(addIntegerConstant(tok.content),0);
+      t = env.sharing->insert(t);
+      ts.setTerm(t);
+      _termLists.push(ts);
+      resetToks();
+    }
     return;
   case T_REAL:
-    _ints.push(addRealConstant(tok.content));
-    _ints.push(-2); // this term is a constant
-    resetToks();
+    {
+      TermList ts;
+      Term* t = new(0) Term;
+      t->makeSymbol(addRealConstant(tok.content),0);
+      t = env.sharing->insert(t);
+      ts.setTerm(t);
+      _termLists.push(ts);
+      resetToks();
+    }
     return;
   case T_RAT:
-    _ints.push(addRationalConstant(tok.content));
-    _ints.push(-2); // this term is a constant
-    resetToks();
+    {
+      TermList ts;
+      Term* t = new(0) Term;
+      t->makeSymbol(addRationalConstant(tok.content),0);
+      t = env.sharing->insert(t);
+      ts.setTerm(t);
+      _termLists.push(ts);
+      resetToks();
+    }
     return;
+  case T_ITET:
+    {
+      resetToks();
+      consumeToken(T_LPAR);
+      _states.push(END_ITET);
+      addTagState(T_RPAR);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(FORMULA);
+      return;
+    }
   default:
     throw Exception("term expected",tok);
   }
@@ -1637,77 +1727,33 @@ void TPTP::term()
  * Build a term assembled by term() 
  * @since 09/07/2011 Manchester
  */
-void TPTP::buildTerm()
-{
-  CALL("TPTP::buildTerm");
-
-  int arity = _ints.pop();
-  TermList ts;
-  switch (arity) {
-  case -1: // variable
-    ts.makeVar(_ints.pop());
-    break;
-  case -2: // constant: string or integer
-    {
-      Term* t = new(0) Term;
-      t->makeSymbol(_ints.pop(),0);
-      t = env.sharing->insert(t);
-      ts.setTerm(t);
-    }
-    break;
-  default: // compound term
-    {
-      bool dummy;
-      unsigned fun;
-      if (arity > 0) {
-	fun = addFunction(_strings.pop(),arity,dummy,_termLists.top());
-      }
-      else {
-	fun = addUninterpretedConstant(_strings.pop(),dummy);
-      }
-      Term* t = new(arity) Term;
-      t->makeSymbol(fun,arity);
-      bool safe = true;
-      for (int i = arity-1;i >= 0;i--) {
-	TermList ss = _termLists.pop();
-	*(t->nthArgument(i)) = ss;
-	safe = safe && ss.isSafe();
-      }
-      if (safe) {
-	t = env.sharing->insert(t);
-      }
-      ts.setTerm(t);
-    }
-    break;
-  }
-  _termLists.push(ts);
-}
-
-/**
- * Read after an end of term
- * @since 10/04/2011 Manchester
- */
 void TPTP::endTerm()
 {
   CALL("TPTP::endTerm");
 
-  // first, build the term
-  buildTerm();
-
-  // check if there is any other term in the argument list
-  Token tok = getTok(0);
-  switch (tok.tag) {
-  case T_COMMA:
-    resetToks();
-    _states.push(ARGS);
-    _ints.push(_ints.pop()+1);
-    return;
-  case T_RPAR:
-    resetToks();
-    return;
-  default:
-    throw Exception(", or ) expected after an end of a term",tok);
+  int arity = _ints.pop();
+  TermList ts;
+  bool dummy;
+  unsigned fun;
+  if (arity > 0) {
+    fun = addFunction(_strings.pop(),arity,dummy,_termLists.top());
   }
+  else {
+    fun = addUninterpretedConstant(_strings.pop(),dummy);
+  }
+  Term* t = new(arity) Term;
+  t->makeSymbol(fun,arity);
+  bool safe = true;
+  for (int i = arity-1;i >= 0;i--) {
+    TermList ss = _termLists.pop();
+    *(t->nthArgument(i)) = ss;
+    safe = safe && ss.isSafe();
+  }
+  if (safe) {
+    t = env.sharing->insert(t);
+  }
+  ts.setTerm(t);
+  _termLists.push(ts);
 } // endTerm
 
 /**
@@ -1722,7 +1768,7 @@ void TPTP::midAtom()
   switch (tok.tag) {
   case T_EQUAL:
   case T_NEQ:
-    buildTerm();
+    endTerm();
     resetToks();
     _bools.push(tok.tag == T_EQUAL);
     _states.push(END_EQ);
@@ -1771,12 +1817,33 @@ void TPTP::endEquality()
 {
   CALL("TPTP::endEquality");
 
-  buildTerm();
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
   Literal* l = createEquality(_bools.pop(),lhs,rhs);
   _formulas.push(new AtomicFormula(l));
 } // endEquality
+
+/**
+ * Read 
+ * @since 09/07/2011 Manchester
+ */
+void TPTP::midEquality()
+{
+  CALL("TPTP::midEquality");
+
+  Token tok = getTok(0);
+  switch (tok.tag) {
+  case T_EQUAL:
+    _bools.push(true);
+    break;
+  case T_NEQ:
+    _bools.push(false);
+    break;
+  default:
+    throw Exception("either = or != expected",tok);
+  }
+  resetToks();
+} // midEquality
 
 /**
  * Creates an equality literal and takes care of its sort when it
@@ -2149,6 +2216,17 @@ void TPTP::endFof()
 } // tag
 
 /**
+ * Add a state just reading a tag and save the tag in _tags.
+ * @since 28/07/2011 Manchester
+ */
+void TPTP::addTagState(Tag t)
+{
+  CALL("TPTP::addTagState");
+  _states.push(TAG);
+  _tags.push(t);
+} // TPTP::addTagState
+
+/**
  * Process the end of the tff() definition and build the corresponding unit.
  * @since 14/07/2011 Manchester
  */
@@ -2302,15 +2380,13 @@ void TPTP::simpleFormula()
     _connectives.push(tag == T_FORALL ? FORALL : EXISTS);
     _states.push(UNBIND_VARIABLES);
     _states.push(SIMPLE_FORMULA);
-    _states.push(TAG);
-    _tags.push(T_COLON);
+    addTagState(T_COLON);
     _states.push(VAR_LIST); 
     return;
 
   case T_LPAR:
     resetToks();
-    _states.push(TAG);
-    _tags.push(T_RPAR);
+    addTagState(T_RPAR);
     _states.push(FORMULA);
     return;
 
@@ -2319,27 +2395,11 @@ void TPTP::simpleFormula()
   case T_RAT:
   case T_REAL:
   case T_VAR:
-    {
-      Token after = getTok(1);
-      bool polarity;
-      switch (after.tag) {
-      case T_EQUAL:
-	polarity = true;
-	break;
-      case T_NEQ:
-	polarity = false;
-	break;
-      default:
-	throw Exception("= or != expected",after);
-      }
-      TermList ts;
-      makeTerm(ts,tok);
-      _termLists.push(ts);
-      resetToks();
-      _bools.push(polarity);
-      _states.push(END_EQ);
-      _states.push(TERM);
-    }
+  case T_ITET:
+    _states.push(END_EQ);
+    _states.push(TERM);
+    _states.push(MID_EQ);
+    _states.push(TERM);
     return;
 
   case T_TRUE:
@@ -2393,8 +2453,7 @@ void TPTP::simpleType()
   Token& tok = getTok(0);
   if (tok.tag == T_LPAR) {
     resetToks();
-    _states.push(TAG);
-    _tags.push(T_RPAR);
+    addTagState(T_RPAR);
     _states.push(TYPE);
     return;
   }
@@ -2999,12 +3058,14 @@ const char* TPTP::toString(State s)
     return "SIMPLE_TYPE";
   case ITEF:
     return "ITEF";
-  case ITET:
-    return "ITET";
   case END_ITEF:
     return "END_ITEF";
   case END_ITET:
     return "END_ITET";
+  case END_ARGS:
+    return "END_ARGS";
+  case MID_EQ:
+    return "MID_EQ";
   default:
     cout << (int)s << "\n";
     ASS(false);
