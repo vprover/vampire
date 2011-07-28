@@ -3174,8 +3174,17 @@ void TPTP::vampire()
     consumeToken(T_COMMA);
     string opt = name();
     consumeToken(T_COMMA);
-    string val = name();
-    env.options->set(opt,val);
+    Token tok = getTok(0);
+    switch (tok.tag) {
+    case T_INT:
+    case T_REAL:
+    case T_NAME:
+      env.options->set(opt,tok.content);
+      resetToks();
+      break;
+    default:
+      throw Exception("either atom or number expected as a value of a Vampire option",tok);
+    }
   }
   else if (nm == "symbol") {
     consumeToken(T_COMMA);
