@@ -58,6 +58,7 @@ string TPTPPrinter::getBodyStr(Unit* u)
 
   typedef DHMap<unsigned,unsigned> SortMap;
   static SortMap varSorts;
+  varSorts.reset();
   SortHelper::collectVariableSorts(u, varSorts);
 
   if(u->isClause()) {
