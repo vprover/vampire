@@ -153,6 +153,14 @@ public:
     T_ITEF,
     /** $itet: if-then-else on terms */
     T_ITET,
+    /** $lettt: a form of $let */
+    T_LETTT,
+    /** $lettf: a form of $let */
+    T_LETTF,
+    /** $letft: a form of $let */
+    T_LETFT,
+    /** $letff: a form of $let */
+    T_LETFF,
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -213,6 +221,18 @@ public:
     END_ARGS,
     /** middle of equality */
     MID_EQ,
+    /** $lettf formula */
+    LETTF,
+    /** $letff formula */
+    LETFF,
+    /** end of $lettt term */
+    END_LETTT,
+    /** end of $lettf formula */
+    END_LETTF,
+    /** end of $letft term */
+    END_LETFT,
+    /** end of $letff formula */
+    END_LETFF,
   };
 
   /** token */
@@ -565,7 +585,9 @@ private:
   void itet();
   void endItef();
   void endItet();
+  void endLettt();
   void addTagState(Tag);
+  static void checkFlat(const TermList& t);
 
   unsigned readSort(bool newSortExpected);
   void bindVariable(int var,unsigned sortNumber);

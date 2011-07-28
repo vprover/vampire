@@ -300,7 +300,7 @@ TermIterator Term::getVariableIterator(TermList tl)
  * Return the string representation of variable var.
  * @since 16/05/2007
  */
-string Term::variableToString (unsigned var)
+string Term::variableToString(unsigned var)
 {
   CALL("Term::variableToString");
 
@@ -311,7 +311,7 @@ string Term::variableToString (unsigned var)
  * Return the string representation of variable term var.
  * @since 16/05/2007
  */
-string Term::variableToString (TermList var)
+string Term::variableToString(TermList var)
 {
   CALL("Term::variableToString");
   ASS(var.isVar());
@@ -367,7 +367,7 @@ string Term::specialTermToString() const
  * Return the result of conversion of a term into a string.
  * @since 16/05/2007 Manchester
  */
-string Term::toString () const
+string Term::toString() const
 {
   CALL("Term::toString");
 
@@ -449,7 +449,7 @@ string TermList::toString() const
  * Return the result of conversion of a literal into a string.
  * @since 16/05/2007 Manchester
  */
-string Literal::toString () const
+string Literal::toString() const
 {
   CALL("Literal::toString");
 

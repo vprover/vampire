@@ -170,6 +170,9 @@ void TPTP::parse()
     case END_ITET:
       endItet();
       break;
+    case END_LETTT:
+      endLettt();
+      break;
     default:
 #if VDEBUG
       cout << "Don't know how to process state " << toString(s) << "\n";
@@ -297,6 +300,14 @@ string TPTP::toString(Tag tag)
     return "$itet";
   case T_ITEF:
     return "$itef";
+  case T_LETTT:
+    return "$lettt";
+  case T_LETTF:
+    return "$lettf";
+  case T_LETFT:
+    return "$letft";
+  case T_LETFF:
+    return "$letff";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -817,6 +828,18 @@ void TPTP::readReserved(Token& tok)
   }
   else if (tok.content == "$itet" || tok.content == "$itetf" || tok.content == "$itett") {
     tok.tag = T_ITET;
+  }
+  else if (tok.content == "$lettt") {
+    tok.tag = T_LETTT;
+  }
+  else if (tok.content == "$lettf") {
+    tok.tag = T_LETTF;
+  }
+  else if (tok.content == "$letft") {
+    tok.tag = T_LETFT;
+  }
+  else if (tok.content == "$letff") {
+    tok.tag = T_LETFF;
   }
   else if (tok.content == "$tType") {
     tok.tag = T_TTYPE;
@@ -1351,6 +1374,46 @@ void TPTP::endItet()
 } // endItet
 
 /**
+ * Process the end of the itet() term
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::endLettt()
+{
+  CALL("TPTP::endLettt");
+
+  TermList t = _termLists.pop();
+  TermList t2 = _termLists.pop();
+  TermList t1 = _termLists.pop();
+
+  checkFlat(t1);
+  TermList ts(Term::createTermLet(t1,t2,t));
+  _termLists.push(ts);
+} // endLettt
+
+/**
+ * Check that a term used in the lhs of a let() definition is flat. If not, raise
+ * an exception.
+ * @since 27/07/2011 Manchester
+ */
+void TPTP::checkFlat(const TermList& ts)
+{
+  CALL("TPTP::endLettt");
+
+  if (ts.isTerm()) {
+    Set<int> vs;
+    for (const TermList* t = ts.term()->args(); !t->isEmpty(); t = t->next()) {
+      if (!t->isVar() || vs.contains(t->var())) {
+	goto error;
+      }
+      vs.insert(t->var());
+    }
+    return;
+  }
+ error:
+  USER_ERROR((string)"The left-hand-side of a let-expression is not flat: " + ts.toString());
+} // endLettt
+
+/**
  * Process include() declaration
  * @since 07/07/2011 Manchester
  */
@@ -1716,6 +1779,32 @@ void TPTP::term()
       _states.push(TERM);
       addTagState(T_COMMA);
       _states.push(FORMULA);
+      return;
+    }
+  case T_LETTT:
+    {
+      resetToks();
+      consumeToken(T_LPAR);
+      _states.push(END_LETTT);
+      addTagState(T_RPAR);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(TERM);
+      return;
+    }
+  case T_LETFT:
+    {
+      resetToks();
+      consumeToken(T_LPAR);
+      _states.push(END_LETFT);
+      addTagState(T_RPAR);
+      _states.push(TERM);
+      addTagState(T_COMMA);
+      _states.push(FORMULA);
+      addTagState(T_COMMA);
+      _states.push(SIMPLE_FORMULA);
       return;
     }
   default:
@@ -2396,30 +2485,33 @@ void TPTP::simpleFormula()
   case T_REAL:
   case T_VAR:
   case T_ITET:
+  case T_LETTT:
+  case T_LETFT:
     _states.push(END_EQ);
     _states.push(TERM);
     _states.push(MID_EQ);
     _states.push(TERM);
     return;
-
   case T_TRUE:
     resetToks();
     _formulas.push(new Formula(true));
     return;
-
   case T_FALSE:
     resetToks();
     _formulas.push(new Formula(false));
     return;
-
   case T_NAME:
     _states.push(ATOM);
     return;
-
   case T_ITEF:
     _states.push(ITEF);
     return;
-
+  case T_LETTF:
+    _states.push(LETTF);
+    return;
+  case T_LETFF:
+    _states.push(LETFF);
+    return;
   default:
     throw Exception("formula expected",tok);
   }
@@ -3066,6 +3158,18 @@ const char* TPTP::toString(State s)
     return "END_ARGS";
   case MID_EQ:
     return "MID_EQ";
+  case LETTF:
+    return "LETTF";
+  case LETFF:
+    return "LETFF";
+  case END_LETTT:
+    return "END_LETTT";
+  case END_LETFT:
+    return "END_LETFT";
+  case END_LETTF:
+    return "END_LETTF";
+  case END_LETFF:
+    return "END_LETFF";
   default:
     cout << (int)s << "\n";
     ASS(false);
