@@ -20,6 +20,7 @@ sub uncomment {
 
   $content =~ s/(\A|[^\/])\/\*.*?\*\///gs;
   $content =~ s/\/\/[^\n]*//gs;
+  $content =~ s/\/\/[^\n]*//gs;
   my $CASC = 'CASC-23';
 
   open OUT, ">$file" or die "cannot open $file: $!";

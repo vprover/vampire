@@ -422,12 +422,13 @@ NameArray Options::Constants::satAlgValues(_satAlgValues,
 					   sizeof(_satAlgValues)/sizeof(char*));
 
 const char* Options::Constants::_equalityProxyValues[] = {
-    "R",
-    "RS",
-    "RST",
-    "RSTC",
-    "off",
-    "on"};
+  "BFNT",
+  "R",
+  "RS",
+  "RST",
+  "RSTC",
+  "off",
+  "on"};
 NameArray Options::Constants::equalityProxyValues(_equalityProxyValues,
 						  sizeof(_equalityProxyValues)/sizeof(char*));
 
@@ -491,7 +492,6 @@ const char* Options::Constants::_modeValues[] = {
   "ltb_solve",
   "profile",
   "program_analysis",
-  "rule",
   "spider",
   "vampire"};
 NameArray Options::Constants::modeValues(_modeValues,

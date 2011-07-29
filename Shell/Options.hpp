@@ -214,7 +214,6 @@ public:
     MODE_LTB_SOLVE,
     MODE_PROFILE,
     MODE_PROGRAM_ANALYSIS,
-    MODE_RULE,
     MODE_SPIDER,
     MODE_VAMPIRE
   };
@@ -315,14 +314,15 @@ public:
 
   /** Values for --equality_proxy */
   enum EqualityProxy {
-    EP_R = 0,
-    EP_RS = 1,
-    EP_RST = 2,
-    EP_RSTC = 3,
+    EP_BFNT = 0,
+    EP_R = 1,
+    EP_RS = 2,
+    EP_RST = 3,
+    EP_RSTC = 4,
     /** --equality_proxy=off */
-    EP_OFF = 4,
+    EP_OFF = 5,
     /** --equality_proxy=on */
-    EP_ON = 5
+    EP_ON = 6
   };
 
 public:

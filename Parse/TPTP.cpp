@@ -1476,8 +1476,10 @@ void TPTP::endItet()
   TermList t2 = _termLists.pop();
   TermList t1 = _termLists.pop();
   Formula* c = _formulas.pop();
-
   TermList ts(Term::createTermITE(c,t1,t2));
+  if (sortOf(t1) != sortOf(t2)) {
+    USER_ERROR((string)"sorts of terms in the if-then-else expression "+ts.toString()+" are not the same");
+  }
   _termLists.push(ts);
 } // endItet
 
@@ -3018,19 +3020,28 @@ unsigned TPTP::addOverloadedPredicate(string name,int arity,int symbolArity,bool
 } // addOverloadedPredicate
 
 /**
- * Return the sort of the term.
+ * Return the sort of the term. 
+ * @since 29/07/2011 Manchester
  */
 unsigned TPTP::sortOf(TermList& t)
 {
   CALL("TPTP::sortOf");
-  if (t.isVar()) {
-    SortList* sorts;
-    ALWAYS(_variableSorts.find(t.var(),sorts));
-    ASS(sorts);
-    return sorts->head();
+
+  for (;;) {
+    if (t.isVar()) {
+      SortList* sorts;
+      ALWAYS(_variableSorts.find(t.var(),sorts));
+      ASS(sorts);
+      return sorts->head();
+    }
+    Term* s = t.term();
+    if (s->isSpecial()) {
+      t = *s->nthArgument(0);
+      continue;
+    }
+    // t is not a variable and not a special term
+    return SortHelper::getResultSort(s);
   }
-  // t is not a variable
-  return SortHelper::getResultSort(t.term());
 } // sortOf
 
 /**

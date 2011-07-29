@@ -18,8 +18,7 @@
 #undef LOGGING
 #define LOGGING 0
 
-namespace Kernel
-{
+using namespace Kernel;
 
 /**
  * Return type of term or literal @c t
@@ -37,6 +36,10 @@ BaseType& SortHelper::getType(Term* t)
   }
 }
 
+/**
+ * Return the sort of a non-variable term t. This function cannot be applied
+ * to a special term, such as if-then-else.
+ */
 unsigned SortHelper::getResultSort(Term* t)
 {
   CALL("SortHelper::getArgSort(Term*,unsigned)");
@@ -350,9 +353,4 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,unsigned>& varSorts)
   }
   ASSERTION_VIOLATION;
 }
-
-}
-
-
-
 

@@ -478,9 +478,6 @@ int main(int argc, char* argv [])
     case Options::MODE_PROGRAM_ANALYSIS:
       programAnalysisMode();
       break;
-    case Options::MODE_RULE:
-      USER_ERROR("Rule mode is not implemented");
-      break;
     default:
       USER_ERROR("Unsupported mode");
     }

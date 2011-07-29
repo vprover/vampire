@@ -227,6 +227,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 
 VS_OBJ = Shell/AnswerExtractor.o\
          Shell/AxiomGenerator.o\
+         Shell/BFNT.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/CParser.o\

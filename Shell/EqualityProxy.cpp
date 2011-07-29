@@ -16,9 +16,9 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "EqualityProxy.hpp"
+#include "BFNT.hpp"
 
-namespace Shell
-{
+using namespace Shell;
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -55,6 +55,8 @@ void EqualityProxy::init()
   case Options::EP_ON:
     _rst = false;
     break;
+  case Options::EP_BFNT:
+    return;
   default:
     ASSERTION_VIOLATION;
   }
@@ -76,6 +78,11 @@ void EqualityProxy::init()
 void EqualityProxy::apply(UnitList*& units)
 {
   CALL("EqualityProxy::apply(UnitList*&)");
+
+  if (_opt == Options::EP_BFNT) {
+    BFNT::apply(units);
+    return;
+  }
 
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
@@ -236,6 +243,4 @@ Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList 
 
   TermList args[] = {arg0, arg1};
   return Literal::create(s_proxyPredicate, 2, polarity, false, args);
-}
-
 }
