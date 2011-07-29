@@ -102,6 +102,12 @@ void CLTBMode::perform(istream& batchFile)
     string probFile=res.first;
     string outFile=res.second;
 
+    env.beginOutput();
+    env.out().flush();
+    env.out()<<endl<<"% SZS status Started for "<<probFile<<endl;
+    env.out().flush();
+    env.endOutput();
+
     pid_t child=Multiprocessing::instance()->fork();
     if(!child) {
       CLTBProblem prob(this, probFile, outFile);
@@ -111,7 +117,6 @@ void CLTBMode::perform(istream& batchFile)
       ASSERTION_VIOLATION;
     }
     env.beginOutput();
-    env.out()<<"% SZS status Started for "<<probFile<<endl;
     env.out()<<"solver pid "<<child<<endl;
     env.endOutput();
     int resValue;
@@ -131,7 +136,9 @@ void CLTBMode::perform(istream& batchFile)
     else {
       env.out()<<"% SZS status GaveUp for "<<probFile<<endl;
     }
-    env.out()<<"% SZS status Ended for "<<probFile<<endl;
+    env.out().flush();
+    env.out()<<endl<<"% SZS status Ended for "<<probFile<<endl;
+    env.out().flush();
     env.endOutput();
 
     Timer::syncClock();
