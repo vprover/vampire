@@ -80,6 +80,14 @@ void SpecialTermElimination::apply(UnitList*& units)
   }
   units = UnitList::concat(_defs, units);
   _defs = 0;
+
+#if 0
+  UnitList::Iterator puit(units); //printing unit iterator
+  while(puit.hasNext()) {
+    Unit* u = puit.next();
+    cout<<u->toString()<<endl;
+  }
+#endif
 }
 
 /**

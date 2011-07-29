@@ -53,7 +53,7 @@ Formula* PDMerger::Normalizer::applyJunction(Formula* f)
 {
   CALL("PDMerger::Normalizer::applyJunction");
 
-  static Stack<Formula*> res;
+  Stack<Formula*> res;
   res.reset();
 
   bool modified = false;
@@ -76,6 +76,7 @@ Formula* PDMerger::Normalizer::applyJunction(Formula* f)
   }
   FormulaList* newArgs = 0;
   FormulaList::pushFromIterator(Stack<Formula*>::TopFirstIterator(res), newArgs);
+  ASS_EQ(args->length(), newArgs->length());
   return new JunctionFormula(f->connective(), newArgs);
 }
 
@@ -287,6 +288,10 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
     Literal* substLhs = qres.substitution->applyToQuery(lhs);
     Literal* substQrLhs = qres.substitution->applyToResult(qrLhs);
 
+    if(substQrLhs->functor()==substLhs->functor()) {
+      continue;
+    }
+
     if(!substLhs->containsAllVariablesOf(substQrLhs)) {
       continue;
     }
@@ -311,7 +316,7 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
 	  << "\n- " << unit->toString() << "\n- resulting into " << premise->toString() << endl;
     }
 
-#if 1
+#if 0
     if(!_inliner.tryGetDef(premise, substLhs, resRhs)) {
       cerr<<"cannot process definition "<<premise->toString()<<endl;
       cerr<<"coming from "<<unit->toString()<<endl;

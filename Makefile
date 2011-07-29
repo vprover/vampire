@@ -352,6 +352,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/Substitution.o\
 	  Kernel/Term.o\
 	  Kernel/TermIterators.o\
+	  Kernel/TermTransformer.o\
 	  Kernel/Theory.o\
 	  Kernel/Unit.o\
 	  Saturation/ClauseContainer.o\
@@ -405,6 +406,7 @@ OTHER_API_DEP = \
 	   Kernel/Substitution.o\
 	   Kernel/Term.o\
 	   Kernel/TermIterators.o\
+	   Kernel/TermTransformer.o\
 	   Kernel/Theory.o\
 	   Kernel/Unit.o\
 	   Lib/Allocator.o\
@@ -440,7 +442,6 @@ OTHER_API_DEP = \
 	   Shell/Naming.o\
 	   Shell/NNF.o\
 	   Shell/Options.o\
-	   Shell/Parser.o\
 	   Shell/PredicateDefinition.o\
 	   Shell/PDInliner.o\
 	   Shell/PDMerger.o\

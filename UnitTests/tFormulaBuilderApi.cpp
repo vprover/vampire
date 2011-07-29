@@ -354,10 +354,10 @@ TEST_FUN(fbapiClausifySmall)
 
     Formula fpx=api.formula(p,x);
     Formula fq=api.formula(q);
-    Formula fpxOq=api.formula(FormulaBuilder::OR, fpx, fq);
-    Formula fFpxOq=api.formula(FormulaBuilder::FORALL, xv, fpxOq);
+    Formula fQpx=api.formula(FormulaBuilder::FORALL, xv, fpx);
+    Formula fQpxOq=api.formula(FormulaBuilder::OR, fQpx, fq);
 
-    AnnotatedFormula af=api.annotatedFormula(fFpxOq,FormulaBuilder::CONJECTURE, "abc123");
+    AnnotatedFormula af=api.annotatedFormula(fQpxOq,FormulaBuilder::CONJECTURE, "conj1");
     Problem prb;
     prb.addFormula(af);
     prb.output(cout);

@@ -11,6 +11,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
+#include "Lib/ScopedPtr.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/TimeCounter.hpp"
@@ -76,9 +77,8 @@ ClauseIterator getProblemClauses()
   TimeCounter tc2(TC_PREPROCESSING);
 
   env.statistics->phase=Statistics::PROPERTY_SCANNING;
-  Property property;
-  property.scan(units);
-  Preprocess prepro(property,*env.options);
+  ScopedPtr<Property> property(Property::scan(units));
+  Preprocess prepro(*property,*env.options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(units);
 
