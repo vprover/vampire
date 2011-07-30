@@ -181,9 +181,7 @@ PredicateType* Signature::Symbol::predType() const
 Signature::Signature ()
   : _funs(32),
     _preds(32),
-    _lastName(0),
-    _lastIntroducedFunctionNumber(0),
-    _lastSG(0),
+    _nextFreshSymbolNumber(0),
     _strings(0),
     _integers(0),
     _rationals(0),
@@ -627,45 +625,57 @@ unsigned Signature::addPredicate (const string& name,
 
 /**
  * Create a new name.
- *
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addNamePredicate (unsigned arity, const char* suffix)
+unsigned Signature::addNamePredicate(unsigned arity)
 {
   CALL("Signature::addNamePredicate");
-
-  string suffixStr = suffix ? ("_" + string(suffix)) : "";
-  string prefix("sP");
-  prefix+=env.options->namePrefix();
-  for (;;) {
-    string name = prefix + Int::toString(_lastName++) + suffixStr;
-    bool added;
-    unsigned result = addPredicate(name,arity,added);
-    if (added) {
-      return result;
-    }
-  }
+  return addFreshPredicate(arity,"sP");
 } // addNamePredicate
 
-unsigned Signature::addIntroducedFunction(unsigned arity, const char* prefix0, const char* suffix)
+/**
+ * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,
+ * the function name will be prefixI, where I is an integer, otherwise it will be
+ * prefixI_suffix. The new function will be marked as skip for the purpose of equality
+ * elimination.
+ */
+unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const char* suffix)
 {
-  CALL("Signature::addIntroducedFunction");
+  CALL("Signature::addFreshFunction");
 
-  string prefix(prefix0);
-  prefix+=env.options->namePrefix();
-  for (;;) {
-    string name = prefix + Int::toString(_lastIntroducedFunctionNumber++);
-    if(suffix) {
-      name=name+"_"+suffix;
-    }
-    bool added;
-    unsigned result = addFunction(name,arity,added);
-    if (added) {
-      getFunction(result)->markSkip();
-      return result;
-    }
+  string pref(prefix);
+  string suf(suffix ? string("_")+suffix : "");
+  bool added;
+  unsigned result;
+  do {
+    result = addFunction(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
   }
-}
+  while (!added);
+  getFunction(result)->markSkip();
+  return result;
+} // addFreshFunction
+
+/**
+ * Add fresh predicate of a given arity and with a given prefix. If suffix is non-zero,
+ * the predicate name will be prefixI, where I is an integer, otherwise it will be
+ * prefixI_suffix. The new predicate will be marked as skip for the purpose of equality
+ * elimination.
+ */
+unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const char* suffix)
+{
+  CALL("Signature::addFreshPredicate");
+
+  string pref(prefix);
+  string suf(suffix ? string("_")+suffix : "");
+  bool added;
+  unsigned result;
+  do {
+    result = addPredicate(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+  }
+  while (!added);
+  getPredicate(result)->markSkip();
+  return result;
+} // addFreshPredicate
 
 /**
  * Return a new Skolem function. If @b suffix is nonzero, include it
@@ -676,7 +686,7 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
 {
   CALL("Signature::addSkolemFunction");
 
-  return addIntroducedFunction(arity, "sK", suffix);
+  return addFreshFunction(arity, "sK", suffix);
 } // addSkolemFunction
 
 /**
@@ -686,9 +696,8 @@ unsigned Signature::addIteFunction(unsigned arity)
 {
   CALL("Signature::addIteFunction");
 
-  return addIntroducedFunction(arity, "sG");
+  return addFreshFunction(arity, "sG");
 }
-
 
 /**
  * Return the key "name_arity" used for hashing.

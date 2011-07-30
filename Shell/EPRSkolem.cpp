@@ -386,7 +386,7 @@ Literal* EPRSkolem::Applicator::getSkolemLiteral(unsigned var)
   ASS_EQ(args.size(), arity);
   ASS_EQ(domainSorts.size(), arity);
 
-  unsigned pred = env.signature->addNamePredicate(arity, nameSuffix.c_str());
+  unsigned pred = env.signature->addFreshPredicate(arity, nameSuffix.c_str());
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
   predSym->setType(new PredicateType(arity, domainSorts.begin()));
 

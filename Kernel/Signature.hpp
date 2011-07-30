@@ -254,9 +254,13 @@ class Signature
     return _iSymbols.size()!=1;
   }
 
+  unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addIteFunction(unsigned arity);
-  unsigned addSkolemFunction(unsigned arity, const char* suffix = 0);
-  unsigned addIntroducedFunction(unsigned arity, const char* prefix, const char* suffix = 0);
+  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
+
+  unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
+  unsigned addNamePredicate(unsigned arity);
+
   /**
    * If a predicate with this name and arity exists, return its number.
    * Otherwise, add a new one and return its number.
@@ -288,7 +292,6 @@ class Signature
    * The added constant is of sort Sorts::SRT_DEFAULT.
    */
   unsigned addStringConstant(const string& name);
-  unsigned addNamePredicate(unsigned arity, const char* suffix = 0);
 
   /** return the name of a function with a given number */
   const string& functionName(int number)
@@ -399,13 +402,8 @@ private:
   SymbolMap _predNames;
   /** Map for the arity_check options: maps symbols to their arities */
   SymbolMap _arityCheck;
-  /** Last number used for name predicates */
-  int _lastName;
-  /** Last number used for introduced functions */
-  int _lastIntroducedFunctionNumber;
-  /** Last number of a function with name starting with sG
-   * (name recommended by http://www.cs.miami.edu/~tptp/TSTP/NewSymbolNames.html )*/
-  int _lastSG;
+  /** Last number used for fresh functions and predicates */
+  int _nextFreshSymbolNumber;
 
   Stack<Unit*> _distinctGroupPremises;
 

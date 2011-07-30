@@ -61,26 +61,21 @@ void EqualityProxy::init()
     ASSERTION_VIOLATION;
   }
   if(!s_proxyPredicate) {
-    string proxy("sQ1_eqProxy");
-    bool added;
-    unsigned predNum;
-    for(;;) {
-      predNum=env.signature->addPredicate(proxy,2,added);
-      if(added) {
-	break;
-      }
-      proxy += "_";
-    };
-    s_proxyPredicate=predNum;
+    s_proxyPredicate=env.signature->addFreshPredicate(2,"sQ1_eqProxy");
   }
 }
 
+/**
+ * Apply the equality proxy transformation to a list of clauses. The clauses
+ * changed by the transformation will be updated.
+ */
 void EqualityProxy::apply(UnitList*& units)
 {
   CALL("EqualityProxy::apply(UnitList*&)");
 
   if (_opt == Options::EP_BFNT) {
-    BFNT::apply(units);
+    BFNT bfntTransformer;
+    bfntTransformer.apply(units);
     return;
   }
 
