@@ -384,6 +384,12 @@ string Inference::ruleName(Rule rule)
     return "external";
   case CLAIM_DEFINITION:
     return "claim definition";
+  case BFNT_FLATTENING:
+    return "BNFT flattening";
+  case BFNT_DISTINCT:
+    return "BNFT distinct";
+  case BFNT_TOTALITY:
+    return "BNFT totality";
 
   default:
     ASSERTION_VIOLATION;

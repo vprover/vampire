@@ -235,6 +235,12 @@ public:
     EXTERNAL,
     /** claim definition, definition introduced by a claim in the input */
     CLAIM_DEFINITION,
+    /** BNFT flattening */
+    BFNT_FLATTENING,
+    /** BNFT axioms m != n */
+    BFNT_DISTINCT,
+    /** BNFT totality axioms R(x,1) \/ ... \/ R(x,n) */
+    BFNT_TOTALITY,
   }; // class Inference::Rule
 
   explicit Inference(Rule r);

@@ -76,6 +76,7 @@ void EqualityProxy::apply(UnitList*& units)
   if (_opt == Options::EP_BFNT) {
     BFNT bfntTransformer;
     bfntTransformer.apply(units);
+    units = bfntTransformer.create(6);
     return;
   }
 
