@@ -1140,7 +1140,12 @@ void CLTBProblem::runWriterChild()
 
   System::registerForSIGHUPOnParentDeath();
   signal(SIGHUP, &terminatingSignalHandler);
-  Timer::setTimeLimitEnforcement(false);
+//  Timer::setTimeLimitEnforcement(false);
+
+  Timer::setTimeLimitEnforcement(true);
+  int writerLimit = parent->problemTimeLimit+env.timer->elapsedSeconds()+2;
+  env.options->setTimeLimitInSeconds(writerLimit);
+
 
   //we're in the child that writes down the output of other children
   childOutputPipe.neverWrite();
