@@ -248,7 +248,7 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
   case ITE:
     {
       Formula* c = simplify(f->condArg());
-      switch (f->connective()) {
+      switch (c->connective()) {
       case TRUE:
 	return simplify(f->thenArg());
       case FALSE:
