@@ -16,7 +16,6 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "EqualityProxy.hpp"
-#include "BFNT.hpp"
 
 using namespace Shell;
 using namespace std;
@@ -55,8 +54,6 @@ void EqualityProxy::init()
   case Options::EP_ON:
     _rst = false;
     break;
-  case Options::EP_BFNT:
-    return;
   default:
     ASSERTION_VIOLATION;
   }
@@ -73,13 +70,6 @@ void EqualityProxy::apply(UnitList*& units)
 {
   CALL("EqualityProxy::apply(UnitList*&)");
 
-  if (_opt == Options::EP_BFNT) {
-    BFNT bfntTransformer;
-    bfntTransformer.apply(units);
-    units = bfntTransformer.create(6);
-    return;
-  }
-
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
     Clause* cl=static_cast<Clause*>(uit.next());
@@ -91,8 +81,7 @@ void EqualityProxy::apply(UnitList*& units)
   }
 
   addAxioms(units);
-}
-
+} // apply
 
 void EqualityProxy::addAxioms(UnitList*& units)
 {
@@ -127,7 +116,7 @@ void EqualityProxy::addAxioms(UnitList*& units)
     (*axE)[1]=Literal::createEquality(true,TermList(0,false),TermList(1,false));
     UnitList::push(axE,units);
   }
-}
+} // addAxioms
 
 void EqualityProxy::getVariableEqualityLiterals(unsigned cnt, LiteralStack& lits,
     Stack<TermList>& vars1, Stack<TermList>& vars2)

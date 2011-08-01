@@ -35,6 +35,7 @@ public:
     BACKWARD_SUBSUMPTION,
     BACKWARD_SUBSUMPTION_RESOLUTION,
     BDD_MARKING_SUBSUMPTION,
+    BFNT,
     BINARY_RESOLUTION,
 
     COLOR_UNBLOCKING,
@@ -314,15 +315,14 @@ public:
 
   /** Values for --equality_proxy */
   enum EqualityProxy {
-    EP_BFNT = 0,
-    EP_R = 1,
-    EP_RS = 2,
-    EP_RST = 3,
-    EP_RSTC = 4,
+    EP_R = 0,
+    EP_RS = 1,
+    EP_RST = 2,
+    EP_RSTC = 3,
     /** --equality_proxy=off */
-    EP_OFF = 5,
+    EP_OFF = 4,
     /** --equality_proxy=on */
-    EP_ON = 6
+    EP_ON = 5
   };
 
 public:
@@ -393,6 +393,7 @@ public:
   void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation; }
   bool binaryResolution() const { return _binaryResolution; }
+  bool bfnt() const { return _bfnt; }
   bool unitResultingResolution() const { return _unitResultingResolution; }
   bool arityCheck() const { return _arityCheck; }
   void setArityCheck(bool newVal) { _arityCheck=newVal; }
@@ -526,6 +527,7 @@ private:
   Subsumption _backwardSubsumption;
   Subsumption _backwardSubsumptionResolution;
   bool _bddMarkingSubsumption;
+  bool _bfnt;
   bool _binaryResolution;
 
   bool _colorUnblocking;

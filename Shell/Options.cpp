@@ -93,6 +93,7 @@ const char* Options::Constants::_optionNames[] = {
   "backward_subsumption",
   "backward_subsumption_resolution",
   "bdd_marking_subsumption",
+  "bfnt",
   "binary_resolution",
 
   "color_unblocking",
@@ -227,6 +228,7 @@ NameArray Options::Constants::optionNames(_optionNames,
 const char* Options::Constants::_shortNames[] = {
   "awr",
   "bd",
+  "bfnt",
   "bms",
   "br",
   "bs",
@@ -298,6 +300,7 @@ NameArray Options::Constants::shortNames(_shortNames,
 int Options::Constants::shortNameIndexes[] = {
   AGE_WEIGHT_RATIO,
   BACKWARD_DEMODULATION,
+  BFNT,
   BDD_MARKING_SUBSUMPTION,
   BINARY_RESOLUTION,
   BACKWARD_SUBSUMPTION,
@@ -422,7 +425,6 @@ NameArray Options::Constants::satAlgValues(_satAlgValues,
 					   sizeof(_satAlgValues)/sizeof(char*));
 
 const char* Options::Constants::_equalityProxyValues[] = {
-  "BFNT",
   "R",
   "RS",
   "RST",
@@ -530,6 +532,7 @@ Options::Options ()
   _backwardSubsumption(SUBSUMPTION_ON),
   _backwardSubsumptionResolution(SUBSUMPTION_OFF),
   _bddMarkingSubsumption(false),
+  _bfnt(false),
   _binaryResolution(true),
 
   _colorUnblocking(false),
@@ -736,6 +739,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case BDD_MARKING_SUBSUMPTION:
       _bddMarkingSubsumption = onOffToBool(value,name);
+      return;
+    case BFNT:
+      _bfnt = onOffToBool(value,name);
       return;
     case BINARY_RESOLUTION:
       _binaryResolution = onOffToBool(value,name);
@@ -1415,6 +1421,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case BDD_MARKING_SUBSUMPTION:
     str << boolToOnOff(_bddMarkingSubsumption);
+    return;
+  case BFNT:
+    str << boolToOnOff(_bfnt);
     return;
   case BINARY_RESOLUTION:
     str << boolToOnOff(_binaryResolution);
@@ -2293,6 +2302,9 @@ void Options::checkGlobalOptionConstraints() const
   if(showInterpolant()!=INTERP_OFF && splitting()==SM_BACKTRACKING) {
     USER_ERROR("Cannot output interpolant with backtracking splitting");
   }
+  // if (_bfnt && !complete()) {
+  //   USER_ERROR("The bfnt option can only be used with a complete strategy");
+  // }
 }
 
 void Options::setMode(Mode newVal) {
