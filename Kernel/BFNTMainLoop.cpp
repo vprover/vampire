@@ -14,6 +14,7 @@
 #endif
 
 
+#include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/System.hpp"
@@ -23,6 +24,8 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
+
+#include "Shell/Statistics.hpp"
 
 #include "BFNTMainLoop.hpp"
 
@@ -164,6 +167,7 @@ MainLoopResult BFNTMainLoop::runImpl()
     Timer::syncClock();
     if(env.timeLimitReached()) { return MainLoopResult(Statistics::TIME_LIMIT); }
     LOG("Trying model size "<<modelSize);
+    env.statistics->maxBFNTModelSize = modelSize;
     MainLoopResult childResult = spawnChild(modelSize);
 
     if(childResult.terminationReason == Statistics::SATISFIABLE) {

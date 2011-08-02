@@ -104,6 +104,8 @@ Statistics::Statistics()
     instGenKeptClauses(0),
     instGenIterations(0),
 
+    maxBFNTModelSize(0),
+
     satPureVarsEliminated(0),
     terminationReason(UNKNOWN),
     refutation(0),
@@ -247,6 +249,8 @@ void Statistics::print(ostream& out)
   COND_OUT("InstGen redundant clauses", instGenRedundantClauses);
   COND_OUT("InstGen kept clauses", instGenKeptClauses);
   COND_OUT("InstGen iterations", instGenIterations);
+
+  COND_OUT("Max BFNT model size", maxBFNTModelSize);
 
 
   SEPARATOR;
