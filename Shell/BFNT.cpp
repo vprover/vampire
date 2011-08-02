@@ -48,6 +48,20 @@ void BFNT::apply(UnitList* units)
     ASS(cl->isClause());
     _flat.push(apply(cl));
   }
+  // reflexivity
+  Clause* rc = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::EXTERNAL));
+  TermList x;
+  x.makeVar(0);
+  (*rc)[0] = Literal::create2(_proxy,true,x,x);
+  // _flat.push(rc);
+
+  // symmmetry
+  Clause* sc = new(2) Clause(2,Unit::AXIOM,new Inference(Inference::EXTERNAL));
+  TermList y;
+  y.makeVar(1);
+  (*rc)[0] = Literal::create2(_proxy,false,x,y);
+  (*rc)[1] = Literal::create2(_proxy,true,y,x);
+  _flat.push(sc);
 } // BFNT::apply
 
 /**
