@@ -6,6 +6,14 @@
 #include <cerrno>
 #include <csignal>
 
+#if !COMPILER_MSVC
+
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#endif
+
+
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/System.hpp"
