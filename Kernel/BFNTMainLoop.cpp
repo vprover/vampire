@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <csignal>
 
+#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Timer.hpp"
@@ -43,9 +44,9 @@ void BFNTMainLoop::addInputClauses(ClauseIterator cit)
  * Run the child process that does proving on the flattenned problem
  *
  * Result statuses of the process:
- * 0 - satisfiable
- * 1 - unsatisfiable
- * 2 - unknown
+ * BFNT_CHILD_RESULT_SAT
+ * BFNT_CHILD_RESULT_UNSAT
+ * BFNT_CHILD_RESULT_UNKNOWN
  */
 void BFNTMainLoop::runChild(size_t modelSize)
 {
@@ -69,6 +70,11 @@ void BFNTMainLoop::runChild(size_t modelSize)
   LOG("Child termination reason: "
       << ((innerRes.terminationReason==Statistics::SATISFIABLE) ? "Satisfiable" :
 	  (innerRes.terminationReason==Statistics::REFUTATION) ? "Unsatisfiable" : "Unknown") );
+//#if LOGGING
+//  if(env.statistics->model!="") {
+//    LOG("Model: "<<env.statistics->model);
+//  }
+//#endif
 
   switch(innerRes.terminationReason) {
   case Statistics::SATISFIABLE:
