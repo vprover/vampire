@@ -22,6 +22,7 @@
 
 #include "Shell/Options.hpp"
 
+#include "BFNTMainLoop.hpp"
 #include "BDD.hpp"
 #include "Clause.hpp"
 
@@ -105,13 +106,24 @@ MainLoopSP MainLoop::createFromOptions()
 {
   CALL("MainLoop::createFromOptions");
 
+  MainLoopSP res;
+
   switch (env.options->saturationAlgorithm()) {
   case Options::TABULATION:
-    return MainLoopSP(new TabulationAlgorithm());
+    res = MainLoopSP(new TabulationAlgorithm());
+    break;
   case Options::INST_GEN:
-    return MainLoopSP(new IGAlgorithm());
+    res = MainLoopSP(new IGAlgorithm());
+    break;
   default:
-    return MainLoopSP(SaturationAlgorithm::createFromOptions());
+    res = MainLoopSP(SaturationAlgorithm::createFromOptions());
+    break;
   }
+
+  if(env.options->bfnt()) {
+    res = MainLoopSP(new BFNTMainLoop(res));
+  }
+
+  return res;
 }
 

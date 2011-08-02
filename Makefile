@@ -102,7 +102,8 @@ VLS_OBJ= Lib/Sys/Multiprocessing.o\
          Lib/Sys/Semaphore.o\
          Lib/Sys/SyncPipe.o
 
-VK_OBJ= Kernel/BDD.o\
+VK_OBJ= Kernel/BFNTMainLoop.o\
+        Kernel/BDD.o\
         Kernel/BDDClausifier.o\
         Kernel/BDDConjunction.o\
         Kernel/Clause.o\

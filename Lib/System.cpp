@@ -193,7 +193,7 @@ void handleSignal (int sigNum)
     case SIGQUIT:
     case SIGXCPU:
       if (handled) {
-	System::terminateImmediately(haveSigInt ? 3 : 2);
+	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
       }
       handled = true;
       if(outputAllowed()) {
@@ -228,7 +228,7 @@ void handleSignal (int sigNum)
     case SIGABRT:
       {
 	if (handled) {
-	  System::terminateImmediately(haveSigInt ? 3 : 2);
+	  System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
 	}
 	reportSpiderFail();
 	handled = true;
@@ -248,7 +248,7 @@ void handleSignal (int sigNum)
 #endif
 	  }
 	}
-	System::terminateImmediately(haveSigInt ? 3 : 2);
+	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
       }
 
     default:

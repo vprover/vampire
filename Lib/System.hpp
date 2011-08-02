@@ -16,6 +16,14 @@
 #include "List.hpp"
 #include "Portability.hpp"
 
+
+#define VAMP_RESULT_STATUS_SUCCESS 0
+#define VAMP_RESULT_STATUS_UNKNOWN 1
+#define VAMP_RESULT_STATUS_OTHER_SIGNAL 2
+#define VAMP_RESULT_STATUS_SIGINT 3
+#define VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION 4
+
+
 bool outputAllowed();
 bool inSpiderMode();
 void reportSpiderFail();

@@ -11,6 +11,9 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Map.hpp"
+#include "Lib/Stack.hpp"
+
 using namespace Kernel;
 
 namespace Shell {

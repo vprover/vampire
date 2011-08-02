@@ -85,17 +85,19 @@ UnitList* globUnitList=0;
  * either found refutation or established satisfiability.
  *
  *
- * If Vampire was interupted by a SIGINT, value 3 is returned,
- * and in case of other signal we return 2. For implementation
+ * If Vampire was interupted by a SIGINT, value
+ * VAMP_RESULT_STATUS_SIGINT is returned,
+ * and in case of other signal we return VAMP_RESULT_STATUS_OTHER_SIGNAL. For implementation
  * of these return values see Lib/System.hpp.
  *
- * In case of an user error, we return value 4.
+ * In case of an unhandled exception or user error, we return value
+ * VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION.
  *
  * In case Vampire was terminated by the timer, return value is
  * uncertain (but definitely not zero), probably it will be 134
  * (we terminate by a call to the @b abort() function in this case).
  */
-int vampireReturnValue = 1;
+int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 
 ClauseIterator getProblemClauses()
 {
@@ -160,7 +162,7 @@ void profileMode()
   env.endOutput();
 
   //we have succeeded with the profile mode, so we'll terminate with zero return value
-  vampireReturnValue=0;
+  vampireReturnValue=VAMP_RESULT_STATUS_SUCCESS;
   delete property;
 } // profileMode
 
@@ -194,7 +196,7 @@ void programAnalysisMode()
 #else
   INVALID_OPERATION("program analysis currently not supported");
 #endif
-  vampireReturnValue=0;
+  vampireReturnValue=VAMP_RESULT_STATUS_SUCCESS;
 } // programAnalysisMode
 
 void vampireMode()
@@ -230,7 +232,7 @@ void vampireMode()
 #else
     if(env.statistics->terminationReason==Statistics::REFUTATION) {
 #endif
-    vampireReturnValue=0;
+    vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
   }
 } // vampireMode
 
@@ -251,7 +253,7 @@ void spiderMode()
     switch (env.statistics->terminationReason) {
     case Statistics::REFUTATION:
       reportSpiderStatus('+');
-      vampireReturnValue=0;
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     case Statistics::TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:
@@ -262,7 +264,7 @@ void spiderMode()
     case Statistics::SATISFIABLE:
       reportSpiderStatus('-');
 #if SATISFIABLE_IS_SUCCESS
-      vampireReturnValue=0;
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 #endif
       break;
     default:
@@ -298,7 +300,7 @@ void clausifyMode()
   env.endOutput();
 
   //we have successfully output all clauses, so we'll terminate with zero return value
-  vampireReturnValue=0;
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // clausifyMode
 
 void axiomSelectionMode()
@@ -332,7 +334,7 @@ void axiomSelectionMode()
   env.endOutput();
 
   //we have successfully output the selected units, so we'll terminate with zero return value
-  vampireReturnValue=0;
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
 
 void groundingMode()
@@ -451,7 +453,7 @@ int main(int argc, char* argv [])
     case Options::MODE_CASC:
       if(Shell::CASC::CASCMode::perform(argc, argv)) {
 	//casc mode succeeded in solving the problem, so we return zero
-	vampireReturnValue=0;
+	vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
     case Options::MODE_CASC_SIMPLE_LTB:
@@ -459,14 +461,14 @@ int main(int argc, char* argv [])
       Shell::CASC::SimpleLTBMode sltbm;
       sltbm.perform();
       //we have processed the ltb batch file, so we can return zero
-      vampireReturnValue=0;
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
     case Options::MODE_CASC_LTB:
     {
       Shell::CASC::CLTBMode::perform();
       //we have processed the ltb batch file, so we can return zero
-      vampireReturnValue=0;
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
     }
     case Options::MODE_CLAUSIFY:
@@ -492,7 +494,7 @@ int main(int argc, char* argv [])
   }
 #if VDEBUG
   catch (Debug::AssertionViolationException& exception) {
-    vampireReturnValue = 4;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
@@ -500,7 +502,7 @@ int main(int argc, char* argv [])
   }
 #endif
   catch (UserErrorException& exception) {
-    vampireReturnValue = 4;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
@@ -508,7 +510,7 @@ int main(int argc, char* argv [])
     explainException(exception);
   }
   catch (Exception& exception) {
-    vampireReturnValue = 4;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
@@ -519,7 +521,7 @@ int main(int argc, char* argv [])
     env.endOutput();
   }
   catch (std::bad_alloc& _) {
-    vampireReturnValue = 4;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();

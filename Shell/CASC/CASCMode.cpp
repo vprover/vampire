@@ -7,6 +7,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/System.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 
@@ -77,7 +78,7 @@ void CASCMode::handleSIGINT()
   env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
   env.statistics->print(env.out());
   env.endOutput();
-  exit(3);
+  exit(VAMP_RESULT_STATUS_SIGINT);
 }
 
 bool CASCMode::perform()
