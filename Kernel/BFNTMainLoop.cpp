@@ -27,7 +27,7 @@
 #include "BFNTMainLoop.hpp"
 
 #undef LOGGING
-#define LOGGING 1
+#define LOGGING 0
 
 #define BFNT_CHILD_RESULT_SAT 0
 #define BFNT_CHILD_RESULT_UNSAT 1

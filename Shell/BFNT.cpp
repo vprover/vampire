@@ -17,6 +17,9 @@
 
 #include "BFNT.hpp"
 
+#undef LOGGING
+#define LOGGING 0
+
 using namespace Shell;
 using namespace std;
 using namespace Lib;
@@ -276,7 +279,7 @@ UnitList* BFNT::create(unsigned modelSize)
       // create c1 != c2
       Clause* cls = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::BFNT_DISTINCT));
       (*cls)[0] = Literal::create2(_proxy,false,c1,c2);
-      cout << cls->toString() << "\n";
+      LOGV(cls->toString());
       result = new UnitList(cls,result);
     }
   }
@@ -311,7 +314,7 @@ UnitList* BFNT::create(unsigned modelSize)
     result = new UnitList(Clause::fromStack(lits,Unit::AXIOM,
 					    new Inference(Inference::BFNT_TOTALITY)),
 			  result);
-    cout << result->head()->toString() << "\n";
+    LOGV(result->head()->toString());
   }
   Stack<Clause*>::Iterator sit(_flat);
   while (sit.hasNext()) {
