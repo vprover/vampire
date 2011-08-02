@@ -646,11 +646,13 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
   string pref(prefix);
   string suf(suffix ? string("_")+suffix : "");
   bool added;
-  unsigned result;
-  do {
-    result = addFunction(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+  unsigned result = addFunction(pref+suf,arity,added);
+  if (!added) {
+    do {
+      result = addFunction(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+    }
+    while (!added);
   }
-  while (!added);
   getFunction(result)->markSkip();
   return result;
 } // addFreshFunction
@@ -668,11 +670,13 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
   string pref(prefix);
   string suf(suffix ? string("_")+suffix : "");
   bool added;
-  unsigned result;
-  do {
-    result = addPredicate(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+  unsigned result = addPredicate(pref+suf,arity,added);
+  if (!added) {
+    do {
+      result = addPredicate(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+    }
+    while (!added);
   }
-  while (!added);
   getPredicate(result)->markSkip();
   return result;
 } // addFreshPredicate

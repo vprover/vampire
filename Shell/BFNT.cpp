@@ -171,8 +171,7 @@ Clause* BFNT::apply(Clause* cl)
       // find the predicate p corresponding to f
       unsigned p; 
       if (!_preds.find(f,p)) { // no such symbol
-	string pname("p_");
-	pname += env.signature->getFunction(f)->name();
+	string pname = env.signature->getFunction(f)->name();
 	p = env.signature->addFreshPredicate(args.length(),pname.c_str());
 	_preds.insert(f,p);
       }
