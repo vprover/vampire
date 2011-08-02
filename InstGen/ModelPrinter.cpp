@@ -71,12 +71,14 @@ bool ModelPrinter::tryOutput(ostream& stm)
     _trueLits.push(lit);
   }
 
-//  if(env.options->unusedPredicateDefinitionRemoval() || env.options->trivialPredicateRemoval()) {
-//    return false;
-//  }
-
   collectTrueLits();
   if(env.signature->functions()!=0) {
+    if(_usedConstants.isEmpty()) {
+      unsigned newFunc = env.signature->addFreshFunction(0,"c");
+      TermList newConstTrm(Term::create(newFunc, 0, 0));
+      _usedConstants.push(newConstTrm);
+      _usedConstantSet.insert(newFunc);
+    }
     analyzeEqualityAndPopulateDomain();
     rewriteLits(_trueLits);
 
@@ -95,6 +97,30 @@ bool ModelPrinter::isEquality(Literal* lit)
   return lit->isEquality() || lit->functor()==EqualityProxy::s_proxyPredicate;
 }
 
+/**
+ * Collect constants used in @c lit into _usedConstantSet and _usedConstants.
+ *
+ * Function assumes there are no non-constant functions.
+ */
+void ModelPrinter::collectConstants(Literal* lit)
+{
+  CALL("ModelPrinter::collectConstants");
+
+  SubtermIterator sti(lit);
+  while(sti.hasNext()) {
+    TermList t = sti.next();
+    if(t.isVar()) {
+      continue;
+    }
+    Term* trm = t.term();
+    ASS_EQ(trm->arity(),0);
+    unsigned func = trm->functor();
+    if(_usedConstantSet.insert(func)) {
+      _usedConstants.push(t);
+    }
+  }
+}
+
 void ModelPrinter::collectTrueLits()
 {
   CALL("ModelPrinter::collectTrueLits");
@@ -106,6 +132,7 @@ void ModelPrinter::collectTrueLits()
     ASS_G(selCnt, 0);
     for(unsigned i=0; i<selCnt; i++) {
       Literal* lit = (*cl)[i];
+      collectConstants(lit);
       if(isEquality(lit)) {
 	_trueEqs.push(lit);
       }
@@ -246,16 +273,11 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
 {
   CALL("ModelPrinter::analyzeEqualityAndPopulateDomain");
 
-  TermStack eqInstDomain;
-  unsigned funCnt = env.signature->functions();
-  for(unsigned i=0; i<funCnt; i++) {
-    ASS_EQ(env.signature->functionArity(i), 0);
-    TermList trm = TermList(Term::create(i, 0, 0));
-    eqInstDomain.push(trm);
-  }
+  TermStack eqInstDomain = _usedConstants;
   LiteralStack eqInsts;
   getInstances(_trueEqs, eqInstDomain, eqInsts);
 
+  unsigned funCnt = env.signature->functions();
   IntUnionFind uif(funCnt);
 
   LiteralStack::Iterator eqit(eqInsts);
@@ -280,6 +302,10 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
 
     ALWAYS(ecElIt.hasNext());
     unsigned firstFunc = ecElIt.next();
+    if(!_usedConstantSet.contains(firstFunc)) {
+      ASS(!ecElIt.hasNext()); //constant that is not used is alone in its equivalence class
+      continue;
+    }
     TermList firstTerm = TermList(Term::create(firstFunc, 0, 0));
     string firstTermStr = firstTerm.toString();
     unsigned eqClassSort = SortHelper::getResultSort(firstTerm.term());

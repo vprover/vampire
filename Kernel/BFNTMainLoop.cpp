@@ -78,11 +78,11 @@ void BFNTMainLoop::runChild(size_t modelSize)
   LOG("Child termination reason: "
       << ((innerRes.terminationReason==Statistics::SATISFIABLE) ? "Satisfiable" :
 	  (innerRes.terminationReason==Statistics::REFUTATION) ? "Unsatisfiable" : "Unknown") );
-//#if LOGGING
-//  if(env.statistics->model!="") {
-//    LOG("Model: "<<env.statistics->model);
-//  }
-//#endif
+#if LOGGING
+  if(env.statistics->model!="") {
+    LOG("Model: "<<endl<<env.statistics->model);
+  }
+#endif
 
   switch(innerRes.terminationReason) {
   case Statistics::SATISFIABLE:

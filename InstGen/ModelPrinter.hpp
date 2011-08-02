@@ -43,6 +43,11 @@ private:
   void outputFunInterpretations(ostream& out);
   void outputPredInterpretations(ostream& out);
 
+  void collectConstants(Literal* lit);
+
+  DHSet<unsigned> _usedConstantSet;
+  TermStack _usedConstants;
+
   Stack<TermList> _domain;
 
 

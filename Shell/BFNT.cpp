@@ -59,8 +59,8 @@ void BFNT::apply(UnitList* units)
   Clause* sc = new(2) Clause(2,Unit::AXIOM,new Inference(Inference::EXTERNAL));
   TermList y;
   y.makeVar(1);
-  (*rc)[0] = Literal::create2(_proxy,false,x,y);
-  (*rc)[1] = Literal::create2(_proxy,true,y,x);
+  (*sc)[0] = Literal::create2(_proxy,false,x,y);
+  (*sc)[1] = Literal::create2(_proxy,true,y,x);
   _flat.push(sc);
 } // BFNT::apply
 
