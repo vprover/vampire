@@ -30,8 +30,8 @@
 #define LOGGING 0
 
 #define BFNT_CHILD_RESULT_SAT 0
-#define BFNT_CHILD_RESULT_UNSAT 1
-#define BFNT_CHILD_RESULT_UNKNOWN 2
+#define BFNT_CHILD_RESULT_UNSAT 6
+#define BFNT_CHILD_RESULT_UNKNOWN 7
 
 namespace Kernel
 {
@@ -70,7 +70,6 @@ void BFNTMainLoop::runChild(size_t modelSize)
     LOG("Flattenned unit: "<<u->toString());
   }
 #endif
-
 
   _inner->addInputClauses(cit);
   MainLoopResult innerRes = _inner->run();
@@ -141,6 +140,10 @@ MainLoopResult BFNTMainLoop::spawnChild(size_t modelSize)
       return MainLoopResult(Statistics::SATISFIABLE);
     case BFNT_CHILD_RESULT_UNSAT:
       return MainLoopResult(Statistics::REFUTATION);
+
+    case VAMP_RESULT_STATUS_OTHER_SIGNAL:
+      INVALID_OPERATION("error in the child process");
+
     case BFNT_CHILD_RESULT_UNKNOWN:
     default: //under default will fall timeout
       return MainLoopResult(Statistics::UNKNOWN);
