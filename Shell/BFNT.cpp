@@ -51,20 +51,6 @@ void BFNT::apply(UnitList* units)
     ASS(cl->isClause());
     _flat.push(apply(cl));
   }
-  // reflexivity
-  Clause* rc = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::EXTERNAL));
-  TermList x;
-  x.makeVar(0);
-  (*rc)[0] = Literal::create2(_proxy,true,x,x);
-  // _flat.push(rc);
-
-  // symmmetry
-  Clause* sc = new(2) Clause(2,Unit::AXIOM,new Inference(Inference::EXTERNAL));
-  TermList y;
-  y.makeVar(1);
-  (*sc)[0] = Literal::create2(_proxy,false,x,y);
-  (*sc)[1] = Literal::create2(_proxy,true,y,x);
-  _flat.push(sc);
 } // BFNT::apply
 
 /**
@@ -271,9 +257,10 @@ UnitList* BFNT::create(unsigned modelSize)
 
   // create inequalities between variables
   Term** cs = _constants.begin();
-  for (unsigned i = 0;i < len-1;i++) {
+  for (unsigned i = 0;i < len;i++) {
     TermList c1(cs[i]);
-    for (unsigned j = i+1;j < len;j++) {
+    for (unsigned j = 0;j < len;j++) {
+      if (i == j) continue;
       TermList c2(cs[j]);
       // create c1 != c2
       Clause* cls = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::BFNT_DISTINCT));

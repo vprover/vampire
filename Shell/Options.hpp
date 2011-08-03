@@ -331,8 +331,8 @@ public:
   void readFromTestId (string testId);
   void readOptionsString (string testId);
   string generateTestId() const;
-  // bool complete() const;
   bool complete(const Property&) const;
+  bool completeForNNE() const;
   void setForcedOptionValues();
   void checkGlobalOptionConstraints() const;
 

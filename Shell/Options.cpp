@@ -2277,6 +2277,33 @@ bool Options::complete(const Property& prop) const
 } // Options::complete
 
 /**
+ * True if the options are complete for non-Horn problems without equality.
+ * @since 02/08/2011 Wroclaw
+ */
+bool Options::completeForNNE() const
+{
+  CALL("Options::completeForNNE");
+
+  // preprocessing
+  if (_sineSelection != SS_OFF) return false;
+
+  switch (_saturationAlgorithm) {
+  case TABULATION: return false;
+  case INST_GEN: return true; // !!!
+  default: break;
+  }
+
+  // preprocessing for resolution-based algorithms
+  if (_sos) return false;
+  // run-time rule causing incompleteness
+  if (_forwardLiteralRewriting) return false;
+  
+  if (_selection <= -100 || _selection >= 100) return false;
+
+  return _binaryResolution;
+} // Options::completeForNNE
+
+/**
  * Check constraints necessary for options to make sense, and
  * call USER_ERROR if some are violated
  *
@@ -2302,9 +2329,9 @@ void Options::checkGlobalOptionConstraints() const
   if(showInterpolant()!=INTERP_OFF && splitting()==SM_BACKTRACKING) {
     USER_ERROR("Cannot output interpolant with backtracking splitting");
   }
-  // if (_bfnt && !complete()) {
-  //   USER_ERROR("The bfnt option can only be used with a complete strategy");
-  // }
+  if (_bfnt && !completeForNNE()) {
+    USER_ERROR("The bfnt option can only be used with a strategy complete for non-Horn problems without equality");
+  }
 }
 
 void Options::setMode(Mode newVal) {
