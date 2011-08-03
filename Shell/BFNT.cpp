@@ -220,6 +220,7 @@ Clause* BFNT::resolveNegativeVariableEqualities(Clause* cl)
   if (inequalities.isEmpty()) {
     return cl;
   }
+  bool diffVar = false;
   while (!inequalities.isEmpty()) {
     Literal* ineq = inequalities.pop();
     unsigned v1 = ineq->nthArgument(0)->var();
@@ -227,6 +228,7 @@ Clause* BFNT::resolveNegativeVariableEqualities(Clause* cl)
     if (v1 == v2->var()) { // x != x
       continue;
     }
+    diffVar = true;
     Substitution subst;
     subst.bind(v1,*v2);
     cl = new(n) Clause(n,cl->inputType(),
@@ -235,6 +237,13 @@ Clause* BFNT::resolveNegativeVariableEqualities(Clause* cl)
       Literal* lit = SubstHelper::apply<Substitution>(lits[i],subst);
       (*cl)[i] = lit;
       lits[i] = lit;
+    }
+  }
+  if (!diffVar) { // only X != X found, we should still perform the inference
+    cl = new(n) Clause(n,cl->inputType(),
+		       new Inference1(Inference::EQUALITY_RESOLUTION,cl));
+    for (int i = n-1;i >= 0;i--) {
+      (*cl)[i] = lits[i];
     }
   }
   return cl;
