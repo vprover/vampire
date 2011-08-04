@@ -133,6 +133,7 @@ public:
     SHOW_NONCONSTANT_SKOLEM_FUNCTION_TRACE,
     SHOW_OPTIONS,
     SHOW_PASSIVE,
+    SHOW_PREPROCESSING_FORMULAS,
     SHOW_SKOLEMISATIONS,
     SHOW_SYMBOL_ELIMINATION,
     SIMULATED_TIME_LIMIT,
@@ -378,6 +379,7 @@ public:
   void setShowNonconstantSkolemFunctionTrace(bool newVal) { _showNonconstantSkolemFunctionTrace = newVal; }
   bool showOptions() const { return _showOptions; }
   bool showPassive() const { return _showPassive; }
+  bool showPreprocessingFormulas() const { return _showPreprocessingFormulas; }
   bool showSkolemisations() const { return _showSkolemisations; }
   bool showSymbolElimination() const { return _showSymbolElimination; }
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval; }
@@ -622,6 +624,7 @@ private:
   bool _showNonconstantSkolemFunctionTrace;
   bool _showOptions;
   bool _showPassive;
+  bool _showPreprocessingFormulas;
   bool _showSkolemisations;
   bool _showSymbolElimination;
   int _simulatedTimeLimit;

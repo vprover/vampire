@@ -3,11 +3,14 @@
  * Implements class ProvingHelper.
  */
 
+#include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
 #include "Shell/Property.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "SaturationAlgorithm.hpp"
 
@@ -110,6 +113,13 @@ void ProvingHelper::runVampireSaturationImpl(ClauseIterator clauses)
   CALL("ProvingHelper::runVampireSaturationImpl");
 
   Unit::onPreprocessingEnd();
+
+  if(env.options->showPreprocessingFormulas()) {
+    env.beginOutput();
+    UIHelper::outputAllPremises(env.out(), clauses, "New: ");
+    env.endOutput();
+  }
+
   env.statistics->phase=Statistics::SATURATION;
   MainLoopSP salg=MainLoop::createFromOptions();
   salg->addInputClauses(clauses);

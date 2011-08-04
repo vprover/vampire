@@ -183,6 +183,7 @@ const char* Options::Constants::_optionNames[] = {
   "show_nonconstant_skolem_function_trace",
   "show_options",
   "show_passive",
+  "show_preprocessing_formulas",
   "show_skolemisations",
   "show_symbol_elimination",
   "simulated_time_limit",
@@ -626,6 +627,7 @@ Options::Options ()
   _showNonconstantSkolemFunctionTrace(false),
   _showOptions(false),
   _showPassive(false),
+  _showPreprocessingFormulas(false),
   _showSkolemisations(false),
   _showSymbolElimination(false),
   _simulatedTimeLimit(0),
@@ -1041,6 +1043,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SHOW_PASSIVE:
       _showPassive = onOffToBool(value,name);
+      return;
+    case SHOW_PREPROCESSING_FORMULAS:
+      _showPreprocessingFormulas = onOffToBool(value,name);
       return;
     case SHOW_SKOLEMISATIONS:
       _showSkolemisations = onOffToBool(value,name);
@@ -1660,6 +1665,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SHOW_PASSIVE:
     str << boolToOnOff(_showPassive);
+    return;
+  case SHOW_PREPROCESSING_FORMULAS:
+    str << boolToOnOff(_showPreprocessingFormulas);
     return;
   case SHOW_SKOLEMISATIONS:
     str << boolToOnOff(_showSkolemisations);

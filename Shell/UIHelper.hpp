@@ -30,6 +30,8 @@ public:
   static bool haveConjecture() { return s_haveConjecture; }
   static void setConjecturePresence(bool haveConjecture) { s_haveConjecture=haveConjecture; }
 
+  static void outputAllPremises(ostream& out, ClauseIterator& clauses, string prefix="");
+
   /**
    * True if we are running in the CASC mode
    *
@@ -47,6 +49,8 @@ public:
    */
   static bool satisfiableStatusWasAlreadyOutput;
 private:
+  static bool unitSpecNumberComparator(UnitSpec us1, UnitSpec us2);
+
   static bool s_haveConjecture;
 };
 

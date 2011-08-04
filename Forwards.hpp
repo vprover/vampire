@@ -168,6 +168,8 @@ class BDDNode;
 typedef unsigned SplitLevel;
 typedef SharedSet<SplitLevel> SplitSet;
 
+struct UnitSpec;
+
 
 /**
  * Color of a term

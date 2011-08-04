@@ -218,7 +218,8 @@ void SaturationAlgorithm::reportClause(ClauseReportType type, Clause* cl)
 {
   CALL("SaturationAlgorithm::reportClause(...,Clause*)");
 
-  reportClause(type, cl->toNiceString());
+//  reportClause(type, cl->toNiceString());
+  reportClause(type, cl->toString());
 }
 
 void SaturationAlgorithm::reportClause(ClauseReportType type, string clString)

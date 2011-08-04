@@ -36,6 +36,59 @@ using namespace Saturation;
 
 bool UIHelper::s_haveConjecture=false;
 
+bool UIHelper::unitSpecNumberComparator(UnitSpec us1, UnitSpec us2)
+{
+  CALL("unitSpecNumberComparator");
+
+  return us1.unit()->number() < us2.unit()->number();
+}
+
+void UIHelper::outputAllPremises(ostream& out, ClauseIterator& clauses, string prefix)
+{
+  CALL("UIHelper::outputAllPremises");
+
+  Stack<UnitSpec> prems;
+  Stack<UnitSpec> toDo;
+  DHSet<UnitSpec> seen;
+
+  //get the clauses to start with
+  {
+    ClauseList* cLst = 0;
+    ClauseList::pushFromIterator(clauses, cLst);
+    ClauseList::Iterator cit(cLst);
+    while(cit.hasNext()) {
+      Clause* cl = cit.next();
+      toDo.push(UnitSpec(cl));
+      seen.insert(UnitSpec(cl));
+    }
+
+    //restore the content of the iterator
+    clauses = pvi( ClauseList::DestructiveIterator(cLst) );
+  }
+
+  while(toDo.isNonEmpty()) {
+    UnitSpec us = toDo.pop();
+    UnitSpecIterator pars = InferenceStore::instance()->getParents(us);
+    while(pars.hasNext()) {
+      UnitSpec par = pars.next();
+      if(seen.contains(par)) {
+	continue;
+      }
+      prems.push(par);
+      toDo.push(par);
+      seen.insert(par);
+    }
+  }
+
+  std::sort(prems.begin(), prems.end(), UIHelper::unitSpecNumberComparator);
+
+  Stack<UnitSpec>::BottomFirstIterator premIt(prems);
+  while(premIt.hasNext()) {
+    UnitSpec prem = premIt.next();
+    out << prefix << prem.toString() << endl;
+  }
+}
+
 /**
  * Return list of input units obtained according to the content of
  * @b env.options
