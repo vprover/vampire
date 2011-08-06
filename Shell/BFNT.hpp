@@ -18,6 +18,8 @@ using namespace Kernel;
 
 namespace Shell {
 
+class Property;
+
 /**
  * Class BFNT for implementing the transformation of clauses into
  * the EPR form described by Baumgartner, Fuchs, de Nivelle and Tinelli.
@@ -26,7 +28,7 @@ namespace Shell {
 class BFNT
 {
 public:
-  BFNT();
+  BFNT(Property* prop);
   void apply(UnitList* units);
   UnitList* create(unsigned modelSize);
 private:
@@ -41,6 +43,10 @@ private:
   Stack<Clause*> _flat;
   /** constants $1, $2, ... created to denote domain elements */
   Stack<Term*> _constants;
+  // /** constants from the problem, used when the problem has no equality */
+  // Set<Term*> _problemConstants;
+  /** problem properties, passed in the constructor */
+  Property* _property;
 };
 
 };

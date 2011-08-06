@@ -35,12 +35,12 @@ using namespace Shell;
  * The function does not necessarily return (e.g. in the case of timeout,
  * the process is aborted)
  */
-void ProvingHelper::runVampireSaturation(ClauseIterator clauses)
+  void ProvingHelper::runVampireSaturation(ClauseIterator clauses,Property* prop)
 {
   CALL("ProvingHelper::runVampireSaturation");
 
   try {
-    runVampireSaturationImpl(clauses);
+    runVampireSaturationImpl(clauses,prop);
   }
   catch(MemoryLimitExceededException) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
@@ -78,6 +78,7 @@ void ProvingHelper::runVampire(UnitList* units, Property* prop)
     {
       TimeCounter tc2(TC_PREPROCESSING);
 
+      // TODO: check if prop can be 0, it seems this check is redundant
       if(prop==0) {
 	env.statistics->phase=Statistics::PROPERTY_SCANNING;
 	prop = Property::scan(units);
@@ -87,9 +88,9 @@ void ProvingHelper::runVampire(UnitList* units, Property* prop)
       //phases for preprocessing are being set inside the proprocess method
       prepro.preprocess(units);
 
-      clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
+      clauses=pvi(getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
     }
-    runVampireSaturationImpl(clauses);
+    runVampireSaturationImpl(clauses,prop);
   }
   catch(MemoryLimitExceededException) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
@@ -108,7 +109,7 @@ void ProvingHelper::runVampire(UnitList* units, Property* prop)
  * Private version of the @b runVampireSaturation function
  * that is not protected for resource-limit exceptions
  */
-void ProvingHelper::runVampireSaturationImpl(ClauseIterator clauses)
+  void ProvingHelper::runVampireSaturationImpl(ClauseIterator clauses,Property* prop)
 {
   CALL("ProvingHelper::runVampireSaturationImpl");
 
@@ -121,7 +122,7 @@ void ProvingHelper::runVampireSaturationImpl(ClauseIterator clauses)
   }
 
   env.statistics->phase=Statistics::SATURATION;
-  MainLoopSP salg=MainLoop::createFromOptions();
+  MainLoopSP salg=MainLoop::createFromOptions(prop);
   salg->addInputClauses(clauses);
 
   MainLoopResult sres(salg->run());

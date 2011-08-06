@@ -13,6 +13,10 @@
 
 #include "Shell/Statistics.hpp"
 
+namespace Shell {
+  class Property;
+};
+
 namespace Kernel {
 
 using namespace Lib;
@@ -42,8 +46,7 @@ public:
   virtual void addInputClauses(ClauseIterator cit) = 0;
 
   MainLoopResult run();
-
-  static MainLoopSP createFromOptions();
+  static MainLoopSP createFromOptions(Shell::Property* prop);
 
   /**
    * A struct that is thrown as an exception when a refutation is found

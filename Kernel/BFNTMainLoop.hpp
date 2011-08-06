@@ -14,6 +14,10 @@
 
 #include "MainLoop.hpp"
 
+namespace Shell {
+  class Property;
+};
+
 namespace Kernel {
 
 using namespace Lib;
@@ -22,7 +26,10 @@ using namespace Shell;
 class BFNTMainLoop : public MainLoop {
 public:
 
-  BFNTMainLoop(MainLoopSP inner) : _inner(inner) {}
+  BFNTMainLoop(MainLoopSP inner,Property* prop)
+  : _inner(inner),
+    _bfnt(prop)
+  {}
 
   virtual void addInputClauses(ClauseIterator cit);
 
@@ -33,10 +40,8 @@ private:
 
   void runChild(size_t modelSize) __attribute__((noreturn));
   MainLoopResult spawnChild(size_t modelSize);
-
-
   MainLoopSP _inner;
-
+  /** the input transformer */
   BFNT _bfnt;
 };
 

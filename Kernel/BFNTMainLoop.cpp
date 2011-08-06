@@ -47,7 +47,6 @@ void BFNTMainLoop::addInputClauses(ClauseIterator cit)
   UnitList::pushFromIterator(getStaticCastIterator<Unit*>(cit), units);
 
   _bfnt.apply(units);
-
   units->destroy();
 }
 

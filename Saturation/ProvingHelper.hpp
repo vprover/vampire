@@ -15,10 +15,10 @@ using namespace Shell;
 
 class ProvingHelper {
 public:
-  static void runVampireSaturation(ClauseIterator clauses);
-  static void runVampire(UnitList* units, Property* prop=0);
+  static void runVampireSaturation(ClauseIterator clauses,Property* prop);
+  static void runVampire(UnitList* units, Property* prop);
 private:
-  static void runVampireSaturationImpl(ClauseIterator clauses);
+  static void runVampireSaturationImpl(ClauseIterator clauses,Property* prop);
 };
 
 }

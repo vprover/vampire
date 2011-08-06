@@ -576,7 +576,7 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
     return fs;
   }
   return new FormulaList(g,gs);
-}
+} // SubstHelper::applyImpl
 
 };
 

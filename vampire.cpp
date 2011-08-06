@@ -99,7 +99,7 @@ UnitList* globUnitList=0;
  */
 int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 
-ClauseIterator getProblemClauses()
+ClauseIterator getProblemClauses(Property*& property)
 {
   CALL("getInputClauses");
   
@@ -108,20 +108,21 @@ ClauseIterator getProblemClauses()
   TimeCounter tc2(TC_PREPROCESSING);
 
   env.statistics->phase=Statistics::PROPERTY_SCANNING;
-  Property* property = Property::scan(units);
+  property = Property::scan(units);
   Preprocess prepro(*property,*env.options);
   //phases for preprocessing are being set inside the proprocess method
   prepro.preprocess(units);
   globUnitList=units;
 
-  return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
+  return pvi(getStaticCastIterator<Clause*>(UnitList::Iterator(units)));
 }
 
 void doProving()
 {
   CALL("doProving()");
-  ClauseIterator clauses=getProblemClauses();
-  ProvingHelper::runVampireSaturation(clauses);
+  Property* prop;
+  ClauseIterator clauses=getProblemClauses(prop);
+  ProvingHelper::runVampireSaturation(clauses,prop);
 }
 
 /**
@@ -287,7 +288,9 @@ void clausifyMode()
   simplifier.addFront(ImmediateSimplificationEngineSP(new TautologyDeletionISE()));
   simplifier.addFront(ImmediateSimplificationEngineSP(new DuplicateLiteralRemovalISE()));
 
-  ClauseIterator cit = getProblemClauses();
+  Property* prop;
+  ClauseIterator cit = getProblemClauses(prop);
+  delete prop;
   env.beginOutput();
   while (cit.hasNext()) {
     Clause* cl=cit.next();

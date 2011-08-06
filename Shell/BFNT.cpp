@@ -15,10 +15,13 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 
+#include "Property.hpp"
 #include "BFNT.hpp"
 
 #undef LOGGING
 #define LOGGING 0
+
+#define BNFT_SHOW_TRANSFORMED 0
 
 using namespace Shell;
 using namespace std;
@@ -30,7 +33,8 @@ using namespace Kernel;
  * as _proxy.
  * @since 30/07/2011 Manchester
  */
-BFNT::BFNT()
+BFNT::BFNT(Property* prop)
+  : _property(prop)
 {
   _proxy = env.signature->addFreshPredicate(2,"equalish");
 }
@@ -49,7 +53,13 @@ void BFNT::apply(UnitList* units)
   while (uit.hasNext()) {
     Clause* cl=static_cast<Clause*>(uit.next());
     ASS(cl->isClause());
+#if BNFT_SHOW_TRANSFORMED
+    cout << "C: " << cl->toString() << "\n";
+#endif
     _flat.push(apply(cl));
+#if BNFT_SHOW_TRANSFORMED
+    cout << "F: " << _flat.top()->toString() << "\n";
+#endif
   }
 } // BFNT::apply
 
@@ -74,6 +84,9 @@ Clause* BFNT::apply(Clause* cl)
       maxVar = var;
     }
   }
+  // here we reuse literals denoting the same (non-variable) subterms
+  Map<Term*,Literal*> _literalMap;
+  Map<Term*,unsigned> _variableMap;
   // move all literals to a stack
   Stack<Literal*> lits;
   for (int i = cl->length()-1; i>=0; i--) {
@@ -92,7 +105,18 @@ Clause* BFNT::apply(Clause* cl)
 	  args.push(*ts);
 	  continue;
 	}
-	// ts is not a variable, flatten it
+	// ts is not a variable
+	// if it is a constant and the problem has no equality, keep it as it is
+	// if (!_property->equalityAtoms() && ts->term()->arity() == 0) {
+	//   bool added;
+	//   _problemConstants.add(ts->term(),added);
+	//   if (added) {
+	//     _constants.push(ts->term());
+	//   }
+	//   args.push(*ts);
+	//   continue;
+	// }
+	// otherwise, flatten it
 	modified = true;
 	TermList newVar;
 	newVar.makeVar(++maxVar);
@@ -121,17 +145,13 @@ Clause* BFNT::apply(Clause* cl)
 	rhs = tmp;
       }
       else if (!rhs->isVar()) { // lhs != rhs, both lhs and rhs are non-variables
-	// create two new variables v1 and v2
+	// make it rhs != x \/ lhs != x
 	TermList v1;
 	v1.makeVar(++maxVar);
-	TermList v2;
-	v2.makeVar(++maxVar);
-	// save lhs != v2
-	lits.push(Literal::createEquality(false,*rhs,v2));
+	// save lhs != v1
+	lits.push(Literal::createEquality(false,*lhs,v1));
 	// save rhs != v1
-	lits.push(Literal::createEquality(false,*rhs,v2));
-	// save v1 = v2
-	result.push(Literal::create2(_proxy,true,v1,v2));
+	lits.push(Literal::createEquality(false,*rhs,v1));
 	continue;
       }
       // Now lhs != x
@@ -246,6 +266,9 @@ Clause* BFNT::resolveNegativeVariableEqualities(Clause* cl)
       (*cl)[i] = lits[i];
     }
   }
+#if BNFT_SHOW_TRANSFORMED
+  cout << "ER: " << cl->toString() << "\n";
+#endif
   return cl;
 } // BFNT::resolveNegativeVariableEqualities
 
@@ -274,6 +297,9 @@ UnitList* BFNT::create(unsigned modelSize)
       // create c1 != c2
       Clause* cls = new(1) Clause(1,Unit::AXIOM,new Inference(Inference::BFNT_DISTINCT));
       (*cls)[0] = Literal::create2(_proxy,false,c1,c2);
+#if BNFT_SHOW_TRANSFORMED
+      cout << "EP: " << cls->toString() << "\n";
+#endif
       LOGV(cls->toString());
       result = new UnitList(cls,result);
     }

@@ -102,7 +102,7 @@ ImmediateSimplificationEngineSP MainLoop::createISE()
   return ImmediateSimplificationEngineSP(res);
 }
 
-MainLoopSP MainLoop::createFromOptions()
+MainLoopSP MainLoop::createFromOptions(Property* prop)
 {
   CALL("MainLoop::createFromOptions");
 
@@ -121,7 +121,7 @@ MainLoopSP MainLoop::createFromOptions()
   }
 
   if(env.options->bfnt()) {
-    res = MainLoopSP(new BFNTMainLoop(res));
+    res = MainLoopSP(new BFNTMainLoop(res,prop));
   }
 
   return res;
