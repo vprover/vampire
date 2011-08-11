@@ -64,7 +64,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
       _saturationIndexManager->provideIndex(GLOBAL_SUBSUMPTION_INDEX, _groundingIndex.ptr());
     }
 
-    _saturationProblem = prb.copy();
+    _saturationProblem = prb.copy(true);
 
     _saturationOptions = opt;
     _saturationOptions.setSaturationAlgorithm(Options::OTTER);

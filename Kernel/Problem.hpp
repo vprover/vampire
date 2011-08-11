@@ -55,7 +55,7 @@ public:
 
   ClauseIterator clauseIterator() const;
 
-  Problem* copy();
+  Problem* copy(bool copyClauses=false);
 
   typedef DHMap<unsigned,bool> TrivialPredicateMap;
   void addTrivialPredicate(unsigned pred, bool assignment);

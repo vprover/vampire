@@ -130,11 +130,29 @@ ClauseIterator Problem::clauseIterator() const
  * coming from passing the Problem object as an argument by value rather
  * than by reference.
  */
-Problem* Problem::copy()
+Problem* Problem::copy(bool copyClauses)
 {
   CALL("Problem::copy");
 
-  Problem* res = new Problem(units());
+  UnitList* newUnits;
+  if(copyClauses) {
+    newUnits = 0;
+    UnitList::Iterator uit(units());
+    while(uit.hasNext()) {
+      Unit* u = uit.next();
+      if(!u->isClause()) {
+	UnitList::push(u, newUnits);
+	continue;
+      }
+      Clause* cl = static_cast<Clause*>(u);
+      Clause* newCl = Clause::fromClause(cl);
+      UnitList::push(newCl, newUnits);
+    }
+    newUnits = newUnits->reverse();
+  }else {
+    newUnits = units();
+  }
+  Problem* res = new Problem(newUnits);
   if(isPropertyUpToDate()) {
     //if we have an up-to-date property, we just copy it into the
     //copyed opbect so we save ourselves scanning for the property
