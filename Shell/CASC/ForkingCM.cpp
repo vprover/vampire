@@ -130,6 +130,7 @@ void ForkingCM::childRun(Options& strategyOpt)
   opt.setNormalize(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
+  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
   env.options->setTimeLimitInDeciseconds(opt.timeLimitInDeciseconds());
 
   env.beginOutput();

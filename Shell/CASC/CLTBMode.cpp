@@ -1205,7 +1205,7 @@ void CLTBProblem::runChild(Options& strategyOpt)
   opt.setNormalize(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
-
+  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
 //  if(env.options->sineSelection()!=Options::SS_OFF) {
 //    //add selected axioms from the theory
