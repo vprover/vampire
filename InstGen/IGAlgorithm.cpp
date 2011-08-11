@@ -554,8 +554,8 @@ MainLoopResult IGAlgorithm::runImpl()
       }
 
       while(_instGenResolutionRatio.shouldDoSecond()) {
-	doResolutionStep();
 	_instGenResolutionRatio.doSecond();
+	doResolutionStep();
       }
       env.checkTimeSometime<100>();
     }
