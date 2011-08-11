@@ -12,6 +12,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -23,9 +24,23 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
-void GeneralSplitting::apply(UnitList*& units)
+void GeneralSplitting::apply(Problem& prb)
+{
+  CALL("GeneralSplitting::apply(Problem&)");
+
+  if(apply(prb.units())) {
+    prb.invalidateProperty();
+  }
+}
+
+/**
+ * Perform general splitting on clauses in @c units and return true if successful
+ */
+bool GeneralSplitting::apply(UnitList*& units)
 {
   CALL("GeneralSplitting::apply(UnitList*&)");
+
+  bool modified = false;
 
   UnitList* splitRes=0;
 
@@ -38,11 +53,14 @@ void GeneralSplitting::apply(UnitList*& units)
       performed=true;
     }
     if(performed) {
+      modified = true;
       uit.del();
       UnitList::push(cl, splitRes);
     }
   }
+  ASS_EQ(modified, splitRes->isNonEmpty());
   units=UnitList::concat(splitRes, units);
+  return modified;
 }
 
 /**

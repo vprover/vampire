@@ -13,8 +13,9 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 
+#include "Saturation/SaturationAlgorithm.hpp"
+
 #include "Shell/Statistics.hpp"
-#include "Lib/Environment.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -25,6 +26,21 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+/**
+ * Return options that control the inference engine.
+ *
+ * This function may be called only when attached to the saturation algorithm,
+ * unless a child class overrides this function.
+ */
+const Options& InferenceEngine::getOptions() const
+{
+  CALL("InferenceEngine::getOptions");
+  ASS(attached());
+
+  return _salg->getOptions();
+}
+
 
 void ForwardSimplificationPerformer::perform(Clause* premise, Clause* replacement, Clause* reductionPremise)
 {
@@ -49,9 +65,16 @@ void ForwardSimplificationPerformer::perform(Clause* premise, Clause* replacemen
 
 CompositeISE::~CompositeISE()
 {
-  _inners->destroy();
+  _inners->destroyWithDeletion();
 }
-void CompositeISE::addFront(ImmediateSimplificationEngineSP ise)
+
+/**
+ * Add @c ise as the first simplification engine to be used
+ *
+ * This object takes ownership of the @c ise object and will be
+ * responsible for its destruction.
+ */
+void CompositeISE::addFront(ImmediateSimplificationEngine* ise)
 {
   ASS_EQ(_salg,0);
   ISList::push(ise,_inners);
@@ -133,15 +156,15 @@ struct GeneratingFunctor
   DECL_RETURN_TYPE(ClauseIterator);
 
   GeneratingFunctor(Clause* cl) : cl(cl) {}
-  OWN_RETURN_TYPE operator() (GeneratingInferenceEngineSP gie)
+  OWN_RETURN_TYPE operator() (GeneratingInferenceEngine* gie)
   { return gie->generateClauses(cl); }
   Clause* cl;
 };
 CompositeGIE::~CompositeGIE()
 {
-  _inners->destroy();
+  _inners->destroyWithDeletion();
 }
-void CompositeGIE::addFront(GeneratingInferenceEngineSP fse)
+void CompositeGIE::addFront(GeneratingInferenceEngine* fse)
 {
   ASS_EQ(_salg,0);
   GIList::push(fse,_inners);

@@ -24,6 +24,7 @@ class SpecialTermElimination {
 public:
   SpecialTermElimination();
 
+  void apply(Problem& prb);
   void apply(UnitList*& units);
   FormulaUnit* apply(FormulaUnit* fu, UnitList*& defs);
   static bool hasSpecials(FormulaUnit* fu);
@@ -96,6 +97,8 @@ private:
    * stack is empty, we perform elimination of the term-ite expressions.
    */
   Stack<LetSpec> _letStack;
+
+  Problem* _currentPrb;
 };
 
 }

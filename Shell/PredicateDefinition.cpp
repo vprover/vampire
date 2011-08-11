@@ -5,6 +5,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/MultiCounter.hpp"
@@ -13,6 +14,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
@@ -30,8 +32,6 @@ namespace Shell
 
 using namespace Lib;
 using namespace Kernel;
-
-DHMap<unsigned, bool> PredicateDefinition::_removedPredAssignments;
 
 /**
  * Contains details about predicate presence in the problem and state
@@ -140,7 +140,7 @@ bool PredicateDefinition::isBuiltIn(unsigned pred)
 }
 
 PredicateDefinition::PredicateDefinition()
-: _predCnt(env.signature->predicates())
+: _processedPrb(0), _predCnt(env.signature->predicates())
 {
   int predCnt=env.signature->predicates();
   _preds = new PredData[predCnt];
@@ -221,7 +221,9 @@ void PredicateDefinition::collectReplacements(UnitList* units, DHMap<Unit*, Unit
       ASS(pd.pocc==0 || pd.nocc==0);
 
       _purePreds.insert(pred, pd.nocc==0);
-      addRemovedPredAssignment(pred, pd.nocc==0);
+      if(_processedPrb) {
+	_processedPrb->addTrivialPredicate(pred, pd.nocc==0);
+      }
       Set<Unit*>::Iterator uit(pd.containingUnits);
       while(uit.hasNext()) {
 	Unit* u=uit.next();
@@ -258,6 +260,14 @@ void PredicateDefinition::collectReplacements(UnitList* units, DHMap<Unit*, Unit
       env.statistics->purePredicates++;
     }
   }
+}
+
+void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(Problem& prb)
+{
+  CALL("PredicateDefinition::removeUnusedDefinitionsAndPurePredicates");
+
+  ScopedLet<Problem*> prbLet(_processedPrb, &prb);
+  removeUnusedDefinitionsAndPurePredicates(prb.units());
 }
 
 void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& units)

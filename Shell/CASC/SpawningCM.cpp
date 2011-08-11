@@ -11,6 +11,7 @@
 #include "Lib/List.hpp"
 #include "Lib/System.hpp"
 
+#include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
 
 #include "Shell/Options.hpp"
@@ -37,13 +38,9 @@ SpawningCM::SpawningCM(string executable)
   }
   _inputFile=env.options->inputFile();
 
-  UnitList* units=UIHelper::getInputUnits();
-  _property = Property::scan(units);
-  while(units) {
-    Unit* u=UnitList::pop(units);
-    //this won't cause destruction of the Formula objects but better than nothing...
-    u->destroy();
-  }
+  //we just need to extract property from the problem
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem());
+  _property = Property::scan(prb->units());
 }
 
 bool SpawningCM::runSlice(Options& opt)

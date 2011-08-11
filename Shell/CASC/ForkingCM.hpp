@@ -7,7 +7,12 @@
 #define __ForkingCM__
 
 #include "Forwards.hpp"
+
 #include "Lib/Portability.hpp"
+#include "Lib/ScopedPtr.hpp"
+
+#include "Kernel/Problem.hpp"
+
 #include "CASCMode.hpp"
 
 namespace Shell
@@ -40,7 +45,7 @@ protected:
   void childRun(Options& opt) __attribute__((noreturn));
 
 private:
-  UnitList* _units;
+  ScopedPtr<Problem> _prb;
 };
 
 #endif

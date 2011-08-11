@@ -5,11 +5,13 @@
 
 #include "Lib/List.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/ScopedLet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Matcher.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
@@ -26,7 +28,7 @@ using namespace Lib;
 using namespace Kernel;
 
 SpecialTermElimination::SpecialTermElimination()
-: _defs(0)
+: _defs(0), _currentPrb(0)
 {
 
 }
@@ -53,6 +55,16 @@ bool SpecialTermElimination::hasSpecials(FormulaUnit* fu)
     }
   }
   return false;
+}
+
+void SpecialTermElimination::apply(Problem& prb)
+{
+  CALL("SpecialTermElimination::apply(Problem*)");
+
+  ScopedLet<Problem*> plet(_currentPrb, &prb);
+  apply(prb.units());
+  prb.reportSpecialTermsAndLetsEliminated();
+  prb.invalidateProperty();
 }
 
 void SpecialTermElimination::apply(UnitList*& units)
@@ -488,6 +500,11 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
   Formula* def = new IteFormula(condition, new AtomicFormula(eqThen), new AtomicFormula(eqElse));
   FormulaUnit* defUnit = new FormulaUnit(def, new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION), Unit::AXIOM);
   UnitList::push(defUnit, _defs);
+
+  if(_currentPrb) {
+    _currentPrb->reportEqualityAdded(true);
+    _currentPrb->reportFormulaIteAdded();
+  }
 
   //now put the actual then and else branches on the argument
   //stack and build the new term

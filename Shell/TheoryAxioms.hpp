@@ -21,7 +21,8 @@ public:
 
   struct Arithmetic;
 
-  void apply(UnitList*& units, Property* prop);
+  void apply(Problem& prb);
+  bool apply(UnitList*& units, Property* prop);
 
 private:
   void addCommutativity(Interpretation op, UnitList*& units);

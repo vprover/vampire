@@ -46,9 +46,11 @@ public:
   FunctionDefinition();
   ~FunctionDefinition();
 
-  void removeAllDefinitions(UnitList*& units);
+  void removeAllDefinitions(Problem& prb);
+  bool removeAllDefinitions(UnitList*& units);
 
-  static void removeUnusedDefinitions(UnitList*& units);
+  static void removeUnusedDefinitions(Problem& prb);
+  static bool removeUnusedDefinitions(UnitList*& units, Problem* prb=0);
 
 
   static Def* isFunctionDefinition (Unit&);
@@ -99,6 +101,8 @@ private:
   int _found;
   /** The number of removed definitions */
   int _removed;
+
+  Problem* _processedProblem;
 }; // class FunctionDefinition
 
 

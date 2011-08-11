@@ -17,9 +17,9 @@
 namespace Kernel
 {
 
-BDDConjunction::BDDConjunction()
+BDDConjunction::BDDConjunction(const Options& opt)
 : _isFalse(false),
-  _clausifier(env.options->satSolverWithSubsumptionResolution(), env.options->satSolverWithNaming()),
+  _clausifier(opt.satSolverWithSubsumptionResolution(), opt.satSolverWithNaming()),
   _solver(new TWLSolver())
 {
 }

@@ -29,12 +29,12 @@ public:
 
 
 private:
-  static Clause* performSuperposition(
+  Clause* performSuperposition(
 	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
 	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
 	  ResultSubstitutionSP subst, bool eqIsResult, Limits* limits);
 
-  static bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
+  bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static int getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, int weightLimit);

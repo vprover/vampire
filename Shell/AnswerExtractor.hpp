@@ -49,7 +49,8 @@ public:
 
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer);
 
-  void addAnswerLiterals(UnitList*& units);
+  void addAnswerLiterals(Problem& prb);
+  bool addAnswerLiterals(UnitList*& units);
 
   bool isAnswerLiteral(Literal* lit);
 

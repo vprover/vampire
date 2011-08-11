@@ -80,7 +80,7 @@ struct BackwardDemodulation::ResultFn
 {
   typedef DHMultiset<Clause*> ClauseSet;
 
-  ResultFn(Clause* cl) : _cl(cl)
+  ResultFn(Clause* cl, BackwardDemodulation& parent) : _cl(cl), _parent(parent)
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
@@ -141,7 +141,7 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if(env.options->demodulationRedundancyCheck() && qr.literal->isEquality() &&
+    if(_parent.getOptions().demodulationRedundancyCheck() && qr.literal->isEquality() &&
 	(qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=ordering->compare(rhsS, other);
@@ -209,6 +209,8 @@ private:
   Literal* _eqLit;
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
+
+  BackwardDemodulation& _parent;
 };
 
 
@@ -229,7 +231,7 @@ void BackwardDemodulation::perform(Clause* cl,
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit, false),
 			    RewritableClausesFn(_index)),
-		    ResultFn(cl)),
+		    ResultFn(cl, *this)),
  	    RemovedIsNonzeroFn()) );
 
   //here we know that the getPersistentIterator evaluates all items of the

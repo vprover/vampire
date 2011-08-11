@@ -16,7 +16,8 @@ class FormulaIteExpander {
 public:
   FormulaIteExpander() : _defs(0) {}
 
-  void apply(UnitList*& units);
+  void apply(Problem& prb);
+  bool apply(UnitList*& units);
   Unit* apply(Unit* unit, UnitList*& defs);
   FormulaUnit* apply(FormulaUnit* unit, UnitList*& defs);
 private:

@@ -13,9 +13,12 @@
 
 #include "Lib/DHSet.hpp"
 #include "Lib/Portability.hpp"
+#include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Lib/Sys/SyncPipe.hpp"
+
+#include "Kernel/Problem.hpp"
 
 #include "Shell/Property.hpp"
 #include "Shell/SineUtils.hpp"
@@ -25,6 +28,7 @@ namespace CASC {
 
 using namespace std;
 using namespace Lib;
+using namespace Kernel;
 
 #if COMPILER_MSVC
 
@@ -65,9 +69,10 @@ private:
   StringPairStack problemFiles;
 
 //  SineTheorySelector theorySelector;
-  UnitList* theoryAxioms;
 
-  Property* property;
+  ScopedPtr<Problem> baseProblem;
+//  UnitList* theoryAxioms;
+//  Property* property;
 
   friend class CLTBProblem;
 };
@@ -93,7 +98,7 @@ private:
   static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
   void runWriterChild() __attribute__((noreturn));
   void runChild(string slice, unsigned ds) __attribute__((noreturn));
-  void runChild(Options& opt) __attribute__((noreturn));
+  void runChild(Options& strategyOpt) __attribute__((noreturn));
 
   static string problemFinishedString;
 
@@ -105,8 +110,15 @@ private:
   string problemFile;
   string outFile;
 
-  UnitList* probUnits;
-  Property* property;
+  /**
+   * Problem that is being solved.
+   *
+   * This is just a reference to parent's @c baseProblem object into which we
+   * add problem-specific axioms in the @c perform() function. We can do this,
+   * because in the current process this child object is the only one that
+   * will be using the problem object.
+   */
+  Problem& prb;
 
   pid_t writerChildPid;
   /** pipe for collecting the output from children */

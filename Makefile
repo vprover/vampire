@@ -102,8 +102,7 @@ VLS_OBJ= Lib/Sys/Multiprocessing.o\
          Lib/Sys/Semaphore.o\
          Lib/Sys/SyncPipe.o
 
-VK_OBJ= Kernel/BFNTMainLoop.o\
-        Kernel/BDD.o\
+VK_OBJ= Kernel/BDD.o\
         Kernel/BDDClausifier.o\
         Kernel/BDDConjunction.o\
         Kernel/Clause.o\
@@ -130,6 +129,7 @@ VK_OBJ= Kernel/BFNTMainLoop.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
+        Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
         Kernel/Signature.o\
@@ -229,6 +229,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 VS_OBJ = Shell/AnswerExtractor.o\
          Shell/AxiomGenerator.o\
          Shell/BFNT.o\
+         Shell/BFNTMainLoop.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/CParser.o\
@@ -241,6 +242,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/FormulaIteExpander.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
+         Shell/GlobalOptions.o\
          Shell/Grounding.o\
          Shell/HornRevealer.o\
          Shell/InequalitySplitting.o\
@@ -361,6 +363,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/EqualityProxy.o\
 	  Shell/Options.o\
 	  Shell/Statistics.o\
+	  Shell/GlobalOptions.o\
 	  ClausifierDependencyFix.o
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\
@@ -371,6 +374,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Kernel/FormulaTransformer.o\
 	       Kernel/InferenceStore.o\
 	       Kernel/Matcher.o\
+	       Kernel/Problem.o\
 	       Kernel/RobSubstitution.o\
 	       SAT/ClauseDisposer.o\
 	       SAT/RestartStrategy.o\
@@ -438,6 +442,7 @@ OTHER_API_DEP = \
 	   Shell/EqualityPropagator.o\
 	   Shell/Flattening.o\
 	   Shell/FormulaIteExpander.o\
+           Shell/GlobalOptions.o\
 	   Shell/Lexer.o\
 	   Shell/LispLexer.o\
 	   Shell/LispParser.o\
@@ -465,7 +470,7 @@ VAMP_DIRS := Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences Ins
 
 VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VT_OBJ) $(VPROG_OBJ)  
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
-VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o, $(VS_OBJ)) $(PARSE_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
+VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(VT_OBJ) $(LIB_DEP)
 #VGROUND_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 

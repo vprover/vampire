@@ -10,6 +10,7 @@
 
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -34,6 +35,13 @@ public:
 
 private:
 
+  /**
+   * If _quantifier is true, the entry stays for a variable quantified at
+   * given point of the formula. Otherwise this entry signifies how has
+   * the polarity of the formula changed at certain point of the formula
+   * (the _polarity entry can be either -1 for negated polarity or 0 for
+   * double polarity).
+   */
   struct VarStackEntry {
     VarStackEntry(int polarity) : _quantifier(false), _polarity(polarity) {}
     VarStackEntry(bool existential, unsigned var) : _quantifier(true), _existential(existential), _var(var) {}
@@ -95,6 +103,9 @@ private:
   bool isRemovableEquality(Literal* l, bool& resultConstant);
   bool isRemovableVar(bool eqPolarity, unsigned v1, bool hasSecondVar, unsigned v2, bool& resultConstant);
 
+  /**
+   * Contains entries about the recursive descent into the formula.
+   */
   Stack<VarStackEntry> _varStack;
 
   DHSet<unsigned> _singletonVars;
@@ -340,9 +351,20 @@ Formula* EqualityPropagator::SingletonVariableRemover::removeSingletonVars(Formu
 // EqualityPropagator
 //
 
-void EqualityPropagator::apply(UnitList*& units)
+void EqualityPropagator::apply(Problem& prb)
+{
+  CALL("EqualityPropagator::apply(Problem&)");
+
+  if(apply(prb.units())) {
+    prb.invalidateByRemoval();
+  }
+}
+
+bool EqualityPropagator::apply(UnitList*& units)
 {
   CALL("EqualityPropagator::apply(UnilList*&)");
+
+  bool modified = false;
 
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
@@ -351,8 +373,10 @@ void EqualityPropagator::apply(UnitList*& units)
     if(u!=u2) {
       ASS(u2);
       uit.replace(u2);
+      modified = true;
     }
   }
+  return modified;
 }
 
 Unit* EqualityPropagator::apply(Unit* u)

@@ -42,11 +42,12 @@ struct MainLoopResult
 
 class MainLoop {
 public:
+  MainLoop(Problem& prb, const Options& opt) : _prb(prb), _opt(opt) {}
   virtual ~MainLoop() {}
-  virtual void addInputClauses(ClauseIterator cit) = 0;
+
 
   MainLoopResult run();
-  static MainLoopSP createFromOptions(Shell::Property* prop);
+  static MainLoop* createFromOptions(Problem& prb, const Options& opt);
 
   /**
    * A struct that is thrown as an exception when a refutation is found
@@ -76,11 +77,44 @@ public:
     MainLoopResult result;
   };
 
+  /**
+   * Return the problem that the solving algorithm is being run on
+   */
+  const Problem& getProblem() const { return _prb; }
+
+  /**
+   * Get options specifying strategy for the solving algorithm
+   */
+  const Options& getOptions() const { return _opt; }
+
 protected:
+  static bool isRefutation(Clause* cl);
+  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt);
+
+  /**
+   * This function is called after all initialization of the main loop
+   * algorithm is done (especially when all the indexes are in place).
+   *
+   * In this function the implementing class should retrieve clauses
+   * from the Problem object @c _prb and load them into the algorithm.
+   *
+   * In former versions the action taken by this method corresponded
+   * to the function addInputClauses().
+   */
+  virtual void init() = 0;
+
+  /**
+   * The actual run of the solving algorithm should be implemented in
+   * this function.
+   */
   virtual MainLoopResult runImpl() = 0;
 
-  static bool isRefutation(Clause* cl);
-  static ImmediateSimplificationEngineSP createISE();
+  Problem& _prb;
+
+  /**
+   * Options that represent the strategy used by the current main loop
+   */
+  const Options& _opt;
 };
 
 }

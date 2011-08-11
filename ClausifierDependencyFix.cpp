@@ -44,7 +44,11 @@ AnswerLiteralManager* AnswerLiteralManager::getInstance()
   INVALID_OPERATION("answer literals not supported in clausifier");
 }
 
-void AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
+bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
+{
+  INVALID_OPERATION("answer literals not supported in clausifier");
+}
+void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
 {
   INVALID_OPERATION("answer literals not supported in clausifier");
 }

@@ -10,37 +10,30 @@
 
 #include "Lib/SmartPtr.hpp"
 
-#include "Shell/BFNT.hpp"
+#include "Kernel/MainLoop.hpp"
 
-#include "MainLoop.hpp"
+#include "BFNT.hpp"
+#include "Options.hpp"
 
 namespace Shell {
-  class Property;
-};
-
-namespace Kernel {
 
 using namespace Lib;
-using namespace Shell;
+using namespace Kernel;
 
 class BFNTMainLoop : public MainLoop {
 public:
-
-  BFNTMainLoop(MainLoopSP inner,Property* prop)
-  : _inner(inner),
-    _bfnt(prop)
-  {}
-
-  virtual void addInputClauses(ClauseIterator cit);
+  BFNTMainLoop(Problem& prb, const Options& opt);
 
 protected:
+  virtual void init();
   virtual MainLoopResult runImpl();
 
 private:
 
   void runChild(size_t modelSize) __attribute__((noreturn));
   MainLoopResult spawnChild(size_t modelSize);
-  MainLoopSP _inner;
+
+  Options _childOpts;
   /** the input transformer */
   BFNT _bfnt;
 };

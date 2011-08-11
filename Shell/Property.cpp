@@ -54,7 +54,9 @@ Property::Property()
     _totalNumberOfVariables(0),
     _maxVariablesInClause(0),
     _props(0),
-    _hasInterpreted(false)
+    _hasInterpreted(false),
+    _hasSpecialTermsOrLets(false),
+    _hasFormulaItes(false)
 {
   _interpretationPresence.init(Theory::MAX_INTERPRETED_ELEMENT+1, false);
   env.property = this;
@@ -329,7 +331,16 @@ void Property::scan(Formula* formula)
   while (fs.hasNext()) {
     _subformulas++;
     Formula* f = fs.next();
-    if (f->connective() == LITERAL) {
+    switch(f->connective()) {
+    case ITE:
+      _hasFormulaItes = true;
+      break;
+    case FORMULA_LET:
+    case TERM_LET:
+      _hasSpecialTermsOrLets = true;
+      break;
+    case LITERAL:
+    {
       _atoms++;
       Literal* lit = f->literal();
       if (lit->isEquality()) {
@@ -338,8 +349,13 @@ void Property::scan(Formula* formula)
 	  _positiveEqualityAtoms++;
 	}
       }
+      if(!lit->shared()) {
+	_hasSpecialTermsOrLets = true;
+      }
       bool dummy = false;
       scan(lit,dummy);
+      break;
+    }
     }
   }
 } // Property::scan(const Formula&)
@@ -439,7 +455,9 @@ void Property::scanForInterpreted(Term* t)
     itp = theory->interpretFunction(t);
   }
   _interpretationPresence[itp] = true;
-  _hasInterpreted = true;
+  if(itp!=Theory::EQUAL) {
+    _hasInterpreted = true;
+  }
 }
 
 /**

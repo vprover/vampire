@@ -14,6 +14,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/SubstHelper.hpp"
@@ -647,12 +648,21 @@ PDInliner::~PDInliner()
   }
 }
 
-
-void PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
+void PDInliner::apply(Problem& prb)
 {
   CALL("PDInliner::apply");
 
-  scanAndRemoveDefinitions(units, inlineOnlyEquivalences);
+  if(apply(prb.units())) {
+    prb.invalidateProperty();
+  }
+}
+
+
+bool PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
+{
+  CALL("PDInliner::apply");
+
+  bool modified = scanAndRemoveDefinitions(units, inlineOnlyEquivalences);
 
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
@@ -667,7 +677,9 @@ void PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
     else {
       uit.del();
     }
+    modified = true;
   }
+  return modified;
 }
 
 Unit* PDInliner::apply(Unit* u)
@@ -713,9 +725,11 @@ FormulaUnit* PDInliner::apply(FormulaUnit* u)
   return static_cast<FormulaUnit*>(res);
 }
 
-void PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly)
+bool PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly)
 {
   CALL("PDInliner::scanAndRemoveDefinitions(UnitList*)");
+
+  bool modified = false;
 
   {
     UnitList::DelIterator it(units);
@@ -725,13 +739,14 @@ void PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly
 	continue;
       }
       if(tryGetPredicateEquivalence(static_cast<FormulaUnit*>(u))) {
+	modified = true;
 	it.del();
       }
     }
   }
 
   if(equivalencesOnly) {
-    return;
+    return modified;
   }
 
   UnitList::DelIterator it(units);
@@ -741,9 +756,11 @@ void PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly
       continue;
     }
     if(tryGetDef(static_cast<FormulaUnit*>(u))) {
+      modified = true;
       it.del();
     }
   }
+  return modified;
 }
 
 bool PDInliner::isEligible(FormulaUnit* u)

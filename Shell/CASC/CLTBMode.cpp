@@ -152,11 +152,11 @@ void CLTBMode::loadIncludes()
 {
   CALL("CLTBMode::loadIncludes");
 
+  UnitList* theoryAxioms=0;
   {
     TimeCounter tc(TC_PARSING);
     env.statistics->phase=Statistics::PARSING;
 
-    theoryAxioms=0;
     StringList::Iterator iit(theoryIncludes);
     while(iit.hasNext()) {
       string fname=env.options->includeFileName(iit.next());
@@ -179,19 +179,12 @@ void CLTBMode::loadIncludes()
     }
   }
 
-  {
-    TimeCounter tc(TC_PREPROCESSING);
-    env.statistics->phase=Statistics::PROPERTY_SCANNING;
+  baseProblem = new Problem(theoryAxioms);
 
-    property = Property::scan(theoryAxioms);
-  }
+  //ensure we scan the theory axioms for property here, so we don't need to
+  //do it afterward in each problem
+  baseProblem->getProperty();
 
-//  {
-//    TimeCounter tc(TC_SINE_SELECTION);
-//    env.statistics->phase=Statistics::SINE_SELECTION;
-//
-//    theorySelector.initSelectionStructure(theoryAxioms);
-//  }
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 }
 
@@ -301,7 +294,8 @@ void CLTBMode::readInput(istream& in)
 string CLTBProblem::problemFinishedString = "##Problem finished##vn;3-d-ca-12=1;'";
 
 CLTBProblem::CLTBProblem(CLTBMode* parent, string problemFile, string outFile)
-: parent(parent), problemFile(problemFile), outFile(outFile), property(new Property(*parent->property))
+: parent(parent), problemFile(problemFile), outFile(outFile),
+  prb(*parent->baseProblem)
 {
 }
 
@@ -325,8 +319,10 @@ void CLTBProblem::performStrategy()
 {
   CALL("CLTBProblem::performStrategy");
 
-  unsigned atoms = property->atoms();
-  unsigned prop = property->props();
+  Property& property = *prb.getProperty();
+
+  unsigned atoms = property.atoms();
+  unsigned prop = property.props();
   cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
   Schedule quick;
@@ -921,24 +917,17 @@ void CLTBProblem::perform()
       parser.addForbiddenInclude(iit.next());
     }
     parser.parse();
-    probUnits = parser.units();
+    UnitList* probUnits = parser.units();
     UIHelper::setConjecturePresence(parser.containsConjecture());
+
+    prb.addUnits(probUnits);
   }
 
-  {
+  if(prb.getProperty()->atoms()<=1000000) {
     TimeCounter tc(TC_PREPROCESSING);
-    env.statistics->phase=Statistics::PROPERTY_SCANNING;
-
-    property->add(probUnits);
-    env.statistics->phase=Statistics::UNKNOWN_PHASE;
-    //concat with theory axioms
-    probUnits=UnitList::concat(probUnits, parent->theoryAxioms);
-
-    if(property->atoms()<=1000000) {
-      env.statistics->phase=Statistics::NORMALIZATION;
-      Normalisation norm;
-      probUnits = norm.normalise(probUnits);
-    }
+    env.statistics->phase=Statistics::NORMALIZATION;
+    Normalisation norm;
+    norm.normalise(prb);
   }
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
@@ -1197,7 +1186,7 @@ void CLTBProblem::runChild(string slice, unsigned ds)
 /**
  * Do the theorem proving in a forked-off process
  */
-void CLTBProblem::runChild(Options& opt)
+void CLTBProblem::runChild(Options& strategyOpt)
 {
   CALL("CLTBProblem::runChild");
 
@@ -1211,11 +1200,11 @@ void CLTBProblem::runChild(Options& opt)
   TimeCounter::reinitialize();
   Timer::setTimeLimitEnforcement(true);
 
-  *env.options=opt;
+  Options opt = strategyOpt;
   //we have already performed the normalization
-  env.options->setNormalize(false);
-  env.options->setForcedOptionValues();
-  env.options->checkGlobalOptionConstraints();
+  opt.setNormalize(false);
+  opt.setForcedOptionValues();
+  opt.checkGlobalOptionConstraints();
 
 
 //  if(env.options->sineSelection()!=Options::SS_OFF) {
@@ -1231,10 +1220,10 @@ void CLTBProblem::runChild(Options& opt)
 //  }
 
   env.beginOutput();
-  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
+  env.out()<<opt.testId()<<" on "<<opt.problemName()<<endl;
   env.endOutput();
 
-  ProvingHelper::runVampire(probUnits,property);
+  ProvingHelper::runVampire(prb, opt);
 
   //set return value to zero if we were successful
   if(env.statistics->terminationReason==Statistics::REFUTATION) {

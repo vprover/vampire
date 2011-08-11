@@ -101,6 +101,8 @@ public:
     return fromStack(st, it, inf);
   }
 
+  static Clause* fromClause(Clause* c);
+
   /**
    * Return the (reference to) the nth literal
    *

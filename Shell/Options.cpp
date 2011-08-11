@@ -23,6 +23,8 @@
 #include "Lib/Set.hpp"
 #include "Lib/System.hpp"
 
+#include "Kernel/Problem.hpp"
+
 #include "Options.hpp"
 #include "Property.hpp"
 
@@ -2230,9 +2232,11 @@ bool Options::outputSuppressed() const
  * True if the options are complete.
  * @since 23/07/2011 Manchester
  */
-bool Options::complete(const Property& prop) const
+bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
+
+  Property& prop = *prb.getProperty();
 
   ASS(&prop);
 

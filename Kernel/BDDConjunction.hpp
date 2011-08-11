@@ -17,6 +17,7 @@
 namespace Kernel {
 
 using namespace SAT;
+using namespace Shell;
 
 /**
  * A class of objects that keep a conjunction of multiple BDDs.
@@ -29,7 +30,7 @@ using namespace SAT;
 class BDDConjunction
 {
 public:
-  BDDConjunction();
+  BDDConjunction(const Options& opt);
 
   void addNode(BDDNode* n);
 

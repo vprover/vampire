@@ -21,11 +21,14 @@
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Sys/SyncPipe.hpp"
 
+#include "Kernel/Problem.hpp"
+
 #include "Shell/Options.hpp"
 #include "Shell/Normalisation.hpp"
-#include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+
+#include "Saturation/ProvingHelper.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -749,7 +752,7 @@ void SLTBProblem::runChild(string slice, unsigned ds)
 /**
  * Do the theorem proving in a forked-off process
  */
-void SLTBProblem::runChild(Options& opt)
+void SLTBProblem::runChild(Options& strategyOpt)
 {
   CALL("SLTBProblem::runChild");
 
@@ -763,15 +766,19 @@ void SLTBProblem::runChild(Options& opt)
   TimeCounter::reinitialize();
   Timer::setTimeLimitEnforcement(true);
 
-  *env.options=opt;
+  Options opt = strategyOpt;
   //we have already performed the normalization
   env.options->setNormalize(false);
+
+  env.options->setTimeLimitInDeciseconds(opt.timeLimitInDeciseconds());
 
   env.beginOutput();
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
 
-  ProvingHelper::runVampire(probUnits,property);
+  Problem prb(probUnits);
+
+  ProvingHelper::runVampire(prb, opt);
 
   //set return value to zero if we were successful
   if(env.statistics->terminationReason==Statistics::REFUTATION) {

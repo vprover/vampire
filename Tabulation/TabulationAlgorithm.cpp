@@ -9,6 +9,7 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 
 #include "Inferences/TautologyDeletionISE.hpp"
 
@@ -26,23 +27,29 @@
 namespace Tabulation
 {
 
-TabulationAlgorithm::TabulationAlgorithm()
-: _gp(*this), _producer(*this),
+TabulationAlgorithm::TabulationAlgorithm(Problem& prb, const Options& opt)
+: MainLoop(prb, opt), _gp(*this), _producer(*this),
   _instatiateProducingRules(env.options->tabulationInstantiateProducingRules())
 {
   CALL("TabulationAlgorithm::TabulationAlgorithm");
 
-  _ise = createISE();
+  _ise = createISE(prb, opt);
 
   _goalContainer.setAgeWeightRatio(
       env.options->tabulationGoalAgeRatio(),env.options->tabulationGoalWeightRatio());
 
   _refutation = 0;
+
+  LOG("TA created");
 }
 
-void TabulationAlgorithm::addInputClauses(ClauseIterator cit)
+void TabulationAlgorithm::init()
 {
-  CALL("TabulationAlgorithm::addInputClauses");
+  CALL("TabulationAlgorithm::init");
+
+  LOG("TA init");
+
+  ClauseIterator cit = _prb.clauseIterator();
 
   while(cit.hasNext()) {
     Clause* cl = simplifyInputClause(cit.next());
@@ -399,6 +406,8 @@ void TabulationAlgorithm::processGoal(Clause* cl)
 MainLoopResult TabulationAlgorithm::runImpl()
 {
   CALL("TabulationAlgorithm::runImpl");
+
+  LOG("TA runImpl");
 
   if(_refutation) {
     return MainLoopResult(Statistics::REFUTATION, _refutation);

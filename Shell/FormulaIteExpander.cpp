@@ -12,6 +12,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -23,11 +24,25 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
-void FormulaIteExpander::apply(UnitList*& units)
+void FormulaIteExpander::apply(Problem& prb)
+{
+  CALL("FormulaIteExpander::apply(Problem&)");
+
+  if(apply(prb.units())) {
+    prb.invalidateProperty();
+  }
+}
+
+/**
+ * Apply formula ITE elimination to @c units, return true
+ * if some formulas were modified, false otherwise.
+ */
+bool FormulaIteExpander::apply(UnitList*& units)
 {
   CALL("FormulaIteExpander::apply(UnitList*&)");
   ASS(!_defs);
 
+  bool modified = false;
   UnitList::DelIterator us(units);
   while(us.hasNext()) {
     Unit* u = us.next();
@@ -38,8 +53,10 @@ void FormulaIteExpander::apply(UnitList*& units)
     FormulaUnit* v = apply(fu);
     if(v != fu) {
       us.replace(v);
+      modified = true;
     }
   }
+  ASS_EQ(_defs!=0, modified);
   units = UnitList::concat(_defs, units);
   _defs=0;
 #if 0
@@ -49,6 +66,7 @@ void FormulaIteExpander::apply(UnitList*& units)
     cout<<u->toString()<<endl;
   }
 #endif
+  return modified;
 }
 
 /**

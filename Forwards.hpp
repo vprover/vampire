@@ -19,7 +19,6 @@ namespace Lib
 
 struct EmptyStruct {};
 
-
 class Hash;
 struct IdentityHash;
 struct PtrIdentityHash;
@@ -132,6 +131,8 @@ typedef VirtualIterator<Clause*> ClauseIterator;
 typedef SingleParamEvent<Clause*> ClauseEvent;
 typedef List<Clause*> ClauseList;
 typedef Stack<Clause*> ClauseStack;
+
+class Problem;
 
 class FlatTerm;
 class Renaming;

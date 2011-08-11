@@ -30,7 +30,8 @@ public:
   ~PDMerger();
 
   void scan(UnitList* units);
-  void apply(UnitList*& units);
+  bool apply(UnitList*& units);
+  void apply(Problem& prb);
   Unit* apply(Unit* unit);
   FormulaUnit* apply(FormulaUnit* unit);
 

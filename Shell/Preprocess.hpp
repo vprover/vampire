@@ -24,19 +24,19 @@ class Preprocess
 {
 public:
   /** Initialise the preprocessor */
-  explicit Preprocess(Property& property,const Options& options)
-    : _property(property),
-      _options(options)
+  explicit Preprocess(const Options& options)
+    : _options(options)
   {}
-  void preprocess(UnitList*& units);
+  void preprocess(Problem& prb);
 private:
-  Unit* preprocess1(Unit*);
-  FormulaUnit* preprocess2(FormulaUnit*);
-  Unit* preprocess3(Unit*);
-  UnitList* normalise(UnitList*);
+  void preprocess1(Problem& prb);
+  void preprocess2(Problem& prb);
+  void naming(Problem& prb);
+  void secondStageEprPreservingNaming(Problem& prb);
+  Unit* preprocess3(Unit* u);
+  void preprocess3(Problem& prb);
+  void clausify(Problem& prb);
 
-  /** Properties of the problem */
-  Property& _property;
   /** Options used in the normalisation */
   const Options& _options;
 }; // class Preprocess

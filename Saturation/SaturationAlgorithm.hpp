@@ -9,13 +9,14 @@
 
 #include "Forwards.hpp"
 
-#include "Kernel/Clause.hpp"
-#include "Kernel/MainLoop.hpp"
-#include "Kernel/RCClauseStack.hpp"
-
 #include "Lib/DHMap.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/List.hpp"
+#include "Lib/ScopedPtr.hpp"
+
+#include "Kernel/Clause.hpp"
+#include "Kernel/MainLoop.hpp"
+#include "Kernel/RCClauseStack.hpp"
 
 #include "Indexing/ClauseSharing.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -40,23 +41,23 @@ using namespace Inferences;
 class SaturationAlgorithm : public MainLoop
 {
 public:
-  static SaturationAlgorithm* createFromOptions(IndexManager* indexMgr=0);
+  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
-  SaturationAlgorithm(PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
+  SaturationAlgorithm(Problem& prb, const Options& opt, PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
   virtual ~SaturationAlgorithm();
 
+
   //the following two functions allow to run the saturation algorithm step by step.
-  void init();
+  void initAlgorithmRun();
   void doOneAlgorithmStep();
 
-  void setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator);
-  void setImmediateSimplificationEngine(ImmediateSimplificationEngineSP immediateSimplifier);
+  void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
+  void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
 
 
-  void addForwardSimplifierToFront(ForwardSimplificationEngineSP fwSimplifier);
-  void addBackwardSimplifierToFront(BackwardSimplificationEngineSP bwSimplifier);
+  void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
+  void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
-  virtual void addInputClauses(ClauseIterator cit);
 
   void addNewClause(Clause* cl);
   bool clausesFlushed();
@@ -93,6 +94,7 @@ public:
 
 protected:
 
+  virtual void init();
   virtual MainLoopResult runImpl();
 
   void doUnprocessedLoop();
@@ -178,13 +180,13 @@ protected:
   PassiveClauseContainer* _passive;
   ActiveClauseContainer* _active;
 
-  GeneratingInferenceEngineSP _generator;
-  ImmediateSimplificationEngineSP _immediateSimplifier;
+  ScopedPtr<GeneratingInferenceEngine> _generator;
+  ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
 
-  typedef List<ForwardSimplificationEngineSP> FwSimplList;
+  typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
 
-  typedef List<BackwardSimplificationEngineSP> BwSimplList;
+  typedef List<BackwardSimplificationEngine*> BwSimplList;
   BwSimplList* _bwSimplifiers;
 
   LiteralSelector* _selector;

@@ -19,7 +19,10 @@ using namespace Kernel;
 
 class TrivialPredicateRemover {
 public:
-  void apply(UnitList*& units);
+  TrivialPredicateRemover();
+
+  void apply(Problem& prb);
+  bool apply(UnitList*& units);
 
 private:
   void scan(UnitList* units);
@@ -37,6 +40,8 @@ private:
   Stack<unsigned> _reachedZeroes;
 
   ClauseSet _removed;
+
+  Problem* _processedProblem;
 };
 
 }

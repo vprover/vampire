@@ -8,6 +8,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
@@ -20,6 +21,15 @@
 
 namespace Shell
 {
+
+void HornRevealer::apply(Problem& prb)
+{
+  CALL("HornRevealer::apply(Problem&)");
+
+  //TODO: move the information on swapping predicate polarity for Horn into the Problem
+
+  apply(prb.units());
+}
 
 void HornRevealer::apply(UnitList*& units)
 {

@@ -17,7 +17,7 @@ using namespace Kernel;
 
 class UIHelper {
 public:
-  static UnitList* getInputUnits();
+  static Problem* getInputProblem();
   static void outputResult(ostream& out);
 
   /**
@@ -30,7 +30,7 @@ public:
   static bool haveConjecture() { return s_haveConjecture; }
   static void setConjecturePresence(bool haveConjecture) { s_haveConjecture=haveConjecture; }
 
-  static void outputAllPremises(ostream& out, ClauseIterator& clauses, string prefix="");
+  static void outputAllPremises(ostream& out, UnitList* units, string prefix="");
 
   /**
    * True if we are running in the CASC mode

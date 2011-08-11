@@ -32,7 +32,8 @@ class EPRSkolem : public EPRRestoring {
 public:
   EPRSkolem(bool trace=false) : EPRRestoring(trace), _defs(0) {}
 
-  void apply(UnitList*& units);
+  void apply(Problem& prb);
+  bool apply(UnitList*& units);
   bool apply(Unit* unit, UnitList*& res);
 
   static FormulaUnit* constantSkolemize(FormulaUnit* unit);

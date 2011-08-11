@@ -27,6 +27,8 @@ public:
   PDInliner(bool axiomsOnly=false, bool trace=false);
   ~PDInliner();
 
+  void apply(Problem& prb);
+
   /**
    * Apply predicate definition inlining
    *
@@ -34,8 +36,10 @@ public:
    * remain rectified afterward.
    *
    * The rule preserves flattening and true/false simplifiedness of formulas.
+   *
+   * Return true iff some unit was modified.
    */
-  void apply(UnitList*& units, bool inlineOnlyEquivalences=false);
+  bool apply(UnitList*& units, bool inlineOnlyEquivalences=false);
   Unit* apply(Unit* u);
   FormulaUnit* apply(FormulaUnit* u);
 
@@ -53,7 +57,7 @@ public:
   bool tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs);
 
   bool tryGetPredicateEquivalence(FormulaUnit* unit);
-  void scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly);
+  bool scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly);
 
   bool addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* negBody, Formula* dblBody,
       FormulaUnit* premise=0);

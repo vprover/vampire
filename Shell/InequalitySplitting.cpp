@@ -8,6 +8,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -34,9 +35,20 @@ InequalitySplitting::InequalitySplitting()
   ASS_G(_splittingTreshold,0);
 }
 
-void InequalitySplitting::perform(UnitList*& units)
+void InequalitySplitting::perform(Problem& prb)
 {
   CALL("InequalitySplitting::perform");
+
+  if(perform(prb.units())) {
+    prb.invalidateByRemoval();
+  }
+}
+
+bool InequalitySplitting::perform(UnitList*& units)
+{
+  CALL("InequalitySplitting::perform");
+
+  bool modified = false;
 
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
@@ -44,14 +56,16 @@ void InequalitySplitting::perform(UnitList*& units)
     ASS_REP(cl->isClause(), *cl);
     Clause* cl2=trySplitClause(cl);
     if(cl2!=cl) {
+      modified = true;
       uit.replace(cl2);
     }
   }
 
   while(_predDefs.isNonEmpty()) {
+    ASS(modified);
     uit.insert(_predDefs.pop());
   }
-
+  return modified;
 }
 
 Clause* InequalitySplitting::trySplitClause(Clause* cl)

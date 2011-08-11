@@ -11,6 +11,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
@@ -271,6 +272,15 @@ Clause* BFNT::resolveNegativeVariableEqualities(Clause* cl)
 #endif
   return cl;
 } // BFNT::resolveNegativeVariableEqualities
+
+Problem* BFNT::createProblem(unsigned modelSize)
+{
+  CALL("BFNT::createProblem");
+
+  UnitList* units = create(modelSize);
+  Problem* res = new Problem(units);
+  return res;
+}
 
 /**
  * Create the list of clauses for a finite domain of some size. Return all the collected

@@ -27,6 +27,7 @@ class Normalisation
 {
 public:
   Normalisation();
+  void normalise(Problem&);
   UnitList* normalise(UnitList*);
   bool lessThan(Literal*, Literal*);
   bool lessThan(Unit*, Unit*);

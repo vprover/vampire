@@ -10,6 +10,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermTransformer.hpp"
@@ -147,10 +148,9 @@ private:
 class InterpretedNormalizer::NLiteralTransformer : private TermTransformer
 {
 public:
-  NLiteralTransformer(Property* prop)
+  NLiteralTransformer()
   : _ineqTransls(env.signature->predicates()),
-    _fnTransfs(env.signature->functions()),
-    _prop(prop)
+    _fnTransfs(env.signature->functions())
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::NLiteralTransformer");
 
@@ -192,9 +192,6 @@ public:
     IneqTranslator* transl = getIneqTranslator(pred);
     if(transl) {
       litRes = transl->apply(litRes);
-    }
-    if(_prop) {
-      _prop->scanForInterpreted(litRes);
     }
   }
 protected:
@@ -304,10 +301,6 @@ private:
   DArray<ScopedPtr<IneqTranslator> > _ineqTransls;
   /** inequality translators at positions of their predicate numbers */
   DArray<ScopedPtr<FunctionTranslator> > _fnTransfs;
-
-  /** Problem property to be updated with newly added interpreted symbols
-   * Can be zero, in that case nothing is updated*/
-  Property* _prop;
 };
 
 /**
@@ -348,11 +341,12 @@ private:
 // InterpretedNormalizer
 //
 
-InterpretedNormalizer::InterpretedNormalizer(Property* prop)
+InterpretedNormalizer::InterpretedNormalizer()
+: _litTransf(new NLiteralTransformer())
 {
   CALL("InterpretedNormalizer::InterpretedNormalizer");
 
-  _litTransf = new NLiteralTransformer(prop);
+
 }
 
 InterpretedNormalizer::~InterpretedNormalizer()
@@ -362,13 +356,27 @@ InterpretedNormalizer::~InterpretedNormalizer()
   delete _litTransf;
 }
 
+void InterpretedNormalizer::apply(Problem& prb)
+{
+  CALL("InterpretedNormalizer::apply(Problem&)");
 
-void InterpretedNormalizer::apply(UnitList*& units)
+  if(apply(prb.units())) {
+    prb.invalidateByRemoval();
+  }
+}
+
+/**
+ * Apply the interpreted normalization to @c units.
+ * Return true iff any of the units was modified.
+ */
+bool InterpretedNormalizer::apply(UnitList*& units)
 {
   CALL("InterpretedNormalizer::apply");
 
   NFormulaTransformer ftransf(_litTransf);
   FTFormulaUnitTransformer<NFormulaTransformer> futransf(Inference::EVALUATION, ftransf);
+
+  bool modified = false;
 
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
@@ -383,6 +391,7 @@ void InterpretedNormalizer::apply(UnitList*& units)
 	else {
 	  uit.del();
 	}
+	modified = true;
       }
     }
     else {
@@ -390,9 +399,11 @@ void InterpretedNormalizer::apply(UnitList*& units)
       FormulaUnit* fu1 = futransf.transform(fu);
       if(fu!=fu1) {
 	uit.replace(fu1);
+	modified = true;
       }
     }
   }
+  return modified;
 }
 
 Clause* InterpretedNormalizer::apply(Clause* cl)

@@ -13,9 +13,10 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/XML.hpp"
 
-using namespace Lib;
-
 namespace Shell {
+
+using namespace Lib;
+using namespace Kernel;
 
 class Property;
 
@@ -59,14 +60,14 @@ public:
     FORWARD_LITERAL_REWRITING,
     FORWARD_SUBSUMPTION,
     FORWARD_SUBSUMPTION_RESOLUTION,
-    /** ??? */
+    /** All literals of set-of-support clauses will be selected */
     FULL_SELECTION_FOR_SOS,
     FUNCTION_DEFINITION_ELIMINATION,
 
     GENERAL_SPLITTING,
     GLOBAL_SUBSUMPTION,
 
-    /** ??? */
+    /** We check whether by swapping predicate polarities we can obtain a horn problem */
     HORN_REVEALING,
 
     INCLUDE,
@@ -103,16 +104,16 @@ public:
 
     OUTPUT_AXIOM_NAMES,
 
-    /** ??? */
+    /** Determines whether predicate definitions will be inlined */
     PREDICATE_DEFINITION_INLINING,
-    /** ??? */
+    /** Determines whether predicates with equivalent definitions will be merged into one */
     PREDICATE_DEFINITION_MERGING,
     PROBLEM_NAME,
     PROOF,
     PROOF_CHECKING,
     PROPOSITIONAL_TO_BDD,
 
-    /** ??? */
+    /** Determines whether (and how) we attempt to answer questions */
     QUESTION_ANSWERING,
 
     RANDOM_SEED,
@@ -332,7 +333,7 @@ public:
   void readFromTestId (string testId);
   void readOptionsString (string testId);
   string generateTestId() const;
-  bool complete(const Property&) const;
+  bool complete(const Problem&) const;
   bool completeForNNE() const;
   void setForcedOptionValues();
   void checkGlobalOptionConstraints() const;
@@ -396,6 +397,7 @@ public:
   Demodulation forwardDemodulation() const { return _forwardDemodulation; }
   bool binaryResolution() const { return _binaryResolution; }
   bool bfnt() const { return _bfnt; }
+  void setBfnt(bool newVal) { _bfnt = newVal; }
   bool unitResultingResolution() const { return _unitResultingResolution; }
   bool arityCheck() const { return _arityCheck; }
   void setArityCheck(bool newVal) { _arityCheck=newVal; }

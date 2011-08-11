@@ -102,25 +102,26 @@ private:
 
 struct Superposition::ForwardResultFn
 {
-  ForwardResultFn(Clause* cl, Limits* limits) : _cl(cl), _limits(limits) {}
+  ForwardResultFn(Clause* cl, Limits* limits, Superposition& parent) : _cl(cl), _limits(limits), _parent(parent) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
     CALL("Superposition::ForwardResultFn::operator()");
 
     TermQueryResult& qr = arg.second;
-    return performSuperposition(_cl, arg.first.first, arg.first.second,
+    return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
 	    qr.clause, qr.literal, qr.term, qr.substitution, true, _limits);
   }
 private:
   Clause* _cl;
   Limits* _limits;
+  Superposition& _parent;
 };
 
 
 struct Superposition::BackwardResultFn
 {
-  BackwardResultFn(Clause* cl, Limits* limits) : _cl(cl), _limits(limits) {}
+  BackwardResultFn(Clause* cl, Limits* limits, Superposition& parent) : _cl(cl), _limits(limits), _parent(parent) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
@@ -131,12 +132,13 @@ struct Superposition::BackwardResultFn
     }
 
     TermQueryResult& qr = arg.second;
-    return performSuperposition(qr.clause, qr.literal, qr.term,
+    return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
 	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _limits);
   }
 private:
   Clause* _cl;
   Limits* _limits;
+  Superposition& _parent;
 };
 
 
@@ -154,14 +156,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 				  premise->getSelectedLiteralIterator(),
 				  RewriteableSubtermsFn()),
 			  ApplicableRewritesFn(_lhsIndex)),
-		  ForwardResultFn(premise, limits)),
+		  ForwardResultFn(premise, limits, *this)),
 	  getMappingIterator(
 		  getMapAndFlattenIterator(
 			  getMapAndFlattenIterator(
 				  premise->getSelectedLiteralIterator(),
 				  EqHelper::SuperpositionLHSIteratorFn()),
 			  RewritableResultsFn(_subtermIndex)),
-		  BackwardResultFn(premise, limits))),
+		  BackwardResultFn(premise, limits, *this))),
 	NonzeroFn()
       ), TC_SUPERPOSITION) );
 }
@@ -181,12 +183,12 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
   if(ColorHelper::compatible(rwClause->color(), eqClause->color())) {
     return true;
   }
-  if(env.options->showBlocked()) {
+  if(getOptions().showBlocked()) {
     env.beginOutput();
     env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
     env.endOutput();
   }
-  if(env.options->colorUnblocking()) {
+  if(getOptions().colorUnblocking()) {
     SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
     ASS(salg);
     ColorHelper::tryUnblock(rwClause, salg);

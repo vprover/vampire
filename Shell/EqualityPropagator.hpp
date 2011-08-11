@@ -31,7 +31,8 @@ class EqualityPropagator {
 public:
   EqualityPropagator(bool trace=false) : _trace(trace) {}
 
-  void apply(UnitList*& units);
+  void apply(Problem& prb);
+  bool apply(UnitList*& units);
   Unit* apply(Unit* u);
   TermList apply(unsigned var);
 private:

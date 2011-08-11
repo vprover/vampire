@@ -14,6 +14,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
@@ -387,14 +388,26 @@ int EPRRestoring::combinePolarities(int p1, int p2)
 // EPRInlining
 //
 
-void EPRInlining::apply(UnitList*& units)
+void EPRInlining::apply(Problem& prb)
+{
+  CALL("EPRInlining::apply(Problem&)");
+
+  if(apply(prb.units())) {
+    prb.invalidateProperty();
+  }
+}
+
+bool EPRInlining::apply(UnitList*& units)
 {
   CALL("EPRInlining::apply");
+
+  bool modified = false;
 
   {
     //remove predicate equivalences
     PDInliner pdi(false);
-    pdi.apply(units, true);
+    bool eqInlinerModified = pdi.apply(units, true);
+    modified |= eqInlinerModified;
   }
 
   scan(units);
@@ -412,7 +425,9 @@ void EPRInlining::apply(UnitList*& units)
     else {
       uit.del();
     }
+    modified = true;
   }
+  return modified;
 }
 
 void EPRInlining::processActiveDefinitions(UnitList* units)

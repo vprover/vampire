@@ -61,6 +61,7 @@ public:
   SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold=0);
 
   void perform(UnitList*& units);
+  void perform(Problem& prb);
 private:
   void init();
 

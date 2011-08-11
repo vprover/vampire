@@ -73,8 +73,8 @@ private:
 
 struct BinaryResolution::ResultFn
 {
-  ResultFn(Clause* cl, Limits* limits)
-  : _cl(cl), _limits(limits) {}
+  ResultFn(Clause* cl, Limits* limits, BinaryResolution& parent)
+  : _cl(cl), _limits(limits), _parent(parent) {}
   DECL_RETURN_TYPE(Clause*);
   OWN_RETURN_TYPE operator()(pair<Literal*, SLQueryResult> arg)
   {
@@ -83,11 +83,12 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return generateClause(_cl, resLit, qr, _limits);
+    return _parent.generateClause(_cl, resLit, qr, _limits);
   }
 private:
   Clause* _cl;
   Limits* _limits;
+  BinaryResolution& _parent;
 };
 
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, Limits* limits)
@@ -96,12 +97,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
-    if(env.options->showBlocked()) {
+    if(getOptions().showBlocked()) {
       env.beginOutput();
       env.out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<qr.clause->toString()<<endl;
       env.endOutput();
     }
-    if(env.options->colorUnblocking()) {
+    if(getOptions().colorUnblocking()) {
       SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
       if(salg) {
 	ColorHelper::tryUnblock(queryCl, salg);
@@ -207,7 +208,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 		  getMappingIterator(
 			  premise->getSelectedLiteralIterator(),
 			  UnificationsFn(_index))),
-	  ResultFn(premise, limits)),
+	  ResultFn(premise, limits, *this)),
       NonzeroFn()
     ), TC_RESOLUTION ) );
 }

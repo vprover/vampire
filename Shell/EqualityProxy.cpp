@@ -9,6 +9,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -23,14 +24,6 @@ using namespace Lib;
 using namespace Kernel;
 
 unsigned EqualityProxy::s_proxyPredicate = 0;
-
-EqualityProxy::EqualityProxy()
-: _opt(env.options->equalityProxy())
-{
-  CALL("EqualityProxy::EqualityProxy/0");
-
-  init();
-}
 
 EqualityProxy::EqualityProxy(Options::EqualityProxy opt)
 : _opt(opt)
@@ -63,8 +56,21 @@ void EqualityProxy::init()
 }
 
 /**
- * Apply the equality proxy transformation to a list of clauses. The clauses
- * changed by the transformation will be updated.
+ * Apply the equality proxy transformation to a problem.
+ */
+void EqualityProxy::apply(Problem& prb)
+{
+  CALL("EqualityProxy::apply(Problem&)");
+
+  apply(prb.units());
+  prb.invalidateByRemoval();
+  if(_rst) {
+    prb.reportEqualityEliminated();
+  }
+}
+
+/**
+ * Apply the equality proxy transformation to a list of clauses.
  */
 void EqualityProxy::apply(UnitList*& units)
 {

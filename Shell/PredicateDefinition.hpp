@@ -37,18 +37,12 @@ public:
 
   void collectReplacements(UnitList* units, DHMap<Unit*, Unit*>& unitReplacements);
 
+  void removeUnusedDefinitionsAndPurePredicates(Problem& prb);
   void removeUnusedDefinitionsAndPurePredicates(UnitList*& units);
 
   void addBuiltInPredicate(unsigned pred);
 
   static bool isBuiltIn(unsigned pred);
-
-  static void addRemovedPredAssignment(unsigned pred, bool assignment)
-  { ALWAYS(_removedPredAssignments.insert(pred, assignment)); }
-  static VirtualIterator<unsigned> removedPreds()
-  { return _removedPredAssignments.domain(); }
-  static bool getRemovedPredAssignment(unsigned pred)
-  { return _removedPredAssignments.get(pred); }
 
 private:
   struct Def;
@@ -69,6 +63,8 @@ private:
 
   void makeImplFromDef(unsigned pred, bool forward);
 
+  Problem* _processedPrb;
+
   int _predCnt;
   PredData* _preds;
 
@@ -76,8 +72,6 @@ private:
   DHMap<unsigned, bool> _purePreds;
   Stack<int> _eliminable;
   Stack<int> _pureToReplace;
-
-  static DHMap<unsigned, bool> _removedPredAssignments;
 };
 
 };

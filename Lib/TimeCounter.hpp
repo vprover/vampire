@@ -16,6 +16,7 @@ using namespace std;
 enum TimeCounterUnit
 {
   TC_PARSING,
+  TC_PROPERTY_EVALUATION,
   TC_PREPROCESSING,
   TC_SINE_SELECTION,
   TC_BDD,

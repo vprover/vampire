@@ -14,6 +14,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Indexing/LiteralSubstitutionTree.hpp"
@@ -25,7 +26,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/EqualityProxy.hpp"
-#include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -42,40 +42,37 @@ namespace InstGen
 using namespace Indexing;
 using namespace Saturation;
 
-IGAlgorithm::IGAlgorithm()
-: _instGenResolutionRatio(env.options->instGenResolutionRatioInstGen(),
-    env.options->instGenResolutionRatioResolution(), 50)
+IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
+: MainLoop(prb, opt),
+    _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
+	opt.instGenResolutionRatioResolution(), 50)
 {
   CALL("IGAlgorithm::IGAlgorithm");
 
-  _passive.setAgeWeightRatio(env.options->ageRatio(), env.options->weightRatio());
+  _passive.setAgeWeightRatio(_opt.ageRatio(), _opt.weightRatio());
   _satSolver = new TWLSolver(true);
 
-  if(env.options->globalSubsumption()) {
+  if(_opt.globalSubsumption()) {
     _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder());
     _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr());
   }
 
-//  if(env.options->unitResultingResolution()) {
-//    _unitLitIndex = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
-//    _unitLitIndex->attachContainer(&_resolutionContainer);
-//    _nonUnitLitIndex = new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree());
-//    _nonUnitLitIndex->attachContainer(&_resolutionContainer);
-//    _urResolution = new URResolution(false, _unitLitIndex.ptr(), _nonUnitLitIndex.ptr());
-//  }
-
-  if(env.options->instGenWithResolution()) {
+  if(_opt.instGenWithResolution()) {
     _saturationIndexManager = new IndexManager(0);
-    if(env.options->globalSubsumption()) {
+    if(_opt.globalSubsumption()) {
       _saturationIndexManager->provideIndex(GLOBAL_SUBSUMPTION_INDEX, _groundingIndex.ptr());
     }
-    Options saOptions = *env.options;
-    saOptions.setSaturationAlgorithm(Options::OTTER);
-    saOptions.setPropositionalToBDD(false);
-    saOptions.setSplitting(Options::SM_OFF);
-    ScopedLet<Options> slet(*env.options, saOptions);
 
-    _saturationAlgorithm = SaturationAlgorithmSP(SaturationAlgorithm::createFromOptions(_saturationIndexManager.ptr()));
+    _saturationProblem = prb.copy();
+
+    _saturationOptions = opt;
+    _saturationOptions.setSaturationAlgorithm(Options::OTTER);
+    _saturationOptions.setPropositionalToBDD(false);
+    _saturationOptions.setSplitting(Options::SM_OFF);
+    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
+
+    //we will watch what clauses are derived in the
+    //saturation part, so we can take advantage of them
     _saturationAlgorithm->getSimplifyingClauseContainer()->addedEvent.subscribe(this, &IGAlgorithm::onResolutionClauseDerived);
   }
   else {
@@ -101,24 +98,17 @@ ClauseIterator IGAlgorithm::getActive()
   return pvi( RCClauseStack::Iterator(_active) );
 }
 
-void IGAlgorithm::addInputClauses(ClauseIterator it)
+void IGAlgorithm::init()
 {
-  CALL("IGAlgorithm::addInputClauses");
+  CALL("IGAlgorithm::init");
+
+  ClauseIterator it = _prb.clauseIterator();
 
   UnitList* units = 0;
   UnitList::pushFromIterator(it, units);
 
   if(_saturationAlgorithm) {
-    ClauseStack copies;
-    UnitList::Iterator uit(units);
-    while(uit.hasNext()) {
-      Clause* cl = static_cast<Clause*>(uit.next());
-      cl->incRefCnt();
-      Clause* copyCl = Clause::fromIterator(Clause::Iterator(*cl), cl->inputType(), new Inference1(Inference::REORDER_LITERALS, cl));
-      copies.push(copyCl);
-    }
-    _saturationAlgorithm->addInputClauses(pvi( ClauseStack::Iterator(copies) ));
-    _saturationAlgorithm->init();
+    _saturationAlgorithm->initAlgorithmRun();
   }
 
   Property* property = Property::scan(units);
@@ -394,7 +384,7 @@ void IGAlgorithm::doResolutionStep()
     case Statistics::TIME_LIMIT:
     case Statistics::MEMORY_LIMIT:
       //refutation algorithm finished, we just get rid of it
-      _saturationAlgorithm = SaturationAlgorithmSP();
+      _saturationAlgorithm = 0;
       _instGenResolutionRatio.alwaysDoFirst();
       break;
     }
@@ -531,12 +521,12 @@ MainLoopResult IGAlgorithm::runImpl()
   }
 
   int restartRatioMultiplier = 100;
-  int bigRestartRatio = static_cast<int>(restartRatioMultiplier * env.options->instGenBigRestartRatio());
+  int bigRestartRatio = static_cast<int>(restartRatioMultiplier * _opt.instGenBigRestartRatio());
   int smallRestartRatio = restartRatioMultiplier - bigRestartRatio;
 
   int restartKindRatio = 0;
 
-  unsigned loopIterBeforeRestart = env.options->instGenRestartPeriod();
+  unsigned loopIterBeforeRestart = _opt.instGenRestartPeriod();
 
   for(;;) {
     bool restarting = false;
@@ -580,7 +570,7 @@ MainLoopResult IGAlgorithm::runImpl()
 	restartKindRatio += bigRestartRatio;
       }
       loopIterBeforeRestart = static_cast<int>(ceilf(
-	  loopIterBeforeRestart*env.options->instGenRestartPeriodQuotient()));
+	  loopIterBeforeRestart*_opt.instGenRestartPeriodQuotient()));
 
     }
     else {
@@ -593,12 +583,12 @@ MainLoopResult IGAlgorithm::runImpl()
       activate(given);
     }
     if(_unprocessed.isEmpty()) {
-      if(env.options->complete(*env.property)) {
-	if(env.options->proof()!=Options::PROOF_OFF) {
+      if(_opt.complete(_prb)) {
+	if(_opt.proof()!=Options::PROOF_OFF) {
 	  if(UIHelper::cascMode) {
 	    env.beginOutput();
 	    env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-		<< " for " << env.options->problemName() << endl << flush;
+		<< " for " << _opt.problemName() << endl << flush;
 	    env.endOutput();
 	    UIHelper::satisfiableStatusWasAlreadyOutput = true;
 	  }

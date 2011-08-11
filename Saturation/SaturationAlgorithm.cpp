@@ -20,14 +20,15 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/KBO.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MLVariant.hpp"
-#include "Kernel/Unit.hpp"
-#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/SubformulaIterator.hpp"
-#include "Kernel/KBO.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
@@ -86,17 +87,18 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
  * The @b passiveContainer object will be used as a passive clause container, and
  * @b selector object to select literals before clauses are activated.
  */
-SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContainer,
-					 LiteralSelector* selector)
-  : _clauseActivationInProgress(false), _passive(passiveContainer),
+SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt,
+    PassiveClauseContainer* passiveContainer,
+    LiteralSelector* selector)
+  : MainLoop(prb, opt), _clauseActivationInProgress(false), _passive(passiveContainer),
     _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _splitter(0),
     _consFinder(0), _symEl(0), _bddMarkingSubsumption(0), _answerLiteralManager(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
-  _propToBDD = env.options->propositionalToBDD();
-  _completeOptionSettings = env.options->complete(*env.property);
+  _propToBDD = opt.propositionalToBDD();
+  _completeOptionSettings = opt.complete(prb);
 
   _unprocessed=new UnprocessedClauseContainer();
   _active=new ActiveClauseContainer();
@@ -113,8 +115,8 @@ SaturationAlgorithm::SaturationAlgorithm(PassiveClauseContainer* passiveContaine
   _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
-  if(env.options->maxWeight()) {
-    _limits.setLimits(0,env.options->maxWeight());
+  if(opt.maxWeight()) {
+    _limits.setLimits(0,opt.maxWeight());
   }
 
   PassiveClauseContainer::registerInstance(_passive);
@@ -158,10 +160,14 @@ SaturationAlgorithm::~SaturationAlgorithm()
   }
 
   while(_fwSimplifiers) {
-    FwSimplList::pop(_fwSimplifiers)->detach();
+    ForwardSimplificationEngine* fse = FwSimplList::pop(_fwSimplifiers);
+    fse->detach();
+    delete fse;
   }
   while(_bwSimplifiers) {
-    BwSimplList::pop(_bwSimplifiers)->detach();
+    BackwardSimplificationEngine* bse = BwSimplList::pop(_bwSimplifiers);
+    bse->detach();
+    delete bse;
   }
 
   delete _unprocessed;
@@ -255,7 +261,7 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
   cout<<"## Active added: "<<(*c)<<endl;
 #endif
 
-  if(env.options->showActive()) {
+  if(_opt.showActive()) {
     reportClause(CRT_ACTIVE, c);
   }
 }
@@ -324,7 +330,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
   //we know it is not redundant
   onNonRedundantClause(c);
 
-  if(env.options->showPassive()) {
+  if(_opt.showPassive()) {
     reportClause(CRT_PASSIVE, c);
   }
 }
@@ -436,7 +442,7 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     }
   }
 
-  if(env.options->showNew()) {
+  if(_opt.showNew()) {
     reportClause(CRT_NEW, cl);
   }
 
@@ -454,7 +460,7 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
   CALL("SaturationAlgorithm::onNewUsefulPropositionalClause");
   ASS(c->isPropositional());
 
-  if(env.options->showNewPropositional()) {
+  if(_opt.showNewPropositional()) {
     VirtualIterator<string> clStrings=c->toSimpleClauseStrings();
     while(clStrings.hasNext()) {
       reportClause(CRT_NEW, clStrings.next());
@@ -622,7 +628,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     }
   }
 
-  if(env.options->sos() && cl->inputType()==Clause::AXIOM) {
+  if(_opt.sos() && cl->inputType()==Clause::AXIOM) {
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -669,7 +675,7 @@ simpl_start:
   }
 
   ASS(!cl->selected());
-  if(env.options->fullSelectionForSOS()) {
+  if(_opt.fullSelectionForSOS()) {
     static TotalLiteralSelector totalSelector;
     totalSelector.select(cl);
   }
@@ -689,20 +695,35 @@ fin:
 
 
 /**
- * Insert input clauses into the SaturationAlgorithm object.
- *
- * It usually means adding all clauses yielded by the @b toAdd iterator
- * into the unprocessed container, but not always (see the set-of-support
- * option).
+ * Insert clauses of the problem into the SaturationAlgorithm object
+ * and initialize some internal structures.
  */
-void SaturationAlgorithm::addInputClauses(ClauseIterator toAdd)
+void SaturationAlgorithm::init()
 {
-  CALL("SaturationAlgorithm::addInputClauses");
+  CALL("SaturationAlgorithm::init");
+
+  ClauseIterator toAdd = _prb.clauseIterator();
 
   while(toAdd.hasNext()) {
     Clause* cl=toAdd.next();
     addInputClause(cl);
   }
+
+  _sharing.init(this);
+  if(_splitter) {
+    _splitter->init(this);
+  }
+  if(_consFinder) {
+    _consFinder->init(this);
+  }
+  if(_symEl) {
+    _symEl->init(this);
+  }
+  if(_bddMarkingSubsumption) {
+    _bddMarkingSubsumption->init(this);
+  }
+
+  _startTime=env.timer->elapsedMilliseconds();
 }
 
 /**
@@ -830,7 +851,7 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   //so we'd better not assume on what's happening out there)
   cl->incRefCnt();
 
-  if(env.options->abstraction() && cl->number()%100000==(24788+(env.statistics->inputClauses%50000)) && env.statistics->inputClauses%3==0) {
+  if(_opt.abstraction() && cl->number()%100000==(24788+(env.statistics->inputClauses%50000)) && env.statistics->inputClauses%3==0) {
     Clause* newCl = 0;
     if(cl->length()>1) {
       LiteralStack lits;
@@ -981,8 +1002,8 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   ASS(!bdd->isFalse(cl->prop()));
   env.statistics->bddPropClauses++;
 
-  if(env.options->satSolverForEmptyClause()) {
-    static BDDConjunction ecProp;
+  if(_opt.satSolverForEmptyClause()) {
+    static BDDConjunction ecProp(_opt);
     static Stack<UnitSpec> emptyClauses;
 
     onNonRedundantClause(cl);
@@ -1027,7 +1048,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       onNonRedundantClause(accumulator);
     } else {
       env.statistics->subsumedEmptyClauses++;
-      if(env.options->emptyClauseSubsumption()) {
+      if(_opt.emptyClauseSubsumption()) {
 	performEmptyClauseParentSubsumption(cl, accumulator->prop());
       }
     }
@@ -1137,7 +1158,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   FwSimplList::Iterator fsit(_fwSimplifiers);
 
   while(fsit.hasNext()) {
-    ForwardSimplificationEngine* fse=fsit.next().ptr();
+    ForwardSimplificationEngine* fse=fsit.next();
 
     fse->perform(cl, &performer);
     if(!performer.clauseKept()) {
@@ -1155,7 +1176,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   }
 
 
-  if( _splitter && !env.options->splitAtActivation() ) {
+  if( _splitter && !_opt.splitAtActivation() ) {
     if(_splitter->doSplitting(cl)) {
       return false;
     }
@@ -1175,7 +1196,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 
   BwSimplList::Iterator bsit(_bwSimplifiers);
   while(bsit.hasNext()) {
-    BackwardSimplificationEngine* bse=bsit.next().ptr();
+    BackwardSimplificationEngine* bse=bsit.next();
 
     BwSimplificationRecordIterator simplifications;
     bse->perform(cl,simplifications);
@@ -1308,7 +1329,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
     return false;
   }
 
-  if(_splitter && env.options->splitAtActivation()) {
+  if(_splitter && _opt.splitAtActivation()) {
     if(_splitter->doSplitting(cl)) {
       return false;
     }
@@ -1437,25 +1458,16 @@ bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
   return true;
 }
 
-void SaturationAlgorithm::init()
+/**
+ * This function should be called if (and only if) we will use
+ * the @c doOneAlgorithmStep() function to run the saturation
+ * algorithm, instead of the @c MailLoop::run() function.
+ */
+void SaturationAlgorithm::initAlgorithmRun()
 {
-  CALL("SaturationAlgorithm::init");
+  CALL("SaturationAlgorithm::initAlgorithmRun");
 
-  _sharing.init(this);
-  if(_splitter) {
-    _splitter->init(this);
-  }
-  if(_consFinder) {
-    _consFinder->init(this);
-  }
-  if(_symEl) {
-    _symEl->init(this);
-  }
-  if(_bddMarkingSubsumption) {
-    _bddMarkingSubsumption->init(this);
-  }
-
-  _startTime=env.timer->elapsedMilliseconds();
+  init();
 }
 
 /**
@@ -1503,8 +1515,6 @@ MainLoopResult SaturationAlgorithm::runImpl()
 {
   CALL("SaturationAlgorithm::runImpl");
 
-  init();
-
   try
   {
     for (;;) {
@@ -1527,11 +1537,16 @@ MainLoopResult SaturationAlgorithm::runImpl()
 /**
  * Assign an generating inference object @b generator to be used
  *
+ * This object takes ownership of the @b generator object
+ * and will be responsible for its deletion.
+ *
  * To use multiple generating inferences, use the @b CompositeGIE
  * object.
  */
-void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngineSP generator)
+void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngine* generator)
 {
+  CALL("SaturationAlgorithm::setGeneratingInferenceEngine");
+
   ASS(!_generator);
   _generator=generator;
   _generator->attach(this);
@@ -1541,14 +1556,19 @@ void SaturationAlgorithm::setGeneratingInferenceEngine(GeneratingInferenceEngine
  * Assign an immediate simplifier object @b immediateSimplifier
  * to be used
  *
+ * This object takes ownership of the @b immediateSimplifier object
+ * and will be responsible for its deletion.
+ *
  * For description of what an immediate simplifier is, see
  * @b ImmediateSimplificationEngine documentation.
  *
  * To use multiple immediate simplifiers, use the @b CompositeISE
  * object.
  */
-void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificationEngineSP immediateSimplifier)
+void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier)
 {
+  CALL("SaturationAlgorithm::setImmediateSimplificationEngine");
+
   ASS(!_immediateSimplifier);
   _immediateSimplifier=immediateSimplifier;
   _immediateSimplifier->attach(this);
@@ -1556,12 +1576,13 @@ void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificati
 
 /**
  * Add a forward simplifier, so that it is applied before the
- * simplifiers that were added before it.
+ * simplifiers that were added before it. The object takes ownership
+ * of the forward simlifier and will take care of destroying it.
  *
  * Forward demodulation simplifier should be added by the
  * @b setFwDemodulator function, not by this one.
  */
-void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngineSP fwSimplifier)
+void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier)
 {
   FwSimplList::push(fwSimplifier, _fwSimplifiers);
   fwSimplifier->attach(this);
@@ -1569,15 +1590,16 @@ void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngin
 
 /**
  * Add a backward simplifier, so that it is applied before the
- * simplifiers that were added before it.
+ * simplifiers that were added before it. The object takes ownership
+ * of the backward simlifier and will take care of destroying it.
  */
-void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEngineSP bwSimplifier)
+void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier)
 {
   BwSimplList::push(bwSimplifier, _bwSimplifiers);
   bwSimplifier->attach(this);
 }
 
-SaturationAlgorithm* SaturationAlgorithm::createFromOptions(IndexManager* indexMgr)
+SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr)
 {
   CALL("SaturationAlgorithm::createFromOptions");
 
@@ -1593,20 +1615,20 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(IndexManager* indexM
 
   // create passive clauses container
   AWPassiveClauseContainer* passive = new AWPassiveClauseContainer();
-  passive->setAgeWeightRatio(env.options->ageRatio(),env.options->weightRatio());
+  passive->setAgeWeightRatio(opt.ageRatio(),opt.weightRatio());
 
-  LiteralSelector* selector=LiteralSelector::getSelector(env.options->selection());
+  LiteralSelector* selector=LiteralSelector::getSelector(opt.selection());
 
   SaturationAlgorithm* res;
-  switch(env.options->saturationAlgorithm()) {
+  switch(opt.saturationAlgorithm()) {
   case Shell::Options::DISCOUNT:
-    res=new Discount(passive, selector);
+    res=new Discount(prb, opt, passive, selector);
     break;
   case Shell::Options::LRS:
-    res=new LRS(passive, selector);
+    res=new LRS(prb, opt, passive, selector);
     break;
   case Shell::Options::OTTER:
-    res=new Otter(passive, selector);
+    res=new Otter(prb, opt, passive, selector);
     break;
   default:
     NOT_IMPLEMENTED;
@@ -1622,85 +1644,91 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(IndexManager* indexM
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
-  gie->addFront(GeneratingInferenceEngineSP(new EqualityFactoring()));
-  gie->addFront(GeneratingInferenceEngineSP(new EqualityResolution()));
-  gie->addFront(GeneratingInferenceEngineSP(new Superposition()));
-  gie->addFront(GeneratingInferenceEngineSP(new Factoring()));
-  if(env.options->binaryResolution()) {
-    gie->addFront(GeneratingInferenceEngineSP(new BinaryResolution()));
+  if(prb.hasEquality()) {
+    gie->addFront(new EqualityFactoring());
+    gie->addFront(new EqualityResolution());
+    gie->addFront(new Superposition());
   }
-  if(env.options->unitResultingResolution()) {
-    gie->addFront(GeneratingInferenceEngineSP(new URResolution()));
+  gie->addFront(new Factoring());
+  if(opt.binaryResolution()) {
+    gie->addFront(new BinaryResolution());
   }
-  res->setGeneratingInferenceEngine(GeneratingInferenceEngineSP(gie));
+  if(opt.unitResultingResolution()) {
+    gie->addFront(new URResolution());
+  }
+  res->setGeneratingInferenceEngine(gie);
 
-  res->setImmediateSimplificationEngine(createISE());
+  res->setImmediateSimplificationEngine(createISE(prb, opt));
 
   // create forward simplification engine
-  if(env.options->globalSubsumption()) {
-    res->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new GlobalSubsumption()));
+  if(opt.globalSubsumption()) {
+    res->addForwardSimplifierToFront(new GlobalSubsumption());
   }
-  if(env.options->forwardLiteralRewriting()) {
-    res->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardLiteralRewriting()));
+  if(opt.forwardLiteralRewriting()) {
+    res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
   }
-  switch(env.options->forwardDemodulation()) {
-  case Options::DEMODULATION_ALL:
-  case Options::DEMODULATION_PREORDERED:
-    res->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new ForwardDemodulation()));
-    break;
-  case Options::DEMODULATION_OFF:
-    break;
+  if(prb.hasEquality()) {
+    switch(opt.forwardDemodulation()) {
+    case Options::DEMODULATION_ALL:
+    case Options::DEMODULATION_PREORDERED:
+      res->addForwardSimplifierToFront(new ForwardDemodulation());
+      break;
+    case Options::DEMODULATION_OFF:
+      break;
 #if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
+    default:
+      ASSERTION_VIOLATION;
 #endif
+    }
   }
-  if (env.options->forwardSubsumption()) {
-    if(env.options->forwardSubsumptionResolution()) {
-      res->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new CTFwSubsAndRes(true)));
+  if (opt.forwardSubsumption()) {
+    if(opt.forwardSubsumptionResolution()) {
+      res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
     }
     else {
-      res->addForwardSimplifierToFront(ForwardSimplificationEngineSP(new CTFwSubsAndRes(false)));
+      res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
     }
   }
-  else if (env.options->forwardSubsumptionResolution()) {
+  else if (opt.forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
   }
 
   // create backward simplification engine
-  switch(env.options->backwardDemodulation()) {
-  case Options::DEMODULATION_ALL:
-  case Options::DEMODULATION_PREORDERED:
-    res->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardDemodulation()));
-    break;
-  case Options::DEMODULATION_OFF:
-    break;
+  if(prb.hasEquality()) {
+    switch(opt.backwardDemodulation()) {
+    case Options::DEMODULATION_ALL:
+    case Options::DEMODULATION_PREORDERED:
+      res->addBackwardSimplifierToFront(new BackwardDemodulation());
+      break;
+    case Options::DEMODULATION_OFF:
+      break;
 #if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
+    default:
+      ASSERTION_VIOLATION;
 #endif
+    }
   }
-  if(env.options->backwardSubsumption()!=Options::SUBSUMPTION_OFF) {
-    bool byUnitsOnly=env.options->backwardSubsumption()==Options::SUBSUMPTION_UNIT_ONLY;
-    res->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new SLQueryBackwardSubsumption(byUnitsOnly)));
+  if(opt.backwardSubsumption()!=Options::SUBSUMPTION_OFF) {
+    bool byUnitsOnly=opt.backwardSubsumption()==Options::SUBSUMPTION_UNIT_ONLY;
+    res->addBackwardSimplifierToFront(new SLQueryBackwardSubsumption(byUnitsOnly));
   }
-  if(env.options->backwardSubsumptionResolution()!=Options::SUBSUMPTION_OFF) {
-    bool byUnitsOnly=env.options->backwardSubsumptionResolution()==Options::SUBSUMPTION_UNIT_ONLY;
-    res->addBackwardSimplifierToFront(BackwardSimplificationEngineSP(new BackwardSubsumptionResolution(byUnitsOnly)));
+  if(opt.backwardSubsumptionResolution()!=Options::SUBSUMPTION_OFF) {
+    bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::SUBSUMPTION_UNIT_ONLY;
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
   }
 
-  if(env.options->mode()==Options::MODE_CONSEQUENCE_ELIMINATION) {
+  if(opt.mode()==Options::MODE_CONSEQUENCE_ELIMINATION) {
     res->_consFinder=new ConsequenceFinder();
   }
-  if(env.options->showSymbolElimination()) {
+  if(opt.showSymbolElimination()) {
     res->_symEl=new SymElOutput();
   }
 
-  if(env.options->splitting()==Options::SM_BACKTRACKING) {
+  if(opt.splitting()==Options::SM_BACKTRACKING) {
     res->_splitter=new BSplitter();
   }
-  else if(env.options->splitting()==Options::SM_NOBACKTRACKING) {
-    if(env.options->propositionalToBDD()) {
+  else if(opt.splitting()==Options::SM_NOBACKTRACKING) {
+    if(opt.propositionalToBDD()) {
       res->_splitter=new SWBSplitterWithBDDs();
     }
     else {
@@ -1709,11 +1737,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(IndexManager* indexM
   }
 
 
-  if(env.options->bddMarkingSubsumption()) {
+  if(opt.bddMarkingSubsumption()) {
     res->_bddMarkingSubsumption=new BDDMarkingSubsumption();
   }
 
-  if(env.options->questionAnswering()==Options::QA_ANSWER_LITERAL) {
+  if(opt.questionAnswering()==Options::QA_ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
   }
   return res;

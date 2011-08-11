@@ -28,6 +28,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
@@ -76,7 +77,7 @@ using namespace Saturation;
 using namespace Inferences;
 using namespace InstGen;
 
-UnitList* globUnitList=0;
+Problem* globProblem=0;
 
 /**
  * Return value is non-zero unless we were successful.
@@ -99,30 +100,27 @@ UnitList* globUnitList=0;
  */
 int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 
-ClauseIterator getProblemClauses(Property*& property)
+Problem* getPreprocessedProblem()
 {
   CALL("getInputClauses");
   
-  UnitList* units=UIHelper::getInputUnits();
+  Problem* prb=UIHelper::getInputProblem();
 
   TimeCounter tc2(TC_PREPROCESSING);
 
-  env.statistics->phase=Statistics::PROPERTY_SCANNING;
-  property = Property::scan(units);
-  Preprocess prepro(*property,*env.options);
+  Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the proprocess method
-  prepro.preprocess(units);
-  globUnitList=units;
+  prepro.preprocess(*prb);
+  globProblem=prb;
 
-  return pvi(getStaticCastIterator<Clause*>(UnitList::Iterator(units)));
+  return prb;
 }
 
 void doProving()
 {
   CALL("doProving()");
-  Property* prop;
-  ClauseIterator clauses=getProblemClauses(prop);
-  ProvingHelper::runVampireSaturation(clauses,prop);
+  ScopedPtr<Problem> prb(getPreprocessedProblem());
+  ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
 
 /**
@@ -133,27 +131,11 @@ void profileMode()
 {
   CALL("profileMode()");
 
-  string inputFile = env.options->inputFile();
-  istream* input;
-  if(inputFile=="") {
-    input=&cin;
-  }
-  else {
-    input=new ifstream(inputFile.c_str());
-    if(input->fail()) {
-      USER_ERROR("Cannot open input file: "+inputFile);
-    }
-  }
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem());
 
-  UnitList* units = Parse::TPTP::parse(*input);
-  if(inputFile!="") {
-    delete static_cast<ifstream*>(input);
-    input=0;
-  }
-
-  Property* property = Property::scan(units);
-  TheoryFinder tf(units,property);
-  Preprocess prepro(*property,*env.options);
+  Property* property = prb->getProperty();
+  TheoryFinder tf(prb->units(), property);
+  Preprocess prepro(*env.options);
   tf.search();
 
   env.beginOutput();
@@ -164,7 +146,6 @@ void profileMode()
 
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue=VAMP_RESULT_STATUS_SUCCESS;
-  delete property;
 } // profileMode
 
 void programAnalysisMode()
@@ -284,13 +265,12 @@ void clausifyMode()
   CALL("clausifyMode()");
 
   CompositeISE simplifier;
-  simplifier.addFront(ImmediateSimplificationEngineSP(new TrivialInequalitiesRemovalISE()));
-  simplifier.addFront(ImmediateSimplificationEngineSP(new TautologyDeletionISE()));
-  simplifier.addFront(ImmediateSimplificationEngineSP(new DuplicateLiteralRemovalISE()));
+  simplifier.addFront(new TrivialInequalitiesRemovalISE());
+  simplifier.addFront(new TautologyDeletionISE());
+  simplifier.addFront(new DuplicateLiteralRemovalISE());
 
-  Property* prop;
-  ClauseIterator cit = getProblemClauses(prop);
-  delete prop;
+  ScopedPtr<Problem> prb(getPreprocessedProblem());
+  ClauseIterator cit = prb->clauseIterator();
   env.beginOutput();
   while (cit.hasNext()) {
     Clause* cl=cit.next();
@@ -312,23 +292,25 @@ void axiomSelectionMode()
 
   env.options->setSineSelection(Options::SS_AXIOMS);
 
-  UnitList* units=UIHelper::getInputUnits();
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem());
 
-  SpecialTermElimination().apply(units);
+  if(prb->hasSpecialTermsOrLets()) {
+    SpecialTermElimination().apply(*prb);
+  }
 
   // reorder units
   if (env.options->normalize()) {
     env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
-    units = norm.normalise(units);
+    norm.normalise(*prb);
   }
 
   env.statistics->phase=Statistics::SINE_SELECTION;
-  SineSelector().perform(units);
+  SineSelector().perform(*prb);
 
   env.statistics->phase=Statistics::FINALIZATION;
 
-  UnitList::Iterator uit(units);
+  UnitList::Iterator uit(prb->units());
   env.beginOutput();
   while (uit.hasNext()) {
     Unit* u=uit.next();
@@ -345,31 +327,15 @@ void groundingMode()
   CALL("groundingMode()");
 
   try {
+    ScopedPtr<Problem> prb(UIHelper::getInputProblem());
 
-    string inputFile = env.options->inputFile();
-    istream* input;
-    if(inputFile=="") {
-      input=&cin;
-    } else {
-      input=new ifstream(inputFile.c_str());
-    }
-    UnitList* units = Parse::TPTP::parse(*input);
-    if(inputFile!="") {
-      delete static_cast<ifstream*>(input);
-      input=0;
-    }
+    Preprocess prepro(*env.options);
+    prepro.preprocess(*prb);
 
-    Property* property = Property::scan(units);
-    Preprocess prepro(*property,*env.options);
-    prepro.preprocess(units);
-    delete property;
+    ClauseIterator clauses=prb->clauseIterator();
 
-    property->scan(units);
-    globUnitList=units;
-    ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
-
-    if(property->equalityAtoms()) {
-      ClauseList* eqAxioms=Grounding::getEqualityAxioms(property->positiveEqualityAtoms()!=0);
+    if(prb->hasEquality()) {
+      ClauseList* eqAxioms=Grounding::getEqualityAxioms(prb->getProperty()->positiveEqualityAtoms()!=0);
       clauses=pvi(getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms),clauses));
     }
 

@@ -12,11 +12,13 @@
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/ScopedLet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
@@ -111,20 +113,32 @@ FunctionDefinition::FunctionDefinition ()
   :
 //    _defStore(32),
     _found(0),
-    _removed(0)
+    _removed(0),
+    _processedProblem(0)
 {
   CALL("FunctionDefinition::FunctionDefinition");
 } // FunctionDefinition::FunctionDefinition
 
+void FunctionDefinition::removeUnusedDefinitions(Problem& prb)
+{
+  CALL("FunctionDefinition::removeUnusedDefinitions");
+
+  if(removeUnusedDefinitions(prb.units(), &prb)) {
+    prb.invalidateByRemoval();
+  }
+}
+
 /**
  * From @b units remove clauses that contain function definitions
  * which are never used (i.e. the function occurs only in it's definition)
+ * Return true iff set of clauses in @c units is modified. If the argument @c prb is
+ * non-zero, information about removed function definitions is stored in it.
  *
  * The removal is performed iteratively, so that if one function is used
  * only in definition of an other one which is removed, the first definition
  * is removed as well.
  */
-void FunctionDefinition::removeUnusedDefinitions(UnitList*& units)
+bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
 {
   CALL("FunctionDefinition::removeUnusedDefinitions");
 
@@ -135,7 +149,6 @@ void FunctionDefinition::removeUnusedDefinitions(UnitList*& units)
   DArray<unsigned> occCounter;
   def.init(funs, 0);
   occCounter.init(funs, 0);
-
 
   UnitList::DelIterator scanIterator(units);
   while(scanIterator.hasNext()) {
@@ -189,21 +202,40 @@ void FunctionDefinition::removeUnusedDefinitions(UnitList*& units)
     ASS_EQ(occCounter[d->fun], 0);
   }
 
+  bool modified = false;
   while(defStack.isNonEmpty()) {
     Def* d=defStack.pop();
-    if(d->mark!=Def::REMOVED) {
+    if(d->mark==Def::REMOVED) {
+      modified = true;
+      if(prb) {
+	ASS_EQ(d->defCl->length(), 1);
+	prb->addEliminatedFunction(d->fun, (*d->defCl)[0]);
+      }
+    }
+    else {
       ASS_EQ(d->mark, Def::UNTOUCHED);
       UnitList::push(d->defCl, units);
     }
     delete d;
   }
+  return modified;
+}
 
+void FunctionDefinition::removeAllDefinitions(Problem& prb)
+{
+  CALL("FunctionDefinition::removeAllDefinitions(Problem&)");
+
+  ScopedLet<Problem*> prbLet(_processedProblem, &prb);
+  if(removeAllDefinitions(prb.units())) {
+    prb.invalidateByRemoval();
+  }
 }
 
 /**
  * When possible, unfold function definitions in @b units and remove them
+ * Return true iff the list of units was modified.
  */
-void FunctionDefinition::removeAllDefinitions(UnitList*& units)
+bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
 {
   CALL("FunctionDefinition::removeAllDefinitions");
 
@@ -224,7 +256,7 @@ void FunctionDefinition::removeAllDefinitions(UnitList*& units)
   }
 
   if(!_defs.size()) {
-    return;
+    return false;
   }
 
   Fn2DefMap::Iterator dit(_defs);
@@ -246,6 +278,10 @@ void FunctionDefinition::removeAllDefinitions(UnitList*& units)
     UnitList::push(d->defCl, units);
     _defs.remove(d->fun);
     delete d;
+  }
+
+  if(_defs.isEmpty()) {
+    return false;
   }
 
   ASS_EQ(_defs.size(), _safeDefs.size());
@@ -274,6 +310,10 @@ void FunctionDefinition::removeAllDefinitions(UnitList*& units)
     }
 
     d->mark=Def::UNFOLDED;
+    if(_processedProblem) {
+      ASS_EQ(d->defCl->length(), 1);
+      _processedProblem->addEliminatedFunction(d->fun, (*d->defCl)[0]);
+    }
 
     env.statistics->functionDefinitions++;
   }
@@ -291,6 +331,7 @@ void FunctionDefinition::removeAllDefinitions(UnitList*& units)
   }
 
   _safeDefs.reset();
+  return true;
 }
 
 void FunctionDefinition::checkDefinitions(Def* def0)

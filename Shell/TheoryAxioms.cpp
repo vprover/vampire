@@ -11,6 +11,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -366,14 +367,32 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
 
 /**
  * Add theory axioms to the @b units list that are relevant to
- * units present in the list. Update the property object @b prop.
- * Replace in each formula instances of X-Y by X+(-Y) and X++ by
- * X+1 and <,<=,>= by >.
+ * units present in the list. The problem must have been processed
+ * by the InterpretedNormalizer before using this rule.
  */
-void TheoryAxioms::apply(UnitList*& units, Property* prop)
+void TheoryAxioms::apply(Problem& prb)
+{
+  CALL("TheoryAxioms::apply(Problem&)");
+
+  Property* prop = prb.getProperty();
+  if(apply(prb.units(), prop)) {
+    prb.invalidateProperty();
+    prb.reportEqualityAdded(false);
+  }
+}
+
+/**
+ * Add theory axioms to the @b units list that are relevant to
+ * units present in the list. The problem must have been processed
+ * by the InterpretedNormalizer before using this rule.
+ *
+ * True is returned iff the list of units was modified.
+ */
+bool TheoryAxioms::apply(UnitList*& units, Property* prop)
 {
   CALL("TheoryAxioms::apply");
 
+  bool modified = false;
   {
     bool haveIntPlus =
 	prop->hasInterpretedOperation(Theory::INT_PLUS) ||
@@ -394,6 +413,7 @@ void TheoryAxioms::apply(UnitList*& units, Property* prop)
 	    Theory::INT_LESS_EQUAL, units);
       }
       addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS_EQUAL, units);
+      modified = true;
     }
   }
 
@@ -416,6 +436,7 @@ void TheoryAxioms::apply(UnitList*& units, Property* prop)
 	addAdditionAndOrderingAxioms(Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
 	    Theory::RAT_LESS_EQUAL, units);
       }
+      modified = true;
     }
   }
 
@@ -438,9 +459,10 @@ void TheoryAxioms::apply(UnitList*& units, Property* prop)
 	addAdditionAndOrderingAxioms(Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
 	    Theory::REAL_LESS_EQUAL, units);
       }
+      modified = true;
     }
   }
-
+  return modified;
 }
 
 }

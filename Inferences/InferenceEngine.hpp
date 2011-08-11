@@ -19,6 +19,7 @@ namespace Inferences
 using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
+using namespace Shell;
 
 /**
  * InferenceEngine is a base class for classes representing possible
@@ -49,6 +50,13 @@ public:
     ASS(_salg);
     _salg=0;
   }
+
+  /**
+   * Return true if inference engine is attached to a saturation algorithm
+   */
+  bool attached() const { return _salg; }
+
+  virtual const Options& getOptions() const;
 protected:
   SaturationAlgorithm* _salg;
 };
@@ -210,13 +218,13 @@ class CompositeISE
 {
 public:
   CompositeISE() : _inners(0) {}
-  ~CompositeISE();
-  void addFront(ImmediateSimplificationEngineSP fse);
+  virtual ~CompositeISE();
+  void addFront(ImmediateSimplificationEngine* fse);
   Clause* simplify(Clause* cl);
   void attach(SaturationAlgorithm* salg);
   void detach();
 private:
-  typedef List<ImmediateSimplificationEngineSP> ISList;
+  typedef List<ImmediateSimplificationEngine*> ISList;
   ISList* _inners;
 };
 
@@ -240,13 +248,13 @@ class CompositeGIE
 {
 public:
   CompositeGIE() : _inners(0) {}
-  ~CompositeGIE();
-  void addFront(GeneratingInferenceEngineSP fse);
+  virtual ~CompositeGIE();
+  void addFront(GeneratingInferenceEngine* fse);
   ClauseIterator generateClauses(Clause* premise);
   void attach(SaturationAlgorithm* salg);
   void detach();
 private:
-  typedef List<GeneratingInferenceEngineSP> GIList;
+  typedef List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
 };
 

@@ -17,6 +17,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
@@ -302,6 +303,14 @@ void SineSelector::updateDefRelation(Unit* u)
     }
   }
 
+}
+
+void SineSelector::perform(Problem& prb)
+{
+  CALL("SineSelector::perform");
+
+  perform(prb.units());
+  prb.invalidateByRemoval();
 }
 
 void SineSelector::perform(UnitList*& units)

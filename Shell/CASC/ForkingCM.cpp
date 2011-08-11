@@ -17,6 +17,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/ScopedLet.hpp"
 #include "Lib/System.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
@@ -48,19 +49,18 @@ ForkingCM::ForkingCM()
 {
   CALL("ForkingCM::ForkingCM");
 
-  _units=UIHelper::getInputUnits();
-//  _units=0;
-  _property = Property::scan(_units);
+  _prb = UIHelper::getInputProblem();
 
   {
     TimeCounter tc(TC_PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
-    env.statistics->phase=Statistics::NORMALIZATION;
+    ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
     Normalisation norm;
-    _units = norm.normalise(_units);
-    env.statistics->phase=Statistics::UNKNOWN_PHASE;
+    norm.normalise(*_prb);
   }
+
+  _property = _prb->getProperty();
 }
 
 bool ForkingCM::runSlice(Options& opt)
@@ -114,7 +114,7 @@ bool ForkingCM::runSlice(Options& opt)
 /**
  * Do the theorem proving in a forked-off process
  */
-void ForkingCM::childRun(Options& opt)
+void ForkingCM::childRun(Options& strategyOpt)
 {
   CALL("ForkingCM::childRun");
 
@@ -124,17 +124,19 @@ void ForkingCM::childRun(Options& opt)
   env.timer->start();
   TimeCounter::reinitialize();
 
-  *env.options=opt;
+  Options opt(strategyOpt);
+
   //we have already performed the normalization
-  env.options->setNormalize(false);
-  env.options->setForcedOptionValues();
-  env.options->checkGlobalOptionConstraints();
+  opt.setNormalize(false);
+  opt.setForcedOptionValues();
+  opt.checkGlobalOptionConstraints();
+  env.options->setTimeLimitInDeciseconds(opt.timeLimitInDeciseconds());
 
   env.beginOutput();
-  env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
+  env.out()<<opt.testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
 
-  ProvingHelper::runVampire(_units,_property);
+  ProvingHelper::runVampire(*_prb,opt);
 
   //set return value to zero if we were successful
 #if SATISFIABLE_IS_SUCCESS

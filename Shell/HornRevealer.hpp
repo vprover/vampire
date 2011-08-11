@@ -21,6 +21,7 @@ using namespace SAT;
 
 class HornRevealer {
 public:
+  void apply(Problem& prb);
   void apply(UnitList*& inp);
 
 private:

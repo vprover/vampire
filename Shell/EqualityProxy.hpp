@@ -49,6 +49,7 @@ public:
   EqualityProxy();
   EqualityProxy(Options::EqualityProxy opt);
 
+  void apply(Problem& prb);
   void apply(UnitList*& units);
 private:
   void init();

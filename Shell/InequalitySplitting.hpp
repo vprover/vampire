@@ -22,7 +22,8 @@ class InequalitySplitting
 public:
   InequalitySplitting();
 
-  void perform(UnitList*& units);
+  void perform(Problem& prb);
+  bool perform(UnitList*& units);
 
 private:
   Clause* trySplitClause(Clause* cl);

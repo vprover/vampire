@@ -12,6 +12,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/MainLoop.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Tabulation/TabulationAlgorithm.hpp"
@@ -230,8 +231,10 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
     return false;
   }
 
-  Tabulation::TabulationAlgorithm talg;
-  talg.addInputClauses(pvi( ClauseStack::Iterator(premiseClauses) ));
+  Options tabulationOpts;
+  tabulationOpts.setSaturationAlgorithm(Options::TABULATION);
+  Problem tabPrb(pvi( ClauseStack::Iterator(premiseClauses) ), true);
+  Tabulation::TabulationAlgorithm talg(tabPrb, tabulationOpts);
   MainLoopResult res = talg.run();
 
   LiteralIndexingStructure& lemmas = talg.getLemmaIndex();
@@ -348,18 +351,34 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   return res;
 }
 
-void AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
+void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
 {
   CALL("AnswerLiteralManager::addAnswerLiterals");
 
+  if(addAnswerLiterals(prb.units())) {
+    prb.invalidateProperty();
+  }
+}
+
+/**
+ * Attempt adding answer literals into questions among the units
+ * in the list @c units. Return true is some answer literal was added.
+ */
+bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
+{
+  CALL("AnswerLiteralManager::addAnswerLiterals");
+
+  bool someAdded = false;
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
     Unit* newU = tryAddingAnswerLiteral(u);
     if(u!=newU) {
+      someAdded = true;
       uit.replace(newU);
     }
   }
+  return someAdded;
 }
 
 bool AnswerLiteralManager::isAnswerLiteral(Literal* lit)

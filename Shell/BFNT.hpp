@@ -31,6 +31,7 @@ public:
   BFNT(Property* prop);
   void apply(UnitList* units);
   UnitList* create(unsigned modelSize);
+  Problem* createProblem(unsigned modelSize);
 private:
   Clause* apply(Clause* cl);
   static Clause* resolveNegativeVariableEqualities(Clause* cl);

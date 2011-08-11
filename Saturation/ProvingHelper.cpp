@@ -7,6 +7,8 @@
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Kernel/Problem.hpp"
+
 #include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
 #include "Shell/Property.hpp"
@@ -35,12 +37,12 @@ using namespace Shell;
  * The function does not necessarily return (e.g. in the case of timeout,
  * the process is aborted)
  */
-  void ProvingHelper::runVampireSaturation(ClauseIterator clauses,Property* prop)
+  void ProvingHelper::runVampireSaturation(Problem& prb, const Options& opt)
 {
   CALL("ProvingHelper::runVampireSaturation");
 
   try {
-    runVampireSaturationImpl(clauses,prop);
+    runVampireSaturationImpl(prb, opt);
   }
   catch(MemoryLimitExceededException) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
@@ -68,7 +70,7 @@ using namespace Shell;
  * The function does not necessarily return (e.g. in the case of timeout,
  * the process is aborted)
  */
-void ProvingHelper::runVampire(UnitList* units, Property* prop)
+void ProvingHelper::runVampire(Problem& prb, const Options& opt)
 {
   CALL("ProvingHelper::runVampire");
 
@@ -78,19 +80,10 @@ void ProvingHelper::runVampire(UnitList* units, Property* prop)
     {
       TimeCounter tc2(TC_PREPROCESSING);
 
-      // TODO: check if prop can be 0, it seems this check is redundant
-      if(prop==0) {
-	env.statistics->phase=Statistics::PROPERTY_SCANNING;
-	prop = Property::scan(units);
-      }
-
-      Preprocess prepro(*prop,*env.options);
-      //phases for preprocessing are being set inside the proprocess method
-      prepro.preprocess(units);
-
-      clauses=pvi(getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
+      Preprocess prepro(opt);
+      prepro.preprocess(prb);
     }
-    runVampireSaturationImpl(clauses,prop);
+    runVampireSaturationImpl(prb, opt);
   }
   catch(MemoryLimitExceededException) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
@@ -109,7 +102,7 @@ void ProvingHelper::runVampire(UnitList* units, Property* prop)
  * Private version of the @b runVampireSaturation function
  * that is not protected for resource-limit exceptions
  */
-  void ProvingHelper::runVampireSaturationImpl(ClauseIterator clauses,Property* prop)
+  void ProvingHelper::runVampireSaturationImpl(Problem& prb, const Options& opt)
 {
   CALL("ProvingHelper::runVampireSaturationImpl");
 
@@ -117,13 +110,12 @@ void ProvingHelper::runVampire(UnitList* units, Property* prop)
 
   if(env.options->showPreprocessingFormulas()) {
     env.beginOutput();
-    UIHelper::outputAllPremises(env.out(), clauses, "New: ");
+    UIHelper::outputAllPremises(env.out(), prb.units(), "New: ");
     env.endOutput();
   }
 
   env.statistics->phase=Statistics::SATURATION;
-  MainLoopSP salg=MainLoop::createFromOptions(prop);
-  salg->addInputClauses(clauses);
+  ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
   MainLoopResult sres(salg->run());
   env.statistics->phase=Statistics::FINALIZATION;

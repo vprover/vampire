@@ -5,6 +5,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -17,9 +18,24 @@ namespace Shell
 using namespace Lib;
 using namespace Kernel;
 
-void EqResWithDeletion::apply(UnitList*& units)
+void EqResWithDeletion::apply(Problem& prb)
+{
+  CALL("EqResWithDeletion::apply");
+
+  if(apply(prb.units())) {
+    prb.invalidateByRemoval();
+  }
+}
+
+/**
+ * Perform equality resolution with deletion and return
+ * true iff some clause was modified.
+ */
+bool EqResWithDeletion::apply(UnitList*& units)
 {
   CALL("EqResWithDeletion::apply(UnitList*&)");
+
+  bool modified = false;
 
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
@@ -27,9 +43,11 @@ void EqResWithDeletion::apply(UnitList*& units)
     ASS(cl->isClause());
     Clause* cl2=apply(cl);
     if(cl!=cl2) {
+      modified = true;
       uit.replace(cl2);
     }
   }
+  return modified;
 }
 
 /**

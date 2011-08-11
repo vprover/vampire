@@ -17,15 +17,17 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/ScopedPtr.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Lib/Sys/Multiprocessing.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
 
-#include "Shell/Statistics.hpp"
+#include "Statistics.hpp"
 
 #include "BFNTMainLoop.hpp"
 
@@ -36,18 +38,37 @@
 #define BFNT_CHILD_RESULT_UNSAT 6
 #define BFNT_CHILD_RESULT_UNKNOWN 7
 
-namespace Kernel
+namespace Shell
 {
 
-void BFNTMainLoop::addInputClauses(ClauseIterator cit)
+BFNTMainLoop::BFNTMainLoop(Problem& prb, const Options& opt)
+: MainLoop(prb, opt),
+  _childOpts(opt),
+  _bfnt(prb.getProperty())
 {
-  CALL("BFNTMainLoop::addInputClauses");
+  CALL("BFNTMainLoop::BFNTMainLoop");
 
-  UnitList* units = 0;
-  UnitList::pushFromIterator(getStaticCastIterator<Unit*>(cit), units);
+  //this is important, otherwise we'd start creating new and new processes
+  // -- the child process would also run BFNT therefore also attemps to run
+  //BFNT-running children.
+  _childOpts.setBfnt(false);
+}
 
-  _bfnt.apply(units);
-  units->destroy();
+
+void BFNTMainLoop::init()
+{
+  CALL("BFNTMainLoop::init");
+
+  ClauseIterator cit = _prb.clauseIterator();
+
+
+  //Putting problem units into the BFNT convertor here may result into
+  //one clause appearing in multiple Problem objects. In _prb and then in
+  //child problems created by the spawed processes. Normally we wouldn't
+  //want this to happen, but in the _prb object we do not use the clauses
+  //any more after this point, and the child problems are isolated from each
+  //other in different processes.
+  _bfnt.apply(_prb.units());
 }
 
 /**
@@ -62,19 +83,18 @@ void BFNTMainLoop::runChild(size_t modelSize)
 {
   CALL("BFNTMainLoop::runChild");
 
-  UnitList* units = _bfnt.create(modelSize);
-  ClauseIterator cit = pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
+  ScopedPtr<Problem> childPrb(_bfnt.createProblem(modelSize));
 
 #if LOGGING
-  UnitList::Iterator puit(units);
+  UnitList::Iterator puit(childPrb->units());
   while(puit.hasNext()) {
     Unit* u = puit.next();
     LOG("Flattenned unit: "<<u->toString());
   }
 #endif
 
-  _inner->addInputClauses(cit);
-  MainLoopResult innerRes = _inner->run();
+  ScopedPtr<MainLoop> childMainLoop(MainLoop::createFromOptions(*childPrb, _childOpts));
+  MainLoopResult innerRes = childMainLoop->run();
 
   LOG("Child termination reason: "
       << ((innerRes.terminationReason==Statistics::SATISFIABLE) ? "Satisfiable" :

@@ -10,6 +10,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubformulaIterator.hpp"
@@ -24,6 +25,18 @@ Normalisation::Normalisation ()
   : _counter(*env.signature)
 {
 } // Normalisation::Normalisation
+
+/**
+ * Normalize a problem
+ */
+void Normalisation::normalise(Problem& prb)
+{
+  CALL("Normalisation::normalise");
+
+  UnitList* units = prb.units();
+  units = normalise(units);
+  prb.units() = units;
+}
 
 /**
  * Normalise a list of units by normalising every unit in it and

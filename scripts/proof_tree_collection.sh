@@ -1,6 +1,4 @@
 
-# Motivation:
-#
 # The SMO division of CASC has too few test problems.  Generating
 # problems by hand is very hard and time-consuming.  I was thinking about
 # how test problems might be automatically generated.  I tried an idea of

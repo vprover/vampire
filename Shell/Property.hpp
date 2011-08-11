@@ -165,7 +165,10 @@ public:
   void scanForInterpreted(Term* t);
 
   bool hasInterpretedOperation(Interpretation i) const { return _interpretationPresence[i]; }
+  /** Problem contains an interpreted symbol different from equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
+  bool hasSpecialTermsOrLets() const { return _hasSpecialTermsOrLets; }
+  bool hashasFormulaItes() const { return _hasFormulaItes; }
  private:
   // constructor, operators new and delete
   explicit Property();
@@ -234,8 +237,12 @@ public:
   /** CASC category of the problem, computed by read() */
   Category _category;
 
+  /** Problem contains an interpreted symbol different from equality */
   bool _hasInterpreted;
   DArray<bool> _interpretationPresence;
+
+  bool _hasSpecialTermsOrLets;
+  bool _hasFormulaItes;
 }; // class Property
 
 }

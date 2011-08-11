@@ -25,6 +25,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
@@ -49,6 +50,7 @@ using namespace Saturation;
 using namespace Inferences;
 
 UnitList* globUnitList=0;
+Problem* globProblem=0;
 
 /**
  * Return value is non-zero unless we were successful.
@@ -67,24 +69,20 @@ UnitList* globUnitList=0;
  */
 int vampireReturnValue = 1;
 
-ClauseIterator getProblemClauses()
+Problem* getPreprocessedProblem()
 {
   CALL("getInputClauses");
 
-
-  UnitList* units=UIHelper::getInputUnits();
+  Problem* prb=UIHelper::getInputProblem();
 
   TimeCounter tc2(TC_PREPROCESSING);
 
-  env.statistics->phase=Statistics::PROPERTY_SCANNING;
-  ScopedPtr<Property> property(Property::scan(units));
-  Preprocess prepro(*property,*env.options);
+  Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the proprocess method
-  prepro.preprocess(units);
+  prepro.preprocess(*prb);
+  globProblem=prb;
 
-  globUnitList=units;
-
-  return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
+  return prb;
 }
 
 void clausifyMode()
@@ -92,11 +90,12 @@ void clausifyMode()
   CALL("clausifyMode()");
 
   CompositeISE simplifier;
-  simplifier.addFront(ImmediateSimplificationEngineSP(new TrivialInequalitiesRemovalISE()));
-  simplifier.addFront(ImmediateSimplificationEngineSP(new TautologyDeletionISE()));
-  simplifier.addFront(ImmediateSimplificationEngineSP(new DuplicateLiteralRemovalISE()));
+  simplifier.addFront(new TrivialInequalitiesRemovalISE());
+  simplifier.addFront(new TautologyDeletionISE());
+  simplifier.addFront(new DuplicateLiteralRemovalISE());
 
-  ClauseIterator cit = getProblemClauses();
+  ScopedPtr<Problem> prb(getPreprocessedProblem());
+  ClauseIterator cit = prb->clauseIterator();
   env.beginOutput();
   while (cit.hasNext()) {
     Clause* cl=cit.next();
@@ -109,8 +108,9 @@ void clausifyMode()
   env.endOutput();
 
   //we have successfully output all clauses, so we'll terminate with zero return value
-  vampireReturnValue=0;
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // clausifyMode
+
 
 void explainException (Exception& exception)
 {

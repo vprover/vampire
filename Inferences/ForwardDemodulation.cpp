@@ -46,7 +46,7 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_SUBST_TREE) );
 
-  _preorderedOnly=env.options->forwardDemodulation()==Options::DEMODULATION_PREORDERED;
+  _preorderedOnly=getOptions().forwardDemodulation()==Options::DEMODULATION_PREORDERED;
 }
 
 void ForwardDemodulation::detach()
@@ -88,7 +88,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	continue;
       }
 
-      bool toplevelCheck=env.options->demodulationRedundancyCheck() && lit->isEquality() &&
+      bool toplevelCheck=getOptions().demodulationRedundancyCheck() && lit->isEquality() &&
 	  (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);

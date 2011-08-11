@@ -11,6 +11,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Portability.hpp"
+#include "Lib/ScopedPtr.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
 
@@ -34,7 +35,8 @@ protected:
   virtual bool runSlice(Options& opt) = 0;
 
   void handleSIGINT() __attribute__((noreturn));
-  /** The problem property, computed only once */
+
+  /** The problem property, computed once in the parent process */
   Property* _property;
 
 private:

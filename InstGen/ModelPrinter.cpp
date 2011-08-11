@@ -11,6 +11,7 @@
 #include "Lib/IntUnionFind.hpp"
 
 #include "Kernel/Matcher.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
@@ -57,17 +58,18 @@ bool ModelPrinter::tryOutput(ostream& stm)
   }
 
   Stack<TermList> args;
-  VirtualIterator<unsigned> removedPreds = PredicateDefinition::removedPreds();
+  Problem::TrivialPredicateMap::Iterator removedPreds(_iga.getProblem().trivialPredicates());
   while(removedPreds.hasNext()) {
-    unsigned pred = removedPreds.next();
+    unsigned pred;
+    bool assignment;
+    removedPreds.next(pred, assignment);
     ASS_NEQ(pred,0);
     unsigned arity = env.signature->predicateArity(pred);
-    bool polarity = PredicateDefinition::getRemovedPredAssignment(pred);
     args.reset();
     for(unsigned i=0; i<arity; i++) {
       args.push(TermList(i, false));
     }
-    Literal* lit = Literal::create(pred, arity, polarity, false, args.begin());
+    Literal* lit = Literal::create(pred, arity, assignment, false, args.begin());
     _trueLits.push(lit);
   }
 

@@ -14,6 +14,7 @@
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -409,12 +410,22 @@ void PDMerger::scan(UnitList* units)
   }
 }
 
-void PDMerger::apply(UnitList*& units)
+void PDMerger::apply(Problem& prb)
+{
+  CALL("PDMerger::apply(Problem&)");
+
+  if(apply(prb.units())) {
+    prb.invalidateProperty();
+  }
+}
+
+bool PDMerger::apply(UnitList*& units)
 {
   CALL("PDMerger::apply(UnitList*&)");
 
   scan(units);
 
+  bool modified = false;
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
@@ -422,6 +433,7 @@ void PDMerger::apply(UnitList*& units)
     if(u==newUnit) {
       continue;
     }
+    modified = true;
     if(newUnit) {
       uit.replace(newUnit);
     }
@@ -446,7 +458,7 @@ void PDMerger::apply(UnitList*& units)
     cerr << "Merged " << env.statistics->mergedPredicateDefinitions << ", "
 	 << defCnt << " survived" << endl;
   }
-
+  return modified;
 }
 
 

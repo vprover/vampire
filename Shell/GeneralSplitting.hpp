@@ -19,7 +19,8 @@ using namespace Kernel;
 class GeneralSplitting
 {
 public:
-  void apply(UnitList*& units);
+  void apply(Problem& prb);
+  bool apply(UnitList*& units);
 private:
   bool apply(Clause*& cl, UnitList*& resultStack);
 

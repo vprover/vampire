@@ -13,6 +13,7 @@
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
@@ -40,7 +41,7 @@ public:
   ConstantSkolemizer(bool trace=false) : _trace(trace) {}
 
   FormulaUnit* transform(FormulaUnit* f);
-  void transform(UnitList*& units);
+  bool transform(UnitList*& units);
 
   Formula* transform(Formula* f)
   {
@@ -71,10 +72,11 @@ private:
   BindingMap _binding;
 };
 
-void EPRSkolem::ConstantSkolemizer::transform(UnitList*& units)
+bool EPRSkolem::ConstantSkolemizer::transform(UnitList*& units)
 {
   CALL("EPRSkolem::ConstantSkolemizer::transform(UnitList*&)");
 
+  bool modified = false;
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
@@ -87,7 +89,9 @@ void EPRSkolem::ConstantSkolemizer::transform(UnitList*& units)
       continue;
     }
     uit.replace(newUnit);
+    modified = true;
   }
+  return modified;
 }
 
 FormulaUnit* EPRSkolem::ConstantSkolemizer::transform(FormulaUnit* fu)
@@ -699,7 +703,16 @@ FormulaUnit* EPRSkolem::constantSkolemize(FormulaUnit* unit)
   return skol.transform(unit);
 }
 
-void EPRSkolem::apply(UnitList*& units)
+void EPRSkolem::apply(Problem& prb)
+{
+  CALL("EPRSkolem::apply");
+
+  if(apply(prb.units())) {
+    prb.invalidateProperty();
+  }
+}
+
+bool EPRSkolem::apply(UnitList*& units)
 {
   CALL("EPRSkolem::apply(UnitList*&)");
 
@@ -708,9 +721,12 @@ void EPRSkolem::apply(UnitList*& units)
     cerr << "Constant skolemization" << endl;
   }
 
+  bool modified = false;
+
   {
     ConstantSkolemizer skol(_trace);
-    skol.transform(units);
+    bool csModified = skol.transform(units);
+    modified |= csModified;
   }
 
   if(_trace) {
@@ -719,7 +735,8 @@ void EPRSkolem::apply(UnitList*& units)
   {
     //remove predicate equivalences
     PDInliner pdi(false);
-    pdi.apply(units, true);
+    bool eqInlinerModified = pdi.apply(units, true);
+    modified |= eqInlinerModified;
   }
 
   if(_trace) {
@@ -736,10 +753,13 @@ void EPRSkolem::apply(UnitList*& units)
     }
     uit.insert(newUnits);
     uit.del();
+    modified = true;
   }
   if(_trace) {
     cerr << "EPR skolemization done" << endl;
   }
+
+  return modified;
 }
 
 

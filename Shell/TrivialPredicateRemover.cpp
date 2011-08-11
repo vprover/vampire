@@ -5,9 +5,11 @@
 
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/ScopedLet.hpp"
 #include "Lib/TimeCounter.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
@@ -23,7 +25,19 @@
 namespace Shell
 {
 
-void TrivialPredicateRemover::apply(UnitList*& units)
+TrivialPredicateRemover::TrivialPredicateRemover() : _processedProblem(0) {}
+
+void TrivialPredicateRemover::apply(Problem& prb)
+{
+  CALL("TrivialPredicateRemover::apply(Problem&)");
+
+  ScopedLet<Problem*> prbLet(_processedProblem, &prb);
+  if(apply(prb.units())) {
+    prb.invalidateByRemoval();
+  }
+}
+
+bool TrivialPredicateRemover::apply(UnitList*& units)
 {
   CALL("TrivialPredicateRemover::apply");
 
@@ -31,13 +45,17 @@ void TrivialPredicateRemover::apply(UnitList*& units)
 
   scan(units);
 
+  bool modified = false;
+
   UnitList::DelIterator dit(units);
   while(dit.hasNext()) {
     Clause* cl = static_cast<Clause*>(dit.next());
     if(_removed.contains(cl)) {
       dit.del();
+      modified = true;
     }
   }
+  return modified;
 }
 
 void TrivialPredicateRemover::scan(UnitList* units)
@@ -84,7 +102,9 @@ void TrivialPredicateRemover::scan(UnitList* units)
       ASS_EQ(_negOcc[removedPred],0);
       continue;
     }
-    PredicateDefinition::addRemovedPredAssignment(removedPred, _negOcc[removedPred]==0);
+    if(_processedProblem) {
+      _processedProblem->addTrivialPredicate(removedPred, _negOcc[removedPred]==0);
+    }
     ClauseSet::Iterator cit(_predClauses[removedPred]);
     while(cit.hasNext()) {
       Clause* cl = cit.next();

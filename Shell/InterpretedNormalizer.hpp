@@ -18,13 +18,15 @@ using namespace Kernel;
 
 class InterpretedNormalizer {
 public:
-  InterpretedNormalizer(Property* prop=0);
+  InterpretedNormalizer();
   ~InterpretedNormalizer();
 
-  Clause* apply(Clause* cl);
-  void apply(UnitList*& units);
+  void apply(Problem& prb);
 
 private:
+  bool apply(UnitList*& units);
+  Clause* apply(Clause* cl);
+
   class FunctionTranslator;
   class SuccessorTranslator;
   class BinaryMinusTranslator;

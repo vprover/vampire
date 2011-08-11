@@ -31,6 +31,7 @@
 
 #include "Saturation/AWPassiveClauseContainer.hpp"
 
+#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Kernel/Grounder.hpp"
@@ -48,16 +49,15 @@ class IGAlgorithm : public MainLoop {
 public:
   typedef Statistics::TerminationReason TerminationReason;
 
-  IGAlgorithm();
+  IGAlgorithm(Problem& prb, const Options& opt);
   ~IGAlgorithm();
-
-  virtual void addInputClauses(ClauseIterator it);
 
   GroundingIndex& getGroundingIndex() { return *_groundingIndex.ptr(); }
 
   ClauseIterator getActive();
 
 protected:
+  virtual void init();
   virtual MainLoopResult runImpl();
 private:
 
@@ -100,8 +100,10 @@ private:
   ScopedPtr<GroundingIndex> _groundingIndex;
   ScopedPtr<GlobalSubsumption> _globalSubsumption;
 
+  Options _saturationOptions;
   ScopedPtr<IndexManager> _saturationIndexManager;
-  SaturationAlgorithmSP _saturationAlgorithm;
+  ScopedPtr<Problem> _saturationProblem;
+  ScopedPtr<SaturationAlgorithm> _saturationAlgorithm;
 
 //  ScopedPtr<UnitClauseLiteralIndex> _unitLitIndex;
 //  ScopedPtr<NonUnitClauseLiteralIndex> _nonUnitLitIndex;

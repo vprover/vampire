@@ -21,7 +21,8 @@ using namespace Kernel;
 class EqResWithDeletion
 {
 public:
-  void apply(UnitList*& units);
+  void apply(Problem& prb);
+  bool apply(UnitList*& units);
 
   TermList apply(unsigned var);
   Clause* apply(Clause* cl);

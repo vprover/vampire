@@ -20,11 +20,12 @@
 
 #include "Tabulation/TabulationAlgorithm.hpp"
 
+#include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
 
-#include "BFNTMainLoop.hpp"
 #include "BDD.hpp"
 #include "Clause.hpp"
+#include "Problem.hpp"
 
 #include "MainLoop.hpp"
 
@@ -39,11 +40,15 @@ void MainLoopResult::updateStatistics()
   env.statistics->refutation=refutation;
 }
 
+/**
+ * Run the solving algorithm
+ */
 MainLoopResult MainLoop::run()
 {
   CALL("MainLoop::run");
 
   try {
+    init();
     return runImpl();
   }
   catch(RefutationFoundException rs)
@@ -74,54 +79,61 @@ bool MainLoop::isRefutation(Clause* cl)
   return cl->isEmpty() && (!cl->prop() || bdd->isFalse(cl->prop())) && cl->noSplits();
 }
 
-ImmediateSimplificationEngineSP MainLoop::createISE()
+/**
+ * Create local clause simplifier for problem @c prb according to options @c opt
+ */
+ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& opt)
 {
   CALL("MainLoop::createImmediateSE");
 
   CompositeISE* res=new CompositeISE();
 
-  switch(env.options->condensation()) {
+  switch(opt.condensation()) {
   case Options::CONDENSATION_ON:
-    res->addFront(ImmediateSimplificationEngineSP(new Condensation()));
+    res->addFront(new Condensation());
     break;
   case Options::CONDENSATION_FAST:
-    res->addFront(ImmediateSimplificationEngineSP(new FastCondensation()));
+    res->addFront(new FastCondensation());
     break;
   case Options::CONDENSATION_OFF:
     break;
   }
 
-  res->addFront(ImmediateSimplificationEngineSP(new DistinctEqualitySimplifier()));
-  if(env.interpretedOperationsUsed) {
-    res->addFront(ImmediateSimplificationEngineSP(new InterpretedEvaluation()));
+  if(prb.hasEquality()) {
+    res->addFront(new DistinctEqualitySimplifier());
   }
-  res->addFront(ImmediateSimplificationEngineSP(new TrivialInequalitiesRemovalISE()));
-  res->addFront(ImmediateSimplificationEngineSP(new TautologyDeletionISE()));
-  res->addFront(ImmediateSimplificationEngineSP(new DuplicateLiteralRemovalISE()));
+  if(prb.hasInterpretedOperations()) {
+    res->addFront(new InterpretedEvaluation());
+  }
+  if(prb.hasEquality()) {
+    res->addFront(new TrivialInequalitiesRemovalISE());
+  }
+  res->addFront(new TautologyDeletionISE());
+  res->addFront(new DuplicateLiteralRemovalISE());
 
-  return ImmediateSimplificationEngineSP(res);
+  return res;
 }
 
-MainLoopSP MainLoop::createFromOptions(Property* prop)
+MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
   CALL("MainLoop::createFromOptions");
 
-  MainLoopSP res;
-
-  switch (env.options->saturationAlgorithm()) {
-  case Options::TABULATION:
-    res = MainLoopSP(new TabulationAlgorithm());
-    break;
-  case Options::INST_GEN:
-    res = MainLoopSP(new IGAlgorithm());
-    break;
-  default:
-    res = MainLoopSP(SaturationAlgorithm::createFromOptions());
-    break;
+  if(opt.bfnt()) {
+    return new BFNTMainLoop(prb, opt);
   }
 
-  if(env.options->bfnt()) {
-    res = MainLoopSP(new BFNTMainLoop(res,prop));
+  MainLoop* res;
+
+  switch (opt.saturationAlgorithm()) {
+  case Options::TABULATION:
+    res = new TabulationAlgorithm(prb, opt);
+    break;
+  case Options::INST_GEN:
+    res = new IGAlgorithm(prb, opt);
+    break;
+  default:
+    res = SaturationAlgorithm::createFromOptions(prb, opt);
+    break;
   }
 
   return res;

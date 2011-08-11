@@ -12,6 +12,7 @@
 #include "Lib/TimeCounter.hpp"
 
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Problem.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -43,7 +44,7 @@ bool UIHelper::unitSpecNumberComparator(UnitSpec us1, UnitSpec us2)
   return us1.unit()->number() < us2.unit()->number();
 }
 
-void UIHelper::outputAllPremises(ostream& out, ClauseIterator& clauses, string prefix)
+void UIHelper::outputAllPremises(ostream& out, UnitList* units, string prefix)
 {
   CALL("UIHelper::outputAllPremises");
 
@@ -51,19 +52,11 @@ void UIHelper::outputAllPremises(ostream& out, ClauseIterator& clauses, string p
   Stack<UnitSpec> toDo;
   DHSet<UnitSpec> seen;
 
-  //get the clauses to start with
-  {
-    ClauseList* cLst = 0;
-    ClauseList::pushFromIterator(clauses, cLst);
-    ClauseList::Iterator cit(cLst);
-    while(cit.hasNext()) {
-      Clause* cl = cit.next();
-      toDo.push(UnitSpec(cl));
-      seen.insert(UnitSpec(cl));
-    }
-
-    //restore the content of the iterator
-    clauses = pvi( ClauseList::DestructiveIterator(cLst) );
+  //get the units to start with
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    toDo.push(UnitSpec(u));
   }
 
   while(toDo.isNonEmpty()) {
@@ -90,14 +83,14 @@ void UIHelper::outputAllPremises(ostream& out, ClauseIterator& clauses, string p
 }
 
 /**
- * Return list of input units obtained according to the content of
+ * Return problem object with units obtained according to the content of
  * @b env.options
  *
  * No preprocessing is performed on the units.
  */
-UnitList* UIHelper::getInputUnits()
+Problem* UIHelper::getInputProblem()
 {
-  CALL("UIHelper::getUnits");
+  CALL("UIHelper::getInputProblem");
 
   TimeCounter tc1(TC_PARSING);
   env.statistics->phase=Statistics::PARSING;
@@ -142,8 +135,10 @@ UnitList* UIHelper::getInputUnits()
     input=0;
   }
 
+  Problem* res = new Problem(units);
+
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
-  return units;
+  return res;
 }
 
 /**
@@ -222,11 +217,10 @@ void UIHelper::outputResult(ostream& out)
     out << "Memory limit exceeded!\n";
     break;
   case Statistics::REFUTATION_NOT_FOUND:
-    if(env.options->complete(*env.property)) {
-      ASS_EQ(env.options->saturationAlgorithm(), Options::LRS);
-      out << "Refutation not found, LRS age and weight limit was active for some time!\n";
+    if(env.statistics->discardedNonRedundantClauses) {
+      out << "Refutation not found, non-redundant clauses discarded\n";
     } else {
-      out << "Refutation not found with incomplete strategy!\n";
+      out << "Refutation not found, incomplete strategy\n";
     }
     break;
   case Statistics::SATISFIABLE:

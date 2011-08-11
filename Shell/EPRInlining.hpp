@@ -94,7 +94,8 @@ public:
   EPRInlining(bool trace=false) : EPRRestoring(trace), _inliner(false, trace) {}
 
   Unit* apply(Unit* unit);
-  void apply(UnitList*& units);
+  bool apply(UnitList*& units);
+  void apply(Problem& prb);
 protected:
   virtual void processActiveDefinitions(UnitList* units);
 private:

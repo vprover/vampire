@@ -30,20 +30,22 @@ using namespace Shell;
 
 class TabulationAlgorithm : public MainLoop {
 public:
-  TabulationAlgorithm();
+  TabulationAlgorithm(Problem& prb, const Options& opt);
 
-  virtual void addInputClauses(ClauseIterator cit);
 
   LiteralIndexingStructure& getLemmaIndex() { return _gp.getLemmaIndex(); }
 
   void addGoal(Clause* cl);
   void addLemma(Clause* cl);
 
+protected:
+  virtual void init();
+  virtual MainLoopResult runImpl();
+
 private:
   friend class Producer;
   friend class GoalProducer;
 
-  virtual MainLoopResult runImpl();
 
   void selectGoalLiteral(Clause*& cl);
   void processGoal(Clause* cl);
@@ -66,7 +68,7 @@ private:
   GoalContainer _goalContainer;
   GoalLiteralContainer _glContainer;
 
-  ImmediateSimplificationEngineSP _ise;
+  ScopedPtr<ImmediateSimplificationEngine> _ise;
 
   GoalProducer _gp;
   Producer _producer;

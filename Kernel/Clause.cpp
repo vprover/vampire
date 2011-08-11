@@ -134,6 +134,28 @@ Clause* Clause::fromStack(Stack<Literal*>& lits, InputType it, Inference* inf)
 }
 
 /**
+ * Create a clause with the same content as @c c. The inference of the
+ * created clause refers to @c c using the REORDER_LITERALS inference.
+ *
+ * The age of @c c is used, however the selected literals are not kept.
+ *
+ * BDDs and splitting history from @c c is also copied into the new clause.
+ */
+Clause* Clause::fromClause(Clause* c)
+{
+  CALL("Clause::fromClause");
+
+  Inference* inf = new Inference1(Inference::REORDER_LITERALS, c);
+  Clause* res = fromIterator(Clause::Iterator(*c), c->inputType(), inf);
+
+  res->setAge(res->age());
+  res->setProp(c->prop());
+  res->setSplits(c->splits());
+
+  return res;
+}
+
+/**
  * Initialize the propositional part of the clause
  *
  * The difference from setProp is that the clause couldn't have been assigned
