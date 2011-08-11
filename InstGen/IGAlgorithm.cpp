@@ -45,7 +45,8 @@ using namespace Saturation;
 IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
 : MainLoop(prb, opt),
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
-	opt.instGenResolutionRatioResolution(), 50)
+	opt.instGenResolutionRatioResolution(), 50),
+    _passive(opt)
 {
   CALL("IGAlgorithm::IGAlgorithm");
 

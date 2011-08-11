@@ -28,7 +28,7 @@ namespace Tabulation
 {
 
 TabulationAlgorithm::TabulationAlgorithm(Problem& prb, const Options& opt)
-: MainLoop(prb, opt), _gp(*this), _producer(*this),
+: MainLoop(prb, opt), _goalContainer(opt), _gp(*this), _producer(*this),
   _instatiateProducingRules(env.options->tabulationInstantiateProducingRules())
 {
   CALL("TabulationAlgorithm::TabulationAlgorithm");

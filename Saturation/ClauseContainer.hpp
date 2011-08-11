@@ -81,7 +81,7 @@ class UnprocessedClauseContainer
 : public ClauseContainer
 {
 public:
-  ~UnprocessedClauseContainer();
+  virtual ~UnprocessedClauseContainer();
   UnprocessedClauseContainer() : _data(64) {}
   void add(Clause* c);
   Clause* pop();
@@ -135,7 +135,7 @@ class ActiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
-  ActiveClauseContainer() : _size(0) {}
+  ActiveClauseContainer(const Options& opt) : _size(0), _opt(opt) {}
 
   void add(Clause* c);
   void remove(Clause* c);
@@ -146,6 +146,7 @@ protected:
   void onLimitsUpdated(LimitsChangeType change);
 private:
   unsigned _size;
+  const Options& _opt;
 };
 
 

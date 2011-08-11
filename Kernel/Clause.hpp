@@ -306,7 +306,7 @@ public:
   unsigned propWeight() const;
   unsigned splitWeight() const;
   unsigned getNumeralWeight();
-  float getEffectiveWeight();
+  float getEffectiveWeight(const Shell::Options& opt);
 
   virtual unsigned varCnt();
 

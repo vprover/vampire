@@ -42,7 +42,7 @@ void Producer::ActiveContainer::remove(Clause* c)
 }
 
 Producer::Producer(TabulationAlgorithm& alg)
-: _alg(alg)
+: _unprocLemmaCont(alg.getOptions()), _alg(alg)
 {
   CALL("Producer::Producer");
 

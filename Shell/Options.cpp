@@ -671,6 +671,8 @@ Options::Options ()
 
   _xmlOutput("off"),
 
+  _nonGoalWeightCoeffitientNumerator(1),
+  _nonGoalWeightCoeffitientDenominator(1),
   _forceIncompleteness(false)
 {
   CALL("Options::Options");
@@ -1292,6 +1294,11 @@ bool Options::setNongoalWeightCoefficient (float newVal)
     return false;
   }
   _nongoalWeightCoefficient = newVal;
+
+  //convert the coeffitient to rationsl (we don't need to be super precise so we do it as below...)
+  _nonGoalWeightCoeffitientNumerator = static_cast<int>(env.options->nongoalWeightCoefficient()*100);
+  _nonGoalWeightCoeffitientDenominator = 100;
+
   return true;
 } // Options::setNongoalWeightCoefficient
 

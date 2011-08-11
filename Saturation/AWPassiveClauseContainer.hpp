@@ -18,50 +18,47 @@ namespace Saturation {
 using namespace Kernel;
 
 class AgeQueue
-  : public ClauseQueue
+: public ClauseQueue
 {
+public:
+  AgeQueue(const Options& opt) : _opt(opt) {}
 protected:
+
   virtual bool lessThan(Clause*,Clause*);
 
   friend class AWPassiveClauseContainer;
+
+private:
+  const Options& _opt;
 };
 
 class WeightQueue
   : public ClauseQueue
 {
+public:
+  WeightQueue(const Options& opt) : _opt(opt) {}
 protected:
   virtual bool lessThan(Clause*,Clause*);
 
   friend class AWPassiveClauseContainer;
+private:
+  const Options& _opt;
 };
 
 /**
  * Defines the class Passive of passive clauses
  * @since 31/12/2007 Manchester
  */
-class AWPassiveClauseContainer:
-public PassiveClauseContainer
+class AWPassiveClauseContainer
+: public PassiveClauseContainer
 {
 public:
-  AWPassiveClauseContainer();
-  ~AWPassiveClauseContainer();
+  AWPassiveClauseContainer(const Options& opt);
+  virtual ~AWPassiveClauseContainer();
   void add(Clause* cl);
 
   void remove(Clause* cl);
 
-  /**
-   * Set age-weight ratio
-   * @since 08/01/2008 flight Murcia-Manchester
-   */
-  void setAgeWeightRatio(int age,int weight)
-  {
-    ASS(age >= 0);
-    ASS(weight >= 0);
-    ASS(age > 0 || weight > 0);
-
-    _ageRatio = age;
-    _weightRatio = weight;
-  }
   Clause* popSelected();
   /** True if there are no passive clauses */
   bool isEmpty() const
@@ -77,7 +74,7 @@ public:
   void afterPassiveClauseUpdated(Clause* cl);
 
 
-  static Comparison compareWeight(Clause* cl1, Clause* cl2);
+  static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt);
 protected:
   void onLimitsUpdated(LimitsChangeType change);
 
@@ -94,10 +91,9 @@ private:
    * then by weight */
   int _balance;
 
-  static int s_nwcNumerator;
-  static int s_nwcDenominator;
-
   unsigned _size;
+
+  const Options& _opt;
 }; // class AWPassiveClauseContainer
 
 /**
@@ -107,7 +103,7 @@ private:
 class AWClauseContainer: public ClauseContainer
 {
 public:
-  AWClauseContainer();
+  AWClauseContainer(const Options& opt);
 
   void add(Clause* cl);
   bool remove(Clause* cl);

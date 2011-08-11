@@ -90,7 +90,9 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt,
     PassiveClauseContainer* passiveContainer,
     LiteralSelector* selector)
-  : MainLoop(prb, opt), _clauseActivationInProgress(false), _passive(passiveContainer),
+  : MainLoop(prb, opt),
+    _limits(opt),
+    _clauseActivationInProgress(false), _passive(passiveContainer),
     _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _splitter(0),
     _consFinder(0), _symEl(0), _bddMarkingSubsumption(0), _answerLiteralManager(0)
 {
@@ -101,7 +103,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt,
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed=new UnprocessedClauseContainer();
-  _active=new ActiveClauseContainer();
+  _active=new ActiveClauseContainer(opt);
 
   _active->attach(this);
   _passive->attach(this);
@@ -1614,8 +1616,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   Ordering::create(epr);
 
   // create passive clauses container
-  AWPassiveClauseContainer* passive = new AWPassiveClauseContainer();
-  passive->setAgeWeightRatio(opt.ageRatio(),opt.weightRatio());
+  AWPassiveClauseContainer* passive = new AWPassiveClauseContainer(opt);
 
   LiteralSelector* selector=LiteralSelector::getSelector(opt.selection());
 

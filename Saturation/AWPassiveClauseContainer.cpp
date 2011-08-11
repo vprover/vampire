@@ -27,15 +27,17 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
-int AWPassiveClauseContainer::s_nwcNumerator=-1;
-int AWPassiveClauseContainer::s_nwcDenominator=-1;
 
-
-AWPassiveClauseContainer::AWPassiveClauseContainer()
-: _balance(0), _size(0)
+AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
+: _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
 {
-  s_nwcNumerator=static_cast<int>(env.options->nongoalWeightCoefficient()*100);
-  s_nwcDenominator=100;
+  CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
+
+  _ageRatio = _opt.ageRatio();
+  _weightRatio = _opt.weightRatio();
+  ASS_GE(_ageRatio, 0);
+  ASS_GE(_weightRatio, 0);
+  ASS(_ageRatio > 0 || _weightRatio > 0);
 }
 
 ClauseIterator AWPassiveClauseContainer::iterator()
@@ -50,30 +52,30 @@ ClauseIterator AWPassiveClauseContainer::iterator()
  *          recomputes the numeral weight of clauses, see Clause::getNumeralWeight(), so it
  *          it can be expensive
  */
-Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2)
+Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
 {
   CALL("AWPassiveClauseContainer::compareWeight");
 
   unsigned cl1Weight=cl1->weight();
   unsigned cl2Weight=cl2->weight();
 
-  if(env.options->nonliteralsInClauseWeight()) {
+  if(opt.nonliteralsInClauseWeight()) {
     cl1Weight+= cl1->propWeight() + cl1->splitWeight();
     cl2Weight+= cl2->propWeight() + cl2->splitWeight();
   }
 
-  if(env.options->increasedNumeralWeight()) {
+  if(opt.increasedNumeralWeight()) {
     cl1Weight=cl1Weight*2+cl1->getNumeralWeight();
     cl2Weight=cl2Weight*2+cl2->getNumeralWeight();
   }
 
-  if(s_nwcDenominator!=-1) {
-    ASS_NEQ(s_nwcNumerator,-1);
-    if(cl1->inputType()==0 && cl2->inputType()!=0) {
-      return Int::compare(cl1Weight*s_nwcNumerator, cl2Weight*s_nwcDenominator);
-    } else if(cl1->inputType()!=0 && cl2->inputType()==0) {
-      return Int::compare(cl1Weight*s_nwcDenominator, cl2Weight*s_nwcNumerator);
-    }
+  int nwcNumer = opt.nonGoalWeightCoeffitientNumerator();
+  int nwcDenom = opt.nonGoalWeightCoeffitientDenominator();
+
+  if(cl1->inputType()==0 && cl2->inputType()!=0) {
+    return Int::compare(cl1Weight*nwcNumer, cl2Weight*nwcDenom);
+  } else if(cl1->inputType()!=0 && cl2->inputType()==0) {
+    return Int::compare(cl1Weight*nwcDenom, cl2Weight*nwcNumer);
   }
   return Int::compare(cl1Weight, cl2Weight);
 }
@@ -92,7 +94,7 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("WeightQueue::lessThan");
 
-  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1,c2);
+  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
   if(weightCmp!=EQUAL) {
     return weightCmp==LESS;
   }
@@ -134,7 +136,7 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
     return false;
   }
 
-  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1,c2);
+  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
   if(weightCmp!=EQUAL) {
     return weightCmp==LESS;
   }
@@ -366,7 +368,7 @@ void AWPassiveClauseContainer::updateLimits(long long estReachableCnt)
       maxAge=acl->age();
     }
     if(wcl!=0 && wit.hasNext()) {
-      maxWeight=static_cast<int>(ceil(wcl->getEffectiveWeight()));
+      maxWeight=static_cast<int>(ceil(wcl->getEffectiveWeight(_opt)));
     }
   }
 
@@ -407,7 +409,7 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     bool shouldStay=true;
 //    if(shouldStay && cl->age()==ageLimit) {
     if(cl->age()>ageLimit) {
-      if(cl->getEffectiveWeight()>weightLimit) {
+      if(cl->getEffectiveWeight(_opt)>weightLimit) {
         shouldStay=false;
       }
     } else if(cl->age()==ageLimit) {
@@ -458,8 +460,8 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 // AWClauseContainer
 //
 
-AWClauseContainer::AWClauseContainer()
-: _ageRatio(1), _weightRatio(1), _balance(0), _size(0)
+AWClauseContainer::AWClauseContainer(const Options& opt)
+: _ageQueue(opt), _weightQueue(opt), _ageRatio(1), _weightRatio(1), _balance(0), _size(0)
 {
 }
 

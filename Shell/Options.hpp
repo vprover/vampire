@@ -513,6 +513,9 @@ public:
 
   bool abstraction() const { return _abstraction; }
 
+  int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator; }
+  int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator; }
+
   CLASS_NAME("Options");
   USE_ALLOCATOR(Options);
 
@@ -670,6 +673,9 @@ private:
 
   string _xmlOutput;
 
+
+  int _nonGoalWeightCoeffitientNumerator;
+  int _nonGoalWeightCoeffitientDenominator;
 
   bool _forceIncompleteness;
 

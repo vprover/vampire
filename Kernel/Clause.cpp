@@ -642,19 +642,17 @@ unsigned Clause::getNumeralWeight()
  * Return effective weight of the clause (i.e. weight multiplied
  * by the nongoal weight coefficient, if applicable)
  */
-float Clause::getEffectiveWeight()
+float Clause::getEffectiveWeight(const Options& opt)
 {
   CALL("Clause::getEffectiveWeight");
 
-  static float nongoalWeightCoef=-1;
-  if(nongoalWeightCoef<0) {
-    nongoalWeightCoef=env.options->nongoalWeightCoefficient();
-  }
+  static float nongoalWeightCoef=opt.nongoalWeightCoefficient();
+
   unsigned w=weight();
-  if(env.options->nonliteralsInClauseWeight()) {
+  if(opt.nonliteralsInClauseWeight()) {
     w+=propWeight()+splitWeight();
   }
-  if(env.options->increasedNumeralWeight()) {
+  if(opt.increasedNumeralWeight()) {
     return (2*w+getNumeralWeight()) * ( (inputType()==0) ? nongoalWeightCoef : 1.0f);
   }
   else {

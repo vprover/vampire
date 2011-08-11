@@ -13,6 +13,16 @@
 namespace Saturation
 {
 
+bool Limits::fulfillsLimits(Clause* cl)
+{
+  CALL("Limits::fulfillsLimits");
+
+  if(!ageLimited() || !weightLimited()) {
+    return true;
+  }
+  return (cl->age() <= ageLimit()) || (cl->getEffectiveWeight(_opt) <= weightLimit());
+}
+
 void Limits::setLimits(int newMaxAge, int newMaxWeight)
 {
   CALL("Limits::setLimits");
@@ -38,7 +48,7 @@ void Limits::setLimits(int newMaxAge, int newMaxWeight)
     if(_maxWeight==-1) {
 	_maxNonGoalWeight=-1;
     } else {
-	_maxNonGoalWeight=static_cast<int>(_maxWeight/env.options->nongoalWeightCoefficient());
+	_maxNonGoalWeight=static_cast<int>(_maxWeight/_opt.nongoalWeightCoefficient());
     }
   }
   if(res!=NO_LIMITS_CHANGE) {

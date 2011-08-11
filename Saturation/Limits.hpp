@@ -19,6 +19,7 @@ namespace Saturation
 
 using namespace Lib;
 using namespace Kernel;
+using namespace Shell;
 
 enum LimitsChangeType {
   NO_LIMITS_CHANGE=0,
@@ -32,7 +33,7 @@ typedef SingleParamEvent<LimitsChangeType> LimitsChangeEvent;
 class Limits
 {
 public:
-  Limits() : _maxAge(-1), _maxWeight(-1) {}
+  Limits(const Options& opt) : _maxAge(-1), _maxWeight(-1), _opt(opt) {}
 
   LimitsChangeEvent changedEvent;
 
@@ -43,13 +44,7 @@ public:
   int nonGoalWeightLimit() { return _maxNonGoalWeight; }
   bool weightLimited() { return _maxWeight!=-1; }
 
-  bool fulfillsLimits(Clause* cl)
-  {
-    if(!ageLimited() || !weightLimited()) {
-      return true;
-    }
-    return (cl->age() <= ageLimit()) || (cl->getEffectiveWeight() <= weightLimit());
-  }
+  bool fulfillsLimits(Clause* cl);
 
   void setLimits(int newMaxAge, int newMaxWeight);
 
@@ -57,6 +52,7 @@ private:
   int _maxAge;
   int _maxWeight;
   int _maxNonGoalWeight;
+  const Options& _opt;
 };
 
 };
