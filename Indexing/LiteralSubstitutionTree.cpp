@@ -170,7 +170,7 @@ struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
 {
   PropositionalLDToSLQueryResultWithSubstFn()
   {
-    _subst=ResultSubstitutionSP (new IdentitySubstitution());
+    _subst=ResultSubstitutionSP (new DisjunctQueryAndResultVariablesSubstitution());
   }
   DECL_RETURN_TYPE(SLQueryResult);
   OWN_RETURN_TYPE operator() (const LeafData& ld) {

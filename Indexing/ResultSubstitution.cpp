@@ -4,6 +4,7 @@
  */
 
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 #include "ResultSubstitution.hpp"
 
@@ -54,5 +55,63 @@ ResultSubstitutionSP IdentitySubstitution::instance()
 
   return inst;
 }
+
+////////////////////////////////////////////////
+// DisjunctQueryAndResultVariablesSubstitution
+//
+
+struct DisjunctQueryAndResultVariablesSubstitution::Applicator
+{
+  Applicator(bool isQuery) : _isQuery(isQuery) {}
+
+  TermList apply(int var)
+  {
+    unsigned resVarNum;
+    if(_isQuery) {
+      resVarNum = var*2;
+    }
+    else {
+      resVarNum = var*2+1;
+    }
+    return TermList(resVarNum,false);
+  }
+private:
+  bool _isQuery;
+};
+
+TermList DisjunctQueryAndResultVariablesSubstitution::applyToQuery(TermList t)
+{
+  CALL("DisjunctQueryAndResultVariablesSubstitution::applyToQuery");
+
+  Applicator apl(true);
+  return SubstHelper::apply(t, apl);
+}
+
+Literal* DisjunctQueryAndResultVariablesSubstitution::applyToQuery(Literal* l)
+{
+  CALL("DisjunctQueryAndResultVariablesSubstitution::applyToQuery(Literal*)");
+
+  Applicator apl(true);
+  return SubstHelper::apply(l, apl);
+}
+
+TermList DisjunctQueryAndResultVariablesSubstitution::applyToResult(TermList t)
+{
+  CALL("DisjunctQueryAndResultVariablesSubstitution::applyToResult");
+
+  Applicator apl(false);
+  return SubstHelper::apply(t, apl);
+}
+
+Literal* DisjunctQueryAndResultVariablesSubstitution::applyToResult(Literal* l)
+{
+  CALL("DisjunctQueryAndResultVariablesSubstitution::applyToResult");
+
+  Applicator apl(false);
+  return SubstHelper::apply(l, apl);
+}
+
+
+
 
 }

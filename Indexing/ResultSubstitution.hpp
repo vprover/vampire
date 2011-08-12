@@ -120,6 +120,18 @@ public:
   bool isIdentityOnQueryWhenResultBound() {return true;}
 };
 
+class DisjunctQueryAndResultVariablesSubstitution
+: public ResultSubstitution
+{
+public:
+  TermList applyToQuery(TermList t);
+  Literal* applyToQuery(Literal* l);
+  TermList applyToResult(TermList t);
+  Literal* applyToResult(Literal* l);
+private:
+  struct Applicator;
+};
+
 };
 
 #endif /* __ResultSubstitution__ */

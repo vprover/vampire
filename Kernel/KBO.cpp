@@ -24,6 +24,10 @@
 #include "KBO.hpp"
 #include "Signature.hpp"
 
+#undef LOGGING
+#define LOGGING 0
+
+
 #define NONINTERPRETED_PRECEDENCE_BOOST 0x1000
 
 #define NONINTERPRETED_LEVEL_BOOST 0x1000
@@ -653,6 +657,7 @@ KBOBase::KBOBase()
 
     for(unsigned i=0;i<_functions;i++) {
       _functionPrecedences[aux[i]]=i;
+      LOG("KBO func: "<<env.signature->functionName(aux[i])<<" prec: "<<i);
     }
   }
 
@@ -680,6 +685,7 @@ KBOBase::KBOBase()
   case Shell::Options::LCM_REVERSE:
     for(unsigned i=1;i<_predicates;i++) {
       _predicateLevels[i]=_predicatePrecedences[i]+1;
+      LOG("KBO pred: "<<env.signature->predicateName(i)<<" level: "<<i);
     }
     break;
   }

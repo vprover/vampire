@@ -20,6 +20,8 @@
 
 #include "LiteralComparators.hpp"
 
+#undef LOGGING
+#define LOGGING 0
 
 namespace Kernel
 {
@@ -243,6 +245,12 @@ void LiteralSelector::select(Clause* c)
 
   ASS_G(eligible,1);
   doSelection(c, eligible);
+
+#if LOGGING
+  if((*c)[0]->isPositive()) {
+    LOG("Sel "<<c->selected()<<" in " << c->toString());
+  }
+#endif
 }
 
 /**
