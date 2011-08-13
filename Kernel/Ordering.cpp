@@ -19,6 +19,9 @@
 
 #include "Ordering.hpp"
 
+#undef LOGGING
+#define LOGGING 0
+
 using namespace Lib;
 using namespace Kernel;
 
@@ -122,11 +125,14 @@ const char* Ordering::resultToString(Result r)
  */
 void Ordering::removeNonMaximal(LiteralList*& lits)
 {
+  CALL("Ordering::removeNonMaximal");
+
   LiteralList** ptr1=&lits;
   while(*ptr1) {
     LiteralList** ptr2=&(*ptr1)->tailReference();
     while(*ptr2 && *ptr1) {
       Ordering::Result res=compare((*ptr1)->head(), (*ptr2)->head());
+
       if(res==Ordering::GREATER || res==Ordering::GREATER_EQ || res==Ordering::EQUAL) {
 	LiteralList::pop(*ptr2);
 	continue;

@@ -326,9 +326,9 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
   unsigned p2 = l2->functor();
 
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
-	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&
+	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
 	  l1==env.sharing->tryGetOpposite(l2)) {
-    return l1->isNegative() ? GREATER : LESS;
+    return l1->isNegative() ? LESS : GREATER;
   }
 
   Result res;
@@ -385,10 +385,13 @@ Ordering::Result KBO::compare(Literal* l1, Literal* l2)
 fin:
   if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
     if(l1->isNegative() && l2->isNegative()) {
-      return reverse(res);
+      res = reverse(res);
     }
-    return l1->isNegative() ? LESS : GREATER;
+    else {
+      res = l1->isNegative() ? LESS : GREATER;
+    }
   }
+//  LOG("comparison of "<<l1->toString()<<" and "<<l2->toString()<<" gives "<<resultToString(res));
   return res;
 } // KBO::compare()
 
@@ -675,6 +678,7 @@ KBOBase::KBOBase()
   }
   for(unsigned i=0;i<_predicates;i++) {
     _predicatePrecedences[aux[i]]=i;
+    LOG("KBO pred: "<<env.signature->predicateName(i)<<" prec: "<<i);
   }
 
   switch(env.options->literalComparisonMode()) {

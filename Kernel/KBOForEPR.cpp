@@ -62,13 +62,15 @@ Ordering::Result KBOForEPR::compare(Literal* l1, Literal* l2)
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
 	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&
 	  l1==env.sharing->tryGetOpposite(l2)) {
-    return l1->isNegative() ? GREATER : LESS;
+    return l1->isNegative() ? LESS : GREATER;
   }
 
+  Result res;
   if (p1 != p2) {
     Comparison levComp=Int::compare(predicateLevel(p1),predicateLevel(p2));
     if(levComp!=Lib::EQUAL) {
-      return fromComparison(levComp);
+      res = fromComparison(levComp);
+      goto fin;
     }
   }
 
@@ -85,25 +87,40 @@ Ordering::Result KBOForEPR::compare(Literal* l1, Literal* l2)
       //since on the ground level each literal argument must be a constant,
       //and all symbols are of weight 1, the literal with higher arity is
       //heavier and therefore greater
-      return fromComparison(arComp);
+      res = fromComparison(arComp);
+      goto fin;
     }
 
     Comparison prComp=Int::compare(predicatePrecedence(p1),predicatePrecedence(p2));
     ASS_NEQ(prComp, Lib::EQUAL); //precedence ordering is total
-    return fromComparison(prComp);
+    res = fromComparison(prComp);
+    goto fin;
   }
 
-  TermList* t1=l1->args();
-  TermList* t2=l2->args();
+  {
+    TermList* t1=l1->args();
+    TermList* t2=l2->args();
 
-  ASS(!t1->isEmpty());
-  while(*t1==*t2) {
-    t1=t1->next();
-    t2=t2->next();
-    ASS(!t1->isEmpty()); //if we're at the end of the term, the literals would have been the same
+    ASS(!t1->isEmpty());
+    while(*t1==*t2) {
+      t1=t1->next();
+      t2=t2->next();
+      ASS(!t1->isEmpty()); //if we're at the end of the term, the literals would have been the same
+    }
+    res = compare(*t1, *t2);
+    goto fin;
   }
 
-  return compare(*t1, *t2);;
+fin:
+  if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
+    if(l1->isNegative() && l2->isNegative()) {
+      res = reverse(res);
+    }
+    else {
+      res = l1->isNegative() ? LESS : GREATER;
+    }
+  }
+  return res;
 }
 
 Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2)

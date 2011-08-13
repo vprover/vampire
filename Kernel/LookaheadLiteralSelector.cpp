@@ -253,6 +253,7 @@ void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
 void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
   CALL("LookaheadLiteralSelector::doSelection");
+  LOG("Lookahead selection, eligible "<<eligible<<" from "<<c->toString());
 
   LiteralList* maximals=0;
   Literal* singleSel=0;
@@ -276,7 +277,7 @@ void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
     Ordering::instance()->removeNonMaximal(maximals);
     ASS(maximals);
     if(selectable.isEmpty()) {
-      //there are no negative literals, so we have to select all positiva anyway
+      //there are no negative literals, so we have to select all positive anyway
       goto selection_done;
     }
 
@@ -299,7 +300,6 @@ void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
   }
   ASS_G(selectable.size(),1);
 
-  LOG("deciding for "<<(*c));
   singleSel=pickTheBest(selectable.begin(), selectable.size());
 
   LOG("selected "<<(*singleSel)<<" from "<<(*c));
