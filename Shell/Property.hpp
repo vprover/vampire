@@ -168,7 +168,7 @@ public:
   /** Problem contains an interpreted symbol different from equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
   bool hasSpecialTermsOrLets() const { return _hasSpecialTermsOrLets; }
-  bool hashasFormulaItes() const { return _hasFormulaItes; }
+  bool hasFormulaItes() const { return _hasFormulaItes; }
  private:
   // constructor, operators new and delete
   explicit Property();

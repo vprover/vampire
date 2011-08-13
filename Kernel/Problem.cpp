@@ -235,8 +235,8 @@ void Problem::readDetailsFromProperty() const
   _hasFormulas = _property->hasFormulas();
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
-  _hasSpecialTermsOrLets = _property->hashasFormulaItes();
-  _hasFormulaItes = _property->hashasFormulaItes();
+  _hasSpecialTermsOrLets = _property->hasSpecialTermsOrLets();
+  _hasFormulaItes = _property->hasFormulaItes();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
