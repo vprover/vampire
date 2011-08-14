@@ -80,7 +80,8 @@ struct BackwardDemodulation::ResultFn
 {
   typedef DHMultiset<Clause*> ClauseSet;
 
-  ResultFn(Clause* cl, BackwardDemodulation& parent) : _cl(cl), _parent(parent)
+  ResultFn(Clause* cl, BackwardDemodulation& parent)
+  : _cl(cl), _parent(parent), _ordering(parent._salg->getOrdering())
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
@@ -133,18 +134,14 @@ struct BackwardDemodulation::ResultFn
       rhsS=qr.substitution->applyToBoundQuery(rhs);
     }
 
-    static Ordering* ordering=0;
-    if(!ordering) {
-      ordering=Ordering::instance();
-    }
-    if(ordering->compare(lhsS,rhsS)!=Ordering::GREATER) {
+    if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
       return BwSimplificationRecord(0);
     }
 
     if(_parent.getOptions().demodulationRedundancyCheck() && qr.literal->isEquality() &&
 	(qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
-      Ordering::Result tord=ordering->compare(rhsS, other);
+      Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
 	Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS);
 	bool isMax=true;
@@ -154,7 +151,7 @@ struct BackwardDemodulation::ResultFn
 	  if(qr.literal==lit2) {
 	    continue;
 	  }
-	  if(ordering->compare(eqLitS, lit2)==Ordering::LESS) {
+	  if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
 	    isMax=false;
 	    break;
 	  }
@@ -211,6 +208,7 @@ private:
   SmartPtr<ClauseSet> _removed;
 
   BackwardDemodulation& _parent;
+  Ordering& _ordering;
 };
 
 
@@ -229,7 +227,7 @@ void BackwardDemodulation::perform(Clause* cl,
     pvi( getFilteredIterator(
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
-			    EqHelper::getDemodulationLHSIterator(lit, false),
+			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
 			    RewritableClausesFn(_index)),
 		    ResultFn(cl, *this)),
  	    RemovedIsNonzeroFn()) );

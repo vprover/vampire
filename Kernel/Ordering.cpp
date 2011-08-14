@@ -11,9 +11,11 @@
 #include "Lib/SmartPtr.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/Property.hpp"
 
 #include "Test/DiffOrdering.hpp"
 
+#include "Problem.hpp"
 #include "KBO.hpp"
 #include "KBOForEPR.hpp"
 
@@ -25,7 +27,7 @@
 using namespace Lib;
 using namespace Kernel;
 
-OrderingSP Ordering::s_instance;
+OrderingSP Ordering::s_globalOrdering;
 
 Ordering::Ordering()
 {
@@ -43,17 +45,47 @@ Ordering::~Ordering()
 }
 
 
-Ordering* Ordering::instance()
+/**
+ * If there is no global ordering yet, assign @c ordering to be
+ * it and return true. Otherwise return false.
+ *
+ * We store orientation of equalities in global ordering inside
+ * the term sharing structure. Setting an ordering to be global
+ * does not change the behavior of Vampire, but may lead to
+ * better performance, as the equality orientation will be cached
+ * inside the sharing structure.
+ */
+bool Ordering::trySetGlobalOrdering(OrderingSP ordering)
 {
-  CALL("Ordering::instance");
-  ASS(s_instance);
+  CALL("Ordering::trySetGlobalOrdering");
 
-  //TODO: remove this when we know the ordering is always created when needed
-  if(!s_instance) {
-    create();
+  if(s_globalOrdering) {
+    return false;
   }
+  s_globalOrdering = ordering;
+  return true;
+}
 
-  return s_instance.ptr();
+/**
+ * If global ordering is set, return pointer to it, otherwise
+ * return 0.
+ *
+ * We store orientation of equalities in global ordering inside
+ * the term sharing structure. Setting an ordering to be global
+ * does not change the behavior of Vampire, but may lead to
+ * better performance, as the equality orientation will be cached
+ * inside the sharing structure.
+ */
+Ordering* Ordering::tryGetGlobalOrdering()
+{
+  CALL("Ordering::tryGetGlobalOrdering");
+
+  if(s_globalOrdering) {
+    return s_globalOrdering.ptr();
+  }
+  else {
+    return 0;
+  }
 }
 
 /**
@@ -61,25 +93,19 @@ Ordering* Ordering::instance()
  *
  * Currently the ordering is created in @b SaturationAlgorithm::createFromOptions()
  */
-void Ordering::create(bool epr)
+Ordering* Ordering::create(Problem& prb, const Options& opt)
 {
   CALL("Ordering::create");
-  ASS(!s_instance);
 
-  if(epr) {
+  if(prb.getProperty()->maxFunArity()==0) {
 //    s_instance=OrderingSP(new Test::DiffOrdering(OrderingSP(new KBOForEPR),OrderingSP(new KBO)));
-    s_instance=OrderingSP(new KBOForEPR);
+    return new KBOForEPR(prb, opt);
   }
   else {
-    s_instance=OrderingSP(new KBO);
+    return new KBO(prb, opt);
   }
 }
 
-
-bool Ordering::orderingCreated()
-{
-  return s_instance;
-}
 
 Ordering::Result Ordering::fromComparison(Comparison c)
 {
@@ -92,8 +118,9 @@ Ordering::Result Ordering::fromComparison(Comparison c)
     return EQUAL;
   case Lib::LESS:
     return LESS;
+  default:
+    ASSERTION_VIOLATION;
   }
-  ASSERTION_VIOLATION;
 }
 
 const char* Ordering::resultToString(Result r)
@@ -123,7 +150,7 @@ const char* Ordering::resultToString(Result r)
  * Remove non-maximal literals from the list @b lits. The order
  * of remaining literals stays unchanged.
  */
-void Ordering::removeNonMaximal(LiteralList*& lits)
+void Ordering::removeNonMaximal(LiteralList*& lits) const
 {
   CALL("Ordering::removeNonMaximal");
 
@@ -148,29 +175,26 @@ topLevelContinue: ;
 
 }
 
-//this function is implemented here instead of Term.cpp to reduce object file dependency
-/** Return commutative term/literal argument order. */
-Term::ArgumentOrder Term::computeArgumentOrder() const
+Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 {
-  ASS(shared());
-  ASS(commutative());
-  ASS_EQ(arity(),2);
+  CALL("Ordering::getEqualityArgumentOrder");
+  ASS(eq->isEquality());
 
-  Ordering* ord=Ordering::instance();
-  switch(ord->compare(*nthArgument(0), *nthArgument(1)))
-  {
-  case Ordering::GREATER:
-    return GREATER;
-  case Ordering::LESS:
-    return LESS;
-  case Ordering::EQUAL:
-    return EQUAL;
-  case Ordering::INCOMPARABLE:
-    return INCOMPARABLE;
-  case Ordering::GREATER_EQ:
-  case Ordering::LESS_EQ:
-  default:
-    NOT_IMPLEMENTED;
+  if(tryGetGlobalOrdering()!=this) {
+    return compare(*eq->nthArgument(0), *eq->nthArgument(1));
   }
+
+  Result res;
+  ArgumentOrderVals precomputed = static_cast<ArgumentOrderVals>(eq->getArgumentOrderValue());
+  if(precomputed!=0) {
+    res = static_cast<Result>(precomputed);
+    ASS_EQ(res, compare(*eq->nthArgument(0), *eq->nthArgument(1)));
+  }
+  else {
+    res = compare(*eq->nthArgument(0), *eq->nthArgument(1));
+    eq->setArgumentOrderValue(res);
+  }
+  return res;
 }
+
 

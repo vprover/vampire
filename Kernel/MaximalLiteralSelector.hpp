@@ -25,11 +25,9 @@ class MaximalLiteralSelector
 : public LiteralSelector
 {
 public:
-  MaximalLiteralSelector() : _ord(Ordering::instance()) {}
+  MaximalLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options) {}
 protected:
   void doSelection(Clause* c, unsigned eligible);
-private:
-  Ordering* _ord;
 };
 
 };

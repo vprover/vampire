@@ -19,8 +19,8 @@ class Discount
 : public SaturationAlgorithm
 {
 public:
-  Discount(Problem& prb, const Options& opt, PassiveClauseContainer* passiveContainer, LiteralSelector* selector)
-    : SaturationAlgorithm(prb, opt, passiveContainer, selector) {}
+  Discount(Problem& prb, const Options& opt)
+    : SaturationAlgorithm(prb, opt) {}
 
   ClauseContainer* getSimplifyingClauseContainer();
 

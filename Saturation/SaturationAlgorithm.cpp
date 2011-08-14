@@ -87,23 +87,29 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
  * The @b passiveContainer object will be used as a passive clause container, and
  * @b selector object to select literals before clauses are activated.
  */
-SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt,
-    PassiveClauseContainer* passiveContainer,
-    LiteralSelector* selector)
+SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
     _limits(opt),
-    _clauseActivationInProgress(false), _passive(passiveContainer),
-    _fwSimplifiers(0), _bwSimplifiers(0), _selector(selector), _splitter(0),
+    _clauseActivationInProgress(false),
+    _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _symEl(0), _bddMarkingSubsumption(0), _answerLiteralManager(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
+  _ordering = OrderingSP(Ordering::create(prb, opt));
+  if(!Ordering::trySetGlobalOrdering(_ordering)) {
+    //this is not an error, it may just lead to lower performance (and most likely not significantly lower)
+    cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;
+  }
+  _selector = LiteralSelector::getSelector(*_ordering, opt);
+
   _propToBDD = opt.propositionalToBDD();
   _completeOptionSettings = opt.complete(prb);
 
-  _unprocessed=new UnprocessedClauseContainer();
-  _active=new ActiveClauseContainer(opt);
+  _unprocessed = new UnprocessedClauseContainer();
+  _passive = new AWPassiveClauseContainer(opt);
+  _active = new ActiveClauseContainer(opt);
 
   _active->attach(this);
   _passive->attach(this);
@@ -175,8 +181,6 @@ SaturationAlgorithm::~SaturationAlgorithm()
   delete _unprocessed;
   delete _active;
   delete _passive;
-
-  delete _selector;
 }
 
 void SaturationAlgorithm::tryUpdateFinalClauseCount()
@@ -640,6 +644,24 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
 }
 
 /**
+ * Return literal selector that is to be used for set-of-support clauses
+ */
+LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
+{
+  CALL("SaturationAlgorithm::getSosLiteralSelector");
+
+  if(_opt.fullSelectionForSOS()) {
+    if(!_sosLiteralSelector) {
+      _sosLiteralSelector = new TotalLiteralSelector(getOrdering(), getOptions());
+    }
+    return *_sosLiteralSelector;
+  }
+  else {
+    return *_selector;
+  }
+}
+
+/**
  * Add an input set-of-support clause @b cl into the active container
  */
 void SaturationAlgorithm::addInputSOSClause(Clause* cl)
@@ -677,12 +699,9 @@ simpl_start:
   }
 
   ASS(!cl->selected());
-  if(_opt.fullSelectionForSOS()) {
-    static TotalLiteralSelector totalSelector;
-    totalSelector.select(cl);
-  }
-  else {
-    _selector->select(cl);
+  {
+    LiteralSelector& sosSelector = getSosLiteralSelector();
+    sosSelector.select(cl);
   }
 
   cl->setStore(Clause::ACTIVE);
@@ -1605,31 +1624,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 {
   CALL("SaturationAlgorithm::createFromOptions");
 
-  bool epr=true;
-  unsigned func=env.signature->functions();
-  for(unsigned fi=0;fi<func;fi++) {
-    if(env.signature->functionArity(fi)) {
-      epr=false;
-      break;
-    }
-  }
-  Ordering::create(epr);
-
-  // create passive clauses container
-  AWPassiveClauseContainer* passive = new AWPassiveClauseContainer(opt);
-
-  LiteralSelector* selector=LiteralSelector::getSelector(opt.selection());
-
   SaturationAlgorithm* res;
   switch(opt.saturationAlgorithm()) {
   case Shell::Options::DISCOUNT:
-    res=new Discount(prb, opt, passive, selector);
+    res=new Discount(prb, opt);
     break;
   case Shell::Options::LRS:
-    res=new LRS(prb, opt, passive, selector);
+    res=new LRS(prb, opt);
     break;
   case Shell::Options::OTTER:
-    res=new Otter(prb, opt, passive, selector);
+    res=new Otter(prb, opt);
     break;
   default:
     NOT_IMPLEMENTED;
@@ -1637,7 +1641,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(indexMgr) {
     res->_imgr = SmartPtr<IndexManager>(indexMgr, true);
     indexMgr->setSaturationAlgorithm(res);
-
   }
   else {
     res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));

@@ -74,25 +74,25 @@ public:
   }
 
   inline
-  operator bool() { return _obj; }
+  operator bool() const { return _obj; }
 
   inline
-  T* operator->() { return _obj; }
+  T* operator->() const { return _obj; }
   inline
-  T& operator*() { return *_obj; }
+  T& operator*() const { return *_obj; }
 
   inline
-  T* ptr() { return _obj; }
+  T* ptr() const { return _obj; }
 
   inline
-  T& ref() { return *_obj; }
+  T& ref() const { return *_obj; }
 
   inline
-  bool isEmpty() { return !_obj; }
+  bool isEmpty() const { return !_obj; }
 
   template<class Target>
   inline
-  Target* pcast() { return static_cast<Target*>(_obj); }
+  Target* pcast() const { return static_cast<Target*>(_obj); }
 private:
   template<typename U> friend class SmartPtr;
 

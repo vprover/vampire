@@ -97,7 +97,7 @@ class RewriteRuleIndex
 : public LiteralIndex
 {
 public:
-  RewriteRuleIndex(LiteralIndexingStructure* is);
+  RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering);
   ~RewriteRuleIndex();
 
   Clause* getCounterpart(Clause* c) {
@@ -112,6 +112,7 @@ private:
 
   LiteralIndexingStructure* _partialIndex;
   DHMap<Clause*,Clause*> _counterparts;
+  Ordering& _ordering;
 };
 
 };

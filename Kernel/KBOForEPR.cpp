@@ -12,8 +12,10 @@
 
 #include "Indexing/TermSharing.hpp"
 
+#include "Shell/Property.hpp"
+
+#include "Problem.hpp"
 #include "Term.hpp"
-#include "KBO.hpp"
 #include "Signature.hpp"
 
 #include "KBOForEPR.hpp"
@@ -30,15 +32,11 @@ using namespace Lib;
  * must be initialized after calling this constructor and
  * before any comparisons using this object are being made.
  */
-KBOForEPR::KBOForEPR()
+KBOForEPR::KBOForEPR(Problem& prb, const Options& opt)
+ : KBOBase(prb, opt)
 {
   CALL("KBOForEPR::KBOForEPR");
-
-#if VDEBUG
-  for(unsigned i=0;i<_functions;i++) {
-    ASS_EQ(env.signature->functionArity(i),0); //we do not have any non-constant function symbols
-  }
-#endif
+  ASS_EQ(prb.getProperty()->maxFunArity(),0);
 }
 
 /**
@@ -46,7 +44,7 @@ KBOForEPR::KBOForEPR()
  * of the comparison.
  * @since 07/05/2008 flight Manchester-Brussels
  */
-Ordering::Result KBOForEPR::compare(Literal* l1, Literal* l2)
+Ordering::Result KBOForEPR::compare(Literal* l1, Literal* l2) const
 {
   CALL("KBOForEPR::compare(Literal*...)");
   ASS(l1->shared());
@@ -123,7 +121,7 @@ fin:
   return res;
 }
 
-Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2)
+Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2) const
 {
   CALL("KBOForEPR::compare(TermList)");
   ASS(!tl1.isTerm() || tl1.term()->arity()==0)

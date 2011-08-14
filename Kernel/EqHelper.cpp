@@ -7,6 +7,7 @@
 
 #include "Shell/Options.hpp"
 
+#include "Ordering.hpp"
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
 
@@ -128,7 +129,7 @@ Literal* EqHelper::replace(Literal* lit, TermList tSrc, TermList tDest)
  * Return iterator on subterms of a literal, that can be rewritten by
  * superposition.
  */
-TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit)
+TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getRewritableSubtermIterator");
 
@@ -138,18 +139,20 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit)
 //    }
   if(lit->isEquality() && lit->isPositive()) {
     TermList sel;
-    switch(lit->getArgumentOrder())
+    switch(ord.getEqualityArgumentOrder(lit))
     {
-    case Term::INCOMPARABLE:
+    case Ordering::INCOMPARABLE:
     {
       NonVariableIterator nvi(lit);
       return getUniquePersistentIteratorFromPtr(&nvi);
     }
-    case Term::EQUAL:
-    case Term::GREATER:
+    case Ordering::EQUAL:
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ:
       sel=*lit->nthArgument(0);
       break;
-    case Term::LESS:
+    case Ordering::LESS:
+    case Ordering::LESS_EQ:
       sel=*lit->nthArgument(1);
 #if VDEBUG
       break;
@@ -175,7 +178,7 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit)
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
  */
-TermIterator EqHelper::getLHSIterator(Literal* lit)
+TermIterator EqHelper::getLHSIterator(Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getLHSIterator");
 
@@ -185,17 +188,19 @@ TermIterator EqHelper::getLHSIterator(Literal* lit)
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
-    switch(lit->getArgumentOrder())
+    switch(ord.getEqualityArgumentOrder(lit))
     {
-    case Term::INCOMPARABLE:
+    case Ordering::INCOMPARABLE:
       return pvi( getConcatenatedIterator(getSingletonIterator(t0),
 	      getSingletonIterator(t1)) );
-    case Term::GREATER:
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ:
       return pvi( getSingletonIterator(t0) );
-    case Term::LESS:
+    case Ordering::LESS:
+    case Ordering::LESS_EQ:
       return pvi( getSingletonIterator(t1) );
 #if VDEBUG
-    case Term::EQUAL:
+    case Ordering::EQUAL:
       //there should be no equality literals of equal terms
     default:
       ASSERTION_VIOLATION;
@@ -223,15 +228,15 @@ struct EqHelper::IsNonVariable
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
  */
-TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit)
+TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt)
 {
   CALL("EqHelper::getSuperpositionLHSIterator");
 
-  if(env.options->superpositionFromVariables()) {
-    return getLHSIterator(lit);
+  if(opt.superpositionFromVariables()) {
+    return getLHSIterator(lit, ord);
   }
   else {
-    return pvi( getFilteredIterator(getLHSIterator(lit), IsNonVariable()) );
+    return pvi( getFilteredIterator(getLHSIterator(lit, ord), IsNonVariable()) );
   }
 }
 
@@ -241,7 +246,7 @@ TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit)
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
  */
-TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward)
+TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt)
 {
   CALL("EqHelper::getDemodulationLHSIterator");
 
@@ -251,11 +256,11 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward)
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
-    switch(lit->getArgumentOrder())
+    switch(ord.getEqualityArgumentOrder(lit))
     {
-    case Term::INCOMPARABLE:
-      if( forward ? (env.options->forwardDemodulation()==Options::DEMODULATION_PREORDERED)
-		  : (env.options->backwardDemodulation()==Options::DEMODULATION_PREORDERED) ) {
+    case Ordering::INCOMPARABLE:
+      if( forward ? (opt.forwardDemodulation()==Options::DEMODULATION_PREORDERED)
+		  : (opt.backwardDemodulation()==Options::DEMODULATION_PREORDERED) ) {
 	return TermIterator::getEmpty();
       }
       if(t0.containsAllVariablesOf(t1)) {
@@ -269,14 +274,16 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward)
 	return pvi( getSingletonIterator(t1) );
       }
       break;
-    case Term::GREATER:
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ:
       ASS(t0.containsAllVariablesOf(t1));
       return pvi( getSingletonIterator(t0) );
-    case Term::LESS:
+    case Ordering::LESS:
+    case Ordering::LESS_EQ:
       ASS(t1.containsAllVariablesOf(t0));
       return pvi( getSingletonIterator(t1) );
 #if VDEBUG
-    case Term::EQUAL:
+    case Ordering::EQUAL:
       //there should be no equality literals of equal terms
     default:
       ASSERTION_VIOLATION;

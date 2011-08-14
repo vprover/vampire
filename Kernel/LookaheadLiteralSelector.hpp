@@ -16,8 +16,8 @@ class LookaheadLiteralSelector
 : public LiteralSelector
 {
 public:
-  LookaheadLiteralSelector(bool completeSelection)
-  : _completeSelection(completeSelection) {}
+  LookaheadLiteralSelector(bool completeSelection, const Ordering& ordering, const Options& options)
+  : LiteralSelector(ordering, options), _completeSelection(completeSelection) {}
 protected:
   virtual void doSelection(Clause* c, unsigned eligible);
 private:

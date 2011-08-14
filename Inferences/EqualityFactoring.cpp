@@ -5,19 +5,21 @@
 
 #include <utility>
 
-#include "Lib/VirtualIterator.hpp"
+#include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
-
-#include "Lib/Environment.hpp"
-#include "Shell/Statistics.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/Unit.hpp"
+
+#include "Saturation/SaturationAlgorithm.hpp"
+
+#include "Shell/Statistics.hpp"
 
 #include "EqualityFactoring.hpp"
 
@@ -69,7 +71,8 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(Clause* cl) : _cl(cl), _cLen(cl->length()) {}
+  ResultFn(Clause* cl, EqualityFactoring& parent)
+      : _cl(cl), _cLen(cl->length()), _ordering(parent._salg->getOrdering()) {}
   DECL_RETURN_TYPE(Clause*);
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
@@ -89,17 +92,13 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
-    static Ordering* ordering=0;
-    if(!ordering) {
-      ordering=Ordering::instance();
-    }
     TermList sLHSS=subst.apply(sLHS,0);
     TermList sRHSS=subst.apply(sRHS,0);
-    if(ordering->compare(sRHSS,sLHSS)==Ordering::GREATER) {
+    if(_ordering.compare(sRHSS,sLHSS)==Ordering::GREATER) {
       return 0;
     }
     TermList fRHSS=subst.apply(fRHS,0);
-    if(ordering->compare(fRHSS,sRHSS)==Ordering::GREATER) {
+    if(_ordering.compare(fRHSS,sRHSS)==Ordering::GREATER) {
       return 0;
     }
 
@@ -125,6 +124,7 @@ struct EqualityFactoring::ResultFn
 private:
   Clause* _cl;
   unsigned _cLen;
+  Ordering& _ordering;
 };
 
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
@@ -143,9 +143,9 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 				  getFilteredIterator(
 					  premise->getSelectedLiteralIterator(),
 					  IsPositiveEqualityFn()),
-				  EqHelper::LHSIteratorFn()),
+				  EqHelper::LHSIteratorFn(_salg->getOrdering())),
 			  FactorablePairsFn(premise)),
-		  ResultFn(premise)),
+		  ResultFn(premise, *this)),
 	  NonzeroFn()) );
 
 }

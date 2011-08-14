@@ -38,7 +38,7 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
 {
   CALL("ForwardLiteralRewriting::perform");
 
-  static Ordering* ordering=Ordering::instance();
+  Ordering& ordering = _salg->getOrdering();
 
   TimeCounter tc(TC_FORWARD_LITERAL_REWRITING);
 
@@ -69,7 +69,7 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       ASS(qr.literal->containsAllVariablesOf(rhs));
       Literal* rhsS=qr.substitution->applyToBoundResult(rhs);
 
-      if(ordering->compare(lit, rhsS)!=Ordering::GREATER) {
+      if(ordering.compare(lit, rhsS)!=Ordering::GREATER) {
 	continue;
       }
 

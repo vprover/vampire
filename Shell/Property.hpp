@@ -148,6 +148,9 @@ public:
   int positiveEqualityAtoms() const { return _positiveEqualityAtoms; }
   /** True if has formulas */
   bool hasFormulas() const { return _axiomFormulas || _goalFormulas; }
+  /** Maximal arity of a function in the problem */
+  int maxFunArity() const { return _maxFunArity; }
+
 
   /** The problem has property p */
   bool hasProp(unsigned p) const { return _props & p; }
@@ -195,7 +198,6 @@ public:
   char setClauseSize() const;
   char setLiteralSize() const;
   char setTermSize() const;
-  char maxFunArity() const;
   char maxPredArity() const;
 
   // structure

@@ -19,8 +19,8 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-Otter::Otter(Problem& prb, const Options& opt, PassiveClauseContainer* passiveContainer, LiteralSelector* selector)
-  : SaturationAlgorithm(prb, opt, passiveContainer,selector)
+Otter::Otter(Problem& prb, const Options& opt)
+  : SaturationAlgorithm(prb, opt)
 {
 }
 

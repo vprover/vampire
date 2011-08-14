@@ -64,7 +64,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 
   TimeCounter tc(TC_FORWARD_DEMODULATION);
 
-  static Ordering* ordering=Ordering::instance();
+  Ordering& ordering = _salg->getOrdering();
 
   //Perhaps it might be a good idea to try to
   //replace subterms in some special order, like
@@ -118,11 +118,11 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	  rhsS=qr.substitution->applyToBoundResult(rhs);
 	}
 
-	Term::ArgumentOrder argOrder=qr.literal->askArgumentOrder();
-	bool preordered=argOrder==Term::LESS || argOrder==Term::GREATER;
+	Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
+	bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
 #if VDEBUG
 	if(preordered) {
-	  if(argOrder==Term::LESS) {
+	  if(argOrder==Ordering::LESS) {
 	    ASS_EQ(rhs, *qr.literal->nthArgument(0));
 	  }
 	  else {
@@ -130,13 +130,13 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	  }
 	}
 #endif
-	if(!preordered && (_preorderedOnly || ordering->compare(trm,rhsS)!=Ordering::GREATER) ) {
+	if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
 	  continue;
 	}
 
 	if(toplevelCheck) {
 	  TermList other=EqHelper::getOtherEqualitySide(lit, trm);
-	  Ordering::Result tord=ordering->compare(rhsS, other);
+	  Ordering::Result tord=ordering.compare(rhsS, other);
 	  if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
 	    Literal* eqLitS=qr.substitution->applyToBoundResult(qr.literal);
 	    bool isMax=true;
@@ -144,7 +144,7 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	      if(li==li2) {
 		continue;
 	      }
-	      if(ordering->compare(eqLitS, (*cl)[li2])==Ordering::LESS) {
+	      if(ordering.compare(eqLitS, (*cl)[li2])==Ordering::LESS) {
 		isMax=false;
 		break;
 	      }

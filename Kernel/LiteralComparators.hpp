@@ -23,8 +23,24 @@ using namespace Lib;
 
 //typedef CompositeComaprator Composite;
 
+class LiteralComparator
+{
+public:
+  LiteralComparator() : _selector(0) {}
+  virtual ~LiteralComparator() {}
+
+  virtual void attachSelector(LiteralSelector* selector)
+  {
+    CALL("LiteralComparator::attachSelector");
+
+    _selector = selector;
+  }
+protected:
+  LiteralSelector* _selector;
+};
+
 template<class Comp1, class Comp2>
-class Composite
+class Composite : public LiteralComparator
 {
 public:
   Comparison compare(Literal* l1, Literal* l2)
@@ -32,24 +48,41 @@ public:
     Comparison res1=_c1.compare(l1,l2);
     return (res1==EQUAL)?_c2.compare(l1,l2):res1;
   }
+
+  virtual void attachSelector(LiteralSelector* selector)
+  {
+    CALL("LiteralComparators::Composite::attachSelector");
+
+    LiteralComparator::attachSelector(selector);
+    _c1.attachSelector(selector);
+    _c2.attachSelector(selector);
+  }
 private:
   Comp1 _c1;
   Comp2 _c2;
 };
 
 template<class Comp>
-class Inverse
+class Inverse : public LiteralComparator
 {
 public:
   Comparison compare(Literal* l1, Literal* l2)
   {
     return _c.compare(l2,l1);
   }
+
+  virtual void attachSelector(LiteralSelector* selector)
+  {
+    CALL("LiteralComparators::Inverse::attachSelector");
+
+    LiteralComparator::attachSelector(selector);
+    _c.attachSelector(selector);
+  }
 private:
   Comp _c;
 };
 
-struct ColoredFirst
+struct ColoredFirst : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
@@ -63,10 +96,12 @@ struct ColoredFirst
   }
 };
 
-struct NoPositiveEquality
+struct NoPositiveEquality : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
+    CALL("LiteralComparators::NoPositiveEquality::compare");
+
     bool l1PE=l1->isEquality()&&l1->isPositive();
     bool l2PE=l2->isEquality()&&l2->isPositive();
     if( l1PE && !l2PE ) {
@@ -79,12 +114,15 @@ struct NoPositiveEquality
   }
 };
 
-struct Negative
+struct Negative : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
-    bool l1N=LiteralSelector::isNegativeForSelection(l1);
-    bool l2N=LiteralSelector::isNegativeForSelection(l2);
+    CALL("LiteralComparators::Negative::compare");
+    ASS(_selector);
+
+    bool l1N=_selector->isNegativeForSelection(l1);
+    bool l2N=_selector->isNegativeForSelection(l2);
     if( l1N && !l2N ) {
       return GREATER;
     } else if( !l1N && l2N ) {
@@ -95,7 +133,7 @@ struct Negative
   }
 };
 
-struct NegativeEquality
+struct NegativeEquality : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
@@ -111,7 +149,7 @@ struct NegativeEquality
   }
 };
 
-struct MaximalSize
+struct MaximalSize : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
@@ -119,7 +157,7 @@ struct MaximalSize
   }
 };
 
-struct LeastVariables
+struct LeastVariables : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
@@ -127,7 +165,7 @@ struct LeastVariables
   }
 };
 
-struct LeastDistinctVariables
+struct LeastDistinctVariables : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
@@ -135,7 +173,7 @@ struct LeastDistinctVariables
   }
 };
 
-struct LeastTopLevelVariables
+struct LeastTopLevelVariables : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
@@ -154,7 +192,7 @@ private:
   }
 };
 
-struct LexComparator
+struct LexComparator : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
@@ -203,7 +241,7 @@ struct LexComparator
  * heavier than the other one, it is greater
  */
 template<bool ignorePolarity=false>
-struct NormalizedLinearComparatorByWeight
+struct NormalizedLinearComparatorByWeight : public LiteralComparator
 {
   Comparison compare(Term* t1, Term* t2)
   {

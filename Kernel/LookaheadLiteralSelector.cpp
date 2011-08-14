@@ -41,7 +41,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 {
   DECL_ELEMENT_TYPE(VirtualIterator<void>);
 
-  GenIteratorIterator(Literal* lit) : stage(0), lit(lit), prepared(false) {}
+  GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent) {}
 
   bool hasNext()
   {
@@ -84,7 +84,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(bsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getLHSIterator(lit),
+	       EqHelper::getLHSIterator(lit, _parent._ord),
 	       TermUnificationRetriever(bsi)) );
       break;
     }
@@ -95,7 +95,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(fsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getRewritableSubtermIterator(lit),
+	       EqHelper::getRewritableSubtermIterator(lit, _parent._ord),
 	       TermUnificationRetriever(fsi)) );
       break;
     }
@@ -156,6 +156,8 @@ private:
   Literal* lit;
   bool prepared;
   VirtualIterator<void> nextIt;
+
+  LookaheadLiteralSelector& _parent;
 };
 
 /**
@@ -166,7 +168,7 @@ VirtualIterator<void> LookaheadLiteralSelector::getGeneraingInferenceIterator(Li
 {
   CALL("LookaheadLiteralSelector::getGeneraingInferenceIterator");
 
-  return pvi( getFlattenedIterator(GenIteratorIterator(lit)) );
+  return pvi( getFlattenedIterator(GenIteratorIterator(lit, *this)) );
 }
 
 /**
@@ -274,7 +276,7 @@ void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
       Literal* lit=(*c)[li];
       LiteralList::push(lit,maximals);
     }
-    Ordering::instance()->removeNonMaximal(maximals);
+    _ord.removeNonMaximal(maximals);
     ASS(maximals);
     if(selectable.isEmpty()) {
       //there are no negative literals, so we have to select all positive anyway

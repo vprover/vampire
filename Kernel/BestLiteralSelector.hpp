@@ -44,7 +44,12 @@ class BestLiteralSelector
 : public LiteralSelector
 {
 public:
-  BestLiteralSelector() {}
+  BestLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options)
+  {
+    CALL("BestLiteralSelector::BestLiteralSelector");
+
+    _comp.attachSelector(this);
+  }
 protected:
   void doSelection(Clause* c, unsigned eligible)
   {
@@ -100,7 +105,12 @@ class CompleteBestLiteralSelector
 : public LiteralSelector
 {
 public:
-  CompleteBestLiteralSelector() : _ord(Ordering::instance()) {}
+  CompleteBestLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options)
+  {
+    CALL("CompleteBestLiteralSelector::CompleteBestLiteralSelector");
+
+    _comp.attachSelector(this);
+  }
 protected:
   void doSelection(Clause* c, unsigned eligible)
   {
@@ -124,7 +134,7 @@ protected:
 	Literal* lit=rlit.next();
 	LiteralList::push(lit,maximals);
       }
-      _ord->removeNonMaximal(maximals);
+      _ord.removeNonMaximal(maximals);
       unsigned besti=0;
       LiteralList* nextMax=maximals;
       while(true) {
@@ -203,7 +213,6 @@ protected:
 
 private:
   QComparator _comp;
-  Ordering* _ord;
 };
 
 };

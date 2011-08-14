@@ -80,11 +80,16 @@ private:
 
 struct Superposition::RewriteableSubtermsFn
 {
+  RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
+
   DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
-    return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableSubtermIterator(lit)) );
+    return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableSubtermIterator(lit, _ord)) );
   }
+
+private:
+  Ordering& _ord;
 };
 
 struct Superposition::ApplicableRewritesFn
@@ -154,14 +159,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 		  getMapAndFlattenIterator(
 			  getMapAndFlattenIterator(
 				  premise->getSelectedLiteralIterator(),
-				  RewriteableSubtermsFn()),
+				  RewriteableSubtermsFn(_salg->getOrdering())),
 			  ApplicableRewritesFn(_lhsIndex)),
 		  ForwardResultFn(premise, limits, *this)),
 	  getMappingIterator(
 		  getMapAndFlattenIterator(
 			  getMapAndFlattenIterator(
 				  premise->getSelectedLiteralIterator(),
-				  EqHelper::SuperpositionLHSIteratorFn()),
+				  EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions())),
 			  RewritableResultsFn(_subtermIndex)),
 		  BackwardResultFn(premise, limits, *this))),
 	NonzeroFn()
@@ -330,17 +335,14 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  static Ordering* ordering=0;
-  if(!ordering) {
-    ordering=Ordering::instance();
-  }
+  Ordering& ordering = _salg->getOrdering();
 
   TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
   //check that we're not rewriting smaller subterm with larger
-  if(ordering->compare(tgtTermS,eqLHSS)==Ordering::GREATER) {
+  if(ordering.compare(tgtTermS,eqLHSS)==Ordering::GREATER) {
     return 0;
   }
 
@@ -353,11 +355,11 @@ Clause* Superposition::performSuperposition(
     TermList arg1=*rwLitS->nthArgument(1);
 
     if(!arg0.containsSubterm(rwTermS)) {
-      if(rwLitS->getArgumentOrder()==Term::GREATER) {
+      if(ordering.getEqualityArgumentOrder(rwLitS)==Ordering::GREATER) {
 	return 0;
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
-      if(rwLitS->getArgumentOrder()==Term::LESS) {
+      if(ordering.getEqualityArgumentOrder(rwLitS)==Ordering::LESS) {
 	return 0;
       }
     }

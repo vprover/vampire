@@ -34,20 +34,25 @@ class SuperpositionSubtermIndex
 : public TermIndex
 {
 public:
-  SuperpositionSubtermIndex(TermIndexingStructure* is)
-  : TermIndex(is) {};
+  SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord)
+  : TermIndex(is), _ord(ord) {};
 protected:
   void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
 };
 
 class SuperpositionLHSIndex
 : public TermIndex
 {
 public:
-  SuperpositionLHSIndex(TermIndexingStructure* is)
-  : TermIndex(is) {};
+  SuperpositionLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
+  const Options& _opt;
 };
 
 /**
@@ -70,10 +75,13 @@ class DemodulationLHSIndex
 : public TermIndex
 {
 public:
-  DemodulationLHSIndex(TermIndexingStructure* is)
-  : TermIndex(is) {};
+  DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
+  const Options& _opt;
 };
 
 };

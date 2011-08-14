@@ -10,9 +10,13 @@
 #include "Forwards.hpp"
 
 #include "Lib/Array.hpp"
+
 #include "Term.hpp"
 
 namespace Kernel {
+
+using namespace Lib;
+using namespace Shell;
 
 /**
  * Class LiteralSelector is base class for
@@ -21,7 +25,8 @@ namespace Kernel {
 class LiteralSelector
 {
 public:
-  LiteralSelector()
+  LiteralSelector(const Ordering& ordering, const Options& options)
+  : _ord(ordering), _opt(options), _reversePolarity(false)
   {
 #if VDEBUG
     _instCtr++;
@@ -35,7 +40,7 @@ public:
   }
   void select(Clause* c);
 
-  static LiteralSelector* getSelector(int num);
+  static LiteralSelector* getSelector(const Ordering& ordering, const Options& options);
 
   static void ensureSomeColoredSelected(Clause* c, unsigned eligible);
 
@@ -48,7 +53,7 @@ public:
    * consider all literals except for equality to be of
    * opposite polarity.
    */
-  static bool isPositiveForSelection(Literal* l);
+  bool isPositiveForSelection(Literal* l) const;
 
   static void reversePredicatePolarity(unsigned pred, bool reverse);
 
@@ -58,12 +63,13 @@ public:
    *
    * @see isPositiveForSelection
    */
-  static bool isNegativeForSelection(Literal* l)
+  bool isNegativeForSelection(Literal* l) const
   {
     return !isPositiveForSelection(l);
   }
 
-  static int getSelectionPriority(Literal* l);
+  int getSelectionPriority(Literal* l) const;
+
 
 protected:
   /**
@@ -76,16 +82,20 @@ protected:
    * colored literal is selected if there is some in the clause.
    */
   virtual void doSelection(Clause* c, unsigned eligible) = 0;
+
+  const Ordering& _ord;
+  const Options& _opt;
 private:
   /**
    * If true, the polarity of all literals except for equality ones is
-   * considered to be reversed.
+   * considered to be reversed for the purposes of literal selection.
    *
    * @see isPositiveForSelection
    */
-  static bool _reversePolarity;
+  bool _reversePolarity;
 
   static ZIArray<bool> _reversePredicate;
+
 #if VDEBUG
   /**
    * Counter of instances of LiteralSelector object
@@ -106,6 +116,9 @@ private:
 class TotalLiteralSelector
 : public LiteralSelector
 {
+public:
+  TotalLiteralSelector(const Ordering& ordering, const Options& options)
+  : LiteralSelector(ordering, options) {}
 protected:
   void doSelection(Clause* c, unsigned eligible);
 };

@@ -54,7 +54,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->selected();
   for(unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit);
+    TermIterator rsti=EqHelper::getRewritableSubtermIterator(lit, _ord);
     while(rsti.hasNext()) {
       if(adding) {
 	_is->insert(rsti.next(), lit, c);
@@ -75,7 +75,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->selected();
   for(unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit);
+    TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while(lhsi.hasNext()) {
       TermList lhs=lhsi.next();
       if(adding) {
@@ -130,7 +130,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   TimeCounter tc(TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE);
 
   Literal* lit=(*c)[0];
-  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true);
+  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
   while(lhsi.hasNext()) {
     if(adding) {
       _is->insert(lhsi.next(), lit, c);

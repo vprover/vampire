@@ -408,28 +408,6 @@ public:
 //  static Comparison lexicographicCompare(TermList t1, TermList t2);
 //  static Comparison lexicographicCompare(Term* t1, Term* t2);
 
-  enum ArgumentOrder {
-    UNKNOWN=0,
-    LESS=1,
-    EQUAL=2,
-    GREATER=3,
-    INCOMPARABLE=4
-  };
-
-  /** Return argument order as stored in term.
-   * (Can also return UNKNOWN if it wasn't determined yet.) */
-  ArgumentOrder askArgumentOrder() const
-  {
-    return static_cast<ArgumentOrder>(_args[0]._info.order);
-  }
-  ArgumentOrder getArgumentOrder()
-  {
-    if(static_cast<ArgumentOrder>(_args[0]._info.order)==UNKNOWN) {
-      _args[0]._info.order=computeArgumentOrder();
-    }
-    return static_cast<ArgumentOrder>(_args[0]._info.order);
-  }
-
   /** Return argument order as stored in term.
    * (Can also return UNKNOWN if it wasn't determined yet.) */
   bool askDistinctVars(unsigned& res) const
@@ -509,9 +487,36 @@ public:
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
 protected:
-  //this function is implemented in the Ordering.cpp file to reduce object file dependency
-  ArgumentOrder computeArgumentOrder() const;
   unsigned computeDistinctVars() const;
+
+  /**
+   * Return argument order value stored in term.
+   *
+   * The default value (which is returned if no value was set using the
+   * @c setArgumentOrder() function) is zero.
+   *
+   * Currently, this function is used only by @c Ordering::getEqualityArgumentOrder().
+   */
+  int getArgumentOrderValue() const
+  {
+    return _args[0]._info.order;
+  }
+
+  /**
+   * Store argument order value in term.
+   *
+   * The value must be non-negative and less than 8.
+   *
+   * Currently, this function is used only by @c Ordering::getEqualityArgumentOrder().
+   */
+  void setArgumentOrderValue(int val)
+  {
+    CALL("Term::setArgumentOrderValue");
+    ASS_GE(val,0);
+    ASS_L(val,8);
+
+    _args[0]._info.order = val;
+  }
 
 #if USE_MATCH_TAG
   inline void ensureMatchTag()
@@ -575,6 +580,7 @@ protected:
   friend class TermList;
   friend class MatchTag;
   friend class Indexing::TermSharing;
+  friend class Ordering;
 private:
   string specialTermToString() const;
 }; // class Term

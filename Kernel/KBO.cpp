@@ -292,8 +292,8 @@ void KBO::State::traverse(Term* t1, Term* t2)
 /**
  * Create a KBO object.
  */
-KBO::KBO()
- :_variableWeight(1), _defaultSymbolWeight(1)
+KBO::KBO(Problem& prb, const Options& opt)
+ : KBOBase(prb, opt), _variableWeight(1), _defaultSymbolWeight(1)
 {
   CALL("KBO::KBO");
 
@@ -312,7 +312,7 @@ KBO::~KBO()
  * of the comparison.
  * @since 07/05/2008 flight Manchester-Brussels
  */
-Ordering::Result KBO::compare(Literal* l1, Literal* l2)
+Ordering::Result KBO::compare(Literal* l1, Literal* l2) const
 {
   CALL("KBO::compare(Literal*...)");
   ASS(l1->shared());
@@ -395,7 +395,7 @@ fin:
   return res;
 } // KBO::compare()
 
-Ordering::Result KBO::compare(TermList tl1, TermList tl2)
+Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 {
   CALL("KBO::compare(TermList)");
 
@@ -444,7 +444,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2)
   return res;
 }
 
-int KBO::functionSymbolWeight(unsigned fun)
+int KBO::functionSymbolWeight(unsigned fun) const
 {
   if(env.signature->functionColored(fun)) {
     return COLORED_WEIGHT_BOOST*_defaultSymbolWeight;
@@ -465,7 +465,7 @@ int KBO::functionSymbolWeight(unsigned fun)
  * the COLORED_LEVEL_BOOST value.
  * @since 11/05/2008 Manchester
  */
-int KBOBase::predicateLevel (unsigned pred)
+int KBOBase::predicateLevel (unsigned pred) const
 {
   int basic=pred >= _predicates ? 1 : _predicateLevels[pred];
   if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
@@ -488,7 +488,7 @@ int KBOBase::predicateLevel (unsigned pred)
  * previously introduced predicates).
  * @since 11/05/2008 Manchester
  */
-int KBOBase::predicatePrecedence (unsigned pred)
+int KBOBase::predicatePrecedence (unsigned pred) const
 {
   int res=pred >= _predicates ? (int)pred : _predicatePrecedences[pred];
   if(NONINTERPRETED_PRECEDENCE_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
@@ -497,7 +497,7 @@ int KBOBase::predicatePrecedence (unsigned pred)
   return res;
 } // KBO::predicatePrecedences
 
-Comparison KBOBase::compareFunctors(unsigned fun1, unsigned fun2)
+Comparison KBOBase::compareFunctors(unsigned fun1, unsigned fun2) const
 {
   CALL("KBOBase::compareFunctors");
 
@@ -515,7 +515,7 @@ Comparison KBOBase::compareFunctors(unsigned fun1, unsigned fun2)
 /**
  * Compare precedences of two function symbols
  */
-Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun2)
+Ordering::Result KBOBase::compareFunctionPrecedences(unsigned fun1, unsigned fun2) const
 {
   CALL("KBOBase::compareFunctionPrecedences");
   ASS_NEQ(fun1, fun2);
@@ -633,7 +633,7 @@ struct PredRevArityComparator
 /**
  * Create a KBOBase object.
  */
-KBOBase::KBOBase()
+KBOBase::KBOBase(Problem& prb, const Options& opt)
   : _predicates(env.signature->predicates()),
     _functions(env.signature->functions()),
     _predicateLevels(_predicates),
@@ -647,7 +647,7 @@ KBOBase::KBOBase()
   if(_functions) {
     aux.initFromIterator(getRangeIterator(0u, _functions), _functions);
 
-    switch(env.options->symbolPrecedence()) {
+    switch(opt.symbolPrecedence()) {
     case Shell::Options::BY_ARITY:
       aux.sort(FnArityComparator());
       break;
@@ -666,7 +666,7 @@ KBOBase::KBOBase()
 
   aux.initFromIterator(getRangeIterator(0u, _predicates), _predicates);
 
-  switch(env.options->symbolPrecedence()) {
+  switch(opt.symbolPrecedence()) {
   case Shell::Options::BY_ARITY:
     aux.sort(PredArityComparator());
     break;
@@ -681,7 +681,7 @@ KBOBase::KBOBase()
     LOG("KBO pred: "<<env.signature->predicateName(i)<<" prec: "<<i);
   }
 
-  switch(env.options->literalComparisonMode()) {
+  switch(opt.literalComparisonMode()) {
   case Shell::Options::LCM_STANDARD:
     _predicateLevels.init(_predicates, 1);
     break;
@@ -696,7 +696,7 @@ KBOBase::KBOBase()
   //equality is on the lowest level
   _predicateLevels[0]=0;
 
-  _reverseLCM = env.options->literalComparisonMode()==Shell::Options::LCM_REVERSE;
+  _reverseLCM = opt.literalComparisonMode()==Shell::Options::LCM_REVERSE;
 
   //equality proxy predicate has the highest level (lower than colored predicates)
   if(EqualityProxy::s_proxyPredicate) {

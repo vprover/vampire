@@ -37,7 +37,7 @@ void MaximalLiteralSelector::doSelection(Clause* c, unsigned eligible)
     }
   }
 
-  _ord->removeNonMaximal(sel);
+  _ord.removeNonMaximal(sel);
 
   Literal* singleSel=0;
 

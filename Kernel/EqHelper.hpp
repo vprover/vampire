@@ -18,35 +18,45 @@
 namespace Kernel {
 
 using namespace Lib;
+using namespace Shell;
 
 class EqHelper
 {
 public:
   static TermList getOtherEqualitySide(Literal* eq, TermList lhs);
-  static TermIterator getRewritableSubtermIterator(Literal* lit);
-  static TermIterator getLHSIterator(Literal* lit);
-  static TermIterator getSuperpositionLHSIterator(Literal* lit);
-  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward);
+  static TermIterator getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
+  static TermIterator getLHSIterator(Literal* lit, const Ordering& ord);
+  static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
+  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
   static Literal* replace(Literal* lit, TermList what, TermList by);
 
   struct LHSIteratorFn
   {
+    LHSIteratorFn(const Ordering& ord) : _ord(ord) {}
+
     DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
-      return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit)) );
+      return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit, _ord)) );
     }
+  private:
+    const Ordering& _ord;
   };
 
   struct SuperpositionLHSIteratorFn
   {
+    SuperpositionLHSIteratorFn(const Ordering& ord, const Options& opt) : _ord(ord), _opt(opt) {}
+
     DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
     OWN_RETURN_TYPE operator()(Literal* lit)
     {
-      return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit)) );
+      return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit, _ord, _opt)) );
     }
+  private:
+    const Ordering& _ord;
+    const Options& _opt;
   };
 
   struct EqualityArgumentIteratorFn

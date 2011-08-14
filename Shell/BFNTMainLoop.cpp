@@ -105,6 +105,12 @@ void BFNTMainLoop::runChild(size_t modelSize)
   }
 #endif
 
+  if(innerRes.terminationReason==Statistics::SATISFIABLE || innerRes.terminationReason==Statistics::TIME_LIMIT) {
+    env.beginOutput();
+    env.statistics->print(env.out());
+    env.endOutput();
+  }
+
   switch(innerRes.terminationReason) {
   case Statistics::SATISFIABLE:
     exit(BFNT_CHILD_RESULT_SAT);
@@ -180,6 +186,8 @@ MainLoopResult BFNTMainLoop::spawnChild(size_t modelSize)
 MainLoopResult BFNTMainLoop::runImpl()
 {
   CALL("BFNTMainLoop::runImpl");
+
+  env.timer->makeChildrenIncluded();
 
   size_t modelSize = 1;
   for(;;) {

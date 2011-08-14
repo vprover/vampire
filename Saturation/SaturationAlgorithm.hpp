@@ -43,7 +43,7 @@ class SaturationAlgorithm : public MainLoop
 public:
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
-  SaturationAlgorithm(Problem& prb, const Options& opt, PassiveClauseContainer* passiveContainer, LiteralSelector* selector);
+  SaturationAlgorithm(Problem& prb, const Options& opt);
   virtual ~SaturationAlgorithm();
 
 
@@ -83,6 +83,8 @@ public:
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   ClauseSharing* getSharing() { return &_sharing; }
   AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
+  Ordering& getOrdering() const { return *_ordering; }
+  LiteralSelector& getLiteralSelector() const { return *_selector; }
 
   /**
    * If the saturation algorithm run is in progress, return pointer
@@ -151,6 +153,8 @@ private:
 
   void addInputClause(Clause* cl);
 
+  LiteralSelector& getSosLiteralSelector();
+
   void handleEmptyClause(Clause* cl);
   void performEmptyClauseParentSubsumption(Clause* cl, BDDNode* emptyClauseProp);
 
@@ -189,7 +193,8 @@ protected:
   typedef List<BackwardSimplificationEngine*> BwSimplList;
   BwSimplList* _bwSimplifiers;
 
-  LiteralSelector* _selector;
+  OrderingSP _ordering;
+  ScopedPtr<LiteralSelector> _selector;
 
   Splitter* _splitter;
 
@@ -207,6 +212,14 @@ protected:
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;
+
+  /**
+   * Literal selector for set-of-support.
+   *
+   * This variable is initialized and used only by the
+   * @c getSosLiteralSelector() function
+   */
+  ScopedPtr<LiteralSelector> _sosLiteralSelector;
 };
 
 

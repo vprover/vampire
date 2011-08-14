@@ -136,8 +136,8 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure* is)
-: LiteralIndex(is)
+RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering)
+: LiteralIndex(is), _ordering(ordering)
 {
   _partialIndex=new LiteralSubstitutionTree();
 }
@@ -259,10 +259,10 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
   if(cgr->isPositive()) {
     //we use Literal::complementaryLiteral(csm) instead of dsm (which is a variant with
     //opposite polarity), so that the literals share variables
-    cmpRes=Ordering::instance()->compare(cgr,Literal::complementaryLiteral(csm));
+    cmpRes=_ordering.compare(cgr,Literal::complementaryLiteral(csm));
   }
   else {
-    cmpRes=Ordering::instance()->compare(Literal::complementaryLiteral(cgr),csm);
+    cmpRes=_ordering.compare(Literal::complementaryLiteral(cgr),csm);
   }
   switch(cmpRes) {
   case Ordering::GREATER:

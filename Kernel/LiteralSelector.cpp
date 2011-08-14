@@ -27,12 +27,6 @@ namespace Kernel
 {
 
 /**
- * If set to true, the polarity for non-equality literals is
- * considered to be reversed for the purposes of literal selection
- */
-bool LiteralSelector::_reversePolarity=false;
-
-/**
  * Array that for each predicate contains bol value determining whether
  * the polarituy of the predicate should be reversed for the purposes of
  * literal selection
@@ -61,7 +55,7 @@ int LiteralSelector::_instCtr=0;
  * consider all literals except for equality to be of
  * opposite polarity.
  */
-bool LiteralSelector::isPositiveForSelection(Literal* l)
+bool LiteralSelector::isPositiveForSelection(Literal* l) const
 {
   if(l->isEquality()) {
     return l->isPositive(); //we don't change polarity for equality
@@ -82,11 +76,13 @@ void LiteralSelector::reversePredicatePolarity(unsigned pred, bool reverse)
  * The selection will be performed among the literals with the
  * highest selection priority in the clause
  */
-int LiteralSelector::getSelectionPriority(Literal* l)
+int LiteralSelector::getSelectionPriority(Literal* l) const
 {
+  CALL("LiteralSelector::getSelectionPriority");
+
   Signature::Symbol* psym=env.signature->getPredicate(l->functor());
   if(psym->swbName()) {
-    if(l->isPositive() && env.options->splittingWithBlocking()) {
+    if(l->isPositive() && _opt.splittingWithBlocking()) {
       return 1;
     }
     return -1;
@@ -106,7 +102,7 @@ int LiteralSelector::getSelectionPriority(Literal* l)
  * The supported literal selector numbers should correspond to numbers
  * allowed in @b Shell::Options::setSelection.
  */
-LiteralSelector* LiteralSelector::getSelector(int num)
+LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Options& options)
 {
   CALL("LiteralSelector::getSelector");
 
@@ -135,31 +131,34 @@ LiteralSelector* LiteralSelector::getSelector(int num)
 #if VDEBUG
   ASS_EQ(_instCtr,0);
 #endif
-  _reversePolarity=num<0;
-  if(num<0) {
-    num=-num;
-  }
+  int num = options.selection();
+  int absNum = abs(num);
 
-  switch(num) {
-  case 0: return new TotalLiteralSelector();
-  case 1: return new MaximalLiteralSelector();
-  case 2: return new CompleteBestLiteralSelector<Comparator2>();
-  case 3: return new CompleteBestLiteralSelector<Comparator3>();
-  case 4: return new CompleteBestLiteralSelector<Comparator4>();
-  case 10: return new CompleteBestLiteralSelector<Comparator10>();
+  LiteralSelector* res;
+  switch(absNum) {
+  case 0: res = new TotalLiteralSelector(ordering, options); break;
+  case 1: res = new MaximalLiteralSelector(ordering, options); break;
+  case 2: res = new CompleteBestLiteralSelector<Comparator2>(ordering, options); break;
+  case 3: res = new CompleteBestLiteralSelector<Comparator3>(ordering, options); break;
+  case 4: res = new CompleteBestLiteralSelector<Comparator4>(ordering, options); break;
+  case 10: res = new CompleteBestLiteralSelector<Comparator10>(ordering, options); break;
 
-  case 11: return new LookaheadLiteralSelector(true);
+  case 11: res = new LookaheadLiteralSelector(true, ordering, options); break;
 
-  case 1002: return new BestLiteralSelector<Comparator2>();
-  case 1003: return new BestLiteralSelector<Comparator3>();
-  case 1004: return new BestLiteralSelector<Comparator4>();
-  case 1010: return new BestLiteralSelector<Comparator10>();
+  case 1002: res = new BestLiteralSelector<Comparator2>(ordering, options); break;
+  case 1003: res = new BestLiteralSelector<Comparator3>(ordering, options); break;
+  case 1004: res = new BestLiteralSelector<Comparator4>(ordering, options); break;
+  case 1010: res = new BestLiteralSelector<Comparator10>(ordering, options); break;
 
-  case 1011: return new LookaheadLiteralSelector(false);
+  case 1011: res = new LookaheadLiteralSelector(false, ordering, options); break;
 
   default:
     INVALID_OPERATION("Undefined selection function");
   }
+  if(num<0) {
+    res->_reversePolarity = true;
+  }
+  return res;
 }
 
 /**

@@ -22,15 +22,15 @@ class KBOBase
 : public Ordering
 {
 public:
-  virtual Comparison compareFunctors(unsigned fun1, unsigned fun2);
+  virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) const;
 
 protected:
-  KBOBase();
+  KBOBase(Problem& prb, const Options& opt);
 
-  Result compareFunctionPrecedences(unsigned fun1, unsigned fun2);
+  Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
 
-  int predicatePrecedence(unsigned pred);
-  int predicateLevel(unsigned pred);
+  int predicatePrecedence(unsigned pred) const;
+  int predicateLevel(unsigned pred) const;
 
   /** number of predicates in the signature at the time the order was created */
   unsigned _predicates;
@@ -54,14 +54,11 @@ class KBO
 : public KBOBase
 {
 public:
-  KBO();
-  ~KBO();
+  KBO(Problem& prb, const Options& opt);
+  virtual ~KBO();
 
-  virtual Result compare(Literal* l1, Literal* l2);
-  virtual Result compare(TermList tl1, TermList tl2);
-
-  
-  static KBO* create();
+  virtual Result compare(Literal* l1, Literal* l2) const;
+  virtual Result compare(TermList tl1, TermList tl2) const;
 protected:
 
   class State;
@@ -71,16 +68,16 @@ protected:
    * signature */
   int _defaultSymbolWeight;
 
-  int functionSymbolWeight(unsigned fun);
+  int functionSymbolWeight(unsigned fun) const;
 
-  bool allConstantsHeavierThanVariables() { return false; }
-  bool existsZeroWeightUnaryFunction() { return false; }
+  bool allConstantsHeavierThanVariables() const { return false; }
+  bool existsZeroWeightUnaryFunction() const { return false; }
 
 
   /**
    * State used for comparing terms and literals
    */
-  State* _state;
+  mutable State* _state;
 };
 
 }

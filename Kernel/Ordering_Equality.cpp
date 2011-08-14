@@ -20,37 +20,37 @@ public:
 #endif
   }
 
-  Result compareEqualities(Literal* eq1, Literal* eq2);
+  Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
 #if VDEBUG
-  bool inUse;
+  mutable bool inUse;
 #endif
 
 private:
 
-  Result compare(TermList trm1, TermList trm2)
+  Result compare(TermList trm1, TermList trm2) const
   {
     return _ordering->compare(trm1, trm2);
   }
 
-  Result compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1GEt1(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1Gt1_s2LEt2(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1GEt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1Gt1_s1GEt2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1Gt1_s1GEt2_s2It2(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1GEt1_s1GEt2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1GEt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1GEt1_s2LEt2(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1Gt1_s1GEt2_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2);
-  Result compare_s1GEt1_s1GEt2_s2LEt1(TermList s1,TermList s2,TermList t1,TermList t2);
+  Result compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1GEt1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2LEt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1GEt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s1GEt2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s1GEt2_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1GEt1_s1GEt2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1GEt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1GEt1_s2LEt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s1GEt2_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1GEt1_s1GEt2_s2LEt1(TermList s1,TermList s2,TermList t1,TermList t2) const;
 
-  TermList s1,s2,t1,t2;
+  mutable TermList s1,s2,t1,t2;
 
   Ordering* _ordering;
 };
@@ -73,7 +73,7 @@ void Ordering::destroyEqualityComparator()
 }
 
 
-Ordering::Result Ordering::compareEqualities(Literal* eq1, Literal* eq2)
+Ordering::Result Ordering::compareEqualities(Literal* eq1, Literal* eq2) const
 {
   CALL("Ordering::compareEqualities");
   ASS(eq1->isEquality());
@@ -96,7 +96,7 @@ Ordering::Result Ordering::compareEqualities(Literal* eq1, Literal* eq2)
   return res;
 }
 
-Ordering::Result Ordering::EqCmp::compareEqualities(Literal* eq1, Literal* eq2)
+Ordering::Result Ordering::EqCmp::compareEqualities(Literal* eq1, Literal* eq2) const
 {
   CALL("Ordering::EqCmp::compareEqualities");
   ASS(eq1->isEquality());
@@ -139,7 +139,7 @@ Ordering::Result Ordering::EqCmp::compareEqualities(Literal* eq1, Literal* eq2)
 /**
  * Return the result of literal comparison assuming s1 > t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
 
@@ -161,7 +161,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1(TermList s1,TermList s2,TermList
 /**
  * Return the result of literal comparison assuming s1 >= t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1GEt1(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1GEt1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER_EQ);
 
@@ -184,7 +184,7 @@ Ordering::Result Ordering::EqCmp::compare_s1GEt1(TermList s1,TermList s2,TermLis
 /**
  * Return the result of literal comparison assuming s1 inc t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), INCOMPARABLE);
 
@@ -207,7 +207,7 @@ Ordering::Result Ordering::EqCmp::compare_s1It1(TermList s1,TermList s2,TermList
 /**
  * Return the result of literal comparison assuming s1 inc t1 and s2 inc t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), INCOMPARABLE);
   ASS_EQ(compare(s2,t2), INCOMPARABLE);
@@ -231,7 +231,7 @@ Ordering::Result Ordering::EqCmp::compare_s1It1_s2It2(TermList s1,TermList s2,Te
 /**
  * Return the result of literal comparison assuming s1 > t1 and s2 inc t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s2,t2), INCOMPARABLE);
@@ -257,7 +257,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2It2(TermList s1,TermList s2,Te
 /**
  * Return the result of literal comparison assuming s1 > t1 and s2 < t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s2,t2), LESS);
@@ -289,7 +289,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2Lt2(TermList s1,TermList s2,Te
 /**
  * Return the result of literal comparison assuming s1 > t1 and s2 <= t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2LEt2(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2LEt2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s2,t2), LESS_EQ);
@@ -316,7 +316,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2LEt2(TermList s1,TermList s2,T
 /**
  * Return the result of literal comparison assuming s1 >= t1 and s2 inc t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1GEt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1GEt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER_EQ);
   ASS_EQ(compare(s2,t2), INCOMPARABLE);
@@ -343,7 +343,7 @@ Ordering::Result Ordering::EqCmp::compare_s1GEt1_s2It2(TermList s1,TermList s2,T
 /**
  * Return the result of literal comparison assuming s1 > t1, s1 inc t2, s2 inc t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s1,t2), INCOMPARABLE);
@@ -365,7 +365,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1It2_s2It1(TermList s1,TermList
 /**
  * Return the result of literal comparison assuming s1 > t1, s1 >= t2, s2 inc t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s1,t2), GREATER_EQ);
@@ -391,7 +391,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It1(TermList s1,TermLis
 /**
  * Return the result of literal comparison assuming s1 > t1, s1 >= t2, s2 inc t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It2(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s1,t2), GREATER_EQ);
@@ -418,7 +418,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It2(TermList s1,TermLis
 /**
  * Return the result of literal comparison assuming s1 >= t1, s1 >= t2, s2 inc t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1GEt2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1GEt2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER_EQ);
   ASS_EQ(compare(s1,t2), GREATER_EQ);
@@ -445,7 +445,7 @@ Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1GEt2_s2It1(TermList s1,TermLi
 /**
  * Return the result of literal comparison assuming s1 >= t1, s1 inc t2, s2 inc t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER_EQ);
   ASS_EQ(compare(s1,t2), INCOMPARABLE);
@@ -481,7 +481,7 @@ Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1It2_s2It1(TermList s1,TermLis
 /**
  * Return the result of literal comparison assuming s1 >= t1, s2 <= t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1GEt1_s2LEt2(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1GEt1_s2LEt2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER_EQ);
   ASS_EQ(compare(s2,t2), LESS_EQ);
@@ -522,7 +522,7 @@ Ordering::Result Ordering::EqCmp::compare_s1GEt1_s2LEt2(TermList s1,TermList s2,
 /**
  * Return the result of literal comparison assuming s1 > t1, s1 >= t2, s2 < t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s1,t2), GREATER_EQ);
@@ -551,7 +551,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2Lt2(TermList s1,TermLis
 /**
  * Return the result of literal comparison assuming s1 >= t1, s1 >= t2, s2 <= t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1GEt2_s2LEt1(TermList s1,TermList s2,TermList t1,TermList t2)
+Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1GEt2_s2LEt1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER_EQ);
   ASS_EQ(compare(s1,t2), GREATER_EQ);
