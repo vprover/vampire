@@ -2267,7 +2267,10 @@ bool Options::complete(const Problem& prb) const
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 
-  if ((_selection <= -100 || _selection >= 100) && !unitEquality) return false;
+  if (!unitEquality) {
+    if (_selection <= -100 || _selection >= 100) return false;
+    if (_literalComparisonMode == LCM_REVERSE) return false;
+  }
 
   if (!hasEquality) {
     if (_binaryResolution) return true;
