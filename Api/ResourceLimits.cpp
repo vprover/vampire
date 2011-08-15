@@ -16,6 +16,8 @@
 namespace Api
 {
 
+using namespace Lib;
+
 //#ifdef VAPI_LIBRARY
 
 //here we ensure that if Vampire is used as a library, we do not impose

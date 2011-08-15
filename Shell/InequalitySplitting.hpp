@@ -20,7 +20,7 @@ using namespace Kernel;
 class InequalitySplitting
 {
 public:
-  InequalitySplitting();
+  InequalitySplitting(const Options& opt);
 
   void perform(Problem& prb);
   bool perform(UnitList*& units);

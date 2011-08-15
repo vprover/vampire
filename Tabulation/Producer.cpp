@@ -67,7 +67,14 @@ Producer::Producer(TabulationAlgorithm& alg)
   _urr = new URResolution(true, _lemmaIndex.ptr(), _ruleTailIndex.ptr());
 
   _unprocLemmaCont.setAgeWeightRatio(
-      env.options->tabulationLemmaAgeRatio(),env.options->tabulationLemmaWeightRatio());
+      getOptions().tabulationLemmaAgeRatio(),getOptions().tabulationLemmaWeightRatio());
+}
+
+const Options& Producer::getOptions()
+{
+  CALL("Producer::getOptions");
+
+  return _alg.getOptions();
 }
 
 bool Producer::subsumedByLemma(Literal* lit)
@@ -232,7 +239,7 @@ void Producer::performRuleAddition(Clause* rule)
     }
   }
 
-  if(env.options->tabulationFwRuleSubsumptionResolutionByLemmas()) {
+  if(getOptions().tabulationFwRuleSubsumptionResolutionByLemmas()) {
     rule = doForwardLemmaSubsumptionResolution(rule);
     if(!rule) {
       return;
@@ -362,7 +369,7 @@ void Producer::onLemma(Clause* lemma)
     RSTAT_CTR_INC("backward subsumed lemmas");
   }
 
-  if(env.options->tabulationBwRuleSubsumptionResolutionByLemmas()) {
+  if(getOptions().tabulationBwRuleSubsumptionResolutionByLemmas()) {
     doBackwardLemmaSubsumptionResolution(lemma);
   }
 }

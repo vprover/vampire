@@ -190,7 +190,7 @@ bool SWBSplitter::canSplitOut(Literal* lit)
   Signature::Symbol* predSym = env.signature->getPredicate(lit->functor());
 
   return lit->color()==COLOR_TRANSPARENT &&
-    (!env.options->showSymbolElimination() || lit->skip()) &&
+    (!getOptions().showSymbolElimination() || lit->skip()) &&
     (!predSym->cfName()) && (!isAnswerLiteral(lit));
 }
 

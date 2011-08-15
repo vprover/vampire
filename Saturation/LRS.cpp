@@ -82,8 +82,8 @@ long long LRS::estimatedReachableCount()
   long long processed=env.statistics->activeClauses;
   int currTime=env.timer->elapsedMilliseconds();
   long long timeSpent=currTime-_startTime;
-  //the result is in miliseconds, as env.options->lrsFirstTimeCheck() is in percents.
-  int firstCheck=env.options->lrsFirstTimeCheck()*env.options->timeLimitInDeciseconds();
+  //the result is in miliseconds, as _opt.lrsFirstTimeCheck() is in percents.
+  int firstCheck=_opt.lrsFirstTimeCheck()*_opt.timeLimitInDeciseconds();
 //  int timeSpent=currTime;
 
   if(timeSpent<firstCheck ) {
@@ -91,10 +91,10 @@ long long LRS::estimatedReachableCount()
   }
 
   long long timeLeft;
-  if(env.options->simulatedTimeLimit()) {
-    timeLeft=env.options->simulatedTimeLimit()*100 - currTime;
+  if(_opt.simulatedTimeLimit()) {
+    timeLeft=_opt.simulatedTimeLimit()*100 - currTime;
   } else {
-    timeLeft=env.options->timeLimitInDeciseconds()*100 - currTime;
+    timeLeft=_opt.timeLimitInDeciseconds()*100 - currTime;
   }
   if(timeLeft<=0 || processed<=10) {
     //we end-up here even if there is no time timit (i.e. time limit is set to 0)

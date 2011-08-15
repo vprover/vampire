@@ -202,11 +202,11 @@ void SineBase::initGeneralityFunction(UnitList* units)
   }
 }
 
-SineSelector::SineSelector()
-: _onIncluded(env.options->sineSelection()==Options::SS_INCLUDED),
-  _genThreshold(env.options->sineGeneralityThreshold()),
-  _tolerance(env.options->sineTolerance()),
-  _depthLimit(env.options->sineDepth())
+SineSelector::SineSelector(const Options& opt)
+: _onIncluded(opt.sineSelection()==Options::SS_INCLUDED),
+  _genThreshold(opt.sineGeneralityThreshold()),
+  _tolerance(opt.sineTolerance()),
+  _depthLimit(opt.sineDepth())
 {
   CALL("SineSelector::SineSelector/0");
 
@@ -408,8 +408,8 @@ void SineSelector::perform(UnitList*& units)
 // SineTheorySelector
 //////////////////////////////////////
 
-SineTheorySelector::SineTheorySelector()
-: _genThreshold(env.options->sineGeneralityThreshold())
+SineTheorySelector::SineTheorySelector(const Options& opt)
+: _genThreshold(opt.sineGeneralityThreshold()), _opt(opt)
 {
   CALL("SineTheorySelector::SineTheorySelector");
 }
@@ -540,7 +540,7 @@ void SineTheorySelector::perform(UnitList*& units)
   DHSet<Unit*> selected;
   Deque<Unit*> newlySelected;
 
-  bool sineOnIncluded=env.options->sineSelection()==Options::SS_INCLUDED;
+  bool sineOnIncluded=_opt.sineSelection()==Options::SS_INCLUDED;
 
   //build the D-relation and select the non-axiom formulas
   UnitList::Iterator uit2(units);
@@ -558,9 +558,9 @@ void SineTheorySelector::perform(UnitList*& units)
   }
 
 
-  unsigned short intTolerance=static_cast<unsigned short>(ceil(env.options->sineTolerance()*10));
+  unsigned short intTolerance=static_cast<unsigned short>(ceil(_opt.sineTolerance()*10));
 
-  unsigned depthLimit=env.options->sineDepth();
+  unsigned depthLimit=_opt.sineDepth();
   unsigned depth=0;
   newlySelected.push_back(0);
 

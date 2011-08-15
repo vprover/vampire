@@ -122,7 +122,7 @@ void Preprocess::preprocess (Problem& prb)
 
   if(_options.sineSelection()!=Options::SS_OFF) {
     env.statistics->phase=Statistics::SINE_SELECTION;
-    SineSelector().perform(prb);
+    SineSelector(_options).perform(prb);
   }
 
   if(_options.questionAnswering()==Options::QA_ANSWER_LITERAL) {
@@ -234,7 +234,7 @@ void Preprocess::preprocess (Problem& prb)
 
   if (prb.mayHaveEquality() && _options.inequalitySplitting() != 0) {
     env.statistics->phase=Statistics::INEQUALITY_SPLITTING;
-    InequalitySplitting is;
+    InequalitySplitting is(_options);
     is.perform(prb);
   }
 

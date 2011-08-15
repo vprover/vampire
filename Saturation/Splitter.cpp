@@ -26,6 +26,14 @@ void Splitter::init(SaturationAlgorithm* sa)
   _ansLitMgr = _sa->getAnswerLiteralManager();
 }
 
+const Options& Splitter::getOptions() const
+{
+  CALL("Splitter::getOptions");
+  ASS(_sa);
+
+  return getOptions();
+}
+
 /**
  * Register the reduction of the @b cl clause
  */
@@ -48,7 +56,7 @@ void Splitter::onClauseReduction(Clause* cl, Clause* premise, Clause* replacemen
  */
 bool Splitter::splitPositive()
 {
-  return env.options->splitPositive();
+  return getOptions().splitPositive();
 }
 
 /**
@@ -59,11 +67,11 @@ bool Splitter::splittingAllowed(Clause* cl)
 {
   CALL("Splitter::splittingAllowed");
 
-  if(env.options->splitInputOnly() && !cl->isInput()) {
+  if(getOptions().splitInputOnly() && !cl->isInput()) {
     return false;
   }
 
-  if(env.options->splitGoalOnly() && cl->inputType()!=Unit::CONJECTURE) {
+  if(getOptions().splitGoalOnly() && cl->inputType()!=Unit::CONJECTURE) {
     return false;
   }
 

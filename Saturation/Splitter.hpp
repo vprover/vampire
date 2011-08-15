@@ -36,6 +36,7 @@ public:
   virtual void onNewClause(Clause* cl) {}
   virtual void onAllProcessed() {}
 
+  const Options& getOptions() const;
 protected:
 
   bool splitPositive();

@@ -1,6 +1,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
@@ -26,7 +27,10 @@ TEST_FUN(interpNorm1)
   Clause* cl = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM, new Inference(Inference::INPUT));
   cout << cl->toString() << endl;
 
+  Problem prb(pvi(getSingletonIterator(cl)), false);
+
   InterpretedNormalizer inorm;
-  Clause* norm = inorm.apply(cl);
+  inorm.apply(prb);
+  Clause* norm = static_cast<Clause*>(prb.units()->head());
   cout << norm->toString() << endl;
 }

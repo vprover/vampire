@@ -12,6 +12,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -123,29 +124,30 @@ TEST_FUN(iteTerm)
   FormulaUnit* ut2 = new FormulaUnit(new AtomicFormula(Literal::create1(q, true, t2)), new Inference(Inference::INPUT), Unit::AXIOM);
   FormulaUnit* ut3 = new FormulaUnit(new AtomicFormula(Literal::create1(q, true, t3)), new Inference(Inference::INPUT), Unit::AXIOM);
 
-  UnitList* prob = 0;
+  UnitList* probUnits = 0;
 
 //  UnitList::push(u, prob);
 //  UnitList::push(ut3, prob);
 //  UnitList::push(ut2, prob);
 //  UnitList::push(ut1, prob);
-  UnitList::push(us4, prob);
+  UnitList::push(us4, probUnits);
 //  UnitList::push(us3, prob);
 //  UnitList::push(us2, prob);
 //  UnitList::push(us1, prob);
 
-  UnitList::Iterator uit0(prob);
+  UnitList::Iterator uit0(probUnits);
   while(uit0.hasNext()) {
     cout << uit0.next()->toString() <<endl;
   }
 
-  Property* property = Property::scan(prob);
+  Problem prob(probUnits);
+
   env.options->setUnusedPredicateDefinitionRemoval(false);
-  Preprocess prep(*property,*env.options);
+  Preprocess prep(*env.options);
 
   prep.preprocess(prob);
 
-  UnitList::Iterator uit(prob);
+  UnitList::Iterator uit(prob.units());
   while(uit.hasNext()) {
     cout << uit.next()->toString() <<endl;
   }

@@ -281,7 +281,7 @@ int SWBSplitterWithBDDs::nameComponent(Clause* comp)
   }
   comp->setProp(newCompProp);
 
-  if(env.options->showDefinitions() && newlyIntroduced) {
+  if(getOptions().showDefinitions() && newlyIntroduced) {
     env.beginOutput();
     env.out() << "Definition: ";
     if(compName<0) {

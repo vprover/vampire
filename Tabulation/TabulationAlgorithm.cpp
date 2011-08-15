@@ -29,14 +29,14 @@ namespace Tabulation
 
 TabulationAlgorithm::TabulationAlgorithm(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _goalContainer(opt), _gp(*this), _producer(*this),
-  _instatiateProducingRules(env.options->tabulationInstantiateProducingRules())
+  _instatiateProducingRules(opt.tabulationInstantiateProducingRules())
 {
   CALL("TabulationAlgorithm::TabulationAlgorithm");
 
   _ise = createISE(prb, opt);
 
   _goalContainer.setAgeWeightRatio(
-      env.options->tabulationGoalAgeRatio(),env.options->tabulationGoalWeightRatio());
+      opt.tabulationGoalAgeRatio(),opt.tabulationGoalWeightRatio());
 
   _refutation = 0;
 
@@ -413,8 +413,8 @@ MainLoopResult TabulationAlgorithm::runImpl()
     return MainLoopResult(Statistics::REFUTATION, _refutation);
   }
 
-  int lemmaRatio = env.options->tabulationLemmaRatio();
-  int goalRatio = env.options->tabulationGoalRatio();
+  int lemmaRatio = _opt.tabulationLemmaRatio();
+  int goalRatio = _opt.tabulationGoalRatio();
   int balance = 0;
 
   while(_producer.hasLemma() || !_goalContainer.isEmpty()) {

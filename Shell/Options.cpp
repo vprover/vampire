@@ -1296,7 +1296,7 @@ bool Options::setNongoalWeightCoefficient (float newVal)
   _nongoalWeightCoefficient = newVal;
 
   //convert the coeffitient to rationsl (we don't need to be super precise so we do it as below...)
-  _nonGoalWeightCoeffitientNumerator = static_cast<int>(env.options->nongoalWeightCoefficient()*100);
+  _nonGoalWeightCoeffitientNumerator = static_cast<int>(_nongoalWeightCoefficient*100);
   _nonGoalWeightCoeffitientDenominator = 100;
 
   return true;

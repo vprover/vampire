@@ -35,7 +35,14 @@ using namespace Kernel;
 BSplitter::BSplitter()
 : _nextLev(1)
 {
-  _addGroundNegation=env.options->splitAddGroundNegation();
+}
+
+void BSplitter::init(SaturationAlgorithm* sa)
+{
+  CALL("BSplitter::init");
+
+  Splitter::init(sa);
+  _addGroundNegation=getOptions().splitAddGroundNegation();
 }
 
 /**

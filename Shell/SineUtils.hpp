@@ -57,7 +57,7 @@ class SineSelector
 : public SineBase
 {
 public:
-  SineSelector();
+  SineSelector(const Options& opt);
   SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold=0);
 
   void perform(UnitList*& units);
@@ -96,7 +96,7 @@ class SineTheorySelector
 : public SineBase
 {
 public:
-  SineTheorySelector();
+  SineTheorySelector(const Options& opt);
 
   void initSelectionStructure(UnitList* units);
   void perform(UnitList*& units);
@@ -134,6 +134,8 @@ private:
    * These formulas are always selected.
    */
   Stack<Unit*> _unitsWithoutSymbols;
+
+  const Options& _opt;
 };
 
 

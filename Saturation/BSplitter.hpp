@@ -60,6 +60,8 @@ private:
 public:
   BSplitter();
 
+  virtual void init(SaturationAlgorithm* sa);
+
   bool doSplitting(Clause* cl);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);

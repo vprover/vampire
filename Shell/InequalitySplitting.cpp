@@ -29,8 +29,8 @@ using namespace Lib;
 using namespace Kernel;
 
 
-InequalitySplitting::InequalitySplitting()
-: _splittingTreshold(env.options->inequalitySplitting())
+InequalitySplitting::InequalitySplitting(const Options& opt)
+: _splittingTreshold(opt.inequalitySplitting())
 {
   ASS_G(_splittingTreshold,0);
 }

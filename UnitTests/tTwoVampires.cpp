@@ -24,10 +24,13 @@ UT_CREATE;
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Sys/SyncPipe.hpp"
 
+#include "Kernel/Problem.hpp"
+
 #include "Shell/Options.hpp"
-#include "Saturation/ProvingHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+
+#include "Saturation/ProvingHelper.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -65,7 +68,8 @@ void runChild(UnitList* units, string slice)
   env.out()<<env.options->testId()<<" on "<<env.options->problemName()<<endl;
   env.endOutput();
 
-  ProvingHelper::runVampire(units);
+  Problem prob(units);
+  ProvingHelper::runVampire(prob, *env.options);
 
   //set return value to zero if we were successful
   if(env.statistics->terminationReason==Statistics::REFUTATION) {

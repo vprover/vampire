@@ -65,6 +65,8 @@ private:
 
   void newLemma(Clause* lemma);
 
+  const Options& getOptions();
+
   typedef AWClauseContainer UnprocessedLemmaContainer;
 
   class ActiveContainer : public ClauseContainer {
