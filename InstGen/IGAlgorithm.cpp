@@ -58,28 +58,6 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
     _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr());
   }
 
-  if(_opt.instGenWithResolution()) {
-    _saturationIndexManager = new IndexManager(0);
-    if(_opt.globalSubsumption()) {
-      _saturationIndexManager->provideIndex(GLOBAL_SUBSUMPTION_INDEX, _groundingIndex.ptr());
-    }
-
-    _saturationProblem = prb.copy(true);
-
-    _saturationOptions = opt;
-    _saturationOptions.setSaturationAlgorithm(Options::OTTER);
-    _saturationOptions.setPropositionalToBDD(false);
-    _saturationOptions.setSplitting(Options::SM_OFF);
-    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
-
-    //we will watch what clauses are derived in the
-    //saturation part, so we can take advantage of them
-    _saturationAlgorithm->getSimplifyingClauseContainer()->addedEvent.subscribe(this, &IGAlgorithm::onResolutionClauseDerived);
-  }
-  else {
-    //if there's no resolution, we always do instGen
-    _instGenResolutionRatio.alwaysDoFirst();
-  }
   _variantIdx = new ClauseVariantIndex();
   _selected = new LiteralSubstitutionTree();
 }
@@ -103,25 +81,44 @@ void IGAlgorithm::init()
 {
   CALL("IGAlgorithm::init");
 
-  ClauseIterator it = _prb.clauseIterator();
-
-  UnitList* units = 0;
-  UnitList::pushFromIterator(it, units);
-
-  if(_saturationAlgorithm) {
-    _saturationAlgorithm->initAlgorithmRun();
-  }
-
-  Property* property = Property::scan(units);
-  if(property->equalityAtoms()) {
+  if(_prb.hasEquality()) {
     EqualityProxy ep(Options::EP_RSTC);
-    ep.apply(units);
+    ep.apply(_prb);
   }
 
-  while(units) {
-    Clause* cl = static_cast<Clause*>(UnitList::pop(units));
+  ClauseIterator cit = _prb.clauseIterator();
+
+  while(cit.hasNext()) {
+    Clause* cl = cit.next();
     ASS(cl->isClause());
     _inputClauses.push(cl);
+  }
+
+
+  if(_opt.instGenWithResolution()) {
+    _saturationIndexManager = new IndexManager(0);
+    if(_opt.globalSubsumption()) {
+      _saturationIndexManager->provideIndex(GLOBAL_SUBSUMPTION_INDEX, _groundingIndex.ptr());
+    }
+
+    _saturationProblem = _prb.copy(true);
+
+    _saturationOptions = _opt;
+    _saturationOptions.setSaturationAlgorithm(Options::OTTER);
+    _saturationOptions.setPropositionalToBDD(false);
+    _saturationOptions.setSplitting(Options::SM_OFF);
+    _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
+
+    //we will watch what clauses are derived in the
+    //saturation part, so we can take advantage of them
+    _saturationAlgorithm->getSimplifyingClauseContainer()->addedEvent.subscribe(this, &IGAlgorithm::onResolutionClauseDerived);
+
+    //init the saturation algorithm run
+    _saturationAlgorithm->initAlgorithmRun();
+  }
+  else {
+    //if there's no resolution, we always do instGen
+    _instGenResolutionRatio.alwaysDoFirst();
   }
 }
 

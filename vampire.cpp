@@ -306,7 +306,7 @@ void axiomSelectionMode()
   }
 
   env.statistics->phase=Statistics::SINE_SELECTION;
-  SineSelector().perform(*prb);
+  SineSelector(*env.options).perform(*prb);
 
   env.statistics->phase=Statistics::FINALIZATION;
 
