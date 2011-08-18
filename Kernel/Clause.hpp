@@ -13,6 +13,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Event.hpp"
 #include "Lib/InverseLookup.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
@@ -309,6 +310,9 @@ public:
   float getEffectiveWeight(const Shell::Options& opt);
 
   virtual unsigned varCnt();
+
+  static ClauseEvent beforePropChange;
+  static ClauseEvent afterPropChange;
 
 protected:
   /** number of literals */

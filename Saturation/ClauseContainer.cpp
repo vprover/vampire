@@ -99,26 +99,6 @@ Clause* UnprocessedClauseContainer::pop()
 }
 
 
-/////////////////   PassiveClauseContainer   //////////////////////
-
-PassiveClauseContainer* PassiveClauseContainer::s_instance = 0;
-
-void PassiveClauseContainer::registerInstance(PassiveClauseContainer* cont)
-{
-  CALL("PassiveClauseContainer::registerInstance");
-  ASS_EQ(s_instance, 0);
-
-  s_instance=cont;
-}
-
-void PassiveClauseContainer::unregisterInstance(PassiveClauseContainer* cont)
-{
-  CALL("PassiveClauseContainer::unregisterInstance");
-  ASS_EQ(cont, s_instance);
-
-  s_instance=0;
-}
-
 
 /////////////////   ActiveClauseContainer   //////////////////////
 

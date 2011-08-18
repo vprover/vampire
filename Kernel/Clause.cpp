@@ -41,6 +41,13 @@ using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
 
+/**
+ * Event that is being triggered when the propositional part of some
+ * clause changes
+ */
+ClauseEvent Clause::beforePropChange;
+ClauseEvent Clause::afterPropChange;
+
 size_t Clause::_auxCurrTimestamp = 0;
 #if VDEBUG
 bool Clause::_auxInUse = false;
@@ -180,16 +187,9 @@ void Clause::setProp(BDDNode* prop)
     return;
   }
 
-  if( (store()==PASSIVE || store()==REACTIVATED) && env.options->nonliteralsInClauseWeight() ) {
-    PassiveClauseContainer* passive=PassiveClauseContainer::instance();
-    ASS(passive); //if there is a passive clause, there must be the passive container
-    passive->beforePassiveClauseUpdated(this);
-    _prop = prop;
-    passive->afterPassiveClauseUpdated(this);
-  }
-  else {
-    _prop = prop;
-  }
+  beforePropChange.fire(this);
+  _prop = prop;
+  afterPropChange.fire(this);
 }
 
 bool Clause::noProp() const

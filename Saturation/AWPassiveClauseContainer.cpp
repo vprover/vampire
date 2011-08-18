@@ -29,7 +29,7 @@ using namespace Kernel;
 
 
 AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
-: _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
+: _clauseHavingWeightChanged(0), _ageQueue(opt), _weightQueue(opt), _balance(0), _size(0), _opt(opt)
 {
   CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
 
@@ -38,6 +38,32 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(const Options& opt)
   ASS_GE(_ageRatio, 0);
   ASS_GE(_weightRatio, 0);
   ASS(_ageRatio > 0 || _weightRatio > 0);
+
+  _beforeClausePropUpdateSD = Clause::beforePropChange.subscribe(this, &AWPassiveClauseContainer::beforeClausePropChange);
+  _afterClausePropUpdateSD = Clause::afterPropChange.subscribe(this, &AWPassiveClauseContainer::afterClausePropChange);
+}
+
+AWPassiveClauseContainer::~AWPassiveClauseContainer()
+{
+  ClauseQueue::Iterator cit(_ageQueue);
+  while(cit.hasNext()) {
+    Clause* cl=cit.next();
+    if(cl->store()==Clause::PASSIVE) {
+      cl->setStore(Clause::NONE);
+    } else if(cl->store()==Clause::REACTIVATED) {
+      cl->setStore(Clause::ACTIVE);
+    }
+#if VDEBUG
+    else {
+      ASSERTION_VIOLATION;
+    }
+#endif
+  }
+
+  ASS(!_beforeClausePropUpdateSD.isEmpty());
+  _beforeClausePropUpdateSD->unsubscribe();
+  ASS(!_afterClausePropUpdateSD.isEmpty());
+  _afterClausePropUpdateSD->unsubscribe();
 }
 
 ClauseIterator AWPassiveClauseContainer::iterator()
@@ -150,25 +176,6 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
   return c1->number() < c2->number();
 } // WeightQueue::lessThan
 
-
-AWPassiveClauseContainer::~AWPassiveClauseContainer()
-{
-  ClauseQueue::Iterator cit(_ageQueue);
-  while(cit.hasNext()) {
-    Clause* cl=cit.next();
-    if(cl->store()==Clause::PASSIVE) {
-      cl->setStore(Clause::NONE);
-    } else if(cl->store()==Clause::REACTIVATED) {
-      cl->setStore(Clause::ACTIVE);
-    }
-#if VDEBUG
-    else {
-      ASSERTION_VIOLATION;
-    }
-#endif
-  }
-}
-
 /**
  * Add @b c clause in the queue.
  * @since 31/12/2007 Manchester
@@ -257,25 +264,55 @@ Clause* AWPassiveClauseContainer::popSelected()
   return cl;
 } // AWPassiveClauseContainer::popSelected
 
+void AWPassiveClauseContainer::beforeClausePropChange(Clause* cl)
+{
+  CALL("AWPassiveClauseContainer::beforeClausePropChange");
+
+  if( (cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED) && _opt.nonliteralsInClauseWeight() ) {
+    beforePassiveClauseWeightChange(cl);
+  }
+}
+
+void AWPassiveClauseContainer::afterClausePropChange(Clause* cl)
+{
+  CALL("AWPassiveClauseContainer::afterClausePropChange");
+
+  if( (cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED) && _opt.nonliteralsInClauseWeight() ) {
+    afterPassiveClauseWeightChange(cl);
+  }
+}
+
 /**
  * This function should be called before clause @b cl is modified in a
  * way that could affect its placement in age and weight queues of the
- * passive container. The function should be called only for clauses
- * that are contained in this container. The function
- * @b afterPassiveClauseUpdated must be called after the modification
+ * passive container.
+ *
+ * The function needs to be called for clauses
+ * that are contained in this container, the function can handle cases when
+ * a clause not from this container is passed.
+ *
+ * The function @b afterPassiveClauseUpdated must be called after the modification
  * is done.
  */
-void AWPassiveClauseContainer::beforePassiveClauseUpdated(Clause* cl)
+void AWPassiveClauseContainer::beforePassiveClauseWeightChange(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::beforePassiveClauseUpdated");
-  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED);
+  ASS(!_clauseHavingWeightChanged);
 
+  _clauseHavingWeightChanged = cl;
+
+  bool clauseWasPresent;
   if(_ageRatio) {
-    ALWAYS(_ageQueue.remove(cl));
+    clauseWasPresent = _ageQueue.remove(cl);
+    if(_weightRatio && clauseWasPresent) {
+      ALWAYS(_weightQueue.remove(cl));
+    }
   }
-  if(_weightRatio) {
-    ALWAYS(_weightQueue.remove(cl));
+  else {
+    ASS(_weightRatio);
+    clauseWasPresent = _weightQueue.remove(cl);
   }
+  _clauseHavingWeightChangedWasInContainer = clauseWasPresent;
 }
 
 /**
@@ -286,10 +323,15 @@ void AWPassiveClauseContainer::beforePassiveClauseUpdated(Clause* cl)
  * @b beforePassiveClauseUpdated must have been called before the
  * modification was done.
  */
-void AWPassiveClauseContainer::afterPassiveClauseUpdated(Clause* cl)
+void AWPassiveClauseContainer::afterPassiveClauseWeightChange(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::afterPassiveClauseUpdated");
-  ASS(cl->store()==Clause::PASSIVE || cl->store()==Clause::REACTIVATED);
+  ASS_EQ(_clauseHavingWeightChanged, cl);
+
+  _clauseHavingWeightChanged=0;
+  if(!_clauseHavingWeightChangedWasInContainer) {
+    return;
+  }
 
   if(_ageRatio) {
     _ageQueue.insert(cl);

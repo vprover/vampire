@@ -127,8 +127,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _limits.setLimits(0,opt.maxWeight());
   }
 
-  PassiveClauseContainer::registerInstance(_passive);
-
   s_instance=this;
 }
 
@@ -141,8 +139,6 @@ SaturationAlgorithm::~SaturationAlgorithm()
   ASS_EQ(s_instance,this);
 
   s_instance=0;
-
-  PassiveClauseContainer::unregisterInstance(_passive);
 
   if(_splitter) {
     delete _splitter;
