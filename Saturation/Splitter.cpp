@@ -31,7 +31,7 @@ const Options& Splitter::getOptions() const
   CALL("Splitter::getOptions");
   ASS(_sa);
 
-  return getOptions();
+  return _sa->getOptions();
 }
 
 /**
