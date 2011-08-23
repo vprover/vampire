@@ -6,6 +6,8 @@
 #ifndef __BFNTMainLoop__
 #define __BFNTMainLoop__
 
+#include "Lib/Portability.hpp"
+
 #include "Forwards.hpp"
 
 #include "Lib/SmartPtr.hpp"
@@ -30,12 +32,14 @@ protected:
 
 private:
 
+#if !COMPILER_MSVC
   void runChild(size_t modelSize) __attribute__((noreturn));
   MainLoopResult spawnChild(size_t modelSize);
 
   Options _childOpts;
   /** the input transformer */
   BFNT _bfnt;
+#endif
 };
 
 }

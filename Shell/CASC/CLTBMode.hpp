@@ -35,7 +35,7 @@ using namespace Kernel;
 class CLTBMode
 {
 public:
-  void perform() { USER_ERROR("casc_ltb mode is not supported on Windows"); }
+  static void perform() { USER_ERROR("casc_ltb mode is not supported on Windows"); }
 };
 
 #else

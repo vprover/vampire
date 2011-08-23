@@ -6,6 +6,8 @@
 #include <cerrno>
 #include <csignal>
 
+#include "Lib/Portability.hpp"
+
 #if !COMPILER_MSVC
 
 #include <sys/types.h>
@@ -40,6 +42,27 @@
 
 namespace Shell
 {
+#if COMPILER_MSVC
+
+BFNTMainLoop::BFNTMainLoop(Problem& prb, const Options& opt)
+: MainLoop(prb, opt)
+{}
+
+void BFNTMainLoop::init()
+{
+  CALL("BFNTMainLoop::init");
+
+  USER_ERROR("BFNT not supported on Windows");
+}
+
+MainLoopResult BFNTMainLoop::runImpl()
+{
+  CALL("BFNTMainLoop::runImpl");
+
+  USER_ERROR("BFNT not supported on Windows");
+}
+
+#else
 
 BFNTMainLoop::BFNTMainLoop(Problem& prb, const Options& opt)
 : MainLoop(prb, opt),
@@ -204,6 +227,6 @@ MainLoopResult BFNTMainLoop::runImpl()
     modelSize++;
   }
 }
-
+#endif
 
 }
