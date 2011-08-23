@@ -144,8 +144,11 @@ void satSolverMode(const char* fname)
 {
   CALL("satSolverMode");
 
+  env.statistics->phase = Statistics::PARSING;
   unsigned varCnt;
   SATClauseList* clauses = getPreprocessedClauses(fname, varCnt);
+
+  env.statistics->phase = Statistics::SATURATION;
 
   cout<<"-start varcnt "<<varCnt<<"\n";
 
@@ -159,6 +162,8 @@ void satSolverMode(const char* fname)
   else {
     res = runSolver(ts, varCnt, clauses);
   }
+
+  env.statistics->phase = Statistics::FINALIZATION;
 
   switch(res) {
   case SATSolver::SATISFIABLE:
