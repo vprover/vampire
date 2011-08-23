@@ -19,8 +19,7 @@ public:
      * This value is used when new clauses or assumptions are added to
      * the SAT solver, but the full saturation hasn't been performed
      */
-    UNKNOWN,
-    TIME_LIMIT
+    UNKNOWN
   };
 
   virtual ~SATSolver() {}

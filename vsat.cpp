@@ -167,9 +167,8 @@ void satSolverMode(const char* fname)
   case SATSolver::UNSATISFIABLE:
     cout<<"UNSATISFIABLE\n";
     break;
-  case SATSolver::TIME_LIMIT:
-    cout<<"TIME LIMIT\n";
-    break;
+  default:
+    ASSERTION_VIOLATION;
   }
 
   clauses->destroy();
@@ -200,10 +199,15 @@ int main(int argc, char* argv [])
       cout<<"invalid parameter"<<endl;
       return 1;
     }
-  } catch(MemoryLimitExceededException)
+  }
+  catch(MemoryLimitExceededException)
   {
     cerr<<"Memory limit exceeded\n";
     cout<<"-MEMORY_LIMIT\n";
+  }
+  catch(TimeLimitExceededException)
+  {
+    cout<<"TIME LIMIT\n";
   }
 
   env.statistics->print(cout);
