@@ -46,6 +46,12 @@ void preprocessClauses(unsigned varCnt, SATClauseList*& clauses)
   CALL("getInputClauses");
 
   Preprocess::filterPureLiterals(varCnt, clauses);
+
+//  SATClauseIterator cl = pvi( SATClauseList::DestructiveIterator(clauses));
+//  SATClauseIterator units, nonUnits;
+//  Preprocess::propagateUnits(cl, units, nonUnits);
+//  clauses = 0;
+//  SATClauseList::pushFromIterator(nonUnits, clauses);
 }
 
 SATClauseList* getPreprocessedClauses(const char* fname, unsigned& varCnt)
