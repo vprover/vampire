@@ -13,6 +13,9 @@
 
 namespace SAT {
 
+/**
+ * Class that is responsible for removal of learnt clauses in the SAT solver
+ */
 class ClauseDisposer
 {
 public:
@@ -68,6 +71,24 @@ protected:
   ActivityType _inc;
 };
 
+/**
+ * Performs clause disposal according to the MiniSAT strategy
+ *
+ * We maintain phases of the run according to the number of conflicts. The length
+ * of successive phases is always increased by 50%. Position in phase increases with
+ * each conflict.
+ *
+ * We keep taget number of survivor clauses. Starting at zero, we increase this
+ * number by one for each four learned clauses. Also, after each phase we increase
+ * the number by 10%.
+ *
+ * When the number of learnt clauses is greater than the nmber of survivors, we
+ * perform clause removal. We mark for removal the least active half of learnt
+ * clauses, but we stop marking when we reach clauses with activity at least
+ * @c _inc/learntCnt (_inc is the clause activity increment). When clauses are
+ * marked for removal, we unmark binary clauses, and remove the clauses that
+ * remained marked.
+ */
 class MinisatClauseDisposer : public DecayingClauseDisposer
 {
 public:
@@ -86,6 +107,25 @@ protected:
   size_t _survivorCnt;
 };
 
+/**
+ * Performs learnt clause disposal
+ *
+ * We ignore clauses of length less than three.
+ *
+ * At the end of each phase, clause removal is performed. The length of successive
+ * phase is always increased by 50%. Position in phase increases with each conflict.
+ *
+ * We keep taget number of survivor clauses. Starting at zero, we increase this
+ * number by one for each four learned clauses (only clauses of length greater than
+ * two are counted).
+ *
+ * When the number of learnt clauses is greater than the nmber of survivors, we
+ * perform clause removal. We mark for removal the least active half of learnt
+ * clauses, but we stop marking when we reach clauses with activity at least
+ * @c _inc/learntCnt (_inc is the clause activity increment). When clauses are
+ * marked for removal, we unmark binary clauses, and remove the clauses that
+ * remained marked.
+ */
 class GrowingClauseDisposer : public DecayingClauseDisposer
 {
 public:

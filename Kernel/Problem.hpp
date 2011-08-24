@@ -57,6 +57,9 @@ public:
 
   Problem* copy(bool copyClauses=false);
 
+  bool hadIncompleteTransformation() const { return _hadIncompleteTransformation; }
+  void reportIncompleteTransformation() { _hadIncompleteTransformation = true; }
+
   typedef DHMap<unsigned,bool> TrivialPredicateMap;
   void addTrivialPredicate(unsigned pred, bool assignment);
   /**
@@ -138,6 +141,8 @@ private:
   void readDetailsFromProperty() const;
 
   UnitList* _units;
+
+  bool _hadIncompleteTransformation;
 
   DHMap<unsigned,bool> _trivialPredicates;
 

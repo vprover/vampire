@@ -2243,6 +2243,12 @@ bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
 
+  //we did some transformation that made us lose completeness
+  //(e.g. equality proxy replacing equality for reflexive predicate)
+  if(prb.hadIncompleteTransformation()) {
+    return false;
+  }
+
   Property& prop = *prb.getProperty();
 
   ASS(&prop);

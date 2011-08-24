@@ -82,9 +82,6 @@ void BFNTMainLoop::init()
 {
   CALL("BFNTMainLoop::init");
 
-  ClauseIterator cit = _prb.clauseIterator();
-
-
   //Putting problem units into the BFNT convertor here may result into
   //one clause appearing in multiple Problem objects. In _prb and then in
   //child problems created by the spawed processes. Normally we wouldn't

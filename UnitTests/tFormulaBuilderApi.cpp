@@ -688,3 +688,15 @@ TEST_FUN(fbapiTff)
   OutputOptions::setTffFormulas(false);
 }
 
+TEST_FUN(fbapiInts)
+{
+  FormulaBuilder api;
+  Sort iSort = api.integerSort();
+  Function one = api.integerConstant("1");
+  Function two = api.integerConstant(2);
+  Term oneT = api.term(one);
+  Term twoT = api.term(two);
+  Formula eq = api.equality(oneT, twoT, iSort, true);
+  cout << eq.toString() << endl;
+}
+

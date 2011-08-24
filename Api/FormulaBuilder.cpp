@@ -57,12 +57,31 @@ Sort FormulaBuilder::sort(const string& sortName)
   CALL("FormulaBuilder::sort");
 
   bool added;
-  unsigned res = env.sorts->addSort(sortName, added);
-  if(!added) {
-    throw ApiException("Sort name must be unique");
-  }
+  unsigned res = env.sorts->addSort(sortName);
   return Sort(res);
 }
+
+Sort FormulaBuilder::integerSort()
+{
+  CALL("FormulaBuilder::integerSort");
+
+  return Sort(Sorts::SRT_INTEGER);
+}
+
+Sort FormulaBuilder::rationalSort()
+{
+  CALL("FormulaBuilder::integerSort");
+
+  return Sort(Sorts::SRT_RATIONAL);
+}
+
+Sort FormulaBuilder::realSort()
+{
+  CALL("FormulaBuilder::integerSort");
+
+  return Sort(Sorts::SRT_REAL);
+}
+
 
 Sort FormulaBuilder::defaultSort()
 {
@@ -139,6 +158,29 @@ Function FormulaBuilder::function(const string& funName, unsigned arity, Sort ra
   }
   return Function(res);
 }
+
+Function FormulaBuilder::integerConstant(int i)
+{
+  CALL("FormulaBuilder::integerConstant");
+
+  unsigned fun = env.signature->addIntegerConstant(IntegerConstantType(i));
+  return Function(fun);
+}
+
+Function FormulaBuilder::integerConstant(string i)
+{
+  CALL("FormulaBuilder::integerConstant");
+
+  unsigned fun;
+  try {
+    fun = env.signature->addIntegerConstant(IntegerConstantType(i));
+  }
+  catch (ArithmeticException) {
+    throw FormulaBuilderException("Constant value invalid or does not fit into internal representation: " + i);
+  }
+  return Function(fun);
+}
+
 
 Predicate FormulaBuilder::predicate(const string& predName,unsigned arity)
 {

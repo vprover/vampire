@@ -77,6 +77,7 @@ void Problem::initValues()
 {
   CALL("Problem::initValues");
 
+  _hadIncompleteTransformation = false;
   _mayHaveEquality = true;
   _mayHaveFormulas = true;
   _mayHaveFunctionDefinitions = true;
@@ -153,6 +154,9 @@ Problem* Problem::copy(bool copyClauses)
     newUnits = units();
   }
   Problem* res = new Problem(newUnits);
+  if(hadIncompleteTransformation()) {
+    res->reportIncompleteTransformation();
+  }
   if(isPropertyUpToDate()) {
     //if we have an up-to-date property, we just copy it into the
     //copyed opbect so we save ourselves scanning for the property

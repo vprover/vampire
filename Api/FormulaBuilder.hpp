@@ -128,10 +128,15 @@ public:
   };
 
   /**
-   * Create a sort with name @c sortName. Sort name must be unique, otherwise
-   * and exception will be raised.
+   * Create, or retrieve already existing sort with name @c sortName.
    */
   Sort sort(const string& sortName);
+  /** Return sort for integers */
+  Sort integerSort();
+  /** Return sort for rationals */
+  Sort rationalSort();
+  /** Return sort for reals */
+  Sort realSort();
 
   /**
    * Return the default sort that is used when no sort is specified.
@@ -171,6 +176,16 @@ public:
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
   Function function(const string& funName, unsigned arity, Sort rangeSort, Sort* domainSorts);
+
+  /** Return constant representing @c i */
+  Function integerConstant(int i);
+  /**
+   * Return constant representing @c i
+   *
+   * @c FormulaBuilderException may be thrown if @c i is not a proper value, or too large
+   * for Vampire internal representation.
+   */
+  Function integerConstant(string i);
 
   /** create a predicate symbol using default sorts
    *

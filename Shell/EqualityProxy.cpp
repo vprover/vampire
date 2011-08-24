@@ -62,11 +62,26 @@ void EqualityProxy::apply(Problem& prb)
 {
   CALL("EqualityProxy::apply(Problem&)");
 
+  bool hadEquality = prb.hasEquality();
+
   apply(prb.units());
   prb.invalidateByRemoval();
   if(_rst) {
     prb.reportEqualityEliminated();
   }
+
+  if(hadEquality) {
+    switch(_opt) {
+      case Options::EP_R:
+      case Options::EP_RS:
+      case Options::EP_RST:
+	prb.reportIncompleteTransformation();
+	break;
+      default:
+	break;
+    }
+  }
+
 }
 
 /**
