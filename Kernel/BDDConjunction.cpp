@@ -20,7 +20,7 @@ namespace Kernel
 BDDConjunction::BDDConjunction(const Options& opt)
 : _isFalse(false),
   _clausifier(opt.satSolverWithSubsumptionResolution(), opt.satSolverWithNaming()),
-  _solver(new TWLSolver())
+  _solver(new TWLSolver(opt))
 {
 }
 

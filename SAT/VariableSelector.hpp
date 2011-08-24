@@ -99,7 +99,9 @@ private:
 class ActiveVariableSelector : public VariableSelector
 {
 public:
-  ActiveVariableSelector(TWLSolver& solver) : VariableSelector(solver) {}
+  typedef double CounterType;
+
+  ActiveVariableSelector(TWLSolver& solver, CounterType decayFactor = 1.05) : VariableSelector(solver), _activityHeap(decayFactor) {}
 
   virtual bool selectVariable(unsigned& var);
   virtual void ensureVarCnt(unsigned varCnt);
@@ -126,14 +128,13 @@ public:
     _activityHeap.decay();
   }
 protected:
-  typedef double CounterType;
 
   class VariableActivityHeap
   {
     VariableActivityHeap(const VariableActivityHeap&);
     VariableActivityHeap& operator=(const VariableActivityHeap&);
   public:
-    VariableActivityHeap(CounterType decayFactor = 1.05f)
+    VariableActivityHeap(CounterType decayFactor)
     : _decayFactor(decayFactor), _inc(1e-30f), _heap(VAComparator(_activities)) {}
 
     void ensureVarCnt(unsigned varCnt)

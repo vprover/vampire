@@ -12,6 +12,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
+#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "SATLiteral.hpp"
@@ -31,21 +32,45 @@ namespace SAT
 
 using namespace Lib;
 
-TWLSolver::TWLSolver(bool generateProofs)
-: _generateProofs(generateProofs), _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
+TWLSolver::TWLSolver(const Options& opt, bool generateProofs)
+: _opt(opt), _generateProofs(generateProofs), _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
 _windex(0), _varCnt(0), _level(1), _assumptionCnt(0), _unsatisfiableAssumptions(false)
 {
-  _variableSelector = new ActiveVariableSelector(*this);
-//  _variableSelector = new ArrayActiveVariableSelector(*this);
-//  _variableSelector = new RLCVariableSelector(*this);
+  switch(opt.satVarSelector()) {
+  case Options::SVS_ACTIVE:
+    _variableSelector = new ActiveVariableSelector(*this, opt.satVarActivityDecay());
+    break;
+  case Options::SVS_RECENTLY_LEARNT:
+    _variableSelector = new RLCVariableSelector(*this);
+    break;
+  }
 
 //  _variableSelector = new AlternatingVariableSelector(*this, new ActiveVariableSelector(*this), new ArrayActiveVariableSelector(*this));
 
-  _restartStrategy = new LubyRestartStrategy(100);
-//  _restartStrategy = new MinisatRestartStrategy();
 
-  _clauseDisposer = new MinisatClauseDisposer(*this);
-//  _clauseDisposer = new GrowingClauseDisposer(*this);
+  switch(opt.satRestartStrategy()) {
+  case Options::SRS_FIXED:
+    _restartStrategy = new FixedRestartStrategy(opt.satRestartFixedCount());
+    break;
+  case Options::SRS_GEOMETRIC:
+    _restartStrategy = new GeometricRestartStrategy(opt.satRestartGeometricInit(), opt.satRestartGeometricIncrease());
+    break;
+  case Options::SRS_LUBY:
+    _restartStrategy = new LubyRestartStrategy(opt.satRestartLubyFactor());
+    break;
+  case Options::SRS_MINISAT:
+    _restartStrategy = new MinisatRestartStrategy(opt.satRestartMinisatInit(), opt.satRestartMinisatIncrease());
+    break;
+  }
+
+  switch(opt.satClauseDisposer()) {
+  case Options::SCD_GROWING:
+    _clauseDisposer = new GrowingClauseDisposer(*this, opt.satVarActivityDecay());
+    break;
+  case Options::SCD_MINISAT:
+    _clauseDisposer = new MinisatClauseDisposer(*this, opt.satVarActivityDecay());
+    break;
+  }
 }
 
 TWLSolver::~TWLSolver()
@@ -469,9 +494,13 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
 
 //  cout<<resLits.size()<<" ";
 //  doShallowMinimize(resLits, seenVars);
-  doDeepMinimize(resLits, seenVars, premises);
+  if(_opt.satLearntMinimization()) {
+    doDeepMinimize(resLits, seenVars, premises);
+  }
 //  cout<<resLits.size()<<" ";
-  doSubsumptionResolution(resLits, premises);
+  if(_opt.satLearntSubsumptionResolution()) {
+    doSubsumptionResolution(resLits, premises);
+  }
 //  cout<<resLits.size()<<" ";
 
   SATClause* res = SATClause::fromStack(resLits);

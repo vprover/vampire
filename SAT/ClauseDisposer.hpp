@@ -58,8 +58,8 @@ protected:
 class DecayingClauseDisposer : public ClauseDisposer
 {
 public:
-  DecayingClauseDisposer(TWLSolver& solver, ActivityType decayFactor = 1.001f)
-   : ClauseDisposer(solver), _decayFactor(decayFactor), _inc(1e-30f) {}
+  DecayingClauseDisposer(TWLSolver& solver, ActivityType decayFactor = 1.001)
+   : ClauseDisposer(solver), _decayFactor(decayFactor), _inc(1e-30) {}
 
   virtual void onConflict();
 

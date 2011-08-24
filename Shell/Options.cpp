@@ -58,6 +58,9 @@ public:
   static const char* _tcValues[];
   static const char* _sineSelectionValues[];
   static const char* _proofValues[];
+  static const char* _satRestartStrategyValues[];
+  static const char* _satVarSelectorValues[];
+  static const char* _satClauseDisposerValues[];
 
   static int shortNameIndexes[];
 
@@ -82,6 +85,9 @@ public:
   static NameArray tcValues;
   static NameArray sineSelectionValues;
   static NameArray proofValues;
+  static NameArray satRestartStrategyValues;
+  static NameArray satVarSelectorValues;
+  static NameArray satClauseDisposerValues;
 }; // class Options::Constants
 
 
@@ -171,9 +177,22 @@ const char* Options::Constants::_optionNames[] = {
   "random_seed",
   "row_variable_max_length",
 
+  "sat_clause_activity_decay",
+  "sat_clause_disposer",
+  "sat_learnt_minimization",
+  "sat_learnt_subsumption_resolution",
+  "sat_restart_fixed_count",
+  "sat_restart_geometric_increase",
+  "sat_restart_geometric_init",
+  "sat_restart_luby_factor",
+  "sat_restart_minisat_increase",
+  "sat_restart_minisat_init",
+  "sat_restart_strategy",
   "sat_solver_for_empty_clause",
   "sat_solver_with_naming",
   "sat_solver_with_subsumption_resolution",
+  "sat_var_activity_decay",
+  "sat_var_selector",
   "saturation_algorithm",
   "selection",
   "show_active",
@@ -519,6 +538,26 @@ const char* Options::Constants::_proofValues[] = {
 NameArray Options::Constants::proofValues(_proofValues,
 					  sizeof(_proofValues)/sizeof(char*));
 
+const char* Options::Constants::_satRestartStrategyValues[] = {
+  "fixed",
+  "geometric",
+  "luby",
+  "minisat"};
+NameArray Options::Constants::satRestartStrategyValues(_satRestartStrategyValues,
+					  sizeof(_satRestartStrategyValues)/sizeof(char*));
+
+const char* Options::Constants::_satVarSelectorValues[] = {
+  "active",
+  "recently_learnt"};
+NameArray Options::Constants::satVarSelectorValues(_satVarSelectorValues,
+					  sizeof(_satVarSelectorValues)/sizeof(char*));
+
+const char* Options::Constants::_satClauseDisposerValues[] = {
+  "growing",
+  "minisat"};
+NameArray Options::Constants::satClauseDisposerValues(_satClauseDisposerValues,
+					  sizeof(_satClauseDisposerValues)/sizeof(char*));
+
 /**
  * Initialize options to the default values.
  *
@@ -615,9 +654,22 @@ Options::Options ()
   _randomSeed(Random::seed()),
   _rowVariableMaxLength(2),
 
+  _satClauseActivityDecay(1.001f),
+  _satClauseDisposer(SCD_MINISAT),
+  _satLearntMinimization(true),
+  _satLearntSubsumptionResolution(true),
+  _satRestartFixedCount(16000),
+  _satRestartGeometricIncrease(1.1f),
+  _satRestartGeometricInit(32),
+  _satRestartLubyFactor(100),
+  _satRestartMinisatIncrease(1.1f),
+  _satRestartMinisatInit(100),
+  _satRestartStrategy(SRS_LUBY),
   _satSolverForEmptyClause(true),
   _satSolverWithNaming(false),
   _satSolverWithSubsumptionResolution(false),
+  _satVarActivityDecay(1.05f),
+  _satVarSelector(SVS_ACTIVE),
   _saturationAlgorithm(LRS),
   _selection(10),
   _showActive(false),
@@ -1003,6 +1055,69 @@ void Options::set(const char* name,const char* value, int index)
       }
       break;
 
+    case SAT_CLAUSE_ACTIVITY_DECAY:
+      if (Int::stringToFloat(value,floatValue)) {
+	if(floatValue<=1.0f) {
+	  USER_ERROR("sat_clause_activity_decay must be a number greater than 1");
+	}
+	_satClauseActivityDecay = floatValue;
+	return;
+      }
+      break;
+    case SAT_CLAUSE_DISPOSER:
+      _satClauseDisposer = (SatClauseDisposer)Constants::satClauseDisposerValues.find(value);
+      return;
+    case SAT_LEARNT_MINIMIZATION:
+      _satLearntMinimization = onOffToBool(value,name);
+      return;
+    case SAT_LEARNT_SUBSUMPTION_RESOLUTION:
+      _satLearntSubsumptionResolution = onOffToBool(value,name);
+      return;
+    case SAT_RESTART_FIXED_COUNT:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_satRestartFixedCount = unsignedValue;
+	return;
+      }
+      break;
+    case SAT_RESTART_GEOMETRIC_INCREASE:
+      if (Int::stringToFloat(value,floatValue)) {
+	if(floatValue<=1.0f) {
+	  USER_ERROR("sat_restart_geometric_increase must be a number greater than 1");
+	}
+	_satRestartGeometricIncrease = floatValue;
+	return;
+      }
+      break;
+    case SAT_RESTART_GEOMETRIC_INIT:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_satRestartGeometricInit = unsignedValue;
+	return;
+      }
+      break;
+    case SAT_RESTART_LUBY_FACTOR:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_satRestartLubyFactor = unsignedValue;
+	return;
+      }
+      break;
+    case SAT_RESTART_MINISAT_INCREASE:
+      if (Int::stringToFloat(value,floatValue)) {
+	if(floatValue<=1.0f) {
+	  USER_ERROR("sat_restart_minisat_increase must be a number greater than 1");
+	}
+	_satRestartMinisatIncrease = floatValue;
+	return;
+      }
+      break;
+    case SAT_RESTART_MINISAT_INIT:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_satRestartMinisatInit = unsignedValue;
+	return;
+      }
+      break;
+    case SAT_RESTART_STRATEGY:
+      _satRestartStrategy = (SatRestartStrategy)Constants::satRestartStrategyValues.find(value);
+      return;
     case SAT_SOLVER_FOR_EMPTY_CLAUSE:
       _satSolverForEmptyClause = onOffToBool(value,name);
       return;
@@ -1011,6 +1126,18 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION:
       _satSolverWithSubsumptionResolution = onOffToBool(value,name);
+      return;
+    case SAT_VAR_ACTIVITY_DECAY:
+      if (Int::stringToFloat(value,floatValue)) {
+	if(floatValue<=1.0f) {
+	  USER_ERROR("sat_var_activity_decay must be a number greater than 1");
+	}
+	_satVarActivityDecay = floatValue;
+	return;
+      }
+      break;
+    case SAT_VAR_SELETOR:
+      _satVarSelector = (SatVarSelector)Constants::satVarSelectorValues.find(value);
       return;
     case SATURATION_ALGORITHM:
       _saturationAlgorithm = (SaturationAlgorithm)Constants::satAlgValues.find(value);
@@ -1633,6 +1760,39 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << _rowVariableMaxLength;
     return;
 
+  case SAT_CLAUSE_ACTIVITY_DECAY:
+    str << _satClauseActivityDecay;
+    return;
+  case SAT_CLAUSE_DISPOSER:
+    str << Constants::satClauseDisposerValues[_satClauseDisposer];
+    return;
+  case SAT_LEARNT_MINIMIZATION:
+    str << boolToOnOff(_satLearntMinimization);
+    return;
+  case SAT_LEARNT_SUBSUMPTION_RESOLUTION:
+    str << boolToOnOff(_satLearntSubsumptionResolution);
+    return;
+  case SAT_RESTART_FIXED_COUNT:
+    str << _satRestartFixedCount;
+    return;
+  case SAT_RESTART_GEOMETRIC_INCREASE:
+    str << _satRestartGeometricIncrease;
+    return;
+  case SAT_RESTART_GEOMETRIC_INIT:
+    str << _satRestartGeometricInit;
+    return;
+  case SAT_RESTART_LUBY_FACTOR:
+    str << _satRestartLubyFactor;
+    return;
+  case SAT_RESTART_MINISAT_INCREASE:
+    str << _satRestartMinisatIncrease;
+    return;
+  case SAT_RESTART_MINISAT_INIT:
+    str << _satRestartMinisatInit;
+    return;
+  case SAT_RESTART_STRATEGY:
+    str << Constants::satRestartStrategyValues[_satRestartStrategy];
+    return;
   case SAT_SOLVER_FOR_EMPTY_CLAUSE:
     str << boolToOnOff(_satSolverForEmptyClause);
     return;
@@ -1641,6 +1801,12 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION:
     str << boolToOnOff(_satSolverWithSubsumptionResolution);
+    return;
+  case SAT_VAR_ACTIVITY_DECAY:
+    str << _satVarActivityDecay;
+    return;
+  case SAT_VAR_SELETOR:
+    str << Constants::satVarSelectorValues[_satVarSelector];
     return;
   case SATURATION_ALGORITHM:
     str << Constants::satAlgValues[_saturationAlgorithm];

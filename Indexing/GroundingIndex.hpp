@@ -17,10 +17,11 @@
 namespace Indexing {
 
 using namespace SAT;
+using namespace Shell;
 
 class GroundingIndex : public Index {
 public:
-  GroundingIndex(Grounder* gnd);
+  GroundingIndex(Grounder* gnd, const Options& opt);
 
   SATSolver& getSolver() { return *_solver; }
   Grounder& getGrounder() { return *_grounder; }

@@ -283,7 +283,7 @@ void Preprocess::preprocess (Problem& prb)
 
    if(_options.hornRevealing()) {
      env.statistics->phase=Statistics::HORN_REVEALING;
-     HornRevealer hr;
+     HornRevealer hr(_options);
      hr.apply(prb);
    }
 } // Preprocess::preprocess ()

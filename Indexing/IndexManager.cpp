@@ -213,7 +213,7 @@ Index* IndexManager::create(IndexType t)
   case GLOBAL_SUBSUMPTION_INDEX:
   {
     Grounder* gnd = new GlobalSubsumptionGrounder();
-    res = new GroundingIndex(gnd);
+    res = new GroundingIndex(gnd, _alg->getOptions());
     isGenerating = false;
     break;
   }

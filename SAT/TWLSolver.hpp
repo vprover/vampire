@@ -24,6 +24,7 @@
 namespace SAT {
 
 using namespace Lib;
+using namespace Shell;
 
 struct Watch
 {
@@ -45,7 +46,7 @@ class TWLSolver : public SATSolver {
   friend class VariableSelector;
   friend class RLCVariableSelector;
 public:
-  TWLSolver(bool generateProofs=false);
+  TWLSolver(const Options& opt, bool generateProofs=false);
   ~TWLSolver();
 
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
@@ -166,6 +167,8 @@ private:
     }
 
   };
+
+  const Options& _opt;
 
   bool _generateProofs;
   SATClause* _refutation;

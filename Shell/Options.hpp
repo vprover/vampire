@@ -119,9 +119,22 @@ public:
     RANDOM_SEED,
     ROW_VARIABLE_MAX_LENGTH,
 
+    SAT_CLAUSE_ACTIVITY_DECAY,
+    SAT_CLAUSE_DISPOSER,
+    SAT_LEARNT_MINIMIZATION,
+    SAT_LEARNT_SUBSUMPTION_RESOLUTION,
+    SAT_RESTART_FIXED_COUNT,
+    SAT_RESTART_GEOMETRIC_INCREASE,
+    SAT_RESTART_GEOMETRIC_INIT,
+    SAT_RESTART_LUBY_FACTOR,
+    SAT_RESTART_MINISAT_INCREASE,
+    SAT_RESTART_MINISAT_INIT,
+    SAT_RESTART_STRATEGY,
     SAT_SOLVER_FOR_EMPTY_CLAUSE,
     SAT_SOLVER_WITH_NAMING,
     SAT_SOLVER_WITH_SUBSUMPTION_RESOLUTION,
+    SAT_VAR_ACTIVITY_DECAY,
+    SAT_VAR_SELETOR,
     /** !!! saturation algorithm: lrs, otter, or discount, inst_gen or tabulation */
     SATURATION_ALGORITHM,
     SELECTION,
@@ -327,6 +340,25 @@ public:
     EP_ON = 5
   };
 
+  enum SatRestartStrategy {
+    SRS_FIXED = 0,
+    SRS_GEOMETRIC = 1,
+    SRS_LUBY = 2,
+    SRS_MINISAT = 3,
+  };
+
+  enum SatVarSelector {
+    SVS_ACTIVE = 0,
+    SVS_RECENTLY_LEARNT = 1,
+  };
+
+  enum SatClauseDisposer {
+    SCD_GROWING = 0,
+    SCD_MINISAT = 1,
+  };
+
+
+
 public:
   Options ();
   void output (ostream&) const;
@@ -499,6 +531,20 @@ public:
   float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient; }
   bool instGenWithResolution() const { return _instGenWithResolution; }
 
+  float satClauseActivityDecay() const { return _satClauseActivityDecay; }
+  SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer; }
+  bool satLearntMinimization() const { return _satLearntMinimization; }
+  bool satLearntSubsumptionResolution() const { return _satLearntSubsumptionResolution; }
+  int satRestartFixedCount() const { return _satRestartFixedCount; }
+  float satRestartGeometricIncrease() const { return _satRestartGeometricIncrease; }
+  int satRestartGeometricInit() const { return _satRestartGeometricInit; }
+  int satRestartLubyFactor() const { return _satRestartLubyFactor; }
+  float satRestartMinisatIncrease() const { return _satRestartMinisatIncrease; }
+  int satRestartMinisatInit() const { return _satRestartMinisatInit; }
+  SatRestartStrategy satRestartStrategy() const { return _satRestartStrategy; }
+  float satVarActivityDecay() const { return _satVarActivityDecay; }
+  SatVarSelector satVarSelector() const { return _satVarSelector; }
+
   void setMemoryLimit(size_t newVal) { _memoryLimit = newVal; }
   void setInputFile(const string& newVal);
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
@@ -615,9 +661,22 @@ private:
   int _randomSeed;
   int _rowVariableMaxLength;
 
+  float _satClauseActivityDecay;
+  SatClauseDisposer _satClauseDisposer;
+  bool _satLearntMinimization;
+  bool _satLearntSubsumptionResolution;
+  int _satRestartFixedCount;
+  float _satRestartGeometricIncrease;
+  int _satRestartGeometricInit;
+  int _satRestartLubyFactor;
+  float _satRestartMinisatIncrease;
+  int _satRestartMinisatInit;
+  SatRestartStrategy _satRestartStrategy;
   bool _satSolverForEmptyClause;
   bool _satSolverWithNaming;
   bool _satSolverWithSubsumptionResolution;
+  float _satVarActivityDecay;
+  SatVarSelector _satVarSelector;
   SaturationAlgorithm _saturationAlgorithm;
   int _selection;
   bool _showActive;

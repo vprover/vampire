@@ -17,12 +17,12 @@
 namespace Indexing
 {
 
-GroundingIndex::GroundingIndex(Grounder* gnd)
+GroundingIndex::GroundingIndex(Grounder* gnd, const Options& opt)
  : _grounder(gnd)
 {
   CALL("GroundingIndex::GroundingIndex");
 
-  _solver = new TWLSolver(true);
+  _solver = new TWLSolver(opt, true);
 }
 
 void GroundingIndex::handleClause(Clause* c, bool adding)

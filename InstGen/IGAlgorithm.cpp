@@ -51,10 +51,10 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
   CALL("IGAlgorithm::IGAlgorithm");
 
   _passive.setAgeWeightRatio(_opt.ageRatio(), _opt.weightRatio());
-  _satSolver = new TWLSolver(true);
+  _satSolver = new TWLSolver(opt, true);
 
   if(_opt.globalSubsumption()) {
-    _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder());
+    _groundingIndex = new GroundingIndex(new GlobalSubsumptionGrounder(), opt);
     _globalSubsumption = new GlobalSubsumption(_groundingIndex.ptr());
   }
 
