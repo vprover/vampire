@@ -696,7 +696,13 @@ TEST_FUN(fbapiInts)
   Function two = api.integerConstant(2);
   Term oneT = api.term(one);
   Term twoT = api.term(two);
+  Predicate leqP = api.interpretedPredicate(FormulaBuilder::INT_LESS_EQUAL);
   Formula eq = api.equality(oneT, twoT, iSort, true);
   cout << eq.toString() << endl;
+  Formula leq = api.formula(leqP, oneT, twoT);
+  cout << leq.toString() << endl;
+
+  Problem prb;
+  prb.outputTypeDefinitions(cout, true);
 }
 

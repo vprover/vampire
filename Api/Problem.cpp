@@ -1059,6 +1059,12 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
 
   Signature::Symbol* sym = function ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
+
+  if(sym->interpreted()) {
+    //there is no need to output type definitions for interpreted symbols
+    return;
+  }
+
   BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
 
   if(!outputAllTypeDefs && type->isAllDefault()) {
@@ -1070,14 +1076,20 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
 
   unsigned arity = sym->arity();
   if(arity>0) {
-    out << "(";
-    for(unsigned i=0; i<arity; i++) {
-      if(i>0) {
-	out << " * ";
-      }
-      out << env.sorts->sortName(type->arg(i));
+    if(arity==1) {
+      out << env.sorts->sortName(type->arg(0));
     }
-    out << ") > ";
+    else {
+      out << "(";
+      for(unsigned i=0; i<arity; i++) {
+	if(i>0) {
+	  out << " * ";
+	}
+	out << env.sorts->sortName(type->arg(i));
+      }
+      out << ")";
+    }
+    out << " > ";
   }
   if(function) {
     out << env.sorts->sortName(sym->fnType()->result());

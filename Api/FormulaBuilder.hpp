@@ -117,6 +117,13 @@ public:
     ITE
   };
 
+  enum InterpretedPredicate {
+    INT_GREATER,
+    INT_GREATER_EQUAL,
+    INT_LESS,
+    INT_LESS_EQUAL,
+  };
+
   /** Annotation of formulas */
   enum Annotation {
     /** Axiom or derives from axioms */
@@ -194,13 +201,18 @@ public:
    * FormulaBuilder class. */
   Predicate predicate(const string& predName, unsigned arity);
 
-  /** create a predicate symbol with specified domain sorts
+  /**
+   * create a predicate symbol with specified domain sorts
    *
    * @warning Predicates of the same name and arity must have always
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
   Predicate predicate(const string& predName, unsigned arity, Sort* domainSorts);
 
+  /**
+   * Create interpreted predicate
+   */
+  Predicate interpretedPredicate(InterpretedPredicate symbol);
 
   void addAttribute(Predicate p, string name, string value);
   unsigned attributeCount(Predicate p);

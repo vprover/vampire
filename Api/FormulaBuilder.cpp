@@ -224,6 +224,32 @@ Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort
   return Predicate(res);
 }
 
+Predicate FormulaBuilder::interpretedPredicate(InterpretedPredicate symbol)
+{
+  CALL("FormulaBuilder::interpretedPredicate");
+
+  Interpretation itp;
+  switch(symbol)
+  {
+  case INT_GREATER:
+    itp = Kernel::Theory::INT_GREATER;
+    break;
+  case INT_GREATER_EQUAL:
+    itp = Kernel::Theory::INT_GREATER_EQUAL;
+    break;
+  case INT_LESS:
+    itp = Kernel::Theory::INT_LESS;
+    break;
+  case INT_LESS_EQUAL:
+    itp = Kernel::Theory::INT_LESS_EQUAL;
+    break;
+  }
+
+  unsigned res = env.signature->getInterpretingSymbol(itp);
+
+  return Predicate(res);
+}
+
 void FormulaBuilder::addAttribute(Sort p, string name, string value)
 {
   CALL("FormulaBuilder::addAttribute(Sort,string,string)");

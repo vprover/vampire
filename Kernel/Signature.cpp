@@ -669,8 +669,11 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
 
   string pref(prefix);
   string suf(suffix ? string("_")+suffix : "");
-  bool added;
-  unsigned result = addPredicate(pref+suf,arity,added);
+  bool added = false;
+  unsigned result;
+  if(suffix) {
+    result = addPredicate(pref+suf,arity,added);
+  }
   if (!added) {
     do {
       result = addPredicate(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
