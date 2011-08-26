@@ -601,11 +601,16 @@ struct InferenceStore::TPTPProofPrinter
     return false;
   }
 
-  string getRole(Inference::Rule rule)
+  string getRole(Inference::Rule rule, Unit::InputType origin)
   {
     switch(rule) {
     case Inference::INPUT:
-      return "axiom";
+      if(origin==Unit::CONJECTURE) {
+	return "conjecture";
+      }
+      else {
+	return "axiom";
+      }
     case Inference::NEGATED_CONJECTURE:
       return "negated_conjecture";
     default:
@@ -674,11 +679,11 @@ struct InferenceStore::TPTPProofPrinter
     return n;
   }
 
-  string getFofString(string id, string formula, string inference, Inference::Rule rule)
+  string getFofString(string id, string formula, string inference, Inference::Rule rule, Unit::InputType origin=Unit::AXIOM)
   {
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
 
-    return "fof("+id+","+getRole(rule)+",("+"\n"
+    return "fof("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
 	+"  "+inference+").";
   }
@@ -786,7 +791,7 @@ struct InferenceStore::TPTPProofPrinter
       inferenceStr+="])";
     }
 
-    out<<getFofString(tptpUnitId(us), formulaStr, inferenceStr, rule)<<endl;
+    out<<getFofString(tptpUnitId(us), formulaStr, inferenceStr, rule, us.unit()->inputType())<<endl;
   }
 
   void printSplittingComponent(UnitSpec us)
