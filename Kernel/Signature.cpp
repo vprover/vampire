@@ -24,6 +24,7 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, boo
     _skip(0),
     _cfName(0),
     _swbName(0),
+    _equalityProxy(0),
     _color(COLOR_TRANSPARENT),
     _stringConstant(stringConstant ? 1: 0),
     _answerPredicate(0),

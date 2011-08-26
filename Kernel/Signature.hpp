@@ -40,7 +40,7 @@ class Signature
     /** print name */
     string _name;
     /** arity */
-    unsigned _arity : 24;
+    unsigned _arity : 23;
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
     /** clauses with only skipped symbols will not be output as symbol eliminating */
@@ -52,6 +52,8 @@ class Signature
         be used as names for splitting without backtracking
         when BDDs are not used */
     unsigned _swbName : 1;
+    /** marks predicates that are equality proxy */
+    unsigned _equalityProxy : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
     /** marks distinct string constants */
@@ -79,6 +81,8 @@ class Signature
     void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
     /** mark symbol to be an answer predicate */
     void markAnswerPredicate() { _answerPredicate=1; }
+    /** mark predicate to be an equality proxy */
+    void markEqualityProxy() { _equalityProxy=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
@@ -99,6 +103,8 @@ class Signature
     inline bool stringConstant() const { return _stringConstant; }
     /** Return true iff symbol is an answer predicate */
     inline bool answerPredicate() const { return _answerPredicate; }
+    /** Return true iff symbol is an equality proxy */
+    inline bool equalityProxy() const { return _equalityProxy; }
 
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const

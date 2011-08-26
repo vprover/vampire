@@ -9,6 +9,8 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Array.hpp"
+
 #include "Kernel/Term.hpp"
 
 #include "Options.hpp"
@@ -44,8 +46,6 @@ using namespace Kernel;
 class EqualityProxy
 {
 public:
-  static unsigned s_proxyPredicate;
-
   EqualityProxy();
   EqualityProxy(Options::EqualityProxy opt);
 
@@ -53,15 +53,27 @@ public:
   void apply(UnitList*& units);
 private:
   void init();
+  void addLocalAxioms(UnitList*& units, unsigned sort);
   void addAxioms(UnitList*& units);
   void addCongruenceAxioms(UnitList*& units);
-  void getVariableEqualityLiterals(unsigned cnt, LiteralStack& lits,
-				   Stack<TermList>& vars1, Stack<TermList>& vars2);
+  bool getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
+      Stack<TermList>& vars2, BaseType* symbolType, bool skipSortsWithoutEquality);
   Clause* apply(Clause* cl);
   Literal* apply(Literal* lit);
   Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1);
+  Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, unsigned sort);
+
+  bool haveProxyPredicate(unsigned sort) const;
+  unsigned getProxyPredicate(unsigned sort);
 
   Options::EqualityProxy _opt;
+
+  /**
+   * Proxy predicate numbers for each sort. If element on at the position
+   * of a predicate is zero, it means the proxy predicate for that sort wasn't
+   * added yet.
+   */
+  static ZIArray<unsigned> s_proxyPredicates;
   bool _rst;
 };
 

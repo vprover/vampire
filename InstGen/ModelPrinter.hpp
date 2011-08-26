@@ -24,12 +24,12 @@ public:
   ModelPrinter(IGAlgorithm& iga);
 
   bool tryOutput(ostream& stm);
-
 private:
 
   struct InstLitComparator;
   struct PredNumComparator;
 
+  bool haveNonDefaultSorts();
   static bool isEprProblem();
   static bool isEquality(Literal* lit);
 

@@ -143,6 +143,7 @@ protected:
    */
   void expandToFit (size_t n)
   {
+    CALL("Array::expandToFit");
     ASS(n >= _capacity);
 
     // determine new capacity (at least double the old one)
@@ -159,9 +160,12 @@ protected:
 	newArray[i] = _array[i];
       }
     }
-    // deallocate the old array
-    array_delete(_array,_capacity);
-    DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
+
+    if(_array) {
+      // deallocate the old array
+      array_delete(_array,_capacity);
+      DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
+    }
 
     _array = newArray;
     fillInterval(_capacity,newCapacity);

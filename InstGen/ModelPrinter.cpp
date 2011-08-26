@@ -36,6 +36,23 @@ ModelPrinter::ModelPrinter(IGAlgorithm& iga)
   CALL("ModelPrinter::ModelPrinter");
 }
 
+bool ModelPrinter::haveNonDefaultSorts()
+{
+  CALL("ModelPrinter::haveNonDefaultSorts");
+
+  unsigned funs = env.signature->functions();
+  for(unsigned i=0; i<funs; i++) {
+    FunctionType* type = env.signature->getFunction(i)->fnType();
+    if(!type->isAllDefault()) { return false; }
+  }
+  unsigned preds = env.signature->predicates();
+  for(unsigned i=1; i<preds; i++) {
+    PredicateType* type = env.signature->getPredicate(i)->predType();
+    if(!type->isAllDefault()) { return false; }
+  }
+  return true;
+}
+
 bool ModelPrinter::isEprProblem()
 {
   CALL("ModelPrinter::isEprProblem");
@@ -53,7 +70,7 @@ bool ModelPrinter::tryOutput(ostream& stm)
 {
   CALL("ModelPrinter::tryOutput");
 
-  if(!isEprProblem()) {
+  if(!isEprProblem() || !haveNonDefaultSorts()) {
     return false;
   }
 
@@ -96,7 +113,7 @@ bool ModelPrinter::isEquality(Literal* lit)
 {
   CALL("ModelPrinter::isEquality");
 
-  return lit->isEquality() || lit->functor()==EqualityProxy::s_proxyPredicate;
+  return lit->isEquality() || env.signature->getPredicate(lit->functor())->equalityProxy();
 }
 
 /**

@@ -17,7 +17,6 @@
 
 #include "Indexing/TermSharing.hpp"
 
-#include "Shell/EqualityProxy.hpp"
 #include "Shell/Options.hpp"
 
 #include "Term.hpp"
@@ -698,16 +697,17 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
 
   _reverseLCM = opt.literalComparisonMode()==Shell::Options::LCM_REVERSE;
 
-  //equality proxy predicate has the highest level (lower than colored predicates)
-  if(EqualityProxy::s_proxyPredicate) {
-    _predicateLevels[EqualityProxy::s_proxyPredicate]=_predicates+2;
-  }
-
-  //consequence-finding name predicates have the lowest level
   for(unsigned i=1;i<_predicates;i++) {
-    if(env.signature->getPredicate(i)->cfName()) {
+    Signature::Symbol* predSym = env.signature->getPredicate(i);
+    //consequence-finding name predicates have the lowest level
+    if(predSym->cfName()) {
       _predicateLevels[i]=-1;
     }
+    else if(predSym->equalityProxy()) {
+      //equality proxy predicates have the highest level (lower than colored predicates)
+      _predicateLevels[i]=_predicates+2;
+    }
+
   }
 }
 
