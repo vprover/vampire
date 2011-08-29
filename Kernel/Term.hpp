@@ -642,11 +642,7 @@ public:
   {
     return header % 2;
   }
-  static bool headersMatch(Literal* l1, Literal* l2, bool complementary)
-  {
-    return l1->_functor==l2->_functor &&
-      (complementary?1:0)==(l1->polarity()^l2->polarity());
-  }
+  static bool headersMatch(Literal* l1, Literal* l2, bool complementary);
   /** Negate, should not be used with shared terms */
   void negate()
   {
@@ -661,6 +657,7 @@ public:
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
   static Literal* createEquality (bool polarity, TermList arg1, TermList arg2);
+  static Literal* createEquality (bool polarity, TermList arg1, TermList arg2, unsigned sort);
   static Literal* createVariableEquality (bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);

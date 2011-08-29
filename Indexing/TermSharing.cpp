@@ -14,7 +14,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "TermSharing.hpp"
 
-
 using namespace Kernel;
 using namespace Indexing;
 
@@ -142,7 +141,7 @@ Literal* TermSharing::insert(Literal* t)
   //# equalities between variables will be inserted
   //# through this function!
   //#############
-//  ASS_REP(!t->isEquality() || !t->nthArgument(0)->isVar() || !t->nthArgument(1)->isVar(), t->toString());
+  ASS_REP(!t->isEquality() || !t->nthArgument(0)->isVar() || !t->nthArgument(1)->isVar(), t->toString());
   if(t->isEquality() && t->nthArgument(0)->isVar() && t->nthArgument(1)->isVar()) {
 //    cerr<<"wrongly inserted equality between variables, using default sort\n";
 //    Debug::Tracer::printOnlyStack(cerr);

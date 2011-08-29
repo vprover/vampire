@@ -75,6 +75,147 @@ Formula* MatchingUtils::getInstanceFromMatch(Literal* matchedBase,
   return SubstHelper::apply(resultBase, bap);
 }
 
+bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
+{
+  CALL("MatchingUtils::isVariant");
+
+  if(!Literal::headersMatch(l1,l2,complementary)) {
+    return false;
+  }
+  if(!complementary && l1==l2) {
+    return true;
+  }
+  if(l1->commutative()) {
+    return haveVariantArgs(l1,l2) || haveReversedVariantArgs(l1,l2);
+  } else {
+    return haveVariantArgs(l1,l2);
+  }
+}
+
+bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
+{
+  CALL("MatchingUtils::haveReversedVariantArgs");
+
+  ASS_EQ(l1->arity(), 2);
+  ASS_EQ(l2->arity(), 2);
+
+  static DHMap<unsigned,unsigned,IdentityHash> leftToRight;
+  static DHMap<unsigned,unsigned,IdentityHash> rightToLeft;
+  leftToRight.reset();
+  rightToLeft.reset();
+
+  VirtualIterator<pair<TermList, TermList> > dsit=pvi( getConcatenatedIterator(
+	    vi( new DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
+	    vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) )) );
+  while(dsit.hasNext()) {
+    pair<TermList,TermList> dp=dsit.next(); //disagreement pair
+    if(!dp.first.isVar() || !dp.second.isVar()) {
+	return false;
+    }
+    unsigned left=dp.first.var();
+    unsigned right=dp.second.var();
+    if(right!=leftToRight.findOrInsert(left,right)) {
+	return false;
+    }
+    if(left!=rightToLeft.findOrInsert(right,left)) {
+	return false;
+    }
+  }
+  if(leftToRight.size()!=rightToLeft.size()) {
+    return false;
+  }
+
+  return true;
+}
+
+bool MatchingUtils::haveVariantArgs(Term* l1, Term* l2)
+{
+  CALL("MatchingUtils::haveVariantArgs");
+  ASS_EQ(l1->arity(), l2->arity());
+
+  if(l1==l2) {
+    return true;
+  }
+  static DHMap<unsigned,unsigned,IdentityHash> leftToRight;
+  static DHMap<unsigned,unsigned,IdentityHash> rightToLeft;
+  leftToRight.reset();
+  rightToLeft.reset();
+
+  DisagreementSetIterator dsit(l1,l2);
+  while(dsit.hasNext()) {
+    pair<TermList,TermList> dp=dsit.next(); //disagreement pair
+    if(!dp.first.isVar() || !dp.second.isVar()) {
+	return false;
+    }
+    unsigned left=dp.first.var();
+    unsigned right=dp.second.var();
+    if(right!=leftToRight.findOrInsert(left,right)) {
+	return false;
+    }
+    if(left!=rightToLeft.findOrInsert(right,left)) {
+	return false;
+    }
+  }
+  if(leftToRight.size()!=rightToLeft.size()) {
+    return false;
+  }
+
+  return true;
+}
+
+bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance)
+{
+  CALL("MatchingUtils::match");
+  ASS_EQ(base->arity(), 2);
+  ASS_EQ(instance->arity(), 2);
+
+  static MapBinder binder;
+  binder.reset();
+
+  return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder) &&
+    matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
+}
+
+bool MatchingUtils::matchArgs(Term* base, Term* instance)
+{
+  CALL("MatchingUtils::matchArgs");
+
+  static MapBinder binder;
+  binder.reset();
+
+  return matchArgs(base, instance, binder);
+}
+
+bool MatchingUtils::matchTerms(TermList base, TermList instance)
+{
+  CALL("MatchingUtils::matchTerms/2");
+
+  if(base.isTerm()) {
+    if(!instance.isTerm()) {
+	return false;
+    }
+
+    Term* bt=base.term();
+    Term* it=instance.term();
+    if(bt->functor()!=it->functor()) {
+	return false;
+    }
+    if(bt->shared() && it->shared()) {
+      if(bt->ground()) {
+        return bt==it;
+      }
+      if(bt->weight() > it->weight()) {
+        return false;
+      }
+    }
+    ASS_G(base.term()->arity(),0);
+    return matchArgs(bt, it);
+  } else {
+    return true;
+  }
+}
+
+
 //////////////// FastMatchIterator ////////////////////
 
 void OCMatchIterator::init(Literal* base, Literal* inst, bool complementary)

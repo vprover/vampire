@@ -15,6 +15,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Unit.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -80,6 +81,14 @@ struct EqualityFactoring::ResultFn
 
     Literal* sLit=arg.first.first; //selected literal
     Literal* fLit=arg.second.first; //factored-out literal
+    ASS(sLit->isEquality());
+    ASS(fLit->isEquality());
+
+    unsigned srt = SortHelper::getEqualityArgumentSort(sLit);
+    if(srt!=SortHelper::getEqualityArgumentSort(fLit)) {
+      return false;
+    }
+
     TermList sLHS=arg.first.second;
     TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
     TermList fLHS=arg.second.second;
@@ -105,7 +114,7 @@ struct EqualityFactoring::ResultFn
     Inference* inf = new Inference1(Inference::EQUALITY_FACTORING, _cl);
     Clause* res = new(_cLen) Clause(_cLen, _cl->inputType(), inf);
 
-    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS);
+    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srt);
 
     unsigned next = 1;
     for(unsigned i=0;i<_cLen;i++) {

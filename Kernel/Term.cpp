@@ -21,6 +21,7 @@
 
 #include "Formula.hpp"
 #include "Signature.hpp"
+#include "SortHelper.hpp"
 #include "Substitution.hpp"
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
@@ -840,6 +841,24 @@ bool Term::skip() const
   return true;
 }
 
+/**
+ * Return true iff headers of literals match each other. We check also whether
+ * sorts of equality literals are equal.
+ */
+bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
+{
+  CALL("Literal::headersMatch");
+  if(l1->_functor!=l2->_functor || (complementary?1:0)!=(l1->polarity()!=l2->polarity())) {
+    return false;
+  }
+  if(l1->isEquality()) {
+    if(SortHelper::getEqualityArgumentSort(l1)!=SortHelper::getEqualityArgumentSort(l2)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /** Create a new literal, and insert it into the sharing
  *  structure if all arguments are shared.
  */
@@ -923,12 +942,16 @@ Literal* Literal::create(Literal* l,TermList* args)
   return m;
 } // Literal::create
 
-/** Return a new equality literal, with polarity @b polarity and
+/**
+ * Return a new equality literal, with polarity @b polarity and
  * arguments @b arg1 and @b arg2. Insert it into the sharing structure
- * if all arguments are shared. */
+ * if all arguments are shared. The equality must not be between two
+ * variables (in that case four-argument version of this function
+ * should be used).
+ */
 Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2)
 {
-   CALL("Literal::equality/3");
+   CALL("Literal::createEquality/3");
    Literal* lit=new(2) Literal(0,2,polarity,true);
    *lit->nthArgument(0)=arg1;
    *lit->nthArgument(1)=arg2;
@@ -938,6 +961,31 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2)
    return lit;
 }
 
+/**
+ * Return a new equality literal, with polarity @b polarity and
+ * arguments @b arg1 and @b arg2. These arguments must be of sort @c sort.
+ * Insert the new literal into the sharing structure if all arguments
+ * are shared.
+ *
+ * The equality may be between two variables.
+ */
+Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, unsigned sort)
+{
+   CALL("Literal::createEquality/4");
+
+   if(arg1.isVar()) {
+     if(arg2.isVar()) {
+       return createVariableEquality(polarity, arg1, arg2, sort);
+     }
+     ASS_EQ(SortHelper::getResultSort(arg2.term()), sort);
+   }
+   ASS(arg1.isVar() || SortHelper::getResultSort(arg1.term())==sort);
+   return createEquality(polarity, arg1, arg2);
+}
+
+/**
+ * Create a literal that is equality between two variables.
+ */
 Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList arg2, unsigned variableSort)
 {
   CALL("Literal::createVariableEquality");
