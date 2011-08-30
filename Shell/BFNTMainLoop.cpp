@@ -115,6 +115,7 @@ void BFNTMainLoop::runChild(size_t modelSize)
 
   ScopedPtr<MainLoop> childMainLoop(MainLoop::createFromOptions(*childPrb, _childOpts));
   MainLoopResult innerRes = childMainLoop->run();
+  innerRes.updateStatistics();
 
   LOG("Child termination reason: "
       << ((innerRes.terminationReason==Statistics::SATISFIABLE) ? "Satisfiable" :
@@ -125,10 +126,12 @@ void BFNTMainLoop::runChild(size_t modelSize)
   }
 #endif
 
-  if(innerRes.terminationReason==Statistics::SATISFIABLE || innerRes.terminationReason==Statistics::TIME_LIMIT) {
-    env.beginOutput();
-    env.statistics->print(env.out());
-    env.endOutput();
+  if(env.options->mode()!=Options::MODE_SPIDER) {
+    if(innerRes.terminationReason==Statistics::SATISFIABLE || innerRes.terminationReason==Statistics::TIME_LIMIT) {
+      env.beginOutput();
+      env.statistics->print(env.out());
+      env.endOutput();
+    }
   }
 
   switch(innerRes.terminationReason) {
