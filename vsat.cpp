@@ -158,10 +158,11 @@ void satSolverMode(const char* fname)
 
   cout<<"-start varcnt "<<varCnt<<"\n";
 
-  TWLSolver ts(true);
+  TWLSolver ts(*env.options, true);
 
   SATSolver::Status res;
-  bool incremental = 1;
+//  bool incremental = 1;
+  bool incremental = 0;
   if(incremental) {
     res = runSolverIncrementally(ts, varCnt, clauses);
   }

@@ -109,6 +109,9 @@ void TWLSolver::ensureVarCnt(unsigned newVarCnt)
 /**
  * Add clauses into the SAT solver and saturate. New clauses cannot
  * be added when there are any non-retracted assumptions.
+ *
+ * If @c onlyPropagate is true, only unit propagation is done. If
+ * unsatisfiability isn't shown in this case, the status is set to UNKNOWN.
  */
 void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 {
