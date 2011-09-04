@@ -175,6 +175,7 @@ public:
     TABULATION_LEMMA_AWR,
     TEST_ID,
     THANKS,
+    THEORY_AXIOMS,
     TIME_LIMIT,
     TIME_STATISTICS,
     TRIVIAL_PREDICATE_REMOVAL,
@@ -481,6 +482,7 @@ public:
 
   bool globalSubsumption() const { return _globalSubsumption; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight; }
+  bool theoryAxioms() const { return _theoryAxioms; }
   bool interpretedSimplification() const { return _interpretedSimplification; }
   void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
   Condensation condensation() const { return _condensation; }
@@ -503,11 +505,13 @@ public:
   bool splittingWithBlocking() const { return _splittingWithBlocking; }
   bool bddMarkingSubsumption() const { return _bddMarkingSubsumption; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight; }
+
   unsigned sineDepth() const { return _sineDepth; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold; }
   SineSelection sineSelection() const { return _sineSelection; }
   void setSineSelection(SineSelection val) { _sineSelection=val; }
   float sineTolerance() const { return _sineTolerance; }
+
 
   bool colorUnblocking() const { return _colorUnblocking; }
 
@@ -720,6 +724,7 @@ private:
   int _tabulationLemmaWeightRatio;
   string _testId;
   string _thanks;
+  bool _theoryAxioms;
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
   bool _timeStatistics;

@@ -105,7 +105,8 @@ Problem::PreprocessingOptions::PreprocessingOptions(
     bool traceInlining, bool sineSelection, float sineTolerance, unsigned sineDepthLimit,
     bool variableEqualityPropagation, bool traceVariableEqualityPropagation,
     bool eprSkolemization, bool traceEPRSkolemization,
-    bool predicateDefinitionMerging, bool tracePredicateDefinitionMerging)
+    bool predicateDefinitionMerging, bool tracePredicateDefinitionMerging,
+    bool traceClausification)
 : mode(mode), namingThreshold(namingThreshold), preserveEpr(preserveEpr),
   predicateDefinitionInlining(predicateDefinitionInlining),
   unusedPredicateDefinitionRemoval(unusedPredicateDefinitionRemoval),
@@ -117,7 +118,8 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   eprSkolemization(eprSkolemization),
   traceEPRSkolemization(traceEPRSkolemization),
   predicateDefinitionMerging(predicateDefinitionMerging),
-  tracePredicateDefinitionMerging(tracePredicateDefinitionMerging)
+  tracePredicateDefinitionMerging(tracePredicateDefinitionMerging),
+  traceClausification(traceClausification)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions");
 }
@@ -840,8 +842,9 @@ protected:
 class Problem::Clausifier : public ProblemTransformer
 {
 public:
-  Clausifier(int namingThreshold, bool preserveEpr, bool onlySkolemize) :
+  Clausifier(int namingThreshold, bool preserveEpr, bool onlySkolemize, bool trace) :
     namingThreshold(namingThreshold), preserveEpr(preserveEpr), onlySkolemize(onlySkolemize),
+    trace(trace),
     naming(namingThreshold ? namingThreshold : 8, preserveEpr) {}
 
 protected:
@@ -855,6 +858,10 @@ protected:
       addUnit(unit);
       return;
     }
+    if(trace) {
+      cerr << "Clausifying formula: " << unit->toString() << endl;
+    }
+
     Kernel::FormulaUnit* fu = static_cast<Kernel::FormulaUnit*>(unit);
 
     fu = NNF::ennf(fu);
@@ -882,6 +889,9 @@ protected:
       cnf.clausify(fu,auxClauseStack);
       while (! auxClauseStack.isEmpty()) {
 	Unit* cl = auxClauseStack.pop();
+	if(trace) {
+	  cerr << "Generated clause: " << cl->toString() << endl;
+	}
 	addUnit(cl);
       }
     }
@@ -890,6 +900,7 @@ protected:
   int namingThreshold;
   bool preserveEpr;
   bool onlySkolemize;
+  bool trace;
 
   Shell::CNF cnf;
   Stack<Kernel::Clause*> auxClauseStack;
@@ -1008,7 +1019,7 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
   bool oldTraceVal = env.options->showNonconstantSkolemFunctionTrace();
   env.options->setShowNonconstantSkolemFunctionTrace(options.showNonConstantSkolemFunctionTrace);
 
-  res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE).transform(res);
+  res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE, options.traceClausification).transform(res);
 
   env.options->setShowNonconstantSkolemFunctionTrace(oldTraceVal);
 

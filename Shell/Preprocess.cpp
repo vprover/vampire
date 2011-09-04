@@ -130,7 +130,7 @@ void Preprocess::preprocess (Problem& prb)
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
-  if(prb.hasInterpretedOperations()) {
+  if(prb.hasInterpretedOperations() && _options.theoryAxioms()) {
     InterpretedNormalizer().apply(prb);
     env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
     TheoryAxioms().apply(prb);

@@ -104,7 +104,8 @@ public:
 	bool eprSkolemization=false,
 	bool traceEPRSkolemization=false,
 	bool predicateDefinitionMerging=false,
-	bool tracePredicateDefinitionMerging=false);
+	bool tracePredicateDefinitionMerging=false,
+	bool traceClausification=false);
 
     PreprocessingMode mode;
     /**
@@ -178,6 +179,8 @@ public:
      */
     bool predicateDefinitionMerging;
     bool tracePredicateDefinitionMerging;
+
+    bool traceClausification;
 
     /**
      * Add asymmetric rewriting rule to be used during preprocessing.

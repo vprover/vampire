@@ -615,6 +615,7 @@ TEST_FUN(fbapiSine)
     opts.mode = Problem::PM_CLAUSIFY;
     opts.unusedPredicateDefinitionRemoval = false;
     opts.sineTolerance = 3;
+    opts.traceClausification = true;
     Problem prb2 = prb.preprocess(opts);
     prb2.output(cout, false);
 
