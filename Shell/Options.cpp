@@ -2428,7 +2428,7 @@ bool Options::complete(const Problem& prb) const
   ASS(&prop);
 
   // general properties causing incompleteness
-  // if (prop.usesIntegers()) return false;
+  if (prop.hasInterpretedOperations()) return false;
 
   // preprocessing
   if (_sineSelection != SS_OFF) return false;

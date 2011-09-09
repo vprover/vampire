@@ -180,6 +180,12 @@ public:
     bool predicateDefinitionMerging;
     bool tracePredicateDefinitionMerging;
 
+    /**
+     * Output information on what formulas are being clausified, and what
+     * clauses were generated.
+     *
+     * The output is directed to standard error output.
+     */
     bool traceClausification;
 
     /**

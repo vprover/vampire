@@ -18,6 +18,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -88,6 +89,8 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	continue;
       }
 
+      unsigned querySort = SortHelper::getTermSort(trm, lit);
+
       bool toplevelCheck=getOptions().demodulationRedundancyCheck() && lit->isEquality() &&
 	  (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
@@ -97,6 +100,12 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	ASS_EQ(qr.clause->length(),1);
 
 	if(!simplPerformer->willPerform(qr.clause)) {
+	  continue;
+	}
+
+	unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+
+	if(querySort!=eqSort) {
 	  continue;
 	}
 

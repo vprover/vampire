@@ -12,13 +12,14 @@
 #include "Lib/TimeCounter.hpp"
 #include "Lib/VirtualIterator.hpp"
 
-#include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Kernel/Renaming.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -85,6 +86,7 @@ struct BackwardDemodulation::ResultFn
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
+    _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
   }
   DECL_RETURN_TYPE(BwSimplificationRecord);
@@ -109,6 +111,12 @@ struct BackwardDemodulation::ResultFn
       //backward demodulation
       return BwSimplificationRecord(0);
     }
+
+    unsigned qrSort = SortHelper::getTermSort(qr.term, qr.literal);
+    if(qrSort!=_eqSort) {
+      return BwSimplificationRecord(0);
+    }
+
 
     TermList lhs=arg.first;
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
@@ -203,6 +211,7 @@ struct BackwardDemodulation::ResultFn
     return BwSimplificationRecord(qr.clause,res);
   }
 private:
+  unsigned _eqSort;
   Literal* _eqLit;
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
