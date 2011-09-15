@@ -437,7 +437,7 @@ string Clause::toString(BDDNode* propPart) const
   }
 
   result += string(" (") + Int::toString(_age) + ':' + Int::toString(weight())
-      + ") " + inferenceAsString();
+      + ") " + inferenceAsString(propPart);
   return result;
 }
 

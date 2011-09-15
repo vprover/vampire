@@ -12,6 +12,7 @@
 
 #include "BDD.hpp"
 #include "Inference.hpp"
+#include "InferenceStore.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
@@ -146,17 +147,24 @@ void Unit::collectPredicates(Stack<unsigned>& acc)
  * refutations).
  * @since 04/01/2008 Torrevieja
  */
-string Unit::inferenceAsString() const
+string Unit::inferenceAsString(BDDNode* propPart) const
 {
   CALL("Unit::inferenceAsString");
 
-  string result = (string)"[" + _inference->name();
+  InferenceStore& infS = *InferenceStore::instance();
+
+  Inference::Rule rule;
+  UnitSpecIterator parents;
+  UnitSpec us = propPart ? UnitSpec(const_cast<Unit*>(this), propPart) : UnitSpec(const_cast<Unit*>(this));
+  parents = infS.getParents(us, rule);
+
+  string result = (string)"[" + Inference::ruleName(rule);
   bool first = true;
-  Inference::Iterator it = _inference->iterator();
-  while (_inference->hasNext(it)) {
+  while (parents.hasNext()) {
+    UnitSpec parent = parents.next();
     result += first ? ' ' : ',';
     first = false;
-    result += Int::toString(_inference->next(it)->number());
+    result += infS.getUnitIdStr(parent);
   }
   return result + ']';
 } // Unit::inferenceAsString()

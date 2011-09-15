@@ -140,6 +140,9 @@ redundancy_check:
     env.statistics->instGenRedundantClauses++;
     return;
   }
+  if(_opt.showNew()) {
+    reportClause(CRT_NEW, cl);
+  }
   cl->incRefCnt();
   _variantIdx->insert(cl);
   if(_globalSubsumption) {
@@ -184,6 +187,10 @@ void IGAlgorithm::processUnprocessed()
     //we should do cl->decRefCnt() here, but passive doesn't increase on its own,
     //so it cancels out with the increase we'd have to do for it
     _passive.add(cl);
+    if(_opt.showPassive()) {
+	reportClause(CRT_PASSIVE, cl);
+    }
+
 
     SATClauseIterator sc = _gnd.ground(cl);
     satClauses.loadFromIterator(sc);
@@ -395,6 +402,9 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
 
   LOG("activating "<<cl->toString());
   selectAndAddToIndex(cl);
+  if(_opt.showActive()) {
+    reportClause(CRT_ACTIVE, cl);
+  }
 
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {

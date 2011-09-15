@@ -80,6 +80,49 @@ bool MainLoop::isRefutation(Clause* cl)
 }
 
 /**
+ * Report newly appearing clause, or clause that has been newly assigned
+ * certain role.
+ *
+ * This function should be used for implementing the "--show_*" options
+ */
+void MainLoop::reportClause(ClauseReportType type, Clause* cl)
+{
+  CALL("MainLoop::reportClause(...,Clause*)");
+
+//  reportClause(type, cl->toNiceString());
+  reportClause(type, cl->toString());
+}
+
+/**
+ * Report newly appearing clause, or clause that has been newly assigned
+ * certain role.
+ *
+ * This function should be used for implementing the "--show_*" options
+ */
+void MainLoop::reportClause(ClauseReportType type, string clString)
+{
+  CALL("MainLoop::reportClause(...,string)");
+
+  env.beginOutput();
+  switch(type) {
+  case CRT_ACTIVE:
+    env.out()<<"Active: ";
+    break;
+  case CRT_PASSIVE:
+    env.out()<<"Passive: ";
+    break;
+  case CRT_NEW:
+    env.out()<<"New: ";
+    break;
+  case CRT_NEW_PROPOSITIONAL:
+    env.out()<<"New propositional: ";
+    break;
+  }
+  env.out()<<clString<<endl;
+  env.endOutput();
+}
+
+/**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
 ImmediateSimplificationEngine* MainLoop::createISE(Problem& prb, const Options& opt)

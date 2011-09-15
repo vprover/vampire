@@ -222,37 +222,6 @@ size_t SaturationAlgorithm::passiveClauseCount()
   return _passive->size();
 }
 
-void SaturationAlgorithm::reportClause(ClauseReportType type, Clause* cl)
-{
-  CALL("SaturationAlgorithm::reportClause(...,Clause*)");
-
-//  reportClause(type, cl->toNiceString());
-  reportClause(type, cl->toString());
-}
-
-void SaturationAlgorithm::reportClause(ClauseReportType type, string clString)
-{
-  CALL("SaturationAlgorithm::reportClause(...,string)");
-
-  env.beginOutput();
-  switch(type) {
-  case CRT_ACTIVE:
-    env.out()<<"Active: ";
-    break;
-  case CRT_PASSIVE:
-    env.out()<<"Passive: ";
-    break;
-  case CRT_NEW:
-    env.out()<<"New: ";
-    break;
-  case CRT_NEW_PROPOSITIONAL:
-    env.out()<<"New propositional: ";
-    break;
-  }
-  env.out()<<clString<<endl;
-  env.endOutput();
-}
-
 
 /**
  * A function that is called when a clause is added to the active clause container.

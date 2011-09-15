@@ -60,7 +60,7 @@ public:
   virtual string toString() const = 0;
   virtual unsigned varCnt() = 0;
 
-  string inferenceAsString() const;
+  string inferenceAsString(BDDNode* propPart=0) const;
 
   /** True if a clause unit */
   bool isClause() const

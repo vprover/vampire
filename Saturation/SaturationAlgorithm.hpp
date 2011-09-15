@@ -137,17 +137,6 @@ protected:
   virtual bool isComplete();
 
 private:
-
-  enum ClauseReportType
-  {
-    CRT_ACTIVE,
-    CRT_PASSIVE,
-    CRT_NEW,
-    CRT_NEW_PROPOSITIONAL
-  };
-  void reportClause(ClauseReportType type, Clause* cl);
-  void reportClause(ClauseReportType type, string clString);
-
   void passiveRemovedHandler(Clause* cl);
   void activeRemovedHandler(Clause* cl);
 
