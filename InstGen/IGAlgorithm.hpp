@@ -89,6 +89,12 @@ private:
   void onResolutionClauseDerived(Clause* cl);
   void doResolutionStep();
 
+  /**
+   * True if we're running freshly restarted instantiation
+   * to see if new clauses are generated, or we have a
+   * satisfiable problem.
+   */
+  bool _doingSatisfiabilityCheck;
 
   RatioKeeper _instGenResolutionRatio;
 

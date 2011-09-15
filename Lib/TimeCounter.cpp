@@ -226,6 +226,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_INST_GEN_SIMPLIFICATIONS:
     out<<"inst gen simplifications";
     break;
+  case TC_INST_GEN_VARIANT_DETECTION:
+    out<<"inst gen variant detection";
+    break;
   case TC_LRS_LIMIT_MAINTENANCE:
     out<<"LRS limit maintenance";
     break;

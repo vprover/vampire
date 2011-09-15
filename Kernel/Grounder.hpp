@@ -10,6 +10,8 @@
 
 #include "Lib/DHMap.hpp"
 
+#include "Kernel/Term.hpp"
+
 namespace Kernel {
 
 using namespace Lib;
@@ -52,6 +54,10 @@ protected:
 };
 
 class IGGrounder : public Grounder {
+public:
+  IGGrounder();
+private:
+  TermList _tgtTerm;
 protected:
   virtual void normalize(unsigned cnt, Literal** lits);
 private:

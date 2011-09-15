@@ -60,6 +60,8 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
 
   _variantIdx = new ClauseVariantIndex();
   _selected = new LiteralSubstitutionTree();
+
+  _doingSatisfiabilityCheck = false;
 }
 
 IGAlgorithm::~IGAlgorithm()
@@ -135,10 +137,13 @@ void IGAlgorithm::addClause(Clause* cl)
   }
 
 redundancy_check:
-  if(_variantIdx->retrieveVariants(cl).hasNext()) {
-    cl->destroyIfUnnecessary();
-    env.statistics->instGenRedundantClauses++;
-    return;
+  {
+    TimeCounter tc2(TC_INST_GEN_VARIANT_DETECTION);
+    if(_variantIdx->retrieveVariants(cl).hasNext()) {
+      cl->destroyIfUnnecessary();
+      env.statistics->instGenRedundantClauses++;
+      return;
+    }
   }
   if(_opt.showNew()) {
     reportClause(CRT_NEW, cl);
@@ -584,12 +589,14 @@ MainLoopResult IGAlgorithm::runImpl()
     else {
       //we're here because there were no more clauses to activate
       restartWithCurrentClauses();
+      _doingSatisfiabilityCheck = true;
     }
     processUnprocessed();
     while(!_passive.isEmpty()) {
       Clause* given = _passive.popSelected();
       activate(given);
     }
+    _doingSatisfiabilityCheck = false;
     if(_unprocessed.isEmpty()) {
       if(_opt.complete(_prb)) {
 	if(_opt.proof()!=Options::PROOF_OFF) {

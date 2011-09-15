@@ -3,12 +3,15 @@
  * Implements class Grounder.
  */
 
+#include "Lib/Environment.hpp"
 #include "Lib/SharedSet.hpp"
 
 #include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 
@@ -212,12 +215,28 @@ void GlobalSubsumptionGrounder::normalize(unsigned cnt, Literal** lits)
 // IGGrounder
 //
 
+IGGrounder::IGGrounder()
+{
+  _tgtTerm = TermList(0, false);
+  //TODO: make instantiation happen with the most prolific symbol of each sort
+/*  unsigned funs = env.signature->functions();
+  for(unsigned i=0; i<funs; i++) {
+    if(env.signature->functionArity(i)==0) {
+      _tgtTerm = TermList(Term::createConstant(i));
+      break;
+    }
+  }*/
+}
+
 class IGGrounder::CollapsingApplicator
 {
+  TermList _tgtTerm;
 public:
+  CollapsingApplicator(TermList tgtTerm) : _tgtTerm(tgtTerm) {}
   TermList apply(unsigned var)
   {
-    return TermList(0, false);
+//    return TermList(0, false);
+    return _tgtTerm;
   }
 };
 
@@ -229,7 +248,7 @@ Literal* IGGrounder::collapseVars(Literal* lit)
 {
   CALL("IGGrounder::collapseVars");
 
-  CollapsingApplicator apl;
+  CollapsingApplicator apl(_tgtTerm);
   return SubstHelper::apply(lit, apl);
 }
 
