@@ -225,34 +225,32 @@ Clause* BSplitter::getComponent(Clause* cl)
   IntUnionFind::ComponentIterator cit(components);
 
 
-  for(;;) {
-  compAssemblyStart:
-    if(!cit.hasNext()) {
+compAssemblyStart:
+  if(!cit.hasNext()) {
+    return 0;
+  }
+  lits.reset();
+
+  IntUnionFind::ElementIterator elit=cit.next();
+
+  unsigned compPosLits=0;
+  while(elit.hasNext()) {
+    int litIndex=elit.next();
+    Literal* lit=(*cl)[litIndex];
+    lits.push(lit);
+    if(lit->isPositive()) {
+      compPosLits++;
+    }
+    if(isAnswerLiteral(lit)) {
+      goto compAssemblyStart; //we don't split out answer literals, so next component has to be attempted
+    }
+  }
+  if(splitPositive()) {
+    if(compPosLits==posLits) {
       return 0;
     }
-    lits.reset();
-
-    IntUnionFind::ElementIterator elit=cit.next();
-
-    unsigned compPosLits=0;
-    while(elit.hasNext()) {
-      int litIndex=elit.next();
-      Literal* lit=(*cl)[litIndex];
-      lits.push(lit);
-      if(lit->isPositive()) {
-	compPosLits++;
-      }
-      if(isAnswerLiteral(lit)) {
-	goto compAssemblyStart; //we don't split out answer literals, so next component has to be attempted
-      }
-    }
-    if(splitPositive()) {
-      if(compPosLits==posLits) {
-	return 0;
-      }
-      if(compPosLits==0) {
-	continue; //try next component
-      }
+    if(compPosLits==0) {
+      goto compAssemblyStart; //try next component
     }
   }
 
