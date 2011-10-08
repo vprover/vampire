@@ -52,10 +52,17 @@ public:
   virtual VarManager::VarFactory* getVarFactory() { return 0; };
 
   virtual bool isFBHelper() const { return false; }
+  virtual bool outputDummyNames() const { return false; }
 private:
   struct Var2NameMapper;
 public:
   StringIterator getVarNames(VarList* l);
+
+  static string getDummyName(bool pred, unsigned functor);
+  static string getDummyName(const Kernel::Term* t);
+
+  string getSymbolName(bool pred, unsigned functor) const;
+  string getSymbolName(const Kernel::Term* t) const;
 };
 
 class FBHelperCore
@@ -110,6 +117,10 @@ public:
   bool _checkBindingBoundVariables;
 
   bool _allowImplicitlyTypedVariables;
+
+  bool _outputDummyNames;
+
+  virtual bool outputDummyNames() const { return _outputDummyNames; }
 
   /** Return arbitrary uninterpreted unary predicate */
   unsigned getUnaryPredicate();

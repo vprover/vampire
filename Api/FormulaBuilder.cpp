@@ -43,20 +43,20 @@ namespace Api
 {
 
 FormulaBuilder::FormulaBuilder(bool checkNames, bool checkBindingBoundVariables,
-    bool allowImplicitlyTypedVariables)
+    bool allowImplicitlyTypedVariables, bool outputDummyNames)
 {
   CALL("FormulaBuilder::FormulaBuilder");
 
   _aux->_checkNames=checkNames;
   _aux->_checkBindingBoundVariables=checkBindingBoundVariables;
   _aux->_allowImplicitlyTypedVariables=allowImplicitlyTypedVariables;
+  _aux->_outputDummyNames=outputDummyNames;
 }
 
 Sort FormulaBuilder::sort(const string& sortName)
 {
   CALL("FormulaBuilder::sort");
 
-  bool added;
   unsigned res = env.sorts->addSort(sortName);
   return Sort(res);
 }
@@ -96,6 +96,29 @@ string FormulaBuilder::getSortName(Sort s)
 
   return env.sorts->sortName(s);
 }
+
+string FormulaBuilder::getPredicateName(Predicate p)
+{
+  CALL("FormulaBuilder::getPredicateName");
+
+  return _aux->getSymbolName(true, p);
+}
+
+string FormulaBuilder::getFunctionName(Function f)
+{
+  CALL("FormulaBuilder::getFunctionName");
+
+  return _aux->getSymbolName(true, f);
+}
+
+string FormulaBuilder::getVariableName(Var v)
+{
+  CALL("FormulaBuilder::getVariableName");
+
+  return _aux->getVarName(v);
+}
+
+
 
 Var FormulaBuilder::var(const string& varName)
 {

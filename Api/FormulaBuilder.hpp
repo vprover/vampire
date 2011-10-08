@@ -98,8 +98,10 @@ public:
    * @param allowImplicitlyTypedVariables allow creating variables without explicitely
    *        specifying a type. If false, the Var var(const string& varName) function
    *        will throw and exception.
+   * @param outputDummyNames if true, dummy names are output instead of actual predicate names
    */
-  FormulaBuilder(bool checkNames=true, bool checkBindingBoundVariables=true, bool allowImplicitlyTypedVariables=true);
+  FormulaBuilder(bool checkNames=true, bool checkBindingBoundVariables=true,
+      bool allowImplicitlyTypedVariables=true, bool outputDummyNames=false);
 
   enum Connective {
     TRUE,
@@ -149,11 +151,6 @@ public:
    * Return the default sort that is used when no sort is specified.
    */
   static Sort defaultSort();
-
-  /**
-   * Return name of the sort @c s.
-   */
-  string getSortName(Sort s);
 
   /** Create a variable with the default sort
    * @param varName name of the variable. Must be a valid TPTP variable name, that is, start
@@ -213,6 +210,32 @@ public:
    * Create interpreted predicate
    */
   Predicate interpretedPredicate(InterpretedPredicate symbol);
+
+  /**
+   * Return name of the sort @c s.
+   */
+  string getSortName(Sort s);
+  /**
+   * Return name of the predicate @c p.
+   *
+   * If the output of dummy names is enabled, the dummy name will be returned here.
+   */
+  string getPredicateName(Predicate p);
+  /**
+   * Return name of the function @c f.
+   *
+   * If the output of dummy names is enabled, the dummy name will be returned here.
+   */
+  string getFunctionName(Function f);
+  /**
+   * Return name of the variable @c v.
+   *
+   * If the output of dummy names is enabled, the dummy name will be returned here.
+   */
+  string getVariableName(Var v);
+
+
+
 
   void addAttribute(Predicate p, string name, string value);
   unsigned attributeCount(Predicate p);

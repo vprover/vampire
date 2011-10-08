@@ -45,6 +45,57 @@ string DefaultHelperCore::toString(Kernel::TermList t) const
   return toString(t.term());
 }
 
+/** Get dummy name for function or predicate */
+string DefaultHelperCore::getDummyName(bool pred, unsigned functor)
+{
+  CALL("DefaultHelperCore::getDummyName/2");
+
+  Signature::Symbol* sym = pred ?
+      env.signature->getPredicate(functor) :
+      env.signature->getFunction(functor);
+
+  if(sym->interpreted()) {
+    return pred ? env.signature->predicateName(functor) :
+	env.signature->functionName(functor);
+  }
+
+  if(pred) {
+    return "p"+Int::toString(functor);
+  }
+  else {
+    return "f"+Int::toString(functor);
+  }
+}
+
+/** Get dummy name for function or predicate */
+string DefaultHelperCore::getDummyName(const Kernel::Term* t)
+{
+  CALL("DefaultHelperCore::getDummyName/1");
+
+  return getDummyName(t->isLiteral(), t->functor());
+}
+
+string DefaultHelperCore::getSymbolName(bool pred, unsigned functor) const
+{
+  if(outputDummyNames()) {
+    return getDummyName(pred, functor);
+  }
+  else {
+    if(pred) {
+      return env.signature->predicateName(functor);
+    }
+    else {
+      return env.signature->functionName(functor);
+    }
+  }
+}
+
+string DefaultHelperCore::getSymbolName(const Kernel::Term* t) const
+{
+  return getSymbolName(t->isLiteral(), t->functor());
+}
+
+
 string DefaultHelperCore::toString(const Kernel::Term* t0) const
 {
   CALL("DefaultHelperCore::toString(const Kernel::Term*)");
@@ -104,10 +155,10 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
 	return res;
       }
     }
-    res=(l->isPositive() ? "" : "~") + l->predicateName();
+    res=(l->isPositive() ? "" : "~") + getSymbolName(l);
   }
   else {
-    res=t0->functionName();
+    res=getSymbolName(t0);
   }
   if(t0->arity()==0) {
     return res;
@@ -136,7 +187,7 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
 	res+=toString(trm);
       }
       else {
-	res+=trm->functionName();
+	res+=getSymbolName(trm);
 	if(trm->arity()) {
 	  res+='(';
 	  remArg.push(trm->arity());
@@ -497,6 +548,10 @@ void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const
 string FBHelperCore::getVarName(Var v) const
 {
   CALL("FBHelperCore::getVarName");
+
+  if(outputDummyNames()) {
+    return "X"+Int::toString(v);
+  }
 
   string res;
   if(varNames.find(v,res)) {

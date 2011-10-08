@@ -707,3 +707,68 @@ TEST_FUN(fbapiInts)
   prb.outputTypeDefinitions(cout, true);
 }
 
+TEST_FUN(fbapiDummyNames)
+{
+  try {
+    FormulaBuilder api(true, false, true, true);
+
+    Sort s1 = api.sort("sort1");
+    Sort s2 = api.sort("sort2");
+    cout<<s1<<" "<<s2<<" "<<api.defaultSort()<<endl;
+    Var xv = api.var("VarS1", s1);
+    Var yv = api.var("VarS2", s2);
+    Var zv = api.var("VarDef");
+    Function cSym=api.function("c_s1",0,s1,0);
+    Function dSym=api.function("d_s2",0,s2,0);
+    Term x = api.varTerm(xv);
+    Term y = api.varTerm(yv);
+    Term z = api.varTerm(zv);
+    Term c = api.term(cSym);
+    Term d = api.term(dSym);
+
+    ASS_EQ(x.sort(), s1);
+    ASS_EQ(y.sort(), s2);
+    ASS_EQ(z.sort(), api.defaultSort());
+    ASS_EQ(c.sort(), s1);
+    ASS_EQ(d.sort(), s2);
+
+    Predicate p=api.predicate("p_s1",1,&s1);
+    Predicate r=api.predicate("r_s2",1,&s2);
+    Sort qSorts[] = {s1, s2, api.defaultSort()};
+    Predicate q=api.predicate("q_s1_s2_i",3,qSorts);
+
+    Formula fpx=api.formula(p,x);
+    Formula fpc=api.formula(p,c);
+    Formula fry=api.formula(r,y);
+    Formula frd=api.formula(r,d);
+    Formula fqxyz=api.formula(q,x,y,z);
+    Formula fqcdz=api.formula(q,c,d,z);
+    Formula fxEQx=api.equality(x,x);
+    Formula fxEQc=api.equality(x,c);
+    Formula fxEQc2=api.equality(x,c,s1);
+    Formula fzEQz=api.equality(z,z);
+    Formula fOr=api.formula(FormulaBuilder::OR, fqxyz, frd);
+    Formula fEx=api.formula(FormulaBuilder::EXISTS, xv, fOr);
+    AnnotatedFormula af = api.annotatedFormula(fEx, FormulaBuilder::AXIOM, "ax1");
+
+    Formula fAnd=api.formula(FormulaBuilder::AND, fpx, fry);
+    Formula fOr2=api.formula(FormulaBuilder::OR, fAnd, fAnd);
+    Formula fOr4=api.formula(FormulaBuilder::OR, fOr2, fOr2);
+    Formula fOr8=api.formula(FormulaBuilder::OR, fOr4, fOr4);
+    AnnotatedFormula af2 = api.annotatedFormula(fOr8, FormulaBuilder::AXIOM, "ax2");
+
+    Problem prb;
+    prb.addFormula(af);
+    prb.addFormula(af2);
+
+    OutputOptions::setTffFormulas(true);
+    cout<<"Clausified:"<<endl;
+    Problem cprb = prb.clausify(4,true,Problem::INL_OFF,false);
+    cprb.output(cout, true);
+    OutputOptions::setTffFormulas(false);
+
+  } catch (ApiException e) {
+    cout<<"Exception: "<<e.msg()<<endl;
+    throw;
+  }
+}

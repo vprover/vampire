@@ -1064,7 +1064,7 @@ void outputAttributes(ostream& out, FBHelperCore::AttribStack* attribs)
 }
 
 void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs,
-    FBHelperCore::AttribStack* attribs)
+    FBHelperCore::AttribStack* attribs, bool dummyNames)
 {
   CALL("outputSymbolTypeDefinitions");
 
@@ -1082,8 +1082,10 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
     return;
   }
 
+  string symName = dummyNames ? (DefaultHelperCore::getDummyName(!function, symNumber)) : sym->name();
+
   out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
-      << sym->name() << ": ";
+      << symName << ": ";
 
   unsigned arity = sym->arity();
   if(arity>0) {
@@ -1118,6 +1120,7 @@ void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
   CALL("Problem::outputTypeDefinitions");
 
   DefaultHelperCore* core0 = _data->getCore();
+  bool dummyNames = core0 && core0->outputDummyNames();
   FBHelperCore* core = (core0 && core0->isFBHelper()) ? static_cast<FBHelperCore*>(core0) : 0;
   unsigned sorts = env.sorts->sorts();
   for(unsigned i=Sorts::FIRST_USER_SORT; i<sorts; i++) {
@@ -1130,12 +1133,12 @@ void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
     outputSymbolTypeDefinitions(out, i, true, outputAllTypeDefs,
-	core ? &core->getFunctionAttributes(i) : 0);
+	core ? &core->getFunctionAttributes(i) : 0, dummyNames);
   }
   unsigned preds = env.signature->predicates();
   for(unsigned i=1; i<preds; i++) {
     outputSymbolTypeDefinitions(out, i, false, outputAllTypeDefs,
-	core ? &core->getPredicateAttributes(i) : 0);
+	core ? &core->getPredicateAttributes(i) : 0, dummyNames);
   }
 }
 
