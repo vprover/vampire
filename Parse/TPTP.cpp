@@ -2093,8 +2093,7 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
   }
   unsigned sortNumber;
   SortList* vs;
-  if (_variableSorts.find(lhs.var(),vs)) {
-    ASS(!vs->isEmpty());
+  if (_variableSorts.find(lhs.var(),vs) && vs) {
     sortNumber = vs->head();
   }
   else { // this may happen when free variables appear in the formula (or clause)
@@ -3335,9 +3334,12 @@ const char* TPTP::toString(State s)
     return "END_LETTF";
   case END_LETFF:
     return "END_LETFF";
+  case UNBIND_VARIABLES:
+    return "UNBIND_VARIABLES";
   default:
     cout << (int)s << "\n";
     ASS(false);
+    break;
   }
 }
 #endif
