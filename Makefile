@@ -401,6 +401,7 @@ OTHER_API_DEP = \
 	   Kernel/FormulaUnit.o\
 	   Kernel/FormulaVarIterator.o\
 	   Kernel/Inference.o\
+	   Kernel/InferenceStore.o\
 	   Kernel/KBO.o\
 	   Kernel/KBOForEPR.o\
 	   Kernel/Matcher.o\
@@ -429,6 +430,7 @@ OTHER_API_DEP = \
 	   Lib/MultiCounter.o\
 	   Lib/NameArray.o\
 	   Lib/Random.o\
+	   Lib/StringUtils.o\
 	   Lib/System.o\
 	   Lib/TimeCounter.o\
 	   Lib/Timer.o\
