@@ -154,8 +154,8 @@ Function FormulaBuilder::function(const string& funName, unsigned arity, Sort ra
   CALL("FormulaBuilder::function/4");
 
   if(_aux->_checkNames) {
-    if(!islower(funName[0])) {
-      throw InvalidTPTPNameException("Function name must start with a lowercase character", funName);
+    if(!islower(funName[0]) && (funName.substr(0,2)!="$$")) {
+      throw InvalidTPTPNameException("Function name must start with a lowercase character or \"$$\"", funName);
     }
     //TODO: add further checks
   }
@@ -219,7 +219,7 @@ Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort
   CALL("FormulaBuilder::predicate/3");
 
   if(_aux->_checkNames) {
-    if(!islower(predName[0])) {
+    if(!islower(predName[0]) && (predName.substr(0,2)!="$$")) {
       throw InvalidTPTPNameException("Predicate name must start with a lowercase character", predName);
     }
     //TODO: add further checks
