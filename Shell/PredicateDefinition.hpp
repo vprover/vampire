@@ -32,7 +32,7 @@ using namespace Kernel;
 class PredicateDefinition
 {
 public:
-  PredicateDefinition();
+  PredicateDefinition(bool trace=false);
   ~PredicateDefinition();
 
   void collectReplacements(UnitList* units, DHMap<Unit*, Unit*>& unitReplacements);
@@ -62,6 +62,8 @@ private:
   Unit* replacePurePredicates(Unit* u);
 
   void makeImplFromDef(unsigned pred, bool forward);
+
+  bool _trace;
 
   Problem* _processedPrb;
 

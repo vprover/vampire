@@ -106,7 +106,7 @@ Problem::PreprocessingOptions::PreprocessingOptions(
     bool variableEqualityPropagation, bool traceVariableEqualityPropagation,
     bool eprSkolemization, bool traceEPRSkolemization,
     bool predicateDefinitionMerging, bool tracePredicateDefinitionMerging,
-    bool traceClausification)
+    bool traceClausification, bool traceUnusedPredicateDefinitionRemoval)
 : mode(mode), namingThreshold(namingThreshold), preserveEpr(preserveEpr),
   predicateDefinitionInlining(predicateDefinitionInlining),
   unusedPredicateDefinitionRemoval(unusedPredicateDefinitionRemoval),
@@ -119,7 +119,8 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   traceEPRSkolemization(traceEPRSkolemization),
   predicateDefinitionMerging(predicateDefinitionMerging),
   tracePredicateDefinitionMerging(tracePredicateDefinitionMerging),
-  traceClausification(traceClausification)
+  traceClausification(traceClausification),
+  traceUnusedPredicateDefinitionRemoval(traceUnusedPredicateDefinitionRemoval)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions");
 }
@@ -736,7 +737,8 @@ protected:
 class Problem::UnusedPredicateDefinitionRemover : public ProblemTransformer
 {
 public:
-  UnusedPredicateDefinitionRemover(Stack<unsigned>* builtInPreds=0)
+  UnusedPredicateDefinitionRemover(Stack<unsigned>* builtInPreds=0, bool trace=false)
+  : pd(trace)
   {
     CALL("Problem::UnusedPredicateDefinitionRemover");
     if(builtInPreds) {
@@ -1003,7 +1005,7 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
   }
 
   if(options.unusedPredicateDefinitionRemoval) {
-    res = UnusedPredicateDefinitionRemover(options._ods.builtInPreds).transform(res);
+    res = UnusedPredicateDefinitionRemover(options._ods.builtInPreds, options.traceUnusedPredicateDefinitionRemoval).transform(res);
   }
 
   unsigned arCnt = options._ods.lhs->size();

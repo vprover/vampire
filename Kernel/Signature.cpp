@@ -34,32 +34,8 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, boo
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
 
-  //handle quoting
-  const char* c=_name.c_str();
-  //we do not put quotation marks around equality, although it is not an
-  //atomic_word (in the sense of the TPTP syntax)
-  //Also numbers are not quoted. However names that just look like numbers
-  //(the distinction here is that they are not interpreted) are quoted.
-  if(!stringConstant && (!interpreted || (_name!="=" && arity!=0)) && *c) {
-    bool quote=needsQuoting(*c, true);
-    c++;
-    while(*c) {
-      if(needsQuoting(*c, false)) {
-	quote=true;
-	break;
-      }
-      c++;
-    }
-    if(quote && _name=="$distinct") {
-      //TODO: remove this hack once we properly support the $distinct predicate
-      quote=false;
-    }
-    if(quote && _name[0]=='$' && _interpreted) {
-      quote=false;
-    }
-    if(quote) {
+  if(symbolNeedsQuoting(_name, interpreted, arity, stringConstant)) {
       _name="'"+_name+"'";
-    }
   }
 }
 
@@ -767,9 +743,63 @@ void Signature::addToDistinctGroup(unsigned constantSymbol, unsigned groupId)
 }
 
 /**
+ * Return true if specified symbol should be quoted
+ *
+ * The function charNeedsQuoting determines characters whose presence in
+ * the symbol name implies that they should be quoted. There are however
+ * several exceptions to it:
+ *
+ * Equality is not quoted
+ *
+ * String constants are not quoted (they are already in the double quotes)
+ *
+ * Numbers are not quoted. However names that just look like numbers
+ * are quoted (the distinction is that these are not interpreted)
+ *
+ * $distinct predicate is not quoted
+ *
+ * For interpreted symbols its legal to start with $
+ *
+ * It's legal for symbols to start with $$
+ */
+bool Signature::symbolNeedsQuoting(string name, bool interpreted, unsigned arity, bool stringConstant)
+{
+  CALL("Signature::symbolNeedsQuoting");
+  ASS_G(name.length(),0);
+
+  if(stringConstant) { return false; }
+  if(interpreted && (name=="=" || arity==0)) { return false; }
+
+  const char* c = name.c_str();
+  bool quote = false;
+  bool first = true;
+  if(*c=='$') {
+    if(*(c+1)=='$') {
+      c+=2; //skip the initial $$
+      first = false;
+    }
+    else if(interpreted) {
+      c++; //skip the initial $ for interpreted
+      first = false;
+    }
+  }
+  while(!quote && *c) {
+    quote |= charNeedsQuoting(*c, first);
+    first = false;
+    c++;
+  }
+  if(!quote) { return false; }
+  if(name=="$distinct") {
+    //TODO: remove this once we properly support the $distinct predicate and quoting
+    return false;
+  }
+  return true;
+}
+
+/**
  * Return true if the name containing che character must be quoted
  */
-bool Signature::needsQuoting(char c, bool first)
+bool Signature::charNeedsQuoting(char c, bool first)
 {
   switch (c) {
   case 'a':

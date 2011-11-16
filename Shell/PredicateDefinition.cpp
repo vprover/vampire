@@ -106,12 +106,18 @@ struct PredicateDefinition::PredData
 #if REPORT_PRED_DEF_SIMPL
       cout<<"DE: "<<env.signature->predicateName(pred)<<endl;
 #endif
+      if(pdObj->_trace) {
+        cerr << "PD: pred marked for removing unused predicate definition: " << env.signature->predicateName(pred) << endl;
+      }
     } else if(!enqueuedForReplacement && isPure()) {
       pdObj->_pureToReplace.push(pred);
       enqueuedForReplacement=true;
 #if REPORT_PRED_DEF_SIMPL
       cout<<"PP: "<<env.signature->predicateName(pred)<<((nocc==0)?" +":" -")<<endl;
 #endif
+      if(pdObj->_trace) {
+        cerr << "PD: pred marked for removing as pure: " << env.signature->predicateName(pred) << endl;
+      }
     }
   }
 
@@ -139,15 +145,21 @@ bool PredicateDefinition::isBuiltIn(unsigned pred)
   //TODO: remove this hack once we properly support the $distinct predicate
 }
 
-PredicateDefinition::PredicateDefinition()
-: _processedPrb(0), _predCnt(env.signature->predicates())
+PredicateDefinition::PredicateDefinition(bool trace)
+: _trace(trace), _processedPrb(0), _predCnt(env.signature->predicates())
 {
   int predCnt=env.signature->predicates();
+
   _preds = new PredData[predCnt];
   for(int i=0;i<predCnt;i++) {
     _preds[i].pred=i;
+  }
 
-    _preds[i].builtIn = isBuiltIn(i);
+  //mark built-in
+  for(int i=0;i<predCnt;i++) {
+    if(isBuiltIn(i)) {
+      addBuiltInPredicate(i);
+    }
   }
 }
 
@@ -165,6 +177,10 @@ void PredicateDefinition::addBuiltInPredicate(unsigned pred)
   ASS_L((int)pred,_predCnt);
 
   _preds[pred].builtIn = true;
+
+  if(_trace) {
+    cerr << "PD: pred marked as built-in: " << env.signature->predicateName(pred) << endl;
+  }
 }
 
 /**

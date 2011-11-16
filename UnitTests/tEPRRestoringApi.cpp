@@ -336,6 +336,7 @@ TEST_FUN(eprUPDRBuiltInPreds)
     Problem::PreprocessingOptions opts;
     opts.mode = Problem::PM_EARLY_PREPROCESSING;
     opts.unusedPredicateDefinitionRemoval = true;
+    opts.traceUnusedPredicateDefinitionRemoval = true;
     opts.addBuiltInPredicate(bPred);
 
     Problem iprb=prb.preprocess(opts);

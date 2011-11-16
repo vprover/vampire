@@ -105,7 +105,8 @@ public:
 	bool traceEPRSkolemization=false,
 	bool predicateDefinitionMerging=false,
 	bool tracePredicateDefinitionMerging=false,
-	bool traceClausification=false);
+	bool traceClausification=false,
+	bool traceUnusedPredicateDefinitionRemoval=false);
 
     PreprocessingMode mode;
     /**
@@ -187,6 +188,14 @@ public:
      * The output is directed to standard error output.
      */
     bool traceClausification;
+
+    /**
+     * Output information on th progress of unused predicate definition
+     * removal and pure predicate removal.
+     *
+     * The output is directed to standard error output.
+     */
+    bool traceUnusedPredicateDefinitionRemoval;
 
     /**
      * Add asymmetric rewriting rule to be used during preprocessing.

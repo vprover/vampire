@@ -220,7 +220,7 @@ Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort
 
   if(_aux->_checkNames) {
     if(!islower(predName[0]) && (predName.substr(0,2)!="$$")) {
-      throw InvalidTPTPNameException("Predicate name must start with a lowercase character", predName);
+      throw InvalidTPTPNameException("Predicate name must start with a lowercase character or \"$$\"", predName);
     }
     //TODO: add further checks
   }

@@ -391,7 +391,8 @@ private:
   static const unsigned RATIONAL_DISTINCT_GROUP;
   static const unsigned REAL_DISTINCT_GROUP;
 
-  static bool needsQuoting(char c, bool first);
+  static bool symbolNeedsQuoting(string name, bool interpreted, unsigned arity, bool stringConstant);
+  static bool charNeedsQuoting(char c, bool first);
 
   /** Stack of function symbols */
   Stack<Symbol*> _funs;

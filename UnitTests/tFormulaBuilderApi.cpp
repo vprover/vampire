@@ -772,3 +772,20 @@ TEST_FUN(fbapiDummyNames)
     throw;
   }
 }
+
+TEST_FUN(fbapiDollarNames)
+{
+  FormulaBuilder api;
+
+  Function f = api.function("$$f",0);
+  Predicate p = api.predicate("$$p",1);
+
+  Term t = api.term(f);
+  Formula form = api.formula(p, t);
+
+  string str = form.toString();
+  ASS_EQ(str,"$$p($$f)");
+  cout << str << "\n";
+}
+
+
