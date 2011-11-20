@@ -29,6 +29,8 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Shell/TPTP.hpp"
+
 #include "Statistics.hpp"
 
 #include "BFNTMainLoop.hpp"
@@ -106,10 +108,11 @@ void BFNTMainLoop::runChild(size_t modelSize)
   ScopedPtr<Problem> childPrb(_bfnt.createProblem(modelSize));
 
 #if LOGGING
+  LOG("Flattenned problem:");
   UnitList::Iterator puit(childPrb->units());
   while(puit.hasNext()) {
     Unit* u = puit.next();
-    LOG("Flattenned unit: "<<u->toString());
+    LOG(TPTP::toString(u));
   }
 #endif
 
@@ -156,6 +159,7 @@ MainLoopResult BFNTMainLoop::spawnChild(size_t modelSize)
     runChild(modelSize);
     ASSERTION_VIOLATION;
   }
+
 
   System::ignoreSIGINT();
 

@@ -95,6 +95,7 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
       continue;
     }
 
+    //we add the naming clauses into the saturation algorithm inside the nameComponent() function
     int compName=nameComponent(comp);
     if(!compName) {
       //The same component can appear multiple times.
@@ -130,6 +131,10 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
       //any clause
       delete srec;
       _sa->onClauseReduction(cl, 0, 0);
+#if REPORT_SPLITS
+      cout<<"obtained tautology"<<endl;
+      cout<<"^^^^^^^^^^^^\n";
+#endif
       return;
     }
 
@@ -167,7 +172,6 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, u
   }
   while(unnamedComponentStack.isNonEmpty()) {
     Clause* comp=unnamedComponentStack.pop();
-    _sa->addNewClause(comp);
     _sa->onParenthood(comp, cl);
   }
 
@@ -227,7 +231,8 @@ Clause* SWBSplitterWithBDDs::getComponent(Clause* cl, CompRec cr, int& name, boo
 }
 
 /**
- * Name component @b comp and return the name
+ * Name component @b comp and return the name. Also add the naming clause
+ * into the saturation algorithm.
  *
  * If the component @b comp is already named, return 0.
  */
@@ -280,6 +285,8 @@ int SWBSplitterWithBDDs::nameComponent(Clause* comp)
     InferenceStore::instance()->recordMerge(comp, oldCompProp, nameProp, newCompProp);
   }
   comp->setProp(newCompProp);
+
+  _sa->addNewClause(comp);
 
   if(getOptions().showDefinitions() && newlyIntroduced) {
     env.beginOutput();

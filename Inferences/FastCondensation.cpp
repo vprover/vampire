@@ -17,6 +17,9 @@
 
 #include "FastCondensation.hpp"
 
+#undef LOGGING
+#define LOGGING 0
+
 namespace Inferences {
 
 using namespace Lib;
@@ -58,6 +61,8 @@ private:
 Clause* FastCondensation::simplify(Clause* cl)
 {
   CALL("FastCondensation::perform");
+
+  LOG("attempt on "<<cl->toString());
 
   TimeCounter tc(TC_CONDENSATION);
 
@@ -117,6 +122,8 @@ Clause* FastCondensation::simplify(Clause* cl)
 
 	res->setAge(cl->age());
 	env.statistics->condensations++;
+
+	LOG("fcnd: "<<cl->toNiceString()<<"\n  --> "<<res->toNiceString());
 	return res;
       }
     }
