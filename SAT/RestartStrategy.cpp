@@ -6,6 +6,7 @@
 #include <math.h>
 
 #include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "RestartStrategy.hpp"
 

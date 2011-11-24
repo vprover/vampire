@@ -541,7 +541,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   env.statistics->learntSatLiterals += res->length();
 //  cout<<res->toString()<<endl;
   recordClauseActivity(res);
-  LOG("sat_learnt","learnt clause: "<<res);
+  LOG("sat_learnt","learnt clause: "<<(*res));
   return res;
 }
 

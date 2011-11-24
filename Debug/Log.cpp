@@ -8,6 +8,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
 
@@ -187,7 +188,7 @@ public:
     CALL("Logging::Impl::isTagEnabled");
 
 #if !VDEBUG
-    if(!_tagNums.contains(tag)) { return false; }
+    if(!_tagNums.find(tag)) { return false; }
 #endif
 
     unsigned idx = tag2idx(tag);
@@ -200,8 +201,7 @@ public:
 
     ostream& out = cerr;
 
-    out << "Vampire trace outputs" << endl
-	<< endl
+    out << "Vampire trace output" << endl
 	<< "Usage:" << endl
 	<< "  " << System::guessExecutableName() << " -tr <trace string>" << endl
 	<< "Trace string:" << endl
@@ -210,7 +210,10 @@ public:
 	<< "[trace_name1[:depth_limit1][,trace_name2[:depth_limit2][,...]]]" << endl
 	<< "  ... enable specified traces with child traces up to given depth or without limit" << endl
 	<< endl
-	<< "Traces:" << endl;
+	<< "Traces:" << endl
+	<< "(with each trace we specify its child traces together with their distance "
+	   "from the parent that can be used for the depth limit)" << endl;
+
 
     unsigned tagCnt = _tags.size();
     for(unsigned i=0; i<tagCnt; ++i) {
@@ -224,7 +227,7 @@ public:
 	TagInfo::ChildStack::Iterator cit(cur.children);
 	while(cit.hasNext()) {
 	  ChildInfo ci = cit.next();
-	  out << _tags[ci.childIndex].name;
+	  out << _tags[ci.childIndex].name << "(" << ci.depth << ")";
 	  if(cit.hasNext()) {
 	    out << ", ";
 	  }
