@@ -19,9 +19,6 @@
 #include "TrivialPredicateRemover.hpp"
 
 
-#undef LOGGING
-#define LOGGING 0
-
 namespace Shell
 {
 
@@ -114,7 +111,7 @@ void TrivialPredicateRemover::scan(UnitList* units)
       _removed.insert(cl);
       count(cl, -1);
       env.statistics->trivialPredicates++;
-      LOG("Removed due to trivial predicate: " << cl->toString());
+      LOG("pp_tpr","Removed due to trivial predicate: " << cl->toString());
     }
     while(_reachedZeroes.isNonEmpty()) {
       unsigned zpred = _reachedZeroes.pop();

@@ -141,6 +141,9 @@ int main(int argc, char* argv [])
     Shell::CommandLine cl(argc,argv);
     cl.interpret(*env.options);
 
+    PROCESS_TRACE_SPEC_STRING(env.options->traceSpecString());
+    env.options->enableTracesAccordingToOptions();
+
     if(env.options->mode()!=Options::MODE_CLAUSIFY) {
       USER_ERROR("Only the \"clausify\" mode is supported");
     }

@@ -23,9 +23,6 @@
 #include "KBO.hpp"
 #include "Signature.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 
 #define NONINTERPRETED_PRECEDENCE_BOOST 0x1000
 
@@ -659,7 +656,7 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
 
     for(unsigned i=0;i<_functions;i++) {
       _functionPrecedences[aux[i]]=i;
-      LOG("KBO func: "<<env.signature->functionName(aux[i])<<" prec: "<<i);
+      LOG("kbo_prec","KBO func: "<<env.signature->functionName(aux[i])<<" prec: "<<i);
     }
   }
 
@@ -677,7 +674,7 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   }
   for(unsigned i=0;i<_predicates;i++) {
     _predicatePrecedences[aux[i]]=i;
-    LOG("KBO pred: "<<env.signature->predicateName(i)<<" prec: "<<i);
+    LOG("kbo_prec","KBO pred: "<<env.signature->predicateName(i)<<" prec: "<<i);
   }
 
   switch(opt.literalComparisonMode()) {
@@ -688,7 +685,7 @@ KBOBase::KBOBase(Problem& prb, const Options& opt)
   case Shell::Options::LCM_REVERSE:
     for(unsigned i=1;i<_predicates;i++) {
       _predicateLevels[i]=_predicatePrecedences[i]+1;
-      LOG("KBO pred: "<<env.signature->predicateName(i)<<" level: "<<i);
+      LOG("kbo_prec","KBO pred: "<<env.signature->predicateName(i)<<" level: "<<i);
     }
     break;
   }

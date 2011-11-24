@@ -453,6 +453,24 @@ string System::guessExecutableDirectory()
   return ".";
 }
 
+/**
+ * Guess the current executable file.
+ *
+ * Guessing means that the returned file path might not be correct.
+ */
+string System::guessExecutableName()
+{
+  CALL("System::guessExecutableName");
+
+  string res;
+
+  if(s_argv0) {
+    return s_argv0;
+  }
+
+  return "./vampire";
+}
+
 pid_t System::getPID()
 {
   CALL("System::getPID");

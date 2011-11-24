@@ -22,9 +22,6 @@
 
 #include "AnswerExtractor.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 
 namespace Shell
 {
@@ -157,11 +154,11 @@ public:
 
     Literal* goalLit = _goalLits[_depth];
 
-    LOGV(goalLit->toString());
+    LOG("ae","conj goal answer: processed goal literal: "<<goalLit->toString());
     while(_unifIts[_depth].hasNext()) {
       SLQueryResult qres = _unifIts[_depth].next();
       ASS_EQ(goalLit->header(), qres.literal->header());
-      LOGV(qres.literal->toString());
+      LOG("ae","conj goal answer: goal unification: "<<qres.literal->toString());
       if(_subst.unifyArgs(goalLit, 0, qres.literal, 1)) {
 	return true;
       }
@@ -244,7 +241,7 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
   SLQueryResultIterator alit = lemmas.getAll();
   while(alit.hasNext()) {
     SLQueryResult aqr = alit.next();
-    LOGV(aqr.literal->toString());
+    LOGV("ae",aqr.literal->toString());
   }
 
   if(!SubstBuilder(goalLits, lemmas, subst).run()) {

@@ -37,11 +37,12 @@ public:
     Result r1=o1->compare(l1,l2);
     Result r2=o2->compare(l1,l2);
     if(r1!=r2) {
-      LOGV("----");
-      LOGV(*l1);
-      LOGV(*l2);
-      LOGV(resultToString(r1));
-      LOGV(resultToString(r2));
+      TRACE("ord_diff",
+	  tout << "lit1: " << *l1 << endl;
+	  tout << "lit2: " << *l2 << endl;
+	  tout << "res1: " << resultToString(r1) << endl;
+	  tout << "res2: " << resultToString(r2) << endl;
+      );
     }
     return r1;
   }
@@ -50,11 +51,12 @@ public:
     Result r1=o1->compare(t1,t2);
     Result r2=o2->compare(t1,t2);
     if(r1!=r2) {
-      LOGV("----");
-      LOGV(t1);
-      LOGV(t2);
-      LOGV(resultToString(r1));
-      LOGV(resultToString(r2));
+      TRACE("ord_diff",
+	  tout << "trm1: " << t1 << endl;
+	  tout << "trm2: " << t2 << endl;
+	  tout << "res1: " << resultToString(r1) << endl;
+	  tout << "res2: " << resultToString(r2) << endl;
+      );
     }
     return r1;
   }
@@ -64,11 +66,12 @@ public:
     Comparison r1=o1->compareFunctors(fun1,fun2);
     Comparison r2=o2->compareFunctors(fun1,fun2);
     if(r1!=r2) {
-      LOGV("----");
-      LOGV(env.signature->functionName(fun1));
-      LOGV(env.signature->functionName(fun2));
-      LOGV(r1);
-      LOGV(r2);
+      TRACE("ord_diff",
+	  tout << "fun1: " << env.signature->functionName(fun1) << endl;
+	  tout << "fun2: " << env.signature->functionName(fun2) << endl;
+	  tout << "res1: " << r1 << endl;
+	  tout << "res2: " << r2 << endl;
+      );
     }
     return r1;
   }

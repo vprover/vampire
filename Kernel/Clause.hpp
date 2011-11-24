@@ -116,8 +116,8 @@ public:
   Literal*& operator[] (int n)
   { return _literals[n]; }
   /** Return the (reference to) the nth literal */
-  const Literal*& operator[] (int n) const
-  { return const_cast<const Literal*&>(_literals[n]); }
+  Literal* operator[] (int n) const
+  { return _literals[n]; }
 
   /** Return the length (number of literals) */
   unsigned length() const { return _length; }

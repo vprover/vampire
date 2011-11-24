@@ -141,47 +141,6 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
     return getAllUnifyingIterator(t,retrieveSubstitutions);
   } else {
     ASS(t.isTerm());
-//    return getResultIterator<InstancesIterator>(t.term(), retrieveSubstitutions);
-#if VDEBUG
-    TermQueryResultIterator new2=getResultIterator<FastInstancesIterator>(t.term(), retrieveSubstitutions);
-    TermQueryResultIterator old=getResultIterator<InstancesIterator>(t.term(), retrieveSubstitutions);
-    if(new2.hasNext()!=old.hasNext()) {
-      bool badMatch=old.hasNext();
-
-      if(!badMatch) {
-	while(new2.hasNext()) {
-	  TermList newTrm=new2.next().term;
-	  if(!MatchingUtils::matchTerms(t, newTrm)) {
-	    if(!badMatch) { reportSpiderFail(); }
-	    badMatch=true;
-	    LOGV(newTrm);
-	  }
-	}
-      }
-      else {
-	reportSpiderFail();
-      }
-      if(badMatch) {
-	while(old.hasNext()) {
-	  LOGV(old.next().term);
-	}
-        LOGV(t);
-        LOG("----");
-        ASSERTION_VIOLATION;
-      }
-    }
-    if(retrieveSubstitutions) {
-      while(new2.hasNext()) {
-	TermQueryResult nr=new2.next();
-	TermList nsubs=nr.substitution->applyToBoundQuery(t);
-	if(nsubs!=nr.term) {
-	  reportSpiderFail();
-	  LOGV(t);
-	}
-	ASS_EQ(nsubs, nr.term);
-      }
-    }
-#endif
     return getResultIterator<FastInstancesIterator>(t.term(), retrieveSubstitutions);
   }
 }

@@ -22,9 +22,6 @@
 
 #include "IGAlgorithm.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 namespace InstGen
 {
 
@@ -158,7 +155,7 @@ void ModelPrinter::collectTrueLits()
       else {
 	_trueLits.push(lit);
       }
-      LOG(lit->toString() << "  <---  " << cl->toString());
+      LOG("ig_mdl","true literal " << lit->toString() << " implied by " << cl->toString());
     }
   }
 }
@@ -234,7 +231,7 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
 	shouldAdd = MatchingUtils::match(base, inst, false);
       }
       if(shouldAdd) {
-	LOG(base->toString()<<" => "<<inst->toString());
+	LOG("ig_mdl","ground instantiation: " << base->toString() << " => " << inst->toString());
 	instSet.insert(inst);
 	instAcc.push(inst);
       }

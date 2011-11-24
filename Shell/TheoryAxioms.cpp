@@ -23,8 +23,6 @@
 
 #include "TheoryAxioms.hpp"
 
-#undef LOGGING
-#define LOGGING 0
 
 namespace Shell
 {
@@ -40,7 +38,7 @@ void TheoryAxioms::addTheoryUnit(Literal* lit, UnitList*& units)
 
   Clause* unit = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM, new Inference(Inference::THEORY));
   UnitList::push(unit, units);
-  LOG("added theory axiom "<<unit->toString());
+  LOG_UNIT("arith_axioms",unit);
 }
 
 /**
@@ -64,7 +62,7 @@ void TheoryAxioms::addTheoryClause(UnitList*& units, Literal* lit1, Literal* lit
 
   Clause* cl = Clause::fromStack(lits, Unit::AXIOM, new Inference(Inference::THEORY));
   UnitList::push(cl, units);
-  LOG("added theory axiom "<<cl->toString());
+  LOG_UNIT("arith_axioms",cl);
 }
 
 

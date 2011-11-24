@@ -20,9 +20,6 @@
 
 #include "TabulationAlgorithm.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 
 namespace Tabulation
 {
@@ -40,14 +37,14 @@ TabulationAlgorithm::TabulationAlgorithm(Problem& prb, const Options& opt)
 
   _refutation = 0;
 
-  LOG("TA created");
+  LOG("tab","TA created");
 }
 
 void TabulationAlgorithm::init()
 {
   CALL("TabulationAlgorithm::init");
 
-  LOG("TA init");
+  LOG("tab","TA init");
 
   ClauseIterator cit = _prb.clauseIterator();
 
@@ -95,7 +92,7 @@ void TabulationAlgorithm::addGoal(Clause* cl)
 
   cl->setStore(Clause::PASSIVE);
   _goalContainer.add(cl);
-  LOG("A added goal "<<cl->toString());
+  LOG("tab","A added goal "<<cl->toString());
   RSTAT_CTR_INC("goal cnt");
 }
 
@@ -104,7 +101,7 @@ void TabulationAlgorithm::addLemma(Clause* cl)
   CALL("TabulationAlgorithm::addLemma");
   ASS_EQ(cl->length(), 1);
 
-  LOG("A added lemma "<<cl->toString());
+  LOG("tab","A added lemma "<<cl->toString());
   if(cl->selected()==0) {
     Clause* cl0 = cl;
     cl = Clause::fromIterator(Clause::Iterator(*cl0), cl0->inputType(),
@@ -211,7 +208,7 @@ Clause* TabulationAlgorithm::processSubsumedGoalLiterals(Clause* goal)
   while(cit.hasNext()) {
     Literal* lit = cit.next();
     if(_glContainer.isSubsumed(lit)) {
-      LOG("A subsumed goal literal "<<lit->toString()<<" in goal "<<goal->toString());
+      LOG("tab","A subsumed goal literal "<<lit->toString()<<" in goal "<<goal->toString());
       RSTAT_CTR_INC("subsumed goal literals removed");
       continue;
     }
@@ -364,7 +361,7 @@ void TabulationAlgorithm::processGoal(Clause* cl)
   ASS_G(cl->length(),0);
   ASS_EQ(cl->store(), Clause::PASSIVE);
 
-  LOG("A processing goal "<<cl->toString());
+  LOG("tab","A processing goal "<<cl->toString());
 
   selectGoalLiteral(cl);
   ASS_EQ(cl->selected(),1);
@@ -392,12 +389,12 @@ void TabulationAlgorithm::processGoal(Clause* cl)
       continue;
     }
     RSTAT_CTR_INC("goals triggering theory unifications - found rules");
-    LOG("A generating goal from: "<<qres.clause->toString());
+    LOG("tab","A generating goal from: "<<qres.clause->toString());
     Clause* newGoal = generateGoal(qres.clause, qres.literal, cl->age(), qres.substitution.ptr(), true);
     addGoal(newGoal);
     addProducingRule(qres.clause, qres.literal, qres.substitution.ptr(), true);
   }
-  LOG("A goal processed: "<<cl->toString());
+  LOG("tab","A goal processed: "<<cl->toString());
   cl->setStore(Clause::NONE);
   //here cl may be deleted
 }
@@ -407,7 +404,7 @@ MainLoopResult TabulationAlgorithm::runImpl()
 {
   CALL("TabulationAlgorithm::runImpl");
 
-  LOG("TA runImpl");
+  LOG("tab","TA runImpl");
 
   if(_refutation) {
     return MainLoopResult(Statistics::REFUTATION, _refutation);

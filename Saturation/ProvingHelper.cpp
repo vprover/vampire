@@ -108,11 +108,11 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
 
   Unit::onPreprocessingEnd();
 
-  if(env.options->showPreprocessingFormulas()) {
-    env.beginOutput();
-    UIHelper::outputAllPremises(env.out(), prb.units(), "New: ");
-    env.endOutput();
-  }
+  TRACE("preproc_forms",
+      env.beginOutput();
+      UIHelper::outputAllPremises(tout, prb.units(), "New: ");
+      env.endOutput();
+  );
 
   env.statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));

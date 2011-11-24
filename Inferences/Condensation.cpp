@@ -24,9 +24,6 @@
 
 #include "Condensation.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 namespace Inferences {
 
 using namespace Lib;
@@ -37,8 +34,6 @@ using namespace Saturation;
 Clause* Condensation::simplify(Clause* cl)
 {
   CALL("Condensation::perform");
-
-  //LOG("attempt on "<<cl->toString());
 
   TimeCounter tc(TC_CONDENSATION);
 
@@ -122,7 +117,7 @@ Clause* Condensation::simplify(Clause* cl)
 
 	res->setAge(cl->age());
 	env.statistics->condensations++;
-	LOG("cond: "<<cl->toNiceString()<<"\n  --> "<<res->toNiceString());
+	LOG_SIMPL("inf_cond_reg",cl,res);
 	return res;
       }
     }

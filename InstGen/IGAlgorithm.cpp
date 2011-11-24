@@ -145,9 +145,7 @@ redundancy_check:
       return;
     }
   }
-  if(_opt.showNew()) {
-    reportClause(CRT_NEW, cl);
-  }
+  LOG_UNIT("ig_new_clause", cl);
   cl->incRefCnt();
   _variantIdx->insert(cl);
   if(_globalSubsumption) {
@@ -163,6 +161,7 @@ redundancy_check:
 
   _unprocessed.push(cl);
   env.statistics->instGenKeptClauses++;
+  LOG_UNIT("ig_unprocessed_added", cl);
 }
 
 Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation)
@@ -192,9 +191,7 @@ void IGAlgorithm::processUnprocessed()
     //we should do cl->decRefCnt() here, but passive doesn't increase on its own,
     //so it cancels out with the increase we'd have to do for it
     _passive.add(cl);
-    if(_opt.showPassive()) {
-	reportClause(CRT_PASSIVE, cl);
-    }
+    LOG_UNIT("ig_passive_added", cl);
 
 
     SATClauseIterator sc = _gnd.ground(cl);
@@ -205,9 +202,9 @@ void IGAlgorithm::processUnprocessed()
   SATClauseIterator scit = pvi( SATClauseStack::Iterator(satClauses) );
   scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
 
-  LOG("Solver started");
+  LOG("ig_sat", "Solver started");
   _satSolver->addClauses(scit);
-  LOG("Solver finished");
+  LOG("ig_sat", "Solver finished");
 
   if(_satSolver->getStatus()==SATSolver::UNSATISFIABLE) {
     Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
@@ -324,7 +321,7 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
       continue;
     }
 
-    LOG("selected: "<<(*cl)[i]->toString());
+    LOG("ig_literal_selection", "selected literal "<<(*cl)[i]->toString()<<" in "<<cl->toString());
     _selected->insert((*cl)[i], cl);
 
     if(selIdx!=i) {
@@ -361,10 +358,10 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
   SATClauseIterator scit = _gnd.ground(cl);
   scit = Preprocess::removeDuplicateLiterals(scit); //this is required by the SAT solver
 
-  LOG("Solver res clause propagation started");
+  LOG("ig_sat","Solver res clause propagation started");
   _satSolver->ensureVarCnt(_gnd.satVarCnt());
   _satSolver->addClauses(scit, true);
-  LOG("Solver res clause propagation finished");
+  LOG("ig_sat","Solver res clause propagation finished");
 
   if(_satSolver->getStatus()==SATSolver::UNSATISFIABLE) {
     Clause* foRefutation = getFORefutation(_satSolver->getRefutation());
@@ -405,11 +402,8 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
 {
   CALL("IGAlgorithm::activate");
 
-  LOG("activating "<<cl->toString());
   selectAndAddToIndex(cl);
-  if(_opt.showActive()) {
-    reportClause(CRT_ACTIVE, cl);
-  }
+  LOG_UNIT("ig_active_added", cl);
 
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
@@ -474,7 +468,7 @@ void IGAlgorithm::restartWithCurrentClauses()
 {
   CALL("IGAlgorithm::restartWithCurrentClauses");
 
-  LOG("restartWithCurrentClauses");
+  LOG("ig_restarts", "restart with current clauses");
 
   static ClauseStack allClauses;
   allClauses.reset();
@@ -502,6 +496,8 @@ void IGAlgorithm::restartFromBeginning()
 {
   CALL("IGAlgorithm::restartFromBeginning");
 
+  LOG("ig_restarts", "restart from beginning");
+
   _active.reset();
   while(!_passive.isEmpty()) {
     Clause* cl = _passive.popSelected();
@@ -522,7 +518,7 @@ void IGAlgorithm::restartFromBeginning()
 MainLoopResult IGAlgorithm::runImpl()
 {
   CALL("IGAlgorithm::runImpl");
-  LOG("IGA started");
+  LOG("ig", "IGA started");
 
   RCClauseStack::Iterator icit(_inputClauses);
   while(icit.hasNext()) {

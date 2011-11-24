@@ -41,14 +41,14 @@ void HornRevealer::apply(UnitList*& units)
   _solver.addClauses(pvi( SATClauseStack::Iterator(_satPrb) ), false);
 
   if(_solver.getStatus()==SATSolver::SATISFIABLE) {
-    LOG("Horn discovered");
+    LOG("pp_hr","Horn discovered");
     discoverGoals(units);
 
     unsigned preds = env.signature->predicates();
     for(unsigned i=0; i<preds; i++) {
       bool reversed = isReversed(i);
       if(reversed) {
-	LOG("reversed: " << env.signature->predicateName(i));
+	LOG("pp_hr","reversed: " << env.signature->predicateName(i));
 	LiteralSelector::reversePredicatePolarity(i, true);
 	env.statistics->hornReversedPredicates++;
       }
@@ -74,7 +74,7 @@ void HornRevealer::discoverGoals(UnitList*& units)
     Unit::InputType inpType = shouldBeGoal ? Unit::CONJECTURE : Unit::AXIOM;
     Clause* newCl = Clause::fromIterator(Clause::Iterator(*cl), inpType, inf);
     uit.replace(newCl);
-    LOG("Horn revealer changed inp type: " << inpType <<"\n  "<< newCl->toString());
+    LOG("pp_hr","Horn revealer changed inp type: " << inpType <<"\n  "<< newCl->toString());
   }
 }
 

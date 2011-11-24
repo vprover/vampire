@@ -24,12 +24,6 @@
 
 #include "Semaphore.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
-#undef LOG_PID
-#define LOG_PID 1
-
 namespace Lib
 {
 namespace Sys
@@ -88,7 +82,7 @@ get_retry:
   }
   ASS_EQ(res,0);
 
-  LOG("Semaphore: created");
+  LOG("mp_sem","Semaphore: created");
 
   registerInstance();
 }
@@ -162,7 +156,7 @@ retry_decreasing:
   int res=semop(semid, &buf, 1);
   if(res==-1 && errno==EINTR) {
     //we just received a signal -- now we can continue waiting
-    LOG("Semaphore: resuming waiting for decrease after a signal");
+    LOG("mp_sem","Semaphore: resuming waiting for decrease after a signal");
     goto retry_decreasing;
   }
   if(res==-1) {
@@ -295,7 +289,7 @@ void Semaphore::registerInstance(bool addToInstanceList)
   if(addToInstanceList) {
     SemaphoreList::push(this, s_instances);
   }
-  LOG("Semaphore: instance registered");
+  LOG("mp_sem","Semaphore: instance registered");
 }
 
 /**
@@ -306,11 +300,11 @@ void Semaphore::deregisterInstance()
 {
   CALL("Semaphore::deregisterInstance");
 
-  LOG("Semaphore: call to deregisterInstance");
+  LOG("mp_sem","Semaphore: call to deregisterInstance");
   if(!hasSemaphore()) {
     return;
   }
-  LOG("Semaphore: deregistering instance");
+  LOG("mp_sem","Semaphore: deregistering instance");
   ASS(s_instances->member(this));
   s_instances=s_instances->remove(this);
 
@@ -354,7 +348,7 @@ void Semaphore::releaseInstance()
       SYSTEM_FAIL("Cannot destroy semaphore.",errno);
     }
     ASS_EQ(res,0);
-    LOG("Semaphore: sem destroyed");
+    LOG("mp_sem","Semaphore: sem destroyed");
   }
   else {
     //if we didn't delete the semaphore, we now allow other destructors to proceed
@@ -373,7 +367,7 @@ void Semaphore::releaseAllSemaphores()
 {
   CALL("Semaphore::releaseAllSemaphores");
 
-  LOG("Semaphore: releasing all");
+  LOG("mp_sem","Semaphore: releasing all");
 
   SemaphoreList* instIter=s_instances;
   while(instIter) {
@@ -395,7 +389,7 @@ void Semaphore::postForkInChild()
 {
   CALL("Semaphore::postForkInChild");
 
-  LOG("Semaphore: post-fork in child");
+  LOG("mp_sem","Semaphore: post-fork in child");
 
   SemaphoreList::Iterator sit(s_instances);
   while(sit.hasNext()) {

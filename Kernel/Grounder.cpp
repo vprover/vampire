@@ -20,9 +20,6 @@
 
 #include "Grounder.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 namespace Kernel
 {
 
@@ -183,7 +180,6 @@ void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause
   inf->rule = Inference::GLOBAL_SUBSUMPTION;
 
   for(unsigned i=0; i<premCnt; i++) {
-    LOGV(prems[i].toString());
     inf->premises[i] = prems[i];
   }
 

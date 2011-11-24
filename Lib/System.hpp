@@ -43,6 +43,7 @@ public:
   static bool extractDirNameFromPath(string path, string& dir);
 
   static string guessExecutableDirectory();
+  static string guessExecutableName();
 
   static void ignoreSIGINT() { s_shouldIgnoreSIGINT=true; }
   static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }

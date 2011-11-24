@@ -267,7 +267,7 @@ void YicesSolver::run(SMTBenchmark& problem, SMTSolverResult& res, unsigned time
     if(line=="unknown") { res.status = SMTSolverResult::UNKNOWN; continue; }
 
     if(line.substr(0,3)!="(= " || line.substr(line.size()-1,1)!=")") {
-      LOG("unrecognized Yices output line: \"" << line << "\"");
+      LOG("smt_interface","unrecognized Yices output line: \"" << line << "\"");
       continue;
     }
     string lineCore = line.substr(3, line.size()-4);

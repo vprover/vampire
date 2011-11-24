@@ -78,9 +78,6 @@ struct SLQueryBackwardSubsumption::ClauseToBwSimplRecordFn
 };
 
 
-#undef LOGGING
-#define LOGGING 0
-
 void SLQueryBackwardSubsumption::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
@@ -149,7 +146,6 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   bool mustPredInit=false;
   unsigned mustPred;
 
-  LOGV(*cl);
   static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
@@ -168,8 +164,6 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     }
 
     RSTAT_CTR_INC("bs1 0 candidates");
-
-    LOGV(*icl);
 
     //here we pick one literal header of the base clause and make sure that
     //every instance clause has it

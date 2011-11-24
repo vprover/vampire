@@ -13,9 +13,6 @@
 
 #include "SubstitutionTree.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 namespace Indexing
 {
 
@@ -261,7 +258,8 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
 {
   CALL("SubstitutionTree::InstMatcher::derefQueryBinding");
 
-  LOGV(_derefBindings.size());
+  LOG("st_fast_inst","derefQueryBinding func");
+  LOGV("st_fast_inst",_derefBindings.size());
 
   TermList tvar0(var, false);
   TermList tvar=tvar0;
@@ -276,13 +274,13 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
     ALWAYS(_bindings.find(tvar, varBinding));
 
     if(varBinding.isFinal()) {
-      LOG("inserted final binding v: "<<tvar<<"  term: "<<varBinding.t);
+      LOG("st_fast_inst","inserted final binding v: "<<tvar<<"  term: "<<varBinding.t);
       ALWAYS(_derefBindings.insert(tvar, varBinding.t));
       return varBinding.t;
     }
   }
-  LOGV(var);
-  LOGV(varBinding);
+  LOGV("st_fast_inst",var);
+  LOGV("st_fast_inst",varBinding);
   static Stack<DerefTask> toDo;
   toDo.reset();
 
@@ -296,30 +294,30 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
       TermList derefBoundTerm;
 
       if(_derefBindings.find(bvar, derefBoundTerm)) {
-	LOG("inserted referenced v: "<<tvar<<"  term: "<<varBinding.t);
+	LOG("st_fast_inst","inserted referenced v: "<<tvar<<"  term: "<<varBinding.t);
 	ALWAYS(_derefBindings.insert(tvar, derefBoundTerm));
       }
 
       ALWAYS(_bindings.find(bvar,varBinding));
     }
     if(varBinding.isFinal()) {
-      LOG("inserted final v: "<<tvar<<"  term: "<<varBinding.t);
+      LOG("st_fast_inst","inserted final v: "<<tvar<<"  term: "<<varBinding.t);
       ALWAYS(_derefBindings.insert(tvar, varBinding.t));
       goto next_loop;
     }
     {
       ASS(varBinding.t.isTerm());
       toDo.push(DerefTask(tvar, varBinding));
-      LOGV(tvar);
-      LOGV(varBinding);
+      LOGV("st_fast_inst",tvar);
+      LOGV("st_fast_inst",varBinding);
       VariableIterator vit(varBinding.t);
       while(vit.hasNext()) {
 	TermList btv=vit.next(); //bound term variable
 	if(varBinding.q || btv.isSpecialVar()) {
-	  LOGV(btv);
+	  LOG("st_fast_inst","bound term variable: "<<btv);
 	  ASS(_bindings.find(btv));
 	  if(!_derefBindings.find(btv)) {
-	    LOG("pushed");
+	    LOG("st_fast_inst","pushed");
 	    toDo.push(DerefTask(btv));
 	  }
 	}
@@ -331,7 +329,7 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
       TermSpec tspec=toDo.pop().trm;
       DerefApplicator applicator(this, tspec.q);
       TermList derefTerm=SubstHelper::applySV(tspec.t, applicator);
-      LOG("built v: "<<tvar<<"  term: "<<derefTerm);
+      LOG("st_fast_inst","built v: "<<tvar<<"  term: "<<derefTerm);
       ASS_REP(!derefTerm.isTerm() || derefTerm.term()->shared(), derefTerm);
       ALWAYS(_derefBindings.insert(tvar, derefTerm));
     }
@@ -339,10 +337,10 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
       break;
     }
     tvar=toDo.pop().var;
-    LOG("next loop with "<<tvar);
+    LOG("st_fast_inst","next loop with "<<tvar);
     ALWAYS(_bindings.find(tvar, varBinding));
   };
-  LOGV(_derefBindings.get(tvar0));
+  LOGV("st_fast_inst",_derefBindings.get(tvar0));
   return _derefBindings.get(tvar0);
 }
 
@@ -366,13 +364,10 @@ SubstitutionTree::InstMatcher::TermSpec SubstitutionTree::InstMatcher::deref(Ter
     var=res.t;
 #if VDEBUG
     ctr++;
-    ASS_L(ctr,10000); //assert that there are no cycles
+    ASS_L(ctr,1000000); //assert that there are no cycles
 #endif
   }
 }
-
-#undef LOGGING
-#define LOGGING 0
 
 /**
  * Undo one call to the @b matchNext method with separate param
@@ -441,20 +436,20 @@ bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTer
   }
 #endif
 
-  LOG("match specVar: "<<specVar<<" nodeTerm: "<<nodeTerm);
+  LOG("st_fast_inst","match specVar: "<<specVar<<" nodeTerm: "<<nodeTerm);
 
   TermSpec tsNode(false, nodeTerm);
 
   TermSpec tsBinding;
   if(!findSpecVarBinding(specVar,tsBinding)) {
     bind(TermList(specVar,true), tsNode);
-    LOG("success: 1 (not bound)");
+    LOG("st_fast_inst","success: 1 (not bound)");
     return true;
   }
 
   if(tsBinding.q && tsBinding.t.isOrdinaryVar() && !isBound(tsBinding.t)) {
     bind(tsBinding.t, tsNode);
-    LOG("success: 1 (bound inst var)");
+    LOG("st_fast_inst","success: 1 (bound inst var)");
     return true;
   }
 
@@ -462,7 +457,7 @@ bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTer
 
   if(nodeTerm.isTerm() && nodeTerm.term()->shared() && nodeTerm.term()->ground() &&
       tsBinding.q && tsBinding.t.isTerm() && tsBinding.t.term()->ground()) {
-    LOG("both ground");
+    LOG("st_fast_inst","both ground");
     success=nodeTerm.term()==tsBinding.t.term();
     goto finish;
   }
@@ -476,12 +471,12 @@ bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTer
   while(toDo.isNonEmpty()) {
     TermSpec ts1=toDo.top().first;
     TermSpec ts2=toDo.pop().second;
-    LOGV(ts1);
-    LOGV(ts2);
+    LOGV("st_fast_inst",ts1);
+    LOGV("st_fast_inst",ts2);
 //    ASS(!ts2.q); //ts2 is always a node term
 
     dsit.reset(ts1.t, ts2.t, ts1.q!=ts2.q);
-    LOGV(dsit.hasNext());
+    LOG("st_fast_inst","disagreement set has next: "<<dsit.hasNext());
     while(dsit.hasNext()) {
       pair<TermList,TermList> disarg=dsit.next();
       TermList dt1=disarg.first;
@@ -491,7 +486,7 @@ bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTer
       bool dt2Bindable= !dt2.isTerm() && (ts2.q || !dt2.isOrdinaryVar());
 
       if(!dt1Bindable && !dt2Bindable) {
-	LOG("!dt1Bindable && !dt2Bindable");
+	LOG("st_fast_inst","!dt1Bindable && !dt2Bindable");
 	success=false;
 	goto finish;
       }
@@ -502,24 +497,24 @@ bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTer
       //may come later, so we want to keep it unbound)
 
       if(ts1.q && dt1.isOrdinaryVar() && !isBound(dt1)) {
-	LOG("ts1.q && dt1.isOrdinaryVar() && !isBound(dt1)");
+	LOG("st_fast_inst","ts1.q && dt1.isOrdinaryVar() && !isBound(dt1)");
 	bind(dt1, TermSpec(ts2.q,dt2));
 	continue;
       }
       if(ts2.q && dt2.isOrdinaryVar() && !isBound(dt2)) {
-	LOG("ts2.q && dt2.isOrdinaryVar() && !isBound(dt2)");
+	LOG("st_fast_inst","ts2.q && dt2.isOrdinaryVar() && !isBound(dt2)");
 	bind(dt2, TermSpec(ts1.q,dt1));
 	continue;
       }
 
       if(dt2.isSpecialVar() && !isBound(dt2)) {
-	LOG("dt2.isSpecialVar() && !isBound(dt2)");
+	LOG("st_fast_inst","dt2.isSpecialVar() && !isBound(dt2)");
 	ASS(!ts2.q);
 	bind(dt2, TermSpec(ts1.q,dt1));
 	continue;
       }
       if(dt1.isSpecialVar() && !isBound(dt1)) {
-	LOG("dt1.isSpecialVar() && !isBound(dt1)");
+	LOG("st_fast_inst","dt1.isSpecialVar() && !isBound(dt1)");
 	ASS(!ts1.q);
 	bind(dt1, TermSpec(ts2.q,dt2));
 	continue;
@@ -536,8 +531,8 @@ bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTer
 	deref2=deref(dt2);
       }
 
-      LOG("deref "<<dt1<<"    "<<dt2);
-      LOG("  into"<<deref1<<"    "<<deref2);
+      LOG("st_fast_inst","deref "<<dt1<<"    "<<dt2);
+      LOG("st_fast_inst"," into "<<deref1<<"    "<<deref2);
       toDo.push(make_pair(deref1, deref2));
     }
   }
@@ -553,7 +548,7 @@ finish:
       backtrack();
     }
   }
-  LOGV(success);
+  LOGV("st_fast_inst",success);
   return success;
 }
 
@@ -649,7 +644,7 @@ SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
   LeafData& ld=_ldIterator.next();
 
   if(_retrieveSubstitution) {
-    LOG(ld.term);
+    LOG("st_fast_inst","FastInstancesIterator::next() leaf term: "<<ld.term);
     _resultDenormalizer.reset();
     bool ground=_literalRetrieval
 	? ld.literal->ground()

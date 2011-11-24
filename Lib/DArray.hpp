@@ -223,7 +223,7 @@ public:
    * @b src has to support C operator[](size_t).
    */
   template<typename Arr>
-  void initFromArray(size_t count, Arr& src) {
+  void initFromArray(size_t count, const Arr& src) {
     CALL("DArray::initFromArray");
 
     ensure(count);

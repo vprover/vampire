@@ -3,146 +3,100 @@
  * Defines class Log.
  */
 
-
-//command for interactive replacing cout<<something<<endl; by LOG()
-//vim -c '%s/^\([\t /]*\)cout<<\(.*\)<<endl; */\1LOG(\2);/gc' -c 'w' -c 'q' filename.cpp
-//(y - replace, n - don't replace, q - stop replacing, a - replace all
-
-/*
-Enabling/disabling depends on the position in the file.
-E.g.:
-
-#include <Log.hpp>
-
-void f()
-{
-  LOG("f called");
-}
-
-#undef LOGGING
-#define LOGGING 0
-
-void g()
-{
-  LOG("disabled");
-}
-
-int main(int argc, char* argv [])
-{
-  CALL ("main");
-
-  LOG("still disabled");
-  f();
-  g();
-#undef LOGGING
-#define LOGGING 1
-
-  LOG("reenabled "<<123<<'a'<<"bcd"<<argc);
-  f();
-  g();
-}
-
-outputs:
-f called
-reenabled 123abcd2
-f called
-
-*/
-
 #ifndef __Debug_Log__
 #define __Debug_Log__
 
-#ifndef GLOBAL_LOGGING
-#define GLOBAL_LOGGING 1
-#endif
+#include <climits>
+#include <string>
+#include <iostream>
 
-/**
-Controls whether logs should be output.
+namespace Kernel {
+  class Unit;
+}
 
-Lines
+namespace Debug {
 
-#undef LOGGING
-#define LOGGING 0
-
-disable logging for code below it, and 
-
-#undef LOGGING
-#define LOGGING 1
-
-enable it again.
-
-*/
-
-#define LOGGING 1
-
-/**
-Controls whether logs should contain pid of the process.
-
-Lines
-
-#undef LOG_PID
-#define LOG_PID 1
-
-enable logging of the pid, and
-
-#undef LOG_PID
-#define LOG_PID 0
-
-disable it again.
-
-*/
-#define LOG_PID 0
-
-#if GLOBAL_LOGGING
-
-#include<iostream>
-
-#include "Tracer.hpp"
-
-#define LOG_TARGET std::cout
-
-/**
-Outputs X if logging is enabled.
-
-To toutput value of multiple variables v1,v2, one should write
-LOG(v1<<v2)
-
-Expressions must be enclosed in parentheses:
-LOG((1+1))
-rather than
-LOG(1+1)
-*/
-#define LOG(X) if(LOGGING) { if(LOG_PID) { LOG_TARGET<<Debug::LOG_getpid()<<": "; } \
-			     LOG_TARGET<<X<<endl; }
-
-#define LOGV(X) if(LOGGING) { if(LOG_PID) { LOG_TARGET<<Debug::LOG_getpid()<<": "; } \
-			      LOG_TARGET<<#X<<": "<<X<<endl; }
-
-#if VDEBUG
-#define LOGS(X) if(LOGGING) { if(LOG_PID) { LOG_TARGET<<Debug::LOG_getpid()<<": "; } \
-			      LOG_TARGET<<X<<endl<<"Stack trace:"<<endl; \
-			      Debug::Tracer::printOnlyStack(LOG_TARGET); \
-			      LOG_TARGET<<endl; }
-#else
-#define LOGS(X) if(LOGGING) { if(LOG_PID) { LOG_TARGET<<Debug::LOG_getpid()<<": "; } \
-			      LOG_TARGET<<X<<endl<<"Stack trace:"<<endl; \
-			      LOG_TARGET<<"# Stack trace is not supported when not in debug mode."<<endl; \
-			      LOG_TARGET<<endl; }
-#endif
-
-#else // GLOBAL_LOGGING
-
-#define LOG(X)
-#define LOGV(X)
-#define LOGS(X)
-
-#endif
-
-namespace Debug
+class Logging
 {
+public:
+  struct TagDeclTrigger {
+    TagDeclTrigger() { doTagDeclarations(); }
+  };
 
-size_t LOG_getpid();
+  class Impl;
+private:
+
+  TagDeclTrigger s_trigger;
+
+  static Impl& impl();
+
+  static void declareTag(const char* tag);
+  static void addDoc(const char* tag, const char* doc);
+  static void addParent(const char* child, const char* parent, unsigned depth);
+public:
+  static void enableTag(const char* tag, unsigned depthLimit=UINT_MAX);
+  static void processTraceSpecString(std::string str);
+
+  static bool isTagEnabled(const char* tag);
+  static void logUnit(const char* tag, Kernel::Unit* u);
+
+  static void logSimpl(const char* tag, Kernel::Unit* src, Kernel::Unit* tgt, const char* doc=0);
+  static void logSimpl2(const char* tag, Kernel::Unit* prem1, Kernel::Unit* prem2, Kernel::Unit* tgt, const char* doc=0);
+  static void logTaut(const char* tag, Kernel::Unit* u, const char* doc=0);
+
+  static void doTagDeclarations();
+};
 
 }
+
+#define tout std::cerr
+#define TAG_ENABLED(tag) Debug::Logging::isTagEnabled(tag)
+
+#define TRACE(tag,code) do { if(TAG_ENABLED(tag)) { code } } while(false)
+#define COND_TRACE(tag,cond,code) do { if(TAG_ENABLED(tag) && (cond)) { code } } while(false)
+
+#define TRACE_OUTPUT_UNIT(tag,u) Debug::Logging::logUnit(tag,u)
+
+#define LOG(tag,msg) TRACE(tag, (tout << msg) << std::endl;)
+#define LOGV(tag,var) LOG(tag, #var<<": "<<(var))
+#define LOG_UNIT(tag,u) TRACE(tag, TRACE_OUTPUT_UNIT(tag,u); )
+
+/**
+ * Logs single-premise simplification of a unit
+ *
+ * Arguments are tag,src,tgt[,doc]
+ */
+#define LOG_SIMPL(tag,src,...) TRACE(tag, Debug::Logging::logSimpl(tag,src,__VA_ARGS__); )
+/**
+ * Logs two-premise simplification of a unit
+ *
+ * Arguments are tag,prem1,prem2,tgt[,doc]
+ */
+#define LOG_SIMPL2(tag,prem1,prem2,...) TRACE(tag, Debug::Logging::logSimpl2(tag,prem1,prem2,__VA_ARGS__); )
+
+/**
+ * Logs the fact that unit has been found a tautology
+ *
+ * Arguments are tag,unit[,doc]
+ */
+#define LOG_TAUT(tag,...) TRACE(tag, Debug::Logging::logTaut(tag,__VA_ARGS__); )
+
+
+#define ENABLE_TAG(tag) Debug::Logging::enableTag(tag)
+#define ENABLE_TAG_LIMITED(tag,limit) Debug::Logging::enableTag(tag,limit)
+
+/**
+ * Process string specifying trace settings
+ *
+ * The format of the string is the following:
+ *
+ * [trace_name1[:depth_limit1][,trace_name2[:depth_limit2][,...]]]
+ *
+ * Depth limit can be used to cut-off subtraces of the specified
+ * trace. When no limit is specified, the depth of enabled child
+ * traces is not limited
+ */
+#define PROCESS_TRACE_SPEC_STRING(str) Debug::Logging::processTraceSpecString(str)
+
 
 #endif // __Debug_Log__

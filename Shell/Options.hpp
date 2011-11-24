@@ -178,6 +178,7 @@ public:
     THEORY_AXIOMS,
     TIME_LIMIT,
     TIME_STATISTICS,
+    TRACES,
     TRIVIAL_PREDICATE_REMOVAL,
 
     UNIT_RESULTING_RESOLUTION,
@@ -554,6 +555,8 @@ public:
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds = newVal; }
 
+  string traceSpecString() const { return _traces; }
+
 //   // standard ways of creating options
   XMLElement toXML() const;
   bool outputSuppressed() const;
@@ -565,6 +568,9 @@ public:
 
   int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator; }
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator; }
+
+
+  void enableTracesAccordingToOptions() const;
 
   CLASS_NAME("Options");
   USE_ALLOCATOR(Options);
@@ -728,6 +734,7 @@ private:
   /** Time limit in deciseconds */
   int _timeLimitInDeciseconds;
   bool _timeStatistics;
+  string _traces;
   bool _trivialPredicateRemoval;
 
   bool _unitResultingResolution;

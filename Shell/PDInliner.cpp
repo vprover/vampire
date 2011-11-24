@@ -156,6 +156,7 @@ struct PDInliner::PDef
   {
     CALL("PDInliner::PDef::apply(Clause*)");
 
+    LOG("pp_inl_substep","Inlining "<<toString()<<" into "<<(*cl));
     traceUnitApplyBegin(cl);
 
     static LiteralStack lits;
@@ -229,7 +230,10 @@ struct PDInliner::PDef
       res = new FormulaUnit(form, inf, inp);
     }
     res = fixFormula(res);
+
     traceUnitApplyEnd(res);
+    LOG("pp_inl_step","Inlining "<<toString()<<" into "<<(*cl)<<" gave "<<(*res));
+
     return res;
   }
 
@@ -237,6 +241,7 @@ struct PDInliner::PDef
   {
     CALL("PDInliner::PDef::apply(FormulaUnit*)");
 
+    LOG("pp_inl_substep","Inlining "<<toString()<<" into "<<(*unit));
     traceUnitApplyBegin(unit);
 
     Formula* form = apply(1,unit->formula());
@@ -259,7 +264,10 @@ struct PDInliner::PDef
 
     FormulaUnit* res = new FormulaUnit(form, inf, inp);
     res = fixFormula(res);
+
     traceUnitApplyEnd(res);
+    LOG("pp_inl_step","Inlining "<<toString()<<" into "<<(*unit)<<" gave "<<(*res));
+
     return res;
   }
 
@@ -302,6 +310,7 @@ struct PDInliner::PDef
       res = Literal::complementaryLiteral(res);
     }
     traceLiteralApply(l, res, 0, false);
+    LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(*res));
     return res;
   }
 
@@ -316,6 +325,7 @@ struct PDInliner::PDef
     bool negate = l->isPositive()!=_lhs->isPositive();
     bool res = negate ^ (getBody(polarity,l)->connective()==TRUE);
     traceLiteralApply(l, 0, 0, res);
+    LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(res ? "$true" : "$false"));
     return res;
   }
 
@@ -336,6 +346,7 @@ struct PDInliner::PDef
       res = new NegatedFormula(res);
     }
     traceLiteralApply(l, 0, res, false);
+    LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(*res));
     return res;
   }
 
@@ -346,8 +357,7 @@ struct PDInliner::PDef
   {
     CALL("PDInliner::PDef::inlineDef");
 
-    LOG("Inlining "<<(def->_defUnit ? def->_defUnit->toString() : "<none>")<<" into "
-	<<(_defUnit ? _defUnit->toString() : "<none>"));
+    LOG("pp_inl_step","Inlining def "<<def->toString()<<" into "<<toString());
 
     if(_asymDef) {
       ASS_NEQ(def->_pred, _lhs->functor());
@@ -360,6 +370,7 @@ struct PDInliner::PDef
       FormulaUnit* newUnit = def->apply(_defUnit);
       assignUnit(newUnit);
     }
+    LOG("pp_inl_step","Result of def to def inlining: "<<toString());
 
     //remove the inlined predicate from dependencies of the current predicate.
 
@@ -373,14 +384,16 @@ struct PDInliner::PDef
     //into old one. In other cases the dependencies either aren't added yet,
     //or will be removed all at one in the PDInliner::tryGetDef() function.
     _dependencies.remove(def->_pred);
+    LOG("pp_inl_dep","removed dep: "<<env.signature->predicateName(def->_pred)<<" from "<<env.signature->predicateName(_pred));
 
     //add the predicates added by inlining into dependencies
     Set<unsigned>::Iterator depIt(def->_dependencies);
     while(depIt.hasNext()) {
       unsigned dep = depIt.next();
-      LOG(" dep: "<<env.signature->predicateName(dep));
+      LOG("pp_inl_dep","added dep: "<<env.signature->predicateName(dep)<<" to "<<env.signature->predicateName(_pred));
       registerDependentPred(dep);
     }
+    LOG("pp_inl_dep","dep update finished");
   }
 
   void registerDependentPred(unsigned depPred)
@@ -390,6 +403,7 @@ struct PDInliner::PDef
 
     _parent->_dependent[depPred].insert(_pred);
     _dependencies.insert(depPred);
+    LOG("pp_inl_dep","added dep: "<<env.signature->predicateName(depPred)<<" to definition of "<<env.signature->predicateName(_pred));
   }
 
   void assignUnit(FormulaUnit* unit)
@@ -398,7 +412,7 @@ struct PDInliner::PDef
 
     _asymDef = false;
 
-    LOG("AU:  "<<unit->toString());
+    LOG("pp_inl_def","Definition from unit: "<<unit->toString());
     _defUnit = unit;
     Formula* f = unit->formula();
     if(f->connective()==FORALL) {
@@ -445,7 +459,8 @@ struct PDInliner::PDef
     _negBody = negBody;
     _dblBody = dblBody;
 
-    LOG("Asym: "<<lhs->toString()<<" --> "<<posBody->toString()<<", "<<negBody->toString()<<", "<<dblBody->toString());
+    LOG("pp_inl_def","Asymetric definition: "<<lhs->toString()<<" --> (+) "<<posBody->toString()
+	<<", (-) "<<negBody->toString()<<", (0) "<<dblBody->toString());
 
     _predicateEquivalence = false;
   }
@@ -464,6 +479,26 @@ struct PDInliner::PDef
     CALL("PDInliner::PDef::tagretPredicate");
     ASS(predicateEquivalence());
     return _tgtPredicate;
+  }
+
+  /**
+   * Return string representation of the definition.
+   *
+   * For debugging and logging purposes.
+   */
+  string toString() const
+  {
+    CALL("toString");
+    if(_asymDef) {
+      string posStr = _posBody ? _posBody->toString() : "(none)";
+      string negStr = _negBody ? _negBody->toString() : "(none)";
+      string dblStr = _dblBody ? _dblBody->toString() : "(none)";
+      return "[Asym def " + _lhs->toString() + " --> (+) " + posStr
+	  + ", (-) " + negStr + ", (0) " + dblStr + " ]";
+    }
+    else {
+      return "[Def " + _defUnit->toString()+" ]";
+    }
   }
 private:
   void makeDef(Literal* lhs, Formula* body)
@@ -539,7 +574,7 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
 {
   CALL("PDInliner::PDef::apply(int,Formula*)");
 
-  LOG("Apply pol:"<<polarity<<" form:"<<form->toString());
+  LOG("pp_inl_substep","Apply to subformula "<<form->toString()<<"with polarity "<<polarity);
 
   Connective con = form->connective();
   switch (con) {
@@ -970,8 +1005,6 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
   PDef* def = new PDef(this, defPred);
   def->assignUnit(unit);
   _defs[defPred] = def;
-
-  LOGV(unit->toString());
 
   //inline dependencies into the new definitions
   Stack<unsigned>::Iterator depIt(dependencies);

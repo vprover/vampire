@@ -15,9 +15,6 @@
 
 #include "Theory.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 namespace Kernel
 {
 
@@ -415,7 +412,7 @@ bool RealConstantType::parseDouble(const string& num, RationalConstantType& res)
   } catch(ArithmeticException) {
     return false;
   }
-  LOG("Real parsing: \""<<num<<"\" --> "<<res.toString());
+  LOG("arith_num_parsing","Real parsing: \""<<num<<"\" --> "<<res.toString());
   return true;
 }
 
@@ -438,7 +435,7 @@ RealConstantType::RealConstantType(const string& number)
   while(floor(numDbl)!=numDbl) {
     denominator = denominator*10;
     numDbl *= 10;
-    LOGV(numDbl);
+    LOG("arith_num_parsing","multiplying double to get integer: "<<numDbl);
   }
 
   InnerType::InnerType numerator = static_cast<InnerType::InnerType>(numDbl);

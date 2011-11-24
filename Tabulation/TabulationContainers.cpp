@@ -18,9 +18,6 @@
 
 #include "TabulationContainers.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 
 namespace Tabulation
 {
@@ -95,7 +92,7 @@ void GoalProducer::addRule(Clause* goal, Literal* activator)
 {
   CALL("GoalProducer::addRule");
 
-  LOG("G added rule "<<activator->toString()<<" --> "<<goal->toString());
+  LOG("tab","G added rule "<<activator->toString()<<" --> "<<goal->toString());
 
   if(_lemmaIndex->getGeneralizations(activator, false, false).hasNext()) {
     _alg.addGoal(goal);

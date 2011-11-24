@@ -20,9 +20,6 @@
 #include "Skolem.hpp"
 #include "VarManager.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 using namespace Kernel;
 using namespace Shell;
 
@@ -58,7 +55,6 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
 FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
 {
   CALL("Skolem::skolemiseImpl(FormulaUnit*)");
-  LOG("Skolemizing: "<<unit->toString());
 
   _beingSkolemised=unit;
 
@@ -211,16 +207,15 @@ Formula* Skolem::skolemise (Formula* f)
 	Term* skolemTerm = createSkolemTerm(v);
 	_subst.bind(v,skolemTerm);
 
-	if(env.options->showSkolemisations()) {
-	  env.beginOutput();
-	  env.out()<<"Skolemising: "<<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
-	  env.endOutput();
-	}
-	if(arity!=0 && env.options->showNonconstantSkolemFunctionTrace()) {
-	  cerr<<"Nonconstant skolem function introduced: "<<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString()<<endl;
-	  Refutation ref(_beingSkolemised, true);
-	  ref.output(cerr);
-	}
+	LOG("pp_sk_funs","Skolemising: "<<skolemTerm->toString()<<" for X"<<v
+	    <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString());
+	COND_TRACE("pp_sk_nonconst_intr", arity!=0,
+	    tout<<"Nonconstant skolem function introduced: "
+		<<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
+		<<" in formula "<<_beingSkolemised->toString()<<endl;
+	    Refutation ref(_beingSkolemised, true);
+	    ref.output(tout);
+	);
       }
       Formula* g = skolemise(f->qarg());
       vs.reset(f->vars());

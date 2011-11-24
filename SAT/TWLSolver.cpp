@@ -119,8 +119,7 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   ASS_EQ(_assumptionCnt, 0);
   ASS(!_unsatisfiableAssumptions);
 
-  LOG("");
-  LOG("##############");
+  LOG("sat","adding clauses"<<(onlyPropagate ? " (only propagate)":""));
 
   if(_status==UNSATISFIABLE) {
     return;
@@ -158,7 +157,7 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
 {
   CALL("TWLSolver::addAssumption");
 
-  LOG("## assumption "<<lit);
+  LOG("sat_asmp","add assumption "<<lit);
 
   if(_status==UNSATISFIABLE) {
     return;
@@ -172,15 +171,16 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
   {
     backtrack(1);
     if(isFalse(lit)) {
-      LOG("## unsat");
+      LOG("sat_asmp","assumption unsat");
       handleConflictingAssumption(lit);
     }
     if(isTrue(lit)) {
       //the assumption follows from unit propagation
+      LOG("sat_asmp","assumption follows from unit prop");
       return;
     }
     makeAssumptionAssignment(lit);  //increases _assumptionCnt
-    LOG("## assumption made");
+    LOG("sat_asmp","assumption made");
     if(onlyPropagate) {
       doBaseLevelPropagation();
     }
@@ -200,7 +200,7 @@ void TWLSolver::retractAllAssumptions()
 {
   CALL("TWLSolver::retractAllAssumptions");
 
-  LOG("## retracting assumptions");
+  LOG("sat_asmp","retract assumptions");
 
   if(_unsatisfiableAssumptions) {
     //Invariant: before adding assumptions the problem was satisfiable
@@ -221,7 +221,7 @@ void TWLSolver::retractAllAssumptions()
     undoAssignment(rec.var);
     if(rec.assumption) {
       _assumptionCnt--;
-      LOG("## assumption "<<rec.var<<" retracted");
+      LOG("sat_asmp","assumption "<<rec.var<<" retracted");
     }
   }
 
@@ -265,7 +265,7 @@ void TWLSolver::backtrack(unsigned tgtLevel)
 
   ASS_EQ(_level, tgtLevel);
 
-  LOG("backtracked to level "<<_level);
+  LOG("sat_levels","backtracked to level "<<_level);
 #if VDEBUG
   assertValid();
 #endif
@@ -462,14 +462,14 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   resLits.reset();
   toDo.reset();
 
-  LOG("LC Gen");
+  LOG("sat_learnt_gen","LC generating started");
   toDo.push(conflictClause);
   while(toDo.isNonEmpty()) {
     SATClause* cl=toDo.pop();
     if(_generateProofs) {
       SATClauseList::push(cl, premises);
     }
-    LOG(cl->toString());
+    LOG("sat_learnt_gen","premise: "<<cl->toString());
     recordClauseActivity(cl);
     SATClause::Iterator cit(*cl);
     while(cit.hasNext()) {
@@ -495,14 +495,17 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
     }
   }
 
+  LOG("sat_learnt_gen","init lit cnt: "<<resLits.size()<<" prem cnt: "<<premises->length());
 //  cout<<resLits.size()<<" ";
 //  doShallowMinimize(resLits, seenVars);
   if(_opt.satLearntMinimization()) {
     doDeepMinimize(resLits, seenVars, premises);
+    LOG("sat_learnt_gen","post minimization lit cnt: "<<resLits.size()<<" prem cnt: "<<premises->length());
   }
 //  cout<<resLits.size()<<" ";
   if(_opt.satLearntSubsumptionResolution()) {
     doSubsumptionResolution(resLits, premises);
+    LOG("sat_learnt_gen","post subs-res lit cnt: "<<resLits.size()<<" prem cnt: "<<premises->length());
   }
 //  cout<<resLits.size()<<" ";
 
@@ -538,6 +541,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   env.statistics->learntSatLiterals += res->length();
 //  cout<<res->toString()<<endl;
   recordClauseActivity(res);
+  LOG("sat_learnt","learnt clause: "<<res);
   return res;
 }
 
@@ -610,7 +614,6 @@ SATClause* TWLSolver::propagate(unsigned var)
 {
   CALL("TWLSolver::propagate");
 
-  LOG("propagating "<<var<<" "<<_assignment[var]);
   ASS(!isUndefined(var));
 
   //we go through the watch stack of literal opposite to the assigned value
@@ -671,7 +674,7 @@ void TWLSolver::makeAssumptionAssignment(SATLiteral lit)
   _unitStack.push(USRec(var, false, true));
   schedulePropagation(var);
 
-  LOG("assumption point "<<lit);
+  LOG("sat_asmp","assumption point "<<lit);
 }
 
 void TWLSolver::makeChoiceAssignment(unsigned var, unsigned polarity)
@@ -687,7 +690,7 @@ void TWLSolver::makeChoiceAssignment(unsigned var, unsigned polarity)
   _unitStack.push(USRec(var, true));
   schedulePropagation(var);
 
-  LOG("choice point "<<var<<" to level "<<_level);
+  LOG("sat_levels","choice point "<<var<<" to level "<<_level);
 }
 
 void TWLSolver::makeForcedAssignment(SATLiteral lit, SATClause* premise)
@@ -718,7 +721,7 @@ void TWLSolver::addUnitClause(SATClause* cl)
 {
   CALL("TWLSolver::addUnitClause");
 
-  LOG("adding unit "<<(*cl));
+  LOG("sat","adding unit "<<(*cl));
 
   SATLiteral lit=(*cl)[0];
 
@@ -830,7 +833,7 @@ void TWLSolver::addClause(SATClause* cl)
 {
   CALL("TWLSolver::addClause");
 
-  LOG("adding clause "<<(*cl));
+  LOG("sat","adding clause "<<(*cl));
 
   unsigned clen=cl->length();
   ASS_G(clen,1);

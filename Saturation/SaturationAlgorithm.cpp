@@ -228,13 +228,7 @@ size_t SaturationAlgorithm::passiveClauseCount()
  */
 void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
-#if REPORT_CONTAINERS
-  cout<<"## Active added: "<<(*c)<<endl;
-#endif
-
-  if(_opt.showActive()) {
-    reportClause(CRT_ACTIVE, c);
-  }
+  LOG_UNIT("sa_active_added", c);
 }
 
 /**
@@ -244,9 +238,7 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onActiveRemoved");
 
-#if REPORT_CONTAINERS
-  cout<<"== Active removed: "<<(*c)<<endl;
-#endif
+  LOG_UNIT("sa_active_removed", c);
 
   ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED ||
       c->store()==Clause::SELECTED_REACTIVATED);
@@ -293,17 +285,11 @@ void SaturationAlgorithm::onAllProcessed()
  */
 void SaturationAlgorithm::onPassiveAdded(Clause* c)
 {
-#if REPORT_CONTAINERS
-  cout<<"# Passive added: "<<(*c)<<endl;
-#endif
+  LOG_UNIT("sa_passive_added", c);
 
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
-
-  if(_opt.showPassive()) {
-    reportClause(CRT_PASSIVE, c);
-  }
 }
 
 /**
@@ -315,9 +301,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
 
-#if REPORT_CONTAINERS
-  cout<<"= Passive removed: "<<(*c)<<endl;
-#endif
+  LOG_UNIT("sa_passive_removed", c);
 
   ASS(c->store()==Clause::PASSIVE || c->store()==Clause::REACTIVATED)
 
@@ -343,9 +327,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
-#if REPORT_CONTAINERS
-  cout<<"~ Passive selected: "<<(*c)<<endl;
-#endif
+  LOG_UNIT("sa_passive_selected", c);
 }
 
 /**
@@ -353,9 +335,7 @@ void SaturationAlgorithm::onPassiveSelected(Clause* c)
  */
 void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
 {
-#if REPORT_CONTAINERS
-  cout<<"++ Unprocessed added: "<<(*c)<<endl;
-#endif
+  LOG_UNIT("sa_unprocessed_added", c);
 }
 
 /**
@@ -363,16 +343,12 @@ void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
  */
 void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
 {
-#if REPORT_CONTAINERS
-  cout<<"-- Unprocessed removed: "<<(*c)<<endl;
-#endif
+  LOG_UNIT("sa_unprocessed_removed", c);
 }
 
 void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 {
-#if REPORT_CONTAINERS
-  cout<<"~~ Unprocessed selected: "<<(*c)<<endl;
-#endif
+  LOG_UNIT("sa_unprocessed_selected", c);
 }
 
 /**
@@ -413,9 +389,7 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     }
   }
 
-  if(_opt.showNew()) {
-    reportClause(CRT_NEW, cl);
-  }
+  LOG_UNIT("sa_new_clause", cl);
 
   if(!_propToBDD && cl->isPropositional()) {
     onNewUsefulPropositionalClause(cl);
@@ -431,12 +405,7 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
   CALL("SaturationAlgorithm::onNewUsefulPropositionalClause");
   ASS(c->isPropositional());
 
-  if(_opt.showNewPropositional()) {
-    VirtualIterator<string> clStrings=c->toSimpleClauseStrings();
-    while(clStrings.hasNext()) {
-      reportClause(CRT_NEW, clStrings.next());
-    }
-  }
+  LOG_UNIT("sa_new_prop_clause", c);
 
   if(_bddMarkingSubsumption) {
     _bddMarkingSubsumption->onNewPropositionalClause(c);
@@ -453,6 +422,8 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 void SaturationAlgorithm::onClauseRetained(Clause* cl)
 {
   CALL("SaturationAlgorithm::onClauseRetained");
+
+  LOG_UNIT("sa_retained_clause", cl);
 }
 
 /**
@@ -735,18 +706,19 @@ public:
 
     BDDNode* oldClProp=_cl->prop();
 
-#if REPORT_FW_SIMPL
-    cout<<"->>--------\n";
-    ClauseList* lst=0;
-    while(premises.hasNext()) {
-      Clause* premise=premises.next();
-      ASS(willPerform(premise));
-      ClauseList::push(premise, lst);
-      cout<<":"<<(*premise)<<endl;
-    }
-    cout<<"-"<<(*_cl)<<endl;
-    premises=pvi( ClauseList::DestructiveIterator(lst) );
-#endif
+
+    TRACE("sa_fw_simpl",
+	tout << "->>--------\n";
+	ClauseList* lst=0;
+	while(premises.hasNext()) {
+	  Clause* premise=premises.next();
+	  ASS(willPerform(premise));
+	  ClauseList::push(premise, lst);
+	  tout << ":" << (*premise) << endl;
+	}
+	cout << "-" << (*_cl) << endl;
+	premises=pvi( ClauseList::DestructiveIterator(lst) );
+    );
 
     if(replacement) {
       replacement->initProp(oldClProp);
@@ -759,13 +731,13 @@ public:
     InferenceStore::instance()->recordPropReduce(_cl, oldClProp, bdd->getTrue());
     _cl=0;
 
-#if REPORT_FW_SIMPL
-    if(replacement) {
-      cout<<"+"<<(*replacement)<<endl;
-    }
-    cout<<"removed\n";
-    cout<<"^^^^^^^^^^^^\n";
-#endif
+    TRACE("sa_fw_simpl",
+	if(replacement) {
+	  tout << "+" << (*replacement) << endl;
+	}
+	tout << "removed\n";
+	tout << "^^^^^^^^^^^^\n";
+    );
   }
 
   bool willPerform(Clause* premise)
@@ -929,11 +901,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addUnprocessedClause");
   ASS(cl->prop());
-
-#if REPORT_CONTAINERS
-  cout<<"$$ Unprocessed adding: "<<(*cl)<<endl;
-#endif
-
 
   env.statistics->generatedClauses++;
 
@@ -1198,21 +1165,10 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 	continue;
       }
 
-
-#if REPORT_BW_SIMPL
-      cout<<"-<<--------\n";
-      cout<<":"<<(*cl)<<endl;
-      cout<<"-"<<(*redundant)<<endl;
-#endif
-
       Clause* replacement=srec.replacement;
 
       if(replacement) {
 	addNewClause(replacement);
-
-#if REPORT_BW_SIMPL
-	cout<<"+"<<(*replacement)<<endl;
-#endif
       }
       onClauseReduction(redundant, replacement, cl, 0, false);
 
@@ -1228,12 +1184,19 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       redundant->setProp(bdd->getTrue());
       InferenceStore::instance()->recordPropReduce(redundant, oldRedundantProp, bdd->getTrue());
 
-      redundant->decRefCnt();
 
-#if REPORT_BW_SIMPL
-      cout<<"removed\n";
-      cout<<"^^^^^^^^^^^\n";
-#endif
+      TRACE("sa_fw_simpl",
+	tout << "-<<--------\n";
+	tout << ":" << (*cl) << endl;
+	tout << "-" << (*redundant) << endl;
+	if(replacement) {
+	  tout << "+" << (*replacement) << endl;
+	}
+	tout << "removed\n";
+	tout << "^^^^^^^^^^^\n";
+      );
+
+      redundant->decRefCnt();
     }
   }
 }
@@ -1330,9 +1293,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
   if(cl->store()==Clause::SELECTED_REACTIVATED) {
     cl->setStore(Clause::ACTIVE);
     env.statistics->reactivatedClauses++;
-#if REPORT_CONTAINERS
-    cout<<"** Reanimated: "<<(*cl)<<endl;
-#endif
+    LOG_UNIT("sa_reanimated", cl);
   } else {
     ASS_EQ(cl->store(), Clause::SELECTED);
     cl->setStore(Clause::ACTIVE);
@@ -1348,9 +1309,7 @@ bool SaturationAlgorithm::activate(Clause* cl)
 
     addNewClause(genCl);
 
-#if REPORT_CONTAINERS
-    cout<<"G "<<(*genCl)<<endl;
-#endif
+    LOG_UNIT("sa_generated_clause", genCl);
 
     Inference::Iterator iit=genCl->inference()->iterator();
     while(genCl->inference()->hasNext(iit)) {

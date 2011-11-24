@@ -86,17 +86,21 @@ void InterpolantMinimizer::collectSlicedOffNodes(SMTSolverResult& solverResult, 
 
     string uid = getUnitId(unit);
 
-//    if(solverResult.assignment.get(pred(D, uid))=="true") LOG("Digest: " << unit.toString());
+    TRACE("itp_min",
+	if(solverResult.assignment.get(pred(D, uid))=="true") {
+	  tout << "Digest: " << unit.toString() << endl;
+	}
+    );
 
     SMTConstant sU = pred(S, uid);
     string val = solverResult.assignment.get(sU);
     if(val=="false") {
-//      LOG("Non-sliced: " << unit.toString());
+      LOG("itp_min","Non-sliced: " << unit.toString());
       continue;
     }
     ASS_EQ(val,"true");
     acc.insert(unit);
-//    LOG("Sliced: " << unit.toString());
+    LOG("itp_min","Sliced: " << unit.toString());
   }
 }
 
@@ -278,7 +282,6 @@ public:
       handleNoSplit(cl);
     }
     else {
-//      LOGV(cl->toString());
       ALWAYS(doSplitting(cl));
     }
     _acc = 0;
@@ -411,9 +414,9 @@ string InterpolantMinimizer::getComponentId(Clause* cl)
     unsigned weight = cl->weight();
     _atomWeights.insert(id, weight);
     _unitsById.insert(id, UnitSpec(cl));
-//    LOG(id<<" "<<weight<<"\t"<<cl->toString());
+    LOG("itp_min","atom: "<<id<<" "<<weight<<"\t"<<cl->toString());
   }
- return id;
+  return id;
 }
 
 /**
@@ -732,10 +735,6 @@ struct InterpolantMinimizer::TraverseStackEntry
 //    Color pcol = parent.unit()->getColor();
     Color pcol = parInfo.color;
     if(pcol==COLOR_LEFT) {
-      if(info.state==HAS_RIGHT_PARENT) {
-	LOGV(parent.toString());
-	InferenceStore::instance()->outputProof(cout, unit.unit());
-      }
       ASS_NEQ(info.state, HAS_RIGHT_PARENT);
       info.state = HAS_LEFT_PARENT;
     }

@@ -88,16 +88,6 @@ public:
   const Options& getOptions() const { return _opt; }
 
 protected:
-  enum ClauseReportType
-  {
-    CRT_ACTIVE,
-    CRT_PASSIVE,
-    CRT_NEW,
-    CRT_NEW_PROPOSITIONAL
-  };
-  void reportClause(ClauseReportType type, Clause* cl);
-  void reportClause(ClauseReportType type, string clString);
-
   static bool isRefutation(Clause* cl);
   static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt);
 

@@ -26,7 +26,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-#define TRACE 0
 // #define CALL(x) (cout << x << '\n')
 
 // This are the keywords not handled yet:
@@ -323,9 +322,7 @@ void SimplifyProver::parse()
 
   while (! _commands.isEmpty()) {
     Command cmd = _commands.pop();
-#if TRACE
-    cout << "Command: " << (int)cmd << '\n';
-#endif
+    LOG("simplify","Command: " << (int)cmd);
     switch (cmd) {
     case PARSE_FORMULA:
       parseFormula();
@@ -437,9 +434,7 @@ void SimplifyProver::parseFormula()
 
   const Expression* expr = (const Expression*)_saved.pop();
   Context context = (Context)_isaved.pop();
-#if TRACE
-  cout << "Formula: " << expr->toString() << '\n';
-#endif
+  LOG("simplify","Formula: " << expr->toString());
  retry:
   if (expr->tag == LispParser::LIST) {
     List* lst = expr->list;
@@ -944,9 +939,7 @@ void SimplifyProver::parseTerm()
   CALL("SimplifyProver::parseTerm");
 
   const Expression* expr = (const Expression*)_saved.pop();
-#if TRACE
-  cout << "Term: " << expr->toString() << '\n';
-#endif
+  LOG("simplify","Term: " << expr->toString());
   if (expr->tag == LispParser::ATOM) {
     string symb = expr->str;
     if (keyword(symb) != K_NONE) {
@@ -966,9 +959,7 @@ void SimplifyProver::parseTerm()
 #else
       INVALID_OPERATION("Integers not supported by the Simplify parser currently");
 #endif
-#if TRACE
-      cout << "INTEGER: " << symb << '\n';
-#endif
+      LOG("simplify","INTEGER: " << symb);
       return;
     }
 
@@ -976,18 +967,14 @@ void SimplifyProver::parseTerm()
     if (_variables.find(symb,bindings) && bindings) {
       TermList ts(bindings->head(),false);
       _tsaved.push(ts);
-#if TRACE
-      cout << "TERM: " << ts.toString() << '\n';
-#endif
+      LOG("simplify","TERM: " << ts.toString());
       return;
     }
     Lib::List<TermList>* binding = 0;
     _termLet.find(symb,binding);
     if (binding) {
       _tsaved.push(binding->head());
-#if TRACE
-      cout << "TERM: " << binding->head().toString() << '\n';
-#endif
+      LOG("simplify","TERM: " << binding->head().toString());
       return;
     }
 
@@ -1008,9 +995,7 @@ void SimplifyProver::parseTerm()
     Term* t = Term::create(sinfo->number,0,0);
     ts.setTerm(t);
     _tsaved.push(ts);
-#if TRACE
-    cout << "TERM: " << ts.toString() << '\n';
-#endif
+    LOG("simplify","TERM: " << ts.toString());
     return;
   }
 
@@ -1314,9 +1299,7 @@ void SimplifyProver::buildTerm()
     args[i] = _tsaved.pop();
   }
   TermList ts(Term::create(sinfo->number,arity,args.array()));
-#if TRACE
-  cout << "TERM: " << ts.toString() << '\n';
-#endif
+  LOG("simplify","TERM: " << ts.toString());
   _tsaved.push(ts);
 } // buildTerm
 
@@ -1580,9 +1563,7 @@ void SimplifyProver::processFormula(Formula* f,Context context)
 {
   CALL("SimplifyProver::processFormula");
 
-#if TRACE
-  cout << "FORMULA: " << f->toString() << '\n';
-#endif
+  LOG("simplify","FORMULA: " << f->toString());
   switch (context) {
   case CN_FORMULA:
     _built.push(f);
@@ -1673,9 +1654,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::addNumber(const string& symb)
 void SimplifyProver::addUnit(Unit* u)
 {
   _units = new UnitList(u,_units);
-#if TRACE
-  cout << "UNIT: " << u->toString() << '\n';
-#endif
+  LOG("simplify","UNIT: " << u->toString());
 } // SimplifyProver::addUnit
 
 /**

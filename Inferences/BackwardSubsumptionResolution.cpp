@@ -78,9 +78,6 @@ struct BackwardSubsumptionResolution::ClauseToBwSimplRecordFn
 };
 
 
-#undef LOGGING
-#define LOGGING 0
-
 void BackwardSubsumptionResolution::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
@@ -116,12 +113,10 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
 
-      LOGV(resCl->prop());
-      LOGV(*resCl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;
       RSTAT_CTR_INC("bsr0 performed (units)");
-      LOG("bsr unit performed");
+      LOG_SIMPL2("inf_bsr", cl, qr.clause, resCl,"unit");
     }
     if(simplRes) {
       simplifications=pvi( List<BwSimplificationRecord>::DestructiveIterator(simplRes) );
@@ -260,12 +255,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),qr.literal)) {
       RSTAT_CTR_INC("bsr1 4 performed");
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
-//      LOGV(*qr.clause);
-//      LOGV(*cl);
-//      LOGV(*resCl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;
-      LOG("bsr fetch neg performed");
+      LOG_SIMPL2("inf_bsr", cl, qr.clause, resCl, "by fetch neg");
     }
 
   match_fail:
@@ -410,12 +402,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),resolvedLit)) {
       RSTAT_CTR_INC("bsr2 5 performed");
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, resolvedLit, cl);
-      LOGV(*qr.clause);
-      LOGV(*cl);
-      LOGV(*resCl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;
-      LOG("bsr fetch pos performed");
+      LOG_SIMPL2("inf_bsr", cl, qr.clause, resCl, "by fetch pos");
     }
 
   match_fail2:

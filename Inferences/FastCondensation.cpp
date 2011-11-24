@@ -62,8 +62,6 @@ Clause* FastCondensation::simplify(Clause* cl)
 {
   CALL("FastCondensation::perform");
 
-  LOG("attempt on "<<cl->toString());
-
   TimeCounter tc(TC_CONDENSATION);
 
   unsigned clen=cl->length();
@@ -123,7 +121,7 @@ Clause* FastCondensation::simplify(Clause* cl)
 	res->setAge(cl->age());
 	env.statistics->condensations++;
 
-	LOG("fcnd: "<<cl->toNiceString()<<"\n  --> "<<res->toNiceString());
+	LOG_SIMPL("inf_cond_fast",cl,res);
 	return res;
       }
     }

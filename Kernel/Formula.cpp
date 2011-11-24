@@ -747,4 +747,10 @@ Formula* Formula::fromClause(Clause* cl, BDDNode* prop)
   }
 */
 
+std::ostream& operator<< (ostream& out, const Formula& f)
+{
+  CALL("operator <<(ostream&, const Formula&)");
+  return out << f.toString();
+}
+
 }

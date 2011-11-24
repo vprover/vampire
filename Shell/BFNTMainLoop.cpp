@@ -35,9 +35,6 @@
 
 #include "BFNTMainLoop.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 #define BFNT_CHILD_RESULT_SAT 0
 #define BFNT_CHILD_RESULT_UNSAT 6
 #define BFNT_CHILD_RESULT_UNKNOWN 7
@@ -120,7 +117,7 @@ void BFNTMainLoop::runChild(size_t modelSize)
   MainLoopResult innerRes = childMainLoop->run();
   innerRes.updateStatistics();
 
-  LOG("Child termination reason: "
+  LOG("bfnt_loop","Child termination reason: "
       << ((innerRes.terminationReason==Statistics::SATISFIABLE) ? "Satisfiable" :
 	  (innerRes.terminationReason==Statistics::REFUTATION) ? "Unsatisfiable" : "Unknown") );
 #if LOGGING
@@ -220,7 +217,7 @@ MainLoopResult BFNTMainLoop::runImpl()
   for(;;) {
     Timer::syncClock();
     if(env.timeLimitReached()) { return MainLoopResult(Statistics::TIME_LIMIT); }
-    LOG("Trying model size "<<modelSize);
+    LOG("bfnt_loop","Trying model size "<<modelSize);
     env.statistics->maxBFNTModelSize = modelSize;
     MainLoopResult childResult = spawnChild(modelSize);
 

@@ -215,7 +215,7 @@ void Problem::refreshProperty() const
 {
   CALL("Problem::refreshProperty");
 
-  LOGS("property scanned");
+  LOG("prb_prop_refresh","property scanned");
 
   TimeCounter tc(TC_PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);

@@ -235,6 +235,7 @@ const char* Options::Constants::_optionNames[] = {
   "theory_axioms",
   "time_limit",
   "time_statistics",
+  "traces",
   "trivial_predicate_removal",
 
   "unit_resulting_resolution",
@@ -312,6 +313,7 @@ const char* Options::Constants::_shortNames[] = {
   "tglr",
   "tipr",
   "tlawr",
+  "tr",
   "updr",
   "urr",
   "wi"};
@@ -384,6 +386,7 @@ int Options::Constants::shortNameIndexes[] = {
   TABULATION_GOAL_LEMMA_RATIO,
   TABULATION_INSTANTIATE_PRODUCING_RULES,
   TABULATION_LEMMA_AWR,
+  TRACES,
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   UNIT_RESULTING_RESOLUTION,
   WEIGHT_INCREMENT};
@@ -716,6 +719,7 @@ Options::Options ()
   _theoryAxioms(true),
   _timeLimitInDeciseconds(600),
   _timeStatistics(false),
+  _traces(""),
   _trivialPredicateRemoval(false),
 
   _unitResultingResolution(false),
@@ -1278,6 +1282,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case TIME_STATISTICS:
       _timeStatistics = onOffToBool(value,name);
+      return;
+    case TRACES:
+      _traces = value;
       return;
     case TRIVIAL_PREDICATE_REMOVAL:
       _trivialPredicateRemoval = onOffToBool(value,name);
@@ -1943,6 +1950,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case TIME_STATISTICS:
     str << boolToOnOff(_timeStatistics);
     return;
+  case TRACES:
+    str << _traces;
+    return;
   case TRIVIAL_PREDICATE_REMOVAL:
     str << boolToOnOff(_trivialPredicateRemoval);
     return;
@@ -2547,4 +2557,23 @@ void Options::setMode(Mode newVal) {
   default:
     break;
   }
+}
+
+/**
+ * Enable traces that provide output for show_* options that are enabled.
+ */
+void Options::enableTracesAccordingToOptions() const
+{
+  CALL("Options::enableTracesAccordingToOptions");
+
+  if(showActive()) { ENABLE_TAG("active_clauses"); }
+  if(showPassive()) { ENABLE_TAG("passive_clauses"); }
+  if(showNew()) { ENABLE_TAG("new_clauses"); }
+  if(showNewPropositional()) { ENABLE_TAG("new_prop_clauses"); }
+  if(showSkolemisations()) { ENABLE_TAG("pp_sk_funs"); }
+  if(showNonconstantSkolemFunctionTrace()) { ENABLE_TAG("pp_sk_nonconst_intr"); }
+  if(showDefinitions()) { ENABLE_TAG("definitions"); }
+  if(showPreprocessingFormulas()) { ENABLE_TAG("preproc_forms"); }
+
+//  SHOW_BLOCKED,
 }

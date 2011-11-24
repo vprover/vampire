@@ -76,6 +76,7 @@ API_OBJ = Api/FormulaBuilder.o\
 
 VD_OBJ = Debug/Assertion.o\
          Debug/Log.o\
+         Debug/Log_TagDecls.o\
          Debug/RuntimeStatistics.o\
          Debug/Tracer.o
 

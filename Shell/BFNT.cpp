@@ -19,9 +19,6 @@
 #include "Property.hpp"
 #include "BFNT.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 #define BNFT_SHOW_TRANSFORMED 0
 // uncomment this to show the generated problem in TPTP
 #define BNFT_TPTP_TRANSFORMED 0
@@ -75,6 +72,7 @@ void BFNT::apply(UnitList* units)
     cout << "%\n% " << cl->toString() << "\n%\n";
     cout << TPTP::toString(_flat.top()) << "\n";
 #endif
+    LOG_UNIT("bfnt_cl_transf", _flat.top());
   }
 } // BFNT::apply
 
@@ -309,6 +307,7 @@ UnitList* BFNT::create(unsigned modelSize)
 #if BNFT_TPTP_TRANSFORMED
   cout << "%\n% Axioms for models of size " << modelSize << "\n%\n";
 #endif
+  LOG("bfnt","generating BFNT instance for model of size "<<modelSize);
 
   unsigned len = _constants.length();
   while (len < modelSize) {
@@ -334,9 +333,9 @@ UnitList* BFNT::create(unsigned modelSize)
       cout << "EP: " << cls->toString() << "\n";
 #endif
 #if BNFT_TPTP_TRANSFORMED
-    cout << TPTP::toString(cls) << "\n";
+      cout << TPTP::toString(cls) << "\n";
 #endif
-      LOGV(cls->toString());
+      LOG_UNIT("bfnt_cl_ineq",cls);
       result = new UnitList(cls,result);
     }
   }
@@ -379,7 +378,7 @@ UnitList* BFNT::create(unsigned modelSize)
 #if BNFT_TPTP_TRANSFORMED
     cout << TPTP::toString(result->head()) << "\n";
 #endif
-    LOGV(result->head()->toString());
+    LOG_UNIT("bfnt_cl_tot",result->head());
   }
   Stack<Clause*>::Iterator sit(_flat);
   while (sit.hasNext()) {

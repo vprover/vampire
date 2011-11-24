@@ -545,6 +545,9 @@ TermList Formula::termLetRhs() const {
   return static_cast<const TermLetFormula*>(this)->rhs();
 }
 
+// operators
+
+std::ostream& operator<< (ostream& out, const Formula& f);
 
 }
 

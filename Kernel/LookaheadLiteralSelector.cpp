@@ -22,9 +22,6 @@
 
 #include "LookaheadLiteralSelector.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 namespace Kernel
 {
 
@@ -180,7 +177,7 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
 {
   CALL("LookaheadLiteralSelector::pickTheBest");
   ASS_G(cnt,1); //special cases are handled elsewhere
-  LOG("ptb");
+  LOG("ls_lookahead","picking the best of "<<cnt);
 
   static DArray<VirtualIterator<void> > runifs; //resolution unification iterators
   runifs.ensure(cnt);
@@ -194,11 +191,11 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   do {
     for(unsigned i=0;i<cnt;i++) {
       if(runifs[i].hasNext()) {
-	LOGV(*lits[i]);
+	LOG("ls_lookahead","obtained next geenrated for "<<*lits[i]);
 	runifs[i].next();
       }
       else {
-	LOG("no more: "<<(*lits[i]));
+	LOG("ls_lookahead","no more generated for "<<(*lits[i]));
 	candidates.push(lits[i]);
       }
     }
@@ -239,7 +236,7 @@ void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
   for(size_t i=0;i<cnt-1;i++) {
     for(size_t j=i+1;j<cnt;j++) {
       if(MatchingUtils::isVariant(lits[i], lits[j], false)) {
-	LOG("variants "<<(*lits[i])<<"    "<<(*lits[j]));
+	LOG("ls_lookahead","detected variants "<<(*lits[i])<<"    "<<(*lits[j]));
 	cnt--;
 	swap(lits[j], lits[cnt]);
 	lits.pop();
@@ -255,7 +252,7 @@ void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
 void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
   CALL("LookaheadLiteralSelector::doSelection");
-  LOG("Lookahead selection, eligible "<<eligible<<" from "<<c->toString());
+  LOG("ls_lookahead","Lookahead selection, eligible "<<eligible<<" from "<<c->toString());
 
   LiteralList* maximals=0;
   Literal* singleSel=0;
@@ -304,7 +301,7 @@ void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
 
   singleSel=pickTheBest(selectable.begin(), selectable.size());
 
-  LOG("selected "<<(*singleSel)<<" from "<<(*c));
+  LOG("ls_lookahead","selected "<<(*singleSel)<<" from "<<(*c));
 
 selection_done:
   if(singleSel) {

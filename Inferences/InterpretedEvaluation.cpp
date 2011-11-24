@@ -82,7 +82,7 @@ public:
   {
     CALL("InterpretedEvaluation::ConversionEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
-    LOG("conv eval trying "<<trm->toString());
+    LOG("inf_ie","conv eval trying "<<trm->toString());
 
     try {
       Interpretation itp = theory->interpretFunction(trm);
@@ -523,15 +523,12 @@ public:
     Evaluator* predEv = getPredEvaluator(pred);
     if(predEv) {
       if(predEv->tryEvaluatePred(resLit, resConst)) {
-	LOGV(resConst);
 	isConstant = true;
 	return true;
       }
     }
     if(resLit!=lit) {
       isConstant = false;
-      LOGV(*lit);
-      LOGV(*resLit);
       return true;
     }
     return false;
@@ -641,7 +638,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   CALL("InterpretedEvaluation::perform");
 
   TimeCounter tc(TC_INTERPRETED_EVALUATION);
-  LOG("Simplifying "<<cl->toString());
 
   static DArray<Literal*> newLits(32);
   unsigned clen=cl->length();
@@ -661,6 +657,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     if(constant) {
       if(constTrue) {
 	env.statistics->evaluations++;
+	LOG_TAUT("inf_ie",cl);
 	return 0;
       } else {
 	continue;
@@ -684,7 +681,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   res->setAge(cl->age());
   env.statistics->evaluations++;
 
-  LOG("Result: "<<res->toString());
+  LOG_SIMPL("inf_ie",cl,res);
   return res;
 }
 
