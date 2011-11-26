@@ -94,9 +94,9 @@ TEST_FUN(iteTerm)
   TermList tlet=TermList(Term::createTermLet(f01, gITE, gf01));  //term let in term
   TermList tlet2=TermList(Term::createFormulaLet(p01, new AtomicFormula(p10), tlet));  //term let in term
 
-  Literal* x0EQtlet=Literal::createEquality(true, x0, tlet2);
+  Literal* x0EQtlet=Literal::createEquality(true, x0, tlet2, Sorts::SRT_DEFAULT);
 
-  Literal* x0EQx1=Literal::createEquality(true, x0, x1);
+  Literal* x0EQx1=Literal::createEquality(true, x0, x1, Sorts::SRT_DEFAULT);
   Formula* fletTgt = new BinaryFormula(IMP, new AtomicFormula(p01), new AtomicFormula(x0EQx1));
   Formula* flet = new FormulaLetFormula(p01, fletTgt, new AtomicFormula(x0EQtlet));  //formula let in formula
 
@@ -126,14 +126,14 @@ TEST_FUN(iteTerm)
 
   UnitList* probUnits = 0;
 
-//  UnitList::push(u, prob);
-//  UnitList::push(ut3, prob);
-//  UnitList::push(ut2, prob);
-//  UnitList::push(ut1, prob);
+  UnitList::push(u, probUnits);
+  UnitList::push(ut3, probUnits);
+  UnitList::push(ut2, probUnits);
+  UnitList::push(ut1, probUnits);
   UnitList::push(us4, probUnits);
-//  UnitList::push(us3, prob);
-//  UnitList::push(us2, prob);
-//  UnitList::push(us1, prob);
+  UnitList::push(us3, probUnits);
+  UnitList::push(us2, probUnits);
+  UnitList::push(us1, probUnits);
 
   UnitList::Iterator uit0(probUnits);
   while(uit0.hasNext()) {

@@ -84,9 +84,13 @@ public:
 
   virtual string toString() const = 0;
 
-  static BaseType* makeType(unsigned arity, unsigned* domainSorts, unsigned rangeSort);
+  static BaseType* makeType(unsigned arity, const unsigned* domainSorts, unsigned rangeSort);
+  static BaseType* makeType0(unsigned rangeSort);
+  static BaseType* makeType1(unsigned arg1Sort, unsigned rangeSort);
+  static BaseType* makeType2(unsigned arg1Sort, unsigned arg2Sort, unsigned rangeSort);
+  static BaseType* makeType3(unsigned arg1Sort, unsigned arg2Sort, unsigned arg3Sort, unsigned rangeSort);
 protected:
-  BaseType(unsigned arity, unsigned* sorts=0);
+  BaseType(unsigned arity, const unsigned* sorts=0);
 
   string argsToString() const;
 private:
@@ -97,7 +101,7 @@ private:
 class PredicateType : public BaseType
 {
 public:
-  PredicateType(unsigned arity, unsigned* argumentSorts = 0)
+  PredicateType(unsigned arity, const unsigned* argumentSorts = 0)
    : BaseType(arity, argumentSorts) {}
 
   virtual string toString() const;
@@ -106,7 +110,7 @@ public:
 class FunctionType : public BaseType
 {
 public:
-  FunctionType(unsigned arity, unsigned* argumentSorts, unsigned resultSort)
+  FunctionType(unsigned arity, const unsigned* argumentSorts, unsigned resultSort)
    : BaseType(arity, argumentSorts), _result(resultSort) {}
   FunctionType(unsigned arity);
 

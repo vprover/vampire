@@ -38,10 +38,58 @@ BaseType& SortHelper::getType(Term* t)
 unsigned SortHelper::getResultSort(Term* t)
 {
   CALL("SortHelper::getArgSort(Term*,unsigned)");
+  ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   return sym->fnType()->result();
+}
+
+/**
+ * Try get result sort of a term.
+ *
+ * This function can be applied also to special terms such as if-then-else.
+ */
+bool SortHelper::tryGetResultSort(Term* t, unsigned& result)
+{
+  CALL("tryGetResultSort(Term*,unsigned&)");
+  ASS(!t->isLiteral());
+
+  if(!t->isSpecial()) {
+    result = getResultSort(t);
+    return true;
+  }
+  //we may have many nested special terms. to be safe, we traverse them using our own stack.
+  static Stack<Term*> candidates;
+  candidates.reset();
+
+  for(;;) {
+    switch(t->functor()) {
+    case Term::SF_TERM_ITE:
+      if(t->nthArgument(0)->isTerm()) { candidates.push(t->nthArgument(0)->term()); }
+      if(t->nthArgument(1)->isTerm()) { candidates.push(t->nthArgument(1)->term()); }
+      break;
+    case Term::SF_LET_TERM_IN_TERM:
+    case Term::SF_LET_FORMULA_IN_TERM:
+      if(t->nthArgument(0)->isTerm()) { candidates.push(t->nthArgument(0)->term()); }
+      break;
+    default:
+      ASS(!t->isSpecial());
+      result = getResultSort(t);
+      return true;
+    }
+    if(candidates.isEmpty()) {
+      return false;
+    }
+    t = candidates.pop();
+  }
+}
+
+bool SortHelper::tryGetResultSort(TermList t, unsigned& result)
+{
+  CALL("tryGetResultSort(TermList,unsigned&)");
+  if(t.isVar()) { return false; }
+  return tryGetResultSort(t.term(), result);
 }
 
 /**
@@ -67,13 +115,17 @@ unsigned SortHelper::getEqualityArgumentSort(const Literal* lit)
   if(lit->isTwoVarEquality()) {
     return lit->twoVarEqSort();
   }
+
   TermList arg1 = *lit->nthArgument(0);
-  if(arg1.isTerm()) {
-    return getResultSort(arg1.term());
+  unsigned srt1;
+  if(tryGetResultSort(arg1, srt1)) {
+    return srt1;
   }
+
   TermList arg2 = *lit->nthArgument(1);
-  ASS(arg2.isTerm()); //otherwise lit->isTwoVarEquality() would hold
-  return getResultSort(arg2.term());
+  unsigned srt2;
+  ALWAYS(tryGetResultSort(arg2, srt2));
+  return srt2;
 }
 
 /**

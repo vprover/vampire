@@ -15,7 +15,7 @@ using namespace Lib;
 
 class IdHash {
 public:
-  static unsigned hash(int i)
+  static unsigned hash(unsigned i)
   {
     return i;
   }
@@ -23,7 +23,7 @@ public:
 
 class ConstHash {
 public:
-  static unsigned hash(int i)
+  static unsigned hash(unsigned i)
   {
     return 1;
   }
@@ -45,7 +45,7 @@ public:
    * E.g. for capacity==3, the transformation is { 0->2,
    * 1->1, 2->0, 3->0, 4->1, 5->2, 6->2,... }
    */
-  static unsigned hash(int i, int capacity)
+  static unsigned hash(unsigned i, int capacity)
   {
     int res=(i%(capacity*2) - capacity);
     if(res<0)
@@ -69,7 +69,7 @@ struct HashTraits<ZigZagHash>
 
 
 
-typedef DHMap<int, int, ZigZagHash, ConstHash> MyMap; 
+typedef DHMap<unsigned, unsigned, ZigZagHash, ConstHash> MyMap;
 
 TEST_FUN(dhmap1)
 {
@@ -83,8 +83,8 @@ TEST_FUN(dhmap1)
 
   while(mit.hasNext())
   {
-    int k=mit.nextKey();
-    int v;
+    unsigned k=mit.nextKey();
+    unsigned v;
     ALWAYS(m1.find(k,v));
   }
   ASS(!m1.find(4));
@@ -101,25 +101,25 @@ TEST_FUN(dhmap1)
   m1.reset();
   ASS(m1.isEmpty());
 
-  int cnt=10000;
-  for(int i=0;i<cnt;i++) {
+  unsigned cnt=10000;
+  for(unsigned i=0;i<cnt;i++) {
     m1.insert(i,i*i);
   }
   ASS_EQ(m1.size(),cnt);
-  for(int i=0;i<cnt;i++) {
-    int v;
+  for(unsigned i=0;i<cnt;i++) {
+    unsigned v;
     ALWAYS(m1.find(i,v));
     ASS_EQ(v,i*i);
   }
   ASS(!m1.find(cnt));
 
-  for(int i=1;i<cnt;i+=2) {
+  for(unsigned i=1;i<cnt;i+=2) {
     ALWAYS(m1.remove(i));
   }
   NEVER(m1.remove(cnt+1));
   ASS_EQ(m1.size(), cnt/2+cnt%2);
-  for(int i=0;i<cnt;i++) {
-    int v;
+  for(unsigned i=0;i<cnt;i++) {
+    unsigned v;
     bool res=m1.find(i,v);
     ASS(res==(i%2==0));
     ASS(!res||v==i*i);

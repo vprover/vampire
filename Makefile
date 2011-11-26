@@ -313,24 +313,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/Output.o\
          Test/UnitTesting.o
 
-VUT_OBJ = UnitTests/tBinaryHeap.o\
-	  UnitTests/tEPRRestoringApi.o\
-	  UnitTests/tDHMap.o\
-	  UnitTests/tDHMultiset.o\
-	  UnitTests/tDynamicHeap.o\
-	  UnitTests/tfork.o\
-	  UnitTests/tFormulaBuilderApi.o\
-	  UnitTests/tInterpretedNormalizer.o\
-	  UnitTests/tITE.o\
-	  UnitTests/tList.o\
-	  UnitTests/tProgramAnalysis.o\
-	  UnitTests/tProgramAnalysisCopy.o\
-	  UnitTests/tProgramAnalysisPartition.o\
-	  UnitTests/tRatioKeeper.o\
-	  UnitTests/tSCCAnalyzer.o\
-	  UnitTests/tSkipList.o\
-	  UnitTests/tStack.o\
-	  UnitTests/tTwoVampires.o
+VUT_OBJ = $(patsubst %.cpp,%.o,UnitTests/*.cpp)
 
 VUTIL_OBJ = VUtils/AnnotationColoring.o\
             VUtils/LocalityRestoring.o\

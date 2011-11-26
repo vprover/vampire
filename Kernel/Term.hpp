@@ -206,12 +206,6 @@ public:
   class SpecialTermData
   {
     friend class Term;
-  public:
-    enum Type {
-      TERM_ITE,
-      LET_TERM_IN_TERM,
-      LET_FORMULA_IN_TERM,
-    };
   private:
     union {
       struct {
@@ -408,8 +402,8 @@ public:
 //  static Comparison lexicographicCompare(TermList t1, TermList t2);
 //  static Comparison lexicographicCompare(Term* t1, Term* t2);
 
-  /** Return argument order as stored in term.
-   * (Can also return UNKNOWN if it wasn't determined yet.) */
+  /** If number of distinct variables is computed, assign it to res and
+   * return true, otherwise return false. */
   bool askDistinctVars(unsigned& res) const
   {
     if(_args[0]._info.distinctVars==TERM_DIST_VAR_UNKNOWN) {
@@ -656,9 +650,10 @@ public:
 	  bool commutative, TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
-  static Literal* createEquality (bool polarity, TermList arg1, TermList arg2);
-  static Literal* createEquality (bool polarity, TermList arg1, TermList arg2, unsigned sort);
-  static Literal* createVariableEquality (bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
+  static Literal* createEquality(bool polarity, TermList arg1, TermList arg2);
+  static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
+  static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
+  static Literal* createSpecialTermVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
 
@@ -694,8 +689,8 @@ public:
     CALL("Literal::markTwoVarEquality");
     ASS(!shared());
     ASS(isEquality());
-    ASS(nthArgument(0)->isVar());
-    ASS(nthArgument(1)->isVar());
+    ASS(nthArgument(0)->isVar() || !nthArgument(0)->term()->shared());
+    ASS(nthArgument(1)->isVar() || !nthArgument(1)->term()->shared());
 
     _isTwoVarEquality = true;
   }

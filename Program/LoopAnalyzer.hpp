@@ -89,6 +89,10 @@ private:
   void generateValueFunctionRelationsOfVariables();
   void generateLoopConditionProperty();
   void generateIterationDefinition();
+
+  unsigned getIntFunction(string name, unsigned arity);
+  unsigned getIntConstant(string name) { return getIntFunction(name, 0); }
+
   /** the loop being analyzed */
   WhileDo* _loop;
   /** all variables updated by this loop */

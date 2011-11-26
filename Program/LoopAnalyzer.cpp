@@ -213,12 +213,12 @@ void LoopAnalyzer::analyzeVariables()
     // adding the symbol to the signature
     unsigned arity = vinfo->scalar ? 0 : 1;
     string name(v->name());
-    vinfo->signatureNumber = env.signature->addFunction(name,arity);
+    vinfo->signatureNumber = getIntFunction(name,arity);
     if (arity == 0) {
       vinfo->constant = Term::create(vinfo->signatureNumber,0,0);
     }
     if (vinfo->updated) {
-      vinfo->extraSignatureNumber = env.signature->addFunction(name,arity+1);
+      vinfo->extraSignatureNumber = getIntFunction(name,arity+1);
       // cout << "variable: "<<name <<" with: "<<vinfo->extraSignatureNumber<< " with arity: "<< arity+1<<"\n";
     }
     
@@ -312,7 +312,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
     {
       Variable* expVar=  static_cast<VariableExpression*>(exp)->variable();
       string expName=expVar->name() ;
-      TermList var(Term::createConstant(expName));
+      TermList var(Term::createConstant(getIntConstant(expName)));
       //cout << "expression "<< exp->toString()<< " over variable "<<expName <<" translated to Vampire term "<< var<<"\n";
       return var;
     }
@@ -322,7 +322,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
        //create term for array variable
        Expression*  expArray=  static_cast<ArrayApplicationExpression*>(exp)->array();
        string varName=expArray->toString();
-       unsigned arrayFct=env.signature->addFunction(varName,1);
+       unsigned arrayFct=getIntFunction(varName,1);
        //create term represenation for array arguments
        Expression*  expArrayArguments=  static_cast<ArrayApplicationExpression*>(exp)->argument();
        TermList varArg= expressionToTerm(expArrayArguments);
@@ -390,7 +390,7 @@ TermList LoopAnalyzer::expressionToTerm(Expression* exp)
 		     //create term for uninterpreted function
 		     Expression*  uiFct=  app->function();
 		     string uiFctName=uiFct->toString();
-		     unsigned uiFctNameTerm=env.signature->addFunction(uiFctName,1);
+		     unsigned uiFctNameTerm=getIntFunction(uiFctName,1);
 		     //create term representation for arguments e1
 		     Expression* e1 = app->getArgument(0);
 		     TermList e1Term= expressionToTerm(e1); //make recursive call on function arguments
@@ -514,7 +514,7 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
 		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 		   TermList argTerms = expressionToTerm(lhsArrayArguments);
 		   string arrayName=lhsArray->toString();
-		   unsigned arrayFct1=env.signature->addFunction(arrayName,1);
+		   unsigned arrayFct1=getIntFunction(arrayName,1);
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
@@ -555,8 +555,8 @@ Formula* LoopAnalyzer::letTranslationOfVar(VariableMap::Iterator& varit, Formula
       varit.next(w,winfo);
       if (winfo->counter) { // do this only for updated scalar variables
 	string warName=w->name();
-	TermList war(Term::createConstant(warName));
-	unsigned warFun = env.signature->addFunction(warName,1);
+	TermList war(Term::createConstant(getIntConstant(warName)));
+	unsigned warFun = getIntFunction(warName,1);
 	// term x0
 	TermList x0;
 	x0.makeVar(0);
@@ -588,8 +588,8 @@ Formula* LoopAnalyzer::letTranslationOfArray(Map<Variable*,bool>::Iterator &sit,
       bool array = (v->vtype()->kind() == Type::ARRAY);
       if (updated & array) {//it is an updated array
 	      string varName=v->name();
-	      unsigned arrayFct1=env.signature->addFunction(varName,1);
-	      unsigned arrayFct2=env.signature->addFunction(varName,2);
+	      unsigned arrayFct1=getIntFunction(varName,1);
+	      unsigned arrayFct2=getIntFunction(varName,2);
 	      // term x0
 	      TermList x0;
 	      x0.makeVar(0);
@@ -636,7 +636,7 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 		   TermList argTerms = expressionToTerm(lhsArrayArguments);
 		   string arrayName=lhsArray->toString();
-		   unsigned arrayFct1=env.signature->addFunction(arrayName,1);
+		   unsigned arrayFct1=getIntFunction(arrayName,1);
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
@@ -730,10 +730,10 @@ void LoopAnalyzer::generateLetExpressions()
 	 TermList x01(theory->fun1(Theory::INT_SUCCESSOR,x0));
 	 //build term representation for scalars and arrays
 	 if (scalar){
-	   TermList scalarVar(Term::createConstant(varName));
+	   TermList scalarVar(Term::createConstant(getIntConstant(varName)));
 	   var =scalarVar;
 	   //create Vampire terms for variable v:  v(X0+1)
-	   unsigned varFun = env.signature->addFunction(varName,1);
+	   unsigned varFun = getIntFunction(varName,1);
 	   // term v(x0)
 	   // TermList varX0(Term::create(varFun,1,&x0));
 	   //term v(x0+1)
@@ -743,8 +743,8 @@ void LoopAnalyzer::generateLetExpressions()
 	 if (array)
 	   {
 	     //create Vampire terms for array V: V(X1), V(X0+1,X1)
-	      unsigned varFun1 = env.signature->addFunction(varName,1);
-	      unsigned varFun2 = env.signature->addFunction(varName,2);
+	      unsigned varFun1 = getIntFunction(varName,1);
+	      unsigned varFun2 = getIntFunction(varName,2);
 	      // term x1
 	      TermList x1;
 	      x1.makeVar(1);
@@ -816,7 +816,7 @@ TermList LoopAnalyzer::arrayUpdateValue(Path::Iterator &sit, TermList exp, int p
 		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 		   TermList argTerms = expressionToTerm(lhsArrayArguments);
 		   string arrayName=lhsArray->toString();
-		   unsigned arrayFct1=env.signature->addFunction(arrayName,1);
+		   unsigned arrayFct1=getIntFunction(arrayName,1);
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
@@ -909,7 +909,7 @@ TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosE
 		   Expression*  lhsArrayArguments=  static_cast<ArrayApplicationExpression*>(lhs)->argument();
 		   TermList argTerms = expressionToTerm(lhsArrayArguments);
 		   string arrayName=lhsArray->toString();
-		   unsigned arrayFct1=env.signature->addFunction(arrayName,1);
+		   unsigned arrayFct1=getIntFunction(arrayName,1);
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
@@ -1182,7 +1182,7 @@ Formula* LoopAnalyzer::updPredicateStack(Stack<Formula*> &updStack)
 Formula* LoopAnalyzer::lastUpdateProperty(Literal* updPred, string array, TermList position, TermList updValue)
 {
    CALL("LoopAnalyzer::lastUpdateProperty");
-   unsigned arrayFct1=env.signature->addFunction(array,1);
+   unsigned arrayFct1=getIntFunction(array,1);
    TermList arrayX2(Term::create(arrayFct1,1,&position));
    Literal* lastUpdImplies = Literal::createEquality(true,arrayX2,updValue);
    Formula* lastUpd = new BinaryFormula(IMP,new AtomicFormula(updPred),new AtomicFormula(lastUpdImplies));
@@ -1197,10 +1197,10 @@ Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, string array, TermLis
 {
   CALL("LoopAnalyzer::stabilityProperty");
   //create ARRAY[POSITION]
-  unsigned arrayFinal=env.signature->addFunction(array,1);
+  unsigned arrayFinal=getIntFunction(array,1);
   TermList arrayFinalFct(Term::create(arrayFinal,1,&position));
   //create ARRAY[POSITION]
-  unsigned arrayIni = env.signature->addFunction(array + Int::toString(0),1);
+  unsigned arrayIni = getIntFunction(array + Int::toString(0),1);
   TermList arrayIniFct(Term::create(arrayIni,1,&position));
   //create formula ARRAY(POSITION) = ARRAY0(POSITION)
   Literal* stabilityImplication = Literal::createEquality(true,arrayFinalFct,arrayIniFct);
@@ -1303,7 +1303,7 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
 {
    CALL("LoopAnalyzer::generateValueFunctionRelationsOfVariables");
    //create loop counter n and position x2
-   TermList n(Term::createConstant("n")); 
+   TermList n(Term::createConstant(getIntConstant("n")));
    TermList x2;
    x2.makeVar(2);
    Theory* theory = Theory::instance();
@@ -1322,11 +1322,11 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
      if (array) 
        {
 	 //create final and initial array functions
-	 unsigned arrayFinal1=env.signature->addFunction(v->name(),1);
-	 unsigned arrayFinal2=env.signature->addFunction(v->name(),2);
+	 unsigned arrayFinal1=getIntFunction(v->name(),1);
+	 unsigned arrayFinal2=getIntFunction(v->name(),2);
 	 TermList arrayFinalFct1(Term::create(arrayFinal1,1,&x2));
 	 TermList arrayFinalFct2(Term::create2(arrayFinal2,n,x2));
-	 TermList arrayIni(Term::createConstant(v->name()+Int::toString(0)));
+	 TermList arrayIni(Term::createConstant(getIntConstant(v->name()+Int::toString(0))));
 	 TermList arrayIniFct1(Term::create(arrayFinal1,1,&zero));
 	 //create V(n,X2)=V(X2)
 	 Formula* finalValFctCorresp = new AtomicFormula(Literal::createEquality(true,arrayFinalFct2,arrayFinalFct1));
@@ -1339,13 +1339,14 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));	
        }
-       if (scalar) 
+     if (scalar)
        {
 	 //create final and initial scalar functions
-	 unsigned scalarFinal=env.signature->addFunction(v->name(),1);
+	 ASS(v->vtype()->kind() == Type::INT);
+	 unsigned scalarFinal=getIntFunction(v->name(),1);
 	 TermList scalarFinalFct(Term::create(scalarFinal,1,&n));
-	 TermList scalarFinalConst(Term::createConstant(v->name()));
-	 TermList scalarIni(Term::createConstant(v->name()+Int::toString(0)));
+	 TermList scalarFinalConst(Term::createConstant(getIntConstant(v->name())));
+	 TermList scalarIni(Term::createConstant(getIntConstant(v->name()+Int::toString(0))));
 	 TermList scalarIniFct(Term::create(scalarFinal,1,&zero));
 	 //create v(n)=v
 	 Formula* finalValFctCorresp = new AtomicFormula(Literal::createEquality(true,scalarFinalFct,scalarFinalConst));
@@ -1411,7 +1412,7 @@ void LoopAnalyzer::generateIterationDefinition()
   //0<= X0
   Formula* ineqXZero = new AtomicFormula(theory->pred2(Theory::INT_LESS_EQUAL,true,zero,x0));
   //X0<n
-  TermList n(Term::createConstant("n")); 
+  TermList n(Term::createConstant(getIntConstant("n")));
   Formula* ineqXn = new AtomicFormula(theory->pred2(Theory::INT_LESS,true,x0,n));
   //0<= X0 && X0<n
   Formula* iterDef =  new JunctionFormula(AND, ((new FormulaList(ineqXn)) -> cons(ineqXZero)));
@@ -1497,9 +1498,11 @@ void LoopAnalyzer::generateAxiomsForCounters()
  */
 void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int gcd)
 {
+  CALL("LoopAnalyzer::generateCounterAxiom");
+
   // value of the counter at position 0
-  TermList c(Term::createConstant(name + Int::toString(0)));
-  unsigned fun = env.signature->addFunction(name,1);
+  TermList c(Term::createConstant(getIntConstant(name + Int::toString(0))));
+  unsigned fun = getIntFunction(name,1);
   // term x0
   TermList x0;
   x0.makeVar(0);
@@ -1679,4 +1682,25 @@ Term* LoopAnalyzer::relativize(Expression* expr)
   case Expression::CONSTANT_FUNCTION:
     ASS(false);
   }
+}
+
+unsigned LoopAnalyzer::getIntFunction(string name, unsigned arity)
+{
+  bool added;
+  unsigned res = env.signature->addFunction(name, arity, added);
+  if(added) {
+    static DArray<unsigned> domSorts;
+    domSorts.init(arity, Sorts::SRT_INTEGER);
+    env.signature->getFunction(res)->setType(BaseType::makeType(arity, domSorts.array(), Sorts::SRT_INTEGER));
+  }
+#if VDEBUG
+  else {
+    Kernel::FunctionType* t = env.signature->getFunction(res)->fnType();
+    ASS_EQ(t->result(), Sorts::SRT_INTEGER);
+    for(unsigned i=0; i<arity; ++i) {
+      ASS_EQ(t->arg(i), Sorts::SRT_INTEGER);
+    }
+  }
+#endif
+  return res;
 }

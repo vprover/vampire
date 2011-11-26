@@ -19,6 +19,9 @@ public:
   static unsigned getResultSort(Term* t);
   static unsigned getArgSort(Term* t, unsigned argIndex);
 
+  static bool tryGetResultSort(Term* t, unsigned& result);
+  static bool tryGetResultSort(TermList t, unsigned& result);
+
   static unsigned getEqualityArgumentSort(const Literal* lit);
 
   static bool tryGetVariableSort(unsigned var, Formula* f, unsigned& res);

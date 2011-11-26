@@ -83,7 +83,7 @@ unsigned Sorts::addSort(const string& name, bool& added)
 // BaseType
 //
 
-BaseType* BaseType::makeType(unsigned arity, unsigned* domainSorts, unsigned rangeSort)
+BaseType* BaseType::makeType(unsigned arity, const unsigned* domainSorts, unsigned rangeSort)
 {
   CALL("BaseType::makeType");
 
@@ -95,7 +95,35 @@ BaseType* BaseType::makeType(unsigned arity, unsigned* domainSorts, unsigned ran
   }
 }
 
-BaseType::BaseType(unsigned arity, unsigned* sorts)
+BaseType* BaseType::makeType0(unsigned rangeSort)
+{
+  CALL("BaseType::makeType0");
+  return makeType(0, 0, rangeSort);
+}
+
+BaseType* BaseType::makeType1(unsigned arg1Sort, unsigned rangeSort)
+{
+  CALL("BaseType::makeType1");
+  unsigned args[] = { arg1Sort };
+  return makeType(1, args, rangeSort);
+}
+
+BaseType* BaseType::makeType2(unsigned arg1Sort, unsigned arg2Sort, unsigned rangeSort)
+{
+  CALL("BaseType::makeType2");
+  unsigned args[] = { arg1Sort, arg2Sort };
+  return makeType(2, args, rangeSort);
+}
+
+BaseType* BaseType::makeType3(unsigned arg1Sort, unsigned arg2Sort, unsigned arg3Sort, unsigned rangeSort)
+{
+  CALL("BaseType::makeType3");
+  unsigned args[] = { arg1Sort, arg2Sort, arg3Sort };
+  return makeType(3, args, rangeSort);
+}
+
+
+BaseType::BaseType(unsigned arity, const unsigned* sorts)
 {
   CALL("BaseType::BaseType");
 

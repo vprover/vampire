@@ -207,7 +207,7 @@ void Logging::doTagDeclarations()
   DECL("pp_inl_substep",
       DOC("inlining substeps"),
       PARENT("pp_inl_step",1));
-  DECL("pp_inl_deps",
+  DECL("pp_inl_dep",
       DOC("tracing dependencies between predicates"),
       PARENT("pp_inl",1));
 
