@@ -386,7 +386,9 @@ public:
   bool eprPreservingNaming() const { return _eprPreservingNaming; }
   void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
   bool eprPreservingSkolemization() const { return _eprPreservingSkolemization; }
+  void setEprPreservingSkolemization(bool newVal) { _eprPreservingSkolemization = newVal; }
   bool eprRestoringInlining() const { return _eprRestoringInlining; }
+  void setEprRestoringInlining(bool newVal) { _eprRestoringInlining = newVal; }
   InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining; }
   void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
   bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }

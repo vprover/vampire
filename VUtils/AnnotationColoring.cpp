@@ -4,8 +4,10 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Kernel/Unit.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
 #include "Shell/CommandLine.hpp"
@@ -65,9 +67,9 @@ int AnnotationColoring::perform(int argc, char** argv)
   Shell::CommandLine cl(argc,argv);
   cl.interpret(*env.options);
 
-  UnitList* units=UIHelper::getInputUnits();
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
-  UnitList::Iterator uit(units);
+  UnitList::Iterator uit(prb->units());
   while(uit.hasNext()) {
     Unit* u=uit.next();
 

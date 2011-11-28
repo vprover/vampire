@@ -101,8 +101,8 @@ private:
 
     bool numericArgsOnly;
 
-    InterpretedType minArg;
-    InterpretedType maxArg;
+    IntegerConstantType minArg;
+    IntegerConstantType maxArg;
   };
 
   void onFunctionApplication(TermList fn);

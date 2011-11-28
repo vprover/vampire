@@ -46,6 +46,11 @@ ASS_STATIC(sizeof(char)==1);
 # define  __attribute__(x)  /*NOTHING*/
 #endif
 
+//////////////////////////////////////////////////////
+// Function directives
+
+/** Marks function which does not return */
+#define NO_RETURN __attribute__((noreturn))
 
 //////////////////////////////////////////////////////
 // Prefetching

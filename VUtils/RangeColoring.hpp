@@ -41,12 +41,12 @@ class RangeColoring : public TermColoring
 {
 public:
   void addFunction(unsigned func);
-  void setMiddleValue(InterpretedType val);
+  void setMiddleValue(IntegerConstantType val);
 protected:
   virtual bool isColoredFunction(unsigned func);
   virtual Color getColor(TermList term);
 private:
-  InterpretedType _middle;
+  IntegerConstantType _middle;
   DHSet<unsigned> _funcs;
 };
 

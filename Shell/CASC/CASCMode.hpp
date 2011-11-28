@@ -25,7 +25,7 @@ using namespace std;
 
 class CASCMode {
 public:
-
+  virtual ~CASCMode() {}
   static bool perform(int argc,char* argv []);
 protected:
   /**

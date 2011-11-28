@@ -22,8 +22,6 @@ namespace Kernel {
  */
 class ArithmeticException : public ThrowableBase {};
 
-#if 1
-
 class IntegerConstantType
 {
 public:
@@ -62,13 +60,12 @@ private:
   InnerType _val;
 };
 
-#else
+inline
+std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
+  return out << val.toInt();
+}
 
-//these constant types are just a quick solution, there will be proper ones with
-//overloaded operators, overflow checking/arbitrary precision etc...
-typedef int IntegerConstantType;
 
-#endif
 
 /**
  * A class for representing rational numbers
@@ -121,6 +118,12 @@ private:
   InnerType _den;
 };
 
+inline
+std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
+  return out << val.toString();
+}
+
+
 class RealConstantType : public RationalConstantType
 {
 public:
@@ -146,6 +149,11 @@ private:
   static bool parseDouble(const string& num, RationalConstantType& res);
 
 };
+
+inline
+std::ostream& operator<< (ostream& out, const RealConstantType& val) {
+  return out << val.toString();
+}
 
 
 /**

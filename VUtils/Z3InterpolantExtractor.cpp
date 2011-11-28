@@ -149,10 +149,10 @@ bool ZIE::tryReadNumber(LExpr* expr, TermList& res)
 {
   CALL("ZIE::tryReadNumber");
 
-  InterpretedType num;
+  int num;
 
   if(expr->isAtom() && Int::stringToInt(expr->str, num)) {
-    unsigned func = env.signature->addInterpretedConstant(num);
+    unsigned func = env.signature->addIntegerConstant(IntegerConstantType(num));
     res = TermList(Term::create(func, 0, 0));
     return true;
   }
@@ -160,7 +160,7 @@ bool ZIE::tryReadNumber(LExpr* expr, TermList& res)
   LExpr* uminusArg;
   if(expr->get1Arg("-", uminusArg) || expr->get1Arg("~", uminusArg)) {
     if(uminusArg->isAtom() && Int::stringToInt(uminusArg->str, num) && Int::safeUnaryMinus(num, num)) {
-      unsigned func = env.signature->addInterpretedConstant(num);
+      unsigned func = env.signature->addIntegerConstant(IntegerConstantType(num));
       res = TermList(Term::create(func, 0, 0));
       return true;
     }
@@ -313,7 +313,7 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
     if(isProofVariable(name)) {
       return getProofObjectAssignment(name);
     }
-    LOGS(name);
+    LOG("z3ie",name);
     LISP_ERROR("invalid proof object (neither list nor variable)", expr);
   }
 
@@ -458,10 +458,9 @@ ZIE::UnaryFunctionInfo::UnaryFunctionInfo(TermList firstArg)
 {
   CALL("ZIE::UnaryFunctionInfo::UnaryFunctionInfo");
 
-  numericArgsOnly = theory->isInterpretedConstant(firstArg);
-
+  IntegerConstantType argVal;
+  numericArgsOnly = theory->tryInterpretConstant(firstArg, argVal);
   if(numericArgsOnly) {
-    InterpretedType argVal = theory->interpretConstant(firstArg);
     minArg = maxArg = argVal;
   }
 }
@@ -474,9 +473,8 @@ void ZIE::UnaryFunctionInfo::onNewArg(TermList firstArg)
     return;
   }
 
-  bool isNumeric = theory->isInterpretedConstant(firstArg);
-  if(isNumeric) {
-    InterpretedType argVal = theory->interpretConstant(firstArg);
+  IntegerConstantType argVal;
+  if(theory->tryInterpretConstant(firstArg, argVal)) {
     if(argVal>maxArg) { maxArg = argVal; }
     if(argVal<minArg) { minArg = argVal; }
   }
@@ -511,8 +509,8 @@ bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
 
   RangeColoring rcol;
 
-  InterpretedType globalMin;
-  InterpretedType globalMax;
+  IntegerConstantType globalMin;
+  IntegerConstantType globalMax;
 
   UnaryInfoMap::Iterator uiit(_unaryFnInfos);
   while(uiit.hasNext()) {
@@ -533,8 +531,8 @@ bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
 //    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
     rcol.addFunction(func);
   }
-  InterpretedType midpoint = (globalMax+globalMin)/2;
-  LOGV(midpoint);
+  IntegerConstantType midpoint = (globalMax+globalMin)/2;
+  LOGV("z3ie", midpoint);
   rcol.setMiddleValue(midpoint);
 
   if(!rcol.areUnitsLocal(_inputUnits)) {

@@ -133,7 +133,24 @@ ClauseIterator Problem::clauseIterator() const
  */
 Problem* Problem::copy(bool copyClauses)
 {
-  CALL("Problem::copy");
+  CALL("Problem::copy/1");
+
+  Problem* res = new Problem();
+  copyInto(*res, copyClauses);
+  return res;
+}
+
+/**
+ * Creates a copy of this problem object.
+ *
+ * We do not use the copy constructor for this purpose, because copying
+ * of problems is a rare operation and we want to avoid unnoticed bugs
+ * coming from passing the Problem object as an argument by value rather
+ * than by reference.
+ */
+void Problem::copyInto(Problem& tgt, bool copyClauses)
+{
+  CALL("Problem::copy/2");
 
   UnitList* newUnits;
   if(copyClauses) {
@@ -149,23 +166,21 @@ Problem* Problem::copy(bool copyClauses)
       Clause* newCl = Clause::fromClause(cl);
       UnitList::push(newCl, newUnits);
     }
-    newUnits = newUnits->reverse();
+    tgt.addUnits(newUnits->reverse());
   }else {
-    newUnits = units();
+    tgt.addUnits(units()->copy());
   }
-  Problem* res = new Problem(newUnits);
   if(hadIncompleteTransformation()) {
-    res->reportIncompleteTransformation();
+    tgt.reportIncompleteTransformation();
   }
   if(isPropertyUpToDate()) {
     //if we have an up-to-date property, we just copy it into the
     //copyed opbect so we save ourselves scanning for the property
     //in the child
-    res->_propertyValid = true;
-    res->_property = new Property(*_property);
-    res->readDetailsFromProperty();
+    tgt._propertyValid = true;
+    tgt._property = new Property(*_property);
+    tgt.readDetailsFromProperty();
   }
-  return res;
 }
 
 /**

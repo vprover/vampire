@@ -104,7 +104,7 @@ Problem* getPreprocessedProblem()
 {
   CALL("getInputClauses");
   
-  Problem* prb=UIHelper::getInputProblem();
+  Problem* prb=UIHelper::getInputProblem(*env.options);
 
   TimeCounter tc2(TC_PREPROCESSING);
 
@@ -131,7 +131,7 @@ void profileMode()
 {
   CALL("profileMode()");
 
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem());
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
   Property* property = prb->getProperty();
   TheoryFinder tf(prb->units(), property);
@@ -292,7 +292,7 @@ void axiomSelectionMode()
 
   env.options->setSineSelection(Options::SS_AXIOMS);
 
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem());
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
   if(prb->hasSpecialTermsOrLets()) {
     SpecialTermElimination().apply(*prb);
@@ -327,7 +327,7 @@ void groundingMode()
   CALL("groundingMode()");
 
   try {
-    ScopedPtr<Problem> prb(UIHelper::getInputProblem());
+    ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
     Preprocess prepro(*env.options);
     prepro.preprocess(*prb);

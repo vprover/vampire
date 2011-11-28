@@ -316,6 +316,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
 VUT_OBJ = $(patsubst %.cpp,%.o,UnitTests/*.cpp)
 
 VUTIL_OBJ = VUtils/AnnotationColoring.o\
+            VUtils/EPRRestoringScanner.o\
             VUtils/LocalityRestoring.o\
             VUtils/ProblemColoring.o\
             VUtils/RangeColoring.o\

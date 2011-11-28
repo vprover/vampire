@@ -19,6 +19,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "VUtils/AnnotationColoring.hpp"
+#include "VUtils/EPRRestoringScanner.hpp"
 #include "VUtils/ProblemColoring.hpp"
 #include "VUtils/Z3InterpolantExtractor.hpp"
 
@@ -66,6 +67,9 @@ int main(int argc, char* argv [])
     }
     else if(module=="zie") {
       resultValue=ZIE().perform(argc, argv);
+    }
+    else if(module=="epr_restoring_scanner") {
+      resultValue=EPRRestoringScanner().perform(argc, argv);
     }
     else {
       USER_ERROR("unknown vutil module name: "+module);

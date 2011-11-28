@@ -42,7 +42,7 @@ public:
 
 protected:
   bool runSlice(Options& opt);
-  void childRun(Options& opt) __attribute__((noreturn));
+  void childRun(Options& opt) NO_RETURN;
 
 private:
   ScopedPtr<Problem> _prb;

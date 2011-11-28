@@ -13,8 +13,10 @@
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/MapToLIFO.hpp"
+#include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
 #include "Shell/CommandLine.hpp"
@@ -67,13 +69,13 @@ int ProblemColoring::perform(int argc, char** argv)
   Shell::CommandLine cl(argc,argv);
   cl.interpret(*env.options);
 
-  UnitList* units=UIHelper::getInputUnits();
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
   DHMultiset<SymId> generality; //contains number of symbol occurences
 
 
   Stack<SymId> syms;
-  UnitList::Iterator uit(units);
+  UnitList::Iterator uit(prb->units());
   while(uit.hasNext()) {
     Unit* u=uit.next();
     syms.reset();
@@ -179,7 +181,7 @@ int ProblemColoring::perform(int argc, char** argv)
       env.out()<<"vampire("<<cstr<<"_formula)."<<endl;
     }
 
-    uit=UnitList::Iterator(units);
+    uit=UnitList::Iterator(prb->units());
     while(uit.hasNext()) {
       Unit* u=uit.next();
       if(getUnitColor(u)!=reqColor) {

@@ -73,7 +73,7 @@ Problem* getPreprocessedProblem()
 {
   CALL("getInputClauses");
 
-  Problem* prb=UIHelper::getInputProblem();
+  Problem* prb=UIHelper::getInputProblem(*env.options);
 
   TimeCounter tc2(TC_PREPROCESSING);
 

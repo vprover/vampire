@@ -88,7 +88,7 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, string prefix)
  *
  * No preprocessing is performed on the units.
  */
-Problem* UIHelper::getInputProblem()
+Problem* UIHelper::getInputProblem(const Options& opts)
 {
   CALL("UIHelper::getInputProblem");
 
@@ -96,7 +96,7 @@ Problem* UIHelper::getInputProblem()
   env.statistics->phase=Statistics::PARSING;
 
 
-  string inputFile = env.options->inputFile();
+  string inputFile = opts.inputFile();
 
   istream* input;
   if(inputFile=="") {
@@ -110,7 +110,7 @@ Problem* UIHelper::getInputProblem()
 
 
   UnitList* units;
-  switch (env.options->inputSyntax()) {
+  switch (opts.inputSyntax()) {
   case Options::IS_SIMPLIFY:
   {
     Shell::LispLexer lexer(*input);

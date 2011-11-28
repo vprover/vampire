@@ -17,7 +17,7 @@ using namespace Kernel;
 
 class UIHelper {
 public:
-  static Problem* getInputProblem();
+  static Problem* getInputProblem(const Options& opts);
   static void outputResult(ostream& out);
 
   /**

@@ -44,7 +44,7 @@ public:
   CLASS_NAME("Problem");
   USE_ALLOCATOR(Problem);
 
-  explicit Problem(UnitList* units);
+  explicit Problem(UnitList* units=0);
   explicit Problem(ClauseIterator clauses, bool copy);
   ~Problem();
 
@@ -56,6 +56,7 @@ public:
   ClauseIterator clauseIterator() const;
 
   Problem* copy(bool copyClauses=false);
+  void copyInto(Problem& tgt, bool copyClauses=false);
 
   bool hadIncompleteTransformation() const { return _hadIncompleteTransformation; }
   void reportIncompleteTransformation() { _hadIncompleteTransformation = true; }

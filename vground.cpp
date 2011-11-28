@@ -69,39 +69,19 @@ void groundingMode()
   CALL("groundingMode()");
 
   try {
-    Property property;
+    ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
-    string inputFile = env.options->inputFile();
-    istream* input;
-    if(inputFile=="") {
-      input=&cin;
-    } else {
-      input=new ifstream(inputFile.c_str());
-    }
-    UnitList* units = Parse::TPTP::parse(*input);
-    if(inputFile!="") {
-      delete static_cast<ifstream*>(input);
-      input=0;
-    }
+    Preprocess prepro(*env.options);
+    prepro.preprocess(*prb);
 
-    property.scan(units);
-    Preprocess prepro(property,*env.options);
-    prepro.preprocess(units);
+    ClauseIterator clauses=prb->clauseIterator();
 
-    Property newProperty;
-    newProperty.scan(units);
-
-    globUnitList=units;
-
-    ClauseIterator clauses=pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units)) );
-
-    if(newProperty.equalityAtoms()) {
-      ClauseList* eqAxioms=Grounding::getEqualityAxioms(newProperty.positiveEqualityAtoms()!=0);
-      clauses=pvi( getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms), clauses) );
+    if(prb->hasEquality()) {
+      ClauseList* eqAxioms=Grounding::getEqualityAxioms(prb->getProperty()->positiveEqualityAtoms()!=0);
+      clauses=pvi(getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms),clauses));
     }
 
     MapToLIFO<Clause*, SATClause*> insts;
-
     Grounding gnd;
     SATClause::NamingContext nameCtx;
 

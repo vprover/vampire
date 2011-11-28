@@ -208,7 +208,7 @@ void RangeColoring::addFunction(unsigned func)
   ALWAYS(_funcs.insert(func));
 }
 
-void RangeColoring::setMiddleValue(InterpretedType val)
+void RangeColoring::setMiddleValue(IntegerConstantType val)
 {
   CALL("RangeColoring::setMiddleValue");
 
@@ -232,7 +232,8 @@ Color RangeColoring::getColor(TermList term)
   TermList arg = *term.term()->nthArgument(0);
   ASS(theory->isInterpretedConstant(arg));
 
-  InterpretedType val = theory->interpretConstant(arg);
+  IntegerConstantType val;
+  ALWAYS(theory->tryInterpretConstant(arg, val));
 
 //  if(val==0 || val==_middle) { return COLOR_TRANSPARENT; }
   if(val==_middle) { return COLOR_TRANSPARENT; }
