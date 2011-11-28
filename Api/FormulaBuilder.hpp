@@ -376,7 +376,7 @@ class OutputOptions
 {
 public:
   /**
-   * If true, equality is output as $equality_sorted(sort_name, t1,t2) instead of t1=t2.
+   * If true, equality is output as $$equality_sorted(sort_name, t1,t2) instead of t1=t2.
    * The default value is false.
    */
   static bool sortedEquality() { return _sortedEquality; }

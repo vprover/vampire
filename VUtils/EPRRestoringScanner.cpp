@@ -55,6 +55,7 @@ int EPRRestoringScanner::perform(int argc, char** argv)
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(_opts));
   int origArity = prb->getProperty()->maxFunArity();
+  LOGV("vu_ers", origArity);
   if(origArity!=0) {
     reportResultAndExit(FORM_NON_EPR);
   }
@@ -65,6 +66,7 @@ int EPRRestoringScanner::perform(int argc, char** argv)
   prepro.preprocess(prbCl);
 
   int clArity = prbCl.getProperty()->maxFunArity();
+  LOGV("vu_ers", clArity);
   if(clArity==0) {
     reportResultAndExit(EASY_EPR);
   }
@@ -79,6 +81,7 @@ int EPRRestoringScanner::perform(int argc, char** argv)
   prepro2.preprocess(prbClRest);
 
   int restArity = prbClRest.getProperty()->maxFunArity();
+  LOGV("vu_ers", restArity);
   if(restArity==0) {
     reportResultAndExit(MADE_EPR_WITH_RESTORING);
   }

@@ -337,8 +337,10 @@ void Logging::doTagDeclarations()
   DECL("smt_interface",
       DOC("traces from interface to SMT solver"));
 
-  DECL("z3ie",
+  DECL("vu_z3ie",
       DOC("traces from z3 interpolant extractor"));
+  DECL("vu_ers",
+      DOC("traces from epr restoring scanner"));
 }
 
 

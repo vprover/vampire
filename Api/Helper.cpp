@@ -142,7 +142,7 @@ string DefaultHelperCore::toString(const Kernel::Term* t0) const
       if(OutputOptions::sortedEquality()) {
 	unsigned sort = SortHelper::getEqualityArgumentSort(l);
 	res=(l->isPositive() ? "" : "~");
-	res+="$equality_sorted(";
+	res+="$$equality_sorted(";
 	res+=env.sorts->sortName(sort)+",";
 	res+=toString(*l->nthArgument(0))+",";
 	res+=toString(*l->nthArgument(1))+")";

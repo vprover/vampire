@@ -70,6 +70,20 @@ private:
   size_t _size;
 };
 
+template<class Arr>
+ArrayishObjectIterator<Arr> getArrayishObjectIterator(Arr& arr, size_t size)
+{
+  CALL("getArrayishObjectIterator");
+  return ArrayishObjectIterator<Arr>(arr, size);
+}
+
+template<class Arr>
+ArrayishObjectIterator<Arr> getArrayishObjectIterator(Arr& arr)
+{
+  CALL("getArrayishObjectIterator");
+  return ArrayishObjectIterator<Arr>(arr);
+}
+
 /**
  * Iterator class for pointers
  *

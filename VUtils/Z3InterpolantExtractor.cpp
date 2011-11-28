@@ -532,7 +532,7 @@ bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
     rcol.addFunction(func);
   }
   IntegerConstantType midpoint = (globalMax+globalMin)/2;
-  LOGV("z3ie", midpoint);
+  LOGV("vu_z3ie", midpoint);
   rcol.setMiddleValue(midpoint);
 
   if(!rcol.areUnitsLocal(_inputUnits)) {
