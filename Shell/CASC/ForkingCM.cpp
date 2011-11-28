@@ -49,7 +49,7 @@ ForkingCM::ForkingCM()
 {
   CALL("ForkingCM::ForkingCM");
 
-  _prb = UIHelper::getInputProblem();
+  _prb = UIHelper::getInputProblem(*env.options);
 
   {
     TimeCounter tc(TC_PREPROCESSING);

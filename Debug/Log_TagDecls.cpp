@@ -191,6 +191,14 @@ void Logging::doTagDeclarations()
       DOC("trace introductions of non-constant skolem functions"),
       PARENT("pp_sk",0));
 
+  DECL("pp_pre_cl",
+      DOC("print-out the problem just before clausification"),
+      PARENT("pp",1));
+
+  DECL("pp_pre_ennf",
+      DOC("print-out the problem just before conversion to ennf"),
+      PARENT("pp",1));
+
   DECL("pp_hr",
       DOC("horn revealer"),
       PARENT("pp",1));

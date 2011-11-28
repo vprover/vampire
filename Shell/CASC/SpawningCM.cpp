@@ -39,7 +39,7 @@ SpawningCM::SpawningCM(string executable)
   _inputFile=env.options->inputFile();
 
   //we just need to extract property from the problem
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem());
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
   _property = Property::scan(prb->units());
 }
 

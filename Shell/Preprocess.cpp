@@ -359,6 +359,7 @@ void Preprocess::preprocess2(Problem& prb)
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
+    LOG_UNIT("pp_pre_ennf",u);
     if(u->isClause()) {
 	continue;
     }
@@ -522,6 +523,7 @@ void Preprocess::clausify(Problem& prb)
   Stack<Clause*> clauses(32);
   while (us.hasNext()) {
     Unit* u = us.next();
+    LOG_UNIT("pp_pre_cl", u);
     if (u->isClause()) {
       continue;
     }
