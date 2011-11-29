@@ -1,1 +1,10 @@
-Directory containing scripts for regression testing of Vampire executable
+
+Directory containing scripts for regression testing of Vampire
+
+There are two kinds of regressions:
+1) Scripts that do a check and exit with non-zero status if something went wrong
+  -- these scripts are in the "scripts" subdirectory
+2) Problems on which Vampire should be run
+  -- the default test here is that Vampire should not crash, but other tests
+     (as well as command line arguments for Vampire) may be specified in the
+     problem files using special tags

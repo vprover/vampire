@@ -60,8 +60,8 @@ void TabulationAlgorithm::init()
     cl->incRefCnt();
     cl->setSelected(cl->length());
     _theoryContainer.add(cl);
-    //LOG("A added theory"<<cl->toString());
     if(cl->inputType()==Unit::AXIOM) {
+      LOG("tab","TA added theory"<<(*cl));
     }
     else {
       if(cl->length()==1) {

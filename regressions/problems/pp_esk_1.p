@@ -7,7 +7,6 @@ fof(axiom_8,axiom,
 fof(axiom_2,axiom,
     p(X) <=> ? [Y] : q(Y) ).
 
-      
 fof(axiom_10,axiom,
         p(a) ).
       

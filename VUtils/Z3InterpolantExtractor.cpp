@@ -313,7 +313,7 @@ ZIE::ProofObject ZIE::readProofObject(LExpr* expr)
     if(isProofVariable(name)) {
       return getProofObjectAssignment(name);
     }
-    LOG("z3ie",name);
+    LOG("vu_z3ie",name);
     LISP_ERROR("invalid proof object (neither list nor variable)", expr);
   }
 

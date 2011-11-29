@@ -146,6 +146,13 @@ void Logging::doTagDeclarations()
   DECL("inf",
       DOC("inferences"));
 
+  DECL("inf_fwd",
+      DOC("forward demodulation"),
+      PARENT("inf",1));
+  DECL("inf_fwd_tlcheck",
+      DOC("top-level check in forward demodulation"),
+      PARENT("inf_fwd",1));
+
   DECL("inf_bsr",
       DOC("backward subsumption resolution"),
       PARENT("inf",1));

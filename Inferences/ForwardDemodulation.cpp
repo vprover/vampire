@@ -160,14 +160,12 @@ void ForwardDemodulation::perform(Clause* cl, ForwardSimplificationPerformer* si
 	    }
 	    if(isMax) {
 	      //RSTAT_CTR_INC("tlCheck prevented");
-	      //LOG("prevented fw dem: "<<(*eqLitS)<<" in "<<(*lit)<<" of "<<(*cl));
 	      //The demodulation is this case which doesn't preserve completeness:
 	      //s = t     s = t1 \/ C
 	      //---------------------
 	      //     t = t1 \/ C
 	      //where t > t1 and s = t > C
-//	      LOGV(*eqLitS);
-//	      LOGV(*cl);
+	      LOG("inf_fwd_tlcheck","prevented fw dem: "<<(*eqLitS)<<" in "<<(*lit)<<" of "<<(*cl));
 	      continue;
 	    }
 	  }

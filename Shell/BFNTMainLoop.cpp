@@ -104,14 +104,14 @@ void BFNTMainLoop::runChild(size_t modelSize)
 
   ScopedPtr<Problem> childPrb(_bfnt.createProblem(modelSize));
 
-#if LOGGING
-  LOG("Flattenned problem:");
-  UnitList::Iterator puit(childPrb->units());
-  while(puit.hasNext()) {
-    Unit* u = puit.next();
-    LOG(TPTP::toString(u));
-  }
-#endif
+  TRACE("bfnt_loop",
+      tout << "Flattenned problem:" << endl;
+      UnitList::Iterator puit(childPrb->units());
+      while(puit.hasNext()) {
+	Unit* u = puit.next();
+	TRACE_OUTPUT_UNIT("bfnt_loop", u);
+      }
+  );
 
   ScopedPtr<MainLoop> childMainLoop(MainLoop::createFromOptions(*childPrb, _childOpts));
   MainLoopResult innerRes = childMainLoop->run();
@@ -120,11 +120,10 @@ void BFNTMainLoop::runChild(size_t modelSize)
   LOG("bfnt_loop","Child termination reason: "
       << ((innerRes.terminationReason==Statistics::SATISFIABLE) ? "Satisfiable" :
 	  (innerRes.terminationReason==Statistics::REFUTATION) ? "Unsatisfiable" : "Unknown") );
-#if LOGGING
-  if(env.statistics->model!="") {
-    LOG("Model: "<<endl<<env.statistics->model);
-  }
-#endif
+  COND_TRACE("bfnt_loop", env.statistics->model!="",
+      tout << "Model: " << endl
+	   << env.statistics->model;
+  );
 
   if(env.options->mode()!=Options::MODE_SPIDER) {
     if(innerRes.terminationReason==Statistics::SATISFIABLE || innerRes.terminationReason==Statistics::TIME_LIMIT) {
