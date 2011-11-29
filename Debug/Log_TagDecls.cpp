@@ -199,6 +199,10 @@ void Logging::doTagDeclarations()
       DOC("print-out the problem just before conversion to ennf"),
       PARENT("pp",1));
 
+  DECL("pp_esk",
+      DOC("epr-restoring skolemization"),
+      PARENT("pp",1));
+
   DECL("pp_hr",
       DOC("horn revealer"),
       PARENT("pp",1));

@@ -36,6 +36,8 @@ private:
 public:
   static void enableTag(const char* tag, unsigned depthLimit=UINT_MAX);
   static void processTraceSpecString(std::string str);
+  static void pushTagStates();
+  static void popTagStates();
 
   static bool isTagEnabled(const char* tag);
   static void logUnit(const char* tag, Kernel::Unit* u);
@@ -46,8 +48,6 @@ public:
 
   static void doTagDeclarations();
 };
-
-}
 
 #define tout std::cerr
 #define TAG_ENABLED(tag) Debug::Logging::isTagEnabled(tag)
@@ -81,9 +81,18 @@ public:
  */
 #define LOG_TAUT(tag,...) TRACE(tag, Debug::Logging::logTaut(tag,__VA_ARGS__); )
 
-
 #define ENABLE_TAG(tag) Debug::Logging::enableTag(tag)
 #define ENABLE_TAG_LIMITED(tag,limit) Debug::Logging::enableTag(tag,limit)
+
+/**
+ * Add marker to the current state of tags, so it can be later restored
+ * by @c POP_TAG_STATES
+ */
+#define PUSH_TAG_STATES Debug::Logging::pushTagStates
+/**
+ * Restore state of tags that was earlier stored by PUSH_TAG_STATES
+ */
+#define POP_TAG_STATES Debug::Logging::popTagStates
 
 /**
  * Process string specifying trace settings
@@ -97,6 +106,45 @@ public:
  * traces is not limited
  */
 #define PROCESS_TRACE_SPEC_STRING(str) Debug::Logging::processTraceSpecString(str)
+
+
+struct ScopedTraceTag {
+  ScopedTraceTag(const char* tag) {
+    PUSH_TAG_STATES();
+    ENABLE_TAG(tag);
+  }
+  ~ScopedTraceTag() {
+    POP_TAG_STATES();
+  }
+};
+
+struct ConditionalScopedTraceTag {
+private:
+  bool _active;
+public:
+  ConditionalScopedTraceTag(bool active, const char* tag) : _active(active) {
+    if(_active) {
+      PUSH_TAG_STATES();
+      ENABLE_TAG(tag);
+    }
+  }
+  ~ConditionalScopedTraceTag() {
+    if(_active) {
+      POP_TAG_STATES();
+    }
+  }
+};
+
+#define AUX_SCOPED_TRACE_TAG_(SEED,Tag) Debug::ScopedTraceTag _sct_##SEED##_(Tag);
+#define AUX_SCOPED_TRACE_TAG(SEED,Tag) AUX_SCOPED_TRACE_TAG_(SEED,Tag)
+#define SCOPED_TRACE_TAG(Tag) AUX_SCOPED_TRACE_TAG(__LINE__,Tag)
+
+#define AUX_CONDITIONAL_SCOPED_TRACE_TAG_(SEED,Cond,Tag) Debug::ConditionalScopedTraceTag _csct_##SEED##_(Cond,Tag);
+#define AUX_CONDITIONAL_SCOPED_TRACE_TAG(SEED,Cond,Tag) AUX_CONDITIONAL_SCOPED_TRACE_TAG_(SEED,Cond,Tag)
+#define CONDITIONAL_SCOPED_TRACE_TAG(Cond,Tag) AUX_CONDITIONAL_SCOPED_TRACE_TAG(__LINE__,Cond,Tag)
+
+
+}
 
 
 #endif // __Debug_Log__
