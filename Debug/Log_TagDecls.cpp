@@ -209,6 +209,15 @@ void Logging::doTagDeclarations()
   DECL("pp_esk",
       DOC("epr-restoring skolemization"),
       PARENT("pp",1));
+  DECL("pp_esk_inst",
+      DOC("predicate instances detected during epr-restoring skolemization"),
+      PARENT("pp_esk",1));
+  DECL("pp_esk_contst",
+      DOC("skolem constants introduced by epr-restoring skolemization"),
+      PARENT("pp_esk",1));
+  DECL("pp_esk_quant",
+      DOC("quantifier processing in epr-restoring skolemization"),
+      PARENT("pp_esk",1));
 
   DECL("pp_hr",
       DOC("horn revealer"),

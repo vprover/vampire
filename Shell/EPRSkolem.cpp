@@ -197,6 +197,7 @@ public:
   {
     CALL("EPRSkolem::Applicator::transform");
     _extraQuantifiers = false;
+    _universalVars.reset();
 
     Formula* res = PolarityAwareFormulaTransformer::transform(f, _topPolarity);
     return Flattening::flatten(res);
@@ -223,6 +224,8 @@ private:
   DHMap<pair<Literal*,unsigned>,TermList> _skolemFns;
 
   DHMap<unsigned,unsigned> _varLhsIndexes;
+
+  DHSet<unsigned> _universalVars;
 
   bool _extraQuantifiers;
   EPRSkolem& _parent;
@@ -296,6 +299,12 @@ void EPRSkolem::Applicator::propagateInstancesToLiteral(Literal* lit, bool negat
       if(_varLhsIndexes.find(lVar, lhsIdx)) {
 	argInst = *inst->nthArgument(lhsIdx);
       }
+      else if(_universalVars.contains(lVar)) {
+	  ASS(!_skolemFns.find(make_pair(inst, lVar)));
+	  //this will disable EPR skolemization for the predicate header hdr
+	  _parent.processLiteralHeader(lit, hdr);
+	  return;
+      }
       else {
 	ASS_REP2(_skolemFns.find(make_pair(inst, lVar)), inst->toString(), lVar);
 	argInst = _skolemFns.get(make_pair(inst, lVar));
@@ -343,6 +352,7 @@ void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigne
 
   TermList skTerm = TermList(Term::createConstant(skFun));
 
+  LOG("pp_esk_contst","skolem const " << skTerm << " for X"<<var << " at instatiation " << (*inst));
   ALWAYS(_skolemFns.insert(make_pair(inst,var), skTerm)); //formula should be rectified and instances unique
 
   args.push(skTerm);
@@ -411,9 +421,16 @@ Formula* EPRSkolem::Applicator::applyQuantified(Formula* f)
   }
 
   bool toBeSkolemized = (f->connective()==EXISTS) == (polarity()==1);
+  LOG("pp_esk_quant","Quantified subformula " << (*f) << " to be skolemized: " << toBeSkolemized);
   if(!toBeSkolemized) {
     ScopedLet<bool> eqLet(_extraQuantifiers, true);
-    return PolarityAwareFormulaTransformer::applyQuantified(f);
+    _universalVars.loadFromIterator(Formula::VarList::Iterator(f->vars()));
+    Formula* res = PolarityAwareFormulaTransformer::applyQuantified(f);
+    //In some sense it would be right to remove the f->vars() added to _universalVars
+    //at this point (as we're leaving the scope of the quantifier), but we assume that
+    //the formulas are rectified, therefore variable names in quantifiers are unique
+    //and so it makes no harm to leave the variables in the set.
+    return res;
   }
 
   if(_extraQuantifiers) {
@@ -456,6 +473,7 @@ void EPRSkolem::processLiteralHeader(Literal* lit, unsigned header)
   if(!_inlinedHeaders.find(header)) {
     return;
   }
+  LOG("pp_esk_inst","added instance " << (*lit) << " as " <<((header&1) ? "positive" : "negative"));
   _insts.pushToKey(header, lit);
   if(!lit->ground()) {
     _inlinedHeaders.remove(header);

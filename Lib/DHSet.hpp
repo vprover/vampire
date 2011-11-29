@@ -121,6 +121,20 @@ public:
     }
   }
 
+  /**
+   * Remove all elements of the iterator @b it
+   *
+   * The iterator elements must be present in the set
+   */
+  template<class It>
+  void removeIteratorElements(It it) {
+    CALL("DHSet::removeIteratorElements");
+
+    while(it.hasNext()) {
+      ALWAYS(remove(it.next()));
+    }
+  }
+
   VirtualIterator<Val> iterator() const
   {
     return _map.domain();
