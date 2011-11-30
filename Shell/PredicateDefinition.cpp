@@ -55,7 +55,7 @@ struct PredicateDefinition::PredData
   FormulaUnit* defUnit;
 
   PredData()
-  : pocc(0), nocc(0), docc(0), enqueuedForDefEl(false),
+  : builtIn(false), pocc(0), nocc(0), docc(0), enqueuedForDefEl(false),
   enqueuedForReplacement(false), defUnit(0) {}
 
   void setDefUnit(FormulaUnit* u)
@@ -102,9 +102,6 @@ struct PredicateDefinition::PredData
       pdObj->_eliminable.push(pred);
       enqueuedForDefEl=true;
       LOG("pp_updr","pred marked for removing unused predicate definition: " << env.signature->predicateName(pred));
-      if(pdObj->_trace) {
-        cerr << "PD: pred marked for removing unused predicate definition: " << env.signature->predicateName(pred) << endl;
-      }
     } else if(!enqueuedForReplacement && isPure()) {
       pdObj->_pureToReplace.push(pred);
       enqueuedForReplacement=true;
@@ -188,7 +185,7 @@ FormulaUnit* PredicateDefinition::getReplacement(FormulaUnit* u, ReplMap& replac
   CALL("PredicateDefinition::getReplacement(FormulaUnit*,ReplMap&)");
 
   Unit* res0 = getReplacement(static_cast<Unit*>(u), replacements);
-  ASS(!res0 || !res0->isClause());
+  ASS(!res0 || !res0->isClause()); //we never transform FormulaUnit into Clause
   return static_cast<FormulaUnit*>(res0);
 }
 
@@ -289,6 +286,14 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
     scan(scanIterator.next());
   }
 
+  TRACE("pp_updr_counts",
+      for(unsigned i=0; i<_predCnt; ++i) {
+	if(!_preds[i].pocc && !_preds[i].nocc  && !_preds[i].docc ) { continue; }
+	tout << "pred: " << env.signature->predicateName(i)
+	    << " +(" << _preds[i].pocc << ") -(" << _preds[i].nocc << ") 0(" << _preds[i].docc << ")" << endl;
+      }
+  );
+
   for(int pred=1; pred<_predCnt; pred++) {
     _preds[pred].check(this);
   }
@@ -303,6 +308,13 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
       replacePurePred(pred, replacements);
     }
   }
+  TRACE("pp_updr_counts",
+      for(unsigned i=0; i<_predCnt; ++i) {
+	if(!_preds[i].pocc && !_preds[i].nocc  && !_preds[i].docc ) { continue; }
+	tout << "pred: " << env.signature->predicateName(i)
+	    << " +(" << _preds[i].pocc << ") -(" << _preds[i].nocc << ") 0(" << _preds[i].docc << ")" << endl;
+      }
+  );
 }
 
 void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(Problem& prb)
@@ -325,14 +337,10 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& un
 
   UnitList::DelIterator replaceIterator(units);
   while(replaceIterator.hasNext()) {
-    Unit* u=replaceIterator.next();
-    Unit* v;
-    if(!replacements.find(u,v)) {
+    Unit* u = replaceIterator.next();
+    Unit* v = getReplacement(u, replacements);
+    if(u==v) {
       continue;
-    }
-    Unit* tgt=v;
-    while(replacements.find(v,tgt)) {
-      v=tgt;
     }
     if(!v || ( !v->isClause() && static_cast<FormulaUnit*>(v)->formula()->connective()==TRUE ) ) {
       replaceIterator.del();

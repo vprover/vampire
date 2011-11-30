@@ -245,6 +245,9 @@ void Logging::doTagDeclarations()
   DECL("pp_updr",
       DOC("unused predicate definition removal and pure predicate removal"),
       PARENT("pp",1));
+  DECL("pp_updr_counts",
+      DOC("predicate counts in updr"),
+      PARENT("pp_updr",1));
 
   DECL("pp_tpr",
       DOC("trivial predicate remover"),
