@@ -32,7 +32,8 @@ function get_unique_tag_value()
                 echo "Error in $PRB: Only one $TAG tag alowed"
                 exit 2
         fi
-        TGT=`grep "$PATTERN" $PRB | sed "s/$PATTERN/\1/"`
+        local VAL="`grep \"$PATTERN\" $PRB | sed \"s/$PATTERN/\1/\"`"
+        eval $TGT="\"$VAL\""
 }
 
 VEXEC=$1
@@ -49,6 +50,7 @@ if [ "$STATUS" -gt 1 ]; then
         cat $OUTF
         echo
         echo "Vampire exitted with error status $STATUS on $PRB"
+        rm $OUTF 
         exit 1
 fi
 
@@ -56,23 +58,27 @@ get_unique_tag_value res RES
 case "$RES" in
 "") ;;
 "sat")
-        if [ ! grep "Satisfiable!" $OUTF ]; then
+        if ! grep -q "Satisfiable!" $OUTF; then
                 cat $OUTF
                 echo
                 echo "Vampire did not show satisfiability on $PRB"
+                rm $OUTF 
                 exit 1
         fi
         ;;
 "unsat")
-        if [ ! grep "Refutation found. Thanks to Tanya!" $OUTF ]; then
+        if ! grep -q "Refutation found. Thanks to Tanya!" $OUTF; then
                 cat $OUTF
                 echo
                 echo "Vampire did not prove unsatisfiability on $PRB"
+                rm $OUTF 
                 exit 1
         fi
         ;;
 *)
         echo "Error in $PRB: Unrecognized res tag value: $RES"
+        exit 2
+        rm $OUTF 
         ;;
 esac
  

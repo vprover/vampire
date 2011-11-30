@@ -53,7 +53,8 @@ private:
   void scan(FormulaUnit* u);
   void count (Formula* f,int polarity,int add, Unit* unit);
   void count (FormulaUnit* f,int add) { count(f->formula(), 1, add, f); }
-  void count (Clause* f,int add);
+  void count (Clause* cl,int add);
+  void count (Unit* u,int add);
   bool tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* unit);
 
   FormulaUnit* replacePurePredicates(FormulaUnit* u);

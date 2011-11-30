@@ -259,17 +259,8 @@ void PredicateDefinition::collectReplacements(UnitList* units, DHMap<Unit*, Unit
 	  cout<<"PP led to clause removal"<<endl;
 	}
 #endif
-	if(u->isClause()) {
-	  if(v!=0) {
-	    ASS(v->isClause())
-	    count(static_cast<Clause*>(v), 1);
-	  }
-	  count(static_cast<Clause*>(u), -1);
-	}
-	else {
-	  count(static_cast<FormulaUnit*>(v), 1);
-	  count(static_cast<FormulaUnit*>(u), -1);
-	}
+	count(v,1);
+	count(u,-1);
 	ALWAYS(replacements.insert(u,v));
       }
 
@@ -659,9 +650,23 @@ void PredicateDefinition::scan(FormulaUnit* unit)
   }
 }
 
+void PredicateDefinition::count (Unit* u,int add)
+{
+  CALL("PredicateDefinition::count(Unit*,int)");
+  if(!u) {
+    return;
+  }
+  if(u->isClause()) {
+    count(static_cast<Clause*>(u), add);
+  }
+  else {
+    count(static_cast<FormulaUnit*>(u), add);
+  }
+}
 
 void PredicateDefinition::count (Clause* cl, int add)
 {
+  CALL("PredicateDefinition::count(Clause*,int)");
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++) {
     Literal* l=(*cl)[i];
