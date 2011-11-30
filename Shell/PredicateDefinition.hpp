@@ -32,10 +32,12 @@ using namespace Kernel;
 class PredicateDefinition
 {
 public:
+  typedef DHMap<Unit*, Unit*> ReplMap;
+
   PredicateDefinition(bool trace=false);
   ~PredicateDefinition();
 
-  void collectReplacements(UnitList* units, DHMap<Unit*, Unit*>& unitReplacements);
+  void collectReplacements(UnitList* units, ReplMap& unitReplacements);
 
   void removeUnusedDefinitionsAndPurePredicates(Problem& prb);
   void removeUnusedDefinitionsAndPurePredicates(UnitList*& units);
@@ -62,7 +64,13 @@ private:
   Clause* replacePurePredicates(Clause* u);
   Unit* replacePurePredicates(Unit* u);
 
-  void makeImplFromDef(unsigned pred, bool forward);
+  FormulaUnit* makeImplFromDef(FormulaUnit* def, unsigned pred, bool forward);
+
+  Unit* getReplacement(Unit* u, ReplMap& replacements);
+  FormulaUnit* getReplacement(FormulaUnit* u, ReplMap& replacements);
+
+  void eliminatePredicateDefinition(unsigned pred, ReplMap& replacements);
+  void replacePurePred(unsigned pred, ReplMap& replacements);
 
   bool _trace;
 

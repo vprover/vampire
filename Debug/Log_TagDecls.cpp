@@ -242,6 +242,10 @@ void Logging::doTagDeclarations()
       DOC("tracing dependencies between predicates"),
       PARENT("pp_inl",1));
 
+  DECL("pp_updr",
+      DOC("unused predicate definition removal and pure predicate removal"),
+      PARENT("pp",1));
+
   DECL("pp_tpr",
       DOC("trivial predicate remover"),
       PARENT("pp",1));

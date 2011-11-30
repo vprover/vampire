@@ -53,16 +53,14 @@ struct PredicateDefinition::PredData
   bool enqueuedForReplacement;
 
   FormulaUnit* defUnit;
-  FormulaUnit* newDefUnit;
 
   PredData()
   : pocc(0), nocc(0), docc(0), enqueuedForDefEl(false),
-  enqueuedForReplacement(false), defUnit(0), newDefUnit(0) {}
+  enqueuedForReplacement(false), defUnit(0) {}
 
   void setDefUnit(FormulaUnit* u)
   {
     defUnit=u;
-    newDefUnit=u;
   }
 
   void add(int polarity, int add, PredicateDefinition* pdObj)
@@ -103,27 +101,19 @@ struct PredicateDefinition::PredData
       ASS(!enqueuedForReplacement);
       pdObj->_eliminable.push(pred);
       enqueuedForDefEl=true;
-#if REPORT_PRED_DEF_SIMPL
-      cout<<"DE: "<<env.signature->predicateName(pred)<<endl;
-#endif
+      LOG("pp_updr","pred marked for removing unused predicate definition: " << env.signature->predicateName(pred));
       if(pdObj->_trace) {
         cerr << "PD: pred marked for removing unused predicate definition: " << env.signature->predicateName(pred) << endl;
       }
     } else if(!enqueuedForReplacement && isPure()) {
       pdObj->_pureToReplace.push(pred);
       enqueuedForReplacement=true;
-#if REPORT_PRED_DEF_SIMPL
-      cout<<"PP: "<<env.signature->predicateName(pred)<<((nocc==0)?" +":" -")<<endl;
-#endif
-      if(pdObj->_trace) {
-        cerr << "PD: pred marked for removing as pure: " << env.signature->predicateName(pred) << endl;
-      }
+      LOG("pp_updr","pred " << env.signature->predicateName(pred) << " to be replaced by " << ((nocc==0) ? "$false" : "$true"));
     }
   }
 
   bool isEliminable()
   {
-    ASS_EQ(defUnit,newDefUnit);
     return defUnit && docc==1 && ( pocc==0 || nocc==0 );
   }
   bool isPure()
@@ -174,22 +164,125 @@ PredicateDefinition::~PredicateDefinition()
 void PredicateDefinition::addBuiltInPredicate(unsigned pred)
 {
   CALL("PredicateDefinition::addBuiltInPredicate");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_updr");
   ASS_L((int)pred,_predCnt);
 
   _preds[pred].builtIn = true;
 
-  if(_trace) {
-    cerr << "PD: pred marked as built-in: " << env.signature->predicateName(pred) << endl;
+  LOG("pp_updr","pred marked as built-in: " << env.signature->predicateName(pred));
+}
+
+Unit* PredicateDefinition::getReplacement(Unit* u, ReplMap& replacements)
+{
+  CALL("PredicateDefinition::getReplacement(Unit*,ReplMap&)");
+
+  Unit* tgt;
+  while(replacements.find(u,tgt)) {
+    u=tgt;
   }
+  return u;
+}
+
+FormulaUnit* PredicateDefinition::getReplacement(FormulaUnit* u, ReplMap& replacements)
+{
+  CALL("PredicateDefinition::getReplacement(FormulaUnit*,ReplMap&)");
+
+  Unit* res0 = getReplacement(static_cast<Unit*>(u), replacements);
+  ASS(!res0 || !res0->isClause());
+  return static_cast<FormulaUnit*>(res0);
+}
+
+
+void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& replacements)
+{
+  CALL("PredicateDefinition::eliminatePredicateDefinition");
+
+  PredData& pd=_preds[pred];
+  ASS(pd.defUnit);
+  FormulaUnit* def0 = pd.defUnit;
+  FormulaUnit* def = getReplacement(def0, replacements);
+  FormulaUnit* repl;
+
+  pd.defUnit = 0; //we're eliminating the definition
+
+  ASS(pd.pocc==0 || pd.nocc==0);
+  if(pd.pocc==0 && pd.nocc==0) {
+    //pred does not occur anywhere else, hence can be deleted
+    repl = 0;
+    LOG("pp_updr","definition " << (*def) << " removed");
+  }
+  else {
+    //otherwise it occurs either only positively or only negatively,
+    //so we can make an equivalence into an implication
+    bool fwd = pd.nocc==0;
+    ASS_EQ(fwd, pd.pocc!=0);
+
+    repl = makeImplFromDef(def, pred, true);
+
+    if(!repl) {
+      //the definition formula was simplified by other transforation to the
+      //point it is no longer definition that can be eliminated
+      LOG("pp_updr","Formula " << (*def) << " is no longer in the shape of definition of "
+	  << env.signature->predicateName(pred) << ". The original definition was " << (*def0) << ".");
+      return;
+    }
+
+    LOG("pp_updr","definition " << (*def) << " replaced by " << (*repl));
+  }
+  if(repl) {
+    count(repl, 1);
+  }
+  count(def, -1);
+  ALWAYS(replacements.insert(def, repl));
+
+  env.statistics->unusedPredicateDefinitions++;
+}
+
+void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
+{
+  CALL("PredicateDefinition::replacePurePred");
+
+  PredData& pd=_preds[pred];
+  ASS(pd.pocc==0 || pd.nocc==0);
+
+  _purePreds.insert(pred, pd.nocc==0);
+  if(_processedPrb) {
+    _processedPrb->addTrivialPredicate(pred, pd.nocc==0);
+  }
+  Set<Unit*>::Iterator uit(pd.containingUnits);
+  while(uit.hasNext()) {
+    Unit* u=uit.next();
+    if(replacements.find(u)) {
+      //The unit has already been replaced.
+      continue;
+    }
+    Unit* v=replacePurePredicates(u);
+
+    ASS_NEQ(u,v);
+    TRACE("pp_updr",
+	if(v) {
+	  tout << "unit " << (*u) << " replaced by " << (*v) << endl;
+	}
+	else {
+	  tout << "unit " << (*u) << " removed" << endl;
+	}
+    );
+    count(v,1);
+    count(u,-1);
+    ALWAYS(replacements.insert(u,v));
+  }
+
+  env.statistics->purePredicates++;
 }
 
 /**
  *
  * @pre Formulas must be rectified and flattened.
  */
-void PredicateDefinition::collectReplacements(UnitList* units, DHMap<Unit*, Unit*>& replacements)
+void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacements)
 {
   CALL("PredicateDefinition::collectReplacements");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_updr");
 
   UnitList::Iterator scanIterator(units);
   while(scanIterator.hasNext()) {
@@ -203,68 +296,11 @@ void PredicateDefinition::collectReplacements(UnitList* units, DHMap<Unit*, Unit
   while(_eliminable.isNonEmpty() || _pureToReplace.isNonEmpty()) {
     while(_eliminable.isNonEmpty()) {
       int pred=_eliminable.pop();
-      PredData& pd=_preds[pred];
-      if(pd.pocc==0 && pd.nocc==0) {
-	//pred does not occur anywhere else, hence can be deleted
-	pd.newDefUnit=0;
-      }
-      else if(pd.pocc==0) {
-	//elsewhere it occurs only negatively, so we can make
-	//an equivalence into an implication
-	makeImplFromDef(pred, false);
-      }
-      else {
-	ASS_EQ(pd.nocc,0);
-	//elsewhere it occurs only positively, so we can make
-	//an equivalence into an implication
-	makeImplFromDef(pred, true);
-      }
-      if(pd.newDefUnit) {
-	count(pd.newDefUnit, 1);
-      }
-      count(pd.defUnit, -1);
-      ALWAYS(replacements.insert(pd.defUnit, pd.newDefUnit));
-
-      env.statistics->unusedPredicateDefinitions++;
-#if REPORT_PRED_DEF_SIMPL
-      cout<<"DE from: "<<pd.defUnit->toString()<<endl;
-      cout<<"DE to: "<<(pd.newDefUnit?pd.newDefUnit->toString():"<deleted>")<<endl;
-#endif
+      eliminatePredicateDefinition(pred, replacements);
     }
     while(_pureToReplace.isNonEmpty()) {
       int pred=_pureToReplace.pop();
-      PredData& pd=_preds[pred];
-      ASS(pd.pocc==0 || pd.nocc==0);
-
-      _purePreds.insert(pred, pd.nocc==0);
-      if(_processedPrb) {
-	_processedPrb->addTrivialPredicate(pred, pd.nocc==0);
-      }
-      Set<Unit*>::Iterator uit(pd.containingUnits);
-      while(uit.hasNext()) {
-	Unit* u=uit.next();
-	if(replacements.find(u)) {
-	  //The unit has already been replaced.
-	  continue;
-	}
-	Unit* v=replacePurePredicates(u);
-
-	ASS_NEQ(u,v);
-#if REPORT_PRED_DEF_SIMPL
-	cout<<"PP from: "<<u->toString()<<endl;
-	if(v!=0) {
-	  cout<<"PP to: "<<v->toString()<<endl;
-	}
-	else {
-	  cout<<"PP led to clause removal"<<endl;
-	}
-#endif
-	count(v,1);
-	count(u,-1);
-	ALWAYS(replacements.insert(u,v));
-      }
-
-      env.statistics->purePredicates++;
+      replacePurePred(pred, replacements);
     }
   }
 }
@@ -280,6 +316,7 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(Problem& prb)
 void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& units)
 {
   CALL("PredicateDefinition::removeUnusedDefinitionsAndPurePredicates");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_updr");
 
   static DHMap<Unit*, Unit*> replacements;
   replacements.reset();
@@ -565,11 +602,13 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
   ASSERTION_VIOLATION;
 }
 
-
-void PredicateDefinition::makeImplFromDef(unsigned pred, bool forward)
+/**
+ * Made definition in the form of equivalence into an implication
+ * If the input formula is not a definition of predicate pred, return 0.
+ */
+FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pred, bool forward)
 {
-  PredData& pd=_preds[pred];
-  Formula* f0=pd.defUnit->formula();
+  Formula* f0=def->formula();
   Formula* f;
 
   bool isQuantified=f0->connective()==FORALL;
@@ -580,16 +619,20 @@ void PredicateDefinition::makeImplFromDef(unsigned pred, bool forward)
   }
   Formula* lhs;
   Formula* rhs;
-  ASS_EQ(f->connective(), IFF);
+  if(f->connective()!=IFF) {
+    return 0;
+  }
   if(f->left()->connective()==LITERAL && f->left()->literal()->functor()==pred) {
     lhs=f->left();
     rhs=f->right();
   } else {
-    ASS_EQ(f->right()->connective(), LITERAL);
-    ASS_EQ(f->right()->literal()->functor(), pred);
     lhs=f->right();
     rhs=f->left();
   }
+  if(lhs->connective()!=LITERAL || lhs->literal()->functor()!=pred) {
+    return 0;
+  }
+
   bool swapArgs=lhs->literal()->isPositive()^forward;
 
   Formula* resf;
@@ -605,9 +648,9 @@ void PredicateDefinition::makeImplFromDef(unsigned pred, bool forward)
   } else {
     resf0=resf;
   }
-  pd.newDefUnit=new FormulaUnit(resf0,
-	  new Inference1(Inference::UNUSED_PREDICATE_DEFINITION_REMOVAL, pd.defUnit),
-	  pd.defUnit->inputType());
+  return new FormulaUnit(resf0,
+	  new Inference1(Inference::UNUSED_PREDICATE_DEFINITION_REMOVAL, def),
+	  def->inputType());
 }
 
 void PredicateDefinition::scan(Unit* u)
