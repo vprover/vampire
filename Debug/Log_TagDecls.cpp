@@ -229,6 +229,9 @@ void Logging::doTagDeclarations()
   DECL("pp_inl_def",
       DOC("definition added"),
       PARENT("pp_inl",0));
+  DECL("pp_inl_scan",
+      DOC("scanning for definitions"),
+      PARENT("pp_inl",0));
   DECL("pp_inl_step",
       DOC("inlining step"),
       PARENT("pp_inl",0));

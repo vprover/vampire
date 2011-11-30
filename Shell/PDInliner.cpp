@@ -97,57 +97,6 @@ struct PDInliner::PDef
     return fu;
   }
 
-  void traceUnitApplyBegin(Unit* unit)
-  {
-    CALL("PDInliner::PDef::traceUnitApply");
-
-    if(!_parent->_trace) {
-      return;
-    }
-    if(_defUnit) {
-      cerr<<"Inlining "<<_defUnit->toString()<<" into "<<unit->toString()<<endl;
-    }
-    else {
-      cerr<<"Inlining definition of "<<env.signature->predicateName(_pred)<<" into "<<unit->toString()<<endl;
-    }
-  }
-
-  void traceUnitApplyEnd(Unit* result)
-  {
-    CALL("PDInliner::PDef::traceUnitEnd");
-
-    if(!_parent->_trace) {
-      return;
-    }
-    cerr<<" - finished with result "<<result->toString()<<endl;
-  }
-
-  /**
-   * If tgtLit, tgtForm are zero and constantTrue is false, it means that the result was a constant false.
-   */
-  void traceLiteralApply(Literal* orig, Literal* tgtLit, Formula* tgtForm, bool constantTrue)
-  {
-    CALL("PDInliner::PDef::traceUnitEnd");
-
-    if(!_parent->_trace) {
-      return;
-    }
-    cerr<<" - replacing "<<orig->toString()<<" by ";
-    if(tgtLit) {
-      cerr<<tgtLit->toString();
-    }
-    else if(tgtForm) {
-      cerr<<tgtForm->toString();
-    }
-    else if(constantTrue) {
-      cerr<<"$true";
-    }
-    else {
-      cerr<<"$false";
-    }
-    cerr<<endl;
-  }
-
   /**
    * Perform inlining and return the result. If the resulting clause is a tautology,
    * return zero.
@@ -157,7 +106,6 @@ struct PDInliner::PDef
     CALL("PDInliner::PDef::apply(Clause*)");
 
     LOG("pp_inl_substep","Inlining "<<toString()<<" into "<<(*cl));
-    traceUnitApplyBegin(cl);
 
     static LiteralStack lits;
     lits.reset();
@@ -211,7 +159,7 @@ struct PDInliner::PDef
     }
     if(forms.isEmpty()) {
       Clause* res = Clause::fromIterator(LiteralStack::Iterator(lits), inp, inf);
-      traceUnitApplyEnd(res);
+      LOG("pp_inl_step","Inlining "<<toString()<<" into "<<(*cl)<<" gave "<<(*res));
       return res;
     }
     FormulaUnit* res;
@@ -231,7 +179,6 @@ struct PDInliner::PDef
     }
     res = fixFormula(res);
 
-    traceUnitApplyEnd(res);
     LOG("pp_inl_step","Inlining "<<toString()<<" into "<<(*cl)<<" gave "<<(*res));
 
     return res;
@@ -242,7 +189,6 @@ struct PDInliner::PDef
     CALL("PDInliner::PDef::apply(FormulaUnit*)");
 
     LOG("pp_inl_substep","Inlining "<<toString()<<" into "<<(*unit));
-    traceUnitApplyBegin(unit);
 
     Formula* form = apply(1,unit->formula());
     if(form==unit->formula()) {
@@ -265,7 +211,6 @@ struct PDInliner::PDef
     FormulaUnit* res = new FormulaUnit(form, inf, inp);
     res = fixFormula(res);
 
-    traceUnitApplyEnd(res);
     LOG("pp_inl_step","Inlining "<<toString()<<" into "<<(*unit)<<" gave "<<(*res));
 
     return res;
@@ -309,7 +254,6 @@ struct PDInliner::PDef
     if(l->isPositive() != _lhs->isPositive()) {
       res = Literal::complementaryLiteral(res);
     }
-    traceLiteralApply(l, res, 0, false);
     LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(*res));
     return res;
   }
@@ -324,7 +268,6 @@ struct PDInliner::PDef
 
     bool negate = l->isPositive()!=_lhs->isPositive();
     bool res = negate ^ (getBody(polarity,l)->connective()==TRUE);
-    traceLiteralApply(l, 0, 0, res);
     LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(res ? "$true" : "$false"));
     return res;
   }
@@ -345,7 +288,6 @@ struct PDInliner::PDef
     if(l->isPositive() != _lhs->isPositive()) {
       res = new NegatedFormula(res);
     }
-    traceLiteralApply(l, 0, res, false);
     LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(*res));
     return res;
   }
@@ -459,8 +401,7 @@ struct PDInliner::PDef
     _negBody = negBody;
     _dblBody = dblBody;
 
-    LOG("pp_inl_def","Asymetric definition: "<<lhs->toString()<<" --> (+) "<<posBody->toString()
-	<<", (-) "<<negBody->toString()<<", (0) "<<dblBody->toString());
+    LOG("pp_inl_def","Asymetric definition: " << toString());
 
     _predicateEquivalence = false;
   }
@@ -696,6 +637,7 @@ void PDInliner::apply(Problem& prb)
 bool PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
 {
   CALL("PDInliner::apply");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   bool modified = scanAndRemoveDefinitions(units, inlineOnlyEquivalences);
 
@@ -720,6 +662,7 @@ bool PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
 Unit* PDInliner::apply(Unit* u)
 {
   CALL("PDInliner::apply(Unit*)");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   Stack<unsigned> preds;
   u->collectPredicates(preds);
@@ -763,6 +706,7 @@ FormulaUnit* PDInliner::apply(FormulaUnit* u)
 bool PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly)
 {
   CALL("PDInliner::scanAndRemoveDefinitions(UnitList*)");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   bool modified = false;
 
@@ -808,6 +752,7 @@ bool PDInliner::isEligible(FormulaUnit* u)
 bool PDInliner::tryGetPredicateEquivalence(FormulaUnit* unit)
 {
   CALL("PDInliner::tryGetPredicateEquivalence");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(!isEligible(unit)) {
     return false;
@@ -821,17 +766,25 @@ bool PDInliner::tryGetPredicateEquivalence(FormulaUnit* unit)
   if(tryGetDef(unit)) {
     return true;
   }
-  ASS(_defs[pred1]);
-  ASS(_defs[pred2]);
+  LOG("pp_inl_scan","Formula " << (*unit) << " needs further inlining to become definition");
+  ASS(_defs[pred1] || _defs[pred2]);
   //we first get all predicate equivalences and other definitions only after that
-  ASS(_defs[pred1]->predicateEquivalence());
-  ASS(_defs[pred2]->predicateEquivalence());
+  ASS(!_defs[pred1] || _defs[pred1]->predicateEquivalence());
+  ASS(!_defs[pred2] || _defs[pred2]->predicateEquivalence());
 
-  if(_defs[pred1]->tagretPredicate()==_defs[pred2]->tagretPredicate()) {
+  unsigned tgtPred1 = _defs[pred1] ? _defs[pred1]->tagretPredicate() : pred1;
+  unsigned tgtPred2 = _defs[pred2] ? _defs[pred2]->tagretPredicate() : pred2;
+
+  if(tgtPred1==tgtPred2) {
     //this equivalence is redundant
     return false;
   }
-  unit = _defs[pred1]->apply(unit);
+  if(_defs[pred1]) {
+    unit = _defs[pred1]->apply(unit);
+  }
+  else {
+    unit = _defs[pred2]->apply(unit);
+  }
   ALWAYS(tryGetDef(unit));
   return true;
 }
@@ -839,6 +792,7 @@ bool PDInliner::tryGetPredicateEquivalence(FormulaUnit* unit)
 bool PDInliner::tryGetDef(FormulaUnit* unit)
 {
   CALL("PDInliner::scan(FormulaUnit*)");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(!isEligible(unit)) {
     return false;
@@ -919,6 +873,7 @@ bool PDInliner::isDefinitionHead(Literal* l)
 bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 {
   CALL("PDInliner::tryGetDef");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   if(lhs->isEquality()) {
     return false;
@@ -1041,6 +996,7 @@ bool PDInliner::addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* 
     FormulaUnit* premise)
 {
   CALL("PDInliner::addAsymetricDefinition");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   unsigned pred = lhs->functor();
   if(_defs[pred]) {
