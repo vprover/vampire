@@ -104,24 +104,30 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
   CALL("Multiprocessing::waitForChildTermination");
 
 #if COMPILER_MSVC
-  INVALID_OPERATION("waitid() is not supported on Windows");
+  INVALID_OPERATION("waitpid() is not supported on Windows");
 #else
 
-  siginfo_t si;
+  int status;
+  pid_t childPid;
 
-  errno=0;
-  int res=waitid(P_ALL, 0, &si, WEXITED);
-  if(res==-1) {
-    SYSTEM_FAIL("Call to waitid() function failed.", errno);
-  }
+  do {
+    errno=0;
+    childPid = wait(&status);
+    if(childPid==-1) {
+      SYSTEM_FAIL("Call to waitpid() function failed.", errno);
+    }
+  } while(WIFSTOPPED(status));
 
-  if(!si.si_code || si.si_code==CLD_EXITED) {
-    resValue=si.si_status;
+  if(WIFEXITED(status)) {
+    resValue = WEXITSTATUS(status);
+    LOG("mp_wait","child process " << childPid << " terminated with status " << resValue);
   }
   else {
-    resValue=si.si_status+256;
+    ASS(WIFSIGNALED(status));
+    LOG("mp_wait","child process " << childPid << " terminated by signal " << WTERMSIG(status));
+    resValue = WTERMSIG(status)+256;
   }
-  return si.si_pid;
+  return childPid;
 #endif
 }
 
@@ -135,28 +141,28 @@ void Multiprocessing::waitForParticularChildTermination(pid_t child, int& resVal
   CALL("Multiprocessing::waitForChildTermination");
 
 #if COMPILER_MSVC
-  INVALID_OPERATION("waitid() is not supported on Windows");
+  INVALID_OPERATION("waitpid() is not supported on Windows");
 #else
 
-  siginfo_t si;
+  int status;
 
-  errno=0;
-  int res=waitid(P_PID, child, &si, WEXITED);
-  if(res==-1) {
-    SYSTEM_FAIL("Call to waitid() function failed.", errno);
-  }
+  do {
+    errno=0;
+    int res=waitpid(child, &status, 0);
+    if(res==-1) {
+      SYSTEM_FAIL("Call to waitpid() function failed.", errno);
+    }
+    ASS_EQ(res,child);
+  } while(WIFSTOPPED(status));
 
-  ASS_EQ(si.si_signo,SIGCHLD);
-  TRACE("mp_wait",
-      tout << "waitForParticularChildTermination" << endl
-	   << "  si_code: " << si.si_code << endl
-	   << "  si_status: " << si.si_status << endl;
-  );
-  if(!si.si_code || si.si_code==CLD_EXITED) {
-    resValue=si.si_status;
+  if(WIFEXITED(status)) {
+    resValue = WEXITSTATUS(status);
+    LOG("mp_wait","waited for process " << child << " terminated with status " << resValue);
   }
   else {
-    resValue=si.si_status+256;
+    ASS(WIFSIGNALED(status));
+    LOG("mp_wait","waited for process " << child << " terminated by signal " << WTERMSIG(status));
+    resValue = WTERMSIG(status)+256;
   }
 #endif
 }

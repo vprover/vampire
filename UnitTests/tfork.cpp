@@ -221,20 +221,20 @@ TEST_FUN(fork_and_pipe)
   ASS_EQ(WEXITSTATUS(status),0);
 }
 
-//TEST_FUN(fork_and_kill1)
-//{
-//  pid_t fres1=Multiprocessing::instance()->fork();
-//  if(!fres1) {
-//    //first child process
-//    Multiprocessing::instance()->sleep(500);
-//    exit(0);
-//  }
-//  Multiprocessing::instance()->kill(fres1,SIGKILL);
-//
-//  int c1res;
-//  Multiprocessing::instance()->waitForParticularChildTermination(fres1, c1res);
-//  ASS_EQ(c1res,256+SIGKILL);
-//}
+TEST_FUN(fork_and_kill1)
+{
+  pid_t fres1=Multiprocessing::instance()->fork();
+  if(!fres1) {
+    //first child process
+    Multiprocessing::instance()->sleep(500);
+    exit(0);
+  }
+  Multiprocessing::instance()->kill(fres1,SIGKILL);
+
+  int c1res;
+  Multiprocessing::instance()->waitForParticularChildTermination(fres1, c1res);
+  ASS_EQ(c1res,256+SIGKILL);
+}
 
 TEST_FUN(fork_and_kill2)
 {
@@ -274,7 +274,7 @@ TEST_FUN(fork_and_kill3)
     Multiprocessing::instance()->sleep(100);
     Multiprocessing::instance()->kill(fres1,SIGKILL);
     Multiprocessing::instance()->sleep(100);
-    exit(0);
+    exit(1);
   }
 
   int c1res;
@@ -282,7 +282,7 @@ TEST_FUN(fork_and_kill3)
   int c2res;
   Multiprocessing::instance()->waitForChildTermination(c2res);
   ASS_EQ(c1res,256+SIGKILL);
-  ASS_EQ(c2res,0);
+  ASS_EQ(c2res,1);
 }
 
 #endif
