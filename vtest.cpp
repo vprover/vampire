@@ -45,6 +45,32 @@ void explainException (Exception& exception)
   exception.cry(cout);
 } // explainException
 
+
+void readAndFilterGlobalOpts(Stack<char*>& args) {
+  Stack<char*>::StableDelIterator it(args);
+
+  //skip the first item which is the executable name
+  ALWAYS(it.hasNext());
+  it.next();
+
+  while(it.hasNext()) {
+    string arg(it.next());
+    if(arg=="-tr") {
+      it.del();
+      if(!it.hasNext()) {
+	USER_ERROR("value for -tr option expected");
+      }
+      string traceStr(it.next());
+      it.del();
+      PROCESS_TRACE_SPEC_STRING(traceStr);
+    }
+    else {
+      break;
+    }
+  }
+}
+
+
 int main(int argc, char* argv [])
 {
   CALL("main");
@@ -57,27 +83,33 @@ int main(int argc, char* argv [])
    // create random seed for the random number generation
   Lib::Random::setSeed(123456);
 
+  Stack<char*> args;
+  args.loadFromIterator(getArrayishObjectIterator(argv, argc));
+  readAndFilterGlobalOpts(args);
+
   try {
 
-    if(argc==1) {
+
+
+    if(args.size()==1) {
       UnitTesting::instance()->runAllTests(cout);
     }
-    else if(argc==2) {
-      if(!strcmp(argv[1],"-l")) {
+    else if(args.size()==2) {
+      if(!strcmp(args[1],"-l")) {
 	UnitTesting::instance()->printTestNames(cout);
       }
       else {
-	if(!UnitTesting::instance()->runTest(argv[1],cout)) {
-	  cout<<"Unknown test name: "<<argv[1]<<endl;
-	  cout<<"Run \""<<argv[0]<<" -l\" for the list of available tests."<<endl;
+	if(!UnitTesting::instance()->runTest(args[1],cout)) {
+	  cout<<"Unknown test name: "<<args[1]<<endl;
+	  cout<<"Run \""<<args[0]<<" -l\" for the list of available tests."<<endl;
 	}
       }
     }
     else {
       cout<<"Invalid number of arguments ("<<(argc-1)<<")."<<endl;
-      cout<<"Run \""<<argv[0]<<"\" to run all available tests."<<endl;
-      cout<<"Run \""<<argv[0]<<" <test_id>\" to run a single test."<<endl;
-      cout<<"Run \""<<argv[0]<<" -l\" for the list of available tests."<<endl;
+      cout<<"Run \""<<args[0]<<"\" to run all available tests."<<endl;
+      cout<<"Run \""<<args[0]<<" <test_id>\" to run a single test."<<endl;
+      cout<<"Run \""<<args[0]<<" -l\" for the list of available tests."<<endl;
     }
 
 

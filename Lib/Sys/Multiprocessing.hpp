@@ -20,6 +20,9 @@ public:
 
   pid_t fork();
   void registerForkHandlers(VoidFunc before, VoidFunc afterParent, VoidFunc afterChild);
+
+  void sleep(unsigned ms);
+  void kill(pid_t child, int signal);
 private:
   Multiprocessing();
   ~Multiprocessing();

@@ -72,7 +72,8 @@ CXXFLAGS = $(XFLAGS) -Wall -I.
 API_OBJ = Api/FormulaBuilder.o\
 	  Api/Helper.o\
 	  Api/Problem.o\
-	  Api/ResourceLimits.o
+	  Api/ResourceLimits.o\
+	  Api/Tracing.o
 
 VD_OBJ = Debug/Assertion.o\
          Debug/Log.o\
@@ -313,7 +314,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/Output.o\
          Test/UnitTesting.o
 
-VUT_OBJ = $(patsubst %.cpp,%.o,UnitTests/*.cpp)
+VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
 
 VUTIL_OBJ = VUtils/AnnotationColoring.o\
             VUtils/EPRRestoringScanner.o\
@@ -541,6 +542,7 @@ vclausify vclausify_rel vclausify_dbg: $(VCLAUSIFY_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vtest vtest_rel vtest_dbg: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
+	#echo $(VUT_OBJ)
 	$(COMPILE_CMD)
 
 vutil vutil_rel vutil_dbg: $(VUTIL_OBJ) $(EXEC_DEF_PREREQ)

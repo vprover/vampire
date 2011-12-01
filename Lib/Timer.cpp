@@ -270,6 +270,11 @@ void Timer::printMSString(ostream& str, int ms)
   //having the call macro here distorts the stacks printouts
 //  CALL("Timer::printMSString");
 
+  if(ms<0) {
+    str << '-';
+    ms = -ms;
+  }
+
   int sec=ms/1000;
   int msonly=ms%1000;
   if(sec) {

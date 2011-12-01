@@ -221,5 +221,68 @@ TEST_FUN(fork_and_pipe)
   ASS_EQ(WEXITSTATUS(status),0);
 }
 
+//TEST_FUN(fork_and_kill1)
+//{
+//  pid_t fres1=Multiprocessing::instance()->fork();
+//  if(!fres1) {
+//    //first child process
+//    Multiprocessing::instance()->sleep(500);
+//    exit(0);
+//  }
+//  Multiprocessing::instance()->kill(fres1,SIGKILL);
+//
+//  int c1res;
+//  Multiprocessing::instance()->waitForParticularChildTermination(fres1, c1res);
+//  ASS_EQ(c1res,256+SIGKILL);
+//}
+
+TEST_FUN(fork_and_kill2)
+{
+  pid_t fres1=Multiprocessing::instance()->fork();
+  if(!fres1) {
+    //first child process
+    Multiprocessing::instance()->sleep(500);
+    exit(0);
+  }
+  pid_t fres2=Multiprocessing::instance()->fork();
+  if(!fres2) {
+    //second child process
+    Multiprocessing::instance()->sleep(100);
+    Multiprocessing::instance()->kill(fres1,SIGKILL);
+    exit(0);
+  }
+
+  int c1res;
+  Multiprocessing::instance()->waitForParticularChildTermination(fres1, c1res);
+  int c2res;
+  Multiprocessing::instance()->waitForParticularChildTermination(fres2, c2res);
+  ASS_EQ(c1res,256+SIGKILL);
+  ASS_EQ(c2res,0);
+}
+
+TEST_FUN(fork_and_kill3)
+{
+  pid_t fres1=Multiprocessing::instance()->fork();
+  if(!fres1) {
+    //first child process
+    Multiprocessing::instance()->sleep(500);
+    exit(0);
+  }
+  pid_t fres2=Multiprocessing::instance()->fork();
+  if(!fres2) {
+    //second child process
+    Multiprocessing::instance()->sleep(100);
+    Multiprocessing::instance()->kill(fres1,SIGKILL);
+    Multiprocessing::instance()->sleep(100);
+    exit(0);
+  }
+
+  int c1res;
+  Multiprocessing::instance()->waitForChildTermination(c1res);
+  int c2res;
+  Multiprocessing::instance()->waitForChildTermination(c2res);
+  ASS_EQ(c1res,256+SIGKILL);
+  ASS_EQ(c2res,0);
+}
 
 #endif

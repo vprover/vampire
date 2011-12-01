@@ -322,10 +322,17 @@ void Logging::doTagDeclarations()
       DOC("tracing of semaphores"),
       PARENT("mp",1));
 
+  DECL("mp_wait",
+      DOC("waiting for child processes"),
+      PARENT("mp",1));
+
 
   //
   // Other
   //
+
+  DECL("test_tag",
+      DOC("trace tag to be used for testing"));
 
   DECL("bdd");
   DECL("bdd_clausifier",
@@ -379,6 +386,11 @@ void Logging::doTagDeclarations()
       DOC("traces from z3 interpolant extractor"));
   DECL("vu_ers",
       DOC("traces from epr restoring scanner"));
+
+  DECL("ut",
+      DOC("traces in the unit-testing infrastructure"));
+  DECL("ut_forking",
+      PARENT("ut",1));
 }
 
 

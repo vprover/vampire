@@ -191,7 +191,14 @@ public:
     CALL("Logging::Impl::processTraceSpecString");
 
     if(str.empty()) { return; }
-    if(str=="help") { displayHelpAndExit(); }
+    if(str=="help") {
+      displayHelp();
+      exit(0);
+    }
+    if(str=="help+") {
+      //with this command we only display help but don't exit
+      displayHelp();
+    }
 
     DArray<char> chars;
     chars.initFromArray(str.size()+1, str.c_str());
@@ -256,7 +263,7 @@ public:
     return _tags[idx].enabled;
   }
 
-  void displayHelpAndExit()
+  void displayHelp()
   {
     CALL("Logging::Impl::displayTagListAndExit");
 
@@ -296,7 +303,6 @@ public:
 	out << endl;
       }
     }
-    exit(0);
   }
 };
 

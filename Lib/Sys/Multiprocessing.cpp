@@ -9,6 +9,7 @@
 
 #if !COMPILER_MSVC
 
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -114,7 +115,7 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
     SYSTEM_FAIL("Call to waitid() function failed.", errno);
   }
 
-  if(si.si_code) {
+  if(!si.si_code || si.si_code==CLD_EXITED) {
     resValue=si.si_status;
   }
   else {
@@ -145,7 +146,13 @@ void Multiprocessing::waitForParticularChildTermination(pid_t child, int& resVal
     SYSTEM_FAIL("Call to waitid() function failed.", errno);
   }
 
-  if(si.si_code) {
+  ASS_EQ(si.si_signo,SIGCHLD);
+  TRACE("mp_wait",
+      tout << "waitForParticularChildTermination" << endl
+	   << "  si_code: " << si.si_code << endl
+	   << "  si_status: " << si.si_status << endl;
+  );
+  if(!si.si_code || si.si_code==CLD_EXITED) {
     resValue=si.si_status;
   }
   else {
@@ -154,6 +161,47 @@ void Multiprocessing::waitForParticularChildTermination(pid_t child, int& resVal
 #endif
 }
 
+void Multiprocessing::sleep(unsigned ms)
+{
+  CALL("Multiprocessing::sleep");
+
+#if COMPILER_MSVC
+  INVALID_OPERATION("sleep() is not supported on Windows");
+#else
+
+  timespec ts;
+  timespec remaining;
+  ts.tv_nsec = (ms%1000)*1000000;
+  ts.tv_sec = ms/1000;
+
+  for(;;) {
+    int res = nanosleep(&ts, &remaining);
+    if(!res) {
+      return;
+    }
+    ASS_EQ(res,-1);
+    if(errno!=EINTR) {
+      SYSTEM_FAIL("Call to nanosleep() function failed.", errno);
+    }
+    ts = remaining;
+  }
+#endif
+}
+
+void Multiprocessing::kill(pid_t child, int signal)
+{
+  CALL("Multiprocessing::kill");
+
+#if COMPILER_MSVC
+  INVALID_OPERATION("kill() is not supported on Windows");
+#else
+  int res = ::kill(child, signal);
+  if(res!=0) {
+    ASS_EQ(res,-1);
+    SYSTEM_FAIL("Call to kill() function failed.", errno);
+  }
+#endif
+}
 
 }
 }

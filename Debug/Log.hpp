@@ -104,8 +104,13 @@ public:
  * Depth limit can be used to cut-off subtraces of the specified
  * trace. When no limit is specified, the depth of enabled child
  * traces is not limited
+ *
+ * One can also pass some special strings:
+ *   help -- displays help and exits the process with status 0
+ *   help+ -- displays hep without exitting
  */
 #define PROCESS_TRACE_SPEC_STRING(str) Debug::Logging::processTraceSpecString(str)
+#define DISPLAY_HELP() PROCESS_TRACE_SPEC_STRING("help+")
 
 
 struct ScopedTraceTag {

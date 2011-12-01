@@ -5,6 +5,8 @@
 
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Sys/Multiprocessing.hpp"
+
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Sort.hpp"
@@ -16,6 +18,7 @@ namespace Test
 {
 
 using namespace Lib;
+using namespace Lib::Sys;
 
 TestUnit::TestUnit(const char* id)
 : _id(id), _tests(0)
@@ -102,11 +105,31 @@ void UnitTesting::runTest(TestUnit* unit, ostream& out)
   }
 }
 
+/**
+ * Run test in a different process and wait for its termination
+ *
+ * This is to provide isolation when running multiple tests in one go.
+ */
+void UnitTesting::spawnTest(TestUnit* unit, ostream& out)
+{
+  pid_t fres = Multiprocessing::instance()->fork();
+  if(!fres) {
+    runTest(unit, out);
+    exit(0);
+  }
+  int childRes;
+  Multiprocessing::instance()->waitForParticularChildTermination(fres, childRes);
+  LOG("ut_forking","child proces result status: " << childRes);
+  if(childRes!=0) {
+    exit(childRes);
+  }
+}
+
 void UnitTesting::runAllTests(ostream& out)
 {
   TestUnitList::Iterator tuit(_units);
   while(tuit.hasNext()) {
-    runTest(tuit.next(), out);
+    spawnTest(tuit.next(), out);
     if(tuit.hasNext()) {
       out<<endl;
     }
