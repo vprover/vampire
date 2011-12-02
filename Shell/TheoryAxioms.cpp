@@ -76,11 +76,12 @@ void TheoryAxioms::addCommutativity(Interpretation op, UnitList*& units)
   ASS_EQ(theory->getArity(op),2);
 
   unsigned func = env.signature->getInterpretingSymbol(op);
+  unsigned srt = theory->getOperationSort(op);
   TermList v1(0,false);
   TermList v2(1,false);
   TermList f12(Term::create2(func, v1, v2));
   TermList f21(Term::create2(func, v2, v1));
-  Literal* eq = Literal::createEquality(true, f12, f21);
+  Literal* eq = Literal::createEquality(true, f12, f21, srt);
 
   addTheoryUnit(eq, units);
 }
@@ -95,6 +96,7 @@ void TheoryAxioms::addAssociativity(Interpretation op, UnitList*& units)
   ASS_EQ(theory->getArity(op),2);
 
   unsigned func = env.signature->getInterpretingSymbol(op);
+  unsigned srt = theory->getOperationSort(op);
   TermList v1(0,false);
   TermList v2(1,false);
   TermList v3(2,false);
@@ -102,7 +104,7 @@ void TheoryAxioms::addAssociativity(Interpretation op, UnitList*& units)
   TermList f23(Term::create2(func, v2, v3));
   TermList f1f23(Term::create2(func, v1, f23));
   TermList ff12_3(Term::create2(func, f12, v3));
-  Literal* eq = Literal::createEquality(true, f1f23, ff12_3);
+  Literal* eq = Literal::createEquality(true, f1f23, ff12_3, srt);
 
   addTheoryUnit(eq, units);
 }
@@ -117,9 +119,10 @@ void TheoryAxioms::addIdentity(Interpretation op, TermList idElement, UnitList*&
   ASS_EQ(theory->getArity(op),2);
 
   unsigned func = env.signature->getInterpretingSymbol(op);
+  unsigned srt = theory->getOperationSort(op);
   TermList v1(0,false);
   TermList f1I(Term::create2(func, v1, idElement));
-  Literal* eq = Literal::createEquality(true, f1I, v1);
+  Literal* eq = Literal::createEquality(true, f1I, v1, srt);
 
   addTheoryUnit(eq, units);
 }
@@ -143,6 +146,8 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
 
   unsigned opFunc = env.signature->getInterpretingSymbol(op);
   unsigned invFunc = env.signature->getInterpretingSymbol(inverse);
+  unsigned srt = theory->getOperationSort(op);
+  ASS_EQ(srt, theory->getOperationSort(inverse));
   TermList v1(0,false);
   TermList v2(1,false);
   TermList f12(Term::create2(opFunc, v1, v2));
@@ -150,12 +155,12 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
   TermList nv2(Term::create1(invFunc, v2));
   TermList nf12(Term::create1(invFunc, f12));
   TermList fn1n2(Term::create2(opFunc, nv2, nv1));
-  Literal* eq1 = Literal::createEquality(true, nf12, fn1n2);
+  Literal* eq1 = Literal::createEquality(true, nf12, fn1n2, srt);
   addTheoryUnit(eq1, units);
 
   //X0+(-X0)==idElement
   TermList f1n1(Term::create2(opFunc, v1, nv1));
-  Literal* eq2 = Literal::createEquality(true, f1n1, idElement);
+  Literal* eq2 = Literal::createEquality(true, f1n1, idElement, srt);
   addTheoryUnit(eq2, units);
 }
 
@@ -295,6 +300,11 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
 {
   CALL("TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms");
 
+  unsigned srt = theory->getOperationSort(plus);
+  ASS_EQ(srt, theory->getOperationSort(unaryMinus));
+  ASS_EQ(srt, theory->getOperationSort(lessEqual));
+  ASS_EQ(srt, theory->getOperationSort(multiply));
+
   addAdditionAndOrderingAxioms(plus, unaryMinus, zeroElement, oneElement, lessEqual, units);
 
   addCommutativity(multiply, units);
@@ -305,7 +315,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
   TermList v1(0,false);
   TermList v1MulZero(Term::create2(mulFun, v1, zeroElement));
-  Literal* v1EqV1MulZero = Literal::createEquality(true, v1MulZero, zeroElement);
+  Literal* v1EqV1MulZero = Literal::createEquality(true, v1MulZero, zeroElement, srt);
   addTheoryUnit(v1EqV1MulZero, units);
 
   //axiom( X0*(X1++)==(X0*X1)+X0 );
@@ -315,7 +325,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   TermList v1MulV2POne(Term::create2(mulFun, v1, v2POne));
   TermList v1MulV2(Term::create2(mulFun, v1, v2));
   TermList v1MulV2PV1(Term::create2(plusFun, v1MulV2, v1));
-  Literal* succDistrEq = Literal::createEquality(true, v1MulV2POne, v1MulV2PV1);
+  Literal* succDistrEq = Literal::createEquality(true, v1MulV2POne, v1MulV2PV1, srt);
   addTheoryUnit(succDistrEq, units);
 
   //axiom( (X0+X1)*(X2+X3) == (X0*X2 + X0*X3 + X1*X2 + X1*X3) );
@@ -331,7 +341,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   TermList add1(Term::create2(plusFun, v1Mv3, v1Mv4));
   TermList add2(Term::create2(plusFun, v2Mv3, v2Mv4));
   TermList distrRhs(Term::create2(plusFun, add1, add2));
-  Literal* distrEq = Literal::createEquality(true, distrLhs, distrRhs);
+  Literal* distrEq = Literal::createEquality(true, distrLhs, distrRhs, srt);
   addTheoryUnit(distrEq, units);
 }
 

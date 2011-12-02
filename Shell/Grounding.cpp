@@ -115,25 +115,40 @@ ClauseList* Grounding::simplyGround(ClauseIterator clauses)
   return res;
 }
 
+void Grounding::getLocalEqualityAxioms(unsigned sort, bool otherThanReflexivity, ClauseList*& acc)
+{
+  CALL("Grounding::getLocalEqualityAxioms");
+
+  Clause* axR = new(1) Clause(1, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
+  (*axR)[0]=Literal::createEquality(true, TermList(0,false),TermList(0,false), sort);
+  ClauseList::push(axR, acc);
+
+  //we do not need to add symmetry because that is taken care of by argument order
+  //normalization
+
+  if(otherThanReflexivity) {
+    Clause* axT = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
+    (*axT)[0]=Literal::createEquality(false,TermList(0,false),TermList(1,false), sort);
+    (*axT)[1]=Literal::createEquality(false,TermList(0,false),TermList(2,false), sort);
+    (*axT)[2]=Literal::createEquality(true,TermList(2,false),TermList(1,false), sort);
+    ClauseList::push(axT, acc);
+  }
+}
+
 ClauseList* Grounding::getEqualityAxioms(bool otherThanReflexivity)
 {
   CALL("Grounding::addEqualityAxioms");
 
   ClauseList* res=0;
 
-  Clause* axR = new(1) Clause(1, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
-  (*axR)[0]=Literal::createEquality(true, TermList(0,false),TermList(0,false));
-  ClauseList::push(axR,res);
+  unsigned sortCnt = env.sorts->sorts();
+  for(unsigned i=0; i<sortCnt; ++i) {
+    getLocalEqualityAxioms(i, otherThanReflexivity, res);
+  }
 
   if(otherThanReflexivity) {
-    Clause* axT = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
-    (*axT)[0]=Literal::createEquality(false,TermList(0,false),TermList(1,false));
-    (*axT)[1]=Literal::createEquality(false,TermList(0,false),TermList(2,false));
-    (*axT)[2]=Literal::createEquality(true,TermList(2,false),TermList(1,false));
-    ClauseList::push(axT,res);
 
     DArray<TermList> args;
-    Literal* eqLit=0;
     int preds=env.signature->predicates();
     for(int pred=1;pred<preds;pred++) { //we skip equality predicate, as transitivity was added above
       unsigned arity=env.signature->predicateArity(pred);
@@ -141,9 +156,7 @@ ClauseList* Grounding::getEqualityAxioms(bool otherThanReflexivity)
 	continue;
       }
 
-      if(!eqLit) {
-	eqLit=Literal::createEquality(false, TermList(0,false),TermList(1,false));
-      }
+      PredicateType* predType = env.signature->getPredicate(pred)->predType();
 
       args.ensure(arity);
       for(unsigned i=0;i<arity;i++) {
@@ -151,6 +164,8 @@ ClauseList* Grounding::getEqualityAxioms(bool otherThanReflexivity)
       }
 
       for(unsigned i=0;i<arity;i++) {
+
+	Literal* eqLit=Literal::createEquality(false, TermList(0,false),TermList(1,false), predType->arg(i));
 
 	Clause* axCong = new(3) Clause(3, Clause::AXIOM, new Inference(Inference::EQUALITY_AXIOM));
 	(*axCong)[0]=eqLit;

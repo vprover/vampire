@@ -151,7 +151,8 @@ struct BackwardDemodulation::ResultFn
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-	Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS);
+	unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+	Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
 	bool isMax=true;
 	Clause::Iterator cit(*qr.clause);
 	while(cit.hasNext()) {

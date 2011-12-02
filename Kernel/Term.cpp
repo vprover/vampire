@@ -895,6 +895,10 @@ Literal* Literal::create(Literal* l,bool polarity)
   CALL("Literal::create(Literal*,bool)");
   ASS_EQ(l->getPreDataSize(), 0);
 
+  if(l->isEquality()) {
+    return createEquality(polarity, *l->nthArgument(0), *l->nthArgument(1), SortHelper::getEqualityArgumentSort(l));
+  }
+
   int arity = l->arity();
   Literal* m = new(arity) Literal(*l);
   m->setPolarity(polarity);
@@ -946,30 +950,15 @@ Literal* Literal::create(Literal* l,TermList* args)
   return m;
 } // Literal::create
 
-/**
- * Return a new equality literal, with polarity @b polarity and
- * arguments @b arg1 and @b arg2. Insert it into the sharing structure
- * if all arguments are shared. The equality must not be between two
- * variables or special terms that do not have a sort. In that case
- * the four-argument version of this function should be used.
- */
-Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2)
+Literal* Literal::createEquality(bool polarity, TermList arg1, TermList arg2)
 {
-   CALL("Literal::createEquality/3");
-#if VDEBUG
-   unsigned sort1, sort2;
-   bool have1 = SortHelper::tryGetResultSort(arg1, sort1);
-   bool have2 = SortHelper::tryGetResultSort(arg2, sort2);
-   ASS(have1 || have2);
-   ASS_REP2(!have1 || !have2 || (sort1==sort2), arg1.toString(), arg2.toString());
-#endif
-   Literal* lit=new(2) Literal(0,2,polarity,true);
-   *lit->nthArgument(0)=arg1;
-   *lit->nthArgument(1)=arg2;
-   if(arg1.isSafe() && arg2.isSafe()) {
-     lit = env.sharing->insert(lit);
-   }
-   return lit;
+  CALL("Literal::createEquality/3");
+
+  unsigned srt;
+  if(!SortHelper::tryGetResultSort(arg1, srt)) {
+    ALWAYS(SortHelper::tryGetResultSort(arg2, srt));
+  }
+  return createEquality(polarity, arg1, arg2, srt);
 }
 
 /**
@@ -999,8 +988,19 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, u
    }
    else {
      ASS_EQ(srt1, sort);
+#if VDEBUG
+     if(SortHelper::tryGetResultSort(arg2, srt2)) {
+       ASS_EQ(srt2, sort);
+     }
+#endif
    }
-   return createEquality(polarity, arg1, arg2);
+   Literal* lit=new(2) Literal(0,2,polarity,true);
+   *lit->nthArgument(0)=arg1;
+   *lit->nthArgument(1)=arg2;
+   if(arg1.isSafe() && arg2.isSafe()) {
+     lit = env.sharing->insert(lit);
+   }
+   return lit;
 }
 
 /**
@@ -1052,6 +1052,7 @@ Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
 Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2)
 {
   CALL("Literal::create2");
+  ASS_NEQ(predicate, 0);
 
   TermList args[] = {arg1, arg2};
   return Literal::create(predicate, 2, polarity, false, args);

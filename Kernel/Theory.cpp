@@ -32,9 +32,6 @@ IntegerConstantType::IntegerConstantType(const string& str)
     //TODO: raise exception only on overflow, the proper syntax should be guarded by assertion
     throw ArithmeticException();
   }
-
-  //we want the string representation to be cannonical
-  ASS_EQ(str, toString());
 }
 
 IntegerConstantType IntegerConstantType::operator+(const IntegerConstantType& num) const
@@ -1107,16 +1104,15 @@ Term* Theory::fun2(Interpretation itp, TermList arg1, TermList arg2)
 /**
  * Return literal containing binary predicate interpreted as @b itp with
  * arguments @b arg1 and @b arg2
+ *
+ * Equality cannot be created using this function, Term::createEquality has to be used.
  */
 Literal* Theory::pred2(Interpretation itp, bool polarity, TermList arg1, TermList arg2)
 {
   CALL("Theory::fun2");
   ASS(!isFunction(itp));
   ASS_EQ(getArity(itp), 2);
-
-  if(itp==EQUAL) {
-    return Literal::createEquality(polarity, arg1, arg2);
-  }
+  ASS_NEQ(itp,EQUAL);
 
   TermList args[]= {arg1, arg2};
 

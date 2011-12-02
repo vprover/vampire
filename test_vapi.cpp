@@ -10,6 +10,7 @@
 
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
+#include "Api/Tracing.hpp"
 
 #define LOG(X) std::cout<<X<<std::endl
 #define LOGV(X) std::cout<<#X<<": "<<X<<std::endl
@@ -132,6 +133,8 @@ int main(int argc, char* argv [])
   }
 
   asymRewritingTest();
+  Api::Tracing::pushTracingState();
+  Api::Tracing::popTracingState();
   return 0;
 
   testSubst();

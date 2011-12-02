@@ -13,6 +13,7 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -494,8 +495,11 @@ Term* SpecialTermElimination::eliminateTermIte(Formula * condition, TermList the
   args.push(z2);
   TermList func = TermList(Term::create(fnNum, fnArity, args.begin()));
 
-  Literal* eqThen = Literal::createEquality(true, func, z1);
-  Literal* eqElse = Literal::createEquality(true, func, z2);
+  //TODO: proprly determine sort of the ITE term
+  unsigned iteSort = SortHelper::getResultSort(func.term());
+
+  Literal* eqThen = Literal::createEquality(true, func, z1, iteSort);
+  Literal* eqElse = Literal::createEquality(true, func, z2, iteSort);
 
   Formula* def = new IteFormula(condition, new AtomicFormula(eqThen), new AtomicFormula(eqElse));
   FormulaUnit* defUnit = new FormulaUnit(def, new Inference(Inference::TERM_IF_THEN_ELSE_DEFINITION), Unit::AXIOM);

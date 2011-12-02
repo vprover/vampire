@@ -849,7 +849,7 @@ bool PDInliner::isPredicateEquivalence(FormulaUnit* unit, unsigned& pred1, unsig
   }
   pred1 = l1->functor();
   pred2 = l2->functor();
-  return true;
+  return pred1!=pred2;
 }
 
 /**

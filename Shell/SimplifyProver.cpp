@@ -65,7 +65,9 @@ using namespace Shell;
  * @since 27/08/2009 Redmond
  */
 SimplifyProver::SimplifyProver()
-  : _units(0), 
+  : _defaultSort(Sorts::SRT_DEFAULT),
+    _numberSort(_defaultSort),
+    _units(0),
     _nextType(OTHER),
     _nextVar(0)
 {
@@ -573,8 +575,8 @@ void SimplifyProver::parseQuantifiedFormula(const List* lst,const Expression* ex
   _isaved.push(booleanVars.length());
   while (! booleanVars.isEmpty()) {
     TermList x(booleanVars.pop(),false);
-    Formula* l = new AtomicFormula(Literal::createEquality(true,x,_zero));
-    Formula* r = new AtomicFormula(Literal::createEquality(true,x,_one));
+    Formula* l = new AtomicFormula(Literal::createEquality(true,x,_zero,_numberSort));
+    Formula* r = new AtomicFormula(Literal::createEquality(true,x,_one,_numberSort));
     _built.push(new JunctionFormula(OR,
 				    new FormulaList(l,
 						    new FormulaList(r))));
@@ -751,9 +753,9 @@ void SimplifyProver::parseAtom(const Expression* expr,Context context)
     TermList v(bindings->head(),false);
     switch (context) {
     case CN_TOP_LEVEL:
-      ASS(false);
+      ASSERTION_VIOLATION;
     case CN_FORMULA:
-      processFormula(new AtomicFormula(Literal::createEquality(true,v,_one)),context);
+      processFormula(new AtomicFormula(Literal::createEquality(true,v,_one,_numberSort)),context);
       return;
     case CN_ARGUMENT:
       _tsaved.push(v);
@@ -1320,7 +1322,7 @@ void SimplifyProver::buildAtom()
     args[i] = _tsaved.pop();
   }
   Literal* lit = sinfo->number == 0 // equality
-    ? Literal::createEquality(true,args[0],args[1])
+    ? Literal::createEquality(true,args[0],args[1],_defaultSort)
     : Literal::create(sinfo->number,arity,true,false,args.array());
   processFormula(new AtomicFormula(lit),context);
 } // buildAtom
@@ -1423,7 +1425,7 @@ void SimplifyProver::buildEquality()
 
   TermList l = _tsaved.pop();
   TermList r = _tsaved.pop();
-  processFormula(new AtomicFormula(Literal::createEquality(polarity,l,r)),context);
+  processFormula(new AtomicFormula(Literal::createEquality(polarity,l,r,_defaultSort)),context);
 } // buildEquality
 
 /**
@@ -1524,7 +1526,7 @@ void SimplifyProver::buildDistinct()
     args[i] = _tsaved.pop();
   }
   if (length == 2) {
-    Literal* lit = Literal::createEquality(false,args[0],args[1]);
+    Literal* lit = Literal::createEquality(false,args[0],args[1],_defaultSort);
     processFormula(new AtomicFormula(lit),context);
     return;
   }
@@ -1535,7 +1537,7 @@ void SimplifyProver::buildDistinct()
   if (length > 300) length = 300;
   for (int i = 1;i < length;i++) {
     for (int j = 0;j < i;j++) {
-      Literal* lit = Literal::createEquality(false,args[i],args[j]);
+      Literal* lit = Literal::createEquality(false,args[i],args[j],_defaultSort);
       Formula* ineq = new AtomicFormula(lit);
       if (top) {
 	addUnit(new FormulaUnit(ineq,
@@ -1603,12 +1605,12 @@ void SimplifyProver::processFormula(Formula* f,Context context)
       // formula ~f => f(x) = 0
       Formula* f1 = new BinaryFormula(IMP,
 				      new NegatedFormula(f),
-				      new AtomicFormula(Literal::createEquality(true,fx,_zero)));
+				      new AtomicFormula(Literal::createEquality(true,fx,_zero,_numberSort)));
       addUnit(new FormulaUnit(f1,
 			      new Inference(Inference::BOOLEAN_TERM_ENCODING),
 			      Unit::AXIOM));
       f1 = new BinaryFormula(IMP,f,
-			     new AtomicFormula(Literal::createEquality(true,fx,_one)));
+			     new AtomicFormula(Literal::createEquality(true,fx,_one,_numberSort)));
       addUnit(new FormulaUnit(f1,
 			      new Inference(Inference::BOOLEAN_TERM_ENCODING),
 			      Unit::AXIOM));
@@ -1639,7 +1641,7 @@ SimplifyProver::SymbolInfo* SimplifyProver::addNumber(const string& symb)
   Stack<TermList>::Iterator ts(_numbers);
   while (ts.hasNext()) {
     TermList num1 = ts.next();
-    Formula* ineq = new AtomicFormula(Literal::createEquality(false,num,num1));
+    Formula* ineq = new AtomicFormula(Literal::createEquality(false,num,num1,_numberSort));
     addUnit(new FormulaUnit(ineq,new Inference(Inference::THEORY),Unit::AXIOM));
   }
   _numbers.push(num);
@@ -1737,8 +1739,8 @@ void SimplifyProver::buildIfThenElseTerm()
   TermList fx(Term::create(sf,arity,args.begin()));
   // add axioms f => fx=s and ~f => fx=t
  
-  Formula* fxs = new AtomicFormula(Literal::createEquality(true,fx,s));
-  Formula* fxt = new AtomicFormula(Literal::createEquality(true,fx,t));
+  Formula* fxs = new AtomicFormula(Literal::createEquality(true,fx,s,_defaultSort));
+  Formula* fxt = new AtomicFormula(Literal::createEquality(true,fx,t,_defaultSort));
 
   Formula* f1 = new BinaryFormula(IMP,f,fxs);
   Formula* f2 = new BinaryFormula(IMP,new NegatedFormula(f),fxt);

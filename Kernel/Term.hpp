@@ -650,6 +650,7 @@ public:
 	  bool commutative, TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
+  /** Deprecated */
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2);
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
   static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned variableSort);

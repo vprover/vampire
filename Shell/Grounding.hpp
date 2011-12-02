@@ -29,6 +29,9 @@ public:
 
   static ClauseList* getEqualityAxioms(bool otherThanReflexivity);
 private:
+  static void getLocalEqualityAxioms(unsigned sort, bool otherThanReflexivity, ClauseList*& acc);
+
+
   struct GroundingApplicator
   {
     GroundingApplicator();

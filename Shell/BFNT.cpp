@@ -13,6 +13,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 
@@ -113,7 +114,7 @@ Clause* BFNT::apply(Clause* cl)
     if (!lit->isEquality()) {
       bool modified = false;
       Stack<TermList> args;
-      for (const TermList* ts = lit->args();ts->isNonEmpty();ts = ts->next()) {
+      for (TermList* ts = lit->args();ts->isNonEmpty();ts = ts->next()) {
 	if (ts->isVar()) {
 	  args.push(*ts);
 	  continue;
@@ -135,7 +136,7 @@ Clause* BFNT::apply(Clause* cl)
 	newVar.makeVar(++maxVar);
 	args.push(newVar);
 	// create an inequality ts != newVar and save it to lits
-	lits.push(Literal::createEquality(false,*ts,newVar));
+	lits.push(Literal::createEquality(false,*ts,newVar, SortHelper::getResultSort(ts->term())));
       }
       if (!modified) { // literal was already flat
 	result.push(lit);
@@ -147,6 +148,7 @@ Clause* BFNT::apply(Clause* cl)
       continue;
     }
     // lit is equality
+    unsigned litArgSort = SortHelper::getEqualityArgumentSort(lit);
     updated = true;
     TermList* lhs = lit->nthArgument(0);
     TermList* rhs = lit->nthArgument(1);
@@ -162,16 +164,16 @@ Clause* BFNT::apply(Clause* cl)
 	TermList v1;
 	v1.makeVar(++maxVar);
 	// save lhs != v1
-	lits.push(Literal::createEquality(false,*lhs,v1));
+	lits.push(Literal::createEquality(false, *lhs, v1, litArgSort));
 	// save rhs != v1
-	lits.push(Literal::createEquality(false,*rhs,v1));
+	lits.push(Literal::createEquality(false, *rhs, v1, litArgSort));
 	continue;
       }
       // Now lhs != x
       // flatten lhs
       Term* l = lhs->term();
       Stack<TermList> args;
-      for (const TermList* ts = l->args();ts->isNonEmpty();ts = ts->next()) {
+      for (TermList* ts = l->args();ts->isNonEmpty();ts = ts->next()) {
 	if (ts->isVar()) {
 	  args.push(*ts);
 	  continue;
@@ -181,7 +183,7 @@ Clause* BFNT::apply(Clause* cl)
 	newVar.makeVar(++maxVar);
 	args.push(newVar);
 	// create an inequality ts != newVar and save it to lits
-	lits.push(Literal::createEquality(false,*ts,newVar));
+	lits.push(Literal::createEquality(false,*ts,newVar, SortHelper::getResultSort(ts->term())));
 	continue;
       }
       // args contains only variables
@@ -207,7 +209,7 @@ Clause* BFNT::apply(Clause* cl)
     else {
       // save lhs != v1
       v1.makeVar(++maxVar);
-      lits.push(Literal::createEquality(false,*lhs,v1));
+      lits.push(Literal::createEquality(false,*lhs,v1,litArgSort));
     }
     if (rhs->isVar()) {
       v2 = *rhs;
@@ -215,7 +217,7 @@ Clause* BFNT::apply(Clause* cl)
     else {
       // save rhs != v2
       v2.makeVar(++maxVar);
-      lits.push(Literal::createEquality(false,*rhs,v2));
+      lits.push(Literal::createEquality(false,*rhs,v2,litArgSort));
     }
     // save v1 = v2
     result.push(Literal::create2(_proxy,true,v1,v2));

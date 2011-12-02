@@ -217,7 +217,8 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
       //now we can generate a literal
       Literal* inst;
       if(base->isEquality()) {
-	inst = Literal::createEquality(base->isPositive(), args[0], args[1]);
+	ASS(args[0].isTerm());
+	inst = Literal::createEquality(base->isPositive(), args[0], args[1], SortHelper::getResultSort(args[0].term()));
       }
       else {
 	inst = Literal::create(base, args.array());

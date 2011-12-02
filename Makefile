@@ -372,8 +372,6 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/VariableSelector.o
 
 OTHER_API_DEP = \
-	   Debug/Assertion.o\
-	   Debug/Tracer.o\
 	   Indexing/FormulaIndex.o\
 	   Indexing/Index.o\
 	   Indexing/ResultSubstitution.o\
@@ -474,7 +472,7 @@ VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
 VUTIL_DEP = $(VAMP_BASIC) $(VUTIL_OBJ) Global.o vutil.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
 VTEST_DEP = $(VAMP_BASIC) $(API_OBJ) $(VUT_OBJ) Global.o vtest.o
-VAPI_DEP = $(API_OBJ) $(OTHER_API_DEP) Global.o test_vapi.o
+VAPI_DEP = $(VD_OBJ) $(API_OBJ) $(OTHER_API_DEP) Global.o test_vapi.o
 LIBVAPI_DEP = $(API_OBJ) $(OTHER_API_DEP) Global.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o
 VGROUND_DEP = $(VAMP_BASIC) Global.o vground.o
