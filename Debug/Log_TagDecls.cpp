@@ -253,6 +253,9 @@ void Logging::doTagDeclarations()
       DOC("trivial predicate remover"),
       PARENT("pp",1));
 
+  DECL("pp_aig",
+      DOC("aig sub-formula sharing"),
+      PARENT("pp",1));
 
   //
   // BFNT

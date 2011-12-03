@@ -106,6 +106,7 @@ private:
   bool tryConjSimpl(Ref par1, Ref par2, Ref& res);
   bool tryO1ConjSimpl(Ref par1, Ref par2, Ref& res);
   bool tryO2ConjSimpl(Ref par1, Ref par2, Ref& res);
+  bool tryO2AsymetricConjSimpl(Ref par1, Ref par2, Ref& res);
   bool tryO3ConjSimpl(Ref par1, Ref par2, Ref& res);
   bool tryO4ConjSimpl(Ref par1, Ref par2, Ref& res);
 public:

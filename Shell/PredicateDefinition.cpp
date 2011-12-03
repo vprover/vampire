@@ -5,6 +5,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Set.hpp"

@@ -195,7 +195,7 @@ bool AIG::Ref::operator<(const Ref& r) const
   return false;
 }
 
-AIG::AIG() : _simplLevel(1), _nextNodeIdx(0), _conjReserve(0), _quantReserve(0)
+AIG::AIG() : _simplLevel(2), _nextNodeIdx(0), _conjReserve(0), _quantReserve(0)
 {
   CALL("AIG::AIG");
   _trueNode = new Node(_nextNodeIdx++, Node::TRUE_CONST);
@@ -338,20 +338,20 @@ bool AIG::tryO1ConjSimpl(Ref par1, Ref par2, Ref& res)
   }
   if(par1.isPropConst()) {
     if(par1.isTrue()) {
-      res = par2;
+      res = par2; // (a /\ T) ---> a
     }
     else {
       ASS(par1.isFalse());
-      res = par1;
+      res = par1; // (a /\ F) ---> F
     }
     return true;
   }
   if(par1.node()==par2.node()) {
     if(par1.polarity()==par2.polarity()) {
-      res = par1;
+      res = par1; // (a /\ a) ---> a
     }
     else {
-      res = getFalse();
+      res = getFalse(); // (a /\ ~a) ---> F
     }
     return true;
   }
@@ -360,6 +360,57 @@ bool AIG::tryO1ConjSimpl(Ref par1, Ref par2, Ref& res)
 bool AIG::tryO2ConjSimpl(Ref par1, Ref par2, Ref& res)
 {
   CALL("AIG::tryO2ConjSimpl");
+
+  if(tryO2AsymetricConjSimpl(par1, par2, res)) { return true; }
+  if(tryO2AsymetricConjSimpl(par2, par1, res)) { return true; }
+  return false;
+}
+bool AIG::tryO2AsymetricConjSimpl(Ref par1, Ref par2, Ref& res)
+{
+  CALL("AIG::tryO2ConjSimpl");
+
+  Node* pn1 = par1.node();
+  if(pn1->kind()!=Node::CONJ) { return false; }
+
+  Ref gp11 = pn1->parent(0);
+  Ref gp12 = pn1->parent(1);
+  if(par1.polarity()) {
+    if(gp11.neg()==par2 || gp12.neg()==par2) {
+      res = getFalse(); // (a /\ b) /\ c [a!=c | b!=c] ---> F
+      return true;
+    }
+    if(gp11==par2 || gp12==par2) {
+      res = par1; // (a /\ b) /\ c [a=c | b=c] ---> (a /\ b)
+      return true;
+    }
+  }
+  else {
+    if(gp11.neg()==par2 || gp12.neg()==par2) {
+      res = par2; // ~(a /\ b) /\ c [a!=c | b!=c] ---> c
+      return true;
+    }
+  }
+
+  Node* pn2 = par2.node();
+  if(pn1->kind()!=Node::CONJ) { return false; }
+  Ref gp21 = pn2->parent(0);
+  Ref gp22 = pn2->parent(1);
+
+  if(!par1.polarity()) {
+    if(par2.polarity()) {
+      if(gp11.neg()==gp21 || gp11.neg()==gp22 || gp12.neg()==gp21 || gp12.neg()==gp22) {
+	res = par2; // ~(a /\ b) /\ (c /\ d) [a!=c | a!=d | b!=c | b!=d] ---> c
+	return true;
+      }
+    }
+    else {
+//      if(gp11.neg()==gp21 || gp11.neg()==gp22 || gp12.neg()==gp21 || gp12.neg()==gp22) {
+//	res = par2; // ~(a /\ b) /\ (c /\ d) [a!=c | a!=d | b!=c | b!=d] ---> c
+//	return true;
+//      }
+    }
+  }
+  return false;
   NOT_IMPLEMENTED;
 }
 bool AIG::tryO3ConjSimpl(Ref par1, Ref par2, Ref& res)
@@ -433,6 +484,18 @@ bool AIGFormulaSharer::apply(FormulaUnit* unit, FormulaUnit*& res)
   }
 
   res = new FormulaUnit(f, new Inference1(Inference::FORMULA_SHARING, unit), unit->inputType());
+
+  TRACE("pp_aig",
+      string s0 = f0->toString();
+      string s1 = f->toString();
+      if(s0==s1) {
+	tout << "sharing introduced in " << (*res) << endl;
+      }
+      else {
+	tout << "sharing transformed " << (*unit) << " into " << (*res) << endl;
+      }
+  );
+
   return true;
 }
 
