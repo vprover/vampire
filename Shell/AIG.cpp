@@ -3,6 +3,8 @@
  * Implements class AIG.
  */
 
+#include <algorithm>
+
 #include "Lib/Allocator.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -267,7 +269,7 @@ AIG::Node* AIG::univQuantNode(VarList* vars, Ref par)
     static Stack<int> varStack;
     varStack.reset();
     varStack.loadFromIterator(VarList::DestructiveIterator(vars));
-    sort(varStack.begin(), varStack.end());
+    std::sort(varStack.begin(), varStack.end());
     vars = 0;
     VarList::pushFromIterator(Stack<int>::Iterator(varStack), vars);
   }
