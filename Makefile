@@ -228,7 +228,8 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SWBSplitterWithoutBDDs.o\
          Saturation/SymElOutput.o
 
-VS_OBJ = Shell/AnswerExtractor.o\
+VS_OBJ = Shell/AIG.o\
+         Shell/AnswerExtractor.o\
          Shell/AxiomGenerator.o\
          Shell/BFNT.o\
          Shell/BFNTMainLoop.o\

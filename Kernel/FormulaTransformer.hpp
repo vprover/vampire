@@ -23,6 +23,7 @@ public:
 
 protected:
   FormulaTransformer() {}
+  virtual ~FormulaTransformer() {}
 
   Formula* apply(Formula* f);
 

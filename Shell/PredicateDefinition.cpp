@@ -105,7 +105,8 @@ struct PredicateDefinition::PredData
     } else if(!enqueuedForReplacement && isPure()) {
       pdObj->_pureToReplace.push(pred);
       enqueuedForReplacement=true;
-      LOG("pp_updr","pred " << env.signature->predicateName(pred) << " to be replaced by " << ((nocc==0) ? "$false" : "$true"));
+      LOG("pp_updr",stateToString()
+	  << " to be replaced by " << ((nocc==0) ? "$false" : "$true"));
     }
   }
 
@@ -116,6 +117,11 @@ struct PredicateDefinition::PredData
   bool isPure()
   {
     return docc==0 && ( (pocc==0) ^ (nocc==0) );
+  }
+
+  string stateToString() const {
+    return env.signature->predicateName(pred) + ": +(" + Int::toString(pocc)
+	+ ") -(" + Int::toString(nocc) + ") 0(" + Int::toString(docc) + ")";
   }
 
   CLASS_NAME("PredicateDefintion::PredData");
@@ -214,7 +220,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
     bool fwd = pd.nocc==0;
     ASS_EQ(fwd, pd.pocc!=0);
 
-    repl = makeImplFromDef(def, pred, true);
+    repl = makeImplFromDef(def, pred, fwd);
 
     if(!repl) {
       //the definition formula was simplified by other transforation to the
@@ -289,8 +295,7 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
   TRACE("pp_updr_counts",
       for(unsigned i=0; i<_predCnt; ++i) {
 	if(!_preds[i].pocc && !_preds[i].nocc  && !_preds[i].docc ) { continue; }
-	tout << "pred: " << env.signature->predicateName(i)
-	    << " +(" << _preds[i].pocc << ") -(" << _preds[i].nocc << ") 0(" << _preds[i].docc << ")" << endl;
+	tout << _preds[i].stateToString() << endl;
       }
   );
 
@@ -311,8 +316,7 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
   TRACE("pp_updr_counts",
       for(unsigned i=0; i<_predCnt; ++i) {
 	if(!_preds[i].pocc && !_preds[i].nocc  && !_preds[i].docc ) { continue; }
-	tout << "pred: " << env.signature->predicateName(i)
-	    << " +(" << _preds[i].pocc << ") -(" << _preds[i].nocc << ") 0(" << _preds[i].docc << ")" << endl;
+	tout << _preds[i].stateToString() << endl;
       }
   );
 }

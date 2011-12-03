@@ -300,6 +300,8 @@ string Inference::ruleName(Rule rule)
     return "predicate definition unfolding";
   case PREDICATE_DEFINITION_MERGING:
     return "predicate definition merging";
+  case FORMULA_SHARING:
+    return "farmula sharing";
   case REDUCE_FALSE_TRUE:
     return "true and false elimination";
   case NORMALIZATION:

@@ -18,7 +18,9 @@
 
 #include "Shell/UIHelper.hpp"
 
+#include "Lib/Array.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/List.hpp"
 #include "Lib/System.hpp"
 
 // the elements below are simple and can be initisalised before
@@ -38,7 +40,7 @@ string Kernel::Formula::_connectiveNames[] =
 
 // From here the order does matter
 
-Lib::ZIArray<List<VoidFunc>*> Lib::System::s_terminationHandlers(2);
+Lib::ZIArray<Lib::List<VoidFunc>*> Lib::System::s_terminationHandlers(2);
 
 Lib::Environment Lib::env;
 

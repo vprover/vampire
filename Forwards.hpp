@@ -122,6 +122,7 @@ typedef VirtualIterator<Unit*> UnitIterator;
 
 class FormulaUnit;
 class Formula;
+typedef List<Formula*> FormulaList;
 typedef VirtualIterator<Formula*> FormulaIterator;
 typedef Stack<Formula*> FormulaStack;
 

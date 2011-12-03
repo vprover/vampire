@@ -19,14 +19,10 @@
 #include "Connective.hpp"
 #include "Term.hpp"
 
-using namespace Lib;
 
 namespace Kernel {
 
-class Literal;
-class Formula;
-
-typedef List<Formula*> FormulaList;
+using namespace Lib;
 
 class Formula
 {

@@ -47,6 +47,14 @@ public:
 
   static unsigned hash(const unsigned char*,size_t length);
   static unsigned hash(const unsigned char*,size_t length,unsigned begin);
+
+  /**
+   * Combine two hashes into one
+   *
+   * Code from
+   * http://www.boost.org/doc/libs/1_35_0/doc/html/boost/hash_combine_id241013.html
+   */
+  static unsigned combine(unsigned h1, unsigned h2) { return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2)); }
 };
 
 struct IdentityHash
