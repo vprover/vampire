@@ -4,7 +4,7 @@
  */
 
 #include "Lib/List.hpp"
-#include "Lib/Multicounter.hpp"
+#include "Lib/MultiCounter.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Formula.hpp"
