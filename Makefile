@@ -262,6 +262,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/Options.o\
          Shell/PDInliner.o\
          Shell/PDMerger.o\
+         Shell/PDUtils.o\
          Shell/PredicateDefinition.o\
          Shell/Preprocess.o\
          Shell/Property.o\
@@ -425,6 +426,7 @@ OTHER_API_DEP = \
 	   SAT/SATClause.o\
 	   SAT/SATLiteral.o\
 	   Saturation/ClauseContainer.o\
+	   Shell/AIG.o\
 	   Shell/CNF.o\
 	   Shell/EPRInlining.o\
 	   Shell/EPRSkolem.o\
@@ -442,6 +444,7 @@ OTHER_API_DEP = \
 	   Shell/Options.o\
 	   Shell/PDInliner.o\
 	   Shell/PDMerger.o\
+	   Shell/PDUtils.o\
 	   Shell/PredicateDefinition.o\
 	   Shell/Property.o\
 	   Shell/Rectify.o\

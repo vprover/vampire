@@ -24,7 +24,7 @@ using namespace Kernel;
  */
 class PDInliner {
 public:
-  PDInliner(bool axiomsOnly=false, bool trace=false);
+  PDInliner(bool axiomsOnly=false, bool trace=false, bool nonGrowing=false);
   ~PDInliner();
 
   void apply(Problem& prb);
@@ -61,10 +61,6 @@ public:
 
   bool addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* negBody, Formula* dblBody,
       FormulaUnit* premise=0);
-
-  //these two functions are useful also elsewhere
-  static bool isPredicateEquivalence(FormulaUnit* u);
-  static bool isPredicateEquivalence(FormulaUnit* u, unsigned& pred1, unsigned& pred2);
 private:
 
   friend class EPRRestoring;
@@ -90,6 +86,7 @@ private:
   DArray<Set<unsigned> > _dependent;
 
   bool _axiomsOnly;
+  bool _nonGrowing;
   bool _trace;
 };
 

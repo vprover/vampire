@@ -23,6 +23,7 @@
 #include "Kernel/Unit.hpp"
 
 #include "Flattening.hpp"
+#include "PDUtils.hpp"
 #include "Rectify.hpp"
 #include "SimplifyFalseTrue.hpp"
 #include "Statistics.hpp"
@@ -48,7 +49,7 @@ void EPRRestoring::scan(UnitList* units)
       continue;
     }
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    if(hasDefinitionShape(fu)) {
+    if(PDUtils::hasDefinitionShape(fu)) {
       if(scanDefinition(fu)) {
 	continue;
       }
@@ -194,11 +195,11 @@ bool EPRRestoring::addNEDef(FormulaUnit* unit, unsigned pred, int polarity)
 bool EPRRestoring::scanDefinition(FormulaUnit* unit)
 {
   CALL("EPRRestoring::scanDefinition");
-  ASS(!PDInliner::isPredicateEquivalence(unit)); //predicate equivalences must be removed before applying this rule
+  ASS(!PDUtils::isPredicateEquivalence(unit)); //predicate equivalences must be removed before applying this rule
 
   Literal* lhs;
   Formula* rhs;
-  splitDefinition(unit, lhs, rhs);
+  PDUtils::splitDefinition(unit, lhs, rhs);
   unsigned pred = lhs->functor();
 
   _defPreds.insert(unit, pred);
@@ -223,121 +224,6 @@ bool EPRRestoring::scanDefinition(FormulaUnit* unit)
 
   return true;
 }
-
-/**
- * Split a definition which isn't an equivalence between predicates into
- * lhs and rhs.
- *
- * We don't allow equivalences between predicates in order to make the
- * split deterministic.
- */
-void EPRRestoring::splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& rhs)
-{
-  CALL("EPRRestoring::splitDefinition");
-
-  Formula* f = unit->formula();
-  if(f->connective()==FORALL) {
-    f = f->qarg();
-  }
-  ASS_EQ(f->connective(),IFF);
-
-  if(f->left()->connective()==LITERAL) {
-    if(hasDefinitionShape(unit, f->left()->literal(), f->right())) {
-      //we don't allow predicate equivalences here
-      ASS(f->right()->connective()!=LITERAL || !hasDefinitionShape(unit, f->right()->literal(), f->left()));
-      lhs = f->left()->literal();
-      rhs = f->right();
-      return;
-    }
-  }
-  ASS_EQ(f->right()->connective(),LITERAL);
-  ASS(hasDefinitionShape(unit, f->right()->literal(), f->left()));
-  lhs = f->right()->literal();
-  rhs = f->left();
-}
-
-/**
- * Perform local checks whether givan formula can be a definition.
- *
- * True is returned also for predicate equivalences.
- */
-bool EPRRestoring::hasDefinitionShape(FormulaUnit* unit)
-{
-  CALL("EPRRestoring::hasDefinitionShape/1");
-
-  Formula* f = unit->formula();
-  if(f->connective()==FORALL) {
-    f = f->qarg();
-  }
-  if(f->connective()!=IFF) {
-    return false;
-  }
-  if(f->left()->connective()==LITERAL) {
-    if(hasDefinitionShape(unit, f->left()->literal(), f->right())) {
-      return true;
-    }
-  }
-  if(f->right()->connective()==LITERAL) {
-    return hasDefinitionShape(unit, f->right()->literal(), f->left());
-  }
-  return false;
-}
-
-/**
- * Perform local checks whether givan formula can be a definition.
- *
- * Check whether lhs is not an equality and its arguments are distinct
- * variables. Also check that there are no unbound variables in the body
- * that wouldn't occur in the lhs, and that the lhs predicate doesn't occur
- * in the body.
- */
-bool EPRRestoring::hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* rhs)
-{
-  CALL("EPRRestoring::hasDefinitionShape/3");
-
-  if(lhs->isEquality()) {
-    return false;
-  }
-
-  unsigned defPred = lhs->functor();
-
-  MultiCounter counter;
-  for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
-    if (! ts->isVar()) {
-      return false;
-    }
-    int w = ts->var();
-    if (counter.get(w) != 0) { // more than one occurrence
-      return false;
-    }
-    counter.inc(w);
-  }
-
-  static Stack<unsigned> bodyPredicates;
-  bodyPredicates.reset();
-
-  rhs->collectPredicates(bodyPredicates);
-  if(bodyPredicates.find(defPred)) {
-    return false;
-  }
-
-  {
-    Formula::VarList* freeVars = rhs->freeVariables();
-    bool extraFreeVars = false;
-    while(freeVars) {
-      unsigned v = Formula::VarList::pop(freeVars);
-      if(!counter.get(v)) {
-	extraFreeVars = true;
-      }
-    }
-    if(extraFreeVars) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 
 /**
  * Return true if clausification of definition @c lhs<=>rhs will lead
@@ -448,7 +334,7 @@ void EPRInlining::processActiveDefinitions(UnitList* units)
     int polarity = _nonEprDefPolarities[p];
     Literal* lhs;
     Formula* rhs;
-    splitDefinition(u, lhs, rhs);
+    PDUtils::splitDefinition(u, lhs, rhs);
     switch(polarity) {
     case 1:
       _inliner.addAsymetricDefinition(lhs, rhs, 0, rhs, u);

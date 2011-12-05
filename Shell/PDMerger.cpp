@@ -20,7 +20,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
-#include "EPRInlining.hpp"
+#include "PDUtils.hpp"
 #include "Statistics.hpp"
 
 #include "PDMerger.hpp"
@@ -185,7 +185,9 @@ Comparison PDMerger::Normalizer::compare(Literal* l1, Literal* l2)
 //
 
 PDMerger::PDMerger(bool trace)
-: _trace(trace), _index(new StringFormulaIndex())
+: _trace(trace),
+//  _index(new StringFormulaIndex())
+  _index(new AIGFormulaIndex())
 {
   CALL("PDMerger::PDMerger");
 
@@ -210,7 +212,7 @@ void PDMerger::handleIndexes(FormulaUnit* unit, bool insert)
 
   Literal* lhs;
   Formula* rhs;
-  EPRInlining::splitDefinition(unit, lhs, rhs);
+  PDUtils::splitDefinition(unit, lhs, rhs);
 
   if(insert) {
     _index->insert(unit, rhs);
@@ -272,7 +274,7 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
 
   Literal* lhs;
   Formula* rhs;
-  EPRInlining::splitDefinition(unit, lhs, rhs);
+  PDUtils::splitDefinition(unit, lhs, rhs);
 
   FormulaQueryResultIterator resIt = _index->getEquivalent(rhs);
   while(resIt.hasNext()) {
@@ -280,7 +282,7 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
 
     Literal* qrLhs;
     Formula* qrRhs;
-    EPRInlining::splitDefinition(qres.unit, qrLhs, qrRhs);
+    PDUtils::splitDefinition(qres.unit, qrLhs, qrRhs);
 
     if(qrLhs->arity()!=lhs->arity()) {
       continue;
@@ -312,10 +314,8 @@ void PDMerger::processDefinition(FormulaUnit* unit0)
 
     env.statistics->mergedPredicateDefinitions++;
 
-    if(_trace) {
-      cerr << "Predicate equivalence discovered\n- " << qres.unit->toString()
-	  << "\n- " << unit->toString() << "\n- resulting into " << premise->toString() << endl;
-    }
+    LOG("pp_pdm", "Predicate equivalence discovered\n- " << qres.unit->toString()
+	  << "\n- " << unit->toString() << "\n- resulting into " << premise->toString());
 
 #if 0
     if(!_inliner.tryGetDef(premise, substLhs, resRhs)) {
@@ -344,7 +344,7 @@ FormulaUnit* PDMerger::apply(FormulaUnit* unit)
 {
   CALL("PDMerger::apply(FormulaUnit*)");
 
-  if(!EPRInlining::hasDefinitionShape(unit)) {
+  if(!PDUtils::hasDefinitionShape(unit)) {
     return _inliner.apply(unit);
   }
 
@@ -368,6 +368,7 @@ Unit* PDMerger::apply(Unit* unit)
 void PDMerger::scan(UnitList* units)
 {
   CALL("PDMerger::scan");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_pdm");
 
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
@@ -376,14 +377,14 @@ void PDMerger::scan(UnitList* units)
       continue;
     }
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    if(!EPRInlining::hasDefinitionShape(fu)) {
+    if(!PDUtils::hasDefinitionShape(fu)) {
       continue;
     }
     if(_inliner.tryGetPredicateEquivalence(fu)) {
       _replacements.insert(fu, 0);
 
       unsigned pred1, pred2;
-      ALWAYS(PDInliner::isPredicateEquivalence(fu, pred1, pred2));
+      ALWAYS(PDUtils::isPredicateEquivalence(fu, pred1, pred2));
       if(!_pred2Defs[pred1]) {
 	_pred2Defs[pred1] = new FormulaSkipList();
       }
@@ -396,7 +397,7 @@ void PDMerger::scan(UnitList* units)
 
       Literal* lhs;
       Formula* rhs;
-      EPRInlining::splitDefinition(fu, lhs, rhs);
+      PDUtils::splitDefinition(fu, lhs, rhs);
       unsigned pred = lhs->functor();
       if(!_pred2Defs[pred]) {
 	_pred2Defs[pred] = new FormulaSkipList();
@@ -422,6 +423,7 @@ void PDMerger::apply(Problem& prb)
 bool PDMerger::apply(UnitList*& units)
 {
   CALL("PDMerger::apply(UnitList*&)");
+  CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_pdm");
 
   scan(units);
 
@@ -442,7 +444,7 @@ bool PDMerger::apply(UnitList*& units)
     }
   }
 
-  if(_trace) {
+  TRACE("pp_pdm",
     unsigned defCnt = 0;
     UnitList::Iterator uit2(units);
     while(uit2.hasNext()) {
@@ -450,14 +452,14 @@ bool PDMerger::apply(UnitList*& units)
       if(u->isClause()) {
         continue;
       }
-      if(EPRInlining::hasDefinitionShape(static_cast<FormulaUnit*>(u))) {
-//        cerr << "Survivor: " << u->toString() << endl;
+      if(PDUtils::hasDefinitionShape(static_cast<FormulaUnit*>(u))) {
+//        tout << "Survivor: " << u->toString() << endl;
         defCnt++;
       }
     }
-    cerr << "Merged " << env.statistics->mergedPredicateDefinitions << ", "
+    tout << "Merged " << env.statistics->mergedPredicateDefinitions << ", "
 	 << defCnt << " survived" << endl;
-  }
+  );
   return modified;
 }
 

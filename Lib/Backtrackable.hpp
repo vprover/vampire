@@ -6,12 +6,10 @@
 #ifndef __Backtrackable__
 #define __Backtrackable__
 
-#include "List.hpp"
-
-#if VDEBUG
 #include <string>
+
+#include "List.hpp"
 #include "Int.hpp"
-#endif
 
 
 namespace Lib

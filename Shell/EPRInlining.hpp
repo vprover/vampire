@@ -25,10 +25,7 @@ namespace Shell {
 class EPRRestoring {
 public:
   void scan(UnitList* units);
-
-  //these two are useful functions that are being used in other classes as well
-  static void splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& rhs);
-  static bool hasDefinitionShape(FormulaUnit* unit);
+  virtual ~EPRRestoring() {}
 protected:
   EPRRestoring(bool trace) : _trace(trace) {}
 
@@ -74,7 +71,6 @@ private:
   void performClosure();
 
   static bool isNonEPRDef(Literal* lhs, Formula* body, int& polarity);
-  static bool hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* rhs);
   static int combinePolarities(int p1, int p2);
 
   bool addNEDef(FormulaUnit* unit, unsigned functor, int polarity);

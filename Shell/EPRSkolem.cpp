@@ -22,6 +22,7 @@
 #include "Kernel/Unit.hpp"
 
 #include "Flattening.hpp"
+#include "PDUtils.hpp"
 #include "Skolem.hpp"
 #include "Statistics.hpp"
 #include "VarManager.hpp"
@@ -649,7 +650,7 @@ void EPRSkolem::processDefinition(FormulaUnit* unit)
 
   Literal* lhs;
   Formula* rhs;
-  splitDefinition(unit, lhs, rhs);
+  PDUtils::splitDefinition(unit, lhs, rhs);
 
   unsigned pred = lhs->functor();
   unsigned negHdr = pred<<1;

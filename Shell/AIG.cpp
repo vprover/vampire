@@ -4,6 +4,7 @@
  */
 
 #include <algorithm>
+#include <sstream>
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -12,6 +13,9 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Term.hpp"
+
+#include "PDInliner.hpp"
+#include "PDUtils.hpp"
 
 #include "AIG.hpp"
 
@@ -197,7 +201,42 @@ bool AIG::Ref::operator<(const Ref& r) const
   return false;
 }
 
-AIG::AIG() : _simplLevel(2), _nextNodeIdx(0), _conjReserve(0), _quantReserve(0)
+string AIG::Ref::toString() const
+{
+  CALL("AIG::Ref::toString");
+
+  string inner;
+  switch(node()->kind()) {
+  case Node::TRUE_CONST:
+    return polarity() ? "$true" : "$false";
+  case Node::ATOM:
+    inner = node()->literal()->toString();
+    break;
+  case Node::CONJ:
+    inner = '(' + node()->parent(0).toString() + " & " + node()->parent(1).toString() + ')';
+    break;
+  case Node::QUANT:
+  {
+    inner = "! [";
+    VarList::Iterator vit(node()->qVars());
+    while(vit.hasNext()) {
+      int var = vit.next();
+      inner += 'X'+Int::toString(var);
+      if(vit.hasNext()) {
+	inner += ',';
+      }
+    }
+    inner += "] : " + node()->qParent().toString();
+    break;
+  }
+  default:
+    ASSERTION_VIOLATION;
+  }
+  return (polarity() ? "" : "~") + inner;
+
+}
+
+AIG::AIG() : _simplLevel(3), _nextNodeIdx(0), _conjReserve(0), _quantReserve(0)
 {
   CALL("AIG::AIG");
   _trueNode = new Node(_nextNodeIdx++, Node::TRUE_CONST);
@@ -264,6 +303,7 @@ AIG::Node* AIG::conjNode(Ref par1, Ref par2)
 AIG::Node* AIG::univQuantNode(VarList* vars, Ref par)
 {
   CALL("AIG::univQuantNode");
+  ASS(vars);
 
   if(vars->length()>1) {
     static Stack<int> varStack;
@@ -278,7 +318,7 @@ AIG::Node* AIG::univQuantNode(VarList* vars, Ref par)
     _quantReserve = new Node(_nextNodeIdx++, Node::QUANT);
   }
   _quantReserve->setQuantArgs(vars, par);
-  Node* res = _compNodes.insert(_conjReserve);
+  Node* res = _compNodes.insert(_quantReserve);
   if(res==_quantReserve) {
     //we have used the reserve
     _quantReserve = 0;
@@ -301,16 +341,37 @@ AIG::Ref AIG::getConj(Ref par1, Ref par2)
 {
   CALL("AIG::getConj");
 
-  Ref res;
-  if(!tryConjSimpl(par1, par2, res)) {
-    res = Ref(conjNode(par1, par2), true);
+start:
+  if(_simplLevel>=1) {
+    Ref res;
+    if(tryO1ConjSimpl(par1, par2, res)) { return res; }
+    if(_simplLevel>=2) {
+      if(tryO2ConjSimpl(par1, par2, res)) { return res; }
+      if(_simplLevel>=3) {
+	if(tryO3ConjSimpl(par1, par2)) {
+	  //tryO3ConjSimpl has updated the parent references,
+	  //so we rerun the simplifications with them
+	  goto start;
+	}
+	if(_simplLevel>=4) {
+	  if(tryO4ConjSimpl(par1, par2)) {
+	    //tryO4ConjSimpl has updated the parent references,
+	    //so we rerun the simplifications with them
+	    goto start;
+	  }
+	}
+      }
+    }
   }
-  return res;
+
+  return Ref(conjNode(par1, par2), true);
 }
 
 AIG::Ref AIG::getQuant(bool exQuant, VarList* vars, Ref par)
 {
   CALL("AIG::getQuant");
+
+  if(!vars) { return par; }
 
   if(exQuant) {
     return Ref(univQuantNode(vars, par.neg()), false);
@@ -320,18 +381,6 @@ AIG::Ref AIG::getQuant(bool exQuant, VarList* vars, Ref par)
   }
 }
 
-bool AIG::tryConjSimpl(Ref par1, Ref par2, Ref& res)
-{
-  CALL("AIG::tryConjSimpl");
-  if(_simplLevel<1) { return false; }
-  if(tryO1ConjSimpl(par1, par2, res)) { return true; }
-  if(_simplLevel<2) { return false; }
-  if(tryO2ConjSimpl(par1, par2, res)) { return true; }
-  if(_simplLevel<3) { return false; }
-  if(tryO3ConjSimpl(par1, par2, res)) { return true; }
-  if(_simplLevel<4) { return false; }
-  return tryO4ConjSimpl(par1, par2, res);
-}
 bool AIG::tryO1ConjSimpl(Ref par1, Ref par2, Ref& res)
 {
   CALL("AIG::tryO1ConjSimpl");
@@ -364,12 +413,11 @@ bool AIG::tryO2ConjSimpl(Ref par1, Ref par2, Ref& res)
   CALL("AIG::tryO2ConjSimpl");
 
   if(tryO2AsymetricConjSimpl(par1, par2, res)) { return true; }
-  if(tryO2AsymetricConjSimpl(par2, par1, res)) { return true; }
-  return false;
+  return tryO2AsymetricConjSimpl(par2, par1, res);
 }
 bool AIG::tryO2AsymetricConjSimpl(Ref par1, Ref par2, Ref& res)
 {
-  CALL("AIG::tryO2ConjSimpl");
+  CALL("AIG::tryO2AsymetricConjSimpl");
 
   Node* pn1 = par1.node();
   if(pn1->kind()!=Node::CONJ) { return false; }
@@ -394,33 +442,88 @@ bool AIG::tryO2AsymetricConjSimpl(Ref par1, Ref par2, Ref& res)
   }
 
   Node* pn2 = par2.node();
-  if(pn1->kind()!=Node::CONJ) { return false; }
+  if(pn2->kind()!=Node::CONJ) { return false; }
   Ref gp21 = pn2->parent(0);
   Ref gp22 = pn2->parent(1);
 
-  if(!par1.polarity()) {
+  if(par1.polarity()) {
+    //we've added the check on node index ordering, because we don't need
+    //to perform this particular check twice
+    if(par2.polarity() && pn1->nodeIdx()<pn2->nodeIdx()) {
+      if(gp11.neg()==gp21 || gp11.neg()==gp22 || gp12.neg()==gp21 || gp12.neg()==gp22) {
+	res = getFalse(); // (a /\ b) /\ (c /\ d) [a!=c | a!=d | b!=c | b!=d] ---> F
+	return true;
+      }
+    }
+  }
+  else {
     if(par2.polarity()) {
       if(gp11.neg()==gp21 || gp11.neg()==gp22 || gp12.neg()==gp21 || gp12.neg()==gp22) {
-	res = par2; // ~(a /\ b) /\ (c /\ d) [a!=c | a!=d | b!=c | b!=d] ---> c
+	res = par2; // ~(a /\ b) /\ (c /\ d) [a!=c | a!=d | b!=c | b!=d] ---> c /\ d
 	return true;
       }
     }
     else {
-//      if(gp11.neg()==gp21 || gp11.neg()==gp22 || gp12.neg()==gp21 || gp12.neg()==gp22) {
-//	res = par2; // ~(a /\ b) /\ (c /\ d) [a!=c | a!=d | b!=c | b!=d] ---> c
-//	return true;
-//      }
+      if((gp11==gp22 && gp12.neg()==gp21) || (gp11==gp21 && gp12.neg()==gp22)) {
+	res = gp11.neg(); // ~(a /\ b) /\ ~(c /\ d) [a=d & b!=c] ---> ~a
+	return true;
+      }
     }
   }
   return false;
-  NOT_IMPLEMENTED;
 }
-bool AIG::tryO3ConjSimpl(Ref par1, Ref par2, Ref& res)
+/**
+ * O3 simplifications create one new node which may require simplifications itself.
+ * We therefore let O3 simplifications modify the parameters and if they do, we
+ * rerun the simplifications starting from O1.
+ */
+bool AIG::tryO3ConjSimpl(Ref& par1, Ref& par2)
 {
   CALL("AIG::tryO3ConjSimpl");
-  NOT_IMPLEMENTED;
+
+  if(tryO3AsymetricConjSimpl(par1, par2)) { return true; }
+  return tryO3AsymetricConjSimpl(par2, par1);
 }
-bool AIG::tryO4ConjSimpl(Ref par1, Ref par2, Ref& res)
+bool AIG::tryO3AsymetricConjSimpl(Ref& par1, Ref& par2)
+{
+  CALL("AIG::tryO3AsymetricConjSimpl");
+
+  if(par1.polarity()) { return false; }
+
+  Node* pn1 = par1.node();
+  if(pn1->kind()!=Node::CONJ) { return false; }
+
+  Ref gp11 = pn1->parent(0);
+  Ref gp12 = pn1->parent(1);
+
+  if(gp12==par2) {
+    par1 = gp11.neg(); // ~(a /\ b) /\ c [b=c] ---> ~a /\ c
+    return true;
+  }
+  if(gp11==par2) {
+    par1 = gp12.neg(); // ~(a /\ b) /\ c [a=c] ---> ~b /\ c
+    return true;
+  }
+
+  if(!par2.polarity()) { return false; }
+
+  Node* pn2 = par2.node();
+  if(pn2->kind()!=Node::CONJ) { return false; }
+  Ref gp21 = pn2->parent(0);
+  Ref gp22 = pn2->parent(1);
+
+  if(gp12==gp21 || gp12==gp22) {
+    par1 = gp11.neg(); // ~(a /\ b) /\ (c /\ d) [b=c | a=d] ---> ~a /\ (c /\ d)
+    return true;
+  }
+  if(gp11==gp21 || gp11==gp22) {
+    par1 = gp12.neg(); // ~(a /\ b) /\ (c /\ d) [a=c | a=d] ---> ~b /\ (c /\ d)
+    return true;
+  }
+
+  return false;
+}
+bool AIG::tryO4ConjSimpl(Ref& par1, Ref& par2)
 {
   CALL("AIG::tryO4ConjSimpl");
   NOT_IMPLEMENTED;
@@ -479,7 +582,10 @@ bool AIGFormulaSharer::apply(FormulaUnit* unit, FormulaUnit*& res)
   CALL("AIGFormulaSharer::apply(Unit*,Unit*&)");
 
   Formula* f0 = unit->formula();
-  Formula* f = apply(f0).first;
+  ARes ar = apply(f0);
+  Formula* f = ar.first;
+
+  LOG("pp_aig_nodes", (*unit) << " has AIG node " << ar.second.toString());
 
   if(f==f0) {
     return false;
@@ -487,16 +593,9 @@ bool AIGFormulaSharer::apply(FormulaUnit* unit, FormulaUnit*& res)
 
   res = new FormulaUnit(f, new Inference1(Inference::FORMULA_SHARING, unit), unit->inputType());
 
-  TRACE("pp_aig",
-      string s0 = f0->toString();
-      string s1 = f->toString();
-      if(s0==s1) {
-	tout << "sharing introduced in " << (*res) << endl;
-      }
-      else {
-	tout << "sharing transformed " << (*unit) << " into " << (*res) << endl;
-      }
-  );
+  LOG("pp_aig_sharing", "sharing introduced in " << (*res));
+  COND_LOG("pp_aig_transf", f0->toString()!=f->toString(),
+      "sharing transformed " << (*unit) << " into " << (*res));
 
   return true;
 }
@@ -505,24 +604,32 @@ bool AIGFormulaSharer::apply(FormulaUnit* unit, FormulaUnit*& res)
 AIGFormulaSharer::ARes AIGFormulaSharer::apply(Formula* f)
 {
   CALL("AIGFormulaSharer::apply(Formula*)");
+
+  ARes res;
   switch (f->connective()) {
   case TRUE:
   case FALSE:
-    return applyTrueFalse(f);
+    res = applyTrueFalse(f);
+    break;
   case LITERAL:
-    return applyLiteral(f);
+    res = applyLiteral(f);
+    break;
   case AND:
   case OR:
-    return applyJunction(f);
+    res = applyJunction(f);
+    break;
   case NOT:
-    return applyNot(f);
+    res = applyNot(f);
+    break;
   case IMP:
   case IFF:
   case XOR:
-    return applyBinary(f);
+    res = applyBinary(f);
+    break;
   case FORALL:
   case EXISTS:
-    return applyQuantified(f);
+    res = applyQuantified(f);
+    break;
 
   case ITE:
   case TERM_LET:
@@ -530,6 +637,10 @@ AIGFormulaSharer::ARes AIGFormulaSharer::apply(Formula* f)
   default:
     ASSERTION_VIOLATION;
   }
+
+  LOG("pp_aig_subformula_nodes", "SFN: "<< (*f) << " has AIG node " << res.second.toString());
+
+  return res;
 }
 
 AIGFormulaSharer::ARes AIGFormulaSharer::applyTrueFalse(Formula* f)
@@ -553,10 +664,12 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyJunction(Formula* f)
   CALL("AIGFormulaSharer::applyJunction");
 
   bool modified = false;
-  static Stack<AIGRef> aigs;
+  Stack<AIGRef> aigs;
   aigs.reset();
-  static Stack<Formula*> newForms;
+  Stack<Formula*> newForms;
   newForms.reset();
+
+  LOG("pp_aig_junction_building", "building junction " << (*f));
 
   FormulaList::Iterator fit(f->args());
   while(fit.hasNext()) {
@@ -564,6 +677,7 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyJunction(Formula* f)
     ARes ar = apply(f0);
     newForms.push(ar.first);
     aigs.push(ar.second);
+    LOG("pp_aig_junction_building", "obtained AIG " << ar.second.toString() << " for " << (*f0));
     modified |= f0!=ar.first;
   }
 
@@ -571,16 +685,25 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyJunction(Formula* f)
   sort(aigs.begin(), aigs.end());
 
   bool conj = f->connective()==AND;
-  AIGRef ar = conj ? _aig.getTrue() : _aig.getFalse();
-  while(aigs.isNonEmpty()) {
-    AIGRef cur = aigs.pop();
-    if(conj) {
-      ar = _aig.getConj(ar, cur);
-    }
-    else {
-      ar = _aig.getDisj(ar, cur);
+  AIGRef ar;
+  if(aigs.isEmpty()) {
+    ar = conj ? _aig.getTrue() : _aig.getFalse();
+  }
+  else {
+    ar = aigs.pop();
+    LOG("pp_aig_junction_building", "initial conj AIG " << ar.toString());
+    while(aigs.isNonEmpty()) {
+      AIGRef cur = aigs.pop();
+      LOG("pp_aig_junction_building", "added AIG " << cur.toString());
+      if(conj) {
+        ar = _aig.getConj(ar, cur);
+      }
+      else {
+        ar = _aig.getDisj(ar, cur);
+      }
     }
   }
+  LOG("pp_aig_junction_building", "final AIG " << ar.toString());
 
   Formula* f1;
   if(modified) {
@@ -649,6 +772,107 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyQuantified(Formula* f)
 }
 
 
+#if 0
+
+////////////////////////
+// AIGDefinitionMerger
+//
+
+void AIGDefinitionMerger::apply(Problem& prb)
+{
+  CALL("AIGDefinitionMerger::apply(Problem&)");
+  if(apply(prb.units())) {
+    prb.invalidateByRemoval();
+  }
+}
+
+bool AIGDefinitionMerger::apply(UnitList*& units)
+{
+  CALL("AIGDefinitionMerger::apply(UnitList*&)");
+
+  UnitList* eqs = 0;
+  DHSet<Unit*> redundant;
+  bool modified = PDInliner(false).apply(units, true);
+
+  discoverEquivalences(units, eqs, redundant);
+  if(!eqs) {
+    return modified;
+  }
+
+  UnitList::DelIterator uit(units);
+
+  units = UnitList::concat(eqs,units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    if(redundant.contains(u)) {
+      uit.del();
+    }
+  }
+
+  ALWAYS(PDInliner(false).apply(units, true));
+  return true;
+}
+
+/**
+ * Return list of newly discovered equivalences.
+ * @c units must not contain any predicate equivalences.
+ */
+void AIGDefinitionMerger::discoverEquivalences(UnitList* units, UnitList*& eqs, DHSet<Unit*>& redundant)
+{
+  CALL("AIGDefinitionMerger::discoverEquivalences");
+
+  UnitList* res = 0;
+
+  typedef Stack<FormulaUnit*> FUStack;
+
+  FUStack defs;
+
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    if(u->isClause()) { continue; }
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    ASS(!PDUtils::isPredicateEquivalence(fu));
+
+    if(PDUtils::hasDefinitionShape(fu)) {
+      defs.push(fu);
+    }
+  }
+
+  AIGFormulaSharer _aig;
+  DHMap<Formula*,FormulaUnit*> body2def; //maps shared body to a definitions
+
+  UnitList* pendingEquivs = 0;
 
 
+  FUStack::Iterator fit(defs);
+  while(fit.hasNext()) {
+    FormulaUnit* fu = fit.next();
+
+    Literal* lhs;
+    Formula* rhs;
+    PDUtils::splitDefinition(fu, lhs, rhs);
+    Formula* shRhs = _aig.apply(rhs).first;
+
+    if(body2def.find(shRhs)) {
+      FormulaUnit* fu2 = body2def.get(shRhs);
+      Literal* lhs2;
+      Formula* rhs2;
+      PDUtils::splitDefinition(fu2, lhs2, rhs2);
+
+      Formula* equivForm = new BinaryFormula(IFF,
+	  new AtomicFormula(lhs), new AtomicFormula(lhs2));
+      Inference* inf = new Inference2(Inference::PREDICATE_DEFINITION_MERGING, fu, fu2);
+      FormulaUnit* equivFU = new FormulaUnit(equivForm, inf, Unit::getInputType(fu->inputType(), fu2->inputType()));
+
+      UnitList::push(equivFU, eqs);
+      UnitList::push(equivFU, pendingEquivs);
+    }
+  }
+
+  typedef pair<Literal*,Literal*> RwrPair;
+  Stack<RwrPair> pendingRewrites;
+
+}
+#endif
 }

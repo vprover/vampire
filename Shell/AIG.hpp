@@ -57,6 +57,7 @@ public:
     bool operator<=(const Ref& r) const { return !(r<(*this)); }
 
     unsigned hash() const;
+    string toString() const;
   };
 private:
   /** Proxy object for Ref which is without constructor so can be used inside a union */
@@ -103,12 +104,14 @@ private:
 
   void normalizeRefOrder(Ref& par1, Ref& par2);
 
-  bool tryConjSimpl(Ref par1, Ref par2, Ref& res);
+  //simplifications according to
+  //Brummayer, R., Biere, A.: Local Two-Level And-Inverter Graph Minimization without Blowup
   bool tryO1ConjSimpl(Ref par1, Ref par2, Ref& res);
   bool tryO2ConjSimpl(Ref par1, Ref par2, Ref& res);
   bool tryO2AsymetricConjSimpl(Ref par1, Ref par2, Ref& res);
-  bool tryO3ConjSimpl(Ref par1, Ref par2, Ref& res);
-  bool tryO4ConjSimpl(Ref par1, Ref par2, Ref& res);
+  bool tryO3ConjSimpl(Ref& par1, Ref& par2);
+  bool tryO3AsymetricConjSimpl(Ref& par1, Ref& par2);
+  bool tryO4ConjSimpl(Ref& par1, Ref& par2);
 public:
   AIG();
   ~AIG();
@@ -141,16 +144,17 @@ namespace Shell {
 
 class AIGFormulaSharer
 {
+public:
+  typedef pair<Formula*,AIGRef> ARes;
+private:
   AIG _aig;
 
   DHMap<AIGRef,Formula*> _formReprs;
 
 
-  typedef pair<Formula*,AIGRef> ARes;
 
   Formula* shareFormula(Formula* f, AIGRef aig);
 
-  ARes apply(Formula * f);
 
   ARes applyTrueFalse(Formula* f);
   ARes applyLiteral(Formula* f);
@@ -160,11 +164,23 @@ class AIGFormulaSharer
   ARes applyQuantified(Formula* f);
 
 public:
+  ARes apply(Formula * f);
+
   void apply(Problem& prb);
   bool apply(UnitList*& units);
   bool apply(FormulaUnit* unit, FormulaUnit*& res);
 };
 
+
+#if 0
+class AIGDefinitionMerger {
+public:
+  void apply(Problem& prb);
+  bool apply(UnitList*& units);
+
+  void discoverEquivalences(UnitList* units, UnitList*& eqs, DHSet<Unit*>& redundant);
+};
+#endif
 }
 
 #endif // __AIG__

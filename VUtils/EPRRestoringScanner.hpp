@@ -23,12 +23,26 @@ private:
     MADE_EPR_WITH_RESTORING = 0,
     CANNOT_MAKE_EPR = 1,
     EASY_EPR = 2,
-    FORM_NON_EPR = 3
+    FORM_NON_EPR = 3,
+    UNDEF
   };
 
   Options _opts;
 
-  void reportResultAndExit(EprResult res) NO_RETURN;
+  unsigned _predDefCnt;
+
+  unsigned _baseClauseCnt;
+  unsigned _erClauseCnt;
+
+  unsigned _baseNonEPRClauseCnt;
+  unsigned _erNonEPRClauseCnt;
+
+  EprResult _eprRes;
+
+  void countClauses(Problem& prb, unsigned& allClauseCnt, unsigned& nonEprClauseCnt);
+
+  void computeEprResults();
+  void reportResult(EprResult res);
 };
 
 }

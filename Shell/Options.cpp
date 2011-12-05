@@ -95,6 +95,7 @@ public:
 const char* Options::Constants::_optionNames[] = {
   "abstraction",
   "age_weight_ratio",
+  "aig_formula_sharing",
   "arity_check",
 
   "backward_demodulation",
@@ -476,6 +477,7 @@ NameArray Options::Constants::questionAnsweringValues(_questionAnsweringValues,
 
 const char* Options::Constants::_inliningModeValues[] = {
   "axioms_only",
+  "non_growing",
   "off",
   "on"};
 NameArray Options::Constants::inliningModeValues(_inliningModeValues,
@@ -572,6 +574,7 @@ Options::Options ()
   _abstraction(false),
   _ageRatio(1),
   _weightRatio(1),
+  _aigFormulaSharing(false),
   _arityCheck(false),
 
   _backwardDemodulation(DEMODULATION_ALL),
@@ -787,6 +790,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case AGE_WEIGHT_RATIO:
       readAgeWeightRatio(value, _ageRatio, _weightRatio);
+      return;
+    case AIG_FORMULA_SHARING:
+      _aigFormulaSharing = onOffToBool(value,name);
       return;
     case ARITY_CHECK:
       _arityCheck = onOffToBool(value,name);
@@ -1558,6 +1564,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case AGE_WEIGHT_RATIO:
     str << _ageRatio << ':' << _weightRatio;
+    return;
+  case AIG_FORMULA_SHARING:
+    str << boolToOnOff(_aigFormulaSharing);
     return;
   case ARITY_CHECK:
     str << boolToOnOff(_arityCheck);

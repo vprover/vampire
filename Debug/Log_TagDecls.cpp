@@ -228,19 +228,23 @@ void Logging::doTagDeclarations()
       PARENT("pp",1));
   DECL("pp_inl_def",
       DOC("definition added"),
-      PARENT("pp_inl",0));
+      PARENT("pp_inl",1));
   DECL("pp_inl_scan",
       DOC("scanning for definitions"),
-      PARENT("pp_inl",0));
+      PARENT("pp_inl",1));
   DECL("pp_inl_step",
       DOC("inlining step"),
-      PARENT("pp_inl",0));
+      PARENT("pp_inl",1));
   DECL("pp_inl_substep",
       DOC("inlining substeps"),
       PARENT("pp_inl_step",1));
   DECL("pp_inl_dep",
       DOC("tracing dependencies between predicates"),
       PARENT("pp_inl",1));
+
+  DECL("pp_pdm",
+      DOC("predicate definition merging"),
+      PARENT("pp",1));
 
   DECL("pp_updr",
       DOC("unused predicate definition removal and pure predicate removal"),
@@ -256,6 +260,21 @@ void Logging::doTagDeclarations()
   DECL("pp_aig",
       DOC("aig sub-formula sharing"),
       PARENT("pp",1));
+  DECL("pp_aig_transf",
+      DOC("formulas transformed by aig sharing"),
+      PARENT("pp_aig",0));
+  DECL("pp_aig_sharing",
+      DOC("aig introduced sub-formula sharing"),
+      PARENT("pp_aig",1));
+  DECL("pp_aig_nodes",
+      DOC("nodes assigned to formulas by AIG"),
+      PARENT("pp_aig",1));
+  DECL("pp_aig_subformula_nodes",
+      DOC("nodes assigned to subformulas by AIG"),
+      PARENT("pp_aig_nodes",1));
+  DECL("pp_aig_junction_building",
+      DOC("progress of building junction AIGs"),
+      PARENT("pp_aig_subformula_nodes",1));
 
   //
   // BFNT

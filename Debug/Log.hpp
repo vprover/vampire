@@ -58,6 +58,7 @@ public:
 #define TRACE_OUTPUT_UNIT(tag,u) Debug::Logging::logUnit(tag,u)
 
 #define LOG(tag,msg) TRACE(tag, (tout << msg) << std::endl;)
+#define COND_LOG(tag,cond,msg) COND_TRACE(tag, cond, (tout << msg) << std::endl;)
 #define LOGV(tag,var) LOG(tag, #var<<": "<<(var))
 #define LOG_UNIT(tag,u) TRACE(tag, TRACE_OUTPUT_UNIT(tag,u); )
 

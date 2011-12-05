@@ -13,6 +13,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Problem.hpp"
 
+#include "AIG.hpp"
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
 #include "EPRInlining.hpp"
@@ -157,6 +158,17 @@ void Preprocess::preprocess (Problem& prb)
     EqualityPropagator().apply(prb);
   }
 
+  if (_options.predicateDefinitionInlining()!=Options::INL_OFF) {
+    env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
+    PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY, false,
+	_options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
+    pdInliner.apply(prb);
+  }
+
+  if(_options.aigFormulaSharing()) {
+    AIGFormulaSharer().apply(prb);
+  }
+
   if (_options.predicateDefinitionMerging()) {
     env.statistics->phase=Statistics::PREDIACTE_DEFINITION_MERGING;
     PDMerger().apply(prb);
@@ -170,12 +182,6 @@ void Preprocess::preprocess (Problem& prb)
   if (_options.eprRestoringInlining()) {
     env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
     EPRInlining().apply(prb);
-  }
-
-  if (_options.predicateDefinitionInlining()!=Options::INL_OFF) {
-    env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
-    PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY);
-    pdInliner.apply(prb);
   }
 
   if (_options.unusedPredicateDefinitionRemoval()) {

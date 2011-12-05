@@ -30,6 +30,7 @@ public:
   enum Tag {
     ABSTRACTION,
     AGE_WEIGHT_RATIO,
+    AIG_FORMULA_SHARING,
     ARITY_CHECK,
 
     BACKWARD_DEMODULATION,
@@ -270,8 +271,9 @@ public:
 
   enum InliningMode {
     INL_AXIOMS_ONLY = 0,
-    INL_OFF = 1,
-    INL_ON = 2
+    INL_NON_GROWING = 1,
+    INL_OFF = 2,
+    INL_ON = 3
   };
 
   enum InterpolantMode {
@@ -392,6 +394,7 @@ public:
   InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining; }
   void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
   bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }
+  bool aigFormulaSharing() const { return _aigFormulaSharing; }
   Mode mode() const { return _mode; }
   void setMode(Mode newVal);
   InputSyntax inputSyntax() const { return _inputSyntax; }
@@ -586,6 +589,7 @@ private:
   bool _abstraction;
   int _ageRatio;
   int _weightRatio;
+  bool _aigFormulaSharing;
   bool _arityCheck;
 
   Demodulation _backwardDemodulation;

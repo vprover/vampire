@@ -22,6 +22,7 @@
 #include "Kernel/Unit.hpp"
 
 #include "Flattening.hpp"
+#include "PDUtils.hpp"
 #include "Rectify.hpp"
 #include "SimplifyFalseTrue.hpp"
 #include "Statistics.hpp"
@@ -371,7 +372,7 @@ struct PDInliner::PDef
     }
 
     unsigned pred1, pred2;
-    _predicateEquivalence = isPredicateEquivalence(unit, pred1, pred2);
+    _predicateEquivalence = PDUtils::isPredicateEquivalence(unit, pred1, pred2);
     if(_predicateEquivalence) {
       if(pred1==_pred) {
 	_tgtPredicate = pred2;
@@ -604,8 +605,8 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
   }
 }
 
-PDInliner::PDInliner(bool axiomsOnly, bool trace)
- : _axiomsOnly(axiomsOnly), _trace(trace)
+PDInliner::PDInliner(bool axiomsOnly, bool trace, bool nonGrowing)
+ : _axiomsOnly(axiomsOnly), _nonGrowing(nonGrowing), _trace(trace)
 {
   CALL("PDInliner::PDInliner");
 
@@ -759,7 +760,7 @@ bool PDInliner::tryGetPredicateEquivalence(FormulaUnit* unit)
   }
 
   unsigned pred1, pred2;
-  if(!isPredicateEquivalence(unit, pred1, pred2)) {
+  if(!PDUtils::isPredicateEquivalence(unit, pred1, pred2)) {
     return false;
   }
 
@@ -816,60 +817,6 @@ bool PDInliner::tryGetDef(FormulaUnit* unit)
   return false;
 }
 
-bool PDInliner::isPredicateEquivalence(FormulaUnit* unit)
-{
-  CALL("PDInliner::isPredicateEquivalence/1");
-
-  unsigned aux1, aux2;
-  return isPredicateEquivalence(unit, aux1, aux2);
-}
-
-bool PDInliner::isPredicateEquivalence(FormulaUnit* unit, unsigned& pred1, unsigned& pred2)
-{
-  CALL("PDInliner::isPredicateEquivalence/3");
-
-  Formula* f = unit->formula();
-  if(f->connective()==FORALL) {
-    f = f->qarg();
-  }
-  if(f->connective()!=IFF) {
-    return false;
-  }
-  if(f->left()->connective()!=LITERAL || f->right()->connective()!=LITERAL) {
-    return false;
-  }
-  Literal* l1 = f->left()->literal();
-  Literal* l2 = f->right()->literal();
-
-  if(l1->arity()!=l2->arity() || !isDefinitionHead(l1) || !isDefinitionHead(l2)) {
-    return false;
-  }
-  if(!l1->containsAllVariablesOf(l2)) {
-    return false;
-  }
-  pred1 = l1->functor();
-  pred2 = l2->functor();
-  return pred1!=pred2;
-}
-
-/**
- * Return true if literal can act as a definition head (i.e. is not equality,
- * has only variable subterms, and these subterms are all distinct)
- */
-bool PDInliner::isDefinitionHead(Literal* l)
-{
-  CALL("PDInliner::isDefinitionHead");
-
-  if(l->isEquality()) {
-    return false;
-  }
-  unsigned ar = l->arity();
-  if(l->weight()!=ar+1 || l->getDistinctVars()!=ar) {
-    return false;
-  }
-  return true;
-}
-
 bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 {
   CALL("PDInliner::tryGetDef");
@@ -877,6 +824,18 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 
   if(lhs->isEquality()) {
     return false;
+  }
+
+  if(_nonGrowing) {
+    if(rhs->connective()!=LITERAL) { return false; }
+    Literal* rhsLit = rhs->literal();
+    unsigned arity = rhsLit->arity();
+    for(unsigned i=0; i<arity; ++i) {
+      TermList arg = *rhsLit->nthArgument(i);
+      if(arg.isTerm() && arg.term()->arity()>0) {
+	return false;
+      }
+    }
   }
 
   bool headInline = false;

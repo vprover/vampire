@@ -10,6 +10,8 @@
 
 #include "Lib/MapToLIFO.hpp"
 
+#include "Shell/AIG.hpp"
+
 #include "Index.hpp"
 
 namespace Indexing {
@@ -53,6 +55,32 @@ private:
   struct Entry2QR;
 
   MapToLIFO<string,Entry> _map;
+};
+
+class AIGFormulaIndex : public FormulaIndex {
+public:
+  virtual FormulaQueryResultIterator getEquivalent(Formula* f);
+
+  virtual void insert(FormulaUnit* unit, Formula* f);
+  virtual void remove(FormulaUnit* unit, Formula* f);
+private:
+  Formula* getKey(Formula* f);
+
+  struct Entry
+  {
+    Entry(FormulaUnit* unit, Formula* formula) : unit(unit), formula(formula) {}
+
+    bool operator==(const Entry& o) const { return unit==o.unit && formula==o.formula; }
+    bool operator!=(const Entry& o) const { return !((*this)==o); }
+
+    FormulaUnit* unit;
+    Formula* formula;
+  };
+
+  struct Entry2QR;
+
+  AIGFormulaSharer _aig;
+  MapToLIFO<Formula*,Entry> _map;
 };
 
 
