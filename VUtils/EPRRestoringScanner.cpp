@@ -91,7 +91,7 @@ void EPRRestoringScanner::computeEprResults(Problem& prb)
   int clArity = prbCl.getProperty()->maxFunArity();
   LOGV("vu_ers", clArity);
   if(clArity==0 && _eprRes==UNDEF) {
-    _eprRes = FORM_NON_EPR;
+    _eprRes = EASY_EPR;
   }
 
   Problem prbClRest;
@@ -106,7 +106,7 @@ void EPRRestoringScanner::computeEprResults(Problem& prb)
   Preprocess prepro2(optsER);
   prepro2.preprocess(prbClRest);
 
-  countClauses(prbCl, _erClauseCnt, _erNonEPRClauseCnt);
+  countClauses(prbClRest, _erClauseCnt, _erNonEPRClauseCnt);
   LOG("vu_ers", "Restoring preprocessing finished, clause count: " << _erClauseCnt <<" non-epr: " << _erNonEPRClauseCnt);
 
   int restArity = prbClRest.getProperty()->maxFunArity();
