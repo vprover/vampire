@@ -329,14 +329,13 @@ void EPRSkolem::Applicator::generateSKUnit(Literal* inst, unsigned pred, unsigne
 
   static Stack<TermList> args;
   args.reset();
-  SubtermIterator vit(inst);
-  while(vit.hasNext()) {
-    TermList t = vit.next();
-    args.push(t);
+
+  for(TermList* t=inst->args(); t->isNonEmpty(); t=t->next()) {
+    args.push(*t);
     if(!argsStr.empty()) {
       argsStr += "_";
     }
-    argsStr += t.toString();
+    argsStr += t->toString();
   }
 
   string suffix = nameSuffix;
