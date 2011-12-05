@@ -305,6 +305,9 @@ void Preprocess::preprocess (Problem& prb)
  * </ol>
  *
  * Preprocessing clause does not change it.
+ *
+ * Units passed to preprocess1 must not have any special terms, let..in formulas
+ * or terms, or if-then-else terms. It may contain if-then-else formulas.
  */
 void Preprocess::preprocess1 (Problem& prb)
 {

@@ -394,6 +394,7 @@ public:
   InliningMode predicateDefinitionInlining() const { return _predicateDefinitionInlining; }
   void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
   bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }
+  void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
   bool aigFormulaSharing() const { return _aigFormulaSharing; }
   Mode mode() const { return _mode; }
   void setMode(Mode newVal);
@@ -471,6 +472,7 @@ public:
   int weightRatio() const { return _weightRatio; }
   bool superpositionFromVariables() const { return _superpositionFromVariables; }
   bool equalityPropagation() const { return _equalityPropagation; }
+  void setEqualityPropagation(bool newVal) { _equalityPropagation = newVal; }
   EqualityProxy equalityProxy() const { return _equalityProxy; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion; }
   float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient; }

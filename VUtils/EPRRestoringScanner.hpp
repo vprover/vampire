@@ -29,20 +29,26 @@ private:
 
   Options _opts;
 
-  unsigned _predDefCnt;
+  void countClauses(Problem& prb, unsigned& allClauseCnt, unsigned& nonEprClauseCnt);
+  unsigned countDefinitions(Problem& prb);
 
+  void computeEprResults(Problem& prb);
   unsigned _baseClauseCnt;
-  unsigned _erClauseCnt;
-
   unsigned _baseNonEPRClauseCnt;
+  unsigned _erClauseCnt;
   unsigned _erNonEPRClauseCnt;
-
   EprResult _eprRes;
 
-  void countClauses(Problem& prb, unsigned& allClauseCnt, unsigned& nonEprClauseCnt);
+  void computeInliningResults(Problem& prb);
+  unsigned _predDefCnt;
+  unsigned _predDefsNonGrowing;
+  unsigned _predDefsMerged;
+  unsigned _predDefsAfterNGAndMerge;
+  unsigned _ngmClauseCnt;
+  unsigned _ngmNonEPRClauseCnt;
 
-  void computeEprResults();
-  void reportResult(EprResult res);
+
+  void reportResults();
 };
 
 }

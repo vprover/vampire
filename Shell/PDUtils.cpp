@@ -138,6 +138,20 @@ bool PDUtils::hasDefinitionShape(FormulaUnit* unit)
  * that wouldn't occur in the lhs, and that the lhs predicate doesn't occur
  * in the body.
  */
+bool PDUtils::hasDefinitionShape(Unit* unit)
+{
+  if(unit->isClause()) { return false; }
+  return hasDefinitionShape(static_cast<FormulaUnit*>(unit));
+}
+
+/**
+ * Perform local checks whether givan formula can be a definition.
+ *
+ * Check whether lhs is not an equality and its arguments are distinct
+ * variables. Also check that there are no unbound variables in the body
+ * that wouldn't occur in the lhs, and that the lhs predicate doesn't occur
+ * in the body.
+ */
 bool PDUtils::hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 {
   CALL("PDUtils::hasDefinitionShape/3");

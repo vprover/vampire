@@ -287,8 +287,24 @@ bool Term::containsAllVariablesOf(Term* t)
   return true;
 }
 
+bool Term::isShallow() const
+{
+  CALL("Term::isShallow");
+
+  const TermList* t = args();
+  while(!t->isEmpty()) {
+    if(t->isTerm() && t->term()->arity()>0) {
+      return false;
+    }
+    t = t->next();
+  }
+  return true;
+}
+
 TermIterator Term::getVariableIterator(TermList tl)
 {
+  CALL("Term::getVariableIterator");
+
   if(tl.isVar()) {
     return pvi( getSingletonIterator(tl) );
   }

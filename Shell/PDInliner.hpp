@@ -10,6 +10,7 @@
 
 #include "Lib/Array.hpp"
 #include "Lib/DArray.hpp"
+#include "Lib/MultiCounter.hpp"
 #include "Lib/Set.hpp"
 
 namespace Shell {
@@ -61,6 +62,9 @@ public:
 
   bool addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* negBody, Formula* dblBody,
       FormulaUnit* premise=0);
+
+  void updatePredOccCounts(Unit* u);
+  bool isNonGrowingDef(Literal* lhs, Formula* rhs);
 private:
 
   friend class EPRRestoring;
@@ -84,6 +88,16 @@ private:
    * soon as we discover them, and inlining removes the dependency.
    */
   DArray<Set<unsigned> > _dependent;
+
+  /**
+   * Counts numbers of predicate occurrences.
+   * Valid only if _nonGrowing is true (otherwise there
+   * is no need to maintain this count).
+   *
+   * This object is populated in scanAndRemoveDefinitions() during the scan for
+   * predicate equivalences.
+   */
+  MultiCounter _predOccCounts;
 
   bool _axiomsOnly;
   bool _nonGrowing;

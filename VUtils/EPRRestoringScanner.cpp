@@ -10,9 +10,13 @@
 
 #include "Kernel/Problem.hpp"
 
-#include "Shell/UIHelper.hpp"
-#include "Shell/Property.hpp"
+#include "Shell/EqualityPropagator.hpp"
+#include "Shell/PDInliner.hpp"
+#include "Shell/PDMerger.hpp"
+#include "Shell/PDUtils.hpp"
 #include "Shell/Preprocess.hpp"
+#include "Shell/Property.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "EPRRestoringScanner.hpp"
 
@@ -24,28 +28,65 @@ using namespace Shell;
 void EPRRestoringScanner::countClauses(Problem& prb, unsigned& allClauseCnt, unsigned& nonEprClauseCnt)
 {
   CALL("EPRRestoringScanner::countClauses");
-  NOT_IMPLEMENTED;
+
+  allClauseCnt = 0;
+  nonEprClauseCnt = 0;
+
+  UnitList::Iterator uit(prb.units());
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    ASS(u->isClause()); //problem must be clausified
+    allClauseCnt++;
+    Clause* cl = static_cast<Clause*>(u);
+    Clause::Iterator litIt(*cl);
+    while(litIt.hasNext()) {
+      Literal* lit = litIt.next();
+      if(!lit->isShallow()) {
+	nonEprClauseCnt++;
+	goto next_clause;
+      }
+    }
+  next_clause:;
+  }
 }
 
-void EPRRestoringScanner::computeEprResults()
+/**
+ * We do just approximate check, i.e. don't eliminate circular definitions
+ */
+unsigned EPRRestoringScanner::countDefinitions(Problem& prb)
+{
+  CALL("EPRRestoringScanner::countDefinitions");
+
+  unsigned res = 0;
+  UnitList::Iterator uit(prb.units());
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    if(PDUtils::hasDefinitionShape(u)) {
+      res++;
+    }
+  }
+  return res;
+}
+
+void EPRRestoringScanner::computeEprResults(Problem& prb)
 {
   CALL("EPRRestoringScanner::computeEprResults");
 
   _eprRes = UNDEF;
 
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(_opts));
-  int origArity = prb->getProperty()->maxFunArity();
+  int origArity = prb.getProperty()->maxFunArity();
   LOGV("vu_ers", origArity);
   if(origArity!=0) {
     _eprRes = FORM_NON_EPR;
   }
   Problem prbCl;
-  prb->copyInto(prbCl, false);
+  prb.copyInto(prbCl, false);
 
   Preprocess prepro(_opts);
   prepro.preprocess(prbCl);
 
   countClauses(prbCl, _baseClauseCnt, _baseNonEPRClauseCnt);
+  LOG("vu_ers", "Ordinary preprocessing finished, clause count: " << _baseClauseCnt <<" non-epr: " << _baseNonEPRClauseCnt);
 
   int clArity = prbCl.getProperty()->maxFunArity();
   LOGV("vu_ers", clArity);
@@ -54,15 +95,19 @@ void EPRRestoringScanner::computeEprResults()
   }
 
   Problem prbClRest;
-  prb->copyInto(prbClRest, false);
+  prb.copyInto(prbClRest, false);
 
-  _opts.setEprPreservingNaming(true);
-  _opts.setEprPreservingSkolemization(true);
-  _opts.setEprRestoringInlining(true);
-  Preprocess prepro2(_opts);
+  Options optsER = _opts;
+
+  optsER.setEprPreservingNaming(true);
+  optsER.setEprPreservingSkolemization(true);
+  optsER.setEprRestoringInlining(true);
+//  optsER.setEqualityPropagation(true);
+  Preprocess prepro2(optsER);
   prepro2.preprocess(prbClRest);
 
   countClauses(prbCl, _erClauseCnt, _erNonEPRClauseCnt);
+  LOG("vu_ers", "Restoring preprocessing finished, clause count: " << _erClauseCnt <<" non-epr: " << _erNonEPRClauseCnt);
 
   int restArity = prbClRest.getProperty()->maxFunArity();
 
@@ -77,25 +122,72 @@ void EPRRestoringScanner::computeEprResults()
   }
 }
 
-void EPRRestoringScanner::reportResult(EprResult res)
+void EPRRestoringScanner::computeInliningResults(Problem& prb0)
+{
+  CALL("EPRRestoringScanner::computeInliningResults");
+
+  Problem prb;
+  prb0.copyInto(prb, false);
+
+  Preprocess prepro1(_opts);
+  prepro1.preprocess1(prb);
+  EqualityPropagator().apply(prb);
+
+  _predDefCnt = countDefinitions(prb);
+  LOG("vu_ers", "Definition count:" << _predDefCnt);
+
+
+  Problem prbNG;
+  prb.copyInto(prbNG, false);
+  PDInliner(false, false,true).apply(prbNG);
+  _predDefsNonGrowing = _predDefCnt - countDefinitions(prbNG);
+  LOG("vu_ers", "Non-growing pred-defs: " << _predDefsNonGrowing);
+
+  Problem prbDM;
+  prb.copyInto(prbDM, false);
+  PDMerger().apply(prbDM);
+  _predDefsMerged = _predDefCnt - countDefinitions(prbDM);
+  LOG("vu_ers", "Merged pred-defs: " << _predDefsMerged);
+
+  PDMerger().apply(prbNG);
+  _predDefsAfterNGAndMerge = countDefinitions(prbNG);
+  LOG("vu_ers", "Definition count after non-growing inlining and merging: " << _predDefsAfterNGAndMerge);
+
+  Options optsDMNG = _opts;
+
+//  optsDMNG.setEqualityPropagation(true);
+  optsDMNG.setPredicateDefinitionInlining(Options::INL_NON_GROWING);
+  optsDMNG.setPredicateDefinitionMerging(true);
+  Preprocess prepro2(optsDMNG);
+  prepro2.preprocess(prb);
+
+  countClauses(prb, _ngmClauseCnt, _ngmNonEPRClauseCnt);
+  LOG("vu_ers", "Non-growing inlinig and merging clause count: " << _ngmClauseCnt <<" non-epr: " << _ngmNonEPRClauseCnt);
+}
+
+void EPRRestoringScanner::reportResults()
 {
   CALL("EPRRestoringScanner::reportResultAndExit");
-  cout << _opts.problemName() << ": ";
-  switch(res) {
+  cout << _opts.problemName() << "\t";
+  switch(_eprRes) {
   case MADE_EPR_WITH_RESTORING:
-    cout << "made epr with restoring" << endl;
+    cout << "MER";
     break;
   case CANNOT_MAKE_EPR:
-    cout << "cannot make EPR" << endl;
+    cout << "CME";
     break;
   case EASY_EPR:
-    cout << "restoring not needed to make EPR" << endl;
+    cout << "EPR";
     break;
   case FORM_NON_EPR:
-    cout << "not EPR" << endl;
+    cout << "NEP";
     break;
+  default:
+    ASSERTION_VIOLATION;
   }
-  exit(res);
+  cout << "\t" << _baseClauseCnt << "\t" << _baseNonEPRClauseCnt << "\t" << _erClauseCnt << "\t" << _erNonEPRClauseCnt
+       << "\t" << _predDefCnt << "\t" << _predDefsNonGrowing << "\t" << _predDefsMerged << "\t" << _predDefsAfterNGAndMerge
+       << "\t" << _ngmClauseCnt << "\t" << _ngmNonEPRClauseCnt << endl;
 }
 
 int EPRRestoringScanner::perform(int argc, char** argv)
@@ -110,41 +202,12 @@ int EPRRestoringScanner::perform(int argc, char** argv)
   _opts.setInputFile(fname);
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(_opts));
-  int origArity = prb->getProperty()->maxFunArity();
-  LOGV("vu_ers", origArity);
-  if(origArity!=0) {
-    reportResultAndExit(FORM_NON_EPR);
-  }
-  Problem prbCl;
-  prb->copyInto(prbCl, false);
 
-  Preprocess prepro(_opts);
-  prepro.preprocess(prbCl);
+  computeEprResults(*prb);
+  computeInliningResults(*prb);
 
-  int clArity = prbCl.getProperty()->maxFunArity();
-  LOGV("vu_ers", clArity);
-  if(clArity==0) {
-    reportResultAndExit(EASY_EPR);
-  }
-
-  Problem prbClRest;
-  prb->copyInto(prbClRest, false);
-
-  _opts.setEprPreservingNaming(true);
-  _opts.setEprPreservingSkolemization(true);
-  _opts.setEprRestoringInlining(true);
-  Preprocess prepro2(_opts);
-  prepro2.preprocess(prbClRest);
-
-  int restArity = prbClRest.getProperty()->maxFunArity();
-  LOGV("vu_ers", restArity);
-  if(restArity==0) {
-    reportResultAndExit(MADE_EPR_WITH_RESTORING);
-  }
-  else {
-    reportResultAndExit(CANNOT_MAKE_EPR);
-  }
-  ASSERTION_VIOLATION;
+  reportResults();
+  return 0;
 }
 
 

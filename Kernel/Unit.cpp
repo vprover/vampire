@@ -124,6 +124,7 @@ Formula* Unit::getFormula(BDDNode* prop)
 
 /**
  * Add into @c acc numbers of all predicates in the unit.
+ * If a predicate occurrs multiple times, it is added once for each occurrence.
  */
 void Unit::collectPredicates(Stack<unsigned>& acc)
 {

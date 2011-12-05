@@ -7,7 +7,6 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/MultiCounter.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -669,10 +668,7 @@ Unit* PDInliner::apply(Unit* u)
   u->collectPredicates(preds);
 
   //make the list of predicates unique
-  VirtualIterator<unsigned> uniquePredIt = pvi(
-      getUniquePersistentIterator(Stack<unsigned>::Iterator(preds)) );
-  preds.reset();
-  preds.loadFromIterator(uniquePredIt);
+  makeUnique(preds);
 
   Unit* res = u;
 
@@ -704,12 +700,36 @@ FormulaUnit* PDInliner::apply(FormulaUnit* u)
   return static_cast<FormulaUnit*>(res);
 }
 
+/**
+ * Update the _predOccCounts member variable by predicate occurrences in @c u.
+ */
+void PDInliner::updatePredOccCounts(Unit* u)
+{
+  CALL("PDInliner::updatePredOccCounts");
+  ASS(_nonGrowing); //we update _predOccCounts only if _nonGrowing is true
+
+  static Stack<unsigned> predOccurences;
+  ASS(predOccurences.isEmpty());
+  u->collectPredicates(predOccurences);
+  while(predOccurences.isNonEmpty()) {
+    _predOccCounts.inc(predOccurences.pop());
+  }
+}
+
 bool PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly)
 {
   CALL("PDInliner::scanAndRemoveDefinitions(UnitList*)");
   CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   bool modified = false;
+
+  if(_nonGrowing) {
+    UnitList::Iterator it(units);
+    while(it.hasNext()) {
+      Unit* u = it.next();
+      updatePredOccCounts(u);
+    }
+  }
 
   {
     UnitList::DelIterator it(units);
@@ -817,6 +837,32 @@ bool PDInliner::tryGetDef(FormulaUnit* unit)
   return false;
 }
 
+/**
+ * Return true if lhs<=>rhs is a definition whose inlining will not
+ * lead to growth in the size of the problem.
+ *
+ * This function makes use of the value of _predOccCounts variable.
+ *
+ * Definition is non-growing if it's rhs is a literal that doesn't
+ * contain non-constant functions, or if the lhs predicate occurrs at
+ * most once elsewhere in the problem.
+ *
+ * An important property is that predicate equivalences are non-growing
+ * (we rely on the fact that all predicate equivalences are inlined).
+ */
+bool PDInliner::isNonGrowingDef(Literal* lhs, Formula* rhs)
+{
+  CALL("PDInliner::isNonGrowingDef");
+
+  if(rhs->connective()==LITERAL && rhs->literal()->isShallow()) {
+    return true;
+  }
+  unsigned lhsPred = lhs->functor();
+  unsigned occCnt = _predOccCounts.get(lhsPred);
+  ASS_GE(occCnt,1); //there must be at least one occurrence -- in the definition itself
+  return occCnt<=2;
+}
+
 bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 {
   CALL("PDInliner::tryGetDef");
@@ -826,16 +872,8 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
     return false;
   }
 
-  if(_nonGrowing) {
-    if(rhs->connective()!=LITERAL) { return false; }
-    Literal* rhsLit = rhs->literal();
-    unsigned arity = rhsLit->arity();
-    for(unsigned i=0; i<arity; ++i) {
-      TermList arg = *rhsLit->nthArgument(i);
-      if(arg.isTerm() && arg.term()->arity()>0) {
-	return false;
-      }
-    }
+  if(_nonGrowing && !isNonGrowingDef(lhs, rhs)) {
+    return false;
   }
 
   bool headInline = false;

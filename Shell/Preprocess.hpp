@@ -28,8 +28,8 @@ public:
     : _options(options)
   {}
   void preprocess(Problem& prb);
-private:
   void preprocess1(Problem& prb);
+private:
   void preprocess2(Problem& prb);
   void naming(Problem& prb);
   void secondStageEprPreservingNaming(Problem& prb);
