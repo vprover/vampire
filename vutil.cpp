@@ -13,6 +13,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
@@ -54,6 +55,20 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
       string traceStr(it.next());
       it.del();
       PROCESS_TRACE_SPEC_STRING(traceStr);
+    }
+    else if(arg=="-m") {
+      it.del();
+      if(!it.hasNext()) {
+	USER_ERROR("value for -m option expected");
+      }
+      string memLimitStr = it.next();
+      it.del();
+      unsigned memLimit;
+      if(!Int::stringToUnsignedInt(memLimitStr, memLimit)) {
+	USER_ERROR("unsigned number expected as value of -m option");
+      }
+      env.options->setMemoryLimit(memLimit);
+      Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
     }
     else {
       break;
