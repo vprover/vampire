@@ -228,44 +228,12 @@ class Signature
     USE_ALLOCATOR(RealSymbol);
   };
 
-  unsigned addInterpretedFunction(Interpretation itp, const string& name);
-  unsigned addInterpretedPredicate(Interpretation itp, const string& name);
+  //////////////////////////////////////
+  // Uninterpreted symbol declarations
+  //
 
-
-  unsigned addIntegerConstant(const string& number);
-  unsigned addRationalConstant(const string& numerator, const string& denominator);
-  unsigned addRealConstant(const string& number);
-
-  unsigned addIntegerConstant(const IntegerConstantType& number);
-  unsigned addRationalConstant(const RationalConstantType& number);
-  unsigned addRealConstant(const RealConstantType& number);
-
-  unsigned getInterpretingSymbol(Interpretation interp);
-
-  /** Return true iff there is a symbol interpreted by Interpretation @b interp */
-  bool haveInterpretingSymbol(Interpretation interp) const { return _iSymbols.find(interp); }
-
-  /**
-   * Return true iff we have any declared interpreted symbols
-   *
-   * The equality symbol is always present and is interpreted,
-   * so we return true only if we have any other interpreted
-   * symbols.
-   */
-  bool anyInterpretedSymbols() const
-  {
-    CALL("Signature::anyInterpretedSymbols");
-    ASS_G(_iSymbols.size(),0); //we always have equality which is interpreted
-
-    return _iSymbols.size()!=1;
-  }
-
-  unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addIteFunction(unsigned arity);
-  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
-
-  unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addNamePredicate(unsigned arity);
+  unsigned addPredicate(const string& name,unsigned arity,bool& added);
+  unsigned addFunction(const string& name,unsigned arity,bool& added);
 
   /**
    * If a predicate with this name and arity exists, return its number.
@@ -298,6 +266,50 @@ class Signature
    * The added constant is of sort Sorts::SRT_DEFAULT.
    */
   unsigned addStringConstant(const string& name);
+
+
+  unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
+  unsigned addIteFunction(unsigned arity);
+  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
+
+  unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
+  unsigned addNamePredicate(unsigned arity);
+
+
+  ////////////////////////////////////
+  // Interpreted symbol declarations
+  //
+
+  unsigned addInterpretedFunction(Interpretation itp, const string& name);
+  unsigned addInterpretedPredicate(Interpretation itp, const string& name);
+
+  unsigned addIntegerConstant(const string& number);
+  unsigned addRationalConstant(const string& numerator, const string& denominator);
+  unsigned addRealConstant(const string& number);
+
+  unsigned addIntegerConstant(const IntegerConstantType& number);
+  unsigned addRationalConstant(const RationalConstantType& number);
+  unsigned addRealConstant(const RealConstantType& number);
+
+  unsigned getInterpretingSymbol(Interpretation interp);
+
+  /** Return true iff there is a symbol interpreted by Interpretation @b interp */
+  bool haveInterpretingSymbol(Interpretation interp) const { return _iSymbols.find(interp); }
+
+  /**
+   * Return true iff we have any declared interpreted symbols
+   *
+   * The equality symbol is always present and is interpreted,
+   * so we return true only if we have any other interpreted
+   * symbols.
+   */
+  bool anyInterpretedSymbols() const
+  {
+    CALL("Signature::anyInterpretedSymbols");
+    ASS_G(_iSymbols.size(),0); //we always have equality which is interpreted
+
+    return _iSymbols.size()!=1;
+  }
 
   /** return the name of a function with a given number */
   const string& functionName(int number)
@@ -363,9 +375,6 @@ class Signature
 
   CLASS_NAME("Signature");
   USE_ALLOCATOR(Signature);
-
-  unsigned addPredicate(const string& name,unsigned arity,bool& added);
-  unsigned addFunction(const string& name,unsigned arity,bool& added);
 
   bool functionExists(const string& name,unsigned arity) const;
   bool predicateExists(const string& name,unsigned arity) const;
