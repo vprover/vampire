@@ -25,7 +25,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/EqualityProxy.hpp"
+#include "Shell/EqualityAxiomatizer.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -79,23 +79,19 @@ ClauseIterator IGAlgorithm::getActive()
   return pvi( RCClauseStack::Iterator(_active) );
 }
 
+/**
+ * Prepare the object to start solving.
+ *
+ * If we combine InstGen with saturation, initialize the saturation algorithm
+ * with a copy of input problem.
+ *
+ * If equality is present in the problem, axiomatize it.
+ *
+ * Move problem clauses into the _inputClauses stack.
+ */
 void IGAlgorithm::init()
 {
   CALL("IGAlgorithm::init");
-
-  if(_prb.hasEquality()) {
-    EqualityProxy ep(Options::EP_RSTC);
-    ep.apply(_prb);
-  }
-
-  ClauseIterator cit = _prb.clauseIterator();
-
-  while(cit.hasNext()) {
-    Clause* cl = cit.next();
-    ASS(cl->isClause());
-    _inputClauses.push(cl);
-  }
-
 
   if(_opt.instGenWithResolution()) {
     _saturationIndexManager = new IndexManager(0);
@@ -122,6 +118,20 @@ void IGAlgorithm::init()
     //if there's no resolution, we always do instGen
     _instGenResolutionRatio.alwaysDoFirst();
   }
+
+  if(_prb.hasEquality()) {
+    EqualityAxiomatizer ea(Options::EP_RSTC);
+    ea.apply(_prb);
+  }
+
+  ClauseIterator cit = _prb.clauseIterator();
+
+  while(cit.hasNext()) {
+    Clause* cl = cit.next();
+    ASS(cl->isClause());
+    _inputClauses.push(cl);
+  }
+
 }
 
 void IGAlgorithm::addClause(Clause* cl)

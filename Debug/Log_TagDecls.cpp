@@ -257,6 +257,10 @@ void Logging::doTagDeclarations()
       DOC("trivial predicate remover"),
       PARENT("pp",1));
 
+  DECL("pp_ea",
+      DOC("equality_axiomatizer"),
+      PARENT("pp",1));
+
   DECL("pp_aig",
       DOC("aig sub-formula sharing"),
       PARENT("pp",1));
@@ -377,9 +381,6 @@ void Logging::doTagDeclarations()
   DECL("ord_diff",
       DOC("diff between results of two ordering algrithms (must be explicitly used in code)"));
 
-  DECL("prb_prop_refresh",
-      DOC("logs when property of a problem needs to be updated by traversing through the problem"));
-
   DECL("srt_collect_var_sorts",
       DOC("code for collecting variable sorts from terms and formulas"));
 
@@ -413,6 +414,12 @@ void Logging::doTagDeclarations()
       DOC("traces in the unit-testing infrastructure"));
   DECL("ut_forking",
       PARENT("ut",1));
+
+  DECL("prb",
+      DOC("Object Kernel::Problem"));
+  DECL("prb_prop_refresh",
+      DOC("logs when property of a problem needs to be updated by traversing through the problem"),
+      PARENT("prb",0));
 }
 
 

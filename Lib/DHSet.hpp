@@ -139,15 +139,28 @@ public:
   {
     return _map.domain();
   }
-
 private:
   /** Copy constructor is private and without a body, because we don't want any. */
   DHSet(const DHSet& obj);
   /** operator= is private and without a body, because we don't want any. */
   DHSet& operator=(const DHSet& obj);
 
-  DHMap<Val,EmptyStruct,Hash1,Hash2> _map;
+  typedef DHMap<Val,EmptyStruct,Hash1,Hash2> InnerMap;
 
+  InnerMap _map;
+
+public:
+  class Iterator
+  {
+  public:
+    Iterator(const DHSet& parent) : _mit(parent._map) {}
+
+    bool hasNext() { return _mit.hasNext(); }
+    Val next() { return _mit.nextKey(); }
+
+  private:
+    typename InnerMap::Iterator _mit;
+  };
 }; // class DHSet
 
 }

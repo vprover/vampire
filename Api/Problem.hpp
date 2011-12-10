@@ -49,6 +49,7 @@ public:
 
   enum InliningMode {
     INL_OFF = 0,
+    /** Inline all predicate defnitions */
     INL_ON = 1,
     INL_AXIOMS_ONLY = 2,
     /**
@@ -67,7 +68,11 @@ public:
      * The definitions need to be supplied by other means. This mode
      * makes sense only for certaing APIs that perform definition inlining.
      */
-    INL_NO_DISCOVERED_DEFS = 5
+    INL_NO_DISCOVERED_DEFS = 5,
+    /**
+     * Inlines only definitions that do not increase the size of the problem
+     */
+    INL_NON_GROWING = 6
   };
 
   enum PreprocessingMode {

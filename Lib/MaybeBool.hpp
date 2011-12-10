@@ -25,6 +25,7 @@ public:
 
   MaybeBool() : _value(UNKNOWN) {}
   MaybeBool(bool val) : _value(val ? TRUE : FALSE) {}
+  MaybeBool(Value val) : _value(val) {}
 
   bool known() const { return _value!=UNKNOWN; }
   bool isTrue() const { return _value==TRUE; }

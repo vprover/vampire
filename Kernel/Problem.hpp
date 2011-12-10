@@ -97,11 +97,20 @@ public:
 
 
   void reportSpecialTermsAndLetsEliminated()
-  { _hasSpecialTermsOrLets = false; }
+  {
+    invalidateProperty();
+    _hasSpecialTermsOrLets = false;
+  }
   void reportFormulaIteEliminated()
-  { _hasFormulaItes = false; }
+  {
+    invalidateProperty();
+    _hasFormulaItes = false;
+  }
   void reportFormulaIteAdded()
-  { _hasFormulaItes = true; }
+  {
+    invalidateProperty();
+    _hasFormulaItes = true;
+  }
   /**
    * Report that equality was added into the problem
    *
@@ -110,6 +119,7 @@ public:
    */
   void reportEqualityAdded(bool oneVariable, bool twoVariables=false)
   {
+    invalidateProperty();
     _hasEquality = true;
     _mayHaveEquality = true;
     if(oneVariable) {
@@ -121,11 +131,13 @@ public:
   }
   void reportFormulasEliminated()
   {
+    invalidateProperty();
     _hasFormulas = false;
     _mayHaveFormulas = false;
   }
   void reportEqualityEliminated()
   {
+    invalidateProperty();
     _hasEquality = false;
     _mayHaveEquality = false;
     _mayHaveFunctionDefinitions = false;

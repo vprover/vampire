@@ -239,6 +239,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/EPRInlining.o\
          Shell/EPRSkolem.o\
          Shell/EqResWithDeletion.o\
+	 Shell/EqualityAxiomatizer.o\
          Shell/EqualityPropagator.o\
          Shell/EqualityProxy.o\
          Shell/Flattening.o\
@@ -430,6 +431,7 @@ OTHER_API_DEP = \
 	   Shell/CNF.o\
 	   Shell/EPRInlining.o\
 	   Shell/EPRSkolem.o\
+	   Shell/EqualityAxiomatizer.o\
 	   Shell/EqualityProxy.o\
 	   Shell/EqualityPropagator.o\
 	   Shell/Flattening.o\

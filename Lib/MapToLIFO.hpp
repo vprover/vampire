@@ -20,6 +20,7 @@ class MapToLIFO
 {
 public:
   typedef List<V> ValList;
+  typedef typename ValList::Iterator ValIterator;
   typedef DHMap<K,ValList*, Hash1, Hash2> InnerMap;
 
   ~MapToLIFO()
@@ -115,11 +116,11 @@ public:
   }
 
 
-  typename ValList::Iterator keyIterator(K key)
+  ValIterator keyIterator(K key)
   {
     ValList* lst=0;
     _data.find(key, lst); //if the key isn't found, the lst remains unchanged
-    return typename ValList::Iterator(lst);
+    return ValIterator(lst);
   }
 
   VirtualIterator<V> allValIterator()

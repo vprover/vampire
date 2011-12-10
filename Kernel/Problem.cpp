@@ -101,9 +101,11 @@ void Problem::addUnits(UnitList* newUnits)
     TimeCounter tc(TC_PROPERTY_EVALUATION);
     _property->add(newUnits);
     readDetailsFromProperty();
+    LOG("prb","units added to problem with valid property");
   }
   else {
     invalidateEverything();
+    LOG("prb","units added to problem with invalid property");
   }
 }
 
@@ -323,7 +325,9 @@ bool Problem::hasFormulas() const
 
   if(!mayHaveFormulas()) { return false; }
   if(!_hasFormulas.known()) { refreshProperty(); }
-  return _hasEquality.value();
+  ASS(_hasFormulas.known());
+  ASS(_hasFormulas.known());
+  return _hasFormulas.value();
 }
 
 bool Problem::hasEquality() const
