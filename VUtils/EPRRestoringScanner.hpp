@@ -27,6 +27,9 @@ private:
     UNDEF
   };
 
+  bool _useUnitPropagationForSatEqDiscovery;
+  bool _useVariableNormalizationForSatEqDiscovery;
+
   Options _opts;
 
   void countClauses(Problem& prb, unsigned& allClauseCnt, unsigned& nonEprClauseCnt);
@@ -46,6 +49,10 @@ private:
   unsigned _predDefsAfterNGAndMerge;
   unsigned _ngmClauseCnt;
   unsigned _ngmNonEPRClauseCnt;
+  unsigned _satDiscovered0;
+  unsigned _satDiscoveredAfterNGM;
+  unsigned _satDiscoveredIterativelyAfterNGM;
+  unsigned _satDiscoveryIterationCnt;
 
 
   void reportResults();

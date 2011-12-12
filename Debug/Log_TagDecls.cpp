@@ -261,6 +261,19 @@ void Logging::doTagDeclarations()
       DOC("equality_axiomatizer"),
       PARENT("pp",1));
 
+  DECL("pp_ed",
+      DOC("equivalence discovery"),
+      PARENT("pp",1));
+  DECL("pp_ed_progress",
+      DOC("progress of the equivalence discovery algorithm"),
+      PARENT("pp_ed",0));
+  DECL("pp_ed_eq",
+      DOC("discovered equivalences"),
+      PARENT("pp_ed",0));
+  DECL("pp_ed_asm",
+      DOC("assumptions being asserted into the solver"),
+      PARENT("pp_ed",1));
+
   DECL("pp_aig",
       DOC("aig sub-formula sharing"),
       PARENT("pp",1));
@@ -322,6 +335,9 @@ void Logging::doTagDeclarations()
   DECL("sat",
       DOC("SAT solver traces"));
 
+  DECL("sat_clauses",
+      DOC("added clauses"));
+
   DECL("sat_asmp",
       DOC("SAT solver assumptions"),
       PARENT("sat",0));
@@ -335,6 +351,9 @@ void Logging::doTagDeclarations()
       PARENT("sat",1));
   DECL("sat_learnt_gen",
       DOC("generating of learnt clauses in SAT solver"),
+      PARENT("sat_learnt",1));
+  DECL("sat_learnt_prems",
+      DOC("premises of learnt clauses in SAT solver (shows all premises only when proof generation is enabled in SAT solver)"),
       PARENT("sat_learnt",1));
 
   //

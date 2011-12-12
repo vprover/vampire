@@ -20,10 +20,11 @@ using namespace SAT;
 class Grounder {
 public:
   Grounder();
+  virtual ~Grounder() {}
 
   SATClauseIterator ground(Clause* cl);
-  SATClause* groundNonProp(Clause* cl);
-  void groundNonProp(Clause* cl, SATLiteralStack& acc);
+  SATClause* groundNonProp(Clause* cl, Literal** normLits=0);
+  void groundNonProp(Clause* cl, SATLiteralStack& acc, Literal** normLits=0);
   SATLiteral ground(Literal* lit);
 
   unsigned satVarCnt() const { return _nextSatVar; }
@@ -49,6 +50,11 @@ private:
 };
 
 class GlobalSubsumptionGrounder : public Grounder {
+  struct OrderNormalizingComparator;
+
+  bool _doNormalization;
+public:
+  GlobalSubsumptionGrounder(bool doNormalization=true) : _doNormalization(doNormalization) {}
 protected:
   virtual void normalize(unsigned cnt, Literal** lits);
 };

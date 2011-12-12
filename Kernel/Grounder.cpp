@@ -3,6 +3,8 @@
  * Implements class Grounder.
  */
 
+#include <algorithm>
+
 #include "Lib/Environment.hpp"
 #include "Lib/SharedSet.hpp"
 
@@ -14,6 +16,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "SAT/SATClause.hpp"
 #include "SAT/SATLiteral.hpp"
@@ -59,18 +62,33 @@ SATClauseIterator Grounder::ground(Clause* cl)
  * non-propositional part of @c cl.
  *
  * The order of literals in @c cl is preserved.
+ *
+ * @param normLits if non-zero, array to receive normalized literals
+ * (in the order of literals in the clause). Size of the array must be
+ * at least equal to te size of the clause. There is one-to-one
+ * correspondence between normalized literals and SAT literals.
  */
-SATClause* Grounder::groundNonProp(Clause* cl)
+void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, Literal** normLits)
 {
-  CALL("Grounder::groundNonProp/1");
+  CALL("Grounder::groundNonProp/2");
 
-  static SATLiteralStack gndLits;
-  gndLits.reset();
+  static DArray<Literal*> lits;
 
-  groundNonProp(cl, gndLits);
+  unsigned clen = cl->length();
 
-  SATClause* res = SATClause::fromStack(gndLits);
-  return res;
+  if(normLits) {
+    std::copy(cl->literals(), cl->literals()+clen, normLits);
+  }
+  else {
+    lits.initFromArray(clen, *cl);
+    normLits = lits.array();
+  }
+
+  normalize(clen, normLits);
+
+  for(unsigned i=0; i<clen; i++) {
+    acc.push(groundNormalized(normLits[i]));
+  }
 }
 
 /**
@@ -78,21 +96,23 @@ SATClause* Grounder::groundNonProp(Clause* cl)
  * non-propositional part of @c cl.
  *
  * The order of literals in @c cl is preserved.
+ *
+ * @param normLits if non-zero, array to receive normalized literals
+ * (in the order of literals in the clause). Size of the array must be
+ * at least equal to te size of the clause. There is one-to-one
+ * correspondence between normalized literals and SAT literals.
  */
-void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc)
+SATClause* Grounder::groundNonProp(Clause* cl, Literal** normLits)
 {
-  CALL("Grounder::groundNonProp/2");
+  CALL("Grounder::groundNonProp(Clause*,Literal**)");
 
-  static DArray<Literal*> lits;
+  static SATLiteralStack gndLits;
+  gndLits.reset();
 
-  unsigned clen = cl->length();
-  lits.initFromArray(clen, *cl);
+  groundNonProp(cl, gndLits, normLits);
 
-  normalize(clen, lits.array());
-
-  for(unsigned i=0; i<clen; i++) {
-    acc.push(groundNormalized(lits[i]));
-  }
+  SATClause* res = SATClause::fromStack(gndLits);
+  return res;
 }
 
 /**
@@ -191,18 +211,70 @@ void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause
 // GlobalSubsumptionGrounder
 //
 
+struct GlobalSubsumptionGrounder::OrderNormalizingComparator
+{
+  Literal** _lits;
+  OrderNormalizingComparator(Literal** lits) : _lits(lits) {}
+
+  bool operator()(unsigned a, unsigned b) {
+    Literal* la = _lits[a];
+    Literal* lb = _lits[b];
+    if(la==lb) { return false; }
+    if(la->vars()!=lb->vars()) {
+      //first, we want literals with less variables to appear in the
+      //beginning as there is better chance to get some sharing across clauses
+      return la->vars()<lb->vars();
+    }
+    if(la->weight()!=lb->weight()) {
+      return la->weight()<lb->weight();
+    }
+    if(la->header()!=lb->header()) {
+      return la->header()<lb->header();
+    }
+    //now get just some total deterministic order
+    static DisagreementSetIterator dsit;
+    dsit.reset(la, lb, false);
+    ALWAYS(dsit.hasNext());
+    pair<TermList,TermList> da = dsit.next();
+    if(da.first.isVar()!=da.second.isVar()) {
+      return da.first.isVar();
+    }
+    if(da.first.isVar()) {
+      ASS_NEQ(da.first.var(),da.second.var());
+      return da.first.var()<da.second.var();
+    }
+    else {
+      ASS_NEQ(da.first.term()->functor(),da.second.term()->functor());
+      return da.first.term()->functor()<da.second.term()->functor();
+    }
+    return a<b; //if nothing else applies, we keep the original order
+  }
+};
+
 void GlobalSubsumptionGrounder::normalize(unsigned cnt, Literal** lits)
 {
   CALL("GlobalSubsumptionGrounder::normalize");
 
-  //TODO: maybe try somehow normalize the order of literals
+  if(!_doNormalization) { return; }
+
+  if(cnt==0) { return; }
+  if(cnt==1) {
+    lits[0] = Renaming::normalize(lits[0]);
+  }
+
+  static Stack<unsigned> litOrder;
+  litOrder.reset();
+  litOrder.loadFromIterator(getRangeIterator(0u,cnt));
+
+  std::sort(litOrder.begin(), litOrder.end(), OrderNormalizingComparator(lits));
 
   static Renaming normalizer;
   normalizer.reset();
 
   for(unsigned i=0; i<cnt; i++) {
-    normalizer.normalizeVariables(lits[i]);
-    lits[i] = normalizer.apply(lits[i]);
+    unsigned li = litOrder[i];
+    normalizer.normalizeVariables(lits[li]);
+    lits[li] = normalizer.apply(lits[li]);
   }
 }
 

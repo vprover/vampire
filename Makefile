@@ -242,6 +242,7 @@ VS_OBJ = Shell/AIG.o\
 	 Shell/EqualityAxiomatizer.o\
          Shell/EqualityPropagator.o\
          Shell/EqualityProxy.o\
+         Shell/EquivalenceDiscoverer.o\
          Shell/Flattening.o\
          Shell/FormulaIteExpander.o\
          Shell/FunctionDefinition.o\

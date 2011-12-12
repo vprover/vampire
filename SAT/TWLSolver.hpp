@@ -56,6 +56,7 @@ public:
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
   virtual void retractAllAssumptions();
+  virtual bool hasAssumptions() const { return _assumptionsAdded; }
 
   virtual SATClause* getRefutation() { return _refutation; }
 
@@ -202,6 +203,11 @@ private:
   /** Level 1 is the first level which is not preceded by any choice point */
   unsigned _level;
 
+  /** True it used added assumptions and they weren't retracted yet.
+   * If false, _assumptionCnt==0, but te converse doesn't need to hold,
+   * as the user assumptions might not have been put on the stack due
+   * to redundancy. */
+  bool _assumptionsAdded;
   /** Number of assumptions that are currently on the unit stack */
   unsigned _assumptionCnt;
   /**

@@ -37,6 +37,7 @@ public:
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate=false) = 0;
   virtual void retractAllAssumptions() = 0;
+  virtual bool hasAssumptions() const = 0;
 
   virtual SATClause* getRefutation() = 0;
 

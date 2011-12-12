@@ -162,6 +162,8 @@ class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
 
 class Grounder;
+class GlobalSubsumptionGrounder;
+class IGGrounder;
 typedef Lib::ScopedPtr<Grounder> GrounderSCP;
 
 class BDD;

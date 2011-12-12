@@ -5,12 +5,15 @@
 
 #include "Debug/Tracer.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/ScopedPtr.hpp"
 
 #include "Kernel/Problem.hpp"
 
 #include "Shell/EqualityPropagator.hpp"
+#include "Shell/EquivalenceDiscoverer.hpp"
+#include "Shell/Options.hpp"
 #include "Shell/PDInliner.hpp"
 #include "Shell/PDMerger.hpp"
 #include "Shell/PDUtils.hpp"
@@ -88,6 +91,13 @@ void EPRRestoringScanner::computeEprResults(Problem& prb)
   countClauses(prbCl, _baseClauseCnt, _baseNonEPRClauseCnt);
   LOG("vu_ers", "Ordinary preprocessing finished, clause count: " << _baseClauseCnt <<" non-epr: " << _baseNonEPRClauseCnt);
 
+  {
+    EquivalenceDiscoverer ed(_useVariableNormalizationForSatEqDiscovery, _useUnitPropagationForSatEqDiscovery);
+    _satDiscovered0 = ed.getEquivalences(prbCl.clauseIterator())->length();
+    LOG("vu_ers", "Sat solver discoveder: " << _satDiscovered0 <<" equivlences in the unprocessed problem");
+  }
+
+
   int clArity = prbCl.getProperty()->maxFunArity();
   LOGV("vu_ers", clArity);
   if(clArity==0 && _eprRes==UNDEF) {
@@ -158,11 +168,38 @@ void EPRRestoringScanner::computeInliningResults(Problem& prb0)
 //  optsDMNG.setEqualityPropagation(true);
   optsDMNG.setPredicateDefinitionInlining(Options::INL_NON_GROWING);
   optsDMNG.setPredicateDefinitionMerging(true);
-  Preprocess prepro2(optsDMNG);
-  prepro2.preprocess(prb);
 
-  countClauses(prb, _ngmClauseCnt, _ngmNonEPRClauseCnt);
-  LOG("vu_ers", "Non-growing inlinig and merging clause count: " << _ngmClauseCnt <<" non-epr: " << _ngmNonEPRClauseCnt);
+
+  bool firstIteration = true;
+  _satDiscoveredIterativelyAfterNGM = 0;
+  _satDiscoveryIterationCnt = 0;
+start:
+
+  Problem prbCl;
+  prb.copyInto(prbCl, false);
+
+  Preprocess prepro2(optsDMNG);
+  prepro2.preprocess(prbCl);
+
+  if(firstIteration) {
+    countClauses(prbCl, _ngmClauseCnt, _ngmNonEPRClauseCnt);
+    LOG("vu_ers", "Non-growing inlining and merging clause count: " << _ngmClauseCnt <<" non-epr: " << _ngmNonEPRClauseCnt);
+  }
+
+  EquivalenceDiscoverer ed(_useVariableNormalizationForSatEqDiscovery, _useUnitPropagationForSatEqDiscovery);
+  UnitList* equivs = ed.getEquivalences(prbCl.clauseIterator());
+  unsigned currentlyDiscovered = equivs->length();
+  if(firstIteration) {
+    _satDiscoveredAfterNGM = currentlyDiscovered;
+    LOG("vu_ers", "Sat solver discovered: " << _satDiscoveredAfterNGM <<" equivlences in problem after non-growing inlining and merging");
+    firstIteration = false;
+  }
+  _satDiscoveredIterativelyAfterNGM += currentlyDiscovered;
+  if(currentlyDiscovered!=0 && _satDiscoveryIterationCnt<10) {
+    _satDiscoveryIterationCnt++;
+    prb.addUnits(equivs);
+    goto start;
+  }
 }
 
 void EPRRestoringScanner::reportResults()
@@ -187,7 +224,8 @@ void EPRRestoringScanner::reportResults()
   }
   cout << "\t" << _baseClauseCnt << "\t" << _baseNonEPRClauseCnt << "\t" << _erClauseCnt << "\t" << _erNonEPRClauseCnt
        << "\t" << _predDefCnt << "\t" << _predDefsNonGrowing << "\t" << _predDefsMerged << "\t" << _predDefsAfterNGAndMerge
-       << "\t" << _ngmClauseCnt << "\t" << _ngmNonEPRClauseCnt << endl;
+       << "\t" << _ngmClauseCnt << "\t" << _ngmNonEPRClauseCnt << "\t" << _satDiscovered0 << "\t" << _satDiscoveredAfterNGM
+       << "\t" << _satDiscoveredIterativelyAfterNGM << "\t" << _satDiscoveryIterationCnt << endl;
 }
 
 int EPRRestoringScanner::perform(int argc, char** argv)
@@ -199,7 +237,11 @@ int EPRRestoringScanner::perform(int argc, char** argv)
   }
   string fname = argv[2];
 
+  _opts.setTheoryAxioms(false);
   _opts.setInputFile(fname);
+
+  _useUnitPropagationForSatEqDiscovery = true;
+  _useVariableNormalizationForSatEqDiscovery = true;
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(_opts));
 

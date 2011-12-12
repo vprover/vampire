@@ -142,6 +142,8 @@ public:
     PREDICATE_DEFINITION_UNFOLDING,
     /** merging predicate definitions */
     PREDICATE_DEFINITION_MERGING,
+    /** discovery of equivalences between atoms */
+    EQUIVALENCE_DISCOVERY,
     /** sharing common subformulas across the problem */
     FORMULA_SHARING,
     /** reduce a formula containing false or true, for example

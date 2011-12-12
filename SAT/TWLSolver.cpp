@@ -34,7 +34,7 @@ using namespace Lib;
 
 TWLSolver::TWLSolver(const Options& opt, bool generateProofs)
 : _opt(opt), _generateProofs(generateProofs), _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
-_windex(0), _varCnt(0), _level(1), _assumptionCnt(0), _unsatisfiableAssumptions(false)
+_windex(0), _varCnt(0), _level(1), _assumptionsAdded(false), _assumptionCnt(0), _unsatisfiableAssumptions(false)
 {
   switch(opt.satVarSelector()) {
   case Options::SVS_ACTIVE:
@@ -128,6 +128,7 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   try {
     while(cit.hasNext()) {
       SATClause* cl=cit.next();
+      LOG("sat_clauses",*cl);
       cl->setKept(true);
       if(cl->length()==1) {
 	addUnitClause(cl);
@@ -159,7 +160,10 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
 
   LOG("sat_asmp","add assumption "<<lit);
 
+  _assumptionsAdded = true;
+
   if(_status==UNSATISFIABLE) {
+    LOG("sat_asmp","assumption ignored due to unsat state");
     return;
   }
   ASS(!anythingToPropagate());
@@ -171,8 +175,9 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
   {
     backtrack(1);
     if(isFalse(lit)) {
-      LOG("sat_asmp","assumption unsat");
+      LOG("sat_asmp","assumption immediately unsat");
       handleConflictingAssumption(lit);
+      ASSERTION_VIOLATION; //exception must be thrown in handleConflictingAssumption()
     }
     if(isTrue(lit)) {
       //the assumption follows from unit propagation
@@ -189,6 +194,7 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
     }
   } catch (UnsatException e)
   {
+    LOG("sat_asmp","assumption unsat");
     _unsatisfiableAssumptions = true;
     _status = UNSATISFIABLE;
     _refutation = e.refutation;
@@ -201,6 +207,8 @@ void TWLSolver::retractAllAssumptions()
   CALL("TWLSolver::retractAllAssumptions");
 
   LOG("sat_asmp","retract assumptions");
+
+  _assumptionsAdded = false;
 
   if(_unsatisfiableAssumptions) {
     //Invariant: before adding assumptions the problem was satisfiable
@@ -405,6 +413,8 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars, SATClauseList*& 
 {
   CALL("TWLSolver::isRedundant");
 
+  LOG("sat_learnt_gen","checking redundancy of literal "<<lit);
+
   static ArraySet varsSeenHere;
   varsSeenHere.ensure(_varCnt);
   varsSeenHere.reset();
@@ -428,22 +438,33 @@ bool TWLSolver::isRedundant(SATLiteral lit, ArraySet& seenVars, SATClauseList*& 
       if(redundancyPremises) {
 	redundancyPremises->destroy();
       }
+      LOG("sat_learnt_gen","non-redundant "<<lit<<" as "<<clVar<<" is without premise");
       return false;
     }
     if(_generateProofs) {
       SATClauseList::push(cl, redundancyPremises);
     }
+    LOG("sat_learnt_gen","examining "<<(*cl)<<" -- premise of "<<clVar);
     SATClause::Iterator premLitIt(*cl);
     while(premLitIt.hasNext()) {
       SATLiteral premLit = premLitIt.next();
       unsigned premVar = premLit.var();
-      if(seenVars.find(premVar) || (getAssignmentLevel(premLit)==1 && _assignmentPremises[premLit.var()] )) {
+      if(premVar==clVar || seenVars.find(premVar)) {
 	continue;
       }
+      LOG("sat_learnt_gen","variable "<<premVar<< " goes for further examination");
       toDo.push(premVar);
     }
   }
+  TRACE("sat_learnt_prems",
+      SATClauseList::Iterator pit(redundancyPremises);
+      while(pit.hasNext()) {
+	tout << "premise: " << (*pit.next()) << endl;
+      }
+  );
+
   premises = SATClauseList::concat(redundancyPremises, premises);
+  LOG("sat_learnt_gen","redundant "<<lit);
   return true;
 }
 
@@ -452,6 +473,9 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   CALL("TWLSolver::getLearntClause");
   ASS(isFalse(conflictClause));
 
+  //variables implied by the current conflict
+  //The learnt claue must contradict assignment
+  //to at least one of these variables.
   static ArraySet seenVars;
   seenVars.ensure(_varCnt);
   seenVars.reset();
@@ -469,7 +493,7 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
     if(_generateProofs) {
       SATClauseList::push(cl, premises);
     }
-    LOG("sat_learnt_gen","premise: "<<cl->toString());
+    LOG("sat_learnt_prems","premise: "<<(*cl));
     recordClauseActivity(cl);
     SATClause::Iterator cit(*cl);
     while(cit.hasNext()) {
@@ -835,8 +859,7 @@ void TWLSolver::addClause(SATClause* cl)
 
   LOG("sat","adding clause "<<(*cl));
 
-  unsigned clen=cl->length();
-  ASS_G(clen,1);
+  ASS_G(cl->length(),1);
 
   unsigned wCnt=selectTwoNonFalseLiterals(cl);
 
