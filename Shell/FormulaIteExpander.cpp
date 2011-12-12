@@ -97,9 +97,13 @@ FormulaUnit* FormulaIteExpander::apply(FormulaUnit* unit)
     return unit;
   }
 
-  return new FormulaUnit(g,
+  FormulaUnit* res = new FormulaUnit(g,
 			 new Inference1(Inference::FORMULA_ITE_EXPANSION,unit),
 			 unit->inputType());
+  if(unit->included()) {
+    res->markIncluded();
+  }
+  return res;
 }
 
 

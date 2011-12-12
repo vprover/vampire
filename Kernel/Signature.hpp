@@ -23,10 +23,11 @@
 #include "Sorts.hpp"
 #include "Theory.hpp"
 
-using namespace std;
-using namespace Lib;
 
 namespace Kernel {
+
+using namespace std;
+using namespace Lib;
 
 /**
  * Class representing signatures.

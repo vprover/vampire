@@ -3,8 +3,8 @@
  * Defines class FormulaBuilder.
  */
 
-#ifndef __FormulaBuilder__
-#define __FormulaBuilder__
+#ifndef __API_FormulaBuilder__
+#define __API_FormulaBuilder__
 
 #include <string>
 #include <ostream>
@@ -667,4 +667,4 @@ private:
 
 }
 
-#endif // __FormulaBuilder__
+#endif // __API_FormulaBuilder__

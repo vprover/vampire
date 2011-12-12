@@ -371,6 +371,8 @@ protected:
     ASS(!_transforming);
     ASS(_defs.isEmpty());
 
+    LOG("api_prb_transf","transforming: "<<f);
+
     _transforming = true;
     _origName = f.name();
     _origUnit = f;
@@ -399,6 +401,7 @@ protected:
     _res->addFormula(af);
     if(unit==_origUnit) {
       //if added formula is the original one, we don't assign name to it
+      LOG("api_prb_transf","formula not transformed: "<<af);
       return;
     }
 
@@ -412,6 +415,7 @@ protected:
       unitName=_origName;
     }
     AnnotatedFormula::assignName(af, unitName);
+    LOG("api_prb_transf","formula transformation result: "<<af);
   }
 
   void handleDefs(Kernel::UnitList*& defLst)
@@ -454,6 +458,7 @@ protected:
     Kernel::UnitList* newDefs=0;
     fu = SpecialTermElimination().apply(fu, newDefs);
     handleDefs(newDefs);
+
 
     fu = Rectify::rectify(fu);
     fu = SimplifyFalseTrue::simplify(fu);
@@ -528,7 +533,7 @@ class Problem::PredicateDefinitionInliner : public ProblemTransformer
 {
 public:
   PredicateDefinitionInliner(InliningMode mode, bool trace)
-      : _mode(mode), _pdInliner(mode==INL_AXIOMS_ONLY, trace)
+      : _mode(mode), _pdInliner(mode==INL_AXIOMS_ONLY, trace, mode==INL_NON_GROWING)
   {
     ASS_NEQ(mode, INL_OFF);
   }
@@ -568,6 +573,15 @@ protected:
 
     AnnotatedFormulaIterator fit;
     if(_mode!=INL_NO_DISCOVERED_DEFS) {
+
+      if(_mode==INL_NON_GROWING) {
+	fit=p.formulas();
+	while(fit.hasNext()) {
+	  AnnotatedFormula f=fit.next();
+	  _pdInliner.updatePredOccCounts(f.unit);
+	}
+      }
+
       fit=p.formulas();
       while(fit.hasNext()) {
 	AnnotatedFormula f=fit.next();

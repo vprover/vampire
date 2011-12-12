@@ -316,6 +316,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
          Test/CompitOutput.o\
          Test/Compit2Output.o\
          Test/Output.o\
+         Test/TestUtils.o\
          Test/UnitTesting.o
 
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
@@ -360,6 +361,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Inferences/TautologyDeletionISE.o\
 	       Kernel/EqHelper.o\
 	       Kernel/FormulaTransformer.o\
+	       Kernel/Grounder.o\
 	       Kernel/InferenceStore.o\
 	       Kernel/Matcher.o\
 	       Kernel/KBO.o\
@@ -367,8 +369,10 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Kernel/Ordering.o\
 	       Kernel/Ordering_Equality.o\
 	       Kernel/Problem.o\
+	       Kernel/Renaming.o\
 	       Kernel/RobSubstitution.o\
 	       SAT/ClauseDisposer.o\
+	       SAT/Preprocess.o\
 	       SAT/RestartStrategy.o\
 	       SAT/SATClause.o\
 	       SAT/SATLiteral.o\
@@ -388,6 +392,7 @@ OTHER_API_DEP = \
 	   Kernel/FormulaTransformer.o\
 	   Kernel/FormulaUnit.o\
 	   Kernel/FormulaVarIterator.o\
+	   Kernel/Grounder.o\
 	   Kernel/Inference.o\
 	   Kernel/InferenceStore.o\
 	   Kernel/KBO.o\
@@ -396,6 +401,7 @@ OTHER_API_DEP = \
 	   Kernel/Ordering.o\
 	   Kernel/Ordering_Equality.o\
 	   Kernel/Problem.o\
+	   Kernel/Renaming.o\
 	   Kernel/RobSubstitution.o\
 	   Kernel/SortHelper.o\
 	   Kernel/Sorts.o\
@@ -425,8 +431,13 @@ OTHER_API_DEP = \
 	   Lib/Sys/Multiprocessing.o\
 	   Lib/Sys/Semaphore.o\
 	   Lib/Sys/SyncPipe.o\
-	   SAT/SATClause.o\
-	   SAT/SATLiteral.o\
+           SAT/ClauseDisposer.o\
+           SAT/Preprocess.o\
+           SAT/RestartStrategy.o\
+           SAT/SATClause.o\
+           SAT/SATLiteral.o\
+           SAT/TWLSolver.o\
+           SAT/VariableSelector.o\
 	   Saturation/ClauseContainer.o\
 	   Shell/AIG.o\
 	   Shell/CNF.o\
@@ -547,7 +558,6 @@ vclausify vclausify_rel vclausify_dbg: $(VCLAUSIFY_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
 vtest vtest_rel vtest_dbg: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
-	#echo $(VUT_OBJ)
 	$(COMPILE_CMD)
 
 vutil vutil_rel vutil_dbg: $(VUTIL_OBJ) $(EXEC_DEF_PREREQ)

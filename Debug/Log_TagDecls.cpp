@@ -373,6 +373,17 @@ void Logging::doTagDeclarations()
 
 
   //
+  // Api
+  //
+
+  DECL("api",
+      DOC("traces related to Vampire API"));
+  DECL("api_prb",
+      DOC("traces related to Vampire API for problems"));
+  DECL("api_prb_transf",
+      DOC("traces related to Vampire API problem transformations"));
+
+  //
   // Other
   //
 
@@ -439,6 +450,12 @@ void Logging::doTagDeclarations()
   DECL("prb_prop_refresh",
       DOC("logs when property of a problem needs to be updated by traversing through the problem"),
       PARENT("prb",0));
+
+  DECL("tu",
+      DOC("TestUtils traces"));
+  DECL("tu_uf",
+      DOC("TestUtils::getUniqueFormula"),
+      PARENT("tu",1));
 }
 
 

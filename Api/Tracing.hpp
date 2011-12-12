@@ -3,8 +3,8 @@
  * Defines class Tracing.
  */
 
-#ifndef __Tracing__
-#define __Tracing__
+#ifndef __API_Tracing__
+#define __API_Tracing__
 
 #include <climits>
 #include <string>
@@ -43,4 +43,4 @@ public:
 
 }
 
-#endif // __Tracing__
+#endif // __API_Tracing__

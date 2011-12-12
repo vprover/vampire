@@ -3,8 +3,8 @@
  * Defines class Problem.
  */
 
-#ifndef __Problem__
-#define __Problem__
+#ifndef __API_Problem__
+#define __API_Problem__
 
 #include "FormulaBuilder.hpp"
 
@@ -387,4 +387,4 @@ private:
 
 }
 
-#endif // __Problem__
+#endif // __API_Problem__

@@ -3,8 +3,8 @@
  * Helper declaration for API classes.
  */
 
-#ifndef __Api_Helper__
-#define __Api_Helper__
+#ifndef __API_Helper__
+#define __API_Helper__
 
 namespace Lib
 {
@@ -60,4 +60,4 @@ public:
 
 }
 
-#endif // __Api_Helper__
+#endif // __API_Helper__

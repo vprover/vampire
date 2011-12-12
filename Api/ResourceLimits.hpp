@@ -3,8 +3,8 @@
  * Defines class ResourceLimits.
  */
 
-#ifndef __ResourceLimits__
-#define __ResourceLimits__
+#ifndef __API_ResourceLimits__
+#define __API_ResourceLimits__
 
 #include <cstddef>
 
@@ -26,4 +26,4 @@ public:
 
 }
 
-#endif // __ResourceLimits__
+#endif // __API_ResourceLimits__

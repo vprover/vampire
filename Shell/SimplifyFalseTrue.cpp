@@ -40,9 +40,13 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
     return unit;
   }
 
-  return new FormulaUnit(g,
+  FormulaUnit* res = new FormulaUnit(g,
 			 new Inference1(Inference::REDUCE_FALSE_TRUE,unit),
 			 unit->inputType());
+  if(unit->included()) {
+    res->markIncluded();
+  }
+  return res;
 } // SimplifyFalseTrue::simplify
 
 

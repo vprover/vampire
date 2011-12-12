@@ -35,9 +35,13 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
     return unit;
   }
 
-  return new FormulaUnit(g,
+  FormulaUnit* res = new FormulaUnit(g,
 			 new Inference1(Inference::FLATTEN,unit),
 			 unit->inputType());
+  if(unit->included()) {
+    res->markIncluded();
+  }
+  return res;
 } // Flattening::flatten
 
 
