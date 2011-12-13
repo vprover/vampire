@@ -42,7 +42,7 @@ template<typename T> class ArrayishObjectIterator;
 template<typename T> class ArrayMap;
 template<typename C> class Vector;
 
-typedef ArrayMap<EmptyStruct> ArraySet;
+class ArraySet;
 
 typedef List<int> IntList;
 typedef List<VoidFunc> VoidFuncList;
@@ -287,6 +287,7 @@ using namespace Lib;
 
 class SATClause;
 class SATLiteral;
+class SATInference;
 
 class SATSolver;
 typedef ScopedPtr<SATSolver> SATSolverSCP;

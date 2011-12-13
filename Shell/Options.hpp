@@ -286,7 +286,8 @@ public:
   enum SplittingMode {
     SM_BACKTRACKING = 0,
     SM_NOBACKTRACKING = 1,
-    SM_OFF = 2
+    SM_OFF = 2,
+    SM_SAT = 3
   };
 
   enum LiteralComparisonMode {

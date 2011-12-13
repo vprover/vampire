@@ -61,6 +61,7 @@ InferenceMany::InferenceMany(Rule rule,UnitList* premises)
   : Inference(rule),
     _premises(premises)
 {
+  CALL("InferenceMany::InferenceMany");
   UnitList* it=_premises;
   while(it) {
     it->head()->incRefCnt();

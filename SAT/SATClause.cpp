@@ -18,7 +18,7 @@
 
 #include "Shell/Statistics.hpp"
 
-//#include "Inference.hpp"
+#include "SATInference.hpp"
 
 #include "SATClause.hpp"
 

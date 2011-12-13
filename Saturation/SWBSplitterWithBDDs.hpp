@@ -25,12 +25,12 @@ using namespace Indexing;
 class SWBSplitterWithBDDs : public SWBSplitter
 {
 protected:
-  void buildAndInsertComponents(Clause* cl, CompRec* comps, unsigned compCnt, bool firstIsMaster);
+  void buildAndInsertComponents(Clause* cl, const CompRec* comps, unsigned compCnt, bool firstIsMaster);
 
   bool handleNoSplit(Clause* cl);
 
 private:
-  Clause* getComponent(Clause* cl, CompRec cr, int& name, bool& newComponent);
+  Clause* getComponent(Clause* cl, const CompRec& cr, int& name, bool& newComponent);
 
   int nameComponent(Clause* comp);
   BDDNode* getNameProp(int name);

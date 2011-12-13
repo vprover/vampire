@@ -178,6 +178,9 @@ public:
   unsigned backtrackingSplitsRefuted;
   unsigned backtrackingSplitsRefutedZeroLevel;
 
+  unsigned satSplits;
+  unsigned satSplitRefutations;
+
   unsigned instGenGeneratedClauses;
   unsigned instGenRedundantClauses;
   unsigned instGenKeptClauses;

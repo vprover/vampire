@@ -76,7 +76,7 @@ void Logging::doTagDeclarations()
       PARENT("sa", 1));
   DECL("sa_new_prop_clause",
       DOC("new propositional clause derived by the saturation algorithm"),
-      PARENT("sa_new_clause", 0),
+      PARENT("sa_new_clause", 1),
       PARENT("new_prop_clauses", 0));
 
   DECL("sa_generated_clause",
@@ -180,6 +180,59 @@ void Logging::doTagDeclarations()
       PARENT("inf",1),
       PARENT("arith",1));
 
+
+  //
+  // SAT-based splitting
+  //
+
+  DECL("sspl",
+      DOC("traces for SAT-based splitting"));
+  DECL("sspl_splits",
+      DOC("performed splits"),
+      PARENT("sspl",0));
+  DECL("sspl_nonsplits",
+      DOC("not splitted clauses"),
+      PARENT("sspl",3));
+  DECL("sspl_confl",
+      DOC("SAT conflict clauses generated"),
+      PARENT("sspl",0));
+  DECL("sspl_comp_names",
+      DOC("introduced component names"),
+      PARENT("sspl",1));
+
+  DECL("sspl_sel",
+      DOC("component selection"),
+      PARENT("sspl",1));
+  DECL("sspl_sel_added",
+      DOC("components added to selection"),
+      PARENT("sspl_sel",0));
+  DECL("sspl_sel_removed",
+      DOC("components removed from selection"),
+      PARENT("sspl_sel",0));
+  DECL("sspl_sel_current_comps",
+      DOC("list of currently selected components"),
+      PARENT("sspl_sel",1));
+
+
+  DECL("sspl_rm",
+      DOC("level removals upon change of component selection"),
+      PARENT("sspl",2));
+  DECL("sspl_rm_backtracked",
+      DOC("clause removals due to backtracking upon change of component selection"),
+      PARENT("sspl_rm",1));
+  DECL("sspl_rm_restored",
+      DOC("restored claused due to backtracking upon change of component selection"),
+      PARENT("sspl_rm",1));
+
+  DECL("sspl_reductions",
+      DOC("recording of clause reductions"),
+      PARENT("sspl",3));
+  DECL("sspl_new_cl_levels",
+      DOC("levels assigned to new clauses"),
+      PARENT("sspl",3));
+
+  DECL("sspl_var_cnt",
+      PARENT("sspl",4));
 
   //
   // Preprocessing

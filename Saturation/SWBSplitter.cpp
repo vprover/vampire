@@ -194,24 +194,4 @@ bool SWBSplitter::canSplitOut(Literal* lit)
     (!predSym->cfName()) && (!isAnswerLiteral(lit));
 }
 
-/**
- * Return false for literals that cannot have a splitting component
- * consisting only of them
- */
-bool SWBSplitter::canStandAlone(Literal* lit)
-{
-  if(lit->isNegative() && splitPositive()) {
-    return false;
-  }
-  return true;
-}
-
-/**
- * Return true if there are can be literals that cannot stand alone
- */
-bool SWBSplitter::standAloneObligations()
-{
-  return splitPositive();
-}
-
 }

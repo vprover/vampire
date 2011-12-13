@@ -27,7 +27,7 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
-void SWBSplitterWithoutBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, unsigned compCnt, bool firstIsMaster)
+void SWBSplitterWithoutBDDs::buildAndInsertComponents(Clause* cl, const CompRec* comps, unsigned compCnt, bool firstIsMaster)
 {
   CALL("SWBSplitterWithoutBDDs::buildAndInsertComponents");
 
@@ -37,7 +37,7 @@ void SWBSplitterWithoutBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps
   cout<<"vvv Into vvv\n";
 #endif
 
-  CompRec master=comps[0];
+  const CompRec& master=comps[0];
 
   static Stack<int> names;
   names.reset();
@@ -51,15 +51,15 @@ void SWBSplitterWithoutBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps
   }
   UnitList::push(cl, premises);
 
-  unsigned resLen=master.len+names.size();
+  unsigned resLen=master.size()+names.size();
 
   Inference* inf=new InferenceMany(Inference::SPLITTING, premises);
   Unit::InputType inpType = cl->inputType();
   Clause* res = new(resLen) Clause(resLen, inpType, inf);
-  for(unsigned i=0;i<master.len;i++) {
-    (*res)[i]=master.lits[i];
+  for(unsigned i=0;i<master.size();i++) {
+    (*res)[i]=master[i];
   }
-  unsigned ri=master.len;
+  unsigned ri=master.size();
   while(names.isNonEmpty()) {
     (*res)[ri++]=getNameLiteral(names.pop(), true);
   }
@@ -86,14 +86,14 @@ void SWBSplitterWithoutBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps
  * If necessary, the naming clause is inserted into the
  * saturation algorithm.
  */
-SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::getNamedComponent(Clause* cl, CompRec cr)
+SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::getNamedComponent(Clause* cl, const CompRec& cr)
 {
   CALL("SWBSplitterWithoutBDDs::getNamedComponent");
 
   CompNameRec res(0,0);
 
-  if(cr.len==1 && cr.lits[0]->ground()) {
-    Literal* lit=cr.lits[0];
+  if(cr.size()==1 && cr[0]->ground()) {
+    Literal* lit=cr[0];
     if(_groundNames.find(lit, res)) {
       return res;
     }
@@ -107,9 +107,9 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::getNamedComponent(Cl
     res=createNamedComponent(cl, cr);
   }
 
-  if(cr.len==1 && cr.lits[0]->ground()) {
+  if(cr.size()==1 && cr[0]->ground()) {
     res.namingClause->incRefCnt();
-    ALWAYS(_groundNames.insert(cr.lits[0], res));
+    ALWAYS(_groundNames.insert(cr[0], res));
   }
 
   return res;
@@ -121,7 +121,7 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::getNamedComponent(Cl
  *
  * The created clause is inserted into the saturation algorithm.
  */
-SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::createNamedComponent(Clause* cl, CompRec cr, int knownName)
+SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::createNamedComponent(Clause* cl, const CompRec& cr, int knownName)
 {
   CALL("SWBSplitterWithoutBDDs::createNamedComponent");
 
@@ -130,17 +130,17 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::createNamedComponent
     name=getNewName();
   }
 
-  unsigned resLen=cr.len+1;
+  unsigned resLen=cr.size()+1;
 
   Inference* inf=new Inference(Inference::SPLITTING_COMPONENT);
   Unit::InputType inpType = cl->inputType();
   Clause* res = new(resLen) Clause(resLen, inpType, inf);
-  for(unsigned i=0;i<cr.len;i++) {
-    (*res)[i]=cr.lits[i];
+  for(unsigned i=0;i<cr.size();i++) {
+    (*res)[i]=cr[i];
   }
 
   Literal* nameLit=getNameLiteral(name, false);
-  (*res)[cr.len]=nameLit;
+  (*res)[cr.size()]=nameLit;
 
   res->setAge(cl->age());
   res->initProp(BDD::instance()->getFalse());

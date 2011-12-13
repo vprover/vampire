@@ -623,13 +623,17 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
   string pref(prefix);
   string suf(suffix ? string("_")+suffix : "");
   bool added;
-  unsigned result = addFunction(pref+suf,arity,added);
-  if (!added) {
+  unsigned result;
+  //commented out because it could lead to introduction of function with the same name
+  //that differ only in arity (which is OK with tptp, but iProver was complaining when
+  //using Vampire as clausifier)
+//  unsigned result = addFunction(pref+suf,arity,added);
+//  if (!added) {
     do {
       result = addFunction(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
     }
     while (!added);
-  }
+//  }
   getFunction(result)->markSkip();
   return result;
 } // addFreshFunction
@@ -648,15 +652,18 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
   string suf(suffix ? string("_")+suffix : "");
   bool added = false;
   unsigned result;
-  if(suffix) {
-    result = addPredicate(pref+suf,arity,added);
-  }
-  if (!added) {
+  //commented out because it could lead to introduction of function with the same name
+  //that differ only in arity (which is OK with tptp, but iProver was complaining when
+  //using Vampire as clausifier)
+//  if(suffix) {
+//    result = addPredicate(pref+suf,arity,added);
+//  }
+//  if (!added) {
     do {
       result = addPredicate(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
     }
     while (!added);
-  }
+//  }
   getPredicate(result)->markSkip();
   return result;
 } // addFreshPredicate

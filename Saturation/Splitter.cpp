@@ -3,9 +3,12 @@
  * Implements class Splitter.
  */
 
+#include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
@@ -17,6 +20,13 @@
 
 namespace Saturation
 {
+
+Splitter::CompRec::CompRec(Literal** lits, unsigned len)
+{
+  CALL("Splitter::CompRec::CompRec/2");
+
+  _lits.loadFromIterator(getArrayishObjectIterator(lits, len));
+}
 
 void Splitter::init(SaturationAlgorithm* sa)
 {
@@ -83,6 +93,154 @@ bool Splitter::isAnswerLiteral(Literal* lit)
   CALL("Splitter::isAnswerLiteral");
 
   return _ansLitMgr && _ansLitMgr->isAnswerLiteral(lit);
+}
+
+bool Splitter::isSpecial(Literal* lit)
+{
+  CALL("Splitter::isSpecial");
+
+  Signature::Symbol* predSym = env.signature->getPredicate(lit->functor());
+
+  return lit->color()==COLOR_TRANSPARENT &&
+    (!getOptions().showSymbolElimination() || lit->skip()) &&
+    (!predSym->cfName()) && (!isAnswerLiteral(lit));
+}
+
+/**
+ * Return false for literals that cannot have a splitting component
+ * consisting only of them
+ */
+bool Splitter::canStandAlone(Literal* lit)
+{
+  if(lit->isNegative() && splitPositive()) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Return true if there are can be literals that cannot stand alone
+ */
+bool Splitter::standAloneObligations()
+{
+  return splitPositive();
+}
+
+
+bool Splitter::getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTogether)
+{
+  CALL("Splitter::doSplitting");
+  ASS_EQ(acc.size(), 0);
+
+  if(!splittingAllowed(cl)) {
+    return false;
+  }
+
+  unsigned clen=cl->length();
+  ASS_G(clen,0);
+
+  if(clen<=1) {
+    return false;
+  }
+
+  //Master literal of an variable is the literal
+  //with lowest index, in which it appears.
+  static DHMap<unsigned, unsigned, IdentityHash> varMasters;
+  varMasters.reset();
+  IntUnionFind components(clen);
+  //index of one literal that cannot be splitted-out, or -1 if there isn't any
+  int coloredMaster=-1;
+
+  for(unsigned i=0;i<clen;i++) {
+    Literal* lit=(*cl)[i];
+    if( putSpecialsTogether && isSpecial(lit) ) {
+      if(coloredMaster==-1) {
+	coloredMaster=i;
+      } else {
+	//colored literals must be in one component
+	components.doUnion(coloredMaster, i);
+      }
+    }
+    VariableIterator vit(lit);
+    while(vit.hasNext()) {
+      unsigned master=varMasters.findOrInsert(vit.next().var(), i);
+      if(master!=i) {
+	components.doUnion(master, i);
+      }
+    }
+  }
+  components.evalComponents();
+
+  unsigned compCnt=components.getComponentCount();
+
+  if(standAloneObligations() && compCnt>1) {
+
+    //we will join components without literals that cannot stand alone
+    //to ones that have such (an example of a literal that cannot stand
+    //alone is a negative literal when splitPositive() is true)
+
+    IntUnionFind::ComponentIterator cit(components);
+
+    int someCompEl=-1;
+    bool someCompOK=false;
+    while(cit.hasNext()) {
+      IntUnionFind::ElementIterator elit=cit.next();
+
+      int compEl=elit.next();
+      if(someCompEl==-1) {
+	someCompEl=compEl;
+      }
+      bool saok=false; //ok to stand alone
+      for(;;) {
+	if(canStandAlone((*cl)[compEl])) {
+	  saok=true;
+	  break;
+	}
+	if(!elit.hasNext()) {
+	  break;
+	}
+	compEl=elit.next();
+      }
+      if(!saok || !someCompOK) {
+	components.doUnion(compEl, someCompEl);
+	if(saok) {
+	  someCompOK=true;
+	}
+      }
+    }
+
+    //recompute the components
+    components.evalComponents();
+    compCnt=components.getComponentCount();
+  }
+
+  if(compCnt==1) {
+    return false;
+  }
+
+  env.statistics->splitClauses++;
+  env.statistics->splitComponents+=compCnt;
+
+  IntUnionFind::ComponentIterator cit(components);
+  ASS(cit.hasNext());
+  while(cit.hasNext()) {
+    IntUnionFind::ElementIterator elit=cit.next();
+
+    acc.push(CompRec());
+
+    while(elit.hasNext()) {
+      int litIndex=elit.next();
+      Literal* lit = (*cl)[litIndex];
+
+      acc.top().add(lit);
+
+      if(litIndex==coloredMaster) {
+	acc.top().markSpecial();
+      }
+    }
+  }
+  ASS_EQ(acc.size(),compCnt);
+  return true;
 }
 
 }

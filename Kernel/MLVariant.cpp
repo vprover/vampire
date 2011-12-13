@@ -299,7 +299,7 @@ struct MatchingData {
 
 };
 
-MatchingData* getMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts)
+MatchingData* getMatchingData(Literal* const * baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts)
 {
   CALL("getMatchingData");
 
@@ -390,7 +390,7 @@ using namespace MLVariant_AUX;
 /**
  *
  */
-bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2, LiteralList** alts)
+bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** alts)
 {
   CALL("MLVariant::isVariant/3");
 
@@ -462,7 +462,7 @@ bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2, LiteralList** alts)
 }
 
 
-bool MLVariant::isVariant(Literal** cl1Lits, Clause* cl2, bool complementary)
+bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, bool complementary)
 {
   CALL("MLVariant::isVariant/2");
 

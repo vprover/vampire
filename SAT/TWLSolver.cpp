@@ -15,8 +15,9 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "SATLiteral.hpp"
 #include "SATClause.hpp"
+#include "SATInference.hpp"
+#include "SATLiteral.hpp"
 
 #include "RestartStrategy.hpp"
 #include "VariableSelector.hpp"
@@ -130,9 +131,13 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
       SATClause* cl=cit.next();
       LOG("sat_clauses",*cl);
       cl->setKept(true);
-      if(cl->length()==1) {
+      if(cl->length()==0) {
+	throw UnsatException(cl);
+      }
+      else if(cl->length()==1) {
 	addUnitClause(cl);
-      } else {
+      }
+      else {
 	addClause(cl);
       }
       _variableSelector->onInputClauseAdded(cl);

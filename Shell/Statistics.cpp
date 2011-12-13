@@ -98,6 +98,8 @@ Statistics::Statistics()
     backtrackingSplits(0),
     backtrackingSplitsRefuted(0),
     backtrackingSplitsRefutedZeroLevel(0),
+    satSplits(0),
+    satSplitRefutations(0),
 
     instGenGeneratedClauses(0),
     instGenRedundantClauses(0),
@@ -240,6 +242,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Backtracking splits", backtrackingSplits);
   COND_OUT("Backtracking splits refuted", backtrackingSplitsRefuted);
   COND_OUT("Backtracking splits refuted at zero level", backtrackingSplitsRefutedZeroLevel);
+  COND_OUT("Sat splits", satSplits);
+  COND_OUT("Sat splitting refutations", satSplitRefutations);
   SEPARATOR;
 
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);

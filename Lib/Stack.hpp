@@ -386,6 +386,40 @@ public:
 #endif
   };
 
+  class ConstIterator {
+  public:
+    DECL_ELEMENT_TYPE(C);
+    /** create an iterator for @b s */
+    inline
+    explicit ConstIterator (const Stack& s)
+      : _pointer(s._cursor),
+	_stack(s)
+    {
+    }
+
+    /** true if there exists the next element */
+    inline
+    bool hasNext() const
+    {
+      return _pointer != _stack._stack;
+    }
+
+    /** return the next element */
+    inline
+    C next()
+    {
+      ASS(_pointer > _stack._stack);
+      _pointer--;
+      return *_pointer;
+    }
+
+  private:
+    /** pointer to the stack element returned by next() */
+    C* _pointer;
+    /** stack over which we iterate */
+    const Stack& _stack;
+  };
+
   typedef Iterator TopFirstIterator;
 
   /**
@@ -397,7 +431,7 @@ public:
     DECL_ELEMENT_TYPE(C);
     /** create an iterator for @b s */
     inline
-    explicit BottomFirstIterator (Stack& s)
+    explicit BottomFirstIterator (const Stack& s)
       : _pointer(s._stack),
 	_afterLast(s._cursor)
     {

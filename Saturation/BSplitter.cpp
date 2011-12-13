@@ -75,7 +75,7 @@ bool BSplitter::doSplitting(Clause* cl)
   SplitRecord* sr=new SplitRecord(cl, comp);
 
   //update "dependent" field of base SplitRecords
-  SplitSet::Iterator bsit(cl->splits());
+  SplitSet::Iterator bsit(*cl->splits());
   while(bsit.hasNext()) {
     SplitLevel blev=bsit.next();
     _db[blev]->dependent.push(lev);
@@ -136,7 +136,7 @@ void BSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
   cl->incReductionTimestamp();
   //BDDs are disabled when we do backtracking splitting so they can only contain false
   ASS(BDD::instance()->isFalse(cl->prop()));
-  SplitSet::Iterator dit(diff);
+  SplitSet::Iterator dit(*diff);
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
     _db[slev]->addReduced(cl);
@@ -333,7 +333,7 @@ void BSplitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
   cl->setSplits(splits);
 
   //update "children" field of relevant SplitRecords
-  SplitSet::Iterator bsit(splits);
+  SplitSet::Iterator bsit(*splits);
   while(bsit.hasNext()) {
     SplitLevel slev=bsit.next();
     _db[slev]->children.push(cl);
@@ -430,7 +430,7 @@ start:
   getAlternativeClauses(_db[refLvl]->base, _db[refLvl]->component, cl, refLvl, restored, altSplitSet);
 
 
-  SplitSet::Iterator blit(backtracked);
+  SplitSet::Iterator blit(*backtracked);
   while(blit.hasNext()) {
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
@@ -448,7 +448,7 @@ start:
     }
   }
 
-  SplitSet::Iterator blit2(backtracked);
+  SplitSet::Iterator blit2(*backtracked);
   while(blit2.hasNext()) {
     SplitLevel bl=blit2.next();
     SplitRecord* sr=_db[bl];
@@ -463,7 +463,7 @@ start:
       //those extra levels.
       SplitSet* difSet=altSplitSet->subtract(bcl->splits());
       if(!difSet->isEmpty()) {
-	SplitSet::Iterator dsit(difSet);
+	SplitSet::Iterator dsit(*difSet);
 	bcl->incReductionTimestamp();
 	while(dsit.hasNext()) {
 	  SplitLevel slev=dsit.next();
@@ -648,7 +648,7 @@ void BSplitter::assertSplitLevelsExist(SplitSet* s)
 {
   CALL("BSplitter::assertSplitLevelsExist");
 
-  SplitSet::Iterator sit(s);
+  SplitSet::Iterator sit(*s);
   while(sit.hasNext()) {
     SplitLevel lev=sit.next();
     ASS_REP(_db[lev]!=0, lev);

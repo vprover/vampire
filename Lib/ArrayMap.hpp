@@ -178,6 +178,37 @@ public:
     }
     return false;
   }
+
+  class KeyIterator
+  {
+  public:
+    DECL_ELEMENT_TYPE(unsigned);
+    KeyIterator(const ArrayMap& parent) : _parent(parent), _idx(0) {}
+
+    bool hasNext()
+    {
+      while(_idx < static_cast<const DArray<Entry>&>(_parent).size()) {
+	if(_parent[_idx]._timestamp == _parent._timestamp) {
+	  return true;
+	}
+	++_idx;
+      }
+      return false;
+    }
+
+    size_t next()
+    {
+      CALL("ArrayMap::KeyIterator::next");
+      ASS_L(_idx,_parent.size());
+      ASS_EQ(_parent[_idx]._timestamp,_parent._timestamp);
+      return _idx++;
+    }
+
+  private:
+    const ArrayMap& _parent;
+    size_t _idx;
+  };
+
 private:
   /**
    * Timestamp value that is stored in map entries that correspond
@@ -187,6 +218,15 @@ private:
    * the value of this field.
    */
   unsigned _timestamp;
+};
+
+class ArraySet : public ArrayMap<EmptyStruct>
+{
+public:
+  ArraySet() {}
+  ArraySet(size_t size) : ArrayMap<EmptyStruct>(size) {}
+
+  typedef KeyIterator Iterator;
 };
 
 }

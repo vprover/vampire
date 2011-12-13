@@ -55,8 +55,10 @@
 #include "Shell/Statistics.hpp"
 
 #include "BSplitter.hpp"
+#include "SSplitter.hpp"
 #include "SWBSplitterWithBDDs.hpp"
 #include "SWBSplitterWithoutBDDs.hpp"
+
 #include "ConsequenceFinder.hpp"
 #include "Splitter.hpp"
 #include "SymElOutput.hpp"
@@ -260,7 +262,7 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
 
 void SaturationAlgorithm::onAllProcessed()
 {
-  CALL("SaturationAlgorithm::beforeClauseActivation");
+  CALL("SaturationAlgorithm::onAllProcessed");
   ASS(clausesFlushed());
 
   if(_symEl) {
@@ -1652,16 +1654,25 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_symEl=new SymElOutput();
   }
 
-  if(opt.splitting()==Options::SM_BACKTRACKING) {
+  switch(opt.splitting()) {
+  case Options::SM_OFF:
+    break;
+  case Options::SM_BACKTRACKING:
     res->_splitter=new BSplitter();
-  }
-  else if(opt.splitting()==Options::SM_NOBACKTRACKING) {
+    break;
+  case Options::SM_NOBACKTRACKING:
     if(opt.propositionalToBDD()) {
       res->_splitter=new SWBSplitterWithBDDs();
     }
     else {
       res->_splitter=new SWBSplitterWithoutBDDs();
     }
+    break;
+  case Options::SM_SAT:
+    res->_splitter = new SSplitter();
+    break;
+  default:
+    ASSERTION_VIOLATION;
   }
 
 

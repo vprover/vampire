@@ -266,7 +266,7 @@ public:
     for(size_t i=1; i<len; i++) {
       is.push(arr[i]);
       if(sorted && arr[i-1]>arr[i]) {
-	sorted&=false;
+	sorted = false;
       }
     }
     if(!sorted) {
@@ -394,7 +394,7 @@ public:
   class Iterator : public PointerIterator<T>
   {
   public:
-    Iterator(const SharedSet* s) : PointerIterator<T>(s->_items, s->_items+s->size()) {}
+    Iterator(const SharedSet& s) : PointerIterator<T>(s._items, s._items+s.size()) {}
   };
 
 };
@@ -402,7 +402,7 @@ public:
 template<typename T>
 std::ostream& operator<< (ostream& out, const SharedSet<T>& s )
 {
-  typename SharedSet<T>::Iterator it(&s);
+  typename SharedSet<T>::Iterator it(s);
   while(it.hasNext()) {
     out<<it.next();
     if(it.hasNext()) {

@@ -20,7 +20,7 @@
 namespace Saturation
 {
 
-void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, CompRec* comps, unsigned compCnt, bool firstIsMaster)
+void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, const CompRec* comps, unsigned compCnt, bool firstIsMaster)
 {
   CALL("SWBSplitterWithBDDs::buildAndInsertComponents");
 
@@ -193,12 +193,12 @@ bool SWBSplitterWithBDDs::handleNoSplit(Clause* cl)
  * Assign @b true to @b newComponent iff the component was
  * newly added to the component index.
  */
-Clause* SWBSplitterWithBDDs::getComponent(Clause* cl, CompRec cr, int& name, bool& newComponent)
+Clause* SWBSplitterWithBDDs::getComponent(Clause* cl, const CompRec& cr, int& name, bool& newComponent)
 {
   CALL("SWBSplitterWithBDDs::getComponent");
 
-  Literal** lits=cr.lits;
-  unsigned compLen=cr.len;
+  Literal* const * lits=cr.array();
+  unsigned compLen=cr.size();
 
   Clause* comp=_sa->getSharing()->tryGet(lits,compLen);
   newComponent=!comp;

@@ -206,6 +206,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/Preprocess.o\
          SAT/RestartStrategy.o\
          SAT/SATClause.o\
+         SAT/SATInference.o\
          SAT/SATLiteral.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
@@ -223,6 +224,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/ProvingHelper.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
+         Saturation/SSplitter.o\
          Saturation/SWBSplitter.o\
          Saturation/SWBSplitterWithBDDs.o\
          Saturation/SWBSplitterWithoutBDDs.o\
@@ -375,6 +377,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/Preprocess.o\
 	       SAT/RestartStrategy.o\
 	       SAT/SATClause.o\
+	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\
 	       SAT/TWLSolver.o\
 	       SAT/VariableSelector.o
@@ -435,6 +438,7 @@ OTHER_API_DEP = \
            SAT/Preprocess.o\
            SAT/RestartStrategy.o\
            SAT/SATClause.o\
+           SAT/SATInference.o\
            SAT/SATLiteral.o\
            SAT/TWLSolver.o\
            SAT/VariableSelector.o\
@@ -477,9 +481,9 @@ OTHER_API_DEP = \
 
 VAMP_DIRS := Api Debug Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test UnitTests VUtils Program Parse
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VT_OBJ) $(VPROG_OBJ)  
+VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ)  
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)  
-VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(VT_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
+VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
 #VGROUND_BASIC := $(VD_OBJ) $(VL_OBJ) $(VK_OBJ) $(VI_OBJ) $(VSAT_OBJ) $(VS_OBJ) $(VT_OBJ)  
 
@@ -489,7 +493,7 @@ VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
 VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
 VUTIL_DEP = $(VAMP_BASIC) $(VUTIL_OBJ) Global.o vutil.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
-VTEST_DEP = $(VAMP_BASIC) $(API_OBJ) $(VUT_OBJ) Global.o vtest.o
+VTEST_DEP = $(VAMP_BASIC) $(API_OBJ) $(VT_OBJ) $(VUT_OBJ) Global.o vtest.o
 LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(OTHER_API_DEP) Global.o
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 #UCOMPIT_OBJ = $(VCOMPIT_BASIC) Global.o compit2.o compit2_impl.o

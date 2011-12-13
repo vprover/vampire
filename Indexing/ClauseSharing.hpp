@@ -32,7 +32,7 @@ public:
 
   Clause* insert(Clause* c, InsertionResult& res);
   void insertNew(Clause* c);
-  Clause* tryGet(Literal** lits, unsigned len);
+  Clause* tryGet(Literal* const * lits, unsigned len);
   Clause* tryGet(Clause* c);
 private:
   ClauseVariantIndex _index;

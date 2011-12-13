@@ -19,6 +19,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "SAT/SATClause.hpp"
+#include "SAT/SATInference.hpp"
 #include "SAT/SATLiteral.hpp"
 
 #include "Grounder.hpp"

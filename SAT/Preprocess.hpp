@@ -27,6 +27,7 @@ public:
   static SATClauseIterator reorderVariablesByResolvability(unsigned varCnt, SATClauseIterator clauses);
   static SATClauseIterator reorderVariablesByConflicts(unsigned varCnt, SATClauseIterator clauses,
 	  unsigned* conflictCnts);
+  static SATClause* removeDuplicateLiterals(SATClause* cl);
   static SATClauseIterator removeDuplicateLiterals(SATClauseIterator clauses);
 
   static SATClauseIterator generate(unsigned literalsPerClause,

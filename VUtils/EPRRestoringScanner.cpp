@@ -194,6 +194,9 @@ start:
     LOG("vu_ers", "Sat solver discovered: " << _satDiscoveredAfterNGM <<" equivlences in problem after non-growing inlining and merging");
     firstIteration = false;
   }
+  else {
+    LOG("vu_ers", "next iteration discovered "<<currentlyDiscovered);
+  }
   _satDiscoveredIterativelyAfterNGM += currentlyDiscovered;
   if(currentlyDiscovered!=0 && _satDiscoveryIterationCnt<10) {
     _satDiscoveryIterationCnt++;

@@ -102,7 +102,7 @@ string TPTPPrinter::getBodyStr(Unit* u)
       res << " | " << BDD::instance()->toTPTPString(cl->prop());
     }
     if(!cl->noSplits()) {
-      SplitSet::Iterator sit(cl->splits());
+      SplitSet::Iterator sit(*cl->splits());
       while(sit.hasNext()) {
 	SplitLevel split = sit.next();
 	res << " | " << "$splitLevel" << split;

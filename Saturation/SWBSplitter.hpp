@@ -33,14 +33,6 @@ class SWBSplitter : public Splitter
 public:
   bool doSplitting(Clause* cl);
 protected:
-  struct CompRec
-  {
-    CompRec() {}
-    CompRec(Literal** lits, unsigned len) : lits(lits), len(len) {}
-    Literal** lits;
-    unsigned len;
-  };
-
   /**
    * Build clauses based on the component info in @b comps
    * and put them into the saturation algorithm
@@ -48,7 +40,7 @@ protected:
    * If @b firstIsMaster is true, the record @b comps[0]
    * has to be used for the master component.
    */
-  virtual void buildAndInsertComponents(Clause* cl, CompRec* comps,
+  virtual void buildAndInsertComponents(Clause* cl, const CompRec* comps,
       unsigned compCnt, bool firstIsMaster) = 0;
 
   /**
@@ -60,8 +52,6 @@ protected:
   virtual bool handleNoSplit(Clause* cl) { return false; }
 
   virtual bool canSplitOut(Literal* lit);
-  virtual bool canStandAlone(Literal* lit);
-  virtual bool standAloneObligations();
 };
 
 }

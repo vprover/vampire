@@ -67,7 +67,7 @@ bool ClauseSharing::doSharing(Clause* cl)
  * For variants we consider only the non-propositional parts
  * of clauses.
  */
-Clause* ClauseSharing::tryGet(Literal** lits, unsigned len)
+Clause* ClauseSharing::tryGet(Literal* const * lits, unsigned len)
 {
   CALL("ClauseSharing::tryGet/2");
 

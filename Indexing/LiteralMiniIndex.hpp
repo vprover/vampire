@@ -22,10 +22,10 @@ class LiteralMiniIndex
 {
 public:
   LiteralMiniIndex(Clause* cl);
-  LiteralMiniIndex(Literal** lits, unsigned length);
+  LiteralMiniIndex(Literal* const * lits, unsigned length);
 
 private:
-  void init(Literal** lits);
+  void init(Literal* const * lits);
 
   struct Entry
   {

@@ -61,7 +61,7 @@ void ClauseVariantIndex::insert(Clause* cl)
   _strees[clen]->insert(mainLit, cl);
 }
 
-Literal* ClauseVariantIndex::getMainLiteral(Literal** lits, unsigned length)
+Literal* ClauseVariantIndex::getMainLiteral(Literal* const * lits, unsigned length)
 {
   CALL("ClauseVariantIndex::getMainLiteral");
   ASS_G(length,0);
@@ -84,7 +84,7 @@ Literal* ClauseVariantIndex::getMainLiteral(Literal** lits, unsigned length)
 class ClauseVariantIndex::SLResultToVariantClauseFn
 {
 public:
-  SLResultToVariantClauseFn(Literal** lits, unsigned length)
+  SLResultToVariantClauseFn(Literal* const * lits, unsigned length)
   : _lits(lits), _length(length), _queryIndex(new LiteralMiniIndex(lits, length))
   {
   }
@@ -145,7 +145,7 @@ public:
   }
 
 private:
-  Literal** _lits;
+  Literal* const * _lits;
   unsigned _length;
   SmartPtr<LiteralMiniIndex> _queryIndex;
 };
@@ -157,7 +157,7 @@ ClauseIterator ClauseVariantIndex::retrieveVariants(Clause* cl)
   return retrieveVariants(cl->literals(), cl->length());
 }
 
-ClauseIterator ClauseVariantIndex::retrieveVariants(Literal** lits, unsigned length)
+ClauseIterator ClauseVariantIndex::retrieveVariants(Literal* const * lits, unsigned length)
 {
   CALL("ClauseVariantIndex::retrieveVariants/2");
 

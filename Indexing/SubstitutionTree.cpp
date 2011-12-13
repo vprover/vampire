@@ -532,7 +532,7 @@ string SubstitutionTree::nodeToString(Node* topNode)
 	continue;
     }
     if(!node->term.isEmpty()) {
-      res+=getIndentStr(indent)+Test::Output::singleTermListToString(node->term)+"  "+
+      res+=getIndentStr(indent)+node->term.toString()+"  "+
 	  Int::toHexString(reinterpret_cast<size_t>(node))+"\n";
     }
 

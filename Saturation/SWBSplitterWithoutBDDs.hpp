@@ -27,7 +27,7 @@ using namespace Indexing;
 class SWBSplitterWithoutBDDs : public SWBSplitter
 {
 protected:
-  void buildAndInsertComponents(Clause* cl, CompRec* comps, unsigned compCnt, bool firstIsMaster);
+  void buildAndInsertComponents(Clause* cl, const CompRec* comps, unsigned compCnt, bool firstIsMaster);
 
   //overrides SWBSplitter::canStandAlone
   bool canStandAlone(Literal* lit);
@@ -46,8 +46,8 @@ private:
     Clause* namingClause;
   };
 
-  CompNameRec getNamedComponent(Clause* cl, CompRec cr);
-  CompNameRec createNamedComponent(Clause* cl, CompRec cr, int knownName=0);
+  CompNameRec getNamedComponent(Clause* cl, const CompRec& cr);
+  CompNameRec createNamedComponent(Clause* cl, const CompRec& cr, int knownName=0);
 
   Literal* getNameLiteral(int name, bool forMaster);
   int getNewName();

@@ -653,7 +653,7 @@ struct InferenceStore::TPTPProofPrinter
     if(splits->size()==1) {
       return splitPrefix+Int::toString(splits->sval());
     }
-    SplitSet::Iterator sit(splits);
+    SplitSet::Iterator sit(*splits);
     string res("(");
     while(sit.hasNext()) {
       res+=splitPrefix+Int::toString(sit.next());

@@ -29,65 +29,6 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-class SATInference
-{
-public:
-  enum InfType {
-    PROP_INF,
-    FO_CONVERSION,
-    ASSUMPTION
-  };
-  virtual ~SATInference() {}
-  virtual InfType getType() const = 0;
-};
-
-class PropInference : public SATInference
-{
-public:
-  CLASS_NAME("PropInference");
-  USE_ALLOCATOR(PropInference);
-
-  PropInference(SATClauseList* premises) : _premises(premises) {}
-  PropInference(SATClause* prem) : _premises(0)
-  {
-    SATClauseList::push(prem, _premises);
-  }
-  PropInference(SATClause* prem1, SATClause* prem2) : _premises(0)
-  {
-    SATClauseList::push(prem1, _premises);
-    SATClauseList::push(prem2, _premises);
-  }
-
-  virtual InfType getType() const { return PROP_INF; }
-  SATClauseList* getPremises() const { return const_cast<SATClauseList*>(_premises); }
-private:
-  SATClauseList* _premises;
-};
-
-class FOConversionInference : public SATInference
-{
-public:
-  CLASS_NAME("FOConversionInference");
-  USE_ALLOCATOR(FOConversionInference);
-
-  FOConversionInference(UnitSpec origin) : _origin(origin) {}
-
-  virtual InfType getType() const { return FO_CONVERSION; }
-  UnitSpec getOrigin() const { return _origin; }
-private:
-  UnitSpec _origin;
-};
-
-class AssumptionInference : public SATInference
-{
-public:
-  CLASS_NAME("AssumptionInference");
-  USE_ALLOCATOR(AssumptionInference);
-
-  virtual InfType getType() const { return ASSUMPTION; }
-};
-
-
 /**
  * Class to represent clauses.
  * @since 10/05/2007 Manchester

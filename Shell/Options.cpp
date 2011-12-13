@@ -423,7 +423,8 @@ NameArray Options::Constants::subsumptionValues(_subsumptionValues,
 const char* Options::Constants::_splittingModeValues[] = {
   "backtracking",
   "nobacktracking",
-  "off"};
+  "off",
+  "sat"};
 NameArray Options::Constants::splittingModeValues(_splittingModeValues,
 					sizeof(_splittingModeValues)/sizeof(char*));
 

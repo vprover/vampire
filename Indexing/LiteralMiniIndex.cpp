@@ -29,13 +29,13 @@ LiteralMiniIndex::LiteralMiniIndex(Clause* cl)
   init(cl->literals());
 }
 
-LiteralMiniIndex::LiteralMiniIndex(Literal** lits, unsigned length)
+LiteralMiniIndex::LiteralMiniIndex(Literal* const * lits, unsigned length)
 : _cnt(length), _entries(length+1)
 {
   init(lits);
 }
 
-void LiteralMiniIndex::init(Literal** lits)
+void LiteralMiniIndex::init(Literal* const * lits)
 {
   ASS_G(_cnt, 0);
   for(unsigned i=0;i<_cnt;i++) {

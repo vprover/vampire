@@ -288,13 +288,13 @@ public:
   }
 protected:
 
-  virtual void buildAndInsertComponents(Clause* cl, CompRec* comps,
+  virtual void buildAndInsertComponents(Clause* cl, const CompRec* comps,
       unsigned compCnt, bool firstIsMaster)
   {
     CALL("InterpolantMinimizer::ClauseSplitter::buildAndInsertComponents");
 
     for(unsigned i=0; i<compCnt; i++) {
-      Clause* compCl = getComponent(comps[i].lits, comps[i].len);
+      Clause* compCl = getComponent(comps[i].array(), comps[i].size());
       _acc->push(compCl);
     }
   }
@@ -312,7 +312,7 @@ protected:
   virtual bool splittingAllowed(Clause* cl) { return true; }
 private:
 
-  Clause* getComponent(Literal** lits, unsigned len)
+  Clause* getComponent(Literal* const * lits, unsigned len)
   {
     CALL("InterpolantMinimizer::ClauseSplitter::getComponent/2");
 
@@ -326,7 +326,7 @@ private:
       return res;
     }
     //here the input type and inference are just arbitrary, they'll never be used
-    Clause* res = Clause::fromIterator(ArrayishObjectIterator<Literal**>(lits, len),
+    Clause* res = Clause::fromIterator(getArrayishObjectIterator(lits, len),
 	Unit::AXIOM, new Inference(Inference::INPUT));
     res->incRefCnt();
     _index.insert(res);
