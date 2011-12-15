@@ -226,6 +226,16 @@ public:
   ArraySet() {}
   ArraySet(size_t size) : ArrayMap<EmptyStruct>(size) {}
 
+  template<class It>
+  void insertFromIterator(It it)
+  {
+    CALL("ArraySet::insertFromIterator");
+
+    while(it.hasNext()) {
+      insert(it.next());
+    }
+  }
+
   typedef KeyIterator Iterator;
 };
 

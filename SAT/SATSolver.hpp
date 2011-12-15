@@ -6,6 +6,8 @@
 #ifndef __SATSolver__
 #define __SATSolver__
 
+#include "Lib/MaybeBool.hpp"
+
 #include "SATLiteral.hpp"
 
 namespace SAT {
@@ -32,7 +34,7 @@ public:
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual bool getAssignment(unsigned var) = 0;
+  virtual MaybeBool getAssignment(unsigned var) = 0;
   virtual void ensureVarCnt(unsigned newVarCnt) {}
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate=false) = 0;
@@ -48,7 +50,21 @@ public:
   {
     CALL("SATSolver::trueInAssignment");
 
-    return getAssignment(lit.var())==lit.polarity();
+    MaybeBool asgn = getAssignment(lit.var());
+
+    return asgn.known() && asgn.value()==lit.polarity();
+  }
+
+  /**
+   * If status is @c SATISFIABLE, return assignment of variable @c var
+   */
+  bool falseInAssignment(SATLiteral lit)
+  {
+    CALL("SATSolver::trueInAssignment");
+
+    MaybeBool asgn = getAssignment(lit.var());
+
+    return asgn.known() && asgn.value()!=lit.polarity();
   }
 };
 

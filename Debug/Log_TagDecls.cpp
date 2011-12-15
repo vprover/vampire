@@ -199,6 +199,9 @@ void Logging::doTagDeclarations()
   DECL("sspl_comp_names",
       DOC("introduced component names"),
       PARENT("sspl",1));
+  DECL("sspl_flush",
+      DOC("flushing"),
+      PARENT("sspl",0));
 
   DECL("sspl_sel",
       DOC("component selection"),
@@ -212,6 +215,9 @@ void Logging::doTagDeclarations()
   DECL("sspl_sel_current_comps",
       DOC("list of currently selected components"),
       PARENT("sspl_sel",1));
+  DECL("sspl_sel_swept",
+      DOC("swept components"),
+      PARENT("sspl_sel",2));
 
 
   DECL("sspl_rm",
@@ -227,12 +233,34 @@ void Logging::doTagDeclarations()
   DECL("sspl_reductions",
       DOC("recording of clause reductions"),
       PARENT("sspl",3));
+  DECL("sspl_reductions_prems",
+      DOC("recording of clause reduction premises"),
+      PARENT("sspl_reductions",3));
   DECL("sspl_new_cl_levels",
       DOC("levels assigned to new clauses"),
       PARENT("sspl",3));
 
   DECL("sspl_var_cnt",
       PARENT("sspl",4));
+
+  DECL("sspl_sat_clauses",
+      DOC("all clauses added to SAT solver"),
+      PARENT("sspl",4));
+
+  DECL("sspl_paired_gnd_comps",
+      DOC("paired ground components"),
+      PARENT("sspl",2));
+
+
+  DECL("sspl_ns",
+      DOC("processing of non-splittable FO clauses"),
+      PARENT("sspl",1));
+  DECL("sspl_ns_sat_clauses",
+      DOC("recording of sat clauses added based on non-splittable FO clauses"),
+      PARENT("sspl_ns",0));
+  DECL("sspl_ns_self_dependent",
+      DOC("clause that depends on a component that is its variant"),
+      PARENT("sspl_ns",0));
 
   //
   // Preprocessing

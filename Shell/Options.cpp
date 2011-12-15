@@ -61,6 +61,9 @@ public:
   static const char* _satRestartStrategyValues[];
   static const char* _satVarSelectorValues[];
   static const char* _satClauseDisposerValues[];
+  static const char* _sSplittingComponentSweepingValues[];
+  static const char* _sSplittingComplementaryGroundValues[];
+  static const char* _sSplittingNonsplittableComponentsValues[];
 
   static int shortNameIndexes[];
 
@@ -88,6 +91,9 @@ public:
   static NameArray satRestartStrategyValues;
   static NameArray satVarSelectorValues;
   static NameArray satClauseDisposerValues;
+  static NameArray sSplittingComponentSweepingValues;
+  static NameArray sSplittingComplementaryGroundValues;
+  static NameArray sSplittingNonsplittableComponentsValues;
 }; // class Options::Constants
 
 
@@ -221,6 +227,11 @@ const char* Options::Constants::_optionNames[] = {
   "split_positive",
   "splitting",
   "splitting_with_blocking",
+  "ssplitting_complementary_ground",
+  "ssplitting_component_sweeping",
+  "ssplitting_flush_period",
+  "ssplitting_flush_quotient",
+  "ssplitting_nonsplittable_components",
   "statistics",
   "superposition_from_variables",
   "symbol_precedence",
@@ -565,6 +576,32 @@ const char* Options::Constants::_satClauseDisposerValues[] = {
 NameArray Options::Constants::satClauseDisposerValues(_satClauseDisposerValues,
 					  sizeof(_satClauseDisposerValues)/sizeof(char*));
 
+const char* Options::Constants::_sSplittingComponentSweepingValues[] = {
+  "all",
+  "iterated",
+  "none",
+  "only_new"};
+NameArray Options::Constants::sSplittingComponentSweepingValues(_sSplittingComponentSweepingValues,
+					  sizeof(_sSplittingComponentSweepingValues)/sizeof(char*));
+
+const char* Options::Constants::_sSplittingComplementaryGroundValues[] = {
+  "eager_xor",
+  "nang",
+  "none",
+  "xor"};
+NameArray Options::Constants::sSplittingComplementaryGroundValues(_sSplittingComplementaryGroundValues,
+					  sizeof(_sSplittingComplementaryGroundValues)/sizeof(char*));
+
+const char* Options::Constants::_sSplittingNonsplittableComponentsValues[] = {
+  "all",
+  "all_dependent",
+  "known",
+  "none"};
+NameArray Options::Constants::sSplittingNonsplittableComponentsValues(_sSplittingNonsplittableComponentsValues,
+					  sizeof(_sSplittingNonsplittableComponentsValues)/sizeof(char*));
+
+
+
 /**
  * Initialize options to the default values.
  *
@@ -705,6 +742,11 @@ Options::Options ()
   _splitPositive(false),
   _splitting(SM_NOBACKTRACKING),
   _splittingWithBlocking(false),
+  _ssplittingComplementaryGround(SSCG_XOR),
+  _ssplittingComponentSweeping(SSCS_ITERATED),
+  _ssplittingFlushPeriod(0),
+  _ssplittingFlushQuotient(1.5f),
+  _ssplittingNonsplittableComponents(SSNS_KNOWN),
   _statistics(STATISTICS_FULL),
   _superpositionFromVariables(true),
   _symbolPrecedence(BY_ARITY),
@@ -1245,6 +1287,27 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SPLITTING_WITH_BLOCKING:
       _splittingWithBlocking = onOffToBool(value,name);
+      return;
+    case SSPLITTING_COMPLEMENTARY_GROUND:
+      _ssplittingComplementaryGround = (SSplittingComplementaryGround)Constants::sSplittingComplementaryGroundValues.find(value);
+      return;
+    case SSPLITTING_COMPONENT_SWEEPING:
+      _ssplittingComponentSweeping = (SSplittingComponentSweeping)Constants::sSplittingComponentSweepingValues.find(value);
+      return;
+    case SSPLITTING_FLUSH_PERIOD:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_ssplittingFlushPeriod = unsignedValue;
+	return;
+      }
+      break;
+    case SSPLITTING_FLUSH_QUOTIENT:
+      if(!Int::stringToFloat(value,floatValue) || (floatValue<1.0f)) {
+	USER_ERROR("ssplitting_flush_quotient must greater than or equal to 1");
+      }
+      _ssplittingFlushQuotient = floatValue;
+      return;
+    case SSPLITTING_NONSPLITTABLE_COMPONENTS:
+      _ssplittingNonsplittableComponents = (SSplittingNonsplittableComponents)Constants::sSplittingNonsplittableComponentsValues.find(value);
       return;
     case STATISTICS:
       _statistics = (Statistics)Constants::statisticsValues.find(value);
@@ -1913,6 +1976,21 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SPLITTING_WITH_BLOCKING:
     str << boolToOnOff(_splittingWithBlocking);
+    return;
+  case SSPLITTING_COMPLEMENTARY_GROUND:
+    str << Constants::sSplittingComplementaryGroundValues[_ssplittingComplementaryGround];
+    return;
+  case SSPLITTING_COMPONENT_SWEEPING:
+    str << Constants::sSplittingComponentSweepingValues[_ssplittingComponentSweeping];
+    return;
+  case SSPLITTING_FLUSH_PERIOD:
+    str << _ssplittingFlushPeriod;
+    return;
+  case SSPLITTING_FLUSH_QUOTIENT:
+    str << _ssplittingFlushQuotient;
+    return;
+  case SSPLITTING_NONSPLITTABLE_COMPONENTS:
+    str << Constants::sSplittingNonsplittableComponentsValues[_ssplittingNonsplittableComponents];
     return;
   case STATISTICS:
     str << Constants::statisticsValues[_statistics];

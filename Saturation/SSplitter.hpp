@@ -74,6 +74,8 @@ public:
 
   void ensureVarCnt(unsigned varCnt);
   void addSatClauses(const SATClauseStack& clauses, SplitLevelStack& addedComps, SplitLevelStack& removedComps);
+
+  void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 private:
 
   void handleSatRefutation(SATClause* ref);
@@ -82,11 +84,23 @@ private:
   void deselectByModel(SplitLevelStack& removedComps);
   void fixUnprocessed(SplitLevelStack& addedComps);
 
+  bool hasAlternativeSelection(SATClause* cl, SplitLevel forbidden);
+
+  void sweep(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
+  template<class It>
+  void sweepVars(It varsToSweep, SplitLevelStack& sweptAway);
+
   bool tryAddingToWatch(SATClause* cl);
 
   SplitLevel getVarToSelect(SATClause* cl);
 
   static bool hasPositiveLiteral(SATClause* cl);
+
+  bool isSatisfiedBySelection(SATLiteral lit);
+
+
+  //options
+  Options::SSplittingComponentSweeping _sweepingMode;
 
   SSplitter& _parent;
 
@@ -165,6 +179,10 @@ public:
   Clause* getComponentClause(SplitLevel name);
 
 private:
+  bool handleNonSplittable(Clause* cl);
+  void onNewGroundComponent(Literal* lit, Clause* nameCl, SplitLevel name);
+  bool tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause*& compCl);
+
   void addComponents(const SplitLevelStack& toAdd);
   void removeComponents(const SplitLevelStack& toRemove);
 
@@ -172,31 +190,22 @@ private:
   void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc);
 
   SplitLevel getComponentName(const CompRec& comp, Clause* orig, Clause*& compCl);
+  SplitLevel getComponentName(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
 
   SplitLevel getNewComponentName(Clause* comp);
 
-  void addSATClause(SATClause* cl);
+  void addSATClause(SATClause* cl, bool refutation);
 
-//  SplitSet* getTransitivelyDependentLevels(SplitLevel l);
-//
-//  bool stackSplitting() { return false; }
-//
-//  bool canBeSplitted(Clause* cl) { return true; }
-//  Clause* getComponent(Clause* icl);
-//
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
-//
-//
-//  Inference* getAlternativeClauseInference(Clause* base, Clause* firstComp, Clause* refutation);
-//
-//  void getAlternativeClauses(Clause* base, Clause* firstComp, Clause* refutation, SplitLevel refLvl,
-//      RCClauseStack& acc, SplitSet*& altSplitSet);
-//
+
   void assertSplitLevelsActive(SplitSet* s);
 
   //settings
-  bool _addGroundNegation;
+  Options::SSplittingComplementaryGround _complGroundBehavior;
+  Options::SSplittingNonsplittableComponents _nonsplComps;
+  unsigned _flushPeriod;
+  float _flushQuotient;
 
   //utility objects
   SSplittingBranchSelector _branchSelector;
@@ -205,6 +214,9 @@ private:
   //state variables
   Stack<SplitRecord*> _db;
   DHMap<Clause*,SplitLevel> _compNames;
+  unsigned _flushCounter;
+  /** true if there is a refutation to be added to the SAT solver */
+  bool _haveRefutation;
 
   /**
    * New SAT clauses to be added to the SAT solver

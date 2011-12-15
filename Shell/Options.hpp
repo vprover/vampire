@@ -164,6 +164,11 @@ public:
     SPLIT_POSITIVE,
     SPLITTING,
     SPLITTING_WITH_BLOCKING,
+    SSPLITTING_COMPLEMENTARY_GROUND,
+    SSPLITTING_COMPONENT_SWEEPING,
+    SSPLITTING_FLUSH_PERIOD,
+    SSPLITTING_FLUSH_QUOTIENT,
+    SSPLITTING_NONSPLITTABLE_COMPONENTS,
     STATISTICS,
     SUPERPOSITION_FROM_VARIABLES,
     SYMBOL_PRECEDENCE,
@@ -362,6 +367,26 @@ public:
     SCD_MINISAT = 1,
   };
 
+  enum SSplittingComponentSweeping {
+    SSCS_ALL = 0,
+    SSCS_ITERATED = 1,
+    SSCS_NONE = 2,
+    SSCS_ONLY_NEW = 3
+  };
+
+  enum SSplittingComplementaryGround {
+    SSCG_EAGER_XOR = 0,
+    SSCG_NAND = 1,
+    SSCG_NONE = 2,
+    SSCG_XOR = 3
+  };
+
+  enum SSplittingNonsplittableComponents {
+    SSNS_ALL = 0,
+    SSNS_ALL_DEPENDENT = 1,
+    SSNS_KNOWN = 2,
+    SSNS_NONE = 3
+  };
 
 
 public:
@@ -578,6 +603,11 @@ public:
   int nonGoalWeightCoeffitientNumerator() const { return _nonGoalWeightCoeffitientNumerator; }
   int nonGoalWeightCoeffitientDenominator() const { return _nonGoalWeightCoeffitientDenominator; }
 
+  SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents; }
+  SSplittingComponentSweeping ssplittingComponentSweeping() const { return _ssplittingComponentSweeping; }
+  SSplittingComplementaryGround ssplittingComplementaryGround() const { return _ssplittingComplementaryGround; }
+  int ssplittingFlushPeriod() const { return _ssplittingFlushPeriod; }
+  float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient; }
 
   void enableTracesAccordingToOptions() const;
 
@@ -724,6 +754,11 @@ private:
   bool _splitPositive;
   SplittingMode _splitting;
   bool _splittingWithBlocking;
+  SSplittingComplementaryGround _ssplittingComplementaryGround;
+  SSplittingComponentSweeping _ssplittingComponentSweeping;
+  unsigned _ssplittingFlushPeriod;
+  float _ssplittingFlushQuotient;
+  SSplittingNonsplittableComponents _ssplittingNonsplittableComponents;
   Statistics _statistics;
   bool _superpositionFromVariables;
   SymbolPrecedence _symbolPrecedence;

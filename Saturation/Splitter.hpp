@@ -68,8 +68,8 @@ protected:
   };
 
   bool isSpecial(Literal* l);
-  bool canStandAlone(Literal* lit);
-  bool standAloneObligations();
+  virtual bool canStandAlone(Literal* lit);
+  virtual bool standAloneObligations();
 
   bool getComponents(Clause* cl, Stack<CompRec>& acc, bool putSpecialsTogether);
 

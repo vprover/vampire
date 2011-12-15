@@ -236,7 +236,11 @@ public:
 
   SplitSet* splits() const { return _splits; }
   bool noSplits() const;
-  void setSplits(SplitSet* splits) { _splits=splits; }
+  void setSplits(SplitSet* splits) {
+    CALL("Clause::setSplits");
+    ASS(!_splits);
+    _splits=splits;
+  }
 
   VirtualIterator<string> toSimpleClauseStrings();
 

@@ -5,6 +5,8 @@
  * @since 07/07/2007 Manchester, changed to new datastructures
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Allocator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
@@ -528,6 +530,8 @@ Formula* Naming::introduceDefinition (Formula* f,bool iff)
   CALL("Naming::introduceDefinition");
   ASS_NEQ(f->connective(), LITERAL);
   ASS_NEQ(f->connective(), NOT);
+
+  RSTAT_CTR_INC("naming_introduced_defs");
 
   Formula::VarList* vs;
   vs = f->freeVariables();

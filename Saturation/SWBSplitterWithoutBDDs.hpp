@@ -29,10 +29,10 @@ class SWBSplitterWithoutBDDs : public SWBSplitter
 protected:
   void buildAndInsertComponents(Clause* cl, const CompRec* comps, unsigned compCnt, bool firstIsMaster);
 
-  //overrides SWBSplitter::canStandAlone
-  bool canStandAlone(Literal* lit);
-  //overrides SWBSplitter::standAloneObligations
-  bool standAloneObligations();
+  //overrides Splitter::canStandAlone
+  virtual bool canStandAlone(Literal* lit);
+  //overrides Splitter::standAloneObligations
+  virtual bool standAloneObligations();
 
 private:
 
