@@ -3,6 +3,10 @@
  * Implements class Log.
  */
 
+#include "Log.hpp"
+
+#if LOGGING
+
 #include "Forwards.hpp"
 
 #include "Lib/Backtrackable.hpp"
@@ -15,14 +19,14 @@
 
 #include "Kernel/Unit.hpp"
 
-#include "Log.hpp"
 
 namespace Debug
 {
 
 using namespace Lib;
 
-Logging::TagDeclTrigger s_trigger;
+Logging::TagDeclTrigger Logging::s_trigger;
+unsigned Logging::s_settingTimestamp = 1;
 
 class Logging::Impl
 {
@@ -156,6 +160,7 @@ public:
 
     _stateStack.top().backtrack();
     _stateStack.pop();
+    s_settingTimestamp++;
   }
 
   /**
@@ -184,6 +189,7 @@ public:
 	}
       }
     }
+    s_settingTimestamp++;
   }
 
   void processTraceSpecString(std::string str)
@@ -396,3 +402,5 @@ size_t LOG_getpid()
 }
 
 }
+
+#endif

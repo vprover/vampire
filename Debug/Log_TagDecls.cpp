@@ -4,6 +4,9 @@
  */
 
 #include "Log.hpp"
+
+#if LOGGING
+
 #include "Log_TagDecls.hpp"
 
 namespace Debug
@@ -175,6 +178,13 @@ void Logging::doTagDeclarations()
       DOC("global subsumption"),
       PARENT("inf",1));
 
+  DECL("inf_flr",
+      DOC("forward literal rewriting"),
+      PARENT("inf",1));
+  DECL("inf_flr_defs",
+      DOC("discovered definitions"),
+      PARENT("inf_flr",1));
+
   DECL("inf_ie",
       DOC("interpreted evaluation"),
       PARENT("inf",1),
@@ -196,6 +206,9 @@ void Logging::doTagDeclarations()
   DECL("sspl_confl",
       DOC("SAT conflict clauses generated"),
       PARENT("sspl",0));
+  DECL("sspl_confl_derivations",
+      DOC("output derivations of SAT conflict clauses"),
+      PARENT("sspl_confl",1));
   DECL("sspl_comp_names",
       DOC("introduced component names"),
       PARENT("sspl",1));
@@ -541,3 +554,5 @@ void Logging::doTagDeclarations()
 
 
 }
+
+#endif

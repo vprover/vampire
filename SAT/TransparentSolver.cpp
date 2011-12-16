@@ -35,24 +35,51 @@ void TransparentSolver::addClause(SATClause* cl)
   if(tryWatchOrSubsume(cl)) {
     return;
   }
-
+  SATClause::Iterator it1(cl);
+  while(it1.hasNext()) {
+    SATLiteral lit = it1.next();
+    if(trySweepPure(lit.var()), false) {
+      ALWAYS(tryWatchOrSubsume(cl));
+      return;
+    }
+  }
 }
 
-bool TransparentSolver::trySweepPure(unsigned var)
+/**
+ * @param eager if false, we return false after the first failure
+ *        to move a clause elsewhere
+ */
+bool TransparentSolver::trySweepPure(unsigned var, bool eager)
 {
   CALL("TransparentSolver::trySweepPure");
 
   VarInfo& vi = _vars[var];
-
+  SATClauseStack::Iterator wit(vi._watched);
+  while(wit.hasNext()) {
+    SATClause* cl = wit.next();
+#if VDEBUG
+    size_t wstackSize = vi._watched.size();
+#endif
+    bool wasMovedOut = tryWatchOrSubsume(cl, var);
+    ASS_EQ(wstackSize, vi._watched.size()); //we assert we didn't put the watched clause here
+    if(wasMovedOut) {
+      wit.del();
+    } else if(!eager) {
+      return false;
+    }
+  }
+  if(vi._watched.isEmpty()) {
+    vi._pureInitialized = false;
+    return true;
+  }
+  return false;
 }
 
-///**
-// * If wathed or subsumed, return 0, if simplified, return the simplified
-// * clause, if nether was done, return the original clause.
-// *
-// * If clause is simplified and it contains an inference, inference
-// * recording the simplification will be added to the new clause.
-// */
+/**
+ * Return true if clause was watched at some pure variable or subsumed.
+ *
+ * If forbiddenVar is non-zero,
+ */
 bool TransparentSolver::tryWatchOrSubsume(SATClause* cl, unsigned forbiddenVar)
 {
   CALL("TransparentSolver::tryWatchOrSubsume");

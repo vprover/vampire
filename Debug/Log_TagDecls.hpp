@@ -8,6 +8,7 @@
 
 #include "Log.hpp"
 
+#if LOGGING
 
 #define DECL(name,...) \
   do {								\
@@ -18,5 +19,6 @@
 #define DOC(doc) Debug::Logging::addDoc(t,doc)
 #define PARENT(parent, depth) Debug::Logging::addParent(t,parent,depth)
 
+#endif
 
 #endif // __Log_TagDecls__

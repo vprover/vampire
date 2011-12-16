@@ -152,6 +152,7 @@ string Unit::inferenceAsString(BDDNode* propPart) const
 {
   CALL("Unit::inferenceAsString");
 
+#if 0
   InferenceStore& infS = *InferenceStore::instance();
 
   Inference::Rule rule;
@@ -168,6 +169,17 @@ string Unit::inferenceAsString(BDDNode* propPart) const
     result += infS.getUnitIdStr(parent);
   }
   return result + ']';
+#else
+  string result = (string)"[" + _inference->name();
+   bool first = true;
+   Inference::Iterator it = _inference->iterator();
+   while (_inference->hasNext(it)) {
+     result += first ? ' ' : ',';
+     first = false;
+     result += Int::toString(_inference->next(it)->number());
+   }
+   return result + ']';
+#endif
 } // Unit::inferenceAsString()
 
 

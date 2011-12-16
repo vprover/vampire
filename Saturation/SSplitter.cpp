@@ -19,6 +19,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/Refutation.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "SAT/Preprocess.hpp"
@@ -997,6 +998,11 @@ bool SSplitter::handleEmptyClause(Clause* cl)
   confl->setInference(new FOConversionInference(cl));
 
   LOG("sspl_confl","FO contradiction "<<(*cl)<<" gave SAT conflict clause "<<(*confl));
+  TRACE("sspl_confl_derivations",
+      tout << "conflict derivation:" << endl;
+      Refutation(cl, false).output(tout);
+  );
+  RSTAT_MCTR_INC("sspl_confl_len", confl->length());
 
   addSATClause(confl, true);
 

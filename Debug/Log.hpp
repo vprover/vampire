@@ -10,6 +10,12 @@
 #include <string>
 #include <iostream>
 
+#ifndef LOGGING
+#define LOGGING 1
+#endif
+
+#if LOGGING
+
 namespace Kernel {
   class Unit;
 }
@@ -26,9 +32,11 @@ public:
   class Impl;
 private:
 
-  TagDeclTrigger s_trigger;
+  static TagDeclTrigger s_trigger;
+  static unsigned s_settingTimestamp;
 
   static Impl& impl();
+
 
   static void declareTag(const char* tag);
   static void addDoc(const char* tag, const char* doc);
@@ -47,40 +55,25 @@ public:
   static void logTaut(const char* tag, Kernel::Unit* u, const char* doc=0);
 
   static void doTagDeclarations();
+
+  inline
+  static unsigned getSettingTimestamp() { return s_settingTimestamp; }
 };
 
 #define tout std::cerr
 #define TAG_ENABLED(tag) Debug::Logging::isTagEnabled(tag)
 
-#define TRACE(tag,code) do { if(TAG_ENABLED(tag)) { code } } while(false)
-#define COND_TRACE(tag,cond,code) do { if(TAG_ENABLED(tag) && (cond)) { code } } while(false)
+#define TRACE(tag,code)							\
+  do {									\
+    static unsigned LOGGING_timestamp = 0;				\
+    static bool LOGGING_isEnabled;					\
+    if(LOGGING_timestamp!=Debug::Logging::getSettingTimestamp()) {	\
+      LOGGING_isEnabled = TAG_ENABLED(tag);				\
+      LOGGING_timestamp = Debug::Logging::getSettingTimestamp();	\
+    }									\
+    if(LOGGING_isEnabled) { code } } while(false)
 
 #define TRACE_OUTPUT_UNIT(tag,u) Debug::Logging::logUnit(tag,u)
-
-#define LOG(tag,msg) TRACE(tag, (tout << msg) << std::endl;)
-#define COND_LOG(tag,cond,msg) COND_TRACE(tag, cond, (tout << msg) << std::endl;)
-#define LOGV(tag,var) LOG(tag, #var<<": "<<(var))
-#define LOG_UNIT(tag,u) TRACE(tag, TRACE_OUTPUT_UNIT(tag,u); )
-
-/**
- * Logs single-premise simplification of a unit
- *
- * Arguments are tag,src,tgt[,doc]
- */
-#define LOG_SIMPL(tag,src,...) TRACE(tag, Debug::Logging::logSimpl(tag,src,__VA_ARGS__); )
-/**
- * Logs two-premise simplification of a unit
- *
- * Arguments are tag,prem1,prem2,tgt[,doc]
- */
-#define LOG_SIMPL2(tag,prem1,prem2,...) TRACE(tag, Debug::Logging::logSimpl2(tag,prem1,prem2,__VA_ARGS__); )
-
-/**
- * Logs the fact that unit has been found a tautology
- *
- * Arguments are tag,unit[,doc]
- */
-#define LOG_TAUT(tag,...) TRACE(tag, Debug::Logging::logTaut(tag,__VA_ARGS__); )
 
 #define ENABLE_TAG(tag) Debug::Logging::enableTag(tag)
 #define ENABLE_TAG_LIMITED(tag,limit) Debug::Logging::enableTag(tag,limit)
@@ -151,6 +144,52 @@ public:
 
 
 }
+
+#else
+
+#define TAG_ENABLED(tag) false
+#define TRACE(tag,code)
+#define TRACE_OUTPUT_UNIT(tag,u)
+#define ENABLE_TAG(tag)
+#define ENABLE_TAG_LIMITED(tag,limit)
+#define PUSH_TAG_STATES
+#define POP_TAG_STATES
+#define PROCESS_TRACE_SPEC_STRING(str)
+#define DISPLAY_HELP()
+#define SCOPED_TRACE_TAG(Tag)
+#define CONDITIONAL_SCOPED_TRACE_TAG(Cond,Tag)
+
+#endif
+
+
+//These are derived macros. If the based macros are disabled, these are
+//expanded into empty strings as well.
+
+#define COND_TRACE(tag,cond,code) TRACE(tag, if(cond) { code } )
+#define LOG(tag,msg) TRACE(tag, (tout << msg) << std::endl;)
+#define COND_LOG(tag,cond,msg) COND_TRACE(tag, cond, (tout << msg) << std::endl;)
+#define LOGV(tag,var) LOG(tag, #var<<": "<<(var))
+#define LOG_UNIT(tag,u) TRACE(tag, TRACE_OUTPUT_UNIT(tag,u); )
+
+/**
+ * Logs single-premise simplification of a unit
+ *
+ * Arguments are tag,src,tgt[,doc]
+ */
+#define LOG_SIMPL(tag,src,...) TRACE(tag, Debug::Logging::logSimpl(tag,src,__VA_ARGS__); )
+/**
+ * Logs two-premise simplification of a unit
+ *
+ * Arguments are tag,prem1,prem2,tgt[,doc]
+ */
+#define LOG_SIMPL2(tag,prem1,prem2,...) TRACE(tag, Debug::Logging::logSimpl2(tag,prem1,prem2,__VA_ARGS__); )
+
+/**
+ * Logs the fact that unit has been found a tautology
+ *
+ * Arguments are tag,unit[,doc]
+ */
+#define LOG_TAUT(tag,...) TRACE(tag, Debug::Logging::logTaut(tag,__VA_ARGS__); )
 
 
 #endif // __Debug_Log__

@@ -37,7 +37,7 @@ private:
 
   bool tryWatchOrSubsume(SATClause* cl, unsigned forbiddenVar=0);
 
-  bool trySweepPure(unsigned var);
+  bool trySweepPure(unsigned var, bool eager);
 
   struct VarInfo
   {
