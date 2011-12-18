@@ -3,6 +3,9 @@
  * Implements class TestUtils.
  */
 
+#include <cstdarg>
+
+
 #include "Lib/List.hpp"
 
 #include "Kernel/BDD.hpp"
@@ -10,6 +13,9 @@
 #include "Kernel/Unit.hpp"
 
 #include "Shell/AIG.hpp"
+
+#include "SAT/SATClause.hpp"
+#include "SAT/SATLiteral.hpp"
 
 #include "TestUtils.hpp"
 
@@ -66,6 +72,27 @@ Formula* TestUtils::getUniqueFormula(Api::Problem prb)
   CALL("TestUtils::getUniqueFormula(Api::Problem)");
 
   return TestUtils::getUniqueFormula(prb.formulas());
+}
+
+SAT::SATClause* TestUtils::buildSATClause(unsigned len,...)
+{
+  using namespace SAT;
+
+  va_list litArgs;
+  va_start(litArgs,len);
+
+  static SATLiteralStack lits;
+  lits.reset();
+  for(unsigned i=0; i<len; ++i) {
+    int litVal = va_arg(litArgs, int);
+    bool pos = litVal>0;
+    unsigned var = pos ? litVal : -litVal;
+    lits.push(SATLiteral(var, pos));
+  }
+
+  va_end(litArgs);
+
+  return SATClause::fromStack(lits);
 }
 
 }

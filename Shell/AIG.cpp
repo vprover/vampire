@@ -7,7 +7,10 @@
 #include <sstream>
 
 #include "Lib/Allocator.hpp"
+#include "Lib/MapToLIFO.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/SCCAnalyzer.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
@@ -62,13 +65,13 @@ private:
   };
 
 public:
-  Node(unsigned nodeIdx, Kind k) : _kind(k), _nodeIdx(nodeIdx) {
+  Node(Kind k) : _kind(k) {
     ASS_NEQ(k,ATOM);
     if(k==QUANT) {
       _qVars = 0;
     }
   }
-  Node(unsigned nodeIdx, Literal* atm) : _kind(ATOM), _nodeIdx(nodeIdx), _lit(atm) { ASS(atm->isPositive()); }
+  Node(Literal* atm) : _kind(ATOM), _lit(atm) { ASS(atm->isPositive()); }
 
   ~Node() {
     if(kind()==QUANT) {
@@ -82,9 +85,17 @@ public:
    * the same parent AIG object.
    *
    * We assign indexes to nodes so we can deterministically normalize
-   * node order in conjunction nodes
+   * node order in conjunction nodes. Also an invariant holds that parent
+   * nodes always have lower index than their child.
    */
   unsigned nodeIdx() const { return _nodeIdx; }
+
+  /**
+   * Should be called only during node creation
+   */
+  void setNodeIdx(unsigned idx) { _nodeIdx = idx; }
+
+
   Literal* literal() const
   {
     CALL("AIG::Node::literal");
@@ -193,7 +204,7 @@ bool AIG::Ref::operator<(const Ref& r) const
   Node* n2 = r.node();
   if(n1!=n2) {
     ASS_NEQ(n1->nodeIdx(),n2->nodeIdx());
-    return n1<n2;
+    return n1->nodeIdx()<n2->nodeIdx();
   }
   if(polarity() && !r.polarity()) {
     return true;
@@ -239,7 +250,9 @@ string AIG::Ref::toString() const
 AIG::AIG() : _simplLevel(3), _nextNodeIdx(0), _conjReserve(0), _quantReserve(0)
 {
   CALL("AIG::AIG");
-  _trueNode = new Node(_nextNodeIdx++, Node::TRUE_CONST);
+  _trueNode = new Node(Node::TRUE_CONST);
+  _trueNode->setNodeIdx(_nextNodeIdx++);
+  _orderedNodeRefs.push(Ref(_trueNode, true));
 }
 
 AIG::~AIG()
@@ -271,8 +284,10 @@ AIG::Node* AIG::atomNode(Literal* positiveLiteral)
   if(_atomNodes.find(positiveLiteral, res)) {
     return res;
   }
-  res = new Node(_nextNodeIdx++, positiveLiteral);
+  res = new Node(positiveLiteral);
+  res->setNodeIdx(_nextNodeIdx++);
   _atomNodes.insert(positiveLiteral, res);
+  _orderedNodeRefs.push(Ref(res, true));
   return res;
 }
 
@@ -288,7 +303,7 @@ AIG::Node* AIG::conjNode(Ref par1, Ref par2)
 {
   CALL("AIG::conjNode");
   if(!_conjReserve) {
-    _conjReserve = new Node(_nextNodeIdx++, Node::CONJ);
+    _conjReserve = new Node(Node::CONJ);
   }
   normalizeRefOrder(par1,par2);
   _conjReserve->setConjParents(par1,par2);
@@ -296,6 +311,8 @@ AIG::Node* AIG::conjNode(Ref par1, Ref par2)
   if(res==_conjReserve) {
     //we have used the reserve
     _conjReserve = 0;
+    res->setNodeIdx(_nextNodeIdx++);
+    _orderedNodeRefs.push(Ref(res, true));
   }
   return res;
 }
@@ -315,13 +332,15 @@ AIG::Node* AIG::univQuantNode(VarList* vars, Ref par)
   }
 
   if(!_quantReserve) {
-    _quantReserve = new Node(_nextNodeIdx++, Node::QUANT);
+    _quantReserve = new Node(Node::QUANT);
   }
   _quantReserve->setQuantArgs(vars, par);
   Node* res = _compNodes.insert(_quantReserve);
   if(res==_quantReserve) {
     //we have used the reserve
     _quantReserve = 0;
+    res->setNodeIdx(_nextNodeIdx++);
+    _orderedNodeRefs.push(Ref(res, true));
   }
   return res;
 }
@@ -527,6 +546,277 @@ bool AIG::tryO4ConjSimpl(Ref& par1, Ref& par2)
 {
   CALL("AIG::tryO4ConjSimpl");
   NOT_IMPLEMENTED;
+}
+
+
+///////////////////////
+// AIGTransformer
+//
+
+/**
+ * Iteratively dereference r in map, not looking at its child
+ * nodes (hence level 0).
+ * Even though only positve references are allowed in the map,
+ * this function handles also negative ones.
+ */
+AIG::Ref AIGTransformer::lev0Deref(Ref r, DHMap<Ref,Ref>& map)
+{
+  CALL("AIGTransformer::lev0Deref");
+
+  bool neg = !r.polarity();
+  if(neg) {
+    r = r.neg();
+  }
+
+  static Stack<Ref> queries;
+  queries.reset();
+
+  Ref tgt;
+  while(map.find(r, tgt)) {
+    queries.push(r);
+    r = tgt;
+  }
+  if(queries.isNonEmpty()) {
+    //we compress the dereference chain
+    queries.pop();
+    while(queries.isNonEmpty()) {
+      //DHMap::set returns false when overwriting
+      NEVER(map.set(queries.pop(), r));
+    }
+  }
+
+  return neg ? r.neg() : r;
+}
+
+/**
+ * (Iteratively) dereference parents of r in map
+ *
+ * r must be level 0 dereferenced.
+ */
+AIG::Ref AIGTransformer::lev1Deref(Ref r, RefMap& map)
+{
+  CALL("AIGTransformer::lev1Deref");
+  ASS_EQ(r, lev0Deref(r, map));
+
+  bool neg = r.polarity();
+  if(neg) {
+    r = r.neg();
+  }
+
+  Node* n = r.node();
+  Ref res;
+  switch(n->kind()) {
+  case Node::ATOM:
+  case Node::TRUE_CONST:
+    res = r;
+    break;
+  case Node::CONJ:
+  {
+    Ref p1 = n->parent(0);
+    Ref p2 = n->parent(1);
+    Ref dp1 = lev0Deref(p1, map);
+    Ref dp2 = lev0Deref(p2, map);
+    if(p1==dp1 && p2==dp2) {
+      res = r;
+    }
+    else {
+      res = _aig.getConj(dp1, dp2);
+    }
+    break;
+  }
+  case Node::QUANT:
+  {
+    Ref p = n->qParent();
+    Ref dp = lev0Deref(p, map);
+    if(p==dp) {
+      res = r;
+    }
+    else {
+      res = _aig.getQuant(false, n->qVars(), dp);
+    }
+    break;
+  }
+  }
+
+  return neg ? res.neg() : res;
+}
+
+/**
+ * Stack items must be positive
+ */
+void AIGTransformer::addPredecessors(RefStack& stack, const RefMap& map)
+{
+  CALL("AIGTransformer::addPredecessors");
+
+#if VDEBUG
+  {
+    //assert all stack elements are positive
+    Stack<Ref>::Iterator it(stack);
+    while(it.hasNext()) {
+      Ref r = it.next();
+      ASS(r.polarity());
+    }
+  }
+#endif
+
+  static DHSet<Ref> seen;
+  seen.reset();
+  static RefStack toDo;
+  toDo.reset();
+  toDo.loadFromIterator(RefStack::Iterator(stack));
+  stack.reset();
+
+  while(toDo.isNonEmpty()) {
+    Ref r = toDo.pop();
+    if(!r.polarity()) { r = r.neg(); }
+
+    if(seen.contains(r)) { continue; }
+    seen.insert(r);
+
+    stack.push(r);
+
+    Node* n = r.node();
+    switch(n->kind()) {
+    case Node::ATOM:
+    case Node::TRUE_CONST:
+      break;
+    case Node::QUANT:
+      toDo.push(n->qParent());
+      break;
+    case Node::CONJ:
+      toDo.push(n->parent(0));
+      toDo.push(n->parent(1));
+      break;
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+}
+
+void AIGTransformer::collectUsed(Ref r, const RefMap& map, RefEdgeMap& edges)
+{
+  CALL("AIGTransformer::collectUsed");
+  ASS(r.polarity());
+
+  static Stack<Ref> preds;
+  preds.reset();
+  preds.push(r);
+  addPredecessors(preds, map);
+
+  Stack<Ref>::Iterator it(preds);
+  while(it.hasNext()) {
+    Ref p = it.next();
+    if(map.find(p) && p!=r) {
+      edges.pushToKey(r, p);
+    }
+  }
+}
+
+/**
+ * Order Refs in the stack so that later can refer only to earlier
+ *
+ * Currently we use a simple n.log n sort by node indexes, if this
+ * shows to be a bottle neck, one can use linear topological sorting.
+ */
+void AIGTransformer::orderTopologically(RefStack& stack)
+{
+  CALL("AIGTransformer::orderTopologically");
+
+  std::sort(stack.begin(), stack.end());
+}
+
+void AIGTransformer::saturateOnTopSortedStack(const RefStack& stack, RefMap& map)
+{
+  CALL("AIGTransformer::saturateOnTopSortedStack");
+
+  Stack<Ref>::BottomFirstIterator it(stack);
+  while(it.hasNext()) {
+    Ref r = it.next();
+    Ref dr0 = lev0Deref(r, map);
+    Ref dr1 = lev1Deref(dr0, map);
+#if 1 //maybe it is not necessary to achieve the following condition:
+    //if the node is dereferenced in the map, the parents of
+    //the node should already be dereferenced as well
+    ASS(r==dr0 || dr0==dr1);
+#endif
+    if(dr0==dr1) {
+      ASS_EQ(map.get(r),dr1);
+    }
+    else {
+      map.insert(r,dr1);
+    }
+  }
+}
+
+void AIGTransformer::applyWithCaching(Ref r0, RefMap& map)
+{
+  CALL("AIGTransformer::applyWithCaching");
+  ASS(r0.polarity());
+
+  static Stack<Ref> toDo;
+  toDo.reset();
+
+  toDo.push(r0);
+  addPredecessors(toDo, map);
+  orderTopologically(toDo);
+
+  ASS_EQ(toDo.top(), r0);
+  saturateOnTopSortedStack(toDo, map);
+}
+
+void AIGTransformer::makeIdempotent(DHMap<Ref,Ref>& map)
+{
+  CALL("AIGTransformer::makeIdempotent");
+
+  static DHSet<Ref> seen;
+  seen.reset();
+
+  MapToLIFOGraph<Ref>::Map edgeMap;
+
+  VirtualIterator<Ref> domIt = map.domain();
+
+  while(domIt.hasNext()) {
+    Ref d = domIt.next();
+    collectUsed(d, map, edgeMap);
+  }
+
+  typedef MapToLIFOGraph<Ref> RefGraph;
+  typedef Subgraph<RefGraph> RefSubgraph;
+  RefGraph gr(edgeMap);
+  SCCAnalyzer<RefGraph> an0(gr);
+  ScopedPtr<SCCAnalyzer<RefSubgraph> > an1;
+  if(an0.breakingNodes().isNonEmpty()) {
+    //if we have circular dependencies, we fix them by removing some mappings
+    RefStack::ConstIterator brIt(an0.breakingNodes());
+    while(brIt.hasNext()) {
+      Ref br = brIt.next();
+      map.remove(br);
+    }
+    Subgraph<RefGraph> subGr(gr, RefStack::ConstIterator(an0.breakingNodes()));
+    an1 = new SCCAnalyzer<RefSubgraph>(subGr);
+  }
+
+  const Stack<RefStack>& comps = an1 ? an1->components() : an0.components();
+  Stack<RefStack>::BottomFirstIterator cit(comps);
+  while(cit.hasNext()) {
+    const RefStack& comp = cit.next();
+    ASS_EQ(comp.size(),1);
+    applyWithCaching(comp.top(), map);
+  }
+}
+
+/**
+ * Given map from AIG node --> AIG node, extend it to all nodes that contain the given ones
+ *
+ * The map must be idempotent
+ */
+void AIGTransformer::saturateMap(DHMap<Ref,Ref>& map)
+{
+  CALL("AIGTransformer::saturateMap");
+
+  makeIdempotent(map);
+
+  saturateOnTopSortedStack(_aig._orderedNodeRefs, map);
 }
 
 ///////////////////////

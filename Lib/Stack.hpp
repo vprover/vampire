@@ -447,7 +447,7 @@ public:
 
     /** return the next element */
     inline
-    C next()
+    const C& next()
     {
       ASS_L(_pointer, _afterLast);
 

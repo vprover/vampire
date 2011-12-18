@@ -319,6 +319,12 @@ public:
     SUBSUMPTION_UNIT_ONLY = 2
   };
 
+  enum URResolution {
+    URR_EC_ONLY = 0,
+    URR_OFF = 1,
+    URR_ON = 2
+  };
+
   enum SymbolPrecedence {
     BY_ARITY = 0,
     BY_OCCURRENCE = 1,
@@ -464,7 +470,7 @@ public:
   bool binaryResolution() const { return _binaryResolution; }
   bool bfnt() const { return _bfnt; }
   void setBfnt(bool newVal) { _bfnt = newVal; }
-  bool unitResultingResolution() const { return _unitResultingResolution; }
+  URResolution unitResultingResolution() const { return _unitResultingResolution; }
   bool arityCheck() const { return _arityCheck; }
   void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation; }
@@ -782,7 +788,7 @@ private:
   string _traces;
   bool _trivialPredicateRemoval;
 
-  bool _unitResultingResolution;
+  URResolution _unitResultingResolution;
   bool _unusedPredicateDefinitionRemoval;
 
   bool _weightIncrement;

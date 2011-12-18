@@ -24,7 +24,7 @@ public:
   typedef T Node;
   typedef VirtualIterator<T> NodeIterator;
 
-  MapToLIFOGraph(Map& m) : _m(m)
+  MapToLIFOGraph(const Map& m) : _m(m)
   {
     CALL("MapToLIFOGraph::MapToLIFOGraph");
 
@@ -40,12 +40,12 @@ public:
     makeUnique(_nodes);
   }
 
-  NodeIterator nodes()
+  NodeIterator nodes() const
   {
-    return pvi( typename Stack<T>::Iterator(_nodes) );
+    return pvi( typename Stack<T>::ConstIterator(_nodes) );
   }
 
-  NodeIterator neighbors(T node)
+  NodeIterator neighbors(T node) const
   {
     return pvi( _m.keyIterator(node) );
   }
@@ -54,7 +54,7 @@ public:
 
 private:
   Stack<T> _nodes;
-  Map& _m;
+  const Map& _m;
 };
 
 template<typename Graph>
@@ -90,12 +90,12 @@ public:
     }
   }
 
-  NodeIterator nodes()
+  NodeIterator nodes() const
   {
     return NodeIterator(_gr.nodes(), _filter);
   }
 
-  NodeIterator neighbors(Node node)
+  NodeIterator neighbors(Node node) const
   {
     return NodeIterator(_gr.neighbors(node), _filter);
   }
@@ -105,7 +105,7 @@ public:
 private:
   DHSet<Node> _forbidden;
   Filter _filter;
-  Graph& _gr;
+  const Graph& _gr;
   size_t _size;
 };
 
@@ -113,9 +113,9 @@ private:
  *
  * Class Graph must contain:
  * - type Node
- * - type NodeIterator iterating over T
+ * - type NodeIterator iterating over Node
  * - NodeIterator nodes()
- * - NodeIterator neighbors(T node)
+ * - NodeIterator neighbors(Node node)
  */
 template<class Graph>
 class SCCAnalyzer {
@@ -123,15 +123,19 @@ public:
   typedef typename Graph::Node Node;
   typedef Stack<Node> NodeStack;
 
-  SCCAnalyzer(Graph& gr) : _gr(gr)
+  SCCAnalyzer(const Graph& gr)
   {
     CALL("SCCAnalyzer::SCCAnalyzer");
-    analyze();
+    analyze(gr);
   }
 
 
-  NodeStack& breakingNodes() { return _breakingNodes; }
-  Stack<NodeStack>& components() { return _components; }
+  const NodeStack& breakingNodes() const { return _breakingNodes; }
+  /**
+   * Strong components are in topological order, so that
+   * later ones can refer only to earlier ones.
+   */
+  const Stack<NodeStack>& components() const { return _components; }
 private:
 
   typedef typename Graph::NodeIterator NodeIterator;
@@ -146,23 +150,23 @@ private:
   NodeStack S;
   NodeStack P;
 
-  void analyze()
+  void analyze(const Graph& gr)
   {
     CALL("SCCAnalyzer::analyze");
 
     ASS_EQ(nums.size(),0);
     C = 0;
-    NodeIterator nit = _gr.nodes();
+    NodeIterator nit = gr.nodes();
     while(nit.hasNext()) {
       Node v = nit.next();
       if(nums.find(v)) {
 	continue;
       }
-      traverse(v);
+      traverse(v, gr);
     }
     makeUnique(_breakingNodes);
   }
-  void traverse(Node v)
+  void traverse(Node v, const Graph& gr)
   {
     CALL("SCCAnalyzer::traverse");
 
@@ -170,12 +174,12 @@ private:
     C++;
     S.push(v);
     P.push(v);
-    NodeIterator neigh = _gr.neighbors(v);
+    NodeIterator neigh = gr.neighbors(v);
     while(neigh.hasNext()) {
       Node w = neigh.next();
       size_t wNum;
       if(!nums.find(w,wNum)) {
-	traverse(w);
+	traverse(w, gr);
 	continue;
       }
       if(scc.find(w)) { //edge (v,w) leads to a component discovered earlier
@@ -189,8 +193,10 @@ private:
     }
     if(v==P.top()) {
       size_t sccIndex = _components.size();
+      //it should be a property of Gabow's algorithm that SCCs are
+      //discovered in topological order.
       _components.push(Stack<Node>());
-      NodeStack compNodes = _components[sccIndex];
+      NodeStack& compNodes = _components[sccIndex];
       Node cNode;
       do {
 	cNode = S.pop();
@@ -203,7 +209,6 @@ private:
 
   NodeStack _breakingNodes;
   Stack<NodeStack> _components;
-  Graph& _gr;
 };
 
 }

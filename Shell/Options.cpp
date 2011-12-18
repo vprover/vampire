@@ -43,6 +43,7 @@ public:
   static const char* _condensationValues[];
   static const char* _demodulationValues[];
   static const char* _subsumptionValues[];
+  static const char* _urResolutionValues[];
   static const char* _splittingModeValues[];
   static const char* _fdeValues[];
   static const char* _lcmValues[];
@@ -73,6 +74,7 @@ public:
   static NameArray condensationValues;
   static NameArray demodulationValues;
   static NameArray subsumptionValues;
+  static NameArray urResolutionValues;
   static NameArray splittingModeValues;
   static NameArray fdeValues;
   static NameArray lcmValues;
@@ -431,6 +433,13 @@ const char* Options::Constants::_subsumptionValues[] = {
 NameArray Options::Constants::subsumptionValues(_subsumptionValues,
 						 sizeof(_subsumptionValues)/sizeof(char*));
 
+const char* Options::Constants::_urResolutionValues[] = {
+  "ec_only",
+  "off",
+  "on"};
+NameArray Options::Constants::urResolutionValues(_urResolutionValues,
+						 sizeof(_urResolutionValues)/sizeof(char*));
+
 const char* Options::Constants::_splittingModeValues[] = {
   "backtracking",
   "nobacktracking",
@@ -768,7 +777,7 @@ Options::Options ()
   _traces(""),
   _trivialPredicateRemoval(false),
 
-  _unitResultingResolution(false),
+  _unitResultingResolution(URR_OFF),
   _unusedPredicateDefinitionRemoval(true),
 
   _weightIncrement(false),
@@ -1361,7 +1370,7 @@ void Options::set(const char* name,const char* value, int index)
       return;
 
     case UNIT_RESULTING_RESOLUTION:
-      _unitResultingResolution = onOffToBool(value,name);
+      _unitResultingResolution = (URResolution)Constants::urResolutionValues.find(value);
       return;
     case UNUSED_PREDICATE_DEFINITION_REMOVAL:
       _unusedPredicateDefinitionRemoval = onOffToBool(value,name);
@@ -2046,7 +2055,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
 
   case UNIT_RESULTING_RESOLUTION:
-    str << boolToOnOff(_unitResultingResolution);
+    str << Constants::urResolutionValues[_unitResultingResolution];
     return;
   case UNUSED_PREDICATE_DEFINITION_REMOVAL:
     str << boolToOnOff(_unusedPredicateDefinitionRemoval);

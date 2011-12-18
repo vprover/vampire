@@ -116,12 +116,12 @@ void EPRRestoring::performClosure()
       if(_trace) {
         cerr << "Cycle among definitions detected" << endl;
       }
-      Stack<unsigned>::Iterator bpIt1(scca.breakingNodes());
+      Stack<unsigned>::ConstIterator bpIt1(scca.breakingNodes());
       while(bpIt1.hasNext()) {
 	unsigned breakingPred = bpIt1.next();
 	dependencyCnt[breakingPred] = -1;
       }
-      Stack<unsigned>::Iterator bpIt(scca.breakingNodes());
+      Stack<unsigned>::ConstIterator bpIt(scca.breakingNodes());
       while(bpIt.hasNext()) {
 	unsigned breakingPred = bpIt.next(); //cycle-breaking predicate (will be removed to break cycle)
 	if(_trace) {

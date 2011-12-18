@@ -48,6 +48,11 @@ private:
   Value _value;
 };
 
+inline
+std::ostream& operator<< (ostream& out, const MaybeBool& u )
+{
+  return out << (u.isFalse() ? "0" : u.isTrue() ? "1" : "UNKNOWN");
+}
 
 
 }

@@ -208,6 +208,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
          SAT/SATLiteral.o\
+         SAT/TransparentSolver.o\
          SAT/TWLSolver.o\
          SAT/VariableSelector.o\
 #         SAT/SATClauseSharing.o\

@@ -24,29 +24,34 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
+class AIGTransformer;
+
 class AIG {
-  class Node;
 public:
+  friend class AIGTransformer;
+
+  class Node;
   typedef Formula::VarList VarList;
 
   class Ref {
     friend class AIG;
+    friend class AIGTransformer;
     size_t _data;
 
     Ref(Node* n, bool polarity) {
       CALL("AIG::Ref::Ref");
-      ASS_EQ(reinterpret_cast<size_t>(n)&1,0);
+      ASS_EQ(reinterpret_cast<size_t>(n)&1,0); //check pointer alignment
 
       _data = reinterpret_cast<size_t>(n) | polarity;
     }
     Node* node() const { return reinterpret_cast<Node*>(_data&(~static_cast<size_t>(1))); }
-    bool polarity() const { return _data&1; }
   public:
     Ref() {}
     bool isPropConst() const;
     bool isTrue() const { return isPropConst() && polarity(); }
     bool isFalse() const  { return isPropConst() && !polarity(); }
     Ref neg() const { return Ref(node(), !polarity()); }
+    bool polarity() const { return _data&1; }
 
     bool operator==(const Ref& r) const { return _data==r._data; }
     bool operator!=(const Ref& r) const { return !((*this)==r); }
@@ -97,6 +102,10 @@ private:
   /** reserve for the univQuantNode() */
   Node* _quantReserve;
 
+  /**
+   * Stack where nodes refer only to nodes earlier in the stack
+   */
+  Stack<Ref> _orderedNodeRefs;
 
   Node* atomNode(Literal* positiveLiteral);
   Node* conjNode(Ref par1, Ref par2);
@@ -127,6 +136,14 @@ public:
 
 typedef AIG::Ref AIGRef;
 
+inline
+std::ostream& operator<< (ostream& out, const AIGRef& f)
+{
+  CALL("operator <<(ostream&,const AIGRef&)");
+  return out << f.toString();
+}
+
+
 }
 
 namespace Lib {
@@ -141,6 +158,41 @@ struct FirstHashTypeInfo<Shell::AIGRef> {
 }
 
 namespace Shell {
+
+class AIGTransformer
+{
+  typedef AIG::Node Node;
+
+  AIG& _aig;
+public:
+  typedef AIGRef Ref;
+  /**
+   * Map specifying a rewrite for references. A requirement is
+   * that the map domain consists only of references with positive
+   * polarity and that it is acyclic. Then it can be saturated to
+   * become a congruence on the AIG.
+   */
+  typedef DHMap<Ref,Ref> RefMap;
+  typedef Stack<Ref> RefStack;
+private:
+  typedef MapToLIFO<Ref,Ref> RefEdgeMap;
+
+  Ref lev0Deref(Ref r, RefMap& map);
+  Ref lev1Deref(Ref r, RefMap& map);
+
+  void addPredecessors(RefStack& stack, const RefMap& map);
+  void orderTopologically(RefStack& stack);
+  void collectUsed(Ref r, const RefMap& map, RefEdgeMap& edges);
+
+  void saturateOnTopSortedStack(const RefStack& stack, RefMap& map);
+  void applyWithCaching(Ref r, RefMap& map);
+
+  void makeIdempotent(RefMap& map);
+public:
+  AIGTransformer(AIG& aig) : _aig(aig) {}
+
+  void saturateMap(RefMap& map);
+};
 
 class AIGFormulaSharer
 {

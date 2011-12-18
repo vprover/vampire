@@ -42,7 +42,7 @@ TEST_FUN(scc1)
   ASS_EQ(anl.components().size(),2);
 
   cout<<"BR:";
-  Stack<Node>::Iterator brit(anl.breakingNodes());
+  Stack<Node>::ConstIterator brit(anl.breakingNodes());
   while(brit.hasNext()) {
     cout<<brit.next();
   }
@@ -70,7 +70,7 @@ TEST_FUN(scc2)
 
   cout<<anl1.components().size()<<" "<<anl1.breakingNodes().size()<<endl;
 
-  Subgraph<MapToLIFOGraph<Node> > gr2(gr1, Stack<Node>::Iterator(anl1.breakingNodes()));
+  Subgraph<MapToLIFOGraph<Node> > gr2(gr1, Stack<Node>::ConstIterator(anl1.breakingNodes()));
   SCCAnalyzer<Subgraph<MapToLIFOGraph<Node> > > anl2(gr2);
 
   ASS_EQ(gr2.size(), anl2.components().size());

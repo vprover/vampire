@@ -450,6 +450,19 @@ void Logging::doTagDeclarations()
       DOC("premises of learnt clauses in SAT solver (shows all premises only when proof generation is enabled in SAT solver)"),
       PARENT("sat_learnt",1));
 
+  DECL("sat_ts",
+      DOC("transparent sat preprocessor"),
+      PARENT("sat",0));
+  DECL("sat_ts_pure",
+      DOC("pure variables"),
+      PARENT("sat_ts",1));
+  DECL("sat_ts_in",
+      DOC("clauses and assumptions added"),
+      PARENT("sat_ts",1));
+  DECL("sat_ts_out",
+      DOC("clauses and assumptions passed to the inner solver"),
+      PARENT("sat_ts",1));
+
   //
   // Multiprocessing
   //

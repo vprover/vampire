@@ -18,6 +18,11 @@ public:
   static Kernel::Formula* getUniqueFormula(Kernel::UnitList* units);
   static Kernel::Formula* getUniqueFormula(Api::AnnotatedFormulaIterator afit);
   static Kernel::Formula* getUniqueFormula(Api::Problem prb);
+
+  /**
+   * The ... are len of integers, positive -- positive polarity, negative -- negative polarity.
+   */
+  static SAT::SATClause* buildSATClause(unsigned len,...);
 };
 
 }

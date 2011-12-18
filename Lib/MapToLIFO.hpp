@@ -106,7 +106,7 @@ public:
     return true;
   }
 
-  bool isKeyEmpty(K key)
+  bool isKeyEmpty(K key) const
   {
     CALL("MapToLIFO::isKeyEmpty");
 
@@ -116,14 +116,14 @@ public:
   }
 
 
-  ValIterator keyIterator(K key)
+  ValIterator keyIterator(K key) const
   {
     ValList* lst=0;
     _data.find(key, lst); //if the key isn't found, the lst remains unchanged
     return ValIterator(lst);
   }
 
-  VirtualIterator<V> allValIterator()
+  VirtualIterator<V> allValIterator() const
   {
     return pvi( getMapAndFlattenIterator( KeyIterator(*this), KeyToIterFn(*this) ) );
   }
@@ -133,6 +133,11 @@ public:
     ValList* lst=0;
     _data.find(key, lst); //if the key isn't found, the lst remains unchanged
     return lst;
+  }
+
+  const ValList* keyVals(K key) const
+  {
+    return const_cast<MapToLIFO*>(this)->keyVals(key);
   }
 
 
@@ -158,14 +163,14 @@ public:
 private:
   struct KeyToIterFn
   {
-    KeyToIterFn(MapToLIFO& parent) : _par(parent) {}
+    KeyToIterFn(const MapToLIFO& parent) : _par(parent) {}
     DECL_RETURN_TYPE(typename ValList::Iterator);
     OWN_RETURN_TYPE operator() (K key)
     {
       return _par.keyIterator(key);
     }
   private:
-    MapToLIFO& _par;
+    const MapToLIFO& _par;
   };
 
   void makeEmpty()

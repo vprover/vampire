@@ -41,6 +41,7 @@ private:
   void doBackwardInferences(Clause* cl, ClauseList*& acc);
 
 
+  bool _emptyClauseOnly;
   bool _selectedOnly;
   UnitClauseLiteralIndex* _unitIndex;
   NonUnitClauseLiteralIndex* _nonUnitIndex;

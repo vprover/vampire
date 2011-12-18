@@ -10,6 +10,7 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/Stack.hpp"
 
 #include "SATSolver.hpp"
 
@@ -19,7 +20,7 @@ namespace SAT {
 class TransparentSolver : public SATSolver
 {
 public:
-  TransparentSolver(SATSolver* inner) : _inner(inner) {}
+  TransparentSolver(SATSolver* inner);
 
   virtual Status getStatus() { return _inner->getStatus(); }
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
@@ -30,21 +31,29 @@ public:
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
   virtual void retractAllAssumptions();
-  virtual bool hasAssumptions() const;
+  virtual bool hasAssumptions() const { return _assumptions.isNonEmpty(); }
 private:
 
-  void addClause(SATClause* cl);
+  void processUnprocessed();
+
+  void processUnit(SATClause* cl);
+
+  void makeVarNonPure(unsigned var);
 
   bool tryWatchOrSubsume(SATClause* cl, unsigned forbiddenVar=0);
 
-  bool trySweepPure(unsigned var, bool eager);
+  bool tryToSweepPure(unsigned var, bool eager);
+
+  void flushClausesToInner(bool onlyPropagate);
+
+  void addInnerAssumption(SATLiteral lit, bool onlyPropagate);
 
   struct VarInfo
   {
-    VarInfo() : _pureInitialized(false), _isRewritten(false), _unit(0) {}
+    VarInfo() : _unseen(true), _isRewritten(false), _unit(0), _hasAssumption(false) {}
 
-    /** If false, _isPure needs yet to be initilized */
-    bool _pureInitialized;
+    /** If true, _isPure needs yet to be initilized */
+    bool _unseen;
     bool _isPure;
     bool _isRewritten;
     /** If variable has an unit clause, it contains it, otherwise zero */
@@ -56,13 +65,20 @@ private:
     SATClauseStack _watched;
     /** If _isRewritter, contains literal to which the variable translates */
     SATLiteral _root;
+
+    bool _hasAssumption;
+    bool _assumedPolarity;
   };
 
   SATSolverSCP _inner;
 
+  //local variables (are invalid when the execution leaves the object)
+  SATClauseStack _unprocessed;
   SATClauseStack _toBeAdded;
 
   DArray<VarInfo> _vars;
+
+  SATLiteralStack _assumptions;
 };
 
 }

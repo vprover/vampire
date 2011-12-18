@@ -47,7 +47,7 @@ URResolution::URResolution()
  */
 URResolution::URResolution(bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
     NonUnitClauseLiteralIndex* nonUnitIndex)
-: _selectedOnly(selectedOnly), _unitIndex(unitIndex), _nonUnitIndex(nonUnitIndex) {}
+: _emptyClauseOnly(false), _selectedOnly(selectedOnly), _unitIndex(unitIndex), _nonUnitIndex(nonUnitIndex) {}
 
 void URResolution::attach(SaturationAlgorithm* salg)
 {
@@ -61,6 +61,10 @@ void URResolution::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(GENERATING_UNIT_CLAUSE_SUBST_TREE) );
   _nonUnitIndex = static_cast<NonUnitClauseLiteralIndex*> (
 	  _salg->getIndexManager()->request(GENERATING_NON_UNIT_CLAUSE_SUBST_TREE) );
+
+  Options::URResolution optSetting = _salg->getOptions().unitResultingResolution();
+  ASS_NEQ(optSetting, Options::URR_OFF);
+  _emptyClauseOnly = optSetting==Options::URR_EC_ONLY;
 }
 
 void URResolution::detach()
@@ -76,8 +80,8 @@ void URResolution::detach()
 
 struct URResolution::Item
 {
-  Item(Clause* cl, bool selectedOnly, URResolution& parent)
-  : _mustResolveAll(selectedOnly ? true : (cl->length() < 2)), _orig(cl), _color(cl->color()),
+  Item(Clause* cl, bool selectedOnly, URResolution& parent, bool mustResolveAll)
+  : _mustResolveAll(mustResolveAll || (selectedOnly ? true : (cl->length() < 2)) ), _orig(cl), _color(cl->color()),
     _parent(parent)
   {
     CALL("URResolution::Item::Item");
@@ -332,7 +336,7 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
       continue;
     }
 
-    Item* itm = new Item(ucl, _selectedOnly, *this);
+    Item* itm = new Item(ucl, _selectedOnly, *this, _emptyClauseOnly);
     unsigned pos = ucl->getLiteralPosition(unif.literal);
     ASS(!_selectedOnly || pos<ucl->selected());
     swap(itm->_lits[0], itm->_lits[pos]);
@@ -354,7 +358,7 @@ ClauseIterator URResolution::generateClauses(Clause* cl)
   TimeCounter tc(TC_UR_RESOLUTION);
 
   ClauseList* res = 0;
-  processAndGetClauses(new Item(cl, _selectedOnly, *this), 0, res);
+  processAndGetClauses(new Item(cl, _selectedOnly, *this, _emptyClauseOnly), 0, res);
 
   if(clen==1) {
     doBackwardInferences(cl, res);

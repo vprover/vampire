@@ -1583,7 +1583,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.binaryResolution()) {
     gie->addFront(new BinaryResolution());
   }
-  if(opt.unitResultingResolution()) {
+  if(opt.unitResultingResolution()!=Options::URR_OFF) {
     gie->addFront(new URResolution());
   }
   res->setGeneratingInferenceEngine(gie);
