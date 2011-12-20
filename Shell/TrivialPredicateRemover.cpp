@@ -66,9 +66,9 @@ void TrivialPredicateRemover::scan(UnitList* units)
 
 
   for(unsigned i=0; i<preds; i++) {
-    if(PredicateDefinition::isBuiltIn(i)) {
-      //we add a fictional positive and negative occurrence to interpreted
-      //predicates, so that they are not considered trivial
+    if(env.signature->getPredicate(i)->protectedSymbol()) {
+      //we add a fictional positive and negative occurrence to protected
+      //predicates, so that they are never considered trivial
       _posOcc[i]++;
       _negOcc[i]++;
     }

@@ -140,6 +140,11 @@ public:
     return const_cast<MapToLIFO*>(this)->keyVals(key);
   }
 
+  size_t keyValCount(K key) const
+  {
+    return keyVals(key)->length();
+  }
+
 
   class KeyIterator
   {

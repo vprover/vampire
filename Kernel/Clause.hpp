@@ -45,6 +45,11 @@ using namespace Lib;
 class Clause
   : public Unit
 {
+private:
+  /** Should never be used, declared just to get rid of compiler warning */
+  ~Clause() { ASSERTION_VIOLATION; }
+  /** Should never be used, just that compiler requires it */
+  void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 public:
   typedef ArrayishObjectIterator<Clause> Iterator;
 
@@ -81,10 +86,6 @@ public:
 
   Clause(unsigned length,InputType it,Inference* inf);
 
-  /** Should never be used, declared just to get rid of compiler warning */
-  virtual ~Clause() { ASSERTION_VIOLATION; }
-  /** Should never be used, just that compiler requires it */
-  void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 
   void* operator new(size_t,unsigned length);
   void operator delete(void* ptr,unsigned length);
@@ -313,7 +314,7 @@ public:
   unsigned getNumeralWeight();
   float getEffectiveWeight(const Shell::Options& opt);
 
-  virtual unsigned varCnt();
+  unsigned varCnt();
 
   static ClauseEvent beforePropChange;
   static ClauseEvent afterPropChange;

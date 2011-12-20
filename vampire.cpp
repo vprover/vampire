@@ -270,8 +270,11 @@ void clausifyMode()
   simplifier.addFront(new DuplicateLiteralRemovalISE());
 
   ScopedPtr<Problem> prb(getPreprocessedProblem());
-  ClauseIterator cit = prb->clauseIterator();
+
   env.beginOutput();
+  UIHelper::outputIntroducedSymbolDeclarations(env.out());
+
+  ClauseIterator cit = prb->clauseIterator();
   while (cit.hasNext()) {
     Clause* cl=cit.next();
     cl=simplifier.simplify(cl);

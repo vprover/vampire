@@ -250,5 +250,73 @@ void UIHelper::outputResult(ostream& out)
   env.statistics->print(out);
 }
 
+void UIHelper::outputIntroducedSymbolDeclarations(ostream& out)
+{
+  CALL("UIHelper::outputIntroducedSymbolDeclarations");
+
+  Signature& sig = *env.signature;
+
+  unsigned funcs = sig.functions();
+  for(unsigned i=0; i<funcs; ++i) {
+    if(!sig.getFunction(i)->introduced()) {
+      continue;
+    }
+    outputSymbolTypeDeclarationIfNeeded(out, true, i);
+  }
+  unsigned preds = sig.predicates();
+  for(unsigned i=0; i<preds; ++i) {
+    if(!sig.getPredicate(i)->introduced()) {
+      continue;
+    }
+    outputSymbolTypeDeclarationIfNeeded(out, false, i);
+  }
+}
+
+void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, unsigned symNumber)
+{
+  CALL("UIHelper::outputSymbolTypeDeclarationIfNeeded");
+
+  Signature::Symbol* sym = function ?
+      env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
+
+  if(sym->interpreted()) {
+    //there is no need to output type definitions for interpreted symbols
+    return;
+  }
+
+  BaseType* type = function ? static_cast<BaseType*>(sym->fnType()) : sym->predType();
+
+  if(type->isAllDefault()) {
+    return;
+  }
+
+  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
+      << sym->name() << ": ";
+
+  unsigned arity = sym->arity();
+  if(arity>0) {
+    if(arity==1) {
+      out << env.sorts->sortName(type->arg(0));
+    }
+    else {
+      out << "(";
+      for(unsigned i=0; i<arity; i++) {
+	if(i>0) {
+	  out << " * ";
+	}
+	out << env.sorts->sortName(type->arg(i));
+      }
+      out << ")";
+    }
+    out << " > ";
+  }
+  if(function) {
+    out << env.sorts->sortName(sym->fnType()->result());
+  }
+  else {
+    out << "$o";
+  }
+  out << " )." << endl;
+}
 
 }

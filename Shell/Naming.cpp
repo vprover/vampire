@@ -59,6 +59,8 @@ FormulaUnit* Naming::apply (FormulaUnit* unit,UnitList*& defs)
   ASS(unit->formula()->freeVariables()==0);
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
 
+  LOG_UNIT("pp_naming_args",unit);
+
   Formula* f = unit->formula();
   switch (f->connective()) {
   case TRUE:
@@ -557,6 +559,8 @@ Formula* Naming::introduceDefinition (Formula* f,bool iff)
   Unit* definition = new FormulaUnit(def,inf,Unit::AXIOM);
   env.statistics->formulaNames++;
   UnitList::push(definition,_defs);
+
+  LOG_UNIT("pp_naming_defs",definition);
   return name;
 } // Naming::introduceDefinition
 

@@ -798,7 +798,7 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     return 0;
   }
   unsigned f = lhs->functor();
-  if(env.signature->getFunction(f)->interpreted()) {
+  if(env.signature->getFunction(f)->protectedSymbol()) {
     return 0;
   }
   if(env.signature->getFunction(f)->distinctGroups()!=0) {

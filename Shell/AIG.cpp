@@ -192,6 +192,56 @@ bool AIG::Ref::isPropConst() const
   return node()->kind()==Node::TRUE_CONST;
 }
 
+bool AIG::Ref::isQuantifier() const
+{
+  return node()->kind()==Node::QUANT;
+}
+
+/**
+ * Return number of parent AIG nodes
+ */
+unsigned AIG::Ref::parentCnt() const
+{
+  CALL("AIG::Ref::parentCnt");
+
+  switch(node()->kind()) {
+  case Node::TRUE_CONST:
+  case Node::ATOM:
+    return 0;
+  case Node::QUANT:
+    return 1;
+  case Node::CONJ:
+    return 2;
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+/**
+ * Return @c idx-th parent.
+ *
+ * Precondition:
+ * 	idx < parentCnt()
+ */
+AIG::Ref AIG::Ref::parent(unsigned idx) const
+{
+  CALL("AIG::Ref::parent");
+
+  switch(node()->kind()) {
+  case Node::QUANT:
+    ASS_EQ(idx,0);
+    return node()->qParent();
+  case Node::CONJ:
+    ASS_L(idx,2);
+    return node()->parent(idx);
+  case Node::TRUE_CONST:
+  case Node::ATOM:
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+
 unsigned AIG::Ref::hash() const
 {
   return node()->nodeIdx()*2 + polarity();
@@ -563,29 +613,39 @@ AIG::Ref AIGTransformer::lev0Deref(Ref r, DHMap<Ref,Ref>& map)
 {
   CALL("AIGTransformer::lev0Deref");
 
-  bool neg = !r.polarity();
-  if(neg) {
-    r = r.neg();
-  }
-
-  static Stack<Ref> queries;
+  static Stack<pair<Ref,bool> > queries;
   queries.reset();
 
-  Ref tgt;
-  while(map.find(r, tgt)) {
-    queries.push(r);
+  bool resNeg = false;
+
+  for(;;) {
+
+    bool neg = !r.polarity();
+    if(neg) {
+      resNeg = !resNeg;
+      r = r.neg();
+    }
+
+    Ref tgt;
+    if(!map.find(r, tgt)) {
+      break;
+    }
+    queries.push(make_pair(r,resNeg));
     r = tgt;
   }
+
   if(queries.isNonEmpty()) {
     //we compress the dereference chain
     queries.pop();
     while(queries.isNonEmpty()) {
+      pair<Ref,bool> rec = queries.pop();
+      Ref toCache = (rec.second==resNeg) ? r : r.neg();
       //DHMap::set returns false when overwriting
-      NEVER(map.set(queries.pop(), r));
+      NEVER(map.set(rec.first, toCache));
     }
   }
 
-  return neg ? r.neg() : r;
+  return resNeg ? r.neg() : r;
 }
 
 /**
@@ -642,28 +702,20 @@ AIG::Ref AIGTransformer::lev1Deref(Ref r, RefMap& map)
 }
 
 /**
- * Stack items must be positive
+ * Make elements on the stack positive references and add positive references
+ * to their AIG predecessors
+ *
+ * The order of elements on the stack is arbitrary.
  */
-void AIGTransformer::addPredecessors(RefStack& stack, const RefMap& map)
+void AIGTransformer::addAIGPredecessors(AIGStack& stack)
 {
-  CALL("AIGTransformer::addPredecessors");
-
-#if VDEBUG
-  {
-    //assert all stack elements are positive
-    Stack<Ref>::Iterator it(stack);
-    while(it.hasNext()) {
-      Ref r = it.next();
-      ASS(r.polarity());
-    }
-  }
-#endif
+  CALL("AIGTransformer::addAIGPredecessors");
 
   static DHSet<Ref> seen;
   seen.reset();
-  static RefStack toDo;
+  static AIGStack toDo;
   toDo.reset();
-  toDo.loadFromIterator(RefStack::Iterator(stack));
+  toDo.loadFromIterator(AIGStack::Iterator(stack));
   stack.reset();
 
   while(toDo.isNonEmpty()) {
@@ -697,16 +749,18 @@ void AIGTransformer::collectUsed(Ref r, const RefMap& map, RefEdgeMap& edges)
 {
   CALL("AIGTransformer::collectUsed");
   ASS(r.polarity());
+  ASS(map.find(r));
 
   static Stack<Ref> preds;
   preds.reset();
-  preds.push(r);
-  addPredecessors(preds, map);
+  preds.push(map.get(r));
+  addAIGPredecessors(preds);
 
   Stack<Ref>::Iterator it(preds);
   while(it.hasNext()) {
     Ref p = it.next();
     if(map.find(p) && p!=r) {
+      LOG("pp_aigtr_sat_deps","dep: " << r << " <-- " << p);
       edges.pushToKey(r, p);
     }
   }
@@ -718,14 +772,14 @@ void AIGTransformer::collectUsed(Ref r, const RefMap& map, RefEdgeMap& edges)
  * Currently we use a simple n.log n sort by node indexes, if this
  * shows to be a bottle neck, one can use linear topological sorting.
  */
-void AIGTransformer::orderTopologically(RefStack& stack)
+void AIGTransformer::orderTopologically(AIGStack& stack)
 {
   CALL("AIGTransformer::orderTopologically");
 
   std::sort(stack.begin(), stack.end());
 }
 
-void AIGTransformer::saturateOnTopSortedStack(const RefStack& stack, RefMap& map)
+void AIGTransformer::saturateOnTopSortedStack(const AIGStack& stack, RefMap& map)
 {
   CALL("AIGTransformer::saturateOnTopSortedStack");
 
@@ -733,10 +787,21 @@ void AIGTransformer::saturateOnTopSortedStack(const RefStack& stack, RefMap& map
   while(it.hasNext()) {
     Ref r = it.next();
     Ref dr0 = lev0Deref(r, map);
+    ASS_EQ(lev0Deref(dr0, map), dr0);
     Ref dr1 = lev1Deref(dr0, map);
+    if(r==dr1) {
+      //nothing in the map applies
+      continue;
+    }
 #if 1 //maybe it is not necessary to achieve the following condition:
     //if the node is dereferenced in the map, the parents of
     //the node should already be dereferenced as well
+    if(r!=dr0 && dr0!=dr1) {
+      LOGV("bug",r);
+      LOGV("bug",dr0);
+      LOGV("bug",dr1);
+      LOGV("bug",stack.top());
+    }
     ASS(r==dr0 || dr0==dr1);
 #endif
     if(dr0==dr1) {
@@ -748,73 +813,121 @@ void AIGTransformer::saturateOnTopSortedStack(const RefStack& stack, RefMap& map
   }
 }
 
+/**
+ * Make elements on the stack positive references and add positive references
+ * to their AIG predecessors. Order the elements on the stack so that
+ * elements can refer only to elements closer to the stack bottom.
+ */
+void AIGTransformer::makeOrderedAIGGraphStack(AIGStack& stack)
+{
+  CALL("AIGTransformer::makeOrderedAIGGraphStack");
+
+  addAIGPredecessors(stack);
+  orderTopologically(stack);
+}
+
 void AIGTransformer::applyWithCaching(Ref r0, RefMap& map)
 {
   CALL("AIGTransformer::applyWithCaching");
-  ASS(r0.polarity());
-
+  LOG("pp_aigtr_sat","applyWithCaching -- "<<r0);
   static Stack<Ref> toDo;
   toDo.reset();
 
   toDo.push(r0);
-  addPredecessors(toDo, map);
-  orderTopologically(toDo);
+  makeOrderedAIGGraphStack(toDo);
 
-  ASS_EQ(toDo.top(), r0);
+  ASS_EQ(toDo.top().node(), r0.node());
   saturateOnTopSortedStack(toDo, map);
 }
 
-void AIGTransformer::makeIdempotent(DHMap<Ref,Ref>& map)
+/**
+ * @param map in/out, map that is restricted to become acyclic
+ * @param domainOrder out parameter, will receive domain elements
+ *        of the restricted map in topological order (nodes can refer
+ *        only to items closer to the bottom of the stack).
+ */
+void AIGTransformer::restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrder)
 {
-  CALL("AIGTransformer::makeIdempotent");
+  CALL("AIGTransformer::restrictToGetOrderedDomain");
+
+  LOG("pp_aigtr_sat","ordering domain");
 
   static DHSet<Ref> seen;
   seen.reset();
 
-  MapToLIFOGraph<Ref>::Map edgeMap;
+  typedef MapToLIFOGraph<Ref> RefGraph;
+  typedef Subgraph<RefGraph> RefSubgraph;
+  RefGraph::Map edgeMap;
 
   VirtualIterator<Ref> domIt = map.domain();
 
   while(domIt.hasNext()) {
     Ref d = domIt.next();
+    LOG("pp_aigtr_inp_map",d<<" --> "<<map.get(d));
     collectUsed(d, map, edgeMap);
   }
 
-  typedef MapToLIFOGraph<Ref> RefGraph;
-  typedef Subgraph<RefGraph> RefSubgraph;
   RefGraph gr(edgeMap);
+  gr.ensureNodes(map.domain());
+
   SCCAnalyzer<RefGraph> an0(gr);
   ScopedPtr<SCCAnalyzer<RefSubgraph> > an1;
   if(an0.breakingNodes().isNonEmpty()) {
     //if we have circular dependencies, we fix them by removing some mappings
-    RefStack::ConstIterator brIt(an0.breakingNodes());
+    AIGStack::ConstIterator brIt(an0.breakingNodes());
     while(brIt.hasNext()) {
       Ref br = brIt.next();
+      LOG("pp_aigtr_sat","domain element removed to break cycles: "<<br);
       map.remove(br);
     }
-    Subgraph<RefGraph> subGr(gr, RefStack::ConstIterator(an0.breakingNodes()));
+    Subgraph<RefGraph> subGr(gr, AIGStack::ConstIterator(an0.breakingNodes()));
     an1 = new SCCAnalyzer<RefSubgraph>(subGr);
   }
 
-  const Stack<RefStack>& comps = an1 ? an1->components() : an0.components();
-  Stack<RefStack>::BottomFirstIterator cit(comps);
+  const Stack<AIGStack>& comps = an1 ? an1->components() : an0.components();
+  Stack<AIGStack>::BottomFirstIterator cit(comps);
   while(cit.hasNext()) {
-    const RefStack& comp = cit.next();
+    const AIGStack& comp = cit.next();
     ASS_EQ(comp.size(),1);
-    applyWithCaching(comp.top(), map);
+    domainOrder.push(comp.top());
+    LOG("pp_aigtr_sat","domain element to process: "<<comp.top());
+  }
+}
+
+void AIGTransformer::makeIdempotent(DHMap<Ref,Ref>& map, Stack<Ref>* finalDomain)
+{
+  CALL("AIGTransformer::makeIdempotent");
+
+  static AIGStack order;
+  order.reset();
+  restrictToGetOrderedDomain(map, order);
+  AIGStack::BottomFirstIterator cit(order);
+  while(cit.hasNext()) {
+    Ref r = cit.next();
+    applyWithCaching(map.get(r), map);
+    lev0Deref(r, map); //collapse the rewritings
+    if(finalDomain) {
+      finalDomain->push(r);
+    }
   }
 }
 
 /**
- * Given map from AIG node --> AIG node, extend it to all nodes that contain the given ones
+ * Given map from AIG node --> AIG node, extend it to all nodes
+ * that contain the given ones.
+ * If map is not acyclic, remove some rewrites to make it acyclic.
+ * Domain of map must only contain AIGRefs with positive polarity.
  *
- * The map must be idempotent
+ * @param finalDomain if non-zero, Refs that weren't eliminated from
+ *                    the map wil be added into the stack.
  */
-void AIGTransformer::saturateMap(DHMap<Ref,Ref>& map)
+void AIGTransformer::saturateMap(DHMap<Ref,Ref>& map, Stack<Ref>* finalDomain)
 {
   CALL("AIGTransformer::saturateMap");
 
-  makeIdempotent(map);
+  ASS_REP(forAll(map.domain(), AIG::hasPositivePolarity), getFirstTrue(map.domain(), negPred(AIG::hasPositivePolarity)));
+
+  makeIdempotent(map, finalDomain);
 
   saturateOnTopSortedStack(_aig._orderedNodeRefs, map);
 }
@@ -822,6 +935,11 @@ void AIGTransformer::saturateMap(DHMap<Ref,Ref>& map)
 ///////////////////////
 // AIGFormulaSharer
 //
+
+AIGFormulaSharer::AIGFormulaSharer() : _transf(_aig), _useRewrites(false)
+{
+
+}
 
 void AIGFormulaSharer::apply(Problem& prb)
 {
@@ -859,12 +977,148 @@ bool AIGFormulaSharer::apply(UnitList*& units)
 Formula* AIGFormulaSharer::shareFormula(Formula* f, AIGRef aig)
 {
   CALL("AIGFormulaSharer::shareFormula");
+
+  Formula** pRes;
+  if(_formReprs.getValuePtr(aig, pRes)) {
+    *pRes = f;
+    ALWAYS(_formAIGs.insert(f, aig));
+  }
+  return *pRes;
+}
+
+/**
+ * If necessary subnodes are present in the sharing structure,
+ * add formula representation of quantifier AIG node @c a into
+ * the sharing structure.
+ * Otherwise push @c a followed by necessary subnodes on the
+ * @c toBuild stack.
+ */
+void AIGFormulaSharer::buildQuantAigFormulaRepr(AIGRef a, Stack<AIGRef>& toBuild)
+{
+  CALL("AIGFormulaSharer::buildQuantAigFormulaRepr");
+
+  bool pol = a.polarity();
+  AIG::Node* n = a.node();
+  ASS_EQ(n->kind(), AIG::Node::QUANT);
+
+  AIGRef subnode;
+  if(pol) {
+    // we'll build universal quantifier
+    subnode = n->qParent();
+  }
+  else {
+    // we'll build existential quantifier
+    subnode = n->qParent().neg();
+  }
+
+  Formula* subForm;
+  if(!_formReprs.find(subnode, subForm)) {
+    toBuild.push(a);
+    toBuild.push(subnode);
+    return;
+  }
+
+  shareFormula(new QuantifiedFormula(pol ? FORALL : EXISTS, n->qVars()->copy(), subForm), a);
+}
+
+/**
+ * If necessary subnodes are present in the sharing structure,
+ * add formula representation of conjunction AIG node @c a into
+ * the sharing structure.
+ * Otherwise push @c a followed by necessary subnodes on the
+ * @c toBuild stack.
+ */
+void AIGFormulaSharer::buildConjAigFormulaRepr(AIGRef a, Stack<AIGRef>& toBuild)
+{
+  CALL("AIGFormulaSharer::buildConjAigFormulaRepr");
+
+  bool pol = a.polarity();
+  AIG::Node* n = a.node();
+  ASS_EQ(n->kind(), AIG::Node::CONJ);
+
+  AIGRef pars[2];
+  if(pol) {
+    // we'll build conjunction
+    pars[0] = n->parent(0);
+    pars[1] = n->parent(1);
+  }
+  else {
+    // we'll build disjunction
+    pars[0] = n->parent(0).neg();
+    pars[1] = n->parent(1).neg();
+  }
+
+  Formula* subForms[2] = {0,0};
+  _formReprs.find(pars[0], subForms[0]);
+  _formReprs.find(pars[1], subForms[1]);
+  if(!subForms[0] || !subForms[1]) {
+    toBuild.push(a);
+    if(!subForms[0]) {
+      toBuild.push(pars[0]);
+    }
+    if(!subForms[1]) {
+      toBuild.push(pars[1]);
+    }
+    return;
+  }
+  FormulaList* args = new FormulaList(subForms[0], new FormulaList(subForms[1], 0));
+  shareFormula(new JunctionFormula(pol ? AND : OR, args), a);
+}
+
+
+Formula* AIGFormulaSharer::aigToFormula(AIGRef aig0)
+{
+  CALL("AIGFormulaSharer::aigToFormula");
+
   Formula* res;
-  if(_formReprs.find(aig, res)) {
+  if(_formReprs.find(aig0, res)) {
     return res;
   }
-  _formReprs.insert(aig, f);
-  return f;
+
+  static Stack<AIGRef> toBuild;
+  toBuild.reset();
+  toBuild.push(aig0);
+
+  while(toBuild.isNonEmpty()) {
+    AIGRef a = toBuild.pop();
+
+    if(_formReprs.find(a)) {
+      continue;
+    }
+    Formula* negRes;
+    if(_formReprs.find(a.neg(), negRes)) {
+      //if a negated formula is shared, the negation argument would also be shared and have aig equal to a
+      ASS_NEQ(negRes->connective(), NOT);
+      shareFormula(new NegatedFormula(negRes), a);
+    }
+    bool pol = a.polarity();
+    AIG::Node* n = a.node();
+
+    if(!pol && (n->kind()==AIG::Node::ATOM || n->kind()==AIG::Node::TRUE_CONST) ) {
+      //for negative literals and false constants we first buld the negation
+      toBuild.push(a);
+      toBuild.push(a.neg());
+      continue;
+    }
+
+    switch(n->kind()) {
+    case AIG::Node::TRUE_CONST:
+      ASS(pol);
+      shareFormula(new Formula(true), a);
+      break;
+    case AIG::Node::ATOM:
+      ASS(pol);
+      shareFormula(new AtomicFormula(n->literal()), a);
+      break;
+    case AIG::Node::QUANT:
+      buildQuantAigFormulaRepr(a, toBuild);
+      break;
+    case AIG::Node::CONJ:
+      buildConjAigFormulaRepr(a, toBuild);
+      break;
+    }
+  }
+  return _formReprs.get(aig0);
 }
 
 bool AIGFormulaSharer::apply(FormulaUnit* unit, FormulaUnit*& res)
@@ -890,12 +1144,17 @@ bool AIGFormulaSharer::apply(FormulaUnit* unit, FormulaUnit*& res)
   return true;
 }
 
-
-AIGFormulaSharer::ARes AIGFormulaSharer::apply(Formula* f)
+AIGFormulaSharer::ARes AIGFormulaSharer::getSharedFormula(Formula* f)
 {
-  CALL("AIGFormulaSharer::apply(Formula*)");
+  CALL("AIGFormulaSharer::getSharedFormula");
 
   ARes res;
+
+  if(_formAIGs.find(f,res.second)) {
+    res.first = aigToFormula(res.second);
+    return res;
+  }
+
   switch (f->connective()) {
   case TRUE:
   case FALSE:
@@ -930,6 +1189,30 @@ AIGFormulaSharer::ARes AIGFormulaSharer::apply(Formula* f)
 
   LOG("pp_aig_subformula_nodes", "SFN: "<< (*f) << " has AIG node " << res.second.toString());
 
+  res = ARes(shareFormula(res.first,res.second), res.second);
+
+  return res;
+}
+
+AIGFormulaSharer::ARes AIGFormulaSharer::apply(Formula* f)
+{
+  CALL("AIGFormulaSharer::apply(Formula*)");
+
+  ARes res = getSharedFormula(f);
+
+  if(res.first!=f) {
+    _formAIGs.insert(f, res.second);
+  }
+
+  if(_useRewrites) {
+    AIGRef rewriteSrc = res.second;
+    AIGRef rewriteTgt = _transf.lev0Deref(rewriteSrc, _rewrites);
+    if(rewriteSrc!=rewriteTgt) {
+      Formula* formTgt = aigToFormula(rewriteTgt);
+      res = ARes(formTgt, rewriteTgt);
+    }
+  }
+
   return res;
 }
 
@@ -938,15 +1221,15 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyTrueFalse(Formula* f)
   CALL("AIGFormulaSharer::applyTrueFalse");
 
   AIGRef ar = (f->connective()==TRUE) ? _aig.getTrue() : _aig.getFalse();
-  return ARes(shareFormula(f, ar), ar);
+  return ARes(f, ar);
 }
 
 AIGFormulaSharer::ARes AIGFormulaSharer::applyLiteral(Formula* f)
 {
   CALL("AIGFormulaSharer::applyLiteral");
 
-  AIGRef ar = _aig.getLit(f->literal());
-  return ARes(shareFormula(f, ar), ar);
+  AIGRef ar = apply(f->literal());
+  return ARes(f, ar);
 }
 
 AIGFormulaSharer::ARes AIGFormulaSharer::applyJunction(Formula* f)
@@ -1005,7 +1288,7 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyJunction(Formula* f)
     f1 = f;
   }
 
-  return ARes(shareFormula(f1, ar), ar);
+  return ARes(f1, ar);
 }
 
 AIGFormulaSharer::ARes AIGFormulaSharer::applyNot(Formula* f)
@@ -1015,7 +1298,7 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyNot(Formula* f)
   ARes chRes = apply(f->uarg());
   AIGRef ar = chRes.second.neg();
   Formula* f1 = (f->uarg()==chRes.first) ? f : new NegatedFormula(chRes.first);
-  return ARes(shareFormula(f1, ar), ar);
+  return ARes(f1, ar);
 }
 
 AIGFormulaSharer::ARes AIGFormulaSharer::applyBinary(Formula* f)
@@ -1047,7 +1330,7 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyBinary(Formula* f)
 
   bool modified = (f->left() != lhsRes.first) || (f->right() != rhsRes.first);
   Formula* f1 = modified ? new BinaryFormula(f->connective(), lhsRes.first, rhsRes.first) : f;
-  return ARes(shareFormula(f1, ar), ar);
+  return ARes(f1, ar);
 }
 
 AIGFormulaSharer::ARes AIGFormulaSharer::applyQuantified(Formula* f)
@@ -1058,9 +1341,69 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyQuantified(Formula* f)
   ARes chRes = apply(f->qarg());
   AIGRef ar = _aig.getQuant(con==EXISTS, f->vars()->copy(), chRes.second);
   Formula* f1 = (f->qarg()==chRes.first) ? f : new QuantifiedFormula(con, f->vars(), chRes.first);
-  return ARes(shareFormula(f1, ar), ar);
+  return ARes(f1, ar);
 }
 
+/**
+ * Rewrite corresponding srcs into corresponding tgts.
+ *
+ * The function can be called only once on an AIGFormulaSharer object,
+ * before we start applying it to any formulas.
+ *
+ * If rewrites are cyclic or there are multiple definitions for one AIG,
+ * some rewrites will be left out.
+ *
+ * @param usedIdxAcc if non-zero, will receive indexes of rewrites that
+ * 	  are being used. The indexes will be in topological order.
+ */
+void AIGFormulaSharer::addRewriteRules(unsigned cnt, Formula* const * srcs, Formula* const * tgts,
+    Stack<unsigned>* usedIdxAcc)
+{
+  CALL("AIGFormulaSharer::addRewriteRule");
+  ASS(_rewrites.isEmpty());
+  ASS(_formReprs.isEmpty());
+
+  LOG("pp_aig_rwr","adding "<<cnt<<" AIG-based rewrite rules");
+
+  DHMap<AIGRef,unsigned> refIndexes;
+  for(unsigned i=0; i<cnt; ++i) {
+    AIGRef src = apply(srcs[i]).second;
+    AIGRef tgt = apply(tgts[i]).second;
+    if(!src.polarity()) {
+      src = src.neg();
+      tgt = tgt.neg();
+    }
+    if(!_rewrites.insert(src, tgt)) {
+      continue;
+    }
+    ALWAYS(refIndexes.insert(src, i));
+  }
+
+  Stack<AIGRef> refOrder;
+  _transf.saturateMap(_rewrites, &refOrder);
+
+//  _transf.restrictToGetOrderedDomain(_rewrites, refOrder);
+  _formReprs.reset();
+
+  _useRewrites = true;
+
+  Stack<AIGRef>::BottomFirstIterator orefIt(refOrder);
+  while(orefIt.hasNext()) {
+    AIGRef r = orefIt.next();
+    unsigned idx = refIndexes.get(r);
+    if(_preBuildRewriteCache) {
+      //We put the target formula for idx-th rewrite into the _formReprs cache.
+      //The call to restrictToGetOrderedDomain() ensures we do apply the targets
+      //in the right order to inline rewrites into each orther when needed.
+      LOG("pp_aig_rwr", "building rewriting cache for "<<(*srcs[idx])<<" by rewriting "<<(*tgts[idx]));
+      ARes applyRes = apply(tgts[idx]);
+      LOG("pp_aig_rwr", "result: "<<applyRes.second<<" --> "<<(*applyRes.first));
+    }
+    if(usedIdxAcc) {
+      usedIdxAcc->push(idx);
+    }
+  }
+}
 
 #if 0
 

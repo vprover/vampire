@@ -69,6 +69,7 @@ public:
 
   // miscellaneous
   bool equals(const Formula*) const;
+  void collectAtoms(Stack<Literal*>& acc);
   void collectPredicates(Stack<unsigned>& acc);
   void collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int polarity=1);
 

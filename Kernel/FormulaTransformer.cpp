@@ -7,8 +7,10 @@
 #include "Lib/Recycler.hpp"
 #include "Lib/ScopedLet.hpp"
 
+#include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
+#include "Problem.hpp"
 #include "SortHelper.hpp"
 #include "TermTransformer.hpp"
 
@@ -322,6 +324,71 @@ FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
   Inference* inf = new Inference1(_rule, unit);
   return new FormulaUnit(newForm, inf, unit->inputType());
 }
+
+
+///////////////////////////////////////
+// ScanAndApplyFormulaUnitTransformer
+//
+
+void ScanAndApplyFormulaUnitTransformer::apply(Problem& prb)
+{
+  CALL("ScanAndApplyFormulaUnitTransformer::apply");
+
+  if(apply(prb.units())) {
+    updateModifiedProblem(prb);
+  }
+}
+
+bool ScanAndApplyFormulaUnitTransformer::apply(UnitList*& units)
+{
+  CALL("ScanAndApplyFormulaUnitTransformer::apply");
+
+  scan(units);
+
+  bool modified = false;
+
+  UnitList::DelIterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    Unit* newUnit;
+    if(u->isClause()) {
+      Clause* cl = static_cast<Clause*>(u);
+      if(!apply(cl, newUnit)) {
+	continue;
+      }
+    }
+    else {
+      FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+      if(!apply(fu, newUnit)) {
+	continue;
+      }
+    }
+    if(newUnit==0) {
+      uit.del();
+    }
+    else {
+      uit.replace(newUnit);
+    }
+    modified = true;
+  }
+
+  UnitList* added = getIntroducedFormulas();
+  if(added) {
+    modified = true;
+    uit.insert(added);
+  }
+
+  return modified;
+}
+
+void ScanAndApplyFormulaUnitTransformer::updateModifiedProblem(Problem& prb)
+{
+  CALL("ScanAndApplyFormulaUnitTransformer::updateModifiedProblem");
+
+  prb.invalidateEverything();
+}
+
+
 
 }
 

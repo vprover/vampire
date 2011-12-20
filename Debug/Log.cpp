@@ -116,7 +116,7 @@ public:
     CALL("Logging::Impl::declareTag");
 
     if(_tagNums.find(tag)) {
-      ASSERTION_VIOLATION;
+      ASS_REP2(false,"tag already declared",tag);
       throw Exception("Tag \""+string(tag)+"\" already declared.");
     }
 

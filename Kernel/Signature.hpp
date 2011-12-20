@@ -41,9 +41,13 @@ class Signature
     /** print name */
     string _name;
     /** arity */
-    unsigned _arity : 23;
+    unsigned _arity;
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
+    /** symbol that doesn't come from input problem, but was introduced by Vampire */
+    unsigned _introduced : 1;
+    /** protected symbols aren't subject to any kind of preprocessing elimination */
+    unsigned _protected : 1;
     /** clauses with only skipped symbols will not be output as symbol eliminating */
     unsigned _skip : 1;
     /** marks propositional predicate symbols that are to
@@ -74,14 +78,18 @@ class Signature
     void destroyPredSymbol();
 
     void addColor(Color color);
+    /** mark symbol that doesn't come from input problem, but was introduced by Vampire */
+    void markIntroduced() { _introduced=1; }
+    /** mark the symbol as protected so it is not being eliminated by preprocessing */
+    void markProtected() { _protected=1; }
     /** mark the symbol as skip for the purpose of symbol elimination */
     void markSkip() { _skip=1; }
     /** mark the symbol as name for consequence finding */
-    void markCFName() { ASS_EQ(arity(), 0); _cfName=1; }
+    void markCFName() { ASS_EQ(arity(), 0); _cfName=1; markProtected(); }
     /** mark the symbol as name for splitting without backtracking */
     void markSWBName() { ASS_EQ(arity(), 0); _swbName=1; }
     /** mark symbol to be an answer predicate */
-    void markAnswerPredicate() { _answerPredicate=1; }
+    void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
     /** mark predicate to be an equality proxy */
     void markEqualityProxy() { _equalityProxy=1; }
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
@@ -100,6 +108,10 @@ class Signature
     inline const string& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
     inline bool interpreted() const { return _interpreted; }
+    /** Return true iff the symbol doesn't come from input problem but was introduced by Vampire */
+    inline bool introduced() const { return _introduced; }
+    /** Return true iff the symbol is must not be eliminated by proprocessing */
+    inline bool protectedSymbol() const { return _protected; }
     /** Return true iff symbol is a distinct string constant */
     inline bool stringConstant() const { return _stringConstant; }
     /** Return true iff symbol is an answer predicate */
@@ -401,6 +413,7 @@ private:
   static const unsigned RATIONAL_DISTINCT_GROUP;
   static const unsigned REAL_DISTINCT_GROUP;
 
+  static bool isProtectedName(string name);
   static bool symbolNeedsQuoting(string name, bool interpreted, unsigned arity, bool stringConstant);
   static bool charNeedsQuoting(char c, bool first);
 

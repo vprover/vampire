@@ -3,12 +3,14 @@
  * Implements class PDUtils.
  */
 
+#include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/MultiCounter.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "PDUtils.hpp"
 
@@ -23,9 +25,11 @@ bool PDUtils::isDefinitionHead(Literal* l)
 {
   CALL("PDUtils::isDefinitionHead");
 
-  if(l->isEquality()) {
+  Signature::Symbol* sym = env.signature->getPredicate(l->functor());
+  if(sym->protectedSymbol()) {
     return false;
   }
+
   unsigned ar = l->arity();
   if(l->weight()!=ar+1 || l->getDistinctVars()!=ar) {
     return false;
@@ -156,7 +160,7 @@ bool PDUtils::hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 {
   CALL("PDUtils::hasDefinitionShape/3");
 
-  if(lhs->isEquality()) {
+  if(!isDefinitionHead(lhs)) {
     return false;
   }
 

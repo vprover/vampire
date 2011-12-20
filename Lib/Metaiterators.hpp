@@ -1133,6 +1133,57 @@ bool iteratorsEqual(It1 it1, It2 it2)
   return !it2.hasNext();
 }
 
+/**
+ * Return true iff pred returns true for all elements of it
+ */
+template<class It, typename Pred>
+bool forAll(It it, Pred pred)
+{
+  CALL("iteratorsEqual");
+
+  while(it.hasNext()) {
+    if(!pred(it.next())) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Return first element for which pred returns true.
+ * There must be an element for which true is returned in the iterator.
+ */
+template<class It, typename Pred>
+ELEMENT_TYPE(It) getFirstTrue(It it, Pred pred)
+{
+  CALL("iteratorsEqual");
+
+  while(it.hasNext()) {
+    ELEMENT_TYPE(It) el = it.next();
+    if(pred(el)) {
+      return el;
+    }
+  }
+  ASSERTION_VIOLATION;
+}
+
+
+template<typename Inner>
+struct NegPred
+{
+  DECL_RETURN_TYPE(bool);
+  NegPred(const Inner& inner) : _inner(inner) {}
+  template<typename Arg>
+  bool operator()(Arg a) { return !_inner(a); }
+private:
+  Inner _inner;
+};
+
+template<typename Inner>
+NegPred<Inner> negPred(Inner inner) {
+  return NegPred<Inner>(inner);
+}
+
 ///@}
 
 }

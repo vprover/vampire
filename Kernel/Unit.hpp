@@ -25,6 +25,8 @@ using namespace Lib;
  */
 class Unit
 {
+protected:
+  ~Unit() {}
 public:
   /** Kind of unit. The integers should not be changed, they are used in
    *  Compare.
@@ -54,11 +56,9 @@ public:
   static InputType getInputType(UnitList* units);
   static InputType getInputType(InputType t1, InputType t2);
 
-  virtual ~Unit() {}
-
-  virtual void destroy() = 0;
-  virtual string toString() const = 0;
-  virtual unsigned varCnt() = 0;
+  void destroy();
+  string toString() const;
+  unsigned varCnt();
 
   string inferenceAsString(BDDNode* propPart=0) const;
 
@@ -101,22 +101,23 @@ public:
 
   Color getColor();
   Formula* getFormula(BDDNode* prop);
+  void collectAtoms(Stack<Literal*>& acc);
   void collectPredicates(Stack<unsigned>& acc);
 
   /**
    * Increase the number of references to the unit.
    *
-   * Only clauses are reference-counted, so the base implementation
-   * does nothing.
+   * Only clauses are reference-counted, for FormulaUnits nothing
+   * is done.
    */
-  virtual void incRefCnt() {}
+  void incRefCnt();
   /**
    * Decrease the number of references to the unit.
    *
-   * Only clauses are reference-counted, so the base implementation
-   * does nothing.
+   * Only clauses are reference-counted, for FormulaUnits nothing
+   * is done.
    */
-  virtual void decRefCnt() {}
+  void decRefCnt();
 
   /** mark the unit as read from a TPTP included file  */
   inline void markIncluded() {_included = 1;}

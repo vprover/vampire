@@ -129,16 +129,6 @@ struct PredicateDefinition::PredData
   USE_ALLOCATOR(PredData);
 };
 
-bool PredicateDefinition::isBuiltIn(unsigned pred)
-{
-  CALL("PredicateDefinition::isBuiltIn");
-
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
-  return predSym->interpreted() || predSym->answerPredicate() ||
-	predSym->name() == "$distinct";
-  //TODO: remove this hack once we properly support the $distinct predicate
-}
-
 PredicateDefinition::PredicateDefinition(bool trace)
 : _trace(trace), _processedPrb(0), _predCnt(env.signature->predicates())
 {
@@ -151,7 +141,7 @@ PredicateDefinition::PredicateDefinition(bool trace)
 
   //mark built-in
   for(int i=0;i<predCnt;i++) {
-    if(isBuiltIn(i)) {
+    if(env.signature->getPredicate(i)->protectedSymbol()) {
       addBuiltInPredicate(i);
     }
   }

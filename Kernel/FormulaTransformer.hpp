@@ -143,6 +143,28 @@ private:
   FT& _formulaTransformer;
 };
 
+
+class ScanAndApplyFormulaUnitTransformer {
+public:
+  virtual ~ScanAndApplyFormulaUnitTransformer() {}
+
+  void apply(Problem& prb);
+  bool apply(UnitList*& units);
+
+  virtual void scan(UnitList* units) {}
+  virtual bool apply(FormulaUnit* unit, Unit*& res) {
+    return false;
+  }
+  virtual bool apply(Clause* cl, Unit*& res) {
+    return false;
+  }
+  UnitList* getIntroducedFormulas() { return 0; }
+
+protected:
+  virtual void updateModifiedProblem(Problem& prb);
+};
+
+
 }
 
 #endif // __FormulaTransformer__

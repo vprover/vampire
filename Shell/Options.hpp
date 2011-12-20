@@ -51,7 +51,14 @@ public:
     EPR_PRESERVING_NAMING,
     EPR_PRESERVING_SKOLEMIZATION,
     EPR_RESTORING_INLINING,
-    /** ??? */
+    /**
+     * Propagate equalities in formulas, for example
+     * (X=Y => X=f(Y)) ---> X=f(X)
+     *
+     * Such propagation can simplify formulas early in
+     * the preprocessing and so help other preprocessing
+     * rules (namely dealing with predicate definitions).
+     */
     EQUALITY_PROPAGATION,
     EQUALITY_PROXY,
     EQUALITY_RESOLUTION_WITH_DELETION,
@@ -113,6 +120,8 @@ public:
     PROOF,
     PROOF_CHECKING,
     PROPOSITIONAL_TO_BDD,
+    /** if non-empty, symbols with this prefix will not be subject to any kind of elimination in preprocessing */
+    PROTECTED_PREFIX,
 
     /** Determines whether (and how) we attempt to answer questions */
     QUESTION_ANSWERING,
@@ -412,6 +421,7 @@ public:
 
   string forcedOptions() const { return _forcedOptions; }
   string testId() const { return _testId; }
+  string protectedPrefix() const { return _protectedPrefix; }
   Statistics statistics() const { return _statistics; }
   Proof proof() const { return _proof; }
   bool proofChecking() const { return _proofChecking; }
@@ -711,6 +721,7 @@ private:
   Proof _proof;
   bool _proofChecking;
   bool _propositionalToBDD;
+  string _protectedPrefix;
 
   QuestionAnsweringMode _questionAnswering;
 

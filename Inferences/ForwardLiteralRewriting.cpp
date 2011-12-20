@@ -60,7 +60,7 @@ void ForwardLiteralRewriting::perform(Clause* cl, ForwardSimplificationPerformer
       }
 
       Literal* rhs0 = (qr.literal==(*qr.clause)[0]) ? (*qr.clause)[1] : (*qr.clause)[0];
-      Literal* rhs = lit->isNegative() ? rhs0 : Literal::complementaryLiteral(rhs0);
+      Literal* rhs = Literal::negativeLiteral(rhs0);
 
       ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
 

@@ -21,6 +21,8 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, boo
   : _name(nm),
     _arity(arity),
     _interpreted(interpreted ? 1 : 0),
+    _introduced(0),
+    _protected(0),
     _skip(0),
     _cfName(0),
     _swbName(0),
@@ -35,7 +37,10 @@ Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, boo
   ASS(!stringConstant || arity==0);
 
   if(symbolNeedsQuoting(_name, interpreted, arity, stringConstant)) {
-      _name="'"+_name+"'";
+    _name="'"+_name+"'";
+  }
+  if(_interpreted || isProtectedName(nm)) {
+    markProtected();
   }
 }
 
@@ -634,7 +639,9 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
     }
     while (!added);
 //  }
-  getFunction(result)->markSkip();
+  Symbol* sym = getFunction(result);
+  sym->markIntroduced();
+  sym->markSkip();
   return result;
 } // addFreshFunction
 
@@ -664,7 +671,9 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
     }
     while (!added);
 //  }
-  getPredicate(result)->markSkip();
+  Symbol* sym = getPredicate(result);
+  sym->markIntroduced();
+  sym->markSkip();
   return result;
 } // addFreshPredicate
 
@@ -747,6 +756,25 @@ void Signature::addToDistinctGroup(unsigned constantSymbol, unsigned groupId)
 
   Symbol* sym = getFunction(constantSymbol);
   sym->addToDistinctGroup(groupId);
+}
+
+bool Signature::isProtectedName(string name)
+{
+  CALL("Signature::isProtectedName");
+
+  if(name=="$distinct") {
+    //TODO: remove this hack once we properly support the $distinct predicate
+    return true;
+  }
+
+  string protectedPrefix = env.options->protectedPrefix();
+  if(protectedPrefix.size()==0) {
+    return false;
+  }
+  if(name.substr(0, protectedPrefix.size())==protectedPrefix) {
+    return true;
+  }
+  return false;
 }
 
 /**

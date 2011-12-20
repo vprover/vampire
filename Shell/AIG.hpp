@@ -25,17 +25,18 @@ using namespace Lib;
 using namespace Kernel;
 
 class AIGTransformer;
+class AIGFormulaSharer;
 
 class AIG {
 public:
   friend class AIGTransformer;
+  friend class AIGFormulaSharer;
 
   class Node;
   typedef Formula::VarList VarList;
 
   class Ref {
     friend class AIG;
-    friend class AIGTransformer;
     size_t _data;
 
     Ref(Node* n, bool polarity) {
@@ -44,14 +45,18 @@ public:
 
       _data = reinterpret_cast<size_t>(n) | polarity;
     }
-    Node* node() const { return reinterpret_cast<Node*>(_data&(~static_cast<size_t>(1))); }
   public:
     Ref() {}
     bool isPropConst() const;
     bool isTrue() const { return isPropConst() && polarity(); }
     bool isFalse() const  { return isPropConst() && !polarity(); }
     Ref neg() const { return Ref(node(), !polarity()); }
+
     bool polarity() const { return _data&1; }
+    Node* node() const { return reinterpret_cast<Node*>(_data&(~static_cast<size_t>(1))); }
+    bool isQuantifier() const;
+    unsigned parentCnt() const;
+    Ref parent(unsigned idx) const;
 
     bool operator==(const Ref& r) const { return _data==r._data; }
     bool operator!=(const Ref& r) const { return !((*this)==r); }
@@ -132,9 +137,12 @@ public:
   Ref getDisj(Ref par1, Ref par2) { return getConj(par1.neg(), par2.neg()).neg(); }
   /** The function takes over the vars list, it must be legal to destroy it at any point */
   Ref getQuant(bool exQuant, VarList* vars, Ref par);
+
+  static bool hasPositivePolarity(Ref r) { return r.polarity(); }
 };
 
 typedef AIG::Ref AIGRef;
+typedef Stack<AIGRef> AIGStack;
 
 inline
 std::ostream& operator<< (ostream& out, const AIGRef& f)
@@ -173,25 +181,27 @@ public:
    * become a congruence on the AIG.
    */
   typedef DHMap<Ref,Ref> RefMap;
-  typedef Stack<Ref> RefStack;
-private:
-  typedef MapToLIFO<Ref,Ref> RefEdgeMap;
 
   Ref lev0Deref(Ref r, RefMap& map);
+private:
   Ref lev1Deref(Ref r, RefMap& map);
 
-  void addPredecessors(RefStack& stack, const RefMap& map);
-  void orderTopologically(RefStack& stack);
+  typedef MapToLIFO<Ref,Ref> RefEdgeMap;
+
+  void addAIGPredecessors(AIGStack& stack);
+  void orderTopologically(AIGStack& stack);
   void collectUsed(Ref r, const RefMap& map, RefEdgeMap& edges);
 
-  void saturateOnTopSortedStack(const RefStack& stack, RefMap& map);
+  void saturateOnTopSortedStack(const AIGStack& stack, RefMap& map);
   void applyWithCaching(Ref r, RefMap& map);
 
-  void makeIdempotent(RefMap& map);
+  void makeIdempotent(RefMap& map, Stack<Ref>* finalDomain=0);
 public:
   AIGTransformer(AIG& aig) : _aig(aig) {}
 
-  void saturateMap(RefMap& map);
+  void makeOrderedAIGGraphStack(AIGStack& stack);
+  void restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrder);
+  void saturateMap(RefMap& map, Stack<Ref>* finalDomain=0);
 };
 
 class AIGFormulaSharer
@@ -199,15 +209,38 @@ class AIGFormulaSharer
 public:
   typedef pair<Formula*,AIGRef> ARes;
 private:
+  //options
+  /**
+   * Mutually apply the rewrites on their rhs, so that we cache
+   * the original formulas instead of having to build them in
+   * the aigToFormula() function. Caching the original formulas
+   * may lead to the result containing connectives as equivalences
+   * instead of just conjunctions and disjunctions.
+   */
+  bool _preBuildRewriteCache;
+
   AIG _aig;
+  AIGTransformer _transf;
 
   DHMap<AIGRef,Formula*> _formReprs;
+  DHMap<Formula*,AIGRef> _formAIGs;
 
+  /** If false, content of _rewrites is ignored */
+  bool _useRewrites;
+  /**
+   *
+   * Rewrite targets must be present in _formReprs.
+   */
+  DHMap<AIGRef,AIGRef> _rewrites;
 
 
   Formula* shareFormula(Formula* f, AIGRef aig);
 
+  ARes getSharedFormula(Formula* f);
 
+  //These functions are only always called from apply(Formula*).
+  //They return non-shared formulas, the sharing is introduced in
+  //the apply(Formula*) function.
   ARes applyTrueFalse(Formula* f);
   ARes applyLiteral(Formula* f);
   ARes applyJunction(Formula* f);
@@ -215,8 +248,21 @@ private:
   ARes applyBinary(Formula* f);
   ARes applyQuantified(Formula* f);
 
+  void buildQuantAigFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild);
+  void buildConjAigFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild);
+  Formula* aigToFormula(AIGRef aig);
+
 public:
-  ARes apply(Formula * f);
+  AIGFormulaSharer();
+
+  AIG& aig() { return _aig; }
+  AIGTransformer& aigTransf() { return _transf; }
+
+
+  void addRewriteRules(unsigned cnt, Formula* const * srcs, Formula* const * tgts, Stack<unsigned>* usedIdxAcc=0);
+
+  AIGRef apply(Literal* l) { return _aig.getLit(l); }
+  ARes apply(Formula* f);
 
   void apply(Problem& prb);
   bool apply(UnitList*& units);

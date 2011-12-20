@@ -98,6 +98,23 @@ Unit::Unit(Kind kind,Inference* inf,InputType it)
   }
 } // Unit::Unit
 
+void Unit::incRefCnt()
+{
+  CALL("Unit::incRefCnt");
+  if(isClause()) {
+    static_cast<Clause*>(this)->incRefCnt();
+  }
+}
+
+void Unit::decRefCnt()
+{
+  CALL("Unit::decRefCnt");
+  if(isClause()) {
+    static_cast<Clause*>(this)->decRefCnt();
+  }
+}
+
+
 Color Unit::getColor()
 {
   if(isClause()) {
@@ -107,6 +124,43 @@ Color Unit::getColor()
     return static_cast<FormulaUnit*>(this)->getColor();
   }
 }
+
+void Unit::destroy()
+{
+  CALL("Unit::destroy");
+
+  if(isClause()) {
+    static_cast<Clause*>(this)->destroy();
+  }
+  else {
+    static_cast<FormulaUnit*>(this)->destroy();
+  }
+}
+
+string Unit::toString() const
+{
+  CALL("Unit::toString");
+
+  if(isClause()) {
+    return static_cast<const Clause*>(this)->toString();
+  }
+  else {
+    return static_cast<const FormulaUnit*>(this)->toString();
+  }
+}
+
+unsigned Unit::varCnt()
+{
+  CALL("Unit::varCnt");
+
+  if(isClause()) {
+    return static_cast<Clause*>(this)->varCnt();
+  }
+  else {
+    return static_cast<FormulaUnit*>(this)->varCnt();
+  }
+}
+
 
 /**
  * Return quantified formula equivalent to the unit.
@@ -119,6 +173,24 @@ Formula* Unit::getFormula(BDDNode* prop)
   else {
     ASS(BDD::instance()->isFalse(prop));
     return Formula::quantify(static_cast<FormulaUnit*>(this)->formula());
+  }
+}
+
+void Unit::collectAtoms(Stack<Literal*>& acc)
+{
+  CALL("Unit::collectAtoms");
+
+  if(isClause()) {
+    Clause* cl = static_cast<Clause*>(this);
+    Clause::Iterator cit(*cl);
+    while(cit.hasNext()) {
+      Literal* l = cit.next();
+      acc.push(Literal::positiveLiteral(l));
+   }
+  }
+  else {
+    Formula* form = static_cast<FormulaUnit*>(this)->formula();
+    form->collectAtoms(acc);
   }
 }
 

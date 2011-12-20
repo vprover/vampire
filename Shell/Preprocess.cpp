@@ -14,6 +14,7 @@
 #include "Kernel/Problem.hpp"
 
 #include "AIG.hpp"
+#include "AIGInliner.hpp"
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
 #include "EPRInlining.hpp"
@@ -189,6 +190,8 @@ void Preprocess::preprocess (Problem& prb)
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
   }
+
+//  AIGInliner().apply(prb);
 
   if (prb.mayHaveFormulas()) {
     preprocess2(prb);

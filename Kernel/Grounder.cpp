@@ -136,7 +136,7 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
   CALL("Grounder::groundNormalized");
 
   bool isPos = lit->isPositive();
-  Literal* posLit = isPos ? lit : Literal::complementaryLiteral(lit);
+  Literal* posLit = Literal::positiveLiteral(lit);
 
   unsigned* pvar;
   if(_asgn.getValuePtr(posLit, pvar)) {

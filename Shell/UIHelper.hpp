@@ -32,6 +32,9 @@ public:
 
   static void outputAllPremises(ostream& out, UnitList* units, string prefix="");
 
+  static void outputIntroducedSymbolDeclarations(ostream& out);
+  static void outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, unsigned symNumber);
+
   /**
    * True if we are running in the CASC mode
    *

@@ -36,7 +36,7 @@ public:
   void destroy();
   string toString() const;
 
-  virtual unsigned varCnt();
+  unsigned varCnt();
 
   /** Return the formula of this unit */
   const Formula* formula() const

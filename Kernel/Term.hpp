@@ -665,6 +665,14 @@ public:
   unsigned hash() const;
   unsigned oppositeHash() const;
   static Literal* complementaryLiteral(Literal* l);
+  /** If l is positive, return l; otherwise return its complementary literal. */
+  static Literal* positiveLiteral(Literal* l) {
+    return l->isPositive() ? l : complementaryLiteral(l);
+  }
+  /** If l is negative, return l; otherwise return its complementary literal. */
+  static Literal* negativeLiteral(Literal* l) {
+    return l->isNegative() ? l : complementaryLiteral(l);
+  }
 
   /** true if positive */
   bool isPositive() const

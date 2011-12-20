@@ -50,6 +50,15 @@ public:
     return pvi( _m.keyIterator(node) );
   }
 
+  /**
+   * Make sure all nodes in the iterator are present in the graph
+   */
+  template<class It>
+  void ensureNodes(It nodeIt) {
+    _nodes.loadFromIterator(nodeIt);
+    makeUnique(_nodes);
+  }
+
   size_t size() const { return _nodes.size(); }
 
 private:

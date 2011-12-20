@@ -14,6 +14,9 @@ namespace Debug
 
 void Logging::doTagDeclarations()
 {
+  DECL("bug",
+      DOC("this tag is always enabled, bugs are to be reported through it or its children"));
+
   DECL("active_clauses",
       DOC("displays active clauses"));
   DECL("passive_clauses",
@@ -300,6 +303,16 @@ void Logging::doTagDeclarations()
       DOC("print-out the problem just before conversion to ennf"),
       PARENT("pp",1));
 
+  DECL("pp_naming",
+      DOC("naming"),
+      PARENT("pp",1));
+  DECL("pp_naming_args",
+      DOC("units passed to naming"),
+      PARENT("pp_naming",1));
+  DECL("pp_naming_defs",
+      DOC("definitions introduced by naming"),
+      PARENT("pp_naming",0));
+
   DECL("pp_esk",
       DOC("epr-restoring skolemization"),
       PARENT("pp",1));
@@ -386,6 +399,25 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_junction_building",
       DOC("progress of building junction AIGs"),
       PARENT("pp_aig_subformula_nodes",1));
+  DECL("pp_aig_rwr",
+      DOC("aig sharing formula rewriter"),
+      PARENT("pp_aig",1));
+
+  DECL("pp_aigtr",
+      DOC("AIGTransformer"),
+      PARENT("pp_aig",1),
+      PARENT("pp",1));
+
+  DECL("pp_aigtr_inp_map",
+      DOC("input map"),
+      PARENT("pp_aigtr",0));
+  DECL("pp_aigtr_sat",
+      DOC("map saturation process"),
+      PARENT("pp_aigtr",1));
+  DECL("pp_aigtr_sat_deps",
+      DOC("dependencies between rewrite rules"),
+      PARENT("pp_aigtr_sat",1));
+
 
   //
   // BFNT
@@ -563,6 +595,10 @@ void Logging::doTagDeclarations()
   DECL("tu_uf",
       DOC("TestUtils::getUniqueFormula"),
       PARENT("tu",1));
+
+
+
+  ENABLE_TAG("bug");
 }
 
 

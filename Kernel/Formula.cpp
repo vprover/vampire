@@ -499,6 +499,26 @@ Formula::VarList* Formula::boundVariables () const
 }
 
 /**
+ * Add into @c acc numbers of all atoms in the formula.
+ *
+ * As we are collecting atoms, for negative literals we insert their
+ * complements.
+ */
+void Formula::collectAtoms(Stack<Literal*>& acc)
+{
+  CALL("Formula::collectPredicates");
+
+  SubformulaIterator sfit(this);
+  while(sfit.hasNext()) {
+    Formula* sf = sfit.next();
+    if(sf->connective()==LITERAL) {
+      Literal* l = sf->literal();
+      acc.push(Literal::positiveLiteral(l));
+    }
+  }
+}
+
+/**
  * Add into @c acc numbers of all predicates in the formula.
  */
 void Formula::collectPredicates(Stack<unsigned>& acc)

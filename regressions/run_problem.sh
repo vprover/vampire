@@ -10,8 +10,9 @@ Problem files may contain tags in format
  "% {tag name}: {tag value}"
 
 Supported tags in problem files
- params -- arguments to be passed to the vampiree executable
+ params -- arguments to be passed to the vampire executable
  res -- either sat or unsat, asserts expected result
+ grep -- regexp that should be present in the result
 
 Meaning of exit statuses
  0 -- test passed OK
@@ -25,6 +26,7 @@ fi
 function get_unique_tag_value()
 {
         #Arguments: {tag name} {target variable name}
+        #if tag is not present, empty string is assigned to the target variable name
         local TAG=$1
         local TGT=$2
         local PATTERN="^% $TAG: \(.*\)$"
@@ -81,6 +83,19 @@ case "$RES" in
         rm $OUTF 
         ;;
 esac
+
+get_unique_tag_value grep GREP_PATTERN
+
+if [ "$GREP_PATTERN" != "" ]; then
+        if ! grep -q "$GREP_PATTERN" $OUTF; then
+                cat $OUTF
+                echo
+                echo "Vampire output on $PRB did not contain expected patern '$GREP_PATTERN'"
+                rm $OUTF 
+                exit 1
+        fi
+fi 
+
  
 
 rm $OUTF 

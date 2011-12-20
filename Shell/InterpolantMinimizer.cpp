@@ -356,7 +356,7 @@ private:
   {
     CALL("InterpolantMinimizer::ClauseSplitter::getAtomComponent");
 
-    Literal* norm = lit->isNegative() ? Literal::complementaryLiteral(lit) : lit;
+    Literal* norm = Literal::positiveLiteral(lit);
     norm = Renaming::normalize(norm);
 
 

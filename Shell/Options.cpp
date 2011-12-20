@@ -180,6 +180,7 @@ const char* Options::Constants::_optionNames[] = {
   "proof",
   "proof_checking",
   "propositional_to_bdd",
+  "protected_prefix",
 
   "question_answering",
 
@@ -702,6 +703,7 @@ Options::Options ()
   _proof(PROOF_ON),
   _proofChecking(false),
   _propositionalToBDD(true),
+  _protectedPrefix(""),
 
   _questionAnswering(QA_OFF),
 
@@ -1100,6 +1102,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case PROPOSITIONAL_TO_BDD:
       _propositionalToBDD = onOffToBool(value,name);
+      return;
+    case PROTECTED_PREFIX:
+      _protectedPrefix = value;
       return;
 
     case QUESTION_ANSWERING:
@@ -1841,6 +1846,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case PROPOSITIONAL_TO_BDD:
     str << boolToOnOff(_propositionalToBDD);
+    return;
+  case PROTECTED_PREFIX:
+    str << _protectedPrefix;
     return;
 
   case QUESTION_ANSWERING:
