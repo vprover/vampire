@@ -145,8 +145,6 @@ struct PDInliner::PDef
       return cl;
     }
 
-    env.statistics->inlinedPredicateDefinitions++;
-
     Unit::InputType inp;
     Inference* inf;
     if(_defUnit) {
@@ -194,8 +192,6 @@ struct PDInliner::PDef
     if(form==unit->formula()) {
       return unit;
     }
-
-    env.statistics->inlinedPredicateDefinitions++;
 
     Unit::InputType inp;
     Inference* inf;
@@ -945,10 +941,7 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
   }
 
   //here we make the list of dependencies unique
-  VirtualIterator<unsigned> uniqueDepIt = pvi(
-      getUniquePersistentIterator(Stack<unsigned>::Iterator(dependencies)) );
-  dependencies.reset();
-  dependencies.loadFromIterator(uniqueDepIt);
+  makeUnique(dependencies);
 
   if(headInline) {
     unit = _defs[origPred]->apply(unit);
@@ -979,6 +972,7 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
   }
 
   _dependent[defPred].reset();
+  env.statistics->inlinedPredicateDefinitions++;
   return true;
 }
 
@@ -1002,6 +996,7 @@ bool PDInliner::addAsymetricDefinition(Literal* lhs, Formula* posBody, Formula* 
   _defs[pred] = new PDef(this, pred);
   _defs[pred]->assignAsym(lhs, posBody, negBody, dblBody, premise);
 
+  env.statistics->inlinedPredicateDefinitions++;
   return true;
 }
 

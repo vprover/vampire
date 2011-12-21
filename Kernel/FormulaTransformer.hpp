@@ -27,6 +27,9 @@ protected:
 
   Formula* apply(Formula* f);
 
+  virtual void preApply(Formula*& f) {}
+  virtual void postApply(Formula* orig, Formula*& res) {}
+
   virtual Formula* applyLiteral(Formula* f) { return f; }
 
   virtual Formula* applyAnd(Formula* f) { return applyJunction(f); }

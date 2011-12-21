@@ -75,9 +75,12 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
     unsigned _formRefCnt;
   };
 
+  struct DefIntroRewriter;
+
   //options
   bool _eprPreserving;
   unsigned _namingRefCntThreshold;
+  unsigned _mergeEquivDefs;
 
   AIGFormulaSharer _fsh;
 
@@ -98,8 +101,12 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
 
   DHMap<Literal*,Literal*> _equivs;
 
+  Stack<FormulaUnit*> _newDefs;
+
 
   bool shouldIntroduceName(unsigned aigStackIdx);
+  Literal* getNameLiteral(unsigned aigStackIdx);
+  void introduceName(unsigned aigStackIdx);
 
   void scanDefinition(FormulaUnit* def);
 
@@ -109,12 +116,14 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
   void doSecondRefAIGPass();
 
 public:
-  AIGDefinitionIntroducer(Options& opts);
+  AIGDefinitionIntroducer(const Options& opts);
 
   void scan(UnitList* units);
 
+  using ScanAndApplyFormulaUnitTransformer::apply;
   bool apply(FormulaUnit* unit, FormulaUnit*& res);
 
+  virtual UnitList* getIntroducedFormulas();
 protected:
   virtual void updateModifiedProblem(Problem& prb) {}
 };

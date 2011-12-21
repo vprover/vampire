@@ -23,41 +23,59 @@ Formula* FormulaTransformer::apply(Formula* f)
 {
   CALL("FormulaTransformer::apply");
 
+  preApply(f);
+
+  Formula* res;
+
   switch (f->connective()) {
   case LITERAL:
-    return applyLiteral(f);
+    res = applyLiteral(f);
+    break;
   case AND:
-    return applyAnd(f);
+    res = applyAnd(f);
+    break;
   case OR:
-    return applyOr(f);
+    res = applyOr(f);
+    break;
   case IMP:
-    return applyImp(f);
+    res = applyImp(f);
+    break;
   case NOT:
-    return applyNot(f);
+    res = applyNot(f);
+    break;
   case IFF:
-    return applyIff(f);
+    res = applyIff(f);
+    break;
   case XOR:
-    return applyXor(f);
+    res = applyXor(f);
+    break;
   case FORALL:
-    return applyForAll(f);
+    res = applyForAll(f);
+    break;
   case EXISTS:
-    return applyExists(f);
+    res = applyExists(f);
+    break;
   case ITE:
-    return applyIte(f);
+    res = applyIte(f);
+    break;
   case TERM_LET:
-    return applyTermLet(f);
+    res = applyTermLet(f);
+    break;
   case FORMULA_LET:
-    return applyFormulaLet(f);
+    res = applyFormulaLet(f);
+    break;
 
   case TRUE:
   case FALSE:
-    return applyTrueFalse(f);
+    res = applyTrueFalse(f);
+    break;
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;
-    return 0;
 #endif
   }
+  postApply(f, res);
+  return res;
 }
 
 Formula* FormulaTransformer::applyJunction(Formula* f)

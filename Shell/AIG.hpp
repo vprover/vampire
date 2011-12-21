@@ -250,7 +250,6 @@ private:
 
   void buildQuantAigFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild);
   void buildConjAigFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild);
-  Formula* aigToFormula(AIGRef aig);
 
 public:
   AIGFormulaSharer();
@@ -267,6 +266,8 @@ public:
   void apply(Problem& prb);
   bool apply(UnitList*& units);
   bool apply(FormulaUnit* unit, FormulaUnit*& res);
+
+  Formula* aigToFormula(AIGRef aig);
 };
 
 

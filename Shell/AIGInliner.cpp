@@ -3,6 +3,7 @@
  * Implements class AIGInliner.
  */
 
+#include "Lib/Environment.hpp"
 #include "Lib/MapToLIFO.hpp"
 #include "Lib/Stack.hpp"
 
@@ -10,6 +11,8 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Options.hpp"
@@ -173,12 +176,13 @@ bool AIGInliner::apply(FormulaUnit* unit, FormulaUnit*& res)
 // AIGDefinitionIntroducer
 //
 
-AIGDefinitionIntroducer::AIGDefinitionIntroducer(Options& opts)
+AIGDefinitionIntroducer::AIGDefinitionIntroducer(const Options& opts)
 {
   CALL("AIGDefinitionIntroducer::AIGDefinitionIntroducer");
 
   _eprPreserving = opts.eprPreservingNaming();
   _namingRefCntThreshold = 3; //TODO: add option
+  _mergeEquivDefs = false; //not implemented yet
 }
 
 void AIGDefinitionIntroducer::scanDefinition(FormulaUnit* def)
@@ -195,7 +199,10 @@ void AIGDefinitionIntroducer::scanDefinition(FormulaUnit* def)
     //rhs is already defined
     Literal* oldDefTgt;
     ALWAYS(_defs.find(rhsAig, oldDefTgt));
-    _equivs.insert(lhs, oldDefTgt);
+    if(_mergeEquivDefs) {
+      _equivs.insert(lhs, oldDefTgt);
+      NOT_IMPLEMENTED;
+    }
     return;
   }
   ALWAYS(_defUnits.insert(rhsAig,def));
@@ -283,6 +290,62 @@ bool AIGDefinitionIntroducer::shouldIntroduceName(unsigned aigStackIdx)
   return _namingRefCntThreshold && ni._formRefCnt>=_namingRefCntThreshold;
 }
 
+Literal* AIGDefinitionIntroducer::getNameLiteral(unsigned aigStackIdx)
+{
+  CALL("AIGDefinitionIntroducer::getNameLiteral");
+
+  AIGRef a = _refAIGs[aigStackIdx];
+  Formula* rhs = _fsh.aigToFormula(a);
+  Formula::VarList* freeVars = rhs->freeVariables(); //careful!! this traverses the formula as tree, not as DAG, so may take exponential time!
+
+  static DHMap<unsigned,unsigned> varSorts;
+  varSorts.reset();
+  SortHelper::collectVariableSorts(rhs, varSorts); //careful!! this traverses the formula as tree, not as DAG, so may take exponential time!
+
+  static TermStack args;
+  args.reset();
+  static Stack<unsigned> argSorts;
+  argSorts.reset();
+  while(freeVars) {
+    unsigned var = Formula::VarList::pop(freeVars);
+    args.push(TermList(var, false));
+    argSorts.push(varSorts.get(var));
+  }
+
+  unsigned arity = args.size();
+  unsigned pred = env.signature->addFreshPredicate(arity, "sP","aig_name");
+  env.signature->getPredicate(pred)->setType(PredicateType::makeType(arity, argSorts.begin(), Sorts::SRT_BOOL));
+
+  Literal* res = Literal::create(pred, arity, true, false, args.begin());
+  return res;
+}
+
+void AIGDefinitionIntroducer::introduceName(unsigned aigStackIdx)
+{
+  CALL("AIGDefinitionIntroducer::introduceName");
+
+  AIGRef a = _refAIGs[aigStackIdx];
+  NodeInfo& ni = _refAIGInfos[aigStackIdx];
+  ASS(!ni._name);
+  ASS(!_defs.find(a));
+
+  ni._formRefCnt = 1;
+  ni._name = getNameLiteral(aigStackIdx);
+  _defs.insert(a, ni._name);
+
+  Formula* lhs = new AtomicFormula(ni._name);
+  Formula* rhs = _fsh.aigToFormula(a);
+  //TODO: weaken definition based on the way subforula occurrs
+  Formula* equiv = new BinaryFormula(IFF, lhs, rhs);
+  Formula::VarList* vars = equiv->freeVariables(); //careful!! this traverses the formula as tree, not as DAG, so may take exponential time!
+  if(vars) {
+    equiv = new QuantifiedFormula(FORALL, vars, equiv);
+  }
+  FormulaUnit* def = new FormulaUnit(equiv, new Inference(Inference::PREDICATE_DEFINITION), Unit::AXIOM);
+  _defUnits.insert(a, def);
+  _newDefs.push(def);
+}
+
 void AIGDefinitionIntroducer::doSecondRefAIGPass()
 {
   CALL("AIGDefinitionIntroducer::doSecondRefAIGPass");
@@ -306,7 +369,13 @@ void AIGDefinitionIntroducer::doSecondRefAIGPass()
     AIGRef r = _refAIGs[i];
     NodeInfo& ni = _refAIGInfos[i];
 
+    if(ni._name) {
+      ni._formRefCnt = 1;
+    }
 
+    if(shouldIntroduceName(i)) {
+      introduceName(i);
+    }
 
     unsigned parCnt = r.parentCnt();
     for(unsigned pi = 0; pi<parCnt; ++pi) {
@@ -316,9 +385,17 @@ void AIGDefinitionIntroducer::doSecondRefAIGPass()
       unsigned parStackIdx = _aigIndexes.get(posPar);
       NodeInfo& pni = _refAIGInfos[parStackIdx];
 
-      pni._directRefCnt++;
-      ni._hasQuant[0^neg] |= pni._hasQuant[0];
-      ni._hasQuant[1^neg] |= pni._hasQuant[1];
+      if(r.isQuantifier()) {
+	pni._inQuant[!neg] = true;
+      }
+
+      pni._inQuant[0^neg] |= ni._inQuant[0];
+      pni._inQuant[1^neg] |= ni._inQuant[1];
+
+      pni._inPol[0^neg] |= ni._inPol[0];
+      pni._inPol[1^neg] |= ni._inPol[1];
+
+      pni._formRefCnt += ni._formRefCnt;
     }
   }
 }
@@ -333,16 +410,61 @@ void AIGDefinitionIntroducer::scan(UnitList* units)
   _fsh.aigTransf().makeOrderedAIGGraphStack(_refAIGs);
 
   doFirstRefAIGPass();
-
-
+  doSecondRefAIGPass();
 }
+
+struct AIGDefinitionIntroducer::DefIntroRewriter : public FormulaTransformer
+{
+  DefIntroRewriter(AIGDefinitionIntroducer& parent) : _parent(parent), _fsh(_parent._fsh) {}
+
+  virtual void postApply(Formula* orig, Formula*& res)
+  {
+    CALL("AIGDefinitionIntroducer::DefIntroRewriter::postApply");
+
+    AIGFormulaSharer::ARes ares = _fsh.apply(res);
+    res = ares.first;
+    AIGRef a = ares.second;
+    bool neg = !a.polarity();
+    if(neg) {
+      a = a.neg();
+    }
+    unsigned refStackIdx = _parent._aigIndexes.get(a);
+    Literal* name = _parent._refAIGInfos[refStackIdx]._name;
+    if(name) {
+      //we replace the formula by definition
+      AIGRef nameAig = _fsh.apply(name);
+      res = _fsh.aigToFormula(nameAig);
+    }
+  }
+private:
+  AIGDefinitionIntroducer& _parent;
+  AIGFormulaSharer& _fsh;
+};
 
 bool AIGDefinitionIntroducer::apply(FormulaUnit* unit, FormulaUnit*& res)
 {
   CALL("AIGDefinitionIntroducer::apply");
-  NOT_IMPLEMENTED;
+
+  DefIntroRewriter rwr(*this);
+  Formula* f0 = unit->formula();
+  Formula* f = rwr.transform(f0);
+
+  if(f==f0) {
+    return false;
+  }
+
+  //TODO add proper inferences
+  return new FormulaUnit(f, new Inference1(Inference::DEFINITION_FOLDING,unit), unit->inputType());
 }
 
+UnitList* AIGDefinitionIntroducer::getIntroducedFormulas()
+{
+  CALL("AIGDefinitionIntroducer::getIntroducedFormulas");
+
+  UnitList* res = 0;
+  UnitList::pushFromIterator(Stack<FormulaUnit*>::Iterator(_newDefs), res);
+  return res;
+}
 
 }
 

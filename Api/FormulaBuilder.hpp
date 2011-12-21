@@ -169,17 +169,21 @@ public:
 
   /** create a function symbol using default sorts
    *
-   * @warning Functions of the same name and arity must have always
-   * also the same type, even across different instances of the
-   * FormulaBuilder class. */
-  Function function(const string& funName, unsigned arity);
-
-  /** create a function symbol with specified range and domain sorts
+   * @param builtIn if true, symbol will not be eliminated during preprocessing
    *
    * @warning Functions of the same name and arity must have always
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
-  Function function(const string& funName, unsigned arity, Sort rangeSort, Sort* domainSorts);
+  Function function(const string& funName, unsigned arity, bool builtIn=false);
+
+  /** create a function symbol with specified range and domain sorts
+   *
+   * @param builtIn if true, symbol will not be eliminated during preprocessing
+   *
+   * @warning Functions of the same name and arity must have always
+   * also the same type, even across different instances of the
+   * FormulaBuilder class. */
+  Function function(const string& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn=false);
 
   /** Return constant representing @c i */
   Function integerConstant(int i);
@@ -193,18 +197,22 @@ public:
 
   /** create a predicate symbol using default sorts
    *
-   * @warning Predicates of the same name and arity must have always
-   * also the same type, even across different instances of the
-   * FormulaBuilder class. */
-  Predicate predicate(const string& predName, unsigned arity);
-
-  /**
-   * create a predicate symbol with specified domain sorts
+   * @param builtIn if true, symbol will not be eliminated during preprocessing
    *
    * @warning Predicates of the same name and arity must have always
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
-  Predicate predicate(const string& predName, unsigned arity, Sort* domainSorts);
+  Predicate predicate(const string& predName, unsigned arity, bool builtIn=false);
+
+  /**
+   * create a predicate symbol with specified domain sorts
+   *
+   * @param builtIn if true, symbol will not be eliminated during preprocessing
+   *
+   * @warning Predicates of the same name and arity must have always
+   * also the same type, even across different instances of the
+   * FormulaBuilder class. */
+  Predicate predicate(const string& predName, unsigned arity, Sort* domainSorts, bool builtIn=false);
 
   /**
    * Create interpreted predicate

@@ -140,16 +140,16 @@ Var FormulaBuilder::var(const string& varName, Sort varSort)
   return _aux->getVar(varName, varSort);
 }
 
-Function FormulaBuilder::function(const string& funName,unsigned arity)
+Function FormulaBuilder::function(const string& funName,unsigned arity, bool builtIn)
 {
   CALL("FormulaBuilder::function/2");
 
   static DArray<Sort> domainSorts;
   domainSorts.init(arity, defaultSort());
-  return function(funName, arity, defaultSort(), domainSorts.array());
+  return function(funName, arity, defaultSort(), domainSorts.array(), builtIn);
 }
 
-Function FormulaBuilder::function(const string& funName, unsigned arity, Sort rangeSort, Sort* domainSorts)
+Function FormulaBuilder::function(const string& funName, unsigned arity, Sort rangeSort, Sort* domainSorts, bool builtIn)
 {
   CALL("FormulaBuilder::function/4");
 
@@ -179,6 +179,9 @@ Function FormulaBuilder::function(const string& funName, unsigned arity, Sort ra
     }
     delete fnType;
   }
+  if(builtIn) {
+    sym->markProtected();
+  }
   return Function(res);
 }
 
@@ -205,16 +208,16 @@ Function FormulaBuilder::integerConstant(string i)
 }
 
 
-Predicate FormulaBuilder::predicate(const string& predName,unsigned arity)
+Predicate FormulaBuilder::predicate(const string& predName,unsigned arity, bool builtIn)
 {
   CALL("FormulaBuilder::predicate/2");
 
   static DArray<Sort> domainSorts;
   domainSorts.init(arity, defaultSort());
-  return predicate(predName, arity, domainSorts.array());
+  return predicate(predName, arity, domainSorts.array(), builtIn);
 }
 
-Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort* domainSorts)
+Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort* domainSorts, bool builtIn)
 {
   CALL("FormulaBuilder::predicate/3");
 
@@ -243,6 +246,9 @@ Predicate FormulaBuilder::predicate(const string& predName, unsigned arity, Sort
 	  "of the same name and arity. (This must not happen even across different instances of the FormulaBuilder class.)");
     }
     delete predType;
+  }
+  if(builtIn) {
+    sym->markProtected();
   }
   return Predicate(res);
 }

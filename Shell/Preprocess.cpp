@@ -192,6 +192,7 @@ void Preprocess::preprocess (Problem& prb)
   }
 
 //  AIGInliner().apply(prb);
+//  AIGDefinitionIntroducer(_options).apply(prb);
 
   if (prb.mayHaveFormulas()) {
     preprocess2(prb);
