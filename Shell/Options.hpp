@@ -31,6 +31,7 @@ public:
     ABSTRACTION,
     AGE_WEIGHT_RATIO,
     AIG_FORMULA_SHARING,
+    AIG_INLINER,
     ARITY_CHECK,
 
     BACKWARD_DEMODULATION,
@@ -438,6 +439,7 @@ public:
   bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }
   void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
   bool aigFormulaSharing() const { return _aigFormulaSharing; }
+  bool aigInliner() const { return _aigInliner; }
   Mode mode() const { return _mode; }
   void setMode(Mode newVal);
   InputSyntax inputSyntax() const { return _inputSyntax; }
@@ -640,6 +642,7 @@ private:
   int _ageRatio;
   int _weightRatio;
   bool _aigFormulaSharing;
+  bool _aigInliner;
   bool _arityCheck;
 
   Demodulation _backwardDemodulation;

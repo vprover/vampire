@@ -1184,6 +1184,23 @@ NegPred<Inner> negPred(Inner inner) {
   return NegPred<Inner>(inner);
 }
 
+
+template<class P>
+struct GetFirstOfPair {
+  DECL_RETURN_TYPE(typename P::first_type);
+  OWN_RETURN_TYPE operator()(P p) {
+    return p.first;
+  }
+};
+
+template<class P>
+struct GetSecondOfPair {
+  DECL_RETURN_TYPE(typename P::second_type);
+  OWN_RETURN_TYPE operator()(P p) {
+    return p.second;
+  }
+};
+
 ///@}
 
 }

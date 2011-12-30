@@ -63,7 +63,7 @@ bool EquivalenceDiscoverer::isEligible(Literal* l)
   CALL("EquivalenceDiscoverer::isEligible");
 
 //  return PDUtils::isDefinitionHead(l);
-  return PDUtils::isDefinitionHead(l) && env.signature->getPredicate(l->functor())->name().substr(0,2)!="sP";
+  return PDUtils::isDefinitionHead(l) && !env.signature->getPredicate(l->functor())->introduced();
 }
 
 void EquivalenceDiscoverer::collectRelevantLits()

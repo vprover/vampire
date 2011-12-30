@@ -191,8 +191,10 @@ void Preprocess::preprocess (Problem& prb)
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
   }
 
-//  AIGInliner().apply(prb);
-//  AIGDefinitionIntroducer(_options).apply(prb);
+  if(_options.aigInliner()) {
+    AIGInliner().apply(prb);
+    AIGDefinitionIntroducer(_options).apply(prb);
+  }
 
   if (prb.mayHaveFormulas()) {
     preprocess2(prb);

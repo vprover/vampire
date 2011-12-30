@@ -104,6 +104,7 @@ const char* Options::Constants::_optionNames[] = {
   "abstraction",
   "age_weight_ratio",
   "aig_formula_sharing",
+  "aig_inliner",
   "arity_check",
 
   "backward_demodulation",
@@ -623,6 +624,7 @@ Options::Options ()
   _ageRatio(1),
   _weightRatio(1),
   _aigFormulaSharing(false),
+  _aigInliner(false),
   _arityCheck(false),
 
   _backwardDemodulation(DEMODULATION_ALL),
@@ -847,6 +849,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case AIG_FORMULA_SHARING:
       _aigFormulaSharing = onOffToBool(value,name);
+      return;
+    case AIG_INLINER:
+      _aigInliner = onOffToBool(value,name);
       return;
     case ARITY_CHECK:
       _arityCheck = onOffToBool(value,name);
@@ -1645,6 +1650,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case AIG_FORMULA_SHARING:
     str << boolToOnOff(_aigFormulaSharing);
+    return;
+  case AIG_INLINER:
+    str << boolToOnOff(_aigInliner);
     return;
   case ARITY_CHECK:
     str << boolToOnOff(_arityCheck);

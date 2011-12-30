@@ -18,7 +18,7 @@
 #include "Indexing/ClauseVariantIndex.hpp"
 
 #include "SAT/SATLiteral.hpp"
-#include "SAT/SatSolver.hpp"
+#include "SAT/SATSolver.hpp"
 
 #include "Splitter.hpp"
 

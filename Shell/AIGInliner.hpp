@@ -54,7 +54,8 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
 
     /** True if contains quantifiers with {negative,positive} polarity */
     bool _hasQuant[2];
-    Literal* _name;
+    bool _hasName;
+    AIGRef _name;
     /** Number of AIG nodes that refer to this node */
     unsigned _directRefCnt;
 
@@ -84,7 +85,9 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
 
   AIGFormulaSharer _fsh;
 
-  AIGStack _toplevelAIGs;
+  typedef pair<AIGRef,FormulaUnit*> TopLevelPair;
+  typedef Stack<TopLevelPair> TopLevelStack;
+  TopLevelStack _toplevelAIGs;
 
   /**
    * All positive AIG refs used in the problem, ordered topologically,
@@ -96,10 +99,10 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
   /** Indexes of AIG refs in the _refAIGs stack */
   DHMap<AIGRef,size_t> _aigIndexes;
 
-  DHMap<AIGRef,Literal*> _defs;
+  DHMap<AIGRef,AIGRef> _defs;
   DHMap<AIGRef,FormulaUnit*> _defUnits;
 
-  DHMap<Literal*,Literal*> _equivs;
+//  DHMap<Literal*,Literal*> _equivs;
 
   Stack<FormulaUnit*> _newDefs;
 
@@ -121,7 +124,7 @@ public:
   void scan(UnitList* units);
 
   using ScanAndApplyFormulaUnitTransformer::apply;
-  bool apply(FormulaUnit* unit, FormulaUnit*& res);
+  bool apply(FormulaUnit* unit, Unit*& res);
 
   virtual UnitList* getIntroducedFormulas();
 protected:

@@ -407,7 +407,6 @@ void Logging::doTagDeclarations()
       DOC("AIGTransformer"),
       PARENT("pp_aig",1),
       PARENT("pp",1));
-
   DECL("pp_aigtr_inp_map",
       DOC("input map"),
       PARENT("pp_aigtr",0));
@@ -417,6 +416,24 @@ void Logging::doTagDeclarations()
   DECL("pp_aigtr_sat_deps",
       DOC("dependencies between rewrite rules"),
       PARENT("pp_aigtr_sat",1));
+
+  DECL("pp_aigdef",
+      DOC("AIG based definition introduction"),
+      PARENT("pp_aig",1),
+      PARENT("pp",1));
+  DECL("pp_aigdef_intro",
+      DOC("introduced definitions"),
+      PARENT("pp_aigdef",0));
+  DECL("pp_aigdef_apply",
+      DOC("introducing definitions into formulas"),
+      PARENT("pp_aigdef",1));
+  DECL("pp_aigdef_apply_subform",
+      DOC("introducing definitions into subformulas"),
+      PARENT("pp_aigdef_apply",1));
+  DECL("pp_aigdef_used_aigs",
+      DOC("used AIGs"),
+      PARENT("pp_aigdef",1));
+
 
 
   //

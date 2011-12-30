@@ -192,6 +192,11 @@ bool AIG::Ref::isPropConst() const
   return node()->kind()==Node::TRUE_CONST;
 }
 
+bool AIG::Ref::isAtom() const
+{
+  return node()->kind()==Node::ATOM;
+}
+
 bool AIG::Ref::isQuantifier() const
 {
   return node()->kind()==Node::QUANT;
@@ -294,8 +299,55 @@ string AIG::Ref::toString() const
     ASSERTION_VIOLATION;
   }
   return (polarity() ? "" : "~") + inner;
-
 }
+
+/**
+ * Output string representation of AIG that reveals links to parent AIGs
+ */
+string AIG::Ref::toInternalString(unsigned depth) const
+{
+  string inner;
+
+  Node::Kind kind = node()->kind();
+
+  if(kind==Node::TRUE_CONST) {
+    return polarity() ? "$true" : "$false";
+  }
+
+  if(kind==Node::ATOM) {
+    inner = node()->literal()->toString();
+  }
+  else if(depth==0) {
+    inner = Int::toString(node()->nodeIdx());
+  }
+  else {
+    inner = Int::toString(node()->nodeIdx()) + ": ";
+    switch(node()->kind()) {
+    case Node::CONJ:
+      inner += '(' + node()->parent(0).toInternalString(depth-1) + " & " + node()->parent(1).toInternalString(depth-1) + ')';
+      break;
+    case Node::QUANT:
+    {
+      inner += "! [";
+      VarList::Iterator vit(node()->qVars());
+      while(vit.hasNext()) {
+        int var = vit.next();
+        inner += 'X'+Int::toString(var);
+        if(vit.hasNext()) {
+          inner += ',';
+        }
+      }
+      inner += "] : " + node()->qParent().toInternalString(depth-1);
+      break;
+    }
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+
+  return (polarity() ? "" : "~") + inner;
+}
+
 
 AIG::AIG() : _simplLevel(3), _nextNodeIdx(0), _conjReserve(0), _quantReserve(0)
 {
@@ -692,7 +744,7 @@ AIG::Ref AIGTransformer::lev1Deref(Ref r, RefMap& map)
       res = r;
     }
     else {
-      res = _aig.getQuant(false, n->qVars(), dp);
+      res = _aig.getQuant(false, n->qVars()->copy(), dp);
     }
     break;
   }

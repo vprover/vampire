@@ -596,7 +596,6 @@ api_src:
 	mkdir $(patsubst %, $@/%, $(VAMP_DIRS))
 	tar cf - $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) | (cd $@ ; tar xvf -) 2>/dev/null
 	cp Makefile Makefile_depend test_vapi.cpp $@
-	cp scripts/intel_clausify.sh $@
 	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp,$(VCLAUSIFY_DEP) $(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
 	rm -f $@.tgz
 	tar -czf $@.tgz $@

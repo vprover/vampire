@@ -19,7 +19,10 @@ public:
    * This function is to be called from outside of the class to
    * transform formulas.
    */
-  virtual Formula* transform(Formula* f) { return apply(f); }
+  virtual Formula* transform(Formula* f) {
+    CALL("FormulaTransformar::transform");
+    return apply(f);
+  }
 
 protected:
   FormulaTransformer() {}
@@ -27,7 +30,8 @@ protected:
 
   Formula* apply(Formula* f);
 
-  virtual void preApply(Formula*& f) {}
+  /** Return true if f should be traversed */
+  virtual bool preApply(Formula*& f) { return true; }
   virtual void postApply(Formula* orig, Formula*& res) {}
 
   virtual Formula* applyLiteral(Formula* f) { return f; }

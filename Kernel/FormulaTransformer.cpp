@@ -21,9 +21,11 @@ namespace Kernel
 
 Formula* FormulaTransformer::apply(Formula* f)
 {
-  CALL("FormulaTransformer::apply");
+  CALL("FormulaTransformer::apply(Formula*)");
 
-  preApply(f);
+  if(!preApply(f)) {
+    return f;
+  }
 
   Formula* res;
 
@@ -350,7 +352,7 @@ FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
 
 void ScanAndApplyFormulaUnitTransformer::apply(Problem& prb)
 {
-  CALL("ScanAndApplyFormulaUnitTransformer::apply");
+  CALL("ScanAndApplyFormulaUnitTransformer::apply(Problem&)");
 
   if(apply(prb.units())) {
     updateModifiedProblem(prb);
@@ -359,7 +361,7 @@ void ScanAndApplyFormulaUnitTransformer::apply(Problem& prb)
 
 bool ScanAndApplyFormulaUnitTransformer::apply(UnitList*& units)
 {
-  CALL("ScanAndApplyFormulaUnitTransformer::apply");
+  CALL("ScanAndApplyFormulaUnitTransformer::apply(UnitList*&)");
 
   scan(units);
 

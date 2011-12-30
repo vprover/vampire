@@ -50,11 +50,12 @@ public:
     bool isPropConst() const;
     bool isTrue() const { return isPropConst() && polarity(); }
     bool isFalse() const  { return isPropConst() && !polarity(); }
+    bool isAtom() const;
+    bool isQuantifier() const;
     Ref neg() const { return Ref(node(), !polarity()); }
 
     bool polarity() const { return _data&1; }
     Node* node() const { return reinterpret_cast<Node*>(_data&(~static_cast<size_t>(1))); }
-    bool isQuantifier() const;
     unsigned parentCnt() const;
     Ref parent(unsigned idx) const;
 
@@ -68,6 +69,7 @@ public:
 
     unsigned hash() const;
     string toString() const;
+    string toInternalString(unsigned depth=1) const;
   };
 private:
   /** Proxy object for Ref which is without constructor so can be used inside a union */
