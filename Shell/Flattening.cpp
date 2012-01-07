@@ -5,16 +5,18 @@
  * @since 30/10/2005 Bellevue, information about positions removed
  */
 
+#include "Debug/RuntimeStatistics.hpp"
 #include "Debug/Tracer.hpp"
 
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
 
 #include "Flattening.hpp"
 
-using namespace Kernel;
-using namespace Shell;
+namespace Shell
+{
 
 /**
  * Flatten the unit.
@@ -43,7 +45,6 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   }
   return res;
 } // Flattening::flatten
-
 
 /**
  * Flatten subformula at position pos.
@@ -172,3 +173,88 @@ FormulaList* Flattening::flatten (FormulaList* fs,
 } // Flattening::flatten
 
 
+bool TopLevelFlatten::apply(Problem& prb)
+{
+  CALL("TopLevelFlatten::apply(Problem&)");
+
+  if(apply(prb.units())) {
+    prb.invalidateProperty();
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+bool TopLevelFlatten::apply(UnitList*& units)
+{
+  CALL("TopLevelFlatten::apply(UnitList*&)");
+
+  Stack<FormulaUnit*> flAcc;
+
+  bool modified = false;
+  UnitList::DelIterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    if(u->isClause()) {
+      continue;
+    }
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    flAcc.reset();
+    if(!apply(fu, flAcc)) {
+      continue;
+    }
+    modified = true;
+    ASS_GE(flAcc.size(),2);
+    while(flAcc.isNonEmpty()) {
+      uit.insert(flAcc.pop());
+    }
+    uit.del();
+  }
+  return modified;
+}
+
+/**
+ * If a top-level conjunction can be expanded into multiple formulas,
+ * add the formulas on @c acc and return true. Otherwise return false.
+ *
+ * @param fu input, must be flattenned.
+ */
+bool TopLevelFlatten::apply(FormulaUnit* fu, Stack<FormulaUnit*>& acc)
+{
+  CALL("TopLevelFlatten::apply(FormulaUnit*,Stack<FormulaUnit*>&)");
+
+  Formula* f = fu->formula();
+
+  Formula::VarList* vars;
+  if(f->connective()==FORALL) {
+    vars = f->vars();
+    f = f->qarg();
+  }
+  else {
+    vars = 0;
+  }
+  if(f->connective()!=AND) {
+    return false;
+  }
+  RSTAT_CTR_INC("top level flattened formulas")
+  FormulaList::Iterator fit(f->args());
+  while(fit.hasNext()) {
+    Formula* sf = fit.next();
+    if(vars) {
+      sf = new QuantifiedFormula(FORALL, vars, sf);
+    }
+    Inference* inf = new Inference1(Inference::FLATTEN, fu);
+    FormulaUnit* sfu = new FormulaUnit(sf, inf, fu->inputType());
+    if(fu->included()) {
+      sfu->markIncluded();
+    }
+    acc.push(sfu);
+    RSTAT_CTR_INC("top level flattenning results")
+  }
+  return true;
+}
+
+
+
+}

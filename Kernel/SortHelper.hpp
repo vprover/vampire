@@ -33,6 +33,7 @@ public:
   static void collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map);
 
   static bool areSortsValid(Clause* cl);
+  static bool areImmediateSortsValid(Term* t);
 
   static BaseType& getType(Term* t);
 private:

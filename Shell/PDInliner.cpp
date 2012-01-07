@@ -864,7 +864,8 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
   CALL("PDInliner::tryGetDef");
   CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
-  if(lhs->isEquality()) {
+  Signature::Symbol* sym = env.signature->getPredicate(lhs->functor());
+  if(sym->protectedSymbol()) {
     return false;
   }
 

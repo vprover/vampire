@@ -48,14 +48,18 @@ public:
    * Create a stack having initialCapacity.
    */
   inline
-  explicit Stack (size_t initialCapacity=8)
+  explicit Stack (size_t initialCapacity=0)
     : _capacity(initialCapacity)
   {
     CALL("Stack::Stack");
-    ASS(initialCapacity > 0);
 
-    void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Stack<>");
-    _stack = static_cast<C*>(mem);
+    if(_capacity) {
+      void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Stack<>");
+      _stack = static_cast<C*>(mem);
+    }
+    else {
+      _stack = 0;
+    }
     _cursor = _stack;
     _end = _stack+_capacity;
   }
@@ -65,8 +69,13 @@ public:
   {
     CALL("Stack::Stack(const Stack&)");
 
-    void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Stack<>");
-    _stack = static_cast<C*>(mem);
+    if(_capacity) {
+      void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Stack<>");
+      _stack = static_cast<C*>(mem);
+    }
+    else {
+      _stack = 0;
+    }
     _cursor = _stack;
     _end = _stack+_capacity;
 
@@ -88,7 +97,12 @@ public:
     while(p!=_stack) {
       (--p)->~C();
     }
-    DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");
+    if(_stack) {
+      DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");
+    }
+    else {
+      ASS_EQ(_capacity,0);
+    }
   }
 
   Stack& operator=(const Stack& s)
@@ -134,6 +148,25 @@ public:
 
     return _stack[n];
   }
+
+  bool operator==(const Stack& o) const
+  {
+    CALL("Stack::operator==");
+
+    if(size()!=o.size()) {
+      return false;
+    }
+    size_t sz = size();
+    for(size_t i=0; i!=sz; ++i) {
+      if((*this)[i]!=o[i]) {
+	return false;
+      }
+    }
+    return true;
+  }
+
+  bool operator!=(const Stack& o) const
+  { return !((*this)==o); }
 
   /**
    * Return the top of the stack.
@@ -594,18 +627,20 @@ protected:
 
     ASS(_cursor == _end);
 
-    size_t newCapacity = 2 * _capacity;
+    size_t newCapacity = _capacity ? (2 * _capacity) : 8;
 
     // allocate new stack and copy old stack's content to the new place
     void* mem = ALLOC_KNOWN(newCapacity*sizeof(C),"Stack<>");
 
     C* newStack = static_cast<C*>(mem);
-    for (int i = _capacity-1;i >= 0;i--) {
-      new(newStack+i) C(_stack[i]);
-      _stack[i].~C();
+    if(_capacity) {
+      for (size_t i = 0; i<_capacity; i++) {
+	new(newStack+i) C(_stack[i]);
+	_stack[i].~C();
+      }
+      // deallocate the old stack
+      DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");
     }
-    // deallocate the old stack
-    DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");
 
     _stack = newStack;
     _cursor = _stack + _capacity;

@@ -73,7 +73,7 @@ private:
 
   Problem* _processedPrb;
 
-  int _predCnt;
+  unsigned _predCnt;
   PredData* _preds;
 
   DHMap<unsigned, Def*> _defs;

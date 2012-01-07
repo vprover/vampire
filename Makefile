@@ -270,6 +270,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/PDMerger.o\
          Shell/PDUtils.o\
          Shell/PredicateDefinition.o\
+         Shell/PredicateIndexIntroducer.o\
          Shell/Preprocess.o\
          Shell/Property.o\
          Shell/Rectify.o\
@@ -467,6 +468,7 @@ OTHER_API_DEP = \
 	   Shell/PDMerger.o\
 	   Shell/PDUtils.o\
 	   Shell/PredicateDefinition.o\
+	   Shell/PredicateIndexIntroducer.o\
 	   Shell/Property.o\
 	   Shell/Rectify.o\
 	   Shell/Refutation.o\

@@ -19,10 +19,7 @@ public:
    * This function is to be called from outside of the class to
    * transform formulas.
    */
-  virtual Formula* transform(Formula* f) {
-    CALL("FormulaTransformar::transform");
-    return apply(f);
-  }
+  virtual Formula* transform(Formula* f);
 
 protected:
   FormulaTransformer() {}
@@ -159,16 +156,42 @@ public:
   bool apply(UnitList*& units);
 
   virtual void scan(UnitList* units) {}
+  bool apply(Unit* u, Unit*& res);
+  virtual UnitList* getIntroducedFormulas() { return 0; }
+
+protected:
   virtual bool apply(FormulaUnit* unit, Unit*& res) {
     return false;
   }
   virtual bool apply(Clause* cl, Unit*& res) {
     return false;
   }
-  UnitList* getIntroducedFormulas() { return 0; }
 
-protected:
   virtual void updateModifiedProblem(Problem& prb);
+};
+
+class ScanAndApplyLiteralTransformer : public ScanAndApplyFormulaUnitTransformer {
+public:
+  using ScanAndApplyFormulaUnitTransformer::apply;
+protected:
+
+  /**
+   * @param infRule the rule that will be used to derive modified units
+   */
+  ScanAndApplyLiteralTransformer(Inference::Rule infRule) : _infRule(infRule) {}
+
+  /**
+   * @param premAcc premises of the transformation should be added on this stack
+   */
+  virtual Literal* apply(Literal* l, UnitStack& premAcc) = 0;
+
+  virtual bool apply(FormulaUnit* unit, Unit*& res);
+  virtual bool apply(Clause* cl, Unit*& res);
+
+private:
+  struct LitFormulaTransformer;
+
+  Inference::Rule _infRule;
 };
 
 

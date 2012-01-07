@@ -128,6 +128,7 @@ const char* Options::Constants::_optionNames[] = {
   "equality_proxy",
   "equality_resolution_with_deletion",
 
+  "flatten_top_level_conjunctions",
   "forced_options",
   "forward_demodulation",
   "forward_literal_rewriting",
@@ -177,6 +178,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "predicate_definition_inlining",
   "predicate_definition_merging",
+  "predicate_index_introduction",
   "problem_name",
   "proof",
   "proof_checking",
@@ -647,6 +649,7 @@ Options::Options ()
   _equalityProxy(EP_OFF),
   _equalityResolutionWithDeletion(RA_INPUT_ONLY),
 
+  _flattenTopLevelConjunctions(false),
   _forwardDemodulation(DEMODULATION_ALL),
   _forwardLiteralRewriting(false),
   _forwardSubsumption(true),
@@ -701,6 +704,7 @@ Options::Options ()
 
   _predicateDefinitionInlining(INL_OFF),
   _predicateDefinitionMerging(false),
+  _predicateIndexIntroduction(false),
   _problemName("unknown"),
   _proof(PROOF_ON),
   _proofChecking(false),
@@ -916,6 +920,9 @@ void Options::set(const char* name,const char* value, int index)
       }
       return;
 
+    case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
+      _flattenTopLevelConjunctions = onOffToBool(value,name);
+      return;
     case FORCED_OPTIONS:
       _forcedOptions = value;
       return;
@@ -1098,6 +1105,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case PREDICATE_DEFINITION_MERGING:
       _predicateDefinitionMerging = onOffToBool(value,name);
+      return;
+    case PREDICATE_INDEX_INTRODUCTION:
+      _predicateIndexIntroduction = onOffToBool(value,name);
       return;
     case PROOF:
       _proof = (Proof)Constants::proofValues.find(value);
@@ -1712,6 +1722,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << Constants::ruleActivityValues[_equalityResolutionWithDeletion];
     return;
 
+  case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
+    str << boolToOnOff(_flattenTopLevelConjunctions);
+    return;
   case FORCED_OPTIONS:
     str << forcedOptions();
     return;
@@ -1842,6 +1855,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case PREDICATE_DEFINITION_MERGING:
     str << boolToOnOff(_predicateDefinitionMerging);
+    return;
+  case PREDICATE_INDEX_INTRODUCTION:
+    str << boolToOnOff(_predicateIndexIntroduction);
     return;
   case PROBLEM_NAME:
     str << _problemName;

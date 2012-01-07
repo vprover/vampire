@@ -159,7 +159,7 @@ void PredicateDefinition::addBuiltInPredicate(unsigned pred)
 {
   CALL("PredicateDefinition::addBuiltInPredicate");
   CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_updr");
-  ASS_L((int)pred,_predCnt);
+  ASS_L(pred,_predCnt);
 
   _preds[pred].builtIn = true;
 
@@ -290,7 +290,7 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
       }
   );
 
-  for(int pred=1; pred<_predCnt; pred++) {
+  for(unsigned pred=1; pred<_predCnt; pred++) {
     _preds[pred].check(this);
   }
 

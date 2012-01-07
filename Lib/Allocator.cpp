@@ -269,6 +269,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
 #endif
 {
   CALL("Allocator::deallocateKnown");
+  ASS(obj);
 
 #if VDEBUG
   Descriptor* desc = Descriptor::find(obj);

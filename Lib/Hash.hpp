@@ -9,7 +9,33 @@
 #include <string>
 #include <utility>
 
+#include "Forwards.hpp"
+
 namespace Lib {
+
+struct HashUtils
+{
+  /**
+   * Combine two hashes into one
+   *
+   * Code from
+   * http://www.boost.org/doc/libs/1_35_0/doc/html/boost/hash_combine_id241013.html
+   */
+  static unsigned combine(unsigned h1, unsigned h2) { return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2)); }
+};
+
+template<class ElementHash>
+struct StackHash {
+  template<typename T>
+  static unsigned hash(const Stack<T>& s) {
+    unsigned res = 2166136261u;
+    typename Stack<T>::ConstIterator it(s);
+    while(it.hasNext()) {
+      res = HashUtils::combine(res, ElementHash::hash(it.next()));
+    }
+    return res;
+  }
+};
 
 /**
  * Hash functions for various types.
@@ -27,6 +53,10 @@ public:
   /** Hash function for strings */
   static unsigned hash(const std::string& str)
   { return hash(str.c_str()); }
+
+  template<typename T>
+  static unsigned hash(Stack<T> obj)
+  { return StackHash<Hash>::hash(obj); }
 
   template<typename T>
   static unsigned hash(T obj)
@@ -47,14 +77,6 @@ public:
 
   static unsigned hash(const unsigned char*,size_t length);
   static unsigned hash(const unsigned char*,size_t length,unsigned begin);
-
-  /**
-   * Combine two hashes into one
-   *
-   * Code from
-   * http://www.boost.org/doc/libs/1_35_0/doc/html/boost/hash_combine_id241013.html
-   */
-  static unsigned combine(unsigned h1, unsigned h2) { return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2)); }
 };
 
 struct IdentityHash
@@ -140,6 +162,11 @@ struct FirstHashTypeInfo<std::pair<unsigned,unsigned> > {
 template<typename T, typename U>
 struct FirstHashTypeInfo<std::pair<T,U> > {
   typedef GeneralPairSimpleHash Type;
+};
+
+template<typename T>
+struct FirstHashTypeInfo<Stack<T> > {
+  typedef StackHash< typename FirstHashTypeInfo<T>::Type > Type;
 };
 
 }

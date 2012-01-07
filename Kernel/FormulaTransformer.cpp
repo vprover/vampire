@@ -19,6 +19,14 @@
 namespace Kernel
 {
 
+Formula* FormulaTransformer::transform(Formula* f) {
+  CALL("FormulaTransformar::transform");
+  Formula* res = apply(f);
+  LOG("ft_tl","FormulaTransformer: " << (*f)<<" --> "<<(*res));
+  return res;
+}
+
+
 Formula* FormulaTransformer::apply(Formula* f)
 {
   CALL("FormulaTransformer::apply(Formula*)");
@@ -77,6 +85,7 @@ Formula* FormulaTransformer::apply(Formula* f)
 #endif
   }
   postApply(f, res);
+  LOG("ft_subformula","FormulaTransformer::apply: " << (*f)<<" --> "<<(*res));
   return res;
 }
 
@@ -371,17 +380,9 @@ bool ScanAndApplyFormulaUnitTransformer::apply(UnitList*& units)
   while(uit.hasNext()) {
     Unit* u = uit.next();
     Unit* newUnit;
-    if(u->isClause()) {
-      Clause* cl = static_cast<Clause*>(u);
-      if(!apply(cl, newUnit)) {
-	continue;
-      }
-    }
-    else {
-      FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-      if(!apply(fu, newUnit)) {
-	continue;
-      }
+
+    if(!apply(u, newUnit)) {
+      continue;
     }
     if(newUnit==0) {
       uit.del();
@@ -401,11 +402,116 @@ bool ScanAndApplyFormulaUnitTransformer::apply(UnitList*& units)
   return modified;
 }
 
+bool ScanAndApplyFormulaUnitTransformer::apply(Unit* u, Unit*& res)
+{
+  CALL("ScanAndApplyFormulaUnitTransformer::apply(Unit*,Unit*&)");
+
+  if(u->isClause()) {
+    Clause* cl = static_cast<Clause*>(u);
+    return apply(cl, res);
+  }
+  else {
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    return apply(fu, res);
+  }
+}
+
 void ScanAndApplyFormulaUnitTransformer::updateModifiedProblem(Problem& prb)
 {
   CALL("ScanAndApplyFormulaUnitTransformer::updateModifiedProblem");
 
   prb.invalidateEverything();
+}
+
+
+///////////////////////////////////
+// ScanAndApplyLiteralTransformer
+//
+
+struct ScanAndApplyLiteralTransformer::LitFormulaTransformer : public FormulaTransformer
+{
+  LitFormulaTransformer(ScanAndApplyLiteralTransformer& parent, UnitStack& premAcc)
+      : _parent(parent), _premAcc(premAcc) {}
+
+  virtual Formula* applyLiteral(Formula* f) {
+    Literal* l = f->literal();
+    Literal* l1 = _parent.apply(l, _premAcc);
+    if(l1!=l) {
+      return new AtomicFormula(l1);
+    }
+    return f;
+  }
+
+private:
+  ScanAndApplyLiteralTransformer& _parent;
+  UnitStack& _premAcc;
+};
+
+bool ScanAndApplyLiteralTransformer::apply(FormulaUnit* unit, Unit*& res)
+{
+  CALL("ScanAndApplyLiteralTransformer::apply(FormulaUnit*,Unit*&)");
+
+  Formula* f = unit->formula();
+
+  static UnitStack prems;
+  prems.reset();
+
+  LitFormulaTransformer ft(*this, prems);
+
+  Formula* newForm = ft.transform(f);
+  if(f==newForm) {
+    return false;
+  }
+
+  makeUnique(prems);
+
+  UnitList* premLst = 0;
+  UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
+  UnitList::push(unit, premLst);
+
+  Inference* inf = new InferenceMany(_infRule, premLst);
+  Unit::InputType inpType = Unit::getInputType(premLst);
+
+  res = new FormulaUnit(newForm, inf, inpType);
+
+  return true;
+}
+
+bool ScanAndApplyLiteralTransformer::apply(Clause* cl, Unit*& res)
+{
+  CALL("ScanAndApplyLiteralTransformer::apply(Clause*,Unit*&)");
+
+  static LiteralStack lits;
+  lits.reset();
+
+  static UnitStack prems;
+  prems.reset();
+
+  bool modified = false;
+
+  Clause::Iterator cit(*cl);
+  while(cit.hasNext()) {
+    Literal* l = cit.next();
+    Literal* l1 = apply(l, prems);
+    lits.push(l);
+    modified |= l!=l1;
+  }
+
+  if(!modified) {
+    return false;
+  }
+
+  makeUnique(prems);
+
+  UnitList* premLst = 0;
+  UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
+  UnitList::push(cl, premLst);
+
+  Inference* inf = new InferenceMany(_infRule, premLst);
+  Unit::InputType inpType = Unit::getInputType(premLst);
+
+  res = Clause::fromIterator(LiteralStack::Iterator(lits), inpType, inf);
+  return true;
 }
 
 

@@ -142,6 +142,44 @@ public:
     return res;
   }
 
+  SharedSet* getIntersection(SharedSet* s)
+  {
+    CALL("SharedSet::getIntersection");
+    ASS(s);
+
+    if(s==this) {
+      return this;
+    }
+
+    static ItemStack acc;
+    ASS(acc.isEmpty());
+
+    T* p1=_items;
+    T* p2=s->_items;
+    T* p1e=p1+size();
+    T* p2e=p2+s->size();
+
+    while(p1!=p1e && p2!=p2e) {
+      if(*p1==*p2) {
+	acc.push(*p1);
+	p1++;
+	p2++;
+      }
+      else if(*p1>*p2) {
+	p2++;
+      }
+      else {
+	ASS_L(*p1,*p2);
+	p1++;
+      }
+    }
+
+    SharedSet* res=create(acc);
+    acc.reset();
+    return res;
+  }
+
+
   /**
    * Subtract a set @b s from the current set and return the result
    */

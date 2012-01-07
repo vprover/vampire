@@ -434,7 +434,18 @@ void Logging::doTagDeclarations()
       DOC("used AIGs"),
       PARENT("pp_aigdef",1));
 
-
+  DECL("pp_pii",
+      DOC("predicate index introduction"),
+      PARENT("pp", 1));
+  DECL("pp_pii_elim",
+      DOC("eliminated predicates"),
+      PARENT("pp_pii", 0));
+  DECL("pp_pii_intro",
+      DOC("introduced index predicates"),
+      PARENT("pp_pii", 1));
+  DECL("pp_pii_rwr",
+      DOC("rewrites of eliminated predicates into indexed"),
+      PARENT("pp_pii", 2));
 
   //
   // BFNT
@@ -560,6 +571,16 @@ void Logging::doTagDeclarations()
   DECL("ls_lookahead",
       DOC("look-ahead literal selection function (fn number 11)"),
       PARENT("ls",1));
+
+  DECL("ft",
+      DOC("formula transformer tracing"));
+  DECL("ft_tl",
+      DOC("top level transformation"),
+      PARENT("ft",0));
+  DECL("ft_subformula",
+      DOC("subfomula transformation"),
+      PARENT("ft",1));
+
 
   DECL("match_oc",
       DOC("matching code with occurs_check"));

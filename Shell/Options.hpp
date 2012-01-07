@@ -64,6 +64,7 @@ public:
     EQUALITY_PROXY,
     EQUALITY_RESOLUTION_WITH_DELETION,
 
+    FLATTEN_TOP_LEVEL_CONJUNCTIONS,
     FORCED_OPTIONS,
     FORWARD_DEMODULATION,
     FORWARD_LITERAL_REWRITING,
@@ -117,6 +118,7 @@ public:
     PREDICATE_DEFINITION_INLINING,
     /** Determines whether predicates with equivalent definitions will be merged into one */
     PREDICATE_DEFINITION_MERGING,
+    PREDICATE_INDEX_INTRODUCTION,
     PROBLEM_NAME,
     PROOF,
     PROOF_CHECKING,
@@ -428,6 +430,7 @@ public:
   bool proofChecking() const { return _proofChecking; }
   int naming() const { return _naming; }
   bool setNaming(int newVal);
+  bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions; }
   bool eprPreservingNaming() const { return _eprPreservingNaming; }
   void setEprPreservingNaming(bool newVal) { _eprPreservingNaming = newVal; }
   bool eprPreservingSkolemization() const { return _eprPreservingSkolemization; }
@@ -438,6 +441,8 @@ public:
   void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
   bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }
   void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
+  bool predicateIndexIntroduction() const { return _predicateIndexIntroduction; }
+  void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
   bool aigFormulaSharing() const { return _aigFormulaSharing; }
   bool aigInliner() const { return _aigInliner; }
   Mode mode() const { return _mode; }
@@ -665,6 +670,7 @@ private:
   EqualityProxy _equalityProxy;
   RuleActivity _equalityResolutionWithDeletion;
 
+  bool _flattenTopLevelConjunctions;
   string _forcedOptions;
   Demodulation _forwardDemodulation;
   bool _forwardLiteralRewriting;
@@ -720,6 +726,7 @@ private:
 
   InliningMode _predicateDefinitionInlining;
   bool _predicateDefinitionMerging;
+  bool _predicateIndexIntroduction;
   string _problemName;
   Proof _proof;
   bool _proofChecking;

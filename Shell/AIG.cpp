@@ -148,14 +148,14 @@ unsigned AIG::NodeHash::hash(Node* n)
   {
     unsigned p1 = n->parent(0).hash();
     unsigned p2 = n->parent(1).hash();
-    return Hash::combine(3, Hash::combine(p1, p2));
+    return HashUtils::combine(3, HashUtils::combine(p1, p2));
   }
   case Node::QUANT:
   {
     unsigned res = n->qParent().hash();
     VarList::Iterator vit(n->qVars());
     while(vit.hasNext()) {
-      res = Hash::combine(res, vit.next());
+      res = HashUtils::combine(res, vit.next());
     }
     return res;
   }

@@ -1133,6 +1133,57 @@ bool iteratorsEqual(It1 it1, It2 it2)
   return !it2.hasNext();
 }
 
+template<typename T>
+static bool lessThan(T a, T b) { return a<b; }
+
+/**
+ * Return true iff @c it is sorted according to the default < ordering
+ * (each element is less than its successive element).
+ */
+template<class It>
+bool isSorted(It it)
+{
+  CALL("iteratorsEqual");
+
+  if(!it.hasNext()) { return true; }
+
+  ELEMENT_TYPE(It) prev = it.next();
+
+  while(it.hasNext()) {
+    ELEMENT_TYPE(It) curr = it.next();
+    if(!(prev<curr)) {
+      return false;
+    }
+    prev = curr;
+  }
+  return true;
+}
+
+/**
+ * Return true iff @c it is sorted according to ordering specified by lessThan
+ * (each element is less than its successive element).
+ *
+ * Transitivity of @c lessThan is assumed.
+ */
+template<class It, typename Pred>
+bool isSorted(It it, Pred lessThan)
+{
+  CALL("iteratorsEqual");
+
+  if(!it.hasNext()) { return true; }
+
+  ELEMENT_TYPE(It) prev = it.next();
+
+  while(it.hasNext()) {
+    ELEMENT_TYPE(It) curr = it.next();
+    if(!lessThan(prev, curr)) {
+      return false;
+    }
+    prev = curr;
+  }
+  return true;
+}
+
 /**
  * Return true iff pred returns true for all elements of it
  */

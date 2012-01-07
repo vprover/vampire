@@ -330,6 +330,45 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, unsigned& result)
 }
 
 /**
+ * Return true iff sorts of immediate subterms of term/literal @c t correspond
+ * to the type of @c t.
+ *
+ * @pre Arguments of t must be shared.
+ */
+bool SortHelper::areImmediateSortsValid(Term* t)
+{
+  CALL("SortHelper::areImmediateSortsValid");
+
+  if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    Literal* lit = static_cast<Literal*>(t);
+    unsigned eqSrt = getEqualityArgumentSort(lit);
+    for(unsigned i=0; i<2; i++) {
+      TermList arg = *t->nthArgument(i);
+      if(!arg.isTerm()) { continue; }
+      Term* ta = arg.term();
+      unsigned argSort = getResultSort(ta);
+      if(eqSrt!=argSort) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  BaseType& type = getType(t);
+  unsigned arity = t->arity();
+  for(unsigned i=0; i<arity; i++) {
+    TermList arg = *t->nthArgument(i);
+    if(!arg.isTerm()) { continue; }
+    Term* ta = arg.term();
+    unsigned argSort = getResultSort(ta);
+    if(type.arg(i)!=argSort) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Return true iff sorts of all terms (both functions and variables) match
  * in clause @c cl.
  *

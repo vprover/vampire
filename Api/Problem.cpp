@@ -36,6 +36,7 @@
 #include "Shell/PDInliner.hpp"
 #include "Shell/PDMerger.hpp"
 #include "Shell/PredicateDefinition.hpp"
+#include "Shell/PredicateIndexIntroducer.hpp"
 #include "Shell/Rectify.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/SimplifyFalseTrue.hpp"
@@ -60,7 +61,6 @@ Problem::PreprocessingOptions::OptDataStore::OptDataStore()
   posRhs = new Stack<Formula>();
   negRhs = new Stack<Formula>();
   dblRhs = new Stack<Formula>();
-  builtInPreds = new Stack<unsigned>();
 }
 
 Problem::PreprocessingOptions::OptDataStore::OptDataStore(const OptDataStore& o)
@@ -71,7 +71,6 @@ Problem::PreprocessingOptions::OptDataStore::OptDataStore(const OptDataStore& o)
   posRhs = new Stack<Formula>(*o.posRhs);
   negRhs = new Stack<Formula>(*o.negRhs);
   dblRhs = new Stack<Formula>(*o.dblRhs);
-  builtInPreds = new Stack<unsigned>(*o.builtInPreds);
 }
 
 Problem::PreprocessingOptions::OptDataStore& Problem::PreprocessingOptions::OptDataStore::operator=(const OptDataStore& o)
@@ -82,7 +81,6 @@ Problem::PreprocessingOptions::OptDataStore& Problem::PreprocessingOptions::OptD
   *posRhs = *o.posRhs;
   *negRhs = *o.negRhs;
   *dblRhs = *o.dblRhs;
-  *builtInPreds = *o.builtInPreds;
   return *this;
 }
 
@@ -94,7 +92,6 @@ Problem::PreprocessingOptions::OptDataStore::~OptDataStore()
   delete posRhs;
   delete negRhs;
   delete dblRhs;
-  delete builtInPreds;
 }
 
 
@@ -120,7 +117,9 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   predicateDefinitionMerging(predicateDefinitionMerging),
   tracePredicateDefinitionMerging(tracePredicateDefinitionMerging),
   traceClausification(traceClausification),
-  traceUnusedPredicateDefinitionRemoval(traceUnusedPredicateDefinitionRemoval)
+  traceUnusedPredicateDefinitionRemoval(traceUnusedPredicateDefinitionRemoval),
+  predicateIndexIntroduction(false),
+  flatteningTopLevelConjunctions(false)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions");
 }
@@ -137,13 +136,6 @@ void Problem::PreprocessingOptions::addAsymmetricRewritingRule(Formula lhs,
   _ods.posRhs->push(posRhs);
   _ods.negRhs->push(negRhs);
   _ods.dblRhs->push(dblRhs);
-}
-
-void Problem::PreprocessingOptions::addBuiltInPredicate(Predicate pred)
-{
-  CALL("Problem::PreprocessingOptions::addBuiltInPredicate");
-
-  _ods.builtInPreds->push(pred);
 }
 
 void Problem::PreprocessingOptions::validate() const
@@ -485,6 +477,79 @@ protected:
   EqualityPropagator _eqProp;
 };
 
+class Problem::PredicateIndexIntroducer : public ProblemTransformer
+{
+public:
+  PredicateIndexIntroducer()
+  {
+  }
+
+protected:
+  virtual void transformImpl(Problem p)
+  {
+    CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+    _pii.scan(units);
+    units->destroy();
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      transform(f);
+    }
+  }
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::EPRRestoringInliner::transformImpl");
+
+    Unit* res;
+    if(!_pii.apply(unit, res)) {
+      addUnit(unit);
+    }
+    else if(res) {
+      addUnit(res);
+    }
+  }
+
+  Shell::PredicateIndexIntroducer _pii;
+};
+
+class Problem::TopLevelFlattener : public ProblemTransformer
+{
+protected:
+  virtual void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::EPRRestoringInliner::transformImpl");
+
+    if(unit->isClause()) {
+      addUnit(unit);
+      return;
+    }
+    FormulaUnit* fu = static_cast<FormulaUnit*>(unit);
+    static Stack<FormulaUnit*> acc;
+    acc.reset();
+
+    if(!_flt.apply(fu, acc)) {
+      addUnit(unit);
+      return;
+    }
+    while(acc.isNonEmpty()) {
+      addUnit(acc.pop());
+    }
+  }
+
+  Shell::TopLevelFlatten _flt;
+};
+
+
 class Problem::PredicateDefinitionMerger : public ProblemTransformer
 {
 public:
@@ -515,7 +580,7 @@ protected:
     }
   }
 
-  void transformImpl(Kernel::Unit* unit)
+  virtual void transformImpl(Kernel::Unit* unit)
   {
     CALL("Problem::PredicateDefinitionMerger::transformImpl");
 
@@ -751,17 +816,9 @@ protected:
 class Problem::UnusedPredicateDefinitionRemover : public ProblemTransformer
 {
 public:
-  UnusedPredicateDefinitionRemover(Stack<unsigned>* builtInPreds=0, bool trace=false)
+  UnusedPredicateDefinitionRemover(bool trace=false)
   : pd(trace)
   {
-    CALL("Problem::UnusedPredicateDefinitionRemover");
-    if(builtInPreds) {
-      Stack<unsigned>::Iterator bipIt(*builtInPreds);
-      while(bipIt.hasNext()) {
-	unsigned pred = bipIt.next();
-	pd.addBuiltInPredicate(pred);
-      }
-    }
   }
 
 protected:
@@ -1001,6 +1058,10 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
     res = VariableEqualityPropagator(options.traceVariableEqualityPropagation).transform(res);
   }
 
+  if(options.predicateIndexIntroduction) {
+    res = PredicateIndexIntroducer().transform(res);
+  }
+
   if(options.predicateDefinitionMerging) {
     res = PredicateDefinitionMerger(options.tracePredicateDefinitionMerging).transform(res);
   }
@@ -1008,6 +1069,8 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
   if(options.eprSkolemization) {
     res = EPRSkolemizer(options.traceEPRSkolemization).transform(res);
   }
+
+inlining:
 
   if(options.predicateDefinitionInlining!=INL_OFF) {
     if(options.predicateDefinitionInlining==INL_EPR_RESTORING) {
@@ -1018,8 +1081,16 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
     }
   }
 
+  if(options.flatteningTopLevelConjunctions) {
+    size_t sz0 = res.size();
+    res = TopLevelFlattener().transform(res);
+    if(res.size()!=sz0) {
+      goto inlining;
+    }
+  }
+
   if(options.unusedPredicateDefinitionRemoval) {
-    res = UnusedPredicateDefinitionRemover(options._ods.builtInPreds, options.traceUnusedPredicateDefinitionRemoval).transform(res);
+    res = UnusedPredicateDefinitionRemover(options.traceUnusedPredicateDefinitionRemoval).transform(res);
   }
 
   unsigned arCnt = options._ods.lhs->size();

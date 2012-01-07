@@ -9,6 +9,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -113,6 +114,8 @@ Term* TermSharing::insert(Term* t)
     }
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalTerms++;
+
+    ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
   }
   else {
     t->destroy();
@@ -135,18 +138,7 @@ Literal* TermSharing::insert(Literal* t)
   ASS(!t->isSpecial());
 
   //equalities between variables must be inserted using insertVariableEquality() function
-
-  //#############
-  //# Uncomment this assertion when we know no
-  //# equalities between variables will be inserted
-  //# through this function!
-  //#############
   ASS_REP(!t->isEquality() || !t->nthArgument(0)->isVar() || !t->nthArgument(1)->isVar(), t->toString());
-  if(t->isEquality() && t->nthArgument(0)->isVar() && t->nthArgument(1)->isVar()) {
-//    cerr<<"wrongly inserted equality between variables, using default sort\n";
-//    Debug::Tracer::printOnlyStack(cerr);
-    return insertVariableEquality(t, Sorts::SRT_DEFAULT);
-  }
 
   TimeCounter tc(TC_TERM_SHARING);
 
@@ -198,6 +190,8 @@ Literal* TermSharing::insert(Literal* t)
     }
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalLiterals++;
+
+    ASS_REP(SortHelper::areImmediateSortsValid(t), t->toString());
   }
   else {
     t->destroy();

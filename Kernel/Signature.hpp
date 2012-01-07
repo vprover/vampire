@@ -366,9 +366,9 @@ class Signature
   }
 
   /** return the number of functions */
-  int functions() const { return _funs.length(); }
+  unsigned functions() const { return _funs.length(); }
   /** return the number of predicates */
-  int predicates() const { return _preds.length(); }
+  unsigned predicates() const { return _preds.length(); }
 
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)

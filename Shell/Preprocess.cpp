@@ -36,6 +36,7 @@
 #include "PDInliner.hpp"
 #include "PDMerger.hpp"
 #include "PredicateDefinition.hpp"
+#include "PredicateIndexIntroducer.hpp"
 #include "Preprocess.hpp"
 #include "Property.hpp"
 #include "Rectify.hpp"
@@ -159,11 +160,26 @@ void Preprocess::preprocess (Problem& prb)
     EqualityPropagator().apply(prb);
   }
 
+  if (_options.predicateIndexIntroduction()) {
+    PredicateIndexIntroducer().apply(prb);
+  }
+
   if (_options.predicateDefinitionInlining()!=Options::INL_OFF) {
     env.statistics->phase=Statistics::PREDICATE_DEFINITION_INLINING;
     PDInliner pdInliner(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY, false,
 	_options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
     pdInliner.apply(prb);
+
+    if(_options.flattenTopLevelConjunctions()) {
+        if(TopLevelFlatten().apply(prb)) {
+          PDInliner pdInliner2(_options.predicateDefinitionInlining()==Options::INL_AXIOMS_ONLY, false,
+              _options.predicateDefinitionInlining()==Options::INL_NON_GROWING);
+          pdInliner2.apply(prb);
+        }
+    }
+  }
+  else if(_options.flattenTopLevelConjunctions()) {
+    TopLevelFlatten().apply(prb);
   }
 
   if(_options.aigFormulaSharing()) {

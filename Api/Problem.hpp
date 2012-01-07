@@ -203,21 +203,39 @@ public:
     bool traceUnusedPredicateDefinitionRemoval;
 
     /**
+     * If all atoms of a certain predicate contain distinct constants as
+     * a particular argument, atoms of the predicate are replaces by set
+     * of fresh predicates, one for each of the distinct constants.
+     *
+     * E.g. a problem
+     * p(a,b,X,1)
+     * p(a,c,a,2)
+     * will be transformed into
+     * p_a_1(b,X)
+     * p_a_2(c,a)
+     * (second argument is not removed because constants b and c are not
+     * necessarily distinct, and third argment is not replaced because it
+     * occurs as a variable)
+     *
+     * Default value is false.
+     */
+    bool predicateIndexIntroduction;
+
+    /**
+     * split formulas with top-level (up to universal quantification)
+     * conjunctions into several formulas
+     *
+     * Default value is false.
+     */
+    bool flatteningTopLevelConjunctions;
+
+    /**
      * Add asymmetric rewriting rule to be used during preprocessing.
      *
      * For details on the requirements see documentation to the
      * @c Problem::performAsymetricRewriting() function.
      */
     void addAsymmetricRewritingRule(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs=Formula());
-
-    /**
-     * Mark a predicate as built-in.
-     *
-     * This means that the predicate will not be emilinated by the unused
-     * predicate definition removal rule (which, among other, removes predicates
-     * occurring with only one polarity).
-     */
-    void addBuiltInPredicate(Predicate pred);
   private:
     friend class Problem;
     void validate() const;
@@ -233,8 +251,6 @@ public:
       Stack<Formula>* posRhs;
       Stack<Formula>* negRhs;
       Stack<Formula>* dblRhs;
-
-      Stack<unsigned>* builtInPreds;
     };
 
     OptDataStore _ods;
@@ -372,7 +388,9 @@ private:
   class ProblemTransformer;
 
   class Preprocessor1;
+  class TopLevelFlattener;
   class VariableEqualityPropagator;
+  class PredicateIndexIntroducer;
   class PredicateDefinitionMerger;
   class PredicateDefinitionInliner;
   class EPRRestoringInliner;

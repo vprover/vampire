@@ -7,15 +7,13 @@
 #ifndef __Flattening__
 #define __Flattening__
 
+#include "Forwards.hpp"
+
 #include "Kernel/Formula.hpp"
 
-namespace Kernel {
-  class Unit;
-}
+namespace Shell {
 
 using namespace Kernel;
-
-namespace Shell {
 
 /**
  * Class implementing flattening-related procedures.
@@ -29,6 +27,14 @@ public:
 private:
   static FormulaList* flatten (FormulaList*,Connective con);
 }; // class Flattening
+
+class TopLevelFlatten
+{
+public:
+  bool apply(Problem& prb);
+  bool apply(UnitList*& units);
+  bool apply(FormulaUnit* fu, Stack<FormulaUnit*>& acc);
+};
 
 }
 

@@ -15,6 +15,7 @@ using namespace std;
 class StringUtils {
 public:
   static string replaceChar(string str, char src, char target);
+  static string sanitizeSuffix(string str);
 };
 
 }
