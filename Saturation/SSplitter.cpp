@@ -231,7 +231,7 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
     if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
       _solver->retractAllAssumptions();
     }
-    _solver->addAssumption(_parent.getLiteralFromName(sel) , true);
+    _solver->addAssumption(_parent.getLiteralFromName(sel).opposite(), true);
   }
   _solver->retractAllAssumptions();
   //restore model
