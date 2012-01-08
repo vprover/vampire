@@ -27,7 +27,7 @@ public:
 
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
-  virtual MaybeBool getAssignment(unsigned var);
+  virtual VarAssignment getAssignment(unsigned var);
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
   virtual void retractAllAssumptions();

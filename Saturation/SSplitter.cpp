@@ -43,40 +43,44 @@ void SSplittingBranchSelector::init()
 {
   CALL("SSplittingBranchSelector::init");
 
-  _sweepingMode = _parent.getOptions().ssplittingComponentSweeping();
+  _eagerRemoval = _parent.getOptions().ssplittingEagerRemoval();
+//  _sweepingMode = _parent.getOptions().ssplittingComponentSweeping();
 
   _solver = new TWLSolver(_parent.getOptions(), true);
 }
 
-void SSplittingBranchSelector::ensureVarCnt(unsigned varCnt)
+void SSplittingBranchSelector::updateVarCnt()
 {
   CALL("SSplittingBranchSelector::ensureVarCnt");
 
-  LOG("sspl_var_cnt","ensuring varCnt to "<<varCnt);
-  _solver->ensureVarCnt(varCnt);
-  _selected.expand(varCnt);
-  _watcher.expand(varCnt);
+  unsigned satVarCnt = _parent.maxSatVar()+1;
+  unsigned splitLvlCnt = _parent.splitLevelCnt();
+
+  LOG("sspl_var_cnt","ensuring varCnt to "<<satVarCnt);
+  _solver->ensureVarCnt(satVarCnt);
+  _selected.expand(splitLvlCnt);
+//  _watcher.expand(varCnt);
 }
 
-bool SSplittingBranchSelector::hasPositiveLiteral(SATClause* cl)
-{
-  CALL("SSplittingBranchSelector::hasPositiveLiteral");
-
-  SATClause::Iterator it(*cl);
-  while(it.hasNext()) {
-    SATLiteral l = it.next();
-    if(l.isPositive()) { return true; }
-  }
-  return false;
-}
-
-bool SSplittingBranchSelector::isSatisfiedBySelection(SATLiteral lit)
-{
-  CALL("SSplittingBranchSelector::isSatisfiedBySelection");
-
-  return lit.polarity()==_selected.find(lit.var());
-}
-
+//bool SSplittingBranchSelector::hasPositiveLiteral(SATClause* cl)
+//{
+//  CALL("SSplittingBranchSelector::hasPositiveLiteral");
+//
+//  SATClause::Iterator it(*cl);
+//  while(it.hasNext()) {
+//    SATLiteral l = it.next();
+//    if(l.isPositive()) { return true; }
+//  }
+//  return false;
+//}
+//
+//bool SSplittingBranchSelector::isSatisfiedBySelection(SATLiteral lit)
+//{
+//  CALL("SSplittingBranchSelector::isSatisfiedBySelection");
+//
+//  return lit.polarity()==_selected.find(lit.var());
+//}
+//
 void SSplittingBranchSelector::handleSatRefutation(SATClause* ref)
 {
   CALL("SSplittingBranchSelector::handleSatRefutation");
@@ -85,6 +89,54 @@ void SSplittingBranchSelector::handleSatRefutation(SATClause* ref)
   Inference* foInf = new InferenceMany(Inference::SPLITTING, prems);
   Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
   throw MainLoop::RefutationFoundException(foRef);
+}
+
+void SSplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
+    SplitLevelStack& addedComps, SplitLevelStack& removedComps)
+{
+  CALL("SSplittingBranchSelector::updateSelection");
+  ASS_NEQ(asgn, SATSolver::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
+
+  SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(satVar, true));
+  SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(satVar, false));
+
+  switch(asgn) {
+  case SATSolver::TRUE:
+    if(!_selected.find(posLvl) && _parent.isActiveName(posLvl)) {
+      _selected.insert(posLvl);
+      addedComps.push(posLvl);
+    }
+    if(_selected.find(negLvl)) {
+      _selected.remove(negLvl);
+      removedComps.push(negLvl);
+    }
+    break;
+  case SATSolver::FALSE:
+    if(!_selected.find(negLvl) && _parent.isActiveName(negLvl)) {
+      _selected.insert(negLvl);
+      addedComps.push(negLvl);
+    }
+    if(_selected.find(posLvl)) {
+      _selected.remove(posLvl);
+      removedComps.push(posLvl);
+    }
+    break;
+  case SATSolver::DONT_CARE:
+    if(_eagerRemoval) {
+      if(_selected.find(posLvl)) {
+        _selected.remove(posLvl);
+        removedComps.push(posLvl);
+      }
+      if(_selected.find(negLvl)) {
+        _selected.remove(negLvl);
+        removedComps.push(negLvl);
+      }
+    }
+    break;
+  default:
+    ASSERTION_VIOLATION;
+  }
+
 }
 
 void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
@@ -96,11 +148,11 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
 
   TimeCounter tc(TC_SPLITTING_COMPONENT_SELECTION);
 
-  _unprocessed.loadFromIterator(
-      getFilteredIterator(SATClauseStack::ConstIterator(clauses), hasPositiveLiteral) );
+//  _unprocessed.loadFromIterator(
+//      getFilteredIterator(SATClauseStack::ConstIterator(clauses), hasPositiveLiteral) );
 
   RSTAT_CTR_INC_MANY("ssat_sat_clauses",clauses.size());
-  RSTAT_CTR_INC_MANY("ssat_sat_clauses_with_positive",_unprocessed.size());
+//  RSTAT_CTR_INC_MANY("ssat_sat_clauses_with_positive",_unprocessed.size());
 
   TRACE("sspl_sat_clauses",
       SATClauseStack::ConstIterator cit(clauses);
@@ -114,7 +166,6 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
     _solver->addClauses(pvi( SATClauseStack::ConstIterator(clauses) ), false);
   }
 
-
   if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
     LOG("sspl_sel","cannot fix selection, refutation found");
     SATClause* satRefutation = _solver->getRefutation();
@@ -122,10 +173,19 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
   }
   ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
 
-  deselectByModel(removedComps);
-  fixUnprocessed(addedComps);
+  unsigned maxSatVar = _parent.maxSatVar();
+  for(unsigned i=1; i<=maxSatVar; i++) {
+    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    updateSelection(i, asgn, addedComps, removedComps);
+  }
 
-  sweep(addedComps, removedComps);
+//
+//
+//
+//  deselectByModel(removedComps);
+//  fixUnprocessed(addedComps);
+//
+//  sweep(addedComps, removedComps);
 
   COND_LOG("sspl_sel",addedComps.isNonEmpty()||removedComps.isNonEmpty(), "selection changed by addition of SAT clauses");
   COND_TRACE("sspl_sel_added",addedComps.isNonEmpty(),
@@ -144,6 +204,9 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
 	tout << "  " << var << "  --  " << (*_parent.getComponentClause(var)) << endl;
       }
   );
+  RSTAT_CTR_INC_MANY("ssat_usual_activations", addedComps.size());
+  RSTAT_CTR_INC_MANY("ssat_usual_deactivations", removedComps.size());
+
 }
 
 /**
@@ -155,7 +218,7 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
 
-  SplitLevel varCnt = _watcher.size();
+  SplitLevel varCnt = _parent.maxSatVar()+1;
 
   static ArraySet oldselSet;
   oldselSet.ensure(varCnt);
@@ -164,53 +227,59 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   //this we do to change the model in the SAT solver
   ArraySet::Iterator sit(_selected);
   while(sit.hasNext()) {
-    unsigned sel = sit.next();
+    SplitLevel sel = sit.next();
     if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
       _solver->retractAllAssumptions();
     }
-    _solver->addAssumption(SATLiteral(sel,false), true);
+    _solver->addAssumption(_parent.getLiteralFromName(sel) , true);
   }
   _solver->retractAllAssumptions();
   //restore model
   _solver->addClauses(SATClauseIterator::getEmpty(), false);
 
-  //Swap selection status variables enabled by SAT model.
-  //We also need to populate oldselSet with previously selected
-  //variables, so we can later properly populate the addedComps
-  //and removedComps stacks.
-  for(SplitLevel i=1; i<varCnt; ++i) {
-    if(_selected.find(i)) {
-      oldselSet.insert(i);
-      _selected.remove(i);
-    }
-    else {
-      if(_solver->getAssignment(i)==false) {
-        continue;
-      }
-      _selected.insert(i);
-    }
-    SATClauseStack& watched = _watcher[i];
-    _unprocessed.loadFromIterator(SATClauseStack::Iterator(watched));
-    watched.reset();
+  unsigned maxSatVar = _parent.maxSatVar();
+  for(unsigned i=1; i<=maxSatVar; i++) {
+    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    updateSelection(i, asgn, addedComps, removedComps);
   }
 
-  fixUnprocessed(addedComps);
-  sweep(addedComps, removedComps);
-
-  addedComps.reset();
-  removedComps.reset();
-  for(SplitLevel i=1; i<varCnt; ++i) {
-    if(_selected.find(i)) {
-      if(!oldselSet.find(i)) {
-	addedComps.push(i);
-      }
-    }
-    else {
-      if(oldselSet.find(i)) {
-	removedComps.push(i);
-      }
-    }
-  }
+//  //Swap selection status variables enabled by SAT model.
+//  //We also need to populate oldselSet with previously selected
+//  //variables, so we can later properly populate the addedComps
+//  //and removedComps stacks.
+//  for(SplitLevel i=1; i<varCnt; ++i) {
+//    if(_selected.find(i)) {
+//      oldselSet.insert(i);
+//      _selected.remove(i);
+//    }
+//    else {
+//      if(_solver->getAssignment(i)==false) {
+//        continue;
+//      }
+//      _selected.insert(i);
+//    }
+//    SATClauseStack& watched = _watcher[i];
+//    _unprocessed.loadFromIterator(SATClauseStack::Iterator(watched));
+//    watched.reset();
+//  }
+//
+//  fixUnprocessed(addedComps);
+//  sweep(addedComps, removedComps);
+//
+//  addedComps.reset();
+//  removedComps.reset();
+//  for(SplitLevel i=1; i<varCnt; ++i) {
+//    if(_selected.find(i)) {
+//      if(!oldselSet.find(i)) {
+//	addedComps.push(i);
+//      }
+//    }
+//    else {
+//      if(oldselSet.find(i)) {
+//	removedComps.push(i);
+//      }
+//    }
+//  }
   RSTAT_CTR_INC_MANY("ssat_added_by_flush",addedComps.size());
   RSTAT_CTR_INC_MANY("ssat_removed_by_flush",removedComps.size());
   COND_LOG("sspl_sel",addedComps.isNonEmpty()||removedComps.isNonEmpty(), "flushing changed by addition of SAT clauses");
@@ -232,230 +301,230 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   );
 }
 
-void SSplittingBranchSelector::select(SplitLevel var)
-{
-  CALL("SSplittingBranchSelector::select");
-  ASS(!_selected.find(var));
-  ASS(!_solver->getAssignment(var).isFalse());
-
-  _selected.insert(var);
-  SATClauseStack& watched = _watcher[var];
-  _unprocessed.loadFromIterator(SATClauseStack::Iterator(watched));
-  watched.reset();
-}
-
-void SSplittingBranchSelector::deselectByModel(SplitLevelStack& removedComps)
-{
-  CALL("SSplittingBranchSelector::deselectByModel");
-  ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
-
-  static SplitLevelStack toDeselect;
-  toDeselect.reset();
-
-  ArraySet::Iterator sit(_selected);
-  while(sit.hasNext()) {
-    unsigned sel = sit.next();
-    if(_solver->getAssignment(sel)==false) {
-      toDeselect.push(sel);
-    }
-  }
-
-  RSTAT_CTR_INC_MANY("ssat_deselected_by_model",toDeselect.size());
-  while(toDeselect.isNonEmpty()) {
-    unsigned sel = toDeselect.pop();
-    removedComps.push(sel);
-    _selected.remove(sel);
-    SATClauseStack& watched = _watcher[sel];
-    _unprocessed.loadFromIterator(SATClauseStack::Iterator(watched));
-    RSTAT_CTR_INC_MANY("ssat_sat_clauses_invalidated_by_model_deselection",watched.size());
-    watched.reset();
-  }
-}
-
-void SSplittingBranchSelector::fixUnprocessed(SplitLevelStack& addedComps)
-{
-  CALL("SSplittingBranchSelector::fixUnprocessed");
-
-  while(_unprocessed.isNonEmpty()) {
-    SATClause* cl = _unprocessed.pop();
-    if(tryAddingToWatch(cl)) { continue; }
-    SplitLevel toSelect = getVarToSelect(cl);
-    addedComps.push(toSelect);
-    select(toSelect);
-    _watcher[toSelect].push(cl);
-    RSTAT_CTR_INC("ssat_activations_in_unprocessed_fixing");
-  }
-}
-
-bool SSplittingBranchSelector::tryAddingToWatch(SATClause* cl)
-{
-  CALL("SSplittingBranchSelector::tryAddingToWatch");
-
-  //TODO: pick smartly watch to add to
-  SATClause::Iterator it(*cl);
-  while(it.hasNext()) {
-    SATLiteral lit = it.next();
-    if(isSatisfiedBySelection(lit)) {
-      SplitLevel var = lit.var();
-      _watcher[var].push(cl);
-      return true;
-    }
-  }
-  return false;
-}
-
-SplitLevel SSplittingBranchSelector::getVarToSelect(SATClause* cl)
-{
-  CALL("SSplittingBranchSelector::getVarToSelect");
-
-  static SplitLevelStack eligible;
-  eligible.reset();
-
-  SATClause::Iterator it(*cl);
-  while(it.hasNext()) {
-    SATLiteral lit = it.next();
-    SplitLevel var = lit.var();
-    if(!lit.polarity()) {
-      //clause should be unsatisfied, therefore negative literals must be selected
-      ASS(_selected.find(var));
-      continue;
-    }
-    ASS(!_selected.find(var)); //clause should be unsatisfied
-    if(_solver->getAssignment(var)==false) { continue; }
-
-    eligible.push(var);
-  }
-  ASS_G(eligible.size(),0);
-  if(eligible.size()==1) {
-    return eligible.top();
-  }
-
-  //TODO: pick smartly the literal to select
-  return *std::min_element(eligible.begin(), eligible.end());
-}
-
-bool SSplittingBranchSelector::hasAlternativeSelection(SATClause* cl, SplitLevel forbidden)
-{
-  CALL("SSplittingBranchSelector::hasAlternativeSelection");
-  ASS(_selected.find(forbidden));
-
-  SATClause::Iterator it(*cl);
-  while(it.hasNext()) {
-    SATLiteral l = it.next();
-    if(l.var()==forbidden) {
-      ASS(l.polarity());
-      continue;
-    }
-    if(isSatisfiedBySelection(l)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-template<class It>
-void SSplittingBranchSelector::sweepVars(It varsToSweep, SplitLevelStack& sweptAway)
-{
-  CALL("SSplittingBranchSelector::sweepVars");
-
-  while(varsToSweep.hasNext()) {
-    SplitLevel var = varsToSweep.next();
-    if(!_selected.find(var)) {
-      //the variable is already non-selected
-      continue;
-    }
-    SATClauseStack& watched = _watcher[var];
-    SATClauseStack::Iterator wit1(watched);
-    bool canDeselect = true;
-    while(wit1.hasNext()) {
-      SATClause* cl = wit1.next();
-      if(!hasAlternativeSelection(cl, var)) {
-	canDeselect = false;
-	break;
-      }
-    }
-    if(!canDeselect) {
-      continue;
-    }
-    //now we know each of the watched clauses can be moved to another watch
-    RSTAT_CTR_INC("ssat_deactivated_by_sweeping");
-    RSTAT_CTR_INC_MANY("ssat_sat_clauses_moved_by_sweeping",watched.size());
-    LOG("sspl_sel_swept","swept component from selected: "<<var<<" -- "<<(*_parent.getComponentClause(var)));
-    sweptAway.push(var);
-    _selected.remove(var);
-    while(watched.isNonEmpty()) {
-      SATClause* cl = watched.pop();
-#if VDEBUG
-      unsigned wsize = watched.size();
-#endif
-      //we have earlier checked that the clause can be moved to another watch
-      ALWAYS(tryAddingToWatch(cl));
-      ASS_EQ(watched.size(),wsize); //we assert that the clause didn't appear back in the old watch
-    }
-  }
-}
-
-void SSplittingBranchSelector::sweep(SplitLevelStack& addedComps, SplitLevelStack& removedComps)
-{
-  CALL("SSplittingBranchSelector::sweep");
-
-  if(_sweepingMode==Options::SSCS_NONE) {
-    return;
-  }
-
-  static SplitLevelStack sweptAway;
-  sweptAway.reset();
-
-  sweepVars(SplitLevelStack::Iterator(addedComps), sweptAway);
-
-  if(_sweepingMode!=Options::SSCS_ONLY_NEW) {
-
-    unsigned sweptSz = sweptAway.size();
-    sweepVars(getRangeIterator((SplitLevel)1, (SplitLevel)_watcher.size()), sweptAway);
-    if(_sweepingMode==Options::SSCS_ITERATED) {
-      while (sweptSz<sweptAway.size()) {
-	sweptSz = sweptAway.size();
-	sweepVars(getRangeIterator((SplitLevel)1, (SplitLevel)_watcher.size()), sweptAway);
-	RSTAT_CTR_INC("ssat_sweeping_reiteration");
-	RSTAT_CTR_INC_MANY("ssat_sweeping_reiteration_added",sweptAway.size()-sweptSz);
-      }
-    }
-    else {
-      ASS_EQ(_sweepingMode,Options::SSCS_ALL);
-    }
-  }
-
-  if(sweptAway.isEmpty()) {
-    return;
-  }
-
-  static ArraySet sweptSet;
-  sweptSet.ensure(_watcher.size());
-
-  //first we put new components into the varsSet to determine which old components were removed
-  sweptSet.reset();
-  sweptSet.insertFromIterator(SplitLevelStack::Iterator(sweptAway));
-
-  SplitLevelStack::StableDelIterator ait(addedComps);
-  while(ait.hasNext()) {
-    SplitLevel v = ait.next();
-    if(sweptSet.find(v)) {
-      RSTAT_CTR_INC("ssat_swept_new_selections");
-      ait.del();
-      sweptSet.remove(v);
-    }
-  }
-
-  while(sweptAway.isNonEmpty()) {
-    SplitLevel v = sweptAway.pop();
-    if(sweptSet.find(v)) {
-      RSTAT_CTR_INC("ssat_swept_old_selections");
-      removedComps.push(v);
-    }
-  }
-
-
-}
+//void SSplittingBranchSelector::select(SplitLevel var)
+//{
+//  CALL("SSplittingBranchSelector::select");
+//  ASS(!_selected.find(var));
+//  ASS(!_solver->getAssignment(var).isFalse());
+//
+//  _selected.insert(var);
+//  SATClauseStack& watched = _watcher[var];
+//  _unprocessed.loadFromIterator(SATClauseStack::Iterator(watched));
+//  watched.reset();
+//}
+//
+//void SSplittingBranchSelector::deselectByModel(SplitLevelStack& removedComps)
+//{
+//  CALL("SSplittingBranchSelector::deselectByModel");
+//  ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
+//
+//  static SplitLevelStack toDeselect;
+//  toDeselect.reset();
+//
+//  ArraySet::Iterator sit(_selected);
+//  while(sit.hasNext()) {
+//    unsigned sel = sit.next();
+//    if(_solver->getAssignment(sel)==false) {
+//      toDeselect.push(sel);
+//    }
+//  }
+//
+//  RSTAT_CTR_INC_MANY("ssat_deselected_by_model",toDeselect.size());
+//  while(toDeselect.isNonEmpty()) {
+//    unsigned sel = toDeselect.pop();
+//    removedComps.push(sel);
+//    _selected.remove(sel);
+//    SATClauseStack& watched = _watcher[sel];
+//    _unprocessed.loadFromIterator(SATClauseStack::Iterator(watched));
+//    RSTAT_CTR_INC_MANY("ssat_sat_clauses_invalidated_by_model_deselection",watched.size());
+//    watched.reset();
+//  }
+//}
+//
+//void SSplittingBranchSelector::fixUnprocessed(SplitLevelStack& addedComps)
+//{
+//  CALL("SSplittingBranchSelector::fixUnprocessed");
+//
+//  while(_unprocessed.isNonEmpty()) {
+//    SATClause* cl = _unprocessed.pop();
+//    if(tryAddingToWatch(cl)) { continue; }
+//    SplitLevel toSelect = getVarToSelect(cl);
+//    addedComps.push(toSelect);
+//    select(toSelect);
+//    _watcher[toSelect].push(cl);
+//    RSTAT_CTR_INC("ssat_activations_in_unprocessed_fixing");
+//  }
+//}
+//
+//bool SSplittingBranchSelector::tryAddingToWatch(SATClause* cl)
+//{
+//  CALL("SSplittingBranchSelector::tryAddingToWatch");
+//
+//  //TODO: pick smartly watch to add to
+//  SATClause::Iterator it(*cl);
+//  while(it.hasNext()) {
+//    SATLiteral lit = it.next();
+//    if(isSatisfiedBySelection(lit)) {
+//      SplitLevel var = lit.var();
+//      _watcher[var].push(cl);
+//      return true;
+//    }
+//  }
+//  return false;
+//}
+//
+//SplitLevel SSplittingBranchSelector::getVarToSelect(SATClause* cl)
+//{
+//  CALL("SSplittingBranchSelector::getVarToSelect");
+//
+//  static SplitLevelStack eligible;
+//  eligible.reset();
+//
+//  SATClause::Iterator it(*cl);
+//  while(it.hasNext()) {
+//    SATLiteral lit = it.next();
+//    SplitLevel var = lit.var();
+//    if(!lit.polarity()) {
+//      //clause should be unsatisfied, therefore negative literals must be selected
+//      ASS(_selected.find(var));
+//      continue;
+//    }
+//    ASS(!_selected.find(var)); //clause should be unsatisfied
+//    if(_solver->getAssignment(var)==false) { continue; }
+//
+//    eligible.push(var);
+//  }
+//  ASS_G(eligible.size(),0);
+//  if(eligible.size()==1) {
+//    return eligible.top();
+//  }
+//
+//  //TODO: pick smartly the literal to select
+//  return *std::min_element(eligible.begin(), eligible.end());
+//}
+//
+//bool SSplittingBranchSelector::hasAlternativeSelection(SATClause* cl, SplitLevel forbidden)
+//{
+//  CALL("SSplittingBranchSelector::hasAlternativeSelection");
+//  ASS(_selected.find(forbidden));
+//
+//  SATClause::Iterator it(*cl);
+//  while(it.hasNext()) {
+//    SATLiteral l = it.next();
+//    if(l.var()==forbidden) {
+//      ASS(l.polarity());
+//      continue;
+//    }
+//    if(isSatisfiedBySelection(l)) {
+//      return true;
+//    }
+//  }
+//  return false;
+//}
+//
+//template<class It>
+//void SSplittingBranchSelector::sweepVars(It varsToSweep, SplitLevelStack& sweptAway)
+//{
+//  CALL("SSplittingBranchSelector::sweepVars");
+//
+//  while(varsToSweep.hasNext()) {
+//    SplitLevel var = varsToSweep.next();
+//    if(!_selected.find(var)) {
+//      //the variable is already non-selected
+//      continue;
+//    }
+//    SATClauseStack& watched = _watcher[var];
+//    SATClauseStack::Iterator wit1(watched);
+//    bool canDeselect = true;
+//    while(wit1.hasNext()) {
+//      SATClause* cl = wit1.next();
+//      if(!hasAlternativeSelection(cl, var)) {
+//	canDeselect = false;
+//	break;
+//      }
+//    }
+//    if(!canDeselect) {
+//      continue;
+//    }
+//    //now we know each of the watched clauses can be moved to another watch
+//    RSTAT_CTR_INC("ssat_deactivated_by_sweeping");
+//    RSTAT_CTR_INC_MANY("ssat_sat_clauses_moved_by_sweeping",watched.size());
+//    LOG("sspl_sel_swept","swept component from selected: "<<var<<" -- "<<(*_parent.getComponentClause(var)));
+//    sweptAway.push(var);
+//    _selected.remove(var);
+//    while(watched.isNonEmpty()) {
+//      SATClause* cl = watched.pop();
+//#if VDEBUG
+//      unsigned wsize = watched.size();
+//#endif
+//      //we have earlier checked that the clause can be moved to another watch
+//      ALWAYS(tryAddingToWatch(cl));
+//      ASS_EQ(watched.size(),wsize); //we assert that the clause didn't appear back in the old watch
+//    }
+//  }
+//}
+//
+//void SSplittingBranchSelector::sweep(SplitLevelStack& addedComps, SplitLevelStack& removedComps)
+//{
+//  CALL("SSplittingBranchSelector::sweep");
+//
+//  if(_sweepingMode==Options::SSCS_NONE) {
+//    return;
+//  }
+//
+//  static SplitLevelStack sweptAway;
+//  sweptAway.reset();
+//
+//  sweepVars(SplitLevelStack::Iterator(addedComps), sweptAway);
+//
+//  if(_sweepingMode!=Options::SSCS_ONLY_NEW) {
+//
+//    unsigned sweptSz = sweptAway.size();
+//    sweepVars(getRangeIterator((SplitLevel)1, (SplitLevel)_watcher.size()), sweptAway);
+//    if(_sweepingMode==Options::SSCS_ITERATED) {
+//      while (sweptSz<sweptAway.size()) {
+//	sweptSz = sweptAway.size();
+//	sweepVars(getRangeIterator((SplitLevel)1, (SplitLevel)_watcher.size()), sweptAway);
+//	RSTAT_CTR_INC("ssat_sweeping_reiteration");
+//	RSTAT_CTR_INC_MANY("ssat_sweeping_reiteration_added",sweptAway.size()-sweptSz);
+//      }
+//    }
+//    else {
+//      ASS_EQ(_sweepingMode,Options::SSCS_ALL);
+//    }
+//  }
+//
+//  if(sweptAway.isEmpty()) {
+//    return;
+//  }
+//
+//  static ArraySet sweptSet;
+//  sweptSet.ensure(_watcher.size());
+//
+//  //first we put new components into the varsSet to determine which old components were removed
+//  sweptSet.reset();
+//  sweptSet.insertFromIterator(SplitLevelStack::Iterator(sweptAway));
+//
+//  SplitLevelStack::StableDelIterator ait(addedComps);
+//  while(ait.hasNext()) {
+//    SplitLevel v = ait.next();
+//    if(sweptSet.find(v)) {
+//      RSTAT_CTR_INC("ssat_swept_new_selections");
+//      ait.del();
+//      sweptSet.remove(v);
+//    }
+//  }
+//
+//  while(sweptAway.isNonEmpty()) {
+//    SplitLevel v = sweptAway.pop();
+//    if(sweptSet.find(v)) {
+//      RSTAT_CTR_INC("ssat_swept_old_selections");
+//      removedComps.push(v);
+//    }
+//  }
+//
+//
+//}
 
 
 //////////////
@@ -466,9 +535,6 @@ SSplitter::SSplitter()
 : _branchSelector(*this), _flushCounter(0)
 {
   CALL("SSplitter::SSplitter");
-
-  //puth 0 at the 0-th position as we don't use component name 0
-  _db.push(0);
 }
 
 SSplitter::~SSplitter()
@@ -476,7 +542,6 @@ SSplitter::~SSplitter()
   CALL("SSplitter::~SSplitter");
 
   while(_db.isNonEmpty()) {
-    ASS_EQ(_db.top()!=0, _db.size()>1);
     if(_db.top()) {
       delete _db.top();
     }
@@ -492,39 +557,35 @@ void SSplitter::init(SaturationAlgorithm* sa)
 
   const Options& opts = getOptions();
   _branchSelector.init();
-  _complGroundBehavior = opts.ssplittingComplementaryGround();
+  _complBehavior = opts.ssplittingAddComplementary();
   _nonsplComps = opts.ssplittingNonsplittableComponents();
 
   _flushPeriod = opts.ssplittingFlushPeriod();
   _flushQuotient = opts.ssplittingFlushQuotient();
 }
 
-
-SATLiteral SSplitter::getLiteralFromName(SplitLevel compName)
+SplitLevel SSplitter::getNameFromLiteral(SATLiteral lit) const
 {
-  return SATLiteral(compName, true);
+  CALL("SSplitter::getNameFromLiteral");
+
+  return (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
 }
-void SSplitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc)
+SATLiteral SSplitter::getLiteralFromName(SplitLevel compName) const
+{
+  unsigned var = compName/2 + 1;
+  bool polarity = (compName&1)==0;
+  return SATLiteral(var, polarity);
+}
+void SSplitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const
 {
   SplitSet::Iterator sit(*splits);
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
-    acc.push(SATLiteral(nm, false));
+    acc.push(getLiteralFromName(nm).opposite());
   }
 }
 
-SplitLevel SSplitter::getNewComponentName(Clause* comp)
-{
-  CALL("SSplitter::getNewComponentName");
-
-  unsigned res = _db.size();
-  _db.push(new SplitRecord(comp));
-  _branchSelector.ensureVarCnt(res+1);
-
-  return res;
-}
-
-Clause* SSplitter::getComponentClause(SplitLevel name)
+Clause* SSplitter::getComponentClause(SplitLevel name) const
 {
   CALL("SSplitter::getComponentClause");
   ASS_L(name,_db.size());
@@ -534,7 +595,7 @@ Clause* SSplitter::getComponentClause(SplitLevel name)
 }
 
 
-void SSplitter::addSATClause(SATClause* cl, bool refutation)
+void SSplitter::addSATClause(SATClause* cl, bool branchRefutation)
 {
   CALL("SSplitter::addSATClause");
 
@@ -543,8 +604,8 @@ void SSplitter::addSATClause(SATClause* cl, bool refutation)
   if(!cl) {
     return;
   }
-  if(refutation) {
-    _haveRefutation = true;
+  if(branchRefutation) {
+    _haveBranchRefutation = true;
   }
   _clausesToBeAdded.push(cl);
 }
@@ -556,7 +617,7 @@ void SSplitter::onAllProcessed()
   bool flushing = false;
   if(_flushPeriod) {
     _flushCounter++;
-    if(_haveRefutation) {
+    if(_haveBranchRefutation) {
       _flushCounter = 0;
     }
     if(_flushCounter>=_flushPeriod && _clausesToBeAdded.isEmpty()) {
@@ -566,7 +627,7 @@ void SSplitter::onAllProcessed()
     }
   }
 
-  _haveRefutation = false;
+  _haveBranchRefutation = false;
 
   if(_clausesToBeAdded.isEmpty() && !flushing) {
     return;
@@ -594,8 +655,8 @@ void SSplitter::onAllProcessed()
   TRACE("sspl_sel_current_comps",
       unsigned bound = _db.size();
       tout << "currently selected components:" << endl;
-      for(unsigned i=1; i<bound; ++i) {
-	if(_db[i]->active) {
+      for(unsigned i=0; i<bound; ++i) {
+	if(_db[i] && _db[i]->active) {
 	  cout << i << "  --  " << (*_db[i]->component) << endl;
 	}
       }
@@ -735,54 +796,81 @@ bool SSplitter::tryGetExistingComponentName(unsigned size, Literal* const * lits
   return true;
 }
 
-void SSplitter::onNewGroundComponent(Literal* lit, Clause* nameCl, SplitLevel name)
+Clause* SSplitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig)
 {
-  CALL("SSplitter::onNewGroundComponent");
+  CALL("SSplitter::buildAndInsertComponentClause");
+  ASS_EQ(_db[name],0);
 
-  if(_complGroundBehavior==Options::SSCG_NONE) {
-    return;
-  }
+  Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
+  Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, new Inference(Inference::SPLITTING_COMPONENT));
+
+  _db[name] = new SplitRecord(compCl);
+
+  compCl->setSplits(SplitSet::getSingleton(name));
+  LOG_UNIT("sspl_comp_names", compCl);
+
+  _componentIdx.insert(compCl);
+  _compNames.insert(compCl, name);
+
+  LOG_UNIT("sspl_comp_names", compCl);
+  return compCl;
+}
+
+SplitLevel SSplitter::addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
+{
+  CALL("SSplitter::addNonGroundComponent");
+  ASS_REP(_db.size()%2==0, _db.size());
+  ASS_G(size,0);
+  ASS(forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
+
+  SplitLevel compName = _db.size();
+  _db.push(0);
+  _db.push(0);
+  _branchSelector.updateVarCnt();
+
+  compCl = buildAndInsertComponentClause(compName, size, lits, orig);
+
+  return compName;
+}
+
+SplitLevel SSplitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& compCl)
+{
+  CALL("SSplitter::addGroundComponent");
+  ASS_REP(_db.size()%2==0, _db.size());
+  ASS(lit->ground());
+
   Literal* opposite = Literal::complementaryLiteral(lit);
+  bool pos = lit->isPositive();
 
-  SplitLevel opName;
-  Clause* opCompCl;
-  if(_complGroundBehavior==Options::SSCG_EAGER_XOR) {
-    if(tryGetExistingComponentName(1, &opposite, opName, opCompCl)) {
-      //if we got here, we're in a recursive call from onNewGroundComponent(opposite,...)
-      return;
+  SplitLevel compName;
+
+  if(_complBehavior==Options::SSAC_NONE) {
+    SplitLevel oppName;
+    Clause* oppCl;
+    if(tryGetExistingComponentName(1, &opposite, oppName, oppCl)) {
+      ASS_EQ(oppName&1, opposite->isNegative());
+      compName = oppName^1;
     }
-    opName = getComponentName(1, &opposite, 0, opCompCl);
-    RSTAT_CTR_INC("sspl_added_gnd_negation");
+    else {
+      compName = _db.size() + (pos ? 0 : 1);
+      _db.push(0);
+      _db.push(0);
+    }
   }
   else {
-    if(!tryGetExistingComponentName(1, &opposite, opName, opCompCl)) {
-      //we don't have the opposite literal yet
-      return;
-    }
+    //we insert both literal and its negation
+    compName = _db.size() + (pos ? 0 : 1);
+    unsigned oppName = compName^1;
+
+    _db.push(0);
+    _db.push(0);
+    buildAndInsertComponentClause(oppName, 1, &opposite, orig);
   }
+  compCl = buildAndInsertComponentClause(compName, 1, &lit, orig);
 
-  static SATLiteralStack satLits;
+  _branchSelector.updateVarCnt();
 
-  RSTAT_CTR_INC("sspl_paired_gnd_comps");
-  LOG("sspl_paired_gnd_comps","paired up ground negations of " << (*lit) << ": " << name<<" <=> ~"<<opName);
-
-  if(_complGroundBehavior!=Options::SSCG_NAND) {
-    ASS(_complGroundBehavior==Options::SSCG_EAGER_XOR || _complGroundBehavior==Options::SSCG_XOR);
-    satLits.reset();
-    satLits.push(SATLiteral(name, true));
-    satLits.push(SATLiteral(opName, true));
-    SATClause* scl1 = SATClause::fromStack(satLits);
-    scl1->setInference(new FOSplittingInference(nameCl, new ClauseList(opCompCl,0)));
-    addSATClause(scl1, false);
-  }
-
-  satLits.reset();
-  satLits.push(SATLiteral(name, false));
-  satLits.push(SATLiteral(opName, false));
-  SATClause* scl2 = SATClause::fromStack(satLits);
-  scl2->setInference(new FOSplittingInference(nameCl, new ClauseList(opCompCl,0)));
-
-  addSATClause(scl2, false);
+  return compName;
 }
 
 /**
@@ -810,21 +898,13 @@ SplitLevel SSplitter::getComponentName(unsigned size, Literal* const * lits, Cla
   }
   else {
     RSTAT_CTR_INC("ssat_new_components");
-    Unit::InputType inpType = orig ? orig->inputType() : Unit::AXIOM;
-    compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size), inpType, new Inference(Inference::SPLITTING_COMPONENT));
-    SplitLevel compName = getNewComponentName(compCl);
-    compCl->setSplits(SplitSet::getSingleton(compName));
-    LOG_UNIT("sspl_comp_names", compCl);
-
-    _componentIdx.insert(compCl);
-    _compNames.insert(compCl, compName);
-
-    res = compName;
 
     if(size==1 && lits[0]->ground()) {
-      onNewGroundComponent(lits[0], compCl, res);
+      res = addGroundComponent(lits[0], orig, compCl);
     }
-
+    else {
+      res = addNonGroundComponent(size, lits, orig, compCl);
+    }
   }
   return res;
 }
@@ -888,7 +968,7 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
   }
 
   cl->incReductionTimestamp();
-  //BDDs are disabled when we do backtracking splitting so they can only contain false
+  //BDDs are disabled when we do ssplitting so they can only contain false
   ASS(BDD::instance()->isFalse(cl->prop()));
   SplitSet::Iterator dit(*diff);
   while(dit.hasNext()) {
@@ -1019,6 +1099,7 @@ void SSplitter::addComponents(const SplitLevelStack& toAdd)
   while(slit.hasNext()) {
     SplitLevel sl = slit.next();
     SplitRecord* sr = _db[sl];
+    ASS(sr);
     ASS(!sr->active);
     sr->active = true;
     //simplifications may set prop part to true, but when we add the
@@ -1035,7 +1116,7 @@ void SSplitter::addComponents(const SplitLevelStack& toAdd)
 }
 
 /**
- * Perform backtracking allowed for by empty clauses in @b emptyClauses
+ * Perform backtracking of split levels in @c toRemove.
  *
  * Can be called only when there are no unprocessed clauses left.
  * This is to allow for easy clause removal from the saturation algorithm.
@@ -1059,6 +1140,7 @@ void SSplitter::removeComponents(const SplitLevelStack& toRemove)
   while(blit.hasNext()) {
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
+    ASS(sr);
 
     while(sr->children.isNonEmpty()) {
       Clause* ccl=sr->children.popWithoutDec();

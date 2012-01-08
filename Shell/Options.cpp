@@ -63,7 +63,7 @@ public:
   static const char* _satVarSelectorValues[];
   static const char* _satClauseDisposerValues[];
   static const char* _sSplittingComponentSweepingValues[];
-  static const char* _sSplittingComplementaryGroundValues[];
+  static const char* _sSplittingAddComplementaryValues[];
   static const char* _sSplittingNonsplittableComponentsValues[];
 
   static int shortNameIndexes[];
@@ -94,7 +94,7 @@ public:
   static NameArray satVarSelectorValues;
   static NameArray satClauseDisposerValues;
   static NameArray sSplittingComponentSweepingValues;
-  static NameArray sSplittingComplementaryGroundValues;
+  static NameArray sSplittingAddComplementaryValues;
   static NameArray sSplittingNonsplittableComponentsValues;
 }; // class Options::Constants
 
@@ -233,8 +233,9 @@ const char* Options::Constants::_optionNames[] = {
   "split_positive",
   "splitting",
   "splitting_with_blocking",
-  "ssplitting_complementary_ground",
+  "ssplitting_add_complementary",
   "ssplitting_component_sweeping",
+  "ssplitting_eager_removal",
   "ssplitting_flush_period",
   "ssplitting_flush_quotient",
   "ssplitting_nonsplittable_components",
@@ -597,13 +598,11 @@ const char* Options::Constants::_sSplittingComponentSweepingValues[] = {
 NameArray Options::Constants::sSplittingComponentSweepingValues(_sSplittingComponentSweepingValues,
 					  sizeof(_sSplittingComponentSweepingValues)/sizeof(char*));
 
-const char* Options::Constants::_sSplittingComplementaryGroundValues[] = {
-  "eager_xor",
-  "nang",
-  "none",
-  "xor"};
-NameArray Options::Constants::sSplittingComplementaryGroundValues(_sSplittingComplementaryGroundValues,
-					  sizeof(_sSplittingComplementaryGroundValues)/sizeof(char*));
+const char* Options::Constants::_sSplittingAddComplementaryValues[] = {
+  "ground",
+  "none"};
+NameArray Options::Constants::sSplittingAddComplementaryValues(_sSplittingAddComplementaryValues,
+					  sizeof(_sSplittingAddComplementaryValues)/sizeof(char*));
 
 const char* Options::Constants::_sSplittingNonsplittableComponentsValues[] = {
   "all",
@@ -759,8 +758,9 @@ Options::Options ()
   _splitPositive(false),
   _splitting(SM_NOBACKTRACKING),
   _splittingWithBlocking(false),
-  _ssplittingComplementaryGround(SSCG_XOR),
+  _ssplittingAddComplementary(SSAC_GROUND),
   _ssplittingComponentSweeping(SSCS_ITERATED),
+  _ssplittingEagerRemoval(true),
   _ssplittingFlushPeriod(0),
   _ssplittingFlushQuotient(1.5f),
   _ssplittingNonsplittableComponents(SSNS_KNOWN),
@@ -1317,11 +1317,14 @@ void Options::set(const char* name,const char* value, int index)
     case SPLITTING_WITH_BLOCKING:
       _splittingWithBlocking = onOffToBool(value,name);
       return;
-    case SSPLITTING_COMPLEMENTARY_GROUND:
-      _ssplittingComplementaryGround = (SSplittingComplementaryGround)Constants::sSplittingComplementaryGroundValues.find(value);
+    case SSPLITTING_ADD_COMPLEMENTARY:
+      _ssplittingAddComplementary = (SSplittingAddComplementary)Constants::sSplittingAddComplementaryValues.find(value);
       return;
     case SSPLITTING_COMPONENT_SWEEPING:
       _ssplittingComponentSweeping = (SSplittingComponentSweeping)Constants::sSplittingComponentSweepingValues.find(value);
+      return;
+    case SSPLITTING_EAGER_REMOVAL:
+      _ssplittingEagerRemoval = onOffToBool(value,name);
       return;
     case SSPLITTING_FLUSH_PERIOD:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
@@ -2018,11 +2021,14 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SPLITTING_WITH_BLOCKING:
     str << boolToOnOff(_splittingWithBlocking);
     return;
-  case SSPLITTING_COMPLEMENTARY_GROUND:
-    str << Constants::sSplittingComplementaryGroundValues[_ssplittingComplementaryGround];
+  case SSPLITTING_ADD_COMPLEMENTARY:
+    str << Constants::sSplittingAddComplementaryValues[_ssplittingAddComplementary];
     return;
   case SSPLITTING_COMPONENT_SWEEPING:
     str << Constants::sSplittingComponentSweepingValues[_ssplittingComponentSweeping];
+    return;
+  case SSPLITTING_EAGER_REMOVAL:
+    str << boolToOnOff(_ssplittingEagerRemoval);
     return;
   case SSPLITTING_FLUSH_PERIOD:
     str << _ssplittingFlushPeriod;

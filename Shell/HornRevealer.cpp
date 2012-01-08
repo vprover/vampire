@@ -84,7 +84,7 @@ bool HornRevealer::isReversed(unsigned pred)
   ASS_EQ(_solver.getStatus(),SATSolver::SATISFIABLE);
 
   //if prop variable is true, we don't reverse the predicate
-  return !_solver.getAssignment(pred2var(pred)).isFalse();
+  return _solver.getAssignment(pred2var(pred))==SATSolver::FALSE;
 }
 
 bool HornRevealer::isGoal(Clause* cl)

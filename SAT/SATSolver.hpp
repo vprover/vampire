@@ -14,6 +14,12 @@ namespace SAT {
 
 class SATSolver {
 public:
+  enum VarAssignment {
+    TRUE,
+    FALSE,
+    DONT_CARE,
+    NOT_KNOWN
+  };
   enum Status {
     SATISFIABLE,
     UNSATISFIABLE,
@@ -34,7 +40,7 @@ public:
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual MaybeBool getAssignment(unsigned var) = 0;
+  virtual VarAssignment getAssignment(unsigned var) = 0;
   virtual void ensureVarCnt(unsigned newVarCnt) {}
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate=false) = 0;
@@ -50,9 +56,9 @@ public:
   {
     CALL("SATSolver::trueInAssignment");
 
-    MaybeBool asgn = getAssignment(lit.var());
-
-    return asgn.known() && asgn.value()==lit.polarity();
+    VarAssignment asgn = getAssignment(lit.var());
+    VarAssignment desired = lit.polarity() ? TRUE : FALSE;
+    return asgn==desired;
   }
 
   /**
@@ -62,9 +68,9 @@ public:
   {
     CALL("SATSolver::trueInAssignment");
 
-    MaybeBool asgn = getAssignment(lit.var());
-
-    return asgn.known() && asgn.value()!=lit.polarity();
+    VarAssignment asgn = getAssignment(lit.var());
+    VarAssignment desired = lit.polarity() ? FALSE: TRUE;
+    return asgn==desired;
   }
 };
 

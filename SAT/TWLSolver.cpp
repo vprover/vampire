@@ -1084,7 +1084,7 @@ bool TWLSolver::isTrue(SATClause* cl) const
   return false;
 }
 
-MaybeBool TWLSolver::getAssignment(unsigned var)
+SATSolver::VarAssignment TWLSolver::getAssignment(unsigned var)
 {
   CALL("TWLSolver::getAssignment");
   ASS_EQ(getStatus(), SATISFIABLE);
@@ -1092,13 +1092,13 @@ MaybeBool TWLSolver::getAssignment(unsigned var)
   ASS(!isUndefined(var));
 
   if(isTrue(var)) {
-    return MaybeBool::TRUE;
+    return SATSolver::TRUE;
   }
   else if(isUndefined(var)) {
-    return MaybeBool::UNKNOWN;
+    return SATSolver::NOT_KNOWN;
   }
   else {
-    return MaybeBool::FALSE;
+    return SATSolver::FALSE;
   }
 }
 

@@ -72,68 +72,75 @@ public:
   /** To be called from SSplitter::init() */
   void init();
 
-  void ensureVarCnt(unsigned varCnt);
+  void updateVarCnt();
   void addSatClauses(const SATClauseStack& clauses, SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 private:
 
   void handleSatRefutation(SATClause* ref);
-
-  void select(SplitLevel var);
-  void deselectByModel(SplitLevelStack& removedComps);
-  void fixUnprocessed(SplitLevelStack& addedComps);
-
-  bool hasAlternativeSelection(SATClause* cl, SplitLevel forbidden);
-
-  void sweep(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
-  template<class It>
-  void sweepVars(It varsToSweep, SplitLevelStack& sweptAway);
-
-  bool tryAddingToWatch(SATClause* cl);
-
-  SplitLevel getVarToSelect(SATClause* cl);
-
-  static bool hasPositiveLiteral(SATClause* cl);
-
-  bool isSatisfiedBySelection(SATLiteral lit);
-
-
+  void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
+      SplitLevelStack& addedComps, SplitLevelStack& removedComps);
+//
+//  void select(SplitLevel var);
+//  void deselectByModel(SplitLevelStack& removedComps);
+//  void fixUnprocessed(SplitLevelStack& addedComps);
+//
+//  bool hasAlternativeSelection(SATClause* cl, SplitLevel forbidden);
+//
+//  void sweep(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
+//  template<class It>
+//  void sweepVars(It varsToSweep, SplitLevelStack& sweptAway);
+//
+//  bool tryAddingToWatch(SATClause* cl);
+//
+//  SplitLevel getVarToSelect(SATClause* cl);
+//
+//  static bool hasPositiveLiteral(SATClause* cl);
+//
+//  bool isSatisfiedBySelection(SATLiteral lit);
+//
+//
   //options
-  Options::SSplittingComponentSweeping _sweepingMode;
+  bool _eagerRemoval;
+//  Options::SSplittingComponentSweeping _sweepingMode;
 
   SSplitter& _parent;
 
   unsigned _varCnt;
   SATSolverSCP _solver;
 
+//  /**
+//   * Clauses of which we yet need to ensure they are satisfied
+//   *
+//   * Invariant: outside of addSatClauses the stack is empty.
+//   */
+//  SATClauseStack _unprocessed;
+//
   /**
-   * Clauses of which we yet need to ensure they are satisfied
-   *
-   * Invariant: outside of addSatClauses the stack is empty.
-   */
-  SATClauseStack _unprocessed;
-
-  /**
-   * Contains selected variables
-   *
-   * Invariant to hold outside of addSatClauses:
-   * Only variables assigned true in the solver can be selected
+   * Contains selected component names
    */
   ArraySet _selected;
-
-  /**
-   * Array of clauses kept satisfied by selecting or non-selecting
-   * a particular variable
-   *
-   * Invariant to hold outside of addSatClauses:
-   * All added clauses that contain at least one positive literal
-   * are added into the wather. Each such clause occurrs here exactly
-   * once.
-   */
-  DArray<SATClauseStack> _watcher;
+//
+//  /**
+//   * Array of clauses kept satisfied by selecting or non-selecting
+//   * a particular variable
+//   *
+//   * Invariant to hold outside of addSatClauses:
+//   * All added clauses that contain at least one positive literal
+//   * are added into the wather. Each such clause occurrs here exactly
+//   * once.
+//   */
+//  DArray<SATClauseStack> _watcher;
 };
 
+/**
+ *
+ *
+ * SplitLevel meanings:
+ * even -- positive ground literals and non-ground components
+ * odd -- negative ground literals (and possibly skolemized non-ground components -- not implemented yet)
+ */
 class SSplitter : public Splitter {
 private:
   struct ReductionRecord
@@ -176,23 +183,36 @@ public:
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);
 
-  Clause* getComponentClause(SplitLevel name);
+  SATLiteral getLiteralFromName(SplitLevel compName) const;
+  SplitLevel getNameFromLiteral(SATLiteral lit) const;
 
+  bool isActiveName(SplitLevel name) const {
+    CALL("SSplitter::isActiveName");
+    ASS_L(name,_db.size());
+    return _db[name];
+  }
+  Clause* getComponentClause(SplitLevel name) const;
+
+  SplitLevel splitLevelCnt() const { return _db.size(); }
+  unsigned maxSatVar() const { return _db.size()/2; }
 private:
   bool handleNonSplittable(Clause* cl);
-  void onNewGroundComponent(Literal* lit, Clause* nameCl, SplitLevel name);
   bool tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause*& compCl);
 
   void addComponents(const SplitLevelStack& toAdd);
   void removeComponents(const SplitLevelStack& toRemove);
 
-  SATLiteral getLiteralFromName(SplitLevel compName);
-  void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc);
+  void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const;
+
+  SplitLevel addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
+  SplitLevel addGroundComponent(Literal* lit, Clause* orig, Clause*& compCl);
+
+  Clause* buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig=0);
 
   SplitLevel getComponentName(const CompRec& comp, Clause* orig, Clause*& compCl);
   SplitLevel getComponentName(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
 
-  SplitLevel getNewComponentName(Clause* comp);
+//  SplitLevel getNewComponentName(Clause* comp);
 
   void addSATClause(SATClause* cl, bool refutation);
 
@@ -201,8 +221,10 @@ private:
 
   void assertSplitLevelsActive(SplitSet* s);
 
+  static bool isGround(Literal* l) { return l->ground(); }
+
   //settings
-  Options::SSplittingComplementaryGround _complGroundBehavior;
+  Options::SSplittingAddComplementary _complBehavior;
   Options::SSplittingNonsplittableComponents _nonsplComps;
   unsigned _flushPeriod;
   float _flushQuotient;
@@ -212,11 +234,19 @@ private:
   ClauseVariantIndex _componentIdx;
 
   //state variables
+  /**
+   * Information about a split level. Can be null if a split level does
+   * not contain any components (e.g. for negations of non-ground
+   * components)
+   *
+   * Invariant: if there is a clause with a level in its splitting history,
+   * the _db record of this level is non-null.
+   */
   Stack<SplitRecord*> _db;
   DHMap<Clause*,SplitLevel> _compNames;
   unsigned _flushCounter;
   /** true if there is a refutation to be added to the SAT solver */
-  bool _haveRefutation;
+  bool _haveBranchRefutation;
 
   /**
    * New SAT clauses to be added to the SAT solver

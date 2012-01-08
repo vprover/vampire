@@ -262,17 +262,18 @@ bool TransparentSolver::tryWatchOrSubsume(SATClause* cl, unsigned forbiddenVar)
   return false;
 }
 
-MaybeBool TransparentSolver::getAssignment(unsigned var)
+SATSolver::VarAssignment TransparentSolver::getAssignment(unsigned var)
 {
   CALL("TransparentSolver::getAssignment");
 
   VarInfo& vi = _vars[var];
-  MaybeBool res;
+
   if(vi._hasAssumption) {
-    return MaybeBool(vi._assumedPolarity);
+    return  vi._assumedPolarity ? SATSolver::TRUE : SATSolver::FALSE;
   }
+  VarAssignment res;
   if(!vi._unseen && vi._isPure) {
-    res = MaybeBool(vi._isPurePositive);
+    res = vi._isPurePositive ? SATSolver::TRUE : SATSolver::FALSE;
   }
   else {
     res = _inner->getAssignment(var);

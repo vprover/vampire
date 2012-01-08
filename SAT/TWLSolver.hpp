@@ -52,7 +52,7 @@ public:
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
   virtual Status getStatus() { return _status; };
   virtual void ensureVarCnt(unsigned newVarCnt);
-  virtual MaybeBool getAssignment(unsigned var);
+  virtual VarAssignment getAssignment(unsigned var);
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
   virtual void retractAllAssumptions();

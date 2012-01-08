@@ -176,8 +176,9 @@ public:
     SPLIT_POSITIVE,
     SPLITTING,
     SPLITTING_WITH_BLOCKING,
-    SSPLITTING_COMPLEMENTARY_GROUND,
+    SSPLITTING_ADD_COMPLEMENTARY,
     SSPLITTING_COMPONENT_SWEEPING,
+    SSPLITTING_EAGER_REMOVAL,
     SSPLITTING_FLUSH_PERIOD,
     SSPLITTING_FLUSH_QUOTIENT,
     SSPLITTING_NONSPLITTABLE_COMPONENTS,
@@ -392,11 +393,9 @@ public:
     SSCS_ONLY_NEW = 3
   };
 
-  enum SSplittingComplementaryGround {
-    SSCG_EAGER_XOR = 0,
-    SSCG_NAND = 1,
-    SSCG_NONE = 2,
-    SSCG_XOR = 3
+  enum SSplittingAddComplementary {
+    SSAC_GROUND = 0,
+    SSAC_NONE = 1
   };
 
   enum SSplittingNonsplittableComponents {
@@ -628,9 +627,10 @@ public:
 
   SSplittingNonsplittableComponents ssplittingNonsplittableComponents() const { return _ssplittingNonsplittableComponents; }
   SSplittingComponentSweeping ssplittingComponentSweeping() const { return _ssplittingComponentSweeping; }
-  SSplittingComplementaryGround ssplittingComplementaryGround() const { return _ssplittingComplementaryGround; }
+  SSplittingAddComplementary ssplittingAddComplementary() const { return _ssplittingAddComplementary; }
   int ssplittingFlushPeriod() const { return _ssplittingFlushPeriod; }
   float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient; }
+  bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval; }
 
   void enableTracesAccordingToOptions() const;
 
@@ -781,8 +781,9 @@ private:
   bool _splitPositive;
   SplittingMode _splitting;
   bool _splittingWithBlocking;
-  SSplittingComplementaryGround _ssplittingComplementaryGround;
+  SSplittingAddComplementary _ssplittingAddComplementary;
   SSplittingComponentSweeping _ssplittingComponentSweeping;
+  bool _ssplittingEagerRemoval;
   unsigned _ssplittingFlushPeriod;
   float _ssplittingFlushQuotient;
   SSplittingNonsplittableComponents _ssplittingNonsplittableComponents;
