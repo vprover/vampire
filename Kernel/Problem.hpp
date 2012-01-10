@@ -146,6 +146,10 @@ public:
   }
 
 
+  //utility functions
+
+  void collectPredicates(Stack<unsigned>& acc) const;
+
 private:
 
   void initValues();

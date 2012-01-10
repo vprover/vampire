@@ -180,6 +180,9 @@ bool BaseType::operator==(const BaseType& o) const
     }
   }
   unsigned len = arity();
+  if(len!=o.arity()) {
+    return false;
+  }
   for(unsigned i=0; i<len; i++) {
     if(arg(i)!=o.arg(i)) {
       return false;

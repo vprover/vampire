@@ -90,19 +90,25 @@ void PDUtils::splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& rhs)
   if(f->connective()==FORALL) {
     f = f->qarg();
   }
+  if(f->connective()==LITERAL) {
+    ASS(isDefinitionHead(f->literal()));
+    lhs = f->literal();
+    rhs = Formula::trueFormula();
+    return;
+  }
   ASS_EQ(f->connective(),IFF);
 
   if(f->left()->connective()==LITERAL) {
-    if(hasDefinitionShape(unit, f->left()->literal(), f->right())) {
+    if(hasDefinitionShape(f->left()->literal(), f->right())) {
       //we don't allow predicate equivalences here
-      ASS(f->right()->connective()!=LITERAL || !hasDefinitionShape(unit, f->right()->literal(), f->left()));
+      ASS(f->right()->connective()!=LITERAL || !hasDefinitionShape(f->right()->literal(), f->left()));
       lhs = f->left()->literal();
       rhs = f->right();
       return;
     }
   }
   ASS_EQ(f->right()->connective(),LITERAL);
-  ASS(hasDefinitionShape(unit, f->right()->literal(), f->left()));
+  ASS(hasDefinitionShape(f->right()->literal(), f->left()));
   lhs = f->right()->literal();
   rhs = f->left();
 }
@@ -120,16 +126,21 @@ bool PDUtils::hasDefinitionShape(FormulaUnit* unit)
   if(f->connective()==FORALL) {
     f = f->qarg();
   }
+  if(f->connective()==LITERAL) {
+    if(isDefinitionHead(f->literal())) {
+      return true;
+    }
+  }
   if(f->connective()!=IFF) {
     return false;
   }
   if(f->left()->connective()==LITERAL) {
-    if(hasDefinitionShape(unit, f->left()->literal(), f->right())) {
+    if(hasDefinitionShape(f->left()->literal(), f->right())) {
       return true;
     }
   }
   if(f->right()->connective()==LITERAL) {
-    return hasDefinitionShape(unit, f->right()->literal(), f->left());
+    return hasDefinitionShape(f->right()->literal(), f->left());
   }
   return false;
 }
@@ -151,14 +162,14 @@ bool PDUtils::hasDefinitionShape(Unit* unit)
 /**
  * Perform local checks whether givan formula can be a definition.
  *
- * Check whether lhs is not an equality and its arguments are distinct
+ * Check whether lhs is not protected and its arguments are distinct
  * variables. Also check that there are no unbound variables in the body
  * that wouldn't occur in the lhs, and that the lhs predicate doesn't occur
  * in the body.
  */
-bool PDUtils::hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* rhs)
+bool PDUtils::hasDefinitionShape(Literal* lhs, Formula* rhs)
 {
-  CALL("PDUtils::hasDefinitionShape/3");
+  CALL("PDUtils::hasDefinitionShape/2");
 
   if(!isDefinitionHead(lhs)) {
     return false;
@@ -168,13 +179,9 @@ bool PDUtils::hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* rhs)
 
   MultiCounter counter;
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
-    if (! ts->isVar()) {
-      return false;
-    }
+    ASS(ts->isVar()); // follows from isDefinitionHead(lhs)==true
     int w = ts->var();
-    if (counter.get(w) != 0) { // more than one occurrence
-      return false;
-    }
+    ASS_EQ(counter.get(w),0); // that each var occurs only once follows from isDefinitionHead(lhs)==true
     counter.inc(w);
   }
 

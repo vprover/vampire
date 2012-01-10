@@ -22,6 +22,7 @@
 #include "EqResWithDeletion.hpp"
 #include "EqualityPropagator.hpp"
 #include "EqualityProxy.hpp"
+#include "EquivalenceDiscoverer.hpp"
 #include "Flattening.hpp"
 #include "FormulaIteExpander.hpp"
 #include "FunctionDefinition.hpp"
@@ -180,6 +181,10 @@ void Preprocess::preprocess (Problem& prb)
   }
   else if(_options.flattenTopLevelConjunctions()) {
     TopLevelFlatten().apply(prb);
+  }
+
+  if(_options.predicateEquivalenceDiscovery()) {
+    EquivalenceDiscoveringTransformer(_options).apply(prb);
   }
 
   if(_options.aigFormulaSharing()) {

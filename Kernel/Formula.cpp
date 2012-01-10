@@ -678,6 +678,22 @@ bool Formula::getSkip()
   return true;
 }
 
+Formula* Formula::trueFormula()
+{
+  CALL("Formula::trueFormula");
+
+  static Formula* res = new Formula(true);
+  return res;
+}
+
+Formula* Formula::falseFormula()
+{
+  CALL("Formula::falseFormula");
+
+  static Formula* res = new Formula(false);
+  return res;
+}
+
 Formula* Formula::quantify(Formula* f)
 {
   Set<unsigned> vars;

@@ -178,6 +178,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "predicate_definition_inlining",
   "predicate_definition_merging",
+  "predicate_equivalence_discovery",
   "predicate_index_introduction",
   "problem_name",
   "proof",
@@ -703,6 +704,7 @@ Options::Options ()
 
   _predicateDefinitionInlining(INL_OFF),
   _predicateDefinitionMerging(false),
+  _predicateEquivalenceDiscovery(false),
   _predicateIndexIntroduction(false),
   _problemName("unknown"),
   _proof(PROOF_ON),
@@ -1105,6 +1107,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case PREDICATE_DEFINITION_MERGING:
       _predicateDefinitionMerging = onOffToBool(value,name);
+      return;
+    case PREDICATE_EQUIVALENCE_DISCOVERY:
+      _predicateEquivalenceDiscovery = onOffToBool(value,name);
       return;
     case PREDICATE_INDEX_INTRODUCTION:
       _predicateIndexIntroduction = onOffToBool(value,name);
@@ -1858,6 +1863,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case PREDICATE_DEFINITION_MERGING:
     str << boolToOnOff(_predicateDefinitionMerging);
+    return;
+  case PREDICATE_EQUIVALENCE_DISCOVERY:
+    str << boolToOnOff(_predicateEquivalenceDiscovery);
     return;
   case PREDICATE_INDEX_INTRODUCTION:
     str << boolToOnOff(_predicateIndexIntroduction);

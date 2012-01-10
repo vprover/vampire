@@ -332,12 +332,12 @@ TEST_FUN(eprUPDRBuiltInPreds)
     }
 
     Predicate bPred = Predicate(env.signature->addPredicate("b", 0));
+    env.signature->getPredicate(bPred)->markProtected();
 
     Problem::PreprocessingOptions opts;
     opts.mode = Problem::PM_EARLY_PREPROCESSING;
     opts.unusedPredicateDefinitionRemoval = true;
     opts.traceUnusedPredicateDefinitionRemoval = true;
-    opts.addBuiltInPredicate(bPred);
 
     Problem iprb=prb.preprocess(opts);
     cout<<"After updr:"<<endl;

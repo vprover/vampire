@@ -35,9 +35,7 @@ public:
 
   static bool hasDefinitionShape(Unit* unit);
   static bool hasDefinitionShape(FormulaUnit* unit);
-
-private:
-  static bool hasDefinitionShape(FormulaUnit* unit, Literal* lhs, Formula* rhs);
+  static bool hasDefinitionShape(Literal* lhs, Formula* rhs);
 };
 
 }

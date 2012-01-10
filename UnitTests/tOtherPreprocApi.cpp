@@ -60,6 +60,16 @@ TEST_FUN(preprapiPredIndexing)
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(a,X)). fof(a,axiom, p(b,b)).");
 }
 
+TEST_FUN(preprapiPredEqDiscovery)
+{
+  Problem::PreprocessingOptions popts;
+  popts.predicateEquivalenceDiscovery = true;
+
+  assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, p(a) & q(a)).");
+  assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, ~p(X) | q(X) ). fof(a,axiom, p(a) & q(a)).");
+  assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, ?[X]: (~p(X) | q(X)) ). fof(a,axiom, p(a) & q(a)).");
+}
+
 TEST_FUN(preprapiTopLevelFlatten)
 {
   Problem::PreprocessingOptions popts;

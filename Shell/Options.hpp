@@ -118,6 +118,8 @@ public:
     PREDICATE_DEFINITION_INLINING,
     /** Determines whether predicates with equivalent definitions will be merged into one */
     PREDICATE_DEFINITION_MERGING,
+    /** Determines whether SAT solver will be used to discover equivalent predicates */
+    PREDICATE_EQUIVALENCE_DISCOVERY,
     PREDICATE_INDEX_INTRODUCTION,
     PROBLEM_NAME,
     PROOF,
@@ -440,6 +442,8 @@ public:
   void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
   bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }
   void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
+  bool predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery; }
+  void setPredicateEquivalenceDiscovery(bool newValue) { _predicateEquivalenceDiscovery = newValue; }
   bool predicateIndexIntroduction() const { return _predicateIndexIntroduction; }
   void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
   bool aigFormulaSharing() const { return _aigFormulaSharing; }
@@ -726,6 +730,7 @@ private:
 
   InliningMode _predicateDefinitionInlining;
   bool _predicateDefinitionMerging;
+  bool _predicateEquivalenceDiscovery;
   bool _predicateIndexIntroduction;
   string _problemName;
   Proof _proof;

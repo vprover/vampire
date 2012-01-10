@@ -454,6 +454,7 @@ public:
   };
 
   typedef Iterator TopFirstIterator;
+  typedef Iterator DelIterator;
 
   /**
    * An iterator object that for stack @b s first yields element s[0]

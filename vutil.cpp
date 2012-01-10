@@ -23,6 +23,7 @@
 
 #include "VUtils/AnnotationColoring.hpp"
 #include "VUtils/EPRRestoringScanner.hpp"
+#include "VUtils/FOEquivalenceDiscovery.hpp"
 #include "VUtils/ProblemColoring.hpp"
 #include "VUtils/Z3InterpolantExtractor.hpp"
 
@@ -116,6 +117,9 @@ int main(int argc, char* argv [])
     }
     else if(module=="epr_restoring_scanner") {
       resultValue=EPRRestoringScanner().perform(args.size(), args.begin());
+    }
+    else if(module=="fed") {
+      resultValue=FOEquivalenceDiscovery().perform(args.size(), args.begin());
     }
     else {
       USER_ERROR("unknown vutil module name: "+module);

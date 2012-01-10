@@ -665,7 +665,7 @@ void SSplitter::onAllProcessed()
 
 bool SSplitter::handleNonSplittable(Clause* cl)
 {
-  CALL("SSplitter::onNonSplittable");
+  CALL("SSplitter::handleNonSplittable");
 
   if(_nonsplComps==Options::SSNS_NONE) {
     return false;

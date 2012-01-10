@@ -26,6 +26,7 @@
 #include "Shell/EPRInlining.hpp"
 #include "Shell/EPRSkolem.hpp"
 #include "Shell/EqualityPropagator.hpp"
+#include "Shell/EquivalenceDiscoverer.hpp"
 #include "Shell/Flattening.hpp"
 #include "Shell/FormulaIteExpander.hpp"
 #include "Shell/LispLexer.hpp"
@@ -119,7 +120,8 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   traceClausification(traceClausification),
   traceUnusedPredicateDefinitionRemoval(traceUnusedPredicateDefinitionRemoval),
   predicateIndexIntroduction(false),
-  flatteningTopLevelConjunctions(false)
+  flatteningTopLevelConjunctions(false),
+  predicateEquivalenceDiscovery(false)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions");
 }
@@ -194,10 +196,17 @@ public:
 
   AFList*& forms() { return _forms; }
 
+  /** Problem must be non-empty */
+  ApiHelper getApiHelper() {
+    CALL("Problem::PData::getApiHelper");
+    ASS_G(size(),0);
+    return _forms->head()._aux;
+  }
+
   DefaultHelperCore* getCore() {
     CALL("Problem::PData::getCore");
-    if(!_forms) { return 0; }
-    return *_forms->head()._aux;
+    if(size()==0) { return 0; }
+    return *getApiHelper();
   }
 
 private:
@@ -262,9 +271,16 @@ void Problem::addFormula(AnnotatedFormula f)
 
 size_t Problem::size()
 {
-  CALL("Problem::addFormula");
+  CALL("Problem::size");
 
   return _data->size();
+}
+
+bool Problem::empty()
+{
+  CALL("Problem::empty");
+
+  return size()==0;
 }
 
 
@@ -866,6 +882,44 @@ protected:
   DHMap<Kernel::Unit*, Kernel::Unit*> replacements;
 };
 
+class Problem::PredicateEquivalenceDiscoverer
+{
+public:
+  Problem transform(Problem p)
+  {
+    if(p.empty()) {
+      return p;
+    }
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+
+    EquivalenceDiscoverer ed(true, false);
+    Kernel::UnitList* eqs = ed.getEquivalences(units);
+    units->destroy();
+
+    if(!eqs) { return p; }
+
+    while(eqs) {
+      Kernel::Unit* u = Kernel::UnitList::pop(eqs);
+      AnnotatedFormula af(u, p._data->getApiHelper());
+      AnnotatedFormula::assignName(af, "equiv");
+      p.addFormula(af);
+      LOG("api_prb_transf","discovered predicate equivalence: "<<af);
+    }
+
+    return PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY, false).transform(p);
+  }
+
+};
+
+
+
 class Problem::SineSelector : public ProblemTransformer
 {
 public:
@@ -1064,6 +1118,10 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
 
   if(options.predicateDefinitionMerging) {
     res = PredicateDefinitionMerger(options.tracePredicateDefinitionMerging).transform(res);
+  }
+
+  if(options.predicateEquivalenceDiscovery) {
+    res = PredicateEquivalenceDiscoverer().transform(res);
   }
 
   if(options.eprSkolemization) {

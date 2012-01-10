@@ -230,6 +230,11 @@ public:
     bool flatteningTopLevelConjunctions;
 
     /**
+     * Use SAT solver to attempt to discover predicate equivalences
+     */
+    bool predicateEquivalenceDiscovery;
+
+    /**
      * Add asymmetric rewriting rule to be used during preprocessing.
      *
      * For details on the requirements see documentation to the
@@ -363,6 +368,11 @@ public:
   size_t size();
 
   /**
+   * Return true if problem contains no formulas
+   */
+  bool empty();
+
+  /**
    * Output tff type definitions for non-standard types and for all
    * functions and predicates, whose type contains some non-default sort.
    */
@@ -391,6 +401,7 @@ private:
   class TopLevelFlattener;
   class VariableEqualityPropagator;
   class PredicateIndexIntroducer;
+  class PredicateEquivalenceDiscoverer;
   class PredicateDefinitionMerger;
   class PredicateDefinitionInliner;
   class EPRRestoringInliner;

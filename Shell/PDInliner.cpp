@@ -147,14 +147,7 @@ struct PDInliner::PDef
 
     Unit::InputType inp;
     Inference* inf;
-    if(_defUnit) {
-      inp = Unit::getInputType(cl->inputType(), _defUnit->inputType());
-      inf = new Inference2(Inference::PREDICATE_DEFINITION_UNFOLDING, cl, _defUnit);
-    }
-    else {
-      inp = cl->inputType();
-      inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, cl);
-    }
+    getInferenceAndInputType(cl, inf, inp);
     if(forms.isEmpty()) {
       Clause* res = Clause::fromIterator(LiteralStack::Iterator(lits), inp, inf);
       LOG("pp_inl_step","Inlining "<<toString()<<" into "<<(*cl)<<" gave "<<(*res));
@@ -195,14 +188,7 @@ struct PDInliner::PDef
 
     Unit::InputType inp;
     Inference* inf;
-    if(_defUnit) {
-      inp = Unit::getInputType(unit->inputType(), _defUnit->inputType());
-      inf = new Inference2(Inference::PREDICATE_DEFINITION_UNFOLDING, unit, _defUnit);
-    }
-    else {
-      inp = unit->inputType();
-      inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, unit);
-    }
+    getInferenceAndInputType(unit, inf, inp);
 
     FormulaUnit* res = new FormulaUnit(form, inf, inp);
     res = fixFormula(res);
@@ -356,14 +342,21 @@ struct PDInliner::PDef
     if(f->connective()==FORALL) {
       f = f->qarg();
     }
-    ASS_EQ(f->connective(),IFF);
-    if(f->left()->connective()==LITERAL && f->left()->literal()->functor()==_pred) {
-      makeDef(f->left()->literal(), f->right());
+
+    if(f->connective()==IFF) {
+      if(f->left()->connective()==LITERAL && f->left()->literal()->functor()==_pred) {
+	makeDef(f->left()->literal(), f->right());
+      }
+      else {
+	ASS_EQ(f->right()->connective(),LITERAL);
+	ASS_EQ(f->right()->literal()->functor(),_pred);
+	makeDef(f->right()->literal(), f->left());
+      }
     }
     else {
-      ASS_EQ(f->right()->connective(),LITERAL);
-      ASS_EQ(f->right()->literal()->functor(),_pred);
-      makeDef(f->right()->literal(), f->left());
+      ASS_EQ(f->connective(), LITERAL);
+      ASS_EQ(f->literal()->functor(), _pred);
+      makeDef(f->literal(), Formula::trueFormula());
     }
 
     unsigned pred1, pred2;
@@ -438,6 +431,21 @@ struct PDInliner::PDef
     }
   }
 private:
+
+  void getInferenceAndInputType(Unit* transformedUnit, Inference*& inf, Unit::InputType& inp)
+  {
+    CALL("PDInliner::PDef::getInferenceAndInputType");
+
+    if(_defUnit) {
+      inp = Unit::getInputType(transformedUnit->inputType(), _defUnit->inputType());
+      inf = new Inference2(Inference::PREDICATE_DEFINITION_UNFOLDING, transformedUnit, _defUnit);
+    }
+    else {
+      inp = transformedUnit->inputType();
+      inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, transformedUnit);
+    }
+  }
+
   void makeDef(Literal* lhs, Formula* body)
   {
     CALL("PDInliner::PDef::makeDef");
@@ -511,7 +519,7 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
 {
   CALL("PDInliner::PDef::apply(int,Formula*)");
 
-  LOG("pp_inl_substep","Apply to subformula "<<form->toString()<<"with polarity "<<polarity);
+  LOG("pp_inl_substep","Apply to subformula "<<form->toString()<<" with polarity "<<polarity);
 
   Connective con = form->connective();
   switch (con) {
@@ -641,6 +649,9 @@ bool PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
   while(uit.hasNext()) {
     Unit* u = uit.next();
     Unit* newUnit = apply(u);
+    if(!newUnit->isClause() && static_cast<FormulaUnit*>(newUnit)->formula()->connective()==TRUE) {
+      newUnit = 0;
+    }
     if(u==newUnit) {
       continue;
     }
@@ -819,6 +830,11 @@ bool PDInliner::tryGetDef(FormulaUnit* unit)
   if(f->connective()==FORALL) {
     f = f->qarg();
   }
+  if(f->connective()==LITERAL && PDUtils::isDefinitionHead(f->literal())) {
+    if(tryGetDef(unit, f->literal(), Formula::trueFormula())) {
+      return true;
+    }
+  }
   if(f->connective()!=IFF) {
     return false;
   }
@@ -853,6 +869,9 @@ bool PDInliner::isNonGrowingDef(Literal* lhs, Formula* rhs)
   if(rhs->connective()==LITERAL && rhs->literal()->isShallow()) {
     return true;
   }
+  if(rhs->connective()==TRUE || rhs->connective()==FALSE) {
+    return true;
+  }
   unsigned lhsPred = lhs->functor();
   unsigned occCnt = _predOccCounts.get(lhsPred);
   ASS_GE(occCnt,1); //there must be at least one occurrence -- in the definition itself
@@ -864,10 +883,12 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
   CALL("PDInliner::tryGetDef");
   CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
-  Signature::Symbol* sym = env.signature->getPredicate(lhs->functor());
-  if(sym->protectedSymbol()) {
+  if(!PDUtils::hasDefinitionShape(lhs, rhs)) {
     return false;
   }
+  //Now we know that lhs has a predicate that can be defined (not a protected one)
+  //and its arguments are distinct variables. Also that all unbound variables of
+  //rhs occur in lhs and that the predicate of lhs doesn't occur in rhs.
 
   if(_nonGrowing && !isNonGrowingDef(lhs, rhs)) {
     return false;
@@ -888,61 +909,36 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
     }
   }
 
-  MultiCounter counter;
-  for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
-    if (! ts->isVar()) {
-      return false;
-    }
-    int w = ts->var();
-    if (counter.get(w) != 0) { // more than one occurrence
-      return false;
-    }
-    counter.inc(w);
-  }
-
   static Stack<unsigned> dependencies;
   dependencies.reset();
-
-  SubformulaIterator sfit(rhs);
-  while(sfit.hasNext()) {
-    Formula* sf=sfit.next();
-    if(sf->connective()!=LITERAL) {
-      continue;
-    }
-    Literal* lit=sf->literal();
-    unsigned litPred = lit->functor();
-    if(litPred==defPred) {
-      return false;
-    }
-
-    if(_dependent[defPred].contains(litPred)) {
-      //Check for cyclic dependencies.
-      //This shalow check works only because we eagerly inline all discovered
-      //definitions into other definitions
-      return false;
-    }
-
-    if(!lit->isEquality()) {
-      dependencies.push(litPred);
-    }
-  }
+  rhs->collectPredicates(dependencies);
+  makeUnique(dependencies);
 
   {
-    Formula::VarList* freeVars = rhs->freeVariables();
-    bool extraFreeVars = false;
-    while(freeVars) {
-      unsigned v = Formula::VarList::pop(freeVars);
-      if(!counter.get(v)) {
-	extraFreeVars = true;
+    Stack<unsigned>::Iterator depIt(dependencies);
+    while(depIt.hasNext()) {
+      unsigned litPred = depIt.next();
+      if(litPred==0) {
+	//we're not interested in equality
+	depIt.del();
+	continue;
+      }
+      if(litPred==defPred) {
+	ASS(headInline);
+	//PDUtils::hasDefinitionShape() has checked this on the original formula,
+	//so the only way this can happen is that we have inlined predicate
+	//equivalence into the head
+	return false;
+      }
+
+      if(_dependent[defPred].contains(litPred)) {
+	//Check for cyclic dependencies.
+	//This shalow check works only because we eagerly inline all discovered
+	//definitions into other definitions
+	return false;
       }
     }
-    if(extraFreeVars) {
-      return false;
-    }
   }
-
-  //here we make the list of dependencies unique
-  makeUnique(dependencies);
 
   if(headInline) {
     unit = _defs[origPred]->apply(unit);
@@ -952,7 +948,7 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
   def->assignUnit(unit);
   _defs[defPred] = def;
 
-  //inline dependencies into the new definitions
+  //inline dependencies into the new definition
   Stack<unsigned>::Iterator depIt(dependencies);
   while(depIt.hasNext()) {
     unsigned dependency = depIt.next();

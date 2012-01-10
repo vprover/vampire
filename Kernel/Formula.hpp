@@ -94,6 +94,9 @@ public:
 
   static Formula* quantify(Formula* f);
 
+  static Formula* trueFormula();
+  static Formula* falseFormula();
+
   // use allocator to (de)allocate objects of this class
   CLASS_NAME("Formula");
   USE_ALLOCATOR(Formula);

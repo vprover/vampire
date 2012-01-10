@@ -197,6 +197,11 @@ void AIGDefinitionIntroducer::scanDefinition(FormulaUnit* def)
   AIGRef rhsAig = _fsh.apply(rhs).second;
   AIGRef lhsAig = _fsh.apply(lhs);
 
+  if(!rhsAig.polarity()) {
+    rhsAig = rhsAig.neg();
+    lhsAig = lhsAig.neg();
+  }
+
   if(!_defs.insert(rhsAig, lhsAig)) {
     //rhs is already defined
     AIGRef oldDefTgt;

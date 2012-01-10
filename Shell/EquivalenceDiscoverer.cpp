@@ -16,7 +16,9 @@
 #include "SAT/TWLSolver.hpp"
 
 #include "EquivalenceDiscoverer.hpp"
+#include "PDInliner.hpp"
 #include "PDUtils.hpp"
+#include "Preprocess.hpp"
 
 namespace Shell
 {
@@ -138,11 +140,26 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
 	handleEquivalence(l1, l2, res);
 	break;
       }
+      if(areEquivalent(l1,l2.opposite())) {
+	handleEquivalence(l1, l2.opposite(), res);
+	break;
+      }
     }
   }
   LOG("pp_ed_progress","finished");
 
   return res;
+}
+
+Literal* EquivalenceDiscoverer::getFOLit(SATLiteral slit) const
+{
+  CALL("EquivalenceDiscoverer::getFOLit");
+
+  Literal* res;
+  if(_s2f.find(slit, res)) {
+    return res;
+  }
+  res = Literal::complementaryLiteral(_s2f.get(slit.opposite()));
 }
 
 void EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc)
@@ -165,8 +182,8 @@ void EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, Unit
   _solver->addClauses(
       pvi( getConcatenatedIterator(getSingletonIterator(scl1),getSingletonIterator(scl2)) ));
 
-  Literal* fl1 = _s2f.get(l1);
-  Literal* fl2 = _s2f.get(l2);
+  Literal* fl1 = getFOLit(l1);
+  Literal* fl2 = getFOLit(l2);
 
   Formula* eqForm = new BinaryFormula(IFF, new AtomicFormula(fl1), new AtomicFormula(fl2));
   //TODO: proof tracking
@@ -213,5 +230,63 @@ bool EquivalenceDiscoverer::areEquivalent(SATLiteral l1, SATLiteral l2)
 
   return status==SATSolver::UNSATISFIABLE;
 }
+
+UnitList* EquivalenceDiscoverer::getEquivalences(UnitList* units, const Options* opts)
+{
+  CALL("EquivalenceDiscoverer::getEquivalences");
+
+  Options prepOpts;
+  if(opts) { prepOpts = *opts; }
+  prepOpts.setPredicateEquivalenceDiscovery(false);
+
+  Problem prb(units->copy());
+
+  Preprocess prepr(prepOpts);
+  prepr.preprocess(prb);
+  //TODO: we will leak the results of this preprocessing iteration
+
+  EquivalenceDiscoverer eqd(true, false);
+  return eqd.getEquivalences(prb.clauseIterator());
+}
+
+//////////////////////////////////////
+// EquivalenceDiscoveringTransformer
+//
+
+EquivalenceDiscoveringTransformer::EquivalenceDiscoveringTransformer(const Options& opts)
+ : _opts(opts)
+{
+
+}
+
+bool EquivalenceDiscoveringTransformer::apply(Problem& prb)
+{
+  CALL("EquivalenceDiscoveringTransformer::apply(Problem&)");
+
+  if(apply(prb.units())) {
+    prb.invalidateProperty();
+    return true;
+  }
+  return false;
+}
+
+bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
+{
+  CALL("EquivalenceDiscoveringTransformer::apply(UnitList*&)");
+
+  EquivalenceDiscoverer eqd(true, false);
+  UnitList* equivs = eqd.getEquivalences(units, &_opts);
+  if(!equivs) {
+    return false;
+  }
+
+  units = UnitList::concat(equivs, units);
+
+  PDInliner inl;
+  inl.apply(units, true);
+  return true;
+}
+
+
 
 }

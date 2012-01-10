@@ -10,11 +10,16 @@
 
 #include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Kernel/Grounder.hpp"
+#include "Kernel/Problem.hpp"
 
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATSolver.hpp"
+
+#include "Options.hpp"
+#include "Preprocess.hpp"
 
 
 
@@ -42,6 +47,8 @@ class EquivalenceDiscoverer {
   SATClauseStack _satClauses;
   SATClauseStack _filteredSatClauses;
 
+  Literal* getFOLit(SATLiteral slit) const;
+
   void addGrounding(Clause* cl);
   void collectRelevantLits();
 
@@ -54,6 +61,17 @@ public:
   EquivalenceDiscoverer(bool normalizeForSAT, bool onlyPropEqCheck);
 
   UnitList* getEquivalences(ClauseIterator clauses);
+  UnitList* getEquivalences(UnitList* units, const Options* opts=0);
+};
+
+class EquivalenceDiscoveringTransformer {
+public:
+  EquivalenceDiscoveringTransformer(const Options& opts);
+
+  bool apply(Problem& prb);
+  bool apply(UnitList*& units);
+private:
+  const Options& _opts;
 };
 
 }
