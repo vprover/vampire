@@ -3,6 +3,8 @@
  * Implements class PredicateIndexIntroducer.
  */
 
+#include <algorithm>
+
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Environment.hpp"
