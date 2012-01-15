@@ -189,3 +189,14 @@ TEST_FUN(papiTff)
   prb.output(cout);
   OutputOptions::setTffFormulas(false);
 }
+
+TEST_FUN(papiEmptyPrb)
+{
+  FormulaBuilder fb;
+  AnnotatedFormula af = fb.annotatedFormula(fb.trueFormula(), FormulaBuilder::CONJECTURE);
+  Problem prb;
+  prb.addFormula(af);
+  Problem cprb = prb.clausify();
+  cprb.output(cout);
+}
+

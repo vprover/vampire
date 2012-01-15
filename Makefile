@@ -233,6 +233,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SymElOutput.o
 
 VS_OBJ = Shell/AIG.o\
+         Shell/AIGCompressor.o\
          Shell/AIGInliner.o\
          Shell/AnswerExtractor.o\
          Shell/AxiomGenerator.o\

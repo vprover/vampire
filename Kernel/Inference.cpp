@@ -307,6 +307,8 @@ string Inference::ruleName(Rule rule)
     return "formula sharing";
   case REDUCE_FALSE_TRUE:
     return "true and false elimination";
+  case LOCAL_SIMPLIFICATION:
+    return "local simplification";
   case NORMALIZATION:
     return "normalization";
   case EQUALITY_PROPAGATION:

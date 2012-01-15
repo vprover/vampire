@@ -37,6 +37,10 @@ public:
 
   class Ref {
     friend class AIG;
+    /**
+     * Either a tagged pointer (with 1 lsb bit) to AIG node,
+     * or zero to stand for an invalid AIG.
+     */
     size_t _data;
 
     Ref(Node* n, bool polarity) {
@@ -47,15 +51,31 @@ public:
     }
   public:
     Ref() {}
+    /**
+     * Return true if the current Ref is invalid.
+     *
+     * This and isValid() are the only operations allowed on invalid refs.
+     */
+    bool isInvalid() const { return _data==0; }
+    /**
+     * Return true if the current Ref is valid.
+     *
+     * This and isInvalid() are the only operations allowed on invalid refs.
+     */
+    bool isValid() const { return _data!=0; }
     bool isPropConst() const;
     bool isTrue() const { return isPropConst() && polarity(); }
     bool isFalse() const  { return isPropConst() && !polarity(); }
     bool isAtom() const;
     bool isQuantifier() const;
+    bool isConjunction() const;
     Ref neg() const { return Ref(node(), !polarity()); }
+
+    Ref getPositive() const { return polarity() ? *this : neg(); }
 
     bool polarity() const { return _data&1; }
     Node* node() const { return reinterpret_cast<Node*>(_data&(~static_cast<size_t>(1))); }
+    unsigned nodeIndex() const;
     unsigned parentCnt() const;
     Ref parent(unsigned idx) const;
 
@@ -70,6 +90,12 @@ public:
     unsigned hash() const;
     string toString() const;
     string toInternalString(unsigned depth=1) const;
+
+    static Ref getInvalid() {
+      Ref res;
+      res._data = 0;
+      return res;
+    }
   };
 private:
   /** Proxy object for Ref which is without constructor so can be used inside a union */
@@ -140,6 +166,8 @@ public:
   /** The function takes over the vars list, it must be legal to destroy it at any point */
   Ref getQuant(bool exQuant, VarList* vars, Ref par);
 
+  Ref getInvalid() const { return Ref::getInvalid(); }
+
   static bool hasPositivePolarity(Ref r) { return r.polarity(); }
 };
 
@@ -169,6 +197,32 @@ struct FirstHashTypeInfo<Shell::AIGRef> {
 
 namespace Shell {
 
+/**
+ * Iterator that yields positive sub-aigs of aig, inner first,
+ * including the (positive form of) passed aig itself (this is
+ * yielded as last).
+ *
+ * Each aig is yielded exactly once.
+ *
+ * If an AIG is yielded, it's parents (in positive form) must
+ * have been yielded before.
+ */
+class AIGInsideOutPosIterator
+{
+public:
+  /** When this constructor is used, reset() must be called before anything else */
+  AIGInsideOutPosIterator() {}
+  AIGInsideOutPosIterator(AIGRef a) { reset(a); }
+  void reset(AIGRef a);
+
+  bool hasNext();
+  AIGRef next();
+private:
+  bool _ready;
+  DHSet<AIGRef> _seen;
+  Stack<AIGRef> _stack;
+};
+
 class AIGTransformer
 {
   typedef AIG::Node Node;
@@ -184,9 +238,9 @@ public:
    */
   typedef DHMap<Ref,Ref> RefMap;
 
-  Ref lev0Deref(Ref r, RefMap& map);
-private:
+  static Ref lev0Deref(Ref r, RefMap& map);
   Ref lev1Deref(Ref r, RefMap& map);
+private:
 
   typedef MapToLIFO<Ref,Ref> RefEdgeMap;
 
@@ -195,15 +249,16 @@ private:
   void collectUsed(Ref r, const RefMap& map, RefEdgeMap& edges);
 
   void saturateOnTopSortedStack(const AIGStack& stack, RefMap& map);
-  void applyWithCaching(Ref r, RefMap& map);
 
-  void makeIdempotent(RefMap& map, Stack<Ref>* finalDomain=0);
 public:
   AIGTransformer(AIG& aig) : _aig(aig) {}
 
   void makeOrderedAIGGraphStack(AIGStack& stack);
   void restrictToGetOrderedDomain(RefMap& map, AIGStack& domainOrder);
   void saturateMap(RefMap& map, Stack<Ref>* finalDomain=0);
+
+  void applyWithCaching(Ref r, RefMap& map);
+  void makeIdempotent(RefMap& map, Stack<Ref>* finalDomain=0);
 };
 
 class AIGFormulaSharer
@@ -251,6 +306,7 @@ private:
   ARes applyQuantified(Formula* f);
 
   void buildQuantAigFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild);
+  bool tryBuildEquivalenceFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild);
   void buildConjAigFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild);
 
 public:

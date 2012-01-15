@@ -99,9 +99,13 @@ public:
     CALL("SharedSet::getUnion");
     ASS(s);
 
-    if(s==this) {
+    if(s==this || s->isEmpty()) {
       return this;
     }
+    if(isEmpty()) {
+      return s;
+    }
+
 
     static ItemStack acc;
     ASS(acc.isEmpty());

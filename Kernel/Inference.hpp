@@ -149,6 +149,8 @@ public:
     /** reduce a formula containing false or true, for example
      *  false & A ---> false */
     REDUCE_FALSE_TRUE,
+    /** Local simplification of formula, for example A | (B & A) ---> A*/
+    LOCAL_SIMPLIFICATION,
     /** Normalization of formulas */
     NORMALIZATION,
     /** propagate equalities in formulas, for example

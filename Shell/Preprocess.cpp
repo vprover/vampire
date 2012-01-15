@@ -14,6 +14,7 @@
 #include "Kernel/Problem.hpp"
 
 #include "AIG.hpp"
+#include "AIGCompressor.hpp"
 #include "AIGInliner.hpp"
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
@@ -214,7 +215,8 @@ void Preprocess::preprocess (Problem& prb)
 
   if(_options.aigInliner()) {
     AIGInliner().apply(prb);
-    AIGDefinitionIntroducer(_options).apply(prb);
+    AIGCompressingTransformer().apply(prb);
+//    AIGDefinitionIntroducer(_options).apply(prb);
   }
 
   if (prb.mayHaveFormulas()) {

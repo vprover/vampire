@@ -417,6 +417,34 @@ void Logging::doTagDeclarations()
       DOC("dependencies between rewrite rules"),
       PARENT("pp_aigtr_sat",1));
 
+  DECL("pp_aig_compr",
+      DOC("AIGCompressor"),
+      PARENT("pp_aig",1));
+  DECL("pp_aig_compr_succ",
+      DOC("successfully compressed AIGs"),
+      PARENT("pp_aig_compr",0));
+  DECL("pp_aig_compr_loc_succ",
+      DOC("local successfully compressed AIGs"),
+      PARENT("pp_aig_compr",1));
+  DECL("pp_aig_compr_all",
+      DOC("all AIG compression attempts"),
+      PARENT("pp_aig_compr",1));
+  DECL("pp_aig_compr_growth",
+      DOC("local AIG compression attempts where the AIG has grown"),
+      PARENT("pp_aig_compr",1));
+  DECL("pp_aig_compr_bdd",
+      DOC("display bdds used in local compressions"),
+      PARENT("pp_aig_compr",2));
+  DECL("pp_aig_compr_attempts",
+      DOC("attempts for aig compression"),
+      PARENT("pp_aig_compr",2));
+  DECL("pp_aig_compr_forms",
+      DOC("formulas modified by aig compression"),
+      PARENT("pp_aig_compr",1));
+  DECL("pp_aig_compr_units",
+      DOC("units modified by aig compression"),
+      PARENT("pp_aig_compr",21));
+
   DECL("pp_aigdef",
       DOC("AIG based definition introduction"),
       PARENT("pp_aig",1),
@@ -559,6 +587,9 @@ void Logging::doTagDeclarations()
 
   DECL("bdd");
   DECL("bdd_clausifier",
+      PARENT("bdd",1));
+  DECL("bdd_triv_vars",
+      DOC("trivial variables found in bdd"),
       PARENT("bdd",1));
 
   DECL("kbo");

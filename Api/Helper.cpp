@@ -306,11 +306,16 @@ string DefaultHelperCore::toString(const Kernel::Clause* clause) const
 
   string res;
   Kernel::Clause::Iterator lits(*const_cast<Kernel::Clause*>(clause));
-  while(lits.hasNext()) {
-    res+=toString(lits.next());
-    if(lits.hasNext()) {
-      res+=" | ";
+  if(lits.hasNext()) {
+    while(lits.hasNext()) {
+      res+=toString(lits.next());
+      if(lits.hasNext()) {
+	res+=" | ";
+      }
     }
+  }
+  else {
+    res += "$false";
   }
 
   if(clause->prop() && !BDD::instance()->isFalse(clause->prop())) {

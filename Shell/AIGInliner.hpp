@@ -13,6 +13,7 @@
 #include "Lib/MapToLIFO.hpp"
 
 #include "AIG.hpp"
+#include "AIGCompressor.hpp"
 
 namespace Shell {
 
@@ -56,9 +57,9 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
     bool _hasQuant[2];
     bool _hasName;
     AIGRef _name;
+
     /** Number of AIG nodes that refer to this node */
     unsigned _directRefCnt;
-
 
     //these members are filled-in in the doSecondRefAIGPass() function
 
@@ -106,6 +107,7 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
 
   Stack<FormulaUnit*> _newDefs;
 
+  AIGRef getPreNamingAig(unsigned aigStackIdx);
 
   bool shouldIntroduceName(unsigned aigStackIdx);
   Literal* getNameLiteral(unsigned aigStackIdx);
@@ -121,10 +123,10 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
 public:
   AIGDefinitionIntroducer(const Options& opts);
 
-  void scan(UnitList* units);
+  virtual void scan(UnitList* units);
 
   using ScanAndApplyFormulaUnitTransformer::apply;
-  bool apply(FormulaUnit* unit, Unit*& res);
+  virtual bool apply(FormulaUnit* unit, Unit*& res);
 
   virtual UnitList* getIntroducedFormulas();
 protected:

@@ -3,8 +3,12 @@
  * Implements class AIGInliner.
  */
 
+#include <climits>
+
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/MapToLIFO.hpp"
+#include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Formula.hpp"
@@ -86,8 +90,13 @@ void AIGInliner::collectDefinitions(UnitList* units,
     }
 
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    ASS(!PDUtils::isPredicateEquivalence(fu));
     if(!PDUtils::hasDefinitionShape(u)) {
+      continue;
+    }
+    Literal* peLit1;
+    Literal* peLit2;
+    if(PDUtils::isPredicateEquivalence(fu, peLit1, peLit2)) {
+      //TODO:do something smarter
       continue;
     }
     Literal* lhs;
@@ -182,7 +191,7 @@ AIGDefinitionIntroducer::AIGDefinitionIntroducer(const Options& opts)
   CALL("AIGDefinitionIntroducer::AIGDefinitionIntroducer");
 
   _eprPreserving = opts.eprPreservingNaming();
-  _namingRefCntThreshold = 3; //TODO: add option
+  _namingRefCntThreshold = 4; //TODO: add option
   _mergeEquivDefs = false; //not implemented yet
 }
 
@@ -282,28 +291,43 @@ void AIGDefinitionIntroducer::doFirstRefAIGPass()
   }
 }
 
+/**
+ * Return the aig at given index before names are introduced but after
+ * the AIG compression.
+ *
+ * Can be called after the call to @c doFirstRefAIGPass returns.
+ */
+AIGRef AIGDefinitionIntroducer::getPreNamingAig(unsigned aigStackIdx)
+{
+  CALL("AIGDefinitionIntroducer::getPreNamingAig");
+
+  return _refAIGs[aigStackIdx];
+}
+
 bool AIGDefinitionIntroducer::shouldIntroduceName(unsigned aigStackIdx)
 {
   CALL("AIGDefinitionIntroducer::shouldIntroduceName");
 
-  AIGRef a = _refAIGs[aigStackIdx];
+  AIGRef a = getPreNamingAig(aigStackIdx);
   if(a.isPropConst() || a.isAtom()) {
     return false;
   }
   NodeInfo& ni = _refAIGInfos[aigStackIdx];
 
-//  if(_eprPreserving) {
-//    if(ni._inPol[1] && ni._inQuant[1] && ni._hasQuant )
-//  }
-
-  return _namingRefCntThreshold && ni._formRefCnt>=_namingRefCntThreshold;
+  if(!_namingRefCntThreshold || ni._formRefCnt<_namingRefCntThreshold) {
+    return false;
+  }
+  if(_defs.find(a)) {
+    return false;
+  }
+  return true;
 }
 
 Literal* AIGDefinitionIntroducer::getNameLiteral(unsigned aigStackIdx)
 {
   CALL("AIGDefinitionIntroducer::getNameLiteral");
 
-  AIGRef a = _refAIGs[aigStackIdx];
+  AIGRef a = getPreNamingAig(aigStackIdx);
   Formula* rhs = _fsh.aigToFormula(a);
   Formula::VarList* freeVars = rhs->freeVariables(); //careful!! this traverses the formula as tree, not as DAG, so may take exponential time!
 
@@ -333,16 +357,21 @@ void AIGDefinitionIntroducer::introduceName(unsigned aigStackIdx)
 {
   CALL("AIGDefinitionIntroducer::introduceName");
 
-  AIGRef a = _refAIGs[aigStackIdx];
+  AIGRef a = getPreNamingAig(aigStackIdx);
   NodeInfo& ni = _refAIGInfos[aigStackIdx];
   ASS(!ni._hasName);
-  ASS(!_defs.find(a));
+  ASS(!_defs.find(a.getPositive()));
 
   ni._formRefCnt = 1;
   Literal* nameLit = getNameLiteral(aigStackIdx);
   ni._hasName = true;
   ni._name = _fsh.apply(nameLit);
-  _defs.insert(a, ni._name);
+  if(a.polarity()) {
+    ALWAYS(_defs.insert(a, ni._name));
+  }
+  else {
+    ALWAYS(_defs.insert(a.neg(), ni._name.neg()));
+  }
 
   Formula* lhs = new AtomicFormula(nameLit);
   Formula* rhs = _fsh.aigToFormula(a);
@@ -353,7 +382,7 @@ void AIGDefinitionIntroducer::introduceName(unsigned aigStackIdx)
     equiv = new QuantifiedFormula(FORALL, vars, equiv);
   }
   FormulaUnit* def = new FormulaUnit(equiv, new Inference(Inference::PREDICATE_DEFINITION), Unit::AXIOM);
-  _defUnits.insert(a, def);
+  ALWAYS(_defUnits.insert(a, def));
   _newDefs.push(def);
 
   LOG_UNIT("pp_aigdef_intro", def);
@@ -425,60 +454,67 @@ void AIGDefinitionIntroducer::scan(UnitList* units)
   doSecondRefAIGPass();
   _fsh.aigTransf().saturateMap(_defs);
 }
-
-struct AIGDefinitionIntroducer::DefIntroRewriter : public FormulaTransformer
-{
-  DefIntroRewriter(AIGDefinitionIntroducer& parent) : _parent(parent), _fsh(_parent._fsh) {}
-
-  virtual bool preApply(Formula*& f)
-  {
-    CALL("AIGDefinitionIntroducer::DefIntroRewriter::postApply");
-
-    if(f->connective()==LITERAL) { return true; }
-
-    LOG("pp_aigdef_apply_subform", "checking: "<<(*f));
-    AIGFormulaSharer::ARes ares = _fsh.apply(f);
-//    f = ares.first;
-    AIGRef a = ares.second;
-    LOG("pp_aigdef_apply_subform", "  aig: "<<a.toInternalString());
-
-    bool neg = !a.polarity();
-    if(neg) {
-      a = a.neg();
-    }
-    unsigned refStackIdx = _parent._aigIndexes.get(a);
-    NodeInfo& ni = _parent._refAIGInfos[refStackIdx];
-    if(ni._hasName) {
-      //we replace the formula by definition
-      LOG("pp_aigdef_apply_subform", "found name: "<<ni._name);
-      AIGRef nameAig = ni._name;
-      if(neg) {
-	nameAig = nameAig.neg();
-      }
-      f = _fsh.aigToFormula(nameAig);
-      return false;
-    }
-    return true;
-  }
-private:
-  AIGDefinitionIntroducer& _parent;
-  AIGFormulaSharer& _fsh;
-};
+//
+//struct AIGDefinitionIntroducer::DefIntroRewriter : public FormulaTransformer
+//{
+//  DefIntroRewriter(AIGDefinitionIntroducer& parent) : _parent(parent), _fsh(_parent._fsh) {}
+//
+//  virtual bool preApply(Formula*& f)
+//  {
+//    CALL("AIGDefinitionIntroducer::DefIntroRewriter::postApply");
+//
+//    if(f->connective()==LITERAL) { return true; }
+//
+//    LOG("pp_aigdef_apply_subform", "checking: "<<(*f));
+//    AIGFormulaSharer::ARes ares = _fsh.apply(f);
+////    f = ares.first;
+//    AIGRef a = ares.second;
+//    LOG("pp_aigdef_apply_subform", "  aig: "<<a.toInternalString());
+//
+//    bool neg = !a.polarity();
+//    if(neg) {
+//      a = a.neg();
+//    }
+//    unsigned refStackIdx = _parent._aigIndexes.get(a);
+//    NodeInfo& ni = _parent._refAIGInfos[refStackIdx];
+//    if(ni._hasName) {
+//      //we replace the formula by definition
+//      LOG("pp_aigdef_apply_subform", "found name: "<<ni._name);
+//      AIGRef nameAig = ni._name;
+//      if(neg) {
+//	nameAig = nameAig.neg();
+//      }
+//      f = _fsh.aigToFormula(nameAig);
+//      return false;
+//    }
+//    return true;
+//  }
+//private:
+//  AIGDefinitionIntroducer& _parent;
+//  AIGFormulaSharer& _fsh;
+//};
 
 bool AIGDefinitionIntroducer::apply(FormulaUnit* unit, Unit*& res)
 {
   CALL("AIGDefinitionIntroducer::apply(FormulaUnit*,Unit*&)");
 
-  DefIntroRewriter rwr(*this);
+//  DefIntroRewriter rwr(*this);
   Formula* f0 = unit->formula();
 //  Formula* f = rwr.transform(f0);
 
   AIGRef f0Aig = _fsh.apply(f0).second;
   AIGRef resAig;
+  bool neg = !f0Aig.polarity();
+  if(neg) {
+    f0Aig = f0Aig.neg();
+  }
   if(!_defs.find(f0Aig, resAig)) {
     return false;
   }
   ASS_NEQ(f0Aig, resAig);
+  if(neg) {
+    resAig = resAig.neg();
+  }
   Formula* f = _fsh.aigToFormula(resAig);
 
   if(f->connective()==TRUE) {
@@ -486,7 +522,6 @@ bool AIGDefinitionIntroducer::apply(FormulaUnit* unit, Unit*& res)
     LOG("pp_aigdef_apply","orig: " << (*unit) << endl << "  simplified to tautology");
     return true;
   }
-
 //  if(f==f0) {
 //    return false;
 //  }

@@ -694,7 +694,7 @@ Unit* PDInliner::apply(Unit* u)
     steps++;
   }
   RSTAT_MCTR_INC("inl steps", steps);
-  RSTAT_MST_INC("inl grow", u->toString().size(), res ? res->toString().size() : 0);
+//  RSTAT_MST_INC("inl grow", u->toString().size(), res ? res->toString().size() : 0);
   return res;
 }
 

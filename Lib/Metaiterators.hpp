@@ -835,6 +835,9 @@ void makeUnique(Container& cont)
   cont.loadFromIterator(uniqueIt);
 }
 
+/**
+ * Return number of elements in iterator @c it
+ */
 template<class It>
 size_t countIteratorElements(It it)
 {

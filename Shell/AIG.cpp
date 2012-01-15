@@ -202,6 +202,18 @@ bool AIG::Ref::isQuantifier() const
   return node()->kind()==Node::QUANT;
 }
 
+bool AIG::Ref::isConjunction() const
+{
+  return node()->kind()==Node::CONJ;
+}
+
+unsigned AIG::Ref::nodeIndex() const
+{
+  CALL("AIG::Ref::nodeIndex");
+
+  return node()->nodeIdx();
+}
+
 /**
  * Return number of parent AIG nodes
  */
@@ -650,6 +662,58 @@ bool AIG::tryO4ConjSimpl(Ref& par1, Ref& par2)
   NOT_IMPLEMENTED;
 }
 
+////////////////////////////
+// AIGInsideOutPosIterator
+//
+
+void AIGInsideOutPosIterator::reset(AIGRef a)
+{
+  CALL("AIGInsideOutPosIterator::reset");
+
+  _ready = false;
+  _seen.reset();
+  _stack.reset();
+  _stack.push(a.getPositive());
+}
+
+bool AIGInsideOutPosIterator::hasNext() {
+  CALL("AIGInsideOutPosIterator::hasNext");
+
+  if(_ready) { return true; }
+  if(_stack.isEmpty()) { return false; }
+  for(;;) {
+    //the top-most item on the stack will never become seen without visiting it,
+    //so we never pop it
+    ASS(_stack.isNonEmpty());
+    AIGRef curr = _stack.top();
+    unsigned parCnt = curr.parentCnt();
+    for(unsigned i=0; i<parCnt; i++) {
+      AIGRef ppar = curr.parent(i).getPositive();
+      if(!_seen.find(ppar)) {
+        _stack.push(ppar);
+      }
+    }
+    if(_stack.top()==curr) {
+      if(_seen.insert(curr)) {
+	_ready = true;
+	return true;
+      }
+      else {
+	_stack.pop();
+      }
+    }
+  }
+}
+
+AIGRef AIGInsideOutPosIterator::next()
+{
+  CALL("AIGInsideOutPosIterator::next");
+  ASS(_ready);
+  ASS(_stack.top().polarity());
+
+  _ready = false;
+  return _stack.pop();
+}
 
 ///////////////////////
 // AIGTransformer
@@ -679,10 +743,11 @@ AIG::Ref AIGTransformer::lev0Deref(Ref r, DHMap<Ref,Ref>& map)
     }
 
     Ref tgt;
-    if(!map.find(r, tgt)) {
+    if(!map.find(r, tgt) || r==tgt) {
       break;
     }
     queries.push(make_pair(r,resNeg));
+    ASS_LE(queries.size(), map.size());
     r = tgt;
   }
 
@@ -710,7 +775,7 @@ AIG::Ref AIGTransformer::lev1Deref(Ref r, RefMap& map)
   CALL("AIGTransformer::lev1Deref");
   ASS_EQ(r, lev0Deref(r, map));
 
-  bool neg = r.polarity();
+  bool neg = !r.polarity();
   if(neg) {
     r = r.neg();
   }
@@ -878,6 +943,12 @@ void AIGTransformer::makeOrderedAIGGraphStack(AIGStack& stack)
   orderTopologically(stack);
 }
 
+/**
+ * Apply @c map on @c r0 with caching (so that after the function returns,
+ * map[r0] will be defined.
+ *
+ * To obtain predictable results, @c map should be idempotent.
+ */
 void AIGTransformer::applyWithCaching(Ref r0, RefMap& map)
 {
   CALL("AIGTransformer::applyWithCaching");
@@ -1073,6 +1144,75 @@ void AIGFormulaSharer::buildQuantAigFormulaRepr(AIGRef a, Stack<AIGRef>& toBuild
   shareFormula(new QuantifiedFormula(pol ? FORALL : EXISTS, n->qVars()->copy(), subForm), a);
 }
 
+bool AIGFormulaSharer::tryBuildEquivalenceFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild)
+{
+  CALL("AIGFormulaSharer::tryBuildEquivalenceFormulaRepr");
+
+  if(!aig.isConjunction()) { return false; }
+
+  AIGRef p1 = aig.parent(0);
+  AIGRef p2 = aig.parent(1);
+
+  if(!p1.isConjunction() || !p2.isConjunction()) { return false; }
+
+  AIGRef p11 = p1.parent(0);
+  AIGRef p12 = p1.parent(1);
+  AIGRef p21 = p2.parent(0);
+  AIGRef p22 = p2.parent(1);
+
+  if(p11.getPositive()!=p21.getPositive()) {
+    swap(p21, p22);
+  }
+  if(p11.getPositive()!=p21.getPositive()) {
+    return false;
+  }
+  if(p12.getPositive()!=p22.getPositive()) {
+    return false;
+  }
+  if(p11.polarity()==p21.polarity() || p12.polarity()==p22.polarity()) {
+    return false;
+  }
+
+  if(p1.polarity() || p2.polarity()) {
+    return false;
+  }
+
+  bool neg = !aig.polarity();
+
+  //if neg==false, we have               //
+  //         and                         //
+  //       /     \                       //
+  //     or       or                     //
+  //    /  \     /  \                    //
+  // ~p11  p22 p11  ~p22                 //
+  // which is equivalence p11 <=> p22
+
+  //if neg==true, we have                //
+  //          or                         //
+  //       /     \                       //
+  //     and      and                    //
+  //    /  \     /  \                    //
+  //  p11  p12 ~p11  ~p12                //
+  // which is equivalence p11 <=> p12    //
+
+  AIGRef eqAIGs[2] = {p11, neg ? p12 : p22};
+  Formula* subForms[2] = {0,0};
+  _formReprs.find(eqAIGs[0], subForms[0]);
+  _formReprs.find(eqAIGs[1], subForms[1]);
+  if(!subForms[0] || !subForms[1]) {
+    toBuild.push(aig);
+    if(!subForms[0]) {
+      toBuild.push(eqAIGs[0]);
+    }
+    if(!subForms[1]) {
+      toBuild.push(eqAIGs[1]);
+    }
+    return true;
+  }
+  shareFormula(new BinaryFormula(IFF, subForms[0], subForms[1]), aig);
+  return true;
+}
+
 /**
  * If necessary subnodes are present in the sharing structure,
  * add formula representation of conjunction AIG node @c a into
@@ -1083,6 +1223,10 @@ void AIGFormulaSharer::buildQuantAigFormulaRepr(AIGRef a, Stack<AIGRef>& toBuild
 void AIGFormulaSharer::buildConjAigFormulaRepr(AIGRef a, Stack<AIGRef>& toBuild)
 {
   CALL("AIGFormulaSharer::buildConjAigFormulaRepr");
+
+  if(tryBuildEquivalenceFormulaRepr(a, toBuild)) {
+    return;
+  }
 
   bool pol = a.polarity();
   AIG::Node* n = a.node();

@@ -42,6 +42,15 @@ public:
   USE_ALLOCATOR(BDDNode);
 
   unsigned depth() const { return _depth; }
+  bool isConst() const { return _var==0; }
+  bool isTrue() const;
+  bool isFalse() const;
+  bool isAtomic() const
+  { return !isConst() && getPos()->isConst() && getNeg()->isConst(); }
+
+  unsigned getVar() const { ASS(!isConst()); return _var; }
+  BDDNode* getPos() const { ASS(!isConst()); return _pos; }
+  BDDNode* getNeg() const { ASS(!isConst()); return _neg; }
 private:
   BDDNode() : _refuted(false) {}
   BDDNode(unsigned var, BDDNode* pos, BDDNode* neg) :
@@ -95,17 +104,20 @@ public:
   /** Return a BDD node of negation of @b n */
   BDDNode* negation(BDDNode* n)
   { return xOrNonY(getFalse(), n); }
+  BDDNode* assignValue(BDDNode* n, unsigned var, bool value);
 
   bool isXOrNonYConstant(BDDNode* x, BDDNode* y, bool resValue);
 
   /** Return @b true iff @b node represents a true formula */
-  bool isTrue(BDDNode* node) { return node==getTrue(); }
+  bool isTrue(const BDDNode* node) { return node==getTrue(); }
   /** Return @b true iff @b node represents a false formula */
-  bool isFalse(BDDNode* node) { return node==getFalse(); }
+  bool isFalse(const BDDNode* node) { return node==getFalse(); }
   /** Return @b true iff @b node represents either a false or a true formula */
-  bool isConstant(BDDNode* node) { return node->_var==0; }
+  bool isConstant(const BDDNode* node) { return node->_var==0; }
 
   bool parseAtomic(BDDNode* node, unsigned& var, bool& positive);
+
+  bool findTrivial(BDDNode* n, bool& areImplied, Stack<BDDNode*>& acc);
 
   static bool equals(const BDDNode* n1,const BDDNode* n2);
   static unsigned hash(const BDDNode* n);
@@ -141,7 +153,8 @@ private:
   {
     CONJUNCTION,
     DISJUNCTION,
-    X_OR_NON_Y
+    X_OR_NON_Y,
+    ASSIGNMENT
   };
 
   /**
@@ -185,6 +198,21 @@ private:
     static const bool commutative=false;
 
     XOrNonYFn(BDD* parent) : _parent(parent) {}
+    inline BDDNode* operator()(BDDNode* n1, BDDNode* n2);
+    BDD* _parent;
+  };
+
+  /**
+   * A functor used by @b getBinaryFnResult to compute result of assigning a constant
+   * to a variable. LHS must be a BDD representing an atomic variable, RHS is the BDD
+   * that the assignment is being performed on.
+   */
+  struct AssignFn
+  {
+    static const Operation op=ASSIGNMENT;
+    static const bool commutative=false;
+
+    AssignFn(BDD* parent) : _parent(parent) {}
     inline BDDNode* operator()(BDDNode* n1, BDDNode* n2);
     BDD* _parent;
   };

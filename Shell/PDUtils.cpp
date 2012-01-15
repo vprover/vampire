@@ -42,13 +42,28 @@ bool PDUtils::isPredicateEquivalence(FormulaUnit* unit)
 {
   CALL("PDInliner::isPredicateEquivalence/1");
 
-  unsigned aux1, aux2;
+  Literal* aux1;
+  Literal* aux2;
   return isPredicateEquivalence(unit, aux1, aux2);
 }
 
 bool PDUtils::isPredicateEquivalence(FormulaUnit* unit, unsigned& pred1, unsigned& pred2)
 {
-  CALL("PDInliner::isPredicateEquivalence/3");
+  CALL("PDInliner::isPredicateEquivalence(FormulaUnit*,unsigned&,unsigned&)");
+
+  Literal* l1;
+  Literal* l2;
+  if(isPredicateEquivalence(unit, l1, l2)) {
+    pred1 = l1->functor();
+    pred2 = l2->functor();
+    return true;
+  }
+  return false;
+}
+
+bool PDUtils::isPredicateEquivalence(FormulaUnit* unit, Literal*& lit1, Literal*& lit2)
+{
+  CALL("PDInliner::isPredicateEquivalence(FormulaUnit*,Literal*&,Literal*&)");
 
   Formula* f = unit->formula();
   if(f->connective()==FORALL) {
@@ -69,9 +84,12 @@ bool PDUtils::isPredicateEquivalence(FormulaUnit* unit, unsigned& pred1, unsigne
   if(!l1->containsAllVariablesOf(l2)) {
     return false;
   }
-  pred1 = l1->functor();
-  pred2 = l2->functor();
-  return pred1!=pred2;
+  if(l1->functor()==l2->functor()) {
+    return false;
+  }
+  lit1 = l1;
+  lit2 = l2;
+  return true;
 }
 
 

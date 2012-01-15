@@ -8,6 +8,7 @@
 #include "Lib/Cache.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
+#include "Lib/Deque.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Int.hpp"
@@ -33,6 +34,27 @@ namespace Kernel {
 
 using namespace Lib;
 using namespace SAT;
+
+///////////////////////
+// BDDNode
+//
+
+bool BDDNode::isTrue() const
+{
+  CALL("BDDNode::isTrue");
+  return BDD::instance()->isTrue(this);
+}
+
+bool BDDNode::isFalse() const
+{
+  CALL("BDDNode::isFalse");
+  return BDD::instance()->isFalse(this);
+}
+
+
+///////////////////////
+// BDD
+//
 
 /**
  * Return the singleton instance of the BDD class
@@ -190,6 +212,154 @@ bool BDD::parseAtomic(BDDNode* node, unsigned& var, bool& positive)
 }
 
 /**
+ * Find variables that have a trivial role in a non-atomic BDD @c n --- either
+ * those implied (i.e. the formula can be written as (v1 & ... & vN & F) for
+ * some F) or those that imply the formula (i.e. the formula can be written as
+ * (v1=>...=>vN=>F), resp as (~v1 | ... | ~vN | F)).
+ *
+ * This function is complete in the sense that all implied and implying
+ * variables are found.
+ *
+ * @param n BDD to be examined. It must be non-atomic.
+ *
+ * @param wantImplied if true, we will look for implied variables, otherwise
+ *             we will look for implying ones.
+ *
+ * @param acc where the trivial variables will be put in the form of atomic
+ *            BDD nodes. Initially must be empty.
+ *
+ * Theorem:
+ * In a non-atomic BDD there can be either implied or implying variables,
+ * but not both at the same time.
+ */
+bool BDD::findTrivial(BDDNode* n, bool& areImplied, Stack<BDDNode*>& acc)
+{
+  CALL("BDD::findTrivial");
+  ASS(acc.isEmpty());
+  //n must be non-atomic
+  ASS(!n->isAtomic());
+
+  if(n->isConst()) {
+    return false;
+  }
+
+  //invariant: only non-constant BDDs are put into the queue
+  static Deque<BDDNode*> que;
+  que.reset();
+
+  que.push_back(n);
+  que.push_back(0);
+
+  bool foundSome = false;
+
+  bool haveTrueAside = false;
+  bool haveFalseAside = false;
+
+  unsigned nextVar = n->getVar();
+
+  while(que.size()>1) {
+    unsigned currVar = nextVar;
+    nextVar = 0;
+
+    bool canBeImpliedTrue = !haveTrueAside;
+    bool canBeImpliedFalse = !haveTrueAside;
+    bool canBeImplying = !haveFalseAside;
+    bool canNegBeImplying = !haveFalseAside;
+
+    //from this point haveTrueAside and haveFalseAside will be updated to
+    //reflect situation on the next level
+
+    bool haveSkipper = false;
+
+    while(que.front()!=0) {
+      BDDNode* curr = que.pop_front();
+      ASS(curr);
+      if(curr->getVar()==currVar) {
+	BDDNode* pos = curr->getPos();
+	BDDNode* neg = curr->getNeg();
+
+	if(pos->isFalse() || neg->isFalse()) {
+	  haveFalseAside = true;
+	}
+	if(pos->isTrue() || neg->isTrue()) {
+	  haveTrueAside = true;
+	}
+
+	canBeImpliedTrue &= neg->isFalse();
+	canBeImpliedFalse &= pos->isFalse();
+	canBeImplying &= neg->isTrue();
+	canNegBeImplying &= pos->isTrue();
+
+	if(!pos->isConst()) {
+	  if(nextVar<pos->getVar()) { nextVar = pos->getVar(); }
+	  que.push_back(pos);
+	}
+	if(!neg->isConst()) {
+	  if(nextVar<neg->getVar()) { nextVar = neg->getVar(); }
+	  que.push_back(neg);
+	}
+      }
+      else {
+	ASS_L(curr->getVar(),currVar);
+	haveSkipper = true;
+
+	canBeImpliedTrue = false;
+	canBeImpliedFalse = false;
+	canBeImplying = false;
+	canNegBeImplying = false;
+
+	if(nextVar<curr->getVar()) { nextVar = curr->getVar(); }
+	que.push_back(curr);
+      }
+    }
+    ALWAYS(que.pop_front()==0);
+    que.push_back(0);
+
+    ASS(~canBeImpliedTrue || ~canBeImpliedFalse);
+    if(canBeImpliedTrue) {
+      ASS(!foundSome || areImplied);
+      foundSome = true;
+      areImplied = true;
+      acc.push(getAtomic(currVar, true));
+    }
+    if(canBeImpliedFalse) {
+      ASS(!foundSome || areImplied);
+      foundSome = true;
+      areImplied = true;
+      acc.push(getAtomic(currVar, false));
+    }
+    ASS(~canBeImplying || ~canNegBeImplying);
+    if(canBeImplying) {
+      ASS(!foundSome || !areImplied);
+      foundSome = true;
+      areImplied = false;
+      acc.push(getAtomic(currVar, true));
+    }
+    if(canNegBeImplying) {
+      ASS(!foundSome || !areImplied);
+      foundSome = true;
+      areImplied = false;
+      acc.push(getAtomic(currVar, false));
+    }
+  }
+  COND_TRACE("bdd_triv_vars", foundSome,
+      tout << "found trivial (" << (areImplied ? "implied" : "implying") << ") variables in BDD." << endl;
+      tout << "  BDD: " << toTPTPString(n,"n") << endl;
+      tout << "  vars: ";
+      Stack<BDDNode*>::BottomFirstIterator vit(acc);
+      while(vit.hasNext()) {
+	tout << toTPTPString(vit.next(), "n");
+	if(vit.hasNext()) {
+	  tout << ", ";
+	}
+      }
+      tout << endl;
+      );
+  ASS(!foundSome || assignValue(n, acc.top()->getVar(), !acc.top()->getPos()->isTrue())->isConst());
+  return foundSome;
+}
+
+/**
  * Return conjunction of @b n1 and @b n2
  */
 BDDNode* BDD::conjunction(BDDNode* n1, BDDNode* n2)
@@ -228,6 +398,13 @@ BDDNode* BDD::xOrNonY(BDDNode* x, BDDNode* y)
   return getBinaryFnResult(x,y, XOrNonYFn(this));
 }
 
+BDDNode* BDD::assignValue(BDDNode* n, unsigned var, bool value)
+{
+  CALL("BDD::assignValue");
+
+  BDDNode* asgnArg = getAtomic(var, value);
+  return getBinaryFnResult(asgnArg, n, AssignFn(this));
+}
 
 /**
  * Return true iff @b x | ~ @b y is a constant formula with truth value
@@ -514,6 +691,34 @@ BDDNode* BDD::XOrNonYFn::operator()(BDDNode* n1, BDDNode* n2)
   return 0;
 }
 
+/**
+ * @param n1 the assigned variable, or false in case we're already
+ *        below the assignment variable's level
+ */
+BDDNode* BDD::AssignFn::operator()(BDDNode* n1, BDDNode* n2)
+{
+  CALL("BDD::AssignFn::operator ()");
+
+  if(n1->isConst() || n2->isConst()) {
+    //we're below the assignment level
+    return n2;
+  }
+  if(n1->getVar()!=n2->getVar()) {
+    //we're still above the decision level
+    ASS_L(n1->getVar(),n2->getVar());
+    return 0;
+  }
+  unsigned var;
+  bool asgn;
+  ALWAYS(_parent->parseAtomic(n1, var, asgn));
+  ASS_EQ(var, n2->getVar());
+  if(asgn) {
+    return n2->getPos();
+  }
+  else {
+    return n2->getNeg();
+  }
+}
 
 /**
  * Return a BDD node containing variable @b varNum that points
