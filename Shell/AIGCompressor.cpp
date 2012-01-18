@@ -10,6 +10,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 
+#include "Flattening.hpp"
 #include "PDUtils.hpp"
 
 #include "AIGCompressor.hpp"
@@ -386,7 +387,6 @@ bool AIGCompressor::localCompressByBDD(AIGRef aig, AIGRef& tgt)
   if(!aig.isConjunction() ||
       (!aig.parent(0).isConjunction() && !aig.parent(1).isConjunction())) { return false; }
 
-  _ba.reset();
   BDDNode* bRep = _ba.a2b(aig);
   AIGRef aCompr = _ba.b2a(bRep);
 
@@ -412,12 +412,9 @@ bool AIGCompressor::localCompressByBDD(AIGRef aig, AIGRef& tgt)
   return true;
 }
 
-AIGRef AIGCompressor::attemptCompressByBDD(AIGRef aig0)
+void AIGCompressor::populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AIGTransformer::RefMap& map)
 {
-  CALL("AIGCompressor::attemptCompressByBDD");
-
-  static AIGTransformer::RefMap map;
-  map.reset();
+  CALL("AIGCompressor::populateBDDCompressingMap");
 
   typedef SharedSet<unsigned> USharedSet;
   /** For processed AIGs contains set of refered atoms, or zero
@@ -425,12 +422,13 @@ AIGRef AIGCompressor::attemptCompressByBDD(AIGRef aig0)
   static DHMap<AIGRef,USharedSet*> refAtoms;
   refAtoms.reset();
 
-  static AIGInsideOutPosIterator aigIt;
-  aigIt.reset(aig0);
-
   while(aigIt.hasNext()) {
     AIGRef a = aigIt.next();
     USharedSet* ref;
+
+    ASS(!map.find(a));
+    AIGRef tgt = _atr.lev1Deref(a, map);
+
     if(a.isPropConst()) {
       ref = USharedSet::getEmpty();
     }
@@ -438,13 +436,6 @@ AIGRef AIGCompressor::attemptCompressByBDD(AIGRef aig0)
       ref = USharedSet::getSingleton(a.nodeIndex());
     } else if(a.isQuantifier()) {
       ref = USharedSet::getSingleton(a.nodeIndex());
-
-//      AIGRef pp = a.parent(0).getPositive();
-//      if(!map.find(pp) && refAtoms.get(pp)) {
-//	AIGRef ppTgt = pp;
-//	localCompressByBDD(pp, ppTgt);
-//	map.insert(pp, ppTgt);
-//      }
     }
     else {
       ASS(a.isConjunction());
@@ -463,41 +454,29 @@ AIGRef AIGCompressor::attemptCompressByBDD(AIGRef aig0)
       else {
 	ref = 0;
       }
-//      if(!ref) {
-//	if(pp1r && !map.find(pp1)) {
-//	  AIGRef pp1Tgt = pp1;
-//	  localCompressByBDD(pp1, pp1Tgt);
-//	  map.insert(pp1, pp1Tgt);
-//	}
-//	if(pp2r && !map.find(pp2)) {
-//	  AIGRef pp2Tgt = pp2;
-//	  localCompressByBDD(pp2, pp2Tgt);
-//	  map.insert(pp2, pp2Tgt);
-//	}
-//      }
       if(ref) {
-	ASS(!map.find(a));
-	AIGRef cpA = _atr.lev1Deref(a, map);
-	AIGRef tgt = cpA;
-	localCompressByBDD(cpA, tgt);
-	if(a!=tgt) {
-	  map.insert(a, tgt);
-	}
+	localCompressByBDD(tgt, tgt);
       }
+    }
+    if(a!=tgt) {
+      map.insert(a, tgt);
     }
     ALWAYS(refAtoms.insert(a, ref));
   }
+}
 
-//  AIGRef paig0 = aig0.getPositive();
-//  if(paig0.isConjunction() && refAtoms.get(paig0)) {
-//    ASS(!map.find(paig0));
-//    AIGRef tgt = paig0;
-//    localCompressByBDD(paig0, tgt);
-//    map.insert(paig0, tgt);
-//  }
+AIGRef AIGCompressor::attemptCompressByBDD(AIGRef aig0)
+{
+  CALL("AIGCompressor::attemptCompressByBDD");
 
-  _atr.makeIdempotent(map);
-  _atr.applyWithCaching(aig0, map);
+  static AIGTransformer::RefMap map;
+  map.reset();
+
+  static AIGInsideOutPosIterator aigIt;
+  aigIt.reset(aig0);
+
+  populateBDDCompressingMap(aigIt, map);
+
   AIGRef res = _atr.lev0Deref(aig0, map);
 
   LOG("pp_aig_compr_attempts","aig compression attempt:"<<endl<<"  src: "<<aig0<<endl<<"  tgt: "<<res);
@@ -597,7 +576,9 @@ bool AIGCompressingTransformer::applyToDefinition(FormulaUnit* unit, Unit*& res)
     f = new QuantifiedFormula(FORALL, vars, f);
   }
 
-  res = new FormulaUnit(f, new Inference1(Inference::LOCAL_SIMPLIFICATION, unit), unit->inputType());
+  FormulaUnit* res0 = new FormulaUnit(f, new Inference1(Inference::LOCAL_SIMPLIFICATION, unit), unit->inputType());
+
+  res = Flattening::flatten(res0);
   LOG_SIMPL("pp_aig_compr_units",unit,res);
 
   return true;
@@ -616,7 +597,9 @@ bool AIGCompressingTransformer::apply(FormulaUnit* unit, Unit*& res)
   if(f==fSimpl) {
     return false;
   }
-  res = new FormulaUnit(fSimpl, new Inference1(Inference::LOCAL_SIMPLIFICATION, unit), unit->inputType());
+  FormulaUnit* res0 = new FormulaUnit(fSimpl, new Inference1(Inference::LOCAL_SIMPLIFICATION, unit), unit->inputType());
+  res = Flattening::flatten(res0);
+
   LOG_SIMPL("pp_aig_compr_units",unit,res);
   return true;
 }

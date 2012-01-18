@@ -207,16 +207,22 @@ void Preprocess::preprocess (Problem& prb)
     EPRInlining().apply(prb);
   }
 
-  if (_options.unusedPredicateDefinitionRemoval()) {
-    env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
-    PredicateDefinition pdRemover;
-    pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
+  if(_options.aigBddSweeping()) {
+    AIGCompressingTransformer().apply(prb);
   }
 
   if(_options.aigInliner()) {
     AIGInliner().apply(prb);
-    AIGCompressingTransformer().apply(prb);
-//    AIGDefinitionIntroducer(_options).apply(prb);
+  }
+
+  if(_options.aigDefinitionIntroduction()) {
+    AIGDefinitionIntroducer().apply(prb);
+  }
+
+  if (_options.unusedPredicateDefinitionRemoval()) {
+    env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
+    PredicateDefinition pdRemover;
+    pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
   }
 
   if (prb.mayHaveFormulas()) {

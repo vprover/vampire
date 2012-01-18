@@ -56,7 +56,7 @@ FormulaUnit* Naming::apply (FormulaUnit* unit,UnitList*& defs)
 {
   CALL("Naming::apply(Unit*)");
   ASS(! unit->isClause());
-  ASS(unit->formula()->freeVariables()==0);
+  ASS_REP(unit->formula()->freeVariables()==0, *unit);
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
 
   LOG_UNIT("pp_naming_args",unit);
@@ -436,7 +436,7 @@ Formula* Naming::apply (Formula* f,Where where,int& pos,int& neg)
 
 #if VDEBUG
   default:
-    ASSERTION_VIOLATION;
+    ASSERTION_VIOLATION_REP(*f);
 #endif
   }
 } // Naming::apply

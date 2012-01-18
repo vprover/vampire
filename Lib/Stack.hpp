@@ -453,8 +453,8 @@ public:
     const Stack& _stack;
   };
 
-  typedef Iterator TopFirstIterator;
   typedef Iterator DelIterator;
+  typedef ConstIterator TopFirstIterator;
 
   /**
    * An iterator object that for stack @b s first yields element s[0]

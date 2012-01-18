@@ -12,6 +12,7 @@
 #include "Lib/SCCAnalyzer.hpp"
 #include "Lib/ScopedPtr.hpp"
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
@@ -205,6 +206,30 @@ bool AIG::Ref::isQuantifier() const
 bool AIG::Ref::isConjunction() const
 {
   return node()->kind()==Node::CONJ;
+}
+
+/**
+ * Return literal of the positive form of the current AIG.
+ * (The returned literal is always with positive polarity.)
+ *
+ * The current AIG must be an atom (isAtom() returns true).
+ */
+Literal* AIG::Ref::getPositiveAtom() const
+{
+  CALL("AIG::Ref::getPositiveAtom");
+  ASS(isAtom());
+  ASS(node()->literal()->isPositive());
+  return node()->literal();
+}
+
+/**
+ * Return variables of a quantifier node
+ */
+const AIG::VarList* AIG::Ref::getQuantifierVars() const
+{
+  CALL("AIG::Ref::getQuantifierVars");
+  ASS(isQuantifier());
+  return node()->qVars();
 }
 
 unsigned AIG::Ref::nodeIndex() const
@@ -505,6 +530,7 @@ AIG::Ref AIG::getQuant(bool exQuant, VarList* vars, Ref par)
   CALL("AIG::getQuant");
 
   if(!vars) { return par; }
+  if(par.isPropConst()) { return par; }
 
   if(exQuant) {
     return Ref(univQuantNode(vars, par.neg()), false);
@@ -673,7 +699,30 @@ void AIGInsideOutPosIterator::reset(AIGRef a)
   _ready = false;
   _seen.reset();
   _stack.reset();
-  _stack.push(a.getPositive());
+  if(a.isValid()) {
+    _stack.push(a.getPositive());
+  }
+}
+
+/**
+ * Add unvisited sub-aigs (including a itself) into the traversal.
+ * This function can be called at any point and will cause the
+ * next retrieved item to belong to @c a (if some of it is yet to
+ * be traversed).
+ */
+void AIGInsideOutPosIterator::addToTraversal(AIGRef a)
+{
+  CALL("AIGInsideOutPosIterator::addToTraversal");
+
+  a = a.getPositive();
+  if(!_seen.find(a)) {
+    bool wasReady = _ready;
+    _stack.push(a);
+    if(wasReady) {
+      _ready = false;
+      ALWAYS(hasNext());
+    }
+  }
 }
 
 bool AIGInsideOutPosIterator::hasNext() {
@@ -681,10 +730,7 @@ bool AIGInsideOutPosIterator::hasNext() {
 
   if(_ready) { return true; }
   if(_stack.isEmpty()) { return false; }
-  for(;;) {
-    //the top-most item on the stack will never become seen without visiting it,
-    //so we never pop it
-    ASS(_stack.isNonEmpty());
+  while(_stack.isNonEmpty()) {
     AIGRef curr = _stack.top();
     unsigned parCnt = curr.parentCnt();
     for(unsigned i=0; i<parCnt; i++) {
@@ -703,6 +749,8 @@ bool AIGInsideOutPosIterator::hasNext() {
       }
     }
   }
+  //without calling the addToTraversal() function, this point should be unreachable
+  return false;
 }
 
 AIGRef AIGInsideOutPosIterator::next()
@@ -1061,7 +1109,8 @@ void AIGTransformer::saturateMap(DHMap<Ref,Ref>& map, Stack<Ref>* finalDomain)
 
 AIGFormulaSharer::AIGFormulaSharer() : _transf(_aig), _useRewrites(false)
 {
-
+  shareFormula(Formula::trueFormula(), _aig.getTrue());
+  shareFormula(Formula::falseFormula(), _aig.getFalse());
 }
 
 void AIGFormulaSharer::apply(Problem& prb)
@@ -1538,6 +1587,19 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyQuantified(Formula* f)
   AIGRef ar = _aig.getQuant(con==EXISTS, f->vars()->copy(), chRes.second);
   Formula* f1 = (f->qarg()==chRes.first) ? f : new QuantifiedFormula(con, f->vars(), chRes.first);
   return ARes(f1, ar);
+}
+
+AIGRef AIGFormulaSharer::getAIG(Clause* cl)
+{
+  CALL("AIGFormulaSharer::getAIG");
+
+  AIGRef res = _aig.getFalse();
+  Clause::Iterator cit(*cl);
+  while(cit.hasNext()) {
+    Literal* l = cit.next();
+    res = _aig.getDisj(res, apply(l));
+  }
+  return res;
 }
 
 /**

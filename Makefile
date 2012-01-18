@@ -334,6 +334,7 @@ VUTIL_OBJ = VUtils/AnnotationColoring.o\
             VUtils/LocalityRestoring.o\
             VUtils/ProblemColoring.o\
             VUtils/RangeColoring.o\
+            VUtils/SMTLIBConcat.o\
             VUtils/Z3InterpolantExtractor.o
 
 LIB_DEP = Indexing/TermSharing.o\
@@ -364,7 +365,12 @@ LIB_DEP = Indexing/TermSharing.o\
 	  ClausifierDependencyFix.o
 
 OTHER_CL_DEP = Indexing/FormulaIndex.o\
+	       Indexing/LiteralSubstitutionTree.o\
 	       Indexing/ResultSubstitution.o\
+	       Indexing/SubstitutionTree_FastGen.o\
+	       Indexing/SubstitutionTree_FastInst.o\
+	       Indexing/SubstitutionTree_Nodes.o\
+	       Indexing/SubstitutionTree.o\
 	       Inferences/InferenceEngine.o\
 	       Inferences/TautologyDeletionISE.o\
 	       Kernel/EqHelper.o\

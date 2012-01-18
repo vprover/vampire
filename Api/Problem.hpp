@@ -235,6 +235,21 @@ public:
     bool predicateEquivalenceDiscovery;
 
     /**
+     * Full inlining using AIG with BDD-sweeping simplifications
+     */
+    bool aigInlining;
+
+    /**
+     * BDD-sweeping simplification of AIG representation of the problem
+     */
+    bool aigBddSweeping;
+
+    /**
+     * BDD-sweeping simplification of AIG representation of the problem
+     */
+    bool aigDefinitionIntroduction;
+
+    /**
      * Add asymmetric rewriting rule to be used during preprocessing.
      *
      * For details on the requirements see documentation to the
@@ -400,6 +415,9 @@ private:
   class Preprocessor1;
   class TopLevelFlattener;
   class VariableEqualityPropagator;
+  class BDDSweeper;
+  class AIGInliner;
+  class AIGDefinitionIntroducer;
   class PredicateIndexIntroducer;
   class PredicateEquivalenceDiscoverer;
   class PredicateDefinitionMerger;

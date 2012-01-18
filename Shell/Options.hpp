@@ -30,6 +30,8 @@ public:
   enum Tag {
     ABSTRACTION,
     AGE_WEIGHT_RATIO,
+    AIG_BDD_SWEEPING,
+    AIG_DEFINITION_INTRODUCTION,
     AIG_FORMULA_SHARING,
     AIG_INLINER,
     ARITY_CHECK,
@@ -446,6 +448,8 @@ public:
   void setPredicateEquivalenceDiscovery(bool newValue) { _predicateEquivalenceDiscovery = newValue; }
   bool predicateIndexIntroduction() const { return _predicateIndexIntroduction; }
   void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
+  bool aigBddSweeping() const { return _aigBddSweeping; }
+  bool aigDefinitionIntroduction() const { return _aigDefinitionIntroduction; }
   bool aigFormulaSharing() const { return _aigFormulaSharing; }
   bool aigInliner() const { return _aigInliner; }
   Mode mode() const { return _mode; }
@@ -650,6 +654,8 @@ private:
   bool _abstraction;
   int _ageRatio;
   int _weightRatio;
+  bool _aigBddSweeping;
+  bool _aigDefinitionIntroduction;
   bool _aigFormulaSharing;
   bool _aigInliner;
   bool _arityCheck;

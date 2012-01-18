@@ -54,10 +54,12 @@ private:
 
 class AIGCompressor {
 public:
-  AIGCompressor(AIG& aig, unsigned reqFactorNum=2, unsigned reqFactorDenom=1);
+  AIGCompressor(AIG& aig, unsigned reqFactorNum=5, unsigned reqFactorDenom=4);
 
   AIGRef compress(AIGRef aig);
   AIGRef compressByBDD(AIGRef aig);
+
+  void populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AIGTransformer::RefMap& map);
 
 private:
   bool localCompressByBDD(AIGRef aig, AIGRef& tgt);

@@ -8,6 +8,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Allocator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/MapToLIFO.hpp"
@@ -17,34 +18,85 @@
 
 namespace Shell {
 
+using namespace Indexing;
+
+
 class AIGInliner : public ScanAndApplyFormulaUnitTransformer {
+
+  struct EquivInfo {
+    EquivInfo(Literal* lhs, Formula* rhs, FormulaUnit* unit);
+
+    //these are initialized by constructor
+    Literal* lhs;
+    Formula* rhs;
+    FormulaUnit* unit;
+    Literal* posLhs;
+    bool active;
+
+    //these are initialized in AIGInliner::addInfo()
+    AIGRef activeAIGRhs;
+
+//    //unused
+//
+//    AIGRef activeAIGLhs;
+//
+//    AIGRef initAIGLhs;
+//    AIGRef initAIGRhs;
+//
+//    AIGRef outputAIGLhs;
+//    AIGRef outputAIGRhs;
+//    FormulaUnit* outputUnit;
+
+
+    CLASS_NAME("AIGInliner::EquivInfo");
+    USE_ALLOCATOR(EquivInfo);
+
+    static bool litIsLess(Literal* l1, Literal* l2);
+    static EquivInfo* tryGetEquiv(FormulaUnit* fu);
+  };
 
   //options
   bool _onlySingleAtomPreds;
 
+  Stack<EquivInfo*> _eqInfos;
+
+  LiteralSubstitutionTree* _lhsIdx;
+  DHMap<Literal*, EquivInfo*> _defs;
+  DHMap<FormulaUnit*, EquivInfo*> _unit2def;
+
+  DHMap<AIGRef,AIGRef> _inlMap;
+  DHMap<AIGRef,AIGRef> _simplMap;
+
+#if VDEBUG
+  //to check whether we collect all relevant AIGs
+  DHSet<AIGRef> _relevantAigs;
+#endif
+
   AIGFormulaSharer _fsh;
-  DHMap<FormulaUnit*,FormulaUnit*> _defReplacements;
+  AIG& _aig;
+  AIGTransformer _atr;
+  AIGCompressor _acompr;
 
-  MapToLIFO<unsigned,Literal*> _predLits;
-  DHSet<unsigned> _clPreds;
+  bool addInfo(EquivInfo* inf);
+  void collectDefinitions(UnitList* units, Stack<AIGRef>& relevantAigs);
+  bool tryExpandAtom(AIGRef atom, AIGRef& res);
 
-  //functions called from scan(UnitList*)
-  void scanOccurrences(UnitList* units);
-  void collectDefinitions(UnitList* units, FormulaStack& lhsForms, FormulaStack& rhsForms, Stack<FormulaUnit*>& defUnits);
-  void addDefinitionReplacement(Formula* lhs, Formula* rhs, FormulaUnit* unit);
-
+  AIGRef apply(AIGRef a);
+  Formula* apply(Formula* a);
 
 public:
   AIGInliner();
+  ~AIGInliner();
 
   using ScanAndApplyFormulaUnitTransformer::apply;
 
   void scan(UnitList* units);
-  bool apply(FormulaUnit* unit, FormulaUnit*& res);
+  virtual bool apply(FormulaUnit* unit, Unit*& res);
 
 protected:
   virtual void updateModifiedProblem(Problem& prb);
 };
+
 
 class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
 {
@@ -121,7 +173,7 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
   void doSecondRefAIGPass();
 
 public:
-  AIGDefinitionIntroducer(const Options& opts);
+  AIGDefinitionIntroducer();
 
   virtual void scan(UnitList* units);
 

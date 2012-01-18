@@ -241,6 +241,7 @@ bool TopLevelFlatten::apply(FormulaUnit* fu, Stack<FormulaUnit*>& acc)
   FormulaList::Iterator fit(f->args());
   while(fit.hasNext()) {
     Formula* sf = fit.next();
+    bool needsFlattening = sf->connective()==FORALL;
     if(vars) {
       sf = new QuantifiedFormula(FORALL, vars, sf);
     }
@@ -248,6 +249,9 @@ bool TopLevelFlatten::apply(FormulaUnit* fu, Stack<FormulaUnit*>& acc)
     FormulaUnit* sfu = new FormulaUnit(sf, inf, fu->inputType());
     if(fu->included()) {
       sfu->markIncluded();
+    }
+    if(needsFlattening) {
+      sfu = Flattening::flatten(sfu);
     }
     acc.push(sfu);
     RSTAT_CTR_INC("top level flattenning results")

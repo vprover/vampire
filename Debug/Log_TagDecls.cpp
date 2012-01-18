@@ -402,6 +402,9 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_rwr",
       DOC("aig sharing formula rewriter"),
       PARENT("pp_aig",1));
+  DECL("pp_aig_subst",
+      DOC("aig substitution applications"),
+      PARENT("pp_aig",1));
 
   DECL("pp_aigtr",
       DOC("AIGTransformer"),
@@ -444,6 +447,27 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_compr_units",
       DOC("units modified by aig compression"),
       PARENT("pp_aig_compr",21));
+
+  DECL("pp_aiginl",
+      DOC("AIG based inlining"),
+      PARENT("pp_aig",1),
+      PARENT("pp",1));
+  DECL("pp_aiginl_equiv",
+      DOC("added equivalences"),
+      PARENT("pp_aiginl",1));
+  DECL("pp_aiginl_instance",
+      DOC("instantiated AIG of rhs of a definition"),
+      PARENT("pp_aiginl",1));
+  DECL("pp_aiginl_aig",
+      DOC("result of inlining application on an AIG"),
+      PARENT("pp_aiginl",1));
+  DECL("pp_aiginl_unit",
+      DOC("result of inlining on units"),
+      PARENT("pp_aiginl",1));
+  DECL("pp_aiginl_unit_args",
+      DOC("units as they are passed to the apply() function"),
+      PARENT("pp_aiginl",1));
+
 
   DECL("pp_aigdef",
       DOC("AIG based definition introduction"),
@@ -579,11 +603,33 @@ void Logging::doTagDeclarations()
       DOC("traces related to Vampire API problem transformations"));
 
   //
+  // VUtils
+  //
+
+  DECL("vu_z3ie",
+      DOC("traces from z3 interpolant extractor"));
+
+  DECL("vu_ers",
+      DOC("traces from epr restoring scanner"));
+
+  DECL("vu_sc",
+      DOC("traces from SMTLIB concat"));
+  DECL("vu_sc_files",
+      DOC("input files"),
+      PARENT("vu_sc",1));
+  DECL("vu_sc_let",
+      DOC("flet to let rewriting in SMTLIB --> SMTLIB2 conversion"),
+      PARENT("vu_sc",1));
+
+  //
   // Other
   //
 
   DECL("test_tag",
       DOC("trace tag to be used for testing"));
+
+  DECL("lisp_rdr",
+      DOC("List reading by LispListReader"));
 
   DECL("bdd");
   DECL("bdd_clausifier",
@@ -642,11 +688,6 @@ void Logging::doTagDeclarations()
 
   DECL("smt_interface",
       DOC("traces from interface to SMT solver"));
-
-  DECL("vu_z3ie",
-      DOC("traces from z3 interpolant extractor"));
-  DECL("vu_ers",
-      DOC("traces from epr restoring scanner"));
 
   DECL("ut",
       DOC("traces in the unit-testing infrastructure"));

@@ -22,6 +22,8 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Shell/AIGCompressor.hpp"
+#include "Shell/AIGInliner.hpp"
 #include "Shell/CNF.hpp"
 #include "Shell/EPRInlining.hpp"
 #include "Shell/EPRSkolem.hpp"
@@ -121,7 +123,10 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   traceUnusedPredicateDefinitionRemoval(traceUnusedPredicateDefinitionRemoval),
   predicateIndexIntroduction(false),
   flatteningTopLevelConjunctions(false),
-  predicateEquivalenceDiscovery(false)
+  predicateEquivalenceDiscovery(false),
+  aigInlining(false),
+  aigBddSweeping(false),
+  aigDefinitionIntroduction(false)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions");
 }
@@ -493,6 +498,127 @@ protected:
   EqualityPropagator _eqProp;
 };
 
+class Problem::BDDSweeper : public ProblemTransformer
+{
+protected:
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::BDDSweeper::transformImpl");
+
+    Kernel::Unit* res;
+    if(!_act.apply(unit, res)) {
+      addUnit(unit);
+    }
+    else if(res) {
+      addUnit(res);
+    }
+  }
+
+  Shell::AIGCompressingTransformer _act;
+};
+
+
+class Problem::AIGInliner : public ProblemTransformer
+{
+public:
+  AIGInliner()
+  {
+  }
+
+protected:
+  virtual void transformImpl(Problem p)
+  {
+    CALL("Problem::BDDSweeper::transformImpl(Problem)");
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+    _aii.scan(units);
+    units->destroy();
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      transform(f);
+    }
+  }
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::BDDSweeper::transformImpl");
+
+    Unit* res;
+    if(!_aii.apply(unit, res)) {
+      addUnit(unit);
+    }
+    else if(res) {
+      addUnit(res);
+    }
+  }
+
+  Shell::AIGInliner _aii;
+};
+
+class Problem::AIGDefinitionIntroducer : public ProblemTransformer
+{
+public:
+  AIGDefinitionIntroducer()
+  {
+  }
+
+protected:
+  virtual void transformImpl(Problem p)
+  {
+    CALL("Problem::AIGDefinitionIntroducer::transformImpl(Problem)");
+
+    Kernel::UnitList* units = 0;
+
+    AnnotatedFormulaIterator fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      Kernel::UnitList::push(f.unit, units);
+    }
+    _adi.scan(units);
+    units->destroy();
+
+    fit=p.formulas();
+    while(fit.hasNext()) {
+      AnnotatedFormula f=fit.next();
+      transform(f);
+    }
+
+    UnitList* eqs = _adi.getIntroducedFormulas();
+
+    while(eqs) {
+      Kernel::Unit* u = Kernel::UnitList::pop(eqs);
+      AnnotatedFormula af(u, p._data->getApiHelper());
+      AnnotatedFormula::assignName(af, "def");
+      _res->addFormula(af);
+      LOG("api_prb_transf","definitions introduced for AIG: "<<af);
+    }
+  }
+
+  void transformImpl(Kernel::Unit* unit)
+  {
+    CALL("Problem::AIGDefinitionIntroducer::transformImpl");
+
+    Unit* res;
+    if(!_adi.apply(unit, res)) {
+      addUnit(unit);
+    }
+    else if(res) {
+      addUnit(res);
+    }
+  }
+
+  Shell::AIGDefinitionIntroducer _adi;
+};
+
+
 class Problem::PredicateIndexIntroducer : public ProblemTransformer
 {
 public:
@@ -503,7 +629,7 @@ public:
 protected:
   virtual void transformImpl(Problem p)
   {
-    CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
+    CALL("Problem::PredicateIndexIntroducer::transformImpl(Problem)");
 
     Kernel::UnitList* units = 0;
 
@@ -524,7 +650,7 @@ protected:
 
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::EPRRestoringInliner::transformImpl");
+    CALL("Problem::PredicateIndexIntroducer::transformImpl");
 
     Unit* res;
     if(!_pii.apply(unit, res)) {
@@ -1145,6 +1271,18 @@ inlining:
     if(res.size()!=sz0) {
       goto inlining;
     }
+  }
+
+  if(options.aigBddSweeping) {
+    res = BDDSweeper().transform(res);
+  }
+
+  if(options.aigInlining) {
+    res = AIGInliner().transform(res);
+  }
+
+  if(options.aigDefinitionIntroduction) {
+    res = AIGDefinitionIntroducer().transform(res);
   }
 
   if(options.unusedPredicateDefinitionRemoval) {

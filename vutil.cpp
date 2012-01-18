@@ -25,6 +25,7 @@
 #include "VUtils/EPRRestoringScanner.hpp"
 #include "VUtils/FOEquivalenceDiscovery.hpp"
 #include "VUtils/ProblemColoring.hpp"
+#include "VUtils/SMTLIBConcat.hpp"
 #include "VUtils/Z3InterpolantExtractor.hpp"
 
 using namespace Lib;
@@ -120,6 +121,9 @@ int main(int argc, char* argv [])
     }
     else if(module=="fed") {
       resultValue=FOEquivalenceDiscovery().perform(args.size(), args.begin());
+    }
+    else if(module=="sc") {
+      resultValue=SMTLIBConcat().perform(args.size(), args.begin());
     }
     else {
       USER_ERROR("unknown vutil module name: "+module);

@@ -153,7 +153,17 @@ Formula* NNF::ennf (Formula* f, bool polarity)
 
   case TRUE:
   case FALSE:
-    return f;
+    if(polarity) {
+      return f;
+    }
+    else {
+      if(c==TRUE) {
+	return Formula::falseFormula();
+      }
+      else {
+	return Formula::trueFormula();
+      }
+    }
 #if VDEBUG
   default:
     ASSERTION_VIOLATION;

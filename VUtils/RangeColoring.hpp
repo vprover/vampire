@@ -20,6 +20,7 @@ using namespace Kernel;
 
 class TermColoring {
 public:
+  virtual ~TermColoring() {}
   Formula* applyToFormula(Formula* f);
   void applyToDerivation(UnitStack& inp, UnitStack& out);
 
@@ -48,6 +49,20 @@ protected:
 private:
   IntegerConstantType _middle;
   DHSet<unsigned> _funcs;
+};
+
+class NameMapColoring : public TermColoring
+{
+public:
+  void loadColors(const DHMap<string,Color>& cols) {
+    _funcColors.loadFromMap(cols);
+  }
+protected:
+  virtual bool isColoredFunction(unsigned func);
+  virtual Color getColor(TermList term);
+private:
+  DHMap<string,Color> _funcColors;
+
 };
 
 }

@@ -292,6 +292,15 @@ public:
     return res;
   }
 
+  template<class It>
+  static SharedSet* getFromIterator(It it)
+  {
+    static ItemStack is;
+    is.reset();
+    is.loadFromIterator(it);
+    return getFromArray(is.begin(), is.length());
+  }
+
   static SharedSet* getFromArray(T* arr, size_t len)
   {
     CALL("SharedSet::getFromArray");

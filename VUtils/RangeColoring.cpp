@@ -242,4 +242,24 @@ Color RangeColoring::getColor(TermList term)
   return COLOR_RIGHT;
 }
 
+
+///////////////////////
+// NameMapColoring
+//
+
+bool NameMapColoring::isColoredFunction(unsigned func)
+{
+  CALL("NameMapColoring::isColoredFunction");
+
+  return _funcColors.find(env.signature->functionName(func));
+}
+Color NameMapColoring::getColor(TermList term)
+{
+  CALL("NameMapColoring::getColor");
+  ASS(term.isTerm());
+
+  return _funcColors.get(term.term()->functionName());
+}
+
+
 }

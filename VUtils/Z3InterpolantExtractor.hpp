@@ -19,14 +19,14 @@
 
 #include "Shell/LispParser.hpp"
 
+#include "RangeColoring.hpp"
+
+
 namespace VUtils {
 
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
-
-typedef LispParser::Expression LExpr;
-typedef List<LExpr*> LExprList;
 
 class ZIE {
 public:
@@ -106,11 +106,18 @@ private:
   };
 
   void onFunctionApplication(TermList fn);
-  bool colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt);
 
   typedef DHMap<unsigned, UnaryFunctionInfo> UnaryInfoMap;
   UnaryInfoMap _unaryFnInfos;
 
+  bool colorProof(TermColoring& colorer, UnitStack& derivation, UnitStack& coloredDerivationTgt);
+
+  void collectSMTLIB1FileFunctionNames(const char* fname, DHSet<string>& acc);
+
+  TermColoring* createRangeColorer();
+  TermColoring* createFileColorer(unsigned leftCnt, char** leftFNames, unsigned rightCnt, char** rightFNames);
+
+  TermColoring* createColorer(unsigned argc, char** argv);
 private:
   void outputInterpolantStats(Unit* refutation);
 };

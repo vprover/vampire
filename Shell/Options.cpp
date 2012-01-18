@@ -103,6 +103,8 @@ public:
 const char* Options::Constants::_optionNames[] = {
   "abstraction",
   "age_weight_ratio",
+  "aig_bdd_sweeping",
+  "aig_definition_introduction",
   "aig_formula_sharing",
   "aig_inliner",
   "arity_check",
@@ -625,6 +627,8 @@ Options::Options ()
   _abstraction(false),
   _ageRatio(1),
   _weightRatio(1),
+  _aigBddSweeping(false),
+  _aigDefinitionIntroduction(false),
   _aigFormulaSharing(false),
   _aigInliner(false),
   _arityCheck(false),

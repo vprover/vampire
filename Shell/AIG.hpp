@@ -73,6 +73,9 @@ public:
 
     Ref getPositive() const { return polarity() ? *this : neg(); }
 
+    Literal* getPositiveAtom() const;
+    const VarList* getQuantifierVars() const;
+
     bool polarity() const { return _data&1; }
     Node* node() const { return reinterpret_cast<Node*>(_data&(~static_cast<size_t>(1))); }
     unsigned nodeIndex() const;
@@ -213,7 +216,16 @@ public:
   /** When this constructor is used, reset() must be called before anything else */
   AIGInsideOutPosIterator() {}
   AIGInsideOutPosIterator(AIGRef a) { reset(a); }
-  void reset(AIGRef a);
+  void reset(AIGRef a=AIGRef::getInvalid());
+  void addToTraversal(AIGRef a);
+
+  template<class It>
+  void addManyToTraversal(It it) {
+    CALL("AIGInsideOutPosIterator::addManyToTraversal");
+    while(it.hasNext()) {
+      addToTraversal(it.next());
+    }
+  }
 
   bool hasNext();
   AIGRef next();
@@ -317,6 +329,8 @@ public:
 
 
   void addRewriteRules(unsigned cnt, Formula* const * srcs, Formula* const * tgts, Stack<unsigned>* usedIdxAcc=0);
+
+  AIGRef getAIG(Clause* cl);
 
   AIGRef apply(Literal* l) { return _aig.getLit(l); }
   ARes apply(Formula* f);

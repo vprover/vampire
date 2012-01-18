@@ -111,19 +111,17 @@ public:
     ensureExpanded();
   }
 
-  /** Create an inverted DHMap. The @b inverted map must be one-to-one. */
-  template<class HashX1, class HashX2>
-  DHMap(DHMap<Val, Key, HashX1, HashX2>& inverted)
+  DHMap(const DHMap& obj)
   : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
   _nextExpansionOccupancy(0), _entries(0), _afterLast(0)
   {
     ensureExpanded();
 
-    typename DHMap<Val, Key, HashX1, HashX2>::Iterator iit(inverted);
+    typename DHMap::Iterator iit(obj);
     while(iit.hasNext()) {
       Key k;
       Val v;
-      iit.next(v, k);
+      iit.next(k, v);
       ALWAYS(insert(k,v));
     }
   }
@@ -223,6 +221,32 @@ public:
       return def;
     }
     return e->_val;
+  }
+
+
+  /** Load key-value pairs from a DHMap. The current map must not contain any elements from @c map. */
+  void loadFromMap(const DHMap& map)
+  {
+    Iterator iit(map);
+    while(iit.hasNext()) {
+      Key k;
+      Val v;
+      iit.next(k, v);
+      ALWAYS(insert(k,v));
+    }
+  }
+
+  /** Load key-value pairs from an inverted DHMap. The @b inverted map must be one-to-one. */
+  template<class HashX1, class HashX2>
+  void loadFromInverted(const DHMap<Val, Key, HashX1, HashX2>& inverted)
+  {
+    typename DHMap<Val, Key, HashX1, HashX2>::Iterator iit(inverted);
+    while(iit.hasNext()) {
+      Key k;
+      Val v;
+      iit.next(v, k);
+      ALWAYS(insert(k,v));
+    }
   }
 
   /**
@@ -481,8 +505,6 @@ private:
     Val _val;
   };
 
-  /** Copy constructor is private and without a body, because we don't want any. */
-  DHMap(const DHMap& obj);
   /** operator= is private and without a body, because we don't want any. */
   DHMap& operator=(const DHMap& obj);
 
@@ -771,7 +793,6 @@ public:
   private:
     IteratorBase _base;
   }; // class DHMap::Iterator
-
 
 }; // class DHMap
 

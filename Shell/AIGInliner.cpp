@@ -14,11 +14,17 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/LiteralComparators.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Indexing/LiteralSubstitutionTree.hpp"
+
+#include "AIGSubst.hpp"
+#include "Flattening.hpp"
 #include "Options.hpp"
 #include "PDUtils.hpp"
 #include "SimplifyFalseTrue.hpp"
@@ -28,11 +34,189 @@
 namespace Shell
 {
 
+AIGInliner::EquivInfo::EquivInfo(Literal* lhs, Formula* rhs, FormulaUnit* unit)
+: lhs(lhs), rhs(rhs), unit(unit)
+{
+  CALL("AIGInliner::EquivInfo::EquivInfo");
+
+  posLhs = Literal::positiveLiteral(lhs);
+  active = true;
+}
+
+/**
+ * Compare literals for the purpose of @c tryGetEquiv()
+ */
+bool AIGInliner::EquivInfo::litIsLess(Literal* l1, Literal* l2)
+{
+  CALL("AIGInliner::EquivInfo::litIsLess");
+  bool l1Protected = env.signature->getPredicate(l1->functor())->protectedSymbol();
+  bool l2Protected = env.signature->getPredicate(l2->functor())->protectedSymbol();
+  if(l1Protected!=l2Protected) {
+    return l1Protected;
+  }
+  if(l1->functor()!=l2->functor()) {
+    return l1->functor()<l2->functor();
+  }
+  return LiteralComparators::NormalizedLinearComparatorByWeight<true>().compare(l1, l2)==LESS;
+}
+
+/**
+ * Attempt to get an equivalence with atom on the lhs from @c fu,
+ * if unsuccessful, return 0.
+ *
+ * If both sides of an equivalence can become lhs, we pick the one with
+ * larger predicate number. If equivalence is between atoms of the same
+ * predicate, we use some other deterministic ordering to pick.
+ */
+AIGInliner::EquivInfo* AIGInliner::EquivInfo::tryGetEquiv(FormulaUnit* fu)
+{
+  CALL("AIGInliner::EquivInfo::tryGetEquiv");
+
+  Formula* f = fu->formula();
+  Formula::VarList* qvars = 0;
+  if(f->connective()==FORALL) {
+    qvars = f->vars();
+    f = f->qarg();
+  }
+
+  if(f->connective()==LITERAL) {
+    Literal* lhs = f->literal();
+    if(env.signature->getPredicate(lhs->functor())->protectedSymbol()) {
+      return 0;
+    }
+    return new EquivInfo(lhs, Formula::trueFormula(), fu);
+  }
+  if(f->connective()!=IFF) {
+    return 0;
+  }
+  Formula* c1 = f->left();
+  Formula* c2 = f->right();
+  if(c1->connective()!=LITERAL) {
+    swap(c1,c2);
+  }
+  else if(c2->connective()==LITERAL) {
+    Literal* l1 = c1->literal();
+    Literal* l2 = c2->literal();
+    bool l1DH = PDUtils::isDefinitionHead(l1);
+    bool l2DH = PDUtils::isDefinitionHead(l2);
+    if(l1DH==l2DH) {
+      if(l1->functor()==l2->functor()) {
+	if(l1==l2) { return 0; }
+	if(l1==Literal::complementaryLiteral(l2)) { return 0; }
+      }
+      bool less = litIsLess(l1, l2);
+      if(less) {
+	swap(c1, c2);
+      }
+    }
+    else if(l2DH) {
+      swap(c1, c2);
+    }
+  }
+
+  if(c1->connective()!=LITERAL) {
+    return 0;
+  }
+  Literal* lhs = c1->literal();
+  if(env.signature->getPredicate(lhs->functor())->protectedSymbol()) {
+    return 0;
+  }
+  Formula* rhs = c2;
+
+  Formula::VarList* lhsVars = c1->freeVariables();
+
+  static Stack<unsigned> qVarStack;
+  static Stack<unsigned> lhsVarStack;
+  qVarStack.reset();
+  qVarStack.loadFromIterator(Formula::VarList::Iterator(qvars));
+  std::sort(qVarStack.begin(), qVarStack.end());
+  lhsVarStack.reset();
+  lhsVarStack.loadFromIterator(Formula::VarList::DestructiveIterator(lhsVars));
+  std::sort(lhsVarStack.begin(), lhsVarStack.end());
+
+  if(qVarStack!=lhsVarStack) {
+    return 0;
+  }
+
+  return new EquivInfo(lhs, rhs, fu);
+}
+
 AIGInliner::AIGInliner()
+ : _aig(_fsh.aig()), _atr(_aig), _acompr(_aig)
 {
   CALL("AIGInliner::AIGInliner");
 
   _onlySingleAtomPreds = false;
+
+  _lhsIdx = new LiteralSubstitutionTree();
+}
+
+AIGInliner::~AIGInliner()
+{
+  CALL("AIGInliner::~AIGInliner");
+
+  delete _lhsIdx;
+
+  while(_eqInfos.isNonEmpty()) {
+    delete _eqInfos.pop();
+  }
+}
+
+bool AIGInliner::addInfo(EquivInfo* inf)
+{
+  CALL("AIGInliner::addInfo");
+
+  if(_lhsIdx->getUnificationCount(inf->posLhs, false)!=0) {
+    //TODO: one day try to do something smarter
+    delete inf;
+    return false;
+  }
+
+  AIGRef rhsAig = _fsh.apply(inf->rhs).second;
+  if(inf->lhs->isNegative()) {
+    rhsAig = rhsAig.neg();
+  }
+  rhsAig = _acompr.compress(rhsAig);
+  inf->activeAIGRhs = rhsAig;
+
+  //now we know we have a definition we'll use, so we insert it into structures
+
+  _eqInfos.push(inf);
+
+  Literal* idxLhs = inf->posLhs;
+  _lhsIdx->insert(idxLhs, 0);
+  _defs.insert(idxLhs, inf);
+  _unit2def.insert(inf->unit, inf);
+
+  LOG("pp_aiginl_equiv","equivalence for inlining: "<<(*inf->posLhs)<<" <=> "<<rhsAig);
+  return true;
+}
+
+void AIGInliner::collectDefinitions(UnitList* units, Stack<AIGRef>& relevantAigs)
+{
+  CALL("AIGInliner::collectDefinitions");
+
+  UnitList::Iterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    if(u->isClause()) {
+      relevantAigs.push(_fsh.getAIG(static_cast<Clause*>(u)));
+      continue;
+    }
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    EquivInfo* inf = EquivInfo::tryGetEquiv(fu);
+    Formula* relevantForm;
+    if(inf && addInfo(inf)) {
+      relevantForm = inf->rhs;
+    }
+    else {
+      relevantForm = fu->formula();
+    }
+    relevantAigs.push(_fsh.apply(relevantForm).second);
+  }
+#if VDEBUG
+  _relevantAigs.loadFromIterator(Stack<AIGRef>::Iterator(relevantAigs));
+#endif
 }
 
 void AIGInliner::updateModifiedProblem(Problem& prb)
@@ -42,103 +226,60 @@ void AIGInliner::updateModifiedProblem(Problem& prb)
   prb.invalidateByRemoval();
 }
 
-
-void AIGInliner::scanOccurrences(UnitList* units)
+/**
+ * Try expanding atom using definitions
+ *
+ * @param atom Atom to be expanded. Must be an atom aig with positive polarity.
+ */
+bool AIGInliner::tryExpandAtom(AIGRef atom, AIGRef& res)
 {
-  CALL("AIGInliner::scanOccurrences");
+  CALL("AIGInliner::tryExpandAtom");
+  ASS(atom.isAtom());
+  ASS(atom.polarity());
 
-  DHSet<Literal*> seenPosLits;
-  //used locally inside the loop
-  Stack<unsigned> locClPreds;
-  LiteralStack uLits;
+  Literal* lit = atom.getPositiveAtom();
+  SLQueryResultIterator defIt = _lhsIdx->getGeneralizations(lit, false, false);
 
-  UnitList::Iterator uit1(units);
-  while(uit1.hasNext()) {
-    Unit* u = uit1.next();
+  if(!defIt.hasNext()) {
+    return false;
+  }
 
-    if(u->isClause()) {
-      locClPreds.reset();
-      u->collectPredicates(locClPreds);
-      _clPreds.loadFromIterator(Stack<unsigned>::Iterator(locClPreds));
-      continue;
-    }
+  SLQueryResult idxRes = defIt.next();
 
-    ASS(uLits.isEmpty());
-    u->collectAtoms(uLits);
-    while(uLits.isNonEmpty()) {
-      Literal* l = uLits.pop();
-      if(seenPosLits.contains(l)) {
-	continue;
-      }
-      seenPosLits.insert(l);
-      _predLits.pushToKey(l->functor(), l);
+  if(defIt.hasNext()) {
+    defIt = _lhsIdx->getGeneralizations(lit, false, false);
+    LOGV("bug", *lit);
+    while(defIt.hasNext()) {
+      LOGV("bug", *defIt.next().literal);
     }
   }
-}
+  ASS(!defIt.hasNext()); //we made sure there is always only one way to inline
 
-void AIGInliner::collectDefinitions(UnitList* units,
-    FormulaStack& lhsForms, FormulaStack& rhsForms, Stack<FormulaUnit*>& defUnits)
-{
-  CALL("AIGInliner::collectDefinitions");
+  Literal* defLhs = idxRes.literal;
+  AIGRef defRhs = _defs.get(defLhs)->activeAIGRhs;
 
-  UnitList::Iterator uit2(units);
-  while(uit2.hasNext()) {
-    Unit* u = uit2.next();
-
-    if(u->isClause()) {
-      continue;
-    }
-
-    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    if(!PDUtils::hasDefinitionShape(u)) {
-      continue;
-    }
-    Literal* peLit1;
-    Literal* peLit2;
-    if(PDUtils::isPredicateEquivalence(fu, peLit1, peLit2)) {
-      //TODO:do something smarter
-      continue;
-    }
-    Literal* lhs;
-    Formula* rhs;
-    PDUtils::splitDefinition(fu, lhs, rhs);
-
-    if(_onlySingleAtomPreds) {
-      unsigned pred = lhs->functor();
-      if(_clPreds.contains(pred) || _predLits.keyValCount(pred)>1) {
-	continue;
-      }
-    }
-
-    lhsForms.push(new AtomicFormula(lhs));
-    rhsForms.push(rhs);
-    defUnits.push(fu);
+  if(lit==defLhs) {
+    res = defRhs;
+    return true;
   }
-}
 
-void AIGInliner::addDefinitionReplacement(Formula* lhs, Formula* rhs, FormulaUnit* def)
-{
-  CALL("AIGInliner::addDefinitionReplacement");
+  typedef DHMap<unsigned,TermList> BindingMap;
+  static BindingMap binding;
+  binding.reset();
+  MatchingUtils::MapRefBinder<BindingMap> binder(binding);
 
-  unsigned pred = lhs->literal()->functor();
+  ALWAYS(MatchingUtils::match(defLhs, lit, false, binder));
 
-  ASS_G(_predLits.keyValCount(pred),0);
-  ASS(_predLits.keyValCount(pred)!=1 || _predLits.keyVals(pred)->head()==Literal::positiveLiteral(lhs->literal()));
+  SubstHelper::MapApplicator<BindingMap> applicator(&binding);
 
-  bool safeToRemove = !_clPreds.contains(pred) || _predLits.keyValCount(pred)>1;
-  if(safeToRemove) {
-    ALWAYS(_defReplacements.insert(def, 0));
-    return;
-  }
-  rhs = _fsh.apply(rhs).first;
-  Formula* form = new BinaryFormula(IFF, lhs, rhs);
-  Formula::VarList* freeVars = form->freeVariables();
-  if(freeVars) {
-    form = new QuantifiedFormula(FORALL, freeVars, form);
-  }
-  //TODO: add proper inferences
-  FormulaUnit* defTgt = new FormulaUnit(form, new Inference1(Inference::DEFINITION_UNFOLDING, def), def->inputType());
-  ALWAYS(_defReplacements.insert(def, defTgt));
+  res = AIGSubst(_aig).apply(applicator, defRhs);
+  LOG("pp_aiginl_instance","instantiated AIG definition"<<endl<<
+      "  src: "<<atom<<endl<<
+      "  lhs: "<<(*defLhs)<<endl<<
+      "  rhs: "<<defRhs<<endl<<
+      "  tgt: "<<res<<endl
+      );
+  return true;
 }
 
 /**
@@ -148,37 +289,187 @@ void AIGInliner::scan(UnitList* units)
 {
   CALL("AIGInliner::scan");
 
-  scanOccurrences(units);
+//  scanOccurrences(units);
 
   FormulaStack lhsForms;
   FormulaStack rhsForms;
   Stack<FormulaUnit*> defUnits;
 
-  collectDefinitions(units, lhsForms, rhsForms, defUnits);
+  DHMap<AIGRef,AIGRef> atomMap;
 
-  ASS_EQ(lhsForms.size(), rhsForms.size());
-  ASS_EQ(lhsForms.size(), defUnits.size());
-  Stack<unsigned> usedIdxs;
-  _fsh.addRewriteRules(lhsForms.size(), lhsForms.begin(), rhsForms.begin(), &usedIdxs);
+  Stack<AIGRef> relevantAigs;
 
-  while(usedIdxs.isNonEmpty()) {
-    unsigned idx = usedIdxs.pop();
-    Formula* lhs = lhsForms[idx];
-    Formula* rhs = rhsForms[idx];
-    FormulaUnit* def = defUnits[idx];
+  collectDefinitions(units, relevantAigs);
 
-    addDefinitionReplacement(lhs, rhs, def);
+  AIGInsideOutPosIterator ait;
+  ait.reset();
+  ait.addManyToTraversal(Stack<AIGRef>::Iterator(relevantAigs));
+
+  while(ait.hasNext()) {
+    AIGRef a = ait.next();
+    if(!a.isAtom()) {
+      continue;
+    }
+    ASS(a.polarity());
+    AIGRef tgt;
+    if(!tryExpandAtom(a, tgt)) {
+      continue;
+    }
+    ALWAYS(atomMap.insert(a, tgt));
+    ait.addToTraversal(tgt);
   }
+
+  _inlMap.loadFromMap(atomMap);
+
+//  TRACE("bug",
+//      AIGTransformer::RefMap::Iterator mit(_inlMap);
+//      while(mit.hasNext()) {
+//	AIGRef src, tgt;
+//	mit.next(src, tgt);
+//	tout << "-inl---" << endl;
+//	tout << "  src: " << src << endl;
+//	tout << "  tgt: " << tgt << endl;
+//      }
+//  );
+
+
+  _atr.saturateMap(_inlMap);
+
+//  TRACE("bug",
+//      AIGTransformer::RefMap::Iterator mit(_inlMap);
+//      while(mit.hasNext()) {
+//	AIGRef src, tgt;
+//	mit.next(src, tgt);
+//	tout << "-inl-sat--" << endl;
+//	tout << "  src: " << src << endl;
+//	tout << "  tgt: " << tgt << endl;
+//	tout << "  srcI: " << src.toInternalString() << endl;
+//	tout << "  tgtI: " << tgt.toInternalString() << endl;
+//      }
+//  );
+
+
+
+  ait.reset();
+
+  Stack<AIGRef>::Iterator baseAigIt(relevantAigs);
+  while(baseAigIt.hasNext()) {
+    AIGRef baseAig = baseAigIt.next();
+    AIGRef inlAig = AIGTransformer::lev0Deref(baseAig, _inlMap);
+//    LOGV("bug",baseAig);
+//    LOGV("bug",inlAig);
+//    LOGV("bug",inlAig.toInternalString());
+    ait.addToTraversal(inlAig);
+  }
+
+  _acompr.populateBDDCompressingMap(ait, _simplMap);
+
+//  LOGV("bug", _simplMap.size());
+//  TRACE("bug",
+//      AIGTransformer::RefMap::Iterator mit(_simplMap);
+//      while(mit.hasNext()) {
+//	AIGRef src, tgt;
+//	mit.next(src, tgt);
+//	tout << "----" << endl;
+//	tout << "  src: " << src << endl;
+//	tout << "  tgt: " << tgt << endl;
+//	tout << "  srcI: " << src.toInternalString() << endl;
+//	tout << "  tgtI: " << tgt.toInternalString() << endl;
+//      }
+//  );
 }
 
-bool AIGInliner::apply(FormulaUnit* unit, FormulaUnit*& res)
+AIGRef AIGInliner::apply(AIGRef a)
+{
+  CALL("AIGInliner::apply(AIGRef)");
+
+  AIGRef inl = AIGTransformer::lev0Deref(a, _inlMap);
+  AIGRef res = AIGTransformer::lev0Deref(inl, _simplMap);
+  COND_LOG("pp_aiginl_aig", a!=res, "inlining aig transformation:"<<endl
+      <<"  src: "<<a<<endl
+      <<"  inl: "<<inl<<endl
+      <<"  tgt: "<<res<<endl
+      <<"  tSm: "<<_acompr.compress(res)<<endl
+      <<"  srcI: "<<a.toInternalString()<<endl
+      <<"  inlI: "<<inl.toInternalString()<<endl
+      <<"  tgtI: "<<res.toInternalString()
+  );
+  COND_LOG("bug", res!=_acompr.compress(res),
+      "missed simplification in aig inlining:"<<endl
+            <<"  src: "<<a<<endl
+            <<"  inl: "<<inl<<endl
+            <<"  tgt: "<<res<<endl
+            <<"  tSm: "<<_acompr.compress(res)<<endl
+            <<"  srcI: "<<a.toInternalString()<<endl
+            <<"  inlI: "<<inl.toInternalString()<<endl
+            <<"  tgtI: "<<res.toInternalString()
+      );
+
+  ASS_REP(_relevantAigs.contains(a), a);
+
+  return res;
+}
+
+Formula* AIGInliner::apply(Formula* f)
+{
+  CALL("AIGInliner::apply(Formula*)");
+
+  AIGRef a = _fsh.apply(f).second;
+  AIGRef tgt = apply(a);
+  if(tgt==a) {
+    return f;
+  }
+  return _fsh.aigToFormula(tgt);
+}
+
+bool AIGInliner::apply(FormulaUnit* unit, Unit*& res)
 {
   CALL("AIGInliner::apply(FormulaUnit*,FormulaUnit*&)");
+  LOG_UNIT("pp_aiginl_unit_args", unit);
 
-  if(_defReplacements.find(unit, res)) {
-    return true;
+  Formula* f;
+
+  EquivInfo* einf;
+  if(_unit2def.find(unit, einf)) {
+    Formula* newRhs = apply(einf->rhs);
+    if(newRhs==einf->rhs) {
+      return false;
+    }
+    Formula* lhs = new AtomicFormula(einf->lhs);
+    Formula::VarList* qvars = lhs->freeVariables();
+    if(newRhs->connective()==TRUE) {
+      f = lhs;
+    }
+    else if(newRhs->connective()==FALSE) {
+      f = new AtomicFormula(Literal::complementaryLiteral(lhs->literal()));
+    }
+    else {
+      f = new BinaryFormula(IFF, lhs, newRhs);
+    }
+    if(qvars) {
+      f = new QuantifiedFormula(FORALL, qvars, f);
+    }
   }
-  return _fsh.apply(unit, res);
+  else {
+    f = apply(unit->formula());
+    if(f->connective()==TRUE) {
+      res = 0;
+      return true;
+    }
+    if(f==unit->formula()) {
+      return false;
+    }
+  }
+
+  //TODO: collect proper inferences
+  Inference* inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, unit);
+  FormulaUnit* res0 = new FormulaUnit(f, inf, unit->inputType());
+
+  res = Flattening::flatten(res0);
+
+  LOG_SIMPL("pp_aiginl_unit", unit, res);
+
+  return true;
 }
 
 
@@ -186,11 +477,10 @@ bool AIGInliner::apply(FormulaUnit* unit, FormulaUnit*& res)
 // AIGDefinitionIntroducer
 //
 
-AIGDefinitionIntroducer::AIGDefinitionIntroducer(const Options& opts)
+AIGDefinitionIntroducer::AIGDefinitionIntroducer()
 {
   CALL("AIGDefinitionIntroducer::AIGDefinitionIntroducer");
 
-  _eprPreserving = opts.eprPreservingNaming();
   _namingRefCntThreshold = 4; //TODO: add option
   _mergeEquivDefs = false; //not implemented yet
 }
@@ -530,6 +820,7 @@ bool AIGDefinitionIntroducer::apply(FormulaUnit* unit, Unit*& res)
   LOG("pp_aigdef_apply","orig: " << (*unit) << endl << "intr: " << (*res));
   ASS(!res->isClause());
   res = SimplifyFalseTrue().simplify(static_cast<FormulaUnit*>(res));
+  res = Flattening::flatten(static_cast<FormulaUnit*>(res));
   return true;
 }
 

@@ -79,4 +79,31 @@ TEST_FUN(preprapiTopLevelFlatten)
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, ?[X]: (p(X) & q(X))).");
 }
 
+TEST_FUN(preprapiBDDSweeping)
+{
+  Problem::PreprocessingOptions popts;
+  popts.aigBddSweeping = true;
+
+  assertEarlyPreprocActive(popts, true, "fof(a,axiom, p & (q | (r | ((p & b) | ~q))) & (a => a1) & (a1=>a2) & (a2=>b) & a ).");
+  assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) & ?[X]: (p(X) & q(X))).");
+}
+
+TEST_FUN(preprapiAIGInlining)
+{
+  Problem::PreprocessingOptions popts;
+  popts.aigInlining = true;
+
+  assertEarlyPreprocActive(popts, true, "fof(a,axiom, p & (q | (r | ((p & b) | ~q))) & (a => a1) & (a1=>a2) & (a2=>b) & a ).");
+  assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) & ?[X]: (p(X) & q(X))).");
+}
+
+TEST_FUN(preprapiAIGDefIntroduction)
+{
+  Problem::PreprocessingOptions popts;
+  popts.aigDefinitionIntroduction = true;
+
+  assertEarlyPreprocActive(popts, true, "fof(a,axiom, p1 | (a & b)).fof(a,axiom, p2 | (a & b)).fof(a,axiom, p3 | (a & b)).fof(a,axiom, p4 | (a & b)).");
+  assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) & ?[X]: (p(X) & q(X))).");
+}
+
 

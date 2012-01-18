@@ -503,6 +503,15 @@ public:
       return result;
     }
 
+    /**
+     * Return the element that will be returned by next (therefore hasNexgt()
+     * must have returned true), but do not advance to a further element.
+     */
+    inline C peekAtNext()
+    {
+      return _lst->head();
+    }
+
     /** True if there is a next element. */
     inline bool hasNext() const
     {

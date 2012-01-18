@@ -63,7 +63,7 @@ public:
 #define tout std::cerr
 #define TAG_ENABLED(tag) Debug::Logging::isTagEnabled(tag)
 
-#define TRACE(tag,code)							\
+#define TRACE(tag,...)							\
   do {									\
     static unsigned LOGGING_timestamp = 0;				\
     static bool LOGGING_isEnabled;					\
@@ -71,7 +71,7 @@ public:
       LOGGING_isEnabled = TAG_ENABLED(tag);				\
       LOGGING_timestamp = Debug::Logging::getSettingTimestamp();	\
     }									\
-    if(LOGGING_isEnabled) { code } } while(false)
+    if(LOGGING_isEnabled) { __VA_ARGS__ } } while(false)
 
 #define TRACE_OUTPUT_UNIT(tag,u) Debug::Logging::logUnit(tag,u)
 
@@ -165,7 +165,7 @@ public:
 //These are derived macros. If the based macros are disabled, these are
 //expanded into empty strings as well.
 
-#define COND_TRACE(tag,cond,code) TRACE(tag, if(cond) { code } )
+#define COND_TRACE(tag,cond,...) TRACE(tag, if(cond) { __VA_ARGS__ } )
 #define LOG(tag,msg) TRACE(tag, (tout << msg) << std::endl;)
 #define COND_LOG(tag,cond,msg) COND_TRACE(tag, cond, (tout << msg) << std::endl;)
 #define LOGV(tag,var) LOG(tag, #var<<": "<<(var))

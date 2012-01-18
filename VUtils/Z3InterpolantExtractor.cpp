@@ -9,6 +9,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -21,7 +22,6 @@
 
 
 #include "LocalityRestoring.hpp"
-#include "RangeColoring.hpp"
 
 #include "Z3InterpolantExtractor.hpp"
 
@@ -501,13 +501,26 @@ void ZIE::onFunctionApplication(TermList fn)
   }
 }
 
-bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
+bool ZIE::colorProof(TermColoring& colorer, UnitStack& derivation, UnitStack& coloredDerivationTgt)
 {
   CALL("ZIE::colorProof");
 
-  bool first = true;
+  if(!colorer.areUnitsLocal(_inputUnits)) {
+    return false;
+  }
 
-  RangeColoring rcol;
+  colorer.applyToDerivation(derivation, coloredDerivationTgt);
+
+  return true;
+}
+
+TermColoring* ZIE::createRangeColorer()
+{
+  CALL("ZIE::createRangeColorer");
+
+  RangeColoring* res = new RangeColoring();
+
+  bool first = true;
 
   IntegerConstantType globalMin;
   IntegerConstantType globalMax;
@@ -529,21 +542,108 @@ bool ZIE::colorProof(UnitStack& derivation, UnitStack& coloredDerivationTgt)
     }
     first = false;
 //    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
-    rcol.addFunction(func);
+    res->addFunction(func);
   }
   IntegerConstantType midpoint = (globalMax+globalMin)/2;
   LOGV("vu_z3ie", midpoint);
-  rcol.setMiddleValue(midpoint);
+  res->setMiddleValue(midpoint);
 
-  if(!rcol.areUnitsLocal(_inputUnits)) {
-    return false;
-  }
-
-  rcol.applyToDerivation(derivation, coloredDerivationTgt);
-
-  return true;
+  return res;
 }
 
+void ZIE::collectSMTLIB1FileFunctionNames(const char* fname, DHSet<string>& acc)
+{
+  CALL("ZIE::collectSMTLIB1FileFunctionNames");
+
+  ifstream inpStm(fname);
+  LispLexer lex(inpStm);
+  LispParser parser(lex);
+  LExpr* parsOut = parser.parse();
+  LispListReader parsRdr(parsOut);
+  LispListReader bRdr(parsRdr.readList());
+  parsRdr.acceptEOL();
+
+  bRdr.acceptAtom("benchmark");
+  bRdr.acceptAtom();
+  while(bRdr.hasNext()) {
+    if(bRdr.tryAcceptAtom(":status")) {
+      bRdr.acceptAtom();
+    }
+    else if(bRdr.tryAcceptAtom(":source")) {
+      if(!bRdr.tryAcceptCurlyBrackets()) {
+	bRdr.acceptAtom();
+      }
+    }
+    else if(bRdr.tryAcceptAtom(":extrafuns")) {
+      LispListReader declsListRdr(bRdr.readList());
+      while(declsListRdr.hasNext()) {
+	LispListReader declRdr(declsListRdr.readList());
+	string funName = declRdr.readAtom();
+	acc.insert(funName);
+      }
+    }
+    else if(bRdr.tryAcceptAtom(":formula")) {
+      bRdr.readNext();
+    }
+    else {
+      //this will always give an error as we have bRdr.hasNext() set to true
+      bRdr.acceptEOL();
+    }
+  }
+}
+
+TermColoring* ZIE::createFileColorer(unsigned leftCnt, char** leftFNames, unsigned rightCnt, char** rightFNames)
+{
+  CALL("ZIE::createFileColorer");
+
+  DHSet<string> leftNames;
+  for(unsigned i=0; i<leftCnt; i++) {
+    collectSMTLIB1FileFunctionNames(leftFNames[i], leftNames);
+  }
+  DHSet<string> rightNames;
+  for(unsigned i=0; i<rightCnt; i++) {
+    collectSMTLIB1FileFunctionNames(rightFNames[i], rightNames);
+  }
+  DHSet<string> allNames;
+  allNames.loadFromIterator(DHSet<string>::Iterator(leftNames));
+  allNames.loadFromIterator(DHSet<string>::Iterator(rightNames));
+
+  DHMap<string,Color> nameColors;
+
+  DHSet<string>::Iterator nameIt(allNames);
+  while(nameIt.hasNext()) {
+    string name = nameIt.next();
+    bool inLeft = leftNames.contains(name);
+    bool inRight = rightNames.contains(name);
+    ASS(inLeft || inRight);
+    Color clr = inLeft ? (inRight ? COLOR_TRANSPARENT : COLOR_LEFT) : COLOR_RIGHT;
+    nameColors.insert(name, clr);
+  }
+
+  NameMapColoring* res = new NameMapColoring();
+  res->loadColors(nameColors);
+  return res;
+}
+
+/**
+ * argc,argv ... arguments related to the choice of term coloring
+ */
+TermColoring* ZIE::createColorer(unsigned argc, char** argv)
+{
+  CALL("ZIE::createColorer");
+
+  if(argc==0) {
+    return createRangeColorer();
+  }
+  else {
+    unsigned leftColored;
+    if(argc<3 || !Int::stringToUnsignedInt(argv[0], leftColored) || leftColored>argc-2) {
+      USER_ERROR("expected usage: <number of left colored files> <left colored files> <right colored files>");
+    }
+    return createFileColorer(leftColored, argv+1, argc-leftColored-1, argv+(1+leftColored));
+  }
+
+}
 
 ///////////////////////
 // main
@@ -596,7 +696,9 @@ int ZIE::perform(int argc, char** argv)
   Unit* z3Refutation = getZ3Refutation();
 //  InferenceStore::instance()->outputProof(cout, z3Refutation);
 
-  if(!colorProof(_allUnits, _allUnitsColored)) {
+  ScopedPtr<TermColoring> colorer(createColorer(argc-2, argv+2));
+
+  if(!colorProof(*colorer, _allUnits, _allUnitsColored)) {
     cout << "Cannot color the refutation" << endl;
     return 1;
   }

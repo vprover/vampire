@@ -13,9 +13,10 @@
 #include "LispLexer.hpp"
 #include "LispParser.hpp"
 
+namespace Shell {
+
 using namespace Lib;
 using namespace Kernel;
-using namespace Shell;
 
 LispParser::LispParser(LispLexer& lexer)
   : _lexer(lexer),
@@ -155,7 +156,7 @@ void LispParser::parse(List** expr0)
  * Return a LISP string corresponding to this expression
  * @since 26/08/2009 Redmond
  */
-string LispParser::Expression::toString() const
+string LispParser::Expression::toString(bool outerParentheses) const
 {
   CALL("LispParser::Expression::toString");
 
@@ -164,17 +165,23 @@ string LispParser::Expression::toString() const
     return str;
   case LIST:
     {
-      string result = "(";
+      string result;
+      if(outerParentheses) {
+	result = "(";
+      }
       for (List* l = list;l;l = l->tail()) {
 	result += l->head()->toString();
 	if (l->tail()) {
-	  result += ' ';
+	  result += outerParentheses ? ' ' : '\n';
 	}
       }
-      result += ')';
+      if(outerParentheses) {
+	result += ')';
+      }
       return result;
     }
   }
+  ASSERTION_VIOLATION;
 } // LispParser::Expression::toString
 
 /**
@@ -300,3 +307,184 @@ void LispParser::Exception::cry(ostream& out)
   out << "Parser exception: " << _message << '\n';
 } // Exception::cry
 
+///////////////////////
+// LispListReader
+//
+
+void LispListReader::lispError(LExpr* expr, string reason)
+{
+  CALL("SMTLIBConcat::lispError");
+
+  if(expr) {
+    USER_ERROR(reason+": "+expr->toString());
+  }
+  else {
+    USER_ERROR(reason+": <eol>");
+  }
+}
+
+/**
+ * Report error with the current lisp element
+ */
+void LispListReader::lispCurrError(string reason)
+{
+  CALL("LispListReader::lispCurrError");
+
+  if(hasNext()) {
+    lispError(peekAtNext(), reason);
+  }
+  else {
+    lispError(0, reason);
+  }
+}
+
+LExpr* LispListReader::peekAtNext()
+{
+  CALL("LispListReader::peekAtNext");
+  ASS(hasNext());
+
+  return it.peekAtNext();
+}
+
+LExpr* LispListReader::readNext()
+{
+  CALL("LispListReader::readNext");
+  ASS(hasNext());
+  LOG("lisp_rdr","LLR reading "<<it.peekAtNext()->toString());
+
+  return it.next();
+}
+
+bool LispListReader::tryReadAtom(string& atom)
+{
+  CALL("LispListReader::tryReadAtom");
+
+  if(!hasNext()) { return false; }
+
+  LExpr* next = peekAtNext();
+  if(next->isAtom()) {
+    atom = next->str;
+    ALWAYS(readNext()==next);
+    return true;
+  }
+  return false;
+}
+
+string LispListReader::readAtom()
+{
+  CALL("LispListReader::readAtom");
+
+  string atm;
+  if(!tryReadAtom(atm)) {
+    lispCurrError("atom expected");
+  }
+  return atm;
+}
+
+bool LispListReader::tryAcceptAtom(string atom)
+{
+  CALL("SMTLIBConcat::tryAcceptAtom");
+
+  if(!hasNext()) { return false; }
+
+  LExpr* next = peekAtNext();
+  if(next->isAtom() && next->str==atom) {
+    ALWAYS(readNext()==next);
+    return true;
+  }
+  return false;
+}
+
+void LispListReader::acceptAtom(string atom)
+{
+  CALL("SMTLIBConcat::acceptAtom");
+
+  if(!tryAcceptAtom(atom)) {
+    lispCurrError("atom \""+atom+"\" expected");
+  }
+}
+
+bool LispListReader::tryReadList(LExprList*& list)
+{
+  CALL("LispListReader::tryReadList");
+
+  if(!hasNext()) { return false; }
+
+  LExpr* next = peekAtNext();
+  if(next->isList()) {
+    list = next->list;
+    ALWAYS(readNext()==next);
+    return true;
+  }
+  return false;
+}
+LExprList* LispListReader::readList()
+{
+  CALL("LispListReader::readList");
+  LExprList* list;
+  if(!tryReadList(list)) {
+    lispCurrError("list expected");
+  }
+  return list;
+}
+
+bool LispListReader::tryAcceptList()
+{
+  CALL("LispListReader::tryAcceptList");
+  LExprList* lst;
+  return tryReadList(lst);
+}
+void LispListReader::acceptList()
+{
+  CALL("LispListReader::acceptList");
+  readList();
+}
+
+void LispListReader::acceptEOL()
+{
+  CALL("LispListReader::acceptEOL");
+
+  if(hasNext()) {
+    lispCurrError("<eol> expected");
+  }
+}
+
+bool LispListReader::lookAheadAtom(string atom)
+{
+  CALL("LispListReader::lookAheadAtom");
+
+  if(!hasNext()) { return false; }
+  LExpr* next = peekAtNext();
+  return next->isAtom() && next->str==atom;
+}
+
+bool LispListReader::tryAcceptCurlyBrackets()
+{
+  CALL("LispListReader::tryAcceptCurlyBrackets");
+
+  LExpr* next = peekAtNext();
+  if(!next->isAtom() || next->str!="{") {
+    return false;
+  }
+  unsigned depth = 1;
+  readNext();
+  while(depth!=0 && hasNext()) {
+    next = readNext();
+
+    if(!next->isAtom()) {
+      continue;
+    }
+    if(next->str=="{") {
+      depth++;
+    }
+    else if(next->str=="}") {
+      depth--;
+    }
+  }
+  if(depth!=0) {
+    lispCurrError("unpaired opening curly bracket");
+  }
+  return true;
+}
+
+}

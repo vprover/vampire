@@ -114,6 +114,24 @@ public:
 
   template<class Binder>
   static bool matchArgs(Term* base, Term* instance, Binder& binder);
+
+  template<class Map>
+  struct MapRefBinder
+  {
+    MapRefBinder(Map& map) : _map(map) {}
+
+    bool bind(unsigned var, TermList term)
+    {
+      TermList* aux;
+      return _map.getValuePtr(var,aux,term) || *aux==term;
+    }
+    void specVar(unsigned var, TermList term)
+    { ASSERTION_VIOLATION; }
+    void reset() { _map.reset(); }
+  private:
+    Map& _map;
+  };
+
 private:
   typedef DHMap<unsigned,TermList,IdentityHash> BindingMap;
   struct MapBinder

@@ -15,10 +15,13 @@
 
 #include "Lib/Exception.hpp"
 #include "Lib/List.hpp"
+#include "Lib/Portability.hpp"
+#include "Lib/Stack.hpp"
 
 namespace Shell {
 
 using namespace std;
+using namespace Lib;
 
 class LispLexer;
 
@@ -57,7 +60,7 @@ public:
 	str(s),
 	list(0)
     {}
-    string toString() const;
+    string toString(bool outerParentheses=true) const;
 
     bool isList() const { return tag==LIST; }
     bool isAtom() const { return tag==ATOM; }
@@ -95,6 +98,118 @@ private:
   /** balance of parenthesis */
   int _balance;
 }; // class LispParser
+
+typedef LispParser::Expression LExpr;
+typedef List<LExpr*> LExprList;
+
+
+class LispListReader {
+public:
+  explicit LispListReader(LExpr* e)
+  {
+    CALL("LispListReader::LispListReader(LExpr*)");
+    if(!e->isList()) {
+      lispError(e, "list expected");
+    }
+    it = LExprList::Iterator(e->list);
+  }
+  explicit LispListReader(LExprList* list) : it(list) {}
+
+  void lispError(LExpr* expr, string reason="error") NO_RETURN;
+  void lispCurrError(string reason="error") NO_RETURN;
+
+  bool hasNext() { return it.hasNext(); }
+  LExpr* peekAtNext();
+  LExpr* readNext();
+
+  bool tryReadAtom(string& atom);
+  string readAtom();
+
+  bool tryReadList(LExprList*& list);
+  LExprList* readList();
+
+  bool tryAcceptAtom(string atom);
+  void acceptAtom(string atom);
+  void acceptAtom() { readAtom(); }
+
+  bool tryAcceptList();
+  void acceptList();
+
+  void acceptEOL();
+
+  bool lookAheadAtom(string atom);
+
+  bool tryAcceptCurlyBrackets();
+private:
+  LExprList::Iterator it;
+};
+
+class LispListWriter
+{
+public:
+  LispListWriter()
+  {
+#if VDEBUG
+    _destroyed = false;
+#endif
+  }
+
+#if VDEBUG
+  ~LispListWriter()
+  {
+    _destroyed = true;
+  }
+#endif
+
+  LispListWriter& operator<<(string s)
+  {
+    _elements.push(new LExpr(LispParser::ATOM, s));
+    return *this;
+  }
+
+  LispListWriter& operator<<(LExpr* e)
+  {
+    _elements.push(e);
+    return *this;
+  }
+
+  LispListWriter& operator<<(const LispListWriter& e)
+  {
+    _elements.push(e.get());
+    return *this;
+  }
+
+  LispListWriter& append(LExprList* lst)
+  {
+    _elements.loadFromIterator(LExprList::Iterator(lst));
+    return *this;
+  }
+
+  LExprList* getList() const
+  {
+    CALL("LispListWriter::getList");
+    ASS(!_destroyed);
+
+    LExprList* res = 0;
+    LExprList::pushFromIterator(Stack<LExpr*>::TopFirstIterator(_elements), res);
+    return res;
+  }
+
+  LExpr* get() const
+  {
+    CALL("LispListWriter::get");
+
+    LExpr* res = new LExpr(LispParser::LIST);
+    res->list = getList();
+    return res;
+  }
+
+private:
+#if VDEBUG
+  bool _destroyed;
+#endif
+  Stack<LExpr*> _elements;
+};
 
 }
 

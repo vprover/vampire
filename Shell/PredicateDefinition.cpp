@@ -682,7 +682,7 @@ void PredicateDefinition::scan(FormulaUnit* unit)
   if(f->connective() == FORALL) {
     f = f->qarg();
   }
-  ASS_NEQ(f->connective(), FORALL); //formula is flattened
+  ASS_REP(f->connective()!=FORALL, *unit); //formula is flattened
 
   if(f->connective() == IFF) {
     if(f->left()->connective()==LITERAL) {
