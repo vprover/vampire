@@ -15,7 +15,7 @@ PRB_FILE="$AUX_DIR/prb.smt2"
 Z3_OUT="$AUX_DIR/z3_out.txt"
 PROOF_FILE="$AUX_DIR/proof.txt"
 
-$VUTIL_EXEC sc $* >$PRB_FILE
+$VUTIL_EXEC sc $* | fold -w 200 -s >$PRB_FILE
 $Z3_CMD $PRB_FILE >$Z3_OUT 2>&1
 
 if ! grep -q "^unsat" $Z3_OUT; then
