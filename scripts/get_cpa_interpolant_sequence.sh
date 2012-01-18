@@ -18,7 +18,7 @@ PROOF_FILE="$AUX_DIR/proof.txt"
 $VUTIL_EXEC sc $* | fold -w 200 -s >$PRB_FILE
 $Z3_CMD $PRB_FILE >$Z3_OUT 2>&1
 
-BASE="`echo $1 | sed /-formula...\.smt$//`"
+BASE="`echo $1 | sed 's/-formula...\.smt$//'`"
 
 if ! grep -q "^unsat" $Z3_OUT; then
         echo "on $BASE"
