@@ -18,7 +18,10 @@ PROOF_FILE="$AUX_DIR/proof.txt"
 $VUTIL_EXEC sc $* | fold -w 200 -s >$PRB_FILE
 $Z3_CMD $PRB_FILE >$Z3_OUT 2>&1
 
+BASE="`echo $1 | sed /-formula...\.smt$//`"
+
 if ! grep -q "^unsat" $Z3_OUT; then
+        echo "on $BASE"
         echo "unsuccessful z3 run:"
         cat $Z3_OUT
         echo "========"
@@ -26,11 +29,13 @@ if ! grep -q "^unsat" $Z3_OUT; then
         exit 1
 fi
 
+
 grep -v ^unsat $Z3_OUT >$PROOF_FILE
 
 LEFT_CNTS="`eval echo {1..$(($#-1))}`"
 
 for LEFT_CNT in $LEFT_CNTS; do
+        echo "results for $BASE $LEFT_CNT"
         cat $PROOF_FILE | $VUTIL_EXEC zie $LEFT_CNT $*
         echo "========"
 done
