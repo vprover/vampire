@@ -121,9 +121,13 @@ public:
   bool hasNext() { return it.hasNext(); }
   LExpr* peekAtNext();
   LExpr* readNext();
+  LExpr* next() { return readNext(); }
 
   bool tryReadAtom(string& atom);
   string readAtom();
+
+  bool tryReadListExpr(LExpr*& e);
+  LExpr* readListExpr();
 
   bool tryReadList(LExprList*& list);
   LExprList* readList();

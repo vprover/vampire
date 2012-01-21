@@ -78,6 +78,19 @@ unsigned Sorts::addSort(const string& name, bool& added)
   return result;
 }
 
+bool Sorts::haveSort(const string& name)
+{
+  CALL("Sorts::haveSort");
+
+  return _sortNames.find(name);
+}
+
+bool Sorts::findSort(const string& name, unsigned& idx)
+{
+  CALL("Sorts::findSort");
+
+  return _sortNames.find(name, idx);
+}
 
 //////////////////////
 // BaseType

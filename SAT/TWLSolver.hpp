@@ -55,6 +55,7 @@ public:
   virtual VarAssignment getAssignment(unsigned var);
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
+  void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   virtual void retractAllAssumptions();
   virtual bool hasAssumptions() const { return _assumptionsAdded; }
 
@@ -63,6 +64,8 @@ public:
   void assertValid();
   void printAssignment();
 private:
+
+  void doSolving(unsigned conflictNumberLimit);
 
   enum AsgnVal {
     //the true and false value also correspond to positive
@@ -108,7 +111,12 @@ private:
   void backtrack(unsigned tgtLevel);
 
   void doBaseLevelPropagation();
-  void runSatLoop();
+  enum SatLoopResult {
+    SLR_UNKNOWN,
+    SLR_SATISFIABLE,
+    SLR_CONFLICT_LIMIT_REACHED
+  };
+  SatLoopResult runSatLoop(unsigned conflictCountLimit);
 
   void setAssignment(unsigned var, unsigned polarity);
 

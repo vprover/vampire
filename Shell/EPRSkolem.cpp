@@ -5,8 +5,10 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/MultiCounter.hpp"
 #include "Lib/ScopedLet.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -97,7 +99,8 @@ bool EPRSkolem::ConstantSkolemizer::transform(UnitList*& units)
 
 FormulaUnit* EPRSkolem::ConstantSkolemizer::transform(FormulaUnit* fu)
 {
-  CALL("EPRSkolem::ConstantSkolemizer::transform");
+  CALL("EPRSkolem::ConstantSkolemizer::transform(FormulaUnit*)");
+  LOG_UNIT("pp_esk_cs_args", fu);
 
   Formula* form = fu->formula();
   Formula* newForm = transform(form);
@@ -377,6 +380,10 @@ Literal* EPRSkolem::Applicator::getSkolemLiteral(unsigned var)
   if(VarManager::varNamePreserving()) {
     nameSuffix += "_" + VarManager::getVarName(var);
   }
+  else {
+    nameSuffix += "_X" + Int::toString(var);
+  }
+  nameSuffix = StringUtils::sanitizeSuffix(nameSuffix);
   unsigned arity = _lhs->arity()+1;
 
   static Stack<TermList> args;
@@ -395,7 +402,7 @@ Literal* EPRSkolem::Applicator::getSkolemLiteral(unsigned var)
   ASS_EQ(args.size(), arity);
   ASS_EQ(domainSorts.size(), arity);
 
-  unsigned pred = env.signature->addFreshPredicate(arity, nameSuffix.c_str());
+  unsigned pred = env.signature->addFreshPredicate(arity, "sP", nameSuffix.c_str());
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
   predSym->setType(new PredicateType(arity, domainSorts.begin()));
 
@@ -438,7 +445,7 @@ Formula* EPRSkolem::Applicator::applyQuantified(Formula* f)
   }
 
   Formula::VarList::Iterator vit(f->vars());
-  static Stack<Literal*> skLits;
+  Stack<Literal*> skLits;
   skLits.reset();
   while(vit.hasNext()) {
     unsigned var = vit.next();

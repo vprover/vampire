@@ -294,7 +294,8 @@ VS_OBJ = Shell/AIG.o\
          Shell/UIHelper.o\
          Shell/VarManager.o
 
-PARSE_OBJ = Parse/TPTP.o
+PARSE_OBJ = Parse/SMTLIB.o\
+            Parse/TPTP.o
 
 LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Selector.o\

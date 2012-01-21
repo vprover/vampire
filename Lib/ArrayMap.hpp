@@ -148,6 +148,25 @@ public:
   }
 
   /**
+   * Return @b true if key @b index has an object assigned and assign
+   * its value into @c val. Otherwive return false and leave @c val
+   * unmodified.
+   *
+   * Even for this function the value of @b index must be
+   * lower that the bound set by the @b ensure function.
+   */
+  inline
+  bool find(size_t index, T& val)
+  {
+    CALL("ArrayMap::find");
+    if((*this)[index]._timestamp==_timestamp) {
+      val = (*this)[index]._obj;
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Remove the value assigned to the @b index key. The key
    * @b index must have been assigned a value before.
    */

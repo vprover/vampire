@@ -67,7 +67,15 @@ TEST_FUN(preprapiPredEqDiscovery)
 
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, p(a) & q(a)).");
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, ~p(X) | q(X) ). fof(a,axiom, p(a) & q(a)).");
+
+  popts.predicateEquivalenceDiscoverySatConflictLimit = 3;
+  assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, ~p(X) | q(X) ). fof(a,axiom, p(a) & q(a)).");
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, ?[X]: (~p(X) | q(X)) ). fof(a,axiom, p(a) & q(a)).");
+
+  assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(a,X) | ~q(a,X) ). fof(a,axiom, ~p(a,X) | q(a,X) ). fof(a,axiom, p(a,b) & q(a,b)).");
+  popts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = false;
+  assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(a,X) | ~q(a,X) ). fof(a,axiom, ~p(a,X) | q(a,X) ). fof(a,axiom, p(a,b) & q(a,b)).");
+
 }
 
 TEST_FUN(preprapiTopLevelFlatten)

@@ -42,6 +42,9 @@ public:
   unsigned addSort(const string& name, bool& added);
   unsigned addSort(const string& name);
 
+  bool haveSort(const string& name);
+  bool findSort(const string& name, unsigned& idx);
+
   const string& sortName(unsigned idx) const
   {
     CALL("Sorts::sortName");

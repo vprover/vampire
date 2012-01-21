@@ -8,6 +8,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/ArrayMap.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -16,7 +17,6 @@
 #include "Kernel/Problem.hpp"
 
 #include "SAT/SATLiteral.hpp"
-#include "SAT/SATSolver.hpp"
 
 #include "Options.hpp"
 #include "Preprocess.hpp"
@@ -30,16 +30,25 @@ using namespace Kernel;
 using namespace SAT;
 
 class EquivalenceDiscoverer {
-  bool _onlyPropEqCheck;
+
+  //options
+  unsigned _satConflictCountLimit;
+  bool _checkOnlyDefinitionHeads;
 
   GlobalSubsumptionGrounder _gnd;
-  SATSolverSCP _solver;
+  TWLSolver* _solver;
 
   SATLiteralStack _eligibleSatLits;
 //  LiteralStack _foLits;
 
 //  DHMap<Literal*,SATLiteral> _f2s;
   DHMap<SATLiteral,Literal*> _s2f;
+
+  /**
+   * Contains values of initial assignment.
+   * If variable isn't in the map, it was assigned a don't care.
+   */
+  ArrayMap<bool> _initialAssignment;
 
   unsigned _maxSatVar;
 
@@ -54,11 +63,14 @@ class EquivalenceDiscoverer {
 
   bool isEligible(Literal* l);
 
+  void loadInitialAssignment();
+
   bool areEquivalent(SATLiteral l1, SATLiteral l2);
 
   void handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc);
 public:
-  EquivalenceDiscoverer(bool normalizeForSAT, bool onlyPropEqCheck);
+  EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit, bool checkOnlyDefinitionHeads);
+  ~EquivalenceDiscoverer();
 
   UnitList* getEquivalences(ClauseIterator clauses);
   UnitList* getEquivalences(UnitList* units, const Options* opts=0);

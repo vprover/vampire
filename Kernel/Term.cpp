@@ -394,7 +394,7 @@ string Term::toString() const
 
   Stack<const TermList*> stack(64);
 
-  string s = functionName();
+  string s = isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName();
   if (_arity) {
     s += '(';
     stack.push(args());
@@ -503,7 +503,7 @@ const string& Term::functionName() const
   CALL("Term::functionName");
 
 #if VDEBUG
-  static string nonexisting("<predicate does not exists>");
+  static string nonexisting("<function does not exists>");
   if(_functor>=static_cast<unsigned>(env.signature->functions())) {
     return nonexisting;
   }

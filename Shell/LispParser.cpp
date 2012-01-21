@@ -404,28 +404,49 @@ void LispListReader::acceptAtom(string atom)
   }
 }
 
-bool LispListReader::tryReadList(LExprList*& list)
+bool LispListReader::tryReadListExpr(LExpr*& e)
 {
-  CALL("LispListReader::tryReadList");
+  CALL("LispListReader::tryReadListExpr");
 
   if(!hasNext()) { return false; }
 
   LExpr* next = peekAtNext();
   if(next->isList()) {
-    list = next->list;
+    e = next;
     ALWAYS(readNext()==next);
     return true;
   }
   return false;
 }
-LExprList* LispListReader::readList()
+
+LExpr* LispListReader::readListExpr()
 {
-  CALL("LispListReader::readList");
-  LExprList* list;
-  if(!tryReadList(list)) {
+  CALL("LispListReader::readListExpr");
+
+  LExpr* list;
+  if(!tryReadListExpr(list)) {
     lispCurrError("list expected");
   }
   return list;
+}
+
+bool LispListReader::tryReadList(LExprList*& list)
+{
+  CALL("LispListReader::tryReadList");
+
+  LExpr* lstExpr;
+  if(tryReadListExpr(lstExpr)) {
+    list = lstExpr->list;
+    return true;
+  }
+  return false;
+}
+
+LExprList* LispListReader::readList()
+{
+  CALL("LispListReader::readList");
+
+  return readListExpr()->list;
 }
 
 bool LispListReader::tryAcceptList()

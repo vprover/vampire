@@ -857,6 +857,12 @@ void Options::set(const char* name,const char* value, int index)
     case AGE_WEIGHT_RATIO:
       readAgeWeightRatio(value, _ageRatio, _weightRatio);
       return;
+    case AIG_BDD_SWEEPING:
+      _aigBddSweeping = onOffToBool(value,name);
+      return;
+    case AIG_DEFINITION_INTRODUCTION:
+      _aigDefinitionIntroduction = onOffToBool(value,name);
+      return;
     case AIG_FORMULA_SHARING:
       _aigFormulaSharing = onOffToBool(value,name);
       return;
@@ -1418,7 +1424,7 @@ void Options::set(const char* name,const char* value, int index)
 
 #if VDEBUG
     default:
-      ASSERTION_VIOLATION;
+      ASSERTION_VIOLATION_REP(name);
 #endif
     }
     throw ValueNotFoundException();
@@ -1669,6 +1675,12 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case AGE_WEIGHT_RATIO:
     str << _ageRatio << ':' << _weightRatio;
+    return;
+  case AIG_BDD_SWEEPING:
+    str << boolToOnOff(_aigBddSweeping);
+    return;
+  case AIG_DEFINITION_INTRODUCTION:
+    str << boolToOnOff(_aigDefinitionIntroduction);
     return;
   case AIG_FORMULA_SHARING:
     str << boolToOnOff(_aigFormulaSharing);

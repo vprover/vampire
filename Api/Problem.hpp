@@ -233,6 +233,21 @@ public:
      * Use SAT solver to attempt to discover predicate equivalences
      */
     bool predicateEquivalenceDiscovery;
+    /**
+     * Limit on the number of SAT conflicts in each equivalence check.
+     * Default is 0 which stands for unit propagation only, UINT_MAX
+     * means unlimited.
+     */
+    unsigned predicateEquivalenceDiscoverySatConflictLimit;
+
+    /**
+     * If true, the predicate equivalence search will be restricted to atoms
+     * in the shape of predicate definition heads. Otherwise we will look for
+     * equivalences between any pairs of atoms.
+     *
+     * Default value is true.
+     */
+    bool predicateEquivalenceDiscoveryPredicateEquivalencesOnly;
 
     /**
      * Full inlining using AIG with BDD-sweeping simplifications

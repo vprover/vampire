@@ -55,34 +55,8 @@ bool SortHelper::tryGetResultSort(Term* t, unsigned& result)
   CALL("tryGetResultSort(Term*,unsigned&)");
   ASS(!t->isLiteral());
 
-  if(!t->isSpecial()) {
-    result = getResultSort(t);
-    return true;
-  }
-  //we may have many nested special terms. to be safe, we traverse them using our own stack.
-  static Stack<Term*> candidates;
-  candidates.reset();
-
-  for(;;) {
-    switch(t->functor()) {
-    case Term::SF_TERM_ITE:
-      if(t->nthArgument(0)->isTerm()) { candidates.push(t->nthArgument(0)->term()); }
-      if(t->nthArgument(1)->isTerm()) { candidates.push(t->nthArgument(1)->term()); }
-      break;
-    case Term::SF_LET_TERM_IN_TERM:
-    case Term::SF_LET_FORMULA_IN_TERM:
-      if(t->nthArgument(0)->isTerm()) { candidates.push(t->nthArgument(0)->term()); }
-      break;
-    default:
-      ASS(!t->isSpecial());
-      result = getResultSort(t);
-      return true;
-    }
-    if(candidates.isEmpty()) {
-      return false;
-    }
-    t = candidates.pop();
-  }
+  TermList masterVar;
+  return getResultSortOrMasterVariable(t, result, masterVar);
 }
 
 bool SortHelper::tryGetResultSort(TermList t, unsigned& result)
@@ -90,6 +64,83 @@ bool SortHelper::tryGetResultSort(TermList t, unsigned& result)
   CALL("tryGetResultSort(TermList,unsigned&)");
   if(t.isVar()) { return false; }
   return tryGetResultSort(t.term(), result);
+}
+
+/**
+ * If sort of term @c t depends on a variable, assign the variable into
+ * @c resultVar and return false. Otherwise assign the sort of the term
+ * into @c resultSort and return true.
+ */
+bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, TermList& resultVar)
+{
+  CALL("SortHelper::getResultSortOrMasterVariable");
+
+  if(!t->isSpecial()) {
+    resultSort = getResultSort(t);
+    return true;
+  }
+  //we may have many nested special terms. to be safe, we traverse them using our own stack.
+  static Stack<Term*> candidates;
+  candidates.reset();
+
+  TermList masterVar;
+  masterVar.makeEmpty();
+
+  for(;;) {
+    switch(t->functor()) {
+    case Term::SF_TERM_ITE:
+    {
+      TermList arg1 = *t->nthArgument(0);
+      TermList arg2 = *t->nthArgument(1);
+      if(arg1.isTerm()) {
+	candidates.push(arg1.term());
+      }
+      else {
+	masterVar = arg1;
+      }
+      if(arg2.isTerm()) {
+	candidates.push(arg2.term());
+      }
+      else {
+	masterVar = arg2;
+      }
+      break;
+    }
+    case Term::SF_LET_TERM_IN_TERM:
+    case Term::SF_LET_FORMULA_IN_TERM:
+    {
+      TermList arg1 = *t->nthArgument(0);
+      if(arg1.isTerm()) {
+	candidates.push(arg1.term());
+      }
+      else {
+	masterVar = arg1;
+      }
+      break;
+    }
+    default:
+      ASS(!t->isSpecial());
+      resultSort = getResultSort(t);
+      return true;
+    }
+    if(candidates.isEmpty()) {
+      ASS(masterVar.isVar());
+      resultVar = masterVar;
+      return false;
+    }
+    t = candidates.pop();
+  }
+}
+
+bool SortHelper::getResultSortOrMasterVariable(TermList t, unsigned& resultSort, TermList& resultVar)
+{
+  CALL("SortHelper::getResultSortOrMasterVariable");
+
+  if(t.isVar()) {
+    resultVar = t;
+    return false;
+  }
+  return getResultSortOrMasterVariable(t.term(), resultSort, resultVar);
 }
 
 /**

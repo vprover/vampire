@@ -21,6 +21,8 @@ public:
 
   static bool tryGetResultSort(Term* t, unsigned& result);
   static bool tryGetResultSort(TermList t, unsigned& result);
+  static bool getResultSortOrMasterVariable(Term* t, unsigned& resultSort, TermList& resultVar);
+  static bool getResultSortOrMasterVariable(TermList t, unsigned& resultSort, TermList& resultVar);
 
   static unsigned getEqualityArgumentSort(const Literal* lit);
 

@@ -32,7 +32,7 @@ TEST_FUN(transpSolver1)
   solver->addAssumption(SATLiteral(1,false));
   ASS_EQ(solver->getStatus(),SATSolver::UNSATISFIABLE);
   solver->retractAllAssumptions();
-  ASS_EQ(solver->getStatus(),SATSolver::SATISFIABLE);
+  ASS_NEQ(solver->getStatus(),SATSolver::UNSATISFIABLE);
 
   solver->ensureVarCnt(7);
   solver->addClauses(pvi(getSingletonIterator( TestUtils::buildSATClause(2,3,4) )), false);
@@ -44,7 +44,7 @@ TEST_FUN(transpSolver1)
   solver->addAssumption(SATLiteral(6,false));
   ASS_EQ(solver->getStatus(),SATSolver::UNSATISFIABLE);
   solver->retractAllAssumptions();
-  ASS_EQ(solver->getStatus(),SATSolver::SATISFIABLE);
+  ASS_NEQ(solver->getStatus(),SATSolver::UNSATISFIABLE);
 
   solver->ensureVarCnt(12);
   solver->addClauses(pvi(getSingletonIterator( TestUtils::buildSATClause(2,10,11) )), false);

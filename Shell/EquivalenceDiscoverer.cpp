@@ -13,6 +13,7 @@
 #include "Kernel/Term.hpp"
 
 #include "SAT/Preprocess.hpp"
+#include "SAT/SATInference.hpp"
 #include "SAT/TWLSolver.hpp"
 
 #include "EquivalenceDiscoverer.hpp"
@@ -26,10 +27,21 @@ namespace Shell
 using namespace Kernel;
 using namespace SAT;
 
-EquivalenceDiscoverer::EquivalenceDiscoverer(bool normalizeForSAT, bool onlyPropEqCheck)
-    : _onlyPropEqCheck(onlyPropEqCheck), _gnd(normalizeForSAT), _maxSatVar(0)
+EquivalenceDiscoverer::EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit,
+    bool checkOnlyDefinitionHeads)
+    : _satConflictCountLimit(satConflictCountLimit),
+      _checkOnlyDefinitionHeads(checkOnlyDefinitionHeads),
+      _gnd(normalizeForSAT),
+      _maxSatVar(0)
 {
+  CALL("EquivalenceDiscoverer::EquivalenceDiscoverer");
   _solver = new TWLSolver(*env.options, true);
+}
+
+EquivalenceDiscoverer::~EquivalenceDiscoverer()
+{
+  CALL("EquivalenceDiscoverer::~EquivalenceDiscoverer");
+  delete _solver;
 }
 
 void EquivalenceDiscoverer::addGrounding(Clause* cl)
@@ -64,8 +76,11 @@ bool EquivalenceDiscoverer::isEligible(Literal* l)
 {
   CALL("EquivalenceDiscoverer::isEligible");
 
-//  return PDUtils::isDefinitionHead(l);
-  return PDUtils::isDefinitionHead(l) && !env.signature->getPredicate(l->functor())->introduced();
+  if(env.signature->getPredicate(l->functor())->introduced()) {
+    return false;
+  }
+
+  return !_checkOnlyDefinitionHeads || PDUtils::isDefinitionHead(l);
 }
 
 void EquivalenceDiscoverer::collectRelevantLits()
@@ -95,6 +110,27 @@ void EquivalenceDiscoverer::collectRelevantLits()
   }
 }
 
+void EquivalenceDiscoverer::loadInitialAssignment()
+{
+  CALL("EquivalenceDiscoverer::loadInitialAssignment");
+
+  _initialAssignment.ensure(_maxSatVar+1);
+  for(unsigned i=1; i<=_maxSatVar; i++) {
+    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    switch(asgn) {
+    case SATSolver::DONT_CARE:
+      break;
+    case SATSolver::FALSE:
+    case SATSolver::TRUE:
+      _initialAssignment.insert(i, asgn==SATSolver::TRUE);
+      break;
+    case SATSolver::NOT_KNOWN:
+    default:
+      ASSERTION_VIOLATION;
+    }
+  }
+}
+
 UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
 {
   CALL("EquivalenceDiscoverer::getEquivalences");
@@ -116,7 +152,7 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   LOG("pp_ed_progress","relevant literals collected");
 
   _solver->ensureVarCnt(_maxSatVar+1);
-  _solver->addClauses(pvi(SATClauseStack::Iterator(_filteredSatClauses)), true);
+  _solver->addClauses(pvi(SATClauseStack::Iterator(_filteredSatClauses)), false);
 
   LOG("pp_ed_progress","grounded clauses added to SAT solver");
 
@@ -125,6 +161,8 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
     return 0;
   }
   ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
+
+  loadInitialAssignment();
 
   //the actual equivalence finding
 
@@ -160,6 +198,7 @@ Literal* EquivalenceDiscoverer::getFOLit(SATLiteral slit) const
     return res;
   }
   res = Literal::complementaryLiteral(_s2f.get(slit.opposite()));
+  return res;
 }
 
 void EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc)
@@ -168,27 +207,35 @@ void EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, Unit
 
   ASS_NEQ(l1.var(), l2.var());
 
+  Literal* fl1 = getFOLit(l1);
+  Literal* fl2 = getFOLit(l2);
+
+  Formula* eqForm = new BinaryFormula(IFF, new AtomicFormula(fl1), new AtomicFormula(fl2));
+  Formula::VarList* freeVars = eqForm->freeVariables();
+  if(freeVars) {
+    eqForm = new QuantifiedFormula(FORALL, freeVars, eqForm);
+  }
+  //TODO: proof tracking
+  FormulaUnit* fu = new FormulaUnit(eqForm, new Inference(Inference::EQUIVALENCE_DISCOVERY), Unit::AXIOM);
+  UnitList::push(fu, eqAcc);
+
+
   static SATLiteralStack slits;
   slits.reset();
   slits.push(l1);
   slits.push(l2.opposite());
   SATClause* scl1 = SATClause::fromStack(slits);
+  scl1->setInference(new FOConversionInference(UnitSpec(fu)));
 
   slits.reset();
   slits.push(l1.opposite());
   slits.push(l2);
   SATClause* scl2 = SATClause::fromStack(slits);
+  scl2->setInference(new FOConversionInference(UnitSpec(fu)));
 
   _solver->addClauses(
-      pvi( getConcatenatedIterator(getSingletonIterator(scl1),getSingletonIterator(scl2)) ));
+      pvi( getConcatenatedIterator(getSingletonIterator(scl1),getSingletonIterator(scl2)) ), true);
 
-  Literal* fl1 = getFOLit(l1);
-  Literal* fl2 = getFOLit(l2);
-
-  Formula* eqForm = new BinaryFormula(IFF, new AtomicFormula(fl1), new AtomicFormula(fl2));
-  //TODO: proof tracking
-  FormulaUnit* fu = new FormulaUnit(eqForm, new Inference(Inference::EQUIVALENCE_DISCOVERY), Unit::AXIOM);
-  UnitList::push(fu, eqAcc);
 
   LOG_UNIT("pp_ed_eq",fu);
 }
@@ -200,6 +247,19 @@ bool EquivalenceDiscoverer::areEquivalent(SATLiteral l1, SATLiteral l2)
   ASS(!_solver->hasAssumptions());
   ASS_NEQ(_solver->getStatus(),SATSolver::UNSATISFIABLE);
 
+  unsigned v1 = l1.var();
+  unsigned v2 = l2.var();
+  bool eqPol = l1.polarity()==l2.polarity();
+
+  bool v1InitAsgn;
+  bool v2InitAsgn;
+  if(!_initialAssignment.find(v1, v1InitAsgn) || !_initialAssignment.find(v2, v2InitAsgn)) {
+    return false;
+  }
+  if((v1InitAsgn==v2InitAsgn)!=eqPol) {
+    return false;
+  }
+
   bool firstAssumptionPropOnly = true;
 //  bool firstAssumptionPropOnly = _onlyPropEqCheck;
 
@@ -207,7 +267,7 @@ bool EquivalenceDiscoverer::areEquivalent(SATLiteral l1, SATLiteral l2)
   _solver->addAssumption(l1, firstAssumptionPropOnly);
   LOG("pp_ed_asm","result for l1: "<<_solver->getStatus());
   LOG("pp_ed_asm","asserted ~l2: "<<l2.opposite());
-  _solver->addAssumption(l2.opposite(), _onlyPropEqCheck);
+  _solver->addAssumption(l2.opposite(), _satConflictCountLimit);
 
   SATSolver::Status status = _solver->getStatus();
   LOG("pp_ed_asm","result for ~(l1=>l2): "<<status);
@@ -221,7 +281,7 @@ bool EquivalenceDiscoverer::areEquivalent(SATLiteral l1, SATLiteral l2)
   _solver->addAssumption(l1.opposite(), firstAssumptionPropOnly);
   LOG("pp_ed_asm","result for ~l1: "<<_solver->getStatus());
   LOG("pp_ed_asm","asserted l2: "<<l2);
-  _solver->addAssumption(l2, _onlyPropEqCheck);
+  _solver->addAssumption(l2, _satConflictCountLimit);
 
   status = _solver->getStatus();
   LOG("pp_ed_asm","result for ~(l2=>l1): "<<status);
@@ -245,8 +305,7 @@ UnitList* EquivalenceDiscoverer::getEquivalences(UnitList* units, const Options*
   prepr.preprocess(prb);
   //TODO: we will leak the results of this preprocessing iteration
 
-  EquivalenceDiscoverer eqd(true, false);
-  return eqd.getEquivalences(prb.clauseIterator());
+  return getEquivalences(prb.clauseIterator());
 }
 
 //////////////////////////////////////
@@ -274,7 +333,8 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
 {
   CALL("EquivalenceDiscoveringTransformer::apply(UnitList*&)");
 
-  EquivalenceDiscoverer eqd(true, false);
+//  EquivalenceDiscoverer eqd(true, 0, true);
+  EquivalenceDiscoverer eqd(true, 1, false);
   UnitList* equivs = eqd.getEquivalences(units, &_opts);
   if(!equivs) {
     return false;

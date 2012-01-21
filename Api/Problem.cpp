@@ -124,6 +124,8 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   predicateIndexIntroduction(false),
   flatteningTopLevelConjunctions(false),
   predicateEquivalenceDiscovery(false),
+  predicateEquivalenceDiscoverySatConflictLimit(0),
+  predicateEquivalenceDiscoveryPredicateEquivalencesOnly(true),
   aigInlining(false),
   aigBddSweeping(false),
   aigDefinitionIntroduction(false)
@@ -1011,8 +1013,13 @@ protected:
 class Problem::PredicateEquivalenceDiscoverer
 {
 public:
+  PredicateEquivalenceDiscoverer(unsigned satConflictCountLimit, bool predEquivsOnly)
+  : _satConflictCountLimit(satConflictCountLimit), _predEquivsOnly(predEquivsOnly) {}
+
   Problem transform(Problem p)
   {
+    CALL("PredicateEquivalenceDiscoverer::transform");
+
     if(p.empty()) {
       return p;
     }
@@ -1025,7 +1032,7 @@ public:
       Kernel::UnitList::push(f.unit, units);
     }
 
-    EquivalenceDiscoverer ed(true, false);
+    EquivalenceDiscoverer ed(true, _satConflictCountLimit, _predEquivsOnly);
     Kernel::UnitList* eqs = ed.getEquivalences(units);
     units->destroy();
 
@@ -1042,6 +1049,9 @@ public:
     return PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY, false).transform(p);
   }
 
+private:
+  unsigned _satConflictCountLimit;
+  bool _predEquivsOnly;
 };
 
 
@@ -1247,7 +1257,8 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
   }
 
   if(options.predicateEquivalenceDiscovery) {
-    res = PredicateEquivalenceDiscoverer().transform(res);
+    res = PredicateEquivalenceDiscoverer(options.predicateEquivalenceDiscoverySatConflictLimit,
+	options.predicateEquivalenceDiscoveryPredicateEquivalencesOnly).transform(res);
   }
 
   if(options.eprSkolemization) {

@@ -325,6 +325,9 @@ void Logging::doTagDeclarations()
   DECL("pp_esk_quant",
       DOC("quantifier processing in epr-restoring skolemization"),
       PARENT("pp_esk",1));
+  DECL("pp_esk_cs_args",
+      DOC("units processed y constant skolemization"),
+      PARENT("pp_esk",1));
 
   DECL("pp_hr",
       DOC("horn revealer"),
@@ -498,6 +501,13 @@ void Logging::doTagDeclarations()
   DECL("pp_pii_rwr",
       DOC("rewrites of eliminated predicates into indexed"),
       PARENT("pp_pii", 2));
+
+  DECL("pp_ep",
+      DOC("equality propagation"),
+      PARENT("pp",1));
+  DECL("pp_ep_args",
+      DOC("units on which equality propagation is applied"),
+      PARENT("pp_ep",1));
 
   //
   // BFNT

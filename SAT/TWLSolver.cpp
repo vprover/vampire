@@ -143,15 +143,8 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
       _variableSelector->onInputClauseAdded(cl);
       _clauseDisposer->onNewInputClause(cl);
     }
-    if(onlyPropagate) {
-      backtrack(1);
-      doBaseLevelPropagation();
-    }
-    else {
-      runSatLoop();
-    }
-
-  } catch (UnsatException e)
+    doSolving(onlyPropagate ? 0 : UINT_MAX);
+  } catch (const UnsatException& e)
   {
     _status=UNSATISFIABLE;
     _refutation = e.refutation;
@@ -161,7 +154,14 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
 
 void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
 {
-  CALL("TWLSolver::addAssumption");
+  CALL("TWLSolver::addAssumption(SATLiteral,bool)");
+
+  addAssumption(lit, onlyPropagate ? 0 : UINT_MAX);
+}
+
+void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
+{
+  CALL("TWLSolver::addAssumption(SATLiteral,unsigned)");
 
   LOG("sat_asmp","add assumption "<<lit);
 
@@ -172,9 +172,6 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
     return;
   }
   ASS(!anythingToPropagate());
-
-  //Invariant: before adding assumptions the problem must be satisfiable
-  ASS_EQ(_status, SATISFIABLE);
 
   try
   {
@@ -191,13 +188,8 @@ void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
     }
     makeAssumptionAssignment(lit);  //increases _assumptionCnt
     LOG("sat_asmp","assumption made");
-    if(onlyPropagate) {
-      doBaseLevelPropagation();
-    }
-    else {
-      runSatLoop();
-    }
-  } catch (UnsatException e)
+    doSolving(conflictCountLimit);
+  } catch (const UnsatException& e)
   {
     LOG("sat_asmp","assumption unsat");
     _unsatisfiableAssumptions = true;
@@ -216,8 +208,7 @@ void TWLSolver::retractAllAssumptions()
   _assumptionsAdded = false;
 
   if(_unsatisfiableAssumptions) {
-    //Invariant: before adding assumptions the problem was satisfiable
-    _status = SATISFIABLE;
+    _status = UNKNOWN;
     _unsatisfiableAssumptions = false;
   }
 
@@ -244,6 +235,26 @@ void TWLSolver::retractAllAssumptions()
   resetPropagation();
 }
 
+/**
+ * Perform solving with given conflictNumberLimit (or UINT_MAX for unlimited).
+ * Update status for SATISFIABLE or UNKNOWN results. The UNSATISFIABLE result
+ * passed to caller as a thrown UnsatException.
+ */
+void TWLSolver::doSolving(unsigned conflictNumberLimit)
+{
+  CALL("TWLSolver::doSolving");
+
+  if(conflictNumberLimit!=0) {
+    SatLoopResult slRes = runSatLoop(conflictNumberLimit);
+    if(slRes==SLR_SATISFIABLE) {
+      _status = SATISFIABLE;
+      return;
+    }
+  }
+  backtrack(1);
+  doBaseLevelPropagation();
+  _status = UNKNOWN;
+}
 
 /**
  * Backtrack at least to level @c tgtLev
@@ -1133,13 +1144,17 @@ void TWLSolver::doBaseLevelPropagation()
   }
 }
 
-void TWLSolver::runSatLoop()
+TWLSolver::SatLoopResult TWLSolver::runSatLoop(unsigned conflictCountLimit)
 {
   CALL("TWLSolver::runSatLoop");
+
+  SatLoopResult res = SLR_UNKNOWN;
 
   _restartStrategy->reset();
 
   size_t conflictsBeforeRestart = _restartStrategy->getNextConflictCount();
+  bool conflictCountLimited = conflictCountLimit!=UINT_MAX;
+  unsigned conflictCountLimitRemaining = conflictCountLimit;
   bool restartASAP = false;
 
   for(;;) {
@@ -1157,10 +1172,15 @@ void TWLSolver::runSatLoop()
     }
 
     if(!anythingToPropagate()) {
+      if(conflictCountLimitRemaining==0) {
+	res = SLR_CONFLICT_LIMIT_REACHED;
+	break;
+      }
       unsigned choiceVar;
       if(!_variableSelector->selectVariable(choiceVar)) {
         //We don't havething to propagate, nor any choice points. This means
         //we have fount an assignment.
+	res = SLR_SATISFIABLE;
 	break;
       }
       PackedAsgnVal asgn = _lastAssignments[choiceVar];
@@ -1180,6 +1200,9 @@ void TWLSolver::runSatLoop()
       }
       else {
 	conflictsBeforeRestart--;
+      }
+      if(conflictCountLimited && conflictCountLimitRemaining!=0) {
+	conflictCountLimitRemaining--;
       }
       _variableSelector->onConflict();
       _clauseDisposer->onConflict();
@@ -1220,6 +1243,8 @@ void TWLSolver::runSatLoop()
       }
     }
   }
+  ASS_NEQ(res,SLR_UNKNOWN);
+  return res;
 }
 
 

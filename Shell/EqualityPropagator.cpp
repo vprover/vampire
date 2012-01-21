@@ -393,6 +393,7 @@ FormulaUnit* EqualityPropagator::apply(FormulaUnit* u)
 {
   CALL("EqualityPropagator::apply(FormulaUnit*)");
   ASS(!u->isClause());
+  LOG_UNIT("pp_ep_args",u);
 
   Formula* form = u->formula();
   Formula* newForm = applyTopLevel(form);

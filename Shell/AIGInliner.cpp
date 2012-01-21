@@ -27,6 +27,7 @@
 #include "Flattening.hpp"
 #include "Options.hpp"
 #include "PDUtils.hpp"
+#include "Rectify.hpp"
 #include "SimplifyFalseTrue.hpp"
 
 #include "AIGInliner.hpp"
@@ -465,7 +466,8 @@ bool AIGInliner::apply(FormulaUnit* unit, Unit*& res)
   Inference* inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, unit);
   FormulaUnit* res0 = new FormulaUnit(f, inf, unit->inputType());
 
-  res = Flattening::flatten(res0);
+  res0 = Flattening::flatten(res0);
+  res = Rectify::rectify(res0);
 
   LOG_SIMPL("pp_aiginl_unit", unit, res);
 
