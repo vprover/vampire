@@ -4,9 +4,42 @@
 # get_cpa_interpolant_sequence.sh <vutil executable> <z3 executable> <cpa files>...
 # 
 
+#this is usable only for vampire
+TIME_LIMIT_SPEC=""
+if [ "$1" == "-t" ]; then
+        TIME_LIMIT_SPEC="-t $2"
+        shift 2
+fi
+
+
+
+function run_vampire()
+{
+        local VAMP_ARGS="-ptb off -aig_bdd_sweeping on -show_interpolant minimized -flatten_top_level_conjunctions on -aig_definition_introduction on -proof off -statistics none $TIME_LIMIT_SPEC"
+        local LEFT_CNTS="`eval echo {1..$(($#-1))}`"
+        
+        for LEFT_CNT in $LEFT_CNTS; do
+                echo "results for $BASE $LEFT_CNT"
+                $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS | grep -v "Refutation found"
+                if [ $? -eq 130 ]; then
+                        echo interrupted
+                        exit 130
+                fi
+                echo "========"
+        done
+}
+
+
 VUTIL_EXEC=$1
 Z3_EXEC=$2
 shift 2
+
+BASE="`echo $1 | sed 's/-formula...\.smt$//'`"
+
+if [ "$Z3_EXEC" == "-" ]; then
+        run_vampire $*
+        exit 0
+fi
 
 Z3_CMD="$Z3_EXEC PROOF_MODE=2 -smt2"
 
@@ -17,8 +50,6 @@ PROOF_FILE="$AUX_DIR/proof.txt"
 
 $VUTIL_EXEC sc $* | fold -w 200 -s >$PRB_FILE
 $Z3_CMD $PRB_FILE >$Z3_OUT 2>&1
-
-BASE="`echo $1 | sed 's/-formula...\.smt$//'`"
 
 if ! grep -q "^unsat" $Z3_OUT; then
         echo "on $BASE"
