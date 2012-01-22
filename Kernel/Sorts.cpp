@@ -10,12 +10,12 @@
 namespace Kernel
 {
 
-const unsigned Sorts::SRT_DEFAULT = 0;
-const unsigned Sorts::SRT_BOOL = 1;
-const unsigned Sorts::SRT_INTEGER = 2;
-const unsigned Sorts::SRT_RATIONAL = 3;
-const unsigned Sorts::SRT_REAL = 4;
-const unsigned Sorts::FIRST_USER_SORT = 5;
+//const unsigned Sorts::SRT_DEFAULT = 0;
+//const unsigned Sorts::SRT_BOOL = 1;
+//const unsigned Sorts::SRT_INTEGER = 2;
+//const unsigned Sorts::SRT_RATIONAL = 3;
+//const unsigned Sorts::SRT_REAL = 4;
+//const unsigned Sorts::FIRST_USER_SORT = 5;
 
 
 Sorts::Sorts()

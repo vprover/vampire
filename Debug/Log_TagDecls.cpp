@@ -509,6 +509,16 @@ void Logging::doTagDeclarations()
       DOC("units on which equality propagation is applied"),
       PARENT("pp_ep",1));
 
+  DECL("pp_tlf",
+      DOC("top-level flattening"),
+      PARENT("pp",1));
+  DECL("pp_tlf_processed",
+      DOC("units on which top-level flattening is applied"),
+      PARENT("pp_tlf",1));
+  DECL("pp_tlf_res",
+      DOC("results of top-level flattening"),
+      PARENT("pp_tlf",1));
+
   //
   // BFNT
   //

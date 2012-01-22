@@ -73,7 +73,7 @@ void SMTLIBConcat::rewriteSmt1FormToSmt2(LExpr* e0)
 	LOG("vu_sc_let","let rewriting"<<endl<<"  src:"<<e->toString());
 	LExpr* head = rdr.readNext();
 	LExpr* defs = rdr.readNext();
-	LExpr* body = rdr.readNext();
+	rdr.readNext();
 	rdr.acceptEOL();
 
 	head->str = "let";
@@ -215,7 +215,6 @@ LExpr* SMTLIBConcat::mergeBenchmarksIntoSmtlib2(Stack<LExpr*>& exprs)
 
   DHSet<string> funSet;
   Stack<LExpr*> funs;
-  LExprList* formulas = 0;
 
   LispListWriter res;
   Stack<LExpr*>::Iterator bit(exprs);

@@ -211,6 +211,10 @@ void Preprocess::preprocess (Problem& prb)
     AIGCompressingTransformer().apply(prb);
   }
 
+  if(_options.flattenTopLevelConjunctions()) {
+    TopLevelFlatten().apply(prb);
+  }
+
   if(_options.aigInliner()) {
     AIGInliner().apply(prb);
   }

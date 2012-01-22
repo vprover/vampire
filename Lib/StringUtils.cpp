@@ -76,4 +76,47 @@ string StringUtils::sanitizeSuffix(string str)
   return string(buf.array(), len);
 }
 
+bool StringUtils::isPositiveInteger(string str)
+{
+  CALL("StringUtils::isPositiveInteger");
+
+  size_t sz = str.size();
+
+  if(str[0]=='0') {
+    return sz==1;
+  }
+  for(size_t i=0; i<sz; i++) {
+    if(str[i]<'0' || str[i]>'9') {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool StringUtils::isPositiveDecimal(string str)
+{
+  CALL("StringUtils::isPositiveDecimal");
+
+  size_t sz = str.size();
+  size_t afterPoint;
+
+  size_t i = 0;
+  if(str[0]=='0') {
+    if(sz==1) { return true; }
+    if(str[1]!='.') { return false; }
+    i = 1;
+  }
+  bool seenPoint = false;
+  for(; i<sz; i++) {
+    if(str[i]=='.') {
+      if(i==0 || seenPoint) { return false; }
+      seenPoint = true;
+    }
+    else if(str[i]<'0' || str[i]>'9') {
+      return false;
+    }
+  }
+  return true;
+}
+
 }

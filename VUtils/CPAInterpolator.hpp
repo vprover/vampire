@@ -18,16 +18,21 @@ using namespace Kernel;
 
 class CPAInterpolator {
 public:
-  int perform(int argc, char** argv);
+  int perform(unsigned argc, char** argv);
 private:
-  void printUsageAndExit(int argc, char** argv);
+  void printUsageAndExit(unsigned argc, char** argv);
   void declareColors();
+  void loadFormulas();
+  void doProving();
+
+  void loadFormula(string fname);
 
   typedef pair<string,unsigned> FuncSpec;
   typedef DHSet<FuncSpec> FuncSet;
   typedef DHMap<FuncSpec,BaseType*> FuncTypeMap;
 
   void collectSMTLIBFileFunctions(string fname, FuncSet& acc);
+
 
   Stack<string> _leftFNames;
   Stack<string> _rightFNames;

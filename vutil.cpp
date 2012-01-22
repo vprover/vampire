@@ -22,6 +22,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "VUtils/AnnotationColoring.hpp"
+#include "VUtils/CPAInterpolator.hpp"
 #include "VUtils/EPRRestoringScanner.hpp"
 #include "VUtils/FOEquivalenceDiscovery.hpp"
 #include "VUtils/ProblemColoring.hpp"
@@ -124,6 +125,9 @@ int main(int argc, char* argv [])
     }
     else if(module=="sc") {
       resultValue=SMTLIBConcat().perform(args.size(), args.begin());
+    }
+    else if(module=="cpa") {
+      resultValue=CPAInterpolator().perform(args.size(), args.begin());
     }
     else {
       USER_ERROR("unknown vutil module name: "+module);

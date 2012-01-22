@@ -1071,6 +1071,36 @@ Term* Theory::representConstant(const RealConstantType& num)
   return Term::create(func, 0, 0);
 }
 
+Term* Theory::representIntegerConstant(string str)
+{
+  CALL("Theory::representIntegerConstant");
+
+  try {
+    return Theory::instance()->representConstant(IntegerConstantType(str));
+  } catch(ArithmeticException&) {
+    NOT_IMPLEMENTED;
+//    bool added;
+//    unsigned fnNum = env.signature->addFunction(str, 0, added);
+//    if(added) {
+//      env.signature->getFunction(fnNum)->setType(BaseType::makeType0(Sorts::SRT_INTEGER));
+//      env.signature->addToDistinctGroup(fnNum, Signature::INTEGER_DISTINCT_GROUP);
+//    }
+//    else {
+//      ASS(env.signature->getFunction(fnNum))
+//    }
+  }
+}
+
+Term* Theory::representRealConstant(string str)
+{
+  CALL("Theory::representRealConstant");
+  try {
+    return Theory::instance()->representConstant(RealConstantType(str));
+  } catch(ArithmeticException&) {
+    NOT_IMPLEMENTED;
+  }
+}
+
 /**
  * Return term containing unary function interpreted as @b itp with
  * @b arg as its first argument

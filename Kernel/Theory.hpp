@@ -245,6 +245,7 @@ public:
      * interpretations by going through the set {0,...,MAX_INTERPRETED_ELEMENT}.
      */
     MAX_INTERPRETED_ELEMENT = REAL_TO_REAL,
+    INVALID_INTERPRETATION
   };
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
@@ -294,6 +295,8 @@ public:
   Term* representConstant(const RationalConstantType& num);
   Term* representConstant(const RealConstantType& num);
 
+  Term* representIntegerConstant(string str);
+  Term* representRealConstant(string str);
 private:
   Theory();
 

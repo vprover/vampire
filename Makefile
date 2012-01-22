@@ -330,6 +330,7 @@ VT_OBJ = Test/CheckedFwSimplifier.o\
 VUT_OBJ = $(patsubst %.cpp,%.o,$(wildcard UnitTests/*.cpp))
 
 VUTIL_OBJ = VUtils/AnnotationColoring.o\
+            VUtils/CPAInterpolator.o\
             VUtils/EPRRestoringScanner.o\
             VUtils/FOEquivalenceDiscovery.o\
             VUtils/LocalityRestoring.o\

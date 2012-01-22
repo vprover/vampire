@@ -41,7 +41,7 @@ public:
     string rangeSort;
   };
 
-  SMTLIB(Mode mode = BUILD_FORMULA);
+  SMTLIB(Mode mode = BUILD_FORMULA, bool treatIntsAsReals=false);
 
   /**
    * @param bench lisp list having atom "benchmark" as the first element
@@ -87,9 +87,10 @@ private:
   Stack<FunctionInfo> _funcs;
   LExpr* _lispFormula;
 
-  FormulaUnit* _formula;
+  Unit* _formula;
 
   Mode _mode;
+  bool _treatIntsAsReals;
 #if VDEBUG
   bool _haveParsed;
 #endif
@@ -102,7 +103,11 @@ private:
    */
   enum FormulaSymbol
   {
+    FS_LESS,
+    FS_LESS_EQ,
     FS_EQ,
+    FS_GREATER,
+    FS_GREATER_EQ,
     FS_AND,
     FS_EXISTS,
     FS_FLET,
@@ -118,6 +123,17 @@ private:
     FS_USER_PRED_SYMBOL
   };
   static const char * s_formulaSymbolNameStrings[];
+
+  enum TermSymbol
+  {
+    TS_PLUS,
+    TS_MINUS,
+    TS_ITE,
+    TS_UMINUS,
+
+    TS_USER_FUNCTION
+  };
+  static const char * s_termSymbolNameStrings[];
 
   DHMap<LExpr*,Formula*> _forms;
   DHMap<LExpr*,TermList> _terms;
@@ -159,6 +175,9 @@ private:
   void requestSubexpressionProcessing(LExpr* subExpr, bool formula);
 
   static FormulaSymbol getFormulaSymbol(string str);
+  static TermSymbol getTermSymbol(string str);
+  static Interpretation getFormulaSymbolInterpretation(FormulaSymbol ts, unsigned firstArgSort);
+  static Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
   static unsigned getMandatoryConnectiveArgCnt(FormulaSymbol fsym);
 //  unsigned getPredSymbolArity(FormulaSymbol fsym, string str);
 

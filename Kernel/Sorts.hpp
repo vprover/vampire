@@ -19,12 +19,14 @@ namespace Kernel {
 class Sorts {
 public:
   /** The default sort that is to be used when no sort is declared */
-  static const unsigned SRT_DEFAULT;
-  static const unsigned SRT_BOOL;
-  static const unsigned SRT_INTEGER;
-  static const unsigned SRT_RATIONAL;
-  static const unsigned SRT_REAL;
-  static const unsigned FIRST_USER_SORT;
+  enum DefaultSorts {
+    SRT_DEFAULT = 0,
+    SRT_BOOL = 1,
+    SRT_INTEGER = 2,
+    SRT_RATIONAL = 3,
+    SRT_REAL = 4,
+    FIRST_USER_SORT = 5
+  };
 
   Sorts();
   ~Sorts();

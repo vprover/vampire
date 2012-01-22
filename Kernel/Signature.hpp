@@ -406,12 +406,14 @@ class Signature
   bool rationals() const {return _rationals;}
   /** the number of real constants */
   bool reals() const {return _reals;}
-private:
+
 
   static const unsigned STRING_DISTINCT_GROUP;
   static const unsigned INTEGER_DISTINCT_GROUP;
   static const unsigned RATIONAL_DISTINCT_GROUP;
   static const unsigned REAL_DISTINCT_GROUP;
+private:
+
 
   static bool isProtectedName(string name);
   static bool symbolNeedsQuoting(string name, bool interpreted, unsigned arity, bool stringConstant);

@@ -3,10 +3,12 @@
  * Implements class SMTLIB.
  */
 
+#include <climits>
 #include <fstream>
 
 #include "Lib/Environment.hpp"
 #include "Lib/NameArray.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -21,10 +23,11 @@
 namespace Parse
 {
 
-SMTLIB::SMTLIB(Mode mode)
+SMTLIB::SMTLIB(Mode mode, bool treatIntsAsReals)
 : _lispFormula(0),
   _formula(0),
-  _mode(mode)
+  _mode(mode),
+  _treatIntsAsReals(treatIntsAsReals)
 {
   CALL("SMTLIB::SMTLIB");
 
@@ -253,7 +256,11 @@ void SMTLIB::doFunctionDeclarations()
 //
 
 const char * SMTLIB::s_formulaSymbolNameStrings[] = {
+    "<",
+    "<=",
     "=",
+    ">",
+    ">=",
     "and",
     "exists",
     "flet",
@@ -265,6 +272,13 @@ const char * SMTLIB::s_formulaSymbolNameStrings[] = {
     "not",
     "or",
     "xor"
+};
+
+const char * SMTLIB::s_termSymbolNameStrings[] = {
+    "+",
+    "-",
+    "ite",
+    "~"
 };
 
 SMTLIB::FormulaSymbol SMTLIB::getFormulaSymbol(string str)
@@ -279,6 +293,20 @@ SMTLIB::FormulaSymbol SMTLIB::getFormulaSymbol(string str)
     return FS_USER_PRED_SYMBOL;
   }
   return static_cast<FormulaSymbol>(res);
+}
+
+SMTLIB::TermSymbol SMTLIB::getTermSymbol(string str)
+{
+  CALL("SMTLIB::getTermSymbol");
+
+  static NameArray termSymbolNames(s_termSymbolNameStrings, sizeof(s_termSymbolNameStrings)/sizeof(char*));
+  ASS_EQ(termSymbolNames.length, TS_USER_FUNCTION);
+
+  int res = termSymbolNames.tryToFind(str.c_str());
+  if(res==-1) {
+    return TS_USER_FUNCTION;
+  }
+  return static_cast<TermSymbol>(res);
 }
 
 /**
@@ -361,6 +389,18 @@ TermList SMTLIB::readTermFromAtom(string str)
     return res;
   }
 
+  if(str[0]>='0' && str[0]<='9') {
+    if(!_treatIntsAsReals && StringUtils::isPositiveInteger(str)) {
+      return TermList(Theory::instance()->representIntegerConstant(str));
+    }
+    else if(StringUtils::isPositiveDecimal(str)) {
+      return TermList(Theory::instance()->representRealConstant(str));
+    }
+    else {
+      USER_ERROR("invalid base term: "+str);
+    }
+  }
+
   if(!env.signature->functionExists(str, 0)) {
     USER_ERROR("undeclared constant: "+str);
   }
@@ -420,6 +460,122 @@ bool SMTLIB::readTermArgs(LExpr* parent, LispListReader& rdr, TermStack& args)
   return !someArgsUnevaluated;
 }
 
+Interpretation SMTLIB::getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned firstArgSort)
+{
+  CALL("SMTLIB::getFormulaSymbolInterpretation");
+
+  Interpretation res = Theory::INVALID_INTERPRETATION;
+  switch(fs) {
+  case FS_LESS:
+    switch(firstArgSort) {
+    case Sorts::SRT_INTEGER:
+	res = Theory::INT_LESS;
+      break;
+    case Sorts::SRT_REAL:
+	res = Theory::REAL_LESS;
+      break;
+    default:
+      break;
+    }
+    break;
+  case FS_LESS_EQ:
+    switch(firstArgSort) {
+    case Sorts::SRT_INTEGER:
+	res = Theory::INT_LESS_EQUAL;
+      break;
+    case Sorts::SRT_REAL:
+      res = Theory::REAL_LESS_EQUAL;
+      break;
+    default:
+      break;
+    }
+    break;
+  case FS_GREATER:
+    switch(firstArgSort) {
+    case Sorts::SRT_INTEGER:
+      res = Theory::INT_GREATER;
+      break;
+    case Sorts::SRT_REAL:
+      res = Theory::REAL_GREATER;
+      break;
+    default:
+      break;
+    }
+    break;
+  case FS_GREATER_EQ:
+    switch(firstArgSort) {
+    case Sorts::SRT_INTEGER:
+      res = Theory::INT_GREATER_EQUAL;
+      break;
+    case Sorts::SRT_REAL:
+      res = Theory::REAL_GREATER_EQUAL;
+      break;
+    default:
+      break;
+    }
+    break;
+
+  default:
+    ASSERTION_VIOLATION;
+  }
+  if(res==Theory::INVALID_INTERPRETATION) {
+    USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+string(s_formulaSymbolNameStrings[fs]));
+  }
+  return res;
+}
+
+Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort)
+{
+  CALL("SMTLIB::getTermSymbolInterpretation");
+
+  Interpretation res = Theory::INVALID_INTERPRETATION;
+  switch(ts) {
+  case TS_MINUS:
+    switch(firstArgSort) {
+    case Sorts::SRT_INTEGER:
+	res = Theory::INT_MINUS;
+      break;
+    case Sorts::SRT_REAL:
+	res = Theory::REAL_MINUS;
+      break;
+    default:
+      break;
+    }
+    break;
+  case TS_PLUS:
+    switch(firstArgSort) {
+    case Sorts::SRT_INTEGER:
+	res = Theory::INT_PLUS;
+      break;
+    case Sorts::SRT_REAL:
+      res = Theory::REAL_PLUS;
+      break;
+    default:
+      break;
+    }
+    break;
+  case TS_UMINUS:
+    switch(firstArgSort) {
+    case Sorts::SRT_INTEGER:
+      res = Theory::INT_UNARY_MINUS;
+      break;
+    case Sorts::SRT_REAL:
+      res = Theory::REAL_UNARY_MINUS;
+      break;
+    default:
+      break;
+    }
+    break;
+
+  default:
+    ASSERTION_VIOLATION;
+  }
+  if(res==Theory::INVALID_INTERPRETATION) {
+    USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+string(s_termSymbolNameStrings[ts]));
+  }
+  return res;
+}
+
 bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
 {
   CALL("SMTLIB::tryReadTerm");
@@ -431,8 +587,9 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
 
   LispListReader rdr(e);
   string fnName = rdr.readAtom();
+  TermSymbol ts = getTermSymbol(fnName);
 
-  if(fnName=="ite") {
+  if(ts==TS_ITE) {
     return tryReadTermIte(e, res);
   }
 
@@ -444,11 +601,22 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
   }
 
   unsigned arity = args.size();
+  unsigned fnNum;
 
-  if(!env.signature->functionExists(fnName, arity)) {
-    USER_ERROR("undeclared function: "+fnName+"/"+Int::toString(arity));
+  if(ts==TS_USER_FUNCTION) {
+    if(!env.signature->functionExists(fnName, arity)) {
+      USER_ERROR("undeclared function: "+fnName+"/"+Int::toString(arity));
+    }
+    fnNum = env.signature->addFunction(fnName, arity);
   }
-  unsigned fnNum = env.signature->addFunction(fnName, arity);
+  else {
+    if(arity==0) {
+      USER_ERROR("interpreted function with zero arity");
+    }
+    unsigned firstArgSort = getSort(args[0]);
+    Interpretation itp = getTermSymbolInterpretation(ts, firstArgSort);
+    fnNum = Theory::instance()->getFnNum(itp);
+  }
 
   ensureArgumentSorts(false, fnNum, args.begin());
   res = TermList(Term::create(fnNum, arity, args.begin()));
@@ -469,9 +637,7 @@ bool SMTLIB::tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res)
     return false;
   }
 
-  switch(fsym) {
-  case FS_EQ:
-  {
+  if(fsym==FS_EQ) {
     if(args.size()!=2) {
       USER_ERROR("equality requires two arguments: "+e->toString());
     }
@@ -480,22 +646,30 @@ bool SMTLIB::tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res)
       USER_ERROR("equality argument sort mismatch: "+e->toString());
     }
     res = Literal::createEquality(true, args[0], args[1], srt);
-    break;
+    return true;
   }
-  case FS_USER_PRED_SYMBOL:
-  {
-    unsigned arity = args.size();
+
+
+  unsigned arity = args.size();
+  unsigned predNum;
+
+  if(fsym==FS_USER_PRED_SYMBOL) {
     if(!env.signature->predicateExists(predName, arity)) {
       USER_ERROR("undeclared predicate: "+predName+"/"+Int::toString(arity));
     }
-    unsigned predNum = env.signature->addPredicate(predName, arity);
-    ensureArgumentSorts(true, predNum, args.begin());
-    res = Literal::create(predNum, arity, true, false, args.begin());
-    break;
+    predNum = env.signature->addPredicate(predName, arity);
   }
-  default:
-    ASSERTION_VIOLATION;
+  else {
+    if(arity==0) {
+      USER_ERROR("interpreted function with zero arity");
+    }
+    unsigned firstArgSort = getSort(args[0]);
+    Interpretation itp = getFormulaSymbolInterpretation(fsym, firstArgSort);
+    predNum = Theory::instance()->getPredNum(itp);
   }
+
+  ensureArgumentSorts(true, predNum, args.begin());
+  res = Literal::create(predNum, arity, true, false, args.begin());
   return true;
 }
 
@@ -663,7 +837,7 @@ bool SMTLIB::tryReadFlet(LExpr* e, Formula*& res)
     USER_ERROR("invalid formula variable name: "+varName);
   }
 
-  LExpr* varRhsExpr = defRdr.readListExpr();
+  LExpr* varRhsExpr = defRdr.readNext();
   defRdr.acceptEOL();
 
   Formula* varRhs;
@@ -684,7 +858,7 @@ bool SMTLIB::tryReadFlet(LExpr* e, Formula*& res)
     }
   }
 
-  LExpr* bodyExpr = rdr.readListExpr();
+  LExpr* bodyExpr = rdr.readNext();
   if(!tryGetArgumentFormula(e, bodyExpr, res)) {
     return false;
   }
@@ -706,7 +880,7 @@ bool SMTLIB::tryReadLet(LExpr* e, Formula*& res)
     USER_ERROR("invalid term variable name: "+varName);
   }
 
-  LExpr* varRhsExpr = defRdr.readListExpr();
+  LExpr* varRhsExpr = defRdr.readNext();
   defRdr.acceptEOL();
 
   TermList varRhs;
@@ -727,7 +901,7 @@ bool SMTLIB::tryReadLet(LExpr* e, Formula*& res)
     }
   }
 
-  LExpr* bodyExpr = rdr.readListExpr();
+  LExpr* bodyExpr = rdr.readNext();
   if(!tryGetArgumentFormula(e, bodyExpr, res)) {
     return false;
   }
@@ -763,6 +937,10 @@ bool SMTLIB::tryReadFormula(LExpr* e, Formula*& res)
     return tryReadQuantifier(fsym==FS_FORALL, e, res);
 
   case FS_EQ:
+  case FS_LESS:
+  case FS_LESS_EQ:
+  case FS_GREATER:
+  case FS_GREATER_EQ:
   case FS_USER_PRED_SYMBOL:
   {
     Literal* lit;
@@ -811,7 +989,6 @@ bool SMTLIB::tryGetArgumentFormula(LExpr* parent, LExpr* argument, Formula*& res
 void SMTLIB::requestSubexpressionProcessing(LExpr* subExpr, bool formula)
 {
   CALL("SMTLIB::requestSubexpressionProcessing");
-  ASS(_entering); //we can request processing subexpressions only on the initial entry to a node
 
   _todo.push(ToDoEntry(subExpr, formula));
   _todo.push(ToDoEntry(0, true));

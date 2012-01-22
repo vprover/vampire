@@ -8,8 +8,14 @@
 
 #include "Lib/Environment.hpp"
 
-#include "Shell/Options.hpp"
+#include "Kernel/Problem.hpp"
+#include "Kernel/Signature.hpp"
+
 #include "Shell/CommandLine.hpp"
+#include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
+
+#include "Saturation/ProvingHelper.hpp"
 
 #include "Parse/SMTLIB.hpp"
 
@@ -18,9 +24,10 @@
 namespace VUtils
 {
 
+using namespace Saturation;
 using namespace Shell;
 
-void CPAInterpolator::printUsageAndExit(int argc, char** argv)
+void CPAInterpolator::printUsageAndExit(unsigned argc, char** argv)
 {
   CALL("CPAInterpolator::printUsageAndExit");
 
@@ -29,7 +36,7 @@ void CPAInterpolator::printUsageAndExit(int argc, char** argv)
   exit(0);
 }
 
-int CPAInterpolator::perform(int argc, char** argv)
+int CPAInterpolator::perform(unsigned argc, char** argv)
 {
   CALL("CPAInterpolator::perform");
 
@@ -63,6 +70,9 @@ int CPAInterpolator::perform(int argc, char** argv)
     declareColors();
   }
 
+  loadFormulas();
+
+  doProving();
 }
 
 void CPAInterpolator::collectSMTLIBFileFunctions(string fname, FuncSet& acc)
@@ -97,6 +107,8 @@ void CPAInterpolator::declareColors()
 {
   CALL("CPAInterpolator::declareColors");
 
+  env.colorUsed = true;
+
   FuncSet leftFuns;
   Stack<string>::Iterator lfIt(_leftFNames);
   while(lfIt.hasNext()) {
@@ -104,9 +116,9 @@ void CPAInterpolator::declareColors()
   }
 
   FuncSet rightFuns;
-  Stack<string>::Iterator lfIt(_rightFNames);
-  while(lfIt.hasNext()) {
-    collectSMTLIBFileFunctions(lfIt.next(), leftFuns);
+  Stack<string>::Iterator rfIt(_rightFNames);
+  while(rfIt.hasNext()) {
+    collectSMTLIBFileFunctions(rfIt.next(), rightFuns);
   }
 
   FuncTypeMap::Iterator fit(_funcTypes);
@@ -139,9 +151,50 @@ void CPAInterpolator::declareColors()
     if(clr!=COLOR_TRANSPARENT) {
       sym->addColor(clr);
     }
-
-
   }
+}
+
+void CPAInterpolator::loadFormulas()
+{
+  CALL("CPAInterpolator::loadFormulas");
+
+  _forms = 0;
+
+  Stack<string>::Iterator lfIt(_leftFNames);
+  while(lfIt.hasNext()) {
+    loadFormula(lfIt.next());
+  }
+
+  Stack<string>::Iterator rfIt(_rightFNames);
+  while(rfIt.hasNext()) {
+    loadFormula(rfIt.next());
+  }
+
+}
+
+void CPAInterpolator::loadFormula(string fname)
+{
+  CALL("CPAInterpolator::loadFormula");
+
+  ifstream stm(fname.c_str());
+
+  Parse::SMTLIB pars(Parse::SMTLIB::BUILD_FORMULA, true);
+  pars.parse(stm);
+  UnitList::push(pars.getFormula(), _forms);
+}
+
+void CPAInterpolator::doProving()
+{
+  CALL("CPAInterpolator::doProving");
+
+  Problem prb;
+  prb.addUnits(_forms->copy());
+
+  ProvingHelper::runVampire(prb, *env.options);
+
+  env.beginOutput();
+  UIHelper::outputResult(env.out());
+  env.endOutput();
 }
 
 }

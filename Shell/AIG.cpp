@@ -956,7 +956,6 @@ void AIGTransformer::saturateOnTopSortedStack(const AIGStack& stack, RefMap& map
   for(size_t stack_idx = 0; stack_idx<stack.size(); stack_idx++) {
     Ref r = stack[stack_idx];
     ++idx;
-    LOGV("bug", idx);
     Ref dr0 = lev0Deref(r, map);
     ASS_EQ(lev0Deref(dr0, map), dr0);
     Ref dr1 = lev1Deref(dr0, map);
