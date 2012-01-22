@@ -10,6 +10,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Grounder.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
 #include "SAT/Preprocess.hpp"
@@ -169,17 +170,17 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   UnitList* res = 0;
 
   unsigned elCnt = _eligibleSatLits.size();
+  LOG("pp_ed_progress","literals to process: "<<elCnt);
   for(unsigned i=0; i<elCnt; ++i) {
     SATLiteral l1 = _eligibleSatLits[i];
+    LOG("pp_ed_progress","processing literal "<<(*getFOLit(l1)));
     for(unsigned j=i+1; j<elCnt; ++j) {
       SATLiteral l2 = _eligibleSatLits[j];
       ASS_NEQ(l1,l2);
-      if(areEquivalent(l1,l2)) {
-	handleEquivalence(l1, l2, res);
+      if(areEquivalent(l1,l2) && handleEquivalence(l1, l2, res)) {
 	break;
       }
-      if(areEquivalent(l1,l2.opposite())) {
-	handleEquivalence(l1, l2.opposite(), res);
+      if(areEquivalent(l1,l2.opposite()) && handleEquivalence(l1, l2.opposite(), res)) {
 	break;
       }
     }
@@ -201,7 +202,7 @@ Literal* EquivalenceDiscoverer::getFOLit(SATLiteral slit) const
   return res;
 }
 
-void EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc)
+bool EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc)
 {
   CALL("EquivalenceDiscoverer::handleEquivalence");
 
@@ -209,6 +210,12 @@ void EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, Unit
 
   Literal* fl1 = getFOLit(l1);
   Literal* fl2 = getFOLit(l2);
+
+  static DHMap<unsigned,unsigned> varSorts;
+  varSorts.reset();
+  if(!SortHelper::areSortsValid(fl1, varSorts) || !SortHelper::areSortsValid(fl2, varSorts)) {
+    return false;
+  }
 
   Formula* eqForm = new BinaryFormula(IFF, new AtomicFormula(fl1), new AtomicFormula(fl2));
   Formula::VarList* freeVars = eqForm->freeVariables();
@@ -238,6 +245,7 @@ void EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, Unit
 
 
   LOG_UNIT("pp_ed_eq",fu);
+  return true;
 }
 
 bool EquivalenceDiscoverer::areEquivalent(SATLiteral l1, SATLiteral l2)

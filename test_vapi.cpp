@@ -47,11 +47,23 @@ void inlineTest(const char* fname)
   Problem p;
   p.addFromStream(fs);
 
-  Problem p2=p.inlinePredicateDefinitions(Problem::INL_EPR_RESTORING);
-  Problem p3=p2.removeUnusedPredicateDefinitions();
+  Problem::PreprocessingOptions m_PreprocessOpts;
+  m_PreprocessOpts.unusedPredicateDefinitionRemoval = true;
+  m_PreprocessOpts.preserveEpr = true;
+  m_PreprocessOpts.eprSkolemization = true;
+  m_PreprocessOpts.mode = Problem::PM_CLAUSIFY;
+  m_PreprocessOpts.predicateDefinitionInlining = Problem::INL_EPR_RESTORING;
+  m_PreprocessOpts.predicateDefinitionMerging = true;
+  m_PreprocessOpts.predicateIndexIntroduction = true;
+  m_PreprocessOpts.flatteningTopLevelConjunctions = true;
+  m_PreprocessOpts.aigInlining = true;
+  m_PreprocessOpts.aigBddSweeping = true;
+  m_PreprocessOpts.aigDefinitionIntroduction = false;
+  m_PreprocessOpts.predicateEquivalenceDiscovery = false;
+  m_PreprocessOpts.predicateEquivalenceDiscoverySatConflictLimit = 0;
 
-  printProblem(p3);
-  printProblem(p3.clausify(8,true));
+  Problem p2=p.preprocess(m_PreprocessOpts);
+  p2.output(cout, true, false);
 }
 
 void testSubst()

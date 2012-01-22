@@ -155,14 +155,19 @@ private:
   unsigned getSort(TermList t);
   void ensureArgumentSorts(bool pred, unsigned symNum, TermList* args);
 
-  TermList readTermFromAtom(string str);
-  Formula* readFormulaFromAtom(string str);
+  bool readTermArgs(LExpr* parent, LispListReader& rdr, TermStack& args);
 
-  bool tryReadTerm(LExpr* e, Term*& res);
+  TermList readTermFromAtom(string str);
+  bool tryReadTermIte(LExpr* e, TermList& res);
+  bool tryReadTerm(LExpr* e, TermList& res);
+
+  Formula* readFormulaFromAtom(string str);
   bool tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res);
   bool tryReadConnective(FormulaSymbol fsym, LExpr* e, Formula*& res);
   bool tryReadQuantifier(bool univ, LExpr* e, Formula*& res);
-  bool tryReadFormula(Formula*& res);
+  bool tryReadFlet(LExpr* e, Formula*& res);
+  bool tryReadLet(LExpr* e, Formula*& res);
+  bool tryReadFormula(LExpr* e, Formula*& res);
   void buildFormula();
 
 

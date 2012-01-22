@@ -17,7 +17,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 
-
+#define DEBUG_AIG_REF_MEMORY 1
 
 namespace Shell {
 
@@ -46,6 +46,9 @@ public:
     Ref(Node* n, bool polarity) {
       CALL("AIG::Ref::Ref");
       ASS_EQ(reinterpret_cast<size_t>(n)&1,0); //check pointer alignment
+#if DEBUG_AIG_REF_MEMORY
+      ASS_ALLOC_TYPE(n, "AIG::Node");
+#endif
 
       _data = reinterpret_cast<size_t>(n) | polarity;
     }
@@ -76,8 +79,20 @@ public:
     Literal* getPositiveAtom() const;
     const VarList* getQuantifierVars() const;
 
-    bool polarity() const { return _data&1; }
-    Node* node() const { return reinterpret_cast<Node*>(_data&(~static_cast<size_t>(1))); }
+    bool polarity() const {
+      CALL("AIG::Ref::node()");
+      ASS(isValid());
+      return _data&1;
+    }
+    Node* node() const {
+      CALL("AIG::Ref::node()");
+      ASS(isValid());
+      Node* res = reinterpret_cast<Node*>(_data&(~static_cast<size_t>(1)));
+#if DEBUG_AIG_REF_MEMORY
+      ASS_ALLOC_TYPE(res, "AIG::Node");
+#endif
+      return res;
+    }
     unsigned nodeIndex() const;
     unsigned parentCnt() const;
     Ref parent(unsigned idx) const;

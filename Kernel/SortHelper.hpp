@@ -38,10 +38,11 @@ public:
   static bool areImmediateSortsValid(Term* t);
 
   static BaseType& getType(Term* t);
+
+  static bool areSortsValid(Term* t, DHMap<unsigned,unsigned>& varSorts);
 private:
   static bool tryGetVariableSort(TermList var, Term* t, unsigned& result);
 
-  static bool areSortsValid(Term* t, DHMap<unsigned,unsigned>& varSorts);
 };
 
 }

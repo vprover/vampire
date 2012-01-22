@@ -10,6 +10,7 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
@@ -347,9 +348,92 @@ TermList SMTLIB::readTermFromAtom(string str)
   return TermList(Term::createConstant(str));
 }
 
-bool SMTLIB::tryReadTerm(LExpr* e, Term*& res)
+bool SMTLIB::tryReadTermIte(LExpr* e, TermList& res)
 {
-  NOT_IMPLEMENTED;
+  CALL("SMTLIB::tryReadTermIte");
+
+  LispListReader rdr(e);
+  rdr.acceptAtom("ite");
+
+  bool gotAll = true;
+  Formula* cond;
+  TermList thenBranch;
+  TermList elseBranch;
+  gotAll |= tryGetArgumentFormula(e, rdr.readNext(), cond);
+  gotAll |= tryGetArgumentTerm(e, rdr.readNext(), thenBranch);
+  gotAll |= tryGetArgumentTerm(e, rdr.readNext(), elseBranch);
+  if(!gotAll) {
+    return false;
+  }
+  res = TermList(Term::createTermITE(cond, thenBranch, elseBranch));
+  return true;
+}
+
+/**
+ * Assume all the remaining elements in @c rdr to be term expressions
+ * and attempt to obtain their TermList representation to be put into
+ * the @c args stack. If successful, return true, otherwise return false,
+ * put an empty TermList in place of arguments that could not have been
+ * obtained and schedule those arguments for processing on the _todo list
+ * (by a call to the tryGetArgumentTerm() function).
+ */
+bool SMTLIB::readTermArgs(LExpr* parent, LispListReader& rdr, TermStack& args)
+{
+  CALL("SMTLIB::readTermArgs");
+  ASS(args.isEmpty());
+
+  bool someArgsUnevaluated = false;
+
+  while(rdr.hasNext()) {
+    TermList arg;
+    string atomArgStr;
+    if(rdr.tryReadAtom(atomArgStr)) {
+      arg = readTermFromAtom(atomArgStr);
+    }
+    else {
+      LExpr* argExpr = rdr.readListExpr();
+      if(!tryGetArgumentTerm(parent, argExpr, arg)) {
+        someArgsUnevaluated = true;
+      }
+    }
+    args.push(arg);
+  }
+  return !someArgsUnevaluated;
+}
+
+bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
+{
+  CALL("SMTLIB::tryReadTerm");
+
+  if(e->isAtom()) {
+    res = readTermFromAtom(e->str);
+    return true;
+  }
+
+  LispListReader rdr(e);
+  string fnName = rdr.readAtom();
+
+  if(fnName=="ite") {
+    return tryReadTermIte(e, res);
+  }
+
+  static TermStack args;
+  args.reset();
+
+  if(!readTermArgs(e, rdr, args)) {
+    return false;
+  }
+
+  unsigned arity = args.size();
+
+  if(!env.signature->functionExists(fnName, arity)) {
+    USER_ERROR("undeclared function: "+fnName+"/"+Int::toString(arity));
+  }
+  unsigned fnNum = env.signature->addFunction(fnName, arity);
+
+  ensureArgumentSorts(false, fnNum, args.begin());
+  res = TermList(Term::create(fnNum, arity, args.begin()));
+  return true;
 }
 
 bool SMTLIB::tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res)
@@ -359,24 +443,10 @@ bool SMTLIB::tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res)
   LispListReader rdr(e);
   string predName = rdr.readAtom();
 
-  bool someArgsUnevaluated = false;
-
   static TermStack args;
-  while(rdr.hasNext()) {
-    TermList arg;
-    string atomArgStr;
-    if(rdr.tryReadAtom(atomArgStr)) {
-      arg = readTermFromAtom(atomArgStr);
-    }
-    else {
-      LExpr* argExpr = rdr.readListExpr();
-      if(!tryGetArgumentTerm(e, argExpr, arg)) {
-        someArgsUnevaluated = true;
-      }
-    }
-    args.push(arg);
-  }
-  if(someArgsUnevaluated) {
+  args.reset();
+
+  if(!readTermArgs(e, rdr, args)) {
     return false;
   }
 
@@ -560,12 +630,96 @@ bool SMTLIB::tryReadQuantifier(bool univ, LExpr* e, Formula*& res)
   return true;
 }
 
-bool SMTLIB::tryReadFormula(Formula*& res)
+bool SMTLIB::tryReadFlet(LExpr* e, Formula*& res)
+{
+  CALL("SMTLIB::tryReadFlet");
+
+  LispListReader rdr(e);
+
+  rdr.acceptAtom("flet");
+  LispListReader defRdr(rdr.readList());
+  string varName = defRdr.readAtom();
+
+  if(varName[0]!='$') {
+    USER_ERROR("invalid formula variable name: "+varName);
+  }
+
+  LExpr* varRhsExpr = defRdr.readListExpr();
+  defRdr.acceptEOL();
+
+  Formula* varRhs;
+  if(!tryGetArgumentFormula(e, varRhsExpr, varRhs)) {
+    ASS(_entering);
+    //it is important that we return at this point and don't request the
+    //formula for the flet body. The variable value has to be assigned
+    //before we start processing that expression.
+    return false;
+  }
+  ASS(!_entering);
+  if(!_formVars.insert(varName, varRhs)) {
+    //either the variable was already bound, or we're in the third call. this we can tell
+    //by comparing
+    //if we're in the third call to this function, we won't insert the variable here
+    if(_formVars.get(varName)!=varRhs) {
+      USER_ERROR("flet binds a variable that is already bound: "+varName);
+    }
+  }
+
+  LExpr* bodyExpr = rdr.readListExpr();
+  if(!tryGetArgumentFormula(e, bodyExpr, res)) {
+    return false;
+  }
+
+  ALWAYS(_formVars.remove(varName));
+  return true;
+}
+
+bool SMTLIB::tryReadLet(LExpr* e, Formula*& res)
+{
+  CALL("SMTLIB::tryReadLet");
+
+  LispListReader rdr(e);
+
+  rdr.acceptAtom("let");
+  LispListReader defRdr(rdr.readList());
+  string varName = defRdr.readAtom();
+  if(varName[0]!='?') {
+    USER_ERROR("invalid term variable name: "+varName);
+  }
+
+  LExpr* varRhsExpr = defRdr.readListExpr();
+  defRdr.acceptEOL();
+
+  TermList varRhs;
+  if(!tryGetArgumentTerm(e, varRhsExpr, varRhs)) {
+    ASS(_entering);
+    //it is important that we return at this point and don't request the
+    //formula for the let body. The variable value has to be assigned
+    //before we start processing that expression.
+    return false;
+  }
+  ASS(!_entering);
+  if(!_termVars.insert(varName, varRhs)) {
+    //either the variable was already bound, or we're in the third call. this we can tell
+    //by comparing
+    //if we're in the third call to this function, we won't insert the variable here
+    if(_termVars.get(varName)!=varRhs) {
+      USER_ERROR("let binds a variable that is already bound: "+varName);
+    }
+  }
+
+  LExpr* bodyExpr = rdr.readListExpr();
+  if(!tryGetArgumentFormula(e, bodyExpr, res)) {
+    return false;
+  }
+
+  ALWAYS(_termVars.remove(varName));
+  return true;
+}
+
+bool SMTLIB::tryReadFormula(LExpr* e, Formula*& res)
 {
   CALL("SMTLIB::tryReadFormula");
-
-  ASS(_todo.top().second);
-  LExpr* e = _todo.top().first;
 
   if(e->isAtom()) {
     res = readFormulaFromAtom(e->str);
@@ -601,12 +755,12 @@ bool SMTLIB::tryReadFormula(Formula*& res)
   }
 
   case FS_FLET:
+    return tryReadFlet(e, res);
   case FS_LET:
-    NOT_IMPLEMENTED;
+    return tryReadLet(e, res);
   default:
     ASSERTION_VIOLATION;
   }
-
 }
 
 bool SMTLIB::tryGetArgumentTerm(LExpr* parent, LExpr* argument, TermList& res)
@@ -641,6 +795,7 @@ void SMTLIB::requestSubexpressionProcessing(LExpr* subExpr, bool formula)
   ASS(_entering); //we can request processing subexpressions only on the initial entry to a node
 
   _todo.push(ToDoEntry(subExpr, formula));
+  _todo.push(ToDoEntry(0, true));
 }
 
 void SMTLIB::buildFormula()
@@ -649,6 +804,46 @@ void SMTLIB::buildFormula()
 
   _nextQuantVar = 0;
 
+  _todo.push(ToDoEntry(_lispFormula, true));
+  _todo.push(ToDoEntry(0, true));
+
+  while(_todo.isNonEmpty()) {
+    _entering = false;
+    if(_todo.top().first==0) {
+      _entering = true;
+      _todo.pop();
+    }
+    _current = _todo.top();
+    ASS(_current.first);
+    if(_current.second) {
+      //we're processing a formula
+      Formula* form;
+      if(tryReadFormula(_current.first, form)) {
+	ASS(_todo.top()==_current); //if reading succeeded, there aren't any new requests
+	_todo.pop();
+	ALWAYS(_forms.insert(_current.first, form));
+      }
+      else {
+	ASS(_todo.top()!=_current); //if reading failed, there must be some new requests
+      }
+    }
+    else {
+      //we're processing a term
+      TermList trm;
+      if(tryReadTerm(_current.first, trm)) {
+	ASS(_todo.top()==_current); //if reading succeeded, there aren't any new requests
+	_todo.pop();
+	ALWAYS(_terms.insert(_current.first, trm));
+      }
+      else {
+	ASS(_todo.top()!=_current); //if reading failed, there must be some new requests
+      }
+    }
+  }
+
+  Formula* topForm;
+  ALWAYS(_forms.find(_lispFormula, topForm));
+  _formula = new FormulaUnit(topForm, new Inference(Inference::INPUT), Unit::CONJECTURE);
 }
 
 

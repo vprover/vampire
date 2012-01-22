@@ -67,7 +67,7 @@ class EquivalenceDiscoverer {
 
   bool areEquivalent(SATLiteral l1, SATLiteral l2);
 
-  void handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc);
+  bool handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc);
 public:
   EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit, bool checkOnlyDefinitionHeads);
   ~EquivalenceDiscoverer();
