@@ -24,8 +24,9 @@ class SMTLIB {
 public:
   enum Mode {
     READ_BENCHMARK = 0,
-    DECLARE_SYMBOLS = 1,
-    BUILD_FORMULA = 2
+    DECLARE_SORTS = 1,
+    DECLARE_SYMBOLS = 2,
+    BUILD_FORMULA = 3
   };
 
   /**
@@ -49,9 +50,16 @@ public:
   void parse(istream& str);
 
   //these functions can be used after a call to a parse() function
-  const Stack<string> getUserSortNames() const { return _userSorts; }
-  const Stack<FunctionInfo> getFuncInfos() const { return _funcs; }
+  const Stack<string>& getUserSortNames() const { return _userSorts; }
+  const Stack<FunctionInfo>& getFuncInfos() const { return _funcs; }
   LExpr* getLispFormula() const { ASS(_lispFormula); return _lispFormula; }
+
+  /**
+   * Return type of a function specified by fnInfo.
+   *
+   * This function can be called if the mode is at least DECLARE_SORTS.
+   */
+  BaseType* getSymbolType(const FunctionInfo& fnInfo);
 
   /**
    * Return parsed formula.
@@ -60,6 +68,7 @@ public:
    * when the mode in is set to BUILD_FORMULA.
    */
   Unit* getFormula() const { ASS(_formula); return _formula; }
+
 private:
 
   void readBenchmark(LExprList* bench);
@@ -68,7 +77,8 @@ private:
   void readPredicate(LExprList* decl);
 
   unsigned getSort(string name);
-  void doDeclarations();
+  void doSortDeclarations();
+  void doFunctionDeclarations();
 
   string _benchName;
   string _statusStr;

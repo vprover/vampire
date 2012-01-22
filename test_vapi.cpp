@@ -46,23 +46,38 @@ void inlineTest(const char* fname)
   ifstream fs(fname);
   Problem p;
   p.addFromStream(fs);
+  {
+    Problem::PreprocessingOptions m_PreprocessOpts;
+    m_PreprocessOpts.predicateDefinitionInlining = Problem::INL_NON_GROWING;
+    m_PreprocessOpts.mode = Problem::PM_EARLY_PREPROCESSING;
+    m_PreprocessOpts.unusedPredicateDefinitionRemoval = false;
+    m_PreprocessOpts.preserveEpr = false;
+    m_PreprocessOpts.eprSkolemization = false;
+    m_PreprocessOpts.predicateDefinitionMerging = false;
+    m_PreprocessOpts.variableEqualityPropagation = false;
+
+    p = p.preprocess(m_PreprocessOpts);
+  }
 
   Problem::PreprocessingOptions m_PreprocessOpts;
   m_PreprocessOpts.unusedPredicateDefinitionRemoval = true;
   m_PreprocessOpts.preserveEpr = true;
-  m_PreprocessOpts.eprSkolemization = true;
+  m_PreprocessOpts.eprSkolemization = false;
   m_PreprocessOpts.mode = Problem::PM_CLAUSIFY;
   m_PreprocessOpts.predicateDefinitionInlining = Problem::INL_EPR_RESTORING;
-  m_PreprocessOpts.predicateDefinitionMerging = true;
-  m_PreprocessOpts.predicateIndexIntroduction = true;
+  m_PreprocessOpts.predicateDefinitionMerging = false;
+  m_PreprocessOpts.predicateIndexIntroduction = false;
   m_PreprocessOpts.flatteningTopLevelConjunctions = true;
   m_PreprocessOpts.aigInlining = true;
-  m_PreprocessOpts.aigBddSweeping = true;
+  m_PreprocessOpts.aigBddSweeping = false;
   m_PreprocessOpts.aigDefinitionIntroduction = false;
   m_PreprocessOpts.predicateEquivalenceDiscovery = false;
   m_PreprocessOpts.predicateEquivalenceDiscoverySatConflictLimit = 0;
 
   Problem p2=p.preprocess(m_PreprocessOpts);
+
+
+
   p2.output(cout, true, false);
 }
 

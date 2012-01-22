@@ -62,7 +62,11 @@ void SMTLIB::parse(LExpr* bench)
 
   if(_mode==READ_BENCHMARK) { return; }
 
-  doDeclarations();
+  doSortDeclarations();
+
+  if(_mode==DECLARE_SORTS) { return; }
+
+  doFunctionDeclarations();
 
   if(_mode==DECLARE_SYMBOLS) { return; }
   ASS_EQ(_mode, BUILD_FORMULA);
@@ -169,34 +173,49 @@ unsigned SMTLIB::getSort(string name)
   return idx;
 }
 
-void SMTLIB::doDeclarations()
+void SMTLIB::doSortDeclarations()
 {
-  CALL("SMTLIB::doDeclarations");
+  CALL("SMTLIB::doSortDeclarations");
 
   Stack<string>::Iterator srtIt(_userSorts);
   while(srtIt.hasNext()) {
     string sortName = srtIt.next();
     env.sorts->addSort(sortName);
   }
+}
+
+BaseType* SMTLIB::getSymbolType(const FunctionInfo& fnInfo)
+{
+  CALL("SMTLIB::getSymbolType");
+
+  unsigned arity = fnInfo.argSorts.size();
+  unsigned rangeSort = getSort(fnInfo.rangeSort);
 
   static Stack<unsigned> argSorts;
+  argSorts.reset();
+
+  Stack<string>::BottomFirstIterator argSortIt(fnInfo.argSorts);
+  while(argSortIt.hasNext()) {
+    string argSortName = argSortIt.next();
+    argSorts.push(getSort(argSortName));
+  }
+
+  BaseType* type = BaseType::makeType(arity, argSorts.begin(), rangeSort);
+  return type;
+}
+
+void SMTLIB::doFunctionDeclarations()
+{
+  CALL("SMTLIB::doFunctionDeclarations");
 
   unsigned funCnt = _funcs.size();
   for(unsigned i=0; i<funCnt; i++) {
     FunctionInfo& fnInfo = _funcs[i];
 
     unsigned arity = fnInfo.argSorts.size();
-    unsigned rangeSort = getSort(fnInfo.rangeSort);
-    bool isPred = rangeSort==Sorts::SRT_BOOL;
 
-    argSorts.reset();
-    Stack<string>::BottomFirstIterator argSortIt(fnInfo.argSorts);
-    while(argSortIt.hasNext()) {
-      string argSortName = argSortIt.next();
-      argSorts.push(getSort(argSortName));
-    }
-
-    BaseType* type = BaseType::makeType(arity, argSorts.begin(), rangeSort);
+    BaseType* type = getSymbolType(fnInfo);
+    bool isPred = !type->isFunctionType();
 
     unsigned symNum;
     Signature::Symbol* sym;

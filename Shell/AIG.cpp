@@ -948,9 +948,15 @@ void AIGTransformer::saturateOnTopSortedStack(const AIGStack& stack, RefMap& map
 {
   CALL("AIGTransformer::saturateOnTopSortedStack");
 
-  Stack<Ref>::BottomFirstIterator it(stack);
-  while(it.hasNext()) {
-    Ref r = it.next();
+  unsigned idx = 0;
+  //we have to iterate by indexes because the stack may be modified
+  //and therefore we cannot use an iterator
+  //(the stack may be modified as we can use _aig._orderedNodeRefs stack
+  //where newly created nodes are added)
+  for(size_t stack_idx = 0; stack_idx<stack.size(); stack_idx++) {
+    Ref r = stack[stack_idx];
+    ++idx;
+    LOGV("bug", idx);
     Ref dr0 = lev0Deref(r, map);
     ASS_EQ(lev0Deref(dr0, map), dr0);
     Ref dr1 = lev1Deref(dr0, map);
@@ -961,12 +967,6 @@ void AIGTransformer::saturateOnTopSortedStack(const AIGStack& stack, RefMap& map
 #if 1 //maybe it is not necessary to achieve the following condition:
     //if the node is dereferenced in the map, the parents of
     //the node should already be dereferenced as well
-    if(r!=dr0 && dr0!=dr1) {
-      LOGV("bug",r);
-      LOGV("bug",dr0);
-      LOGV("bug",dr1);
-      LOGV("bug",stack.top());
-    }
     ASS(r==dr0 || dr0==dr1);
 #endif
     if(dr0==dr1) {
@@ -1095,7 +1095,6 @@ void AIGTransformer::makeIdempotent(DHMap<Ref,Ref>& map, Stack<Ref>* finalDomain
 void AIGTransformer::saturateMap(DHMap<Ref,Ref>& map, Stack<Ref>* finalDomain)
 {
   CALL("AIGTransformer::saturateMap");
-
   ASS_REP(forAll(map.domain(), AIG::hasPositivePolarity), getFirstTrue(map.domain(), negPred(AIG::hasPositivePolarity)));
 
   makeIdempotent(map, finalDomain);
@@ -1663,107 +1662,4 @@ void AIGFormulaSharer::addRewriteRules(unsigned cnt, Formula* const * srcs, Form
   }
 }
 
-#if 0
-
-////////////////////////
-// AIGDefinitionMerger
-//
-
-void AIGDefinitionMerger::apply(Problem& prb)
-{
-  CALL("AIGDefinitionMerger::apply(Problem&)");
-  if(apply(prb.units())) {
-    prb.invalidateByRemoval();
-  }
-}
-
-bool AIGDefinitionMerger::apply(UnitList*& units)
-{
-  CALL("AIGDefinitionMerger::apply(UnitList*&)");
-
-  UnitList* eqs = 0;
-  DHSet<Unit*> redundant;
-  bool modified = PDInliner(false).apply(units, true);
-
-  discoverEquivalences(units, eqs, redundant);
-  if(!eqs) {
-    return modified;
-  }
-
-  UnitList::DelIterator uit(units);
-
-  units = UnitList::concat(eqs,units);
-  while(uit.hasNext()) {
-    Unit* u = uit.next();
-    if(redundant.contains(u)) {
-      uit.del();
-    }
-  }
-
-  ALWAYS(PDInliner(false).apply(units, true));
-  return true;
-}
-
-/**
- * Return list of newly discovered equivalences.
- * @c units must not contain any predicate equivalences.
- */
-void AIGDefinitionMerger::discoverEquivalences(UnitList* units, UnitList*& eqs, DHSet<Unit*>& redundant)
-{
-  CALL("AIGDefinitionMerger::discoverEquivalences");
-
-  UnitList* res = 0;
-
-  typedef Stack<FormulaUnit*> FUStack;
-
-  FUStack defs;
-
-  UnitList::Iterator uit(units);
-  while(uit.hasNext()) {
-    Unit* u = uit.next();
-    if(u->isClause()) { continue; }
-    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    ASS(!PDUtils::isPredicateEquivalence(fu));
-
-    if(PDUtils::hasDefinitionShape(fu)) {
-      defs.push(fu);
-    }
-  }
-
-  AIGFormulaSharer _aig;
-  DHMap<Formula*,FormulaUnit*> body2def; //maps shared body to a definitions
-
-  UnitList* pendingEquivs = 0;
-
-
-  FUStack::Iterator fit(defs);
-  while(fit.hasNext()) {
-    FormulaUnit* fu = fit.next();
-
-    Literal* lhs;
-    Formula* rhs;
-    PDUtils::splitDefinition(fu, lhs, rhs);
-    Formula* shRhs = _aig.apply(rhs).first;
-
-    if(body2def.find(shRhs)) {
-      FormulaUnit* fu2 = body2def.get(shRhs);
-      Literal* lhs2;
-      Formula* rhs2;
-      PDUtils::splitDefinition(fu2, lhs2, rhs2);
-
-      Formula* equivForm = new BinaryFormula(IFF,
-	  new AtomicFormula(lhs), new AtomicFormula(lhs2));
-      Inference* inf = new Inference2(Inference::PREDICATE_DEFINITION_MERGING, fu, fu2);
-      FormulaUnit* equivFU = new FormulaUnit(equivForm, inf, Unit::getInputType(fu->inputType(), fu2->inputType()));
-
-      UnitList::push(equivFU, eqs);
-      UnitList::push(equivFU, pendingEquivs);
-    }
-  }
-
-  typedef pair<Literal*,Literal*> RwrPair;
-  Stack<RwrPair> pendingRewrites;
-
-}
-#endif
 }

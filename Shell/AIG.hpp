@@ -17,7 +17,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 
-#define DEBUG_AIG_REF_MEMORY 1
+#define DEBUG_AIG_REF_MEMORY 0
 
 namespace Shell {
 
@@ -358,15 +358,6 @@ public:
 };
 
 
-#if 0
-class AIGDefinitionMerger {
-public:
-  void apply(Problem& prb);
-  bool apply(UnitList*& units);
-
-  void discoverEquivalences(UnitList* units, UnitList*& eqs, DHSet<Unit*>& redundant);
-};
-#endif
 }
 
 #endif // __AIG__
