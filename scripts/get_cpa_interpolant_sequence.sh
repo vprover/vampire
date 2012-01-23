@@ -15,12 +15,14 @@ fi
 
 function run_vampire()
 {
-        local VAMP_ARGS="-ptb off -aig_bdd_sweeping on -show_interpolant minimized -flatten_top_level_conjunctions on -aig_definition_introduction on -proof off -statistics none $TIME_LIMIT_SPEC"
+#        local VAMP_ARGS="-ptb off -aig_bdd_sweeping on -flatten_top_level_conjunctions on -aig_definition_introduction on -proof off -statistics none $TIME_LIMIT_SPEC"
+        local VAMP_ARGS="-ptb off -proof off -statistics none -smtlib_flet_as_definition on $TIME_LIMIT_SPEC"
         local LEFT_CNTS="`eval echo {1..$(($#-1))}`"
         
         for LEFT_CNT in $LEFT_CNTS; do
                 echo "results for $BASE $LEFT_CNT"
-                $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS | grep -v "Refutation found"
+                $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS
+#                $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS | grep -v "Refutation found"
                 if [ $? -eq 130 ]; then
                         echo interrupted
                         exit 130

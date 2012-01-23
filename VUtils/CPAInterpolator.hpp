@@ -24,6 +24,7 @@ private:
   void declareColors();
   void loadFormulas();
   void doProving();
+  void displayResult();
 
   void loadFormula(string fname);
 
@@ -40,6 +41,7 @@ private:
   FuncTypeMap _funcTypes;
 
   UnitList* _forms;
+  UnitList* _defs;
 };
 
 

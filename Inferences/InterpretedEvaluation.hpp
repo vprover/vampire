@@ -11,6 +11,7 @@
 
 #include "Lib/DHMap.hpp"
 
+#include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Kernel/Theory.hpp"
 
 #include "InferenceEngine.hpp"
@@ -26,17 +27,9 @@ public:
 
   Clause* simplify(Clause* cl);
 private:
-  class Evaluator;
-  class ConversionEvaluator;
-  template<class T> class TypedEvaluator;
-  class IntEvaluator;
-  class RatEvaluator;
-  class RealEvaluator;
-  class LiteralSimplifier;
-
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
 
-  LiteralSimplifier* _simpl;
+  InterpretedLiteralEvaluator* _simpl;
 };
 
 };

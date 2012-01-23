@@ -10,6 +10,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -136,6 +137,12 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
   ASS(isSplittable(lit));
 
   unsigned predNum=env.signature->addNamePredicate(1);
+  unsigned srt = SortHelper::getEqualityArgumentSort(lit);
+  BaseType* type = BaseType::makeType1(srt, Sorts::SRT_BOOL);
+
+  Signature::Symbol* predSym = env.signature->getPredicate(predNum);
+  predSym->setType(type);
+
   TermList s;
   TermList t; //the ground inequality argument, that'll be splitted out
   if( isSplittableEqualitySide(*lit->nthArgument(0)) ) {
@@ -149,10 +156,10 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, Unit::InputType inpType
 
   ASS(t.isTerm());
   if(env.colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
-    env.signature->getPredicate(predNum)->addColor(t.term()->color());
+    predSym->addColor(t.term()->color());
   }
   if(env.colorUsed && t.term()->skip()) {
-    env.signature->getPredicate(predNum)->markSkip();
+    predSym->markSkip();
   }
 
   Inference* inf = new Inference(Inference::INEQUALITY_SPLITTING_NAME_INTRODUCTION);

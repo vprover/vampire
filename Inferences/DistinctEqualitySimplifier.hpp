@@ -16,10 +16,10 @@ class DistinctEqualitySimplifier
 {
 public:
   Clause* simplify(Clause* cl);
-private:
-  static bool canSimplify(Clause* cl);
   static bool mustBeDistinct(TermList t1, TermList t2);
   static bool mustBeDistinct(TermList t1, TermList t2, unsigned& grp);
+private:
+  static bool canSimplify(Clause* cl);
 };
 
 }

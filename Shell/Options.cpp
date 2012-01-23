@@ -230,6 +230,7 @@ const char* Options::Constants::_optionNames[] = {
   "sine_selection",
   "sine_tolerance",
   "smtlib_consider_ints_real",
+  "smtlib_flet_as_definition",
   "sos",
   "split_add_ground_negation",
   "split_at_activation",
@@ -761,6 +762,7 @@ Options::Options ()
   _sineSelection(SS_OFF),
   _sineTolerance(1.0f),
   _smtlibConsiderIntsReal(false),
+  _smtlibFletAsDefinition(false),
   _sos(false),
   _splitAddGroundNegation(true),
   _splitAtActivation(false),
@@ -1324,6 +1326,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SMTLIB_CONSIDER_INTS_REAL:
       _smtlibConsiderIntsReal = onOffToBool(value,name);
+      return;
+    case SMTLIB_FLET_AS_DEFINITION:
+      _smtlibFletAsDefinition = onOffToBool(value,name);
       return;
     case SOS:
       _sos = onOffToBool(value,name);
@@ -2043,6 +2048,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SMTLIB_CONSIDER_INTS_REAL:
     str << boolToOnOff(_smtlibConsiderIntsReal);
+    return;
+  case SMTLIB_FLET_AS_DEFINITION:
+    str << boolToOnOff(_smtlibFletAsDefinition);
     return;
   case SOS:
     str << boolToOnOff(_sos);

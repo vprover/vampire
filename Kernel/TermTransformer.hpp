@@ -24,6 +24,7 @@ namespace Kernel {
  */
 class TermTransformer {
 public:
+  virtual ~TermTransformer() {}
   Literal* transform(Literal* lit);
 protected:
   virtual TermList transform(TermList trm) = 0;

@@ -10,6 +10,7 @@
 #include "Lib/NameArray.hpp"
 #include "Lib/StringUtils.hpp"
 
+#include "Kernel/ColorHelper.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
@@ -28,10 +29,13 @@ namespace Parse
 
 SMTLIB::SMTLIB(const Options& opts, Mode mode)
 : _lispFormula(0),
+  _definitions(0),
   _formulas(0),
   _mode(mode),
   _treatIntsAsReals(opts.smtlibConsiderIntsReal()),
-  _defIntroThreshold(opts.aigDefinitionIntroductionThreshold())
+  _defIntroThreshold(opts.aigDefinitionIntroductionThreshold()),
+  _fletAsDefinition(opts.smtlibFletAsDefinition()),
+  _introducedSymbolColor(COLOR_TRANSPARENT)
 {
   CALL("SMTLIB::SMTLIB");
 
@@ -862,6 +866,10 @@ bool SMTLIB::tryReadFlet(LExpr* e, Formula*& res)
     USER_ERROR("invalid formula variable name: "+varName);
   }
 
+  if(_entering && _formVars.find(varName)) {
+    USER_ERROR("flet binds a formula variable that is already bound: "+varName);
+  }
+
   LExpr* varRhsExpr = defRdr.readNext();
   defRdr.acceptEOL();
 
@@ -874,13 +882,11 @@ bool SMTLIB::tryReadFlet(LExpr* e, Formula*& res)
     return false;
   }
   ASS(!_entering);
-  if(!_formVars.insert(varName, varRhs)) {
-    //either the variable was already bound, or we're in the third call. this we can tell
-    //by comparing
-    //if we're in the third call to this function, we won't insert the variable here
-    if(_formVars.get(varName)!=varRhs) {
-      USER_ERROR("flet binds a variable that is already bound: "+varName);
+  if(!_formVars.find(varName)) {
+    if(_fletAsDefinition) {
+      varRhs = nameFormula(varRhs, varName);
     }
+    _formVars.insert(varName, varRhs);
   }
 
   LExpr* bodyExpr = rdr.readNext();
@@ -908,6 +914,10 @@ bool SMTLIB::tryReadLet(LExpr* e, Formula*& res)
   LExpr* varRhsExpr = defRdr.readNext();
   defRdr.acceptEOL();
 
+  if(_entering && _termVars.find(varName)) {
+    USER_ERROR("let binds a variable that is already bound: "+varName);
+  }
+
   TermList varRhs;
   if(!tryGetArgumentTerm(e, varRhsExpr, varRhs)) {
     ASS(_entering);
@@ -917,13 +927,9 @@ bool SMTLIB::tryReadLet(LExpr* e, Formula*& res)
     return false;
   }
   ASS(!_entering);
+
   if(!_termVars.insert(varName, varRhs)) {
-    //either the variable was already bound, or we're in the third call. this we can tell
-    //by comparing
-    //if we're in the third call to this function, we won't insert the variable here
-    if(_termVars.get(varName)!=varRhs) {
-      USER_ERROR("let binds a variable that is already bound: "+varName);
-    }
+    //we're in the third call
   }
 
   LExpr* bodyExpr = rdr.readNext();
@@ -1065,24 +1071,74 @@ void SMTLIB::buildFormula()
   Formula* topForm;
   ALWAYS(_forms.find(_lispFormula, topForm));
 
-  if(_mode==BUILD_FORMULA) {
-    FormulaUnit* fu = new FormulaUnit(topForm, new Inference(Inference::INPUT), Unit::CONJECTURE);
-    UnitList::push(fu, _formulas);
+  if(_mode>BUILD_FORMULA) {
+    topForm = introduceAigNames(topForm);
   }
-  else {
-    createNamedFormulas(topForm);
-  }
+  FormulaUnit* fu = new FormulaUnit(topForm, new Inference(Inference::INPUT), Unit::CONJECTURE);
+
+  ASS_EQ(_formulas,0);
+  _formulas = _definitions->copy();
+  UnitList::push(fu, _formulas);
 }
 
-void SMTLIB::createNamedFormulas(Formula* f)
+Formula* SMTLIB::introduceAigNames(Formula* f)
 {
-  CALL("SMTLIB::createNamedFormulas");
+  CALL("SMTLIB::introduceAigNames");
 
   f = AIGCompressingTransformer().apply(f);
-  f = AIGDefinitionIntroducer(_defIntroThreshold).apply(f, _formulas);
+  f = AIGDefinitionIntroducer(_defIntroThreshold).apply(f, _definitions);
 
-  FormulaUnit* fu = new FormulaUnit(f, new Inference(Inference::INPUT), Unit::CONJECTURE);
-  UnitList::push(fu, _formulas);
+  return f;
+}
+
+Formula* SMTLIB::nameFormula(Formula* f, string fletVarName)
+{
+  CALL("SMTLIB::nameFormula");
+
+  Formula::VarList* freeVars = f->freeVariables();
+  unsigned varCnt = freeVars->length();
+
+  static DHMap<unsigned,unsigned> sorts;
+  sorts.reset();
+
+  SortHelper::collectVariableSorts(f, sorts);
+
+  static Stack<unsigned> argSorts;
+  static Stack<TermList> args;
+  argSorts.reset();
+  args.reset();
+
+  Formula::VarList::Iterator vit(freeVars);
+  while(vit.hasNext()) {
+    unsigned var = vit.next();
+    args.push(TermList(var, false));
+    argSorts.push(sorts.get(var));
+  }
+
+  fletVarName = StringUtils::sanitizeSuffix(fletVarName);
+  unsigned predNum = env.signature->addFreshPredicate(varCnt, "sP", fletVarName.c_str());
+  BaseType* type = BaseType::makeType(varCnt, argSorts.begin(), Sorts::SRT_BOOL);
+
+  Signature::Symbol* predSym = env.signature->getPredicate(predNum);
+  predSym->setType(type);
+
+//  Color symColor = ColorHelper::combine(_introducedSymbolColor, f->getColor());
+//  if(symColor==COLOR_INVALID) {
+//    USER_ERROR("invalid color in formula "+ f->toString());
+//  }
+//  if(symColor!=COLOR_TRANSPARENT) {
+//    predSym->addColor(symColor);
+//  }
+
+  Literal* lhs = Literal::create(predNum, varCnt, true, false, args.begin());
+  Formula* lhsF = new AtomicFormula(lhs);
+  Formula* df = new BinaryFormula(IFF, lhsF, f);
+  if(freeVars) {
+    df = new QuantifiedFormula(FORALL, freeVars, df);
+  }
+  FormulaUnit* def = new FormulaUnit(df, new Inference(Inference::INPUT), Unit::AXIOM);
+  UnitList::push(def, _definitions);
+  return lhsF;
 }
 
 }

@@ -11,6 +11,7 @@
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Kernel/ColorHelper.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
@@ -193,7 +194,24 @@ bool AIGInliner::addInfo(EquivInfo* inf)
   return true;
 }
 
-void AIGInliner::collectDefinitions(UnitList* units, Stack<AIGRef>& relevantAigs)
+void AIGInliner::addRelevant(AIGRef a)
+{
+  CALL("AIGInliner::addRelevant(AIGRef)");
+
+  _relevantAigs.push(a);
+#if VDEBUG
+  _relevantAigsSet.insert(a);
+#endif
+}
+
+void AIGInliner::addRelevant(Formula* f)
+{
+  CALL("AIGInliner::addRelevant(Formula*)");
+
+  addRelevant(_fsh.apply(f).second);
+}
+
+void AIGInliner::collectDefinitionsAndRelevant(UnitList* units)
 {
   CALL("AIGInliner::collectDefinitions");
 
@@ -201,7 +219,7 @@ void AIGInliner::collectDefinitions(UnitList* units, Stack<AIGRef>& relevantAigs
   while(uit.hasNext()) {
     Unit* u = uit.next();
     if(u->isClause()) {
-      relevantAigs.push(_fsh.getAIG(static_cast<Clause*>(u)));
+      addRelevant(_fsh.getAIG(static_cast<Clause*>(u)));
       continue;
     }
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
@@ -213,11 +231,8 @@ void AIGInliner::collectDefinitions(UnitList* units, Stack<AIGRef>& relevantAigs
     else {
       relevantForm = fu->formula();
     }
-    relevantAigs.push(_fsh.apply(relevantForm).second);
+    addRelevant(relevantForm);
   }
-#if VDEBUG
-  _relevantAigs.loadFromIterator(Stack<AIGRef>::Iterator(relevantAigs));
-#endif
 }
 
 void AIGInliner::updateModifiedProblem(Problem& prb)
@@ -298,13 +313,11 @@ void AIGInliner::scan(UnitList* units)
 
   DHMap<AIGRef,AIGRef> atomMap;
 
-  Stack<AIGRef> relevantAigs;
-
-  collectDefinitions(units, relevantAigs);
+  collectDefinitionsAndRelevant(units);
 
   AIGInsideOutPosIterator ait;
   ait.reset();
-  ait.addManyToTraversal(Stack<AIGRef>::Iterator(relevantAigs));
+  ait.addManyToTraversal(Stack<AIGRef>::Iterator(_relevantAigs));
 
   while(ait.hasNext()) {
     AIGRef a = ait.next();
@@ -353,7 +366,7 @@ void AIGInliner::scan(UnitList* units)
 
   ait.reset();
 
-  Stack<AIGRef>::Iterator baseAigIt(relevantAigs);
+  Stack<AIGRef>::Iterator baseAigIt(_relevantAigs);
   while(baseAigIt.hasNext()) {
     AIGRef baseAig = baseAigIt.next();
     AIGRef inlAig = AIGTransformer::lev0Deref(baseAig, _inlMap);
@@ -406,7 +419,7 @@ AIGRef AIGInliner::apply(AIGRef a)
 //            <<"  tgtI: "<<res.toInternalString()
 //      );
 
-  ASS_REP(_relevantAigs.contains(a), a);
+  ASS_REP(_relevantAigsSet.contains(a), a);
 
   return res;
 }
@@ -505,6 +518,10 @@ bool AIGDefinitionIntroducer::scanDefinition(FormulaUnit* def)
     rhsAig = _fsh.apply(rhs).second;
   }
 
+  if(lhs->color()!=COLOR_TRANSPARENT) {
+    return false;
+  }
+
   AIGRef lhsAig = _fsh.apply(lhs);
 
   if(!rhsAig.polarity()) {
@@ -599,21 +616,29 @@ void AIGDefinitionIntroducer::doFirstRefAIGPass()
     ni._hasQuant[1] = r.isQuantifier();
 
     if(r.isAtom()) {
-      ni._freeVars = getAtomVars(r.getPositiveAtom());
+      Literal* lit = r.getPositiveAtom();
+      ni._freeVars = getAtomVars(lit);
+      ni._clr = lit->color();
     }
     else if(r.isPropConst()) {
       ni._freeVars = VarSet::getEmpty();
+      ni._clr = COLOR_TRANSPARENT;
     }
     else if(r.isConjunction()) {
       NodeInfo& pni1 = getNodeInfo(r.parent(0));
       NodeInfo& pni2 = getNodeInfo(r.parent(1));
       ni._freeVars = pni1._freeVars->getUnion(pni2._freeVars);
+      ni._clr = ColorHelper::combine(pni1._clr, pni2._clr);
+      if(ni._clr==COLOR_INVALID) {
+	USER_ERROR("mixing colors in "+r.toString());
+      }
     }
     else {
       ASS(r.isQuantifier());
       NodeInfo& pni = getNodeInfo(r.parent(0));
       VarSet* qVars = VarSet::getFromIterator( AIG::VarList::Iterator(r.getQuantifierVars()) );
       ni._freeVars = pni._freeVars->subtract(qVars);
+      ni._clr = pni._clr;
     }
 
     unsigned parCnt = r.parentCnt();
@@ -672,7 +697,8 @@ Literal* AIGDefinitionIntroducer::getNameLiteral(unsigned aigStackIdx)
   CALL("AIGDefinitionIntroducer::getNameLiteral");
 
   AIGRef a = getPreNamingAig(aigStackIdx);
-  VarSet* freeVars = getNodeInfo(a)._freeVars;
+  const NodeInfo& ni = getNodeInfo(a);
+  VarSet* freeVars = ni._freeVars;
   Formula* rhs = _fsh.aigToFormula(a);
 
   static TermStack args;
@@ -695,7 +721,11 @@ Literal* AIGDefinitionIntroducer::getNameLiteral(unsigned aigStackIdx)
 
   unsigned arity = args.size();
   unsigned pred = env.signature->addFreshPredicate(arity, "sP","aig_name");
-  env.signature->getPredicate(pred)->setType(PredicateType::makeType(arity, argSorts.begin(), Sorts::SRT_BOOL));
+  Signature::Symbol* psym = env.signature->getPredicate(pred);
+  psym->setType(PredicateType::makeType(arity, argSorts.begin(), Sorts::SRT_BOOL));
+  if(ni._clr!=COLOR_TRANSPARENT) {
+    psym->addColor(ni._clr);
+  }
 
   Literal* res = Literal::create(pred, arity, true, false, args.begin());
   return res;

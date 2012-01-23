@@ -174,6 +174,7 @@ public:
     SINE_SELECTION,
     SINE_TOLERANCE,
     SMTLIB_CONSIDER_INTS_REAL,
+    SMTLIB_FLET_AS_DEFINITION,
     SOS,
     SPLIT_ADD_GROUND_NEGATION,
     SPLIT_AT_ACTIVATION,
@@ -583,6 +584,7 @@ public:
   float sineTolerance() const { return _sineTolerance; }
 
   bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal; }
+  bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition; }
 
   bool colorUnblocking() const { return _colorUnblocking; }
 
@@ -792,6 +794,7 @@ private:
   SineSelection _sineSelection;
   float _sineTolerance;
   bool _smtlibConsiderIntsReal;
+  bool _smtlibFletAsDefinition;
   bool _sos;
   bool _splitAddGroundNegation;
   bool _splitAtActivation;

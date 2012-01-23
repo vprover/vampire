@@ -7,7 +7,10 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/SharedSet.hpp"
 
+#include "Inferences/DistinctEqualitySimplifier.hpp"
+
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Kernel/Problem.hpp"
 
 #include "Flattening.hpp"
@@ -355,11 +358,18 @@ AIGRef BDDAIG::b2a(BDDNode* b)
 //
 
 AIGCompressor::AIGCompressor(AIG& aig, unsigned reqFactorNum, unsigned reqFactorDenom)
- : _reqFactorNum(reqFactorNum), _reqFactorDenom(reqFactorDenom), _aig(aig), _atr(aig), _ba(aig)
+ : _reqFactorNum(reqFactorNum), _reqFactorDenom(reqFactorDenom), _aig(aig), _atr(aig), _ba(aig),
+   _ilEval(0)
 {
   CALL("AIGCompressor::AIGCompressor");
 
   _maxBDDVarCnt = 16;
+}
+
+AIGCompressor::~AIGCompressor()
+{
+  CALL("AIGCompressor::~AIGCompressor");
+  delete _ilEval;
 }
 
 size_t AIGCompressor::getAIGDagSize(AIGRef aig)
@@ -412,6 +422,48 @@ bool AIGCompressor::localCompressByBDD(AIGRef aig, AIGRef& tgt)
   return true;
 }
 
+AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
+{
+  CALL("AIGCompressor::tryCompressAtom");
+  ASS(atom.isAtom());
+
+  bool isNeg = !atom.polarity();
+  Literal* lit0 = atom.getPositiveAtom();
+  Literal* lit = lit0;
+
+  if(lit->isEquality()) {
+    unsigned distGroup;
+    if(Inferences::DistinctEqualitySimplifier::mustBeDistinct(*lit->nthArgument(0), *lit->nthArgument(1), distGroup) &&
+	distGroup<=Signature::LAST_BUILT_IN_DISTINCT_GROUP) {
+      return isNeg ? _aig.getFalse() : _aig.getTrue();
+    }
+  }
+
+  if(lit->hasInterpretedConstants()) {
+    if(!_ilEval) {
+      _ilEval = new InterpretedLiteralEvaluator();
+    }
+    bool isConst;
+    bool constVal;
+    Literal* litVal;
+    if(_ilEval->evaluate(lit, isConst, litVal, constVal)) {
+      if(isConst) {
+	return (constVal^isNeg) ? _aig.getTrue() : _aig.getFalse();
+      }
+      else {
+	lit = litVal;
+      }
+    }
+  }
+  if(lit==lit0) {
+    return atom;
+  }
+  else {
+    AIGRef newPos = _aig.getLit(lit);
+    return isNeg ? newPos.neg() : newPos;
+  }
+}
+
 void AIGCompressor::populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AIGTransformer::RefMap& map)
 {
   CALL("AIGCompressor::populateBDDCompressingMap");
@@ -429,20 +481,24 @@ void AIGCompressor::populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AI
     ASS(!map.find(a));
     AIGRef tgt = _atr.lev1Deref(a, map);
 
-    if(a.isPropConst()) {
+    if(tgt.isAtom()) {
+      tgt = tryCompressAtom(tgt);
+    }
+
+    if(tgt.isPropConst()) {
       ref = USharedSet::getEmpty();
     }
-    else if(a.isAtom()) {
-      ref = USharedSet::getSingleton(a.nodeIndex());
-    } else if(a.isQuantifier()) {
-      ref = USharedSet::getSingleton(a.nodeIndex());
+    else if(tgt.isAtom()) {
+      ref = USharedSet::getSingleton(tgt.nodeIndex());
+    } else if(tgt.isQuantifier()) {
+      ref = USharedSet::getSingleton(tgt.nodeIndex());
     }
     else {
-      ASS(a.isConjunction());
-      AIGRef p1 = a.parent(0);
+      ASS(tgt.isConjunction());
+      AIGRef p1 = tgt.parent(0);
       AIGRef pp1 = p1.getPositive();
       USharedSet* pp1r = refAtoms.get(pp1);
-      AIGRef p2 = a.parent(1);
+      AIGRef p2 = tgt.parent(1);
       AIGRef pp2 = p2.getPositive();
       USharedSet* pp2r = refAtoms.get(pp2);
       if(pp1r && pp2r) {
@@ -460,6 +516,7 @@ void AIGCompressor::populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AI
     }
     if(a!=tgt) {
       map.insert(a, tgt);
+      aigIt.addToTraversal(tgt);
     }
     ALWAYS(refAtoms.insert(a, ref));
   }

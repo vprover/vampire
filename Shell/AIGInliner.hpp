@@ -58,6 +58,8 @@ class AIGInliner : public ScanAndApplyFormulaUnitTransformer {
   //options
   bool _onlySingleAtomPreds;
 
+  Stack<AIGRef> _relevantAigs;
+
   Stack<EquivInfo*> _eqInfos;
 
   LiteralSubstitutionTree* _lhsIdx;
@@ -69,7 +71,7 @@ class AIGInliner : public ScanAndApplyFormulaUnitTransformer {
 
 #if VDEBUG
   //to check whether we collect all relevant AIGs
-  DHSet<AIGRef> _relevantAigs;
+  DHSet<AIGRef> _relevantAigsSet;
 #endif
 
   AIGFormulaSharer _fsh;
@@ -77,12 +79,13 @@ class AIGInliner : public ScanAndApplyFormulaUnitTransformer {
   AIGTransformer _atr;
   AIGCompressor _acompr;
 
+
+
   bool addInfo(EquivInfo* inf);
-  void collectDefinitions(UnitList* units, Stack<AIGRef>& relevantAigs);
+  void collectDefinitionsAndRelevant(UnitList* units);
   bool tryExpandAtom(AIGRef atom, AIGRef& res);
 
   AIGRef apply(AIGRef a);
-  Formula* apply(Formula* a);
 
 public:
   AIGInliner();
@@ -92,6 +95,10 @@ public:
 
   void scan(UnitList* units);
   virtual bool apply(FormulaUnit* unit, Unit*& res);
+
+  void addRelevant(AIGRef a);
+  void addRelevant(Formula* f);
+  Formula* apply(Formula* f);
 
 protected:
   virtual void updateModifiedProblem(Problem& prb);
@@ -111,6 +118,8 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
     bool _hasName;
     AIGRef _name;
     VarSet* _freeVars;
+    /** Color of self or parents. If should be invalid, exception is thrown. */
+    Color _clr;
 
     /** Number of AIG nodes that refer to this node */
     unsigned _directRefCnt;

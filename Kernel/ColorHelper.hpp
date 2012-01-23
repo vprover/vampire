@@ -10,6 +10,7 @@
 
 #include "Debug/Assertion.hpp"
 
+#include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 
 namespace Kernel {
@@ -19,6 +20,16 @@ using namespace Saturation;
 
 class ColorHelper {
 public:
+
+  /**
+   * The result may be COLOR_INVALID
+   */
+  static Color combine(Color c1, Color c2) {
+    CALL("ColorHelper::combine");
+    ASS(env.colorUsed || (c1|c2)!=COLOR_INVALID);
+    return static_cast<Color>(c1|c2);
+  }
+
   /**
    * Return true if colors @c c1 and @c c2 can appear together in
    * an inference.
@@ -28,8 +39,7 @@ public:
    */
   static bool compatible(Color c1, Color c2) {
     CALL("ColorHelper::compatible");
-    ASS(env.colorUsed || (c1|c2)!=COLOR_INVALID);
-    return (c1|c2)!=COLOR_INVALID;
+    return combine(c1,c2)!=COLOR_INVALID;
   }
 
   static bool isTransparent(bool predicate, unsigned functor);

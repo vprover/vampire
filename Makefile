@@ -119,6 +119,7 @@ VK_OBJ= Kernel/BDD.o\
         Kernel/Grounder.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
+        Kernel/InterpretedLiteralEvaluator.o\
         Kernel/KBO.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
@@ -340,12 +341,15 @@ VUTIL_OBJ = VUtils/AnnotationColoring.o\
             VUtils/Z3InterpolantExtractor.o
 
 LIB_DEP = Indexing/TermSharing.o\
+	  Inferences/DistinctEqualitySimplifier.o\
+	  Inferences/InferenceEngine.o\
 	  Kernel/BDD.o\
 	  Kernel/BDDClausifier.o\
 	  Kernel/Clause.o\
 	  Kernel/Formula.o\
 	  Kernel/FormulaUnit.o\
 	  Kernel/FormulaVarIterator.o\
+	  Kernel/InterpretedLiteralEvaluator.o\
 	  Kernel/Inference.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\

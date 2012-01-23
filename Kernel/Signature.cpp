@@ -15,6 +15,7 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
 const unsigned Signature::INTEGER_DISTINCT_GROUP = 1;
 const unsigned Signature::RATIONAL_DISTINCT_GROUP = 2;
 const unsigned Signature::REAL_DISTINCT_GROUP = 3;
+const unsigned Signature::LAST_BUILT_IN_DISTINCT_GROUP = 3;
 
 /** standard constructor */
 Signature::Symbol::Symbol(const string& nm,unsigned arity, bool interpreted, bool stringConstant)

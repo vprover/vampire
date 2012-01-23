@@ -12,6 +12,10 @@
 
 #include "AIG.hpp"
 
+namespace Kernel {
+class InterpretedLiteralEvaluator;
+}
+
 namespace Shell {
 
 using namespace Lib;
@@ -55,6 +59,7 @@ private:
 class AIGCompressor {
 public:
   AIGCompressor(AIG& aig, unsigned reqFactorNum=5, unsigned reqFactorDenom=4);
+  ~AIGCompressor();
 
   AIGRef compress(AIGRef aig);
   AIGRef compressByBDD(AIGRef aig);
@@ -62,6 +67,8 @@ public:
   void populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AIGTransformer::RefMap& map);
 
 private:
+  AIGRef tryCompressAtom(AIGRef atom);
+
   bool localCompressByBDD(AIGRef aig, AIGRef& tgt);
   AIGRef attemptCompressByBDD(AIGRef aig);
   size_t getAIGDagSize(AIGRef aig);
@@ -75,6 +82,8 @@ private:
   AIG& _aig;
   AIGTransformer _atr;
   BDDAIG _ba;
+
+  InterpretedLiteralEvaluator* _ilEval;
 };
 
 class AIGCompressingTransformer : public ScanAndApplyFormulaUnitTransformer {

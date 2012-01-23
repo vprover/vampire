@@ -11,9 +11,14 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Shell/AIGInliner.hpp"
 #include "Shell/CommandLine.hpp"
+#include "Shell/InterpolantMinimizer.hpp"
+#include "Shell/Interpolants.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/TPTP.hpp"
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -74,6 +79,10 @@ int CPAInterpolator::perform(unsigned argc, char** argv)
   loadFormulas();
 
   doProving();
+
+  displayResult();
+
+  return 0;
 }
 
 void CPAInterpolator::collectSMTLIBFileFunctions(string fname, FuncSet& acc)
@@ -160,6 +169,7 @@ void CPAInterpolator::loadFormulas()
   CALL("CPAInterpolator::loadFormulas");
 
   _forms = 0;
+  _defs = 0;
 
   Stack<string>::Iterator lfIt(_leftFNames);
   while(lfIt.hasNext()) {
@@ -182,6 +192,7 @@ void CPAInterpolator::loadFormula(string fname)
   Parse::SMTLIB pars(*env.options);
   pars.parse(stm);
   _forms = UnitList::concat(pars.getFormulas(), _forms);
+  _defs = UnitList::concat(pars.getDefinitions(), _defs);
 }
 
 void CPAInterpolator::doProving()
@@ -192,9 +203,49 @@ void CPAInterpolator::doProving()
   prb.addUnits(_forms->copy());
 
   ProvingHelper::runVampire(prb, *env.options);
+}
+
+void CPAInterpolator::displayResult()
+{
+  CALL("CPAInterpolator::displayResult");
+
+  env.options->set("show_interpolant","off");
 
   env.beginOutput();
   UIHelper::outputResult(env.out());
+
+  Formula* oldItp = Interpolants().getInterpolant(env.statistics->refutation);
+  {
+    AIGInliner inl;
+    inl.addRelevant(oldItp);
+    inl.scan(_defs);
+    oldItp = inl.apply(oldItp);
+  }
+  env.out() << "Old interpolant: " << TPTP::toString(oldItp) << endl;
+
+
+  Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+  Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+  InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+  Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+  Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
+
+  AIGInliner inl;
+  inl.addRelevant(oldInterpolant);
+  inl.addRelevant(interpolant);
+  inl.addRelevant(cntInterpolant);
+  inl.addRelevant(quantInterpolant);
+  inl.scan(_defs);
+
+  oldInterpolant = inl.apply(oldInterpolant);
+  interpolant = inl.apply(interpolant);
+  cntInterpolant = inl.apply(cntInterpolant);
+  quantInterpolant = inl.apply(quantInterpolant);
+
+  env.out() << "Interpolant: " << TPTP::toString(interpolant) << endl;
+  env.out() << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;
+  env.out() << "Quantifiers minimized interpolant: " << TPTP::toString(quantInterpolant) << endl;
+
   env.endOutput();
 }
 

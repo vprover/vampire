@@ -43,6 +43,7 @@ public:
   };
 
   SMTLIB(const Options& opts, Mode mode = INTRODUCE_NAMES);
+  void setIntroducedSymbolColor(Color clr) { _introducedSymbolColor = clr; }
 
   /**
    * @param bench lisp list having atom "benchmark" as the first element
@@ -69,6 +70,7 @@ public:
    * when the mode in is set to BUILD_FORMULA.
    */
   UnitList* getFormulas() const { ASS(_formulas); return _formulas; }
+  UnitList* getDefinitions() const { ASS(_formulas); return _definitions; }
 
 private:
 
@@ -81,7 +83,7 @@ private:
   void doSortDeclarations();
   void doFunctionDeclarations();
 
-  void createNamedFormulas(Formula* f);
+  Formula* introduceAigNames(Formula* f);
 
   string _benchName;
   string _statusStr;
@@ -90,11 +92,17 @@ private:
   Stack<FunctionInfo> _funcs;
   LExpr* _lispFormula;
 
+  UnitList* _definitions;
+  /**
+   * Contains definitions and the top formula
+   */
   UnitList* _formulas;
 
   Mode _mode;
   bool _treatIntsAsReals;
   unsigned _defIntroThreshold;
+  bool _fletAsDefinition;
+  Color _introducedSymbolColor;
 #if VDEBUG
   bool _haveParsed;
 #endif
@@ -191,6 +199,7 @@ private:
 
   bool readTermArgs(LExpr* parent, LispListReader& rdr, TermStack& args);
 
+
   TermList readTermFromAtom(string str);
   bool tryReadTermIte(LExpr* e, TermList& res);
   bool tryReadTerm(LExpr* e, TermList& res);
@@ -204,6 +213,7 @@ private:
   bool tryReadFormula(LExpr* e, Formula*& res);
   void buildFormula();
 
+  Formula* nameFormula(Formula* f, string fletVarName);
 
 };
 
