@@ -14,6 +14,7 @@
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 
+#include "Parse/SMTLIB.hpp"
 #include "Parse/TPTP.hpp"
 
 #include "AnswerExtractor.hpp"
@@ -126,6 +127,14 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     parser.parse();
     units = parser.units();
     s_haveConjecture=parser.containsConjecture();
+  }
+  break;
+  case Options::IS_SMTLIB:
+  {
+    Parse::SMTLIB parser(opts);
+    parser.parse(*input);
+    units = parser.getFormulas();
+    s_haveConjecture=true;
   }
   break;
   }

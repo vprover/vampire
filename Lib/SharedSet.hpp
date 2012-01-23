@@ -313,16 +313,36 @@ public:
     ASS(is.isEmpty());
 
     bool sorted=true;
+    bool unique=true;
     is.push(arr[0]);
     for(size_t i=1; i<len; i++) {
       is.push(arr[i]);
-      if(sorted && arr[i-1]>arr[i]) {
+      if(arr[i-1]>arr[i]) {
 	sorted = false;
+      }
+      else if(arr[i-1]==arr[i]) {
+	unique = false;
       }
     }
     if(!sorted) {
       sort<DefaultComparator>(is.begin(), is.end());
+      unique = false; //maybe they are unique, we just need to check
     }
+    if(!unique) {
+      typename ItemStack::StableDelIterator uit(is);
+      ALWAYS(uit.hasNext());
+      T prev = uit.next();
+      while(uit.hasNext()) {
+	T curr = uit.next();
+	if(curr==prev) {
+	  uit.del();
+	}
+	else {
+	  prev = curr;
+	}
+      }
+    }
+
     SharedSet* res=create(is);
     is.reset();
 

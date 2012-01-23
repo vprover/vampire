@@ -106,6 +106,14 @@ void Preprocess::preprocess (Problem& prb)
 //     }
 //   }
 
+  TRACE("pp_input",
+      UnitList::Iterator uit(prb.units());
+      while(uit.hasNext()) {
+	Unit* u = uit.next();
+	TRACE_OUTPUT_UNIT("pp_input", u);
+      }
+      );
+
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
@@ -220,7 +228,7 @@ void Preprocess::preprocess (Problem& prb)
   }
 
   if(_options.aigDefinitionIntroduction()) {
-    AIGDefinitionIntroducer().apply(prb);
+    AIGDefinitionIntroducer(_options.aigDefinitionIntroductionThreshold()).apply(prb);
   }
 
   if (_options.unusedPredicateDefinitionRemoval()) {

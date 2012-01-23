@@ -26,7 +26,8 @@ public:
     READ_BENCHMARK = 0,
     DECLARE_SORTS = 1,
     DECLARE_SYMBOLS = 2,
-    BUILD_FORMULA = 3
+    BUILD_FORMULA = 3,
+    INTRODUCE_NAMES = 4
   };
 
   /**
@@ -41,7 +42,7 @@ public:
     string rangeSort;
   };
 
-  SMTLIB(Mode mode = BUILD_FORMULA, bool treatIntsAsReals=false);
+  SMTLIB(const Options& opts, Mode mode = INTRODUCE_NAMES);
 
   /**
    * @param bench lisp list having atom "benchmark" as the first element
@@ -67,7 +68,7 @@ public:
    * This function can be called after calling some of the parse() functions and
    * when the mode in is set to BUILD_FORMULA.
    */
-  Unit* getFormula() const { ASS(_formula); return _formula; }
+  UnitList* getFormulas() const { ASS(_formulas); return _formulas; }
 
 private:
 
@@ -80,6 +81,8 @@ private:
   void doSortDeclarations();
   void doFunctionDeclarations();
 
+  void createNamedFormulas(Formula* f);
+
   string _benchName;
   string _statusStr;
 
@@ -87,10 +90,11 @@ private:
   Stack<FunctionInfo> _funcs;
   LExpr* _lispFormula;
 
-  Unit* _formula;
+  UnitList* _formulas;
 
   Mode _mode;
   bool _treatIntsAsReals;
+  unsigned _defIntroThreshold;
 #if VDEBUG
   bool _haveParsed;
 #endif
@@ -126,6 +130,7 @@ private:
 
   enum TermSymbol
   {
+    TS_MULTIPLY,
     TS_PLUS,
     TS_MINUS,
     TS_ITE,

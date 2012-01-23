@@ -285,6 +285,19 @@ void Logging::doTagDeclarations()
   DECL("pp",
       DOC("preprocessing traces"));
 
+  DECL("pp_input",
+      DOC("print-out the problem as received from the parser"),
+      PARENT("pp",1));
+
+  DECL("pp_pre_ennf",
+      DOC("print-out the problem just before conversion to ennf"),
+      PARENT("pp",1));
+
+  DECL("pp_pre_cl",
+      DOC("print-out the problem just before clausification"),
+      PARENT("pp",1));
+
+
   DECL("pp_sk",
       DOC("solemization"),
       PARENT("pp",1));
@@ -294,14 +307,6 @@ void Logging::doTagDeclarations()
   DECL("pp_sk_nonconst_intr",
       DOC("trace introductions of non-constant skolem functions"),
       PARENT("pp_sk",0));
-
-  DECL("pp_pre_cl",
-      DOC("print-out the problem just before clausification"),
-      PARENT("pp",1));
-
-  DECL("pp_pre_ennf",
-      DOC("print-out the problem just before conversion to ennf"),
-      PARENT("pp",1));
 
   DECL("pp_naming",
       DOC("naming"),

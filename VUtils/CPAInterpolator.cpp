@@ -60,6 +60,7 @@ int CPAInterpolator::perform(unsigned argc, char** argv)
     _rightFNames.push(argv[argIdx]);
   }
 
+  env.options->set("smtlib_consider_ints_real", "on");
   CommandLine cl(argc+1-argIdx,argv-1+argIdx);
   cl.interpret(*env.options);
 
@@ -81,7 +82,7 @@ void CPAInterpolator::collectSMTLIBFileFunctions(string fname, FuncSet& acc)
 
   ifstream stm(fname.c_str());
 
-  Parse::SMTLIB pars(Parse::SMTLIB::DECLARE_SORTS);
+  Parse::SMTLIB pars(*env.options, Parse::SMTLIB::DECLARE_SORTS);
   pars.parse(stm);
   typedef Stack<Parse::SMTLIB::FunctionInfo> FIStack;
   const Stack<Parse::SMTLIB::FunctionInfo>& fnInfs = pars.getFuncInfos();
@@ -178,9 +179,9 @@ void CPAInterpolator::loadFormula(string fname)
 
   ifstream stm(fname.c_str());
 
-  Parse::SMTLIB pars(Parse::SMTLIB::BUILD_FORMULA, true);
+  Parse::SMTLIB pars(*env.options);
   pars.parse(stm);
-  UnitList::push(pars.getFormula(), _forms);
+  _forms = UnitList::concat(pars.getFormulas(), _forms);
 }
 
 void CPAInterpolator::doProving()

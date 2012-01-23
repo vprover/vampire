@@ -105,6 +105,7 @@ const char* Options::Constants::_optionNames[] = {
   "age_weight_ratio",
   "aig_bdd_sweeping",
   "aig_definition_introduction",
+  "aig_definition_introduction_threshold",
   "aig_formula_sharing",
   "aig_inliner",
   "arity_check",
@@ -228,6 +229,7 @@ const char* Options::Constants::_optionNames[] = {
   "sine_generality_threshold",
   "sine_selection",
   "sine_tolerance",
+  "smtlib_consider_ints_real",
   "sos",
   "split_add_ground_negation",
   "split_at_activation",
@@ -535,6 +537,7 @@ NameArray Options::Constants::tcValues(_tcValues,
 
 const char* Options::Constants::_inputSyntaxValues[] = {
   "simplify",
+  "smtlib",
   "tptp"};
 NameArray Options::Constants::inputSyntaxValues(_inputSyntaxValues,
 						sizeof(_inputSyntaxValues)/sizeof(char*));
@@ -629,6 +632,7 @@ Options::Options ()
   _weightRatio(1),
   _aigBddSweeping(false),
   _aigDefinitionIntroduction(false),
+  _aigDefinitionIntroductionThreshold(4),
   _aigFormulaSharing(false),
   _aigInliner(false),
   _arityCheck(false),
@@ -756,6 +760,7 @@ Options::Options ()
   _sineGeneralityThreshold(0),
   _sineSelection(SS_OFF),
   _sineTolerance(1.0f),
+  _smtlibConsiderIntsReal(false),
   _sos(false),
   _splitAddGroundNegation(true),
   _splitAtActivation(false),
@@ -817,7 +822,7 @@ void Options::set(const char* name,const char* value)
   try{
     set(name,value,Constants::optionNames.find(name));
   }
-  catch(ValueNotFoundException) {
+  catch(const ValueNotFoundException&) {
     USER_ERROR((string)name + " is not a valid option");
   }
 } // Options::set/2
@@ -863,6 +868,15 @@ void Options::set(const char* name,const char* value, int index)
     case AIG_DEFINITION_INTRODUCTION:
       _aigDefinitionIntroduction = onOffToBool(value,name);
       return;
+    case AIG_DEFINITION_INTRODUCTION_THRESHOLD:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	if(unsignedValue<=1) {
+	  USER_ERROR("aig_definition_introduction_threshold must be greater than 1");
+	}
+	_aigDefinitionIntroductionThreshold = unsignedValue;
+	return;
+      }
+      break;
     case AIG_FORMULA_SHARING:
       _aigFormulaSharing = onOffToBool(value,name);
       return;
@@ -1308,6 +1322,9 @@ void Options::set(const char* name,const char* value, int index)
       }
       _sineTolerance = floatValue;
       return;
+    case SMTLIB_CONSIDER_INTS_REAL:
+      _smtlibConsiderIntsReal = onOffToBool(value,name);
+      return;
     case SOS:
       _sos = onOffToBool(value,name);
       return;
@@ -1682,6 +1699,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case AIG_DEFINITION_INTRODUCTION:
     str << boolToOnOff(_aigDefinitionIntroduction);
     return;
+  case AIG_DEFINITION_INTRODUCTION_THRESHOLD:
+    str << _aigDefinitionIntroductionThreshold;
+    return;
   case AIG_FORMULA_SHARING:
     str << boolToOnOff(_aigFormulaSharing);
     return;
@@ -2020,6 +2040,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SINE_TOLERANCE:
     str << _sineTolerance;
+    return;
+  case SMTLIB_CONSIDER_INTS_REAL:
+    str << boolToOnOff(_smtlibConsiderIntsReal);
     return;
   case SOS:
     str << boolToOnOff(_sos);

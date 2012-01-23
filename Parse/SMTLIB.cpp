@@ -16,18 +16,22 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
+#include "Shell/AIGInliner.hpp"
+#include "Shell/AIGCompressor.hpp"
 #include "Shell/LispLexer.hpp"
+#include "Shell/Options.hpp"
 
 #include "SMTLIB.hpp"
 
 namespace Parse
 {
 
-SMTLIB::SMTLIB(Mode mode, bool treatIntsAsReals)
+SMTLIB::SMTLIB(const Options& opts, Mode mode)
 : _lispFormula(0),
-  _formula(0),
+  _formulas(0),
   _mode(mode),
-  _treatIntsAsReals(treatIntsAsReals)
+  _treatIntsAsReals(opts.smtlibConsiderIntsReal()),
+  _defIntroThreshold(opts.aigDefinitionIntroductionThreshold())
 {
   CALL("SMTLIB::SMTLIB");
 
@@ -72,7 +76,7 @@ void SMTLIB::parse(LExpr* bench)
   doFunctionDeclarations();
 
   if(_mode==DECLARE_SYMBOLS) { return; }
-  ASS_EQ(_mode, BUILD_FORMULA);
+  ASS(_mode==BUILD_FORMULA || _mode==INTRODUCE_NAMES);
 
   buildFormula();
 }
@@ -166,7 +170,7 @@ unsigned SMTLIB::getSort(string name)
     return Sorts::SRT_REAL;
   }
   else if(name=="Int") {
-    return Sorts::SRT_INTEGER;
+    return _treatIntsAsReals ? Sorts::SRT_REAL : Sorts::SRT_INTEGER;
   }
 
   unsigned idx;
@@ -275,6 +279,7 @@ const char * SMTLIB::s_formulaSymbolNameStrings[] = {
 };
 
 const char * SMTLIB::s_termSymbolNameStrings[] = {
+    "*",
     "+",
     "-",
     "ite",
@@ -554,6 +559,18 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
       break;
     }
     break;
+  case TS_MULTIPLY:
+    switch(firstArgSort) {
+    case Sorts::SRT_INTEGER:
+      res = Theory::INT_MULTIPLY;
+      break;
+    case Sorts::SRT_REAL:
+      res = Theory::REAL_MULTIPLY;
+      break;
+    default:
+      break;
+    }
+    break;
   case TS_UMINUS:
     switch(firstArgSort) {
     case Sorts::SRT_INTEGER:
@@ -611,13 +628,17 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
   }
   else {
     if(arity==0) {
-      USER_ERROR("interpreted function with zero arity");
+      USER_ERROR("interpreted function with zero arity: "+fnName);
     }
     unsigned firstArgSort = getSort(args[0]);
     Interpretation itp = getTermSymbolInterpretation(ts, firstArgSort);
+    if(Theory::instance()->getArity(itp)!=args.size()) {
+      USER_ERROR("invalid function arity: "+fnName);
+    }
     fnNum = Theory::instance()->getFnNum(itp);
   }
 
+  ASS_EQ(env.signature->functionArity(fnNum), args.size());
   ensureArgumentSorts(false, fnNum, args.begin());
   res = TermList(Term::create(fnNum, arity, args.begin()));
   return true;
@@ -661,13 +682,17 @@ bool SMTLIB::tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res)
   }
   else {
     if(arity==0) {
-      USER_ERROR("interpreted function with zero arity");
+      USER_ERROR("interpreted predicate with zero arity: "+predName);
     }
     unsigned firstArgSort = getSort(args[0]);
     Interpretation itp = getFormulaSymbolInterpretation(fsym, firstArgSort);
+    if(Theory::instance()->getArity(itp)!=args.size()) {
+      USER_ERROR("invalid predicate arity: "+predName);
+    }
     predNum = Theory::instance()->getPredNum(itp);
   }
 
+  ASS_EQ(env.signature->predicateArity(predNum), args.size());
   ensureArgumentSorts(true, predNum, args.begin());
   res = Literal::create(predNum, arity, true, false, args.begin());
   return true;
@@ -1039,9 +1064,25 @@ void SMTLIB::buildFormula()
 
   Formula* topForm;
   ALWAYS(_forms.find(_lispFormula, topForm));
-  _formula = new FormulaUnit(topForm, new Inference(Inference::INPUT), Unit::CONJECTURE);
+
+  if(_mode==BUILD_FORMULA) {
+    FormulaUnit* fu = new FormulaUnit(topForm, new Inference(Inference::INPUT), Unit::CONJECTURE);
+    UnitList::push(fu, _formulas);
+  }
+  else {
+    createNamedFormulas(topForm);
+  }
 }
 
+void SMTLIB::createNamedFormulas(Formula* f)
+{
+  CALL("SMTLIB::createNamedFormulas");
 
+  f = AIGCompressingTransformer().apply(f);
+  f = AIGDefinitionIntroducer(_defIntroThreshold).apply(f, _formulas);
+
+  FormulaUnit* fu = new FormulaUnit(f, new Inference(Inference::INPUT), Unit::CONJECTURE);
+  UnitList::push(fu, _formulas);
+}
 
 }

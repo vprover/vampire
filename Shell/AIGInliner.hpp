@@ -100,6 +100,7 @@ protected:
 
 class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
 {
+  typedef SharedSet<unsigned> VarSet;
 
   struct NodeInfo {
 
@@ -109,6 +110,7 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
     bool _hasQuant[2];
     bool _hasName;
     AIGRef _name;
+    VarSet* _freeVars;
 
     /** Number of AIG nodes that refer to this node */
     unsigned _directRefCnt;
@@ -138,8 +140,7 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
 
   AIGFormulaSharer _fsh;
 
-  typedef pair<AIGRef,FormulaUnit*> TopLevelPair;
-  typedef Stack<TopLevelPair> TopLevelStack;
+  typedef Stack<AIGRef> TopLevelStack;
   TopLevelStack _toplevelAIGs;
 
   /**
@@ -165,15 +166,21 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
   Literal* getNameLiteral(unsigned aigStackIdx);
   void introduceName(unsigned aigStackIdx);
 
-  void scanDefinition(FormulaUnit* def);
+  bool scanDefinition(FormulaUnit* def);
 
   //functions called from scan()
   void collectTopLevelAIGsAndDefs(UnitList* units);
+  void processTopLevelAIGs();
+
+  //functions called from processTopLevelAIGs()
   void doFirstRefAIGPass();
   void doSecondRefAIGPass();
 
+  VarSet* getAtomVars(Literal* l);
+  NodeInfo& getNodeInfo(AIGRef r);
+
 public:
-  AIGDefinitionIntroducer();
+  AIGDefinitionIntroducer(unsigned threshold=4);
 
   virtual void scan(UnitList* units);
 
@@ -181,6 +188,8 @@ public:
   virtual bool apply(FormulaUnit* unit, Unit*& res);
 
   virtual UnitList* getIntroducedFormulas();
+
+  Formula* apply(Formula* f, UnitList*& introducedDefs);
 protected:
   virtual void updateModifiedProblem(Problem& prb) {}
 };

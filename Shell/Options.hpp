@@ -32,6 +32,7 @@ public:
     AGE_WEIGHT_RATIO,
     AIG_BDD_SWEEPING,
     AIG_DEFINITION_INTRODUCTION,
+    AIG_DEFINITION_INTRODUCTION_THRESHOLD,
     AIG_FORMULA_SHARING,
     AIG_INLINER,
     ARITY_CHECK,
@@ -172,6 +173,7 @@ public:
     SINE_GENERALITY_THRESHOLD,
     SINE_SELECTION,
     SINE_TOLERANCE,
+    SMTLIB_CONSIDER_INTS_REAL,
     SOS,
     SPLIT_ADD_GROUND_NEGATION,
     SPLIT_AT_ACTIVATION,
@@ -235,8 +237,10 @@ public:
   enum InputSyntax {
     /** syntax of the Simplify prover */
     IS_SIMPLIFY = 0,
+    /** syntax of SMTLIB1.2 */
+    IS_SMTLIB = 1,
     /** syntax of the TPTP prover */
-    IS_TPTP = 1
+    IS_TPTP = 2
   };
 
   /**
@@ -450,6 +454,7 @@ public:
   void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
   bool aigBddSweeping() const { return _aigBddSweeping; }
   bool aigDefinitionIntroduction() const { return _aigDefinitionIntroduction; }
+  unsigned aigDefinitionIntroductionThreshold() const { return _aigDefinitionIntroductionThreshold; }
   bool aigFormulaSharing() const { return _aigFormulaSharing; }
   bool aigInliner() const { return _aigInliner; }
   Mode mode() const { return _mode; }
@@ -577,6 +582,7 @@ public:
   void setSineSelection(SineSelection val) { _sineSelection=val; }
   float sineTolerance() const { return _sineTolerance; }
 
+  bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal; }
 
   bool colorUnblocking() const { return _colorUnblocking; }
 
@@ -656,6 +662,7 @@ private:
   int _weightRatio;
   bool _aigBddSweeping;
   bool _aigDefinitionIntroduction;
+  unsigned _aigDefinitionIntroductionThreshold;
   bool _aigFormulaSharing;
   bool _aigInliner;
   bool _arityCheck;
@@ -784,6 +791,7 @@ private:
   unsigned _sineGeneralityThreshold;
   SineSelection _sineSelection;
   float _sineTolerance;
+  bool _smtlibConsiderIntsReal;
   bool _sos;
   bool _splitAddGroundNegation;
   bool _splitAtActivation;
