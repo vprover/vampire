@@ -247,13 +247,13 @@ bool AIGInliner::tryExpandAtom(AIGRef atom, AIGRef& res)
 
   SLQueryResult idxRes = defIt.next();
 
-  if(defIt.hasNext()) {
-    defIt = _lhsIdx->getGeneralizations(lit, false, false);
-    LOGV("bug", *lit);
-    while(defIt.hasNext()) {
-      LOGV("bug", *defIt.next().literal);
-    }
-  }
+//  if(defIt.hasNext()) {
+//    defIt = _lhsIdx->getGeneralizations(lit, false, false);
+//    LOGV("bug", *lit);
+//    while(defIt.hasNext()) {
+//      LOGV("bug", *defIt.next().literal);
+//    }
+//  }
   ASS(!defIt.hasNext()); //we made sure there is always only one way to inline
 
   Literal* defLhs = idxRes.literal;
@@ -395,16 +395,16 @@ AIGRef AIGInliner::apply(AIGRef a)
       <<"  inlI: "<<inl.toInternalString()<<endl
       <<"  tgtI: "<<res.toInternalString()
   );
-  COND_LOG("bug", res!=_acompr.compress(res),
-      "missed simplification in aig inlining:"<<endl
-            <<"  src: "<<a<<endl
-            <<"  inl: "<<inl<<endl
-            <<"  tgt: "<<res<<endl
-            <<"  tSm: "<<_acompr.compress(res)<<endl
-            <<"  srcI: "<<a.toInternalString()<<endl
-            <<"  inlI: "<<inl.toInternalString()<<endl
-            <<"  tgtI: "<<res.toInternalString()
-      );
+//  COND_LOG("bug", res!=_acompr.compress(res),
+//      "missed simplification in aig inlining:"<<endl
+//            <<"  src: "<<a<<endl
+//            <<"  inl: "<<inl<<endl
+//            <<"  tgt: "<<res<<endl
+//            <<"  tSm: "<<_acompr.compress(res)<<endl
+//            <<"  srcI: "<<a.toInternalString()<<endl
+//            <<"  inlI: "<<inl.toInternalString()<<endl
+//            <<"  tgtI: "<<res.toInternalString()
+//      );
 
   ASS_REP(_relevantAigs.contains(a), a);
 
@@ -615,8 +615,6 @@ void AIGDefinitionIntroducer::doFirstRefAIGPass()
       VarSet* qVars = VarSet::getFromIterator( AIG::VarList::Iterator(r.getQuantifierVars()) );
       ni._freeVars = pni._freeVars->subtract(qVars);
     }
-    LOG("bug",r.toInternalString() << " free vars: "<<ni._freeVars->toString());
-
 
     unsigned parCnt = r.parentCnt();
     for(unsigned pi = 0; pi<parCnt; ++pi) {
@@ -691,10 +689,6 @@ Literal* AIGDefinitionIntroducer::getNameLiteral(unsigned aigStackIdx)
     while(vit.hasNext()) {
       unsigned var = vit.next();
       args.push(TermList(var, false));
-      if(!varSorts.find(var)) {
-	LOGV("bug",a);
-	LOGV("bug",var);
-      }
       argSorts.push(varSorts.get(var));
     }
   }
