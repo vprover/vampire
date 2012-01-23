@@ -20,6 +20,12 @@
 
 #include "Statistics.hpp"
 
+/**
+ * Identifier of the Vampire version
+ */
+const char* VERSION_STRING = "Vampire 1.8 (revision 1362)";
+
+
 using namespace std;
 using namespace Lib;
 using namespace Saturation;

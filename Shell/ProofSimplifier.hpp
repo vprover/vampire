@@ -23,7 +23,13 @@ public:
 
   static void loadProof(UnitSpec refutation, Stack<UnitSpec>& tgt);
 private:
+
+  void derefInference(UnitSpec src);
+  void registerTransformation(UnitSpec src, UnitSpec tgt);
+
   UnitSpec _refutation;
+
+  DHMap<UnitSpec,UnitSpec> _transformationMap;
 
   Stack<UnitSpec> _origProof;
   Stack<UnitSpec> _newProof;

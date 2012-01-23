@@ -484,9 +484,12 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
 
   if(lit->isEquality()) {
     unsigned distGroup;
+    if(*lit->nthArgument(0)==*lit->nthArgument(1)) {
+      return isNeg ? _aig.getFalse() : _aig.getTrue();
+    }
     if(Inferences::DistinctEqualitySimplifier::mustBeDistinct(*lit->nthArgument(0), *lit->nthArgument(1), distGroup) &&
 	distGroup<=Signature::LAST_BUILT_IN_DISTINCT_GROUP) {
-      return isNeg ? _aig.getFalse() : _aig.getTrue();
+      return isNeg ? _aig.getTrue() : _aig.getFalse();
     }
   }
 

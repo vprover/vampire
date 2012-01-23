@@ -35,6 +35,7 @@ struct UnitSpec
   {
     if(u==0) {
       _prop = 0;
+      return;
     }
     if(!ignoreProp && u->isClause() && static_cast<Clause*>(u)->prop()) {
 	_prop=static_cast<Clause*>(u)->prop();

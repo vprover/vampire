@@ -10,10 +10,7 @@
 
 #include <ostream>
 
-/**
- * Identifier of the Vampire version
- */
-#define VERSION_STRING "Vampire 1.8 (revision 1362)"
+extern const char* VERSION_STRING;
 
 namespace Kernel {
   class Unit;

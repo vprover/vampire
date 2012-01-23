@@ -8,6 +8,21 @@
 namespace Shell
 {
 
+ProofSimplifier::ProofSimplifier(UnitSpec refutation)
+{
+  CALL("ProofSimplifier::ProofSimplifier");
+
+  _refutation = refutation;
+  loadProof(refutation, _origProof);
+}
+
+void ProofSimplifier::registerTransformation(UnitSpec src, UnitSpec tgt)
+{
+  CALL("ProofSimplifier::registerTransformation");
+
+
+}
+
 void ProofSimplifier::loadProof(UnitSpec refutation, Stack<UnitSpec>& tgt)
 {
   CALL("ProofSimplifier::loadProof");
@@ -23,12 +38,22 @@ void ProofSimplifier::loadProof(UnitSpec refutation, Stack<UnitSpec>& tgt)
     if(stack.top().isEmpty()) {
       stack.pop();
       ASS(!stack.top().isEmpty());
-      tgt.push(stack.pop());
+      UnitSpec proc = stack.pop();
+      if(processed.insert(proc)) {
+	tgt.push(proc);
+      }
     }
     UnitSpec current = stack.top();
+    if(processed.find(current)) {
+      stack.pop();
+      continue;
+    }
+    stack.push(UnitSpec(0));
     UnitSpecIterator pit = InferenceStore::instance()->getParents(current);
-    NOT_IMPLEMENTED;
+    stack.loadFromIterator(pit);
   }
 }
+
+
 
 }
