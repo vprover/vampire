@@ -21,8 +21,8 @@ function run_vampire()
         
         for LEFT_CNT in $LEFT_CNTS; do
                 echo "results for $BASE $LEFT_CNT"
-                $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS
-#                $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS | grep -v "Refutation found"
+#                $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS
+                $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS | grep -v "Refutation found"
                 if [ $? -eq 130 ]; then
                         echo interrupted
                         exit 130

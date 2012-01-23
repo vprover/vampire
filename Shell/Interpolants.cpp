@@ -213,7 +213,7 @@ Formula* Interpolants::getInterpolant(Unit* unit)
     sts.push(st);
 
     for(;;) {
-     if(sts.top().pars.hasNext()) {
+      if(sts.top().pars.hasNext()) {
         curr=sts.top().pars.next();
         break;
       }
@@ -227,6 +227,8 @@ Formula* Interpolants::getInterpolant(Unit* unit)
 //	  ASS_EQ(color,COLOR_TRANSPARENT);
 	  ASS_REP2(color==COLOR_TRANSPARENT, st.us().toString(), st.inheritedColor);
 	  generateInterpolant(st);
+	  LOG("itp_sub","intermediate interpolant for "<<st.us().toString()<<endl<<
+	      "  "<<(*st.interpolant));
 	}
 	st.processed = true;
 	processed.insert(st.us(), st);

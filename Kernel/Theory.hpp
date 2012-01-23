@@ -144,6 +144,8 @@ public:
   RealConstantType operator/(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator/(num)); }
 
+  string toNiceString() const;
+
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
 private:
   static bool parseDouble(const string& num, RationalConstantType& res);

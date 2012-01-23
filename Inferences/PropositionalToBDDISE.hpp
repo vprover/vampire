@@ -25,6 +25,7 @@ class PropositionalToBDDISE
 : public ImmediateSimplificationEngine
 {
 public:
+  PropositionalToBDDISE(MainLoop* parent) : _parent(parent) {}
   Clause* simplify(Clause* cl);
 
   static bool canBddize(Literal* l);
@@ -33,6 +34,8 @@ private:
 
   /** Names assigned to propositional predicates */
   DHMap<unsigned, int> _propPredNames;
+
+  MainLoop* _parent;
 };
 
 };

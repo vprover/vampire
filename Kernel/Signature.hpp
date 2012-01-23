@@ -230,7 +230,7 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol(val.toString(), 0, true), _realValue(val)
+    : Symbol(val.toNiceString(), 0, true), _realValue(val)
     {
       CALL("RealSymbol");
 

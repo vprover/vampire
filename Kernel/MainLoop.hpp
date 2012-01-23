@@ -81,6 +81,7 @@ public:
    * Return the problem that the solving algorithm is being run on
    */
   const Problem& getProblem() const { return _prb; }
+  Problem& getProblem() { return _prb; }
 
   /**
    * Get options specifying strategy for the solving algorithm

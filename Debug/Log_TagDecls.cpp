@@ -554,6 +554,10 @@ void Logging::doTagDeclarations()
   DECL("itp",
       DOC("interpolation traces"));
 
+  DECL("itp_sub",
+      DOC("generated sub-interpolants"),
+      PARENT("itp",1));
+
   DECL("itp_min",
       DOC("interpolant minimizer"),
       PARENT("itp",1));

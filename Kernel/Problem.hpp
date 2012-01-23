@@ -71,6 +71,15 @@ public:
    */
   const TrivialPredicateMap& trivialPredicates() const { return _trivialPredicates; }
 
+  /**
+   * Always exectly one of the pair is non-zero, if the literal is specified,
+   * it must be ground.
+   */
+  typedef pair<Literal*,Clause*> BDDMeaningSpec;
+  typedef DHMap<unsigned, BDDMeaningSpec> BDDVarMeaningMap;
+  void addBDDVarMeaning(unsigned var, BDDMeaningSpec spec);
+  const BDDVarMeaningMap& getBDDVarMeanings() const { return _bddVarSpecs; }
+
   void addEliminatedFunction(unsigned func, Literal* definition);
   void addEliminatedPredicate(unsigned pred, Unit* definition);
 
@@ -162,6 +171,7 @@ private:
   bool _hadIncompleteTransformation;
 
   DHMap<unsigned,bool> _trivialPredicates;
+  BDDVarMeaningMap _bddVarSpecs;
 
   mutable bool _mayHaveEquality;
   mutable bool _mayHaveFormulas;

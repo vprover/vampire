@@ -33,6 +33,9 @@ struct UnitSpec
   UnitSpec() {}
   explicit UnitSpec(Unit* u, bool ignoreProp=false) : _unit(u)
   {
+    if(u==0) {
+      _prop = 0;
+    }
     if(!ignoreProp && u->isClause() && static_cast<Clause*>(u)->prop()) {
 	_prop=static_cast<Clause*>(u)->prop();
     }
@@ -49,17 +52,19 @@ struct UnitSpec
     return PtrPairSimpleHash::hash(make_pair(o._unit, o._prop));
   }
 
-  bool isClause() const { return _unit->isClause(); }
+  bool isEmpty() const { return _unit==0; }
+  bool isClause() const { ASS(!isEmpty()); return _unit->isClause(); }
   bool isPropTautology() const { return BDD::instance()->isTrue(_prop); }
   bool withoutProp() const { return BDD::instance()->isFalse(_prop); }
 
   Clause* cl() const
   {
+    ASS(!isEmpty());
     ASS(_unit->isClause());
     return static_cast<Clause*>(_unit);
   }
-  Unit* unit() const { return _unit; }
-  BDDNode* prop() const { return _prop; }
+  Unit* unit() const { ASS(!isEmpty()); return _unit; }
+  BDDNode* prop() const { ASS(!isEmpty()); return _prop; }
 
   string toString() const
   {

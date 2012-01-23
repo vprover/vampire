@@ -443,6 +443,16 @@ RealConstantType::RealConstantType(const string& number)
   init(numerator, denominator);
 }
 
+string RealConstantType::toNiceString() const
+{
+  CALL("RealConstantType::toNiceString");
+
+  if(denominator().toInt()==1) {
+    return numerator().toString()+".0";
+  }
+  return toString();
+}
+
 /////////////////
 // Theory
 //

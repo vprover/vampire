@@ -314,6 +314,7 @@ public:
   unsigned getNumeralWeight();
   float getEffectiveWeight(const Shell::Options& opt);
 
+  void collectVars(DHSet<unsigned>& acc);
   unsigned varCnt();
 
   static ClauseEvent beforePropChange;

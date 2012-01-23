@@ -9,6 +9,8 @@
 #include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/MainLoop.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
@@ -103,6 +105,9 @@ int PropositionalToBDDISE::getPropPredName(Literal* lit)
   int* pname;
   if(_propPredNames.getValuePtr(pred, pname)) {
     *pname=BDD::instance()->getNewVar(pred);
+    if(_parent) {
+      _parent->getProblem().addBDDVarMeaning(*pname, Problem::BDDMeaningSpec(Literal::positiveLiteral(lit), 0));
+    }
   }
   return *pname;
 }

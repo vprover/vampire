@@ -663,14 +663,9 @@ float Clause::getEffectiveWeight(const Options& opt)
   }
 }
 
-unsigned Clause::varCnt()
+void Clause::collectVars(DHSet<unsigned>& acc)
 {
-  CALL("Clause::varCnt");
-
-  static DHSet<TermList> vars;
-  vars.reset();
-
-  unsigned res = 0;
+  CALL("Clause::collectVars");
 
   Iterator it(*this);
   while(it.hasNext()) {
@@ -678,12 +673,20 @@ unsigned Clause::varCnt()
     VariableIterator vit(lit);
     while(vit.hasNext()) {
       TermList var = vit.next();
-      if(vars.insert(var)) {
-	res++;
-      }
+      ASS(var.isOrdinaryVar());
+      acc.insert(var.var());
     }
   }
-  return res;
+}
+
+unsigned Clause::varCnt()
+{
+  CALL("Clause::varCnt");
+
+  static DHSet<unsigned> vars;
+  vars.reset();
+  collectVars(vars);
+  return vars.size();
 }
 
 /**

@@ -9,6 +9,7 @@
 
 #include "Inferences/DistinctEqualitySimplifier.hpp"
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Kernel/Problem.hpp"
@@ -33,6 +34,56 @@ void BDDAIG::reset()
   _a2bCache.reset();
   _b2aCache.reset();
   _varAtoms.reset();
+}
+
+void BDDAIG::loadBDDAssignmentFromProblem(const Problem& prb)
+{
+  CALL("BDDAIG::loadBDDAssignmentFromProblem");
+
+  static DHSet<unsigned> clauseVars;
+  unsigned maxVar = 0;
+  const Problem::BDDVarMeaningMap& bvm = prb.getBDDVarMeanings();
+  Problem::BDDVarMeaningMap::Iterator bvmIt(bvm);
+  while(bvmIt.hasNext()) {
+    unsigned var;
+    Problem::BDDMeaningSpec spec;
+    bvmIt.next(var, spec);
+
+    AIGRef aig;
+    if(spec.first) {
+      ASS(spec.first->ground());
+      ASS(spec.first->isPositive());
+      ASS(!spec.second);
+
+      aig = _aig.getLit(spec.first);
+    }
+    else {
+      ASS(spec.second);
+      clauseVars.reset();
+      spec.second->collectVars(clauseVars);
+      Clause::Iterator cit(*spec.second);
+      AIGRef inner = _aig.getFalse();
+      while(cit.hasNext()) {
+	Literal* lit = cit.next();
+	inner = _aig.getDisj(inner, _aig.getLit(lit));
+      }
+      if(clauseVars.isEmpty()) {
+	aig = inner;
+      }
+      else {
+	AIG::VarList* varLst = 0;
+	AIG::VarList::pushFromIterator(DHSet<unsigned>::Iterator(clauseVars), varLst);
+	aig = _aig.getQuant(false, varLst, inner);
+      }
+    }
+
+    _varAtoms.insert(var, aig);
+    _a2bCache.insert(aig.getPositive(), _bdd->getAtomic(var, aig.polarity()));
+    if(var>maxVar) {
+      maxVar = var;
+    }
+  }
+  _nextVar = maxVar+1;
 }
 
 //////////////////////////

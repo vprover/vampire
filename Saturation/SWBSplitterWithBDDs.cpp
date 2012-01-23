@@ -6,6 +6,7 @@
 #include "Kernel/BDD.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Indexing/TermSharing.hpp"
@@ -265,14 +266,18 @@ int SWBSplitterWithBDDs::nameComponent(Clause* comp)
       newlyIntroduced=false;
     }
     else {
-      compName = (lit->polarity()?1:-1) * BDD::instance()->getNewVar();
+      unsigned newVar = BDD::instance()->getNewVar();
+      compName = (lit->polarity()?1:-1) * newVar;
       env.statistics->splittingNamesIntroduced++;
       _groundNames.insert(lit, compName);
+      _sa->getProblem().addBDDVarMeaning(newVar, Problem::BDDMeaningSpec(Literal::positiveLiteral(lit), 0));
     }
   }
   else {
     compName=BDD::instance()->getNewVar();
     env.statistics->splittingNamesIntroduced++;
+    comp->incRefCnt();
+    _sa->getProblem().addBDDVarMeaning(compName, Problem::BDDMeaningSpec(0, comp));
   }
 
   *pname=compName;

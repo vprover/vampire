@@ -25,6 +25,8 @@ class BDDAIG {
 public:
   BDDAIG(AIG& aig) : _nextVar(1), _bdd(BDD::instance()), _aig(aig) {};
 
+  void loadBDDAssignmentFromProblem(const Problem& prb);
+
   /**
    * Convert AIGRef into a BDD.
    * Quantifier AIG nodes will be treated as atoms.
