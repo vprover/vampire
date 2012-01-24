@@ -216,6 +216,8 @@ void CPAInterpolator::doProving()
 {
   CALL("CPAInterpolator::doProving");
 
+  env.timer->makeChildrenIncluded();
+
   Schedule quick;
   Schedule fallback;
 
