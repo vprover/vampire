@@ -6,6 +6,11 @@
 #include <fstream>
 #include <cerrno>
 
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+
 
 #include "Lib/Environment.hpp"
 #include "Lib/System.hpp"
