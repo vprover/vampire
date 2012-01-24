@@ -74,7 +74,7 @@ class AIGInliner : public ScanAndApplyFormulaUnitTransformer {
   DHSet<AIGRef> _relevantAigsSet;
 #endif
 
-  AIGFormulaSharer _fsh;
+  mutable AIGFormulaSharer _fsh;
   AIG& _aig;
   AIGTransformer _atr;
   AIGCompressor _acompr;
@@ -85,11 +85,13 @@ class AIGInliner : public ScanAndApplyFormulaUnitTransformer {
   void collectDefinitionsAndRelevant(UnitList* units);
   bool tryExpandAtom(AIGRef atom, AIGRef& res);
 
-  AIGRef apply(AIGRef a);
 
 public:
   AIGInliner();
   ~AIGInliner();
+
+  AIG& aig() const { return _aig; }
+  AIGFormulaSharer& fsh() const { return _fsh; }
 
   using ScanAndApplyFormulaUnitTransformer::apply;
 
@@ -98,6 +100,7 @@ public:
 
   void addRelevant(AIGRef a);
   void addRelevant(Formula* f);
+  AIGRef apply(AIGRef a);
   Formula* apply(Formula* f);
 
 protected:

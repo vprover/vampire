@@ -224,7 +224,7 @@ string Unit::inferenceAsString(BDDNode* propPart) const
 {
   CALL("Unit::inferenceAsString");
 
-#if 0
+#if 1
   InferenceStore& infS = *InferenceStore::instance();
 
   Inference::Rule rule;

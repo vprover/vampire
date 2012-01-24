@@ -123,7 +123,14 @@ AIGInliner::EquivInfo* AIGInliner::EquivInfo::tryGetEquiv(FormulaUnit* fu)
   if(env.signature->getPredicate(lhs->functor())->protectedSymbol()) {
     return 0;
   }
+
+
   Formula* rhs = c2;
+
+  if(env.colorUsed && lhs->color()==COLOR_TRANSPARENT && rhs->getColor()!=COLOR_TRANSPARENT) {
+    LOG("bug", "color introducing definition ignored: "<<(*fu));
+    return 0;
+  }
 
   Formula::VarList* lhsVars = c1->freeVariables();
 

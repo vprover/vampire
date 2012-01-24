@@ -90,9 +90,14 @@ Clause* PropositionalToBDDISE::simplify(Clause* c)
   return newCl;
 }
 
+bool PropositionalToBDDISE::colorOkForBDD(Color c)
+{
+  return c==COLOR_TRANSPARENT;
+}
+
 bool PropositionalToBDDISE::canBddize(Literal* l)
 {
-  return l->arity()==0 && l->color()==COLOR_TRANSPARENT &&
+  return l->arity()==0 && colorOkForBDD(l->color()) &&
     (!env.options->showSymbolElimination() || l->skip()) &&
     !env.signature->getPredicate(l->functor())->cfName();
 }

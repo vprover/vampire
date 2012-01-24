@@ -308,18 +308,19 @@ void InferenceStore::deleteClauseRecords(Clause* cl)
 UnitSpecIterator InferenceStore::getParents(UnitSpec us, Inference::Rule& rule)
 {
   CALL("InferenceStore::getParents/2");
+  ASS(!us.isEmpty());
 
   if(us.isPropTautology()) {
     rule=Inference::TAUTOLOGY_INTRODUCTION;
     return VirtualIterator<UnitSpec>::getEmpty();
   }
-  if(us.isClause()) {
-    FullInference* finf;
-    if(_data.find(us, finf)) {
-      rule=finf->rule;
-      return pvi( PointerIterator<UnitSpec>(finf->premises, finf->premises+finf->premCnt) );
-    }
+//  if(us.isClause()) {
+  FullInference* finf;
+  if(_data.find(us, finf)) {
+    rule=finf->rule;
+    return pvi( PointerIterator<UnitSpec>(finf->premises, finf->premises+finf->premCnt) );
   }
+//  }
   Unit* u=us.unit();
   List<UnitSpec>* res=0;
   Inference* inf=u->inference();

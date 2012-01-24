@@ -8,6 +8,7 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/Problem.hpp"
 #include "Kernel/Sorts.hpp"
 
 namespace VUtils {
@@ -40,8 +41,23 @@ private:
 
   FuncTypeMap _funcTypes;
 
+  Problem _prb;
   UnitList* _forms;
   UnitList* _defs;
+
+private:
+  //slicing
+
+  typedef DHSet<string> StrategySet;
+  typedef Stack<string> Schedule;
+
+  bool runSchedule(Schedule& schedule,StrategySet& ss,bool fallback);
+  bool runSlice(string slice, unsigned ds);
+  bool runSlice(Options& opt);
+  void childRun(Options& opt);
+
+  bool tryMakeAdmissibleStrategy(Options& opt);
+
 };
 
 

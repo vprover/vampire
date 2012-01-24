@@ -723,6 +723,15 @@ void Logging::doTagDeclarations()
   DECL("ut_forking",
       PARENT("ut",1));
 
+  DECL("pt",
+      DOC("proof transformation"));
+  DECL("pt_units",
+      DOC("transformations of units"),
+      PARENT("pt",1));
+  DECL("pt_simpl_aig",
+      DOC("aigs involved in proof simplifier"),
+      PARENT("pt",2));
+
   DECL("prb",
       DOC("Object Kernel::Problem"));
   DECL("prb_prop_refresh",

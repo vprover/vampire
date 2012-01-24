@@ -1122,13 +1122,13 @@ Formula* SMTLIB::nameFormula(Formula* f, string fletVarName)
   Signature::Symbol* predSym = env.signature->getPredicate(predNum);
   predSym->setType(type);
 
-//  Color symColor = ColorHelper::combine(_introducedSymbolColor, f->getColor());
-//  if(symColor==COLOR_INVALID) {
-//    USER_ERROR("invalid color in formula "+ f->toString());
-//  }
-//  if(symColor!=COLOR_TRANSPARENT) {
-//    predSym->addColor(symColor);
-//  }
+  Color symColor = ColorHelper::combine(_introducedSymbolColor, f->getColor());
+  if(symColor==COLOR_INVALID) {
+    USER_ERROR("invalid color in formula "+ f->toString());
+  }
+  if(symColor!=COLOR_TRANSPARENT) {
+    predSym->addColor(symColor);
+  }
 
   Literal* lhs = Literal::create(predNum, varCnt, true, false, args.begin());
   Formula* lhsF = new AtomicFormula(lhs);

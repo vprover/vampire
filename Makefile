@@ -275,6 +275,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/PredicateDefinition.o\
          Shell/PredicateIndexIntroducer.o\
          Shell/Preprocess.o\
+         Shell/ProofSimplifier.o\
          Shell/Property.o\
          Shell/Rectify.o\
          Shell/Refutation.o\
@@ -511,7 +512,7 @@ VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) Global.o vampire.o
 VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
 VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
 VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
-VUTIL_DEP = $(VAMP_BASIC) $(VUTIL_OBJ) Global.o vutil.o
+VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(VUTIL_OBJ) Global.o vutil.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
 VTEST_DEP = $(VAMP_BASIC) $(API_OBJ) $(VT_OBJ) $(VUT_OBJ) Global.o vtest.o
 LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o

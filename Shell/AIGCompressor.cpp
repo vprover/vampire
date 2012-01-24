@@ -374,7 +374,7 @@ AIGRef BDDAIG::b2a(BDDNode* b)
   bool implied;
   static Stack<BDDNode*> trivialAcc;
   trivialAcc.reset();
-  while(_bdd->findTrivial(b, implied, trivialAcc)) {
+  while(!b->isAtomic() && _bdd->findTrivial(b, implied, trivialAcc)) {
     ASS(trivialAcc.isNonEmpty());
     while(trivialAcc.isNonEmpty()) {
       BDDNode* tn = trivialAcc.pop();
@@ -385,9 +385,6 @@ AIGRef BDDAIG::b2a(BDDNode* b)
       AIGRef atom = pos ? posAtom : posAtom.neg();
       trivialRecords.push(make_pair(atom, implied));
       b = _bdd->assignValue(b, var, pos);
-    }
-    if(b->isAtomic()) {
-      break;
     }
   }
 

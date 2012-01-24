@@ -27,6 +27,10 @@ class CASCMode {
 public:
   virtual ~CASCMode() {}
   static bool perform(int argc,char* argv []);
+
+  typedef Stack<string> Schedule;
+  static void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
+  static unsigned getSliceTime(string sliceCode,string& chopped);
 protected:
   /**
    * Run a slice correponding to the options.
@@ -41,11 +45,9 @@ protected:
 
 private:
   typedef Set<string> StrategySet;
-  typedef Stack<string> Schedule;
   bool perform();
   bool runSchedule(Schedule&,unsigned ds,StrategySet& remember,bool fallback);
   bool runSlice(string sliceCode, unsigned ds);
-  unsigned getSliceTime(string sliceCode,string& chopped);
 };
 
 }

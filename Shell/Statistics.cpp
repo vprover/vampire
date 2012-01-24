@@ -23,7 +23,7 @@
 /**
  * Identifier of the Vampire version
  */
-const char* VERSION_STRING = "Vampire 1.8 (revision 1362)";
+const char* VERSION_STRING = "Vampire 1.8 (revision 1435)";
 
 
 using namespace std;

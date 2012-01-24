@@ -128,6 +128,11 @@ public:
   Literal* applyToQuery(Literal* l);
   TermList applyToResult(TermList t);
   Literal* applyToResult(Literal* l);
+
+  /**
+   * we can return true because nothing is bound to the result
+   */
+  bool isIdentityOnQueryWhenResultBound() {return true;}
 private:
   struct Applicator;
 };

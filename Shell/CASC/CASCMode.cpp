@@ -85,14 +85,37 @@ bool CASCMode::perform()
 {
   CALL("CASCMode::perform/0");
 
-  Property::Category cat = _property->category();
-  unsigned prop = _property->props();
-  unsigned atoms = _property->atoms();
-
   cout << "Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
   Schedule quick;
   Schedule fallback;
+
+  getSchedules(*_property, quick, fallback);
+
+  int remainingTime=env.remainingTime()/100;
+  if(remainingTime<=0) {
+    return false;
+  }
+  StrategySet used;
+  if (runSchedule(quick,remainingTime,used,false)) {
+    return true;
+  }
+  remainingTime=env.remainingTime()/100;
+  if(remainingTime<=0) {
+    return false;
+  }
+  return runSchedule(fallback,remainingTime,used,true);
+}
+
+/**
+ * Get schedules for a problem of given property.
+ * The schedules are to be executed from the toop of the stack,
+ */
+void CASCMode::getSchedules(Property& property, Schedule& quick, Schedule& fallback)
+{
+  Property::Category cat = property.category();
+  unsigned prop = property.props();
+  unsigned atoms = property.atoms();
 
   switch (cat) {
   case Property::NEQ:
@@ -965,20 +988,6 @@ bool CASCMode::perform()
     fallback.push("lrs+10_12_bs=off:bsr=unit_only:drc=off:nwc=1.7_1800");
     break;
   }
-
-  int remainingTime=env.remainingTime()/100;
-  if(remainingTime<=0) {
-    return false;
-  }
-  StrategySet used;
-  if (runSchedule(quick,remainingTime,used,false)) {
-    return true;
-  }
-  remainingTime=env.remainingTime()/100;
-  if(remainingTime<=0) {
-    return false;
-  }
-  return runSchedule(fallback,remainingTime,used,true);
 }
 
 unsigned CASCMode::getSliceTime(string sliceCode,string& chopped)

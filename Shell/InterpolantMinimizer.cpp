@@ -739,7 +739,7 @@ struct InterpolantMinimizer::TraverseStackEntry
       info.state = HAS_LEFT_PARENT;
     }
     if(pcol==COLOR_RIGHT) {
-      ASS_NEQ(info.state, HAS_LEFT_PARENT);
+      ASS_REP2(info.state!=HAS_LEFT_PARENT, unit.toString(), parent.toString());
       info.state = HAS_RIGHT_PARENT;
     }
 

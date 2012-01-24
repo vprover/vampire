@@ -28,6 +28,7 @@ public:
   PropositionalToBDDISE(MainLoop* parent) : _parent(parent) {}
   Clause* simplify(Clause* cl);
 
+  static bool colorOkForBDD(Color c);
   static bool canBddize(Literal* l);
 private:
   int getPropPredName(Literal* lit);
