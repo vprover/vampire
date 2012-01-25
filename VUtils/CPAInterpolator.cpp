@@ -274,6 +274,7 @@ void CPAInterpolator::displayResult()
   Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(refutation);
   InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(refutation);
   Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(refutation);
+  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, true, true, "Original interpolant quantifiers").getInterpolant(refutation);
   Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(refutation);
 
   AIGInliner inl;
