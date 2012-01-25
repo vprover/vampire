@@ -30,12 +30,21 @@ if(full==1) {
 	for(i=1; i<=maxMul; i++) {
 		if(owc>0 && owc>i*mwc) {
 			succWCnt[i]++
+			if(i==2) {
+			     print "W ", owc, " --> ", mwc, " ", prob
+			}
 		}
 		if(occ>0 && occ>i*mcc) {
 			succCCnt[i]++
+                        if(i==2) {
+                             print "C ", occ, " --> ", mcc, " ", prob
+                        }
 		}
                 if(oqc>0 && oqc>i*mqc) {
                         succQCnt[i]++
+                        if(i==1) {
+                             print "Q ", oqc, " --> ", mqc, " ", prob
+                        }
                 }
 	}
 	

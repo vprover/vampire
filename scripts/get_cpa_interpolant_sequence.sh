@@ -5,9 +5,9 @@
 # 
 
 #this is usable only for vampire
-TIME_LIMIT_SPEC=""
+TIME_LIMIT=60
 if [ "$1" == "-t" ]; then
-        TIME_LIMIT_SPEC="-t $2"
+        TIME_LIMIT=$2
         shift 2
 fi
 
@@ -16,13 +16,13 @@ fi
 function run_vampire()
 {
 #        local VAMP_ARGS="-ptb off -aig_bdd_sweeping on -flatten_top_level_conjunctions on -aig_definition_introduction on -proof off -statistics none $TIME_LIMIT_SPEC"
-        local VAMP_ARGS="-proof off -sio off -sac on -predicate_definition_inlining non_growing -statistics none -smtlib_flet_as_definition on $TIME_LIMIT_SPEC"
+        local VAMP_ARGS="-proof off -sio off -sac on -predicate_definition_inlining non_growing -statistics none -smtlib_flet_as_definition on -t $TIME_LIMIT"
         local LEFT_CNTS="`eval echo {1..$(($#-1))}`"
         
         for LEFT_CNT in $LEFT_CNTS; do
                 echo "results for $BASE $LEFT_CNT"
 #                $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS
-                $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS | grep -v "Refutation found"
+                (ulimit -St $TIME_LIMIT; $VUTIL_EXEC cpa $# $LEFT_CNT $* $VAMP_ARGS) | grep -v "Refutation found"
                 if [ $? -eq 130 ]; then
                         echo interrupted
                         exit 130

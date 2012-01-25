@@ -115,6 +115,10 @@ Clause* GlobalSubsumption::perform(Clause* cl)
     return cl;
   }
 
+  if(cl->color()==COLOR_LEFT) {
+    return cl;
+  }
+
   if(cl->length()==1) {
     addClauseToIndex(cl);
     return cl;

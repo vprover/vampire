@@ -306,9 +306,6 @@ bool CPAInterpolator::tryMakeAdmissibleStrategy(Options& opt)
   if(opt.splitting()==Options::SM_BACKTRACKING) {
     return false;
   }
-  if(opt.globalSubsumption()) {
-    return false;
-  }
   if(opt.saturationAlgorithm()==Options::INST_GEN) {
     return false;
   }
