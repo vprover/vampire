@@ -241,8 +241,9 @@ compAssemblyStart:
     if(lit->isPositive()) {
       compPosLits++;
     }
-    if(isAnswerLiteral(lit)) {
-      goto compAssemblyStart; //we don't split out answer literals, so next component has to be attempted
+    if(isAnswerLiteral(lit) || lit->color()!=COLOR_TRANSPARENT) {
+      //we don't split out answer literals and colored literals, so the next component has to be attempted
+      goto compAssemblyStart;
     }
   }
   if(splitPositive()) {

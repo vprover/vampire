@@ -339,6 +339,16 @@ void Preprocess::preprocess (Problem& prb)
      HornRevealer hr(_options);
      hr.apply(prb);
    }
+
+   TRACE("pp_final",
+       UnitList::Iterator uit(prb.units());
+       while(uit.hasNext()) {
+ 	Unit* u = uit.next();
+ 	TRACE_OUTPUT_UNIT("pp_final", u);
+       }
+       );
+
+
 } // Preprocess::preprocess ()
 
 

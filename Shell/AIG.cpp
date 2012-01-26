@@ -1422,8 +1422,10 @@ AIGFormulaSharer::ARes AIGFormulaSharer::getSharedFormula(Formula* f)
   case EXISTS:
     res = applyQuantified(f);
     break;
-
   case ITE:
+    res = applyIte(f);
+    break;
+
   case TERM_LET:
   case FORMULA_LET:
   default:
@@ -1585,6 +1587,26 @@ AIGFormulaSharer::ARes AIGFormulaSharer::applyQuantified(Formula* f)
   AIGRef ar = _aig.getQuant(con==EXISTS, f->vars()->copy(), chRes.second);
   Formula* f1 = (f->qarg()==chRes.first) ? f : new QuantifiedFormula(con, f->vars(), chRes.first);
   return ARes(f1, ar);
+}
+
+AIGFormulaSharer::ARes AIGFormulaSharer::applyIte(Formula* f)
+{
+  CALL("AIGFormulaSharer::applyIte");
+  ASS_EQ(f->connective(),ITE);
+
+  ARes cond = apply(f->condArg());
+  ARes thenBranch = apply(f->thenArg());
+  ARes elseBranch = apply(f->elseArg());
+  // (~cond \/ then) /\ (cond \/ else)
+  AIGRef resAig = _aig.getConj(_aig.getDisj(cond.second.neg(), thenBranch.second), _aig.getDisj(cond.second, elseBranch.second));
+  Formula* resForm;
+  if(cond.first==f->condArg() && thenBranch.first==f->thenArg() && elseBranch.first==f->elseArg()) {
+    resForm = f;
+  }
+  else {
+    resForm = new IteFormula(cond.first, thenBranch.first, elseBranch.first);
+  }
+  return ARes(resForm, resAig);
 }
 
 AIGRef AIGFormulaSharer::getAIG(Clause* cl)

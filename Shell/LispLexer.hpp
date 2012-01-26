@@ -30,7 +30,7 @@ public:
 private:
   void skipWhiteSpacesAndComments();
   void readName(Token&);
-  void readQuotedString(Token&);
+  void readQuotedString(Token&, char opening, char closing);
 }; // class LispLexer
 
 }

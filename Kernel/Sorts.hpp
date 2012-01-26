@@ -94,6 +94,7 @@ public:
   static BaseType* makeType1(unsigned arg1Sort, unsigned rangeSort);
   static BaseType* makeType2(unsigned arg1Sort, unsigned arg2Sort, unsigned rangeSort);
   static BaseType* makeType3(unsigned arg1Sort, unsigned arg2Sort, unsigned arg3Sort, unsigned rangeSort);
+  static BaseType* makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort);
 protected:
   BaseType(unsigned arity, const unsigned* sorts=0);
 

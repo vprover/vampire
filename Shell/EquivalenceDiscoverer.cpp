@@ -341,8 +341,7 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
 {
   CALL("EquivalenceDiscoveringTransformer::apply(UnitList*&)");
 
-//  EquivalenceDiscoverer eqd(true, 0, true);
-  EquivalenceDiscoverer eqd(true, 1, false);
+  EquivalenceDiscoverer eqd(true, _opts.predicateEquivalenceDiscoverySatConflictLimit(), !_opts.predicateEquivalenceDiscoveryAllAtoms());
   UnitList* equivs = eqd.getEquivalences(units, &_opts);
   if(!equivs) {
     return false;

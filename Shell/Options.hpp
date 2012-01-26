@@ -123,6 +123,8 @@ public:
     PREDICATE_DEFINITION_MERGING,
     /** Determines whether SAT solver will be used to discover equivalent predicates */
     PREDICATE_EQUIVALENCE_DISCOVERY,
+    PREDICATE_EQUIVALENCE_DISCOVERY_ALL_ATOMS,
+    PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT,
     PREDICATE_INDEX_INTRODUCTION,
     PROBLEM_NAME,
     PROOF,
@@ -175,6 +177,7 @@ public:
     SINE_TOLERANCE,
     SMTLIB_CONSIDER_INTS_REAL,
     SMTLIB_FLET_AS_DEFINITION,
+    SMTLIB_INTRODUCE_AIG_NAMES,
     SOS,
     SPLIT_ADD_GROUND_NEGATION,
     SPLIT_AT_ACTIVATION,
@@ -451,6 +454,8 @@ public:
   void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
   bool predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery; }
   void setPredicateEquivalenceDiscovery(bool newValue) { _predicateEquivalenceDiscovery = newValue; }
+  bool predicateEquivalenceDiscoveryAllAtoms() const { return _predicateEquivalenceDiscoveryAllAtoms; }
+  unsigned predicateEquivalenceDiscoverySatConflictLimit() const { return _predicateEquivalenceDiscoverySatConflictLimit; }
   bool predicateIndexIntroduction() const { return _predicateIndexIntroduction; }
   void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
   bool aigBddSweeping() const { return _aigBddSweeping; }
@@ -585,6 +590,7 @@ public:
 
   bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal; }
   bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition; }
+  bool smtlibIntroduceAIGNames() const { return _smtlibIntroduceAIGNames; }
 
   bool colorUnblocking() const { return _colorUnblocking; }
 
@@ -746,6 +752,8 @@ private:
   InliningMode _predicateDefinitionInlining;
   bool _predicateDefinitionMerging;
   bool _predicateEquivalenceDiscovery;
+  bool _predicateEquivalenceDiscoveryAllAtoms;
+  unsigned _predicateEquivalenceDiscoverySatConflictLimit;
   bool _predicateIndexIntroduction;
   string _problemName;
   Proof _proof;
@@ -795,6 +803,7 @@ private:
   float _sineTolerance;
   bool _smtlibConsiderIntsReal;
   bool _smtlibFletAsDefinition;
+  bool _smtlibIntroduceAIGNames;
   bool _sos;
   bool _splitAddGroundNegation;
   bool _splitAtActivation;

@@ -135,6 +135,17 @@ BaseType* BaseType::makeType3(unsigned arg1Sort, unsigned arg2Sort, unsigned arg
   return makeType(3, args, rangeSort);
 }
 
+BaseType* BaseType::makeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned rangeSort)
+{
+  CALL("BaseType::makeTypeUniformRange");
+
+  static Stack<unsigned> argSorts;
+  argSorts.reset();
+  for(unsigned i=0; i<arity; i++) {
+    argSorts.push(argsSort);
+  }
+  return makeType(arity, argSorts.begin(), rangeSort);
+}
 
 BaseType::BaseType(unsigned arity, const unsigned* sorts)
 {

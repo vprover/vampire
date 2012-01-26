@@ -296,6 +296,9 @@ void Logging::doTagDeclarations()
   DECL("pp_pre_cl",
       DOC("print-out the problem just before clausification"),
       PARENT("pp",1));
+  DECL("pp_final",
+      DOC("print-out the final cnf of the problem after preprocessing"),
+      PARENT("pp",1));
 
 
   DECL("pp_sk",

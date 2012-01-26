@@ -26,8 +26,7 @@ public:
     READ_BENCHMARK = 0,
     DECLARE_SORTS = 1,
     DECLARE_SYMBOLS = 2,
-    BUILD_FORMULA = 3,
-    INTRODUCE_NAMES = 4
+    BUILD_FORMULA = 3
   };
 
   /**
@@ -42,7 +41,7 @@ public:
     string rangeSort;
   };
 
-  SMTLIB(const Options& opts, Mode mode = INTRODUCE_NAMES);
+  SMTLIB(const Options& opts, Mode mode = BUILD_FORMULA);
   void setIntroducedSymbolColor(Color clr) { _introducedSymbolColor = clr; }
 
   /**
@@ -74,22 +73,38 @@ public:
 
 private:
 
+  enum BuiltInSorts
+  {
+    BS_ARRAY1,
+    BS_ARRAY2,
+    BS_INT,
+    BS_REAL,
+    BS_U,
+
+    BS_INVALID
+  };
+  static const char * s_builtInSortNameStrings[];
+
+  static BuiltInSorts getBuiltInSort(string str);
+
   void readBenchmark(LExprList* bench);
-  void readSort(string name) { _userSorts.push(name); }
+  void readSort(string name);
   void readFunction(LExprList* decl);
   void readPredicate(LExprList* decl);
 
   unsigned getSort(string name);
+  unsigned getSort(BuiltInSorts srt);
   void doSortDeclarations();
   void doFunctionDeclarations();
 
-  Formula* introduceAigNames(Formula* f);
+  void introduceAigNames(UnitList*& forms);
 
   string _benchName;
   string _statusStr;
 
   Stack<string> _userSorts;
   Stack<FunctionInfo> _funcs;
+  LExprList* _lispAssumptions;
   LExpr* _lispFormula;
 
   UnitList* _definitions;
@@ -102,10 +117,18 @@ private:
   bool _treatIntsAsReals;
   unsigned _defIntroThreshold;
   bool _fletAsDefinition;
+  bool _introduceAigNames;
   Color _introducedSymbolColor;
 #if VDEBUG
   bool _haveParsed;
 #endif
+
+private:
+  //theory support
+
+  //if value is zero, it means the sort wasn't introduced yet
+  unsigned _array1Sort;
+  unsigned _array2Sort;
 
 private:
   //formula building
@@ -121,6 +144,7 @@ private:
     FS_GREATER,
     FS_GREATER_EQ,
     FS_AND,
+    FS_DISTINCT,
     FS_EXISTS,
     FS_FLET,
     FS_FORALL,
@@ -142,6 +166,8 @@ private:
     TS_PLUS,
     TS_MINUS,
     TS_ITE,
+    TS_SELECT,
+    TS_STORE,
     TS_UMINUS,
 
     TS_USER_FUNCTION
@@ -188,7 +214,7 @@ private:
   void requestSubexpressionProcessing(LExpr* subExpr, bool formula);
 
   static FormulaSymbol getFormulaSymbol(string str);
-  static TermSymbol getTermSymbol(string str);
+  static TermSymbol getTermSymbol(string str, unsigned arity);
   static Interpretation getFormulaSymbolInterpretation(FormulaSymbol ts, unsigned firstArgSort);
   static Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
   static unsigned getMandatoryConnectiveArgCnt(FormulaSymbol fsym);
@@ -202,15 +228,18 @@ private:
 
   TermList readTermFromAtom(string str);
   bool tryReadTermIte(LExpr* e, TermList& res);
+  unsigned getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermStack& args);
   bool tryReadTerm(LExpr* e, TermList& res);
 
   Formula* readFormulaFromAtom(string str);
   bool tryReadNonPropAtom(FormulaSymbol fsym, LExpr* e, Literal*& res);
   bool tryReadConnective(FormulaSymbol fsym, LExpr* e, Formula*& res);
   bool tryReadQuantifier(bool univ, LExpr* e, Formula*& res);
+  bool tryReadDistinct(LExpr* e, Formula*& res);
   bool tryReadFlet(LExpr* e, Formula*& res);
   bool tryReadLet(LExpr* e, Formula*& res);
   bool tryReadFormula(LExpr* e, Formula*& res);
+  Formula* readFormula(LExpr* e);
   void buildFormula();
 
   Formula* nameFormula(Formula* f, string fletVarName);

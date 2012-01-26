@@ -336,6 +336,7 @@ VUTIL_OBJ = VUtils/AnnotationColoring.o\
             VUtils/EPRRestoringScanner.o\
             VUtils/FOEquivalenceDiscovery.o\
             VUtils/LocalityRestoring.o\
+            VUtils/PreprocessingEvaluator.o\
             VUtils/ProblemColoring.o\
             VUtils/RangeColoring.o\
             VUtils/SMTLIBConcat.o\

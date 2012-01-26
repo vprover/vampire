@@ -191,7 +191,6 @@ void handleSignal (int sigNum)
     case SIGTERM:
 # ifndef _MSC_VER
     case SIGQUIT:
-    case SIGXCPU:
       if (handled) {
 	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
       }
@@ -206,6 +205,18 @@ void handleSignal (int sigNum)
 	}
       }
       return;
+    case SIGXCPU:
+      if(outputAllowed()) {
+	if(env.options) {
+	  env.beginOutput();
+	  env.out() << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
+	  env.endOutput();
+	} else {
+	  cout << "External time out (SIGXCPU)\n";
+	}
+      }
+      System::terminateImmediately(VAMP_RESULT_STATUS_OTHER_SIGNAL);
+      break;
 # endif
 
     case SIGINT:

@@ -25,6 +25,7 @@
 #include "VUtils/CPAInterpolator.hpp"
 #include "VUtils/EPRRestoringScanner.hpp"
 #include "VUtils/FOEquivalenceDiscovery.hpp"
+#include "VUtils/PreprocessingEvaluator.hpp"
 #include "VUtils/ProblemColoring.hpp"
 #include "VUtils/SMTLIBConcat.hpp"
 #include "VUtils/Z3InterpolantExtractor.hpp"
@@ -128,6 +129,9 @@ int main(int argc, char* argv [])
     }
     else if(module=="cpa") {
       resultValue=CPAInterpolator().perform(args.size(), args.begin());
+    }
+    else if(module=="pe") {
+      resultValue=PreprocessingEvaluator().perform(args.size(), args.begin());
     }
     else {
       USER_ERROR("unknown vutil module name: "+module);

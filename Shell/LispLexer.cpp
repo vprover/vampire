@@ -109,7 +109,10 @@ void LispLexer::readToken (Token& token)
     readNumber(token);
     return;
   case '|':
-    readQuotedString(token);
+    readQuotedString(token, '|', '|');
+    return;
+  case '{':
+    readQuotedString(token, '{', '}');
     return;
   default:
     readName(token);
@@ -138,6 +141,8 @@ void LispLexer::readName (Token& token)
     case ';':
     case ')':
     case '(':
+    case '{':
+    case '}':
       // token parsed
       saveTokenText(token);
       return;
@@ -155,7 +160,7 @@ void LispLexer::readName (Token& token)
  * Read a quoted string.
  * @since 26/08/2009 Redmond
  */
-void LispLexer::readQuotedString(Token& token)
+void LispLexer::readQuotedString(Token& token, char opening, char closing)
 {
   CALL("LispLexer::readQuotedString");
 
@@ -166,7 +171,7 @@ void LispLexer::readQuotedString(Token& token)
     if (_lastCharacter == '\\' && !escape) {
       escape=true;
     }
-    else if (_lastCharacter == '|' && !escape) {
+    else if (_lastCharacter == closing && !escape) {
       saveLastChar();
       saveTokenText(token);
       readNextChar();
@@ -174,7 +179,7 @@ void LispLexer::readQuotedString(Token& token)
       return;
     }
     else {
-      if (escape && _lastCharacter!='|' && _lastCharacter!='\\') {
+      if (escape && _lastCharacter!=closing && _lastCharacter!='\\') {
 	throw LexerException((string)"invalid escape sequence in quoted string ", *this);
       }
       escape=false;
@@ -183,5 +188,6 @@ void LispLexer::readQuotedString(Token& token)
   }
   throw LexerException((string)"file ended while reading quoted string ", *this);
 } // LispLexer::readQuotedString
+
 
 

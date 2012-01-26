@@ -28,14 +28,19 @@ namespace Parse
 {
 
 SMTLIB::SMTLIB(const Options& opts, Mode mode)
-: _lispFormula(0),
+: _lispAssumptions(0),
+  _lispFormula(0),
   _definitions(0),
   _formulas(0),
   _mode(mode),
   _treatIntsAsReals(opts.smtlibConsiderIntsReal()),
   _defIntroThreshold(opts.aigDefinitionIntroductionThreshold()),
   _fletAsDefinition(opts.smtlibFletAsDefinition()),
-  _introducedSymbolColor(COLOR_TRANSPARENT)
+  _introduceAigNames(opts.smtlibIntroduceAIGNames()),
+  _introducedSymbolColor(COLOR_TRANSPARENT),
+
+  _array1Sort(0),
+  _array2Sort(0)
 {
   CALL("SMTLIB::SMTLIB");
 
@@ -80,7 +85,7 @@ void SMTLIB::parse(LExpr* bench)
   doFunctionDeclarations();
 
   if(_mode==DECLARE_SYMBOLS) { return; }
-  ASS(_mode==BUILD_FORMULA || _mode==INTRODUCE_NAMES);
+  ASS(_mode==BUILD_FORMULA);
 
   buildFormula();
 }
@@ -100,6 +105,19 @@ void SMTLIB::readBenchmark(LExprList* bench)
 	bRdr.acceptAtom();
       }
     }
+    else if(bRdr.tryAcceptAtom(":category")) {
+      if(!bRdr.tryAcceptCurlyBrackets()) {
+	bRdr.acceptAtom();
+      }
+    }
+    else if(bRdr.tryAcceptAtom(":difficulty")) {
+      if(!bRdr.tryAcceptCurlyBrackets()) {
+	bRdr.acceptAtom();
+      }
+    }
+    else if(bRdr.tryAcceptAtom(":logic")) {
+      bRdr.acceptAtom();
+    }
     else if(bRdr.tryAcceptAtom(":extrasorts")) {
       LispListReader declsListRdr(bRdr.readList());
       while(declsListRdr.hasNext()) {
@@ -118,6 +136,9 @@ void SMTLIB::readBenchmark(LExprList* bench)
 	readPredicate(declsListRdr.readList());
       }
     }
+    else if(bRdr.tryAcceptAtom(":assumption")) {
+      LExprList::push(bRdr.readNext(), _lispAssumptions);
+    }
     else if(bRdr.tryAcceptAtom(":formula")) {
       if(_lispFormula) {
 	USER_ERROR("two :formula elements in one benchmark");
@@ -129,6 +150,17 @@ void SMTLIB::readBenchmark(LExprList* bench)
       bRdr.acceptEOL();
     }
   }
+}
+
+void SMTLIB::readSort(string name)
+{
+  CALL("SMTLIB::readSort");
+
+  BuiltInSorts bsym = getBuiltInSort(name);
+  if(bsym!=BS_INVALID) {
+    USER_ERROR("Cannot declare built-in sort: "+name);
+  }
+  _userSorts.push(name);
 }
 
 void SMTLIB::readFunction(LExprList* decl)
@@ -166,22 +198,49 @@ void SMTLIB::readPredicate(LExprList* decl)
   _funcs.push(FunctionInfo(name, argSorts, "$o"));
 }
 
+unsigned SMTLIB::getSort(BuiltInSorts srt)
+{
+  CALL("SMTLIB::getSort(BuiltInSorts)");
+
+  switch(srt) {
+  case BS_ARRAY1:
+    if(!_array1Sort) {
+      _array1Sort = env.sorts->addSort("$array1");
+      ASS(_array1Sort);
+    }
+    return _array1Sort;
+  case BS_ARRAY2:
+    if(!_array2Sort) {
+      _array2Sort = env.sorts->addSort("$array2");
+      ASS(_array2Sort);
+    }
+    return _array2Sort;
+  case BS_INT:
+    return _treatIntsAsReals ? Sorts::SRT_REAL : Sorts::SRT_INTEGER;
+  case BS_REAL:
+    return Sorts::SRT_REAL;
+  case BS_U:
+    return Sorts::SRT_DEFAULT;
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
 unsigned SMTLIB::getSort(string name)
 {
   CALL("SMTLIB::getSort");
 
-  if(name=="Real") {
-    return Sorts::SRT_REAL;
+  BuiltInSorts bsym = getBuiltInSort(name);
+  if(bsym==BS_INVALID) {
+    unsigned idx;
+    if(!env.sorts->findSort(name, idx)) {
+      USER_ERROR("undeclared sort: "+name);
+    }
+    return idx;
   }
-  else if(name=="Int") {
-    return _treatIntsAsReals ? Sorts::SRT_REAL : Sorts::SRT_INTEGER;
+  else {
+    return getSort(bsym);
   }
-
-  unsigned idx;
-  if(!env.sorts->findSort(name, idx)) {
-    USER_ERROR("undeclared sort: "+name);
-  }
-  return idx;
 }
 
 void SMTLIB::doSortDeclarations()
@@ -263,6 +322,28 @@ void SMTLIB::doFunctionDeclarations()
 // Formula building
 //
 
+const char * SMTLIB::s_builtInSortNameStrings[] = {
+    "Array1",
+    "Array2",
+    "Int",
+    "Real",
+    "U"
+};
+
+SMTLIB::BuiltInSorts SMTLIB::getBuiltInSort(string str)
+{
+  CALL("SMTLIB::getBuiltInSort");
+
+  static NameArray builtInSortNames(s_builtInSortNameStrings, sizeof(s_builtInSortNameStrings)/sizeof(char*));
+  ASS_EQ(builtInSortNames.length, BS_INVALID);
+
+  int res = builtInSortNames.tryToFind(str.c_str());
+  if(res==-1) {
+    return BS_INVALID;
+  }
+  return static_cast<BuiltInSorts>(res);
+}
+
 const char * SMTLIB::s_formulaSymbolNameStrings[] = {
     "<",
     "<=",
@@ -270,6 +351,7 @@ const char * SMTLIB::s_formulaSymbolNameStrings[] = {
     ">",
     ">=",
     "and",
+    "distinct",
     "exists",
     "flet",
     "forall",
@@ -280,14 +362,6 @@ const char * SMTLIB::s_formulaSymbolNameStrings[] = {
     "not",
     "or",
     "xor"
-};
-
-const char * SMTLIB::s_termSymbolNameStrings[] = {
-    "*",
-    "+",
-    "-",
-    "ite",
-    "~"
 };
 
 SMTLIB::FormulaSymbol SMTLIB::getFormulaSymbol(string str)
@@ -304,18 +378,36 @@ SMTLIB::FormulaSymbol SMTLIB::getFormulaSymbol(string str)
   return static_cast<FormulaSymbol>(res);
 }
 
-SMTLIB::TermSymbol SMTLIB::getTermSymbol(string str)
+const char * SMTLIB::s_termSymbolNameStrings[] = {
+    "*",
+    "+",
+    "-",
+    "ite",
+    "select",
+    "store",
+    "~"
+};
+
+
+SMTLIB::TermSymbol SMTLIB::getTermSymbol(string str,unsigned arity)
 {
   CALL("SMTLIB::getTermSymbol");
 
   static NameArray termSymbolNames(s_termSymbolNameStrings, sizeof(s_termSymbolNameStrings)/sizeof(char*));
   ASS_EQ(termSymbolNames.length, TS_USER_FUNCTION);
 
-  int res = termSymbolNames.tryToFind(str.c_str());
-  if(res==-1) {
-    return TS_USER_FUNCTION;
+  int resInt = termSymbolNames.tryToFind(str.c_str());
+  TermSymbol res;
+  if(resInt==-1) {
+    res =TS_USER_FUNCTION;
   }
-  return static_cast<TermSymbol>(res);
+  else {
+    res = static_cast<TermSymbol>(resInt);
+  }
+  if(res==TS_MINUS && arity==1) {
+    res = TS_UMINUS;
+  }
+  return res;
 }
 
 /**
@@ -589,10 +681,76 @@ Interpretation SMTLIB::getTermSymbolInterpretation(TermSymbol ts, unsigned first
     break;
 
   default:
-    ASSERTION_VIOLATION;
+    ASSERTION_VIOLATION_REP(ts);
   }
   if(res==Theory::INVALID_INTERPRETATION) {
     USER_ERROR("invalid sort "+env.sorts->sortName(firstArgSort)+" for interpretation "+string(s_termSymbolNameStrings[ts]));
+  }
+  return res;
+}
+
+unsigned SMTLIB::getTermSelectOrStoreFn(LExpr* e, TermSymbol tsym, const TermStack& args)
+{
+  CALL("SMTLIB::tryReadTermSelectOrStoreFn");
+  ASS(tsym==TS_SELECT || tsym==TS_STORE);
+
+  unsigned arity = args.size();
+  if(tsym==TS_SELECT) {
+    if(arity!=2) {
+      USER_ERROR("select should be a binary function: "+e->toString());
+    }
+  }
+  else {
+    ASS_EQ(tsym,TS_STORE);
+    if(arity!=3) {
+      USER_ERROR("store should be a ternary function: "+e->toString());
+    }
+  }
+
+  unsigned arrSort = getSort(args[0]);
+
+  unsigned arrDomainSort;
+  unsigned arrRangeSort;
+  if(_array1Sort && arrSort==_array1Sort) {
+    arrDomainSort = getSort(BS_INT);
+    arrRangeSort = getSort(BS_REAL);
+  }
+  else if(_array2Sort && arrSort==_array2Sort) {
+    arrDomainSort = getSort(BS_INT);
+    arrRangeSort = getSort(BS_ARRAY1);
+  }
+  else {
+    USER_ERROR("invalid array sort: "+env.sorts->sortName(arrSort)+" in "+e->toString());
+  }
+
+  if(getSort(args[1])!=arrDomainSort) {
+    USER_ERROR("invalid second argument sort: "+env.sorts->sortName(getSort(args[1]))+" in "+e->toString());
+  }
+  if(tsym==TS_STORE && getSort(args[2])!=arrRangeSort) {
+    USER_ERROR("invalid third argument sort: "+env.sorts->sortName(getSort(args[2]))+" in "+e->toString());
+  }
+
+  BaseType* type;
+  string baseName;
+
+  if(tsym==TS_STORE) {
+    baseName = "$store";
+    type = BaseType::makeType3(arrSort, arrDomainSort, arrRangeSort, arrSort);
+  }
+  else {
+    baseName = "$select";
+    type = BaseType::makeType2(arrSort, arrDomainSort, arrRangeSort);
+  }
+
+  string name = baseName + "_" + StringUtils::sanitizeSuffix(env.sorts->sortName(arrSort));
+  bool added;
+  unsigned res = env.signature->addFunction(name, arity, added);
+  if(added) {
+    env.signature->getFunction(res)->setType(type);
+  }
+  else {
+    ASS(*type==*env.signature->getFunction(res)->fnType());
+    delete type;
   }
   return res;
 }
@@ -606,9 +764,10 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
     return true;
   }
 
+  unsigned arity = e->list->length()-1;
   LispListReader rdr(e);
   string fnName = rdr.readAtom();
-  TermSymbol ts = getTermSymbol(fnName);
+  TermSymbol ts = getTermSymbol(fnName, arity);
 
   if(ts==TS_ITE) {
     return tryReadTermIte(e, res);
@@ -621,7 +780,7 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
     return false;
   }
 
-  unsigned arity = args.size();
+  ASS_EQ(arity, args.size());
   unsigned fnNum;
 
   if(ts==TS_USER_FUNCTION) {
@@ -630,6 +789,9 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
     }
     fnNum = env.signature->addFunction(fnName, arity);
   }
+  else if(ts==TS_SELECT || ts==TS_STORE) {
+    fnNum = getTermSelectOrStoreFn(e, ts, args);
+  }
   else {
     if(arity==0) {
       USER_ERROR("interpreted function with zero arity: "+fnName);
@@ -637,7 +799,7 @@ bool SMTLIB::tryReadTerm(LExpr* e, TermList& res)
     unsigned firstArgSort = getSort(args[0]);
     Interpretation itp = getTermSymbolInterpretation(ts, firstArgSort);
     if(Theory::instance()->getArity(itp)!=args.size()) {
-      USER_ERROR("invalid function arity: "+fnName);
+      USER_ERROR("invalid function arity: "+e->toString());
     }
     fnNum = Theory::instance()->getFnNum(itp);
   }
@@ -767,9 +929,14 @@ bool SMTLIB::tryReadConnective(FormulaSymbol fsym, LExpr* e, Formula*& res)
   case FS_AND:
   case FS_OR:
   {
-    FormulaList* argLst = 0;
-    FormulaList::pushFromIterator(FormulaStack::Iterator(argForms), argLst);
-    res = new JunctionFormula( (fsym==FS_AND) ? AND : OR, argLst);
+    if(argForms.size()==1) {
+      res = argForms[0];
+    }
+    else {
+      FormulaList* argLst = 0;
+      FormulaList::pushFromIterator(FormulaStack::Iterator(argForms), argLst);
+      res = new JunctionFormula( (fsym==FS_AND) ? AND : OR, argLst);
+    }
     break;
   }
   case FS_IFF:
@@ -941,6 +1108,62 @@ bool SMTLIB::tryReadLet(LExpr* e, Formula*& res)
   return true;
 }
 
+bool SMTLIB::tryReadDistinct(LExpr* e, Formula*& res)
+{
+  CALL("SMTLIB::tryReadDistinct");
+
+  LispListReader rdr(e);
+  rdr.acceptAtom("distinct");
+
+  TermStack args;
+
+  if(!readTermArgs(e, rdr, args)) {
+    return false;
+  }
+
+  unsigned arity = args.size();
+  if(arity<2) {
+    USER_ERROR("distinct predicate should have at least two arguments: "+e->toString());
+  }
+
+  unsigned sort = getSort(args[0]);
+  for(unsigned i=1; i<arity; i++) {
+    if(sort!=getSort(args[i])) {
+      USER_ERROR("sort mismatch in distinct predicate: "+e->toString());
+    }
+  }
+
+  bool added;
+  BaseType* type = BaseType::makeTypeUniformRange(arity, sort, Sorts::SRT_BOOL);
+
+  //this is a bit of a quick hack, we need to come up with
+  //a proper way to have a polymorphic $distinct predicate
+  unsigned predNum = env.signature->addPredicate("$distinct", arity, added);
+  if(added) {
+    env.signature->getPredicate(predNum)->setType(type);
+  }
+  else {
+    BaseType* prevType = env.signature->getPredicate(predNum)->predType();
+    if(*type==*prevType) {
+      delete type;
+    }
+    else {
+      string name = "$distinct_"+StringUtils::sanitizeSuffix(env.sorts->sortName(sort));
+      predNum = env.signature->addPredicate(name, arity, added);
+      if(added) {
+	env.signature->getPredicate(predNum)->setType(type);
+      }
+      else {
+	ASS(*type==*env.signature->getPredicate(predNum)->predType());
+	delete type;
+      }
+    }
+  }
+
+  res = new AtomicFormula(Literal::create(predNum, arity, true, false, args.begin()));
+  return true;
+}
+
 bool SMTLIB::tryReadFormula(LExpr* e, Formula*& res)
 {
   CALL("SMTLIB::tryReadFormula");
@@ -981,6 +1204,9 @@ bool SMTLIB::tryReadFormula(LExpr* e, Formula*& res)
     }
     return false;
   }
+
+  case FS_DISTINCT:
+    return tryReadDistinct(e, res);
 
   case FS_FLET:
     return tryReadFlet(e, res);
@@ -1029,9 +1255,40 @@ void SMTLIB::buildFormula()
 {
   CALL("SMTLIB::buildFormula");
 
+  {
+    Formula* f = readFormula(_lispFormula);
+    FormulaUnit* fu = new FormulaUnit(f, new Inference(Inference::INPUT), Unit::CONJECTURE);
+    UnitList::push(fu, _formulas);
+  }
+
+  LExprList::Iterator asIt(_lispAssumptions);
+  while(asIt.hasNext()) {
+    LExpr* lispF = asIt.next();
+    Formula* f = readFormula(lispF);
+    FormulaUnit* fu = new FormulaUnit(f, new Inference(Inference::INPUT), Unit::AXIOM);
+    UnitList::push(fu, _formulas);
+  }
+
+  if(_introduceAigNames) {
+    introduceAigNames(_formulas);
+  }
+
+  _formulas = UnitList::concat(_formulas, _definitions->copy());
+}
+
+Formula* SMTLIB::readFormula(LExpr* e)
+{
+  CALL("SMTLIB::readFormula");
+  ASS(_formVars.isEmpty());
+  ASS(_termVars.isEmpty());
+
+  _forms.reset();
+  _terms.reset();
+
+  _varSorts.reset();
   _nextQuantVar = 0;
 
-  _todo.push(ToDoEntry(_lispFormula, true));
+  _todo.push(ToDoEntry(e, true));
   _todo.push(ToDoEntry(0, true));
 
   while(_todo.isNonEmpty()) {
@@ -1069,26 +1326,41 @@ void SMTLIB::buildFormula()
   }
 
   Formula* topForm;
-  ALWAYS(_forms.find(_lispFormula, topForm));
+  ALWAYS(_forms.find(e, topForm));
 
-  if(_mode>BUILD_FORMULA) {
-    topForm = introduceAigNames(topForm);
-  }
-  FormulaUnit* fu = new FormulaUnit(topForm, new Inference(Inference::INPUT), Unit::CONJECTURE);
-
-  ASS_EQ(_formulas,0);
-  _formulas = _definitions->copy();
-  UnitList::push(fu, _formulas);
+  ASS(_formVars.isEmpty());
+  ASS(_termVars.isEmpty());
+  return topForm;
 }
 
-Formula* SMTLIB::introduceAigNames(Formula* f)
+void SMTLIB::introduceAigNames(UnitList*& forms)
 {
   CALL("SMTLIB::introduceAigNames");
 
-  f = AIGCompressingTransformer().apply(f);
-  f = AIGDefinitionIntroducer(_defIntroThreshold).apply(f, _definitions);
+  AIGCompressingTransformer act;
+  AIGDefinitionIntroducer adi(_defIntroThreshold);
 
-  return f;
+  act.apply(forms);
+  adi.scan(forms);
+
+  UnitList::DelIterator uit(forms);
+  while(uit.hasNext()) {
+    Unit* u0 = uit.next();
+    ASS(!u0->isClause());
+    Unit* u;
+    if(adi.apply(u0, u)) {
+      if(u) {
+	uit.replace(u);
+      }
+      else {
+	uit.del();
+      }
+    }
+
+  }
+
+  UnitList* newDefs = adi.getIntroducedFormulas();
+  _definitions = UnitList::concat(newDefs, _definitions);
 }
 
 Formula* SMTLIB::nameFormula(Formula* f, string fletVarName)

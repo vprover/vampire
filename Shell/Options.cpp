@@ -182,6 +182,8 @@ const char* Options::Constants::_optionNames[] = {
   "predicate_definition_inlining",
   "predicate_definition_merging",
   "predicate_equivalence_discovery",
+  "predicate_equivalence_discovery_all_atoms",
+  "predicate_equivalence_discovery_sat_conflict_limit",
   "predicate_index_introduction",
   "problem_name",
   "proof",
@@ -231,6 +233,7 @@ const char* Options::Constants::_optionNames[] = {
   "sine_tolerance",
   "smtlib_consider_ints_real",
   "smtlib_flet_as_definition",
+  "smtlib_introduce_aig_names",
   "sos",
   "split_add_ground_negation",
   "split_at_activation",
@@ -714,6 +717,8 @@ Options::Options ()
   _predicateDefinitionInlining(INL_OFF),
   _predicateDefinitionMerging(false),
   _predicateEquivalenceDiscovery(false),
+  _predicateEquivalenceDiscoveryAllAtoms(false),
+  _predicateEquivalenceDiscoverySatConflictLimit(0),
   _predicateIndexIntroduction(false),
   _problemName("unknown"),
   _proof(PROOF_ON),
@@ -763,6 +768,7 @@ Options::Options ()
   _sineTolerance(1.0f),
   _smtlibConsiderIntsReal(false),
   _smtlibFletAsDefinition(false),
+  _smtlibIntroduceAIGNames(true),
   _sos(false),
   _splitAddGroundNegation(true),
   _splitAtActivation(false),
@@ -1137,6 +1143,15 @@ void Options::set(const char* name,const char* value, int index)
     case PREDICATE_EQUIVALENCE_DISCOVERY:
       _predicateEquivalenceDiscovery = onOffToBool(value,name);
       return;
+    case PREDICATE_EQUIVALENCE_DISCOVERY_ALL_ATOMS:
+      _predicateEquivalenceDiscoveryAllAtoms = onOffToBool(value,name);
+      return;
+    case PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT:
+      if (Int::stringToUnsignedInt(value,unsignedValue)) {
+	_predicateEquivalenceDiscoverySatConflictLimit = unsignedValue;
+	return;
+      }
+      break;
     case PREDICATE_INDEX_INTRODUCTION:
       _predicateIndexIntroduction = onOffToBool(value,name);
       return;
@@ -1329,6 +1344,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SMTLIB_FLET_AS_DEFINITION:
       _smtlibFletAsDefinition = onOffToBool(value,name);
+      return;
+    case SMTLIB_INTRODUCE_AIG_NAMES:
+      _smtlibIntroduceAIGNames = onOffToBool(value,name);
       return;
     case SOS:
       _sos = onOffToBool(value,name);
@@ -1908,6 +1926,12 @@ void Options::outputValue (ostream& str,int optionTag) const
   case PREDICATE_EQUIVALENCE_DISCOVERY:
     str << boolToOnOff(_predicateEquivalenceDiscovery);
     return;
+  case PREDICATE_EQUIVALENCE_DISCOVERY_ALL_ATOMS:
+    str << boolToOnOff(_predicateEquivalenceDiscoveryAllAtoms);
+    return;
+  case PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT:
+    str << _predicateEquivalenceDiscoverySatConflictLimit;
+    return;
   case PREDICATE_INDEX_INTRODUCTION:
     str << boolToOnOff(_predicateIndexIntroduction);
     return;
@@ -2051,6 +2075,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case SMTLIB_FLET_AS_DEFINITION:
     str << boolToOnOff(_smtlibFletAsDefinition);
+    return;
+  case SMTLIB_INTRODUCE_AIG_NAMES:
+    str << boolToOnOff(_smtlibIntroduceAIGNames);
     return;
   case SOS:
     str << boolToOnOff(_sos);

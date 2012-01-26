@@ -18,6 +18,7 @@ maxMul=10
 /^Minimized interpolant quantifiers cost/ { mqc = $5; full=1 }
 /^Derivation not local/ { derivationNotLocal = 1 }
 /^interp/ { prob=$0 }
+/^results for / { prob= $3" "$4 }
 /^SMT solver gave/ { yicesTimeout=1 }
 /^========/ {
 if(full==1) {
@@ -30,7 +31,7 @@ if(full==1) {
 	for(i=1; i<=maxMul; i++) {
 		if(owc>0 && owc>i*mwc) {
 			succWCnt[i]++
-			if(i==2) {
+			if(mqc==0 && i==1) {
 			     print "W ", owc, " --> ", mwc, " ", prob
 			}
 		}
