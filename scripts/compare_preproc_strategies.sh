@@ -34,11 +34,14 @@ TMP_OUT=`mktemp -t ep_XXXXXX`
 function eval_strategy()
 {
         if ! (ulimit -St $TIME_LIMIT; $VUTIL_EXEC pe -input_syntax smtlib $* >$TMP_OUT); then
-                if ! grep -q SIGXCPU $TMP_OUT; then 
+                if ! grep -q "SIGXCPU" $TMP_OUT; then 
                         cat $TMP_OUT 1>&2;
-                        exit 1
+                        if ! grep -q "Segmentation" $TMP_OUT; then 
+                                exit 1
+                        fi
+                else
+                        echo -ne "TO\tTO\tTO\tTO\tTO"
                 fi
-                echo -ne "TO\tTO\tTO\tTO\tTO"
         else
                 cat $TMP_OUT
         fi
