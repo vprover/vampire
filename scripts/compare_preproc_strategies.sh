@@ -1,5 +1,16 @@
 #!/bin/bash
 
+if [ "$1" == "-d" ]; then
+        VUTIL_EXEC=$2
+        shift 2
+        for DIR in $*; do
+                if ! $0 $VUTIL_EXEC $DIR/*; then
+                        exit 1
+                fi  
+        done
+        exit 0
+fi
+
 TIME_LIMIT=10
 
  S[0]="-updr off -inequality_splitting 0"
@@ -25,7 +36,7 @@ function eval_strategy()
         if ! (ulimit -St $TIME_LIMIT; $VUTIL_EXEC pe -input_syntax smtlib $* >$TMP_OUT); then
                 if ! grep -q SIGXCPU $TMP_OUT; then 
                         cat $TMP_OUT 1>&2;
-                        exit 0
+                        exit 1
                 fi
                 echo -ne "TO\tTO\tTO\tTO\tTO"
         else
