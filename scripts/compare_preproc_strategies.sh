@@ -4,7 +4,8 @@ if [ "$1" == "-d" ]; then
         VUTIL_EXEC=$2
         shift 2
         for DIR in $*; do
-                if ! $0 $VUTIL_EXEC $DIR/*; then
+                $0 $VUTIL_EXEC $DIR/*
+                if [ "$?" == 1 ] ; then
                         exit 1
                 fi  
         done
