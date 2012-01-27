@@ -71,7 +71,10 @@ public:
 private:
   AIGRef tryCompressAtom(AIGRef atom);
 
-  bool localCompressByBDD(AIGRef aig, AIGRef& tgt);
+  bool doHistoryLookUp(AIGRef aig, unsigned aigSz, BDDNode* bdd, AIGRef& tgt);
+  void doLookUpImprovement(AIGTransformer::RefMap& mapToFix);
+
+  bool localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLookUp);
   AIGRef attemptCompressByBDD(AIGRef aig);
   size_t getAIGDagSize(AIGRef aig);
 
@@ -80,6 +83,17 @@ private:
   unsigned _maxBDDVarCnt;
   unsigned _reqFactorNum;
   unsigned _reqFactorDenom;
+
+  typedef pair<AIGRef,size_t> AIGWithSize;
+  typedef DHMap<BDDNode*,AIGWithSize> LookUpMap;
+
+  /** If BDD didn't compress an AIG, we store the AIG here,
+   * so next time we see the same BDD, we know there is something
+   * equivalent to it */
+  LookUpMap _lookUp;
+  /** If we have found a better AIG for AIG present in the _lookUp map */
+  LookUpMap _lookUpImprovement;
+  bool _lookUpNeedsImprovement;
 
   AIG& _aig;
   AIGTransformer _atr;

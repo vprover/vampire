@@ -443,6 +443,15 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_compr_all",
       DOC("all AIG compression attempts"),
       PARENT("pp_aig_compr",1));
+  DECL("pp_aig_compr_lookup",
+      DOC("BDD look-up"),
+      PARENT("pp_aig_compr",1));
+  DECL("pp_aig_compr_lookup_hit",
+      DOC("hit of BDD look-up table"),
+      PARENT("pp_aig_compr_lookup",1));
+  DECL("pp_aig_compr_lookup_improvement",
+      DOC("improvement for BDD look-up"),
+      PARENT("pp_aig_compr_lookup",1));
   DECL("pp_aig_compr_growth",
       DOC("local AIG compression attempts where the AIG has grown"),
       PARENT("pp_aig_compr",1));

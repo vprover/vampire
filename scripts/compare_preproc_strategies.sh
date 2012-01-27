@@ -15,11 +15,11 @@ fi
 
 TIME_LIMIT=10
 
- S[0]="-updr off -inequality_splitting 0"
+ S[0]="-updr off -smtlib_introduce_aig_names off -inequality_splitting 0"
  S[1]="-inequality_splitting 0"
- S[2]="-smtlib_flet_as_definition on -inequality_splitting 0"
- S[3]="-smtlib_flet_as_definition on -inequality_splitting 0  -predicate_definition_merging on"
- S[4]="-smtlib_introduce_aig_names on -inequality_splitting 0"
+ S[2]="-equality_propagation on -predicate_index_introduction on -smtlib_flet_as_definition on -predicate_definition_merging on -aig_definition_introduction off -smtlib_introduce_aig_names off -flatten_top_level_conjunctions on -predicate_definition_inlining non_growing -aig_bdd_sweeping on -inequality_splitting 0 -aig_inliner on -trivial_predicate_removal on -predicate_equivalence_discovery on -predicate_equivalence_discovery_all_atoms on -predicate_equivalence_discovery_sat_conflict_limit 10"
+ S[3]="-smtlib_flet_as_definition off -smtlib_introduce_aig_names on -flatten_top_level_conjunctions on -predicate_definition_inlining non_growing -aig_bdd_sweeping on -inequality_splitting 0 -trivial_predicate_removal on -predicate_equivalence_discovery on -predicate_equivalence_discovery_all_atoms on -predicate_equivalence_discovery_sat_conflict_limit 10"
+ S[4]="-equality_propagation on -predicate_index_introduction on -smtlib_flet_as_definition on -predicate_definition_merging on -aig_definition_introduction on -smtlib_introduce_aig_names off -flatten_top_level_conjunctions on -predicate_definition_inlining non_growing -aig_bdd_sweeping on -inequality_splitting 0 -aig_inliner on -trivial_predicate_removal on -predicate_equivalence_discovery on -predicate_equivalence_discovery_all_atoms on -predicate_equivalence_discovery_sat_conflict_limit 50"
  S[5]="-smtlib_introduce_aig_names on -flatten_top_level_conjunctions on -inequality_splitting 0"
  S[6]="-smtlib_flet_as_definition off -smtlib_introduce_aig_names on -flatten_top_level_conjunctions on -predicate_definition_inlining non_growing -aig_bdd_sweeping on -inequality_splitting 0"
  S[7]="-smtlib_flet_as_definition on -smtlib_introduce_aig_names off -flatten_top_level_conjunctions on -predicate_definition_inlining on -aig_bdd_sweeping on -inequality_splitting 0"

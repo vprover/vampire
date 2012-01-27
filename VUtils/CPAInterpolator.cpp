@@ -81,6 +81,7 @@ int CPAInterpolator::perform(unsigned argc, char** argv)
   }
 
   env.options->set("smtlib_consider_ints_real", "on");
+  env.options->setTimeLimitInSeconds(60);
   CommandLine cl(argc+1-argIdx,argv-1+argIdx);
   cl.interpret(*env.options);
 
@@ -94,8 +95,6 @@ int CPAInterpolator::perform(unsigned argc, char** argv)
   loadFormulas();
 
   doProving();
-
-  displayResult();
 
   return 0;
 }
@@ -228,7 +227,13 @@ void CPAInterpolator::doProving()
   if(runSchedule(quick, usedStrategies, false)) {
     return;
   }
-  runSchedule(fallback, usedStrategies, true);
+  if(!runSchedule(fallback, usedStrategies, true)) {
+    if(fallback.isEmpty()) {
+      env.beginOutput();
+      env.out()<<"Ran out of schedules"<<endl;
+      env.endOutput();
+    }
+  }
 }
 
 void CPAInterpolator::displayResult()

@@ -794,6 +794,67 @@ public:
     IteratorBase _base;
   }; // class DHMap::Iterator
 
+  /**
+   * Class to allow iteration over keys and values stored in the map,
+   * modification of the value and deleteion of the entry.
+   */
+  class DelIterator {
+  public:
+    /** Create a new iterator */
+    inline DelIterator(DHMap& map) : _base(map), _map(map) {}
+
+    /** True if there exists next element */
+    bool hasNext() { return _base.hasNext(); }
+
+    /**
+     * Assign key and value of the next entry to respective parameters
+     * @warning hasNext() must have been called before
+     */
+    inline
+    void next(Key& key, Val& val)
+    {
+      Entry* e=getNextEntry();
+      key=e->_key;
+      val=e->_val;
+    }
+
+    /**
+     * Return the next value
+     * @warning hasNext() must have been called before
+     */
+    inline Val next() { return getNextEntry()->_val; }
+
+    /**
+     * Return the key of next entry
+     * @warning hasNext() must have been called before
+     */
+    inline Key nextKey() { return getNextEntry()->_key; }
+
+    void del() {
+      CALL("DHMap::DelIterator::del");
+      _curr->_info.deleted=1;
+      _map._size--;
+      _map._deleted++;
+    }
+
+    void setValue(Val val) {
+      CALL("DHMap::DelIterator::setValue");
+      _curr->_val = val;
+    }
+
+  private:
+    Entry* getNextEntry() {
+      _curr = _base.next();
+      return _curr;
+    }
+
+    IteratorBase _base;
+    DHMap& _map;
+    Entry* _curr;
+  }; // class DHMap::Iterator
+
+
+
 }; // class DHMap
 
 }
