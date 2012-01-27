@@ -1,5 +1,18 @@
 #!/bin/bash
 
+
+if [ "$1" == "-d" ]; then
+        TIME_LIMIT=120
+
+        DIR=$2
+        OUT_DIR=$3
+        for F in $DIR/*; do
+                TGT=`echo $F | sed s^$DIR^$OUT_DIR^`.
+                (ulimit -Ht $TIME_LIMIT; $0 $F $TGT || exit 1) 
+        done
+        exit 0
+fi 
+
 Z3='./z3 -smt2'
 
 AUX=`mktemp -d -t ezpXXXXX`
