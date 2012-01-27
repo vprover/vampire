@@ -1,14 +1,13 @@
 #!/bin/bash
 
+TIME_LIMIT=120
 
 if [ "$1" == "-d" ]; then
-        TIME_LIMIT=120
-
         DIR=$2
         OUT_DIR=$3
         for F in $DIR/*; do
                 TGT=`echo $F | sed s^$DIR^$OUT_DIR^`.
-                (ulimit -Ht $TIME_LIMIT; $0 $F $TGT || exit 1) 
+                $0 $F $TGT || exit 1 
         done
         exit 0
 fi 
@@ -25,6 +24,7 @@ ZOUT=$AUX/zout
 cat $FILE | sed "s/(check-sat)/(check-sat) (get-proof)/"> $PRB
 
 #$Z3 PROOF_MODE=2 $PRB
+ulimit -St $TIME_LIMIT
 $Z3 PROOF_MODE=2 $PRB | awk -v "filePref=$OUT_PREFIX" '
 {
         proofLine=1
@@ -32,7 +32,7 @@ $Z3 PROOF_MODE=2 $PRB | awk -v "filePref=$OUT_PREFIX" '
 
 BEGIN { fileIdx=1; outFile=filePref fileIdx; anythingOutput=0; haveFirstRes=0}
 { proofLine=1 }
-/^sat/ || /^unsat/ || /^\(error/ {
+/^success/ || /^sat/ || /^unsat/ || /^\(error/ {
         if(anythingOutput) {
                 print "done with " outFile
                 close(outFile)
