@@ -5,9 +5,10 @@ if [ "$1" == "-d" ]; then
         shift 2
         for DIR in $*; do
                 $0 $VUTIL_EXEC $DIR/*
-                if [ "$?" == 1 ] ; then
-                        exit 1
-                fi  
+                if [ $? -eq 130 ]; then
+                        echo interrupted
+                        exit 130
+                fi
         done
         exit 0
 fi
@@ -35,11 +36,12 @@ TMP_OUT=`mktemp -t ep_XXXXXX`
 function eval_strategy()
 {
         if ! (ulimit -St $TIME_LIMIT; $VUTIL_EXEC pe -input_syntax smtlib $* >$TMP_OUT); then
+                if [ $? -eq 130 ]; then
+                        echo interrupted
+                        exit 130
+                fi
                 if ! grep -q "SIGXCPU" $TMP_OUT; then 
                         cat $TMP_OUT 1>&2;
-                        if ! grep -q "Segmentation" $TMP_OUT; then 
-                                exit 1
-                        fi
                 else
                         echo -ne "TO\tTO\tTO\tTO\tTO"
                 fi
