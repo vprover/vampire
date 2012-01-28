@@ -18,6 +18,7 @@
 
 #include "Shell/InterpolantMinimizer.hpp"
 #include "Shell/LispLexer.hpp"
+#include "Shell/Options.hpp"
 #include "Shell/TPTP.hpp"
 
 
@@ -698,10 +699,12 @@ void ZIE::outputInterpolantStats(Unit* refutation)
   InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, true, true, "Original interpolant quantifiers").getInterpolant(refutation);
   Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(refutation);
 
-  cout << "Old interpolant: " << TPTP::toString(oldInterpolant) << endl;
-  cout << "Interpolant: " << TPTP::toString(interpolant) << endl;
-  cout << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;
-  cout << "Quantifiers minimized interpolant: " << TPTP::toString(quantInterpolant) << endl;
+  if(_showInterpolants) {
+    cout << "Old interpolant: " << TPTP::toString(oldInterpolant) << endl;
+    cout << "Interpolant: " << TPTP::toString(interpolant) << endl;
+    cout << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;
+    cout << "Quantifiers minimized interpolant: " << TPTP::toString(quantInterpolant) << endl;
+  }
 }
 
 int ZIE::perform(int argc, char** argv)
@@ -715,6 +718,23 @@ int ZIE::perform(int argc, char** argv)
     argc--;
     argv++;
   }
+  if(argc>=4 && argv[2]==string("-t")) {
+    unsigned timeLimit;
+    ALWAYS(Int::stringToUnsignedInt(argv[3], timeLimit));
+    env.options->setTimeLimitInSeconds(timeLimit);
+    //shift by two arguments
+    argc-=2;
+    argv+=2;
+  }
+  _showInterpolants = true;
+  if(argc>=3 && argv[2]==string("-q")) {
+    _showInterpolants = false;
+    //shift by one argument
+    argc--;
+    argv++;
+  }
+
+
 
   getZ3Refutation();
 

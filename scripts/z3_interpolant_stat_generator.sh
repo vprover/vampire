@@ -33,7 +33,7 @@ fi
 for F in $FILES; do
         echo "F: $F"
         echo "Rq:"
-        (ulimit -St $TIME_LIMIT; $VUTIL_EXEC zie < $F)
+        (ulimit -St $TIME_LIMIT; $VUTIL_EXEC zie -t $TIME_LIMIT -q < $F)
         RES_CODE=$?
         if [ $RES_CODE -eq 130 ]; then
                 echo interrupted
@@ -46,7 +46,7 @@ for F in $FILES; do
         echo "------#"
 
         echo "Bq:"
-        (ulimit -St $TIME_LIMIT; $VUTIL_EXEC zie -b < $F)
+        (ulimit -St $TIME_LIMIT; $VUTIL_EXEC zie -b -t $TIME_LIMIT -q < $F)
         RES_CODE=$?
         if [ "$RES_CODE" -eq 130 ]; then
                 echo interrupted

@@ -33,6 +33,10 @@ public:
   LExpr* getInput();
   int perform(int argc, char** argv);
 
+
+private:
+  bool _showInterpolants;
+
 private:
   Unit* getZ3Refutation();
 
