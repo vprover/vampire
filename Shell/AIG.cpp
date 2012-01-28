@@ -34,7 +34,7 @@ public:
     ATOM,
     TRUE_CONST,
     CONJ,
-    /** Universa quantifier */
+    /** Universal quantifier */
     QUANT
   };
 
@@ -61,9 +61,10 @@ private:
     /** Valid if _kind==QUANT */
     struct {
       RefProxy _qPar;
-      VarList* _qVars;
+      VarSet* _qVars;
     };
   };
+  VarSet* _freeVars;
 
 public:
   Node(Kind k) : _kind(k) {
@@ -75,9 +76,6 @@ public:
   Node(Literal* atm) : _kind(ATOM), _lit(atm) { ASS(atm->isPositive()); }
 
   ~Node() {
-    if(kind()==QUANT) {
-      _qVars->destroy();
-    }
   }
 
   Kind kind() const { return _kind; }
@@ -114,7 +112,7 @@ public:
     ASS_EQ(kind(), QUANT);
     return _qPar;
   }
-  VarList* qVars() const {
+  VarSet* qVars() const {
     CALL("AIG::Node::qVars");
     ASS_EQ(kind(), QUANT);
     return _qVars;
@@ -126,14 +124,26 @@ public:
     _pars[0] = par1;
     _pars[1] = par2;
   }
-  void setQuantArgs(VarList* vars, Ref par)
+  void setQuantArgs(VarSet* vars, Ref par)
   {
     ASS_EQ(kind(), QUANT);
-    if(_qVars) {
-      _qVars->destroy();
-    }
     _qVars = vars;
     _qPar = par;
+  }
+
+  /** Can be called after parents are set for nodes that have parents */
+  void setFreeVars()
+  {
+    CALL("AIG::Node::setFreeVars");
+    switch(_kind) {
+    case ATOM:
+    case TRUE_CONST:
+    case CONJ:
+    case QUANT:
+      //TODO:implement!!
+      NOT_IMPLEMENTED;
+      break;
+    }
   }
 };
 
@@ -154,7 +164,7 @@ unsigned AIG::NodeHash::hash(Node* n)
   case Node::QUANT:
   {
     unsigned res = n->qParent().hash();
-    VarList::Iterator vit(n->qVars());
+    VarSet::Iterator vit(*n->qVars());
     while(vit.hasNext()) {
       res = HashUtils::combine(res, vit.next());
     }
@@ -180,8 +190,7 @@ bool AIG::NodeHash::equals(Node* n1, Node* n2)
     ASS(n1->parent(0)!=n2->parent(1) || n1->parent(1)!=n2->parent(0));
     return n1->parent(0)==n2->parent(0) && n1->parent(1)==n2->parent(1);
   case Node::QUANT:
-    if(n1->qParent()!=n2->qParent()) { return false; }
-    return iteratorsEqual(VarList::Iterator(n1->qVars()), VarList::Iterator(n2->qVars()));
+    return n1->qParent()==n2->qParent() && n1->qVars()==n2->qVars();
   default:
     ASSERTION_VIOLATION;
   }
@@ -225,7 +234,7 @@ Literal* AIG::Ref::getPositiveAtom() const
 /**
  * Return variables of a quantifier node
  */
-const AIG::VarList* AIG::Ref::getQuantifierVars() const
+AIG::VarSet* AIG::Ref::getQuantifierVars() const
 {
   CALL("AIG::Ref::getQuantifierVars");
   ASS(isQuantifier());
@@ -321,7 +330,7 @@ string AIG::Ref::toString() const
   case Node::QUANT:
   {
     inner = "! [";
-    VarList::Iterator vit(node()->qVars());
+    VarSet::Iterator vit(*node()->qVars());
     while(vit.hasNext()) {
       int var = vit.next();
       inner += 'X'+Int::toString(var);
@@ -366,7 +375,7 @@ string AIG::Ref::toInternalString(unsigned depth) const
     case Node::QUANT:
     {
       inner += "! [";
-      VarList::Iterator vit(node()->qVars());
+      VarSet::Iterator vit(*node()->qVars());
       while(vit.hasNext()) {
         int var = vit.next();
         inner += 'X'+Int::toString(var);
@@ -456,19 +465,11 @@ AIG::Node* AIG::conjNode(Ref par1, Ref par2)
   return res;
 }
 
-AIG::Node* AIG::univQuantNode(VarList* vars, Ref par)
+AIG::Node* AIG::univQuantNode(VarSet* vars, Ref par)
 {
   CALL("AIG::univQuantNode");
   ASS(vars);
-
-  if(vars->length()>1) {
-    static Stack<int> varStack;
-    varStack.reset();
-    varStack.loadFromIterator(VarList::DestructiveIterator(vars));
-    std::sort(varStack.begin(), varStack.end());
-    vars = 0;
-    VarList::pushFromIterator(Stack<int>::Iterator(varStack), vars);
-  }
+  ASS_GE(vars->size(),1);
 
   if(!_quantReserve) {
     _quantReserve = new Node(Node::QUANT);
@@ -525,9 +526,17 @@ start:
   return Ref(conjNode(par1, par2), true);
 }
 
-AIG::Ref AIG::getQuant(bool exQuant, VarList* vars, Ref par)
+AIG::Ref AIG::getQuant(bool exQuant, Formula::VarList* vars, Ref par)
 {
-  CALL("AIG::getQuant");
+  CALL("AIG::getQuant(bool,VarList*,Ref)");
+
+  VarSet* vs = VarSet::getFromIterator(Formula::VarList::DestructiveIterator(vars));
+  return getQuant(exQuant, vs, par);
+}
+
+AIG::Ref AIG::getQuant(bool exQuant, VarSet* vars, Ref par)
+{
+  CALL("AIG::getQuant(bool,VarSet*,Ref)");
 
   if(!vars) { return par; }
   if(par.isPropConst()) { return par; }
@@ -857,7 +866,7 @@ AIG::Ref AIGTransformer::lev1Deref(Ref r, RefMap& map)
       res = r;
     }
     else {
-      res = _aig.getQuant(false, n->qVars()->copy(), dp);
+      res = _aig.getQuant(false, n->qVars(), dp);
     }
     break;
   }
@@ -1187,8 +1196,9 @@ void AIGFormulaSharer::buildQuantAigFormulaRepr(AIGRef a, Stack<AIGRef>& toBuild
     toBuild.push(subnode);
     return;
   }
-
-  shareFormula(new QuantifiedFormula(pol ? FORALL : EXISTS, n->qVars()->copy(), subForm), a);
+  Formula::VarList* qVars = 0;
+  Formula::VarList::pushFromIterator(AIG::VarSet::Iterator(*n->qVars()), qVars);
+  shareFormula(new QuantifiedFormula(pol ? FORALL : EXISTS, qVars, subForm), a);
 }
 
 bool AIGFormulaSharer::tryBuildEquivalenceFormulaRepr(AIGRef aig, Stack<AIGRef>& toBuild)

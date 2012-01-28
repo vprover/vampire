@@ -21,7 +21,7 @@ using namespace Kernel;
 
 class LocalityRestoring {
 public:
-  LocalityRestoring(UnitStack& derivation, UnitStack& target);
+  LocalityRestoring(bool quantLeft, UnitStack& derivation, UnitStack& target);
 
   bool perform();
 

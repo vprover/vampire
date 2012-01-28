@@ -71,9 +71,8 @@ void BDDAIG::loadBDDAssignmentFromProblem(const Problem& prb)
 	aig = inner;
       }
       else {
-	AIG::VarList* varLst = 0;
-	AIG::VarList::pushFromIterator(DHSet<unsigned>::Iterator(clauseVars), varLst);
-	aig = _aig.getQuant(false, varLst, inner);
+	AIG::VarSet* varSet = AIG::VarSet::getFromIterator(DHSet<unsigned>::Iterator(clauseVars));
+	aig = _aig.getQuant(false, varSet, inner);
       }
     }
 
@@ -527,6 +526,14 @@ void AIGCompressor::doLookUpImprovement(AIGTransformer::RefMap& mapToFix)
     AIGRef imprTgt = AIGTransformer::lev0Deref(tgt, improvementMap);
     if(imprTgt==tgt) {
       imprTgt = _atr.lev1Deref(tgt, improvementFullMap);
+      COND_LOG("pp_aig_compr_lookup_map_improvement", imprTgt!=tgt, "bdd look-up deref1 improvement in map:"<<endl
+	  <<"  src: "<<tgt<<endl
+	  <<"  tgt: "<<imprTgt);
+    }
+    else {
+      LOG("pp_aig_compr_lookup_map_improvement", "bdd look-up deref0 improvement in map:"<<endl
+	  <<"  src: "<<tgt<<endl
+	  <<"  tgt: "<<imprTgt);
     }
     if(imprTgt==tgt) {
       //no improvement
@@ -538,8 +545,11 @@ void AIGCompressor::doLookUpImprovement(AIGTransformer::RefMap& mapToFix)
   AIGTransformer::RefMap::DelIterator mtfRwrIt(mapToFix);
   while(mtfRwrIt.hasNext()) {
     AIGRef val = mtfRwrIt.next();
-    AIGRef tgt = AIGTransformer::lev0Deref(tgt, improvementFullMap);
+    AIGRef tgt = AIGTransformer::lev0Deref(val, improvementFullMap);
     if(tgt!=val) {
+      LOG("pp_aig_compr_lookup_map_improvement", "bdd look-up improvement in map:"<<endl
+	  <<"  src: "<<val<<endl
+	  <<"  tgt: "<<tgt);
       mtfRwrIt.setValue(tgt);
     }
   }
@@ -552,10 +562,11 @@ void AIGCompressor::doLookUpImprovement(AIGTransformer::RefMap& mapToFix)
  * Do a local compression on BDD that treats quantifier nodes as atomic.
  * If no compression was achieved, leave tgt unchanged.
  */
-bool AIGCompressor::localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLookUp)
+bool AIGCompressor::localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLookUp, bool& usedLookUp)
 {
   CALL("AIGCompressor::localCompressByBDD");
 
+  usedLookUp = false;
   if(!aig.isConjunction() ||
       (!aig.parent(0).isConjunction() && !aig.parent(1).isConjunction())) { return false; }
 
@@ -578,6 +589,7 @@ bool AIGCompressor::localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLook
 
   if(comprSz>=origSz) {
     if(historyLookUp) {
+      usedLookUp = true;
       return doHistoryLookUp(aig, origSz, bRep, tgt);
     }
     return false;
@@ -682,7 +694,20 @@ void AIGCompressor::populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AI
 	ref = 0;
       }
       if(ref) {
-	localCompressByBDD(tgt, tgt, true);
+	bool usedLookUp;
+	AIGRef lcTgt;
+	if(localCompressByBDD(tgt, lcTgt, true, usedLookUp) && usedLookUp) {
+	  //we need to check that the look-up didn't add any new atoms
+	  USharedSet* lcTgtRef;
+	  if(refAtoms.find(lcTgt, lcTgtRef)) {
+	    if(ref->getIntersection(lcTgtRef)==lcTgtRef) {
+	      tgt = lcTgt;
+	    }
+	  }
+	}
+	else {
+	  tgt = lcTgt;
+	}
       }
     }
     if(a!=tgt) {

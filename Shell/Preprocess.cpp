@@ -582,6 +582,9 @@ void Preprocess::clausify(Problem& prb)
 
   env.statistics->phase=Statistics::CLAUSIFICATION;
 
+  //we check if we haven't discover an empty clause during preprocessing
+  Unit* emptyClause = 0;
+
   bool modified = false;
 
   UnitList::DelIterator us(prb.units());
@@ -591,15 +594,29 @@ void Preprocess::clausify(Problem& prb)
     Unit* u = us.next();
     LOG_UNIT("pp_pre_cl", u);
     if (u->isClause()) {
+      if(static_cast<Clause*>(u)->isEmpty()) {
+	emptyClause = u;
+	break;
+      }
       continue;
     }
     modified = true;
     cnf.clausify(u,clauses);
     while (! clauses.isEmpty()) {
       Unit* u = clauses.pop();
+      if(static_cast<Clause*>(u)->isEmpty()) {
+	emptyClause = u;
+	goto fin;
+      }
       us.insert(u);
     }
     us.del();
+  }
+fin:
+  if(emptyClause) {
+    prb.units()->destroy();
+    prb.units() = 0;
+    UnitList::push(emptyClause, prb.units());
   }
   if(modified) {
     prb.invalidateProperty();

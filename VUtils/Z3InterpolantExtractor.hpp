@@ -51,6 +51,8 @@ private:
     List<TermList>* hypotheses;
   };
 
+  unsigned getFunctionNumber(string fnName, unsigned arity);
+
   bool tryReadNumber(LExpr* expr, TermList& res);
 
   bool isTermVariable(string name) { return name[0]=='$' || name[0]=='?'; }

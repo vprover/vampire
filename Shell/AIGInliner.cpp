@@ -643,7 +643,7 @@ void AIGDefinitionIntroducer::doFirstRefAIGPass()
     else {
       ASS(r.isQuantifier());
       NodeInfo& pni = getNodeInfo(r.parent(0));
-      VarSet* qVars = VarSet::getFromIterator( AIG::VarList::Iterator(r.getQuantifierVars()) );
+      VarSet* qVars = r.getQuantifierVars();
       ni._freeVars = pni._freeVars->subtract(qVars);
       ni._clr = pni._clr;
     }

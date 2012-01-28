@@ -452,6 +452,9 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_compr_lookup_improvement",
       DOC("improvement for BDD look-up"),
       PARENT("pp_aig_compr_lookup",1));
+  DECL("pp_aig_compr_lookup_map_improvement",
+      DOC("improvement for BDD look-up in map"),
+      PARENT("pp_aig_compr_lookup",1));
   DECL("pp_aig_compr_growth",
       DOC("local AIG compression attempts where the AIG has grown"),
       PARENT("pp_aig_compr",1));

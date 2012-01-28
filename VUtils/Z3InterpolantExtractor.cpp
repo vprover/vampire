@@ -132,11 +132,23 @@ ZIE::ProofObject ZIE::getProofObjectAssignment(string name)
   return _proofAssignments.get(name);
 }
 
+unsigned ZIE::getFunctionNumber(string fnName, unsigned arity)
+{
+  CALL("ZIE::getFunctionNumber");
+  bool added;
+  unsigned res = env.signature->addFunction(fnName, arity, added);
+  if(added) {
+    BaseType* type = BaseType::makeTypeUniformRange(arity, Sorts::SRT_INTEGER, Sorts::SRT_INTEGER);
+    env.signature->getFunction(res)->setType(type);
+  }
+  return res;
+}
+
 TermList ZIE::negate(TermList term)
 {
   CALL("ZIE::negate");
 
-  unsigned notPred = env.signature->addFunction("not", 1);
+  unsigned notPred = getFunctionNumber("not", 1);
 
   if(term.isTerm() && term.term()->functor()==notPred) {
     return *term.term()->nthArgument(0);
@@ -190,7 +202,7 @@ TermList ZIE::readTerm(LExpr* term)
       return getTermAssignment(name);
     }
 
-    unsigned func = env.signature->addFunction(name, 0);
+    unsigned func = getFunctionNumber(name, 0);
     Term* trm = Term::create(func, 0, 0);
     return TermList(trm);
   }
@@ -216,7 +228,7 @@ TermList ZIE::readTerm(LExpr* term)
   }
 
   unsigned arity = argStack.size();
-  unsigned func = env.signature->addFunction(name, arity);
+  unsigned func = getFunctionNumber(name, arity);
   Term* trm = Term::create(func, arity, argStack.begin());
   TermList res(trm);
   onFunctionApplication(res);
@@ -227,7 +239,12 @@ Formula* ZIE::termToFormula(TermList trm)
 {
   CALL("ZIE::termToFormula/1");
 
-  static unsigned pred = env.signature->addPredicate("e", 1);
+  bool added;
+  unsigned pred = env.signature->addPredicate("e", 1, added);
+  if(added) {
+    env.signature->getPredicate(pred)->setType(
+	BaseType::makeType1(Sorts::SRT_INTEGER, Sorts::SRT_BOOL));
+  }
 
   Literal* resLit = Literal::create(pred, 1, true, false, &trm);
   return new AtomicFormula(resLit);
@@ -541,7 +558,6 @@ TermColoring* ZIE::createRangeColorer()
       globalMax = uinfo.maxArg;
     }
     first = false;
-//    LOG(env.signature->functionName(func) << ": " << uinfo.minArg << ", " << uinfo.maxArg);
     res->addFunction(func);
   }
   IntegerConstantType midpoint = (globalMax+globalMin)/2;
@@ -692,9 +708,15 @@ int ZIE::perform(int argc, char** argv)
 {
   CALL("ZIE::perform");
 
+  bool quantifyRed = true;
+  if(argc>=3 && argv[2]==string("-b")) {
+    quantifyRed = false;
+    //shift by one argument
+    argc--;
+    argv++;
+  }
 
-  Unit* z3Refutation = getZ3Refutation();
-//  InferenceStore::instance()->outputProof(cout, z3Refutation);
+  getZ3Refutation();
 
   ScopedPtr<TermColoring> colorer(createColorer(argc-2, argv+2));
 
@@ -702,7 +724,7 @@ int ZIE::perform(int argc, char** argv)
     cout << "Cannot color the refutation" << endl;
     return 1;
   }
-  LocalityRestoring locRes(_allUnitsColored, _allUnitsLocal);
+  LocalityRestoring locRes(quantifyRed, _allUnitsColored, _allUnitsLocal);
 
   if(!locRes.perform()) {
     cout << "Cannot make the colored proof local" << endl;

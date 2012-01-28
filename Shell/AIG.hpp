@@ -13,6 +13,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaTransformer.hpp"
@@ -33,7 +34,7 @@ public:
   friend class AIGFormulaSharer;
 
   class Node;
-  typedef Formula::VarList VarList;
+  typedef SharedSet<unsigned> VarSet;
 
   class Ref {
     friend class AIG;
@@ -77,7 +78,7 @@ public:
     Ref getPositive() const { return polarity() ? *this : neg(); }
 
     Literal* getPositiveAtom() const;
-    const VarList* getQuantifierVars() const;
+    VarSet* getQuantifierVars() const;
 
     bool polarity() const {
       CALL("AIG::Ref::node()");
@@ -160,7 +161,7 @@ private:
 
   Node* atomNode(Literal* positiveLiteral);
   Node* conjNode(Ref par1, Ref par2);
-  Node* univQuantNode(VarList* vars, Ref par);
+  Node* univQuantNode(VarSet* vars, Ref par);
 
   void normalizeRefOrder(Ref& par1, Ref& par2);
 
@@ -182,7 +183,8 @@ public:
   Ref getConj(Ref par1, Ref par2);
   Ref getDisj(Ref par1, Ref par2) { return getConj(par1.neg(), par2.neg()).neg(); }
   /** The function takes over the vars list, it must be legal to destroy it at any point */
-  Ref getQuant(bool exQuant, VarList* vars, Ref par);
+  Ref getQuant(bool exQuant, Formula::VarList* vars, Ref par);
+  Ref getQuant(bool exQuant, VarSet* vars, Ref par);
 
   Ref getInvalid() const { return Ref::getInvalid(); }
 

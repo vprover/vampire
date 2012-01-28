@@ -9,6 +9,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -66,10 +67,13 @@ TermList TermColoring::applyToTerm(TermList trm)
   }
 
   unsigned func = env.signature->addFunction(name, 0);
+  Signature::Symbol* funSym = env.signature->getFunction(func);
   if(clr!=COLOR_TRANSPARENT) {
-    Signature::Symbol* funSym = env.signature->getFunction(func);
     funSym->addColor(clr);
   }
+  BaseType* type = BaseType::makeType0(SortHelper::getResultSort(trm.term()));
+  funSym->setType(type);
+
   Term* resTerm = Term::create(func, 0, 0);
   res = TermList(resTerm);
 

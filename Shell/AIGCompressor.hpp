@@ -74,7 +74,7 @@ private:
   bool doHistoryLookUp(AIGRef aig, unsigned aigSz, BDDNode* bdd, AIGRef& tgt);
   void doLookUpImprovement(AIGTransformer::RefMap& mapToFix);
 
-  bool localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLookUp);
+  bool localCompressByBDD(AIGRef aig, AIGRef& tgt, bool historyLookUp, bool& usedLookUp);
   AIGRef attemptCompressByBDD(AIGRef aig);
   size_t getAIGDagSize(AIGRef aig);
 

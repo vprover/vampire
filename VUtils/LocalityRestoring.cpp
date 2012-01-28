@@ -18,13 +18,19 @@
 namespace VUtils
 {
 
-LocalityRestoring::LocalityRestoring(UnitStack& derivation, UnitStack& target)
+LocalityRestoring::LocalityRestoring(bool quantLeft, UnitStack& derivation, UnitStack& target)
 : _der(derivation), _tgt(target)
 {
   CALL("LocalityRestoring::LocalityRestoring");
 
-  _quantifiedColor = COLOR_LEFT;
-  _nonQuantifiedColor = COLOR_RIGHT;
+  if(quantLeft) {
+    _quantifiedColor = COLOR_LEFT;
+    _nonQuantifiedColor = COLOR_RIGHT;
+  }
+  else {
+    _quantifiedColor = COLOR_RIGHT;
+    _nonQuantifiedColor = COLOR_LEFT;
+  }
 
 }
 
@@ -915,15 +921,11 @@ void LocalityRestoring::processComponents()
       Unit* newPR = getUnitWithMappedInference(procResult, _localConversionMap, 0, processedUnitsChecker);
       _locDer.push(newPR);
       ALWAYS(_localConversionMap.insert(u, newPR));
-//      if(u->number()==2921) { LOG("2921 transformed into " <<newPR->toString()); }
     }
     else {
       Unit* newUnit = getUnitWithMappedInference(u, _localConversionMap, 0, processedUnitsChecker);
       _locDer.push(newUnit);
     }
-//    if(u->number()==2922) { LOG("2922 transformed into "<<_locDer.top()->toString()); }
-//    if(_locDer.top()->number()==4951) { LOG("4951 coming from"<<u->toString()); }
-//    if(_locDer.top()->number()==4952) { LOG("4952 coming from"<<u->toString()); }
   }
 
 

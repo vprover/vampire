@@ -88,7 +88,7 @@ AIGRef AIGSubst::apply(Applicator apl, AIGRef aig)
       map.insert(curr, _aig.getLit(substLit));
     }
     else if(cAig.isQuantifier()) {
-      VarSet* qSet = VarSet::getFromIterator( AIG::VarList::Iterator(cAig.getQuantifierVars()) );
+      VarSet* qSet = cAig.getQuantifierVars();
       VarSet* qHistorySet = curr.second->getUnion(qSet);
       AIGRef par = cAig.parent(0);
       AIGRef ppar = par.getPositive();
@@ -101,7 +101,7 @@ AIGRef AIGSubst::apply(Applicator apl, AIGRef aig)
 	}
 	else {
 	  AIGRef parTgt = par.polarity() ? pparTgt : pparTgt.neg();
-	  tgt = _aig.getQuant(false, cAig.getQuantifierVars()->copy(), parTgt);
+	  tgt = _aig.getQuant(false, cAig.getQuantifierVars(), parTgt);
 	}
 	map.insert(curr, tgt);
       }
