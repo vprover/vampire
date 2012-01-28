@@ -219,7 +219,7 @@ SMTSolverResult::Status SMTSolver::tryUpperBound(SMTBenchmark& problem, SMTConst
 
   problem.addFormula(bound);
 
-  run(problem, res, 5);
+  run(problem, res, 2);
 
   problem.popFormula();
 

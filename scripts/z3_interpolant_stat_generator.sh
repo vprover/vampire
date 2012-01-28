@@ -2,7 +2,7 @@
 
 trap '' 1
 
-TIME_LIMIT=3
+TIME_LIMIT=120
 
 VUTIL_EXEC=$1
 shift 1
