@@ -35,7 +35,8 @@ TMP_OUT=`mktemp -t ep_XXXXXX`
 
 function eval_strategy()
 {
-        if ! (ulimit -St $TIME_LIMIT; $VUTIL_EXEC pe -input_syntax smtlib $* >$TMP_OUT); then
+        #if ! (ulimit -St $TIME_LIMIT; $VUTIL_EXEC pe -input_syntax smtlib $* >$TMP_OUT); then
+        if ! (ulimit -St $TIME_LIMIT; echo $VUTIL_EXEC pe -input_syntax smtlib $* >$TMP_OUT); then
                 if [ $? -eq 130 ]; then
                         echo interrupted
                         exit 130

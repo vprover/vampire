@@ -1050,6 +1050,7 @@ void SaturationAlgorithm::performEmptyClauseParentSubsumption(Clause* cl0, BDDNo
       if(!par->prop() || bdd->isTrue(par->prop())) {
 	continue;
       }
+      //TODO: maybe a simple equality check can be used here, as child prop part is a disjunction of its parents (at least usually)
       if(!bdd->isXOrNonYConstant(par->prop(), emptyClauseProp, true)) {
 	continue;
       }

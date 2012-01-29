@@ -30,6 +30,7 @@ if [ "$1" == "-r" ]; then
         FILES=`echo $FILES |tr ' ' '\n'|sort -R`
 fi
 
+echo "============#"
 for F in $FILES; do
         echo "F: $F"
         echo "Rq:"

@@ -3,7 +3,7 @@
 import fileinput
 import os
 
-strategyCnt = 13
+strategyCnt = None
 benchs = []
 
 intInfty = 10000000000000000
@@ -30,16 +30,14 @@ class Rec:
                 print(self.clauseCnt, self.atomCnt, self.distAtomCnt)
 
 def findIdxsWithLowest(arr,fn):
-        res = [0]
+        res = [arr[0].idx]
         bestVal = fn(arr[0])
-        bestIdx = arr[0].idx
         for r in arr[1:]:
                 val = fn(r)
-                if val==-1:
-                        continue
                 if val==bestVal:
                         res.append(r.idx)
                 elif val<bestVal:
+                        bestVal = val
                         res = [r.idx]
         return res
 
@@ -47,6 +45,10 @@ class Bench:
         def __init__(self, name):
                 self.name = name
                 self.recs = []
+        def display(self):
+                print self.name
+                for r in self.recs:
+                        r.display()
 
 class Observable:
         def __init__(self, g, n):
@@ -57,13 +59,19 @@ class Observable:
                 self.TOs = []
                 self.allEqualCnt = 0
                 self.allTO = 0
+                self.arraysInitialized = False
                 
+        def initArrays(self):
+                #we cannot do this in the constructor as then we don't know the strategy count
                 for i in range(0,strategyCnt):
                         self.winners.append(0)
                         self.singleWinners.append(0)
                         self.TOs.append(0)
+                self.arraysInitialized = True
 
         def record(self,bench):
+                if not self.arraysInitialized:
+                        self.initArrays()
                 winIdxs = findIdxsWithLowest(bench.recs, self.getter)
                 for idx in winIdxs:
                         self.winners[idx] += 1
@@ -90,6 +98,7 @@ class Observable:
                 for i in range(0,strategyCnt):
                         print str(self.winners[i])+"\t",
                 print
+        def displaySinglesForTable(self):
                 print self.name + " O\t",
                 for i in range(0,strategyCnt):
                         print str(self.singleWinners[i])+"\t",
@@ -107,6 +116,7 @@ def getAtomCnt(r):
 def getDistAtomCnt(r):
         return r.distAtomCnt
 
+
 observers = []
 observers.append(Observable(getClauseCnt,"clause count"))
 observers.append(Observable(getAtomCnt,"atom count"))
@@ -115,6 +125,11 @@ observers.append(Observable(getDistAtomCnt,"distinct atom count"))
 
 for line in fileinput.input():
         args=line.split()
+        if not strategyCnt:
+                strategyCnt = (len(args)-1)/5
+        if len(args)!=strategyCnt*5+1:
+                #print " faulty benchmark: ", line
+                continue
         bench = Bench(args[0])
         for i in range(0,strategyCnt):
                 ofs = 1+(i*5)
@@ -127,4 +142,6 @@ for line in fileinput.input():
 
 for obs in observers:
         obs.displayForTable()
+for obs in observers:
+        obs.displaySinglesForTable()
 observers[0].displayTOsForTable()
