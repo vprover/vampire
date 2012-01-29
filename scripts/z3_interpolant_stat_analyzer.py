@@ -213,6 +213,36 @@ class Bench(object):
                 except StopIteration:
                         raise IncompleteBenchmark()
 
+class NullPostprocessor(object):
+        def __call__(self,map):
+                pass
+
+class CompoundPostprocessor(object):
+        def __init__(self,pps):
+                self.pps=pps
+        def __call__(self,map):
+                for pp in self.pps:
+                        pp(map)
+class DeletingPostprocessor(object):
+        def __init__(self,flds):
+                self.flds=flds
+        def __call__(self,map):
+                for k in self.flds:
+                        if k in map:
+                                del map[k]
+class MergingPostprocessor(object):
+        def __init__(self,masterFld,mergedFlds):
+                self.masterFld=masterFld
+                self.mergedFlds=mergedFlds
+        def __call__(self,map):
+                for k in self.mergedFlds:
+                        if k in map:
+                                if self.masterFld in map:
+                                        map[self.masterFld] += map[k]
+                                else:
+                                        map[self.masterFld] = map[k]
+                                del map[k]
+
 class Observer(object):
         def __init__(self,name):
                 self.name = name
@@ -229,13 +259,14 @@ class Observer(object):
 
 
 class CountingObserver(Observer):
-        def __init__(self,name, getter):
+        def __init__(self,name, getter, postproc=NullPostprocessor()):
                 super(CountingObserver,self).__init__(name)
                 self.getter = getter
                 self.redCtr={}
                 self.blueCtr={}
                 self.betterCtr={}
                 self.allCtr={}
+                self.postproc=postproc
         def observeBench(self,bench):
                 redVal = self.getter(bench.redRec)
                 blueVal = self.getter(bench.blueRec)
@@ -255,6 +286,11 @@ class CountingObserver(Observer):
                 updateCounter(self.betterCtr,betterVal)
                 
         def display(self):
+                self.postproc(self.allCtr)
+                self.postproc(self.redCtr)
+                self.postproc(self.blueCtr)
+                self.postproc(self.betterCtr)
+        
                 print self.name
                 printTable(["all","red","blue","better"],[self.allCtr,self.redCtr,self.blueCtr,self.betterCtr])
                 return
@@ -305,7 +341,48 @@ class ComparingObserver(Observer):
                 print "same\t", self.bothSame
                 print "both fail\t", self.bothFail
 
+class CMLObserver(Observer):
+        def __init__(self,name):
+                super(ComparingObserver,self).__init__(name)
+                self.red=0
+                self.blue=0
+                self.both=0
+                self.none=0
+        def observeBench(self,bench):
+                redVal = bench.redRec.origSz==trCannotMakeLocal
+                blueVal = bench.redRec.origSz==trCannotMakeLocal
+                
+                if redVal:
+                        if blueVal:
+                                self.both += 1
+                        else:
+                                self.red += 1
+                else:
+                        if blueVal:
+                                self.blue += 1
+                        else:
+                                self.none += 1
+        def display(self):
+                print self.name
+                print "red\t", self.red
+                print "blue\t", self.blue
+                print "both\t", self.both
+                print "none\t", self.none
 
+
+class LocGetter(object):
+        def __call__(self,rec):
+                if isinstance(rec.derLocal,tuple) and isinstance(rec.derLocal[0],str):
+                        return rec.derLocal[0]
+                if rec.derLocal:
+                        return True
+                if rec.origSz[0]==trCannotMakeLocal:
+                        return trCannotMakeLocal
+                if rec.origSz[0]==trTimeOut or rec.origSz[0]==trOutOfMem:
+                        #here we don't know if it was timeout during localization or initial interpolant getting
+                        return None
+                return False
+                
 class FldGetter(object):
         def __init__(self,fldName):
                 self.fldName = fldName
@@ -354,14 +431,22 @@ def onInvalidBench(bench):
 
 benchs = []
 
+locProofPreproc = MergingPostprocessor(False,[None])
+
+clrFailRemover = DeletingPostprocessor([trCannotMakeLocal,trCannotColor])
+complYicesFailPostpr = MergingPostprocessor("Fail",[None,"mFail"])
+pproc = CompoundPostprocessor([clrFailRemover,complYicesFailPostpr])
+
+pproc({"a":1})
+
 observers = [
-        CountingObserver("local proof", FldGetter('derLocal')),
-        CountingObserver("size minimization", MinGate('Sz',True)),
-        CountingObserver("count minimization", MinGate('Cnt',True)),
-        CountingObserver("quantifier minimization", MinGate('Quant',True)),
-        CountingObserver("size minimization w. approx", MinGate('Sz',False)),
-        CountingObserver("count minimization w. approx", MinGate('Cnt',False)),
-        CountingObserver("quantifier minimization w. approx", MinGate('Quant',False)),
+        CountingObserver("local proof", LocGetter(), locProofPreproc),
+        CountingObserver("size minimization", MinGate('Sz',True), pproc),
+        CountingObserver("count minimization", MinGate('Cnt',True), pproc),
+        CountingObserver("quantifier minimization", MinGate('Quant',True), pproc),
+        CountingObserver("size minimization w. approx", MinGate('Sz',False), pproc),
+        CountingObserver("count minimization w. approx", MinGate('Cnt',False), pproc),
+        CountingObserver("quantifier minimization w. approx", MinGate('Quant',False), pproc),
         ComparingObserver("orig size", FldGetter('origSz')),
         ComparingObserver("min size", FldGetter('minSz')),
         ComparingObserver("orig cnt", FldGetter('origCnt')),
