@@ -300,10 +300,10 @@ class ComparingObserver(Observer):
                 
         def display(self):
                 print self.name
-                print "  red:       ", self.redBetter
-                print "  blue:      ", self.blueBetter
-                print "  same:      ", self.bothSame
-                print "  both fail: ", self.bothFail
+                print "red\t", self.redBetter
+                print "blue\t", self.blueBetter
+                print "same\t", self.bothSame
+                print "both fail\t", self.bothFail
 
 
 class FldGetter(object):
