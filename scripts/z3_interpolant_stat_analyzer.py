@@ -246,14 +246,8 @@ class MergingPostprocessor(object):
 class Observer(object):
         def __init__(self,name):
                 self.name = name
-        def observeRec(self,rec,red):
-                pass
-        def observeBench(self,bench):
-                pass
         def observe(self,bench):
-                self.observeRec(bench.redRec, True)
-                self.observeRec(bench.blueRec, False)
-                self.observeBench(bench)
+                pass
         def display(self):
                 print name, " <display not implemented>"
 
@@ -267,7 +261,7 @@ class CountingObserver(Observer):
                 self.betterCtr={}
                 self.allCtr={}
                 self.postproc=postproc
-        def observeBench(self,bench):
+        def observe(self,bench):
                 redVal = self.getter(bench.redRec)
                 blueVal = self.getter(bench.blueRec)
                 updateCounter(self.redCtr,redVal)
@@ -307,7 +301,7 @@ class ComparingObserver(Observer):
                 self.blueBetter=0
                 self.bothSame=0
                 self.bothFail={}
-        def observeBench(self,bench):
+        def observe(self,bench):
                 redVal = self.getter(bench.redRec)
                 blueVal = self.getter(bench.blueRec)
                 if isinstance(redVal,tuple):
@@ -340,34 +334,6 @@ class ComparingObserver(Observer):
                 print "blue\t", self.blueBetter
                 print "same\t", self.bothSame
                 print "both fail\t", self.bothFail
-
-class CMLObserver(Observer):
-        def __init__(self,name):
-                super(ComparingObserver,self).__init__(name)
-                self.red=0
-                self.blue=0
-                self.both=0
-                self.none=0
-        def observeBench(self,bench):
-                redVal = bench.redRec.origSz==trCannotMakeLocal
-                blueVal = bench.redRec.origSz==trCannotMakeLocal
-                
-                if redVal:
-                        if blueVal:
-                                self.both += 1
-                        else:
-                                self.red += 1
-                else:
-                        if blueVal:
-                                self.blue += 1
-                        else:
-                                self.none += 1
-        def display(self):
-                print self.name
-                print "red\t", self.red
-                print "blue\t", self.blue
-                print "both\t", self.both
-                print "none\t", self.none
 
 
 class LocGetter(object):
