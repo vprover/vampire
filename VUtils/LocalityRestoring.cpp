@@ -147,6 +147,10 @@ Color LocalityRestoring::getColor(Unit* u)
 }
 
 /**
+ * Add premisesToAdd among clause premises and transform existing premises by @c map.
+ * If allowedPremises is not null, make sure that all original premises are allowed after
+ * transformation and add the transformed unit among the allowed when all is done.
+ *
  * If new uni is created, also insert the translation into the map
  */
 Unit* LocalityRestoring::getUnitWithMappedInference(Unit* u, DHMap<Unit*,Unit*>& map, UnitList* premisesToAdd,
@@ -221,6 +225,9 @@ void LocalityRestoring::collectColoredTerms(Unit* u, TermStack& acc)
   }
 }
 
+/**
+ * Collect colored terms that occur in @c u but not in any of its premises.
+ */
 void LocalityRestoring::collectSCTerms(Unit* u, TermStack& acc)
 {
   CALL("LocalityRestoring::collectSCTerms");
@@ -254,6 +261,9 @@ void LocalityRestoring::collectSCTerms(Unit* u, TermStack& acc)
   }
 }
 
+/**
+ * Return tautology input clause that contains term @c trm.
+ */
 Unit* LocalityRestoring::makeNSCPremise(TermList trm)
 {
   CALL("LocalityRestoring::makeNSCPremise");
@@ -265,6 +275,10 @@ Unit* LocalityRestoring::makeNSCPremise(TermList trm)
   return res;
 }
 
+/**
+ * Based on content of @c _der (which contains topologically ordered derivation)
+ * build _nscDer where all units except inputs have only the colored terms of their parents.
+ */
 void LocalityRestoring::buildNSC()
 {
   CALL("LocalityRestoring::buildNSC");
@@ -303,13 +317,18 @@ void LocalityRestoring::buildNSC()
 
 struct LocalityRestoring::CompRecord
 {
+public:
+  //these members are populated from outside
+
   UnitStack fringe;
 
   /** In preprocessComponent() the stack gets sorted so that premises
    * go before their consequences */
   UnitStack members;
 
+public:
   //the below members are populated by preprocessing
+
   /** set of fringe and member units */
   DHSet<Unit*> involvedUnits;
 
@@ -349,7 +368,9 @@ struct LocalityRestoring::CompRecord
   }
 };
 
-
+/**
+ * Return true if u is local and conclusion of local inference
+ */
 bool LocalityRestoring::isLocal(Unit* u)
 {
   CALL("LocalityRestoring::isLocal");
