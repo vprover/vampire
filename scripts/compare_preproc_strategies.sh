@@ -29,14 +29,13 @@ S[10]="-equality_propagation on -predicate_index_introduction on -smtlib_flet_as
 S[11]="-equality_propagation on -predicate_index_introduction on -smtlib_flet_as_definition on -predicate_definition_merging on -aig_definition_introduction on -smtlib_introduce_aig_names off -flatten_top_level_conjunctions on -predicate_definition_inlining non_growing -aig_bdd_sweeping on -inequality_splitting 0 -aig_inliner on -trivial_predicate_removal on -predicate_equivalence_discovery on -predicate_equivalence_discovery_all_atoms on"
 S[12]="-equality_propagation on -predicate_index_introduction on -smtlib_flet_as_definition on -predicate_definition_merging on -aig_definition_introduction on -smtlib_introduce_aig_names off -flatten_top_level_conjunctions on -predicate_definition_inlining non_growing -aig_bdd_sweeping on -inequality_splitting 0 -aig_inliner on -trivial_predicate_removal on -predicate_equivalence_discovery on -predicate_equivalence_discovery_all_atoms on -predicate_equivalence_discovery_sat_conflict_limit 10"
 
-STRAT_IDXS="`eval echo {0..17}`"
+STRAT_IDXS="`eval echo {0..12}`"
 
 TMP_OUT=`mktemp -t ep_XXXXXX`
 
 function eval_strategy()
 {
-        #if ! (ulimit -St $TIME_LIMIT; $VUTIL_EXEC pe -input_syntax smtlib $* >$TMP_OUT); then
-        if ! (ulimit -St $TIME_LIMIT; echo $VUTIL_EXEC pe -input_syntax smtlib $* >$TMP_OUT); then
+        if ! (ulimit -St $TIME_LIMIT; $VUTIL_EXEC pe -input_syntax smtlib $* >$TMP_OUT); then
                 if [ $? -eq 130 ]; then
                         echo interrupted
                         exit 130

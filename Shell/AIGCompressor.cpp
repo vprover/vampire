@@ -435,6 +435,32 @@ AIGRef AIGCompressor::compress(AIGRef aig)
   return compressByBDD(aig);
 }
 
+bool AIGCompressor::tryCompareAIGGoodness(AIGWithSize a1, AIGWithSize a2, Comparison& res)
+{
+  CALL("AIGCompressor::compareAIGGoodness");
+
+  if(a1.first==a2.first) {
+    ASS_EQ(a1.second, a2.second);
+    res = EQUAL;
+    return true;
+  }
+  AIG::VarSet* fv1 = a1.first.getFreeVars();
+  AIG::VarSet* fv2 = a2.first.getFreeVars();
+  if(fv1==fv2) {
+    res = Int::compare(a2.second, a1.second);
+    return true;
+  }
+  if(fv1->isSubsetOf(fv2)) {
+    res = GREATER;
+    return true;
+  }
+  else if(fv2->isSubsetOf(fv1)) {
+    res = LESS;
+    return true;
+  }
+  return false;
+}
+
 /**
  * The idea is that even if converting BDD back to AIG doesn't
  * give a nicer AIG, we may use it to discover logical equivalence
@@ -457,29 +483,61 @@ bool AIGCompressor::doHistoryLookUp(AIGRef aig, unsigned aigSz, BDDNode* bdd, AI
 {
   CALL("AIGCompressor::doHistoryLookUp");
 
+  AIGWithSize curr(aig,aigSz);
+
   AIGWithSize* lookupEntry;
   if(_lookUp.getValuePtr(bdd, lookupEntry)) {
-    lookupEntry->first = aig;
-    lookupEntry->second = aigSz;
+    *lookupEntry = curr;
     return false;
   }
   if(aig==lookupEntry->first) {
     return false;
   }
-  tgt = lookupEntry->first;
-  LOG("pp_aig_compr_lookup_hit", "bdd look-up hit:"<<endl
-	  <<"  src: "<<lookupEntry->first<<endl
-	  <<"  tgt: "<<aig);
-  if(aigSz<lookupEntry->second) {
-    AIGWithSize* improvementEntry;
-    if(_lookUpImprovement.getValuePtr(bdd, improvementEntry) || improvementEntry->second>aigSz) {
-      improvementEntry->first = aig;
-      improvementEntry->second = aigSz;
+
+  Comparison atCmpResult;
+  bool atComparable = tryCompareAIGGoodness(curr, *lookupEntry, atCmpResult);
+
+  if(!atComparable) {
+    AIGWithSize impr;
+    if(!_lookUpImprovement.find(bdd, impr)) {
+      return false;
+    }
+    Comparison aiCmpResult;
+    bool aiComparable = tryCompareAIGGoodness(curr, impr, aiCmpResult);
+    if(!aiComparable) {
+      return false;
+    }
+    if(aiCmpResult==LESS) {
+      _lookUpImprovement.set(bdd, curr);
       LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
 	  <<"  src: "<<lookupEntry->first<<endl
 	  <<"  tgt: "<<aig);
     }
   }
+  else if(atCmpResult==LESS) {
+    AIGWithSize* improvementEntry;
+    if(_lookUpImprovement.getValuePtr(bdd, improvementEntry)) {
+      *improvementEntry = curr;
+      LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
+	<<"  src: "<<lookupEntry->first<<endl
+	<<"  tgt: "<<aig);
+    }
+    else {
+      Comparison aiCmpResult;
+      ALWAYS(tryCompareAIGGoodness(curr, *improvementEntry, aiCmpResult));
+      if(aiCmpResult==LESS) {
+	*improvementEntry = curr;
+	LOG("pp_aig_compr_lookup_improvement", "bdd look-up improvement:"<<endl
+	  <<"  src: "<<lookupEntry->first<<endl
+	  <<"  tgt: "<<aig);
+      }
+    }
+  }
+
+  tgt = lookupEntry->first;
+  LOG("pp_aig_compr_lookup_hit", "bdd look-up hit:"<<endl
+	  <<"  src: "<<lookupEntry->first<<endl
+	  <<"  tgt: "<<aig);
 
   if(!_lookUpNeedsImprovement) {
     _lookUpNeedsImprovement = _lookUpImprovement.find(bdd);
@@ -550,6 +608,7 @@ void AIGCompressor::doLookUpImprovement(AIGTransformer::RefMap& mapToFix)
       LOG("pp_aig_compr_lookup_map_improvement", "bdd look-up improvement in map:"<<endl
 	  <<"  src: "<<val<<endl
 	  <<"  tgt: "<<tgt);
+      ASS(tgt.getFreeVars()->isSubsetOf(val.getFreeVars()));
       mtfRwrIt.setValue(tgt);
     }
   }
@@ -696,18 +755,7 @@ void AIGCompressor::populateBDDCompressingMap(AIGInsideOutPosIterator& aigIt, AI
       if(ref) {
 	bool usedLookUp;
 	AIGRef lcTgt;
-	if(localCompressByBDD(tgt, lcTgt, true, usedLookUp) && usedLookUp) {
-	  //we need to check that the look-up didn't add any new atoms
-	  USharedSet* lcTgtRef;
-	  if(refAtoms.find(lcTgt, lcTgtRef)) {
-	    if(ref->getIntersection(lcTgtRef)==lcTgtRef) {
-	      tgt = lcTgt;
-	    }
-	  }
-	}
-	else {
-	  tgt = lcTgt;
-	}
+	localCompressByBDD(tgt, tgt, true, usedLookUp);
       }
     }
     if(a!=tgt) {

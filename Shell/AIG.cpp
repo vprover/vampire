@@ -14,9 +14,11 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "PDInliner.hpp"
 #include "PDUtils.hpp"
@@ -131,21 +133,50 @@ public:
     _qPar = par;
   }
 
+  VarSet* getFreeVars() {
+    return _freeVars;
+  }
+
   /** Can be called after parents are set for nodes that have parents */
   void setFreeVars()
   {
     CALL("AIG::Node::setFreeVars");
+
+    VarSet* vars;
     switch(_kind) {
-    case ATOM:
     case TRUE_CONST:
+      vars = VarSet::getEmpty();
+      break;
+    case ATOM:
+      vars = getAtomFreeVars(literal());
+      break;
     case CONJ:
+      vars = parent(0).getFreeVars()->getUnion(parent(1).getFreeVars());
+      break;
     case QUANT:
-      //TODO:implement!!
-      NOT_IMPLEMENTED;
+      vars = qParent().getFreeVars()->subtract(qVars());
       break;
     }
+    _freeVars = vars;
   }
 };
+
+AIG::VarSet* AIG::getAtomFreeVars(Literal* lit)
+{
+  CALL("AIG::getAtomFreeVars");
+
+  if(lit->shared()) {
+    if(lit->ground()) {
+      return VarSet::getEmpty();
+    }
+    VariableIterator vit;
+    vit.reset(lit);
+    return VarSet::getFromIterator(getMappingIterator<VariableIterator&>(vit, OrdVarNumberExtractorFn()));
+  }
+
+  FormulaVarIterator fvit(lit);
+  return VarSet::getFromIterator(fvit);
+}
 
 unsigned AIG::NodeHash::hash(Node* n)
 {
@@ -239,6 +270,12 @@ AIG::VarSet* AIG::Ref::getQuantifierVars() const
   CALL("AIG::Ref::getQuantifierVars");
   ASS(isQuantifier());
   return node()->qVars();
+}
+
+AIG::VarSet* AIG::Ref::getFreeVars() const
+{
+  CALL("AIG::Ref::getFreeVars");
+  return node()->getFreeVars();
 }
 
 unsigned AIG::Ref::nodeIndex() const
@@ -400,6 +437,7 @@ AIG::AIG() : _simplLevel(3), _nextNodeIdx(0), _conjReserve(0), _quantReserve(0)
   CALL("AIG::AIG");
   _trueNode = new Node(Node::TRUE_CONST);
   _trueNode->setNodeIdx(_nextNodeIdx++);
+  _trueNode->setFreeVars();
   _orderedNodeRefs.push(Ref(_trueNode, true));
 }
 
@@ -434,6 +472,7 @@ AIG::Node* AIG::atomNode(Literal* positiveLiteral)
   }
   res = new Node(positiveLiteral);
   res->setNodeIdx(_nextNodeIdx++);
+  res->setFreeVars();
   _atomNodes.insert(positiveLiteral, res);
   _orderedNodeRefs.push(Ref(res, true));
   return res;
@@ -460,6 +499,7 @@ AIG::Node* AIG::conjNode(Ref par1, Ref par2)
     //we have used the reserve
     _conjReserve = 0;
     res->setNodeIdx(_nextNodeIdx++);
+    res->setFreeVars();
     _orderedNodeRefs.push(Ref(res, true));
   }
   return res;
@@ -480,6 +520,7 @@ AIG::Node* AIG::univQuantNode(VarSet* vars, Ref par)
     //we have used the reserve
     _quantReserve = 0;
     res->setNodeIdx(_nextNodeIdx++);
+    res->setFreeVars();
     _orderedNodeRefs.push(Ref(res, true));
   }
   return res;
@@ -534,11 +575,17 @@ AIG::Ref AIG::getQuant(bool exQuant, Formula::VarList* vars, Ref par)
   return getQuant(exQuant, vs, par);
 }
 
-AIG::Ref AIG::getQuant(bool exQuant, VarSet* vars, Ref par)
+AIG::Ref AIG::getQuant(bool exQuant, VarSet* vars0, Ref par)
 {
   CALL("AIG::getQuant(bool,VarSet*,Ref)");
 
-  if(!vars) { return par; }
+  VarSet* vars = vars0->getIntersection(par.getFreeVars());
+  COND_LOG("pp_quant_simpl", vars!=vars0, "quentifier simplified:"<<endl
+      <<"  vars0: "<<vars0->toString()<<endl
+      <<"  vars: "<<vars->toString()<<endl
+      <<"  par: "<<par);
+
+  if(vars->isEmpty()) { return par; }
   if(par.isPropConst()) { return par; }
 
   if(exQuant) {

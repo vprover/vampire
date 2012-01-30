@@ -395,6 +395,9 @@ void Logging::doTagDeclarations()
   DECL("pp_aig",
       DOC("aig sub-formula sharing"),
       PARENT("pp",1));
+  DECL("pp_quant_simpl",
+      DOC("quantifiers simplified by AIGs"),
+      PARENT("pp_aig",1));
   DECL("pp_aig_transf",
       DOC("formulas transformed by aig sharing"),
       PARENT("pp_aig",0));

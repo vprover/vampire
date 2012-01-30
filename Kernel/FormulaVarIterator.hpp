@@ -25,7 +25,7 @@ namespace Kernel {
  * Implements an iterator over free variables of a
  * formula formula list, or atom.
  *
- * Formula must not contain any let or term ite expressions.
+ * Formula may contain any let and ite expressions.
  *
  * @since 06/01/2004, Manchester
  * @since 02/09/2009 Redmond, reimplemented to work with non-rectified
@@ -35,6 +35,7 @@ class FormulaVarIterator
 {
 public:
   explicit FormulaVarIterator(const Formula*);
+  explicit FormulaVarIterator(const Literal*);
   bool hasNext();
   int next();
 

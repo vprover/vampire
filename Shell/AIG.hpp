@@ -18,7 +18,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 
-#define DEBUG_AIG_REF_MEMORY 0
+#define DEBUG_AIG_REF_MEMORY 1
 
 namespace Shell {
 
@@ -79,6 +79,8 @@ public:
 
     Literal* getPositiveAtom() const;
     VarSet* getQuantifierVars() const;
+
+    VarSet* getFreeVars() const;
 
     bool polarity() const {
       CALL("AIG::Ref::node()");
@@ -164,6 +166,8 @@ private:
   Node* univQuantNode(VarSet* vars, Ref par);
 
   void normalizeRefOrder(Ref& par1, Ref& par2);
+
+  static VarSet* getAtomFreeVars(Literal* lit);
 
   //simplifications according to
   //Brummayer, R., Biere, A.: Local Two-Level And-Inverter Graph Minimization without Blowup
