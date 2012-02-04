@@ -1,0 +1,55 @@
+#!/bin/bash
+
+function rep_usage_error() {
+	echo "Error: $*" 1>&2
+	exit 1
+}
+
+
+BASE_DIR=`dirname $0`
+
+INP=""
+MODE=""
+function parse_args() {
+	case "$1" in
+	--mode | -m)
+		case "$2" in
+		tptp | smt_z3_range | smt_z3_multiform | smt_vampire_multiform)
+			MODE="$2"
+			;;
+		*)
+			rep_usage_error "Invalid mode: $2"
+			;;
+		esac
+		shift 2
+		;;
+	--z3)
+		Z3_EXEC="$2"
+		shift 2
+		;;
+	--vutil)
+		VUTIL_EXEC="$2"
+		shift 2
+		;;
+	*)
+		if [ "$INP" = "" ]; then
+			INP=$1
+		else
+			rep_usage_error "multiple inputs specified: $INP, $1"
+		fi
+		shift 1
+	esac
+}
+
+
+parse_args $*
+
+if [ "$VUTIL_EXEC" = "" ]; then 
+	VUTIL_EXEC="$BASE_DIR/vutil"
+fi
+
+if [ ! -f "$VUTIL_EXEC" ]; then 
+	rep_usage_error "vutil exacutable not found: $VUTIL_EXEC"
+fi
+
+echo "not implemented yet"
