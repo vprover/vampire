@@ -25,20 +25,32 @@
 
 using namespace Shell;
 
-bool Rectify::Renaming::bound (int var,int& boundTo) const
+bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const
 {
-  CALL("Rectify::Renaming::bound");
+  CALL("Rectify::Renaming::tryGetBoundAndMarkUsed");
 
   if ((unsigned)var >= _capacity) {
     return false;
   }
-  VarList* vs = _array[var];
+  VarUsageTrackingList* vs = _array[var];
   if (vs->isEmpty()) {
     return false;
   }
-  boundTo = vs->head();
+  boundTo = vs->head().first;
+  vs->headPtr()->second = true;
   return true;
 } // Rectify::bound
+
+Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(int var) const
+{
+  CALL("Rectify::Renaming::getBoundAndUsage");
+
+  ASS_L((unsigned)var,_capacity);
+
+  VarUsageTrackingList* vs = _array[var];
+  ASS(!vs->isEmpty());
+  return vs->head();
+}
 
 /**
  * Rectify the formula from this unit. If the input type of this unit
@@ -267,7 +279,7 @@ unsigned Rectify::rectifyVar(unsigned v)
   CALL("Rectify::rectifyVar");
 
   int newV;
-  if (! _renaming.bound(v,newV)) {
+  if (! _renaming.tryGetBoundAndMarkUsed(v,newV)) {
     newV = _renaming.bind(v);
     _free = new VarList(newV,_free);
   }
@@ -300,21 +312,11 @@ void Rectify::rectifyTermLet(TermList& lhs, TermList& rhs)
   VarList::pushFromIterator(getMappingIterator(
 	getUniquePersistentIteratorFromPtr(&vit), OrdVarNumberExtractorFn()), vs);
   //we don't need the resultof variable rectification, we just needed to do the binding
-  VarList* vs1 = rectify(vs);
+  bindVars(vs);
   lhs = rectify(lhs);
   rhs = rectify(rhs);
-  ASS_EQ(vs->length(), vs1->length()); //the equal length is needed by our list-destroying code
-  while(vs) {
-    //the lists vs and vs1 start sharing the same links at some point, so
-    //it gets a little tricky to free all elements
-    if(vs1 && vs!=vs1) {
-      VarList::pop(vs1);
-    }
-    else {
-      vs1 = 0;
-    }
-    _renaming.undoBinding(VarList::pop(vs));
-  }
+  unbindVars(vs);
+  vs->destroy();
 }
 
 void Rectify::rectifyFormulaLet(Literal*& lhs, Formula*& rhs)
@@ -328,21 +330,11 @@ void Rectify::rectifyFormulaLet(Literal*& lhs, Formula*& rhs)
   VarList::pushFromIterator(getMappingIterator(
 	getUniquePersistentIteratorFromPtr(&vit), OrdVarNumberExtractorFn()), vs);
   //we don't need the resultof variable rectification, we just needed to do the binding
-  VarList* vs1 = rectify(vs);
+  bindVars(vs);
   lhs = rectify(lhs);
   rhs = rectify(rhs);
-  ASS_EQ(vs->length(), vs1->length()); //the equal length is needed by our list-destroying code
-  while(vs) {
-    //the lists vs and vs1 start sharing the same links at some point, so
-    //it gets a little tricky to free all elements
-    if(vs1 && vs!=vs1) {
-      VarList::pop(vs1);
-    }
-    else {
-      vs1 = 0;
-    }
-    _renaming.undoBinding(VarList::pop(vs));
-  }
+  unbindVars(vs);
+  vs->destroy();
 }
 
 
@@ -403,12 +395,10 @@ Formula* Rectify::rectify (Formula* f)
   case FORALL: 
   case EXISTS:
   {
-    VarList* vs = rectify(f->vars());
+    bindVars(f->vars());
     Formula* arg = rectify(f->qarg());
-    VarList::Iterator ws(f->vars());
-    while (ws.hasNext()) {
-      _renaming.undoBinding(ws.next());
-    }
+    VarList* vs = rectifyBoundVars(f->vars());
+    unbindVars(f->vars());
     if (vs == f->vars() && arg == f->qarg()) {
       return f;
     }
@@ -472,11 +462,7 @@ void Rectify::Renaming::undoBinding (int var)
   ASS(var < (int)_capacity);
   ASS(var >= 0);
 
-  VarList* lst = _array[var];
-  ASS(lst);
-  _array[var] = lst->tail();
-
-  delete lst;
+  VarUsageTrackingList::pop(_array[var]);
 } // Rectify::Renaming::undoBinding
 
 /**
@@ -504,34 +490,62 @@ int Rectify::Renaming::bind (int var)
   else {
     result = _nextVar++;
   }
-  VarList* lstu = get(var);
-  (*this)[var] = new VarList(result,lstu);
+  VarUsageTrackingList::push(make_pair(result,false), get(var));
 
   return result;
 } // Rectify::Renaming::bind
+
+
+/**
+ * Add fresh bindings to a list of variables
+ */
+void Rectify::bindVars(VarList* vs)
+{
+  CALL ("Rectify::bindVars (VarList*)");
+
+  VarList::Iterator vit(vs);
+  while(vit.hasNext()) {
+    int v = vit.next();
+    _renaming.bind(v);
+  }
+}
+
+/**
+ * Undo bindings to variables of a list
+ */
+void Rectify::unbindVars(VarList* vs)
+{
+  CALL ("Rectify::unbindVars (VarList*)");
+
+  VarList::Iterator vit(vs);
+  while(vit.hasNext()) {
+    int v = vit.next();
+    _renaming.undoBinding(v);
+  }
+}
 
 /**
  * Rectify a list of variables.
  *
  * @param vs the list to rectify
- *
- * @since 05/09/2002 Trento, changed from a function on formulas
- * @since 02/01/2004 Manchester, slightly changed again
- * @since 16/01/2004 Manchester, changed to use bound variables
- * @since 23/01/2004 Manchester, changed to use non-static objects
- * @since 08/06/2007 Manchester, changed to use new data structures
  */
-Rectify::VarList* Rectify::rectify (VarList* vs)
+Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs)
 {
-  CALL ("Rectify::rectify (VarList*)");
+  CALL ("Rectify::rectifyBoundVars(VarList*)");
 
   if (vs->isEmpty()) {
     return vs;
   }
-  int v = vs->head();
-  int w = _renaming.bind(v);
   VarList* vtail = vs->tail();
-  VarList* ws = rectify(vtail);
+  VarList* ws = rectifyBoundVars(vtail);
+
+  int v = vs->head();
+  int w;
+  VarWithUsageInfo wWithUsg = _renaming.getBoundAndUsage(v);
+  if(!wWithUsg.second) {
+    return ws;
+  }
+  w = wWithUsg.first;
   if (v == w && vtail == ws) {
     return vs;
   }

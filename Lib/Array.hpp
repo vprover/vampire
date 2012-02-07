@@ -99,7 +99,7 @@ public:
    * Return the n-th element of the array. Expand if necessary.
    * @since 23/03/2007 Manchester
    */
-  inline C get(size_t n)
+  inline C& get(size_t n)
   {
     if (n >= _capacity) {
       expandToFit(n);

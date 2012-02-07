@@ -40,19 +40,22 @@ public:
   static void rectify(UnitList*& units);
 private:
   typedef List<int> VarList;
+  typedef pair<int,bool> VarWithUsageInfo;
+  typedef List<VarWithUsageInfo> VarUsageTrackingList;
   /** Renaming stores bindings for free and bound variables */
   class Renaming
-    : public Array<List<int>*>
+    : public Array<VarUsageTrackingList*>
   {
   public:
     Renaming()
-      : Array<List<int>*>(15),
+      : Array<VarUsageTrackingList*>(15),
 	_nextVar(0), _used(0)
     {
       fillInterval(0,15);
     }
     ~Renaming();
-    bool bound (int var,int& boundTo) const;
+    bool tryGetBoundAndMarkUsed (int var,int& boundTo) const;
+    VarWithUsageInfo getBoundAndUsage(int var) const;
     int bind (int v);
     void undoBinding(int v);
   private:
@@ -74,7 +77,9 @@ private:
 
   Formula* rectify(Formula*);
   FormulaList* rectify(FormulaList*);
-  VarList* rectify(VarList*);
+  void bindVars(VarList*);
+  void unbindVars(VarList*);
+  VarList* rectifyBoundVars(VarList*);
   TermList rectify(TermList);
   Term* rectify(Term*);
   Literal* rectify(Literal*);
