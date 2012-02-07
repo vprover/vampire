@@ -89,7 +89,7 @@ public:
    */
   struct ILStruct
   {
-    ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack);
+    ILStruct(Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack);
     ~ILStruct();
     void putIntoSequence(ILStruct* previous_);
 
@@ -104,6 +104,10 @@ public:
 
     unsigned depth;
     ILStruct* previous;
+
+    unsigned isVarEqLit:1;
+    unsigned varEqLitSort:31;
+
     unsigned varCnt;
     unsigned* globalVarNumbers;
 
@@ -468,6 +472,7 @@ public:
     BindingArray bindings;
 
   protected:
+    /** the matcher object is initialized but no execution of code was done yet */
     bool _fresh;
     bool _matched;
 

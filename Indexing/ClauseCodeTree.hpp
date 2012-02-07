@@ -114,6 +114,16 @@ public:
     static const unsigned sresNoLiteral=static_cast<unsigned>(-1);
     unsigned sresLiteral;
 
+    /**
+     * Literal infos that we will attempt to match
+     * For each equality we add two lit infos, once with reversed arguments.
+     * The order of infos is:
+     *
+     * Ground literals
+     * Non-ground literals
+     * [if sres] Ground literals negated
+     * [if sres] Non-ground literals negated
+     */
     DArray<LitInfo> lInfos;
 
     Stack<LiteralMatcher*> lms;

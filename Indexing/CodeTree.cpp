@@ -125,7 +125,7 @@ void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList
 }
 
 
-CodeTree::ILStruct::ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack)
+CodeTree::ILStruct::ILStruct(Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack)
 : varCnt(varCnt), sortedGlobalVarNumbers(0), globalVarPermutation(0), timestamp(0)
 {
   ASS_EQ(matches.size(), 0); //we don't want any uninitialized pointers in the array
@@ -138,6 +138,13 @@ CodeTree::ILStruct::ILStruct(unsigned varCnt, Stack<unsigned>& gvnStack)
   }
   else {
     globalVarNumbers=0;
+  }
+  if(lit->isTwoVarEquality()) {
+    isVarEqLit = 1;
+    varEqLitSort = lit->twoVarEqSort();
+  }
+  else {
+    isVarEqLit = 0;
   }
 }
 
@@ -219,6 +226,15 @@ bool CodeTree::ILStruct::equalsForOpMatching(const ILStruct& o) const
 {
   CALL("CodeTree::ILStruct::equalsForOpMatching");
 
+  //LIT_END is always at the end of the term and we ask for op matching only
+  //if the prefixes were equal. In this case the number of variables and the fact
+  //the literal is an equality between variables should be the same on both literals.
+  ASS_EQ(varCnt,o.varCnt);
+  ASS_EQ(isVarEqLit,o.isVarEqLit);
+
+  if(isVarEqLit!=o.isVarEqLit || (isVarEqLit && varEqLitSort!=o.varEqLitSort)) {
+    return false;
+  }
   if(varCnt!=o.varCnt) {
     return false;
   }
@@ -258,6 +274,14 @@ void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArr
   matchCnt++;
 }
 
+/**
+ * Remove match from the set of matches. It puts the last match in
+ * the place of the curent match. Therefore one should not rely on the
+ * order of matches (at least those of index greater than matchIndex)
+ * between calls to this function. When one traverses all the matches
+ * to filter them by this function, the traversal should go from higher
+ * indexes down to zero.
+ */
 void CodeTree::ILStruct::deleteMatch(unsigned matchIndex)
 {
   CALL("CodeTree::ILStruct::deleteMatch");
@@ -738,7 +762,7 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
     ASS(trm->isLiteral());  //LIT_END operation makes sense only for literals
     unsigned varCnt=cctx.nextVarNum;
     ASS_EQ(varCnt, globalCounterparts.size());
-    ILStruct* ils=new ILStruct(varCnt, globalCounterparts);
+    ILStruct* ils=new ILStruct(static_cast<Literal*>(trm), varCnt, globalCounterparts);
     code.push(CodeOp::getLitEnd(ils));
   }
 
@@ -1426,6 +1450,13 @@ bool CodeTree::Matcher::execute()
   }
 }
 
+/**
+ * Is called when we need to retrieve a new result.
+ * It does not only backtrack to the next alternative to try,
+ * but if there are no more alternatives, it goes back to the
+ * entry point and starts evaluating new literal info (if there
+ * is some left).
+ */
 bool CodeTree::Matcher::backtrack()
 {
   if(btStack.isEmpty()) {

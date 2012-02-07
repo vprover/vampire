@@ -16,6 +16,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FlatTerm.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -327,6 +328,10 @@ bool ClauseCodeTree::removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeO
 
 ////////// LiteralMatcher
 
+/**
+ * @param seekOnlySuccess if true, we will look only for immediate SUCCESS operations
+ * 	and fail if there isn't any at the beginning (possibly also among alternatives).
+ */
 void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
 	LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess)
 {
@@ -467,6 +472,8 @@ void ClauseCodeTree::LiteralMatcher::recordMatch()
 /**
  * Initialize the ClauseMatcher to retrieve generalizetions
  * of the @b query_ clause
+ *
+ * @param sres if true, we perform subsumption resolution
  */
 void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, bool sres_)
 {
@@ -568,8 +575,10 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
   for(;;) {
     LiteralMatcher* lm=lms.top();
 
+    //get next literal from the literal matcher
     bool found=lm->next();
 
+    //if there's none, go one level up (or fail if at the top)
     if(!found) {
       leaveLiteral();
       if(lms.isEmpty()) {
@@ -619,6 +628,25 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
     return false;
   }
 
+  if(ils->isVarEqLit) {
+    unsigned idxVarSort = ils->varEqLitSort;
+    size_t matchIndex=ils->matchCnt;
+    while(matchIndex!=0) {
+      matchIndex--;
+      MatchInfo* mi=ils->getMatch(matchIndex);
+      unsigned liIntex = mi->liIndex;
+      Literal* lit = (*query)[lInfos[liIntex].litIndex];
+      ASS(lit->isEquality());
+      unsigned argSort = SortHelper::getEqualityArgumentSort(lit);
+      if(idxVarSort!=argSort) {
+	ils->deleteMatch(matchIndex); //decreases ils->matchCnt
+      }
+    }
+    if(!ils->matchCnt) {
+      return false;
+    }
+  }
+
   if(lms.size()>1) {
     //we have already matched and entered some index literals, so we
     //will check for compatibility of variable assignments
@@ -650,6 +678,13 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
   return true;
 }
 
+/**
+ * Enter literal matching starting at @c entry.
+ *
+ * @params seekOnlySuccess if true, accept only SUCCESS operations
+ * 	(this is to be used when all literals are matched so we want
+ * 	to see just clauses that end at this point).
+ */
 void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuccess)
 {
   CALL("ClauseCodeTree::ClauseMatcher::enterLiteral");

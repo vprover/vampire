@@ -369,7 +369,9 @@ public:
   /**
    * Return true iff the object is an equality between two variables.
    *
-   * This value is set during insertion into the term sharing structure
+   * This value is set during insertion into the term sharing structure or
+   * for terms with special subterms during construction.
+   * (I.e. can be used basically anywhere).
    */
   bool isTwoVarEquality() const
   {
