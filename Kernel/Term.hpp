@@ -127,6 +127,8 @@ public:
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
   static bool allShared(TermList* args);
+  /** if not var, the inner term must be shared */
+  unsigned weigth() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
 

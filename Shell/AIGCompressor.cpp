@@ -435,6 +435,14 @@ AIGRef AIGCompressor::compress(AIGRef aig)
   return compressByBDD(aig);
 }
 
+/**
+ * One AIG cannot be better than the other if it hos more colors or more free variables.
+ *
+ * Otherwise, if the colors or free variables of one aig are a strict subset of the other,
+ * it is better.
+ *
+ * Otherwise, the smaller AIG is better.
+ */
 bool AIGCompressor::tryCompareAIGGoodness(AIGWithSize a1, AIGWithSize a2, Comparison& res)
 {
   CALL("AIGCompressor::compareAIGGoodness");
@@ -444,17 +452,45 @@ bool AIGCompressor::tryCompareAIGGoodness(AIGWithSize a1, AIGWithSize a2, Compar
     res = EQUAL;
     return true;
   }
+  bool canBeGreater = true;
+  bool canBeLess = true;
+  Color clr1 = a1.first.getColor();
+  Color clr2 = a2.first.getColor();
+  if(clr1!=clr2) {
+    if(clr1==COLOR_TRANSPARENT || clr2==COLOR_INVALID) {
+      canBeLess = false;
+    }
+    else if(clr2==COLOR_TRANSPARENT || clr1==COLOR_INVALID) {
+      canBeGreater = false;
+    }
+    else {
+      ASS(clr1==COLOR_LEFT || clr1==COLOR_RIGHT);
+      ASS(clr2==COLOR_LEFT || clr2==COLOR_RIGHT);
+      return false;
+    }
+  }
   AIG::VarSet* fv1 = a1.first.getFreeVars();
   AIG::VarSet* fv2 = a2.first.getFreeVars();
   if(fv1==fv2) {
-    res = Int::compare(a2.second, a1.second);
+    if(!canBeGreater) {
+      ASS(canBeLess);
+      res = LESS;
+    }
+    else if(!canBeLess) {
+      res = GREATER;
+    }
+    else {
+      res = Int::compare(a2.second, a1.second);
+    }
     return true;
   }
   if(fv1->isSubsetOf(fv2)) {
+    if(!canBeGreater) { return false; }
     res = GREATER;
     return true;
   }
   else if(fv2->isSubsetOf(fv1)) {
+    if(!canBeLess) { return false; }
     res = LESS;
     return true;
   }

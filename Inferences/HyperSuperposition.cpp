@@ -451,6 +451,8 @@ void HyperSuperposition::perform(Clause* cl, ForwardSimplificationPerformer* sim
   while(res.isNonEmpty()) {
     ClausePair rcl = res.pop();
     if(simplPerformer->willPerform(rcl.first)) {
+//      LOGV("bug",(*rcl.first));
+//      LOGV("bug",(*rcl.second));
       simplPerformer->perform(rcl.first, rcl.second);
       return;
     }

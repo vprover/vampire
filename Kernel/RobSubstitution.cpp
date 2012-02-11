@@ -655,8 +655,6 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
   static DHMap<VarSpec, size_t, VarSpec::Hash1, VarSpec::Hash2> known;
   known.reset();
 
-  size_t res = 0;
-
   //is inserted into termRefVars, if respective
   //term in terms isn't referenced by any variable
   const VarSpec nilVS(-1,0);
@@ -674,7 +672,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
       //second topmost element as &top()-1, third at
       //&top()-2, etc...
       size_t* szArr=&argSizes.top() - (orig->arity()-1);
-      size_t sz = 0;
+      size_t sz = 1; //1 for the function symbol
       for(unsigned i=0; i<arity; i++) {
 	sz += szArr[i];
       }
@@ -741,13 +739,12 @@ size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) cons
   }
 
   size_t res = 1; //the predicate symbol weight
-  int arity = lit->arity();
-  int i = 0;
   for (TermList* args = lit->args(); ! args->isEmpty(); args = args->next()) {
-    res += getApplicationResultWeight(*args,index);
+    size_t argWeight = getApplicationResultWeight(*args,index);
+    res += argWeight;
   }
 #if VDEBUG && DEBUG_RESULT_WEIGHT_COMPUTATION
-  ASS_EQ(apply(lit, index)->weight(), res);
+  ASS_REP2(apply(lit, index)->weight()==res, res, lit->toString()+"   "+apply(lit, index)->toString());
 #endif
   return res;
 }

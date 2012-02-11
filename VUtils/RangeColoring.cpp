@@ -29,7 +29,7 @@ public:
   ColoringTermTransformer(TermColoring& parent) : _parent(parent) {}
 
 protected:
-  virtual TermList transform(TermList trm)
+  virtual TermList transformSubterm(TermList trm)
   {
     return _parent.applyToTerm(trm);
   }

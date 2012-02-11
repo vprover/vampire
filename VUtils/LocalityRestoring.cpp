@@ -587,7 +587,7 @@ public:
     _introducedVars = 0;
   }
 
-  virtual TermList transform(TermList trm)
+  virtual TermList transformSubterm(TermList trm)
   {
     CALL("LocalityRestoring::QuantifyingTermTransformer::transform");
 

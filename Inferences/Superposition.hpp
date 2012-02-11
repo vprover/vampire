@@ -37,12 +37,8 @@ private:
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static int getWeightLimit(Clause* eqClause, Clause* rwClause, Limits* limits);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
-      Clause* rwClause, Literal* rwLit, TermList eqLHS, TermList eqRHS, int weightLimit,
-      int& nonInvolvedLiteralWLB);
-  static bool checkWeightLimitAfterSubst(int nonInvolvedLiteralWLB, Literal* rwLit,
-      TermList rwTerm, TermList eqLHSSubst, TermList eqRHSSubst, int weightLimit);
-  static bool checkWeightLimitAfterRWSubst(int nonInvolvedLiteralWLB, Literal* rwLitS,
-      TermList eqLHSSubst, TermList eqRHSSubst, int weightLimit);
+      Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
+      ResultSubstitutionSP subst, bool eqIsResult, int weightLimit);
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 

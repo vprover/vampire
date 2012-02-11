@@ -1,55 +1,199 @@
 #!/bin/bash
 
+SELF_NAME=$0
+
 function rep_usage_error() {
 	echo "Error: $*" 1>&2
+	echo
+	echo "Usage:"
+	echo "$SELF_NAME [options] {--mode|-m} mode_name mode_arguments ..."
+	cat <<EOM
+Options:
+	--z3 file
+	--vutil file
+	--vampire file
+		specify path to a particular executable. The default value assumes
+		these executables to be in the current directory
+	--time_limit seconds
+		time limit for the whole process
+Modes:
+	tptp_vampire
+	smt_z3_range
+	smt_z3_multiform
+	smt_vampire_multiform
+		mode expects arguments
+		left_formula_count formula_file1 formula_file2 ...
+EOM
 	exit 1
 }
 
+function ensure_exec_presence() {
+	#usage: <var name> <default file name>
+
+	local VAR_NAME=$1
+	local DEF=$2
+	eval local CUR_VAL=\$$VAR_NAME
+
+	if [ "$CUR_VAL" = "" ]; then 
+		CUR_VAL="$BASE_DIR/$DEF"
+		eval $VAR_NAME="\"$CUR_VAL\""
+	fi
+	
+	if [ ! -f "$CUR_VAL" ]; then 
+		rep_usage_error "$DEF exacutable not found: $CUR_VAL"
+	fi
+}
 
 BASE_DIR=`dirname $0`
 
 INP=""
 MODE=""
+TIME_LIMIT=60
 function parse_args() {
-	case "$1" in
-	--mode | -m)
-		case "$2" in
-		tptp | smt_z3_range | smt_z3_multiform | smt_vampire_multiform)
-			MODE="$2"
+	
+	while [ "$#" -ne 0 ]; do
+		case "$1" in
+		--mode | -m)
+			case "$2" in
+			tptp_vampire | smt_z3_range | smt_z3_multiform | smt_vampire_multiform)
+				MODE="$2"
+				;;
+			*)
+				rep_usage_error "Invalid mode: $2"
+				;;
+			esac
+			shift 2
+			;;
+		--z3)
+			Z3_EXEC="$2"
+			shift 2
+			;;
+		--vutil)
+			VUTIL_EXEC="$2"
+			shift 2
+			;;
+		--vampire)
+			VAMPIRE_EXEC="$2"
+			shift 2
+			;;
+		--time_limit | -t)
+			TIME_LIMIT="$2"
+			shift 2
 			;;
 		*)
-			rep_usage_error "Invalid mode: $2"
-			;;
+			INP="$INP $1"
+			shift 1
 		esac
-		shift 2
-		;;
-	--z3)
-		Z3_EXEC="$2"
-		shift 2
-		;;
-	--vutil)
-		VUTIL_EXEC="$2"
-		shift 2
-		;;
-	*)
-		if [ "$INP" = "" ]; then
-			INP=$1
-		else
-			rep_usage_error "multiple inputs specified: $INP, $1"
-		fi
-		shift 1
-	esac
+	done
+}
+
+function tptp_vampire_mode() {
+	echo "not implemented yet"			
+}
+
+function smt_z3_range_mode() {
+	local AUX_DIR=`mktemp -d -t vint_XXXXXX`
+	local IN_FILE=$1
+	local PRB_FILE="$AUX_DIR/prb.smt2"
+	local PROOF_FILE="$AUX_DIR/proof.txt"
+	local Z3_CMD="$Z3_EXEC PROOF_MODE=2 -smt2"
+	
+	if grep "(get-proof)"; then
+		cp $IN_FILE $PRB_FILE
+	else
+		cat $IN_FILE | sed "s/(check-sat)/(check-sat) (get-proof)/"> $PRB_FILE
+	fi
+	
+	$Z3_CMD $PRB | awk '
+{
+        proofLine=1
+}
+
+BEGIN { fileIdx=1; outFile=filePref fileIdx; anythingOutput=0; haveFirstRes=0}
+{ proofLine=1 }
+/^sat/ || /^unsat/ || /^\(error/ {
+        if(anythingOutput) {
+			exit
+        }
+        proofLine=0
+        haveFirstRes=1
+}
+proofLine==1 && haveFirstRes==1 {
+        print
+        anythingOutput=1
+} ' > $PROOF_FILE
+		
+
+	cat $PROOF_FILE | $VUTIL_EXEC zie
+	
+	rm -r $AUX_DIR
+}
+
+function smt_z3_multiform_mode() {
+	local AUX_DIR=`mktemp -d -t vint_XXXXXX`
+	local PRB_FILE="$AUX_DIR/prb.smt2"
+	local Z3_OUT="$AUX_DIR/z3_out.txt"
+	local PROOF_FILE="$AUX_DIR/proof.txt"
+	local Z3_CMD="$Z3_EXEC PROOF_MODE=2 -smt2"
+		
+	local LEFT_CNT=$1
+	shift 1
+		
+	
+	$VUTIL_EXEC sc $* | fold -w 200 -s >$PRB_FILE
+	$Z3_CMD $PRB_FILE >$Z3_OUT 2>&1
+	
+	if ! grep -q "^unsat" $Z3_OUT; then
+	        echo "unsuccessful z3 run"
+	        echo
+	        cat $Z3_OUT
+	        rm -r $AUX_DIR
+	        exit 1
+	fi
+	
+	
+	grep -v ^unsat $Z3_OUT >$PROOF_FILE
+	
+	cat $PROOF_FILE | $VUTIL_EXEC zie $LEFT_CNT $*
+	
+	rm -r $AUX_DIR
+}
+
+function smt_vampire_multiform_mode() {
+	local LEFT_CNT=$1
+	shift 1
+	
+	local VAMP_ARGS="-proof off -sio off -sac on -predicate_definition_inlining non_growing -statistics none -smtlib_flet_as_definition on -t $TIME_LIMIT"
+	local VUTIL_ARGS="cpa $# $LEFT_CNT $* $VAMP_ARGS"
+	(ulimit -St $TIME_LIMIT; $VUTIL_EXEC $VUTIL_ARGS) | grep -v "Refutation found"
+	if [ $? -eq 130 ]; then
+	        echo interrupted
+	        exit 130
+	fi
 }
 
 
 parse_args $*
 
-if [ "$VUTIL_EXEC" = "" ]; then 
-	VUTIL_EXEC="$BASE_DIR/vutil"
-fi
+ensure_exec_presence VUTIL_EXEC vutil
+ensure_exec_presence Z3_EXEC z3
+ensure_exec_presence VAMPIRE_EXEC vampire
 
-if [ ! -f "$VUTIL_EXEC" ]; then 
-	rep_usage_error "vutil exacutable not found: $VUTIL_EXEC"
-fi
-
-echo "not implemented yet"
+case "$MODE" in
+tptp_vampire)
+	tptp_vampire_mode $INP
+	;;
+smt_z3_range)
+	smt_z3_range_mode $INP
+	;;
+smt_z3_multiform)
+	smt_z3_multiform_mode $INP
+	;;
+smt_vampire_multiform)
+	smt_vampire_multiform_mode $INP
+	;;
+*)
+	rep_usage_error "mode not specified"
+		;;
+esac
+	

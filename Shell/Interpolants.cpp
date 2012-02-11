@@ -7,6 +7,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/ColorHelper.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
@@ -18,6 +19,9 @@
 #include "SimplifyFalseTrue.hpp"
 
 #include "Interpolants.hpp"
+
+/** surprising colors occur when a clause which is a consequence of transparent clauses, is colored */
+#define ALLOW_SURPRISING_COLORS 1
 
 namespace Shell
 {
@@ -184,15 +188,26 @@ Formula* Interpolants::getInterpolant(Unit* unit)
 
     if(curr.unit()->inheritedColor()!=COLOR_INVALID) {
       //set premise-color information for input clauses
-      st.inheritedColor=static_cast<Color>(curr.unit()->inheritedColor()|st.usColor());
+      st.inheritedColor=ColorHelper::combine(curr.unit()->inheritedColor(), st.usColor());
       ASS_NEQ(st.inheritedColor, COLOR_INVALID);
     }
+#if ALLOW_SURPRISING_COLORS
+    //we set inherited color to the color of the unit.
+    //in the case of clause being conclusion of
+    //transparent parents, the assigned color should be
+    //transparent as well, but there are some corner cases
+    //coming from proof transformations which can yield us
+    //a colored clause in such case (when the colored premise
+    //was removed by the transformation).
+    st.inheritedColor=st.usColor();
+#else
     else if(!st.processed && !st.pars.hasNext()) {
       //we have unit without any parents. This case is reserved for
       //units introduced by some naming. In this case we need to set
       //the inherited color to the color of the unit.
       st.inheritedColor=st.usColor();
     }
+#endif
 
     if(sts.isNonEmpty()) {
       //update premise color information in the level above

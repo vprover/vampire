@@ -4,12 +4,15 @@
  */
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/ColorHelper.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 
 #include "Flattening.hpp"
 
 #include "ProofSimplifier.hpp"
+
+#define DEBUG_SURPRISING_COLORS 0
 
 namespace Shell
 {
@@ -72,15 +75,64 @@ void ProofTransformer::derefInference(UnitSpec src, UnitSpec tgt)
   static Stack<UnitSpec> tgtPrems;
   tgtPrems.reset();
 
+#if DEBUG_INFERENCE_COLORS
+  Color srcClr = src.unit()->getColor();
+  Color tgtClr = tgt.unit()->getColor();
+  Color srcParClr = COLOR_TRANSPARENT;
+  Color tgtParClr = COLOR_TRANSPARENT;
+#endif
   Inference::Rule rule;
   UnitSpecIterator pit = inf->getParents(src, rule);
   while(pit.hasNext()) {
     UnitSpec srcPar = pit.next();
+
+#if DEBUG_INFERENCE_COLORS
+    srcParClr = ColorHelper::combine(srcParClr, srcPar.unit()->getColor());
+#endif
+
     UnitSpec tgtPar = _transformationMap.get(srcPar);
     if(!tgtPar.isEmpty()) {
+#if DEBUG_INFERENCE_COLORS
+      tgtParClr = ColorHelper::combine(tgtParClr, tgtPar.unit()->getColor());
+#endif
       tgtPrems.push(tgtPar);
     }
   }
+
+#if DEBUG_INFERENCE_COLORS
+  if(!tgtPrems.isEmpty()) {
+    ASS(srcParClr!=COLOR_INVALID);
+    ASS(tgtParClr!=COLOR_INVALID);
+    ASS(srcClr!=COLOR_INVALID);
+    ASS(tgtClr!=COLOR_INVALID);
+
+    if(tgtParClr==COLOR_TRANSPARENT && tgtClr!=COLOR_TRANSPARENT) {
+      LOG("bug", "--tgt--");
+      LOGV("bug", tgtClr);
+      LOGV("bug", tgt.toString());
+      TRACE("bug",
+	  Stack<UnitSpec>::Iterator pit2(tgtPrems);
+	  while(pit2.hasNext()) {
+	    UnitSpec tgtPar = pit2.next();
+	    tout << tgtPar.toString() << endl;
+	  }
+      );
+      LOG("bug", "--src--");
+      LOGV("bug", srcClr);
+       LOGV("bug", src.toString());
+       TRACE("bug",
+	  UnitSpecIterator pit2 = inf->getParents(tgt);
+ 	  while(pit2.hasNext()) {
+ 	    UnitSpec srcPar = pit2.next();
+ 	    tout << srcPar.toString() << endl;
+ 	  }
+       );
+    }
+    ASS(srcParClr!=COLOR_TRANSPARENT  || srcClr==COLOR_TRANSPARENT);
+    ASS(tgtParClr!=COLOR_TRANSPARENT  || tgtClr==COLOR_TRANSPARENT);
+  }
+#endif
+
 
   unsigned premCnt = tgtPrems.size();
   InferenceStore::FullInference* finf = new(premCnt) InferenceStore::FullInference(premCnt);

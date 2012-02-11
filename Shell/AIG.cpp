@@ -13,6 +13,7 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/ColorHelper.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/Inference.hpp"
@@ -66,7 +67,17 @@ private:
       VarSet* _qVars;
     };
   };
-  VarSet* _freeVars;
+  /**
+   * We make use of the fact that pointers are 4 byte aligned,
+   * so we may use the first two bits of the _freeVars set to
+   * store color of the AIG.
+   */
+  union {
+    /** to obtain pointer to the VarSet freeVars, the two least
+     * significant bits must be set to 0 */
+    size_t _freeVars;
+    unsigned _color : 2;
+  };
 
 public:
   Node(Kind k) : _kind(k) {
@@ -133,31 +144,41 @@ public:
     _qPar = par;
   }
 
-  VarSet* getFreeVars() {
-    return _freeVars;
+  VarSet* getFreeVars() const {
+    return reinterpret_cast<VarSet*>(_freeVars & ~ static_cast<size_t>(3));
+  }
+
+  Color getColor() const {
+    return static_cast<Color>(_color);
   }
 
   /** Can be called after parents are set for nodes that have parents */
-  void setFreeVars()
+  void setPrecomputedValues()
   {
     CALL("AIG::Node::setFreeVars");
 
+    Color clr;
     VarSet* vars;
     switch(_kind) {
     case TRUE_CONST:
       vars = VarSet::getEmpty();
+      clr = COLOR_TRANSPARENT;
       break;
     case ATOM:
       vars = getAtomFreeVars(literal());
+      clr = literal()->color();
       break;
     case CONJ:
       vars = parent(0).getFreeVars()->getUnion(parent(1).getFreeVars());
+      clr = ColorHelper::combine(parent(0).getColor(), parent(1).getColor());
       break;
     case QUANT:
       vars = qParent().getFreeVars()->subtract(qVars());
+      clr = qParent().getColor();
       break;
     }
-    _freeVars = vars;
+    ASS_EQ(reinterpret_cast<size_t>(vars)&3, 0);
+    _freeVars = reinterpret_cast<size_t>(vars) | clr;
   }
 };
 
@@ -276,6 +297,12 @@ AIG::VarSet* AIG::Ref::getFreeVars() const
 {
   CALL("AIG::Ref::getFreeVars");
   return node()->getFreeVars();
+}
+
+Color AIG::Ref::getColor() const
+{
+  CALL("AIG::Ref::getColor");
+  return node()->getColor();
 }
 
 unsigned AIG::Ref::nodeIndex() const
@@ -437,7 +464,7 @@ AIG::AIG() : _simplLevel(3), _nextNodeIdx(0), _conjReserve(0), _quantReserve(0)
   CALL("AIG::AIG");
   _trueNode = new Node(Node::TRUE_CONST);
   _trueNode->setNodeIdx(_nextNodeIdx++);
-  _trueNode->setFreeVars();
+  _trueNode->setPrecomputedValues();
   _orderedNodeRefs.push(Ref(_trueNode, true));
 }
 
@@ -472,7 +499,7 @@ AIG::Node* AIG::atomNode(Literal* positiveLiteral)
   }
   res = new Node(positiveLiteral);
   res->setNodeIdx(_nextNodeIdx++);
-  res->setFreeVars();
+  res->setPrecomputedValues();
   _atomNodes.insert(positiveLiteral, res);
   _orderedNodeRefs.push(Ref(res, true));
   return res;
@@ -499,7 +526,7 @@ AIG::Node* AIG::conjNode(Ref par1, Ref par2)
     //we have used the reserve
     _conjReserve = 0;
     res->setNodeIdx(_nextNodeIdx++);
-    res->setFreeVars();
+    res->setPrecomputedValues();
     _orderedNodeRefs.push(Ref(res, true));
   }
   return res;
@@ -520,7 +547,7 @@ AIG::Node* AIG::univQuantNode(VarSet* vars, Ref par)
     //we have used the reserve
     _quantReserve = 0;
     res->setNodeIdx(_nextNodeIdx++);
-    res->setFreeVars();
+    res->setPrecomputedValues();
     _orderedNodeRefs.push(Ref(res, true));
   }
   return res;

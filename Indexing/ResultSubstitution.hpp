@@ -37,6 +37,15 @@ public:
   virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
 
+  /** if implementation cannot easily give result for this, zero is returned */
+  virtual size_t getQueryApplicationWeight(TermList t) { return 0; }
+  /** if implementation cannot easily give result for this, zero is returned */
+  virtual size_t getQueryApplicationWeight(Literal* l) { return 0; }
+  /** if implementation cannot easily give result for this, zero is returned */
+  virtual size_t getResultApplicationWeight(TermList t) { return 0; }
+  /** if implementation cannot easily give result for this, zero is returned */
+  virtual size_t getResultApplicationWeight(Literal* l) { return 0; }
+
   template<typename T>
   T apply(T t, bool result)
   {
@@ -44,6 +53,17 @@ public:
       return applyToResult(t);
     } else {
       return applyToQuery(t);
+    }
+  }
+
+  /** if implementation cannot easily give result for this, zero is returned */
+  template<typename T>
+  size_t getApplicationWeight(T t, bool result)
+  {
+    if(result) {
+      return getResultApplicationWeight(t);
+    } else {
+      return getQueryApplicationWeight(t);
     }
   }
 

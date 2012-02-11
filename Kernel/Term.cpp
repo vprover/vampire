@@ -206,6 +206,11 @@ bool TermList::allShared(TermList* args)
   return true;
 }
 
+unsigned TermList::weigth() const
+{
+  return isVar() ? 1 : term()->weight();
+}
+
 bool TermList::containsSubterm(TermList trm)
 {
   CALL("Term::containsSubterm");
