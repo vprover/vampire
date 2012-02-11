@@ -3,6 +3,8 @@
  * Implements class Superposition.
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -16,6 +18,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
 #include "Indexing/Index.hpp"
@@ -272,7 +275,7 @@ bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eq
  * it cannot be cheaply determined at this time.
  */
 bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
-      Clause* rwClause, Literal* rwLit, int weightLimit)
+      Clause* rwClause, Literal* rwLit, TermList eqLHS, TermList eqRHS, int weightLimit, int& nonInvolvedLiteralWLB)
 {
   CALL("Superposition::earlyWeightLimitCheck");
 
@@ -292,9 +295,117 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       wlb+=curr->weight();
     }
   }
+  nonInvolvedLiteralWLB = wlb;
+  if(eqRHS.isTerm()) {
+    wlb += eqRHS.term()->weight();
+  }
+  else {
+    wlb += 1;
+  }
   if(wlb > weightLimit) {
     env.statistics->discardedNonRedundantClauses++;
+    RSTAT_CTR_INC("early weight skipped superpositions");
     return false;
+  }
+  return true;
+}
+
+size_t Superposition::getSubtermOccurrenceCount(Term* trm, TermList subterm)
+{
+  CALL("Superposition::getSubtermOccurrenceCount");
+
+  size_t res = 0;
+
+  unsigned stWeight = subterm.isTerm() ? subterm.term()->weight() : 1;
+  SubtermIterator stit(trm);
+  while(stit.hasNext()) {
+    TermList t = stit.next();
+    if(t==subterm) {
+      res++;
+      stit.right();
+    }
+    else if(t.isTerm()) {
+      if(t.term()->weight()<=stWeight) {
+	stit.right();
+      }
+    }
+  }
+  return res;
+}
+
+bool Superposition::checkWeightLimitAfterSubst(int nonInvolvedLiteralWLB, Literal* rwLit,
+    TermList rwTerm, TermList eqLHSSubst, TermList eqRHSSubst, int weightLimit)
+{
+  CALL("Superposition::checkWeightLimitAfterSubst");
+
+  int remainingLimit = weightLimit - nonInvolvedLiteralWLB;
+
+  int lw = eqLHSSubst.isTerm() ? eqLHSSubst.term()->weight() : 1;
+  int rw = eqRHSSubst.isTerm() ? eqRHSSubst.term()->weight() : 1;
+  int balance = rw-lw;
+
+  if(balance>=0) {
+    //there must be at least one rewriting, possibly more
+    int approxWeight = rwLit->weight()+balance;
+    if(approxWeight > remainingLimit) {
+      env.statistics->discardedNonRedundantClauses++;
+      RSTAT_CTR_INC("superpositions weight skipped after rewriter substitution");
+      return false;
+    }
+  }
+  if(balance!=0) {
+    size_t occCnt = getSubtermOccurrenceCount(rwLit, rwTerm);
+    ASS_GE(occCnt, 1);
+    int approxWeight = rwLit->weight()+static_cast<int>(balance*occCnt);
+    if(approxWeight > remainingLimit) {
+      env.statistics->discardedNonRedundantClauses++;
+      RSTAT_CTR_INC("superpositions weight skipped after rewriter substitution with occurrence counting");
+      return false;
+    }
+  }
+  return true;
+//
+//  if(lw<rw) {
+//    //there must be at least one rewriting, possibly more
+//    int approxWeight = rwLit->weight()+rw-lw;
+//    if(approxWeight > remainingLimit) {
+//      env.statistics->discardedNonRedundantClauses++;
+//      RSTAT_CTR_INC("superpositions weight skipped after rewriter substitution");
+//      return false;
+//    }
+//  }
+//  return true;
+}
+
+bool Superposition::checkWeightLimitAfterRWSubst(int nonInvolvedLiteralWLB, Literal* rwLitS,
+    TermList eqLHSSubst, TermList eqRHSSubst, int weightLimit)
+{
+  CALL("Superposition::checkWeightLimitAfterRWSubst");
+
+  int remainingLimit = weightLimit - nonInvolvedLiteralWLB;
+
+  int lw = eqLHSSubst.isTerm() ? eqLHSSubst.term()->weight() : 1;
+  int rw = eqRHSSubst.isTerm() ? eqRHSSubst.term()->weight() : 1;
+  int balance = rw-lw;
+
+  if(balance>=0) {
+    //there must be at least one rewriting, possibly more
+    int approxWeight = rwLitS->weight()+balance;
+    if(approxWeight > remainingLimit) {
+      env.statistics->discardedNonRedundantClauses++;
+      RSTAT_CTR_INC("superpositions weight skipped after rewrited literal substitution");
+      return false;
+    }
+  }
+  if(balance!=0) {
+    size_t occCnt = getSubtermOccurrenceCount(rwLitS, eqLHSSubst);
+    ASS_GE(occCnt, 1);
+    int tgtWeight = rwLitS->weight()+static_cast<int>(balance*occCnt);
+    if(tgtWeight > remainingLimit) {
+      env.statistics->discardedNonRedundantClauses++;
+      RSTAT_CTR_INC("superpositions weight skipped after rewrited literal substitution with precise weight approximation");
+      return false;
+    }
   }
   return true;
 }
@@ -331,15 +442,28 @@ Clause* Superposition::performSuperposition(
 
   int weightLimit = getWeightLimit(eqClause, rwClause, limits);
 
-  if(weightLimit!=-1 && !earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, weightLimit)) {
-    return 0;
+  TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
+
+  /** valid only if weightLimit!=-1 */
+  int nonInvolvedLiteralWeightLowerBound;
+  if(weightLimit!=-1) {
+    if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, eqLHS, tgtTerm, weightLimit,
+			      nonInvolvedLiteralWeightLowerBound)) {
+      return 0;
+    }
   }
 
   Ordering& ordering = _salg->getOrdering();
 
   TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
-  TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
+
+  if(weightLimit!=-1) {
+    if(!checkWeightLimitAfterSubst(nonInvolvedLiteralWeightLowerBound, rwLit, rwTerm, eqLHSS, tgtTermS, weightLimit)) {
+      return 0;
+    }
+  }
+
 
   //check that we're not rewriting smaller subterm with larger
   if(ordering.compare(tgtTermS,eqLHSS)==Ordering::GREATER) {
@@ -347,7 +471,17 @@ Clause* Superposition::performSuperposition(
   }
 
   Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
+
+  if(weightLimit!=-1) {
+    if(!checkWeightLimitAfterRWSubst(nonInvolvedLiteralWeightLowerBound, rwLitS, eqLHSS, tgtTermS, weightLimit)) {
+      return 0;
+    }
+  }
+
+
+
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
+  ASS_EQ(rwTermS,eqLHSS);
 
   if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
@@ -372,6 +506,13 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
+  int weight=tgtLitS->weight();
+  if(weightLimit!=-1 && weight>weightLimit) {
+    RSTAT_CTR_INC("superpositions skipped for weight limit after literal rewriting");
+    env.statistics->discardedNonRedundantClauses++;
+    return 0;
+  }
+
   unsigned newLength = rwLength+eqLength-1;
 
   Inference* inf = new Inference2(Inference::SUPERPOSITION, rwClause, eqClause);
@@ -380,7 +521,6 @@ Clause* Superposition::performSuperposition(
 
   Clause* res = new(newLength) Clause(newLength, inpType, inf);
 
-  int weight=0;
   (*res)[0] = tgtLitS;
   int next = 1;
   for(unsigned i=0;i<rwLength;i++) {
@@ -393,6 +533,7 @@ Clause* Superposition::performSuperposition(
       if(weightLimit!=-1) {
 	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
+	  RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
 	  env.statistics->discardedNonRedundantClauses++;
 	  goto construction_fail;
 	}
@@ -410,6 +551,7 @@ Clause* Superposition::performSuperposition(
       if(weightLimit!=-1) {
 	weight+=(*res)[next]->weight();
 	if(weight>weightLimit) {
+	  RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
 	  env.statistics->discardedNonRedundantClauses++;
 	  goto construction_fail;
 	}
@@ -419,11 +561,13 @@ Clause* Superposition::performSuperposition(
   }
 
   if(weightLimit!=-1 && weight>weightLimit) {
+    RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
     env.statistics->discardedNonRedundantClauses++;
   construction_fail:
     res->destroy();
     return 0;
   }
+  ASS(weightLimit==-1 || weight<=weightLimit);
 
   res->setAge(newAge);
   if(rwClause==eqClause) {

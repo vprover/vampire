@@ -6,6 +6,8 @@
 
 #include <math.h>
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Timer.hpp"
@@ -483,6 +485,7 @@ void AWPassiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
     Clause* removed=toRemove.pop();
 
     if(removed->store()!=Clause::REACTIVATED) {
+      RSTAT_CTR_INC("clauses discarded from passive on weight limit update");
       env.statistics->discardedNonRedundantClauses++;
     }
 

@@ -520,9 +520,9 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
   return false;
 }
 
-TermList InterpretedLiteralEvaluator::transform(TermList trm)
+TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 {
-  CALL("InterpretedLiteralEvaluator::transform");
+  CALL("InterpretedLiteralEvaluator::transformSubterm");
 
   if(!trm.isTerm()) { return trm; }
   Term* t = trm.term();

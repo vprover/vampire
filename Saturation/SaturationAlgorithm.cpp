@@ -3,6 +3,8 @@
  * Implementing SaturationAlgorithm class.
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -43,6 +45,7 @@
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
+#include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InterpretedSimplifier.hpp"
 #include "Inferences/RefutationSeekerFSE.hpp"
 #include "Inferences/SLQueryForwardSubsumption.hpp"
@@ -1106,6 +1109,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   }
 
   if(!getLimits()->fulfillsLimits(cl)) {
+    RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
     env.statistics->discardedNonRedundantClauses++;
     return false;
   }
@@ -1593,6 +1597,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   res->setImmediateSimplificationEngine(createISE(prb, opt));
 
   // create forward simplification engine
+  if(opt.hyperSuperposition()) {
+    res->addForwardSimplifierToFront(new HyperSuperposition());
+  }
   if(opt.globalSubsumption()) {
     res->addForwardSimplifierToFront(new GlobalSubsumption());
   }

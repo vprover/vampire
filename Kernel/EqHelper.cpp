@@ -33,16 +33,23 @@ TermList EqHelper::getOtherEqualitySide(Literal* eq, TermList lhs)
   }
 }
 
+Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
+{
+  CALL("EqHelper::replace(Literal*,...)");
+
+  return static_cast<Literal*>(replace(static_cast<Term*>(lit), what, by));
+}
+
 /**
- * Replace all occurences of the term @b tSrc by @b tDest in the literal
+ * Replace all occurences of the subterm  @b tSrc by @b tDest in the term/literal
  * @b lit, and return the result
  *
- * The term to be replaced must be present at least once in the literal.
+ * The term to be replaced must be present at least once in the term/literal.
  */
-Literal* EqHelper::replace(Literal* lit, TermList tSrc, TermList tDest)
+Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
 {
-  CALL("EqHelper::replace");
-  ASS(lit->shared());
+  CALL("EqHelper::replace(Term*,...)");
+  ASS(trm0->shared());
 
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);
@@ -54,7 +61,7 @@ Literal* EqHelper::replace(Literal* lit, TermList tSrc, TermList tDest)
   args.reset();
 
   modified.push(false);
-  toDo.push(lit->args());
+  toDo.push(trm0->args());
 
   for(;;) {
     TermList* tt=toDo.pop();
@@ -103,26 +110,33 @@ Literal* EqHelper::replace(Literal* lit, TermList tSrc, TermList tDest)
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());
   ASS_EQ(modified.length(),1);
-  ASS_EQ(args.length(),lit->arity());
+  ASS_EQ(args.length(),trm0->arity());
 
   if(!modified.pop()) {
     //we call replace in superposition only if we already know,
     //there is something to be replaced.
     ASSERTION_VIOLATION;
-    return lit;
-  }
-
-  ASS_EQ(args.size(), lit->arity());
-  if(lit->isEquality() && args[0].isVar() && args[1].isVar()) {
-    unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-    return Literal::createVariableEquality(lit->polarity(),args[0], args[1], srt);
+    return trm0;
   }
 
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-  TermList* argLst=&args.top() - (lit->arity()-1);
-  return Literal::create(lit,argLst);
+  TermList* argLst=&args.top() - (trm0->arity()-1);
+
+  if(trm0->isLiteral()) {
+    Literal* lit = static_cast<Literal*>(trm0);
+    ASS_EQ(args.size(), lit->arity());
+    if(lit->isEquality() && args[0].isVar() && args[1].isVar()) {
+      unsigned srt = SortHelper::getEqualityArgumentSort(lit);
+      return Literal::createVariableEquality(lit->polarity(),args[0], args[1], srt);
+    }
+
+    return Literal::create(lit,argLst);
+  }
+  else {
+    return Term::create(trm0,argLst);
+  }
 }
 
 /**

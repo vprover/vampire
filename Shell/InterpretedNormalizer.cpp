@@ -197,9 +197,9 @@ public:
 protected:
   using TermTransformer::transform;
 
-  virtual TermList transform(TermList trm)
+  virtual TermList transformSubterm(TermList trm)
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::transform");
+    CALL("InterpretedNormalizer::NLiteralTransformer::transformSubterm");
 
   start:
     if(theory->isInterpretedFunction(trm)) {

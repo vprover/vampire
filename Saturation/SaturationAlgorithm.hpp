@@ -87,6 +87,12 @@ public:
   LiteralSelector& getLiteralSelector() const { return *_selector; }
 
   /**
+   * if an intermediate clause is derived somewhere, it still needs to be passed to this function
+   */
+  void onNewClause(Clause* c);
+
+
+  /**
    * If the saturation algorithm run is in progress, return pointer
    * to the object; otherwise return zero.
    */
@@ -125,7 +131,6 @@ protected:
   void onUnprocessedAdded(Clause* c);
   void onUnprocessedRemoved(Clause* c);
   virtual void onUnprocessedSelected(Clause* c);
-  void onNewClause(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
 
   virtual void onClauseRetained(Clause* cl);

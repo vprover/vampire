@@ -3,6 +3,8 @@
  * Implementing ClauseContainer and its descendants.
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Environment.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
@@ -189,6 +191,7 @@ void ActiveClauseContainer::onLimitsUpdated(LimitsChangeType change)
 	removed->store()==Clause::SELECTED_REACTIVATED);
 
     if(removed->store()!=Clause::REACTIVATED) {
+      RSTAT_CTR_INC("clauses discarded from active on weight limit update");
       env.statistics->discardedNonRedundantClauses++;
     }
 

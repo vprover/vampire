@@ -27,7 +27,7 @@ public:
   virtual ~TermTransformer() {}
   Literal* transform(Literal* lit);
 protected:
-  virtual TermList transform(TermList trm) = 0;
+  virtual TermList transformSubterm(TermList trm) = 0;
 };
 
 }

@@ -193,6 +193,25 @@ void Logging::doTagDeclarations()
       PARENT("inf",1),
       PARENT("arith",1));
 
+  DECL("inf_hsp",
+      DOC("hyper-superposition"),
+      PARENT("inf",1));
+  DECL("inf_hsp_attempts",
+      DOC("hyper-superposition attempts to rewrite subterms"),
+      PARENT("inf_hsp",3));
+  DECL("inf_hsp_rwrs",
+      DOC("hyper-superposition rewriters"),
+      PARENT("inf_hsp",2));
+  DECL("inf_hsp_cannot",
+      DOC("hyper-superposition was performed but the result wasn't unifiable terms (we did too much rewriting)"),
+      PARENT("inf_hsp",1));
+  DECL("inf_hsp_gen",
+      DOC("hyper-superposition generated units"),
+      PARENT("inf_hsp",1));
+  DECL("inf_hsp_res",
+      DOC("hyper-superposition results after the intended simplification"),
+      PARENT("inf_hsp",1));
+
 
   //
   // SAT-based splitting

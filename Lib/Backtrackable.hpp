@@ -285,6 +285,27 @@ public:
   {
     List<BacktrackData*>::pop(_bdStack);
   }
+
+  /**
+   * Move all change records from @b bd to the BacktrackData object associated
+   * with this object. If there is no such object, the backtrack data from the
+   * @c bd object are siply dropped.
+   * The @b bd object
+   * is empty after call to his function.
+   */
+  void bdCommit(BacktrackData& bd)
+  {
+    CALL("Backtrackable::bdCommit");
+    ASS(!bdIsRecording() || &bd!=&bdGet());
+
+    if(bdIsRecording()) {
+      bd.commitTo(bdGet());
+    }
+    else {
+      bd.drop();
+    }
+  }
+
 protected:
   /**
    * Initialize a Backtrackable object
@@ -312,19 +333,6 @@ protected:
     ASS(bdIsRecording());
 
     bdGet().addBacktrackObject(bo);
-  }
-
-  /**
-   * Move all change records from the @b BacktrackData object associated
-   * with this object into the @b bd object. The @ BacktrackData object
-   * associated with this object is empty after call to his function.
-   */
-  void bdCommit(BacktrackData& bd)
-  {
-    CALL("Backtrackable::bdCommit");
-    ASS_NEQ(&bd,&bdGet());
-
-    bd.commitTo(bdGet());
   }
 
   /**

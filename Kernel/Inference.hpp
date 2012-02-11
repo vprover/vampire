@@ -233,6 +233,8 @@ public:
     INSTANCE_GENERATION,
     /** unit resulting resolution */
     UNIT_RESULTING_RESOLUTION,
+    /** hyper-superposition */
+    HYPER_SUPERPOSITION,
     /** global subsumption */
     GLOBAL_SUBSUMPTION,
     /** distinct equality removal */

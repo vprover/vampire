@@ -22,6 +22,7 @@ class EqualityResolution
 {
 public:
   ClauseIterator generateClauses(Clause* premise);
+  static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
 private:
   struct ResultFn;
   struct IsNegativeEqualityFn;

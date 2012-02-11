@@ -30,6 +30,7 @@ public:
   static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
+  static Term* replace(Term* t, TermList what, TermList by);
   static Literal* replace(Literal* lit, TermList what, TermList by);
 
   struct LHSIteratorFn

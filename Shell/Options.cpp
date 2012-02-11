@@ -144,6 +144,7 @@ const char* Options::Constants::_optionNames[] = {
   "global_subsumption",
 
   "horn_revealing",
+  "hyper_superposition",
 
   "include",
   "increased_numeral_weight",
@@ -673,6 +674,7 @@ Options::Options ()
   _globalSubsumption(false),
 
   _hornRevealing(false),
+  _hyperSuperposition(false),
 
   _include(""),
   _increasedNumeralWeight(false),
@@ -993,6 +995,9 @@ void Options::set(const char* name,const char* value, int index)
 
     case HORN_REVEALING:
       _hornRevealing = onOffToBool(value,name);
+      return;
+    case HYPER_SUPERPOSITION:
+      _hyperSuperposition = onOffToBool(value,name);
       return;
 
     case INCLUDE:
@@ -1823,6 +1828,9 @@ void Options::outputValue (ostream& str,int optionTag) const
 
   case HORN_REVEALING:
     str << boolToOnOff(_hornRevealing);
+    return;
+  case HYPER_SUPERPOSITION:
+    str << boolToOnOff(_hyperSuperposition);
     return;
 
   case INCLUDE:

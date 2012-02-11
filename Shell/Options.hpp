@@ -82,6 +82,10 @@ public:
 
     /** We check whether by swapping predicate polarities we can obtain a horn problem */
     HORN_REVEALING,
+    /** Generating inference that attempts to do several rewriting at once if it will
+     * eliminate literals of the original clause (now we aim just for eliminatin by equality
+     * resolution) */
+    HYPER_SUPERPOSITION,
 
     INCLUDE,
     INCREASED_NUMERAL_WEIGHT,
@@ -506,6 +510,7 @@ public:
   bool bfnt() const { return _bfnt; }
   void setBfnt(bool newVal) { _bfnt = newVal; }
   URResolution unitResultingResolution() const { return _unitResultingResolution; }
+  bool hyperSuperposition() const { return _hyperSuperposition; }
   bool arityCheck() const { return _arityCheck; }
   void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation; }
@@ -708,6 +713,7 @@ private:
   bool _globalSubsumption;
 
   bool _hornRevealing;
+  bool _hyperSuperposition;
 
   string _include;
   /** if this option is true, Vampire will add the numeral weight of a clause

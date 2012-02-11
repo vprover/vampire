@@ -34,7 +34,7 @@ protected:
 
   typedef Stack<Evaluator*> EvalStack;
 
-  virtual TermList transform(TermList trm);
+  virtual TermList transformSubterm(TermList trm);
 
   Evaluator* getFuncEvaluator(unsigned func);
 

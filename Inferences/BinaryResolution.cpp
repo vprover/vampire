@@ -3,6 +3,8 @@
  * Implements class BinaryResolution.
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -83,7 +85,7 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return _parent.generateClause(_cl, resLit, qr, _limits);
+    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _limits);
   }
 private:
   Clause* _cl;
@@ -91,18 +93,18 @@ private:
   BinaryResolution& _parent;
 };
 
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, Limits* limits)
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, Limits* limits)
 {
   CALL("BinaryResolution::generateClause");
 
   if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
-    if(getOptions().showBlocked()) {
+    if(opts.showBlocked()) {
       env.beginOutput();
       env.out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<qr.clause->toString()<<endl;
       env.endOutput();
     }
-    if(getOptions().colorUnblocking()) {
+    if(opts.colorUnblocking()) {
       SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
       if(salg) {
 	ColorHelper::tryUnblock(queryCl, salg);
@@ -143,7 +145,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       }
     }
     if(wlb > weightLimit) {
-	env.statistics->discardedNonRedundantClauses++;
+      RSTAT_CTR_INC("binary resolutions skipped for weight limit before building clause");
+      env.statistics->discardedNonRedundantClauses++;
       return 0;
     }
   }
@@ -164,6 +167,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       if(shouldLimitWeight) {
 	wlb+=newLit->weight() - curr->weight();
 	if(wlb > weightLimit) {
+	  RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
 	  env.statistics->discardedNonRedundantClauses++;
 	  res->destroy();
 	  return 0;
@@ -180,6 +184,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       if(shouldLimitWeight) {
 	wlb+=newLit->weight() - curr->weight();
 	if(wlb > weightLimit) {
+	  RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
 	  env.statistics->discardedNonRedundantClauses++;
 	  res->destroy();
 	  return 0;

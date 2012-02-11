@@ -12,6 +12,19 @@
 
 namespace Lib {
 
+template<typename P>
+struct FirstOfPairFn
+{
+  DECL_RETURN_TYPE(typename P::first_type);
+  OWN_RETURN_TYPE operator()(P p) { return p.first; }
+};
+
+template<typename P>
+struct SecondOfPairFn
+{
+  DECL_RETURN_TYPE(typename P::second_type);
+  OWN_RETURN_TYPE operator()(P p) { return p.second; }
+};
 
 template<typename C, typename D>
 struct PairRightPushingFn

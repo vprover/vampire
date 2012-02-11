@@ -100,4 +100,16 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
 }
 
+/**
+ * @c toResolve must be an negative equality. If it is resolvable,
+ * resolve it and return the resulting clause. If it is not resolvable,
+ * return 0.
+ */
+Clause* EqualityResolution::tryResolveEquality(Clause* cl, Literal* toResolve)
+{
+  CALL("EqualityResolution::tryResolveEquality");
+
+  return ResultFn(cl)(toResolve);
+}
+
 }

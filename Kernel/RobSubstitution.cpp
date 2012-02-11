@@ -32,6 +32,8 @@
 using namespace Debug;
 #endif
 
+#define DEBUG_RESULT_WEIGHT_COMPUTATION 1
+
 namespace Kernel
 {
 
@@ -638,6 +640,116 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
   known.reset();
   return args.pop();
+}
+
+size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) const
+{
+  CALL("RobSubstitution::getApplicationResultWeight");
+
+  static Stack<TermList*> toDo(8);
+  static Stack<int> toDoIndex(8);
+  static Stack<Term*> terms(8);
+  static Stack<VarSpec> termRefVars(8);
+  static Stack<size_t> argSizes(8);
+
+  static DHMap<VarSpec, size_t, VarSpec::Hash1, VarSpec::Hash2> known;
+  known.reset();
+
+  size_t res = 0;
+
+  //is inserted into termRefVars, if respective
+  //term in terms isn't referenced by any variable
+  const VarSpec nilVS(-1,0);
+
+  toDo.push(&trm);
+  toDoIndex.push(index);
+
+  while(!toDo.isEmpty()) {
+    TermList* tt=toDo.pop();
+    index=toDoIndex.pop();
+    if(tt->isEmpty()) {
+      Term* orig=terms.pop();
+      unsigned arity = orig->arity();
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      size_t* szArr=&argSizes.top() - (orig->arity()-1);
+      size_t sz = 0;
+      for(unsigned i=0; i<arity; i++) {
+	sz += szArr[i];
+      }
+      argSizes.truncate(argSizes.length() - arity);
+      argSizes.push(sz);
+
+      VarSpec ref=termRefVars.pop();
+      if(ref!=nilVS) {
+	ALWAYS(known.insert(ref,sz));
+      }
+      continue;
+    } else {
+      //if tt==&trm, we're dealing with the top
+      //term, for which the next() is undefined
+      if(tt!=&trm) {
+	toDo.push(tt->next());
+	toDoIndex.push(index);
+      }
+    }
+
+    TermSpec ts(*tt,index);
+
+    VarSpec vs;
+    if(ts.term.isVar()) {
+      vs=root(getVarSpec(ts));
+
+      size_t found;
+      if(known.find(vs, found)) {
+	argSizes.push(found);
+	continue;
+      }
+
+      ts=deref(vs);
+      if(ts.term.isVar()) {
+	ASS(ts.index==UNBOUND_INDEX);
+	argSizes.push(1);
+	continue;
+      }
+    } else {
+      vs=nilVS;
+    }
+    Term* t=ts.term.term();
+    if(t->shared() && t->ground()) {
+      argSizes.push(t->weight());
+      continue;
+    }
+    terms.push(t);
+    termRefVars.push(vs);
+
+    toDo.push(t->args());
+    toDoIndex.push(ts.index);
+  }
+  ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && argSizes.length()==1);
+  return argSizes.pop();
+}
+
+size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const
+{
+  CALL("RobSubstitution::getApplicationResultWeight");
+  static DArray<TermList> ts(32);
+
+  if (lit->ground()) {
+    return lit->weight();
+  }
+
+  size_t res = 1; //the predicate symbol weight
+  int arity = lit->arity();
+  int i = 0;
+  for (TermList* args = lit->args(); ! args->isEmpty(); args = args->next()) {
+    res += getApplicationResultWeight(*args,index);
+  }
+#if VDEBUG && DEBUG_RESULT_WEIGHT_COMPUTATION
+  ASS_EQ(apply(lit, index)->weight(), res);
+#endif
+  return res;
 }
 
 

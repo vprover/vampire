@@ -57,7 +57,7 @@ Literal* TermTransformer::transform(Literal* lit)
     }
 
     TermList tl=*tt;
-    TermList dest=transform(tl);
+    TermList dest=transformSubterm(tl);
     if(tl!=dest) {
       args.push(dest);
       modified.setTop(true);
@@ -93,7 +93,6 @@ Literal* TermTransformer::transform(Literal* lit)
   //&top()-2, etc...
   TermList* argLst=&args.top() - (lit->arity()-1);
   return Literal::create(lit,argLst);
-
 }
 
 }

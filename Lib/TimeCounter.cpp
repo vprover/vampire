@@ -265,6 +265,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_SUPERPOSITION:
     out<<"superposition";
     break;
+  case TC_HYPER_SUPERPOSITION:
+    out<<"hyper superposition";
+    break;
   case TC_TERM_SHARING:
     out<<"term sharing";
     break;

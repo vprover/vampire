@@ -74,6 +74,8 @@ public:
   TermList getSpecialVarTop(unsigned specialVar) const;
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
+  size_t getApplicationResultWeight(TermList t, int index) const;
+  size_t getApplicationResultWeight(Literal* lit, int index) const;
 
 #if VDEBUG
   std::string toString(bool deref=false) const;
