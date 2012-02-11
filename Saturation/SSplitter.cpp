@@ -969,7 +969,7 @@ void SSplitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* r
 
   cl->incReductionTimestamp();
   //BDDs are disabled when we do ssplitting so they can only contain false
-  ASS(BDD::instance()->isFalse(cl->prop()));
+  ASS_REP(BDD::instance()->isFalse(cl->prop()), BDD::instance()->toString(cl->prop()));
   SplitSet::Iterator dit(*diff);
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();

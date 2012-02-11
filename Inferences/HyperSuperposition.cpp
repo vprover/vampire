@@ -314,7 +314,7 @@ void HyperSuperposition::tryUnifyingSuperpositioins(Clause* cl, unsigned literal
   Clause* res = Clause::fromStack(resLits, it, inf);
   res->setAge(cl->age()+1);
 
-  RSTAT_CTR_INC("hyper-superresolution");
+  RSTAT_CTR_INC("hyper-superposition");
 
   _salg->onNewClause(res);
   acc.push(res);
@@ -336,6 +336,7 @@ void HyperSuperposition::tryUnifyingNonequality(Clause* cl, unsigned literalInde
     //this unifies without any problems
     return;
   }
+
   static ClauseStack localRes;
   tryUnifyingSuperpositioins(cl, literalIndex, t1.term(), t2.term(), false, localRes);
 
@@ -426,6 +427,131 @@ ClauseIterator HyperSuperposition::generateClauses(Clause* cl)
   return getPersistentIterator(getMappingIterator(ClausePairStack::Iterator(res), SecondOfPairFn<ClausePair>()));
 }
 
+
+bool HyperSuperposition::tryGetUnifyingPremises(Term* t1, Term* t2, Color clr, bool disjointVariables, ClauseStack& premises)
+{
+  CALL("HyperSuperposition::tryGetUnifyingPremises");
+  ASS_EQ(t1->isLiteral(),t2->isLiteral());
+  ASS(!t1->isLiteral() || t1->functor()==t2->functor());
+
+  Color clauseClr = clr;
+
+  static RobSubstitution subst;
+  subst.reset();
+
+  int bank2 = disjointVariables ? 1 : 0;
+  int nextAvailBank = bank2+1;
+
+  static RewriterStack rewriters;
+  rewriters.reset();
+
+  return tryGetRewriters(t1, t2, bank2, nextAvailBank, premises, rewriters, subst, clauseClr);
+}
+
+Clause* HyperSuperposition::tryGetContradictionFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables,
+    ClauseStack& premises)
+{
+  CALL("HyperSuperposition::tryGetContradictionFromUnification");
+
+  Color clr = cl->color();
+  ClauseStack::Iterator cit(premises);
+  while(cit.hasNext()) {
+    Clause* prem = cit.next();
+    clr = ColorHelper::combine(clr, prem->color());
+  }
+  if(clr==COLOR_INVALID) {
+    return 0;
+  }
+  if(!tryGetUnifyingPremises(t1, t2, clr, disjointVariables, premises)) {
+    return 0;
+  }
+  UnitList* premLst = 0;
+  UnitList::pushFromIterator(ClauseStack::Iterator(premises), premLst);
+  UnitList::push(cl, premLst);
+  Inference* inf = new InferenceMany(Inference::HYPER_SUPERPOSITION, premLst);
+  Unit::InputType inp = Unit::getInputType(premLst);
+  Clause* res = Clause::fromIterator(LiteralIterator::getEmpty(), inp, inf);
+  res->setAge(cl->age());
+  return res;
+}
+
+bool HyperSuperposition::trySimplifyingFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables, ClauseStack& premises,
+      ForwardSimplificationPerformer* simplPerformer)
+{
+  CALL("HyperSuperposition::trySimplifyingFromUnification");
+
+
+  Clause* res = tryGetContradictionFromUnification(cl, t1, t2, false, premises);
+  if(!res) {
+    return false;
+  }
+
+  LOG_UNIT("inf_hsp_prems", cl);
+  ClauseStack::Iterator premIt(premises);
+  while(premIt.hasNext()) {
+    Clause* pr = premIt.next();
+    LOG_UNIT("inf_hsp_prems", pr);
+    if(!simplPerformer->willPerform(pr)) {
+      LOG("inf_hsp_prems", "fail on simplification conditions");
+      return false;
+    }
+  }
+
+  simplPerformer->perform(pvi(ClauseStack::Iterator(premises)), res);
+  RSTAT_CTR_INC("hyper-superposition");
+  LOG_UNIT("inf_hsp_res", res);
+  return true;
+}
+
+bool HyperSuperposition::tryUnifyingNonequalitySimpl(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+{
+  CALL("HyperSuperposition::tryUnifyingNonequalitySimpl");
+  ASS_EQ(cl->length(), 1);
+
+  Literal* lit = (*cl)[0];
+  ASS(lit->isEquality());
+  ASS(lit->isNegative());
+
+  TermList t1 = *lit->nthArgument(0);
+  TermList t2 = *lit->nthArgument(1);
+  if(t1.isVar() || t2.isVar()) {
+    //this unifies without any problems
+    return false;
+  }
+
+  static ClauseStack premises;
+  premises.reset();
+
+  return trySimplifyingFromUnification(cl, t1.term(), t2.term(), false, premises, simplPerformer);
+}
+
+bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, ForwardSimplificationPerformer* simplPerformer)
+{
+  CALL("HyperSuperposition::tryUnifyingToResolveSimpl");
+  ASS_EQ(cl->length(), 1);
+
+  Literal* lit = (*cl)[0];
+  if(lit->isEquality()) {
+    //now we don't bother with the argument normalization that is done in equalities
+    return false;
+  }
+  Literal* queryLit = getUnifQueryLit(lit);
+  SLQueryResultIterator unifIt = _index->getUnifications(queryLit, true, false);
+
+  static ClauseStack prems;
+
+  while(unifIt.hasNext()) {
+    SLQueryResult unifRes = unifIt.next();
+    prems.reset();
+    prems.push(unifRes.clause);
+
+    if(trySimplifyingFromUnification(cl, lit, unifRes.literal, true, prems, simplPerformer)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Interface for a fw simplifying inference
  */
@@ -444,19 +570,11 @@ void HyperSuperposition::perform(Clause* cl, ForwardSimplificationPerformer* sim
   res.reset();
 
   if(lit->isEquality() && lit->isNegative()) {
-    tryUnifyingNonequality(cl, 0, res);
-  }
-  tryUnifyingToResolveWithUnit(cl, 0, res);
-
-  while(res.isNonEmpty()) {
-    ClausePair rcl = res.pop();
-    if(simplPerformer->willPerform(rcl.first)) {
-//      LOGV("bug",(*rcl.first));
-//      LOGV("bug",(*rcl.second));
-      simplPerformer->perform(rcl.first, rcl.second);
+    if(tryUnifyingNonequalitySimpl(cl, simplPerformer)) {
       return;
     }
   }
+  tryUnifyingToResolveSimpl(cl, simplPerformer);
 }
 
 }

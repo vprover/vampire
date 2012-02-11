@@ -34,6 +34,7 @@ public:
 
 private:
   typedef pair<TermList,TermList> TermPair;
+  /** The int here is a variable bank index of the term's variables */
   typedef pair<TermPair, int> RewriterEntry;
   typedef Stack<RewriterEntry> RewriterStack;
 
@@ -55,6 +56,19 @@ private:
 
   void tryUnifyingSuperpositioins(Clause* cl, unsigned literalIndex, Term* t1, Term* t2,
       bool disjointVariables, ClauseStack& acc);
+
+  bool tryGetUnifyingPremises(Term* t1, Term* t2, Color clr, bool disjointVariables, ClauseStack& premises);
+
+  /**
+   * premises should contain any other premises that can be needed
+   * (e.g. an unit literal to resolve with)
+   */
+  Clause* tryGetContradictionFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables, ClauseStack& premises);
+
+  bool trySimplifyingFromUnification(Clause* cl, Term* t1, Term* t2, bool disjointVariables, ClauseStack& premises,
+      ForwardSimplificationPerformer* simplPerformer);
+  bool tryUnifyingNonequalitySimpl(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
+  bool tryUnifyingToResolveSimpl(Clause* cl, ForwardSimplificationPerformer* simplPerformer);
 
 
   Literal* getUnifQueryLit(Literal* base);
