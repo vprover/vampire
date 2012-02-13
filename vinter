@@ -88,7 +88,7 @@ function parse_args() {
 }
 
 function tptp_vampire_mode() {
-	echo "not implemented yet"			
+	$VUTIL_EXEC vamp_casc --smtlib_consider_ints_real on --show_interpolant minimized --mode casc -statistics none -proof off -t $TIME_LIMIT $* 
 }
 
 function smt_z3_range_mode() {
@@ -98,13 +98,13 @@ function smt_z3_range_mode() {
 	local PROOF_FILE="$AUX_DIR/proof.txt"
 	local Z3_CMD="$Z3_EXEC PROOF_MODE=2 -smt2"
 	
-	if grep "(get-proof)"; then
+	if grep "(get-proof)" $IN_FILE; then
 		cp $IN_FILE $PRB_FILE
 	else
 		cat $IN_FILE | sed "s/(check-sat)/(check-sat) (get-proof)/"> $PRB_FILE
 	fi
 	
-	$Z3_CMD $PRB | awk '
+	$Z3_CMD $PRB_FILE | awk '
 {
         proofLine=1
 }
@@ -174,6 +174,10 @@ function smt_vampire_multiform_mode() {
 
 
 parse_args $*
+
+if [ "$TIME_LIMIT" -ne 0 ]; then
+	ulimit -St $TIME_LIMIT
+fi
 
 ensure_exec_presence VUTIL_EXEC vutil
 ensure_exec_presence Z3_EXEC z3

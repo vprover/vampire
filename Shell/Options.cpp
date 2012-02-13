@@ -132,6 +132,7 @@ const char* Options::Constants::_optionNames[] = {
   "equality_resolution_with_deletion",
 
   "flatten_top_level_conjunctions",
+  "forbidden_options",
   "forced_options",
   "forward_demodulation",
   "forward_literal_rewriting",
@@ -959,6 +960,9 @@ void Options::set(const char* name,const char* value, int index)
     case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
       _flattenTopLevelConjunctions = onOffToBool(value,name);
       return;
+    case FORBIDDEN_OPTIONS:
+      _forbiddenOptions = value;
+      return;
     case FORCED_OPTIONS:
       _forcedOptions = value;
       return;
@@ -1495,11 +1499,11 @@ void Options::setShort(const char* name,const char* value)
   try {
     found = Constants::shortNameIndexes[Constants::shortNames.find(name)];
   }
-  catch(ValueNotFoundException) {
+  catch(ValueNotFoundException&) {
     try {
       found = Constants::optionNames.find(name);
     }
-    catch(ValueNotFoundException) {
+    catch(ValueNotFoundException&) {
       USER_ERROR((string)name + " is not a valid option");
     }
   }
@@ -1796,6 +1800,9 @@ void Options::outputValue (ostream& str,int optionTag) const
 
   case FLATTEN_TOP_LEVEL_CONJUNCTIONS:
     str << boolToOnOff(_flattenTopLevelConjunctions);
+    return;
+  case FORBIDDEN_OPTIONS:
+    str << forbiddenOptions();
     return;
   case FORCED_OPTIONS:
     str << forcedOptions();
@@ -2388,6 +2395,36 @@ int Options::readTimeLimit(const char* val)
 #endif
 } // Options::readTimeLimit(const char* val)
 
+void Options::readOptionsString(string testId, OptionSpecStack& assignments)
+{
+  CALL("Options::readOptionsString");
+
+  while (testId != "") {
+    size_t index1 = testId.find('=');
+    if (index1 == string::npos) {
+      error: USER_ERROR("bad option specification" + testId);
+    }
+    size_t index = testId.find(':');
+    if (index!=string::npos && index1 > index) {
+      goto error;
+    }
+
+    string param = testId.substr(0,index1);
+    string value;
+    if(index==string::npos) {
+      value = testId.substr(index1+1);
+    }
+    else {
+      value = testId.substr(index1+1,index-index1-1);
+    }
+    assignments.push(OptionSpec(param, value));
+
+    if(index==string::npos) {
+      break;
+    }
+    testId = testId.substr(index+1);
+  }
+}
 
 /**
  * Assign option values according to the argument in the format
@@ -2769,6 +2806,8 @@ void Options::checkGlobalOptionConstraints() const
   if (_bfnt && !completeForNNE()) {
     USER_ERROR("The bfnt option can only be used with a strategy complete for non-Horn problems without equality");
   }
+
+  //TODO:implement forbidden options
 }
 
 void Options::setMode(Mode newVal) {

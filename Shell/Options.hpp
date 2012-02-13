@@ -68,6 +68,10 @@ public:
     EQUALITY_RESOLUTION_WITH_DELETION,
 
     FLATTEN_TOP_LEVEL_CONJUNCTIONS,
+    /** If some of the specified options are set to a forbidden state,
+     * vampire will fail to start, or in the CASC mode it will skip
+     * such strategies. */
+    FORBIDDEN_OPTIONS,
     FORCED_OPTIONS,
     FORWARD_DEMODULATION,
     FORWARD_LITERAL_REWRITING,
@@ -438,6 +442,7 @@ public:
   string problemName () const;
 
   string forcedOptions() const { return _forcedOptions; }
+  string forbiddenOptions() const { return _forbiddenOptions; }
   string testId() const { return _testId; }
   string protectedPrefix() const { return _protectedPrefix; }
   Statistics statistics() const { return _statistics; }
@@ -664,6 +669,11 @@ public:
   CLASS_NAME("Options");
   USE_ALLOCATOR(Options);
 
+  /** first is option name, second option value */
+  typedef pair<string, string> OptionSpec;
+  typedef Stack<OptionSpec> OptionSpecStack;
+  static void readOptionsString(string testId, OptionSpecStack& assignments);
+
 private:
   void set(const char* name, const char* value, int index);
 
@@ -701,6 +711,7 @@ private:
   RuleActivity _equalityResolutionWithDeletion;
 
   bool _flattenTopLevelConjunctions;
+  string _forbiddenOptions;
   string _forcedOptions;
   Demodulation _forwardDemodulation;
   bool _forwardLiteralRewriting;
