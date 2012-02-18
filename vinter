@@ -11,7 +11,6 @@ function rep_usage_error() {
 Options:
 	--z3 file
 	--vutil file
-	--vampire file
 		specify path to a particular executable. The default value assumes
 		these executables to be in the current directory
 	--time_limit seconds
@@ -279,7 +278,7 @@ fi
 
 ensure_exec_presence VUTIL_EXEC vutil
 ensure_exec_presence Z3_EXEC z3
-ensure_exec_presence VAMPIRE_EXEC vampire
+#ensure_exec_presence VAMPIRE_EXEC vampire
 
 case "$MODE" in
 tptp_vampire)
