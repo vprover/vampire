@@ -25,11 +25,13 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
+class AIGRewriter;
 class AIGTransformer;
 class AIGFormulaSharer;
 
 class AIG {
 public:
+  friend class AIGRewriter;
   friend class AIGTransformer;
   friend class AIGFormulaSharer;
 

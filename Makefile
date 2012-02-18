@@ -237,6 +237,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 VS_OBJ = Shell/AIG.o\
          Shell/AIGCompressor.o\
          Shell/AIGInliner.o\
+         Shell/AIGRewriter.o\
          Shell/AnswerExtractor.o\
          Shell/AxiomGenerator.o\
          Shell/BFNT.o\
@@ -466,6 +467,7 @@ OTHER_API_DEP = \
 	   Saturation/ClauseContainer.o\
 	   Shell/AIG.o\
            Shell/AIGInliner.o\
+           Shell/AIGRewriter.o\
 	   Shell/CNF.o\
 	   Shell/EPRInlining.o\
 	   Shell/EPRSkolem.o\

@@ -8,12 +8,12 @@
 #include <sstream>
 #include <string>
 
+#include "Lib/Environment.hpp"
+#include "Shell/Options.hpp"
+
 #include "Api/FormulaBuilder.hpp"
 #include "Api/Problem.hpp"
 #include "Api/Tracing.hpp"
-
-#define LOG(X) std::cout<<X<<std::endl
-#define LOGV(X) std::cout<<#X<<": "<<X<<std::endl
 
 
 using namespace std;
@@ -76,9 +76,35 @@ void inlineTest(const char* fname)
 
   Problem p2=p.preprocess(m_PreprocessOpts);
 
-
-
   p2.output(cout, true, false);
+}
+
+void assymmetricRewriteTest(const char* fname)
+{
+  Lib::env.options->set("protected_prefix","aaa__");
+
+  ifstream fs(fname);
+  Problem p;
+  p.addFromStream(fs);
+
+  FormulaBuilder api;
+  Api::Sort bs = api.sort("bitindex_type");
+  Api::Var v = api.var("B", bs);
+  Api::Term vt = api.varTerm(v);
+
+  Api::Predicate lf8 = api.predicate("aaa__lessFull_8", 1, &bs);
+  Api::Predicate lf2 = api.predicate("aaa__lessFull_2", 1, &bs);
+  Api::Predicate lf34 = api.predicate("aaa__lessFull_34", 1, &bs);
+  Api::Predicate rng7 = api.predicate("aaa__range_7_0", 1, &bs);
+  Api::Predicate rng1 = api.predicate("aaa__range_1_0", 1, &bs);
+  Api::Predicate rng33 = api.predicate("aaa__range_33_0", 1, &bs);
+
+  Api::Formula lhss[] = { api.formula(lf8, vt), api.formula(lf2, vt), api.formula(lf34, vt) };
+  Api::Formula rhss[] = { api.formula(rng7, vt), api.formula(rng1, vt), api.formula(rng33, vt) };
+  Api::Formula trues[] = { api.trueFormula(), api.trueFormula(), api.trueFormula() };
+
+  Problem p2 = p.performAsymetricRewriting(3, lhss, rhss, trues, rhss);
+  p2.output(cout, false, false);
 }
 
 void testSubst()
@@ -155,7 +181,8 @@ void asymRewritingTest()
 int main(int argc, char* argv [])
 {
   if(argc==2) {
-    inlineTest(argv[1]);
+    assymmetricRewriteTest(argv[1]);
+//    inlineTest(argv[1]);
     return 0;
   }
 

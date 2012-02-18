@@ -32,7 +32,7 @@
 using namespace Debug;
 #endif
 
-#define DEBUG_RESULT_WEIGHT_COMPUTATION 1
+#define DEBUG_RESULT_WEIGHT_COMPUTATION 0
 
 namespace Kernel
 {
