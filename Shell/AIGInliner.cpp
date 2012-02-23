@@ -254,7 +254,7 @@ void AIGInliner::updateModifiedProblem(Problem& prb)
  *
  * @param atom Atom to be expanded. Must be an atom aig with positive polarity.
  */
-bool AIGInliner::tryExpandAtom(AIGRef atom, AIGRef& res)
+bool AIGInliner::tryExpandAtom(AIGRef atom, PremRef& res)
 {
   CALL("AIGInliner::tryExpandAtom");
   ASS(atom.isAtom());
@@ -279,10 +279,14 @@ bool AIGInliner::tryExpandAtom(AIGRef atom, AIGRef& res)
   ASS(!defIt.hasNext()); //we made sure there is always only one way to inline
 
   Literal* defLhs = idxRes.literal;
-  AIGRef defRhs = _defs.get(defLhs)->activeAIGRhs;
 
+  EquivInfo* def = _defs.get(defLhs);
+  unsigned premNum = _atr.getPremiseNum(def->unit);
+  res.second = PremSet::getSingleton(premNum);
+
+  AIGRef defRhs = def->activeAIGRhs;
   if(lit==defLhs) {
-    res = defRhs;
+    res.first = defRhs;
     return true;
   }
 
@@ -295,12 +299,12 @@ bool AIGInliner::tryExpandAtom(AIGRef atom, AIGRef& res)
 
   SubstHelper::MapApplicator<BindingMap> applicator(&binding);
 
-  res = AIGSubst(_aig).apply(applicator, defRhs);
+  res.first = AIGSubst(_aig).apply(applicator, defRhs);
   LOG("pp_aiginl_instance","instantiated AIG definition"<<endl<<
       "  src: "<<atom<<endl<<
       "  lhs: "<<(*defLhs)<<endl<<
       "  rhs: "<<defRhs<<endl<<
-      "  tgt: "<<res<<endl
+      "  tgt: "<<res.first<<endl
       );
   return true;
 }
@@ -318,7 +322,7 @@ void AIGInliner::scan(UnitList* units)
   FormulaStack rhsForms;
   Stack<FormulaUnit*> defUnits;
 
-  DHMap<AIGRef,AIGRef> atomMap;
+  PremRefMap atomMap;
 
   collectDefinitionsAndRelevant(units);
 
@@ -332,12 +336,12 @@ void AIGInliner::scan(UnitList* units)
       continue;
     }
     ASS(a.polarity());
-    AIGRef tgt;
+    PremRef tgt;
     if(!tryExpandAtom(a, tgt)) {
       continue;
     }
     ALWAYS(atomMap.insert(a, tgt));
-    ait.addToTraversal(tgt);
+    ait.addToTraversal(tgt.first);
   }
 
   _inlMap.loadFromMap(atomMap);
@@ -376,7 +380,7 @@ void AIGInliner::scan(UnitList* units)
   Stack<AIGRef>::Iterator baseAigIt(_relevantAigs);
   while(baseAigIt.hasNext()) {
     AIGRef baseAig = baseAigIt.next();
-    AIGRef inlAig = AIGTransformer::lev0Deref(baseAig, _inlMap);
+    AIGRef inlAig = AIGRewriter::lev0Deref(baseAig, _inlMap, 0);
 //    LOGV("bug",baseAig);
 //    LOGV("bug",inlAig);
 //    LOGV("bug",inlAig.toInternalString());
@@ -400,11 +404,11 @@ void AIGInliner::scan(UnitList* units)
 //  );
 }
 
-AIGRef AIGInliner::apply(AIGRef a)
+AIGRef AIGInliner::apply(AIGRef a, PremSet*& prems)
 {
   CALL("AIGInliner::apply(AIGRef)");
 
-  AIGRef inl = AIGTransformer::lev0Deref(a, _inlMap);
+  AIGRef inl = AIGRewriter::lev0Deref(a, _inlMap, &prems);
   AIGRef res = AIGTransformer::lev0Deref(inl, _simplMap);
   COND_LOG("pp_aiginl_aig", a!=res, "inlining aig transformation:"<<endl
       <<"  src: "<<a<<endl
@@ -431,12 +435,12 @@ AIGRef AIGInliner::apply(AIGRef a)
   return res;
 }
 
-Formula* AIGInliner::apply(Formula* f)
+Formula* AIGInliner::apply(Formula* f, PremSet*& prems)
 {
   CALL("AIGInliner::apply(Formula*)");
 
   AIGRef a = _fsh.apply(f).second;
-  AIGRef tgt = apply(a);
+  AIGRef tgt = apply(a, prems);
   if(tgt==a) {
     return f;
   }
@@ -450,9 +454,11 @@ bool AIGInliner::apply(FormulaUnit* unit, Unit*& res)
 
   Formula* f;
 
+  PremSet* prems;
+
   EquivInfo* einf;
   if(_unit2def.find(unit, einf)) {
-    Formula* newRhs = apply(einf->rhs);
+    Formula* newRhs = apply(einf->rhs, prems);
     if(newRhs==einf->rhs) {
       return false;
     }
@@ -472,7 +478,7 @@ bool AIGInliner::apply(FormulaUnit* unit, Unit*& res)
     }
   }
   else {
-    f = apply(unit->formula());
+    f = apply(unit->formula(), prems);
     if(f->connective()==TRUE) {
       res = 0;
       return true;
@@ -482,9 +488,18 @@ bool AIGInliner::apply(FormulaUnit* unit, Unit*& res)
     }
   }
 
+  UnitList* premLst = 0;
+  PremSet::Iterator premNumIt(*prems);
+  while(premNumIt.hasNext()) {
+    unsigned premNum = premNumIt.next();
+    Unit* prem = _atr.getPremiseUnit(premNum);
+    UnitList::push(prem, premLst);
+  }
+  UnitList::push(unit, premLst);
+
   //TODO: collect proper inferences
-  Inference* inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, unit);
-  FormulaUnit* res0 = new FormulaUnit(f, inf, unit->inputType());
+  Inference* inf = new InferenceMany(Inference::PREDICATE_DEFINITION_UNFOLDING, premLst);
+  FormulaUnit* res0 = new FormulaUnit(f, inf, Unit::getInputType(premLst));
 
   res0 = Flattening::flatten(res0);
   res = Rectify::rectify(res0);

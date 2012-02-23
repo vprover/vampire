@@ -235,7 +235,9 @@ UnitSpec ProofSimplifier::transformUnit(UnitSpec u)
 
   AIGRef a = getAIG(u);
   LOGV("pt_simpl_aig", a);
-  AIGRef simplA = _inl.apply(a);
+
+  AIGInliner::PremSet* prems;
+  AIGRef simplA = _inl.apply(a, prems);
   LOGV("pt_simpl_aig", simplA);
   if(simplA.isTrue()) {
     return UnitSpec(0);

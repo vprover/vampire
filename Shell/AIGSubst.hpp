@@ -29,37 +29,193 @@ public:
 private:
   typedef SharedSet<unsigned> VarSet;
 
+  template<class Applicator>
+  VarSet* getSubstFreeVars(Applicator apl, AIGRef aig);
+
+  void getQuantVars(AIGRef aig, DHSet<unsigned>& res);
+  void buildQuantRenaming(VarSet* substFreeVars, const DHSet<unsigned>& quantVars, DHMap<unsigned,unsigned>& res);
+
+  VarSet* mapVarSet(VarSet* vs, const DHMap<unsigned,unsigned>& map);
+
+#if 0
+  template<class Inner>
+  struct WrapperSubst
+  {
+    CLASS_NAME("AIGSubst::WrapperSubst")
+    USE_ALLOCATOR(WrapperSubst);
+
+    WrapperSubst(Inner& inner, VarSet* forbidden)
+    : _inner(inner), _nextCandidate(0)
+    {
+      CALL("AIGSubst::WrapperSubst::WrapperSubst");
+
+      _forbidden.loadFromIterator(VarSet::Iterator(*forbidden));
+    }
+
+    void enterQuantifier(AIGRef quant)
+    {
+      CALL("AIGSubst::WrapperSubst::enterQuantifier");
+
+      VarSet* vars = quant.getQuantifierVars();
+      VarSet::Iterator vit(*vars);
+      while(vit.hasNext()) {
+	unsigned var = vit.next();
+	if(_renaming.find(var)) {
+	  continue;
+	}
+	unsigned tgt;
+	if(_forbidden.find(var)) {
+	  while(_forbidden.find(_nextCandidate)) {
+	    _nextCandidate++;
+	  }
+	  tgt = _nextCandidate++;
+	}
+	else {
+	  tgt = var;
+	}
+	_renaming.insert(var, tgt);
+	_forbidden.insert(tgt);
+      }
+    }
+    AIGRef applyToQuantifier(AIGRef quant, AIGRef newBody)
+    {
+
+    }
+
+    TermList apply(unsigned var) {
+      unsigned renRes;
+      if(_renaming.find(var, renRes)) {
+	return TermList(renRes, false);
+      }
+      return _inner.apply(var);
+    }
+
+    Inner& _inner;
+    DHSet<unsigned> _forbidden;
+    /** next candidate for a fresh variable */
+    unsigned _nextCandidate;
+    DHMap<unsigned,unsigned> _renaming;
+  };
+#else
   template<class Inner>
   struct FilteringApplicator
   {
-    FilteringApplicator(Inner& inner) : _filter(VarSet::getEmpty()), _inner(inner) {}
+    FilteringApplicator(Inner& inner, const DHMap<unsigned,unsigned>& quantMap)
+    : _filter(VarSet::getEmpty()), _inner(inner), _quantMap(quantMap) {}
 
     void setFilter(VarSet* skipped) {
       _filter = skipped;
     }
     TermList apply(unsigned var) {
       if(_filter->member(var)) {
-	return TermList(var, false);
+	unsigned res;
+	if(!_quantMap.find(var, res)) {
+	  res = var;
+	}
+	return TermList(res, false);
       }
       return _inner.apply(var);
     }
 
     VarSet* _filter;
     Inner& _inner;
+    const DHMap<unsigned,unsigned>& _quantMap;
   };
+#endif
 
   AIG& _aig;
 };
 
+template<class Applicator>
+AIGSubst::VarSet* AIGSubst::getSubstFreeVars(Applicator apl, AIGRef aig)
+{
+  CALL("AIGSubst::getSubstFreeVars");
+
+  static Stack<unsigned> varStack;
+  varStack.reset();
+
+  VarSet* baseFreeVars = aig.getFreeVars();
+  VarSet::Iterator bvit(*baseFreeVars);
+  while(bvit.hasNext()) {
+    unsigned bv = bvit.next();
+    TermList inst = apl.apply(bv);
+    if(inst.isVar()) {
+      varStack.push(inst.var());
+    }
+    else {
+      varStack.loadFromIterator(VarSet::Iterator(*AIG::getTermFreeVars(inst.term())));
+    }
+  }
+
+  return VarSet::getFromIterator(Stack<unsigned>::Iterator(varStack));
+}
+
+void AIGSubst::getQuantVars(AIGRef aig, DHSet<unsigned>& res)
+{
+  CALL("AIGSubst::getQuantVars");
+
+  static AIGInsideOutPosIterator ait;
+  ait.reset(aig);
+  while(ait.hasNext()) {
+    AIGRef a = ait.next();
+    if(!a.isQuantifier()) {
+      continue;
+    }
+    res.loadFromIterator(VarSet::Iterator(*a.getQuantifierVars()));
+  }
+}
+
+void AIGSubst::buildQuantRenaming(VarSet* substFreeVars, const DHSet<unsigned>& quantVars,
+    DHMap<unsigned,unsigned>& res)
+{
+  CALL("AIGSubst::buildQuantRenaming");
+
+  unsigned nextCandidate = 0;
+  VarSet::Iterator sfvit(*substFreeVars);
+  while(sfvit.hasNext()) {
+    unsigned fvar = sfvit.next();
+    if(!quantVars.contains(fvar)) {
+      continue;
+    }
+    while(quantVars.contains(nextCandidate) || substFreeVars->member(nextCandidate)) {
+      nextCandidate++;
+    }
+    unsigned tgt = nextCandidate++;
+    res.insert(fvar, tgt);
+  }
+}
+
+AIGSubst::VarSet* AIGSubst::mapVarSet(VarSet* vs, const DHMap<unsigned,unsigned>& map)
+{
+  CALL("AIGSubst::mapVarSet");
+
+  static Stack<unsigned> res;
+  res.reset();
+  VarSet::Iterator vit(*vs);
+  while(vit.hasNext()) {
+    unsigned var = vit.next();
+    map.find(var, var);
+    res.push(var);
+  }
+  VarSet* resSet = VarSet::getFromArray(res.begin(), res.size());
+  return resSet;
+}
 
 template<class Applicator>
 AIGRef AIGSubst::apply(Applicator apl, AIGRef aig)
 {
   CALL("AIGSubst::apply");
 
-  FilteringApplicator<Applicator> fapl(apl);
+  VarSet* substFreeVars = getSubstFreeVars(apl, aig);
+  static DHSet<unsigned> quantVars;
+  quantVars.reset();
+  getQuantVars(aig, quantVars);
+  static DHMap<unsigned,unsigned> quantMap;
+  quantMap.reset();
+  buildQuantRenaming(substFreeVars, quantVars, quantMap);
 
-  AIGTransformer atr(_aig);
+  FilteringApplicator<Applicator> fapl(apl, quantMap);
+
   typedef pair<AIGRef, VarSet*> QAig;
   static DHMap<QAig, AIGRef> map;
   static Stack<QAig> toDo;
@@ -96,14 +252,19 @@ AIGRef AIGSubst::apply(Applicator apl, AIGRef aig)
       AIGRef pparTgt;
       if(map.find(qpar, pparTgt)) {
 	AIGRef tgt;
-	if(pparTgt==ppar) {
+	VarSet* newQVars = mapVarSet(qSet, quantMap);
+	if(pparTgt==ppar && newQVars==qSet) {
 	  tgt = cAig;
 	}
 	else {
 	  AIGRef parTgt = par.polarity() ? pparTgt : pparTgt.neg();
-	  tgt = _aig.getQuant(false, cAig.getQuantifierVars(), parTgt);
+	  tgt = _aig.getQuant(false, newQVars, parTgt);
 	}
 	map.insert(curr, tgt);
+	LOG("pp_aig_subst_quant", "quant subst:"<<endl
+	    <<"  src: "<<curr.first<<endl
+	    <<"  tgt: "<<tgt<<endl
+	    <<"  new quant: "<<newQVars->toString());
       }
       else {
 	toDo.push(qpar);

@@ -174,7 +174,6 @@ private:
 
   void normalizeRefOrder(Ref& par1, Ref& par2);
 
-  static VarSet* getAtomFreeVars(Literal* lit);
 
   //simplifications according to
   //Brummayer, R., Biere, A.: Local Two-Level And-Inverter Graph Minimization without Blowup
@@ -199,6 +198,7 @@ public:
 
   Ref getInvalid() const { return Ref::getInvalid(); }
 
+  static VarSet* getTermFreeVars(Term* lit);
   static bool hasPositivePolarity(Ref r) { return r.polarity(); }
 };
 

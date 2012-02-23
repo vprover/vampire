@@ -165,7 +165,7 @@ public:
       clr = COLOR_TRANSPARENT;
       break;
     case ATOM:
-      vars = getAtomFreeVars(literal());
+      vars = getTermFreeVars(literal());
       clr = literal()->color();
       break;
     case CONJ:
@@ -182,20 +182,23 @@ public:
   }
 };
 
-AIG::VarSet* AIG::getAtomFreeVars(Literal* lit)
+/**
+ * Can be used for both terms and literals
+ */
+AIG::VarSet* AIG::getTermFreeVars(Term* trm)
 {
-  CALL("AIG::getAtomFreeVars");
+  CALL("AIG::getTermFreeVars");
 
-  if(lit->shared()) {
-    if(lit->ground()) {
+  if(trm->shared()) {
+    if(trm->ground()) {
       return VarSet::getEmpty();
     }
     VariableIterator vit;
-    vit.reset(lit);
+    vit.reset(trm);
     return VarSet::getFromIterator(getMappingIterator<VariableIterator&>(vit, OrdVarNumberExtractorFn()));
   }
 
-  FormulaVarIterator fvit(lit);
+  FormulaVarIterator fvit(trm);
   return VarSet::getFromIterator(fvit);
 }
 

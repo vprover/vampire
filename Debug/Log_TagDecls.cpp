@@ -441,6 +441,9 @@ void Logging::doTagDeclarations()
   DECL("pp_aig_subst",
       DOC("aig substitution applications"),
       PARENT("pp_aig",1));
+  DECL("pp_aig_subst_quant",
+      DOC("quantifier transformations by substitutions"),
+      PARENT("pp_aig_subst",1));
 
   DECL("pp_aigtr",
       DOC("AIGTransformer"),

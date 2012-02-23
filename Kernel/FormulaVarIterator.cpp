@@ -29,12 +29,12 @@ FormulaVarIterator::FormulaVarIterator (const Formula* f)
   _formulas.push(f);
 } // FormulaVarIterator::FormulaVarIterator
 
-FormulaVarIterator::FormulaVarIterator (const Literal* lit)
+FormulaVarIterator::FormulaVarIterator (const Term* trm)
   : _found(false)
 {
   CALL("FormulaVarIterator::FormulaVarIterator(const Literal*)");
   _instructions.push(FVI_TERM);
-  _terms.push(lit->args());
+  _terms.push(trm->args());
 } // FormulaVarIterator::FormulaVarIterator
 
 /**

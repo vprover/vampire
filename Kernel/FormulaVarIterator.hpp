@@ -35,7 +35,7 @@ class FormulaVarIterator
 {
 public:
   explicit FormulaVarIterator(const Formula*);
-  explicit FormulaVarIterator(const Literal*);
+  explicit FormulaVarIterator(const Term*);
   bool hasNext();
   int next();
 

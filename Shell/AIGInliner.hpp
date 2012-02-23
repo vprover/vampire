@@ -15,6 +15,7 @@
 
 #include "AIG.hpp"
 #include "AIGCompressor.hpp"
+#include "AIGRewriter.hpp"
 
 namespace Shell {
 
@@ -66,8 +67,14 @@ class AIGInliner : public ScanAndApplyFormulaUnitTransformer {
   DHMap<Literal*, EquivInfo*> _defs;
   DHMap<FormulaUnit*, EquivInfo*> _unit2def;
 
-  DHMap<AIGRef,AIGRef> _inlMap;
-  DHMap<AIGRef,AIGRef> _simplMap;
+public:
+  typedef AIGRewriter::PremiseSet PremSet;
+  typedef AIGRewriter::PremRef PremRef;
+  typedef AIGRewriter::RefMap PremRefMap;
+  typedef DHMap<AIGRef,AIGRef> RefMap;
+private:
+  PremRefMap _inlMap;
+  RefMap _simplMap;
 
 #if VDEBUG
   //to check whether we collect all relevant AIGs
@@ -76,14 +83,14 @@ class AIGInliner : public ScanAndApplyFormulaUnitTransformer {
 
   mutable AIGFormulaSharer _fsh;
   AIG& _aig;
-  AIGTransformer _atr;
+  AIGRewriter _atr;
   AIGCompressor _acompr;
 
 
 
   bool addInfo(EquivInfo* inf);
   void collectDefinitionsAndRelevant(UnitList* units);
-  bool tryExpandAtom(AIGRef atom, AIGRef& res);
+  bool tryExpandAtom(AIGRef atom, PremRef& res);
 
 
 public:
@@ -100,8 +107,8 @@ public:
 
   void addRelevant(AIGRef a);
   void addRelevant(Formula* f);
-  AIGRef apply(AIGRef a);
-  Formula* apply(Formula* f);
+  AIGRef apply(AIGRef a, PremSet*& prems);
+  Formula* apply(Formula* f, PremSet*& prems);
 
 protected:
   virtual void updateModifiedProblem(Problem& prb);
