@@ -409,6 +409,22 @@ void System::registerForSIGHUPOnParentDeath()
 #endif
 }
 
+/**
+ * Read command line arguments into @c res and register the executable name
+ * (0-th element of @c argv) using the @c registerArgv0() function.
+ */
+void System::readCmdArgs(int argc, char* argv[], StringStack& res)
+{
+  CALL("System::readCmdArgs");
+  ASS_G(argc,1);
+  ASS(res.isEmpty()); //just to avoid any confusion, if it causes problems, the assumption can be removed
+
+  registerArgv0(argv[0]);
+  for(int i=1; i<argc; i++) {
+    res.push(argv[i]);
+  }
+}
+
 string System::extractFileNameFromPath(string str)
 {
   CALL("System::extractFileNameFromPath");

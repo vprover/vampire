@@ -58,6 +58,8 @@ public:
 
   static void registerForSIGHUPOnParentDeath();
 
+  static void readCmdArgs(int argc, char* argv[], StringStack& res);
+
   /**
    * Register the value of the argv[0] argument of the main function, so that
    * it can be later used to determine the executable directory

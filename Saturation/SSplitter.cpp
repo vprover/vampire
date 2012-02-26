@@ -25,15 +25,24 @@
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/TWLSolver.hpp"
+#include "SAT/MinimizingSolver.hpp"
 
 #include "SSplitter.hpp"
 #include "SaturationAlgorithm.hpp"
+
+
+#define DEBUG_MIN_SOLVER VDEBUG
+
+#if DEBUG_MIN_SOLVER
+#include "Test/CheckedSatSolver.hpp"
+#endif
 
 namespace Saturation
 {
 
 using namespace Lib;
 using namespace Kernel;
+
 
 /////////////////////////////
 // SSplittingBranchSelector
@@ -46,7 +55,10 @@ void SSplittingBranchSelector::init()
   _eagerRemoval = _parent.getOptions().ssplittingEagerRemoval();
 //  _sweepingMode = _parent.getOptions().ssplittingComponentSweeping();
 
-  _solver = new TWLSolver(_parent.getOptions(), true);
+  _solver = new MinimizingSolver(new TWLSolver(_parent.getOptions(), true));
+#if DEBUG_MIN_SOLVER
+  _solver = new Test::CheckedSatSolver(_solver.release());
+#endif
 }
 
 void SSplittingBranchSelector::updateVarCnt()

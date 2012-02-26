@@ -647,6 +647,25 @@ void Logging::doTagDeclarations()
       DOC("clauses and assumptions passed to the inner solver"),
       PARENT("sat_ts",1));
 
+  DECL("sat_min",
+      DOC("sat model minimizer"),
+      PARENT("sat",1));
+  DECL("sat_min_sz",
+      DOC("minimized model size"),
+      PARENT("sat_min",0));
+  DECL("sat_min_au",
+      DOC("assignment update"),
+      PARENT("sat_min",1));
+  DECL("sat_min_sel",
+      DOC("selected literals"),
+      PARENT("sat_min",1));
+  DECL("sat_min_mdl_chng",
+      DOC("reflecting model changes"),
+      PARENT("sat_min",2));
+  DECL("sat_min_satisfied_clauses",
+      DOC("satisfying and unsatisfying of clauses"),
+      PARENT("sat_min",3));
+
   //
   // Multiprocessing
   //

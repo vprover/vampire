@@ -10,6 +10,7 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
 
@@ -38,8 +39,20 @@ public:
 
 private:
 
+  static bool isNonEmptyClause(SATClause* cl);
+
+  SATLiteral getMostSatisfyingTrueLiteral();
+  void selectLiteral(SATLiteral lit);
+
+  bool tryPuttingToAnExistingWatch(SATClause* cl);
+  void putIntoIndex(SATClause* cl);
+
+  void processInnerAssignmentChanges();
+  void processUnprocessed();
   void updateAssignment();
 
+
+  unsigned _varCnt;
   SATSolverSCP _inner;
 
   DHMap<unsigned, bool> _assumptions;
@@ -69,12 +82,28 @@ private:
    * Array of clauses kept satisfied by selecting or non-selecting
    * a particular variable
    *
-   * Invariant to hold outside of addSatClauses:
-   * All added clauses that contain at least one positive literal
-   * are added into the wather. Each such clause occurrs here exactly
-   * once.
+   * The length of the array is _varCnt.
    */
   DArray<SATClauseStack> _watcher;
+
+  /**
+   * Number of unsatisfied clauses for each literal.
+   *
+   * The length of the array is _varCnt*2.
+   */
+  DArray<unsigned> _unsClCnt;
+
+  /**
+   * Not yet satisfied clauses indexed by their literals
+   *
+   * A clause appears once for every literal.
+   * Index in the array translates as SatLiteral::content()
+   *
+   * The length of the array is _varCnt*2.
+   */
+  DArray<SATClauseStack> _clIdx;
+
+  DHSet<SATClause*> _satisfiedClauses;
 
 };
 

@@ -13,6 +13,7 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "SAT/DIMACS.hpp"
+#include "SAT/MinimizingSolver.hpp"
 #include "SAT/Preprocess.hpp"
 #include "SAT/SingleWatchSAT.hpp"
 #include "SAT/TWLSolver.hpp"
@@ -23,10 +24,29 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
+#include "Test/CheckedSatSolver.hpp"
+
 using namespace Lib;
 using namespace SAT;
 using namespace Shell;
+using namespace Test;
 using namespace std;
+
+struct SatOptions
+{
+  bool simulateIncremental;
+  bool minimizingSolver;
+  bool checkingSolver;
+  string fileName;
+
+  SatOptions()
+  : simulateIncremental(false),
+    minimizingSolver(false),
+    checkingSolver(false)
+  {}
+};
+
+
 
 SATClauseList* getInputClauses(const char* fname, unsigned& varCnt)
 {
@@ -146,28 +166,39 @@ SATSolver::Status runSolver(SATSolver& solver, unsigned varCnt, SATClauseList* c
   return solver.getStatus();
 }
 
-void satSolverMode(const char* fname)
+void satSolverMode(SatOptions& opts)
 {
   CALL("satSolverMode");
 
   env.statistics->phase = Statistics::PARSING;
   unsigned varCnt;
-  SATClauseList* clauses = getPreprocessedClauses(fname, varCnt);
+  SATClauseList* clauses;
+  if(opts.fileName.empty()) {
+    clauses = getPreprocessedClauses(0, varCnt);
+  }
+  else {
+    clauses = getPreprocessedClauses(opts.fileName.c_str(), varCnt);
+  }
 
   env.statistics->phase = Statistics::SATURATION;
 
   cout<<"-start varcnt "<<varCnt<<"\n";
 
-  TWLSolver ts(*env.options, true);
+  SATSolverSCP solver(new TWLSolver(*env.options, true));
+
+  if(opts.minimizingSolver) {
+    solver = new MinimizingSolver(solver.release());
+  }
+  if(opts.checkingSolver) {
+    solver = new CheckedSatSolver(solver.release());
+  }
 
   SATSolver::Status res;
-//  bool incremental = 1;
-  bool incremental = 0;
-  if(incremental) {
-    res = runSolverIncrementally(ts, varCnt, clauses);
+  if(opts.simulateIncremental) {
+    res = runSolverIncrementally(*solver, varCnt, clauses);
   }
   else {
-    res = runSolver(ts, varCnt, clauses);
+    res = runSolver(*solver, varCnt, clauses);
   }
 
   env.statistics->phase = Statistics::FINALIZATION;
@@ -186,40 +217,82 @@ void satSolverMode(const char* fname)
   clauses->destroy();
 }
 
+void processArgs(StringStack& args, SatOptions& opts)
+{
+  CALL("processArgs");
+
+  StringStack::StableDelIterator it(args);
+  while(it.hasNext()) {
+    string arg = it.next();
+    if(arg=="-incr") {
+      opts.simulateIncremental = true;
+      it.del();
+    }
+    else if(arg=="-minim") {
+      opts.minimizingSolver = true;
+      it.del();
+    }
+    else if(arg=="-checked") {
+      opts.checkingSolver = true;
+      it.del();
+    }
+    else if(arg=="-tr") {
+      it.del();
+      if(!it.hasNext()) {
+	USER_ERROR("value for -tr option expected");
+      }
+      string traceStr(it.next());
+      it.del();
+      PROCESS_TRACE_SPEC_STRING(traceStr);
+    }
+  }
+  if(args.size()>1) {
+    while(args.isNonEmpty()) {
+      cout<<args.pop()<<endl;
+    }
+    USER_ERROR("too many arguments");
+  }
+  if(args.isNonEmpty()) {
+    opts.fileName = args.pop();
+  }
+}
+
 int main(int argc, char* argv [])
 {
   CALL("main");
 
-  System::registerArgv0(argv[0]);
-  Random::setSeed(1);
-  Options options;
-  Allocator::setMemoryLimit(env.options->memoryLimit()*1048576);
-
-  Lib::Random::setSeed(env.options->randomSeed());
-
-  env.options->setTimeLimitInSeconds(3600);
-
   try {
-    switch(argc) {
-    case 1:
-      satSolverMode(0);
-      break;
-    case 2:
-      satSolverMode(argv[1]);
-      break;
-    default:
-      cout<<"invalid parameter"<<endl;
-      return 1;
-    }
+    System::registerArgv0(argv[0]);
+    Random::setSeed(1);
+    Options options;
+    Allocator::setMemoryLimit(env.options->memoryLimit()*1048576);
+
+    StringStack args;
+    System::readCmdArgs(argc, argv, args);
+
+    SatOptions opts;
+    processArgs(args, opts);
+
+    Lib::Random::setSeed(env.options->randomSeed());
+
+    env.options->setTimeLimitInSeconds(3600);
+
+    satSolverMode(opts);
   }
-  catch(MemoryLimitExceededException)
+  catch(MemoryLimitExceededException&)
   {
     cerr<<"Memory limit exceeded\n";
     cout<<"-MEMORY_LIMIT\n";
   }
-  catch(TimeLimitExceededException)
+  catch(TimeLimitExceededException&)
   {
     cout<<"TIME LIMIT\n";
+  }
+  catch(UserErrorException& e)
+  {
+    cout<<"USER ERROR: ";
+    e.cry(cout);
+    cout<<"\n";
   }
 
   env.statistics->print(cout);

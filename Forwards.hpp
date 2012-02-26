@@ -47,6 +47,8 @@ class ArraySet;
 typedef List<int> IntList;
 typedef List<VoidFunc> VoidFuncList;
 
+typedef Stack<std::string> StringStack;
+
 typedef Map<std::string,unsigned,Hash> SymbolMap;
 
 
