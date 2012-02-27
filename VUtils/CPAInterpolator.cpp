@@ -239,6 +239,7 @@ void CPAInterpolator::doProving()
 void CPAInterpolator::displayResult()
 {
   CALL("CPAInterpolator::displayResult");
+  AIGInliner::PremSet* dummy; //we don't care about premises here
 
   env.options->set("show_interpolant","off");
 
@@ -271,7 +272,7 @@ void CPAInterpolator::displayResult()
     AIGInliner inl;
     inl.addRelevant(oldItp);
     inl.scan(_defs);
-    oldItp = Flattening::flatten(inl.apply(oldItp));
+    oldItp = Flattening::flatten(inl.apply(oldItp,dummy));
   }
   env.out() << "Old interpolant: " << TPTP::toString(oldItp) << endl;
 
@@ -290,9 +291,9 @@ void CPAInterpolator::displayResult()
   inl.scan(_defs);
 
 //  oldInterpolant = inl.apply(oldInterpolant);
-  interpolant = inl.apply(interpolant);
-  cntInterpolant = inl.apply(cntInterpolant);
-  quantInterpolant = inl.apply(quantInterpolant);
+  interpolant = inl.apply(interpolant, dummy);
+  cntInterpolant = inl.apply(cntInterpolant, dummy);
+  quantInterpolant = inl.apply(quantInterpolant, dummy);
 
   env.out() << "Interpolant: " << TPTP::toString(interpolant) << endl;
   env.out() << "Count minimized interpolant: " << TPTP::toString(cntInterpolant) << endl;

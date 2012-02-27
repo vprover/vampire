@@ -135,6 +135,9 @@ typedef SingleParamEvent<Clause*> ClauseEvent;
 typedef List<Clause*> ClauseList;
 typedef Stack<Clause*> ClauseStack;
 
+typedef VirtualIterator<Literal*> LiteralIterator;
+
+
 class Problem;
 
 class FlatTerm;
