@@ -100,9 +100,9 @@ public:
   inline bool isTerm() const
   { return tag() == REF; }
   inline const Term* term() const
-  { return _term; }
+  { ASS(isTerm()); return _term; }
   inline Term* term()
-  { return _term; }
+  { ASS(isTerm()); return _term; }
   /** True of the terms have the same content. Useful for comparing
    * arguments of shared terms. */
   inline bool sameContent(const TermList* t) const
