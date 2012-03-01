@@ -137,10 +137,11 @@ Ordering::Result Ordering::EqCmp::compareEqualities(Literal* eq1, Literal* eq2) 
 }
 
 /**
- * Return the result of literal comparison assuming s1 > t1
+ * Return the result of comparison of literals s1=s2 and t1=t2, assuming s1 > t1
  */
 Ordering::Result Ordering::EqCmp::compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
+  CALL("Ordering::EqCmp::compare_s1Gt1");
   ASS_EQ(compare(s1,t1), GREATER);
 
   switch(compare(s2,t2)) {

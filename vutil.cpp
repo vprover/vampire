@@ -25,6 +25,7 @@
 
 #include "VUtils/AnnotationColoring.hpp"
 #include "VUtils/CPAInterpolator.hpp"
+#include "VUtils/DPTester.hpp"
 #include "VUtils/EPRRestoringScanner.hpp"
 #include "VUtils/FOEquivalenceDiscovery.hpp"
 #include "VUtils/PreprocessingEvaluator.hpp"
@@ -139,6 +140,9 @@ int main(int argc, char* argv [])
     }
     else if(module=="smt") {
       resultValue=SimpleSMT().perform(args.size(), args.begin());
+    }
+    else if(module=="dpt") {
+      resultValue=DPTester().perform(args.size(), args.begin());
     }
     else if(module=="vamp_casc") {
       Shell::CommandLine cl(args.size()-1, args.begin()+1);

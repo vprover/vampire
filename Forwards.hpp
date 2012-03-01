@@ -346,6 +346,12 @@ class TabulationAlgorithm;
 class Producer;
 }
 
+namespace DP
+{
+class DecisionProcedure;
+class ScopedDecisionProcedure;
+}
+
 /**
  * Deletion of incomplete class types causes memory leaks. Using this
  * causes compile error when deleting incomplete classes.

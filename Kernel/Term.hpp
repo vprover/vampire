@@ -583,6 +583,25 @@ protected:
   friend class Ordering;
 private:
   string specialTermToString() const;
+
+public:
+  class Iterator
+  {
+  public:
+    DECL_ELEMENT_TYPE(TermList);
+    Iterator(Term* t) : _next(t->args()) {}
+    bool hasNext() const { return _next->isNonEmpty(); }
+    TermList next()
+    {
+      CALL("Term::Iterator::next");
+      ASS(hasNext());
+      TermList res = *_next;
+      _next = _next->next();
+      return res;
+    }
+  private:
+    TermList* _next;
+  };
 }; // class Term
 
 /**

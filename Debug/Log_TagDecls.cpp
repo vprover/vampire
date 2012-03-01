@@ -215,6 +215,38 @@ void Logging::doTagDeclarations()
       DOC("hyper-superposition results after the intended simplification"),
       PARENT("inf_hsp",1));
 
+  //
+  // Decison procedures
+  //
+
+  DECL("dp",
+      DOC("decision procedures"));
+
+
+  DECL("dp_cc",
+      DOC("congruence closure"),
+      PARENT("dp",1));
+  DECL("dp_cc_interf",
+      DOC("interface"),
+      PARENT("dp_cc",1));
+  DECL("dp_cc_interf_inp",
+      DOC("added first-order literals"),
+      PARENT("dp_cc_interf",1));
+  DECL("dp_cc_interf_res",
+      DOC("result statuses"),
+      PARENT("dp_cc_interf",1));
+
+  DECL("dp_cc_const_intr",
+      DOC("constant introductions"),
+      PARENT("dp_cc",1));
+  DECL("dp_cc_eqs_pending",
+      DOC("pending equalities"),
+      PARENT("dp_cc",1));
+  DECL("dp_cc_contr",
+      DOC("contradiction pair"),
+      PARENT("dp_cc",1));
+
+
 
   //
   // SAT-based splitting
