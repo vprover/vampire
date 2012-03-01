@@ -58,6 +58,8 @@ private:
   }
 
   void addPendingEquiality(CEq eq) {
+    ASS_G(eq.first,0);
+    ASS_G(eq.second,0);
     LOG("dp_cc_eqs_pending", "pending equality: ("<<eq.first<<","<<eq.second<<")");
     _pendingEqualities.push(eq);
   }

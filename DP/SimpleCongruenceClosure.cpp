@@ -127,6 +127,7 @@ struct SimpleCongruenceClosure::FOConversionWorker
     }
     _parent._cInfos[res].term = t;
     _parent._termNames.insert(t, res);
+    LOG("dp_cc_fo_conv", "Term "<<t<<" converted to "<<res);
     return res;
   }
 
@@ -154,6 +155,8 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
     res = getPairName(CPair(res, argConst));
   }
   _cInfos[res].lit = lit;
+
+  LOG("dp_cc_fo_conv", "Lit "<<(*Literal::positiveLiteral(lit))<<" converted to "<<res);
   return res;
 }
 
@@ -235,7 +238,7 @@ void SimpleCongruenceClosure::propagate()
       CPair derefPair = deref(usedPair);
 
       unsigned* pDerefPairName;
-      if(_pairNames.getValuePtr(derefPair, pDerefPairName)) {
+      if(!_pairNames.getValuePtr(derefPair, pDerefPairName)) {
 	addPendingEquiality(CEq(*pDerefPairName, usePairConst));
       }
       else {

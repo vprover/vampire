@@ -236,6 +236,10 @@ void Logging::doTagDeclarations()
       DOC("result statuses"),
       PARENT("dp_cc_interf",1));
 
+  DECL("dp_cc_fo_conv",
+      DOC("conversion of first-order literals to internal represenation"),
+      PARENT("dp_cc",1));
+
   DECL("dp_cc_const_intr",
       DOC("constant introductions"),
       PARENT("dp_cc",1));
