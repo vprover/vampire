@@ -23,11 +23,11 @@ SimpleCongruenceClosure::SimpleCongruenceClosure()
 
   _posLitConst = getFreshConst();
   _negLitConst = getFreshConst();
-  _negEqualities.push(CEq(_posLitConst, _negLitConst));
+  _negEqualities.push(CEq(_posLitConst, _negLitConst, 0));
   LOG("dp_cc_const_intr", "posConst: "<<_posLitConst);
   LOG("dp_cc_const_intr", "negConst: "<<_negLitConst);
 
-  _unsatEq = CEq(0,0);
+//  _unsatEq = CEq(0,0);
 }
 
 /** Introduce fresh congruence closure constant */
@@ -166,7 +166,7 @@ SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal*
 
   unsigned arg1 = convertFO(*equality->nthArgument(0));
   unsigned arg2 = convertFO(*equality->nthArgument(1));
-  return CEq(arg1, arg2);
+  return CEq(arg1, arg2, equality);
 }
 
 void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
@@ -194,13 +194,15 @@ void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
       unsigned predConst = convertFONonEquality(l);
       CEq eq;
       if(l->isPositive()) {
-	eq = CEq(predConst, _posLitConst);
+	eq = CEq(predConst, _posLitConst, l);
       }
       else {
-	eq = CEq(predConst, _negLitConst);
+	eq = CEq(predConst, _negLitConst, l);
       }
       addPendingEquiality(eq);
     }
+
+    _allAddedLits.push(l);
   }
 }
 
@@ -210,7 +212,7 @@ void SimpleCongruenceClosure::propagate()
 
   while(_pendingEqualities.isNonEmpty()) {
     CEq curr0 = _pendingEqualities.pop();
-    CEq curr = deref(curr0);
+    CPair curr = deref(curr0);
     if(curr.first==curr.second) {
       continue;
     }
@@ -222,6 +224,8 @@ void SimpleCongruenceClosure::propagate()
 
     ConstInfo& aInfo = _cInfos[aRep];
     ConstInfo& bInfo = _cInfos[bRep];
+    ASS_EQ(aInfo.proofPredecessor,0);
+    ASS_EQ(aInfo.reprConst,0);
     aInfo.proofPredecessor = bRep;
     aInfo.reprConst = bRep;
     bInfo.classList.push(aRep);
@@ -263,10 +267,10 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus()
   Stack<CEq>::BottomFirstIterator neqIt(_negEqualities);
   while(neqIt.hasNext()) {
     CEq neq = neqIt.next();
-    CEq derNEq = deref(neq);
+    CPair derNEq = deref(neq);
     if(derNEq.first==derNEq.second) {
       _unsatEq = neq;
-      LOG("dp_cc_contr", "contradiction: ("<<neq.first<<","<<neq.second<<") both dereferenced to "<<derNEq.first);
+      LOG("dp_cc_contr", "contradiction: ("<<neq.c1<<","<<neq.c2<<") both dereferenced to "<<derNEq.first);
       LOG("dp_cc_interf_res","cc gave UNSAT");
       return DecisionProcedure::UNSATISFIABLE;
     }
@@ -279,6 +283,17 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus()
 void SimpleCongruenceClosure::getUnsatisfiableSubset(LiteralStack& res)
 {
   CALL("SimpleCongruenceClosure::getUnsatisfiableSubset");
+  ASS(res.isEmpty());
+  ASS(!_unsatEq.isInvalid());
+
+  //ineficient but correct: return everything
+  res.loadFromIterator(LiteralStack::Iterator(_allAddedLits));
+  return;
+
+  static Stack<CEq> toExplain;
+  toExplain.push(_unsatEq);
+
+
 
   NOT_IMPLEMENTED;
 }

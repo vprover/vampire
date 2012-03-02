@@ -35,8 +35,29 @@ private:
    */
   typedef pair<unsigned,unsigned> CPair;
   /** Equality between two constants */
-  typedef pair<unsigned,unsigned> CEq;
+  struct CEq
+  {
+    CEq() : c1(0), c2(0) {}
+    CEq(unsigned c1, unsigned c2, Literal* lit)
+     : c1(c1), c2(c2), foOrigin(true), foPremise(lit) {}
+    CEq(unsigned c1, unsigned c2)
+     : c1(c1), c2(c2), foOrigin(false) {}
 
+    bool isInvalid() const { ASS_EQ(c1==0, c2==0); return c1==0; }
+
+    unsigned c1;
+    unsigned c2;
+    /**
+     * If true, equality comes from @c foPremise, if false,
+     * it follows from a congruence between pairs represented by
+     * @c c1 and @c c2.
+     */
+    bool foOrigin;
+    /** if 0, the equality is the true!=false equality to help represent non-equality literals */
+    Literal* foPremise;
+  };
+
+  unsigned getMaxConst() const { return _cInfos.size()-1; }
   unsigned getFreshConst();
   unsigned getSignatureConst(unsigned symbol, bool funct);
   unsigned getPairName(CPair p);
@@ -52,15 +73,32 @@ private:
     return (repr==0) ? c : repr;
   }
   CPair deref(CPair p) const { return CPair(deref(p.first), deref(p.second)); }
+  CPair deref(CEq p) const { return CPair(deref(p.c1), deref(p.c2)); }
 
   unsigned getClassSize(unsigned c) const {
     return _cInfos[c].classList.size();
   }
 
   void addPendingEquiality(CEq eq) {
-    ASS_G(eq.first,0);
-    ASS_G(eq.second,0);
-    LOG("dp_cc_eqs_pending", "pending equality: ("<<eq.first<<","<<eq.second<<")");
+    ASS_G(eq.c1,0);
+    ASS_G(eq.c2,0);
+    TRACE("dp_cc_eqs_pending",
+	tout << "pending equality: ("<<eq.c1<<","<<eq.c2<<") implied by ";
+	if(eq.foOrigin) {
+	  if(eq.foPremise) {
+	    tout << (*eq.foPremise);
+	  }
+	  else {
+	    tout << " built-in true!=false";
+	  }
+	}
+	else {
+	  CPair p1= _cInfos[eq.c1].namedPair;
+	  CPair p2= _cInfos[eq.c2].namedPair;
+	  tout << "congruence of ("<<p1.first<<","<<p1.second<<") and ("<<p2.first<<","<<p2.second<<")";
+	}
+	tout << endl;
+    );
     _pendingEqualities.push(eq);
   }
 
@@ -76,6 +114,9 @@ private:
       lit = 0;
       namedPair = CPair(0,0);
       reprConst = 0;
+#if VDEBUG
+      proofPredecessor = 0;
+#endif
     }
 
 
@@ -99,6 +140,7 @@ private:
      * (used for proof construction)
      */
     unsigned proofPredecessor;
+
 
     /** If reprConst==0, contains other constants whose representative
      * this constant is */
@@ -135,13 +177,17 @@ private:
   DHMap<TermList,unsigned> _termNames;
 
   /**
-   * Equality that caused unsatisfiability; if (0,0), there isn't such.
+   * Equality that caused unsatisfiability; if CEq::isInvalid(), there isn't such.
    */
   CEq _unsatEq;
 
   Stack<CEq> _pendingEqualities;
 
   Stack<CEq> _negEqualities;
+
+
+  //just a quick hack to make unsat set retrieval work
+  LiteralStack _allAddedLits;
 
 };
 
