@@ -18,6 +18,7 @@ public:
   Numbering() : _nextNum(Start) {}
   unsigned get(T obj)
   {
+    CALL("Numbering::get");
     unsigned* pres;
     if(_map.getValuePtr(obj, pres, _nextNum)) {
       ALWAYS(_rev.insert(_nextNum, obj));
@@ -27,6 +28,7 @@ public:
   }
   void assign(T obj, unsigned num)
   {
+    CALL("Numbering::assign");
     if(_map.insert(obj, num)) {
       ALWAYS(_rev.insert(num, obj));
       if(num>=_nextNum) {
@@ -41,18 +43,25 @@ public:
   }
   T obj(unsigned num)
   {
+    CALL("Numbering::obj");
     return _rev.get(num);
   }
   bool contains(T obj)
   {
     return _map.find(obj);
   }
+  /** All numbers assigned by this object are less than or equal
+   * to the result of this function */
+  unsigned getNumberUpperBound() const
+  {
+    CALL("Numbering::getNumberUpperBound");
+    return _nextNum==0 ? 0 : (_nextNum-1);
+  }
 private:
   DHMap<T, unsigned> _map;
   DHMap<unsigned, T> _rev;
 
   unsigned _nextNum;
-
 };
 
 };
