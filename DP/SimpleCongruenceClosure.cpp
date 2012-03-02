@@ -224,7 +224,7 @@ void SimpleCongruenceClosure::propagate()
 
     ConstInfo& aInfo = _cInfos[aRep];
     ConstInfo& bInfo = _cInfos[bRep];
-    ASS_EQ(aInfo.proofPredecessor,0);
+    //ASS_EQ(aInfo.proofPredecessor,0);
     ASS_EQ(aInfo.reprConst,0);
     aInfo.proofPredecessor = bRep;
     aInfo.reprConst = bRep;
