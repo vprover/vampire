@@ -6,6 +6,8 @@
 #ifndef __SafeRecursion__
 #define __SafeRecursion__
 
+#include <algorithm>
+
 #include "Forwards.hpp"
 
 #include "Stack.hpp"
