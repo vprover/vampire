@@ -44,6 +44,8 @@ private:
      : c1(c1), c2(c2), foOrigin(false) {}
 
     bool isInvalid() const { ASS_EQ(c1==0, c2==0); return c1==0; }
+    string toString() const;
+    string toString(SimpleCongruenceClosure& parent) const;
 
     unsigned c1;
     unsigned c2;
@@ -55,12 +57,14 @@ private:
     bool foOrigin;
     /** if 0, the equality is the true!=false equality to help represent non-equality literals */
     Literal* foPremise;
+
   };
 
   unsigned getMaxConst() const { return _cInfos.size()-1; }
   unsigned getFreshConst();
   unsigned getSignatureConst(unsigned symbol, bool funct);
   unsigned getPairName(CPair p);
+
 
   struct FOConversionWorker;
   CEq convertFOEquality(Literal* equality);
@@ -69,8 +73,11 @@ private:
 
 
   unsigned deref(unsigned c) const {
+    CALL("SimpleCongruenceClosure::deref");
     unsigned repr = _cInfos[c].reprConst;
-    return (repr==0) ? c : repr;
+    unsigned res = (repr==0) ? c : repr;
+    ASS_REP2(_cInfos[res].reprConst==0, _cInfos[res].reprConst, c);
+    return res;
   }
   CPair deref(CPair p) const { return CPair(deref(p.first), deref(p.second)); }
   CPair deref(CEq p) const { return CPair(deref(p.c1), deref(p.c2)); }
@@ -79,30 +86,12 @@ private:
     return _cInfos[c].classList.size();
   }
 
-  void addPendingEquiality(CEq eq) {
-    ASS_G(eq.c1,0);
-    ASS_G(eq.c2,0);
-    TRACE("dp_cc_eqs_pending",
-	tout << "pending equality: ("<<eq.c1<<","<<eq.c2<<") implied by ";
-	if(eq.foOrigin) {
-	  if(eq.foPremise) {
-	    tout << (*eq.foPremise);
-	  }
-	  else {
-	    tout << " built-in true!=false";
-	  }
-	}
-	else {
-	  CPair p1= _cInfos[eq.c1].namedPair;
-	  CPair p2= _cInfos[eq.c2].namedPair;
-	  tout << "congruence of ("<<p1.first<<","<<p1.second<<") and ("<<p2.first<<","<<p2.second<<")";
-	}
-	tout << endl;
-    );
-    _pendingEqualities.push(eq);
-  }
-
+  void addPendingEquality(CEq eq);
+  void makeProofRepresentant(unsigned c);
   void propagate();
+
+  unsigned getProofDepth(unsigned c);
+  void collectUnifyingPath(unsigned c1, unsigned c2, Stack<unsigned>& path);
 
 
   static const unsigned NO_SIG_SYMBOL;
@@ -114,9 +103,7 @@ private:
       lit = 0;
       namedPair = CPair(0,0);
       reprConst = 0;
-#if VDEBUG
       proofPredecessor = 0;
-#endif
     }
 
 
@@ -140,6 +127,10 @@ private:
      * (used for proof construction)
      */
     unsigned proofPredecessor;
+    /**
+     * Premise that justified union with proofPredecessor
+     */
+    CEq predecessorPremise;
 
 
     /** If reprConst==0, contains other constants whose representative

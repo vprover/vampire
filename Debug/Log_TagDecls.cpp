@@ -235,6 +235,9 @@ void Logging::doTagDeclarations()
   DECL("dp_cc_interf_res",
       DOC("result statuses"),
       PARENT("dp_cc_interf",1));
+  DECL("dp_cc_interf_unsat",
+      DOC("unsatisfiable subset"),
+      PARENT("dp_cc_interf",1));
 
   DECL("dp_cc_fo_conv",
       DOC("conversion of first-order literals to internal represenation"),
@@ -246,9 +249,27 @@ void Logging::doTagDeclarations()
   DECL("dp_cc_eqs_pending",
       DOC("pending equalities"),
       PARENT("dp_cc",1));
+  DECL("dp_cc_unions",
+      DOC("union operations"),
+      PARENT("dp_cc",1));
   DECL("dp_cc_contr",
       DOC("contradiction pair"),
       PARENT("dp_cc",1));
+  DECL("dp_cc_expl",
+      DOC("explanation generation"),
+      PARENT("dp_cc",1));
+  DECL("dp_cc_expl_curr",
+      DOC("currently explained pair"),
+      PARENT("dp_cc_expl",1));
+  DECL("dp_cc_expl_prem",
+      DOC("premises of currently explained pair"),
+      PARENT("dp_cc_expl",1));
+  DECL("dp_cc_expl_planned",
+      DOC("pairs that need to be explained"),
+      PARENT("dp_cc_expl",1));
+  DECL("dp_cc_expl_up",
+      DOC("collection of unifying path"),
+      PARENT("dp_cc_expl",2));
 
 
 

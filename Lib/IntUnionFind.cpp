@@ -51,6 +51,10 @@ void IntUnionFind::doUnion(int c1, int c2)
   _modified=true;
 }
 
+/**
+ * Get a root of a element, if two elements have the same root,
+ * they are in one component.
+ */
 int IntUnionFind::root(int c)
 {
   CALL("IntUnionFind::root");

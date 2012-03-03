@@ -16,10 +16,11 @@ public:
   IntUnionFind(int cnt);
   ~IntUnionFind();
   void doUnion(int c1, int c2);
+  int root(int c);
+
   void evalComponents();
   int getComponentCount();
 private:
-  int root(int c);
 
   int _cnt;
 

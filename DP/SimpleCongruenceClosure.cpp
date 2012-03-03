@@ -3,9 +3,12 @@
  * Implements class SimpleCongruenceClosure.
  */
 
+#include <sstream>
+
 #include "SimpleCongruenceClosure.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/IntUnionFind.hpp"
 #include "Lib/SafeRecursion.hpp"
 
 #include "Kernel/Signature.hpp"
@@ -14,6 +17,48 @@ namespace DP
 {
 
 const unsigned SimpleCongruenceClosure::NO_SIG_SYMBOL = 0xFFFFFFFF;
+
+string SimpleCongruenceClosure::CEq::toString() const
+{
+  CALL("SimpleCongruenceClosure::CEq::toString");
+
+  stringstream res;
+  res << c1<<"="<<c2<<" implied by ";
+  if(foOrigin) {
+    if(foPremise) {
+      res << (*foPremise);
+    }
+    else {
+      res << "built-in true!=false";
+    }
+  }
+  else {
+    res << "congruence";
+  }
+  return res.str();
+}
+
+string SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) const
+{
+  CALL("SimpleCongruenceClosure::CEq::toString");
+
+  stringstream res;
+  res << c1<<"="<<c2<<" implied by ";
+  if(foOrigin) {
+    if(foPremise) {
+      res << (*foPremise);
+    }
+    else {
+      res << "built-in true!=false";
+    }
+  }
+  else {
+    CPair p1= parent._cInfos[c1].namedPair;
+    CPair p2= parent._cInfos[c2].namedPair;
+    res << "congruence of ("<<p1.first<<","<<p1.second<<") and ("<<p2.first<<","<<p2.second<<")";
+  }
+  return res.str();
+}
 
 SimpleCongruenceClosure::SimpleCongruenceClosure()
 {
@@ -184,7 +229,7 @@ void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
     if(l->isEquality()) {
       CEq eq = convertFOEquality(l);
       if(l->isPositive()) {
-	addPendingEquiality(eq);
+	addPendingEquality(eq);
       }
       else {
 	_negEqualities.push(eq);
@@ -199,11 +244,33 @@ void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
       else {
 	eq = CEq(predConst, _negLitConst, l);
       }
-      addPendingEquiality(eq);
+      addPendingEquality(eq);
     }
 
     _allAddedLits.push(l);
   }
+}
+
+void SimpleCongruenceClosure::addPendingEquality(CEq eq) {
+  CALL("SimpleCongruenceClosure::addPendingEquality");
+
+  ASS_G(eq.c1,0);
+  ASS_G(eq.c2,0);
+  LOG("dp_cc_eqs_pending","pending equality: "<<eq.toString(*this));
+  _pendingEqualities.push(eq);
+}
+
+/**
+ * Invert some edges in the proof tree, so that c becomes the proof root
+ */
+void SimpleCongruenceClosure::makeProofRepresentant(unsigned c)
+{
+  CALL("SimpleCongruenceClosure::makeProofRepresentant");
+
+  CEq transfPrem; //initialized as invalid
+  unsigned transfParent;
+NOT_IMPLEMENTED;
+//  _cInfos[c]
 }
 
 void SimpleCongruenceClosure::propagate()
@@ -222,17 +289,23 @@ void SimpleCongruenceClosure::propagate()
     unsigned aRep = curr.first;
     unsigned bRep = curr.second;
 
+    LOG("dp_cc_unions","union of "<<curr0.toString(*this)<<" dereferenced as "<<bRep<<"<-"<<aRep);
+
     ConstInfo& aInfo = _cInfos[aRep];
     ConstInfo& bInfo = _cInfos[bRep];
-    //ASS_EQ(aInfo.proofPredecessor,0);
     ASS_EQ(aInfo.reprConst,0);
+    ASS_EQ(bInfo.reprConst,0);
+    ASS_EQ(aInfo.proofPredecessor,0);
+    ASS_EQ(bInfo.proofPredecessor,0);
     aInfo.proofPredecessor = bRep;
+    aInfo.predecessorPremise = curr0;
     aInfo.reprConst = bRep;
     bInfo.classList.push(aRep);
     Stack<unsigned>::Iterator aChildIt(aInfo.classList);
     while(aChildIt.hasNext()) {
       unsigned aChild = aChildIt.next();
       bInfo.classList.push(aChild);
+      _cInfos[aChild].reprConst = bRep;
     }
     Stack<unsigned>::Iterator aUseIt(aInfo.useList);
     while(aUseIt.hasNext()) {
@@ -243,7 +316,7 @@ void SimpleCongruenceClosure::propagate()
 
       unsigned* pDerefPairName;
       if(!_pairNames.getValuePtr(derefPair, pDerefPairName)) {
-	addPendingEquiality(CEq(*pDerefPairName, usePairConst));
+	addPendingEquality(CEq(*pDerefPairName, usePairConst));
       }
       else {
 	*pDerefPairName = usePairConst;
@@ -280,6 +353,70 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus()
   return DecisionProcedure::SATISFIABLE;
 }
 
+/**
+ * Return the depth of constant @c c in the tree determined
+ * by ConstInfo::proofPredecessor. 0 means @c c is the root.
+ */
+unsigned SimpleCongruenceClosure::getProofDepth(unsigned c)
+{
+  CALL("SimpleCongruenceClosure::getProofDepth");
+
+  unsigned res = 0;
+  while(_cInfos[c].proofPredecessor!=0) {
+    c = _cInfos[c].proofPredecessor;
+    res++;
+  }
+  return res;
+}
+
+/**
+ * Into @c path put constants so that their predecessorPremise objects
+ * imply equality of c1 and c2.
+ */
+void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stack<unsigned>& path)
+{
+  CALL("SimpleCongruenceClosure::collectUnifyingPath");
+  ASS_EQ(deref(c1), deref(c2));
+  LOG("dp_cc_expl_up","finding unifying path between "<<c1<<" and "<<c2);
+
+  //this function could be probably made more efficient if we use some time-stamping the the ConstInfo object
+
+  unsigned depth1 = getProofDepth(c1);
+  unsigned depth2 = getProofDepth(c2);
+
+  if(depth1<depth2) {
+    swap(c1,c2);
+    swap(depth1,depth2);
+  }
+  LOG("dp_cc_expl_up","proof depth of c1 "<<c1<<": "<<depth1);
+  LOG("dp_cc_expl_up","proof depth of c2 "<<c2<<": "<<depth2);
+
+  while(depth1>depth2) {
+    path.push(c1);
+    c1 = _cInfos[c1].proofPredecessor;
+    depth1--;
+    LOG("dp_cc_expl_up","c1 up to "<<c1);
+ }
+
+  LOG("dp_cc_expl_up","equal depth of both branches");
+
+#if VDEBUG
+  unsigned depth=depth1;
+#endif
+  while(c1!=c2) {
+#if VDEBUG
+    ASS_G(depth,0);
+    depth--;
+#endif
+    path.push(c1);
+    c1 = _cInfos[c1].proofPredecessor;
+    path.push(c2);
+    c2 = _cInfos[c2].proofPredecessor;
+    LOG("dp_cc_expl_up","c1 up to "<<c1);
+    LOG("dp_cc_expl_up","c2 up to "<<c2);
+  }
+}
+
 void SimpleCongruenceClosure::getUnsatisfiableSubset(LiteralStack& res)
 {
   CALL("SimpleCongruenceClosure::getUnsatisfiableSubset");
@@ -290,12 +427,57 @@ void SimpleCongruenceClosure::getUnsatisfiableSubset(LiteralStack& res)
   res.loadFromIterator(LiteralStack::Iterator(_allAddedLits));
   return;
 
-  static Stack<CEq> toExplain;
-  toExplain.push(_unsatEq);
+  LOG("dp_cc_interf_unsat", "UNSAT subset start");
 
+  ASS(_unsatEq.foOrigin);
+  if(_unsatEq.foPremise) {
+    res.push(_unsatEq.foPremise);
+  }
 
+  static Stack<CPair> toExplain;
+  toExplain.push(CPair(_unsatEq.c1, _unsatEq.c2));
 
-  NOT_IMPLEMENTED;
+  IntUnionFind explained(getMaxConst()+1);
+  static Stack<unsigned> pathStack;
+
+  while(toExplain.isNonEmpty()) {
+    CPair curr = toExplain.pop();
+    if(explained.root(curr.first)==explained.root(curr.second)) {
+      //we've already explained this equality
+      LOG("dp_cc_expl_curr","("<<curr.first<<","<<curr.second<<") already explained");
+      continue;
+    }
+    LOG("dp_cc_expl_curr","("<<curr.first<<","<<curr.second<<") to be explained now");
+    pathStack.reset();
+    collectUnifyingPath(curr.first, curr.second, pathStack);
+    while(pathStack.isNonEmpty()) {
+      unsigned proofStepConst = pathStack.pop();
+      CEq& prem = _cInfos[proofStepConst].predecessorPremise;
+      LOG("dp_cc_expl_prem", "premise: "<<prem.toString(*this));
+      if(prem.foOrigin) {
+	if(prem.foPremise) {
+	  LOG("dp_cc_interf_unsat", *prem.foPremise);
+	  res.push(prem.foPremise);
+	}
+      }
+      else {
+	//the equality was implied by congruence between the following two pairs:
+	CPair cp1 = _cInfos[prem.c1].namedPair;
+	CPair cp2 = _cInfos[prem.c2].namedPair;
+	ASS_NEQ(cp1.first,0);
+	ASS_NEQ(cp1.second,0);
+	ASS_NEQ(cp2.first,0);
+	ASS_NEQ(cp2.second,0);
+	LOG("dp_cc_expl_plan","need to explain ("<<cp1.first<<","<<cp1.second<<")");
+	LOG("dp_cc_expl_plan","need to explain ("<<cp2.first<<","<<cp2.second<<")");
+	toExplain.push(CPair(cp1.first, cp2.first));
+	toExplain.push(CPair(cp1.second, cp2.second));
+      }
+      explained.doUnion(prem.c1, prem.c2);
+    }
+  }
+
+  LOG("dp_cc_interf_unsat", "UNSAT subset end");
 }
 
 
