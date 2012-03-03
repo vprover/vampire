@@ -246,8 +246,6 @@ void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
       }
       addPendingEquality(eq);
     }
-
-    _allAddedLits.push(l);
   }
 }
 
@@ -267,10 +265,23 @@ void SimpleCongruenceClosure::makeProofRepresentant(unsigned c)
 {
   CALL("SimpleCongruenceClosure::makeProofRepresentant");
 
+  if(_cInfos[c].proofPredecessor==0) {
+    return;
+  }
+
+  //this kind of traversal may possibly cause quadratic complexity!
+
   CEq transfPrem; //initialized as invalid
-  unsigned transfParent;
-NOT_IMPLEMENTED;
-//  _cInfos[c]
+  unsigned prevC = 0;
+
+  do{
+    unsigned newC = _cInfos[c].proofPredecessor;
+    _cInfos[c].proofPredecessor = prevC;
+    swap(_cInfos[c].predecessorPremise, transfPrem);
+    prevC = c;
+    c = newC;
+  } while(c!=0);
+  ASS(transfPrem.isInvalid()); //the proof tree root has invalid equality as a premise
 }
 
 void SimpleCongruenceClosure::propagate()
@@ -284,8 +295,21 @@ void SimpleCongruenceClosure::propagate()
       continue;
     }
     if(getClassSize(curr.first)>getClassSize(curr.second)) {
+      std::swap(curr0.c1, curr0.c2);
       std::swap(curr.first, curr.second);
     }
+
+    {
+      //proof updating
+      unsigned aProofRep = curr0.c1;
+      unsigned bProofRep = curr0.c2;
+      makeProofRepresentant(aProofRep);
+      ConstInfo& aProofInfo = _cInfos[aProofRep];
+      ASS_EQ(aProofInfo.proofPredecessor,0);
+      aProofInfo.proofPredecessor = bProofRep;
+      aProofInfo.predecessorPremise = curr0;
+    }
+
     unsigned aRep = curr.first;
     unsigned bRep = curr.second;
 
@@ -295,10 +319,7 @@ void SimpleCongruenceClosure::propagate()
     ConstInfo& bInfo = _cInfos[bRep];
     ASS_EQ(aInfo.reprConst,0);
     ASS_EQ(bInfo.reprConst,0);
-    ASS_EQ(aInfo.proofPredecessor,0);
-    ASS_EQ(bInfo.proofPredecessor,0);
-    aInfo.proofPredecessor = bRep;
-    aInfo.predecessorPremise = curr0;
+
     aInfo.reprConst = bRep;
     bInfo.classList.push(aRep);
     Stack<unsigned>::Iterator aChildIt(aInfo.classList);
@@ -423,10 +444,6 @@ void SimpleCongruenceClosure::getUnsatisfiableSubset(LiteralStack& res)
   ASS(res.isEmpty());
   ASS(!_unsatEq.isInvalid());
 
-  //ineficient but correct: return everything
-  res.loadFromIterator(LiteralStack::Iterator(_allAddedLits));
-  return;
-
   LOG("dp_cc_interf_unsat", "UNSAT subset start");
 
   ASS(_unsatEq.foOrigin);
@@ -468,8 +485,8 @@ void SimpleCongruenceClosure::getUnsatisfiableSubset(LiteralStack& res)
 	ASS_NEQ(cp1.second,0);
 	ASS_NEQ(cp2.first,0);
 	ASS_NEQ(cp2.second,0);
-	LOG("dp_cc_expl_plan","need to explain ("<<cp1.first<<","<<cp1.second<<")");
-	LOG("dp_cc_expl_plan","need to explain ("<<cp2.first<<","<<cp2.second<<")");
+	LOG("dp_cc_expl_planned","need to explain ("<<cp1.first<<","<<cp1.second<<")");
+	LOG("dp_cc_expl_planned","need to explain ("<<cp2.first<<","<<cp2.second<<")");
 	toExplain.push(CPair(cp1.first, cp2.first));
 	toExplain.push(CPair(cp1.second, cp2.second));
       }

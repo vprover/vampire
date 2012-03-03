@@ -176,10 +176,6 @@ private:
 
   Stack<CEq> _negEqualities;
 
-
-  //just a quick hack to make unsat set retrieval work
-  LiteralStack _allAddedLits;
-
 };
 
 }
