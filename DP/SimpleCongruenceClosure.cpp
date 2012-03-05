@@ -205,6 +205,16 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
   return res;
 }
 
+bool SimpleCongruenceClosure::isDistinctPred(Literal* l)
+{
+  CALL("SimpleCongruenceClosure::isDistinctPred");
+
+  //this is a hacky way to check for disctnct predicates,
+  //needs to be fixed once we have a proper sopport for
+  //these in the signature
+  return l->predicateName().substr(0,9)=="$distinct";
+}
+
 SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal* equality)
 {
   CALL("SimpleCongruenceClosure::convertFOEquality(Literal*)");

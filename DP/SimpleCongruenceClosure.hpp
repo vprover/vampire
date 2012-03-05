@@ -67,6 +67,7 @@ private:
 
 
   struct FOConversionWorker;
+  static bool isDistinctPred(Literal* l);
   CEq convertFOEquality(Literal* equality);
   unsigned convertFONonEquality(Literal* lit);
   unsigned convertFO(TermList trm);
