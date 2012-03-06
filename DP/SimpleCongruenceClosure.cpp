@@ -7,6 +7,8 @@
 
 #include "SimpleCongruenceClosure.hpp"
 
+#include "Lib/ArrayMap.hpp"
+
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/SafeRecursion.hpp"
@@ -215,6 +217,22 @@ bool SimpleCongruenceClosure::isDistinctPred(Literal* l)
   return l->predicateName().substr(0,9)=="$distinct";
 }
 
+void SimpleCongruenceClosure::readDistinct(Literal* lit)
+{
+  CALL("SimpleCongruenceClosure::readDistinct");
+
+  bool pos = lit->isPositive();
+  DistinctStack& tgtDStack = pos ? _distinctConstraints : _negDistinctConstraints;
+  tgtDStack.push(DistinctEntry(lit));
+  Stack<unsigned>& tgtStack = tgtDStack.top()._consts;
+  Literal::Iterator ait(lit);
+  while(ait.hasNext()) {
+    TermList arg = ait.next();
+    unsigned cNum = convertFO(arg);
+    tgtStack.push(cNum);
+  }
+}
+
 SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal* equality)
 {
   CALL("SimpleCongruenceClosure::convertFOEquality(Literal*)");
@@ -357,11 +375,79 @@ void SimpleCongruenceClosure::propagate()
   }
 }
 
+bool SimpleCongruenceClosure::checkPositiveDistincts()
+{
+  CALL("SimpleCongruenceClosure::checkPositiveDistincts");
+
+  //map from a representative to constant in its class present in the current distinct group
+  static ArrayMap<unsigned> reprs;
+  reprs.ensure(getMaxConst()+1);
+
+  DistinctStack::BottomFirstIterator distIt(_distinctConstraints);
+  while(distIt.hasNext()) {
+    const DistinctEntry& grp = distIt.next();
+
+    reprs.reset();
+    Stack<unsigned>::ConstIterator git(grp._consts);
+    while(git.hasNext()) {
+      unsigned c = git.next();
+      unsigned rep = deref(c);
+      unsigned c2;
+      if(reprs.find(rep, c2)) {
+	//we're unsat, two equal constants in a distinct group
+	_unsatEq = CEq(c, c2, grp._lit);
+	return false;
+      }
+      reprs.insert(rep, c);
+    }
+  }
+  return true;
+}
+
+DecisionProcedure::Status SimpleCongruenceClosure::checkNegativeDistincts()
+{
+  //map from a representative to constant in its class present in the current distinct group
+  static ArrayMap<unsigned> reprs;
+  reprs.ensure(getMaxConst()+1);
+
+  DistinctStack::BottomFirstIterator distIt(_negDistinctConstraints);
+  while(distIt.hasNext()) {
+    const DistinctEntry& grp = distIt.next();
+
+    reprs.reset();
+    bool isFalse = false;
+    Stack<unsigned>::ConstIterator git(grp._consts);
+    while(git.hasNext()) {
+      unsigned c = git.next();
+      unsigned rep = deref(c);
+      if(reprs.find(rep)) {
+	//distinct constraint is false, we're happy
+	isFalse = true;
+	continue;
+      }
+      reprs.insert(rep, c);
+    }
+    if(!isFalse) {
+      //The distinct predicate wasn't falsified by the current rewriting system.
+      //It might still be possible to extend the system to make the distinct
+      //falsified (hence the result UNKNOWN), but we do not implement this.
+      return DecisionProcedure::UNKNOWN;
+    }
+  }
+  return DecisionProcedure::SATISFIABLE;
+}
+
 DecisionProcedure::Status SimpleCongruenceClosure::getStatus()
 {
   CALL("SimpleCongruenceClosure::getStatus");
 
   propagate();
+
+  if(!checkPositiveDistincts()) {
+    LOG("dp_cc_contr", "contradiction: ("<<_unsatEq.c1<<","<<_unsatEq.c2<<") from "<<(*_unsatEq.foPremise)<<" are equal");
+    LOG("dp_cc_interf_res","cc gave UNSAT");
+    return DecisionProcedure::UNSATISFIABLE;
+  }
 
   //The intuition is that we want to fail on as early equialities as possible
   //(to improve back-jumping), so we have a BottomUpIterator here.
@@ -378,6 +464,18 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus()
       LOG("dp_cc_interf_res","cc gave UNSAT");
       return DecisionProcedure::UNSATISFIABLE;
     }
+  }
+
+  DecisionProcedure::Status ndStatus = checkNegativeDistincts();
+  switch(ndStatus) {
+  case DecisionProcedure::UNSATISFIABLE:
+    LOG("dp_cc_interf_res","cc gave UNSAT");
+    return DecisionProcedure::UNSATISFIABLE;
+  case DecisionProcedure::UNKNOWN:
+    LOG("dp_cc_interf_res","cc gave UNKNOWN because of the presence of negative $distinct literals");
+    return DecisionProcedure::UNSATISFIABLE;
+  case DecisionProcedure::SATISFIABLE:
+    break;
   }
 
   LOG("dp_cc_interf_res","cc gave SAT");
@@ -458,6 +556,7 @@ void SimpleCongruenceClosure::getUnsatisfiableSubset(LiteralStack& res)
 
   ASS(_unsatEq.foOrigin);
   if(_unsatEq.foPremise) {
+    LOG("dp_cc_interf_unsat", *_unsatEq.foPremise);
     res.push(_unsatEq.foPremise);
   }
 
@@ -481,6 +580,11 @@ void SimpleCongruenceClosure::getUnsatisfiableSubset(LiteralStack& res)
       unsigned proofStepConst = pathStack.pop();
       CEq& prem = _cInfos[proofStepConst].predecessorPremise;
       LOG("dp_cc_expl_prem", "premise: "<<prem.toString(*this));
+      if(explained.root(prem.c1)==explained.root(prem.c2)) {
+        //we've already explained this equality
+        LOG("dp_cc_expl_curr","("<<prem.c1<<","<<prem.c2<<") already explained");
+        continue;
+      }
       if(prem.foOrigin) {
 	if(prem.foPremise) {
 	  LOG("dp_cc_interf_unsat", *prem.foPremise);

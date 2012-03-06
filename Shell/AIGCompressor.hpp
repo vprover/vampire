@@ -60,7 +60,7 @@ private:
 
 class AIGCompressor {
 public:
-  AIGCompressor(AIG& aig, unsigned reqFactorNum=5, unsigned reqFactorDenom=4);
+  AIGCompressor(AIG& aig, unsigned reqFactorNum=1, unsigned reqFactorDenom=1);
   ~AIGCompressor();
 
   AIGRef compress(AIGRef aig);

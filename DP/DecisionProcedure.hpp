@@ -21,7 +21,12 @@ class DecisionProcedure {
 public:
   enum Status {
     SATISFIABLE,
-    UNSATISFIABLE
+    UNSATISFIABLE,
+    /**
+     * When the decision procedure cannot determine
+     * the satisfiability status of the literal set
+     */
+    UNKNOWN
   };
 
   virtual ~DecisionProcedure() {}

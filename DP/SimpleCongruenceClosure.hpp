@@ -71,6 +71,7 @@ private:
   CEq convertFOEquality(Literal* equality);
   unsigned convertFONonEquality(Literal* lit);
   unsigned convertFO(TermList trm);
+  void readDistinct(Literal* lit);
 
 
   unsigned deref(unsigned c) const {
@@ -86,6 +87,9 @@ private:
   unsigned getClassSize(unsigned c) const {
     return _cInfos[c].classList.size();
   }
+
+  bool checkPositiveDistincts();
+  Status checkNegativeDistincts();
 
   void addPendingEquality(CEq eq);
   void makeProofRepresentant(unsigned c);
@@ -177,6 +181,17 @@ private:
 
   Stack<CEq> _negEqualities;
 
+
+  struct DistinctEntry
+  {
+    DistinctEntry(Literal* l) : _lit(l) {}
+    Literal* _lit;
+    Stack<unsigned> _consts;
+  };
+  typedef Stack<DistinctEntry> DistinctStack;
+  DistinctStack _distinctConstraints;
+  /** Negated distinct constraints, these can lead to an UNKNOWN satisfiability result */
+  DistinctStack _negDistinctConstraints;
 };
 
 }
