@@ -18,9 +18,13 @@ class Formula;
 class FormulaUnit;
 class TermList;
 class Unit;
+class Literal;
 }
 
 namespace Api {
+
+
+class Problem;
 
 /** Structure with auxiliary data that do not need to appear in the header file */
 class DefaultHelperCore;

@@ -611,6 +611,7 @@ private:
 
   friend class FormulaBuilder;
   friend class FBHelperCore;
+  friend class Problem;
 };
 
 class AnnotatedFormula

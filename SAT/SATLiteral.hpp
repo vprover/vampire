@@ -46,6 +46,8 @@ public:
   inline unsigned content() const { return _content; }
 
   inline SATLiteral opposite() const { return SATLiteral(content()^1); }
+  /** return this literal with positive polarity */
+  inline SATLiteral positive() const { return SATLiteral(content()|1); }
 
   inline bool operator==(const SATLiteral& l) const
   { return _content==l._content; }

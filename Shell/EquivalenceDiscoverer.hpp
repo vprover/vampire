@@ -35,6 +35,10 @@ class EquivalenceDiscoverer {
   unsigned _satConflictCountLimit;
   bool _checkOnlyDefinitionHeads;
 
+  bool _restrictedRange;
+  DHSet<Literal*> _restrictedRangeSet1;
+  DHSet<Literal*> _restrictedRangeSet2;
+
   GlobalSubsumptionGrounder _gnd;
   TWLSolver* _solver;
 
@@ -71,6 +75,8 @@ class EquivalenceDiscoverer {
 public:
   EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit, bool checkOnlyDefinitionHeads);
   ~EquivalenceDiscoverer();
+
+  void setRestrictedRange(LiteralIterator set1, LiteralIterator set2);
 
   UnitList* getEquivalences(ClauseIterator clauses);
   UnitList* getEquivalences(UnitList* units, const Options* opts=0);

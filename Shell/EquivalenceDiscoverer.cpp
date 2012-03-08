@@ -32,6 +32,7 @@ EquivalenceDiscoverer::EquivalenceDiscoverer(bool normalizeForSAT, unsigned satC
     bool checkOnlyDefinitionHeads)
     : _satConflictCountLimit(satConflictCountLimit),
       _checkOnlyDefinitionHeads(checkOnlyDefinitionHeads),
+      _restrictedRange(false),
       _gnd(normalizeForSAT),
       _maxSatVar(0)
 {
@@ -43,6 +44,18 @@ EquivalenceDiscoverer::~EquivalenceDiscoverer()
 {
   CALL("EquivalenceDiscoverer::~EquivalenceDiscoverer");
   delete _solver;
+}
+
+/**
+ * Restrict equivalence discovery only to equivalences between elements of @c set1 and @c set2.
+ */
+void EquivalenceDiscoverer::setRestrictedRange(LiteralIterator set1, LiteralIterator set2)
+{
+  CALL("EquivalenceDiscoverer::setRestrictedRange");
+
+  _restrictedRange = true;
+  _restrictedRangeSet1.loadFromIterator(getMappingIteratorKnownRes<Literal*>(set1, Literal::positiveLiteral));
+  _restrictedRangeSet2.loadFromIterator(getMappingIteratorKnownRes<Literal*>(set2, Literal::positiveLiteral));
 }
 
 void EquivalenceDiscoverer::addGrounding(Clause* cl)
@@ -77,11 +90,16 @@ bool EquivalenceDiscoverer::isEligible(Literal* l)
 {
   CALL("EquivalenceDiscoverer::isEligible");
 
-  if(env.signature->getPredicate(l->functor())->introduced()) {
-    return false;
+  if(_restrictedRange) {
+    return _restrictedRangeSet1.contains(l) || _restrictedRangeSet2.contains(l);
   }
+  else {
+    if(env.signature->getPredicate(l->functor())->introduced()) {
+      return false;
+    }
 
-  return !_checkOnlyDefinitionHeads || PDUtils::isDefinitionHead(l);
+    return !_checkOnlyDefinitionHeads || PDUtils::isDefinitionHead(l);
+  }
 }
 
 void EquivalenceDiscoverer::collectRelevantLits()
@@ -173,10 +191,16 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   LOG("pp_ed_progress","literals to process: "<<elCnt);
   for(unsigned i=0; i<elCnt; ++i) {
     SATLiteral l1 = _eligibleSatLits[i];
+    if(_restrictedRange && !_restrictedRangeSet1.contains(_s2f.get(l1.positive()))) {
+      continue;
+    }
     LOG("pp_ed_progress","processing literal "<<(*getFOLit(l1)));
     for(unsigned j=i+1; j<elCnt; ++j) {
       SATLiteral l2 = _eligibleSatLits[j];
       ASS_NEQ(l1,l2);
+      if(_restrictedRange && !_restrictedRangeSet2.contains(_s2f.get(l2.positive()))) {
+        continue;
+      }
       if(areEquivalent(l1,l2) && handleEquivalence(l1, l2, res)) {
 	break;
       }

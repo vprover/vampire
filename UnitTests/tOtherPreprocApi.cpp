@@ -75,8 +75,28 @@ TEST_FUN(preprapiPredEqDiscovery)
   assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(a,X) | ~q(a,X) ). fof(a,axiom, ~p(a,X) | q(a,X) ). fof(a,axiom, p(a,b) & q(a,b)).");
   popts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = false;
   assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(a,X) | ~q(a,X) ). fof(a,axiom, ~p(a,X) | q(a,X) ). fof(a,axiom, p(a,b) & q(a,b)).");
-
 }
+
+TEST_FUN(preprapiRestrictedPredEqDiscovery)
+{
+  FormulaBuilder api;
+  Var xVar = api.var("X");
+  Term x = api.varTerm(xVar);
+  Predicate p = api.predicate("p",1, api.defaultSort());
+  Predicate q = api.predicate("q",1, api.defaultSort());
+
+  Formula pX = api.formula(p, x);
+  Formula qX = api.formula(q, x);
+
+  Problem::PreprocessingOptions popts;
+  popts.predicateEquivalenceDiscovery = true;
+  popts.restrictPredicateEquivalenceDiscovery(1, &pX, 1, &qX);
+
+  assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, p(a) & q(a)).");
+  assertEarlyPreprocActive(popts, true, "fof(a,axiom, p(X) | ~q(X) ). fof(a,axiom, ~p(X) | q(X) ). fof(a,axiom, p(a) & q(a)).");
+  assertEarlyPreprocActive(popts, false, "fof(a,axiom, p(X) | ~r(X) ). fof(a,axiom, ~p(X) | r(X) ). fof(a,axiom, p(a) & r(a)).");
+}
+
 
 TEST_FUN(preprapiTopLevelFlatten)
 {

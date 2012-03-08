@@ -271,9 +271,18 @@ public:
      * @c Problem::performAsymetricRewriting() function.
      */
     void addAsymmetricRewritingRule(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs=Formula());
+    /**
+     * Restrict equivalence discovery to equivalences between atoms from
+     * set1 and set2
+     *
+     * Formulas in arrays set1 and set2 must be atoms.
+     */
+    void restrictPredicateEquivalenceDiscovery(size_t set1Sz, Formula* set1, size_t set2Sz, Formula* set2);
   private:
     friend class Problem;
     void validate() const;
+
+    struct Atom2LitFn;
 
     struct OptDataStore {
       OptDataStore();
@@ -286,8 +295,11 @@ public:
       Stack<Formula>* posRhs;
       Stack<Formula>* negRhs;
       Stack<Formula>* dblRhs;
+      Stack<Kernel::Literal*>* pedSet1;
+      Stack<Kernel::Literal*>* pedSet2;
     };
 
+    bool _predicateEquivalenceDiscoveryRestricted;
     OptDataStore _ods;
   };
 

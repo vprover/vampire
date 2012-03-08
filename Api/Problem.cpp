@@ -64,6 +64,8 @@ Problem::PreprocessingOptions::OptDataStore::OptDataStore()
   posRhs = new Stack<Formula>();
   negRhs = new Stack<Formula>();
   dblRhs = new Stack<Formula>();
+  pedSet1 = new Stack<Kernel::Literal*>();
+  pedSet2 = new Stack<Kernel::Literal*>();
 }
 
 Problem::PreprocessingOptions::OptDataStore::OptDataStore(const OptDataStore& o)
@@ -74,6 +76,8 @@ Problem::PreprocessingOptions::OptDataStore::OptDataStore(const OptDataStore& o)
   posRhs = new Stack<Formula>(*o.posRhs);
   negRhs = new Stack<Formula>(*o.negRhs);
   dblRhs = new Stack<Formula>(*o.dblRhs);
+  pedSet1 = new Stack<Kernel::Literal*>(*o.pedSet1);
+  pedSet2 = new Stack<Kernel::Literal*>(*o.pedSet2);
 }
 
 Problem::PreprocessingOptions::OptDataStore& Problem::PreprocessingOptions::OptDataStore::operator=(const OptDataStore& o)
@@ -84,6 +88,8 @@ Problem::PreprocessingOptions::OptDataStore& Problem::PreprocessingOptions::OptD
   *posRhs = *o.posRhs;
   *negRhs = *o.negRhs;
   *dblRhs = *o.dblRhs;
+  *pedSet1 = *o.pedSet1;
+  *pedSet2 = *o.pedSet2;
   return *this;
 }
 
@@ -95,6 +101,8 @@ Problem::PreprocessingOptions::OptDataStore::~OptDataStore()
   delete posRhs;
   delete negRhs;
   delete dblRhs;
+  delete pedSet1;
+  delete pedSet2;
 }
 
 
@@ -128,7 +136,9 @@ Problem::PreprocessingOptions::PreprocessingOptions(
   predicateEquivalenceDiscoveryPredicateEquivalencesOnly(true),
   aigInlining(false),
   aigBddSweeping(false),
-  aigDefinitionIntroduction(false)
+  aigDefinitionIntroduction(false),
+
+  _predicateEquivalenceDiscoveryRestricted(false)
 {
   CALL("Problem::PreprocessingOptions::PreprocessingOptions");
 }
@@ -145,6 +155,30 @@ void Problem::PreprocessingOptions::addAsymmetricRewritingRule(Formula lhs,
   _ods.posRhs->push(posRhs);
   _ods.negRhs->push(negRhs);
   _ods.dblRhs->push(dblRhs);
+}
+
+struct Problem::PreprocessingOptions::Atom2LitFn
+{
+  DECL_RETURN_TYPE(Kernel::Literal*);
+  OWN_RETURN_TYPE operator()(Formula f) {
+    CALL("Problem::PreprocessingOptions::Atom2LitFn::operator()");
+    if(f.form->connective()!=Kernel::LITERAL) {
+      throw ApiException("Formulas passed to PreprocessingOptions::restrictPredicateEquivalenceDiscovery must be atoms");
+    }
+    return f.form->literal();
+  }
+};
+
+void Problem::PreprocessingOptions::restrictPredicateEquivalenceDiscovery(size_t set1Sz, Formula* set1,
+    size_t set2Sz, Formula* set2)
+{
+  CALL("Problem::PreprocessingOptions::restrictPredicateEquivalenceDiscovery");
+
+  _predicateEquivalenceDiscoveryRestricted = true;
+  _ods.pedSet1->reset();
+  _ods.pedSet1->loadFromIterator(getMappingIterator(getArrayishObjectIterator(set1, set1Sz),Atom2LitFn()));
+  _ods.pedSet2->reset();
+  _ods.pedSet2->loadFromIterator(getMappingIterator(getArrayishObjectIterator(set2, set2Sz),Atom2LitFn()));
 }
 
 void Problem::PreprocessingOptions::validate() const
@@ -1013,8 +1047,10 @@ protected:
 class Problem::PredicateEquivalenceDiscoverer
 {
 public:
-  PredicateEquivalenceDiscoverer(unsigned satConflictCountLimit, bool predEquivsOnly)
-  : _satConflictCountLimit(satConflictCountLimit), _predEquivsOnly(predEquivsOnly) {}
+  PredicateEquivalenceDiscoverer(unsigned satConflictCountLimit, bool predEquivsOnly,
+      bool restricted, Stack<Kernel::Literal*>& restrSet1, Stack<Kernel::Literal*>& restrSet2)
+  : _satConflictCountLimit(satConflictCountLimit), _predEquivsOnly(predEquivsOnly),
+    _restricted(restricted), _restrSet1(restrSet1), _restrSet2(restrSet2) {}
 
   Problem transform(Problem p)
   {
@@ -1033,6 +1069,10 @@ public:
     }
 
     EquivalenceDiscoverer ed(true, _satConflictCountLimit, _predEquivsOnly);
+    if(_restricted) {
+      ed.setRestrictedRange(pvi( Stack<Kernel::Literal*>::Iterator(_restrSet1) ),
+	  pvi( Stack<Kernel::Literal*>::Iterator(_restrSet2)) );
+    }
     Kernel::UnitList* eqs = ed.getEquivalences(units);
     units->destroy();
 
@@ -1052,6 +1092,10 @@ public:
 private:
   unsigned _satConflictCountLimit;
   bool _predEquivsOnly;
+
+  bool _restricted;
+  Stack<Kernel::Literal*>& _restrSet1;
+  Stack<Kernel::Literal*>& _restrSet2;
 };
 
 
@@ -1258,7 +1302,9 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
 
   if(options.predicateEquivalenceDiscovery) {
     res = PredicateEquivalenceDiscoverer(options.predicateEquivalenceDiscoverySatConflictLimit,
-	options.predicateEquivalenceDiscoveryPredicateEquivalencesOnly).transform(res);
+	options.predicateEquivalenceDiscoveryPredicateEquivalencesOnly,
+	options._predicateEquivalenceDiscoveryRestricted,
+	*options._ods.pedSet1,*options._ods.pedSet2).transform(res);
   }
 
   if(options.eprSkolemization) {

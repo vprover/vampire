@@ -437,15 +437,15 @@ CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
  * The @b knowsSize() and @b size() functions of this iterator can be
  * called only if the underlying iterator contains these functions.
  */
-template<typename Inner, typename Functor>
+template<typename Inner, typename Functor, typename ResultType=RETURN_TYPE(Functor)>
 class MappingIterator
 {
 public:
-  DECL_ELEMENT_TYPE(RETURN_TYPE(Functor));
+  DECL_ELEMENT_TYPE(ResultType);
   explicit MappingIterator(Inner inner, Functor func)
   : _func(func), _inner(inner) {}
   inline bool hasNext() { return _inner.hasNext(); };
-  inline RETURN_TYPE(Functor) next() { return _func(_inner.next()); };
+  inline ResultType next() { return _func(_inner.next()); };
 
   /**
    * Return true the size of the iterator can be obtained
@@ -473,9 +473,21 @@ private:
  * @see MappingIterator
  */
 template<typename Inner, typename Functor>
-MappingIterator<Inner,Functor> getMappingIterator(Inner it, Functor f)
+MappingIterator<Inner,Functor,RETURN_TYPE(Functor)> getMappingIterator(Inner it, Functor f)
 {
-  return MappingIterator<Inner,Functor>(it, f);
+  return MappingIterator<Inner,Functor,RETURN_TYPE(Functor)>(it, f);
+}
+
+/**
+ * Return iterator that returns elements of @b it transformed by
+ * the functor @b f
+ *
+ * @see MappingIterator
+ */
+template<typename ResultType, typename Inner, typename Functor>
+MappingIterator<Inner,Functor,ResultType> getMappingIteratorKnownRes(Inner it, Functor f)
+{
+  return MappingIterator<Inner,Functor,ResultType>(it, f);
 }
 
 
