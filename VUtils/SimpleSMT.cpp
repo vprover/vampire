@@ -61,7 +61,10 @@ LiteralStack SimpleSMT::getLiteralAssignmentStack()
 
   CALL("SimpleSMT::getLiteralAssignmentStack");
 
+  //### Variables of simple datatypes should be declared only when first needed
+  //### (in this case then inside the loop). It helps when reading the code.
   Literal *literal;
+
   LiteralStack litAsgn;
   //for each positive literal appearing in the map
   for (unsigned i = 1; i <= _map.getNumberUpperBound(); i++) {
@@ -69,13 +72,18 @@ LiteralStack SimpleSMT::getLiteralAssignmentStack()
     ASS(literal->isPositive());
 
     switch (_solver->getAssignment(i)) {
+    //## redundant namespace specification
     case SAT::SATSolver::TRUE:
       break;
 
     case SAT::SATSolver::FALSE:
+      //# To my taste it would be better to have two variables -- positiveLiteral and then assignmentLiteral.
+      //# I think it will make clearer the purpose of this switch statement (we'd have to have an assignment
+      //# also in the TRUE case, but that doesn't seem as a high price to pay).
       literal = Literal::complementaryLiteral(literal);
       break;
     case SAT::SATSolver::DONT_CARE:
+      //# one should probably add here a comment saying that we don't add DONT_CARE literals into the assignment
       continue;
     case SAT::SATSolver::NOT_KNOWN:
       ASSERTION_VIOLATION;
@@ -121,6 +129,10 @@ void SimpleSMT::initializeSATSolver(ClauseIterator clite)
       //how to create a sat literal? 
       satLitStack->push(slit);
 
+      //## too many empty lines. However it is of course good to use a single empty line to separate
+      //## logical parts of the code (or perhaps two empty lines to separate larger blocks in presence of too
+      //## many single line separators.. however in such case I'd consider splitting into multiple functions)
+
 
     }
 
@@ -133,12 +145,14 @@ void SimpleSMT::initializeSATSolver(ClauseIterator clite)
 
     clause = SAT::Preprocess::removeDuplicateLiterals(clause);
     if (clause == 0)
-      ;
+      ; //### better clause!=0 without else statement
     else {
       SATClauseList::push(clause, clauses);
       //cout<<clause->toString()<<endl;
     }
   }
+
+  //## I'd separate creation of the SAT solver object from conversion of clauses into SATClauses into two functions.
 
   //clauses - should contain the list of all cluases appearing in the problem
   SAT::SATClauseIterator clauseIterator = pvi(SATClauseList::Iterator(clauses));
@@ -187,6 +201,16 @@ void SimpleSMT::preprocessProblem(int argc, char** argv)
 
 }
 
+//## I'm thinking about the CClosure function -- not sure whether it's the right way of
+//## separating things into functions. On the input side the function takes a stack of FO literals
+//## that was extracted from the SAT solver and converted to FO by some other code.
+//## However on the "output side" it converts FO literals to SAT and modifies the SAT solver
+//## by adding a new clause to it.
+//## I'd probably use several functions for this -- one would just get FO literals and give back
+//## their UNSAT core (or report satisfiability), another function would wrap the SAT<->FO
+//## conversion around it (together with creation of the SAT clause), and the last would then get
+//## the assignment from the SAT solver and add the SAT clause into it.
+
 /**
  * Call the congruence closure procedure for the literals in the stack @param . If the 
  * decision procedure returns SATISF/UNKNOWN return a stopping signal (false). Otherwise
@@ -206,10 +230,16 @@ bool SimpleSMT::getCClosureClauseStatus(LiteralStack litAsgn)
   //cout << (status == DP::DecisionProcedure::UNSATISFIABLE ? "DP::UNSAT" : " DP::SAT") << endl;
   litAsgn.reset();
   if (status == DP::DecisionProcedure::SATISFIABLE || status == DP::DecisionProcedure::UNKNOWN) {
+    //## If this is considered a debugging output, it's good to have a macro for debugging
+    //## outputs, so they can be all easily disabled. Preferably one can use the stuff declared in Debug/Log.hpp
+    //## provided you declare your tag in Debug/Log_TagDecls.cpp and enable it using the "-tr tag_name" command
+    //## line switch, or use tag "bug" which is always enabled.
+    //## If this is not considered a debugging output, it's better to separate the code that does actual work
+    //## and code that does outputs into separate functions (or even better, classes).
     cout << (status == DP::DecisionProcedure::SATISFIABLE ? "DP::SATISFIABLE" : "DP::UNKNOWN");
     return false;
   }
-
+  //## One can use ASS_EQ here
   ASS(status == DP::DecisionProcedure::UNSATISFIABLE);
 
   cClosure.getUnsatisfiableSubset(litAsgn);
@@ -222,6 +252,7 @@ bool SimpleSMT::getCClosureClauseStatus(LiteralStack litAsgn)
     //negate the literal and add it to the stack of literals 
     slitStack.push(slit);
   }
+  //## I'd merge the following two lines and just write "SAT::SATClause *clause = SAT::SATClause::fromStack(slitStack);"
   SAT::SATClause *clause;
   clause = SAT::SATClause::fromStack(slitStack);
   //cout << "Clause added:" << clause->toString() << endl;
@@ -253,6 +284,9 @@ int SimpleSMT::perform(int argc, char** argv)
         litAsgn = getLiteralAssignmentStack();
         break;
       case SAT::SATSolver::UNSATISFIABLE:
+	//## I believe this is an output of the result of the algorithm -- this shouldn't be in the code
+	//## that does actual reasoning, but better separate (or in this case rather all the reasoning code
+	//## should be put out of this "main-like" function).
         cout << "UNSATISFIABLE" << endl;
         break;
       default:
