@@ -14,19 +14,20 @@
 
 namespace VUtils {
 
-    using namespace Kernel;
-    using namespace Shell;
-    using namespace SAT;
-    
-    typedef DHMap<Literal *, int> MyMap;
-    typedef Numbering<Literal *, 1> TwoWayMap;
-class SimpleSMT {
-public:
-  int perform(int argc, char** argv);
-protected:
-  int foToSAT(Literal *l, MyMap *map);
-  SAT::SATLiteral litTOSAT(Literal *l, TwoWayMap& map);  
-};
+  using namespace Kernel;
+  using namespace Shell;
+  using namespace SAT;
+
+  typedef DHMap<Literal *, int> MyMap;
+  typedef Numbering<Literal *, 1 > TwoWayMap;
+
+  class SimpleSMT {
+  public:
+    int perform(int argc, char** argv);
+  protected:
+    // LiteralStack createAssignedLiteralsStack(TwoWayMap& map, Lib::ScopedPtr<SAT::SATSolver> solver);
+    SAT::SATLiteral litTOSAT(Literal *l, TwoWayMap& map);
+  };
 }
 
 #endif // __SimpleSMT__
