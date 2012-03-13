@@ -356,6 +356,8 @@ void Property::scan(Formula* formula)
       scan(lit,dummy);
       break;
     }
+    default:
+      break;
     }
   }
 } // Property::scan(const Formula&)

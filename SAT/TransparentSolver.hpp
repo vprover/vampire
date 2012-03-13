@@ -28,6 +28,7 @@ public:
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
   virtual VarAssignment getAssignment(unsigned var);
+  virtual bool isZeroImplied(unsigned var) { return _inner->isZeroImplied(var); } //TODO: not quite sure wether this is right
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
   virtual void retractAllAssumptions();

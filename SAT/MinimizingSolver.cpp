@@ -76,6 +76,14 @@ SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
   return _asgn[var] ? SATSolver::TRUE : SATSolver::FALSE;
 }
 
+bool MinimizingSolver::isZeroImplied(unsigned var)
+{
+  CALL("MinimizingSolver::isZeroImplied");
+  bool res = _inner->isZeroImplied(var);
+  ASS(!res || getAssignment(var)!=DONT_CARE); //zero-implied variables cannot become a don't care
+  return res;
+}
+
 /**
  * Return a true SATLiteral that will satisfy the most unsatisfied
  * clauses, or SATLiteral::dummy() if there isn't any literal that

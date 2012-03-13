@@ -53,6 +53,7 @@ public:
   virtual Status getStatus() { return _status; };
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual VarAssignment getAssignment(unsigned var);
+  virtual bool isZeroImplied(unsigned var);
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
   void addAssumption(SATLiteral lit, unsigned conflictCountLimit);

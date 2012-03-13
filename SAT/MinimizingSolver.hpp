@@ -32,6 +32,8 @@ public:
 
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false);
   virtual VarAssignment getAssignment(unsigned var);
+  virtual bool isZeroImplied(unsigned var);
+
   virtual void ensureVarCnt(unsigned newVarCnt);
 
   virtual void addAssumption(SATLiteral lit, bool onlyPropagate=false);

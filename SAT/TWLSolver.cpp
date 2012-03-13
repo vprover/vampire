@@ -1113,6 +1113,13 @@ SATSolver::VarAssignment TWLSolver::getAssignment(unsigned var)
   }
 }
 
+bool TWLSolver::isZeroImplied(unsigned var)
+{
+  CALL("TWLSolver::isZeroImplied");
+
+  return getAssignmentLevel(var)==1;
+}
+
 void TWLSolver::printAssignment()
 {
   CALL("TWLSolver::printAssignment");

@@ -135,6 +135,19 @@ public:
   }
 
   /**
+   * Return the object assigned to key @b index or @b def if there isn't any.
+   */
+  inline
+  T get(size_t index, T def)
+  {
+    CALL("ArrayMap::get");
+    if((*this)[index]._timestamp!=_timestamp) {
+      return def;
+    }
+    return (*this)[index]._obj;
+  }
+
+  /**
    * Return @b true if key @b index has an object assigned
    *
    * Even for this function the value of @b index must be

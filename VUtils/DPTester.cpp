@@ -62,6 +62,9 @@ int DPTester::perform(int argc, char** argv)
   case DecisionProcedure::UNSATISFIABLE:
     cout << "UNSAT" << endl;
     break;
+  case DecisionProcedure::UNKNOWN:
+    cout << "UNKNOWN" << endl;
+    break;
   }
 
 

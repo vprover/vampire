@@ -18,11 +18,16 @@
 #include "Allocator.hpp"
 #include "Backtrackable.hpp"
 
+namespace std
+{
+template<typename T>
+void swap(Lib::Stack<T>& s1, Lib::Stack<T>& s2);
+}
+
 namespace Lib {
 
 template<typename C>
 struct Relocator<Stack<C> >;
-
 
 /**
  * Class of flexible-size generic stacks.
@@ -34,6 +39,9 @@ template<class C>
 class Stack
 {
 public:
+  template<typename U>
+  friend void std::swap(Stack<U>&,Stack<U>&);
+
   class Iterator;
 
   DECL_ELEMENT_TYPE(C);
@@ -690,5 +698,21 @@ struct Relocator<Stack<C> >
 
 
 } // namespace Lib
+
+namespace std
+{
+
+template<typename T>
+void swap(Lib::Stack<T>& s1, Lib::Stack<T>& s2)
+{
+  CALL("std::swap(Stack&,Stack&)");
+
+  swap(s1._capacity, s2._capacity);
+  swap(s1._cursor, s2._cursor);
+  swap(s1._end, s2._end);
+  swap(s1._stack, s2._stack);
+}
+
+}
 
 #endif
