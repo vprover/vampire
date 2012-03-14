@@ -11,6 +11,7 @@
 #include "Lib/ArrayMap.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/IntUnionFind.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
 
 #include "SATSolver.hpp"
@@ -29,6 +30,8 @@ public:
   typedef pair<SATLiteral,SATLiteral> Equiv;
 
   ISSatSweeping(unsigned varCnt, SATSolver& solver);
+  ISSatSweeping(unsigned varCnt, SATSolver& solver, VirtualIterator<int> interestingVarIterator);
+
 
   const DHSet<Impl>& getImplications() const { return _implications; }
   const Stack<Equiv>& getEquivalences() const { return _equivStack; }
@@ -51,6 +54,7 @@ private:
       bool& foundEquivalence);
   void addImplication(Impl i, bool& foundEquivalence);
 
+  bool tryProvingImplicationInner(Impl imp, bool& foundEquivalence);
   bool tryProvingImplication(Impl imp, bool& foundEquivalence);
 
   void createCandidates();

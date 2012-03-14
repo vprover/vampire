@@ -971,17 +971,6 @@ Literal* Literal::create(Literal* l,TermList* args)
   return m;
 } // Literal::create
 
-Literal* Literal::createEquality(bool polarity, TermList arg1, TermList arg2)
-{
-  CALL("Literal::createEquality/3");
-
-  unsigned srt;
-  if(!SortHelper::tryGetResultSort(arg1, srt)) {
-    ALWAYS(SortHelper::tryGetResultSort(arg2, srt));
-  }
-  return createEquality(polarity, arg1, arg2, srt);
-}
-
 /**
  * Return a new equality literal, with polarity @b polarity and
  * arguments @b arg1 and @b arg2. These arguments must be of sort @c sort.

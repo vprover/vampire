@@ -462,14 +462,11 @@ Formula FormulaBuilder::equality(const Term& lhs,const Term& rhs, bool positive)
   CALL("FormulaBuilder::equality/3");
 
   _aux->ensureEqualityArgumentsSortsMatch(lhs, rhs);
-  Literal* lit;
-  if(lhs.isVar()&&rhs.isVar()) {
-    Sort srt = lhs.sort();
-    lit=Kernel::Literal::createVariableEquality(positive, lhs, rhs, srt);
+  unsigned srt = lhs.sort();
+  if(srt!=rhs.sort()) {
+    throw FormulaBuilderException("sort mismatch in equality creation: "+lhs.toString()+" = "+rhs.toString());
   }
-  else {
-    lit=Kernel::Literal::createEquality(positive, lhs, rhs);
-  }
+  Literal* lit = Kernel::Literal::createEquality(positive, lhs, rhs, srt);
   Formula res(new Kernel::AtomicFormula(lit));
   res._aux=_aux; //assign the correct helper object
   return res;

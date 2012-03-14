@@ -675,11 +675,7 @@ public:
 	  bool commutative, TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
-  /** Deprecated */
-  static Literal* createEquality(bool polarity, TermList arg1, TermList arg2);
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
-  static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
-  static Literal* createSpecialTermVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
 
@@ -792,6 +788,10 @@ public:
 //   XMLElement toXML() const;
   string toString() const;
   const string& predicateName() const;
+
+private:
+  static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
+  static Literal* createSpecialTermVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
 
 }; // class Literal
 

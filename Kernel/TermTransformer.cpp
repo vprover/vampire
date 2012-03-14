@@ -83,11 +83,6 @@ Literal* TermTransformer::transform(Literal* lit)
   }
 
   ASS_EQ(args.size(), lit->arity());
-  if(lit->isEquality() && args[0].isVar() && args[1].isVar()) {
-    unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-    return Literal::createVariableEquality(lit->polarity(),args[0], args[1], srt);
-  }
-
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...

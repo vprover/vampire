@@ -402,6 +402,9 @@ Formula* Rectify::rectify (Formula* f)
     if (vs == f->vars() && arg == f->qarg()) {
       return f;
     }
+    if(vs->isEmpty()) {
+      return arg;
+    }
     return new QuantifiedFormula(f->connective(),vs,arg);
   }
 

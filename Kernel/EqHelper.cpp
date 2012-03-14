@@ -127,11 +127,6 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   if(trm0->isLiteral()) {
     Literal* lit = static_cast<Literal*>(trm0);
     ASS_EQ(args.size(), lit->arity());
-    if(lit->isEquality() && args[0].isVar() && args[1].isVar()) {
-      unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-      return Literal::createVariableEquality(lit->polarity(),args[0], args[1], srt);
-    }
-
     return Literal::create(lit,argLst);
   }
   else {

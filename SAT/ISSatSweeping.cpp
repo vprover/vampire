@@ -3,7 +3,6 @@
  * Implements class ISSatSweeping.
  */
 
-#include "Lib/Metaiterators.hpp"
 
 #include "ISSatSweeping.hpp"
 
@@ -34,6 +33,32 @@ ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver)
 }
 
 /**
+ * @param varCnt maximal SAT variable number increased by one
+ * @param solver SATSolver object whose state should we sweep for literal
+ * 	equivalences. This solver should be in a satisfiable state without
+ * 	any assumptions. We will add assumptions to probe for equivalences
+ * 	and then retract them in the end.
+ * @param interestingVarIterator iterator on variables that are to be
+ * 	examined for equivalences. Each variable can appear at most once.
+ */
+ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, VirtualIterator<int> interestingVarIterator)
+: _varCnt(varCnt),
+  _candidateVarPolarities(varCnt),
+  _candidateGroupIndexes(varCnt),
+  _equivalentVars(varCnt),
+  _solver(solver)
+{
+  CALL("ISSatSweeping::ISSatSweeping");
+  ASS_EQ(solver.getStatus(),SATSolver::SATISFIABLE);
+  ASS(!solver.hasAssumptions());
+
+  _interestingVars.loadFromIterator(interestingVarIterator);
+
+  run();
+}
+
+
+/**
  * Return true if v1 and v2 are in the same candidate group. If at least
  * one of them is not in a candidate group, return false.
  */
@@ -41,7 +66,7 @@ bool ISSatSweeping::sameCandGroup(unsigned v1, unsigned v2)
 {
   CALL("ISSatSweeping::sameCandGroup");
 
-  return _candidateGroupIndexes.get(v1, _varCnt+1)==_candidateGroupIndexes.get(v1, _varCnt+2);
+  return _candidateGroupIndexes.get(v1, _varCnt+1)==_candidateGroupIndexes.get(v2, _varCnt+2);
 }
 
 void ISSatSweeping::addTrueLit(SATLiteral lit)
@@ -87,10 +112,11 @@ void ISSatSweeping::createCandidates()
     }
     else {
       candGrp.push(candLit);
+      _candidateGroupIndexes.insert(i, 0);
     }
   }
 
-  if(candGrp.size()==1) {
+  if(candGrp.size()<2) {
     _candidateGroups.pop();
     ASS(_candidateGroups.isEmpty());
     return;
@@ -115,7 +141,7 @@ void ISSatSweeping::splitByCurrAssignment(SATLiteralStack& orig, SATLiteralStack
   SATLiteralStack::DelIterator oit(orig);
   while(oit.hasNext()) {
     SATLiteral lit = oit.next();
-    SATSolver::VarAssignment asgn;
+    SATSolver::VarAssignment asgn = _solver.getAssignment(lit.var());
     bool asgnPol;
     switch(asgn) {
     case SATSolver::TRUE:
@@ -200,9 +226,11 @@ void ISSatSweeping::splitGroupsByCurrAssignment()
   _candidateGroupIndexes.reset();
   unsigned groupCnt = _candidateGroups.size();
   for(gi=0; gi<groupCnt; gi++) {
+    LOG("sat_iss_grps", "Group "<<gi<<" (size "<<_candidateGroups[gi].size()<<"):");
     SATLiteralStack::ConstIterator git(_candidateGroups[gi]);
     while(git.hasNext()) {
       SATLiteral lit = git.next();
+      LOG("sat_iss_grps", "  "<<lit);
       _candidateGroupIndexes.insert(lit.var(), gi);
     }
   }
@@ -211,12 +239,14 @@ void ISSatSweeping::splitGroupsByCurrAssignment()
 void ISSatSweeping::addImplication(Impl imp, bool& foundEquivalence)
 {
   CALL("ISSatSweeping::addImplication");
+  LOG("sat_iss_impl", "discovered implication: "<<imp.first<<" -> "<<imp.second);
 
   Impl rev = Impl(imp.second, imp.first);
 
   if(_implications.find(rev)) {
     foundEquivalence = true;
     _equivalentVars.doUnion(imp.first.var(), imp.second.var());
+    LOG("sat_iss_impl", "discovered equivalence: "<<imp.first<<" <-> "<<imp.second);
   }
   else {
     _implications.insert(imp);
@@ -228,6 +258,8 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
 {
   CALL("ISSatSweeping::lookForImplications");
   ASS_EQ(probedLit.polarity(),_candidateVarPolarities[probedLit.var()]); //only candidate literals can be passed as probedLit
+  LOG("sat_iss_impl_scan","looking for implications with "<<probedLit
+			<<" assigned as "<<(assignedOpposite ? "opposite" : "normal"));
 
   Stack<unsigned>::Iterator ivit(_interestingVars);
   while(ivit.hasNext()) {
@@ -244,13 +276,14 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
     bool asgnPos = asgn==SATSolver::TRUE;
     SATLiteral candLit = SATLiteral(v, _candidateVarPolarities[v]);
     bool candidateLitTrue = asgnPos==candLit.polarity();
+    LOG("sat_iss_impl_scan","have propagation implied: "<<SATLiteral(v,asgnPos)<<" candidate was "<<candLit);
     if(candidateLitTrue==assignedOpposite) {
       //probed lit cannot be equivalent to candidate lit
       //(see documentation to _candidateVarPolarities)
       //We assert the below non-equality because we assume
       //splitGroupsByCurrAssignment() to have been already
       //called on the current assignment.
-      ASS(!sameCandGroup(v,probedLit.var()));
+      ASS_REP2(!sameCandGroup(v,probedLit.var()), v, probedLit.var());
       Impl imp;
       if(assignedOpposite) {
 	//~p --> c
@@ -282,6 +315,17 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
 bool ISSatSweeping::tryProvingImplication(Impl imp, bool& foundEquivalence)
 {
   CALL("ISSatSweeping::tryProvingImplication");
+
+  LOG("sat_iss_try_impl","attempting to prove implication "<<imp.first<<" -> "<<imp.second);
+  bool res = tryProvingImplicationInner(imp, foundEquivalence);
+  _solver.retractAllAssumptions();
+  LOG("sat_iss_try_impl","implication "<<imp.first<<" -> "<<imp.second<<" "<<(res ? "proved" : "disproved"));
+  return res;
+}
+
+bool ISSatSweeping::tryProvingImplicationInner(Impl imp, bool& foundEquivalence)
+{
+  CALL("ISSatSweeping::tryProvingImplication");
   ASS(!_solver.hasAssumptions());
   ASS(sameCandGroup(imp.first.var(),imp.second.var()));
 
@@ -290,7 +334,6 @@ bool ISSatSweeping::tryProvingImplication(Impl imp, bool& foundEquivalence)
   if(status==SATSolver::UNSATISFIABLE) {
     addTrueLit(imp.first);
     foundEquivalence = true;
-    _solver.retractAllAssumptions();
     return false;
   }
 
@@ -299,7 +342,6 @@ bool ISSatSweeping::tryProvingImplication(Impl imp, bool& foundEquivalence)
   lookForImplications(imp.first, true, foundEquivalence);
 
   if(foundEquivalence || _solver.trueInAssignment(imp.second)) {
-    _solver.retractAllAssumptions();
     return false;
   }
   if(_implications.find(imp)) {
@@ -310,13 +352,11 @@ bool ISSatSweeping::tryProvingImplication(Impl imp, bool& foundEquivalence)
   status = _solver.getStatus();
   if(status==SATSolver::UNSATISFIABLE) {
     addImplication(imp, foundEquivalence);
-    _solver.retractAllAssumptions();
     return true;
   }
 
   splitGroupsByCurrAssignment();
   ASS(!sameCandGroup(imp.first.var(),imp.second.var()));
-  _solver.retractAllAssumptions();
   return false;
 
 }

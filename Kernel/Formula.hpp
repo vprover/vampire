@@ -154,6 +154,7 @@ class QuantifiedFormula
       _arg(arg)
   {
     ASS(con == FORALL || con == EXISTS);
+    ASS(vs);
   }
 
   /** Return the immediate subformula */

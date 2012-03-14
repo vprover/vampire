@@ -551,8 +551,9 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_MULTIPLY:
   case REAL_DIVIDE:
     return 2;
+  default:
+    ASSERTION_VIOLATION;
   }
-  ASSERTION_VIOLATION;
 }
 
 /**
@@ -627,8 +628,10 @@ bool Theory::isFunction(Interpretation i)
   case REAL_IS_RAT:
   case REAL_IS_REAL:
     return false;
+
+  default:
+    ASSERTION_VIOLATION;
   }
-  ASSERTION_VIOLATION;
 }
 
 /**

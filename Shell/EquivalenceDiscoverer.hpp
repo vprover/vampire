@@ -17,6 +17,7 @@
 #include "Kernel/Problem.hpp"
 
 #include "SAT/SATLiteral.hpp"
+#include "SAT/SATSolver.hpp"
 
 #include "Options.hpp"
 #include "Preprocess.hpp"
@@ -40,7 +41,7 @@ class EquivalenceDiscoverer {
   DHSet<Literal*> _restrictedRangeSet2;
 
   GlobalSubsumptionGrounder _gnd;
-  TWLSolver* _solver;
+  ScopedPtr<SATSolver> _solver;
 
   SATLiteralStack _eligibleSatLits;
 //  LiteralStack _foLits;
@@ -72,9 +73,12 @@ class EquivalenceDiscoverer {
   bool areEquivalent(SATLiteral l1, SATLiteral l2);
 
   bool handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc);
+
+  void discoverISSatEquivalences();
+
+  static int satLiteralVar(SATLiteral l) { return l.var(); }
 public:
   EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit, bool checkOnlyDefinitionHeads);
-  ~EquivalenceDiscoverer();
 
   void setRestrictedRange(LiteralIterator set1, LiteralIterator set2);
 

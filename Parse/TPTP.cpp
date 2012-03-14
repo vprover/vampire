@@ -2088,18 +2088,22 @@ void TPTP::midEquality()
  */
 Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
 {
-  if (!lhs.isVar() || !rhs.isVar()) {
-    return Literal::createEquality(polarity,lhs,rhs);
-  }
+  TermList masterVar;
   unsigned sortNumber;
-  SortList* vs;
-  if (_variableSorts.find(lhs.var(),vs) && vs) {
-    sortNumber = vs->head();
+  if(!SortHelper::getResultSortOrMasterVariable(lhs, sortNumber, masterVar)) {
+    //Master variable is a variable whose sort determines the sort of a term.
+    //If term is a variable, the master variable is the variable itself. The
+    //trickier case is when we have an if-then-else expression with variable
+    //arguments.
+    SortList* vs;
+    if (_variableSorts.find(masterVar.var(),vs) && vs) {
+      sortNumber = vs->head();
+    }
+    else { // this may happen when free variables appear in the formula (or clause)
+      sortNumber = Sorts::SRT_DEFAULT;
+    }
   }
-  else { // this may happen when free variables appear in the formula (or clause)
-    sortNumber = Sorts::SRT_DEFAULT;
-  }
-  return Literal::createVariableEquality(polarity,lhs,rhs,sortNumber);
+  return Literal::createEquality(polarity,lhs,rhs,sortNumber);
 } // TPTP::createEquality
 
 /**

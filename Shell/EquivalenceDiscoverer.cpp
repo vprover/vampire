@@ -13,6 +13,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
+#include "SAT/ISSatSweeping.hpp"
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/TWLSolver.hpp"
@@ -38,12 +39,6 @@ EquivalenceDiscoverer::EquivalenceDiscoverer(bool normalizeForSAT, unsigned satC
 {
   CALL("EquivalenceDiscoverer::EquivalenceDiscoverer");
   _solver = new TWLSolver(*env.options, true);
-}
-
-EquivalenceDiscoverer::~EquivalenceDiscoverer()
-{
-  CALL("EquivalenceDiscoverer::~EquivalenceDiscoverer");
-  delete _solver;
 }
 
 /**
@@ -115,7 +110,7 @@ void EquivalenceDiscoverer::collectRelevantLits()
     while(slitIt.hasNext()) {
       SATLiteral slit = slitIt.next();
 
-      SATLiteral spLit = slit.isPositive() ? slit : slit.opposite();
+      SATLiteral spLit = slit.positive();
       if(!seen.insert(spLit)) { continue; }
 
       //positive polarity of the SAT literal should be in the s2f map because we have
@@ -183,6 +178,8 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
 
   loadInitialAssignment();
 
+//  discoverISSatEquivalences();
+
   //the actual equivalence finding
 
   UnitList* res = 0;
@@ -212,6 +209,21 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   LOG("pp_ed_progress","finished");
 
   return res;
+}
+
+void EquivalenceDiscoverer::discoverISSatEquivalences()
+{
+  CALL("EquivalenceDiscoverer::discoverISSatEquivalences");
+  ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
+
+  ISSatSweeping sswp(_maxSatVar+1, *_solver,
+      pvi( getMappingIteratorKnownRes<int>(SATLiteralStack::ConstIterator(_eligibleSatLits), satLiteralVar) ));
+
+  Stack<ISSatSweeping::Equiv>::ConstIterator eqIt(sswp.getEquivalences());
+  while(eqIt.hasNext()) {
+    ISSatSweeping::Equiv eq = eqIt.next();
+    LOG("pp_ed_eq","issat: "<<(*getFOLit(eq.first))<<" <=> "<<(*getFOLit(eq.second)));
+  }
 }
 
 Literal* EquivalenceDiscoverer::getFOLit(SATLiteral slit) const

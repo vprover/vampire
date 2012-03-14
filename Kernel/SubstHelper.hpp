@@ -391,13 +391,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     if(trm->isLiteral()) {
       ASS(!noSharing);
       Literal* lit = static_cast<Literal*>(trm);
-      if(lit->isEquality() && (*args)[0].isVar() && (*args)[1].isVar()) {
-	unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-	result=Literal::createVariableEquality(lit->polarity(),(*args)[0], (*args)[1], srt);
-      }
-      else {
-	result=Literal::create(lit,argLst);
-      }
+      result=Literal::create(lit,argLst);
     }
     else {
       bool shouldShare=!noSharing && canBeShared(argLst, trm->arity());

@@ -11,6 +11,10 @@
 #include <string>
 #include "Lib/Set.hpp"
 #include "Lib/List.hpp"
+
+#include "Kernel/Term.hpp"
+#include "Kernel/Sorts.hpp"
+
 #include "Path.hpp"
 
 
@@ -92,6 +96,8 @@ private:
 
   unsigned getIntFunction(string name, unsigned arity);
   unsigned getIntConstant(string name) { return getIntFunction(name, 0); }
+  Literal* createIntEquality(bool polarity, TermList arg1, TermList arg2)
+  { return Literal::createEquality(polarity, arg1, arg2, Sorts::SRT_INTEGER); }
 
   /** the loop being analyzed */
   WhileDo* _loop;

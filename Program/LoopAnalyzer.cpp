@@ -518,7 +518,7 @@ TermList LoopAnalyzer::letTranslationOfPath(Path::Iterator &sit, TermList exp)
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
-		   Literal* x1EQArgs=Literal::createEquality(true, x1, argTerms);
+		   Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
 		   TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
 		   TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
 		   exp=TermList(Term::createTermLet(lhsTerm, arrayITE, exp)); 
@@ -640,7 +640,7 @@ Formula* LoopAnalyzer::letCondition(Path::Iterator &sit, Formula* condition, int
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
-		   Literal* x1EQArgs=Literal::createEquality(true, x1, argTerms);
+		   Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
 		   TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
 		   TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
 		    condition=new TermLetFormula(lhsTerm, arrayITE, condition); 
@@ -763,7 +763,7 @@ void LoopAnalyzer::generateLetExpressions()
 	 //path is processed, create letFORMULA:
 	 // if v is scalar, then let v(X+1)= letInBody 
 	 // if v is array, then v(X+1,Y) = letInBody
-	 Formula* letFormula = new AtomicFormula(Literal::createEquality(true, varX01, letInBody)); 
+	 Formula* letFormula = new AtomicFormula(createIntEquality(true, varX01, letInBody));
 	 //collect and add conditions from path to the letFormula, so we have cond=>letFormula
 	 Path::Iterator pathCondit(path);
 	 letFormula = letTranslationOfGuards(path, pathCondit, letFormula);				       
@@ -820,7 +820,7 @@ TermList LoopAnalyzer::arrayUpdateValue(Path::Iterator &sit, TermList exp, int p
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
-		   Literal* x1EQArgs=Literal::createEquality(true, x1, argTerms);
+		   Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
 		   TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
 		   TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
 		   exp=TermList(Term::createTermLet(lhsTerm, arrayITE, exp)); 
@@ -913,7 +913,7 @@ TermList LoopAnalyzer::arrayUpdatePosition(Path::Iterator &sit, TermList updPosE
 		   TermList x1;
 		   x1.makeVar(1);
 		   TermList arrayX1(Term::create(arrayFct1,1,&x1));
-		   Literal* x1EQArgs=Literal::createEquality(true, x1, argTerms);
+		   Literal* x1EQArgs=createIntEquality(true, x1, argTerms);
 		   TermList lhsTerm=TermList(Term::create1(arrayFct1, x1));
 		   TermList arrayITE=TermList(Term::createTermITE(new AtomicFormula(x1EQArgs), rhsTerm, arrayX1));
 		   updPosExp=TermList(Term::createTermLet(lhsTerm, arrayITE, updPosExp));
@@ -1021,7 +1021,7 @@ Formula* LoopAnalyzer::updatePredicateOfArray2(Path* path, Path::Iterator &sit, 
 		      updatePosition=arrayUpdatePosition(pit, arrayArgs, updPos, 0);
 		      TermList x2;
 		      x2.makeVar(2);
-		      updPredFormula =  new AtomicFormula(Literal::createEquality(true,x2,updatePosition)); 
+		      updPredFormula =  new AtomicFormula(createIntEquality(true,x2,updatePosition));
 		      //create iteration predicate of one argument
 		      TermList x0;
 		      x0.makeVar(0);//variable for loop iteration
@@ -1102,7 +1102,7 @@ Formula* LoopAnalyzer::updatePredicateOfArray3(Path* path, Path::Iterator &sit, 
 		      updatePosition=arrayUpdatePosition(pit, arrayArgs, updPos, 0);
 		      TermList x2;
 		      x2.makeVar(2);
-		      updPredFormula =  new AtomicFormula(Literal::createEquality(true,x2,updatePosition)); 
+		      updPredFormula =  new AtomicFormula(createIntEquality(true,x2,updatePosition));
 		      //create iteration predicate of one argument
 		      TermList x0;
 		      x0.makeVar(0);//variable for loop iteration
@@ -1113,7 +1113,7 @@ Formula* LoopAnalyzer::updatePredicateOfArray3(Path* path, Path::Iterator &sit, 
 		      TermList updateValue=arrayUpdateValue(vit, rhsTerm, updPos,0);
 		      TermList x3;
 		      x3.makeVar(3);
-		      Formula* updValFormula = new AtomicFormula(Literal::createEquality(true,x3,updateValue));
+		      Formula* updValFormula = new AtomicFormula(createIntEquality(true,x3,updateValue));
 		      //create iter(X0) && updatedPosition && updValueFormula
 		      FormulaList* iterPos=(new FormulaList(updPredFormula))->cons((new AtomicFormula(iter))) -> cons(updValFormula);
 		      updPredFormula = new JunctionFormula(AND,iterPos);
@@ -1184,7 +1184,7 @@ Formula* LoopAnalyzer::lastUpdateProperty(Literal* updPred, string array, TermLi
    CALL("LoopAnalyzer::lastUpdateProperty");
    unsigned arrayFct1=getIntFunction(array,1);
    TermList arrayX2(Term::create(arrayFct1,1,&position));
-   Literal* lastUpdImplies = Literal::createEquality(true,arrayX2,updValue);
+   Literal* lastUpdImplies = createIntEquality(true,arrayX2,updValue);
    Formula* lastUpd = new BinaryFormula(IMP,new AtomicFormula(updPred),new AtomicFormula(lastUpdImplies));
    return lastUpd;
 }
@@ -1203,7 +1203,7 @@ Formula* LoopAnalyzer::stabilityProperty(Literal* updPred, string array, TermLis
   unsigned arrayIni = getIntFunction(array + Int::toString(0),1);
   TermList arrayIniFct(Term::create(arrayIni,1,&position));
   //create formula ARRAY(POSITION) = ARRAY0(POSITION)
-  Literal* stabilityImplication = Literal::createEquality(true,arrayFinalFct,arrayIniFct);
+  Literal* stabilityImplication = createIntEquality(true,arrayFinalFct,arrayIniFct);
   //create formula  (iter(ITERATION) => ~UpdPred(ITERATION,POSITION))
   unsigned iter = env.signature->addPredicate("iter",1);
   Literal* iterPred = Literal::create1(iter,true,iteration);
@@ -1329,9 +1329,9 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
 	 TermList arrayIni(Term::createConstant(getIntConstant(v->name()+Int::toString(0))));
 	 TermList arrayIniFct1(Term::create(arrayFinal1,1,&zero));
 	 //create V(n,X2)=V(X2)
-	 Formula* finalValFctCorresp = new AtomicFormula(Literal::createEquality(true,arrayFinalFct2,arrayFinalFct1));
+	 Formula* finalValFctCorresp = new AtomicFormula(createIntEquality(true,arrayFinalFct2,arrayFinalFct1));
 	 //create V0 =V(zero)
-	 Formula* initialValFctCorresp = new AtomicFormula(Literal::createEquality(true,arrayIniFct1,arrayIni));
+	 Formula* initialValFctCorresp = new AtomicFormula(createIntEquality(true,arrayIniFct1,arrayIni));
 	 _units = _units->cons(new FormulaUnit(finalValFctCorresp,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));	
@@ -1349,9 +1349,9 @@ void LoopAnalyzer::generateValueFunctionRelationsOfVariables()
 	 TermList scalarIni(Term::createConstant(getIntConstant(v->name()+Int::toString(0))));
 	 TermList scalarIniFct(Term::create(scalarFinal,1,&zero));
 	 //create v(n)=v
-	 Formula* finalValFctCorresp = new AtomicFormula(Literal::createEquality(true,scalarFinalFct,scalarFinalConst));
+	 Formula* finalValFctCorresp = new AtomicFormula(createIntEquality(true,scalarFinalFct,scalarFinalConst));
 	 //create V0 =V(zero)
-	 Formula* initialValFctCorresp = new AtomicFormula(Literal::createEquality(true,scalarIniFct,scalarIni));
+	 Formula* initialValFctCorresp = new AtomicFormula(createIntEquality(true,scalarIniFct,scalarIni));
 	 _units = _units->cons(new FormulaUnit(finalValFctCorresp,
 					  new Inference(Inference::PROGRAM_ANALYSIS),
 					  Unit::ASSUMPTION));	
@@ -1516,7 +1516,7 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
       // c +- x0
       TermList sum(theory->fun2(gcd == 1 ? Theory::INT_PLUS : Theory::INT_MINUS,c,x0));
       // create c(x0) = c + x_0
-      eq = Literal::createEquality(true,cx0,sum);
+      eq = createIntEquality(true,cx0,sum);
     }
     else {
       // gcd != 1
@@ -1526,7 +1526,7 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
       // c +- gcd*x0
       TermList sum(theory->fun2(gcd > 0 ? Theory::INT_PLUS : Theory::INT_MINUS,c,gcd_x0));
       // create c(x0) = c + gcd*x_0
-      eq = Literal::createEquality(true,cx0,sum);
+      eq = createIntEquality(true,cx0,sum);
     }
     (*cls)[0] = eq;
     _units = _units->cons(cls);
@@ -1605,7 +1605,7 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     Formula* lhs = new JunctionFormula(AND,left);
     Formula* JgreaterK = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,J,K));
     Formula* KgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,K,I));
-    Formula* cKequalV = new AtomicFormula(Literal::createEquality(true,cK,V));
+    Formula* cKequalV = new AtomicFormula(createIntEquality(true,cK,V));
     FormulaList* right = (new FormulaList(JgreaterK))->cons(KgreaterI)->cons(cKequalV);
     Formula* rhs = new QuantifiedFormula(EXISTS,
 					 new Formula::VarList(2),
@@ -1634,7 +1634,7 @@ void LoopAnalyzer::generateCounterAxiom(const string& name,int min,int max,int g
     Formula* lhs = new JunctionFormula(AND,left);
     Formula* JgreaterK = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,J,K));
     Formula* KgreaterI = new AtomicFormula(theory->pred2(Theory::INT_GREATER,true,K,I));
-    Formula* cKequalV = new AtomicFormula(Literal::createEquality(true,cK,V));
+    Formula* cKequalV = new AtomicFormula(createIntEquality(true,cK,V));
     FormulaList* right = (new FormulaList(JgreaterK))->cons(KgreaterI)->cons(cKequalV);
     Formula* rhs = new QuantifiedFormula(EXISTS,
 					 new Formula::VarList(2),

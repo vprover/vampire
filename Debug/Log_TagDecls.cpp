@@ -723,6 +723,23 @@ void Logging::doTagDeclarations()
       DOC("satisfying and unsatisfying of clauses"),
       PARENT("sat_min",3));
 
+  DECL("sat_iss",
+      DOC("implicative simultaneous sat sweeping"),
+      PARENT("sat",1));
+  DECL("sat_iss_grps",
+      DOC("candidate groups"),
+      PARENT("sat_iss",1));
+  DECL("sat_iss_try_impl",
+      DOC("attempts to prove implications"),
+      PARENT("sat_iss",1));
+  DECL("sat_iss_impl_scan",
+      DOC("internal working of lookForImplications function"),
+      PARENT("sat_iss",2));
+  DECL("sat_iss_impl",
+      DOC("discovered implications"),
+      PARENT("sat_iss",2));
+
+
   //
   // Multiprocessing
   //

@@ -31,6 +31,8 @@ void DIMACS::outputGroundedProblem(MapToLIFO<Clause*, SATClause*>& insts,
 {
   CALL("DIMACS::outputGroundedProblem");
 
+  bool outputComments = false;
+
   unsigned cnt, maxVar;
   getStats(insts.allValIterator(), cnt, maxVar);
   out<<"p cnf "<<maxVar<<"  "<<cnt<<endl;
@@ -50,24 +52,28 @@ void DIMACS::outputGroundedProblem(MapToLIFO<Clause*, SATClause*>& insts,
     while(git.hasNext()) {
       SATClause* gcl=git.next();
       unsigned glen=gcl->length();
-      for(unsigned i=0;i<glen;i++) {
-	vnums.insert((*gcl)[i].var());
+      if(outputComments) {
+	for(unsigned i=0;i<glen;i++) {
+	  vnums.insert((*gcl)[i].var());
+	}
       }
     }
-    //...and print them ordered.
-    while(!vnums.isEmpty()) {
-      int vnum=vnums.popWithAllEqual();
-      //   out<<"% "<<vnum<<": "<<(vasgn.get(vnum)->toString())<<endl;
+    if(outputComments) {
+      //...and print them ordered.
+      while(!vnums.isEmpty()) {
+	int vnum=vnums.popWithAllEqual();
+	out<<"% "<<vnum<<": "<<(vasgn.get(vnum)->toString())<<endl;
+      }
+      out<<"% Grounding "<<cl->nonPropToString()<<endl;
     }
 
-    // out<<"% Grounding "<<cl->nonPropToString()<<endl;
     SATClauseList::Iterator git2(gcls);
     while(git2.hasNext()) {
       SATClause* gcl=git2.next();
       out<<gcl->toDIMACSString()<<endl;
     }
   }
-  // out<<"%"<<endl<<"0"<<endl;
+  out<<"%"<<endl<<"0"<<endl;
 }
 
 void DIMACS::getStats(SATClauseIterator clauses, unsigned& clauseCnt, unsigned& maxVar)

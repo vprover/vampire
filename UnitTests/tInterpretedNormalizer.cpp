@@ -23,7 +23,7 @@ TEST_FUN(interpNorm1)
   unsigned succ = theory->getFnNum(Theory::INT_SUCCESSOR);
   TermList two(theory->representConstant(IntegerConstantType(2)));
   TermList twoS(Term::create1(succ, two));
-  Literal* lit = Literal::createEquality(true, twoS, twoS);
+  Literal* lit = Literal::createEquality(true, twoS, twoS, Sorts::SRT_INTEGER);
   Clause* cl = Clause::fromIterator(getSingletonIterator(lit), Unit::AXIOM, new Inference(Inference::INPUT));
   cout << cl->toString() << endl;
 

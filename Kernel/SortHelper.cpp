@@ -132,6 +132,11 @@ bool SortHelper::getResultSortOrMasterVariable(Term* t, unsigned& resultSort, Te
   }
 }
 
+/**
+ * If sort of term @c t depends on a variable, assign the variable into
+ * @c resultVar and return false. Otherwise assign the sort of the term
+ * into @c resultSort and return true.
+ */
 bool SortHelper::getResultSortOrMasterVariable(TermList t, unsigned& resultSort, TermList& resultVar)
 {
   CALL("SortHelper::getResultSortOrMasterVariable");

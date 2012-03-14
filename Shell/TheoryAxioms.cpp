@@ -286,7 +286,7 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   //axiom( (ile(X0,X1)) --> ((X0==X1) | ilt(X0,X1)) );
 
   unsigned varSort = theory->getOperationSort(lessEqual);
-  Literal* v1EqV2 = Literal::createVariableEquality(true, v1, v2, varSort);
+  Literal* v1EqV2 = Literal::createEquality(true, v1, v2, varSort);
   Literal* nonLe12 = Literal::create2(lePred, false, v1, v2);
   addTheoryClause(units, nonLe21, nonLe12, v1EqV2);
 }

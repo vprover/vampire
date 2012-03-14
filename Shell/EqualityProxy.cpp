@@ -129,7 +129,7 @@ void EqualityProxy::addLocalAxioms(UnitList*& units, unsigned sort)
   if(!_rst) {
     Clause* axE = new(2) Clause(2, Clause::AXIOM, new Inference(Inference::EQUALITY_PROXY_AXIOM2));
     (*axE)[0]=makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort);
-    (*axE)[1]=Literal::createVariableEquality(true,TermList(0,false),TermList(1,false), sort);
+    (*axE)[1]=Literal::createEquality(true,TermList(0,false),TermList(1,false), sort);
     UnitList::push(axE,units);
   }
 }

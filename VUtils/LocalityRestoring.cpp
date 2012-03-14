@@ -9,6 +9,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/TermTransformer.hpp"
@@ -269,7 +270,7 @@ Unit* LocalityRestoring::makeNSCPremise(TermList trm)
   CALL("LocalityRestoring::makeNSCPremise");
   ASS(trm.isTerm());
 
-  Literal* lit = Literal::createEquality(true, trm, trm);
+  Literal* lit = Literal::createEquality(true, trm, trm, SortHelper::getResultSort(trm.term()));
   Formula* form = new AtomicFormula(lit);
   FormulaUnit* res = new FormulaUnit(form, new Inference(Inference::INPUT), Unit::AXIOM);
   return res;
