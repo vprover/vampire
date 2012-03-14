@@ -101,6 +101,8 @@ public:
   string toString() const;
   string toDIMACSString() const;
 
+  bool hasUniqueVariables() const;
+
   /**
    * A numbering of literals for conversion of ground Clause objects into
    * SATClause objects.
@@ -122,6 +124,8 @@ public:
   static SATClause* fromFOClause(NamingContext& context, Clause* clause);
 
   static SATClause* fromStack(SATLiteralStack& stack);
+
+  static SATClause* copy(SATClause* cl);
 
 protected:
   static SATLiteral litToSAT(NamingContext& context, Literal* lit);

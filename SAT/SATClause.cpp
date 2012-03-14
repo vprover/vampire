@@ -64,6 +64,10 @@ void SATClause::destroy()
     return;
   }
 
+  if(_inference) {
+    delete _inference;
+  }
+
   //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
@@ -104,6 +108,21 @@ void SATClause::sort()
   std::sort(&_literals[0], &_literals[length()], litComparator);
 }
 
+bool SATClause::hasUniqueVariables() const
+{
+  CALL("SATClause::hasUniqueVariables");
+
+  static DHSet<int> seen;
+  seen.reset();
+  unsigned clen=length();
+  for(unsigned i=0; i<clen; i++) {
+    if(!seen.insert((*this)[i].var())) {
+      return false;
+    }
+  }
+  return true;
+}
+
 SATClause* SATClause::fromStack(SATLiteralStack& stack)
 {
   CALL("SATClause::fromStack");
@@ -119,6 +138,24 @@ SATClause* SATClause::fromStack(SATLiteralStack& stack)
     i++;
   }
   ASS_EQ(i, clen);
+  return rcl;
+}
+
+SATClause* SATClause::copy(SATClause* cl)
+{
+  CALL("SATClause::copy");
+
+  unsigned clen = cl->size();
+  SATClause* rcl=new(clen) SATClause(clen);
+
+  for(unsigned i=0; i<clen; i++) {
+    (*rcl)[i] = (*cl)[i];
+  }
+
+  if(cl->inference()) {
+    rcl->setInference(SATInference::copy(cl->inference()));
+  }
+
   return rcl;
 }
 

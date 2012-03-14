@@ -404,6 +404,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Kernel/Renaming.o\
 	       Kernel/RobSubstitution.o\
 	       SAT/ClauseDisposer.o\
+	       SAT/ISSatSweeping.o\
 	       SAT/Preprocess.o\
 	       SAT/RestartStrategy.o\
 	       SAT/SATClause.o\
@@ -412,105 +413,6 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       SAT/TWLSolver.o\
 	       SAT/VariableSelector.o
 
-OTHER_API_DEP = \
-	   Indexing/FormulaIndex.o\
-	   Indexing/Index.o\
-	   Indexing/ResultSubstitution.o\
-	   Indexing/TermSharing.o\
-	   Kernel/BDD.o\
-	   Kernel/BDDClausifier.o\
-	   Kernel/Clause.o\
-	   Kernel/EqHelper.o\
-	   Kernel/Formula.o\
-	   Kernel/FormulaTransformer.o\
-	   Kernel/FormulaUnit.o\
-	   Kernel/FormulaVarIterator.o\
-	   Kernel/Grounder.o\
-	   Kernel/Inference.o\
-	   Kernel/InferenceStore.o\
-	   Kernel/KBO.o\
-	   Kernel/KBOForEPR.o\
-	   Kernel/Matcher.o\
-	   Kernel/Ordering.o\
-	   Kernel/Ordering_Equality.o\
-	   Kernel/Problem.o\
-	   Kernel/Renaming.o\
-	   Kernel/RobSubstitution.o\
-	   Kernel/SortHelper.o\
-	   Kernel/Sorts.o\
-	   Kernel/Signature.o\
-	   Kernel/SubformulaIterator.o\
-	   Kernel/Substitution.o\
-	   Kernel/Term.o\
-	   Kernel/TermIterators.o\
-	   Kernel/TermTransformer.o\
-	   Kernel/Theory.o\
-	   Kernel/Unit.o\
-	   Lib/Allocator.o\
-	   Lib/DHMap.o\
-	   Lib/Environment.o\
-	   Lib/Event.o\
-	   Lib/Exception.o\
-	   Lib/Hash.o\
-	   Lib/Int.o\
-	   Lib/IntNameTable.o\
-	   Lib/MultiCounter.o\
-	   Lib/NameArray.o\
-	   Lib/Random.o\
-	   Lib/StringUtils.o\
-	   Lib/System.o\
-	   Lib/TimeCounter.o\
-	   Lib/Timer.o\
-	   Lib/Sys/Multiprocessing.o\
-	   Lib/Sys/Semaphore.o\
-	   Lib/Sys/SyncPipe.o\
-           SAT/ClauseDisposer.o\
-           SAT/Preprocess.o\
-           SAT/RestartStrategy.o\
-           SAT/SATClause.o\
-           SAT/SATInference.o\
-           SAT/SATLiteral.o\
-           SAT/TWLSolver.o\
-           SAT/VariableSelector.o\
-	   Saturation/ClauseContainer.o\
-	   Shell/AIG.o\
-           Shell/AIGInliner.o\
-           Shell/AIGRewriter.o\
-	   Shell/CNF.o\
-	   Shell/EPRInlining.o\
-	   Shell/EPRSkolem.o\
-	   Shell/EqualityAxiomatizer.o\
-	   Shell/EqualityProxy.o\
-	   Shell/EqualityPropagator.o\
-	   Shell/Flattening.o\
-	   Shell/FormulaIteExpander.o\
-	   Shell/FunctionDefinition.o\
-           Shell/GlobalOptions.o\
-	   Shell/Lexer.o\
-	   Shell/LispLexer.o\
-	   Shell/LispParser.o\
-	   Shell/Naming.o\
-	   Shell/NNF.o\
-	   Shell/Options.o\
-	   Shell/PDInliner.o\
-	   Shell/PDMerger.o\
-	   Shell/PDUtils.o\
-	   Shell/PredicateDefinition.o\
-	   Shell/PredicateIndexIntroducer.o\
-	   Shell/Property.o\
-	   Shell/Rectify.o\
-	   Shell/Refutation.o\
-	   Shell/SimplifyFalseTrue.o\
-	   Shell/SimplifyProver.o\
-	   Shell/SineUtils.o\
-	   Shell/Skolem.o\
-	   Shell/SpecialTermElimination.o\
-	   Shell/Statistics.o\
-	   Shell/Token.o\
-	   Shell/TPTP.o\
-	   Shell/VarManager.o\
-	   Parse/TPTP.o\
-	   ClausifierDependencyFix.o
 
 VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test UnitTests VUtils Program Parse
 

@@ -30,7 +30,9 @@ public:
   virtual ~SATInference() {}
   virtual InfType getType() const = 0;
 
+  static void collectFOPremises(SATClause* cl, Stack<UnitSpec>& acc);
   static UnitList* getFOPremises(SATClause* cl);
+  static SATInference* copy(const SATInference* inf);
 };
 
 class PropInference : public SATInference

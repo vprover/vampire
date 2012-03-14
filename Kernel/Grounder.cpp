@@ -158,43 +158,13 @@ void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause
   ASS(refutation);
 
   static Stack<UnitSpec> prems;
-  static Stack<SATClause*> toDo;
-  static DHSet<SATClause*> seen;
   prems.reset();
-  toDo.reset();
-  seen.reset();
 
   if(origClause) {
     prems.push(UnitSpec(origClause));
   }
+  SATInference::collectFOPremises(refutation, prems);
 
-  toDo.push(refutation);
-  while(toDo.isNonEmpty()) {
-    SATClause* cur = toDo.pop();
-    if(!seen.insert(cur)) {
-      continue;
-    }
-    SATInference* sinf = cur->inference();
-    ASS(sinf);
-    switch(sinf->getType()) {
-    case SATInference::FO_CONVERSION:
-      prems.push(static_cast<FOConversionInference*>(sinf)->getOrigin());
-//      cout<<prems.top().unit()->number()<<" ";
-      break;
-    case SATInference::ASSUMPTION:
-      break;
-    case SATInference::PROP_INF:
-    {
-      PropInference* pinf = static_cast<PropInference*>(sinf);
-      toDo.loadFromIterator(SATClauseList::Iterator(pinf->getPremises()));
-      break;
-    }
-    default:
-      ASSERTION_VIOLATION;
-    }
-  }
-
-  makeUnique(prems);
   unsigned premCnt = prems.size();
 
   InferenceStore::FullInference* inf = new(premCnt) InferenceStore::FullInference(premCnt);
@@ -206,7 +176,6 @@ void Grounder::recordInference(Clause* origClause, SATClause* refutation, Clause
 
   InferenceStore::instance()->recordInference(UnitSpec(resultClause), inf);
 }
-
 
 ////////////////////////////////
 // GlobalSubsumptionGrounder

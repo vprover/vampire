@@ -35,6 +35,7 @@ class EquivalenceDiscoverer {
   //options
   unsigned _satConflictCountLimit;
   bool _checkOnlyDefinitionHeads;
+  bool _useISS;
 
   bool _restrictedRange;
   DHSet<Literal*> _restrictedRangeSet1;
@@ -42,6 +43,7 @@ class EquivalenceDiscoverer {
 
   GlobalSubsumptionGrounder _gnd;
   ScopedPtr<SATSolver> _solver;
+  ScopedPtr<SATSolver> _proofRecordingSolver;
 
   SATLiteralStack _eligibleSatLits;
 //  LiteralStack _foLits;
@@ -63,6 +65,10 @@ class EquivalenceDiscoverer {
 
   Literal* getFOLit(SATLiteral slit) const;
 
+  SATSolver& getProofRecordingSolver();
+  void getImplicationPremises(SATLiteral l1, SATLiteral l2, Stack<UnitSpec>& acc);
+  Inference* getEquivInference(SATLiteral l1, SATLiteral l2);
+
   void addGrounding(Clause* cl);
   void collectRelevantLits();
 
@@ -74,7 +80,7 @@ class EquivalenceDiscoverer {
 
   bool handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc);
 
-  void discoverISSatEquivalences();
+  void discoverISSatEquivalences(UnitList*& eqAcc);
 
   static int satLiteralVar(SATLiteral l) { return l.var(); }
 public:

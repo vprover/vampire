@@ -38,7 +38,9 @@ EquivalenceDiscoverer::EquivalenceDiscoverer(bool normalizeForSAT, unsigned satC
       _maxSatVar(0)
 {
   CALL("EquivalenceDiscoverer::EquivalenceDiscoverer");
-  _solver = new TWLSolver(*env.options, true);
+
+  _useISS = true;
+  _solver = new TWLSolver(*env.options, false);
 }
 
 /**
@@ -62,6 +64,7 @@ void EquivalenceDiscoverer::addGrounding(Clause* cl)
   normLits.ensure(clen);
 
   SATClause* scl = _gnd.groundNonProp(cl, normLits.array());
+  scl->setInference(new FOConversionInference(cl));
   _satClauses.push(scl);
 
   for(unsigned i=0; i<clen; ++i) {
@@ -103,7 +106,7 @@ void EquivalenceDiscoverer::collectRelevantLits()
 
   DHSet<SATLiteral> seen;
 
-  SATClauseStack::Iterator scit(_filteredSatClauses);
+  SATClauseStack::ConstIterator scit(_filteredSatClauses);
   while(scit.hasNext()) {
     SATClause* sc = scit.next();
     SATClause::Iterator slitIt(*sc);
@@ -166,7 +169,7 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   LOG("pp_ed_progress","relevant literals collected");
 
   _solver->ensureVarCnt(_maxSatVar+1);
-  _solver->addClauses(pvi(SATClauseStack::Iterator(_filteredSatClauses)), false);
+  _solver->addClauses(pvi(SATClauseStack::Iterator(_filteredSatClauses)));
 
   LOG("pp_ed_progress","grounded clauses added to SAT solver");
 
@@ -178,31 +181,35 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
 
   loadInitialAssignment();
 
-//  discoverISSatEquivalences();
-
   //the actual equivalence finding
 
-  UnitList* res = 0;
+  LOG("pp_ed_progress","starting equivalence discovery among "<<_eligibleSatLits.size()<<" atoms");
 
-  unsigned elCnt = _eligibleSatLits.size();
-  LOG("pp_ed_progress","literals to process: "<<elCnt);
-  for(unsigned i=0; i<elCnt; ++i) {
-    SATLiteral l1 = _eligibleSatLits[i];
-    if(_restrictedRange && !_restrictedRangeSet1.contains(_s2f.get(l1.positive()))) {
-      continue;
-    }
-    LOG("pp_ed_progress","processing literal "<<(*getFOLit(l1)));
-    for(unsigned j=i+1; j<elCnt; ++j) {
-      SATLiteral l2 = _eligibleSatLits[j];
-      ASS_NEQ(l1,l2);
-      if(_restrictedRange && !_restrictedRangeSet2.contains(_s2f.get(l2.positive()))) {
+  UnitList* res = 0;
+  if(_useISS) {
+    discoverISSatEquivalences(res);
+  }
+  else {
+    unsigned elCnt = _eligibleSatLits.size();
+    LOG("pp_ed_progress","literals to process: "<<elCnt);
+    for(unsigned i=0; i<elCnt; ++i) {
+      SATLiteral l1 = _eligibleSatLits[i];
+      if(_restrictedRange && !_restrictedRangeSet1.contains(_s2f.get(l1.positive()))) {
         continue;
       }
-      if(areEquivalent(l1,l2) && handleEquivalence(l1, l2, res)) {
-	break;
-      }
-      if(areEquivalent(l1,l2.opposite()) && handleEquivalence(l1, l2.opposite(), res)) {
-	break;
+      LOG("pp_ed_progress","processing literal "<<(*getFOLit(l1)));
+      for(unsigned j=i+1; j<elCnt; ++j) {
+        SATLiteral l2 = _eligibleSatLits[j];
+        ASS_NEQ(l1,l2);
+        if(_restrictedRange && !_restrictedRangeSet2.contains(_s2f.get(l2.positive()))) {
+          continue;
+        }
+        if(areEquivalent(l1,l2) && handleEquivalence(l1, l2, res)) {
+  	break;
+        }
+        if(areEquivalent(l1,l2.opposite()) && handleEquivalence(l1, l2.opposite(), res)) {
+  	break;
+        }
       }
     }
   }
@@ -211,7 +218,68 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   return res;
 }
 
-void EquivalenceDiscoverer::discoverISSatEquivalences()
+SATSolver& EquivalenceDiscoverer::getProofRecordingSolver()
+{
+  CALL("EquivalenceDiscoverer::getProofRecordingSolver");
+
+  if(!_proofRecordingSolver) {
+
+    //we need to make copies of clauses as the same clause object
+    //cannot be in two SAT solver objects at once (SAT solvers can modify clauses)
+
+    SATClauseStack clauseCopies;
+    SATClauseStack::Iterator cit(_filteredSatClauses);
+    while(cit.hasNext()) {
+      SATClause* cl = cit.next();
+      SATClause* clCopy = SATClause::copy(cl);
+      clauseCopies.push(clCopy);
+    }
+
+    _proofRecordingSolver = new TWLSolver(*env.options, true);
+    _proofRecordingSolver->ensureVarCnt(_maxSatVar+1);
+    _proofRecordingSolver->addClauses(pvi(SATClauseStack::Iterator(clauseCopies)), true);
+  }
+  ASS_NEQ(_proofRecordingSolver->getStatus(), SATSolver::UNSATISFIABLE);
+  ASS(!_proofRecordingSolver->hasAssumptions());
+  return *_proofRecordingSolver;
+}
+
+void EquivalenceDiscoverer::getImplicationPremises(SATLiteral l1, SATLiteral l2, Stack<UnitSpec>& acc)
+{
+  CALL("EquivalenceDiscoverer::getImplicationPremises");
+
+  SATSolver& ps = getProofRecordingSolver();
+  ASS(!ps.hasAssumptions());
+
+  ps.addAssumption(l1,true);
+  ps.addAssumption(l2.opposite(),false);
+  ASS_EQ(ps.getStatus(), SATSolver::UNSATISFIABLE);
+  SATClause* ref = ps.getRefutation();
+  SATInference::collectFOPremises(ref, acc);
+  ps.retractAllAssumptions();
+}
+
+Inference* EquivalenceDiscoverer::getEquivInference(SATLiteral l1, SATLiteral l2)
+{
+  CALL("EquivalenceDiscoverer::getEquivInference");
+
+  static Stack<UnitSpec> premises;
+  ASS(premises.isEmpty());
+
+  getImplicationPremises(l1, l2, premises);
+  getImplicationPremises(l2, l1, premises);
+
+  UnitList* premLst = 0;
+
+  while(premises.isNonEmpty()) {
+    UnitSpec us = premises.pop();
+    ASS(us.withoutProp());
+    UnitList::push(us.unit(), premLst);
+  }
+  return new InferenceMany(Inference::EQUIVALENCE_DISCOVERY, premLst);
+}
+
+void EquivalenceDiscoverer::discoverISSatEquivalences(UnitList*& eqAcc)
 {
   CALL("EquivalenceDiscoverer::discoverISSatEquivalences");
   ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
@@ -222,7 +290,7 @@ void EquivalenceDiscoverer::discoverISSatEquivalences()
   Stack<ISSatSweeping::Equiv>::ConstIterator eqIt(sswp.getEquivalences());
   while(eqIt.hasNext()) {
     ISSatSweeping::Equiv eq = eqIt.next();
-    LOG("pp_ed_eq","issat: "<<(*getFOLit(eq.first))<<" <=> "<<(*getFOLit(eq.second)));
+    handleEquivalence(eq.first, eq.second, eqAcc);
   }
 }
 
@@ -258,29 +326,38 @@ bool EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, Unit
   if(freeVars) {
     eqForm = new QuantifiedFormula(FORALL, freeVars, eqForm);
   }
-  //TODO: proof tracking
-  FormulaUnit* fu = new FormulaUnit(eqForm, new Inference(Inference::EQUIVALENCE_DISCOVERY), Unit::AXIOM);
+
+  Inference* inf = getEquivInference(l1, l2);
+  FormulaUnit* fu = new FormulaUnit(eqForm, inf, Unit::AXIOM);
   UnitList::push(fu, eqAcc);
 
+  if(!_useISS) {
+    static SATLiteralStack slits;
+    slits.reset();
+    slits.push(l1);
+    slits.push(l2.opposite());
+    SATClause* scl1 = SATClause::fromStack(slits);
+    scl1->setInference(new FOConversionInference(UnitSpec(fu)));
 
-  static SATLiteralStack slits;
-  slits.reset();
-  slits.push(l1);
-  slits.push(l2.opposite());
-  SATClause* scl1 = SATClause::fromStack(slits);
-  scl1->setInference(new FOConversionInference(UnitSpec(fu)));
+    slits.reset();
+    slits.push(l1.opposite());
+    slits.push(l2);
+    SATClause* scl2 = SATClause::fromStack(slits);
+    scl2->setInference(new FOConversionInference(UnitSpec(fu)));
 
-  slits.reset();
-  slits.push(l1.opposite());
-  slits.push(l2);
-  SATClause* scl2 = SATClause::fromStack(slits);
-  scl2->setInference(new FOConversionInference(UnitSpec(fu)));
-
-  _solver->addClauses(
-      pvi( getConcatenatedIterator(getSingletonIterator(scl1),getSingletonIterator(scl2)) ), true);
-
+    _solver->addClauses(
+	pvi( getConcatenatedIterator(getSingletonIterator(scl1),getSingletonIterator(scl2)) ), true);
+  }
 
   LOG_UNIT("pp_ed_eq",fu);
+  TRACE("pp_ed_eq_prems",
+	UnitSpecIterator uit = InferenceStore::instance()->getParents(UnitSpec(fu));
+	while(uit.hasNext()) {
+	  UnitSpec p = uit.next();
+	  TRACE_OUTPUT_UNIT("pp_ed_eq_prems",p.unit());
+	}
+  );
+
   return true;
 }
 

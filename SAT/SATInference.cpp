@@ -14,16 +14,16 @@ namespace SAT
 // SATInference
 //
 
-UnitList* SATInference::getFOPremises(SATClause* cl)
+/**
+ * Collect first-order premises of @c cl into @c res. Make sure that elements in @c res are unique.
+ */
+void SATInference::collectFOPremises(SATClause* cl, Stack<UnitSpec>& acc)
 {
-  CALL("SATInference::getFOPremises");
-  ASS(cl);
-  ASS(cl->inference());
+  CALL("SATInference::collectFOPremises");
+  ASS_ALLOC_TYPE(cl, "SATClause");
 
-  static ClauseStack prems;
-  static SATClauseStack toDo;
+  static Stack<SATClause*> toDo;
   static DHSet<SATClause*> seen;
-  prems.reset();
   toDo.reset();
   seen.reset();
 
@@ -37,7 +37,7 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
     ASS(sinf);
     switch(sinf->getType()) {
     case SATInference::FO_CONVERSION:
-      prems.push(static_cast<FOConversionInference*>(sinf)->getOrigin().cl());
+      acc.push(static_cast<FOConversionInference*>(sinf)->getOrigin());
       break;
     case SATInference::ASSUMPTION:
       break;
@@ -50,21 +50,61 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
     case SATInference::FO_SPLITTING:
     {
       FOSplittingInference* inf = static_cast<FOSplittingInference*>(sinf);
-      prems.push(inf->getOrigin());
-      prems.loadFromIterator(ClauseList::Iterator(inf->getNames()));
+      acc.push(UnitSpec(inf->getOrigin()));
+      ClauseList::Iterator cit(inf->getNames());
+      while(cit.hasNext()) {
+	acc.push(UnitSpec(cit.next()));
+      }
       break;
     }
     default:
       ASSERTION_VIOLATION;
     }
   }
+  makeUnique(acc);
+}
 
-  makeUnique(prems);
+
+UnitList* SATInference::getFOPremises(SATClause* cl)
+{
+  CALL("SATInference::getFOPremises");
+  ASS(cl);
+  ASS(cl->inference());
+
+  static Stack<UnitSpec> prems;
+  prems.reset();
+
+  collectFOPremises(cl, prems);
 
   UnitList* res = 0;
-  UnitList::pushFromIterator(ClauseStack::Iterator(prems), res);
+  while(prems.isNonEmpty()) {
+    UnitSpec us = prems.pop();
+    ASS(us.withoutProp());
+    UnitList::push(us.unit(), res);
+  }
 
   return res;
+}
+
+SATInference* SATInference::copy(const SATInference* inf)
+{
+  CALL("SATInference::copy");
+
+  switch(inf->getType()) {
+  case PROP_INF:
+    return new PropInference(static_cast<const PropInference*>(inf)->getPremises()->copy());
+  case FO_CONVERSION:
+    return new FOConversionInference(static_cast<const FOConversionInference*>(inf)->getOrigin());
+  case FO_SPLITTING:
+  {
+    const FOSplittingInference* splInf = static_cast<const FOSplittingInference*>(inf);
+    return new FOSplittingInference(splInf->getOrigin(), splInf->getNames()->copy());
+  }
+  case ASSUMPTION:
+    return new AssumptionInference();
+  default:
+    ASSERTION_VIOLATION;
+  }
 }
 
 ///////////////////////

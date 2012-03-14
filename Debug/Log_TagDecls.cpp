@@ -467,6 +467,9 @@ void Logging::doTagDeclarations()
   DECL("pp_ed_eq",
       DOC("discovered equivalences"),
       PARENT("pp_ed",0));
+  DECL("pp_ed_eq_prems",
+      DOC("premises of discovered equivalences"),
+      PARENT("pp_ed_eq",0));
   DECL("pp_ed_asm",
       DOC("assumptions being asserted into the solver"),
       PARENT("pp_ed",1));
@@ -728,7 +731,10 @@ void Logging::doTagDeclarations()
       PARENT("sat",1));
   DECL("sat_iss_grps",
       DOC("candidate groups"),
-      PARENT("sat_iss",1));
+      PARENT("sat_iss",2));
+  DECL("sat_iss_grps_content",
+      DOC("content of candidate groups"),
+      PARENT("sat_iss_grps",1));
   DECL("sat_iss_try_impl",
       DOC("attempts to prove implications"),
       PARENT("sat_iss",1));

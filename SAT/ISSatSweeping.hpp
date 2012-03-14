@@ -58,6 +58,7 @@ private:
   bool tryProvingImplication(Impl imp, bool& foundEquivalence);
 
   void createCandidates();
+  void tryRandomSimulation();
   void doOneProbing();
 
   void run();

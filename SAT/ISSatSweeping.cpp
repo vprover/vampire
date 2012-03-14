@@ -4,6 +4,8 @@
  */
 
 
+#include "Lib/Random.hpp"
+
 #include "ISSatSweeping.hpp"
 
 namespace SAT
@@ -226,14 +228,71 @@ void ISSatSweeping::splitGroupsByCurrAssignment()
   _candidateGroupIndexes.reset();
   unsigned groupCnt = _candidateGroups.size();
   for(gi=0; gi<groupCnt; gi++) {
-    LOG("sat_iss_grps", "Group "<<gi<<" (size "<<_candidateGroups[gi].size()<<"):");
+    LOG("sat_iss_grps", "Group "<<gi<<" (size "<<_candidateGroups[gi].size()<<")");
     SATLiteralStack::ConstIterator git(_candidateGroups[gi]);
     while(git.hasNext()) {
       SATLiteral lit = git.next();
-      LOG("sat_iss_grps", "  "<<lit);
+      LOG("sat_iss_grps_content", "  "<<lit);
       _candidateGroupIndexes.insert(lit.var(), gi);
     }
   }
+}
+
+void ISSatSweeping::tryRandomSimulation()
+{
+  CALL("ISSatSweeping::tryRandomSimulation");
+  ASS(!_solver.hasAssumptions());
+//  if(_solver.getStatus()!=SATSolver::SATISFIABLE) {
+//    _solver.addClauses(SATClauseIterator::getEmpty());
+//  }
+//  ASS_EQ(_solver.getStatus(), SATSolver::SATISFIABLE);
+
+  SATLiteralStack possiblySatSubset;
+
+  Stack<unsigned> varsInRandomOrder(_interestingVars);
+
+  unsigned vcnt = varsInRandomOrder.size();
+  for(unsigned i=0; i<vcnt; i++) {
+    unsigned src = Random::getInteger(vcnt-i)+i;
+    if(src==i) {
+      continue;
+    }
+    std::swap(varsInRandomOrder[i], varsInRandomOrder[src]);
+  }
+
+  Stack<unsigned>::Iterator varIt(varsInRandomOrder);
+  while(varIt.hasNext()) {
+    unsigned v = varIt.next();
+    if(!_candidateGroupIndexes.find(v)) {
+      continue;
+    }
+    bool pol = Random::getBit();
+    SATLiteral probeLit = SATLiteral(v, pol);
+    _solver.addAssumption(probeLit, true);
+    if(_solver.getStatus()==SATSolver::UNSATISFIABLE) {
+      _solver.retractAllAssumptions();
+
+      while(possiblySatSubset.size()>1) {
+	SATLiteral l = possiblySatSubset.pop();
+	_solver.addAssumption(l, true);
+      }
+      _solver.addAssumption(possiblySatSubset.pop());
+      if(_solver.getStatus()==SATSolver::SATISFIABLE) {
+	splitGroupsByCurrAssignment();
+      }
+      _solver.retractAllAssumptions();
+
+      _solver.addAssumption(probeLit);
+      if(_solver.getStatus()==SATSolver::UNSATISFIABLE) {
+	ASS_NEQ(probeLit.polarity(), _candidateVarPolarities[v]);
+	addTrueLit(probeLit.opposite());
+	continue;
+      }
+    }
+    possiblySatSubset.push(probeLit);
+  }
+
+  _solver.retractAllAssumptions();
 }
 
 void ISSatSweeping::addImplication(Impl imp, bool& foundEquivalence)
@@ -329,28 +388,29 @@ bool ISSatSweeping::tryProvingImplicationInner(Impl imp, bool& foundEquivalence)
   ASS(!_solver.hasAssumptions());
   ASS(sameCandGroup(imp.first.var(),imp.second.var()));
 
-  _solver.addAssumption(imp.first.opposite());
+  _solver.addAssumption(imp.second.opposite());
   SATSolver::Status status = _solver.getStatus();
   if(status==SATSolver::UNSATISFIABLE) {
-    addTrueLit(imp.first);
+    addTrueLit(imp.second);
     foundEquivalence = true;
     return false;
   }
 
   ASS_EQ(status, SATSolver::SATISFIABLE);
   splitGroupsByCurrAssignment();
-  lookForImplications(imp.first, true, foundEquivalence);
+  lookForImplications(imp.second, true, foundEquivalence);
 
-  if(foundEquivalence || _solver.trueInAssignment(imp.second)) {
+  if(foundEquivalence || _solver.trueInAssignment(imp.first)) {
     return false;
   }
   if(_implications.find(imp)) {
     return true;
   }
 
-  _solver.addAssumption(imp.second);
+  _solver.addAssumption(imp.first);
   status = _solver.getStatus();
   if(status==SATSolver::UNSATISFIABLE) {
+    LOG("sat_iss_try_impl","assumption of "<<imp.second.opposite()<<" & "<<imp.first<<" unsatisfiable");
     addImplication(imp, foundEquivalence);
     return true;
   }
@@ -403,7 +463,6 @@ void ISSatSweeping::doOneProbing()
   }
 
   tryProvingImplication(Impl(cand2, cand1), foundEquivalence);
-  ASS(foundEquivalence);
 }
 
 void ISSatSweeping::run()
@@ -411,6 +470,8 @@ void ISSatSweeping::run()
   CALL("ISSatSweeping::run");
 
   createCandidates();
+
+  tryRandomSimulation();
 
   while(_candidateGroups.isNonEmpty()) {
     doOneProbing();

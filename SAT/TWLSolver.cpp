@@ -130,6 +130,7 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
     while(cit.hasNext()) {
       SATClause* cl=cit.next();
       LOG("sat_clauses",*cl);
+      ASS(cl->hasUniqueVariables());
       cl->setKept(true);
       if(cl->length()==0) {
 	throw UnsatException(cl);
