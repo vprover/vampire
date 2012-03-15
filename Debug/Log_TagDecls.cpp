@@ -271,8 +271,24 @@ void Logging::doTagDeclarations()
       DOC("collection of unifying path"),
       PARENT("dp_cc_expl",2));
 
-
-
+  //
+  // SMT 
+  //
+  
+  DECL("smt", 
+      DOC("traces for SimpleSMT"));
+  DECL("smt_sat_status",
+      DOC("status of the SAT solver at each step"),
+      PARENT("smt", 1));
+  DECL("smt_dp_status", 
+      DOC("status of the Decision Procedure "),
+      PARENT("smt",1 ));
+  DECL("smt_clause", 
+      DOC("Traces the clauses added to the SAT solver"),
+      PARENT("smt",1));
+  DECL("smt_sat_clauses",
+      DOC("initial sat clauses"),
+      PARENT("smt",1));
   //
   // SAT-based splitting
   //
