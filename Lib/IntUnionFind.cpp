@@ -32,14 +32,18 @@ IntUnionFind::~IntUnionFind()
   DEALLOC_KNOWN(_data, _cnt*sizeof(int), "IntUnionFind");
 }
 
-void IntUnionFind::doUnion(int c1, int c2)
+/**
+ * Make sure c1 and c2 are in the same class. If c1 and c2 already
+ * were in the same class, return false, otherwise return true.
+ */
+bool IntUnionFind::doUnion(int c1, int c2)
 {
   CALL("IntUnionFind::doUnion");
 
   c1=root(c1);
   c2=root(c2);
   if(c1==c2) {
-    return;
+    return false;
   }
   if(c1>c2) {
     swap(c1,c2);
@@ -49,6 +53,7 @@ void IntUnionFind::doUnion(int c1, int c2)
 
   //the component structure has changed
   _modified=true;
+  return true;
 }
 
 /**

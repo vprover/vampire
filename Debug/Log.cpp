@@ -17,6 +17,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
 
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Unit.hpp"
 
 
@@ -30,6 +31,7 @@ unsigned Logging::s_settingTimestamp = 1;
 
 class Logging::Impl
 {
+public:
   struct ChildInfo {
     unsigned childIndex;
     unsigned depth;
@@ -48,18 +50,22 @@ class Logging::Impl
     bool enabled;
     /** Depth up to which children of this tag are enabled */
     unsigned enabledDepth;
+    /** Premises of units displayed through logUnit function will be printed */
+    bool printUnitPremises;
 
-    TagInfo(string name) : name(name), enabled(false) {}
+    TagInfo(string name) : name(name), enabled(false), printUnitPremises(false) {}
   };
 
+private:
   struct TagEnableBO : public BacktrackObject {
     Logging::Impl& parent;
     unsigned _tagIdx;
     bool _oldEnabled;
     unsigned _oldDepth;
+    bool _oldPrintPrem;
 
-    TagEnableBO(Logging::Impl& parent, unsigned tagIdx, bool oldEnabled, unsigned oldDepth)
-    : parent(parent), _tagIdx(tagIdx), _oldEnabled(oldEnabled), _oldDepth(oldDepth)
+    TagEnableBO(Logging::Impl& parent, unsigned tagIdx, bool oldEnabled, unsigned oldDepth, bool oldPrintPrems)
+    : parent(parent), _tagIdx(tagIdx), _oldEnabled(oldEnabled), _oldDepth(oldDepth), _oldPrintPrem(oldPrintPrems)
     {}
 
     virtual void backtrack() {
@@ -68,6 +74,7 @@ class Logging::Impl
 	parent._tags[_tagIdx].enabled = false;
       }
       parent._tags[_tagIdx].enabledDepth = _oldDepth;
+      parent._tags[_tagIdx].printUnitPremises = _oldPrintPrem;
     }
   };
 
@@ -75,6 +82,28 @@ class Logging::Impl
   Stack<TagInfo> _tags;
 
   Stack<BacktrackData> _stateStack;
+
+
+  bool enableOneTag(unsigned tagIdx, unsigned enabledDepth, bool printPremises) {
+    TagInfo& ti = _tags[tagIdx];
+    if(ti.enabled && enabledDepth<=ti.enabledDepth && (!printPremises || ti.printUnitPremises) ) {
+      return false;
+    }
+    if(_stateStack.isNonEmpty()) {
+      _stateStack.top().addBacktrackObject(new TagEnableBO(*this, tagIdx, ti.enabled, ti.enabledDepth, ti.printUnitPremises));
+    }
+    ti.enabled = true;
+    ti.enabledDepth = enabledDepth;
+    ti.printUnitPremises = printPremises;
+    return true;
+  }
+
+public:
+  ~Impl() {
+    while(_stateStack.isNonEmpty()) {
+      _stateStack.pop().drop();
+    }
+  }
 
   unsigned tag2idx(const char* tag) const {
     CALL("Logging::Impl::tag2idx");
@@ -85,25 +114,6 @@ class Logging::Impl
       throw Exception("Tag \""+string(tag)+"\" does not exist.");
     }
     return res;
-  }
-
-  bool enableOneTag(unsigned tagIdx, unsigned enabledDepth) {
-    TagInfo& ti = _tags[tagIdx];
-    if(ti.enabled && enabledDepth<=ti.enabledDepth) {
-      return false;
-    }
-    if(_stateStack.isNonEmpty()) {
-      _stateStack.top().addBacktrackObject(new TagEnableBO(*this, tagIdx, ti.enabled, ti.enabledDepth));
-    }
-    ti.enabled = true;
-    ti.enabledDepth = enabledDepth;
-    return true;
-  }
-public:
-  ~Impl() {
-    while(_stateStack.isNonEmpty()) {
-      _stateStack.pop().drop();
-    }
   }
 
   /**
@@ -166,7 +176,7 @@ public:
   /**
    * Enable tag @c tag and all its child tags up to the @c depthLimit.
    */
-  void enableTag(const char* tag, unsigned depthLimit=UINT_MAX)
+  void enableTag(const char* tag, unsigned depthLimit=UINT_MAX, bool printPremises=false)
   {
     CALL("Logging::Impl::enableTag");
 
@@ -176,7 +186,7 @@ public:
     todo.push(ChildInfo(tag2idx(tag), depthLimit));
     while(todo.isNonEmpty()) {
       ChildInfo cur = todo.pop();
-      if(!enableOneTag(cur.childIndex, cur.depth)) {
+      if(!enableOneTag(cur.childIndex, cur.depth, printPremises)) {
 	continue;
       }
       TagInfo& ti = _tags[cur.childIndex];
@@ -208,29 +218,40 @@ public:
 
     DArray<char> chars;
     chars.initFromArray(str.size()+1, str.c_str());
-    char* tagStart = chars.array();
+    char* curr = chars.array();
     while(true) {
-      char* tagEnd = tagStart;
-      while(*tagEnd && *tagEnd!=':' && *tagEnd!=',') {
-	++tagEnd;
+      bool lastTag;
+
+      char* tagNameStart = curr;
+      while(*curr && *curr!=':' && *curr!='^' && *curr!=',') {
+	curr++;
       }
-      if(tagStart==tagEnd) {
+      if(tagNameStart==curr) {
 	USER_ERROR("Tag control string \""+string(str)+"\" is not valid.");
       }
 
-      char* nextTagStart; //if zero, there is no next tag
+      char* tagNameEnd = curr;
+      bool printPrems = false;
+      if(*curr=='^') {
+	printPrems = true;
+	curr++;
+      }
       unsigned depth;
-      if(*tagEnd==':') {
-	char* depthStart = tagEnd+1;
-	char* depthEnd = depthStart;
-	while(*depthEnd && *depthEnd!=',') {
-	  ++depthEnd;
+      if(*curr==':') {
+	curr++;
+	char* depthStart = curr;
+	while(*curr && *curr!=',') {
+	  curr++;
 	}
-	if(*depthEnd) {
-	  nextTagStart = depthEnd+1;
+
+	char* depthEnd = curr;
+	if(*curr) {
+	  ASS_EQ(*curr,',');
+	  lastTag = false;
+	  curr++;
 	}
 	else {
-	  nextTagStart = 0;
+	  lastTag = true;
 	}
 	*depthEnd = 0;
 	if(!Int::stringToUnsignedInt(depthStart, depth)) {
@@ -239,21 +260,25 @@ public:
       }
       else {
 	depth = UINT_MAX;
-	if(*tagEnd) {
-	  ASS_EQ(*tagEnd,',');
-	  nextTagStart = tagEnd+1;
+	if(*curr) {
+	  ASS_EQ(*curr,',');
+	  lastTag = false;
+	  curr++;
 	}
 	else {
-	  nextTagStart = 0;
+	  lastTag = true;
 	}
       }
-      *tagEnd=0;
-      enableTag(tagStart, depth);
 
-      if(nextTagStart==0) {
+      *tagNameEnd=0;
+      enableTag(tagNameStart, depth, printPrems);
+
+      if(lastTag) {
 	break;
       }
-      tagStart = nextTagStart;
+      if(!*curr) {
+	USER_ERROR("Tag control string \""+string(str)+"\" is not valid.");
+      }
     }
   }
 
@@ -269,6 +294,13 @@ public:
     return _tags[idx].enabled;
   }
 
+  bool isUnitPremOutputEnabled(unsigned tagNum)
+  {
+    CALL("Logging::Impl::isTagEnabled");
+
+    return _tags[tagNum].printUnitPremises;
+  }
+
   void displayHelp()
   {
     CALL("Logging::Impl::displayTagListAndExit");
@@ -281,8 +313,9 @@ public:
 	<< "Trace string:" << endl
 	<< "help" << endl
 	<< "  ... show this help" << endl
-	<< "[trace_name1[:depth_limit1][,trace_name2[:depth_limit2][,...]]]" << endl
+	<< "[trace_name1[^][:depth_limit1][,trace_name2[:depth_limit2][,...]]]" << endl
 	<< "  ... enable specified traces with child traces up to given depth or without limit" << endl
+	<< "  ... if star is specified next to a tag, premises will be shown for logged units" << endl
 	<< endl
 	<< "Traces:" << endl
 	<< "(with each trace we specify its child traces together with their distance "
@@ -351,7 +384,17 @@ bool Logging::isTagEnabled(const char* tag) {
 void Logging::logUnit(const char* tag, Kernel::Unit* u)
 {
   CALL("Logging::Impl::logUnit");
+
+  using namespace Kernel;
+
   tout << tag << ": " << u->toString() << std::endl;
+  if(impl().isUnitPremOutputEnabled(impl().tag2idx(tag))) {
+    UnitSpecIterator pit = InferenceStore::instance()->getParents(UnitSpec(u));
+    while(pit.hasNext()) {
+      UnitSpec us = pit.next();
+      tout << tag << " premise: " << us.toString() << std::endl;
+    }
+  }
 }
 
 void Logging::logSimpl(const char* tag, Kernel::Unit* src, Kernel::Unit* tgt, const char* doc)

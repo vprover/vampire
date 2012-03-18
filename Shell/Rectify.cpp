@@ -132,6 +132,58 @@ Rectify::Renaming::~Renaming ()
   }
 } // Renaming::~Renaming
 
+
+
+/**
+ * Rectify a special term
+ */
+Term* Rectify::rectifySpecialTerm(Term* t)
+{
+  CALL("Rectify::rectifySpecialTerm");
+
+  Term::SpecialTermData* sd = t->getSpecialData();
+  switch(t->functor()) {
+  case Term::SF_TERM_ITE:
+  {
+    ASS_EQ(t->arity(),2);
+    Formula* c = rectify(sd->getCondition());
+    TermList th = rectify(*t->nthArgument(0));
+    TermList el = rectify(*t->nthArgument(1));
+    if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1)) {
+	return t;
+    }
+    return Term::createTermITE(c, th, el);
+  }
+  case Term::SF_LET_FORMULA_IN_TERM:
+  {
+    ASS_EQ(t->arity(),1);
+    Literal* orig = sd->getLhsLiteral();
+    Formula* tgt = sd->getRhsFormula();
+    rectifyFormulaLet(orig, tgt);
+    TermList body = rectify(*t->nthArgument(0));
+    if(orig==sd->getLhsLiteral() && tgt==sd->getRhsFormula() && body==*t->nthArgument(0)) {
+      return t;
+    }
+    return Term::createFormulaLet(orig, tgt, body);
+  }
+  case Term::SF_LET_TERM_IN_TERM:
+  {
+    ASS_EQ(t->arity(),1);
+    TermList orig = sd->getLhsTerm();
+    TermList tgt = sd->getRhsTerm();
+    rectifyTermLet(orig, tgt);
+    TermList body = rectify(*t->nthArgument(0));
+    if(orig==sd->getLhsTerm() && tgt==sd->getRhsTerm() && body==*t->nthArgument(0)) {
+      return t;
+    }
+    return Term::createTermLet(orig, tgt, body);
+  }
+  default:
+    ASSERTION_VIOLATION;
+  }
+  ASSERTION_VIOLATION;
+}
+
 /**
  * Rectify a compound term.
  * @since 01/11/2005 Bellevue
@@ -146,47 +198,7 @@ Term* Rectify::rectify (Term* t)
   }
 
   if(t->isSpecial()) {
-    Term::SpecialTermData* sd = t->getSpecialData();
-    switch(t->functor()) {
-    case Term::SF_TERM_ITE:
-    {
-      ASS_EQ(t->arity(),2);
-      Formula* c = rectify(sd->getCondition());
-      TermList th = rectify(*t->nthArgument(0));
-      TermList el = rectify(*t->nthArgument(1));
-      if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1)) {
-	return t;
-      }
-      return Term::createTermITE(c, th, el);
-    }
-    case Term::SF_LET_FORMULA_IN_TERM:
-    {
-      ASS_EQ(t->arity(),1);
-      Literal* orig = sd->getLhsLiteral();
-      Formula* tgt = sd->getRhsFormula();
-      rectifyFormulaLet(orig, tgt);
-      TermList body = rectify(*t->nthArgument(0));
-      if(orig==sd->getLhsLiteral() && tgt==sd->getRhsFormula() && body==*t->nthArgument(0)) {
-        return t;
-      }
-      return Term::createFormulaLet(orig, tgt, body);
-    }
-    case Term::SF_LET_TERM_IN_TERM:
-    {
-      ASS_EQ(t->arity(),1);
-      TermList orig = sd->getLhsTerm();
-      TermList tgt = sd->getRhsTerm();
-      rectifyTermLet(orig, tgt);
-      TermList body = rectify(*t->nthArgument(0));
-      if(orig==sd->getLhsTerm() && tgt==sd->getRhsTerm() && body==*t->nthArgument(0)) {
-        return t;
-      }
-      return Term::createTermLet(orig, tgt, body);
-    }
-    default:
-      ASSERTION_VIOLATION;
-    }
-    NOT_IMPLEMENTED;
+    return rectifySpecialTerm(t);
   }
 
   Term* s = new(t->arity()) Term(*t);
@@ -203,6 +215,14 @@ Term* Rectify::rectify (Term* t)
   return t;
 } // Rectify::rectify (Term*)
 
+Literal* Rectify::rectifyShared(Literal* lit)
+{
+  CALL("Rectify::rectifyShared");
+  ASS(lit->shared());
+
+  return SubstHelper::apply(lit, *this);
+}
+
 /**
  * Rectify a literal.
  * @since 24/03/2008 Torrevieja
@@ -211,8 +231,12 @@ Literal* Rectify::rectify (Literal* l)
 {
   CALL("Rectify::rectify(Literal*)");
 
-  if (l->shared() && l->ground()) {
-    return l;
+  if (l->shared()) {
+    if(l->ground()) {
+      return l;
+    }
+//    //this is faster than the way below
+//    return rectifyShared(l);
   }
 
   Literal* m = new(l->arity()) Literal(*l);
@@ -564,18 +588,49 @@ FormulaList* Rectify::rectify (FormulaList* fs)
 {
   CALL ("Rectify::rectify (FormulaList*)");
 
-  if (fs->isEmpty()) {
-    return fs;
-  }
-  Formula* f = fs->head();
-  FormulaList* tail = fs->tail();
-  Formula* g = rectify(f);
-  FormulaList* gs = rectify(tail);
+  Stack<FormulaList*>* els;
+  Recycler::get(els);
+  els->reset();
 
-  if (f == g && tail == gs) {
-    return fs;
+  FormulaList* el = fs;
+  while(el) {
+    els->push(el);
+    el = el->tail();
   }
-  return new FormulaList(g,gs);
+
+  FormulaList* res = 0;
+
+  bool modified = false;
+  while(els->isNonEmpty()) {
+    FormulaList* el = els->pop();
+    Formula* f = el->head();
+    Formula* g = rectify(f);
+    if(!modified && f!=g) {
+      modified = true;
+    }
+    if(modified) {
+      FormulaList::push(g, res);
+    }
+    else {
+      res = el;
+    }
+  }
+
+  Recycler::release(els);
+  return res;
+
+//  if (fs->isEmpty()) {
+//    return fs;
+//  }
+//  Formula* f = fs->head();
+//  FormulaList* tail = fs->tail();
+//  Formula* g = rectify(f);
+//  FormulaList* gs = rectify(tail);
+//
+//  if (f == g && tail == gs) {
+//    return fs;
+//  }
+//  return new FormulaList(g,gs);
 } // Rectify::rectify(FormulaList*)
 
 /**

@@ -814,6 +814,8 @@ protected:
     static DHSet<Kernel::Unit*> defs;
     defs.reset();
 
+    LOG("pp_inl","api: started def inlining");
+
     AnnotatedFormulaIterator fit;
     if(_mode!=INL_NO_DISCOVERED_DEFS) {
 
@@ -823,6 +825,7 @@ protected:
 	  AnnotatedFormula f=fit.next();
 	  _pdInliner.updatePredOccCounts(f.unit);
 	}
+	LOG("pp_inl","api: non-growing counting finished");
       }
 
       fit=p.formulas();
@@ -836,6 +839,7 @@ protected:
 	  defs.insert(fu);
 	}
       }
+      LOG("pp_inl","api: predicate equivalence scan finished");
 
       if(_mode!=INL_PREDICATE_EQUIVALENCES_ONLY) {
 	fit=p.formulas();
@@ -849,6 +853,7 @@ protected:
 	    defs.insert(fu);
 	  }
 	}
+	LOG("pp_inl","api: other definition scan finished");
       }
     }
 
@@ -1279,28 +1284,37 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
 
   Problem res = *this;
 
+  LOG("api_prb_prepr_progress","preprocess function called");
+
+  LOG("api_prb_prepr_progress","initial preprocessing");
   res = Preprocessor1().transform(res);
 
   if(options.sineSelection) {
+    LOG("api_prb_prepr_progress","sine selection");
     res = SineSelector(options.sineTolerance, options.sineDepthLimit).transform(res);
   }
   if(options.mode==PM_SELECTION_ONLY) {
+    LOG("api_prb_prepr_progress","PM_SELECTION_ONLY finished");
     return res;
   }
 
   if(options.variableEqualityPropagation) {
+    LOG("api_prb_prepr_progress","variable equality propagation");
     res = VariableEqualityPropagator(options.traceVariableEqualityPropagation).transform(res);
   }
 
   if(options.predicateIndexIntroduction) {
+    LOG("api_prb_prepr_progress","predicate index introduction");
     res = PredicateIndexIntroducer().transform(res);
   }
 
   if(options.predicateDefinitionMerging) {
+    LOG("api_prb_prepr_progress","predicate definition merging");
     res = PredicateDefinitionMerger(options.tracePredicateDefinitionMerging).transform(res);
   }
 
   if(options.predicateEquivalenceDiscovery) {
+    LOG("api_prb_prepr_progress","predicate equivalence discovery");
     res = PredicateEquivalenceDiscoverer(options.predicateEquivalenceDiscoverySatConflictLimit,
 	options.predicateEquivalenceDiscoveryPredicateEquivalencesOnly,
 	options._predicateEquivalenceDiscoveryRestricted,
@@ -1308,6 +1322,7 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
   }
 
   if(options.eprSkolemization) {
+    LOG("api_prb_prepr_progress","epr skolemization");
     res = EPRSkolemizer(options.traceEPRSkolemization).transform(res);
   }
 
@@ -1315,54 +1330,66 @@ inlining:
 
   if(options.predicateDefinitionInlining!=INL_OFF) {
     if(options.predicateDefinitionInlining==INL_EPR_RESTORING) {
+      LOG("api_prb_prepr_progress","EPR restoring inlining");
       res = EPRRestoringInliner(options.traceInlining).transform(res);
     }
     else {
+      LOG("api_prb_prepr_progress","predicate definition inlining");
       res = PredicateDefinitionInliner(options.predicateDefinitionInlining,options.traceInlining).transform(res);
     }
   }
 
   if(options.flatteningTopLevelConjunctions) {
+    LOG("api_prb_prepr_progress","flattening top-level conjunctions");
     size_t sz0 = res.size();
     res = TopLevelFlattener().transform(res);
     if(res.size()!=sz0) {
+      LOG("api_prb_prepr_progress","conjunctions flattened, retrying inlining");
       goto inlining;
     }
   }
 
   if(options.aigBddSweeping) {
+    LOG("api_prb_prepr_progress","bdd sweeping");
     res = BDDSweeper().transform(res);
   }
 
   if(options.aigInlining) {
+    LOG("api_prb_prepr_progress","AIG inlining");
     res = AIGInliner().transform(res);
   }
 
   if(options.aigDefinitionIntroduction) {
+    LOG("api_prb_prepr_progress","AIG definition introduction");
     res = AIGDefinitionIntroducer().transform(res);
   }
 
   if(options.unusedPredicateDefinitionRemoval) {
+    LOG("api_prb_prepr_progress","unused predicate definition removal");
     res = UnusedPredicateDefinitionRemover(options.traceUnusedPredicateDefinitionRemoval).transform(res);
   }
 
   unsigned arCnt = options._ods.lhs->size();
   if(arCnt>0) {
+    LOG("api_prb_prepr_progress","asymmetric rewriting");
     res = res.performAsymetricRewriting(arCnt, options._ods.lhs->begin(), options._ods.posRhs->begin(),
 	options._ods.negRhs->begin(), options._ods.dblRhs->begin());
   }
 
   if(options.mode==PM_EARLY_PREPROCESSING) {
+    LOG("api_prb_prepr_progress","PM_EARLY_PREPROCESSING finished");
     return res;
   }
 
   bool oldTraceVal = env.options->showNonconstantSkolemFunctionTrace();
   env.options->setShowNonconstantSkolemFunctionTrace(options.showNonConstantSkolemFunctionTrace);
 
+  LOG("api_prb_prepr_progress","clausification");
   res = Clausifier(options.namingThreshold, options.preserveEpr, options.mode==PM_SKOLEMIZE, options.traceClausification).transform(res);
 
   env.options->setShowNonconstantSkolemFunctionTrace(oldTraceVal);
 
+  LOG("api_prb_prepr_progress","preprocess function finished");
   return res;
 }
 

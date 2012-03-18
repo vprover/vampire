@@ -15,7 +15,7 @@ class IntUnionFind {
 public:
   IntUnionFind(int cnt);
   ~IntUnionFind();
-  void doUnion(int c1, int c2);
+  bool doUnion(int c1, int c2);
   int root(int c);
 
   void evalComponents();

@@ -485,7 +485,7 @@ void Logging::doTagDeclarations()
       PARENT("pp_ed",0));
   DECL("pp_ed_eq_prems",
       DOC("premises of discovered equivalences"),
-      PARENT("pp_ed_eq",0));
+      PARENT("pp_ed_eq",1));
   DECL("pp_ed_asm",
       DOC("assumptions being asserted into the solver"),
       PARENT("pp_ed",1));
@@ -785,9 +785,14 @@ void Logging::doTagDeclarations()
   DECL("api",
       DOC("traces related to Vampire API"));
   DECL("api_prb",
-      DOC("traces related to Vampire API for problems"));
+      DOC("traces related to Vampire API for problems"),
+      PARENT("api",0));
   DECL("api_prb_transf",
-      DOC("traces related to Vampire API problem transformations"));
+      DOC("traces related to Vampire API problem transformations"),
+      PARENT("api_prb",2));
+  DECL("api_prb_prepr_progress",
+      DOC("progress of the Problem::preprocess function"),
+      PARENT("api_prb",1));
 
   //
   // VUtils

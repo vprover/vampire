@@ -11,6 +11,7 @@
 #include "Lib/List.hpp"
 
 #include "Kernel/Formula.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 namespace Kernel {
   class Unit;
@@ -81,9 +82,16 @@ private:
   void unbindVars(VarList*);
   VarList* rectifyBoundVars(VarList*);
   TermList rectify(TermList);
-  Term* rectify(Term*);
+  Term* rectify(Term* t);
+  Term* rectifySpecialTerm(Term* t);
   Literal* rectify(Literal*);
+  Literal* rectifyShared(Literal* lit);
   bool rectify(TermList* from,TermList* to);
+
+  friend class Kernel::SubstHelper;
+  /** This is to allow use of SubstHelper::apply with the rectify object as applicator*/
+  TermList apply(unsigned var) { return TermList(rectifyVar(var), false); }
+
   /** Renaming to store bindings for both free and bound variables */
   Renaming _renaming;
   /** placeholder for free variables */

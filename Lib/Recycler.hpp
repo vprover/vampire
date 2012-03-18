@@ -10,7 +10,7 @@
 
 #include "Forwards.hpp"
 
-#include "List.hpp"
+#include "Stack.hpp"
 #include "DArray.hpp"
 
 namespace Lib
@@ -22,9 +22,9 @@ public:
   template<typename T>
   static void get(T*& result)
   {
-    List<T*>*& store=getStore<T>();
-    if(store) {
-      result=List<T*>::pop(store);
+    Stack<T*>& store=getStore<T>();
+    if(store.isNonEmpty()) {
+      result=store.pop();
     } else {
       result=new T();
     }
@@ -33,9 +33,9 @@ public:
   template<typename T>
   static void get(DArray<T>*& result)
   {
-    List<DArray<T>*>*& store=getStore<DArray<T> >();
-    if(store) {
-      result=List<DArray<T>*>::pop(store);
+    Stack<DArray<T>*>& store=getStore<DArray<T> >();
+    if(store.isNonEmpty()) {
+      result=store.pop();
     } else {
       result=new DArray<T>(64);
       result->ensure(0);
@@ -48,18 +48,18 @@ public:
   {
     ASS(obj);
 
-    List<T*>*& store=getStore<T>();
+    Stack<T*>& store=getStore<T>();
 
-    List<T*>::push(obj, store);
+    store.push(obj);
   }
 
 
 private:
 
   template<typename T>
-  static List<T*>*& getStore() throw()
+  static Stack<T*>& getStore() throw()
   {
-    static List<T*>* store=0;
+    static Stack<T*> store(4);
     return store;
   }
 };

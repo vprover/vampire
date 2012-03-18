@@ -11,6 +11,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/MultiCounter.hpp"
+#include "Lib/SharedSet.hpp"
 #include "Lib/Set.hpp"
 
 namespace Shell {
@@ -67,11 +68,32 @@ public:
   bool isNonGrowingDef(Literal* lhs, Formula* rhs);
 private:
 
+  typedef SharedSet<unsigned> DepSet;
+
   friend class EPRRestoring;
   friend class EPRInlining;
 
   struct Applicator;
   struct PDef;
+
+  struct InliningState
+  {
+    Stack<Unit*> premises;
+    bool needsRectify;
+    bool needsConstantSimplification;
+
+    void reset()
+    {
+      CALL("PDInliner::InliningState::reset");
+      premises.reset();
+      needsRectify = false;
+      needsConstantSimplification = false;
+    }
+  };
+
+  Formula* apply(int polarity, Formula* form, InliningState& state);
+  void getInferenceAndInputType(Unit* transformedUnit, InliningState& state, Inference*& inf, Unit::InputType& inp);
+
 
   bool isEligible(FormulaUnit* u);
 

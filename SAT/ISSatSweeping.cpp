@@ -303,9 +303,8 @@ void ISSatSweeping::addImplication(Impl imp, bool& foundEquivalence)
   Impl rev = Impl(imp.second, imp.first);
 
   if(_implications.find(rev)) {
-    foundEquivalence = true;
-    _equivalentVars.doUnion(imp.first.var(), imp.second.var());
-    LOG("sat_iss_impl", "discovered equivalence: "<<imp.first<<" <-> "<<imp.second);
+    foundEquivalence = _equivalentVars.doUnion(imp.first.var(), imp.second.var());
+    LOG("sat_iss_impl", (foundEquivalence ? "discovered equivalence" : "equivalence discovered again")<<": "<<imp.first<<" <-> "<<imp.second);
   }
   else {
     _implications.insert(imp);
@@ -375,6 +374,10 @@ bool ISSatSweeping::tryProvingImplication(Impl imp, bool& foundEquivalence)
 {
   CALL("ISSatSweeping::tryProvingImplication");
 
+  if(_implications.find(imp)) {
+    LOG("sat_iss_try_impl","implication found in look-up: "<<imp.first<<" -> "<<imp.second);
+    return true;
+  }
   LOG("sat_iss_try_impl","attempting to prove implication "<<imp.first<<" -> "<<imp.second);
   bool res = tryProvingImplicationInner(imp, foundEquivalence);
   _solver.retractAllAssumptions();
@@ -400,7 +403,11 @@ bool ISSatSweeping::tryProvingImplicationInner(Impl imp, bool& foundEquivalence)
   splitGroupsByCurrAssignment();
   lookForImplications(imp.second, true, foundEquivalence);
 
-  if(foundEquivalence || _solver.trueInAssignment(imp.first)) {
+  if(_solver.trueInAssignment(imp.first)) {
+    ASS(!sameCandGroup(imp.first.var(),imp.second.var()));
+    return false;
+  }
+  if(foundEquivalence) {
     return false;
   }
   if(_implications.find(imp)) {
@@ -432,17 +439,27 @@ void ISSatSweeping::doOneProbing()
 
   SATLiteral cand1, cand2;
   {
+    cand1 = SATLiteral::dummy();
     SATLiteralStack& currGrp = _candidateGroups[_biggestGroupIdx];
-    cand1 = currGrp[0];
-    int candRoot = _equivalentVars.root(cand1.var());
-    while(currGrp.isNonEmpty()) {
-      cand2 = currGrp.top();
-      if(candRoot==_equivalentVars.root(cand2.var())) {
-	currGrp.pop();
+    SATLiteralStack::DelIterator git(currGrp);
+    while(git.hasNext()) {
+      SATLiteral l = git.next();
+      int lvar = l.var();
+      int lRoot = _equivalentVars.root(lvar);
+      if(lRoot!=lvar || _trueVarSet.contains(lvar)) {
+	git.del();
+	continue;
+      }
+      if(cand1==SATLiteral::dummy()) {
+	cand1 = l;
       }
       else {
+	cand2 = l;
 	break;
       }
+    }
+    if(currGrp.size()==1) {
+      currGrp.reset();
     }
     if(currGrp.isEmpty()) {
       if(_biggestGroupIdx!=_candidateGroups.size()-1) {

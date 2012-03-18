@@ -29,8 +29,7 @@
 
 #include "PDInliner.hpp"
 
-#undef LOGGING
-#define LOGGING 0
+#define DEBUG_FORMULA_FIX 1
 
 namespace Shell
 {
@@ -90,10 +89,47 @@ struct PDInliner::PDef
 {
   PDef(PDInliner* parent, unsigned pred) : _parent(parent), _pred(pred), _asymDef(false) {}
 
-  static FormulaUnit* fixFormula(FormulaUnit* fu) {
-    fu = Rectify::rectify(fu);
-    fu = SimplifyFalseTrue::simplify(fu);
-    fu = Flattening::flatten(fu);
+  /**
+   * Fix formula so that it is rectified, flattened and without true and false subformulas.
+   */
+  FormulaUnit* fixFormula(FormulaUnit* fu) {
+    CALL("PDInliner::PDef::fixFormula");
+
+    if(_fixNeedsRect) {
+      fu = Rectify::rectify(fu);
+    }
+    if(_fixNeedsSimpl) {
+      fu = SimplifyFalseTrue::simplify(fu);
+      fu = Flattening::flatten(fu);
+    }
+
+#if DEBUG_FORMULA_FIX
+    if(!_fixNeedsRect) {
+      FormulaUnit* fu2 = Rectify::rectify(fu);
+      if(fu!=fu2) {
+	LOG("bug", "insufficient rectify check");
+	LOG_UNIT("bug", fu);
+	LOG_UNIT("bug", fu2);
+	ASSERTION_VIOLATION;
+      }
+    }
+    if(!_fixNeedsSimpl) {
+      FormulaUnit* fu2 = SimplifyFalseTrue::simplify(fu);
+      if(fu!=fu2) {
+	LOG("bug", "insufficient SimplifyFalseTrue check");
+	LOG_UNIT("bug", fu);
+	LOG_UNIT("bug", fu2);
+	ASSERTION_VIOLATION;
+      }
+    }
+    FormulaUnit* fu2 = Flattening::flatten(fu);
+    if(fu!=fu2) {
+      LOG("bug", "insufficient built-in flattening");
+      LOG_UNIT("bug", fu);
+      LOG_UNIT("bug", fu2);
+      ASSERTION_VIOLATION;
+    }
+#endif
     return fu;
   }
 
@@ -198,6 +234,40 @@ struct PDInliner::PDef
     return res;
   }
 
+  Formula* applyAtomicForm(unsigned polarity, Formula* form, InliningState& state)
+  {
+    CALL("PDInliner::PDef::applyAtomicForm");
+    ASS_EQ(form->connective(), LITERAL);
+
+    Literal* l=form->literal();
+    ASS_EQ(l->functor(), _pred);
+
+    if(identity(polarity, l)) {
+      return form;
+    }
+    if(atomicBody(polarity, l)) {
+      Literal* newLit = atomicApply(polarity, l);
+      if(newLit==l) {
+	return form;
+      }
+      if(_defUnit) {
+	state.premises.push(_defUnit);
+      }
+      return new AtomicFormula(newLit);
+    }
+    if(_defUnit) {
+      state.premises.push(_defUnit);
+    }
+    Formula* res = apply(polarity, l);
+    if(res->connective()==TRUE || res->connective()==FALSE) {
+      state.needsConstantSimplification = true;
+    }
+    else {
+      state.needsRectify |= _fixNeedsRect;
+    }
+    return res;
+  }
+
   Formula* apply(int polarity, Formula* form);
 
   Unit* apply(Unit* unit)
@@ -268,7 +338,20 @@ struct PDInliner::PDef
     Formula* res = SubstHelper::apply(body, apl);
 
     if(l->isPositive() != _lhs->isPositive()) {
-      res = new NegatedFormula(res);
+      //make sure what we return is flattenned
+      switch(res->connective()) {
+      case NOT:
+	res = res->uarg();
+	break;
+      case TRUE:
+	res = Formula::falseFormula();
+	break;
+      case FALSE:
+	res = Formula::trueFormula();
+	break;
+      default:
+	res = new NegatedFormula(res);
+      }
     }
     LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(*res));
     return res;
@@ -383,6 +466,12 @@ struct PDInliner::PDef
     ASS_EQ(lhs->functor(),_pred);
 
     _asymDef = true;
+
+    //if shown needed by practice, we may add more precise fixes
+    _fixNeedsRect = true;
+    _fixNeedsSimpl = true;
+    _fixNeedsFlatten = true;
+
     _defUnit = premise;
     _lhs = lhs;
 
@@ -449,9 +538,55 @@ private:
   void makeDef(Literal* lhs, Formula* body)
   {
     CALL("PDInliner::PDef::makeDef");
+    ASS(!_asymDef);
 
     _lhs = lhs;
     _body = body;
+
+    if(_body->connective()==TRUE || _body->connective()==FALSE) {
+      _fixNeedsRect = false;
+      _fixNeedsSimpl = true;
+      _fixNeedsFlatten = true;
+    }
+    else if(_body->connective()==LITERAL) {
+      _fixNeedsRect = false;
+      _fixNeedsSimpl = false;
+      _fixNeedsFlatten = false;
+    }
+    else {
+      bool hasQuant = false;
+      SubformulaIterator sfit(_body);
+      while(sfit.hasNext()) {
+	Formula* sf = sfit.next();
+	if(sf->connective()==FORALL || sf->connective()==EXISTS) {
+	  hasQuant = true;
+	  break;
+	}
+	//unshared literals can introduce variables inside through special terms, but these
+	//should have been eliminated by now
+	ASS(sf->connective()!=LITERAL || sf->literal()->shared());
+      }
+
+
+      bool flattenable;
+      switch(_body->connective()) {
+      case LITERAL:
+      case IFF:
+      case IMP:
+      case XOR:
+      case FORALL:
+      case EXISTS:
+	flattenable = false;
+	break;
+      default:
+	flattenable = true;
+	break;
+      }
+
+      _fixNeedsRect = hasQuant;
+      _fixNeedsSimpl = false;
+      _fixNeedsFlatten = flattenable;
+    }
   }
 
   Formula* getBody(int polarity, Literal* l) {
@@ -487,6 +622,10 @@ public:
   Formula* _negBody;
   /** If @c _asymDef is true, contains replacement for occurrences inside equivalences or XORs */
   Formula* _dblBody;
+
+  bool _fixNeedsRect;
+  bool _fixNeedsSimpl;
+  bool _fixNeedsFlatten;
 };
 
 PDInliner::Applicator::Applicator(PDef& parent, Literal* lit)
@@ -546,11 +685,17 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
     FormulaList::Iterator fs(form->args());
     while (fs.hasNext()) {
       Formula* arg = fs.next();
+      ASS_NEQ(arg->connective(), con);
       Formula* newArg = apply(polarity, arg);
       if(arg!=newArg) {
 	modified = true;
       }
-      FormulaList::push(newArg, resArgs);
+      if(newArg->connective()==con) {
+	FormulaList::pushFromIterator(FormulaList::Iterator(newArg->args()), resArgs);
+      }
+      else {
+	FormulaList::push(newArg, resArgs);
+      }
     }
     if(!modified) {
       resArgs->destroy();
@@ -570,8 +715,16 @@ Formula* PDInliner::PDef::apply(int polarity, Formula* form)
 
   case NOT: {
     Formula* newArg = apply(-polarity, form->uarg());
+    //We assume the input formulas to be flattened and in such formulas
+    //literals cannot be arguments to negations (as he negation will be
+    //pushed into literals). Also, inlining cannot make a non-literal
+    //become a literal.
+    ASS_NEQ(newArg->connective(),LITERAL);
     if(newArg==form->uarg()) {
       return form;
+    }
+    if(newArg->connective()==NOT) {
+      return newArg->uarg();
     }
     return new NegatedFormula(newArg);
   }
@@ -628,6 +781,110 @@ PDInliner::~PDInliner()
   }
 }
 
+Formula* PDInliner::apply(int polarity, Formula* form, InliningState& state)
+{
+  CALL("PDInliner::apply/3");
+
+  LOG("pp_inl_substep","Apply all definitions to subformula "<<form->toString()<<" with polarity "<<polarity);
+
+  Connective con = form->connective();
+  switch (con) {
+  case LITERAL:
+  {
+    Literal* l=form->literal();
+    unsigned pred = l->functor();
+    if(!_defs[pred]) {
+      return form;
+    }
+    Formula* res = _defs[pred]->applyAtomicForm(polarity, form, state);
+    LOGV("bug", *res);
+    LOGV("bug", state.needsConstantSimplification);
+    return res;
+  }
+
+  case AND:
+  case OR: {
+    FormulaList* resArgs = 0;
+    bool modified = false;
+    FormulaList::Iterator fs(form->args());
+    while (fs.hasNext()) {
+      Formula* arg = fs.next();
+      ASS_NEQ(arg->connective(), con);
+      Formula* newArg = apply(polarity, arg, state);
+      if(arg!=newArg) {
+	modified = true;
+      }
+      if(newArg->connective()==con) {
+	FormulaList::pushFromIterator(FormulaList::Iterator(newArg->args()), resArgs);
+      }
+      else {
+	FormulaList::push(newArg, resArgs);
+      }
+    }
+    if(!modified) {
+      resArgs->destroy();
+      return form;
+    }
+    return new JunctionFormula(con, resArgs);
+  }
+
+  case IMP: {
+    Formula* newLeft = apply(-polarity, form->left(), state);
+    Formula* newRight = apply(polarity, form->right(), state);
+    if(newLeft==form->left() && newRight==form->right()) {
+      return form;
+    }
+    return new BinaryFormula(IMP, newLeft, newRight);
+  }
+
+  case NOT: {
+    Formula* newArg = apply(-polarity, form->uarg(), state);
+    //We assume the input formulas to be flattened and in such formulas
+    //literals cannot be arguments to negations (as he negation will be
+    //pushed into literals). Also, inlining cannot make a non-literal
+    //become a literal.
+    ASS_NEQ(newArg->connective(),LITERAL);
+    if(newArg==form->uarg()) {
+      return form;
+    }
+    if(newArg->connective()==NOT) {
+      return newArg->uarg();
+    }
+    return new NegatedFormula(newArg);
+  }
+
+  case IFF:
+  case XOR:{
+    Formula* newLeft = apply(0, form->left(), state);
+    Formula* newRight = apply(0, form->right(), state);
+    if(newLeft==form->left() && newRight==form->right()) {
+      return form;
+    }
+    return new BinaryFormula(con, newLeft, newRight);
+  }
+
+  case FORALL:
+  case EXISTS:{
+    Formula* newArg = apply(polarity, form->qarg(), state);
+    if(newArg==form->qarg()) {
+      return form;
+    }
+    Formula::VarList* vars = form->vars()->copy();
+    return new QuantifiedFormula(con, vars, newArg);
+  }
+
+  case TRUE:
+  case FALSE:
+    return form;
+
+#if VDEBUG
+  default:
+    ASSERTION_VIOLATION;
+    return 0;
+#endif
+  }
+}
+
 void PDInliner::apply(Problem& prb)
 {
   CALL("PDInliner::apply");
@@ -644,6 +901,8 @@ bool PDInliner::apply(UnitList*& units, bool inlineOnlyEquivalences)
   CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
   bool modified = scanAndRemoveDefinitions(units, inlineOnlyEquivalences);
+
+  LOG("pp_inl","scan finished, now processing problem units");
 
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
@@ -670,6 +929,10 @@ Unit* PDInliner::apply(Unit* u)
 {
   CALL("PDInliner::apply(Unit*)");
   CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
+
+  if(!u->isClause()) {
+    return apply(static_cast<FormulaUnit*>(u));
+  }
 
   Stack<unsigned> preds;
   u->collectPredicates(preds);
@@ -698,13 +961,92 @@ Unit* PDInliner::apply(Unit* u)
   return res;
 }
 
-FormulaUnit* PDInliner::apply(FormulaUnit* u)
+void PDInliner::getInferenceAndInputType(Unit* transformedUnit, InliningState& state, Inference*& inf, Unit::InputType& inp)
+{
+  CALL("PDInliner::getInferenceAndInputType");
+
+  switch(state.premises.size()) {
+  case 0:
+    inp = transformedUnit->inputType();
+    inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, transformedUnit);
+    break;
+  case 1:
+  {
+    Unit* prem = state.premises.top();
+    inp = Unit::getInputType(transformedUnit->inputType(), prem->inputType());
+    inf = new Inference2(Inference::PREDICATE_DEFINITION_UNFOLDING, transformedUnit, prem);
+    break;
+  }
+  default:
+  {
+    UnitList* prems = 0;
+    UnitList::pushFromIterator(UnitStack::Iterator(state.premises), prems);
+    UnitList::push(transformedUnit, prems);
+    inp = Unit::getInputType(prems);
+    inf = new InferenceMany(Inference::PREDICATE_DEFINITION_UNFOLDING, prems);
+  }
+  }
+}
+
+FormulaUnit* PDInliner::apply(FormulaUnit* unit)
 {
   CALL("PDInliner::apply(FormulaUnit*)");
 
-  Unit* res = apply(static_cast<Unit*>(u));
-  ASS(!res->isClause());
-  return static_cast<FormulaUnit*>(res);
+  LOG("pp_inl_substep","Inlining into "<<(*unit));
+
+  static InliningState inlState;
+  inlState.reset();
+
+  Formula* form = apply(1, unit->formula(), inlState);
+  if(form==unit->formula()) {
+    return unit;
+  }
+
+  Unit::InputType inp;
+  Inference* inf;
+  getInferenceAndInputType(unit, inlState, inf, inp);
+
+  FormulaUnit* res = new FormulaUnit(form, inf, inp);
+
+  if(inlState.needsRectify) {
+    res = Rectify::rectify(res);
+  }
+  if(inlState.needsConstantSimplification) {
+    res = SimplifyFalseTrue::simplify(res);
+    res = Flattening::flatten(res);
+  }
+
+#if DEBUG_FORMULA_FIX
+  if(!inlState.needsRectify) {
+    FormulaUnit* fu2 = Rectify::rectify(res);
+    if(res!=fu2) {
+	LOG("bug", "insufficient rectify check");
+	LOG_UNIT("bug", res);
+	LOG_UNIT("bug", fu2);
+	ASSERTION_VIOLATION;
+    }
+  }
+  if(!inlState.needsConstantSimplification) {
+    FormulaUnit* fu2 = SimplifyFalseTrue::simplify(res);
+    if(res!=fu2) {
+	LOG("bug", "insufficient SimplifyFalseTrue check");
+	LOG_UNIT("bug", res);
+	LOG_UNIT("bug", fu2);
+	ASSERTION_VIOLATION;
+    }
+  }
+  FormulaUnit* fu2 = Flattening::flatten(res);
+  if(res!=fu2) {
+    LOG("bug", "insufficient built-in flattening");
+    LOG_UNIT("bug", res);
+    LOG_UNIT("bug", fu2);
+    ASSERTION_VIOLATION;
+  }
+#endif
+
+  LOG("pp_inl_step","Inlining into "<<(*unit)<<" gave "<<(*res));
+
+  return res;
 }
 
 /**

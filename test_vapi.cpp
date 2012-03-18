@@ -9,6 +9,8 @@
 #include <string>
 
 #include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Stack.hpp"
 #include "Shell/Options.hpp"
 
 #include "Api/FormulaBuilder.hpp"
@@ -46,6 +48,9 @@ void inlineTest(const char* fname)
   ifstream fs(fname);
   Problem p;
   p.addFromStream(fs);
+
+
+#if 0
   {
     Problem::PreprocessingOptions m_PreprocessOpts;
     m_PreprocessOpts.predicateDefinitionInlining = Problem::INL_NON_GROWING;
@@ -74,9 +79,57 @@ void inlineTest(const char* fname)
   m_PreprocessOpts.predicateEquivalenceDiscovery = false;
   m_PreprocessOpts.predicateEquivalenceDiscoverySatConflictLimit = 0;
 
-  Problem p2=p.preprocess(m_PreprocessOpts);
+  p=p.preprocess(m_PreprocessOpts);
+#else
 
-  p2.output(cout, true, false);
+  Problem::PreprocessingOptions m_PreprocessOpts;
+
+  // default is 8; 32 showed good results on some of the examples but caused
+  // generation of too many clauses in primnary_chain
+  m_PreprocessOpts.namingThreshold = 8;
+  m_PreprocessOpts.sineSelection = false;
+  m_PreprocessOpts.sineTolerance = 0; // started with 1.5
+  m_PreprocessOpts.sineDepthLimit = 0; // started with 2
+
+  // do preliminary pre-processing in order to simplify the instance by
+  // applying non-growing inlining
+  m_PreprocessOpts.predicateDefinitionInlining = Problem::INL_NON_GROWING;
+  m_PreprocessOpts.mode = Problem::PM_EARLY_PREPROCESSING;
+  m_PreprocessOpts.unusedPredicateDefinitionRemoval = false;
+  m_PreprocessOpts.preserveEpr = false;
+  m_PreprocessOpts.eprSkolemization = false;
+  m_PreprocessOpts.predicateDefinitionMerging = false;
+  m_PreprocessOpts.variableEqualityPropagation = false;
+
+  cout << "\nFirst stage of clausification... "<<endl;
+  p = p.preprocess(m_PreprocessOpts);
+ cout << "  ...done\n";
+
+ return;
+
+  // now perform the rest of pre-processing and clausification
+  m_PreprocessOpts.unusedPredicateDefinitionRemoval = true;
+  m_PreprocessOpts.preserveEpr = true;
+  m_PreprocessOpts.eprSkolemization = true;
+  m_PreprocessOpts.mode = Problem::PM_CLAUSIFY;
+  m_PreprocessOpts.predicateDefinitionInlining = Problem::INL_EPR_RESTORING;
+  m_PreprocessOpts.predicateDefinitionMerging = true;
+  m_PreprocessOpts.predicateIndexIntroduction = true;
+  m_PreprocessOpts.flatteningTopLevelConjunctions = true;
+  m_PreprocessOpts.aigInlining = false;
+  m_PreprocessOpts.aigBddSweeping = true;
+  m_PreprocessOpts.aigDefinitionIntroduction = false;
+  m_PreprocessOpts.predicateEquivalenceDiscovery = true;
+  m_PreprocessOpts.predicateEquivalenceDiscoverySatConflictLimit = 0;
+  m_PreprocessOpts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = false;
+  m_PreprocessOpts.variableEqualityPropagation = true;
+
+  cout << "\nSecond stage of clausification... "<<endl;
+  p = p.preprocess(m_PreprocessOpts);
+  cout << "  ...done\n";
+#endif
+
+  p.output(cout, true, false);
 }
 
 void assymmetricRewriteTest(const char* fname)
@@ -178,11 +231,55 @@ void asymRewritingTest()
   prb.output(cout);
 }
 
+void readAndFilterGlobalOpts(Stack<char*>& args) {
+  Stack<char*>::StableDelIterator it(args);
+
+  //skip the first item which is the executable name
+  ALWAYS(it.hasNext());
+  it.next();
+
+  while(it.hasNext()) {
+    string arg(it.next());
+    if(arg=="-tr") {
+      it.del();
+      if(!it.hasNext()) {
+	USER_ERROR("value for -tr option expected");
+      }
+      string traceStr(it.next());
+      it.del();
+      PROCESS_TRACE_SPEC_STRING(traceStr);
+    }
+    else if(arg=="-m") {
+      it.del();
+      if(!it.hasNext()) {
+	USER_ERROR("value for -m option expected");
+      }
+      string memLimitStr = it.next();
+      it.del();
+      unsigned memLimit;
+      if(!Int::stringToUnsignedInt(memLimitStr, memLimit)) {
+	USER_ERROR("unsigned number expected as value of -m option");
+      }
+      env.options->setMemoryLimit(memLimit);
+      Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
+    }
+    else {
+      break;
+    }
+  }
+}
+
 int main(int argc, char* argv [])
 {
-  if(argc==2) {
-    assymmetricRewriteTest(argv[1]);
-//    inlineTest(argv[1]);
+  CALL("main");
+
+  Stack<char*> args;
+  args.loadFromIterator(getArrayishObjectIterator(argv, argc));
+  readAndFilterGlobalOpts(args);
+
+  if(args.size()==2) {
+//    assymmetricRewriteTest(argv[1]);
+    inlineTest(args[1]);
     return 0;
   }
 
