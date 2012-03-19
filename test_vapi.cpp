@@ -45,6 +45,9 @@ void clausifyTest(const char* fname)
 
 void inlineTest(const char* fname)
 {
+
+  OutputOptions::setAssignFormulaNames(false);
+
   ifstream fs(fname);
   Problem p;
   p.addFromStream(fs);
@@ -104,8 +107,8 @@ void inlineTest(const char* fname)
   cout << "\nFirst stage of clausification... "<<endl;
   p = p.preprocess(m_PreprocessOpts);
  cout << "  ...done\n";
-
- return;
+//
+// return;
 
   // now perform the rest of pre-processing and clausification
   m_PreprocessOpts.unusedPredicateDefinitionRemoval = true;
@@ -121,7 +124,8 @@ void inlineTest(const char* fname)
   m_PreprocessOpts.aigDefinitionIntroduction = false;
   m_PreprocessOpts.predicateEquivalenceDiscovery = true;
   m_PreprocessOpts.predicateEquivalenceDiscoverySatConflictLimit = 0;
-  m_PreprocessOpts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = false;
+//  m_PreprocessOpts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = false;
+  m_PreprocessOpts.predicateEquivalenceDiscoveryPredicateEquivalencesOnly = true;
   m_PreprocessOpts.variableEqualityPropagation = true;
 
   cout << "\nSecond stage of clausification... "<<endl;

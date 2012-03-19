@@ -24,6 +24,7 @@ public:
 
   virtual Status getStatus() { return _inner->getStatus(); }
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
+  virtual void randomizeAssignment() { _inner->randomizeAssignment(); }
 
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);

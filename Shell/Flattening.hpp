@@ -24,6 +24,8 @@ class Flattening
 public:
   static FormulaUnit* flatten (FormulaUnit*);
   static Formula* flatten (Formula*);
+
+  static Formula* getFlattennedNegation(Formula* f);
 private:
   static FormulaList* flatten (FormulaList*,Connective con);
 }; // class Flattening

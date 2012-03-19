@@ -35,9 +35,9 @@ class Rectify
 public:
   /** Initialise Rectify */
   Rectify()
-    : _free(0)
+    : _free(0), _removeUnusedVars(true)
   {}
-  static FormulaUnit* rectify(FormulaUnit*);
+  static FormulaUnit* rectify(FormulaUnit*, bool removeUnusedVars=true);
   static void rectify(UnitList*& units);
 private:
   typedef List<int> VarList;
@@ -96,6 +96,10 @@ private:
   Renaming _renaming;
   /** placeholder for free variables */
   List<int>* _free;
+
+  /** if true, unused quantified variables will be removed */
+  bool _removeUnusedVars;
+
 //  /** next variable to bind to */
 //  int _nextVar;
 //  /** next row variable to bind to */

@@ -30,6 +30,7 @@
 
 #include "Parse/TPTP.hpp"
 
+#include "Shell/Options.hpp"
 #include "Shell/SpecialTermElimination.hpp"
 #include "Shell/TPTP.hpp"
 
@@ -1210,6 +1211,10 @@ void AnnotatedFormula::assignName(AnnotatedFormula& form, string name)
 {
   CALL("AnnotatedFormula::assignName");
 
+  if(!OutputOptions::assignFormulaNames()) {
+    return;
+  }
+
   static DHSet<string> usedNames;
 
   if(!usedNames.insert(name)) {
@@ -1230,6 +1235,16 @@ void AnnotatedFormula::assignName(AnnotatedFormula& form, string name)
 
 bool OutputOptions::_sortedEquality = false;
 bool OutputOptions::_tffFormulas = false;
+bool OutputOptions::_assignFormulaNames = true;
+
+void OutputOptions::setAssignFormulaNames(bool newVal)
+{
+  CALL("OutputOptions::setAssignFormulaNames");
+
+  _assignFormulaNames = newVal;
+  env.options->setOutputAxiomNames(newVal);
+}
+
 
 //////////////////////////////
 // StringIterator implementation

@@ -396,9 +396,16 @@ public:
    */
   static bool tffFormulas() { return _tffFormulas; }
   static void setTffFormulas(bool newVal) { _tffFormulas = newVal; }
+
+  /**
+   * If false, names assigned to formulas will be ignored.
+   */
+  static bool assignFormulaNames() { return _assignFormulaNames; }
+  static void setAssignFormulaNames(bool newVal);
 private:
   static bool _sortedEquality;
   static bool _tffFormulas;
+  static bool _assignFormulaNames;
 };
 
 /**

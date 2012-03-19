@@ -21,7 +21,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "PDInliner.hpp"
 #include "PDUtils.hpp"
 
 #include "AIG.hpp"

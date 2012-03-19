@@ -19,6 +19,26 @@ namespace Shell
 {
 
 /**
+ * Assuming formula @c f is flatenned, return its negation which is also flatenned.
+ */
+Formula* Flattening::getFlattennedNegation(Formula* f)
+{
+  CALL("Flattening::getFlattennedNegation");
+
+  switch(f->connective()) {
+  case NOT:
+    return f->uarg();
+  case TRUE:
+    return Formula::falseFormula();
+  case FALSE:
+    return Formula::trueFormula();
+  default:
+    return new NegatedFormula(f);
+  }
+
+}
+
+/**
  * Flatten the unit.
  *
  * @since 24/12/2003 Manchester

@@ -42,8 +42,8 @@ bool PDUtils::isPredicateEquivalence(FormulaUnit* unit)
 {
   CALL("PDInliner::isPredicateEquivalence/1");
 
-  Literal* aux1;
-  Literal* aux2;
+  Formula* aux1;
+  Formula* aux2;
   return isPredicateEquivalence(unit, aux1, aux2);
 }
 
@@ -64,6 +64,24 @@ bool PDUtils::isPredicateEquivalence(FormulaUnit* unit, unsigned& pred1, unsigne
 bool PDUtils::isPredicateEquivalence(FormulaUnit* unit, Literal*& lit1, Literal*& lit2)
 {
   CALL("PDInliner::isPredicateEquivalence(FormulaUnit*,Literal*&,Literal*&)");
+
+  Formula* f1;
+  Formula* f2;
+  if(!isPredicateEquivalence(unit, f1, f2)) {
+    return false;
+  }
+  lit1 = f1->literal();
+  lit2 = f2->literal();
+  return true;
+}
+
+/**
+ * If unit is predicate equivalence, return true and
+ * into f1 and f2 assign the equivalent atomic formulas.
+ */
+bool PDUtils::isPredicateEquivalence(FormulaUnit* unit, Formula*& f1, Formula*& f2)
+{
+  CALL("PDInliner::isPredicateEquivalence(FormulaUnit*,Formula*&,Formula*&)");
 
   Formula* f = unit->formula();
   if(f->connective()==FORALL) {
@@ -87,8 +105,8 @@ bool PDUtils::isPredicateEquivalence(FormulaUnit* unit, Literal*& lit1, Literal*
   if(l1->functor()==l2->functor()) {
     return false;
   }
-  lit1 = l1;
-  lit2 = l2;
+  f1 = f->left();
+  f2 = f->right();
   return true;
 }
 

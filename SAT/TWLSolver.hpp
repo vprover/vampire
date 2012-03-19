@@ -62,6 +62,8 @@ public:
 
   virtual SATClause* getRefutation() { return _refutation; }
 
+  virtual void randomizeAssignment();
+
   void assertValid();
   void printAssignment();
 private:

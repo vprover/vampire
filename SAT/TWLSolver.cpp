@@ -1255,5 +1255,24 @@ TWLSolver::SatLoopResult TWLSolver::runSatLoop(unsigned conflictCountLimit)
   return res;
 }
 
+void TWLSolver::randomizeAssignment()
+{
+  CALL("TWLSolver::randomizeAssignment");
+  ASS_EQ(getStatus(), SATSolver::SATISFIABLE);
+
+  backtrack(1);
+
+  for(unsigned i=0; i<_varCnt; i++) {
+    _lastAssignments[i] = Random::getBit();
+  }
+
+  try {
+    doSolving(UINT_MAX);
+  }
+  catch (UnsatException&) {
+    ASSERTION_VIOLATION;
+  }
+  ASS_EQ(getStatus(), SATSolver::SATISFIABLE);
+}
 
 }

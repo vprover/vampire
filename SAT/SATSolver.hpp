@@ -45,6 +45,13 @@ public:
   virtual VarAssignment getAssignment(unsigned var) = 0;
 
   /**
+   * Try to find another assignment which is likely to be different from the current one
+   *
+   * @pre Solver must be in SATISFIABLE status
+   */
+  virtual void randomizeAssignment() = 0;
+
+  /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */

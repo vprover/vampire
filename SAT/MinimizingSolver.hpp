@@ -29,6 +29,8 @@ public:
   virtual Status getStatus() { return _inner->getStatus(); }
   virtual SATClause* getRefutation() { return _inner->getRefutation(); }
   virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }
+  virtual void randomizeAssignment() { _inner->randomizeAssignment(); _assignmentValid = false; }
+
 
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false);
   virtual VarAssignment getAssignment(unsigned var);
@@ -69,7 +71,7 @@ private:
   /**
    * Clauses of which we yet need to ensure they are satisfied
    *
-   * Invariant: outside of addSatClauses the stack is empty.
+   * Invariant: outside of this object when _assignmentValid, the stack is empty.
    */
   SATClauseStack _unprocessed;
 

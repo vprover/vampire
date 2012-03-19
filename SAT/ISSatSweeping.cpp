@@ -242,11 +242,47 @@ void ISSatSweeping::tryRandomSimulation()
 {
   CALL("ISSatSweeping::tryRandomSimulation");
   ASS(!_solver.hasAssumptions());
-//  if(_solver.getStatus()!=SATSolver::SATISFIABLE) {
-//    _solver.addClauses(SATClauseIterator::getEmpty());
-//  }
-//  ASS_EQ(_solver.getStatus(), SATSolver::SATISFIABLE);
 
+#if 1
+  if(_candidateGroups.isEmpty()) {
+    return;
+  }
+
+  if(_solver.getStatus()!=SATSolver::SATISFIABLE) {
+    _solver.addClauses(SATClauseIterator::getEmpty());
+  }
+  ASS_EQ(_solver.getStatus(), SATSolver::SATISFIABLE);
+
+  unsigned oldBiggestSz;
+  unsigned oldGroupCnt;
+  unsigned biggestSz = _candidateGroups[_biggestGroupIdx].size();
+  unsigned groupCnt = _candidateGroups.size();
+
+  unsigned initLives = 3;
+  unsigned lives = initLives;
+
+  do {
+    oldBiggestSz = biggestSz;
+    oldGroupCnt = groupCnt;
+
+    LOG("sat_iss_rand_sim", "group cnt: "<<groupCnt<<"  biggest group size: "<<biggestSz);
+
+    _solver.randomizeAssignment();
+    splitGroupsByCurrAssignment();
+
+    biggestSz = _candidateGroups[_biggestGroupIdx].size();
+    groupCnt = _candidateGroups.size();
+
+    if(oldBiggestSz==biggestSz && oldGroupCnt==groupCnt) {
+      lives--;
+    }
+    else {
+      lives = initLives;
+    }
+  } while(lives>0);
+  LOG("sat_iss_rand_sim", "random simulation finished at group cnt: "<<groupCnt<<"  biggest group size: "<<biggestSz);
+
+#else
   SATLiteralStack possiblySatSubset;
 
   Stack<unsigned> varsInRandomOrder(_interestingVars);
@@ -293,6 +329,7 @@ void ISSatSweeping::tryRandomSimulation()
   }
 
   _solver.retractAllAssumptions();
+#endif
 }
 
 void ISSatSweeping::addImplication(Impl imp, bool& foundEquivalence)
@@ -304,7 +341,8 @@ void ISSatSweeping::addImplication(Impl imp, bool& foundEquivalence)
 
   if(_implications.find(rev)) {
     foundEquivalence = _equivalentVars.doUnion(imp.first.var(), imp.second.var());
-    LOG("sat_iss_impl", (foundEquivalence ? "discovered equivalence" : "equivalence discovered again")<<": "<<imp.first<<" <-> "<<imp.second);
+    COND_LOG("sat_iss_equiv", foundEquivalence, "discovered equivalence: "<<imp.first<<" <-> "<<imp.second);
+    COND_LOG("sat_iss_impl", !foundEquivalence, "equivalence discovered again: "<<imp.first<<" <-> "<<imp.second);
   }
   else {
     _implications.insert(imp);
@@ -440,7 +478,9 @@ void ISSatSweeping::doOneProbing()
   SATLiteral cand1, cand2;
   {
     cand1 = SATLiteral::dummy();
-    SATLiteralStack& currGrp = _candidateGroups[_biggestGroupIdx];
+    unsigned nextGrpIdx = Random::getInteger(_candidateGroups.size());
+//    SATLiteralStack& currGrp = _candidateGroups[_biggestGroupIdx];
+    SATLiteralStack& currGrp = _candidateGroups[nextGrpIdx];
     SATLiteralStack::DelIterator git(currGrp);
     while(git.hasNext()) {
       SATLiteral l = git.next();
@@ -462,11 +502,8 @@ void ISSatSweeping::doOneProbing()
       currGrp.reset();
     }
     if(currGrp.isEmpty()) {
-      if(_biggestGroupIdx!=_candidateGroups.size()-1) {
-	std::swap(_candidateGroups[_biggestGroupIdx], _candidateGroups.top());
-      }
-      else {
-	_biggestGroupIdx--;
+      if(nextGrpIdx!=_candidateGroups.size()-1) {
+	std::swap(_candidateGroups[nextGrpIdx], _candidateGroups.top());
       }
       ASS(_candidateGroups.top().isEmpty());
       _candidateGroups.pop();

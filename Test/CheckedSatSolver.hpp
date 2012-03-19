@@ -26,6 +26,7 @@ public:
   virtual Status getStatus() { ensureChecked(); return _inner->getStatus(); }
   virtual SATClause* getRefutation() { ensureChecked(); return _inner->getRefutation(); }
   virtual bool hasAssumptions() const { return _inner->hasAssumptions(); }
+  virtual void randomizeAssignment() { _inner->randomizeAssignment(); _checked = false; ensureChecked(); }
 
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate=false);
   virtual VarAssignment getAssignment(unsigned var);

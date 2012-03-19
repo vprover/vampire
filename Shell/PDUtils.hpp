@@ -31,6 +31,7 @@ public:
   static bool isPredicateEquivalence(FormulaUnit* u);
   static bool isPredicateEquivalence(FormulaUnit* u, unsigned& pred1, unsigned& pred2);
   static bool isPredicateEquivalence(FormulaUnit* u, Literal*& lit1, Literal*& lit2);
+  static bool isPredicateEquivalence(FormulaUnit* u, Formula*& f1, Formula*& f2);
 
   static void splitDefinition(FormulaUnit* unit, Literal*& lhs, Formula*& rhs);
 

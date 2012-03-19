@@ -454,6 +454,12 @@ void Logging::doTagDeclarations()
   DECL("pp_inl_dep",
       DOC("tracing dependencies between predicates"),
       PARENT("pp_inl",1));
+  DECL("pp_inl_dep_added",
+      DOC("dependency entry added"),
+      PARENT("pp_inl_dep",1));
+  DECL("pp_inl_dep_expand",
+      DOC("dependencies of an entry expanded"),
+      PARENT("pp_inl_dep",1));
 
   DECL("pp_pdm",
       DOC("predicate definition merging"),
@@ -745,6 +751,9 @@ void Logging::doTagDeclarations()
   DECL("sat_iss",
       DOC("implicative simultaneous sat sweeping"),
       PARENT("sat",1));
+  DECL("sat_iss_rand_sim",
+      DOC("random simulation"),
+      PARENT("sat_iss",1));
   DECL("sat_iss_grps",
       DOC("candidate groups"),
       PARENT("sat_iss",2));
@@ -760,6 +769,10 @@ void Logging::doTagDeclarations()
   DECL("sat_iss_impl",
       DOC("discovered implications"),
       PARENT("sat_iss",2));
+  DECL("sat_iss_equiv",
+      DOC("discovered equivalences"),
+      PARENT("sat_iss",1),
+      PARENT("sat_iss_impl",0));
 
 
   //

@@ -60,7 +60,7 @@ Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(int var) const
  * @since 23/01/2004 Manchester, changed to use non-static objects
  * @since 06/06/2007 Manchester, changed to use new datastructures
  */
-FormulaUnit* Rectify::rectify (FormulaUnit* unit0)
+FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
 {
   CALL("Rectify::rectify (Unit*...)");
   ASS(!unit0->isClause());
@@ -69,6 +69,7 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0)
 
   Formula* f = unit->formula();
   Rectify rect;
+  rect._removeUnusedVars = removeUnusedVars;
   Formula* g = rect.rectify(f);
 
   VarList* vars = rect._free;
@@ -569,7 +570,7 @@ Rectify::VarList* Rectify::rectifyBoundVars (VarList* vs)
   int v = vs->head();
   int w;
   VarWithUsageInfo wWithUsg = _renaming.getBoundAndUsage(v);
-  if(!wWithUsg.second) {
+  if(!wWithUsg.second && _removeUnusedVars) {
     return ws;
   }
   w = wWithUsg.first;

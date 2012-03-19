@@ -29,7 +29,7 @@
 
 #include "PDInliner.hpp"
 
-#define DEBUG_FORMULA_FIX 0
+#define DEBUG_FORMULA_FIX 1
 
 namespace Shell
 {
@@ -78,6 +78,76 @@ struct PDInliner::Applicator
   DHMap<unsigned,TermList> _map;
 };
 
+struct PDInliner::DefDep
+{
+  DefDep(PDInliner& parent, unsigned pred, DepSet* dependencies, FormulaUnit* def)
+      : _parent(parent), _pred(pred), _def(def)
+  {
+    CALL("PDInliner::DefDep::DefDep");
+    ASS_NEQ(pred, 0);
+
+    initDependencies(dependencies);
+    LOG("pp_inl_dep_added","DefDep created");
+    LOG("pp_inl_dep_added","  predicate: "<<env.signature->predicateName(pred)<<"  num: "<<pred);
+    LOG("pp_inl_dep_added","  immediate dependencies: "<<*dependencies);
+    LOG("pp_inl_dep_added","  formula: "<<*def);
+    LOG("pp_inl_dep_added","  full dependencies: "<<*_dependencies);
+  }
+
+  /**
+   * Notify the definition object of a new definition of a
+   * predicate appearing (possibly transitively) in its body.
+   */
+  void expandDependency(unsigned depPred)
+  {
+    CALL("PDInliner::DefDep::expandDependency");
+    ASS(_dependencies->member(depPred));
+    LOG("pp_inl_dep_expand","expanding dependencies of "<<_pred<<" by "<<depPred);
+
+    DefDep* dObj = _parent._deps[depPred];
+    ASS(dObj);
+    DepSet* newDepSet = _dependencies->getUnion(dObj->_dependencies);
+    DepSet* addedDep = newDepSet->subtract(_dependencies);
+    DepSet::Iterator fdit(*addedDep);
+    while(fdit.hasNext()) {
+      unsigned d = fdit.next();
+      _parent._dependent[d].push(_pred);
+    }
+    _dependencies = newDepSet;
+
+  }
+
+  DepSet* dependencies() const { return _dependencies; }
+  FormulaUnit* defUnit() const { return _def; }
+private:
+  void initDependencies(DepSet* dependencies)
+  {
+    DepSet* fullDep = dependencies;
+    DepSet::Iterator dit(*dependencies);
+    while(dit.hasNext()) {
+      unsigned d = dit.next();
+      DefDep* dObj = _parent._deps[d];
+      if(!dObj) {
+	continue;
+      }
+      fullDep = fullDep->getUnion(dObj->_dependencies);
+    }
+    _dependencies = fullDep;
+
+    DepSet::Iterator fdit(*fullDep);
+    while(fdit.hasNext()) {
+      unsigned d = fdit.next();
+      _parent._dependent[d].push(_pred);
+    }
+   }
+
+
+  PDInliner& _parent;
+  unsigned _pred;
+  FormulaUnit* _def;
+
+  DepSet* _dependencies;
+};
 
 /**
  * Class representing a single predicate definition
@@ -87,153 +157,11 @@ struct PDInliner::Applicator
  */
 struct PDInliner::PDef
 {
-  PDef(PDInliner* parent, unsigned pred) : _parent(parent), _pred(pred), _asymDef(false) {}
+  PDef(PDInliner* parent, unsigned pred)
+      : _parent(parent), _pred(pred), _asymDef(false)
+  {}
 
-  /**
-   * Fix formula so that it is rectified, flattened and without true and false subformulas.
-   */
-  FormulaUnit* fixFormula(FormulaUnit* fu) {
-    CALL("PDInliner::PDef::fixFormula");
-
-    if(_fixNeedsRect) {
-      fu = Rectify::rectify(fu);
-    }
-    if(_fixNeedsSimpl) {
-      fu = SimplifyFalseTrue::simplify(fu);
-      fu = Flattening::flatten(fu);
-    }
-
-#if DEBUG_FORMULA_FIX
-    if(!_fixNeedsRect) {
-      FormulaUnit* fu2 = Rectify::rectify(fu);
-      if(fu!=fu2) {
-	LOG("bug", "insufficient rectify check");
-	LOG_UNIT("bug", fu);
-	LOG_UNIT("bug", fu2);
-	ASSERTION_VIOLATION;
-      }
-    }
-    if(!_fixNeedsSimpl) {
-      FormulaUnit* fu2 = SimplifyFalseTrue::simplify(fu);
-      if(fu!=fu2) {
-	LOG("bug", "insufficient SimplifyFalseTrue check");
-	LOG_UNIT("bug", fu);
-	LOG_UNIT("bug", fu2);
-	ASSERTION_VIOLATION;
-      }
-    }
-    FormulaUnit* fu2 = Flattening::flatten(fu);
-    if(fu!=fu2) {
-      LOG("bug", "insufficient built-in flattening");
-      LOG_UNIT("bug", fu);
-      LOG_UNIT("bug", fu2);
-      ASSERTION_VIOLATION;
-    }
-#endif
-    return fu;
-  }
-
-  /**
-   * Perform inlining and return the result. If the resulting clause is a tautology,
-   * return zero.
-   */
-  Unit* apply(Clause* cl)
-  {
-    CALL("PDInliner::PDef::apply(Clause*)");
-
-    LOG("pp_inl_substep","Inlining "<<toString()<<" into "<<(*cl));
-
-    static LiteralStack lits;
-    lits.reset();
-    static Stack<Formula*> forms;
-    forms.reset();
-
-    bool modified = false;
-
-    unsigned clen = cl->length();
-    for(unsigned i=0; i<clen; i++) {
-      Literal* lit = (*cl)[i];
-      if(lit->functor()!=_pred || identity(1, lit)) {
-	lits.push(lit);
-	continue;
-      }
-      if(constantBody(1, lit)) {
-	if(constantApply(1, lit)) {
-	  return 0; //tautology
-	}
-	//false literal -- we skip it
-	modified = true;
-      }
-      else if(atomicBody(1, lit)) {
-	Literal* newLit = atomicApply(1, lit);
-	if(newLit!=lit) {
-	  modified = true;
-	}
-	lits.push(newLit);
-      }
-      else {
-	modified = true;
-	forms.push(apply(1, lit));
-      }
-    }
-
-    if(!modified) {
-      return cl;
-    }
-
-    Unit::InputType inp;
-    Inference* inf;
-    getInferenceAndInputType(cl, inf, inp);
-    if(forms.isEmpty()) {
-      Clause* res = Clause::fromIterator(LiteralStack::Iterator(lits), inp, inf);
-      LOG("pp_inl_step","Inlining "<<toString()<<" into "<<(*cl)<<" gave "<<(*res));
-      return res;
-    }
-    FormulaUnit* res;
-    if(lits.isEmpty() && forms.size()==1) {
-      res = new FormulaUnit(forms.top(), inf, inp);
-    }
-    else {
-      //build a disjunction of all we have (both formulas and literals)
-      FormulaList* disj = 0;
-      FormulaList::pushFromIterator(Stack<Formula*>::Iterator(forms), disj);
-      LiteralStack::Iterator litIt(lits);
-      while(litIt.hasNext()) {
-	FormulaList::push(new AtomicFormula(litIt.next()), disj);
-      }
-      Formula* form = new JunctionFormula(OR, disj);
-      res = new FormulaUnit(form, inf, inp);
-    }
-    res = fixFormula(res);
-
-    LOG("pp_inl_step","Inlining "<<toString()<<" into "<<(*cl)<<" gave "<<(*res));
-
-    return res;
-  }
-
-  FormulaUnit* apply(FormulaUnit* unit)
-  {
-    CALL("PDInliner::PDef::apply(FormulaUnit*)");
-
-    LOG("pp_inl_substep","Inlining "<<toString()<<" into "<<(*unit));
-
-    Formula* form = apply(1,unit->formula());
-    if(form==unit->formula()) {
-      return unit;
-    }
-
-    Unit::InputType inp;
-    Inference* inf;
-    getInferenceAndInputType(unit, inf, inp);
-
-    FormulaUnit* res = new FormulaUnit(form, inf, inp);
-    res = fixFormula(res);
-
-    LOG("pp_inl_step","Inlining "<<toString()<<" into "<<(*unit)<<" gave "<<(*res));
-
-    return res;
-  }
-
+public:
   Formula* applyAtomicForm(unsigned polarity, Formula* form, InliningState& state)
   {
     CALL("PDInliner::PDef::applyAtomicForm");
@@ -266,19 +194,6 @@ struct PDInliner::PDef
       state.needsRectify |= _fixNeedsRect;
     }
     return res;
-  }
-
-  Formula* apply(int polarity, Formula* form);
-
-  Unit* apply(Unit* unit)
-  {
-    CALL("PDInliner::PDef::apply(Unit*)");
-    if(unit->isClause()) {
-     return apply(static_cast<Clause*>(unit));
-    }
-    else {
-     return apply(static_cast<FormulaUnit*>(unit));
-    }
   }
 
   bool identity(int polarity, Literal* l) { return getBody(polarity, l)==0; }
@@ -338,80 +253,12 @@ struct PDInliner::PDef
     Formula* res = SubstHelper::apply(body, apl);
 
     if(l->isPositive() != _lhs->isPositive()) {
-      //make sure what we return is flattenned
-      switch(res->connective()) {
-      case NOT:
-	res = res->uarg();
-	break;
-      case TRUE:
-	res = Formula::falseFormula();
-	break;
-      case FALSE:
-	res = Formula::trueFormula();
-	break;
-      default:
-	res = new NegatedFormula(res);
-      }
+      res = Flattening::getFlattennedNegation(res);
     }
     LOG("pp_inl_substep", "Lit inlining: "<<(*l)<<" --> "<<(*res));
     return res;
   }
 
-  /**
-   * Inline redicate definition into this definition.
-   */
-  void inlineDef(PDef* def)
-  {
-    CALL("PDInliner::PDef::inlineDef");
-
-    LOG("pp_inl_step","Inlining def "<<def->toString()<<" into "<<toString());
-
-    if(_asymDef) {
-      ASS_NEQ(def->_pred, _lhs->functor());
-      if(_posBody) { _posBody = apply(1,_posBody); }
-      if(_negBody) { _negBody = apply(1,_negBody); }
-      if(_dblBody) { _dblBody = apply(1,_dblBody); }
-      if(_defUnit) { _defUnit = def->apply(_defUnit); }
-    }
-    else {
-      FormulaUnit* newUnit = def->apply(_defUnit);
-      assignUnit(newUnit);
-    }
-    LOG("pp_inl_step","Result of def to def inlining: "<<toString());
-
-    //remove the inlined predicate from dependencies of the current predicate.
-
-    //Dependencies are stored in two places:
-    //PDInliner::PDef::_dependencies and PDInliner::_dependent
-    //There are two situations where we call this function:
-    //Inlining old definition into a new one and inlining a new
-    //definition into an old one.
-    //We need to actually remove dependencies only from
-    //PDInliner::PDef::_dependencies when inlining new definition
-    //into old one. In other cases the dependencies either aren't added yet,
-    //or will be removed all at one in the PDInliner::tryGetDef() function.
-    _dependencies.remove(def->_pred);
-    LOG("pp_inl_dep","removed dep: "<<env.signature->predicateName(def->_pred)<<" from "<<env.signature->predicateName(_pred));
-
-    //add the predicates added by inlining into dependencies
-    Set<unsigned>::Iterator depIt(def->_dependencies);
-    while(depIt.hasNext()) {
-      unsigned dep = depIt.next();
-      LOG("pp_inl_dep","added dep: "<<env.signature->predicateName(dep)<<" to "<<env.signature->predicateName(_pred));
-      registerDependentPred(dep);
-    }
-    LOG("pp_inl_dep","dep update finished");
-  }
-
-  void registerDependentPred(unsigned depPred)
-  {
-    CALL("PDInliner::PDef::registerDependentPred");
-    ASS(!_parent->_defs[depPred]); //we cannot depend on a defined predicate
-
-    _parent->_dependent[depPred].insert(_pred);
-    _dependencies.insert(depPred);
-    LOG("pp_inl_dep","added dep: "<<env.signature->predicateName(depPred)<<" to definition of "<<env.signature->predicateName(_pred));
-  }
 
   void assignUnit(FormulaUnit* unit)
   {
@@ -441,18 +288,6 @@ struct PDInliner::PDef
       ASS_EQ(f->literal()->functor(), _pred);
       makeDef(f->literal(), Formula::trueFormula());
     }
-
-    unsigned pred1, pred2;
-    _predicateEquivalence = PDUtils::isPredicateEquivalence(unit, pred1, pred2);
-    if(_predicateEquivalence) {
-      if(pred1==_pred) {
-	_tgtPredicate = pred2;
-      }
-      else {
-	ASS_EQ(pred1,_pred);
-	_tgtPredicate = pred1;
-      }
-    }
   }
 
   /**
@@ -470,7 +305,6 @@ struct PDInliner::PDef
     //if shown needed by practice, we may add more precise fixes
     _fixNeedsRect = true;
     _fixNeedsSimpl = true;
-    _fixNeedsFlatten = true;
 
     _defUnit = premise;
     _lhs = lhs;
@@ -480,24 +314,6 @@ struct PDInliner::PDef
     _dblBody = dblBody;
 
     LOG("pp_inl_def","Asymetric definition: " << toString());
-
-    _predicateEquivalence = false;
-  }
-
-  bool predicateEquivalence()
-  {
-    CALL("PDInliner::PDef::predicateEquivalence");
-    return _predicateEquivalence;
-  }
-  /**
-   * If @c predicateEquivalence() returns true, this returns the target
-   * predicate of this definition.
-   */
-  unsigned tagretPredicate()
-  {
-    CALL("PDInliner::PDef::tagretPredicate");
-    ASS(predicateEquivalence());
-    return _tgtPredicate;
   }
 
   /**
@@ -520,21 +336,6 @@ struct PDInliner::PDef
     }
   }
 private:
-
-  void getInferenceAndInputType(Unit* transformedUnit, Inference*& inf, Unit::InputType& inp)
-  {
-    CALL("PDInliner::PDef::getInferenceAndInputType");
-
-    if(_defUnit) {
-      inp = Unit::getInputType(transformedUnit->inputType(), _defUnit->inputType());
-      inf = new Inference2(Inference::PREDICATE_DEFINITION_UNFOLDING, transformedUnit, _defUnit);
-    }
-    else {
-      inp = transformedUnit->inputType();
-      inf = new Inference1(Inference::PREDICATE_DEFINITION_UNFOLDING, transformedUnit);
-    }
-  }
-
   void makeDef(Literal* lhs, Formula* body)
   {
     CALL("PDInliner::PDef::makeDef");
@@ -546,12 +347,10 @@ private:
     if(_body->connective()==TRUE || _body->connective()==FALSE) {
       _fixNeedsRect = false;
       _fixNeedsSimpl = true;
-      _fixNeedsFlatten = true;
     }
     else if(_body->connective()==LITERAL) {
       _fixNeedsRect = false;
       _fixNeedsSimpl = false;
-      _fixNeedsFlatten = false;
     }
     else {
       bool hasQuant = false;
@@ -567,25 +366,8 @@ private:
 	ASS(sf->connective()!=LITERAL || sf->literal()->shared());
       }
 
-
-      bool flattenable;
-      switch(_body->connective()) {
-      case LITERAL:
-      case IFF:
-      case IMP:
-      case XOR:
-      case FORALL:
-      case EXISTS:
-	flattenable = false;
-	break;
-      default:
-	flattenable = true;
-	break;
-      }
-
       _fixNeedsRect = hasQuant;
       _fixNeedsSimpl = false;
-      _fixNeedsFlatten = flattenable;
     }
   }
 
@@ -609,13 +391,10 @@ private:
 public:
   PDInliner* _parent;
   unsigned _pred;
+
   FormulaUnit* _defUnit;
   Literal* _lhs;
   Formula* _body;
-  Set<unsigned> _dependencies;
-  bool _predicateEquivalence;
-  /** Valid iff _isPredEquivalence==true */
-  unsigned _tgtPredicate;
 
   bool _asymDef;
   Formula* _posBody;
@@ -625,7 +404,6 @@ public:
 
   bool _fixNeedsRect;
   bool _fixNeedsSimpl;
-  bool _fixNeedsFlatten;
 };
 
 PDInliner::Applicator::Applicator(PDef& parent, Literal* lit)
@@ -654,116 +432,6 @@ PDInliner::Applicator::Applicator(PDef& parent, Literal* lit)
   }
 }
 
-Formula* PDInliner::PDef::apply(int polarity, Formula* form)
-{
-  CALL("PDInliner::PDef::apply(int,Formula*)");
-
-  LOG("pp_inl_substep","Apply to subformula "<<form->toString()<<" with polarity "<<polarity);
-
-  Connective con = form->connective();
-  switch (con) {
-  case LITERAL:
-  {
-    Literal* l=form->literal();
-    if(l->functor()!=_pred || identity(polarity, l)) {
-      return form;
-    }
-    if(atomicBody(polarity, l)) {
-      Literal* newLit = atomicApply(polarity, l);
-      if(newLit==l) {
-	return form;
-      }
-      return new AtomicFormula(newLit);
-    }
-    return apply(polarity, l);
-  }
-
-  case AND:
-  case OR: {
-    FormulaList* resArgs = 0;
-    bool modified = false;
-    FormulaList::Iterator fs(form->args());
-    while (fs.hasNext()) {
-      Formula* arg = fs.next();
-      ASS_NEQ(arg->connective(), con);
-      Formula* newArg = apply(polarity, arg);
-      if(arg!=newArg) {
-	modified = true;
-      }
-      if(newArg->connective()==con) {
-	FormulaList::pushFromIterator(FormulaList::Iterator(newArg->args()), resArgs);
-      }
-      else {
-	FormulaList::push(newArg, resArgs);
-      }
-    }
-    if(!modified) {
-      resArgs->destroy();
-      return form;
-    }
-    return new JunctionFormula(con, resArgs);
-  }
-
-  case IMP: {
-    Formula* newLeft = apply(-polarity, form->left());
-    Formula* newRight = apply(polarity, form->right());
-    if(newLeft==form->left() && newRight==form->right()) {
-      return form;
-    }
-    return new BinaryFormula(IMP, newLeft, newRight);
-  }
-
-  case NOT: {
-    Formula* newArg = apply(-polarity, form->uarg());
-    //We assume the input formulas to be flattened and in such formulas
-    //literals cannot be arguments to negations (as he negation will be
-    //pushed into literals). Also, inlining cannot make a non-literal
-    //become a literal.
-    ASS_NEQ(newArg->connective(),LITERAL);
-    if(newArg==form->uarg()) {
-      return form;
-    }
-    if(newArg->connective()==NOT) {
-      return newArg->uarg();
-    }
-    return new NegatedFormula(newArg);
-  }
-
-  case IFF:
-  case XOR:{
-    Formula* newLeft = apply(0, form->left());
-    Formula* newRight = apply(0, form->right());
-    if(newLeft==form->left() && newRight==form->right()) {
-      return form;
-    }
-    return new BinaryFormula(con, newLeft, newRight);
-  }
-
-  case FORALL:
-  case EXISTS:{
-    Formula* newArg = apply(polarity, form->qarg());
-    if(newArg==form->qarg()) {
-      return form;
-    }
-    if(newArg->connective()==con) {
-      Formula::VarList* vars = newArg->vars()->copy()->append(form->vars()->copy());
-      return new QuantifiedFormula(con, vars, newArg->qarg());
-    }
-    Formula::VarList* vars = form->vars()->copy();
-    return new QuantifiedFormula(con, vars, newArg);
-  }
-
-  case TRUE:
-  case FALSE:
-    return form;
-
-#if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
-    return 0;
-#endif
-  }
-}
 
 PDInliner::PDInliner(bool axiomsOnly, bool trace, bool nonGrowing)
  : _axiomsOnly(axiomsOnly), _nonGrowing(nonGrowing), _trace(trace)
@@ -779,8 +447,12 @@ PDInliner::~PDInliner()
 
   unsigned preds = env.signature->predicates();
   for(unsigned i=0; i<preds; i++) {
+    ASS_EQ(_deps[i]==0, _defs[i]==0)
     if(_defs[i]) {
       delete _defs[i];
+    }
+    if(_deps[i]) {
+      delete _deps[i];
     }
   }
 }
@@ -871,10 +543,6 @@ Formula* PDInliner::apply(int polarity, Formula* form, InliningState& state)
     if(newArg==form->qarg()) {
       return form;
     }
-    if(newArg->connective()==con) {
-      Formula::VarList* vars = newArg->vars()->copy()->append(form->vars()->copy());
-      return new QuantifiedFormula(con, vars, newArg->qarg());
-    }
     Formula::VarList* vars = form->vars()->copy();
     return new QuantifiedFormula(con, vars, newArg);
   }
@@ -936,35 +604,12 @@ Unit* PDInliner::apply(Unit* u)
   CALL("PDInliner::apply(Unit*)");
   CONDITIONAL_SCOPED_TRACE_TAG(_trace,"pp_inl");
 
-  if(!u->isClause()) {
+  if(u->isClause()) {
+    return apply(static_cast<Clause*>(u));
+  }
+  else {
     return apply(static_cast<FormulaUnit*>(u));
   }
-
-  Stack<unsigned> preds;
-  u->collectPredicates(preds);
-
-  //make the list of predicates unique
-  makeUnique(preds);
-
-  Unit* res = u;
-
-  int steps=0;
-  //apply definitions of predicates that appear in the unit
-  while(res && preds.isNonEmpty()) {
-    unsigned pred = preds.pop();
-    if(!_defs[pred]) {
-      //we don't have a definition for this predicate
-      continue;
-    }
-    ASS_NEQ(pred, 0); //equality is never defined
-
-    //if the unit becomes a tautology, it can be assigned zero here
-    res = _defs[pred]->apply(res);
-    steps++;
-  }
-  RSTAT_MCTR_INC("inl steps", steps);
-//  RSTAT_MST_INC("inl grow", u->toString().size(), res ? res->toString().size() : 0);
-  return res;
 }
 
 void PDInliner::getInferenceAndInputType(Unit* transformedUnit, InliningState& state, Inference*& inf, Unit::InputType& inp)
@@ -986,7 +631,7 @@ void PDInliner::getInferenceAndInputType(Unit* transformedUnit, InliningState& s
   default:
   {
     UnitList* prems = 0;
-    UnitList::pushFromIterator(UnitStack::Iterator(state.premises), prems);
+    UnitList::pushFromIterator(getUniquePersistentIterator(UnitStack::Iterator(state.premises)), prems);
     UnitList::push(transformedUnit, prems);
     inp = Unit::getInputType(prems);
     inf = new InferenceMany(Inference::PREDICATE_DEFINITION_UNFOLDING, prems);
@@ -1024,7 +669,7 @@ FormulaUnit* PDInliner::apply(FormulaUnit* unit)
 
 #if DEBUG_FORMULA_FIX
   if(!inlState.needsRectify) {
-    FormulaUnit* fu2 = Rectify::rectify(res, false);
+    FormulaUnit* fu2 = Rectify::rectify(res);
     if(res!=fu2) {
 	LOG("bug", "insufficient rectify check");
 	LOG_UNIT("bug", res);
@@ -1051,7 +696,94 @@ FormulaUnit* PDInliner::apply(FormulaUnit* unit)
 #endif
 
   LOG("pp_inl_step","Inlining into "<<(*unit)<<" gave "<<(*res));
+  RSTAT_MCTR_INC("inl premises", inlState.premises.size()-1);
 
+  return res;
+}
+
+/**
+ * Perform inlining and return the result. If the resulting clause is a tautology,
+ * return zero.
+ */
+Unit* PDInliner::apply(Clause* cl)
+{
+  CALL("PDInliner::apply");
+  LOG("pp_inl_substep","Inlining into "<<(*cl));
+
+  static InliningState inlState;
+  inlState.reset();
+
+  static LiteralStack lits;
+  lits.reset();
+  static Stack<Formula*> forms;
+  forms.reset();
+
+  bool modified = false;
+
+  unsigned clen = cl->length();
+  for(unsigned i=0; i<clen; i++) {
+    Literal* lit = (*cl)[i];
+    unsigned pred = lit->functor();
+    PDef* defObj = _defs[pred];
+    if(!defObj || defObj->identity(1, lit)) {
+      lits.push(lit);
+      continue;
+    }
+    if(defObj->_defUnit) {
+      inlState.premises.push(defObj->_defUnit);
+    }
+    if(defObj->constantBody(1, lit)) {
+      if(defObj->constantApply(1, lit)) {
+	return 0; //tautology
+      }
+      //false literal -- we skip it
+      modified = true;
+    }
+    else if(defObj->atomicBody(1, lit)) {
+      Literal* newLit = defObj->atomicApply(1, lit);
+      if(newLit!=lit) {
+	modified = true;
+      }
+      lits.push(newLit);
+    }
+    else {
+      modified = true;
+      forms.push(defObj->apply(1, lit));
+    }
+  }
+
+  if(!modified) {
+    return cl;
+  }
+
+  Unit::InputType inp;
+  Inference* inf;
+  getInferenceAndInputType(cl, inlState, inf, inp);
+  if(forms.isEmpty()) {
+    Clause* res = Clause::fromIterator(LiteralStack::Iterator(lits), inp, inf);
+    LOG("pp_inl_step","Inlining into "<<(*cl)<<" gave "<<(*res));
+    return res;
+  }
+  FormulaUnit* res;
+  if(lits.isEmpty() && forms.size()==1) {
+    res = new FormulaUnit(forms.top(), inf, inp);
+    res = Rectify::rectify(res);
+  }
+  else {
+    //build a disjunction of all we have (both formulas and literals)
+    FormulaList* disj = 0;
+    FormulaList::pushFromIterator(Stack<Formula*>::Iterator(forms), disj);
+    LiteralStack::Iterator litIt(lits);
+    while(litIt.hasNext()) {
+	FormulaList::push(new AtomicFormula(litIt.next()), disj);
+    }
+    Formula* form = new JunctionFormula(OR, disj);
+    res = new FormulaUnit(form, inf, inp);
+    res = Rectify::rectify(res);
+    res = Flattening::flatten(res);
+  }
+
+  LOG("pp_inl_step","Inlining into "<<(*cl)<<" gave "<<(*res));
   return res;
 }
 
@@ -1101,6 +833,7 @@ bool PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly
   }
 
   if(equivalencesOnly) {
+    prepareScannedDefs();
     return modified;
   }
 
@@ -1115,7 +848,71 @@ bool PDInliner::scanAndRemoveDefinitions(UnitList*& units, bool equivalencesOnly
       it.del();
     }
   }
+  prepareScannedDefs();
   return modified;
+}
+
+void PDInliner::prepareScannedDefs()
+{
+  CALL("PDInliner::prepareScannedDefs");
+
+  unsigned predCnt = _dependent.size();
+
+  Stack<unsigned> readyDefs;
+  DArray<unsigned> unprocDepCnt;
+#if VDEBUG
+  unprocDepCnt.init(predCnt, 0);
+#else
+  unprocDepCnt.ensure(predCnt);
+#endif
+
+  unsigned waitingDefCnt = 0;
+
+  for(unsigned i = 1; i<predCnt; i++) {
+    DefDep* obj = _deps[i];
+    if(!obj) {
+      continue;
+    }
+    unsigned depCnt = 0;
+    DepSet::Iterator dsit(*obj->dependencies());
+    while(dsit.hasNext()) {
+      unsigned depIdx = dsit.next();
+      if(_deps[depIdx]) {
+	depCnt++;
+      }
+    }
+    if(depCnt==0) {
+      readyDefs.push(i);
+    }
+    else {
+      waitingDefCnt++;
+      unprocDepCnt[i] = depCnt;
+    }
+  }
+
+  while(readyDefs.isNonEmpty()) {
+    unsigned dIdx = readyDefs.pop();
+    DefDep* obj = _deps[dIdx];
+    FormulaUnit* defUnit = obj->defUnit();
+    FormulaUnit* applUnit = apply(defUnit);
+
+    PDef* defObj = new PDef(this, dIdx);
+    defObj->assignUnit(applUnit);
+    _defs[dIdx] = defObj;
+
+    Stack<unsigned>::ConstIterator dependentIt(_dependent[dIdx]);
+    while(dependentIt.hasNext()) {
+      unsigned dependentIdx = dependentIt.next();
+      ASS(_deps[dependentIdx]); //only defined predicates can be dependent
+      ASS_G(unprocDepCnt[dependentIdx], 0);
+      unprocDepCnt[dependentIdx]--;
+      if(unprocDepCnt[dependentIdx]==0) {
+	readyDefs.push(dependentIdx);
+	waitingDefCnt--;
+      }
+    }
+  }
+  ASS_EQ(waitingDefCnt,0);
 }
 
 bool PDInliner::isEligible(FormulaUnit* u)
@@ -1134,35 +931,22 @@ bool PDInliner::tryGetPredicateEquivalence(FormulaUnit* unit)
     return false;
   }
 
-  unsigned pred1, pred2;
-  if(!PDUtils::isPredicateEquivalence(unit, pred1, pred2)) {
+  Formula* f1;
+  Formula* f2;
+  if(!PDUtils::isPredicateEquivalence(unit, f1, f2)) {
     return false;
   }
 
-  if(tryGetDef(unit)) {
+  Literal* l1 = f1->literal();
+  Literal* l2 = f2->literal();
+
+  if(tryGetDef(unit, l1, f2)) {
     return true;
   }
-  LOG("pp_inl_scan","Formula " << (*unit) << " needs further inlining to become definition");
-  ASS(_defs[pred1] || _defs[pred2]);
-  //we first get all predicate equivalences and other definitions only after that
-  ASS(!_defs[pred1] || _defs[pred1]->predicateEquivalence());
-  ASS(!_defs[pred2] || _defs[pred2]->predicateEquivalence());
-
-  unsigned tgtPred1 = _defs[pred1] ? _defs[pred1]->tagretPredicate() : pred1;
-  unsigned tgtPred2 = _defs[pred2] ? _defs[pred2]->tagretPredicate() : pred2;
-
-  if(tgtPred1==tgtPred2) {
-    //this equivalence is redundant
-    return false;
+  if(tryGetDef(unit, l2, f1)) {
+    return true;
   }
-  if(_defs[pred1]) {
-    unit = _defs[pred1]->apply(unit);
-  }
-  else {
-    unit = _defs[pred2]->apply(unit);
-  }
-  ALWAYS(tryGetDef(unit));
-  return true;
+  return false;
 }
 
 bool PDInliner::tryGetDef(FormulaUnit* unit)
@@ -1242,19 +1026,9 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
     return false;
   }
 
-  bool headInline = false;
-  unsigned origPred = lhs->functor();
-  unsigned defPred = origPred;
-  if(_defs[defPred]) {
-    //there already is one predicate definition
-    if(_defs[defPred]->predicateEquivalence()) {
-      //it is equivalence between predicates, so we will inline into the head
-      defPred = _defs[defPred]->tagretPredicate();
-      headInline = true;
-    }
-    else {
-      return false;
-    }
+  unsigned defPred = lhs->functor();
+  if(_deps[defPred]) {
+    return false;
   }
 
   static Stack<unsigned> dependencies;
@@ -1265,59 +1039,33 @@ bool PDInliner::tryGetDef(FormulaUnit* unit, Literal* lhs, Formula* rhs)
   {
     Stack<unsigned>::Iterator depIt(dependencies);
     while(depIt.hasNext()) {
-      unsigned litPred = depIt.next();
-      if(litPred==0) {
+      unsigned depPred = depIt.next();
+      if(depPred==0) {
 	//we're not interested in equality
 	depIt.del();
 	continue;
       }
-      if(litPred==defPred) {
-	ASS(headInline);
-	//PDUtils::hasDefinitionShape() has checked this on the original formula,
-	//so the only way this can happen is that we have inlined predicate
-	//equivalence into the head
-	return false;
+      if(!_deps[depPred]) {
+	continue;
       }
-
-      if(_dependent[defPred].contains(litPred)) {
-	//Check for cyclic dependencies.
-	//This shalow check works only because we eagerly inline all discovered
-	//definitions into other definitions
+      if(_deps[depPred]->dependencies()->member(defPred)) {
 	return false;
       }
     }
   }
 
-  if(headInline) {
-    unit = _defs[origPred]->apply(unit);
-  }
+  DepSet* depSet = DepSet::getFromArray(dependencies.begin(), dependencies.size());
 
-  PDef* def = new PDef(this, defPred);
-  def->assignUnit(unit);
-  _defs[defPred] = def;
+  DefDep* depRecord = new DefDep(*this, defPred, depSet, unit);
 
-  //inline dependencies into the new definition
-  Stack<unsigned>::Iterator depIt(dependencies);
-  while(depIt.hasNext()) {
-    unsigned dependency = depIt.next();
-    if(_defs[dependency]) {
-      def->inlineDef(_defs[dependency]);
-    }
-    else {
-      def->registerDependentPred(dependency);
-    }
-  }
+  _deps[defPred] = depRecord;
 
-  //inline the new definition into definitions that depend on it
-  Set<unsigned>::Iterator dependentIt(_dependent[defPred]);
+  Stack<unsigned>::Iterator dependentIt(_dependent[defPred]);
   while(dependentIt.hasNext()) {
-    unsigned dependent = dependentIt.next();
-    ASS(_defs[dependent]);
-    _defs[dependent]->inlineDef(def);
+    unsigned dep = dependentIt.next();
+    ASS(_deps[dep]);
+    _deps[dep]->expandDependency(defPred);
   }
-
-  _dependent[defPred].reset();
-  env.statistics->inlinedPredicateDefinitions++;
   return true;
 }
 

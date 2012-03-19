@@ -423,7 +423,9 @@ protected:
     LOG("api_prb_transf","transforming: "<<f);
 
     _transforming = true;
-    _origName = f.name();
+    if(OutputOptions::assignFormulaNames()) {
+      _origName = f.name();
+    }
     _origUnit = f;
     _origAF = f;
     if(_varFactory!=f._aux->getVarFactory()) {
