@@ -346,8 +346,7 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
     cl->notifyLiteralReorder();
   }
 
-//  _selector->select(cl, selIdx);
-  cl->setSelected(selIdx);
+  _selector->select(cl, selIdx);
 
   unsigned selCnt = cl->selected();
   for(unsigned i=0; i<selCnt; i++) {
