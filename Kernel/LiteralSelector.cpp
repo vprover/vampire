@@ -33,18 +33,6 @@ namespace Kernel
  */
 ZIArray<bool> LiteralSelector::_reversePredicate;
 
-#if VDEBUG
-
-/**
- * Counter of existing LiteralSelector instances
- *
- * As we use the @b _reversePolarity static variable in the selector
- * setting, we want always at most one instance to exist.
- */
-int LiteralSelector::_instCtr=0;
-
-#endif
-
 
 /**
  * Return true if literal @b l is positive for the purpose of
@@ -102,7 +90,7 @@ int LiteralSelector::getSelectionPriority(Literal* l) const
  * The supported literal selector numbers should correspond to numbers
  * allowed in @b Shell::Options::setSelection.
  */
-LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Options& options)
+LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Options& options, int selectorNumber)
 {
   CALL("LiteralSelector::getSelector");
 
@@ -128,11 +116,7 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
 	    Composite<MaximalSize,
 	    Composite<Negative, LexComparator> > > > Comparator10;
 
-#if VDEBUG
-  ASS_EQ(_instCtr,0);
-#endif
-  int num = options.selection();
-  int absNum = abs(num);
+  int absNum = abs(selectorNumber);
 
   LiteralSelector* res;
   switch(absNum) {
@@ -155,7 +139,7 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
   default:
     INVALID_OPERATION("Undefined selection function");
   }
-  if(num<0) {
+  if(selectorNumber<0) {
     res->_reversePolarity = true;
   }
   return res;
@@ -201,14 +185,17 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c, unsigned eligible)
  * @b doSelection is called if there is more than one eligible
  * literal.
  */
-void LiteralSelector::select(Clause* c)
+void LiteralSelector::select(Clause* c, unsigned eligibleInp)
 {
   CALL("LiteralSelector::select");
+  ASS_LE(eligibleInp, c->length());
 
-  unsigned clen=c->length();
+  if(eligibleInp==0) {
+    eligibleInp = c->length();
+  }
 
-  if(clen<=1) {
-    c->setSelected(clen);
+  if(eligibleInp<=1) {
+    c->setSelected(eligibleInp);
     return;
   }
 
@@ -216,7 +203,7 @@ void LiteralSelector::select(Clause* c)
   int maxPriority=getSelectionPriority((*c)[0]);
   bool modified=false;
 
-  for(unsigned i=1;i<clen;i++) {
+  for(unsigned i=1;i<eligibleInp;i++) {
     int priority=getSelectionPriority((*c)[i]);
     if(priority==maxPriority) {
       if(eligible!=i) {
@@ -232,7 +219,7 @@ void LiteralSelector::select(Clause* c)
       modified=true;
     }
   }
-  ASS_LE(eligible,clen);
+  ASS_LE(eligible,eligibleInp);
   if(modified) {
     c->notifyLiteralReorder();
   }

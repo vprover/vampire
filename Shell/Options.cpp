@@ -156,6 +156,7 @@ const char* Options::Constants::_optionNames[] = {
   "inst_gen_resolution_ratio",
   "inst_gen_restart_period",
   "inst_gen_restart_period_quotient",
+  "inst_gen_selection",
   "inst_gen_with_resolution",
   "interpreted_simplification",
 
@@ -687,6 +688,7 @@ Options::Options ()
   _instGenResolutionRatioResolution(1),
   _instGenRestartPeriod(1000),
   _instGenRestartPeriodQuotient(1.0f),
+  _instGenSelection(0),
   _instGenWithResolution(false),
   _interpretedSimplification(false),
 
@@ -1046,6 +1048,12 @@ void Options::set(const char* name,const char* value, int index)
 	  USER_ERROR("inst_gen_restart_period_quotient must be a number at least 1");
 	}
 	_instGenRestartPeriodQuotient = floatValue;
+	return;
+      }
+      break;
+    case INST_GEN_SELECTION:
+      if (Int::stringToInt(value,intValue) &&
+	  setInstGenSelection(intValue) ) {
 	return;
       }
       break;
@@ -1586,6 +1594,40 @@ bool Options::setSelection(int sel)
   }
 } // Options::setSelection
 
+/**
+ * Set instGenSelection to a new value.
+ */
+bool Options::setInstGenSelection(int sel)
+{
+  CALL("Options::setInstGenSelection");
+
+  switch (sel) {
+  case 0:
+  case 1:
+  case 2:
+  case 3:
+  case 4:
+  case 10:
+  case 1002:
+  case 1003:
+  case 1004:
+  case 1010:
+  case -1:
+  case -2:
+  case -3:
+  case -4:
+  case -10:
+  case -1002:
+  case -1003:
+  case -1004:
+  case -1010:
+    _instGenSelection = sel;
+    return true;
+  default:
+    return false;
+  }
+} // Options::setSelection
+
 
 /**
  * Set nongoal weight coefficient to a new value.
@@ -1866,6 +1908,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case INST_GEN_RESTART_PERIOD_QUOTIENT:
     str << _instGenRestartPeriodQuotient;
+    return;
+  case INST_GEN_SELECTION:
+    str << _instGenSelection;
     return;
   case INST_GEN_WITH_RESOLUTION:
     str << boolToOnOff(_instGenWithResolution);

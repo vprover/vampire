@@ -15,7 +15,9 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MainLoop.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/RCClauseStack.hpp"
 
 #include "Indexing/ClauseVariantIndex.hpp"
@@ -110,6 +112,10 @@ private:
   ScopedPtr<IndexManager> _saturationIndexManager;
   ScopedPtr<Problem> _saturationProblem;
   ScopedPtr<SaturationAlgorithm> _saturationAlgorithm;
+
+  OrderingSP _ordering;
+  ScopedPtr<LiteralSelector> _selector;
+
 
 //  ScopedPtr<UnitClauseLiteralIndex> _unitLitIndex;
 //  ScopedPtr<NonUnitClauseLiteralIndex> _nonUnitLitIndex;

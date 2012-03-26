@@ -100,6 +100,7 @@ public:
     INST_GEN_RESOLUTION_RATIO,
     INST_GEN_RESTART_PERIOD,
     INST_GEN_RESTART_PERIOD_QUOTIENT,
+    INST_GEN_SELECTION,
     INST_GEN_WITH_RESOLUTION,
     INTERPRETED_SIMPLIFICATION,
 
@@ -506,6 +507,7 @@ public:
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm = newVal; }
   int selection() const { return _selection; }
   bool setSelection(int newValue);
+  bool setInstGenSelection(int newValue);
   string latexOutput() const { return _latexOutput; }
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution; }
@@ -622,6 +624,7 @@ public:
   int instGenResolutionRatioResolution() const { return _instGenResolutionRatioResolution; }
   int instGenRestartPeriod() const { return _instGenRestartPeriod; }
   float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient; }
+  int instGenSelection() const { return _instGenSelection; }
   bool instGenWithResolution() const { return _instGenWithResolution; }
 
   float satClauseActivityDecay() const { return _satClauseActivityDecay; }
@@ -741,6 +744,7 @@ private:
   int _instGenResolutionRatioResolution;
   int _instGenRestartPeriod;
   float _instGenRestartPeriodQuotient;
+  int _instGenSelection;
   bool _instGenWithResolution;
   bool _interpretedSimplification;
 

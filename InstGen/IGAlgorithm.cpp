@@ -50,6 +50,9 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
 {
   CALL("IGAlgorithm::IGAlgorithm");
 
+  _ordering = OrderingSP(Ordering::create(prb, opt));
+  _selector = LiteralSelector::getSelector(*_ordering, opt, opt.instGenSelection());
+
   _passive.setAgeWeightRatio(_opt.ageRatio(), _opt.weightRatio());
   _satSolver = new TWLSolver(opt, true);
 
@@ -331,9 +334,7 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
       continue;
     }
 
-    LOG("ig_literal_selection", "selected literal "<<(*cl)[i]->toString()<<" in "<<cl->toString());
-    _selected->insert((*cl)[i], cl);
-
+    LOG("ig_literal_selection", "eligible literal "<<(*cl)[i]->toString()<<" in "<<cl->toString());
     if(selIdx!=i) {
       modified = true;
       swap((*cl)[i], (*cl)[selIdx]);
@@ -344,7 +345,16 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
   if(modified) {
     cl->notifyLiteralReorder();
   }
+
+//  _selector->select(cl, selIdx);
   cl->setSelected(selIdx);
+
+  unsigned selCnt = cl->selected();
+  for(unsigned i=0; i<selCnt; i++) {
+    LOG("ig_literal_selection", "selected literal "<<(*cl)[i]->toString()<<" in "<<cl->toString());
+    _selected->insert((*cl)[i], cl);
+  }
+
 }
 
 void IGAlgorithm::removeFromIndex(Clause* cl)

@@ -28,19 +28,14 @@ public:
   LiteralSelector(const Ordering& ordering, const Options& options)
   : _ord(ordering), _opt(options), _reversePolarity(false)
   {
-#if VDEBUG
-    _instCtr++;
-#endif
   }
   virtual ~LiteralSelector()
   {
-#if VDEBUG
-    _instCtr--;
-#endif
   }
-  void select(Clause* c);
+  /** if eligible is 0, all literals are eligible */
+  void select(Clause* c, unsigned eligible=0);
 
-  static LiteralSelector* getSelector(const Ordering& ordering, const Options& options);
+  static LiteralSelector* getSelector(const Ordering& ordering, const Options& options, int selectorNumber);
 
   static void ensureSomeColoredSelected(Clause* c, unsigned eligible);
 
@@ -95,18 +90,6 @@ private:
   bool _reversePolarity;
 
   static ZIArray<bool> _reversePredicate;
-
-#if VDEBUG
-  /**
-   * Counter of instances of LiteralSelector object
-   *
-   * It is used to ensure that there is at most one LiteralSelector
-   * object created at a time. This check is neccessary, because the
-   * polarity reversal for literal selectors with negative numbers
-   * is controlled through the static variable @b _reversePolarity.
-   */
-  static int _instCtr;
-#endif
 };
 
 /**

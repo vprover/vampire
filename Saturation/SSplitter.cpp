@@ -236,6 +236,7 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   oldselSet.ensure(varCnt);
   oldselSet.reset();
 
+#if 0 //old flushing code
   //this we do to change the model in the SAT solver
   ArraySet::Iterator sit(_selected);
   while(sit.hasNext()) {
@@ -248,6 +249,15 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   _solver->retractAllAssumptions();
   //restore model
   _solver->addClauses(SATClauseIterator::getEmpty(), false);
+#else
+  if(_solver->getStatus()==SATSolver::UNKNOWN) {
+    _solver->addClauses(SATClauseIterator::getEmpty(), false);
+  }
+  _solver->addClauses(SATClauseIterator::getEmpty(), false);
+  ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
+  _solver->randomizeAssignment();
+#endif
+  ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
 
   unsigned maxSatVar = _parent.maxSatVar();
   for(unsigned i=1; i<=maxSatVar; i++) {
@@ -255,43 +265,6 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
     updateSelection(i, asgn, addedComps, removedComps);
   }
 
-//  //Swap selection status variables enabled by SAT model.
-//  //We also need to populate oldselSet with previously selected
-//  //variables, so we can later properly populate the addedComps
-//  //and removedComps stacks.
-//  for(SplitLevel i=1; i<varCnt; ++i) {
-//    if(_selected.find(i)) {
-//      oldselSet.insert(i);
-//      _selected.remove(i);
-//    }
-//    else {
-//      if(_solver->getAssignment(i)==false) {
-//        continue;
-//      }
-//      _selected.insert(i);
-//    }
-//    SATClauseStack& watched = _watcher[i];
-//    _unprocessed.loadFromIterator(SATClauseStack::Iterator(watched));
-//    watched.reset();
-//  }
-//
-//  fixUnprocessed(addedComps);
-//  sweep(addedComps, removedComps);
-//
-//  addedComps.reset();
-//  removedComps.reset();
-//  for(SplitLevel i=1; i<varCnt; ++i) {
-//    if(_selected.find(i)) {
-//      if(!oldselSet.find(i)) {
-//	addedComps.push(i);
-//      }
-//    }
-//    else {
-//      if(oldselSet.find(i)) {
-//	removedComps.push(i);
-//      }
-//    }
-//  }
   RSTAT_CTR_INC_MANY("ssat_added_by_flush",addedComps.size());
   RSTAT_CTR_INC_MANY("ssat_removed_by_flush",removedComps.size());
   COND_LOG("sspl_sel",addedComps.isNonEmpty()||removedComps.isNonEmpty(), "flushing changed by addition of SAT clauses");

@@ -108,7 +108,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     //this is not an error, it may just lead to lower performance (and most likely not significantly lower)
     cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;
   }
-  _selector = LiteralSelector::getSelector(*_ordering, opt);
+  _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());
 
   _propToBDD = opt.propositionalToBDD();
   _completeOptionSettings = opt.complete(prb);
