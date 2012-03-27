@@ -35,6 +35,9 @@ public:
 
   virtual Status getStatus() = 0;
   virtual void getUnsatisfiableSubset(LiteralStack& res) = 0;
+
+  /** reset decision procedure object into its initial state */
+  virtual void reset() = 0;
 };
 
 class ScopedDecisionProcedure : public DecisionProcedure {

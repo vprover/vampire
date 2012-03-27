@@ -5,6 +5,7 @@
 
 #include <map>
 
+#include "Debug/RuntimeStatistics.hpp"
 #include "Debug/Tracer.hpp"
 #include "Forwards.hpp"
 #include "VUtils/SimpleSMT.hpp"
@@ -164,6 +165,7 @@ void SimpleSMT::preprocessProblem(int argc, char** argv)
   cout << "Now we should be solving " << fname << endl;
 
   env.options->setInputFile(fname);
+  env.options->set("aig_bdd_sweeping","on");
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   TimeCounter tc2(TC_PREPROCESSING);
@@ -188,7 +190,9 @@ void SimpleSMT::preprocessProblem(int argc, char** argv)
 unsigned SimpleSMT::getCClosureClauseStatus(LiteralStack *litAsgn)
 {
   CALL("SimpleSMT::getCClosureClauseStatus");
-  DP::SimpleCongruenceClosure cClosure;
+  static DP::SimpleCongruenceClosure cClosure;
+  cClosure.reset();
+
   cClosure.addLiterals(pvi(LiteralStack::Iterator(*litAsgn)));
   DP::DecisionProcedure::Status status; // = DP::DecisionProcedure::UNSATISFIABLE;
 
@@ -201,6 +205,7 @@ unsigned SimpleSMT::getCClosureClauseStatus(LiteralStack *litAsgn)
   //equivalent to ASS(status==DP::UNSATISFIABLE);
   ASS_EQ(status , DP::DecisionProcedure::UNSATISFIABLE);
   LOG("smt_dp_status", "UNSATISFIABLE");
+  RSTAT_CTR_INC("smt_conflict");
   
   cClosure.getUnsatisfiableSubset(*litAsgn);
   return 1;

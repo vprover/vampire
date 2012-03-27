@@ -27,6 +27,8 @@ public:
   virtual Status getStatus();
   virtual void getUnsatisfiableSubset(LiteralStack& res);
 
+  virtual void reset();
+
 private:
   /**
    * Constant pair
@@ -109,6 +111,9 @@ private:
       namedPair = CPair(0,0);
       reprConst = 0;
       proofPredecessor = 0;
+      predecessorPremise = CEq(0,0);
+      classList.reset();
+      useList.reset();
     }
 
 

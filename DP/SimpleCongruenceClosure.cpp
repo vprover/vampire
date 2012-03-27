@@ -77,6 +77,31 @@ SimpleCongruenceClosure::SimpleCongruenceClosure()
 //  _unsatEq = CEq(0,0);
 }
 
+void SimpleCongruenceClosure::reset()
+{
+  CALL("SimpleCongruenceClosure::reset");
+
+  ASS_EQ(_posLitConst,1);
+  ASS_EQ(_negLitConst,2);
+  //this leaves us just with the true and false constants
+  _cInfos.expand(3);
+
+  //this leaves us just with the true!=false non-equality
+  _negEqualities.truncate(1);
+
+  _sigConsts.reset();
+  _pairNames.reset();
+  _termNames.reset();
+
+  //no unsat non-equality
+  _unsatEq = CEq(0,0);
+
+  _pendingEqualities.reset();
+  _negEqualities.reset();
+  _distinctConstraints.reset();
+  _negDistinctConstraints.reset();
+}
+
 /** Introduce fresh congruence closure constant */
 unsigned SimpleCongruenceClosure::getFreshConst()
 {

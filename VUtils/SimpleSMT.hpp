@@ -13,6 +13,7 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "SAT/SATLiteral.hpp"
+#include "SAT/SATSolver.hpp"
 
 namespace VUtils {
 
