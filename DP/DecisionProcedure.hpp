@@ -36,7 +36,7 @@ public:
   virtual Status getStatus() = 0;
   virtual void getUnsatisfiableSubset(LiteralStack& res) = 0;
 
-  /** reset decision procedure object into its initial state */
+  /** reset decision procedure object into state equivalent to its initial state */
   virtual void reset() = 0;
 };
 

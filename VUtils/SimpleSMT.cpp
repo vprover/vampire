@@ -166,6 +166,8 @@ void SimpleSMT::preprocessProblem(int argc, char** argv)
 
   env.options->setInputFile(fname);
   env.options->set("aig_bdd_sweeping","on");
+  env.options->set("inequality_splitting","0");
+  env.options->set("flatten_top_level_conjunctions","on");
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   TimeCounter tc2(TC_PREPROCESSING);

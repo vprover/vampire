@@ -62,6 +62,49 @@ string SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) c
   return res.str();
 }
 
+void SimpleCongruenceClosure::ConstInfo::init() {
+  CALL("SimpleCongruenceClosure::ConstInfo::init");
+
+  sigSymbol = NO_SIG_SYMBOL;
+  term.makeEmpty();
+  lit = 0;
+  namedPair = CPair(0,0);
+  reprConst = 0;
+  proofPredecessor = 0;
+  predecessorPremise = CEq(0,0);
+  classList.reset();
+  useList.reset();
+}
+
+void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosure& parent, unsigned selfIndex) {
+  CALL("SimpleCongruenceClosure::ConstInfo::resetEquivalences");
+
+  reprConst = 0;
+  proofPredecessor = 0;
+  predecessorPremise = CEq(0,0);
+  classList.reset();
+
+  static ArraySet seen;
+  seen.reset();
+
+  Stack<unsigned>::DelIterator ulit(useList);
+  while(ulit.hasNext()) {
+    unsigned p = ulit.next();
+    ConstInfo& pInfo = parent._cInfos[p];
+    if(pInfo.namedPair.first!=p && pInfo.namedPair.second!=p) {
+      ulit.del();
+      continue;
+    }
+    if(seen.find(p)) {
+      ulit.del();
+      continue;
+    }
+    seen.insert(p);
+  }
+}
+
+
+
 SimpleCongruenceClosure::SimpleCongruenceClosure()
 {
   CALL("SimpleCongruenceClosure::SimpleCongruenceClosure");
@@ -81,23 +124,34 @@ void SimpleCongruenceClosure::reset()
 {
   CALL("SimpleCongruenceClosure::reset");
 
+#if 1
   ASS_EQ(_posLitConst,1);
   ASS_EQ(_negLitConst,2);
   //this leaves us just with the true and false constants
   _cInfos.expand(3);
 
-  //this leaves us just with the true!=false non-equality
-  _negEqualities.truncate(1);
-
   _sigConsts.reset();
   _pairNames.reset();
   _termNames.reset();
+
+#else
+  //do reset that keeps the data for converting terms to constants
+
+  unsigned maxConst = getMaxConst();
+  for(unsigned i=1; i<=maxConst; i++) {
+    _cInfos[i].resetEquivalences(*this, i);
+  }
+#endif
+
+  //this leaves us just with the true!=false non-equality
+  _negEqualities.truncate(1);
+  ASS_EQ(_negEqualities.top().c1,_posLitConst);
+  ASS_EQ(_negEqualities.top().c2,_negLitConst);
 
   //no unsat non-equality
   _unsatEq = CEq(0,0);
 
   _pendingEqualities.reset();
-  _negEqualities.reset();
   _distinctConstraints.reset();
   _negDistinctConstraints.reset();
 }
@@ -145,7 +199,15 @@ unsigned SimpleCongruenceClosure::getPairName(CPair p)
   *pRes = res;
 
   _cInfos[p.first].useList.push(res);
+  if(_cInfos[p.first].reprConst!=0) {
+    unsigned fRepr = _cInfos[p.first].reprConst;
+    _cInfos[fRepr].useList.push(res);
+  }
   _cInfos[p.second].useList.push(res);
+  if(_cInfos[p.second].reprConst!=0) {
+    unsigned sRepr = _cInfos[p.second].reprConst;
+    _cInfos[sRepr].useList.push(res);
+  }
 
   LOG("dp_cc_const_intr", "pairConst: "<<res<<" ("<<p.first<<","<<p.second<<")");
   return res;
@@ -210,6 +272,11 @@ unsigned SimpleCongruenceClosure::convertFO(TermList trm)
 {
   CALL("SimpleCongruenceClosure::convertFO(TermList)");
 
+  unsigned cachedRes;
+  if(_termNames.find(trm, cachedRes)) {
+    return cachedRes;
+  }
+
   FOConversionWorker wrk(*this);
   SafeRecursion<TermList,unsigned,FOConversionWorker> convertor(wrk);
   return convertor(trm);
@@ -246,6 +313,8 @@ void SimpleCongruenceClosure::readDistinct(Literal* lit)
 {
   CALL("SimpleCongruenceClosure::readDistinct");
 
+  LOG("dp_cc_distinct","adding distinct constraint "<<(*lit));
+
   bool pos = lit->isPositive();
   DistinctStack& tgtDStack = pos ? _distinctConstraints : _negDistinctConstraints;
   tgtDStack.push(DistinctEntry(lit));
@@ -255,6 +324,7 @@ void SimpleCongruenceClosure::readDistinct(Literal* lit)
     TermList arg = ait.next();
     unsigned cNum = convertFO(arg);
     tgtStack.push(cNum);
+    LOG("dp_cc_distinct","  dist const "<<arg<<" represented as number "<<cNum);
   }
 }
 
@@ -287,6 +357,9 @@ void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
       else {
 	_negEqualities.push(eq);
       }
+    }
+    else if(isDistinctPred(l)) {
+      readDistinct(l);
     }
     else {
       unsigned predConst = convertFONonEquality(l);

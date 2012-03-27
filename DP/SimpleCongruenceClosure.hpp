@@ -104,17 +104,8 @@ private:
   static const unsigned NO_SIG_SYMBOL;
   struct ConstInfo
   {
-    void init() {
-      sigSymbol = NO_SIG_SYMBOL;
-      term.makeEmpty();
-      lit = 0;
-      namedPair = CPair(0,0);
-      reprConst = 0;
-      proofPredecessor = 0;
-      predecessorPremise = CEq(0,0);
-      classList.reset();
-      useList.reset();
-    }
+    void init();
+    void resetEquivalences(SimpleCongruenceClosure& parent, unsigned selfIndex);
 
 
     /** If NO_SIG_SYMBOL, the constant doesn't represent a non-constant signature symbol */
@@ -146,8 +137,12 @@ private:
     /** If reprConst==0, contains other constants whose representative
      * this constant is */
     Stack<unsigned> classList;
-    /** If reprConst==0, contains list of pair names in whose pairs this
-     * constant appears as a representative of one of the arguments */
+    /**
+     * If reprConst==0, contains list of pair names in whose pairs this
+     * constant appears as a representative of one of the arguments.
+     * Irregardless of the value f reprConst, also contains representatives
+     * of all pairs that have this very constant as one of arguments.
+     */
     Stack<unsigned> useList;
   };
 
@@ -167,7 +162,7 @@ private:
 
   /**
    * Map from signature symbols to the local constant numbers.
-   * (if the bool is true, symbol si function, otherwise a predicate).
+   * (if the bool is true, symbol is function, otherwise a predicate).
    */
   DHMap<pair<unsigned,bool>,unsigned> _sigConsts;
 

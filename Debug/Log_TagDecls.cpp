@@ -239,6 +239,10 @@ void Logging::doTagDeclarations()
       DOC("unsatisfiable subset"),
       PARENT("dp_cc_interf",1));
 
+  DECL("dp_cc_distinct",
+      DOC("distinct constraints"),
+      PARENT("dp_cc",3));
+
   DECL("dp_cc_fo_conv",
       DOC("conversion of first-order literals to internal represenation"),
       PARENT("dp_cc",1));
@@ -579,7 +583,10 @@ void Logging::doTagDeclarations()
       PARENT("pp_aig_compr",1));
   DECL("pp_aig_compr_units",
       DOC("units modified by aig compression"),
-      PARENT("pp_aig_compr",21));
+      PARENT("pp_aig_compr",2));
+  DECL("pp_aig_compr_atom",
+      DOC("units modified by aig compression"),
+      PARENT("pp_aig_compr",3));
 
   DECL("pp_aiginl",
       DOC("AIG based inlining"),

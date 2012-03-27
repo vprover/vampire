@@ -699,6 +699,8 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
   CALL("AIGCompressor::tryCompressAtom");
   ASS(atom.isAtom());
 
+  LOG("pp_aig_compr_atom", "trying to compress atom "<<atom);
+
   bool isNeg = !atom.polarity();
   Literal* lit0 = atom.getPositiveAtom();
   Literal* lit = lit0;
@@ -706,10 +708,12 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
   if(lit->isEquality()) {
     unsigned distGroup;
     if(*lit->nthArgument(0)==*lit->nthArgument(1)) {
+      LOG("pp_aig_compr_atom", "compressed trivial equality");
       return isNeg ? _aig.getFalse() : _aig.getTrue();
     }
     if(Inferences::DistinctEqualitySimplifier::mustBeDistinct(*lit->nthArgument(0), *lit->nthArgument(1), distGroup) &&
 	distGroup<=Signature::LAST_BUILT_IN_DISTINCT_GROUP) {
+      LOG("pp_aig_compr_atom", "compressed distinct equality");
       return isNeg ? _aig.getTrue() : _aig.getFalse();
     }
   }
@@ -723,6 +727,7 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
     Literal* litVal;
     if(_ilEval->evaluate(lit, isConst, litVal, constVal)) {
       if(isConst) {
+	LOG("pp_aig_compr_atom", "compressed interptered tautology");
 	return (constVal^isNeg) ? _aig.getTrue() : _aig.getFalse();
       }
       else {
@@ -731,10 +736,12 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
     }
   }
   if(lit==lit0) {
+    LOG("pp_aig_compr_atom", "no compression achieved");
     return atom;
   }
   else {
     AIGRef newPos = _aig.getLit(lit);
+    LOG("pp_aig_compr_atom", "compressed to atom "<<(isNeg ? newPos.neg() : newPos));
     return isNeg ? newPos.neg() : newPos;
   }
 }
