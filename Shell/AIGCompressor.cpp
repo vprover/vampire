@@ -711,10 +711,11 @@ AIGRef AIGCompressor::tryCompressAtom(AIGRef atom)
       LOG("pp_aig_compr_atom", "compressed trivial equality");
       return isNeg ? _aig.getFalse() : _aig.getTrue();
     }
-    if(Inferences::DistinctEqualitySimplifier::mustBeDistinct(*lit->nthArgument(0), *lit->nthArgument(1), distGroup) &&
-	distGroup<=Signature::LAST_BUILT_IN_DISTINCT_GROUP) {
+    if(Inferences::DistinctEqualitySimplifier::mustBeDistinct(*lit->nthArgument(0), *lit->nthArgument(1), distGroup)) {
       LOG("pp_aig_compr_atom", "compressed distinct equality");
-      return isNeg ? _aig.getTrue() : _aig.getFalse();
+//      if(distGroup<=Signature::LAST_BUILT_IN_DISTINCT_GROUP) {
+	return isNeg ? _aig.getTrue() : _aig.getFalse();
+//      }
     }
   }
 
@@ -868,6 +869,9 @@ AIGCompressingTransformer::AIGCompressingTransformer()
   CALL("AIGCompressingTransformer::AIGCompressingTransformer");
 }
 
+/**
+ * Return simplified formula or 0 if it was tautology
+ */
 Formula* AIGCompressingTransformer::apply(Formula* f)
 {
   CALL("AIGCompressingTransformer::apply/1");
@@ -881,6 +885,10 @@ Formula* AIGCompressingTransformer::apply(Formula* f)
   AIGRef simpl = _compr.compress(fAig);
   if(simpl==fAig) {
     return f;
+  }
+  if(simpl.isTrue()) {
+    LOG("pp_aig_compr_forms","aig compr forms"<<endl<<"  src: "<<(*f)<<endl<<"  tgt: $true");
+    return 0;
   }
   Formula* res = _fsh.aigToFormula(simpl);
   LOG("pp_aig_compr_forms","aig compr forms"<<endl<<"  src: "<<(*f)<<endl<<"  tgt: "<<(*res));
@@ -908,7 +916,7 @@ bool AIGCompressingTransformer::applyToDefinition(FormulaUnit* unit, Unit*& res)
   }
   Formula* lhsf = new AtomicFormula(lhs);
   Formula* f;
-  if(rhsSimpl->connective()==TRUE) {
+  if(!rhsSimpl || rhsSimpl->connective()==TRUE) {
     f = lhsf;
   }
   else if(rhsSimpl->connective()==FALSE) {
@@ -944,6 +952,10 @@ bool AIGCompressingTransformer::apply(FormulaUnit* unit, Unit*& res)
   Formula* fSimpl = apply(f);
   if(f==fSimpl) {
     return false;
+  }
+  if(!fSimpl) {
+    res = 0;
+    return true;
   }
   FormulaUnit* res0 = new FormulaUnit(fSimpl, new Inference1(Inference::LOCAL_SIMPLIFICATION, unit), unit->inputType());
   res = Flattening::flatten(res0);

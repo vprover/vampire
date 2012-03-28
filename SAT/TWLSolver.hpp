@@ -60,7 +60,11 @@ public:
   virtual void retractAllAssumptions();
   virtual bool hasAssumptions() const { return _assumptionsAdded; }
 
-  virtual SATClause* getRefutation() { return _refutation; }
+  virtual SATClause* getRefutation() {
+    CALL("TWLSolver::getRefutation");
+    ASS_EQ(getStatus(),SATSolver::UNSATISFIABLE);
+    return _refutation;
+  }
 
   virtual void randomizeAssignment();
 
@@ -180,7 +184,8 @@ private:
 
   };
 
-  const Options& _opt;
+  bool _doLearntMinimization;
+  bool _doLearntSubsumptionResolution;
 
   bool _generateProofs;
   SATClause* _refutation;

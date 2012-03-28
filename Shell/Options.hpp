@@ -50,6 +50,7 @@ public:
     /** Decode test id */
     DECODE,
     DEMODULATION_REDUNDANCY_CHECK,
+    DISTINCT_PROCESSOR,
 
     EMPTY_CLAUSE_SUBSUMPTION,
     EPR_PRESERVING_NAMING,
@@ -606,6 +607,8 @@ public:
 
   bool colorUnblocking() const { return _colorUnblocking; }
 
+  bool distinctProcessor() const { return _distinctProcessor; }
+
   bool hornRevealing() const { return _hornRevealing; }
   bool trivialPredicateRemoval() const { return _trivialPredicateRemoval; }
 
@@ -704,6 +707,7 @@ private:
   Condensation _condensation;
 
   bool _demodulationRedundancyCheck;
+  bool _distinctProcessor;
 
   bool _emptyClauseSubsumption;
   bool _eprPreservingNaming;

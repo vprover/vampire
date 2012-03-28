@@ -293,6 +293,9 @@ void Logging::doTagDeclarations()
   DECL("smt_sat_clauses",
       DOC("initial sat clauses"),
       PARENT("smt",1));
+  DECL("smt_confl_detail",
+      DOC("details of smt conflicts"),
+      PARENT("smt",1));
   //
   // SAT-based splitting
   //

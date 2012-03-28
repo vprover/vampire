@@ -122,6 +122,7 @@ const char* Options::Constants::_optionNames[] = {
 
   "decode",
   "demodulation_redundancy_check",
+  "distinct_processor",
 
   "empty_clause_subsumption",
   "epr_preserving_naming",
@@ -655,6 +656,7 @@ Options::Options ()
   _condensation(CONDENSATION_OFF),
 
   _demodulationRedundancyCheck(true),
+  _distinctProcessor(false),
 
   _emptyClauseSubsumption(false),
   _eprPreservingNaming(false),
@@ -932,6 +934,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case DEMODULATION_REDUNDANCY_CHECK:
       _demodulationRedundancyCheck = onOffToBool(value,name);
+      return;
+    case DISTINCT_PROCESSOR:
+      _distinctProcessor = onOffToBool(value,name);
       return;
 
     case EMPTY_CLAUSE_SUBSUMPTION:
@@ -1816,6 +1821,9 @@ void Options::outputValue (ostream& str,int optionTag) const
     return;
   case DEMODULATION_REDUNDANCY_CHECK:
     str << boolToOnOff(_demodulationRedundancyCheck);
+    return;
+  case DISTINCT_PROCESSOR:
+    str << boolToOnOff(_distinctProcessor);
     return;
 
   case EMPTY_CLAUSE_SUBSUMPTION:

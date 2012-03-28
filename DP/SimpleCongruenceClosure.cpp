@@ -15,6 +15,8 @@
 
 #include "Kernel/Signature.hpp"
 
+#include "Shell/DistinctProcessor.hpp"
+
 namespace DP
 {
 
@@ -85,13 +87,14 @@ void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosu
   classList.reset();
 
   static ArraySet seen;
+  seen.ensure(parent.getMaxConst()+1);
   seen.reset();
 
   Stack<unsigned>::DelIterator ulit(useList);
   while(ulit.hasNext()) {
     unsigned p = ulit.next();
     ConstInfo& pInfo = parent._cInfos[p];
-    if(pInfo.namedPair.first!=p && pInfo.namedPair.second!=p) {
+    if(pInfo.namedPair.first!=selfIndex && pInfo.namedPair.second!=selfIndex) {
       ulit.del();
       continue;
     }
@@ -103,6 +106,27 @@ void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosu
   }
 }
 
+#ifdef VDEBUG
+
+void SimpleCongruenceClosure::ConstInfo::assertValid(SimpleCongruenceClosure& parent, unsigned selfIndex) const
+{
+  CALL("SimpleCongruenceClosure::ConstInfo::assertValid");
+
+  if(reprConst==0) {
+    Stack<unsigned>::ConstIterator ulit(useList);
+    while(ulit.hasNext()) {
+      unsigned p = ulit.next();
+      ConstInfo& pInfo = parent._cInfos[p];
+      CPair pPair = pInfo.namedPair;
+      ASS_NEQ(pPair.first,0);
+      ASS_NEQ(pPair.second,0);
+      CPair derefPair = parent.deref(pPair);
+      ASS(derefPair.first==selfIndex || derefPair.second==selfIndex);
+    }
+  }
+}
+
+#endif
 
 
 SimpleCongruenceClosure::SimpleCongruenceClosure()
@@ -116,8 +140,6 @@ SimpleCongruenceClosure::SimpleCongruenceClosure()
   _negEqualities.push(CEq(_posLitConst, _negLitConst, 0));
   LOG("dp_cc_const_intr", "posConst: "<<_posLitConst);
   LOG("dp_cc_const_intr", "negConst: "<<_negLitConst);
-
-//  _unsatEq = CEq(0,0);
 }
 
 void SimpleCongruenceClosure::reset()
@@ -125,14 +147,15 @@ void SimpleCongruenceClosure::reset()
   CALL("SimpleCongruenceClosure::reset");
 
 #if 1
-  ASS_EQ(_posLitConst,1);
-  ASS_EQ(_negLitConst,2);
-  //this leaves us just with the true and false constants
-  _cInfos.expand(3);
-
+  _cInfos.expand(1);
   _sigConsts.reset();
   _pairNames.reset();
   _termNames.reset();
+
+  _negEqualities.reset();
+  _posLitConst = getFreshConst();
+  _negLitConst = getFreshConst();
+  _negEqualities.push(CEq(_posLitConst, _negLitConst, 0));
 
 #else
   //do reset that keeps the data for converting terms to constants
@@ -141,19 +164,20 @@ void SimpleCongruenceClosure::reset()
   for(unsigned i=1; i<=maxConst; i++) {
     _cInfos[i].resetEquivalences(*this, i);
   }
-#endif
 
   //this leaves us just with the true!=false non-equality
   _negEqualities.truncate(1);
   ASS_EQ(_negEqualities.top().c1,_posLitConst);
   ASS_EQ(_negEqualities.top().c2,_negLitConst);
+#endif
 
   //no unsat non-equality
-  _unsatEq = CEq(0,0);
+  _unsatEqs.reset();
 
   _pendingEqualities.reset();
   _distinctConstraints.reset();
   _negDistinctConstraints.reset();
+
 }
 
 /** Introduce fresh congruence closure constant */
@@ -303,10 +327,7 @@ bool SimpleCongruenceClosure::isDistinctPred(Literal* l)
 {
   CALL("SimpleCongruenceClosure::isDistinctPred");
 
-  //this is a hacky way to check for disctnct predicates,
-  //needs to be fixed once we have a proper sopport for
-  //these in the signature
-  return l->predicateName().substr(0,9)=="$distinct";
+  return Shell::DistinctProcessor::isDistinctPred(l);
 }
 
 void SimpleCongruenceClosure::readDistinct(Literal* lit)
@@ -446,6 +467,10 @@ void SimpleCongruenceClosure::propagate()
     ASS_EQ(aInfo.reprConst,0);
     ASS_EQ(bInfo.reprConst,0);
 
+    DEBUG_CODE( aInfo.assertValid(*this, aRep); );
+    DEBUG_CODE( bInfo.assertValid(*this, bRep); );
+
+
     aInfo.reprConst = bRep;
     bInfo.classList.push(aRep);
     Stack<unsigned>::Iterator aChildIt(aInfo.classList);
@@ -473,13 +498,15 @@ void SimpleCongruenceClosure::propagate()
   }
 }
 
-bool SimpleCongruenceClosure::checkPositiveDistincts()
+bool SimpleCongruenceClosure::checkPositiveDistincts(bool retrieveMultipleCores)
 {
   CALL("SimpleCongruenceClosure::checkPositiveDistincts");
 
   //map from a representative to constant in its class present in the current distinct group
   static ArrayMap<unsigned> reprs;
   reprs.ensure(getMaxConst()+1);
+
+  bool foundConflict = false;
 
   DistinctStack::BottomFirstIterator distIt(_distinctConstraints);
   while(distIt.hasNext()) {
@@ -493,16 +520,21 @@ bool SimpleCongruenceClosure::checkPositiveDistincts()
       unsigned c2;
       if(reprs.find(rep, c2)) {
 	//we're unsat, two equal constants in a distinct group
-	_unsatEq = CEq(c, c2, grp._lit);
-	return false;
+	_unsatEqs.push(CEq(c, c2, grp._lit));
+	if(!retrieveMultipleCores) {
+	  return false;
+	}
+	foundConflict = true;
       }
-      reprs.insert(rep, c);
+      else {
+	reprs.insert(rep, c);
+      }
     }
   }
-  return true;
+  return !foundConflict;
 }
 
-DecisionProcedure::Status SimpleCongruenceClosure::checkNegativeDistincts()
+DecisionProcedure::Status SimpleCongruenceClosure::checkNegativeDistincts(bool retrieveMultipleCores)
 {
   //map from a representative to constant in its class present in the current distinct group
   static ArrayMap<unsigned> reprs;
@@ -535,16 +567,18 @@ DecisionProcedure::Status SimpleCongruenceClosure::checkNegativeDistincts()
   return DecisionProcedure::SATISFIABLE;
 }
 
-DecisionProcedure::Status SimpleCongruenceClosure::getStatus()
+DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultipleCores)
 {
   CALL("SimpleCongruenceClosure::getStatus");
 
   propagate();
 
-  if(!checkPositiveDistincts()) {
-    LOG("dp_cc_contr", "contradiction: ("<<_unsatEq.c1<<","<<_unsatEq.c2<<") from "<<(*_unsatEq.foPremise)<<" are equal");
-    LOG("dp_cc_interf_res","cc gave UNSAT");
-    return DecisionProcedure::UNSATISFIABLE;
+  if(!checkPositiveDistincts(retrieveMultipleCores)) {
+    LOG("dp_cc_interf_res","conflict from positive distinct");
+    if(!retrieveMultipleCores) {
+      LOG("dp_cc_interf_res","cc gave UNSAT");
+      return DecisionProcedure::UNSATISFIABLE;
+    }
   }
 
   //The intuition is that we want to fail on as early equialities as possible
@@ -557,25 +591,26 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus()
     CEq neq = neqIt.next();
     CPair derNEq = deref(neq);
     if(derNEq.first==derNEq.second) {
-      _unsatEq = neq;
+      _unsatEqs.push(neq);
       LOG("dp_cc_contr", "contradiction: ("<<neq.c1<<","<<neq.c2<<") both dereferenced to "<<derNEq.first);
-      LOG("dp_cc_interf_res","cc gave UNSAT");
-      return DecisionProcedure::UNSATISFIABLE;
+      if(!retrieveMultipleCores) {
+	LOG("dp_cc_interf_res","cc gave UNSAT");
+	return DecisionProcedure::UNSATISFIABLE;
+      }
     }
   }
 
-  DecisionProcedure::Status ndStatus = checkNegativeDistincts();
-  switch(ndStatus) {
-  case DecisionProcedure::UNSATISFIABLE:
+  DecisionProcedure::Status ndStatus = checkNegativeDistincts(retrieveMultipleCores);
+  COND_LOG("dp_cc_interf_res",ndStatus==DecisionProcedure::UNSATISFIABLE, "conflict from negative distinct");
+
+  if(_unsatEqs.isNonEmpty()) {
     LOG("dp_cc_interf_res","cc gave UNSAT");
     return DecisionProcedure::UNSATISFIABLE;
-  case DecisionProcedure::UNKNOWN:
-    LOG("dp_cc_interf_res","cc gave UNKNOWN because of the presence of negative $distinct literals");
-    return DecisionProcedure::UNSATISFIABLE;
-  case DecisionProcedure::SATISFIABLE:
-    break;
   }
-
+  if(ndStatus==DecisionProcedure::UNKNOWN) {
+    LOG("dp_cc_interf_res","cc gave UNKNOWN because of the presence of negative $distinct literals");
+    return DecisionProcedure::UNKNOWN;
+  }
   LOG("dp_cc_interf_res","cc gave SAT");
   return DecisionProcedure::SATISFIABLE;
 }
@@ -644,28 +679,33 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
   }
 }
 
-void SimpleCongruenceClosure::getUnsatisfiableSubset(LiteralStack& res)
+void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex)
 {
   CALL("SimpleCongruenceClosure::getUnsatisfiableSubset");
   ASS(res.isEmpty());
-  ASS(!_unsatEq.isInvalid());
+  ASS_L(coreIndex,_unsatEqs.size());
 
   LOG("dp_cc_interf_unsat", "UNSAT subset start");
 
-  ASS(_unsatEq.foOrigin);
-  if(_unsatEq.foPremise) {
-    LOG("dp_cc_interf_unsat", *_unsatEq.foPremise);
-    res.push(_unsatEq.foPremise);
+  CEq unsatEq = _unsatEqs[coreIndex];
+
+  ASS(unsatEq.foOrigin);
+  if(unsatEq.foPremise) {
+    LOG("dp_cc_interf_unsat", *unsatEq.foPremise);
+    res.push(unsatEq.foPremise);
   }
 
   static Stack<CPair> toExplain;
-  toExplain.push(CPair(_unsatEq.c1, _unsatEq.c2));
+  toExplain.push(CPair(unsatEq.c1, unsatEq.c2));
+  ASS_EQ(deref(toExplain.top().first), deref(toExplain.top().second));
 
   IntUnionFind explained(getMaxConst()+1);
   static Stack<unsigned> pathStack;
 
   while(toExplain.isNonEmpty()) {
     CPair curr = toExplain.pop();
+    ASS_EQ(deref(curr.first), deref(curr.second));
+
     if(explained.root(curr.first)==explained.root(curr.second)) {
       //we've already explained this equality
       LOG("dp_cc_expl_curr","("<<curr.first<<","<<curr.second<<") already explained");
@@ -700,7 +740,9 @@ void SimpleCongruenceClosure::getUnsatisfiableSubset(LiteralStack& res)
 	LOG("dp_cc_expl_planned","need to explain ("<<cp1.first<<","<<cp1.second<<")");
 	LOG("dp_cc_expl_planned","need to explain ("<<cp2.first<<","<<cp2.second<<")");
 	toExplain.push(CPair(cp1.first, cp2.first));
+	ASS_EQ(deref(toExplain.top().first), deref(toExplain.top().second));
 	toExplain.push(CPair(cp1.second, cp2.second));
+	ASS_EQ(deref(toExplain.top().first), deref(toExplain.top().second));
       }
       explained.doUnion(prem.c1, prem.c2);
     }

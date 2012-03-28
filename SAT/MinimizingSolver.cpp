@@ -11,7 +11,7 @@ namespace SAT
 {
 
 MinimizingSolver::MinimizingSolver(SATSolver* inner)
- : _inner(inner),
+ : _varCnt(0), _inner(inner),
    _assignmentValid(false)
 {
   CALL("MinimizingSolver::MinimizingSolver");

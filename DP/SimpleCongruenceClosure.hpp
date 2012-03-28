@@ -24,8 +24,9 @@ public:
 
   virtual void addLiterals(LiteralIterator lits);
 
-  virtual Status getStatus();
-  virtual void getUnsatisfiableSubset(LiteralStack& res);
+  virtual Status getStatus(bool retrieveMultipleCores);
+  virtual unsigned getUnsatCoreCount() { return _unsatEqs.size(); }
+  virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex);
 
   virtual void reset();
 
@@ -80,6 +81,7 @@ private:
     CALL("SimpleCongruenceClosure::deref");
     unsigned repr = _cInfos[c].reprConst;
     unsigned res = (repr==0) ? c : repr;
+    COND_LOG("bug", _cInfos[res].reprConst!=0, "res: "<<res);
     ASS_REP2(_cInfos[res].reprConst==0, _cInfos[res].reprConst, c);
     return res;
   }
@@ -90,8 +92,8 @@ private:
     return _cInfos[c].classList.size();
   }
 
-  bool checkPositiveDistincts();
-  Status checkNegativeDistincts();
+  bool checkPositiveDistincts(bool retrieveMultipleCores);
+  Status checkNegativeDistincts(bool retrieveMultipleCores);
 
   void addPendingEquality(CEq eq);
   void makeProofRepresentant(unsigned c);
@@ -106,6 +108,10 @@ private:
   {
     void init();
     void resetEquivalences(SimpleCongruenceClosure& parent, unsigned selfIndex);
+
+#ifdef VDEBUG
+    void assertValid(SimpleCongruenceClosure& parent, unsigned selfIndex) const;
+#endif
 
 
     /** If NO_SIG_SYMBOL, the constant doesn't represent a non-constant signature symbol */
@@ -175,7 +181,7 @@ private:
   /**
    * Equality that caused unsatisfiability; if CEq::isInvalid(), there isn't such.
    */
-  CEq _unsatEq;
+  Stack<CEq> _unsatEqs;
 
   Stack<CEq> _pendingEqualities;
 

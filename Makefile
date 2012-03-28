@@ -246,6 +246,7 @@ VS_OBJ = Shell/AIG.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/CParser.o\
+         Shell/DistinctProcessor.o\
          Shell/EPRInlining.o\
          Shell/EPRSkolem.o\
          Shell/EqResWithDeletion.o\

@@ -34,7 +34,7 @@ namespace SAT
 using namespace Lib;
 
 TWLSolver::TWLSolver(const Options& opt, bool generateProofs)
-: _opt(opt), _generateProofs(generateProofs), _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
+: _generateProofs(generateProofs), _status(SATISFIABLE), _assignment(0), _assignmentLevels(0),
 _windex(0), _varCnt(0), _level(1), _assumptionsAdded(false), _assumptionCnt(0), _unsatisfiableAssumptions(false)
 {
   switch(opt.satVarSelector()) {
@@ -72,6 +72,9 @@ _windex(0), _varCnt(0), _level(1), _assumptionsAdded(false), _assumptionCnt(0), 
     _clauseDisposer = new MinisatClauseDisposer(*this, opt.satVarActivityDecay());
     break;
   }
+
+  _doLearntMinimization = opt.satLearntMinimization();
+  _doLearntSubsumptionResolution = opt.satLearntSubsumptionResolution();
 }
 
 TWLSolver::~TWLSolver()
@@ -539,12 +542,12 @@ SATClause* TWLSolver::getLearntClause(SATClause* conflictClause)
   LOG("sat_learnt_gen","init lit cnt: "<<resLits.size()<<" prem cnt: "<<premises->length());
 //  cout<<resLits.size()<<" ";
 //  doShallowMinimize(resLits, seenVars);
-  if(_opt.satLearntMinimization()) {
+  if(_doLearntMinimization) {
     doDeepMinimize(resLits, seenVars, premises);
     LOG("sat_learnt_gen","post minimization lit cnt: "<<resLits.size()<<" prem cnt: "<<premises->length());
   }
 //  cout<<resLits.size()<<" ";
-  if(_opt.satLearntSubsumptionResolution()) {
+  if(_doLearntSubsumptionResolution) {
     doSubsumptionResolution(resLits, premises);
     LOG("sat_learnt_gen","post subs-res lit cnt: "<<resLits.size()<<" prem cnt: "<<premises->length());
   }

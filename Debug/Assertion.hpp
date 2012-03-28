@@ -95,6 +95,8 @@ private:
 
 } // namespace Debug
 
+#define DEBUG_CODE(X)  X
+
 #define ASS(Cond)                                               \
   if (! (Cond)) {                                               \
     Debug::Assertion::violated(__FILE__,__LINE__,#Cond);		\
@@ -177,6 +179,8 @@ private:
 #define ASSERTION_VIOLATION_REP(Val) \
   ASS_REP(false, Val)
 #else // ! VDEBUG
+
+#define DEBUG_CODE(X)
 
 #define ASS(Cond)
 #define ASSERT(Cond)

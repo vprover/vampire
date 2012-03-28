@@ -18,6 +18,7 @@
 #include "AIGInliner.hpp"
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
+#include "DistinctProcessor.hpp"
 #include "EPRInlining.hpp"
 #include "EPRSkolem.hpp"
 #include "EqResWithDeletion.hpp"
@@ -190,6 +191,10 @@ void Preprocess::preprocess (Problem& prb)
   }
   else if(_options.flattenTopLevelConjunctions()) {
     TopLevelFlatten().apply(prb);
+  }
+
+  if(_options.distinctProcessor()) {
+    DistinctProcessor().apply(prb);
   }
 
   if(_options.predicateEquivalenceDiscovery()) {
