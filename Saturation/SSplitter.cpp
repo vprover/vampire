@@ -580,6 +580,8 @@ void SSplitter::init(SaturationAlgorithm* sa)
 
   _flushPeriod = opts.ssplittingFlushPeriod();
   _flushQuotient = opts.ssplittingFlushQuotient();
+
+  _congruenceClosure = opts.ssplittingCongruenceClosure();
 }
 
 SplitLevel SSplitter::getNameFromLiteral(SATLiteral lit) const
@@ -698,21 +700,28 @@ void SSplitter::onAllProcessed()
   );
 }
 
-bool SSplitter::handleNonSplittable(Clause* cl)
+bool SSplitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl)
 {
-  CALL("SSplitter::handleNonSplittable");
+  CALL("SSplitter::shouldAddClauseForNonSplittable");
 
-  if(_nonsplComps==Options::SSNS_NONE) {
-    return false;
-  }
   SplitSet* sset = cl->splits();
+  //!! this check is important or we might end up looping !!
   if(sset->size()==1 && _db[sset->sval()]->component==cl) {
     //the clause is already a component
     return false;
   }
 
-  SplitLevel compName;
-  Clause* compCl;
+  if(_congruenceClosure && cl->length()==1 && (*cl)[0]->ground() && cl->splits()->isEmpty()) {
+    //we add ground clauses if we use congruence closure...
+    compName = getComponentName(cl->length(), cl->literals(), cl, compCl);
+    RSTAT_CTR_INC("ssat_ground_clauses_for_congruence");
+    return true;
+  }
+
+  if(_nonsplComps==Options::SSNS_NONE) {
+    return false;
+  }
+
   if(!tryGetExistingComponentName(cl->length(), cl->literals(), compName, compCl)) {
     bool canCreate;
     switch(_nonsplComps) {
@@ -735,6 +744,26 @@ bool SSplitter::handleNonSplittable(Clause* cl)
     compName = getComponentName(cl->length(), cl->literals(), cl, compCl);
   }
   ASS_NEQ(cl,compCl);
+
+  return true;
+}
+
+bool SSplitter::handleNonSplittable(Clause* cl)
+{
+  CALL("SSplitter::handleNonSplittable");
+
+  SplitLevel compName;
+  Clause* compCl;
+  if(!shouldAddClauseForNonSplittable(cl, compName, compCl)) {
+    return false;
+  }
+
+  if(_nonsplComps==Options::SSNS_NONE) {
+    return false;
+  }
+
+  SplitSet* sset = cl->splits();
+  ASS(sset->size()!=1 || _db[sset->sval()]->component!=cl);
   if(sset->member(compName)) {
     //we derived a component that depends on itself.
     //This derivation is therefore redundant, so we can skip it.

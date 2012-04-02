@@ -208,6 +208,7 @@ private:
 
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
 
+  bool shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl);
   bool handleNonSplittable(Clause* cl);
   bool tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause*& compCl);
 
@@ -240,6 +241,7 @@ private:
   Options::SSplittingNonsplittableComponents _nonsplComps;
   unsigned _flushPeriod;
   float _flushQuotient;
+  bool _congruenceClosure;
 
   //utility objects
   SSplittingBranchSelector _branchSelector;
