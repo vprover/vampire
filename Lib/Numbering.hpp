@@ -41,12 +41,24 @@ public:
     }
 #endif
   }
-  T obj(unsigned num)
+  /**
+   * Return a number that doesn't correspond to any object
+   */
+  unsigned getSpareNum()
+  {
+    CALL("Numbering::getSpareNum");
+    return _nextNum++;
+  }
+  T obj(unsigned num) const
   {
     CALL("Numbering::obj");
     return _rev.get(num);
   }
-  bool contains(T obj)
+  bool findObj(unsigned num, T& res) const
+  {
+    return _rev.find(num, res);
+  }
+  bool contains(T obj) const
   {
     return _map.find(obj);
   }

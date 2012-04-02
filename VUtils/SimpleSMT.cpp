@@ -10,6 +10,7 @@
 #include "Forwards.hpp"
 #include "VUtils/SimpleSMT.hpp"
 
+#include "DP/ShortConflictMetaDP.hpp"
 #include "DP/SimpleCongruenceClosure.hpp"
 
 #include "Lib/DHMap.hpp"
@@ -31,9 +32,10 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/Preprocess.hpp"
 
-#include "Shell/UIHelper.hpp"
-#include "Shell/Preprocess.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/Preprocess.hpp"
+#include "Shell/Statistics.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Test/CheckedSatSolver.hpp"
 
@@ -44,55 +46,19 @@ namespace VUtils {
 using namespace Shell;
 using namespace Kernel;
 using namespace SAT;
+using namespace DP;
 
-/**
- * Convert literal l to a sat literal and store it in the map if is a new literal
- * @param l - literal to be converted
- * @return sat literal. The number of the literal if found in the map, or a new one of the literal 
- * is not in the map
- */
-SAT::SATLiteral SimpleSMT::litTOSAT(Literal *l)
+
+SimpleSMT::SimpleSMT()
+: _conflictIndex(0)
 {
-  CALL("SimpleSMT::litToSAT");
-  unsigned var = _map.get(Literal::positiveLiteral(l));
-  ASS_G(var, 0);
-  return SATLiteral(var, l->isPositive());
+  CALL("SimpleSMT::SimpleSMT");
 
-}
-
-/**
- * Return the stack of literals with assignment form the sat model
- * @return a stack of assigned literals 
- */
-void SimpleSMT::getLiteralAssignmentStack(LiteralStack& litAsgn)
-{
-  CALL("SimpleSMT::getLiteralAssignmentStack");
-  ASS(litAsgn.isEmpty());
-
-  //for each positive literal appearing in the map
-  for (unsigned i = 1; i <= _map.getNumberUpperBound(); i++) {
-    Literal* posLiteral = _map.obj(i);
-    ASS(posLiteral->isPositive());
-
-    Literal* asgnLit;
-
-    switch (_solver->getAssignment(i)) {
-    case SATSolver::TRUE:
-      asgnLit = posLiteral;
-      break;
-
-    case SATSolver::FALSE:
-      asgnLit = Literal::complementaryLiteral(posLiteral);
-      break;
-    case SATSolver::DONT_CARE:
-      //we don't add DONT_CARE literals into the assignment
-      continue;
-    case SATSolver::NOT_KNOWN:
-      ASSERTION_VIOLATION;
-    }
-    litAsgn.push(asgnLit);
-  }
-
+  Shell::Options opt;
+//  _solver = new Test::CheckedSatSolver(new MinimizingSolver(new TWLSolver(opt, false)));
+//  _solver = new MinimizingSolver(new TWLSolver(opt, false));
+  _solver = new TWLSolver(opt, false);
+  _dp = new ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), _map, *_solver);
 }
 
 /**
@@ -103,49 +69,26 @@ void SimpleSMT::getLiteralAssignmentStack(LiteralStack& litAsgn)
 SATClauseIterator SimpleSMT::initSATClauses(ClauseIterator clite)
 {
   CALL("SimpleSMT::initSATClauses");
+
   SATClauseList *clauses = 0;
   while (clite.hasNext()) {
     Clause* cl = clite.next();
-    //iterate over the set of literals in the clause
-    Clause::Iterator ite(*cl);
-    //create a satLiteral stack, needed for the creation of SATClause
-    SATLiteralStack *satLitStack = new SATLiteralStack();
-    //as long as you have literals, check if they are in the map, if they are 
-    //then do nothing otherwise add them to the map.
-
-    while (ite.hasNext()) {
-      Literal *literal = ite.next();
-      //check if it is already in the map and/or add it 
-      SAT::SATLiteral slit(litTOSAT(literal));
-      //create a sat literal
-      satLitStack->push(slit);
+    SATClause* satCl = _map.toSAT(cl);
+    if (satCl != 0){
+      SATClauseList::push(satCl, clauses);
+      LOG("smt_sat_clauses", "initial: "<<satCl->toString());
     }
-
-    SAT::SATClause *clause;
-    //create a clause from stack of literals
-    clause = SAT::SATClause::fromStack(*satLitStack);
-    //add the clause to the list of problem clauses
-
-    clause = SAT::Preprocess::removeDuplicateLiterals(clause);
-    if (clause != 0){
-      SATClauseList::push(clause, clauses);
-      //cout<<clause->toString()<<endl;
-    }
-    LOG("smt_sat_clauses", "initial: "<<clause->toString());
+    COND_LOG("smt_sat_clauses", satCl==0, "sat tautology: "<<cl->toString());
   }
-  return pvi(SATClauseList::Iterator(clauses));
-
+  return pvi(SATClauseList::DestructiveIterator(clauses));
 }
 
 
 void SimpleSMT::initSATSolver(SATClauseIterator clauseIterator)
 {
   CALL("SimpleSMT::initSATSolver");
-   Shell::Options opt;
-//  _solver = new Test::CheckedSatSolver(new MinimizingSolver(new TWLSolver(opt, false)));
-//  _solver = new MinimizingSolver(new TWLSolver(opt, false));
-  _solver = new TWLSolver(opt, false);
-  _solver->ensureVarCnt(_map.getNumberUpperBound() + 1);
+
+  _solver->ensureVarCnt(_map.maxSATVar() + 1);
   _solver->addClauses(clauseIterator, false);
 }
 
@@ -194,14 +137,12 @@ DecisionProcedure::Status SimpleSMT::addTheoryConflicts(LiteralStack& assignment
 {
   CALL("SimpleSMT::checkTheoryStatus");
 
-  static DP::SimpleCongruenceClosure cClosure;
-  cClosure.reset();
-//  DP::SimpleCongruenceClosure cClosure;
+  _dp->reset();
 
-  cClosure.addLiterals(pvi(LiteralStack::Iterator(assignment)));
+  _dp->addLiterals(pvi(LiteralStack::Iterator(assignment)));
   DP::DecisionProcedure::Status status; // = DP::DecisionProcedure::UNSATISFIABLE;
 
-  status = cClosure.getStatus(true);
+  status = _dp->getStatus(true);
   if (status == DP::DecisionProcedure::SATISFIABLE || status == DP::DecisionProcedure::UNKNOWN) {
     LOG("smt_dp_status",(status == DP::DecisionProcedure::SATISFIABLE ? "DP::SATISFIABLE" : "DP::UNKNOWN"));
     return status;
@@ -213,11 +154,12 @@ DecisionProcedure::Status SimpleSMT::addTheoryConflicts(LiteralStack& assignment
   static LiteralStack unsatCore;
   static SATClauseStack conflictClauses;
   conflictClauses.reset();
-  unsigned confCnt = cClosure.getUnsatCoreCount();
+  unsigned confCnt = _dp->getUnsatCoreCount();
   for(unsigned i=0; i<confCnt; i++) {
     unsatCore.reset();
-    cClosure.getUnsatCore(unsatCore, i);
-    SATClause* cl = convertSATtoFO(&unsatCore);
+    _dp->getUnsatCore(unsatCore, i);
+    SATClause* cl = _map.createConflictClause(unsatCore);
+//    SATClause* cl = convertSATtoFO(&unsatCore);
     conflictClauses.push(cl);
   }
   addClausesToSAT(conflictClauses);
@@ -271,7 +213,7 @@ SATClause* SimpleSMT::convertSATtoFO(LiteralStack *litAsgn)
 
   while (lIterator.hasNext()) {
     Literal *literal = lIterator.next();
-    SAT::SATLiteral slit(litTOSAT(literal));
+    SAT::SATLiteral slit(_map.toSAT(literal));
     //negate the literal and add it to the stack of literals
     if(_solver->isZeroImplied(slit.var())) {
       LOG("smt_confl_detail","  - "<<(*literal)<<" zero implied");
@@ -299,23 +241,6 @@ void SimpleSMT::addClausesToSAT(SATClauseStack& clauses)
       }
     );
 
-  unsigned minSz = clauses.top()->size();
-
-  SATClauseStack::ConstIterator cit(clauses);
-  while(cit.hasNext()) {
-    SATClause* cl = cit.next();
-    minSz = min(cl->size(), minSz);
-  }
-
-  SATClauseStack::DelIterator dcit(clauses);
-  while(dcit.hasNext()) {
-    SATClause* cl = dcit.next();
-    if(cl->size()>minSz+1) {
-      dcit.del();
-      cl->destroy();
-    }
-  }
-
   //conflict clauses should never have duplicate variables,
   //so we don't need to do duplicate variable removal
   _solver->addClauses(pvi(SATClauseStack::Iterator(clauses)), false);
@@ -331,7 +256,7 @@ DecisionProcedure::Status SimpleSMT::compute()
   SATSolver::Status satStatus = _solver->getStatus();
   while(satStatus==SATSolver::SATISFIABLE) {
     asgnStack.reset();
-    getLiteralAssignmentStack(asgnStack);
+    _map.collectAssignment(*_solver,asgnStack);
     DecisionProcedure::Status theoryStatus = addTheoryConflicts(asgnStack);
     if(theoryStatus!=DecisionProcedure::UNSATISFIABLE) {
       return theoryStatus;
@@ -382,6 +307,8 @@ int SimpleSMT::perform(int argc, char** argv)
         break;
       default: break;
       }
+  env.statistics->phase = Statistics::FINALIZATION;
+  env.statistics->print(cout);
   return 0;
 }
 

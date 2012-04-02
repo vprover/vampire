@@ -209,6 +209,7 @@ VSAT_OBJ=SAT/ClauseDisposer.o\
          SAT/MinimizingSolver.o\
          SAT/Preprocess.o\
          SAT/RestartStrategy.o\
+         SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
          SAT/SATLiteral.o\
@@ -303,7 +304,8 @@ VS_OBJ = Shell/AIG.o\
 PARSE_OBJ = Parse/SMTLIB.o\
             Parse/TPTP.o
 
-DP_OBJ = DP/SimpleCongruenceClosure.o
+DP_OBJ = DP/ShortConflictMetaDP.o\
+         DP/SimpleCongruenceClosure.o
 
 LTB_OBJ = Shell/LTB/Builder.o\
           Shell/LTB/Selector.o\
@@ -417,7 +419,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 
 VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel Kernel/Algebra Indexing Inferences InstGen Shell Shell/CASC Shell/LTB SAT Saturation Tabulation Test UnitTests VUtils Program Parse
 
-VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o 
+VAMP_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VTAB_OBJ) $(VPROG_OBJ) Test/CheckedSatSolver.o 
 #VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VSAT_OBJ) $(VST_OBJ) $(VS_OBJ) $(VT_OBJ)
 VCLAUSIFY_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(filter-out Shell/InterpolantMinimizer.o Shell/AnswerExtractor.o Shell/BFNTMainLoop.o, $(VS_OBJ)) $(PARSE_OBJ) $(LIB_DEP) $(OTHER_CL_DEP) 
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) Test/CheckedSatSolver.o $(LIB_DEP)
@@ -427,7 +429,7 @@ VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) Global.o vampire.o
 VCOMPIT_DEP = $(VAMP_BASIC) Global.o vcompit.o
 VLTB_DEP = $(VAMP_BASIC) $(LTB_OBJ) Global.o vltb.o
 VCLAUSIFY_DEP = $(VCLAUSIFY_BASIC) Global.o vclausify.o
-VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(VUTIL_OBJ) $(DP_OBJ) Global.o vutil.o
+VUTIL_DEP = $(VAMP_BASIC) $(CASC_OBJ) $(VUTIL_OBJ) Global.o vutil.o
 VSAT_DEP = $(VSAT_BASIC) Global.o vsat.o
 VTEST_DEP = $(VAMP_BASIC) $(API_OBJ) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) Global.o vtest.o
 LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) $(VCLAUSIFY_BASIC) Global.o

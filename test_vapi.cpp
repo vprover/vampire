@@ -149,18 +149,33 @@ void assymmetricRewriteTest(const char* fname)
   Api::Var v = api.var("B", bs);
   Api::Term vt = api.varTerm(v);
 
-  Api::Predicate lf8 = api.predicate("aaa__lessFull_8", 1, &bs);
   Api::Predicate lf2 = api.predicate("aaa__lessFull_2", 1, &bs);
+  Api::Predicate lf3 = api.predicate("aaa__lessFull_3", 1, &bs);
+  Api::Predicate lf8 = api.predicate("aaa__lessFull_8", 1, &bs);
   Api::Predicate lf34 = api.predicate("aaa__lessFull_34", 1, &bs);
-  Api::Predicate rng7 = api.predicate("aaa__range_7_0", 1, &bs);
   Api::Predicate rng1 = api.predicate("aaa__range_1_0", 1, &bs);
+  Api::Predicate rng2 = api.predicate("aaa__range_2_0", 1, &bs);
+  Api::Predicate rng7 = api.predicate("aaa__range_7_0", 1, &bs);
   Api::Predicate rng33 = api.predicate("aaa__range_33_0", 1, &bs);
 
-  Api::Formula lhss[] = { api.formula(lf8, vt), api.formula(lf2, vt), api.formula(lf34, vt) };
-  Api::Formula rhss[] = { api.formula(rng7, vt), api.formula(rng1, vt), api.formula(rng33, vt) };
-  Api::Formula trues[] = { api.trueFormula(), api.trueFormula(), api.trueFormula() };
+  typedef pair<Api::Predicate,Api::Predicate> ARPair;
+  Stack<ARPair> pairs;
+  pairs.push(ARPair(lf2,rng1));
+  pairs.push(ARPair(lf3,rng2));
+  pairs.push(ARPair(lf8,rng7));
+  pairs.push(ARPair(lf34,rng33));
 
-  Problem p2 = p.performAsymetricRewriting(3, lhss, rhss, trues, rhss);
+  Stack<Api::Formula> lfForms;
+  Stack<Api::Formula> rngForms;
+  Stack<Api::Formula> trueForms;
+  while(pairs.isNonEmpty()) {
+    ARPair p = pairs.pop();
+    lfForms.push(api.formula(p.first, vt));
+    rngForms.push(api.formula(p.second, vt));
+    trueForms.push(api.trueFormula());
+  }
+
+  Problem p2 = p.performAsymetricRewriting(lfForms.size(), lfForms.begin(), rngForms.begin(), trueForms.begin(), rngForms.begin());
   p2.output(cout, false, false);
 }
 
@@ -282,8 +297,8 @@ int main(int argc, char* argv [])
   readAndFilterGlobalOpts(args);
 
   if(args.size()==2) {
-//    assymmetricRewriteTest(argv[1]);
-    inlineTest(args[1]);
+    assymmetricRewriteTest(args[1]);
+//    inlineTest(args[1]);
     return 0;
   }
 

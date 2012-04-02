@@ -248,6 +248,7 @@ const char* Options::Constants::_optionNames[] = {
   "splitting_with_blocking",
   "ssplitting_add_complementary",
   "ssplitting_component_sweeping",
+  "ssplitting_congruence_closure",
   "ssplitting_eager_removal",
   "ssplitting_flush_period",
   "ssplitting_flush_quotient",
@@ -786,6 +787,7 @@ Options::Options ()
   _splittingWithBlocking(false),
   _ssplittingAddComplementary(SSAC_GROUND),
   _ssplittingComponentSweeping(SSCS_ITERATED),
+  _ssplittingCongruenceClosure(false),
   _ssplittingEagerRemoval(true),
   _ssplittingFlushPeriod(0),
   _ssplittingFlushQuotient(1.5f),
@@ -1399,6 +1401,9 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case SSPLITTING_COMPONENT_SWEEPING:
       _ssplittingComponentSweeping = (SSplittingComponentSweeping)Constants::sSplittingComponentSweepingValues.find(value);
+      return;
+    case SSPLITTING_CONGRUENCE_CLOSURE:
+      _ssplittingCongruenceClosure = onOffToBool(value,name);
       return;
     case SSPLITTING_EAGER_REMOVAL:
       _ssplittingEagerRemoval = onOffToBool(value,name);
@@ -2177,6 +2182,9 @@ void Options::outputValue (ostream& str,int optionTag) const
   case SSPLITTING_COMPONENT_SWEEPING:
     str << Constants::sSplittingComponentSweepingValues[_ssplittingComponentSweeping];
     return;
+  case SSPLITTING_CONGRUENCE_CLOSURE:
+    str << boolToOnOff(_ssplittingCongruenceClosure);
+    return;
   case SSPLITTING_EAGER_REMOVAL:
     str << boolToOnOff(_ssplittingEagerRemoval);
     return;
@@ -2852,6 +2860,9 @@ void Options::checkGlobalOptionConstraints() const
   }
   if(splitting()==SM_BACKTRACKING && propositionalToBDD()) {
     USER_ERROR("Backtracking splitting cannot be used unless all BDD related options are disabled");
+  }
+  if(splitting()==SM_SAT && propositionalToBDD()) {
+    USER_ERROR("Sat splitting cannot be used unless all BDD related options are disabled");
   }
   if(showInterpolant()!=INTERP_OFF && splitting()==SM_BACKTRACKING) {
     USER_ERROR("Cannot output interpolant with backtracking splitting");

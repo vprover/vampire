@@ -27,6 +27,9 @@
 #include "SAT/TWLSolver.hpp"
 #include "SAT/MinimizingSolver.hpp"
 
+#include "DP/ShortConflictMetaDP.hpp"
+#include "DP/SimpleCongruenceClosure.hpp"
+
 #include "SSplitter.hpp"
 #include "SaturationAlgorithm.hpp"
 
@@ -59,6 +62,10 @@ void SSplittingBranchSelector::init()
 #if DEBUG_MIN_SOLVER
   _solver = new Test::CheckedSatSolver(_solver.release());
 #endif
+
+  if(_parent.getOptions().ssplittingCongruenceClosure()) {
+    _dp = new ShortConflictMetaDP(new DP::SimpleCongruenceClosure(), _parent.satNaming(), *_solver);
+  }
 }
 
 void SSplittingBranchSelector::updateVarCnt()
@@ -74,25 +81,6 @@ void SSplittingBranchSelector::updateVarCnt()
 //  _watcher.expand(varCnt);
 }
 
-//bool SSplittingBranchSelector::hasPositiveLiteral(SATClause* cl)
-//{
-//  CALL("SSplittingBranchSelector::hasPositiveLiteral");
-//
-//  SATClause::Iterator it(*cl);
-//  while(it.hasNext()) {
-//    SATLiteral l = it.next();
-//    if(l.isPositive()) { return true; }
-//  }
-//  return false;
-//}
-//
-//bool SSplittingBranchSelector::isSatisfiedBySelection(SATLiteral lit)
-//{
-//  CALL("SSplittingBranchSelector::isSatisfiedBySelection");
-//
-//  return lit.polarity()==_selected.find(lit.var());
-//}
-//
 void SSplittingBranchSelector::handleSatRefutation(SATClause* ref)
 {
   CALL("SSplittingBranchSelector::handleSatRefutation");
@@ -101,6 +89,49 @@ void SSplittingBranchSelector::handleSatRefutation(SATClause* ref)
   Inference* foInf = new InferenceMany(Inference::SPLITTING, prems);
   Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), Unit::CONJECTURE, foInf);
   throw MainLoop::RefutationFoundException(foRef);
+}
+
+void SSplittingBranchSelector::processDPConflicts()
+{
+  CALL("SSplittingBranchSelector::processDPConflicts");
+  ASS(_solver->getStatus()==SATSolver::SATISFIABLE || _solver->getStatus()==SATSolver::UNSATISFIABLE);
+
+  if(!_dp || _solver->getStatus()==SATSolver::UNSATISFIABLE) {
+    return;
+  }
+
+  TimeCounter tc(TC_CONGRUENCE_CLOSURE);
+
+  SAT2FO& s2f = _parent.satNaming();
+  static LiteralStack gndAssignment;
+  static LiteralStack unsatCore;
+
+  static SATClauseStack conflictClauses;
+
+  while(_solver->getStatus()==SATSolver::SATISFIABLE) {
+    gndAssignment.reset();
+    s2f.collectAssignment(*_solver, gndAssignment);
+
+    _dp->reset();
+    _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
+    DecisionProcedure::Status dpStatus = _dp->getStatus(true);
+    if(dpStatus!=DecisionProcedure::UNSATISFIABLE) {
+      break;
+    }
+
+    conflictClauses.reset();
+    unsigned unsatCoreCnt = _dp->getUnsatCoreCount();
+    for(unsigned i=0; i<unsatCoreCnt; i++) {
+      unsatCore.reset();
+      _dp->getUnsatCore(unsatCore, i);
+      SATClause* conflCl = s2f.createConflictClause(unsatCore);
+      conflictClauses.push(conflCl);
+    }
+
+    _solver->addClauses(pvi( SATClauseStack::Iterator(conflictClauses) ));
+    RSTAT_CTR_INC("ssat_dp_conflict");
+    RSTAT_CTR_INC_MANY("ssat_dp_conflict_clauses",conflictClauses.size());
+  }
 }
 
 void SSplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
@@ -176,6 +207,7 @@ void SSplittingBranchSelector::addSatClauses(const SATClauseStack& clauses,
   {
     TimeCounter tc1(TC_SAT_SOLVER);
     _solver->addClauses(pvi( SATClauseStack::ConstIterator(clauses) ), false);
+    processDPConflicts();
   }
 
   if(_solver->getStatus()==SATSolver::UNSATISFIABLE) {
@@ -257,6 +289,7 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
   ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
   _solver->randomizeAssignment();
 #endif
+  processDPConflicts();
   ASS_EQ(_solver->getStatus(), SATSolver::SATISFIABLE);
 
   unsigned maxSatVar = _parent.maxSatVar();
@@ -553,10 +586,27 @@ SplitLevel SSplitter::getNameFromLiteral(SATLiteral lit) const
 {
   CALL("SSplitter::getNameFromLiteral");
 
+  SplitLevel res = getNameFromLiteralUnsafe(lit);
+  ASS_L(res, _db.size());
+  return res;
+}
+
+/**
+ * This function can be called with SAT literal for which the split
+ * record is not created yet. In this case the result will be larger
+ * than the size of _db.
+ */
+SplitLevel SSplitter::getNameFromLiteralUnsafe(SATLiteral lit) const
+{
+  CALL("SSplitter::getNameFromLiteralUnsafe");
+
   return (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
 }
 SATLiteral SSplitter::getLiteralFromName(SplitLevel compName) const
 {
+  CALL("SSplitter::getLiteralFromName");
+  ASS_L(compName, _db.size());
+
   unsigned var = compName/2 + 1;
   bool polarity = (compName&1)==0;
   return SATLiteral(var, polarity);
@@ -808,9 +858,14 @@ SplitLevel SSplitter::addNonGroundComponent(unsigned size, Literal* const * lits
   ASS_G(size,0);
   ASS(forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
 
-  SplitLevel compName = _db.size();
+  SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
+  SplitLevel compName = getNameFromLiteralUnsafe(posLit);
+  ASS_EQ(compName&1,0); //positive levels are even
+  ASS_GE(compName,_db.size());
   _db.push(0);
   _db.push(0);
+  ASS_L(compName,_db.size());
+
   _branchSelector.updateVarCnt();
 
   compCl = buildAndInsertComponentClause(compName, size, lits, orig);
@@ -824,31 +879,23 @@ SplitLevel SSplitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& co
   ASS_REP(_db.size()%2==0, _db.size());
   ASS(lit->ground());
 
-  Literal* opposite = Literal::complementaryLiteral(lit);
-  bool pos = lit->isPositive();
+  SATLiteral satLit = _sat2fo.toSAT(lit);
+  SplitLevel compName = getNameFromLiteralUnsafe(satLit);
 
-  SplitLevel compName;
-
-  if(_complBehavior==Options::SSAC_NONE) {
-    SplitLevel oppName;
-    Clause* oppCl;
-    if(tryGetExistingComponentName(1, &opposite, oppName, oppCl)) {
-      ASS_EQ(oppName&1, opposite->isNegative());
-      compName = oppName^1;
-    }
-    else {
-      compName = _db.size() + (pos ? 0 : 1);
-      _db.push(0);
-      _db.push(0);
-    }
+  if(compName>=_db.size()) {
+    _db.push(0);
+    _db.push(0);
   }
   else {
-    //we insert both literal and its negation
-    compName = _db.size() + (pos ? 0 : 1);
-    unsigned oppName = compName^1;
+    ASS_EQ(_complBehavior,Options::SSAC_NONE); //otherwise the compement would have been created
+  }
+  ASS_L(compName,_db.size());
 
-    _db.push(0);
-    _db.push(0);
+  if(_complBehavior!=Options::SSAC_NONE) {
+    //we insert both literal and its negation
+    unsigned oppName = compName^1;
+    ASS_L(oppName,_db.size());
+    Literal* opposite = Literal::complementaryLiteral(lit);
     buildAndInsertComponentClause(oppName, 1, &opposite, orig);
   }
   compCl = buildAndInsertComponentClause(compName, 1, &lit, orig);

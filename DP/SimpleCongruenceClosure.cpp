@@ -402,7 +402,7 @@ void SimpleCongruenceClosure::addPendingEquality(CEq eq) {
   ASS_G(eq.c1,0);
   ASS_G(eq.c2,0);
   LOG("dp_cc_eqs_pending","pending equality: "<<eq.toString(*this));
-  _pendingEqualities.push(eq);
+  _pendingEqualities.push_back(eq);
 }
 
 /**
@@ -436,7 +436,7 @@ void SimpleCongruenceClosure::propagate()
   CALL("SimpleCongruenceClosure::propagate");
 
   while(_pendingEqualities.isNonEmpty()) {
-    CEq curr0 = _pendingEqualities.pop();
+    CEq curr0 = _pendingEqualities.pop_back();
     CPair curr = deref(curr0);
     if(curr.first==curr.second) {
       continue;

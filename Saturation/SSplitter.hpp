@@ -17,8 +17,11 @@
 
 #include "Indexing/ClauseVariantIndex.hpp"
 
+#include "SAT/SAT2FO.hpp"
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATSolver.hpp"
+
+#include "DP/DecisionProcedure.hpp"
 
 #include "Splitter.hpp"
 
@@ -27,6 +30,7 @@ namespace Saturation {
 using namespace Lib;
 using namespace Kernel;
 using namespace SAT;
+using namespace DP;
 
 typedef Stack<SplitLevel> SplitLevelStack;
 
@@ -78,6 +82,8 @@ public:
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 private:
 
+  void processDPConflicts();
+
   void handleSatRefutation(SATClause* ref);
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
@@ -109,6 +115,7 @@ private:
 
   unsigned _varCnt;
   SATSolverSCP _solver;
+  ScopedPtr<DecisionProcedure> _dp;
 
 //  /**
 //   * Clauses of which we yet need to ensure they are satisfied
@@ -194,8 +201,13 @@ public:
   Clause* getComponentClause(SplitLevel name) const;
 
   SplitLevel splitLevelCnt() const { return _db.size(); }
-  unsigned maxSatVar() const { return _db.size()/2; }
+  unsigned maxSatVar() const { return _sat2fo.maxSATVar(); }
+
+  SAT2FO& satNaming() { return _sat2fo; }
 private:
+
+  SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
+
   bool handleNonSplittable(Clause* cl);
   bool tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause*& compCl);
 
@@ -232,6 +244,7 @@ private:
   //utility objects
   SSplittingBranchSelector _branchSelector;
   ClauseVariantIndex _componentIdx;
+  SAT2FO _sat2fo;
 
   //state variables
   /**

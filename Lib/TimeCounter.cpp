@@ -223,6 +223,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_SPLITTING_COMPONENT_SELECTION:
     out<<"splitting component selection";
     break;
+  case TC_CONGRUENCE_CLOSURE:
+    out<<"congruence closure";
+    break;
   case TC_INST_GEN_SAT_SOLVING:
     out<<"inst gen SAT solving";
     break;

@@ -8,6 +8,13 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/DArray.hpp"
+#include "Lib/Deque.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Stack.hpp"
+
+#include "Kernel/Term.hpp"
+
 #include "DecisionProcedure.hpp"
 
 namespace DP {
@@ -183,7 +190,7 @@ private:
    */
   Stack<CEq> _unsatEqs;
 
-  Stack<CEq> _pendingEqualities;
+  Deque<CEq> _pendingEqualities;
 
   Stack<CEq> _negEqualities;
 

@@ -79,7 +79,7 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
   UnitList* res = 0;
   while(prems.isNonEmpty()) {
     UnitSpec us = prems.pop();
-    ASS(us.withoutProp());
+    ASS_REP(us.withoutProp() || BDD::instance()->isTrue(us.prop()), us.toString());
     UnitList::push(us.unit(), res);
   }
 

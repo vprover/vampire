@@ -198,6 +198,7 @@ public:
     SPLITTING_WITH_BLOCKING,
     SSPLITTING_ADD_COMPLEMENTARY,
     SSPLITTING_COMPONENT_SWEEPING,
+    SSPLITTING_CONGRUENCE_CLOSURE,
     SSPLITTING_EAGER_REMOVAL,
     SSPLITTING_FLUSH_PERIOD,
     SSPLITTING_FLUSH_QUOTIENT,
@@ -669,6 +670,7 @@ public:
   int ssplittingFlushPeriod() const { return _ssplittingFlushPeriod; }
   float ssplittingFlushQuotient() const { return _ssplittingFlushQuotient; }
   bool ssplittingEagerRemoval() const { return _ssplittingEagerRemoval; }
+  bool ssplittingCongruenceClosure() const { return _ssplittingCongruenceClosure; }
 
   void enableTracesAccordingToOptions() const;
 
@@ -839,6 +841,7 @@ private:
   bool _splittingWithBlocking;
   SSplittingAddComplementary _ssplittingAddComplementary;
   SSplittingComponentSweeping _ssplittingComponentSweeping;
+  bool _ssplittingCongruenceClosure;
   bool _ssplittingEagerRemoval;
   unsigned _ssplittingFlushPeriod;
   float _ssplittingFlushQuotient;
