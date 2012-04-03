@@ -299,7 +299,8 @@ VS_OBJ = Shell/AIG.o\
          Shell/TPTPPrinter.o\
          Shell/TrivialPredicateRemover.o\
          Shell/UIHelper.o\
-         Shell/VarManager.o
+         Shell/VarManager.o\
+         version.o
 
 PARSE_OBJ = Parse/SMTLIB.o\
             Parse/TPTP.o
@@ -442,6 +443,13 @@ all:#default make disabled
 #the $(CONF_ID) directory is considered intermediate and make would otherwise try to delete it
 #(this forbids deletion of intermediate files)
 .SECONDARY:
+
+################################################################
+# automated generation of Vampire revision information
+
+version.cpp: .svn/entries Makefile
+	echo "//Automatically generated file, see Makefile for details" > version.cpp
+	svn info | grep Revision | sed 's|Revision: \(.*\)|const char* VERSION_STRING = "Vampire 1.8 (revision \1)";|' >> version.cpp
 
 ################################################################
 # separate directory for object files implementation
