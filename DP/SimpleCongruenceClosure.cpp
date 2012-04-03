@@ -140,13 +140,15 @@ SimpleCongruenceClosure::SimpleCongruenceClosure()
   _negEqualities.push(CEq(_posLitConst, _negLitConst, 0));
   LOG("dp_cc_const_intr", "posConst: "<<_posLitConst);
   LOG("dp_cc_const_intr", "negConst: "<<_negLitConst);
+
+  _hadPropagated = false;
 }
 
 void SimpleCongruenceClosure::reset()
 {
   CALL("SimpleCongruenceClosure::reset");
 
-#if 1
+#if 0
   _cInfos.expand(1);
   _sigConsts.reset();
   _pairNames.reset();
@@ -165,6 +167,17 @@ void SimpleCongruenceClosure::reset()
     _cInfos[i].resetEquivalences(*this, i);
   }
 
+  PairMap::DelIterator pmit(_pairNames);
+  while(pmit.hasNext()) {
+    CPair namePair;
+    unsigned nameConst;
+    pmit.next(namePair, nameConst);
+
+    if(_cInfos[nameConst].namedPair!=namePair) {
+      pmit.del();
+    }
+  }
+
   //this leaves us just with the true!=false non-equality
   _negEqualities.truncate(1);
   ASS_EQ(_negEqualities.top().c1,_posLitConst);
@@ -178,6 +191,7 @@ void SimpleCongruenceClosure::reset()
   _distinctConstraints.reset();
   _negDistinctConstraints.reset();
 
+  _hadPropagated = false;
 }
 
 /** Introduce fresh congruence closure constant */
@@ -361,6 +375,7 @@ SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal*
 void SimpleCongruenceClosure::addLiterals(LiteralIterator lits)
 {
   CALL("SimpleCongruenceClosure::addLiterals");
+  ASS(!_hadPropagated);
 
   while(lits.hasNext()) {
     Literal* l = lits.next();
@@ -435,6 +450,8 @@ void SimpleCongruenceClosure::propagate()
 {
   CALL("SimpleCongruenceClosure::propagate");
 
+  _hadPropagated = true;
+
   while(_pendingEqualities.isNonEmpty()) {
     CEq curr0 = _pendingEqualities.pop_back();
     CPair curr = deref(curr0);
@@ -485,6 +502,7 @@ void SimpleCongruenceClosure::propagate()
       CPair usedPair = _cInfos[usePairConst].namedPair;
       ASS(usedPair!=CPair(0,0)); //the constant must be a name of a pair
       CPair derefPair = deref(usedPair);
+      ASS(usedPair!=derefPair);
 
       unsigned* pDerefPairName;
       if(!_pairNames.getValuePtr(derefPair, pDerefPairName)) {

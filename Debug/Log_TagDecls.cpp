@@ -846,6 +846,13 @@ void Logging::doTagDeclarations()
   DECL("lisp_rdr",
       DOC("List reading by LispListReader"));
 
+  DECL("s2f",
+      DOC("SAT2FO class for conversions between SAT and first-order"));
+  DECL("s2f_confl",
+      DOC("conflict clauses created by s2f"),
+      PARENT("s2f",1));
+
+
   DECL("bdd");
   DECL("bdd_clausifier",
       PARENT("bdd",1));

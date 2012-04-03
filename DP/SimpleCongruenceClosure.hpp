@@ -179,8 +179,9 @@ private:
    */
   DHMap<pair<unsigned,bool>,unsigned> _sigConsts;
 
-  /** Names of constant pairs */
-  DHMap<CPair,unsigned> _pairNames;
+  typedef DHMap<CPair,unsigned> PairMap;
+  /** Names of constant pairs (modulo the congruence!)*/
+  PairMap _pairNames;
 
   /** Constants corresponding to terms */
   DHMap<TermList,unsigned> _termNames;
@@ -205,6 +206,12 @@ private:
   DistinctStack _distinctConstraints;
   /** Negated distinct constraints, these can lead to an UNKNOWN satisfiability result */
   DistinctStack _negDistinctConstraints;
+
+  /**
+   * used to assert we don't add literals after propagation.
+   * this would cause problems with term caches upon reset.
+   */
+  bool _hadPropagated;
 };
 
 }

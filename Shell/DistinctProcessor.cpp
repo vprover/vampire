@@ -24,7 +24,12 @@ bool DistinctProcessor::isDistinctPred(Literal* l)
   //this is a hacky way to check for disctnct predicates,
   //needs to be fixed once we have a proper sopport for
   //these in the signature
-  return l->predicateName().substr(0,9)=="$distinct";
+
+  //Moreover, this check turned out to be bottleneck, so it
+  //had to be optimized. The original was:
+  //return l->predicateName().substr(0,9)=="$distinct"
+  const char* n = l->predicateName().c_str();
+  return n[0]=='$' && memcmp(n+1,"distinct",8)==0;
 }
 
 bool DistinctProcessor::apply(FormulaUnit* unit, Unit*& res)
