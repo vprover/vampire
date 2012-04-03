@@ -153,6 +153,7 @@ void SimpleCongruenceClosure::reset()
   _sigConsts.reset();
   _pairNames.reset();
   _termNames.reset();
+  _litNames.reset();
 
   _negEqualities.reset();
   _posLitConst = getFreshConst();
@@ -324,7 +325,16 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
 {
   CALL("SimpleCongruenceClosure::convertFONonEquality");
 
-  unsigned res = getSignatureConst(lit->functor(), false);
+  unsigned res;
+  if(_litNames.find(lit, res)) {
+    return res;
+  }
+  if(_litNames.find(Literal::complementaryLiteral(lit), res)) {
+    _litNames.insert(lit, res);
+    return res;
+  }
+
+  res = getSignatureConst(lit->functor(), false);
   Term::Iterator ait(lit);
   while(ait.hasNext()) {
     TermList a = ait.next();
@@ -332,6 +342,8 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
     res = getPairName(CPair(res, argConst));
   }
   _cInfos[res].lit = lit;
+
+  _litNames.insert(lit, res);
 
   LOG("dp_cc_fo_conv", "Lit "<<(*Literal::positiveLiteral(lit))<<" converted to "<<res);
   return res;

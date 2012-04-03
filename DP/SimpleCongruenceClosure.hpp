@@ -185,6 +185,8 @@ private:
 
   /** Constants corresponding to terms */
   DHMap<TermList,unsigned> _termNames;
+  /** Constants corresponding to literals */
+  DHMap<Literal*,unsigned> _litNames;
 
   /**
    * Equality that caused unsatisfiability; if CEq::isInvalid(), there isn't such.
