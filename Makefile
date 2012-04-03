@@ -446,6 +446,9 @@ all:#default make disabled
 
 ################################################################
 # automated generation of Vampire revision information
+#
+# We extract the revision number from svn every time the svn meta-data are modified
+# (that's why there is the dependency on .svn/entries) 
 
 version.cpp: .svn/entries Makefile
 	echo "//Automatically generated file, see Makefile for details" > version.cpp

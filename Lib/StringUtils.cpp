@@ -98,7 +98,6 @@ bool StringUtils::isPositiveDecimal(string str)
   CALL("StringUtils::isPositiveDecimal");
 
   size_t sz = str.size();
-  size_t afterPoint;
 
   size_t i = 0;
   if(str[0]=='0') {

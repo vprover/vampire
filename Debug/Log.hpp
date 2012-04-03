@@ -30,10 +30,21 @@ public:
   };
 
   class Impl;
+
+  struct TagInfoBase {
+    std::string name;
+
+    bool statsEnabled;
+    bool logEnabled;
+
+    TagInfoBase(std::string name) : name(name), statsEnabled(false), logEnabled(false) {}
+  };
 private:
+  struct TagInfo;
+  struct ChildInfo;
+  struct StatObserver;
 
   static TagDeclTrigger s_trigger;
-  static unsigned s_settingTimestamp;
 
   static Impl& impl();
 
@@ -42,38 +53,44 @@ private:
   static void addDoc(const char* tag, const char* doc);
   static void addParent(const char* child, const char* parent, unsigned depth);
 public:
+  static TagInfoBase& getTagInfo(const char* tag);
+
   static void enableTag(const char* tag, unsigned depthLimit=UINT_MAX);
   static void processTraceSpecString(std::string str);
   static void pushTagStates();
   static void popTagStates();
 
-  static bool isTagEnabled(const char* tag);
-  static void logUnit(const char* tag, Kernel::Unit* u);
+  static void displayStats(std::ostream& stm);
 
-  static void logSimpl(const char* tag, Kernel::Unit* src, Kernel::Unit* tgt, const char* doc=0);
-  static void logSimpl2(const char* tag, Kernel::Unit* prem1, Kernel::Unit* prem2, Kernel::Unit* tgt, const char* doc=0);
-  static void logTaut(const char* tag, Kernel::Unit* u, const char* doc=0);
+  static bool isTagEnabled(const char* tag);
+
+  static void logUnit(TagInfoBase& tib, Kernel::Unit* u);
+
+  static void logSimpl(TagInfoBase& tib, Kernel::Unit* src, Kernel::Unit* tgt, const char* doc=0);
+  static void logSimpl2(TagInfoBase& tib, Kernel::Unit* prem1, Kernel::Unit* prem2, Kernel::Unit* tgt, const char* doc=0);
+  static void logTaut(TagInfoBase& tib, Kernel::Unit* u, const char* doc=0);
+
+
+  static void statSimple(TagInfoBase& tib);
+  static void statInt(TagInfoBase& tib, int val);
+  static void statUnit(TagInfoBase& tib, Kernel::Unit* u);
+
 
   static void doTagDeclarations();
 
-  inline
-  static unsigned getSettingTimestamp() { return s_settingTimestamp; }
 };
 
 #define tout std::cerr
 #define TAG_ENABLED(tag) Debug::Logging::isTagEnabled(tag)
 
-#define TRACE(tag,...)							\
-  do {									\
-    static unsigned LOGGING_timestamp = 0;				\
-    static bool LOGGING_isEnabled;					\
-    if(LOGGING_timestamp!=Debug::Logging::getSettingTimestamp()) {	\
-      LOGGING_isEnabled = TAG_ENABLED(tag);				\
-      LOGGING_timestamp = Debug::Logging::getSettingTimestamp();	\
-    }									\
-    if(LOGGING_isEnabled) { __VA_ARGS__ } } while(false)
+#define DISPLAY_TRACE_STATS(stm) Debug::Logging::displayStats(stm)
 
-#define TRACE_OUTPUT_UNIT(tag,u) Debug::Logging::logUnit(tag,u)
+#define TRACE_BASE(tag,stat_code,...)							\
+  do {											\
+    static Debug::Logging::TagInfoBase& LOGGING_tib = Debug::Logging::getTagInfo(tag);	\
+    if(LOGGING_tib.statsEnabled) { stat_code } 						\
+    if(LOGGING_tib.logEnabled) { __VA_ARGS__ } } while(false)				\
+
 
 #define ENABLE_TAG(tag) Debug::Logging::enableTag(tag)
 #define ENABLE_TAG_LIMITED(tag,limit) Debug::Logging::enableTag(tag,limit)
@@ -148,8 +165,8 @@ public:
 #else
 
 #define TAG_ENABLED(tag) false
-#define TRACE(tag,code)
-#define TRACE_OUTPUT_UNIT(tag,u)
+#define DISPLAY_TRACE_STATS(stm)
+#define TRACE_BASE(tag,stat_code,...)
 #define ENABLE_TAG(tag)
 #define ENABLE_TAG_LIMITED(tag,limit)
 #define PUSH_TAG_STATES
@@ -165,31 +182,35 @@ public:
 //These are derived macros. If the based macros are disabled, these are
 //expanded into empty strings as well.
 
-#define COND_TRACE(tag,cond,...) TRACE(tag, if(cond) { __VA_ARGS__ } )
+#define TRACE(tag,...) TRACE_BASE(tag, Debug::Logging::statSimple(LOGGING_tib); , __VA_ARGS__)
+#define TRACE_OUTPUT_UNIT(u) Debug::Logging::logUnit(LOGGING_tib,u)
+
+#define COND_TRACE(tag,cond,...) TRACE_BASE(tag, if(cond) { Debug::Logging::statSimple(LOGGING_tib); }, if(cond) { __VA_ARGS__ } )
 #define LOG(tag,msg) TRACE(tag, (tout << msg) << std::endl;)
 #define COND_LOG(tag,cond,msg) COND_TRACE(tag, cond, (tout << msg) << std::endl;)
 #define LOGV(tag,var) LOG(tag, #var<<": "<<(var))
-#define LOG_UNIT(tag,u) TRACE(tag, TRACE_OUTPUT_UNIT(tag,u); )
+#define LOG_UNIT(tag,u) TRACE_BASE(tag, Debug::Logging::statUnit(LOGGING_tib, u);, TRACE_OUTPUT_UNIT(u); )
+#define LOG_INT(tag,num) TRACE_BASE(tag, Debug::Logging::statInt(LOGGING_tib, num);, tout << LOGGING_tib.name << (num) << std::endl; )
 
 /**
  * Logs single-premise simplification of a unit
  *
  * Arguments are tag,src,tgt[,doc]
  */
-#define LOG_SIMPL(tag,src,...) TRACE(tag, Debug::Logging::logSimpl(tag,src,__VA_ARGS__); )
+#define LOG_SIMPL(tag,src,...) TRACE(tag, Debug::Logging::logSimpl(LOGGING_tib,src,__VA_ARGS__); )
 /**
  * Logs two-premise simplification of a unit
  *
  * Arguments are tag,prem1,prem2,tgt[,doc]
  */
-#define LOG_SIMPL2(tag,prem1,prem2,...) TRACE(tag, Debug::Logging::logSimpl2(tag,prem1,prem2,__VA_ARGS__); )
+#define LOG_SIMPL2(tag,prem1,prem2,...) TRACE(tag, Debug::Logging::logSimpl2(LOGGING_tib,prem1,prem2,__VA_ARGS__); )
 
 /**
  * Logs the fact that unit has been found a tautology
  *
  * Arguments are tag,unit[,doc]
  */
-#define LOG_TAUT(tag,...) TRACE(tag, Debug::Logging::logTaut(tag,__VA_ARGS__); )
+#define LOG_TAUT(tag,...) TRACE(tag, Debug::Logging::logTaut(LOGGING_tib,__VA_ARGS__); )
 
 
 #endif // __Debug_Log__

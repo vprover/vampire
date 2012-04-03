@@ -109,7 +109,7 @@ void BFNTMainLoop::runChild(size_t modelSize)
       UnitList::Iterator puit(childPrb->units());
       while(puit.hasNext()) {
 	Unit* u = puit.next();
-	TRACE_OUTPUT_UNIT("bfnt_loop", u);
+	TRACE_OUTPUT_UNIT(u);
       }
   );
 

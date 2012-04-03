@@ -354,7 +354,7 @@ bool EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, Unit
 	UnitSpecIterator uit = InferenceStore::instance()->getParents(UnitSpec(fu));
 	while(uit.hasNext()) {
 	  UnitSpec p = uit.next();
-	  TRACE_OUTPUT_UNIT("pp_ed_eq_prems",p.unit());
+	  TRACE_OUTPUT_UNIT(p.unit());
 	}
   );
 

@@ -111,7 +111,7 @@ void Preprocess::preprocess (Problem& prb)
       UnitList::Iterator uit(prb.units());
       while(uit.hasNext()) {
 	Unit* u = uit.next();
-	TRACE_OUTPUT_UNIT("pp_input", u);
+	TRACE_OUTPUT_UNIT(u);
       }
       );
 
@@ -349,7 +349,7 @@ void Preprocess::preprocess (Problem& prb)
        UnitList::Iterator uit(prb.units());
        while(uit.hasNext()) {
  	Unit* u = uit.next();
- 	TRACE_OUTPUT_UNIT("pp_final", u);
+ 	TRACE_OUTPUT_UNIT(u);
        }
        );
 

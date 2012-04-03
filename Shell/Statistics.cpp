@@ -266,6 +266,8 @@ void Statistics::print(ostream& out)
   out << "------------------------------\n";
 
   RSTAT_PRINT(out);
+  DISPLAY_TRACE_STATS(out);
+  out << "------------------------------\n";
 
 #undef SEPARATOR
 #undef COND_OUT
