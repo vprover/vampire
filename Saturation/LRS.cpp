@@ -45,6 +45,8 @@ void LRS::onUnprocessedSelected(Clause* c)
         Limits* lims=getLimits();
         _limitsEverActive=lims->weightLimited() || lims->ageLimited();
       }
+      LOG_INT("sa_lrs_limit_weight", getLimits()->weightLimited() ? getLimits()->weightLimit() : 0);
+      LOG_INT("sa_lrs_limit_age", getLimits()->ageLimited() ? getLimits()->ageLimit() : 0);
     }
   }
 }

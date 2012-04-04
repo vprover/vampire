@@ -113,6 +113,28 @@ private:
     string _name;
     int _counter;
   };
+  struct MaximumObserver : public StatObserver {
+    MaximumObserver(string name) : _name(name), _max(0) {}
+
+    virtual void onSimple() { _max++; }
+    virtual void onInt(int num) {
+      if(num>_max) {
+	_max = num;
+      }
+    }
+    virtual void onUnit(Kernel::Unit* unit) { _max++; }
+
+    virtual void reset() { _max = 0; }
+    virtual void displayCaption(ostream& out) { out << _name << " maximum"; }
+    virtual void displayData(ostream& out) {
+      out << _max << endl;
+    }
+
+    virtual bool hasData() { return _max!=0; }
+
+    string _name;
+    int _max;
+  };
   struct AverageObserver : public StatObserver {
     AverageObserver(string name) : _name(name), _counter(0) {}
 
@@ -305,6 +327,14 @@ private:
 
   Stack<StatObserver*> _observers;
 
+public:
+  /** Tags that are used only in LOG_UNIT calls */
+  Stack<unsigned> _unitTagIndexes;
+  /** Tags that are used only in LOG_INT calls */
+  Stack<unsigned> _intTagIndexes;
+
+private:
+
   void enableOneTag(TagInfo& ti, const EnablingSpec& eSpec) {
     if(_stateStack.isNonEmpty()) {
       _stateStack.top().addBacktrackObject(new TagEnableBO(ti));
@@ -392,6 +422,20 @@ public:
 
     parTI.children.push(ChildInfo(childTI, depth));
   }
+  void markUnitTag(const char* tag)
+  {
+    CALL("Logging::Impl::markUnitTag");
+    TagInfo& ti = tag2ti(tag);
+    ti.unitOnly = true;
+    _unitTagIndexes.push(ti.tagIndex);
+  }
+  void markIntTag(const char* tag)
+  {
+    CALL("Logging::Impl::markIntTag");
+    TagInfo& ti = tag2ti(tag);
+    ti.intOnly = true;
+    _intTagIndexes.push(ti.tagIndex);
+  }
 
 
   void pushTagStates()
@@ -473,26 +517,32 @@ public:
 	hasNext = false;
       }
       string spec(specStart);
-      if(spec=="c") {
+      if(spec=="ctr") {
 	//simple observer
 	if(res!=0) {
 	  USER_ERROR("simple observer must be the first in the chain");
 	}
 	res = new SimpleObserver(tagName);
       }
-      else if(spec=="a") {
+      else if(spec=="avg") {
 	if(res!=0) {
-	  USER_ERROR("simple observer must be the first in the chain");
+	  USER_ERROR("average observer must be the first in the chain");
 	}
 	res = new AverageObserver(tagName);
       }
-      else if(spec=="w") {
+      else if(spec=="max") {
+	if(res!=0) {
+	  USER_ERROR("maximum observer must be the first in the chain");
+	}
+	res = new MaximumObserver(tagName);
+      }
+      else if(spec=="uweight") {
 	if(res==0) {
 	  USER_ERROR("unit weight observer cannot be the first in the chain");
 	}
 	res = new UnitWeightObserver(res);
       }
-      else if(spec=="l") {
+      else if(spec=="clength") {
 	if(res==0) {
 	  USER_ERROR("clause length observer cannot be the first in the chain");
 	}
@@ -662,13 +712,25 @@ public:
 	<< "Trace string:" << endl
 	<< "help" << endl
 	<< "  ... show this help" << endl
-	<< "[trace_name1[^][:depth_limit1][,trace_name2[:depth_limit2][,...]]]" << endl
+	<< "[trace_name1[^][:depth_limit1][@stat_spec1][,trace_name2[:depth_limit2][@stat_spec2][,...]]]" << endl
 	<< "  ... enable specified traces with child traces up to given depth or without limit" << endl
-	<< "  ... if star is specified next to a tag, premises will be shown for logged units" << endl
+	<< "  ... if ^ is specified next to a tag, premises will be shown for logged units" << endl
+	<< "  ... if stat_spec is given, logs will not be output, but rather used to collect" << endl
+	<< "      statistics. The format of the stat_spec is following: " << endl
+	<< "        observer[:modifier1[:modifier2[:...]]" << endl
+	<< "      observer can be one of the following:" << endl
+	<< "        ctr ... counts number of non-integer traces, adds values of integer traces to the counter" << endl
+	<< "        avg ... takes average of integer traces" << endl
+	<< "        max ... takes maximum of integer traces" << endl
+	<< "      modifiers can be following:" << endl
+	<< "        uweight ... converts unit trace into integer trace with the weight of the unit" << endl
+	<< "        clength ... converts unit trace into integer trace with length of the clause" << endl
+	<< "        tXXX ... can be used as the last modifier, causes the value of the statistic" << endl
+	<< "                 to be output every XXX miliseconds" << endl
 	<< endl
-	<< "Traces:" << endl
-	<< "(with each trace we specify its child traces together with their distance "
-	   "from the parent that can be used for the depth limit)" << endl;
+	<< "All traces:" << endl
+	<< "(with each trace we specify its child traces together with their distance " << endl
+	<< "from the parent that can be used for the depth limit)" << endl;
 
 
     unsigned tagCnt = _tags.size();
@@ -689,6 +751,32 @@ public:
 	  }
 	}
 	out << endl;
+      }
+    }
+
+    out << endl;
+    out << endl;
+    out << "Unit traces:" << endl;
+    Stack<unsigned>::BottomFirstIterator utit(_unitTagIndexes);
+    while(utit.hasNext()) {
+      unsigned idx = utit.next();
+      TagInfo& ti = *_tags[idx];
+      out << ti.name << endl;
+      if(!ti.doc.empty()) {
+	out << "  " << ti.doc << endl;
+      }
+    }
+
+    out << endl;
+    out << endl;
+    out << "Int traces:" << endl;
+    Stack<unsigned>::BottomFirstIterator itit(_intTagIndexes);
+    while(itit.hasNext()) {
+      unsigned idx = itit.next();
+      TagInfo& ti = *_tags[idx];
+      out << ti.name << endl;
+      if(!ti.doc.empty()) {
+	out << "  " << ti.doc << endl;
       }
     }
   }
@@ -732,6 +820,15 @@ void Logging::addDoc(const char* tag, const char* doc) {
 void Logging::addParent(const char* child, const char* parent, unsigned depth) {
   impl().addParent(child,parent,depth);
 }
+void Logging::markUnitTag(const char* tag)
+{
+  impl().markUnitTag(tag);
+}
+void Logging::markIntTag(const char* tag)
+{
+  impl().markIntTag(tag);
+}
+
 void Logging::enableTag(const char* tag, unsigned depthLimit)
 {
   CALL("Logging::enableTag");
@@ -817,6 +914,8 @@ void Logging::logTaut(TagInfoBase& tib, Kernel::Unit* u, const char* doc)
 void Logging::statSimple(TagInfoBase& tib)
 {
   CALL("Logging::statSimple");
+  ASS_REP(!tib.intOnly, tib.name);
+  ASS_REP(!tib.unitOnly, tib.name);
 
   TagInfo& ti = static_cast<TagInfo&>(tib);
   Stack<StatObserver*>::ConstIterator oit(ti.statObservers);
@@ -829,6 +928,7 @@ void Logging::statSimple(TagInfoBase& tib)
 void Logging::statInt(TagInfoBase& tib, int val)
 {
   CALL("Logging::statInt");
+  ASS_REP(!tib.intOnly, tib.name);
 
   TagInfo& ti = static_cast<TagInfo&>(tib);
   Stack<StatObserver*>::ConstIterator oit(ti.statObservers);
@@ -841,6 +941,7 @@ void Logging::statInt(TagInfoBase& tib, int val)
 void Logging::statUnit(TagInfoBase& tib, Kernel::Unit* u)
 {
   CALL("Logging::statUnit");
+  ASS_REP(!tib.intOnly, tib.name);
 
   TagInfo& ti = static_cast<TagInfo&>(tib);
   Stack<StatObserver*>::ConstIterator oit(ti.statObservers);

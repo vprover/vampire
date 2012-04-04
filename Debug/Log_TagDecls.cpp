@@ -55,39 +55,51 @@ void Logging::doTagDeclarations()
 
   DECL("sa_active_added",
       PARENT("active_clauses", 0),
-      PARENT("sa_containers", 0));
+      PARENT("sa_containers", 0),
+      UNIT_TAG);
   DECL("sa_passive_added",
       PARENT("passive_clauses", 0),
-      PARENT("sa_containers", 0));
+      PARENT("sa_containers", 0),
+      UNIT_TAG);
   DECL("sa_unprocessed_added",
       PARENT("unprocessed_clauses", 0),
-      PARENT("sa_containers", 0));
+      PARENT("sa_containers", 0),
+      UNIT_TAG);
 
   DECL("sa_active_removed",
-      PARENT("sa_containers", 0));
+      PARENT("sa_containers", 0),
+      UNIT_TAG);
   DECL("sa_passive_removed",
-      PARENT("sa_containers", 0));
+      PARENT("sa_containers", 0),
+      UNIT_TAG);
   DECL("sa_unprocessed_removed",
-      PARENT("sa_containers", 0));
+      PARENT("sa_containers", 0),
+      UNIT_TAG);
   DECL("sa_reanimated",
-      PARENT("sa_containers", 0));
+      PARENT("sa_containers", 0),
+      UNIT_TAG);
   DECL("sa_passive_selected",
-      PARENT("sa_containers", 0));
+      PARENT("sa_containers", 0),
+      UNIT_TAG);
   DECL("sa_unprocessed_selected",
-      PARENT("sa_containers", 0));
+      PARENT("sa_containers", 0),
+      UNIT_TAG);
 
 
   DECL("sa_new_clause",
       PARENT("new_clauses", 0),
-      PARENT("sa", 1));
+      PARENT("sa", 1),
+      UNIT_TAG);
   DECL("sa_new_prop_clause",
       DOC("new propositional clause derived by the saturation algorithm"),
       PARENT("sa_new_clause", 1),
-      PARENT("new_prop_clauses", 0));
+      PARENT("new_prop_clauses", 0),
+      UNIT_TAG);
 
   DECL("sa_generated_clause",
       DOC("clause derived by generating inference"),
-      PARENT("sa", 1));
+      PARENT("sa", 1),
+      UNIT_TAG);
   DECL("sa_retained_clause",
       DOC("clause passed forward simplification checks"),
       PARENT("sa", 1));
@@ -102,6 +114,15 @@ void Logging::doTagDeclarations()
   DECL("sa_bw_simpl",
       DOC("backward simplifications in saturation algorithm"),
       PARENT("sa_simpl", 0));
+
+  DECL("sa_lrs",
+      PARENT("sa", 1));
+  DECL("sa_lrs_limit_weight",
+      PARENT("sa_lrs", 1),
+      INT_TAG);
+  DECL("sa_lrs_limit_age",
+      PARENT("sa_lrs", 1),
+      INT_TAG);
 
 
   //
@@ -121,18 +142,22 @@ void Logging::doTagDeclarations()
 
   DECL("ig_active_added",
       PARENT("active_clauses", 0),
-      PARENT("ig_containers", 0));
+      PARENT("ig_containers", 0),
+      UNIT_TAG);
   DECL("ig_passive_added",
       PARENT("passive_clauses", 0),
-      PARENT("ig_containers", 0));
+      PARENT("ig_containers", 0),
+      UNIT_TAG);
   DECL("ig_unprocessed_added",
       PARENT("unprocessed_clauses", 0),
-      PARENT("ig_containers", 0));
+      PARENT("ig_containers", 0),
+      UNIT_TAG);
 
 
   DECL("ig_new_clause",
       PARENT("new_clauses", 0),
-      PARENT("ig", 1));
+      PARENT("ig", 1),
+      UNIT_TAG);
 
   DECL("ig_sat",
       DOC("traces calls to the SAT solver from inst-gen"),
@@ -207,13 +232,15 @@ void Logging::doTagDeclarations()
       PARENT("inf_hsp",1));
   DECL("inf_hsp_gen",
       DOC("hyper-superposition generated units"),
-      PARENT("inf_hsp",1));
+      PARENT("inf_hsp",1),
+      UNIT_TAG);
   DECL("inf_hsp_prems",
       DOC("hyper-superposition premises"),
       PARENT("inf_hsp",2));
   DECL("inf_hsp_res",
       DOC("hyper-superposition results after the intended simplification"),
-      PARENT("inf_hsp",1));
+      PARENT("inf_hsp",1),
+      UNIT_TAG);
 
   //
   // Decison procedures
@@ -307,7 +334,8 @@ void Logging::doTagDeclarations()
       PARENT("sspl",0));
   DECL("sspl_nonsplits",
       DOC("not splitted clauses"),
-      PARENT("sspl",3));
+      PARENT("sspl",3),
+      UNIT_TAG);
   DECL("sspl_confl",
       DOC("SAT conflict clauses generated"),
       PARENT("sspl",0));
@@ -316,7 +344,8 @@ void Logging::doTagDeclarations()
       PARENT("sspl_confl",1));
   DECL("sspl_comp_names",
       DOC("introduced component names"),
-      PARENT("sspl",1));
+      PARENT("sspl",1),
+      UNIT_TAG);
   DECL("sspl_flush",
       DOC("flushing"),
       PARENT("sspl",0));
@@ -343,10 +372,12 @@ void Logging::doTagDeclarations()
       PARENT("sspl",2));
   DECL("sspl_rm_backtracked",
       DOC("clause removals due to backtracking upon change of component selection"),
-      PARENT("sspl_rm",1));
+      PARENT("sspl_rm",1),
+      UNIT_TAG);
   DECL("sspl_rm_restored",
       DOC("restored claused due to backtracking upon change of component selection"),
-      PARENT("sspl_rm",1));
+      PARENT("sspl_rm",1),
+      UNIT_TAG);
 
   DECL("sspl_reductions",
       DOC("recording of clause reductions"),
@@ -378,7 +409,8 @@ void Logging::doTagDeclarations()
       PARENT("sspl_ns",0));
   DECL("sspl_ns_self_dependent",
       DOC("clause that depends on a component that is its variant"),
-      PARENT("sspl_ns",0));
+      PARENT("sspl_ns",0),
+      UNIT_TAG);
 
   //
   // Preprocessing
@@ -393,11 +425,13 @@ void Logging::doTagDeclarations()
 
   DECL("pp_pre_ennf",
       DOC("print-out the problem just before conversion to ennf"),
-      PARENT("pp",1));
+      PARENT("pp",1),
+      UNIT_TAG);
 
   DECL("pp_pre_cl",
       DOC("print-out the problem just before clausification"),
-      PARENT("pp",1));
+      PARENT("pp",1),
+      UNIT_TAG);
   DECL("pp_final",
       DOC("print-out the final cnf of the problem after preprocessing"),
       PARENT("pp",1));
@@ -418,10 +452,12 @@ void Logging::doTagDeclarations()
       PARENT("pp",1));
   DECL("pp_naming_args",
       DOC("units passed to naming"),
-      PARENT("pp_naming",1));
+      PARENT("pp_naming",1),
+      UNIT_TAG);
   DECL("pp_naming_defs",
       DOC("definitions introduced by naming"),
-      PARENT("pp_naming",0));
+      PARENT("pp_naming",0),
+      UNIT_TAG);
 
   DECL("pp_esk",
       DOC("epr-restoring skolemization"),
@@ -436,8 +472,9 @@ void Logging::doTagDeclarations()
       DOC("quantifier processing in epr-restoring skolemization"),
       PARENT("pp_esk",1));
   DECL("pp_esk_cs_args",
-      DOC("units processed y constant skolemization"),
-      PARENT("pp_esk",1));
+      DOC("units processed by constant skolemization"),
+      PARENT("pp_esk",1),
+      UNIT_TAG);
 
   DECL("pp_hr",
       DOC("horn revealer"),
@@ -495,7 +532,8 @@ void Logging::doTagDeclarations()
       PARENT("pp_ed",0));
   DECL("pp_ed_eq",
       DOC("discovered equivalences"),
-      PARENT("pp_ed",0));
+      PARENT("pp_ed",0),
+      UNIT_TAG);
   DECL("pp_ed_eq_prems",
       DOC("premises of discovered equivalences"),
       PARENT("pp_ed_eq",1));
@@ -609,7 +647,8 @@ void Logging::doTagDeclarations()
       PARENT("pp_aiginl",1));
   DECL("pp_aiginl_unit_args",
       DOC("units as they are passed to the apply() function"),
-      PARENT("pp_aiginl",1));
+      PARENT("pp_aiginl",1),
+      UNIT_TAG);
 
 
   DECL("pp_aigdef",
@@ -617,8 +656,9 @@ void Logging::doTagDeclarations()
       PARENT("pp_aig",1),
       PARENT("pp",1));
   DECL("pp_aigdef_intro",
-      DOC("introduced definitions"),
-      PARENT("pp_aigdef",0));
+      DOC("introduced definitions for AIG nodes"),
+      PARENT("pp_aigdef",0),
+      UNIT_TAG);
   DECL("pp_aigdef_apply",
       DOC("introducing definitions into formulas"),
       PARENT("pp_aigdef",1));
@@ -647,17 +687,20 @@ void Logging::doTagDeclarations()
       PARENT("pp",1));
   DECL("pp_ep_args",
       DOC("units on which equality propagation is applied"),
-      PARENT("pp_ep",1));
+      PARENT("pp_ep",1),
+      UNIT_TAG);
 
   DECL("pp_tlf",
       DOC("top-level flattening"),
       PARENT("pp",1));
   DECL("pp_tlf_processed",
       DOC("units on which top-level flattening is applied"),
-      PARENT("pp_tlf",1));
+      PARENT("pp_tlf",1),
+      UNIT_TAG);
   DECL("pp_tlf_res",
       DOC("results of top-level flattening"),
-      PARENT("pp_tlf",1));
+      PARENT("pp_tlf",1),
+      UNIT_TAG);
 
   //
   // BFNT
@@ -667,16 +710,20 @@ void Logging::doTagDeclarations()
 
   DECL("bfnt_cl",
       DOC("clauses generated by bfnt"),
-      PARENT("bfnt",1));
+      PARENT("bfnt",1),
+      UNIT_TAG);
   DECL("bfnt_cl_ineq",
       DOC("bfnt clauses expressing inequalities between constants"),
-      PARENT("bfnt_cl",0));
+      PARENT("bfnt_cl",0),
+      UNIT_TAG);
   DECL("bfnt_cl_tot",
       DOC("bfnt clauses expressing totality of functions"),
-      PARENT("bfnt_cl",0));
+      PARENT("bfnt_cl",0),
+      UNIT_TAG);
   DECL("bfnt_cl_transf",
       DOC("problem clauses transformed to bfnt"),
-      PARENT("bfnt_cl",0));
+      PARENT("bfnt_cl",0),
+      UNIT_TAG);
 
   DECL("bfnt_loop",
       DOC("bfnt solving loop"),
@@ -850,7 +897,8 @@ void Logging::doTagDeclarations()
       DOC("SAT2FO class for conversions between SAT and first-order"));
   DECL("s2f_confl",
       DOC("conflict clauses created by s2f"),
-      PARENT("s2f",1));
+      PARENT("s2f",1),
+      UNIT_TAG);
 
 
   DECL("bdd");
@@ -894,7 +942,8 @@ void Logging::doTagDeclarations()
       PARENT("arith",1));
   DECL("arith_axioms",
       DOC("theory axiom loader traces"),
-      PARENT("arith",0));
+      PARENT("arith",0),
+      UNIT_TAG);
 
   DECL("st",
       DOC("substitution trees"));

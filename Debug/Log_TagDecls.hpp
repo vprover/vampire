@@ -18,6 +18,8 @@
   } while(false)
 #define DOC(doc) Debug::Logging::addDoc(t,doc)
 #define PARENT(parent, depth) Debug::Logging::addParent(t,parent,depth)
+#define UNIT_TAG Debug::Logging::markUnitTag(t)
+#define INT_TAG Debug::Logging::markIntTag(t)
 
 #endif
 

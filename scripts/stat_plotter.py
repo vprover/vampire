@@ -71,7 +71,7 @@ def redrawGnuplot():
             gpCmd += ", "
         dataIdx = str(idx+2)
         title = str(idxLbls[idx])
-        gpCmd += "\""+tmpDataFile.name+"\" using 1:"+dataIdx+" title \""+title+"\""
+        gpCmd += "\""+tmpDataFile.name+"\" using 1:"+dataIdx+" title \""+title+"\" with linespoints"
     
     gpCmd += "\n"
     gnuplotProc.stdin.write(gpCmd)
