@@ -17,6 +17,7 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Timer.hpp"
@@ -219,6 +220,25 @@ private:
 	_inner->onInt(static_cast<Kernel::Clause*>(unit)->length());
       }
     }
+  };
+
+  struct SplitClauseFilterObserver : public MetaObserver {
+    SplitClauseFilterObserver(StatObserver* inner, bool mustHaveSplit)
+    : MetaObserver(inner,mustHaveSplit ? "splitted" : "non-splitted"),
+      _mustHaveSplit(mustHaveSplit) {}
+
+    virtual void onUnit(Kernel::Unit* unit) {
+      CALL("Logging::Impl::ClauseLengthObserver::onUnit");
+      if(unit->isClause()) {
+	Kernel::Clause* cl = static_cast<Kernel::Clause*>(unit);
+	bool hasSplit = cl->splits() && !cl->splits()->isEmpty();
+	if(_mustHaveSplit==hasSplit) {
+	  _inner->onUnit(unit);
+	}
+      }
+    }
+
+    bool _mustHaveSplit;
   };
 
   struct TimedObserver : public MetaObserver {
@@ -544,6 +564,18 @@ public:
 	}
 	res = new MaximumObserver(tagName);
       }
+      else if(spec=="split+") {
+	if(res==0) {
+	  USER_ERROR("split+ observer cannot be the first in the chain");
+	}
+	res = new SplitClauseFilterObserver(res, true);
+      }
+      else if(spec=="split-") {
+	if(res==0) {
+	  USER_ERROR("split- observer cannot be the first in the chain");
+	}
+	res = new SplitClauseFilterObserver(res, false);
+      }
       else if(spec=="uweight") {
 	if(res==0) {
 	  USER_ERROR("unit weight observer cannot be the first in the chain");
@@ -733,6 +765,8 @@ public:
 	<< "      modifiers can be following:" << endl
 	<< "        uweight ... converts unit trace into integer trace with the weight of the unit" << endl
 	<< "        clength ... converts unit trace into integer trace with length of the clause" << endl
+	<< "        split+ ... lets through only clauses depending on some splits" << endl
+	<< "        split- ... lets through only clauses not depending on any splits" << endl
 	<< "        tXXX ... can be used as the last modifier, causes the value of the statistic" << endl
 	<< "                 to be output every XXX miliseconds" << endl
 	<< endl
