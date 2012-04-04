@@ -11,6 +11,14 @@ timeDataRE = re.compile("^(.*) t([0-9]+) at ([0-9]+): (.*)$")
 
 tmpDataFile = tempfile.NamedTemporaryFile()
 
+useLogScale = False
+args = sys.argv[1:]
+if args[0]=="-log":
+    args = args[1:]
+    useLogScale = True
+vampCmdLine = args
+
+
 nextLblIdx = 0
 lblIndexes = {}
 idxLbls = {}
@@ -56,6 +64,9 @@ def updateDataFile():
 
 gnuplotProc = subprocess.Popen(["gnuplot"], bufsize=1, stdin=subprocess.PIPE, shell=True)
 
+if useLogScale:
+    gnuplotProc.stdin.write("set logscale y\n")
+
 def redrawGnuplot():
     global tmpDataFile
     global gnuplotProc
@@ -71,16 +82,13 @@ def redrawGnuplot():
             gpCmd += ", "
         dataIdx = str(idx+2)
         title = str(idxLbls[idx])
-        gpCmd += "\""+tmpDataFile.name+"\" using 1:"+dataIdx+" title \""+title+"\" with linespoints"
+        gpCmd += "\""+tmpDataFile.name+"\" using 1:($"+dataIdx+") title \""+title+"\" with linespoints"
     
     gpCmd += "\n"
     gnuplotProc.stdin.write(gpCmd)
     gnuplotProc.stdin.flush()
     
     #subprocess.call(["cat",tmpDataFile.name])
-
-vampCmdLine = sys.argv[1:]
-print vampCmdLine
 
 vampProc = subprocess.Popen(vampCmdLine, bufsize=1, stderr=subprocess.PIPE)
 

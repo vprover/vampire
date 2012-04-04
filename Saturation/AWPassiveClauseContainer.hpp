@@ -68,7 +68,7 @@ public:
 
   void updateLimits(long long estReachableCnt);
 
-  unsigned size() const { return _size; }
+  virtual unsigned size() const { return _size; }
 
   void beforePassiveClauseWeightChange(Clause* cl);
   void afterPassiveClauseWeightChange(Clause* cl);

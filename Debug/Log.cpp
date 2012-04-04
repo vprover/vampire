@@ -114,25 +114,33 @@ private:
     int _counter;
   };
   struct MaximumObserver : public StatObserver {
-    MaximumObserver(string name) : _name(name), _max(0) {}
+    MaximumObserver(string name) : _name(name), _hasData(false) {}
 
-    virtual void onSimple() { _max++; }
     virtual void onInt(int num) {
-      if(num>_max) {
+      if(!_hasData) {
+	_hasData = true;
+	_max = num;
+      }
+      else if(num>_max) {
 	_max = num;
       }
     }
-    virtual void onUnit(Kernel::Unit* unit) { _max++; }
 
-    virtual void reset() { _max = 0; }
+    virtual void reset() { _hasData = false; }
     virtual void displayCaption(ostream& out) { out << _name << " maximum"; }
     virtual void displayData(ostream& out) {
-      out << _max << endl;
+      if(_hasData) {
+	out << _max << endl;
+      }
+      else {
+	out << '?' << endl;
+      }
     }
 
-    virtual bool hasData() { return _max!=0; }
+    virtual bool hasData() { return _hasData; }
 
     string _name;
+    bool _hasData;
     int _max;
   };
   struct AverageObserver : public StatObserver {
@@ -154,7 +162,7 @@ private:
 //	out.precision(oldPrec);
       }
       else {
-	out << 0 << endl;
+	out << '?' << endl;
       }
     }
 

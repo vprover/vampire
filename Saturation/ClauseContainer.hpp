@@ -100,6 +100,7 @@ public:
   virtual Clause* popSelected() = 0;
 
   virtual ClauseIterator iterator() = 0;
+  virtual unsigned size() const = 0;
 
   virtual void updateLimits(long long estReachableCnt) {}
 };

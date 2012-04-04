@@ -235,6 +235,7 @@ size_t SaturationAlgorithm::passiveClauseCount()
 void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
   LOG_UNIT("sa_active_added", c);
+  LOG_INT("sa_active_size", _active->size());
 }
 
 /**
@@ -245,6 +246,7 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
   CALL("SaturationAlgorithm::onActiveRemoved");
 
   LOG_UNIT("sa_active_removed", c);
+  LOG_INT("sa_active_size", _active->size());
 
   ASS(c->store()==Clause::ACTIVE || c->store()==Clause::REACTIVATED ||
       c->store()==Clause::SELECTED_REACTIVATED);
@@ -292,6 +294,7 @@ void SaturationAlgorithm::onAllProcessed()
 void SaturationAlgorithm::onPassiveAdded(Clause* c)
 {
   LOG_UNIT("sa_passive_added", c);
+  LOG_INT("sa_passive_size", _passive->size());
 
   //when a clause is added to the passive container,
   //we know it is not redundant
@@ -308,6 +311,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
   CALL("SaturationAlgorithm::onPassiveRemoved");
 
   LOG_UNIT("sa_passive_removed", c);
+  LOG_INT("sa_passive_size", _passive->size());
 
   ASS(c->store()==Clause::PASSIVE || c->store()==Clause::REACTIVATED)
 
@@ -334,6 +338,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
   LOG_UNIT("sa_passive_selected", c);
+  LOG_INT("sa_passive_size", _passive->size());
 }
 
 /**

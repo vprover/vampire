@@ -124,6 +124,15 @@ void Logging::doTagDeclarations()
       PARENT("sa_lrs", 1),
       INT_TAG);
 
+  DECL("sa_passive_size",
+      DOC("number fo clauses in the passive container"),
+      PARENT("sa",3),
+      INT_TAG);
+  DECL("sa_active_size",
+      DOC("number fo clauses in the active container"),
+      PARENT("sa",3),
+      INT_TAG);
+
 
   //
   // IGAlgorithm
@@ -323,6 +332,28 @@ void Logging::doTagDeclarations()
   DECL("smt_confl_detail",
       DOC("details of smt conflicts"),
       PARENT("smt",1));
+
+
+  //
+  // Splitting with backtracking
+  //
+
+  DECL("bspl",
+      DOC("traces for splitting with backtracking"));
+
+  DECL("bspl_refutations",
+      DOC("numbers of branch refutations leading to backtracking"),
+      PARENT("bspl",1),
+      UNIT_TAG);
+  DECL("bspl_rm_backtracked",
+      DOC("clause removals due to backtracking upon branch refutation"),
+      PARENT("bspl",2),
+      UNIT_TAG);
+  DECL("bspl_rm_restored",
+      DOC("restored claused due to backtracking upon branch refutation"),
+      PARENT("bspl",2),
+      UNIT_TAG);
+
   //
   // SAT-based splitting
   //

@@ -392,6 +392,7 @@ start:
 
   Clause* cl=toDo.pop();
   ASS(cl->isEmpty());
+  LOG_UNIT("bspl_refutations",cl);
 
   SplitSet* refSplits=cl->splits();
   ASS_G(refSplits->size(),0);
@@ -442,6 +443,7 @@ start:
 	ASS(ccl->splits()->member(bl));
 	if(ccl->store()!=Clause::BACKTRACKED) {
 	  trashed.push(ccl);
+	  LOG_UNIT("bspl_rm_backtracked",ccl);
 	}
 	ccl->setAux(0);
       }
@@ -480,6 +482,7 @@ start:
       if(rrec.timestamp==rcl->getReductionTimestamp()) {
 	restored.push(rcl);
       }
+      LOG_UNIT("bspl_rm_restored",rcl);
       rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in BSplitter::SplitRecord::addReduced
     }
 
