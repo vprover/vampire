@@ -54,13 +54,14 @@ def updateDataFile():
         tmpDataFile.write(str(t))
         dataLine = data[t]
         for idx in range(0,nextLblIdx):
+            val = None
             if idx not in dataLine:
-                return False
-            val = dataLine[idx]
+                val = "?"
+            else:
+                val = dataLine[idx]
             tmpDataFile.write("\t"+str(val))
         tmpDataFile.write("\n")
     tmpDataFile.flush()
-    return True
 
 gnuplotProc = subprocess.Popen(["gnuplot"], bufsize=1, stdin=subprocess.PIPE, shell=True)
 
@@ -92,6 +93,8 @@ def redrawGnuplot():
 
 vampProc = subprocess.Popen(vampCmdLine, bufsize=1, stderr=subprocess.PIPE)
 
+lastUpdateTime = None
+
 while True:
     line = vampProc.stderr.readline()
     if not line:
@@ -104,9 +107,17 @@ while True:
     timePnt = mo.group(3)
     valPnt = mo.group(4)
     addDataPoint(lbl, timePnt, valPnt)
-    if updateDataFile():
-        redrawGnuplot()
 
+    curTime = time.time()
+    if len(timePoints)>3:
+        if lastUpdateTime==None or curTime-lastUpdateTime>0.3:
+            updateDataFile()
+            redrawGnuplot()
+            lastUpdateTime = curTime
+
+
+updateDataFile()
+redrawGnuplot()
 
 time.sleep(0.25)
 gnuplotProc.kill()
