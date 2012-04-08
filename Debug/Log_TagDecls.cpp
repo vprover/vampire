@@ -17,6 +17,9 @@ void Logging::doTagDeclarations()
   DECL("bug",
       DOC("this tag is always enabled, bugs are to be reported through it or its children"));
 
+  DECL("stat_labels",
+      DOC("labels of statistics to be output, printed in the order in which they appeared on the command line"));
+
   DECL("active_clauses",
       DOC("displays active clauses"));
   DECL("passive_clauses",
@@ -111,9 +114,17 @@ void Logging::doTagDeclarations()
   DECL("sa_fw_simpl",
       DOC("forward simplifications in saturation algorithm"),
       PARENT("sa_simpl", 0));
+  DECL("sa_fw_simpl_red_clause",
+      DOC("clauses shown redundant by forward simplifications"),
+      PARENT("sa_fw_simpl", 0),
+      UNIT_TAG);
   DECL("sa_bw_simpl",
       DOC("backward simplifications in saturation algorithm"),
       PARENT("sa_simpl", 0));
+  DECL("sa_bw_simpl_red_clause",
+      DOC("clauses shown redundant by backward simplifications"),
+      PARENT("sa_bw_simpl", 0),
+      UNIT_TAG);
 
   DECL("sa_lrs",
       PARENT("sa", 1));

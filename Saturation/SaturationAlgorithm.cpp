@@ -717,7 +717,7 @@ public:
 
     BDDNode* oldClProp=_cl->prop();
 
-
+    LOG_UNIT("sa_fw_simpl_red_clause",_cl);
     TRACE("sa_fw_simpl",
 	tout << "->>--------\n";
 	ClauseList* lst=0;
@@ -1183,6 +1183,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       if(replacement) {
 	addNewClause(replacement);
       }
+      LOG_UNIT("sa_bw_simpl_red_clause",redundant);
       onClauseReduction(redundant, replacement, cl, 0, false);
 
 
@@ -1198,7 +1199,7 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       InferenceStore::instance()->recordPropReduce(redundant, oldRedundantProp, bdd->getTrue());
 
 
-      TRACE("sa_fw_simpl",
+      TRACE("sa_bw_simpl",
 	tout << "-<<--------\n";
 	tout << ":" << (*cl) << endl;
 	tout << "-" << (*redundant) << endl;

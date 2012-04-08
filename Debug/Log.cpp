@@ -96,8 +96,13 @@ public:
     EnablingSpec() : logEnable(false), logPrintUnitPrems(false), statObserver(0) {}
   };
 private:
-  struct SimpleObserver : public StatObserver {
-    SimpleObserver(string name) : _name(name), _counter(0) {}
+  struct BaseObserver : public StatObserver {
+    BaseObserver(string name) : _name(name) {}
+
+    string _name;
+  };
+  struct CounterObserver : public BaseObserver {
+    CounterObserver(string name) : BaseObserver(name), _counter(0) {}
 
     virtual void onSimple() { _counter++; }
     virtual void onInt(int num) { _counter += num; }
@@ -111,27 +116,26 @@ private:
 
     virtual bool hasData() { return _counter!=0; }
 
-    string _name;
     int _counter;
   };
-  struct MaximumObserver : public StatObserver {
-    MaximumObserver(string name) : _name(name), _hasData(false) {}
+  struct ExtremeObserver : public BaseObserver {
+    ExtremeObserver(string name, bool isMaximum) : BaseObserver(name), _isMaximum(isMaximum), _hasData(false) {}
 
     virtual void onInt(int num) {
       if(!_hasData) {
 	_hasData = true;
-	_max = num;
+	_val = num;
       }
-      else if(num>_max) {
-	_max = num;
+      else if(_isMaximum == (num>_val)) {
+	_val = num;
       }
     }
 
     virtual void reset() { _hasData = false; }
-    virtual void displayCaption(ostream& out) { out << _name << " maximum"; }
+    virtual void displayCaption(ostream& out) { out << _name << (_isMaximum ? " maximum" : " minimum"); }
     virtual void displayData(ostream& out) {
       if(_hasData) {
-	out << _max << endl;
+	out << _val << endl;
       }
       else {
 	out << '?' << endl;
@@ -140,12 +144,12 @@ private:
 
     virtual bool hasData() { return _hasData; }
 
-    string _name;
+    bool _isMaximum;
     bool _hasData;
-    int _max;
+    int _val;
   };
-  struct AverageObserver : public StatObserver {
-    AverageObserver(string name) : _name(name), _counter(0) {}
+  struct AverageObserver : public BaseObserver {
+    AverageObserver(string name) : BaseObserver(name), _counter(0) {}
 
     virtual void onInt(int num) {
       _counter++;
@@ -169,9 +173,45 @@ private:
 
     virtual bool hasData() { return _counter!=0; }
 
-    string _name;
     int _counter;
     int _sum;
+  };
+  struct HistogramObserver : public BaseObserver {
+    HistogramObserver(string name) : BaseObserver(name) {}
+
+    virtual void onInt(int num) {
+      unsigned* pCtr;
+      _counts.getValuePtr(num,pCtr,0);
+      (*pCtr)++;
+    }
+
+    virtual void reset() { _counts.reset(); }
+    virtual void displayCaption(ostream& out) { out << "histogram of " << _name; }
+    virtual void displayData(ostream& out) {
+      CALL("Logging::Impl::HistogramObserver::displayData");
+      static Stack<int> dom;
+      dom.reset();
+      dom.loadFromIterator(_counts.domain());
+      std::sort(dom.begin(),dom.end());
+      bool first = true;
+      Stack<int>::BottomFirstIterator dit(dom);
+      while(dit.hasNext()) {
+	if(first) {
+	  first = false;
+	}
+	else {
+	  out << ", ";
+	}
+	int el = dit.next();
+	int cnt = _counts.get(el);
+	out << el << ": " << cnt;
+      }
+      out << endl;
+    }
+
+    virtual bool hasData() { return !_counts.isEmpty(); }
+
+    DHMap<int,unsigned> _counts;
   };
 
   struct MetaObserver : public StatObserver {
@@ -280,7 +320,6 @@ private:
       NOT_IMPLEMENTED;
     }
     virtual void displayCaption(ostream& out) {
-      out << "overview of ";
       _inner->displayCaption(out);
       out << " " << _captionSuffix;
     };
@@ -527,6 +566,7 @@ public:
   {
     CALL("Logging::Impl::buildStatObserver");
 
+    string specString(string(tagName)+"@"+observerString);
     StatObserver* res = 0;
 
     char* curr = observerString;
@@ -548,9 +588,9 @@ public:
       if(spec=="ctr") {
 	//simple observer
 	if(res!=0) {
-	  USER_ERROR("simple observer must be the first in the chain");
+	  USER_ERROR("counter observer must be the first in the chain");
 	}
-	res = new SimpleObserver(tagName);
+	res = new CounterObserver(tagName);
       }
       else if(spec=="avg") {
 	if(res!=0) {
@@ -558,11 +598,23 @@ public:
 	}
 	res = new AverageObserver(tagName);
       }
+      else if(spec=="min") {
+	if(res!=0) {
+	  USER_ERROR("minimum observer must be the first in the chain");
+	}
+	res = new ExtremeObserver(tagName, false);
+      }
       else if(spec=="max") {
 	if(res!=0) {
 	  USER_ERROR("maximum observer must be the first in the chain");
 	}
-	res = new MaximumObserver(tagName);
+	res = new ExtremeObserver(tagName, true);
+      }
+      else if(spec=="hist") {
+	if(res!=0) {
+	  USER_ERROR("histogram observer must be the first in the chain");
+	}
+	res = new HistogramObserver(tagName);
       }
       else if(spec=="split+") {
 	if(res==0) {
@@ -604,6 +656,11 @@ public:
     } while(hasNext);
 
     _observers.push(res);
+    TRACE("stat_labels",
+	tout<<"stat: "<<specString<<" - ";
+	res->displayCaption(tout);
+	tout<<endl;
+    );
     return res;
   }
 
@@ -762,6 +819,8 @@ public:
 	<< "        ctr ... counts number of non-integer traces, adds values of integer traces to the counter" << endl
 	<< "        avg ... takes average of integer traces" << endl
 	<< "        max ... takes maximum of integer traces" << endl
+	<< "        min ... takes minimum of integer traces" << endl
+	<< "        hist ... returns histogram of integer traces (for each value a number how many times it occurred)" << endl
 	<< "      modifiers can be following:" << endl
 	<< "        uweight ... converts unit trace into integer trace with the weight of the unit" << endl
 	<< "        clength ... converts unit trace into integer trace with length of the clause" << endl
@@ -970,7 +1029,7 @@ void Logging::statSimple(TagInfoBase& tib)
 void Logging::statInt(TagInfoBase& tib, int val)
 {
   CALL("Logging::statInt");
-  ASS_REP(!tib.intOnly, tib.name);
+  ASS_REP(!tib.unitOnly, tib.name);
 
   TagInfo& ti = static_cast<TagInfo&>(tib);
   Stack<StatObserver*>::ConstIterator oit(ti.statObservers);

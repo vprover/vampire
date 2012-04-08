@@ -65,6 +65,7 @@ void Lib::Timer::ensureTimerInitialized()
 #elif UNIX_USE_SIGALRM
 
 #include <cerrno>
+#include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/time.h>
