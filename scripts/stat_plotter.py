@@ -13,6 +13,7 @@ lblDeclRE = re.compile("^stat: ([^ ]+) - (.+ t[0-9]+)$")
 histogramSpecRE =re.compile("^[^ ]+@hist:[^ ]+$")
 
 tmpDataFile = tempfile.NamedTemporaryFile()
+tmpHistFile = tempfile.NamedTemporaryFile()
 
 useLogScale = False
 vampCmdLine = None

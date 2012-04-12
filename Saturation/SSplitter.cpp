@@ -300,7 +300,7 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
 
   RSTAT_CTR_INC_MANY("ssat_added_by_flush",addedComps.size());
   RSTAT_CTR_INC_MANY("ssat_removed_by_flush",removedComps.size());
-  COND_LOG("sspl_sel",addedComps.isNonEmpty()||removedComps.isNonEmpty(), "flushing changed by addition of SAT clauses");
+  COND_LOG("sspl_sel",addedComps.isNonEmpty()||removedComps.isNonEmpty(), "flushing modified component selection");
   COND_TRACE("sspl_sel_added",addedComps.isNonEmpty(),
       tout << "added:" << endl;
       SplitLevelStack::Iterator cit(addedComps);
@@ -550,7 +550,7 @@ void SSplittingBranchSelector::flush(SplitLevelStack& addedComps, SplitLevelStac
 //
 
 SSplitter::SSplitter()
-: _branchSelector(*this), _flushCounter(0)
+: _branchSelector(*this)
 {
   CALL("SSplitter::SSplitter");
 }
@@ -580,6 +580,7 @@ void SSplitter::init(SaturationAlgorithm* sa)
 
   _flushPeriod = opts.ssplittingFlushPeriod();
   _flushQuotient = opts.ssplittingFlushQuotient();
+  _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
 
   _congruenceClosure = opts.ssplittingCongruenceClosure();
 }
@@ -653,13 +654,12 @@ void SSplitter::onAllProcessed()
 
   bool flushing = false;
   if(_flushPeriod) {
-    _flushCounter++;
     if(_haveBranchRefutation) {
-      _flushCounter = 0;
+      _flushThreshold = _sa->getGeneratedClauseCount()+_flushPeriod;
     }
-    if(_flushCounter>=_flushPeriod && _clausesToBeAdded.isEmpty()) {
+    if(_sa->getGeneratedClauseCount()>=_flushThreshold && _clausesToBeAdded.isEmpty()) {
       flushing = true;
-      _flushCounter = 0;
+      _flushThreshold = _sa->getGeneratedClauseCount()+_flushPeriod;
       _flushPeriod = static_cast<unsigned>(_flushPeriod*_flushQuotient);
     }
   }

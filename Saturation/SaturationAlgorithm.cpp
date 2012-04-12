@@ -98,7 +98,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _bwSimplifiers(0), _splitter(0),
     _propToBDDConv(this),
-    _consFinder(0), _symEl(0), _bddMarkingSubsumption(0), _answerLiteralManager(0)
+    _consFinder(0), _symEl(0), _bddMarkingSubsumption(0), _answerLiteralManager(0),
+    _generatedClauseCount(0)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
@@ -913,6 +914,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   CALL("SaturationAlgorithm::addUnprocessedClause");
   ASS(cl->prop());
 
+  _generatedClauseCount++;
   env.statistics->generatedClauses++;
 
   BDD* bdd=BDD::instance();

@@ -86,6 +86,9 @@ public:
   Ordering& getOrdering() const { return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
 
+  /** Return the number of clauses that entered the passive container */
+  unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
+
   /**
    * if an intermediate clause is derived somewhere, it still needs to be passed to this function
    */
@@ -214,6 +217,12 @@ protected:
    * @c getSosLiteralSelector() function
    */
   ScopedPtr<LiteralSelector> _sosLiteralSelector;
+
+
+  // counters
+
+  /** Number of clauses that entered the unprocessed container */
+  unsigned _generatedClauseCount;
 };
 
 

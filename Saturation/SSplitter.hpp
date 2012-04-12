@@ -259,7 +259,8 @@ private:
    */
   Stack<SplitRecord*> _db;
   DHMap<Clause*,SplitLevel> _compNames;
-  unsigned _flushCounter;
+  /** When this number of generated clauses is reached, it will cause flush */
+  unsigned _flushThreshold;
   /** true if there is a refutation to be added to the SAT solver */
   bool _haveBranchRefutation;
 
