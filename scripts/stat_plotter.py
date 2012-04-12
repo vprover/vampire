@@ -10,7 +10,7 @@ import os
 timeDataRE = re.compile("^(.* t[0-9]+) at ([0-9]+): (.*)$")
 labelRE = re.compile("^(.+) t([0-9]+)$")
 lblDeclRE = re.compile("^stat: ([^ ]+) - (.+ t[0-9]+)$")
-histogramLblRE =re.compile("^stat: [^ ]+@hist:[^ ]+ - (.+ t[0-9]+)$")
+histogramSpecRE =re.compile("^[^ ]+@hist:[^ ]+$")
 
 tmpDataFile = tempfile.NamedTemporaryFile()
 
@@ -74,8 +74,9 @@ def addLabel(specStr,lblStr):
         raise Exception("wrong label format: "+lblStr)
     idx2HumanLabel[nextLblIdx] = lblMO.group(1)
     type = "num"
-    if histogramLblRE.match(specStr):
+    if histogramSpecRE.match(specStr):
         type = "hist"
+        print "histogram: "+specStr
     idxTypes[nextLblIdx] = type
     nextLblIdx = nextLblIdx + 1
     
@@ -99,7 +100,8 @@ def addDataPoint(lbl, t, v):
         timePoints.append(t)
     type = idxTypes[idx]
     if type=="num":
-        data[t][idx]=v
+        if v!="?":
+            data[t][idx]=int(v)
     else:
         raise "not implemented"
 
