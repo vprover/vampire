@@ -10,7 +10,8 @@ import os
 timeDataRE = re.compile("^(.* t[0-9]+) at ([0-9]+): (.*)$")
 labelRE = re.compile("^(.+) t([0-9]+)$")
 lblDeclRE = re.compile("^stat: ([^ ]+) - (.+ t[0-9]+)$")
-histogramSpecRE =re.compile("^[^ ]+@hist:[^ ]+$")
+histogramSpecRE = re.compile("^[^ ]+@hist:[^ ]+$")
+histSegmentRE = re.compile("^([0-9]+): ([0-9]+)")
 
 tmpDataFile = tempfile.NamedTemporaryFile()
 tmpHistFile = tempfile.NamedTemporaryFile()
@@ -88,6 +89,12 @@ def getLblIdx(lbl):
         raise Exception("undeclared label: "+lbl)
     return lblIndexes[lbl]
 
+def readHistData(val):
+    res = {}
+    segments = val.split(",");
+    
+    return None
+
 data = {}
 timePoints = []
 def addDataPoint(lbl, t, v):
@@ -103,6 +110,8 @@ def addDataPoint(lbl, t, v):
     if type=="num":
         if v!="?":
             data[t][idx]=int(v)
+    elif type=="hist":
+        data[t][idx]=readHistData(v)
     else:
         raise "not implemented"
 
