@@ -19,6 +19,11 @@ NameArray::NameArray (const char* array[],int len)
     _array(array)
 
 {
+#if VDEBUG
+  for(int i=1; i<len; i++) {
+    ASS_REP2(strcmp(array[i-1],array[i])<0,array[i-1],array[i]);
+  }
+#endif
 } // NameArray::NameArray
 
 /**
