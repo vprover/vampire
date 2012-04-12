@@ -452,7 +452,7 @@ all:#default make disabled
 
 version.cpp: .svn/entries Makefile
 	echo "//Automatically generated file, see Makefile for details" > version.cpp
-	svn info | grep Revision | sed 's|Revision: \(.*\)|const char* VERSION_STRING = "Vampire 1.8 (revision \1)";|' >> version.cpp
+	svn info | (grep Revision || echo "Revision: unknown") | sed 's|Revision: \(.*\)|const char* VERSION_STRING = "Vampire 1.8 (revision \1)";|' >> version.cpp
 
 ################################################################
 # separate directory for object files implementation
