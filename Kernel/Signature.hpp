@@ -399,13 +399,13 @@ class Signature
   static string key(const string& name,int arity);
 
   /** the number of string constants */
-  bool strings() const {return _strings;}
+  unsigned strings() const {return _strings;}
   /** the number of integer constants */
-  bool integers() const {return _integers;}
+  unsigned integers() const {return _integers;}
   /** the number of rational constants */
-  bool rationals() const {return _rationals;}
+  unsigned rationals() const {return _rationals;}
   /** the number of real constants */
-  bool reals() const {return _reals;}
+  unsigned reals() const {return _reals;}
 
 
   static const unsigned STRING_DISTINCT_GROUP;
@@ -449,13 +449,13 @@ private:
    */
   DHMap<Interpretation, unsigned> _iSymbols;
   /** the number of string constants */
-  bool _strings;
+  unsigned _strings;
   /** the number of integer constants */
-  bool _integers;
+  unsigned _integers;
   /** the number of rational constants */
-  bool _rationals;
+  unsigned _rationals;
   /** the number of real constants */
-  bool _reals;
+  unsigned _reals;
 }; // class Signature
 
 }

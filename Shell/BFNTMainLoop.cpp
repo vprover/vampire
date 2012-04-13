@@ -29,6 +29,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Shell/Property.hpp"
 #include "Shell/TPTP.hpp"
 
 #include "Statistics.hpp"
@@ -80,6 +81,11 @@ BFNTMainLoop::BFNTMainLoop(Problem& prb, const Options& opt)
 void BFNTMainLoop::init()
 {
   CALL("BFNTMainLoop::init");
+
+  _hasSorts = _prb.getProperty()->hasNonDefaultSorts();
+  if(_hasSorts) {
+    return;
+  }
 
   //Putting problem units into the BFNT convertor here may result into
   //one clause appearing in multiple Problem objects. In _prb and then in
@@ -210,6 +216,11 @@ MainLoopResult BFNTMainLoop::spawnChild(size_t modelSize)
 MainLoopResult BFNTMainLoop::runImpl()
 {
   CALL("BFNTMainLoop::runImpl");
+
+  if(_hasSorts) {
+    return MainLoopResult(Statistics::UNKNOWN);
+  }
+
 
   env.timer->makeChildrenIncluded();
 

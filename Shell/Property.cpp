@@ -13,6 +13,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
@@ -55,6 +56,7 @@ Property::Property()
     _maxVariablesInClause(0),
     _props(0),
     _hasInterpreted(false),
+    _hasNonDefaultSorts(false),
     _hasSpecialTermsOrLets(false),
     _hasFormulaItes(false)
 {
@@ -376,10 +378,18 @@ void Property::scan(Literal* lit, bool& isGround)
 {
   CALL("Property::scan(const Literal*...)");
 
-  if (! lit->isEquality()) {
+  if(lit->isEquality()) {
+    if(SortHelper::getEqualityArgumentSort(lit)!=Sorts::SRT_DEFAULT) {
+      _hasNonDefaultSorts = true;
+    }
+  }
+  else {
     int arity = lit->arity();
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
+    }
+    if(!env.signature->getPredicate(lit->functor())->predType()->isAllDefault()) {
+      _hasNonDefaultSorts = true;
     }
   }
 
@@ -430,6 +440,9 @@ void Property::scan(TermList* ts, bool& isGround)
     else { // ts is a reference to a complex term
       Term* t = ts->term();
       scanForInterpreted(t);
+      if(!env.signature->getFunction(t->functor())->fnType()->isAllDefault()) {
+        _hasNonDefaultSorts = true;
+      }
       int arity = t->arity();
       if (arity > _maxFunArity) {
 	_maxFunArity = arity;

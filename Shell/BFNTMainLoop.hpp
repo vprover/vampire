@@ -32,6 +32,10 @@ protected:
 
 private:
 
+  /** If proble has sorts, we set this to true and just terminate with unknown
+   * (at least until we have proper handling of sorts in BFNT) */
+  bool _hasSorts;
+
 #if !COMPILER_MSVC
   void runChild(size_t modelSize) __attribute__((noreturn));
   MainLoopResult spawnChild(size_t modelSize);

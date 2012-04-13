@@ -170,6 +170,8 @@ public:
   bool hasInterpretedOperation(Interpretation i) const { return _interpretationPresence[i]; }
   /** Problem contains an interpreted symbol different from equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
+  /** Problem contains non-default sorts */
+  bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasSpecialTermsOrLets() const { return _hasSpecialTermsOrLets; }
   bool hasFormulaItes() const { return _hasFormulaItes; }
  private:
@@ -241,6 +243,8 @@ public:
 
   /** Problem contains an interpreted symbol different from equality */
   bool _hasInterpreted;
+  /** Problem contains non-default sorts */
+  bool _hasNonDefaultSorts;
   DArray<bool> _interpretationPresence;
 
   bool _hasSpecialTermsOrLets;
