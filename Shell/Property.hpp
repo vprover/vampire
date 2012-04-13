@@ -189,7 +189,7 @@ public:
   void scan(Formula*);
   void scan(TermList* ts,bool& isGround);
   void scan(Literal* lit,bool& isGround);
-
+  void scanSort(unsigned sort);
 
   char axiomTypes() const;
   char goalTypes() const;

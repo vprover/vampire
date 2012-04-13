@@ -365,6 +365,27 @@ void Property::scan(Formula* formula)
 } // Property::scan(const Formula&)
 
 
+void Property::scanSort(unsigned sort)
+{
+  CALL("Property::scanSort");
+
+  if(sort==Sorts::SRT_DEFAULT) {
+    return;
+  }
+  _hasNonDefaultSorts = true;
+  switch(sort) {
+  case Sorts::SRT_INTEGER:
+    addProp(PR_HAS_INTEGERS);
+    break;
+  case Sorts::SRT_RATIONAL:
+    addProp(PR_HAS_RATS);
+    break;
+  case Sorts::SRT_REAL:
+    addProp(PR_HAS_REALS);
+    break;
+  }
+}
+
 /**
  * Scan a literal.
  *
@@ -379,17 +400,16 @@ void Property::scan(Literal* lit, bool& isGround)
   CALL("Property::scan(const Literal*...)");
 
   if(lit->isEquality()) {
-    if(SortHelper::getEqualityArgumentSort(lit)!=Sorts::SRT_DEFAULT) {
-      _hasNonDefaultSorts = true;
-    }
+    scanSort(SortHelper::getEqualityArgumentSort(lit));
   }
   else {
     int arity = lit->arity();
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
     }
-    if(!env.signature->getPredicate(lit->functor())->predType()->isAllDefault()) {
-      _hasNonDefaultSorts = true;
+    PredicateType* type = env.signature->getPredicate(lit->functor())->predType();
+    for(unsigned i=0; i<arity; i++) {
+      scanSort(type->arg(i));
     }
   }
 
@@ -422,7 +442,8 @@ void Property::scan(TermList* ts, bool& isGround)
 {
   CALL("Property::scan(TermList*))");
 
-  Stack<TermList*> stack(64);
+  static Stack<TermList*> stack(64);
+  stack.reset();
 
   for (;;) {
     if (ts->isEmpty()) {
@@ -440,10 +461,13 @@ void Property::scan(TermList* ts, bool& isGround)
     else { // ts is a reference to a complex term
       Term* t = ts->term();
       scanForInterpreted(t);
-      if(!env.signature->getFunction(t->functor())->fnType()->isAllDefault()) {
-        _hasNonDefaultSorts = true;
-      }
+
       int arity = t->arity();
+      FunctionType* type = env.signature->getFunction(t->functor())->fnType();
+      for(int i=0; i<arity; i++) {
+        scanSort(type->arg(i));
+      }
+
       if (arity > _maxFunArity) {
 	_maxFunArity = arity;
       }
