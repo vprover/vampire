@@ -256,6 +256,7 @@ void spiderMode()
   }
   else {
     reportSpiderFail();
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
   }
   env.endOutput();
 } // spiderMode
