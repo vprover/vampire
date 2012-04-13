@@ -885,7 +885,7 @@ SplitLevel SSplitter::addNonGroundComponent(unsigned size, Literal* const * lits
   CALL("SSplitter::addNonGroundComponent");
   ASS_REP(_db.size()%2==0, _db.size());
   ASS_G(size,0);
-  ASS(forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
+  ASS(getOptions().splitPositive() || forAll(getArrayishObjectIterator(lits, size), negPred(isGround))); //none of the literals can be ground
 
   SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
   SplitLevel compName = getNameFromLiteralUnsafe(posLit);
