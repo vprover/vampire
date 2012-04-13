@@ -179,8 +179,15 @@ void Logging::doTagDeclarations()
       PARENT("ig", 1),
       UNIT_TAG);
 
+  DECL("ig_gen",
+      DOC("generation of new clauses"),
+      PARENT("ig", 1));
+
   DECL("ig_sat",
       DOC("traces calls to the SAT solver from inst-gen"),
+      PARENT("ig", 1));
+  DECL("ig_final_sat_model",
+      DOC("satisfiable model given by sat solver that lead to the algorithm termination"),
       PARENT("ig", 1));
   DECL("ig_literal_selection",
       PARENT("ig", 1),

@@ -46,6 +46,7 @@ private:
 
 
   unsigned _nextSatVar;
+  /** Map from positive literals to SAT variable numbers */
   DHMap<Literal*, unsigned> _asgn;
 };
 

@@ -46,7 +46,8 @@ IGAlgorithm::IGAlgorithm(Problem& prb, const Options& opt)
 : MainLoop(prb, opt),
     _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
 	opt.instGenResolutionRatioResolution(), 50),
-    _passive(opt)
+    _passive(opt),
+    _tautologyDeletion(false)
 {
   CALL("IGAlgorithm::IGAlgorithm");
 
@@ -144,7 +145,8 @@ void IGAlgorithm::addClause(Clause* cl)
   TimeCounter tc(TC_INST_GEN_SIMPLIFICATIONS);
 
   cl = _duplicateLiteralRemoval.simplify(cl);
-  cl = _tautologyDeletion.simplify(cl);
+  if(cl) { cl = _tautologyDeletion.simplify(cl); }
+  if(cl) { cl = _trivialInequalityRemoval.simplify(cl); }
   if(!cl) {
     return;
   }
@@ -261,6 +263,11 @@ void IGAlgorithm::tryGeneratingClause(Clause* orig, ResultSubstitution& subst, b
   Clause* res = Clause::fromStack(genLits, orig->inputType(), inf);
   int newAge = max(orig->age(), otherCl->age())+1;
   res->setAge(newAge);
+
+  LOG("ig_gen","inst_gen generated clause:"<<endl
+      <<"  orig:  "<<(*orig)<<endl
+      <<"  other: "<<(*otherCl)<<endl
+      <<"  res:   "<<(*res));
 
   env.statistics->instGenGeneratedClauses++;
   addClause(res);
@@ -613,6 +620,31 @@ MainLoopResult IGAlgorithm::runImpl()
     }
     _doingSatisfiabilityCheck = false;
     if(_unprocessed.isEmpty()) {
+      TRACE("ig_final_sat_model",
+	  tout<<"abc"<<endl;
+	  LiteralIterator litIt = _gnd.groundedLits();
+	  while(litIt.hasNext()) {
+	    Literal* l = litIt.next();
+	    SATLiteral sl = _gnd.ground(l);
+	    ASS_EQ(sl.polarity(),true);
+	    SATSolver::VarAssignment asgn = _satSolver->getAssignment(sl.var());
+	    tout << "asgn: ";
+	    switch(asgn) {
+	    case SATSolver::TRUE:
+	      tout << "1";
+	      break;
+	    case SATSolver::FALSE:
+	      tout << "0";
+	      break;
+	    case SATSolver::DONT_CARE:
+	      tout << "?";
+	      break;
+	    default:
+	      ASSERTION_VIOLATION;
+	    }
+	    tout << " - " << (*l) << endl;
+	  }
+	);
       if(_opt.complete(_prb)) {
 	if(_opt.proof()!=Options::PROOF_OFF) {
 	  if(UIHelper::cascMode) {
@@ -627,7 +659,7 @@ MainLoopResult IGAlgorithm::runImpl()
 	  stringstream modelStm;
 	  bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);
 	  if(modelAvailable) {
-	   env.statistics->model = modelStm.str();
+	    env.statistics->model = modelStm.str();
 	  }
 	}
 	return MainLoopResult(Statistics::SATISFIABLE);

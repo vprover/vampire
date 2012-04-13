@@ -140,6 +140,7 @@ private:
   LiteralSubstitutionTree* _selected;
 
   DuplicateLiteralRemovalISE _duplicateLiteralRemoval;
+  TrivialInequalitiesRemovalISE _trivialInequalityRemoval;
   TautologyDeletionISE _tautologyDeletion;
 };
 

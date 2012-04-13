@@ -193,6 +193,7 @@ MainLoopResult BFNTMainLoop::spawnChild(size_t modelSize)
       return MainLoopResult(Statistics::REFUTATION);
 
     case VAMP_RESULT_STATUS_OTHER_SIGNAL:
+    case VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION:
       INVALID_OPERATION("error in the child process");
 
     case BFNT_CHILD_RESULT_UNKNOWN:
