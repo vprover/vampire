@@ -159,6 +159,11 @@ public:
 
   void collectPredicates(Stack<unsigned>& acc) const;
 
+
+  //debugging functions
+
+  void assertValid();
+
 private:
 
   void initValues();

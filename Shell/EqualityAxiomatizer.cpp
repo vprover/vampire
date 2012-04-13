@@ -59,6 +59,7 @@ void EqualityAxiomatizer::scan(Literal* lit)
   if(lit->isEquality()) {
     unsigned eqSort = SortHelper::getEqualityArgumentSort(lit);
     _eqSorts.insert(eqSort);
+    LOG("pp_ea_eq_sorts","eq sort "<<env.sorts->sortName(eqSort)<<" added because of "<<(*lit));
   }
   else {
     _preds.insert(lit->functor());
@@ -107,7 +108,15 @@ void EqualityAxiomatizer::saturateEqSorts()
     }
   }
 
-  _eqSorts.loadFromIterator(ImplicationSetClosure<unsigned>::Iterator(isc));
+  ImplicationSetClosure<unsigned>::Iterator implIt(isc);
+  while(implIt.hasNext()) {
+    unsigned eqSort = implIt.next();
+    if(_eqSorts.insert(eqSort)) {
+      LOG("pp_ea_eq_sorts","eq sort "<<env.sorts->sortName(eqSort)<<" added by implications");
+    }
+
+  }
+
 }
 
 void EqualityAxiomatizer::scan(UnitList* units)
@@ -117,7 +126,7 @@ void EqualityAxiomatizer::scan(UnitList* units)
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
-    ASS(u->isClause());
+    ASS_REP(u->isClause(),*u);
     Clause::Iterator cit(*static_cast<Clause*>(u));
     while(cit.hasNext()) {
       Literal* lit = cit.next();
@@ -209,10 +218,12 @@ bool EqualityAxiomatizer::getArgumentEqualityLiterals(BaseType* symbolType, Lite
       lits.push(Literal::createEquality(false, v1, v2, sort));
       vars1.push(v1);
       vars2.push(v2);
+      LOG("pp_ea_eq_lit_builder","sort "<<env.sorts->sortName(sort)<<" lead to equality "<<(*lits.top()));
     }
     else {
       vars1.push(v1);
       vars2.push(v1);
+      LOG("pp_ea_eq_lit_builder","sort "<<env.sorts->sortName(sort)<<" did not use equality");
     }
   }
   return lits.isNonEmpty();
@@ -241,7 +252,9 @@ Clause* EqualityAxiomatizer::getFnCongruenceAxiom(unsigned fn)
   unsigned arity = fnSym->arity();
   ASS_G(fnSym->arity(),0); //we've checked for this during collection of function symbols
 
-  ALWAYS(getArgumentEqualityLiterals(fnType, lits, vars1, vars2));
+  if(!getArgumentEqualityLiterals(fnType, lits, vars1, vars2)) {
+    return 0;
+  }
   Term* t1 = Term::create(fn, arity, vars1.begin());
   Term* t2 = Term::create(fn, arity, vars2.begin());
   lits.push(Literal::createEquality(true, TermList(t1), TermList(t2), fnType->result()));

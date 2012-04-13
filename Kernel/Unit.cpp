@@ -254,6 +254,17 @@ string Unit::inferenceAsString(BDDNode* propPart) const
 #endif
 } // Unit::inferenceAsString()
 
+void Unit::assertValid()
+{
+  CALL("Unit::assertValid");
+
+  if(isClause()) {
+    ASS_ALLOC_TYPE(this,"Clause");
+  }
+  else {
+    ASS_ALLOC_TYPE(this,"FormulaUnit");
+  }
+}
 
 std::ostream& Kernel::operator<<(ostream& out, const Unit& u)
 {

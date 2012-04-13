@@ -155,7 +155,7 @@ Clause* Clause::fromClause(Clause* c)
   Inference* inf = new Inference1(Inference::REORDER_LITERALS, c);
   Clause* res = fromIterator(Clause::Iterator(*c), c->inputType(), inf);
 
-  res->setAge(res->age());
+  res->setAge(c->age());
   res->setProp(c->prop());
   res->setSplits(c->splits());
 

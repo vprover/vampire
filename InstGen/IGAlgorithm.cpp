@@ -123,6 +123,7 @@ void IGAlgorithm::init()
     _instGenResolutionRatio.alwaysDoFirst();
   }
 
+  ASSERT_VALID(_prb);
   if(_prb.hasEquality()) {
     EqualityAxiomatizer ea(Options::EP_RSTC);
     ea.apply(_prb);

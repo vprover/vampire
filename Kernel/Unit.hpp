@@ -129,6 +129,10 @@ public:
   inline bool isFromPreprocessing()
   { return !_firstNonPreprocessingNumber || _number<_firstNonPreprocessingNumber; }
 
+
+  void assertValid();
+
+
   static void onPreprocessingEnd();
 
 protected:

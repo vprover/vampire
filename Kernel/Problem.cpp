@@ -30,11 +30,13 @@ namespace Kernel
  * The new object takes ownership of the list @c units.
  */
 Problem::Problem(UnitList* units)
-: _units(units)
+: _units(0)
 {
   CALL("Problem::Problem(UnitList*)");
 
   initValues();
+
+  addUnits(units);
 }
 
 /**
@@ -47,6 +49,8 @@ Problem::Problem(ClauseIterator clauses, bool copy)
 {
   CALL("Problem::Problem(ClauseIterator,bool)");
 
+  initValues();
+
   UnitList* units = 0;
   while(clauses.hasNext()) {
     Clause* cl = clauses.next();
@@ -55,9 +59,8 @@ Problem::Problem(ClauseIterator clauses, bool copy)
     }
     UnitList::push(cl, units);
   }
-  _units = units;
+  addUnits(_units);
 
-  initValues();
 }
 
 Problem::~Problem()
@@ -65,6 +68,8 @@ Problem::~Problem()
   CALL("Problem::~Problem");
 
   if(_property) { delete _property; }
+
+  //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
 }
 
 /**
@@ -96,6 +101,13 @@ void Problem::addUnits(UnitList* newUnits)
 {
   CALL("Problem::addUnits");
 
+  UnitList::Iterator uit(newUnits);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    if(u->isClause()) {
+      static_cast<Clause*>(u)->incRefCnt();
+    }
+  }
   _units = UnitList::concat(newUnits, _units);
   if(_propertyValid) {
     TimeCounter tc(TC_PROPERTY_EVALUATION);
@@ -154,9 +166,8 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
 {
   CALL("Problem::copy/2");
 
-  UnitList* newUnits;
   if(copyClauses) {
-    newUnits = 0;
+    UnitList* newUnits = 0;
     UnitList::Iterator uit(units());
     while(uit.hasNext()) {
       Unit* u = uit.next();
@@ -389,6 +400,21 @@ void Problem::collectPredicates(Stack<unsigned>& acc) const
   while(uit.hasNext()) {
     Unit* u = uit.next();
     u->collectPredicates(acc);
+  }
+}
+
+///////////////////////
+// debugging
+//
+
+void Problem::assertValid()
+{
+  CALL("Problem::assertValid");
+
+  UnitList::Iterator uit(units());
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    ASSERT_VALID(*u);
   }
 }
 

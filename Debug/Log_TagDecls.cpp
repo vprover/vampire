@@ -572,6 +572,12 @@ void Logging::doTagDeclarations()
   DECL("pp_ea",
       DOC("equality_axiomatizer"),
       PARENT("pp",1));
+  DECL("pp_ea_eq_sorts",
+      DOC("sorts used in equality axiomatizer"),
+      PARENT("pp_ea",1));
+  DECL("pp_ea_eq_lit_builder",
+      DOC("builder of equality literals"),
+      PARENT("pp_ea",1));
 
   DECL("pp_ed",
       DOC("equivalence discovery"),
