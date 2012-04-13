@@ -14,6 +14,7 @@
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
@@ -160,21 +161,13 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     }
   }
 
-  unsigned namingPred=env.signature->addNamePredicate(minDeg);
+  static Stack<TermList> args;
+  args.reset();
+  static Stack<unsigned> argSorts;
+  argSorts.reset();
 
-  if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
-    ASS_EQ(mdvColor, otherColor);
-    env.signature->getPredicate(namingPred)->addColor(mdvColor);
-  }
-
-  if(env.colorUsed && cl->skip()) {
-    env.signature->getPredicate(namingPred)->markSkip();
-  }
-
-
-  static DArray<TermList> args(8);
-  args.ensure(minDeg);
-  unsigned nnext=0;
+  DHMap<unsigned,unsigned> varSorts;
+  SortHelper::collectVariableSorts(cl, varSorts);
 
   DHMultiset<unsigned>::SetIterator nivit(degrees); //iterating just over non-isolated vars
   while(nivit.hasNext()) {
@@ -189,12 +182,30 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
       found=connections.find(make_pair(var, minDegVar));
     }
     if(found) {
-      args[nnext++]=TermList(var, false);
+      args.push(TermList(var, false));
+      argSorts.push(varSorts.get(var));
     }
   }
-  Literal* pnLit=Literal::create(namingPred, minDeg, true, false, args.array());
+
+
+  unsigned namingPred=env.signature->addNamePredicate(minDeg);
+  BaseType* npredType = BaseType::makeType(minDeg, argSorts.begin(), Sorts::SRT_BOOL);
+  env.signature->getPredicate(namingPred)->setType(npredType);
+
+  if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
+    ASS_EQ(mdvColor, otherColor);
+    env.signature->getPredicate(namingPred)->addColor(mdvColor);
+  }
+  if(env.colorUsed && cl->skip()) {
+    env.signature->getPredicate(namingPred)->markSkip();
+  }
+
+
+
+  ASS_EQ(args.size(), minDeg);
+  Literal* pnLit=Literal::create(namingPred, minDeg, true, false, args.begin());
   mdvLits.push(pnLit);
-  Literal* nnLit=Literal::create(namingPred, minDeg, false, false, args.array());
+  Literal* nnLit=Literal::create(namingPred, minDeg, false, false, args.begin());
   otherLits.push(nnLit);
 
   Clause* mdvCl=Clause::fromStack(mdvLits, cl->inputType(), new Inference(Inference::GENERAL_SPLITTING_COMPONENT));
