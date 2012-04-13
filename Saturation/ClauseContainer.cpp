@@ -80,8 +80,10 @@ void RandomAccessClauseContainer::detach()
 
 UnprocessedClauseContainer::~UnprocessedClauseContainer()
 {
+  CALL("UnprocessedClauseContainer::~UnprocessedClauseContainer");
+
   while(!_data.isEmpty()) {
-    Clause* cl=_data.pop();
+    Clause* cl=_data.pop_back();
     ASS_EQ(cl->store(), Clause::UNPROCESSED);
     cl->setStore(Clause::NONE);
   }
@@ -89,13 +91,17 @@ UnprocessedClauseContainer::~UnprocessedClauseContainer()
 
 void UnprocessedClauseContainer::add(Clause* c)
 {
-  _data.push(c);
+  CALL("UnprocessedClauseContainer::add");
+
+  _data.push_back(c);
   addedEvent.fire(c);
 }
 
 Clause* UnprocessedClauseContainer::pop()
 {
-  Clause* res=_data.pop();
+  CALL("UnprocessedClauseContainer::pop");
+
+  Clause* res=_data.pop_back();
   selectedEvent.fire(res);
   return res;
 }

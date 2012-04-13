@@ -11,6 +11,7 @@
 
 #include "Lib/Event.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/Deque.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Limits.hpp"
@@ -88,7 +89,7 @@ public:
   bool isEmpty() const
   { return _data.isEmpty(); }
 private:
-  Stack<Clause*> _data;
+  Deque<Clause*> _data;
 };
 
 class PassiveClauseContainer

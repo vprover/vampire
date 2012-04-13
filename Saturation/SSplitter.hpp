@@ -38,36 +38,6 @@ class SSplitter;
 
 /**
  * Object that decides which splitting components are to be selected
- *
- * Algorithm for updating component selection:
- *
- * - Put newly added clauses into SAT solver.
- * - Put newly added clauses which contain at least one positive literal into
- *   _unprocessed.
- * - If SAT solver got unsatisfiable, throw refutation.
- * - Deselect all components that were assigned false in the SAT model,
- *   empty their _watcher stacks into _unprocessed.
- * - Go through _unprocessed and:
- *   - If clause is satisfied by the selection assignment, move it to _watcher
- *   - Otherwise pick a positive literal true in the SAT model, make it selected
- *     and mode clause to its watcher. Clauses that became unsatisfied due to this
- *     should be moved to _unprocessed.
- *
- * This algorithm will terminate because inside the loop we only select additional
- * components (not deselect them) -- there can be therefore only finite number of
- * steps.
- *
- * It is guaranteed that we can always pick a positive literal true in the SAT model.
- * It is due to the fact that the SAT model satisfies all the clauses and that we never
- * select component false in the SAT model.
- *
- *
- * Selection sweep:
- *
- * We want to have as little selected components as possible. We may therefore traverse
- * through the stacks of the _watcher, and if there is a selected component whose watcher
- * is empty (or can be made empty by moving all clauses to other watchers), we can
- * deselect the component.
  */
 class SSplittingBranchSelector {
 public:
@@ -87,29 +57,9 @@ private:
   void handleSatRefutation(SATClause* ref);
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
-//
-//  void select(SplitLevel var);
-//  void deselectByModel(SplitLevelStack& removedComps);
-//  void fixUnprocessed(SplitLevelStack& addedComps);
-//
-//  bool hasAlternativeSelection(SATClause* cl, SplitLevel forbidden);
-//
-//  void sweep(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
-//  template<class It>
-//  void sweepVars(It varsToSweep, SplitLevelStack& sweptAway);
-//
-//  bool tryAddingToWatch(SATClause* cl);
-//
-//  SplitLevel getVarToSelect(SATClause* cl);
-//
-//  static bool hasPositiveLiteral(SATClause* cl);
-//
-//  bool isSatisfiedBySelection(SATLiteral lit);
-//
-//
+
   //options
   bool _eagerRemoval;
-//  Options::SSplittingComponentSweeping _sweepingMode;
 
   SSplitter& _parent;
 
@@ -117,28 +67,10 @@ private:
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
 
-//  /**
-//   * Clauses of which we yet need to ensure they are satisfied
-//   *
-//   * Invariant: outside of addSatClauses the stack is empty.
-//   */
-//  SATClauseStack _unprocessed;
-//
   /**
    * Contains selected component names
    */
   ArraySet _selected;
-//
-//  /**
-//   * Array of clauses kept satisfied by selecting or non-selecting
-//   * a particular variable
-//   *
-//   * Invariant to hold outside of addSatClauses:
-//   * All added clauses that contain at least one positive literal
-//   * are added into the wather. Each such clause occurrs here exactly
-//   * once.
-//   */
-//  DArray<SATClauseStack> _watcher;
 };
 
 /**
