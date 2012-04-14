@@ -11,10 +11,10 @@ timeDataRE = re.compile("^(.* t[0-9]+) at ([0-9]+): (.*)$")
 labelRE = re.compile("^(.+) t([0-9]+)$")
 lblDeclRE = re.compile("^stat: ([^ ]+) - (.+ t[0-9]+)$")
 histogramSpecRE = re.compile("^[^ ]+@hist:[^ ]+$")
-histSegmentRE = re.compile("^([0-9]+): ([0-9]+)")
+histSegmentRE = re.compile("^ *([0-9]+): ([0-9]+)")
 
 tmpDataFile = tempfile.NamedTemporaryFile()
-tmpHistFile = tempfile.NamedTemporaryFile()
+tmpHistFiles = []
 
 useLogScale = False
 vampCmdLine = None
@@ -60,6 +60,8 @@ idx2HumanLabel = {}
 #   num  - usual numbers
 #   hist - histograms
 idxTypes = {}
+histIndexes = []
+histTmpFiles = {}
 
 def addLabel(specStr,lblStr):
     global nextLblIdx
@@ -69,18 +71,25 @@ def addLabel(specStr,lblStr):
     global idxTypes
     if lblStr in lblIndexes:
         raise Exception("duplicate label: "+lblStr)
-    lblIndexes[lblStr] = nextLblIdx
-    idxLbls[nextLblIdx] = lblStr
+    
+    newIdx = nextLblIdx
+    nextLblIdx = nextLblIdx + 1
+     
+    lblIndexes[lblStr] = newIdx
+    idxLbls[newIdx] = lblStr
     lblMO = labelRE.match(lblStr)
     if not lblMO:
         raise Exception("wrong label format: "+lblStr)
-    idx2HumanLabel[nextLblIdx] = lblMO.group(1)
+    idx2HumanLabel[newIdx] = lblMO.group(1)
     type = "num"
     if histogramSpecRE.match(specStr):
         type = "hist"
-        print "histogram: "+specStr
-    idxTypes[nextLblIdx] = type
-    nextLblIdx = nextLblIdx + 1
+        histIndexes.append(newIdx)
+        #histTmpFiles[newIdx] = tempfile.NamedTemporaryFile()
+        histTmpFiles[newIdx] = open("/work/Dracula/pdata.txt","w")
+        
+    idxTypes[newIdx] = type
+    
     
 
 def getLblIdx(lbl):
@@ -91,10 +100,21 @@ def getLblIdx(lbl):
 
 def readHistData(val):
     res = {}
+    if val=="":
+        return res
     segments = val.split(",");
-    
-    return None
+    for seg in segments:
+        mo = histSegmentRE.match(seg)
+        if not mo:
+            raise Exception("invalid segment: \""+seg+"\" in "+val)
+        key = int(mo.group(1))
+        ctr = int(mo.group(2))
+        if key in res:
+            raise Exception("duplicate key "+key+" in "+val)
+        res[key]=ctr
+    return res
 
+#map from time points to map from indexes to data
 data = {}
 timePoints = []
 def addDataPoint(lbl, t, v):
@@ -115,25 +135,62 @@ def addDataPoint(lbl, t, v):
     else:
         raise "not implemented"
 
-def updateDataFile():
-    """If the data rows aren't complete, returns False and the content of the file is undefined"""
+def outputHistFile(idx,f):
+    global data
+    global timePoints
+    dom = set()
+    for t in timePoints:
+        if idx not in data[t]:
+            continue
+        distr = data[t][idx]
+        dom.update(distr.keys())
+    domEls = []
+    domEls.extend(dom)
+    domEls.sort()
+    
+    f.seek(0)
+    f.truncate()
+    for el in domEls:
+        for t in timePoints:
+            if idx not in data[t]:
+                continue
+            distr = data[t][idx]
+            if el in distr:
+                f.write(str(distr[el])+"\t")
+            else:
+                f.write("0\t")
+        f.write("\n")
+    f.flush()
+
+def updateDataFiles():
+    """populate data files for graphs and histograms"""
     global tmpDataFile
     global data
     global timePoints
     global nextLblIdx
+    global histIndexes
+    global histTmpFiles
+    global idxTypes
     tmpDataFile.truncate(0)
     for t in timePoints:
         tmpDataFile.write(str(t))
         dataLine = data[t]
         for idx in range(0,nextLblIdx):
             val = None
-            if idx not in dataLine:
+            if idxTypes[idx]!="num":
+                val = "?"
+            elif idx not in dataLine:
                 val = "?"
             else:
                 val = dataLine[idx]
             tmpDataFile.write("\t"+str(val))
         tmpDataFile.write("\n")
     tmpDataFile.flush()
+    
+    for hidx in histIndexes:
+        tf = histTmpFiles[hidx]
+        outputHistFile(hidx, tf)
+        tf.flush()
 
 gnuplotProc = subprocess.Popen(["gnuplot"], bufsize=1, stdin=subprocess.PIPE, shell=True)
 
@@ -162,10 +219,19 @@ def buildPlotCommand(idxList):
     gpCmd += "\n"
     return gpCmd
     
+def buildHistPlotCommand(idx):
+    global histTmpFiles
+    global idx2HumanLabel
+    fname = histTmpFiles[idx].name
+    title = idx2HumanLabel[idx]
+    res = "plot \""+fname+"\" matrix with image title \""+title+"\""
+    res += "\n"
+    return res
 
 def buildSimplePlotScript():
     global nextLblIdx
-    return buildPlotCommand(range(0,nextLblIdx))
+    global idxTypes
+    return buildPlotCommand([x for x in range(0,nextLblIdx) if idxTypes[x]=="num" ])
 
 def buildGroupPlotScript():
     global plotGroups
@@ -179,6 +245,8 @@ def buildGroupPlotScript():
 
 def buildPlotScript():
     global plotGroups
+    if histIndexes:
+        return buildHistPlotCommand(histIndexes[0])
     if plotGroups:
         return buildGroupPlotScript()
     else:
@@ -188,11 +256,10 @@ def redrawGnuplot():
     global gnuplotProc
     
     gpCmd = buildPlotScript()
+    #print gpCmd
     gnuplotProc.stdin.write(gpCmd)
     gnuplotProc.stdin.flush()
     
-    #subprocess.call(["cat",tmpDataFile.name])
-
 vampProc = subprocess.Popen(vampCmdLine, bufsize=1, stderr=subprocess.PIPE)
 
 lastUpdateTime = None
@@ -217,12 +284,12 @@ while True:
     curTime = time.time()
     if len(timePoints)>3:
         if lastUpdateTime==None or curTime-lastUpdateTime>0.3:
-            updateDataFile()
+            updateDataFiles()
             redrawGnuplot()
             lastUpdateTime = curTime
 
 
-updateDataFile()
+updateDataFiles()
 redrawGnuplot()
 
 time.sleep(0.25)
