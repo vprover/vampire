@@ -9,6 +9,7 @@
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/MultiCounter.hpp"
 
 #include "Kernel/Clause.hpp"

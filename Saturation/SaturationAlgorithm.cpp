@@ -582,7 +582,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     }
   }
 
-  if(_opt.sos() && cl->inputType()==Clause::AXIOM) {
+  if(_opt.sos() != Options::SOS_OFF && cl->inputType()==Clause::AXIOM) {
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -598,7 +598,7 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
 {
   CALL("SaturationAlgorithm::getSosLiteralSelector");
 
-  if(_opt.fullSelectionForSOS()) {
+  if(_opt.sos() == Options::SOS_ALL) {
     if(!_sosLiteralSelector) {
       _sosLiteralSelector = new TotalLiteralSelector(getOrdering(), getOptions());
     }

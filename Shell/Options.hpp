@@ -79,7 +79,6 @@ public:
     FORWARD_SUBSUMPTION,
     FORWARD_SUBSUMPTION_RESOLUTION,
     /** All literals of set-of-support clauses will be selected */
-    FULL_SELECTION_FOR_SOS,
     FUNCTION_DEFINITION_ELIMINATION,
 
     GENERAL_SPLITTING,
@@ -428,6 +427,11 @@ public:
     SSNS_NONE = 3
   };
 
+  enum Sos {
+    SOS_ALL = 0,
+    SOS_OFF = 1,
+    SOS_ON = 2
+  };
 
 public:
   Options ();
@@ -558,9 +562,8 @@ public:
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion; }
   float nongoalWeightCoefficient() const { return _nongoalWeightCoefficient; }
   bool setNongoalWeightCoefficient(float newVal);
-  bool sos() const { return _sos; }
-  void setSos(bool newVal) { _sos = newVal; }
-  bool fullSelectionForSOS() const { return _fullSelectionForSOS; }
+  Sos sos() const { return _sos; }
+  void setSos(Sos newVal) { _sos = newVal; }
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination; }
   bool outputAxiomNames() const { return _outputAxiomNames; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames = newVal; }
@@ -726,7 +729,6 @@ private:
   bool _forwardLiteralRewriting;
   bool _forwardSubsumption;
   bool _forwardSubsumptionResolution;
-  bool _fullSelectionForSOS;
   FunctionDefinitionElimination _functionDefinitionElimination;
 
   RuleActivity _generalSplitting;
@@ -831,7 +833,7 @@ private:
   bool _smtlibConsiderIntsReal;
   bool _smtlibFletAsDefinition;
   bool _smtlibIntroduceAIGNames;
-  bool _sos;
+  Sos _sos;
   bool _splitAddGroundNegation;
   bool _splitAtActivation;
   bool _splitGoalOnly;

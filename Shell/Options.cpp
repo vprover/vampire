@@ -62,6 +62,7 @@ public:
   static const char* _satRestartStrategyValues[];
   static const char* _satVarSelectorValues[];
   static const char* _satClauseDisposerValues[];
+  static const char* _sosValues[];
   static const char* _sSplittingComponentSweepingValues[];
   static const char* _sSplittingAddComplementaryValues[];
   static const char* _sSplittingNonsplittableComponentsValues[];
@@ -93,6 +94,7 @@ public:
   static NameArray satRestartStrategyValues;
   static NameArray satVarSelectorValues;
   static NameArray satClauseDisposerValues;
+  static NameArray sosValues;
   static NameArray sSplittingComponentSweepingValues;
   static NameArray sSplittingAddComplementaryValues;
   static NameArray sSplittingNonsplittableComponentsValues;
@@ -139,7 +141,6 @@ const char* Options::Constants::_optionNames[] = {
   "forward_literal_rewriting",
   "forward_subsumption",
   "forward_subsumption_resolution",
-  "full_selection_for_sos",
   "function_definition_elimination",
 
   "general_splitting",
@@ -617,6 +618,13 @@ const char* Options::Constants::_satClauseDisposerValues[] = {
 NameArray Options::Constants::satClauseDisposerValues(_satClauseDisposerValues,
 					  sizeof(_satClauseDisposerValues)/sizeof(char*));
 
+const char* Options::Constants::_sosValues[] = {
+  "all",
+  "off",
+  "on"};
+NameArray Options::Constants::sosValues(_sosValues,
+					sizeof(_sosValues)/sizeof(char*));
+
 const char* Options::Constants::_sSplittingComponentSweepingValues[] = {
   "all",
   "iterated",
@@ -684,7 +692,6 @@ Options::Options ()
   _forwardLiteralRewriting(false),
   _forwardSubsumption(true),
   _forwardSubsumptionResolution(true),
-  _fullSelectionForSOS(false),
   _functionDefinitionElimination(FDE_ALL),
 
   _generalSplitting(RA_OFF),
@@ -789,7 +796,7 @@ Options::Options ()
   _smtlibConsiderIntsReal(false),
   _smtlibFletAsDefinition(false),
   _smtlibIntroduceAIGNames(true),
-  _sos(false),
+  _sos(SOS_OFF),
   _splitAddGroundNegation(true),
   _splitAtActivation(false),
   _splitGoalOnly(false),
@@ -999,9 +1006,6 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case FORWARD_SUBSUMPTION_RESOLUTION:
       _forwardSubsumptionResolution = onOffToBool(value,name);
-      return;
-    case FULL_SELECTION_FOR_SOS:
-      _fullSelectionForSOS = onOffToBool(value,name);
       return;
     case FUNCTION_DEFINITION_ELIMINATION:
       _functionDefinitionElimination =
@@ -1385,7 +1389,7 @@ void Options::set(const char* name,const char* value, int index)
       _smtlibIntroduceAIGNames = onOffToBool(value,name);
       return;
     case SOS:
-      _sos = onOffToBool(value,name);
+      _sos = (Sos)Constants::sosValues.find(value);
       return;
     case SPLIT_ADD_GROUND_NEGATION:
       _splitAddGroundNegation = onOffToBool(value,name);
@@ -1886,9 +1890,6 @@ void Options::outputValue (ostream& str,int optionTag) const
   case FORWARD_SUBSUMPTION_RESOLUTION:
     str << boolToOnOff(_forwardSubsumptionResolution);
     return;
-  case FULL_SELECTION_FOR_SOS:
-    str << boolToOnOff(_fullSelectionForSOS);
-    return;
   case FUNCTION_DEFINITION_ELIMINATION:
     str << Constants::fdeValues[_functionDefinitionElimination];
     return;
@@ -2165,7 +2166,7 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_smtlibIntroduceAIGNames);
     return;
   case SOS:
-    str << boolToOnOff(_sos);
+    str << Constants::sosValues[_sos];
     return;
   case SPLIT_ADD_GROUND_NEGATION:
     str << boolToOnOff(_splitAddGroundNegation);
@@ -2790,7 +2791,7 @@ bool Options::complete(const Problem& prb) const
   }
 
   // preprocessing for resolution-based algorithms
-  if (_sos) return false;
+  if (_sos != SOS_OFF) return false;
   // run-time rule causing incompleteness
   if (_forwardLiteralRewriting) return false;
   
@@ -2846,7 +2847,7 @@ bool Options::completeForNNE() const
   }
 
   // preprocessing for resolution-based algorithms
-  if (_sos) return false;
+  if (_sos != SOS_OFF) return false;
   // run-time rule causing incompleteness
   if (_forwardLiteralRewriting) return false;
   
