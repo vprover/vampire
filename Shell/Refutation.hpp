@@ -25,8 +25,11 @@ class Refutation
 public:
   Refutation(Unit* unit,bool detailed);
   void output(ostream&);
-  
-  static Comparison compare(Unit* u1,Unit* u2);
+
+  /** equality function, required for hashing units */
+  inline static bool equals(const Unit* u1,const Unit* u2)
+  { return (void*)u1 == (void*)u2; }
+  static unsigned hash(Unit*);
 private:
   /** The last unit of the refutation  */
   Unit* _goal;

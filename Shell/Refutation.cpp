@@ -9,7 +9,6 @@
 #include "Lib/Hash.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/Sort.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
@@ -30,8 +29,9 @@ void Refutation::output(ostream& str)
 {
   CALL("Refutation::output");
 
-  Stack<Unit*> units;
-  Set<Unit*> done;
+  Stack<Unit*> units(128);
+  Set<Unit*,Refutation> done;
+
   units.push(_goal);
   while (! units.isEmpty()) {
     Unit* unit = units.pop();
@@ -39,24 +39,17 @@ void Refutation::output(ostream& str)
       continue;
     }
     done.insert(unit);
+    str << unit->toString() << "\n";
     Inference* inf = unit->inference();
     Inference::Iterator it = inf->iterator();
     while (inf->hasNext(it)) {
       units.push(inf->next(it));
     }
   }
-  sort<Refutation,Unit*>(units.begin(),units.end());
-  do {
-    // str << units.pop()->toString() << "\n";
-  }
-  while (!units.isEmpty());
 } // Refutation::Output
 
-/**
- * Unit comparison using their numbers, required to sort units.
- * @since 04/11/2011 Elba
- */
-Comparison Refutation::compare(Unit* u1,Unit* u2)
+/** hash function, required for hashing units */
+unsigned Refutation::hash (Unit* unit)
 {
-  return u1->number() < u2->number() ? LESS : u1 == u2 ? EQUAL : GREATER;
-} // Refutation::compare
+  return Hash::hash(reinterpret_cast<void*>(unit));
+}

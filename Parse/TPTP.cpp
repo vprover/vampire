@@ -1979,32 +1979,16 @@ void TPTP::endTerm()
   }
   Term* t = new(arity) Term;
   t->makeSymbol(fun,arity);
-  Signature::Symbol* symb = env.signature->getFunction(fun);
-  FunctionType* funType = symb->fnType();
-  int errorArg = -1;
-  unsigned argSort;
-  unsigned funSort;
   bool safe = true;
   for (int i = arity-1;i >= 0;i--) {
     TermList ss = _termLists.pop();
     *(t->nthArgument(i)) = ss;
     safe = safe && ss.isSafe();
-    if (funType->arg(i) != sortOf(ss)) {
-      errorArg = i;
-      funSort = funType->arg(i);
-      argSort = sortOf(ss);
-    }
   }
   if (safe) {
     t = env.sharing->insert(t);
   }
   ts.setTerm(t);
-  if (errorArg != -1) {
-    USER_ERROR((string)"argument " + Int::toString(errorArg+1) + " of function " +
-	       symb->name() + " is of the sort " + env.sorts->sortName(funSort) +
-	       " but it is used with the sort " + env.sorts->sortName(argSort) +
-	       " in " + ts.toString());
-  }
   _termLists.push(ts);
 } // endTerm
 
@@ -2045,63 +2029,21 @@ void TPTP::midAtom()
 	return;
       }
       // not equality
-      Signature::Symbol* symb = env.signature->getPredicate(pred);
-      PredicateType* predType = symb->predType();
-      int errorArg = -1;
-      unsigned argSort;
-      unsigned predSort;
       Literal* lit = new(arity) Literal(pred,arity,true,false);
       bool safe = true;
       for (int i = arity-1;i >= 0;i--) {
 	TermList ts = _termLists.pop();
 	safe = safe && ts.isSafe();
 	*(lit->nthArgument(i)) = ts;
-	if (predType->arg(i) != sortOf(ts)) {
-	  errorArg = i;
-	  predSort = predType->arg(i);
-	  argSort = sortOf(ts);
-	}
       }
       if (safe) {
 	lit = env.sharing->insert(lit);
-      }
-      if (errorArg != -1) {
-	USER_ERROR((string)"argument " + Int::toString(errorArg+1) + " of predicate " +
-		   symb->name() + " is of the sort " + env.sorts->sortName(predSort) +
-		   " but it is used with the sort " + env.sorts->sortName(argSort) +
-		   " in " + lit->toString());
       }
       _formulas.push(new AtomicFormula(lit));
       return;
     }
   }
 } // midAtom
-
-  // Signature::Symbol* symb = env.signature->getFunction(fun);
-  // FunctionType* funType = symb->fnType();
-  // int errorArg = -1;
-  // unsigned argSort;
-  // unsigned funSort;
-  // for (int i = arity-1;i >= 0;i--) {
-  //   TermList ss = _termLists.pop();
-  //   *(t->nthArgument(i)) = ss;
-  //   safe = safe && ss.isSafe();
-  //   if (funType->arg(i) != sortOf(ss)) {
-  //     errorArg = i;
-  //     funSort = funType->arg(i);
-  //     argSort = sortOf(ss);
-  //   }
-  // }
-  // if (safe) {
-  //   t = env.sharing->insert(t);
-  // }
-  // ts.setTerm(t);
-  // if (errorArg != -1) {
-  //   USER_ERROR((string)"argument " + Int::toString(errorArg) + " of function " +
-  // 	       symb->name() + " is of the sort " + env.sorts->sortName(funSort) +
-  // 	       " but it is used with the sort " + env.sorts->sortName(argSort) +
-  // 	       " in " + ts.toString());
-  // }
 
 /**
  * Read after an end of equality or inequality and save the (in)equality formula.
@@ -3413,18 +3355,6 @@ $itett
 $itetf
 
 $distinct
-
-you shold see Zocalo
-25/11/2011 22:22
-and Teotihuacan
-coolresearch 25/11/2011 22:22 
-We can talk at MICAI
-25/11/2011 22:22
-I will remember this
-Gelbukh, Alexander 25/11/2011 22:22 
-Zocalo is the city center,
-25/11/2011 22:22
-Teotihuacan are pyramids 1 hour by bus from the city
 */
 
 

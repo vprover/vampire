@@ -422,7 +422,7 @@ private:
   UnitStack _units;
   /** stack of unprocessed states */
   Stack<State> _states;
-  /** input type of the last read unit, it must be int since -1 can be used as a value */
+  /** input type of the last read unit */ // it must be int since -1 can be used as a value
   int _lastInputType;
   /** true if the last read unit is a question */ 
   int _isQuestion;
