@@ -33,6 +33,7 @@ namespace Debug
 {
 
 using namespace Lib;
+using namespace Kernel;
 
 Logging::TagDeclTrigger Logging::s_trigger;
 
@@ -262,15 +263,33 @@ private:
     }
   };
 
+  struct ClauseSplitObserver : public MetaObserver {
+    ClauseSplitObserver(StatObserver* inner) : MetaObserver(inner,"clause splits") {}
+
+    virtual void onUnit(Unit* unit) {
+      CALL("Logging::Impl::ClauseSplitObserver::onUnit");
+      if(unit->isClause()) {
+	Clause* cl = static_cast<Clause*>(unit);
+	if(cl->splits()) {
+	  SplitSet::Iterator ssit(*cl->splits());
+	  while(ssit.hasNext()) {
+	    unsigned splitIdx = ssit.next();
+	    _inner->onInt(splitIdx);
+	  }
+	}
+      }
+    }
+  };
+
   struct SplitClauseFilterObserver : public MetaObserver {
     SplitClauseFilterObserver(StatObserver* inner, bool mustHaveSplit)
     : MetaObserver(inner,mustHaveSplit ? "splitted" : "non-splitted"),
       _mustHaveSplit(mustHaveSplit) {}
 
-    virtual void onUnit(Kernel::Unit* unit) {
+    virtual void onUnit(Unit* unit) {
       CALL("Logging::Impl::ClauseLengthObserver::onUnit");
       if(unit->isClause()) {
-	Kernel::Clause* cl = static_cast<Kernel::Clause*>(unit);
+	Clause* cl = static_cast<Clause*>(unit);
 	bool hasSplit = cl->splits() && !cl->splits()->isEmpty();
 	if(_mustHaveSplit==hasSplit) {
 	  _inner->onUnit(unit);
@@ -279,6 +298,24 @@ private:
     }
 
     bool _mustHaveSplit;
+  };
+
+  struct ClauseLengthFilterObserver : public MetaObserver {
+    ClauseLengthFilterObserver(StatObserver* inner, unsigned length)
+    : MetaObserver(inner,"length="+Int::toString(length)),
+      _length(length) {}
+
+    virtual void onUnit(Unit* unit) {
+      CALL("Logging::Impl::ClauseLengthObserver::onUnit");
+      if(unit->isClause()) {
+	Clause* cl = static_cast<Clause*>(unit);
+	if(cl->length()==_length) {
+	  _inner->onUnit(unit);
+	}
+      }
+    }
+
+    unsigned _length;
   };
 
   struct TimedObserver : public MetaObserver {
@@ -628,6 +665,16 @@ public:
 	}
 	res = new SplitClauseFilterObserver(res, false);
       }
+      else if(spec.substr(0,3)=="clf") {
+	if(res==0) {
+	  USER_ERROR("clause length filter cannot be the first in the chain");
+	}
+	unsigned len;
+	if(!Int::stringToUnsignedInt(specStart+3, len)) {
+	  USER_ERROR("invalid clause length filter specification: \""+spec+"\"");
+	}
+	res = new ClauseLengthFilterObserver(res, len);
+      }
       else if(spec=="uweight") {
 	if(res==0) {
 	  USER_ERROR("unit weight observer cannot be the first in the chain");
@@ -639,6 +686,12 @@ public:
 	  USER_ERROR("clause length observer cannot be the first in the chain");
 	}
 	res = new ClauseLengthObserver(res);
+      }
+      else if(spec=="csplits") {
+	if(res==0) {
+	  USER_ERROR("clause split observer cannot be the first in the chain");
+	}
+	res = new ClauseSplitObserver(res);
       }
       else if(*specStart=='t') {
 	if(res==0) {
@@ -820,12 +873,14 @@ public:
 	<< "        avg ... takes average of integer traces" << endl
 	<< "        max ... takes maximum of integer traces" << endl
 	<< "        min ... takes minimum of integer traces" << endl
-	<< "        hist ... returns histogram of integer traces (for each value a number how many times it occurred)" << endl
+	<< "        hist ... displays histogram of integer traces (for each value a number how many times it occurred)" << endl
 	<< "      modifiers can be following:" << endl
 	<< "        uweight ... converts unit trace into integer trace with the weight of the unit" << endl
 	<< "        clength ... converts unit trace into integer trace with length of the clause" << endl
+	<< "        csplits ... converts unit trace into integer trace with split levels on which clause depends" << endl
 	<< "        split+ ... lets through only clauses depending on some splits" << endl
 	<< "        split- ... lets through only clauses not depending on any splits" << endl
+	<< "        clfXXX ... lets through only clauses of length XXX" << endl
 	<< "        tXXX ... can be used as the last modifier, causes the value of the statistic" << endl
 	<< "                 to be output every XXX miliseconds" << endl
 	<< endl

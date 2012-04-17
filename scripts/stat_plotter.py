@@ -65,6 +65,7 @@ idxTypes = {}
 histIndexes = []
 histTmpFiles = {}
 histMaxCounts = {}
+histMaxKeys = {}
 
 def addLabel(specStr,lblStr):
     global nextLblIdx
@@ -94,6 +95,7 @@ def addLabel(specStr,lblStr):
         histTmpFiles[newIdx] = tempfile.NamedTemporaryFile()
         #histTmpFiles[newIdx] = open("/work/Dracula/pdata.txt","w")
         histMaxCounts[newIdx] = 0
+        histMaxKeys[newIdx] = 0
         
     idxTypes[newIdx] = type
     
@@ -107,6 +109,7 @@ def getLblIdx(lbl):
 
 def readHistData(histIdx,val):
     global histMaxCounts
+    global histMaxKeys
     res = {}
     if val=="":
         return res
@@ -122,6 +125,8 @@ def readHistData(histIdx,val):
         res[key]=ctr
         if ctr>histMaxCounts[histIdx]:
             histMaxCounts[histIdx] = ctr
+        if key>histMaxKeys[histIdx]:
+            histMaxKeys[histIdx] = key
     return res
 
 #map from time points to map from indexes to data
@@ -148,15 +153,20 @@ def addDataPoint(lbl, t, v):
 def outputHistFile(idx,f):
     global data
     global timePoints
-    dom = set()
-    for t in timePoints:
-        if idx not in data[t]:
-            continue
-        distr = data[t][idx]
-        dom.update(distr.keys())
-    domEls = []
-    domEls.extend(dom)
-    domEls.sort()
+    global histMaxKeys
+    domEls = None
+    if False:
+        dom = set()
+        for t in timePoints:
+            if idx not in data[t]:
+                continue
+            distr = data[t][idx]
+            dom.update(distr.keys())
+        domEls = []
+        domEls.extend(dom)
+        domEls.sort()
+    else:
+        domEls = range(0,histMaxKeys[idx])
     
     f.seek(0)
     f.truncate()
@@ -210,65 +220,98 @@ if useLogScale:
 def getIndexPlotStatement(idx):
     global idx2HumanLabel
     global tmpDataFile
+    global idxTypes
+
+    assert idxTypes[idx]=="num"
     
     dataIdx = str(idx+2)
     title = idx2HumanLabel[idx]
     return "\""+tmpDataFile.name+"\" using 1:($"+dataIdx+") title \""+title+"\" with linespoints"
     
-
-def buildPlotCommand(idxList):
-    gpCmd = "plot "
-    first = True
-    for idx in idxList:
-        if first:
-            first = False
-        else:
-            gpCmd += ", "
-        gpCmd += getIndexPlotStatement(idx)
-    return [gpCmd]
     
 def buildHistPaletteCmd(idx):
     global histMaxCounts
     maxVal = histMaxCounts[idx]
+    if maxVal<2:
+        return ['set palette defined (0 "white", 1 "black")']
     if maxVal<10:
         return ['set palette defined (0 "white", 1 "black", %d "red")' % maxVal]
     low = math.sqrt(maxVal)
     high = maxVal/2
     return ['set palette defined (0 "white", 1 "black", %d "purple", %d "red", %d "yellow")' % (low, high, maxVal)]
 
+def buildHistRangeCmd(idx):
+    global timePoints
+    global histMaxKeys
+    res = ["set xrange [-0.5:%d]" % (len(timePoints)+0.5),
+           "set yrange [-0.5:%d]" % (histMaxKeys[idx]+0.5)]
+    return res
+
 def buildHistPlotCommand(idx):
     global histTmpFiles
     global idx2HumanLabel
+    global idxTypes
+
+    assert idxTypes[idx]=="hist"
+    
     fname = histTmpFiles[idx].name
     title = idx2HumanLabel[idx]
-    res = buildHistPaletteCmd(idx)
+    res = []
+    res.extend(buildHistPaletteCmd(idx))
+    res.extend(buildHistRangeCmd(idx))
     res.append("plot \""+fname+"\" matrix with image title \""+title+"\"")
     return res
 
-def buildSimplePlotScript():
-    global nextLblIdx
+def buildPlotCommand(idxList):
     global idxTypes
-    return buildPlotCommand([x for x in range(0,nextLblIdx) if idxTypes[x]=="num" ])
-
-def buildGroupPlotScript():
-    global plotGroups
-    res = []
-    res.append("set multiplot layout "+str(len(plotGroups))+",1")
-    res.append("unset title")
     
-    for grp in plotGroups:
-        res.extend(buildPlotCommand(grp))
-    res.append("unset multiplot")
+    if len(idxList)==1 and idxTypes[idxList[0]]=="hist":
+        return buildHistPlotCommand(idxList[0])
+    
+    res = []
+    res.append("set xrange [*:*]")
+    res.append("set yrange [*:*]")
+
+    mainCmd = "plot "
+    first = True
+    for idx in idxList:
+        if idxTypes[idx]=="hist":
+            raise Exception("histogram statistics must be in their own group")
+        if first:
+            first = False
+        else:
+            mainCmd += ", "
+        mainCmd += getIndexPlotStatement(idx)
+    res.append(mainCmd)
+    return res
+
+def buildGroupPlotScript(grps):
+    res = []
+    if len(grps)==1:
+        res.extend(buildPlotCommand(grps[0]))
+    else:
+        res.append("set multiplot layout "+str(len(grps))+",1")
+        res.append("unset title")
+        
+        for grp in grps:
+            res.extend(buildPlotCommand(grp))
+        res.append("unset multiplot")
     return res
 
 def buildPlotScript():
     global plotGroups
+    global nextLblIdx
+    global idxTypes
+    global histIndexes
+    
+    grps = plotGroups
+    if not grps:
+        grps = [[x for x in range(0,nextLblIdx) if idxTypes[x]=="num" ]]
+        if len(grps[0])==0:
+            grps = []
     if histIndexes:
-        return buildHistPlotCommand(histIndexes[0])
-    if plotGroups:
-        return buildGroupPlotScript()
-    else:
-        return buildSimplePlotScript()
+        grps.extend([[x] for x in histIndexes])
+    return buildGroupPlotScript(grps)
 
 def redrawGnuplot():
     global gnuplotProc
