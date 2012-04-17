@@ -6,6 +6,7 @@ import re
 import time
 import tempfile
 import os
+import math
 
 timeDataRE = re.compile("^(.* t[0-9]+) at ([0-9]+): (.*)$")
 labelRE = re.compile("^(.+) t([0-9]+)$")
@@ -62,6 +63,7 @@ idx2HumanLabel = {}
 idxTypes = {}
 histIndexes = []
 histTmpFiles = {}
+histMaxCounts = {}
 
 def addLabel(specStr,lblStr):
     global nextLblIdx
@@ -69,6 +71,9 @@ def addLabel(specStr,lblStr):
     global idxLbls
     global idx2HumanLabel
     global idxTypes
+    global histIndexes
+    global histTmpFiles
+    global histMaxCounts
     if lblStr in lblIndexes:
         raise Exception("duplicate label: "+lblStr)
     
@@ -85,8 +90,9 @@ def addLabel(specStr,lblStr):
     if histogramSpecRE.match(specStr):
         type = "hist"
         histIndexes.append(newIdx)
-        #histTmpFiles[newIdx] = tempfile.NamedTemporaryFile()
-        histTmpFiles[newIdx] = open("/work/Dracula/pdata.txt","w")
+        histTmpFiles[newIdx] = tempfile.NamedTemporaryFile()
+        #histTmpFiles[newIdx] = open("/work/Dracula/pdata.txt","w")
+        histMaxCounts[newIdx] = 0
         
     idxTypes[newIdx] = type
     
@@ -98,7 +104,8 @@ def getLblIdx(lbl):
         raise Exception("undeclared label: "+lbl)
     return lblIndexes[lbl]
 
-def readHistData(val):
+def readHistData(histIdx,val):
+    global histMaxCounts
     res = {}
     if val=="":
         return res
@@ -112,6 +119,8 @@ def readHistData(val):
         if key in res:
             raise Exception("duplicate key "+key+" in "+val)
         res[key]=ctr
+        if ctr>histMaxCounts[histIdx]:
+            histMaxCounts[histIdx] = ctr
     return res
 
 #map from time points to map from indexes to data
@@ -131,7 +140,7 @@ def addDataPoint(lbl, t, v):
         if v!="?":
             data[t][idx]=int(v)
     elif type=="hist":
-        data[t][idx]=readHistData(v)
+        data[t][idx]=readHistData(idx,v)
     else:
         raise "not implemented"
 
@@ -215,17 +224,24 @@ def buildPlotCommand(idxList):
         else:
             gpCmd += ", "
         gpCmd += getIndexPlotStatement(idx)
+    return [gpCmd]
     
-    gpCmd += "\n"
-    return gpCmd
-    
+def buildHistPaletteCmd(idx):
+    global histMaxCounts
+    maxVal = histMaxCounts[idx]
+    if maxVal<10:
+        return ['set palette defined (0 "white", 1 "black", %d "red")' % maxVal]
+    low = math.sqrt(maxVal)
+    high = maxVal/2
+    return ['set palette defined (0 "white", 1 "black", %d "purple", %d "red", %d "yellow")' % (low, high, maxVal)]
+
 def buildHistPlotCommand(idx):
     global histTmpFiles
     global idx2HumanLabel
     fname = histTmpFiles[idx].name
     title = idx2HumanLabel[idx]
-    res = "plot \""+fname+"\" matrix with image title \""+title+"\""
-    res += "\n"
+    res = buildHistPaletteCmd(idx)
+    res.append("plot \""+fname+"\" matrix with image title \""+title+"\"")
     return res
 
 def buildSimplePlotScript():
@@ -235,12 +251,13 @@ def buildSimplePlotScript():
 
 def buildGroupPlotScript():
     global plotGroups
-    res = "set multiplot layout "+str(len(plotGroups))+",1\n"
-    res += "unset title\n"
+    res = []
+    res.append("set multiplot layout "+str(len(plotGroups))+",1")
+    res.append("unset title")
     
     for grp in plotGroups:
-        res += buildPlotCommand(grp)
-    res += "unset multiplot\n"
+        res.extend(buildPlotCommand(grp))
+    res.append("unset multiplot")
     return res
 
 def buildPlotScript():
@@ -255,8 +272,8 @@ def buildPlotScript():
 def redrawGnuplot():
     global gnuplotProc
     
-    gpCmd = buildPlotScript()
-    #print gpCmd
+    gpCmds = buildPlotScript()
+    gpCmd = "\n".join(gpCmds)+"\n"
     gnuplotProc.stdin.write(gpCmd)
     gnuplotProc.stdin.flush()
     
