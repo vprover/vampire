@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys
+import platform
 import subprocess
 import re
 import time
@@ -310,4 +311,8 @@ updateDataFiles()
 redrawGnuplot()
 
 time.sleep(0.25)
+
+if platform.system()=="Linux":
+	sys.stdin.readline()
+
 gnuplotProc.kill()
