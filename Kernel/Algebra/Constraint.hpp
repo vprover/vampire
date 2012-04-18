@@ -31,7 +31,7 @@ class Constraint {
 
   Constraint(Literal* lit, bool negate=false);
 
-  CLASS_NAME("Constraint");
+  CLASS_NAME(Constraint);
   USE_ALLOCATOR(Constraint);
 
   bool simplify();

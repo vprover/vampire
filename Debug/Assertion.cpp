@@ -79,7 +79,8 @@ void Assertion::checkType(const char* file,int line,const void* ptr, const char*
       cout << "Type condition in file " << file << ", line " << line
 	  << " violated:\n" << ptrStr << " was not allocated by Lib::Allocator.\n";
     }
-  } else if( strcmp(assumed, desc->cls) ) {
+  } else if( !USE_PRECISE_CLASS_NAMES && strcmp(assumed, desc->cls) ) {
+    //TODO: the use of precise class names disturpts the check, fix it in the future!
     reportSpiderFail();
     if(outputAllowed()) {
       cout << "Type condition in file " << file << ", line " << line

@@ -271,7 +271,7 @@ public:
   static string ruleName(Rule rule);
   string name() const { return ruleName(_rule); }
 
-  CLASS_NAME("Inference");
+  CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);
 
   /**
@@ -316,7 +316,7 @@ public:
   virtual bool hasNext(Iterator& it);
   virtual Unit* next(Iterator& it);
 
-  CLASS_NAME("Inference1");
+  CLASS_NAME(Inference1);
   USE_ALLOCATOR(Inference1);
 
 protected:
@@ -340,7 +340,7 @@ public:
   virtual bool hasNext(Iterator& it);
   virtual Unit* next(Iterator& it);
 
-  CLASS_NAME("InferenceMany");
+  CLASS_NAME(InferenceMany);
   USE_ALLOCATOR(InferenceMany);
 
 protected:
@@ -370,7 +370,7 @@ public:
   virtual bool hasNext(Iterator& it);
   virtual Unit* next(Iterator& it);
 
-  CLASS_NAME("Inference2");
+  CLASS_NAME(Inference2);
   USE_ALLOCATOR(Inference2);
 
 protected:

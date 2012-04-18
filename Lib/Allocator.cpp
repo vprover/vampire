@@ -102,6 +102,27 @@ Allocator::Descriptor* Allocator::Descriptor::map;
 Allocator::Descriptor* Allocator::Descriptor::afterLast;
 #endif
 
+#if VDEBUG && USE_PRECISE_CLASS_NAMES && defined(__GNUC__)
+
+/**
+ * Function used by a variant of macro CLASS_NAME to obtain a pretty class name
+ * from the content of the __PRETTY_FUNCTION__ variable
+ */
+string Lib::___prettyFunToClassName(std::string str)
+{
+  CALL("___prettyFunToClassName");
+
+  string noPref = str.substr(19);
+  size_t fnNamePos = noPref.find("::className()");
+  string className = noPref.substr(0,fnNamePos);
+  //either empty, or contains one space folowed by values of
+  //template params
+  string templateInfo = noPref.substr(fnNamePos+13);
+  return className+templateInfo;
+}
+
+#endif
+
 /**
  * Create a new allocator.
  * @since 10/01/2008 Manchester

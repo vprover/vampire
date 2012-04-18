@@ -59,7 +59,7 @@ public:
   void unsubscribe();
   bool belongsTo(BaseEvent& evt);
 
-  CLASS_NAME("SubscriptionObject");
+  CLASS_NAME(SubscriptionObject);
   USE_ALLOCATOR(SubscriptionObject);
 private:
   BaseEvent* event;
@@ -102,7 +102,7 @@ protected:
     {
       (pObj->*pMethod)();
     }
-    CLASS_NAME("PlainEvent::MethodSpecificHandlerStruct");
+    CLASS_NAME(PlainEvent::MethodSpecificHandlerStruct<Cls>);
     USE_ALLOCATOR(MethodSpecificHandlerStruct);
   };
 
@@ -153,7 +153,7 @@ protected:
       (pObj->*pMethod)(t);
     }
 
-    CLASS_NAME("SingleParamEvent::MethodSpecificHandlerStruct");
+    CLASS_NAME(MethodSpecificHandlerStruct);
     USE_ALLOCATOR(MethodSpecificHandlerStruct);
   };
 

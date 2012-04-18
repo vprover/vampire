@@ -47,7 +47,7 @@
 //   void writeValue (ostream&) const;
 //   string value;
 
-//   CLASS_NAME("XML::TextXMLAttribute");
+//   CLASS_NAME(XML::TextXMLAttribute);
 //   USE_ALLOCATOR(TextXMLAttribute);
 // }; // class TextXMLAttribute
 
@@ -64,7 +64,7 @@
 //   void writeValue (ostream&) const;
 //   long value;
 
-//   CLASS_NAME("XML::LongXMLAttribute");
+//   CLASS_NAME(XML::LongXMLAttribute);
 //   USE_ALLOCATOR(LongXMLAttribute);
 // }; // class LongXMLAttribute
 
@@ -81,7 +81,7 @@
 //   void writeValue (ostream&) const;
 //   double value;
 
-//   CLASS_NAME("XML::DoubleXMLAttribute");
+//   CLASS_NAME(XML::DoubleXMLAttribute);
 //   USE_ALLOCATOR(DoubleXMLAttribute);
 // }; // class DoubleXMLAttribute
 
@@ -98,7 +98,7 @@
 //   void writeValue (ostream&) const;
 //   unsigned value;
 
-//   CLASS_NAME("XML::UnsignedXMLAttribute");
+//   CLASS_NAME(XML::UnsignedXMLAttribute);
 //   USE_ALLOCATOR(UnsignedXMLAttribute);
 // }; // class UnsignedXMLAttribute
 
@@ -115,7 +115,7 @@
 //   void writeValue (ostream&) const;
 //   int value;
 
-//   CLASS_NAME("XML::IntegerXMLAttribute");
+//   CLASS_NAME(XML::IntegerXMLAttribute);
 //   USE_ALLOCATOR(IntegerXMLAttribute);
 // }; // class IntegerXMLAttribute
 
@@ -160,7 +160,7 @@
 //   void writeContent (ostream&,int indent) const {}
 //   void writeFooter(ostream& str) const {}
 
-//   CLASS_NAME("XML::EmptyXMLElement");
+//   CLASS_NAME(XML::EmptyXMLElement);
 //   USE_ALLOCATOR(EmptyXMLElement);
 // }; // EmptyXMLElement
 
@@ -178,7 +178,7 @@
 //   virtual XMLElement::Type kind() { return XMLElement::TEXT; }
 //   void writeContent (ostream&,int indent) const;
 
-//   CLASS_NAME("XML::TextXMLElement");
+//   CLASS_NAME(XML::TextXMLElement);
 //   USE_ALLOCATOR(TextXMLElement);
 // }; // class TextXMLElement
 
@@ -199,7 +199,7 @@
 
 //   void writeContent (ostream&,int indent) const;
 
-//   CLASS_NAME("XML::DeepXMLElement");
+//   CLASS_NAME(XML::DeepXMLElement);
 //   USE_ALLOCATOR(DeepXMLElement);
 // }; // class DeepXMLElement
 
@@ -217,7 +217,7 @@
 
 //   void writeContent (ostream&,int indent) const;
 
-//   CLASS_NAME("XML::IntegerXMLElement");
+//   CLASS_NAME(XML::IntegerXMLElement);
 //   USE_ALLOCATOR(IntegerXMLElement);
 // }; // class IntegerXMLElement
 
@@ -235,7 +235,7 @@
 
 //   void writeContent (ostream&,int indent) const;
 
-//   CLASS_NAME("XML::LongXMLElement");
+//   CLASS_NAME(XML::LongXMLElement);
 //   USE_ALLOCATOR(LongXMLElement);
 // }; // class LongXMLElement
 
@@ -253,7 +253,7 @@
 
 //   void writeContent (ostream&,int indent) const;
 
-//   CLASS_NAME("XML::FloatXMLElement");
+//   CLASS_NAME(XML::FloatXMLElement);
 //   USE_ALLOCATOR(FloatXMLElement);
 // }; // class FloatXMLElement
 
@@ -272,7 +272,7 @@
 
 //   void writeContent (ostream&,int indent) const;
 
-//   CLASS_NAME("XML::DoubleXMLElement");
+//   CLASS_NAME(XML::DoubleXMLElement);
 //   USE_ALLOCATOR(DoubleXMLElement);
 // }; // class DoubleXMLElement
 

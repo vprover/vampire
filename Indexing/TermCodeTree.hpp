@@ -44,7 +44,7 @@ public:
     inline bool operator!=(const TermInfo& o)
     { return !(*this==o); }
 
-    CLASS_NAME("TermCodeTree::TermInfo");
+    CLASS_NAME(TermCodeTree::TermInfo);
     USE_ALLOCATOR(TermInfo);
 
     TermList t;
@@ -76,7 +76,7 @@ public:
     
     TermInfo* next();
     
-    CLASS_NAME("TermCodeTree::TermMatcher");
+    CLASS_NAME(TermCodeTree::TermMatcher);
     USE_ALLOCATOR(TermMatcher);
   };
 

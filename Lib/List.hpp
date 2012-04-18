@@ -742,8 +742,7 @@ public:
   };
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("List");
-//  CLASS_NAME(typeid(List).name());
+  CLASS_NAME(List);
   USE_ALLOCATOR(List);
 
   /**

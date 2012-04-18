@@ -51,7 +51,7 @@ private:
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
 
-    CLASS_NAME("ClauseCodeTree::RemovingLiteralMatcher");
+    CLASS_NAME(ClauseCodeTree::RemovingLiteralMatcher);
     USE_ALLOCATOR(RemovingLiteralMatcher);
   };
 
@@ -71,7 +71,7 @@ private:
 
     inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
 
-    CLASS_NAME("ClauseCodeTree::LiteralMatcher");
+    CLASS_NAME(ClauseCodeTree::LiteralMatcher);
     USE_ALLOCATOR(LiteralMatcher);
 
   private:
@@ -93,7 +93,7 @@ public:
     bool matched() { return lms.isNonEmpty() && lms.top()->success(); }
     CodeOp* getSuccessOp() { ASS(matched()); return lms.top()->op; }
 
-    CLASS_NAME("ClauseCodeTree::ClauseMatcher");
+    CLASS_NAME(ClauseCodeTree::ClauseMatcher);
     USE_ALLOCATOR(ClauseMatcher);
 
   private:

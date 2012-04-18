@@ -30,7 +30,7 @@ public:
     _derefBindings.reset();
   }
 
-  CLASS_NAME("SubstitutionTree::InstMatcher");
+  CLASS_NAME(SubstitutionTree::InstMatcher);
   USE_ALLOCATOR(InstMatcher);
 
   struct TermSpec

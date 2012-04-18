@@ -21,6 +21,8 @@
 #include <string>
 #endif
 
+#define USE_PRECISE_CLASS_NAMES 0
+
 /** Page size in bytes */
 #define PAGE_SIZE 131000
 /** maximal size of allocated multi-page (in pages) */
@@ -316,8 +318,24 @@ void array_delete(T* array, size_t length)
   { ASS_EQ(sz,sizeof(C)); return Lib::Allocator::current->allocateKnown(sizeof(C),className()); } \
   void operator delete (void* obj)                                  \
   { if (obj) Lib::Allocator::current->deallocateKnown(obj,sizeof(C),className()); }
-#define CLASS_NAME(name) \
-  static const char* className () { return name; }
+
+#if USE_PRECISE_CLASS_NAMES
+#  if defined(__GNUC__)
+
+     std::string ___prettyFunToClassName(std::string str);
+
+#    define CLASS_NAME(C) \
+       static const char* className () { \
+	  static std::string res = ___prettyFunToClassName(std::string(__PRETTY_FUNCTION__)); return res.c_str(); }
+#  else
+#    define CLASS_NAME(C) \
+       static const char* className () { return typeid(C).name(); }
+#  endif
+#else
+#  define CLASS_NAME(C) \
+    static const char* className () { return #C; }
+#endif
+
 #define ALLOC_KNOWN(size,className)				\
   (Lib::Allocator::current->allocateKnown(size,className))
 #define ALLOC_UNKNOWN(size,className)				\

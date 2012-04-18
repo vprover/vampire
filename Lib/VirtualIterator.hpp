@@ -73,7 +73,7 @@ public:
    */
   virtual size_t size() const { INVALID_OPERATION("This iterator cannot retrieve its size."); }
 
-  CLASS_NAME("IteratorCore");
+  CLASS_NAME(IteratorCore);
 //  CLASS_NAME(typeid(IteratorCore).name());
   USE_ALLOCATOR_UNK;
 private:

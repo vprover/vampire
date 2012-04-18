@@ -146,7 +146,7 @@ class Signature
     FunctionType* fnType() const;
     PredicateType* predType() const;
 
-    CLASS_NAME("Signature::Symbol");
+    CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
 
@@ -171,7 +171,7 @@ class Signature
     {
       CALL("InterpretedSymbol");
     }
-    CLASS_NAME("Signature::InterpretedSymbol");
+    CLASS_NAME(Signature::InterpretedSymbol);
     USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return the interpreted function that corresponds to this symbol */
@@ -195,7 +195,7 @@ class Signature
       setType(new FunctionType(0, 0, Sorts::SRT_INTEGER));
       addToDistinctGroup(INTEGER_DISTINCT_GROUP);
     }
-    CLASS_NAME("Signature::IntegerSymbol");
+    CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
   };
 
@@ -216,7 +216,7 @@ class Signature
       setType(new FunctionType(0, 0, Sorts::SRT_RATIONAL));
       addToDistinctGroup(RATIONAL_DISTINCT_GROUP);
     }
-    CLASS_NAME("Signature::RationalSymbol");
+    CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
   };
 
@@ -237,7 +237,7 @@ class Signature
       setType(new FunctionType(0, 0, Sorts::SRT_REAL));
       addToDistinctGroup(REAL_DISTINCT_GROUP);
     }
-    CLASS_NAME("Signature::RealSymbol");
+    CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   };
 
@@ -386,7 +386,7 @@ class Signature
   Signature();
   ~Signature();
 
-  CLASS_NAME("Signature");
+  CLASS_NAME(Signature);
   USE_ALLOCATOR(Signature);
 
   bool functionExists(const string& name,unsigned arity) const;

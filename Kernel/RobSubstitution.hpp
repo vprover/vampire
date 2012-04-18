@@ -277,7 +277,7 @@ private:
       return "(ROB backtrack object for "+ _var.toString() +")";
     }
 #endif
-    CLASS_NAME("RobSubstitution::BindingBacktrackObject");
+    CLASS_NAME(RobSubstitution::BindingBacktrackObject);
     USE_ALLOCATOR(BindingBacktrackObject);
   private:
     RobSubstitution* _subst;

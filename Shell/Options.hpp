@@ -677,7 +677,7 @@ public:
 
   void enableTracesAccordingToOptions() const;
 
-  CLASS_NAME("Options");
+  CLASS_NAME(Options);
   USE_ALLOCATOR(Options);
 
   /** first is option name, second option value */

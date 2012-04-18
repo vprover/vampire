@@ -38,7 +38,7 @@ class BDDConjunction;
 class BDDNode
 {
 public:
-  CLASS_NAME("BDDNode");
+  CLASS_NAME(BDDNode);
   USE_ALLOCATOR(BDDNode);
 
   unsigned depth() const { return _depth; }

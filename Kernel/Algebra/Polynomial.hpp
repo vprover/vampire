@@ -46,7 +46,7 @@ public:
   void init(TermList t);
   void reset();
 
-  CLASS_NAME("Polynomial");
+  CLASS_NAME(Polynomial);
   USE_ALLOCATOR(Polynomial);
 
   size_t size() const { return _data.size(); }

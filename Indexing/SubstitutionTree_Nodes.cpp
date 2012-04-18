@@ -55,7 +55,7 @@ public:
     _size--;
   }
 
-  CLASS_NAME("SubstitutionTree::UListLeaf");
+  CLASS_NAME(SubstitutionTree::UListLeaf);
   USE_ALLOCATOR(UListLeaf);
 private:
   typedef List<LeafData> LDList;
@@ -89,7 +89,7 @@ public:
   void insert(LeafData ld) { _children.insert(ld); }
   void remove(LeafData ld) { _children.remove(ld); }
 
-  CLASS_NAME("SubstitutionTree::SListLeaf");
+  CLASS_NAME(SubstitutionTree::SListLeaf);
   USE_ALLOCATOR(SListLeaf);
 private:
   typedef SkipList<LeafData,LDComparator> LDSkipList;

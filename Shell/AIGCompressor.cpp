@@ -158,7 +158,7 @@ struct BDDAIG::A2BConjBuildingTask {
   /** Where to write the result */
   BDDNode** tgt;
 
-  CLASS_NAME("BDDAIG::ConjBuildingTask");
+  CLASS_NAME(BDDAIG::A2BConjBuildingTask);
   USE_ALLOCATOR(A2BConjBuildingTask);
 };
 
@@ -291,7 +291,7 @@ struct BDDAIG::B2ATask
   /** Where to write the result */
   AIGRef* tgt;
 
-  CLASS_NAME("BDDAIG::B2ATask");
+  CLASS_NAME(BDDAIG::B2ATask);
   USE_ALLOCATOR(B2ATask);
 };
 

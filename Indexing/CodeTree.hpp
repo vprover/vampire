@@ -97,7 +97,7 @@ public:
 
     void ensureFreshness(unsigned globalTimestamp);
 
-    CLASS_NAME("CodeTree::ILStruct");
+    CLASS_NAME(CodeTree::ILStruct);
     USE_ALLOCATOR(ILStruct);
 
     struct GVArrComparator;
@@ -272,7 +272,7 @@ public:
     ~FnSearchStruct();
     CodeOp*& targetOp(unsigned fn);
 
-    CLASS_NAME("CodeTree::FnSearchStruct");
+    CLASS_NAME(CodeTree::FnSearchStruct);
     USE_ALLOCATOR(FnSearchStruct);
 
     struct OpComparator;
@@ -287,7 +287,7 @@ public:
     ~GroundTermSearchStruct();
     CodeOp*& targetOp(const Term* trm);
 
-    CLASS_NAME("CodeTree::GroundTermSearchStruct");
+    CLASS_NAME(CodeTree::GroundTermSearchStruct);
     USE_ALLOCATOR(GroundTermSearchStruct);
 
     struct OpComparator;

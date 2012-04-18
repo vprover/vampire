@@ -39,7 +39,7 @@ public:
     }
   }
 
-  CLASS_NAME("CodeTreeSubstitution");
+  CLASS_NAME(CodeTreeSubstitution);
   USE_ALLOCATOR(CodeTreeSubstitution);
 
   TermList applyToBoundResult(TermList t)
@@ -72,7 +72,7 @@ private:
       return res;
     }
 
-    CLASS_NAME("CodeTreeSubstitution::Applicator");
+    CLASS_NAME(CodeTreeSubstitution::Applicator);
     USE_ALLOCATOR(Applicator);
   private:
     CodeTree::BindingArray* _bindings;
@@ -122,7 +122,7 @@ public:
     }
   }
 
-  CLASS_NAME("CodeTreeTIS::ResultIterator");
+  CLASS_NAME(CodeTreeTIS::ResultIterator);
   USE_ALLOCATOR(ResultIterator);
 
   bool hasNext()
@@ -226,7 +226,7 @@ bool CodeTreeTIS::generalizationExists(TermList t)
 //   inline bool operator!=(const LiteralInfo& o)
 //   { return !(*this==o); }
 
-//   CLASS_NAME("CodeTreeLIS::LiteralInfo");
+//   CLASS_NAME(CodeTreeLIS::LiteralInfo);
 //   USE_ALLOCATOR(LiteralInfo);
 
 //   Literal* lit;
@@ -268,7 +268,7 @@ bool CodeTreeTIS::generalizationExists(TermList t)
 //     _flatTerm->destroy();
 //   }
 
-//   CLASS_NAME("CodeTreeLIS::ResultIterator");
+//   CLASS_NAME(CodeTreeLIS::ResultIterator);
 //   USE_ALLOCATOR(ResultIterator);
 
 //   bool hasNext()

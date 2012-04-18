@@ -48,7 +48,7 @@ public:
 
   Color getColor();
 
-  CLASS_NAME("FormulaUnit");
+  CLASS_NAME(FormulaUnit);
   USE_ALLOCATOR(FormulaUnit);
 
 protected:

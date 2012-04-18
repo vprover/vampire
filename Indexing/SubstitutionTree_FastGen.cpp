@@ -25,7 +25,7 @@ public:
   GenMatcher(Term* query, unsigned nextSpecVar);
   ~GenMatcher();
 
-  CLASS_NAME("SubstitutionTree::GenMatcher");
+  CLASS_NAME(SubstitutionTree::GenMatcher);
   USE_ALLOCATOR(GenMatcher);
 
   /**

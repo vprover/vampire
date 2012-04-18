@@ -63,7 +63,7 @@ protected:
 
 public:
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("Set");
+  CLASS_NAME(Set);
   USE_ALLOCATOR(Set);
 
   /** Create a new Set */

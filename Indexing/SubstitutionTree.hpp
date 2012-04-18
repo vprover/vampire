@@ -304,7 +304,7 @@ public:
     }
 #endif
 
-    CLASS_NAME("SubstitutionTree::UArrIntermediateNode");
+    CLASS_NAME(SubstitutionTree::UArrIntermediateNode);
     USE_ALLOCATOR(UArrIntermediateNode);
 
     int _size;
@@ -378,7 +378,7 @@ public:
       _nodes.remove(t);
     }
 
-    CLASS_NAME("SubstitutionTree::SListIntermediateNode");
+    CLASS_NAME(SubstitutionTree::SListIntermediateNode);
     USE_ALLOCATOR(SListIntermediateNode);
 
     class NodePtrComparator

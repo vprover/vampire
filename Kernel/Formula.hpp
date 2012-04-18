@@ -98,7 +98,7 @@ public:
   static Formula* falseFormula();
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("Formula");
+  CLASS_NAME(Formula);
   USE_ALLOCATOR(Formula);
 protected:
   /** Create a dummy formula will null content */
@@ -131,7 +131,7 @@ public:
   Literal* getLiteral() { return _literal; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("AtomicFormula");
+  CLASS_NAME(AtomicFormula);
   USE_ALLOCATOR(AtomicFormula);
 protected:
   /** The literal of this formula */
@@ -167,7 +167,7 @@ class QuantifiedFormula
   VarList* varList() { return _vars; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("QuantifiedFormula");
+  CLASS_NAME(QuantifiedFormula);
   USE_ALLOCATOR(QuantifiedFormula);
  protected:
   /** list of variables */
@@ -196,7 +196,7 @@ public:
   Formula* subformula() { return _arg; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("NegatedFormula");
+  CLASS_NAME(NegatedFormula);
   USE_ALLOCATOR(NegatedFormula);
 protected:
   /** The immediate subformula */
@@ -231,7 +231,7 @@ public:
   Formula* rhs() { return _right; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("BinaryFormula");
+  CLASS_NAME(BinaryFormula);
   USE_ALLOCATOR(BinaryFormula);
 protected:
   /** The lhs subformula */
@@ -270,7 +270,7 @@ class JunctionFormula
   static Formula* generalJunction(Connective c, FormulaList* args);
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("JunctionFormula");
+  CLASS_NAME(JunctionFormula);
   USE_ALLOCATOR(JunctionFormula);
  protected:
   /** list of immediate subformulas */
@@ -300,7 +300,7 @@ class IteFormula
   Formula* elseArg() const { return _elsearg; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("IteFormula");
+  CLASS_NAME(IteFormula);
   USE_ALLOCATOR(IteFormula);
  protected:
   Formula* _condarg;
@@ -336,7 +336,7 @@ class FormulaLetFormula
   Formula* body() const { return _body; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("FormulaLetFormula");
+  CLASS_NAME(FormulaLetFormula);
   USE_ALLOCATOR(FormulaLetFormula);
  protected:
   Literal* _lhs;
@@ -372,7 +372,7 @@ class TermLetFormula
   Formula* body() const { return _body; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME("TermLetFormula");
+  CLASS_NAME(TermLetFormula);
   USE_ALLOCATOR(TermLetFormula);
  protected:
   TermList _lhs;

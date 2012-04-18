@@ -47,7 +47,7 @@ public:
   DECL_ELEMENT_TYPE(C);
   DECL_ITERATOR_TYPE(Iterator);
 
-  CLASS_NAME("Stack");
+  CLASS_NAME(Stack);
   USE_ALLOCATOR(Stack);
   DECLARE_PLACEMENT_NEW;
 
@@ -62,7 +62,7 @@ public:
     CALL("Stack::Stack");
 
     if(_capacity) {
-      void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Stack<>");
+      void* mem = ALLOC_KNOWN(_capacity*sizeof(C),className());
       _stack = static_cast<C*>(mem);
     }
     else {
@@ -78,7 +78,7 @@ public:
     CALL("Stack::Stack(const Stack&)");
 
     if(_capacity) {
-      void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Stack<>");
+      void* mem = ALLOC_KNOWN(_capacity*sizeof(C),className());
       _stack = static_cast<C*>(mem);
     }
     else {
@@ -106,7 +106,7 @@ public:
       (--p)->~C();
     }
     if(_stack) {
-      DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");
+      DEALLOC_KNOWN(_stack,_capacity*sizeof(C),className());
     }
     else {
       ASS_EQ(_capacity,0);
@@ -639,7 +639,7 @@ protected:
     size_t newCapacity = _capacity ? (2 * _capacity) : 8;
 
     // allocate new stack and copy old stack's content to the new place
-    void* mem = ALLOC_KNOWN(newCapacity*sizeof(C),"Stack<>");
+    void* mem = ALLOC_KNOWN(newCapacity*sizeof(C),className());
 
     C* newStack = static_cast<C*>(mem);
     if(_capacity) {
@@ -648,7 +648,7 @@ protected:
 	_stack[i].~C();
       }
       // deallocate the old stack
-      DEALLOC_KNOWN(_stack,_capacity*sizeof(C),"Stack<>");
+      DEALLOC_KNOWN(_stack,_capacity*sizeof(C),className());
     }
 
     _stack = newStack;

@@ -49,7 +49,7 @@ class AIGInliner : public ScanAndApplyFormulaUnitTransformer {
 //    FormulaUnit* outputUnit;
 
 
-    CLASS_NAME("AIGInliner::EquivInfo");
+    CLASS_NAME(AIGInliner::EquivInfo);
     USE_ALLOCATOR(EquivInfo);
 
     static bool litIsLess(Literal* l1, Literal* l2);

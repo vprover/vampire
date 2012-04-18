@@ -38,7 +38,7 @@ public:
 class PropInference : public SATInference
 {
 public:
-  CLASS_NAME("PropInference");
+  CLASS_NAME(PropInference);
   USE_ALLOCATOR(PropInference);
 
   PropInference(SATClauseList* premises) : _premises(premises) {}
@@ -66,7 +66,7 @@ private:
 class FOConversionInference : public SATInference
 {
 public:
-  CLASS_NAME("FOConversionInference");
+  CLASS_NAME(FOConversionInference);
   USE_ALLOCATOR(FOConversionInference);
 
   FOConversionInference(UnitSpec origin);
@@ -82,7 +82,7 @@ private:
 class FOSplittingInference : public SATInference
 {
 public:
-  CLASS_NAME("FOSplittingInference");
+  CLASS_NAME(FOSplittingInference);
   USE_ALLOCATOR(FOSplittingInference);
 
   FOSplittingInference(Clause* origin, ClauseList* names);
@@ -99,7 +99,7 @@ private:
 class AssumptionInference : public SATInference
 {
 public:
-  CLASS_NAME("AssumptionInference");
+  CLASS_NAME(AssumptionInference);
   USE_ALLOCATOR(AssumptionInference);
 
   virtual InfType getType() const { return ASSUMPTION; }

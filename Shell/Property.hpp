@@ -117,7 +117,7 @@ public:
 // 1073741824u; // 2^30
 
  public:
-  CLASS_NAME("Property");
+  CLASS_NAME(Property);
   USE_ALLOCATOR(Property);
 
   static Property* scan(UnitList*);

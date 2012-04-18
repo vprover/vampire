@@ -40,7 +40,7 @@ public:
     QUANT
   };
 
-  CLASS_NAME("AIG::Node");
+  CLASS_NAME(AIG::Node);
   USE_ALLOCATOR(Node);
 private:
   Kind _kind;

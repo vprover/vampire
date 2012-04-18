@@ -99,7 +99,7 @@ struct FunctionDefinition::Def
     }
   }
 
-  CLASS_NAME("FunctionDefintion::Def");
+  CLASS_NAME(FunctionDefinition::Def);
   USE_ALLOCATOR(Def);
 }; // class FunctionDefintion::Def
 

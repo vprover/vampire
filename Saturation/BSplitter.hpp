@@ -54,7 +54,7 @@ private:
     ClauseStack children;
     Stack<ReductionRecord> reduced;
 
-    CLASS_NAME("BSplitter::SplitRecord");
+    CLASS_NAME(BSplitter::SplitRecord);
     USE_ALLOCATOR(SplitRecord);
   };
 public:

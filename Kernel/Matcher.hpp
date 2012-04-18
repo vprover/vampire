@@ -255,7 +255,7 @@ private:
       void backtrack()
       { ALWAYS(_map->remove(_var)); }
 
-      CLASS_NAME("Matcher::BindingBacktrackObject");
+      CLASS_NAME(Matcher::MapBinder::BindingBacktrackObject);
       USE_ALLOCATOR(BindingBacktrackObject);
     private:
       BindingMap* _map;

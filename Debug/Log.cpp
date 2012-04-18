@@ -47,7 +47,7 @@ struct Logging::ChildInfo {
 
 struct Logging::TagInfo : public TagInfoBase {
 
-  CLASS_NAME("TagInfo");
+  CLASS_NAME(TagInfo);
   USE_ALLOCATOR(TagInfo);
 
   typedef Stack<ChildInfo> ChildStack;
@@ -66,7 +66,7 @@ struct Logging::TagInfo : public TagInfoBase {
 };
 
 struct Logging::StatObserver {
-  CLASS_NAME("Logging::StatObserver");
+  CLASS_NAME(Logging::StatObserver);
   USE_ALLOCATOR_UNK;
 
   virtual ~StatObserver() {}
@@ -406,7 +406,7 @@ private:
 
   struct TagEnableBO : public BacktrackObject {
 
-    CLASS_NAME("TagEnableBO");
+    CLASS_NAME(TagEnableBO);
     USE_ALLOCATOR(TagEnableBO);
 
     TagInfo& _ti;

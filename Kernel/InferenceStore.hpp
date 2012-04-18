@@ -132,7 +132,7 @@ public:
     UnitSpec result;
 
 
-    CLASS_NAME("InferenceStore::SplittingRecord");
+    CLASS_NAME(InferenceStore::SplittingRecord);
     USE_ALLOCATOR(SplittingRecord);
   };
 

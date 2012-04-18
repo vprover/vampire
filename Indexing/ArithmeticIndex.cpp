@@ -36,7 +36,7 @@ struct ConstraintDatabase::ConstraintInfo {
 
   DHMap<InterpretedType, Clause*> neqConstraints;
 
-  CLASS_NAME("ArithmeticIndex::ConstraintInfo");
+  CLASS_NAME(ArithmeticIndex::ConstraintInfo);
   USE_ALLOCATOR(ConstraintInfo);
 };
 
