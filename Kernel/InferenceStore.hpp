@@ -125,7 +125,7 @@ public:
   class SplittingRecord
   {
   public:
-    SplittingRecord(Clause* splittedClause) : namedComps(1), premise(getUnitSpec(splittedClause)) {}
+    SplittingRecord(Clause* splittedClause) : namedComps(1), premise(UnitSpec(splittedClause)) {}
 
     Stack<pair<int,Clause*> > namedComps;
     UnitSpec premise;
@@ -135,9 +135,6 @@ public:
     CLASS_NAME("InferenceStore::SplittingRecord");
     USE_ALLOCATOR(SplittingRecord);
   };
-
-  static UnitSpec getUnitSpec(Clause* cl);
-  static UnitSpec getUnitSpec(Clause* cl, BDDNode* prop);
 
   void recordInference(UnitSpec unit, FullInference* inf);
   void recordNonPropInference(Clause* cl);

@@ -36,6 +36,15 @@ public:
   const DHSet<Impl>& getImplications() const { return _implications; }
   const Stack<Equiv>& getEquivalences() const { return _equivStack; }
   const SATLiteralStack& getTrueLiterals() const { return _trueLits; }
+
+  SATLiteral getCandidateLiteral(unsigned var) const { return SATLiteral(var, _candidateVarPolarities[var]); }
+  /**
+   * Return union-find structure with equivalence classes.
+   *
+   * As an artifact of the IntUnionFind object, there is also a class for
+   * "variable" 0 which should be ignored, as SAT variables start from 1.
+   */
+  const IntUnionFind& getEquivalenceClasses() const { return _equivalentVars; }
 private:
 
 

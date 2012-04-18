@@ -43,6 +43,7 @@ private:
   //options
   unsigned _satConflictCountLimit;
   CandidateRestriction _restriction;
+  bool _discoverImplications;
 
   /** A getEquivalences function can be called only once on the object.
    * This object enforces this restriction. */
@@ -80,11 +81,12 @@ private:
 
   bool handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc);
 
-  void discoverISSatEquivalences(UnitList*& eqAcc);
+  void doISSatDiscovery(UnitList*& res);
 
   static int satLiteralVar(SATLiteral l) { return l.var(); }
 public:
-  EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit, CandidateRestriction restriction=CR_NONE);
+  EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit,
+      CandidateRestriction restriction, bool discoverImplications);
 
   void setRestrictedRange(LiteralIterator set1, LiteralIterator set2);
 

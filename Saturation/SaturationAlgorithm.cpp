@@ -984,7 +984,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       throw RefutationFoundException(cl);
     } else {
       cl->incRefCnt();
-      emptyClauses.push(InferenceStore::getUnitSpec(cl));
+      emptyClauses.push(UnitSpec(cl));
       return;
     }
   } else {

@@ -54,16 +54,6 @@ InferenceStore::InferenceStore()
 {
 }
 
-
-UnitSpec InferenceStore::getUnitSpec(Clause* cl)
-{
-  return UnitSpec(cl, false);
-}
-UnitSpec InferenceStore::getUnitSpec(Clause* cl, BDDNode* prop)
-{
-  return UnitSpec(cl, prop);
-}
-
 string InferenceStore::getUnitIdStr(UnitSpec cs)
 {
   CALL("InferenceStore::getUnitIdStr");
@@ -107,12 +97,16 @@ void InferenceStore::recordNonPropInference(Clause* cl)
   if(!nonTrivialProp) {
     Inference* cinf=cl->inference();
     Inference::Iterator it = cinf->iterator();
-    while (cinf->hasNext(it)) {
-      Clause* prem=static_cast<Clause*>(cinf->next(it));
-      ASS(prem->isClause());
-      if(!_bdd->isFalse(prem->prop())) {
-        nonTrivialProp=true;
-        break;
+    while (cinf->hasNext(it) && !nonTrivialProp) {
+      Unit* uPrem = cinf->next(it);
+      if(uPrem->isClause()) {
+	Clause* prem=static_cast<Clause*>(uPrem);
+	if(!_bdd->isFalse(prem->prop())) {
+	  nonTrivialProp=true;
+	}
+      }
+      else {
+	nonTrivialProp=true;
       }
     }
   }
@@ -141,24 +135,23 @@ void InferenceStore::recordNonPropInference(Clause* cl, Inference* cinf)
   CALL("InferenceStore::recordNonPropInference/2");
   ASS(!_bdd->isTrue(cl->prop()));
 
-  static Stack<Clause*> prems(8);
+  static Stack<Unit*> prems(8);
   prems.reset();
 
   Inference::Iterator it = cinf->iterator();
   while (cinf->hasNext(it)) {
-    Clause* prem=static_cast<Clause*>(cinf->next(it));
-    ASS(prem->isClause());
+    Unit* prem=cinf->next(it);
     prems.push(prem);
   }
 
   unsigned premCnt=prems.size();
   FullInference* finf=new (premCnt) FullInference(premCnt);
   for(unsigned i=0;i<premCnt;i++) {
-    finf->premises[i]=getUnitSpec(prems[i]);
+    finf->premises[i]=UnitSpec(prems[i]);
   }
   finf->rule=cinf->rule();
 
-  recordInference(getUnitSpec(cl), finf);
+  recordInference(UnitSpec(cl), finf);
 }
 
 void InferenceStore::recordPropReduce(Clause* cl, BDDNode* oldProp, BDDNode* newProp)
@@ -178,10 +171,10 @@ void InferenceStore::recordPropAlter(Clause* cl, BDDNode* oldProp, BDDNode* newP
   ASS(!_bdd->isTrue(newProp));
 
   FullInference* finf=new (1) FullInference(1);
-  finf->premises[0]=getUnitSpec(cl, oldProp);
+  finf->premises[0]=UnitSpec(cl, oldProp);
   finf->rule=rule;
 
-  recordInference(getUnitSpec(cl, newProp), finf);
+  recordInference(UnitSpec(cl, newProp), finf);
 }
 
 void InferenceStore::recordIntroduction(Clause* cl, BDDNode* prop, Inference::Rule rule)
@@ -192,7 +185,7 @@ void InferenceStore::recordIntroduction(Clause* cl, BDDNode* prop, Inference::Ru
   FullInference* finf=new (0) FullInference(0);
   finf->rule=rule;
 
-  recordInference(getUnitSpec(cl, prop), finf);
+  recordInference(UnitSpec(cl, prop), finf);
 }
 
 
@@ -203,11 +196,11 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, Clause* addedCl
   ASS(!_bdd->isTrue(resultProp));
 
   FullInference* finf=new (2) FullInference(2);
-  finf->premises[0]=getUnitSpec(cl, oldClProp);
-  finf->premises[1]=getUnitSpec(addedCl);
+  finf->premises[0]=UnitSpec(cl, oldClProp);
+  finf->premises[1]=UnitSpec(addedCl);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
 
-  recordInference(getUnitSpec(cl, resultProp), finf);
+  recordInference(UnitSpec(cl, resultProp), finf);
 }
 
 void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedProp, BDDNode* resultProp)
@@ -216,11 +209,11 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldProp, BDDNode* addedPro
   ASS(!_bdd->isTrue(resultProp));
 
   FullInference* finf=new (2) FullInference(2);
-  finf->premises[0]=getUnitSpec(cl, oldProp);
-  finf->premises[1]=getUnitSpec(cl, addedProp);
+  finf->premises[0]=UnitSpec(cl, oldProp);
+  finf->premises[1]=UnitSpec(cl, addedProp);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
 
-  recordInference(getUnitSpec(cl, resultProp), finf);
+  recordInference(UnitSpec(cl, resultProp), finf);
 }
 
 
@@ -234,10 +227,10 @@ void InferenceStore::recordMerge(Clause* cl, BDDNode* oldClProp, UnitSpec* added
   for(int i=0;i<addedClsCnt;i++) {
     finf->premises[i]=addedCls[i];
   }
-  finf->premises[addedClsCnt]=getUnitSpec(cl, oldClProp);
+  finf->premises[addedClsCnt]=UnitSpec(cl, oldClProp);
   finf->rule=Inference::COMMON_NONPROP_MERGE;
 
-  recordInference(getUnitSpec(cl, resultProp), finf);
+  recordInference(UnitSpec(cl, resultProp), finf);
 }
 
 /**
@@ -299,7 +292,7 @@ void InferenceStore::deleteClauseRecords(Clause* cl)
   if(!cl->prop()) {
     return;
   }
-  UnitSpec cs=getUnitSpec(cl);
+  UnitSpec cs=UnitSpec(cl);
   if(_data.find(cs)) {
     _data.remove(cs);
   }

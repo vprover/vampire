@@ -146,7 +146,7 @@ SWBSplitterWithoutBDDs::CompNameRec SWBSplitterWithoutBDDs::createNamedComponent
   res->initProp(BDD::instance()->getFalse());
   InferenceStore::instance()->recordNonPropInference(res);
 
-  InferenceStore::instance()->recordSplittingNameLiteral(InferenceStore::getUnitSpec(res), nameLit);
+  InferenceStore::instance()->recordSplittingNameLiteral(UnitSpec(res), nameLit);
 
 
   _sa->addNewClause(res);

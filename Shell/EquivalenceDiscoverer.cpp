@@ -30,9 +30,10 @@ using namespace Kernel;
 using namespace SAT;
 
 EquivalenceDiscoverer::EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit,
-    CandidateRestriction restriction)
+    CandidateRestriction restriction, bool discoverImplications)
     : _satConflictCountLimit(satConflictCountLimit),
       _restriction(restriction),
+      _discoverImplications(discoverImplications),
       _restrictedRange(false),
       _gnd(normalizeForSAT),
       _maxSatVar(0)
@@ -208,7 +209,7 @@ UnitList* EquivalenceDiscoverer::getEquivalences(ClauseIterator clauses)
   LOG("pp_ed_progress","starting equivalence discovery among "<<_eligibleSatLits.size()<<" atoms");
 
   UnitList* res = 0;
-  discoverISSatEquivalences(res);
+  doISSatDiscovery(res);
 
   LOG("pp_ed_progress","finished");
 
@@ -276,9 +277,9 @@ Inference* EquivalenceDiscoverer::getEquivInference(SATLiteral l1, SATLiteral l2
   return new InferenceMany(Inference::EQUIVALENCE_DISCOVERY, premLst);
 }
 
-void EquivalenceDiscoverer::discoverISSatEquivalences(UnitList*& eqAcc)
+void EquivalenceDiscoverer::doISSatDiscovery(UnitList*& res)
 {
-  CALL("EquivalenceDiscoverer::discoverISSatEquivalences");
+  CALL("EquivalenceDiscoverer::doISSatDiscovery");
   ASS_EQ(_solver->getStatus(),SATSolver::SATISFIABLE);
 
   ISSatSweeping sswp(_maxSatVar+1, *_solver,
@@ -287,8 +288,11 @@ void EquivalenceDiscoverer::discoverISSatEquivalences(UnitList*& eqAcc)
   Stack<ISSatSweeping::Equiv>::ConstIterator eqIt(sswp.getEquivalences());
   while(eqIt.hasNext()) {
     ISSatSweeping::Equiv eq = eqIt.next();
-    handleEquivalence(eq.first, eq.second, eqAcc);
+    handleEquivalence(eq.first, eq.second, res);
   }
+
+  const IntUnionFind& eqClasses = sswp.getEquivalenceClasses();
+  DHSet<ISSatSweeping::Impl>::Iterator implIt(sswp.getImplications());
 }
 
 Literal* EquivalenceDiscoverer::getFOLit(SATLiteral slit) const
@@ -389,7 +393,7 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
   EquivalenceDiscoverer::CandidateRestriction restr =
       _opts.predicateEquivalenceDiscoveryAllAtoms() ? EquivalenceDiscoverer::CR_NONE : EquivalenceDiscoverer::CR_EQUIVALENCES;
 
-  EquivalenceDiscoverer eqd(true, _opts.predicateEquivalenceDiscoverySatConflictLimit(), restr);
+  EquivalenceDiscoverer eqd(true, _opts.predicateEquivalenceDiscoverySatConflictLimit(), restr, false);
   UnitList* equivs = eqd.getEquivalences(units, &_opts);
   if(!equivs) {
     return false;

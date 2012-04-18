@@ -545,12 +545,15 @@ void ISSatSweeping::run()
       ASS(!eit.hasNext());
       continue;
     }
+    unsigned compSz = 1;
     SATLiteral lit1(v1, _candidateVarPolarities[v1]);
     while(eit.hasNext()) {
       unsigned v2 = eit.next();
       SATLiteral lit2(v2, _candidateVarPolarities[v2]);
       _equivStack.push(Equiv(lit1, lit2));
+      compSz++;
     }
+    COND_LOG_INT("sat_iss_equiv_class_sizes",compSz>1, compSz);
   }
 }
 

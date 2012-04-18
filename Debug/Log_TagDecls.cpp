@@ -885,6 +885,10 @@ void Logging::doTagDeclarations()
       DOC("discovered equivalences"),
       PARENT("sat_iss",1),
       PARENT("sat_iss_impl",0));
+  DECL("sat_iss_equiv_class_sizes",
+      DOC("sizes of final equivalence classes larger than 1"),
+      PARENT("sat_iss",1),
+      INT_TAG);
 
 
   //

@@ -207,9 +207,9 @@ public:
 #define COND_LOG_UNIT(tag,u) COND_TRACE_BASE(tag, cond, Debug::Logging::statUnit(LOGGING_tib, u);, \
       ASS_REP(!LOGGING_tib.intOnly,LOGGING_tib.name); TRACE_OUTPUT_UNIT(u); )
 #define LOG_INT(tag,num) TRACE_BASE(tag, Debug::Logging::statInt(LOGGING_tib, num);, \
-      ASS_REP(!LOGGING_tib.unitOnly,LOGGING_tib.name); tout << LOGGING_tib.name << (num) << std::endl; )
+      ASS_REP(!LOGGING_tib.unitOnly,LOGGING_tib.name); tout << LOGGING_tib.name << ": " << (num) << std::endl; )
 #define COND_LOG_INT(tag,cond,num) COND_TRACE_BASE(tag, cond, Debug::Logging::statInt(LOGGING_tib, num);, \
-      ASS_REP(!LOGGING_tib.unitOnly,LOGGING_tib.name); tout << LOGGING_tib.name << (num) << std::endl; )
+      ASS_REP(!LOGGING_tib.unitOnly,LOGGING_tib.name); tout << LOGGING_tib.name << ": " << (num) << std::endl; )
 
 /**
  * Logs single-premise simplification of a unit

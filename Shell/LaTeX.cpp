@@ -102,7 +102,7 @@ string LaTeX::refutationToString(Unit* ref)
   if( ref->isClause() && static_cast<Clause*>(ref)->prop() ) {
     Clause* refCl=static_cast<Clause*>(ref);
     ASS( bdd->isFalse(refCl->prop()) );
-    UnitSpec cs=InferenceStore::getUnitSpec(refCl);
+    UnitSpec cs=UnitSpec(refCl);
     outKernel.push(cs);
     handledKernel.insert(cs);
   } else {
@@ -153,7 +153,7 @@ string LaTeX::refutationToString(Unit* ref)
 	first=false;
 	if(prem->isClause() && static_cast<Clause*>(prem)->prop()) {
 	  //this branch is for clauses that were inserted as input into the SaturationAlgorithm object
-	  UnitSpec premCS=InferenceStore::getUnitSpec(static_cast<Clause*>(prem), bdd->getFalse());
+	  UnitSpec premCS=UnitSpec(prem, bdd->getFalse());
 
 	  if(!handledKernel.contains(premCS)) {
 	    handledKernel.insert(premCS);

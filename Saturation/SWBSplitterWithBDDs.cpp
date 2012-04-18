@@ -116,7 +116,7 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, const CompRec* co
 
   static Stack<UnitSpec> masterPremises;
   masterPremises.reset();
-  masterPremises.push(InferenceStore::getUnitSpec(cl));
+  masterPremises.push(UnitSpec(cl));
 
   BDDNode* newMasterProp=cl->prop();
 
@@ -142,7 +142,7 @@ void SWBSplitterWithBDDs::buildAndInsertComponents(Clause* cl, const CompRec* co
     //the component with atomic bdd as propositional part was put
     //into the inference store during component naming, so we can
     //use it now as a premise
-    UnitSpec compDefPremise=InferenceStore::getUnitSpec(comp, getNameProp(-compName));
+    UnitSpec compDefPremise=UnitSpec(comp, getNameProp(-compName));
     masterPremises.push(compDefPremise);
     srec->namedComps.push(make_pair(compName, comp));
   }

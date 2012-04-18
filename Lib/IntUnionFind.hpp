@@ -16,7 +16,7 @@ public:
   IntUnionFind(int cnt);
   ~IntUnionFind();
   bool doUnion(int c1, int c2);
-  int root(int c);
+  int root(int c) const;
 
   void evalComponents();
   int getComponentCount();
@@ -33,8 +33,11 @@ private:
    *
    * Invariant: The root element is always the one with the
    * lowest number in the component.
+   *
+   * Is mutable to allow path compression in the @c root function which
+   * is const.
    */
-  int* _parents;
+  mutable int* _parents;
 
   /**
    * After call to the @b finish() method contains data about how
@@ -65,11 +68,11 @@ public:
       return res;
     }
   private:
-    ElementIterator(int first, int* data)
+    ElementIterator(int first, const int* data)
     : _next(first), _data(data) {}
 
     int _next;
-    int* _data;
+    const int* _data;
 
     friend class ComponentIterator;
   };
@@ -91,7 +94,7 @@ public:
      * this constructor is called (and if the @b doUnion is called
      * later, the @b evalComponents has to be called again).
      */
-    ComponentIterator(IntUnionFind& obj)
+    ComponentIterator(const IntUnionFind& obj)
     : _cit(obj._components), _data(obj._data)
     {
       CALL("IntUnionFind::ComponentIterator::ComponentIterator");
@@ -101,8 +104,8 @@ public:
     bool hasNext() { return _cit.hasNext(); }
     ElementIterator next() { return ElementIterator(_cit.next(), _data); }
   private:
-    Stack<int>::Iterator _cit;
-    int* _data;
+    Stack<int>::ConstIterator _cit;
+    const int* _data;
   };
 };
 
