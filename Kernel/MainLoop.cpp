@@ -51,15 +51,15 @@ MainLoopResult MainLoop::run()
     init();
     return runImpl();
   }
-  catch(RefutationFoundException rs)
+  catch(RefutationFoundException& rs)
   {
     return MainLoopResult(Statistics::REFUTATION, rs.refutation);
   }
-  catch(TimeLimitExceededException)
+  catch(TimeLimitExceededException&)
   {
     return MainLoopResult(Statistics::TIME_LIMIT);
   }
-  catch(MainLoopFinishedException e)
+  catch(MainLoopFinishedException& e)
   {
     return e.result;
   }

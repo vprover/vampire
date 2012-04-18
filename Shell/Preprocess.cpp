@@ -326,13 +326,6 @@ void Preprocess::preprocess (Problem& prb)
      TrivialPredicateRemover().apply(prb);
    }
 
-   if (_options.equalityProxy()!=Options::EP_OFF && prb.mayHaveEquality() &&
-	   (prb.mayHaveXEqualsY() || _options.equalityProxy()!=Options::EP_ON) ) {
-     env.statistics->phase=Statistics::EQUALITY_PROXY;
-     EqualityProxy proxy(_options.equalityProxy());
-     proxy.apply(prb);
-   }
-
    if (_options.generalSplitting()!=Options::RA_OFF) {
      env.statistics->phase=Statistics::GENERAL_SPLITTING;
      GeneralSplitting gs;
@@ -343,6 +336,13 @@ void Preprocess::preprocess (Problem& prb)
      env.statistics->phase=Statistics::HORN_REVEALING;
      HornRevealer hr(_options);
      hr.apply(prb);
+   }
+
+   if(_options.equalityProxy()!=Options::EP_OFF && prb.mayHaveEquality() &&
+	   (prb.mayHaveXEqualsY() || _options.equalityProxy()!=Options::EP_ON) ) {
+     env.statistics->phase=Statistics::EQUALITY_PROXY;
+     EqualityProxy proxy(_options.equalityProxy());
+     proxy.apply(prb);
    }
 
    TRACE("pp_final",
