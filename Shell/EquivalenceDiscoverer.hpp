@@ -10,6 +10,7 @@
 
 #include "Lib/ArrayMap.hpp"
 #include "Lib/DHSet.hpp"
+#include "Lib/FreshnessGuard.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -31,11 +32,21 @@ using namespace Kernel;
 using namespace SAT;
 
 class EquivalenceDiscoverer {
+public:
+  enum CandidateRestriction {
+    CR_NONE,
+    CR_DEFINITIONS,
+    CR_EQUIVALENCES
+  };
+private:
 
   //options
   unsigned _satConflictCountLimit;
-  bool _checkOnlyDefinitionHeads;
-  bool _useISS;
+  CandidateRestriction _restriction;
+
+  /** A getEquivalences function can be called only once on the object.
+   * This object enforces this restriction. */
+  FreshnessGuard _fresh;
 
   bool _restrictedRange;
   DHSet<Literal*> _restrictedRangeSet1;
@@ -46,19 +57,11 @@ class EquivalenceDiscoverer {
   ScopedPtr<SATSolver> _proofRecordingSolver;
 
   SATLiteralStack _eligibleSatLits;
-//  LiteralStack _foLits;
 
 //  DHMap<Literal*,SATLiteral> _f2s;
   DHMap<SATLiteral,Literal*> _s2f;
 
-  /**
-   * Contains values of initial assignment.
-   * If variable isn't in the map, it was assigned a don't care.
-   */
-  ArrayMap<bool> _initialAssignment;
-
   unsigned _maxSatVar;
-
 
   SATClauseStack _satClauses;
   SATClauseStack _filteredSatClauses;
@@ -73,10 +76,7 @@ class EquivalenceDiscoverer {
   void collectRelevantLits();
 
   bool isEligible(Literal* l);
-
-  void loadInitialAssignment();
-
-  bool areEquivalent(SATLiteral l1, SATLiteral l2);
+  bool isEligibleEquiv(Literal* l1, Literal* l2);
 
   bool handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc);
 
@@ -84,7 +84,7 @@ class EquivalenceDiscoverer {
 
   static int satLiteralVar(SATLiteral l) { return l.var(); }
 public:
-  EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit, bool checkOnlyDefinitionHeads);
+  EquivalenceDiscoverer(bool normalizeForSAT, unsigned satConflictCountLimit, CandidateRestriction restriction=CR_NONE);
 
   void setRestrictedRange(LiteralIterator set1, LiteralIterator set2);
 
