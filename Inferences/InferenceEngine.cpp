@@ -19,6 +19,8 @@
 
 #include "InferenceEngine.hpp"
 
+#define DEBUG_DUPLICATE_LITERALS 0
+
 namespace Inferences
 {
 
@@ -203,121 +205,92 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     return c;
   }
 
-  // array behaves as a stack of calls to quicksort
-  static DArray<int> ft(32);
-  static DArray<Literal*> lits(32); // literals to sort
-  ft.ensure(length);
-  lits.ensure(length);
+  //literals that will be skipped, skipping starts on the top of the stack
+  //and goes from the end of the clause
+  static LiteralStack skipped;
+  skipped.reset();
 
-  int p = 0; // pointer to the next element in ft
-  for (int i = length-1;i >= 0;i--) {
-    lits[i] = (*c)[i];
-  }
-
-  // sorting will be between from and to
-  int from = 0;
-  int to = length-1;
-  int found = 0;
-  for (;;) {
-    // invariant: from < to
-    int m = from + Random::getInteger(to-from+1);
-    Literal* mid = lits[m];
-    int l = from;
-    int r = to;
-    while (l < m) {
-      if ((void*)lits[l] < (void*)mid) {
-	l++;
-      }
-      else if ((void*)lits[l] == (void*)mid) {
-	found++;
-	lits[l] = lits[from];
-	lits[from] = 0;
-	from++;
-	l++;
-      }
-      else if (m == r) {
-	lits[m] = lits[l];
-	lits[l] = lits[m-1];
-	lits[m-1] = mid;
-	m--;
-	r--;
-      }
-      else {
-	ASS(m < r);
-	Literal* lit = lits[l];
-	lits[l] = lits[r];
-	lits[r] = lit;
-	r--;
-      }
-    }
-    // l == m
-    // now literals in lits[from ... m-1] are smaller than lits[m]
-    // and literals in lits[r+1 ... to] are greater than lits[m]
-    while (m < r) {
-      if ((void*)mid < (void*)lits[m+1]) {
-	Literal* lit = lits[r];
-	lits[r] = lits[m+1];
-	lits[m+1] = lit;
-	r--;
-      }
-      else if ((void*)mid == (void*)lits[m+1]) {
-	found++;
-	lits[m+1] = lits[r];
-	lits[r] = lits[to];
-	lits[to] = 0;
-	to--;
-	r--;
-      }
-      else {
-	lits[m] = lits[m+1];
-	lits[m+1] = mid;
-	m++;
-      }
-    }
-    // now literals in lits[from ... m-1] are smaller than lits[m]
-    // and all literals in lits[m+1 ... to] are greater than lits[m]
-    if (m+1 < to) {
-      ft[p++] = m+1;
-      ft[p++] = to;
-    }
-
-    to = m-1;
-    if (from < to) {
-      continue;
-    }
-
-    if (p != 0) {
-      p -= 2;
-      ASS(p >= 0);
-      from = ft[p];
-      to = ft[p+1];
-      continue;
-    }
-
-    // the stack is empty, finished
-    if (found == 0) {
+  //we handle low length specially, not to have to use the set
+  if(length==2) {
+    if((*c)[0]!=(*c)[1]) {
       return c;
     }
-    // there are duplicate literals, delete them from lits
-    int newLength = length - found;
-    // now lits[0 ... newLength-1] contain the remaining literals
-    Clause* d = new(newLength)
-                   Clause(newLength,
-			  c->inputType(),
-			  new Inference1(Inference::REMOVE_DUPLICATE_LITERALS,
-					 c));
-    int next = 0;
-    for (int f = length-1;f >= 0;f--) {
-      if (lits[f]) {
-	(*d)[next++] = lits[f];
+    skipped.push((*c)[0]);
+  }
+  else if(length==3) {
+    if((*c)[0]!=(*c)[1]) {
+      if((*c)[0]!=(*c)[2]) {
+	if((*c)[1]!=(*c)[2]) {
+	  return c;
+	}
+      }
+      skipped.push((*c)[2]);
+    }
+    else { //(*c)[0]==(*c)[1]
+      skipped.push((*c)[0]);
+      if((*c)[0]==(*c)[2]) {
+	//all are equal
+	skipped.push((*c)[0]);
       }
     }
-    ASS(next == newLength);
-    d->setAge(c->age());
-    env.statistics->duplicateLiterals += found;
-
-    return d;
   }
+  else {
+    static DHSet<Literal*> seen;
+    seen.reset();
+    //here we rely on the fact that the iterator traverses the clause from
+    //the first to the last literal
+    Clause::Iterator cit(*c);
+    while(cit.hasNext()) {
+      Literal* lit = cit.next();
+      if(!seen.insert(lit)) {
+	skipped.push(lit);
+      }
+    }
+    if(skipped.isEmpty()) {
+      return c;
+    }
+  }
+
+  ASS(skipped.isNonEmpty());
+
+  // there are duplicate literals, delete them from lits
+  int newLength = length - skipped.length();
+  // now lits[0 ... newLength-1] contain the remaining literals
+  Clause* d = new(newLength)
+		 Clause(newLength,
+			c->inputType(),
+			new Inference1(Inference::REMOVE_DUPLICATE_LITERALS,
+				       c));
+
+  int origIdx = length-1;
+
+  for(int newIdx=newLength-1; newIdx>=0; newIdx--,origIdx--) {
+    while(skipped.isNonEmpty() && (*c)[origIdx]==skipped.top()) {
+      skipped.pop();
+      origIdx--;
+      ASS_GE(origIdx,0);
+    }
+    (*d)[newIdx] = (*c)[origIdx];
+  }
+  ASS(skipped.isEmpty());
+  ASS_EQ(origIdx,-1);
+  d->setAge(c->age());
+  env.statistics->duplicateLiterals += length - newLength;
+
+#if DEBUG_DUPLICATE_LITERALS
+  {
+    static DHSet<Literal*> origLits;
+    origLits.reset();
+    static DHSet<Literal*> newLits;
+    newLits.reset();
+    origLits.loadFromIterator(Clause::Iterator(*c));
+    newLits.loadFromIterator(Clause::Iterator(*d));
+    ASS_EQ(origLits.size(),newLits.size());
+    ASS_EQ(origLits.size(), static_cast<unsigned>(newLength));
+  }
+#endif
+
+  return d;
 }
 
 
