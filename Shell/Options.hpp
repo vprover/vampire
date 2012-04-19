@@ -132,7 +132,7 @@ public:
     PREDICATE_DEFINITION_MERGING,
     /** Determines whether SAT solver will be used to discover equivalent predicates */
     PREDICATE_EQUIVALENCE_DISCOVERY,
-    PREDICATE_EQUIVALENCE_DISCOVERY_ALL_ATOMS,
+    PREDICATE_EQUIVALENCE_DISCOVERY_ADD_IMPLICATIONS,
     PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT,
     PREDICATE_INDEX_INTRODUCTION,
     PROBLEM_NAME,
@@ -433,6 +433,13 @@ public:
     SOS_ON = 2
   };
 
+  enum PredicateEquivalenceDiscoveryMode {
+    PED_ALL_ATOMS = 0,
+    PED_DEFINITIONS = 1,
+    PED_OFF = 2,
+    PED_ON = 3,
+  };
+
 public:
   Options ();
   void output (ostream&) const;
@@ -468,9 +475,9 @@ public:
   void setPredicateDefinitionInlining(InliningMode newVal) { _predicateDefinitionInlining = newVal; }
   bool predicateDefinitionMerging() const { return _predicateDefinitionMerging; }
   void setPredicateDefinitionMerging(bool newValue) { _predicateDefinitionMerging = newValue; }
-  bool predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery; }
-  void setPredicateEquivalenceDiscovery(bool newValue) { _predicateEquivalenceDiscovery = newValue; }
-  bool predicateEquivalenceDiscoveryAllAtoms() const { return _predicateEquivalenceDiscoveryAllAtoms; }
+  PredicateEquivalenceDiscoveryMode predicateEquivalenceDiscovery() const { return _predicateEquivalenceDiscovery; }
+  void setPredicateEquivalenceDiscovery(PredicateEquivalenceDiscoveryMode newValue) { _predicateEquivalenceDiscovery = newValue; }
+  bool predicateEquivalenceDiscoveryAddImplications() const { return _predicateEquivalenceDiscoveryAddImplications; }
   unsigned predicateEquivalenceDiscoverySatConflictLimit() const { return _predicateEquivalenceDiscoverySatConflictLimit; }
   bool predicateIndexIntroduction() const { return _predicateIndexIntroduction; }
   void setPredicateIndexIntroduction(bool newValue) { _predicateIndexIntroduction = newValue; }
@@ -780,8 +787,8 @@ private:
 
   InliningMode _predicateDefinitionInlining;
   bool _predicateDefinitionMerging;
-  bool _predicateEquivalenceDiscovery;
-  bool _predicateEquivalenceDiscoveryAllAtoms;
+  PredicateEquivalenceDiscoveryMode _predicateEquivalenceDiscovery;
+  bool _predicateEquivalenceDiscoveryAddImplications;
   unsigned _predicateEquivalenceDiscoverySatConflictLimit;
   bool _predicateIndexIntroduction;
   string _problemName;

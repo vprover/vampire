@@ -66,6 +66,7 @@ public:
   static const char* _sSplittingComponentSweepingValues[];
   static const char* _sSplittingAddComplementaryValues[];
   static const char* _sSplittingNonsplittableComponentsValues[];
+  static const char* _predicateEquivalenceDiscoveryModeValues[];
 
   static int shortNameIndexes[];
 
@@ -98,6 +99,7 @@ public:
   static NameArray sSplittingComponentSweepingValues;
   static NameArray sSplittingAddComplementaryValues;
   static NameArray sSplittingNonsplittableComponentsValues;
+  static NameArray predicateEquivalenceDiscoveryModeValues;
 }; // class Options::Constants
 
 
@@ -187,7 +189,7 @@ const char* Options::Constants::_optionNames[] = {
   "predicate_definition_inlining",
   "predicate_definition_merging",
   "predicate_equivalence_discovery",
-  "predicate_equivalence_discovery_all_atoms",
+  "predicate_equivalence_discovery_add_implications",
   "predicate_equivalence_discovery_sat_conflict_limit",
   "predicate_index_introduction",
   "problem_name",
@@ -647,6 +649,14 @@ const char* Options::Constants::_sSplittingNonsplittableComponentsValues[] = {
 NameArray Options::Constants::sSplittingNonsplittableComponentsValues(_sSplittingNonsplittableComponentsValues,
 					  sizeof(_sSplittingNonsplittableComponentsValues)/sizeof(char*));
 
+const char* Options::Constants::_predicateEquivalenceDiscoveryModeValues[] = {
+  "all_atoms",
+  "definitions",
+  "off",
+  "on"};
+NameArray Options::Constants::predicateEquivalenceDiscoveryModeValues(_predicateEquivalenceDiscoveryModeValues,
+					  sizeof(_predicateEquivalenceDiscoveryModeValues)/sizeof(char*));
+
 
 
 /**
@@ -743,8 +753,8 @@ Options::Options ()
 
   _predicateDefinitionInlining(INL_OFF),
   _predicateDefinitionMerging(false),
-  _predicateEquivalenceDiscovery(false),
-  _predicateEquivalenceDiscoveryAllAtoms(false),
+  _predicateEquivalenceDiscovery(PED_OFF),
+  _predicateEquivalenceDiscoveryAddImplications(false),
   _predicateEquivalenceDiscoverySatConflictLimit(0),
   _predicateIndexIntroduction(false),
   _problemName("unknown"),
@@ -906,8 +916,8 @@ void Options::set(const char* name,const char* value, int index)
       return;
     case AIG_DEFINITION_INTRODUCTION_THRESHOLD:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
-	if(unsignedValue<=1) {
-	  USER_ERROR("aig_definition_introduction_threshold must be greater than 1");
+	if(unsignedValue==0) {
+	  USER_ERROR("aig_definition_introduction_threshold must be non-zero");
 	}
 	_aigDefinitionIntroductionThreshold = unsignedValue;
 	return;
@@ -1181,10 +1191,11 @@ void Options::set(const char* name,const char* value, int index)
       _predicateDefinitionMerging = onOffToBool(value,name);
       return;
     case PREDICATE_EQUIVALENCE_DISCOVERY:
-      _predicateEquivalenceDiscovery = onOffToBool(value,name);
+      _predicateEquivalenceDiscovery =
+	  (PredicateEquivalenceDiscoveryMode)Constants::predicateEquivalenceDiscoveryModeValues.find(value);
       return;
-    case PREDICATE_EQUIVALENCE_DISCOVERY_ALL_ATOMS:
-      _predicateEquivalenceDiscoveryAllAtoms = onOffToBool(value,name);
+    case PREDICATE_EQUIVALENCE_DISCOVERY_ADD_IMPLICATIONS:
+      _predicateEquivalenceDiscoveryAddImplications = onOffToBool(value,name);
       return;
     case PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT:
       if (Int::stringToUnsignedInt(value,unsignedValue)) {
@@ -2010,10 +2021,10 @@ void Options::outputValue (ostream& str,int optionTag) const
     str << boolToOnOff(_predicateDefinitionMerging);
     return;
   case PREDICATE_EQUIVALENCE_DISCOVERY:
-    str << boolToOnOff(_predicateEquivalenceDiscovery);
+    str << Constants::predicateEquivalenceDiscoveryModeValues[_predicateEquivalenceDiscovery];
     return;
-  case PREDICATE_EQUIVALENCE_DISCOVERY_ALL_ATOMS:
-    str << boolToOnOff(_predicateEquivalenceDiscoveryAllAtoms);
+  case PREDICATE_EQUIVALENCE_DISCOVERY_ADD_IMPLICATIONS:
+    str << boolToOnOff(_predicateEquivalenceDiscoveryAddImplications);
     return;
   case PREDICATE_EQUIVALENCE_DISCOVERY_SAT_CONFLICT_LIMIT:
     str << _predicateEquivalenceDiscoverySatConflictLimit;

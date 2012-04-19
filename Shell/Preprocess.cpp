@@ -197,7 +197,7 @@ void Preprocess::preprocess (Problem& prb)
     DistinctProcessor().apply(prb);
   }
 
-  if(_options.predicateEquivalenceDiscovery()) {
+  if(_options.predicateEquivalenceDiscovery()!=Options::PED_OFF) {
     EquivalenceDiscoveringTransformer(_options).apply(prb);
   }
 

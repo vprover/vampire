@@ -104,9 +104,16 @@ bool EquivalenceDiscoverer::isEligible(Literal* l)
   return true;
 }
 
-bool EquivalenceDiscoverer::isEligibleEquiv(Literal* l1, Literal* l2)
+/**
+ * Return true if equivalence or implication between l1 and l2 can be
+ * added to the problem.
+ *
+ * Literals l1 and l2 on its own must already be eligible for processing
+ * (isEligible gives true).
+ */
+bool EquivalenceDiscoverer::isEligiblePair(Literal* l1, Literal* l2)
 {
-  CALL("EquivalenceDiscoverer::isEligibleEquiv");
+  CALL("EquivalenceDiscoverer::isEligiblePair");
   ASS(isEligible(l1));
   ASS(isEligible(l2));
 
@@ -257,7 +264,11 @@ void EquivalenceDiscoverer::getImplicationPremises(SATLiteral l1, SATLiteral l2,
   ps.retractAllAssumptions();
 }
 
-Inference* EquivalenceDiscoverer::getEquivInference(SATLiteral l1, SATLiteral l2)
+/**
+ * If @c implication is true, return inference for implication l1 -> l2,
+ * otherwise return inference for equivalence l1 <-> l2.
+ */
+Inference* EquivalenceDiscoverer::getInference(SATLiteral l1, SATLiteral l2, bool implication)
 {
   CALL("EquivalenceDiscoverer::getEquivInference");
 
@@ -265,7 +276,9 @@ Inference* EquivalenceDiscoverer::getEquivInference(SATLiteral l1, SATLiteral l2
   ASS(premises.isEmpty());
 
   getImplicationPremises(l1, l2, premises);
-  getImplicationPremises(l2, l1, premises);
+  if(!implication) {
+    getImplicationPremises(l2, l1, premises);
+  }
 
   UnitList* premLst = 0;
 
@@ -290,9 +303,22 @@ void EquivalenceDiscoverer::doISSatDiscovery(UnitList*& res)
     ISSatSweeping::Equiv eq = eqIt.next();
     handleEquivalence(eq.first, eq.second, res);
   }
+  //TODO: make better equivalence retrieval for CR_DEFINITIONS
 
-  const IntUnionFind& eqClasses = sswp.getEquivalenceClasses();
-  DHSet<ISSatSweeping::Impl>::Iterator implIt(sswp.getImplications());
+  if(_discoverImplications) {
+    const IntUnionFind& eqClasses = sswp.getEquivalenceClasses();
+    DHSet<ISSatSweeping::Impl>::Iterator implIt(sswp.getImplications());
+    while(implIt.hasNext()) {
+      ISSatSweeping::Impl impl = implIt.next();
+      unsigned v1 = impl.first.var();
+      unsigned v2 = impl.second.var();
+      if(eqClasses.root(v1)==eqClasses.root(v2)) {
+	//this implication is subsumed by some equivalence
+	continue;
+      }
+      handleImplication(impl.first, impl.second, res);
+    }
+  }
 }
 
 Literal* EquivalenceDiscoverer::getFOLit(SATLiteral slit) const
@@ -310,7 +336,6 @@ Literal* EquivalenceDiscoverer::getFOLit(SATLiteral slit) const
 bool EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc)
 {
   CALL("EquivalenceDiscoverer::handleEquivalence");
-
   ASS_NEQ(l1.var(), l2.var());
 
   Literal* fl1 = getFOLit(l1);
@@ -322,7 +347,7 @@ bool EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, Unit
     return false;
   }
 
-  if(!isEligibleEquiv(fl1, fl2)) {
+  if(!isEligiblePair(fl1, fl2)) {
     return false;
   }
 
@@ -332,12 +357,55 @@ bool EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, Unit
     eqForm = new QuantifiedFormula(FORALL, freeVars, eqForm);
   }
 
-  Inference* inf = getEquivInference(l1, l2);
+  Inference* inf = getInference(l1, l2, false);
   FormulaUnit* fu = new FormulaUnit(eqForm, inf, Unit::AXIOM);
   UnitList::push(fu, eqAcc);
 
   LOG_UNIT("pp_ed_eq",fu);
   TRACE("pp_ed_eq_prems",
+	UnitSpecIterator uit = InferenceStore::instance()->getParents(UnitSpec(fu));
+	while(uit.hasNext()) {
+	  UnitSpec p = uit.next();
+	  TRACE_OUTPUT_UNIT(p.unit());
+	}
+  );
+
+  return true;
+}
+
+/**
+ * If possible and eligible, add FO version of implication lhs -> rhs into @c eqAcc.
+ */
+bool EquivalenceDiscoverer::handleImplication(SATLiteral lhs, SATLiteral rhs, UnitList*& eqAcc)
+{
+  CALL("EquivalenceDiscoverer::handleImplication");
+  ASS_NEQ(lhs.var(), rhs.var());
+
+  Literal* flhs = getFOLit(lhs);
+  Literal* frhs = getFOLit(rhs);
+
+  static DHMap<unsigned,unsigned> varSorts;
+  varSorts.reset();
+  if(!SortHelper::areSortsValid(flhs, varSorts) || !SortHelper::areSortsValid(frhs, varSorts)) {
+    return false;
+  }
+
+  if(!isEligiblePair(flhs, frhs)) {
+    return false;
+  }
+
+  Formula* eqForm = new BinaryFormula(IMP, new AtomicFormula(flhs), new AtomicFormula(frhs));
+  Formula::VarList* freeVars = eqForm->freeVariables();
+  if(freeVars) {
+    eqForm = new QuantifiedFormula(FORALL, freeVars, eqForm);
+  }
+
+  Inference* inf = getInference(lhs, rhs, true);
+  FormulaUnit* fu = new FormulaUnit(eqForm, inf, Unit::AXIOM);
+  UnitList::push(fu, eqAcc);
+
+  LOG_UNIT("pp_ed_imp",fu);
+  TRACE("pp_ed_imp_prems",
 	UnitSpecIterator uit = InferenceStore::instance()->getParents(UnitSpec(fu));
 	while(uit.hasNext()) {
 	  UnitSpec p = uit.next();
@@ -354,7 +422,7 @@ UnitList* EquivalenceDiscoverer::getEquivalences(UnitList* units, const Options*
 
   Options prepOpts;
   if(opts) { prepOpts = *opts; }
-  prepOpts.setPredicateEquivalenceDiscovery(false);
+  prepOpts.setPredicateEquivalenceDiscovery(Options::PED_OFF);
 
   Problem prb(units->copy());
 
@@ -390,10 +458,24 @@ bool EquivalenceDiscoveringTransformer::apply(UnitList*& units)
 {
   CALL("EquivalenceDiscoveringTransformer::apply(UnitList*&)");
 
-  EquivalenceDiscoverer::CandidateRestriction restr =
-      _opts.predicateEquivalenceDiscoveryAllAtoms() ? EquivalenceDiscoverer::CR_NONE : EquivalenceDiscoverer::CR_EQUIVALENCES;
+  EquivalenceDiscoverer::CandidateRestriction restr;
+  switch(_opts.predicateEquivalenceDiscovery()) {
+  case Options::PED_ALL_ATOMS:
+    restr = EquivalenceDiscoverer::CR_NONE;
+    break;
+  case Options::PED_DEFINITIONS:
+    restr = EquivalenceDiscoverer::CR_DEFINITIONS;
+    break;
+  case Options::PED_ON:
+    restr = EquivalenceDiscoverer::CR_EQUIVALENCES;
+    break;
+  case Options::PED_OFF:
+  default:
+    ASSERTION_VIOLATION;
+  }
 
-  EquivalenceDiscoverer eqd(true, _opts.predicateEquivalenceDiscoverySatConflictLimit(), restr, false);
+  EquivalenceDiscoverer eqd(true, _opts.predicateEquivalenceDiscoverySatConflictLimit(), restr,
+      _opts.predicateEquivalenceDiscoveryAddImplications());
   UnitList* equivs = eqd.getEquivalences(units, &_opts);
   if(!equivs) {
     return false;

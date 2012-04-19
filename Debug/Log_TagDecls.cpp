@@ -587,14 +587,18 @@ void Logging::doTagDeclarations()
       PARENT("pp_ed",0));
   DECL("pp_ed_eq",
       DOC("discovered equivalences"),
-      PARENT("pp_ed",0),
+      PARENT("pp_ed",1),
       UNIT_TAG);
   DECL("pp_ed_eq_prems",
       DOC("premises of discovered equivalences"),
       PARENT("pp_ed_eq",1));
-  DECL("pp_ed_asm",
-      DOC("assumptions being asserted into the solver"),
-      PARENT("pp_ed",1));
+  DECL("pp_ed_imp",
+      DOC("discovered implications"),
+      PARENT("pp_ed",1),
+      UNIT_TAG);
+  DECL("pp_ed_imp_prems",
+      DOC("premises of discovered implications"),
+      PARENT("pp_ed_imp",1));
 
   DECL("pp_aig",
       DOC("aig sub-formula sharing"),

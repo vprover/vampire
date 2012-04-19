@@ -71,15 +71,16 @@ private:
 
   SATSolver& getProofRecordingSolver();
   void getImplicationPremises(SATLiteral l1, SATLiteral l2, Stack<UnitSpec>& acc);
-  Inference* getEquivInference(SATLiteral l1, SATLiteral l2);
+  Inference* getInference(SATLiteral l1, SATLiteral l2, bool implication);
 
   void addGrounding(Clause* cl);
   void collectRelevantLits();
 
   bool isEligible(Literal* l);
-  bool isEligibleEquiv(Literal* l1, Literal* l2);
+  bool isEligiblePair(Literal* l1, Literal* l2);
 
   bool handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc);
+  bool handleImplication(SATLiteral lhs, SATLiteral rhs, UnitList*& eqAcc);
 
   void doISSatDiscovery(UnitList*& res);
 
