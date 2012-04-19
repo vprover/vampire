@@ -17,7 +17,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
-#include "Shell/AIGInliner.hpp"
+#include "Shell/AIGDefinitionIntroducer.hpp"
 #include "Shell/AIGCompressor.hpp"
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"

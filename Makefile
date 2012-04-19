@@ -238,6 +238,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 
 VS_OBJ = Shell/AIG.o\
          Shell/AIGCompressor.o\
+         Shell/AIGDefinitionIntroducer.o\
          Shell/AIGInliner.o\
          Shell/AIGRewriter.o\
          Shell/AnswerExtractor.o\

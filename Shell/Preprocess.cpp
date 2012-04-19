@@ -15,6 +15,7 @@
 
 #include "AIG.hpp"
 #include "AIGCompressor.hpp"
+#include "AIGDefinitionIntroducer.hpp"
 #include "AIGInliner.hpp"
 #include "AnswerExtractor.hpp"
 #include "CNF.hpp"
