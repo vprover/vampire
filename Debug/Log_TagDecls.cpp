@@ -589,16 +589,14 @@ void Logging::doTagDeclarations()
       DOC("discovered equivalences"),
       PARENT("pp_ed",1),
       UNIT_TAG);
-  DECL("pp_ed_eq_prems",
-      DOC("premises of discovered equivalences"),
-      PARENT("pp_ed_eq",1));
+  DECL("pp_ed_tl",
+      DOC("discovered true literals"),
+      PARENT("pp_ed",1),
+      UNIT_TAG);
   DECL("pp_ed_imp",
       DOC("discovered implications"),
       PARENT("pp_ed",1),
       UNIT_TAG);
-  DECL("pp_ed_imp_prems",
-      DOC("premises of discovered implications"),
-      PARENT("pp_ed_imp",1));
 
   DECL("pp_aig",
       DOC("aig sub-formula sharing"),
@@ -878,6 +876,9 @@ void Logging::doTagDeclarations()
       PARENT("sat_iss_grps",1));
   DECL("sat_iss_try_impl",
       DOC("attempts to prove implications"),
+      PARENT("sat_iss",1));
+  DECL("sat_iss_rot",
+      DOC("information on finished rotations"),
       PARENT("sat_iss",1));
   DECL("sat_iss_impl_scan",
       DOC("internal working of lookForImplications function"),

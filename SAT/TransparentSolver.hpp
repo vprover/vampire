@@ -30,8 +30,9 @@ public:
   virtual void addClauses(SATClauseIterator cit, bool onlyPropagate);
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var) { return _inner->isZeroImplied(var); } //TODO: not quite sure wether this is right
+  virtual void collectZeroImplied(SATLiteralStack& acc) { _inner->collectZeroImplied(acc); }
 
-  virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
+  virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   virtual void retractAllAssumptions();
   virtual bool hasAssumptions() const { return _assumptions.isNonEmpty(); }
 private:
@@ -48,7 +49,7 @@ private:
 
   void flushClausesToInner(bool onlyPropagate);
 
-  void addInnerAssumption(SATLiteral lit, bool onlyPropagate);
+  void addInnerAssumption(SATLiteral lit, unsigned conflictCountLimit);
 
   struct VarInfo
   {

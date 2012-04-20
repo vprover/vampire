@@ -56,10 +56,29 @@ public:
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
   virtual bool isZeroImplied(unsigned var) = 0;
+  /**
+   * Collect zero-implied literals.
+   *
+   * Can be used in SATISFIABLE and UNKNOWN state.
+   *
+   * @see isZeroImplied()
+   */
+  virtual void collectZeroImplied(SATLiteralStack& acc) = 0;
 
   virtual void ensureVarCnt(unsigned newVarCnt) {}
 
-  virtual void addAssumption(SATLiteral lit, bool onlyPropagate=false) = 0;
+  void addAssumption(SATLiteral lit, bool onlyPropagate=false) {
+    CALL("SATSolver::addAssumption(SATLiteral,bool)");
+    addAssumption(lit, onlyPropagate ? 0 : UINT_MAX);
+  }
+  /**
+   * Add an assumption into the solver. If conflictCountLimit==0,
+   * do only unit propagation, if conflictCountLimit==UINT_MAX, do
+   * full satisfiability check, and for values in between, restrict
+   * the number of conflicts, and in case it is reached, stop with
+   * solving and assign the status to UNKNOWN.
+   */
+  virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit) = 0;
   virtual void retractAllAssumptions() = 0;
   virtual bool hasAssumptions() const = 0;
 

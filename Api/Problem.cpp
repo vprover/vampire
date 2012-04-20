@@ -23,6 +23,7 @@
 #include "Kernel/Unit.hpp"
 
 #include "Shell/AIGCompressor.hpp"
+#include "Shell/AIGDefinitionIntroducer.hpp"
 #include "Shell/AIGInliner.hpp"
 #include "Shell/CNF.hpp"
 #include "Shell/EPRInlining.hpp"
@@ -1075,7 +1076,9 @@ public:
       Kernel::UnitList::push(f.unit, units);
     }
 
-    EquivalenceDiscoverer ed(true, _satConflictCountLimit, _predEquivsOnly);
+    EquivalenceDiscoverer::CandidateRestriction restr =
+	_predEquivsOnly ? EquivalenceDiscoverer::CR_EQUIVALENCES : EquivalenceDiscoverer::CR_NONE;
+    EquivalenceDiscoverer ed(true, _satConflictCountLimit, restr, false);
     if(_restricted) {
       ed.setRestrictedRange(pvi( Stack<Kernel::Literal*>::Iterator(_restrSet1) ),
 	  pvi( Stack<Kernel::Literal*>::Iterator(_restrSet2)) );

@@ -84,13 +84,13 @@ void CheckedSatSolver::doCheck()
 }
 
 
-void CheckedSatSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
+void CheckedSatSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
 {
   CALL("CheckedSatSolver::addAssumption");
 
   _assumptions.insert(lit.var(), lit.polarity());
   _checked = false;
-  _inner->addAssumption(lit, onlyPropagate);
+  _inner->addAssumption(lit, conflictCountLimit);
 }
 
 void CheckedSatSolver::retractAllAssumptions()

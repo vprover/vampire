@@ -54,9 +54,9 @@ public:
   virtual void ensureVarCnt(unsigned newVarCnt);
   virtual VarAssignment getAssignment(unsigned var);
   virtual bool isZeroImplied(unsigned var);
+  virtual void collectZeroImplied(SATLiteralStack& acc);
 
-  virtual void addAssumption(SATLiteral lit, bool onlyPropagate);
-  void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
+  virtual void addAssumption(SATLiteral lit, unsigned conflictCountLimit);
   virtual void retractAllAssumptions();
   virtual bool hasAssumptions() const { return _assumptionsAdded; }
 

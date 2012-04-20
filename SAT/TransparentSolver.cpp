@@ -287,19 +287,19 @@ SATSolver::VarAssignment TransparentSolver::getAssignment(unsigned var)
 // assumptions
 //
 
-void TransparentSolver::addInnerAssumption(SATLiteral lit, bool onlyPropagate)
+void TransparentSolver::addInnerAssumption(SATLiteral lit, unsigned conflictCountLimit)
 {
   CALL("TransparentSolver::addInnerAssumption");
 
-  LOG("sat_ts_out", "_inner->addAssumption("<<lit<<", "<<onlyPropagate<<")");
-  _inner->addAssumption(lit, onlyPropagate);
+  LOG("sat_ts_out", "_inner->addAssumption("<<lit<<", "<<conflictCountLimit<<")");
+  _inner->addAssumption(lit, conflictCountLimit);
 }
 
-void TransparentSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
+void TransparentSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
 {
   CALL("TransparentSolver::addAssumption");
 
-  LOG("sat_ts_in", "TransparentSolver::addAssumption("<<lit<<", "<<onlyPropagate<<")");
+  LOG("sat_ts_in", "TransparentSolver::addAssumption("<<lit<<", "<<conflictCountLimit<<")");
 
   unsigned var = lit.var();
   VarInfo& vi = _vars[var];
@@ -326,7 +326,7 @@ void TransparentSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
   if(innerStatus==SATSolver::UNSATISFIABLE) { return; }
 
   if(vi._unit || vi._unseen || !vi._isPure) {
-    addInnerAssumption(lit, onlyPropagate);
+    addInnerAssumption(lit, conflictCountLimit);
     return;
   }
   if(vi._isPurePositive==lit.polarity()) {
@@ -334,7 +334,7 @@ void TransparentSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
   }
 
   if(tryToSweepPure(var, false)) {
-    addInnerAssumption(lit, onlyPropagate);
+    addInnerAssumption(lit, conflictCountLimit);
     return;
   }
 
@@ -350,7 +350,7 @@ void TransparentSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
   while(ait.hasNext()) {
     SATLiteral restoredLit = ait.next();
     bool last = !ait.hasNext();
-    addInnerAssumption(restoredLit, onlyPropagate || !last);
+    addInnerAssumption(restoredLit, last ? conflictCountLimit : 0);
   }
 }
 

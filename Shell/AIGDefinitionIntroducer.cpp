@@ -37,37 +37,6 @@ AIGDefinitionIntroducer::AIGDefinitionIntroducer(unsigned threshold)
   _mergeEquivDefs = false; //not implemented yet
 }
 
-/**
- * Add a definition into _defs and return true, or return false
- * if @c rhs already as a definition
- *
- * namingUnit may be zero, that means that the naming unit will be created lazily later
- */
-bool AIGDefinitionIntroducer::addAIGName(AIGRef rhs, AIGRef nameAtom, FormulaUnit* namingUnit)
-{
-  CALL("AIGDefinitionIntroducer::addAIGDefinition");
-  ASS(nameAtom.isAtom());
-  ASS(!rhs.isPropConst());
-
-  if(!_defs.insert(rhs, nameAtom)) {
-    return false;
-  }
-  if(namingUnit) {
-    ALWAYS(_defUnits.insert(rhs, namingUnit));
-  }
-  return true;
-}
-
-/** @c rhs must have a name, this will be returned. */
-AIGRef AIGDefinitionIntroducer::getName(AIGRef rhs) const
-{
-  CALL("AIGDefinitionIntroducer::getName");
-  ASS(hasName(rhs));
-
-  return _defs.get(rhs);
-}
-
-
 bool AIGDefinitionIntroducer::scanDefinition(FormulaUnit* def)
 {
   CALL("AIGDefinitionIntroducer::scanDefinition");
@@ -101,16 +70,10 @@ bool AIGDefinitionIntroducer::scanDefinition(FormulaUnit* def)
     lhsAig = lhsAig.neg();
   }
 
-  if(!addAIGName(rhsAig, lhsAig, def)) {
-    //rhs is already defined
-    AIGRef oldDefTgt;
-    oldDefTgt = getName(rhsAig);
-    if(_mergeEquivDefs) {
-//      _equivs.insert(lhs, oldDefTgt);
-      NOT_IMPLEMENTED;
-    }
+  if(!_existingDefs.insert(rhsAig, lhsAig)) {
     return false;
   }
+  ALWAYS(_existingDefUnits.insert(rhsAig, def));
 
   _toplevelAIGs.push(rhsAig);
   return true;
@@ -181,7 +144,7 @@ void AIGDefinitionIntroducer::doFirstRefAIGPass()
     NodeInfo& ni = _refAIGInfos.top();
 
     ni._directRefCnt = 0;
-    ni._hasName = findName(r, ni._name);
+    ni._hasName = _existingDefs.find(r, ni._name);
 
 
     ni._hasQuant[0] = false;
@@ -258,7 +221,7 @@ bool AIGDefinitionIntroducer::shouldIntroduceName(unsigned aigStackIdx)
   if(!_namingRefCntThreshold || ni._formRefCnt<_namingRefCntThreshold) {
     return false;
   }
-  if(hasName(a)) {
+  if(ni._hasName) {
     return false;
   }
   return true;
@@ -310,18 +273,11 @@ void AIGDefinitionIntroducer::introduceName(unsigned aigStackIdx)
   AIGRef a = getPreNamingAig(aigStackIdx);
   NodeInfo& ni = _refAIGInfos[aigStackIdx];
   ASS(!ni._hasName);
-  ASS(!hasName(a.getPositive()));
 
   ni._formRefCnt = 1;
   Literal* nameLit = getNameLiteral(aigStackIdx);
   ni._hasName = true;
   ni._name = _fsh.apply(nameLit);
-  if(a.polarity()) {
-    ALWAYS(addAIGName(a, ni._name, 0));
-  }
-  else {
-    ALWAYS(addAIGName(a.neg(), ni._name.neg(), 0));
-  }
 }
 
 void AIGDefinitionIntroducer::doSecondRefAIGPass()
@@ -426,7 +382,7 @@ void AIGDefinitionIntroducer::doThirdRefAIGPass()
       continue;
     }
 
-    if(!_defUnits.find(r, ni._namingUnit)) {
+    if(!_existingDefUnits.find(r, ni._namingUnit)) {
       ni._namingUnit = createNameUnit(tgt, ni._name);
     }
 
@@ -508,7 +464,6 @@ bool AIGDefinitionIntroducer::apply(FormulaUnit* unit, Unit*& res)
 
   ASS_REP2(f->freeVariables()->isEmpty(), *f, *unit);
 
-  //TODO add proper inferences
   Inference* inf = getInferenceFromPremIndexes(unit, premIndexes);
   res = new FormulaUnit(f, inf, unit->inputType());
   LOG("pp_aigdef_apply","orig: " << (*unit) << endl << "intr: " << (*res));
@@ -517,43 +472,6 @@ bool AIGDefinitionIntroducer::apply(FormulaUnit* unit, Unit*& res)
   res = Flattening::flatten(static_cast<FormulaUnit*>(res));
   return true;
 }
-
-///**
-// * Introduce definitions into a formula and return modifier formuls.
-// * The introducedDefinitions add to the @c introducedDefs list.
-// */
-//Formula* AIGDefinitionIntroducer::apply(Formula* f0, UnitList*& introducedDefs)
-//{
-//  CALL("AIGDefinitionIntroducer::apply(Formula*,UnitList*&)");
-//  ASS(_newDefs.isEmpty());
-//
-//  AIGRef f0Aig = _fsh.apply(f0).second;
-//
-//  _toplevelAIGs.push(f0Aig);
-//
-//  processTopLevelAIGs();
-//
-//  AIGRef resAig = AIGTransformer::lev0Deref(f0Aig, _defs);
-//  if(f0Aig==resAig) {
-//    return f0;
-//  }
-////  LOGV("bug",f0Aig);
-////  LOGV("bug",resAig);
-//  Formula* f = _fsh.aigToFormula(resAig);
-//
-//
-//  Stack<FormulaUnit*>::Iterator uit(_newDefs);
-//  while(uit.hasNext()) {
-//    FormulaUnit* def0 = uit.next();
-//    Unit* def;
-//    if(!apply(def0, def)) {
-//      def = def0;
-//    }
-//    UnitList::push(def, introducedDefs);
-//  }
-//
-//  return f;
-//}
 
 UnitList* AIGDefinitionIntroducer::getIntroducedFormulas()
 {

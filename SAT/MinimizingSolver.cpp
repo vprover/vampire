@@ -266,13 +266,13 @@ void MinimizingSolver::updateAssignment()
 }
 
 
-void MinimizingSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
+void MinimizingSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
 {
   CALL("MinimizingSolver::addAssumption");
 
   _assumptions.insert(lit.var(), lit.polarity());
   _assignmentValid = false;
-  _inner->addAssumption(lit, onlyPropagate);
+  _inner->addAssumption(lit, conflictCountLimit);
 }
 
 void MinimizingSolver::retractAllAssumptions()

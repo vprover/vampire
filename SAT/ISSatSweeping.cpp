@@ -20,6 +20,10 @@ namespace SAT
  */
 ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver)
 : _varCnt(varCnt),
+  _interestingVarsSet(varCnt),
+  _probingGroupIndex(0),
+  _probingElementIndex(0),
+  _conflictCountLimit(0),
   _candidateVarPolarities(varCnt),
   _candidateGroupIndexes(varCnt),
   _equivalentVars(varCnt),
@@ -30,6 +34,7 @@ ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver)
   ASS(!solver.hasAssumptions());
 
   _interestingVars.loadFromIterator(getRangeIterator(1u,varCnt));
+  _interestingVarsSet.insertFromIterator(getRangeIterator(1u,varCnt));
 
   run();
 }
@@ -45,6 +50,10 @@ ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver)
  */
 ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, VirtualIterator<int> interestingVarIterator)
 : _varCnt(varCnt),
+  _interestingVarsSet(varCnt),
+  _probingGroupIndex(0),
+  _probingElementIndex(0),
+  _conflictCountLimit(0),
   _candidateVarPolarities(varCnt),
   _candidateGroupIndexes(varCnt),
   _equivalentVars(varCnt),
@@ -55,6 +64,7 @@ ISSatSweeping::ISSatSweeping(unsigned varCnt, SATSolver& solver, VirtualIterator
   ASS(!solver.hasAssumptions());
 
   _interestingVars.loadFromIterator(interestingVarIterator);
+  _interestingVarsSet.insertFromIterator(interestingVarIterator);
 
   run();
 }
@@ -121,9 +131,11 @@ void ISSatSweeping::createCandidates()
   if(candGrp.size()<2) {
     _candidateGroups.pop();
     ASS(_candidateGroups.isEmpty());
-    return;
+    _unfinishedAmount = 0;
   }
-  _biggestGroupIdx = 0;
+  else {
+    _unfinishedAmount = candGrp.size()-1;
+  }
 }
 
 /**
@@ -190,7 +202,6 @@ void ISSatSweeping::splitGroupsByCurrAssignment()
   static SATLiteralStack auxNew;
   ASS(auxNew.isEmpty());
 
-  unsigned biggestSz = 0; //smallest actual group size is 2
   unsigned gi = 0;
   while(gi<_candidateGroups.size()) {
     {//we put this in a special scope as later we might invalidate the currGrp reference
@@ -198,12 +209,7 @@ void ISSatSweeping::splitGroupsByCurrAssignment()
 
       ASS(auxNew.isEmpty());
       splitByCurrAssignment(currGrp, auxNew);
-
       ASS_GE(currGrp.size(), auxNew.size());
-      if(currGrp.size()>biggestSz) {
-	biggestSz = currGrp.size();
-	_biggestGroupIdx = gi;
-      }
     }
 
     if(auxNew.isNonEmpty()) {
@@ -225,11 +231,15 @@ void ISSatSweeping::splitGroupsByCurrAssignment()
     }
   }
 
+  _unfinishedAmount = 0;
   _candidateGroupIndexes.reset();
   unsigned groupCnt = _candidateGroups.size();
   for(gi=0; gi<groupCnt; gi++) {
     LOG("sat_iss_grps", "Group "<<gi<<" (size "<<_candidateGroups[gi].size()<<")");
-    SATLiteralStack::ConstIterator git(_candidateGroups[gi]);
+    SATLiteralStack& grp = _candidateGroups[gi];
+    ASS_GE(grp.size(),2);
+    _unfinishedAmount += grp.size()-1;
+    SATLiteralStack::ConstIterator git(grp);
     while(git.hasNext()) {
       SATLiteral lit = git.next();
       LOG("sat_iss_grps_content", "  "<<lit);
@@ -243,7 +253,6 @@ void ISSatSweeping::tryRandomSimulation()
   CALL("ISSatSweeping::tryRandomSimulation");
   ASS(!_solver.hasAssumptions());
 
-#if 1
   if(_candidateGroups.isEmpty()) {
     return;
   }
@@ -253,83 +262,25 @@ void ISSatSweeping::tryRandomSimulation()
   }
   ASS_EQ(_solver.getStatus(), SATSolver::SATISFIABLE);
 
-  unsigned oldBiggestSz;
-  unsigned oldGroupCnt;
-  unsigned biggestSz = _candidateGroups[_biggestGroupIdx].size();
-  unsigned groupCnt = _candidateGroups.size();
-
   unsigned initLives = 3;
   unsigned lives = initLives;
 
   do {
-    oldBiggestSz = biggestSz;
-    oldGroupCnt = groupCnt;
+    unsigned oldUnfinished = _unfinishedAmount;
 
-    LOG("sat_iss_rand_sim", "group cnt: "<<groupCnt<<"  biggest group size: "<<biggestSz);
+    LOG("sat_iss_rand_sim", "group cnt: "<<_candidateGroups.size()<<"  unfinishedAmont: "<<_unfinishedAmount);
 
     _solver.randomizeAssignment();
     splitGroupsByCurrAssignment();
 
-    biggestSz = _candidateGroups[_biggestGroupIdx].size();
-    groupCnt = _candidateGroups.size();
-
-    if(oldBiggestSz==biggestSz && oldGroupCnt==groupCnt) {
+    if(oldUnfinished==_unfinishedAmount) {
       lives--;
     }
     else {
       lives = initLives;
     }
-  } while(lives>0);
-  LOG("sat_iss_rand_sim", "random simulation finished at group cnt: "<<groupCnt<<"  biggest group size: "<<biggestSz);
-
-#else
-  SATLiteralStack possiblySatSubset;
-
-  Stack<unsigned> varsInRandomOrder(_interestingVars);
-
-  unsigned vcnt = varsInRandomOrder.size();
-  for(unsigned i=0; i<vcnt; i++) {
-    unsigned src = Random::getInteger(vcnt-i)+i;
-    if(src==i) {
-      continue;
-    }
-    std::swap(varsInRandomOrder[i], varsInRandomOrder[src]);
-  }
-
-  Stack<unsigned>::Iterator varIt(varsInRandomOrder);
-  while(varIt.hasNext()) {
-    unsigned v = varIt.next();
-    if(!_candidateGroupIndexes.find(v)) {
-      continue;
-    }
-    bool pol = Random::getBit();
-    SATLiteral probeLit = SATLiteral(v, pol);
-    _solver.addAssumption(probeLit, true);
-    if(_solver.getStatus()==SATSolver::UNSATISFIABLE) {
-      _solver.retractAllAssumptions();
-
-      while(possiblySatSubset.size()>1) {
-	SATLiteral l = possiblySatSubset.pop();
-	_solver.addAssumption(l, true);
-      }
-      _solver.addAssumption(possiblySatSubset.pop());
-      if(_solver.getStatus()==SATSolver::SATISFIABLE) {
-	splitGroupsByCurrAssignment();
-      }
-      _solver.retractAllAssumptions();
-
-      _solver.addAssumption(probeLit);
-      if(_solver.getStatus()==SATSolver::UNSATISFIABLE) {
-	ASS_NEQ(probeLit.polarity(), _candidateVarPolarities[v]);
-	addTrueLit(probeLit.opposite());
-	continue;
-      }
-    }
-    possiblySatSubset.push(probeLit);
-  }
-
-  _solver.retractAllAssumptions();
-#endif
+  } while(_unfinishedAmount && lives>0);
+  LOG("sat_iss_rand_sim", "random simulation finished at group cnt: "<<_candidateGroups.size()<<"  unfinishedAmont: "<<_unfinishedAmount);
 }
 
 void ISSatSweeping::addImplication(Impl imp, bool& foundEquivalence)
@@ -357,29 +308,40 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
   LOG("sat_iss_impl_scan","looking for implications with "<<probedLit
 			<<" assigned as "<<(assignedOpposite ? "opposite" : "normal"));
 
-  Stack<unsigned>::Iterator ivit(_interestingVars);
-  while(ivit.hasNext()) {
-    unsigned v = ivit.next();
-    if(v==probedLit.var()) {
-      ASS(_solver.isZeroImplied(v));
+  unsigned probedVar = probedLit.var();
+
+  static SATLiteralStack ziStack;
+  ziStack.reset();
+
+  _solver.collectZeroImplied(ziStack);
+
+  SATLiteralStack::Iterator ziit(ziStack);
+  while(ziit.hasNext()) {
+    SATLiteral lit = ziit.next();
+    unsigned litVar = lit.var();
+
+    ASS(_solver.isZeroImplied(litVar));
+    ASS(_solver.getStatus()==SATSolver::UNKNOWN || _solver.trueInAssignment(lit));
+
+    if(!_interestingVarsSet.find(litVar)) {
       continue;
     }
-    if(!_solver.isZeroImplied(v)) {
+
+    if(litVar==probedVar) {
+      ASS_EQ(lit.polarity(),probedLit.polarity()^assignedOpposite);
       continue;
     }
-    SATSolver::VarAssignment asgn = _solver.getAssignment(v);
-    ASS(asgn==SATSolver::TRUE || asgn==SATSolver::FALSE);
-    bool asgnPos = asgn==SATSolver::TRUE;
-    SATLiteral candLit = SATLiteral(v, _candidateVarPolarities[v]);
-    bool candidateLitTrue = asgnPos==candLit.polarity();
-    LOG("sat_iss_impl_scan","have propagation implied: "<<SATLiteral(v,asgnPos)<<" candidate was "<<candLit);
+    bool asgnPos = lit.polarity();
+    SATLiteral candLit = SATLiteral(litVar, _candidateVarPolarities[litVar]);
+    bool candidateLitTrue = lit==candLit;
+    LOG("sat_iss_impl_scan","have propagation implied: "<<lit<<" candidate was "<<candLit);
     if(candidateLitTrue==assignedOpposite) {
       //probed lit cannot be equivalent to candidate lit
       //(see documentation to _candidateVarPolarities)
       //We assert the below non-equality because we assume
       //splitGroupsByCurrAssignment() to have been already
       //called on the current assignment.
-      ASS_REP2(!sameCandGroup(v,probedLit.var()), v, probedLit.var());
+      ASS_REP2(!sameCandGroup(litVar,probedVar), lit, probedLit);
       Impl imp;
       if(assignedOpposite) {
 	//~p --> c
@@ -394,17 +356,18 @@ void ISSatSweeping::lookForImplications(SATLiteral probedLit, bool assignedOppos
       ASS(!foundEq);
       continue;
     }
-
-    Impl imp;
-    if(assignedOpposite) {
-	//~p --> ~c
-	imp = Impl(candLit, probedLit);
-    }
     else {
-	//p --> ~c
-	imp = Impl(probedLit, candLit);
+      Impl imp;
+      if(assignedOpposite) {
+	  //~p --> ~c
+	  imp = Impl(candLit, probedLit);
+      }
+      else {
+	  //p --> ~c
+	  imp = Impl(probedLit, candLit);
+      }
+      addImplication(imp, foundEquivalence);
     }
-    addImplication(imp, foundEquivalence);
   }
 }
 
@@ -423,13 +386,23 @@ bool ISSatSweeping::tryProvingImplication(Impl imp, bool& foundEquivalence)
   return res;
 }
 
+/**
+ * Try proving implication imp (f -> s) by asserting ~s and afterward f.
+ * If ~s itself is unsatisfiable, we've proven that s has to be true. We
+ * also examine the intermediate assignment and literals implied by
+ * unit-propagation of the ~s. If we find to s be equivalent to something else,
+ * we terminate early and set foundEquivalence to true.
+ *
+ * This is a inner function for @c tryProvingImplication, the outer function will
+ * retract assumptions made by this one.
+ */
 bool ISSatSweeping::tryProvingImplicationInner(Impl imp, bool& foundEquivalence)
 {
   CALL("ISSatSweeping::tryProvingImplication");
   ASS(!_solver.hasAssumptions());
   ASS(sameCandGroup(imp.first.var(),imp.second.var()));
 
-  _solver.addAssumption(imp.second.opposite());
+  _solver.addAssumption(imp.second.opposite(), _conflictCountLimit);
   SATSolver::Status status = _solver.getStatus();
   if(status==SATSolver::UNSATISFIABLE) {
     addTrueLit(imp.second);
@@ -437,14 +410,11 @@ bool ISSatSweeping::tryProvingImplicationInner(Impl imp, bool& foundEquivalence)
     return false;
   }
 
-  ASS_EQ(status, SATSolver::SATISFIABLE);
-  splitGroupsByCurrAssignment();
+  if(status==SATSolver::SATISFIABLE) {
+    splitGroupsByCurrAssignment();
+  }
   lookForImplications(imp.second, true, foundEquivalence);
 
-  if(_solver.trueInAssignment(imp.first)) {
-    ASS(!sameCandGroup(imp.first.var(),imp.second.var()));
-    return false;
-  }
   if(foundEquivalence) {
     return false;
   }
@@ -452,7 +422,14 @@ bool ISSatSweeping::tryProvingImplicationInner(Impl imp, bool& foundEquivalence)
     return true;
   }
 
-  _solver.addAssumption(imp.first);
+  if(status==SATSolver::SATISFIABLE && _solver.trueInAssignment(imp.first)) {
+    //if SATISFIABLE, we did splitGroupsByCurrAssignment() with this assignment, so
+    //the two elements of the implication must have ended in different groups
+    ASS(!sameCandGroup(imp.first.var(),imp.second.var()));
+    return false;
+  }
+
+  _solver.addAssumption(imp.first, _conflictCountLimit);
   status = _solver.getStatus();
   if(status==SATSolver::UNSATISFIABLE) {
     LOG("sat_iss_try_impl","assumption of "<<imp.second.opposite()<<" & "<<imp.first<<" unsatisfiable");
@@ -460,63 +437,194 @@ bool ISSatSweeping::tryProvingImplicationInner(Impl imp, bool& foundEquivalence)
     return true;
   }
 
-  splitGroupsByCurrAssignment();
-  ASS(!sameCandGroup(imp.first.var(),imp.second.var()));
+  if(status==SATSolver::SATISFIABLE) {
+    splitGroupsByCurrAssignment();
+    ASS(!sameCandGroup(imp.first.var(),imp.second.var()));
+  }
   return false;
-
 }
 
 /**
  * Run of this function always shrinks the size of the biggest candidate group.
  * Either it discovers an equivalence
  */
-void ISSatSweeping::doOneProbing()
+bool ISSatSweeping::doOneProbing()
 {
   CALL("ISSatSweeping::doOneProbing");
-  ASS(_candidateGroups.isNonEmpty());
 
   SATLiteral cand1, cand2;
-  {
-    cand1 = SATLiteral::dummy();
-    unsigned nextGrpIdx = Random::getInteger(_candidateGroups.size());
-//    SATLiteralStack& currGrp = _candidateGroups[_biggestGroupIdx];
-    SATLiteralStack& currGrp = _candidateGroups[nextGrpIdx];
-    SATLiteralStack::DelIterator git(currGrp);
-    while(git.hasNext()) {
-      SATLiteral l = git.next();
-      int lvar = l.var();
-      int lRoot = _equivalentVars.root(lvar);
-      if(lRoot!=lvar || _trueVarSet.contains(lvar)) {
-	git.del();
-	continue;
-      }
-      if(cand1==SATLiteral::dummy()) {
-	cand1 = l;
-      }
-      else {
-	cand2 = l;
-	break;
-      }
-    }
-    if(currGrp.size()==1) {
-      currGrp.reset();
-    }
-    if(currGrp.isEmpty()) {
-      if(nextGrpIdx!=_candidateGroups.size()-1) {
-	std::swap(_candidateGroups[nextGrpIdx], _candidateGroups.top());
-      }
-      ASS(_candidateGroups.top().isEmpty());
-      _candidateGroups.pop();
-      return;
-    }
+  if(!getProbingCandidates(cand1, cand2)) {
+    return false;
   }
 
   bool foundEquivalence = false;
-  if(!tryProvingImplication(Impl(cand1, cand2), foundEquivalence) || foundEquivalence) {
-    return;
+  if(tryProvingImplication(Impl(cand1, cand2), foundEquivalence) && !foundEquivalence) {
+    tryProvingImplication(Impl(cand2, cand1), foundEquivalence);
+  }
+  return true;
+}
+
+bool ISSatSweeping::getProbingCandidates(SATLiteral& cand1, SATLiteral& cand2)
+{
+  CALL("ISSatSweeping::getProbingCandidates");
+
+  if(getProbingCandidatesWithinRotation(cand1, cand2)) {
+    return true;
+  }
+  if(!nextRotation()) {
+    return false;
+  }
+  if(!getProbingCandidatesWithinRotation(cand1, cand2)) {
+    //we eliminated all potential candidates, so it should
+    //not be possible to get to the next rotation
+    ASS(!nextRotation());
+    return false;
+  }
+  return true;
+}
+
+bool ISSatSweeping::nextRotation()
+{
+  CALL("ISSatSweeping::nextRotation");
+
+  if(_candidateGroups.isEmpty()) {
+    return false;
+  }
+  _probingGroupIndex = 0;
+  _probingElementIndex = 0;
+
+  LOG("sat_iss_rot","rotation with "<<_conflictCountLimit<<" finished, "
+      <<_candidateGroups.size()<<" candidate groups left, unfinished number is "<<_unfinishedAmount);
+
+  if(_conflictCountLimit) {
+    if(_conflictCountLimit<UINT_MAX/2) {
+      _conflictCountLimit*=2;
+    }
+    else {
+      _conflictCountLimit=UINT_MAX;
+    }
+  }
+  else {
+    _conflictCountLimit++;
+  }
+  return true;
+}
+
+
+/**
+ * Select probing candidates from group grp, not considering elements on positions less than
+ * @c firstIndex for the first candidate (they may be considered for the second candidate though).
+ * Do a feasibility check on candidates, so that we don't select a candidate that is known to be
+ * always true, or candidates that are already known to be equivalent. The unfeasible candidates are
+ * also removed from @c grp.
+ */
+bool ISSatSweeping::getProbingCandidatesFromGroup(SATLiteralStack& grp, unsigned firstIndex,
+    SATLiteral& cand1, SATLiteral& cand2)
+{
+  CALL("ISSatSweeping::getProbingCandidatesFromGroup");
+  ASS_G(grp.size(),1);
+
+  if(firstIndex>=grp.size()) {
+    return false;
   }
 
-  tryProvingImplication(Impl(cand2, cand1), foundEquivalence);
+  while(_trueLits.find(grp[firstIndex])) {
+    if(firstIndex<grp.size()-1) {
+      grp[firstIndex] = grp.pop();
+    }
+    else {
+      ASS_EQ(firstIndex,grp.size()-1);
+      grp.pop();
+      if(grp.size()==1) {
+	//we empty groups of size 1
+	grp.pop();
+      }
+      return false;
+    }
+  }
+  ASS_GE(grp.size(),2);
+
+  SATLiteral c1 = grp[firstIndex];
+  int c1Root = _equivalentVars.root(c1.var());
+
+  //Now we try to find the second candidate. We try the next element
+  //in the group (ruling out unfeasible candidates that are in the
+  //same equivalence class or are shown to be true). When there is no
+  //next element, we make the first candidate to be the first element
+  //in the group (grp[0]) and start looking for the second candidate again, this
+  //time at the position grp[1].
+
+  unsigned secondIndex = firstIndex+1;
+  if(secondIndex>=grp.size()) {
+    ASS_EQ(c1,grp.top());
+    swap(grp[0], grp.top());
+    firstIndex = 0;
+    secondIndex = 1;
+  }
+  while(_trueLits.find(grp[secondIndex]) || _equivalentVars.root(grp[secondIndex].var())==c1Root) {
+    if(secondIndex<grp.size()-1) {
+      grp[secondIndex] = grp.pop();
+    }
+    else {
+      ASS_EQ(secondIndex,grp.size()-1);
+      grp.pop();
+      ASS(!grp.isEmpty());
+      if(grp.size()==1) {
+	grp.pop();
+	return false;
+      }
+      //At this point c1 is the last in this group, so we know
+      //we won't be going into this group again in this rotation.
+      //We put the first element in the beginning and on the second
+      //element we'll hope to get the cand2
+      ASS_EQ(c1,grp.top());
+      swap(grp[0], grp.top());
+      firstIndex = 0;
+      secondIndex = 1;
+    }
+  }
+
+  cand1 = c1;
+  cand2 = grp[secondIndex];
+  ASS_NEQ(cand1,cand2);
+  ASS_NEQ(_equivalentVars.root(cand1.var()),_equivalentVars.root(cand2.var()));
+  ASS(!_trueLits.find(cand1));
+  ASS(!_trueLits.find(cand2));
+  ASS(grp.find(cand1));
+  ASS(grp.find(cand2));
+  return true;
+}
+
+bool ISSatSweeping::getProbingCandidatesWithinRotation(SATLiteral& cand1, SATLiteral& cand2)
+{
+  CALL("ISSatSweeping::getProbingCandidates");
+
+  cand1 = SATLiteral::dummy();
+
+  for(;;) {
+    if(_probingGroupIndex>=_candidateGroups.size()) {
+      return false;
+    }
+
+    SATLiteralStack& currGrp = _candidateGroups[_probingGroupIndex];
+    bool found = getProbingCandidatesFromGroup(currGrp, _probingElementIndex, cand1, cand2);
+    ASS_NEQ(currGrp.size(), 1); //group is either empty or of size at least two
+    if(found) {
+      _probingElementIndex++;
+      return true;
+    }
+    _probingElementIndex = 0;
+    if(currGrp.isEmpty()) {
+      if(_probingGroupIndex!=_candidateGroups.size()-1) {
+	ASS_L(_probingGroupIndex,_candidateGroups.size()-1);
+	swap(currGrp, _candidateGroups.top());
+      }
+      _candidateGroups.pop();
+    }
+    else {
+      _probingGroupIndex++;
+    }
+  }
 }
 
 void ISSatSweeping::run()
@@ -527,9 +635,13 @@ void ISSatSweeping::run()
 
   tryRandomSimulation();
 
-  while(_candidateGroups.isNonEmpty()) {
-    doOneProbing();
-  }
+  //do the actual proving
+
+  while(doOneProbing()) { }
+
+  //and now extract the results
+
+  ASS(_candidateGroups.isEmpty());
 
   ASS(_equivStack.isEmpty());
 

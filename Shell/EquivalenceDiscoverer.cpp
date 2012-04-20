@@ -114,12 +114,16 @@ bool EquivalenceDiscoverer::isEligible(Literal* l)
 bool EquivalenceDiscoverer::isEligiblePair(Literal* l1, Literal* l2)
 {
   CALL("EquivalenceDiscoverer::isEligiblePair");
-  ASS(isEligible(l1));
-  ASS(isEligible(l2));
+
+  Literal* pl1 = Literal::positiveLiteral(l1);
+  Literal* pl2 = Literal::positiveLiteral(l2);
+
+  ASS(isEligible(pl1));
+  ASS(isEligible(pl2));
 
   if(_restrictedRange) {
-    if( (!_restrictedRangeSet1.contains(l1) || !_restrictedRangeSet2.contains(l2)) &&
-        (!_restrictedRangeSet1.contains(l2) || !_restrictedRangeSet2.contains(l1)) ) {
+    if( (!_restrictedRangeSet1.contains(pl1) || !_restrictedRangeSet2.contains(pl2)) &&
+        (!_restrictedRangeSet1.contains(pl2) || !_restrictedRangeSet2.contains(pl1)) ) {
       return false;
     }
   }
@@ -147,8 +151,6 @@ void EquivalenceDiscoverer::collectRelevantLits()
   CALL("EquivalenceDiscoverer::collectRelevantLits");
 
   DHSet<SATLiteral> seen;
-
-  Stack<SATLiteral> nonTrivialPosLits;
 
   SATClauseStack::ConstIterator scit(_filteredSatClauses);
   while(scit.hasNext()) {
@@ -249,14 +251,21 @@ SATSolver& EquivalenceDiscoverer::getProofRecordingSolver()
   return *_proofRecordingSolver;
 }
 
+/**
+ * If l1==SATLiteral::dummy(), it is not asserted and
+ * we assume that just l2.opposite() is unsatisfiable.
+ */
 void EquivalenceDiscoverer::getImplicationPremises(SATLiteral l1, SATLiteral l2, Stack<UnitSpec>& acc)
 {
   CALL("EquivalenceDiscoverer::getImplicationPremises");
+  ASS(l2!=SATLiteral::dummy())
 
   SATSolver& ps = getProofRecordingSolver();
   ASS(!ps.hasAssumptions());
 
-  ps.addAssumption(l1,true);
+  if(l1!=SATLiteral::dummy()) {
+    ps.addAssumption(l1,true);
+  }
   ps.addAssumption(l2.opposite(),false);
   ASS_EQ(ps.getStatus(), SATSolver::UNSATISFIABLE);
   SATClause* ref = ps.getRefutation();
@@ -265,18 +274,23 @@ void EquivalenceDiscoverer::getImplicationPremises(SATLiteral l1, SATLiteral l2,
 }
 
 /**
- * If @c implication is true, return inference for implication l1 -> l2,
- * otherwise return inference for equivalence l1 <-> l2.
+ * If @c equivalence is true, return inference for equivalence l1 <-> l2.
+ * If @c equivalence is false and l1==SATLiteral::dummy(), return inference
+ * for atom l2.
+ * If @c equivalence is false and l1!=SATLiteral::dummy(), return inference
+ * for implication l1 -> l2.
  */
-Inference* EquivalenceDiscoverer::getInference(SATLiteral l1, SATLiteral l2, bool implication)
+Inference* EquivalenceDiscoverer::getInference(SATLiteral l1, SATLiteral l2, bool equivalence)
 {
   CALL("EquivalenceDiscoverer::getEquivInference");
+  ASS_NEQ(l2,SATLiteral::dummy());
+  ASS(!equivalence || l1!=SATLiteral::dummy());
 
   static Stack<UnitSpec> premises;
   ASS(premises.isEmpty());
 
   getImplicationPremises(l1, l2, premises);
-  if(!implication) {
+  if(equivalence) {
     getImplicationPremises(l2, l1, premises);
   }
 
@@ -303,6 +317,13 @@ void EquivalenceDiscoverer::doISSatDiscovery(UnitList*& res)
     ISSatSweeping::Equiv eq = eqIt.next();
     handleEquivalence(eq.first, eq.second, res);
   }
+
+  SATLiteralStack::ConstIterator tlit(sswp.getTrueLiterals());
+  while(tlit.hasNext()) {
+    SATLiteral trueLit = tlit.next();
+    handleTrueLiteral(trueLit, res);
+  }
+
   //TODO: make better equivalence retrieval for CR_DEFINITIONS
 
   if(_discoverImplications) {
@@ -333,6 +354,27 @@ Literal* EquivalenceDiscoverer::getFOLit(SATLiteral slit) const
   return res;
 }
 
+bool EquivalenceDiscoverer::handleTrueLiteral(SATLiteral l, UnitList*& eqAcc)
+{
+  CALL("EquivalenceDiscoverer::handleTrueLiteral");
+
+  Literal* fl = getFOLit(l);
+
+  Formula* atomForm = new AtomicFormula(fl);
+  Formula::VarList* freeVars = atomForm->freeVariables();
+  if(freeVars) {
+    atomForm = new QuantifiedFormula(FORALL, freeVars, atomForm);
+  }
+
+  Inference* inf = getInference(SATLiteral::dummy(), l, false);
+  FormulaUnit* fu = new FormulaUnit(atomForm, inf, Unit::AXIOM);
+  UnitList::push(fu, eqAcc);
+
+  LOG_UNIT("pp_ed_tl",fu);
+
+  return false;
+}
+
 bool EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, UnitList*& eqAcc)
 {
   CALL("EquivalenceDiscoverer::handleEquivalence");
@@ -357,18 +399,11 @@ bool EquivalenceDiscoverer::handleEquivalence(SATLiteral l1, SATLiteral l2, Unit
     eqForm = new QuantifiedFormula(FORALL, freeVars, eqForm);
   }
 
-  Inference* inf = getInference(l1, l2, false);
+  Inference* inf = getInference(l1, l2, true);
   FormulaUnit* fu = new FormulaUnit(eqForm, inf, Unit::AXIOM);
   UnitList::push(fu, eqAcc);
 
   LOG_UNIT("pp_ed_eq",fu);
-  TRACE("pp_ed_eq_prems",
-	UnitSpecIterator uit = InferenceStore::instance()->getParents(UnitSpec(fu));
-	while(uit.hasNext()) {
-	  UnitSpec p = uit.next();
-	  TRACE_OUTPUT_UNIT(p.unit());
-	}
-  );
 
   return true;
 }
@@ -400,18 +435,11 @@ bool EquivalenceDiscoverer::handleImplication(SATLiteral lhs, SATLiteral rhs, Un
     eqForm = new QuantifiedFormula(FORALL, freeVars, eqForm);
   }
 
-  Inference* inf = getInference(lhs, rhs, true);
+  Inference* inf = getInference(lhs, rhs, false);
   FormulaUnit* fu = new FormulaUnit(eqForm, inf, Unit::AXIOM);
   UnitList::push(fu, eqAcc);
 
   LOG_UNIT("pp_ed_imp",fu);
-  TRACE("pp_ed_imp_prems",
-	UnitSpecIterator uit = InferenceStore::instance()->getParents(UnitSpec(fu));
-	while(uit.hasNext()) {
-	  UnitSpec p = uit.next();
-	  TRACE_OUTPUT_UNIT(p.unit());
-	}
-  );
 
   return true;
 }

@@ -82,22 +82,17 @@ class AIGDefinitionIntroducer : public ScanAndApplyFormulaUnitTransformer
   /** Indexes of AIG refs in the _refAIGs stack */
   DHMap<AIGRef,size_t> _aigIndexes;
 
-  DHMap<AIGRef,AIGRef> _defs;
-  DHMap<AIGRef,FormulaUnit*> _defUnits;
+  /** Definitions that were already present in the problem before this rule.
+   * Key is a defined AIG and value is its atom name. */
+  DHMap<AIGRef,AIGRef> _existingDefs;
+  DHMap<AIGRef,FormulaUnit*> _existingDefUnits;
 
   /**
    * _defs saturated on the relevand AIGs
    */
   AIGRewriter::RefMap _defsSaturated;
 
-//  DHMap<Literal*,Literal*> _equivs;
-
   Stack<FormulaUnit*> _newDefs;
-
-  bool addAIGName(AIGRef rhs, AIGRef nameAtom, FormulaUnit* namingUnit);
-  bool hasName(AIGRef rhs) const { return _defs.find(rhs); }
-  AIGRef getName(AIGRef rhs) const;
-  bool findName(AIGRef rhs, AIGRef& name) const { return _defs.find(rhs, name); }
 
   AIGRef getPreNamingAig(unsigned aigStackIdx);
 

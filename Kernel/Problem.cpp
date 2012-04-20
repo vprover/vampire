@@ -46,6 +46,7 @@ Problem::Problem(UnitList* units)
  * clauses in the iterator.
  */
 Problem::Problem(ClauseIterator clauses, bool copy)
+: _units(0)
 {
   CALL("Problem::Problem(ClauseIterator,bool)");
 
@@ -59,7 +60,7 @@ Problem::Problem(ClauseIterator clauses, bool copy)
     }
     UnitList::push(cl, units);
   }
-  addUnits(_units);
+  addUnits(units);
 
 }
 

@@ -234,10 +234,9 @@ void Property::scan(Clause* clause)
       }
     }
 
-    bool isGround = true;
-    scan(literal,isGround);
+    scan(literal);
 
-    if (isGround) {
+    if (literal->shared() && literal->ground()) {
       groundLiterals++;
     }
   }
@@ -354,8 +353,7 @@ void Property::scan(Formula* formula)
       if(!lit->shared()) {
 	_hasSpecialTermsOrLets = true;
       }
-      bool dummy = false;
-      scan(lit,dummy);
+      scan(lit);
       break;
     }
     default:
@@ -395,7 +393,7 @@ void Property::scanSort(unsigned sort)
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
  */
-void Property::scan(Literal* lit, bool& isGround)
+void Property::scan(Literal* lit)
 {
   CALL("Property::scan(const Literal*...)");
 
@@ -414,10 +412,10 @@ void Property::scan(Literal* lit, bool& isGround)
   }
 
   scanForInterpreted(lit);
-  scan(lit->args(),isGround);
+  scan(lit->args());
 
-  if(!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality()
-     && lit->isNegative() && !isGround &&
+  if(!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
+     && lit->isNegative() && !lit->ground() &&
      ( ( lit->nthArgument(0)->isVar() &&
 	 !lit->nthArgument(1)->containsSubterm(*lit->nthArgument(0)) ) ||
        ( lit->nthArgument(1)->isVar() &&
@@ -438,7 +436,7 @@ void Property::scan(Literal* lit, bool& isGround)
  * @since 27/08/2003 Vienna, changed to count variables
  * @since 27/05/2007 flight Manchester-Frankfurt, changed to new datastructures
  */
-void Property::scan(TermList* ts, bool& isGround)
+void Property::scan(TermList* ts)
 {
   CALL("Property::scan(TermList*))");
 
@@ -455,29 +453,72 @@ void Property::scan(TermList* ts, bool& isGround)
     // ts is non-empty
     _terms ++;
     if (ts->isVar()) {
-      isGround = false;
       _variablesInThisClause++;
     }
     else { // ts is a reference to a complex term
       Term* t = ts->term();
-      scanForInterpreted(t);
-
-      int arity = t->arity();
-      FunctionType* type = env.signature->getFunction(t->functor())->fnType();
-      for(int i=0; i<arity; i++) {
-        scanSort(type->arg(i));
+      if(t->isSpecial()) {
+	scanSpecialTerm(t);
       }
+      else {
+	scanForInterpreted(t);
 
-      if (arity > _maxFunArity) {
-	_maxFunArity = arity;
-      }
-      if (arity) {
-	stack.push(t->args());
+	int arity = t->arity();
+	FunctionType* type = env.signature->getFunction(t->functor())->fnType();
+	for(int i=0; i<arity; i++) {
+	  scanSort(type->arg(i));
+	}
+
+	if (arity > _maxFunArity) {
+	  _maxFunArity = arity;
+	}
+	if (arity) {
+	  stack.push(t->args());
+	}
       }
     }
     ts = ts->next();
   }
 } // Property::scan(const Term& term, bool& isGround)
+
+void Property::scanSpecialTerm(Term* t)
+{
+  CALL("Property::scanSpecialTerm");
+
+  Term::SpecialTermData* sd = t->getSpecialData();
+  switch(t->functor()) {
+  case Term::SF_TERM_ITE:
+  {
+    ASS_EQ(t->arity(),2);
+    scan(sd->getCondition());
+    scan(t->args());
+    break;
+  }
+  case Term::SF_LET_FORMULA_IN_TERM:
+  {
+    ASS_EQ(t->arity(),1);
+    scan(sd->getLhsLiteral());
+    scan(sd->getRhsFormula());
+    scan(t->args());
+    break;
+  }
+  case Term::SF_LET_TERM_IN_TERM:
+  {
+    ASS_EQ(t->arity(),1);
+    //this is a trick creating an artificial term list with terms we want to traverse
+    TermList aux[3];
+    aux[0].makeEmpty();
+    aux[1] = sd->getRhsTerm();
+    aux[2] = sd->getLhsTerm();
+    bool dummy;
+    scan(aux+2);
+    scan(t->args());
+    break;
+  }
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
 
 void Property::scanForInterpreted(Term* t)
 {

@@ -68,12 +68,39 @@ private:
 
   void createCandidates();
   void tryRandomSimulation();
-  void doOneProbing();
+
+  bool getProbingCandidatesFromGroup(SATLiteralStack& grp, unsigned firstIndex, SATLiteral& cand1, SATLiteral& cand2);
+  bool getProbingCandidatesWithinRotation(SATLiteral& cand1, SATLiteral& cand2);
+  bool nextRotation();
+  bool getProbingCandidates(SATLiteral& cand1, SATLiteral& cand2);
+
+  bool doOneProbing();
 
   void run();
 
   unsigned _varCnt;
   Stack<unsigned> _interestingVars;
+  ArraySet _interestingVarsSet;
+
+  /**
+   * Together with _probingElementIndex serve to ensure fair rotation of
+   * probing candidates. Contain index of a group and _probingElementIndex
+   * of element that is to be probed next (with a successive element of a
+   * group as the second implication candidate).
+   *
+   * The probing element selection should be fair on average, sometimes an
+   * element can be skipped from a round as the groups in the group stack
+   * may change order from time to time.
+   */
+  unsigned _probingGroupIndex;
+  unsigned _probingElementIndex;
+
+  /**
+   * Limit on the number of conflicts during probing. Is increased by the
+   * @c getProbingCandidates function when a rotation is finished.
+   */
+  unsigned _conflictCountLimit;
+
 
   /**
    * Polarities of candidate literals.
@@ -88,13 +115,15 @@ private:
    * Invariant: none of literals in the candidate groups is 0-implied to be false.
    */
   Stack<SATLiteralStack> _candidateGroups;
+
   /**
-   * Usually, index of the largest candidate group, assigned by splitGroupsByCurrAssignment().
+   * A measure of progress, if it decreases, it means we have discovered some new facts.
    *
-   * In some cases it may be index of a group that is not largest, particularly when in
-   * @c doOneProbing() the largest group becomes collapsed.
+   * Is computed as the number of literals in candidate groups minus the number of
+   * candidate groups. It is updated in @c splitGroupsByCurrAssignment().
    */
-  unsigned _biggestGroupIdx;
+  unsigned _unfinishedAmount;
+
   /**
    * Candidate group indexes of variables. Populated by splitGroupsByCurrAssignment().
    */

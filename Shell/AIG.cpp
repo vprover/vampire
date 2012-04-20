@@ -1414,38 +1414,40 @@ Formula* AIGFormulaSharer::aigToFormula(AIGRef aig0)
     if(_formReprs.find(a)) {
       continue;
     }
-    Formula* negRes;
-    if(_formReprs.find(a.neg(), negRes)) {
-      //if a negated formula is shared, the negation argument would also be shared and have aig equal to a
-      ASS_NEQ(negRes->connective(), NOT);
-      shareFormula(new NegatedFormula(negRes), a);
-    }
-    bool pol = a.polarity();
-    AIG::Node* n = a.node();
 
-    if(!pol && (n->kind()==AIG::Node::ATOM || n->kind()==AIG::Node::TRUE_CONST) ) {
-      //for negative literals and false constants we first buld the negation
-      toBuild.push(a);
-      toBuild.push(a.neg());
-      continue;
-    }
+    Formula* form;
 
-    switch(n->kind()) {
-    case AIG::Node::TRUE_CONST:
-      ASS(pol);
-      shareFormula(new Formula(true), a);
-      break;
-    case AIG::Node::ATOM:
-      ASS(pol);
-      shareFormula(new AtomicFormula(n->literal()), a);
-      break;
-    case AIG::Node::QUANT:
-      buildQuantAigFormulaRepr(a, toBuild);
-      break;
-    case AIG::Node::CONJ:
-      buildConjAigFormulaRepr(a, toBuild);
-      break;
+    if(a.isQuantifier() || a.isConjunction()) {
+      Formula* negRes;
+      if(!_formReprs.find(a.neg(), negRes)) {
+
+	//building of conjucntions and quantifiers can generate further subtasks
+	if(a.isQuantifier()) {
+	  buildQuantAigFormulaRepr(a, toBuild);
+	}
+	else {
+	  ASS(a.isConjunction());
+	  buildConjAigFormulaRepr(a, toBuild);
+	}
+	continue; //continue for the outmost while loop
+
+      }
+      else {
+	//if a negated formula is shared, the negation argument would also be shared and have aig equal to a
+	ASS_NEQ(negRes->connective(), NOT);
+	form = new NegatedFormula(negRes);
+      }
     }
+    else if(a.isAtom()) {
+      Literal* posLit = a.getPositiveAtom();
+      Literal* lit = a.polarity() ? posLit : Literal::complementaryLiteral(posLit);
+      form = new AtomicFormula(lit);
+    }
+    if(a.isPropConst()) {
+      form = a.polarity() ? Formula::trueFormula() : Formula::falseFormula();
+    }
+    shareFormula(form, a);
+
   }
   return _formReprs.get(aig0);
 }

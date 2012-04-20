@@ -156,13 +156,6 @@ void TWLSolver::addClauses(SATClauseIterator cit, bool onlyPropagate)
   }
 }
 
-void TWLSolver::addAssumption(SATLiteral lit, bool onlyPropagate)
-{
-  CALL("TWLSolver::addAssumption(SATLiteral,bool)");
-
-  addAssumption(lit, onlyPropagate ? 0 : UINT_MAX);
-}
-
 void TWLSolver::addAssumption(SATLiteral lit, unsigned conflictCountLimit)
 {
   CALL("TWLSolver::addAssumption(SATLiteral,unsigned)");
@@ -1122,6 +1115,26 @@ bool TWLSolver::isZeroImplied(unsigned var)
   CALL("TWLSolver::isZeroImplied");
 
   return getAssignmentLevel(var)==1;
+}
+
+void TWLSolver::collectZeroImplied(SATLiteralStack& acc)
+{
+  CALL("TWLSolver::collectZeroImplied");
+  ASS_NEQ(getStatus(),UNSATISFIABLE);
+
+  Stack<USRec>::BottomFirstIterator usit(_unitStack);
+  while(usit.hasNext()) {
+    const USRec& usr = usit.next();
+    if(usr.choice) {
+      return;
+    }
+    unsigned var = usr.var;
+    ASS_EQ(getAssignmentLevel(var),1);
+    bool pol = isTrue(var);
+    SATLiteral lit(var, pol);
+    ASS(isTrue(lit));
+    acc.push(lit);
+  }
 }
 
 void TWLSolver::printAssignment()

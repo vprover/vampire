@@ -187,8 +187,9 @@ public:
   void scan(Clause*);
   void scan(FormulaUnit*);
   void scan(Formula*);
-  void scan(TermList* ts,bool& isGround);
-  void scan(Literal* lit,bool& isGround);
+  void scan(TermList* ts);
+  void scan(Literal* lit);
+  void scanSpecialTerm(Term* t);
   void scanSort(unsigned sort);
 
   char axiomTypes() const;
